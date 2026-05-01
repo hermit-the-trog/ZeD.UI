@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><div style="display: none;"></div>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI Crafting Tab — Final: Voltron</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111114;font-family:'IBM Plex Sans Condensed',sans-serif;color:#d4d4d8;display:flex;justify-content:center;align-items:flex-start;padding:20px;min-height:100vh}
+:root{
+  --base:#1a1a1e;--s1:#222226;--s2:#2a2a2e;--s3:#333338;--s4:#3c3c42;
+  --bdr:rgba(255,255,255,0.10);--bdrS:rgba(255,255,255,0.20);--bdrSS:rgba(255,255,255,0.30);
+  --tx:#d4d4d8;--txS:rgba(255,255,255,0.45);--txH:rgba(255,255,255,0.65);--txD:rgba(255,255,255,0.30);
+  --acc:#d4a04a;--accB:#e8b85a;--accD:rgba(212,160,74,0.15);
+  --dng:#c44040;--dngD:rgba(196,64,64,0.15);--wrn:#c49040;
+  --pos:#4a9a5a;--posD:rgba(74,154,90,0.15);--info:#5a8ab5;
+  --fm:'JetBrains Mono',monospace;--fs:'IBM Plex Sans Condensed',sans-serif;
+}
+.pg{display:flex;flex-direction:column;gap:14px;align-items:center}
+.pt{font-family:var(--fm);font-size:11px;color:var(--txS);text-transform:uppercase;letter-spacing:2px}
+.ps{font-family:var(--fs);font-size:13px;color:var(--txD);max-width:540px;text-align:center;line-height:1.5}
+
+/* === DRAWER === */
+.drawer{width:480px;height:440px;background:rgba(26,26,30,0.94);border:1px solid var(--bdrS);display:flex;flex-direction:column;overflow:hidden}
+.dr-outer{flex:1;display:flex;overflow:hidden;min-height:0}
+.dr-content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Tab strip — vertical right edge */
+.tstrip{width:28px;border-left:1px solid var(--bdrS);display:flex;flex-direction:column;align-items:center;padding:4px 0;gap:2px;flex-shrink:0}
+.tsi{width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--txS);font-size:13px;position:relative;user-select:none}
+.tsi:hover{color:var(--tx);background:var(--s2)}
+.tsi.on{color:var(--acc);background:var(--accD)}
+.tsi.on::after{content:'';position:absolute;right:-2px;top:2px;bottom:2px;width:2px;background:var(--acc)}
+.tsep{width:16px;height:1px;background:var(--bdr);margin:3px 0}
+.tsi.dm{opacity:.35}
+
+/* Category bar */
+.catbar{height:24px;background:var(--s1);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 4px;gap:1px;flex-shrink:0;overflow:hidden}
+#catBar{display:flex;align-items:center;gap:1px;flex:1;overflow-x:auto;scrollbar-width:none}
+#catBar::-webkit-scrollbar{display:none}
+.catbtn{height:18px;padding:0 6px;font-family:var(--fm);font-size:9px;text-transform:uppercase;color:var(--txS);background:transparent;border:1px solid transparent;cursor:pointer;white-space:nowrap;user-select:none;display:flex;align-items:center;gap:2px}
+.catbtn:hover{color:var(--tx);background:var(--s2)}
+.catbtn.on{color:var(--acc);border-color:var(--acc);background:var(--accD)}
+.catbtn .ct{font-size:8px;color:var(--txD)}.catbtn.on .ct{color:var(--acc)}
+.bumper{font-family:var(--fm);font-size:8px;color:var(--txD);padding:0 2px;flex-shrink:0}
+
+/* Toolbar: search + mode + filters */
+.toolbar{height:26px;background:var(--s2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 6px;gap:4px;flex-shrink:0}
+.srch{flex:1;height:18px;background:var(--base);border:1px solid var(--bdr);color:var(--tx);font-family:var(--fm);font-size:10px;padding:0 6px;outline:none}
+.srch:focus{border-color:var(--acc)}.srch::placeholder{color:var(--txD)}
+.mlabel{font-family:var(--fm);font-size:8px;text-transform:uppercase;letter-spacing:.5px;padding:1px 5px;border:1px solid;white-space:nowrap;user-select:none;flex-shrink:0}
+.mlabel.avail{color:var(--pos);border-color:var(--pos);background:var(--posD)}
+.mlabel.all{color:var(--txS);border-color:var(--bdr);background:transparent}
+.mlabel.search{color:var(--acc);border-color:var(--acc);background:var(--accD)}
+.chip{font-family:var(--fm);font-size:9px;color:var(--txS);background:transparent;border:1px solid var(--bdr);padding:1px 5px;cursor:pointer;white-space:nowrap;user-select:none;flex-shrink:0}
+.chip:hover{color:var(--tx);border-color:var(--bdrS)}
+.chip.on{color:var(--pos);border-color:var(--pos);background:var(--posD)}
+
+/* === NOW PLAYING: fixed top region === */
+.np{flex-shrink:0;border-bottom:1px solid var(--bdrS);background:var(--s1);transition:all .15s}
+.np-empty{padding:8px;text-align:center;font-family:var(--fm);font-size:9px;color:var(--txD);text-transform:uppercase;letter-spacing:1px}
+
+.np-head{display:flex;align-items:center;gap:8px;padding:6px 10px 0}
+.np-icon{width:28px;height:28px;background:var(--s3);border:1px solid var(--bdrS);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.np-tblock{flex:1;min-width:0}
+.np-title{font-family:var(--fs);font-size:13px;font-weight:600;color:var(--acc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.np-meta{display:flex;gap:6px;font-family:var(--fm);font-size:8px;color:var(--txS);text-transform:uppercase;margin-top:1px}
+
+/* Craft action row — the hero */
+.np-action{display:flex;align-items:center;gap:5px;padding:5px 10px}
+.sk{font-family:var(--fm);font-size:9px;padding:0 4px;border:1px solid;flex-shrink:0}
+.sk.met{color:var(--pos);border-color:var(--pos);background:var(--posD)}
+.sk.unmet{color:var(--dng);border-color:var(--dng);background:var(--dngD)}
+.sk-n{font-family:var(--fs);font-size:10px;color:var(--txS);margin-right:auto}
+.batch{display:flex;align-items:center}
+.bb{width:18px;height:18px;background:var(--s3);border:1px solid var(--bdrS);color:var(--tx);font-family:var(--fm);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none}
+.bb:hover{background:var(--s4)}.bb:active{background:var(--acc);color:var(--base)}
+.bv{width:24px;height:18px;background:var(--base);border-top:1px solid var(--bdrS);border-bottom:1px solid var(--bdrS);font-family:var(--fm);font-size:10px;color:var(--tx);display:flex;align-items:center;justify-content:center}
+.cbtn{height:20px;padding:0 14px;background:var(--s3);border:2px solid var(--bdrSS);color:var(--tx);font-family:var(--fm);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;cursor:pointer;user-select:none}
+.cbtn.can{border-color:var(--acc);color:var(--acc)}
+.cbtn.can:hover{background:var(--acc);color:var(--base)}
+.cbtn:disabled{opacity:.4;cursor:not-allowed}
+.np-time{font-family:var(--fm);font-size:9px;color:var(--txD);margin-left:2px;flex-shrink:0}
+
+/* Ingredient pills */
+.np-ings{display:flex;flex-wrap:wrap;gap:3px;padding:0 10px 6px}
+.ing{display:flex;align-items:center;gap:3px;height:18px;padding:0 5px 0 2px;background:var(--s2);border:1px solid var(--bdr);font-size:10px}
+.ing.has{border-left:2px solid var(--pos)}.ing.miss{border-left:2px solid var(--dng)}
+.ing-ic{font-size:9px}.ing-n{font-family:var(--fs);color:var(--tx);white-space:nowrap}.ing.miss .ing-n{color:var(--txS)}
+.ing-ct{font-family:var(--fm);font-size:9px}.ing-ct.has{color:var(--pos)}.ing-ct.miss{color:var(--dng)}
+.ing-k{font-family:var(--fm);font-size:7px;color:var(--txD)}
+.ing-drill{font-family:var(--fm);font-size:8px;color:var(--acc);cursor:pointer;padding:0 1px;opacity:.6}.ing-drill:hover{opacity:1}
+
+/* === ICON GRID: scrollable center === */
+.grid-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:3px;scrollbar-width:thin;scrollbar-color:var(--s3) var(--s1);min-height:0}
+.grid-area::-webkit-scrollbar{width:14px}
+.grid-area::-webkit-scrollbar-track{background:var(--s1)}
+.grid-area::-webkit-scrollbar-thumb{background:var(--s3);border:2px solid var(--s1)}
+.rcell{width:52px;height:52px;background:var(--s2);border:1px solid var(--bdr);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;position:relative;transition:border-color .1s,background .1s}
+.rcell:hover{border-color:var(--bdrS);background:var(--s3)}
+.rcell.sel{border-color:var(--acc);background:var(--accD)}
+.rcell.missing{opacity:.6}.rcell.locked{opacity:.3}
+.rcell .ricon{font-size:20px;line-height:1}
+.rcell .rname{font-family:var(--fm);font-size:7px;color:var(--txS);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:48px;margin-top:2px}
+.rcell.sel .rname{color:var(--acc)}
+.rcell .rdot{position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%}
+.rdot.craftable{background:var(--pos)}.rdot.missing{background:var(--wrn)}.rdot.locked{background:var(--txD)}
+.rcell .rfav{position:absolute;top:2px;left:3px;font-size:8px;color:var(--acc);display:none}
+.rcell .rfav.show{display:block}
+.grid-empty{padding:16px;text-align:center;font-family:var(--fm);font-size:10px;color:var(--txD);text-transform:uppercase;letter-spacing:1px;width:100%}
+
+/* === UTILITY STRIP — universal dock above footer === */
+.ustrip{
+  height:28px;
+  background:var(--s2);
+  border-top:1px solid var(--bdrS);
+  display:flex;
+  align-items:center;
+  padding:0 6px;
+  gap:3px;
+  flex-shrink:0;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.ustrip::-webkit-scrollbar{display:none}
+.ustrip-label{
+  font-family:var(--fm);font-size:8px;color:var(--txD);text-transform:uppercase;
+  letter-spacing:.5px;margin-right:2px;flex-shrink:0;user-select:none;
+}
+.ustrip-item{
+  width:22px;height:22px;
+  background:var(--s3);border:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;cursor:pointer;flex-shrink:0;
+  position:relative;user-select:none;
+  transition:border-color .1s,background .1s;
+}
+.ustrip-item:hover{border-color:var(--bdrS);background:var(--s4)}
+.ustrip-item.sel{border-color:var(--acc);background:var(--accD)}
+.ustrip-item .udot{position:absolute;bottom:1px;right:1px;width:4px;height:4px;border-radius:50%}
+.udot.can{background:var(--pos)}.udot.no{background:var(--dng)}
+.ustrip-sep{width:1px;height:16px;background:var(--bdr);margin:0 2px;flex-shrink:0}
+/* Ghost slot — shows where pins can go */
+.ustrip-ghost{
+  width:22px;height:22px;
+  border:1px dashed var(--bdr);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--txD);flex-shrink:0;opacity:.4;
+}
+
+/* === FOOTER === */
+.foot{
+  height:16px;background:var(--base);
+  border-top:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 6px;font-family:var(--fm);font-size:8px;color:var(--txD);flex-shrink:0;
+}
+.gph{display:flex;gap:7px}
+.gph span{display:flex;align-items:center;gap:2px}
+.gb{display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;border:1px solid var(--txD);border-radius:50%;font-size:7px;color:var(--txS)}
+
+/* === ANNOTATIONS === */
+.ann{max-width:540px;margin-top:8px;font-family:var(--fs);font-size:12px;color:var(--txS);line-height:1.6}
+.ann h3{font-family:var(--fm);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--txH);margin:12px 0 4px}
+.ann p{margin:3px 0}.hi{color:var(--acc)}
+.ann-diagram{font-family:var(--fm);font-size:10px;color:var(--txD);line-height:1.4;padding:6px 10px;background:var(--s1);border:1px solid var(--bdr);margin:6px 0;white-space:pre}
+</style>
+</head>
+<body>
+<div class="pg">
+  <div class="pt">ZeD-UI Crafting Tab — Final Composite</div>
+  <div class="ps">B's grid + C's contextual brain + D's action gravity + universal utility strip. The Voltron.</div>
+
+  <div class="drawer">
+    <div class="dr-outer">
+      <div class="dr-content">
+        <!-- Category bar with bumpers -->
+        <div class="catbar">
+          <span class="bumper">LB</span>
+          <div id="catBar"><div class="catbtn on" onclick="selCat('all')">All<span class="ct">24</span></div><div class="catbtn" onclick="selCat('carpentry')">Carp<span class="ct">8</span></div><div class="catbtn" onclick="selCat('cooking')">Cook<span class="ct">4</span></div><div class="catbtn" onclick="selCat('metalwork')">Metal<span class="ct">2</span></div><div class="catbtn" onclick="selCat('blacksmith')">Smith<span class="ct">2</span></div><div class="catbtn" onclick="selCat('survival')">Surv<span class="ct">5</span></div><div class="catbtn" onclick="selCat('tailoring')">Tailor<span class="ct">1</span></div><div class="catbtn" onclick="selCat('pottery')">Pottery<span class="ct">2</span></div></div>
+          <span class="bumper">RB</span>
+        </div>
+
+        <!-- Toolbar: search + mode label + filter -->
+        <div class="toolbar">
+          <input class="srch" id="srch" type="text" placeholder="Search recipes…">
+          <span class="mlabel avail" id="modeLabel">AVAILABLE</span>
+          <div class="chip" id="fAll" onclick="toggleF('all')">ALL</div>
+        </div>
+
+        <!-- NOW PLAYING: fixed top card+craft -->
+        <div class="np" id="np"><div class="np-head">
+    <div class="np-icon">🍲</div>
+    <div class="np-tblock"><div class="np-title">Soup</div>
+    <div class="np-meta"><span>COOKING</span><span>+3 XP</span></div></div>
+  </div><div class="np-action"><span class="sk met">2/0</span><span class="sk-n">Cooking</span><div class="batch"><div class="bb" onclick="adjB(-1)">−</div><div class="bv">1</div><div class="bb" onclick="adjB(1)">+</div></div><button class="cbtn can">Craft</button><span class="np-time">45s</span></div><div class="np-ings"><div class="ing has"><span class="ing-ic">🫕</span><span class="ing-n">Cooking Pot</span><span class="ing-k">keep</span><span class="ing-ct has">1/1</span></div><div class="ing has"><span class="ing-ic">💧</span><span class="ing-n">Water</span><span class="ing-ct has">3/1</span></div><div class="ing has"><span class="ing-ic">🥕</span><span class="ing-n">Vegetables</span><span class="ing-ct has">5/1</span></div></div></div>
+
+        <!-- ICON GRID: scrollable -->
+        <div class="grid-area" id="grid"><div class="rcell craftable" onclick="selR('r15')">
+      <div class="rdot craftable"></div>
+      <div class="rfav show">★</div>
+      <div class="ricon">🪢</div>
+      <div class="rname">Rope</div>
+    </div><div class="rcell craftable" onclick="selR('r6')">
+      <div class="rdot craftable"></div>
+      <div class="rfav show">★</div>
+      <div class="ricon">🥘</div>
+      <div class="rname">Stir Fry</div>
+    </div><div class="rcell craftable" onclick="selR('r13')">
+      <div class="rdot craftable"></div>
+      <div class="rfav show">★</div>
+      <div class="ricon">🗡</div>
+      <div class="rname">Stone Knife</div>
+    </div><div class="rcell craftable" onclick="selR('r23')">
+      <div class="rdot craftable"></div>
+      <div class="rfav show">★</div>
+      <div class="ricon">🕯</div>
+      <div class="rname">Torch</div>
+    </div><div class="rcell craftable" onclick="selR('r1')">
+      <div class="rdot craftable"></div>
+      <div class="rfav show">★</div>
+      <div class="ricon">📦</div>
+      <div class="rname">Wooden Crate</div>
+    </div><div class="rcell craftable" onclick="selR('r16')">
+      <div class="rdot craftable"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🧶</div>
+      <div class="rname">Leather Strips</div>
+    </div><div class="rcell craftable" onclick="selR('r20')">
+      <div class="rdot craftable"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🥗</div>
+      <div class="rname">Salad</div>
+    </div><div class="rcell craftable sel" onclick="selR('r7')">
+      <div class="rdot craftable"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🍲</div>
+      <div class="rname">Soup</div>
+    </div><div class="rcell craftable" onclick="selR('r4')">
+      <div class="rdot craftable"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🏗</div>
+      <div class="rname">Wall Frame</div>
+    </div><div class="rcell craftable" onclick="selR('r19')">
+      <div class="rdot craftable"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🟫</div>
+      <div class="rname">Wood Floor</div>
+    </div><div class="rcell craftable" onclick="selR('r2')">
+      <div class="rdot craftable"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🗄</div>
+      <div class="rname">Wooden Shelf</div>
+    </div><div class="rcell missing" onclick="selR('r14')">
+      <div class="rdot missing"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🔥</div>
+      <div class="rname">Campfire Kit</div>
+    </div><div class="rcell missing" onclick="selR('r17')">
+      <div class="rdot missing"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🪵</div>
+      <div class="rname">Plank</div>
+    </div><div class="rcell missing" onclick="selR('r3')">
+      <div class="rdot missing"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🪣</div>
+      <div class="rname">Rain Collector</div>
+    </div><div class="rcell missing" onclick="selR('r18')">
+      <div class="rdot missing"></div>
+      <div class="rfav">★</div>
+      <div class="ricon">🚪</div>
+      <div class="rname">Wooden Door</div>
+    </div></div>
+
+        <!-- UTILITY STRIP: universal dock above footer -->
+        <div class="ustrip" id="ustrip"><span class="ustrip-label">★ Pins</span><div class="ustrip-item" onclick="selR('r1')" title="Wooden Crate">📦<div class="udot can"></div></div><div class="ustrip-item" onclick="selR('r6')" title="Stir Fry">🥘<div class="udot can"></div></div><div class="ustrip-item" onclick="selR('r13')" title="Stone Knife">🗡<div class="udot can"></div></div><div class="ustrip-item" onclick="selR('r15')" title="Rope">🪢<div class="udot can"></div></div><div class="ustrip-item" onclick="selR('r23')" title="Torch">🕯<div class="udot can"></div></div><div class="ustrip-sep"></div><div class="ustrip-ghost">+</div><div class="ustrip-ghost">+</div><div class="ustrip-ghost">+</div></div>
+
+        <!-- Footer -->
+        <div class="foot">
+          <span id="ct">15 recipes</span>
+          <div class="gph">
+            <span><span class="gb">A</span> Craft</span>
+            <span><span class="gb">X</span> Pin</span>
+            <span><span class="gb">B</span> Close</span>
+            <span>D-pad Grid</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- World Window action waterfall -->
+      <div class="tstrip">
+        <div class="tsi on" title="Crafting">🔨</div>
+        <div class="tsi" title="Building">🧱</div>
+        <div class="tsep"></div>
+        <div class="tsi dm" title="Forage">🔍</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ann">
+    <h3>The Voltron</h3>
+    <p><span class="hi">B's chassis:</span> 52×52 icon grid, 8 columns, D-pad native. Status dots (green/amber/grey). Category bar with LB/RB bumpers.</p>
+    <p><span class="hi">C's brain:</span> Default mode = AVAILABLE (only
+ craftable + near-craftable). Type to search everything. "ALL" chip 
+overrides to show full catalog. Mode label switches green/amber/grey.</p>
+    <p><span class="hi">D's gravity:</span> Fixed top card + craft button. Structurally impossible to scroll the Craft button offscreen.</p>
+    <p><span class="hi">Utility strip:</span> Universal dock above the 
+footer. Holds pinned recipe shortcuts on the World Window. On the 
+Character Window, this same slot holds moodle icons. On either window, 
+it could hold search bookmarks, quick-transfer targets, or anything 
+persistent.</p>
+
+    <h3>The Utility Strip — Architectural Seed</h3>
+    <div class="ann-diagram">CHARACTER WINDOW              WORLD WINDOW
+┌───────────────────┐     ┌───────────────────┐
+│ content           │     │ content           │
+├─ UTILITY: moodles ┤     ├─ UTILITY: pins    ┤
+├─ footer ──────────┤     ├─ footer ──────────┤
+└───────────────────┘     └───────────────────┘
+
+Same 28px strip, same position, different payload.
+Moodles = character status shortcuts.
+Pins = crafting/action shortcuts.
+Both clickable. Both persistent across state changes.</div>
+
+    <p><span class="hi">Pin interaction:</span> X button (gamepad) or 
+click ★ pins/unpins selected recipe. Pinned items appear as 22px icon 
+tiles in the utility strip with green/red status dots. Click a pin → 
+selects that recipe in the Now Playing region above.</p>
+    <p><span class="hi">Ghost slots</span> — dashed-border empty tiles show available pin capacity. Communicates "you can put things here" without text.</p>
+    <p><span class="hi">Separator</span> — a 1px vertical divider between pins and other future strip content (search bookmarks, etc).</p>
+
+    <h3>Pixel Budget</h3>
+    <div class="ann-diagram">Category bar:    24px
+Toolbar:         26px
+Now Playing:     ~90px (card 34 + action 24 + pills 24 + pad 8)
+Grid:            ~210px (3.5 rows when NP open, ~310px when closed)
+Utility strip:   28px
+Footer:          16px
+Tab strip:       28px width (vertical, no height cost)
+─────────────────────
+Total:           ~394px content + 46px chrome = 440px</div>
+  </div>
+</div>
+
+<script>
+const CATS=[
+  {id:'all',l:'All'},{id:'carpentry',l:'Carp'},{id:'cooking',l:'Cook'},
+  {id:'metalwork',l:'Metal'},{id:'blacksmith',l:'Smith'},
+  {id:'survival',l:'Surv'},{id:'tailoring',l:'Tailor'},{id:'pottery',l:'Pottery'}
+];
+const R=[
+  {id:'r1',n:'Wooden Crate',c:'carpentry',ic:'📦',sk:'Carpentry',sl:2,ps:4,t:45,xp:5,
+   ing:[{n:'Plank',ic:'🪵',nd:4,hv:12,cr:true},{n:'Nails',ic:'🔩',nd:4,hv:38},{n:'Hammer',ic:'🔨',nd:1,hv:1,k:true}]},
+  {id:'r2',n:'Wooden Shelf',c:'carpentry',ic:'🗄',sk:'Carpentry',sl:3,ps:4,t:55,xp:8,
+   ing:[{n:'Plank',ic:'🪵',nd:3,hv:12,cr:true},{n:'Nails',ic:'🔩',nd:6,hv:38},{n:'Hammer',ic:'🔨',nd:1,hv:1,k:true},{n:'Screwdriver',ic:'🪛',nd:1,hv:1,k:true}]},
+  {id:'r3',n:'Rain Collector',c:'carpentry',ic:'🪣',sk:'Carpentry',sl:4,ps:4,t:120,xp:15,
+   ing:[{n:'Plank',ic:'🪵',nd:4,hv:12,cr:true},{n:'Nails',ic:'🔩',nd:4,hv:38},{n:'Garbage Bag',ic:'🗑',nd:4,hv:2},{n:'Hammer',ic:'🔨',nd:1,hv:1,k:true}]},
+  {id:'r4',n:'Wall Frame',c:'carpentry',ic:'🏗',sk:'Carpentry',sl:2,ps:4,t:60,xp:6,
+   ing:[{n:'Plank',ic:'🪵',nd:3,hv:12,cr:true},{n:'Nails',ic:'🔩',nd:2,hv:38},{n:'Hammer',ic:'🔨',nd:1,hv:1,k:true}]},
+  {id:'r5',n:'Log Wall',c:'carpentry',ic:'🪵',sk:'Carpentry',sl:6,ps:4,t:180,xp:20,
+   ing:[{n:'Log',ic:'🪵',nd:3,hv:0},{n:'Rope',ic:'🪢',nd:1,hv:0,cr:true}]},
+  {id:'r17',n:'Plank',c:'carpentry',ic:'🪵',sk:'Carpentry',sl:0,ps:4,t:20,xp:1,
+   ing:[{n:'Log',ic:'🪵',nd:1,hv:0},{n:'Saw',ic:'🪚',nd:1,hv:1,k:true}]},
+  {id:'r18',n:'Wooden Door',c:'carpentry',ic:'🚪',sk:'Carpentry',sl:3,ps:4,t:80,xp:10,
+   ing:[{n:'Plank',ic:'🪵',nd:4,hv:12,cr:true},{n:'Nails',ic:'🔩',nd:4,hv:38},{n:'Door Hinges',ic:'🔧',nd:2,hv:1},{n:'Hammer',ic:'🔨',nd:1,hv:1,k:true}]},
+  {id:'r19',n:'Wood Floor',c:'carpentry',ic:'🟫',sk:'Carpentry',sl:2,ps:4,t:30,xp:3,
+   ing:[{n:'Plank',ic:'🪵',nd:2,hv:12,cr:true},{n:'Nails',ic:'🔩',nd:2,hv:38},{n:'Hammer',ic:'🔨',nd:1,hv:1,k:true}]},
+  {id:'r6',n:'Stir Fry',c:'cooking',ic:'🥘',sk:'Cooking',sl:0,ps:2,t:30,xp:3,
+   ing:[{n:'Cooking Pot',ic:'🫕',nd:1,hv:1,k:true},{n:'Vegetables',ic:'🥕',nd:2,hv:5},{n:'Butter',ic:'🧈',nd:1,hv:1}]},
+  {id:'r7',n:'Soup',c:'cooking',ic:'🍲',sk:'Cooking',sl:0,ps:2,t:45,xp:3,
+   ing:[{n:'Cooking Pot',ic:'🫕',nd:1,hv:1,k:true},{n:'Water',ic:'💧',nd:1,hv:3},{n:'Vegetables',ic:'🥕',nd:1,hv:5}]},
+  {id:'r8',n:'Bread Dough',c:'cooking',ic:'🍞',sk:'Cooking',sl:3,ps:2,t:20,xp:5,
+   ing:[{n:'Flour',ic:'🌾',nd:1,hv:0},{n:'Water',ic:'💧',nd:1,hv:3},{n:'Yeast',ic:'🧫',nd:1,hv:0}]},
+  {id:'r20',n:'Salad',c:'cooking',ic:'🥗',sk:'Cooking',sl:0,ps:2,t:15,xp:2,
+   ing:[{n:'Vegetables',ic:'🥕',nd:3,hv:5},{n:'Kitchen Knife',ic:'🔪',nd:1,hv:1,k:true}]},
+  {id:'r9',n:'Metal Sheet',c:'metalwork',ic:'🔲',sk:'Metalworking',sl:1,ps:0,t:60,xp:8,
+   ing:[{n:'Sm. Metal Sheet',ic:'▪',nd:2,hv:3},{n:'Propane Torch',ic:'🔥',nd:1,hv:0},{n:'Welding Mask',ic:'🎭',nd:1,hv:0,k:true}]},
+  {id:'r10',n:'Metal Bar',c:'metalwork',ic:'🔩',sk:'Metalworking',sl:2,ps:0,t:80,xp:10,
+   ing:[{n:'Sm. Metal Sheet',ic:'▪',nd:3,hv:3},{n:'Propane Torch',ic:'🔥',nd:1,hv:0},{n:'Welding Mask',ic:'🎭',nd:1,hv:0,k:true}]},
+  {id:'r11',n:'Iron Ingot',c:'blacksmith',ic:'🧱',sk:'Blacksmithing',sl:1,ps:0,t:90,xp:12,
+   ing:[{n:'Iron Ore',ic:'�ite',nd:2,hv:0},{n:'Charcoal',ic:'◼',nd:1,hv:0,cr:true},{n:'Forge',ic:'🔥',nd:1,hv:0,k:true,st:true,cr:true}]},
+  {id:'r12',n:'Iron Knife Blade',c:'blacksmith',ic:'🔪',sk:'Blacksmithing',sl:2,ps:0,t:120,xp:15,
+   ing:[{n:'Iron Ingot',ic:'🧱',nd:1,hv:0,cr:true},{n:'Forge',ic:'🔥',nd:1,hv:0,k:true,st:true},{n:'Tongs',ic:'🪝',nd:1,hv:0,k:true},{n:'Hammer',ic:'🔨',nd:1,hv:1,k:true}]},
+  {id:'r13',n:'Stone Knife',c:'survival',ic:'🗡',t:25,xp:2,
+   ing:[{n:'Chipped Stone',ic:'🪨',nd:1,hv:3},{n:'Tree Branch',ic:'🌿',nd:1,hv:5}]},
+  {id:'r14',n:'Campfire Kit',c:'survival',ic:'🔥',t:30,xp:2,
+   ing:[{n:'Plank',ic:'🪵',nd:1,hv:12,cr:true},{n:'Paper',ic:'📄',nd:2,hv:8},{n:'Notched Plank',ic:'🪵',nd:1,hv:0,cr:true}]},
+  {id:'r15',n:'Rope',c:'survival',ic:'🪢',t:15,xp:1,
+   ing:[{n:'Sheet',ic:'🛏',nd:1,hv:4},{n:'Scissors',ic:'✂',nd:1,hv:1,k:true}]},
+  {id:'r16',n:'Leather Strips',c:'tailoring',ic:'🧶',sk:'Tailoring',sl:0,ps:1,t:15,xp:2,
+   ing:[{n:'Leather',ic:'🟤',nd:1,hv:2},{n:'Scissors',ic:'✂',nd:1,hv:1,k:true}]},
+  {id:'r21',n:'Clay Bowl',c:'pottery',ic:'🥣',sk:'Pottery',sl:1,ps:0,t:40,xp:5,
+   ing:[{n:'Clay Ball',ic:'🟤',nd:2,hv:0},{n:'Pottery Wheel',ic:'⚙',nd:1,hv:0,k:true,st:true}]},
+  {id:'r22',n:'Clay Jar',c:'pottery',ic:'🏺',sk:'Pottery',sl:2,ps:0,t:60,xp:8,
+   ing:[{n:'Clay Ball',ic:'🟤',nd:3,hv:0},{n:'Pottery Wheel',ic:'⚙',nd:1,hv:0,k:true,st:true}]},
+  {id:'r23',n:'Torch',c:'survival',ic:'🕯',t:10,xp:1,
+   ing:[{n:'Tree Branch',ic:'🌿',nd:1,hv:5},{n:'Ripped Sheets',ic:'🩹',nd:1,hv:6}]},
+  {id:'r24',n:'Fish Trap',c:'survival',ic:'🪤',sk:'Fishing',sl:1,ps:0,t:35,xp:4,
+   ing:[{n:'Plank',ic:'🪵',nd:2,hv:12,cr:true},{n:'Nails',ic:'🔩',nd:2,hv:38},{n:'Twine',ic:'🧵',nd:1,hv:0}]},
+];
+
+const MAX_PINS = 8;
+const S={cat:'all',q:'',showAll:false,sel:null,pins:['r1','r6','r13','r15','r23'],bc:1};
+
+function canC(r){return(!r.sk||r.ps>=r.sl)&&r.ing.every(i=>i.hv>=i.nd)}
+function sMet(r){return!r.sk||r.ps>=r.sl}
+function stat(r){return canC(r)?'craftable':sMet(r)?'missing':'locked'}
+
+function filtered(){
+  let l=[...R];
+  const searching = S.q.length > 0;
+  // Category filter
+  if(S.cat!=='all') l=l.filter(r=>r.c===S.cat);
+  // Search filter
+  if(searching){
+    const q=S.q.toLowerCase();
+    l=l.filter(r=>r.n.toLowerCase().includes(q)||r.c.includes(q)||r.ing.some(i=>i.n.toLowerCase().includes(q)));
+  }
+  // Contextual availability filter (C's brain): hide locked unless ALL or searching
+  if(!S.showAll && !searching){
+    l=l.filter(r=>{
+      if(canC(r)) return true;
+      if(!sMet(r)) return false;
+      // Show near-misses (≤2 missing)
+      return r.ing.filter(i=>i.hv<i.nd).length <= 2;
+    });
+  }
+  // Sort: pinned first, then craftable, then by missing count
+  l.sort((a,b)=>{
+    const pa=S.pins.includes(a.id)?0:1, pb=S.pins.includes(b.id)?0:1;
+    if(pa!==pb) return pa-pb;
+    const ac=canC(a)?0:1, bc_=canC(b)?0:1;
+    if(ac!==bc_) return ac-bc_;
+    const am=a.ing.filter(i=>i.hv<i.nd).length, bm=b.ing.filter(i=>i.hv<i.nd).length;
+    if(am!==bm) return am-bm;
+    return a.n.localeCompare(b.n);
+  });
+  return l;
+}
+
+// Determine mode label
+function getMode(){
+  if(S.q.length>0) return 'search';
+  if(S.showAll) return 'all';
+  return 'avail';
+}
+
+function renderCats(){
+  document.getElementById('catBar').innerHTML=CATS.map(c=>{
+    const ct=c.id==='all'?R.length:R.filter(r=>r.c===c.id).length;
+    return`<div class="catbtn${S.cat===c.id?' on':''}" onclick="selCat('${c.id}')">${c.l}<span class="ct">${ct}</span></div>`;
+  }).join('');
+}
+
+function renderNP(){
+  const el=document.getElementById('np');
+  if(!S.sel){el.innerHTML='<div class="np-empty">Select a recipe</div>';return}
+  const r=R.find(x=>x.id===S.sel);
+  if(!r){el.innerHTML='<div class="np-empty">Select a recipe</div>';return}
+  const craft=canC(r);
+  let h=`<div class="np-head">
+    <div class="np-icon">${r.ic}</div>
+    <div class="np-tblock"><div class="np-title">${r.n}</div>
+    <div class="np-meta"><span>${(r.c||'').toUpperCase()}</span>${r.xp?`<span>+${r.xp} XP</span>`:''}</div></div>
+  </div>`;
+  h+=`<div class="np-action">`;
+  if(r.sk){const met=r.ps>=r.sl;h+=`<span class="sk ${met?'met':'unmet'}">${r.ps}/${r.sl}</span><span class="sk-n">${r.sk}</span>`}
+  else{h+=`<span class="sk-n"></span>`}
+  h+=`<div class="batch"><div class="bb" onclick="adjB(-1)">−</div><div class="bv">${S.bc}</div><div class="bb" onclick="adjB(1)">+</div></div>`;
+  h+=`<button class="cbtn${craft?' can':''}" ${!craft?'disabled':''}>${craft?'Craft':'Missing'}</button>`;
+  h+=`<span class="np-time">${r.t?r.t*S.bc+'s':''}</span></div>`;
+  h+=`<div class="np-ings">`;
+  r.ing.forEach(i=>{
+    const has=i.hv>=i.nd;const cls=has?'has':'miss';
+    const drill=i.cr?`<span class="ing-drill" onclick="drillIng('${i.n}')">→</span>`:'';
+    h+=`<div class="ing ${cls}"><span class="ing-ic">${i.ic}</span><span class="ing-n">${i.n}</span>${i.k?'<span class="ing-k">keep</span>':''}<span class="ing-ct ${cls}">${i.hv}/${i.nd}</span>${drill}</div>`;
+  });
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+function renderGrid(){
+  const el=document.getElementById('grid');
+  const list=filtered();
+  if(!list.length){el.innerHTML='<div class="grid-empty">No recipes match</div>';document.getElementById('ct').textContent='0 recipes';return}
+  el.innerHTML=list.map(r=>{
+    const s=stat(r);const sel=S.sel===r.id?' sel':'';const pinned=S.pins.includes(r.id);
+    return`<div class="rcell ${s}${sel}" onclick="selR('${r.id}')">
+      <div class="rdot ${s}"></div>
+      <div class="rfav${pinned?' show':''}">★</div>
+      <div class="ricon">${r.ic}</div>
+      <div class="rname">${r.n}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('ct').textContent=`${list.length} recipe${list.length!==1?'s':''}`;
+}
+
+function renderStrip(){
+  const el=document.getElementById('ustrip');
+  let h='<span class="ustrip-label">★ Pins</span>';
+  S.pins.forEach(id=>{
+    const r=R.find(x=>x.id===id);if(!r) return;
+    const can=canC(r);const sel=S.sel===id?' sel':'';
+    h+=`<div class="ustrip-item${sel}" onclick="selR('${id}')" title="${r.n}">${r.ic}<div class="udot ${can?'can':'no'}"></div></div>`;
+  });
+  // Ghost slots for remaining capacity
+  const remaining=MAX_PINS-S.pins.length;
+  if(remaining>0 && S.pins.length>0){
+    h+=`<div class="ustrip-sep"></div>`;
+  }
+  for(let i=0;i<Math.min(remaining,3);i++){
+    h+=`<div class="ustrip-ghost">+</div>`;
+  }
+  el.innerHTML=h;
+}
+
+function renderMode(){
+  const m=getMode();
+  const ml=document.getElementById('modeLabel');
+  if(m==='search'){ml.textContent='SEARCH';ml.className='mlabel search'}
+  else if(m==='all'){ml.textContent='ALL';ml.className='mlabel all'}
+  else{ml.textContent='AVAILABLE';ml.className='mlabel avail'}
+  document.getElementById('fAll').className='chip'+(S.showAll?' on':'');
+}
+
+function render(){renderCats();renderNP();renderGrid();renderStrip();renderMode()}
+
+function selCat(id){S.cat=id;S.sel=null;render()}
+function selR(id){S.sel=S.sel===id?null:id;S.bc=1;render()}
+function togglePin(id){
+  const idx=S.pins.indexOf(id);
+  if(idx>=0) S.pins.splice(idx,1);
+  else if(S.pins.length<MAX_PINS) S.pins.push(id);
+  render();
+}
+function toggleF(w){
+  if(w==='all') S.showAll=!S.showAll;
+  render();
+}
+function adjB(d){S.bc=Math.max(1,Math.min(99,S.bc+d));renderNP()}
+function drillIng(name){
+  const m=R.find(r=>r.n.toLowerCase()===name.toLowerCase());
+  if(m){S.sel=m.id;S.bc=1;render()}
+}
+
+document.getElementById('srch').addEventListener('input',e=>{S.q=e.target.value;S.sel=null;render()});
+
+// Keyboard: X to pin/unpin selected
+document.addEventListener('keydown',e=>{
+  if(e.key==='x'||e.key==='X'){if(S.sel)togglePin(S.sel)}
+});
+
+render();
+</script>
+
+
+</body></html>

@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Two Windows To Rule Them All</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --base: #1a1a1e;
+  --surf1: #222226;
+  --surf2: #2a2a2e;
+  --surf3: #333338;
+  --border: rgba(255,255,255,0.10);
+  --borderS: rgba(255,255,255,0.20);
+  --text: #d4d4d8;
+  --textSec: rgba(255,255,255,0.45);
+  --textHead: rgba(255,255,255,0.65);
+  --accent: #d4a04a;
+  --accentDim: rgba(212,160,74,0.15);
+  --danger: #c44040;
+  --warning: #c49040;
+  --positive: #4a9a5a;
+  --titleStripe1: #333338;
+  --titleStripe2: #2a2a2e;
+  --surfAlpha: 0.92;
+  --pad: 10px;
+  --colGap: 12px;
+  --fontMono: 'Fira Mono', monospace;
+  --fontSans: 'Fira Sans', sans-serif;
+  --btnH: 22px;
+  --btnW: 22px;
+  --rowH: 28px;
+  --tabW: 28px;
+  --titleH: 26px;
+  --scrollW: 14px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0a0a0d;
+  font-family: var(--fontSans);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  user-select: none;
+}
+
+.page-title {
+  font-family: var(--fontMono);
+  font-size: 13px;
+  color: var(--textSec);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+.page-sub {
+  font-family: var(--fontMono);
+  font-size: 10px;
+  color: rgba(255,255,255,0.20);
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+  text-align: center;
+  max-width: 700px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   GAME SCREEN CONTAINER
+   ============================================================ */
+.game-screen {
+  width: 1200px;
+  height: 700px;
+  background: #111114;
+  border: 1px solid var(--borderS);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(40,60,30,0.3) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 60%, rgba(30,40,50,0.3) 0%, transparent 60%),
+    #111114;
+  opacity: 0.6;
+}
+
+/* ============================================================
+   WINDOW SHELL — shared by both windows
+   ============================================================ */
+.zed-window {
+  position: absolute;
+  background: rgba(26,26,30, var(--surfAlpha));
+  border: 1px solid var(--borderS);
+  display: flex;
+  flex-direction: column;
+  transition: height 0.15s ease;
+}
+
+.zed-window.shaded .win-body,
+.zed-window.shaded .win-controls { display: none; }
+
+/* Title bar */
+.win-titlebar {
+  height: var(--titleH);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--borderS);
+  background: repeating-linear-gradient(
+    to right,
+    var(--titleStripe1) 0px, var(--titleStripe1) 2px,
+    var(--titleStripe2) 2px, var(--titleStripe2) 4px
+  );
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.close-box {
+  width: 14px; height: 14px;
+  border: 1px solid var(--borderS);
+  background: var(--surf1);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.close-box:hover { background: #444; }
+.close-box::after { content: '×'; font-family: var(--fontMono); font-size: 10px; color: #aaa; line-height: 1; }
+
+.win-title {
+  font-family: var(--fontMono);
+  font-size: 11px;
+  color: var(--textHead);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+  flex: 1;
+}
+
+.win-stats {
+  font-family: var(--fontMono);
+  font-size: 10px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.shade-btn {
+  width: 14px; height: 14px;
+  border: 1px solid var(--borderS);
+  background: var(--surf1);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  margin-left: 6px;
+}
+.shade-btn:hover { background: #444; }
+.shade-btn::after {
+  content: '';
+  width: 8px; height: 2px;
+  background: #aaa;
+}
+
+/* Window body */
+.win-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ============================================================
+   TAB STRIP — vertical bar of icon tabs
+   ============================================================ */
+.tab-strip {
+  width: var(--tabW);
+  background: var(--surf1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.tab-strip.right {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+.tab-btn {
+  width: 100%; height: var(--tabW);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  color: var(--textSec);
+  font-size: 13px;
+}
+.tab-btn:hover { background: var(--surf2); color: var(--text); }
+.tab-btn.active {
+  background: var(--surf2);
+  color: var(--accent);
+}
+.tab-btn.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+}
+.tab-strip.right .tab-btn.active::before {
+  left: auto; right: 0;
+}
+.tab-btn.contextual {
+  border-bottom-color: var(--accentDim);
+}
+
+.tab-sep {
+  height: 1px;
+  background: var(--borderS);
+  margin: 2px 0;
+}
+
+/* ============================================================
+   DRAWER — slides out from tab strip side
+   ============================================================ */
+.drawer {
+  width: 0;
+  overflow: hidden;
+  background: var(--surf2);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: width 0.12s ease;
+  display: flex;
+  flex-direction: column;
+}
+.drawer.right {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+.drawer.open { width: 260px; }
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 260px;
+}
+
+/* Drawer: item card content */
+.ic-zone { padding: var(--pad); }
+.ic-identity { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.ic-icon {
+  width: 40px; height: 40px;
+  border: 1px solid var(--borderS);
+  background: var(--surf3);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 22px;
+}
+.ic-name { font-family: var(--fontSans); font-size: 13px; font-weight: 500; color: var(--accent); line-height: 1.3; }
+.ic-realname { font-family: var(--fontSans); font-size: 11px; color: var(--textSec); line-height: 1.3; }
+
+.ic-stat { display: flex; justify-content: space-between; align-items: baseline; height: 20px; }
+.ic-stat-label { font-family: var(--fontMono); font-size: 10px; color: var(--textSec); text-transform: uppercase; letter-spacing: 0.3px; }
+.ic-stat-val { font-family: var(--fontSans); font-size: 12px; color: var(--text); }
+
+.ic-rule { height: 1px; background: var(--border); margin: 4px 0; }
+
+.ic-bar-wrap { margin: 4px 0 2px; }
+.ic-bar-label { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.ic-bar-track { height: 12px; background: var(--surf3); border: 1px solid var(--border); position: relative; overflow: hidden; }
+.ic-bar-fill { position: absolute; top: 0; left: 0; bottom: 0; }
+.ic-bar-fill.green { background: var(--positive); }
+.ic-bar-fill.amber { background: var(--warning); }
+.ic-bar-fill.red { background: var(--danger); }
+
+.ic-actions {
+  border-top: 1px solid var(--border);
+  padding: 6px var(--pad);
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  background: var(--surf1);
+}
+.ic-action-btn {
+  height: var(--btnH);
+  padding: 0 8px;
+  border: 1px solid var(--borderS);
+  background: transparent;
+  font-family: var(--fontMono);
+  font-size: 9px;
+  color: var(--text);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex; align-items: center; gap: 4px;
+}
+.ic-action-btn:hover { background: rgba(255,255,255,0.06); color: var(--accent); }
+.ic-action-btn.primary { border-color: var(--accent); color: var(--accent); }
+.ic-action-btn.primary:hover { background: var(--accentDim); }
+
+/* Drawer: tab panel content */
+.tab-panel-content {
+  padding: var(--pad);
+  min-width: 260px;
+}
+.tp-title {
+  font-family: var(--fontMono);
+  font-size: 11px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.tp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 24px;
+}
+.tp-label { font-family: var(--fontMono); font-size: 10px; color: var(--textSec); text-transform: uppercase; }
+.tp-value { font-family: var(--fontSans); font-size: 12px; color: var(--text); }
+.tp-value.danger { color: var(--danger); }
+.tp-value.warning { color: var(--warning); }
+.tp-value.positive { color: var(--positive); }
+
+.tp-wound {
+  padding: 6px 8px;
+  background: rgba(196,64,64,0.08);
+  border: 1px solid rgba(196,64,64,0.25);
+  margin: 6px 0;
+}
+.tp-wound-title { font-family: var(--fontMono); font-size: 10px; color: var(--danger); margin-bottom: 4px; text-transform: uppercase; }
+.tp-wound-stat { font-family: var(--fontSans); font-size: 11px; color: var(--textSec); }
+
+.tp-skill-bar-wrap { margin: 3px 0; }
+.tp-skill-bar { height: 8px; background: var(--surf3); border: 1px solid var(--border); position: relative; }
+.tp-skill-fill { position: absolute; top: 0; left: 0; bottom: 0; background: var(--accent); opacity: 0.6; }
+
+/* ============================================================
+   INVENTORY LIST — the main item list
+   ============================================================ */
+.inv-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.inv-header {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--surf1);
+  border-bottom: 1px solid var(--borderS);
+  font-family: var(--fontMono);
+  font-size: 9px;
+  color: var(--textSec);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.inv-header span { flex: 1; }
+.inv-header .h-cat { width: 70px; text-align: right; flex: none; }
+.inv-header .h-wt { width: 50px; text-align: right; flex: none; }
+
+.inv-rows {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.inv-row {
+  height: var(--rowH);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.inv-row:hover { background: rgba(255,255,255,0.03); }
+.inv-row.selected { background: var(--accentDim); }
+.inv-row.selected .row-name { color: var(--accent); }
+
+.row-icon {
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.row-name {
+  flex: 1;
+  font-family: var(--fontSans);
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row-cat {
+  width: 70px;
+  font-family: var(--fontMono);
+  font-size: 9px;
+  color: var(--textSec);
+  text-align: right;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.row-wt {
+  width: 50px;
+  font-family: var(--fontMono);
+  font-size: 10px;
+  color: var(--textSec);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   CONTAINER STRIP — vertical bag/container buttons
+   ============================================================ */
+.container-strip {
+  width: 36px;
+  background: var(--surf1);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.container-strip.left { border-right: 1px solid var(--border); }
+.container-strip.right { border-left: 1px solid var(--border); }
+
+.bag-btn {
+  width: 100%; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.bag-btn:hover { background: var(--surf2); }
+.bag-btn.active { background: var(--surf2); }
+.bag-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 4px; right: 4px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.bag-sep { height: 1px; background: var(--borderS); margin: 2px 0; }
+
+.bag-label {
+  font-family: var(--fontMono);
+  font-size: 8px;
+  color: var(--textSec);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   MOODLE BAR
+   ============================================================ */
+.moodle-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px 6px;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  flex-shrink: 0;
+  min-height: 24px;
+}
+.moodle-bar.top {
+  border-top: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.moodle {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 0;
+  position: relative;
+}
+.moodle:hover { background: rgba(255,255,255,0.06); }
+.moodle .moodle-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surf1);
+  border: 1px solid var(--borderS);
+  padding: 2px 6px;
+  font-family: var(--fontMono);
+  font-size: 9px;
+  color: var(--text);
+  white-space: nowrap;
+  z-index: 100;
+}
+.moodle:hover .moodle-tip { display: block; }
+
+/* ============================================================
+   CONTROLS STRIP — bottom bar with action buttons
+   ============================================================ */
+.win-controls {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  gap: 4px;
+  border-top: 1px solid var(--borderS);
+  background: var(--surf1);
+  flex-shrink: 0;
+}
+.ctrl-btn {
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-family: var(--fontMono);
+  font-size: 9px;
+  color: var(--textSec);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex; align-items: center;
+}
+.ctrl-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.ctrl-btn.accent { border-color: var(--accent); color: var(--accent); }
+
+.ctrl-sep { width: 1px; height: 14px; background: var(--border); margin: 0 2px; }
+.ctrl-spacer { flex: 1; }
+
+/* ============================================================
+   STATUS INDICATOR & INTERACTION LOG
+   ============================================================ */
+.interaction-log {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--fontMono);
+  font-size: 10px;
+  color: var(--accent);
+  background: rgba(26,26,30,0.90);
+  border: 1px solid var(--borderS);
+  padding: 4px 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 50;
+}
+
+/* ============================================================
+   LEGEND / INSTRUCTIONS
+   ============================================================ */
+.legend {
+  margin-top: 16px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.legend-item {
+  font-family: var(--fontMono);
+  font-size: 9px;
+  color: var(--textSec);
+  display: flex; align-items: center; gap: 6px;
+}
+.legend-key {
+  padding: 1px 5px;
+  border: 1px solid var(--borderS);
+  background: var(--surf2);
+  color: var(--text);
+  font-size: 9px;
+}
+</style>
+</head>
+<body>
+
+<div class="page-title">ZeD-UI — Two Windows To Rule Them All</div>
+<div class="page-sub">
+  Character Window = "me and my stuff" · World Window = "the world and its stuff"<br>
+  Click items to open drawer · Click tabs for panels · Click shade button to collapse · Moodles at bottom
+</div>
+
+<div class="game-screen" id="game-screen">
+  <div class="game-bg"></div>
+
+  <!-- ============================================================
+       CHARACTER WINDOW (left)
+       Layout: [handle area][tabs][drawer] [inv list] [container strip]
+       ============================================================ -->
+  <div class="zed-window" id="char-window" style="left:30px; top:60px; width:540px; height:520px;">
+    <div class="win-titlebar">
+      <div class="close-box" title="Close"></div>
+      <span class="win-title">Character</span>
+      <span class="win-stats">8.3 / 20 kg</span>
+      <div class="shade-btn" onclick="toggleShade('char-window')" title="Window Shade"></div>
+    </div>
+
+    <div class="win-body">
+      <!-- Tab strip (left edge) -->
+      <div class="tab-strip" id="char-tabs">
+        <div class="tab-btn" data-tab="equip" data-window="char" onclick="clickTab(this)" title="Equipment">⚔</div>
+        <div class="tab-btn" data-tab="health" data-window="char" onclick="clickTab(this)" title="Health">❤</div>
+        <div class="tab-btn" data-tab="skills" data-window="char" onclick="clickTab(this)" title="Skills">📊</div>
+        <div class="tab-btn" data-tab="protect" data-window="char" onclick="clickTab(this)" title="Protection">🛡</div>
+        <div class="tab-btn" data-tab="thermal" data-window="char" onclick="clickTab(this)" title="Thermal">🌡</div>
+        <div class="tab-sep"></div>
+        <div class="tab-btn" data-tab="journal" data-window="char" onclick="clickTab(this)" title="Journal">📖</div>
+        <div class="tab-btn" data-tab="identity" data-window="char" onclick="clickTab(this)" title="Identity">👤</div>
+      </div>
+
+      <!-- Drawer (slides out right of tabs) -->
+      <div class="drawer" id="char-drawer">
+        <div class="drawer-content" id="char-drawer-content"></div>
+      </div>
+
+      <!-- Inventory list -->
+      <div class="inv-list">
+        <div class="inv-header">
+          <span>Item</span>
+          <span class="h-cat">Category</span>
+          <span class="h-wt">Weight</span>
+        </div>
+        <div class="inv-rows" id="char-items"></div>
+      </div>
+
+      <!-- Container strip (right edge — player bags) -->
+      <div class="container-strip right">
+        <div class="bag-btn active" title="Main Inventory">🎒</div>
+        <div class="bag-btn" title="Duffel Bag">👜</div>
+        <div class="bag-btn" title="Fanny Pack">👝</div>
+        <div class="bag-sep"></div>
+        <div class="bag-btn" title="Key Ring">🔑</div>
+      </div>
+    </div>
+
+    <!-- Moodle bar -->
+    <div class="moodle-bar" id="char-moodles">
+      <div class="moodle" onclick="clickMoodle('health','char')" title="Injured">🩸<span class="moodle-tip">Injured — click for Health</span></div>
+      <div class="moodle" onclick="clickMoodle('health','char')" title="Pain">😣<span class="moodle-tip">Pain — click for Health</span></div>
+      <div class="moodle" title="Hungry">🍖<span class="moodle-tip">Hungry</span></div>
+      <div class="moodle" onclick="clickMoodle('thermal','char')" title="Cold">🥶<span class="moodle-tip">Cold — click for Thermal</span></div>
+    </div>
+
+    <!-- Controls strip -->
+    <div class="win-controls">
+      <div class="ctrl-btn">⊟ Filter</div>
+      <div class="ctrl-btn">↕ Sort</div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-btn">☰ List</div>
+      <div class="ctrl-btn">⊞ Grid</div>
+      <div class="ctrl-spacer"></div>
+      <div class="ctrl-btn accent">↓ Drop All</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       WORLD WINDOW (right)
+       Layout: [container strip] [inv list] [drawer][tabs][handle area]
+       ============================================================ -->
+  <div class="zed-window" id="world-window" style="left:600px; top:60px; width:540px; height:520px;">
+    <div class="win-titlebar">
+      <div class="shade-btn" onclick="toggleShade('world-window')" title="Window Shade"></div>
+      <span class="win-title" style="margin-left:8px;">World</span>
+      <span class="win-stats">Kitchen Counter</span>
+      <div class="close-box" title="Close" style="margin-left:8px;"></div>
+    </div>
+
+    <div class="win-body">
+      <!-- Container strip (left edge — world containers) -->
+      <div class="container-strip left">
+        <div class="bag-btn active" title="Kitchen Counter">🗄️</div>
+        <div class="bag-btn" title="Fridge">🧊</div>
+        <div class="bag-btn" title="Campfire" style="position:relative;">🔥</div>
+        <div class="bag-sep"></div>
+        <div class="bag-btn" title="Floor">
+          <span class="bag-label">FLR</span>
+        </div>
+      </div>
+
+      <!-- Inventory list -->
+      <div class="inv-list">
+        <div class="inv-header">
+          <span>Item</span>
+          <span class="h-cat">Category</span>
+          <span class="h-wt">Weight</span>
+        </div>
+        <div class="inv-rows" id="world-items"></div>
+      </div>
+
+      <!-- Drawer (slides out left of tabs) -->
+      <div class="drawer right" id="world-drawer">
+        <div class="drawer-content" id="world-drawer-content"></div>
+      </div>
+
+      <!-- Tab strip (right edge) -->
+      <div class="tab-strip right" id="world-tabs">
+        <div class="tab-btn" data-tab="craft" data-window="world" onclick="clickTab(this)" title="Crafting">🔨</div>
+        <div class="tab-btn" data-tab="build" data-window="world" onclick="clickTab(this)" title="Building">🧱</div>
+        <div class="tab-sep"></div>
+        <div class="tab-btn contextual" data-tab="fishing" data-window="world" onclick="clickTab(this)" title="Fishing (contextual)">🎣</div>
+        <div class="tab-btn contextual" data-tab="forage" data-window="world" onclick="clickTab(this)" title="Search/Forage (contextual)">🔍</div>
+      </div>
+    </div>
+
+    <!-- Controls strip -->
+    <div class="win-controls">
+      <div class="ctrl-btn accent">↑ Take All</div>
+      <div class="ctrl-btn">↑ By Cat</div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-btn">⊟ Filter</div>
+      <div class="ctrl-btn">↕ Sort</div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-btn">☰ List</div>
+      <div class="ctrl-btn">⊞ Grid</div>
+    </div>
+  </div>
+
+  <!-- Interaction log -->
+  <div class="interaction-log" id="log">Click items or tabs to interact</div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-key">Click item</span> Open drawer with item card</div>
+  <div class="legend-item"><span class="legend-key">Click again</span> Deselect / close</div>
+  <div class="legend-item"><span class="legend-key">Click tab</span> Open tab panel in drawer</div>
+  <div class="legend-item"><span class="legend-key">Shade btn</span> Collapse to title + moodles</div>
+  <div class="legend-item"><span class="legend-key">Moodle</span> Opens linked tab</div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const CHAR_ITEMS = [
+  { id:'c1', icon:'🔪', name:'Kitchen Knife', cat:'Weapon', wt:'0.3', dmg:'0.3–0.6', spd:'Fast', rng:'0.8', cond:95, condColor:'green', type:'weapon' },
+  { id:'c2', icon:'👕', name:'Flannel Shirt', cat:'Clothing', wt:'0.3', bite:'12%', scratch:'8%', speed:'1.0', cond:72, condColor:'amber', type:'clothing' },
+  { id:'c3', icon:'🩹', name:'Bandage', cat:'Medical', wt:'0.1', uses:'4/4', type:'medical',
+    actions:[{label:'Apply Bandage', primary:true}, {label:'Rip Strips'}] },
+  { id:'c4', icon:'🔦', name:'Flashlight', cat:'Light', wt:'0.5', battery:'78%', type:'light' },
+  { id:'c5', icon:'🥫', name:'Canned Beans', cat:'Food', wt:'0.5', hunger:'-20', boredom:'+10', cond:100, condColor:'green', type:'food',
+    actions:[{label:'Open', primary:true}, {label:'Eat (Closed)'}] },
+  { id:'c6', icon:'💊', name:'Painkillers', cat:'Medical', wt:'0.1', uses:'3/6', type:'medical',
+    actions:[{label:'Take Pill', primary:true}] },
+  { id:'c7', icon:'📖', name:'Skill Book: Carpentry', cat:'Literature', wt:'0.8', skill:'Carpentry 3→4', pages:'12/240', type:'literature',
+    actions:[{label:'Read', primary:true}] },
+  { id:'c8', icon:'🔨', name:'Hammer', cat:'Tool', wt:'0.6', cond:88, condColor:'green', type:'tool' },
+  { id:'c9', icon:'👖', name:'Jeans', cat:'Clothing', wt:'0.4', bite:'8%', scratch:'14%', speed:'0.96', cond:60, condColor:'amber', type:'clothing' },
+  { id:'c10', icon:'🧃', name:'Orange Juice', cat:'Food', wt:'0.3', thirst:'-40', hunger:'-5', type:'food',
+    actions:[{label:'Drink', primary:true}] },
+  { id:'c11', icon:'🪓', name:'Axe', cat:'Weapon', wt:'1.2', dmg:'0.8–1.4', spd:'Slow', rng:'1.0', cond:65, condColor:'amber', type:'weapon' },
+  { id:'c12', icon:'🧵', name:'Thread', cat:'Material', wt:'0.1', uses:'8/10', type:'material' },
+];
+
+const WORLD_ITEMS = [
+  { id:'w1', icon:'🥫', name:'Tomato Soup', cat:'Food', wt:'0.5', hunger:'-25', boredom:'+5', cond:100, condColor:'green', type:'food',
+    actions:[{label:'Take', primary:true}, {label:'Open & Eat'}] },
+  { id:'w2', icon:'🍫', name:'Chocolate Bar', cat:'Food', wt:'0.2', hunger:'-15', happiness:'+10', type:'food',
+    actions:[{label:'Take', primary:true}, {label:'Eat'}] },
+  { id:'w3', icon:'🔧', name:'Wrench', cat:'Tool', wt:'0.4', cond:70, condColor:'amber', type:'tool',
+    actions:[{label:'Take', primary:true}] },
+  { id:'w4', icon:'📻', name:'Radio', cat:'Electronic', wt:'0.6', battery:'22%', type:'electronic',
+    actions:[{label:'Take', primary:true}, {label:'Turn On'}] },
+  { id:'w5', icon:'🕯️', name:'Candle', cat:'Light', wt:'0.2', uses:'60%', type:'light',
+    actions:[{label:'Take', primary:true}, {label:'Light'}] },
+  { id:'w6', icon:'🍽️', name:'Plate', cat:'Misc', wt:'0.3', type:'misc',
+    actions:[{label:'Take', primary:true}] },
+  { id:'w7', icon:'🥄', name:'Spoon', cat:'Misc', wt:'0.1', type:'misc',
+    actions:[{label:'Take', primary:true}] },
+  { id:'w8', icon:'🧴', name:'Bleach', cat:'Chemical', wt:'0.8', uses:'80%', type:'chemical',
+    actions:[{label:'Take', primary:true}] },
+  { id:'w9', icon:'📰', name:'Newspaper', cat:'Literature', wt:'0.1', type:'literature',
+    actions:[{label:'Take', primary:true}, {label:'Read'}] },
+];
+
+// Tab panel content generators
+const TAB_CONTENT = {
+  health: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Health</div>
+      <div class="tp-row"><span class="tp-label">Overall</span><span class="tp-value warning">Injured</span></div>
+      <div class="tp-row"><span class="tp-label">Health</span><span class="tp-value">68%</span></div>
+      <div class="tp-wound">
+        <div class="tp-wound-title">Left Forearm — Laceration</div>
+        <div class="tp-wound-stat">Bandaged · Bleeding stopped</div>
+        <div class="tp-wound-stat">Infection risk: Low</div>
+      </div>
+      <div class="tp-wound">
+        <div class="tp-wound-title">Right Shin — Scratch</div>
+        <div class="tp-wound-stat">Unbandaged · Minor bleeding</div>
+        <div class="tp-wound-stat" style="color:var(--danger)">Needs bandage</div>
+      </div>
+      <div class="ic-rule" style="margin:8px 0"></div>
+      <div class="tp-row"><span class="tp-label">Hunger</span><span class="tp-value warning">Peckish</span></div>
+      <div class="tp-row"><span class="tp-label">Thirst</span><span class="tp-value positive">OK</span></div>
+      <div class="tp-row"><span class="tp-label">Fatigue</span><span class="tp-value">Moderate</span></div>
+      <div class="tp-row"><span class="tp-label">Pain</span><span class="tp-value danger">High</span></div>
+    </div>`,
+  skills: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Skills</div>
+      ${[
+        ['Carpentry', 3, 40], ['Cooking', 2, 70], ['Mechanics', 1, 15],
+        ['Electrical', 0, 55], ['Metalwork', 1, 20], ['First Aid', 2, 85],
+        ['Farming', 0, 30], ['Fishing', 1, 60], ['Foraging', 0, 10]
+      ].map(([n,l,p]) => `
+        <div class="tp-row"><span class="tp-label">${n}</span><span class="tp-value">${l}</span></div>
+        <div class="tp-skill-bar-wrap"><div class="tp-skill-bar"><div class="tp-skill-fill" style="width:${p}%"></div></div></div>
+      `).join('')}
+    </div>`,
+  equip: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Equipment</div>
+      <div style="width:100%;height:180px;background:var(--surf3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
+        <span style="font-size:48px;opacity:0.4">🧍</span>
+      </div>
+      <div class="tp-row"><span class="tp-label">Head</span><span class="tp-value" style="color:var(--textSec)">—</span></div>
+      <div class="tp-row"><span class="tp-label">Torso</span><span class="tp-value">Flannel Shirt</span></div>
+      <div class="tp-row"><span class="tp-label">Legs</span><span class="tp-value">Jeans</span></div>
+      <div class="tp-row"><span class="tp-label">Feet</span><span class="tp-value" style="color:var(--textSec)">—</span></div>
+      <div class="tp-row"><span class="tp-label">Hands</span><span class="tp-value" style="color:var(--textSec)">—</span></div>
+      <div class="ic-rule" style="margin:8px 0"></div>
+      <div class="tp-row"><span class="tp-label">Primary</span><span class="tp-value">Kitchen Knife</span></div>
+      <div class="tp-row"><span class="tp-label">Secondary</span><span class="tp-value" style="color:var(--textSec)">—</span></div>
+    </div>`,
+  protect: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Protection</div>
+      ${[
+        ['Head', 0, 0], ['Neck', 0, 0], ['Torso', 12, 8],
+        ['Upper Arms', 6, 4], ['Forearms', 6, 4],
+        ['Groin', 8, 14], ['Upper Legs', 8, 14], ['Lower Legs', 0, 0]
+      ].map(([z,b,s]) => `
+        <div class="tp-row"><span class="tp-label">${z}</span><span class="tp-value">${b>0?b+'%':'—'}</span></div>
+      `).join('')}
+    </div>`,
+  thermal: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Thermal</div>
+      <div class="tp-row"><span class="tp-label">Air Temp</span><span class="tp-value">2°C</span></div>
+      <div class="tp-row"><span class="tp-label">Body Temp</span><span class="tp-value warning">35.8°C</span></div>
+      <div class="tp-row"><span class="tp-label">Wind</span><span class="tp-value">12 km/h NW</span></div>
+      <div class="ic-rule" style="margin:8px 0"></div>
+      <div class="tp-row"><span class="tp-label">Insulation</span><span class="tp-value warning">Low</span></div>
+      <div class="tp-row"><span class="tp-label">Wetness</span><span class="tp-value positive">Dry</span></div>
+      <div class="tp-row"><span class="tp-label">Wind Resist</span><span class="tp-value danger">Poor</span></div>
+    </div>`,
+  journal: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Journal</div>
+      <div class="tp-row"><span class="tp-label">Day</span><span class="tp-value">14</span></div>
+      <div class="tp-row"><span class="tp-label">Kills</span><span class="tp-value">47</span></div>
+      <div class="ic-rule" style="margin:8px 0"></div>
+      <div style="font-family:var(--fontSans);font-size:11px;color:var(--textSec);line-height:1.6;">
+        Reading: Carpentry Vol. 3<br>
+        Progress: 12 / 240 pages<br><br>
+        Last entry: "Found a cabin on the outskirts. Boarded up the windows. Staying put."
+      </div>
+    </div>`,
+  identity: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Identity</div>
+      <div class="tp-row"><span class="tp-label">Name</span><span class="tp-value">Bob Smith</span></div>
+      <div class="tp-row"><span class="tp-label">Profession</span><span class="tp-value">Carpenter</span></div>
+      <div class="tp-row"><span class="tp-label">Age</span><span class="tp-value">34</span></div>
+      <div class="ic-rule" style="margin:8px 0"></div>
+      <div class="tp-row"><span class="tp-label">Trait</span><span class="tp-value positive">Handy</span></div>
+      <div class="tp-row"><span class="tp-label">Trait</span><span class="tp-value positive">Resilient</span></div>
+      <div class="tp-row"><span class="tp-label">Trait</span><span class="tp-value danger">Smoker</span></div>
+      <div class="tp-row"><span class="tp-label">Trait</span><span class="tp-value danger">Short Sighted</span></div>
+    </div>`,
+  craft: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Crafting</div>
+      <div style="font-family:var(--fontMono);font-size:9px;color:var(--textSec);margin-bottom:8px;text-transform:uppercase;">Available Recipes</div>
+      ${[
+        ['Plank', '4× Log, Saw', true], ['Wooden Wall Frame', '3× Plank, 4× Nail', true],
+        ['Rain Collector', '4× Plank, 4× Garbage Bag', true], ['Stone Axe', 'Stone, Branch, Thread', true],
+        ['Molotov Cocktail', 'Bottle, Gas, Rag', false], ['Metal Sheet', '5× Metal Scrap, Propane Torch', false],
+      ].map(([n,m,can]) => `
+        <div style="padding:4px 0;border-bottom:1px solid var(--border);opacity:${can?1:0.4}">
+          <div style="font-family:var(--fontSans);font-size:12px;color:${can?'var(--text)':'var(--textSec)'}">${n}</div>
+          <div style="font-family:var(--fontMono);font-size:9px;color:var(--textSec)">${m}</div>
+        </div>
+      `).join('')}
+    </div>`,
+  build: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Building</div>
+      <div style="font-family:var(--fontMono);font-size:9px;color:var(--textSec);margin-bottom:8px;text-transform:uppercase;">Structures</div>
+      ${['Wooden Wall', 'Wooden Door Frame', 'Wooden Floor', 'Wooden Stairs', 'Wooden Fence', 'Rain Barrel'].map(n => `
+        <div style="padding:5px 0;border-bottom:1px solid var(--border);">
+          <div style="font-family:var(--fontSans);font-size:12px;color:var(--text)">${n}</div>
+        </div>
+      `).join('')}
+    </div>`,
+  fishing: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Fishing</div>
+      <div style="text-align:center;padding:20px 0;">
+        <div style="font-size:32px;margin-bottom:8px;">🎣</div>
+        <div style="font-family:var(--fontSans);font-size:12px;color:var(--textSec);">Cast your line to begin fishing</div>
+        <div style="margin-top:12px;">
+          <div class="tp-row"><span class="tp-label">Rod</span><span class="tp-value">Crafted Rod</span></div>
+          <div class="tp-row"><span class="tp-label">Bait</span><span class="tp-value">Worm × 3</span></div>
+          <div class="tp-row"><span class="tp-label">Skill</span><span class="tp-value">1</span></div>
+        </div>
+      </div>
+    </div>`,
+  forage: () => `
+    <div class="tab-panel-content">
+      <div class="tp-title">Search / Forage</div>
+      <div class="tp-row"><span class="tp-label">Zone</span><span class="tp-value">Forest</span></div>
+      <div class="tp-row"><span class="tp-label">Visibility</span><span class="tp-value warning">Low (dark)</span></div>
+      <div class="tp-row"><span class="tp-label">Skill</span><span class="tp-value">0</span></div>
+      <div class="ic-rule" style="margin:8px 0"></div>
+      <div style="font-family:var(--fontMono);font-size:9px;color:var(--textSec);margin-bottom:6px;text-transform:uppercase;">Potential Finds</div>
+      ${['Berries', 'Mushrooms', 'Medicinal Herbs', 'Stones', 'Insects', 'Wild Garlic'].map(n => `
+        <div style="padding:3px 0;font-family:var(--fontSans);font-size:11px;color:var(--textSec)">${n}</div>
+      `).join('')}
+    </div>`,
+};
+
+// ============================================================
+// STATE
+// ============================================================
+
+const state = {
+  char: { selectedItem: null, activeTab: null, drawerMode: null /* 'item' | 'tab' */, tabUnder: null },
+  world: { selectedItem: null, activeTab: null, drawerMode: null, tabUnder: null },
+};
+
+// ============================================================
+// RENDER ITEMS
+// ============================================================
+
+function renderItems(containerId, items, windowKey) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(item => `
+    <div class="inv-row" id="row-${item.id}" data-id="${item.id}" data-window="${windowKey}" onclick="clickItem('${item.id}','${windowKey}')">
+      <span class="row-icon">${item.icon}</span>
+      <span class="row-name">${item.name}</span>
+      <span class="row-cat">${item.cat}</span>
+      <span class="row-wt">${item.wt}</span>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// BUILD ITEM CARD HTML
+// ============================================================
+
+function buildItemCard(item) {
+  let statsHtml = '';
+  if (item.type === 'weapon') {
+    statsHtml = `
+      <div class="ic-stat"><span class="ic-stat-label">Damage</span><span class="ic-stat-val">${item.dmg}</span></div>
+      <div class="ic-stat"><span class="ic-stat-label">Speed</span><span class="ic-stat-val">${item.spd}</span></div>
+      <div class="ic-stat"><span class="ic-stat-label">Range</span><span class="ic-stat-val">${item.rng}</span></div>`;
+  } else if (item.type === 'clothing') {
+    statsHtml = `
+      <div class="ic-stat"><span class="ic-stat-label">Bite Def</span><span class="ic-stat-val">${item.bite}</span></div>
+      <div class="ic-stat"><span class="ic-stat-label">Scratch</span><span class="ic-stat-val">${item.scratch}</span></div>
+      <div class="ic-stat"><span class="ic-stat-label">Speed</span><span class="ic-stat-val">${item.speed}</span></div>`;
+  } else if (item.type === 'food') {
+    statsHtml = `
+      <div class="ic-stat"><span class="ic-stat-label">Hunger</span><span class="ic-stat-val">${item.hunger||'—'}</span></div>
+      <div class="ic-stat"><span class="ic-stat-label">Thirst</span><span class="ic-stat-val">${item.thirst||'—'}</span></div>
+      ${item.happiness ? `<div class="ic-stat"><span class="ic-stat-label">Happy</span><span class="ic-stat-val">${item.happiness}</span></div>` : ''}
+      ${item.boredom ? `<div class="ic-stat"><span class="ic-stat-label">Boredom</span><span class="ic-stat-val">${item.boredom}</span></div>` : ''}`;
+  } else if (item.type === 'medical') {
+    statsHtml = `<div class="ic-stat"><span class="ic-stat-label">Uses</span><span class="ic-stat-val">${item.uses}</span></div>`;
+  } else if (item.type === 'light') {
+    statsHtml = `<div class="ic-stat"><span class="ic-stat-label">Battery</span><span class="ic-stat-val">${item.battery||item.uses||'—'}</span></div>`;
+  } else if (item.type === 'literature') {
+    statsHtml = `
+      <div class="ic-stat"><span class="ic-stat-label">Skill</span><span class="ic-stat-val">${item.skill||'—'}</span></div>
+      <div class="ic-stat"><span class="ic-stat-label">Pages</span><span class="ic-stat-val">${item.pages||'—'}</span></div>`;
+  } else {
+    if (item.uses) statsHtml = `<div class="ic-stat"><span class="ic-stat-label">Uses</span><span class="ic-stat-val">${item.uses}</span></div>`;
+  }
+
+  let condHtml = '';
+  if (item.cond !== undefined) {
+    condHtml = `
+      <div class="ic-rule"></div>
+      <div class="ic-bar-wrap">
+        <div class="ic-bar-label">
+          <span class="ic-stat-label">Condition</span>
+          <span class="ic-stat-val">${item.cond}%</span>
+        </div>
+        <div class="ic-bar-track"><div class="ic-bar-fill ${item.condColor}" style="width:${item.cond}%"></div></div>
+      </div>`;
+  }
+
+  // Default actions if none specified
+  const actions = item.actions || (item.id.startsWith('w')
+    ? [{label:'Take', primary:true}]
+    : [{label:'Drop'}, {label:'Equip'}]
+  );
+
+  const actionsHtml = actions.map(a =>
+    `<div class="ic-action-btn ${a.primary?'primary':''}">${a.label}</div>`
+  ).join('');
+
+  return `
+    <div class="ic-zone">
+      <div class="ic-identity">
+        <div class="ic-icon">${item.icon}</div>
+        <div>
+          <div class="ic-name">${item.name}</div>
+          <div class="ic-realname">${item.cat}</div>
+        </div>
+      </div>
+      ${statsHtml}
+      <div class="ic-stat"><span class="ic-stat-label">Weight</span><span class="ic-stat-val">${item.wt} kg</span></div>
+      ${condHtml}
+    </div>
+    <div class="ic-actions">${actionsHtml}</div>`;
+}
+
+// ============================================================
+// INTERACTION LOGIC
+// ============================================================
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent = msg;
+  el.style.opacity = 1;
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(() => { el.style.opacity = 0.4; }, 2000);
+}
+
+function getItems(windowKey) {
+  return windowKey === 'char' ? CHAR_ITEMS : WORLD_ITEMS;
+}
+
+function findItem(id, windowKey) {
+  return getItems(windowKey).find(i => i.id === id);
+}
+
+function updateSelectionUI(windowKey) {
+  const s = state[windowKey];
+  const containerId = windowKey === 'char' ? 'char-items' : 'world-items';
+  document.querySelectorAll(`#${containerId} .inv-row`).forEach(row => {
+    row.classList.toggle('selected', row.dataset.id === s.selectedItem);
+  });
+}
+
+function updateTabUI(windowKey) {
+  const s = state[windowKey];
+  const tabStripId = windowKey === 'char' ? 'char-tabs' : 'world-tabs';
+  document.querySelectorAll(`#${tabStripId} .tab-btn`).forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === s.activeTab);
+  });
+}
+
+function openDrawer(windowKey, content) {
+  const drawerId = windowKey === 'char' ? 'char-drawer' : 'world-drawer';
+  const contentId = windowKey === 'char' ? 'char-drawer-content' : 'world-drawer-content';
+  document.getElementById(contentId).innerHTML = content;
+  document.getElementById(drawerId).classList.add('open');
+}
+
+function closeDrawer(windowKey) {
+  const drawerId = windowKey === 'char' ? 'char-drawer' : 'world-drawer';
+  document.getElementById(drawerId).classList.remove('open');
+  state[windowKey].drawerMode = null;
+}
+
+function clickItem(itemId, windowKey) {
+  const s = state[windowKey];
+
+  if (s.selectedItem === itemId) {
+    // Deselect — same item clicked again
+    s.selectedItem = null;
+    updateSelectionUI(windowKey);
+
+    if (s.tabUnder) {
+      // Snap back to tab
+      s.drawerMode = 'tab';
+      openDrawer(windowKey, TAB_CONTENT[s.activeTab]());
+      log(`Item deselected → snapping back to ${s.activeTab.toUpperCase()} tab`);
+    } else {
+      closeDrawer(windowKey);
+      log('Item deselected → drawer closed');
+    }
+    return;
+  }
+
+  // Select new item
+  s.selectedItem = itemId;
+  const item = findItem(itemId, windowKey);
+  updateSelectionUI(windowKey);
+
+  if (s.activeTab && s.drawerMode === 'tab') {
+    // Tab was active — push item card over it
+    s.tabUnder = s.activeTab;
+    s.drawerMode = 'item';
+    openDrawer(windowKey, buildItemCard(item));
+    log(`${item.name} pushed over ${s.tabUnder.toUpperCase()} tab — action completes → snap back`);
+  } else {
+    s.tabUnder = s.activeTab; // might be null
+    s.drawerMode = 'item';
+    openDrawer(windowKey, buildItemCard(item));
+    log(`${item.name} selected → drawer open`);
+  }
+}
+
+function clickTab(tabBtn) {
+  const tabKey = tabBtn.dataset.tab;
+  const windowKey = tabBtn.dataset.window;
+  const s = state[windowKey];
+
+  if (s.activeTab === tabKey && s.drawerMode === 'tab') {
+    // Tab already active and showing — close it
+    s.activeTab = null;
+    s.tabUnder = null;
+    s.selectedItem = null;
+    updateTabUI(windowKey);
+    updateSelectionUI(windowKey);
+    closeDrawer(windowKey);
+    log(`${tabKey.toUpperCase()} tab closed → drawer closed`);
+    return;
+  }
+
+  // Activate tab
+  s.activeTab = tabKey;
+  s.selectedItem = null;
+  s.tabUnder = null;
+  s.drawerMode = 'tab';
+  updateTabUI(windowKey);
+  updateSelectionUI(windowKey);
+
+  if (TAB_CONTENT[tabKey]) {
+    openDrawer(windowKey, TAB_CONTENT[tabKey]());
+    log(`${tabKey.toUpperCase()} tab opened`);
+  }
+}
+
+function clickMoodle(tabKey, windowKey) {
+  // Find the tab button and simulate click
+  const tabStripId = windowKey === 'char' ? 'char-tabs' : 'world-tabs';
+  const btn = document.querySelector(`#${tabStripId} .tab-btn[data-tab="${tabKey}"]`);
+  if (btn) {
+    clickTab(btn);
+    log(`Moodle → opened ${tabKey.toUpperCase()} tab`);
+  }
+}
+
+function toggleShade(windowId) {
+  const win = document.getElementById(windowId);
+  win.classList.toggle('shaded');
+  const isShaded = win.classList.contains('shaded');
+  log(`${windowId === 'char-window' ? 'Character' : 'World'} window ${isShaded ? 'shaded — moodles visible' : 'unshaded'}`);
+}
+
+// ============================================================
+// WIRE ACTION BUTTONS — simulate "action completes → snap back"
+// ============================================================
+
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('ic-action-btn')) {
+    const label = e.target.textContent;
+
+    // Determine which window this action is in
+    let windowKey = null;
+    if (e.target.closest('#char-drawer')) windowKey = 'char';
+    else if (e.target.closest('#world-drawer')) windowKey = 'world';
+    if (!windowKey) return;
+
+    const s = state[windowKey];
+
+    // Simulate action completing
+    log(`⏳ "${label}" executing...`);
+
+    setTimeout(() => {
+      if (s.tabUnder) {
+        // Snap back to the tab that was underneath
+        s.selectedItem = null;
+        s.drawerMode = 'tab';
+        s.activeTab = s.tabUnder;
+        s.tabUnder = null;
+        updateSelectionUI(windowKey);
+        updateTabUI(windowKey);
+        openDrawer(windowKey, TAB_CONTENT[s.activeTab]());
+        log(`✓ "${label}" complete → snapped back to ${s.activeTab.toUpperCase()}`);
+      } else {
+        // No tab underneath — just close
+        s.selectedItem = null;
+        s.drawerMode = null;
+        updateSelectionUI(windowKey);
+        closeDrawer(windowKey);
+        log(`✓ "${label}" complete → drawer closed`);
+      }
+    }, 800);
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+
+renderItems('char-items', CHAR_ITEMS, 'char');
+renderItems('world-items', WORLD_ITEMS, 'world');
+</script>
+</body>
+</html>

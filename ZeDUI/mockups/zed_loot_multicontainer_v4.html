@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Loot Window Multi-Container v4</title>
+<style>
+body{background:#111110;display:flex;align-items:flex-start;justify-content:center;padding:24px;font-family:monospace}
+.mockup-label{font-size:10px;color:#333;font-family:monospace;margin-bottom:8px;letter-spacing:.5px}
+.mockup-wrap{width:700px}
+</style>
+</head>
+<body>
+<div class="mockup-wrap">
+<div class="mockup-label">ZeD-UI / ZeD.Inventory — Loot Window Multi-Container v4 — Full-Destination Transfer Strip — Session 20</div>
+<div class="mockup-label" style="color:#444">Click container buttons (right strip) to add/remove from selection. Transfer strip shows a button for every selected container. Select an item, click a destination button to transfer.</div>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.win{width:100%;font-family:monospace;background:#1a1a18;border:1px solid #555;user-select:none}
+.titlebar{height:22px;background:repeating-linear-gradient(to bottom,#3a3a38 0px,#3a3a38 1px,#252523 1px,#252523 2px);display:flex;align-items:center;padding:0 4px;gap:4px;border-bottom:1px solid #555}
+.closebox{width:13px;height:13px;border:1px solid #888;background:#2a2a28;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa}
+.win-title{font-size:11px;color:#ccc;font-family:monospace;margin-left:4px;letter-spacing:.5px;flex:1}
+.stats-strip{font-size:10px;color:#a89060;font-family:monospace;display:flex;gap:8px;flex-shrink:0}
+.body{display:flex;flex-direction:row;height:440px;border-bottom:1px solid #555}
+.ctx-panel{background:#1a1a18;border-right:1px solid #444;flex-shrink:0;display:flex;flex-direction:row;overflow:hidden;transition:width .12s}
+.ctx-panel.expanded{width:130px}.ctx-panel.collapsed{width:16px}
+.ctx-toggle{width:16px;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;border-right:1px solid #2a2a28;flex-shrink:0}
+.ctx-toggle:hover{background:#222220}
+.ctx-arrow{font-size:9px;color:#555}
+.ctx-body{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:8px 6px;gap:5px;min-width:0}
+.ctx-type{font-size:8px;color:#665e50;font-family:monospace;letter-spacing:.4px;border-bottom:1px solid #252522;padding-bottom:4px}
+.ctx-type span{color:#a89060}
+.ctx-label{font-size:8px;color:#665e50;font-family:monospace}
+.ctx-val{font-size:8px;color:#a89060;font-family:monospace}
+.ctx-row{display:flex;align-items:center;gap:5px}
+.ctx-toggle-btn{height:20px;padding:0 6px;border:1px solid #333;background:#1e1e1c;font-size:8px;color:#888;font-family:monospace;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center}
+.ctx-toggle-btn:hover{border-color:#665e50;color:#a89060}
+.ctx-toggle-btn.on{border-color:#5a3a1a;background:#221a0e;color:#c89a40}
+.ctx-toggle-btn.danger{border-color:#5a1a1a;color:#c04030}
+.ctx-bar-wrap{height:5px;background:#252522;width:100%}
+.ctx-bar-fill{height:100%}
+.ctx-timer{font-size:12px;color:#c89a40;font-family:monospace;text-align:center;letter-spacing:1px}
+.ctx-timer.low{color:#c04030;animation:blink .8s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.ctx-div{height:1px;background:#252522;margin:2px 0}
+.ctx-zone{display:none;flex-direction:column;gap:4px}
+.ctx-zone.show{display:flex}
+.ctx-plain{font-size:8px;color:#2a2a28;font-family:monospace;text-align:center;padding:16px 0;line-height:1.8}
+.col-workspace{flex:1;display:flex;flex-direction:row;overflow:hidden;min-width:0}
+.col-wrap{display:flex;flex-direction:row;flex:1;overflow:hidden}
+.inv-col{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.col-header{height:36px;background:#1e1e1c;border-bottom:1px solid #333;display:flex;flex-direction:column;justify-content:center;padding:0 6px;flex-shrink:0}
+.col-hdr-name{font-size:9px;color:#a89060;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.col-hdr-sub{font-size:8px;color:#555;font-family:monospace;display:flex;gap:6px;margin-top:1px}
+.col-hdr-sub span{color:#665e50}
+.subhdr-single{height:18px;background:#222220;border-bottom:1px solid #2a2a28;display:flex;align-items:center;padding:0 4px;flex-shrink:0}
+.subhdr-multi{height:18px;background:#222220;border-bottom:1px solid #2a2a28;display:flex;align-items:center;padding:0 4px;flex-shrink:0}
+.lsh{font-size:8px;color:#555;font-family:monospace;padding:0 3px;height:100%;display:flex;align-items:center;border-right:1px solid #252522;white-space:nowrap;cursor:pointer}
+.lsh:hover{color:#a89060}
+.lsh.n{flex:1}.lsh.c{width:52px}.lsh.cd{width:52px}.lsh.w{width:32px}
+.lsh-n{font-size:8px;color:#555;font-family:monospace;flex:1;padding:0 3px;display:flex;align-items:center;height:100%;border-right:1px solid #252522}
+.lsh-w{font-size:8px;color:#555;font-family:monospace;width:32px;padding:0 3px;display:flex;align-items:center;height:100%;justify-content:flex-end}
+.item-rows{flex:1;overflow-y:auto}
+.item-row-s{height:21px;display:flex;align-items:center;padding:0 5px;cursor:pointer;border-bottom:1px solid #1e1e1c}
+.item-row-s:hover{background:#222220}
+.item-row-s.selected{background:#1e2820}
+.item-row-s.dragging{opacity:.4}
+.item-row-m{height:19px;display:flex;align-items:center;padding:0 5px;cursor:pointer;border-bottom:1px solid #1e1e1c}
+.item-row-m:hover{background:#222220}
+.item-row-m.selected{background:#1e2820}
+.item-row-m.dragging{opacity:.4}
+.iico{width:14px;height:14px;margin-right:4px;font-size:12px;filter:saturate(.5);flex-shrink:0;display:flex;align-items:center}
+.iname-s{flex:1;font-size:9px;color:#b0a898;font-family:sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.icat-s{width:52px;font-size:8px;color:#555;font-family:monospace;padding:0 3px;overflow:hidden;white-space:nowrap}
+.icond-s{width:52px;padding:0 3px;display:flex;align-items:center;gap:2px}
+.cond-bar{flex:1;height:3px;background:#2a2a28}
+.cond-fill{height:100%}
+.iwt-s{width:32px;font-size:8px;color:#444;font-family:monospace;text-align:right}
+.iname-m{flex:1;font-size:9px;color:#b0a898;font-family:sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.iwt-m{width:32px;font-size:8px;color:#444;font-family:monospace;text-align:right;flex-shrink:0}
+.cat-label{font-size:8px;height:15px;display:flex;align-items:center;padding:0 5px;background:#1e1e1c;border-bottom:1px solid #252522;font-family:monospace;color:#555;gap:3px;flex-shrink:0}
+.cat-tri{font-size:6px;color:#444}
+.gc{color:#333;font-size:7px}
+.xfer-strip{background:#161614;border-left:1px solid #2a2a28;border-right:1px solid #2a2a28;display:flex;flex-direction:column;align-items:stretch;flex-shrink:0;overflow:hidden}
+.xfer-hdr{height:36px;border-bottom:1px solid #252522;display:flex;align-items:center;justify-content:center}
+.xfer-label{font-size:6px;color:#2a2a28;font-family:monospace;letter-spacing:.3px}
+.xfer-subhdr{height:18px;border-bottom:1px solid #252522;background:#1e1e1c}
+.xfer-body{flex:1;overflow-y:auto;display:flex;flex-direction:column;padding:3px 2px;gap:2px;align-items:center}
+.xfer-dst{width:28px;min-height:22px;border:1px solid #252522;background:#1a1a18;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:1px;padding:2px 0;flex-shrink:0}
+.xfer-dst:hover{border-color:#5a8a5a;background:#1a2a1a}
+.xfer-dst:active{background:#1e3a1e}
+.xfer-arrow{font-size:8px;color:#5a8a5a;font-family:monospace;line-height:1}
+.xfer-num{font-size:7px;color:#3a5a3a;font-family:monospace;line-height:1}
+.xfer-icon{font-size:9px;filter:saturate(.3);line-height:1}
+.xfer-divider-line{width:20px;height:1px;background:#252522;margin:1px auto}
+.col-divider{width:4px;background:transparent;cursor:col-resize;flex-shrink:0}
+.col-divider:hover{background:#3a5a3a}
+.col-divider.active{background:#5a8a5a}
+.container-strip{width:42px;background:#1a1a18;border-left:1px solid #444;display:flex;flex-direction:column;align-items:center;padding:4px 0;gap:2px;overflow-y:auto;flex-shrink:0}
+.bag-btn{width:34px;height:34px;border:1px solid #333;background:#222220;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;filter:saturate(.45);position:relative}
+.bag-btn:hover{border-color:#665e50}
+.bag-btn.active{border-color:#a89060;background:#1e2a1e}
+.bag-btn.active2{border-color:#6a9a6a;background:#1a261a}
+.bag-btn.floor{border-style:dashed;border-color:#2a2a28;font-size:9px;color:#444;font-family:monospace}
+.sel-num{position:absolute;bottom:1px;right:2px;font-size:6px;font-family:monospace;color:#5a8a5a}
+.ctx-pip{position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#c89a40}
+.strip-sep{width:28px;height:1px;background:#2a2a28;margin:2px 0}
+.controls{height:30px;background:#1a1a18;border-top:1px solid #444;display:flex;align-items:center;padding:0 6px;gap:2px}
+.ctrl-btn{height:22px;padding:0 6px;border:1px solid #333;background:#222220;font-size:9px;color:#888;font-family:monospace;cursor:pointer;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.ctrl-btn:hover{border-color:#665e50;color:#a89060}
+.ctrl-btn.accent{border-color:#1a3a1a;color:#5a9a5a}
+.ctrl-sep{width:1px;height:18px;background:#2a2a28;margin:0 2px}
+.ctrl-spacer{flex:1}
+.mode-badge{font-size:8px;color:#5a8a5a;font-family:monospace;border:1px solid #2a4a2a;padding:2px 6px;background:#1a2a1a}
+</style>
+
+<div class="win">
+  <div class="titlebar">
+    <div class="closebox">×</div>
+    <span class="win-title" id="loot-title">KITCHEN COUNTER</span>
+    <div class="stats-strip">
+      <span id="loot-wt">8.3 <span style="color:#555">/</span> 20.0 kg</span>
+      <span style="color:#555">|</span>
+      <span style="color:#666" id="loot-ct">11 items</span>
+      <span style="color:#555" id="sel-sep" style="display:none">|</span>
+      <span id="sel-badge" style="display:none;color:#5a8a5a">2 containers</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="ctx-panel expanded" id="ctx-panel">
+      <div class="ctx-toggle" id="ctx-toggle"><span class="ctx-arrow" id="ctx-arrow">◀</span></div>
+      <div class="ctx-body" id="ctx-body">
+        <div class="ctx-type">TYPE: <span id="ctx-type-lbl">COUNTER</span></div>
+        <div style="font-size:7px;color:#3a3a36;font-family:monospace">preview:</div>
+        <div style="display:flex;gap:2px;flex-wrap:wrap">
+          <div style="font-size:7px;padding:2px 4px;border:1px solid #786040;background:#221e12;color:#c89a40;cursor:pointer;font-family:monospace" data-ctx="campfire">Fire</div>
+          <div style="font-size:7px;padding:2px 4px;border:1px solid #2a2a28;background:#1e1e1c;color:#555;cursor:pointer;font-family:monospace" data-ctx="plain">Plain</div>
+          <div style="font-size:7px;padding:2px 4px;border:1px solid #2a2a28;background:#1e1e1c;color:#555;cursor:pointer;font-family:monospace" data-ctx="stove">Stove</div>
+        </div>
+        <div class="ctx-div"></div>
+        <div class="ctx-zone" id="ctx-plain"><div class="ctx-plain">No active<br>functions</div></div>
+        <div class="ctx-zone show" id="ctx-campfire">
+          <div class="ctx-timer" id="fire-timer">1:24:08</div>
+          <div class="ctx-label">FUEL</div>
+          <div class="ctx-bar-wrap"><div class="ctx-bar-fill" id="fire-fuel" style="width:54%;background:#8a5030"></div></div>
+          <div class="ctx-row" style="margin-top:2px"><span class="ctx-label">STATUS</span><span class="ctx-val" style="margin-left:auto;color:#c89a40">LIT</span></div>
+          <div class="ctx-div"></div>
+          <div class="ctx-toggle-btn danger">⊘ EXTINGUISH</div>
+          <div class="ctx-toggle-btn" style="margin-top:2px">+ ADD FUEL</div>
+        </div>
+        <div class="ctx-zone" id="ctx-stove">
+          <div class="ctx-row"><span class="ctx-label">POWER</span><span class="ctx-val" style="margin-left:auto;color:#5a8a3a">ON</span></div>
+          <div class="ctx-toggle-btn on">■ TURN OFF</div>
+          <div class="ctx-div"></div>
+          <div class="ctx-label">TEMP</div>
+          <div class="ctx-bar-wrap"><div class="ctx-bar-fill" style="width:72%;background:#c07030"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-workspace"><div class="col-wrap" id="col-wrap"></div></div>
+    <div class="container-strip" id="container-strip">
+      <div class="bag-btn active" data-cid="0">🗄️<span class="sel-num">1</span></div>
+      <div class="bag-btn" data-cid="1">🧊</div>
+      <div class="bag-btn" data-cid="2" style="position:relative">🔥<span class="ctx-pip"></span></div>
+      <div class="strip-sep"></div>
+      <div class="bag-btn" data-cid="3">🎒</div>
+      <div class="bag-btn" data-cid="4">📦</div>
+      <div class="strip-sep"></div>
+      <div class="bag-btn floor" data-cid="5">flr</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="ctrl-btn accent">↓ Loot All</div>
+    <div class="ctrl-btn">↓ By Cat</div>
+    <div class="ctrl-btn">↓ By Name</div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-btn">⊟ Filter</div>
+    <div class="ctrl-btn">↕ Sort</div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-btn">⊞ Expand</div>
+    <div class="ctrl-spacer"></div>
+    <div class="mode-badge" id="mode-badge">SINGLE</div>
+  </div>
+</div>
+
+<script>
+const CONTAINERS={
+  0:{name:'KITCHEN COUNTER',icon:'🗄️',weight:8.3,cap:20,items:[{icon:'🥫',name:'Canned Beans',cat:'Food',wt:0.5},{icon:'🥫',name:'Tomato Soup',cat:'Food',wt:0.5},{icon:'🍫',name:'Chocolate Bar',cat:'Food',wt:0.2},{icon:'🥤',name:'Orange Soda',cat:'Food',wt:0.3},{icon:'🌽',name:'Canned Corn',cat:'Food',wt:0.5},{icon:'🔧',name:'Pipe Wrench',cat:'Tool',wt:0.8},{icon:'🪛',name:'Screwdriver',cat:'Tool',wt:0.3}]},
+  1:{name:'REFRIGERATOR',icon:'🧊',weight:3.1,cap:30,items:[{icon:'🧈',name:'Butter',cat:'Food',wt:0.3},{icon:'🥚',name:'Eggs',cat:'Food',wt:0.5},{icon:'🥛',name:'Milk',cat:'Food',wt:1.0},{icon:'🧃',name:'Apple Juice',cat:'Food',wt:0.8},{icon:'🧀',name:'Cheese',cat:'Food',wt:0.4}]},
+  2:{name:'GAS STOVE',icon:'🔥',weight:2.1,cap:10,items:[{icon:'🍲',name:'Pot of Stew',cat:'Food',wt:1.2},{icon:'🥘',name:'Frying Pan',cat:'Tool',wt:0.9}]},
+  3:{name:'DUFFEL BAG',icon:'🎒',weight:5.4,cap:12,items:[{icon:'🧥',name:'Work Shirt',cat:'Clothing',wt:0.3},{icon:'🧤',name:'Rubber Gloves',cat:'Clothing',wt:0.1},{icon:'💊',name:'Painkillers',cat:'Medical',wt:0.1},{icon:'🩹',name:'Bandage',cat:'Medical',wt:0.1}]},
+  4:{name:'CARDBOARD BOX',icon:'📦',weight:1.2,cap:8,items:[{icon:'📖',name:'Mechanics Manual',cat:'Literature',wt:0.5},{icon:'📰',name:'Newspaper',cat:'Literature',wt:0.1}]},
+  5:{name:'FLOOR',icon:'⬜',weight:2.4,cap:0,items:[{icon:'🍖',name:'Beef Jerky',cat:'Food',wt:0.3},{icon:'🪓',name:'Fire Axe',cat:'Weapon',wt:2.1}]},
+};
+let selected=[0],dragSrc=null;
+function recalcWeight(cid){CONTAINERS[cid].weight=Math.round(CONTAINERS[cid].items.reduce((a,b)=>a+b.wt,0)*10)/10;}
+function getSelectedItem(){const el=document.querySelector('.item-row-s.selected,.item-row-m.selected');if(!el)return null;return{cid:parseInt(el.dataset.cid),idx:parseInt(el.dataset.idx)};}
+function moveItem(fromCid,itemIdx,toCid){const item=CONTAINERS[fromCid].items[itemIdx];if(!item)return false;CONTAINERS[toCid].items.push(item);CONTAINERS[fromCid].items.splice(itemIdx,1);recalcWeight(fromCid);recalcWeight(toCid);return true;}
+function makeXferStrip(colLeftIdx,colRightIdx){
+  const strip=document.createElement('div');strip.className='xfer-strip';
+  const w=Math.min(40,28+selected.length*2);strip.style.width=w+'px';
+  const hdr=document.createElement('div');hdr.className='xfer-hdr';hdr.innerHTML='<span class="xfer-label">XFER</span>';strip.appendChild(hdr);
+  const sub=document.createElement('div');sub.className='xfer-subhdr';strip.appendChild(sub);
+  const body=document.createElement('div');body.className='xfer-body';
+  selected.forEach((toCid,toIdx)=>{
+    const btn=document.createElement('div');btn.className='xfer-dst';btn.title=`Transfer to ${CONTAINERS[toCid].name}`;
+    let arrow='→';if(toIdx<=colLeftIdx)arrow='←';else if(toIdx>=colRightIdx)arrow='→';else arrow='↔';
+    btn.innerHTML=`<span class="xfer-arrow">${arrow}</span><span class="xfer-icon">${CONTAINERS[toCid].icon}</span><span class="xfer-num">${toIdx+1}</span>`;
+    btn.addEventListener('click',()=>{const sel=getSelectedItem();if(!sel||sel.cid===toCid)return;if(moveItem(sel.cid,sel.idx,toCid)){buildColumns();updateUI();}});
+    btn.addEventListener('dragover',e=>{e.preventDefault();btn.style.borderColor='#5a9a5a';});
+    btn.addEventListener('dragleave',()=>btn.style.borderColor='');
+    btn.addEventListener('drop',e=>{e.preventDefault();btn.style.borderColor='';if(!dragSrc||dragSrc.cid===toCid)return;if(moveItem(dragSrc.cid,dragSrc.itemIdx,toCid)){dragSrc=null;buildColumns();updateUI();}});
+    body.appendChild(btn);
+    if(toIdx<selected.length-1){const line=document.createElement('div');line.className='xfer-divider-line';body.appendChild(line);}
+  });
+  strip.appendChild(body);return strip;
+}
+function makeColumn(cid){
+  const data=CONTAINERS[cid];const col=document.createElement('div');col.className='inv-col';col.dataset.cid=cid;col.style.flex='1';
+  const multi=selected.length>1;
+  const hdr=document.createElement('div');hdr.className='col-header';hdr.innerHTML=`<div class="col-hdr-name">${data.icon} ${data.name}</div><div class="col-hdr-sub"><span>${data.weight} / ${data.cap>0?data.cap:'∞'} kg</span><span>${data.items.length} items</span></div>`;col.appendChild(hdr);
+  const subhdr=document.createElement('div');
+  if(!multi){subhdr.className='subhdr-single';subhdr.innerHTML='<div class="lsh n">NAME</div><div class="lsh c">CAT</div><div class="lsh cd">COND</div><div class="lsh w">WT</div>';}
+  else{subhdr.className='subhdr-multi';subhdr.innerHTML='<div class="lsh-n">NAME</div><div class="lsh-w">WT</div>';}
+  col.appendChild(subhdr);
+  const rows=document.createElement('div');rows.className='item-rows';rows.dataset.cid=cid;
+  const cats={};data.items.forEach((item,idx)=>{if(!cats[item.cat])cats[item.cat]=[];cats[item.cat].push({...item,idx});});
+  Object.keys(cats).forEach(cat=>{
+    const cl=document.createElement('div');cl.className='cat-label';cl.innerHTML=`<span class="cat-tri">▾</span>${cat} <span class="gc">(${cats[cat].length})</span>`;rows.appendChild(cl);
+    cats[cat].forEach(item=>{
+      const row=document.createElement('div');row.draggable=true;row.dataset.cid=cid;row.dataset.idx=item.idx;
+      if(!multi){row.className='item-row-s';row.innerHTML=`<div class="iico">${item.icon}</div><div class="iname-s">${item.name}</div><div class="icat-s">${item.cat}</div><div class="icond-s"><div class="cond-bar"><div class="cond-fill" style="width:85%;background:#5a8a3a"></div></div></div><div class="iwt-s">${item.wt}</div>`;}
+      else{row.className='item-row-m';row.innerHTML=`<div class="iico">${item.icon}</div><div class="iname-m">${item.name}</div><div class="iwt-m">${item.wt}</div>`;}
+      row.addEventListener('click',function(){document.querySelectorAll('.item-row-s,.item-row-m').forEach(r=>r.classList.remove('selected'));this.classList.add('selected');});
+      row.addEventListener('dragstart',e=>{dragSrc={cid:parseInt(row.dataset.cid),itemIdx:parseInt(row.dataset.idx)};row.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+      row.addEventListener('dragend',()=>{row.classList.remove('dragging');dragSrc=null;});
+      rows.appendChild(row);
+    });
+  });
+  rows.addEventListener('dragover',e=>e.preventDefault());
+  rows.addEventListener('drop',e=>{e.preventDefault();if(!dragSrc)return;const toCid=parseInt(rows.dataset.cid);if(dragSrc.cid===toCid)return;if(moveItem(dragSrc.cid,dragSrc.itemIdx,toCid)){dragSrc=null;buildColumns();updateUI();}});
+  col.appendChild(rows);return col;
+}
+function buildColumns(){
+  const wrap=document.getElementById('col-wrap');wrap.innerHTML='';
+  if(selected.length===1){wrap.appendChild(makeColumn(selected[0]));return;}
+  selected.forEach((cid,i)=>{
+    if(i>0){wrap.appendChild(makeXferStrip(i-1,i));const div=document.createElement('div');div.className='col-divider';div.dataset.idx=i-1;wrap.appendChild(div);}
+    wrap.appendChild(makeColumn(cid));
+  });
+  wrap.querySelectorAll('.col-divider').forEach(div=>{
+    let startX,lc,rc,lf,rf;
+    div.addEventListener('mousedown',e=>{e.preventDefault();startX=e.clientX;const cols=[...wrap.children].filter(c=>c.classList.contains('inv-col'));const idx=parseInt(div.dataset.idx);lc=cols[idx];rc=cols[idx+1];lf=parseFloat(lc.style.flex)||1;rf=parseFloat(rc.style.flex)||1;div.classList.add('active');const total=wrap.offsetWidth;
+      const onMove=me=>{const dx=me.clientX-startX;const tot=lf+rf;const nl=Math.max(0.25,lf+dx/(total/tot));const nr=Math.max(0.25,tot-nl);lc.style.flex=nl;rc.style.flex=nr;};
+      const onUp=()=>{div.classList.remove('active');document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};
+      document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+    });
+  });
+}
+function updateUI(){
+  const multi=selected.length>1;
+  document.getElementById('sel-badge').style.display=multi?'inline':'none';
+  document.getElementById('sel-sep').style.display=multi?'inline':'none';
+  const mb=document.getElementById('mode-badge');
+  if(multi){document.getElementById('sel-badge').textContent=selected.length+' containers';mb.textContent='MULTI';mb.style.color='#5a9a5a';mb.style.borderColor='#2a5a2a';document.getElementById('loot-title').textContent=selected.length+' CONTAINERS SELECTED';const tw=Math.round(selected.reduce((a,c)=>a+CONTAINERS[c].weight,0)*10)/10;const ti=selected.reduce((a,c)=>a+CONTAINERS[c].items.length,0);document.getElementById('loot-wt').innerHTML=tw+' kg';document.getElementById('loot-ct').textContent=ti+' items';}
+  else{mb.textContent='SINGLE';mb.style.color='#5a8a5a';mb.style.borderColor='#2a4a2a';const d=CONTAINERS[selected[0]];document.getElementById('loot-title').textContent=d.name;document.getElementById('loot-wt').innerHTML=d.weight+' <span style="color:#555">/</span> '+(d.cap>0?d.cap:'∞')+' kg';document.getElementById('loot-ct').textContent=d.items.length+' items';}
+}
+document.getElementById('container-strip').querySelectorAll('.bag-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){const cid=parseInt(this.dataset.cid);const idx=selected.indexOf(cid);if(idx===-1)selected.push(cid);else if(selected.length>1)selected.splice(idx,1);
+    document.querySelectorAll('.bag-btn').forEach(b=>{b.classList.remove('active','active2');const n=b.querySelector('.sel-num');if(n)n.remove();const bc=parseInt(b.dataset.cid);const si=selected.indexOf(bc);if(si===0)b.classList.add('active');else if(si>0)b.classList.add('active2');if(si!==-1){const s=document.createElement('span');s.className='sel-num';s.textContent=si+1;b.appendChild(s);}});
+    buildColumns();updateUI();
+  });
+});
+document.querySelectorAll('[data-ctx]').forEach(btn=>{btn.addEventListener('click',function(){document.querySelectorAll('[data-ctx]').forEach(b=>{b.style.borderColor='#2a2a28';b.style.background='#1e1e1c';b.style.color='#555';});this.style.borderColor='#786040';this.style.background='#221e12';this.style.color='#c89a40';document.querySelectorAll('.ctx-zone').forEach(z=>z.classList.remove('show'));document.getElementById('ctx-'+this.dataset.ctx).classList.add('show');document.getElementById('ctx-type-lbl').textContent=this.dataset.ctx.toUpperCase();});});
+let ctxExp=true;
+document.getElementById('ctx-toggle').addEventListener('click',()=>{ctxExp=!ctxExp;document.getElementById('ctx-panel').classList.toggle('expanded',ctxExp);document.getElementById('ctx-panel').classList.toggle('collapsed',!ctxExp);document.getElementById('ctx-body').style.display=ctxExp?'flex':'none';document.getElementById('ctx-arrow').textContent=ctxExp?'◀':'▶';});
+let fs=5048;
+setInterval(()=>{if(fs>0)fs--;const h=Math.floor(fs/3600),m=Math.floor((fs%3600)/60),s=fs%60;const el=document.getElementById('fire-timer');if(el){el.textContent=`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;el.classList.toggle('low',fs<600);}const ff=document.getElementById('fire-fuel');if(ff){const p=Math.round(fs/5048*100);ff.style.width=p+'%';ff.style.background=p<20?'#a83020':'#8a5030';}},1000);
+buildColumns();updateUI();
+</script>
+
+</div>
+</body>
+</html>

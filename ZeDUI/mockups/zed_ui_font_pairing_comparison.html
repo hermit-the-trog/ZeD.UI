@@ -1,0 +1,148 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Share+Tech+Mono&family=Azeret+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&family=Fira+Mono:ital,wght@0,400;0,500;0,600&family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+</style>
+<div style="background:#0d0d10;padding:16px 12px 20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;max-width:640px;margin-left:auto;margin-right:auto;">
+    <span style="font-family:system-ui;font-size:11px;color:rgba(255,255,255,0.28);text-transform:uppercase;letter-spacing:1.5px;">ZeD-UI · Font Pairing Comparison</span>
+    <button id="annoBtn" onclick="toggleAnno()" style="padding:3px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.45);font-size:11px;cursor:pointer;font-family:system-ui;letter-spacing:0.5px;text-transform:uppercase;">Show roles</button>
+  </div>
+  <div id="grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:640px;margin:0 auto;"></div>
+  <div style="max-width:640px;margin:14px auto 0;display:flex;gap:20px;justify-content:center;">
+    <span style="font-family:system-ui;font-size:11px;color:rgba(212,160,74,0.6);">■ System 7 score</span>
+    <span style="font-family:system-ui;font-size:11px;color:rgba(74,154,90,0.6);">■ Legibility score</span>
+    <span style="font-family:system-ui;font-size:11px;color:rgba(255,255,255,0.25);">· out of 10</span>
+  </div>
+</div>
+<script>
+const PA=[
+  {id:'pa',mono:"'Share Tech Mono',monospace",sans:"'Chakra Petch',sans-serif",label:'A — Share Tech + Chakra Petch',sub:'System 7 authentic',s7:8,leg:7,rec:false},
+  {id:'pb',mono:"'Azeret Mono',monospace",sans:"'Rajdhani',sans-serif",label:'B — Azeret Mono + Rajdhani',sub:'90s OS interface',s7:7,leg:7,rec:false},
+  {id:'pc',mono:"'Fira Mono',monospace",sans:"'Fira Sans',sans-serif",label:'C — Fira Mono + Fira Sans',sub:'Engineered superfamily ★ recommended',s7:3,leg:9,rec:true},
+  {id:'pd',mono:"'Fira Mono',monospace",sans:"'Fira Sans Condensed',sans-serif",label:'D — Fira Mono + Fira Sans Cond.',sub:'Small-screen specialist',s7:2,leg:9,rec:false},
+];
+const ITEMS=[
+  {name:'Leather Jacket',pct:78,sel:true},
+  {name:'Work Shirt',pct:92,sel:false},
+  {name:'Bra',pct:65,sel:false},
+  {name:'Denim Jeans',pct:71,sel:false},
+  {name:'Socks',pct:88,sel:false},
+];
+let anno=false;
+function toggleAnno(){
+  anno=!anno;
+  document.querySelectorAll('.rt').forEach(e=>e.style.display=anno?'inline':'none');
+  document.getElementById('annoBtn').textContent=anno?'Hide roles':'Show roles';
+}
+function rt(label){
+  return `<span class="rt" style="display:none;font-size:11px;padding:0 3px;background:rgba(212,160,74,0.18);border:1px solid rgba(212,160,74,0.35);color:#d4a04a;margin-left:3px;vertical-align:middle;font-family:system-ui;font-weight:400;text-transform:none;letter-spacing:0;">${label}</span>`;
+}
+function barColor(pct){return pct>=80?'#4a9a5a':pct>=65?'#c49040':'#c44040';}
+function scoreBar(score,color){
+  return Array.from({length:10},(_,i)=>`<span style="display:inline-block;width:7px;height:7px;background:${i<score?color:'rgba(255,255,255,0.10)'};margin-right:2px;"></span>`).join('');
+}
+function buildWin(p){
+  const FC=`font-family:${p.mono};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;`;
+  const FB=`font-family:${p.sans};font-size:12px;font-weight:400;`;
+  const FD=`font-family:${p.mono};font-size:11px;font-weight:400;`;
+  const FH=`font-family:${p.sans};font-size:13px;font-weight:600;`;
+  const FM=`font-family:${p.sans};font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.7px;`;
+  const rows=ITEMS.map((item,i)=>`
+    <div style="height:18px;display:flex;align-items:center;padding:0 8px;${item.sel?'background:rgba(212,160,74,0.10);':''}">
+      <span style="${FB}color:#d4d4d8;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name}${i===0?rt('F2'):''}  </span>
+      <div style="width:38px;height:4px;background:#333338;border:1px solid rgba(255,255,255,0.10);margin-right:5px;flex-shrink:0;">
+        <div style="width:${item.pct}%;height:100%;background:${barColor(item.pct)};"></div>
+      </div>
+      <span style="${FD}color:rgba(255,255,255,0.45);min-width:26px;text-align:right;flex-shrink:0;">${item.pct}%${i===0?rt('F3'):''}</span>
+    </div>`).join('');
+  return `
+  <div style="background:#222226;border:1px solid rgba(255,255,255,0.22);">
+    <div style="height:22px;display:flex;align-items:center;padding:0 6px;border-bottom:1px solid rgba(255,255,255,0.20);background:repeating-linear-gradient(to right,#333338 0px 2px,#2a2a2e 2px 4px);">
+      <div style="width:11px;height:11px;border:1px solid rgba(255,255,255,0.25);background:#222226;margin-right:7px;flex-shrink:0;"></div>
+      <span style="${FC}color:rgba(255,255,255,0.65);">Character${rt('F1')}</span>
+    </div>
+    <div style="height:22px;display:flex;border-bottom:1px solid rgba(255,255,255,0.18);">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,0.10);border-bottom:2px solid #d4a04a;">
+        <span style="${FC}color:#d4a04a;">Equip</span>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,0.10);">
+        <span style="${FC}color:rgba(255,255,255,0.30);">Health</span>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+        <span style="${FC}color:rgba(255,255,255,0.30);">Skills</span>
+      </div>
+    </div>
+    <div style="padding:4px 0 2px;">
+      <div style="padding:2px 8px 3px;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <span style="${FH}color:rgba(255,255,255,0.65);">Torso${rt('F4')}</span>
+      </div>
+      ${rows.slice(0,3).join('')}
+      <div style="padding:2px 8px 3px;border-bottom:1px solid rgba(255,255,255,0.08);margin-top:3px;">
+        <span style="${FH}color:rgba(255,255,255,0.65);">Legs</span>
+      </div>
+      ${rows.slice(3).join('')}
+    </div>
+    <div style="height:1px;background:rgba(255,255,255,0.14);"></div>
+    <div style="padding:8px;background:#1c1c20;">
+      <div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:6px;">
+        <div style="width:30px;height:30px;background:#2a2a2e;border:1px solid rgba(255,255,255,0.20);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4 L4 2 L6 4 L8 2 L10 4 L12 2 L14 4 L14 14 L2 14 Z" stroke="rgba(255,255,255,0.35)" stroke-width="1" fill="rgba(255,255,255,0.06)"/><path d="M5 4 L5 14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><path d="M11 4 L11 14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/></svg>
+        </div>
+        <div style="padding-top:1px;">
+          <div style="${FH}color:#d4a04a;line-height:1.2;">Leather Jacket${rt('F4')}</div>
+          <div style="${FB}color:rgba(255,255,255,0.40);font-size:11px;">Clothing · Outer Layer${rt('F2')}</div>
+        </div>
+      </div>
+      <div style="height:1px;background:rgba(255,255,255,0.10);margin-bottom:6px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:15px;">
+          <span style="${FM}color:rgba(255,255,255,0.40);">Cond${rt('F5')}</span>
+          <span style="${FD}color:#d4d4d8;">78%${rt('F3')}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:15px;">
+          <span style="${FM}color:rgba(255,255,255,0.40);">Wt</span>
+          <span style="${FD}color:#d4d4d8;">1.2</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:15px;">
+          <span style="${FM}color:rgba(255,255,255,0.40);">Ins</span>
+          <span style="${FD}color:#d4d4d8;">+18</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:15px;">
+          <span style="${FM}color:rgba(255,255,255,0.40);">Warm</span>
+          <span style="${FD}color:#d4d4d8;">+22</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:3px;margin-bottom:6px;">
+        <span style="${FM}color:#d4a04a;padding:1px 5px;border:1px solid rgba(212,160,74,0.30);font-size:11px;">Leather</span>
+        <span style="${FM}color:rgba(255,255,255,0.30);padding:1px 5px;border:1px solid rgba(255,255,255,0.12);font-size:11px;">Outer</span>
+        <span style="${FM}color:rgba(255,255,255,0.30);padding:1px 5px;border:1px solid rgba(255,255,255,0.12);font-size:11px;">Warm</span>
+      </div>
+      <div style="display:flex;gap:3px;">
+        <div style="flex:1;height:20px;border:1px solid #d4a04a;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <span style="${FC}color:#d4a04a;font-size:11px;">Equip</span>
+        </div>
+        <div style="flex:1;height:20px;border:1px solid rgba(255,255,255,0.20);background:#2a2a2e;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <span style="${FC}color:rgba(255,255,255,0.55);font-size:11px;">Drop</span>
+        </div>
+        <div style="flex:1;height:20px;border:1px solid rgba(255,255,255,0.20);background:#2a2a2e;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <span style="${FC}color:rgba(255,255,255,0.55);font-size:11px;">Inspect</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function buildPanel(p){
+  return `
+  <div>
+    ${buildWin(p)}
+    <div style="margin-top:8px;padding:0 2px;">
+      <div style="font-family:system-ui;font-size:11px;color:rgba(255,255,255,0.50);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.label}</div>
+      <div style="font-family:system-ui;font-size:11px;color:${p.rec?'#d4a04a':'rgba(255,255,255,0.28)'};margin-bottom:5px;">${p.sub}</div>
+      <div style="margin-bottom:3px;">${scoreBar(p.s7,'rgba(212,160,74,0.75)')}<span style="font-family:system-ui;font-size:11px;color:rgba(212,160,74,0.55);margin-left:4px;">${p.s7}/10</span></div>
+      <div>${scoreBar(p.leg,'rgba(74,154,90,0.75)')}<span style="font-family:system-ui;font-size:11px;color:rgba(74,154,90,0.55);margin-left:4px;">${p.leg}/10</span></div>
+    </div>
+  </div>`;
+}
+document.getElementById('grid').innerHTML=PA.map(buildPanel).join('');
+</script>

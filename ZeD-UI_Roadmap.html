@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Project Roadmap</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;600&family=Fira+Sans:wght@400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a1e;
+    color: #d4d4d8;
+    font-family: 'Fira Sans', sans-serif;
+    font-size: 14px;
+    padding: 40px 20px 80px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-family: 'Fira Mono', monospace;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #71717a;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-family: 'Fira Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #52525b;
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .version {
+    font-family: 'Fira Mono', monospace;
+    font-size: 11px;
+    color: #3f3f46;
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .flow {
+    max-width: 680px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* vertical spine */
+  .flow::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #27272a;
+  }
+
+  .phase {
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .phase-label {
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #52525b;
+    margin-left: 48px;
+    margin-bottom: 16px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #27272a;
+    display: inline-block;
+  }
+
+  .node {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+    margin-left: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dot.done { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.3); }
+  .dot.major { background: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+  .dot.fail { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.3); }
+  .dot.current { background: #3b82f6; box-shadow: 0 0 10px rgba(59,130,246,0.5); animation: pulse 2s ease-in-out infinite; }
+  .dot.upcoming { background: #3f3f46; border: 2px solid #52525b; }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(59,130,246,0.3); }
+    50% { box-shadow: 0 0 14px rgba(59,130,246,0.6); }
+  }
+
+  .content {
+    margin-left: 16px;
+    flex: 1;
+  }
+
+  .session {
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+    color: #52525b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .title {
+    font-family: 'Fira Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e4e4e7;
+    line-height: 1.4;
+  }
+
+  .node.major-node .title { color: #fbbf24; }
+  .node.fail-node .title { color: #f87171; }
+  .node.current-node .title { color: #60a5fa; }
+  .node.upcoming-node .title { color: #71717a; }
+
+  .desc {
+    font-size: 12px;
+    color: #71717a;
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: 'Fira Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    margin-top: 4px;
+  }
+
+  .tag.paradigm { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .tag.lesson { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .tag.proven { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .tag.next { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+  .legend {
+    max-width: 680px;
+    margin: 48px auto 0;
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #52525b;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .stats {
+    max-width: 680px;
+    margin: 32px auto 0;
+    display: flex;
+    gap: 2px;
+    justify-content: center;
+  }
+
+  .stat {
+    background: #27272a;
+    padding: 12px 20px;
+    text-align: center;
+  }
+
+  .stat:first-child { border-radius: 4px 0 0 4px; }
+  .stat:last-child { border-radius: 0 4px 4px 0; }
+
+  .stat-num {
+    font-family: 'Fira Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: #e4e4e7;
+  }
+
+  .stat-label {
+    font-family: 'Fira Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #52525b;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<h1>ZeD-UI</h1>
+<div class="subtitle">Project Zomboid Build 42 — Total UI Overhaul</div>
+<div class="version">v0.1.841204c — Session 84 — April 12, 2026</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">27</div>
+    <div class="stat-label">Days</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">84</div>
+    <div class="stat-label">Sessions</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">~260</div>
+    <div class="stat-label">Hours</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">21</div>
+    <div class="stat-label">Atoms</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">33</div>
+    <div class="stat-label">Molecules</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">10</div>
+    <div class="stat-label">Organisms</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">2+5</div>
+    <div class="stat-label">Typography</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">~22k</div>
+    <div class="stat-label">Lines</div>
+  </div>
+</div>
+
+<div style="height: 48px;"></div>
+
+<div class="flow">
+
+  <!-- PHASE 1: FOUNDATION -->
+  <div class="phase">
+    <div class="phase-label">Phase 1 — Foundation</div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 1–4 · Mar 17–23</div>
+        <div class="title">Design System Built</div>
+        <div class="desc">Tokens, Atoms, Molecules, Organisms coded. Hierarchical component library established.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 5–6 · Mar 24</div>
+        <div class="title">Gallery + ScrollPanel</div>
+        <div class="desc">Sync-up, bug fixes, ScrollPanel created.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 7 · Mar 24–25</div>
+        <div class="title">System 7.1 Chrome</div>
+        <div class="desc">Grow box, WindowShade, buttons, opacity. The chrome IS the design.</div>
+        <span class="tag proven">Visual Foundation</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2: ITEM CARD ERA -->
+  <div class="phase">
+    <div class="phase-label">Phase 2 — Item Card</div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 9 · Mar 25</div>
+        <div class="title">ZeD_ItemCard — Live In-Game</div>
+        <div class="desc">10 category formatters, InspectHook, spec to screen in one session.</div>
+        <span class="tag paradigm">Major Milestone</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 10–11 · Mar 25</div>
+        <div class="title">Design Audit + Action Strip</div>
+        <div class="desc">Zero hardcoded values. Toggle buttons (fav/protect/unwanted). M14 drawActionStrip.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 12–13 · Mar 26</div>
+        <div class="title">Detail Zone + Dock Design</div>
+        <div class="desc">HTML mockup v10. Icon picker attempted, scrapped — UX needs rethink.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 14–16 · Mar 27–28</div>
+        <div class="title">Docs, Docks, Zones</div>
+        <div class="desc">200+ vanilla source files cataloged. M15 drawDock. O09 ZoneList + M16 ZoneRow coded.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 3: ARCHITECTURE -->
+  <div class="phase">
+    <div class="phase-label">Phase 3 — Architecture Revolution</div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 19 · Mar 29</div>
+        <div class="title">Competitive Inventory Audit</div>
+        <div class="desc">22 confirmed UI patterns extracted from other games and mods.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 20 · Mar 29</div>
+        <div class="title">Turducken — Inventory Absorbs Character</div>
+        <div class="desc">Inventory window IS the character window. Separate character info panel eliminated.</div>
+        <span class="tag paradigm">Paradigm Shift</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 21 · Mar 29</div>
+        <div class="title">Two Windows To Rule Them All</div>
+        <div class="desc">Entire PZ UI collapses to Character Window + World Window. Tooltips eliminated. Drawer IS the detail surface. Full HUD = 4 draggable objects.</div>
+        <span class="tag paradigm">Paradigm Shift</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 4: THE WALL -->
+  <div class="phase">
+    <div class="phase-label">Phase 4 — The Wall + Recovery</div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 21.5 · Mar 29</div>
+        <div class="title">From-Scratch Build</div>
+        <div class="desc">CharacterWindow.lua built fresh (~700 lines). Tab strip, drawer, item card all functioning.</div>
+      </div>
+    </div>
+
+    <div class="node fail-node">
+      <div class="dot fail"></div>
+      <div class="content">
+        <div class="session">Session 23 · Mar 30</div>
+        <div class="title">Full Rewrite — Pulled Back</div>
+        <div class="desc">1950-line InventoryPane, pure ZeD atomics. Java UIManager pairing proved unbeatable. All overrides disabled, vanilla restored.</div>
+        <span class="tag lesson">Hard Lesson — Never Derive from ISInventoryPage</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 24 · Mar 31</div>
+        <div class="title">ZeD_Panel — 5 Layers Proven</div>
+        <div class="desc">ISPanel:derive base class. Item list, scrolling, multi-select, column sorting, expand/collapse. All first-try clean. Zero errors.</div>
+        <span class="tag proven">Incremental Path Validated</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 25 · Mar 31</div>
+        <div class="title">Drag + Context + Character Window Shell</div>
+        <div class="desc">Ghost card drag with ISMouseDrag bridge. Context menu via vanilla ISInventoryPaneContextMenu. Character Window shell on ZeD_Window + ZeD_Panel (F7). Shared ZeD.InventoryRenderer module.</div>
+        <span class="tag proven">8 Layers</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 26 · Mar 31</div>
+        <div class="title">Tabs, Drawer, Containers, Responsive</div>
+        <div class="desc">Tab strip (28px, 7 tabs, 2 groups). Drawer state machine (item/tab modes, snap-back). Container strip (bag switching). Responsive ItemCard redesign. Progressive column collapse. Right-edge anchored layout.</div>
+        <span class="tag proven">11 Layers Proven</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 5: CHARACTER WINDOW COMPLETION -->
+  <div class="phase">
+    <div class="phase-label">Phase 5 — Character Window Completion</div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 27 · Apr 1</div>
+        <div class="title">Vanilla Keybind Takeover + Visibility Gate</div>
+        <div class="desc">I key opens ZeD window. Vanilla ISInventoryPage hidden. Prerender suppression. X-button close. Window resize. Container headers. ItemCard layout refinements.</div>
+        <span class="tag proven">17 Layers</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 28 · Apr 1</div>
+        <div class="title">Health Tab + Font Overhaul + Title Bar Stats</div>
+        <div class="desc">Tab dispatch framework. Health data aggregation with severity badges. Font weights 500/500/700, accent subheadings, textDim split. Title bar heart + weight icons.</div>
+        <span class="tag proven">21 Layers</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 29 · Apr 1</div>
+        <div class="title">Skills Tab + Per-Tab Drawer Width</div>
+        <div class="desc">2-column XP grid with category grouping, color-coded progress bars, level badges, boost pills. Per-tab drawer width system (480px for Skills). Generalized scroll dispatch. Light mode + large text scale fixes.</div>
+        <span class="tag proven">22 Layers</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 30 · Apr 1</div>
+        <div class="title">BMFont Pipeline + Font Atomics + True Text Scaling</div>
+        <div class="desc">14 bitmap fonts (11–24px) across 4 HiDPI scales. ZeD.Font rich atomics {font, px}. T.scale factor. 3 text size presets (S/M/L). User-resizable inventory columns with drag dividers.</div>
+        <span class="tag paradigm">Font System Complete</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 31 · Apr 2</div>
+        <div class="title">ZoneList + Protection Tab + ItemCard Scroll</div>
+        <div class="desc">O09 ZeD_ZoneList organism. Protection tab (per-garment defense). ItemCard drawer scroll. Drawer width snap-back.</div>
+        <span class="tag proven">23 Layers</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 32 · Apr 2</div>
+        <div class="title">Thermal Tab + Body Figure + New Atomics</div>
+        <div class="desc">7-view thermoregulation system. BodyFigure tile-grid rendering. drawGradientBar + drawStatBarRow atoms. Thermal spectrum tokens.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 33–34 · Apr 2</div>
+        <div class="title">Protection Tab Concept C — Dashboard + Drill-down</div>
+        <div class="desc">Brainstorm → spec → implementation. Body figure + letter grade + danger pills + garment drill-down. Progressive disclosure: 90% glance, 10% drill-down.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 35 · Apr 2</div>
+        <div class="title">Journal Tab + KillTracker</div>
+        <div class="desc">BBS-style diary with survival stats, expandable kill breakdown, inline text entry, game-world date stamping. Native kill categorization via PZ events.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 36 · Apr 3</div>
+        <div class="title">Training Materials — Skills Tab</div>
+        <div class="desc">CIO-style skill book catalog. 4-status system (read/reading/collected/missing). Expandable groups with chevron icons. Legend row. drawStatusDot atom.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 37 · Apr 3</div>
+        <div class="title">Cleanup + Comfy Pass + Contrast Audit + Footer Controls</div>
+        <div class="desc">wrapText consolidated. Comfy spacing tokens (afterLine/afterGroove). 18 theme-aware color tokens. Protection rework. Whole-tab scrolling. Footer theme buttons. Inventory scrollbar fixes. ~13,200 lines across 22 files.</div>
+        <span class="tag paradigm">Quality + Accessibility Pass</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 38 · Apr 3</div>
+        <div class="title">Identity Tab — KY License Card</div>
+        <div class="desc">KY driver's license card with bust portrait (ISUI3DModel click-to-expand), 10px bevel rounded corners, fixed KY color palette, 2-col data grid, positive/negative traits grid.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 39 · Apr 3</div>
+        <div class="title">Journal Recipes + ID Polish + Tab Scroll</div>
+        <div class="desc">Recipe notebook (grouped by skill, known/unknown dots, expandable groups). ID card laminate border. Tab strip scroll arrows. All 7 character tabs complete.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 40–43 · Apr 4</div>
+        <div class="title">Health Figure + Audit + Click-to-Treat</div>
+        <div class="desc">Health body figure + dashboard + exercise buttons. Pre-world-window audit (pill/badge/swatch atoms). Click-to-treat via ISHealthPanel adapter. Pill button rounded corners.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 44 · Apr 4</div>
+        <div class="title">Multi-Container Accordion Columns</div>
+        <div class="desc">Container waterfall toggle, accordion columns in drawer space, XFER strip, cross-column drag-drop, item card coexistence. Character window feature complete.</div>
+        <span class="tag paradigm">Character Window Complete</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 45 · Apr 4</div>
+        <div class="title">Audit Polish + Body Figure v2 + Container View Toggle</div>
+        <div class="desc">IdentityTab font tokens, shared figure dims, tab centering fixes. Body figure stacked-layer art with wireframe grid bg. _viewedContainer single-select on non-equip tabs.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 6: WORLD WINDOW -->
+  <div class="phase">
+    <div class="phase-label">Phase 6 — World Window</div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 46 · Apr 4</div>
+        <div class="title">World Window Shell + Pinned Skills</div>
+        <div class="desc">ZeD_WorldWindow.lua from scratch. Container discovery (3x3 grid, wall/safehouse checks). Container strip. "I" keybind pairing. Pinned skills (max 2, FIFO, live XP in title bar).</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 47 · Apr 4</div>
+        <div class="title">World Window Drawer + State Persistence</div>
+        <div class="desc">ItemCard drawer integration (260px slide animation). Window state persistence for both windows via ZeD_WinState modData. Two-page spread layout. Muscle strain detection in HealthTab.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 48 · Apr 4</div>
+        <div class="title">Action Tabs + MC Columns + Per-Window Accent + BG Unification</div>
+        <div class="desc">Action tab waterfall (L/C/B, right edge). Multi-container columns (click-to-toggle, XFER, drag-drop). Per-window accent colors. Body figure hover→white. Background unification (zero doubled fills). F-keys removed. Floor pinned active.</div>
+        <span class="tag paradigm">World Window Feature-Rich</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Sessions 49–50 · Apr 5</div>
+        <div class="title">Crafting Tab — Voltron Rewrite</div>
+        <div class="desc">Complete CraftingTab.lua. Icon grid, Now Playing card, batch craft, search/filter/sort, pin strip (FIFO 8), OnGameStart pre-bake catalog. Material scanning with container throttle.</div>
+        <span class="tag paradigm">Crafting Complete</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 51–55 · Apr 5–6</div>
+        <div class="title">Accent Tinting + Floor Fix + Container Icons + Font Swap</div>
+        <div class="desc">Equipment tab (23 slots, list/card mode, body figure coverage). MC for all tabs. VT323 font. Arrow textures. Container icons. Crafting polish.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 56–58 · Apr 6</div>
+        <div class="title">Equipment Tab + Protection Merge + Font Overhaul</div>
+        <div class="desc">Protection tab merged into Equipment as collapsible DEFENSE dashboard (7→6 tabs). Geneva body font, Atkinson HL Mono, dyslexic toggle. M.drawSectionHeader unified. Global spacing bump.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 59 · Apr 6</div>
+        <div class="title">Building Tab + Equipment Overhaul</div>
+        <div class="desc">Full BuildingTab.lua (tag categories, icon grid, BUILD placement cursor, pin strip). Equipment rows match inventory layout with protection columns (bite/scratch/bullet). WT sort in world container strip. RMB context-only. Equipped items hidden from inventory. Full atomics sweep.</div>
+        <span class="tag paradigm">Building + Equipment</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 60 · Apr 7</div>
+        <div class="title">Equipment Polish + Cross-Window Drag-Drop</div>
+        <div class="desc">Building skill fallback. Equipment header/dots/disclosures. Cross-window drag-drop between character and world windows.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 61 · Apr 7</div>
+        <div class="title">Multi-Container Everywhere + Item Card Overlay</div>
+        <div class="desc">MC columns in all world tabs. Item card 220px overlay mode. Character Loot tab. Card background fix.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 62 · Apr 7</div>
+        <div class="title">ItemCard 220w Redesign</div>
+        <div class="desc">Sticky head (icon+name+bar+strip, surf2). Scrollable body (stencil at _headH). Foldable disclosures (clothing zones, nutrition, ingredients — persisted via modData). Inline zones (ZoneList eliminated). Two-line bar layout. 4/8/4/6 spacing atomics (cardBeforeHead/cardAfterHead/cardAfterBody/cardAfterLabel). 3-sided border (top suppressed). Body on drawer surface (surf1 90α). Window reset clears all saved state. Inspect mode 220px.</div>
+        <span class="tag paradigm">ItemCard v10</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 63 · Apr 7</div>
+        <div class="title">Backlog Fixes + Polish</div>
+        <div class="desc">List stability (dirty flags). Scrollbar overlap fix. Ingredient dot rows. Font pipeline (baseline adjust, tracking). ItemCard bg + click consume.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 64 · Apr 7</div>
+        <div class="title">Journal Sub-Tabs + Embedded World Map + Flyer Gallery</div>
+        <div class="desc">Journal split into 4 sub-tabs [Journal|Recipes|Maps|Flyers]. Embedded UIWorldMap with pan/zoom/fog-of-war. Flyer thumbnail grid + click-to-open detail. Item card drawer bg (220px, 0.98α). Settings fix.</div>
+        <span class="tag paradigm">Journal Complete</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 65 · Apr 8</div>
+        <div class="title">Journal Polish Pass</div>
+        <div class="desc">Month/year grouping, recipe icon grid + detail card, map annotation system (15 icons, 4 colors, RMB edit), flyer collection tracking. Critical fix: drawStatusDot shadow overwrite in AtomExtensions removed (was silently rendering all status dots hollow across every tab).</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 66 · Apr 8</div>
+        <div class="title">Full Audit — World Window Parity</div>
+        <div class="desc">3-agent codebase audit. 7 World Window bugs fixed (MC capacity dynamic, drawer persistence, item card bg guard, per-tab drawer widths, MC trim, content resize, MC+Loot snap-back). Token extraction: T.iconWhite, T.sp.catHdrH.</div>
+        <span class="tag paradigm">World Window Parity</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 67 · Apr 8</div>
+        <div class="title">World Window Maps Tab</div>
+        <div class="desc">New MapsTab.lua. ZeD_WorldMap (ISUIElement + UIWorldMap). Toolbar, annotations, stash markers, flyer dots. 480px drawer. Journal Maps sub-tab commented out (reindexed to 3).</div>
+        <span class="tag paradigm">Maps Tab</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 68–69 · Apr 8</div>
+        <div class="title">Typography Wiring + Z-Order Fix</div>
+        <div class="desc">ITEM.DRAWER overlay panel (card always top-Z on both windows). 5-role typography locked (later superseded by S75 Pairing D). K22 dominant chrome, pin strip icons, status dots, ItemCard polish.</div>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 70 · Apr 9</div>
+        <div class="title">BRAINSTORM — Foraging Panel</div>
+        <div class="desc">4 concepts at 480w. Quiet v5 approved. Hero + stance row + focus dropdown + More Detail disclosure + 2-col stat grids + Recent Finds. Typography strict enforcement (Lekton labels, K22 numbers). Wildcard Compass concept archived. FORAGING_SPEC.md written.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Sessions 71–72 · Apr 9</div>
+        <div class="title">Foraging Tab + Live Data</div>
+        <div class="desc">ForagingTab.lua coded. 7-band layout from v5 spec. ISSearchManager.toggleSearchMode() hook. 11 live getters replace all mock data. Sun/moon arc instrument gauge (semicircular, game-time, season-aware dawn/dusk). Tab visibility predicate system.</div>
+        <span class="tag paradigm">Foraging Tab</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Sessions 73–74 · Apr 9–10</div>
+        <div class="title">Backlog Attack</div>
+        <div class="desc">Deleted ~240 legacy font files. M.drawStatRowDot molecule. Recipe categorization (55-tag map). Drawer regression fixes. Scrollbar inner stencilRect width (Q52). ISUI3DModel window-parenting (Q52 bypass). Tonal drawers, staggered rows, column drag fix. Q53 + Q54 + Q55 logged.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 75 · Apr 10</div>
+        <div class="title">Typography Overhaul — Pairing D</div>
+        <div class="desc">5 font families (Bahnschrift/Chicago/Lekton/K22 Xanthus) collapsed to 2 (Fira Mono + Fira Sans). F-system token rename: fontTitle/Head/Sec/Body/Stat → fontF1–F5 across 22 files (536 occurrences). 56 bitmap font files regenerated.</div>
+        <span class="tag paradigm">Font System Locked</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 76 · Apr 10</div>
+        <div class="title">Font Audit Sweep + Vanilla Tab Icons</div>
+        <div class="desc">F-role assignments verified across 8 files. Container info header redesigned. Sort strip 3-mode cycle (wt→type→prox). Main inventory box icon. Tab waterfall glyphs → 16px PNG icons (7 tabs). Body figure bg textures (dark/light). Dropdown bleed-through fix.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 77 · Apr 10</div>
+        <div class="title">ISUI3DModel Identity Avatar</div>
+        <div class="desc">Window-parented 3D character bust in KY license frame (Q52 stencil bypass). Click photo → toggle bust/full-body. Scroll wheel zoom. Drag-to-rotate preserved. Camera tuned for bust crop and full-body. Deferred character binding. Q45 dual setVisible.</div>
+        <span class="tag paradigm">Identity Avatar</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 78 · Apr 11</div>
+        <div class="title">Two-Drawer Architecture + MC Refinement</div>
+        <div class="desc">Inventory becomes a toggleable drawer (opposite to tab drawer). MC restricted to Loot tab only. All containers equal — on-person/floor toggleable. Dynamic MC capacity (screen-width-based). Adaptive XFER strips. Sort cycle renamed dist→wt→type. Q55 logged (ISPanel minimumWidth enforcement).</div>
+        <span class="tag paradigm">Two-Drawer Model</span>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Sessions 79–80 · Apr 11</div>
+        <div class="title">Template Palooza + Vanilla Tab Icons</div>
+        <div class="desc">New molecules: drawTabHeader, layoutZoneA, getTabPad. "666 padding system" (6px sides/gap/content). All 6 character-window tabs unified on template. Recipe categorization: recipe:getCategory() replaces 55-tag map. All 12 tabs (7 char + 5 world) use native PZ media/ui textures.</div>
+        <span class="tag paradigm">Tab Template System</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 81 · Apr 12</div>
+        <div class="title">BRAINSTORM — Unified Crafting/Building</div>
+        <div class="desc">480w drawer, never expands. Static header pinned top. Left-pane flip for alternatives (Rule #9 solution). Craft card list-style required items, slot rows with inline N▾ alt indicator, [+][qty][−] max [BUILD] action strip. 3 list sections: Pinned · Frequently Used · All Recipes. 6 mockup iterations. CRAFTING_SPEC.md v1.0 written.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 82 · Apr 12</div>
+        <div class="title">Unified Crafting/Building Rewrite</div>
+        <div class="desc">CraftingCore.lua shared module (1,547 LOC). CraftingTab rewrite (1,831→370 LOC). BuildingTab rewrite (1,740→430 LOC). JournalTab rewired to shared utilities. 7 new molecules. Background ingredient scanner. Category dropdown overlay. drawTextureScaled purged globally. Tool/keep craftability fix.</div>
+        <span class="tag paradigm">Unified Crafting</span>
+      </div>
+    </div>
+
+    <div class="node">
+      <div class="dot done"></div>
+      <div class="content">
+        <div class="session">Session 83 · Apr 12</div>
+        <div class="title">Crafting Verification + Journal Recipes + Performance</div>
+        <div class="desc">Pane split easeOutCubic (real dt, mid-flight reversal). Craft execution bypasses ISHandcraftAction:new (Q60). Ingredient counting getFullName fallback (Q61). Journal Recipes rewrite (combined catalog, HOW TO LEARN). Performance: section caching, row culling, type cache, 300f scan throttle, zero-alloc rendering.</div>
+      </div>
+    </div>
+
+    <div class="node major-node">
+      <div class="dot major"></div>
+      <div class="content">
+        <div class="session">Session 84 · Apr 12</div>
+        <div class="title">Animals Tab Foundation + Custom Tab Icons</div>
+        <div class="desc">5 new files: AnimalsData, AnimalsDisorderCatalog, AnimalsStressInference, AnimalsAlertPoller, AnimalsTab (state machine skeleton — ranch/butcher submodes, overview/zone/animal views). Animal API verified (Stats hunger, getThirst, getStress, canBeMilked/Sheared, getGeneticDisorder). 12 custom ZeD tab icons batch-inverted via ImageMagick, wired across both windows (13 tabs total). Q62–Q65 logged.</div>
+        <span class="tag paradigm">Animals Tab</span>
+      </div>
+    </div>
+
+    <div class="node current-node">
+      <div class="dot current"></div>
+      <div class="content">
+        <div class="session">Session 85 · Next</div>
+        <div class="title">Animals Tab Implementation</div>
+        <div class="desc">Wire overview/zone/animal views. Live data surfaces (animals in zones, hunger/thirst/stress readouts, disorder flags, milk/shear states). Alert poller integration. Submode switching (ranch/butcher).</div>
+        <span class="tag next">Up Next</span>
+      </div>
+    </div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="session">Future</div>
+        <div class="title">Fishing Tab + Contextual Completion</div>
+        <div class="desc">Fishing tab (at-water predicate). Remaining contextual World Window slots. Cross-window drag-drop polish.</div>
+      </div>
+    </div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="session">Future</div>
+        <div class="title">CaZio Watch + HUD Elements</div>
+        <div class="desc">Watch system, minimap, moodle bar, standalone floaters.</div>
+      </div>
+    </div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="session">Future</div>
+        <div class="title">Graphics + Icon Audit</div>
+        <div class="desc">poster.png, cursor set, gamepad badges. Purpose-built icons for all UI elements.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 7: MAIN MENU -->
+  <div class="phase">
+    <div class="phase-label">Phase 7 — Main Menu Systems</div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="session">Future</div>
+        <div class="title">CRT Main Menu</div>
+        <div class="desc">Retro CRT computer scene. ZeD-styled menu bar (File, Multiplayer, Settings). Room environment with desk objects, lamp, shelf, poster. Mockup: zed-main-menu-crt-v7_1.html.</div>
+      </div>
+    </div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="session">Future</div>
+        <div class="title">Options Window</div>
+        <div class="desc">Unified settings: Display, Audio, Controls, Gameplay, Interface, Accessibility — all in ZeD_Window chrome. Searchable. Category sidebar. ZeD UI tab intercepts 12 vanilla settings.</div>
+      </div>
+    </div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="session">Future</div>
+        <div class="title">Load Game + Mod Manager + New Game</div>
+        <div class="desc">Save browser with search + preview. Mod manager with available/active columns and drag reorder. New Game mode selector (Apocalypse, Sandbox, Challenges, etc.).</div>
+      </div>
+    </div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="session">Future</div>
+        <div class="title">ZeD UI Settings + Accessibility Presets</div>
+        <div class="desc">Theme/accent/text size in dedicated tab. Colorblind modes (Protanopia, Deuteranopia, Tritanopia). Highlight color pickers. CaZio Watch config. One-click accessibility presets (Low Vision, Motor, Hearing).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 8: POST-RELEASE -->
+  <div class="phase">
+    <div class="phase-label">Phase 8 — Post-Release / Community-Driven</div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="title">Auto-Scale UI by Resolution</div>
+        <div class="desc">Detect screen resolution (4K/1440p/1080p), auto-select or multiply text scale preset. Infrastructure ready (T.scale, TextSizes). Needs playtest tuning across resolutions.</div>
+      </div>
+    </div>
+
+    <div class="node upcoming-node">
+      <div class="dot upcoming"></div>
+      <div class="content">
+        <div class="title">XL Text Scale Preset</div>
+        <div class="desc">Accessibility option. Code commented out in Tokens.lua, fonts already generated (20–24px). Uncomment if community requests it.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#22c55e;"></div> Done</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Major Milestone</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div> Hard Lesson</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Up Next</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3f3f46; border: 2px solid #52525b;"></div> Horizon</div>
+</div>
+
+</body>
+</html>

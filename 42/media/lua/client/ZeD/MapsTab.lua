@@ -1,0 +1,1246 @@
+-- ZeD-UI/42/media/lua/client/ZeD/MapsTab.lua
+-- ============================================================================
+-- MAPS TAB — World Window standalone tab.
+-- Embedded UIWorldMap with stash map markers, flyer location dots,
+-- user-placed annotations (15 icons, 5 colors, text notes).
+-- Same annotation data as JournalTab Maps sub-tab (modData.ZeD_MapAnnotations).
+-- ============================================================================
+
+require "ZeD/Tokens"
+require "ZeD/Atoms"
+require "ZeD/AtomExtensions"
+require "ZeD/Molecules"
+require "ISUI/Maps/ISMapDefinitions"
+
+ZeD = ZeD or {}
+ZeD.MapsTab = {}
+
+-- ============================================================================
+-- CONSTANTS — duplicated from JournalTab (may diverge)
+-- ============================================================================
+
+local MAP_ICONS = {
+    { id = "house",       tex = "media/ui/LootableMaps/map_house.png",       label = "House" },
+    { id = "target",      tex = "media/ui/LootableMaps/map_target.png",      label = "Target" },
+    { id = "skull",       tex = "media/ui/LootableMaps/map_skull.png",       label = "Skull" },
+    { id = "star",        tex = "media/ui/LootableMaps/map_star.png",        label = "Star" },
+    { id = "cross",       tex = "media/ui/LootableMaps/map_cross.png",       label = "Cross" },
+    { id = "heart",       tex = "media/ui/LootableMaps/map_heart.png",       label = "Heart" },
+    { id = "exclamation", tex = "media/ui/LootableMaps/map_exclamation.png", label = "Alert" },
+    { id = "question",    tex = "media/ui/LootableMaps/map_question.png",    label = "Question" },
+    { id = "fire",        tex = "media/ui/LootableMaps/map_firet.png",       label = "Fire" },
+    { id = "gun",         tex = "media/ui/LootableMaps/map_gun.png",         label = "Gun" },
+    { id = "burger",      tex = "media/ui/LootableMaps/map_burger.png",      label = "Food" },
+    { id = "axe",         tex = "media/ui/LootableMaps/map_axe.png",         label = "Axe" },
+    { id = "gears",       tex = "media/ui/LootableMaps/map_gears.png",       label = "Gears" },
+    { id = "x",           tex = "media/ui/LootableMaps/map_x.png",          label = "X" },
+    { id = "checkmark",   tex = "media/ui/LootableMaps/map_checkmark.png",   label = "Check" },
+}
+
+local MAP_COLORS = {
+    { r = 0.6, g = 0.6, b = 0.6, a = 0.9, label = "Pencil" },
+    { r = 0.1, g = 0.1, b = 0.1, a = 0.9, label = "Black" },
+    { r = 0.2, g = 0.4, b = 0.9, a = 0.9, label = "Blue" },
+    { r = 0.9, g = 0.2, b = 0.2, a = 0.9, label = "Red" },
+    { r = 0.2, g = 0.8, b = 0.3, a = 0.9, label = "Green" },
+}
+
+local MAP_ICON_BTN_SZ   = 20
+local MAP_ICON_BTN_GAP  = 4
+local MAP_COLOR_SZ      = 14
+-- Sourced from ZeD.Spacing.tabHeaderH so all drawer / toolbar headers stay
+-- in lockstep when the token is tuned.
+local MAP_TOOLBAR_ROW_H = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37
+local MAP_ANNOT_DRAW_SZ = 22
+local MAP_TEXT_INPUT_H   = 24
+
+local MAP_DEFAULT_PINS = { "house", "target", "skull", "star", "cross", "checkmark" }
+
+local MAP_ICON_BY_ID = {}
+for i, icon in ipairs(MAP_ICONS) do
+    MAP_ICON_BY_ID[icon.id] = icon
+end
+
+-- ============================================================================
+-- PIN HELPERS — persistent per-player pinned icon list
+-- ============================================================================
+
+local function _getMapPins(playerObj)
+    local md = playerObj:getModData()
+    if not md.ZeD_MapPinnedIcons then
+        md.ZeD_MapPinnedIcons = {}
+        for _, id in ipairs(MAP_DEFAULT_PINS) do
+            md.ZeD_MapPinnedIcons[#md.ZeD_MapPinnedIcons + 1] = id
+        end
+    end
+    return md.ZeD_MapPinnedIcons
+end
+
+local function _isIconPinned(pins, id)
+    for _, pid in ipairs(pins) do
+        if pid == id then return true end
+    end
+    return false
+end
+
+local function _togglePin(pins, id)
+    for i, pid in ipairs(pins) do
+        if pid == id then
+            table.remove(pins, i)
+            return
+        end
+    end
+    pins[#pins + 1] = id
+end
+
+-- ============================================================================
+-- MAP PANEL — ISUIElement wrapping a Java UIWorldMap
+-- ============================================================================
+
+local ZeD_WorldMap = ISUIElement:derive("ZeD_WorldMap")
+
+function ZeD_WorldMap:new(x, y, w, h, playerObj)
+    local o = ISUIElement:new(x, y, w, h)
+    setmetatable(o, self)
+    self.__index = self
+    o.anchorLeft   = true
+    o.anchorRight  = false
+    o.anchorTop    = true
+    o.anchorBottom = true
+    o.playerObj    = playerObj
+    o.dragging     = false
+    o.dragMoved    = false
+    return o
+end
+
+function ZeD_WorldMap:instantiate()
+    self.javaObject = UIWorldMap.new(self)
+    self.mapAPI = self.javaObject:getAPIv3()
+
+    -- Configure: top-down, no debug, fog-of-war
+    self.mapAPI:setBoolean("Isometric", false)
+    self.mapAPI:setBoolean("DebugInfo", false)
+    self.mapAPI:setBoolean("HideUnvisitedAreas", true)
+
+    -- Pre-load annotation icon textures
+    self._annotTextures = {}
+    for _, icon in ipairs(MAP_ICONS) do
+        self._annotTextures[icon.id] = getTexture(icon.tex)
+    end
+
+    self.javaObject:setX(self.x)
+    self.javaObject:setY(self.y)
+    self.javaObject:setWidth(self.width)
+    self.javaObject:setHeight(self.height)
+    self.javaObject:setAnchorLeft(true)
+    self.javaObject:setAnchorRight(false)
+    self.javaObject:setAnchorTop(true)
+    self.javaObject:setAnchorBottom(true)
+
+    self:createChildren()
+end
+
+function ZeD_WorldMap:createChildren()
+    -- Load full world map data
+    if MapUtils and MapUtils.initDefaultMapData then
+        MapUtils.initDefaultMapData(self)
+        self.mapAPI:setBoundsFromWorld()
+        if MapUtils.initDefaultStreetData then
+            MapUtils.initDefaultStreetData(self)
+        end
+        MapUtils.initDefaultStyleV3(self)
+        if MapUtils.overlayPaper then
+            MapUtils.overlayPaper(self)
+        end
+        -- NOTE: getSymbolsAPIv2() crashes on embedded UIWorldMaps (Java uiSymbols is null).
+        -- Default annotations are skipped; we render our own overlays in render().
+    end
+
+    -- Center on player position
+    if self.playerObj then
+        self.mapAPI:centerOn(self.playerObj:getX(), self.playerObj:getY())
+        self.mapAPI:setZoom(18.0)
+    end
+
+    self._annotationsLoaded = false
+end
+
+-- Shared annotation placement — used by both mouse LMB and gamepad A-press.
+-- uiX / uiY are panel-local pixel coordinates inside the map panel. Returns
+-- true when an annotation was placed/edited, false when no tool was active
+-- (so the caller can fall through to pan/drag behavior if it wants).
+local function _placeAnnotationAt(mp, uiX, uiY)
+    local win = mp._parentWin
+    if not (win and win._mapActiveTool) then return false end
+
+    local worldX = mp.mapAPI:uiToWorldX(uiX, uiY)
+    local worldY = mp.mapAPI:uiToWorldY(uiX, uiY)
+    local toolId = win._mapActiveTool
+    local colorIdx = win._mapActiveColor or 1
+
+    local md = mp.playerObj:getModData()
+    if not md.ZeD_MapAnnotations then md.ZeD_MapAnnotations = {} end
+
+    if toolId == "text" then
+        local noteText = "Note"
+        if win._mapTextEntry then
+            local t = win._mapTextEntry:getText()
+            if t and t ~= "" then noteText = t end
+        end
+
+        -- Editing existing annotation (right-click → Edit Note path): update
+        -- text on the same entry and exit text mode.
+        if win._mapEditAnnotIdx then
+            local annots = md.ZeD_MapAnnotations
+            local a = annots and annots[win._mapEditAnnotIdx]
+            if a then a.text = noteText end
+            win._mapEditAnnotIdx = nil
+            win._mapActiveTool = nil
+        else
+            local annots = md.ZeD_MapAnnotations
+            annots[#annots + 1] = {
+                worldX   = worldX,
+                worldY   = worldY,
+                iconId   = "text",
+                colorIdx = colorIdx,
+                text     = noteText,
+            }
+        end
+    else
+        -- Icon annotation: persistent mode (tool stays active so user can
+        -- drop a string of the same marker without re-selecting).
+        local annots = md.ZeD_MapAnnotations
+        annots[#annots + 1] = {
+            worldX   = worldX,
+            worldY   = worldY,
+            iconId   = toolId,
+            colorIdx = colorIdx,
+            text     = "",
+        }
+    end
+    return true
+end
+
+-- Shared annotation-edit context menu. Opens at absolute screen coords
+-- (absX, absY) for annotation index `hitIdx`. Used by mouse RMB and by the
+-- gamepad X-press when the cursor is over an annotation.
+local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
+    local md = mp.playerObj:getModData()
+    local annots = md and md.ZeD_MapAnnotations
+    if not annots or not annots[hitIdx] then return end
+
+    local ctx = ISContextMenu.get(0, absX, absY)
+
+    ctx:addOption("Delete", mp, function(self2)
+        local md2 = self2.playerObj:getModData()
+        if md2.ZeD_MapAnnotations then
+            table.remove(md2.ZeD_MapAnnotations, hitIdx)
+        end
+    end)
+
+    ctx:addOption("Change Color", mp, function(self2)
+        local md2 = self2.playerObj:getModData()
+        local a = md2.ZeD_MapAnnotations and md2.ZeD_MapAnnotations[hitIdx]
+        if a then a.colorIdx = ((a.colorIdx or 1) % #MAP_COLORS) + 1 end
+    end)
+
+    ctx:addOption("Edit Note", mp, function(self2)
+        local pwin = self2._parentWin
+        if not pwin then return end
+        local md2 = self2.playerObj:getModData()
+        local a = md2.ZeD_MapAnnotations and md2.ZeD_MapAnnotations[hitIdx]
+        if a then
+            pwin._mapActiveTool = "text"
+            pwin._mapEditAnnotIdx = hitIdx
+            if pwin._mapTextEntry then
+                pwin._mapTextEntry:setText(a.text or "")
+                pwin._mapTextEntry:setVisible(true)
+            end
+        end
+    end)
+end
+
+-- Mouse drag for panning (or annotation placement when tool is active)
+function ZeD_WorldMap:onMouseDown(x, y)
+    if _placeAnnotationAt(self, x, y) then return true end
+
+    self.dragging = true
+    self.dragMoved = false
+    self.dragStartX = x
+    self.dragStartY = y
+    self.dragStartCX = self.mapAPI:getCenterWorldX()
+    self.dragStartCY = self.mapAPI:getCenterWorldY()
+    self.dragStartZoomF = self.mapAPI:getZoomF()
+    self.dragStartWorldX = self.mapAPI:uiToWorldX(x, y)
+    self.dragStartWorldY = self.mapAPI:uiToWorldY(x, y)
+    return true
+end
+
+function ZeD_WorldMap:onMouseMove(dx, dy)
+    if self.dragging then
+        local mouseX = self:getMouseX()
+        local mouseY = self:getMouseY()
+        if not self.dragMoved
+           and math.abs(mouseX - self.dragStartX) <= 4
+           and math.abs(mouseY - self.dragStartY) <= 4 then
+            return
+        end
+        self.dragMoved = true
+        local worldX = self.mapAPI:uiToWorldX(mouseX, mouseY,
+            self.dragStartZoomF, self.dragStartCX, self.dragStartCY)
+        local worldY = self.mapAPI:uiToWorldY(mouseX, mouseY,
+            self.dragStartZoomF, self.dragStartCX, self.dragStartCY)
+        self.mapAPI:centerOn(
+            self.dragStartCX + self.dragStartWorldX - worldX,
+            self.dragStartCY + self.dragStartWorldY - worldY)
+    end
+    return true
+end
+
+function ZeD_WorldMap:onMouseUp(x, y)
+    self.dragging = false
+    return true
+end
+
+-- Right-click: context menu for annotation edit/delete
+function ZeD_WorldMap:onRightMouseDown(x, y)
+    if not self._annotationHits then return false end
+
+    local hitRadius = 16
+    for _, hit in ipairs(self._annotationHits) do
+        local cx = hit.x + hit.w / 2
+        local cy = hit.y + hit.h / 2
+        local ddx = x - cx
+        local ddy = y - cy
+        if ddx * ddx + ddy * ddy <= hitRadius * hitRadius then
+            _openAnnotContextMenu(self,
+                self:getAbsoluteX() + x, self:getAbsoluteY() + y, hit.idx)
+            return true
+        end
+    end
+    return false
+end
+
+-- Mouse wheel for zoom
+function ZeD_WorldMap:onMouseWheel(del)
+    self.mapAPI:zoomAt(self:getMouseX(), self:getMouseY(), del)
+    return true
+end
+
+-- Get bounds of a stash map by name (cached, uses temporary UIWorldMap)
+function ZeD_WorldMap:getStashMapBounds(stashName)
+    self._stashBounds = self._stashBounds or {}
+    if self._stashBounds[stashName] then
+        return self._stashBounds[stashName]
+    end
+    if not self._boundsUI then
+        local ui = {}
+        ui.javaObject = UIWorldMap.new(ui)
+        ui.mapAPI = ui.javaObject:getAPIv3()
+        self._boundsUI = ui
+    end
+    local bounds = {}
+    local f = LootMaps and LootMaps.Init and LootMaps.Init[stashName]
+    if f then
+        self._boundsUI.mapAPI:clearData()
+        self._boundsUI.mapAPI:getStyleAPI():clear()
+        f(self._boundsUI)
+        bounds.x1 = self._boundsUI.mapAPI:getMinXInSquares()
+        bounds.y1 = self._boundsUI.mapAPI:getMinYInSquares()
+        bounds.x2 = self._boundsUI.mapAPI:getMaxXInSquares() + 1
+        bounds.y2 = self._boundsUI.mapAPI:getMaxYInSquares() + 1
+    end
+    self._stashBounds[stashName] = bounds
+    return bounds
+end
+
+-- Render stash map icons on top of the world map
+function ZeD_WorldMap:renderStashMaps()
+    if not StashSystem then return end
+    local stashNameList = StashSystem.getAlreadyReadMap()
+    if not stashNameList then return end
+
+    local iconTex = getTexture("Item_Map")
+    if not iconTex then return end
+    local iconSize = 24
+    local pw, ph = self:getWidth(), self:getHeight()
+
+    for i = 1, stashNameList:size() do
+        local stashName = stashNameList:get(i - 1)
+        local bounds = self:getStashMapBounds(stashName)
+        if bounds and bounds.x1 then
+            local cx = bounds.x1 / 2 + bounds.x2 / 2
+            local cy = bounds.y1 / 2 + bounds.y2 / 2
+            local sx = self.mapAPI:worldToUIX(cx, cy) - iconSize / 2
+            local sy = self.mapAPI:worldToUIY(cx, cy) - iconSize / 2
+            if sx > -iconSize and sy > -iconSize and sx < pw and sy < ph then
+                self:drawTextureScaledAspect(iconTex, sx, sy, iconSize, iconSize, 1.0, 1.0, 1.0, 1.0)
+            end
+        end
+    end
+end
+
+-- Render flyer location markers from PrintMediaDefinitions
+function ZeD_WorldMap:renderFlyerMarkers()
+    if not PrintMediaDefinitions or not PrintMediaDefinitions.MiscDetails then return end
+
+    local T = ZeD.T
+    local dotSz = 8
+    local ac = T.accent
+    local pw, ph = self:getWidth(), self:getHeight()
+
+    for _, detail in pairs(PrintMediaDefinitions.MiscDetails) do
+        if detail.location1 then
+            for _, loc in ipairs(detail.location1) do
+                local cx = (loc.x1 + loc.x2) / 2
+                local cy = (loc.y1 + loc.y2) / 2
+                local sx = self.mapAPI:worldToUIX(cx, cy) - dotSz / 2
+                local sy = self.mapAPI:worldToUIY(cx, cy) - dotSz / 2
+                if sx > -dotSz and sy > -dotSz and sx < pw and sy < ph then
+                    self:drawRect(sx, sy, dotSz, dotSz, 0.8, ac.r, ac.g, ac.b)
+                end
+            end
+        end
+    end
+end
+
+-- Render user-placed annotations from modData
+function ZeD_WorldMap:renderAnnotations()
+    local md = self.playerObj:getModData()
+    local annots = md and md.ZeD_MapAnnotations
+    if not annots or #annots == 0 then return end
+
+    local T = ZeD.T
+    local tm = getTextManager()
+    local pw, ph = self:getWidth(), self:getHeight()
+    local sz = MAP_ANNOT_DRAW_SZ
+    local halfSz = sz / 2
+
+    self._annotationHits = {}
+
+    for i, ann in ipairs(annots) do
+        local sx = self.mapAPI:worldToUIX(ann.worldX, ann.worldY) - halfSz
+        local sy = self.mapAPI:worldToUIY(ann.worldX, ann.worldY) - halfSz
+
+        if sx > -sz and sy > -sz and sx < pw and sy < ph then
+            local colorDef = MAP_COLORS[ann.colorIdx or 1] or MAP_COLORS[1]
+            local c = colorDef
+
+            if ann.iconId == "text" then
+                local dotSz = 6
+                local dotX = sx + halfSz - dotSz / 2
+                local dotY = sy + halfSz - dotSz / 2
+                self:drawRect(dotX + 1, dotY,     dotSz - 2, 1,        0.9, c.r, c.g, c.b)
+                self:drawRect(dotX,     dotY + 1, dotSz,     dotSz - 2, 0.9, c.r, c.g, c.b)
+                self:drawRect(dotX + 1, dotY + dotSz - 1, dotSz - 2, 1, 0.9, c.r, c.g, c.b)
+            else
+                local tex = self._annotTextures and self._annotTextures[ann.iconId]
+                if tex then
+                    self:drawTextureScaledAspect(tex, sx, sy, sz, sz, 0.9, c.r, c.g, c.b)
+                else
+                    local m = 4
+                    for di = 0, sz - m * 2 - 1 do
+                        self:drawRect(sx + m + di, sy + m + di, 1, 1, 0.7, c.r, c.g, c.b)
+                        self:drawRect(sx + m + di, sy + sz - m - 1 - di, 1, 1, 0.7, c.r, c.g, c.b)
+                    end
+                end
+            end
+
+            if ann.text and ann.text ~= "" then
+                local tw = tm:MeasureStringX(T.fontF1, ann.text)
+                local tx = sx + halfSz - tw / 2
+                local ty = sy - tm:getFontHeight(T.fontF1) - 2
+                self:drawText(ann.text, tx + 1, ty + 1, 0, 0, 0, 0.6, T.fontF1)
+                self:drawText(ann.text, tx, ty, c.r, c.g, c.b, 1, T.fontF1)
+            end
+
+            self._annotationHits[#self._annotationHits + 1] = {
+                idx = i,
+                x = sx, y = sy, w = sz, h = sz,
+            }
+        end
+    end
+end
+
+-- Read the currently-focused ring element if focus belongs to the owning
+-- window. Returns nil when another window has focus, or when the ring isn't
+-- initialized yet. Used to drive gamepad-only overlays without leaking them
+-- into KBM sessions.
+local function _focusedEl(win)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if not Focus then return nil end
+    if Focus.getFocusedWindow() ~= win then return nil end
+    return Focus.getFocusedElement(win)
+end
+
+-- Render cursor preview when a tool is active (MOUSE path only — skipped
+-- when gamepad focus is on the canvas cursor, which draws its own preview
+-- at the gp cursor position instead).
+function ZeD_WorldMap:renderToolCursor()
+    local win = self._parentWin
+    if not win or not win._mapActiveTool then return end
+
+    local el = _focusedEl(win)
+    if el and el.isCanvasCursor then return end  -- gamepad owns the cursor
+
+    local mx, my = self:getMouseX(), self:getMouseY()
+    if mx < 0 or my < 0 or mx > self:getWidth() or my > self:getHeight() then return end
+
+    local T = ZeD.T
+    local sz = MAP_ANNOT_DRAW_SZ
+    local colorDef = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
+    local c = colorDef
+
+    if win._mapActiveTool == "text" then
+        local dotSz = 6
+        local dotX = mx - dotSz / 2
+        local dotY = my - dotSz / 2
+        self:drawRect(dotX + 1, dotY,     dotSz - 2, 1,        0.4, c.r, c.g, c.b)
+        self:drawRect(dotX,     dotY + 1, dotSz,     dotSz - 2, 0.4, c.r, c.g, c.b)
+        self:drawRect(dotX + 1, dotY + dotSz - 1, dotSz - 2, 1, 0.4, c.r, c.g, c.b)
+        local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or "Note"
+        if previewText ~= "" then
+            self:drawText(previewText, mx + 6, my - 10, c.r, c.g, c.b, 0.4, T.fontF1)
+        end
+    else
+        local tex = self._annotTextures and self._annotTextures[win._mapActiveTool]
+        if tex then
+            self:drawTextureScaledAspect(tex, mx - sz / 2, my - sz / 2, sz, sz, 0.5, c.r, c.g, c.b)
+        end
+    end
+end
+
+-- Lazy-seed the gamepad cursor to panel center on first focus. Stored on the
+-- map panel in panel-local pixel coords; the render + move helpers read/
+-- write these fields.
+function ZeD_WorldMap:seedGpCursor()
+    if self._gpCursorX and self._gpCursorY then return end
+    self._gpCursorX = math.floor(self:getWidth()  / 2)
+    self._gpCursorY = math.floor(self:getHeight() / 2)
+end
+
+-- Render the gamepad crosshair + tool preview at the gp cursor position.
+-- Only runs when the canvas cursor pseudo-focusable is the focused ring
+-- element; otherwise the crosshair would bleed into KBM sessions.
+function ZeD_WorldMap:renderGamepadCursor()
+    local win = self._parentWin
+    if not win then return end
+
+    local el = _focusedEl(win)
+    if not el or not el.isCanvasCursor then return end
+
+    self:seedGpCursor()
+    local cx, cy = self._gpCursorX, self._gpCursorY
+
+    local T = ZeD.T
+    local ac = T.accent
+
+    -- Crosshair — two short orthogonal segments + a small gap in the middle
+    -- so the exact pixel the cursor points at is never obscured. Pattern
+    -- parallels AnimalsTab line 757 (idle-phase tile highlight).
+    local arm   = 8    -- arm length in pixels
+    local gap   = 3    -- half-gap (no pixels drawn within `gap` of center)
+    -- Horizontal arms
+    self:drawRect(cx - arm, cy,     arm - gap, 1, ac.a, ac.r, ac.g, ac.b)
+    self:drawRect(cx + gap, cy,     arm - gap, 1, ac.a, ac.r, ac.g, ac.b)
+    -- Vertical arms
+    self:drawRect(cx,       cy - arm, 1, arm - gap, ac.a, ac.r, ac.g, ac.b)
+    self:drawRect(cx,       cy + gap, 1, arm - gap, ac.a, ac.r, ac.g, ac.b)
+    -- Center pixel for precise targeting
+    self:drawRect(cx, cy, 1, 1, 1.0, ac.r, ac.g, ac.b)
+
+    -- Tool preview at cursor when a tool is armed, so the user sees what
+    -- A-press will place. Mirrors renderToolCursor's mouse-preview styling.
+    if win._mapActiveTool then
+        local sz = MAP_ANNOT_DRAW_SZ
+        local colorDef = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
+        local c = colorDef
+
+        if win._mapActiveTool == "text" then
+            local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or "Note"
+            if previewText ~= "" then
+                self:drawText(previewText, cx + 8, cy - 10, c.r, c.g, c.b, 0.5, T.fontF1)
+            end
+        else
+            local tex = self._annotTextures and self._annotTextures[win._mapActiveTool]
+            if tex then
+                self:drawTextureScaledAspect(tex, cx - sz / 2, cy - sz / 2,
+                    sz, sz, 0.5, c.r, c.g, c.b)
+            end
+        end
+    end
+end
+
+-- ISUIElement render — draw overlays on top of the Java map.
+-- Do NOT call ISUIElement.render(self) — Java UIWorldMap handles its own rendering.
+function ZeD_WorldMap:render()
+    self:renderStashMaps()
+    self:renderFlyerMarkers()
+    self:renderAnnotations()
+    self:renderToolCursor()
+    self:renderGamepadCursor()
+end
+
+-- ============================================================================
+-- TOOLBAR
+-- ============================================================================
+
+--- Draw a single icon tool button at (bx, by). `isGpFocused` paints the
+-- 0.55α accent focus cue when this button is the currently-focused ring
+-- element (gamepad path); the caller computes the match by id.
+local function _drawIconBtn(panel, win, icon, bx, by, btnSz, isActive, isPinned, isGpFocused)
+    local T = ZeD.T
+
+    -- Focus cue first so active-state paint composes on top and remains
+    -- visible (feedback_focus_paint_convention: 0.55α accent fill, not a border).
+    if isGpFocused then
+        local ac = T.accent
+        panel:drawRect(bx, by, btnSz, btnSz, 0.55, ac.r, ac.g, ac.b)
+    end
+
+    if isActive then
+        local ac = T.accent
+        panel:drawRect(bx, by, btnSz, btnSz, 0.2, ac.r, ac.g, ac.b)
+        panel:drawRectBorder(bx, by, btnSz, btnSz, 0.6, ac.r, ac.g, ac.b)
+    else
+        local bd = T.border
+        panel:drawRectBorder(bx, by, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
+    end
+
+    local mapPanel = win._worldMapPanel
+    local tex = mapPanel and mapPanel._annotTextures and mapPanel._annotTextures[icon.id]
+    if tex then
+        local tc = isActive and T.accent or T.text
+        local alpha = isActive and 0.9 or 0.6
+        panel:drawTextureScaledAspect(tex, bx + 2, by + 2, btnSz - 4, btnSz - 4,
+            alpha, tc.r, tc.g, tc.b)
+    else
+        local lbl = string.sub(icon.label, 1, 1)
+        local dc = isActive and T.accent or T.textDim
+        panel:drawText(lbl, bx + 5, by + 2, dc.r, dc.g, dc.b, 0.6, T.fontF1)
+    end
+
+    if isPinned then
+        local ac = T.accent
+        panel:drawRect(bx + 1, by + 1, 3, 3, 0.7, ac.r, ac.g, ac.b)
+    end
+
+    win._mapToolZones[#win._mapToolZones + 1] = {
+        id = icon.id,
+        x = bx, y = by, w = btnSz, h = btnSz,
+    }
+end
+
+local function renderMapToolbar(panel, win, x, y, w)
+    local T  = ZeD.T
+    local A  = ZeD.Atoms
+    local tm = getTextManager()
+    local secH = tm:getFontHeight(T.fontF1)
+    local btnSz  = MAP_ICON_BTN_SZ
+    local btnGap = MAP_ICON_BTN_GAP
+    local colSz  = MAP_COLOR_SZ
+
+    win._mapToolZones  = {}
+    win._mapColorZones = {}
+    win._mapToolRMBZones = {}
+
+    local activeTool  = win._mapActiveTool
+    local activeColor = win._mapActiveColor or 1
+    local expanded    = win._mapToolsExpanded or false
+    local pins        = _getMapPins(win._playerObj)
+
+    -- Read the focused ring element id once per frame so we can paint the
+    -- 0.55α focus cue on whichever toolbar element currently owns focus.
+    -- feedback_only_focused_zone_shows_active: only paint when THIS window
+    -- owns focus (prevents stale paint when focus is on the Character window).
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    local focId = nil
+    if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win then
+        local fe = Focus.getFocusedElement and Focus.getFocusedElement(win)
+        focId = fe and fe.id or nil
+    end
+
+    local rowH = MAP_TOOLBAR_ROW_H
+    local btnY = y + math.floor((rowH - btnSz) / 2)
+
+    -- Row 1: disclosure chevron + pinned icons + Aa + separator + color swatches
+    local curX = x + 4
+
+    -- Disclosure chevron
+    local chevSz = math.max(8, math.floor(secH * 0.7))
+    local chevY  = y + math.floor((rowH - chevSz) / 2)
+    if focId == "map:disclosure" then
+        local ac = T.accent
+        panel:drawRect(curX - 2, y, chevSz + 6, rowH, 0.55, ac.r, ac.g, ac.b)
+    end
+    if expanded then
+        A.drawTriangleDown(panel, curX, chevY, chevSz, T.arrow)
+    else
+        A.drawTriangleRight(panel, curX, chevY, chevSz, T.arrow)
+    end
+    win._mapDisclosureZone = { x = curX, y = y, w = chevSz + 4, h = rowH }
+    curX = curX + chevSz + 6
+
+    -- Pinned icon buttons. Ring-focus id for a pinned-row tool is
+    -- "map:tool:<iconId>" (grid copies use "map:gridtool:<iconId>").
+    for _, pid in ipairs(pins) do
+        local icon = MAP_ICON_BY_ID[pid]
+        if icon then
+            local isActive = (activeTool == icon.id)
+            local isFoc = (focId == "map:tool:" .. icon.id)
+            _drawIconBtn(panel, win, icon, curX, btnY, btnSz, isActive, false, isFoc)
+            curX = curX + btnSz + btnGap
+        end
+    end
+
+    -- "Aa" text note button
+    curX = curX + btnGap
+    local textActive = (activeTool == "text")
+    if focId == "map:tool:text" then
+        local ac = T.accent
+        panel:drawRect(curX, btnY, btnSz, btnSz, 0.55, ac.r, ac.g, ac.b)
+    end
+    if textActive then
+        local ac = T.accent
+        panel:drawRect(curX, btnY, btnSz, btnSz, 0.2, ac.r, ac.g, ac.b)
+        panel:drawRectBorder(curX, btnY, btnSz, btnSz, 0.6, ac.r, ac.g, ac.b)
+    else
+        local bd = T.border
+        panel:drawRectBorder(curX, btnY, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
+    end
+    local tC = textActive and T.accent or T.textDim
+    panel:drawText("Aa", curX + 2, btnY + 2, tC.r, tC.g, tC.b, 0.7, T.fontF1)
+    win._mapToolZones[#win._mapToolZones + 1] = {
+        id = "text",
+        x = curX, y = btnY, w = btnSz, h = btnSz,
+    }
+    curX = curX + btnSz + btnGap * 2
+
+    -- Separator
+    local sepC = T.border
+    panel:drawRect(curX, btnY, 1, btnSz, sepC.a * 0.4, sepC.r, sepC.g, sepC.b)
+    curX = curX + 1 + btnGap * 2
+
+    -- Color swatches. Paint the focus cue in a slightly oversized rect so
+    -- it reads clearly around the small 14px swatch without obscuring the
+    -- color sample itself.
+    local colY = y + math.floor((rowH - colSz) / 2)
+    for ci, colorDef in ipairs(MAP_COLORS) do
+        local c = colorDef
+        local isActiveCol = (ci == activeColor)
+        local isFocCol = (focId == "map:color:" .. tostring(ci))
+
+        if isFocCol then
+            local ac = T.accent
+            panel:drawRect(curX - 2, colY - 2, colSz + 4, colSz + 4,
+                0.55, ac.r, ac.g, ac.b)
+        end
+
+        panel:drawRect(curX, colY, colSz, colSz, 0.85, c.r, c.g, c.b)
+        if isActiveCol then
+            local bd = T.text
+            panel:drawRectBorder(curX - 1, colY - 1, colSz + 2, colSz + 2,
+                bd.a, bd.r, bd.g, bd.b)
+        end
+
+        win._mapColorZones[#win._mapColorZones + 1] = {
+            idx = ci,
+            x = curX, y = colY, w = colSz, h = colSz,
+        }
+
+        curX = curX + colSz + btnGap
+    end
+
+    local totalH = rowH
+
+    -- Expanded rows: ALL icons in a wrapping grid
+    if expanded then
+        local gridX = x + 4
+        local gridY = y + rowH
+        local gridW = w - 8
+        local maxCols = math.max(1, math.floor(gridW / (btnSz + btnGap)))
+        local col = 0
+        local rowIdx = 0
+
+        local bd = T.border
+        panel:drawRect(x, gridY - 1, w, 1, bd.a * 0.2, bd.r, bd.g, bd.b)
+
+        local s1 = T.surf1
+        local expandedRowCount = math.ceil(#MAP_ICONS / maxCols)
+        local expandedH = expandedRowCount * (btnSz + btnGap) + btnGap
+        panel:drawRect(x, gridY, w, expandedH, s1.a, s1.r, s1.g, s1.b)
+
+        for _, icon in ipairs(MAP_ICONS) do
+            local gx = gridX + col * (btnSz + btnGap)
+            local gy = gridY + btnGap + rowIdx * (btnSz + btnGap)
+            local isActive = (activeTool == icon.id)
+            local isPinned = _isIconPinned(pins, icon.id)
+            local isFoc    = (focId == "map:gridtool:" .. icon.id)
+            _drawIconBtn(panel, win, icon, gx, gy, btnSz, isActive, isPinned, isFoc)
+            -- Tag the zone _drawIconBtn just appended as a grid entry so
+            -- the gamepad builder can wire pin-toggle via X on grid icons
+            -- without confusing them with pinned-row copies at row-1 Y.
+            win._mapToolZones[#win._mapToolZones].isGrid = true
+
+            win._mapToolRMBZones[#win._mapToolRMBZones + 1] = {
+                id = icon.id,
+                x = gx, y = gy, w = btnSz, h = btnSz,
+            }
+
+            col = col + 1
+            if col >= maxCols then
+                col = 0
+                rowIdx = rowIdx + 1
+            end
+        end
+
+        totalH = totalH + expandedH
+    end
+
+    -- Inline text input (visible when text tool is active)
+    if textActive then
+        local inputY = y + totalH
+        local inputX = x + 4
+        local inputW = w - 8
+        local inputBg = T.surf2
+        panel:drawRect(x, inputY, w, MAP_TEXT_INPUT_H, inputBg.a, inputBg.r, inputBg.g, inputBg.b)
+        local bds = T.borderS
+        panel:drawRect(x, inputY + MAP_TEXT_INPUT_H - 1, w, 1, bds.a * 0.3, bds.r, bds.g, bds.b)
+
+        if win._mapTextEntry then
+            win._mapTextEntry:setX(inputX)
+            win._mapTextEntry:setY(inputY + 2)
+            win._mapTextEntry:setWidth(inputW)
+            win._mapTextEntry:setHeight(MAP_TEXT_INPUT_H - 4)
+            win._mapTextEntry:setVisible(true)
+        end
+
+        totalH = totalH + MAP_TEXT_INPUT_H
+    else
+        if win._mapTextEntry then
+            win._mapTextEntry:setVisible(false)
+        end
+    end
+
+    return totalH
+end
+
+-- ============================================================================
+-- MAIN RENDERER
+-- ============================================================================
+
+function ZeD.MapsTab.render(panel, win, x, y, w, h)
+    local T = ZeD.T
+
+    -- Toolbar background
+    local toolbarBg = T.surf1
+    panel:drawRect(x, y, w, MAP_TOOLBAR_ROW_H, toolbarBg.a, toolbarBg.r, toolbarBg.g, toolbarBg.b)
+
+    -- Lazy-create inline text entry for map annotations
+    if not win._mapTextEntry then
+        local te = ISTextEntryBox:new("Note", 0, 0, 100, MAP_TEXT_INPUT_H - 4)
+        te:initialise()
+        te:setVisible(false)
+        panel:addChild(te)
+        win._mapTextEntry = te
+    end
+
+    local toolbarH = renderMapToolbar(panel, win, x, y, w)
+    local bd = T.border
+    panel:drawRect(x, y + toolbarH - 1, w, 1, bd.a * 0.3, bd.r, bd.g, bd.b)
+
+    -- Map area below toolbar
+    local mapY = y + toolbarH
+    local mapH = h - toolbarH
+
+    -- Lazy-create the world map panel
+    if not win._worldMapPanel and not win._worldMapFailed then
+        local ok, err = pcall(function()
+            local mp = ZeD_WorldMap:new(x, mapY, w, mapH, win._playerObj)
+            mp._parentWin = win
+            mp:initialise()
+            mp:instantiate()
+            panel:addChild(mp)
+            win._worldMapPanel = mp
+        end)
+        if not ok then
+            win._worldMapFailed = true
+        end
+    end
+
+    if win._worldMapPanel then
+        local mp = win._worldMapPanel
+        mp:setX(x)
+        mp:setY(mapY)
+        mp:setWidth(w)
+        mp:setHeight(mapH)
+        mp:setVisible(true)
+    else
+        -- Fallback: show error state
+        local secH = getTextManager():getFontHeight(T.fontF1)
+        local centerX = x + math.floor(w / 2)
+        local centerY = mapY + math.floor(mapH / 2) - secH
+        local label = "MAP UNAVAILABLE"
+        local labelW = getTextManager():MeasureStringX(T.fontF1, label)
+        ZeD.Atoms.drawSecondary(panel, label, centerX - math.floor(labelW / 2), centerY, T.textDim)
+    end
+end
+
+-- ============================================================================
+-- CLICK HANDLERS
+-- ============================================================================
+
+function ZeD.MapsTab.onClick(win, x, y)
+    -- Disclosure chevron toggle
+    if win._mapDisclosureZone then
+        local z = win._mapDisclosureZone
+        if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
+            win._mapToolsExpanded = not win._mapToolsExpanded
+            return
+        end
+    end
+
+    -- Icon tool buttons
+    if win._mapToolZones then
+        for _, zone in ipairs(win._mapToolZones) do
+            if x >= zone.x and x <= zone.x + zone.w
+               and y >= zone.y and y <= zone.y + zone.h then
+                if win._mapActiveTool == zone.id then
+                    win._mapActiveTool = nil  -- deselect
+                else
+                    win._mapActiveTool = zone.id
+                end
+                return
+            end
+        end
+    end
+
+    -- Color swatches
+    if win._mapColorZones then
+        for _, zone in ipairs(win._mapColorZones) do
+            if x >= zone.x and x <= zone.x + zone.w
+               and y >= zone.y and y <= zone.y + zone.h then
+                win._mapActiveColor = zone.idx
+                return
+            end
+        end
+    end
+
+    -- Forward to map panel for drag-start
+    if win._worldMapPanel then
+        local mp = win._worldMapPanel
+        local mx = x - mp:getX()
+        local my = y - mp:getY()
+        if mx >= 0 and mx < mp:getWidth() and my >= 0 and my < mp:getHeight() then
+            mp:onMouseDown(mx, my)
+            win._mapDragging = mp.dragging
+        end
+    end
+end
+
+function ZeD.MapsTab.onRightClick(win, x, y)
+    -- Expanded toolbar: RMB toggles pin state
+    if win._mapToolsExpanded and win._mapToolRMBZones then
+        for _, zone in ipairs(win._mapToolRMBZones) do
+            if x >= zone.x and x <= zone.x + zone.w
+               and y >= zone.y and y <= zone.y + zone.h then
+                local pins = _getMapPins(win._playerObj)
+                _togglePin(pins, zone.id)
+                return
+            end
+        end
+    end
+
+    -- Forward to map panel for annotation context menu
+    if win._worldMapPanel then
+        local mp = win._worldMapPanel
+        local mx = x - mp:getX()
+        local my = y - mp:getY()
+        if mx >= 0 and mx < mp:getWidth() and my >= 0 and my < mp:getHeight() then
+            mp:onRightMouseDown(mx, my)
+        end
+    end
+end
+
+-- ============================================================================
+-- FOCUSABLE BUILDER — ring elements for the World window's worldTabContent
+-- ============================================================================
+-- Called each frame from ZeD_WorldWindow's per-frame refresh when the Maps
+-- tab is active. Returns elements for LB/RB/D-pad navigation across:
+--   [disclosure → pinned tool icons → text tool → colors →
+--    (if expanded) grid tool icons → canvas cursor]
+-- Panel-local coordinates (content-panel-relative) — the same frame used by
+-- the mouse hit-zone tables that the render fills each frame.
+
+function ZeD.MapsTab.buildFocusables(win)
+    if not win then return {} end
+    local elements = {}
+
+    -- 1. Disclosure chevron (row 1, always present).
+    local dz = win._mapDisclosureZone
+    if dz then
+        elements[#elements + 1] = {
+            x = dz.x, y = dz.y, w = dz.w, h = dz.h,
+            id = "map:disclosure",
+            isDisclosure = true,
+            isMapDisclosure = true,
+            onActivate = function(w, _el)
+                w._mapToolsExpanded = not w._mapToolsExpanded
+            end,
+        }
+    end
+
+    -- 2. Tool icons (pinned row + grid when expanded) + text tool.
+    -- _mapToolZones is appended in draw order: pinned row, then text tool,
+    -- then (if expanded) the full grid. Grid entries carry isGrid=true so
+    -- we can wire X → pin-toggle on grid items only. Distinct IDs per
+    -- position keep the ring free of duplicates (same icon can appear in
+    -- both row and grid when pinned).
+    if win._mapToolZones then
+        for _, tz in ipairs(win._mapToolZones) do
+            local isGrid = tz.isGrid == true
+            local el = {
+                x = tz.x, y = tz.y, w = tz.w, h = tz.h,
+                id = (isGrid and "map:gridtool:" or "map:tool:") .. tostring(tz.id),
+                isMapTool = true,
+                isMapGridTool = isGrid,
+                toolId = tz.id,
+                onActivate = function(w, el2)
+                    -- Re-selecting the active tool deselects; otherwise arm
+                    -- the tool. Matches mouse onClick behavior.
+                    if w._mapActiveTool == el2.toolId then
+                        w._mapActiveTool = nil
+                    else
+                        w._mapActiveTool = el2.toolId
+                    end
+                end,
+            }
+            if isGrid then
+                -- X = pin/unpin parity with mouse right-click on grid icons.
+                el.onContextMenu = function(w, el2)
+                    local pins = _getMapPins(w._playerObj)
+                    _togglePin(pins, el2.toolId)
+                end
+            end
+            elements[#elements + 1] = el
+        end
+    end
+
+    -- 3. Color swatches.
+    if win._mapColorZones then
+        for _, cz in ipairs(win._mapColorZones) do
+            elements[#elements + 1] = {
+                x = cz.x, y = cz.y, w = cz.w, h = cz.h,
+                id = "map:color:" .. tostring(cz.idx),
+                isMapColor = true,
+                colorIdx = cz.idx,
+                onActivate = function(w, el2)
+                    w._mapActiveColor = el2.colorIdx
+                end,
+            }
+        end
+    end
+
+    -- 4. Canvas cursor pseudo-focusable (always last). Bounds = the map
+    -- panel's bbox inside the content panel, so cone-nav from toolbar
+    -- elements naturally drops onto the canvas when the user D-pads down.
+    -- D-pad WHILE this element is focused is intercepted at win-level and
+    -- routed to ZeD.MapsTab.gpMoveCursor — see ZeD_WorldWindow joypadDir
+    -- handlers.
+    local mp = win._worldMapPanel
+    if mp then
+        elements[#elements + 1] = {
+            x = mp:getX(),
+            y = mp:getY(),
+            w = mp:getWidth(),
+            h = mp:getHeight(),
+            id = "map:canvas:cursor",
+            isCanvasCursor = true,
+            onFocus = function(w, _el)
+                -- Seed cursor on first landing so the crosshair appears
+                -- immediately (not after first D-pad press).
+                local mp2 = w._worldMapPanel
+                if mp2 and mp2.seedGpCursor then mp2:seedGpCursor() end
+            end,
+            onActivate = function(w, _el)
+                ZeD.MapsTab.gpPlaceAtCursor(w)
+            end,
+            onContextMenu = function(w, _el)
+                ZeD.MapsTab.gpContextMenuAtCursor(w)
+            end,
+            -- S113: D-pad on cursor moves it in panel pixels (with edge auto-
+            -- pan) instead of cone-nav-ing to the next focusable. Element-level
+            -- onDpadDir replaces the win-level isCanvasCursor intercept (which
+            -- was deleted alongside the joypad direction wrappers in S113).
+            onDpadDir = function(w, _el, dir)
+                if not (ZeD.MapsTab and ZeD.MapsTab.gpMoveCursor) then return false end
+                local step = (ZeD.MapsTab.gpCursorStep and ZeD.MapsTab.gpCursorStep()) or 6
+                if     dir == "left"  then ZeD.MapsTab.gpMoveCursor(w, -step, 0)
+                elseif dir == "right" then ZeD.MapsTab.gpMoveCursor(w,  step, 0)
+                elseif dir == "up"    then ZeD.MapsTab.gpMoveCursor(w, 0, -step)
+                elseif dir == "down"  then ZeD.MapsTab.gpMoveCursor(w, 0,  step)
+                else return false end
+                return  -- consumed
+            end,
+            onCancel = function(w, _el)
+                -- B tap: if a tool is armed, exit tool mode and consume B.
+                -- Otherwise (no tool), escape the cursor entirely by jumping
+                -- focus to the first non-cursor toolbar element above. The
+                -- cursor's onDpadDir intercepts ALL D-pad presses for cursor
+                -- movement, so without this escape the user is stuck on the
+                -- canvas with no way to reach the toolbar (S113c QA finding).
+                if w._mapActiveTool then
+                    w._mapActiveTool = nil
+                    w._mapEditAnnotIdx = nil
+                    return true
+                end
+                if w._focusRing then
+                    for zi, z in ipairs(w._focusRing) do
+                        if z.zone == "worldTabContent" and z.focusable
+                           and z.elements and #z.elements > 0 then
+                            for ei, el in ipairs(z.elements) do
+                                if not el.isCanvasCursor then
+                                    w._focusIdx = zi
+                                    z.focusedElementIdx = ei
+                                    if el.onFocus then
+                                        pcall(el.onFocus, w, el)
+                                    end
+                                    return true
+                                end
+                            end
+                        end
+                    end
+                end
+                return true
+            end,
+        }
+    end
+
+    return elements
+end
+
+-- ============================================================================
+-- GAMEPAD HELPERS — exported for ring wiring and win-level D-pad intercept
+-- ============================================================================
+-- The Maps tab registers a canvas-cursor pseudo-focusable in the world
+-- window's ring. When that element is focused, D-pad is intercepted at the
+-- World window level and routed to gpMoveCursor — it nudges the cursor in
+-- panel-local pixels, and when the cursor approaches a viewport margin it
+-- pans the world instead so the cursor sits at the margin and the map
+-- scrolls underneath (classic "scrolloff" pattern).
+
+local MAP_GP_STEP_PX       = 6    -- cursor pixels per D-pad press
+local MAP_GP_PAN_MARGIN_PX = 48   -- viewport margin that triggers auto-pan
+local MAP_GP_HIT_RADIUS_PX = 16   -- annotation hit radius for X-press
+
+-- Nudge the gamepad cursor by (dx, dy) panel-pixels. If the cursor would
+-- leave the inner viewport (panel minus margin), clamp it to the margin and
+-- pan the world by the overshoot instead. Converts panel-pixel overshoot
+-- to world-coord delta via a two-point uiToWorld sample so the conversion
+-- survives any projection tweaks (isometric vs top-down).
+function ZeD.MapsTab.gpMoveCursor(win, dx, dy)
+    if not win then return end
+    local mp = win._worldMapPanel
+    if not mp then return end
+    mp:seedGpCursor()
+
+    local pw, ph   = mp:getWidth(), mp:getHeight()
+    local margin   = MAP_GP_PAN_MARGIN_PX
+    local cxWant   = mp._gpCursorX + (dx or 0)
+    local cyWant   = mp._gpCursorY + (dy or 0)
+    local panDX, panDY = 0, 0
+
+    if cxWant < margin then
+        panDX = cxWant - margin
+        mp._gpCursorX = margin
+    elseif cxWant > pw - margin then
+        panDX = cxWant - (pw - margin)
+        mp._gpCursorX = pw - margin
+    else
+        mp._gpCursorX = cxWant
+    end
+
+    if cyWant < margin then
+        panDY = cyWant - margin
+        mp._gpCursorY = margin
+    elseif cyWant > ph - margin then
+        panDY = cyWant - (ph - margin)
+        mp._gpCursorY = ph - margin
+    else
+        mp._gpCursorY = cyWant
+    end
+
+    if panDX ~= 0 or panDY ~= 0 then
+        local mapAPI = mp.mapAPI
+        local wx0 = mapAPI:uiToWorldX(0, 0)
+        local wx1 = mapAPI:uiToWorldX(1, 0)
+        local wy0 = mapAPI:uiToWorldY(0, 0)
+        local wy1 = mapAPI:uiToWorldY(0, 1)
+        local wppx = wx1 - wx0
+        local wppy = wy1 - wy0
+        mapAPI:centerOn(
+            mapAPI:getCenterWorldX() + panDX * wppx,
+            mapAPI:getCenterWorldY() + panDY * wppy)
+    end
+end
+
+-- A-press while canvas cursor is focused: place an annotation at the cursor
+-- if a tool is armed. Delegates to _placeAnnotationAt so mouse and gamepad
+-- share one placement path.
+function ZeD.MapsTab.gpPlaceAtCursor(win)
+    if not win then return end
+    local mp = win._worldMapPanel
+    if not mp or not mp._gpCursorX then return end
+    _placeAnnotationAt(mp, mp._gpCursorX, mp._gpCursorY)
+end
+
+-- Return the annotation hit (from mp._annotationHits) whose center is within
+-- the hit radius of the cursor, or nil. The hits table is refreshed each
+-- frame by renderAnnotations; this uses the most recent pass.
+function ZeD.MapsTab.gpFindAnnotAtCursor(win)
+    if not win then return nil end
+    local mp = win._worldMapPanel
+    if not mp or not mp._annotationHits or not mp._gpCursorX then return nil end
+    local cx, cy = mp._gpCursorX, mp._gpCursorY
+    local rSq = MAP_GP_HIT_RADIUS_PX * MAP_GP_HIT_RADIUS_PX
+    for _, hit in ipairs(mp._annotationHits) do
+        local hx = hit.x + hit.w / 2
+        local hy = hit.y + hit.h / 2
+        local ddx = cx - hx
+        local ddy = cy - hy
+        if ddx * ddx + ddy * ddy <= rSq then
+            return hit
+        end
+    end
+    return nil
+end
+
+-- X-press while canvas cursor is focused: if the cursor is over an
+-- annotation, open the edit/delete/recolor context menu at the cursor's
+-- absolute screen position. No-op when the cursor isn't on an annotation
+-- (avoids emitting an empty menu).
+function ZeD.MapsTab.gpContextMenuAtCursor(win)
+    if not win then return end
+    local mp = win._worldMapPanel
+    if not mp or not mp._gpCursorX then return end
+    local hit = ZeD.MapsTab.gpFindAnnotAtCursor(win)
+    if not hit then return end
+    _openAnnotContextMenu(mp,
+        mp:getAbsoluteX() + mp._gpCursorX,
+        mp:getAbsoluteY() + mp._gpCursorY,
+        hit.idx)
+end
+
+-- Derived step per D-pad press. Held constant for now; future refinement
+-- could scale by zoom so fine-tune at high zoom feels less twitchy.
+function ZeD.MapsTab.gpCursorStep()
+    return MAP_GP_STEP_PX
+end
+
+-- ============================================================================
+-- REGISTRATION
+-- ============================================================================
+
+function ZeD.MapsTab.register(dispatchTable)
+    dispatchTable["maps"] = ZeD.MapsTab.render
+end

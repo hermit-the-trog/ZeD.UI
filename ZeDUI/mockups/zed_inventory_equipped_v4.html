@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Inventory Equipped Panel v4</title>
+<style>
+body { background: #111110; display: flex; align-items: flex-start; justify-content: center; padding: 24px; font-family: monospace; }
+.mockup-label { font-size: 10px; color: #333; font-family: monospace; margin-bottom: 8px; letter-spacing: .5px; }
+.mockup-wrap { width: 700px; }
+</style>
+</head>
+<body>
+<div class="mockup-wrap">
+<div class="mockup-label">ZeD-UI / ZeD.Inventory — Equipped Panel v4 — Body Region Navigator + Slot Expansion — Session 20</div>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.win{width:100%;font-family:monospace;background:#1a1a18;border:1px solid #555;user-select:none}
+.titlebar{height:22px;background:repeating-linear-gradient(to bottom,#3a3a38 0px,#3a3a38 1px,#252523 1px,#252523 2px);display:flex;align-items:center;padding:0 4px;gap:4px;border-bottom:1px solid #555}
+.closebox{width:13px;height:13px;border:1px solid #888;background:#2a2a28;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa}
+.win-title{font-size:11px;color:#ccc;font-family:monospace;margin-left:4px;letter-spacing:.5px;flex:1}
+.stats-strip{font-size:10px;color:#a89060;font-family:monospace;display:flex;gap:10px;flex-shrink:0}
+.body{display:flex;flex-direction:row;height:460px;border-bottom:1px solid #555}
+.ep{background:#1a1a18;border-right:1px solid #444;flex-shrink:0;display:flex;flex-direction:row;transition:width .12s;overflow:hidden}
+.ep.expanded{width:200px}
+.ep.collapsed{width:16px}
+.ep-toggle{width:16px;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;border-right:1px solid #2a2a28;flex-shrink:0}
+.ep-toggle:hover{background:#222220}
+.ep-arrow{font-size:9px;color:#555}
+.ep-body{flex:1;display:flex;flex-direction:row;overflow:hidden;min-width:0}
+.region-strip{width:68px;border-right:1px solid #2a2a28;display:flex;flex-direction:column;padding:4px 0;gap:1px;overflow-y:auto;flex-shrink:0}
+.region-btn{height:22px;display:flex;align-items:center;padding:0 6px;font-size:8px;color:#555;font-family:monospace;cursor:pointer;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid transparent;gap:3px}
+.region-btn:hover{color:#a89060;background:#222220}
+.region-btn.active{color:#c89a40;background:#221e12;border-left-color:#a89060}
+.region-btn.occupied{color:#786040}
+.region-btn.occupied .rdot{background:#786040}
+.rdot{width:4px;height:4px;border-radius:50%;background:#2a2a28;flex-shrink:0}
+.region-label{font-size:7px;color:#3a3a38;padding:3px 6px 1px;font-family:monospace;letter-spacing:.3px}
+.ep-right{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.avatar-area{flex-shrink:0;background:#181816;border-bottom:1px solid #252522;display:flex;align-items:center;justify-content:center;font-size:8px;color:#2a2a28;font-family:monospace;text-align:center;line-height:1.6;height:180px}
+.slot-expansion{flex:1;overflow-y:auto;padding:4px}
+.se-header{font-size:8px;color:#786040;font-family:monospace;letter-spacing:.4px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.se-header span{color:#3a3a36;font-size:7px}
+.slot-row{display:flex;flex-direction:column;gap:2px}
+.equip-slot{height:26px;border:1px solid #2e2e2c;background:#1e1e1c;display:flex;align-items:center;padding:0 5px;gap:4px;cursor:pointer;font-size:8px;font-family:monospace}
+.equip-slot:hover{border-color:#665e50;background:#222220}
+.equip-slot.filled{border-color:#3a3a32}
+.equip-slot.filled:hover{border-color:#a89060}
+.equip-slot.dragover{border-color:#a89060;background:#262216}
+.es-icon{font-size:12px;filter:saturate(.5);width:16px;text-align:center;flex-shrink:0}
+.es-name{flex:1;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:sans-serif;font-size:8px}
+.es-cond{font-size:7px;font-family:monospace;width:20px;text-align:right;flex-shrink:0}
+.es-empty{color:#333;font-family:monospace;font-size:7px}
+.item-list{flex:1;display:flex;flex-direction:column;background:#191917;min-width:0}
+.list-header{height:20px;background:#222220;border-bottom:1px solid #333;display:flex;align-items:center;padding:0 4px}
+.col-hdr{font-size:9px;color:#665e50;font-family:monospace;cursor:pointer;padding:0 4px;height:100%;display:flex;align-items:center;border-right:1px solid #2a2a28;white-space:nowrap}
+.col-hdr:hover{color:#a89060}
+.col-hdr.name-col{flex:1}.col-hdr.cat-col{width:64px}.col-hdr.cond-col{width:64px}.col-hdr.wt-col{width:38px}
+.item-rows{flex:1;overflow-y:auto}
+.item-row{height:22px;display:flex;align-items:center;padding:0 6px;cursor:pointer;border-bottom:1px solid #1e1e1c;position:relative}
+.item-row:hover{background:#222220}
+.item-row.selected{background:#2a2820}
+.item-row[draggable=true]{cursor:grab}
+.item-icon{width:16px;height:16px;margin-right:5px;font-size:13px;filter:saturate(.5);flex-shrink:0;display:flex;align-items:center}
+.item-name{flex:1;font-size:10px;color:#b0a898;font-family:sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.item-name.eq{color:#786040}
+.edot{display:inline-block;width:5px;height:5px;background:#786040;margin-right:4px;vertical-align:middle;border-radius:50%}
+.item-cat{width:64px;font-size:9px;color:#666;font-family:monospace;padding:0 4px;overflow:hidden;white-space:nowrap}
+.item-cond{width:64px;padding:0 4px;display:flex;align-items:center;gap:3px}
+.cond-bar{flex:1;height:4px;background:#2a2a28}
+.cond-fill{height:100%}
+.item-wt{width:38px;font-size:9px;color:#555;font-family:monospace;text-align:right}
+.cat-label{font-size:9px;height:18px;display:flex;align-items:center;padding:0 6px;background:#1e1e1c;border-bottom:1px solid #252522;font-family:monospace;color:#665e50;gap:4px}
+.cat-tri{font-size:7px;color:#555}
+.ctx-menu{position:fixed;background:#222220;border:1px solid #555;min-width:120px;z-index:100;display:none;font-family:monospace}
+.ctx-menu.show{display:block}
+.ctx-item{height:22px;display:flex;align-items:center;padding:0 10px;font-size:9px;color:#aaa;cursor:pointer;gap:6px}
+.ctx-item:hover{background:#2a2820;color:#c89a40}
+.ctx-item.sep{height:1px;background:#2a2a28;padding:0;cursor:default}
+.ctx-item.sep:hover{background:#2a2a28}
+.container-strip{width:42px;background:#1a1a18;border-left:1px solid #444;display:flex;flex-direction:column;align-items:center;padding:4px 0;gap:2px;overflow-y:auto;flex-shrink:0}
+.bag-btn{width:34px;height:34px;border:1px solid #333;background:#222220;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;filter:saturate(.45)}
+.bag-btn:hover{border-color:#665e50}
+.bag-btn.active{border-color:#a89060;background:#2a2820}
+.bag-btn.floor{border-style:dashed;border-color:#2a2a28;font-size:10px;color:#444;font-family:monospace}
+.strip-sep{width:28px;height:1px;background:#2a2a28;margin:2px 0}
+.controls{height:30px;background:#1a1a18;border-top:1px solid #444;display:flex;align-items:center;padding:0 6px;gap:2px}
+.ctrl-btn{height:22px;padding:0 6px;border:1px solid #333;background:#222220;font-size:9px;color:#888;font-family:monospace;cursor:pointer;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.ctrl-btn:hover{border-color:#665e50;color:#a89060}
+.ctrl-btn.accent{border-color:#4a4030;color:#a89060}
+.ctrl-sep{width:1px;height:18px;background:#2a2a28;margin:0 2px}
+.ctrl-spacer{flex:1}
+</style>
+
+<div class="win">
+  <div class="titlebar">
+    <div class="closebox">×</div>
+    <span class="win-title">INVENTORY — PLAYER 1</span>
+    <div class="stats-strip">
+      <span>12.4 <span style="color:#555">/</span> 25.0 kg</span>
+      <span style="color:#555">|</span>
+      <span style="color:#666">47 items</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="ep expanded" id="ep">
+      <div class="ep-toggle" id="ep-toggle"><span class="ep-arrow" id="ep-arrow">◀</span></div>
+      <div class="ep-body" id="ep-body">
+        <div class="region-strip" id="region-strip">
+          <div class="region-label">HEAD</div>
+          <div class="region-btn" data-region="head"><span class="rdot"></span>Head</div>
+          <div class="region-btn occupied" data-region="face"><span class="rdot"></span>Face</div>
+          <div class="region-btn" data-region="neck"><span class="rdot"></span>Neck</div>
+          <div class="region-label">TORSO</div>
+          <div class="region-btn occupied active" data-region="torso"><span class="rdot"></span>Torso</div>
+          <div class="region-btn occupied" data-region="back"><span class="rdot"></span>Back</div>
+          <div class="region-btn" data-region="waist"><span class="rdot"></span>Waist</div>
+          <div class="region-label">ARMS</div>
+          <div class="region-btn occupied" data-region="hands"><span class="rdot"></span>Hands</div>
+          <div class="region-btn" data-region="arms"><span class="rdot"></span>Arms</div>
+          <div class="region-label">LEGS</div>
+          <div class="region-btn occupied" data-region="legs"><span class="rdot"></span>Legs</div>
+          <div class="region-btn occupied" data-region="feet"><span class="rdot"></span>Feet</div>
+          <div class="region-label">HELD</div>
+          <div class="region-btn occupied" data-region="primary"><span class="rdot"></span>Primary</div>
+          <div class="region-btn occupied" data-region="secondary"><span class="rdot"></span>Secondary</div>
+        </div>
+        <div class="ep-right">
+          <div class="avatar-area">3D avatar<br>preview zone<br><span style="font-size:7px;color:#222">setSurvivorDesc() preview swap</span></div>
+          <div class="slot-expansion" id="slot-expansion">
+            <div class="se-header"><span id="se-region-name">TORSO</span><span>drag or right-click to equip</span></div>
+            <div class="slot-row" id="slot-row"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="item-list">
+      <div class="list-header">
+        <div class="col-hdr name-col">NAME ↑</div>
+        <div class="col-hdr cat-col">CATEGORY</div>
+        <div class="col-hdr cond-col">CONDITION</div>
+        <div class="col-hdr wt-col">WT</div>
+      </div>
+      <div class="item-rows" id="item-rows">
+        <div class="cat-label"><span class="cat-tri">▾</span>Clothing</div>
+        <div class="item-row" draggable="true" data-item="Denim Jacket" data-region="torso" data-icon="🧥" data-cond="82" data-wt="1.4"><div class="item-icon">🧥</div><div class="item-name eq"><span class="edot"></span>Denim Jacket</div><div class="item-cat">Clothing</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:82%;background:#5a8a3a"></div></div><span style="font-size:8px;color:#5a8a3a;font-family:monospace">82</span></div><div class="item-wt">1.4</div></div>
+        <div class="item-row" draggable="true" data-item="T-Shirt" data-region="torso" data-icon="👕" data-cond="45" data-wt="0.3"><div class="item-icon">👕</div><div class="item-name eq"><span class="edot"></span>T-Shirt</div><div class="item-cat">Clothing</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:45%;background:#a87830"></div></div><span style="font-size:8px;color:#a87830;font-family:monospace">45</span></div><div class="item-wt">0.3</div></div>
+        <div class="item-row" draggable="true" data-item="Jeans" data-region="legs" data-icon="👖" data-cond="21" data-wt="0.9"><div class="item-icon">👖</div><div class="item-name eq"><span class="edot"></span>Jeans</div><div class="item-cat">Clothing</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:21%;background:#a83838"></div></div><span style="font-size:8px;color:#a83838;font-family:monospace">21</span></div><div class="item-wt">0.9</div></div>
+        <div class="item-row" draggable="true" data-item="Rain Jacket" data-region="torso" data-icon="🧥" data-cond="95" data-wt="0.8"><div class="item-icon">🧥</div><div class="item-name">Rain Jacket</div><div class="item-cat">Clothing</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:95%;background:#5a8a3a"></div></div><span style="font-size:8px;color:#5a8a3a;font-family:monospace">95</span></div><div class="item-wt">0.8</div></div>
+        <div class="item-row" draggable="true" data-item="Work Gloves" data-region="hands" data-icon="🧤" data-cond="68" data-wt="0.2"><div class="item-icon">🧤</div><div class="item-name eq"><span class="edot"></span>Work Gloves</div><div class="item-cat">Clothing</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:68%;background:#5a8a3a"></div></div><span style="font-size:8px;color:#5a8a3a;font-family:monospace">68</span></div><div class="item-wt">0.2</div></div>
+        <div class="cat-label"><span class="cat-tri">▾</span>Weapon</div>
+        <div class="item-row" draggable="true" data-item="Wrench" data-region="primary" data-icon="🔧" data-cond="73" data-wt="0.7"><div class="item-icon">🔧</div><div class="item-name eq"><span class="edot"></span>Wrench</div><div class="item-cat">Weapon</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:73%;background:#5a8a3a"></div></div><span style="font-size:8px;color:#5a8a3a;font-family:monospace">73</span></div><div class="item-wt">0.7</div></div>
+        <div class="item-row" draggable="true" data-item="Hunting Knife" data-region="secondary" data-icon="🔪" data-cond="88" data-wt="0.3"><div class="item-icon">🔪</div><div class="item-name eq"><span class="edot"></span>Hunting Knife</div><div class="item-cat">Weapon</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:88%;background:#5a8a3a"></div></div><span style="font-size:8px;color:#5a8a3a;font-family:monospace">88</span></div><div class="item-wt">0.3</div></div>
+        <div class="item-row" draggable="true" data-item="Fire Axe" data-region="primary" data-icon="🪓" data-cond="60" data-wt="2.1"><div class="item-icon">🪓</div><div class="item-name">Fire Axe</div><div class="item-cat">Weapon</div><div class="item-cond"><div class="cond-bar"><div class="cond-fill" style="width:60%;background:#a87830"></div></div><span style="font-size:8px;color:#a87830;font-family:monospace">60</span></div><div class="item-wt">2.1</div></div>
+      </div>
+    </div>
+    <div class="container-strip">
+      <div class="bag-btn active">🎒</div>
+      <div class="bag-btn">🧥</div>
+      <div class="strip-sep"></div>
+      <div class="bag-btn">🗃️</div>
+      <div class="bag-btn">🧰</div>
+      <div class="strip-sep"></div>
+      <div class="bag-btn floor">flr</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="ctrl-btn accent">⇄ All</div>
+    <div class="ctrl-btn">⇄ Cat</div>
+    <div class="ctrl-btn">⇄ Name</div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-btn">⊟ Filter</div>
+    <div class="ctrl-btn">↕ Sort</div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-btn">⊞ Expand</div>
+    <div class="ctrl-spacer"></div>
+  </div>
+</div>
+
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-item" id="ctx-equip">▶ Equip to region</div>
+  <div class="ctx-item sep"></div>
+  <div class="ctx-item">✦ Inspect item</div>
+  <div class="ctx-item">⊟ Mark unwanted</div>
+  <div class="ctx-item sep"></div>
+  <div class="ctx-item">⇄ Transfer</div>
+  <div class="ctx-item">↓ Drop</div>
+</div>
+
+<script>
+const REGIONS={
+  head:{label:'HEAD',slots:[{id:'hat',name:'Hat / Helmet'},{id:'glasses',name:'Glasses'},{id:'mask',name:'Mask / Balaclava'}]},
+  face:{label:'FACE',slots:[{id:'glasses',name:'Glasses',item:{name:'Safety Goggles',icon:'🥽',cond:90}},{id:'mask',name:'Face Covering'}]},
+  neck:{label:'NECK',slots:[{id:'scarf',name:'Scarf / Bandana'},{id:'necklace',name:'Necklace'}]},
+  torso:{label:'TORSO',slots:[{id:'jacket',name:'Outer Layer',item:{name:'Denim Jacket',icon:'🧥',cond:82}},{id:'shirt',name:'Mid Layer',item:{name:'T-Shirt',icon:'👕',cond:45}},{id:'undershirt',name:'Base Layer'}]},
+  back:{label:'BACK',slots:[{id:'bag',name:'Backpack / Bag'},{id:'holster',name:'Shoulder Holster'}]},
+  waist:{label:'WAIST',slots:[{id:'belt',name:'Belt'},{id:'holster2',name:'Hip Holster'}]},
+  hands:{label:'HANDS',slots:[{id:'gloves',name:'Gloves',item:{name:'Work Gloves',icon:'🧤',cond:68}},{id:'ring',name:'Ring'}]},
+  arms:{label:'ARMS',slots:[{id:'watch',name:'Watch'},{id:'bracelet',name:'Bracelet'}]},
+  legs:{label:'LEGS',slots:[{id:'pants',name:'Trousers',item:{name:'Jeans',icon:'👖',cond:21}},{id:'thermals',name:'Thermal Underlayer'},{id:'kneepad',name:'Knee Pads'}]},
+  feet:{label:'FEET',slots:[{id:'shoes',name:'Shoes / Boots',item:{name:'Work Boots',icon:'👟',cond:74}},{id:'socks',name:'Socks'}]},
+  primary:{label:'PRIMARY',slots:[{id:'main',name:'Main Hand',item:{name:'Wrench',icon:'🔧',cond:73}},{id:'shoulder',name:'Shoulder Sling'}]},
+  secondary:{label:'SECONDARY',slots:[{id:'off',name:'Off Hand',item:{name:'Hunting Knife',icon:'🔪',cond:88}},{id:'holstered',name:'Holstered'}]},
+};
+const OCCUPIED=['face','torso','back','hands','legs','feet','primary','secondary'];
+let activeRegion='torso',dragItem=null,ctxRow=null;
+function condColor(c){return c>=70?'#5a8a3a':c>=40?'#a87830':'#a83838'}
+function renderSlots(rk){
+  const def=REGIONS[rk];if(!def)return;
+  document.getElementById('se-region-name').textContent=def.label;
+  const row=document.getElementById('slot-row');row.innerHTML='';
+  def.slots.forEach(slot=>{
+    const el=document.createElement('div');
+    el.className='equip-slot'+(slot.item?' filled':'');
+    el.dataset.slotId=slot.id;el.dataset.region=rk;
+    if(slot.item){const cc=condColor(slot.item.cond);el.innerHTML=`<span class="es-icon">${slot.item.icon}</span><span class="es-name">${slot.item.name}</span><span class="es-cond" style="color:${cc}">${slot.item.cond}</span>`;}
+    else{el.innerHTML=`<span class="es-icon" style="color:#2a2a28;font-size:8px">—</span><span class="es-empty">${slot.name}</span>`;}
+    el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dragover');});
+    el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
+    el.addEventListener('drop',e=>{
+      e.preventDefault();el.classList.remove('dragover');
+      if(!dragItem)return;
+      const cc=condColor(parseInt(dragItem.cond));
+      el.innerHTML=`<span class="es-icon">${dragItem.icon}</span><span class="es-name">${dragItem.item}</span><span class="es-cond" style="color:${cc}">${dragItem.cond}</span>`;
+      el.classList.add('filled');
+      document.querySelector(`.region-btn[data-region="${rk}"]`)?.classList.add('occupied');
+    });
+    row.appendChild(el);
+  });
+}
+function setActiveRegion(rk){
+  activeRegion=rk;
+  document.querySelectorAll('.region-btn').forEach(b=>b.classList.toggle('active',b.dataset.region===rk));
+  renderSlots(rk);
+}
+OCCUPIED.forEach(r=>document.querySelector(`.region-btn[data-region="${r}"]`)?.classList.add('occupied'));
+setActiveRegion('torso');
+document.getElementById('region-strip').addEventListener('click',e=>{const b=e.target.closest('.region-btn');if(b)setActiveRegion(b.dataset.region);});
+let epExpanded=true;
+document.getElementById('ep-toggle').addEventListener('click',()=>{
+  epExpanded=!epExpanded;
+  document.getElementById('ep').classList.toggle('expanded',epExpanded);
+  document.getElementById('ep').classList.toggle('collapsed',!epExpanded);
+  document.getElementById('ep-body').style.display=epExpanded?'flex':'none';
+  document.getElementById('ep-arrow').textContent=epExpanded?'◀':'▶';
+});
+document.querySelectorAll('.item-row[draggable=true]').forEach(row=>{
+  row.addEventListener('dragstart',e=>{dragItem={item:row.dataset.item,icon:row.dataset.icon,cond:row.dataset.cond,region:row.dataset.region};row.style.opacity='.5';if(row.dataset.region&&REGIONS[row.dataset.region])setActiveRegion(row.dataset.region);});
+  row.addEventListener('dragend',()=>{row.style.opacity='1';dragItem=null;});
+  row.addEventListener('click',()=>{document.querySelectorAll('.item-row').forEach(r=>r.classList.remove('selected'));row.classList.add('selected');if(row.dataset.region&&REGIONS[row.dataset.region])setActiveRegion(row.dataset.region);});
+});
+const ctxMenu=document.getElementById('ctx-menu');
+document.getElementById('item-rows').addEventListener('contextmenu',e=>{
+  e.preventDefault();const row=e.target.closest('.item-row');if(!row)return;
+  ctxRow=row;
+  const region=row.dataset.region;const equipItem=document.getElementById('ctx-equip');
+  if(region&&REGIONS[region]){equipItem.textContent=`▶ Equip to ${REGIONS[region].label.toLowerCase()}`;equipItem.style.color='#c89a40';}
+  else{equipItem.textContent='▶ Equip…';equipItem.style.color='#555';}
+  ctxMenu.style.left=Math.min(e.clientX,window.innerWidth-140)+'px';
+  ctxMenu.style.top=Math.min(e.clientY,window.innerHeight-160)+'px';
+  ctxMenu.classList.add('show');
+});
+document.getElementById('ctx-equip').addEventListener('click',()=>{
+  if(!ctxRow)return;const region=ctxRow.dataset.region;
+  if(region&&REGIONS[region]){
+    setActiveRegion(region);
+    const empty=REGIONS[region].slots.find(s=>!s.item);
+    if(empty){empty.item={name:ctxRow.dataset.item,icon:ctxRow.dataset.icon,cond:parseInt(ctxRow.dataset.cond)};renderSlots(region);document.querySelector(`.region-btn[data-region="${region}"]`)?.classList.add('occupied');}
+  }
+  ctxMenu.classList.remove('show');
+});
+document.addEventListener('click',()=>ctxMenu.classList.remove('show'));
+document.querySelectorAll('.bag-btn').forEach(btn=>{btn.addEventListener('click',function(){document.querySelectorAll('.bag-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');});});
+</script>
+
+</div>
+</body>
+</html>

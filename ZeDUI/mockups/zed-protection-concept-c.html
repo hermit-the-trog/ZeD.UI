@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD Protection Tab — 3 Concepts</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans:wght@400;500;600&display=swap');
+:root {
+  --base: #1a1a1e; --surf1: #222226; --surf2: #2a2a2e; --surf3: #333338; --surf4: #3c3c42;
+  --border: rgba(255,255,255,0.10); --borderS: rgba(255,255,255,0.20);
+  --text: #d4d4d8; --textSec: rgba(255,255,255,0.45); --textHead: rgba(255,255,255,0.65); --textDim: rgba(255,255,255,0.30);
+  --accent: #d4a04a; --accentBright: #e8b85a;
+  --danger: #c44040; --dangerDim: rgba(196,64,64,0.25);
+  --warning: #c49040; --warningDim: rgba(196,144,64,0.25);
+  --positive: #4a9a5a; --positiveDim: rgba(74,154,90,0.25);
+  --info: #5a9ac4; --infoDim: rgba(90,154,196,0.25);
+  --stripe1: #333338; --stripe2: #2a2a2e;
+  --mono: 'Fira Mono', monospace; --sans: 'Fira Sans', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111114; color:var(--text); font-family:var(--sans); display:flex; justify-content:center; padding:20px; }
+.shell { width:480px; background:var(--base); border:1px solid var(--borderS); }
+.titlebar { height:22px; background:repeating-linear-gradient(0deg,var(--stripe1) 0px,var(--stripe1) 2px,var(--stripe2) 2px,var(--stripe2) 4px); display:flex; align-items:center; padding:0 6px; border-bottom:1px solid var(--borderS); gap:8px; }
+.closebox { width:11px; height:11px; border:1px solid var(--borderS); background:var(--surf1); cursor:pointer; }
+.closebox:hover { background:var(--danger); }
+.titlebar-text { font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--surf2); padding:0 6px; }
+.concept-tabs { display:flex; border-bottom:1px solid var(--borderS); background:var(--surf1); }
+.concept-tab { flex:1; padding:8px 4px; text-align:center; font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--textSec); cursor:pointer; border-right:1px solid var(--border); user-select:none; }
+.concept-tab:last-child { border-right:none; }
+.concept-tab:hover { color:var(--textHead); background:var(--surf2); }
+.concept-tab.active { color:var(--accent); background:var(--base); border-bottom:2px solid var(--accent); }
+.concept-panel { display:none; } .concept-panel.active { display:block; }
+.panel-body { padding:10px 12px; max-height:640px; overflow-y:auto; }
+.heading { font-family:var(--mono); font-size:11px; font-weight:700; text-transform:uppercase; color:var(--textHead); letter-spacing:0.5px; }
+.groove { height:1px; background:var(--border); margin:6px 0; }
+.label { font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--textSec); }
+.value { font-family:var(--sans); font-size:12px; } .value-sm { font-family:var(--sans); font-size:11px; }
+.badge { font-family:var(--mono); font-size:10px; font-weight:700; padding:1px 5px; display:inline-block; }
+.badge-danger { background:var(--dangerDim); color:var(--danger); }
+.badge-warning { background:var(--warningDim); color:var(--warning); }
+.badge-positive { background:var(--positiveDim); color:var(--positive); }
+.badge-info { background:var(--infoDim); color:var(--info); }
+.fill-bar-thin { height:3px; background:var(--surf3); position:relative; overflow:hidden; }
+.fill-bar-thin .fill-bar-inner { position:absolute; left:0; top:0; bottom:0; }
+.figure-part { position:absolute; border:1px solid rgba(255,255,255,0.06); cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:8px; color:rgba(255,255,255,0.25); }
+.figure-part:hover { border-color:var(--accent); z-index:2; }
+.garment-icon { background:var(--surf1); border:1px solid var(--borderS); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.garment-name { font-family:var(--sans); font-weight:500; color:var(--text); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.section-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+.concept-label { font-family:var(--mono); font-size:9px; color:var(--textDim); text-transform:uppercase; margin-bottom:8px; letter-spacing:1px; }
+.uncovered-pills { display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; }
+.uncovered-pill { font-family:var(--mono); font-size:9px; padding:2px 5px; background:var(--dangerDim); color:var(--danger); border:1px solid rgba(196,64,64,0.3); }
+.c-dashboard { display:flex; gap:12px; margin-bottom:10px; align-items:flex-start; }
+.c-figure-mini { width:90px; flex-shrink:0; }
+.c-stats { flex:1; display:flex; flex-direction:column; gap:6px; }
+.c-grade-row { display:flex; align-items:baseline; gap:8px; }
+.c-grade { font-family:var(--mono); font-size:32px; font-weight:700; line-height:1; }
+.c-grade-label { font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--textSec); }
+.c-stat-row { display:flex; align-items:center; gap:8px; }
+.c-stat-label { font-family:var(--mono); font-size:10px; text-transform:uppercase; color:var(--textSec); width:80px; }
+.c-stat-value { font-family:var(--sans); font-size:12px; }
+.c-garment-collapsed { display:flex; align-items:center; gap:6px; padding:6px 4px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.1s; }
+.c-garment-collapsed:hover { background:var(--surf1); }
+.c-garment-collapsed.expanded { background:var(--surf1); }
+.c-expand-arrow { font-family:var(--mono); font-size:10px; color:var(--textSec); width:12px; flex-shrink:0; }
+.c-garment-collapsed.expanded .c-expand-arrow { color:var(--accent); }
+.c-garment-avg { font-family:var(--mono); font-size:10px; width:30px; text-align:right; flex-shrink:0; }
+.c-garment-bar-wrap { width:50px; flex-shrink:0; }
+.c-expand-detail { padding:4px 8px 8px 20px; background:var(--surf1); border-bottom:1px solid var(--border); display:none; }
+.c-expand-detail.visible { display:block; }
+.c-zone-row { display:flex; align-items:center; gap:6px; padding:2px 0; }
+.c-zone-name { font-family:var(--mono); font-size:9px; text-transform:uppercase; color:var(--textSec); flex:1; }
+.c-zone-stats { display:flex; gap:8px; align-items:center; }
+.c-zone-bite { font-family:var(--mono); font-size:9px; width:24px; text-align:right; }
+.c-zone-bar-wrap { width:40px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="titlebar"><div class="closebox"></div><span class="titlebar-text">Protection — Concept C: Dashboard</span></div>
+  <div class="panel-body">
+    <div class="concept-label">Glance summary + expand for detail — progressive disclosure</div>
+    <div class="c-dashboard">
+      <div class="c-figure-mini"><div id="figureC" style="width:90px;height:220px;background:var(--surf1);border:1px solid var(--border);position:relative;"></div></div>
+      <div class="c-stats">
+        <div class="c-grade-row"><div class="c-grade" style="color:var(--danger)">D</div><div><div class="c-grade-label">Overall Grade</div><div class="value-sm" style="color:var(--textSec)">Bite defense avg: 2%</div></div></div>
+        <div class="groove"></div>
+        <div class="c-stat-row"><div class="c-stat-label">Worst Zone</div><div class="c-stat-value" style="color:var(--danger)">Head (uncovered)</div></div>
+        <div class="c-stat-row"><div class="c-stat-label">Best Zone</div><div class="c-stat-value" style="color:var(--danger)">L. Foot (10%)</div></div>
+        <div class="c-stat-row"><div class="c-stat-label">Uncovered</div><div class="c-stat-value"><span class="badge badge-danger">6 of 18</span></div></div>
+        <div class="c-stat-row"><div class="c-stat-label">Garments</div><div class="c-stat-value">4 equipped</div></div>
+      </div>
+    </div>
+    <div class="groove"></div>
+    <div class="section-head"><span class="heading">UNCOVERED</span></div>
+    <div class="uncovered-pills" style="margin-bottom:10px;">
+      <span class="uncovered-pill">Head</span><span class="uncovered-pill">Neck</span><span class="uncovered-pill">L. Forearm</span><span class="uncovered-pill">R. Forearm</span><span class="uncovered-pill">L. Hand</span><span class="uncovered-pill">R. Hand</span>
+    </div>
+    <div class="groove"></div>
+    <div class="heading" style="margin-bottom:6px;">GARMENTS</div>
+    <div class="c-garment-collapsed" onclick="toggleExpand(this)"><div class="c-expand-arrow">▸</div><div class="garment-icon" style="width:22px;height:22px;font-size:11px;">👕</div><div class="garment-name" style="font-size:11px;">T-Shirt — Police</div><div class="c-garment-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:5%;background:var(--danger)"></div></div></div><div class="c-garment-avg" style="color:var(--danger)">3%</div></div>
+    <div class="c-expand-detail">
+      <div class="c-zone-row"><div class="c-zone-name">Upper Torso</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:5%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">5%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">Lower Torso</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:3%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">3%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">Back</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:2%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">2%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">L. Upper Arm</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:3%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">3%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">R. Upper Arm</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:3%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">3%</div></div></div>
+    </div>
+    <div class="c-garment-collapsed" onclick="toggleExpand(this)"><div class="c-expand-arrow">▸</div><div class="garment-icon" style="width:22px;height:22px;font-size:11px;">👖</div><div class="garment-name" style="font-size:11px;">Police Pants — Deputy</div><div class="c-garment-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-garment-avg" style="color:var(--danger)">0%</div></div>
+    <div class="c-expand-detail">
+      <div class="c-zone-row"><div class="c-zone-name">Groin</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">L. Thigh</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">R. Thigh</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">L. Shin</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">R. Shin</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+    </div>
+    <div class="c-garment-collapsed" onclick="toggleExpand(this)"><div class="c-expand-arrow">▸</div><div class="garment-icon" style="width:22px;height:22px;font-size:11px;">👟</div><div class="garment-name" style="font-size:11px;">Shoes</div><div class="c-garment-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:10%;background:var(--danger)"></div></div></div><div class="c-garment-avg" style="color:var(--danger)">10%</div></div>
+    <div class="c-expand-detail">
+      <div class="c-zone-row"><div class="c-zone-name">L. Foot</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:10%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">10%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">R. Foot</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:10%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">10%</div></div></div>
+    </div>
+    <div class="c-garment-collapsed" onclick="toggleExpand(this)"><div class="c-expand-arrow">▸</div><div class="garment-icon" style="width:22px;height:22px;font-size:11px;">🧦</div><div class="garment-name" style="font-size:11px;">Long Socks</div><div class="c-garment-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-garment-avg" style="color:var(--danger)">0%</div></div>
+    <div class="c-expand-detail">
+      <div class="c-zone-row"><div class="c-zone-name">L. Foot</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">R. Foot</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">L. Shin</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+      <div class="c-zone-row"><div class="c-zone-name">R. Shin</div><div class="c-zone-stats"><div class="c-zone-bar-wrap"><div class="fill-bar-thin"><div class="fill-bar-inner" style="width:0%;background:var(--danger)"></div></div></div><div class="c-zone-bite" style="color:var(--danger)">0%</div></div></div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleExpand(el){const d=el.nextElementSibling,a=el.querySelector('.c-expand-arrow'),o=el.classList.toggle('expanded');d.classList.toggle('visible',o);a.textContent=o?'▾':'▸';}
+function buildFigure(id,s){s=s||1;const c=document.getElementById(id);if(!c)return;const p=[['Head',42,4,28,28,-1],['Neck',48,33,16,10,-1],['U.Torso',28,44,56,38,5],['L.Torso',32,83,48,24,3],['Groin',40,108,32,16,0],['L.UArm',12,48,16,34,3],['R.UArm',84,48,16,34,3],['L.FArm',6,84,14,34,-1],['R.FArm',92,84,14,34,-1],['L.Hand',2,120,12,14,-1],['R.Hand',98,120,12,14,-1],['L.Thigh',34,126,22,40,0],['R.Thigh',56,126,22,40,0],['L.Shin',34,168,20,42,0],['R.Shin',58,168,20,42,0],['L.Foot',30,212,22,14,10],['R.Foot',60,212,22,14,10]];c.innerHTML='';p.forEach(([n,x,y,w,h,d])=>{const e=document.createElement('div');e.className='figure-part';e.style.cssText=`left:${x*s}px;top:${y*s}px;width:${w*s}px;height:${h*s}px`;if(d<0){e.style.background='repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(196,64,64,0.15) 3px,rgba(196,64,64,0.15) 6px)';e.style.borderColor='rgba(196,64,64,0.5)'}else{const col=d<5?'rgba(196,64,64,0.6)':d<20?'var(--warning)':d<50?'var(--info)':'var(--positive)';e.style.background=col;e.style.opacity=d<5?0.7:1}e.title=n+': '+(d<0?'UNCOVERED':d+'% bite');c.appendChild(e)});}
+buildFigure('figureC',0.95);
+</script>
+</body>
+</html>

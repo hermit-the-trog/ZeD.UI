@@ -1,0 +1,283 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Share+Tech+Mono&family=Azeret+Mono:wght@400;500;600&family=Rajdhani:wght@400;500;600;700&family=Fira+Mono:ital,wght@0,400;0,500;0,600&family=Fira+Sans:ital,wght@0,400;0,500;0,600;0,700&family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+.wrap{background:#0d0d10;padding:16px 12px 24px;}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;max-width:660px;margin-left:auto;margin-right:auto;}
+.hdr-lbl{font-family:system-ui;font-size:11px;color:rgba(255,255,255,0.28);text-transform:uppercase;letter-spacing:1.5px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:660px;margin:0 auto;}
+.panel{}
+.win{background:#222226;border:1px solid rgba(255,255,255,0.22);}
+.tbar{height:22px;display:flex;align-items:center;padding:0 6px;border-bottom:1px solid rgba(255,255,255,0.20);background:repeating-linear-gradient(to right,#333338 0px 2px,#2a2a2e 2px 4px);}
+.closebox{width:11px;height:11px;border:1px solid rgba(255,255,255,0.25);background:#222226;margin-right:7px;flex-shrink:0;}
+.tabs{height:22px;display:flex;border-bottom:1px solid rgba(255,255,255,0.18);}
+.tab{flex:1;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,0.10);}
+.tab:last-child{border-right:none;}
+.tab.on{border-bottom:2px solid #d4a04a;}
+.list-area{padding:4px 0 2px;}
+.sec{padding:2px 8px 3px;border-bottom:1px solid rgba(255,255,255,0.08);margin-top:3px;}
+.sec:first-child{margin-top:0;}
+.row{height:18px;display:flex;align-items:center;padding:0 8px;}
+.row.sel{background:rgba(212,160,74,0.10);}
+.rname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d4d4d8;}
+.bar-wrap{width:38px;height:4px;background:#333338;border:1px solid rgba(255,255,255,0.10);margin-right:5px;flex-shrink:0;}
+.bar-fill{height:100%;}
+.rpct{min-width:26px;text-align:right;flex-shrink:0;color:rgba(255,255,255,0.45);}
+.divider{height:1px;background:rgba(255,255,255,0.14);}
+.card{padding:8px;background:#1c1c20;}
+.card-head{display:flex;align-items:flex-start;gap:7px;margin-bottom:6px;}
+.card-icon{width:30px;height:30px;background:#2a2a2e;border:1px solid rgba(255,255,255,0.20);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.card-info{padding-top:1px;}
+.card-sub-text{font-size:11px;color:rgba(255,255,255,0.40);}
+.groove{height:1px;background:rgba(255,255,255,0.10);margin-bottom:6px;}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;margin-bottom:6px;}
+.stat{display:flex;justify-content:space-between;align-items:center;height:15px;}
+.slbl{color:rgba(255,255,255,0.40);}
+.sval{color:#d4d4d8;}
+.chips{display:flex;gap:3px;margin-bottom:6px;}
+.chip{padding:1px 5px;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.30);}
+.chip.acc{border-color:rgba(212,160,74,0.30);color:#d4a04a;}
+.actions{display:flex;gap:3px;}
+.btn{flex:1;height:20px;border:1px solid rgba(255,255,255,0.20);background:#2a2a2e;display:flex;align-items:center;justify-content:center;}
+.btn.primary{border-color:#d4a04a;background:transparent;}
+.plbl{margin-top:8px;padding:0 2px;}
+.pname{font-family:system-ui;font-size:11px;color:rgba(255,255,255,0.50);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ptag{font-family:system-ui;font-size:11px;margin-bottom:5px;}
+.scores{display:flex;flex-direction:column;gap:3px;}
+.score-row{display:flex;align-items:center;gap:4px;}
+.score-dots{display:flex;gap:2px;}
+.dot{width:7px;height:7px;}
+.score-num{font-family:system-ui;font-size:11px;}
+.legend{max-width:660px;margin:14px auto 0;display:flex;gap:20px;justify-content:center;}
+.leg-item{font-family:system-ui;font-size:11px;}
+
+.pa-fc{font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.pa-fb{font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:400;}
+.pa-fd{font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:400;}
+.pa-fh{font-family:'Chakra Petch',sans-serif;font-size:13px;font-weight:600;}
+.pa-fm{font-family:'Chakra Petch',sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.7px;}
+
+.pb-fc{font-family:'Azeret Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.pb-fb{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:500;}
+.pb-fd{font-family:'Azeret Mono',monospace;font-size:11px;font-weight:400;}
+.pb-fh{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;}
+.pb-fm{font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.7px;}
+
+.pc-fc{font-family:'Fira Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.pc-fb{font-family:'Fira Sans',sans-serif;font-size:12px;font-weight:400;}
+.pc-fd{font-family:'Fira Mono',monospace;font-size:11px;font-weight:400;}
+.pc-fh{font-family:'Fira Sans',sans-serif;font-size:13px;font-weight:600;}
+.pc-fm{font-family:'Fira Sans',sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.7px;}
+
+.pd-fc{font-family:'Fira Mono',monospace;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.pd-fb{font-family:'Fira Sans Condensed',sans-serif;font-size:12px;font-weight:400;}
+.pd-fd{font-family:'Fira Mono',monospace;font-size:11px;font-weight:400;}
+.pd-fh{font-family:'Fira Sans Condensed',sans-serif;font-size:13px;font-weight:600;}
+.pd-fm{font-family:'Fira Sans Condensed',sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.7px;}
+</style>
+
+<div class="wrap">
+  <div class="hdr">
+    <span class="hdr-lbl">ZeD-UI · Font Pairing Comparison</span>
+  </div>
+  <div class="grid">
+
+    <div class="panel">
+      <div class="win">
+        <div class="tbar"><div class="closebox"></div><span class="pa-fc" style="color:rgba(255,255,255,0.65);">Character</span></div>
+        <div class="tabs">
+          <div class="tab on"><span class="pa-fc" style="color:#d4a04a;">Equip</span></div>
+          <div class="tab"><span class="pa-fc" style="color:rgba(255,255,255,0.30);">Health</span></div>
+          <div class="tab"><span class="pa-fc" style="color:rgba(255,255,255,0.30);">Skills</span></div>
+        </div>
+        <div class="list-area">
+          <div class="sec"><span class="pa-fh" style="color:rgba(255,255,255,0.65);">Torso</span></div>
+          <div class="row sel"><span class="pa-fb rname">Leather Jacket</span><div class="bar-wrap"><div class="bar-fill" style="width:78%;background:#c49040;"></div></div><span class="pa-fd rpct">78%</span></div>
+          <div class="row"><span class="pa-fb rname">Work Shirt</span><div class="bar-wrap"><div class="bar-fill" style="width:92%;background:#4a9a5a;"></div></div><span class="pa-fd rpct">92%</span></div>
+          <div class="row"><span class="pa-fb rname">Bra</span><div class="bar-wrap"><div class="bar-fill" style="width:65%;background:#c49040;"></div></div><span class="pa-fd rpct">65%</span></div>
+          <div class="sec"><span class="pa-fh" style="color:rgba(255,255,255,0.65);">Legs</span></div>
+          <div class="row"><span class="pa-fb rname">Denim Jeans</span><div class="bar-wrap"><div class="bar-fill" style="width:71%;background:#c49040;"></div></div><span class="pa-fd rpct">71%</span></div>
+          <div class="row"><span class="pa-fb rname">Socks</span><div class="bar-wrap"><div class="bar-fill" style="width:88%;background:#4a9a5a;"></div></div><span class="pa-fd rpct">88%</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4L4 2L6 4L8 2L10 4L12 2L14 4L14 14L2 14Z" stroke="rgba(255,255,255,0.35)" stroke-width="1" fill="rgba(255,255,255,0.06)"/><line x1="5" y1="4" x2="5" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><line x1="11" y1="4" x2="11" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/></svg></div>
+            <div class="card-info"><div class="pa-fh" style="color:#d4a04a;line-height:1.2;">Leather Jacket</div><div class="pa-fb card-sub-text">Clothing · Outer Layer</div></div>
+          </div>
+          <div class="groove"></div>
+          <div class="stats">
+            <div class="stat"><span class="pa-fm slbl">Cond</span><span class="pa-fd sval">78%</span></div>
+            <div class="stat"><span class="pa-fm slbl">Wt</span><span class="pa-fd sval">1.2</span></div>
+            <div class="stat"><span class="pa-fm slbl">Ins</span><span class="pa-fd sval">+18</span></div>
+            <div class="stat"><span class="pa-fm slbl">Warm</span><span class="pa-fd sval">+22</span></div>
+          </div>
+          <div class="chips"><span class="pa-fm chip acc">Leather</span><span class="pa-fm chip">Outer</span><span class="pa-fm chip">Warm</span></div>
+          <div class="actions">
+            <div class="btn primary"><span class="pa-fc" style="color:#d4a04a;font-size:11px;">Equip</span></div>
+            <div class="btn"><span class="pa-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Drop</span></div>
+            <div class="btn"><span class="pa-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Inspect</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="plbl">
+        <div class="pname">A — Share Tech Mono + Chakra Petch</div>
+        <div class="ptag" style="color:rgba(255,255,255,0.35);">System 7 authentic</div>
+        <div class="scores">
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(212,160,74,0.55);">8/10 System 7</span></div>
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(74,154,90,0.55);">7/10 Legibility</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="win">
+        <div class="tbar"><div class="closebox"></div><span class="pb-fc" style="color:rgba(255,255,255,0.65);">Character</span></div>
+        <div class="tabs">
+          <div class="tab on"><span class="pb-fc" style="color:#d4a04a;">Equip</span></div>
+          <div class="tab"><span class="pb-fc" style="color:rgba(255,255,255,0.30);">Health</span></div>
+          <div class="tab"><span class="pb-fc" style="color:rgba(255,255,255,0.30);">Skills</span></div>
+        </div>
+        <div class="list-area">
+          <div class="sec"><span class="pb-fh" style="color:rgba(255,255,255,0.65);">Torso</span></div>
+          <div class="row sel"><span class="pb-fb rname">Leather Jacket</span><div class="bar-wrap"><div class="bar-fill" style="width:78%;background:#c49040;"></div></div><span class="pb-fd rpct">78%</span></div>
+          <div class="row"><span class="pb-fb rname">Work Shirt</span><div class="bar-wrap"><div class="bar-fill" style="width:92%;background:#4a9a5a;"></div></div><span class="pb-fd rpct">92%</span></div>
+          <div class="row"><span class="pb-fb rname">Bra</span><div class="bar-wrap"><div class="bar-fill" style="width:65%;background:#c49040;"></div></div><span class="pb-fd rpct">65%</span></div>
+          <div class="sec"><span class="pb-fh" style="color:rgba(255,255,255,0.65);">Legs</span></div>
+          <div class="row"><span class="pb-fb rname">Denim Jeans</span><div class="bar-wrap"><div class="bar-fill" style="width:71%;background:#c49040;"></div></div><span class="pb-fd rpct">71%</span></div>
+          <div class="row"><span class="pb-fb rname">Socks</span><div class="bar-wrap"><div class="bar-fill" style="width:88%;background:#4a9a5a;"></div></div><span class="pb-fd rpct">88%</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4L4 2L6 4L8 2L10 4L12 2L14 4L14 14L2 14Z" stroke="rgba(255,255,255,0.35)" stroke-width="1" fill="rgba(255,255,255,0.06)"/><line x1="5" y1="4" x2="5" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><line x1="11" y1="4" x2="11" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/></svg></div>
+            <div class="card-info"><div class="pb-fh" style="color:#d4a04a;line-height:1.2;">Leather Jacket</div><div class="pb-fb card-sub-text">Clothing · Outer Layer</div></div>
+          </div>
+          <div class="groove"></div>
+          <div class="stats">
+            <div class="stat"><span class="pb-fm slbl">Cond</span><span class="pb-fd sval">78%</span></div>
+            <div class="stat"><span class="pb-fm slbl">Wt</span><span class="pb-fd sval">1.2</span></div>
+            <div class="stat"><span class="pb-fm slbl">Ins</span><span class="pb-fd sval">+18</span></div>
+            <div class="stat"><span class="pb-fm slbl">Warm</span><span class="pb-fd sval">+22</span></div>
+          </div>
+          <div class="chips"><span class="pb-fm chip acc">Leather</span><span class="pb-fm chip">Outer</span><span class="pb-fm chip">Warm</span></div>
+          <div class="actions">
+            <div class="btn primary"><span class="pb-fc" style="color:#d4a04a;font-size:11px;">Equip</span></div>
+            <div class="btn"><span class="pb-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Drop</span></div>
+            <div class="btn"><span class="pb-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Inspect</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="plbl">
+        <div class="pname">B — Azeret Mono + Rajdhani</div>
+        <div class="ptag" style="color:rgba(255,255,255,0.35);">90s OS interface</div>
+        <div class="scores">
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(212,160,74,0.55);">7/10 System 7</span></div>
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(74,154,90,0.55);">7/10 Legibility</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="win" style="border-color:rgba(212,160,74,0.40);">
+        <div class="tbar"><div class="closebox"></div><span class="pc-fc" style="color:rgba(255,255,255,0.65);">Character</span></div>
+        <div class="tabs">
+          <div class="tab on"><span class="pc-fc" style="color:#d4a04a;">Equip</span></div>
+          <div class="tab"><span class="pc-fc" style="color:rgba(255,255,255,0.30);">Health</span></div>
+          <div class="tab"><span class="pc-fc" style="color:rgba(255,255,255,0.30);">Skills</span></div>
+        </div>
+        <div class="list-area">
+          <div class="sec"><span class="pc-fh" style="color:rgba(255,255,255,0.65);">Torso</span></div>
+          <div class="row sel"><span class="pc-fb rname">Leather Jacket</span><div class="bar-wrap"><div class="bar-fill" style="width:78%;background:#c49040;"></div></div><span class="pc-fd rpct">78%</span></div>
+          <div class="row"><span class="pc-fb rname">Work Shirt</span><div class="bar-wrap"><div class="bar-fill" style="width:92%;background:#4a9a5a;"></div></div><span class="pc-fd rpct">92%</span></div>
+          <div class="row"><span class="pc-fb rname">Bra</span><div class="bar-wrap"><div class="bar-fill" style="width:65%;background:#c49040;"></div></div><span class="pc-fd rpct">65%</span></div>
+          <div class="sec"><span class="pc-fh" style="color:rgba(255,255,255,0.65);">Legs</span></div>
+          <div class="row"><span class="pc-fb rname">Denim Jeans</span><div class="bar-wrap"><div class="bar-fill" style="width:71%;background:#c49040;"></div></div><span class="pc-fd rpct">71%</span></div>
+          <div class="row"><span class="pc-fb rname">Socks</span><div class="bar-wrap"><div class="bar-fill" style="width:88%;background:#4a9a5a;"></div></div><span class="pc-fd rpct">88%</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4L4 2L6 4L8 2L10 4L12 2L14 4L14 14L2 14Z" stroke="rgba(255,255,255,0.35)" stroke-width="1" fill="rgba(255,255,255,0.06)"/><line x1="5" y1="4" x2="5" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><line x1="11" y1="4" x2="11" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/></svg></div>
+            <div class="card-info"><div class="pc-fh" style="color:#d4a04a;line-height:1.2;">Leather Jacket</div><div class="pc-fb card-sub-text">Clothing · Outer Layer</div></div>
+          </div>
+          <div class="groove"></div>
+          <div class="stats">
+            <div class="stat"><span class="pc-fm slbl">Cond</span><span class="pc-fd sval">78%</span></div>
+            <div class="stat"><span class="pc-fm slbl">Wt</span><span class="pc-fd sval">1.2</span></div>
+            <div class="stat"><span class="pc-fm slbl">Ins</span><span class="pc-fd sval">+18</span></div>
+            <div class="stat"><span class="pc-fm slbl">Warm</span><span class="pc-fd sval">+22</span></div>
+          </div>
+          <div class="chips"><span class="pc-fm chip acc">Leather</span><span class="pc-fm chip">Outer</span><span class="pc-fm chip">Warm</span></div>
+          <div class="actions">
+            <div class="btn primary"><span class="pc-fc" style="color:#d4a04a;font-size:11px;">Equip</span></div>
+            <div class="btn"><span class="pc-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Drop</span></div>
+            <div class="btn"><span class="pc-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Inspect</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="plbl">
+        <div class="pname">C — Fira Mono + Fira Sans</div>
+        <div class="ptag" style="color:#d4a04a;">Engineered superfamily ★ recommended</div>
+        <div class="scores">
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(212,160,74,0.55);">3/10 System 7</span></div>
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(74,154,90,0.55);">9/10 Legibility</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="win">
+        <div class="tbar"><div class="closebox"></div><span class="pd-fc" style="color:rgba(255,255,255,0.65);">Character</span></div>
+        <div class="tabs">
+          <div class="tab on"><span class="pd-fc" style="color:#d4a04a;">Equip</span></div>
+          <div class="tab"><span class="pd-fc" style="color:rgba(255,255,255,0.30);">Health</span></div>
+          <div class="tab"><span class="pd-fc" style="color:rgba(255,255,255,0.30);">Skills</span></div>
+        </div>
+        <div class="list-area">
+          <div class="sec"><span class="pd-fh" style="color:rgba(255,255,255,0.65);">Torso</span></div>
+          <div class="row sel"><span class="pd-fb rname">Leather Jacket</span><div class="bar-wrap"><div class="bar-fill" style="width:78%;background:#c49040;"></div></div><span class="pd-fd rpct">78%</span></div>
+          <div class="row"><span class="pd-fb rname">Work Shirt</span><div class="bar-wrap"><div class="bar-fill" style="width:92%;background:#4a9a5a;"></div></div><span class="pd-fd rpct">92%</span></div>
+          <div class="row"><span class="pd-fb rname">Bra</span><div class="bar-wrap"><div class="bar-fill" style="width:65%;background:#c49040;"></div></div><span class="pd-fd rpct">65%</span></div>
+          <div class="sec"><span class="pd-fh" style="color:rgba(255,255,255,0.65);">Legs</span></div>
+          <div class="row"><span class="pd-fb rname">Denim Jeans</span><div class="bar-wrap"><div class="bar-fill" style="width:71%;background:#c49040;"></div></div><span class="pd-fd rpct">71%</span></div>
+          <div class="row"><span class="pd-fb rname">Socks</span><div class="bar-wrap"><div class="bar-fill" style="width:88%;background:#4a9a5a;"></div></div><span class="pd-fd rpct">88%</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4L4 2L6 4L8 2L10 4L12 2L14 4L14 14L2 14Z" stroke="rgba(255,255,255,0.35)" stroke-width="1" fill="rgba(255,255,255,0.06)"/><line x1="5" y1="4" x2="5" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/><line x1="11" y1="4" x2="11" y2="14" stroke="rgba(255,255,255,0.15)" stroke-width="1"/></svg></div>
+            <div class="card-info"><div class="pd-fh" style="color:#d4a04a;line-height:1.2;">Leather Jacket</div><div class="pd-fb card-sub-text">Clothing · Outer Layer</div></div>
+          </div>
+          <div class="groove"></div>
+          <div class="stats">
+            <div class="stat"><span class="pd-fm slbl">Cond</span><span class="pd-fd sval">78%</span></div>
+            <div class="stat"><span class="pd-fm slbl">Wt</span><span class="pd-fd sval">1.2</span></div>
+            <div class="stat"><span class="pd-fm slbl">Ins</span><span class="pd-fd sval">+18</span></div>
+            <div class="stat"><span class="pd-fm slbl">Warm</span><span class="pd-fd sval">+22</span></div>
+          </div>
+          <div class="chips"><span class="pd-fm chip acc">Leather</span><span class="pd-fm chip">Outer</span><span class="pd-fm chip">Warm</span></div>
+          <div class="actions">
+            <div class="btn primary"><span class="pd-fc" style="color:#d4a04a;font-size:11px;">Equip</span></div>
+            <div class="btn"><span class="pd-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Drop</span></div>
+            <div class="btn"><span class="pd-fc" style="color:rgba(255,255,255,0.55);font-size:11px;">Inspect</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="plbl">
+        <div class="pname">D — Fira Mono + Fira Sans Cond.</div>
+        <div class="ptag" style="color:rgba(255,255,255,0.35);">Small-screen specialist</div>
+        <div class="scores">
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(212,160,74,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(212,160,74,0.55);">2/10 System 7</span></div>
+          <div class="score-row"><div class="score-dots"><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(74,154,90,0.80);"></div><div class="dot" style="background:rgba(255,255,255,0.12);"></div></div><span class="score-num" style="color:rgba(74,154,90,0.55);">9/10 Legibility</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="legend">
+    <span class="leg-item" style="color:rgba(212,160,74,0.60);">■ System 7 feel</span>
+    <span class="leg-item" style="color:rgba(74,154,90,0.60);">■ Legibility score</span>
+    <span class="leg-item" style="color:rgba(255,255,255,0.22);">· out of 10 · amber border = recommended</span>
+  </div>
+</div>

@@ -1,0 +1,85 @@
+VERSION = 1,
+
+font Small
+{
+    fnt = plex500.fnt,
+    img = plex500_0.png,
+}
+
+font NewSmall
+{
+    fnt = jbMono500.fnt,
+    img = jbMono500_0.png,
+}
+
+font Medium
+{
+    fnt = plex500m.fnt,
+    img = plex500m_0.png,
+}
+
+font NewMedium
+{
+    fnt = jbMono500m.fnt,
+    img = jbMono500m_0.png,
+}
+
+font Large
+{
+    fnt = plex700.fnt,
+    img = plex700_0.png,
+}
+
+font NewLarge
+{
+    fnt = jbMono700.fnt,
+    img = jbMono700_0.png,
+}
+
+font Code
+{
+    fnt = plex500md.fnt,
+    img = plex500md_0.png,
+}
+
+font CodeSmall
+{
+    fnt = plex500lg.fnt,
+    img = plex500lg_0.png,
+}
+
+font CodeMedium
+{
+    fnt = jbMono500md.fnt,
+    img = jbMono500md_0.png,
+}
+
+font CodeLarge
+{
+    fnt = jbMono500lg.fnt,
+    img = jbMono500lg_0.png,
+}
+
+font Cred1
+{
+    fnt = jbMono700md.fnt,
+    img = jbMono700md_0.png,
+}
+
+font Cred2
+{
+    fnt = jbMono700lg.fnt,
+    img = jbMono700lg_0.png,
+}
+
+font MainMenu1
+{
+    fnt = jbMono700xl.fnt,
+    img = jbMono700xl_0.png,
+}
+
+font MainMenu2
+{
+    fnt = plex700md.fnt,
+    img = plex700md_0.png,
+}

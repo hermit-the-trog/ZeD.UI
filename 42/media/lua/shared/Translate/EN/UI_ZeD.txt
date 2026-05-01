@@ -1,0 +1,39 @@
+UI_EN = {
+    -- Mod identity
+    UI_ZeD_ModName = "ZeD UI",
+    UI_ZeD_ModDesc = "Total UI overhaul for Project Zomboid",
+
+    -- Settings
+    UI_ZeD_Settings_BaseTheme = "Base theme",
+    UI_ZeD_Settings_AccentColor = "Accent color",
+    UI_ZeD_Settings_TextSize = "Text size",
+    UI_ZeD_Settings_Dark = "Dark",
+    UI_ZeD_Settings_Light = "Light",
+    UI_ZeD_Settings_HighContrast = "High contrast",
+    UI_ZeD_Settings_Small = "Small",
+    UI_ZeD_Settings_Large = "Large",
+
+    -- Accent color names
+    UI_ZeD_Accent_Red = "Red",
+    UI_ZeD_Accent_Orange = "Orange",
+    UI_ZeD_Accent_Yellow = "Yellow",
+    UI_ZeD_Accent_Green = "Green",
+    UI_ZeD_Accent_Blue = "Blue",
+    UI_ZeD_Accent_Purple = "Purple",
+    UI_ZeD_Accent_Pink = "Pink",
+    UI_ZeD_Accent_Teal = "PZ Teal",
+    UI_ZeD_Accent_None = "None",
+
+    -- Status labels
+    UI_ZeD_Status_Danger = "DANGER",
+    UI_ZeD_Status_Warning = "WARNING",
+    UI_ZeD_Status_OK = "OK",
+    UI_ZeD_Status_Info = "INFO",
+
+    -- Common UI labels
+    UI_ZeD_Close = "Close",
+    UI_ZeD_Search = "Search...",
+    UI_ZeD_NoResults = "No results",
+    UI_ZeD_Weight = "Weight",
+    UI_ZeD_Capacity = "Capacity",
+}

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(magick identify:*)",
+      "Bash(magick:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
