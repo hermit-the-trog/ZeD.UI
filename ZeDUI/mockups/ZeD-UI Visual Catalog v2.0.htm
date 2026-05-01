@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><div style="display: none;"></div>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZeD-UI Visual Catalog v2.0</title>
+<style>
+:root{--b:#0C0C0C;--s1:#131313;--s2:#1A1A1A;--s3:#222222;--s4:#2A2A2A;--bd:#2A2A2A;--bs:#3A3A3A;--ac:#D4922A;--acb:#E8A830;--hov:rgba(212,146,42,0.22);--tx:rgba(200,200,200,0.80);--ts:rgba(150,150,150,0.55);--th:rgba(212,200,180,0.88);--toa:#0C0C0C;--dng:#C45A2A;--wrn:#C49A2A;--pos:#7A9A34;--inf:#5A8A9A;--font-m:'Courier New',Courier,monospace;--font-s:system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--b);color:var(--tx);font-family:var(--font-s);font-size:13px;line-height:1.4;padding:12px;-webkit-tap-highlight-color:transparent}
+::selection{background:var(--ac);color:var(--toa)}
+
+.header{text-align:center;padding:16px 0 20px;border-bottom:1px solid var(--bs);margin-bottom:16px}
+.header h1{font-family:var(--font-m);font-size:20px;color:var(--th);letter-spacing:4px;font-weight:700}
+.header .sub{font-size:10px;color:var(--ts);font-family:var(--font-m);margin-top:4px}
+.header .lineage{font-size:9px;color:var(--ac);font-family:var(--font-m);margin-top:8px;font-style:italic}
+
+.phase{margin-bottom:28px}
+.phase-t{font-size:13px;font-family:var(--font-m);color:var(--th);font-weight:700;letter-spacing:2px;padding:6px 0;border-bottom:2px solid var(--ac);margin-bottom:12px}
+.sec{margin-bottom:16px}
+.sec-t{font-size:10px;font-family:var(--font-m);color:var(--ac);letter-spacing:0.1em;text-transform:uppercase;font-weight:700;margin-bottom:8px}
+.grid{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+.c{border:1px solid var(--bs);background:var(--s1);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:100px}
+.c-wide{min-width:180px;flex:1}
+.c-full{width:100%}
+.c-name{font-size:8px;font-family:var(--font-m);color:var(--ac);font-weight:700}
+.c-id{font-size:7px;font-family:var(--font-m);padding:1px 4px;border:1px solid;display:inline-block;margin-bottom:2px}
+.c-id.atom{color:var(--pos);border-color:var(--pos)}
+.c-id.mol{color:var(--inf);border-color:var(--inf)}
+.c-id.org{color:var(--wrn);border-color:var(--wrn)}
+.c-id.sys{color:#aa66aa;border-color:#aa66aa}
+.c-note{font-size:7px;font-family:var(--font-m);color:var(--ts);line-height:1.4}
+.c-71{font-size:7px;font-family:var(--font-m);color:var(--inf);margin-top:2px}
+.mn{font-family:var(--font-m)}
+
+/* GROOVE DIVIDER */
+.groove{height:2px;background:linear-gradient(to bottom,#111 0%,#111 50%,#333 50%,#333 100%)}
+
+/* FILL BAR */
+.fill-bar{height:8px;border:1px solid var(--bd);position:relative;overflow:hidden;background:var(--s1)}
+.fill-bar .used{position:absolute;left:0;top:0;height:100%}
+.fill-bar .remain{position:absolute;top:0;height:100%;background:rgba(255,255,255,0.06)}
+
+/* CHECKBOX */
+.chk{display:inline-flex;align-items:center;gap:5px;font-size:11px}
+.chk .b{width:14px;height:14px;border:1px solid var(--bs);background:var(--s1);position:relative;display:flex;align-items:center;justify-content:center}
+.chk .b.on::before,.chk .b.on::after{content:'';position:absolute;background:var(--ac)}
+.chk .b.on::before{width:9px;height:1.5px;transform:rotate(45deg)}
+.chk .b.on::after{width:9px;height:1.5px;transform:rotate(-45deg)}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 6px;font-size:9px;font-family:var(--font-m);font-weight:700;border:1px solid}
+.badge.solid{border:none}
+
+/* BUTTON */
+.btn{padding:5px 14px;font-size:11px;font-family:var(--font-s);border:1px solid var(--bs);background:var(--s3);color:var(--tx);border-radius:3px;display:inline-block;cursor:pointer}
+.btn:hover{background:var(--hov);border-color:var(--ac);color:var(--acb)}
+.btn.primary{border:1px solid var(--ac);outline:2px solid var(--ac);outline-offset:-3px;color:var(--acb)}
+.btn.danger{border-color:var(--dng);color:var(--dng);border-radius:3px}
+.btn.disabled{opacity:0.42}
+
+/* TITLE BAR */
+.win-tb{height:24px;background:var(--s2);border:1px solid var(--bs);display:flex;align-items:center;position:relative;overflow:hidden}
+.win-tb::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.04) 2px,rgba(255,255,255,0.04) 4px)}
+.win-cb{width:12px;height:12px;border:1px solid var(--bs);margin-left:5px;flex-shrink:0;position:relative;z-index:1;background:var(--s2)}
+.win-tt{font-size:11px;color:var(--th);font-family:var(--font-m);font-weight:700;position:relative;z-index:1;background:var(--s2);padding:0 10px}
+
+/* TEXT INPUT */
+.inp{border:1px solid var(--bs);border-bottom:2px solid var(--bs);background:var(--s1);padding:4px 8px;font-size:11px;font-family:var(--font-s);color:var(--tx);width:100%}
+.inp:focus{outline:none;border-bottom-color:var(--ac)}
+
+/* SEARCH */
+.search-w{position:relative}
+.search-w .inp{padding-left:22px}
+.search-i{position:absolute;left:7px;top:50%;transform:translateY(-50%);font-size:10px;font-family:var(--font-m);color:var(--ts);pointer-events:none}
+
+/* TAB */
+.tab-s{display:flex;gap:0}
+.tab{padding:4px 12px;font-size:10px;font-family:var(--font-m);font-weight:700;border:1px solid var(--bs);color:var(--ts);background:var(--s1);position:relative;top:1px}
+.tab.active{background:var(--s2);color:var(--ac);border-bottom-color:var(--s2);z-index:2}
+.tab-body{border:1px solid var(--bs);background:var(--s2);padding:8px;min-height:30px;font-size:10px;color:var(--ts)}
+
+/* LIST ROW */
+.list-row{padding:5px 8px;font-size:11px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--bd)}
+.list-row:last-child{border-bottom:none}
+.list-row .ico{width:18px;height:18px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
+.list-row .nm{flex:1}
+.list-row .mt{font-size:9px;font-family:var(--font-m);color:var(--ts)}
+.list-row.sel{background:var(--ac);color:var(--toa)}
+.list-row.sel .mt{color:var(--toa);opacity:.7}
+
+/* SCROLLBAR */
+.sb{width:12px;background:var(--s1);border:1px solid var(--bs);display:flex;flex-direction:column;height:70px}
+.sb .arr{height:12px;border-bottom:1px solid var(--bs);display:flex;align-items:center;justify-content:center}
+.sb .arr:last-child{border-bottom:none;border-top:1px solid var(--bs)}
+.sb .track{flex:1;position:relative;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.02) 2px,rgba(255,255,255,0.02) 4px)}
+.sb .thumb{position:absolute;left:1px;right:1px;background:var(--s3);border:1px solid var(--bs)}
+.sb .thumb::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:1px;background:var(--ts);box-shadow:0 -2px 0 var(--ts),0 2px 0 var(--ts)}
+
+/* DISCLOSURE TRIANGLE */
+.disc{display:inline-block;width:0;height:0;border-left:5px solid var(--ts);border-top:3px solid transparent;border-bottom:3px solid transparent;margin-right:4px;transition:transform .15s}
+.disc.open{transform:rotate(90deg);border-left-color:var(--ac)}
+
+/* DROPDOWN */
+.dd{border:1px solid var(--bs);background:var(--s2);display:inline-block;min-width:100px}
+.dd-item{padding:4px 10px;font-size:10px}
+.dd-item.sel{color:var(--ac)}
+.dd-div{height:1px;background:var(--bs);margin:2px 0}
+
+/* TOGGLE */
+.tog{display:inline-flex;align-items:center;gap:6px;font-size:11px}
+.tog-track{width:28px;height:14px;border:1px solid var(--bs);background:var(--s1);position:relative}
+.tog-track.on{background:var(--ac);border-color:var(--ac)}
+.tog-thumb{width:10px;height:10px;background:var(--ts);position:absolute;top:1px;left:1px}
+.tog-track.on .tog-thumb{left:15px;background:var(--toa)}
+
+/* SLIDER */
+.sl-wrap{display:flex;align-items:center;gap:6px}
+.sl-track{flex:1;height:6px;border:1px solid var(--bs);background:var(--s1);position:relative}
+.sl-fill{height:100%;background:var(--ac);position:absolute;left:0;top:0}
+.sl-thumb{width:12px;height:12px;border:1px solid var(--ac);background:var(--s3);position:absolute;top:-4px;transform:translateX(-50%);border-radius:3px}
+.sl-val{font-size:10px;font-family:var(--font-m);color:var(--th);min-width:24px;text-align:right}
+
+/* STAT CHIP */
+.chip{display:inline-flex;border:1px solid var(--bd);padding:3px 8px;gap:6px;font-size:9px;font-family:var(--font-m)}
+.chip-k{color:var(--ts)}
+.chip-v{color:var(--tx)}
+
+/* MOODLE */
+.moodle{width:42px;height:42px;border:1px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+.moodle .m-i{font-family:var(--font-m);font-weight:700}
+.moodle .m-b{position:absolute;bottom:0;left:0;right:0;height:3px}
+.moodle .m-f{height:100%;position:absolute;left:0;top:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* CONTEXT MENU */
+.ctx{border:1px solid var(--bs);background:var(--s2);display:inline-block;min-width:120px}
+.ctx-i{padding:4px 10px;font-size:11px}
+.ctx-i.dng{color:var(--dng)}
+.ctx-i.dis{opacity:.42}
+
+/* PROGRESS */
+.prog{display:flex;gap:2px}
+.prog-s{flex:1;padding:4px;text-align:center;border:1px solid var(--bd);font-size:9px;font-family:var(--font-m)}
+.prog-s.done{background:var(--ac);color:var(--toa);border-color:var(--ac)}
+.prog-s.cur{background:var(--hov);color:var(--acb);border-color:var(--ac)}
+.prog-s.pen{background:var(--s2);color:var(--ts)}
+
+/* FILTER */
+.filt{padding:3px 8px;font-size:9px;font-family:var(--font-m);border:1px solid var(--bs);background:var(--s3);color:var(--ts);border-radius:3px;display:inline-block}
+.filt.on{background:var(--ac);color:var(--toa);border-color:var(--ac)}
+
+/* TOAST */
+.toast{padding:6px 10px;border:1px solid;font-size:11px;display:flex;align-items:center;gap:6px;max-width:220px}
+.toast .t-t{font-size:8px;font-family:var(--font-m);font-weight:700}
+.toast.info{background:rgba(90,138,154,0.12);border-color:var(--inf);color:var(--inf)}
+.toast.warn{background:rgba(196,154,42,0.12);border-color:var(--wrn);color:var(--wrn)}
+.toast.crit{background:rgba(196,90,42,0.12);border-color:var(--dng);color:var(--dng)}
+
+/* ITEM CARD */
+.ic{border-bottom:1px solid var(--bd)}
+.ic-h{display:flex;align-items:center;padding:5px 8px;gap:6px;font-size:11px}
+.ic-ico{width:20px;height:20px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ic-nm{flex:1}
+.ic-cond{width:36px;height:4px;border:1px solid var(--bd);position:relative}
+.ic-cf{position:absolute;left:0;top:0;height:100%}
+.ic-det{padding:2px 8px 8px 34px;font-size:10px;font-family:var(--font-m)}
+.kv{display:flex;border-bottom:1px solid var(--bd);padding:2px 0}
+.kv:last-child{border-bottom:none}
+.kv-k{width:70px;color:var(--ts);flex-shrink:0}
+.kv-v{color:var(--tx)}
+
+/* CAZIO */
+.cz-case{border:2px solid #888;background:#111;padding:2px;display:inline-block}
+.cz-bezel{background:#222;padding:3px}
+.cz-lcd{background:#081808;border:1px solid #1a3a1a;padding:8px 6px;font-family:var(--font-m);color:#44cc55;text-align:center;min-width:90px}
+.cz-brand{font-size:6px;opacity:.4;display:flex;justify-content:space-between;margin-bottom:3px}
+.cz-time{font-size:22px;font-weight:700;letter-spacing:2px;line-height:1}
+.cz-date{font-size:8px;opacity:.5;margin-top:3px;border-top:1px solid #1a3a1a;padding-top:2px}
+.cz-dots{display:flex;justify-content:center;gap:3px;margin-top:3px}
+.cz-dot{width:5px;height:2px}
+.cz-btns{display:flex;gap:1px;padding:2px;justify-content:center}
+.cz-btn{flex:1;height:14px;display:flex;align-items:center;justify-content:center;font-size:7px;font-family:var(--font-m);border:1px solid #555;background:#2a2a2a;color:#888;border-radius:3px}
+.cz-btn.on{background:#44cc55;color:#081808;border-color:#44cc55;font-weight:700}
+.cz-alm{display:flex;gap:1px;padding:2px;justify-content:center}
+.cz-alm .cz-btn{border-radius:3px}
+
+/* GAUGE */
+.gauge-wrap{position:relative;display:inline-block}
+
+/* DASH CONTROLS */
+.led{width:5px;height:5px;border-radius:0}
+.led.on{box-shadow:0 0 2px 1px currentColor}
+.led-btn{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hw-btn{border:1px solid #555;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:7px;font-family:var(--font-m);color:#888}
+.rocker{width:16px;height:10px;border:1px solid #555;background:#222;display:flex;flex-direction:column;overflow:hidden}
+.rk-top{flex:1;background:#2a2a2a;border-bottom:1px solid #444;display:flex;align-items:center;justify-content:center;font-size:3px;color:#555}
+.rk-bot{flex:1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:3px;color:#555}
+.knob{border:2px solid #555;background:#1a1a1a;border-radius:50%;position:relative}
+.knob-ptr{position:absolute;width:1px;height:4px;background:#999;top:2px;left:50%;transform:translateX(-50%)}
+.hz-btn{width:18px;height:14px;border:1px solid #555;background:#2a2a2a;display:flex;align-items:center;justify-content:center}
+.hz-tri{border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:5px solid #555}
+
+/* PANE SPLITTER */
+.splitter{display:flex;border:1px solid var(--bs);height:60px}
+.split-p{flex:1;background:var(--s1);padding:6px;font-size:9px;font-family:var(--font-m);color:var(--ts);overflow:hidden}
+.split-h{width:8px;background:var(--s3);display:flex;align-items:center;justify-content:center;border-left:1px solid var(--bs);border-right:1px solid var(--bs)}
+.split-d{display:flex;flex-direction:column;gap:3px}
+.split-dot{width:2px;height:2px;background:var(--ts)}
+
+/* RADIO */
+.radio{display:inline-flex;align-items:center;gap:4px;font-size:11px}
+.radio .r{width:12px;height:12px;border:1px solid var(--bs);border-radius:50%;background:var(--s1);display:flex;align-items:center;justify-content:center}
+.radio .r .dot{width:6px;height:6px;border-radius:50%;background:var(--ac)}
+
+/* BREADCRUMB */
+.bc{font-size:10px;font-family:var(--font-m);color:var(--ts)}
+.bc span{color:var(--ac)}
+
+/* PART ZONES */
+.pz{display:flex;gap:3px;flex-wrap:wrap}
+.pz-tag{padding:1px 5px;font-size:8px;font-family:var(--font-m);border:1px solid}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>ZeD-UI</h1>
+<div class="sub">Visual Component Catalog v2.0 — 94 components + 4 system expansions</div>
+<div class="lineage">System 6 structure · System 7.1 temperament · dark CRT lens · 1993</div>
+</div>
+
+<!-- ============ ATOMS ============ -->
+<div class="phase">
+<div class="phase-t">ATOMS — 26</div>
+
+<div class="sec">
+<div class="sec-t">Core atoms (coded + tested)</div>
+<div class="grid">
+
+<div class="c"><span class="c-id atom">A01</span><div class="c-name">Label</div>
+<div style="font-size:14px;color:var(--th);font-weight:600">Heading</div>
+<div style="font-size:12px;color:var(--tx)">Body text</div>
+<div style="font-size:10px;color:var(--ts)">Secondary text</div>
+</div>
+
+<div class="c"><span class="c-id atom">A02</span><div class="c-name">Divider</div>
+<div class="groove"></div>
+<div class="c-71">7.1: groove pair replaces single line</div>
+</div>
+
+<div class="c"><span class="c-id atom">A03</span><div class="c-name">Icon container</div>
+<div style="display:flex;gap:4px;align-items:flex-end">
+<div style="width:16px;height:16px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:8px">S</div>
+<div style="width:24px;height:24px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:10px">M</div>
+<div style="width:32px;height:32px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:13px">L</div>
+<div style="width:48px;height:48px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:16px">XL</div>
+</div></div>
+
+<div class="c"><span class="c-id atom">A04</span><div class="c-name">Fill bar</div>
+<div style="font-size:8px;color:var(--ts)" class="mn">Inventory 12.4 / 20</div>
+<div class="fill-bar"><div class="used" style="width:62%;background:var(--ac)"></div><div class="remain" style="left:62%;width:38%"></div></div>
+<div style="font-size:8px;color:var(--ts);margin-top:4px" class="mn">Fuel 25%</div>
+<div class="fill-bar"><div class="used" style="width:25%;background:var(--dng)"></div><div class="remain" style="left:25%;width:75%"></div></div>
+<div class="c-71">7.1: smooth remainder, not dither</div>
+</div>
+
+<div class="c"><span class="c-id atom">A05</span><div class="c-name">Checkbox</div>
+<div style="display:flex;gap:12px">
+<div class="chk"><div class="b on"></div> On</div>
+<div class="chk"><div class="b"></div> Off</div>
+</div>
+<div class="c-71">7.1: X drawn with lines, not character</div>
+</div>
+
+<div class="c"><span class="c-id atom">A06</span><div class="c-name">Badge</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap">
+<div class="badge" style="border-color:var(--pos);color:var(--pos)">OK</div>
+<div class="badge" style="border-color:var(--wrn);color:var(--wrn)">WARN</div>
+<div class="badge" style="border-color:var(--dng);color:var(--dng)">CRIT</div>
+<div class="badge" style="border-color:var(--inf);color:var(--inf)">INFO</div>
+<div class="badge" style="border-color:var(--ac);color:var(--ac)">ACTIVE</div>
+</div>
+<div style="display:flex;gap:4px;margin-top:4px"><div class="badge solid" style="background:var(--dng);color:var(--toa)">CRIT FILL</div></div>
+<div class="c-71">7.1: outlined default, solid for critical only</div>
+</div>
+
+<div class="c"><span class="c-id atom">A07</span><div class="c-name">Tooltip</div>
+<div style="border:1px solid var(--bs);background:var(--s2);padding:4px 8px;font-size:10px;position:relative;display:inline-block">Hammer — 2.1 kg<div style="position:absolute;bottom:-4px;left:12px;width:6px;height:6px;background:var(--s2);border-right:1px solid var(--bs);border-bottom:1px solid var(--bs);transform:rotate(45deg)"></div></div>
+</div>
+
+<div class="c"><span class="c-id atom">A08–A10</span><div class="c-name">Scrollbar parts</div>
+<div style="display:flex;gap:8px;align-items:flex-start">
+<div>
+<div style="font-size:7px;color:var(--ts);text-align:center;margin-bottom:2px" class="mn">Short</div>
+<div class="sb"><div class="arr"><svg viewBox="0 0 6 4" width="6" height="4"><path d="M0 4L3 0L6 4" fill="none" stroke="#888" stroke-width="1"></path></svg></div><div class="track"><div class="thumb" style="top:2px;height:40px"></div></div><div class="arr"><svg viewBox="0 0 6 4" width="6" height="4"><path d="M0 0L3 4L6 0" fill="none" stroke="#888" stroke-width="1"></path></svg></div></div>
+</div>
+<div>
+<div style="font-size:7px;color:var(--ts);text-align:center;margin-bottom:2px" class="mn">Long</div>
+<div class="sb"><div class="arr"><svg viewBox="0 0 6 4" width="6" height="4"><path d="M0 4L3 0L6 4" fill="none" stroke="#888" stroke-width="1"></path></svg></div><div class="track"><div class="thumb" style="top:4px;height:12px"></div></div><div class="arr"><svg viewBox="0 0 6 4" width="6" height="4"><path d="M0 0L3 4L6 0" fill="none" stroke="#888" stroke-width="1"></path></svg></div></div>
+</div>
+</div>
+<div class="c-71">7.1: proportional thumb, grip lines, geometry arrows, hatched track</div>
+</div>
+
+<div class="c"><span class="c-id atom">A11</span><div class="c-name">Focus indicator</div>
+<div style="display:inline-block;padding:4px 12px;border:2px solid var(--ac);font-size:11px">Focused element</div>
+</div>
+
+</div></div>
+
+<div class="sec">
+<div class="sec-t">New atoms</div>
+<div class="grid">
+
+<div class="c"><span class="c-id atom">A12</span><div class="c-name">Notification badge</div>
+<div style="position:relative;display:inline-block"><div style="width:24px;height:24px;border:1px solid var(--bd);background:var(--s2)"></div><div style="position:absolute;top:-4px;right:-4px;background:var(--dng);color:var(--toa);font-size:7px;font-family:var(--font-m);padding:1px 3px;font-weight:700">3</div></div>
+</div>
+
+<div class="c"><span class="c-id atom">A13</span><div class="c-name">Urgency indicator</div>
+<div style="width:12px;height:12px;background:var(--dng);animation:pulse 1.5s ease-in-out infinite"></div>
+</div>
+
+<div class="c"><span class="c-id atom">A14</span><div class="c-name">Part status dot</div>
+<div style="display:flex;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--pos)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--wrn)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--dng)"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--ts)"></div></div>
+</div>
+
+<div class="c"><span class="c-id atom">A15</span><div class="c-name">Indiglo button</div>
+<div style="width:6px;height:16px;background:#333;border:1px solid #555;border-radius:0"></div>
+</div>
+
+<div class="c"><span class="c-id atom">A16</span><div class="c-name">Image frame</div>
+<div style="width:48px;height:36px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--ts)" class="mn">IMG</div>
+</div>
+
+<div class="c"><span class="c-id atom">A17</span><div class="c-name">Reveal trait</div>
+<div style="display:flex;gap:4px"><div class="badge" style="border-color:var(--ts);color:var(--ts)">???</div><div class="badge" style="border-color:var(--ac);color:var(--ac)">Handy</div></div>
+</div>
+
+<div class="c"><span class="c-id atom">A18</span><div class="c-name">Map marker</div>
+<div style="display:flex;gap:4px"><div style="width:8px;height:12px;background:var(--dng);clip-path:polygon(50% 100%,0 30%,0 0,100% 0,100% 30%)"></div><div style="width:8px;height:12px;background:var(--inf);clip-path:polygon(50% 100%,0 30%,0 0,100% 0,100% 30%)"></div><div style="width:8px;height:12px;background:var(--pos);clip-path:polygon(50% 100%,0 30%,0 0,100% 0,100% 30%)"></div></div>
+</div>
+
+<div class="c"><span class="c-id atom">A19</span><div class="c-name">Cursor set</div>
+<div class="c-note">8+ states: arrow, hand, grab, text, resize×4, crosshair, wait. System 6 pixel art. Texture assets.</div>
+</div>
+
+<div class="c"><span class="c-id atom">A20</span><div class="c-name">Gamepad hints</div>
+<div class="c-note">Xbox + PlayStation glyph sets. 19 texture assets.</div>
+</div>
+
+<div class="c"><span class="c-id atom">A21</span><div class="c-name">Disclosure triangle</div>
+<div style="font-size:11px;line-height:2">
+<span class="disc open"></span> <span style="color:var(--th)">Open section</span><br>
+<span class="disc"></span> Closed section
+</div>
+<div class="c-71">7.1: replaces text chevrons everywhere</div>
+</div>
+
+<div class="c"><span class="c-id atom">A22–A23</span><div class="c-name">LED + Rocker</div>
+<div style="display:flex;gap:8px;align-items:center">
+<div class="led-btn"><div class="led on" style="background:var(--pos);color:var(--pos);width:5px;height:5px"></div><div class="hw-btn" style="width:20px;height:14px">AC</div></div>
+<div class="led-btn"><div class="led" style="background:#333;border:1px solid #444;width:5px;height:5px"></div><div class="hw-btn" style="width:20px;height:14px">DF</div></div>
+<div class="rocker"><div class="rk-top">I</div><div class="rk-bot">O</div></div>
+</div>
+<div class="c-note">Hardware UI — 0px corners</div>
+</div>
+
+<div class="c"><span class="c-id atom">A24–A26</span><div class="c-name">Needle + Face + Red zone</div>
+<svg width="64" height="64" viewBox="0 0 64 64">
+<circle cx="32" cy="32" r="30" fill="#0f0f0f" stroke="#555" stroke-width="1.5"></circle>
+<circle cx="32" cy="32" r="26" fill="none" stroke="#333" stroke-width="0.5"></circle>
+<line x1="32" y1="8" x2="32" y2="4" stroke="#999" stroke-width="1" transform="rotate(-60,32,32)"></line>
+<line x1="32" y1="8" x2="32" y2="4" stroke="#999" stroke-width="1" transform="rotate(-30,32,32)"></line>
+<line x1="32" y1="8" x2="32" y2="4" stroke="#999" stroke-width="1" transform="rotate(0,32,32)"></line>
+<line x1="32" y1="8" x2="32" y2="4" stroke="#999" stroke-width="1" transform="rotate(30,32,32)"></line>
+<line x1="32" y1="8" x2="32" y2="4" stroke="#999" stroke-width="1" transform="rotate(60,32,32)"></line>
+<path d="M 32 32 L 46 18 A 20 20 0 0 1 52 32 Z" fill="rgba(196,90,42,0.15)" stroke="rgba(196,90,42,0.3)" stroke-width="0.5"></path>
+<line x1="32" y1="34" x2="32" y2="10" stroke="#C45A2A" stroke-width="1.5" stroke-linecap="round" transform="rotate(-25,32,32)"></line>
+<circle cx="32" cy="32" r="3" fill="#444" stroke="#666" stroke-width="0.5"></circle>
+</svg>
+<div class="c-note">Needle, dial face, red zone. SVG here, drawLine in PZ. Faces are texture assets.</div>
+</div>
+
+</div></div></div>
+
+<!-- ============ MOLECULES ============ -->
+<div class="phase">
+<div class="phase-t">MOLECULES — 42</div>
+
+<div class="sec">
+<div class="sec-t">Core molecules (coded + tested)</div>
+<div class="grid">
+
+<div class="c c-wide"><span class="c-id mol">M01</span><div class="c-name">Buttons</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+<div class="btn">Cancel</div>
+<div class="btn primary">OK</div>
+<div class="btn danger">Delete</div>
+<div class="btn disabled">Disabled</div>
+</div>
+<div class="c-71">7.1: 3px radius, double border on primary</div>
+</div>
+
+<div class="c c-wide"><span class="c-id mol">M02</span><div class="c-name">List rows</div>
+<div style="border:1px solid var(--bs)">
+<div class="list-row"><div class="ico">H</div><div class="nm">Hammer</div><div class="mt">2.1 kg</div></div>
+<div class="list-row sel"><div class="ico">S</div><div class="nm">Screwdriver</div><div class="mt">0.3 kg</div></div>
+<div class="list-row"><div class="ico">B</div><div class="nm">Baseball Bat</div><div class="mt">1.5 kg</div></div>
+</div></div>
+
+<div class="c"><span class="c-id mol">M03</span><div class="c-name">Tabs</div>
+<div class="tab-s"><div class="tab active">Skills</div><div class="tab">Health</div><div class="tab">Info</div></div>
+<div class="tab-body">Tab content area</div>
+</div>
+
+<div class="c"><span class="c-id mol">M04</span><div class="c-name">Text input</div>
+<input class="inp" value="Montréal" readonly="readonly">
+<div class="c-71">7.1: heavy bottom border, amber on focus</div>
+</div>
+
+<div class="c"><span class="c-id mol">M05</span><div class="c-name">Search field</div>
+<div class="search-w"><span class="search-i">Q</span><input class="inp" placeholder="Search items..." readonly="readonly" style="padding-left:22px"></div>
+</div>
+
+<div class="c"><span class="c-id mol">M06</span><div class="c-name">Stat chips</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap">
+<div class="chip"><span class="chip-k">Weight</span><span class="chip-v">12.4 kg</span></div>
+<div class="chip"><span class="chip-k">Cap</span><span class="chip-v" style="color:var(--wrn)">18/20</span></div>
+</div></div>
+
+<div class="c c-wide"><span class="c-id mol">M07</span><div class="c-name">Title bar</div>
+<div class="win-tb"><div class="win-cb"></div><span class="win-tt">Inventory</span><div style="flex:1"></div><span style="font-size:9px;color:var(--ts);font-family:var(--font-m);position:relative;z-index:1;background:var(--s2);padding:0 6px">12.4 kg</span></div>
+<div class="c-71">7.1: wider title padding, WindowShade on double-click</div>
+</div>
+
+<div class="c"><span class="c-id mol">M08</span><div class="c-name">Scrollbar</div>
+<div class="c-note">See A08–A10 assembly above</div>
+</div>
+
+<div class="c"><span class="c-id mol">M09</span><div class="c-name">Dropdown</div>
+<div class="dd"><div class="dd-item sel" style="color:var(--ac)">Name A-Z</div><div class="dd-item">Weight</div><div class="dd-item">Condition</div></div>
+</div>
+
+<div class="c"><span class="c-id mol">M10</span><div class="c-name">Section header</div>
+<div style="font-size:11px;line-height:2.2">
+<span class="disc open"></span><span style="color:var(--th);font-family:var(--font-m);font-weight:700">Weapons</span> <span class="mn" style="font-size:9px;color:var(--ts)">3</span><br>
+<span class="disc"></span><span style="font-family:var(--font-m);font-weight:700">Clothing</span> <span class="mn" style="font-size:9px;color:var(--ts)">1</span>
+</div>
+<div class="c-71">7.1: disclosure triangle replaces chevron</div>
+</div>
+
+</div></div>
+
+<div class="sec">
+<div class="sec-t">New molecules — UI controls</div>
+<div class="grid">
+
+<div class="c"><span class="c-id mol">M11</span><div class="c-name">Sort control</div>
+<div style="display:flex;gap:2px"><div class="filt on">Name</div><div class="filt">Wt</div><div class="filt">Cond</div></div>
+</div>
+
+<div class="c"><span class="c-id mol">M12</span><div class="c-name">Filter buttons</div>
+<div style="display:flex;gap:3px;flex-wrap:wrap"><div class="filt on">All</div><div class="filt">Weapons</div><div class="filt">Food</div><div class="filt">Tools</div></div>
+</div>
+
+<div class="c"><span class="c-id mol">M13</span><div class="c-name">View toggle</div>
+<div style="display:flex;gap:0"><div class="filt on" style="border-radius:3px 0 0 3px">List</div><div class="filt" style="border-radius:0 3px 3px 0">Grid</div></div>
+</div>
+
+<div class="c"><span class="c-id mol">M14</span><div class="c-name">Breadcrumb</div>
+<div class="bc"><span>Container</span> › <span>Shelf</span> › <span style="color:var(--tx)">Drawer</span></div>
+</div>
+
+<div class="c c-wide"><span class="c-id mol">M15</span><div class="c-name">Pane splitter</div>
+<div class="splitter"><div class="split-p">Left pane</div><div class="split-h"><div class="split-d"><div class="split-dot"></div><div class="split-dot"></div><div class="split-dot"></div></div></div><div class="split-p">Right pane</div></div>
+</div>
+
+<div class="c c-wide"><span class="c-id mol">M16</span><div class="c-name">Slider</div>
+<div class="sl-wrap"><div class="sl-track"><div class="sl-fill" style="width:40%"></div><div class="sl-thumb" style="left:40%"></div></div><div class="sl-val">1.0x</div></div>
+</div>
+
+<div class="c"><span class="c-id mol">M17</span><div class="c-name">Toggle switch</div>
+<div style="display:flex;gap:12px"><div class="tog"><div class="tog-track on"><div class="tog-thumb"></div></div> On</div><div class="tog"><div class="tog-track"><div class="tog-thumb"></div></div> Off</div></div>
+</div>
+
+</div></div>
+
+<div class="sec">
+<div class="sec-t">New molecules — game-specific</div>
+<div class="grid">
+
+<div class="c c-wide"><span class="c-id mol">M18</span><div class="c-name">Fluid gauge (horiz)</div>
+<div style="font-size:9px;display:flex;align-items:center;gap:4px" class="mn"><span style="color:var(--inf)">Water</span><div class="fill-bar" style="flex:1"><div class="used" style="width:75%;background:var(--inf)"></div><div class="remain" style="left:75%;width:25%"></div></div><span style="color:var(--ts)">750ml</span></div>
+</div>
+
+<div class="c"><span class="c-id mol">M19</span><div class="c-name">Material slot</div>
+<div style="border:1px solid var(--bd);padding:4px;display:flex;gap:4px;align-items:center"><div style="width:24px;height:24px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:10px">Fe</div><div style="font-size:9px" class="mn"><div style="color:var(--tx)">Iron Bar</div><div style="color:var(--ts)">1200°</div></div></div>
+</div>
+
+<div class="c"><span class="c-id mol">M27</span><div class="c-name">Moodle icon</div>
+<div style="display:flex;gap:4px">
+<div class="moodle" style="border-color:var(--pos);background:var(--s2)"><span class="m-i" style="color:var(--pos);font-size:14px">H</span><div class="m-b" style="background:#1a2a1a"><div class="m-f" style="width:80%;background:var(--pos)"></div></div></div>
+<div class="moodle" style="border-color:var(--wrn);background:rgba(196,154,42,0.06);border-width:2px"><span class="m-i" style="color:var(--wrn);font-size:15px">Z</span><div class="m-b" style="background:#1a1a0a"><div class="m-f" style="width:60%;background:var(--wrn)"></div></div></div>
+<div class="moodle" style="border-color:var(--dng);background:rgba(196,90,42,0.1);border-width:2px;animation:pulse 1.5s ease-in-out infinite"><span class="m-i" style="color:var(--dng);font-size:16px">P</span><div class="m-b" style="background:#1a0a0a"><div class="m-f" style="width:90%;background:var(--dng)"></div></div></div>
+</div></div>
+
+<div class="c c-wide"><span class="c-id mol">M29</span><div class="c-name">Compound feeling</div>
+<div style="border:1px solid var(--bs);background:var(--s2);padding:6px 8px;font-size:11px;font-style:italic">"Tired, hurting, and cold. Everything takes twice the effort."</div>
+</div>
+
+<div class="c"><span class="c-id mol">M30</span><div class="c-name">Hands compact</div>
+<div style="display:flex;gap:4px">
+<div style="border:1px solid var(--bd);padding:3px;display:flex;gap:3px;align-items:center"><div style="width:16px;height:16px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:8px">H</div><div style="font-size:8px" class="mn"><div style="color:var(--ts)">PRI</div></div></div>
+<div style="border:1px solid var(--bd);padding:3px;display:flex;gap:3px;align-items:center"><div style="width:16px;height:16px;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:8px">B</div><div style="font-size:8px" class="mn"><div style="color:var(--ts)">SEC</div></div></div>
+</div></div>
+
+<div class="c"><span class="c-id mol">M31</span><div class="c-name">Transport buttons</div>
+<div style="display:flex;gap:1px">
+<div class="cz-btn" style="width:22px;height:16px;font-size:8px">||</div>
+<div class="cz-btn on" style="width:22px;height:16px;font-size:8px">▶</div>
+<div class="cz-btn" style="width:22px;height:16px;font-size:7px">▶▶</div>
+<div class="cz-btn" style="width:22px;height:16px;font-size:6px">▶▶▶</div>
+</div>
+<div class="c-71">7.1: 3px radius on software buttons</div>
+</div>
+
+<div class="c"><span class="c-id mol">M33</span><div class="c-name">Relationship meter</div>
+<div style="display:flex;gap:2px;font-size:8px" class="mn">
+<div style="flex:1;padding:2px;text-align:center;background:var(--dng);color:var(--toa)">Wary</div>
+<div style="flex:1;padding:2px;text-align:center;background:var(--wrn);color:var(--toa)">Tolerant</div>
+<div style="flex:1;padding:2px;text-align:center;border:1px solid var(--pos);color:var(--pos)">Friendly</div>
+<div style="flex:1;padding:2px;text-align:center;border:1px solid var(--ts);color:var(--ts)">Bonded</div>
+</div></div>
+
+</div></div>
+
+<div class="sec">
+<div class="sec-t">New molecules — dashboard hardware (0px corners)</div>
+<div class="grid">
+
+<div class="c"><span class="c-id mol">M38</span><div class="c-name">Rotary dial</div>
+<div class="knob" style="width:24px;height:24px"><div class="knob-ptr"></div></div>
+<div class="c-note">Texture rotated by code. 0px — hardware.</div>
+</div>
+
+<div class="c"><span class="c-id mol">M39</span><div class="c-name">Slide lever</div>
+<div style="width:8px;height:36px;border:1px solid #444;background:#1a1a1a;position:relative"><div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#333;transform:translateX(-50%)"></div><div style="position:absolute;left:-2px;width:12px;height:5px;background:#444;border:1px solid #555;top:8px"></div></div>
+</div>
+
+<div class="c"><span class="c-id mol">M40</span><div class="c-name">Headlight stalk</div>
+<div class="c-note">Multi-position switch. Off/park/low/high. Hardware texture.</div>
+</div>
+
+<div class="c"><span class="c-id mol">M41</span><div class="c-name">Needle gauge</div>
+<svg width="80" height="80" viewBox="0 0 80 80">
+<circle cx="40" cy="40" r="38" fill="#0f0f0f" stroke="#555" stroke-width="1.5"></circle>
+<circle cx="40" cy="40" r="33" fill="none" stroke="#333" stroke-width="0.5"></circle>
+<g transform="translate(40,40)">
+<line x1="0" y1="-28" x2="0" y2="-33" stroke="#999" stroke-width="1" transform="rotate(-90)"></line>
+<line x1="0" y1="-28" x2="0" y2="-33" stroke="#999" stroke-width="1" transform="rotate(-60)"></line>
+<line x1="0" y1="-28" x2="0" y2="-33" stroke="#999" stroke-width="1" transform="rotate(-30)"></line>
+<line x1="0" y1="-28" x2="0" y2="-33" stroke="#999" stroke-width="1" transform="rotate(0)"></line>
+<line x1="0" y1="-28" x2="0" y2="-33" stroke="#999" stroke-width="1" transform="rotate(30)"></line>
+<line x1="0" y1="-28" x2="0" y2="-33" stroke="#999" stroke-width="1" transform="rotate(60)"></line>
+<line x1="0" y1="-28" x2="0" y2="-33" stroke="#999" stroke-width="1" transform="rotate(90)"></line>
+</g>
+<text x="18" y="68" fill="#888" font-family="Courier New" font-size="6" text-anchor="middle">0</text>
+<text x="40" y="18" fill="#888" font-family="Courier New" font-size="6" text-anchor="middle">60</text>
+<text x="62" y="68" fill="#888" font-family="Courier New" font-size="6" text-anchor="middle">120</text>
+<g transform="translate(40,40) rotate(-30)"><line x1="0" y1="4" x2="0" y2="-24" stroke="#C45A2A" stroke-width="1.5" stroke-linecap="round"></line></g>
+<circle cx="40" cy="40" r="3" fill="#444" stroke="#666" stroke-width="0.5"></circle>
+<text x="40" y="52" fill="#666" font-family="Courier New" font-size="6" text-anchor="middle">MPH</text>
+</svg>
+</div>
+
+<div class="c c-wide"><span class="c-id mol">M42</span><div class="c-name">Tuner dial</div>
+<svg width="200" height="36" viewBox="0 0 200 36">
+<rect x="0" y="0" width="200" height="36" rx="2" fill="#0a0a0a" stroke="#444" stroke-width="1"></rect>
+<text x="14" y="12" fill="#888" font-family="Courier New" font-size="7">88</text>
+<text x="52" y="12" fill="#888" font-family="Courier New" font-size="7">92</text>
+<text x="90" y="12" fill="#888" font-family="Courier New" font-size="7">96</text>
+<text x="125" y="12" fill="#888" font-family="Courier New" font-size="7">100</text>
+<text x="160" y="12" fill="#888" font-family="Courier New" font-size="7">104</text>
+<line x1="20" y1="16" x2="20" y2="26" stroke="#999" stroke-width="1"></line>
+<line x1="60" y1="16" x2="60" y2="26" stroke="#999" stroke-width="1"></line>
+<line x1="100" y1="16" x2="100" y2="26" stroke="#999" stroke-width="1"></line>
+<line x1="140" y1="16" x2="140" y2="26" stroke="#999" stroke-width="1"></line>
+<line x1="180" y1="16" x2="180" y2="26" stroke="#999" stroke-width="1"></line>
+<line x1="40" y1="18" x2="40" y2="24" stroke="#555" stroke-width="0.5"></line>
+<line x1="80" y1="18" x2="80" y2="24" stroke="#555" stroke-width="0.5"></line>
+<line x1="120" y1="18" x2="120" y2="24" stroke="#555" stroke-width="0.5"></line>
+<line x1="160" y1="18" x2="160" y2="24" stroke="#555" stroke-width="0.5"></line>
+<line x1="87" y1="14" x2="87" y2="28" stroke="#C45A2A" stroke-width="2"></line>
+<circle cx="87" cy="29" r="2" fill="#C45A2A"></circle>
+<text x="87" y="35" fill="#C45A2A" font-family="Courier New" font-size="7" text-anchor="middle" font-weight="700">96.7</text>
+</svg>
+</div>
+
+</div></div></div>
+
+<!-- ============ ORGANISMS ============ -->
+<div class="phase">
+<div class="phase-t">ORGANISMS — 31</div>
+
+<div class="sec">
+<div class="sec-t">Window frame + WindowShade</div>
+<div class="grid">
+<div class="c c-full"><span class="c-id org">O01</span><div class="c-name">Window frame</div>
+<div style="border:1px solid var(--bs);background:var(--s1);max-width:320px">
+<div class="win-tb"><div class="win-cb"></div><span class="win-tt">Inventory</span><div style="flex:1"></div><span style="font-size:9px;color:var(--ts);font-family:var(--font-m);position:relative;z-index:1;background:var(--s2);padding:0 6px">12.4 / 20 kg</span></div>
+<div style="padding:8px">
+<div style="font-size:11px;line-height:2">
+<span class="disc open"></span><span style="color:var(--th);font-family:var(--font-m);font-weight:700">Weapons</span> <span class="mn" style="font-size:9px;color:var(--ts)">3</span>
+</div>
+<div class="ic"><div class="ic-h"><div class="ic-ico">H</div><div class="ic-nm">Hammer</div><div style="display:flex;gap:4px;align-items:center"><span style="font-size:9px;color:var(--ts)" class="mn">2.1kg</span><div class="ic-cond"><div class="ic-cf" style="width:85%;background:var(--pos)"></div></div></div></div></div>
+<div class="ic"><div class="ic-h"><div class="ic-ico">B</div><div class="ic-nm">Baseball Bat</div><div style="display:flex;gap:4px;align-items:center"><span style="font-size:9px;color:var(--ts)" class="mn">1.5kg</span><div class="ic-cond"><div class="ic-cf" style="width:45%;background:var(--wrn)"></div></div></div></div>
+<div class="ic-det">
+<div class="kv"><span class="kv-k">Damage</span><span class="kv-v">12-18</span></div>
+<div class="kv"><span class="kv-k">Speed</span><span class="kv-v">Slow</span></div>
+<div class="kv"><span class="kv-k">Condition</span><span class="kv-v" style="color:var(--wrn)">45%</span></div>
+</div></div>
+<div class="groove" style="margin:6px 0"></div>
+<div style="font-size:11px;line-height:2"><span class="disc"></span><span style="font-family:var(--font-m);font-weight:700">Clothing</span> <span class="mn" style="font-size:9px;color:var(--ts)">1</span></div>
+</div>
+</div>
+<div class="c-71">7.1: disclosure triangles, groove dividers, proportional scrollbar, WindowShade, breathing room</div>
+</div>
+</div></div>
+
+<div class="sec">
+<div class="sec-t">Context menu + Modal</div>
+<div class="grid">
+<div class="c"><span class="c-id org">O06</span><div class="c-name">Context menu</div>
+<div class="ctx">
+<div class="ctx-i">Equip</div>
+<div class="ctx-i">Drop</div>
+<div class="groove" style="margin:2px 6px"></div>
+<div class="ctx-i">Inspect</div>
+<div class="ctx-i">Favorite</div>
+<div class="groove" style="margin:2px 6px"></div>
+<div class="ctx-i dng">Destroy</div>
+</div>
+<div class="c-71">7.1: groove dividers between groups</div>
+</div>
+
+<div class="c"><span class="c-id org">O05</span><div class="c-name">Modal dialog</div>
+<div style="border:1px solid var(--bs);background:var(--s1);max-width:220px">
+<div class="win-tb"><div class="win-cb"></div><span class="win-tt">Confirm</span></div>
+<div style="padding:10px"><div style="font-size:11px;margin-bottom:10px">Drop the Baseball Bat?</div><div style="display:flex;gap:6px;justify-content:flex-end"><div class="btn" style="font-size:10px;padding:3px 10px">Cancel</div><div class="btn primary" style="font-size:10px;padding:3px 10px">Drop</div></div></div>
+</div>
+<div class="c-71">7.1: primary button double border + 3px radius</div>
+</div>
+</div></div>
+
+<div class="sec">
+<div class="sec-t">Toasts + Progress</div>
+<div class="grid">
+<div class="c"><span class="c-id org">O12</span><div class="c-name">Toast alerts</div>
+<div style="display:flex;flex-direction:column;gap:4px">
+<div class="toast info"><span class="t-t">INFO</span> Item equipped</div>
+<div class="toast warn"><span class="t-t">WARN</span> Inventory nearly full</div>
+<div class="toast crit"><span class="t-t">CRIT</span> Bleeding!</div>
+</div></div>
+
+<div class="c c-wide"><span class="c-id org">O14</span><div class="c-name">Progress tracker</div>
+<div class="prog"><div class="prog-s done">Gather</div><div class="prog-s done">Prepare</div><div class="prog-s cur">Smelt</div><div class="prog-s pen">Cool</div><div class="prog-s pen">Finish</div></div>
+</div>
+</div></div>
+
+<div class="sec">
+<div class="sec-t">CaZio watch</div>
+<div class="grid">
+<div class="c"><span class="c-id org">O23</span><div class="c-name">CaZio D-Black</div>
+<div class="cz-case"><div class="cz-bezel"><div class="cz-lcd"><div class="cz-brand"><span>TIME</span><span>CaZio</span></div><div class="cz-time">2:47</div><div class="cz-date">TUE MAR 17</div><div class="cz-dots"><div class="cz-dot" style="background:#44cc55"></div><div class="cz-dot" style="background:#1a3a1a"></div><div class="cz-dot" style="background:#1a3a1a"></div></div></div>
+<div class="cz-alm"><div class="cz-btn" style="font-size:6px">ALM SET</div><div class="cz-btn" style="font-size:6px;color:#44cc55;border-color:#44cc55">ALM ON</div></div>
+<div class="cz-btns"><div class="cz-btn">||</div><div class="cz-btn on">▶</div><div class="cz-btn">▶▶</div><div class="cz-btn">▶▶▶</div></div></div></div>
+</div>
+
+<div class="c"><span class="c-id org">O23</span><div class="c-name">CaZio D-Red</div>
+<div class="cz-case"><div class="cz-bezel"><div class="cz-lcd" style="background:#180808;border-color:#3a1a1a;color:#cc5533"><div class="cz-brand"><span>TIME</span><span>CaZio</span></div><div class="cz-time">2:47</div><div class="cz-date">TUE MAR 17</div><div class="cz-dots"><div class="cz-dot" style="background:#cc5533"></div><div class="cz-dot" style="background:#cc5533"></div><div class="cz-dot" style="background:#3a1a1a"></div></div></div>
+<div class="cz-btns"><div class="cz-btn">||</div><div class="cz-btn">▶</div><div class="cz-btn on" style="background:#cc5533;color:#180808;border-color:#cc5533">▶▶</div><div class="cz-btn">▶▶▶</div></div></div></div>
+</div>
+
+<div class="c"><span class="c-id org">O23</span><div class="c-name">CaZio Dress</div>
+<div class="cz-case" style="border-color:#aaa"><div class="cz-bezel" style="background:#333"><div class="cz-lcd" style="background:#0a0818;border-color:#2a1a3a;color:#9966cc"><div class="cz-brand"><span>TIME</span><span>CaZio</span></div><div class="cz-time">2:47</div><div class="cz-date">TUE MAR 17</div><div class="cz-dots"><div class="cz-dot" style="background:#9966cc"></div><div class="cz-dot" style="background:#2a1a3a"></div><div class="cz-dot" style="background:#2a1a3a"></div></div></div>
+<div class="cz-btns"><div class="cz-btn">||</div><div class="cz-btn on" style="background:#9966cc;color:#0a0818;border-color:#9966cc">▶</div><div class="cz-btn">▶▶</div><div class="cz-btn">▶▶▶</div></div></div></div>
+</div>
+
+</div></div>
+
+<div class="sec">
+<div class="sec-t">Dashboard controls (hardware UI — 0px)</div>
+<div class="grid">
+<div class="c c-wide"><span class="c-id org">O22</span><div class="c-name">Vehicle controls cluster</div>
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+<div class="led-btn"><div class="led on" style="background:var(--pos);color:var(--pos);width:5px;height:5px"></div><div class="hw-btn" style="width:22px;height:14px">AC</div></div>
+<div class="led-btn"><div class="led" style="background:#333;border:1px solid #444;width:5px;height:5px"></div><div class="hw-btn" style="width:22px;height:14px">DEF</div></div>
+<div class="led-btn"><div class="led on" style="background:var(--wrn);color:var(--wrn);width:5px;height:5px"></div><div class="hw-btn" style="width:22px;height:14px">REC</div></div>
+<div class="rocker"><div class="rk-top">I</div><div class="rk-bot">O</div></div>
+<div class="knob" style="width:20px;height:20px"><div class="knob-ptr"></div></div>
+<div class="hz-btn"><div class="hz-tri"></div></div>
+<div style="width:8px;height:30px;border:1px solid #444;background:#1a1a1a;position:relative"><div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#333;transform:translateX(-50%)"></div><div style="position:absolute;left:-2px;width:12px;height:4px;background:#444;border:1px solid #555;top:6px"></div></div>
+</div>
+<div class="c-note">LED buttons, rocker, rotary knob, hazard, slide lever. All 0px — car parts, not software.</div>
+</div>
+</div></div>
+
+<div class="sec">
+<div class="sec-t">Remaining organisms (designed, not rendered)</div>
+<div class="grid">
+<div class="c"><span class="c-id org">O02</span> Scrollable list</div>
+<div class="c"><span class="c-id org">O03</span> Tab panel</div>
+<div class="c"><span class="c-id org">O04</span> Item grid</div>
+<div class="c"><span class="c-id org">O07</span> Filter bar</div>
+<div class="c"><span class="c-id org">O08</span> Favorites</div>
+<div class="c"><span class="c-id org">O09</span> Recently used</div>
+<div class="c"><span class="c-id org">O11</span> Part card</div>
+<div class="c"><span class="c-id org">O13</span> Comparison</div>
+<div class="c"><span class="c-id org">O15–18</span> Fluids + Materials</div>
+<div class="c"><span class="c-id org">O19–20</span> Forage + Fishing</div>
+<div class="c"><span class="c-id org">O21</span> Car stereo</div>
+<div class="c"><span class="c-id org">O24</span> Classic watch ×4</div>
+<div class="c"><span class="c-id org">O25</span> Health summary</div>
+<div class="c"><span class="c-id org">O26</span> Hotbar</div>
+<div class="c"><span class="c-id org">O27</span> Hands expanded</div>
+<div class="c"><span class="c-id org">O28–31</span> Settings + Docs</div>
+<div class="c"><span class="c-id org">O32–33</span> Farming + Zones</div>
+</div></div>
+
+</div>
+
+<!-- ============ SYSTEM EXPANSIONS ============ -->
+<div class="phase">
+<div class="phase-t">SYSTEM EXPANSIONS — 4</div>
+<div class="grid">
+<div class="c"><span class="c-id sys">S01</span><div class="c-name">Color blind palettes</div><div class="c-note">Deuteranopia, protanopia, tritanopia token variants</div></div>
+<div class="c"><span class="c-id sys">S02</span><div class="c-name">Reduced motion</div><div class="c-note">Toggle replacing pulse with static indicators</div></div>
+<div class="c"><span class="c-id sys">S03</span><div class="c-name">Tooltip persistence</div><div class="c-note">Hover delay + sticky mode for motor accessibility</div></div>
+<div class="c"><span class="c-id sys">S04</span><div class="c-name">Resolution scaling</div><div class="c-note">ZeD.scale = screenHeight/1080. ZeD.px(n). ZeD.tex(name). Edge-anchored positioning.</div></div>
+</div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<div style="text-align:center;padding:20px 0;border-top:1px solid var(--bs);margin-top:20px">
+<div style="font-size:11px;font-family:var(--font-m);color:var(--th)">94 components · 4 system expansions · 118 texture assets</div>
+<div style="font-size:9px;font-family:var(--font-m);color:var(--ts);margin-top:4px">System 6 structure · System 7.1 temperament · dark CRT lens · 1993</div>
+<div style="font-size:9px;font-family:var(--font-m);color:var(--ts);margin-top:2px">Catalog v2.0 — March 17, 2026</div>
+</div>
+
+
+</body></html>

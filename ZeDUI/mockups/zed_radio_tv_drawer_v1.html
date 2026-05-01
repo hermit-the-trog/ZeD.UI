@@ -1,0 +1,1919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeD-UI World Window — Lua Render Preview</title>
+    <style>
+        /* ====================================================================
+           LUA-FLAT RENDERING MODE
+           Only what PZ's drawRect + drawRectBorder + drawText can produce:
+           - Solid colors (no gradients, no transparency tricks)
+           - 1px borders (top/right/bottom/left can each be a different color)
+           - Square corners (no border-radius)
+           - No box-shadow, no text-shadow, no glow, no blur
+           - Textures only via small tileable sprites (woodgrain shown as approx)
+           ==================================================================== */
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Fira Sans Condensed', sans-serif;
+            background: #0a0a0a;
+            color: #000;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .label-banner {
+            background: #ffaa00;
+            color: #000;
+            padding: 6px 12px;
+            font-family: 'Fira Mono', monospace;
+            font-size:9px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            border: 1px solid #000;
+            display: inline-block;
+            letter-spacing: 1px;
+        }
+
+        /* ===== WORLD WINDOW (System 7 chrome — already Lua-friendly) ===== */
+        .world-window {
+            width: 960px;
+            background: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #000000;
+            border-bottom: 1px solid #000000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Title bar — striped pattern faked via repeating-linear-gradient.
+           In Lua this is a 1x2 px texture tiled across. */
+        .title-bar {
+            background-color: #c0c0c0;
+            background-image: repeating-linear-gradient(to bottom, #000 0 1px, #c0c0c0 1px 2px);
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #000;
+            padding: 0 4px;
+        }
+
+        .close-box, .zoom-box {
+            width: 11px; height: 11px;
+            background: #c0c0c0;
+            border: 1px solid #000;
+            cursor: pointer;
+            position: relative; z-index: 2;
+        }
+
+        .zoom-box::before {
+            content: '';
+            position: absolute;
+            top: 1px; left: 1px; right: 3px; bottom: 3px;
+            border: 1px solid #000;
+        }
+
+        .title-text {
+            background: #c0c0c0;
+            padding: 0 8px;
+            font-size:11px;
+            font-weight: bold;
+            position: relative; z-index: 2;
+            letter-spacing: 0.5px;
+        }
+
+        .sub-header {
+            background: #c0c0c0;
+            padding: 3px 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #808080;
+        }
+
+        .sub-title { font-weight: bold; font-size:11px; }
+        .item-count { font-family: 'Fira Mono', monospace; font-size:9px; color: #444; }
+
+        .action-strip {
+            background: #c0c0c0;
+            padding: 3px 4px;
+            display: flex;
+            gap: 3px;
+            border-bottom: 1px solid #000;
+            align-items: center;
+        }
+
+        /* System 7 outset button — pure 1px borders, fully Lua-renderable */
+        .btn-outset {
+            background: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #000000;
+            border-bottom: 1px solid #000000;
+            cursor: pointer;
+        }
+
+        .btn-outset:active {
+            border-top: 1px solid #000000;
+            border-left: 1px solid #000000;
+            border-right: 1px solid #ffffff;
+            border-bottom: 1px solid #ffffff;
+        }
+
+        .action-btn {
+            width: 18px; height: 16px;
+            background: #c0c0c0;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size:9px;
+            font-weight: bold;
+        }
+
+        .action-spacer { flex: 1; }
+        .browse-info { padding: 0 6px; font-size:9px; font-weight: bold; font-family: 'Fira Mono', monospace; }
+        .location-tag { background: #ffffaa; padding: 1px 6px; border: 1px solid #000; font-size:9px; font-weight: bold; }
+
+        .body-row { display: flex; }
+
+        /* Inventory panel — left side of body row, mirrors in-game LootWindow style */
+        .inv-panel {
+            width: 444px;
+            background: #c0c0c0;
+            border-right: 1px solid #808080;
+            display: flex;
+            flex-direction: column;
+            min-height: 440px;
+        }
+
+        .inv-sub-header {
+            background: #c0c0c0;
+            padding: 3px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #808080;
+        }
+
+        .inv-title-group { display: flex; align-items: center; gap: 6px; }
+        .inv-icon-mark {
+            width: 14px; height: 14px;
+            background: #888;
+            border: 1px solid #000;
+            display: inline-block;
+        }
+        .inv-title { font-weight: bold; font-size: 11px; }
+        .inv-items-count { font-family: 'Fira Mono', monospace; font-size: 9px; color: #444; }
+
+        .inv-col-headers {
+            background: #c0c0c0;
+            padding: 2px 8px;
+            display: grid;
+            grid-template-columns: 32px 1fr 60px 60px 28px;
+            gap: 4px;
+            font-size: 8px;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #808080;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .inv-col-headers .col-name { text-decoration: underline; color: #000; }
+
+        .inv-list {
+            flex: 1;
+            background: #c0c0c0;
+            padding: 0;
+            overflow-y: auto;
+        }
+
+        .inv-cat-row {
+            padding: 2px 8px;
+            font-size: 9px;
+            color: #555;
+            font-family: 'Fira Sans Condensed', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #c0c0c0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .inv-cat-disclosure { font-size: 8px; }
+
+        .inv-item-row {
+            display: grid;
+            grid-template-columns: 32px 1fr 60px 60px 28px;
+            gap: 4px;
+            padding: 2px 8px;
+            align-items: center;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Fira Sans Condensed', sans-serif;
+        }
+        .inv-item-row:hover { background: #b0b0b0; }
+        .inv-item-row.selected {
+            background: #4a6a8a;
+            color: #fff;
+        }
+        .inv-item-row.selected .col-cat,
+        .inv-item-row.selected .col-wt { color: #d0e0f0; }
+
+        .inv-item-cell {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .inv-item-icon {
+            width: 14px; height: 14px;
+            background: #707070;
+            border: 1px solid #303030;
+            flex-shrink: 0;
+        }
+
+        .inv-item-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .col-dist {
+            font-family: 'Fira Mono', monospace;
+            font-size: 9px;
+            color: #444;
+            text-align: right;
+        }
+        .inv-item-row.selected .col-dist { color: #d0e0f0; }
+
+        .col-cat {
+            font-size: 9px;
+            color: #555;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .col-cond {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+
+        .cond-bar {
+            width: 100%;
+            height: 3px;
+            background: #303030;
+            border: 1px solid #1a1a1a;
+            position: relative;
+        }
+        .cond-bar-fill {
+            position: absolute;
+            top: 0; left: 0;
+            height: 100%;
+            background: #2a8a2a;
+        }
+
+        .col-wt {
+            font-family: 'Fira Mono', monospace;
+            font-size: 9px;
+            color: #444;
+            text-align: right;
+        }
+
+        .drawer-content {
+            width: 480px;
+            min-height: 440px;
+        }
+
+        .tab-strip {
+            width: 28px;
+            background: #c0c0c0;
+            border-left: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            padding: 4px 0;
+            gap: 2px;
+        }
+
+        .tab-icon {
+            width: 24px; height: 24px;
+            margin: 0 2px;
+            background: #c0c0c0;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size:9px;
+            font-weight: bold;
+            font-family: 'Fira Sans Condensed', sans-serif;
+            position: relative;
+            color: #000;
+        }
+
+        .tab-icon.active {
+            background: #c0c0c0;
+            border-top: 1px solid #000;
+            border-left: 1px solid #000;
+            border-right: 1px solid #fff;
+            border-bottom: 1px solid #fff;
+        }
+
+        .tab-icon.active::after {
+            content: '';
+            position: absolute;
+            right: -5px; top: 50%;
+            transform: translateY(-50%);
+            width: 4px; height: 24px;
+            background: #ff6600;
+        }
+
+        .tab-count-badge {
+            position: absolute;
+            top: -4px; right: -4px;
+            background: #cc0000;
+            color: #fff;
+            font-size:8px;
+            font-weight: bold;
+            padding: 1px 3px;
+            border: 1px solid #000;
+            font-family: 'Fira Mono', monospace;
+            min-width: 12px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .tab-icon.disabled { opacity: 0.4; }
+
+        .tab-divider {
+            height: 1px;
+            background: #808080;
+            margin: 2px 4px;
+        }
+
+        .util-strip {
+            background: #c0c0c0;
+            padding: 2px 4px;
+            display: flex;
+            gap: 2px;
+            border-top: 1px solid #000;
+            min-height: 22px;
+            align-items: center;
+        }
+
+        .util-btn {
+            height: 16px;
+            padding: 0 5px;
+            background: #c0c0c0;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            font-size:9px;
+            font-weight: bold;
+        }
+
+        .util-spacer { flex: 1; }
+        .util-status { font-size:8px; font-family: 'Fira Mono', monospace; color: #444; }
+
+        /* ===========================================
+           PREMIUM TECHNOLOGIES — flat silver chassis
+           In Lua: solid #b8b8b8 fill + 1px highlight
+           =========================================== */
+        .pt-housing {
+            background: #b8b8b8;
+            padding: 8px;
+            position: relative;
+            margin: 0;
+            min-height: 440px;
+        }
+
+/* VFD display — solid dark blue background, solid cyan text */
+        .pt-vfd {
+            background: #050a14;
+            border-top: 1px solid #2a2a2a;
+            border-left: 1px solid #2a2a2a;
+            border-right: 1px solid #1a1a1a;
+            border-bottom: 1px solid #1a1a1a;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .pt-vfd-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+
+        .pt-vfd-freq {
+            font-size:24px;
+            color: #66ddff;
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .pt-vfd-unit {
+            font-size:11px;
+            color: #4499bb;
+            letter-spacing: 1px;
+            margin-top: 6px;
+            font-weight: bold;
+        }
+
+        .pt-vfd-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size:9px;
+            color: #2a3a4a;
+            text-align: right;
+            font-family: 'Fira Mono', monospace;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .pt-vfd-indicators .on {
+            color: #66ddff;
+        }
+
+        .pt-vfd-indicators .red {
+            color: #66ddff;
+        }
+
+        .pt-vfd-channel {
+            font-size:13px;
+            color: #4499bb;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            border-top: 1px solid #1a3a4a;
+            padding-top: 4px;
+        }
+
+        .pt-vfd-bottom {
+            display: flex;
+            justify-content: space-between;
+            font-size:9px;
+            color: #66ddff;
+            font-family: 'Fira Mono', monospace;
+            border-top: 1px solid #1a3a4a;
+            padding-top: 4px;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        .pt-vfd-bottom .label {
+            color: #4499bb;
+            margin-right: 2px;
+        }
+
+        /* Signal wave readout — oscilloscope-style waveform, ~3 lines tall */
+        .signal-wave {
+            position: relative;
+            height: 36px;
+            margin-bottom: 4px;
+            background: transparent;
+            overflow: hidden;
+        }
+
+        .wave-center-line {
+            position: absolute;
+            left: 0; right: 0;
+            top: 50%;
+            height: 1px;
+            background: #1a3a4a;
+        }
+
+        .wave-bar {
+            position: absolute;
+            background: #66ddff;
+        }
+
+        .wave-axis-label {
+            position: absolute;
+            font-family: 'Fira Mono', monospace;
+            font-size: 8px;
+            color: #4499bb;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        /* Slide-rule tuning dial */
+        .pt-tuning-dial {
+            background: #1a1a1a;
+            border-top: 1px solid #3a3a3a;
+            border-left: 1px solid #3a3a3a;
+            border-right: 1px solid #0a0a0a;
+            border-bottom: 1px solid #0a0a0a;
+            padding: 5px;
+            margin-bottom: 8px;
+        }
+
+        .pt-dial-glass {
+            background: #b0c090;
+            border: 1px solid #050505;
+            height: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pt-dial-marks {
+            display: flex;
+            justify-content: space-around;
+            height: 100%;
+            align-items: flex-end;
+            padding: 0 6px 3px 6px;
+        }
+
+        .pt-mark-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size:8px;
+            font-weight: bold;
+            color: #1a2010;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .pt-mark-line { width: 1px; height: 6px; background: #1a2010; }
+        .pt-mark-line.major { height: 12px; width: 2px; }
+
+        .pt-dial-needle {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: #cc0000;
+            top: 0;
+            z-index: 5;
+        }
+
+        .pt-dial-needle::before {
+            content: '';
+            position: absolute;
+            top: -3px; left: -3px;
+            width: 8px; height: 4px;
+            background: #cc0000;
+        }
+
+        /* Section blocks — flat silver */
+        .pt-section {
+            background: #c8c8c8;
+            border-top: 1px solid #f0f0f0;
+            border-left: 1px solid #f0f0f0;
+            border-right: 1px solid #707070;
+            border-bottom: 1px solid #707070;
+            padding: 6px;
+            margin-bottom: 4px;
+        }
+
+        .pt-section-label {
+            font-size:8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Light variant for labels on dark grey panels */
+        .pt-cd-section .pt-section-label,
+        .vcr-tape-section .pt-section-label {
+            color: #f0f0f0;
+        }
+
+        .pt-cd-section .pt-section-label span:last-child {
+            color: #aaaaaa !important;
+            font-weight: normal !important;
+            letter-spacing: 1px !important;
+        }
+
+        .pt-row { display: flex; gap: 6px; align-items: center; }
+
+        .pt-split-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        /* Buttons — Pioneer flat silver */
+        .pt-pwr-btn, .pt-btn, .pt-preset-btn {
+            background: #c8c8c8;
+            color: #1a1a1a;
+            border: 1px solid #888888;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Fira Sans Condensed', sans-serif;
+        }
+
+        .pt-pwr-btn {
+            padding: 6px 8px;
+            font-size:9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: auto;
+            justify-content: center;
+        }
+
+        .pt-pwr-led, .vt-pwr-led {
+            width: 8px; height: 8px;
+            background: #2a0000;
+            border: 1px solid #000;
+        }
+
+        .pt-pwr-btn.on .pt-pwr-led { background: #ff4444; }
+
+        .pt-battery {
+            flex: 1;
+            background: #050505;
+            border-top: 1px solid #2a2a2a;
+            border-left: 1px solid #2a2a2a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            height: 18px;
+            position: relative;
+        }
+
+        /* Battery fill — flat colored segments instead of gradient */
+        .pt-battery-fill, .vt-battery-fill {
+            position: absolute;
+            inset: 1px;
+            background: #44cc44;
+        }
+
+        .pt-battery-fill.low, .vt-battery-fill.low { background: #cc8844; }
+        .pt-battery-fill.crit, .vt-battery-fill.crit { background: #cc4444; }
+
+        .pt-battery-pct, .vt-battery-pct {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size:9px;
+            font-weight: bold;
+            font-family: 'Fira Mono', monospace;
+            color: #000;
+            z-index: 2;
+        }
+
+        .pt-volume-bar {
+            display: flex;
+            gap: 2px;
+            background: #050a14;
+            border-top: 1px solid #2a2a2a;
+            border-left: 1px solid #2a2a2a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 4px;
+            flex: 1;
+        }
+
+        .pt-vol-led, .vt-vol-led {
+            flex: 1;
+            height: 14px;
+            background: #0a2a3a;
+            border: 1px solid #000;
+        }
+
+        .pt-vol-led.active { background: #44bbdd; }
+        .pt-vol-led.active.peak { background: #ee5544; }
+        .pt-vol-icon { color: #1a1a1a; font-size:13px; font-weight: bold; width: 14px; text-align: center; }
+
+        .pt-preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 3px;
+            margin-bottom: 6px;
+        }
+
+        .pt-preset-btn {
+            padding: 8px 0;
+            font-size:11px;
+            text-align: center;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .pt-preset-btn.active {
+            background: #a8a8a8;
+            color: #1a1a1a;
+            border: 1px solid #555555;
+        }
+
+        .pt-preset-btn.active::after {
+            content: '';
+            position: absolute;
+            top: -3px; left: 50%;
+            transform: translateX(-50%);
+            width: 5px; height: 5px;
+            background: #ff5544;
+        }
+
+        .pt-dropdown {
+            flex: 1;
+            background: #050a14;
+            border-top: 1px solid #2a2a2a;
+            border-left: 1px solid #2a2a2a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            color: #66ddff;
+            padding: 6px 8px;
+            font-size:11px;
+            font-family: 'Fira Mono', monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pt-btn {
+            padding: 7px 8px;
+            font-size:9px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+        }
+
+        .pt-btn.tune {
+            background: #c8c8c8;
+            color: #1a1a1a;
+            border: 1px solid #888888;
+        }
+
+        .pt-pinstripe {
+            display: none;
+        }
+
+        /* ===========================================
+           Radio layout components — new structure
+           Top: controls strip
+           Mid: preset bank, tune-in row, main display
+           Bot: CD player (PT only)
+           =========================================== */
+        .radio-control-strip {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 4px;
+        }
+
+
+
+        /* Pioneer-style recessed dark grey panel */
+        .pt-control-strip-bg {
+            background: #5a5a5a;
+            border-top: 1px solid #3a3a3a;
+            border-left: 1px solid #3a3a3a;
+            border-right: 1px solid #757575;
+            border-bottom: 1px solid #757575;
+        }
+
+        .vt-control-strip-bg {
+            background: #0a0a0a;
+            border-top: 1px solid #050505;
+            border-left: 1px solid #050505;
+            border-right: 1px solid #3a3a3a;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .strip-divider {
+            width: 1px;
+            align-self: stretch;
+            background: #707070;
+        }
+
+        .vt-control-strip-bg .strip-divider { background: #2a2520; }
+
+        /* In-display BATT + VOL status row — 25%/75% split */
+        .display-status-row {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 12px;
+            padding: 4px 0;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #1a3a4a;
+        }
+
+        .vt-lcd .display-status-row {
+            border-bottom: 1px solid #2a2010;
+        }
+
+        .display-status-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Fira Mono', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .display-status-cell .key {
+            color: #4499bb;
+            min-width: 32px;
+        }
+
+        .vt-lcd .display-status-cell .key { color: #cc7722; }
+
+        /* Segmented battery indicator — like volume, no % readout */
+        .display-batt-bar {
+            flex: 1;
+            display: flex;
+            gap: 1px;
+            height: 9px;
+        }
+
+        .display-batt-seg {
+            flex: 1;
+            background: #0a2a3a;
+            border: 1px solid #000;
+        }
+
+        .display-batt-seg.active { background: #66ddff; }
+
+        .vt-lcd .display-batt-seg { background: #c47015; border-color: #2a1404; }
+        .vt-lcd .display-batt-seg.active { background: #1a0500; }
+
+        .display-vol-bar {
+            flex: 1;
+            display: flex;
+            gap: 1px;
+            height: 9px;
+        }
+
+        .display-vol-seg {
+            flex: 1;
+            background: #0a2a3a;
+            border: 1px solid #000;
+        }
+
+        .display-vol-seg.active { background: #66ddff; }
+        .display-vol-seg.active.peak { background: #aaeeff; }
+
+        .vt-lcd .display-vol-seg { background: #c47015; border-color: #2a1404; }
+        .vt-lcd .display-vol-seg.active { background: #1a0500; }
+        .vt-lcd .display-vol-seg.active.peak { background: #1a0500; }
+
+        /* Chrome strip: spacer pushes vol buttons right */
+        .strip-spacer { flex: 1; }
+
+        /* CD transport grid — uniform layout with play emphasized */
+        .cd-transport-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr 1fr 1fr 1fr 1fr;
+            gap: 3px;
+            flex: 1.1;
+        }
+
+        .cd-transport-grid .transport-major,
+        .cd-transport-grid .transport-minor {
+            width: auto;
+            min-height: 36px;
+        }
+
+        .pt-cd-row {
+            display: flex;
+            gap: 6px;
+            align-items: stretch;
+        }
+
+        .pt-cd-display {
+            flex: 1;
+        }
+
+        .strip-batt {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            font-weight: bold;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .pt-control-strip-bg .strip-batt { color: #1a1a1a; }
+        .vt-control-strip-bg .strip-batt { color: #d4c4a8; }
+
+        .strip-batt-bar {
+            width: 60px; height: 14px;
+            background: #050505;
+            border-top: 1px solid #2a2a2a;
+            border-left: 1px solid #2a2a2a;
+            border-right: 1px solid #050505;
+            border-bottom: 1px solid #050505;
+            position: relative;
+        }
+
+        .strip-vol-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Skinnier silver buttons, label silkscreened on dark zone next to button */
+        .strip-vol-btn {
+            width: 56px;
+            height: 12px;
+            background: #c8c8c8;
+            border: 1px solid #707070;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .vt-control-strip-bg .strip-vol-btn {
+            background: #2a2a2a;
+            border: 1px solid #050505;
+        }
+
+        /* Logical button grouping — no backing, just spacing */
+        .control-zone {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0;
+        }
+
+        .zone-btn-label {
+            color: #d8d8d8;
+            font-size: 11px;
+            font-weight: bold;
+            font-family: 'Fira Sans Condensed', sans-serif;
+            min-width: 10px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .vt-control-strip-bg .zone-btn-label {
+            color: #d4c4a8;
+        }
+
+        /* Function label silkscreened on the dark panel (e.g. "SEEK", "VOL") */
+        .zone-text-label {
+            color: #d8d8d8;
+            font-size: 9px;
+            font-weight: bold;
+            font-family: 'Fira Sans Condensed', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            line-height: 1;
+            padding-right: 4px;
+        }
+
+        .vt-control-strip-bg .zone-text-label {
+            color: #d4c4a8;
+        }
+
+        /* Buffer between adjacent zones */
+        .control-zone + .control-zone {
+            margin-left: 8px;
+        }
+
+        .strip-vol-bar {
+            display: flex;
+            gap: 2px;
+            background: #050a14;
+            border-top: 1px solid #2a2a2a;
+            border-left: 1px solid #2a2a2a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 4px;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .vt-control-strip-bg .strip-vol-bar {
+            background: #050505;
+        }
+
+        .strip-vol-readout {
+            font-size: 9px;
+            font-family: 'Fira Mono', monospace;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .pt-control-strip-bg .strip-vol-readout { color: #1a1a1a; }
+        .vt-control-strip-bg .strip-vol-readout { color: #d4c4a8; }
+
+        /* Preset bank row — dark grey recessed panel like Pioneer station call */
+        .radio-preset-row {
+            display: flex;
+            gap: 3px;
+            margin-bottom: 4px;
+            background: #5a5a5a;
+            border-top: 1px solid #3a3a3a;
+            border-left: 1px solid #3a3a3a;
+            border-right: 1px solid #757575;
+            border-bottom: 1px solid #757575;
+            padding: 6px;
+        }
+
+        .preset-bank {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 3px;
+            flex: 1;
+        }
+
+        .preset-action-group {
+            display: flex;
+            gap: 3px;
+        }
+
+        .preset-action-btn {
+            width: 26px; height: 100%;
+            min-height: 30px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Fira Sans Condensed', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pt-preset-action-add,
+        .pt-preset-action-rem {
+            background: #c8c8c8;
+            color: #1a1a1a;
+            border: 1px solid #888888;
+        }
+
+        .vt-preset-action-add,
+        .vt-preset-action-rem {
+            background: #c4b498;
+            color: #1a1410;
+            border: 1px solid #5a4a30;
+        }
+
+        /* Main display — all data lives here, no chrome labels */
+        .radio-main-display {
+            margin-bottom: 4px;
+        }
+
+        .vfd-data-col {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 9px;
+            font-family: 'Fira Mono', monospace;
+            color: #66ddff;
+            letter-spacing: 1px;
+            min-width: 130px;
+        }
+
+        .vfd-data-col .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .vfd-data-col .key {
+            color: #4499bb;
+            font-weight: bold;
+        }
+
+        .vt-data-col {
+            color: #1a0500;
+        }
+
+        .vt-data-col .key {
+            color: #2a1505;
+        }
+
+        .vfd-main-zone {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            border-bottom: 1px solid #1a3a4a;
+            padding-bottom: 6px;
+            margin-bottom: 6px;
+        }
+
+        .vt-lcd .vfd-main-zone {
+            border-bottom: 1px solid #2a2010;
+        }
+
+        /* Brand bar — flat silver with thin red top accent */
+        .pt-brand-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 8px;
+            margin-bottom: 8px;
+            background: #d0d0d0;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-right: 1px solid #707070;
+            border-bottom: 1px solid #707070;
+        }
+
+        .pt-brand-name {
+            font-size:11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #1a1a1a;
+        }
+
+        .pt-model {
+            font-size:8px;
+            color: #5a5a5a;
+            font-family: 'Fira Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        /* CD/transport buttons — flat */
+        .pt-cd-section {
+            background: #5a5a5a;
+            border-top: 1px solid #3a3a3a;
+            border-left: 1px solid #3a3a3a;
+            border-right: 1px solid #757575;
+            border-bottom: 1px solid #757575;
+            padding: 6px;
+            margin-bottom: 4px;
+        }
+
+        .pt-cd-row { display: flex; gap: 4px; align-items: center; }
+
+        .pt-cd-display {
+            flex: 1;
+            background: #050a14;
+            border-top: 1px solid #2a2a2a;
+            border-left: 1px solid #2a2a2a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 4px 8px;
+            font-family: 'Fira Mono', monospace;
+            font-size:13px;
+            color: #44ee44;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: 1px;
+            min-height: 36px;
+        }
+
+        .pt-cd-controls { display: flex; gap: 2px; align-items: center; }
+
+        .transport-major {
+            min-height: 36px;
+            background: #c8c8c8;
+            color: #1a1a1a;
+            border: 1px solid #888888;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size:13px;
+            position: relative;
+        }
+
+        .transport-major.play {
+            color: #1a8a1a;
+            font-size:18px;
+        }
+
+        .transport-major.pause, .transport-major.stop { color: #1a1a1a; }
+
+        .transport-minor {
+            min-height: 36px;
+            background: #c8c8c8;
+            color: #1a1a1a;
+            border: 1px solid #888888;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size:11px;
+        }
+
+        .transport-minor.eject { color: #aa6611; }
+        .transport-minor.rec { color: #aa1111; }
+
+        /* ===========================================
+           VALUTECH — flat black + woodgrain
+           In Lua: solid black + tiled woodgrain texture
+           =========================================== */
+        .vt-housing {
+            background: #1a1a1a;
+            padding: 8px;
+            margin: 0;
+            min-height: 440px;
+        }
+
+        /* Woodgrain — would be a registered tile texture in Lua.
+           Here approximated with a small repeating pattern. */
+        .vt-woodgrain {
+            background: #1a1a1a;
+            border-top: 1px solid #3a3a3a;
+            border-left: 1px solid #3a3a3a;
+            border-right: 1px solid #050505;
+            border-bottom: 1px solid #050505;
+            padding: 3px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .vt-brand-name {
+            font-size:9px;
+            font-weight: bold;
+            letter-spacing: 2.5px;
+            color: #f5e8d0;
+            font-family: 'Fira Sans Condensed', sans-serif;
+        }
+
+        .vt-model {
+            font-size:8px;
+            color: #d4c4a8;
+            font-family: 'Fira Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        .vt-lcd {
+            background: #d4881f;
+            border-top: 1px solid #6a3a08;
+            border-left: 1px solid #6a3a08;
+            border-right: 1px solid #2a1404;
+            border-bottom: 1px solid #2a1404;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .vt-lcd-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vt-lcd-freq {
+            font-size:24px;
+            color: #1a0500;
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+            font-family: 'Fira Mono', monospace;
+            line-height: 1;
+        }
+
+        .vt-lcd-unit {
+            font-size:9px;
+            color: #2a1505;
+            letter-spacing: 1px;
+        }
+
+        .vt-lcd-channel {
+            font-size:11px;
+            color: #1a0500;
+            letter-spacing: 1px;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .vt-section {
+            background: #1a1410;
+            border-top: 1px solid #2a2520;
+            border-left: 1px solid #2a2520;
+            border-right: 1px solid #050505;
+            border-bottom: 1px solid #050505;
+            color: #d4c4a8;
+            padding: 6px;
+            margin-bottom: 4px;
+        }
+
+        .vt-section-label {
+            font-size:8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #b8a888;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vt-row { display: flex; gap: 6px; align-items: center; }
+
+        .vt-pwr-btn {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border-top: 1px solid #4a4a4a;
+            border-left: 1px solid #4a4a4a;
+            border-right: 1px solid #050505;
+            border-bottom: 1px solid #050505;
+            padding: 5px 8px;
+            font-size:9px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: auto;
+            justify-content: center;
+            font-family: 'Fira Sans Condensed', sans-serif;
+        }
+
+        .vt-pwr-btn.on .vt-pwr-led { background: #ff4422; }
+
+        /* TV console */
+        .tv-console-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+            align-items: stretch;
+        }
+
+        .tv-screen-frame {
+            flex: 1;
+            min-width: 0;
+            padding: 8px;
+        }
+
+        .pt-tv-frame {
+            background: #0a0a0a;
+            border-top: 1px solid #b8b8b8;
+            border-left: 1px solid #b8b8b8;
+            border-right: 1px solid #2a2a2a;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .vt-tv-frame {
+            background: #0a0a0a;
+            border-top: 1px solid #3a3a3a;
+            border-left: 1px solid #3a3a3a;
+            border-right: 1px solid #1a1a1a;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .tv-screen {
+            background: #0a1a4a;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 1 / 1;
+            padding: 10px;
+            font-family: 'Fira Mono', monospace;
+            color: #fff;
+        }
+
+        .tv-screen.off {
+            background: #050505;
+            color: #1a1a1a;
+        }
+
+        /* TV side controls — flat */
+        .tv-side-controls {
+            width: 110px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 6px;
+            flex-shrink: 0;
+        }
+
+        .pt-tv-side {
+            background: #c0c0c0;
+            border-top: 1px solid #f0f0f0;
+            border-left: 1px solid #f0f0f0;
+            border-right: 1px solid #707070;
+            border-bottom: 1px solid #707070;
+        }
+
+        .vt-tv-side {
+            background: #1a1410;
+            border-top: 1px solid #2a2520;
+            border-left: 1px solid #2a2520;
+            border-right: 1px solid #050505;
+            border-bottom: 1px solid #050505;
+        }
+
+        .tv-side-label {
+            font-size:8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-align: center;
+            margin-bottom: 1px;
+        }
+
+        .pt-tv-side .tv-side-label { color: #1a1a1a; }
+        .vt-tv-side .tv-side-label { color: #b8a888; }
+
+        .tv-side-divider {
+            height: 1px;
+            background: #707070;
+            margin: 3px 0;
+        }
+
+        .vt-tv-side .tv-side-divider { background: #2a2520; }
+
+        .tv-side-btn {
+            padding: 6px 0;
+            font-size:11px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            font-family: 'Fira Sans Condensed', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 26px;
+        }
+
+        .pt-tv-side .tv-side-btn {
+            background: #c8c8c8;
+            color: #1a1a1a;
+            border: 1px solid #888888;
+        }
+
+        .vt-tv-side .tv-side-btn {
+            background: #c4b498;
+            color: #1a1410;
+            border: 1px solid #5a4a30;
+        }
+
+        .tv-side-btn.orange {
+            background: #d97a1f !important;
+            color: #1a1a1a !important;
+            border: 1px solid #6a3a08 !important;
+            font-weight: bold;
+        }
+
+        .tv-side-btn.power-toggle {
+            font-size:9px;
+            letter-spacing: 1px;
+            gap: 4px;
+        }
+
+        .tv-side-vol-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+        }
+
+        .tv-side-ch-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 3px;
+        }
+
+        .tv-side-btn.num {
+            font-family: 'Fira Mono', monospace;
+            font-size:13px;
+        }
+
+        .vcr-vfd-status-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-family: 'Fira Mono', monospace;
+            font-size:9px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid #112233;
+            padding-bottom: 3px;
+        }
+
+        .vcr-status-chip { color: #1a3a4a; }
+        .vcr-status-chip.on { color: #66ddff; }
+
+        .vcr-vfd-status-spacer { flex: 1; }
+
+        .vcr-tape-section {
+            background: #c8c8c8;
+            border-top: 1px solid #f0f0f0;
+            border-left: 1px solid #f0f0f0;
+            border-right: 1px solid #707070;
+            border-bottom: 1px solid #707070;
+            padding: 6px;
+            margin-bottom: 4px;
+        }
+
+        .vcr-transport-row {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr 1fr 1fr 1fr 1fr 1fr;
+            gap: 3px;
+        }
+
+        .vcr-overlay {
+            position: relative;
+            z-index: 3;
+            font-family: 'Fira Mono', monospace;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vcr-overlay-row {
+            display: flex;
+            justify-content: space-between;
+            font-size:13px;
+            letter-spacing: 2px;
+            line-height: 1.2;
+            color: #fff;
+        }
+
+        .vcr-overlay-row.small { font-size:13px; }
+        .vcr-overlay-row.big { font-size:24px; font-weight: bold; }
+
+        .vcr-overlay-spacer { flex: 1; }
+
+        .scanlines {
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* ValuTech context overrides — black plastic recessed panels */
+        .vt-housing .radio-preset-row {
+            background: #0a0a0a;
+            border-top: 1px solid #050505;
+            border-left: 1px solid #050505;
+            border-right: 1px solid #3a3a3a;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .vt-housing .pt-preset-btn {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #050505;
+        }
+
+        .vt-housing .pt-preset-btn.active {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #000000;
+        }
+
+        .vt-housing .pt-preset-action-add,
+        .vt-housing .pt-preset-action-rem {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #050505;
+        }
+
+        .vt-housing .pt-section-label { color: #888888; }
+
+        .vt-section { background: #0a0a0a; color: #e0e0e0; }
+        .vt-section-label { color: #888888; }
+
+        .vt-tv-side {
+            background: #0a0a0a;
+            border-top: 1px solid #050505;
+            border-left: 1px solid #050505;
+            border-right: 1px solid #3a3a3a;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .vt-tv-side .tv-side-btn {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #050505;
+        }
+
+        .vt-tv-side .tv-side-label { color: #888888; }
+        .vt-tv-side .tv-side-divider { background: #2a2a2a; }
+
+        .vt-tv-frame {
+            border-color: #3a3a3a #3a3a3a #050505 #050505;
+        }
+
+        /* DARK ZeD THEME — chrome only */
+        .world-window.dark-theme {
+            background: #2a2a2a;
+            border-top: 1px solid #3a3a3a;
+            border-left: 1px solid #3a3a3a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+        }
+
+        .dark-theme .title-bar {
+            background-color: #2a2a2a;
+            background-image: repeating-linear-gradient(to bottom, #000 0 1px, #2a2a2a 1px 2px);
+            border-bottom: 1px solid #000;
+        }
+
+        .dark-theme .close-box {
+            background: #2a2a2a;
+            border: 1px solid #000;
+        }
+
+        .dark-theme .title-text {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .dark-theme .tab-icon {
+            background: #2a2a2a;
+            border-top: 1px solid #4a4a4a;
+            border-left: 1px solid #4a4a4a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            color: #e0e0e0;
+        }
+
+        .dark-theme .location-tag {
+            background: #d97a1f;
+            color: #1a0500;
+            border: 1px solid #000;
+        }
+
+        .dark-theme .inv-panel {
+            background: #2a2a2a;
+            border-right: 1px solid #000;
+        }
+
+        .dark-theme .inv-sub-header {
+            background: #2a2a2a;
+            border-bottom: 1px solid #000;
+        }
+
+        .dark-theme .inv-icon-mark {
+            background: #4a4a4a;
+            border: 1px solid #000;
+        }
+
+        .dark-theme .inv-title { color: #e0e0e0; }
+        .dark-theme .inv-items-count { color: #999; }
+
+        .dark-theme .inv-col-headers {
+            background: #2a2a2a;
+            color: #888;
+            border-bottom: 1px solid #000;
+        }
+
+        .dark-theme .inv-col-headers .col-name { color: #d97a1f; }
+
+        .dark-theme .inv-list { background: #1a1a1a; }
+
+        .dark-theme .inv-cat-row {
+            background: #2a2a2a;
+            color: #888;
+            border-top: 1px solid #1a1a1a;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .dark-theme .inv-item-row { color: #e0e0e0; }
+        .dark-theme .inv-item-row:hover { background: #3a3a3a; }
+
+        .dark-theme .inv-item-row.selected {
+            background: #d97a1f;
+            color: #1a0500;
+            border-left: 2px solid #ff9933;
+            padding-left: 6px;
+        }
+        .dark-theme .inv-item-row.selected .col-cat,
+        .dark-theme .inv-item-row.selected .col-wt,
+        .dark-theme .inv-item-row.selected .col-dist { color: #2a1404; }
+
+        .dark-theme .inv-item-icon {
+            background: #4a4a4a;
+            border: 1px solid #000;
+        }
+
+        .dark-theme .col-dist,
+        .dark-theme .col-cat,
+        .dark-theme .col-wt { color: #999; }
+
+        .dark-theme .cond-bar {
+            background: #0a0a0a;
+            border: 1px solid #000;
+        }
+
+        .dark-theme .tab-strip {
+            background: #2a2a2a;
+            border-left: 1px solid #000;
+        }
+
+        .dark-theme .tab-icon.active {
+            background: #2a2a2a;
+            position: relative;
+        }
+        .dark-theme .tab-icon.active::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #d97a1f;
+        }
+
+        .dark-theme .tab-divider {
+            background: #000;
+            margin: 2px 4px;
+        }
+
+        .dark-theme .tab-icon.disabled {
+            color: #555;
+            background: #1f1f1f;
+        }
+
+        .dark-theme .tab-count-badge {
+            background: #d97a1f;
+            color: #1a0500;
+            border: 1px solid #000;
+        }
+
+        /* COMPACT CHROME */
+        .title-icon {
+            width: 12px; height: 12px;
+            background: #444;
+            border: 1px solid #000;
+            margin-left: 4px;
+            flex-shrink: 0;
+        }
+        .title-spacer { flex: 1; }
+        .active-tab-pill {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 0 6px;
+            font-family: 'Fira Sans Condensed', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .tab-pill-dot {
+            width: 6px; height: 6px;
+            background: #d97a1f;
+            border-radius: 50%;
+        }
+
+        .drawer-column {
+            width: 480px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drawer-internal-header {
+            background: #2a2a2a;
+            padding: 3px 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border-bottom: 1px solid #000;
+            min-height: 22px;
+        }
+
+        .drawer-browse-btn {
+            width: 18px; height: 16px;
+            background: #2a2a2a;
+            border-top: 1px solid #4a4a4a;
+            border-left: 1px solid #4a4a4a;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+            color: #e0e0e0;
+            font-size: 9px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .drawer-browse-info {
+            font-family: 'Fira Mono', monospace;
+            font-size: 9px;
+            color: #e0e0e0;
+            padding: 0 6px;
+        }
+
+        .drawer-header-name {
+            font-size: 10px;
+            color: #e0e0e0;
+            font-weight: bold;
+            padding-left: 8px;
+            border-left: 1px solid #4a4a4a;
+            margin-left: 4px;
+        }
+
+        .drawer-header-spacer { flex: 1; }
+
+        .resize-footer {
+            background: #2a2a2a;
+            border-top: 1px solid #000;
+            height: 12px;
+            position: relative;
+        }
+        .resize-grip {
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 8px;
+            height: 8px;
+            background:
+                linear-gradient(135deg, transparent 0 35%, #888 35% 45%, transparent 45% 55%, #888 55% 65%, transparent 65% 75%, #888 75% 85%, transparent 85%);
+        }
+    </style>
+</head>
+<body>
+    <div class="label-banner">▌ LUA RENDER PREVIEW — RADIO + TV CONTEXTUAL DRAWER — SEE SPEC.md</div>
+
+    <div class="world-window dark-theme">
+        <div class="title-bar">
+            <div class="close-box"></div>
+            <div class="title-icon"></div>
+            <div class="title-text" id="windowTitle">Ground 7</div>
+            <div class="title-spacer"></div>
+            <div class="active-tab-pill" id="activeTabPill"><span class="tab-pill-dot"></span><span id="activeTabName">Radio</span></div>
+        </div>
+
+        <div class="body-row">
+            <div class="inv-panel">
+                <div class="inv-sub-header">
+                    <div class="inv-title-group">
+                        <div class="inv-icon-mark"></div>
+                        <div class="inv-title">Ground</div>
+                    </div>
+                    <div class="inv-items-count">7 items</div>
+                </div>
+
+                <div class="inv-col-headers">
+                    <div>Dist</div>
+                    <div class="col-name">Name</div>
+                    <div>Cat</div>
+                    <div>Cond</div>
+                    <div style="text-align:right;">Wt</div>
+                </div>
+
+                <div class="inv-list" id="invList"></div>
+            </div>
+
+            <div class="drawer-column">
+                <div class="drawer-internal-header">
+                    <button class="drawer-browse-btn" onclick="browseInstance(-1)">◀</button>
+                    <div class="drawer-browse-info" id="browseInfo">1 / 3</div>
+                    <button class="drawer-browse-btn" onclick="browseInstance(1)">▶</button>
+                    <div class="drawer-header-name" id="drawerSubtitle">Premium Technologies Radio</div>
+                    <div class="drawer-header-spacer"></div>
+                    <div class="location-tag" id="locationTag">Warehouse</div>
+                </div>
+                <div class="drawer-content" id="drawerContent"></div>
+            </div>
+
+            <div class="tab-strip">
+                <div class="tab-icon" onclick="switchTab('ground')" title="Ground">GR</div>
+                <div class="tab-icon" onclick="switchTab('animal')" title="Animal">AN</div>
+                <div class="tab-divider"></div>
+                <div class="tab-icon active" id="tab-radio" onclick="switchTab('radio')" title="Radio">
+                    RA
+                    <div class="tab-count-badge">3</div>
+                </div>
+                <div class="tab-icon" id="tab-tv" onclick="switchTab('tv')" title="TV">
+                    TV
+                    <div class="tab-count-badge">2</div>
+                </div>
+                <div class="tab-divider"></div>
+                <div class="tab-icon" title="Crafting">CR</div>
+                <div class="tab-icon" title="Building">BL</div>
+                <div class="tab-icon disabled" title="Forage">FO</div>
+                <div class="tab-icon disabled" title="Fishing">FI</div>
+            </div>
+        </div>
+
+        <div class="resize-footer">
+            <div class="resize-grip"></div>
+        </div>
+    </div>
+
+    <script>
+        /* For full interactive mockup, see /mnt/user-data/outputs/world_window_lua_render.html
+           This in-project copy is a static reference of the design. Visual look is identical;
+           the JS render functions for the radio/TV chassis live in the outputs HTML and the
+           component breakdown is in zed_radio_tv_drawer_v1_SPEC.md sister file. */
+        document.getElementById('drawerContent').innerHTML = '<div style="padding:40px; text-align:center; font-family:Fira Sans Condensed,sans-serif; color:#888;">[Premium Tech Radio chassis renders here]<br><br>See SPEC.md for component breakdown<br>and full mockup at /mnt/user-data/outputs/</div>';
+        document.getElementById('invList').innerHTML = '<div class="inv-cat-row"><span class="inv-cat-disclosure">▼</span> ITEM (3)</div><div class="inv-item-row selected"><div class="col-dist">0</div><div class="inv-item-cell"><div class="inv-item-icon"></div><div class="inv-item-name">Premium Tech Tuner</div></div><div class="col-cat">Item</div><div class="col-cond"><div class="cond-bar"><div class="cond-bar-fill" style="width:85%; background:#2a8a2a;"></div></div></div><div class="col-wt">2.5</div></div><div class="inv-item-row"><div class="col-dist">0</div><div class="inv-item-cell"><div class="inv-item-icon"></div><div class="inv-item-name">Walkman</div></div><div class="col-cat">Item</div><div class="col-cond"><div class="cond-bar"><div class="cond-bar-fill" style="width:62%; background:#2a8a2a;"></div></div></div><div class="col-wt">0.5</div></div>';
+    </script>
+</body>
+</html>
+

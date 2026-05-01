@@ -1,0 +1,1664 @@
+# PZAPI Knowledge Bank — ZeD-UI Project
+## Battle-tested knowledge from 83 sessions of PZ Build 42 modding
+
+---
+
+## PZ ENGINE QUIRKS (confirmed through debugging)
+
+### Mouse Events & Hit Testing
+
+**Q1: Nested panel mouse events break at 4+ levels.**
+ISPanel children nested deeply don't receive onMouseDown/onMouseMove/hover.
+**Fix:** Hit testing via `update()` with raw screen coordinates:
+```lua
+local mx = getMouseX() - self:getAbsoluteX()
+local my = getMouseY() - self:getAbsoluteY()
+```
+
+**Q2: isMouseButtonDown(0) is the only reliable mouse state check.** Global, works regardless of focus.
+
+**Q3: setCapture(true) can miss onMouseUp.** Add safety release in update().
+
+**Q4: Child panels eat parent mouse events.** Detect in both onMouseDown AND update().
+
+**Q5: onMouseWheel positive delta = scroll DOWN (inverted).**
+
+**Q5b: isMouseOver() doesn't account for sibling panel Z-order.** A panel reports mouse-over even when a sibling overlaps it at the same screen coordinates. **Fix:** Check panel-local bounds explicitly: `mx >= 0 and mx < w and my >= 0 and my < h`.
+
+**Q5c: onMouseMove stops firing when mouse leaves panel quickly.** Hover states set in onMouseMove become stale if the cursor exits the panel in a single frame. **Fix:** Clear hover states in the draw/render cycle by checking mouse position against the component's own rect every frame.
+
+### Panel Lifecycle
+
+**Q6: initialise() must be called exactly once.** Calling twice severs child references.
+
+**Q7: addChild() triggers instantiate().** Set anchors BEFORE addChild.
+
+**Q8: self:getChildren() returns Lua table keyed by ID.** Use pairs(), not getChildAt().
+
+**Q9: drawFrame = false suppresses vanilla title bar.**
+
+**Q10: ISCollapsableWindow expects resizeWidget/pinButton/collapseButton to exist.**
+
+### Drawing & Rendering
+
+**Q11: Set backgroundColor BEFORE parent prerender call.** PZ draws bg first.
+
+**Q12: No native triangle/polygon drawing.** Build from stacked 1px rects.
+
+**Q13: setStencilRect/clearStencilRect for clipping.**
+
+**Q14: getTimestampMs() available everywhere.** Reliable for animations.
+
+**Q15: Texture path shadowing for overrides.** 1×1 black PNGs scale to fullscreen.
+
+**Q15b: Bitmap fonts lack arrow/chevron glyphs.** PZ's custom bitmap fonts (Fira Mono, Fira Sans Condensed — all generated at fixed pixel sizes) do not reliably render `^`, `v`, `>`, `<`, `▶`, `▼` or other directional glyphs. Characters either render as blank/tofu or misalign. **Fix:** Use `ZeD.Atoms.drawTriangleUp/Down/Right/Left` (geometric rect-stacking in AtomExtensions.lua) for all directional indicators. Never use drawText with arrow characters.
+
+### Scrollbar & Resize
+
+**Q16: Scrollbar must be plain Lua table, NOT ISPanel child.** Avoids nested event bugs.
+
+**Q17: reserveBottom = 0 on scrollbar when parent excludes grow box.**
+
+### File Load Order
+
+**Q21: Namespace tables must use `or {}` guard.** PZ re-executes files unpredictably.
+
+### ModOptions API
+
+**Q18: Colon syntax, getValue() returns integer INDEX not string.**
+
+### Java Bridge
+
+**Q19: ISToolTipInv uses item:DoTooltip(ObjectTooltip) — pure Java rendering.**
+Cannot style content from Lua. Must read item properties via getters and render yourself.
+
+**Q20: safeGet pattern for unreliable Java getters.**
+Not all item types expose the same methods. Calling a nil method crashes.
+```lua
+local function safeGet(item, methodName, ...)
+    local fn = item[methodName]
+    if not fn then return nil end
+    local ok, result = pcall(fn, item, ...)
+    if ok then return result end
+    return nil
+end
+```
+
+### Item Data Quirks (discovered Session 9)
+
+**Q22: Food hunger/thirst values are raw floats, multiply by 100 for display.**
+```lua
+-- Vanilla: item:getHungerChange() * 100 → integer (e.g., -0.12 → -12)
+-- Vanilla: item:getThirstChange() * 100 → integer
+```
+
+**Q23: Boredom (unhappy) is NOT multiplied by 100.**
+```lua
+-- Vanilla uses getUnhappyChange() raw (e.g., 10.0 → +10)
+-- NOT getUnhappyChange() * 100 — that gives +1000 which is wrong
+-- Source: ISInventoryPaneContextMenu.lua line 2056
+```
+
+**Q24: Clothing getInsulation()/getWindResistance() DON'T EXIST on items.**
+These are body-part-level calculations in ISClothingInsPanel.lua (line 425, 684).
+The vanilla tooltip renders them via Java DoTooltip which has direct access.
+Use only: getBiteDefense(), getScratchDefense(), getCombatSpeedModifier(), getWetness()
+
+**Q25: Fluid container nutritional data lives on the properties chain.**
+```lua
+local fc = item:getFluidContainer()              -- FluidContainer object
+local props = fc:getProperties()                  -- FluidProperties object
+props:getHungerChange()                           -- food value (× 100 for display)
+props:getThirstChange()                           -- thirst value (× 100)
+props:getUnhappyChange()                          -- boredom (raw, NOT × 100)
+props:getAlcohol()                                -- alcohol content
+props:getCalories()                               -- nutritional: calories
+props:getProteins()                               -- nutritional: proteins
+props:getCarbohydrates()                          -- nutritional: carbs
+props:getLipids()                                  -- nutritional: fat
+-- Fluid name:
+local fluid = fc:getPrimaryFluid()
+fluid:getTranslatedFluidName()                    -- localized name
+fluid:getFluidTypeString()                        -- internal type string
+```
+This chain is how Build 42 stores nutritional data for beverages.
+Vanilla Lua code barely touches it — we surfaced it through safeGet probing.
+
+**Q26: PZ Build 42 separates container items from fluid contents.**
+The "Milk Carton" is the container. The cow's milk is a fluid inside it.
+Category detection must check getFluidContainer() BEFORE getCategory("Food")
+because fluid items may not have a "Food" category at all.
+
+**Q27: isNoRecipes(player)/setNoRecipes(player, bool) is Java-native.**
+Per-player toggle. Prevents crafting system from consuming the item.
+Found at line 4567-4622 of ISInventoryPaneContextMenu.lua.
+
+**Q28: isbDangerousUncooked() uses lowercase 'b' prefix.**
+Not isDangerousUncooked() — the 'b' is part of the Java method name.
+Source: ISInventoryPane.lua line 983.
+
+**Q29: getCriticalChance() returns raw float, not integer.**
+Display as math.floor(crit) .. "%" — e.g., 8.24409 → "8%"
+
+**Q30: getCombatSpeedModifier() returns raw float.**
+Display as-is (e.g., 1.0). NOT multiplied by 100.
+
+**Q31: Fixed-size windows: set win.resizable = false BEFORE initialise().**
+Disables grow box drawing and resize interaction. getBodyHeight() then returns
+height - titleBarH (no grow box subtraction).
+
+**Q32: Item card border strategy — edge flags.**
+When a card is hosted inside a window, draw border on left+right+bottom only.
+Top edge is covered by title bar's bottom border. Prevents double-thick line.
+```lua
+A.drawBorder(self, 0, 0, w, h, {top=false, right=true, bottom=true, left=true})
+```
+
+**Q33: drawStatRow ellipsis truncation.**
+When stat value text overflows the available column width (after label + 8px gap),
+truncate with "..." by measuring characters until they fit.
+
+**Q34: Kahlua has no goto/labels (Lua 5.2+ feature).**
+`goto skipRecipe` / `::skipRecipe::` causes parse error: `'=' expected near 'skipRecipe'`.
+Fix: use a `dominated` boolean flag and wrap the inclusion in `if not dominated then`.
+
+**Q35: Kahlua table.sort stack-overflows on large arrays.**
+Kahlua's quicksort recurses O(n) deep on worst-case input. Arrays with 2000+ elements
+reliably trigger `Stack overflow at Coroutine.ensureStacksize`. Even minimal closures fail.
+Fix: use insertion sort with pre-computed numeric sort keys. Zero recursion, Kahlua-safe.
+
+**Q36: Kahlua `obj:method` without () is a syntax error.**
+Standard Lua 5.1 allows `obj.method` as a value (returns the function), but Kahlua
+rejects `obj:method` without `()` as `function arguments expected near 'and'`.
+Fix: use `obj.method` (dot syntax) for existence checks, or just pcall the call.
+
+**Q37: pcall catches Java exceptions but Java still logs them.**
+When a Java method throws inside pcall, the Lua side catches it correctly, but the
+Java side logs the error to console before Lua's pcall sees it. Result: harmless but
+noisy console errors. Fix: guard with Lua-side existence checks (`if item.getFullType then`)
+before calling, to avoid triggering the Java error path entirely.
+
+**Q38: ContainerButtonIcons table has gaps — many container types unmapped.**
+Vanilla `ContainerButtonIcons` (shared/Definitions/ContainerButtonIcons.lua) only maps ~60 types.
+Common types like `cupboard`, `overhead`, `locker`, `displaycase`, `militarylocker`, `cashregister`,
+`clothingrack`, `grocerstand`, `shelvesmag` have no icon entry.
+Fix: fallback lookup table mapping unmapped types to their closest vanilla alias.
+
+**Q39: IsoDeadBody has no isFemale() — must go through getDescription().**
+`isFemale()` is a player/SurvivorDesc method. Calling it on IsoDeadBody crashes.
+Fix: `so:getDescription()` → `desc:isFemale()` wrapped in pcall.
+
+**Q40: Lua `a and b or c` fails when b is nil/false (Kahlua + standard Lua).**
+The ternary idiom `a and b or c` short-circuits to `c` when `b` evaluates to nil or false,
+even if `a` is true. This is standard Lua behavior, not Kahlua-specific, but easy to forget.
+Fix: parenthesize the fallback: `a and (b or default) or c`.
+
+**Q41: Periodic container rebuild invalidates stored array indices.**
+`buildWorldContainers()` creates a fresh array every 30 frames. Any stored indices
+(like `_mcSelected` or `_activeContainer`) become stale if containers appear/disappear
+or reorder. Fix: remap indices by inventory object identity after each rebuild.
+
+**Q42: Duplicate function definitions — last-loaded file wins.**
+When two files define the same function (e.g., `ZeD.Atoms.drawStatusDot` in both `Atoms.lua`
+and `AtomExtensions.lua`), PZ loads files in directory order and the last definition wins at
+runtime. The winning version may have a different signature than the one you're reading.
+Fix: grep for all definitions of a function before calling it. Consolidate duplicates.
+
+**Q43: Per-frame filterAndSort causes selection-triggered list jumps.**
+If `filterAndSort()` runs every frame and the sort key includes data that changes on selection
+(e.g., `missingCount` set by `gatherDetail` for the selected item only), the selected item
+gets a different sort key than unselected items and visibly jumps in the list.
+Fix: cache the sorted list. Only re-sort on explicit user actions (category, filter, pin, search).
+Periodic data refreshes should NOT trigger re-sort.
+
+**Q44: UIWorldMap.getSymbolsAPIv2() crashes on embedded instances.**
+When a UIWorldMap is created as a child element (not a standalone ISWorldMap window),
+the Java `uiSymbols` field is null. Calling `getSymbolsAPIv2()` throws a
+NullPointerException immediately — even pcall catches it, the Java side still logs.
+Fix: do not call `getSymbolsAPIv2()` on embedded UIWorldMaps. Render your own
+overlay markers in the Lua `render()` method using `worldToUIX/Y` coordinates.
+
+**Q45: Java UIWorldMap ignores ISUIElement setVisible.**
+`setVisible(false)` on the Lua ISUIElement wrapper does NOT prevent the Java UIWorldMap
+from rendering. The Java object has its own render pipeline that runs independently.
+Fix: call BOTH `self:setVisible(false)` AND `self.javaObject:setVisible(false)`.
+Also zero the element's width/height to fully prevent rendering over other content.
+
+**Q46: PZ rendering has no blur or backdrop-filter.**
+The Lua drawing API (drawRect, drawTexture, drawText, stencils) supports alpha transparency
+only. No Gaussian blur, no backdrop-filter, no shader access from the modding layer.
+The Java engine uses OpenGL (LWJGL) which could do blur via shaders, but this is not
+exposed to Lua/modders. Use high-alpha overlays (0.97-0.98) for frosted glass effects.
+
+**Q47: ISSearchManager.toggleSearchMode() is the canonical foraging toggle.**
+`ISSearchManager.getManager(character):toggleSearchMode()` — toggles search/forage mode.
+Pass `true`/`false` for explicit set, or omit for toggle. Same API used by vanilla
+ISSearchWindow button, joypad radial menu, and keyboard handler. Fires events:
+`onToggleSearchMode`, `onEnableSearchMode`, `onDisableSearchMode`. Manager state:
+`mgr.isSearchMode` (boolean). Get manager: `ISSearchManager.getManager(character)`.
+Characters always have a manager — `getManager` auto-creates if missing.
+
+**Q48: Season-aware dawn/dusk from ClimateManager.**
+`getClimateManager():getSeason():getDawn()` and `:getDusk()` return float hours (e.g., 6.5 = 6:30 AM).
+These shift with season — summer has early dawn/late dusk, winter the opposite. Used by
+`forageSystem.getTimeOfDay()` to determine day/night. Also useful for UI time displays.
+`getClimateManager():getDayLightStrength()` returns 0–1 ambient brightness.
+
+**Q49: Drawer stencil rects only clip during animation by default.**
+Both ZeD_WorldWindow and ZeD_CharacterWindow only applied `setStencilRect` when
+`effectiveW < targetW` (drawer animating open). Once fully open, the stencil was cleared.
+Child panels (e.g., expanded dropdowns) could then draw beyond the drawer's boundaries.
+**Fix:** Always apply `setStencilRect(0, 0, effectiveW, dh)` in the drawer prerender,
+and always `clearStencilRect()` after. Restore stencil after tab renderer calls too
+(renderers may change stencil state).
+
+**Q50: forageSystem.catDefs is the post-init category table.**
+`forageSystem.catDefs` (populated after `forageSystem.init()`) contains all category definitions
+keyed by name string. Each catDef has: `.name`, `.categoryHidden`, `.identifyCategoryLevel`,
+`.zones` (table of zone→weight), `.focusChanceMin/Max`. Filter hidden categories and check
+zone weights. Translation key: `getTextOrNull("IGUI_SearchMode_Categories_"..catDef.name)`.
+
+**Q51: ISSearchManager.spotIcon is the discovery hook point.**
+`ISSearchManager:spotIcon(_icon)` fires when the player first sees a forage icon.
+Icon fields: `_icon.xCoord/yCoord` (world position), `_icon.itemType` (e.g., "Base.Berry"),
+`_icon.itemDef` (forageSystem definition), `_icon.iconID`. Use `ScriptManager.instance:FindItem(itemType)`
+for safe display name/weight lookup — `_icon.itemObj` may be nil at spot time.
+`self.player` on the manager is playerNum (integer), `self.character` is the character object.
+
+**Q52: setStencilRect inner width must differ from outer stencil width.**
+When a tab renderer calls `setStencilRect(x, y, w, h)` and the width `w` matches the
+drawer's outer stencil width (set in drawer._onPrerender), `clearStencilRect` fails to
+pop the stencil stack properly. The scrollbar (drawn after clearStencilRect) becomes
+invisible. **Fix:** Use `contentW` (w minus scrollbarW when scrolling) instead of full `w`
+for the inner stencil. This ensures the inner stencil is narrower than the outer, so
+clearStencilRect pops correctly. Equipment tab always worked because it already used
+`contentW`. Confirmed S74: fixed scrollbars across all 7 character tabs + 2 world tabs.
+Also: ISUI3DModel cannot be a child of a stencil-using panel — the GL scissor kills
+Java 3D child rendering entirely. Parent on the window instead (avatar deferred to S75).
+
+**Q53: Never instant-set _drawerEffW for tab drawers.**
+Setting `_drawerEffW = getTabDrawerW(tabId)` in the tab click handler causes a single-frame
+480px width delta. PZ's Java anchor system processes this large delta before the drawer's
+prerender can correct child panel positions, causing content panels to misrender.
+**Fix:** Let the animation system handle the transition (small per-frame deltas via
+`DRAWER_PX_SPEED * dt`). Set `_drawerOpen = true` and `_drawerMode = "tab"` — the animation
+converges to `getTargetDrawerW()`. This matches the World Window pattern.
+Item drawer snap (`if effW < ITEM_CARD_W then effW = ITEM_CARD_W`) is safe because 220px is small.
+
+**Q54: addChild order = rendering Z-order (later child renders on top).**
+PZ's ISPanel iterates children in addChild order during rendering. Later children draw over
+earlier ones. To guarantee an overlay panel (like ITEM.DRAWER) renders on top of siblings,
+add it LAST. Moving `win:addChild(itemDrawer)` after content + containerStrip fixed item card
+rendering behind tab content. This matches the World Window's child ordering.
+
+**Q55: PZ Java ISPanel enforces `minimumWidth` on `setWidth()` calls.**
+`ISPanel.setWidth()` (Java side) silently clamps the value to `self.minimumWidth`. The Lua
+`minimumWidth` field persists across frames — it is NOT reset each frame by the engine.
+If a prerender sets `minimumWidth = 744` (e.g., `TAB_STRIP_W + drawerW + 200 + CONTAINER_STRIP_W`
+while a drawer is open), and a click handler then calls `setWidth(436)`, Java clamps it to 744.
+The Lua side sees `getWidth() == 744` and thinks the user resized, corrupting `_baseInvW`.
+**Fix:** Always set `win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)` BEFORE
+calling `win:setWidth(snapW)` in every snap site. This ensures the minimum allows the target.
+
+**Q56: HandcraftLogic.new requires exactly 3 arguments.**
+`HandcraftLogic.new(playerObj)` crashes with "expected 3 arguments, got 1". Always pass
+`HandcraftLogic.new(playerObj, nil, nil)` even when no craftBench/isoObject is involved.
+Same applies to `BuildLogic.new(playerObj, nil, nil)`.
+
+**Q57: recipe:getDescription() and recipe:isNeedSurface() may not exist on all CraftRecipe types.**
+Not all CraftRecipe Java objects expose these methods. Calling them throws a Java RuntimeException.
+**Fix:** Check method existence with `if recipe.getDescription then` before calling. Pre-bake during
+catalog build (one-time cost) rather than per-frame pcall.
+
+**Q58: drawTextureScaledAspect does its own aspect math — never pre-scale dimensions.**
+`drawTextureScaledAspect(tex, x, y, w, h, ...)` fits the texture into w×h preserving aspect ratio.
+If you manually compute `dw, dh` from the texture's native size and pass those as w, h, the function
+applies ANOTHER aspect-preserving shrink → double-shrink → tiny icons.
+**Fix:** Always pass the bounding box size directly. Let the function handle the math.
+
+**Q59: Kahlua pcall catches Lua errors but still logs Java RuntimeExceptions to console.**
+When a pcall'd function calls a Java method that throws (e.g., method-not-found on a Java object),
+Kahlua catches it for Lua flow control but the Java bridge still logs `ERROR: ... Exception thrown`
+to console.txt. This spams thousands of lines per session.
+**Fix:** Avoid pcalling Java methods that may not exist. Check method existence first (`if obj.methodName then`).
+Pre-bake results during catalog build rather than checking per-frame.
+
+**Q60: `ISHandcraftAction:new` calls `convertToPZNetTable(manualInputs)` which crashes on both `nil` and `false`.**
+`convertToPZNetTable` (Java-side, LuaManager.java:2959) calls `.iterator()` on its argument.
+Passing `nil` → Java `null` → NullPointerException. Passing `false` → `Boolean` → "expected KahluaTable, got Boolean".
+Passing `{}` avoids the crash but makes `:start()` think manual inputs were selected (empty table is truthy),
+so it skips auto-resolution and the craft has no items to consume — action completes but nothing happens.
+**Fix:** Bypass `:new` entirely. Construct via `ISBaseTimedAction.new(ISHandcraftAction, player)` and set
+all fields manually with `manualInputs = nil`. The `:start()` method checks `if self.manualInputs then` —
+nil is falsy, so it takes the auto-resolve path (line 122-126) and populates items from recipe data.
+Vanilla always routes through `FromLogicMultiple` which builds a real table, so this code path is never
+exercised by the vanilla UI — it's a modding-only landmine.
+
+**Q61: Script Item objects from `getPossibleInputItems()` may use `getFullName()` not `getFullType()`.**
+`CraftRecipeInput:getPossibleInputItems()` returns script `Item` objects (not `InventoryItem`). These may
+expose `getFullName()` (returning `"Module.Type"`) instead of `getFullType()`. `getDisplayName()` works on
+both. **Fix:** Try `getFullType()` first, fall back to `getFullName()`, then manual `module:getName() .. "." .. item:getName()`.
+
+---
+
+## ZeD-UI ARCHITECTURE
+
+### Design Principles (enforced)
+
+1. **Complete UI, not a skin.** Every panel built from our component library. Zero vanilla rendering in the final product.
+2. **No half-baked work.** Done = 100% working, tested, themed, responsive. Ships from disk, works from disk.
+3. **Fresh every frame.** Components read ZeD.T each frame. Zero stale data on theme change.
+4. **The chrome IS the design.** System 7.1.2 foundation. Hard geometry, pixel-precise borders, no softness.
+5. **Two voices.** Monospace = chrome/labels. Sans-serif = content/values. Never mix.
+6. **Hierarchy through caps and color.** F4 Heading = F2 Body size. ALL-CAPS + accent = heading.
+7. **Own the interactions.** No ISResizeWidget, no ISScrollingListBox. Custom everything.
+8. **No nested scrolling.** Design problem, not a scroll problem.
+9. **Item card = recon.** Non-invasive live testing maps the PZ data model before we start replacing panels.
+
+### Namespace
+```
+ZeD.T           — active theme palette
+ZeD.Atoms       — draw helpers (Atoms.lua + AtomExtensions.lua)
+ZeD.Molecules   — molecule draw functions + component classes
+ZeD.BaseThemes, ZeD.AccentColors, ZeD.TextSizes, ZeD.Spacing — tokens
+```
+Organisms are global classes: ZeD_Window, ZeD_ScrollList, ZeD_TabPanel, etc.
+
+### Theme Reactivity Pattern
+```lua
+function MyComponent:new(x, y, w, h)
+    local o = ISPanel:new(x, y, w, h)
+    local T = ZeD.T
+    o.backgroundColor = {r = T.surf1.r, g = T.surf1.g, b = T.surf1.b, a = T.surf1.a}
+    return o
+end
+function MyComponent:prerender()
+    ZeD.colorSync(self.backgroundColor, ZeD.T.surf1)  -- mutate in-place, zero alloc
+    ISPanel.prerender(self)
+end
+```
+
+### Token System (ZeD.T)
+Surfaces: base, surf1-4. Borders: border (soft), borderS (strong).
+Text: text, textSec, textHead. Accent: accent, accentBright, hover, textOnAccent.
+Status: danger, warning, positive, info.
+Fonts: fontF1 (Chrome/Fira Mono Bold), fontF2 (Body/Fira Sans Cond.), fontF3 (Data/Fira Mono), fontF4 (Heading/Fira Sans Cond. SemiBold), fontF5 (Micro/Fira Sans Cond. 9px).
+Dimensions: titleBarH, rowH, buttonH, tabH, inputH, fillBarH.
+Spacing: T.sp.sm, T.sp.md, T.sp.lg, T.sp.xl, T.sp.scrollbarW.
+
+### Utility Functions
+```lua
+ZeD.colorAlpha(color, alpha)        -- new table with modified alpha
+ZeD.colorBlend(base, overlay, s)    -- lerp between two colors
+ZeD.colorSync(target, source, aOvr) -- mutate target in-place (zero alloc)
+ZeD.applyTheme(base, accent, sz)    -- rebuild ZeD.T
+```
+
+---
+
+## ITEM CARD ARCHITECTURE
+
+### Category Detection Order
+```lua
+1. getFluidContainer() ~= nil → "Fluid"     (MUST be first — fluid items may not be "Food")
+2. instanceof HandWeapon + getAmmoType → "Firearm"
+3. instanceof HandWeapon → "Weapon"
+4. getCategory() == "Food" → "Food"
+5. getCategory() == "Clothing" → "Clothing"
+6. instanceof DrainableComboItem → "Drainable"
+7. getCategory() == "Literature" → "Literature"
+8. getItemCapacity() > 0 → "Container"
+9. instanceof Key → "Key"
+10. canEmitLight() → "Light"
+11. fallback → "Item"
+```
+
+### Status Alerts (badges below item name)
+Broken, Wet (>15), Rotten, Burnt, Frozen, Tainted, Activated, Equipped, Favorite, Bloody, Dirty, Raw! (dangerous uncooked)
+
+### Layout: About This Macintosh
+```
+┌──────────────────────────────────────────────┐
+│ [icon] Item Name    : STAT LABEL    Value    │
+│        [alerts]     : STAT LABEL    Value    │
+│                     : STAT LABEL    Value    │
+│ CATEGORY   type     : WEIGHT        X.X kg   │
+│─────────────────────────────────────────────│
+│ CONDITION      82%  : [████████████████░░]   │
+└──────────────────────────────────────────────┘
+```
+- 50/50 columns, 12px gap, no vertical divider
+- Icon: no box, texture breathes on its own
+- Card has no top border (title bar covers it)
+- Fixed-size window (resizable=false), auto-height from calcHeight()
+- Values truncated with "..." if they overflow column width
+
+---
+
+## COMMON MISTAKES TO AVOID
+
+1. `ZeD.Atoms = {}` unconditionally — use `ZeD.Atoms = ZeD.Atoms or {}`
+2. Allocating color tables in prerender() — allocate once in new(), mutate via colorSync()
+3. Calling item:getInsulation() — doesn't exist on items, body-part-level only
+4. Multiplying boredom by 100 — getUnhappyChange() is already in display scale
+5. Using tostring(float) for display — gives 15-digit precision, use math.floor() or string.format()
+6. Drawing card border on all 4 edges inside a window — double-thick top line
+7. Trusting getCategory("Food") for fluid containers — check getFluidContainer() first
+8. Using getCombatSpeedModifier() * 100 — raw value is already the display value
+9. Scrollbar reserveBottom when parent excludes grow box — double subtraction
+10. Relying on onMouseDown alone — children eat events, use update() as backup
+11. Adding `or` fallbacks — ZeD.T is always populated, trust the token system
+12. Centering stats vertically without clamping — overflows into footer at large font
+13. ISPanel child panels render independently of parent stencil rects — children draw outside clipped area when scrolled. Use direct `drawAt()` rendering instead of `addChild()` for scroll-clipped content.
+14. BodyPartType enum names differ from CharInfoOverhaul conventions — vanilla uses `UpperArm_L`/`ForeArm_L`/`Hand_L` not `Arm_Upper_Left`/`Arm_Lower_Left`/`Hand_Left`. Verify against ISHealthPanel.lua.
+15. Thermoregulator `getNode(i)` + `getName()` string matching is unreliable — use `getNodeForType(BodyPartType)` (vanilla ISClothingInsPanel pattern). All `*UI` getter variants return 0-1 normalized values for display.
+16. Lua `local function` is only visible AFTER its declaration line — forward references to local functions cause "call nil" errors. Declare helpers before the functions that call them.
+17. `wornItem:getLocation()` returns group-prefixed strings like `"base:tshirt"`, `"base:pants"`, `"base:belt"` — NOT plain PascalCase like `"Tshirt"`. Strip the `"group:"` prefix before matching. ForageSystem's `clothingPenalties` table uses unprefixed PascalCase keys because it was written before groups were added to body locations.
+18. Forward-referencing `local` variables in closures — a function defined BEFORE a `local x = ...` line cannot capture `x`. The closure sees global `x` (nil). Fix: forward-declare with `local x` before the function, assign later (see Settings.lua S64 fix).
+19. Embedded UIWorldMap `setVisible(false)` doesn't hide Java rendering — must also call `javaObject:setVisible(false)` AND zero dimensions. Without all three, the Java map renders over other Lua-drawn content.
+
+---
+
+## B42 CRAFTING API (discovered Session 49)
+
+### HandcraftLogic — the data layer for crafting UI
+```lua
+-- Create logic instance (same pattern Neat Crafting uses)
+local logic = HandcraftLogic.new(player, craftBench, isoObject)
+logic:setManualSelectInputs(true)
+
+-- Event listeners — the core API for reactive UI
+logic:addEventListener("onUpdateRecipeList", callback, context)  -- recipe list rebuilt
+logic:addEventListener("onRecipeChanged", callback, context)     -- selected recipe changed
+logic:addEventListener("onInputsChanged", callback, context)     -- ingredient availability changed
+logic:addEventListener("onShowManualSelectChanged", callback, context)
+logic:addEventListener("onRebuildInputItemNodes", callback, context)
+logic:addEventListener("onStartCraft", callback, context)        -- crafting begins
+logic:addEventListener("onStopCraft", callback, context)         -- crafting ends
+
+-- Recipe access
+logic:setRecipe(craftRecipe)          -- select a recipe
+logic:getAllBuildableRecipes()        -- returns Java list of buildable recipe elements
+-- Each element: element:getCraftRecipe() → craftRecipe object
+-- craftRecipe:getTags() → Java list of tag strings (first tag = category)
+-- craftRecipe:getTranslationName() → localized display name
+-- craftRecipe:getIconTexture() → icon texture
+```
+
+### ISHandcraftWindow — the vanilla crafting window wrapper
+```lua
+-- Opens via ISEntityUI.OpenHandcraftWindow(player, nil, "*", false, craftRecipe)
+-- ISHandcraftWindow:derive("ISHandcraftWindow") from ISCollapsableWindow
+-- Creates ISHandCraftPanel (the PZAPI node-based inner panel)
+-- recipeQuery default: "InHandCraft;AnySurfaceCraft"
+-- Lock button for position persistence
+-- calculateLayout handles responsive sizing (the source of the "too big" bug)
+```
+
+### BuildUI.lua — PZAPI node-based crafting interface
+```lua
+-- Uses PZAPI.UI declarative node system (NOT ISUI)
+-- 14 categories filtered by craftRecipe:getTags():get(0):
+-- All, Favourite, Animal, Blacksmithing, Carpentry, Demo, Farming,
+-- Masonry, Metalwork, Outdoors, Pottery, Stonemasonry, Survival, Welding
+-- Category icons are item textures (e.g., Item_Anvil_Forged.png for Blacksmithing)
+-- 48×48 category buttons, 320×320 item buttons (scaled 0.25)
+```
+
+### Key B42 crafting API limitation
+The new `craftRecipe` system is significantly harder to mod than B41's Recipe system.
+Adding items to existing recipe inputs requires accessing Java's cached `loadedItems`
+field through `testFunction` workarounds. PZwiki explicitly calls for TIS to implement
+proper modification methods. Any crafting UI replacement must work with the existing
+recipe data — don't try to modify recipes from Lua.
+
+### Animal API (discovered Session 84)
+
+**Q62: Animal hunger is on the Stats object, NOT getData().**
+```lua
+-- WRONG: animal:getData():getHunger()     -- does not exist
+-- RIGHT: animal:getStats():get(CharacterStat.HUNGER)  -- returns 0.0–1.0
+-- Thirst has a direct shortcut: animal:getThirst()     -- returns 0.0–1.0
+-- Multiply by 100 for display percentage.
+```
+
+**Q63: animal:getAnimalType() returns lowercase engine strings.**
+Used with `getText("IGUI_AnimalType_" .. type)` for display names. Values include: cow, bull, ewe, ram, chicken, rooster, hen, pig, sow, boar, turkey, turkeyhen, rabbit, raccoon, deer, stag, doe, fawn, etc.
+
+**Q64: Kahlua chained `and` with method calls causes parse errors.**
+```lua
+-- CRASHES: local x = getGameTime and getGameTime():getCalender and getGameTime():getCalender()
+-- FIX: break into sequential nil checks:
+local gt = getGameTime and getGameTime()
+if not gt or not gt.getCalender then return end
+local cal = gt:getCalender()
+```
+
+**Q65: attackOtherMales() is the engine flag for male-on-male aggression.**
+Don't manually count adult males per species — use `animal:attackOtherMales()` to check if an animal has the aggression trait, then verify another adult male of the same type exists in the zone.
+
+**Q66: Java proxy objects from DesignationZoneAnimal.getAllZones() lose Lua table key identity.**
+Each call to `getAllZones()` returns fresh Lua proxy wrappers for the same underlying Java zone objects. Using these as Lua table keys (`cache[zone] = summary`) breaks on the next call because the new proxy `~=` the old one. **Fix:** Cache by zone name string, not object reference. Store zone names in state, look up fresh proxies via helper:
+```lua
+local function getZoneByName(name)
+    local allZones = DesignationZoneAnimal.getAllZones()
+    for i = 0, allZones:size() - 1 do
+        local z = allZones:get(i)
+        if z:isStillStreamed() and z:getName() == name then return z end
+    end
+    return nil
+end
+```
+
+**Q67: screenToIsoX/Y for mouse-to-world coordinate conversion.**
+`getMouseWorldX()` / `getMouseWorldY()` do NOT exist. Use:
+```lua
+local wx = screenToIsoX(playerNum, getMouseX(), getMouseY(), z)
+local wy = screenToIsoY(playerNum, getMouseX(), getMouseY(), z)
+local sq = getCell():getGridSquare(wx, wy, z)
+```
+Same API used by vanilla `ISAddDesignationAnimalZoneUI:pickSquare()`.
+
+**Q68: ISAddDesignationAnimalZoneUI requires parentUI reference.**
+`ISAddDesignationAnimalZoneUI:new(x, y, w, h, player)` stores a `parentUI` reference set externally after creation. The `undisplay()` method calls `self.parentUI:setVisible(true)` — crashes with nil index if parentUI was never set. **Fix:** Don't open this panel standalone. Build custom zone creation UI instead, using `DesignationZoneAnimal.new()` directly.
+
+**Q69: DesignationZoneAnimal.removeZone(zone, flag) — flag is remove-fence.**
+The second parameter to `removeZone` is NOT "remove connected zones." It's a fence-cleanup flag. Vanilla always passes `true` and removes one zone correctly. If removing all zones, the bug is in zone identity (Q66), not in this parameter.
+
+**Q70: Tab icon PNGs must be 8-bit depth — PZ throws IOException on 16-bit.**
+PZ's texture loader (`FileSystemImpl.updateAsyncTransactions`) calls `ImageIO.read()` which rejects
+16-bit PNGs with `Unsupported bit depth: 16`. `getTexture()` then returns nil silently.
+ImageMagick's `-depth 8` flag converts: `magick input.png -depth 8 output.png`.
+All custom icon PNGs (especially GrayscaleAlpha from batch inversion) must be verified 8-bit.
+
+**Q71: ISUI3DModel doesn't need strict viewport boundary checks.**
+Window-parented ISUI3DModel children are clipped by the ISCollapsableWindow's own rendering
+boundaries (Java side). Manual Lua checks like `avatarY >= top and avatarY + h <= bot` are
+overly strict and cause the model to disappear prematurely or require scroll-to-show.
+**Fix:** Just clamp Y below the pinned tab header (`bY + tabHeaderH`) and let the window clip.
+The Q52 stencil issue only applies to stencilRect-using PANELS, not to window-level children.
+
+**Q72: World Window onMouseWheel must route to tab-specific handlers.**
+The drawer's `onMouseWheel` dispatches to `getWorldActiveScroll()` by default, which returns
+the tab's main scroll. But CraftingTab and BuildingTab have dropdown overlays with their own
+scroll logic in `CC.onMouseWheel()`. If the wheel event bypasses this, dropdown scroll breaks.
+**Fix:** Check `win._activeTab == "craft"/"build"` before falling through to generic scroll,
+and delegate to `ZeD.CraftingTab.onMouseWheel()` / `ZeD.BuildingTab.onMouseWheel()`.
+
+### Context Menu System (S88 — discovered building unified menu)
+
+**Q73: ISContextMenu is a per-player CACHED SINGLETON, not a per-RMB instance.**
+Each call to `ISContextMenu.get(player, x, y)` returns the SAME instance for that player
+via `getPlayerContextMenu(player)`. The instance is added to UIManager ONCE at first use
+and then reused across every subsequent RMB. `setVisible(true)` and `clear()` drive the
+per-RMB lifecycle, NOT `addToUIManager`. Hooking `addToUIManager` to intercept menu
+spawning will only fire ONCE per session — not what you want.
+
+**Q74: prerender is the reliable per-RMB intercept point on the singleton menu.**
+Combined with `clear()` as the per-RMB reset signal, this is the working pattern:
+```lua
+local origClear = ISContextMenu.clear
+function ISContextMenu:clear()
+    origClear(self)
+    self._zedSpawned = false   -- reset per-RMB marker
+end
+
+local origPrerender = ISContextMenu.prerender
+function ISContextMenu:prerender()
+    if self._zedSpawned then self:setX(-100000); return end
+    if self.addDefaultOptions then pcall(function() self:addDefaultOptions() end) end
+    if self:isEmpty() then self._zedSpawned = true; return origPrerender(self) end
+    self._zedSpawned = true
+    -- ... build replacement menu, hide vanilla off-screen, skip orig prerender
+end
+```
+First prerender frame after `clear()` has fully-populated `.options` from the OnFill events.
+
+**Q75: Removing the singleton ISContextMenu from UIManager breaks ALL future RMBs.**
+Vanilla never re-adds the per-player singleton. If a derivative menu's `close()` calls
+`vanillaMenu:removeFromUIManager()` to "clean up", subsequent RMBs will silently fail —
+`ISContextMenu.get()` returns the cached instance, `setVisible(true)` flips the flag,
+but the panel isn't in UIManager so `prerender()` never fires. To dismiss, use
+`setVisible(false)` and/or `setX(-100000)`. Never remove the cached singleton.
+
+**Q76: setStencilRect takes panel-LOCAL coordinates directly.**
+Common bug: subtracting the panel's x/y from the desired stencil position (treating it
+as a relative offset). Don't. `panel:setStencilRect(x, y, w, h)` clips to the rectangle
+at panel-local `(x, y)` — the SAME coordinate space the molecules pass to draw calls.
+A mismatched stencil silently clips ALL drawing to a tiny rectangle near panel origin
+and produces a "panel renders nothing" symptom with no error.
+
+**Q77: ISWorldObjectContextMenu.checkWeapon(chr) is misleadingly named.**
+Despite the name, this is a weapon-presence check on a character — it does NOT trigger
+or open a context menu. It returns true/false based on whether `chr` has a usable weapon.
+Useful for action gating; useless for any "fire a fresh world RMB programmatically"
+intent. The actual programmatic entry is `ISContextManager.getInstance().createWorldMenu(
+playerNum, nil, worldobjects.items, x, y)` — but you must build the worldobjects list
+yourself (PZ's mouse handler does it from Java; no clean Lua picker exists at the time
+of writing).
+
+**Q78: Vanilla "More" submenus are overflow buckets — flatten them for strip menus.**
+`ISInventoryPaneContextMenu.lua:4659` wraps Rename / Show Build Recipes Used /
+Rename Bag / Rename Food / debug actions inside a submenu titled `getText("ContextMenu_More")`.
+This makes sense for vanilla's vertical dropdown but adds a navigation level that's noise
+for icon-strip menus that handle overflow via truncation/scroll. Detect any top-level
+option whose `.name == getText("ContextMenu_More")` (or unlocalized "More") that has
+`.children` and splice the children into the parent list at that position.
+
+**Q79: PZ bitmap fonts have ASCII but lack `›` (U+203A) and similar Unicode glyphs.**
+Breadcrumb separators using `›` render as tofu or blank. Q15b documented arrow glyph
+absence; same root cause applies to typographic punctuation. Use plain ASCII ` > ` as
+a separator and accept the visual compromise — it's a known PZ bitmap-font limitation.
+
+**Q80: PZ joypad dispatch is duck-typed — no ISPanelJoypad inheritance required.**
+`joypadData.focus:onJoypadDown(button, joypadData)` — no instanceof check against
+`ISPanelJoypad` or `ISUIElementJoypad`. Any ISPanel subclass implementing the method
+signatures (`onJoypadDown`, `onJoypadDirUp`, `onJoypadDirDown`, `onJoypadDirLeft`,
+`onJoypadDirRight`) will receive dispatch. **Implication:** `ZeD_Panel` does NOT need
+`ISPanelJoypad` inheritance. Stub methods on the base class, delegate to FocusManager.
+Saves an inheritance chain and avoids coupling to vanilla's gamepad class hierarchy
+(which has its own history of B42 patch churn). Confirmed S89 research for GAMEPAD_SPEC.
+
+**Q81: `wasMouseActiveMoreRecentlyThanJoypad()` is unreliable — don't use it.**
+Vanilla helper returns stale values and does not distinguish mouse movement from mouse
+clicks. Returns true even after the player has been on gamepad for minutes, simply
+because the cursor moved a pixel. **Fix:** implement custom input mode detection per
+the Jibb Smart rule — mouse clicks and keyboard presses count as KBM activity; mouse
+movement alone does NOT. Canonical implementation: `InputModeDetector.lua` (stick
+threshold 0.20, trigger threshold 0.15, 200ms cooldown between mode switches). Do not
+consume `wasMouseActiveMoreRecentlyThanJoypad()` anywhere in ZeD-UI.
+
+**Q82: Character gameplay controls are locked in Java — not rebindable from Lua.**
+Movement, aim, attack, sprint, crouch — all gameplay bindings are wired in Java engine
+code and cannot be rebound from Lua. Confirmed by Custom Gamepad UI (B42.16) mod
+author. **Implication:** ZeD-UI gamepad scope is UI navigation only. Gameplay control
+fixes (e.g., B42.16's pressure-sensitive aim regression, the can't-move-with-inventory
+bug) require Java source modification, which is out of mod scope. Mitigation strategy
+ZeD-UI does adopt: ensure the mod itself doesn't worsen these issues — GAMEPAD_SPEC D1
+("movement never blocked") + windowshade-on-LS/RS/LT dismiss model directly counter
+the can't-move-with-inventory regression by guaranteeing UI steps aside on gameplay
+input.
+
+**Q83: B42.16 controller overhaul introduced regressions — design around them, not on them.**
+Build 42.16 shipped (a) pressure-sensitive aim triggers that activate from resting
+finger pressure and (b) a can't-move-with-inventory-open bug. **Implication for ZeD-UI:**
+never trap the player in a menu; always allow gameplay input to reflexively dismiss UI.
+GAMEPAD_SPEC's D1 ("movement never blocked") and the locked dismiss model (LS/RS/LT
+magnitude > 0.20 → windowshade + release focus) are the architectural response — both
+directly address this class of regression. Every new ZeD-UI gamepad feature must honor
+these rules; any future PZ patch that regresses gameplay input must not cascade into
+ZeD-UI blocking the player.
+
+**Q84: `getCore():doZoomScroll(playerIdx, direction)` is the Lua-callable zoom API.**
+`direction` is an integer: positive = zoom-IN (closer to player), negative = zoom-OUT
+(further from player). One call = one zoom step of 0.25 units. Matches mouse wheel
+semantics directly — in `DebugChunkStateUI.lua:298` the wheel delta is passed straight
+through without inversion. `playerIdx` is 0-based; pass `0` for single-player, or the
+actual player index for split-screen. Vanilla call sites:
+```lua
+-- client/Tutorial/Steps.lua:1196-1198 (tutorial sneak step, hardcoded playerIdx=0)
+getCore():doZoomScroll(0, 1)   -- zoom in
+getCore():doZoomScroll(0, -1)  -- zoom out
+
+-- client/ISUI/ISBackButtonWheel.lua:160-162 (vanilla gamepad zoom in back-button wheel)
+getCore():doZoomScroll(self.playerNum, 1)
+getCore():doZoomScroll(self.playerNum, -1)
+```
+Current zoom level readable via `getCore():getZoom(playerIdx)` (returns float). No
+`setZoom()` on core — if you need absolute zoom, loop `doZoomScroll` against the
+current vs target delta. Respects `getCore():getAutoZoom(playerIdx)` flag (the vanilla
+gamepad zoom wheel guards against calling when auto-zoom is on). Confirmed functional
+during ZeD-UI S92 BumperChord QA — 35 successful zoom dispatches, zero exceptions, no
+`pcall` failures. Works while game is paused (operates on `IsoCamera` directly). Not
+rate-limited at the call site; spam-safe per-frame. Used by BumperChord.lua wrapped
+in `pcall` for signature-drift safety.
+
+**Q85: Top-level `print()` at Lua file-load time is NOT captured in console.txt on B42.16.**
+Runtime event-callback prints (from `Events.OnTick`, `Events.OnGameStart`,
+`Events.OnMouseDown`, custom event handlers, etc.) DO appear in `console.txt`.
+Top-level prints — those that execute during PZ's initial Lua file-load pass,
+before/during the logger stream being wired up — go to stdout only. **Observed in
+S91/S92:** Both `[ZeD.Input] InputModeDetector loaded - awaiting first input event`
+and `[ZeD.Input] BumperChord loaded - no arming timeout, hold-and-tap model` are
+absent from `C:\Users\danie\Zomboid\console.txt` despite both files definitely loading
+(their runtime `Events.OnTick` handlers fire correctly and their state transitions
+appear in console.txt). **Workaround** if you need a boot-diagnostic to be grep-able:
+wrap the `print()` in an `Events.OnGameStart.Add(function() print(...) end)` callback.
+That fires after PZ's logger is fully wired, and the line ends up in console.txt. For
+purely top-level prints, accept they're stdout-only and don't rely on them for QA.
+Does NOT affect `isoConsole`-style in-game console output — that's a separate pipeline.
+
+**Q86: ZeD_Window derives from ISPanel DIRECTLY — NOT from ZeD_Panel. Base-class contracts must be duplicated on both classes.**
+Inheritance chain verified via grep S93:
+```lua
+-- Organisms.lua:38
+ZeD_Window = ISPanel:derive("ZeD_Window")       -- NOT ZeD_Panel:derive
+
+-- ZeD_Panel.lua:18
+ZeD_Panel = ISPanel:derive("ZeD_Panel")
+
+-- ZeD_ContextMenu.lua:29
+ZeD_ContextMenu = ZeD_Panel:derive("ZeD_ContextMenu")   -- the ONE subclass of ZeD_Panel
+```
+The name `ZeD_Panel` is misleading — it reads as "the base for all ZeD UI surfaces" but in practice only `ZeD_ContextMenu` actually uses it. `ZeD_Window` (Character Window, World Window, standalone inspect, any future ZeD window type) bypasses it entirely. **Implication:** any method intended as a "ZeD UI surface contract" (onJoypadDown, onJoypadDir*, future onGamepadConnect, theme-reactivity hooks, lifecycle callbacks) must be duplicated onto BOTH `ZeD_Panel` AND `ZeD_Window`, OR `ZeD_Window` must be refactored to `ZeD_Panel:derive`. S93 chose duplication for minimum blast radius. Future Organisms.lua refactor candidate: change `ZeD_Window = ISPanel:derive(...)` to `ZeD_Window = ZeD_Panel:derive(...)` and let ZeD_Window inherit the existing ZeD_Panel methods (hit zone registry, _onPrerender hook, joypad stubs). Risk is the `setmetatable(o, self)` + `self.__index = self` pattern in `ZeD_Window:new()` conflicting with ZeD_Panel's — worth a careful read-through but mechanically simple. **Grep for future work:** check all current `ZeD_Window:method()` definitions for collision with ZeD_Panel methods before flipping the derive call.
+
+**Q87: `setJoypadFocus(playerID, control)` is the canonical engine-level joypad focus setter — without it, `onJoypad*` dispatch never routes to your element.**
+PZ's engine dispatches `joypadData.focus:onJoypadDown(button, joypadData)` — the focus target is stored as `joypadData.focus`. Mod-local state (tracking "my window has focus" in a Lua table) is INVISIBLE to the engine unless you push the same target into `joypadData.focus`. Defined at `shared/JoyPad/JoyPadSetup.lua:459`:
+```lua
+-- Canonical usage
+setJoypadFocus(0, myWindow)   -- player 0, focus on myWindow
+setJoypadFocus(0, nil)         -- release focus; vanilla input resumes
+```
+Related globals: `getJoypadFocus(playerID)` reads current; `setPrevFocusForPlayer(playerID)` restores the previous focus in a 3-deep chain (`focus / prevfocus / prevprevfocus`).
+**Failure mode S93 shipped with:** we updated our `_focusedWindow` state and logged "Focus: claim: ... → ..." but never called `setJoypadFocus`. Joypad face-button presses went to whatever target held vanilla focus (usually nil). Our shims were dead code. "QA-clean zero crashes" was actually zero-dispatch — the safer interpretation was "dispatch never fired", not "dispatch fired silently".
+**Fix (S94):** every `claimFocus` calls `setJoypadFocus(0, w)`; every `releaseFocus` calls `setJoypadFocus(0, nil)`; `unregisterWindow` transfer path calls it on the survivor. S95 kept this wiring. playerID hardcoded to 0 for SP; split-screen threads per-window playerNum through later.
+
+**Q88: `ISButtonPrompt:onYPress` is the vanilla gamepad Y-opens-inventory path — override the METHOD (not `cmdShowInventory`).**
+When gamepad Y is pressed and `joypadData.focus == nil` (e.g., just after our windowshade released focus), the engine dispatches through `JoypadControllerData:onPressButtonNoFocus(button)` which calls `buts:onYPress()` on the player's `ISButtonPrompt`. Vanilla `onYPress` reads `self.yFunc` — cached via `setYPrompt(label, ISButtonPrompt.cmdShowInventory, nil)` as a DIRECT function reference — and fires it, showing the vanilla inventory panel.
+**Trap:** overriding `ISButtonPrompt.cmdShowInventory = newFn` does NOT take effect, because `setYPrompt` copied the OLD function reference into `self.yFunc` at bind time. The existing prompt instance still calls the old `cmdShowInventory`.
+**Fix:** override `ISButtonPrompt.onYPress` itself on the class table. Method lookup is via metatable chain at call time, so the replacement resolves instantly:
+```lua
+if ISButtonPrompt then
+    ISButtonPrompt.onYPress = function(self) end  -- no-op; route Y through own FocusManager
+end
+```
+Same pattern applies to `onXPress` / `onBPress` / `onAPress` / `onLBPress` / `onRBPress` if you need them. Vanilla drag handlers (`setYPrompt(getCell():getDrag(self.player):getYPrompt(), nil)` at line 768) pass `nil` as the func, so a no-op override doesn't break drag behavior either.
+
+**Q89: `joypadData.controller` is a Lua `JoypadControllerData` table — NOT a numeric controller index — and `getControllerAxisValue` wants the int index.**
+`getControllerAxisValue(ctlIdx, axisIdx)` expects two integers. `joypadData.controller` looks like it would be the right argument but is actually a `JoypadControllerData:derive(ISBaseObject)` instance — a Lua table. Passing it crashes with:
+```
+java.lang.RuntimeException: expected argument of type int, got KahluaTableImpl
+```
+**Correct pattern** (mirrors `InputModeDetector.anyGamepadActive`):
+```lua
+local n = (getControllerCount and getControllerCount()) or 0
+for ctlIdx = 0, n - 1 do
+    if isControllerConnected and isControllerConnected(ctlIdx) then
+        local lx = getControllerAxisValue(ctlIdx, 0) or 0   -- AXIS_LSTICK_X
+        local ly = getControllerAxisValue(ctlIdx, 1) or 0   -- AXIS_LSTICK_Y
+        -- etc.
+    end
+end
+```
+`joypadData.controller` is useful for its own methods (e.g., `controller:clearJoypad()` at JoyPadSetup.lua:71) but NEVER as an axis-read argument. `joypadData.id` is an integer (the joypad ID) and IS valid for `isJoypadPressed(jid, btn)`.
+
+**Q90: `math.abs()` on trigger axis reads is WRONG for "pull detected" semantics — it turns the at-rest value of Xbox/PS drivers (`-1`) into `+1`, firing constantly.**
+PZ's `getControllerAxisValue(ctlIdx, AXIS_LTRIGGER)` reports trigger state in one of two driver conventions:
+- `[0, 1]`: rest = 0, fully pulled = 1. Raw `v > threshold` detects pull cleanly.
+- `[-1, 1]`: rest = -1, fully pulled = +1. (Common on Xbox/PS drivers.) Here `abs(-1) = 1`, so any threshold test with `abs()` reads "always pulled" at rest.
+**Trap (S95 shipped, caught in v2 via diagnostic print):** `math.abs(lt) > tt` fires windowshade every tick on `[-1, 1]` drivers. First shade latches forever; subsequent reopens instantly re-shade.
+**Correct pattern for pull detection:**
+```lua
+local lt = getControllerAxisValue(ctlIdx, AXIS_LTRIGGER) or 0   -- no abs()
+if lt > triggerThresh then ... end  -- rest=-1 fails, rest=0 fails, pull>0 passes
+```
+Works for BOTH driver conventions because both normalize to `>0` only on actual pull.
+**Where `abs()` IS acceptable:** `InputModeDetector`'s mode-detection path — "is any trigger showing activity, including the at-rest `-1` which proves a gamepad is plugged in." For mode detection, constant `|lt|>0.15` keeps the gamepad detected; for shade-on-pull, it's a false positive every tick.
+Stick magnitude reads (`sqrt(lx² + ly²)`) are NOT affected by this trap — sticks rest near `(0, 0)` on both conventions and `sqrt` is always non-negative anyway.
+
+**Q91: Java objects (InventoryItem, etc.) do NOT support arbitrary Lua field assignment — `item._myField = value` throws "attempted index of non-table" at runtime.**
+PZ items returned by `inventory:getItems():get(i)` are Java objects wrapped by Kahlua as `KahluaTableImpl`-adjacent but NOT actual Lua tables. Attempting to set an arbitrary field (`item._zedRenderY = y`) crashes with:
+```
+java.lang.RuntimeException: attempted index of non-table at KahluaUtil.fail(KahluaUtil.java:99)
+se.krka.kahlua.vm.KahluaThread.tableSet(KahluaThread.java:1474)
+```
+**Correct pattern:** Use a Lua-side map table keyed by the Java object reference:
+```lua
+local myMap = {}
+myMap[item] = someValue   -- Java object as key is fine
+local v = myMap[item]     -- lookup works; Java object identity is stable
+```
+Java objects work as table KEYS (identity-based lookup) but NOT as table-like containers for arbitrary field writes. This applies to all Java-bridged objects in PZ (items, containers, body parts, etc.), not just InventoryItem.
+Discovered S96 when `item._zedRenderY = y` crashed in InventoryRenderer.lua drawItemRow. Fixed by using `self._itemRenderYMap[item] = y` instead.
+
+**Q92: Vanilla context submenus live in `instanceMap` via `:getSubMenu(num)` — NOT `.subMenus[num]`.**
+ISContextMenu's submenu storage is not an obvious field. `ISContextMenu:addSubMenu(option, menu)` just sets `option.subOption = menu.subOptionNums` (a numeric key). The actual submenu panel is stored on the PLAYER'S CACHED TOP-LEVEL MENU under `context.instanceMap[subOptionNums]`, reached via the public API `ISContextMenu:getSubMenu(num)` which internally does `getPlayerContextMenu(self.player):getSubInstance(num)` (see `ISContextMenu.lua:1225`). There is no `.subMenus` field.
+**Trap (S99 shipped, caught in QA):** Our ContextMenuRegistry.makeActionDef was reading `vanillaMenu.subMenus[option.subOption]` — a non-existent field — so `def.children` was never populated for submenu parents (Move to, Fix, Rename, clothing actions). Every drill-in hit the "leaf" path in confirm(): if the parent had `onSelect` (rare for submenu parents) it fired; otherwise the menu silently closed. User saw "menu disappeared instead of drilling in."
+**Correct pattern:**
+```lua
+if option.subOption and vanillaMenu and vanillaMenu.getSubMenu then
+    local ok, sub = pcall(function() return vanillaMenu:getSubMenu(option.subOption) end)
+    if ok and sub and sub.options and #sub.options > 0 then
+        def.children = {}
+        for j, subOpt in ipairs(sub.options) do
+            def.children[#def.children + 1] = makeActionDef(subOpt, j, sub, target)
+        end
+    end
+end
+```
+**Lazy-populate escape hatch:** Some mods populate submenu options only when the user hovers (via `option.onSubMenu(vanillaMenu, option)`). Gamepad users never hover. At drill-in time, if children is still empty and `option.onSubMenu` exists, fire it in pcall and re-read the submenu before drilling.
+
+**Q93: `ISInventoryPaneContextMenu.onDropItems` / `onGrabItems` take player INDEX (int), not IsoPlayer object.**
+Signature is `function(items, player)` where `player` is an integer 0-3. Vanilla internally calls `getSpecificPlayer(player)` and `getPlayerInventory(player)` which require int args (Java-bridge boundary). Passing an IsoPlayer object throws:
+```
+java.lang.RuntimeException: expected argument of type int, got IsoPlayer
+  at MethodArguments.assertValid(MethodArguments.java:128)
+```
+The Lua caller's `pcall` catches it silently, but the action never runs. Console.txt logs the Java exception + `Lua(Vanilla).onDropItems> Exception thrown`.
+**Correct pattern:**
+```lua
+pcall(ISInventoryPaneContextMenu.onDropItems, {item}, 0)   -- int
+```
+NOT:
+```lua
+local playerObj = getSpecificPlayer(0)
+pcall(ISInventoryPaneContextMenu.onDropItems, {item}, playerObj)   -- WRONG — throws
+```
+Discovered S99 when gamepad X-drop/grab bindings silently failed. Same trap applies to any vanilla inventory helper that uses `getSpecificPlayer()` internally — always check whether the signature expects the index or the object.
+
+**Q94: `ItemContainer.new(type, nil, nil)` with no IsoObject parent silently no-ops vanilla transfer/wear/equip actions.**
+Virtual `ItemContainer` instances (e.g., the World Window's `_floorContainer` that aggregates ground items from a 3×3 square into one list) have no IsoObject parent. When vanilla code builds an `ISInventoryTransferAction` with this container as source, the action has no IsoGridSquare to walk the player toward → Java-side validation silently drops the action without queueing. `pcall` around the vanilla `onSelect` returns OK because no Lua exception was thrown — but nothing happens. This affects:
+- `ISInventoryPaneContextMenu.onGrabItems` (Grab option)
+- `ISInventoryPaneContextMenu.onWearItem` / `ISWearClothing` (Wear/Equip option)
+- Any "Move to X" options that use `ISInventoryTransferAction`
+- Anything else that routes through `ISInventoryTransferAction`
+**Fix (S100):** pre-transfer floor items into the player's real inventory BEFORE the vanilla `onSelect` fires. `ContextMenuRegistry.makeActionDef`'s `def.onFire` now detects if `selfArg` (the items array) contains items whose container is the floor, and routes them through the existing `ZeD_WorldWindow.transferFromFloor(playerObj, item, playerInv)` helper (raw world-object removal + `AddItem`). After the pre-transfer the items are in a real container with a real IsoObject parent, so the subsequent vanilla action proceeds normally.
+```lua
+-- In makeActionDef, before pcall(option.onSelect, ...):
+local ZWW = ZeD_WorldWindow
+local floor = ZWW and ZWW.getFloorContainer and ZWW.getFloorContainer()
+if floor and ZWW.transferFromFloor and type(selfArg) == "table" then
+    local playerObj = getSpecificPlayer(0)
+    local playerInv = playerObj and playerObj:getInventory()
+    if playerInv then
+        for i = 1, #selfArg do
+            local it = selfArg[i]
+            if it and it.getContainer and it:getContainer() == floor then
+                pcall(ZWW.transferFromFloor, playerObj, it, playerInv)
+            end
+        end
+    end
+end
+-- Then call option.onSelect as usual — items are now in playerInv.
+```
+The same pattern applies to any future "virtual aggregation container" that hosts items sourced from real world objects. Diagnostic pattern: if a vanilla action fires cleanly in a pcall but nothing visibly happens, check whether the source container has a `nil` IsoObject parent. Also: for Grab specifically, the pre-transfer IS the grab — vanilla's subsequent call is a harmless no-op because items are already where it wanted to put them.
+
+**Q95: Per-frame focusable builders that write `_gpFocused*` seed values stomp live D-pad onFocus writes.**
+When a builder function (e.g., `_buildEquipmentFocusables`, `_buildHealthFocusables`, `_buildThermalFocusables`, `_buildSkillsFocusables`) runs inside the per-frame ring refresh and has a tail block like `if elements[1] then win._gpFocused* = elements[1].slotType`, it OVERWRITES whatever the D-pad `onFocus` callback just wrote. Symptom: user D-pads, visual fill flashes on the focused element for one frame, then "resets" back to the first element on every subsequent frame. The per-frame builder re-runs → seed line fires → overwrites.
+**Fix (S100):** guard the seed on nil — it becomes a true one-shot initial seed, not a per-frame overwrite.
+```lua
+-- BAD — stomps every frame:
+if elements[1] then win._gpFocusedEquipSlot = elements[1].slotType end
+
+-- GOOD — seeds only when unset (mode entry / tab switch cleared it):
+if elements[1] and win._gpFocusedEquipSlot == nil then
+    win._gpFocusedEquipSlot = elements[1].slotType
+end
+```
+Then when changing modes (card entry, tab switch, etc.), explicitly clear the field: `w._gpFocusedEquipSlot = nil` in the transition code. Next refresh seeds cleanly to the new mode's first element. Applies to ANY state field used by a per-frame builder; the "write-once on nil" idiom is the safe pattern.
+
+**Q96: Timestamp-interpolation with one-frame `suppressFrames` must collapse `_animFromX = _animToX` on the suppress-fire frame.**
+The ZeD_ContextMenu carousel uses a triple-render scheme: `trackItems` holds 3 copies of the menu items, `pos` starts in the middle copy, and a settle timer (`animMs + 20`) silently teleports `pos` back into the middle copy whenever it strays. The teleport uses `_suppressFrames = 1` to skip animation for ONE frame — `progress = 1.0` is forced so `_currentOriginX` snaps to the new `_animToOriginX`.
+**Trap:** the kick block (`if _animToOriginX ~= targetOriginX then ...`) sets `_animFromOriginX = _currentOriginX` AND `_animStartMs = getTimestampMs()` on the teleport frame. The suppress branch then forces `progress = 1.0` and yields `_currentOriginX = _animToOriginX`. But `_animFromOriginX` is still at the pre-teleport anchor, and `_animStartMs` is ~now.
+**Next frame:** suppressFrames is 0 → elapsed branch fires → `elapsed ≈ 16ms`, `progress ≈ 0.08`, `p ≈ 0.22`. Interpolation: `_currentOriginX = _animFromOriginX + (_animToOriginX - _animFromOriginX) * 0.22` — pulls ~78% BACK toward the stale `from` anchor. User sees a visible backward shuffle after a LEFT-at-first-item wrap.
+**Fix (S101):** when the suppress branch fires, also collapse `from = to` on all three interpolators:
+```lua
+if self._suppressFrames and self._suppressFrames > 0 then
+    progress = 1.0
+    self._suppressFrames = self._suppressFrames - 1
+    justSuppressed = true
+end
+-- ... interpolate as usual with p ...
+if justSuppressed then
+    self._animFromOriginX = self._animToOriginX
+    self._animFromStripW  = self._animToStripW
+    -- labelX sync deferred until after its own kick block later in _layout
+end
+```
+After this, subsequent timestamp-driven frames compute `_animTo - _animFrom == 0`, so interpolation holds at `_animToOriginX` regardless of how `progress` ramps. The next real user press triggers a new kick that sets `_animFromX = _currentOriginX` cleanly.
+**General pattern:** any animation system that mixes (a) timestamp-based `elapsed / animMs` progress with (b) a one-frame "snap" escape hatch must sync `from = to` on the snap frame, or it will partially un-snap on subsequent frames. The ZeD drawer system avoids this by using delta-accumulators (`speed * dt`) instead of absolute timestamps; migration to delta-accumulators would also solve the problem but is a larger refactor.
+
+**Q97: Gamepad context menu anchor — prefer `Focus.getFocusedElement(win)` bounds over Java-item-keyed yMap lookup.**
+`Overrides/ContextMenu.lua` originally resolved gamepad inventory menu anchor by looking up `items[1]` in `win._mainContent._itemRenderYMap` (a Lua-side map keyed by Java item references, stamped each frame by `InventoryRenderer:drawItemRow`). If the lookup missed, anchor fell through to dock-bottom.
+**Failure modes:** yMap was subject to timing + visibility edge cases:
+- Item's category is collapsed → `drawItemRow` skipped → no stamp
+- Stacking hides child items under a rep row → child stamps absent
+- First-frame-after-tab-switch: renderer hasn't drawn yet → empty yMap
+- Equipment-tab path invoking context menu via an inventory-row element that's technically visible but keyed differently
+Result: gamepad menu silently dropped to dock-bottom instead of anchoring at the focused row.
+**Fix (S101):** prefer live FocusManager state as the primary anchor source:
+```lua
+local focWin = Focus.getFocusedWindow()
+if focWin and focWin._mainContent then
+    local zone = Focus.getFocusedZone(focWin)
+    if zone and (zone.zone == "charMainInv" or zone.zone == "worldMainInv") then
+        local el = Focus.getFocusedElement(focWin)
+        if el then
+            local cnt = focWin._mainContent
+            local rowH = (ZeD.T and ZeD.T.rowH) or 26
+            local ax = cnt:getAbsoluteX() + math.floor(cnt:getWidth() / 2)
+            local ay = cnt:getAbsoluteY() + (el.y or 0) + math.floor(rowH / 2)
+            return ax, ay
+        end
+    end
+end
+-- Fallback: yMap lookup on items[1]
+```
+`Focus.getFocusedElement(win)` returns the live element of the currently-focused zone — authoritative for "where is the gamepad cursor right now" regardless of render timing or stacking state.
+**Latent ipairs trap (fixed same session):** the fallback candidate list was `{ ZeD_CharacterWindow.getWindow() or nil, ZeD_WorldWindow.getWindow() or nil }`. When one window is closed, the list has a nil hole. `ipairs` stops at the first nil, skipping subsequent valid entries. Build the list explicitly with existence guards:
+```lua
+local candidates = {}
+if ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow then
+    local cw = ZeD_CharacterWindow.getWindow()
+    if cw then candidates[#candidates + 1] = cw end
+end
+if ZeD_WorldWindow and ZeD_WorldWindow.getWindow then
+    local ww = ZeD_WorldWindow.getWindow()
+    if ww then candidates[#candidates + 1] = ww end
+end
+```
+General rule: never rely on `ipairs({a or nil, b or nil})` — either guard each append, or iterate via `for i = 1, #t` with explicit nil checks inside.
+
+**Q98: `string.find(s, "%s", 1, true)` does literal `%s` character search, NOT whitespace class.**
+The 4th `plain=true` arg disables Lua pattern parsing — `%s` is interpreted as two literal characters (`%` followed by `s`) rather than the whitespace class. `_firstWord("Place Item")` using this pattern returned `"Place Item"` whole (no match), which meant the S103 first-word fallback in `ContextMenuRegistry.resolveIconForName` silently failed for every multi-word option label.
+**Fix (S103):** use a literal space with `plain=true`:
+```lua
+local sp = s:find(" ", 1, true)  -- literal space, not the %s class
+```
+Or drop the `plain` arg to get the whitespace class (matches space, tab, newline):
+```lua
+local sp = s:find("%s")  -- pattern mode
+```
+**General rule:** when mixing `plain=true` with pattern characters (`%s`, `%w`, `%d`, `.`, `*`), the pattern semantics are lost — you get literal-character search. Either omit `plain` to use patterns, or pass plain literal characters when `plain` is set. Confirmed via live console log: `"first word: 'Place Item'"` instead of `"first word: 'Place'"`.
+
+**Q99: `ZeD.Input.Detector.getMode()` oscillates `kbm`↔`gamepad` within consecutive frames when both input streams fire.**
+Observed in S103 console logs: `mode: gamepad -> kbm` on frame 4745, then `mode: kbm -> gamepad` on frame 4770 (25 frames later), then back, repeatedly. Root cause: the detector updates mode based on discrete input events (OnKeyPressed, OnMouseDown, joypad stick deltas). If the user has a hand on the gamepad (stick drift, slight movement) AND uses mouse, BOTH event streams fire in the same input tick, racing the mode setter.
+**Implication:** per-frame gating logic that reads `getMode()` is unreliable when behavior depends on mode-specific state that's STICKY across mode transitions. Example: `InventoryRenderer`'s scroll-follow guarded on `getMode() == "gamepad"` — whenever the detector flipped back to `gamepad` for a single frame, the pinned scroll snapped back even though the user was mousewheel-scrolling.
+**Fix pattern (S103):** use a DELTA GATE instead of mode gate. Only mutate state when the triggering value actually CHANGED since last frame. Cache `_lastPinnedX` and only fire the pin when the current focused id differs:
+```lua
+if focusedItem and focusedItem ~= self._lastPinnedItem then
+    -- ... pin logic ...
+    self._lastPinnedItem = focusedItem
+end
+```
+This works regardless of mode oscillation: gamepad D-pad changes focus → one pin fires → KBM user scrolls past → focus unchanged → no re-pin. Applied to `InventoryRenderer.lua:667`, `SkillsTab.lua` scroll-follow, `HealthTab.lua` scroll-follow. Supersedes the mode-gate pattern.
+
+**Q100: Ring zone focusable builders that read late-stamped zone rects return empty on the first prerender after tab-switch.**
+`Focus.setRingZoneElements(win, zoneName, elements, preserveIdx=1)` fires during `_syncRingZonesToActiveTab` on every tab-switch. The per-frame refresh in content prerender then calls `setRingZoneElements` without the preserveIdx, falling through to `_clampIdx(focusedElementIdx, elements)` which preserves the idx set by sync.
+**The trap:** if a focusable builder reads a zone rect (e.g. `win._skillsGridZone`) that's stamped at the END of the tab renderer, then on the FIRST prerender after the tab-switch the rect is still nil from the prior tab → the disclosure focusable returns `{}` → the aggregator's elements array starts with the first skill row at index 1. `focusedElementIdx = 1` then points to the wrong element. The disclosure never receives initial focus.
+**Fix (S103):** stamp zone rects at the TOP of the render function (as soon as x/y/w/tabHeaderH are known), not at the end. Applied to `SkillsTab.lua` (`_skillsGridZone`) and `HealthTab.lua` (`_healthFigureZone`). Frame order: sync runs → prerender (reads stamped-from-last-frame or nil on first) → tab render (stamps FRESH early → builders can read immediately next prerender).
+**General rule:** any builder that reads from a renderer-stamped field must either stamp the field BEFORE the builder runs in the same frame, or accept a one-frame lag. For first-frame-after-transition correctness, stamp early.
+
+**Q101: `drawTextureScaledAspect` tint multiplies RGB. Black-RGB-on-transparent icons render black regardless of tint.**
+PZ's `panel:drawTextureScaledAspect(tex, x, y, w, h, a, r, g, b)` applies (r,g,b) as a multiplicative tint against the texture's RGB channels. For icons to recolor correctly the texture MUST be white-RGB-on-transparent-alpha — the alpha channel encodes the shape, RGB is always (255,255,255).
+**The trap:** Flaticon (and many icon packs) export `fi-br-*.png` as BLACK-RGB-on-transparent-alpha by default. Tinting with `T.iconWhite = {1,1,1}` → RGB = (0,0,0) × (255,255,255) = (0,0,0) → renders black regardless. On a dark-theme paper background, icon is invisible. On light paper, still black but might be visible only if paper is light enough.
+**Fix (S103):** pre-process every `fi-br-*.png` with PIL to force RGB = (255,255,255) while preserving the alpha channel:
+```python
+from PIL import Image
+im = Image.open(path).convert('RGBA')
+r, g, b, a = im.split()
+white = Image.new('L', im.size, 255)
+out = Image.merge('RGBA', (white, white, white, a))
+out.save(path)  # idempotent — running again changes nothing
+```
+Then pair with an `iconTintable` flag in the registry so ZeD-mapped icons get tinted to `ink` / `textOnAccent` while vanilla item sprites (already colored) pass through with `T.iconWhite` (identity multiply). `ContextMenuRegistry.lua:201-209` sets the flag; `Molecules.lua:2702-2715` branches the tint.
+**General rule:** any monochrome icon pack intended for theme-aware tinting must be white-RGB with shape in alpha. If the source is black-on-transparent, batch-process at integration time.
+
+**Q102: Cone-nav with 2× off-axis weight + wide disclosure element + split-column layout → misroutes to interior row in opposite column.**
+`FocusManager`'s spatial cone algorithm (90° cone, 2× off-axis weight, no-wrap) picks neighbors by weighted distance. For D-pad DOWN from a disclosure rect that spans the full drawer width (e.g. 500px wide), cone-nav evaluates every element below. First-row-left skill is at x-center ~100 (off-axis delta from disclosure center ~150); first-row-right skill is symmetric. BUT an interior row (e.g. 5th skill down in right column) at x-center ~350 has an x-delta of 100 and a y-delta ~180 — the WEIGHTED distance can be LOWER than the first-row targets whose 2×|off-axis| penalty dominates their low y-delta. Result: D-pad DOWN from disclosure picks the 5th skill in the right column instead of the first skill in either column.
+**Fix (S103):** add explicit dispatch branches that bypass cone-nav for disclosure ↔ first-row transitions:
+```lua
+-- In onJoypadDirDown override:
+if zone.zone == "charTabContent" then
+    local el = Focus.getFocusedElement(self)
+    if el and el.isDisclosure and zone.elements and zone.elements[2] then
+        zone.focusedElementIdx = 2  -- first post-disclosure element
+        -- fire onFocus of new element
+        return
+    end
+end
+-- In onJoypadDirUp override:
+if zone.zone == "charTabContent"
+   and zone.focusedElementIdx == 2
+   and zone.elements[1] and zone.elements[1].isDisclosure then
+    zone.focusedElementIdx = 1
+    return
+end
+```
+Applied to Skills + Health (disclosure + split-column bodies). Thermal doesn't need this — its first post-disclosure elements are centered pills, so cone-nav picks them cleanly.
+**General rule:** when a focusable's width >> target-column width, cone-nav's off-axis penalty punishes the geometrically-nearest target disproportionately. Either narrow the focusable's cone-nav bounds, or use explicit directional dispatch for the transition.
+
+**Q103: Cone-nav's 45° constraint (`|dx| > |dy| → reject`) blocks narrow-source → wide-target transitions.**
+`_coneCost` in FocusManager rejects any candidate where `math.abs(dx) > math.abs(dy)` for up/down directions (and symmetric for left/right). Combined with the 2× off-axis weight, this creates a hard geometric limit: if the source element's center x differs from the target element's center x by MORE than the vertical distance, cone-nav returns silent no-op. No element picked, no focus movement.
+Observed in S105: Journal sub-tab pills (narrow, top row, stacked horizontally) and their sub-tab-specific content below (wide full-drawer elements centered in x, or right-side buttons). From pill #1 (Journal, left side of strip) going DOWN to kills disclosure (full-width, x ≈ drawW/2 center), dx ≈ drawW/2 - pill1X ≈ 200, dy ≈ kills_y - pill_y ≈ 27. `|dx| > |dy|` → rejected. User presses DOWN from last pill, nothing happens.
+Similar breakage on save button (right-side) → group 1 (wide) and mode pill (top-right) → first thumbnail (left-side). The cone-nav algorithm works well for grid-like layouts where adjacent elements share at least one axis, but not for narrow-to-wide pivots.
+**Fix:** explicit directional dispatch branches that bypass cone-nav for known narrow→wide transitions:
+```lua
+-- DOWN from sub-tab pill → first sub-tab content element (idx 4, given pills at 1..3)
+if zone.zone == "charTabContent" and self._activeTab == "journal" then
+    local el = Focus.getFocusedElement(self)
+    if el and el.subTabIdx and zone.elements and zone.elements[4] then
+        zone.focusedElementIdx = 4
+        -- fire onFocus
+        return
+    end
+end
+-- UP from elements[4] → pill matching currently-active sub-tab (preserves sub-tab semantics)
+if zone.zone == "charTabContent" and self._activeTab == "journal"
+   and zone.focusedElementIdx == 4
+   and zone.elements[1] and zone.elements[1].subTabIdx then
+    local target = math.max(1, math.min(3, self._journalSubTab or 1))
+    zone.focusedElementIdx = target
+    -- fire onFocus
+    return
+end
+```
+Use an element-shape flag (e.g. `subTabIdx` on pills) instead of index comparison so the pattern extends to other narrow→wide layouts.
+**Related:** Q102 (disclosure↔first-row snap) is a special case of this — same geometry, different cause (off-axis weight instead of cone rejection). Both require explicit dispatch.
+**When to apply:** Any multi-element zone where a "row" of narrow elements (pills, tabs, buttons) sits spatially adjacent to a body of wider content. Before adding the pattern: test cone-nav with print statements to confirm `dx > dy` is the failure mode; cone-nav has other failure modes too (off-axis weight, no-candidate-in-direction).
+**General rule:** cone-nav assumes grid-like alignment. When layout has narrow source + wide target (or vice versa) across a pivot point, use explicit dispatch. The narrow→wide pattern appears wherever a control strip sits above/beside a content area.
+
+**Q104: Late-declared `local X` below a closure that references X makes the reference resolve to a global (nil) instead of the late-declared local.**
+Kahlua (and standard Lua) decides name-resolution scope at CLOSURE CREATION time, not at call time. When a function is defined, every free name in its body is matched against the currently-visible locals. If no local exists at that moment, the name is bound as a global lookup forever. Later `local X` declarations do NOT retroactively become the target — they create a NEW local in the enclosing chunk, separate from the global the closure already captured.
+Observed in S106: `_syncRingZonesToActiveTab` was defined at line 492 and called `_buildCharacterMCColumnFocusables(win)` inside. The forward-decl `local _buildCharacterMCColumnFocusables` was placed at line 616 (below the sync function). The real assignment at line 953 assigned to that local — but the sync function's closure had already resolved the name as `_G._buildCharacterMCColumnFocusables`, which was nil. Result: tab-switch path crashed with "Object tried to call nil in _syncRingZonesToActiveTab."
+**Fix (S106):** hoist forward-decls ABOVE all consumer closures, not just above the definition. Idiom for forward-decl blocks at top of file:
+```lua
+-- Top of file, before ANY function that might reference these:
+local _buildPanelFocusables
+local _buildLootFocusables
+local _clearGpFocusState
+local _buildCardActionFocusables
+local _buildCharacterMCColumnFocusables   -- S106: must be here, not lower
+local togglePinSkill
+-- Now define consumers:
+local function _syncRingZonesToActiveTab(win, content)
+    ...
+    local els = _buildCharacterMCColumnFocusables(win) or {}  -- upvalue capture
+end
+-- Later, assign the real function:
+_buildCharacterMCColumnFocusables = function(win) ... end
+```
+**Diagnostic pattern:** error message "Object tried to call nil in [function_name]" where the failing function is a forward-declared local that was declared AFTER the caller's definition. Grep for `^local X` to find the declaration line; if it's below the caller's `local function`, hoist it.
+**Why within-scope closures escape this:** a closure built INSIDE another function (e.g., inside `open()` or inside a panel's `_onPrerender` handler) gets its closure scope resolved when the OUTER function runs, not when the file is loaded. By the time `open()` fires, the forward-decl AND the assignment have both run, so the inner closure resolves the upvalue correctly. Only top-level functions defined during the initial file load are vulnerable.
+**Related:** "common mistake #16" (generic late-local) captures the broader shape, but this closure-specific variant deserves its own Q-row because the failure mode is invisible until the offending tab-switch path fires — the rest of the file loads and runs fine.
+**General rule:** treat the top-of-file forward-decl block as the declaration of every non-trivial local function that might be referenced anywhere in the file. When in doubt, hoist.
+
+**Q105: Per-window MC toggle helpers (`mcToggleWorldContainer`, `mcToggleContainer`, `exitWorldMC`, `_syncRingZonesToActiveTab`) declared as `local function` AFTER the focusable-builder closures that reference them = silent no-op.**
+Specific Q104 instance worth its own row because it bites HARD on per-window mcToggle wiring. The focusable builders (`_buildWorldLootFocusables` in World, the analog in Char) get assigned at file-load time near the top of the file; their closures' `onActivate` / `onHoldActivate` reference the mcToggle helpers. If those helpers are declared `local function` lower in the file (which is the natural reading order — toggles tend to live near the rendering code), the closures captured the names as globals at creation time. The `if mcToggleWorldContainer then ... end` guard pattern (used everywhere) silently short-circuits because the global is nil. **User-visible symptom:** holding A on a container does NOTHING. No log, no error, no MC mode entry. Same for any path that fires the helper through a closure built earlier in the file. S108 also hit this for `_syncRingZonesToActiveTab` referenced in Char's `mcToggleContainer` tail call.
+**Fix (S108):** add explicit forward-decls `local mcToggleWorldContainer; local exitWorldMC; local _syncRingZonesToActiveTab` (etc.) above the EARLIEST closure that references them, then convert the `local function foo(...)` definition to `foo = function(...)` so it lands on the hoisted local instead of creating a shadowing local.
+**Diagnostic:** if a `mc*Toggle*` or `_syncRingZones*` helper exists but holding A on a container does nothing (no MC mode, no log line), check that the helper is forward-decl'd above its earliest caller. Grep `^_syncRing\|^mcToggle\|^exit.*MC` and compare to first call site line numbers.
+**Why this hits per-window code specifically:** focusable builders are typically grouped near the top of the file (forward-decl + assigned early so other init code can call them); MC state machine helpers tend to live mid-file near render code. Natural ordering puts builder closures BEFORE helper definitions. The `if guard then` pattern silently swallows the failure rather than crashing — which is what makes this so insidious. Easier to debug if you DROP the guard (`mcToggleWorldContainer(...)` instead of `if mcToggleWorldContainer then ...`) — then nil-call crashes loudly with the function name in the stack trace.
+
+**Q106: Lua `not {}` evaluates to `false` — empty tables are truthy. Dirty-check patterns using `if not oldSnap then dirty = true end` only force a rebuild on the FIRST-EVER frame (when oldSnap is `nil`).**
+Once oldSnap has been written (even as an empty list `{}`), subsequent frames where the snapshot REMAINS empty (item count was 0 on previous frame, still 0 this frame) skip the rebuild. The standard count-comparison dirty check `dirty = (oldN ~= newN)` returns false (0 ≠ 0 = false), so the build block doesn't fire and the focusable elements stay stale.
+**Observed in S108:** `worldMainInv` per-frame refresh stayed non-focusable forever after MC entry when the floor (active container) was empty. `oldSnap = {}` from before MC entry, `newItems = {}` after MC entry, dirty stayed false, the "MC active + empty inv → emit placeholder" branch never fired. Bumper from MC zones skipped past mainInv entirely → "1 press from MC<N> to tabBar" complaint.
+**Fix (S108):** add an explicit STATE-TRANSITION tracker that forces dirty when the *logical* state changes even if the *data dimensions* don't. For mainInv: `local mcActive = win._mcSelected and #win._mcSelected > 0; if win._lastMcActiveForMainInv ~= mcActive then dirty = true; win._lastMcActiveForMainInv = mcActive end`. Pattern generalizes: any per-frame dirty check that gates on data-derived quantities (count, snapshot identity) needs supplemental state-transition flags for any LOGICAL state that influences what gets built.
+**Diagnostic:** if a per-frame zone refresh "stops working" after a state change but the data being read is unchanged, the dirty check is the suspect. Add a debug print of `oldN, newN, dirty` to confirm the build block is being skipped.
+**Related:** Q95 (per-frame builder seed-stomp race), Q100 (zone rect early-stamp). Q106 is the third member of the "per-frame refresh patterns that fail silently" trio. All three need explicit gating that doesn't depend solely on data identity.
+
+**Q107: FocusManager `_handleBTap` element-level `onCancel` callback has an explicit pass-through contract: `return false` = "not handled, fall through to shade-all"; any other return (nil, true, etc.) = "consumed, stop here".**
+Elements that conditionally need B — e.g. dropdown that should consume B only while open — can't just "not define onCancel when closed" because the ring per-frame refresh's dirty-check only fires on first/last element id changes. If the element's id stays stable across state flips, the element table (including its onCancel field) doesn't get replaced. So the callback must be present at all times, but able to defer.
+**Pattern (Foraging dropdown S109b):**
+```lua
+el.onCancel = function(w)
+    local d = w._forageDropdown
+    if not (d and d.isOpen) then return false end  -- pass through
+    d.isOpen = false
+    d.scrollOffset = 0
+    d:setHeight(ZeD.T.inputH)
+    return true  -- handled
+end
+```
+`_handleBTap` implementation:
+```lua
+if el and el.onCancel then
+    local ok, result = pcall(el.onCancel, w, el)
+    if not ok then print("[ZeD] FocusManager onCancel failed: " .. tostring(result)) end
+    if result ~= false then return end
+end
+_shadeAllWindows("B-tap")
+```
+**Why the pcall result ~= false check:** on pcall success, `result` is the callback's return. On pcall failure, `result` is the error message (a string). Strings are truthy AND not equal to the literal `false`, so `result ~= false` still returns true — we consume B on error (user doesn't get a phantom shade). Only a deliberate `return false` from the callback triggers fall-through.
+**Added S109b** when forage dropdown needed conditional consume. Animals zone-draw onCancel (S109a) returns nil implicitly — which is NOT false, so treated as handled. Unchanged behavior.
+**Related:** Q102 (explicit-dispatch pattern). Both are "the ring model's implicit behavior isn't quite enough; expose a callback for elements to override."
+
+**Q108: ZeD_Dropdown is an ISPanel child whose prerender paints an opaque-ish `surf2` bg (alpha 0.92–0.95) covering its entire bounds. Gamepad focus cues painted on the PARENT panel at the dropdown's bounds get covered — only ~0.04–0.08 effective accent alpha shows through.**
+The parent panel's render runs BEFORE the child panel's prerender/render in PZ's ISPanel hierarchy. Any draw on the parent at the child's bounds becomes underpaint — covered by child's opaque self-painting.
+**Workaround (ForagingTab S109b):** extend the cue 3px beyond the widget bounds on all sides. The inner area gets covered by the widget's bg, but the 3px halo strip around the widget remains visible.
+```lua
+if _gpFocusMatches(win, function(el) return el.isDropdown end) then
+    local cx = x + FOCUS_PAD_X
+    local cy = y + math.floor((h - T.inputH) / 2)
+    local pad = 3
+    _paintGpCue(panel, cx - pad, cy - pad, ddW + pad * 2, T.inputH + pad * 2)
+end
+```
+**Alternative approaches (rejected):** (a) Hook ZeD_Dropdown's own prerender/render to paint cue after its bg — invasive, modifies widget class. (b) Paint cue AFTER ZeD_Dropdown.render by reordering — not possible from parent render context.
+**When dropdown opens**, its height expands (inputH → inputH + rowH × maxVis). The halo is still visible on 3 sides (top/left/right) of the top `inputH × dd.width` portion; the expanded list area below paints its own bg but user is inside the dropdown widget anyway so the halo isn't needed mid-option.
+**Generalizes to:** any ISPanel widget that self-paints an opaque bg. Text entries (`ISTextEntryBox`), scroll bars, other child widgets — all require the halo workaround for parent-painted cues. Alternative: paint cue WITHOUT extending bounds AFTER the widget renders, but that requires reaching into the widget's render pipeline.
+
+
+**Q109: B42.17.0 removed `isJoypadPressed(id, buttonConst)` from engine-exposed Lua globals. All per-tick joypad button polling must migrate to `JoypadButton.<n>:isDown(id)`. Integer dispatch constants (`Joypad.AButton`, `Joypad.LBumper`) unchanged — only the polling calls are affected. Related shortcut helpers also removed: `isJoypadRBPressed`, `isJoypadLBPressed`, `isJoypadAPressed`, `getJoypadXButton`, `getJoypadAButton`, and all `getJoypad<Letter>Button(id)` variants.**
+
+Patch shipped 2026-04-20. Vanilla PZ Lua no longer contains a single reference to `isJoypadPressed` — the migration is complete on Indie Stone's side. Runtime symptom if unmigrated: `"Object tried to call nil in pcall"` fires every tick on the offending OnTick handler. pcall keeps the game from crashing but spams console.txt at the tick rate.
+
+**Two-namespace gotcha:** Two distinct namespaces coexist and are NOT interchangeable.
+- `Joypad.XButton` / `Joypad.LBumper` / `Joypad.DPadUp` — **integer constants**, still arrive as the `button` argument in `onJoypadDown(button)` dispatch callbacks. NOT removed. Keep `if button == Joypad.XButton then` lines as-is.
+- `JoypadButton.X` / `JoypadButton.LeftBump` / `JoypadButton.DPadUp` — **Java objects** with `:isDown(controllerId)` method. NEW polling path. Use in OnTick, timer callbacks, anywhere you need "is this button currently held?"
+
+Colon syntax is mandatory — `JoypadButton.A.isDown(id)` (dot) does not work; must be `JoypadButton.A:isDown(id)`.
+
+**Name-drift traps (these bite hardest):** Four buttons have renames between the dispatch-constant form and the poll-object form:
+
+| Dispatch constant (unchanged) | Poll object (NEW, B42.17+) |
+|---|---|
+| `Joypad.LBumper` | `JoypadButton.LeftBump` |
+| `Joypad.RBumper` | `JoypadButton.RightBump` |
+| `Joypad.LStickButton` | `JoypadButton.LeftStick` |
+| `Joypad.RStickButton` | `JoypadButton.RightStick` |
+
+`JoypadButton.LBumper` does not exist and silently no-ops with a nil-index error. Most other buttons transfer by dropping "Button" (`Joypad.AButton` → `JoypadButton.A`). DPad names transfer cleanly (`Joypad.DPadUp` → `JoypadButton.DPadUp`). NEW addition: `JoypadButton.Guide` (home/PS/Xbox button) has no old equivalent.
+
+**Full translation table for polling calls:**
+```
+isJoypadPressed(id, Joypad.AButton)      → JoypadButton.A:isDown(id)
+isJoypadPressed(id, Joypad.BButton)      → JoypadButton.B:isDown(id)
+isJoypadPressed(id, Joypad.XButton)      → JoypadButton.X:isDown(id)
+isJoypadPressed(id, Joypad.YButton)      → JoypadButton.Y:isDown(id)
+isJoypadPressed(id, Joypad.LBumper)      → JoypadButton.LeftBump:isDown(id)     *** rename ***
+isJoypadPressed(id, Joypad.RBumper)      → JoypadButton.RightBump:isDown(id)    *** rename ***
+isJoypadPressed(id, Joypad.LStickButton) → JoypadButton.LeftStick:isDown(id)    *** rename ***
+isJoypadPressed(id, Joypad.RStickButton) → JoypadButton.RightStick:isDown(id)   *** rename ***
+isJoypadPressed(id, Joypad.DPadUp)       → JoypadButton.DPadUp:isDown(id)
+isJoypadPressed(id, Joypad.DPadDown)     → JoypadButton.DPadDown:isDown(id)
+isJoypadPressed(id, Joypad.DPadLeft)     → JoypadButton.DPadLeft:isDown(id)
+isJoypadPressed(id, Joypad.DPadRight)    → JoypadButton.DPadRight:isDown(id)
+isJoypadPressed(id, Joypad.Back)         → JoypadButton.Back:isDown(id)
+isJoypadPressed(id, Joypad.Start)        → JoypadButton.Start:isDown(id)
+```
+
+**Axes migrated in parallel** (same shape: object with `:getValue(controllerId)` / `:getDeadZone(id)` / `:setDeadZone(id, v)`):
+```
+JoypadAxis1d.LeftStickX
+JoypadAxis1d.LeftStickY
+JoypadAxis1d.RightStickX
+JoypadAxis1d.RightStickY
+JoypadAxis1d.LeftTrigger
+JoypadAxis1d.RightTrigger
+JoypadAxis1d.getAxisCount()
+JoypadAxis1d.fromIndex(n)    -- 0-indexed
+```
+Numeric-index `getControllerAxisValue(ctlIdx, axisIdx)` still works fine — used by InputModeDetector and FocusManager aiming-escape polling. The `JoypadAxis1d.<n>:getValue(id)` form is the new named-API alternative.
+
+**Enumeration helpers (new):**
+```lua
+local n = JoypadButton.getButtonCount()    -- ~40 buttons max
+for i = 1, n do
+    local btn = JoypadButton.fromIndex(i - 1)    -- 0-indexed
+    if btn:isDown(controllerId) then ... end
+end
+```
+
+**Texture tables unchanged** — keyed by the new objects (`Joypad.ButtonTextures[JoypadButton.A]`, `Joypad.AxisTextures[JoypadAxis1d.LeftTrigger]`).
+
+**JoypadState unchanged** — `JoypadState.players[i+1]` still the canonical player-joypad struct; `.id` field still the controller integer; `setJoypadFocus` / `getFocusForPlayer` / `getJoypadData` all preserved.
+
+**ZeD-specific call-site inventory (S110 target, 8 sites across 2 files):**
+
+- `BumperChord.lua:188` — `isJoypadPressed(joypadIdx, Joypad.LBumper)` → `JoypadButton.LeftBump:isDown(joypadIdx)`
+- `BumperChord.lua:189` — `isJoypadPressed(joypadIdx, Joypad.RBumper)` → `JoypadButton.RightBump:isDown(joypadIdx)`
+- `FocusManager.lua` `_currentDpadDir` (four lines) — `Joypad.DPadUp/Down/Left/Right` → `JoypadButton.DPadUp/Down/Left/Right:isDown(jid)`
+- `FocusManager.lua` `_onTick` §B — `isJoypadPressed(jid, Joypad.YButton)` → `JoypadButton.Y:isDown(jid)`
+- `FocusManager.lua` `_onTick` §C — `isJoypadPressed(jid, btnInt)` where `btnInt = (_holdButton == "Y") and Joypad.YButton or Joypad.BButton`. Reshape to `local btnObj = (_holdButton == "Y") and JoypadButton.Y or JoypadButton.B` then `btnObj:isDown(jid)`.
+- `FocusManager.lua` `_onTick` §C2 — `isJoypadPressed(jid, Joypad.AButton)` → `JoypadButton.A:isDown(jid)`
+
+Third-party `PS5 DualSense Support/JoyPadMovementFix.lua:133` hits the same engine removal and confirms the issue is engine-wide, not ZeD-specific.
+
+**Diagnostic grep for any mod:**
+```
+grep -rn "isJoypadPressed\|isJoypadRBPressed\|isJoypadLBPressed\|isJoypadAPressed\|getJoypad[XABY]Button" path/to/mod/
+```
+
+Any hits = broken on B42.17. Vanilla patch compaction of Crafting/Building windows (reduced widths, rearranged control boxes, compacted input/output panels) is UI-layout-only and does not affect mods that consume the data-layer APIs (`HandcraftLogic`, `BuildLogic`, `CraftRecipe` getters, event listeners). ZeD's CraftingCore is data-layer, so no regression expected there from the vanilla UI changes.
+
+---
+
+**CUSTODIAN NOTE:** This file is a Q109 append-ready block. Next session's session-docs custodian should concatenate this to the end of `PZAPI-KNOWLEDGE-BANK.md` (after Q108), then delete this file. Kept as a standalone to avoid risk of a silent large-file-write truncation corrupting the main KB. Session S110 can either:
+1. Custodian: `Get-Content PZAPI-KB-Q109-APPEND.md | Add-Content PZAPI-KNOWLEDGE-BANK.md`, then remove the append file.
+2. Manual paste: open both files, paste Q109 block at end of PZAPI-KB, save, delete append file.
+
+---
+
+
+**Q110: PZ fires onJoypadDown(button) AND onJoypadDir* for the same physical D-pad press. Handle only ONE path per direction or users see double-step navigation.**
+
+When a D-pad direction is pressed, PZ's joypad dispatcher delivers TWO callbacks to the focused UI element on the same tick:
+1. `onJoypadDown(button)` with `button == Joypad.DPadLeft/Right/Up/Down` (generic button callback)
+2. `onJoypadDirLeft/Right/Up/Down(joypadData)` (named directional callback)
+
+Both are delivered regardless of what the element implements. If the element responds to both, any action triggered (cursor advance, list scroll, cell selection) fires twice per physical press.
+
+**Symptom pattern:** gamepad D-pad navigation jumps two cells per press; some items become unreachable because the double-step skips over them; pressing D-pad rapidly feels like page-jumping instead of row-stepping.
+
+**ZeD convention locked in S111:**
+- `onJoypadDown(button)` handles **discrete buttons** only: A, B, X, Y, LB, RB, Back, Start.
+- `onJoypadDirLeft/Right/Up/Down` handles **directional nav** exclusively.
+
+Do NOT branch on `Joypad.DPadLeft/Right/Up/Down` inside `onJoypadDown`. Leave them to the named direction callbacks. Engine delivers both regardless, so omitting the branches in `onJoypadDown` is safe — nothing gets lost.
+
+**Audit grep for offenders:**
+```
+grep -rn "Joypad.DPad[LRUD]" <mod>/42/media/lua/ | grep -v "^-- "
+```
+For any class that also implements `onJoypadDir*`, delete those D-pad branches from `onJoypadDown`.
+
+**S111 hit:** `ZeD_ContextMenu:onJoypadDown` had branches for `Joypad.DPadLeft`/`DPadRight` calling `self:prev()`/`self:next()` AND also implemented `onJoypadDirLeft`/`onJoypadDirRight` that called the same functions. Every D-pad press advanced 2 cells. Fix: removed D-pad branches from `onJoypadDown`.
+
+---
+
+**Q111: Kahlua silently disables a mod Lua file that has any parse error. No globals set, no top-level code runs, but the file "loads successfully" from `require`'s point of view. Diagnostic instrumentation added to the broken file is ALSO a no-op.**
+
+When PZ's Kahlua compiler hits a syntax error in a mod `.lua` file, the file is flagged as failed and none of its top-level code executes. BUT:
+- `require "X/Y"` does not propagate the error to the caller — it returns as if the require succeeded
+- Subsequent callers see the module's namespace as empty (never populated)
+- Any `_G.X = Y` sentinels, `print()` statements, or other instrumentation you add TO the broken file are all no-ops (the file never executes a single line)
+- Other mod files that happen to also reference symbols the broken file should set see nil
+
+**Symptom pattern that demands this check first:**
+- Globals a mod file should set are nil after restart
+- A table the mod declares (`ZeD.ContextIcons = {...}`) is empty or nil
+- A `require` call appears to succeed but the required module's top-level code clearly never executed
+- `print()` output from the file never reaches console.txt even though other modules' prints do
+- Diagnostic instrumentation added to the file also produces no output
+
+All symptoms mean the file failed to parse. The signal is in the debug logs — PZ reports parse errors but NOT as `ERROR` or `Exception`. Typical phrases to grep:
+- `error loading`
+- `error in file`
+- `unexpected symbol`
+- `syntax error`
+- `'<eof>' expected`
+- `malformed number`
+- `LuaManager`
+- `chunkname`
+
+PZ ALSO shows these on the main-menu dialog at launch, but both channels have the same information.
+
+**Common parse-error causes:**
+- Stray characters from bulk-edit tooling (e.g., a literal `n` left behind from mangled `\r\n` escapes in shell commands)
+- UTF-8 mojibake (`â€"` or similar sequences from double-encoding) — even inside comments, Kahlua's lexer can choke if the multi-byte sequence contains a byte the lexer parses as a token boundary (like a literal `"`)
+- Unbalanced braces, brackets, or quotes after regex-based text manipulation on large files
+- Lua 5.3+ syntax (goto labels, bitwise operators, integer literals) that Kahlua 5.1-based compiler rejects
+- Very large single-table literals — though Kahlua's published limits are high, double-check if pushing past 1000 entries
+
+**Diagnostic rule (lesson from S111):** when mod code silently doesn't work after an edit, grep the shared debug logs for the parse-error phrase set BEFORE writing any instrumentation. The instrumentation you'd add lives in the same file that's failing to parse, so it won't fire. Go up one level and look at how PZ reports the failure.
+
+**S111 post-mortem:** a stray `n` character at line 396 of ContextIcons.lua (from an earlier bash-escape mishap when appending a block) broke parse of the entire 988-entry table. `ZeD.ContextIcons` stayed nil, all icon resolves returned nil, every context menu option rendered as letter fallback. Spent ~2 hours writing progressively more elaborate diagnostic sentinels (print, module-load markers, 4 global sentinel locations in ContextMenuRegistry AND ContextIcons) — every sentinel added to the broken file produced no output because the broken file never executed. Eventually reached the question via an unrelated global in ContextMenuRegistry that confirmed `ZeD.ContextIcons` was empty at require time, pointing to ContextIcons itself as the failure. A grep for `error loading` / `syntax error` / `LuaManager` in the user's first-round debug log would have pointed at line 396 directly — 15-second diagnosis vs 2 hours of layered instrumentation.
+
+---
+
+**Q112: `Events.OnPostUIDraw` does NOT exist as a vanilla PZ Lua event. `LuaEventManager.AddEvent("OnPostUIDraw")` followed by `Events.OnPostUIDraw.Add(fn)` silently materializes a never-firing event slot — file load succeeds, AddEvent succeeds, .Add succeeds, but the registered callback is never invoked.**
+
+Verified by grepping vanilla PZ Lua source: `OnPostUIDraw` / `OnPreUIDraw` appear in zero vanilla files. Only `OnRenderTick` is used for post-draw work (`shared/JoyPad/JoyPadSetup.lua:1218`). Mods using `OnPostUIDraw` will load cleanly but never fire — the silent failure mode is the trap.
+
+**Fix:** for ZeD-UI debug overlays + post-draw work that needs a valid panel context, **monkey-patch `ZeD_Window:render`** at `OnGameStart`:
+
+```lua
+Events.OnGameStart.Add(function()
+    if ZeD_Window and ZeD_Window.render then
+        local _origRender = ZeD_Window.render
+        function ZeD_Window:render()
+            _origRender(self)
+            if myDebugFlag and myFocusedWindow == self then
+                pcall(myDrawOverlay)
+            end
+        end
+    end
+end)
+```
+
+The patched render runs AFTER the original — the panel's draw context is still active so `self:drawRect/drawText` work. Wrap in `pcall` so overlay bugs never take down the game. Discovered S113c when F9 debug overlay didn't paint despite F9 toggle firing correctly; root cause was the bogus event subscription.
+
+**Where to use OnRenderTick instead:** if you need post-draw work that's NOT scoped to a specific panel (e.g., fullscreen HUD overlay, screen-wide effect), `OnRenderTick` is the closest vanilla equivalent.
+
+---
+
+**Q113: `Keyboard.KEY_F11` is bound by vanilla to "Toggle Lua Debugger" (`shared/keyBinding.lua:353`). Pressing F11 in debug mode opens the engine's Lua debugger window. Custom mod debug toggles MUST avoid F11.**
+
+Tested unbound function keys for ZeD-UI mod-side debug toggles:
+- `KEY_F8` — reserved by `WorldMapEditor.lua:209` (only fires when in map editor; safe outside it but conflicts if user has editor open).
+- `KEY_F9` — **safe.** Verified unbound in `shared/keyBinding.lua` and across `media/lua/`.
+- `KEY_F10` — bound to other vanilla actions (`shared/keyBinding.lua:187`).
+- `KEY_F11` — Toggle Lua Debugger (DO NOT USE).
+- `KEY_F12` — typically Steam screenshot binding (engine-side, not vanilla Lua).
+
+**Recommendation:** `KEY_F9` is the safest function-key slot for mod-side debug toggles. For ZeD-UI specifically, F9 is now claimed by FocusManager's cone-nav debug overlay.
+
+**Symptom of accidental F11 use:** user presses your debug toggle, the Lua debugger window pops up over the game, gameplay/UI stops responding, presents as "the mod crashed" even though no Lua error occurred. Discovered S113c.
+
+---
+
+**Q114: `ZeD.Molecules.drawActionStrip` (and `drawVerbStrip`) returns rects in ABSOLUTE screen coordinates, not panel-local.**
+
+From `Molecules.lua:1687`:
+```lua
+rects[i] = {x = absX + bx, y = absY + y, w = btnSz, h = btnSz}
+```
+where `absX = panel:getAbsoluteX()` and `bx` is the panel-local offset. The rects are pre-offset for screen-space hit testing in mouse handlers.
+
+**Trap:** if you feed these rects directly into a flat-focusables system that ALSO translates panel-local → window-local at dispatch (e.g., FocusManager's `_collectFlat`), you get a DOUBLE offset — the focusable's bounds end up outside the window's bbox by the panel's absolute offset. Cone-nav can't reach them; visual paints land in the wrong spot; B-press onCancel never fires because focus never actually lands on the button.
+
+**Fix:** before returning the rects to the focusable system, convert ABSOLUTE → panel-local by subtracting the host panel's absolute coords:
+
+```lua
+local drawerPanel = win._itemDrawerPanel
+local panelAbsX = drawerPanel:getAbsoluteX()
+local panelAbsY = drawerPanel:getAbsoluteY()
+for i = 1, #els do
+    local el = els[i]
+    el.x = el.x - panelAbsX
+    el.y = el.y - panelAbsY
+    -- ...wrap callbacks...
+end
+```
+
+Then `_collectFlat`'s panel-offset translation lands the bounds in window-local correctly. Applied in `_buildCardActionFocusables` (CW) + `_wireWorldCardButtonNav` (WW) at S113c.
+
+**Symptom:** card buttons appear visually correct (the card organism paints them at absolute coords directly), but cone-nav from inv to card lands "wrong" — buttons appear in inverted D-pad sequence, can't reach them reliably, B-press to close drawer doesn't work because focus isn't on a card button when user thinks it is.
+
+---
+
+**Q115: Cone-nav across multiple panels requires CONSISTENT coordinate space. Each ZeD-UI ring zone's elements may be stored in DIFFERENT panel-local coord spaces (skill rows panel-local to drawer, invrows panel-local to content panel, container buttons panel-local to container strip — all stamping `x=0` for their respective panel left edges).**
+
+The cone-nav math (`_coneCost`, `_halfPlaneCost`) treats all element coords as if they share one space. Without translation, two zones with `x=0` in different panels collide and cross-zone L/R rejects valid candidates as `dx == 0`.
+
+**Symptom:** D-pad RIGHT from a skill row goes to a container button (correctly to the right) BUT skips the inventory rows in between; D-pad LEFT from a container button goes to a body part on the equipment figure (far left) instead of inventory rows in the middle. Initially confusing because cone-nav DOES work intra-zone (all elements in same panel = consistent space).
+
+**Fix:** at FocusManager `_collectFlat` time, translate each element's bounds to a common space (window-local) by adding the source panel's `getX()/getY()`. Requires a zone-name → window-field-name map so the FocusManager can look up which panel each zone belongs to:
+
+```lua
+local _zonePanelField = {
+    charTabBar         = "_tabStripPanel",
+    charTabContent     = "_drawerPanel",
+    charMainInv        = "_contentPanel",
+    charItemCard       = "_itemDrawerPanel",
+    charContainerStrip = "_containerStrip",
+    -- charMC<N> via prefix match → "_contentPanel"
+    -- World mirrored: worldTabBar = "_actionTabStrip", etc.
+}
+```
+
+Each window must EXPOSE its panels as `win._<fieldName>` for the lookup to resolve. Char and World windows already exposed `_contentPanel`, `_drawerPanel`, `_itemDrawerPanel`, `_containerStrip`. Tab strip needed an explicit assignment in S113c (CW had only a local `strip` variable; added `win._tabStripPanel = strip`). World already had `win._actionTabStrip`.
+
+**Generalization rule:** any new ZeD ring zone that lives on a NEW panel must:
+1. Expose the panel as `win._<panelName>`.
+2. Register the zone-name → field-name mapping in `_zonePanelField` (FocusManager.lua, S113c block).
+
+Without both, cone-nav into/out of that zone will silently misroute via collapsed coord space. The symptom is direction-and-zone dependent — each new zone needs its own discovery cycle without this rule baked in.
+
+**Translation lives in `_collectFlat`** — translates a SHALLOW COPY of each element's `x/y` (preserves callbacks/ids by reference). Original elements in `w._focusRing[zoneIdx].elements` are unchanged so existing render code that uses them with their native panel context (e.g., per-zone hover hit-testing in renderers) is unaffected.
+
+---
+
+**Q116: `getDeviceData():getPower()` returns a 0..1 FLOAT, not a 0..100 percentage.**
+
+Vanilla `RWMPower:powerUpdateSimulation` (`RadioCom/RadioWindowModules/RWMPower.lua:113-122`) is the proof — line 117 does `pwr = pwr - 0.01`, line 118 does `if pwr < 0 then pwr = 0`. So the engine treats `getPower()` as a 0..1 normalized charge level, NOT a percentage.
+
+```lua
+-- WRONG (S115a first cut): bar segments compute battery/100, gives ~0.01 → floor 0 → 0 segments always
+local battK = math.floor((battery / 100.0) * 4 + 0.5)
+
+-- RIGHT: battery is already in 0..1 scale
+local battK = math.floor(battery * 4 + 0.5)
+```
+
+**Default fallback** when `getPower` is missing on a derived class should be `0` (empty), NOT `100` — a safer default that doesn't paint a "full" battery for a missing device.
+
+Also gate UI on `getHasBattery()` — a battery-powered radio with no battery installed should read empty regardless of whatever stale `getPower()` returns. Use `getIsBatteryPowered()` to check the device wants a battery at all (some external/wired devices don't).
+
+**Effective-power gate (anti-exploit pattern):** combine user-on with usable-power so a dead/missing battery doesn't let the player passively read live frequency / station name / signal strength while the radio is "off":
+
+```lua
+local userOn     = dd:getIsTurnedOn()
+local batPowered = dd:getIsBatteryPowered()
+local hasBat     = dd:getHasBattery()
+local charge     = dd:getPower() or 0
+local extPower   = dd:canBePoweredHere()
+local hasUsablePower = batPowered and (hasBat and charge > 0) or extPower
+local effectiveOn    = userOn and hasUsablePower
+```
+
+Mirrors vanilla `ISRadioAction:isReallyRunning` (`RadioCom/ISRadioAction.lua:39`).
+
+---
+
+**Q117: PZ stores radio channel as `MHz × 1000`, not as Hz or kHz.**
+
+Vanilla `RWMGeneral:setInfoLines` (`RadioCom/RadioWindowModules/RWMGeneral.lua:80`) is the canonical reference:
+
+```lua
+self:addInfoLine(getText("IGUI_RadioFrequency")..":   ", tostring(self.deviceData:getChannel()/1000).." MHz");
+```
+
+So a value of 88000 displays as `88 MHz`, 96500 as `96.5 MHz`. The unit is fixed regardless of band. PZ has no AM/long-wave band in lore — radios are FM-only by default.
+
+**To display:** divide raw channel by 1000 and label as MHz. For 0.1 MHz step granularity (standard FM tuning grid), increment/decrement raw channel by `100`:
+
+```lua
+local function _splitFrequency(hz)
+    if hz == nil or hz == 0 then return "---.-", "MHz" end
+    return string.format("%.1f", hz / 1000), "MHz"
+end
+
+-- Step 100 raw = 0.1 MHz visible → all PZ stations tunable
+local SEEK_STEP = 100
+```
+
+**Initial S115 first-cut bug:** displayed channel as kHz with `string.format("%.1f kHz", hz / 1000)` — same numerical math, wrong unit label. The user thought they were tuning across kHz when stations actually live in the MHz space the engine reports. Stations "felt unreachable" until the unit was corrected.
+
+---
+
+**Q118: `zomboidRadio` is NOT a global — must call `getZomboidRadio()` to fetch the singleton.**
+
+Vanilla `RWMGeneral.lua:69-77` is the reference pattern:
+
+```lua
+local zomboidRadio = getZomboidRadio();
+if zomboidRadio then
+    local channelName = zomboidRadio:getChannelName(self.deviceData:getChannel())
+                        or getText("IGUI_RadioUknownChannel");
+end
+```
+
+Bare reference `zomboidRadio` resolves to nil. Calls like `zomboidRadio:getChannelName(channel)` then silently no-op (if/then guards) or crash (without guards). S115 first-cut wired the channel-name lookup with the bare global — station resolution was completely broken until Q118 was discovered through user testing ("can't find any stations").
+
+**Pattern:**
+
+```lua
+local zr = (getZomboidRadio ~= nil) and getZomboidRadio() or nil
+if zr ~= nil and zr.getChannelName ~= nil and channel > 0 then
+    local resolved = zr:getChannelName(channel)
+    if type(resolved) == "string" and resolved ~= "" then
+        -- station found, use resolved name
+    end
+end
+```
+
+**`getChannelName(freq)` returns nil when no station is currently airing on that frequency** — most PZ stations have airtime schedules and go silent overnight. Even with the call wired correctly, names won't resolve at 2-3am in-game; verify daytime first when testing.
+
+---
+
+**Q119: Kahlua's `pcall` STILL logs the inner error to console as a stack trace even when the error is caught.**
+
+Defensive `pcall(function() return obj:getThing() end)` patterns trigger one stack-trace dump in `console.txt` per error per render frame, even though the surrounding code happily proceeds with the false-return. PZ's Kahlua integrates with the engine's error logger, so any `KahluaUtil.fail` from inside the protected block fires the engine's debug log path.
+
+**Symptom:** console.txt grows with hundreds-to-thousands of repeated `Tried to call nil` stack traces every render frame, despite the surrounding code handling the failure cleanly. Game runs fine but logs become unreadable and disk usage balloons.
+
+**Fix — field-probe pattern (no pcall):** check the method's existence via `obj.method ~= nil` BEFORE calling. Kahlua's table indexing returns nil silently for missing keys (no stack trace), so the field check is free:
+
+```lua
+-- WRONG: defensive pcall, still logs stack trace per failure
+local ok, v = pcall(function() return dd:getDeviceVolume() end)
+if ok and v ~= nil then ... end
+
+-- RIGHT: field probe, silent on missing methods
+if dd.getDeviceVolume ~= nil then
+    local v = dd:getDeviceVolume()
+    if v ~= nil then ... end
+end
+```
+
+The pattern compounds for chained access — check each step:
+
+```lua
+if dd.getDevicePresets ~= nil then
+    local pc = dd:getDevicePresets()
+    if pc ~= nil and pc.getMaxPresets ~= nil then
+        local mx = pc:getMaxPresets()
+    end
+end
+```
+
+**Use pcall ONLY when** the method exists but might throw a Java RuntimeException through the bridge (e.g., `IndexOutOfBoundsException` from `ArrayList:get(N)` — see Q120). For "is this method exposed?" checks, field probe.
+
+**Helper used in `RadioTab.lua`:**
+
+```lua
+local function _safeGet(dd, fnName, fallback)
+    if dd == nil then return fallback end
+    local fn = dd[fnName]
+    if fn == nil then return fallback end
+    local v = fn(dd)
+    if v == nil then return fallback end
+    return v
+end
+```
+
+Uses field-table indexing (`dd[fnName]`) to look up without invoking — silent on miss.
+
+---
+
+**Q120: Java `ArrayList:get(N)` for `N >= size()` throws `IndexOutOfBoundsException` through the Kahlua bridge as a per-frame stack trace.**
+
+Even with defensive `pcall` (Q119), the trace logs. Even with the `pc.getPresets ~= nil` field-probe guard, calling `get(i-1)` when `i > size()` still throws.
+
+**Symptom:** preset bank with fewer-than-N stored entries logs IndexOutOfBoundsException every render frame for each empty slot.
+
+**Fix:** read `:size()` once, only iterate `:get()` up to that bound:
+
+```lua
+local listSize = 0
+if presetList.size ~= nil then
+    listSize = presetList:size() or 0
+end
+
+for i = 1, visible do
+    if presetList.get ~= nil and i <= listSize then
+        local entry = presetList:get(i - 1)
+    end
+end
+```
+
+**General rule:** treat `:size()` like a precondition check — read it before any indexed access and bound the loop accordingly. Same applies to `getXxxList():get(N)` patterns across vanilla.
+
+---
+
+**Q121: `local function name(...)` after `local name` forward-decl creates a NEW shadowing local, NOT an assignment to the forward-decl.**
+
+Lua's `local function` is sugar for `local name = function() end` — but with the gotcha that it RE-DECLARES the local in the current scope. If a forward-decl `local name` already exists higher up, `local function name(...)` shadows it, leaving the upvalue captured by earlier closures pointing at nil forever.
+
+```lua
+-- BUG: render() captures _channelStep as upvalue at definition time.
+-- The local function below creates a SHADOWED local, the upvalue stays nil.
+local _channelStep
+function ZeD.RadioTab.render(...)
+    if win._radioSeekHold then
+        _channelStep(dd, dir)  -- FIRES nil call — closure captured the FIRST local
+    end
+end
+local function _channelStep(dd, dir) end  -- WRONG, shadows the forward decl
+
+-- FIX: assign to the existing forward-decl local via plain `name = function`
+local _channelStep
+function ZeD.RadioTab.render(...) end
+_channelStep = function(dd, dir) end  -- RIGHT, binds to forward-decl
+```
+
+**Symptom:** function-call site logs `Tried to call nil` despite the function being "defined" later in the file. Particularly insidious because the function APPEARS visible at the call site (same scope, declared higher up) — but the closure bound to the earlier nil version, not the post-declaration redefinition.
+
+**General rule:** forward-decl + later definition pair MUST use `name = function(...)` syntax for the definition. NEVER mix `local name` (forward-decl) with `local function name(...)` (definition).
+
+---
+
+**Q122: Mutate-in-place token table pattern preserves table identity across `/lua reload`, so applyTheme() doesn't need to re-fire to propagate token changes.**
+
+**Problem:** Tokens.lua defines `ZeD.Radio = { pt = {...}, vt = {...} }` (table literal). On reload, this REPLACES the table — assigns a NEW table to `ZeD.Radio`. Any captured reference (e.g., `T.radio = ZeD.Radio` set inside applyTheme) still points at the OLD table with the OLD field values. Edits to Tokens.lua appear to "not take effect" until applyTheme re-fires (theme switch, restart).
+
+**Fix:** declare the table once, then mutate fields per-line. Identity is preserved across reload because `ZeD.Radio = ZeD.Radio or {}` keeps the existing table when present, and per-field assignment writes new values into the SAME table.
+
+```lua
+-- WRONG: replaces table identity on reload
+ZeD.Radio = {
+    pt = { btnBg = hex("#C8C8C8") },
+    vt = { btnBg = hex("#2A2A2A") },
+}
+
+-- RIGHT: mutate-in-place; T.radio still resolves to the live table
+ZeD.Radio = ZeD.Radio or {}
+ZeD.Radio.pt = ZeD.Radio.pt or {}
+ZeD.Radio.vt = ZeD.Radio.vt or {}
+ZeD.Radio.pt.btnBg = hex("#C8C8C8")
+ZeD.Radio.vt.btnBg = hex("#2A2A2A")
+```
+
+Now `/lua reload` rewrites the leaf hex values into the existing tables. Code that captured `T.radio = ZeD.Radio` (inside applyTheme) still has the right reference; the values it reads are the new ones.
+
+**Use this pattern for all top-level token namespaces** that get assigned to `T.<x>` once at applyTheme time — `ZeD.Spacing`, `ZeD.Ctx`, `ZeD.Gp`, `ZeD.Radio`, future namespaces. Theme-dependent palettes still need full applyTheme rebuild per theme switch, but per-field hex tweaks no longer require it.
+
+---
+
+**Q123: PZ Fira font set lacks Unicode bullet glyphs `●` (U+25CF) / `○` (U+25CB) — they render as `?` placeholders.**
+
+The Fira Mono / Fira Sans bundle this mod ships covers ASCII + extended Latin but not the bullet glyph block. Any string containing `●` / `○` shows `?` at those code points.
+
+**Fix — paint indicator squares via `drawRect` instead of glyph rendering:**
+
+```lua
+local fh   = TM:getFontHeight(font)
+local sqSz = math.max(6, math.floor(fh * 0.55))
+local sqY  = y + math.floor((fh - sqSz) / 2)
+if on then
+    panel:drawRect(x, sqY, sqSz, sqSz, c.a, c.r, c.g, c.b)
+else
+    panel:drawRectBorder(x, sqY, sqSz, sqSz, c.a, c.r, c.g, c.b)
+end
+panel:drawText(text, x + sqSz + 4, y, c.r, c.g, c.b, 1, font)
+```
+
+Encapsulated in `Molecules.drawStatusChip(panel, x, y, text, on, onColor, offColor, font)` (S115). Returns the total width drawn so callers can lay out chip rows left-to-right.
+
+**Other Unicode glyphs to check before using:** `▶ ◀ ▲ ▼ ★ ↑ → ✕ ✓ … °`. Some render, some don't. Prefer ASCII (`< > |` etc.) when possible. The arrow texture system in `AtomExtensions._getArrowTex` is the canonical workaround for triangles.
+
+---
+
+**Q124: Vanilla auto-opens `ISRadioWindow` on `OnEquipPrimary` / `OnEquipSecondary` — must `Events.X.Remove` the handler at OnGameBoot to suppress.**
+
+`RadioCom/ISRadioWindow.lua:412-413`:
+
+```lua
+Events.OnEquipPrimary.Add(ISRadioWindow.onEquip);
+Events.OnEquipSecondary.Add(ISRadioWindow.onEquip);
+```
+
+This makes equipping any radio item pop the legacy `ISRadioWindow` floating UI — covers ZeD chrome, steals focus. For mods replacing the radio surface (like ZeD's RadioTab), the suppression must remove the handler explicitly.
+
+**Pattern:**
+
+```lua
+-- Overrides/RadioWindow.lua — auto-loaded by PZ since under media/lua/client/
+local function suppressVanillaRadioAutoOpen()
+    if ISRadioWindow == nil or ISRadioWindow.onEquip == nil then return end
+    if Events and Events.OnEquipPrimary and Events.OnEquipPrimary.Remove then
+        Events.OnEquipPrimary.Remove(ISRadioWindow.onEquip)
+    end
+    if Events and Events.OnEquipSecondary and Events.OnEquipSecondary.Remove then
+        Events.OnEquipSecondary.Remove(ISRadioWindow.onEquip)
+    end
+end
+
+-- Defer to OnGameBoot so vanilla's top-level Add() calls have already fired.
+Events.OnGameBoot.Add(suppressVanillaRadioAutoOpen)
+```
+
+**Right-click "Use" path** on world radios still calls `ISRadioWindow.activate(...)` directly via `ISWorldObjectContextMenu.lua:222` — that's user-initiated and rare; suppress when the ZeD context-menu route is wired (deferred from S115).
+
+

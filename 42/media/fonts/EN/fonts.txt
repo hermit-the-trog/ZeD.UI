@@ -1,0 +1,85 @@
+VERSION = 1,
+
+font Small
+{
+    fnt = body.fnt,
+    img = body_0.png,
+}
+
+font NewSmall
+{
+    fnt = secLg.fnt,
+    img = secLg_0.png,
+}
+
+font Medium
+{
+    fnt = stat.fnt,
+    img = stat_0.png,
+}
+
+font NewMedium
+{
+    fnt = sec.fnt,
+    img = sec_0.png,
+}
+
+font Large
+{
+    fnt = bodyLg.fnt,
+    img = bodyLg_0.png,
+}
+
+font NewLarge
+{
+    fnt = head.fnt,
+    img = head_0.png,
+}
+
+font Code
+{
+    fnt = title.fnt,
+    img = title_0.png,
+}
+
+font CodeSmall
+{
+    fnt = titleLg.fnt,
+    img = titleLg_0.png,
+}
+
+font CodeMedium
+{
+    fnt = statLg.fnt,
+    img = statLg_0.png,
+}
+
+font CodeLarge
+{
+    fnt = headLg.fnt,
+    img = headLg_0.png,
+}
+
+font Cred1
+{
+    fnt = rsv1.fnt,
+    img = rsv1_0.png,
+}
+
+font Cred2
+{
+    fnt = rsv2.fnt,
+    img = rsv2_0.png,
+}
+
+font MainMenu1
+{
+    fnt = rsv3.fnt,
+    img = rsv3_0.png,
+}
+
+font MainMenu2
+{
+    fnt = rsv4.fnt,
+    img = rsv4_0.png,
+}

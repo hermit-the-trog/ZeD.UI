@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Development Roadmap (Post-S65)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;color:#d4d4d4;font-family:'Fira Sans',sans-serif;padding:32px;min-height:100vh}
+
+/* ── Layout ── */
+.page{max-width:900px;margin:0 auto}
+.header{margin-bottom:32px;border-bottom:1px solid #333;padding-bottom:16px}
+.header h1{font:600 18px/1.3 'Fira Mono',monospace;color:#5b9bd5;letter-spacing:.5px}
+.header .subtitle{font:11px/1.5 'Fira Mono',monospace;color:#888;margin-top:4px}
+.header .date{font:10px 'Fira Mono',monospace;color:#555;margin-top:8px}
+
+/* ── Session timeline ── */
+.timeline{position:relative;padding-left:28px;margin-bottom:40px}
+.timeline::before{content:'';position:absolute;left:8px;top:4px;bottom:4px;width:1px;background:#333}
+.session{position:relative;margin-bottom:20px}
+.session:last-child{margin-bottom:0}
+.session .dot{position:absolute;left:-24px;top:5px;width:9px;height:9px;border-radius:50%}
+.session .dot.done{background:#27ae60}
+.session .dot.active{background:#5b9bd5;box-shadow:0 0 6px rgba(91,155,213,.5)}
+.session .dot.next{background:#333;border:1px solid #5b9bd5}
+.session .dot.backlog{background:#333;border:1px solid #555}
+.session-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.session-id{font:700 12px 'Fira Mono',monospace;color:#d4d4d4;letter-spacing:.5px}
+.session-id.dim{color:#888}
+.session-title{font:500 12px 'Fira Sans',sans-serif;color:#888;letter-spacing:.2px}
+.session-items{padding-left:0;list-style:none}
+.session-items li{font:11px/1.7 'Fira Sans',sans-serif;color:#aaa;padding-left:14px;position:relative}
+.session-items li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%}
+.session-items li.feat::before{background:#27ae60}
+.session-items li.fix::before{background:#e67e22}
+.session-items li.crit::before{background:#c0392b}
+.session-items li.plan::before{background:#555;border:1px solid #888}
+
+/* ── Feature matrix ── */
+.matrix{margin-bottom:40px}
+.matrix h2{font:600 13px 'Fira Mono',monospace;color:#5b9bd5;margin-bottom:12px;letter-spacing:.5px;text-transform:uppercase}
+.matrix-grid{display:grid;grid-template-columns:180px repeat(7,1fr);gap:1px;background:#333;border:1px solid #333}
+.matrix-grid .cell{background:#1a1a1a;padding:6px 8px;font:10px 'Fira Mono',monospace;color:#888}
+.matrix-grid .cell.hdr{background:#242424;color:#5b9bd5;font-weight:700;text-align:center}
+.matrix-grid .cell.row-hdr{color:#d4d4d4;font-weight:500}
+.matrix-grid .cell.done{text-align:center;color:#27ae60}
+.matrix-grid .cell.partial{text-align:center;color:#e67e22}
+.matrix-grid .cell.none{text-align:center;color:#333}
+.matrix-grid .cell.current{text-align:center;color:#5b9bd5;font-weight:700}
+
+/* ── Stats bar ── */
+.stats{display:flex;gap:24px;margin-bottom:32px;padding:12px 16px;background:#1a1a1a;border:1px solid #333}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat-value{font:700 20px 'Fira Mono',monospace;color:#5b9bd5}
+.stat-label{font:9px 'Fira Mono',monospace;color:#555;text-transform:uppercase;letter-spacing:.5px}
+
+/* ── Backlog ── */
+.backlog{margin-bottom:32px}
+.backlog h2{font:600 13px 'Fira Mono',monospace;color:#888;margin-bottom:12px;letter-spacing:.5px;text-transform:uppercase}
+.backlog-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.backlog-card{background:#1a1a1a;border:1px solid #333;padding:12px}
+.backlog-card h3{font:600 11px 'Fira Mono',monospace;color:#d4d4d4;margin-bottom:8px;letter-spacing:.3px}
+.backlog-card ul{list-style:none;padding:0}
+.backlog-card li{font:10px/1.8 'Fira Sans',sans-serif;color:#888;padding-left:12px;position:relative}
+.backlog-card li::before{content:'';position:absolute;left:0;top:7px;width:4px;height:4px;background:#333;border:1px solid #555}
+
+/* ── Legend ── */
+.legend{display:flex;gap:16px;padding:8px 0;border-top:1px solid #333;margin-top:24px}
+.legend-item{display:flex;align-items:center;gap:6px;font:9px 'Fira Mono',monospace;color:#555}
+.legend-dot{width:7px;height:7px;border-radius:50%}
+.legend-dot.feat{background:#27ae60}
+.legend-dot.fix{background:#e67e22}
+.legend-dot.crit{background:#c0392b}
+.legend-dot.plan{background:#555;border:1px solid #888}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- Header -->
+<div class="header">
+  <h1>ZeD-UI Development Roadmap</h1>
+  <div class="subtitle">System 7.1.2 Total UI Overhaul for Project Zomboid Build 42</div>
+  <div class="date">Updated April 8, 2026 &mdash; Post-Session 65</div>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat"><span class="stat-value">65</span><span class="stat-label">Sessions</span></div>
+  <div class="stat"><span class="stat-value">8</span><span class="stat-label">Tabs Shipped</span></div>
+  <div class="stat"><span class="stat-value">14</span><span class="stat-label">Bitmap Fonts</span></div>
+  <div class="stat"><span class="stat-value">298</span><span class="stat-label">Icons</span></div>
+  <div class="stat"><span class="stat-value">4</span><span class="stat-label">Journal Sub-tabs</span></div>
+  <div class="stat"><span class="stat-value">2</span><span class="stat-label">Windows</span></div>
+</div>
+
+<!-- Feature Matrix -->
+<div class="matrix">
+  <h2>Tab Completion Matrix</h2>
+  <div class="matrix-grid">
+    <div class="cell hdr">Tab</div>
+    <div class="cell hdr">Layout</div>
+    <div class="cell hdr">Data</div>
+    <div class="cell hdr">Search</div>
+    <div class="cell hdr">Interact</div>
+    <div class="cell hdr">Polish</div>
+    <div class="cell hdr">ItemCard</div>
+    <div class="cell hdr">Status</div>
+
+    <div class="cell row-hdr">Identity</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell none">&mdash;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">SHIP</div>
+
+    <div class="cell row-hdr">Skills</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell none">&mdash;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">SHIP</div>
+
+    <div class="cell row-hdr">Health</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell none">&mdash;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">SHIP</div>
+
+    <div class="cell row-hdr">Thermal</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell none">&mdash;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">SHIP</div>
+
+    <div class="cell row-hdr">Equipment</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell none">&mdash;</div><div class="cell done">&#10003;</div><div class="cell partial">WIP</div><div class="cell done">&#10003;</div><div class="cell partial">POLISH</div>
+
+    <div class="cell row-hdr">Journal</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell none">&mdash;</div><div class="cell done">SHIP</div>
+
+    <div class="cell row-hdr">Crafting</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">SHIP</div>
+
+    <div class="cell row-hdr">Building</div>
+    <div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">&#10003;</div><div class="cell done">SHIP</div>
+  </div>
+</div>
+
+<!-- Recent Sessions -->
+<div class="timeline">
+  <div class="session">
+    <div class="dot done"></div>
+    <div class="session-head">
+      <span class="session-id">S61</span>
+      <span class="session-title">MC World Tabs + Item Card Overlay + Loot Tab</span>
+    </div>
+    <ul class="session-items">
+      <li class="feat">MC item card in all world tabs (craft, build, loot)</li>
+      <li class="feat">220px item card overlay from inventory column</li>
+      <li class="feat">Character Loot tab with container rendering</li>
+      <li class="fix">Card background 0.98 alpha on drawer surface</li>
+    </ul>
+  </div>
+
+  <div class="session">
+    <div class="dot done"></div>
+    <div class="session-head">
+      <span class="session-id">S62</span>
+      <span class="session-title">ItemCard v10: Sticky Head + Scroll Body</span>
+    </div>
+    <ul class="session-items">
+      <li class="feat">Sticky header with icon + name pinned at top</li>
+      <li class="feat">Scrollable body with fold/unfold disclosures</li>
+      <li class="feat">Inline action zones (favorite, protect, unwanted)</li>
+      <li class="feat">4/8/4/6 spacing atomics system</li>
+    </ul>
+  </div>
+
+  <div class="session">
+    <div class="dot done"></div>
+    <div class="session-head">
+      <span class="session-id">S63</span>
+      <span class="session-title">Backlog Sweep: Stability + Polish</span>
+    </div>
+    <ul class="session-items">
+      <li class="fix">List stability via dirty flag pattern</li>
+      <li class="fix">Scrollbar overlap fix across all tabs</li>
+      <li class="fix">Font baseline + tracking corrections</li>
+      <li class="fix">Card alpha, click consume, stat spacing, nutrition caps</li>
+    </ul>
+  </div>
+
+  <div class="session">
+    <div class="dot done"></div>
+    <div class="session-head">
+      <span class="session-id">S64</span>
+      <span class="session-title">Journal Sub-tab Layout + Embedded Map</span>
+    </div>
+    <ul class="session-items">
+      <li class="feat">4 sub-tabs: Journal | Recipes | Maps | Flyers</li>
+      <li class="feat">Embedded UIWorldMap via ZeD_JournalMap ISUIElement</li>
+      <li class="feat">Flyer thumbnail grid from PrintMediaDefinitions</li>
+      <li class="fix">Settings.lua forward-declared combo box closure fix</li>
+    </ul>
+  </div>
+
+  <div class="session">
+    <div class="dot active"></div>
+    <div class="session-head">
+      <span class="session-id" style="color:#5b9bd5">S65</span>
+      <span class="session-title" style="color:#d4d4d4">Journal Tab Polish Pass (COMPLETE)</span>
+    </div>
+    <ul class="session-items">
+      <li class="feat">Journal: month grouping, collapsible headers, entry delete, Day N counter</li>
+      <li class="feat">Recipes: 43x43 icon grid, category pills, detail card with ingredient have/need dots</li>
+      <li class="feat">Maps: annotation toolbar (15 icons, 4 colors), persistent stamp mode, inline text input, RMB edit/delete</li>
+      <li class="feat">Flyers: collection tracking (getReadPrintMedia), read/unread states, progress counter, sort/filter cycle button</li>
+      <li class="feat">Search bars on Journal, Recipes, Flyers (bottom-anchored)</li>
+      <li class="crit">FIX: drawStatusDot shadow in AtomExtensions silently broke all status dots mod-wide</li>
+      <li class="fix">Cleanup sweep: 11 fixes across 4 files (dead code, magic numbers, duplication, shadowing)</li>
+    </ul>
+  </div>
+
+  <div class="session">
+    <div class="dot next"></div>
+    <div class="session-head">
+      <span class="session-id dim">S66</span>
+      <span class="session-title">Equipment Polish + MC Overlay</span>
+    </div>
+    <ul class="session-items">
+      <li class="plan">Equipment tab: center letter grade, no auto-open on I-key</li>
+      <li class="plan">MC item card overlay from character inventory column</li>
+      <li class="plan">World window map tab (480w drawer)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Backlog -->
+<div class="backlog">
+  <h2>Backlog</h2>
+  <div class="backlog-grid">
+    <div class="backlog-card">
+      <h3>Features</h3>
+      <ul>
+        <li>Equipment attachment expansion + body figure hit-test</li>
+        <li>Nested container column + multi-container resize dividers</li>
+        <li>Action strip batch verbs</li>
+        <li>CaZio watch system</li>
+        <li>Moodle bar integration</li>
+        <li>Cross-window drag-drop completion</li>
+        <li>Contextual tabs (Fishing / Forage / Animal)</li>
+      </ul>
+    </div>
+    <div class="backlog-card">
+      <h3>Polish</h3>
+      <ul>
+        <li>Scrollbar visual refinement across all tabs</li>
+        <li>Build tab ingredient styling pass</li>
+        <li>Light mode + text scale regression testing</li>
+        <li>Search/filter for Skills, Equipment tabs</li>
+        <li>Theme hot-swap validation pass</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot feat"></div>Feature</div>
+  <div class="legend-item"><div class="legend-dot fix"></div>Fix / Polish</div>
+  <div class="legend-item"><div class="legend-dot crit"></div>Critical Bug</div>
+  <div class="legend-item"><div class="legend-dot plan"></div>Planned</div>
+</div>
+
+</div>
+</body>
+</html>

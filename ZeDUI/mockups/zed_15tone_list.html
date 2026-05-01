@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD · 15-Tone List</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&family=Fira+Sans:wght@500&display=swap" rel="stylesheet">
+<style>
+  body {
+    background: #141414;
+    padding: 40px 48px;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .label {
+    font-family: 'Fira Mono', monospace;
+    font-weight: 400;
+    font-size: 9px;
+    color: rgba(255,255,255,0.20);
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .sep { border: none; border-top: 1px solid #1C1C1C; margin: 8px 0 2px; }
+
+  /* F1 — Fira Mono Bold 11px */
+  .f1 { font-family:'Fira Mono',monospace; font-weight:700; font-size:11px; }
+  /* F2 — Fira Sans Medium 13px */
+  .f2 { font-family:'Fira Sans',sans-serif; font-weight:500; font-size:13px; }
+  /* F3 — Fira Mono Regular 11px */
+  .f3 { font-family:'Fira Mono',monospace; font-weight:400; font-size:11px; }
+  /* F4 — Fira Sans Condensed SemiBold 13px */
+  .f4 { font-family:'Fira Sans Condensed',sans-serif; font-weight:600; font-size:13px; }
+  /* F5 — Fira Sans Condensed Regular 9px */
+  .f5 { font-family:'Fira Sans Condensed',sans-serif; font-weight:400; font-size:9px; }
+
+  .norm { color: rgba(230,230,230,0.92); }
+  .hi   { color: rgba(71,161,140,0.90); }
+  .lo   { color: rgba(71,161,140,0.50); }
+</style>
+</head>
+<body>
+
+  <div class="row"><span class="label">F1 · norm</span><span class="f1 norm">INVENTORY · TAB LABEL · [CLOSE]</span></div>
+  <div class="row"><span class="label">F1 · hi</span>  <span class="f1 hi">INVENTORY · TAB LABEL · [CLOSE]</span></div>
+  <div class="row"><span class="label">F1 · lo</span>  <span class="f1 lo">INVENTORY · TAB LABEL · [CLOSE]</span></div>
+
+  <hr class="sep">
+
+  <div class="row"><span class="label">F2 · norm</span><span class="f2 norm">Wooden Axe · Ripped Sheet · Can of Beans</span></div>
+  <div class="row"><span class="label">F2 · hi</span>  <span class="f2 hi">Wooden Axe · Ripped Sheet · Can of Beans</span></div>
+  <div class="row"><span class="label">F2 · lo</span>  <span class="f2 lo">Wooden Axe · Ripped Sheet · Can of Beans</span></div>
+
+  <hr class="sep">
+
+  <div class="row"><span class="label">F3 · norm</span><span class="f3 norm">14.2 / 50.0 kg · 87% · +12 XP · 0.8kg</span></div>
+  <div class="row"><span class="label">F3 · hi</span>  <span class="f3 hi">14.2 / 50.0 kg · 87% · +12 XP · 0.8kg</span></div>
+  <div class="row"><span class="label">F3 · lo</span>  <span class="f3 lo">14.2 / 50.0 kg · 87% · +12 XP · 0.8kg</span></div>
+
+  <hr class="sep">
+
+  <div class="row"><span class="label">F4 · norm</span><span class="f4 norm">Equipment · Defense · Nutrition Facts</span></div>
+  <div class="row"><span class="label">F4 · hi</span>  <span class="f4 hi">Equipment · Defense · Nutrition Facts</span></div>
+  <div class="row"><span class="label">F4 · lo</span>  <span class="f4 lo">Equipment · Defense · Nutrition Facts</span></div>
+
+  <hr class="sep">
+
+  <div class="row"><span class="label">F5 · norm</span><span class="f5 norm">Equipped · Vol. I · +8% wind chill · missing · chip label</span></div>
+  <div class="row"><span class="label">F5 · hi</span>  <span class="f5 hi">Equipped · Vol. I · +8% wind chill · missing · chip label</span></div>
+  <div class="row"><span class="label">F5 · lo</span>  <span class="f5 lo">Equipped · Vol. I · +8% wind chill · missing · chip label</span></div>
+
+</body>
+</html>

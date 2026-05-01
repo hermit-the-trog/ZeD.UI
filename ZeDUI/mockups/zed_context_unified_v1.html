@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI — Context Menu (Unified v1 — LOCKED)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@400;500;600;700&family=Fira+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #2b2b2b;
+    --panel: #3c3c3c;
+    --ink: #000000;
+    --paper: #ffffff;
+    --muted: #6a6a6a;
+    --dim: #a8a8a8;
+    --accent: #ff4b1f;
+    --cell: 22px;
+    --icon: 16px;
+    --gap: 1px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: 'Fira Sans Condensed', sans-serif;
+    color: #e0e0e0;
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-head { max-width: 1200px; margin: 0 auto 24px; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #555; padding-bottom: 12px; }
+  .page-head h1 { font-family: 'Fira Mono', monospace; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; }
+  .page-head .meta { font-family: 'Fira Mono', monospace; font-size: 11px; color: var(--dim); letter-spacing: 0.05em; }
+  .controls-row { max-width: 1200px; margin: 0 auto 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 11px; font-family: 'Fira Mono', monospace; color: var(--dim); }
+  .controls-row button { background: #4a4a4a; border: 1px solid #1a1a1a; color: #fff; padding: 5px 11px; font-family: 'Fira Mono', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+  .controls-row button:hover { background: #5a5a5a; }
+  .controls-row .spacer { flex: 1; }
+  .controls-row .group { display: flex; gap: 6px; align-items: center; }
+  .stage-wrap { display: flex; gap: 80px; justify-content: center; align-items: flex-start; padding: 40px 0; }
+  .stage-col { display: flex; flex-direction: column; align-items: center; }
+  .stage-col-label { font-family: 'Fira Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+  .stage-col-label b { color: #fff; font-weight: 700; }
+
+  /* Assembly stack: label (absolute) · strip · target-card · balloon */
+  .assembly {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 220px;
+    padding: 56px 20px 30px;
+    position: relative;
+  }
+
+  /* Floating label — above strip, tracks selected cell X */
+  .floating-label {
+    position: absolute;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    box-shadow: 2px 2px 0 0 var(--ink);
+    padding: 3px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+    z-index: 5;
+    transition: left 0.18s cubic-bezier(0.45, 0, 0.25, 1);
+    transform: translateX(-50%);
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+  }
+  .floating-label .breadcrumb-prev { color: var(--muted); font-weight: 500; margin-right: 3px; }
+  .floating-label .breadcrumb-sep { color: var(--muted); font-weight: 400; margin: 0 3px; }
+  .floating-label::after { content: ''; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid var(--ink); }
+  .floating-label::before { content: ''; position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid var(--paper); z-index: 1; }
+  .floating-label.disabled { color: var(--muted); }
+
+  /* Strip row (bumper · chev · strip · chev · bumper) */
+  .strip-row { display: flex; align-items: stretch; gap: 3px; position: relative; transition: gap 0.12s ease; }
+  .bumper { background: var(--paper); border: 1px solid var(--ink); box-shadow: 2px 2px 0 0 var(--ink); padding: 0 6px; min-width: 28px; text-align: center; position: relative; user-select: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Fira Mono', monospace; font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: 0.05em; line-height: 1; }
+  .bumper:hover { background: #f4f4f4; }
+  .bumper:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--ink); }
+  .chev { font-size: 11px; color: var(--paper); background: var(--ink); width: 12px; border: 1px solid var(--ink); display: flex; align-items: center; justify-content: center; line-height: 1; user-select: none; box-shadow: 2px 2px 0 0 var(--ink); }
+  .chev.hidden { display: none; }
+  .strip { background: var(--paper); border: 1px solid var(--ink); box-shadow: 2px 2px 0 0 var(--ink); overflow: hidden; height: calc(var(--cell) + 2px); position: relative; transition: width 0.18s cubic-bezier(0.45, 0, 0.25, 1), border-top-width 0.12s ease, height 0.12s ease; }
+  .strip.drilled { border-top-width: 2px; height: calc(var(--cell) + 3px); }
+  .strip-track { display: flex; height: 100%; background: var(--ink); gap: var(--gap); transition: transform 0.18s cubic-bezier(0.45, 0, 0.25, 1); will-change: transform; }
+  .strip-track.no-anim { transition: none !important; }
+  .lcell { background: var(--paper); color: var(--ink); width: var(--cell); min-width: var(--cell); height: var(--cell); display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; user-select: none; flex-shrink: 0; font-size: var(--icon); line-height: 1; }
+  .lcell .lc-ico { line-height: 1; font-size: var(--icon); }
+  .lcell.active { background: var(--ink); color: var(--paper); }
+  .lcell.disabled { background: repeating-linear-gradient(45deg, #f0f0f0 0 2px, #ffffff 2px 4px); color: var(--dim); cursor: not-allowed; }
+  .lcell.disabled.active { background: var(--ink); color: var(--paper); opacity: 0.7; }
+  .lcell.has-sub::after { content: ''; position: absolute; bottom: 1px; right: 1px; width: 0; height: 0; border-left: 3px solid transparent; border-bottom: 3px solid var(--ink); }
+  .lcell.has-sub.active::after { border-bottom-color: var(--paper); }
+  .lcell.back { color: var(--accent); }
+  .lcell.back.active { background: var(--ink); color: var(--accent); }
+  .lcell .lc-pin { position: absolute; top: 1px; right: 1px; width: 3px; height: 3px; background: var(--accent); }
+  .lcell.active .lc-pin { background: var(--paper); }
+
+  /* Target card — sits BETWEEN strip and balloon */
+  .target-card {
+    margin-top: 10px;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    box-shadow: 2px 2px 0 0 var(--ink);
+    padding: 2px 6px 2px 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ink);
+    font-size: 11px;
+  }
+  .target-card .icon {
+    width: 18px; height: 18px;
+    border: 1px solid var(--ink);
+    background: #d4d4d4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .target-card .name { font-weight: 600; }
+  .target-card .meta {
+    font-family: 'Fira Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    padding-left: 3px;
+    border-left: 1px solid #ccc;
+  }
+
+  /* Balloon — sits UNDER target card, triangle points up at target card */
+  .balloon {
+    margin-top: 10px;
+    position: relative;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    box-shadow: 2px 2px 0 0 var(--ink);
+    padding: 6px 9px;
+    width: 230px;
+    color: var(--ink);
+  }
+  .balloon::before { content: ''; position: absolute; left: 50%; top: -6px; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 6px solid var(--ink); }
+  .balloon::after { content: ''; position: absolute; left: 50%; top: -4px; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 5px solid var(--paper); }
+  .balloon .b-body { font-size: 11.5px; line-height: 1.35; color: var(--ink); }
+  .balloon .b-state { margin-top: 5px; padding-top: 5px; border-top: 1px dashed #999; font-family: 'Fira Mono', monospace; font-size: 9.5px; color: var(--muted); letter-spacing: 0.02em; line-height: 1.3; }
+  .balloon .b-state.ok::before { content: '✓  '; color: #2a7d2a; font-weight: 700; }
+  .balloon .b-state.bad::before { content: '✕  '; color: #c12a2a; font-weight: 700; }
+  .balloon .b-cat { font-family: 'Fira Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; display: flex; justify-content: space-between; }
+  .balloon .b-cat .b-count { color: var(--muted); }
+  .balloon.is-submenu .b-cat { color: var(--accent); }
+
+  .annotations { max-width: 1200px; margin: 50px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .note { background: var(--panel); border: 1px solid #1a1a1a; padding: 16px 20px; }
+  .note h3 { font-family: 'Fira Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .note p { font-size: 12.5px; line-height: 1.55; color: #d0d0d0; }
+  .note p + p { margin-top: 8px; }
+  .note code { font-family: 'Fira Mono', monospace; font-size: 11px; background: #2b2b2b; padding: 1px 4px; color: var(--accent); }
+  .note b { color: #fff; }
+  .scale-note { max-width: 1200px; margin: 28px auto 0; padding: 14px 20px; background: var(--panel); border: 1px solid #1a1a1a; font-size: 12px; line-height: 1.5; color: #d0d0d0; text-align: center; }
+  .scale-note b { color: #fff; }
+  .scale-note code { font-family: 'Fira Mono', monospace; color: var(--accent); background: #2b2b2b; padding: 1px 5px; }
+  .test-actions { max-width: 1200px; margin: 0 auto 20px; text-align: center; }
+  .test-actions button { background: #4a4a4a; border: 1px solid #1a1a1a; color: #fff; padding: 6px 14px; margin: 0 4px; font-family: 'Fira Mono', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+  .test-actions button:hover { background: #5a5a5a; }
+  .test-actions button.active { background: var(--accent); border-color: #661b0b; }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>ZeD-UI — Context Menu · Unified v1 (LOCKED S87)</h1>
+  <div class="meta">Action → Subject → Consequence · Target card pinned between strip and balloon</div>
+</div>
+
+<div class="controls-row">
+  <div class="group">
+    <span>INPUT</span>
+    <button id="btn-prev">◂ prev</button>
+    <button id="btn-next">next ▸</button>
+    <button id="btn-confirm">select</button>
+    <button id="btn-cancel">back</button>
+  </div>
+  <div class="group">
+    <button id="btn-lbump">« group</button>
+    <button id="btn-rbump">group »</button>
+  </div>
+  <div class="spacer"></div>
+  <span style="opacity: 0.6;">arrow keys · Enter · Esc · Tab</span>
+</div>
+
+<div class="test-actions">
+  <span style="font-family: 'Fira Mono', monospace; font-size: 10px; color: var(--dim); letter-spacing: 0.1em; margin-right: 8px;">ACTION COUNT →</span>
+  <button data-count="3">3</button>
+  <button data-count="5">5</button>
+  <button data-count="8">8</button>
+  <button data-count="10" class="active">10</button>
+  <button data-count="14">14 (visual loop)</button>
+  <button data-count="20">20 (visual loop)</button>
+</div>
+
+<div class="stage-wrap">
+  <div class="stage-col">
+    <div class="stage-col-label"><b>ONE DESIGN</b> — strip + label on top · target card · balloon below</div>
+    <div class="assembly" id="assembly-mouse">
+
+      <!-- Label tracks selected cell horizontally — positioned absolute by JS -->
+      <div class="floating-label" id="float-label-m">Eat</div>
+
+      <!-- Strip row -->
+      <div class="strip-row">
+        <div class="bumper" data-bump="prev">«</div>
+        <div class="chev" id="chev-l">◂</div>
+        <div class="strip" id="strip-m">
+          <div class="strip-track" id="track-m"></div>
+        </div>
+        <div class="chev" id="chev-r">▸</div>
+        <div class="bumper" data-bump="next">»</div>
+      </div>
+
+      <!-- Target card — sandwiched between strip and balloon -->
+      <div class="target-card">
+        <div class="icon">🥫</div>
+        <div class="name">Beans (Canned)</div>
+        <div class="meta">×2 · Fresh</div>
+      </div>
+
+      <!-- Balloon — centered under target card, triangle points UP at the target -->
+      <div class="balloon" id="balloon-m">
+        <div class="b-cat">
+          <span id="b-cat-lbl-m">USE</span>
+          <span class="b-count" id="b-count-m">1 / 10</span>
+        </div>
+        <div class="b-body" id="b-body-m">Eat this item. Opens portion submenu.</div>
+        <div class="b-state ok" id="b-state-m">Calories: 180 · Freshness: Fresh</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="scale-note">
+  <b>Reading order.</b> Top to bottom: <b>label</b> tells you the ACTION, <b>strip</b> shows the verb icons, <b>target card</b> names the SUBJECT (the item being acted on), <b>balloon</b> describes the CONSEQUENCE. The strip literally points at the item it's operating on. Balloon is static-centered under the target card — it doesn't chase selection horizontally anymore, only its contents update.
+</div>
+
+<div class="annotations">
+  <div class="note">
+    <h3>Action → Subject → Consequence</h3>
+    <p>The layout reads like a sentence. <b>Eat</b> (verb, from the label). <b>Beans (Canned)</b> (object, from the target card). <b>Opens portion submenu</b> (outcome, from the balloon). Top-down flow matches how players think about actions — pick the verb, see what it's for, see what happens.</p>
+  </div>
+  <div class="note">
+    <h3>Static balloon</h3>
+    <p>Previously the balloon tracked horizontally with selection. Now it's anchored under the target card and doesn't move — only its content updates. Less motion, less chrome chasing the eye around. The target card is the anchor that holds the whole assembly together visually.</p>
+  </div>
+  <div class="note">
+    <h3>Visual loop · unchanged</h3>
+    <p>Triple-render carousel still operates when <code>#items &gt; 10</code>. End to the left of start, start to the right of end. Silent settle after animation. All the scroll behavior rides underneath the new layout — nothing changed in the strip itself.</p>
+  </div>
+</div>
+
+<script>
+const ALL_ACTIONS = [
+  { id: 'eat', name: 'Eat', icon: '🍴', cat: 'USE', pinned: true,
+    body: 'Eat this item. Opens portion submenu.',
+    state: 'Calories: 180 · Freshness: Fresh', stateKind: 'ok',
+    children: [
+      { id: 'eat-all', name: 'All', icon: '●', cat: 'USE', body: 'Eat the entire item.', state: '180 cal · 100% hunger relief', stateKind: 'ok' },
+      { id: 'eat-half', name: 'Half', icon: '◐', cat: 'USE', body: 'Eat half the item.', state: '90 cal · reserves half for later', stateKind: 'ok' },
+      { id: 'eat-quarter', name: 'Quarter', icon: '◔', cat: 'USE', body: 'Eat a quarter.', state: '45 cal · reserves 75%', stateKind: 'ok' }
+    ]
+  },
+  { id: 'open', name: 'Open Can', icon: '🔓', cat: 'ACTION', body: 'Open the can. Contents become edible or pourable.', state: 'Requires sharp edge — Kitchen Knife in inventory', stateKind: 'ok' },
+  { id: 'disassemble', name: 'Disassemble', icon: '✂', cat: 'ACTION', disabled: true, body: 'Break down into Metal Scrap ×1 and Tin Can ×1.', state: 'Requires Can Opener or Wire Cutters — none in inventory', stateKind: 'bad' },
+  { id: 'craft', name: 'Use in Recipe', icon: '⚒', cat: 'CRAFT', body: '4 recipes use Canned Beans.', state: '2 of 4 craftable right now', stateKind: 'ok',
+    children: [
+      { id: 'r-soup', name: 'Bean Soup', icon: '🍲', cat: 'CRAFT', body: 'Canned Beans + Water + Pot.', state: 'All ingredients in range', stateKind: 'ok' },
+      { id: 'r-stew', name: 'Bean Stew', icon: '🥘', cat: 'CRAFT', body: 'Beans + Meat + Vegetables + Pot.', state: 'Missing: fresh Meat', stateKind: 'bad' },
+      { id: 'r-salad', name: 'Bean Salad', icon: '🥗', cat: 'CRAFT', body: 'Beans + Lettuce + Vinaigrette.', state: 'All ingredients in range', stateKind: 'ok' },
+      { id: 'r-cold', name: 'Cold Beans', icon: '🥫', cat: 'CRAFT', disabled: true, body: 'Serve beans cold. Degenerate.', state: 'Requires Depression trait', stateKind: 'bad' }
+    ]
+  },
+  { id: 'eq-prim', name: 'Hold Primary', icon: '✋', cat: 'EQUIP', body: 'Hold in primary hand. Limited use.', state: 'Primary hand currently empty', stateKind: 'ok' },
+  { id: 'eq-sec', name: 'Hold Secondary', icon: '🤚', cat: 'EQUIP', body: 'Hold in off-hand.', state: 'Secondary hand holds Flashlight (will swap)', stateKind: 'ok' },
+  { id: 'transfer', name: 'Transfer', icon: '➡', cat: 'TRANSFER', body: 'Move to another container.', state: '3 containers within reach', stateKind: 'ok',
+    children: [
+      { id: 't-floor', name: 'To Floor', icon: '↓', cat: 'TRANSFER', body: 'Drop at your feet.', state: 'Always available', stateKind: 'ok' },
+      { id: 't-bag', name: 'To Backpack', icon: '🎒', cat: 'TRANSFER', body: 'Transfer to Hiking Bag.', state: '8.2 / 12.0 kg · 3.8 kg room', stateKind: 'ok' },
+      { id: 't-fp', name: 'To Fanny Pack', icon: '👜', cat: 'TRANSFER', body: 'Transfer to Fanny Pack.', state: '0.6 kg room remaining', stateKind: 'ok' }
+    ]
+  },
+  { id: 'examine', name: 'Examine', icon: 'ℹ', cat: 'INFO', body: 'Show full nutrition, freshness, craft uses.', state: 'Opens detail panel', stateKind: 'ok' },
+  { id: 'drop', name: 'Drop', icon: '↡', cat: 'ADMIN', body: 'Drop at feet (hotkey: G).', state: 'Always available', stateKind: 'ok' },
+  { id: 'destroy', name: 'Destroy', icon: '✕', cat: 'ADMIN', body: 'Permanently destroy this item.', state: 'Requires confirmation', stateKind: 'bad' },
+  { id: 'cook', name: 'Cook', icon: '🔥', cat: 'ACTION', body: 'Cook with available heat source.', state: 'Campfire in range', stateKind: 'ok' },
+  { id: 'freeze', name: 'Freeze', icon: '❄', cat: 'ACTION', body: 'Store in freezer.', state: 'Freezer 3 tiles away', stateKind: 'ok' },
+  { id: 'preserve', name: 'Preserve', icon: '🧂', cat: 'ACTION', body: 'Salt and store long-term.', state: 'Missing: Salt', stateKind: 'bad', disabled: true },
+  { id: 'give', name: 'Give', icon: '🤝', cat: 'TRANSFER', body: 'Give to another survivor.', state: 'No one nearby', stateKind: 'bad', disabled: true },
+  { id: 'mark', name: 'Mark', icon: '★', cat: 'INFO', body: 'Add to your tracked-items list.', state: 'Not currently tracked', stateKind: 'ok' },
+  { id: 'share', name: 'Share Recipe', icon: '📖', cat: 'INFO', body: 'Teach recipes from this item to a nearby survivor.', state: 'No one nearby', stateKind: 'bad', disabled: true },
+  { id: 'rename', name: 'Rename', icon: '✎', cat: 'ADMIN', body: 'Give this item a custom name.', state: 'Opens rename dialog', stateKind: 'ok' },
+  { id: 'lock', name: 'Lock', icon: '🔒', cat: 'ADMIN', body: 'Prevent accidental destruction.', state: 'Currently unlocked', stateKind: 'ok' }
+];
+
+let ACTIONS = ALL_ACTIONS.slice(0, 10);
+let path = [];
+let selectedIdx = 0;
+let pos = 0;
+
+const CELL = 22, GAP = 1, MAX_VISIBLE = 10;
+const ANIM_MS = 180;
+
+function currentItems() {
+  if (path.length === 0) return ACTIONS;
+  let node = ACTIONS;
+  for (const p of path) node = node[p].children;
+  return [ { id: '__back', name: '◂ Back', icon: '◂', cat: 'NAV', body: 'Return to previous level.', state: 'Cancel · Esc · click', stateKind: 'ok', isBack: true }, ...node ];
+}
+function currentParent() {
+  if (path.length === 0) return null;
+  let node = ACTIONS;
+  for (let i = 0; i < path.length - 1; i++) node = node[path[i]].children;
+  return node[path[path.length - 1]];
+}
+function isTruncating() { return currentItems().length > MAX_VISIBLE; }
+function resetPosForItems() { pos = currentItems().length + selectedIdx; }
+
+function renderTrack() {
+  const track = document.getElementById('track-m');
+  track.innerHTML = '';
+  const items = currentItems();
+  const trunc = isTruncating();
+  const renderList = trunc ? [...items, ...items, ...items] : items;
+  renderList.forEach((a, domIdx) => {
+    const c = document.createElement('div');
+    const isActive = trunc ? (domIdx === pos) : (domIdx === selectedIdx);
+    c.className = 'lcell'
+      + (isActive ? ' active' : '')
+      + (a.disabled ? ' disabled' : '')
+      + (a.isBack ? ' back' : '')
+      + (a.children ? ' has-sub' : '');
+    c.innerHTML = `${a.pinned ? '<div class="lc-pin"></div>' : ''}<div class="lc-ico">${a.icon}</div>`;
+    c.addEventListener('click', () => {
+      if (trunc) { pos = domIdx; selectedIdx = domIdx % items.length; }
+      else { selectedIdx = domIdx; }
+      update();
+    });
+    c.addEventListener('dblclick', () => {
+      if (trunc) { pos = domIdx; selectedIdx = domIdx % items.length; }
+      else { selectedIdx = domIdx; }
+      confirm();
+    });
+    track.appendChild(c);
+  });
+  sizeStripAndScroll();
+}
+
+function sizeStripAndScroll() {
+  const items = currentItems();
+  const strip = document.getElementById('strip-m');
+  const track = document.getElementById('track-m');
+  const visibleCount = Math.min(items.length, MAX_VISIBLE);
+  const trunc = isTruncating();
+  const innerW = visibleCount * CELL + Math.max(0, visibleCount - 1) * GAP;
+  strip.style.width = (innerW + 2) + 'px';
+  document.getElementById('chev-l').classList.toggle('hidden', !trunc);
+  document.getElementById('chev-r').classList.toggle('hidden', !trunc);
+  strip.classList.toggle('drilled', path.length > 0);
+  if (trunc) {
+    const visibleW = innerW;
+    const cellCenter = pos * (CELL + GAP) + CELL / 2;
+    const offset = visibleW / 2 - cellCenter;
+    track.style.transform = `translateX(${offset}px)`;
+  } else {
+    track.style.transform = 'translateX(0)';
+  }
+}
+
+/*
+ * Label now only tracks selected cell X — balloon is static, anchored under the target card.
+ */
+function positionLabel() {
+  const strip = document.getElementById('strip-m');
+  const stripRect = strip.getBoundingClientRect();
+  const assembly = document.getElementById('assembly-mouse');
+  const aRect = assembly.getBoundingClientRect();
+  const trunc = isTruncating();
+  let centerX;
+  if (trunc) {
+    centerX = stripRect.left - aRect.left + stripRect.width / 2;
+  } else {
+    const cellLeft = stripRect.left - aRect.left + 1 + selectedIdx * (CELL + GAP);
+    centerX = cellLeft + CELL / 2;
+  }
+  const label = document.getElementById('float-label-m');
+  label.style.left = centerX + 'px';
+  label.style.top = (stripRect.top - aRect.top - 28) + 'px';
+}
+
+function renderLabel() {
+  const items = currentItems();
+  const a = items[selectedIdx];
+  const label = document.getElementById('float-label-m');
+  const parts = [];
+  let node = ACTIONS;
+  for (const p of path) { parts.push(node[p].name); node = node[p].children; }
+  if (parts.length === 0) {
+    label.innerHTML = a.name;
+  } else {
+    const crumb = parts.map(n => `<span class="breadcrumb-prev">${n}</span>`).join('<span class="breadcrumb-sep">›</span>');
+    label.innerHTML = crumb + '<span class="breadcrumb-sep">›</span>' + a.name;
+  }
+  label.classList.toggle('disabled', !!a.disabled);
+}
+
+function renderBalloon() {
+  const items = currentItems();
+  const a = items[selectedIdx];
+  const balloon = document.getElementById('balloon-m');
+  const parent = currentParent();
+  const catLabel = a.isBack ? '◂ BACK' : (parent ? parent.name.toUpperCase() : a.cat);
+  document.getElementById('b-cat-lbl-m').textContent = catLabel;
+  document.getElementById('b-count-m').textContent = `${selectedIdx + 1} / ${items.length}`;
+  document.getElementById('b-body-m').textContent = a.body;
+  const stateEl = document.getElementById('b-state-m');
+  stateEl.textContent = a.state;
+  stateEl.className = 'b-state ' + (a.stateKind || 'ok');
+  balloon.classList.toggle('is-submenu', path.length > 0);
+}
+
+function update() {
+  renderTrack();
+  renderLabel();
+  renderBalloon();
+  positionLabel();
+}
+
+let settleTimer = null;
+function settlePosAfterAnim() {
+  if (settleTimer) clearTimeout(settleTimer);
+  settleTimer = setTimeout(() => {
+    const items = currentItems();
+    if (!isTruncating()) return;
+    const N = items.length;
+    if (pos < N || pos >= 2 * N) {
+      const track = document.getElementById('track-m');
+      pos = ((pos % N) + N) % N + N;
+      track.classList.add('no-anim');
+      sizeStripAndScroll();
+      void track.offsetWidth;
+      requestAnimationFrame(() => { track.classList.remove('no-anim'); });
+    }
+  }, ANIM_MS + 20);
+}
+
+function next() {
+  const items = currentItems();
+  const trunc = isTruncating();
+  selectedIdx = (selectedIdx + 1) % items.length;
+  if (trunc) { pos += 1; update(); settlePosAfterAnim(); }
+  else { update(); }
+}
+function prev() {
+  const items = currentItems();
+  const trunc = isTruncating();
+  selectedIdx = (selectedIdx - 1 + items.length) % items.length;
+  if (trunc) { pos -= 1; update(); settlePosAfterAnim(); }
+  else { update(); }
+}
+function confirm() {
+  const items = currentItems();
+  const a = items[selectedIdx];
+  if (a.isBack) { back(); return; }
+  if (a.disabled) return;
+  if (a.children) {
+    const rawIdx = path.length === 0 ? selectedIdx : (selectedIdx - 1);
+    path.push(rawIdx);
+    selectedIdx = 1;
+    resetPosForItems();
+    update();
+    return;
+  }
+  const strip = document.getElementById('strip-m');
+  strip.style.filter = 'invert(1)';
+  setTimeout(() => { strip.style.filter = 'none'; }, 90);
+}
+function back() {
+  if (path.length === 0) return;
+  const exitingIdx = path.pop();
+  selectedIdx = path.length === 0 ? exitingIdx : (exitingIdx + 1);
+  resetPosForItems();
+  update();
+}
+function nextGroup() {
+  const items = currentItems();
+  const trunc = isTruncating();
+  const curCat = items[selectedIdx].cat;
+  for (let step = 1; step <= items.length; step++) {
+    const i = (selectedIdx + step) % items.length;
+    if (items[i].cat !== curCat && !items[i].isBack) {
+      if (trunc) pos += step;
+      selectedIdx = i;
+      update();
+      if (trunc) settlePosAfterAnim();
+      return;
+    }
+  }
+}
+function prevGroup() {
+  const items = currentItems();
+  const trunc = isTruncating();
+  const curCat = items[selectedIdx].cat;
+  let start = selectedIdx;
+  while (start > 0 && items[start - 1].cat === curCat) start--;
+  let target;
+  if (start === selectedIdx) {
+    const pI = (selectedIdx - 1 + items.length) % items.length;
+    if (items[pI].isBack) { target = pI; }
+    else {
+      const pC = items[pI].cat;
+      let first = pI;
+      while (first > 0 && items[first - 1].cat === pC && !items[first - 1].isBack) first--;
+      target = first;
+    }
+  } else { target = start; }
+  if (trunc) {
+    const delta = target - selectedIdx;
+    const wrap = delta > 0 ? delta - items.length : delta;
+    pos += wrap;
+  }
+  selectedIdx = target;
+  update();
+  if (trunc) settlePosAfterAnim();
+}
+
+document.querySelectorAll('.test-actions button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.test-actions button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const n = parseInt(btn.dataset.count, 10);
+    ACTIONS = ALL_ACTIONS.slice(0, n);
+    path = [];
+    selectedIdx = 0;
+    resetPosForItems();
+    update();
+  });
+});
+
+document.getElementById('btn-prev').addEventListener('click', prev);
+document.getElementById('btn-next').addEventListener('click', next);
+document.getElementById('btn-confirm').addEventListener('click', confirm);
+document.getElementById('btn-cancel').addEventListener('click', back);
+document.getElementById('btn-lbump').addEventListener('click', prevGroup);
+document.getElementById('btn-rbump').addEventListener('click', nextGroup);
+document.querySelectorAll('[data-bump]').forEach(el => {
+  el.addEventListener('click', () => {
+    if (el.dataset.bump === 'prev') prevGroup(); else nextGroup();
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') { next(); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { prev(); e.preventDefault(); }
+  else if (e.key === 'Enter') { confirm(); e.preventDefault(); }
+  else if (e.key === 'Escape' || e.key === 'Backspace') { back(); e.preventDefault(); }
+  else if (e.key === 'Tab' && !e.shiftKey) { nextGroup(); e.preventDefault(); }
+  else if (e.key === 'Tab' && e.shiftKey) { prevGroup(); e.preventDefault(); }
+});
+
+window.addEventListener('load', () => {
+  resetPosForItems();
+  update();
+});
+window.addEventListener('resize', positionLabel);
+</script>
+</body>
+</html>

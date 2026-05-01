@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Journal Tab Polish S65</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;display:flex;align-items:flex-start;justify-content:center;padding:24px;min-height:100vh}
+.mockup-label{font:10px 'Fira Mono',monospace;color:#444;margin-bottom:8px;letter-spacing:.5px}
+.mockup-wrap{width:420px}
+
+/* ── Window chrome ── */
+.win{width:100%;background:#1a1a1a;border:1px solid #555;user-select:none}
+.titlebar{height:22px;background:repeating-linear-gradient(to bottom,#3a3a3a 0px,#3a3a3a 1px,#252525 1px,#252525 2px);display:flex;align-items:center;padding:0 4px;gap:4px;border-bottom:1px solid #555}
+.closebox{width:13px;height:13px;border:1px solid #888;background:#2a2a2a;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;color:#888}
+.closebox:hover{background:#c0392b;color:#fff}
+.win-title{font:11px/1 'Fira Mono',monospace;color:#5b9bd5;flex:1;text-align:center;letter-spacing:.5px}
+
+/* ── Tab strip (System 6 style) ── */
+.tab-strip{display:flex;align-items:flex-end;padding:0 8px;background:#1a1a1a;position:relative}
+.tab-strip::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:#555}
+.tab-btn{font:10px 'Fira Mono',monospace;color:#888;padding:5px 12px 4px;cursor:pointer;position:relative;z-index:1;letter-spacing:.3px}
+.tab-btn:hover{color:#d4d4d4}
+.tab-btn.active{color:#d4d4d4;background:#1a1a1a;border:1px solid #555;border-bottom:1px solid #1a1a1a;margin-bottom:-1px}
+.tab-btn:not(.active){border:1px solid transparent;border-bottom:none}
+
+/* ── Content area ── */
+.content{height:580px;overflow:hidden;display:flex;flex-direction:column}
+.panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+.panel.active{display:flex}
+
+/* ── Search bar ── */
+.search-bar{display:flex;align-items:center;margin:8px 10px 6px;height:28px;background:#242424;border:1px solid #3a3a3a;padding:0 8px;gap:6px;flex-shrink:0}
+.search-bar:focus-within{border-color:#5b9bd5}
+.search-icon{font:11px 'Fira Mono',monospace;color:#555;flex-shrink:0}
+.search-input{flex:1;background:none;border:none;outline:none;font:11px 'Fira Sans',sans-serif;color:#d4d4d4}
+.search-input::placeholder{color:#555}
+.search-clear{font:10px 'Fira Mono',monospace;color:#555;cursor:pointer;padding:2px 4px;display:none}
+.search-clear:hover{color:#c0392b}
+.search-bar.has-text .search-clear{display:block}
+
+/* ── Scrollable area ── */
+.scroll-area{flex:1;overflow-y:auto;padding:0 10px 8px}
+.scroll-area::-webkit-scrollbar{width:8px}
+.scroll-area::-webkit-scrollbar-track{background:#1a1a1a}
+.scroll-area::-webkit-scrollbar-thumb{background:#3a3a3a;border:1px solid #555}
+.scroll-area::-webkit-scrollbar-thumb:hover{background:#555}
+
+/* ── JOURNAL ── */
+.journal-group-hdr{display:flex;align-items:center;padding:6px 0;cursor:pointer;gap:6px;border-bottom:1px solid #2e2e2e}
+.journal-group-hdr:hover{background:#242424;margin:0 -10px;padding:6px 10px}
+.journal-chevron{font-size:8px;color:#555;width:12px;text-align:center;flex-shrink:0;transition:transform .1s}
+.journal-chevron.collapsed{transform:rotate(-90deg)}
+.journal-group-label{font:10px 'Fira Mono',monospace;color:#d4d4d4;letter-spacing:.4px;text-transform:uppercase;flex:1}
+.journal-group-count{font:9px 'Fira Mono',monospace;color:#888}
+.journal-entries{overflow:hidden}
+.journal-entries.collapsed{display:none}
+.journal-entry{padding:8px 0;border-bottom:1px solid #242424;position:relative}
+.journal-entry:hover .entry-delete{opacity:1}
+.entry-date{font:9px 'Fira Mono',monospace;color:#5b9bd5;margin-bottom:4px;letter-spacing:.3px}
+.entry-text{font:11px/1.5 'Fira Sans',sans-serif;color:#d4d4d4}
+.entry-delete{position:absolute;top:8px;right:0;font:9px 'Fira Mono',monospace;color:#555;cursor:pointer;padding:2px 4px;opacity:0;transition:opacity .1s}
+.entry-delete:hover{color:#c0392b}
+.journal-footer{border-top:1px solid #555;padding:8px 10px;display:flex;gap:6px;flex-shrink:0}
+.journal-input{flex:1;height:28px;background:#242424;border:1px solid #3a3a3a;padding:0 8px;font:11px 'Fira Sans',sans-serif;color:#d4d4d4;outline:none}
+.journal-input:focus{border-color:#5b9bd5}
+.journal-input::placeholder{color:#555}
+.save-btn{height:28px;padding:0 14px;background:#242424;border:1px solid #555;font:10px 'Fira Mono',monospace;color:#5b9bd5;cursor:pointer;letter-spacing:.5px}
+.save-btn:hover{background:#2e2e2e;border-color:#5b9bd5}
+.kill-stat{display:flex;align-items:center;padding:4px 0;gap:6px;cursor:pointer}
+.kill-stat:hover{background:#242424;margin:0 -10px;padding:4px 10px}
+.kill-chevron{font-size:8px;color:#555;width:12px;text-align:center;flex-shrink:0}
+.kill-label{font:10px 'Fira Mono',monospace;color:#888;letter-spacing:.3px;text-transform:uppercase;flex:1}
+.kill-value{font:11px 'Fira Mono',monospace;color:#d4d4d4}
+.kill-breakdown{padding:0 0 4px 18px}
+.kill-breakdown.collapsed{display:none}
+.kill-row{display:flex;padding:2px 0;font:9px 'Fira Sans',sans-serif}
+.kill-row-label{flex:1;color:#888}
+.kill-row-val{color:#d4d4d4}
+.survived-row{display:flex;padding:6px 0;border-bottom:1px solid #2e2e2e}
+.survived-label{font:10px 'Fira Mono',monospace;color:#888;letter-spacing:.3px;text-transform:uppercase;flex:1}
+.survived-val{font:11px 'Fira Mono',monospace;color:#5b9bd5}
+.section-groove{height:1px;background:#555;margin:6px 0}
+
+/* ── RECIPES — icon grid (matches CraftingTab 43×43 cells) ── */
+.recipe-toolbar{display:flex;align-items:center;gap:6px;padding:0 10px 6px;flex-shrink:0;flex-wrap:wrap}
+.recipe-cat-btn{font:9px 'Fira Mono',monospace;color:#888;padding:3px 8px;cursor:pointer;border:1px solid #3a3a3a;border-radius:2px;letter-spacing:.3px;white-space:nowrap}
+.recipe-cat-btn:hover{border-color:#555;color:#d4d4d4}
+.recipe-cat-btn.active{border-color:#5b9bd5;background:rgba(91,155,213,.15);color:#5b9bd5}
+.recipe-legend{display:flex;gap:10px;padding:2px 10px 6px;align-items:center}
+.legend-swatch{display:flex;align-items:center;gap:4px;font:8px 'Fira Mono',monospace;color:#666}
+.legend-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.legend-dot.known{background:#27ae60}
+.legend-dot.unknown{background:#555}
+.legend-dot.missing{background:#e8a838}
+.recipe-grid{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;padding:0 6px 8px}
+.recipe-cell{width:43px;height:43px;background:#2e2e2e;border:1px solid #3a3a3a;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.recipe-cell:hover{border-color:#555;background:#333}
+.recipe-cell.selected{border-color:#5b9bd5;background:rgba(91,155,213,.1)}
+.recipe-cell.locked{opacity:.4}
+.recipe-cell .rc-icon{font-size:18px;line-height:1;margin-top:-2px;filter:saturate(.6)}
+.recipe-cell .rc-fallback{font:10px 'Fira Mono',monospace;color:#888;line-height:1}
+.recipe-cell .rc-info{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;padding:0 2px;font:7px 'Fira Mono',monospace}
+.recipe-cell .rc-level{color:#5b9bd5}
+.recipe-cell .rc-count{color:#888}
+.recipe-cell .rc-dot{position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%}
+.recipe-cell .rc-dot.known{background:#27ae60}
+.recipe-cell .rc-dot.craftable{background:#27ae60;box-shadow:0 0 3px rgba(39,174,96,.5)}
+.recipe-cell .rc-dot.missing{background:#e8a838}
+.recipe-cell .rc-dot.unknown{background:#555}
+.recipe-cell .rc-dot.locked{background:#c0392b;opacity:.6}
+.recipe-progress{font:10px 'Fira Mono',monospace;color:#888;padding:2px 10px 6px;letter-spacing:.3px}
+.recipe-progress .ct{color:#5b9bd5;font-weight:700}
+.no-results{font:10px 'Fira Mono',monospace;color:#555;text-align:center;padding:24px 0;letter-spacing:.3px}
+
+/* ── Recipe NP card (Now Playing — selected recipe detail) ── */
+.np-card{border:1px solid #3a3a3a;background:#242424;margin:0 10px 6px;padding:8px;flex-shrink:0}
+.np-card.empty{padding:6px 8px;border-style:dashed}
+.np-name{font:11px 'Fira Mono',monospace;color:#d4d4d4;letter-spacing:.3px;text-transform:uppercase;margin-bottom:4px}
+.np-row{display:flex;align-items:center;gap:6px;padding:2px 0;font:10px 'Fira Sans',sans-serif;color:#888}
+.np-row .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.np-row .dot.have{background:#27ae60}
+.np-row .dot.need{background:#e8a838}
+.np-row .name{flex:1;color:#d4d4d4}
+.np-row .tag{font:8px 'Fira Mono',monospace;color:#555;padding:1px 4px;border:1px solid #3a3a3a;border-radius:2px}
+.np-skill{font:9px 'Fira Mono',monospace;color:#5b9bd5;margin-top:4px}
+.np-empty-text{font:10px 'Fira Mono',monospace;color:#555;letter-spacing:.3px}
+
+/* ── MAPS ── */
+.map-toolbar{display:flex;align-items:center;gap:4px;padding:6px 10px;border-bottom:1px solid #555;flex-shrink:0;flex-wrap:wrap}
+.map-tool{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;border:1px solid transparent;background:#242424}
+.map-tool:hover{border-color:#555}
+.map-tool.active{border-color:#5b9bd5;background:#1e2a38}
+.map-sep{width:1px;height:20px;background:#3a3a3a;margin:0 2px;flex-shrink:0}
+.map-color{width:16px;height:16px;cursor:pointer;border:1px solid #3a3a3a}
+.map-color:hover{border-color:#888}
+.map-color.active{border-color:#fff;box-shadow:0 0 0 1px #fff}
+.map-color.c-blue{background:#5b9bd5}
+.map-color.c-red{background:#c0392b}
+.map-color.c-green{background:#27ae60}
+.map-color.c-yellow{background:#e8a838}
+.map-text-tool{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font:11px 'Fira Mono',monospace;color:#888;cursor:pointer;border:1px solid transparent;background:#242424}
+.map-text-tool:hover{border-color:#555}
+.map-text-tool.active{border-color:#5b9bd5;background:#1e2a38;color:#5b9bd5}
+.map-area{flex:1;position:relative;overflow:hidden;background:#1a1a1a;cursor:crosshair}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px}
+.map-road{position:absolute;background:rgba(100,100,80,.15)}
+.map-building{position:absolute;background:rgba(60,60,55,.25);border:1px solid rgba(80,80,70,.2)}
+.map-annotation{position:absolute;display:flex;flex-direction:column;align-items:center;cursor:pointer;z-index:2}
+.map-annotation:hover{filter:brightness(1.3)}
+.map-ann-icon{font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.map-ann-text{font:9px 'Fira Mono',monospace;white-space:nowrap;padding:1px 4px;background:rgba(0,0,0,.7);margin-top:2px;letter-spacing:.3px}
+.map-ann-dot{width:8px;height:8px;border-radius:50%;margin-bottom:2px}
+.map-fog{position:absolute;background:#0d0d0d;opacity:.85}
+.map-cursor{position:absolute;pointer-events:none;font-size:18px;opacity:.5;z-index:10;display:none}
+.map-status{position:absolute;bottom:8px;left:10px;font:9px 'Fira Mono',monospace;color:#555;letter-spacing:.3px}
+
+/* ── FLYERS — icon grid (matches craft pattern) ── */
+.flyer-progress{display:flex;align-items:baseline;gap:4px;padding:2px 0 6px;font:10px 'Fira Mono',monospace;color:#888;letter-spacing:.3px}
+.flyer-progress .count{color:#5b9bd5;font-weight:700}
+.pill-row{display:flex;gap:4px;padding-bottom:6px;flex-wrap:wrap;align-items:center}
+.pill-label{font:9px 'Fira Mono',monospace;color:#555;padding:3px 0;margin-right:2px;letter-spacing:.3px;text-transform:uppercase}
+.pill{font:9px 'Fira Mono',monospace;color:#888;padding:3px 8px;cursor:pointer;border:1px solid #3a3a3a;border-radius:2px;letter-spacing:.3px;white-space:nowrap}
+.pill:hover{border-color:#555;color:#d4d4d4}
+.pill.active{border-color:#5b9bd5;background:rgba(91,155,213,.15);color:#5b9bd5}
+.flyer-grid{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;padding:0 2px 8px}
+.flyer-cell{width:56px;height:78px;background:#2e2e2e;border:1px solid #3a3a3a;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden}
+.flyer-cell:hover{border-color:#555;background:#333}
+.flyer-cell .fc-thumb{width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.flyer-cell .fc-placeholder{font:16px 'Fira Mono',monospace;color:#555}
+.flyer-cell .fc-name{width:100%;font:7px 'Fira Sans',sans-serif;color:#888;text-align:center;padding:1px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#242424}
+.flyer-cell .fc-badge{position:absolute;top:2px;right:2px;width:10px;height:10px;background:#27ae60;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6px;color:#fff}
+.flyer-cell.unread{opacity:.35}
+.flyer-cell.unread:hover{opacity:.55}
+
+/* Flyer detail view */
+.flyer-detail{display:none;flex-direction:column;padding:8px 0}
+.flyer-detail.active{display:flex}
+.flyer-back{display:flex;align-items:center;gap:4px;font:10px 'Fira Mono',monospace;color:#5b9bd5;cursor:pointer;padding:4px 0;margin-bottom:8px}
+.flyer-back:hover{color:#7bb8e8}
+.flyer-detail-name{font:12px 'Fira Mono',monospace;color:#d4d4d4;text-align:center;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.flyer-detail-status{font:9px 'Fira Mono',monospace;text-align:center;margin-bottom:8px;padding:3px 8px;display:inline-block;align-self:center}
+.flyer-detail-status.read{color:#27ae60;border:1px solid rgba(39,174,96,.3)}
+.flyer-detail-status.unread{color:#888;border:1px solid #3a3a3a}
+.flyer-detail-img{width:100%;aspect-ratio:2/3;background:#2e2e2e;border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center}
+.flyer-detail-placeholder{font:48px 'Fira Mono',monospace;color:#3a3a3a}
+</style>
+</head>
+<body>
+
+<div class="mockup-wrap">
+<div class="mockup-label">ZeD-UI / Journal Tab Polish — S65 Mockup — Icon grids for Recipes + Flyers</div>
+
+<div class="win" id="app">
+  <div class="titlebar">
+    <div class="closebox">x</div>
+    <div class="win-title">CHARACTER</div>
+  </div>
+  <div class="tab-strip" id="tabStrip"></div>
+  <div class="content" id="content"></div>
+</div>
+</div>
+
+<script>
+// ── STATE ──
+const S = {
+  tab: 0,
+  // Journal
+  journalSearch: '',
+  journalGroupCollapsed: {},
+  killsExpanded: false,
+  // Recipes
+  recipeSearch: '',
+  recipeCat: 'all',
+  recipeSelected: null,
+  // Maps
+  mapActiveTool: null,
+  mapActiveColor: 0,
+  mapAnnotations: [
+    { x: 120, y: 140, icon: 0, color: 0, text: '' },
+    { x: 250, y: 200, icon: 2, color: 1, text: '' },
+    { x: 80, y: 300, icon: 5, color: 2, text: '' },
+    { x: 300, y: 120, icon: -1, color: 0, text: 'Safe house' },
+    { x: 200, y: 380, icon: 6, color: 3, text: '' },
+    { x: 340, y: 280, icon: 3, color: 0, text: '' },
+  ],
+  // Flyers
+  flyerSearch: '',
+  flyerFilter: 'all',
+  flyerSort: 'name_az',
+  flyerOpenIdx: null,
+};
+
+// ── DATA ──
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const TABS = ['Journal','Recipes','Maps','Flyers'];
+const MAP_ICONS = [
+  {emoji:'\u{1F3E0}',label:'House'},{emoji:'\u{1F3AF}',label:'Target'},{emoji:'\u{1F480}',label:'Danger'},
+  {emoji:'\u2B50',label:'Star'},{emoji:'\u274C',label:'X Mark'},{emoji:'\u2764\uFE0F',label:'Safe'},
+  {emoji:'\u2757',label:'Alert'},{emoji:'\u2753',label:'Unknown'},{emoji:'\u{1F525}',label:'Fire'},
+  {emoji:'\u{1F52B}',label:'Gun'},{emoji:'\u{1F354}',label:'Food'},{emoji:'\u{1FA93}',label:'Axe'},
+  {emoji:'\u2699\uFE0F',label:'Gears'},{emoji:'\u2713',label:'Check'},
+];
+const MAP_COLORS = [
+  {cls:'c-blue',hex:'#5b9bd5'},{cls:'c-red',hex:'#c0392b'},
+  {cls:'c-green',hex:'#27ae60'},{cls:'c-yellow',hex:'#e8a838'},
+];
+
+const journalEntries = [
+  {month:0,day:14,year:0,hour:8,min:30,text:'Found a working radio in the gas station. Nothing but static, but at least the batteries work. Might be useful later.'},
+  {month:0,day:12,year:0,hour:16,min:45,text:'Rain all day. Stayed in the safehouse and organized supplies. Need to find more nails for the window barricades.'},
+  {month:0,day:10,year:0,hour:22,min:10,text:'Close call at the warehouse district. Three of them came around the corner. The bat held up but I need to find something better.'},
+  {month:0,day:5,year:0,hour:12,min:30,text:'First day. Woke up in the motel room. Found some canned food and a kitchen knife. Need to find water.'},
+  {month:0,day:5,year:0,hour:14,min:0,text:'Moved to the house across the street. Boarded up the back door. This will do for now.'},
+  {month:1,day:2,year:0,hour:9,min:15,text:'Snow came early. The jacket from the police station is keeping me warm but I need gloves.'},
+  {month:1,day:8,year:0,hour:11,min:0,text:'Tried fishing at the river. Caught two bass. The smoker setup is working great for preservation.'},
+  {month:1,day:15,year:0,hour:7,min:20,text:'Generator finally gave out. Found the manual at the bookstore last week, so I know how to fix it. Need a wrench and some electrical parts.'},
+  {month:2,day:1,year:0,hour:18,min:45,text:'Spring is coming. Started clearing the garden plot behind the safehouse. Seeds from the farm should still be viable.'},
+];
+
+// Recipe data — icon grid with category, icons, status
+const RECIPE_CATS = ['All','Cooking','Carpentry','Metalwork','Electric','Tailoring'];
+const recipeItems = [
+  // Cooking
+  {name:'Roasted Vegetables',skill:'Cooking',level:1,icon:'\u{1F957}',status:'craftable',inputs:['Potato','Pan']},
+  {name:'Stir Fry',skill:'Cooking',level:2,icon:'\u{1F373}',status:'craftable',inputs:['Vegetables','Oil','Pan']},
+  {name:'Soup',skill:'Cooking',level:1,icon:'\u{1F372}',status:'craftable',inputs:['Water','Vegetables','Pot']},
+  {name:'Cake',skill:'Cooking',level:5,icon:'\u{1F370}',status:'locked',inputs:['Flour','Sugar','Eggs','Baking Pan']},
+  {name:'Pie',skill:'Cooking',level:6,icon:'\u{1F967}',status:'locked',inputs:['Flour','Butter','Fruit','Baking Pan']},
+  {name:'Bread',skill:'Cooking',level:4,icon:'\u{1F35E}',status:'missing',inputs:['Flour','Water','Yeast']},
+  {name:'Stew',skill:'Cooking',level:3,icon:'\u{1F959}',status:'missing',inputs:['Meat','Vegetables','Pot','Water']},
+  {name:'Jerky',skill:'Cooking',level:3,icon:'\u{1F969}',status:'craftable',inputs:['Meat','Salt']},
+  {name:'Jam',skill:'Cooking',level:5,icon:'\u{1F353}',status:'locked',inputs:['Fruit','Sugar','Jar']},
+  {name:'Salad',skill:'Cooking',level:1,icon:'\u{1F957}',status:'craftable',inputs:['Lettuce','Tomato']},
+  {name:'Pasta',skill:'Cooking',level:4,icon:'\u{1F35D}',status:'missing',inputs:['Flour','Water','Pot']},
+  {name:'Sushi',skill:'Cooking',level:8,icon:'\u{1F363}',status:'locked',inputs:['Fish','Rice','Knife']},
+  // Carpentry
+  {name:'Wooden Wall',skill:'Carpentry',level:1,icon:'\u{1FAB5}',status:'craftable',inputs:['Plank x4','Nails x4']},
+  {name:'Wooden Door',skill:'Carpentry',level:2,icon:'\u{1F6AA}',status:'craftable',inputs:['Plank x4','Nails x4','Hinge x2']},
+  {name:'Wooden Floor',skill:'Carpentry',level:1,icon:'\u2B1B',status:'craftable',inputs:['Plank x3','Nails x3']},
+  {name:'Wooden Crate',skill:'Carpentry',level:2,icon:'\u{1F4E6}',status:'craftable',inputs:['Plank x3','Nails x2']},
+  {name:'Rain Collector',skill:'Carpentry',level:4,icon:'\u{1F4A7}',status:'craftable',inputs:['Plank x4','Nails x4','Garbage Bag x4']},
+  {name:'Stairs',skill:'Carpentry',level:6,icon:'\u{1FA9C}',status:'missing',inputs:['Plank x10','Nails x10']},
+  {name:'Double Door',skill:'Carpentry',level:5,icon:'\u{1F6AA}',status:'locked',inputs:['Plank x6','Nails x6','Hinge x4']},
+  {name:'Log Wall',skill:'Carpentry',level:7,icon:'\u{1FAB5}',status:'locked',inputs:['Log x3','Rope']},
+  // Metalwork
+  {name:'Metal Sheet',skill:'Metalwork',level:1,icon:'\u2B1C',status:'craftable',inputs:['Small Metal Sheet x2','Propane Torch']},
+  {name:'Metal Wall',skill:'Metalwork',level:3,icon:'\u{1F6E1}',status:'missing',inputs:['Metal Sheet x3','Welding Rods']},
+  {name:'Metal Door',skill:'Metalwork',level:4,icon:'\u{1F6AA}',status:'locked',inputs:['Metal Sheet x4','Hinge x2','Welding Rods']},
+  {name:'Metal Fence',skill:'Metalwork',level:3,icon:'\u{1F6A7}',status:'missing',inputs:['Metal Bar x4','Welding Rods']},
+  // Electric
+  {name:'Light Switch',skill:'Electric',level:2,icon:'\u{1F4A1}',status:'missing',inputs:['Screwdriver','Wire x2']},
+  {name:'Motion Sensor',skill:'Electric',level:5,icon:'\u{1F4E1}',status:'locked',inputs:['Electronics x2','Wire x4','Screwdriver']},
+  {name:'Timer',skill:'Electric',level:4,icon:'\u23F0',status:'locked',inputs:['Electronics','Wire x2']},
+  // Tailoring
+  {name:'Patch Clothing',skill:'Tailoring',level:1,icon:'\u{1F9F5}',status:'craftable',inputs:['Needle','Thread','Fabric']},
+  {name:'Add Padding',skill:'Tailoring',level:2,icon:'\u{1F9E5}',status:'craftable',inputs:['Needle','Thread','Fabric x2']},
+  {name:'Leather Strips',skill:'Tailoring',level:4,icon:'\u{1F4DC}',status:'locked',inputs:['Leather','Scissors']},
+];
+
+const flyerCatalog = [
+  {key:'mccoyloggingcorp',name:'McCoy Logging',hasLoc:true,read:true},
+  {key:'nolansusedcars',name:'Nolans Used Cars',hasLoc:true,read:true},
+  {key:'fashionabelle',name:'Fashionabelle',hasLoc:true,read:false},
+  {key:'tacodelpancho',name:'Taco Del Pancho',hasLoc:true,read:true},
+  {key:'crossroadsmall',name:'Crossroads Mall',hasLoc:true,read:false},
+  {key:'fossoil1',name:'Fossoil Muldraugh',hasLoc:true,read:true},
+  {key:'fossoil2',name:'Fossoil West Point',hasLoc:true,read:false},
+  {key:'delilah',name:'Delilah',hasLoc:true,read:true},
+  {key:'grandohiomall',name:'Grand Ohio Mall',hasLoc:true,read:false},
+  {key:'dragracingtrack',name:'Drag Racing',hasLoc:true,read:true},
+  {key:'sunstarmotel',name:'Sunstar Motel',hasLoc:true,read:true},
+  {key:'scarletoakdist',name:'Scarlet Oak Dist',hasLoc:true,read:true},
+  {key:'farmersmarket',name:'Farmers Market',hasLoc:true,read:false},
+  {key:'theseashanty',name:'The Sea Shanty',hasLoc:true,read:true},
+  {key:'readyprep',name:'Ready Prep',hasLoc:true,read:false},
+  {key:'lsu',name:'Louisville State',hasLoc:true,read:true},
+  {key:'benscabin',name:'Bens Cabin',hasLoc:true,read:true},
+  {key:'houseforsale',name:'House For Sale',hasLoc:true,read:false},
+  {key:'havishamsuites',name:'Havisham Suites',hasLoc:true,read:true},
+  {key:'fossoil3',name:'Fossoil Rosewood',hasLoc:true,read:false},
+  {key:'westmaple',name:'West Maple CC',hasLoc:true,read:false},
+  {key:'artgallery',name:'Art Gallery LV',hasLoc:true,read:false},
+  {key:'spiffodixie',name:'Spiffo Dixie',hasLoc:true,read:false},
+  {key:'pizzawhirled',name:'Pizza Whirled',hasLoc:true,read:false},
+  {key:'bruiser',name:'LV Bruiser',hasLoc:true,read:false},
+  {key:'knoxgun',name:'Knox Gun Club',hasLoc:false,read:false},
+  {key:'bakesale',name:'Bake Sale',hasLoc:false,read:false},
+  {key:'lectromax',name:'Lectromax Jobs',hasLoc:true,read:false},
+].sort((a,b) => a.name.localeCompare(b.name));
+
+// ── RENDER ──
+function render() {
+  renderTabs();
+  const c = document.getElementById('content');
+  c.innerHTML = '';
+  if (S.tab === 0) renderJournal(c);
+  else if (S.tab === 1) renderRecipes(c);
+  else if (S.tab === 2) renderMaps(c);
+  else if (S.tab === 3) renderFlyers(c);
+}
+
+function renderTabs() {
+  const ts = document.getElementById('tabStrip');
+  ts.innerHTML = TABS.map((t,i) =>
+    `<div class="tab-btn${S.tab===i?' active':''}" onclick="S.tab=${i};S.flyerOpenIdx=null;S.recipeSelected=null;render()">${t}</div>`
+  ).join('');
+}
+
+// ── JOURNAL ──
+function renderJournal(c) {
+  const panel = el('div','panel active');
+  panel.innerHTML = searchBarHTML('journalSearch', 'Search entries...');
+  const scroll = el('div','scroll-area');
+  scroll.innerHTML += `<div class="survived-row"><span class="survived-label">SURVIVED</span><span class="survived-val">18 days</span></div>`;
+  const kChev = S.killsExpanded ? '\u25BE' : '\u25B8';
+  scroll.innerHTML += `
+    <div class="kill-stat" onclick="S.killsExpanded=!S.killsExpanded;render()">
+      <span class="kill-chevron">${kChev}</span>
+      <span class="kill-label">ZOMBIES KILLED</span>
+      <span class="kill-value">47</span>
+    </div>
+    <div class="kill-breakdown${S.killsExpanded?'':' collapsed'}">
+      <div class="kill-row"><span class="kill-row-label">Melee</span><span class="kill-row-val">32</span></div>
+      <div class="kill-row"><span class="kill-row-label">Firearm</span><span class="kill-row-val">8</span></div>
+      <div class="kill-row"><span class="kill-row-label">Vehicle</span><span class="kill-row-val">5</span></div>
+      <div class="kill-row"><span class="kill-row-label">Fire</span><span class="kill-row-val">2</span></div>
+    </div>`;
+  scroll.innerHTML += '<div class="section-groove"></div>';
+
+  const q = S.journalSearch.toLowerCase();
+  const filtered = journalEntries.filter(e => !q || e.text.toLowerCase().includes(q));
+  const groups = {};
+  filtered.forEach(e => {
+    const key = `${e.month}_${e.year}`;
+    if (!groups[key]) groups[key] = {month:e.month,year:e.year,entries:[]};
+    groups[key].entries.push(e);
+  });
+  const sortedKeys = Object.keys(groups).sort((a,b) => {
+    const [am,ay] = a.split('_').map(Number);
+    const [bm,by] = b.split('_').map(Number);
+    return by-ay || bm-am;
+  });
+  if (sortedKeys.length === 0 && q) scroll.innerHTML += '<div class="no-results">No entries match search</div>';
+  sortedKeys.forEach(key => {
+    const g = groups[key];
+    const collapsed = S.journalGroupCollapsed[key];
+    scroll.innerHTML += `
+      <div class="journal-group-hdr" onclick="S.journalGroupCollapsed['${key}']=!S.journalGroupCollapsed['${key}'];render()">
+        <span class="journal-chevron${collapsed?' collapsed':''}">\u25BE</span>
+        <span class="journal-group-label">${MONTHS[g.month]}, Year ${g.year}</span>
+        <span class="journal-group-count">(${g.entries.length})</span>
+      </div>
+      <div class="journal-entries${collapsed?' collapsed':''}">
+        ${g.entries.map(e => {
+          const h = e.hour > 12 ? e.hour - 12 : (e.hour === 0 ? 12 : e.hour);
+          const ampm = e.hour >= 12 ? 'PM' : 'AM';
+          const time = `${h}:${String(e.min).padStart(2,'0')} ${ampm}`;
+          const date = `${MONTHS[e.month].substring(0,3)} ${e.day+1}, ${e.year} \u2014 ${time}`;
+          return `<div class="journal-entry">
+            <div class="entry-date">${date}</div>
+            <div class="entry-text">${highlightSearch(e.text, q)}</div>
+            <div class="entry-delete" onclick="event.stopPropagation()">x</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  });
+  panel.appendChild(scroll);
+  panel.innerHTML += `<div class="journal-footer">
+    <input class="journal-input" placeholder="Write something..." />
+    <div class="save-btn">SAVE</div>
+  </div>`;
+  c.appendChild(panel);
+  bindSearch(panel, 'journalSearch');
+}
+
+// ── RECIPES — icon grid ──
+function renderRecipes(c) {
+  const panel = el('div','panel active');
+  panel.innerHTML = searchBarHTML('recipeSearch', 'Search recipes...');
+
+  // Category bar
+  let catBar = '<div class="recipe-toolbar">';
+  RECIPE_CATS.forEach(cat => {
+    const id = cat.toLowerCase();
+    catBar += `<div class="recipe-cat-btn${S.recipeCat===id?' active':''}" onclick="S.recipeCat='${id}';S.recipeSelected=null;render()">${cat}</div>`;
+  });
+  catBar += '</div>';
+  panel.innerHTML += catBar;
+
+  // Legend
+  panel.innerHTML += `<div class="recipe-legend">
+    <div class="legend-swatch"><div class="legend-dot craftable" style="background:#27ae60;box-shadow:0 0 3px rgba(39,174,96,.5)"></div>Craftable</div>
+    <div class="legend-swatch"><div class="legend-dot missing"></div>Missing mats</div>
+    <div class="legend-swatch"><div class="legend-dot unknown"></div>Locked</div>
+  </div>`;
+
+  // Filter
+  const q = S.recipeSearch.toLowerCase();
+  let items = recipeItems.filter(r => {
+    if (q && !r.name.toLowerCase().includes(q)) return false;
+    if (S.recipeCat !== 'all' && r.skill.toLowerCase() !== S.recipeCat) return false;
+    return true;
+  });
+
+  // Progress
+  const craftable = items.filter(r => r.status === 'craftable').length;
+  panel.innerHTML += `<div class="recipe-progress"><span class="ct">${craftable}</span> / ${items.length} craftable</div>`;
+
+  // NP card (selected recipe detail)
+  if (S.recipeSelected !== null) {
+    const sel = recipeItems.find(r => r.name === S.recipeSelected);
+    if (sel) {
+      let np = `<div class="np-card"><div class="np-name">${escHtml(sel.name)}</div>`;
+      sel.inputs.forEach(inp => {
+        const have = sel.status === 'craftable';
+        np += `<div class="np-row"><div class="dot ${have?'have':'need'}"></div><div class="name">${inp}</div>${inp.includes('x')?'':'<div class="tag">TOOL</div>'}</div>`;
+      });
+      np += `<div class="np-skill">Requires: ${sel.skill} Lv.${sel.level}</div></div>`;
+      panel.innerHTML += np;
+    }
+  } else {
+    panel.innerHTML += '<div class="np-card empty"><div class="np-empty-text">Select a recipe</div></div>';
+  }
+
+  const scroll = el('div','scroll-area');
+
+  if (items.length === 0) {
+    scroll.innerHTML = '<div class="no-results">No recipes match</div>';
+  } else {
+    let grid = '<div class="recipe-grid">';
+    items.forEach(r => {
+      const sel = S.recipeSelected === r.name ? ' selected' : '';
+      const locked = r.status === 'locked' ? ' locked' : '';
+      const dotCls = r.status === 'craftable' ? 'craftable' : r.status === 'missing' ? 'missing' : 'locked';
+      grid += `<div class="recipe-cell${sel}${locked}" onclick="S.recipeSelected=S.recipeSelected==='${escAttr(r.name)}'?null:'${escAttr(r.name)}';render()" title="${escHtml(r.name)}">
+        <div class="rc-dot ${dotCls}"></div>
+        <div class="rc-icon">${r.icon}</div>
+        <div class="rc-info"><span class="rc-level">${r.level}</span><span class="rc-count">${r.inputs.length}</span></div>
+      </div>`;
+    });
+    grid += '</div>';
+    scroll.innerHTML = grid;
+  }
+
+  panel.appendChild(scroll);
+  c.appendChild(panel);
+  bindSearch(panel, 'recipeSearch');
+}
+
+// ── MAPS ──
+function renderMaps(c) {
+  const panel = el('div','panel active');
+  let toolbar = '<div class="map-toolbar">';
+  MAP_ICONS.forEach((ic,i) => {
+    toolbar += `<div class="map-tool${S.mapActiveTool===i?' active':''}" onclick="S.mapActiveTool=S.mapActiveTool===${i}?null:${i};render()" title="${ic.label}">${ic.emoji}</div>`;
+  });
+  toolbar += '<div class="map-sep"></div>';
+  toolbar += `<div class="map-text-tool${S.mapActiveTool==='text'?' active':''}" onclick="S.mapActiveTool=S.mapActiveTool==='text'?null:'text';render()" title="Text Note">T</div>`;
+  toolbar += '<div class="map-sep"></div>';
+  MAP_COLORS.forEach((col,i) => {
+    toolbar += `<div class="map-color ${col.cls}${S.mapActiveColor===i?' active':''}" onclick="S.mapActiveColor=${i};render()"></div>`;
+  });
+  toolbar += '</div>';
+  panel.innerHTML = toolbar;
+
+  const mapDiv = el('div','map-area');
+  mapDiv.id = 'mapArea';
+  mapDiv.innerHTML = '<div class="map-grid"></div>';
+  mapDiv.innerHTML += `
+    <div class="map-road" style="left:60px;top:0;width:6px;height:100%"></div>
+    <div class="map-road" style="left:180px;top:0;width:4px;height:100%"></div>
+    <div class="map-road" style="left:0;top:160px;width:100%;height:5px"></div>
+    <div class="map-road" style="left:0;top:320px;width:100%;height:4px"></div>
+    <div class="map-road" style="left:280px;top:0;width:3px;height:100%"></div>
+    <div class="map-building" style="left:70px;top:60px;width:40px;height:30px"></div>
+    <div class="map-building" style="left:70px;top:100px;width:60px;height:40px"></div>
+    <div class="map-building" style="left:190px;top:50px;width:50px;height:45px"></div>
+    <div class="map-building" style="left:190px;top:170px;width:70px;height:55px"></div>
+    <div class="map-building" style="left:290px;top:200px;width:45px;height:60px"></div>
+    <div class="map-building" style="left:100px;top:340px;width:65px;height:35px"></div>
+    <div class="map-building" style="left:300px;top:340px;width:55px;height:40px"></div>
+    <div class="map-fog" style="left:0;top:0;width:50px;height:60px"></div>
+    <div class="map-fog" style="right:0;top:0;width:70px;height:45px"></div>
+    <div class="map-fog" style="right:0;bottom:0;width:90px;height:60px"></div>`;
+  S.mapAnnotations.forEach(ann => {
+    const col = MAP_COLORS[ann.color].hex;
+    if (ann.icon === -1) {
+      mapDiv.innerHTML += `<div class="map-annotation" style="left:${ann.x}px;top:${ann.y}px;transform:translate(-50%,-100%)">
+        <div class="map-ann-text" style="color:${col}">${ann.text}</div>
+        <div class="map-ann-dot" style="background:${col}"></div>
+      </div>`;
+    } else {
+      mapDiv.innerHTML += `<div class="map-annotation" style="left:${ann.x}px;top:${ann.y}px;transform:translate(-50%,-50%)">
+        <div class="map-ann-icon">${MAP_ICONS[ann.icon].emoji}</div>
+      </div>`;
+    }
+  });
+  mapDiv.innerHTML += '<div class="map-cursor" id="mapCursor"></div>';
+  const toolName = S.mapActiveTool === null ? 'Pan' : S.mapActiveTool === 'text' ? 'Text Note' : MAP_ICONS[S.mapActiveTool].label;
+  mapDiv.innerHTML += `<div class="map-status">Tool: ${toolName} \u00B7 ${S.mapAnnotations.length} marks</div>`;
+  panel.appendChild(mapDiv);
+  c.appendChild(panel);
+
+  const area = document.getElementById('mapArea');
+  area.addEventListener('click', e => {
+    if (S.mapActiveTool === null) return;
+    const rect = area.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (S.mapActiveTool === 'text') {
+      const text = prompt('Enter note:');
+      if (text) { S.mapAnnotations.push({x,y,icon:-1,color:S.mapActiveColor,text}); render(); }
+    } else {
+      S.mapAnnotations.push({x,y,icon:S.mapActiveTool,color:S.mapActiveColor,text:''});
+      render();
+    }
+  });
+  area.addEventListener('mousemove', e => {
+    const cursor = document.getElementById('mapCursor');
+    if (!cursor) return;
+    if (S.mapActiveTool === null) { cursor.style.display = 'none'; return; }
+    const rect = area.getBoundingClientRect();
+    cursor.style.display = 'block';
+    cursor.style.left = (e.clientX - rect.left - 9) + 'px';
+    cursor.style.top = (e.clientY - rect.top - 9) + 'px';
+    cursor.textContent = S.mapActiveTool === 'text' ? 'T' : MAP_ICONS[S.mapActiveTool].emoji;
+    cursor.style.fontSize = S.mapActiveTool === 'text' ? '14px' : '18px';
+  });
+  area.addEventListener('mouseleave', () => {
+    const c2 = document.getElementById('mapCursor');
+    if (c2) c2.style.display = 'none';
+  });
+}
+
+// ── FLYERS — icon grid ──
+function renderFlyers(c) {
+  const panel = el('div','panel active');
+  if (S.flyerOpenIdx !== null) {
+    panel.innerHTML = '<div style="padding:0 10px;flex:1;display:flex;flex-direction:column;overflow-y:auto">' + renderFlyerDetail() + '</div>';
+    c.appendChild(panel);
+    return;
+  }
+  panel.innerHTML = searchBarHTML('flyerSearch', 'Search flyers...');
+  const scroll = el('div','scroll-area');
+
+  const readCount = flyerCatalog.filter(f => f.read).length;
+  scroll.innerHTML += `<div class="flyer-progress"><span class="count">${readCount}</span> / ${flyerCatalog.length} Read</div>`;
+
+  const filters = [{id:'all',label:'All'},{id:'read',label:'Read'},{id:'unread',label:'Unread'},{id:'on_map',label:'On Map'}];
+  scroll.innerHTML += `<div class="pill-row"><span class="pill-label">Filter</span>${filters.map(f =>
+    `<div class="pill${S.flyerFilter===f.id?' active':''}" onclick="S.flyerFilter='${f.id}';render()">${f.label}</div>`
+  ).join('')}</div>`;
+
+  const sorts = [{id:'name_az',label:'A-Z'},{id:'name_za',label:'Z-A'},{id:'read',label:'Read \u2191'},{id:'unread',label:'Unread \u2191'}];
+  scroll.innerHTML += `<div class="pill-row"><span class="pill-label">Sort</span>${sorts.map(s =>
+    `<div class="pill${S.flyerSort===s.id?' active':''}" onclick="S.flyerSort='${s.id}';render()">${s.label}</div>`
+  ).join('')}</div>`;
+
+  const q = S.flyerSearch.toLowerCase();
+  let items = flyerCatalog.filter(f => {
+    if (q && !f.name.toLowerCase().includes(q)) return false;
+    if (S.flyerFilter === 'read' && !f.read) return false;
+    if (S.flyerFilter === 'unread' && f.read) return false;
+    if (S.flyerFilter === 'on_map' && !f.hasLoc) return false;
+    return true;
+  });
+  items = [...items].sort((a,b) => {
+    if (S.flyerSort === 'name_az') return a.name.localeCompare(b.name);
+    if (S.flyerSort === 'name_za') return b.name.localeCompare(a.name);
+    if (S.flyerSort === 'read') return (b.read?1:0)-(a.read?1:0) || a.name.localeCompare(b.name);
+    if (S.flyerSort === 'unread') return (a.read?1:0)-(b.read?1:0) || a.name.localeCompare(b.name);
+    return 0;
+  });
+
+  if (items.length === 0) {
+    scroll.innerHTML += '<div class="no-results">No flyers match filters</div>';
+  } else {
+    let grid = '<div class="flyer-grid">';
+    items.forEach(f => {
+      const origIdx = flyerCatalog.indexOf(f);
+      const cls = f.read ? '' : ' unread';
+      const badge = f.read ? '<div class="fc-badge">\u2713</div>' : '';
+      grid += `<div class="flyer-cell${cls}" onclick="S.flyerOpenIdx=${origIdx};render()" title="${escHtml(f.name)}">
+        ${badge}
+        <div class="fc-thumb"><span class="fc-placeholder">${f.name.charAt(0)}</span></div>
+        <div class="fc-name">${highlightSearch(f.name, q)}</div>
+      </div>`;
+    });
+    grid += '</div>';
+    scroll.innerHTML += grid;
+  }
+
+  panel.appendChild(scroll);
+  c.appendChild(panel);
+  bindSearch(panel, 'flyerSearch');
+}
+
+function renderFlyerDetail() {
+  const f = flyerCatalog[S.flyerOpenIdx];
+  const statusCls = f.read ? 'read' : 'unread';
+  const statusText = f.read ? 'READ' : 'UNREAD';
+  return `<div class="flyer-detail active">
+    <div class="flyer-back" onclick="S.flyerOpenIdx=null;render()">\u2190 BACK</div>
+    <div class="flyer-detail-name">${f.name}</div>
+    <div class="flyer-detail-status ${statusCls}">${statusText}</div>
+    <div class="flyer-detail-img"><span class="flyer-detail-placeholder">${f.name.charAt(0)}</span></div>
+  </div>`;
+}
+
+// ── HELPERS ──
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+function searchBarHTML(stateKey, placeholder) {
+  const val = S[stateKey];
+  return `<div class="search-bar${val?' has-text':''}" data-key="${stateKey}">
+    <span class="search-icon">/</span>
+    <input class="search-input" placeholder="${placeholder}" value="${escHtml(val)}" />
+    <span class="search-clear" onclick="S['${stateKey}']='';render()">x</span>
+  </div>`;
+}
+function bindSearch(panel, stateKey) {
+  const input = panel.querySelector(`.search-bar[data-key="${stateKey}"] .search-input`);
+  if (!input) return;
+  input.addEventListener('input', e => {
+    S[stateKey] = e.target.value;
+    render();
+    requestAnimationFrame(() => {
+      const ni = document.querySelector(`.search-bar[data-key="${stateKey}"] .search-input`);
+      if (ni) { ni.focus(); ni.selectionStart = ni.selectionEnd = ni.value.length; }
+    });
+  });
+}
+function highlightSearch(text, query) {
+  if (!query) return escHtml(text);
+  const safe = escHtml(text);
+  const safeQ = escHtml(query);
+  const re = new RegExp(`(${safeQ.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+  return safe.replace(re, '<span style="background:rgba(91,155,213,.25);color:#7bb8e8">$1</span>');
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+render();
+</script>
+</body>
+</html>

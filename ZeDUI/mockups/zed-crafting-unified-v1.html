@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI — Crafting 480w · Left Pane Flip (S81)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --base:#0e0e11; --surf0:#1a1a1e; --surf1:#222226; --surf2:#2a2a2e; --surf3:#333338;
+  --border:rgba(255,255,255,0.10); --borderS:rgba(255,255,255,0.22);
+  --text:#d4d4d8; --textSec:rgba(255,255,255,0.45); --textHead:rgba(255,255,255,0.70);
+  --accent:#D4922A; --accentDim:rgba(212,146,42,0.55);
+  --danger:#c44040; --dangerSoft:rgba(196,64,64,0.06);
+  --warning:#c49040; --warningSoft:rgba(196,144,64,0.14);
+  --positive:#4a9a5a; --positiveSoft:rgba(74,154,90,0.14);
+  --stripe:rgba(255,255,255,0.022);
+  --titleStripe1:#333338; --titleStripe2:#2a2a2e;
+  --surfOpacity:0.94;
+  --F1:'Fira Mono',monospace;
+  --F2:'Fira Sans Condensed',sans-serif;
+  --pad:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#08080a;min-height:100vh;padding:30px 20px 60px;font-family:var(--F2);color:var(--text);
+  display:flex;gap:30px;justify-content:center;align-items:flex-start;flex-wrap:wrap;
+}
+.info{max-width:240px;padding:16px 18px;background:var(--surf0);border:1px solid var(--border)}
+.info h1{font-family:var(--F1);font-size:11px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.info p{font-family:var(--F2);font-size:12px;color:var(--text);line-height:1.5;margin-bottom:10px}
+.info strong{color:var(--accent);font-family:var(--F1);font-size:11px;letter-spacing:0.5px}
+.info ul{list-style:none;padding:0;margin:8px 0}
+.info li{font-family:var(--F2);font-size:11px;color:var(--textSec);padding:2px 0;line-height:1.4}
+.info li::before{content:'→ ';color:var(--accent)}
+
+.ww{background:rgba(26,26,30,var(--surfOpacity));border:1px solid var(--borderS);display:flex;flex-direction:column;width:514px;height:640px}
+.ww-title{height:22px;display:flex;align-items:center;padding:0 6px;border-bottom:1px solid var(--borderS);background:repeating-linear-gradient(to right,var(--titleStripe1) 0px,var(--titleStripe1) 2px,var(--titleStripe2) 2px,var(--titleStripe2) 4px)}
+.ww-close{width:11px;height:11px;border:1px solid var(--borderS);background:var(--surf1);margin-right:8px;display:flex;align-items:center;justify-content:center}
+.ww-close::after{content:'×';font-family:var(--F1);font-size:10px;color:var(--textSec);line-height:1}
+.ww-title-txt{font-family:var(--F1);font-size:10px;font-weight:700;color:var(--textHead);letter-spacing:0.5px;text-transform:uppercase}
+.ww-title-txt .sub{color:var(--accent);margin-left:6px}
+.ww-body{flex:1;display:flex;min-height:0;overflow:hidden}
+
+.drawer{width:480px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;background:var(--surf0);border-right:1px solid var(--border)}
+
+/* Static top: cat + search */
+.static-head{flex-shrink:0;background:var(--surf1);border-bottom:1px solid var(--borderS)}
+.catrow{height:26px;padding:0 var(--pad);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.catrow-lbl{font-family:var(--F1);font-size:9px;font-weight:700;color:var(--textSec);letter-spacing:1.2px;text-transform:uppercase;flex-shrink:0}
+.catrow.alt-mode .catrow-lbl{color:var(--accent)}
+.catrow-dd{flex:1;height:18px;border:1px solid var(--borderS);background:var(--base);display:flex;align-items:center;justify-content:space-between;padding:0 8px;cursor:pointer;user-select:none;position:relative}
+.catrow-dd:hover{border-color:var(--accent)}
+.catrow-dd.frozen{cursor:default;background:rgba(212,146,42,0.08);border-color:var(--accent)}
+.catrow-dd.frozen:hover{border-color:var(--accent)}
+.catrow-dd.frozen .val{color:var(--accent)}
+.catrow-dd .val{font-family:var(--F2);font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.catrow-dd .arr{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--textSec)}
+.catrow-dd.frozen .arr{display:none}
+.catrow-dd.open .arr{transform:rotate(180deg)}
+.cat-list{position:absolute;top:100%;left:-1px;right:-1px;background:var(--surf1);border:1px solid var(--borderS);z-index:20;max-height:260px;overflow-y:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.6)}
+.cat-list.open{display:block}
+.cat-list-item{padding:4px 8px;font-family:var(--F2);font-size:12px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border)}
+.cat-list-item:hover{background:rgba(212,146,42,0.12);color:var(--accent)}
+.cat-list-item.active{background:rgba(212,146,42,0.18);color:var(--accent);font-weight:500}
+.cat-list-item.active::after{content:' ✓';font-family:var(--F1);font-weight:700}
+
+.search{padding:6px var(--pad);display:flex;align-items:center;gap:6px}
+.search-box{flex:1;height:22px;border:1px solid var(--borderS);background:var(--base);display:flex;align-items:center;gap:6px;padding:0 8px}
+.search-box:focus-within{border-color:var(--accent)}
+.search-box svg{width:11px;height:11px;fill:var(--textSec);flex-shrink:0}
+.search.alt-mode .search-box{border-color:rgba(212,146,42,0.4)}
+.search.alt-mode .search-box svg{fill:var(--accentDim)}
+.search-input{flex:1;background:transparent;border:none;outline:none;font-family:var(--F2);font-size:12px;color:var(--text);min-width:0}
+.search-input::placeholder{color:var(--textSec)}
+.search-clr{font-family:var(--F1);font-size:11px;color:var(--textSec);cursor:pointer;padding:0 2px}
+.search-clr:hover{color:var(--accent)}
+.search-clr.hide{visibility:hidden}
+
+/* Strip: sort in list mode, back+filter in alt mode */
+.strip{height:24px;padding:0 var(--pad);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-family:var(--F1);font-size:9px;color:var(--textSec);letter-spacing:0.6px;text-transform:uppercase;flex-shrink:0;background:var(--surf0)}
+.strip.alt-mode{background:rgba(212,146,42,0.08);border-bottom:1px solid var(--accent)}
+.strip-grp{display:flex;align-items:center;gap:4px}
+.strip-lbl{font-weight:700;opacity:0.6}
+.strip-mode{font-family:var(--F1);font-size:9px;font-weight:700;color:var(--textSec);letter-spacing:0.4px;cursor:pointer;padding:2px 4px}
+.strip-mode.active{color:var(--accent);border-bottom:1px solid var(--accent)}
+.strip-mode:hover:not(.active){color:var(--text)}
+.strip-toggle{margin-left:auto;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none}
+.strip-toggle-box{width:11px;height:11px;border:1px solid var(--borderS);background:var(--base);display:flex;align-items:center;justify-content:center}
+.strip-toggle.on .strip-toggle-box{background:var(--accent);border-color:var(--accent)}
+.strip-toggle.on .strip-toggle-box::after{content:'';width:7px;height:7px;background:var(--base)}
+
+.alt-back{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--accent);font-family:var(--F1);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 4px}
+.alt-back:hover{color:var(--text)}
+.alt-back .chev{width:0;height:0;border-top:3px solid transparent;border-bottom:3px solid transparent;border-right:4px solid currentColor}
+.alt-back-meta{margin-left:4px;font-weight:400;color:var(--textSec)}
+
+.panes{flex:1;display:flex;min-height:0;overflow:hidden}
+.recipes-pane{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;transition:flex 0.28s cubic-bezier(0.4,0,0.2,1)}
+.panes.split .recipes-pane{flex:0 0 240px;border-right:1px solid var(--borderS)}
+.craft-pane{width:0;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;background:rgba(20,20,24,0.5);transition:width 0.28s cubic-bezier(0.4,0,0.2,1)}
+.panes.split .craft-pane{width:240px}
+
+.list-scroll{flex:1;overflow-y:auto;min-height:0}
+
+.sec{display:flex;align-items:center;gap:6px;padding:4px var(--pad);background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);cursor:pointer;font-family:var(--F1);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--textHead);position:sticky;top:0;z-index:2}
+.sec .arr{width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-top:4px solid currentColor;transition:transform 0.15s}
+.sec.collapsed .arr{transform:rotate(-90deg)}
+.sec .count{color:var(--textSec);font-weight:400;margin-left:auto}
+.sec.pinned{color:var(--accent)}
+.sec.freq{color:var(--warning)}
+.sec.owned{color:var(--positive)}
+
+.rec{display:grid;grid-template-columns:2px 12px 16px 1fr 12px;gap:5px;align-items:center;height:24px;padding:0 var(--pad) 0 0;cursor:pointer;border-bottom:1px solid var(--border)}
+.rec:hover{background:rgba(255,255,255,0.04)}
+.rec:nth-of-type(even){background:var(--stripe)}
+.rec:nth-of-type(even):hover{background:rgba(255,255,255,0.05)}
+.rec.miss-row{background:var(--dangerSoft)}
+.rec.miss-row:nth-of-type(even){background:rgba(196,64,64,0.08)}
+.rec.miss-row:hover{background:rgba(196,64,64,0.12)}
+.rec.selected{background:rgba(212,146,42,0.12)}
+.rec.selected:hover{background:rgba(212,146,42,0.16)}
+.rec-sel-edge{height:100%;align-self:stretch}
+.rec.selected .rec-sel-edge{background:var(--accent)}
+.dot{width:6px;height:6px;border-radius:50%;justify-self:center;background:var(--surf3)}
+.dot.can{background:var(--positive);box-shadow:0 0 3px rgba(74,154,90,0.5)}
+.dot.miss{background:var(--danger);box-shadow:0 0 3px rgba(196,64,64,0.4)}
+.dot.unk{background:var(--textSec)}
+.rec-icon{font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;filter:saturate(0.85)}
+.rec-name{font-family:var(--F2);font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec.miss-row .rec-name{color:var(--textSec)}
+.rec.unk-row .rec-name{color:var(--textSec);font-style:italic}
+.rec-name .freq-badge{font-family:var(--F1);font-size:8px;font-weight:700;color:var(--warning);margin-left:4px;letter-spacing:0.3px}
+.rec-star{cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--textSec);opacity:0;transition:opacity 0.1s}
+.rec:hover .rec-star{opacity:0.5}
+.rec .rec-star:hover{opacity:1}
+.rec-star.on{opacity:1;color:var(--accent)}
+.rec.selected .rec-star{opacity:0.7}
+.rec.selected .rec-star.on{opacity:1}
+.rec-star svg{width:10px;height:10px;fill:currentColor}
+
+.empty-results{padding:16px 10px;text-align:center;font-family:var(--F2);font-size:11px;color:var(--textSec);font-style:italic}
+
+/* Alt rows — same row template as .rec minus the star, so it aligns */
+.alt-row{display:grid;grid-template-columns:2px 12px 16px 1fr auto;gap:5px;align-items:center;height:24px;padding:0 var(--pad) 0 0;border-bottom:1px solid var(--border)}
+.alt-row:nth-of-type(even){background:var(--stripe)}
+.alt-row.owned{background:rgba(74,154,90,0.05)}
+.alt-row.owned:nth-of-type(even){background:rgba(74,154,90,0.09)}
+.alt-row-edge{height:100%;align-self:stretch}
+.alt-row.owned .alt-row-edge{background:var(--positive)}
+.alt-dot{width:5px;height:5px;border-radius:50%;justify-self:center;background:var(--surf3)}
+.alt-row.owned .alt-dot{background:var(--positive);box-shadow:0 0 3px rgba(74,154,90,0.5)}
+.alt-icon{font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;filter:saturate(0.85)}
+.alt-name{font-family:var(--F2);font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alt-row:not(.owned) .alt-name{color:var(--textSec)}
+.alt-count{font-family:var(--F1);font-size:10px;font-weight:700;padding-right:8px;letter-spacing:0.3px}
+.alt-row.owned .alt-count{color:var(--positive)}
+.alt-row:not(.owned) .alt-count{color:var(--textSec);opacity:0.5}
+
+/* ═══════════ Craft pane (240w) ═══════════ */
+.craft-scroll{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column}
+
+.chead{padding:8px 8px 6px;display:flex;gap:8px;align-items:flex-start}
+.chead-icon{width:36px;height:36px;border:1px solid var(--borderS);background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
+.chead-body{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.chead-name{font-family:var(--F2);font-size:13px;font-weight:600;color:var(--accent);line-height:1.15;letter-spacing:0.2px}
+.chead-desc{font-family:var(--F2);font-size:10px;font-weight:400;color:var(--textSec);line-height:1.3}
+
+.cchips{padding:0 8px 8px;display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.cchip{height:16px;display:inline-flex;align-items:center;gap:3px;padding:0 4px;border:1px solid var(--border);background:var(--surf1);font-family:var(--F1);font-size:8px;font-weight:700;color:var(--textSec);letter-spacing:0.3px;text-transform:uppercase}
+.cchip svg{width:8px;height:8px;fill:currentColor}
+.cchip.warn{border-color:rgba(196,144,64,0.35);color:var(--warning);background:var(--warningSoft)}
+.cchip.ok{border-color:rgba(74,154,90,0.35);color:var(--positive);background:var(--positiveSoft)}
+.cchip.lock{border-color:rgba(196,64,64,0.35);color:var(--danger);background:rgba(196,64,64,0.12)}
+.cchip .num{font-family:var(--F1);color:var(--text);font-weight:700}
+
+.csect{padding:4px 8px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,0.025);display:flex;justify-content:space-between;align-items:baseline}
+.csect-lbl{font-family:var(--F1);font-size:9px;font-weight:700;color:var(--textHead);letter-spacing:1.2px;text-transform:uppercase}
+.csect-meta{font-family:var(--F1);font-size:8px;color:var(--textSec);letter-spacing:0.3px}
+.csect-meta .miss{color:var(--danger)}
+
+.cslot{display:grid;grid-template-columns:2px 18px 1fr auto 12px;gap:5px;align-items:center;height:24px;padding:0 8px 0 0;cursor:pointer}
+.cslot:hover{background:rgba(255,255,255,0.04)}
+.cslot:nth-of-type(even){background:var(--stripe)}
+.cslot.missing{background:var(--dangerSoft)}
+.cslot.missing:nth-of-type(even){background:rgba(196,64,64,0.09)}
+.cslot.missing:hover{background:rgba(196,64,64,0.13)}
+.cslot.selected{background:rgba(212,146,42,0.10)}
+.cslot.selected:hover{background:rgba(212,146,42,0.14)}
+.cslot-edge{height:100%;align-self:stretch}
+.cslot.selected .cslot-edge{background:var(--accent)}
+.cslot.no-alts{cursor:default}
+.cslot-icon{font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+.cslot-name-cell{display:flex;align-items:baseline;gap:4px;white-space:nowrap;overflow:hidden;min-width:0}
+.cslot-name{font-family:var(--F2);font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
+.cslot.missing .cslot-name{color:var(--textSec)}
+.cslot-tag{font-family:var(--F1);font-size:7px;font-weight:700;color:var(--textSec);letter-spacing:0.3px;border:1px solid var(--border);padding:0 2px;height:11px;display:inline-flex;align-items:center;flex-shrink:0}
+.cslot-tag.use{color:var(--accentDim);border-color:rgba(212,146,42,0.25)}
+.cslot-tag.alts{color:var(--accent);border-color:rgba(212,146,42,0.4)}
+.cslot-count{font-family:var(--F1);font-size:10px;font-weight:700;text-align:right;letter-spacing:0.2px;padding-left:4px}
+.cslot-count.ok{color:var(--positive)}
+.cslot-count.miss{color:var(--danger)}
+.cslot-flag{display:flex;align-items:center;justify-content:center;color:var(--textSec)}
+.cslot-flag svg{width:10px;height:10px;fill:currentColor}
+.cslot-flag.keep{color:var(--positive)}
+
+.cout{display:grid;grid-template-columns:2px 18px 1fr auto;gap:5px;align-items:center;height:24px;padding:0 8px 0 0}
+.cout-icon{font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center}
+.cout-name{font-family:var(--F2);font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cout-yield{font-family:var(--F1);font-size:10px;font-weight:700;color:var(--accent);text-align:right;padding-right:2px}
+
+.cact{border-top:1px solid var(--border);padding:6px 8px;display:flex;gap:4px;align-items:stretch;margin-top:auto;flex-shrink:0;background:var(--surf0)}
+.cqty{display:flex;align-items:stretch;height:26px;flex-shrink:0}
+.cqty-btn{width:20px;height:26px;border:1px solid var(--borderS);background:var(--surf1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:var(--F1);font-size:12px;font-weight:700;color:var(--text);line-height:1}
+.cqty-btn:hover:not(.disabled){background:var(--surf2);color:var(--accent);border-color:var(--accent)}
+.cqty-btn.disabled{color:var(--textSec);border-color:var(--border);background:transparent;cursor:not-allowed;opacity:0.4}
+.cqty-btn.plus{border-right:none}
+.cqty-btn.minus{border-left:none}
+.cqty-readout{min-width:26px;height:26px;border:1px solid var(--borderS);background:var(--base);display:flex;align-items:center;justify-content:center;font-family:var(--F1);font-size:12px;font-weight:700;color:var(--accent);letter-spacing:0.3px}
+.cmax{display:flex;align-items:center;padding:0 6px;height:26px;align-self:center}
+.cmax .num{font-family:var(--F1);font-size:12px;font-weight:700;color:var(--text);letter-spacing:0.2px}
+.cmax.zero .num{color:var(--danger)}
+.cbtn{flex:1;height:26px;border:1px solid var(--accent);background:rgba(212,146,42,0.12);font-family:var(--F1);font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;padding:0 4px}
+.cbtn:hover:not(.disabled){background:rgba(212,146,42,0.22)}
+.cbtn.disabled{border-color:var(--border);color:var(--textSec);background:transparent;cursor:not-allowed;opacity:0.5}
+.cbtn.building{background:var(--accent);color:var(--base);animation:pulse 0.8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.75}}
+
+.tabs{width:32px;background:rgba(0,0,0,0.25);display:flex;flex-direction:column;flex-shrink:0}
+.tab{height:44px;width:100%;border-bottom:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-family:var(--F1);font-size:8px;font-weight:700;color:var(--textSec);letter-spacing:0.4px;text-transform:uppercase}
+.tab:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.tab.active{background:rgba(212,146,42,0.15);color:var(--accent);border-right:2px solid var(--accent)}
+.tab .ti{font-size:15px;line-height:1;filter:saturate(0.85)}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:10px 18px;background:var(--accent);color:var(--base);font-family:var(--F1);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border:1px solid rgba(0,0,0,0.3);opacity:0;pointer-events:none;transition:opacity 0.3s,transform 0.3s;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-8px)}
+</style>
+</head>
+<body>
+
+<div class="info">
+  <h1>Left Pane Flip</h1>
+  <p><strong>Rule #9 safe.</strong> No scroll-in-scroll.</p>
+  <p><strong>Click a slot</strong> with alternatives → left pane flips to Available Ingredients for that slot. Owned first, rest below, scrolls in its own pane.</p>
+  <p><strong>Click same slot again</strong> → left pane reverts to recipe list.</p>
+  <p>Static cat + search always on top — in alt mode they adapt: cat freezes to show slot name, search filters alts.</p>
+  <ul>
+    <li>Try Carve Long Stick → click Sharp Knife</li>
+    <li>Type 'stone' in search during alt mode</li>
+    <li>Close craft → alt mode exits automatically</li>
+  </ul>
+</div>
+
+<div class="ww">
+  <div class="ww-title">
+    <div class="ww-close"></div>
+    <span class="ww-title-txt">World<span class="sub" id="tab-title">+ Craft</span></span>
+  </div>
+  <div class="ww-body">
+
+    <div class="drawer">
+      <!-- STATIC HEADER (always visible) -->
+      <div class="static-head">
+        <div class="catrow" id="catrow">
+          <span class="catrow-lbl" id="catrow-lbl">Category</span>
+          <div class="catrow-dd" id="cat-dd">
+            <span class="val" id="cat-val">-- All --</span>
+            <div class="arr"></div>
+            <div class="cat-list" id="cat-list"></div>
+          </div>
+        </div>
+        <div class="search" id="search-wrap">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 10-.7.7l.27.28v.79l5 4.99L20.49 19zm-6 0A4.5 4.5 0 1114 9.5 4.5 4.5 0 019.5 14z"/></svg>
+            <input class="search-input" id="search" type="text" placeholder="Search recipes...">
+            <span class="search-clr hide" id="search-clr">×</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contextual strip: sort OR alt back -->
+      <div class="strip" id="strip"></div>
+
+      <!-- PANES -->
+      <div class="panes" id="panes">
+        <div class="recipes-pane">
+          <div class="list-scroll" id="list-scroll"></div>
+        </div>
+        <div class="craft-pane">
+          <div class="craft-scroll" id="craft-scroll"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab"><span class="ti">🎒</span><span>Loot</span></div>
+      <div class="tab active"><span class="ti">🔨</span><span>Craft</span></div>
+      <div class="tab"><span class="ti">🏠</span><span>Build</span></div>
+      <div class="tab"><span class="ti">🗺</span><span>Map</span></div>
+      <div class="tab"><span class="ti">🔍</span><span>Forage</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RECIPES = [
+  {id:'forge',name:"Forge",icon:"🔥",desc:"A basic stone-lined forge for melting and shaping iron.",cat:"Blacksmithing",pinned:true,learned:true,freq:8,surface:true,light:true,time:8.0,
+    slots:[{name:"Stone Block",icon:"🪨",have:30,need:15,consume:true},{name:"Clay Bowl",icon:"🏺",have:2,need:1,consume:true},{name:"Log",icon:"🪵",have:3,need:1,consume:true}],
+    outputs:[{name:"Forge",icon:"🔥",yield:1}]},
+  {id:'advforge',name:"Advanced Forge",icon:"🔥",desc:"Advanced metal forging for armors, blades, and tool heads.",cat:"Blacksmithing",pinned:true,learned:true,freq:2,surface:true,light:true,time:12.5,
+    slots:[
+      {name:"Stone Block",icon:"🪨",have:30,need:30,consume:true},
+      {name:"Mason's Trowel",icon:"🔨",have:0,need:1,consume:false,tag:"TOOL",alts:[{name:"Mason's Trowel",icon:"🔨",have:0,need:1},{name:"Wooden Trowel",icon:"🛠️",have:0,need:1}]},
+      {name:"Bucket of Clay Cement",icon:"🪣",have:1,need:1,consume:false,tag:"1 USE"},
+      {name:"Blacksmith Anvil",icon:"⚒️",have:0,need:1,consume:false},
+      {name:"Wooden Bucket",icon:"🪣",have:0,need:1,consume:false},
+      {name:"Log",icon:"🪵",have:3,need:1,consume:true},
+      {name:"Large Bellows",icon:"💨",have:0,need:1,consume:false}
+    ],
+    outputs:[{name:"Advanced Forge",icon:"🏭",yield:1}]},
+  {id:'primforge',name:"Primitive Forge",icon:"🔥",desc:"Makeshift stone forge, first step toward metalwork.",cat:"Blacksmithing",pinned:false,learned:false,freq:0,surface:true,light:false,time:6.0,
+    slots:[{name:"Stone",icon:"🪨",have:18,need:20,consume:true},{name:"Log",icon:"🪵",have:3,need:2,consume:true}],
+    outputs:[{name:"Primitive Forge",icon:"🔥",yield:1}]},
+  {id:'campfire',name:"Campfire",icon:"🔥",desc:"Used for heat, to cook food, and corpse disposal.",cat:"Survival",pinned:false,learned:true,freq:22,surface:false,light:false,time:4.0,
+    slots:[{name:"Tree Branch",icon:"🌿",have:8,need:4,consume:true},{name:"Plank",icon:"🪵",have:12,need:1,consume:true}],
+    outputs:[{name:"Campfire Kit",icon:"🔥",yield:1}]},
+  {id:'plank',name:"Plank",icon:"🪵",desc:"Split a log into usable planks with a saw.",cat:"Carpentry",pinned:false,learned:true,freq:47,surface:false,light:false,time:5.5,
+    slots:[{name:"Log",icon:"🪵",have:3,need:1,consume:true},{name:"Saw",icon:"🪚",have:1,need:1,consume:false,tag:"TOOL"}],
+    outputs:[{name:"Plank",icon:"🪵",yield:2}]},
+  {id:'stoneblock',name:"Stone Block",icon:"🪨",desc:"Shaped stone for masonry construction.",cat:"Masonry",pinned:false,learned:true,freq:31,surface:true,light:false,time:7.0,
+    slots:[{name:"Stone",icon:"🪨",have:18,need:4,consume:true},{name:"Mason's Chisel",icon:"🪛",have:0,need:1,consume:false,tag:"TOOL"},{name:"Hammer",icon:"🔨",have:1,need:1,consume:false,tag:"TOOL"}],
+    outputs:[{name:"Stone Block",icon:"🪨",yield:1}]},
+  {id:'flake',name:"Sharp Flint Flake",icon:"🔪",desc:"Sharp knapped flake useful as a cutting edge.",cat:"Knapping",pinned:false,learned:true,freq:18,surface:false,light:false,time:2.5,
+    slots:[{name:"Flint",icon:"🪨",have:0,need:1,consume:true},{name:"Knapping Hammer",icon:"🔨",have:0,need:1,consume:false,tag:"TOOL"}],
+    outputs:[{name:"Sharp Flint Flake",icon:"🔪",yield:1}]},
+  {id:'drill',name:"Knap Stone Drill",icon:"🔧",desc:"Hand-knapped stone drill for boring holes.",cat:"Knapping",pinned:true,learned:false,freq:0,surface:true,light:false,time:3.5,
+    slots:[{name:"Stone",icon:"🪨",have:18,need:1,consume:true},{name:"Mason's Chisel",icon:"🪛",have:0,need:1,consume:false,tag:"TOOL"},{name:"Sharp Flint Flake",icon:"🔪",have:0,need:1,consume:false}],
+    outputs:[{name:"Stone Drill",icon:"🔧",yield:1}]},
+  {id:'bellows',name:"Small Bellows",icon:"💨",desc:"Blows air into a forge to intensify the heat.",cat:"Metalwork",pinned:true,learned:true,freq:1,surface:true,light:false,time:9.0,
+    slots:[{name:"Leather Strips",icon:"🟤",have:4,need:2,consume:true},{name:"Plank",icon:"🪵",have:12,need:2,consume:true}],
+    outputs:[{name:"Small Bellows",icon:"💨",yield:1}]},
+  {id:'tongs',name:"Forge Tongs",icon:"🔩",desc:"Iron tongs for handling hot metal.",cat:"Metalwork",pinned:false,learned:true,freq:3,surface:true,light:true,time:11.0,
+    slots:[{name:"Metal Bar",icon:"⚙️",have:2,need:2,consume:true},{name:"Forge",icon:"🔥",have:1,need:1,consume:false}],
+    outputs:[{name:"Forge Tongs",icon:"🔩",yield:1}]},
+  {id:'hammer',name:"Forge Hammer",icon:"⚒️",desc:"Heavy hammer used for forging metal.",cat:"Blacksmithing",pinned:false,learned:false,freq:0,surface:true,light:true,time:10.0,
+    slots:[{name:"Metal Bar",icon:"⚙️",have:2,need:3,consume:true},{name:"Stick",icon:"🪵",have:8,need:1,consume:true}],
+    outputs:[{name:"Forge Hammer",icon:"⚒️",yield:1}]},
+  {id:'longstick',name:"Carve Long Stick",icon:"🪵",desc:"Carve a sapling into a long stick with a sharp knife.",cat:"Carpentry",pinned:false,learned:true,freq:5,surface:false,light:false,time:3.0,
+    slots:[
+      {name:"Sharp Knife",icon:"🔪",have:3,need:1,consume:false,tag:"TOOL",
+        alts:[
+          {name:"Kitchen Knife",icon:"🔪",have:1,need:1},
+          {name:"Scrap Metal Large Knife",icon:"🔪",have:2,need:1},
+          {name:"Butterfly Knife",icon:"🔪",have:0,need:1},
+          {name:"Fighting Knife",icon:"🗡️",have:0,need:1},
+          {name:"Fillet Knife",icon:"🔪",have:0,need:1},
+          {name:"Handguard Dagger",icon:"🗡️",have:0,need:1},
+          {name:"Handiknife",icon:"🔪",have:0,need:1},
+          {name:"Hunting Knife",icon:"🔪",have:0,need:1},
+          {name:"Large Knife",icon:"🔪",have:0,need:1},
+          {name:"Long Simple Metal Knife",icon:"🗡️",have:0,need:1},
+          {name:"Long Stone Knife",icon:"🗡️",have:0,need:1},
+          {name:"Machete",icon:"🗡️",have:0,need:1},
+          {name:"Machete Blade Knife",icon:"🔪",have:0,need:1},
+          {name:"Meat Cleaver",icon:"🔪",have:0,need:1},
+          {name:"Multitool",icon:"🔧",have:0,need:1},
+          {name:"Paring Knife",icon:"🔪",have:0,need:1},
+          {name:"Pocket Knife",icon:"🔪",have:0,need:1},
+          {name:"Railroad Spike Knife",icon:"🔪",have:0,need:1},
+          {name:"Scrap Metal Chopper",icon:"🔪",have:0,need:1},
+          {name:"Scrap Metal Cleaver",icon:"🔪",have:0,need:1},
+          {name:"Sharp Flint Flake",icon:"🪨",have:0,need:1},
+          {name:"Simple Metal Knife",icon:"🔪",have:0,need:1},
+          {name:"Small Knife",icon:"🔪",have:0,need:1},
+          {name:"Steak Knife",icon:"🔪",have:0,need:1},
+          {name:"Stone Knife",icon:"🪨",have:0,need:1},
+          {name:"Straight Razor",icon:"🪒",have:0,need:1}
+        ]},
+      {name:"Sapling",icon:"🌱",have:0,need:1,consume:true}
+    ],
+    outputs:[{name:"Long Stick",icon:"🪵",yield:1}]},
+];
+const CATS = ["-- All --","Blacksmithing","Carpentry","Cooking","Knapping","Masonry","Metalwork","Survival"];
+
+let state = {
+  activeCat:"-- All --",
+  search:"",
+  altSearch:"",
+  sort:"name",
+  showAll:false,
+  ownedOnly:false,
+  pinnedCollapsed:false,
+  freqCollapsed:false,
+  allCollapsed:false,
+  selected:null,
+  qty:1,
+  catDdOpen:false,
+  altSlotName:null,  // NEW: when non-null, left pane is in alt mode
+};
+
+function recipeStatus(r){ if(!r.learned) return 'unk'; for(const s of r.slots){ if(s.have < s.need) return 'miss'; } return 'can'; }
+function maxCraftable(r){ if(!r.learned) return 0; let max = Infinity; for(const s of r.slots){ if(s.consume) max = Math.min(max, Math.floor(s.have / s.need)); else if(s.have < s.need) max = 0; } return max === Infinity ? 99 : max; }
+function matchesSearch(r, q){ if(!q) return true; q = q.toLowerCase(); if(r.name.toLowerCase().includes(q)) return true; if(r.cat.toLowerCase().includes(q)) return true; for(const s of r.slots){ if(s.name.toLowerCase().includes(q)) return true; } for(const o of r.outputs){ if(o.name.toLowerCase().includes(q)) return true; } return false; }
+function matchesCat(r){ if(state.showAll) return true; if(state.activeCat === "-- All --") return true; return r.cat === state.activeCat; }
+
+function currentSlot(){
+  if(!state.altSlotName || !state.selected) return null;
+  const r = RECIPES.find(x => x.id === state.selected);
+  if(!r) return null;
+  return r.slots.find(s => s.name === state.altSlotName) || null;
+}
+
+function renderStaticHead(){
+  const lbl = document.getElementById('catrow-lbl');
+  const dd = document.getElementById('cat-dd');
+  const val = document.getElementById('cat-val');
+  const searchWrap = document.getElementById('search-wrap');
+  const searchInput = document.getElementById('search');
+  const row = document.getElementById('catrow');
+
+  if(state.altSlotName){
+    row.classList.add('alt-mode');
+    lbl.textContent = 'Compatible';
+    dd.classList.add('frozen');
+    val.textContent = state.altSlotName;
+    searchWrap.classList.add('alt-mode');
+    searchInput.placeholder = 'Filter alternatives...';
+    searchInput.value = state.altSearch;
+    document.getElementById('search-clr').classList.toggle('hide', !state.altSearch);
+  } else {
+    row.classList.remove('alt-mode');
+    lbl.textContent = 'Category';
+    dd.classList.remove('frozen');
+    val.textContent = state.activeCat;
+    searchWrap.classList.remove('alt-mode');
+    searchInput.placeholder = 'Search recipes...';
+    searchInput.value = state.search;
+    document.getElementById('search-clr').classList.toggle('hide', !state.search);
+  }
+
+  // cat dropdown list
+  const list = document.getElementById('cat-list');
+  list.innerHTML = CATS.map(c => `<div class="cat-list-item ${c===state.activeCat?'active':''}" data-cat="${c}">${c}</div>`).join('');
+  list.querySelectorAll('.cat-list-item').forEach(x => {
+    x.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.activeCat = x.dataset.cat; state.catDdOpen = false;
+      dd.classList.remove('open');
+      list.classList.remove('open');
+      renderStaticHead(); renderList();
+    });
+  });
+}
+
+function renderStrip(){
+  const el = document.getElementById('strip');
+  if(state.altSlotName){
+    const slot = currentSlot();
+    const ownedCount = slot ? slot.alts.filter(a => a.have >= a.need).length : 0;
+    const total = slot ? slot.alts.length : 0;
+    el.className = 'strip alt-mode';
+    el.innerHTML = `
+      <div class="alt-back" id="alt-back">
+        <span class="chev"></span>
+        <span>Recipes</span>
+      </div>
+      <span class="alt-back-meta">${ownedCount}/${total} owned</span>
+      <div class="strip-toggle ${state.ownedOnly?'on':''}" id="owned-toggle" style="margin-left:auto">
+        <div class="strip-toggle-box"></div>
+        <span>Owned only</span>
+      </div>`;
+    document.getElementById('alt-back').addEventListener('click', exitAltMode);
+    document.getElementById('owned-toggle').addEventListener('click', () => {
+      state.ownedOnly = !state.ownedOnly;
+      renderStrip(); renderList();
+    });
+  } else {
+    el.className = 'strip';
+    el.innerHTML = `
+      <div class="strip-grp">
+        <span class="strip-lbl">Sort</span>
+        <span class="strip-mode ${state.sort==='name'?'active':''}" data-sort="name">Name</span>
+        <span class="strip-mode ${state.sort==='freq'?'active':''}" data-sort="freq">Freq</span>
+        <span class="strip-mode ${state.sort==='recent'?'active':''}" data-sort="recent">Recent</span>
+      </div>
+      <div class="strip-toggle ${state.showAll?'on':''}" id="showall-toggle">
+        <div class="strip-toggle-box"></div>
+        <span>All</span>
+      </div>`;
+    el.querySelectorAll('.strip-mode').forEach(m => {
+      m.addEventListener('click', () => { state.sort = m.dataset.sort; renderStrip(); renderList(); });
+    });
+    document.getElementById('showall-toggle').addEventListener('click', () => {
+      state.showAll = !state.showAll; renderStrip(); renderList();
+    });
+  }
+}
+
+function renderList(){
+  if(state.altSlotName) renderAltList();
+  else renderRecipeList();
+}
+
+function renderRecipeList(){
+  const scroll = document.getElementById('list-scroll');
+  const filtered = RECIPES.filter(r => matchesSearch(r, state.search) && matchesCat(r));
+  const pinned = filtered.filter(r => r.pinned);
+  const freq = filtered.filter(r => !r.pinned && r.freq > 0).sort((a,b) => b.freq - a.freq).slice(0,5);
+  const allResults = [...filtered].sort((a,b) => {
+    if(state.sort === 'name') return a.name.localeCompare(b.name);
+    if(state.sort === 'freq') return b.freq - a.freq;
+    if(state.sort === 'recent') return b.freq - a.freq;
+    return 0;
+  });
+
+  let html = '';
+  if(pinned.length){
+    html += `<div class="sec pinned ${state.pinnedCollapsed?'collapsed':''}" data-toggle="pinned"><div class="arr"></div><span>Pinned</span><span class="count">${pinned.length}</span></div>`;
+    if(!state.pinnedCollapsed) html += pinned.map(r => renderRecRow(r)).join('');
+  }
+  if(freq.length){
+    html += `<div class="sec freq ${state.freqCollapsed?'collapsed':''}" data-toggle="freq"><div class="arr"></div><span>Frequent</span><span class="count">${freq.length}</span></div>`;
+    if(!state.freqCollapsed) html += freq.map(r => renderRecRow(r,true)).join('');
+  }
+  html += `<div class="sec ${state.allCollapsed?'collapsed':''}" data-toggle="all"><div class="arr"></div><span>${state.search?'Results':'All Recipes'}</span><span class="count">${allResults.length}</span></div>`;
+  if(!state.allCollapsed){
+    if(allResults.length === 0) html += '<div class="empty-results">No recipes match.</div>';
+    else html += allResults.map(r => renderRecRow(r)).join('');
+  }
+  scroll.innerHTML = html;
+
+  scroll.querySelectorAll('.sec').forEach(s => {
+    s.addEventListener('click', () => {
+      const k = s.dataset.toggle;
+      if(k==='pinned') state.pinnedCollapsed = !state.pinnedCollapsed;
+      else if(k==='freq') state.freqCollapsed = !state.freqCollapsed;
+      else state.allCollapsed = !state.allCollapsed;
+      renderList();
+    });
+  });
+  scroll.querySelectorAll('.rec').forEach(r => {
+    r.addEventListener('click', (e) => {
+      if(e.target.closest('.rec-star')){
+        const rec = RECIPES.find(x => x.id === r.dataset.id);
+        rec.pinned = !rec.pinned; renderList(); return;
+      }
+      handleRecipeClick(r.dataset.id);
+    });
+  });
+}
+
+function renderRecRow(r, freqSection=false){
+  const status = recipeStatus(r);
+  const freqBadge = freqSection ? `<span class="freq-badge">×${r.freq}</span>` : '';
+  const missCls = status === 'miss' ? 'miss-row' : (status === 'unk' ? 'unk-row' : '');
+  const starOn = r.pinned ? 'on' : '';
+  const selCls = state.selected === r.id ? 'selected' : '';
+  return `<div class="rec ${missCls} ${selCls}" data-id="${r.id}">
+    <div class="rec-sel-edge"></div>
+    <div class="dot ${status}"></div>
+    <div class="rec-icon">${r.icon}</div>
+    <div class="rec-name">${r.name}${freqBadge}</div>
+    <div class="rec-star ${starOn}"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z"/></svg></div>
+  </div>`;
+}
+
+function renderAltList(){
+  const scroll = document.getElementById('list-scroll');
+  const slot = currentSlot();
+  if(!slot || !slot.alts){ exitAltMode(); return; }
+
+  let alts = [...slot.alts];
+  // filter by altSearch
+  if(state.altSearch){
+    const q = state.altSearch.toLowerCase();
+    alts = alts.filter(a => a.name.toLowerCase().includes(q));
+  }
+  if(state.ownedOnly) alts = alts.filter(a => a.have >= a.need);
+
+  // sort owned-first
+  alts.sort((a,b) => {
+    const aOwn = a.have >= a.need ? 1 : 0;
+    const bOwn = b.have >= b.need ? 1 : 0;
+    if(aOwn !== bOwn) return bOwn - aOwn;
+    return a.name.localeCompare(b.name);
+  });
+
+  const owned = alts.filter(a => a.have >= a.need);
+  const missing = alts.filter(a => a.have < a.need);
+
+  let html = '';
+  if(owned.length){
+    html += `<div class="sec owned"><span>✓ Owned</span><span class="count">${owned.length}</span></div>`;
+    html += owned.map(renderAltRow).join('');
+  }
+  if(missing.length){
+    html += `<div class="sec"><span>Other Compatible</span><span class="count">${missing.length}</span></div>`;
+    html += missing.map(renderAltRow).join('');
+  }
+  if(alts.length === 0){
+    html += '<div class="empty-results">No matching items.</div>';
+  }
+  scroll.innerHTML = html;
+}
+
+function renderAltRow(a){
+  const owned = a.have >= a.need;
+  return `<div class="alt-row ${owned?'owned':''}">
+    <div class="alt-row-edge"></div>
+    <div class="alt-dot"></div>
+    <div class="alt-icon">${a.icon}</div>
+    <div class="alt-name">${a.name}</div>
+    <div class="alt-count">${a.have}/${a.need}</div>
+  </div>`;
+}
+
+function renderCraft(){
+  const el = document.getElementById('craft-scroll');
+  const tabTitle = document.getElementById('tab-title');
+  if(!state.selected){ el.innerHTML = ''; tabTitle.textContent = '+ Craft'; return; }
+  const r = RECIPES.find(x => x.id === state.selected);
+  if(!r){ state.selected = null; renderCraft(); return; }
+
+  tabTitle.textContent = '+ Craft · ' + r.name;
+
+  const max = maxCraftable(r);
+  const effectiveMax = max;
+  const qty = Math.min(state.qty, Math.max(1, effectiveMax || 1));
+  const missingCount = r.slots.filter(s => s.have < s.need * qty).length;
+  const satCount = r.slots.length - missingCount;
+
+  const chips = [];
+  if(r.learned) chips.push(`<div class="cchip ok"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>LRN</div>`);
+  else chips.push(`<div class="cchip lock"><svg viewBox="0 0 24 24"><path d="M12 15a2 2 0 102 2 2 2 0 00-2-2zm6-4h-1V7A5 5 0 007 7v4H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2zM9 7a3 3 0 016 0v4H9z"/></svg>UNK</div>`);
+  if(r.surface) chips.push(`<div class="cchip warn"><svg viewBox="0 0 24 24"><path d="M2 20h20v2H2zm2-8h2v7H4zm5 0h2v7H9zm5 0h2v7h-2zm5 0h2v7h-2zM12 2L2 7v2h20V7z"/></svg>SFC</div>`);
+  if(r.light) chips.push(`<div class="cchip warn"><svg viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z"/></svg>LIT</div>`);
+  chips.push(`<div class="cchip"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm.5-11V7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg><span class="num">${r.time}</span>s</div>`);
+
+  const slotRows = r.slots.map(s => {
+    const n = s.need * qty;
+    const ok = s.have >= n;
+    const hasAlts = s.alts && s.alts.length > 0;
+    const selCls = state.altSlotName === s.name ? 'selected' : '';
+    const noAltsCls = hasAlts ? '' : 'no-alts';
+    const tagContent = hasAlts
+      ? `<span class="cslot-tag alts">${s.alts.length}▾</span>`
+      : (s.tag ? `<span class="cslot-tag ${s.tag==='1 USE'?'use':''}">${s.tag}</span>` : '');
+    const flag = s.consume
+      ? `<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`
+      : `<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg>`;
+    return `<div class="cslot ${ok?'':'missing'} ${selCls} ${noAltsCls}" data-slot="${s.name}">
+      <div class="cslot-edge"></div>
+      <div class="cslot-icon">${s.icon}</div>
+      <div class="cslot-name-cell"><span class="cslot-name">${s.name}</span>${tagContent}</div>
+      <div class="cslot-count ${ok?'ok':'miss'}">${s.have}/${n}</div>
+      <div class="cslot-flag ${s.consume?'':'keep'}">${flag}</div>
+    </div>`;
+  }).join('');
+
+  const outputRows = r.outputs.map(o =>
+    `<div class="cout"><div></div><div class="cout-icon">${o.icon}</div><div class="cout-name">${o.name}</div><div class="cout-yield">×${o.yield*qty}</div></div>`
+  ).join('');
+
+  const canBuild = max > 0 && r.learned;
+  const plusDis = qty >= effectiveMax ? 'disabled' : '';
+  const minusDis = qty <= 1 ? 'disabled' : '';
+
+  el.innerHTML = `
+    <div class="chead">
+      <div class="chead-icon">${r.icon}</div>
+      <div class="chead-body"><div class="chead-name">${r.name}</div><div class="chead-desc">${r.desc}</div></div>
+    </div>
+    <div class="cchips">${chips.join('')}</div>
+    <div class="csect"><span class="csect-lbl">Required</span><span class="csect-meta">${missingCount>0?`<span class="miss">${missingCount} miss</span> · `:''}${satCount}/${r.slots.length}</span></div>
+    ${slotRows}
+    <div class="csect"><span class="csect-lbl">Outputs</span><span class="csect-meta">${r.outputs.length}</span></div>
+    ${outputRows}
+    <div class="cact">
+      <div class="cqty">
+        <button class="cqty-btn plus ${plusDis}" id="qty-plus">+</button>
+        <div class="cqty-readout">${qty}</div>
+        <button class="cqty-btn minus ${minusDis}" id="qty-minus">−</button>
+      </div>
+      <div class="cmax ${effectiveMax===0?'zero':''}"><span class="num">${effectiveMax}</span></div>
+      <button class="cbtn ${canBuild?'':'disabled'}" id="build-btn">Build</button>
+    </div>`;
+
+  document.getElementById('qty-plus').addEventListener('click', () => { if(state.qty < maxCraftable(r)){ state.qty++; renderCraft(); } });
+  document.getElementById('qty-minus').addEventListener('click', () => { if(state.qty > 1){ state.qty--; renderCraft(); } });
+  document.getElementById('build-btn').addEventListener('click', () => { if(canBuild) runBuild(r); });
+
+  el.querySelectorAll('.cslot').forEach(row => {
+    row.addEventListener('click', () => {
+      const slotName = row.dataset.slot;
+      const slot = r.slots.find(s => s.name === slotName);
+      if(!slot || !slot.alts) return;
+      if(state.altSlotName === slotName) exitAltMode();
+      else enterAltMode(slotName);
+    });
+  });
+}
+
+function handleRecipeClick(id){
+  if(state.selected === id){ closeCraft(); }
+  else {
+    state.selected = id; state.qty = 1;
+    if(state.altSlotName) exitAltMode(false); // reset alt mode silently
+    openCraft();
+  }
+  renderList(); renderCraft();
+}
+function openCraft(){ document.getElementById('panes').classList.add('split'); }
+function closeCraft(){
+  document.getElementById('panes').classList.remove('split');
+  if(state.altSlotName) exitAltMode(false);
+  setTimeout(() => { state.selected = null; renderList(); renderCraft(); }, 280);
+}
+
+function enterAltMode(slotName){
+  state.altSlotName = slotName;
+  state.altSearch = '';
+  state.ownedOnly = false;
+  renderStaticHead(); renderStrip(); renderList(); renderCraft();
+}
+function exitAltMode(rerender=true){
+  state.altSlotName = null;
+  state.altSearch = '';
+  state.ownedOnly = false;
+  if(rerender){ renderStaticHead(); renderStrip(); renderList(); renderCraft(); }
+}
+
+function runBuild(r){
+  const btn = document.getElementById('build-btn');
+  btn.classList.add('building'); btn.textContent = 'Building···';
+  setTimeout(() => {
+    btn.classList.remove('building'); btn.textContent = 'Build';
+    showToast(`+${state.qty} ${r.outputs[0].name}`);
+    r.freq += state.qty;
+    for(const s of r.slots){ if(s.consume) s.have = Math.max(0, s.have - s.need * state.qty); }
+    state.qty = 1; renderList(); renderCraft();
+  }, Math.min(2500, r.time * 180));
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* Wire search (mode-aware) */
+document.getElementById('search').addEventListener('input', e => {
+  if(state.altSlotName){
+    state.altSearch = e.target.value.trim();
+    document.getElementById('search-clr').classList.toggle('hide', !state.altSearch);
+    renderList();
+  } else {
+    state.search = e.target.value.trim();
+    document.getElementById('search-clr').classList.toggle('hide', !state.search);
+    renderList();
+  }
+});
+document.getElementById('search-clr').addEventListener('click', () => {
+  document.getElementById('search').value = '';
+  if(state.altSlotName){ state.altSearch = ''; }
+  else { state.search = ''; }
+  document.getElementById('search-clr').classList.add('hide');
+  renderList();
+});
+
+/* Cat dropdown */
+document.getElementById('cat-dd').addEventListener('click', (e) => {
+  if(e.target.closest('.cat-list-item')) return;
+  if(state.altSlotName) return; // frozen in alt mode
+  state.catDdOpen = !state.catDdOpen;
+  document.getElementById('cat-dd').classList.toggle('open', state.catDdOpen);
+  document.getElementById('cat-list').classList.toggle('open', state.catDdOpen);
+});
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#cat-dd')){
+    state.catDdOpen = false;
+    document.getElementById('cat-dd').classList.remove('open');
+    document.getElementById('cat-list').classList.remove('open');
+  }
+});
+
+/* Init */
+renderStaticHead();
+renderStrip();
+renderList();
+renderCraft();
+</script>
+
+</body>
+</html>

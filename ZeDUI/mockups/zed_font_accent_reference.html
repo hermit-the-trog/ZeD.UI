@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI · Font & Accent Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&family=Fira+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --base:    #0C0C0C;
+    --surf1:   #141414;
+    --surf2:   #1C1C1C;
+    --surf3:   #242424;
+    --surf4:   #2C2C2C;
+    --border:  #202020;
+    --borderS: #383838;
+    --text:    rgba(218,218,218,0.90);
+    --textSec: rgba(161,161,161,0.65);
+    --textHead:rgba(230,230,230,0.92);
+    --accent:  #47A18C;
+    --bright:  #5CC4AA;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--base);
+    color: var(--text);
+    font-family: 'Fira Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 32px;
+  }
+
+  /* ── Header ── */
+  .page-title {
+    font-family: 'Fira Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .page-subtitle {
+    font-family: 'Fira Sans Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--textHead);
+    margin-bottom: 32px;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    font-family: 'Fira Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--borderS);
+  }
+
+  .section { margin-bottom: 40px; }
+
+  /* ── Theme toggle ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    font-family: 'Fira Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--borderS);
+    color: var(--textSec);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--textHead); }
+  .ctrl-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Font specimens ── */
+  .font-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 12px;
+  }
+  .font-card {
+    background: var(--surf1);
+    border: 1px solid var(--border);
+    padding: 16px 18px 14px;
+  }
+  .font-card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .font-tag {
+    font-family: 'Fira Mono', monospace;
+    font-weight: 700;
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(71,161,140,0.12);
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+  }
+  .font-role {
+    font-family: 'Fira Sans Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--textHead);
+  }
+  .font-meta {
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+    color: var(--textSec);
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+  .font-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .font-sample-label {
+    font-family: 'Fira Mono', monospace;
+    font-size: 9px;
+    color: var(--textSec);
+    margin-bottom: 4px;
+    letter-spacing: 0.08em;
+  }
+  .font-sample { line-height: 1.6; margin-bottom: 10px; }
+
+  /* F1 Chrome — Fira Mono Bold */
+  .f1-s  { font-family:'Fira Mono',monospace; font-weight:700; font-size:11px; color:var(--accent); }
+  .f1-l  { font-family:'Fira Mono',monospace; font-weight:700; font-size:13px; color:var(--accent); }
+
+  /* F2 Body — Fira Sans Medium */
+  .f2-s  { font-family:'Fira Sans',sans-serif; font-weight:500; font-size:13px; color:var(--text); }
+  .f2-l  { font-family:'Fira Sans',sans-serif; font-weight:500; font-size:15px; color:var(--text); }
+
+  /* F3 Data — Fira Mono Regular */
+  .f3-s  { font-family:'Fira Mono',monospace; font-weight:400; font-size:11px; color:var(--text); }
+  .f3-l  { font-family:'Fira Mono',monospace; font-weight:400; font-size:13px; color:var(--text); }
+
+  /* F4 Heading — Fira Sans Condensed SemiBold */
+  .f4-s  { font-family:'Fira Sans Condensed',sans-serif; font-weight:600; font-size:13px; color:var(--textHead); }
+  .f4-l  { font-family:'Fira Sans Condensed',sans-serif; font-weight:600; font-size:15px; color:var(--textHead); }
+
+  /* F5 Micro — Fira Sans Condensed Regular */
+  .f5-s  { font-family:'Fira Sans Condensed',sans-serif; font-weight:400; font-size:9px; color:var(--textSec); }
+  .f5-l  { font-family:'Fira Sans Condensed',sans-serif; font-weight:400; font-size:11px; color:var(--textSec); }
+
+  /* ── Usage tags ── */
+  .usage-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .usage-tag {
+    font-family:'Fira Sans Condensed',sans-serif;
+    font-size:9px;
+    font-weight:400;
+    color: var(--textSec);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  /* ── Accent matrix ── */
+  .accent-matrix {
+    display: grid;
+    grid-template-columns: 120px repeat(9, 1fr);
+    gap: 3px;
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+  }
+  .accent-matrix .col-header {
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--textSec);
+    padding: 6px 4px 4px;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .accent-matrix .row-header {
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--textSec);
+    padding: 8px 6px;
+    display: flex;
+    align-items: center;
+  }
+  .accent-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 6px;
+    background: var(--surf1);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .accent-cell:hover { border-color: var(--borderS); }
+  .accent-cell.selected { border-color: var(--bright) !important; }
+
+  .swatch-row { display:flex; gap:3px; align-items:center; }
+  .swatch {
+    width: 14px; height: 14px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .swatch-hex {
+    font-family:'Fira Mono',monospace;
+    font-size:9px;
+    color: var(--textSec);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hover-swatch {
+    height: 4px;
+    border-radius: 1px;
+    margin-top: 3px;
+  }
+  .accent-cell-label {
+    font-family:'Fira Mono',monospace;
+    font-size:9px;
+    color:var(--textSec);
+    margin-bottom: 3px;
+  }
+
+  /* ── Theme surfaces ── */
+  .surface-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .surface-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .surface-block {
+    width: 72px;
+    height: 44px;
+    border: 1px solid var(--borderS);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fira Mono', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+  }
+  .surface-name {
+    font-family:'Fira Mono',monospace;
+    font-size:9px;
+    color:var(--textSec);
+    text-align:center;
+  }
+
+  /* ── Status colors ── */
+  .status-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .status-chip {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    background: var(--surf1);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    min-width: 140px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-info { display: flex; flex-direction: column; gap: 2px; }
+  .status-label {
+    font-family: 'Fira Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--textHead);
+    letter-spacing: 0.04em;
+  }
+  .status-hex {
+    font-family: 'Fira Mono', monospace;
+    font-size: 9px;
+    color: var(--textSec);
+  }
+
+  /* ── Live preview strip ── */
+  .preview-strip {
+    background: var(--surf1);
+    border: 1px solid var(--border);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .preview-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .preview-row-label {
+    font-family:'Fira Mono',monospace;
+    font-size:9px;
+    color:var(--textSec);
+    width:72px;
+    flex-shrink:0;
+    letter-spacing:0.06em;
+  }
+  .preview-pill {
+    font-family:'Fira Mono',monospace;
+    font-size:10px;
+    font-weight:700;
+    color:var(--textOnAccent, #0c0c0c);
+    background: var(--accent);
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 0.04em;
+  }
+  .preview-outline-btn {
+    font-family:'Fira Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    color:var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+  }
+  .preview-outline-btn:hover { background: var(--hover-bg, rgba(71,161,140,0.22)); }
+  .preview-bar-bg {
+    flex: 1;
+    height: 13px;
+    background: var(--surf3);
+    border: 1px solid var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .preview-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 62%;
+  }
+  .preview-divider { border: none; border-top: 1px solid var(--border); }
+
+  /* ── Thermal badges (fixed) ── */
+  .thermal-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .thermal-badge {
+    font-family: 'Fira Sans Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">ZeD-UI · S76 Reference</div>
+<div class="page-subtitle">Font Roles &amp; Accent Colors</div>
+
+<!-- ── CONTROLS ── -->
+<div class="controls">
+  <span style="font-family:'Fira Mono',monospace;font-size:10px;color:var(--textSec);padding:5px 6px;">BASE:</span>
+  <button class="ctrl-btn active" onclick="setTheme('dark')">Dark</button>
+  <button class="ctrl-btn" onclick="setTheme('light')">Light</button>
+  <button class="ctrl-btn" onclick="setTheme('hicon')">Hi-Con</button>
+  <span style="font-family:'Fira Mono',monospace;font-size:10px;color:var(--textSec);padding:5px 12px 5px 18px;">ACCENT:</span>
+  <button class="ctrl-btn" onclick="setAccent('red')">Red</button>
+  <button class="ctrl-btn" onclick="setAccent('orange')">Orange</button>
+  <button class="ctrl-btn" onclick="setAccent('yellow')">Yellow</button>
+  <button class="ctrl-btn" onclick="setAccent('green')">Green</button>
+  <button class="ctrl-btn" onclick="setAccent('blue')">Blue</button>
+  <button class="ctrl-btn active" onclick="setAccent('teal')">Teal</button>
+  <button class="ctrl-btn" onclick="setAccent('purple')">Purple</button>
+  <button class="ctrl-btn" onclick="setAccent('pink')">Pink</button>
+  <button class="ctrl-btn" onclick="setAccent('mono')">None</button>
+</div>
+
+<!-- ── SECTION 1: FONT ROLES ── -->
+<div class="section">
+  <div class="section-label">Typography — F-System (Pairing D · Fira Mono + Fira Sans)</div>
+  <div class="font-grid">
+
+    <!-- F1 -->
+    <div class="font-card">
+      <div class="font-card-header">
+        <span class="font-tag">F1</span>
+        <span class="font-role">Chrome</span>
+      </div>
+      <div class="font-meta">
+        Fira Mono Bold · 11px (S) / 13px (L)<br>
+        T.fontF1 · T.textSec (= accent at runtime)
+      </div>
+      <hr class="font-divider">
+      <div class="font-sample-label">SMALL — 11px</div>
+      <div class="font-sample f1-s">INVENTORY  &nbsp;·&nbsp;  TAB LABEL  &nbsp;·&nbsp;  1.5kg  &nbsp;·&nbsp;  [CLOSE]</div>
+      <div class="font-sample-label">LARGE — 13px</div>
+      <div class="font-sample f1-l">INVENTORY  &nbsp;·&nbsp;  TAB LABEL  &nbsp;·&nbsp;  1.5kg  &nbsp;·&nbsp;  [CLOSE]</div>
+      <div class="usage-list">
+        <span class="usage-tag">title bar</span>
+        <span class="usage-tag">tab labels</span>
+        <span class="usage-tag">button labels</span>
+        <span class="usage-tag">badge text</span>
+        <span class="usage-tag">section headers</span>
+      </div>
+    </div>
+
+    <!-- F2 -->
+    <div class="font-card">
+      <div class="font-card-header">
+        <span class="font-tag">F2</span>
+        <span class="font-role">Body</span>
+      </div>
+      <div class="font-meta">
+        Fira Sans Medium · 13px (S) / 15px (L)<br>
+        T.fontF2 · T.text
+      </div>
+      <hr class="font-divider">
+      <div class="font-sample-label">SMALL — 13px</div>
+      <div class="font-sample f2-s">Wooden Axe &nbsp;·&nbsp; Ripped Sheet &nbsp;·&nbsp; Can of Beans — Drained</div>
+      <div class="font-sample-label">LARGE — 15px</div>
+      <div class="font-sample f2-l">Wooden Axe &nbsp;·&nbsp; Ripped Sheet &nbsp;·&nbsp; Can of Beans — Drained</div>
+      <div class="usage-list">
+        <span class="usage-tag">item names</span>
+        <span class="usage-tag">list rows</span>
+        <span class="usage-tag">content text</span>
+        <span class="usage-tag">descriptions</span>
+      </div>
+    </div>
+
+    <!-- F3 -->
+    <div class="font-card">
+      <div class="font-card-header">
+        <span class="font-tag">F3</span>
+        <span class="font-role">Data</span>
+      </div>
+      <div class="font-meta">
+        Fira Mono Regular · 11px (S) / 13px (L)<br>
+        T.fontF3 · T.text
+      </div>
+      <hr class="font-divider">
+      <div class="font-sample-label">SMALL — 11px</div>
+      <div class="font-sample f3-s">14.2 / 50.0 kg &nbsp;·&nbsp; 87% &nbsp;·&nbsp; +12 XP &nbsp;·&nbsp; 0.8kg &nbsp;·&nbsp; 3x</div>
+      <div class="font-sample-label">LARGE — 13px</div>
+      <div class="font-sample f3-l">14.2 / 50.0 kg &nbsp;·&nbsp; 87% &nbsp;·&nbsp; +12 XP &nbsp;·&nbsp; 0.8kg &nbsp;·&nbsp; 3x</div>
+      <div class="usage-list">
+        <span class="usage-tag">numbers</span>
+        <span class="usage-tag">percentages</span>
+        <span class="usage-tag">stat values</span>
+        <span class="usage-tag">weight</span>
+        <span class="usage-tag">counts</span>
+      </div>
+    </div>
+
+    <!-- F4 -->
+    <div class="font-card">
+      <div class="font-card-header">
+        <span class="font-tag">F4</span>
+        <span class="font-role">Heading</span>
+      </div>
+      <div class="font-meta">
+        Fira Sans Condensed SemiBold · 13px (S) / 15px (L)<br>
+        T.fontF4 · T.textHead
+      </div>
+      <hr class="font-divider">
+      <div class="font-sample-label">SMALL — 13px</div>
+      <div class="font-sample f4-s">Equipment &nbsp;·&nbsp; Defense &nbsp;·&nbsp; Torso Upper &nbsp;·&nbsp; Nutrition Facts</div>
+      <div class="font-sample-label">LARGE — 15px</div>
+      <div class="font-sample f4-l">Equipment &nbsp;·&nbsp; Defense &nbsp;·&nbsp; Torso Upper &nbsp;·&nbsp; Nutrition Facts</div>
+      <div class="usage-list">
+        <span class="usage-tag">section headings</span>
+        <span class="usage-tag">category names</span>
+        <span class="usage-tag">item card name</span>
+        <span class="usage-tag">drawer headers</span>
+      </div>
+    </div>
+
+    <!-- F5 -->
+    <div class="font-card">
+      <div class="font-card-header">
+        <span class="font-tag">F5</span>
+        <span class="font-role">Micro</span>
+      </div>
+      <div class="font-meta">
+        Fira Sans Condensed Regular · 9px (S) / 11px (L)<br>
+        T.fontF5 · T.textSec — ⚠ 9px untested in-game
+      </div>
+      <hr class="font-divider">
+      <div class="font-sample-label">SMALL — 9px</div>
+      <div class="font-sample f5-s">Firearms · Condition · Equipped · Vol. I · +8% wind chill · missing</div>
+      <div class="font-sample-label">LARGE — 11px</div>
+      <div class="font-sample f5-l">Firearms · Condition · Equipped · Vol. I · +8% wind chill · missing</div>
+      <div class="usage-list">
+        <span class="usage-tag">chips</span>
+        <span class="usage-tag">badges</span>
+        <span class="usage-tag">metadata labels</span>
+        <span class="usage-tag">skill book vol.</span>
+        <span class="usage-tag">legend rows</span>
+      </div>
+    </div>
+
+    <!-- Mixed row specimen -->
+    <div class="font-card" style="grid-column:span 2;">
+      <div class="font-card-header">
+        <span class="font-tag" style="background:rgba(71,161,140,0.08);">MIX</span>
+        <span class="font-role">Typical Row — all roles together</span>
+      </div>
+      <hr class="font-divider">
+      <div style="display:flex;align-items:baseline;gap:8px;padding:4px 0;">
+        <span class="f4-s">Hiking Boots</span>
+        <span class="f5-s" style="color:var(--textSec)">Equipped</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;padding:4px 0;">
+        <span class="f2-s" style="flex:1">Condition</span>
+        <span class="f3-s">82%</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;padding:4px 0;">
+        <span class="f2-s" style="flex:1">Weight</span>
+        <span class="f3-s">1.4 kg</span>
+      </div>
+      <div style="display:flex;gap:6px;padding:6px 0 2px;">
+        <span class="f1-s">[EQUIP]</span>
+        <span class="f1-s" style="opacity:0.5">[DROP]</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── SECTION 2: ACCENT MATRIX ── -->
+<div class="section">
+  <div class="section-label">Accent Colors — 9 accents × 2 theme variants</div>
+  <div class="accent-matrix">
+    <!-- Headers -->
+    <div></div>
+    <div class="col-header">Red</div>
+    <div class="col-header">Orange</div>
+    <div class="col-header">Yellow</div>
+    <div class="col-header">Green</div>
+    <div class="col-header">Blue</div>
+    <div class="col-header">Teal</div>
+    <div class="col-header">Purple</div>
+    <div class="col-header">Pink</div>
+    <div class="col-header">None</div>
+
+    <!-- Dark row -->
+    <div class="row-header">DARK</div>
+    <!-- Red dark -->
+    <div class="accent-cell" onclick="setAccent('red')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#CC4444"></div><span class="swatch-hex">#CC4444</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#EE6666"></div><span class="swatch-hex">#EE6666</span></div>
+      <div class="hover-swatch" style="background:rgba(204,68,68,0.22)"></div>
+    </div>
+    <!-- Orange dark -->
+    <div class="accent-cell" onclick="setAccent('orange')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#D4922A"></div><span class="swatch-hex">#D4922A</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#E8A830"></div><span class="swatch-hex">#E8A830</span></div>
+      <div class="hover-swatch" style="background:rgba(212,146,42,0.22)"></div>
+    </div>
+    <!-- Yellow dark -->
+    <div class="accent-cell" onclick="setAccent('yellow')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#CCAA22"></div><span class="swatch-hex">#CCAA22</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#EEDD44"></div><span class="swatch-hex">#EEDD44</span></div>
+      <div class="hover-swatch" style="background:rgba(204,170,34,0.22)"></div>
+    </div>
+    <!-- Green dark -->
+    <div class="accent-cell" onclick="setAccent('green')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#44AA44"></div><span class="swatch-hex">#44AA44</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#66CC66"></div><span class="swatch-hex">#66CC66</span></div>
+      <div class="hover-swatch" style="background:rgba(68,170,68,0.20)"></div>
+    </div>
+    <!-- Blue dark -->
+    <div class="accent-cell" onclick="setAccent('blue')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#4488CC"></div><span class="swatch-hex">#4488CC</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#66AAEE"></div><span class="swatch-hex">#66AAEE</span></div>
+      <div class="hover-swatch" style="background:rgba(68,136,204,0.20)"></div>
+    </div>
+    <!-- Teal dark -->
+    <div class="accent-cell selected" onclick="setAccent('teal')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#47A18C"></div><span class="swatch-hex">#47A18C</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#5CC4AA"></div><span class="swatch-hex">#5CC4AA</span></div>
+      <div class="hover-swatch" style="background:rgba(71,161,140,0.22)"></div>
+    </div>
+    <!-- Purple dark -->
+    <div class="accent-cell" onclick="setAccent('purple')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#8855BB"></div><span class="swatch-hex">#8855BB</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#AA77DD"></div><span class="swatch-hex">#AA77DD</span></div>
+      <div class="hover-swatch" style="background:rgba(136,85,187,0.20)"></div>
+    </div>
+    <!-- Pink dark -->
+    <div class="accent-cell" onclick="setAccent('pink')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#DD5588"></div><span class="swatch-hex">#DD5588</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#FF77AA"></div><span class="swatch-hex">#FF77AA</span></div>
+      <div class="hover-swatch" style="background:rgba(221,85,136,0.20)"></div>
+    </div>
+    <!-- Mono dark -->
+    <div class="accent-cell" onclick="setAccent('mono')">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#888888"></div><span class="swatch-hex">#888888</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#AAAAAA"></div><span class="swatch-hex">#AAAAAA</span></div>
+      <div class="hover-swatch" style="background:rgba(136,136,136,0.20)"></div>
+    </div>
+
+    <!-- Light row -->
+    <div class="row-header">LIGHT</div>
+    <!-- Red light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#7A1A1A"></div><span class="swatch-hex">#7A1A1A</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#AA3333"></div><span class="swatch-hex">#AA3333</span></div>
+      <div class="hover-swatch" style="background:rgba(122,26,26,0.15)"></div>
+    </div>
+    <!-- Orange light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#7A5010"></div><span class="swatch-hex">#7A5010</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#B07818"></div><span class="swatch-hex">#B07818</span></div>
+      <div class="hover-swatch" style="background:rgba(122,80,16,0.15)"></div>
+    </div>
+    <!-- Yellow light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#6B5F0A"></div><span class="swatch-hex">#6B5F0A</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#998811"></div><span class="swatch-hex">#998811</span></div>
+      <div class="hover-swatch" style="background:rgba(107,95,10,0.15)"></div>
+    </div>
+    <!-- Green light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#125518"></div><span class="swatch-hex">#125518</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#338833"></div><span class="swatch-hex">#338833</span></div>
+      <div class="hover-swatch" style="background:rgba(18,85,24,0.15)"></div>
+    </div>
+    <!-- Blue light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#1A4477"></div><span class="swatch-hex">#1A4477</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#336699"></div><span class="swatch-hex">#336699</span></div>
+      <div class="hover-swatch" style="background:rgba(26,68,119,0.15)"></div>
+    </div>
+    <!-- Teal light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#1A6655"></div><span class="swatch-hex">#1A6655</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#3A8A77"></div><span class="swatch-hex">#3A8A77</span></div>
+      <div class="hover-swatch" style="background:rgba(26,102,85,0.15)"></div>
+    </div>
+    <!-- Purple light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#441888"></div><span class="swatch-hex">#441888</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#6644AA"></div><span class="swatch-hex">#6644AA</span></div>
+      <div class="hover-swatch" style="background:rgba(68,24,136,0.15)"></div>
+    </div>
+    <!-- Pink light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#882244"></div><span class="swatch-hex">#882244</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#BB4470"></div><span class="swatch-hex">#BB4470</span></div>
+      <div class="hover-swatch" style="background:rgba(136,34,68,0.15)"></div>
+    </div>
+    <!-- Mono light -->
+    <div class="accent-cell">
+      <div class="accent-cell-label">accent</div>
+      <div class="swatch-row"><div class="swatch" style="background:#3A3A3A"></div><span class="swatch-hex">#3A3A3A</span></div>
+      <div class="accent-cell-label">bright</div>
+      <div class="swatch-row"><div class="swatch" style="background:#666666"></div><span class="swatch-hex">#666666</span></div>
+      <div class="hover-swatch" style="background:rgba(58,58,58,0.15)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 3: LIVE PREVIEW ── -->
+<div class="section">
+  <div class="section-label">Live Preview — accent-reactive components</div>
+  <div class="preview-strip">
+    <div class="preview-row">
+      <span class="preview-row-label">F1 CHROME</span>
+      <span class="f1-s" id="prev-f1-s">INVENTORY · HEALTH · CRAFTING · [CLOSE]</span>
+    </div>
+    <hr class="preview-divider">
+    <div class="preview-row">
+      <span class="preview-row-label">FILL BAR</span>
+      <div class="preview-bar-bg"><div class="preview-bar-fill" id="prev-bar"></div></div>
+      <span class="f3-s" id="prev-stat" style="min-width:60px;text-align:right">14.2 / 50.0</span>
+    </div>
+    <hr class="preview-divider">
+    <div class="preview-row">
+      <span class="preview-row-label">OUTLINE BTN</span>
+      <button class="preview-outline-btn" id="prev-btn">EQUIP</button>
+    </div>
+    <hr class="preview-divider">
+    <div class="preview-row">
+      <span class="preview-row-label">ACCENT PILL</span>
+      <span class="preview-pill" id="prev-pill">EQUIPPED</span>
+    </div>
+    <hr class="preview-divider">
+    <div class="preview-row">
+      <span class="preview-row-label">ACCENT DIM</span>
+      <span class="f1-s" id="prev-dim">CATEGORY HEADER — TOOLS &amp; WEAPONS</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 4: STATUS COLORS ── -->
+<div class="section">
+  <div class="section-label">Status Colors — fixed per theme (not accent-dependent)</div>
+  <div class="status-row" id="status-row">
+    <div class="status-chip">
+      <div class="status-dot" style="background:#C45A2A"></div>
+      <div class="status-info">
+        <span class="status-label">DANGER</span>
+        <span class="status-hex">#C45A2A</span>
+      </div>
+    </div>
+    <div class="status-chip">
+      <div class="status-dot" style="background:#C49A2A"></div>
+      <div class="status-info">
+        <span class="status-label">WARNING</span>
+        <span class="status-hex">#C49A2A</span>
+      </div>
+    </div>
+    <div class="status-chip">
+      <div class="status-dot" style="background:#7A9A34"></div>
+      <div class="status-info">
+        <span class="status-label">POSITIVE</span>
+        <span class="status-hex">#7A9A34</span>
+      </div>
+    </div>
+    <div class="status-chip">
+      <div class="status-dot" style="background:#5A8A9A"></div>
+      <div class="status-info">
+        <span class="status-label">INFO</span>
+        <span class="status-hex">#5A8A9A</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 5: THERMAL BADGES ── -->
+<div class="section">
+  <div class="section-label">Thermal Badges — fixed tints (dark theme)</div>
+  <div class="thermal-row">
+    <span class="thermal-badge" style="background:rgba(60,120,220,0.15);color:rgba(90,150,240,1.0)">Cold</span>
+    <span class="thermal-badge" style="background:rgba(60,180,140,0.12);color:rgba(80,195,155,1.0)">Cool</span>
+    <span class="thermal-badge" style="background:rgba(120,200,80,0.12);color:rgba(130,210,90,1.0)">Normal</span>
+    <span class="thermal-badge" style="background:rgba(220,180,50,0.15);color:rgba(230,190,60,1.0)">Warm</span>
+    <span class="thermal-badge" style="background:rgba(220,80,40,0.15);color:rgba(235,95,55,1.0)">Hot</span>
+  </div>
+</div>
+
+<!-- ── SECTION 6: SURFACES ── -->
+<div class="section">
+  <div class="section-label">Base Surfaces — Dark theme</div>
+  <div class="surface-row">
+    <div class="surface-chip">
+      <div class="surface-block" style="background:#0C0C0C">0C0C0C</div>
+      <span class="surface-name">base<br>deepest bg</span>
+    </div>
+    <div class="surface-chip">
+      <div class="surface-block" style="background:#141414">141414</div>
+      <span class="surface-name">surf1<br>window bg</span>
+    </div>
+    <div class="surface-chip">
+      <div class="surface-block" style="background:#1C1C1C">1C1C1C</div>
+      <span class="surface-name">surf2<br>title bar</span>
+    </div>
+    <div class="surface-chip">
+      <div class="surface-block" style="background:#242424">242424</div>
+      <span class="surface-name">surf3<br>buttons</span>
+    </div>
+    <div class="surface-chip">
+      <div class="surface-block" style="background:#2C2C2C">2C2C2C</div>
+      <span class="surface-name">surf4<br>hover</span>
+    </div>
+    <div class="surface-chip">
+      <div class="surface-block" style="background:#202020;border:1px solid #383838">─ ─</div>
+      <span class="surface-name">border<br>borderS</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const themes = {
+  dark: {
+    '--base':    '#0C0C0C', '--surf1':   '#141414', '--surf2':   '#1C1C1C',
+    '--surf3':   '#242424', '--surf4':   '#2C2C2C', '--border':  '#202020',
+    '--borderS': '#383838', '--text':    'rgba(218,218,218,0.90)',
+    '--textSec': null, '--textHead':'rgba(230,230,230,0.92)',
+    isDark: true
+  },
+  light: {
+    '--base':    '#C8C0B8', '--surf1':   '#D0C8C0', '--surf2':   '#B8B0A8',
+    '--surf3':   '#C0B8B0', '--surf4':   '#B0A8A0', '--border':  '#969696',
+    '--borderS': '#767676', '--text':    'rgba(12,12,12,0.95)',
+    '--textSec': null, '--textHead':'rgba(5,5,5,1.00)',
+    isDark: false
+  },
+  hicon: {
+    '--base':    '#080808', '--surf1':   '#101010', '--surf2':   '#181818',
+    '--surf3':   '#202020', '--surf4':   '#282828', '--border':  '#353535',
+    '--borderS': '#555555', '--text':    'rgba(255,255,255,0.95)',
+    '--textSec': null, '--textHead':'rgba(255,255,255,0.98)',
+    isDark: true
+  }
+};
+
+const accents = {
+  red:    { dark:{ a:'#CC4444', b:'#EE6666', h:'rgba(204,68,68,0.22)'    }, light:{ a:'#7A1A1A', b:'#AA3333', h:'rgba(122,26,26,0.15)' } },
+  orange: { dark:{ a:'#D4922A', b:'#E8A830', h:'rgba(212,146,42,0.22)'   }, light:{ a:'#7A5010', b:'#B07818', h:'rgba(122,80,16,0.15)' } },
+  yellow: { dark:{ a:'#CCAA22', b:'#EEDD44', h:'rgba(204,170,34,0.22)'   }, light:{ a:'#6B5F0A', b:'#998811', h:'rgba(107,95,10,0.15)' } },
+  green:  { dark:{ a:'#44AA44', b:'#66CC66', h:'rgba(68,170,68,0.20)'    }, light:{ a:'#125518', b:'#338833', h:'rgba(18,85,24,0.15)' } },
+  blue:   { dark:{ a:'#4488CC', b:'#66AAEE', h:'rgba(68,136,204,0.20)'   }, light:{ a:'#1A4477', b:'#336699', h:'rgba(26,68,119,0.15)' } },
+  teal:   { dark:{ a:'#47A18C', b:'#5CC4AA', h:'rgba(71,161,140,0.22)'   }, light:{ a:'#1A6655', b:'#3A8A77', h:'rgba(26,102,85,0.15)' } },
+  purple: { dark:{ a:'#8855BB', b:'#AA77DD', h:'rgba(136,85,187,0.20)'   }, light:{ a:'#441888', b:'#6644AA', h:'rgba(68,24,136,0.15)' } },
+  pink:   { dark:{ a:'#DD5588', b:'#FF77AA', h:'rgba(221,85,136,0.20)'   }, light:{ a:'#882244', b:'#BB4470', h:'rgba(136,34,68,0.15)' } },
+  mono:   { dark:{ a:'#888888', b:'#AAAAAA', h:'rgba(136,136,136,0.20)'  }, light:{ a:'#3A3A3A', b:'#666666', h:'rgba(58,58,58,0.15)' } },
+};
+
+let currentTheme = 'dark';
+let currentAccent = 'teal';
+
+function applyAll() {
+  const t = themes[currentTheme];
+  const av = accents[currentAccent][t.isDark ? 'dark' : 'light'];
+  const r = document.documentElement;
+
+  for (const [k, v] of Object.entries(t)) {
+    if (k.startsWith('--') && v) r.style.setProperty(k, v);
+  }
+  r.style.setProperty('--accent', av.a);
+  r.style.setProperty('--bright', av.b);
+  r.style.setProperty('--textSec', av.a);
+
+  // Live preview elements
+  document.querySelectorAll('.f1-s, .f1-l').forEach(el => el.style.color = av.a);
+  document.getElementById('prev-bar').style.background = av.a;
+  document.getElementById('prev-btn').style.color = av.a;
+  document.getElementById('prev-btn').style.borderColor = av.a;
+  document.getElementById('prev-pill').style.background = av.a;
+  const dimColor = av.a + '8C'; // ~55% opacity
+  document.getElementById('prev-dim').style.color = av.a + 'CC';
+
+  // Font tag colors
+  document.querySelectorAll('.font-tag').forEach(el => {
+    el.style.color = av.a;
+    el.style.background = av.a + '1E';
+  });
+
+  document.querySelectorAll('.section-label').forEach(el => el.style.color = av.a);
+  document.querySelectorAll('.page-title').forEach(el => el.style.color = av.a);
+}
+
+function setTheme(key) {
+  currentTheme = key;
+  document.querySelectorAll('.ctrl-btn').forEach((b,i) => {
+    if (['dark','light','hicon'][i] === key) b.classList.add('active');
+    else if (i < 3) b.classList.remove('active');
+  });
+  document.querySelectorAll('.ctrl-btn').forEach(b => {
+    const label = b.textContent.trim().toLowerCase().replace('-','').replace(' ','');
+    const themeMap = { dark: 'dark', light: 'light', 'hi-con': 'hicon' };
+    if (b.textContent.trim() === 'Dark' || b.textContent.trim() === 'Light' || b.textContent.trim() === 'Hi-Con') {
+      b.classList.toggle('active', (b.textContent.trim() === 'Dark' && key==='dark') ||
+        (b.textContent.trim() === 'Light' && key==='light') ||
+        (b.textContent.trim() === 'Hi-Con' && key==='hicon'));
+    }
+  });
+  applyAll();
+}
+
+function setAccent(key) {
+  currentAccent = key;
+  document.querySelectorAll('.ctrl-btn').forEach(b => {
+    const labels = ['Red','Orange','Yellow','Green','Blue','Teal','Purple','Pink','None'];
+    const keys   = ['red','orange','yellow','green','blue','teal','purple','pink','mono'];
+    const idx = keys.indexOf(key);
+    if (labels.includes(b.textContent.trim()) || b.textContent.trim() === 'None') {
+      b.classList.toggle('active', b.textContent.trim() === (idx >= 0 ? labels[idx] : ''));
+    }
+  });
+  // Update selected cell highlight
+  document.querySelectorAll('.accent-cell').forEach(c => c.classList.remove('selected'));
+  applyAll();
+}
+
+// Init
+applyAll();
+</script>
+</body>
+</html>

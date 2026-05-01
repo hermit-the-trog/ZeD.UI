@@ -1,0 +1,1377 @@
+-- ZeD-UI/42/media/lua/client/ZeD/RadioTab.lua
+-- ============================================================================
+-- RADIO TAB — first contextual chassis drawer.
+--
+-- Plugs into BOTH ZeD_CharacterWindow's TAB_RENDERERS and ZeD_WorldWindow's
+-- WORLD_TAB_RENDERERS via the shared register() entry point. The chassis
+-- renderer is identical in both windows; only the radio discovery source
+-- differs (equipped on player vs in-range world objects). The window's
+-- _kind field ("char" / "world") tells render() which discovery to use, but
+-- the data has already been written to win._radios by the window's refresh
+-- loop, so render() itself only reads.
+--
+-- TWO VISUAL TIERS, distinguished at runtime by deviceData:getIsHighTier():
+--   - Premium Technologies (silver Pioneer-style hi-fi, cyan VFD, green-VFD CD)
+--   - ValuTech            (cheap black plastic, backlit amber LCD, no CD)
+--
+-- LAYER STRUCTURE INSIDE THIS FILE:
+--   - Forward decls (closure capture per Kahlua's create-time binding)
+--   - Data discovery: buildEquippedRadios, buildWorldRadios
+--   - Wave cache helper (cosmetic 64-column harmonic, seeded per radio)
+--   - Chassis molecules: radioMainDisplay, radioControlStrip, radioPresetBank,
+--     radioSignalWave, cdPlayerModule, brandBar
+--   - Organisms: renderPremium, renderValutech, renderDrawer
+--   - Top-level: render (with browse header), register
+--
+-- S115a SCOPE: read-only chassis. NO click handlers, NO gamepad focusables.
+-- All controls paint as visually clickable but no-op until S115b. Browse
+-- buttons in the drawer-internal header similarly paint but don't mutate
+-- win._radioIdx this session.
+-- ============================================================================
+
+require "ZeD/Tokens"
+require "ZeD/Atoms"
+require "ZeD/AtomExtensions"
+require "ZeD/Molecules"
+
+ZeD = ZeD or {}
+ZeD.RadioTab = ZeD.RadioTab or {}
+
+-- Forward decls — Kahlua closures capture free names at creation time, so
+-- helpers used inside other helpers must be declared as locals before any
+-- function that references them. (Memory: feedback_forward_decl_hoist.md.)
+local renderPremium
+local renderValutech
+local renderDrawer
+local radioMainDisplay
+local radioControlStrip
+local radioPresetBank
+local radioSignalWave
+local cdPlayerModule
+local brandBar
+-- S115b: render() drives the SEEK hold-to-repeat advance, so it needs
+-- visibility into _channelStep before that local's definition further down.
+local _channelStep
+
+-- ============================================================================
+-- DATA DISCOVERY
+-- ============================================================================
+
+-- Lookup: PZ radio item check. Both inventory items (Radio class) and world
+-- IsoWaveSignal objects expose getDeviceData(). We probe the method via
+-- direct field access (Kahlua: indexing an exposed class returns the method
+-- as a callable, or nil if not exposed) — avoids the "Tried to call nil"
+-- log spam that pcall produces on missing methods.
+local function _hasDeviceData(obj)
+    if obj == nil or obj.getDeviceData == nil then return false end
+    local dd = obj:getDeviceData()
+    return dd ~= nil, dd
+end
+
+--- Scan the player's equipped slots for radios.
+-- Mirrors vanilla ISRadioWindow.lua:139-180 — hand items + back-clothing slot.
+-- Returns array of entries each shaped:
+--   { radioInstance, deviceData, locationTag, kind = "equipped" }
+-- locationTag is the human-readable slot name surfaced in the drawer header
+-- (Primary / Secondary / Back).
+function ZeD.RadioTab.buildEquippedRadios(playerObj)
+    local out = {}
+    if playerObj == nil then return out end
+
+    local function tryAdd(item, tag)
+        if item == nil then return end
+        if not instanceof(item, "Radio") then return end
+        local has, dd = _hasDeviceData(item)
+        if not has then return end
+        -- Stable cache key per equipped slot. The slot tag is unique within an
+        -- equipped scan (Primary / Secondary / Back), so it's a reliable key
+        -- without needing getID() (which IsoWaveSignal/Radio inheritance can
+        -- omit and produce "Tried to call nil" log spam).
+        out[#out + 1] = {
+            radioInstance = item,
+            deviceData    = dd,
+            locationTag   = tag,
+            kind          = "equipped",
+            cacheKey      = "eq:" .. tag,
+        }
+    end
+
+    tryAdd(playerObj:getPrimaryHandItem(),   "Primary")
+    tryAdd(playerObj:getSecondaryHandItem(), "Secondary")
+    -- Back-clothing slot — ISRadioWindow checks this so portable radios slung
+    -- on the player's back register too.
+    if playerObj.getClothingItem_Back then
+        tryAdd(playerObj:getClothingItem_Back(), "Back")
+    end
+
+    return out
+end
+
+--- Scan the 3x3 grid around the player for IsoWaveSignal radios.
+-- Mirrors buildWorldContainers (ZeD_WorldWindow.lua) for reach semantics:
+-- canReachTo wall check + safehouse loot permission. Returns entries shaped:
+--   { radioInstance, deviceData, locationTag, kind = "world", distance }
+-- sorted by distance ascending.
+function ZeD.RadioTab.buildWorldRadios(playerObj)
+    local out = {}
+    if playerObj == nil then return out end
+
+    local cell = getCell()
+    if cell == nil then return out end
+
+    local cx = math.floor(playerObj:getX())
+    local cy = math.floor(playerObj:getY())
+    local cz = math.floor(playerObj:getZ())
+    local currentSq = playerObj:getCurrentSquare()
+
+    for dy = -1, 1 do
+        for dx = -1, 1 do
+            local gs = cell:getGridSquare(cx + dx, cy + dy, cz)
+            -- Wall-pass check: player must be able to reach the neighbor sq.
+            if gs and gs ~= currentSq and currentSq then
+                if not currentSq:canReachTo(gs) then gs = nil end
+            end
+            -- Safehouse loot permission (matches container reach).
+            if gs and isClient() and SafeHouse and SafeHouse.isSafehouseAllowLoot then
+                if not SafeHouse.isSafehouseAllowLoot(gs, playerObj) then
+                    gs = nil
+                end
+            end
+            if gs then
+                local objs = gs:getObjects()
+                if objs then
+                    for i = 0, objs:size() - 1 do
+                        local o = objs:get(i)
+                        if instanceof(o, "IsoWaveSignal") then
+                            local has, dd = _hasDeviceData(o)
+                            if has then
+                                local distSq = dx * dx + dy * dy
+                                -- Use world coordinates as the stable cache
+                                -- key. IsoWaveSignal occupies a fixed tile
+                                -- so x/y/z is stable for the life of the
+                                -- object, and uniquely identifies it among
+                                -- all radios in range.
+                                local ox = math.floor(o:getX() or 0)
+                                local oy = math.floor(o:getY() or 0)
+                                local oz = math.floor(o:getZ() or 0)
+                                out[#out + 1] = {
+                                    radioInstance = o,
+                                    deviceData    = dd,
+                                    locationTag   = "Floor",
+                                    kind          = "world",
+                                    distance      = math.sqrt(distSq),
+                                    cacheKey      = string.format("w:%d,%d,%d", ox, oy, oz),
+                                }
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    table.sort(out, function(a, b) return a.distance < b.distance end)
+    return out
+end
+
+-- ============================================================================
+-- WAVE CACHE — cosmetic harmonic sine generator, seeded per radio
+-- Spec hard rule #8: signal wave ALWAYS renders, even when powered off. The
+-- power state only modulates the line color alpha; layout stays stable.
+-- ============================================================================
+
+-- Build a 64-column wave from a stable integer seed. Three sine harmonics with
+-- different periods + a small noise floor — same numbers in, same wave out.
+-- Returns array of normalized heights in [-1, 1] for the caller to scale.
+local function _buildWave(seed, columns)
+    local cols = columns or 64
+    local out = {}
+    -- Seed-perturbed harmonic constants — tiny offsets so different radios
+    -- look distinct without using a real PRNG (which would be per-call,
+    -- breaking the cache invariant).
+    local s = (seed or 0)
+    local p1 = 0.18 + ((s % 7) * 0.011)
+    local p2 = 0.42 + ((s % 13) * 0.013)
+    local p3 = 0.71 + ((s % 17) * 0.009)
+    local a1 = 0.55
+    local a2 = 0.30
+    local a3 = 0.15
+    -- A small deterministic noise layer keeps the wave from being too clean.
+    local noiseSeed = (s * 1103515245 + 12345) % 2147483648
+    for i = 1, cols do
+        local t = (i - 1)
+        local v = a1 * math.sin(t * p1)
+              + a2 * math.sin(t * p2 + 1.7)
+              + a3 * math.sin(t * p3 + 3.1)
+        -- Per-column deterministic noise, ~5% amplitude.
+        noiseSeed = (noiseSeed * 1103515245 + 12345) % 2147483648
+        local n = ((noiseSeed % 1000) / 1000.0 - 0.5) * 0.10
+        out[i] = v + n
+    end
+    return out
+end
+
+-- Cached wave fetch keyed by the entry's stable cacheKey (computed at build
+-- time — equipped slot tag for char, world coords for world objects). Cache
+-- lives on the window so it follows the radio refresh lifecycle. The seed is
+-- derived from the key string so the cached content is stable across reopens.
+local function _getWave(win, cacheKey, columns)
+    if win == nil or cacheKey == nil then return nil end
+    win._radioWaveCache = win._radioWaveCache or {}
+    local cached = win._radioWaveCache[cacheKey]
+    if cached and #cached == (columns or 64) then return cached end
+    -- Hash the key string into a deterministic integer seed.
+    local seed = 0
+    for i = 1, #cacheKey do
+        seed = (seed * 31 + cacheKey:byte(i)) % 2147483647
+    end
+    local wave = _buildWave(seed, columns)
+    win._radioWaveCache[cacheKey] = wave
+    return wave
+end
+
+-- ============================================================================
+-- CHASSIS MOLECULES — radio-specific, kept here rather than Molecules.lua
+-- because they are tightly coupled to the radio chassis layout grammar.
+-- ============================================================================
+
+-- Helper: silkscreen label drawn straight onto the chassis substrate. Reuses
+-- Atoms.drawSecondary's color override, keeping the call site readable.
+local function _silk(panel, x, y, text, color, font)
+    local T = ZeD.T
+    panel:drawText(text, x, y, color.r, color.g, color.b, color.a or 1.0, font or T.fontF1)
+end
+
+-- Helper: read a deviceData getter via field probe — if the method isn't
+-- exposed on this radio's Java class, the field is nil and we return the
+-- fallback silently. Avoids the "Tried to call nil" log spam that pcall
+-- triggers when a defensive call hits an unexposed method.
+local function _safeGet(dd, fnName, fallback)
+    if dd == nil then return fallback end
+    local fn = dd[fnName]
+    if fn == nil then return fallback end
+    local v = fn(dd)
+    if v == nil then return fallback end
+    return v
+end
+
+-- Format a PZ radio channel value to a display string.
+-- PZ stores channel as MHz × 1000 (vanilla RWMGeneral:setInfoLines line 80
+-- displays getChannel()/1000 .. " MHz" — so 88000 = 88 MHz, 96500 = 96.5 MHz).
+-- Always render as MHz with one decimal so the 0.1-step seek granularity is
+-- visible (88.0 → 88.1 → 88.2 ...).
+local function _formatFrequency(hz)
+    if hz == nil or hz == 0 then return "---.-" end
+    return string.format("%.1f MHz", hz / 1000)
+end
+
+-- Split formatted frequency into number + unit pair so the renderer can
+-- draw the number large and the unit smaller alongside.
+local function _splitFrequency(hz)
+    if hz == nil or hz == 0 then return "---.-", "MHz" end
+    return string.format("%.1f", hz / 1000), "MHz"
+end
+
+----------------------------------------------------------------------
+-- M: radioMainDisplay
+-- The VFD (Premium) or LCD (ValuTech) main display. Brand-conditional palette.
+-- Layout (top to bottom):
+--   - status chip row (SIG / 2W / FM / AM) — text-only chips
+--   - BATT (4 segs) + VOL (8 segs) bars
+--   - main numeric zone: frequency big + range/distance line
+-- Spec hard rule #9: TV CRT uses white, but here we are RADIO — VFD uses cyan
+-- family, LCD uses dark-on-amber. NO multi-color displays per chassis tier.
+----------------------------------------------------------------------
+function radioMainDisplay(panel, x, y, w, h, brand, dd)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local TM = getTextManager()
+
+    -- Brand palette select. Backlit substrate (cyan-VFD-blue / amber-LCD)
+    -- shows ONLY when power is on. Powered-off mirrors real-hardware off
+    -- states: a non-backlit LCD reads as light silvery-grey glass with the
+    -- segments faintly visible; an unlit VFD tube reads as near-black.
+    --
+    -- "Power on" = user flipped the switch AND the device has usable power.
+    -- A dead battery (or no battery on a battery-powered unit, with no
+    -- alternate source) means the display stays blank — preventing an
+    -- exploit where a depleted radio could still be used as a passive data
+    -- readout. Mirrors vanilla ISRadioAction:isReallyRunning logic.
+    local userOn       = _safeGet(dd, "getIsTurnedOn",       false)
+    local batPowered   = _safeGet(dd, "getIsBatteryPowered", true)
+    local batCharge    = _safeGet(dd, "getPower",            0)
+    local hasBatItem   = _safeGet(dd, "getHasBattery",       false)
+    local extPower     = _safeGet(dd, "canBePoweredHere",    false)
+    local hasUsablePower
+    if batPowered then
+        hasUsablePower = hasBatItem and type(batCharge) == "number" and batCharge > 0
+    else
+        hasUsablePower = extPower
+    end
+    local power_now = userOn and hasUsablePower
+    -- Non-backlit STN LCD glass has a characteristic grey-green / olive tint
+    -- (see car-stereo reference photo). Roughly #8E8F72.
+    local lcdOffBg = { r = 0.557, g = 0.561, b = 0.447, a = 1.0 }
+    local vfdOffBg = { r = 0.10, g = 0.10, b = 0.10, a = 1.0 }  -- ~ #1A1A1A unlit tube
+    local fgBright, fgDim, fgOff, bg
+    if brand == "premium" then
+        bg       = power_now and T.radio.vfd.bg or vfdOffBg
+        fgBright = T.radio.vfd.bright
+        fgDim    = T.radio.vfd.dim
+        -- When off, unlit-segment color becomes a near-bg shade so chips and
+        -- bar pips read as uniform dark ghosts on the unlit tube — not bright
+        -- cyan still showing on a dark background.
+        fgOff    = power_now and T.radio.vfd.off
+                              or { r = 0.16, g = 0.16, b = 0.16, a = 1.0 }
+    else
+        bg       = power_now and T.radio.lcd.bg or lcdOffBg
+        fgBright = T.radio.lcd.fg
+        fgDim    = T.radio.lcd.fgDim
+        -- When off, the LCD's "unlit segment" amber-orange (#C47015) would
+        -- read as bright orange dots on the grey-green off-glass. Override to
+        -- the dark digit color so all segments — lit OR unlit — paint as one
+        -- uniform dark LCD readout. Real STN LCDs work this way: the panel
+        -- isn't backlit, but every segment that exists is faintly visible as
+        -- the same dark grey.
+        fgOff    = power_now and T.radio.lcd.segOff or T.radio.lcd.fg
+    end
+
+    -- Black inset frame (2px) around the entire display so the LCD/VFD reads
+    -- as a recessed window in the chassis. Painted FIRST then the substrate
+    -- fills the interior; subsequent content (chips, bars, frequency, data
+    -- column) lays out against the post-frame interior bounds.
+    local frameW = 2
+    panel:drawRect(x,                  y,                  w,      frameW, 1.0, 0, 0, 0)
+    panel:drawRect(x,                  y + h - frameW,     w,      frameW, 1.0, 0, 0, 0)
+    panel:drawRect(x,                  y,                  frameW, h,      1.0, 0, 0, 0)
+    panel:drawRect(x + w - frameW,     y,                  frameW, h,      1.0, 0, 0, 0)
+    -- Shrink to interior; all subsequent layout uses the smaller box.
+    x = x + frameW
+    y = y + frameW
+    w = w - frameW * 2
+    h = h - frameW * 2
+
+    -- Display substrate fill, interior of the frame.
+    panel:drawRect(x, y, w, h, bg.a or 1.0, bg.r, bg.g, bg.b)
+
+    local pad = 8
+    local cx = x + pad
+    local cy = y + pad
+    local maxX = x + w - pad
+    local font = T.fontF3   -- mono digits / chip text
+
+    -- "power" downstream uses the effective on-state computed above (user
+    -- switched on AND device has usable power). Other fields are read fresh.
+    local power     = power_now
+    local hasBat    = hasBatItem
+    local battery   = batCharge
+    local hasSignal = _safeGet(dd, "isReceivingSignal",   false)
+    local channel   = _safeGet(dd, "getChannel",          0)
+    local volF      = _safeGet(dd, "getDeviceVolume",     0.5)
+    local minHz     = _safeGet(dd, "getMinChannelRange",  75000)
+    local maxHz     = _safeGet(dd, "getMaxChannelRange",  1000000)
+
+    if type(volF)    ~= "number" then volF    = 0.5 end
+    if type(battery) ~= "number" then battery = 0 end
+
+    -- =========== ROW 1 — status chip row ===========
+    -- Chips paint as `○ TEXT` (off) / `● TEXT` (on). AM and FM are mutually
+    -- exclusive based on whether channel is in the upper kHz / MHz band — PZ
+    -- has no real modulation flag. STEREO is a cosmetic chassis chip on
+    -- ValuTech (always off this session — no engine reading for it).
+    -- 2-WAY pinned to the right edge.
+    local fontHrow1 = TM:getFontHeight(font)
+    local row1Y = cy
+    local hasFreq = (type(channel) == "number") and channel > 0
+    -- PZ has no real AM band — radios are FM-only in lore. Light FM when the
+    -- radio is powered + has a tuned frequency; AM chip stays as decorative
+    -- silkscreen-off so the chassis still reads as a real AM/FM unit, but
+    -- never lights.
+    local amOn = false
+    local fmOn = power and hasFreq
+    local stereoOn = false  -- cosmetic chip; no engine reading
+
+    -- When display is off, all chip squares paint as FILLED dark segments
+    -- (matching real STN LCD behavior where every segment is faintly visible
+    -- as the same dark grey when the panel isn't backlit). Both the square
+    -- and the label dim to ~35% alpha — same treatment as the BATT/VOL bars
+    -- so the off-display reads as a single uniformly-faded ghost.
+    local cursor = cx
+    local amShow     = (not power) or amOn
+    local fmShow     = (not power) or fmOn
+    local stereoShow = (not power) or stereoOn
+    local chipOnC    = fgBright
+    local chipOffC   = fgOff
+    if not power then
+        chipOnC  = { r = fgBright.r, g = fgBright.g, b = fgBright.b, a = (fgBright.a or 1.0) * 0.35 }
+        chipOffC = { r = fgOff.r,    g = fgOff.g,    b = fgOff.b,    a = (fgOff.a    or 1.0) * 0.35 }
+    end
+    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "AM",     amShow,     chipOnC, chipOffC, font) + 12
+    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "FM",     fmShow,     chipOnC, chipOffC, font) + 12
+    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "STEREO", stereoShow, chipOnC, chipOffC, font) + 12
+
+    cy = row1Y + fontHrow1 + 10
+
+    -- =========== ROW 2 — BATT + VOL bars ===========
+    local labelFont = T.fontF1
+    local labelH = TM:getFontHeight(labelFont)
+    local barH   = 12
+
+    -- BATT label + 4 segments
+    _silk(panel, cx, cy + math.floor((barH - labelH) / 2), "BATT", fgDim, labelFont)
+    local battLabelW = TM:MeasureStringX(labelFont, "BATT")
+    local battSegX = cx + battLabelW + 6
+    local battSegW = 80
+    -- battery is 0..1; gate on (power AND hasBattery) so an absent or removed
+    -- battery cell reads as empty rather than full.
+    local battK = 0
+    if power and hasBat and type(battery) == "number" then
+        battK = math.floor(battery * 4 + 0.5)
+        if battK < 0 then battK = 0 end
+        if battK > 4 then battK = 4 end
+    end
+    -- Dim the bars when display is off so they recede vs the (deferred) text.
+    local barAlpha = power and 1.0 or 0.35
+    local barOnC  = { r = fgBright.r, g = fgBright.g, b = fgBright.b, a = (fgBright.a or 1) * barAlpha }
+    local barOffC = { r = fgOff.r,    g = fgOff.g,    b = fgOff.b,    a = (fgOff.a    or 1) * barAlpha }
+    A.drawSegBar(panel, battSegX, cy, battSegW, barH, 4, battK, barOnC, barOffC, 2)
+
+    -- VOL label + 8 segments (positioned after BATT bar with breathing room)
+    local volLabelX = battSegX + battSegW + 18
+    _silk(panel, volLabelX, cy + math.floor((barH - labelH) / 2), "VOL", fgDim, labelFont)
+    local volLabelW = TM:MeasureStringX(labelFont, "VOL")
+    local volSegX = volLabelX + volLabelW + 6
+    local volSegW = math.max(0, maxX - volSegX)
+    local volK = power and math.floor(volF * 8 + 0.5) or 0
+    if volK < 0 then volK = 0 end
+    if volK > 8 then volK = 8 end
+    A.drawSegBar(panel, volSegX, cy, volSegW, barH, 8, volK, barOnC, barOffC, 2)
+
+    cy = cy + barH + 14
+
+    -- =========== ROW 3 — Big frequency (left) + data column (right) ===========
+    -- Frequency painted in UIFont.Cred1 (largest standard font ~30px) so the
+    -- station number is the visual anchor of the chassis. Unit suffix in mono
+    -- F3 alongside the digits. Channel name in F2 below the frequency.
+    local freqFont    = UIFont.Cred1
+    local unitFont    = T.fontF2
+    local channelFont = T.fontF2
+    -- Text colors don't gate on power — when the display is off the grey
+    -- bg makes everything read as dim naturally. Keeping the text in the
+    -- normal palette avoids it disappearing entirely on the grey face.
+    local freqColor   = fgBright
+
+    -- When off, the freq display reads as a placeholder "---.- MHz" with the
+    -- station name line suppressed entirely (real LCDs go blank when unlit).
+    local freqDigits, freqUnit
+    if power then
+        freqDigits, freqUnit = _splitFrequency(channel)
+    else
+        freqDigits, freqUnit = "---.-", "MHz"
+    end
+    local freqDigitsH = TM:getFontHeight(freqFont)
+    local channelH    = TM:getFontHeight(channelFont)
+
+    -- Layout: freq + data column on the SAME centered row; station-name
+    -- gets its OWN full-width row anchored to the bottom edge of the LCD,
+    -- spanning past the data column (so long station names don't collide
+    -- with RANGE / SIG values). Frequency digits stay in the same Y
+    -- regardless of power so toggling on/off doesn't shift them.
+    local row3AvailH = (y + h - pad) - cy
+    local nameRowH   = channelH
+    local nameRowY   = y + h - pad - nameRowH
+    local nameGap    = 6
+    -- The freq+data block centers in the vertical space ABOVE the name row.
+    local freqAvailH = nameRowY - nameGap - cy
+    local row3StartY = cy + math.max(0, math.floor((freqAvailH - freqDigitsH) / 2))
+
+    panel:drawText(freqDigits, cx, row3StartY,
+        freqColor.r, freqColor.g, freqColor.b, freqColor.a or 1.0, freqFont)
+    local freqDigitsW = TM:MeasureStringX(freqFont, freqDigits)
+
+    -- Unit suffix (kHz / MHz) at lower-right corner of the frequency block —
+    -- baseline-aligned with bottom of the digits.
+    if freqUnit ~= "" then
+        local unitH = TM:getFontHeight(unitFont)
+        local unitX = cx + freqDigitsW + 6
+        local unitY = row3StartY + (freqDigitsH - unitH) - 2
+        panel:drawText(freqUnit, unitX, unitY,
+            freqColor.r, freqColor.g, freqColor.b, freqColor.a or 1.0, unitFont)
+    end
+
+    -- Channel name line below the frequency. Future engine API may surface
+    -- a per-channel name (preset name or station identifier); for now we
+    -- show "Unknown Frequency" with a play-arrow prefix as the mockup does.
+    -- ============ Station-name row (own line, full width) ============
+    -- Anchored at the bottom edge of the LCD so it spans the full width
+    -- (past the data column on the right). Allows long station names like
+    -- "Automated Emergency Broadcast System" without colliding with SIG/RANGE.
+    if power then
+        local channelName = "Unknown Frequency"
+        local zr = (getZomboidRadio ~= nil) and getZomboidRadio() or nil
+        if zr ~= nil and zr.getChannelName ~= nil
+           and type(channel) == "number" and channel > 0 then
+            local resolved = zr:getChannelName(channel)
+            if type(resolved) == "string" and resolved ~= "" then
+                channelName = resolved
+            end
+        end
+        local nameColor = fgDim
+        local nameStr = "> " .. channelName
+        -- Truncate to fit display width with ellipsis if too long.
+        local nameW = TM:MeasureStringX(channelFont, nameStr)
+        local nameMaxW = maxX - cx
+        if nameW > nameMaxW then
+            local ell = "…"
+            local ellW = TM:MeasureStringX(channelFont, ell)
+            local trimmed = nameStr
+            while #trimmed > 1 and (TM:MeasureStringX(channelFont, trimmed) + ellW) > nameMaxW do
+                trimmed = trimmed:sub(1, #trimmed - 1)
+            end
+            nameStr = trimmed .. ell
+        end
+        panel:drawText(nameStr, cx, nameRowY,
+            nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1.0, channelFont)
+    end
+
+    -- Right-side data column: RANGE / SIG readouts. Vertically centered in
+    -- row 3 alongside the frequency block. Each row = label left + right-
+    -- aligned value. (2-WAY removed — this is the AM/FM chassis only;
+    -- shortwave/walkie-talkie chassis surfaces 2-WAY in its own design.)
+    local dataLabels = {
+        { label = "RANGE", value = string.format("%d-%d MHz", math.floor(minHz / 1000), math.floor(maxHz / 1000)) },
+        { label = "SIG",   value = (power and hasSignal) and "GOOD" or (power and "WEAK" or "-") },
+    }
+    local dataFont = T.fontF2
+    local dataLineH = TM:getFontHeight(dataFont) + 6
+    local dataBlockH = #dataLabels * dataLineH
+    local dataColX  = cx + math.floor(w * 0.55)
+    -- Data column centers against the SAME vertical space as the freq digits
+    -- (above the name row) so it sits beside the freq, not below it.
+    local dataStartY = cy + math.max(0, math.floor((freqAvailH - dataBlockH) / 2))
+    local dataY = dataStartY
+    for _, row in ipairs(dataLabels) do
+        local labelColor = fgDim
+        panel:drawText(row.label, dataColX, dataY,
+            labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1.0, dataFont)
+        local valW = TM:MeasureStringX(dataFont, row.value)
+        local valColor = fgBright
+        panel:drawText(row.value, maxX - valW, dataY,
+            valColor.r, valColor.g, valColor.b, valColor.a or 1.0, dataFont)
+        dataY = dataY + dataLineH
+    end
+end
+
+----------------------------------------------------------------------
+-- M: radioControlStrip
+-- Recessed dark panel containing the power button + SEEK group + VOL group.
+-- All buttons are flat-variant drawButton with chassis tokens.
+-- READ-ONLY this session; nothing here mutates state.
+----------------------------------------------------------------------
+function radioControlStrip(panel, x, y, w, h, brand, dd, win)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local TM = getTextManager()
+    -- Reset per-frame click-zone slots that this molecule owns. Other molecules
+    -- own their own slots and clear them in their own renders.
+    if win then
+        win._radioPwrZone        = nil
+        win._radioSeekBtnZones   = {}  -- [1] = down, [2] = up (the two grey buttons)
+        win._radioVolBtnZones    = {}  -- [1] = down, [2] = up
+    end
+
+    local rec, btnColors, silkColor, pillBg, pillHi, pillSh
+    if brand == "premium" then
+        rec = T.radio.pt
+        btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
+        silkColor = rec.silkScreen
+        pillBg, pillHi, pillSh = rec.recessedBg, rec.recessedHi, rec.recessedSh
+    else
+        rec = T.radio.vt
+        btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
+        silkColor = rec.silkScreen
+        pillBg, pillHi, pillSh = rec.recessedBg, rec.recessedHi, rec.recessedSh
+    end
+
+    -- Recessed control-strip host
+    A.recessedPanel(panel, x, y, w, h, rec.recessedBg, rec.recessedHi, rec.recessedSh)
+
+    local pad      = 10
+    local pwrBtnH  = 30
+    local pillH    = 14    -- SEEK/VOL pills: thinner than buttons (mockup proportion)
+    local pwrBtnY  = y + math.floor((h - pwrBtnH) / 2)
+    local pillY    = y + math.floor((h - pillH) / 2)
+    local cx       = x + pad
+    local maxX     = x + w - pad
+    local labelFont = T.fontF1
+    local labelH    = TM:getFontHeight(labelFont)
+
+    -- ============ Power button ============
+    -- Mockup: small black square with red status dot + "OFF" / "ON" label.
+    -- Single button (not separate icon + button). Status dot painted inside
+    -- the button, left edge, with the label centered after.
+    local power = _safeGet(dd, "getIsTurnedOn", false)
+    local pwrLabel = power and "ON" or "OFF"
+    local pwrBtnW  = 60
+    if win then
+        win._radioPwrZone = { x = cx, y = pwrBtnY, w = pwrBtnW, h = pwrBtnH }
+    end
+    ZeD.Molecules.drawButton(panel, cx, pwrBtnY, pwrBtnW, pwrBtnH, "", "flat", false, btnColors)
+    -- Status indicator square inside the button at left edge
+    local dotSz = 10
+    local dotX  = cx + 6
+    local dotY  = pwrBtnY + math.floor((pwrBtnH - dotSz) / 2)
+    local dotColor = power and { r = 0.85, g = 0.30, b = 0.20, a = 1.0 }
+                            or { r = 0.50, g = 0.10, b = 0.05, a = 1.0 }
+    panel:drawRect(dotX, dotY, dotSz, dotSz, dotColor.a, dotColor.r, dotColor.g, dotColor.b)
+    -- Label drawn on the remaining space, right of dot
+    local labelW    = TM:MeasureStringX(labelFont, pwrLabel)
+    local labelArea = pwrBtnW - dotSz - 12  -- room after dot+pad
+    local labelTx   = dotX + dotSz + 6 + math.floor((labelArea - labelW) / 2)
+    local labelTy   = pwrBtnY + math.floor((pwrBtnH - labelH) / 2)
+    panel:drawText(pwrLabel, labelTx, labelTy,
+        btnColors.text.r, btnColors.text.g, btnColors.text.b, 1.0, labelFont)
+    cx = cx + pwrBtnW + 20
+
+    -- ============ Helper: draw a SEEK/VOL group ============
+    -- Layout: outside silkscreen label ("SEEK"/"VOL") + `-` silkscreen +
+    -- TWO grey buttons (the actual click targets) + `+` silkscreen.
+    -- The `-` and `+` glyphs are decorative direction labels OUTSIDE the
+    -- buttons; the buttons themselves do the seek/volume up-down work
+    -- (left button = down/decrement, right button = up/increment).
+    local function drawGroup(label, gx, groupW, groupKey)
+        local labelCenterY = y + math.floor((h - labelH) / 2)
+        local lLabelW = TM:MeasureStringX(labelFont, label)
+        local minusW  = TM:MeasureStringX(labelFont, "-")
+        local plusW   = TM:MeasureStringX(labelFont, "+")
+        local pillW = math.floor((groupW
+            - lLabelW           -- "SEEK" / "VOL" silkscreen
+            - 10                -- gap after label
+            - minusW            -- `-` glyph (label, not interactive)
+            - 10                -- gap
+            - 10                -- gap between buttons
+            - 10                -- gap before plus
+            - plusW             -- `+` glyph (label, not interactive)
+        ) / 2)
+        if pillW < 36 then pillW = 36 end
+
+        local lx = gx
+        -- Outside silkscreen label ("SEEK" / "VOL")
+        panel:drawText(label, lx, labelCenterY,
+            silkColor.r, silkColor.g, silkColor.b, silkColor.a or 1.0, labelFont)
+        lx = lx + lLabelW + 10
+
+        -- `-` silkscreen direction label (NOT interactive — outside-the-button)
+        panel:drawText("-", lx, labelCenterY,
+            silkColor.r, silkColor.g, silkColor.b, silkColor.a or 1.0, labelFont)
+        lx = lx + minusW + 10
+
+        -- Down button (left grey) — decrement action
+        local downZone = { x = lx, y = pillY, w = pillW, h = pillH }
+        ZeD.Molecules.drawButton(panel, lx, pillY, pillW, pillH, "", "flat", false, btnColors)
+        lx = lx + pillW + 10
+
+        -- Up button (right grey) — increment action
+        local upZone = { x = lx, y = pillY, w = pillW, h = pillH }
+        ZeD.Molecules.drawButton(panel, lx, pillY, pillW, pillH, "", "flat", false, btnColors)
+        lx = lx + pillW + 10
+
+        if win then
+            if groupKey == "seek" then
+                win._radioSeekBtnZones = { downZone, upZone }
+            else
+                win._radioVolBtnZones = { downZone, upZone }
+            end
+        end
+
+        -- `+` silkscreen direction label (NOT interactive — outside-the-button)
+        panel:drawText("+", lx, labelCenterY,
+            silkColor.r, silkColor.g, silkColor.b, silkColor.a or 1.0, labelFont)
+        return lx + plusW
+    end
+
+    -- Split remaining horizontal space evenly between SEEK and VOL.
+    local groupsAvail = maxX - cx - 16  -- 16px gap between groups
+    local groupW = math.floor(groupsAvail / 2)
+    local seekEnd = drawGroup("SEEK", cx, groupW, "seek")
+    drawGroup("VOL", seekEnd + 16, groupW, "vol")
+end
+
+----------------------------------------------------------------------
+-- M: radioPresetBank
+-- Recessed panel containing N preset slot buttons + add/remove. Slot count
+-- comes from the device's PresetContainer (deviceData:getDevicePresets()),
+-- with a defensive 8-slot fallback for radios that don't expose presets.
+----------------------------------------------------------------------
+function radioPresetBank(panel, x, y, w, h, brand, dd, win)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local rec, btnColors
+    if brand == "premium" then
+        rec = T.radio.pt
+        btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF2 }
+    else
+        rec = T.radio.vt
+        btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF2 }
+    end
+    if win then
+        win._radioPresetZones    = {}
+        win._radioPresetAddZone  = nil
+    end
+
+    -- Recessed bank host
+    A.recessedPanel(panel, x, y, w, h, rec.recessedBg, rec.recessedHi, rec.recessedSh)
+
+    local pad = 10
+    local cx  = x + pad
+    local cy  = y + pad
+    local btnH = h - pad * 2
+
+    -- Slot count probe — falls through to 8 if the engine path is unexposed.
+    -- Buttons always read as their slot number (1..N) — 1993-era hardware
+    -- aesthetic, no dynamic LCD per button.
+    local maxSlots = 8
+    if dd.getDevicePresets ~= nil then
+        local pc = dd:getDevicePresets()
+        if pc ~= nil and pc.getMaxPresets ~= nil then
+            local mx = pc:getMaxPresets()
+            if type(mx) == "number" and mx > 0 then maxSlots = mx end
+        end
+    end
+    -- Cap to 8 visible per mockup.
+    local visible = math.min(maxSlots, 8)
+
+    -- Add button anchors to the right edge — wider than a numbered slot now
+    -- that it owns the space the old `-` minus button used to occupy.
+    local addBtnW  = btnH * 2 + 6   -- ~2x square (was sideBtnW + sideBtnW + gap)
+    local addX     = x + w - pad - addBtnW
+    -- Available width for the slot row.
+    local slotsAreaEnd = addX - 10
+    local slotsAreaW   = slotsAreaEnd - cx
+    if slotsAreaW < 0 then slotsAreaW = 0 end
+
+    -- Slot width derived from available space — divide evenly with 4px gaps.
+    local gap = 4
+    local slotW = math.floor((slotsAreaW - (visible - 1) * gap) / visible)
+    if slotW < 24 then slotW = 24 end
+
+    for i = 1, visible do
+        local sx = cx + (i - 1) * (slotW + gap)
+        ZeD.Molecules.drawButton(panel, sx, cy, slotW, btnH, tostring(i),
+            "flat", false, btnColors)
+        if win then
+            win._radioPresetZones[i] = { x = sx, y = cy, w = slotW, h = btnH }
+        end
+    end
+
+    -- Add button — hard accent orange (T.accent was rendering as fallback grey
+    -- through the flat-button color path; bypass the theme indirection and
+    -- paint directly so the orange is guaranteed across themes/reloads).
+    -- Brighter shade in assign mode = "armed for slot pick" cue.
+    local assignMode = win and win._radioPresetAssignMode == true
+    local addBg     = assignMode
+        and { r = 1.00, g = 0.60, b = 0.20, a = 1.0 }   -- accent bright
+        or  { r = 0.85, g = 0.48, b = 0.12, a = 1.0 }   -- accent
+    local addBorder = { r = 1.00, g = 0.66, b = 0.26, a = 1.0 }
+    local addText   = { r = 0.06, g = 0.06, b = 0.06, a = 1.0 }
+    local addBtnColors = {
+        bg = addBg, border = addBorder, text = addText, font = ZeD.T.fontF2,
+    }
+    ZeD.Molecules.drawButton(panel, addX, cy, addBtnW, btnH, "+", "flat", false, addBtnColors)
+    if win then
+        win._radioPresetAddZone = { x = addX, y = cy, w = addBtnW, h = btnH }
+    end
+end
+
+----------------------------------------------------------------------
+-- M: radioSignalWave (Premium-only)
+-- 64-column harmonic sine, seeded by entry.cacheKey hash. Renders ALWAYS; power
+-- state only multiplies the line color alpha (spec hard rule #8). Drawn as
+-- thin vertical 1px lines centered on the midline, height = abs(value) * h/2.
+----------------------------------------------------------------------
+function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)
+    local T = ZeD.T
+    local cols = 64
+    local wave = _getWave(win, cacheKey, cols)
+    if wave == nil then return end
+
+    -- Substrate (matches VFD background so the wave reads as part of the display).
+    local bg = T.radio.vfd.bg
+    panel:drawRect(x, y, w, h, bg.a or 1.0, bg.r, bg.g, bg.b)
+    -- Center reference line (1px dim cyan)
+    local mid = y + math.floor(h / 2)
+    local dim = T.radio.vfd.dim
+    panel:drawRect(x, mid, w, 1, 0.30, dim.r, dim.g, dim.b)
+
+    -- Each column gets a vertical line whose height = |wave[i]| * h/2.
+    local colW = math.max(1, math.floor((w - cols + 1) / cols))
+    local lineCol = T.radio.vfd.bright
+    local lineA   = power and (lineCol.a or 1.0) or ((lineCol.a or 1.0) * 0.32)
+    for i = 1, cols do
+        local cx = x + (i - 1) * colW
+        local vh = math.floor(math.abs(wave[i]) * (h / 2 - 1))
+        if vh > 0 then
+            local cy = (wave[i] >= 0) and (mid - vh) or mid
+            panel:drawRect(cx, cy, colW, vh, lineA, lineCol.r, lineCol.g, lineCol.b)
+        end
+    end
+
+    -- Corner labels (SIG / + / −) — silkscreen-style on the chassis behind the wave.
+    local font = T.fontF1
+    local labelColor = T.radio.vfd.dim
+    panel:drawText("SIG", x + 4, y + 2, labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1.0, font)
+    panel:drawText("+", x + 4, y + 4, labelColor.r, labelColor.g, labelColor.b, 0.7, font)
+    panel:drawText("-", x + 4, y + h - getTextManager():getFontHeight(font) - 2, labelColor.r, labelColor.g, labelColor.b, 0.7, font)
+end
+
+----------------------------------------------------------------------
+-- M: cdPlayerModule (Premium-only)
+-- Recessed dark panel with green-VFD strip + 7-button transport grid.
+-- Reads radio:hasMedia() / getMediaIndex() / isPlayingMedia().
+----------------------------------------------------------------------
+function cdPlayerModule(panel, x, y, w, h, dd, win)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local rec = T.radio.pt
+    local cd  = T.radio.cd
+    if win then win._radioCDZones = {} end
+
+    A.recessedPanel(panel, x, y, w, h, rec.recessedBg, rec.recessedHi, rec.recessedSh)
+
+    local pad = 6
+    local cx = x + pad
+    local cy = y + pad
+
+    -- Brand silkscreen
+    _silk(panel, cx, cy, "PT-CD200  *  1-BIT BITSTREAM  *  8X OVERSAMPLING", rec.silkScreen, T.fontF1)
+    cy = cy + getTextManager():getFontHeight(T.fontF1) + 2
+
+    -- Green-VFD strip
+    local vfdH = math.max(20, math.floor((h - (cy - y) - pad) / 2))
+    panel:drawRect(cx, cy, w - pad * 2, vfdH, cd.bg.a or 1.0, cd.bg.r, cd.bg.g, cd.bg.b)
+    -- Inner shadow on the green VFD
+    panel:drawRect(cx, cy, w - pad * 2, 1, 0.55, 0, 0, 0)
+
+    -- Read media state (defensively).
+    local hasMedia  = _safeGet(dd, "hasMedia", false)
+    local playing   = _safeGet(dd, "isPlayingMedia", false)
+    local mediaIdx  = _safeGet(dd, "getMediaIndex", -1)
+
+    local cdFont = T.fontF3
+    local mediaText
+    if hasMedia and type(mediaIdx) == "number" and mediaIdx >= 0 then
+        mediaText = string.format("TRK %02d   %s", mediaIdx + 1, playing and "PLAY" or "STOP")
+    elseif hasMedia then
+        mediaText = "DISC LOADED"
+    else
+        mediaText = "NO DISC"
+    end
+    local txtColor = hasMedia and cd.bright or cd.dim
+    panel:drawText(mediaText, cx + 4, cy + math.floor((vfdH - getTextManager():getFontHeight(cdFont)) / 2),
+        txtColor.r, txtColor.g, txtColor.b, txtColor.a or 1.0, cdFont)
+
+    cy = cy + vfdH + 4
+
+    -- 7-button transport grid: << | > play | ▲ eject | || pause | [] stop | >> | ●
+    local btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
+    local btnW = math.floor((w - pad * 2 - 6 * 2) / 7)
+    local btnH = math.min(18, (y + h - pad) - cy)
+    if btnH < 8 then btnH = 8 end
+    local glyphs = { "<<", ">", "^", "||", "[]", ">>", "*" }
+    for i, g in ipairs(glyphs) do
+        local bx = cx + (i - 1) * (btnW + 2)
+        ZeD.Molecules.drawButton(panel, bx, cy, btnW, btnH, g, "flat", false, btnColors)
+        if win then
+            win._radioCDZones[i] = { x = bx, y = cy, w = btnW, h = btnH }
+        end
+    end
+end
+
+----------------------------------------------------------------------
+-- M: brandBar
+-- Chassis-bottom strip. Premium = silver pill with "PREMIUM TECHNOLOGIES"
+-- + model number on the right. ValuTech = plain black with light grey text.
+----------------------------------------------------------------------
+function brandBar(panel, x, y, w, h, brand, dd)
+    local T = ZeD.T
+    local TM = getTextManager()
+    local font = T.fontF1
+    local th   = TM:getFontHeight(font)
+    local ty   = y + math.floor((h - th) / 2)
+
+    if brand == "premium" then
+        local pt = T.radio.pt
+        -- Silver bar background
+        panel:drawRect(x, y, w, h, pt.brandBarBg.a or 1.0,
+            pt.brandBarBg.r, pt.brandBarBg.g, pt.brandBarBg.b)
+        -- 1px dark groove top edge
+        panel:drawRect(x, y, w, 1, 0.55, 0, 0, 0)
+        panel:drawText("PREMIUM TECHNOLOGIES", x + 10, ty,
+            pt.btnText.r, pt.btnText.g, pt.btnText.b, pt.btnText.a or 1.0, font)
+        local rightText = "* AM/FM TUNER + CD"
+        local rw = TM:MeasureStringX(font, rightText)
+        panel:drawText(rightText, x + w - 10 - rw, ty,
+            pt.btnText.r, pt.btnText.g, pt.btnText.b, 0.78, font)
+    else
+        local vt = T.radio.vt
+        panel:drawRect(x, y, w, h, vt.chassisBg.a or 1.0,
+            vt.chassisBg.r, vt.chassisBg.g, vt.chassisBg.b)
+        panel:drawRect(x, y, w, 1, 0.55, 0, 0, 0)
+        panel:drawText("VALUTECH", x + 10, ty,
+            vt.btnText.r, vt.btnText.g, vt.btnText.b, vt.btnText.a or 1.0, font)
+        local rightText = "* AM/FM PORTABLE"
+        local rw = TM:MeasureStringX(font, rightText)
+        panel:drawText(rightText, x + w - 10 - rw, ty,
+            vt.silkScreen.r, vt.silkScreen.g, vt.silkScreen.b, vt.silkScreen.a or 1.0, font)
+    end
+end
+
+-- ============================================================================
+-- ORGANISMS — chassis assembly per tier
+-- ============================================================================
+
+----------------------------------------------------------------------
+-- O: renderPremium — silver Pioneer-style hi-fi chassis assembly
+-- Top-down sections with 6-8px padding between (per feedback_padding_preference).
+----------------------------------------------------------------------
+function renderPremium(panel, x, y, w, h, win, radioEntry)
+    local T = ZeD.T
+    local pt = T.radio.pt
+    local dd = radioEntry.deviceData
+    local cacheKey = radioEntry.cacheKey
+
+    -- Chassis fill — silver, edge-to-edge (spec hard rule #6).
+    panel:drawRect(x, y, w, h, pt.chassisBg.a or 1.0,
+        pt.chassisBg.r, pt.chassisBg.g, pt.chassisBg.b)
+
+    local pad = 10
+    local cy = y + pad
+    local innerW = w - pad * 2
+    local cx = x + pad
+
+    -- 1. Control strip — beefier (50px) for power button + recessed pills.
+    local stripH = 50
+    if cy + stripH <= y + h - pad then
+        radioControlStrip(panel, cx, cy, innerW, stripH, "premium", dd, win)
+        cy = cy + stripH + 8
+    end
+
+    -- 2. Preset bank — taller buttons match mockup.
+    local presetH = 50
+    if cy + presetH <= y + h - pad then
+        radioPresetBank(panel, cx, cy, innerW, presetH, "premium", dd, win)
+        cy = cy + presetH + 8
+    end
+
+    -- 3. Main display — taller (130px) so the big frequency has room. Optional
+    -- signal wave overlays the right ~36% of the display width.
+    local displayH = 150
+    local power = _safeGet(dd, "getIsTurnedOn", false)
+    if cy + displayH <= y + h - pad then
+        local waveW = math.min(160, math.floor(innerW * 0.32))
+        local mainW = innerW - waveW - 4
+        radioMainDisplay(panel, cx, cy, mainW, displayH, "premium", dd)
+        radioSignalWave(panel, cx + mainW + 4, cy, waveW, displayH, win, cacheKey, power)
+        cy = cy + displayH + 8
+    end
+
+    -- 4. CD player module — recessed.
+    local cdH = 64
+    if cy + cdH <= y + h - pad - 22 then
+        cdPlayerModule(panel, cx, cy, innerW, cdH, dd, win)
+        cy = cy + cdH + 8
+    end
+
+    -- 5. Brand bar at bottom.
+    local brandH = 22
+    local brandY = y + h - brandH
+    brandBar(panel, x, brandY, w, brandH, "premium", dd)
+end
+
+----------------------------------------------------------------------
+-- O: renderValutech — cheap black plastic chassis assembly
+-- Same layout as Premium MINUS signal wave + CD module.
+----------------------------------------------------------------------
+function renderValutech(panel, x, y, w, h, win, radioEntry)
+    local T = ZeD.T
+    local vt = T.radio.vt
+    local dd = radioEntry.deviceData
+
+    panel:drawRect(x, y, w, h, vt.chassisBg.a or 1.0,
+        vt.chassisBg.r, vt.chassisBg.g, vt.chassisBg.b)
+
+    local pad = 10
+    local cy = y + pad
+    local innerW = w - pad * 2
+    local cx = x + pad
+
+    -- 1. Control strip — 50px gives the power button + pills proper breathing room.
+    local stripH = 50
+    if cy + stripH <= y + h - pad then
+        radioControlStrip(panel, cx, cy, innerW, stripH, "valutech", dd, win)
+        cy = cy + stripH + 8
+    end
+
+    -- 2. Preset bank — 50px for the larger numbered buttons.
+    local presetH = 50
+    if cy + presetH <= y + h - pad then
+        radioPresetBank(panel, cx, cy, innerW, presetH, "valutech", dd, win)
+        cy = cy + presetH + 8
+    end
+
+    -- 3. Main display — full innerW, 130px tall so the big frequency reads.
+    local displayH = 150
+    if cy + displayH <= y + h - pad then
+        radioMainDisplay(panel, cx, cy, innerW, displayH, "valutech", dd)
+        cy = cy + displayH + 8
+    end
+
+    -- 4. (no CD module on ValuTech)
+
+    -- 5. Brand bar
+    local brandH = 22
+    local brandY = y + h - brandH
+    brandBar(panel, x, brandY, w, brandH, "valutech", dd)
+end
+
+----------------------------------------------------------------------
+-- O: renderDrawer — brand dispatch
+----------------------------------------------------------------------
+function renderDrawer(panel, x, y, w, h, win, radioEntry)
+    if radioEntry == nil or radioEntry.deviceData == nil then
+        -- Defensive: caller already checked but guard anyway.
+        return
+    end
+    local highTier = _safeGet(radioEntry.deviceData, "getIsHighTier", false)
+    if highTier then
+        renderPremium(panel, x, y, w, h, win, radioEntry)
+    else
+        renderValutech(panel, x, y, w, h, win, radioEntry)
+    end
+end
+
+-- ============================================================================
+-- TOP-LEVEL TAB RENDERER
+-- ============================================================================
+
+--- Render the radio tab content into the drawer.
+-- @param panel  The drawer ISPanel
+-- @param win    The window owning the drawer (Char or World)
+-- @param x, y   Top-left of the tab content area in panel-local coords
+-- @param w, h   Available drawing region
+function ZeD.RadioTab.render(panel, win, x, y, w, h)
+    local T = ZeD.T
+    if T == nil then return end
+
+    -- ---- Hold-to-repeat for SEEK ----
+    -- The press itself already fired one step (in onClick). After a 250ms
+    -- "intentional click" window the auto-repeat kicks in on an accelerating
+    -- interval: 200ms → 100ms → 50ms → 25ms as hold time grows. Released
+    -- immediately when the mouse button is no longer down.
+    if win._radioSeekHold then
+        if not isMouseButtonDown(0) then
+            win._radioSeekHold = nil
+        else
+            local hold = win._radioSeekHold
+            local now = getTimestampMs()
+            local elapsed = now - hold.startMs
+            if elapsed >= 250 then
+                local interval
+                if     elapsed < 1000 then interval = 200
+                elseif elapsed < 2500 then interval = 100
+                elseif elapsed < 5000 then interval = 50
+                else                       interval = 25
+                end
+                if (now - hold.lastFireMs) >= interval then
+                    local r = (win._radios or {})[win._radioIdx or 1]
+                    if r and r.deviceData then
+                        _channelStep(r.deviceData, hold.dir)
+                    end
+                    hold.lastFireMs = now
+                end
+            end
+        end
+    end
+
+    local radios = win._radios or {}
+
+    -- Empty state — display a single line centered.
+    if #radios == 0 then
+        local font = T.fontF2 or T.fontF1
+        local txt = "No radio in range"
+        local tw = getTextManager():MeasureStringX(font, txt)
+        local th = getTextManager():getFontHeight(font)
+        local cc = T.textSec or T.text or { r = 0.6, g = 0.6, b = 0.6, a = 1.0 }
+        panel:drawText(txt,
+            x + math.floor((w - tw) / 2), y + math.floor((h - th) / 2),
+            cc.r, cc.g, cc.b, cc.a or 1.0, font)
+        return
+    end
+
+    -- Clamp index defensively (window refresh may have shrunk the list mid-frame).
+    local idx = win._radioIdx or 1
+    if idx < 1 then idx = 1 end
+    if idx > #radios then idx = #radios end
+    win._radioIdx = idx
+
+    local current = radios[idx]
+    local subtitle = "Radio"
+    if current and current.deviceData then
+        local n = _safeGet(current.deviceData, "getDeviceName", "Radio")
+        if type(n) == "string" and n ~= "" then
+            -- Strip mod prefix; preserve engine title-case (it's an item name,
+            -- not branding — uppercasing it makes it look like a tier label).
+            local trimmed = n:match("^[^%.]+%.(.+)$")
+            subtitle = trimmed or n
+        end
+    end
+
+    -- Standard ZeD drawer-header strip height — sourced from the spacing token.
+    local headerH = (T.sp and T.sp.tabHeaderH) or 37
+    -- 1. Drawer-internal header strip (browse + subtitle + location pill).
+    -- Header molecule returns the prev/next browse-button rects so onClick
+    -- can hit-test them; stash on win like the other radio click zones.
+    local prevZone, nextZone = ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w,
+        { idx = idx, total = #radios }, subtitle, current and current.locationTag or "")
+    win._radioBrowsePrevZone = prevZone
+    win._radioBrowseNextZone = nextZone
+
+    -- 2. Chassis below the header.
+    renderDrawer(panel, x, y + headerH, w, h - headerH, win, current)
+end
+
+-- ============================================================================
+-- CLICK HANDLER (S115b)
+-- ============================================================================
+
+-- Hit-test helper local to the module (mirrors AnimalsTab.lua:398 pattern).
+local function _hitZone(zone, x, y)
+    if not zone then return false end
+    return x >= zone.x and x < zone.x + zone.w
+       and y >= zone.y and y < zone.y + zone.h
+end
+
+-- Seek step = 0.1 of the displayed unit, so every station tunable in PZ is
+-- reachable. AM-band radios display kHz → step 100 Hz (= 0.1 kHz). Higher-
+-- band radios display MHz → step 100 kHz (= 0.1 MHz). User design ruling:
+-- skipping in larger increments leaves stations unreachable.
+local function _seekStep(dd)
+    local maxHz = _safeGet(dd, "getMaxChannelRange", 1000000)
+    if type(maxHz) ~= "number" or maxHz <= 1500000 then return 100 end
+    return 100000
+end
+
+local function _clamp(v, lo, hi)
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+-- ----------------- Action functions -----------------
+
+local function _browsePrev(win)
+    local n = (win._radios and #win._radios) or 0
+    if n <= 1 then return end
+    local idx = (win._radioIdx or 1) - 1
+    if idx < 1 then idx = n end
+    win._radioIdx = idx
+    -- Cancel any pending preset-assign that was queued for the old radio.
+    win._radioPresetAssignMode = false
+end
+
+local function _browseNext(win)
+    local n = (win._radios and #win._radios) or 0
+    if n <= 1 then return end
+    local idx = (win._radioIdx or 1) + 1
+    if idx > n then idx = 1 end
+    win._radioIdx = idx
+    win._radioPresetAssignMode = false
+end
+
+local function _powerToggle(dd)
+    if dd == nil or dd.setIsTurnedOn == nil or dd.getIsTurnedOn == nil then return end
+    dd:setIsTurnedOn(not dd:getIsTurnedOn())
+end
+
+-- Bound to the file-local forward decl above so render() can reference it.
+_channelStep = function(dd, dir)
+    if dd == nil or dd.setChannel == nil or dd.getChannel == nil then return end
+    local cur = dd:getChannel() or 0
+    local minHz = _safeGet(dd, "getMinChannelRange", 75000)
+    local maxHz = _safeGet(dd, "getMaxChannelRange", 1000000)
+    local step  = _seekStep(dd)
+    dd:setChannel(_clamp(cur + dir * step, minHz, maxHz))
+end
+
+local function _volStep(dd, dir)
+    if dd == nil or dd.setDeviceVolume == nil or dd.getDeviceVolume == nil then return end
+    local cur = dd:getDeviceVolume() or 0.5
+    local nextV = _clamp(cur + dir * 0.125, 0.0, 1.0)
+    dd:setDeviceVolume(nextV)
+end
+
+local function _presetApply(dd, slotIdx)
+    if dd == nil or dd.getDevicePresets == nil or dd.setChannel == nil then return end
+    local pc = dd:getDevicePresets()
+    if pc == nil or pc.getPresets == nil then return end
+    local list = pc:getPresets()
+    if list == nil or list.size == nil or list.get == nil then return end
+    if slotIdx < 1 or slotIdx > list:size() then return end
+    local entry = list:get(slotIdx - 1)
+    if entry == nil or entry.getFrequency == nil then return end
+    local freq = entry:getFrequency()
+    if type(freq) == "number" and freq > 0 then dd:setChannel(freq) end
+end
+
+-- Toggle preset assign mode: while ON, the next slot click stores the
+-- current station to that slot (overwriting if filled). Flag lives on the
+-- window so per-frame renderers can paint the `+` button brighter as a cue.
+local function _presetToggleAssign(win)
+    win._radioPresetAssignMode = not (win._radioPresetAssignMode == true)
+end
+
+-- Store the current frequency at slotIdx, overwriting if filled. If the list
+-- has fewer entries than slotIdx, gap entries are inserted with frequency 0
+-- (rendered as plain slot numbers) so the user's chosen slot N is honored
+-- exactly.
+local function _presetStore(dd, slotIdx)
+    if dd == nil or dd.getDevicePresets == nil or dd.getChannel == nil then return end
+    local pc = dd:getDevicePresets()
+    if pc == nil or pc.getPresets == nil or pc.getMaxPresets == nil then return end
+    local list = pc:getPresets()
+    if list == nil or list.size == nil then return end
+    local maxSlots = pc:getMaxPresets() or 8
+    if slotIdx < 1 or slotIdx > maxSlots then return end
+
+    local cur = dd:getChannel() or 0
+    if cur <= 0 then return end
+
+    -- Extend the list with empty (freq=0) gap entries up to slotIdx if needed.
+    if list.add ~= nil and PresetEntry ~= nil and PresetEntry.new ~= nil then
+        while list:size() < slotIdx do
+            local idx = list:size() + 1
+            list:add(PresetEntry.new("Preset " .. tostring(idx), 0))
+        end
+    end
+
+    -- Mutate the target entry's frequency to current channel.
+    if list.get ~= nil and list:size() >= slotIdx then
+        local entry = list:get(slotIdx - 1)
+        if entry ~= nil and entry.setFrequency ~= nil then
+            entry:setFrequency(cur)
+        end
+    end
+
+    if dd.transmitPresets ~= nil then dd:transmitPresets() end
+end
+
+-- CD transport stub — only Premium chassis surfaces these. Buttons:
+-- 1: <<       2: > play     3: ^ eject    4: || pause
+-- 5: [] stop  6: >>          7: * record
+local function _cdTransport(dd, btnIdx)
+    if dd == nil then return end
+    if btnIdx == 2 then  -- play
+        if dd.StartPlayMedia ~= nil then dd:StartPlayMedia() end
+    elseif btnIdx == 5 then  -- stop
+        if dd.StopPlayMedia ~= nil then dd:StopPlayMedia() end
+    end
+    -- <<, >>, eject, pause, record: defer (engine API less stable for these)
+end
+
+--- Click router — called from each window's drawer.onMouseDown when the
+-- active tab is "radio". Coordinates are panel-local (relative to the drawer).
+function ZeD.RadioTab.onClick(win, x, y)
+    if win == nil then return false end
+
+    -- Browse arrows in the drawer header
+    if _hitZone(win._radioBrowsePrevZone, x, y) then
+        _browsePrev(win); return true
+    end
+    if _hitZone(win._radioBrowseNextZone, x, y) then
+        _browseNext(win); return true
+    end
+
+    -- Everything else needs a current radio
+    local radios = win._radios or {}
+    local idx = win._radioIdx or 1
+    local current = radios[idx]
+    if current == nil or current.deviceData == nil then return false end
+    local dd = current.deviceData
+
+    -- Power
+    if _hitZone(win._radioPwrZone, x, y) then
+        _powerToggle(dd); return true
+    end
+
+    -- SEEK group — the two grey buttons are the actual click targets.
+    -- Left button = down (decrement), right button = up (increment).
+    -- The `-` and `+` silkscreen glyphs around them are decorative labels.
+    -- Press also arms the hold-to-repeat state so render() can fire repeat
+    -- steps on an accelerating interval while the mouse stays pressed.
+    if win._radioSeekBtnZones then
+        if _hitZone(win._radioSeekBtnZones[1], x, y) then
+            _channelStep(dd, -1)
+            win._radioSeekHold = { dir = -1, startMs = getTimestampMs(),
+                                   lastFireMs = getTimestampMs() }
+            return true
+        end
+        if _hitZone(win._radioSeekBtnZones[2], x, y) then
+            _channelStep(dd,  1)
+            win._radioSeekHold = { dir =  1, startMs = getTimestampMs(),
+                                   lastFireMs = getTimestampMs() }
+            return true
+        end
+    end
+
+    -- VOL group — same down/up convention.
+    if win._radioVolBtnZones then
+        if _hitZone(win._radioVolBtnZones[1], x, y) then
+            _volStep(dd, -1); return true
+        end
+        if _hitZone(win._radioVolBtnZones[2], x, y) then
+            _volStep(dd,  1); return true
+        end
+    end
+
+    -- Preset slots — branch on assign mode:
+    --   assign-mode ON  : click stores the current station to the chosen slot
+    --                     (overwrites if already filled), then exits the mode
+    --   assign-mode OFF : click applies the stored frequency to the radio
+    if win._radioPresetZones then
+        for i, z in ipairs(win._radioPresetZones) do
+            if _hitZone(z, x, y) then
+                if win._radioPresetAssignMode then
+                    _presetStore(dd, i)
+                    win._radioPresetAssignMode = false
+                else
+                    _presetApply(dd, i)
+                end
+                return true
+            end
+        end
+    end
+
+    -- `+` button — toggles assign mode. Clicking `+` while already in assign
+    -- mode cancels back to normal mode without storing anything.
+    if _hitZone(win._radioPresetAddZone, x, y) then
+        _presetToggleAssign(win)
+        return true
+    end
+
+    -- CD transport (Premium only — zones empty on ValuTech)
+    if win._radioCDZones then
+        for i, z in ipairs(win._radioCDZones) do
+            if _hitZone(z, x, y) then
+                _cdTransport(dd, i); return true
+            end
+        end
+    end
+
+    return false
+end
+
+--- Register the radio tab into a tab-renderer dispatch table.
+-- Called by both ZeD_CharacterWindow and ZeD_WorldWindow at module-load time.
+function ZeD.RadioTab.register(dispatchTable)
+    dispatchTable["radio"] = ZeD.RadioTab.render
+end
