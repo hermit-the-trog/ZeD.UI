@@ -502,6 +502,7 @@ local function getClothingZones(item)
 
         table.insert(zones, {
             name         = name,
+            part         = part,         -- BloodBodyPartType ref for dispatch
             zoneR        = zoneR,
             fillSegs     = fillSegs,
             flagText     = flagText,
@@ -513,6 +514,44 @@ local function getClothingZones(item)
         })
     end
     return zones
+end
+
+-- ---------------------------------------------------------------------------
+-- ITEM-LEVEL SOIL: dirt + wet aren't per-zone in vanilla (only blood is). They
+-- get a single right-aligned row ABOVE the per-zone list in the detail zone.
+-- Hoisted above _calcBodyH and render so both can resolve the upvalues.
+-- ---------------------------------------------------------------------------
+local function buildItemSoilCfg(item)
+    local hasDirt = safeGet(item, "hasDirt") and true or false
+    local wetRaw  = safeGet(item, "getWetness") or 0
+    local wetPct  = (wetRaw > 15) and math.floor(wetRaw) or nil  -- 15% threshold matches formatClothing wet rule
+    if not hasDirt and not wetPct then return nil end
+    return { dirt = hasDirt, wet = wetPct }
+end
+
+local function drawItemSoilRow(panel, x, y, w, soil)
+    local T  = ZeD.T
+    local M  = ZeD.Molecules
+    local sp = T.sp
+    local btnSz = T.iconSm + 4
+    local rx = x + w   -- right cursor, grows leftward
+
+    if soil.wet then
+        local lbl    = soil.wet .. "%"
+        local sTextW = getTextManager():MeasureStringX(T.fontF1, lbl)
+        local flagW  = math.max(4, sTextW + 8)
+        rx = rx - flagW
+        M.drawDock(panel, rx, y, nil, lbl, nil, T.soiledWet, nil, false, false)
+        rx = rx - sp.xs
+    end
+    if soil.dirt then
+        local lbl    = "DIRTY"
+        local sTextW = getTextManager():MeasureStringX(T.fontF1, lbl)
+        local flagW  = math.max(4, sTextW + 8)
+        rx = rx - flagW
+        M.drawDock(panel, rx, y, nil, lbl, nil, T.soiledDirt, nil, false, false)
+    end
+    return btnSz
 end
 
 function ZeD_ItemCard:new(x, y, width, height, mode, playerNum)
@@ -535,12 +574,6 @@ function ZeD_ItemCard:new(x, y, width, height, mode, playerNum)
     o._zoneDockRects = {}        -- zone dock button hit rects (clothing disclosure)
     o._foldWasDown   = false     -- mouse-was-down for fold toggle click-on-release
     o._zoneDockWasDown = false   -- mouse-was-down for zone dock click-on-release
-    -- Rename state (click name text to rename, both modes)
-    o._renaming      = false
-    o._renameEntry   = nil       -- ISTextEntryBox child (created in initialise)
-    o._nameHitRect   = nil       -- cached absolute hit-rect for name text
-    o._nameHover     = false
-    o._nameWasDown   = false
     o._nameY         = 0         -- cached from render for prerender positioning
     -- Scroll state (drawer mode — content can exceed available height)
     o._scrollPixels  = 0
@@ -564,52 +597,6 @@ function ZeD_ItemCard:initialise()
         cardRef._scrollPixels = math.floor(pos * maxScroll)
     end
     self._sb = sb
-
-    -- Rename text entry (both modes — click name text to rename)
-    local T = ZeD.T
-    local entry = ISTextEntryBox:new("", 0, 0, 100, T.inputH)
-    entry:initialise()
-    entry:instantiate()
-    entry:setMaxTextLength(28)
-    entry:setVisible(false)
-    self:addChild(entry)
-    entry.onCommandEntered = function() self:_commitRename() end
-    local cardRef = self
-    entry.onKeyPress = function(_, key)
-        if key == Keyboard.KEY_ESCAPE then cardRef:_cancelRename() end
-    end
-    self._renameEntry = entry
-
-    -- Rename action buttons: Yes (save), No (cancel), Reset (revert to original)
-    local btnYes = ZeD.Molecules.Button(0, 0, nil, "YES", self, function()
-        cardRef:_commitRename()
-    end)
-    btnYes:initialise()
-    btnYes:setVisible(false)
-    self:addChild(btnYes)
-    self._renameSaveBtn = btnYes
-
-    local btnNo = ZeD.Molecules.Button(0, 0, nil, "NO", self, function()
-        cardRef:_cancelRename()
-    end)
-    btnNo:initialise()
-    btnNo:setVisible(false)
-    self:addChild(btnNo)
-    self._renameCancelBtn = btnNo
-
-    local btnReset = ZeD.Molecules.Button(0, 0, nil, "RESET", self, function()
-        if cardRef.item then
-            local script = cardRef.item:getScriptItem()
-            local origName = script and script:getDisplayName() or cardRef.item:getDisplayName()
-            cardRef.item:setName(origName)
-            cardRef.item:setCustomName(false)
-        end
-        cardRef:_cancelRename()
-    end)
-    btnReset:initialise()
-    btnReset:setVisible(false)
-    self:addChild(btnReset)
-    self._renameResetBtn = btnReset
 end
 
 -- Called when a structural dock button is clicked.
@@ -651,45 +638,11 @@ function ZeD_ItemCard:_onZonePress(zoneIdx, zone)
     end
 end
 function ZeD_ItemCard:setItem(item)
-    if self._renaming then self:_cancelRename() end
     self.item = item
     self:_loadFoldStates()
     -- Reset scroll on item change
     self._scrollPixels = 0
     if self._sb then self._sb:setScrollPos(0) end
-end
-
--- ---------------------------------------------------------------------------
--- RENAME: inline text entry (inspect mode only)
--- ---------------------------------------------------------------------------
-function ZeD_ItemCard:_startRename()
-    if not self.item or not self._renameEntry then return end
-    self._renaming = true
-    local name = safeGet(self.item, "getDisplayName") or ""
-    self._renameEntry:setText(name)
-    self._renameEntry:setVisible(true)
-    self._renameEntry:focus()
-end
-
-function ZeD_ItemCard:_commitRename()
-    if not self.item or not self._renameEntry then self:_cancelRename(); return end
-    local newName = self._renameEntry:getText()
-    if newName then newName = string.match(newName, "^%s*(.-)%s*$") end  -- trim
-    if newName and #newName > 0 then
-        self.item:setName(newName)
-        self.item:setCustomName(true)
-    end
-    self:_cancelRename()
-end
-
-function ZeD_ItemCard:_cancelRename()
-    self._renaming    = false
-    self._nameHover   = false
-    self._nameWasDown = false
-    if self._renameEntry then
-        self._renameEntry:setVisible(false)
-        self._renameEntry:unfocus()
-    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -699,10 +652,18 @@ function ZeD_ItemCard:_loadFoldStates()
     local player = getSpecificPlayer(self.playerNum)
     if not player then self._foldStates = {}; return end
     local md = player:getModData()
+    -- Detail zones default OPEN on first encounter — the drawer card IS the
+    -- inspector (per design: no separate inspect window). Once the user toggles,
+    -- their preference persists via modData.
+    local function foldDefault(key, def)
+        local v = md["ZeD_fold_" .. key]
+        if v == nil then return def end
+        return v
+    end
     self._foldStates = {
-        clothing_zones     = md.ZeD_fold_clothing_zones or false,
-        food_nutrition     = md.ZeD_fold_food_nutrition or false,
-        food_ingredients   = md.ZeD_fold_food_ingredients or false,
+        clothing_zones     = foldDefault("clothing_zones",   true),
+        food_nutrition     = foldDefault("food_nutrition",   true),
+        food_ingredients   = foldDefault("food_ingredients", false),
     }
 end
 
@@ -749,18 +710,9 @@ function ZeD_ItemCard:_calcHeadH()
     -- Row 1: icon + name side by side
     local nameGap  = sp.sm  -- gap between icon and name
     local nameMaxW = innerW - self.iconSz - nameGap
-    local nameH
-    if self._renaming then
-        nameH = T.inputH + sp.xs + T.buttonH + sp.xs
-    else
-        local displayName = safeGet(self.item, "getDisplayName") or "???"
-        local nameLines   = wrapText(displayName, T.fontF4, nameMaxW)
-        nameH = headH * #nameLines
-        local hasCustomName = safeGet(self.item, "isCustomName") or false
-        if hasCustomName then
-            nameH = nameH + sp.textLineGap + getTextManager():getFontHeight(T.fontF1)
-        end
-    end
+    local displayName = safeGet(self.item, "getDisplayName") or "???"
+    local nameLines   = wrapText(displayName, T.fontF4, nameMaxW)
+    local nameH = headH * #nameLines
     local row1H = math.max(self.iconSz, nameH)
 
     -- Row 2: primary bar — label+% on line 1, fill bar on line 2
@@ -822,13 +774,15 @@ function ZeD_ItemCard:_calcBodyH()
     if cat == "Clothing" then
         h = h + T.rowH  -- section header
         if self._foldStates.clothing_zones then
+            -- Item-level soil row (dirt + wet) sits above the per-zone list.
+            if buildItemSoilCfg(item) then h = h + btnSz end
             local zones = getClothingZones(item)
             local topRowH = math.max(bodyH + 4, T.fillBarH + 4, btnSz)
             for i, zone in ipairs(zones) do
                 if i > 1 then h = h + grooveH end
                 h = h + topRowH
-                -- Bottom line (dock/soiled) if present
-                local hasSoiled = (zone.bloodPct and zone.bloodPct > 0) or zone.hasDirt or (zone.wetPct and zone.wetPct > 0.15)
+                -- Bottom line (dock/soiled) if present — per-zone soiled = blood only
+                local hasSoiled = zone.bloodPct and zone.bloodPct > 0
                 local hasDock = zone.condIconKey or zone.flagText
                 if hasDock or hasSoiled then h = h + btnSz end
             end
@@ -910,20 +864,6 @@ function ZeD_ItemCard:update()
     self.verbHover    = newVerbHover
     self.verbWasDown  = down and (newVerbHover ~= nil)
 
-    -- Rename interaction — click name text to rename (both modes)
-    if not self._renaming then
-        if self._nameHitRect then
-            local r = self._nameHitRect
-            local inName = mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h
-            if self._nameWasDown and not down and inName then
-                self:_startRename()
-            end
-            self._nameHover   = inName
-            self._nameWasDown = down and inName
-        end
-    end
-    -- Enter commits via entry.onCommandEntered, Escape via entry.onKeyPress
-
     -- Fold toggle click detection (disclosure headers in scrollable body)
     local bodyTop = self:getAbsoluteY() + self._headH
     local bodyBot = self:getAbsoluteY() + self:getHeight()
@@ -980,14 +920,6 @@ function ZeD_ItemCard:prerender()
     self.colGap = ZeD.T.sp.sm
     self.iconSz = ZeD.T.cardIconSz
 
-    -- Theme the rename entry every frame so theme/text-size changes apply instantly.
-    if self._renameEntry then
-        local T = ZeD.T
-        if not self._renameEntry.fontColor then self._renameEntry.fontColor = {} end
-        ZeD.colorSync(self._renameEntry.fontColor, T.text)
-        self._renameEntry.font = T.fontF2
-    end
-
     -- Compute head + body heights
     if self.item then
         self._headH = self:_calcHeadH()
@@ -1022,55 +954,6 @@ function ZeD_ItemCard:prerender()
         end
     end
 
-    -- Position rename entry + action buttons within the sticky head.
-    if self._renameEntry then
-        local showRename = self._renaming
-        if showRename then
-            local T      = ZeD.T
-            local nameX  = self.pad + self.iconSz + T.sp.sm
-            local entryW = self:getWidth() - nameX - self.pad
-            local entryY = self._nameY
-            self._renameEntry:setX(nameX)
-            self._renameEntry:setY(entryY)
-            self._renameEntry:setWidth(entryW)
-            self._renameEntry:setHeight(T.inputH)
-            self._renameEntry:setVisible(true)
-
-            -- Buttons below the text entry, right-aligned
-            local btnY = entryY + T.inputH + T.sp.xs
-            local bx = nameX + entryW
-            local gap = T.sp.xs
-            if self._renameCancelBtn then
-                local bw = self._renameCancelBtn:getWidth()
-                bx = bx - bw
-                self._renameCancelBtn:setX(bx)
-                self._renameCancelBtn:setY(btnY)
-                self._renameCancelBtn:setVisible(true)
-                bx = bx - gap
-            end
-            if self._renameResetBtn then
-                local bw = self._renameResetBtn:getWidth()
-                bx = bx - bw
-                self._renameResetBtn:setX(bx)
-                self._renameResetBtn:setY(btnY)
-                self._renameResetBtn:setVisible(true)
-                bx = bx - gap
-            end
-            if self._renameSaveBtn then
-                local bw = self._renameSaveBtn:getWidth()
-                bx = bx - bw
-                self._renameSaveBtn:setX(bx)
-                self._renameSaveBtn:setY(btnY)
-                self._renameSaveBtn:setVisible(true)
-            end
-        else
-            self._renameEntry:setVisible(false)
-            if self._renameSaveBtn then self._renameSaveBtn:setVisible(false) end
-            if self._renameResetBtn then self._renameResetBtn:setVisible(false) end
-            if self._renameCancelBtn then self._renameCancelBtn:setVisible(false) end
-        end
-    end
-
     -- Card bg is transparent — the drawer surface provides the full-height background
     self.backgroundColor.a = 0
     -- Suppress ISPanel's 4-sided border — we draw 3 sides manually (no top)
@@ -1097,6 +980,9 @@ local function buildZoneConfigs(item)
     local zones  = getClothingZones(item)
     local cfgs   = {}
     for _, zone in ipairs(zones) do
+        -- Pristine + clean zones get NO dock — drawZoneRow will collapse the
+        -- bottom row entirely (no "OK" filler row). Only build a dock when there
+        -- IS something to communicate (TORN/WORN flag or active patch).
         local dock = nil
         if zone.condIconKey or zone.flagText then
             local dockFlag  = zone.flagText or "—"
@@ -1107,21 +993,23 @@ local function buildZoneConfigs(item)
             local dockIcon  = zone.condIconKey and AS.getTex(zone.condIconKey) or texPad
             local dockState = (not zone.condIconKey) and "grey" or "active"
             dock = { flag = dockFlag, color = dockColor, icon = dockIcon, state = dockState }
-        else
-            dock = { flag = "OK", color = T.positive, icon = texPad, state = "grey" }
         end
+        -- Per-zone soiled flags: BLOOD ONLY. Dirt + wet are item-level (vanilla
+        -- exposes only getBloodlevelForPart per zone); they render as a single
+        -- item-level row above the per-zone list — see drawItemSoilRow.
         local soiledCfg = nil
-        local hasAnySoil = (zone.bloodPct > 0) or (zone.hasDirt) or (zone.wetPct > 0.15)
-        if hasAnySoil then
-            soiledCfg = {
-                blood = zone.bloodPct > 0   and math.floor(zone.bloodPct * 100) or nil,
-                dirt  = zone.hasDirt        and true                            or nil,
-                wet   = zone.wetPct  > 0.15 and math.floor(zone.wetPct  * 100) or nil,
-            }
+        if zone.bloodPct > 0 then
+            soiledCfg = { blood = math.floor(zone.bloodPct * 100) }
+        end
+        -- Action key derived from condIconKey so render-time dispatch + greying
+        -- doesn't have to re-walk getClothingZones (avoids double Q119 pcall log).
+        local actionKey = nil
+        if     zone.condIconKey == "fashion-004-needle" then actionKey = "repair"
+        elseif zone.condIconKey == "sewing--pliers"     then actionKey = "remove-patch"
         end
         table.insert(cfgs, {
             name = zone.name, pct = math.floor(zone.zoneR * 100),
-            bar = true, dock = dock, soiled = soiledCfg,
+            bar = true, dock = dock, soiled = soiledCfg, action = actionKey,
         })
     end
     return cfgs
@@ -1178,13 +1066,12 @@ function ZeD_ItemCard:render()
     local nameDrawY = curY + math.max(0, math.floor((iconSz - nameBlockH) / 2))
     self._nameY = nameDrawY
 
-    if not self._renaming then
+    do
         local nameLines = nameLines0
-        local nameH = headFH * #nameLines
-        local nameColor = self._nameHover and T.accent or T.text
+        local nameC = T.text
         local ny = nameDrawY
         for _, ln in ipairs(nameLines) do
-            self:drawText(ln, nameX, ny, nameColor.r, nameColor.g, nameColor.b, nameColor.a, T.fontF4)
+            self:drawText(ln, nameX, ny, nameC.r, nameC.g, nameC.b, nameC.a, T.fontF4)
             ny = ny + headFH
         end
         if hasCustomName then
@@ -1193,22 +1080,12 @@ function ZeD_ItemCard:render()
             self:drawText(origName, nameX, ny + tlg,
                 T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF1)
         end
-        -- Cache name hit rect for click-to-rename
-        local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-        self._nameHitRect = {x=ax+nameX, y=ay+nameDrawY, w=nameMaxW, h=nameH}
-    else
-        self._nameHitRect = nil
     end
 
     -- Advance past Row 1
-    local nameH
-    if self._renaming then
-        nameH = T.inputH + sp.xs + T.buttonH + sp.xs
-    else
-        local nameLines = wrapText(displayName, T.fontF4, nameMaxW)
-        nameH = headFH * #nameLines
-        if hasCustomName then nameH = nameH + tlg + secH end
-    end
+    local nameLines = wrapText(displayName, T.fontF4, nameMaxW)
+    local nameH = headFH * #nameLines
+    if hasCustomName then nameH = nameH + tlg + secH end
     curY = curY + math.max(iconSz, nameH) + sp.cardAfterHead
 
     -- Row 2: Primary bar — label+value% on line 1, fill bar full-width on line 2
@@ -1306,17 +1183,63 @@ function ZeD_ItemCard:render()
         })
 
         if expanded and #zones > 0 then
+            -- Material availability gates dock greying. Repair needs needle+thread+fabric;
+            -- patch removal needs needle alone. findClothingMaterials returns nil triple
+            -- on any miss, so canRemovePatch is checked separately via inv probe.
+            local player = getSpecificPlayer(self.playerNum)
+            local canRepair, canRemovePatch = false, false
+            if player then
+                local n, _, _ = findClothingMaterials(player)
+                canRepair = (n ~= nil)
+                local inv = player:getInventory()
+                local needleAlone = inv:getFirstTagRecurse(ItemTag.SEWING_NEEDLE)
+                                 or inv:getItemFromType("Needle", true, true)
+                canRemovePatch = (needleAlone ~= nil)
+            end
+
+            -- Item-level soil row (dirt + wet are item-level, not per-zone). Sits ABOVE
+            -- the per-zone list. Renders only when item is dirty or wet > 15%.
+            local soil = buildItemSoilCfg(item)
+            if soil then
+                local sH = drawItemSoilRow(self, leftX, curY, innerW, soil)
+                curY = curY + sH
+            end
+
             for i, zone in ipairs(zones) do
                 if i > 1 then
                     A.drawGroove(self, leftX, curY, innerW)
                     curY = curY + grooveH
                 end
-                local zoneH = M.drawZoneRow(self, leftX, curY, innerW, zone, false)
-                -- Store dock hit rect for each zone (structural dock button on right)
-                if zone.dock and zone.dock.state ~= "grey" then
+
+                -- Apply material greying BEFORE draw. zone.action carries the
+                -- intended action ("repair" / "remove-patch" / nil) from
+                -- buildZoneConfigs. Dock config is freshly built each frame so
+                -- mutation is safe.
+                local action = zone.action
+                if zone.dock and zone.dock.state == "active" and action then
+                    if action == "repair" and not canRepair then
+                        zone.dock.state = "grey"
+                    elseif action == "remove-patch" and not canRemovePatch then
+                        zone.dock.state = "grey"
+                    end
+                end
+
+                local dockRect = {}
+                local zoneH = M.drawZoneRow(self, leftX, curY, innerW, zone, false, dockRect)
+
+                -- Capture button-portion rect for hit testing — only when the dock is
+                -- actionable AND materials present. Greyed docks (pristine OR materials
+                -- missing) don't get pushed → mouse + gamepad both ignore them.
+                if action and zone.dock.state == "active" and dockRect.w then
                     table.insert(self._zoneDockRects, {
-                        x=ax+leftX, y=ay+curY, w=innerW, h=zoneH,
-                        zoneIdx=i, zone=zone
+                        x       = ax + leftX + dockRect.x,
+                        y       = ay + curY  + dockRect.y,
+                        w       = dockRect.w,
+                        h       = dockRect.h,
+                        zoneIdx = i,
+                        zone    = zone,
+                        action  = action,
+                        id      = "dock_" .. i,
                     })
                 end
                 curY = curY + zoneH
@@ -1526,6 +1449,28 @@ function ZeD_ItemCard:getActionStripElements()
     return els
 end
 
+-- Return focusable elements for the clothing detail zone's structural docks.
+-- One element per zone whose dock is actionable (TORN with materials, or PATCHED
+-- with needle). Greyed/pristine zones are skipped — they're not in _zoneDockRects.
+-- Element id is "dock_<zoneIdx>" matching the render-side stamping.
+function ZeD_ItemCard:getZoneDockElements()
+    if not self.item then return {} end
+    local els  = {}
+    local card = self
+    for _, rect in ipairs(self._zoneDockRects or {}) do
+        local eid     = rect.id or ("dock_" .. rect.zoneIdx)
+        local zIdx    = rect.zoneIdx
+        local zone    = rect.zone
+        els[#els + 1] = {
+            x = rect.x, y = rect.y, w = rect.w, h = rect.h,
+            id = eid,
+            onFocus    = function() card._gpFocusedBtnId = eid end,
+            onActivate = function() card:_onZonePress(zIdx, zone) end,
+        }
+    end
+    return els
+end
+
 -- Called by card:render() after action strips draw. Outlines the gp-focused
 -- button with an accent border so the user sees which button will fire on A.
 -- Looks up the button by id in toggleRects / verbRects (absolute coords → local).
@@ -1534,10 +1479,11 @@ function ZeD_ItemCard:_drawGpFocusOutline()
     if not id then return end
     -- Only paint when the window says our card zone is currently focused.
     -- Without this guard, the outline would persist after focus bumpers away.
+    -- Both Char + World use the same card instance under different zone names.
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     local w     = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow()
     local zone  = (w and Focus.getFocusedZone) and Focus.getFocusedZone(w) or nil
-    if not zone or zone.zone ~= "charItemCard" then return end
+    if not zone or (zone.zone ~= "charItemCard" and zone.zone ~= "worldItemCard") then return end
 
     local r = nil
     local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
@@ -1550,6 +1496,14 @@ function ZeD_ItemCard:_drawGpFocusOutline()
         for i, vdef in ipairs(self._verbDefs or {}) do
             if id == "verb_" .. vdef.key then
                 r = self.verbRects and self.verbRects[i]; break
+            end
+        end
+    end
+    -- Zone dock buttons (clothing detail zone) — id is "dock_<zoneIdx>"
+    if not r then
+        for _, rect in ipairs(self._zoneDockRects or {}) do
+            if id == (rect.id or ("dock_" .. rect.zoneIdx)) then
+                r = rect; break
             end
         end
     end
@@ -1634,5 +1588,40 @@ function ZeD_ItemCard:scrollToPrevDisclosure()
     else
         self._scrollPixels = 0
         self._sb:setScrollPos(0)
+    end
+end
+
+-- ===========================================================================
+-- PUBLIC NAMESPACE: ZeD.ClothingDetail
+-- Shared by ZeD_ItemCard (drawer card for inv items) AND EquipmentTab
+-- (selected-item view for equipped items). Equipment drawer IS the inspector
+-- per design — no separate inspect window. Both render sites consume the same
+-- detail-zone primitives.
+-- ===========================================================================
+ZeD                = ZeD or {}
+ZeD.ClothingDetail = ZeD.ClothingDetail or {}
+
+ZeD.ClothingDetail.getZones        = getClothingZones
+ZeD.ClothingDetail.buildConfigs    = buildZoneConfigs
+ZeD.ClothingDetail.buildItemSoil   = buildItemSoilCfg
+ZeD.ClothingDetail.drawSoilRow     = drawItemSoilRow
+ZeD.ClothingDetail.findMaterials   = findClothingMaterials
+
+-- One-call repair / remove-patch dispatch for a given item + part. Mirrors
+-- ZeD_ItemCard:_onZonePress logic so EquipmentTab gets identical behavior.
+function ZeD.ClothingDetail.dispatchZoneAction(player, item, part, action)
+    if not (player and item and part) then return end
+    if action == "repair" then
+        local needle, thread, fabric = findClothingMaterials(player)
+        if needle then
+            ISTimedActionQueue.add(ISRepairClothing:new(player, item, part, fabric, thread, needle))
+        end
+    elseif action == "remove-patch" then
+        local inv = player:getInventory()
+        local needle = inv:getFirstTagRecurse(ItemTag.SEWING_NEEDLE)
+                    or inv:getItemFromType("Needle", true, true)
+        if needle then
+            ISTimedActionQueue.add(ISRemovePatch:new(player, item, part, needle))
+        end
     end
 end

@@ -1925,7 +1925,12 @@ end
 --   }
 -- @return height  Total pixel height consumed (for cursor advance in caller)
 -- ============================================================================
-function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered)
+-- @param outDockRect  optional table; if passed, the structural dock BUTTON rect
+--                     (panel-local coords, button portion only — flag is non-
+--                     interactive) is written to .x/.y/.w/.h. Caller decides
+--                     whether to register it as a click target / focusable
+--                     based on dock state and material availability.
+function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
     local T     = ZeD.T
     local A     = ZeD.Atoms
     local M     = ZeD.Molecules
@@ -1991,6 +1996,13 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered)
             local dockW  = d.icon and (flagW + btnSz) or flagW
             rx = rx - dockW
             M.drawDock(panel, rx, botY, nil, d.flag, nil, d.color, d.icon, hovered and not greyd, greyd)
+            -- Expose button-portion rect for hit testing (caller filters on state)
+            if outDockRect and d.icon then
+                outDockRect.x = rx + flagW
+                outDockRect.y = botY
+                outDockRect.w = btnSz
+                outDockRect.h = btnSz
+            end
             rx = rx - sp.xs
         end
 
