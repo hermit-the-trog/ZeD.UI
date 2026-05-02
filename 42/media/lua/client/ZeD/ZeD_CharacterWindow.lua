@@ -1143,9 +1143,18 @@ _buildInvRowFocusables = function(win)
                 if cnt and w._updateDrawer then
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    sel[el.item] = true
-                    cnt._selectedItems   = sel
-                    cnt._lastClickedItem = el.item
+                    -- S117: A toggles the card drawer. Pressing A on the item
+                    -- already shown clears the selection → updateDrawer closes
+                    -- the card. Otherwise select this item → updateDrawer
+                    -- opens (or live-swaps if already open on a different item).
+                    if w._drawerItem ~= el.item then
+                        sel[el.item] = true
+                        cnt._selectedItems   = sel
+                        cnt._lastClickedItem = el.item
+                    else
+                        cnt._selectedItems   = sel  -- empty after the clear
+                        cnt._lastClickedItem = nil
+                    end
                     w._updateDrawer(cnt)
                 end
             end,
@@ -1262,9 +1271,15 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                 if cnt and w._updateDrawer then
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    sel[el.item] = true
-                    cnt._selectedItems   = sel
-                    cnt._lastClickedItem = el.item
+                    -- S117: A toggles the card drawer (mirror Char invrow).
+                    if w._drawerItem ~= el.item then
+                        sel[el.item] = true
+                        cnt._selectedItems   = sel
+                        cnt._lastClickedItem = el.item
+                    else
+                        cnt._selectedItems   = sel
+                        cnt._lastClickedItem = nil
+                    end
                     w._updateDrawer(cnt)
                 end
             end,
@@ -1323,7 +1338,11 @@ end
 --     window chrome / ESC key path).
 _buildCardActionFocusables = function(win)
     if not (win and win._itemCard) then return {} end
-    if win._drawerMode ~= "item" then return {} end
+    -- S117 polish: gate on card visibility, not mode. Card overlays the tab
+    -- drawer on non-Loot tabs while _drawerMode stays "tab"; in that state
+    -- the buttons are still painted and must remain interactive. Mirrors
+    -- World's _buildWorldCardActionFocusables.
+    if win._drawerItem == nil then return {} end
     local els = win._itemCard:getActionStripElements() or {}
     -- S113c: ItemCard returns ABSOLUTE screen coords (Molecules.lua
     -- drawActionStrip line 1687: `rects[i] = { x = absX + bx, ... }`).
@@ -2202,6 +2221,15 @@ _buildPanelFocusables = function(win, content, tabId)
     if tabId == "thermal"  then return _buildThermalFocusables(win)    end
     if tabId == "identity" then return _buildIdentityFocusables(win)   end
     if tabId == "journal"  then return _buildJournalFocusables(win)    end
+    -- S117: Radio is a cross-module focusable builder (lives in RadioTab.lua,
+    -- not a file-local). Guard defensively for symmetry with the World
+    -- window's `maps` branch, which is the only other cross-module dispatch.
+    if tabId == "radio" then
+        if ZeD and ZeD.RadioTab and ZeD.RadioTab.buildFocusables then
+            return ZeD.RadioTab.buildFocusables(win)
+        end
+        return {}
+    end
     return {}
 end
 
@@ -2229,6 +2257,7 @@ _clearGpFocusState = function(w)
     w._gpFocusedThermalPill  = nil
     w._gpFocusedThermalPart  = nil
     w._gpFocusedEquipSlot    = nil
+    w._gpFocusedRadioCtl     = nil  -- S117: radio drawer chassis control id
     w._healthActivePart      = nil  -- S103: mirror Thermal's _thermalActivePart clear
     -- S105: clear journal scroll-follow delta-gate pin so the next visit
     -- re-pins on first focus instead of inheriting the previous element's
@@ -4955,7 +4984,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                  win._activeTab == "thermal" or
                  win._activeTab == "skills" or
                  win._activeTab == "identity" or
-                 win._activeTab == "journal"
+                 win._activeTab == "journal" or
+                 win._activeTab == "radio"  -- S117: contextual drawer chassis
+                                            -- stamps its rect zones during render,
+                                            -- so the tab-switch sync reads zero
+                                            -- focusables; this catch-up picks
+                                            -- them up on the next frame.
                ) then
             -- S98 per-frame refresh for NON-Loot tabs. The per-tab zone tables
             -- (_equipSlotZones, _healthExerciseZones, _thermalPillZones,
@@ -5021,15 +5055,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         -- S99 per-frame refresh for charItemCard zone. The card's toggleRects
         -- and verbRects are stamped by the card render each frame; this block
-        -- picks them up into the ring zone. Focusable state tracks _drawerMode
-        -- ("item" = yes; tab-away / deselect / drawer close = no). Zone auto-
-        -- dismisses on tab-switch because _switchTabForNav flips _drawerMode
-        -- to "tab" (or nil on Loot snap-back), which this block reflects.
+        -- picks them up into the ring zone. Focusable state tracks card
+        -- visibility (`_drawerItem ~= nil`), NOT `_drawerMode` — on non-Loot
+        -- tabs the card overlays the tab drawer while `_drawerMode` stays
+        -- "tab", and the card must remain interactive in that overlay state.
+        -- Mirrors World's worldItemCard refresh. Zone still auto-dismisses
+        -- on tab-switch because _switchTabForNav clears _drawerItem.
         if Focus and win._focusRing then
-            local isItemMode = (win._drawerMode == "item")
-            local cardEls = isItemMode and _buildCardActionFocusables(win) or {}
+            local cardVisible = (win._drawerItem ~= nil)
+            local cardEls = cardVisible and _buildCardActionFocusables(win) or {}
             Focus.setRingZoneElements(win, "charItemCard", cardEls)
-            Focus.setZoneFocusable   (win, "charItemCard", isItemMode and #cardEls > 0)
+            Focus.setZoneFocusable   (win, "charItemCard", cardVisible and #cardEls > 0)
         end
 
         -- Append active tab name to title when drawer is open

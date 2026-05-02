@@ -776,6 +776,15 @@ _buildWorldPanelFocusables = function(win, content, tabId)
         end
         return {}
     end
+    -- S117: Radio drawer focusables. Mirrors the Char window dispatcher
+    -- exactly — feedback_gamepad_pattern_parity.md mandates identical
+    -- behavior across both windows.
+    if tabId == "radio" then
+        if ZeD and ZeD.RadioTab and ZeD.RadioTab.buildFocusables then
+            return ZeD.RadioTab.buildFocusables(win)
+        end
+        return {}
+    end
     return {}
 end
 
@@ -853,9 +862,15 @@ _buildWorldMCColumnFocusables = function(win, slot)
                 if cnt and w._updateDrawer then
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    sel[el.item] = true
-                    cnt._selectedItems   = sel
-                    cnt._lastClickedItem = el.item
+                    -- S117: A toggles the card drawer (mirror Char invrow).
+                    if w._drawerItem ~= el.item then
+                        sel[el.item] = true
+                        cnt._selectedItems   = sel
+                        cnt._lastClickedItem = el.item
+                    else
+                        cnt._selectedItems   = sel
+                        cnt._lastClickedItem = nil
+                    end
                     w._updateDrawer(cnt)
                 end
             end,
@@ -911,6 +926,7 @@ _clearGpFocusState = function(w)
     w._gpFocusedForageStance   = nil
     w._gpFocusedAnimalSubmode  = nil  -- legacy (S96); no longer written
     w._gpFocusedAnimalRow      = nil  -- S109: roster/butcher row focus
+    w._gpFocusedRadioCtl       = nil  -- S117: radio drawer chassis control id
     w._invRowsForContainer     = nil
     -- S107: CC scroll-follow delta-gate pins (one per CC-driven prefix).
     -- Fresh tab visit must re-pin on first focus, not inherit the previous
@@ -1125,9 +1141,16 @@ _buildWorldInvRowFocusables = function(win)
                 if cnt and w._updateDrawer then
                     local sel = cnt._selectedItems or {}
                     for k in pairs(sel) do sel[k] = nil end
-                    sel[el.item] = true
-                    cnt._selectedItems   = sel
-                    cnt._lastClickedItem = el.item
+                    -- S117: A toggles the card drawer (mirror Char invrow).
+                    -- World _updateDrawer is closure-scoped — no args.
+                    if w._drawerItem ~= el.item then
+                        sel[el.item] = true
+                        cnt._selectedItems   = sel
+                        cnt._lastClickedItem = el.item
+                    else
+                        cnt._selectedItems   = sel
+                        cnt._lastClickedItem = nil
+                    end
                     w._updateDrawer()
                 end
             end,
@@ -3769,7 +3792,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                  win._activeTab == "animals" or
                  win._activeTab == "craft" or
                  win._activeTab == "build" or
-                 win._activeTab == "maps"
+                 win._activeTab == "maps" or
+                 win._activeTab == "radio"  -- S117: per Char window — radio
+                                            -- chassis zones stamped during
+                                            -- render, picked up next frame.
                ) then
             -- S98 per-frame refresh for NON-Loot World tabs. _forageStanceZones
             -- and _animalsSubmodeZones are populated by ForagingTab / AnimalsTab
