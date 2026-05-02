@@ -1,34 +1,37 @@
 # Next Session Handoff
-Generated: April 30, 2026 — Session 116 closing, S117 booting.
+Generated: May 2, 2026 — Session 117 closing, S118 booting.
 
 ## Target
-**S117 — RADIO GAMEPAD FOCUSABLES** (originally queued as S115c, displaced by the S116 tooling session). Wire radio chassis controls into the gamepad ring system: build a focusable element list returning chassis controls in scan order (browse_prev, browse_next, power, seek_btn[1..2], vol_btn[1..2], preset[1..N], preset_add, cd_btn[1..7]) and dispatch `onActivate` to existing action functions in `RadioTab.lua`. Per `feedback_gamepad_pattern_parity.md`, focusable list MUST replicate identically across both windows (Char + World).
+**S118 — pick one with user at brainstorm gate.** Strong candidates surfaced during S117:
+
+1. **Item card detail zone for clothing** (TOOLTIP_SPEC.md v11 ⏳) — per-zone structural docks (TORN/WORN/Leather/Denim flag + repair/remove button) and soiled flags (🩸/🟤/💧 colored % text). Lands all the M15 dock-molecule wiring that's been waiting since S115.
+2. **Action strip verb side wiring** (TOOLTIP_SPEC.md v11 ⏳) — Wash / Dry / Repair All / Pad All for clothing; Repair / Sharpen for weapons; Eat / Cook for food; Read for books; Refill for drainables. Verb side is mostly empty today.
+3. **Item rename / inspect window** — editable name field + full ZeD_Window chrome inspect mode (right-click → Inspect path). Spec locked, code ⏳.
 
 ## Current state
-Version `0.1.1163004` (S116 shipped, tooling session — no Lua touched). Git is now live on the mod, mirrored to private GitHub repo `hermit-the-trog/ZeD.UI`. New `zed-session-docs` skill installed with ambient capture + boot drift detection + flush-style closeout. Radio contextual drawer (S115) is fully clickable in both Char + World windows; gamepad path is the missing piece.
+Version `0.1.1170205g` (S117 shipped). Radio tab is fully gamepad-functional in both Character + World windows: D-pad cone-navs the chassis, A activates / toggles assign mode / fires CD transport, A-hold on seek does mouse-parity 4-tier accelerating tune. Item card now A-toggles on inv items (was D-pad LEFT/RIGHT). Card stays interactive when overlaid on a tab drawer (was: focusable only in pure item-mode). Memory cleanup pass landed: gamepad-scheme entry now reflects the live S113 FLAT FREE-NAV model, not the retired S97 ring.
 
 ## Open decisions
-- **The four grey SEEK/VOL buttons** still consume clicks but no-op — need user spec on their behavior. Candidates: preset prev/next, scan-up/scan-down, mute/max, split-step. USER DECISION REQUIRED before wiring activation.
-- **Right-click "Use" world-radio path** still calls vanilla `ISRadioWindow.activate(...)`. Suppress when ZeD context-menu route is wired (deferred, not S117-blocking).
-- **Smashicons EPS source zips** (~500 MB+) currently in git. Should be `.gitignored` and stripped from history. Defer to S118 housekeeping pass.
+- **Volume hold-acceleration parity.** Currently single-fire on both mouse and gamepad. Mouse seek has 4-tier acceleration; volume doesn't. Decide if volume should match seek or stay single-fire — defer until live testing flags it.
+- **Card overlay UX on contextual-chassis tabs.** Card overlaying the radio chassis is interactive (S117 fix) but visually crowds. Future option: suppress card overlay entirely on contextual tabs (radio/TV/walkie/etc.) since the drawer IS the content. Park until TV chassis exists.
+- **Smashicons EPS source zips** (~500 MB+) still in git history — should be `.gitignore`d and stripped. Defer to a housekeeping pass.
 
 ## Known blockers
-None for the gamepad-focusables work itself. The four-grey-button behavior question can be deferred — paint focus rings + dispatch their `onActivate` to no-op functions for now, fill in later.
+None for the candidate targets above.
 
 ## Warm context
-- **Click router lives at** `42/media/lua/client/ZeD/RadioTab.lua` — `ZeD.RadioTab.onClick(win, x, y)` is dispatch entry. Action functions to call from gamepad `onActivate`: `_browsePrev(win)`, `_browseNext(win)`, `_powerToggle(dd)`, `_channelStep(dd, dir)`, `_volStep(dd, dir)`, `_presetApply(dd, slotIdx)`, `_presetToggleAssign(win)`, `_presetStore(dd, slotIdx)`, `_cdTransport(dd, btnIdx)`. All file-locals — gamepad builder lives in same module so it has access without exporting.
-- **Click zones already stamped per render** by chassis molecules: `win._radioBrowsePrevZone`, `win._radioBrowseNextZone`, `win._radioPwrZone`, `win._radioSeekBtnZones[1..2]`, `win._radioVolBtnZones[1..2]`, `win._radioPresetZones[1..N]`, `win._radioPresetAddZone`, `win._radioCDZones[1..7]`. The gamepad builder reads the SAME stamped rects — element bounds already coord-translated panel-local.
-- **Pattern reference for focusable builders:** `_buildEquipmentFocusables(win)` in `ZeD_CharacterWindow.lua` (S100/S101 equipment slot focusable system, post-disclosure-refactor). Returns flat element array `{x, y, w, h, id, onFocus, onActivate}` per element. Per-frame seed-stomp gating already known (memory: `feedback_seed_stomp_race.md` — set `_gpFocusedRadioCtl = elements[1].id` only when nil so D-pad onFocus writes don't get clobbered next frame).
-- **Window dispatch hook:** in `ZeD_CharacterWindow.lua` and `ZeD_WorldWindow.lua`, the per-tab `_buildPanelFocusables` function returns the focusable list. Add `if tabId == "radio" then return ZeD.RadioTab.buildFocusables(win) end` branch. No new ring zone needed — uses existing `worldTabContent` / `charTabContent` zones.
-- **Critical PZAPI-KB quirks for radio (Q116–Q124):** `getPower()` is 0..1 float; channel = MHz×1000; `zomboidRadio` is NOT a global (use `getZomboidRadio()`); Kahlua `pcall` STILL logs caught errors (use field-probe pattern); `ArrayList:get(N)` for N >= size() throws; `local function name` after `local name` SHADOWS not assigns (use `name = function`); mutate-in-place token tables preserve identity across reload; Fira font lacks Unicode bullet glyphs (use `drawRect`/`drawRectBorder`); `ISRadioWindow.onEquip` removed at OnGameBoot to suppress vanilla popup.
+- **Gamepad scheme is S113 FLAT FREE-NAV.** LB→Character (absolute), RB→World (absolute), D-pad cone-nav, A=LMB / toggle for inv card, X=RMB, B=`el.onCancel` or no-op, Y-tap pair-toggle / Y-hold close-pair. PROJECT_STATE.md older session entries still contain S97 ring prose — DEFER TO `42/media/lua/client/ZeD/Input/ActionMap.lua` and `FocusManager.lua` header lines 11–23 as live source of truth.
+- **A toggles inv item card** (S117). Mouse click still single-shot select. Stack reps still expand on A; A on a child runs the toggle.
+- **Card overlay focusability gates on `_drawerItem ~= nil`** in BOTH windows now (Char was on `_drawerMode == "item"` until S117 — fixed). Future card-related builders should follow this pattern.
+- **Per-frame refresh allow-list pattern.** Tabs that stamp focusable rects DURING render (radio, maps) need their tab id added to the per-frame refresh allow-list in BOTH windows (Char:4969, World:3782). Without this, focusables stay empty past initial tab-switch.
+- **Radio chassis click zones** (mouse + gamepad share): `win._radioBrowsePrevZone`, `_radioBrowseNextZone`, `_radioPwrZone`, `_radioSeekBtnZones[1..2]`, `_radioVolBtnZones[1..2]`, `_radioPresetZones[1..N]`, `_radioPresetAddZone`, `_radioCDZones[1..7]` (Premium-only — nil on ValuTech).
+- **`_radioSeekHold` state machine** is shared between mouse and gamepad. Mouse arms with no `source` field; gamepad arms with `source = "gamepad"` + captured `jid`. Render-loop disarm check distinguishes via `if hold.source == "gamepad"` and polls `JoypadButton.A:isDown(hold.jid)`.
+- **PZAPI-KB Q116–Q124 (S115) still apply** to any radio work: getPower 0..1 float, channel = MHz×1000, `getZomboidRadio()` not bare global, Kahlua pcall log spam → field-probe pattern, ArrayList:get bounds, forward-decl shadow trap, mutate-in-place tokens, Fira font no bullet glyphs, ISRadioWindow auto-open suppression.
 
 ## Don't forget
-- **NEW BOOT STEP (mandatory under rewritten skill):** first action at S117 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md latest version (`0.1.1163004`). If they disagree → halt, reconcile drift before any work proceeds. This prevented 90+ messages of confusion this session.
-- **Pre-flight every test cycle:** grep `C:\Users\danie\Zomboid\Logs\<latest>\*DebugLog.txt` for `ERROR|Kahlua|RadioTab|attempt to call.*nil|Tried to call nil` before claiming the radio drawer is clean. Q119 / Q120 / Q121 patterns are EASY to reintroduce.
+- **BOOT ritual (mandatory):** first action at S118 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md `Current: 0.1.1170205g`. Drift = halt and reconcile.
+- **Pre-flight every test cycle:** grep `C:\Users\danie\Zomboid\Logs\<latest>\*DebugLog.txt` for `ERROR|Kahlua|RadioTab|attempt to call.*nil|attempt to index.*nil` before claiming clean. Engine `ERROR: ModelManager` / `ERROR: Translation` are baseline noise — ignore.
 - **Hot-reload unreliable; full PZ restart for every test cycle.**
-- **Version bump format:** `0.1.[session][DDMM]<suffix>`. S117 starts at `0.1.117DDMM`. Suffix walks `b→c→…→z→aa→ab→...` if the session iterates many cycles.
-- **Preset interaction model** (locked, don't undo): orange "+" enters assign mode, click slot to store. NO "-" remove button. Slot buttons always show slot number — NEVER the stored frequency (1993 hardware aesthetic ruling).
-- **Off-state visual contract** (locked): bg shifts to grey-green LCD / near-black VFD; bars+chips dim 35%; freq → "---.- MHz"; station name suppressed; SIG → "-"; chips fill+dim. Text colors UNCHANGED. Frequency Y-position FROZEN.
-- **Effective-power gate** is anti-exploit: a dead-battery radio MUST read as off regardless of switch state. Don't loosen this gate when adding gamepad — focus path should respect the same effective-power state.
-- **TV / shortwave / walkie-talkie chassis are SEPARATE future sessions.** Don't try to genericize the radio chassis layer until at least one more contextual drawer exists to compare against.
-- **End-of-session ritual:** `git add . && git commit -m "S117: ..." && git push`. Code AND docs in same commit. PROJECT_STATE.md no longer hand-tracks file-structure changes — git owns the WHAT, docs own the WHY.
+- **Version bump format:** `0.1.[session][DDMM]<suffix>`. S118 starts at `0.1.118MMDD`. Suffix walks `c→d→…→z→aa→ab→...` if iterating.
+- **End-of-session ritual:** `git add . && git commit -m "S[N]: ..." && git push`. Code AND docs in same commit.
+- **Custodian capture is AMBIENT now.** Decisions land in `ZeDUI/deltas/SESSION_NN_DELTA.md` as they happen, not at closeout.

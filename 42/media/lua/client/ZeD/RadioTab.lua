@@ -1064,15 +1064,25 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     if T == nil then return end
 
     -- ---- Hold-to-repeat for SEEK ----
-    -- The press itself already fired one step (in onClick). After a 250ms
-    -- "intentional click" window the auto-repeat kicks in on an accelerating
-    -- interval: 200ms → 100ms → 50ms → 25ms as hold time grows. Released
-    -- immediately when the mouse button is no longer down.
+    -- The press itself already fired one step (mouse: in onClick; gamepad: in
+    -- onHoldActivate at the A_HOLD_MS threshold). After a 250ms grace the
+    -- auto-repeat kicks in on an accelerating interval: 200ms → 100ms → 50ms
+    -- → 25ms as hold time grows. Released immediately when the source button
+    -- is no longer down — mouse uses isMouseButtonDown(0); gamepad path
+    -- (S117) polls JoypadButton.A:isDown on the captured joypad id.
     if win._radioSeekHold then
-        if not isMouseButtonDown(0) then
+        local hold = win._radioSeekHold
+        local stillDown
+        if hold.source == "gamepad" then
+            stillDown = hold.jid ~= nil
+                        and JoypadButton and JoypadButton.A
+                        and JoypadButton.A:isDown(hold.jid)
+        else
+            stillDown = isMouseButtonDown(0)
+        end
+        if not stillDown then
             win._radioSeekHold = nil
         else
-            local hold = win._radioSeekHold
             local now = getTimestampMs()
             local elapsed = now - hold.startMs
             if elapsed >= 250 then
@@ -1097,6 +1107,9 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 
     -- Empty state — display a single line centered.
     if #radios == 0 then
+        -- S117: drop any stale gamepad focus id so the seed gate fires fresh
+        -- next time a radio is equipped (the gate only writes on nil).
+        win._gpFocusedRadioCtl = nil
         local font = T.fontF2 or T.fontF1
         local txt = "No radio in range"
         local tw = getTextManager():MeasureStringX(font, txt)
@@ -1138,6 +1151,54 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
 
     -- 2. Chassis below the header.
     renderDrawer(panel, x, y + headerH, w, h - headerH, win, current)
+
+    -- 3. Gamepad focus cue overlay (S117). Single 0.55α accent-fill rect on the
+    -- focused chassis control. Painted AFTER the chassis so it sits on top of
+    -- button bgs / borders. Gated on:
+    --   (a) gamepad input mode is active
+    --   (b) focused window is THIS window
+    --   (c) focused zone is charTabContent / worldTabContent (the radio uses
+    --       the host window's standard tab-content zone — no dedicated zone)
+    -- Per feedback_only_focused_zone_shows_active.md — the gate prevents the
+    -- cue from persisting after the user navigates out of the radio tab.
+    -- Per feedback_focus_paint_convention.md — 0.55α fill, no border.
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win then
+        local fz = Focus.getFocusedZone and Focus.getFocusedZone(win)
+        local fzName = fz and fz.zone or nil
+        if fzName == "charTabContent" or fzName == "worldTabContent" then
+            local fel = Focus.getFocusedElement and Focus.getFocusedElement(win)
+            local fid = fel and fel.id or nil
+            if fid and fid:sub(1, 6) == "radio:" then
+                -- Resolve the focused id to its stamped rect zone. Mirrors the
+                -- click router's zone lookup (RadioTab.lua:1282-1368) — same
+                -- rect, same paint surface.
+                local zr = nil
+                if     fid == "radio:browsePrev"  then zr = win._radioBrowsePrevZone
+                elseif fid == "radio:browseNext"  then zr = win._radioBrowseNextZone
+                elseif fid == "radio:power"       then zr = win._radioPwrZone
+                elseif fid == "radio:seek-"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[1]
+                elseif fid == "radio:seek+"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[2]
+                elseif fid == "radio:vol-"        then zr = win._radioVolBtnZones  and win._radioVolBtnZones[1]
+                elseif fid == "radio:vol+"        then zr = win._radioVolBtnZones  and win._radioVolBtnZones[2]
+                elseif fid == "radio:presetAdd"   then zr = win._radioPresetAddZone
+                else
+                    -- Indexed forms: radio:preset:N or radio:cd:N
+                    local kind, nStr = fid:match("^radio:([%a]+):(%d+)$")
+                    local n = tonumber(nStr or "")
+                    if n then
+                        if     kind == "preset" then zr = win._radioPresetZones and win._radioPresetZones[n]
+                        elseif kind == "cd"     then zr = win._radioCDZones     and win._radioCDZones[n]
+                        end
+                    end
+                end
+                if zr and (zr.w or 0) > 0 then
+                    local ac = (T and T.accent) or { r = 1, g = 0.55, b = 0.10 }
+                    panel:drawRect(zr.x, zr.y, zr.w, zr.h, 0.55, ac.r, ac.g, ac.b)
+                end
+            end
+        end
+    end
 end
 
 -- ============================================================================
@@ -1374,4 +1435,152 @@ end
 -- Called by both ZeD_CharacterWindow and ZeD_WorldWindow at module-load time.
 function ZeD.RadioTab.register(dispatchTable)
     dispatchTable["radio"] = ZeD.RadioTab.render
+end
+
+-- ============================================================================
+-- FOCUSABLE BUILDER (S117) — ring elements for the host window's tab-content
+-- ============================================================================
+-- Called each frame from the per-window panel-focusable dispatcher
+-- (_buildPanelFocusables in Char, _buildWorldPanelFocusables in World) when
+-- the Radio tab is active. Returns elements for LB/RB/D-pad navigation in
+-- click-router scan order so cone-nav L→R / U→D feels natural:
+--   [browsePrev, browseNext, power, seek-, seek+, vol-, vol+,
+--    preset:1..N, presetAdd, cd:1..7 (Premium only)]
+-- Mouse and gamepad share the same panel-local rect zones (_radioPwrZone,
+-- _radioSeekBtnZones, _radioPresetZones, etc.) populated by the chassis
+-- molecules each render — builder + render stay in lock-step.
+
+function ZeD.RadioTab.buildFocusables(win)
+    if not win then return {} end
+    local elements = {}
+
+    -- Append helper. Per-zone nil guard skips controls whose rect wasn't
+    -- stamped this frame (radio tab not yet rendered, ValuTech without a
+    -- CD slot, etc.) — that's how empty-state filtering happens naturally
+    -- without an explicit gate.
+    local function addZone(z, id, onAct)
+        if z == nil or (z.w or 0) <= 0 then return end
+        elements[#elements + 1] = {
+            x = z.x, y = z.y, w = z.w, h = z.h, id = id,
+            onFocus    = function(w, el) w._gpFocusedRadioCtl = el.id end,
+            onActivate = onAct,
+        }
+    end
+
+    -- Re-fetch deviceData on every press, never capture. Browse-prev/next
+    -- mutates win._radioIdx mid-focus; a captured dd would tune the OLD
+    -- radio after a swap. Re-fetch keeps the gamepad path 1:1 with the
+    -- click router's per-click lookup.
+    local function curDD()
+        local r = win._radios
+        if r == nil then return nil end
+        local cur = r[win._radioIdx or 1]
+        return cur and cur.deviceData or nil
+    end
+
+    -- ---- Drawer header browse buttons -------------------------------------
+    -- _browsePrev/_browseNext clear preset-assign mode internally; we also
+    -- nil out _gpFocusedRadioCtl because preset count and CD presence may
+    -- differ between radios, leaving the previous element id invalid.
+    addZone(win._radioBrowsePrevZone, "radio:browsePrev",
+        function(w) _browsePrev(w); w._gpFocusedRadioCtl = nil end)
+    addZone(win._radioBrowseNextZone, "radio:browseNext",
+        function(w) _browseNext(w); w._gpFocusedRadioCtl = nil end)
+
+    -- ---- Power -----------------------------------------------------------
+    addZone(win._radioPwrZone, "radio:power",
+        function() local dd = curDD(); if dd then _powerToggle(dd) end end)
+
+    -- ---- Seek (channel) --------------------------------------------------
+    -- A tap → one step (parity with mouse single-click). A hold ≥ A_HOLD_MS
+    -- (350ms in FocusManager) → onHoldActivate fires one step AND arms the
+    -- same _radioSeekHold state machine that mouse uses, tagged source=
+    -- "gamepad" so the render loop polls JoypadButton.A:isDown for the
+    -- disarm check. After arming, the existing 4-tier acceleration applies:
+    -- 250ms grace → 200ms → 100ms → 50ms → 25ms intervals.
+    if win._radioSeekBtnZones then
+        for i, dir in ipairs({ -1, 1 }) do
+            local z = win._radioSeekBtnZones[i]
+            local id = (dir < 0) and "radio:seek-" or "radio:seek+"
+            if z and (z.w or 0) > 0 then
+                local stepDir = dir  -- capture by value
+                elements[#elements + 1] = {
+                    x = z.x, y = z.y, w = z.w, h = z.h, id = id,
+                    onFocus    = function(w, el) w._gpFocusedRadioCtl = el.id end,
+                    onActivate = function()
+                        local dd = curDD()
+                        if dd then _channelStep(dd, stepDir) end
+                    end,
+                    onHoldActivate = function(w)
+                        local dd = curDD()
+                        if dd == nil then return end
+                        _channelStep(dd, stepDir)
+                        local jd = getJoypadData and getJoypadData(0)
+                        local jid = jd and jd.id or nil
+                        local now = getTimestampMs()
+                        w._radioSeekHold = {
+                            dir = stepDir, source = "gamepad", jid = jid,
+                            startMs = now, lastFireMs = now,
+                        }
+                    end,
+                }
+            end
+        end
+    end
+
+    -- ---- Volume ----------------------------------------------------------
+    -- Volume is single-fire on mouse too — already at parity.
+    if win._radioVolBtnZones then
+        addZone(win._radioVolBtnZones[1], "radio:vol-",
+            function() local dd = curDD(); if dd then _volStep(dd, -1) end end)
+        addZone(win._radioVolBtnZones[2], "radio:vol+",
+            function() local dd = curDD(); if dd then _volStep(dd,  1) end end)
+    end
+
+    -- ---- Preset slots ----------------------------------------------------
+    -- Assign-mode-aware: store flips the mode off, otherwise apply. Mirrors
+    -- click-router behavior at RadioTab.lua:1351-1357. _presetApply and
+    -- _presetStore both handle empty-slot and out-of-bounds cases internally.
+    if win._radioPresetZones then
+        for i = 1, #win._radioPresetZones do
+            local slot = i  -- capture by value, not loop alias
+            addZone(win._radioPresetZones[i], "radio:preset:" .. i,
+                function(w)
+                    local dd = curDD()
+                    if dd == nil then return end
+                    if w._radioPresetAssignMode then
+                        _presetStore(dd, slot)
+                        w._radioPresetAssignMode = false
+                    else
+                        _presetApply(dd, slot)
+                    end
+                end)
+        end
+    end
+
+    -- ---- Preset-add ("+") toggle ----------------------------------------
+    -- Element id stays "radio:presetAdd" across the toggle, so the seed
+    -- gate leaves focus alone — A again cancels assign mode without the
+    -- player having to D-pad away. Single-button enter-and-cancel mirrors
+    -- the mouse cursor staying put.
+    addZone(win._radioPresetAddZone, "radio:presetAdd",
+        function(w) _presetToggleAssign(w) end)
+
+    -- ---- CD transport (Premium-only) ------------------------------------
+    -- _radioCDZones is unset on ValuTech, so the if-guard cleanly skips the
+    -- loop without phantom rects ever entering the focusable list.
+    if win._radioCDZones then
+        for i = 1, #win._radioCDZones do
+            local btn = i
+            addZone(win._radioCDZones[i], "radio:cd:" .. i,
+                function() local dd = curDD(); if dd then _cdTransport(dd, btn) end end)
+        end
+    end
+
+    -- Seed gate — only writes on nil so D-pad onFocus updates are never
+    -- stomped between frames (memory: feedback_seed_stomp_race.md).
+    if elements[1] and win._gpFocusedRadioCtl == nil then
+        win._gpFocusedRadioCtl = elements[1].id
+    end
+    return elements
 end
