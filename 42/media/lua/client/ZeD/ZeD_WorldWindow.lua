@@ -1227,6 +1227,11 @@ _buildWorldCardActionFocusables = function(win)
     if not (win and win._itemCard) then return {} end
     if win._drawerItem == nil then return {} end
     local els = win._itemCard:getActionStripElements() or {}
+    -- S118: append clothing detail-zone structural docks AFTER the action strip.
+    -- Mirrors Character window. Wire helper runs on combined list so dock
+    -- elements get the same onDpadDir / onCancel + abs→panel-local conversion.
+    local dockEls = win._itemCard:getZoneDockElements() or {}
+    for i = 1, #dockEls do els[#els + 1] = dockEls[i] end
     _wireWorldCardButtonNav(els, win)
     return els
 end
@@ -1440,7 +1445,7 @@ local function drawWorldTabStrip(self, win)
     local curY      = -scrollOff
     local lastGroup = 1
 
-    -- Resolve active tab (show _tabUnder visually when item inspecting)
+    -- Resolve active tab (show _tabUnder visually when card overlays)
     local visualActive = win._activeTab
 
     for _, tab in ipairs(WORLD_TABS) do
@@ -2650,7 +2655,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     -- Action tab state
     win._activeTab   = "loot"
-    win._tabUnder    = nil          -- saved tab id during item inspection
+    win._tabUnder    = nil          -- saved tab id while card overlays a tab
     win._actionTabScrollOffset = 0
     -- Crafting/Building tab state — new unified architecture.
     -- Tab state is lazily created by CraftingCore.createState() on first render.

@@ -338,16 +338,38 @@ local function _ensureBodyFigure(win)
     return win._equipBodyFigure
 end
 
-local function _drawCoverageFigure(panel, win, data, slotType, px, py, pw, ph)
+local function _drawCoverageFigure(panel, win, data, slotType, px, py, pw, ph, item)
     local fig = _ensureBodyFigure(win)
     if data.isFemale ~= nil then
         fig:setSex(data.isFemale)
     end
     fig:clearColors()
-    local T      = ZeD.T
-    local active = SLOT_REGIONS[slotType] or {}
-    for _, regionName in ipairs(active) do
-        fig:setPartColor(regionName, T.accent.r, T.accent.g, T.accent.b, 0.65)
+    local T            = ZeD.T
+    local PART_TO_FIG  = ZeD.ProtectionTab and ZeD.ProtectionTab.PART_TO_FIGURE
+    local colorForDef  = ZeD.ProtectionTab and ZeD.ProtectionTab.protectionColorForDef
+
+    -- Per-zone warning-scale overlay using THIS garment's bite defense per part.
+    -- Falls back to flat accent for non-clothing slots or when ProtectionTab
+    -- helpers aren't loaded yet.
+    if item and PART_TO_FIG and colorForDef and instanceof(item, "Clothing") then
+        local parts = safeGet(item, "getCoveredParts")
+        if parts then
+            for i = 0, parts:size() - 1 do
+                local part    = parts:get(i)
+                local partStr = tostring(part)
+                local figName = PART_TO_FIG[partStr]
+                if figName then
+                    local def = safeGet(item, "getDefForPart", part, false, false) or 0
+                    local c   = colorForDef(def)
+                    fig:setPartColor(figName, c.r, c.g, c.b, 0.65)
+                end
+            end
+        end
+    else
+        local active = SLOT_REGIONS[slotType] or {}
+        for _, regionName in ipairs(active) do
+            fig:setPartColor(regionName, T.accent.r, T.accent.g, T.accent.b, 0.65)
+        end
     end
     fig.selectedPart = nil
     fig:drawAt(panel, px, py, pw, ph)
@@ -826,38 +848,61 @@ local function _drawBackBar(panel, win, slot, x, y, w)
 
     -- Slot layer label (left-aligned, secondary)
     local layerX = x + sp.sm
-    local backH = getBackH()
     local layerY = y + 4 + math.floor((T.buttonH - getTextManager():getFontHeight(T.fontF1)) / 2)
     if slot then
         local typeStr = slot.label or slot.type
         A.drawSecondary(panel, typeStr, layerX, layerY, T.textDim)
     end
 
-    -- Back button (outline style, right-aligned): "< ITEM NAME"
-    local name = ""
-    if slot and slot.item then
-        name = safeGet(slot.item, "getDisplayName") or safeGet(slot.item, "getName") or "?"
+    -- Right-aligned action row: [< NAME] [Drop] [Unequip]
+    -- Reset action zones every draw so removed buttons don't leave stale rects.
+    win._equipActionZones = win._equipActionZones or {}
+    for i = 1, #win._equipActionZones do win._equipActionZones[i] = nil end
+
+    local btnY = y + 4
+    local btnGap = sp.xs
+    local rightX = x + w - sp.sm  -- right edge cursor; grows leftward
+
+    -- Action buttons (right-most: Unequip, then Drop)
+    local actionBtns = {
+        { id = "unequip", label = "Unequip", variant = "primary" },
+        { id = "drop",    label = "Drop",    variant = "default" },
+    }
+    -- Resolve gamepad focus once for action buttons.
+    local gpBtnId = nil
+    if win._gpFocusedEquipSlot and win._gpFocusedEquipSlot:sub(1, 6) == "__btn_" then
+        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+        if focWin == win and Focus.getFocusedZone then
+            local zone = Focus.getFocusedZone(win)
+            if zone and zone.zone == "charTabContent" then
+                gpBtnId = win._gpFocusedEquipSlot:sub(7)
+            end
+        end
     end
-    local btnLabel = "< " .. string.upper(name)
-    -- Truncate to available width (leave room for layer label)
-    local layerW = slot and getTextManager():MeasureStringX(T.fontF1, slot.label or slot.type) or 0
-    local maxBtnW = w - sp.sm * 3 - layerW
-    btnLabel = A.truncateText(btnLabel, T.fontF3, maxBtnW - sp.buttonPadX * 2)
+    for _, btn in ipairs(actionBtns) do
+        local tw = getTextManager():MeasureStringX(T.fontF3, btn.label) + sp.buttonPadX * 2
+        local bw = math.max(tw, 60)
+        rightX = rightX - bw
+        if gpBtnId == btn.id then
+            local ac = T.accent
+            panel:drawRect(rightX, btnY, bw, T.buttonH, 0.55, ac.r, ac.g, ac.b)
+        end
+        M.drawButton(panel, rightX, btnY, bw, T.buttonH, btn.label, btn.variant)
+        win._equipActionZones[#win._equipActionZones + 1] = {
+            x = rightX, y = btnY, w = bw, h = T.buttonH, id = btn.id,
+        }
+        rightX = rightX - btnGap
+    end
+
+    -- Back button: just "<" — compact, fixed-width
+    local btnLabel = "<"
     local btnW = getTextManager():MeasureStringX(T.fontF3, btnLabel) + sp.buttonPadX * 2
-    btnW = math.max(btnW, 60)
-    local btnX = x + w - sp.sm - btnW
-    local btnY = y + 4  -- 4px padding above
+    btnW = math.max(btnW, T.buttonH)  -- square-ish minimum
+    local btnX = rightX - btnW
 
-    -- Stamp tight button-shaped bounds for the gamepad ring (so cone-nav
-    -- centers align with the visible button, not the full header). The
-    -- full-width _equipBackZone is kept for mouse hit-testing — clicking
-    -- anywhere in the header exits card mode.
     win._equipBackBtnZone = { x = btnX, y = btnY, w = btnW, h = T.buttonH }
-
-    -- Gamepad focus fill — 0.55 alpha accent beneath the back button when
-    -- the card back element is the focused ring element. Gated on live ring
-    -- focus being on charTabContent.
-    if win and win._gpFocusedEquipSlot == "__back" then
+    if win._gpFocusedEquipSlot == "__back" then
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
         if focWin == win and Focus.getFocusedZone then
@@ -868,7 +913,6 @@ local function _drawBackBar(panel, win, slot, x, y, w)
             end
         end
     end
-
     M.drawButton(panel, btnX, btnY, btnW, T.buttonH, btnLabel, "default")
 end
 
@@ -892,44 +936,39 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
         A.drawIcon(panel, slot.tex, cx, iconY, iconSz)
     end
 
-    -- Stat rows (right of icon, using M.drawStatRow molecule)
+    -- Stat rows (right of icon) — 2-column grid, label/value pairs packed tight
+    -- so we don't bleed full-width gaps between label and value on every row.
     local statX = cx + iconSz + pad * 2
     local statW = cw - iconSz - pad * 2
-    local sy = iconY
+    local colW  = math.floor((statW - pad) / 2)
+    local sy    = iconY
 
-    -- Category / kind
+    -- Resolve all 4 cells up front
     local cat = "Item"
     if instanceof(item, "Clothing") then cat = safeGet(item, "getBodyLocation") or "Clothing"
     elseif instanceof(item, "HandWeapon") then cat = safeGet(item, "getAmmoType") and "Firearm" or "Weapon"
     elseif safeGet(item, "getFluidContainer") then cat = "Fluid"
     else cat = safeGet(item, "getCategory") or "Item" end
-    sy = sy + M.drawStatRow(panel, statX, sy, statW, "Kind", tostring(cat))
-
-    -- Weight
-    local wt = safeGet(item, "getActualWeight") or safeGet(item, "getWeight") or 0
-    sy = sy + M.drawStatRow(panel, statX, sy, statW, "Weight", string.format("%.1f kg", wt))
-
-    -- Fabric type (clothing only)
-    if instanceof(item, "Clothing") then
-        local fab = safeGet(item, "getFabricType")
-        if fab and tostring(fab) ~= "" then
-            sy = sy + M.drawStatRow(panel, statX, sy, statW, "Fabric", tostring(fab))
-        end
-    end
-
-    -- Condition
+    local wt    = safeGet(item, "getActualWeight") or safeGet(item, "getWeight") or 0
+    local fab   = instanceof(item, "Clothing") and safeGet(item, "getFabricType") or nil
     local ratio = slot.cond
     local condPct = math.floor(ratio * 100)
-    sy = sy + M.drawStatRowDot(panel, statX, sy, statW, "Cond.", condPct .. "%", condColor(ratio))
+
+    -- Row 1: KIND | WEIGHT
+    local r1 = M.drawStatRow(panel, statX,         sy, colW, "Kind",   tostring(cat))
+    M.drawStatRow(panel,           statX + colW + pad, sy, colW, "Weight", string.format("%.1f kg", wt))
+    sy = sy + r1
+    -- Row 2: FABRIC (clothing only) | COND.  — Cond uses status dot
+    local r2 = M.drawStatRowDot(panel, statX + colW + pad, sy, colW, "Cond.", condPct .. "%", condColor(ratio))
+    if fab and tostring(fab) ~= "" then
+        M.drawStatRow(panel, statX, sy, colW, "Fabric", tostring(fab))
+    end
+    sy = sy + r2
 
     cy = math.max(sy, iconY + iconSz) + pad
 
-    -- Full-width condition bar (atom)
-    A.drawFillBar(panel, cx, cy, cw, ratio, true)
-    cy = cy + T.fillBarH + pad
-
     -- ================================================================
-    -- PROTECTION COVERAGE SECTION
+    -- PROTECTION COVERAGE SECTION — figure + 3-up inline stat row
     -- ================================================================
     local regions = SLOT_REGIONS[slot.type] or {}
     if #regions > 0 and instanceof(item, "Clothing") then
@@ -939,19 +978,19 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
         A.drawSecondary(panel, "PROTECTION", cx, cy)
         cy = cy + secH + pad
 
-        -- Body figure (left, large)
-        local figW = 100
-        local figH = 140
+        -- Body figure (left, compact)
+        local figW = 80
+        local figH = 110
         local figX = cx
         local figY = cy
-        _drawCoverageFigure(panel, win, data, slot.type, figX, figY, figW, figH)
+        _drawCoverageFigure(panel, win, data, slot.type, figX, figY, figW, figH, item)
 
-        -- Defense stats (right of figure, using stat row molecule)
+        -- Defense stats (right of figure, single row of 3 inline cells)
         local defX = cx + figW + pad * 2
         local defW = cw - figW - pad * 2
+        local cellW = math.floor((defW - pad * 2) / 3)
         local defY = figY + pad
 
-        -- Get defense values
         local biteDef    = safeGet(item, "getBiteDefense") or 0
         local scratchDef = safeGet(item, "getScratchDefense") or 0
         local bulletDef  = 0
@@ -961,122 +1000,102 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
             bulletDef = safeGet(item, "getDefForPart", part, false, true) or 0
         end
 
-        defY = defY + M.drawStatRow(panel, defX, defY, defW, "Bite", math.floor(biteDef) .. "%")
-        defY = defY + M.drawStatRow(panel, defX, defY, defW, "Scratch", math.floor(scratchDef) .. "%")
-        defY = defY + M.drawStatRow(panel, defX, defY, defW, "Bullet", math.floor(bulletDef) .. "%")
+        local rH = M.drawStatRow(panel, defX,                  defY, cellW, "Bite",    math.floor(biteDef)    .. "%")
+        M.drawStatRow(panel,            defX + cellW + pad,    defY, cellW, "Scratch", math.floor(scratchDef) .. "%")
+        M.drawStatRow(panel,            defX + (cellW+pad)*2,  defY, cellW, "Bullet",  math.floor(bulletDef)  .. "%")
+        defY = defY + rH
 
         cy = math.max(figY + figH, defY) + pad
     end
 
     -- ================================================================
-    -- ATTACHMENTS SECTION
+    -- DETAIL ZONE — per-zone structural docks + item-level soil row
+    -- (Supersedes legacy ATTACHMENTS section: patches now show inline as
+    -- dock flag colors with action buttons. Equipment drawer IS the inspector
+    -- per design — no separate inspect window.)
     -- ================================================================
-    if slot.attach > 0 and instanceof(item, "Clothing") then
-        -- Section divider + heading (atoms)
-        A.drawDividerH(panel, cx, cy, cw, true)
-        cy = cy + 1 + pad
-        A.drawSecondary(panel, "ATTACHMENTS", cx, cy)
-        cy = cy + secH + pad
+    if instanceof(item, "Clothing") and ZeD.ClothingDetail then
+        local CD = ZeD.ClothingDetail
+        local zones = CD.buildConfigs(item)
+        if #zones > 0 then
+            -- Section divider + heading (atoms)
+            A.drawDividerH(panel, cx, cy, cw, true)
+            cy = cy + 1 + pad
+            A.drawSecondary(panel, "DETAIL ZONES", cx, cy)
+            cy = cy + secH + pad
 
-        -- List patches
-        local patchCount = safeGet(item, "getPatchesNumber") or 0
-        if patchCount > 0 then
-            local coveredParts = safeGet(item, "getCoveredParts")
-            if coveredParts then
-                for pi = 0, coveredParts:size() - 1 do
-                    local part = coveredParts:get(pi)
-                    local patchType = safeGet(item, "getPatchType", part)
-                    if patchType and tostring(patchType) ~= "" then
-                        local pName = tostring(patchType) .. " patch"
-                        A.drawBody(panel, pName, cx + pad, cy)
-                        cy = cy + secH + 2
+            -- Material availability gates dock greying.
+            local player = win._playerObj
+            local canRepair, canRemovePatch = false, false
+            if player then
+                local n, _, _ = CD.findMaterials(player)
+                canRepair = (n ~= nil)
+                local inv = player:getInventory()
+                local needleAlone = inv:getFirstTagRecurse(ItemTag.SEWING_NEEDLE)
+                                 or inv:getItemFromType("Needle", true, true)
+                canRemovePatch = (needleAlone ~= nil)
+            end
+
+            -- Item-level soil row (dirt + wet — they aren't per-zone in vanilla).
+            local soil = CD.buildItemSoil(item)
+            if soil then
+                local btnSz = T.iconSm + 4
+                CD.drawSoilRow(panel, cx, cy, cw, soil)
+                cy = cy + btnSz + 2
+            end
+
+            -- Per-zone rows. Stamp dock-button rects for click + gamepad dispatch.
+            local rawZones = CD.getZones(item)
+            local btnSz = T.iconSm + 4
+            local grooveH = 2
+            win._equipDockZones = win._equipDockZones or {}
+            for i = 1, #(win._equipDockZones or {}) do win._equipDockZones[i] = nil end
+
+            for i, zone in ipairs(zones) do
+                if i > 1 then
+                    A.drawGroove(panel, cx, cy, cw)
+                    cy = cy + grooveH
+                end
+                -- Material greying (mutate fresh-built dock config in place).
+                local action = zone.action
+                if zone.dock and zone.dock.state == "active" and action then
+                    if action == "repair" and not canRepair then
+                        zone.dock.state = "grey"
+                    elseif action == "remove-patch" and not canRemovePatch then
+                        zone.dock.state = "grey"
                     end
                 end
-            end
-        end
 
-        cy = cy + pad
+                local dockRect = {}
+                local zoneH = M.drawZoneRow(panel, cx, cy, cw, zone, false, dockRect)
+
+                -- Capture dock button rect for click dispatch (only when actionable
+                -- AND materials present — greyed docks have no click target).
+                if action and zone.dock.state == "active" and dockRect.w then
+                    local rawZone = rawZones[i]
+                    win._equipDockZones[#win._equipDockZones + 1] = {
+                        x      = cx + dockRect.x,
+                        y      = cy + dockRect.y,
+                        w      = dockRect.w,
+                        h      = dockRect.h,
+                        part   = rawZone and rawZone.part,
+                        action = action,
+                        item   = item,
+                    }
+                end
+                cy = cy + zoneH
+            end
+            cy = cy + pad
+        end
     end
 
     return cy
 end
 
 -- ============================================================================
--- ACTION BUTTONS: Drop / Inspect / Unequip
--- ============================================================================
-
-local ACTION_BTNS = {
-    { id = "drop",    label = "Drop" },
-    { id = "inspect", label = "Inspect" },
-    { id = "unequip", label = "Unequip" },
-}
-
-local function _drawActionButtons(panel, win, slot, x, y, w)
-    local T = ZeD.T
-    local pad = T.sp.sm
-    local btnH = T.buttonH
-    local btnGap = T.sp.xs
-
-    -- Right-align buttons (measure with fontF3 — matches drawButton rendering)
-    local totalW = 0
-    local widths = {}
-    for _, btn in ipairs(ACTION_BTNS) do
-        local tw = getTextManager():MeasureStringX(T.fontF3, btn.label) + T.sp.buttonPadX * 2
-        tw = math.max(tw, 60)
-        widths[#widths + 1] = tw
-        totalW = totalW + tw + btnGap
-    end
-    totalW = totalW - btnGap
-
-    local bx = x + w - pad - totalW
-    local by = y
-
-    -- Reset action zones
-    win._equipActionZones = win._equipActionZones or {}
-    local zi = 0
-
-    local M = ZeD.Molecules
-    -- Resolve gp focus state once per draw (not per button)
-    local gpFocusedId = nil
-    if win._gpFocusedEquipSlot and win._gpFocusedEquipSlot:sub(1, 6) == "__btn_" then
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-        if focWin == win and Focus.getFocusedZone then
-            local zone = Focus.getFocusedZone(win)
-            if zone and zone.zone == "charTabContent" then
-                gpFocusedId = win._gpFocusedEquipSlot:sub(7)  -- strip "__btn_"
-            end
-        end
-    end
-
-    for bi, btn in ipairs(ACTION_BTNS) do
-        zi = zi + 1
-        local bw = widths[bi]
-        local variant = btn.id == "unequip" and "primary" or "default"
-
-        -- Gamepad focus fill beneath this button
-        if gpFocusedId == btn.id then
-            local ac = T.accent
-            panel:drawRect(bx, by, bw, btnH, 0.55, ac.r, ac.g, ac.b)
-        end
-
-        M.drawButton(panel, bx, by, bw, btnH, btn.label, variant)
-
-        -- Store zone
-        win._equipActionZones[zi] = { x = bx, y = by, w = bw, h = btnH, id = btn.id }
-        bx = bx + bw + btnGap
-    end
-
-    -- Trim excess zones
-    for i = zi + 1, #(win._equipActionZones or {}) do
-        win._equipActionZones[i] = nil
-    end
-
-    return by + btnH
-end
-
--- ============================================================================
 -- ACTION HANDLER
+-- Action buttons (Drop / Unequip) are rendered inline in the back-bar header
+-- by _drawBackBar — no separate action strip below the card content.
 -- ============================================================================
 
 function ZeD.EquipmentTab._handleAction(win, actionId, slot)
@@ -1107,25 +1126,6 @@ function ZeD.EquipmentTab._handleAction(win, actionId, slot)
         win._equipSelected = nil
         win._equipCache = nil
 
-    elseif actionId == "inspect" then
-        -- Open standalone inspect window via existing hook
-        local card = win._drawerPanel and win._drawerPanel:getChildren()
-        -- Switch to item-mode drawer with this item
-        win._drawerItem = slot.item
-        win._tabUnder = "equip"
-        win._drawerMode = "item"
-        -- Set the card's item
-        if win._drawerPanel then
-            local children = win._drawerPanel:getChildren()
-            if children then
-                for _, child in pairs(children) do
-                    if child.setItem and child.mode == "drawer" then
-                        child:setItem(slot.item)
-                        break
-                    end
-                end
-            end
-        end
     end
 end
 
@@ -1198,10 +1198,8 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
             -- Draw card content
             local endY = _drawCardContent(panel, win, data, selSlot, x, drawY, w, availH)
 
-            -- Action buttons
+            -- Action buttons live in the back-bar header now — no inline strip.
             endY = endY + pad
-            local btnEndY = _drawActionButtons(panel, win, selSlot, x, endY, w)
-            endY = btnEndY + pad
 
             -- Total content height
             local totalH = endY - drawY

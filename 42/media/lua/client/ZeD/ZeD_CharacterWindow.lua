@@ -1344,6 +1344,11 @@ _buildCardActionFocusables = function(win)
     -- World's _buildWorldCardActionFocusables.
     if win._drawerItem == nil then return {} end
     local els = win._itemCard:getActionStripElements() or {}
+    -- S118: append clothing detail-zone structural docks AFTER the action strip.
+    -- Natural D-pad order: action strip → zone docks. Greyed/pristine docks are
+    -- not in _zoneDockRects so they're auto-skipped (no focus, no activation).
+    local dockEls = win._itemCard:getZoneDockElements() or {}
+    for i = 1, #dockEls do els[#els + 1] = dockEls[i] end
     -- S113c: ItemCard returns ABSOLUTE screen coords (Molecules.lua
     -- drawActionStrip line 1687: `rects[i] = { x = absX + bx, ... }`).
     -- _collectFlat translates panel-local → window-local by adding the
@@ -1391,7 +1396,7 @@ end
 -- (tabBar / mainInv / containerStrip).
 --
 -- Card mode (win._equipSelected ~= nil): elements swap to back button +
--- action buttons (Drop / Inspect / Unequip). Entering and exiting card mode
+-- action buttons (Drop / Unequip). Entering and exiting card mode
 -- nils _gpFocusedEquipSlot so the seed path picks the first element of the
 -- new element set.
 local function _buildEquipmentFocusables(win)
@@ -1571,18 +1576,32 @@ local function _buildEquipmentFocusables(win)
                         local dW = math.floor(w._drawerEffW or 220)
                         local ay, bw, gap = 260, 70, 4
                         w._equipActionZones = {
-                            { x = dW - 10 - (bw * 3 + gap * 2), y = ay, w = bw, h = Tk.buttonH, id = "drop" },
-                            { x = dW - 10 - (bw * 2 + gap),     y = ay, w = bw, h = Tk.buttonH, id = "inspect" },
-                            { x = dW - 10 - bw,                 y = ay, w = bw, h = Tk.buttonH, id = "unequip" },
+                            { x = dW - 10 - (bw * 2 + gap), y = ay, w = bw, h = Tk.buttonH, id = "drop" },
+                            { x = dW - 10 - bw,             y = ay, w = bw, h = Tk.buttonH, id = "unequip" },
                         }
                     end
                 end,
                 onContextMenu = function(w, el)
+                    -- S118: gamepad X opens the same ZeD context menu RMB does
+                    -- (parity with inv-row context menu pattern). Anchored at the
+                    -- focused slot row's screen position.
                     if not el.item then return end
                     local playerObj = getSpecificPlayer(0)
-                    if playerObj and ISUnequipAction and ISTimedActionQueue then
-                        ISTimedActionQueue.add(ISUnequipAction:new(playerObj, el.item, 50))
-                    end
+                    if not playerObj then return end
+                    local pNum = playerObj:getPlayerNum()
+                    local inv  = playerObj:getInventory()
+                    local isInInv = inv:isInCharacterInventory(playerObj)
+                    -- Anchor at the slot row's left edge, vertically centered.
+                    local drawerPanel = w._itemDrawerPanel
+                    local panelAbsX = (drawerPanel and drawerPanel.getAbsoluteX
+                                       and drawerPanel:getAbsoluteX()) or 0
+                    local panelAbsY = (drawerPanel and drawerPanel.getAbsoluteY
+                                       and drawerPanel:getAbsoluteY()) or 0
+                    local mx = panelAbsX + (el.x or 0) + math.floor((el.w or 0) / 2)
+                    local my = panelAbsY + (el.y or 0) + math.floor((el.h or 0) / 2)
+                    ISInventoryPaneContextMenu.createMenu(
+                        pNum, isInInv, { el.item }, mx, my
+                    )
                 end,
             }
         end
@@ -4095,6 +4114,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         end
                     end
                 end
+                -- Card mode: detail-zone structural docks (S118 — repair / remove patch)
+                if win._equipSelected and win._equipDockZones and ZeD.ClothingDetail then
+                    for _, dz in ipairs(win._equipDockZones) do
+                        if x >= dz.x and x <= dz.x + dz.w
+                           and y >= dz.y and y <= dz.y + dz.h then
+                            ZeD.ClothingDetail.dispatchZoneAction(
+                                win._playerObj, dz.item, dz.part, dz.action)
+                            return true
+                        end
+                    end
+                end
                 -- List mode: column divider drag start
                 if not win._equipSelected and win._equipDivZones then
                     for _, dz in ipairs(win._equipDivZones) do
@@ -4367,6 +4397,35 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- S67: Map RMB handlers (pin toggle, annotation context menu) removed.
     -- Maps sub-tab moved to World Window MapsTab.
     drawer.onRightMouseDown = function(self, x, y)
+        return true
+    end
+
+    -- S118: Equipment list RMB → vanilla context menu (parity with inv lists).
+    -- Walks _equipSlotZones (stamped by EquipmentTab.render in list mode) and
+    -- spawns the same ZeD-skinned ISInventoryPaneContextMenu.createMenu the
+    -- inventory rows use — gives Drop / Wear / Read / Repair / etc. on the
+    -- equipped item.
+    drawer.onRightMouseUp = function(self, x, y)
+        if win._activeTab == "equip" and win._drawerMode == "tab"
+           and not win._equipSelected and win._equipSlotZones then
+            for _, zone in ipairs(win._equipSlotZones) do
+                if zone.item
+                   and x >= zone.x and x <= zone.x + zone.w
+                   and y >= zone.y and y <= zone.y + zone.h then
+                    local playerObj = getSpecificPlayer(0)
+                    if playerObj then
+                        local pNum = playerObj:getPlayerNum()
+                        local inv  = playerObj:getInventory()
+                        local isInInv = inv:isInCharacterInventory(playerObj)
+                        ISInventoryPaneContextMenu.createMenu(
+                            pNum, isInInv, { zone.item },
+                            self:getAbsoluteX() + x, self:getAbsoluteY() + y
+                        )
+                    end
+                    return true
+                end
+            end
+        end
         return true
     end
 
