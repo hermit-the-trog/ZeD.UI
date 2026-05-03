@@ -2042,6 +2042,529 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
 end
 
 -- ============================================================================
+-- ITEM CARD UNIVERSAL MOLECULES (S120 — Phase 2)
+-- The four chrome strips that compose every item card regardless of item type:
+--   drawCardBackBar      header strip with back btn, name, primary+sec verbs
+--   drawCardFlagStrip    "MARKED" + 3 flag chips (fav/nocraft/dispose)
+--   drawCardProgressBand observer wrapper around Atoms.drawProgressBand
+--   drawCardVerbStrip    right-aligned text-label verb buttons
+-- All accept compact:bool to switch between 220w (browsing) and 480w (detail)
+-- presets locked in S119 mockups v13/v15. Verbs grey out under progressActive
+-- so the Progress Band's [x] becomes the only cancel surface (locked rule).
+-- Note: the existing icon-only drawVerbStrip (M16) is the S118 zone-dock
+-- variant and stays intact; S120 introduces the text-label sibling.
+-- ============================================================================
+
+-- T2.1 CARD BACK-BAR ---------------------------------------------------------
+--- Draw the card's header strip: back btn + name + verb cluster.
+--- @param panel ISPanel
+--- @param x, y  Top-left
+--- @param w     Total width
+--- @param name  Item display name (ellipsis-truncated if too wide)
+--- @param verbs Array of {label, primary} — drawn right-to-left.
+---              `primary=true` paints in accent (CTA); secondary in surf2.
+--- @param progressActive  When true, verbs render at .35 alpha (no cursor)
+--- @param compact         220w preset (h=30, btn=20); else 480w (h=37, btn=22)
+--- @param outRects        Optional table; on return:
+---                          outRects.back = {x,y,w,h}
+---                          outRects.verbs[i] = {x,y,w,h}
+--- @return height
+function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActive, compact, outRects)
+    local T    = ZeD.T
+    local A    = ZeD.Atoms
+    local font = T.fontF1
+
+    local h, btnSz, padX, gap, btnPadX
+    if compact then
+        h, btnSz, padX, gap, btnPadX = 30, 20, 3, 4, 7
+    else
+        h, btnSz, padX, gap, btnPadX = 37, 22, 4, 6, 8
+    end
+
+    -- Surface bg + bottom separator
+    local bg, bs = T.surf2, T.borderS
+    panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
+    panel:drawRect(x, y + h - 1, w, 1, bs.a, bs.r, bs.g, bs.b)
+
+    -- Back button (raised System-7 chrome via surf4 highlight + borderS shadow)
+    local backX = x + padX
+    local backY = y + math.floor((h - btnSz) / 2)
+    local hi, sh = T.surf4, T.borderS
+    panel:drawRect(backX, backY, btnSz, btnSz, bg.a, bg.r, bg.g, bg.b)
+    panel:drawRect(backX, backY, btnSz, 1, hi.a, hi.r, hi.g, hi.b)
+    panel:drawRect(backX, backY, 1, btnSz, hi.a, hi.r, hi.g, hi.b)
+    panel:drawRect(backX, backY + btnSz - 1, btnSz, 1, sh.a, sh.r, sh.g, sh.b)
+    panel:drawRect(backX + btnSz - 1, backY, 1, btnSz, sh.a, sh.r, sh.g, sh.b)
+
+    local labelH = T.fontF1H or getTextManager():MeasureStringY(font, "<")
+    local backGlyph = "<"
+    local bgw = getTextManager():MeasureStringX(font, backGlyph)
+    local tc = T.text
+    panel:drawText(backGlyph, backX + math.floor((btnSz - bgw) / 2),
+        backY + math.floor((btnSz - labelH) / 2),
+        tc.r, tc.g, tc.b, tc.a, font)
+
+    if outRects then
+        outRects.back  = {x = backX, y = backY, w = btnSz, h = btnSz}
+        outRects.verbs = outRects.verbs or {}
+    end
+
+    -- Verb cluster — right-aligned, drawn right-to-left
+    local verbAlpha = progressActive and 0.35 or 1.0
+    local cursorR   = x + w - padX
+    if verbs and #verbs > 0 then
+        for i = #verbs, 1, -1 do
+            local v = verbs[i]
+            if i < #verbs then cursorR = cursorR - gap end
+            local labelStr = v.label or ""
+            local lw   = getTextManager():MeasureStringX(font, labelStr)
+            local btnW = lw + btnPadX * 2
+            cursorR    = cursorR - btnW
+            local btnX = cursorR
+            local btnY = y + math.floor((h - btnSz) / 2)
+
+            local btnBg = v.primary and T.accent or T.surf2
+            panel:drawRect(btnX, btnY, btnW, btnSz, (btnBg.a or 1) * verbAlpha,
+                btnBg.r, btnBg.g, btnBg.b)
+
+            local btnHi = v.primary and T.accentBright or T.surf4
+            local btnSh = v.primary and ZeD.colorBlend(T.accent, T.base, 0.55) or T.borderS
+            panel:drawRect(btnX, btnY, btnW, 1,
+                (btnHi.a or 1) * verbAlpha, btnHi.r, btnHi.g, btnHi.b)
+            panel:drawRect(btnX, btnY, 1, btnSz,
+                (btnHi.a or 1) * verbAlpha, btnHi.r, btnHi.g, btnHi.b)
+            panel:drawRect(btnX, btnY + btnSz - 1, btnW, 1,
+                (btnSh.a or 1) * verbAlpha, btnSh.r, btnSh.g, btnSh.b)
+            panel:drawRect(btnX + btnW - 1, btnY, 1, btnSz,
+                (btnSh.a or 1) * verbAlpha, btnSh.r, btnSh.g, btnSh.b)
+
+            local lc = v.primary and T.textOnAccent or T.text
+            panel:drawText(labelStr, btnX + btnPadX,
+                btnY + math.floor((btnSz - labelH) / 2),
+                lc.r, lc.g, lc.b, (lc.a or 1) * verbAlpha, font)
+
+            if outRects then
+                outRects.verbs[i] = {x = btnX, y = btnY, w = btnW, h = btnSz}
+            end
+        end
+    end
+
+    -- Item name — between back button and verb cluster, ellipsis-truncated
+    local nameX = backX + btnSz + gap
+    local nameW = cursorR - gap - nameX
+    if nameW > 0 and name and name ~= "" then
+        local nameFont = compact and font or T.fontF4
+        local nameStr  = name
+        if getTextManager():MeasureStringX(nameFont, nameStr) > nameW then
+            nameStr = A.truncateText(nameStr, nameFont, nameW)
+        end
+        local nameH = (compact and (T.fontF1H or labelH))
+                       or T.fontF4H
+                       or getTextManager():MeasureStringY(nameFont, nameStr)
+        local nameY = y + math.floor((h - nameH) / 2)
+        local nc    = T.text
+        panel:drawText(nameStr, nameX, nameY, nc.r, nc.g, nc.b, nc.a, nameFont)
+    end
+
+    return h
+end
+
+-- T2.2 CARD FLAG STRIP -------------------------------------------------------
+--- Draw "MARKED" label + three flag chips (fav, nocraft, dispose).
+--- Per-chip on/off read from marks.
+--- @param panel    ISPanel
+--- @param x, y     Top-left
+--- @param w        Total width
+--- @param marks    Table {fav=bool, nocraft=bool, dispose=bool}
+--- @param compact  220w icon-only chips; else 480w padded label chips
+--- @param outRects Optional table; on return: outRects.fav/nocraft/dispose = hit rect
+--- @return height
+function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRects)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+
+    local h, padX, gap, lblPadR
+    if compact then
+        h, padX, gap, lblPadR = 24, 8, 4, 2
+    else
+        h, padX, gap, lblPadR = 28, 12, 6, 4
+    end
+
+    -- Surface bg (surf1 — body color) + 1px bottom separator
+    local bg, sep = T.surf1, T.border
+    panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
+    panel:drawRect(x, y + h - 1, w, 1, sep.a, sep.r, sep.g, sep.b)
+
+    local font   = T.fontF1
+    local labelH = T.fontF1H or getTextManager():MeasureStringY(font, "M")
+    local rowY   = y + math.floor((h - 18) / 2)  -- chip atom is 18 tall
+
+    -- "MARKED" label (left, dim)
+    local lblText  = "MARKED"
+    local labelTY  = y + math.floor((h - labelH) / 2)
+    local labelC   = T.textDim
+    panel:drawText(lblText, x + padX, labelTY,
+        labelC.r, labelC.g, labelC.b, labelC.a, font)
+    local lblW = getTextManager():MeasureStringX(font, lblText)
+
+    -- Three chips — composes Atoms.drawFlagChip ×3
+    local cursorX = x + padX + lblW + lblPadR
+
+    if outRects then outRects.fav = outRects.fav or {} end
+    local cw = A.drawFlagChip(panel, cursorX, rowY, "fav",
+        marks and marks.fav or false, "*", "FAV",
+        outRects and outRects.fav or nil, compact)
+    cursorX = cursorX + cw + gap
+
+    if outRects then outRects.nocraft = outRects.nocraft or {} end
+    cw = A.drawFlagChip(panel, cursorX, rowY, "nocraft",
+        marks and marks.nocraft or false, "o", "NO-CRAFT",
+        outRects and outRects.nocraft or nil, compact)
+    cursorX = cursorX + cw + gap
+
+    if outRects then outRects.dispose = outRects.dispose or {} end
+    A.drawFlagChip(panel, cursorX, rowY, "dispose",
+        marks and marks.dispose or false, "x", "DISPOSE",
+        outRects and outRects.dispose or nil, compact)
+
+    return h
+end
+
+-- T2.3 CARD PROGRESS BAND (observer wrapper) ---------------------------------
+--- Wrapper around Atoms.drawProgressBand. Reads observer state from
+--- ZeD.ItemActionManager — registered-observer pattern, NOT Events.OnTick.
+--- Idle items pay zero per-frame cost (manager returns nil → no draw).
+--- @param panel ISPanel
+--- @param x, y  Top-left
+--- @param w     Total width
+--- @param item  PZ inventory item — looked up via ItemActionManager
+--- @param compact bool
+--- @param outRect Optional cancel-button hit rect (forwarded from atom)
+--- @return height (0 when idle / no manager / no item)
+function ZeD.Molecules.drawCardProgressBand(panel, x, y, w, item, compact, outRect)
+    local mgr = ZeD.ItemActionManager
+    if not mgr or not item then return 0 end
+    local action = mgr.getActiveAction(item)
+    if not action then return 0 end
+    return ZeD.Atoms.drawProgressBand(panel, x, y, w,
+        action.mode    or "active",
+        action.label   or "",
+        action.percent or 0,
+        action.timeStr,
+        outRect, compact)
+end
+
+-- T2.4 CARD VERB STRIP -------------------------------------------------------
+--- Right-aligned row of text-labeled verb buttons.
+--- Empty list → no render at all (books have no maintenance verbs).
+--- @param panel        ISPanel
+--- @param rightEdge    Right boundary x (panel-local) — buttons grow left
+--- @param y            Top y
+--- @param verbs        Array of {label, glyph}; nil/empty → no render
+--- @param progressActive  When true, all buttons grey to .35 alpha
+--- @param compact      220w hides glyph; 480w shows glyph + label
+--- @param outRects     Optional array of per-verb hit rects
+--- @return result      {h = height, leftEdge = leftmost x consumed}
+function ZeD.Molecules.drawCardVerbStrip(panel, rightEdge, y, verbs, progressActive, compact, outRects)
+    if not verbs or #verbs == 0 then
+        return {h = 0, leftEdge = rightEdge}
+    end
+    local T        = ZeD.T
+    local font     = T.fontF1
+    local btnH     = 22
+    local padX     = 10
+    local gap      = compact and 3 or 4
+    local glyphGap = 4
+    local alpha    = progressActive and 0.35 or 1.0
+    local labelH   = T.fontF1H or getTextManager():MeasureStringY(font, "X")
+
+    local cursorR = rightEdge
+    for i = #verbs, 1, -1 do
+        local v = verbs[i]
+        if i < #verbs then cursorR = cursorR - gap end
+
+        local labelStr = v.label or ""
+        local labelW   = getTextManager():MeasureStringX(font, labelStr)
+        local glyphStr = (not compact) and v.glyph or nil
+        local glyphW   = (glyphStr and glyphStr ~= "")
+            and getTextManager():MeasureStringX(font, glyphStr) or 0
+        local interGap = (glyphW > 0) and glyphGap or 0
+        local btnW     = padX * 2 + glyphW + interGap + labelW
+        cursorR        = cursorR - btnW
+        local bx       = cursorR
+        local btnY     = y
+
+        local bgC, bdC = T.surf2, T.border
+        panel:drawRect(bx, btnY, btnW, btnH,
+            (bgC.a or 1) * alpha, bgC.r, bgC.g, bgC.b)
+        panel:drawRectBorder(bx, btnY, btnW, btnH,
+            (bdC.a or 1) * alpha, bdC.r, bdC.g, bdC.b)
+
+        local textY = btnY + math.floor((btnH - labelH) / 2)
+        local cursor = bx + padX
+        if glyphW > 0 then
+            local gc = T.textSec
+            panel:drawText(glyphStr, cursor, textY,
+                gc.r, gc.g, gc.b, (gc.a or 1) * alpha, font)
+            cursor = cursor + glyphW + interGap
+        end
+        local lc = T.text
+        panel:drawText(labelStr, cursor, textY,
+            lc.r, lc.g, lc.b, (lc.a or 1) * alpha, font)
+
+        if outRects then
+            outRects[i] = {x = bx, y = btnY, w = btnW, h = btnH}
+        end
+    end
+
+    return {h = btnH, leftEdge = cursorR}
+end
+
+-- ============================================================================
+-- ITEM CARD CONTENT MOLECULES (S120 — Phase 3)
+-- Top-of-body composables that sit below the FlagStrip:
+--   drawCardStatRow    — single key:value row (mono accent label + sans value)
+--   drawTopStatsList   — 220w single-column stat list (fixed 80px label column)
+--   drawTopStatsGrid   — 480w 2-column stat grid with 56px item icon left
+-- Plus the Facts panel primitives (composed by Phase 4 panels):
+--   drawFactsTitle     — "Defense Facts" / "Nutrition Facts" heading
+--   drawFactsRuleThick — 2px text-color rule (above first row)
+--   drawFactsRuleThin  — 1px border-color rule (between sub-blocks)
+--   drawFactsRow       — label/value row, optional sub-indent + value class
+--
+-- Distinct from existing M11 drawStatRow: v13/v15 mockup uses Fira Sans for
+-- values (T.fontF2) instead of Fira Mono (T.fontF3), and the mono label is
+-- full-opacity T.accent rather than 50%-α toneLo. Sibling function avoids
+-- breaking S118 callers that depend on the established voice.
+-- ============================================================================
+
+-- Internal helper: resolve a value-class string ("warn"/"bad"/"dim"/"good"/nil)
+-- to a color from the active theme. Inline so Phase 4 facts factories don't
+-- need to import any extra utility.
+local function _resolveStatValColor(valueClass, T)
+    if     valueClass == "warn" then return T.warning
+    elseif valueClass == "bad"  then return T.danger
+    elseif valueClass == "dim"  then return T.textDim
+    elseif valueClass == "good" then return T.positive
+    else                              return T.text
+    end
+end
+
+-- T3.x  CARD STAT ROW --------------------------------------------------------
+--- Draw a single key:value stat row in v13 voice (mono accent label + sans value).
+--- Matches the .stat-line-{220,480} CSS in mockups v13/v15.
+--- @param panel ISPanel
+--- @param x, y  Top-left
+--- @param w     Available width
+--- @param label String — uppercased automatically
+--- @param value String value
+--- @param valueClass One of nil/"warn"/"bad"/"dim"/"good" → color
+--- @param dotColor   Optional {r,g,b,a} for inline status dot after the value
+--- @param fixedLabelW Optional pixel width for left-aligned label column (220w spec uses 80)
+--- @return height
+function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass, dotColor, fixedLabelW)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local lblFont = T.fontF1
+    local valFont = T.fontF2
+
+    local labelH = T.fontF1H or getTextManager():getFontHeight(lblFont)
+    local valueH = T.fontF2H or getTextManager():getFontHeight(valFont)
+    local rowH   = math.max(labelH, valueH) + 2  -- 2px breathe (matches mockup padding:1px 0)
+    local labelY = y + math.floor((rowH - labelH) / 2)
+    local valueY = y + math.floor((rowH - valueH) / 2)
+
+    -- Label: F1 mono bold, full T.accent (not toneLo)
+    local lblText = string.upper(label or "")
+    local lc      = T.accent
+    panel:drawText(lblText, x, labelY,
+        lc.r, lc.g, lc.b, lc.a or 1, lblFont)
+
+    local lblWMeasured = getTextManager():MeasureStringX(lblFont, lblText)
+    local lblColW = fixedLabelW or lblWMeasured
+
+    -- Value column starts after the label column + 6px gap (mockup `gap:6px`)
+    local valX     = x + lblColW + 6
+    local maxValW  = w - (valX - x)
+
+    -- Optional status dot — reserves space at the right edge before value
+    local dotSz   = 7
+    local dotGap  = 5
+    local dotResW = dotColor and (dotSz + dotGap) or 0
+    local valSlotW = maxValW - dotResW
+
+    -- Value text (right-aligned, ellipsis if too wide)
+    local valStr = value or ""
+    local vc     = _resolveStatValColor(valueClass, T)
+    local valW   = getTextManager():MeasureStringX(valFont, valStr)
+    if valSlotW > 0 and valW > valSlotW then
+        valStr = A.truncateText(valStr, valFont, valSlotW)
+        valW   = getTextManager():MeasureStringX(valFont, valStr)
+    end
+    local valDrawX = x + w - dotResW - valW
+    panel:drawText(valStr, valDrawX, valueY,
+        vc.r, vc.g, vc.b, vc.a or 1, valFont)
+
+    -- Status dot (right of value)
+    if dotColor then
+        local dotY = y + math.floor((rowH - dotSz) / 2)
+        A.drawStatusDot(panel, x + w - dotSz, dotY, dotColor, dotSz)
+    end
+
+    return rowH
+end
+
+-- T3.2 TOP STATS LIST (220w preset) -----------------------------------------
+--- Single-column stat list with fixed 80px label gutter (per v15 220w spec).
+--- @param panel ISPanel
+--- @param x, y  Top-left
+--- @param w     Available width
+--- @param statRows Array of {label, value, valueClass, dotColor}
+--- @return height (sum of all row heights)
+function ZeD.Molecules.drawTopStatsList(panel, x, y, w, statRows)
+    if not statRows or #statRows == 0 then return 0 end
+    local rowGap = 2
+    local cy = y
+    for i, r in ipairs(statRows) do
+        local rowH = ZeD.Molecules.drawCardStatRow(panel, x, cy, w,
+            r.label, r.value, r.valueClass, r.dotColor, 80)
+        cy = cy + rowH + (i < #statRows and rowGap or 0)
+    end
+    return cy - y
+end
+
+-- T3.1 TOP STATS GRID (480w preset) -----------------------------------------
+--- 56px item icon (left) + 2-column stat grid (right). Per v13 480w spec.
+--- statRows fills column-major: row1L, row1R, row2L, row2R, ...
+--- @param panel ISPanel
+--- @param x, y  Top-left
+--- @param w     Total available width (icon + gap + grid)
+--- @param iconTexture  PZ texture for the item icon (or nil for placeholder square)
+--- @param statRows     Array of {label, value, valueClass, dotColor}
+--- @return height
+function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows)
+    local T  = ZeD.T
+    local A  = ZeD.Atoms
+    local iconSz   = 56
+    local iconGap  = 10
+    local colGap   = 16
+    local rowGap   = 4
+
+    local gridX = x + iconSz + iconGap
+    local gridW = w - iconSz - iconGap
+    local colW  = math.floor((gridW - colGap) / 2)
+
+    -- Item icon: 56x56 surf2 box, ZeD.Atoms.drawIcon if texture present
+    local bg, bd = T.surf2, T.borderS
+    panel:drawRect(x, y, iconSz, iconSz, bg.a, bg.r, bg.g, bg.b)
+    panel:drawRectBorder(x, y, iconSz, iconSz, bd.a, bd.r, bd.g, bd.b)
+    if iconTexture then
+        local pad = 4
+        A.drawIcon(panel, iconTexture, x + pad, y + pad, iconSz - pad * 2, 1.0, T.iconWhite)
+    end
+
+    -- Grid: pair rows from statRows[2k-1], statRows[2k]
+    local rows = statRows or {}
+    local n    = #rows
+    local rowCount = math.ceil(n / 2)
+    local cy = y
+    for r = 1, rowCount do
+        local lIdx, rIdx = r * 2 - 1, r * 2
+        local rowH1 = 0
+        local rowH2 = 0
+        if rows[lIdx] then
+            local sr = rows[lIdx]
+            rowH1 = ZeD.Molecules.drawCardStatRow(panel, gridX, cy, colW,
+                sr.label, sr.value, sr.valueClass, sr.dotColor)
+        end
+        if rows[rIdx] then
+            local sr = rows[rIdx]
+            rowH2 = ZeD.Molecules.drawCardStatRow(panel,
+                gridX + colW + colGap, cy, colW,
+                sr.label, sr.value, sr.valueClass, sr.dotColor)
+        end
+        cy = cy + math.max(rowH1, rowH2)
+        if r < rowCount then cy = cy + rowGap end
+    end
+
+    -- Total height = max(icon height, grid height)
+    return math.max(iconSz, cy - y)
+end
+
+-- T3.3 FACTS PANEL PRIMITIVES ----------------------------------------------
+--- "Defense Facts" / "Nutrition Facts" / etc. title — sans, 14/12px, weight 600.
+--- @return height
+function ZeD.Molecules.drawFactsTitle(panel, x, y, w, text, compact)
+    local T = ZeD.T
+    local font = compact and T.fontF2 or T.fontF4
+    local h = (compact and T.fontF2H) or T.fontF4H
+        or getTextManager():getFontHeight(font)
+    local c = T.text
+    panel:drawText(text or "", x, y,
+        c.r, c.g, c.b, c.a or 1, font)
+    return h + 2  -- mockup margin-bottom:2px
+end
+
+--- 2px thick text-color rule (above first facts row).
+function ZeD.Molecules.drawFactsRuleThick(panel, x, y, w)
+    local T = ZeD.T
+    local c = T.text
+    -- mockup margin:4px 0 (480w) or 2px 0 (220w) — caller manages outer spacing;
+    -- molecule renders just the rule itself
+    panel:drawRect(x, y, w, 2, c.a, c.r, c.g, c.b)
+    return 2
+end
+
+--- 1px thin border-color rule (between facts sub-blocks).
+function ZeD.Molecules.drawFactsRuleThin(panel, x, y, w)
+    local T = ZeD.T
+    local c = T.border
+    panel:drawRect(x, y, w, 1, c.a, c.r, c.g, c.b)
+    return 1
+end
+
+--- Single facts row: bold label (left, sans 600) + mono bold value (right).
+--- Optional sub mode for indented secondary rows ("1-in-N degrade", etc.).
+--- @param panel ISPanel
+--- @param x, y  Top-left
+--- @param w     Available width
+--- @param label String
+--- @param value String
+--- @param valueClass One of nil/"warn"/"bad"/"dim"/"good"
+--- @param isSub  bool — sub-row gets indent + smaller font + textSec label
+--- @return height
+function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+
+    -- v13: label is sans-serif weight 600 (~T.fontF4 small) for main, fontF2 for sub
+    -- v13: value is mono bold (T.fontF1)
+    local labelFont = isSub and T.fontF2 or T.fontF4
+    local valueFont = T.fontF1
+
+    local labelH = isSub and T.fontF2H or T.fontF4H
+        or getTextManager():getFontHeight(labelFont)
+    local valueH = T.fontF1H or getTextManager():getFontHeight(valueFont)
+    local rowH   = math.max(labelH, valueH) + 2  -- mockup padding:2px 0
+
+    local indent = isSub and 14 or 0
+    local labelC = isSub and T.textSec or T.text
+    local labelY = y + math.floor((rowH - labelH) / 2)
+    local valueY = y + math.floor((rowH - valueH) / 2)
+
+    panel:drawText(label or "", x + indent, labelY,
+        labelC.r, labelC.g, labelC.b, labelC.a or 1, labelFont)
+
+    local vc   = _resolveStatValColor(valueClass, T)
+    local vStr = value or ""
+    local vw   = getTextManager():MeasureStringX(valueFont, vStr)
+    panel:drawText(vStr, x + w - vw, valueY,
+        vc.r, vc.g, vc.b, vc.a or 1, valueFont)
+
+    return rowH
+end
+
+-- ============================================================================
 -- 17. PROTECTION ZONE PAIR (draw helper)
 -- Two-column compact layout for body part defense rows.
 -- Each column: fill bar on top, zone name + stats below.

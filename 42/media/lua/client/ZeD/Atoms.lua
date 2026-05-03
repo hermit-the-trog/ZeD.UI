@@ -671,6 +671,230 @@ function ZeD.Atoms.drawFocusRing(panel, x, y, w, h)
 end
 
 -- ============================================================================
+-- 12. PROGRESS BAND (S120)
+-- A two-row strip used between the back-bar and flag strip on item cards
+-- whenever a timed action is in progress on the item. Three modes:
+--   "idle"   — caller skips this atom entirely (no render)
+--   "active" — accent label + accent fill + neutral bottom-border separator
+--   "danger" — danger label + danger fill + danger bottom-border separator
+-- Mode is the only thing that flips between active/danger; chrome stays still
+-- so the visual delta is pure color (per S119 v16 mockup design rule).
+-- ============================================================================
+
+--- Draw a progress band.
+--- Row 1: label (left) ... time-str ... percent ... cancel-button (right)
+--- Row 2: full-width thin progress bar
+--- Bottom: 1px separator (color carries mode)
+---
+--- @param panel    The parent ISPanel
+--- @param x, y     Top-left position
+--- @param w        Total width of the band
+--- @param mode     "active" or "danger"
+--- @param label    Label string e.g. "COOKING" / "BURNING" — caller composes
+--- @param percent  0.0 .. 1.0
+--- @param timeStr  Optional time string e.g. "2:30 LEFT"; nil to omit
+--- @param outRect  Optional table; on return holds {x,y,w,h} of the cancel button hit rect
+--- @param compact  If true, 220w sizing preset; otherwise 480w preset
+--- @return height  Total vertical pixels consumed (so caller can place the next element)
+function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeStr, outRect, compact)
+    local T = ZeD.T
+    if mode ~= "active" and mode ~= "danger" then return 0 end
+
+    -- Sizing presets — match v16 mockup dimensions
+    local padX, padTop, padBot, gapV, barH, btnW, btnH
+    if compact then
+        padX, padTop, padBot, gapV = 8, 5, 6, 4
+        barH    = 6
+        btnW, btnH = 16, 14
+    else
+        padX, padTop, padBot, gapV = 12, 6, 7, 5
+        barH    = 8
+        btnW, btnH = 18, 18
+    end
+
+    -- Mode-driven colors
+    local isDanger = (mode == "danger")
+    local accentC  = isDanger and T.danger or T.accent
+    local labelC   = accentC
+    local pctC     = isDanger and T.danger or T.text
+    local timeC    = T.textSec
+    local fillC    = accentC
+    local sepC     = isDanger and T.danger or T.border
+    local font     = T.fontF1
+    local labelH   = T.fontF1H or getTextManager():MeasureStringY(font, "X")
+
+    -- Geometry
+    local row1H  = math.max(labelH, btnH)
+    local totalH = padTop + row1H + gapV + barH + padBot
+
+    -- ROW 1: label, time, percent, cancel button
+    local rowY   = y + padTop
+    local textY  = rowY + math.floor((row1H - labelH) / 2)
+    local btnX   = x + w - padX - btnW
+    local btnY   = rowY + math.floor((row1H - btnH) / 2)
+
+    -- Label (left)
+    panel:drawText(label or "", x + padX, textY,
+        labelC.r, labelC.g, labelC.b, labelC.a, font)
+
+    -- Cancel button (right) — raised System-7 chrome via surf4 (light) + borderS (dark)
+    local bg, hi, sh = T.surf2, T.surf4, T.borderS
+    panel:drawRect(btnX, btnY, btnW, btnH, bg.a, bg.r, bg.g, bg.b)
+    panel:drawRect(btnX, btnY, btnW, 1, hi.a, hi.r, hi.g, hi.b)              -- top
+    panel:drawRect(btnX, btnY, 1, btnH, hi.a, hi.r, hi.g, hi.b)              -- left
+    panel:drawRect(btnX, btnY + btnH - 1, btnW, 1, sh.a, sh.r, sh.g, sh.b)    -- bottom
+    panel:drawRect(btnX + btnW - 1, btnY, 1, btnH, sh.a, sh.r, sh.g, sh.b)    -- right
+    -- "x" glyph centered
+    local glyph = "x"
+    local gw = getTextManager():MeasureStringX(font, glyph)
+    local gh = getTextManager():MeasureStringY(font, glyph)
+    local tc = T.text
+    panel:drawText(glyph, btnX + math.floor((btnW - gw) / 2),
+        btnY + math.floor((btnH - gh) / 2),
+        tc.r, tc.g, tc.b, tc.a, font)
+
+    -- Percent (right of time, left of cancel button, right-aligned)
+    local pctStr = string.format("%d%%", math.floor((percent or 0) * 100))
+    local pctW = getTextManager():MeasureStringX(font, pctStr)
+    local gapBeforeBtn = 8
+    local pctX = btnX - gapBeforeBtn - pctW
+    panel:drawText(pctStr, pctX, textY,
+        pctC.r, pctC.g, pctC.b, pctC.a, font)
+
+    -- Time (between label and percent, only if room remains)
+    if timeStr and timeStr ~= "" then
+        local timeW  = getTextManager():MeasureStringX(font, timeStr)
+        local labelW = getTextManager():MeasureStringX(font, label or "")
+        local timeX  = pctX - gapBeforeBtn - timeW
+        if timeX > (x + padX + labelW + gapBeforeBtn) then
+            panel:drawText(timeStr, timeX, textY,
+                timeC.r, timeC.g, timeC.b, timeC.a, font)
+        end
+    end
+
+    -- ROW 2: progress bar
+    local barX, barY = x + padX, rowY + row1H + gapV
+    local barW = w - padX * 2
+    local barBg = T.surf2
+    panel:drawRect(barX, barY, barW, barH, barBg.a, barBg.r, barBg.g, barBg.b)
+    local fillW = math.floor(barW * math.max(0, math.min(1, percent or 0)))
+    if fillW > 0 then
+        panel:drawRect(barX, barY, fillW, barH, fillC.a, fillC.r, fillC.g, fillC.b)
+    end
+    local bbc = T.borderS
+    panel:drawRectBorder(barX, barY, barW, barH, bbc.a, bbc.r, bbc.g, bbc.b)
+
+    -- Bottom 1px separator (mode-colored — danger reads through chrome)
+    panel:drawRect(x, y + totalH - 1, w, 1, sepC.a, sepC.r, sepC.g, sepC.b)
+
+    -- Out-param: cancel button hit rect for caller's mouse/gamepad dispatch
+    if outRect then
+        outRect.x, outRect.y, outRect.w, outRect.h = btnX, btnY, btnW, btnH
+    end
+
+    return totalH
+end
+
+-- ============================================================================
+-- 13. FLAG CHIP (S120)
+-- A small chip used in the FlagStrip molecule above the item card body.
+-- Three semantic kinds drive distinct on-state color families:
+--   "fav"     — accent (positive intent)
+--   "nocraft" — warning (cautionary intent)
+--   "dispose" — danger (negative intent)
+-- Off state is uniform across kinds: dim text on neutral surface.
+-- Border darkens to a hue-matched darker variant on activation
+-- (computed via ZeD.colorBlend so no new theme tokens are required).
+-- ============================================================================
+
+--- Draw a flag chip.
+--- @param panel    Parent ISPanel
+--- @param x, y     Top-left position
+--- @param kind     "fav" | "nocraft" | "dispose"
+--- @param on       True = on-state colors, false = off-state
+--- @param glyph    Short icon string drawn left of label (or alone in compact); nil to omit
+--- @param label    Uppercase label text (e.g. "FAV") — ignored when compact=true
+--- @param outRect  Optional table; on return holds {x,y,w,h} of the chip's hit rect
+--- @param compact  If true, fixed 22x18 icon-only chip (220w preset); else padded label chip
+--- @return width   Total horizontal pixels consumed (so the caller can advance its cursor)
+function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, compact)
+    local T = ZeD.T
+
+    -- Kind selects the on-state base color
+    local onBg
+    if     kind == "fav"     then onBg = T.accent
+    elseif kind == "nocraft" then onBg = T.warning
+    elseif kind == "dispose" then onBg = T.danger
+    else                          onBg = T.accent
+    end
+
+    -- Resolve fg/bg/border for current state
+    local bgC, fgC, brC
+    if on then
+        bgC = onBg
+        fgC = T.textOnAccent
+        brC = ZeD.colorBlend(onBg, T.base, 0.55)  -- hue-matched darker border
+    else
+        bgC = T.surf2
+        fgC = T.textDim
+        brC = T.border
+    end
+
+    -- Sizing
+    local h        = 18
+    local padX     = compact and 0 or 8
+    local gapInner = (compact or not (glyph and label)) and 0 or 4
+    local font     = T.fontF1
+
+    -- Width computation
+    local w
+    if compact then
+        w = 22
+    else
+        local labelW = label and getTextManager():MeasureStringX(font, label) or 0
+        local glyphW = glyph and getTextManager():MeasureStringX(font, glyph) or 0
+        w = padX * 2 + glyphW + gapInner + labelW
+        if w < 22 then w = 22 end
+    end
+
+    -- Background + border
+    panel:drawRect(x, y, w, h, bgC.a, bgC.r, bgC.g, bgC.b)
+    panel:drawRectBorder(x, y, w, h, brC.a, brC.r, brC.g, brC.b)
+
+    -- Content (vertically centered)
+    local labelH = T.fontF1H or getTextManager():MeasureStringY(font, "X")
+    local textY  = y + math.floor((h - labelH) / 2)
+
+    if compact then
+        -- Icon-only: glyph centered within the 22-wide chip
+        if glyph then
+            local gw = getTextManager():MeasureStringX(font, glyph)
+            panel:drawText(glyph, x + math.floor((w - gw) / 2), textY,
+                fgC.r, fgC.g, fgC.b, fgC.a, font)
+        end
+    else
+        -- Padded label chip: glyph + gap + label, both left-aligned
+        local cursor = x + padX
+        if glyph then
+            panel:drawText(glyph, cursor, textY,
+                fgC.r, fgC.g, fgC.b, fgC.a, font)
+            cursor = cursor + getTextManager():MeasureStringX(font, glyph) + gapInner
+        end
+        if label then
+            panel:drawText(label, cursor, textY,
+                fgC.r, fgC.g, fgC.b, fgC.a, font)
+        end
+    end
+
+    -- Out-param hit rect
+    if outRect then
+        outRect.x, outRect.y, outRect.w, outRect.h = x, y, w, h
+    end
+
+    return w
+end
+
+-- ============================================================================
 -- ACTION STRIP — shared state logic for icon action buttons
 -- The strip is a reusable row of icon-only toggle/action buttons.
 -- Plug it into a window footer, tab bar, between organisms, anywhere.

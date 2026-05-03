@@ -1014,8 +1014,8 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
     -- dock flag colors with action buttons. Equipment drawer IS the inspector
     -- per design — no separate inspect window.)
     -- ================================================================
-    if instanceof(item, "Clothing") and ZeD.ClothingDetail then
-        local CD = ZeD.ClothingDetail
+    if instanceof(item, "Clothing") and ZeD.ItemDetail then
+        local CD = ZeD.ItemDetail
         local zones = CD.buildConfigs(item)
         if #zones > 0 then
             -- Section divider + heading (atoms)

@@ -4115,11 +4115,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     end
                 end
                 -- Card mode: detail-zone structural docks (S118 — repair / remove patch)
-                if win._equipSelected and win._equipDockZones and ZeD.ClothingDetail then
+                if win._equipSelected and win._equipDockZones and ZeD.ItemDetail then
                     for _, dz in ipairs(win._equipDockZones) do
                         if x >= dz.x and x <= dz.x + dz.w
                            and y >= dz.y and y <= dz.y + dz.h then
-                            ZeD.ClothingDetail.dispatchZoneAction(
+                            ZeD.ItemDetail.dispatchZoneAction(
                                 win._playerObj, dz.item, dz.part, dz.action)
                             return true
                         end
