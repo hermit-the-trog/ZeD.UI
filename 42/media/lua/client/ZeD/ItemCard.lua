@@ -1592,24 +1592,24 @@ function ZeD_ItemCard:scrollToPrevDisclosure()
 end
 
 -- ===========================================================================
--- PUBLIC NAMESPACE: ZeD.ClothingDetail
+-- PUBLIC NAMESPACE: ZeD.ItemDetail
 -- Shared by ZeD_ItemCard (drawer card for inv items) AND EquipmentTab
 -- (selected-item view for equipped items). Equipment drawer IS the inspector
 -- per design — no separate inspect window. Both render sites consume the same
 -- detail-zone primitives.
 -- ===========================================================================
 ZeD                = ZeD or {}
-ZeD.ClothingDetail = ZeD.ClothingDetail or {}
+ZeD.ItemDetail = ZeD.ItemDetail or {}
 
-ZeD.ClothingDetail.getZones        = getClothingZones
-ZeD.ClothingDetail.buildConfigs    = buildZoneConfigs
-ZeD.ClothingDetail.buildItemSoil   = buildItemSoilCfg
-ZeD.ClothingDetail.drawSoilRow     = drawItemSoilRow
-ZeD.ClothingDetail.findMaterials   = findClothingMaterials
+ZeD.ItemDetail.getZones        = getClothingZones
+ZeD.ItemDetail.buildConfigs    = buildZoneConfigs
+ZeD.ItemDetail.buildItemSoil   = buildItemSoilCfg
+ZeD.ItemDetail.drawSoilRow     = drawItemSoilRow
+ZeD.ItemDetail.findMaterials   = findClothingMaterials
 
 -- One-call repair / remove-patch dispatch for a given item + part. Mirrors
 -- ZeD_ItemCard:_onZonePress logic so EquipmentTab gets identical behavior.
-function ZeD.ClothingDetail.dispatchZoneAction(player, item, part, action)
+function ZeD.ItemDetail.dispatchZoneAction(player, item, part, action)
     if not (player and item and part) then return end
     if action == "repair" then
         local needle, thread, fabric = findClothingMaterials(player)
