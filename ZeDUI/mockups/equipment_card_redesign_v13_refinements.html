@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI Item Card — S119 v13 — Refinements Pass</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --t-base:#0a0a0a; --t-surf1:#1a1a1a; --t-surf2:#2a2a2a; --t-surf3:#3a3a3a; --t-surf4:#4a4a4a;
+    --t-border:#3a3a3a; --t-border-s:#000;
+    --t-text:#e0e0e0; --t-text-sec:#999; --t-text-dim:#666;
+    --t-text-on-acc:#1a0500;
+    --t-accent:#d97a1f;
+    --t-danger:#cc4444; --t-warning:#cc8844; --t-positive:#2a8a2a;
+    --t-info:#5a9adb;
+    --z-pristine:#2a8a2a; --z-light:#4a9a3a; --z-mid:#cc8844; --z-heavy:#cc6633; --z-torn:#cc4444;
+    --z-patch-cloth:#d8d8d8; --z-patch-denim:#5b8abf; --z-patch-leath:#b08a5e;
+    --soil-blood:#ff6b6b; --soil-dirt:#c89860; --soil-wet:#60b0e8;
+    --font-mono:'Fira Mono',monospace; --font-sans:'Fira Sans Condensed',sans-serif;
+}
+body { background:var(--t-base); color:var(--t-text); font-family:var(--font-sans); font-size:13px; padding:24px; min-height:100vh; }
+
+.page-banner { background:var(--t-accent); color:var(--t-text-on-acc); padding:8px 16px; font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); margin-bottom:16px; display:inline-block; }
+.page-title { font-size:18px; font-weight:600; color:var(--t-text); margin-bottom:6px; letter-spacing:.5px; }
+.page-sub { font-family:var(--font-mono); font-size:11px; color:var(--t-text-sec); margin-bottom:24px; line-height:1.6; max-width:900px; }
+.page-sub .delta { color:var(--t-accent); font-weight:700; }
+
+.cards-row { display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap; }
+.card-col { display:flex; flex-direction:column; }
+.col-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.col-tag { background:var(--t-accent); color:var(--t-text-on-acc); padding:3px 8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); }
+.col-state { background:#3a3a3a; color:var(--t-text); padding:3px 8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); text-transform:uppercase; }
+.col-note { font-family:var(--font-mono); font-size:10px; color:var(--t-text-sec); margin-bottom:12px; line-height:1.5; max-width:480px; }
+
+/* ================= 480w EQUIPPED ================= */
+.card-480 { width:480px; background:var(--t-surf1); border:1px solid var(--t-border-s); font-family:var(--font-sans); color:var(--t-text); }
+.cb-480 { background:var(--t-surf2); border-bottom:1px solid var(--t-border-s); height:37px; display:flex; align-items:center; padding:0 4px; gap:6px; }
+.cb-480-back { width:22px; height:22px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.cb-480-name { flex:1; font-size:13px; font-weight:600; color:var(--t-text); padding:4px 6px; border:1px solid transparent; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cb-480-actions { display:flex; gap:3px; }
+.cb-480-btn { height:22px; padding:0 8px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.cb-480-btn.primary { background:var(--t-accent); color:var(--t-text-on-acc); border-top:1px solid #ff9933; border-left:1px solid #ff9933; border-right:1px solid #6a3a08; border-bottom:1px solid #6a3a08; }
+
+.fs-480 { background:var(--t-surf1); padding:5px 12px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--t-border); min-height:28px; }
+.fs-480-label { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-text-dim); letter-spacing:1.5px; text-transform:uppercase; padding-right:4px; }
+.fs-480-chip { height:18px; padding:0 8px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text-dim); font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; display:flex; align-items:center; gap:4px; cursor:pointer; }
+.fs-480-chip .ico { font-size:11px; line-height:1; }
+.fs-480-chip.on.fav     { background:var(--t-accent);  color:var(--t-text-on-acc); border-color:#6a3a08; }
+.fs-480-chip.on.nocraft { background:var(--t-warning); color:#1a0a0a; border-color:#6a3a08; }
+.fs-480-chip.on.dispose { background:var(--t-danger);  color:#1a0a0a; border-color:#6a1a1a; }
+
+/* gap bumped to 14px to absorb the section dividers we removed */
+.cb-480-body { padding:12px 12px; display:flex; flex-direction:column; gap:14px; }
+
+.top-icon-name-480 { display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start; }
+.item-icon-480 { width:56px; height:56px; background:var(--t-surf2); border:1px solid var(--t-border-s); display:flex; align-items:center; justify-content:center; color:var(--t-text-dim); font-family:var(--font-mono); font-size:9px; letter-spacing:1px; }
+.stats-grid-480 { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; align-content:start; align-items:start; }
+.stat-line-480 { display:flex; align-items:baseline; gap:6px; min-width:0; padding:1px 0; }
+.stat-lbl-480 { font-family:var(--font-mono); font-size:9px; color:var(--t-accent); letter-spacing:1.5px; text-transform:uppercase; font-weight:700; white-space:nowrap; }
+.stat-val-480 { font-family:var(--font-sans); font-size:12px; color:var(--t-text); flex:1; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stat-val-480.warn { color:var(--t-warning); }
+.stat-val-480.bad  { color:var(--t-danger); }
+.stat-val-480.dim  { color:var(--t-text-dim); }
+.stat-val-480.good { color:var(--t-positive); }
+.stat-val-480 .cond-dot { display:inline-block; width:7px; height:7px; background:var(--t-positive); margin-left:5px; vertical-align:middle; }
+
+.zone-disc-480 { display:flex; align-items:center; gap:8px; cursor:pointer; height:22px; }
+.zone-chev-480 { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:10px; flex-shrink:0; }
+.zone-disc-480 .label { font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--t-accent); letter-spacing:2px; text-transform:uppercase; min-width:56px; }
+.seg-bar-480 { flex:1; display:flex; gap:1px; height:12px; background:var(--t-surf2); border:1px solid var(--t-border-s); padding:1px; }
+.seg-bar-480 .seg { flex:1; height:100%; background:var(--z-pristine); }
+.seg-bar-480 .seg.light { background:var(--z-light); } .seg-bar-480 .seg.mid { background:var(--z-mid); }
+.seg-bar-480 .seg.heavy { background:var(--z-heavy); } .seg-bar-480 .seg.torn { background:var(--z-torn); }
+.seg-bar-480 .seg.patch-cloth { background:var(--z-patch-cloth); } .seg-bar-480 .seg.patch-denim { background:var(--z-patch-denim); } .seg-bar-480 .seg.patch-leath { background:var(--z-patch-leath); }
+.seg-summary-480 { font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--t-text); min-width:40px; text-align:right; }
+.seg-summary-480.warn { color:var(--t-warning); } .seg-summary-480.bad { color:var(--t-danger); } .seg-summary-480.good { color:var(--t-positive); }
+.soil-row-480 { display:flex; gap:4px; }
+.soil-480 { font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1px; padding:1px 5px; border:1px solid currentColor; text-transform:uppercase; line-height:1.4; }
+.soil-480.dirt { color:var(--soil-dirt); } .soil-480.wet { color:var(--soil-wet); } .soil-480.blood { color:var(--soil-blood); }
+
+/* zone list — NO RULES, padding only */
+.zone-list-480 { display:flex; flex-direction:column; margin-top:8px; }
+.zone-section-480 + .zone-section-480 { padding-top:10px; }
+.zone-group-480 { font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--t-accent); letter-spacing:2px; text-transform:uppercase; padding:2px 0 4px 0; }
+.zone-row-480 { display:grid; grid-template-columns:60px 36px 1fr 76px 22px; gap:8px; align-items:center; padding:3px 0; height:22px; }
+.zone-row-480 .zname { font-family:var(--font-mono); font-size:10px; color:var(--t-text); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; padding-left:6px; }
+.zone-row-480 .zpct { font-family:var(--font-mono); font-size:10px; color:var(--t-text-sec); text-align:right; font-weight:700; }
+.zone-row-480 .zpct.warn { color:var(--t-warning); } .zone-row-480 .zpct.bad { color:var(--t-danger); } .zone-row-480 .zpct.good { color:var(--t-positive); }
+.zone-row-480 .zbar { height:6px; background:var(--t-surf2); border:1px solid var(--t-border-s); position:relative; }
+.zone-row-480 .zbar > i { display:block; height:100%; background:var(--z-pristine); }
+.zone-row-480 .zflag { font-family:var(--font-mono); font-size:9px; text-align:right; letter-spacing:.5px; }
+.zone-row-480 .zflag.torn { color:var(--t-danger); } .zone-row-480 .zflag.worn { color:var(--t-warning); }
+.zone-row-480 .zflag.patch-cloth { color:var(--z-patch-cloth); } .zone-row-480 .zflag.patch-denim { color:var(--z-patch-denim); } .zone-row-480 .zflag.patch-leath { color:var(--z-patch-leath); }
+.zone-row-480 .zflag.pristine { color:var(--t-text-dim); }
+.zone-row-480 .zdock { width:22px; height:22px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; cursor:pointer; }
+.zone-row-480 .zdock.disabled { opacity:.3; cursor:default; }
+.zone-row-480 .zdock.action-repair { color:var(--t-warning); border-color:var(--t-warning); }
+.zone-row-480 .zdock.action-rmpatch { color:var(--t-text-sec); border-color:var(--t-text-sec); }
+
+.facts-480 { background:transparent; padding:0; }
+.facts-title-480 { font-family:var(--font-sans); font-size:14px; font-weight:600; color:var(--t-text); line-height:1.1; margin-bottom:2px; }
+.facts-rule-thick-480 { height:2px; background:var(--t-text); margin:4px 0; }
+.facts-rule-thin-480  { height:1px; background:var(--t-border); margin:2px 0; }
+.facts-row-480 { display:flex; justify-content:space-between; align-items:baseline; padding:2px 0; font-family:var(--font-sans); font-size:12px; color:var(--t-text); }
+.facts-row-480 .lbl { font-weight:600; }
+.facts-row-480 .val { font-family:var(--font-mono); font-weight:700; }
+.facts-row-480 .val.warn { color:var(--t-warning); }
+.facts-row-480 .val.bad  { color:var(--t-danger); }
+.facts-row-480 .val.dim  { color:var(--t-text-dim); }
+.facts-row-480 .val.good { color:var(--t-positive); }
+.facts-row-480.sub { padding-left:14px; font-size:11px; color:var(--t-text-sec); }
+.facts-row-480.sub .lbl { font-weight:400; }
+.facts-row-480 .needs-probe { color:var(--t-warning); font-size:8px; font-style:italic; margin-left:4px; font-family:var(--font-mono); letter-spacing:1px; }
+
+/* verb strip — NO top rule, padding only */
+.verb-480 { display:flex; gap:4px; padding-top:6px; justify-content:flex-end; }
+.verb-480-btn { height:22px; padding:0 10px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; gap:4px; }
+.verb-480-btn .ico { font-size:11px; color:var(--t-text-sec); }
+
+/* ================= 220w UNEQUIPPED ================= */
+.card-220 { width:220px; background:var(--t-surf1); border:1px solid var(--t-border-s); font-family:var(--font-sans); color:var(--t-text); }
+.cb-220 { background:var(--t-surf2); border-bottom:1px solid var(--t-border-s); height:30px; display:flex; align-items:center; padding:0 3px; gap:4px; }
+.cb-220-back { width:20px; height:20px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.cb-220-name { flex:1; font-size:11px; font-weight:600; color:var(--t-text); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cb-220-btn { height:20px; padding:0 7px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.cb-220-btn.primary { background:var(--t-accent); color:var(--t-text-on-acc); border-top:1px solid #ff9933; border-left:1px solid #ff9933; border-right:1px solid #6a3a08; border-bottom:1px solid #6a3a08; }
+
+.fs-220 { background:var(--t-surf1); padding:4px 8px; display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--t-border); min-height:24px; }
+.fs-220-label { font-family:var(--font-mono); font-size:8px; font-weight:700; color:var(--t-text-dim); letter-spacing:1.5px; text-transform:uppercase; padding-right:2px; }
+.fs-220-chip { width:22px; height:18px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text-dim); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; cursor:pointer; }
+.fs-220-chip.on.fav     { background:var(--t-accent);  color:var(--t-text-on-acc); border-color:#6a3a08; }
+.fs-220-chip.on.nocraft { background:var(--t-warning); color:#1a0a0a; border-color:#6a3a08; }
+.fs-220-chip.on.dispose { background:var(--t-danger);  color:#1a0a0a; border-color:#6a1a1a; }
+
+/* gap bumped 8 → 12 to absorb removed section dividers */
+.cb-220-body { padding:10px 10px; display:flex; flex-direction:column; gap:12px; }
+
+.stats-list-220 { display:flex; flex-direction:column; gap:2px; }
+.stat-line-220 { display:flex; align-items:baseline; gap:8px; padding:1px 0; }
+.stat-lbl-220 { font-family:var(--font-mono); font-size:9px; color:var(--t-accent); letter-spacing:1.2px; text-transform:uppercase; font-weight:700; white-space:nowrap; min-width:80px; }
+.stat-val-220 { font-family:var(--font-sans); font-size:11px; color:var(--t-text); flex:1; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stat-val-220.warn { color:var(--t-warning); }
+.stat-val-220.bad  { color:var(--t-danger); }
+.stat-val-220.dim  { color:var(--t-text-dim); }
+.stat-val-220.good { color:var(--t-positive); }
+.stat-val-220 .cond-dot { display:inline-block; width:6px; height:6px; background:var(--t-positive); margin-left:4px; vertical-align:middle; }
+
+.zone-disc-220 { display:flex; align-items:center; gap:6px; height:18px; cursor:pointer; }
+.zone-chev-220 { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:9px; flex-shrink:0; }
+.zone-disc-220 .label { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-accent); letter-spacing:1.5px; text-transform:uppercase; }
+.zone-disc-220 .summary { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-text); margin-left:auto; }
+.zone-disc-220 .summary.warn { color:var(--t-warning); } .zone-disc-220 .summary.bad { color:var(--t-danger); } .zone-disc-220 .summary.good { color:var(--t-positive); }
+.seg-bar-220 { display:flex; gap:1px; height:10px; background:var(--t-surf2); border:1px solid var(--t-border-s); padding:1px; }
+.seg-bar-220 .seg { flex:1; height:100%; background:var(--z-pristine); }
+.seg-bar-220 .seg.light { background:var(--z-light); } .seg-bar-220 .seg.mid { background:var(--z-mid); }
+.seg-bar-220 .seg.heavy { background:var(--z-heavy); } .seg-bar-220 .seg.torn { background:var(--z-torn); }
+.seg-bar-220 .seg.patch-cloth { background:var(--z-patch-cloth); } .seg-bar-220 .seg.patch-denim { background:var(--z-patch-denim); } .seg-bar-220 .seg.patch-leath { background:var(--z-patch-leath); }
+
+/* PADDING bumped 3 → 8 between seg-bar and soil chips */
+.soil-row-220 { display:flex; gap:3px; margin-top:8px; }
+.soil-220 { font-family:var(--font-mono); font-size:8px; font-weight:700; letter-spacing:1px; padding:1px 4px; border:1px solid currentColor; text-transform:uppercase; line-height:1.4; }
+.soil-220.dirt { color:var(--soil-dirt); } .soil-220.wet { color:var(--soil-wet); } .soil-220.blood { color:var(--soil-blood); }
+
+/* zone list — NO RULES, padding only */
+.zone-list-220 { display:flex; flex-direction:column; margin-top:10px; }
+.zone-section-220 + .zone-section-220 { padding-top:8px; }
+.zone-group-220 { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-accent); letter-spacing:1.5px; text-transform:uppercase; padding:2px 0 2px 0; }
+.zone-row-220 { display:grid; grid-template-columns:38px 1fr 26px 18px; gap:4px; align-items:center; height:14px; padding:1px 0; }
+.zone-row-220 .zname { font-family:var(--font-mono); font-size:9px; color:var(--t-text); letter-spacing:.5px; white-space:nowrap; padding-left:4px; }
+.zone-row-220 .zbar { height:6px; background:var(--t-surf2); border:1px solid var(--t-border-s); position:relative; overflow:hidden; }
+.zone-row-220 .zbar > i { display:block; height:100%; background:var(--z-pristine); }
+.zone-row-220 .zpct { font-family:var(--font-mono); font-size:8px; color:var(--t-text-sec); text-align:right; font-weight:700; }
+.zone-row-220 .zpct.warn { color:var(--t-warning); } .zone-row-220 .zpct.bad { color:var(--t-danger); } .zone-row-220 .zpct.good { color:var(--t-positive); }
+.zone-row-220 .zdock { width:18px; height:14px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:9px; cursor:pointer; }
+.zone-row-220 .zdock.disabled { opacity:.3; cursor:default; }
+.zone-row-220 .zdock.action-repair { color:var(--t-warning); border-color:var(--t-warning); }
+.zone-row-220 .zdock.action-rmpatch { color:var(--t-text-sec); border-color:var(--t-text-sec); }
+
+.df-220 { display:flex; flex-direction:column; gap:6px; }
+.df-220-row { display:flex; align-items:center; gap:6px; height:18px; cursor:pointer; }
+.df-220-chev { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:9px; flex-shrink:0; }
+.df-220-title { font-family:var(--font-sans); font-size:11px; font-weight:600; color:var(--t-text); }
+.df-220-panel { display:flex; flex-direction:column; }
+.df-220-thick { height:2px; background:var(--t-text); margin:2px 0; }
+.df-220-thin  { height:1px; background:var(--t-border); margin:2px 0; }
+.df-220-line { display:flex; justify-content:space-between; align-items:baseline; padding:1px 0; font-family:var(--font-sans); font-size:11px; color:var(--t-text); }
+.df-220-line .lbl { font-weight:600; }
+.df-220-line .val { font-family:var(--font-mono); font-weight:700; font-size:10px; }
+.df-220-line .val.warn { color:var(--t-warning); }
+.df-220-line .val.bad  { color:var(--t-danger); }
+.df-220-line .val.dim  { color:var(--t-text-dim); }
+.df-220-line .val.good { color:var(--t-positive); }
+.df-220-line.sub { padding-left:10px; font-size:10px; color:var(--t-text-sec); }
+.df-220-line.sub .lbl { font-weight:400; }
+.needs-probe-220 { color:var(--t-warning); font-size:7px; font-style:italic; margin-left:3px; font-family:var(--font-mono); letter-spacing:1px; }
+
+/* verb strip — NO top rule, padding only, FULL TEXT LABELS */
+.verb-220 { display:flex; gap:3px; padding-top:6px; justify-content:flex-end; }
+.verb-220-btn { height:22px; padding:0 10px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer; }
+</style>
+</head>
+<body>
+    <div class="page-banner">▌ S119 v13 — RULES OUT · LABELS IN · MINI-SUMMARY OUT</div>
+    <div class="page-title">Item Card — Refinements Pass</div>
+    <div class="page-sub">
+        Same item, same widths as v12. Four refinements based on review:<br>
+        <span class="delta">DELTA</span> Removed line rules between zone groups and section dividers — padding handles spacing now. Less noise, more breathing room.<br>
+        <span class="delta">DELTA</span> Added padding between the seg-bar and soil chips at 220w (3px → 8px).<br>
+        <span class="delta">DELTA</span> Verb buttons at 220w spell out: <b>WASH · REPAIR · PAD</b>. S120 deferred-tags removed everywhere.<br>
+        <span class="delta">DELTA</span> Removed "covers N zones · X holes · Y patches" sub from Defense Facts. Per-zone list above already shows that.
+    </div>
+
+    <div class="cards-row">
+
+        <!-- 480w EQUIPPED -->
+        <div class="card-col">
+            <div class="col-header">
+                <span class="col-tag">480w</span>
+                <span class="col-state">EQUIPPED · FULLY DISCLOSED</span>
+            </div>
+            <div class="col-note">
+                Equipped item, full drawer width. Back-bar shows UNEQUIP primary, DROP secondary. Defense Facts always-visible at this width. Zones expanded — anatomical groups separated by padding only.
+            </div>
+
+            <div class="card-480">
+                <div class="cb-480">
+                    <div class="cb-480-back">&lt;</div>
+                    <div class="cb-480-name">Bernard's Casual Shirt</div>
+                    <div class="cb-480-actions">
+                        <div class="cb-480-btn primary">UNEQUIP</div>
+                        <div class="cb-480-btn">DROP</div>
+                    </div>
+                </div>
+
+                <div class="fs-480">
+                    <span class="fs-480-label">MARKED</span>
+                    <div class="fs-480-chip on fav"><span class="ico">★</span>FAV</div>
+                    <div class="fs-480-chip"><span class="ico">⊘</span>NO-CRAFT</div>
+                    <div class="fs-480-chip"><span class="ico">✕</span>DISPOSE</div>
+                </div>
+
+                <div class="cb-480-body">
+
+                    <div class="top-icon-name-480">
+                        <div class="item-icon-480">SHIRT</div>
+                        <div class="stats-grid-480">
+                            <div class="stat-line-480"><span class="stat-lbl-480">KIND</span><span class="stat-val-480">Shirt</span></div>
+                            <div class="stat-line-480"><span class="stat-lbl-480">WEIGHT</span><span class="stat-val-480">1.1 kg</span></div>
+                            <div class="stat-line-480"><span class="stat-lbl-480">FABRIC</span><span class="stat-val-480">Cotton</span></div>
+                            <div class="stat-line-480"><span class="stat-lbl-480">CONDITION</span><span class="stat-val-480 warn">62%<span class="cond-dot" style="background:var(--t-warning);"></span></span></div>
+                            <div class="stat-line-480"><span class="stat-lbl-480">COMBAT</span><span class="stat-val-480 warn">−5%</span></div>
+                            <div class="stat-line-480"><span class="stat-lbl-480">RUN</span><span class="stat-val-480 warn">−2%</span></div>
+                        </div>
+                    </div>
+
+                    <div class="zone-disc-480">
+                        <span class="zone-chev-480">▼</span>
+                        <span class="label">ZONES</span>
+                        <div class="seg-bar-480">
+                            <div class="seg light"></div>
+                            <div class="seg patch-denim"></div>
+                            <div class="seg torn"></div>
+                            <div class="seg light"></div>
+                            <div class="seg mid"></div>
+                            <div class="seg patch-leath"></div>
+                        </div>
+                        <span class="seg-summary-480 warn">62%</span>
+                        <div class="soil-row-480">
+                            <div class="soil-480 dirt">DIRTY</div>
+                            <div class="soil-480 wet">WET 12%</div>
+                        </div>
+                    </div>
+
+                    <div class="zone-list-480">
+
+                        <div class="zone-section-480">
+                            <div class="zone-group-480">Torso</div>
+                            <div class="zone-row-480">
+                                <div class="zname">Upper</div>
+                                <div class="zpct good">88%</div>
+                                <div class="zbar"><i style="width:88%; background:var(--z-light);"></i></div>
+                                <div class="zflag pristine">—</div>
+                                <div class="zdock disabled">✓</div>
+                            </div>
+                            <div class="zone-row-480">
+                                <div class="zname">Lower</div>
+                                <div class="zpct">72%</div>
+                                <div class="zbar"><i style="width:72%; background:var(--z-patch-denim);"></i></div>
+                                <div class="zflag patch-denim">DENIM</div>
+                                <div class="zdock action-rmpatch">✂</div>
+                            </div>
+                        </div>
+
+                        <div class="zone-section-480">
+                            <div class="zone-group-480">Upper Arm</div>
+                            <div class="zone-row-480">
+                                <div class="zname">Left</div>
+                                <div class="zpct bad">12%</div>
+                                <div class="zbar"><i style="width:12%; background:var(--z-torn);"></i></div>
+                                <div class="zflag torn">TORN</div>
+                                <div class="zdock action-repair">▲</div>
+                            </div>
+                            <div class="zone-row-480">
+                                <div class="zname">Right</div>
+                                <div class="zpct good">90%</div>
+                                <div class="zbar"><i style="width:90%; background:var(--z-light);"></i></div>
+                                <div class="zflag pristine">—</div>
+                                <div class="zdock disabled">✓</div>
+                            </div>
+                        </div>
+
+                        <div class="zone-section-480">
+                            <div class="zone-group-480">Lower Arm</div>
+                            <div class="zone-row-480">
+                                <div class="zname">Left</div>
+                                <div class="zpct warn">38%</div>
+                                <div class="zbar"><i style="width:38%; background:var(--z-mid);"></i></div>
+                                <div class="zflag worn">WORN</div>
+                                <div class="zdock action-repair">▲</div>
+                            </div>
+                            <div class="zone-row-480">
+                                <div class="zname">Right</div>
+                                <div class="zpct">76%</div>
+                                <div class="zbar"><i style="width:76%; background:var(--z-patch-leath);"></i></div>
+                                <div class="zflag patch-leath">LEATHER</div>
+                                <div class="zdock action-rmpatch">✂</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="facts-480">
+                        <div class="facts-title-480">Defense Facts</div>
+                        <div class="facts-rule-thick-480"></div>
+
+                        <div class="facts-row-480"><span class="lbl">Bite Defense</span><span class="val dim">0%</span></div>
+                        <div class="facts-row-480"><span class="lbl">Scratch Defense</span><span class="val warn">5%</span></div>
+                        <div class="facts-row-480"><span class="lbl">Bullet Defense</span><span class="val dim">0%</span></div>
+
+                        <div class="facts-rule-thin-480"></div>
+
+                        <div class="facts-row-480"><span class="lbl">Insulation<span class="needs-probe">★</span></span><span class="val">25 / 100</span></div>
+                        <div class="facts-row-480"><span class="lbl">Wind Resistance<span class="needs-probe">★</span></span><span class="val">18 / 100</span></div>
+                        <div class="facts-row-480"><span class="lbl">Water Resistance</span><span class="val dim">—</span></div>
+                        <div class="facts-row-480"><span class="lbl">Neck Protection</span><span class="val dim">—</span></div>
+
+                        <div class="facts-rule-thin-480"></div>
+
+                        <div class="facts-row-480"><span class="lbl">Cond Loss / Hit</span><span class="val">0.3</span></div>
+                        <div class="facts-row-480 sub"><span class="lbl">1-in-N degrade</span><span class="val">80</span></div>
+                    </div>
+
+                    <div class="verb-480">
+                        <div class="verb-480-btn"><span class="ico">~</span>WASH</div>
+                        <div class="verb-480-btn"><span class="ico">+</span>REPAIR</div>
+                        <div class="verb-480-btn"><span class="ico">▣</span>PAD</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 220w UNEQUIPPED -->
+        <div class="card-col">
+            <div class="col-header">
+                <span class="col-tag">220w</span>
+                <span class="col-state">UNEQUIPPED · FULLY DISCLOSED</span>
+            </div>
+            <div class="col-note">
+                Same item, compact drawer, item not currently worn. Stats stack to single column. Defense Facts disclosure expanded inline. Verb labels spelled out.
+            </div>
+
+            <div class="card-220">
+                <div class="cb-220">
+                    <div class="cb-220-back">&lt;</div>
+                    <div class="cb-220-name">Bernard's Casual Shirt</div>
+                    <div class="cb-220-btn primary">EQUIP</div>
+                </div>
+                <div class="fs-220">
+                    <span class="fs-220-label">MARKED</span>
+                    <div class="fs-220-chip on fav">★</div>
+                    <div class="fs-220-chip">⊘</div>
+                    <div class="fs-220-chip">✕</div>
+                </div>
+                <div class="cb-220-body">
+
+                    <div class="stats-list-220">
+                        <div class="stat-line-220"><span class="stat-lbl-220">KIND</span><span class="stat-val-220">Shirt</span></div>
+                        <div class="stat-line-220"><span class="stat-lbl-220">WEIGHT</span><span class="stat-val-220">1.1 kg</span></div>
+                        <div class="stat-line-220"><span class="stat-lbl-220">FABRIC</span><span class="stat-val-220">Cotton</span></div>
+                        <div class="stat-line-220"><span class="stat-lbl-220">CONDITION</span><span class="stat-val-220 warn">62%<span class="cond-dot" style="background:var(--t-warning);"></span></span></div>
+                        <div class="stat-line-220"><span class="stat-lbl-220">COMBAT</span><span class="stat-val-220 warn">−5%</span></div>
+                        <div class="stat-line-220"><span class="stat-lbl-220">RUN</span><span class="stat-val-220 warn">−2%</span></div>
+                    </div>
+
+                    <div>
+                        <div class="zone-disc-220">
+                            <span class="zone-chev-220">▼</span>
+                            <span class="label">ZONES</span>
+                            <span class="summary warn">62%</span>
+                        </div>
+                        <div class="seg-bar-220">
+                            <div class="seg light"></div>
+                            <div class="seg patch-denim"></div>
+                            <div class="seg torn"></div>
+                            <div class="seg light"></div>
+                            <div class="seg mid"></div>
+                            <div class="seg patch-leath"></div>
+                        </div>
+                        <div class="soil-row-220">
+                            <div class="soil-220 dirt">DIRTY</div>
+                            <div class="soil-220 wet">WET</div>
+                        </div>
+
+                        <div class="zone-list-220">
+
+                            <div class="zone-section-220">
+                                <div class="zone-group-220">Torso</div>
+                                <div class="zone-row-220">
+                                    <div class="zname">Upper</div>
+                                    <div class="zbar"><i style="width:88%; background:var(--z-light);"></i></div>
+                                    <div class="zpct good">88%</div>
+                                    <div class="zdock disabled">✓</div>
+                                </div>
+                                <div class="zone-row-220">
+                                    <div class="zname">Lower</div>
+                                    <div class="zbar"><i style="width:72%; background:var(--z-patch-denim);"></i></div>
+                                    <div class="zpct">72%</div>
+                                    <div class="zdock action-rmpatch">✂</div>
+                                </div>
+                            </div>
+
+                            <div class="zone-section-220">
+                                <div class="zone-group-220">Upper Arm</div>
+                                <div class="zone-row-220">
+                                    <div class="zname">Left</div>
+                                    <div class="zbar"><i style="width:12%; background:var(--z-torn);"></i></div>
+                                    <div class="zpct bad">12%</div>
+                                    <div class="zdock action-repair">▲</div>
+                                </div>
+                                <div class="zone-row-220">
+                                    <div class="zname">Right</div>
+                                    <div class="zbar"><i style="width:90%; background:var(--z-light);"></i></div>
+                                    <div class="zpct good">90%</div>
+                                    <div class="zdock disabled">✓</div>
+                                </div>
+                            </div>
+
+                            <div class="zone-section-220">
+                                <div class="zone-group-220">Lower Arm</div>
+                                <div class="zone-row-220">
+                                    <div class="zname">Left</div>
+                                    <div class="zbar"><i style="width:38%; background:var(--z-mid);"></i></div>
+                                    <div class="zpct warn">38%</div>
+                                    <div class="zdock action-repair">▲</div>
+                                </div>
+                                <div class="zone-row-220">
+                                    <div class="zname">Right</div>
+                                    <div class="zbar"><i style="width:76%; background:var(--z-patch-leath);"></i></div>
+                                    <div class="zpct">76%</div>
+                                    <div class="zdock action-rmpatch">✂</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="df-220">
+                        <div class="df-220-row">
+                            <span class="df-220-chev">▼</span>
+                            <span class="df-220-title">Defense Facts</span>
+                        </div>
+                        <div class="df-220-panel">
+                            <div class="df-220-thick"></div>
+                            <div class="df-220-line"><span class="lbl">Bite</span><span class="val dim">0%</span></div>
+                            <div class="df-220-line"><span class="lbl">Scratch</span><span class="val warn">5%</span></div>
+                            <div class="df-220-line"><span class="lbl">Bullet</span><span class="val dim">0%</span></div>
+                            <div class="df-220-thin"></div>
+                            <div class="df-220-line"><span class="lbl">Insulation<span class="needs-probe-220">★</span></span><span class="val">25/100</span></div>
+                            <div class="df-220-line"><span class="lbl">Wind<span class="needs-probe-220">★</span></span><span class="val">18/100</span></div>
+                            <div class="df-220-line"><span class="lbl">Water Res.</span><span class="val dim">—</span></div>
+                            <div class="df-220-line"><span class="lbl">Neck Prot.</span><span class="val dim">—</span></div>
+                            <div class="df-220-thin"></div>
+                            <div class="df-220-line"><span class="lbl">Cond / Hit</span><span class="val">0.3</span></div>
+                            <div class="df-220-line sub"><span class="lbl">1-in-N</span><span class="val">80</span></div>
+                        </div>
+                    </div>
+
+                    <div class="verb-220">
+                        <div class="verb-220-btn">WASH</div>
+                        <div class="verb-220-btn">REPAIR</div>
+                        <div class="verb-220-btn">PAD</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

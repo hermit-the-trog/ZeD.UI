@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI Equipment Card — S119 v8 — Status Dot After Value</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --t-base:#0a0a0a; --t-surf1:#1a1a1a; --t-surf2:#2a2a2a; --t-surf3:#3a3a3a; --t-surf4:#4a4a4a;
+    --t-border:#3a3a3a; --t-border-s:#000;
+    --t-text:#e0e0e0; --t-text-sec:#999; --t-text-head:#b8b8b8; --t-text-dim:#666;
+    --t-text-on-acc:#1a0500;
+    --t-accent:#d97a1f; --t-accent-br:#ff9933;
+    --t-danger:#cc4444; --t-warning:#cc8844; --t-positive:#2a8a2a;
+    --t-info:#5a9adb;
+    --z-pristine:#2a8a2a; --z-light:#4a9a3a; --z-mid:#cc8844; --z-heavy:#cc6633; --z-torn:#cc4444;
+    --z-patch-cloth:#d8d8d8; --z-patch-denim:#5b8abf; --z-patch-leath:#b08a5e;
+    --soil-blood:#ff6b6b; --soil-dirt:#c89860; --soil-wet:#60b0e8;
+    --font-mono:'Fira Mono',monospace; --font-sans:'Fira Sans Condensed',sans-serif;
+}
+body { background:var(--t-base); color:var(--t-text); font-family:var(--font-sans); font-size:13px; padding:24px; min-height:100vh; }
+
+.page-banner { background:var(--t-accent); color:var(--t-text-on-acc); padding:8px 16px; font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); margin-bottom:16px; display:inline-block; }
+.page-title { font-size:18px; font-weight:600; color:var(--t-text); margin-bottom:6px; letter-spacing:.5px; }
+.page-sub { font-family:var(--font-mono); font-size:11px; color:var(--t-text-sec); margin-bottom:24px; line-height:1.6; }
+.page-sub .lock { color:var(--t-positive); font-weight:700; }
+.page-sub .delta { color:var(--t-accent); font-weight:700; }
+
+.card { width:480px; background:var(--t-surf1); border:1px solid var(--t-border-s); font-family:var(--font-sans); color:var(--t-text); }
+.card-backbar { background:var(--t-surf2); border-bottom:1px solid var(--t-border-s); height:37px; display:flex; align-items:center; padding:0 4px; gap:6px; }
+.bb-back { width:22px; height:22px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.bb-name { flex:1; font-size:13px; font-weight:600; color:var(--t-text); padding:4px 6px; border:1px solid transparent; cursor:text; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bb-name:hover { border-color:var(--t-surf4); background:var(--t-surf1); }
+.bb-actions { display:flex; gap:3px; }
+.bb-btn { height:22px; padding:0 8px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+.card-body { padding:10px 12px; display:flex; flex-direction:column; gap:10px; }
+.rule { height:1px; background:var(--t-border); margin:0; }
+
+.top-icon-name { display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start; }
+.item-icon { width:56px; height:56px; background:var(--t-surf2); border:1px solid var(--t-border-s); display:flex; align-items:center; justify-content:center; color:var(--t-text-dim); font-family:var(--font-mono); font-size:9px; letter-spacing:1px; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; align-content:start; align-items:start; }
+
+.stat-line { display:flex; align-items:baseline; gap:6px; min-width:0; padding:1px 0; }
+.stat-label { font-family:var(--font-mono); font-size:9px; color:var(--t-accent); letter-spacing:1.5px; text-transform:uppercase; font-weight:700; white-space:nowrap; }
+.stat-value { font-family:var(--font-sans); font-size:12px; color:var(--t-text); flex:1; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stat-value.warn { color:var(--t-warning); }
+.stat-value.bad  { color:var(--t-danger); }
+.stat-value.dim  { color:var(--t-text-dim); }
+/* Status dot now SUFFIXES the value — sits to the right with leading margin */
+.stat-value .cond-dot { display:inline-block; width:7px; height:7px; background:var(--t-positive); margin-left:5px; vertical-align:middle; }
+
+.zone-disclosure { display:flex; align-items:center; gap:8px; cursor:pointer; height:22px; }
+.zone-chevron { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:10px; flex-shrink:0; }
+.zone-disclosure .label { font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--t-accent); letter-spacing:2px; text-transform:uppercase; min-width:56px; }
+.seg-bar { flex:1; display:flex; gap:1px; height:12px; background:var(--t-surf2); border:1px solid var(--t-border-s); padding:1px; }
+.seg { flex:1; height:100%; background:var(--z-pristine); }
+.seg.light { background:var(--z-light); } .seg.mid { background:var(--z-mid); }
+.seg.heavy { background:var(--z-heavy); } .seg.torn { background:var(--z-torn); }
+.seg.patch-cloth { background:var(--z-patch-cloth); } .seg.patch-denim { background:var(--z-patch-denim); } .seg.patch-leath { background:var(--z-patch-leath); }
+.seg-summary { font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--t-text); min-width:40px; text-align:right; }
+.seg-summary.warn { color:var(--t-warning); } .seg-summary.bad { color:var(--t-danger); }
+.soil-chips { display:flex; gap:4px; }
+.soil-chip { font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1px; padding:1px 5px; border:1px solid currentColor; text-transform:uppercase; line-height:1.4; }
+.soil-chip.dirt { color:var(--soil-dirt); } .soil-chip.wet { color:var(--soil-wet); }
+
+.zone-list { display:flex; flex-direction:column; margin-top:4px; border-top:1px solid var(--t-border); }
+.zone-row { display:grid; grid-template-columns:110px 36px 1fr 76px 22px; gap:8px; align-items:center; padding:4px 0; border-bottom:1px solid var(--t-border); height:24px; }
+.zone-row:last-child { border-bottom:none; }
+.zone-row .zname { font-family:var(--font-mono); font-size:10px; color:var(--t-text); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+.zone-row .zpct { font-family:var(--font-mono); font-size:10px; color:var(--t-text-sec); text-align:right; font-weight:700; }
+.zone-row .zpct.warn { color:var(--t-warning); } .zone-row .zpct.bad { color:var(--t-danger); }
+.zone-row .zbar { height:6px; background:var(--t-surf2); border:1px solid var(--t-border-s); position:relative; }
+.zone-row .zbar > i { display:block; height:100%; background:var(--z-pristine); }
+.zone-row .zflag { font-family:var(--font-mono); font-size:9px; text-align:right; letter-spacing:.5px; }
+.zone-row .zflag.torn { color:var(--t-danger); } .zone-row .zflag.worn { color:var(--t-warning); }
+.zone-row .zflag.patch-cloth { color:var(--z-patch-cloth); } .zone-row .zflag.patch-denim { color:var(--z-patch-denim); } .zone-row .zflag.patch-leath { color:var(--z-patch-leath); }
+.zone-row .zflag.pristine { color:var(--t-text-dim); }
+.zone-row .zdock { width:22px; height:22px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); display:flex; align-items:center; justify-content:center; cursor:pointer; font-family:var(--font-mono); font-size:11px; }
+.zone-row .zdock.disabled { opacity:.3; cursor:default; }
+.zone-row .zdock.action-repair { color:var(--t-warning); border-color:var(--t-warning); }
+.zone-row .zdock.action-rmpatch { color:var(--t-text-sec); border-color:var(--t-text-sec); }
+
+.verb-strip { display:flex; gap:4px; margin-top:2px; padding-top:6px; border-top:1px solid var(--t-border); }
+.verb-strip .spacer { flex:1; }
+.verb-btn { height:22px; padding:0 10px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; gap:4px; }
+.verb-btn .ico { font-size:11px; color:var(--t-text-sec); }
+.verb-btn .deferred-tag { font-size:8px; color:var(--t-warning); margin-left:4px; letter-spacing:1px; }
+
+.facts-panel { background: transparent; padding: 0; }
+.facts-title { font-family:var(--font-sans); font-size:14px; font-weight:600; color:var(--t-text); line-height:1.1; margin-bottom:2px; }
+.facts-sub { font-family:var(--font-mono); font-size:9px; color:var(--t-text-sec); letter-spacing:1px; }
+.facts-rule-thick { height: 2px; background: var(--t-text); margin: 4px 0; }
+.facts-rule-thin  { height: 1px; background: var(--t-border); margin: 2px 0; }
+.facts-row { display:flex; justify-content:space-between; align-items:baseline; padding: 2px 0; font-family:var(--font-sans); font-size:12px; color:var(--t-text); }
+.facts-row .lbl { font-weight:600; }
+.facts-row .val { font-family:var(--font-mono); font-weight:700; }
+.facts-row .val.warn { color:var(--t-warning); }
+.facts-row .val.bad  { color:var(--t-danger); }
+.facts-row .val.dim  { color:var(--t-text-dim); }
+.facts-row .val.good { color:var(--t-positive); }
+.facts-row.sub { padding-left: 14px; font-size:11px; color:var(--t-text-sec); }
+.facts-row.sub .lbl { font-weight:400; }
+.facts-row .needs-probe { color:var(--t-warning); font-size:8px; font-style:italic; margin-left:4px; font-family:var(--font-mono); letter-spacing:1px; }
+</style>
+</head>
+<body>
+    <div class="page-banner">▌ S119 v8 — STATUS DOT TRAILS THE VALUE</div>
+    <div class="page-title">Equipment Card — Cond Dot After %</div>
+    <div class="page-sub">
+        <span class="lock">LOCKED</span> L3 Defense Facts · ZONES first · 2×3 top stats with speed mods · borderless flush rows.<br>
+        <span class="delta">DELTA</span> COND. dot moved after the percentage. Reads as: number first, status indicator trails. 5px leading margin.
+    </div>
+
+    <div class="card">
+        <div class="card-backbar">
+            <div class="bb-back">&lt;</div>
+            <div class="bb-name">Bernard's Casual Shirt</div>
+            <div class="bb-actions">
+                <div class="bb-btn">DROP</div>
+                <div class="bb-btn">UNEQUIP</div>
+            </div>
+        </div>
+        <div class="card-body">
+
+            <div class="top-icon-name">
+                <div class="item-icon">SHIRT</div>
+                <div class="stats-grid">
+                    <div class="stat-line"><span class="stat-label">KIND</span><span class="stat-value">Shirt</span></div>
+                    <div class="stat-line"><span class="stat-label">WEIGHT</span><span class="stat-value">1.1 kg</span></div>
+                    <div class="stat-line"><span class="stat-label">FABRIC</span><span class="stat-value">Cotton</span></div>
+                    <div class="stat-line"><span class="stat-label">COND.</span><span class="stat-value warn">62%<span class="cond-dot" style="background:var(--t-warning);"></span></span></div>
+                    <div class="stat-line"><span class="stat-label">COMBAT SPD</span><span class="stat-value warn">−5%</span></div>
+                    <div class="stat-line"><span class="stat-label">RUN SPD</span><span class="stat-value warn">−2%</span></div>
+                </div>
+            </div>
+            <div class="rule"></div>
+
+            <div class="zone-disclosure">
+                <div class="zone-chevron">▼</div>
+                <div class="label">ZONES</div>
+                <div class="seg-bar">
+                    <div class="seg light"></div>
+                    <div class="seg patch-denim"></div>
+                    <div class="seg"></div>
+                    <div class="seg torn"></div>
+                    <div class="seg"></div>
+                    <div class="seg mid"></div>
+                    <div class="seg patch-leath"></div>
+                </div>
+                <div class="seg-summary warn">62%</div>
+                <div class="soil-chips">
+                    <div class="soil-chip dirt">DIRTY</div>
+                    <div class="soil-chip wet">WET 12%</div>
+                </div>
+            </div>
+            <div class="zone-list">
+                <div class="zone-row">
+                    <div class="zname">Upper Torso</div>
+                    <div class="zpct">88%</div>
+                    <div class="zbar"><i style="width:88%; background:var(--z-light);"></i></div>
+                    <div class="zflag pristine">—</div>
+                    <div class="zdock disabled">✓</div>
+                </div>
+                <div class="zone-row">
+                    <div class="zname">Lower Torso</div>
+                    <div class="zpct">72%</div>
+                    <div class="zbar"><i style="width:72%; background:var(--z-patch-denim);"></i></div>
+                    <div class="zflag patch-denim">DENIM</div>
+                    <div class="zdock action-rmpatch">✂</div>
+                </div>
+                <div class="zone-row">
+                    <div class="zname">L. Upper Arm</div>
+                    <div class="zpct bad">12%</div>
+                    <div class="zbar"><i style="width:12%; background:var(--z-torn);"></i></div>
+                    <div class="zflag torn">TORN</div>
+                    <div class="zdock action-repair">▲</div>
+                </div>
+                <div class="zone-row">
+                    <div class="zname">L. Forearm</div>
+                    <div class="zpct warn">38%</div>
+                    <div class="zbar"><i style="width:38%; background:var(--z-mid);"></i></div>
+                    <div class="zflag worn">WORN</div>
+                    <div class="zdock action-repair">▲</div>
+                </div>
+                <div class="zone-row">
+                    <div class="zname">R. Forearm</div>
+                    <div class="zpct">76%</div>
+                    <div class="zbar"><i style="width:76%; background:var(--z-patch-leath);"></i></div>
+                    <div class="zflag patch-leath">LEATHER</div>
+                    <div class="zdock action-rmpatch">✂</div>
+                </div>
+            </div>
+
+            <div class="rule" style="margin-top:4px;"></div>
+
+            <div class="facts-panel">
+                <div class="facts-title">Defense Facts</div>
+                <div class="facts-sub">covers 7 zones · 1 hole · 1 patch</div>
+                <div class="facts-rule-thick"></div>
+
+                <div class="facts-row"><span class="lbl">Bite Defense</span><span class="val dim">0%</span></div>
+                <div class="facts-row"><span class="lbl">Scratch Defense</span><span class="val warn">5%</span></div>
+                <div class="facts-row"><span class="lbl">Bullet Defense</span><span class="val dim">0%</span></div>
+
+                <div class="facts-rule-thin"></div>
+
+                <div class="facts-row"><span class="lbl">Insulation<span class="needs-probe">★</span></span><span class="val">25 / 100</span></div>
+                <div class="facts-row"><span class="lbl">Wind Resistance<span class="needs-probe">★</span></span><span class="val">18 / 100</span></div>
+                <div class="facts-row"><span class="lbl">Water Resistance</span><span class="val dim">—</span></div>
+                <div class="facts-row"><span class="lbl">Neck Protection</span><span class="val dim">—</span></div>
+
+                <div class="facts-rule-thin"></div>
+
+                <div class="facts-row"><span class="lbl">Cond Loss / Hit</span><span class="val">0.3</span></div>
+                <div class="facts-row sub"><span class="lbl">1-in-N degrade</span><span class="val">80</span></div>
+            </div>
+
+            <div class="verb-strip">
+                <div class="spacer"></div>
+                <div class="verb-btn"><span class="ico">~</span>WASH<span class="deferred-tag">S120</span></div>
+                <div class="verb-btn"><span class="ico">+</span>REPAIR ALL<span class="deferred-tag">S120</span></div>
+                <div class="verb-btn"><span class="ico">▣</span>PAD ALL<span class="deferred-tag">S120</span></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI Item Card — S119 v10 — 220w Compact Drawer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --t-base:#0a0a0a; --t-surf1:#1a1a1a; --t-surf2:#2a2a2a; --t-surf3:#3a3a3a; --t-surf4:#4a4a4a;
+    --t-border:#3a3a3a; --t-border-s:#000;
+    --t-text:#e0e0e0; --t-text-sec:#999; --t-text-dim:#666;
+    --t-text-on-acc:#1a0500;
+    --t-accent:#d97a1f;
+    --t-danger:#cc4444; --t-warning:#cc8844; --t-positive:#2a8a2a;
+    --t-info:#5a9adb;
+    --z-pristine:#2a8a2a; --z-light:#4a9a3a; --z-mid:#cc8844; --z-heavy:#cc6633; --z-torn:#cc4444;
+    --z-patch-cloth:#d8d8d8; --z-patch-denim:#5b8abf; --z-patch-leath:#b08a5e;
+    --soil-blood:#ff6b6b; --soil-dirt:#c89860; --soil-wet:#60b0e8;
+    --font-mono:'Fira Mono',monospace; --font-sans:'Fira Sans Condensed',sans-serif;
+}
+body { background:var(--t-base); color:var(--t-text); font-family:var(--font-sans); font-size:13px; padding:24px; min-height:100vh; }
+
+.page-banner { background:var(--t-accent); color:var(--t-text-on-acc); padding:8px 16px; font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); margin-bottom:16px; display:inline-block; }
+.page-title { font-size:18px; font-weight:600; color:var(--t-text); margin-bottom:6px; letter-spacing:.5px; }
+.page-sub { font-family:var(--font-mono); font-size:11px; color:var(--t-text-sec); margin-bottom:24px; line-height:1.6; max-width:900px; }
+.page-sub .lock { color:var(--t-positive); font-weight:700; }
+.page-sub .delta { color:var(--t-accent); font-weight:700; }
+.page-sub .new { color:var(--t-info); font-weight:700; }
+.page-sub .gone { color:var(--t-danger); font-weight:700; }
+
+/* design-notes block — explain the tradeoffs */
+.design-notes {
+    background: var(--t-surf1);
+    border: 1px solid var(--t-border);
+    padding: 12px 16px;
+    max-width: 900px;
+    margin-bottom: 32px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--t-text-sec);
+    line-height: 1.7;
+}
+.design-notes h3 { font-family:var(--font-sans); font-size:13px; color:var(--t-accent); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase; }
+.design-notes table { width:100%; border-collapse:collapse; margin-top:6px; }
+.design-notes th { text-align:left; padding:4px 8px; font-size:9px; color:var(--t-accent); letter-spacing:1.5px; text-transform:uppercase; border-bottom:1px solid var(--t-border); }
+.design-notes td { padding:4px 8px; font-size:11px; color:var(--t-text); border-bottom:1px solid var(--t-border); vertical-align:top; }
+.design-notes td:first-child { color:var(--t-text-sec); font-weight:700; width:140px; }
+.design-notes .yes { color:var(--t-positive); }
+.design-notes .no  { color:var(--t-danger); }
+.design-notes .alt { color:var(--t-warning); }
+
+.variant-header { display:flex; align-items:center; gap:8px; margin:32px 0 8px 0; }
+.variant-tag { background:var(--t-accent); color:var(--t-text-on-acc); padding:3px 8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); }
+.variant-state { background:#3a3a3a; color:var(--t-text); padding:3px 8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); text-transform:uppercase; }
+.variant-note { font-family:var(--font-mono); font-size:10px; color:var(--t-text-sec); margin-bottom:8px; line-height:1.5; max-width:560px; }
+
+/* ============================================
+   220W COMPACT CARD
+   ============================================ */
+.card-220 {
+    width: 220px;
+    background: var(--t-surf1);
+    border: 1px solid var(--t-border-s);
+    font-family: var(--font-sans);
+    color: var(--t-text);
+}
+
+/* back-bar — single primary verb to keep room for the name */
+.cb-220 { background:var(--t-surf2); border-bottom:1px solid var(--t-border-s); height:30px; display:flex; align-items:center; padding:0 3px; gap:4px; }
+.cb-220-back { width:20px; height:20px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.cb-220-name { flex:1; font-size:11px; font-weight:600; color:var(--t-text); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cb-220-btn { height:20px; padding:0 7px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.cb-220-btn.primary { background:var(--t-accent); color:var(--t-text-on-acc); border-top:1px solid #ff9933; border-left:1px solid #ff9933; border-right:1px solid #6a3a08; border-bottom:1px solid #6a3a08; }
+
+/* flag strip — icons-only chips at 220w */
+.fs-220 { background:var(--t-surf1); padding:4px 8px; display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--t-border); min-height:24px; }
+.fs-220-label { font-family:var(--font-mono); font-size:8px; font-weight:700; color:var(--t-text-dim); letter-spacing:1.5px; text-transform:uppercase; padding-right:2px; }
+.fs-220-chip { width:22px; height:18px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text-dim); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; cursor:pointer; }
+.fs-220-chip.on.fav     { background:var(--t-accent);  color:var(--t-text-on-acc); border-color:#6a3a08; }
+.fs-220-chip.on.nocraft { background:var(--t-warning); color:#1a0a0a; border-color:#6a3a08; }
+.fs-220-chip.on.dispose { background:var(--t-danger);  color:#1a0a0a; border-color:#6a1a1a; }
+
+/* card body */
+.cb-body-220 { padding:8px 10px; display:flex; flex-direction:column; gap:8px; }
+.rule-220 { height:1px; background:var(--t-border); margin:0; }
+
+/* stats — 2-col grid, no separate icon */
+.stats-220 { display:grid; grid-template-columns:1fr 1fr; gap:3px 10px; align-content:start; }
+.stat-220 { display:flex; align-items:baseline; gap:4px; min-width:0; padding:1px 0; }
+.stat-220-lbl { font-family:var(--font-mono); font-size:8px; color:var(--t-accent); letter-spacing:1.2px; text-transform:uppercase; font-weight:700; white-space:nowrap; }
+.stat-220-val { font-family:var(--font-sans); font-size:11px; color:var(--t-text); flex:1; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stat-220-val.warn { color:var(--t-warning); }
+.stat-220-val.bad  { color:var(--t-danger); }
+.stat-220-val.dim  { color:var(--t-text-dim); }
+.stat-220-val.good { color:var(--t-positive); }
+.stat-220-val .cond-dot { display:inline-block; width:6px; height:6px; background:var(--t-positive); margin-left:4px; vertical-align:middle; }
+
+/* zones — disclosure + seg-bar only at 220w */
+.zone-row-220 { display:flex; align-items:center; gap:6px; height:18px; cursor:pointer; }
+.zone-chev-220 { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:9px; flex-shrink:0; }
+.zone-row-220 .label { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-accent); letter-spacing:1.5px; text-transform:uppercase; }
+.zone-row-220 .summary { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-text); margin-left:auto; }
+.zone-row-220 .summary.warn { color:var(--t-warning); } .zone-row-220 .summary.bad { color:var(--t-danger); } .zone-row-220 .summary.good { color:var(--t-positive); }
+.seg-bar-220 { display:flex; gap:1px; height:10px; background:var(--t-surf2); border:1px solid var(--t-border-s); padding:1px; }
+.seg-bar-220 .seg { flex:1; height:100%; background:var(--z-pristine); }
+.seg-bar-220 .seg.light { background:var(--z-light); } .seg-bar-220 .seg.mid { background:var(--z-mid); }
+.seg-bar-220 .seg.heavy { background:var(--z-heavy); } .seg-bar-220 .seg.torn { background:var(--z-torn); }
+.seg-bar-220 .seg.patch-cloth { background:var(--z-patch-cloth); } .seg-bar-220 .seg.patch-denim { background:var(--z-patch-denim); } .seg-bar-220 .seg.patch-leath { background:var(--z-patch-leath); }
+.soil-row-220 { display:flex; gap:3px; margin-top:3px; }
+.soil-220 { font-family:var(--font-mono); font-size:8px; font-weight:700; letter-spacing:1px; padding:1px 4px; border:1px solid currentColor; text-transform:uppercase; line-height:1.4; }
+.soil-220.dirt { color:var(--soil-dirt); } .soil-220.wet { color:var(--soil-wet); } .soil-220.blood { color:var(--soil-blood); }
+
+/* defense facts — collapsed-by-default disclosure with mini-summary */
+.df-220 { display:flex; flex-direction:column; gap:6px; }
+.df-220-row { display:flex; align-items:center; gap:6px; height:18px; cursor:pointer; }
+.df-220-chev { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:9px; flex-shrink:0; }
+.df-220-title { font-family:var(--font-sans); font-size:11px; font-weight:600; color:var(--t-text); }
+.df-220-mini { margin-left:auto; font-family:var(--font-mono); font-size:9px; color:var(--t-text-sec); letter-spacing:.5px; }
+.df-220-panel { display:flex; flex-direction:column; padding-left:0; }
+.df-220-thick { height: 2px; background: var(--t-text); margin: 2px 0; }
+.df-220-thin  { height: 1px; background: var(--t-border); margin: 2px 0; }
+.df-220-line { display:flex; justify-content:space-between; align-items:baseline; padding: 1px 0; font-family:var(--font-sans); font-size:11px; color:var(--t-text); }
+.df-220-line .lbl { font-weight:600; }
+.df-220-line .val { font-family:var(--font-mono); font-weight:700; font-size:10px; }
+.df-220-line .val.warn { color:var(--t-warning); }
+.df-220-line .val.bad  { color:var(--t-danger); }
+.df-220-line .val.dim  { color:var(--t-text-dim); }
+.df-220-line .val.good { color:var(--t-positive); }
+.df-220-line.sub { padding-left:10px; font-size:10px; color:var(--t-text-sec); }
+.df-220-line.sub .lbl { font-weight:400; }
+.needs-probe-220 { color:var(--t-warning); font-size:7px; font-style:italic; margin-left:3px; font-family:var(--font-mono); letter-spacing:1px; }
+
+/* verb strip — icons-only at 220w */
+.verb-220 { display:flex; gap:3px; padding-top:5px; border-top:1px solid var(--t-border); justify-content:flex-end; }
+.verb-220-btn { width:32px; height:20px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; cursor:pointer; position:relative; }
+.verb-220-btn .deferred-tag { position:absolute; top:-6px; right:-2px; font-size:6px; color:var(--t-warning); font-family:var(--font-mono); letter-spacing:1px; line-height:1; }
+
+/* side-by-side layout for the two states */
+.cards-row { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; }
+.card-col { display:flex; flex-direction:column; }
+</style>
+</head>
+<body>
+    <div class="page-banner">▌ S119 v10 — 220W COMPACT DRAWER STATE</div>
+    <div class="page-title">Item Card — Compact 220w Variant</div>
+    <div class="page-sub">
+        <span class="lock">CARRIED FORWARD</span> Same paradigms as 480w (back-bar, flag strip, top stats, ZONES, Defense Facts, verb strip). Same chrome treatment.<br>
+        <span class="delta">DELTA</span> Width drops 480 → 220. Card compresses by trimming what doesn't earn its place at this size. Per-zone list and full Defense Facts collapse to disclosure handles.<br>
+        <span class="new">NEW</span> Defense Facts can expand inline at 220w when clicked, giving full reference info on demand.
+    </div>
+
+    <div class="design-notes">
+        <h3>What changes 480w → 220w</h3>
+        <table>
+            <tr><th style="width:140px">Element</th><th style="width:100px">480w</th><th>220w</th></tr>
+            <tr><td>Item icon</td><td class="yes">56×56 dedicated</td><td class="no">Dropped — name carries identity</td></tr>
+            <tr><td>Stats grid</td><td class="yes">2×3, with icon column</td><td class="alt">2×3, full-width (no icon)</td></tr>
+            <tr><td>Zone bar</td><td class="yes">Always visible</td><td class="yes">Always visible</td></tr>
+            <tr><td>Per-zone list</td><td class="yes">Full list, repair docks</td><td class="no">Dropped — expand to wider drawer for per-zone</td></tr>
+            <tr><td>Defense Facts</td><td class="yes">Always-expanded panel</td><td class="alt">Disclosure, collapsed by default</td></tr>
+            <tr><td>Back-bar verbs</td><td class="yes">2 (primary + secondary)</td><td class="alt">1 primary only — secondary in context menu</td></tr>
+            <tr><td>Flag chips</td><td class="yes">Icon + label</td><td class="alt">Icon only</td></tr>
+            <tr><td>Maintenance verbs</td><td class="yes">Icon + full label</td><td class="alt">Icon only</td></tr>
+        </table>
+    </div>
+
+    <div class="cards-row">
+
+        <!-- ========== STATE A: Default (Defense Facts collapsed) ========== -->
+        <div class="card-col">
+            <div class="variant-header">
+                <span class="variant-tag">STATE A</span>
+                <span class="variant-state">DEFAULT · DEFENSE FACTS COLLAPSED</span>
+            </div>
+            <div class="variant-note">
+                Default 220w state. Mini-summary on the Defense Facts row gives at-a-glance protection numbers (Bite/Scratch/Bullet) and hole count without expanding.
+            </div>
+
+            <div class="card-220">
+                <div class="cb-220">
+                    <div class="cb-220-back">&lt;</div>
+                    <div class="cb-220-name">Bernard's Casual Shirt</div>
+                    <div class="cb-220-btn primary">EQUIP</div>
+                </div>
+                <div class="fs-220">
+                    <span class="fs-220-label">MARKED</span>
+                    <div class="fs-220-chip on fav">★</div>
+                    <div class="fs-220-chip">⊘</div>
+                    <div class="fs-220-chip">✕</div>
+                </div>
+                <div class="cb-body-220">
+
+                    <div class="stats-220">
+                        <div class="stat-220"><span class="stat-220-lbl">KIND</span><span class="stat-220-val">Shirt</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">FABRIC</span><span class="stat-220-val">Cotton</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">WT.</span><span class="stat-220-val">1.1 kg</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">COND.</span><span class="stat-220-val warn">62%<span class="cond-dot" style="background:var(--t-warning);"></span></span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">CMB</span><span class="stat-220-val warn">−5%</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">RUN</span><span class="stat-220-val warn">−2%</span></div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div>
+                        <div class="zone-row-220">
+                            <span class="zone-chev-220">▼</span>
+                            <span class="label">ZONES</span>
+                            <span class="summary warn">62%</span>
+                        </div>
+                        <div class="seg-bar-220">
+                            <div class="seg light"></div>
+                            <div class="seg patch-denim"></div>
+                            <div class="seg"></div>
+                            <div class="seg torn"></div>
+                            <div class="seg"></div>
+                            <div class="seg mid"></div>
+                            <div class="seg patch-leath"></div>
+                        </div>
+                        <div class="soil-row-220">
+                            <div class="soil-220 dirt">DIRTY</div>
+                            <div class="soil-220 wet">WET</div>
+                        </div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div class="df-220">
+                        <div class="df-220-row">
+                            <span class="df-220-chev">▶</span>
+                            <span class="df-220-title">Defense Facts</span>
+                            <span class="df-220-mini">0 / 5 / 0 · 1 hole</span>
+                        </div>
+                    </div>
+
+                    <div class="verb-220">
+                        <div class="verb-220-btn" title="Wash">~<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Repair All">+<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Pad All">▣<span class="deferred-tag">S120</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== STATE B: Defense Facts expanded inline ========== -->
+        <div class="card-col">
+            <div class="variant-header">
+                <span class="variant-tag">STATE B</span>
+                <span class="variant-state">DEFENSE FACTS EXPANDED INLINE</span>
+            </div>
+            <div class="variant-note">
+                Click the Defense Facts disclosure → full panel reveals inline. Same Threats / Thermal / Wear bands, just narrower. Card grows taller; everything else stays put.
+            </div>
+
+            <div class="card-220">
+                <div class="cb-220">
+                    <div class="cb-220-back">&lt;</div>
+                    <div class="cb-220-name">Bernard's Casual Shirt</div>
+                    <div class="cb-220-btn primary">EQUIP</div>
+                </div>
+                <div class="fs-220">
+                    <span class="fs-220-label">MARKED</span>
+                    <div class="fs-220-chip on fav">★</div>
+                    <div class="fs-220-chip">⊘</div>
+                    <div class="fs-220-chip">✕</div>
+                </div>
+                <div class="cb-body-220">
+
+                    <div class="stats-220">
+                        <div class="stat-220"><span class="stat-220-lbl">KIND</span><span class="stat-220-val">Shirt</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">FABRIC</span><span class="stat-220-val">Cotton</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">WT.</span><span class="stat-220-val">1.1 kg</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">COND.</span><span class="stat-220-val warn">62%<span class="cond-dot" style="background:var(--t-warning);"></span></span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">CMB</span><span class="stat-220-val warn">−5%</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">RUN</span><span class="stat-220-val warn">−2%</span></div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div>
+                        <div class="zone-row-220">
+                            <span class="zone-chev-220">▼</span>
+                            <span class="label">ZONES</span>
+                            <span class="summary warn">62%</span>
+                        </div>
+                        <div class="seg-bar-220">
+                            <div class="seg light"></div>
+                            <div class="seg patch-denim"></div>
+                            <div class="seg"></div>
+                            <div class="seg torn"></div>
+                            <div class="seg"></div>
+                            <div class="seg mid"></div>
+                            <div class="seg patch-leath"></div>
+                        </div>
+                        <div class="soil-row-220">
+                            <div class="soil-220 dirt">DIRTY</div>
+                            <div class="soil-220 wet">WET</div>
+                        </div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div class="df-220">
+                        <div class="df-220-row">
+                            <span class="df-220-chev">▼</span>
+                            <span class="df-220-title">Defense Facts</span>
+                            <span class="df-220-mini">7 zn · 1h · 1p</span>
+                        </div>
+                        <div class="df-220-panel">
+                            <div class="df-220-thick"></div>
+                            <div class="df-220-line"><span class="lbl">Bite</span><span class="val dim">0%</span></div>
+                            <div class="df-220-line"><span class="lbl">Scratch</span><span class="val warn">5%</span></div>
+                            <div class="df-220-line"><span class="lbl">Bullet</span><span class="val dim">0%</span></div>
+                            <div class="df-220-thin"></div>
+                            <div class="df-220-line"><span class="lbl">Insulation<span class="needs-probe-220">★</span></span><span class="val">25/100</span></div>
+                            <div class="df-220-line"><span class="lbl">Wind<span class="needs-probe-220">★</span></span><span class="val">18/100</span></div>
+                            <div class="df-220-line"><span class="lbl">Water Res.</span><span class="val dim">—</span></div>
+                            <div class="df-220-line"><span class="lbl">Neck Prot.</span><span class="val dim">—</span></div>
+                            <div class="df-220-thin"></div>
+                            <div class="df-220-line"><span class="lbl">Cond / Hit</span><span class="val">0.3</span></div>
+                            <div class="df-220-line sub"><span class="lbl">1-in-N</span><span class="val">80</span></div>
+                        </div>
+                    </div>
+
+                    <div class="verb-220">
+                        <div class="verb-220-btn" title="Wash">~<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Repair All">+<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Pad All">▣<span class="deferred-tag">S120</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

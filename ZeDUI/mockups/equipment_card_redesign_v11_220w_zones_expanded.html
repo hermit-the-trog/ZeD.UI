@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI Item Card — S119 v11 — 220w with Zones Expanded</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans+Condensed:wght@400;500;600;700&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --t-base:#0a0a0a; --t-surf1:#1a1a1a; --t-surf2:#2a2a2a; --t-surf3:#3a3a3a; --t-surf4:#4a4a4a;
+    --t-border:#3a3a3a; --t-border-s:#000;
+    --t-text:#e0e0e0; --t-text-sec:#999; --t-text-dim:#666;
+    --t-text-on-acc:#1a0500;
+    --t-accent:#d97a1f;
+    --t-danger:#cc4444; --t-warning:#cc8844; --t-positive:#2a8a2a;
+    --t-info:#5a9adb;
+    --z-pristine:#2a8a2a; --z-light:#4a9a3a; --z-mid:#cc8844; --z-heavy:#cc6633; --z-torn:#cc4444;
+    --z-patch-cloth:#d8d8d8; --z-patch-denim:#5b8abf; --z-patch-leath:#b08a5e;
+    --soil-blood:#ff6b6b; --soil-dirt:#c89860; --soil-wet:#60b0e8;
+    --font-mono:'Fira Mono',monospace; --font-sans:'Fira Sans Condensed',sans-serif;
+}
+body { background:var(--t-base); color:var(--t-text); font-family:var(--font-sans); font-size:13px; padding:24px; min-height:100vh; }
+
+.page-banner { background:var(--t-accent); color:var(--t-text-on-acc); padding:8px 16px; font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); margin-bottom:16px; display:inline-block; }
+.page-title { font-size:18px; font-weight:600; color:var(--t-text); margin-bottom:6px; letter-spacing:.5px; }
+.page-sub { font-family:var(--font-mono); font-size:11px; color:var(--t-text-sec); margin-bottom:24px; line-height:1.6; max-width:900px; }
+.page-sub .lock { color:var(--t-positive); font-weight:700; }
+.page-sub .delta { color:var(--t-accent); font-weight:700; }
+.page-sub .new { color:var(--t-info); font-weight:700; }
+
+.variant-header { display:flex; align-items:center; gap:8px; margin:8px 0 8px 0; }
+.variant-tag { background:var(--t-accent); color:var(--t-text-on-acc); padding:3px 8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); }
+.variant-state { background:#3a3a3a; color:var(--t-text); padding:3px 8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; border:1px solid var(--t-border-s); text-transform:uppercase; }
+.variant-note { font-family:var(--font-mono); font-size:10px; color:var(--t-text-sec); margin-bottom:8px; line-height:1.5; max-width:560px; }
+
+.card-220 { width: 220px; background: var(--t-surf1); border: 1px solid var(--t-border-s); font-family: var(--font-sans); color: var(--t-text); }
+.cb-220 { background:var(--t-surf2); border-bottom:1px solid var(--t-border-s); height:30px; display:flex; align-items:center; padding:0 3px; gap:4px; }
+.cb-220-back { width:20px; height:20px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.cb-220-name { flex:1; font-size:11px; font-weight:600; color:var(--t-text); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cb-220-btn { height:20px; padding:0 7px; background:var(--t-surf2); border-top:1px solid var(--t-surf4); border-left:1px solid var(--t-surf4); border-right:1px solid var(--t-border-s); border-bottom:1px solid var(--t-border-s); color:var(--t-text); font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.cb-220-btn.primary { background:var(--t-accent); color:var(--t-text-on-acc); border-top:1px solid #ff9933; border-left:1px solid #ff9933; border-right:1px solid #6a3a08; border-bottom:1px solid #6a3a08; }
+
+.fs-220 { background:var(--t-surf1); padding:4px 8px; display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--t-border); min-height:24px; }
+.fs-220-label { font-family:var(--font-mono); font-size:8px; font-weight:700; color:var(--t-text-dim); letter-spacing:1.5px; text-transform:uppercase; padding-right:2px; }
+.fs-220-chip { width:22px; height:18px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text-dim); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; cursor:pointer; }
+.fs-220-chip.on.fav     { background:var(--t-accent);  color:var(--t-text-on-acc); border-color:#6a3a08; }
+.fs-220-chip.on.nocraft { background:var(--t-warning); color:#1a0a0a; border-color:#6a3a08; }
+.fs-220-chip.on.dispose { background:var(--t-danger);  color:#1a0a0a; border-color:#6a1a1a; }
+
+.cb-body-220 { padding:8px 10px; display:flex; flex-direction:column; gap:8px; }
+.rule-220 { height:1px; background:var(--t-border); margin:0; }
+
+.stats-220 { display:grid; grid-template-columns:1fr 1fr; gap:3px 10px; align-content:start; }
+.stat-220 { display:flex; align-items:baseline; gap:4px; min-width:0; padding:1px 0; }
+.stat-220-lbl { font-family:var(--font-mono); font-size:8px; color:var(--t-accent); letter-spacing:1.2px; text-transform:uppercase; font-weight:700; white-space:nowrap; }
+.stat-220-val { font-family:var(--font-sans); font-size:11px; color:var(--t-text); flex:1; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stat-220-val.warn { color:var(--t-warning); }
+.stat-220-val.bad  { color:var(--t-danger); }
+.stat-220-val.dim  { color:var(--t-text-dim); }
+.stat-220-val.good { color:var(--t-positive); }
+.stat-220-val .cond-dot { display:inline-block; width:6px; height:6px; background:var(--t-positive); margin-left:4px; vertical-align:middle; }
+
+.zone-row-220 { display:flex; align-items:center; gap:6px; height:18px; cursor:pointer; }
+.zone-chev-220 { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:9px; flex-shrink:0; }
+.zone-row-220 .label { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-accent); letter-spacing:1.5px; text-transform:uppercase; }
+.zone-row-220 .summary { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-text); margin-left:auto; }
+.zone-row-220 .summary.warn { color:var(--t-warning); } .zone-row-220 .summary.bad { color:var(--t-danger); } .zone-row-220 .summary.good { color:var(--t-positive); }
+.seg-bar-220 { display:flex; gap:1px; height:10px; background:var(--t-surf2); border:1px solid var(--t-border-s); padding:1px; }
+.seg-bar-220 .seg { flex:1; height:100%; background:var(--z-pristine); }
+.seg-bar-220 .seg.light { background:var(--z-light); } .seg-bar-220 .seg.mid { background:var(--z-mid); }
+.seg-bar-220 .seg.heavy { background:var(--z-heavy); } .seg-bar-220 .seg.torn { background:var(--z-torn); }
+.seg-bar-220 .seg.patch-cloth { background:var(--z-patch-cloth); } .seg-bar-220 .seg.patch-denim { background:var(--z-patch-denim); } .seg-bar-220 .seg.patch-leath { background:var(--z-patch-leath); }
+.soil-row-220 { display:flex; gap:3px; margin-top:3px; }
+.soil-220 { font-family:var(--font-mono); font-size:8px; font-weight:700; letter-spacing:1px; padding:1px 4px; border:1px solid currentColor; text-transform:uppercase; line-height:1.4; }
+.soil-220.dirt { color:var(--soil-dirt); } .soil-220.wet { color:var(--soil-wet); } .soil-220.blood { color:var(--soil-blood); }
+
+/* ============================================
+   PER-ZONE LIST AT 220W
+   - 5 cols: 52px name | 4gap | 1fr bar | 4gap | 24px % | 4gap | 18px dock
+   - Bar color carries the patch / torn / worn state — no text flag column
+   ============================================ */
+.zone-list-220 { display:flex; flex-direction:column; margin-top:4px; padding-top:4px; border-top:1px solid var(--t-border); gap:3px; }
+.zone-row-detail-220 {
+    display: grid;
+    grid-template-columns: 52px 1fr 26px 18px;
+    gap: 4px;
+    align-items: center;
+    height: 16px;
+}
+.zone-row-detail-220 .zname { font-family:var(--font-mono); font-size:8px; color:var(--t-text); text-transform:uppercase; letter-spacing:.8px; white-space:nowrap; overflow:hidden; }
+.zone-row-detail-220 .zbar { height:6px; background:var(--t-surf2); border:1px solid var(--t-border-s); position:relative; overflow:hidden; }
+.zone-row-detail-220 .zbar > i { display:block; height:100%; background:var(--z-pristine); }
+.zone-row-detail-220 .zpct { font-family:var(--font-mono); font-size:8px; color:var(--t-text-sec); text-align:right; font-weight:700; }
+.zone-row-detail-220 .zpct.warn { color:var(--t-warning); } .zone-row-detail-220 .zpct.bad { color:var(--t-danger); } .zone-row-detail-220 .zpct.good { color:var(--t-positive); }
+.zone-row-detail-220 .zdock { width:18px; height:14px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:9px; cursor:pointer; }
+.zone-row-detail-220 .zdock.disabled { opacity:.3; cursor:default; }
+.zone-row-detail-220 .zdock.action-repair { color:var(--t-warning); border-color:var(--t-warning); }
+.zone-row-detail-220 .zdock.action-rmpatch { color:var(--t-text-sec); border-color:var(--t-text-sec); }
+
+.df-220 { display:flex; flex-direction:column; gap:6px; }
+.df-220-row { display:flex; align-items:center; gap:6px; height:18px; cursor:pointer; }
+.df-220-chev { width:8px; color:var(--t-text-sec); font-family:var(--font-mono); font-size:9px; flex-shrink:0; }
+.df-220-title { font-family:var(--font-sans); font-size:11px; font-weight:600; color:var(--t-text); }
+.df-220-mini { margin-left:auto; font-family:var(--font-mono); font-size:9px; color:var(--t-text-sec); letter-spacing:.5px; }
+
+.verb-220 { display:flex; gap:3px; padding-top:5px; border-top:1px solid var(--t-border); justify-content:flex-end; }
+.verb-220-btn { width:32px; height:20px; background:var(--t-surf2); border:1px solid var(--t-border); color:var(--t-text); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; cursor:pointer; position:relative; }
+.verb-220-btn .deferred-tag { position:absolute; top:-6px; right:-2px; font-size:6px; color:var(--t-warning); font-family:var(--font-mono); letter-spacing:1px; line-height:1; }
+
+.cards-row { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; }
+.card-col { display:flex; flex-direction:column; }
+
+.color-key { background:var(--t-surf1); border:1px solid var(--t-border); padding:10px 14px; max-width:560px; margin-bottom:24px; font-family:var(--font-mono); font-size:10px; color:var(--t-text-sec); line-height:1.6; }
+.color-key h3 { font-family:var(--font-sans); font-size:12px; color:var(--t-accent); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase; }
+.color-key .row { display:flex; align-items:center; gap:6px; margin:2px 0; }
+.color-key .swatch { width:14px; height:8px; border:1px solid var(--t-border-s); flex-shrink:0; }
+.color-key .name { font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--t-text); min-width:80px; letter-spacing:1px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+    <div class="page-banner">▌ S119 v11 — 220W · ZONES EXPANDED</div>
+    <div class="page-title">Item Card — Per-Zone List at 220w</div>
+    <div class="page-sub">
+        <span class="lock">CARRIED FORWARD</span> Same 220w card from v10. Same back-bar, flag strip, top stats, ZONES seg-bar, Defense Facts disclosure, verb strip.<br>
+        <span class="new">NEW</span> ZONES disclosure now expands to a per-zone list at 220w. Names abbreviate (<code>U.TORSO</code>, <code>L.U.ARM</code>). Bar color carries the patch/torn/worn state — no separate text-flag column. Dock button shrinks to 18×14.<br>
+        <span class="delta">DELTA</span> Removed the text flag column from the 480w list pattern. The full word (DENIM/LEATHER/TORN/WORN) is implied by the bar fill color.
+    </div>
+
+    <div class="color-key">
+        <h3>Bar Color Key — what each color means</h3>
+        <div class="row"><div class="swatch" style="background:#2a8a2a"></div><div class="name">PRISTINE</div>≥ 85% condition, no patch, no hole</div>
+        <div class="row"><div class="swatch" style="background:#4a9a3a"></div><div class="name">LIGHT</div>70 – 84% condition</div>
+        <div class="row"><div class="swatch" style="background:#cc8844"></div><div class="name">WORN</div>40 – 69% condition</div>
+        <div class="row"><div class="swatch" style="background:#cc4444"></div><div class="name">TORN</div>hole present (any %)</div>
+        <div class="row"><div class="swatch" style="background:#d8d8d8"></div><div class="name">CLOTH PATCH</div>patched with ripped sheets</div>
+        <div class="row"><div class="swatch" style="background:#5b8abf"></div><div class="name">DENIM PATCH</div>patched with denim strips</div>
+        <div class="row"><div class="swatch" style="background:#b08a5e"></div><div class="name">LEATHER PATCH</div>patched with leather strips</div>
+    </div>
+
+    <div class="cards-row">
+
+        <!-- ============= STATE A: ZONES collapsed (reference) ============= -->
+        <div class="card-col">
+            <div class="variant-header">
+                <span class="variant-tag">STATE A</span>
+                <span class="variant-state">ZONES SUMMARY · LIST HIDDEN</span>
+            </div>
+            <div class="variant-note">
+                Default 220w state. Seg-bar gives at-a-glance damage state across all zones.
+                Click the chevron to expand to the per-zone list (State B).
+            </div>
+
+            <div class="card-220">
+                <div class="cb-220">
+                    <div class="cb-220-back">&lt;</div>
+                    <div class="cb-220-name">Bernard's Casual Shirt</div>
+                    <div class="cb-220-btn primary">EQUIP</div>
+                </div>
+                <div class="fs-220">
+                    <span class="fs-220-label">MARKED</span>
+                    <div class="fs-220-chip on fav">★</div>
+                    <div class="fs-220-chip">⊘</div>
+                    <div class="fs-220-chip">✕</div>
+                </div>
+                <div class="cb-body-220">
+
+                    <div class="stats-220">
+                        <div class="stat-220"><span class="stat-220-lbl">KIND</span><span class="stat-220-val">Shirt</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">FABRIC</span><span class="stat-220-val">Cotton</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">WT.</span><span class="stat-220-val">1.1 kg</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">COND.</span><span class="stat-220-val warn">62%<span class="cond-dot" style="background:var(--t-warning);"></span></span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">CMB</span><span class="stat-220-val warn">−5%</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">RUN</span><span class="stat-220-val warn">−2%</span></div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div>
+                        <div class="zone-row-220">
+                            <span class="zone-chev-220">▶</span>
+                            <span class="label">ZONES</span>
+                            <span class="summary warn">62%</span>
+                        </div>
+                        <div class="seg-bar-220">
+                            <div class="seg light"></div>
+                            <div class="seg patch-denim"></div>
+                            <div class="seg"></div>
+                            <div class="seg torn"></div>
+                            <div class="seg"></div>
+                            <div class="seg mid"></div>
+                            <div class="seg patch-leath"></div>
+                        </div>
+                        <div class="soil-row-220">
+                            <div class="soil-220 dirt">DIRTY</div>
+                            <div class="soil-220 wet">WET</div>
+                        </div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div class="df-220">
+                        <div class="df-220-row">
+                            <span class="df-220-chev">▶</span>
+                            <span class="df-220-title">Defense Facts</span>
+                            <span class="df-220-mini">0 / 5 / 0 · 1 hole</span>
+                        </div>
+                    </div>
+
+                    <div class="verb-220">
+                        <div class="verb-220-btn" title="Wash">~<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Repair All">+<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Pad All">▣<span class="deferred-tag">S120</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============= STATE B: ZONES expanded — per-zone list ============= -->
+        <div class="card-col">
+            <div class="variant-header">
+                <span class="variant-tag">STATE B</span>
+                <span class="variant-state">ZONES EXPANDED · PER-ZONE LIST</span>
+            </div>
+            <div class="variant-note">
+                Chevron flips to ▼. Per-zone list reveals below the seg-bar. Each row: abbreviated name → bar (color = state) → % → dock action button.
+                Rows with patches show patch material color in the bar fill. Torn zones show red fill.
+            </div>
+
+            <div class="card-220">
+                <div class="cb-220">
+                    <div class="cb-220-back">&lt;</div>
+                    <div class="cb-220-name">Bernard's Casual Shirt</div>
+                    <div class="cb-220-btn primary">EQUIP</div>
+                </div>
+                <div class="fs-220">
+                    <span class="fs-220-label">MARKED</span>
+                    <div class="fs-220-chip on fav">★</div>
+                    <div class="fs-220-chip">⊘</div>
+                    <div class="fs-220-chip">✕</div>
+                </div>
+                <div class="cb-body-220">
+
+                    <div class="stats-220">
+                        <div class="stat-220"><span class="stat-220-lbl">KIND</span><span class="stat-220-val">Shirt</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">FABRIC</span><span class="stat-220-val">Cotton</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">WT.</span><span class="stat-220-val">1.1 kg</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">COND.</span><span class="stat-220-val warn">62%<span class="cond-dot" style="background:var(--t-warning);"></span></span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">CMB</span><span class="stat-220-val warn">−5%</span></div>
+                        <div class="stat-220"><span class="stat-220-lbl">RUN</span><span class="stat-220-val warn">−2%</span></div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div>
+                        <div class="zone-row-220">
+                            <span class="zone-chev-220">▼</span>
+                            <span class="label">ZONES</span>
+                            <span class="summary warn">62%</span>
+                        </div>
+                        <div class="seg-bar-220">
+                            <div class="seg light"></div>
+                            <div class="seg patch-denim"></div>
+                            <div class="seg"></div>
+                            <div class="seg torn"></div>
+                            <div class="seg"></div>
+                            <div class="seg mid"></div>
+                            <div class="seg patch-leath"></div>
+                        </div>
+                        <div class="soil-row-220">
+                            <div class="soil-220 dirt">DIRTY</div>
+                            <div class="soil-220 wet">WET</div>
+                        </div>
+
+                        <div class="zone-list-220">
+                            <div class="zone-row-detail-220">
+                                <div class="zname">U.TORSO</div>
+                                <div class="zbar"><i style="width:88%; background:var(--z-light);"></i></div>
+                                <div class="zpct good">88%</div>
+                                <div class="zdock disabled">✓</div>
+                            </div>
+                            <div class="zone-row-detail-220">
+                                <div class="zname">L.TORSO</div>
+                                <div class="zbar"><i style="width:72%; background:var(--z-patch-denim);"></i></div>
+                                <div class="zpct">72%</div>
+                                <div class="zdock action-rmpatch">✂</div>
+                            </div>
+                            <div class="zone-row-detail-220">
+                                <div class="zname">L.U.ARM</div>
+                                <div class="zbar"><i style="width:12%; background:var(--z-torn);"></i></div>
+                                <div class="zpct bad">12%</div>
+                                <div class="zdock action-repair">▲</div>
+                            </div>
+                            <div class="zone-row-detail-220">
+                                <div class="zname">L.F.ARM</div>
+                                <div class="zbar"><i style="width:38%; background:var(--z-mid);"></i></div>
+                                <div class="zpct warn">38%</div>
+                                <div class="zdock action-repair">▲</div>
+                            </div>
+                            <div class="zone-row-detail-220">
+                                <div class="zname">R.F.ARM</div>
+                                <div class="zbar"><i style="width:76%; background:var(--z-patch-leath);"></i></div>
+                                <div class="zpct">76%</div>
+                                <div class="zdock action-rmpatch">✂</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rule-220"></div>
+
+                    <div class="df-220">
+                        <div class="df-220-row">
+                            <span class="df-220-chev">▶</span>
+                            <span class="df-220-title">Defense Facts</span>
+                            <span class="df-220-mini">0 / 5 / 0 · 1 hole</span>
+                        </div>
+                    </div>
+
+                    <div class="verb-220">
+                        <div class="verb-220-btn" title="Wash">~<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Repair All">+<span class="deferred-tag">S120</span></div>
+                        <div class="verb-220-btn" title="Pad All">▣<span class="deferred-tag">S120</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
