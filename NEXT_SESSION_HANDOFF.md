@@ -1,43 +1,62 @@
 # Next Session Handoff
-Generated: May 2, 2026 — Session 118 closing, S119 booting.
+Generated: May 2, 2026 — Session 119 closing (brainstorm only, no code), S120 booting.
 
 ## Target
-**S119 — REDESIGN equipment-card detail layout from scratch.** S118 shipped the per-zone detail-zone primitives + dispatch into both render sites, but the equipment-card *layout* in `EquipmentTab._drawCardContent` has visible regressions and rough edges. User has explicitly requested a redesign-from-scratch pass with a better prototype before any more code changes there. **Boot with `zed-orchestrator` brainstorm gate to design the new layout in chat → mockup before code.**
-
-Specific layout problems observed at S118h closeout:
-- Zone names overlap percentage values (`"Upper Tors100%"` clipping)
-- Two different DIRTY flag styles visible at once (badge above stats + DIRTY pill in item-soil row)
-- Item name missing from equipment-card detail header (was in inspect window, removed when inspect died)
-- Cannot rename item from equipment-card detail (rename was inspect-only feature, now gone)
-- Drawer-card `ZeD_ItemCard` also has unspecified "rough edges" — investigate
+**S120 — BUILD the new ItemCard system, Phases 1–4 (atoms → universal molecules → content molecules → Facts panels).** S119 was a design-only session that locked the universal item card across five item types and three states. Three mockup files in `ZeDUI/mockups/` ARE the spec — no more design questions for this slice. Build to spec; surface anything unclear during execution rather than guessing. **Phase 5 (ItemCard organism) and Phase 6 (Equipment + Inventory integration) deferred to S121.** Don't try to fit them in S120 — that's the Code-stuck-15-minutes-back-to-Chat trap.
 
 ## Current state
-Version `0.1.1180205h` (S118 shipped). Clothing detail zone primitives are LIVE in both `ZeD_ItemCard` (drawer card) and `EquipmentTab` (selected equipment view) via shared `ZeD.ClothingDetail` namespace. Mouse + gamepad-X repair / remove-patch dispatch wired. Material greying reactive. Inspect window concept dead (147 LOC + ~80 LOC rename system purged). Equipment back button compacted to `<`, action buttons in header, coverage figure shows per-zone warning-scale.
+Version `0.1.1180205h` (no code shipped in S119, no bump). Equipment-card primitives + `ZeD.ClothingDetail` namespace from S118 are still live and intact. S119 produced zero Lua diffs — all output is HTML mockups + this handoff.
 
-## Open decisions
-- **Equipment-card layout redesign** (THE main S119 question — see Target above).
-- **Where does rename live now?** Inspect window was the only rename surface. Options: re-add inline rename in equipment-card detail header; add to drawer card; right-click context menu only; defer until naming UX is rethought.
-- **TOOLTIP_SPEC.md v12 amendment** still pending — correct the per-zone dirt/wet mockup (engine only exposes blood per-zone). Captured in S118 brainstorm gate, never landed in spec doc.
-- **Action strip verb side wiring** (Wash / Dry / Repair All / Pad All) — original S118 candidate #2, deferred to its own session.
+## Spec sources (READ FIRST every S120 boot)
+The three mockup files ARE the spec. Read them in order, every session boot until ItemCard ships:
+- `ZeDUI/mockups/equipment_card_redesign_v13_refinements.html` — clothing canonical case. Chrome rules, no-line-rules-between-zones (padding-as-divider), verb strip text labels, flag strip system. **The chrome rules in v13 govern every card built in S120.**
+- `ZeDUI/mockups/equipment_card_redesign_v15_both_widths.html` — five item types × two widths (220w + 480w). Top stats composition per type. Facts panel adapts: Defense / Nutrition / Combat / Container / Reading. **220w is the canonical browsing view — most-used, most-important.**
+- `ZeDUI/mockups/equipment_card_redesign_v16_progress_states.html` — Progress Band element. Idle / active / danger states, position between back-bar and flag strip, color-shifts-not-chrome-shifts for danger.
+
+## Build order — atoms up
+**Phase 1 — Atoms.** Progress band shell + fill + cancel button. Flag chip with on/off states (3 instances: FAV / NO-CRAFT / DISPOSE). Zone dock action button (3 variants: repair ▲, remove-patch ✂, disabled checkmark ✓ — already shipped in S118). Audit `ZeD.Theme` against mockup tokens; add what's missing.
+
+**Phase 2 — Universal molecules.** `BackBar`, `FlagStrip`, `ProgressBand`, `VerbStrip`. These compose into every card regardless of item type. `BackBar` accepts a verb cluster from caller — verbs adapt to source context (`equipped` / `inventory` / `container` / `ground`).
+
+**Phase 3 — Content molecules.** `TopStatsGrid` (480w, 2x3 with item icon) + `TopStatsList` (220w, single column). Facts primitives: `factsTitle`, `factsRuleThick`, `factsRuleThin`, `factsRow`. Zone primitives stay in `ZeD.ClothingDetail` namespace (S118 work, kept as-is).
+
+**Phase 4 — Facts panels (organisms).** Five panels: `DefenseFacts`, `NutritionFacts`, `CombatFacts`, `ContainerFacts`, `ReadingFacts`. Each is a registered factory `(item) → rows`. Registry in `ItemFactsPanel.lua` dispatches by item type. **ItemCard never branches on item class itself — it queries the registry.**
+
+**Phase 5 (S121) — ItemCard organism.** Width-aware (220w vs 480w branches). State-aware (`idle`/`active`/`danger` drives Progress Band visibility). Item-type dispatch for Facts panel via registry. Source-context-aware verb cluster.
+
+**Phase 6 (S121) — Integration.** Equipment tab wiring. Inventory list wiring. Test matrix: 5 types × 2 widths × 3 states = 30 cells minimum.
+
+## Architecture decisions (locked, S119 closeout — these are dev-side, designer agnostic)
+- **Source-context detection:** parent passes `sourceContext` enum into the card. `equipped | inventory | container | ground`. Cleaner contract than walking `item:getContainer()` from inside the card.
+- **Progress band reactivity:** custom observer pattern, NOT `Events.OnTick`. Active cards register with the action manager; inactive cards pay zero cost. Action manager fires events on state change only (started, tick, completed, cancelled, danger-transition).
+- **`ZeD.ClothingDetail` (S118) fate:** refactor in place. Preserves git history and FocusManager wiring. The namespace structure was always going to generalize — S118's `dispatchZoneAction` becomes the pattern for verb dispatch generally.
+
+## Open PZ API probes (Phase 4 blocking)
+Needed before Container Facts and the cooking Progress Band can pull real data. Schedule at top of Phase 4, not earlier:
+- `getScriptItem():getInsulation()` — clothing + container thermal stat. Q24 carryover from S118.
+- `getScriptItem():getWindResistance()` — same.
+- `FoodItem` cooking progress getter. Probe `getCookingTime()` + `isCooked()` + `getCookedTime()` permutations and document the path.
+- Burning state transition. `isBurnt()` exists, but the engine path from cooked → burning → burned is unclear. Time-based? Heat-based? Threshold? Probe + document.
 
 ## Known blockers
-None for the redesign target. The dispatch + data layer is solid; only the visual composition needs rework.
+None for Phases 1–3. Phase 4 blocked on the four PZ probes above; do them at the start of Phase 4, not before.
 
 ## Warm context
-- **`ZeD.ClothingDetail` namespace** lives at the bottom of `ItemCard.lua` (~line 1730+). Public API: `getZones(item)`, `buildConfigs(item)` (now sets `dock = nil` for pristine zones, `action = "repair"|"remove-patch"|nil` derived from condIconKey), `buildItemSoil(item)` (returns `{dirt, wet}` or nil), `drawSoilRow(panel, x, y, w, soil)`, `findMaterials(player)` (returns needle, thread, fabric or triple-nil), `dispatchZoneAction(player, item, part, action)`.
-- **`getClothingZones` zone tables now include `part` field** (BloodBodyPartType ref) so callers can dispatch without re-walking `getCoveredParts`.
-- **M16 `drawZoneRow` 7th param** is optional `outDockRect` — caller passes a fresh table, M16 populates `{x, y, w, h}` of the structural dock BUTTON portion (panel-local) when dock has icon. Used by both render sites for click + gamepad hit-test capture.
-- **`EquipmentTab._drawBackBar`** now stamps `_equipActionZones` per frame for the in-header Drop/Unequip buttons. Click routing in `ZeD_CharacterWindow.lua` walks them — same path as before, just rendered in a new spot.
-- **`drawer.onRightMouseUp`** at `ZeD_CharacterWindow.lua` (look for `S118: Equipment list RMB`) walks `_equipSlotZones` and calls `ISInventoryPaneContextMenu.createMenu` — equipment list now has the same context menu inv lists do.
-- **Detail-zone fold default = OPEN.** `ItemCard:_loadFoldStates` uses a per-key default fallback now: `clothing_zones` and `food_nutrition` default true; `food_ingredients` defaults false.
-- **Coverage figure overlay** in `EquipmentTab._drawCoverageFigure` takes the item as 9th arg, walks `getCoveredParts`, calls `getDefForPart(part, false, false)` per part for bite defense, maps via `ZeD.ProtectionTab.PART_TO_FIGURE`, paints with `protectionColorForDef`. Reusable pattern — could lift to a shared helper if any other surface needs it.
-- **`_renaming` / `_renameEntry` / rename buttons completely removed** from `ItemCard.lua`. Card has no rename UI at all currently.
+- **Three universal molecules** (`BackBar`, `FlagStrip`, `VerbStrip`) compose every card. The card body content is item-type-specific but the chrome is universal. **Do not introduce per-item-type chrome variants** — that's a regression to pre-S119 architecture.
+- **Flag strip data lives in modData.** ★ FAV / ⊘ NO-CRAFT / ✕ DISPOSE toggles persist via `item:getModData()`. Designer named these explicitly — don't rename without asking.
+- **Progress Band cancel `[✕]` is the ONLY cancel path.** Back-bar verbs grey out while action active (`opacity: .35`, no cursor pointer). No duplicate cancel surfaces.
+- **The relevant top-stat row mirrors the active state.** COOKED → "Cooking…" / "Burning…" while progress active. PROGRESS → mid-value while reading. CONDITION → mid-value while repairing. The stat row's text color matches the band's accent/danger.
+- **No rules between zone groups, between sections, or above the verb strip.** Padding only. v13's hard rule, restated by designer with emphasis. The Defense/Nutrition/Combat/Container/Reading Facts panels DO keep their internal thick+thin rules — those are panel identity (Nutrition Facts pattern), not section dividers.
+- **Books are the special case** — no maintenance verbs, no verb strip at all. Don't render an empty strip; conditional skip.
+- **Defense Facts at 220w gets a disclosure** because zones compete for vertical space. **All other Facts panels at 220w are always-expanded** because no zones are competing. v15 spec; respect it.
+- **Color carries urgency, chrome stays still.** Burning band uses the same DOM as cooking band, just `.danger` class flip. Same pattern for any future danger state (weapon failing, clothing tearing critically, etc.).
 
 ## Don't forget
-- **BOOT ritual:** first action at S119 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md `Current: 0.1.1180205h`. Drift = halt and reconcile.
-- **Pre-flight every test cycle:** grep `C:\Users\danie\Zomboid\Logs\<latest>\*DebugLog.txt` for `ERROR|Kahlua|RadioTab|ItemCard|EquipmentTab|attempt to call.*nil|attempt to index.*nil` before claiming clean. `ERROR: ModelManager` / `ERROR: Translation` are baseline noise.
-- **Hot-reload unreliable; full PZ restart for every test cycle.**
-- **Version bump format:** `0.1.[session][DDMM]<suffix>`. S119 starts at `0.1.119MMDD`. Suffix walks `c→d→…→z→aa→ab→...`.
-- **End-of-session ritual:** `git add . && git commit -m "S[N]: ..." && git push`. Code AND docs in same commit. Boot delta file (`SESSION_NN_DELTA.md`) at session start, flush at closeout — S118 had to reconstruct because boot didn't fire session-docs skill, don't repeat that.
-- **Custodian capture is AMBIENT.** Decisions land in `ZeDUI/deltas/SESSION_NN_DELTA.md` as they happen.
-- **Equipment-card primitives + namespace from S118 are KEEPERS.** Redesign reuses `ZeD.ClothingDetail.*` — only the visual composition + header/rename layer changes.
+- **BOOT ritual:** first action at S120 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md `Current: 0.1.1180205h`. Drift = halt and reconcile.
+- **Pre-flight every test cycle:** grep latest `C:\Users\danie\Zomboid\Logs\<latest>\*DebugLog.txt` for `ERROR|Kahlua|ItemCard|EquipmentTab|attempt to call.*nil|attempt to index.*nil` before claiming clean. `ERROR: ModelManager` / `ERROR: Translation` are baseline noise.
+- **Hot-reload unreliable; full PZ restart per test cycle.**
+- **Version bump format:** `0.1.[session][DDMM]<suffix>`. First S120 commit is `0.1.120DDMMc`. Suffix walks `c→d→…→z→aa→ab→…`.
+- **End-of-session ritual:** `git add . && git commit -m "S[N]: ..." && git push`. Code AND docs in same commit. Delta file (`ZeDUI/deltas/SESSION_120_DELTA.md`) opened at boot, flushed at closeout.
+- **Custodian capture is AMBIENT** during the session — decisions land in the delta file as they happen, not at closeout.
+- **The mockups are the spec.** When in doubt, re-read v13/v15/v16 before improvising. Don't build around what you remember — build around what the file says. The five mockup files (v9 through v16) are the design record; v13/v15/v16 are the LOCKED ones.
+- **Phase ambition cap:** S120 stops at end of Phase 4. Even if time remains, write the closeout, tee up S121. Phases 5–6 need a fresh head and the Phase 4 work to be settled before integration begins.
