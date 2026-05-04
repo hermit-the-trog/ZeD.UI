@@ -1,62 +1,71 @@
 # Next Session Handoff
-Generated: May 2, 2026 — Session 119 closing (brainstorm only, no code), S120 booting.
+Generated: May 3, 2026 — Session 121 closing, S122 booting.
 
 ## Target
-**S120 — BUILD the new ItemCard system, Phases 1–4 (atoms → universal molecules → content molecules → Facts panels).** S119 was a design-only session that locked the universal item card across five item types and three states. Three mockup files in `ZeDUI/mockups/` ARE the spec — no more design questions for this slice. Build to spec; surface anything unclear during execution rather than guessing. **Phase 5 (ItemCard organism) and Phase 6 (Equipment + Inventory integration) deferred to S121.** Don't try to fit them in S120 — that's the Code-stuck-15-minutes-back-to-Chat trap.
+**S122 — Wire B2 (ItemActionManager → real PZ TimedActions) + rename + matrix walk + closeout polish.** S121 shipped the universal v15 ItemCard organism end-to-end (220w + 480w, anatomical zone groups, flag column, seg-bar, header verb dispatch, EquipmentTab integration, padding-pass for text-size scaling). The card now visually matches the mockup at both widths. **What's left to make it fully functional:** Progress Band must light up during real cooking/reading/repairing → wire ItemActionManager to ISCookFood / ISReadABook / ISRepairClothing lifecycle. Plus: rename-on-click for the name row, gamepad-X cancel for the band, 30-cell matrix walk verification, Q125-Q128 probe + log to PZAPI-KB, and delete the `_legacy_render` archive in ItemCard.lua.
 
 ## Current state
-Version `0.1.1180205h` (no code shipped in S119, no bump). Equipment-card primitives + `ZeD.ClothingDetail` namespace from S118 are still live and intact. S119 produced zero Lua diffs — all output is HTML mockups + this handoff.
+Version `0.1.1210305n`. S121 commit shipped Phases 5+6 of the v13/v15/v16 spec rebuild. NEW `ItemCardOrganism.lua` (~900 LOC) extends `ZeD_ItemCard`. `ItemCard.lua` `render()` delegates to `:renderBody(ctx)`; legacy 336-LOC body archived in `if false then ... end end` block (delete in S122 once stable). Both 220w (drawer browsing) and 480w (full-width detail) layouts render to spec — anatomical group headers, seg-bar, adaptive flag column, font-scaled padding. EquipmentTab card mode is a child `ZeD_ItemCard` (`panel._equipCard`). Header verb cluster (EQUIP/UNEQUIP/DROP/TAKE/EAT/READ/USE) dispatches via `_dispatchHeaderVerb(label)` → vanilla `ISInventoryPaneContextMenu` handlers. Per-zone dock click + disclosure toggle hit rects fixed (absolute coords). MC eviction calibrated so card-open-in-MC caps window at user's `_baseInvW` and FIFO-evicts oldest col rather than collapsing MC entirely.
 
-## Spec sources (READ FIRST every S120 boot)
-The three mockup files ARE the spec. Read them in order, every session boot until ItemCard ships:
-- `ZeDUI/mockups/equipment_card_redesign_v13_refinements.html` — clothing canonical case. Chrome rules, no-line-rules-between-zones (padding-as-divider), verb strip text labels, flag strip system. **The chrome rules in v13 govern every card built in S120.**
-- `ZeDUI/mockups/equipment_card_redesign_v15_both_widths.html` — five item types × two widths (220w + 480w). Top stats composition per type. Facts panel adapts: Defense / Nutrition / Combat / Container / Reading. **220w is the canonical browsing view — most-used, most-important.**
-- `ZeDUI/mockups/equipment_card_redesign_v16_progress_states.html` — Progress Band element. Idle / active / danger states, position between back-bar and flag strip, color-shifts-not-chrome-shifts for danger.
+## Spec sources (READ FIRST every S122 boot)
+- `ZeDUI/mockups/equipment_card_redesign_v13_refinements.html` — chrome rules (no rules between zone groups, padding-as-divider).
+- `ZeDUI/mockups/equipment_card_redesign_v15_both_widths.html` — five item types × two widths. **220w is the canonical browsing view.**
+- `ZeDUI/mockups/equipment_card_redesign_v16_progress_states.html` — Progress Band element (idle/active/danger; cooking → burning).
 
-## Build order — atoms up
-**Phase 1 — Atoms.** Progress band shell + fill + cancel button. Flag chip with on/off states (3 instances: FAV / NO-CRAFT / DISPOSE). Zone dock action button (3 variants: repair ▲, remove-patch ✂, disabled checkmark ✓ — already shipped in S118). Audit `ZeD.Theme` against mockup tokens; add what's missing.
-
-**Phase 2 — Universal molecules.** `BackBar`, `FlagStrip`, `ProgressBand`, `VerbStrip`. These compose into every card regardless of item type. `BackBar` accepts a verb cluster from caller — verbs adapt to source context (`equipped` / `inventory` / `container` / `ground`).
-
-**Phase 3 — Content molecules.** `TopStatsGrid` (480w, 2x3 with item icon) + `TopStatsList` (220w, single column). Facts primitives: `factsTitle`, `factsRuleThick`, `factsRuleThin`, `factsRow`. Zone primitives stay in `ZeD.ClothingDetail` namespace (S118 work, kept as-is).
-
-**Phase 4 — Facts panels (organisms).** Five panels: `DefenseFacts`, `NutritionFacts`, `CombatFacts`, `ContainerFacts`, `ReadingFacts`. Each is a registered factory `(item) → rows`. Registry in `ItemFactsPanel.lua` dispatches by item type. **ItemCard never branches on item class itself — it queries the registry.**
-
-**Phase 5 (S121) — ItemCard organism.** Width-aware (220w vs 480w branches). State-aware (`idle`/`active`/`danger` drives Progress Band visibility). Item-type dispatch for Facts panel via registry. Source-context-aware verb cluster.
-
-**Phase 6 (S121) — Integration.** Equipment tab wiring. Inventory list wiring. Test matrix: 5 types × 2 widths × 3 states = 30 cells minimum.
-
-## Architecture decisions (locked, S119 closeout — these are dev-side, designer agnostic)
-- **Source-context detection:** parent passes `sourceContext` enum into the card. `equipped | inventory | container | ground`. Cleaner contract than walking `item:getContainer()` from inside the card.
-- **Progress band reactivity:** custom observer pattern, NOT `Events.OnTick`. Active cards register with the action manager; inactive cards pay zero cost. Action manager fires events on state change only (started, tick, completed, cancelled, danger-transition).
-- **`ZeD.ClothingDetail` (S118) fate:** refactor in place. Preserves git history and FocusManager wiring. The namespace structure was always going to generalize — S118's `dispatchZoneAction` becomes the pattern for verb dispatch generally.
-
-## Open PZ API probes (Phase 4 blocking)
-Needed before Container Facts and the cooking Progress Band can pull real data. Schedule at top of Phase 4, not earlier:
-- `getScriptItem():getInsulation()` — clothing + container thermal stat. Q24 carryover from S118.
-- `getScriptItem():getWindResistance()` — same.
-- `FoodItem` cooking progress getter. Probe `getCookingTime()` + `isCooked()` + `getCookedTime()` permutations and document the path.
-- Burning state transition. `isBurnt()` exists, but the engine path from cooked → burning → burned is unclear. Time-based? Heat-based? Threshold? Probe + document.
+## Open decisions
+- **Q125-Q128 PZ probes still open**, blocking proper Defense Facts ★ rows + Progress Band cooking/burning state. Test against equipped clothing (Q125 `getInsulation` / Q126 `getWindResistance`) and during a real cooking action (Q127 cooking-time getters / Q128 burning state path) at the start of S122.
+- **Auto-refresh sourceContext after action complete:** currently after EQUIP fires, the user has to re-select the item for the verb cluster to flip to UNEQUIP. The `_updateDrawer` path runs on selection change, not on action completion. Decision: hook `Events.OnEquipPrimary` / `OnClothingUpdated` etc to call updateDrawer when the currently-displayed item's state changes? Simpler: just refresh sourceContext per-frame in card prerender.
+- **Fira font glyph live-verify status:** ASCII placeholders shipped (`<` back, `*`/`o`/`x` flags, `v` checkmark, `+` repair, `x` rmpatch, `*` probe star). Decision: keep ASCII or attempt `★`/`⊘`/`✕`/`✓`/`▲`/`✂`/`★`? Designer can call.
 
 ## Known blockers
-None for Phases 1–3. Phase 4 blocked on the four PZ probes above; do them at the start of Phase 4, not before.
+None for B2. Q125-Q128 should land at the start of B2 work since they affect what the Progress Band can show.
 
-## Warm context
-- **Three universal molecules** (`BackBar`, `FlagStrip`, `VerbStrip`) compose every card. The card body content is item-type-specific but the chrome is universal. **Do not introduce per-item-type chrome variants** — that's a regression to pre-S119 architecture.
-- **Flag strip data lives in modData.** ★ FAV / ⊘ NO-CRAFT / ✕ DISPOSE toggles persist via `item:getModData()`. Designer named these explicitly — don't rename without asking.
-- **Progress Band cancel `[✕]` is the ONLY cancel path.** Back-bar verbs grey out while action active (`opacity: .35`, no cursor pointer). No duplicate cancel surfaces.
-- **The relevant top-stat row mirrors the active state.** COOKED → "Cooking…" / "Burning…" while progress active. PROGRESS → mid-value while reading. CONDITION → mid-value while repairing. The stat row's text color matches the band's accent/danger.
-- **No rules between zone groups, between sections, or above the verb strip.** Padding only. v13's hard rule, restated by designer with emphasis. The Defense/Nutrition/Combat/Container/Reading Facts panels DO keep their internal thick+thin rules — those are panel identity (Nutrition Facts pattern), not section dividers.
-- **Books are the special case** — no maintenance verbs, no verb strip at all. Don't render an empty strip; conditional skip.
-- **Defense Facts at 220w gets a disclosure** because zones compete for vertical space. **All other Facts panels at 220w are always-expanded** because no zones are competing. v15 spec; respect it.
-- **Color carries urgency, chrome stays still.** Burning band uses the same DOM as cooking band, just `.danger` class flip. Same pattern for any future danger state (weapon failing, clothing tearing critically, etc.).
+## Build order — S122 work items
+**Wire-up (priority):**
+- **B2** Subscribe `ItemActionManager` to PZ TimedAction lifecycle. Hook `Events.OnObjectAdded`/`OnTick`-equivalent OR override `ISCookFood:start/update/stop`, `ISReadABook:start/update/stop`, `ISRepairClothing:start/update/stop`. Each calls `ZeD.ItemActionManager.notify(item, "start"/"tick"/"complete"/"cancel"/"danger", action)` with `{kind, label, percent, timeStr}`. Cooking → burning transition is danger event when `getCookingTime` exceeds `getBurnTime` (Q127/Q128 probe).
+- **B9** Gamepad-X cancel for Progress Band. Add `_cancelRect` as a 4th focusable kind in the gamepad ring (alongside toggle/verb/dock); card-zone X press fires the cancel hit rect.
+- **rename input** on `_nameRowRect` click. update() detects mouse over `_nameRowRect`, on click swaps in a `ZeD_TextInput` overlaying the row. Commit on Enter, cancel on Esc.
+
+**Polish (lower priority):**
+- **480w inline DIRTY/WET chips** in the ZONES disclosure header (mockup has them right of the seg-bar; current impl renders a soil row below).
+- **Auto-refresh sourceContext** so the verb cluster flips automatically when an action completes.
+- **`_legacy_render` archive** in ItemCard.lua: delete the `if false then local function _legacy_render(self) ... end end` block now that the new organism has been verified across both widths + Equipment tab + Char + World drawer.
+
+**Verification:**
+- **C5** 30-cell matrix walk: 5 types (Clothing/Food/Weapon/Book/Container) × 2 widths (220/480) × 3 states (Idle/Active/Danger). Acceptable: ≥27/30 pass; document worst 3 in delta. Active/Danger requires B2 to land first.
+- **C6** Q125-Q128 → PZAPI-KB entries (or "still nil per Q24" confirmations).
+
+## Architecture decisions (locked S119+S120+S121, carry forward)
+- Source-context detection via parent-passed enum, not by walking `item:getContainer()` from inside the card.
+- Progress band reactivity via observer pattern (ItemActionManager), NOT `Events.OnTick`.
+- Two presets only (`compact:bool`) for 220w/480w; no intermediate sizes.
+- No Tokens.lua mutation; edge-case borders compute via `ZeD.colorBlend` at draw time.
+- Three universal molecules (`drawCardBackBar`, `drawCardFlagStrip`, `drawCardVerbStrip`) compose every card; per-item-type chrome variants are a regression.
+- Flag strip data in `item:getModData()`: ★ FAV / ⊘ NO-CRAFT / ✕ DISPOSE keys named explicitly.
+- Progress Band cancel `[✕]` is the ONLY cancel path; back-bar verbs grey out at .35α while action active.
+- No rules between zone groups, between sections, or above the verb strip — padding only.
+- Books skip the verb strip entirely (`drawCardVerbStrip` empty list = no render).
+- Defense Facts at 220w gets a disclosure (zones compete); other Facts panels at 220w always-expanded.
+- v15 ROW DISPATCH: 220w → `_drawZoneRow220` (NAME/BAR/PCT/DOCK), 480w → `_drawZoneRow480` (NAME/PCT/BAR/FLAG/DOCK). Adaptive flag column at 480w.
+- v15 ANATOMICAL GROUPING: render group header (orange mono caps) on group transition. `ZONE_GROUP_MAP` table in ItemCardOrganism.lua.
+- HIT RECT CONVENTION: `_foldHitRects` and `_zoneDockRects` stored as ABSOLUTE coords (add `card:getAbsoluteX/Y()` at stamp time). update() compares against `getMouseX/Y()` directly.
+- prerender SIZING: in drawer mode, card height = parent height (not legacy `_calcBodyH`). Scrollbar uses renderBody-stamped `_headH`/`_contentH`/`_verbStripResvH`.
+
+## Warm context (engine quirks active for S122)
+- **Q1** Nested panel mouse events break at 4+ levels → ItemCard hit testing uses absolute-coord rects in update().
+- **Q15b** Bitmap fonts (Fira) lack `▼ ▲ < > ★ ⊘ ✕ ✓ ✂` glyphs — ASCII placeholders shipped, live-verify pending.
+- **Q24** `getInsulation()` / `getWindResistance()` don't exist on items — DefenseFacts factory uses `safeGet` + `needsProbe = true` ★ badge fallback. Q125/Q126 confirm or document new path.
+- **Q22/Q23/Q25/Q26** Food data quirks for NutritionFacts.
+- **Q28/Q29/Q30** Combat stat quirks for CombatFacts.
+- **Q44** Virtual `_floorContainer` silent-fail on `ISInventoryTransferAction` → header verb TAKE for ground items uses `transferFromFloor` pre-transfer.
+- **Q94/Q95** Stack handling + per-frame builder seed-stomp race — relevant for any per-frame element registration.
 
 ## Don't forget
-- **BOOT ritual:** first action at S120 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md `Current: 0.1.1180205h`. Drift = halt and reconcile.
-- **Pre-flight every test cycle:** grep latest `C:\Users\danie\Zomboid\Logs\<latest>\*DebugLog.txt` for `ERROR|Kahlua|ItemCard|EquipmentTab|attempt to call.*nil|attempt to index.*nil` before claiming clean. `ERROR: ModelManager` / `ERROR: Translation` are baseline noise.
+- **BOOT ritual:** first action at S122 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md `Current: 0.1.1210305n`. Drift = halt and reconcile.
+- **Pre-flight every test cycle:** grep latest `Logs/<latest>/*DebugLog.txt` for `ERROR|Kahlua|ItemCard|ItemCardOrganism|EquipmentTab|attempt to call.*nil|attempt to index.*nil` before claiming clean. `ERROR: ModelManager` / `ERROR: Translation` are baseline noise.
 - **Hot-reload unreliable; full PZ restart per test cycle.**
-- **Version bump format:** `0.1.[session][DDMM]<suffix>`. First S120 commit is `0.1.120DDMMc`. Suffix walks `c→d→…→z→aa→ab→…`.
-- **End-of-session ritual:** `git add . && git commit -m "S[N]: ..." && git push`. Code AND docs in same commit. Delta file (`ZeDUI/deltas/SESSION_120_DELTA.md`) opened at boot, flushed at closeout.
-- **Custodian capture is AMBIENT** during the session — decisions land in the delta file as they happen, not at closeout.
-- **The mockups are the spec.** When in doubt, re-read v13/v15/v16 before improvising. Don't build around what you remember — build around what the file says. The five mockup files (v9 through v16) are the design record; v13/v15/v16 are the LOCKED ones.
-- **Phase ambition cap:** S120 stops at end of Phase 4. Even if time remains, write the closeout, tee up S121. Phases 5–6 need a fresh head and the Phase 4 work to be settled before integration begins.
+- **Version bump format:** `0.1.[session][DDMM]<suffix>`. First S122 commit is `0.1.122<DDMM>c`. Suffix walks `c→d→…→z→aa→…`.
+- **End-of-session ritual:** `git add . && git commit -m "S122: ..." && git push`. Code AND docs in same commit. Delta `ZeDUI/deltas/SESSION_122_DELTA.md` opened at boot, flushed at closeout.
+- **Custodian capture is AMBIENT** — decisions land in delta as they happen.
+- **The mockups are the spec.** v13/v15/v16 govern; re-read them before improvising.
+- **Legacy archive deletion:** S122 should remove the `if false then local function _legacy_render(self) ... end end` block in ItemCard.lua (around line 1039-1373) once the matrix walk passes.

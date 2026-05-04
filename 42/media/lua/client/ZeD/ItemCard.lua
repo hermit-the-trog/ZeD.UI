@@ -646,6 +646,74 @@ function ZeD_ItemCard:setItem(item)
 end
 
 -- ---------------------------------------------------------------------------
+-- HEADER VERB DISPATCH (S121 Phase B8)
+-- Maps the v15 back-bar verb label to the corresponding vanilla
+-- ISInventoryPaneContextMenu handler, then re-fires updateDrawer so the card
+-- closes / re-opens correctly when item state changes (equip → unequip flips
+-- sourceContext → cluster shifts).
+-- ---------------------------------------------------------------------------
+function ZeD_ItemCard:_dispatchHeaderVerb(label)
+    local item = self.item
+    if not item then return end
+    local playerNum = self.playerNum or 0
+    local player    = getSpecificPlayer(playerNum)
+    if not player then return end
+
+    -- vanilla helpers expect {item} or single-item array per verb
+    local items = {item}
+    local CM = ISInventoryPaneContextMenu
+
+    if label == "EQUIP" then
+        -- Clothing → onWear; weapons/firearms → onEquipPrimary
+        if instanceof(item, "Clothing") then
+            if CM.onWear then CM.onWear(items, playerNum) end
+        else
+            if CM.onEquipWeapon then
+                CM.onEquipWeapon(items, true, false, playerNum)
+            elseif CM.onEquipPrimary then
+                CM.onEquipPrimary(items, false, playerNum)
+            end
+        end
+    elseif label == "UNEQUIP" then
+        if instanceof(item, "Clothing") then
+            ISTimedActionQueue.add(ISUnequipAction:new(player, item, 50))
+        else
+            ISTimedActionQueue.add(ISUnequipAction:new(player, item, 50))
+        end
+    elseif label == "DROP" then
+        if CM.onDropItems then CM.onDropItems(items, playerNum) end
+    elseif label == "TAKE" then
+        -- Floor items use ZeD_WorldWindow.transferFromFloor (Q44 — virtual
+        -- _floorContainer breaks ISInventoryTransferAction silently).
+        local cnt = item.getContainer and item:getContainer() or nil
+        if ZeD_WorldWindow and ZeD_WorldWindow.transferFromFloor and cnt
+           and cnt.getType and cnt:getType() == "floor" then
+            ZeD_WorldWindow.transferFromFloor(player, item, player:getInventory())
+        elseif CM.onGrabItems then
+            CM.onGrabItems(items, playerNum)
+        end
+    elseif label == "EAT" then
+        if CM.eatItem then
+            CM.eatItem(item, 1, playerNum)
+        end
+    elseif label == "READ" then
+        if instanceof(item, "Literature") then
+            if instanceof(item, "Book") and CM.OnReadBook then
+                CM.OnReadBook(item, playerNum)
+            elseif CM.OnRead then
+                CM.OnRead(item, playerNum)
+            end
+        end
+    elseif label == "USE" then
+        -- Drainable / generic — fall through to contextual double-click
+        local stub = {player = playerNum}
+        if ISInventoryPane and ISInventoryPane.doContextualDblClick then
+            ISInventoryPane.doContextualDblClick(stub, item)
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- FOLD STATE: per-type disclosure toggles, persisted via player modData
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:_loadFoldStates()
@@ -836,6 +904,48 @@ function ZeD_ItemCard:update()
     ISPanel.update(self)
     if not self.item then return end
 
+    -- S121 (Phase B8): back-bar click dispatch. _backBarRects is stamped by
+    -- renderBody each frame: .back = back-arrow rect, .verbs[i] = header
+    -- verb rects (right-aligned, drawn right-to-left so [1] is leftmost
+    -- after primary). Verb labels come from ZeD.ItemCard.headerVerbsForContext.
+    do
+        local mxAbs   = getMouseX()
+        local myAbs   = getMouseY()
+        local downAbs = isMouseButtonDown(0)
+        local ax, ay  = self:getAbsoluteX(), self:getAbsoluteY()
+        local rects   = self._backBarRects
+
+        local function inAbsRect(r)
+            local rx = r.x + ax
+            local ry = r.y + ay
+            return mxAbs >= rx and mxAbs < rx + r.w
+               and myAbs >= ry and myAbs < ry + r.h
+        end
+
+        -- Back arrow → onBackClick callback installed by parent surface
+        if rects and rects.back then
+            local inBack = inAbsRect(rects.back)
+            if self._backWasDown and not downAbs and inBack and self.onBackClick then
+                self:onBackClick()
+            end
+            self._backWasDown = downAbs and inBack or false
+        end
+
+        -- Header verbs → vanilla PZ contextual actions keyed by label
+        if rects and rects.verbs and self.item then
+            local hover = nil
+            for i, vr in ipairs(rects.verbs) do
+                if inAbsRect(vr) then hover = i; break end
+            end
+            if self._headerVerbWasDown and not downAbs and hover then
+                local label = self._lastHeaderVerbs and self._lastHeaderVerbs[hover]
+                              and self._lastHeaderVerbs[hover].label
+                if label then self:_dispatchHeaderVerb(label) end
+            end
+            self._headerVerbWasDown = downAbs and (hover ~= nil) or false
+        end
+    end
+
     -- Toggle button interaction
     self.toggleHover, self.toggleWasDown = ZeD.Molecules.updateActionStrip(
         self.toggleRects, ZeD.ActionStrip.TOGGLE_DEFS,
@@ -920,32 +1030,50 @@ function ZeD_ItemCard:prerender()
     self.colGap = ZeD.T.sp.sm
     self.iconSz = ZeD.T.cardIconSz
 
-    -- Compute head + body heights
+    -- S121: in drawer mode, the card always fills its parent (the itemDrawer
+    -- panel sized to win body). renderBody stamps `self._headH` and
+    -- `self._contentH` based on actual v15 chrome + body composition; the
+    -- scrollbar is configured against THOSE values one frame later. Legacy
+    -- _calcHeadH / _calcBodyH (pre-S121 ItemCard layout assumptions) is
+    -- skipped here — calling it would shrink the card to the OLD layout's
+    -- content height and clip Defense Facts + lower zone groups.
     if self.item then
-        self._headH = self:_calcHeadH()
-        local bodyContentH = self:_calcBodyH()
-        self._contentH = bodyContentH
-        local fullH = self._headH + bodyContentH
-        local newH = fullH
         if self.mode == "drawer" and self.parent then
-            newH = math.min(newH, self.parent:getHeight())
+            local parentH = self.parent:getHeight()
+            if self.height ~= parentH then self:setHeight(parentH) end
+        else
+            -- Inspect / non-drawer mode: rough sizing via legacy calc still
+            -- works since prerender runs before render and the legacy values
+            -- are within ballpark of the new layout for non-clothing items.
+            self._headH = self:_calcHeadH()
+            local bodyContentH = self:_calcBodyH()
+            self._contentH = bodyContentH
+            local fullH = self._headH + bodyContentH
+            if fullH ~= self.height then self:setHeight(fullH) end
         end
-        if newH ~= self.height then self:setHeight(newH) end
 
-        -- Scrollbar setup (body overflows below head)
+        -- Scrollbar setup uses values stamped by the previous frame's
+        -- renderBody: self._contentH (from organism) vs self._headH
+        -- (chrome height incl. back-bar + name row + flag strip + progress
+        -- band). Verb strip footer is reserved separately — scrollbar ends
+        -- above it so the thumb never runs behind WASH/REPAIR/PAD.
         if self._sb then
             local T = ZeD.T
-            local viewH = newH - self._headH
-            local needsScroll = bodyContentH > viewH
+            local newH        = self:getHeight()
+            local headH       = self._headH or 0
+            local contentH    = self._contentH or 0
+            local verbResv    = self._verbStripResvH or 0
+            local viewH       = newH - headH - verbResv
+            local needsScroll = contentH > viewH and viewH > 0
             self._sb.visible = needsScroll
             if needsScroll then
                 self._sb.width  = T.sp.scrollbarW
                 self._sb.arrowH = T.sp.scrollbarW
                 self._sb.x      = self:getWidth() - T.sp.scrollbarW
-                self._sb.y      = self._headH
+                self._sb.y      = headH
                 self._sb.height = viewH
-                self._sb:setBarSize(viewH / bodyContentH)
-                local maxScroll = bodyContentH - viewH
+                self._sb:setBarSize(viewH / contentH)
+                local maxScroll = contentH - viewH
                 if self._scrollPixels > maxScroll then self._scrollPixels = maxScroll end
             else
                 self._scrollPixels = 0
@@ -1021,6 +1149,22 @@ end
 function ZeD_ItemCard:render()
     if not self.item then return end
     if self:getWidth() < 80 then return end
+    -- S121: delegate body composition to ItemCardOrganism (renderBody method).
+    -- The new organism handles back-bar, flag strip, progress band, body
+    -- (clothing zones / facts dispatch), and maintenance verb strip per
+    -- v13/v15/v16 spec. Scrollbar paint stays here so it overlays.
+    self:renderBody({sourceContext = self.sourceContext})
+    if self._sb and self._sb.visible then self._sb:draw(self) end
+end
+
+-- ---------------------------------------------------------------------------
+-- S121: legacy S116 render body archived as never-called dead code. The
+-- guarding `if false then` short-circuits at parse time, so this entire block
+-- is unreachable. Kept transitionally as a reference for layout intent +
+-- field stamping conventions; delete in S122 once the organism stabilizes
+-- across the full 30-cell test matrix. Live state is in ItemCardOrganism.lua.
+-- ---------------------------------------------------------------------------
+if false then local function _legacy_render(self)
     local T=ZeD.T; local A=ZeD.Atoms; local M=ZeD.Molecules; local sp=T.sp; local item=self.item
     local w=self:getWidth(); local h=self:getHeight()
     local sbW = (self._sb and self._sb.visible) and self._sb.width or 0
@@ -1354,7 +1498,7 @@ function ZeD_ItemCard:render()
     if self._sb and self._sb.visible then
         self._sb:draw(self)
     end
-end
+end end -- close _legacy_render and the `if false then` wrapper
 
 -- ---------------------------------------------------------------------------
 -- SCROLL HANDLERS (both modes — body content below sticky head)

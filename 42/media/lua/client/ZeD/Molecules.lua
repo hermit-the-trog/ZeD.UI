@@ -2532,8 +2532,12 @@ end
 --- @param value String
 --- @param valueClass One of nil/"warn"/"bad"/"dim"/"good"
 --- @param isSub  bool — sub-row gets indent + smaller font + textSec label
+--- @param needsProbe bool — when true, append a small "*" badge in T.warning
+---                          color after the label per v13 mockup convention
+---                          (signals a value sourced from an unprobed Java getter
+---                          that may resolve to a real number once Q125–Q128 land)
 --- @return height
-function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub)
+function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub, needsProbe)
     local T = ZeD.T
     local A = ZeD.Atoms
 
@@ -2552,8 +2556,22 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
-    panel:drawText(label or "", x + indent, labelY,
+    local labelStr = label or ""
+    panel:drawText(labelStr, x + indent, labelY,
         labelC.r, labelC.g, labelC.b, labelC.a or 1, labelFont)
+
+    -- v13 ★ probe badge — small mono-warning suffix after the label.
+    -- Uses ASCII "*" until Fira live-verify confirms "★" (U+2605) renders
+    -- (Q15b — Fira font glyph gaps).
+    if needsProbe then
+        local lblW    = getTextManager():MeasureStringX(labelFont, labelStr)
+        local badgeC  = T.warning
+        local badgeFont = T.fontF1
+        local badgeH  = T.fontF1H or getTextManager():getFontHeight(badgeFont)
+        local badgeY  = y + math.floor((rowH - badgeH) / 2)
+        panel:drawText("*", x + indent + lblW + 4, badgeY,
+            badgeC.r, badgeC.g, badgeC.b, badgeC.a or 1, badgeFont)
+    end
 
     local vc   = _resolveStatValColor(valueClass, T)
     local vStr = value or ""

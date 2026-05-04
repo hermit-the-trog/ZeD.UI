@@ -3117,17 +3117,27 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         local mcActive = #(win._mcSelected or {}) > 0
         local screenW = getCore():getScreenWidth()
-        local maxW = mcActive and (screenW - win:getX() - 10) or (win._maxWinW or math.floor(screenW * 0.5))
+        -- S121: when MC + item card both active, cap maxW at user's preferred
+        -- inv width (_baseInvW) plus chrome — window expands enough to keep
+        -- card visible alongside MC, but not to full screen, so the eviction
+        -- loop below fires when MC columns can't all fit at MIN_COL_W.
+        local mcItemCap = nil
+        if mcActive and win._drawerMode == "item" then
+            local baseInv = win._baseInvW or 372
+            mcItemCap = CONTAINER_STRIP_W + baseInv + effectiveW + ACTION_TAB_STRIP_W
+        end
+        local maxW = mcItemCap
+            or (mcActive and (screenW - win:getX() - 10))
+            or (win._maxWinW or math.floor(screenW * 0.5))
 
         if drawerDelta ~= 0 then
-            -- S108 v2 QA: in MC mode, card opening should NOT expand the
-            -- window — let inv area shrink + FIFO evict oldest MC col so
-            -- columns stay readable instead of pushing the window wider.
-            -- Tab drawer opens still expand window (pre-existing behavior).
-            if not (mcActive and win._drawerMode == "item") then
-                local newW = math.min(win:getWidth() + drawerDelta, maxW)
-                win:setWidth(newW)
-            end
+            -- S121: card opening in MC mode now expands the window like tab
+            -- mode does, instead of evicting MC columns. The S108 v2 design
+            -- (shrink inv area + FIFO evict oldest MC col when MC + item)
+            -- caused MC to silently collapse on item-select — bad UX after
+            -- the new ItemCard rolled. Always resize per drawerDelta now.
+            local newW = math.min(win:getWidth() + drawerDelta, maxW)
+            win:setWidth(newW)
         else
             -- At rest: accept user resize
             if win:getWidth() > maxW then win:setWidth(maxW) end
@@ -3513,6 +3523,20 @@ function ZeD_WorldWindow.toggle(playerNum)
                 win._itemCard:setItem(singleItem)
             end
             win._drawerItem = singleItem
+            -- S121 (Phase C3): wire the new ItemCard organism's sourceContext.
+            -- World drawer items are NEVER "equipped" or "inventory" — always
+            -- container or ground. World containers have .isFloor (not .isMain
+            -- — that's Char-only); _activeContainer is an INDEX into the
+            -- _containers list, not a container reference.
+            do
+                local cntEntry = win._containers
+                    and win._containers[win._activeContainer or 1]
+                if cntEntry and cntEntry.isFloor then
+                    win._itemCard.sourceContext = "ground"
+                else
+                    win._itemCard.sourceContext = "container"
+                end
+            end
             if win._drawerMode ~= "tab" then
                 win._drawerMode = "item"
             end
