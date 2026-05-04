@@ -27,6 +27,23 @@ require "ISUI/ISInventoryPaneContextMenu"
 require "ZeD/ContextMenuRegistry"
 require "ZeD/ZeD_ContextMenu"
 
+-- Is the user actively driving with a gamepad RIGHT NOW?
+--
+-- Do NOT use `JoypadState.players[player+1]` for this — it's truthy whenever
+-- a controller is merely *connected*, even if the user is right-clicking
+-- with the mouse. That mis-detection routed mouse RMB through the gamepad
+-- anchor path (focused-row / player-iso), which silently failed to resolve
+-- and dropped the menu to dock-bottom (mid-screen) instead of at the cursor.
+--
+-- ZeD.Input.Detector tracks the last-active input device (Jibb Smart rule:
+-- mouse CLICKS count as KBM, mouse MOVES don't), so it's the authoritative
+-- answer to "which device just triggered this menu?". Defensive nil-chain
+-- in case Detector hasn't loaded yet on some early frame.
+local function _isGamepadActive()
+    local D = ZeD and ZeD.Input and ZeD.Input.Detector
+    return (D and D.getMode and D.getMode() == "gamepad") or false
+end
+
 -- Resolve a player's on-screen position (iso → screen coords). Used as the
 -- gamepad-world anchor so the menu opens near the character instead of
 -- docked at the bottom-center of the viewport.
@@ -131,12 +148,10 @@ function ISWorldObjectContextMenu.createMenu(player, worldobjects, x, y, test)
     local menu = origWorldCreateMenu(player, worldobjects, x, y, test)
     if menu and not test then
         menu._zedTarget = worldobjects
-        local isGamepad = JoypadState and JoypadState.players
-                          and JoypadState.players[player + 1]
         -- S99: gamepad anchors at the PLAYER's screen position for world
         -- objects (instead of dock-bottom). Falls back to dock if we can't
         -- resolve the player's screen coords.
-        if isGamepad then
+        if _isGamepadActive() then
             local px, py = _playerScreenAnchor(player)
             if px and py then
                 menu._zedAnchorMode = "cursor"
@@ -148,9 +163,13 @@ function ISWorldObjectContextMenu.createMenu(player, worldobjects, x, y, test)
                 menu._zedAnchorY = y
             end
         else
+            -- Mouse RMB: anchor at the cursor like vanilla. Use getMouseX/Y
+            -- directly rather than the passed (x, y) — third-party callers
+            -- may pass panel-local or stale coords; the live cursor position
+            -- is what the user expects the menu to open next to.
             menu._zedAnchorMode = "cursor"
-            menu._zedAnchorX = x
-            menu._zedAnchorY = y
+            menu._zedAnchorX = getMouseX() or x
+            menu._zedAnchorY = getMouseY() or y
         end
     end
     return menu
@@ -166,9 +185,7 @@ function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y)
     local menu = origInvCreateMenu(player, isInInv, items, x, y)
     if menu then
         menu._zedTarget = items
-        local isGamepad = JoypadState and JoypadState.players
-                          and JoypadState.players[player + 1]
-        if isGamepad then
+        if _isGamepadActive() then
             local ix, iy = _invRowScreenAnchor(items)
             if ix and iy then
                 menu._zedAnchorMode = "cursor"
@@ -180,9 +197,11 @@ function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y)
                 menu._zedAnchorY = y
             end
         else
+            -- Mouse RMB: anchor at the live cursor like vanilla
+            -- ISInventoryPage.createMenu(..., getMouseX(), getMouseY()).
             menu._zedAnchorMode = "cursor"
-            menu._zedAnchorX = x
-            menu._zedAnchorY = y
+            menu._zedAnchorX = getMouseX() or x
+            menu._zedAnchorY = getMouseY() or y
         end
     end
     return menu

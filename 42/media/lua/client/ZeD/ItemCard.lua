@@ -643,6 +643,90 @@ function ZeD_ItemCard:setItem(item)
     -- Reset scroll on item change
     self._scrollPixels = 0
     if self._sb then self._sb:setScrollPos(0) end
+    -- Cancel any in-progress rename when item swaps under us
+    self:_cancelRename()
+end
+
+-- ---------------------------------------------------------------------------
+-- RENAME UI (S122) — click name row to rename, Enter to commit, Esc to cancel
+-- ---------------------------------------------------------------------------
+
+function ZeD_ItemCard:_startRename()
+    if not self.item or self._renaming then return end
+    if not self._renameInput then
+        local card = self
+        local input = ZeD_TextInput:new(0, 0, 100, "Item name")
+        input:initialise()
+        self:addChild(input)
+        input:setVisible(false)
+        input.onSubmit = function(self_, text)
+            card:_commitRename(text)
+        end
+        self._renameInput = input
+    end
+    local cur = self._renameInput
+    local name = (self.item.getName and (function() local ok, v = pcall(self.item.getName, self.item); return ok and v end)())
+                or (self.item.getDisplayName and (function() local ok, v = pcall(self.item.getDisplayName, self.item); return ok and v end)())
+                or ""
+    cur.text = name
+    cur.focused = true
+    cur.disabled = false
+    self._renaming = true
+end
+
+function ZeD_ItemCard:_commitRename(text)
+    if not self.item then self:_cancelRename(); return end
+    text = text and tostring(text):match("^%s*(.-)%s*$") or ""
+    if text ~= "" then
+        if self.item.setName then pcall(self.item.setName, self.item, text) end
+        if self.item.setCustomName then pcall(self.item.setCustomName, self.item, true) end
+    end
+    self:_cancelRename()
+end
+
+function ZeD_ItemCard:_cancelRename()
+    self._renaming = false
+    if self._renameInput then
+        self._renameInput.focused = false
+        self._renameInput:setVisible(false)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- PROGRESS BAND CANCEL DISPATCH (S122 Phase B9)
+-- Stops the active TimedAction for self.item via the action ref carried in
+-- the ItemActionManager descriptor. ISBaseTimedAction.forceStop is the
+-- canonical cancellation method; falls back to clearing the player's
+-- entire queue if the action ref is missing or forceStop unavailable.
+-- ---------------------------------------------------------------------------
+function ZeD_ItemCard:_dispatchProgressCancel()
+    if not self.item then return end
+    local mgr = ZeD.ItemActionManager
+    if not mgr then return end
+    local active = mgr.getActiveAction(self.item)
+    if not active then return end
+    local action = active._action
+    if action and action.forceStop then
+        pcall(action.forceStop, action)
+    elseif action and action.stop then
+        pcall(action.stop, action)
+    else
+        -- Fallback: clear the player's entire queue. Bigger hammer but
+        -- safe — the user explicitly clicked cancel.
+        local p = getSpecificPlayer(self.playerNum or 0)
+        if p and ISTimedActionQueue and ISTimedActionQueue.queues then
+            local q = ISTimedActionQueue.queues[p:getPlayerNum()]
+            if q and q.queue then
+                for i = #q.queue, 1, -1 do
+                    local a = q.queue[i]
+                    if a and a.forceStop then pcall(a.forceStop, a) end
+                end
+            end
+        end
+    end
+    -- Clear the manager's active state so the Band stops rendering even
+    -- if the action's stop hook didn't fire (defensive)
+    if mgr.notify then pcall(mgr.notify, self.item, "cancel") end
 end
 
 -- ---------------------------------------------------------------------------
@@ -931,6 +1015,45 @@ function ZeD_ItemCard:update()
             self._backWasDown = downAbs and inBack or false
         end
 
+        -- Name row click → enter rename mode
+        if self._nameRowRect and not self._renaming then
+            local nr = self._nameRowRect
+            local rx, ry = nr.x + ax, nr.y + ay
+            local inName = mxAbs >= rx and mxAbs < rx + nr.w
+                       and myAbs >= ry and myAbs < ry + nr.h
+            if self._nameWasDown and not downAbs and inName then
+                self:_startRename()
+            end
+            self._nameWasDown = downAbs and inName or false
+        end
+
+        -- During rename: Esc cancels, click outside the input commits/cancels.
+        if self._renaming and self._renameInput then
+            local inp = self._renameInput
+            if downAbs and self._nameRowRect then
+                local nr = self._nameRowRect
+                local rx, ry = nr.x + ax, nr.y + ay
+                local inputAreaTop = ry
+                local inputAreaBot = ry + nr.h
+                local inInput = mxAbs >= rx and mxAbs < rx + nr.w
+                            and myAbs >= inputAreaTop and myAbs < inputAreaBot
+                if not inInput then
+                    self:_commitRename(inp.text)
+                end
+            end
+        end
+
+        -- Progress Band cancel button → forceStop the active action
+        if self._cancelRect then
+            local cr = self._cancelRect
+            local inCancel = mxAbs >= cr.x and mxAbs < cr.x + cr.w
+                         and myAbs >= cr.y and myAbs < cr.y + cr.h
+            if self._cancelWasDown and not downAbs and inCancel then
+                self:_dispatchProgressCancel()
+            end
+            self._cancelWasDown = downAbs and inCancel or false
+        end
+
         -- Header verbs → vanilla PZ contextual actions keyed by label
         if rects and rects.verbs and self.item then
             local hover = nil
@@ -1157,348 +1280,6 @@ function ZeD_ItemCard:render()
     if self._sb and self._sb.visible then self._sb:draw(self) end
 end
 
--- ---------------------------------------------------------------------------
--- S121: legacy S116 render body archived as never-called dead code. The
--- guarding `if false then` short-circuits at parse time, so this entire block
--- is unreachable. Kept transitionally as a reference for layout intent +
--- field stamping conventions; delete in S122 once the organism stabilizes
--- across the full 30-cell test matrix. Live state is in ItemCardOrganism.lua.
--- ---------------------------------------------------------------------------
-if false then local function _legacy_render(self)
-    local T=ZeD.T; local A=ZeD.Atoms; local M=ZeD.Molecules; local sp=T.sp; local item=self.item
-    local w=self:getWidth(); local h=self:getHeight()
-    local sbW = (self._sb and self._sb.visible) and self._sb.width or 0
-    local pad=self.pad; local iconSz=self.iconSz
-    local innerW=w-pad*2-sbW
-    local colW=math.floor((innerW-self.colGap)/2)
-    local compact = (colW < 70)
-    local statRowH=getStatRowH()
-    local bodyFH=getTextManager():getFontHeight(T.fontF2)
-    local secH=getTextManager():getFontHeight(T.fontF1)
-    local headFH=getTextManager():getFontHeight(T.fontF4)
-    local btnSz=T.iconSm + 4
-    local grooveH=2
-    local tlg=sp.textLineGap
-    local bvo=math.floor((statRowH - T.fillBarH) / 2)
-    local leftX=pad; local rightX=pad+colW+self.colGap
-    local cat = getItemCategory(item)
-
-    -- Reset per-frame hit rect arrays
-    self._foldHitRects  = {}
-    self._zoneDockRects = {}
-
-    -- =========================================================================
-    -- PHASE 1: STICKY HEAD (before stencil — never scrolls)
-    -- Background drawn in prerender() so children (rename entry) aren't obscured.
-    -- =========================================================================
-    local curY = pad
-
-    -- Row 1: Icon + Name side-by-side
-    local itex = safeGet(item,"getTexture")
-    if itex then
-        A.drawIcon(self, itex, leftX, curY, iconSz, 1, T.iconWhite)
-    end
-    local nameX   = leftX + iconSz + sp.sm
-    local nameMaxW = innerW - iconSz - sp.sm
-    local displayName = safeGet(item,"getDisplayName") or "???"
-    local hasCustomName = safeGet(item,"isCustomName") or false
-
-    -- Center name block on icon when shorter than icon
-    local nameLines0 = wrapText(displayName, T.fontF4, nameMaxW)
-    local nameBlockH = headFH * #nameLines0
-    if hasCustomName then nameBlockH = nameBlockH + tlg + secH end
-    local nameDrawY = curY + math.max(0, math.floor((iconSz - nameBlockH) / 2))
-    self._nameY = nameDrawY
-
-    do
-        local nameLines = nameLines0
-        local nameC = T.text
-        local ny = nameDrawY
-        for _, ln in ipairs(nameLines) do
-            self:drawText(ln, nameX, ny, nameC.r, nameC.g, nameC.b, nameC.a, T.fontF4)
-            ny = ny + headFH
-        end
-        if hasCustomName then
-            local scriptItem = safeGet(item, "getScriptItem")
-            local origName = scriptItem and safeGet(scriptItem, "getDisplayName") or ""
-            self:drawText(origName, nameX, ny + tlg,
-                T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF1)
-        end
-    end
-
-    -- Advance past Row 1
-    local nameLines = wrapText(displayName, T.fontF4, nameMaxW)
-    local nameH = headFH * #nameLines
-    if hasCustomName then nameH = nameH + tlg + secH end
-    curY = curY + math.max(iconSz, nameH) + sp.cardAfterHead
-
-    -- Row 2: Primary bar — label+value% on line 1, fill bar full-width on line 2
-    local primaryBar = self:_getPrimaryBar(item)
-    if primaryBar then
-        M.drawStatRow(self, leftX, curY, innerW, primaryBar.label, math.floor(primaryBar.ratio*100).."%")
-        curY = curY + statRowH + sp.cardAfterBody
-        M.drawFillBar(self, leftX, curY, innerW, primaryBar.ratio)
-        curY = curY + T.fillBarH + sp.cardAfterBody
-    else
-        curY = curY + sp.cardAfterBody
-    end
-
-    -- Row 3: Action strip
-    local stripY = curY + sp.sm
-    local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
-    self.toggleRects = M.drawActionStrip(self, leftX, stripY, DEFS, item, self.toggleHover)
-    local verbs = getVerbsForItem(item)
-    self._verbDefs = verbs
-    self.verbRects = M.drawVerbStrip(self, w - pad, stripY, verbs, self.verbHover)
-    self:_drawGpFocusOutline()
-    curY = curY + sp.sm + btnSz + sp.sm
-
-    -- Bottom border of sticky head
-    A.drawDividerH(self, 0, curY, w, true)
-
-    -- =========================================================================
-    -- PHASE 2: SCROLLABLE BODY (inside stencil)
-    -- =========================================================================
-    local scrollOff = self._scrollPixels or 0
-    self:setStencilRect(0, self._headH, w - sbW, h - self._headH)
-
-    curY = self._headH + sp.cardAfterHead - scrollOff
-
-    -- Badges
-    local alerts = getStatusAlerts(item)
-    if #alerts > 0 then
-        local bx = leftX
-        for _,al in ipairs(alerts) do bx = bx + A.drawBadge(self, al.text, bx, curY, al.variant) + sp.badgeGap end
-        local badgeH = getTextManager():getFontHeight(T.fontF3) + sp.badgePadY * 2
-        curY = curY + badgeH + 6
-    end
-
-    -- Stats
-    local stats = getStatsForItem(item)
-    if #stats > 0 then
-        for _, st in ipairs(stats) do
-            curY = curY + M.drawStatRow(self, leftX, curY, innerW, st.label, tostring(st.value), st.color)
-        end
-    end
-
-    -- Category + Weight (labels)
-    local wt = safeGet(item,"getActualWeight") or safeGet(item,"getWeight") or 0
-    curY = curY + M.drawStatRow(self, leftX, curY, innerW, "Category", cat)
-    curY = curY + M.drawStatRow(self, leftX, curY, innerW, "Weight", string.format("%.1f kg", wt))
-
-    -- Divider
-    curY = curY + sp.cardAfterBody
-    A.drawDividerH(self, pad, curY, innerW)
-    curY = curY + 1 + sp.cardAfterHead
-
-    -- Secondary bars — two-line layout: label+% row, then fill bar full-width
-    local allBars = getBarsForItem(item)
-    if #allBars > 1 then
-        for i = 2, #allBars do
-            local bar = allBars[i]
-            M.drawStatRow(self, leftX, curY, innerW, bar.label, math.floor(bar.ratio*100).."%")
-            curY = curY + statRowH + sp.cardAfterBody
-            M.drawFillBar(self, leftX, curY, innerW, bar.ratio)
-            curY = curY + T.fillBarH
-            if i < #allBars then curY = curY + sp.cardAfterLabel end
-        end
-        curY = curY + sp.cardAfterBody
-    end
-
-    -- ----- DISCLOSURES -----
-    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    local bodyTop = ay + self._headH
-    local bodyBot = ay + h
-
-    if cat == "Clothing" then
-        -- Per-Zone Detail disclosure
-        local zones = buildZoneConfigs(item)
-        local expanded = self._foldStates.clothing_zones
-        local foldMx, foldMy = getMouseX(), getMouseY()
-        local catHdrH = T.sp.colHdrH
-        local hdrScreenY = ay + curY
-        local hdrHovered = foldMx >= ax+leftX and foldMx < ax+leftX+innerW
-                       and foldMy >= hdrScreenY and foldMy < hdrScreenY + catHdrH
-                       and hdrScreenY >= bodyTop and hdrScreenY + catHdrH <= bodyBot
-        curY = curY + M.drawSectionHeader(self, leftX, curY, innerW,
-            "Per-Zone Detail", #zones, expanded, hdrHovered, T.fontF1, nil, leftX, catHdrH)
-        table.insert(self._foldHitRects, {
-            x=ax+leftX, y=ay+curY-catHdrH, w=innerW, h=catHdrH, key="clothing_zones"
-        })
-
-        if expanded and #zones > 0 then
-            -- Material availability gates dock greying. Repair needs needle+thread+fabric;
-            -- patch removal needs needle alone. findClothingMaterials returns nil triple
-            -- on any miss, so canRemovePatch is checked separately via inv probe.
-            local player = getSpecificPlayer(self.playerNum)
-            local canRepair, canRemovePatch = false, false
-            if player then
-                local n, _, _ = findClothingMaterials(player)
-                canRepair = (n ~= nil)
-                local inv = player:getInventory()
-                local needleAlone = inv:getFirstTagRecurse(ItemTag.SEWING_NEEDLE)
-                                 or inv:getItemFromType("Needle", true, true)
-                canRemovePatch = (needleAlone ~= nil)
-            end
-
-            -- Item-level soil row (dirt + wet are item-level, not per-zone). Sits ABOVE
-            -- the per-zone list. Renders only when item is dirty or wet > 15%.
-            local soil = buildItemSoilCfg(item)
-            if soil then
-                local sH = drawItemSoilRow(self, leftX, curY, innerW, soil)
-                curY = curY + sH
-            end
-
-            for i, zone in ipairs(zones) do
-                if i > 1 then
-                    A.drawGroove(self, leftX, curY, innerW)
-                    curY = curY + grooveH
-                end
-
-                -- Apply material greying BEFORE draw. zone.action carries the
-                -- intended action ("repair" / "remove-patch" / nil) from
-                -- buildZoneConfigs. Dock config is freshly built each frame so
-                -- mutation is safe.
-                local action = zone.action
-                if zone.dock and zone.dock.state == "active" and action then
-                    if action == "repair" and not canRepair then
-                        zone.dock.state = "grey"
-                    elseif action == "remove-patch" and not canRemovePatch then
-                        zone.dock.state = "grey"
-                    end
-                end
-
-                local dockRect = {}
-                local zoneH = M.drawZoneRow(self, leftX, curY, innerW, zone, false, dockRect)
-
-                -- Capture button-portion rect for hit testing — only when the dock is
-                -- actionable AND materials present. Greyed docks (pristine OR materials
-                -- missing) don't get pushed → mouse + gamepad both ignore them.
-                if action and zone.dock.state == "active" and dockRect.w then
-                    table.insert(self._zoneDockRects, {
-                        x       = ax + leftX + dockRect.x,
-                        y       = ay + curY  + dockRect.y,
-                        w       = dockRect.w,
-                        h       = dockRect.h,
-                        zoneIdx = i,
-                        zone    = zone,
-                        action  = action,
-                        id      = "dock_" .. i,
-                    })
-                end
-                curY = curY + zoneH
-            end
-        end
-
-    elseif cat == "Food" then
-        local nutrition   = getNutritionForItem(item)
-        local ingredients = getIngredientsForItem(item)
-        local foldMx, foldMy = getMouseX(), getMouseY()
-
-        -- Nutrition Facts disclosure
-        if #nutrition > 0 then
-            local expanded = self._foldStates.food_nutrition
-            local catHdrH = T.sp.colHdrH
-            local hdrScreenY = ay + curY
-            local hdrHovered = foldMx >= ax+leftX and foldMx < ax+leftX+innerW
-                           and foldMy >= hdrScreenY and foldMy < hdrScreenY + catHdrH
-                           and hdrScreenY >= bodyTop and hdrScreenY + catHdrH <= bodyBot
-            curY = curY + M.drawSectionHeader(self, leftX, curY, innerW,
-                "Nutrition Facts", nil, expanded, hdrHovered, T.fontF1, nil, leftX, catHdrH)
-            table.insert(self._foldHitRects, {
-                x=ax+leftX, y=ay+curY-catHdrH, w=innerW, h=catHdrH, key="food_nutrition"
-            })
-
-            if expanded then
-                local thickRule = 2; local thinRule = 1
-                curY = curY + sp.cardBeforeHead
-                -- Nutrition Facts heading: F4 norm (content voice, not chrome)
-                local nfFont = T.fontF4
-                local nfC = T.toneNorm
-                self:drawText("Nutrition Facts", leftX, curY, nfC.r, nfC.g, nfC.b, nfC.a or 1, nfFont)
-                curY = curY + getTextManager():getFontHeight(nfFont) + sp.cardAfterHead
-                local bc2 = T.borderS
-                self:drawRect(leftX, curY, innerW, thickRule, bc2.a or 1, bc2.r, bc2.g, bc2.b)
-                curY = curY + thickRule + sp.cardAfterHead
-                local rc = T.border
-                for i, nut in ipairs(nutrition) do
-                    curY = curY + M.drawStatRow(self, leftX, curY, innerW, nut.label, nut.value)
-                    if i < #nutrition and not nutrition[i+1].sub then
-                        self:drawRect(leftX, curY, innerW, thinRule, rc.a or 1, rc.r, rc.g, rc.b)
-                        curY = curY + thinRule + sp.cardAfterBody
-                    end
-                end
-                curY = curY + sp.cardAfterBody
-            end
-        end
-
-        -- Ingredients disclosure
-        if #ingredients > 0 then
-            local expanded = self._foldStates.food_ingredients
-            local catHdrH = T.sp.colHdrH
-            local hdrScreenY = ay + curY
-            local hdrHovered = foldMx >= ax+leftX and foldMx < ax+leftX+innerW
-                           and foldMy >= hdrScreenY and foldMy < hdrScreenY + catHdrH
-                           and hdrScreenY >= bodyTop and hdrScreenY + catHdrH <= bodyBot
-            curY = curY + M.drawSectionHeader(self, leftX, curY, innerW,
-                "Ingredients", #ingredients, expanded, hdrHovered, T.fontF1, true, leftX, catHdrH)
-            table.insert(self._foldHitRects, {
-                x=ax+leftX, y=ay+curY-catHdrH, w=innerW, h=catHdrH, key="food_ingredients"
-            })
-
-            if expanded then
-                curY = curY + sp.cardAfterHead
-                local font = T.fontF1
-                local labelStr = "INGREDIENTS: "
-                local names = {}
-                for _, ing in ipairs(ingredients) do names[#names + 1] = ing.name end
-                local namesStr = table.concat(names, ", ")
-                local labelW = getTextManager():MeasureStringX(font, labelStr)
-                self:drawText(labelStr, leftX, curY, T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, font)
-                local wrapX = leftX + labelW
-                local maxW = innerW
-                local remaining = namesStr
-                local lineH = secH + 2
-                while remaining and #remaining > 0 do
-                    local availW = maxW - (wrapX - leftX)
-                    local fits = #remaining
-                    while fits > 0 and getTextManager():MeasureStringX(font, remaining:sub(1, fits)) > availW do
-                        local breakAt = fits
-                        while breakAt > 0 and remaining:sub(breakAt, breakAt) ~= "," and remaining:sub(breakAt, breakAt) ~= " " do
-                            breakAt = breakAt - 1
-                        end
-                        if breakAt > 0 then fits = breakAt else fits = fits - 1 end
-                    end
-                    if fits <= 0 then fits = 1 end
-                    local chunk = remaining:sub(1, fits)
-                    local tc = T.text
-                    self:drawText(chunk, wrapX, curY, tc.r, tc.g, tc.b, tc.a, font)
-                    remaining = remaining:sub(fits + 1)
-                    remaining = remaining:match("^[%s,]*(.*)")
-                    if remaining and #remaining > 0 then
-                        curY = curY + lineH
-                        wrapX = leftX
-                    end
-                end
-                curY = curY + lineH
-
-                curY = curY + sp.cardAfterLabel
-                local ct = safeGet(item, "getMinutesToCook")
-                curY = curY + M.drawStatRow(self, leftX, curY, innerW, "Cook time", (ct and ct>0) and (math.floor(ct).." min") or "-")
-            end
-        end
-    end
-    -- (Weapon/other: no disclosures — lean card)
-
-    self:clearStencilRect()
-
-    -- =========================================================================
-    -- PHASE 3: SCROLLBAR (after stencil)
-    -- =========================================================================
-    if self._sb and self._sb.visible then
-        self._sb:draw(self)
-    end
-end end -- close _legacy_render and the `if false then` wrapper
 
 -- ---------------------------------------------------------------------------
 -- SCROLL HANDLERS (both modes — body content below sticky head)
@@ -1552,6 +1333,25 @@ function ZeD_ItemCard:getActionStripElements()
     local els  = {}
     local item = self.item
     local card = self
+
+    -- S122 (B9): Progress Band cancel as a leading focusable. Only present
+    -- when an action is active (Manager.getActiveAction != nil). Lands as
+    -- the first ring element when armed so X press hits it without ring nav.
+    -- _cancelRect is stamped absolute by stampGamepadFields; ring elements
+    -- expect panel-local (subtract abs offset).
+    if self._cancelRect and ZeD.ItemActionManager
+       and ZeD.ItemActionManager.getActiveAction
+       and ZeD.ItemActionManager.getActiveAction(item) then
+        local cr = self._cancelRect
+        local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+        local eid = "cancel_band"
+        els[#els + 1] = {
+            x = cr.x - ax, y = cr.y - ay, w = cr.w, h = cr.h,
+            id = eid,
+            onFocus    = function() card._gpFocusedBtnId = eid end,
+            onActivate = function() card:_dispatchProgressCancel() end,
+        }
+    end
 
     local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
     for i, def in ipairs(DEFS) do
@@ -1650,6 +1450,10 @@ function ZeD_ItemCard:_drawGpFocusOutline()
                 r = rect; break
             end
         end
+    end
+    -- Progress Band cancel (S122 B9) — id "cancel_band"
+    if not r and id == "cancel_band" and self._cancelRect then
+        r = self._cancelRect
     end
     if not r then return end
 
