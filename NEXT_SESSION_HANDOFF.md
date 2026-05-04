@@ -1,71 +1,83 @@
 # Next Session Handoff
-Generated: May 3, 2026 — Session 121 closing, S122 booting.
+Generated: May 3, 2026 — Session 122 closing, S123 booting.
 
 ## Target
-**S122 — Wire B2 (ItemActionManager → real PZ TimedActions) + rename + matrix walk + closeout polish.** S121 shipped the universal v15 ItemCard organism end-to-end (220w + 480w, anatomical zone groups, flag column, seg-bar, header verb dispatch, EquipmentTab integration, padding-pass for text-size scaling). The card now visually matches the mockup at both widths. **What's left to make it fully functional:** Progress Band must light up during real cooking/reading/repairing → wire ItemActionManager to ISCookFood / ISReadABook / ISRepairClothing lifecycle. Plus: rename-on-click for the name row, gamepad-X cancel for the band, 30-cell matrix walk verification, Q125-Q128 probe + log to PZAPI-KB, and delete the `_legacy_render` archive in ItemCard.lua.
+**S123 — verification + danger states + context menu fix + carryover polish.** S121-S122 shipped the full ItemCard chrome + dynamic state layer (Progress Band lights up during real reading/cooking/repairing, mouse + gamepad cancel works, rename input on name row, 480w inline DIRTY/WET chips in ZONES disclosure). What's left:
+
+1. **30-cell test matrix walk** (5 types × 2 widths × 3 states) — primary verification.
+2. **Q125-Q128 PZ probes** → PZAPI-KB entries (insulation / wind / cooking-time / burning-state).
+3. **Cooking → burning danger transition** in the Progress Band (depends on Q127/Q128).
+4. **Context menu mispositioning** regression — was spawned as a side task, should be addressed.
+5. **Auto-refresh sourceContext** after action complete (verb cluster currently flips only on next manual selection).
 
 ## Current state
-Version `0.1.1210305n`. S121 commit shipped Phases 5+6 of the v13/v15/v16 spec rebuild. NEW `ItemCardOrganism.lua` (~900 LOC) extends `ZeD_ItemCard`. `ItemCard.lua` `render()` delegates to `:renderBody(ctx)`; legacy 336-LOC body archived in `if false then ... end end` block (delete in S122 once stable). Both 220w (drawer browsing) and 480w (full-width detail) layouts render to spec — anatomical group headers, seg-bar, adaptive flag column, font-scaled padding. EquipmentTab card mode is a child `ZeD_ItemCard` (`panel._equipCard`). Header verb cluster (EQUIP/UNEQUIP/DROP/TAKE/EAT/READ/USE) dispatches via `_dispatchHeaderVerb(label)` → vanilla `ISInventoryPaneContextMenu` handlers. Per-zone dock click + disclosure toggle hit rects fixed (absolute coords). MC eviction calibrated so card-open-in-MC caps window at user's `_baseInvW` and FIFO-evicts oldest col rather than collapsing MC entirely.
+Version `0.1.1220305j`. S122 commit shipped the dynamic state layer atop S121's static chrome. Reading the comic in the in-game test session triggered the Progress Band correctly via the IsoPlayer:isReading() + inventory-scan fallback path (the canonical `ISTimedActionQueue` head poll missed because Build 42's read action queues with empty Lua-side fields — Java userdata behavior).
 
-## Spec sources (READ FIRST every S122 boot)
-- `ZeDUI/mockups/equipment_card_redesign_v13_refinements.html` — chrome rules (no rules between zone groups, padding-as-divider).
-- `ZeDUI/mockups/equipment_card_redesign_v15_both_widths.html` — five item types × two widths. **220w is the canonical browsing view.**
-- `ZeDUI/mockups/equipment_card_redesign_v16_progress_states.html` — Progress Band element (idle/active/danger; cooking → burning).
+`ItemActionHooks.lua` has TWO parallel paths:
+- **Queue polling:** OnTick scan of `ISTimedActionQueue.queues[pn].queue[1]` with multi-strategy classifier. Used for cooking + repairing (and any future TimedAction with proper Lua fields).
+- **isReading fallback:** OnTick scan of `IsoPlayer:isReading()` + inventory-scan for Literature items, ranked unique → carded → highest-already-read-pages. Used because the read action's Lua fields don't survive the queue.
+
+The fallback's robustness is unverified for cooking + repairing — those actions might need similar fallbacks if their fields are also empty. Investigate during the 30-cell matrix walk.
+
+## Spec sources (READ FIRST every S123 boot)
+- `ZeDUI/mockups/equipment_card_redesign_v13_refinements.html`
+- `ZeDUI/mockups/equipment_card_redesign_v15_both_widths.html`
+- `ZeDUI/mockups/equipment_card_redesign_v16_progress_states.html` — danger transition spec for cooking → burning.
 
 ## Open decisions
-- **Q125-Q128 PZ probes still open**, blocking proper Defense Facts ★ rows + Progress Band cooking/burning state. Test against equipped clothing (Q125 `getInsulation` / Q126 `getWindResistance`) and during a real cooking action (Q127 cooking-time getters / Q128 burning state path) at the start of S122.
-- **Auto-refresh sourceContext after action complete:** currently after EQUIP fires, the user has to re-select the item for the verb cluster to flip to UNEQUIP. The `_updateDrawer` path runs on selection change, not on action completion. Decision: hook `Events.OnEquipPrimary` / `OnClothingUpdated` etc to call updateDrawer when the currently-displayed item's state changes? Simpler: just refresh sourceContext per-frame in card prerender.
-- **Fira font glyph live-verify status:** ASCII placeholders shipped (`<` back, `*`/`o`/`x` flags, `v` checkmark, `+` repair, `x` rmpatch, `*` probe star). Decision: keep ASCII or attempt `★`/`⊘`/`✕`/`✓`/`▲`/`✂`/`★`? Designer can call.
+- **Q125-Q128 PZ probes** — finally land them at the start of S123 to unblock danger transitions in the Progress Band and ★ probe-badge resolution in Defense Facts.
+- **Cancel via fallback path** — when book is resolved via inventory-scan, the descriptor's `_action` is nil. Cancel falls through to per-queue forceStop (works but bigger hammer). Need to backfill the action ref by hooking ISReadABook directly (if it exists in Build 42) or live with the fallback.
+- **30-cell matrix worst-3 documentation** — record per cell which fail and why.
 
 ## Known blockers
-None for B2. Q125-Q128 should land at the start of B2 work since they affect what the Progress Band can show.
+None for the matrix walk. Q125-Q128 probes block the Progress Band danger transition + Defense Facts probe-badge accuracy.
 
-## Build order — S122 work items
-**Wire-up (priority):**
-- **B2** Subscribe `ItemActionManager` to PZ TimedAction lifecycle. Hook `Events.OnObjectAdded`/`OnTick`-equivalent OR override `ISCookFood:start/update/stop`, `ISReadABook:start/update/stop`, `ISRepairClothing:start/update/stop`. Each calls `ZeD.ItemActionManager.notify(item, "start"/"tick"/"complete"/"cancel"/"danger", action)` with `{kind, label, percent, timeStr}`. Cooking → burning transition is danger event when `getCookingTime` exceeds `getBurnTime` (Q127/Q128 probe).
-- **B9** Gamepad-X cancel for Progress Band. Add `_cancelRect` as a 4th focusable kind in the gamepad ring (alongside toggle/verb/dock); card-zone X press fires the cancel hit rect.
-- **rename input** on `_nameRowRect` click. update() detects mouse over `_nameRowRect`, on click swaps in a `ZeD_TextInput` overlaying the row. Commit on Enter, cancel on Esc.
+## Build order — S123 work items
 
-**Polish (lower priority):**
-- **480w inline DIRTY/WET chips** in the ZONES disclosure header (mockup has them right of the seg-bar; current impl renders a soil row below).
-- **Auto-refresh sourceContext** so the verb cluster flips automatically when an action completes.
-- **`_legacy_render` archive** in ItemCard.lua: delete the `if false then local function _legacy_render(self) ... end end` block now that the new organism has been verified across both widths + Equipment tab + Char + World drawer.
+**Verification (priority):**
+- **30-cell matrix walk:** 5 types (Clothing / Food / Weapon / Book / Container) × 2 widths (220 / 480) × 3 states (Idle / Active / Danger). Open card for each type at each width, trigger the relevant action for Active/Danger. Acceptable: ≥27/30 pass; document worst 3 in delta with screenshots.
 
-**Verification:**
-- **C5** 30-cell matrix walk: 5 types (Clothing/Food/Weapon/Book/Container) × 2 widths (220/480) × 3 states (Idle/Active/Danger). Acceptable: ≥27/30 pass; document worst 3 in delta. Active/Danger requires B2 to land first.
-- **C6** Q125-Q128 → PZAPI-KB entries (or "still nil per Q24" confirmations).
+**Wire-up:**
+- **Q125-Q128 probes** — Equip clothing → check `getInsulation` / `getWindResistance` (vs Q24 baseline). Cook food → probe `getCookingTime` / `isCooked` / `getCookedTime` permutations. Let cooking go past completion → probe `isBurnt` + heat/time threshold for the cooked → burning transition.
+- **Cooking → burning danger transition:** when `isCooked()` AND time-past-cooked > burn-threshold (Q127/Q128) → the queue poll's tick descriptor flips `mode = "danger"` (band re-renders in red). Q127/Q128 must land first.
+- **Context menu mispositioning fix** (spawned as side task in `~/.claude` — pull it forward into S123 if not already done): `ISInventoryPaneContextMenu` anchor logic for kbm right-click should use `(getMouseX(), getMouseY())` not the gamepad-derived position.
+- **Auto-refresh sourceContext** — currently after EQUIP fires, user must re-select the item for verb cluster to flip to UNEQUIP. Either hook OnEquipPrimary/OnClothingUpdated to call updateDrawer, or refresh per-frame in card prerender. Prefer the latter — simpler, no Java event surface dependencies.
 
-## Architecture decisions (locked S119+S120+S121, carry forward)
-- Source-context detection via parent-passed enum, not by walking `item:getContainer()` from inside the card.
-- Progress band reactivity via observer pattern (ItemActionManager), NOT `Events.OnTick`.
-- Two presets only (`compact:bool`) for 220w/480w; no intermediate sizes.
-- No Tokens.lua mutation; edge-case borders compute via `ZeD.colorBlend` at draw time.
-- Three universal molecules (`drawCardBackBar`, `drawCardFlagStrip`, `drawCardVerbStrip`) compose every card; per-item-type chrome variants are a regression.
-- Flag strip data in `item:getModData()`: ★ FAV / ⊘ NO-CRAFT / ✕ DISPOSE keys named explicitly.
-- Progress Band cancel `[✕]` is the ONLY cancel path; back-bar verbs grey out at .35α while action active.
-- No rules between zone groups, between sections, or above the verb strip — padding only.
-- Books skip the verb strip entirely (`drawCardVerbStrip` empty list = no render).
-- Defense Facts at 220w gets a disclosure (zones compete); other Facts panels at 220w always-expanded.
-- v15 ROW DISPATCH: 220w → `_drawZoneRow220` (NAME/BAR/PCT/DOCK), 480w → `_drawZoneRow480` (NAME/PCT/BAR/FLAG/DOCK). Adaptive flag column at 480w.
-- v15 ANATOMICAL GROUPING: render group header (orange mono caps) on group transition. `ZONE_GROUP_MAP` table in ItemCardOrganism.lua.
-- HIT RECT CONVENTION: `_foldHitRects` and `_zoneDockRects` stored as ABSOLUTE coords (add `card:getAbsoluteX/Y()` at stamp time). update() compares against `getMouseX/Y()` directly.
-- prerender SIZING: in drawer mode, card height = parent height (not legacy `_calcBodyH`). Scrollbar uses renderBody-stamped `_headH`/`_contentH`/`_verbStripResvH`.
+**Polish:**
+- **Cancel descriptor `_action` for fallback path** — when isReading-fallback fires the start, action ref is nil. Try resolving via ISReadABook hook (if Build 42 has the class — verify) so cancel can call forceStop directly instead of falling through to per-queue clear.
 
-## Warm context (engine quirks active for S122)
-- **Q1** Nested panel mouse events break at 4+ levels → ItemCard hit testing uses absolute-coord rects in update().
-- **Q15b** Bitmap fonts (Fira) lack `▼ ▲ < > ★ ⊘ ✕ ✓ ✂` glyphs — ASCII placeholders shipped, live-verify pending.
-- **Q24** `getInsulation()` / `getWindResistance()` don't exist on items — DefenseFacts factory uses `safeGet` + `needsProbe = true` ★ badge fallback. Q125/Q126 confirm or document new path.
+## Architecture decisions (locked S119+S120+S121+S122, carry forward)
+- Source-context detection via parent-passed enum.
+- Progress band reactivity via observer pattern, NOT `Events.OnTick` direct subscriber.
+- Two presets (`compact:bool`); no intermediate sizes.
+- No Tokens.lua mutation; edge-case borders compute via `ZeD.colorBlend`.
+- Three universal molecules compose every card; no per-item-type chrome variants.
+- Flag strip data in `item:getModData()` — keys named explicitly by designer.
+- Progress Band cancel `[✕]` is the only cancel path; back-bar verbs grey out at .35α while action active.
+- No rules between zone groups, sections, or above verb strip — padding only.
+- Books skip the verb strip entirely.
+- Defense Facts at 220w gets disclosure (zones compete); other Facts panels at 220w always-expanded.
+- v15 ROW DISPATCH: 220w → `_drawZoneRow220` (NAME/BAR/PCT/DOCK), 480w → `_drawZoneRow480` (NAME/PCT/BAR/FLAG/DOCK with adaptive flag column).
+- v15 ANATOMICAL GROUPING: TORSO/UPPER ARM/LOWER ARM/THIGH/SHIN/FOOT/HAND/HEAD/GROIN at both widths.
+- HIT RECT CONVENTION: `_foldHitRects`, `_zoneDockRects`, `_cancelRect`, `_nameRowRect` stored as ABSOLUTE coords. update() compares against `getMouseX/Y()`.
+- prerender SIZING: in drawer mode, card height = parent height. Scrollbar reads renderBody-stamped `_headH`/`_contentH`/`_verbStripResvH`.
+- ITEM ACTION BRIDGE: `ItemActionHooks.lua` runs OnTick. Two parallel paths — queue polling + isReading fallback. Per-player `_lastActive` tracks transitions for synthetic `complete` events.
+
+## Warm context (engine quirks active for S123)
+- **Q1** Nested panel mouse events break at 4+ levels → ItemCard hit testing uses absolute-coord rects.
+- **Q15b** Bitmap fonts (Fira) lack `▼ ▲ < > ★ ⊘ ✕ ✓ ✂` — ASCII placeholders shipped (`<`, `*`/`o`/`x`, `v`/`+`/`x`, `*` probe star). Live-verify pending.
+- **Q24** `getInsulation()` / `getWindResistance()` don't exist on items — Q125/Q126 confirms or documents new path.
 - **Q22/Q23/Q25/Q26** Food data quirks for NutritionFacts.
 - **Q28/Q29/Q30** Combat stat quirks for CombatFacts.
-- **Q44** Virtual `_floorContainer` silent-fail on `ISInventoryTransferAction` → header verb TAKE for ground items uses `transferFromFloor` pre-transfer.
-- **Q94/Q95** Stack handling + per-frame builder seed-stomp race — relevant for any per-frame element registration.
+- **Q44** Virtual `_floorContainer` silent-fail on `ISInventoryTransferAction` — header verb TAKE for ground items uses `transferFromFloor` pre-transfer.
+- **Q94/Q95** Stack handling + per-frame builder seed-stomp race.
+- **NEW (S122 finding):** PZ Build 42's read action queues with empty Lua fields — `pairs(action)` returns nothing, `action.Type` is nil. Needs IsoPlayer:isReading() fallback for reading detection. Will be Q129 after probe at S123 boot.
 
 ## Don't forget
-- **BOOT ritual:** first action at S122 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md `Current: 0.1.1210305n`. Drift = halt and reconcile.
-- **Pre-flight every test cycle:** grep latest `Logs/<latest>/*DebugLog.txt` for `ERROR|Kahlua|ItemCard|ItemCardOrganism|EquipmentTab|attempt to call.*nil|attempt to index.*nil` before claiming clean. `ERROR: ModelManager` / `ERROR: Translation` are baseline noise.
+- **BOOT ritual:** first action at S123 boot is `git log --oneline | head -30` cross-checked against PROJECT_STATE.md `Current: 0.1.1220305j`. Drift = halt and reconcile.
+- **Pre-flight every test cycle:** grep latest `Logs/<latest>/*DebugLog.txt` for `ERROR|Kahlua|ItemCard|ItemCardOrganism|ItemActionHooks|EquipmentTab|attempt to call.*nil|attempt to index.*nil`. ModelManager / Translation are baseline noise.
 - **Hot-reload unreliable; full PZ restart per test cycle.**
-- **Version bump format:** `0.1.[session][DDMM]<suffix>`. First S122 commit is `0.1.122<DDMM>c`. Suffix walks `c→d→…→z→aa→…`.
-- **End-of-session ritual:** `git add . && git commit -m "S122: ..." && git push`. Code AND docs in same commit. Delta `ZeDUI/deltas/SESSION_122_DELTA.md` opened at boot, flushed at closeout.
+- **Version bump format:** `0.1.[session][DDMM]<suffix>`. First S123 commit is `0.1.123<DDMM>c`.
+- **End-of-session ritual:** `git add . && git commit -m "S123: ..." && git push`. Code AND docs in same commit. Delta `ZeDUI/deltas/SESSION_123_DELTA.md` opened at boot, flushed at closeout.
 - **Custodian capture is AMBIENT** — decisions land in delta as they happen.
-- **The mockups are the spec.** v13/v15/v16 govern; re-read them before improvising.
-- **Legacy archive deletion:** S122 should remove the `if false then local function _legacy_render(self) ... end end` block in ItemCard.lua (around line 1039-1373) once the matrix walk passes.
+- **The mockups are the spec.** v13/v15/v16 govern.

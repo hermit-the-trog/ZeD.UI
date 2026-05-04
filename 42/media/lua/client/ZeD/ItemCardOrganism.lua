@@ -679,8 +679,18 @@ local function stampGamepadFields(card, markRects, verbStripRects, verbList, can
         }
     end
 
-    -- Progress band cancel button — new field for B9 gamepad wiring
-    card._cancelRect = cancelRect
+    -- Progress band cancel button. Absolute coords for update()'s hit test
+    -- (matches _foldHitRects / _zoneDockRects convention). cancelRect is
+    -- panel-local from drawProgressBand's outRect; absolutize here.
+    if cancelRect and cancelRect.x then
+        local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
+        card._cancelRect = {
+            x = ax + cancelRect.x, y = ay + cancelRect.y,
+            w = cancelRect.w, h = cancelRect.h,
+        }
+    else
+        card._cancelRect = nil
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -744,7 +754,19 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
         local condPctStr = string.format("%d%%", math.floor(condR * 100 + 0.5))
         local condColor  = ratioColor(condR)
 
-        -- Disclosure header: chevron + ZONES label + overall % summary
+        -- Resolve item-level soil up front — used inline in the 480w
+        -- disclosure header AND in the 220w soil-row-below path.
+        local soil = nil
+        if ZeD.ItemDetail and ZeD.ItemDetail.buildItemSoil then
+            soil = ZeD.ItemDetail.buildItemSoil(item)
+        end
+
+        -- Disclosure header.
+        -- 220w: chevron + ZONES label + overall %, with seg-bar + soil row
+        --       drawn beneath when expanded.
+        -- 480w: chevron + ZONES + seg-bar (inline middle) + % + DIRTY/WET
+        --       chips (right) all on one row per v15 spec; expanded body
+        --       skips the duplicate seg-bar + soil row below.
         do
             local textY  = cy + math.floor((hdrH - fontH) / 2)
             local chev   = expanded and "v" or ">"
@@ -754,9 +776,73 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 chevC.r, chevC.g, chevC.b, chevC.a or 1, font)
             card:drawText("ZONES", x + 14, textY,
                 labelC.r, labelC.g, labelC.b, labelC.a or 1, font)
-            local sumW = tm:MeasureStringX(font, condPctStr)
-            card:drawText(condPctStr, x + w - sumW, textY,
-                condColor.r, condColor.g, condColor.b, condColor.a or 1, font)
+            local labelEndX = x + 14 + tm:MeasureStringX(font, "ZONES") + 8
+
+            if compact then
+                -- Right-aligned overall % only
+                local sumW = tm:MeasureStringX(font, condPctStr)
+                card:drawText(condPctStr, x + w - sumW, textY,
+                    condColor.r, condColor.g, condColor.b, condColor.a or 1, font)
+            else
+                -- Inline composition: [chevron+label][seg-bar fills][%][DIRTY][WET]
+                -- Reserve right side for chips first, then % left of chips,
+                -- seg-bar fills the rest. Chip widths derive from text content.
+                local chipPadX  = 6
+                local chipGap   = 6
+                local chips = {}
+                if soil and soil.dirt then
+                    chips[#chips + 1] = {label = "DIRTY", color = T.soiledDirt or T.warning}
+                end
+                if soil and soil.wet then
+                    chips[#chips + 1] = {label = "WET " .. tostring(soil.wet) .. "%",
+                                         color = T.soiledWet or T.info}
+                end
+
+                -- Compute right-anchored cursor walking left
+                local chipH = math.max(fontH + 4, 16)
+                local rightCursor = x + w
+                local chipRects = {}
+                for i = #chips, 1, -1 do
+                    local c = chips[i]
+                    local labelW = tm:MeasureStringX(font, c.label)
+                    local cw = labelW + chipPadX * 2
+                    rightCursor = rightCursor - cw
+                    chipRects[i] = {x = rightCursor, w = cw, y = cy + math.floor((hdrH - chipH) / 2), h = chipH}
+                    if i > 1 then rightCursor = rightCursor - chipGap end
+                end
+                if #chips > 0 then rightCursor = rightCursor - chipGap end
+
+                -- Overall % (right-aligned, left of chips)
+                local sumW = tm:MeasureStringX(font, condPctStr)
+                local sumX = rightCursor - sumW
+                card:drawText(condPctStr, sumX, textY,
+                    condColor.r, condColor.g, condColor.b, condColor.a or 1, font)
+                local sumLeftEdge = sumX - 8
+
+                -- Seg-bar fills middle (between label end and % left edge)
+                local barX = labelEndX
+                local barW = sumLeftEdge - barX
+                if barW > 20 then
+                    local barH = math.max(math.floor(fontH * 0.7), 10)
+                    local barY = cy + math.floor((hdrH - barH) / 2)
+                    _drawZoneSegBar(card, barX, barY, barW, barH, zones)
+                end
+
+                -- Draw chips (after seg-bar so they layer cleanly)
+                for i, c in ipairs(chips) do
+                    local r = chipRects[i]
+                    local col = c.color or T.text
+                    card:drawRect(r.x, r.y, r.w, r.h,
+                        T.surf2.a or 1, T.surf2.r, T.surf2.g, T.surf2.b)
+                    card:drawRectBorder(r.x, r.y, r.w, r.h,
+                        col.a or 1, col.r, col.g, col.b)
+                    local lw = tm:MeasureStringX(font, c.label)
+                    local lx = r.x + math.floor((r.w - lw) / 2)
+                    local ly = r.y + math.floor((r.h - fontH) / 2)
+                    card:drawText(c.label, lx, ly,
+                        col.r, col.g, col.b, col.a or 1, font)
+                end
+            end
         end
         -- Hit rect for fold toggle. ItemCard:update() compares against
         -- ABSOLUTE mouse coords, so stamp absolute (add panel offsets).
@@ -770,20 +856,14 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
         cy = cy + hdrH
 
         if expanded then
-            -- Multi-segment seg-bar — drawn at BOTH widths (v15 spec).
-            -- 220w: bar spans full width below the disclosure header.
-            -- 480w: bar will be inline w/ disclosure header in a future
-            -- horizontal-compose iteration; for now also full-width below.
-            cy = cy + padAfterDisclosureBeforeSegBar
-            _drawZoneSegBar(card, x, cy, w, segH, zones)
-            cy = cy + segH + padAfterSegBar
+            -- 220w: seg-bar + soil row below the disclosure (not inline).
+            -- 480w: skip — already composed inline in the disclosure header.
+            if compact then
+                cy = cy + padAfterDisclosureBeforeSegBar
+                _drawZoneSegBar(card, x, cy, w, segH, zones)
+                cy = cy + segH + padAfterSegBar
 
-            -- Item-level soil row (BLOOD per-zone is in seg-bar via patch
-            -- color; dirt/wet are item-level — see ZeD.ItemDetail.buildItemSoil).
-            -- buildItemSoil returns nil when nothing — guard before drawSoilRow.
-            if ZeD.ItemDetail and ZeD.ItemDetail.buildItemSoil and ZeD.ItemDetail.drawSoilRow then
-                local soil = ZeD.ItemDetail.buildItemSoil(item)
-                if soil then
+                if soil and ZeD.ItemDetail and ZeD.ItemDetail.drawSoilRow then
                     cy = cy + ZeD.ItemDetail.drawSoilRow(card, x, cy, w, soil)
                     cy = cy + padAfterSoilRow
                 end
@@ -1012,7 +1092,8 @@ function ZeD_ItemCard:renderBody(ctx)
 
     -- 1.5) Name row — full-width below the back-bar. Title font (T.fontF4),
     --      generous vertical padding, surf1 bg matching body. Hit rect
-    --      stamped to `self._nameRowRect` for future rename-on-click.
+    --      stamped to `self._nameRowRect`. When `_renaming` is true the
+    --      name text is replaced by the lazy ZeD_TextInput child overlay.
     do
         local nameFont = T.fontF4
         local nameH    = T.fontF4H or getTextManager():getFontHeight(nameFont)
@@ -1023,14 +1104,24 @@ function ZeD_ItemCard:renderBody(ctx)
         self:drawRect(0, cy, w, rowH, nbg.a or 1, nbg.r, nbg.g, nbg.b)
         local nsep = T.border
         self:drawRect(0, cy + rowH - 1, w, 1, nsep.a or 1, nsep.r, nsep.g, nsep.b)
-        local nameStr = displayName
-        local maxW = w - nameHPad * 2
-        if getTextManager():MeasureStringX(nameFont, nameStr) > maxW then
-            nameStr = ZeD.Atoms.truncateText(nameStr, nameFont, maxW)
+        if self._renaming and self._renameInput then
+            -- Position input across the name row (overlay)
+            local inp = self._renameInput
+            inp:setX(nameHPad)
+            inp:setY(cy + math.floor((rowH - (T.inputH or rowH)) / 2))
+            inp:setWidth(w - nameHPad * 2)
+            inp:setVisible(true)
+        else
+            local nameStr = displayName
+            local maxW = w - nameHPad * 2
+            if getTextManager():MeasureStringX(nameFont, nameStr) > maxW then
+                nameStr = ZeD.Atoms.truncateText(nameStr, nameFont, maxW)
+            end
+            local nc = T.text
+            self:drawText(nameStr, nameHPad, cy + nameVPad,
+                nc.r, nc.g, nc.b, nc.a or 1, nameFont)
+            if self._renameInput then self._renameInput:setVisible(false) end
         end
-        local nc = T.text
-        self:drawText(nameStr, nameHPad, cy + nameVPad,
-            nc.r, nc.g, nc.b, nc.a or 1, nameFont)
         self._nameRowRect = {x = 0, y = cy, w = w, h = rowH}
         cy = cy + rowH
     end
