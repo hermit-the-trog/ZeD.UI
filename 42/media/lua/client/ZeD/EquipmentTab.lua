@@ -1172,61 +1172,38 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         if not selSlot or not selSlot.item then
             win._equipSelected = nil
         else
-            -- Back bar
-            local backH = getBackH()
-            win._equipBackZone = { x = x, y = y, w = w, h = backH }
-            _drawBackBar(panel, win, selSlot, x, y, w)
-            local contentY = y + backH
-
-            -- Scrollable card content
-            local scroll = win._equipScroll
-            local availH = h - backH
-
-            -- Measure card content height (approximate — draw to measure)
-            -- We draw inside stencil with scroll offset
-            local btnAreaH = T.buttonH + pad * 2  -- action buttons + padding
-
-            -- Scroll setup
-            panel:setStencilRect(x, contentY, w, availH)
-
-            local scrollOff = 0
-            if scroll.visible then
-                scrollOff = math.floor(scroll.scrollPos * math.max(0, win._equipCardH - availH))
+            -- S121 (Phase C1): card mode now delegates to a ZeD_ItemCard child
+            -- — the same organism the inv drawer uses. Equipment tab keeps an
+            -- own card instance separate from win._itemCard since they render
+            -- at different surfaces. Back-arrow click clears _equipSelected.
+            local card = panel._equipCard
+            if not card then
+                card = ZeD_ItemCard:new(x, y, w, h, "drawer", win.playerNum or 0)
+                card:initialise()
+                panel:addChild(card)
+                panel._equipCard = card
+                card.onBackClick = function(self)
+                    win._equipSelected = nil
+                end
             end
-            local drawY = contentY - scrollOff
-
-            -- Draw card content
-            local endY = _drawCardContent(panel, win, data, selSlot, x, drawY, w, availH)
-
-            -- Action buttons live in the back-bar header now — no inline strip.
-            endY = endY + pad
-
-            -- Total content height
-            local totalH = endY - drawY
-            win._equipCardH = totalH
-
-            -- Update scroll
-            local needsScroll = totalH > availH
-            scroll.visible = needsScroll
-            if needsScroll then
-                local scrollW = T.sp.scrollbarW
-                scroll.x = x + w - scrollW
-                scroll.y = contentY
-                scroll.height = availH
-                scroll:setBarSize(availH / totalH)
-            else
-                scroll:setScrollPos(0)
-            end
-
-            panel:clearStencilRect()
-
-            if scroll.visible then
-                scroll:draw(panel)
-            end
-
-            return  -- card mode rendered, done
+            -- Per-frame sync: bounds, item, source context
+            card:setX(x)
+            card:setY(y)
+            card:setWidth(w)
+            card:setHeight(h)
+            if card.item ~= selSlot.item then card:setItem(selSlot.item) end
+            card.sourceContext = "equipped"
+            card:setVisible(true)
+            -- Card draws via natural ISPanel child render lifecycle (after
+            -- this function returns). Skip the legacy _drawBackBar +
+            -- _drawCardContent + scrollbar — the card handles all of that.
+            return
         end
     end
+
+    -- Hide the equip card when not in card mode (so it doesn't ghost-render
+    -- over list mode). Lazy hide — instance lives across mode swaps.
+    if panel._equipCard then panel._equipCard:setVisible(false) end
 
     -- ================================================================
     -- LIST MODE — grouped slot list

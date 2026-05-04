@@ -3771,23 +3771,30 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         local mcActive = #(win._mcSelected or {}) > 0
         local screenW = getCore():getScreenWidth()
-        local maxW = mcActive and (screenW - 10) or (win._maxWinW or math.floor(screenW * 0.5))
+        -- S121: when MC + item card both active, cap maxW at user's preferred
+        -- inv width (_baseInvW) plus chrome — window expands enough to keep
+        -- card visible alongside MC, but not to full screen, so the eviction
+        -- loop below fires when MC columns can't all fit at MIN_COL_W.
+        local mcItemCap = nil
+        if mcActive and win._drawerMode == "item" then
+            local baseInv = win._baseInvW or 372
+            mcItemCap = TAB_STRIP_W + baseInv + effectiveW + CONTAINER_STRIP_W
+        end
+        local maxW = mcItemCap
+            or (mcActive and (screenW - 10))
+            or (win._maxWinW or math.floor(screenW * 0.5))
 
         if drawerDelta ~= 0 then
-            -- S108 v2 QA: in MC mode, card opening should NOT expand the
-            -- window — let inv area shrink + FIFO evict the oldest MC col.
-            -- Tab drawer opens still expand window (pre-existing behavior).
-            if mcActive and win._drawerMode == "item" then
-                -- Card open/close in MC mode: window stays put.
-                win._lastSetX = win:getX()
-                win._anchorRightEdge = win:getX() + win:getWidth()
-            else
-                local newW = math.min(win:getWidth() + drawerDelta, maxW)
-                win:setWidth(newW)
-                local newX = win._anchorRightEdge - newW
-                win:setX(newX)
-                win._lastSetX = newX
-            end
+            -- S121: card opening in MC mode now expands the window like tab
+            -- mode does, instead of evicting MC columns. The S108 v2 design
+            -- (shrink inv area + FIFO evict oldest MC col when MC + item)
+            -- caused MC to silently collapse on item-select — bad UX after
+            -- the new ItemCard rolled. Always resize per drawerDelta now.
+            local newW = math.min(win:getWidth() + drawerDelta, maxW)
+            win:setWidth(newW)
+            local newX = win._anchorRightEdge - newW
+            win:setX(newX)
+            win._lastSetX = newX
         else
             -- At rest: accept user resize
             if win:getWidth() > maxW then win:setWidth(maxW) end
@@ -4448,6 +4455,27 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 win._itemCard:setItem(singleItem)
             end
             win._drawerItem = singleItem
+            -- S121 (Phase C2): wire the new ItemCard organism's sourceContext
+            -- so its back-bar verb cluster resolves correctly per source.
+            -- "equipped" → UNEQUIP/DROP; "inventory" → EQUIP/EAT/READ/USE +DROP;
+            -- "container" → TAKE/EQUIP. Equipped check first since that wins
+            -- regardless of which container the item lives in.
+            -- NOTE: win._activeContainer is an INDEX into win._containers,
+            -- NOT a container reference. Resolve via _containers[idx].isMain
+            -- (player's primary inventory entry).
+            do
+                local cntEntry = win._containers
+                    and win._containers[win._activeContainer or 1]
+                local isEq = singleItem.isEquipped
+                    and (function() local ok, v = pcall(singleItem.isEquipped, singleItem); return ok and v end)() or false
+                if isEq then
+                    win._itemCard.sourceContext = "equipped"
+                elseif cntEntry and cntEntry.isMain then
+                    win._itemCard.sourceContext = "inventory"
+                else
+                    win._itemCard.sourceContext = "container"
+                end
+            end
             if win._drawerMode ~= "tab" then
                 if not win._drawerOpen then
                     win._preDrawerW = win:getWidth()
