@@ -579,15 +579,15 @@ local function _buildAnimalsFocusables(win)
                 id = "animals:submode:" .. tostring(z.id),
                 isSubmode = true,
                 submodeId = z.id,
-                onFocus = function(w, el)
-                    -- Guard against redundant switches (would reset
-                    -- state.view every frame otherwise).
+                -- S123: GAMEPAD_SPEC parity with the Journal pills — focus paints,
+                -- A switches the sub-mode.
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
                     local s = w._animalsState
                     if s and s.submode ~= el.submodeId and AT.switchSubmode then
                         AT.switchSubmode(w, el.submodeId)
                     end
                 end,
-                -- No onActivate — focusing IS the action.
             }
         end
     end
