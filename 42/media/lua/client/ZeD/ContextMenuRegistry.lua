@@ -168,7 +168,11 @@ local function buildTranslatedCache()
         -- Also resolve translation keys to their localized display strings,
         -- which is what vanilla option.name will contain for translated mods.
         if key:sub(1, 12) == "ContextMenu_" or key:sub(1, 5) == "IGUI_" or key:sub(1, 6) == "Fluid_" then
-            local ok, translated = pcall(getText, key)
+            -- S123: a few keys (Fluid_HoldingOneType etc.) are Java format
+            -- strings; calling getText without args makes Translator log a
+            -- MissingFormatArgumentException WARN. Extra args are ignored by
+            -- keys that have no specifiers, so pad with three blanks.
+            local ok, translated = pcall(getText, key, "", "", "")
             if ok and translated then
                 _translatedNameCache[translated] = cp
             end
