@@ -891,7 +891,9 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         if win._mapTextEntry then win._mapTextEntry:setVisible(false) end
         return
     end
-    win._mapFoldZone = nil
+    -- Only the drawer path (no pop-out) may clear the fold zone; the pop-out
+    -- renders through this same function every frame and must not race it.
+    if not win._mapPopout then win._mapFoldZone = nil end
 
     -- Toolbar background
     local toolbarBg = T.surf1
