@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI CaZio Watch v2 — catalog O23/O24 case, Lua-flat preview</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#e6e3dc; font-family:'Fira Sans Condensed',sans-serif; padding:24px; }
+.banner { display:inline-block; background:#ffaa00; color:#000; font:bold 9px 'Fira Mono',monospace; letter-spacing:1px; padding:6px 12px; border:1px solid #000; margin-bottom:14px; }
+h2 { font:600 15px 'Fira Sans Condensed'; margin:26px 0 8px; }
+p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin-bottom:10px; line-height:1.5; }
+.row { display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap; }
+.w { position:relative; display:block; }
+.w .px { position:absolute; }
+.w .tx { position:absolute; white-space:nowrap; font-family:'Fira Mono',monospace; line-height:1; }
+.cap { font:9px 'Fira Mono',monospace; color:#8a8a8a; letter-spacing:1px; margin:6px 0 0; }
+</style>
+</head>
+<body>
+<div class="banner">ZED-UI · CAZIO WATCH v2 · CATALOG O23 CASE + O24 CLASSIC · LUA-FLAT PREVIEW · S123 · FOR DIRECTOR REVIEW</div>
+<p class="note">Back to the Visual Catalog v2.0 design (O23): a watch <b>case</b> at the top-right that replaces the Java clock <i>and</i> the Java speed controls. Case 2 px grey border on black, bezel, then the face. Below the face: the alarm row (ALM SET / ALM ON) and the four speed buttons (pause, play, fast, faster) drawn as watch buttons with the 2/1 pressable radius; the active speed is filled in the face colour and the three dots under the date repeat it. Face per worn item: CaZio LCD (green / red / dress violet), Classic dial x4 (O24, in the same case), Expensive ivory with date window. <b>No watch worn</b>: the face goes to the radio off-state (grey-green STN glass, placeholders) but the speed buttons stay live, because vanilla keeps speed controls without a watch. Alarm set opens the hour / minute steppers in the face (A/B on gamepad), ALM ON arms the item alarm; a ringing alarm blinks the face border.</p>
+
+<h2>1 · CaZio digital — D-Black (green LCD), D-Red, Dress</h2>
+<div class="row"><div><div class="w" id="w1"></div><div class="cap">speed 1x</div></div><div><div class="w" id="w2"></div><div class="cap">speed 2x · alarm armed</div></div><div><div class="w" id="w3"></div><div class="cap">dress: light case, violet LCD · paused</div></div></div>
+
+<h2>2 · Classic analog x4 in the same case — Black, Brown, Gold, Military</h2>
+<div class="row"><div><div class="w" id="w4"></div></div><div><div class="w" id="w5"></div></div><div><div class="w" id="w6"></div></div><div><div class="w" id="w7"></div><div class="cap">military: 24h readout under the dial</div></div></div>
+
+<h2>3 · Expensive (ivory, date window, gold case) · 4 · No watch worn (off-state, speed buttons only)</h2>
+<div class="row"><div><div class="w" id="w8"></div></div><div><div class="w" id="w9"></div><div class="cap">STN glass #8E8F72, no time, buttons live</div></div><div><div class="w" id="w10"></div><div class="cap">ALM SET open: hour / minute steppers, A sets, B closes</div></div></div>
+
+<h2>5 · Scale check</h2>
+<p class="note">Module is 112 x 112 at 1x (case included). The Java clock + speed controls it replaces occupy about 156 x 92 at the same spot, so nothing around it moves. At the 4K rig's current scale it is tiny like everything else; it follows the UI scale axis when that lands.</p>
+
+<script>
+(function(){
+  function el(p,x,y,w,h,c,extra){ const d=document.createElement('div'); d.className='px'; d.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;background:'+c+';'+(extra||''); p.appendChild(d); return d; }
+  function border(p,x,y,w,h,c){ el(p,x,y,w,1,c); el(p,x,y+h-1,w,1,c); el(p,x,y,1,h,c); el(p,x+w-1,y,1,h,c); }
+  function text(p,x,y,s,size,c,bold,align){ const d=document.createElement('div'); d.className='tx'; d.textContent=s; d.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+size+'px;color:'+c+';font-weight:'+(bold?700:400)+';letter-spacing:'+(size>14?'2px':'0')+';'+(align==='r'?'transform:translateX(-100%);':align==='c'?'transform:translateX(-50%);':''); p.appendChild(d); return d; }
+  function run(p,cx,cy,deg,r0,r1,c,t){ const a=(deg-90)*Math.PI/180; for(let r=r0;r<=r1;r++){ el(p,Math.round(cx+Math.cos(a)*r)-Math.floor(t/2),Math.round(cy+Math.sin(a)*r)-Math.floor(t/2),t,t,c); } }
+  function btn(p,x,y,w,h,label,on,onColor,onText,size){ // pressable: 2/1 radius, outline chrome
+    el(p,x,y,w,h,on?onColor:'#2a2a2a','border-radius:2px;'); border(p,x,y,w,h,on?onColor:'#555'); text(p,x+w/2,y+Math.floor((h-(size||7))/2),label,size||7,on?onText:'#888',on,'c'); }
+  function watch(id,o){
+    const p=document.getElementById(id); const W=112,H=112; p.style.width=W+'px'; p.style.height=H+'px';
+    // case + bezel
+    el(p,0,0,W,H,'#111'); border(p,0,0,W,H,o.caseColor||'#888'); border(p,1,1,W-2,H-2,o.caseColor||'#888');
+    el(p,4,4,W-8,62,'#222');
+    const fx=7,fy=7,fw=W-14,fh=56;
+    if(o.kind==='lcd'||o.kind==='off'){
+      const bg=o.off?'#8E8F72':o.bg, fg=o.off?'#5a5b48':o.fg, dim=o.off?'#6f7060':o.dim;
+      el(p,fx,fy,fw,fh,bg); border(p,fx,fy,fw,fh,o.off?'#5a5b48':o.frame);
+      text(p,fx+4,fy+4,'TIME',5,fg); text(p,fx+fw-4,fy+4,'CaZio',5,fg,true,'r');
+      if(o.alarmOpen){ text(p,fx+fw/2,fy+12,'ALM',6,fg,false,'c'); btn(p,fx+6,fy+20,22,14,'-',false); text(p,fx+fw/2,fy+22,o.alarm,13,fg,true,'c'); btn(p,fx+fw-28,fy+20,22,14,'+',false); text(p,fx+fw/2,fy+40,'HOUR  A set  B back',5,dim,false,'c'); }
+      else { text(p,fx+fw/2,fy+14,o.off?'--:--':o.time,22,fg,true,'c'); if(!o.off&&o.ampm) text(p,fx+fw-5,fy+30,o.ampm,6,fg,false,'r');
+        el(p,fx+6,fy+38,fw-12,1,dim); text(p,fx+fw/2,fy+42,o.off?'-- --- --':o.date,7,fg,false,'c');
+        // speed dots (0..3 lit)
+        for(let i=0;i<3;i++){ el(p,fx+fw/2-9+i*7,fy+51,5,2,i<o.speed?fg:dim); } }
+      if(o.alarmArmed&&!o.alarmOpen){ el(p,fx+fw-11,fy+12,5,5,o.off?dim:'#CC4444'); }
+    } else {
+      // analog dial in the face area (O24 / expensive)
+      el(p,fx,fy,fw,fh,o.faceBg); border(p,fx,fy,fw,fh,'#000');
+      const cx=fx+28, cy=fy+fh/2, r=23;
+      for(let d=0;d<360;d+=30){ run(p,cx,cy,d,r-3,r,o.tick,1); }
+      for(let d=0;d<360;d+=90){ run(p,cx,cy,d,r-6,r,o.tick,2); }
+      run(p,cx,cy,o.hour,0,12,o.hand,2); run(p,cx,cy,o.minute,0,19,o.hand,1); el(p,cx-1,cy-1,3,3,o.hand);
+      if(o.dateWin){ el(p,cx+9,cy-5,12,10,o.faceBg); border(p,cx+9,cy-5,12,10,o.tick); text(p,cx+15,cy-3,o.dateWin,6,o.tick,false,'c'); }
+      text(p,fx+fw-5,fy+10,o.time,13,o.readout,true,'r'); text(p,fx+fw-5,fy+28,o.sub,6,o.subColor||o.tick,false,'r');
+      text(p,fx+fw-5,fy+fh-9,o.brand,5,o.subColor||o.tick,true,'r');
+      if(o.alarmArmed){ el(p,fx+fw-11,fy+40,5,5,'#CC4444'); }
+    }
+    // alarm row
+    btn(p,6,70,48,14,'ALM SET',o.alarmOpen,o.fg||'#44cc55',o.bg||'#081808',6); btn(p,58,70,48,14,'ALM ON',o.alarmArmed,o.fg||'#44cc55',o.bg||'#081808',6);
+    // speed row: pause, play, fast, faster
+    const labels=['||','>','>>','>>>']; for(let i=0;i<4;i++){ const on=o.speed===i; btn(p,6+i*26,88,24,16,labels[i],on,o.off?'#5a5b48':(o.fg||'#44cc55'),o.off?'#8E8F72':(o.bg||'#081808'),7); }
+  }
+  watch('w1',{kind:'lcd',bg:'#081808',fg:'#44cc55',dim:'#1a3a1a',frame:'#1a3a1a',time:'2:47',ampm:'PM',date:'TUE MAR 17',speed:1});
+  watch('w2',{kind:'lcd',bg:'#180808',fg:'#cc5533',dim:'#3a1a1a',frame:'#3a1a1a',time:'14:47',date:'TUE 17 MAR',speed:2,alarmArmed:true});
+  watch('w3',{kind:'lcd',bg:'#0a0818',fg:'#9966cc',dim:'#2a1a3a',frame:'#2a1a3a',caseColor:'#aaa',time:'2:47',ampm:'PM',date:'TUE MAR 17',speed:0});
+  watch('w4',{kind:'dial',faceBg:'#141414',tick:'#e6e3dc',hand:'#e6e3dc',readout:'#e6e3dc',time:'14:47',sub:'TUESDAY',brand:'TIMEKS',hour:(14%12+47/60)*30,minute:47*6,fg:'#e6e3dc',bg:'#141414',speed:1});
+  watch('w5',{kind:'dial',faceBg:'#2a1d12',tick:'#e6d9c4',hand:'#e6d9c4',readout:'#e6d9c4',time:'2:47',sub:'PM',brand:'TIMEKS',hour:(14%12+47/60)*30,minute:47*6,fg:'#e6d9c4',bg:'#2a1d12',speed:1});
+  watch('w6',{kind:'dial',faceBg:'#3a2e10',tick:'#f0d070',hand:'#f0d070',readout:'#f0d070',time:'14:47',sub:'TUESDAY',brand:'TIMEKS',hour:(14%12+47/60)*30,minute:47*6,fg:'#f0d070',bg:'#3a2e10',speed:1});
+  watch('w7',{kind:'dial',faceBg:'#1c2416',tick:'#b9c9a3',hand:'#b9c9a3',readout:'#b9c9a3',time:'1447',sub:'HRS · TUE',brand:'TIMEKS',hour:(14%12+47/60)*30,minute:47*6,fg:'#b9c9a3',bg:'#1c2416',speed:1});
+  watch('w8',{kind:'dial',faceBg:'#f0ece0',tick:'#141414',hand:'#141414',readout:'#CCAA22',subColor:'#8a7030',time:'14:47',sub:'TUE 17 MAR 1993',brand:'ROLLEX',dateWin:'17',caseColor:'#CCAA22',hour:(14%12+47/60)*30,minute:47*6,fg:'#CCAA22',bg:'#2a2310',speed:1});
+  watch('w9',{kind:'off',off:true,speed:1});
+  watch('w10',{kind:'lcd',bg:'#081808',fg:'#44cc55',dim:'#1a3a1a',frame:'#1a3a1a',time:'2:47',date:'TUE MAR 17',speed:1,alarmOpen:true,alarm:'06',alarmArmed:true});
+})();
+</script>
+</body>
+</html>
