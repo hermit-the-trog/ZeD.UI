@@ -84,7 +84,11 @@ local _lastActive = {}  -- playerNum → {action, item}
 local function _pollPlayer(p)
     if not p then return end
     local pn = p:getPlayerNum()
-    local q  = ISTimedActionQueue and ISTimedActionQueue.queues and ISTimedActionQueue.queues[pn]
+    -- S123: vanilla keys ISTimedActionQueue.queues by the CHARACTER OBJECT,
+    -- not by player number (ISTimedActionQueue.lua:144). The old queues[pn]
+    -- lookup was always nil, so the Band never lit from this path.
+    local q  = ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue
+               and ISTimedActionQueue.getTimedActionQueue(p)
     local last = _lastActive[pn]
 
     -- Resolve current head action
@@ -204,10 +208,10 @@ local function _pollReadingFallback(p)
                 elseif #litItems > 1 then
                     -- Multiple — pick the carded one if any window has it as drawerItem
                     local carded = nil
-                    if ZeD_CharacterWindow and ZeD_CharacterWindow.instance
-                       and ZeD_CharacterWindow.instance._drawerItem then
-                        carded = ZeD_CharacterWindow.instance._drawerItem
-                    end
+                    -- S123: the window accessor is getWindow(); .instance never existed.
+                    local cwin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow
+                                 and ZeD_CharacterWindow.getWindow()
+                    if cwin and cwin._drawerItem then carded = cwin._drawerItem end
                     if carded then
                         for _, it in ipairs(litItems) do
                             if it == carded then book = it; probeName = "invScan(carded)"; break end
@@ -223,7 +227,8 @@ local function _pollReadingFallback(p)
                                 or 0
                             if pages > bestPages then best, bestPages = it, pages end
                         end
-                        book = best
+                        -- S123: novels report -1 pages, so a tie leaves best nil; fall back to the first.
+                        book = best or litItems[1]
                         probeName = "invScan(bestPages)"
                     end
                 end
