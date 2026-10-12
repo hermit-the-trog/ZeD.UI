@@ -755,6 +755,10 @@ end
 
 local function _drawDebugOverlay()
     if not _debugOverlay then return end
+    -- S123 (GAMEPAD_SPEC open item): the overlay is a cone-nav aid; keep it
+    -- off while the detector says mouse so a stray F9 never paints over KBM play.
+    local mode = ZeD.Input.Detector and ZeD.Input.Detector.getMode and ZeD.Input.Detector.getMode()
+    if mode ~= "gamepad" then return end
     local w = _focusedWindow
     if not w or not w.drawRect then return end
 
