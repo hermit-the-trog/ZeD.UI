@@ -241,6 +241,60 @@ function ZeD_Window:prerender()
     -- footer + grow box) so nothing can overdraw it. See ZeD_Window:render.
 end
 
+-- ============================================================================
+-- S123: CAPABILITY-DRIVEN BUTTON PROMPTS
+-- The footer legend is derived from the focused element's callbacks, never
+-- hand-authored: A if onActivate, hold-A if onHoldActivate, X if
+-- onContextMenu (or onReset), B if onCancel, Y always (window pair). Labels
+-- come from the element (promptA / promptHold / promptX / promptB) or from
+-- the id-prefix table below, else generic verbs. Elements that gain a new
+-- callback automatically gain a prompt; stale prompts are impossible.
+-- ============================================================================
+local PROMPT_LABELS = {
+    ["invrow"]          = { a = "Card",   hold = "Use", x = "Menu" },
+    ["tab"]             = { a = "Open" },
+    ["jsub"]            = { a = "Switch" },
+    ["animals:submode"] = { a = "Switch" },
+    ["container"]       = { a = "Open" },
+    ["cnt"]             = { a = "Open" },
+    ["map:canvas"]      = { a = "Place",  x = "Edit" },
+    ["map:fold"]        = { a = "Fold" },
+    ["map:popout"]      = { a = "Unfold" },
+    ["map:tool"]        = { a = "Tool" },
+    ["map:gridtool"]    = { a = "Tool",   x = "Pin" },
+    ["map:color"]       = { a = "Colour" },
+    ["craft:row"]       = { a = "Recipe" },
+    ["jrecipe:row"]     = { a = "Recipe" },
+    ["build:row"]       = { a = "Recipe" },
+    ["exercise"]        = { a = "Start" },
+    ["skill:"]          = { a = "Pin" },
+    ["equipslot"]       = { a = "Card" },
+    ["equippart"]       = { a = "Card" },
+    ["cancel_band"]     = { a = "Cancel" },
+    ["forage:stance"]   = { a = "Search" },
+}
+
+local function _promptsFor(el)
+    local out = {}
+    if not el then
+        out[#out + 1] = { glyph = "Y", label = "Windows" }
+        return out
+    end
+    local id = tostring(el.id or "")
+    local labels, bestLen = nil, 0
+    for prefix, def in pairs(PROMPT_LABELS) do
+        if id:sub(1, #prefix) == prefix and #prefix > bestLen then labels = def; bestLen = #prefix end
+    end
+    labels = labels or {}
+    if el.onActivate     then out[#out + 1] = { glyph = "A", label = el.promptA or labels.a or "Select" } end
+    if el.onHoldActivate then out[#out + 1] = { glyph = "A", label = (el.promptHold or labels.hold or "Use") .. " (hold)" } end
+    if el.onContextMenu  then out[#out + 1] = { glyph = "X", label = el.promptX or labels.x or "Menu" }
+    elseif el.onReset    then out[#out + 1] = { glyph = "X", label = "Reset" } end
+    if el.onCancel       then out[#out + 1] = { glyph = "B", label = el.promptB or labels.b or "Back" } end
+    out[#out + 1] = { glyph = "Y", label = "Windows" }
+    return out
+end
+
 function ZeD_Window:render()
     if self.isCollapsed or self.windowShaded then return end
 
@@ -358,6 +412,38 @@ function ZeD_Window:render()
         -- local dyY = fY + math.floor((rh - dyH) / 2)
         -- self:drawText("DY", dyX, dyY, dyTextC.r, dyTextC.g, dyTextC.b, dyTextC.a, T.fontF1)
         -- self._themeControlRects[4] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
+
+        -- S123: button prompts (gamepad mode, this window focused). Right-
+        -- aligned, left of the grow box; drops prompts from the left when the
+        -- footer is too narrow rather than overlapping the theme controls.
+        do
+            local Focus = ZeD.Input and ZeD.Input.Focus
+            local Det   = ZeD.Input and ZeD.Input.Detector
+            local gpMode = Det and Det.getMode and Det.getMode() == "gamepad"
+            if gpMode and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self then
+                local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
+                local prompts = _promptsFor(el)
+                local tm   = getTextManager()
+                local font = T.fontF5
+                local fh   = tm:getFontHeight(font)
+                local box  = rh - 4
+                local px   = w - rh - btnGap - sp.sm
+                local minX = btnX + rh + btnGap * 3
+                local textY = fY + math.floor((rh - fh) / 2)
+                for i = #prompts, 1, -1 do
+                    local p  = prompts[i]
+                    local lw = tm:MeasureStringX(font, p.label)
+                    local gw = tm:MeasureStringX(font, p.glyph)
+                    local total = box + 3 + lw
+                    if px - total < minX then break end
+                    local x0 = px - total
+                    self:drawRectBorder(x0, fY + 2, box, box, bs.a, bs.r, bs.g, bs.b)
+                    self:drawText(p.glyph, x0 + math.floor((box - gw) / 2), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
+                    self:drawText(p.label, x0 + box + 3, textY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a, font)
+                    px = x0 - sp.sm * 2
+                end
+            end
+        end
 
         -- Grow box (right corner, same style)
         A.drawGrowBox(self, w - rh, h - rh, rh)

@@ -1,10 +1,10 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemFactsPanel.lua
 -- ============================================================================
--- ITEM FACTS PANEL REGISTRY (S120 — Phase 4)
--- Five item-type-specific Facts panels — each a factory taking (item) and
+-- ITEM FACTS PANEL REGISTRY (S120 - Phase 4)
+-- Five item-type-specific Facts panels - each a factory taking (item) and
 -- returning a structured panel description, or nil if the item is not its
 -- target type. The Phase 5 (S121) ItemCard organism queries the registry
--- via factsFor(item) — never branches on item class itself.
+-- via factsFor(item) - never branches on item class itself.
 --
 -- Factory return shape:
 --   nil  → this panel doesn't apply to the item
@@ -20,7 +20,7 @@
 --   }
 --
 -- needsProbe = true → renderer appends a small "★" badge after the label
--- (mockup convention from v13 — values whose Java getter we haven't probed
+-- (mockup convention from v13 - values whose Java getter we haven't probed
 -- yet). Phase 4 PZ probes Q125-Q128 will retire these flags as they land.
 -- ============================================================================
 
@@ -55,14 +55,14 @@ local function _condClass(ratio)
     return "good"
 end
 
--- Probe wrapper — returns value if getter exists and returns non-nil; else nil
+-- Probe wrapper - returns value if getter exists and returns non-nil; else nil
 -- and sets the row's needsProbe flag at compose time.
 local function _probe(item, method, ...)
     return safeGet(item, method, ...)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.1 DefenseFacts — clothing
+-- T4.1 DefenseFacts - clothing
 -- ---------------------------------------------------------------------------
 function M.DefenseFacts(item)
     if not item then return nil end
@@ -71,7 +71,7 @@ function M.DefenseFacts(item)
         return nil
     end
 
-    -- Defense values (per-zone aggregated to "for any zone covered" — the
+    -- Defense values (per-zone aggregated to "for any zone covered" - the
     -- exact aggregation lives in the organism; the factory just shows the
     -- representative max defense from the script item).
     local script = safeGet(item, "getScriptItem")
@@ -105,13 +105,13 @@ function M.DefenseFacts(item)
     -- Group 2: thermal + water + neck
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Insulation",      value = insulation and string.format("%d / 100", insulation * 100) or "—",
+            {label = "Insulation",      value = insulation and string.format("%d / 100", insulation * 100) or "-",
              valueClass = insulation and nil or "dim", needsProbe = insulation == nil},
-            {label = "Wind Resistance", value = windRes and string.format("%d / 100", windRes * 100) or "—",
+            {label = "Wind Resistance", value = windRes and string.format("%d / 100", windRes * 100) or "-",
              valueClass = windRes and nil or "dim", needsProbe = windRes == nil},
-            {label = "Water Resistance",value = waterRes and string.format("%d / 100", waterRes * 100) or "—",
+            {label = "Water Resistance",value = waterRes and string.format("%d / 100", waterRes * 100) or "-",
              valueClass = "dim"},
-            {label = "Neck Protection", value = neckProt and string.format("%d%%", neckProt * 100) or "—",
+            {label = "Neck Protection", value = neckProt and string.format("%d%%", neckProt * 100) or "-",
              valueClass = "dim"},
         },
     }
@@ -119,8 +119,8 @@ function M.DefenseFacts(item)
     -- Group 3: condition decay
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Cond Loss / Hit", value = condLoss and "1 / " .. tostring(condLoss) or "—"},
-            {label = "1-in-N degrade",  value = condLoss and tostring(condLoss) or "—", isSub = true},
+            {label = "Cond Loss / Hit", value = condLoss and "1 / " .. tostring(condLoss) or "-"},
+            {label = "1-in-N degrade",  value = condLoss and tostring(condLoss) or "-", isSub = true},
         },
     }
 
@@ -128,7 +128,7 @@ function M.DefenseFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.2 NutritionFacts — food
+-- T4.2 NutritionFacts - food
 -- ---------------------------------------------------------------------------
 function M.NutritionFacts(item)
     if not item then return nil end
@@ -153,18 +153,18 @@ function M.NutritionFacts(item)
     -- Group 1: hunger + thirst (the two primary needs the food addresses)
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Hunger Reduction", value = hunger and string.format("%+d", -math.floor(hunger * 100 + 0.5)) or "—"},
-            {label = "Thirst Reduction", value = thirst and string.format("%+d", -math.floor(thirst * 100 + 0.5)) or "—"},
+            {label = "Hunger Reduction", value = hunger and string.format("%+d", -math.floor(hunger * 100 + 0.5)) or "-"},
+            {label = "Thirst Reduction", value = thirst and string.format("%+d", -math.floor(thirst * 100 + 0.5)) or "-"},
         },
     }
 
     -- Group 2: macro nutrients
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Calories", value = cal     and tostring(math.floor(cal     + 0.5))             or "—"},
-            {label = "Protein",  value = protein and string.format("%d g", math.floor(protein + 0.5)) or "—"},
-            {label = "Fat",      value = fat     and string.format("%d g", math.floor(fat     + 0.5)) or "—"},
-            {label = "Carbs",    value = carbs   and string.format("%d g", math.floor(carbs   + 0.5)) or "—"},
+            {label = "Calories", value = cal     and tostring(math.floor(cal     + 0.5))             or "-"},
+            {label = "Protein",  value = protein and string.format("%d g", math.floor(protein + 0.5)) or "-"},
+            {label = "Fat",      value = fat     and string.format("%d g", math.floor(fat     + 0.5)) or "-"},
+            {label = "Carbs",    value = carbs   and string.format("%d g", math.floor(carbs   + 0.5)) or "-"},
         },
     }
 
@@ -173,9 +173,9 @@ function M.NutritionFacts(item)
         rows = {
             {label = "Sickness Risk", value = (sickness and sickness > 0) and string.format("+%d%%", sickness) or "0%",
              valueClass = (sickness and sickness > 0) and "bad" or "dim"},
-            {label = "Boredom",       value = boredom and string.format("%+d", math.floor(boredom + 0.5)) or "—",
+            {label = "Boredom",       value = boredom and string.format("%+d", math.floor(boredom + 0.5)) or "-",
              valueClass = (boredom or 0) > 0 and "warn" or nil},
-            {label = "Happiness",     value = happy   and string.format("%+d", math.floor(-happy  + 0.5)) or "—"},
+            {label = "Happiness",     value = happy   and string.format("%+d", math.floor(-happy  + 0.5)) or "-"},
         },
     }
 
@@ -183,7 +183,7 @@ function M.NutritionFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.3 CombatFacts — weapons
+-- T4.3 CombatFacts - weapons
 -- ---------------------------------------------------------------------------
 function M.CombatFacts(item)
     if not item then return nil end
@@ -209,17 +209,17 @@ function M.CombatFacts(item)
     -- Group 1: damage + reach
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Damage", value = (dmgMin and dmgMax) and string.format("%.1f – %.1f", dmgMin, dmgMax) or "—"},
-            {label = "Range",  value = (rangeMin and rangeMax) and string.format("%.1f – %.1f m", rangeMin, rangeMax) or "—"},
-            {label = "Swing",  value = swingTime and string.format("%.2f s", swingTime) or "—"},
+            {label = "Damage", value = (dmgMin and dmgMax) and string.format("%.1f - %.1f", dmgMin, dmgMax) or "-"},
+            {label = "Range",  value = (rangeMin and rangeMax) and string.format("%.1f - %.1f m", rangeMin, rangeMax) or "-"},
+            {label = "Swing",  value = swingTime and string.format("%.2f s", swingTime) or "-"},
         },
     }
 
     -- Group 2: handling + crit
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Knockback",     value = knockback   and string.format("%.2f", knockback)   or "—"},
-            {label = "Critical %",    value = critChance  and string.format("%d%%", critChance)  or "—"},
+            {label = "Knockback",     value = knockback   and string.format("%.2f", knockback)   or "-"},
+            {label = "Critical %",    value = critChance  and string.format("%d%%", critChance)  or "-"},
         },
     }
 
@@ -227,9 +227,9 @@ function M.CombatFacts(item)
     local ratio  = (cond and condMax and condMax > 0) and (cond / condMax) or nil
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Condition",     value = (cond and condMax) and string.format("%d / %d", cond, condMax) or "—",
+            {label = "Condition",     value = (cond and condMax) and string.format("%d / %d", cond, condMax) or "-",
              valueClass = _condClass(ratio)},
-            {label = "Ammo",          value = (ammoType and ammoType ~= "") and tostring(ammoType) or "—",
+            {label = "Ammo",          value = (ammoType and ammoType ~= "") and tostring(ammoType) or "-",
              valueClass = (not ammoType or ammoType == "") and "dim" or nil},
         },
     }
@@ -238,7 +238,7 @@ function M.CombatFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.4 ContainerFacts — bags / boxes / cooking pots
+-- T4.4 ContainerFacts - bags / boxes / cooking pots
 -- ---------------------------------------------------------------------------
 function M.ContainerFacts(item)
     if not item then return nil end
@@ -261,15 +261,15 @@ function M.ContainerFacts(item)
 
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Capacity", value = (current and cap) and string.format("%.1f / %d kg", current, cap) or "—",
+            {label = "Capacity", value = (current and cap) and string.format("%.1f / %d kg", current, cap) or "-",
              valueClass = _condClass(fillRatio and (1 - fillRatio) or nil)},
-            {label = "Items",    value = count and tostring(count) or "—"},
+            {label = "Items",    value = count and tostring(count) or "-"},
         },
     }
 
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Weight Reduction", value = reduce and string.format("%d%%", reduce) or "—",
+            {label = "Weight Reduction", value = reduce and string.format("%d%%", reduce) or "-",
              valueClass = (reduce and reduce > 0) and "good" or "dim"},
         },
     }
@@ -278,7 +278,7 @@ function M.ContainerFacts(item)
 end
 
 -- ---------------------------------------------------------------------------
--- T4.5 ReadingFacts — books / magazines / recipe sources
+-- T4.5 ReadingFacts - books / magazines / recipe sources
 -- ---------------------------------------------------------------------------
 function M.ReadingFacts(item)
     if not item then return nil end
@@ -303,15 +303,16 @@ function M.ReadingFacts(item)
 
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Skill",       value = (skill and skill ~= "") and tostring(skill) or "—",
+            {label = "Skill",       value = (skill and skill ~= "") and tostring(skill) or "-",
              valueClass = (not skill or skill == "") and "dim" or nil},
-            {label = "Level Range", value = (lvlMin and lvlMax) and string.format("%d – %d", lvlMin, lvlMax) or "—"},
+            {label = "Level Range", value = (lvlMin and lvlMax and lvlMin >= 0) and string.format("%d - %d", lvlMin, lvlMax) or "Any",
+             valueClass = (not (lvlMin and lvlMax and lvlMin >= 0)) and "dim" or nil},
         },
     }
 
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = "Progress", value = (pages and pagesRead) and string.format("%d / %d", pages - pagesRead, pages) or "—",
+            {label = "Progress", value = (pages and pagesRead) and string.format("%d / %d", pages - pagesRead, pages) or "-",
              valueClass = readRatio and (readRatio >= 1 and "good" or "warn") or nil},
             {label = "Read",     value = alreadyRead and "Yes" or "No",
              valueClass = alreadyRead and "dim" or nil},

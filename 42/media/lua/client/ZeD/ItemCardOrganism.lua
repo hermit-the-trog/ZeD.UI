@@ -1,6 +1,6 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ItemCardOrganism.lua
 -- ============================================================================
--- ITEM CARD ORGANISM (S121 — Phase 5)
+-- ITEM CARD ORGANISM (S121 - Phase 5)
 -- Assembles the Phase 1-4 atoms / molecules / facts panels into a complete
 -- universal item card per locked S119 mockups v13/v15/v16.
 --
@@ -9,7 +9,7 @@
 --     sourceContext = "equipped" | "inventory" | "container" | "ground"
 --     marks         = optional precomputed {fav, nocraft, dispose} from item modData
 --
--- It branches on width and source context — NEVER on item class.
+-- It branches on width and source context - NEVER on item class.
 -- Item-type dispatch goes through ZeD.ItemFactsPanel.factsFor(item).
 --
 -- Loads alphabetically after ItemCard.lua (defines ZeD_ItemCard class) and
@@ -84,7 +84,7 @@ local ZONE_GROUP_MAP = {
 }
 
 -- v15 220w short labels for Facts rows. Long labels overflow the narrow card.
--- Substituted at compact widths only — 480w keeps the full labels per spec.
+-- Substituted at compact widths only - 480w keeps the full labels per spec.
 local SHORT_FACTS_LABEL_220 = {
     ["Bite Defense"]      = "Bite",
     ["Scratch Defense"]   = "Scratch",
@@ -99,7 +99,7 @@ local SHORT_FACTS_LABEL_220 = {
     ["Critical Chance"]    = "Critical %",
 }
 
--- Resolve a zone's seg-bar segment color per v15 spec — patch material
+-- Resolve a zone's seg-bar segment color per v15 spec - patch material
 -- overrides condition for the visual; otherwise color ramps with condition.
 local function _zoneSegColor(zCfg)
     local T = ZeD.T
@@ -120,7 +120,7 @@ end
 -- v15 220w single-row zone layout: NAME(measured) | gap | BAR(1fr) |
 -- PCT(measured) | gap | DOCK(square). Replaces S118 drawZoneRow at compact
 -- widths. Row height + column widths scale with font height so larger text-
--- size presets don't clip. 480w still uses S118 — its v15 5-column layout
+-- size presets don't clip. 480w still uses S118 - its v15 5-column layout
 -- (60/36/1fr/76/22) is a S122 follow-up.
 -- @return rowH, outDockRect (outDockRect = nil if no dock)
 local function _drawZoneRow220(panel, x, y, w, zCfg)
@@ -135,7 +135,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
     local dockH = math.max(fontH + 6, 18)
     local barH  = math.max(math.floor(fontH * 0.55), 7)
 
-    -- Column widths derived from text metrics — name fits widest typical
+    -- Column widths derived from text metrics - name fits widest typical
     -- short label ("Right"); pct fits "100%"; dock is square dockH.
     local nameW = math.max(tm:MeasureStringX(font, "Right") + 6, 40)
     local pctW  = math.max(tm:MeasureStringX(font, "100%") + 4, 28)
@@ -176,7 +176,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
     panel:drawText(pctStr, pctX + pctW - pctTextW, textY,
         condC.r, condC.g, condC.b, condC.a or 1, font)
 
-    -- Dock cell — always rendered per v15 spec (pristine = disabled checkmark,
+    -- Dock cell - always rendered per v15 spec (pristine = disabled checkmark,
     -- torn = repair triangle in warning color, patched = remove-patch x in
     -- textSec). outDockRect only set when actionable so the click router
     -- skips disabled pristine docks. dockH defined above (font-scaled).
@@ -186,7 +186,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
         local action  = zCfg.action  -- "repair" / "remove-patch" / nil = pristine
         local bg      = T.surf2
         local bd      = T.border
-        local glyph   = "v"  -- ASCII checkmark stand-in (Q15b — Fira lacks ✓)
+        local glyph   = "v"  -- ASCII checkmark stand-in (Q15b - Fira lacks ✓)
         local glyphC  = T.textDim
         local alpha   = 0.3  -- disabled default
 
@@ -218,7 +218,7 @@ end
 -- at non-compact widths so 480w gets full v15 spec parity.
 -- @param flagWOverride  Caller-computed flag column width (max across all
 --                       zones in the item) so columns align AND the column
---                       collapses for all-pristine clothing — bars expand.
+--                       collapses for all-pristine clothing - bars expand.
 -- @return rowH, outDockRect
 local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     local T  = ZeD.T
@@ -275,7 +275,7 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
         T.borderS.a or 1, T.borderS.r, T.borderS.g, T.borderS.b)
 
     -- Flag text (right-aligned in flagW, color = patch material / TORN / WORN)
-    local flagStr  = "—"
+    local flagStr  = "-"
     local flagC    = T.textDim
     if zCfg.dock and zCfg.dock.flag then
         flagStr = zCfg.dock.flag
@@ -291,7 +291,7 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     panel:drawText(flagStr, flagX + flagW - flagTW, flagY,
         flagC.r, flagC.g, flagC.b, flagC.a or 1, font)
 
-    -- Dock cell — same v15 spec as 220w (pristine = dim 'v', repair = '+'
+    -- Dock cell - same v15 spec as 220w (pristine = dim 'v', repair = '+'
     -- in warning, remove-patch = 'x' in textSec). outDockRect only set when
     -- actionable so click router skips disabled cells.
     local outDockRect = nil
@@ -323,7 +323,7 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     return rowH, outDockRect
 end
 
--- v15 multi-segment ZONES bar — N equal-width segments, each colored per
+-- v15 multi-segment ZONES bar - N equal-width segments, each colored per
 -- _zoneSegColor of the corresponding zone. Drawn inline with the disclosure
 -- header at 220w (between the chevron+label and overall % summary).
 local function _drawZoneSegBar(panel, x, y, w, h, zones)
@@ -348,7 +348,7 @@ local function _drawZoneSegBar(panel, x, y, w, h, zones)
     end
 end
 
--- Look up the item's category from the existing ItemCard.lua local — we need
+-- Look up the item's category from the existing ItemCard.lua local - we need
 -- this for verb resolution. Re-implementing the minimum here so we don't have
 -- to touch ItemCard.lua's exports (and can't anyway, since it's file-local).
 -- Mirrors getItemCategory at ItemCard.lua:38.
@@ -373,8 +373,8 @@ local function categoryOf(item)
 end
 
 -- ---------------------------------------------------------------------------
--- Marks (FAV / NO-CRAFT / DISPOSE) — read item modData
--- modData keys established by S119 designer ruling — DO NOT rename:
+-- Marks (FAV / NO-CRAFT / DISPOSE) - read item modData
+-- modData keys established by S119 designer ruling - DO NOT rename:
 --   ZeD_fav      → fav chip
 --   ZeD_noCraft  → nocraft chip (matches existing S99 ActionStrip "protect" key)
 --   ZeD_unwanted → dispose chip (matches existing S99 ActionStrip "unwanted" key)
@@ -385,7 +385,7 @@ local function readMarks(item)
     local md  = safeGet(item, "getModData")
     local nc  = (md and md.ZeD_noCraft  == true) or false
     local dis = false
-    -- "unwanted" is a per-player set in S99 ActionStrip.getState — use that
+    -- "unwanted" is a per-player set in S99 ActionStrip.getState - use that
     if ZeD and ZeD.ActionStrip and ZeD.ActionStrip.getState then
         local ok, v = pcall(ZeD.ActionStrip.getState, item, "unwanted")
         if ok then dis = v and true or false end
@@ -394,7 +394,7 @@ local function readMarks(item)
 end
 
 -- ---------------------------------------------------------------------------
--- Header verb cluster (back-bar) — primary action by source context.
+-- Header verb cluster (back-bar) - primary action by source context.
 -- Returns array of {label, primary, glyph?}. Drawn right-to-left by
 -- drawCardBackBar; primary first in the array renders rightmost (the CTA).
 -- ---------------------------------------------------------------------------
@@ -441,7 +441,7 @@ local function headerVerbsForContext(ctx, item)
 end
 
 -- ---------------------------------------------------------------------------
--- Maintenance verb cluster (verb-strip) — item-type-specific maintenance
+-- Maintenance verb cluster (verb-strip) - item-type-specific maintenance
 -- actions. Empty array = strip skips render entirely (books).
 -- Returns array of {label, glyph?, key?}. `key` is the dispatch tag for B8
 -- click router.
@@ -478,7 +478,7 @@ end
 -- ---------------------------------------------------------------------------
 -- TOP STATS: per-type stat row composition for the grid (480w) / list (220w).
 -- Each entry: {label, value, valueClass?, dotColor?, mirrorKey?}
--- mirrorKey = "cooked" | "progress" | "condition" — used by B7 state mirror
+-- mirrorKey = "cooked" | "progress" | "condition" - used by B7 state mirror
 -- to recolor this row when ItemActionManager has a matching active action.
 -- ---------------------------------------------------------------------------
 local function topStatsForItem(item)
@@ -539,7 +539,7 @@ local function topStatsForItem(item)
         if burnt          then cookedStr, cookedClass = "Burnt",  "bad"
         elseif cooked     then cookedStr, cookedClass = "Cooked", "good"
         elseif raw        then cookedStr, cookedClass = "Raw",    "bad"
-        else                   cookedStr, cookedClass = "—",      "dim" end
+        else                   cookedStr, cookedClass = "-",      "dim" end
         rows[#rows + 1] = {label = "COOKED", value = cookedStr,
             valueClass = cookedClass, mirrorKey = "cooked"}
         local rotten = safeGet(item, "isRotten")
@@ -620,7 +620,7 @@ local function topStatsForItem(item)
 end
 
 -- ---------------------------------------------------------------------------
--- B7: state mirror — apply ItemActionManager's active-action color to the
+-- B7: state mirror - apply ItemActionManager's active-action color to the
 -- top-stat row whose mirrorKey matches. Mutates `rows` in place.
 -- "cooking"   → COOKED row becomes warn (active) or bad (danger/burning)
 -- "reading"   → PROGRESS row becomes warn-ish during read
@@ -694,7 +694,7 @@ local function stampGamepadFields(card, markRects, verbStripRects, verbList, can
 end
 
 -- ---------------------------------------------------------------------------
--- BODY: clothing — 480w grid + zones + DefenseFacts always-expanded;
+-- BODY: clothing - 480w grid + zones + DefenseFacts always-expanded;
 --                  220w list + zones + DefenseFacts behind a disclosure.
 -- ---------------------------------------------------------------------------
 local function renderClothingBody(card, item, x, y, w, compact, scrollOff, contentClipBot)
@@ -754,7 +754,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
         local condPctStr = string.format("%d%%", math.floor(condR * 100 + 0.5))
         local condColor  = ratioColor(condR)
 
-        -- Resolve item-level soil up front — used inline in the 480w
+        -- Resolve item-level soil up front - used inline in the 480w
         -- disclosure header AND in the 220w soil-row-below path.
         local soil = nil
         if ZeD.ItemDetail and ZeD.ItemDetail.buildItemSoil then
@@ -857,7 +857,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
 
         if expanded then
             -- 220w: seg-bar + soil row below the disclosure (not inline).
-            -- 480w: skip — already composed inline in the disclosure header.
+            -- 480w: skip - already composed inline in the disclosure header.
             if compact then
                 cy = cy + padAfterDisclosureBeforeSegBar
                 _drawZoneSegBar(card, x, cy, w, segH, zones)
@@ -873,15 +873,15 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             -- same grouping; 220w → _drawZoneRow220 (NAME/BAR/PCT/DOCK),
             -- 480w → _drawZoneRow480 (NAME/PCT/BAR/FLAG/DOCK).
             -- 480w flag column sized to the widest actual flag text in this
-            -- item's zones — pristine-only clothing gets a collapsed column,
+            -- item's zones - pristine-only clothing gets a collapsed column,
             -- bars expand to fill. Patched/torn items get the wider column.
             card._zoneDockRects = {}
             local maxFlagW = 0
             if not compact then
                 local probeFont = T.fontF1
-                local minDashW = tm:MeasureStringX(probeFont, "—") + 4
+                local minDashW = tm:MeasureStringX(probeFont, "-") + 4
                 for _, zCfg in ipairs(zones) do
-                    local flagStr = "—"
+                    local flagStr = "-"
                     if zCfg.dock and zCfg.dock.flag then
                         flagStr = zCfg.dock.flag
                         if flagStr == "Leather"       then flagStr = "LEATHER"
@@ -1039,7 +1039,7 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
 end
 
 -- ---------------------------------------------------------------------------
--- :renderBody(ctx) — the universal organism entry.
+-- :renderBody(ctx) - the universal organism entry.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:renderBody(ctx)
     if not self.item then return end
@@ -1072,7 +1072,7 @@ function ZeD_ItemCard:renderBody(ctx)
     -- 1) Back bar (header verbs from source context).
     -- v15 220w spec shows ONE primary verb only (UNEQUIP / EQUIP / TAKE).
     -- 480w shows primary + 1 secondary (e.g. UNEQUIP + DROP).
-    -- Item name is intentionally OMITTED from the back-bar — it lives on
+    -- Item name is intentionally OMITTED from the back-bar - it lives on
     -- its own full-width row below so long names don't truncate and the
     -- row can host a rename input in a future iteration.
     local headerVerbs = headerVerbsForContext(sourceCx, item)
@@ -1090,7 +1090,7 @@ function ZeD_ItemCard:renderBody(ctx)
     self._lastHeaderVerbs = headerVerbs  -- update() reads label by hover index
     cy = cy + (bbH or 0)
 
-    -- 1.5) Name row — full-width below the back-bar. Title font (T.fontF4),
+    -- 1.5) Name row - full-width below the back-bar. Title font (T.fontF4),
     --      generous vertical padding, surf1 bg matching body. Hit rect
     --      stamped to `self._nameRowRect`. When `_renaming` is true the
     --      name text is replaced by the lazy ZeD_TextInput child overlay.
@@ -1139,11 +1139,11 @@ function ZeD_ItemCard:renderBody(ctx)
 
     self._headH = cy   -- chrome height = sticky head
 
-    -- 4) Body — stenciled below chrome.
+    -- 4) Body - stenciled below chrome.
     -- Reserve bottom space for the maintenance verb strip when present so the
     -- body doesn't render under it AND the scrollbar ends cleanly above it.
     -- Reserve scales with font height so larger text-size presets get
-    -- proportional padding around the strip — without this, scroll content
+    -- proportional padding around the strip - without this, scroll content
     -- clips into the strip's visual footprint at larger fonts.
     local maintVerbs    = maintenanceVerbsForItem(item)
     local f1H_strip     = T.fontF1H or getTextManager():getFontHeight(T.fontF1)
@@ -1157,7 +1157,7 @@ function ZeD_ItemCard:renderBody(ctx)
     local bodyH = self:getHeight() - self._headH - verbStripResvH
     if bodyH > 0 then
         self:setStencilRect(0, self._headH, bodyW, bodyH)
-        -- Body inner padding scales with font height — generous breathing
+        -- Body inner padding scales with font height - generous breathing
         -- around the entire scrollable region per memory feedback_padding_preference.
         local bodyPad = math.max(compact and 12 or 14, math.floor((T.fontF1H or 10) * 1.0))
         local bodyX, bodyY = bodyPad, self._headH + bodyPad
@@ -1178,7 +1178,7 @@ function ZeD_ItemCard:renderBody(ctx)
         self:clearStencilRect()
     end
 
-    -- 5) Maintenance verb strip — drawn AFTER body so it sits at the bottom
+    -- 5) Maintenance verb strip - drawn AFTER body so it sits at the bottom
     --    of the chrome above the scrollbar; not part of scrollable content.
     --    Strip dimensions match the verbStripResvH computed above so the bg
     --    band, button position, and scroll reserve all stay in sync at any
@@ -1200,7 +1200,7 @@ function ZeD_ItemCard:renderBody(ctx)
     -- 7) Focus outline overlay (existing S99/S118 behavior)
     if self._drawGpFocusOutline then self:_drawGpFocusOutline() end
 
-    -- 8) 3-sided border (left / right / bottom) — preserved from prerender
+    -- 8) 3-sided border (left / right / bottom) - preserved from prerender
     local bc = T.border
     local h  = self:getHeight()
     self:drawRect(0, 0, 1, h, bc.a or 1, bc.r, bc.g, bc.b)
@@ -1209,7 +1209,7 @@ function ZeD_ItemCard:renderBody(ctx)
 end
 
 -- ---------------------------------------------------------------------------
--- Public namespace exports — for Phase C integration callers
+-- Public namespace exports - for Phase C integration callers
 -- ---------------------------------------------------------------------------
 ZeD.ItemCard.headerVerbsForContext   = headerVerbsForContext
 ZeD.ItemCard.maintenanceVerbsForItem = maintenanceVerbsForItem

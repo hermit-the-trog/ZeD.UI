@@ -15,6 +15,16 @@ ZeD_BodyFigure = ISPanel:derive("ZeD_BodyFigure")
 -- layered at origin. Each part has only its zone visible, rest transparent.
 local CANVAS_W = 220
 local CANVAS_H = 260
+-- S123: the female atlas is a different canvas (240x590 tiles, see F_LAYOUT).
+-- Every fit / hit-test calculation must use the ACTIVE canvas, otherwise the
+-- female parts are scaled for the 220x260 male canvas and spill far outside
+-- the figure box (the "body too large behind the skeleton" bug).
+local F_CANVAS_W = 240
+local F_CANVAS_H = 590
+local function _canvasFor(fig)
+    if fig and fig.isFemale then return F_CANVAS_W, F_CANVAS_H end
+    return CANVAS_W, CANVAS_H
+end
 
 -- ============================================================================
 -- PART LAYOUT — stacked layers, per-sex
@@ -156,13 +166,14 @@ end
 function ZeD_BodyFigure:getDrawParams()
     local panelW = self:getWidth()
     local panelH = self:getHeight()
-    -- Uniform scale to fit canvas in panel
-    local scaleX = panelW / CANVAS_W
-    local scaleY = panelH / CANVAS_H
+    local cw, ch = _canvasFor(self)
+    -- Uniform scale to fit the active canvas in the panel
+    local scaleX = panelW / cw
+    local scaleY = panelH / ch
     local s = math.min(scaleX, scaleY)
     -- Center in panel
-    local scaledW = math.floor(CANVAS_W * s)
-    local scaledH = math.floor(CANVAS_H * s)
+    local scaledW = math.floor(cw * s)
+    local scaledH = math.floor(ch * s)
     local xOff = math.floor((panelW - scaledW) / 2)
     local yOff = math.floor((panelH - scaledH) / 2)
     return s, xOff, yOff
@@ -179,7 +190,8 @@ function ZeD_BodyFigure:hitTest(mx, my)
     local cx = (mx - xOff) / s
     local cy = (my - yOff) / s
 
-    if cx < 0 or cx > CANVAS_W or cy < 0 or cy > CANVAS_H then
+    local cw, ch = _canvasFor(self)
+    if cx < 0 or cx > cw or cy < 0 or cy > ch then
         return nil
     end
 
@@ -244,12 +256,13 @@ function ZeD_BodyFigure:drawAt(panel, px, py, pw, ph)
         self:loadTextures()
     end
 
-    -- Fit canvas into the given rect
-    local scaleX = pw / CANVAS_W
-    local scaleY = ph / CANVAS_H
+    -- Fit the ACTIVE canvas (per sex) into the given rect
+    local cw, ch = _canvasFor(self)
+    local scaleX = pw / cw
+    local scaleY = ph / ch
     local s = math.min(scaleX, scaleY)
-    local scaledW = math.floor(CANVAS_W * s)
-    local scaledH = math.floor(CANVAS_H * s)
+    local scaledW = math.floor(cw * s)
+    local scaledH = math.floor(ch * s)
     local xOff = px + math.floor((pw - scaledW) / 2)
     local yOff = py + math.floor((ph - scaledH) / 2)
 
@@ -267,10 +280,21 @@ function ZeD_BodyFigure:drawAt(panel, px, py, pw, ph)
         self._bgTex     = getTexture(bgPath)
         self._bgIsLight = isLight
     end
-    if self._bgTex then
-        local ac = ZeD.T.accent
-        local tint = ZeD.colorBlend(ZeD.T.iconWhite, ac, 0.45)
-        panel:drawTextureScaledAspect(self._bgTex, px, py, pw, ph, 1.0, tint.r, tint.g, tint.b)
+    -- S123: the skeleton backdrop is authored on the MALE 220x260 canvas, so
+    -- it is drawn into the fitted canvas rect (xOff/yOff/scaledW/scaledH),
+    -- never the raw panel rect — that is what kept it from lining up with
+    -- the parts. There is no female skeleton asset yet (design item): the
+    -- female figure uses its whole-body silhouette (f-body.png, 240x590)
+    -- as a dim base instead so nothing male-proportioned bleeds through.
+    local ac = ZeD.T.accent
+    local tint = ZeD.colorBlend(ZeD.T.iconWhite, ac, 0.45)
+    if self.isFemale then
+        if not self._fBodyTex then self._fBodyTex = getTexture("media/textures/ZeD/body/f-body.png") end
+        if self._fBodyTex then
+            panel:drawTextureScaledAspect(self._fBodyTex, xOff, yOff, scaledW, scaledH, 0.18, tint.r, tint.g, tint.b)
+        end
+    elseif self._bgTex then
+        panel:drawTextureScaledAspect(self._bgTex, xOff, yOff, scaledW, scaledH, 1.0, tint.r, tint.g, tint.b)
     end
 
     for _, entry in ipairs(self.activeLayout) do
@@ -332,7 +356,8 @@ function ZeD_BodyFigure:hitTestAt(mx, my)
     local cx = (mx - xOff) / s
     local cy = (my - yOff) / s
 
-    if cx < 0 or cx > CANVAS_W or cy < 0 or cy > CANVAS_H then
+    local cw, ch = _canvasFor(self)
+    if cx < 0 or cx > cw or cy < 0 or cy > ch then
         return nil
     end
 
