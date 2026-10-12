@@ -743,24 +743,42 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
     local player    = getSpecificPlayer(playerNum)
     if not player then return end
 
-    -- vanilla helpers expect {item} or single-item array per verb
+    -- Vanilla helpers expect an array of items (they run getActualItems on it
+    -- to unpack stacks). Every name below was verified against the Oct 6 2026
+    -- stable sources (S123). The pre-S123 names (onWear, onEquipPrimary,
+    -- onEquipWeapon, OnReadBook, OnRead) never existed in stable, so the
+    -- `if CM.x then` guards turned EQUIP and READ into silent no-ops.
     local items = {item}
     local CM = ISInventoryPaneContextMenu
 
     if label == "EQUIP" then
-        -- Clothing → onWear; weapons/firearms → onEquipPrimary
         if instanceof(item, "Clothing") then
-            if CM.onWear then CM.onWear(items, playerNum) end
+            -- Wear: onWearItems handles hat/full-hat swaps and body-location
+            -- de-duplication the same way the vanilla context menu does.
+            if CM.onWearItems then CM.onWearItems(items, playerNum) end
         else
-            if CM.onEquipWeapon then
-                CM.onEquipWeapon(items, true, false, playerNum)
-            elseif CM.onEquipPrimary then
-                CM.onEquipPrimary(items, false, playerNum)
+            -- Weapons and hand-held items. Two-handed weapons go to both
+            -- hands (OnTwoHandsEquip) so the player gets no one-hand penalty;
+            -- everything else goes primary. Both helpers extinguish a lit
+            -- candle/lantern already in hand before swapping.
+            local twoH = false
+            if item.isTwoHandWeapon then
+                local ok, v = pcall(item.isTwoHandWeapon, item)
+                twoH = ok and v or false
+            end
+            if twoH and CM.OnTwoHandsEquip then
+                CM.OnTwoHandsEquip(items, playerNum)
+            elseif CM.OnPrimaryWeapon then
+                CM.OnPrimaryWeapon(items, playerNum)
+            elseif CM.equipWeapon then
+                CM.equipWeapon(item, true, twoH, playerNum)
             end
         end
     elseif label == "UNEQUIP" then
-        if instanceof(item, "Clothing") then
-            ISTimedActionQueue.add(ISUnequipAction:new(player, item, 50))
+        -- unequipItem extinguishes lit light sources first; fall back to the
+        -- raw timed action if a future patch renames it.
+        if CM.unequipItem then
+            CM.unequipItem(item, playerNum)
         else
             ISTimedActionQueue.add(ISUnequipAction:new(player, item, 50))
         end
@@ -782,10 +800,12 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         end
     elseif label == "READ" then
         if instanceof(item, "Literature") then
-            if instanceof(item, "Book") and CM.OnReadBook then
-                CM.OnReadBook(item, playerNum)
-            elseif CM.OnRead then
-                CM.OnRead(item, playerNum)
+            -- onLiteratureItems applies the illiterate / skill-level / tag
+            -- guards, then calls readItem (transfer if needed + ISReadABook).
+            if CM.onLiteratureItems then
+                CM.onLiteratureItems(items, playerNum)
+            elseif CM.readItem then
+                CM.readItem(item, playerNum)
             end
         end
     elseif label == "USE" then
@@ -795,6 +815,40 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
             ISInventoryPane.doContextualDblClick(stub, item)
         end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- LIVE SOURCE CONTEXT (S123)
+-- The window stamps self.sourceContext once, at selection time. After a verb
+-- fires (EQUIP → item now worn; TAKE → item now in the backpack) the stamp is
+-- stale, so the verb cluster kept showing the verb that was just used until
+-- the user re-selected the row. This re-derives the context from the item's
+-- actual state each render. The stored stamp is only the fallback for items
+-- whose state can't be read (world items with no container, nil item).
+-- ---------------------------------------------------------------------------
+function ZeD_ItemCard:_effectiveContext()
+    local ctx  = self.sourceContext or "inventory"
+    local item = self.item
+    if not item then return ctx end
+    local player = getSpecificPlayer(self.playerNum or 0)
+    if not player then return ctx end
+
+    -- Worn or held wins regardless of which container the item lives in.
+    if item.isEquipped then
+        local ok, eq = pcall(item.isEquipped, item)
+        if ok and eq then return "equipped" end
+    end
+
+    local okC, cnt = pcall(function() return item:getContainer() end)
+    if not okC or not cnt then return ctx end
+
+    -- Java object identity survives the Kahlua bridge; vanilla relies on the
+    -- same comparison (item:getContainer() ~= playerObj:getInventory()).
+    if cnt == player:getInventory() then return "inventory" end
+
+    local okT, t = pcall(function() return cnt:getType() end)
+    if okT and t == "floor" then return "ground" end
+    return "container"
 end
 
 -- ---------------------------------------------------------------------------
@@ -1276,7 +1330,7 @@ function ZeD_ItemCard:render()
     -- The new organism handles back-bar, flag strip, progress band, body
     -- (clothing zones / facts dispatch), and maintenance verb strip per
     -- v13/v15/v16 spec. Scrollbar paint stays here so it overlays.
-    self:renderBody({sourceContext = self.sourceContext})
+    self:renderBody({sourceContext = self:_effectiveContext()})
     if self._sb and self._sb.visible then self._sb:draw(self) end
 end
 
