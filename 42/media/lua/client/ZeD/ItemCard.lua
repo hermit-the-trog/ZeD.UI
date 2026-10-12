@@ -715,7 +715,7 @@ function ZeD_ItemCard:_dispatchProgressCancel()
         -- safe — the user explicitly clicked cancel.
         local p = getSpecificPlayer(self.playerNum or 0)
         if p and ISTimedActionQueue and ISTimedActionQueue.queues then
-            local q = ISTimedActionQueue.queues[p:getPlayerNum()]
+            local q = ISTimedActionQueue.getTimedActionQueue(p)  -- S123: queues are keyed by character, not playerNum
             if q and q.queue then
                 for i = #q.queue, 1, -1 do
                     local a = q.queue[i]

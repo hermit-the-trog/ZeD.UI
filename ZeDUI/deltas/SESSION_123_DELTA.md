@@ -111,3 +111,19 @@ Six Java WARN lines per context-menu open: `Missing arguments for "Fluid_Holding
 - Context-menu anchor with the controller attached (S122 #3a re-check).
 - S122 #3c cooking→burning danger (Q127/Q128), S113 deferred list.
 - Fold the bridge into the mod as a proper dev module (`QABridge.lua`): poll `Zomboid/Lua/zedqa.lua` on a tick counter so the console bootstrap is unnecessary; write pass/fail to a results file; frame capture.
+
+## Loop phase (11:10 → 14:00, autonomous)
+
+### QABridge.lua shipped (dev module)
+`42/media/lua/client/ZeD/QABridge.lua`: when `isDebugEnabled()`, polls `Zomboid/Lua/zedqa.go` every 30 ticks and runs `Zomboid/Lua/zedqa.lua` through `loadstring` when the trigger text changes. Installed into the running session via `zq()`; loads at boot from now on. No more console typing.
+
+### Batch 1 (bridge-driven)
+- Journal sub-tabs: 3 zones; switching 1→2→3 renders without error. PASS
+- ItemCard rename: `_startRename` seeds the input with the current name, `_commitRename("QA Book")` sets name + custom flag, blank commit keeps the name, cancel leaves state clean. PASS
+- Context-menu organism on an Apple: 6 items (Eat, Place Item, Favorite, Set Unwanted, Set Unusable in Recipes, Drop); next/prev/nextGroup/prevGroup/cancel all run without error. PASS (note: `isVisible()` still true right after `cancel()`; check whether close is deferred)
+- **Progress Band: FAIL.** READ queued `ISReadABook` but `ItemActionManager.getActiveAction(book)` stayed nil for 120+ ticks, and the cancel fallback left the queue at 1. Investigating `ItemActionHooks` queue polling.
+- **Container strip: FAIL?** A spawned `Base.Bag_Schoolbag` in the main inventory did not appear in `win._containers` (only Inventory* and Key Ring) after 100 ticks. Investigating `buildContainers`.
+
+### Fix: Progress Band never lit (ItemActionHooks + ItemCard cancel fallback)
+Root cause: vanilla keys `ISTimedActionQueue.queues` by the **character object** (`ISTimedActionQueue.lua:144`), but the S122 poller read `queues[playerNum]` → always nil → no start/tick ever reached `ItemActionManager`. Same bug in `ZeD_ItemCard:_dispatchProgressCancel`'s last-resort queue walk. Both now use `ISTimedActionQueue.getTimedActionQueue(p)`. Two more in the reading fallback: it referenced `ZeD_CharacterWindow.instance` (never existed; the accessor is `getWindow()`), and with two Literature items that both report -1 pages (novels, ID card) the "best pages" tie left `book` nil. Hot-loaded the fixed file through the bridge and re-ran: `head=ISReadABook active=true kind=reading label=READING pct=0.03 hasAction=true`; cancel via the card → queue 0, manager cleared. PASS.
+Design note for Dude: the container strip lists only *equipped* bags plus key rings (`buildContainers`). A bag lying in the main inventory has no tab until it is worn. Vanilla shows every container item in the main inventory. Flagging, not changing.
