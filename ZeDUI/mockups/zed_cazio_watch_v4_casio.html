@@ -43,8 +43,8 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
   function bevel(p,x,y,w,h,bg,hi,sh){ el(p,x,y,w,h,bg); el(p,x,y,w,1,hi); el(p,x,y,1,h,hi); el(p,x,y+h-1,w,1,sh); el(p,x+w-1,y,1,h,sh); }
   function strap(p,x,y,w,h,kind,c1,c2){ if(kind==='leather'){ el(p,x,y,w,h,c1); el(p,x+3,y,1,h,c2); el(p,x+w-4,y,1,h,c2); }
     else if(kind==='resin'){ el(p,x,y,w,h,c1); for(let yy=y+2;yy<y+h-1;yy+=4){ el(p,x+4,yy,w-8,1,c2); } }
-    else if(kind==='steel'){ for(let yy=y;yy<y+h;yy+=5){ bevel(p,x,yy,w,4,c1,'#f0f0f0',c2); el(p,x+w/3,yy,1,4,c2); el(p,x+2*w/3,yy,1,4,c2); } }
-    else if(kind==='oyster'){ for(let yy=y;yy<y+h;yy+=5){ bevel(p,x,yy,w,4,c1,'#fff4c0',c2); el(p,x+w/3-6,yy+1,12,2,'#fff0b0'); el(p,x+2*w/3-6,yy+1,12,2,'#fff0b0'); } }
+    else if(kind==='steel'){ for(let yy=y;yy+4<=y+h;yy+=5){ bevel(p,x,yy,w,4,c1,'#f0f0f0',c2); el(p,x+w/3,yy,1,4,c2); el(p,x+2*w/3,yy,1,4,c2); } }
+    else if(kind==='oyster'){ for(let yy=y;yy+4<=y+h;yy+=5){ bevel(p,x,yy,w,4,c1,'#fff4c0',c2); el(p,x+w/3-6,yy+1,12,2,'#fff0b0'); el(p,x+2*w/3-6,yy+1,12,2,'#fff0b0'); } }
     else if(kind==='nato'){ el(p,x,y,w,h,c1); el(p,x+w/2-4,y,8,h,c2); el(p,x+w/2-1,y,2,h,c1); } }
   function frontKey(p,x,y,w,h,label,color,on){ roundRect(p,x,y,w,h,2,on?'#ffffff':color); el(p,x+2,y+1,w-4,1,'rgba(255,255,255,0.45)'); el(p,x+2,y+h-2,w-4,1,'rgba(0,0,0,0.35)'); text(p,x+w/2,y-6,label,4,'#cfcfcf',true,'c'); }
   function metalKey(p,x,y,w,h,label,fill,edge,txt,on){ roundRect(p,x,y,w,h,3,on?'#ffffff':fill); roundRectEdge(p,x,y,w,h,3,edge,'#000'); text(p,x+w/2,y+Math.floor((h-5)/2),label,5,on?'#000':txt,true,'c'); }
@@ -106,7 +106,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     // crown (knurled) + chrono pushers with engraved labels
     el(p,cx+R+3,cy-5,7,10,o.gold); for(let i=0;i<4;i++){ el(p,cx+R+4,cy-4+i*3,5,1,o.goldSh); }
     const push=(deg,label)=>{ const a=(deg-90)*Math.PI/180; const x=Math.round(cx+Math.cos(a)*(R+6)), y=Math.round(cy+Math.sin(a)*(R+6)); el(p,x-3,y-4,7,8,o.gold); el(p,x-3,y-4,7,1,'#fff4c0'); text(p,x+6,y-2,label,3,'#cfcfcf',true); };
-    push(60,'START'); push(120,'SPEED'); text(p,cx+R+14,cy-2,'ALARM',3,'#cfcfcf',true);
+    push(60,'START'); push(120,'SPEED'); text(p,cx+R+11,cy+7,'ALM',3,'#cfcfcf',true);
     if(o.alarmArmed){ el(p,cx-R+8,cy+22,3,3,'#CC4444'); }
     // speed shown as a tiny engraved indicator on the bezel foot
     speedRow(p,cx-20,cy+R-9,o.gold,'rgba(0,0,0,0.25)',o.speed);

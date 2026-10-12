@@ -84,7 +84,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
   function headUnit(p,x,y,w,h,kind,s,focus){
     const on=s.radioOn;
     if(kind==='none'){ bevel(p,x,y,w,h,'#141414','#2a2a2a','#000'); border(p,x,y,w,h,'#000'); screw(p,x+4,y+h/2-1); screw(p,x+w-7,y+h/2-1); text(p,x+w/2,y+h/2-3,'NO RADIO INSTALLED',5,'#333',true,'c'); return; }
-    if(kind==='makeshift'){ bevel(p,x,y,w,h,'#0c2a18','#1a4a2a','#000'); border(p,x,y,w,h,'#000'); for(let i=0;i<8;i++){ el(p,x+10+i*26,y+8,14,8,'#111'); el(p,x+10+i*26,y+22,6,14,'#3a3a3a'); } el(p,x+8,y+40,w-16,1,'#c8a040'); el(p,x+8,y+43,w-16,1,'#c8a040'); el(p,x+w-72,y+6,56,20,'#050A14'); text(p,x+w-44,y+10,on?s.freq:'---.-',8,'#44EE44',true,'c'); pushBtn(p,x+w-104,y+30,26,14,'PWR',on,'#44EE44',focus==='radio'); knob(p,x+w-28,y+36,7,on?60:-120,'#2a2a2a','#555','#ddd'); text(p,x+6,y+h-8,'MAKESHIFT · WIRES LIVE',4,'#7aa080',false); return; }
+    if(kind==='makeshift'){ bevel(p,x,y,w,h,'#0c2a18','#1a4a2a','#000'); border(p,x,y,w,h,'#000'); for(let i=0;i<8;i++){ el(p,x+10+i*26,y+8,14,8,'#111'); el(p,x+10+i*26,y+22,6,14,'#3a3a3a'); } el(p,x+8,y+38,w-124,1,'#c8a040'); el(p,x+8,y+41,w-124,1,'#c8a040'); el(p,x+w-72,y+6,56,20,'#050A14'); text(p,x+w-44,y+10,on?s.freq:'---.-',8,'#44EE44',true,'c'); pushBtn(p,x+w-110,y+30,26,14,'PWR',on,'#44EE44',focus==='radio'); knob(p,x+w-28,y+37,7,on?60:-120,'#2a2a2a','#555','#ddd'); text(p,x+8,y+h-8,'MAKESHIFT · WIRES LIVE',4,'#7aa080',false); return; }
     if(kind==='delco'){ // GM-grey: knobs, green 7-seg, SCAN SEEK, presets 1-4 with bars, cassette slot
       const g='#8a8a8a'; bevel(p,x,y,w,h,g,'#b8b8b8','#3a3a3a'); border(p,x,y,w,h,'#1a1a1a');
       text(p,x+22,y+3,'VOLUME',4,'#2a2a2a',true,'c',1); knob(p,x+22,y+22,11,on?40:-120,'#6a6a6a','#2a2a2a','#1a1a1a',focus==='vol'); text(p,x+6,y+37,'ON',4,'#2a2a2a',true); text(p,x+36,y+37,'OFF',4,'#2a2a2a',true,'r');
@@ -93,7 +93,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
       const b=(bx,lab,w2,bar)=>{ bevel(p,bx,y+28,w2,9,'#6a6a6a','#9a9a9a','#2a2a2a'); border(p,bx,y+28,w2,9,'#2a2a2a'); text(p,bx+w2/2,y+23,lab,4,'#2a2a2a',true,'c'); if(bar) el(p,bx+w2/2-4,y+25,8,1,'#f0f0f0'); };
       b(x+44,'SCAN',24); b(x+72,'SEEK',24); b(x+108,'1',16,true); b(x+128,'2',16,true); b(x+148,'3',16,true); b(x+168,'4',16,true); b(x+192,'SET',16);
       bevel(p,x+44,y+40,w-88,8,'#0a0a0a','#000','#444'); el(p,x+56,y+43,w-112,1,'#555'); el(p,x+60,y+42,10,4,'#4a4a4a'); el(p,x+w-70,y+42,10,4,'#4a4a4a');
-      text(p,x+w/2,y+h-7,'STEREO CASSETTE',3,'#2a2a2a',true,'c',1); if(on){ el(p,x+100,y+9,3,3,'#44EE44'); text(p,x+105,y+8,'ST',3,'#44EE44',true); }
+      if(on){ el(p,x+100,y+9,3,3,'#44EE44'); text(p,x+105,y+8,'ST',3,'#44EE44',true); }
       return; }
     if(kind==='sony'){ // black cassette deck, green display, FM key, presets 1-6
       bevel(p,x,y,w,h,'#1a1a1a','#3a3a3a','#000'); border(p,x,y,w,h,'#000');
@@ -108,15 +108,15 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
       knob(p,x+20,y+26,12,on?40:-120,'#1a1a1a','#444','#ddd',focus==='vol'); if(on) ring(p,x+20,y+26,13,'#FFB347',1); text(p,x+20,y+3,'VOL',3,'#888',false,'c'); knob(p,x+w-20,y+26,12,20,'#1a1a1a','#444','#ddd',focus==='tune'); if(on) ring(p,x+w-20,y+26,13,'#FFB347',1); text(p,x+w-20,y+3,'TUNE',3,'#888',false,'c');
       bevel(p,x+40,y+5,110,18,'#0a0400','#000','#3a2a10'); text(p,x+44,y+7,on?s.freq:'',14,'#FFB347',true,'',1); text(p,x+100,y+8,on?'FM':'',5,'#FFB347',true); text(p,x+100,y+16,on?'ST':'',5,'#FFB347',true);
       text(p,x+156,y+4,'SIGNAL',3,'#888',false); for(let i=0;i<8;i++){ const lit=on&&i<s.sig; const c=i<4?'#44EE44':(i<6?'#FFB347':'#FF5A4A'); el(p,x+156+i*7,y+10,5,8,lit?c:'#1c1c1c'); }
-      const k=(bx,lab,lit)=>{ bevel(p,bx,y+30,24,10,'#1a1a1a','#333','#000'); border(p,bx,y+30,24,10,'#000'); text(p,bx+12,y+33,lab,4,lit?'#FFB347':'#aaa',true,'c'); };
-      k(x+40,'FM1',on); k(x+67,'FM2'); k(x+94,'SCAN'); k(x+121,'1'); k(x+148,'2'); k(x+175,'3'); k(x+202,'4');
+      const k=(bx,lab,lit)=>{ bevel(p,bx,y+30,22,10,'#1a1a1a','#333','#000'); border(p,bx,y+30,22,10,'#000'); text(p,bx+11,y+33,lab,4,lit?'#FFB347':'#aaa',true,'c'); };
+      k(x+40,'FM1',on); k(x+65,'FM2'); k(x+90,'SCAN'); k(x+115,'1'); k(x+140,'2'); k(x+165,'3'); k(x+190,'4');
       text(p,x+w/2,y+h-7,'PREMIUM TECHNOLOGIES · HIGH POWER',3,'#666',true,'c',1); return; }
     if(kind==='dial'){ // vintage: backlit dial scale with red needle, chrome knobs, 5 mechanical presets
       bevel(p,x,y,w,h,'#161616','#3a3a3a','#000'); border(p,x,y,w,h,'#000'); for(let yy=y+3;yy<y+h-3;yy+=4){ el(p,x+3,yy,w-6,1,'#1c1c1c'); }
       knob(p,x+20,y+22,11,on?40:-120,'#9a9a9a','#e0e0e0','#333',focus==='vol',true); knob(p,x+w-20,y+22,11,20,'#9a9a9a','#e0e0e0','#333',focus==='tune',true);
       text(p,x+20,y+37,'VOL · ON',3,'#888',false,'c'); text(p,x+w-20,y+37,'TUNING',3,'#888',false,'c');
       bevel(p,x+42,y+6,w-84,16,on?'#d8d4b8':'#6a6858','#f4f0d8','#2a2a20'); const sx=x+48, sw=w-96; [88,92,96,100,104,108].forEach((f,i)=>{ const px=sx+Math.round(sw*i/5); el(p,px,y+8,1,4,'#2a2a2a'); text(p,px,y+13,String(f),4,'#2a2a2a',true,'c'); }); for(let i=0;i<=25;i++){ el(p,sx+Math.round(sw*i/25),y+8,1,2,'#555'); }
-      const ff=parseFloat(s.freq||'88'); const nx=sx+Math.round(sw*(Math.min(108,Math.max(88,ff))-88)/20); el(p,nx,y+7,1,14,'#D02020'); text(p,x+48,y+18,'FM',3,'#2a2a2a',true); if(on){ el(p,x+w-60,y+9,3,3,'#44EE44'); text(p,x+w-55,y+8,'STEREO',3,'#2a2a2a',true); }
+      const ff=parseFloat(s.freq||'88'); const nx=sx+Math.round(sw*(Math.min(108,Math.max(88,ff))-88)/20); el(p,nx,y+7,1,14,'#D02020'); text(p,x+48,y+18,'FM',3,'#2a2a2a',true); if(on){ el(p,x+w-66,y+2,3,3,'#44EE44'); text(p,x+w-61,y+1,'STEREO',3,'#aaa',true); }
       for(let i=0;i<5;i++){ const bx=x+52+i*30; bevel(p,bx,y+27,24,12,'#2a2a2a','#555','#000'); border(p,bx,y+27,24,12,'#000'); el(p,bx+2,y+29,20,1,'#777'); text(p,bx+12,y+31,String(i+1),4,'#ccc',true,'c'); }
       text(p,x+w/2,y+h-7,'VALUTECH · SOLID STATE',3,'#666',true,'c',1); return; }
   }
@@ -129,9 +129,9 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     if(pad.kind==='leather'){ for(let x=6;x<W-6;x+=6){ el(p,x,19,3,1,pad.seam); } }
     el(p,0,24,W,1,'#000'); el(p,0,25,W,1,pad.kind==='wood'?'#5a4428':'rgba(255,255,255,0.06)');
     badge(p,W-8-150,6,150,10,o.badge);
-    if(o.accessory){ const ax=24, ay=0, aw=150, ah=30; bevel(p,ax,ay,aw,ah,'#141414','#333','#000'); border(p,ax,ay,aw,ah,'#000'); screw(p,ax+3,ay+3); screw(p,ax+aw-6,ay+3);
-      text(p,ax+8,ay+4,'LIGHTBAR',5,'#aaa',false); text(p,ax+8,ay+20,'0  1  2  3',5,'#777',false); knob(p,ax+58,ay+15,8,-60+o.accessory.lightbar*40,'#2a2a2a','#555','#ddd');
-      text(p,ax+82,ay+4,'SIREN',5,'#aaa',false); text(p,ax+82,ay+20,'OFF YLP WL ALM',4,'#777',false); knob(p,ax+134,ay+15,8,-60+o.accessory.siren*40,'#2a2a2a','#555','#ddd'); }
+    if(o.accessory){ const ax=24, ay=0, aw=150, ah=26; bevel(p,ax,ay,aw,ah,'#141414','#333','#000'); border(p,ax,ay,aw,ah,'#000'); screw(p,ax+3,ay+3); screw(p,ax+aw-6,ay+3);
+      text(p,ax+8,ay+3,'LIGHTBAR',5,'#aaa',false); text(p,ax+8,ay+17,'0  1  2  3',5,'#777',false); knob(p,ax+58,ay+13,8,-60+o.accessory.lightbar*40,'#2a2a2a','#555','#ddd');
+      text(p,ax+78,ay+3,'SIREN',5,'#aaa',false); text(p,ax+78,ay+17,'OFF YLP WL ALM',4,'#777',false); knob(p,ax+138,ay+13,8,-60+o.accessory.siren*40,'#2a2a2a','#555','#ddd'); }
     // ---- binnacle ----
     const hx=8,hy=30,hw=520,hh=92,amp=16; hood(p,hx,hy,hw,hh,amp,16,'#121212','#3d3d3d','#000');
     for(let i=1;i<=3;i++){ const t=1; } // (shadow band under the lip)
@@ -146,15 +146,15 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
       const needle=o.needle||'#E07A2A', tick='#e6e3dc';
       function chromeDial(cx,cy,r){ ring(p,cx,cy,r+3,'#cfcfcf',2); ring(p,cx,cy,r+1,'#2a2a2a',1); disc(p,cx,cy,r,'#0b0b0b'); ring(p,cx,cy,r+4,'rgba(0,0,0,0.5)',3,270,450); }
       function bigDial(cx,cy,r,labels,val,max,redFrom,unit){ chromeDial(cx,cy,r);
-        arcScale(p,cx,cy,r-2,225,495,(labels.length-1)*4+1,3,'#8a8a8a',1); arcScale(p,cx,cy,r-2,225,495,labels.length,6,tick,1);
-        labels.forEach((L,i)=>{ const d=225+270*i/(labels.length-1); const a=(d-90)*Math.PI/180; text(p,Math.round(cx+Math.cos(a)*(r-14)),Math.round(cy+Math.sin(a)*(r-14))-3,L,6,(redFrom!=null&&i>=redFrom)?'#FF5A4A':tick,true,'c'); });
-        if(redFrom!=null){ ring(p,cx,cy,r-2,'#FF5A4A',2,225+270*redFrom/(labels.length-1),495); }
+        arcScale(p,cx,cy,r-2,240,480,(labels.length-1)*4+1,3,'#8a8a8a',1); arcScale(p,cx,cy,r-2,240,480,labels.length,6,tick,1);
+        labels.forEach((L,i)=>{ const d=240+240*i/(labels.length-1); const a=(d-90)*Math.PI/180; text(p,Math.round(cx+Math.cos(a)*(r-14)),Math.round(cy+Math.sin(a)*(r-14))-3,L,6,(redFrom!=null&&i>=redFrom)?'#FF5A4A':tick,true,'c'); });
+        if(redFrom!=null){ ring(p,cx,cy,r-2,'#FF5A4A',2,240+240*redFrom/(labels.length-1),480); }
         text(p,cx,cy+12,unit,5,'#8a8a8a',false,'c');
-        const deg=225+270*Math.min(1,(val==null?0:val)/max); run(p,cx,cy,deg,-6,r-8,needle,2); disc(p,cx,cy,3,'#555'); ring(p,cx,cy,3,'#888',1); }
+        const deg=240+240*Math.min(1,(val==null?0:val)/max); run(p,cx,cy,deg,-6,r-8,needle,2); disc(p,cx,cy,3,'#555'); ring(p,cx,cy,3,'#888',1); }
       function smallDial(cx,cy,r,lo,hi,label,val,warn){ chromeDial(cx,cy,r); arcScale(p,cx,cy,r-2,225,315,5,4,tick,1); text(p,cx-r+4,cy-10,lo,6,tick,true); text(p,cx+r-4,cy-10,hi,6,tick,true,'r'); text(p,cx,cy+6,label,5,'#8a8a8a',false,'c');
         run(p,cx,cy,225+(val==null?0:val)*90,-3,r-6,warn?'#FF5A4A':needle,2); disc(p,cx,cy,2,'#555'); }
       smallDial(fx+42,cy0+6,22,'E','F','FUEL',s.fuel,s.fuelLow);
-      bigDial(fx+150,cy0,36,['0','20','40','60','80','100','120','140','160','180'],s.speed,180,null,'km/h');
+      bigDial(fx+150,cy0,36,['0','40','80','120','160','200'],s.speed,200,null,'km/h');
       const gears=['P','R','N','D','2','1']; let gx=fx+150-18; gears.forEach(g=>{ const lit=g===s.gear; text(p,gx,cy0+19,g,5,lit?'#FFB347':'#3a3a3a',lit,'c'); gx+=7; });
       bigDial(fx+fw-150,cy0,36,['0','1','2','3','4','5','6','7','8'],s.rpm,8000,6,'x1000');
       smallDial(fx+fw-42,cy0+6,22,'-','+','BATT',s.batt,s.battLow);
@@ -168,12 +168,12 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
       const lw=132, lh=fh-10; win(fx+6,fy+5,lw,lh); win(fx+fw-6-lw,fy+5,lw,lh);
       // speed arc (left window): sweep from bottom-left up over the top to the right
       const scx=fx+6+lw/2+6, scy=fy+5+lh-14; segArc(p,scx,scy,50,270,420,22,s.speed==null?null:s.speed/180,on,dim,null,amber,red,null);
-      [0,30,60,90,120,150,180].forEach((v,i)=>{ const d=270+150*i/6; const a=(d-90)*Math.PI/180; text(p,Math.round(scx+Math.cos(a)*58),Math.round(scy+Math.sin(a)*58)-3,String(v),5,amber,true,'c'); });
-      text(p,fx+6+lw-10,fy+5+lh-26,s.speed==null?'---':String(s.speed),20,amber,true,'r',1); text(p,fx+6+lw-10,fy+5+lh-8,'km/h',5,amber,false,'r'); text(p,fx+12,fy+5+lh-8,'SPEED',5,on,false);
+      [0,30,60,90,120,150,180].forEach((v,i)=>{ const d=270+150*i/6; const a=(d-90)*Math.PI/180; text(p,Math.round(scx+Math.cos(a)*61),Math.round(scy+Math.sin(a)*61)-3,String(v),5,amber,true,'c'); });
+      text(p,fx+6+lw-10,fy+5+lh-34,s.speed==null?'---':String(s.speed),20,amber,true,'r',1); text(p,fx+6+lw-10,fy+5+lh-8,'km/h',5,amber,false,'r'); text(p,fx+12,fy+5+lh-8,'SPEED',5,on,false);
       // tach arc (right window) with amber / red zone and rpm digits
       const tcx=fx+fw-6-lw/2-6, tcy=fy+5+lh-14; segArc(p,tcx,tcy,50,270,420,22,s.rpm==null?null:s.rpm/8000,on,dim,16,amber,red,19);
-      [0,2,4,6,8].forEach((v,i)=>{ const d=270+150*i/4; const a=(d-90)*Math.PI/180; text(p,Math.round(tcx+Math.cos(a)*58),Math.round(tcy+Math.sin(a)*58)-3,String(v),5,i>=3?red:amber,true,'c'); });
-      text(p,fx+fw-6-10,fy+5+lh-26,s.rpm==null?'--':String(Math.round(s.rpm/100)),20,amber,true,'r',1); text(p,fx+fw-6-10,fy+5+lh-8,'RPM/100',5,amber,false,'r'); text(p,fx+fw-6-lw+6,fy+5+lh-8,'TACH',5,on,false);
+      [0,2,4,6,8].forEach((v,i)=>{ const d=270+150*i/4; const a=(d-90)*Math.PI/180; text(p,Math.round(tcx+Math.cos(a)*61),Math.round(tcy+Math.sin(a)*61)-3,String(v),5,i>=3?red:amber,true,'c'); });
+      text(p,fx+fw-6-10,fy+5+lh-34,s.rpm==null?'--':String(Math.round(s.rpm/100)),20,amber,true,'r',1); text(p,fx+fw-6-10,fy+5+lh-8,'RPM/100',5,amber,false,'r'); text(p,fx+fw-6-lw+6,fy+5+lh-8,'TACH',5,on,false);
       // centre LCD panel: ladders, gear, tell-tales, silkscreen
       const px=fx+6+lw+8, pw=fw-2*(lw+6)-16, py=fy+8, ph=fh-16; roundRect(p,px-2,py-2,pw+4,ph+4,4,'#000'); roundRect(p,px,py,pw,ph,3,'#0d0d0d');
       function ladder(x,label,val,warn){ text(p,x+6,py+3,label,4,amber,false,'c'); for(let i=0;i<8;i++){ const lit=val!=null&&i<Math.round(val*8); el(p,x+1,py+ph-10-(i+1)*5,10,3,lit?(warn?amber:on):dim); } }
@@ -193,11 +193,11 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
       const gears=['P','R','N','D','2','1']; let gx=px+30; gears.forEach(g=>{ const lit=g===s.gear; if(lit) el(p,gx-4,py+4,9,9,on); text(p,gx,py+6,g,6,lit?bg:dim,true,'c'); gx+=12; });
       TT.slice(0,8).forEach((t,i)=>{ lamp(p,px+24+(i%4)*18,py+20+Math.floor(i/4)*18,t[0],t[1],t[2]); });
       if(s.cruise){ text(p,px+66,py+56,'CRUISE '+s.cruiseSpeed,4,on,true,'c'); }
-      text(p,fx+fw/2,fy+fh-6,o.brand,4,dim,true,'c',1);
+      text(p,fx+fw-12,fy+fh-7,o.brand,4,dim,true,'r',1);
     } else {
       // toyota dialect: rising bars (v3)
       const ph={bg:'#050A14',on:'#44EE44',dim:'#1A3A1A'}; const vx=fx+8, vy=fy+6, vw=fw-16, vh=fh-12; roundRect(p,vx-2,vy-2,vw+4,vh+4,5,'#000'); roundRect(p,vx,vy,vw,vh,4,ph.bg); const on=ph.on, dim=ph.dim;
-      function vbar(x,label,val,warn){ text(p,x+8,vy+4,label,5,on,false,'c'); for(let i=0;i<10;i++){ const lit=val!=null&&i<Math.round(val*10); el(p,x+2,vy+vh-8-(i+1)*5,12,3,lit?(warn?'#FFB347':on):dim); } }
+      function vbar(x,label,val,warn){ text(p,x+8,vy+6,label,5,on,false,'c'); for(let i=0;i<8;i++){ const lit=val!=null&&i<Math.round(val*8); el(p,x+2,vy+vh-6-(i+1)*5,12,3,lit?(warn?'#FFB347':on):dim); } }
       vbar(vx+6,'FUEL',s.fuel,s.fuelLow); vbar(vx+vw-22,'BATT',s.batt,s.battLow);
       text(p,vx+92,vy+6,'km/h',5,on,false); text(p,vx+120,vy+12,s.speed==null?'---':String(s.speed),26,on,true,'r');
       const gears=['P','R','N','D','2','1']; let gx=vx+40; gears.forEach(g=>{ const lit=g===s.gear; if(lit) el(p,gx-4,vy+44,9,9,on); text(p,gx,vy+46,g,6,lit?ph.bg:dim,true,'c'); gx+=10; });
