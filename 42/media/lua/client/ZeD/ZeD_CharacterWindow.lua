@@ -5111,8 +5111,23 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- S107 QA: journal Recipes sub-tab routes through CC.buildFocusables;
             -- recipeRow zones shift screen-y on every scroll. Always rebuild
             -- so cone-nav reads fresh coords (else focus → wrong target).
-            local alwaysRebuild = (win._activeTab == "journal"
-                                   and (win._journalSubTab or 1) == 2)
+            -- S123 perf: the Journal Recipes list registers every recipe row
+            -- (1177 on the QA save) and the old always-rebuild cost ~6 ms a
+            -- frame. Rows only move when the list scrolls, its geometry
+            -- changes, or the category dropdown opens, so key the rebuild on
+            -- those instead of rebuilding every frame.
+            local scrollKey = nil
+            if win._activeTab == "journal" and (win._journalSubTab or 1) == 2 then
+                local stk = win._jrecipeState
+                if stk then
+                    local sp = stk.scroll and stk.scroll.scrollPos or 0
+                    local lg = stk._listGeo
+                    scrollKey = tostring(sp) .. ":" .. tostring(lg and lg.y or 0) .. ":" .. tostring(lg and lg.h or 0)
+                        .. ":" .. tostring(stk.catDropdownOpen) .. ":" .. tostring(stk.catDropdownScroll or 0)
+                    if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+                end
+            end
+            local alwaysRebuild = false
             -- S107 QA: identity-preserve focus by element id across rebuilds.
             -- Without this, scroll-driven array shifts (always-rebuild on
             -- journal Recipes) make focusedElementIdx point at a different
@@ -5134,6 +5149,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if dirty or alwaysRebuild then
                 win._lastTabContentSnapshot = {
                     tab     = win._activeTab,
+                    scrollKey = scrollKey,
                     n       = newN,
                     firstId = newEls[1] and newEls[1].id or nil,
                     lastId  = newEls[newN] and newEls[newN].id or nil,

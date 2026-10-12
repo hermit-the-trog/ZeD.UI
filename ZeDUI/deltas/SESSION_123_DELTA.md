@@ -160,3 +160,14 @@ Journal `jsub:n` and Animals `animals:submode:*` focusables: `onFocus` is now a 
 ### Implemented: cooking → Progress Band with danger state (S122 #3c)
 `ItemActionHooks._pollCooking` watches each window's `_drawerItem`; when it is cookable Food inside an activated heat container it drives the Band: `active/COOKING` with minutes-to-cooked, then `danger/BURNING` with minutes-to-burnt once cooked (or past minutesToCook), `complete` on burnt or when the item leaves the card/heat. Emits "danger" on the mode flip so observers get `onDanger`.
 Live stove test (microwave found as `IsoStove`): with the steak carded in the World window and the heat source activated, the Band reported `mode=danger label=BURNING time=26m` (the probe had left the steak flagged cooked); when the microwave deactivated itself the poller sent `complete` and the Band cleared. Cooking time did not advance in a microwave without its timer — real-stove progression untested but uses the same path. PASS for the plumbing.
+
+### Post-boot verification (fresh Lua load of the QA save, zero errors)
+QABridge armed itself at `OnGameStart`. Journal `jsub:2`: `onFocus` leaves the sub-tab at 1, `onActivate` switches to 2. Loot strip click → `charTabContent` empty, D-pad right → container strip (stale-zone bug gone). Real stove (`appliances_cooking_01_14`): Band `active/COOKING 50m` → after `setCookingTime(49)` `pct=0.98 time=1m`. Context menu opened post-boot with zero new translator warnings. F9 overlay now gated to gamepad mode.
+
+### Focusable census (elements in the tab-content zone per tab)
+Character: equip 30 · health 25 · thermal 26 · identity 2 · journal 1180 (1177 recipe rows on sub-tab 2 + 3 pills) · skills 60 · loot 0 (rows live in `charMainInv`).
+World: craft 541 · build 77 · maps 14 · forage 3 · animals 6 · loot 0.
+Identity/forage/animals are the S113 "grid-scroll via onDpadDir adapter" surfaces. Journal Recipes and World Craft register every recipe row and Journal Recipes is on an always-rebuild path — measuring frame cost next.
+
+### Perf: frame cost of the recipe lists (bridge-measured, ms per tick, 180-tick windows)
+loot 8.9 · journal sub-tab 1 8.4 · **journal Recipes 15.1** · skills 9.0 · **world Craft 10.8** · world loot 8.3. Attribution: `CC.buildFocusables` alone = 3.07 ms for 1177 Journal recipe rows, 2.07 ms for 541 Craft rows, and the S107 "always rebuild" gates ran it (plus `setRingZoneElements` and the 1177-element preserve-idx search) every frame. Off-screen rows must stay focusable (cone-nav needs targets below the viewport, CraftingCore.lua:1310), so the fix keys the rebuild on `scroll.scrollPos` + list geometry + dropdown state instead of every frame (both windows). Re-measured after the next reload.

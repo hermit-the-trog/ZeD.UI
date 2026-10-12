@@ -3880,7 +3880,22 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- S107 QA: craft + build always rebuild (scroll shifts recipeRow
             -- screen-y each frame; stale focusable coords break cone-nav
             -- until the next dirty-fire). Other tabs keep the dirty-gate.
-            local alwaysRebuild = (win._activeTab == "craft" or win._activeTab == "build")
+            -- S123 perf: Craft (541 rows) and Build (77) register every recipe
+            -- row; the always-rebuild cost ~2.5 ms a frame on Craft. Key the
+            -- rebuild on scroll position, list geometry and dropdown state.
+            local scrollKey = nil
+            do
+                local stk = (win._activeTab == "craft" and win._craftState)
+                         or (win._activeTab == "build" and win._buildState) or nil
+                if stk then
+                    local sp = stk.scroll and stk.scroll.scrollPos or 0
+                    local lg = stk._listGeo
+                    scrollKey = tostring(sp) .. ":" .. tostring(lg and lg.y or 0) .. ":" .. tostring(lg and lg.h or 0)
+                        .. ":" .. tostring(stk.catDropdownOpen) .. ":" .. tostring(stk.catDropdownScroll or 0)
+                    if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+                end
+            end
+            local alwaysRebuild = false
 
             -- S107 QA: identity-preserve focus by element id. When the
             -- focusables array churns (scroll + always-rebuild, filter
@@ -3933,6 +3948,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             if dirty or alwaysRebuild or cardJumpIdx then
                 win._lastTabContentSnapshot = {
                     tab     = win._activeTab,
+                    scrollKey = scrollKey,
                     n       = newN,
                     firstId = newEls[1] and newEls[1].id or nil,
                     lastId  = newEls[newN] and newEls[newN].id or nil,
