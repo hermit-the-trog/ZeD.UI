@@ -1662,3 +1662,29 @@ Events.OnGameBoot.Add(suppressVanillaRadioAutoOpen)
 **Right-click "Use" path** on world radios still calls `ISRadioWindow.activate(...)` directly via `ISWorldObjectContextMenu.lua:222` — that's user-initiated and rare; suppress when the ZeD context-menu route is wired (deferred from S115).
 
 
+
+---
+
+**Q129: `getText(key)` on a format-string key with no arguments logs a Java `MissingFormatArgumentException` WARN (`Translator.reportMissingArgumentsFromPastAbuse`).**
+
+Found S123 (Oct 12 2026) on stable 42.20.2. Keys such as `Fluid_HoldingNone`, `Fluid_HoldingOneType`, `Fluid_HoldingTwoTypes` contain `%1$s` / `%2$s`. `ContextMenuRegistry.buildTranslatedCache` resolves every icon-map key generically, so the first context-menu open logged six WARN lines. `pcall` does not help: PZ catches the Java exception itself and returns a string, then logs.
+
+**Pattern:** pad generic lookups with blank args — `getText(key, "", "", "")`. Java's `String.format` ignores surplus arguments, so keys without specifiers are unaffected.
+
+---
+
+**Q130: `loadstring` exists in PZ's Kahlua, and `getFileReader` / `getFileWriter` resolve relative to `Zomboid/Lua/`. With `-debug` this is a no-restart test bridge.**
+
+Found S123. The debug Command Console's "Lua Command Line" runs arbitrary chunks. Defining once per game session:
+
+```lua
+function zq() local r=getFileReader('zedqa.lua',false) local s='' local l=r:readLine() while l do s=s..l..string.char(10) l=r:readLine() end r:close() print('zedqa',pcall(loadstring(s))) end
+```
+
+then every test is: write `Zomboid/Lua/zedqa.lua` from outside the game, type `zq()`, read `print` output in `console.txt`. `readLine()` returns nil at EOF. Chunks can arm an `Events.OnTick` counter to sequence timed-action checks. Used in S123 to verify every ItemCard header verb and walk all 13 tabs with zero manual clicks. Also compiles mod files for syntax without executing them (`loadstring(src, name)` returns nil + message on a parse error).
+
+---
+
+**Q131: Stable `ISInventoryPaneContextMenu.unequipItem` is a silent no-op unless `playerObj:isEquipped(item)` is already true — including while that item's `ISEquipWeaponAction` is still queued.**
+
+Found S123. Firing UNEQUIP 120 ticks after EQUIP on a baseball bat did nothing because the equip had not landed yet; the bat ended up equipped. Tests (and any auto-chained verbs) must wait for the equip action to complete, or check `ISTimedActionQueue.getTimedActionQueue(player).queue[1].Type` before firing.
