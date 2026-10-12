@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI CaZio Watch v3 — a physical watch, Lua-flat preview</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#e6e3dc; font-family:'Fira Sans Condensed',sans-serif; padding:24px; }
+.banner { display:inline-block; background:#ffaa00; color:#000; font:bold 9px 'Fira Mono',monospace; letter-spacing:1px; padding:6px 12px; border:1px solid #000; margin-bottom:14px; }
+h2 { font:600 15px 'Fira Sans Condensed'; margin:26px 0 8px; }
+p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin-bottom:10px; line-height:1.5; }
+.row { display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap; }
+.w { position:relative; display:block; }
+.w .px { position:absolute; }
+.w .tx { position:absolute; white-space:nowrap; font-family:'Fira Mono',monospace; line-height:1; }
+.cap { font:9px 'Fira Mono',monospace; color:#8a8a8a; letter-spacing:1px; margin:6px 0 0; max-width:130px; }
+</style>
+</head>
+<body>
+<div class="banner">ZED-UI · CAZIO WATCH v3 · A PHYSICAL WATCH · LUA-FLAT PREVIEW · S123 · FOR DIRECTOR REVIEW</div>
+<p class="note">A wristwatch, not a window: strap ends top and bottom in the strap material (resin, leather, steel bracelet links, NATO stripes), lugs, a case with chamfered corners, a bezel ring with the silkscreen, a crown on the right for the analog models. Digital CaZio: inset LCD, TIME / CaZio marks, the three speed dots, and the resin keys below (ALM SET, ALM ON, then pause / play / fast / faster). The same key layout on every model so the gamepad pattern never changes. Analog models lose the digital readout: the dial is the readout, with a date window at 3. Gold is now a champagne dial with dark hands (readable). No watch worn: the module stays as a bare case with grey-green glass and live speed keys.</p>
+
+<h2>1 · CaZio digital — D-Black (resin, green LCD), D-Red, Dress (steel case, violet LCD)</h2>
+<div class="row"><div><div class="w" id="w1"></div><div class="cap">speed 1x</div></div><div><div class="w" id="w2"></div><div class="cap">speed 2x · alarm armed</div></div><div><div class="w" id="w3"></div><div class="cap">paused · steel case</div></div></div>
+
+<h2>2 · Classic — Black leather, Brown leather, Gold on champagne, Military NATO</h2>
+<div class="row"><div><div class="w" id="w4"></div></div><div><div class="w" id="w5"></div></div><div><div class="w" id="w6"></div><div class="cap">champagne dial, dark hands</div></div><div><div class="w" id="w7"></div><div class="cap">olive dial, luminous hands, NATO strap</div></div></div>
+
+<h2>3 · Expensive (ivory dial, gold case, black leather) · No watch worn (off-state glass)</h2>
+<div class="row"><div><div class="w" id="w8"></div></div><div><div class="w" id="w9"></div><div class="cap">bare case, keys live</div></div><div><div class="w" id="w10"></div><div class="cap">ALM SET open: steppers in the LCD</div></div></div>
+
+<script>
+(function(){
+  function el(p,x,y,w,h,c,extra){ const d=document.createElement('div'); d.className='px'; d.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;background:'+c+';'+(extra||''); p.appendChild(d); return d; }
+  function border(p,x,y,w,h,c){ el(p,x,y,w,1,c); el(p,x,y+h-1,w,1,c); el(p,x,y,1,h,c); el(p,x+w-1,y,1,h,c); }
+  function text(p,x,y,s,size,c,bold,align,ls){ const d=document.createElement('div'); d.className='tx'; d.textContent=s; d.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+size+'px;color:'+c+';font-weight:'+(bold?700:400)+';letter-spacing:'+(ls||0)+'px;'+(align==='r'?'transform:translateX(-100%);':align==='c'?'transform:translateX(-50%);':''); p.appendChild(d); return d; }
+  function run(p,cx,cy,deg,r0,r1,c,t){ const a=(deg-90)*Math.PI/180; for(let r=r0;r<=r1;r++){ el(p,Math.round(cx+Math.cos(a)*r)-Math.floor(t/2),Math.round(cy+Math.sin(a)*r)-Math.floor(t/2),t,t,c); } }
+  function ring(p,cx,cy,r,c,t,degA,degB){ const a0=(degA==null?0:degA), a1=(degB==null?360:degB); const step=180/(Math.PI*r); for(let d=a0; d<=a1; d+=step){ const a=(d-90)*Math.PI/180; el(p,Math.round(cx+Math.cos(a)*r)-Math.floor(t/2),Math.round(cy+Math.sin(a)*r)-Math.floor(t/2),t,t,c); } }
+  function disc(p,cx,cy,r,c){ for(let y=-r;y<=r;y++){ const w=Math.round(Math.sqrt(r*r-y*y)); el(p,cx-w,cy+y,2*w+1,1,c); } }
+  function bevel(p,x,y,w,h,bg,hi,sh){ el(p,x,y,w,h,bg); el(p,x,y,w,1,hi); el(p,x,y,1,h,hi); el(p,x,y+h-1,w,1,sh); el(p,x+w-1,y,1,h,sh); }
+  function chamferBox(p,x,y,w,h,fill,edge){ el(p,x+2,y,w-4,h,fill); el(p,x,y+2,w,h-4,fill); el(p,x+1,y+1,w-2,h-2,fill); // chamfered corners (2px cut)
+    el(p,x+2,y,w-4,1,edge); el(p,x+2,y+h-1,w-4,1,edge); el(p,x,y+2,1,h-4,edge); el(p,x+w-1,y+2,1,h-4,edge); el(p,x+1,y+1,1,1,edge); el(p,x+w-2,y+1,1,1,edge); el(p,x+1,y+h-2,1,1,edge); el(p,x+w-2,y+h-2,1,1,edge); }
+  function key(p,x,y,w,h,label,on,onBg,onText,size,resin){ el(p,x,y,w,h,on?onBg:resin,'border-radius:2px;'); border(p,x,y,w,h,on?onBg:'#000'); el(p,x+1,y+1,w-2,1,on?onBg:'rgba(255,255,255,0.12)'); text(p,x+w/2,y+Math.floor((h-(size||7))/2),label,size||7,on?onText:'#9a9a9a',on,'c'); }
+  function strap(p,x,y,w,h,kind,c1,c2){ if(kind==='leather'){ el(p,x,y,w,h,c1); el(p,x+3,y,1,h,c2); el(p,x+w-4,y,1,h,c2); }
+    else if(kind==='resin'){ el(p,x,y,w,h,c1); for(let yy=y+2;yy<y+h-1;yy+=4){ el(p,x+4,yy,w-8,1,c2); } }
+    else if(kind==='steel'){ for(let yy=y;yy<y+h;yy+=5){ bevel(p,x,yy,w,4,c1,'#e8e8e8',c2); el(p,x+w/2-1,yy,2,4,c2); } }
+    else if(kind==='nato'){ el(p,x,y,w,h,c1); el(p,x+w/2-4,y,8,h,c2); el(p,x+w/2-1,y,2,h,c1); } }
+
+  function watch(id,o){
+    const p=document.getElementById(id); const W=124,H=156; p.style.width=W+'px'; p.style.height=H+'px';
+    // straps
+    strap(p,34,0,56,18,o.strapKind,o.strap1,o.strap2); strap(p,34,138,56,18,o.strapKind,o.strap1,o.strap2);
+    // lugs
+    el(p,30,14,6,8,o.caseEdge); el(p,88,14,6,8,o.caseEdge); el(p,30,134,6,8,o.caseEdge); el(p,88,134,6,8,o.caseEdge);
+    // case with chamfered corners + bezel
+    chamferBox(p,8,18,108,120,o.caseFill,o.caseEdge);
+    el(p,10,20,104,1,o.caseHi); el(p,10,20,1,116,o.caseHi);
+    if(o.crown){ el(p,116,74,5,10,o.caseEdge); el(p,117,76,3,6,o.caseHi); }
+    // silkscreen on the bezel
+    text(p,62,24,o.topMark,5,o.silk,true,'c',1);
+    const fx=16,fy=31,fw=92,fh=54;
+    if(o.kind==='lcd'||o.kind==='off'){
+      bevel(p,fx-2,fy-2,fw+4,fh+4,'#000','#000','#333');
+      const bg=o.off?'#8E8F72':o.bg, fg=o.off?'#5a5b48':o.fg, dim=o.off?'#75765f':o.dim;
+      el(p,fx,fy,fw,fh,bg);
+      text(p,fx+4,fy+3,'TIME',4,fg); text(p,fx+fw-4,fy+3,'CaZio',4,fg,true,'r');
+      if(o.alarmOpen){ text(p,fx+fw/2,fy+10,'ALARM',5,fg,false,'c'); key(p,fx+6,fy+19,18,13,'-',false,fg,bg,7,'#2a2a2a'); text(p,fx+fw/2,fy+20,o.alarm,13,fg,true,'c'); key(p,fx+fw-24,fy+19,18,13,'+',false,fg,bg,7,'#2a2a2a'); text(p,fx+fw/2,fy+38,'HOUR · A SET · B BACK',4,dim,false,'c'); }
+      else { text(p,fx+fw/2-4,fy+13,o.off?'--:--':o.time,20,fg,true,'c',1); if(!o.off&&o.ampm) text(p,fx+fw-4,fy+28,o.ampm,5,fg,false,'r');
+        el(p,fx+6,fy+36,fw-12,1,dim); text(p,fx+fw/2,fy+40,o.off?'-- --- --':o.date,6,fg,false,'c');
+        for(let i=0;i<3;i++){ el(p,fx+fw/2-8+i*6,fy+49,4,2,i<o.speed?fg:dim); } }
+      if(o.alarmArmed&&!o.alarmOpen){ el(p,fx+fw-10,fy+11,4,4,o.off?dim:'#CC4444'); }
+    } else {
+      // round dial inside the face area
+      el(p,fx-2,fy-2,fw+4,fh+4,o.plate); const cx=62, cy=fy+fh/2, r=25;
+      ring(p,cx,cy,r+2,o.caseEdge,2); disc(p,cx,cy,r,o.dial); ring(p,cx,cy,r,o.dialRim,1);
+      for(let d=0;d<360;d+=30){ run(p,cx,cy,d,r-4,r-2,o.index,1); }
+      for(let d=0;d<360;d+=90){ run(p,cx,cy,d,r-6,r-2,o.index,2); }
+      text(p,cx,cy-14,o.brand,4,o.index,true,'c');
+      if(o.dateWin){ el(p,cx+11,cy-4,10,8,o.dateBg); border(p,cx+11,cy-4,10,8,o.index); text(p,cx+16,cy-2,o.dateWin,5,o.dateFg,false,'c'); }
+      run(p,cx,cy,o.hourDeg,0,12,o.hand,3); run(p,cx,cy,o.minDeg,0,19,o.hand,2); if(o.lume){ run(p,cx,cy,o.hourDeg,4,10,o.lume,1); run(p,cx,cy,o.minDeg,6,16,o.lume,1); } disc(p,cx,cy,2,o.hand);
+      text(p,fx+fw-2,fy+fh-6,o.sub,4,o.silk,false,'r');
+      if(o.alarmArmed){ el(p,fx+2,fy+fh-6,4,4,'#CC4444'); }
+    }
+    // keys: alarm row + speed row (same on every model)
+    const kb=o.off?'#2a2a2a':(o.resin||'#2a2a2a'); const onBg=o.off?'#5a5b48':(o.fg||'#44cc55'); const onTx=o.off?'#8E8F72':(o.bg||'#081808');
+    key(p,14,92,46,13,'ALM SET',!!o.alarmOpen,onBg,onTx,5,kb); key(p,64,92,46,13,'ALM ON',!!o.alarmArmed,onBg,onTx,5,kb);
+    const labels=['||','>','>>','>>>']; for(let i=0;i<4;i++){ key(p,14+i*25,110,22,16,labels[i],o.speed===i,onBg,onTx,7,kb); }
+    text(p,62,130,o.bottomMark,4,o.silk,false,'c',1);
+  }
+  const H=(h,m)=>((h%12)+m/60)*30, M=(m)=>m*6;
+  watch('w1',{kind:'lcd',strapKind:'resin',strap1:'#1a1a1a',strap2:'#2a2a2a',caseFill:'#161616',caseEdge:'#555',caseHi:'#333',silk:'#777',topMark:'CAZIO ILLUMINATOR',bottomMark:'WR 50M',bg:'#081808',fg:'#44cc55',dim:'#1a3a1a',time:'2:47',ampm:'PM',date:'TUE MAR 17',speed:1});
+  watch('w2',{kind:'lcd',strapKind:'resin',strap1:'#3a1010',strap2:'#4a1818',caseFill:'#2a0c0c',caseEdge:'#7a2a2a',caseHi:'#4a1a1a',silk:'#a06060',topMark:'CAZIO SPORT',bottomMark:'WR 100M',bg:'#180808',fg:'#cc5533',dim:'#3a1a1a',time:'14:47',date:'TUE 17 MAR',speed:2,alarmArmed:true});
+  watch('w3',{kind:'lcd',strapKind:'steel',strap1:'#b8b8b8',strap2:'#6a6a6a',caseFill:'#9a9a9a',caseEdge:'#e0e0e0',caseHi:'#f0f0f0',silk:'#2a2a2a',topMark:'CAZIO DRESS',bottomMark:'STAINLESS',resin:'#3a3a3a',bg:'#0a0818',fg:'#9966cc',dim:'#2a1a3a',time:'2:47',ampm:'PM',date:'TUE MAR 17',speed:0});
+  watch('w4',{kind:'dial',strapKind:'leather',strap1:'#1a1a1a',strap2:'#333',caseFill:'#1c1c1c',caseEdge:'#8a8a8a',caseHi:'#444',silk:'#777',topMark:'TIMEKS',bottomMark:'QUARTZ',plate:'#111',dial:'#141414',dialRim:'#444',index:'#e6e3dc',hand:'#e6e3dc',brand:'TIMEKS',sub:'TUESDAY',dateWin:'17',dateBg:'#e6e3dc',dateFg:'#141414',hourDeg:H(14,47),minDeg:M(47),fg:'#e6e3dc',bg:'#141414',speed:1});
+  watch('w5',{kind:'dial',strapKind:'leather',strap1:'#5a3a1a',strap2:'#7a5030',caseFill:'#2a1d12',caseEdge:'#a08050',caseHi:'#6a4a2a',silk:'#a08050',topMark:'TIMEKS',bottomMark:'QUARTZ',plate:'#1a120a',dial:'#2a1d12',dialRim:'#6a4a2a',index:'#e6d9c4',hand:'#e6d9c4',brand:'TIMEKS',sub:'PM',dateWin:'17',dateBg:'#e6d9c4',dateFg:'#2a1d12',hourDeg:H(14,47),minDeg:M(47),fg:'#e6d9c4',bg:'#2a1d12',speed:1});
+  watch('w6',{kind:'dial',strapKind:'steel',strap1:'#C9A227',strap2:'#7a5a10',caseFill:'#8a6a18',caseEdge:'#F0D070',caseHi:'#f8e8a0',silk:'#3a2a08',topMark:'TIMEKS',bottomMark:'GOLD PLATED',resin:'#4a3810',plate:'#5a4410',dial:'#E8D8A8',dialRim:'#C9A227',index:'#3a2a10',hand:'#3a2a10',brand:'TIMEKS',sub:'TUESDAY',dateWin:'17',dateBg:'#f4ecd0',dateFg:'#3a2a10',hourDeg:H(14,47),minDeg:M(47),fg:'#3a2a10',bg:'#E8D8A8',speed:1});
+  watch('w7',{kind:'dial',strapKind:'nato',strap1:'#4a5a3a',strap2:'#2a3a22',caseFill:'#1c2416',caseEdge:'#6a7a5a',caseHi:'#3a4a2a',silk:'#8a9a7a',topMark:'TIMEKS FIELD',bottomMark:'24H',plate:'#141a10',dial:'#1c2416',dialRim:'#4a5a3a',index:'#b9c9a3',hand:'#b9c9a3',lume:'#e8ffb0',brand:'TIMEKS',sub:'1447 HRS',dateWin:'17',dateBg:'#b9c9a3',dateFg:'#1c2416',hourDeg:H(14,47),minDeg:M(47),fg:'#b9c9a3',bg:'#1c2416',speed:1});
+  watch('w8',{kind:'dial',strapKind:'leather',strap1:'#111',strap2:'#2a2a2a',caseFill:'#8a6a18',caseEdge:'#F0D070',caseHi:'#f8e8a0',silk:'#3a2a08',topMark:'ROLLEX',bottomMark:'SWISS MADE',resin:'#4a3810',plate:'#5a4410',dial:'#f0ece0',dialRim:'#C9A227',index:'#141414',hand:'#8a6a18',brand:'ROLLEX',sub:'TUE 17 MAR',dateWin:'17',dateBg:'#ffffff',dateFg:'#141414',hourDeg:H(14,47),minDeg:M(47),fg:'#C9A227',bg:'#2a2310',speed:1});
+  watch('w9',{kind:'off',off:true,strapKind:'resin',strap1:'#1a1a1a',strap2:'#2a2a2a',caseFill:'#161616',caseEdge:'#444',caseHi:'#2a2a2a',silk:'#444',topMark:'NO WATCH',bottomMark:'',speed:1});
+  watch('w10',{kind:'lcd',strapKind:'resin',strap1:'#1a1a1a',strap2:'#2a2a2a',caseFill:'#161616',caseEdge:'#555',caseHi:'#333',silk:'#777',topMark:'CAZIO ILLUMINATOR',bottomMark:'WR 50M',bg:'#081808',fg:'#44cc55',dim:'#1a3a1a',time:'2:47',date:'TUE MAR 17',speed:1,alarmOpen:true,alarm:'06',alarmArmed:true});
+})();
+</script>
+</body>
+</html>
