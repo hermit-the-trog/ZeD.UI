@@ -3935,7 +3935,7 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     -- "<location> (<idx>)" e.g. "Primary (1)" or "Floor (2)". The (idx) shows
     -- which radio in the cycle is current; replaces the old N/M counter.
     local idx     = (browseState and browseState.idx) or 1
-    local pillText = (locationTag and locationTag ~= "") and locationTag or "—"
+    local pillText = (locationTag and locationTag ~= "") and locationTag or "-"
     pillText = pillText .. " (" .. tostring(idx) .. ")"
 
     local pillTextW = TM:MeasureStringX(fontPill, pillText)

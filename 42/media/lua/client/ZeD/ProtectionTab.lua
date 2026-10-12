@@ -233,8 +233,8 @@ function ZeD.ProtectionTab.gatherData(playerObj)
     local avgBiteDef = math.floor(defSum / #ALL_PARTS)
 
     -- Best and worst parts (head-to-toe tiebreaker via ALL_PARTS order)
-    local bestPart  = { name = "—", biteDef = -1 }
-    local worstPart = { name = "—", biteDef = 999 }
+    local bestPart  = { name = "-", biteDef = -1 }
+    local worstPart = { name = "-", biteDef = 999 }
     for _, partStr in ipairs(ALL_PARTS) do
         local def  = partDefense[partStr]
         local name = PART_NAMES[partStr] or partStr
