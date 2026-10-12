@@ -231,3 +231,9 @@ When the QA character died, every frame logged `Object tried to call nil in buil
 
 ### Final verification (new character, fresh load)
 `Overrides/WorldMap` loads at boot · god mode on for the QA character · Health: injured 0 / wounded 0 / overall 100 · `ISWorldMap.ToggleWorldMap(0)` → pop-out open on Maps, focus on `map:canvas:cursor` · B folds, focus back to World. Contact sheet frames 26–27 show the pop-out opened through the vanilla toggle.
+
+### Fix: vanilla strips on a fresh load
+`ZeD_CharacterWindow.lua` now hides the vanilla inventory/loot pages at `OnGameStart` (OnTick retry until the pages exist) instead of only after the first ZeD open. Verified on a fresh load: top strip empty before pressing the inventory key.
+
+### Also this block
+Remaining drawn em dashes (Animals "Pregnant — N%", card dock flag, location pill, Protection best/worst) replaced with ASCII — the 2x bitmap export has no U+2014. `suite_gamepad` re-run green on the new character (row 3 expectations are N/A with a two-item inventory).
