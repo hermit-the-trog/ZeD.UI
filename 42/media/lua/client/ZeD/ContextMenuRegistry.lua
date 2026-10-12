@@ -208,7 +208,7 @@ end
 -- grow the map from real-play labels. Default ON during S103 icon-work cycle;
 -- flip to false once the map is stable by running in the in-game console:
 --   ZeD.ContextMenu.Registry.DEBUG_LOG_UNKNOWN_ICONS = false
-Registry.DEBUG_LOG_UNKNOWN_ICONS = true
+Registry.DEBUG_LOG_UNKNOWN_ICONS = false
 Registry._loggedUnknownIcons = {}
 
 local function resolveIconForName(optionName)
