@@ -290,6 +290,9 @@ function ZeD.HealthTab.gatherData(playerObj)
         entries           = entries,
         totalParts        = parts:size(),
         injuredCount      = #entries,
+        -- S123: "injured" means a wound/condition; reduced health alone (hunger,
+        -- sickness, cold) is listed but not called an injury.
+        woundedCount      = (function() local c = 0; for _, e in ipairs(entries) do if #e.conditions > 0 then c = c + 1 end end; return c end)(),
         partHealth        = partHealth,
         condsByFigureName = condsByFigureName,
         isFemale          = playerObj:isFemale(),
@@ -398,14 +401,18 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     curY = curY + barH + T.sp.xs
 
     -- Summary line
-    if data.injuredCount == 0 then
+    -- S123: count WOUNDS, not low health. A hungry character with every part
+    -- at 77% is not "17 of 17 injured"; low health shows as a dim note.
+    local wounded = data.woundedCount or data.injuredCount
+    if wounded == 0 then
         local dotSz = 6
         local dotGap = 4
         local bodyFH = getTextManager():getFontHeight(T.fontF2)
-        A.drawStatusDot(panel, rx, curY + math.floor((bodyFH - dotSz) / 2), T.positive, dotSz)
-        A.drawBody(panel, "No injuries", rx + dotSz + dotGap, curY)
+        local dotC = (data.injuredCount > 0) and T.warning or T.positive
+        A.drawStatusDot(panel, rx, curY + math.floor((bodyFH - dotSz) / 2), dotC, dotSz)
+        A.drawBody(panel, (data.injuredCount > 0) and "No injuries, low body health" or "No injuries", rx + dotSz + dotGap, curY)
     else
-        A.drawBody(panel, data.injuredCount .. " of " .. data.totalParts .. " injured", rx, curY)
+        A.drawBody(panel, wounded .. " of " .. data.totalParts .. " injured", rx, curY)
     end
     curY = curY + secH + T.sp.sm
 

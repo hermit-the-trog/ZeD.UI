@@ -194,3 +194,31 @@ Every tab in both windows, the ItemCard with a live READING band, craft recipe c
 
 ### Post-reload regressions
 `suite_verbs` green on every expectation (worn Bandeau UNEQUIP → inventory → EQUIP → equipped; READ, 2H bat EQUIP/UNEQUIP, EAT, DROP → ground, TAKE → inventory). Accent sweep: all 9 accents applied live without error, restored orange.
+
+## Max-effort block (12:05 → 14:00, director present)
+
+### Director input captured
+- Body silhouette behind the skeleton was far too large (contact sheet frames 01/02).
+- Resolution scaling is still an open problem.
+- Rule: if a vanilla script performs an action that shows UI, hook it and design for it.
+- Map: an option to pop the map out into a larger centred, unfolded map, gamepad-compatible.
+- Planned surfaces to add to the roadmap: vehicle dashboard, vehicle mechanics, CaZio watch, screen icons.
+- Asked for UX suggestions; delivered seven (capability-driven prompts, UI scale axis, UI sounds, card data hygiene, last-action footer line, map pop-out as a mode, published hook map). Director: "those all sound great".
+
+### Fixed: body figure scale (`ZeD_BodyFigure.lua`)
+Root cause: the female part atlas is a 240×590 canvas while every fit / hit-test used the male 220×260 constants, and the skeleton backdrop was drawn into the raw panel rect instead of the fitted canvas rect. Female parts therefore spilled far outside the box. Now `_canvasFor(fig)` drives fit, `getDrawParams`, `hitTest` and `hitTestAt`; the male skeleton backdrop is drawn into the fitted rect (exact alignment); the female figure uses `f-body.png` as a dim base. **Design item:** there is no female skeleton asset — `fig-bg-*.png` is male only.
+
+### Shipped: map pop-out (`MapsTab.lua`, FocusManager zone `popMapContent`)
+Toolbar UNFOLD button (right end, `map:popout` focusable) opens a centred `ZeD_Window` at 72% × 78% of the screen holding a fresh `UIWorldMap`; the drawer's map is parked and the drawer shows "MAP UNFOLDED · A or click here to fold it back" (`map:fold` focusable). Same toolbar, tools, pins, colours, annotations, text tool and gamepad cursor; every focusable is re-bound to the World window; B folds from anywhere; closes with the World window. Verified through the bridge: open → focus on `map:canvas:cursor` → D-pad pans → B folds and focus returns to World → button click unfolds again. Fixed a race where the pop-out's render cleared the drawer's fold zone each frame.
+
+### Shipped: vanilla map entry points hooked (`Overrides/WorldMap.lua`)
+`ISWorldMap.ShowWorldMap / HideWorldMap / ToggleWorldMap` (the Map key, mini-map click, D-pad wheel slice, equipped-item HUD button) now open the ZeD World window on the Maps tab and unfold it; vanilla only when ZeD cannot serve. First concrete row of HOOK_MAP.md.
+
+### Shipped: capability-driven button prompts (`Organisms.lua`)
+Window footer (gamepad mode, focused window) draws A / hold-A / X / B / Y prompts derived from the focused element's callbacks, with labels from `promptA/promptX/promptB` or an id-prefix table. Never hand-authored, never stale.
+
+### Shipped: UI sounds, card hygiene, health wording
+FocusManager plays the vanilla list-select tick on focus moves, button sound on A, tick-box sound on B. ItemFactsPanel / ItemCardOrganism: em/en dashes replaced with ASCII (the bitmap Fira export lacks the glyphs — they rendered as blanks, e.g. "Level Range -1  -1"); skill-less books show "Any". HealthTab: "N of 17 injured" now counts wounds; uniform low health (QA character at 22% from hunger) reads "No injuries, low body health".
+
+### New doc: `HOOK_MAP.md`
+Every vanilla script that puts UI on screen, with exact entry points, owned / pass-through / gap status, and design targets. Includes the director's four planned surfaces (dashboard `ISPlayerDataObject.lua:124`, mechanics `:119` + `ISOpenMechanicsUIAction`, CaZio watch = Java clock replacement, screen icons = `ISEquippedItem.lua:1270`).

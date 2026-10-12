@@ -23,3 +23,5 @@ Captured from the live game at 3840×2160 through the QA bridge (tab switches) a
 
 Not pictured: multi-container columns (verified by script), context-menu strip (verified by script), Progress Band cooking danger state (verified by script on a real stove).
 | 19–22 | Theme sweep | dark/large, light/large, light/small, high-contrast/large — every base × size applied live via `ZeD.applyTheme`, zero errors; restored to dark/small |
+| 23 | Health figure after the S123 fix | Female atlas fitted to the box; no more oversized silhouette |
+| 24–25 | Map pop-out (S123) | Unfolded map window, drawer shows the fold-back placeholder; same toolbar, gamepad cursor, B folds |
