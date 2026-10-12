@@ -3,7 +3,7 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1231210f` (S123, Oct 12 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 12 2026
+**Version:** `0.1.1231330f` (S123, Oct 12 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 12 2026
 **Next session:** S124 — mockups for the four planned surfaces (screen icons, CaZio watch, dashboard, mechanics) + the UI scale axis. See Target.
 
 ## What ships

@@ -45,7 +45,7 @@ local function _family(vehicle)
     local name = ""
     pcall(function() name = tostring(vehicle:getScriptName() or "") end)
     local n = name:lower()
-    if n:find("police") or n:find("ambulance") or n:find("fire") or n:find("ranger") or n:find("lights") then return "emergency", name end
+    if n:find("police") or n:find("ambulance") or n:find("fire") or n:find("ranger") or n:find("sheriff") or n:find("trooper") or n:find("swat") or n:find("kst") or n:find("pd$") then return "emergency", name end
     if n:find("sport") or n:find("race") then return "sport", name end
     if n:find("luxury") or n:find("limo") then return "luxury", name end
     if n:find("pickup") or n:find("van") or n:find("truck") or n:find("suv") or n:find("trailer") then return "utility", name end
@@ -57,6 +57,101 @@ local function _prettyName(scriptName)
     s = s:gsub("(%l)(%u)", "%1 %2"):gsub("_", " ")
     return s:upper()
 end
+
+-- The game's own brand name ("CHEVALIER NYALA") through the IGUI_VehicleName
+-- keys vanilla uses in ISVehicleMechanics; falls back to the script name.
+local function _brandName(vehicle, scriptName)
+    local key = nil
+    pcall(function()
+        local sc = vehicle:getScript()
+        key = sc:getCarModelName() or sc:getName()
+    end)
+    local name = nil
+    if key then
+        key = tostring(key)
+        name = getTextOrNull("IGUI_VehicleName" .. key)
+        if not name and key:find("Burnt") then
+            name = getTextOrNull("IGUI_VehicleName" .. (key:gsub("Burnt", "")))
+        end
+    end
+    return (name and tostring(name) or _prettyName(scriptName)):upper()
+end
+
+-- ---------------------------------------------------------------------------
+-- Interior palettes. The game carries no interior colour data, so every
+-- vanilla model is assigned the cabin it would have had in 1993 Kentucky and
+-- the strip is tinted with it: chassis + tiles are the theme surfaces blended
+-- toward the cabin colour (so light and dark presets both work), the piping
+-- line along the bottom is the cabin accent, the trim band on top stays the
+-- exterior paint. Mockup: zed_dashboard_v1.html section 4.
+-- ---------------------------------------------------------------------------
+local INTERIOR_BLEND = 0.35
+local INTERIORS = {
+    slate    = { name = "SLATE CLOTH",     base = { 0.42, 0.45, 0.50 }, accent = { 0.66, 0.70, 0.76 } },
+    navy     = { name = "NAVY CLOTH",      base = { 0.20, 0.26, 0.44 }, accent = { 0.44, 0.54, 0.82 } },
+    burgundy = { name = "BURGUNDY VELOUR", base = { 0.42, 0.12, 0.18 }, accent = { 0.78, 0.32, 0.40 } },
+    walnut   = { name = "WALNUT + TAN",    base = { 0.46, 0.33, 0.20 }, accent = { 0.80, 0.62, 0.38 } },
+    saddle   = { name = "SADDLE LEATHER",  base = { 0.58, 0.40, 0.22 }, accent = { 0.86, 0.68, 0.34 } },
+    charcoal = { name = "CHARCOAL",        base = { 0.16, 0.16, 0.17 }, accent = { 0.46, 0.46, 0.48 } },
+    beige    = { name = "BEIGE CLOTH",     base = { 0.66, 0.60, 0.48 }, accent = { 0.86, 0.80, 0.66 } },
+    khaki    = { name = "KHAKI VINYL",     base = { 0.46, 0.44, 0.30 }, accent = { 0.66, 0.64, 0.42 } },
+    cocoa    = { name = "COCOA VINYL",     base = { 0.36, 0.24, 0.16 }, accent = { 0.60, 0.42, 0.28 } },
+    tan      = { name = "TAN VINYL",       base = { 0.62, 0.50, 0.34 }, accent = { 0.84, 0.70, 0.50 } },
+    fleet    = { name = "FLEET GREY",      base = { 0.30, 0.31, 0.32 }, accent = { 0.54, 0.56, 0.58 } },
+    velour   = { name = "BLUE VELOUR",     base = { 0.18, 0.30, 0.48 }, accent = { 0.42, 0.58, 0.82 } },
+    red      = { name = "RED LEATHER",     base = { 0.50, 0.10, 0.12 }, accent = { 0.88, 0.26, 0.26 } },
+    taxi     = { name = "BLACK VINYL",     base = { 0.12, 0.12, 0.12 }, accent = { 0.95, 0.78, 0.12 } },
+    medic    = { name = "MEDIC WHITE",     base = { 0.72, 0.74, 0.76 }, accent = { 0.86, 0.22, 0.22 } },
+    fire     = { name = "FIRE RED",        base = { 0.40, 0.10, 0.08 }, accent = { 0.92, 0.22, 0.16 } },
+    patrol   = { name = "PATROL BLACK",    base = { 0.10, 0.11, 0.14 }, accent = { 0.24, 0.48, 0.92 } },
+    race     = { name = "ROLL CAGE",       base = { 0.14, 0.14, 0.14 }, accent = { 0.95, 0.95, 0.95 } },
+}
+-- Vanilla model -> cabin (longest script-name prefix wins).
+local MODEL_INTERIOR = {
+    CarNormal = "slate", CarLights = "slate",                     -- Chevalier Nyala
+    SmallCar = "navy",                                            -- Chevalier Dart
+    SmallCar02 = "burgundy",                                      -- Masterson Horizon
+    CarStationWagon = "walnut", CarStationWagon2 = "walnut",      -- Chevalier Cerise Wagon
+    CarLuxury = "saddle",                                         -- Mercia Lang 4000
+    ModernCar = "charcoal",                                       -- Dash Elite
+    ModernCar02 = "beige",                                        -- Chevalier Primani
+    OffRoad = "khaki",                                            -- Dash Rancher
+    PickUpTruck = "cocoa",                                        -- Chevalier D6
+    PickUpVan = "tan",                                            -- Dash Bulldriver
+    SUV = "charcoal",                                             -- Franklin All-Terrain
+    Van = "fleet", StepVan = "fleet",                             -- Franklin Valuline / Chevalier Step Van
+    VanSeats = "velour",                                          -- Franklin Valuline (passenger)
+    SportsCar = "red",                                            -- Chevalier Cossette
+    CarTaxi = "taxi",
+    VanAmbulance = "medic",
+    RaceCar = "race",
+}
+-- Livery words beat the model (a police Nyala is a patrol cabin, not slate).
+local LIVERY_INTERIOR = {
+    { "ambulance", "medic" }, { "hosp", "medic" }, { "fire", "fire" },
+    { "police", "patrol" }, { "sheriff", "patrol" }, { "trooper", "patrol" }, { "swat", "patrol" }, { "kst", "patrol" }, { "louisvillepd", "patrol" },
+    { "ranger", "khaki" }, { "taxi", "taxi" }, { "race", "race" },
+}
+
+local function _mix(c1, c2, t)
+    return { r = c1.r + (c2[1] - c1.r) * t, g = c1.g + (c2[2] - c1.g) * t, b = c1.b + (c2[3] - c1.b) * t, a = c1.a or 1 }
+end
+
+local function _interior(scriptName)
+    local n = tostring(scriptName or ""):gsub("^Base%.", "")
+    local low = n:lower()
+    for _, pair in ipairs(LIVERY_INTERIOR) do
+        if low:find(pair[1], 1, true) then return INTERIORS[pair[2]], pair[2] end
+    end
+    local best, bestLen = nil, 0
+    for model, id in pairs(MODEL_INTERIOR) do
+        if n:sub(1, #model) == model and #model > bestLen then best, bestLen = id, #model end
+    end
+    best = best or "slate"
+    return INTERIORS[best], best
+end
+D._interior = _interior   -- exposed for QA probes
+D.INTERIORS = INTERIORS
 
 -- Paint-derived trim colour. Low saturation paints (grey/white/black) get the
 -- family's own colour so the trim never disappears into the chassis.
@@ -115,6 +210,9 @@ local function _state(vehicle, chr)
     st.radioOn   = st.hasRadio and _safe(function() return radio:getDeviceData():getIsTurnedOn() end, false) or false
     st.cruise    = _safe(function() return vehicle:isRegulator() end, false)
     st.cruiseSpeed = _safe(function() return vehicle:getRegulatorSpeed() end, 0)
+    st.hasLightbar  = _safe(function() return vehicle:hasLightbar() end, false)
+    st.lightbarMode = st.hasLightbar and _safe(function() return vehicle:getLightbarLightsMode() end, 0) or 0
+    st.sirenMode    = st.hasLightbar and _safe(function() return vehicle:getLightbarSirenMode() end, 0) or 0
     return st
 end
 
@@ -151,6 +249,24 @@ local function _toggles(st)
             dot = function(s) return s.heaterOn and "on" or "off" end,
             promptA = function(s) return s.heaterOn and "Heater off" or "Heater on" end,
             act = function(chr, v) ISVehicleMenu.onToggleHeater(chr) end }
+    end
+    if st.hasLightbar then
+        -- Vanilla ISLightbarUI: lights knob 0..3, siren 0 standby / 1 yelp / 2 wail / 3 alarm,
+        -- both sent as client commands so MP stays identical to vanilla.
+        local SIREN = { [0] = "STANDBY", "YELP", "WAIL", "ALARM" }
+        T[#T + 1] = { id = "lightbar", label = "LIGHTBAR",
+            value = function(s) return (s.lightbarMode > 0) and tostring(s.lightbarMode) or nil end,
+            dot = function(s) return (s.lightbarMode > 0) and "on" or "off" end,
+            promptA = function(s) return (s.lightbarMode > 0) and "Lightbar next" or "Lightbar on" end,
+            act = function(chr, v) sendClientCommand(chr, "vehicle", "setLightbarLightsMode", { mode = (v:getLightbarLightsMode() + 1) % 4 }) end }
+        T[#T + 1] = { id = "siren", label = "SIREN",
+            value = function(s) return (s.sirenMode > 0) and SIREN[s.sirenMode] or nil end,
+            dot = function(s) return (s.sirenMode > 0) and "warn" or "off" end,
+            promptA = function(s) return (s.sirenMode > 0) and "Siren next" or "Siren on" end,
+            act = function(chr, v)
+                pcall(function() getSoundManager():playUISound("VehicleSetSiren") end)
+                sendClientCommand(chr, "vehicle", "setLightbarSirenMode", { mode = (v:getLightbarSirenMode() + 1) % 4 })
+            end }
     end
     T[#T + 1] = { id = "radio", label = "RADIO",
         dot = function(s) if not s.hasRadio then return (s.keysIn or s.running) and "bad" or "off" elseif s.radioOn then return "on" else return "off" end end,
@@ -194,9 +310,14 @@ function ZeD_Dashboard:_scale()
     return (T and T.scale) or 1
 end
 
-function ZeD_Dashboard:_layout()
+function ZeD_Dashboard:_layout(nToggles)
     local s = self:_scale()
-    local w, h = math.floor(BASE_W * s), math.floor(BASE_H * s)
+    -- Two rows of tiles; the strip widens for vehicles with more controls
+    -- (lightbar + siren) and narrows for ones without a trunk or heater.
+    local cols = math.max(3, math.ceil((nToggles or 8) / 2))
+    self._tileCols = cols
+    local w = math.floor((CLUSTER_W + 16 + cols * (TOGGLE_W + TOGGLE_GAP) - TOGGLE_GAP) * s)
+    local h = math.floor(BASE_H * s)
     local pn = self.playerNum
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
     local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - math.floor(8 * s)
@@ -229,15 +350,17 @@ function ZeD_Dashboard:prerender()
     local vd = getPlayerVehicleDashboard and getPlayerVehicleDashboard(self.playerNum)
     if vd and vd.isVisible and vd:isVisible() then pcall(vd.setVisible, vd, false) end
 
-    local w, h, s = self:_layout()
-    local tm = getTextManager()
     local st = _state(vehicle, chr)
+    local toggles = _toggles(st)
+    local w, h, s = self:_layout(#toggles)
+    local tm = getTextManager()
     local family, scriptName = _family(vehicle)
     local trim = _trimColor(vehicle, family)
-    local isLux = family == "luxury"
+    local interior, interiorId = _interior(scriptName)
+    self._interiorId = interiorId
 
-    -- Chassis + trim band
-    local s1 = isLux and { r = 0.086, g = 0.078, b = 0.063, a = 1 } or T.surf1
+    -- Chassis (theme surface tinted toward the cabin colour) + paint trim band
+    local s1 = _mix(T.surf1, interior.base, INTERIOR_BLEND)
     local bd = T.border
     self:drawRect(0, 0, w, h, s1.a or 1, s1.r, s1.g, s1.b)
     self:drawRectBorder(0, 0, w, h, bd.a, bd.r, bd.g, bd.b)
@@ -251,6 +374,8 @@ function ZeD_Dashboard:prerender()
     else
         self:drawRect(1, 1, w - 2, 3, 1, trim.r, trim.g, trim.b)
     end
+    local pip = interior.accent
+    self:drawRect(1, h - 3, w - 2, 2, 0.85, pip[1], pip[2], pip[3])
 
     -- Cluster -----------------------------------------------------------
     local cw = math.floor(CLUSTER_W * s)
@@ -317,13 +442,12 @@ function ZeD_Dashboard:prerender()
     -- Toggles -----------------------------------------------------------
     local Focus = ZeD.Input and ZeD.Input.Focus
     local focEl = (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
-    local toggles = _toggles(st)
     self._hit = {}
     local elements = {}
     local tw, th, gap = math.floor(TOGGLE_W * s), math.floor(TOGGLE_H * s), math.floor(TOGGLE_GAP * s)
     local tx0 = cw + math.floor(8 * s)
     local ty0 = math.floor(8 * s)
-    local perRow = math.max(1, math.floor((w - tx0 - math.floor(8 * s) + gap) / (tw + gap)))
+    local perRow = self._tileCols or 4
     for i, tg in ipairs(toggles) do
         local col = (i - 1) % perRow
         local row = math.floor((i - 1) / perRow)
@@ -331,7 +455,7 @@ function ZeD_Dashboard:prerender()
         local y = ty0 + row * (th + gap)
         local kind = tg.dot(st)
         local enabled = (tg.enabled == nil) or tg.enabled(st)
-        local s2 = isLux and { r = 0.118, g = 0.106, b = 0.078, a = 1 } or T.surf2
+        local s2 = _mix(T.surf2, interior.base, INTERIOR_BLEND * 0.8)
         if kind == "bad" then
             local dg = T.danger
             self:drawRect(x, y, tw, th, 0.16, dg.r, dg.g, dg.b)
@@ -348,9 +472,9 @@ function ZeD_Dashboard:prerender()
         A.drawStatusDot(self, x + 5, y + 5, dcol, 6)
         local lc = enabled and T.text or T.textDim
         self:drawText(tg.label, x + 5, y + th - tm:getFontHeight(T.fontF5) - 3, lc.r, lc.g, lc.b, 1, T.fontF5)
-        if tg.id == "cruise" and st.cruise then
-            local sp = tostring(math.floor(st.cruiseSpeed))
-            self:drawText(sp, x + tw - 4 - tm:MeasureStringX(T.fontF5, sp), y + 3, T.textDim.r, T.textDim.g, T.textDim.b, 1, T.fontF5)
+        local val = (tg.id == "cruise" and st.cruise) and tostring(math.floor(st.cruiseSpeed)) or (tg.value and tg.value(st)) or nil
+        if val then
+            self:drawText(val, x + tw - 4 - tm:MeasureStringX(T.fontF5, val), y + 3, T.textDim.r, T.textDim.g, T.textDim.b, 1, T.fontF5)
         end
         self._hit[#self._hit + 1] = { x = x, y = y, w = tw, h = th, tg = tg, enabled = enabled }
         if tg.act and enabled then
@@ -366,7 +490,7 @@ function ZeD_Dashboard:prerender()
     end
 
     -- Footer line: prompts (gamepad) or brand
-    local brand = _prettyName(scriptName) .. " - ZeD"
+    local brand = _brandName(vehicle, scriptName)
     local bwid = tm:MeasureStringX(T.fontF5, brand)
     self:drawText(brand, w - 8 - bwid, h - tm:getFontHeight(T.fontF5) - 2, 0.33, 0.33, 0.33, 1, T.fontF5)
     local Det = ZeD.Input and ZeD.Input.Detector

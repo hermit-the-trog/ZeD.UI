@@ -178,5 +178,49 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:900px; margin
 </div>
 
 <p class="note" style="margin-top:22px">States: dot green = on / locked / running; grey = off; yellow = partial (some doors locked, fuel &lt; 35 %); red = fault (no key, no radio installed, fuel &lt; 15 %, engine trouble). Fuel and battery only read while the key is in or the engine runs (vanilla rule). Engine chip colour follows engine condition when running. Low fuel pulses the FUEL row with the danger sine (0.08–0.25 α) rather than a flashing icon.</p>
+
+<h2>4 · Interior variants — the cabin colour tints the strip (S123 loop 2)</h2>
+<p class="note">The game carries no interior colour data, so each vanilla model is assigned the cabin it would have had in 1993 Kentucky. Chassis and tiles are the theme surfaces blended 35 % toward the cabin colour (so light and dark presets both work); the 2 px piping line along the bottom is the cabin accent; the 3 px trim band on top stays the exterior paint. Livery words (police, sheriff, trooper, ambulance, fire, ranger, taxi, race) override the model. Footer brand text is the game's own name through <code>IGUI_VehicleName*</code>. Strip width follows the tile count: two rows always, 4 columns for 8 tiles (560 px), 5 for lightbar + siren vehicles (622 px), 3 for vehicles without trunk or heater (498 px).</p>
+<div class="row" id="interiorRow"></div>
+<script>
+(function(){
+  // Same numbers as INTERIORS in ZeD_Dashboard.lua (keep in sync by hand).
+  var INTERIORS = {
+    slate:    { name:"SLATE CLOTH",     model:"Chevalier Nyala",        base:[0.42,0.45,0.50], accent:[0.66,0.70,0.76] },
+    navy:     { name:"NAVY CLOTH",      model:"Chevalier Dart",         base:[0.20,0.26,0.44], accent:[0.44,0.54,0.82] },
+    burgundy: { name:"BURGUNDY VELOUR", model:"Masterson Horizon",      base:[0.42,0.12,0.18], accent:[0.78,0.32,0.40] },
+    walnut:   { name:"WALNUT + TAN",    model:"Chevalier Cerise Wagon", base:[0.46,0.33,0.20], accent:[0.80,0.62,0.38] },
+    saddle:   { name:"SADDLE LEATHER",  model:"Mercia Lang 4000",       base:[0.58,0.40,0.22], accent:[0.86,0.68,0.34] },
+    charcoal: { name:"CHARCOAL",        model:"Dash Elite / All-Terrain",base:[0.16,0.16,0.17], accent:[0.46,0.46,0.48] },
+    beige:    { name:"BEIGE CLOTH",     model:"Chevalier Primani",      base:[0.66,0.60,0.48], accent:[0.86,0.80,0.66] },
+    khaki:    { name:"KHAKI VINYL",     model:"Dash Rancher / Ranger",  base:[0.46,0.44,0.30], accent:[0.66,0.64,0.42] },
+    cocoa:    { name:"COCOA VINYL",     model:"Chevalier D6",           base:[0.36,0.24,0.16], accent:[0.60,0.42,0.28] },
+    tan:      { name:"TAN VINYL",       model:"Dash Bulldriver",        base:[0.62,0.50,0.34], accent:[0.84,0.70,0.50] },
+    fleet:    { name:"FLEET GREY",      model:"Valuline / Step Van",    base:[0.30,0.31,0.32], accent:[0.54,0.56,0.58] },
+    velour:   { name:"BLUE VELOUR",     model:"Valuline (seats)",       base:[0.18,0.30,0.48], accent:[0.42,0.58,0.82] },
+    red:      { name:"RED LEATHER",     model:"Chevalier Cossette",     base:[0.50,0.10,0.12], accent:[0.88,0.26,0.26] },
+    taxi:     { name:"BLACK VINYL",     model:"Taxi",                   base:[0.12,0.12,0.12], accent:[0.95,0.78,0.12] },
+    medic:    { name:"MEDIC WHITE",     model:"Ambulance",              base:[0.72,0.74,0.76], accent:[0.86,0.22,0.22] },
+    fire:     { name:"FIRE RED",        model:"Fire Department",        base:[0.40,0.10,0.08], accent:[0.92,0.22,0.16] },
+    patrol:   { name:"PATROL BLACK",    model:"Police / Sheriff / KSP", base:[0.10,0.11,0.14], accent:[0.24,0.48,0.92] },
+    race:     { name:"ROLL CAGE",       model:"Race Car",               base:[0.14,0.14,0.14], accent:[0.95,0.95,0.95] }
+  };
+  var surf1 = [0.11,0.11,0.11], surf2 = [0.16,0.16,0.16], BLEND = 0.35;
+  function mix(a, b, t){ return "rgb(" + [0,1,2].map(function(i){ return Math.round((a[i] + (b[i]-a[i])*t)*255); }).join(",") + ")"; }
+  function rgb(c){ return "rgb(" + c.map(function(v){ return Math.round(v*255); }).join(",") + ")"; }
+  var row = document.getElementById("interiorRow");
+  Object.keys(INTERIORS).forEach(function(id){
+    var it = INTERIORS[id];
+    var d = document.createElement("div");
+    d.style.cssText = "width:280px;height:46px;border:1px solid #3a3a3a;position:relative;background:" + mix(surf1, it.base, BLEND) + ";";
+    d.innerHTML = '<div style="position:absolute;left:1px;right:1px;top:1px;height:3px;background:#8a8a8a"></div>'
+      + '<div style="position:absolute;left:1px;right:1px;bottom:1px;height:2px;background:' + rgb(it.accent) + ';opacity:.85"></div>'
+      + '<div style="position:absolute;left:10px;top:9px;font:700 14px/16px \'Fira Mono\',monospace;color:#e6e3dc">' + it.name + '</div>'
+      + '<div style="position:absolute;left:10px;top:26px;font:9px \'Fira Mono\',monospace;letter-spacing:1px;color:#8a8a8a">' + it.model.toUpperCase() + '</div>'
+      + '<div style="position:absolute;right:8px;top:9px;width:58px;height:26px;border:1px solid #3a3a3a;background:' + mix(surf2, it.base, BLEND*0.8) + '"><div style="position:absolute;left:5px;top:5px;width:6px;height:6px;background:#8a8a8a"></div><div style="position:absolute;left:5px;bottom:3px;font:7px \'Fira Mono\';color:#e6e3dc">TILE</div></div>';
+    row.appendChild(d);
+  });
+})();
+</script>
 </body>
 </html>

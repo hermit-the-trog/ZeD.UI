@@ -26,3 +26,27 @@ Not pictured: multi-container columns (verified by script), context-menu strip (
 | 23 | Health figure after the S123 fix | Female atlas fitted to the box; no more oversized silhouette |
 | 24–25 | Map pop-out (S123) | Unfolded map window, drawer shows the fold-back placeholder; same toolbar, gamepad cursor, B folds |
 | 26–27 | Map pop-out opened through the vanilla Map toggle (`Overrides/WorldMap.lua`) | New character, new spawn; toolbar with the UNFOLD/FOLD button at the right end |
+
+## Loop 2 frames (13:05-13:25) - dashboard interior variants + CaZio watch faces
+All captured live on the QA save at 4K through the bridge: each vehicle spawned with `addVehicleDebug`, entered as driver, key created, tank filled, engine started from the dashboard tiles themselves.
+
+| # | Frame | What it proves |
+|---|---|---|
+| 28 | dashboard Chevalier Nyala, slate cloth, key in | first cut: paint trim (grey paint -> accent fallback), 8 tiles, FUEL/BATT live with the key in |
+| 29 | watch CaZio DigitalBlack | green LCD, 24H suffix, date line, Java clock parked |
+| 30 | dashboard police Nyala, patrol cabin, lightbar on | 10 tiles / 5 columns (622 px), striped livery band, LIGHTBAR tile value "1" |
+| 31 | watch Expensive | ivory dial, hands, date window, gold readout |
+| 32 | scene with the lightbar lit | the LIGHTBAR tile drives the real lightbar |
+| 33 | dashboard Mercia Lang 4000, saddle leather | luxury cabin, gold trim fallback, FUEL 0% in danger (empty debug tank) |
+| 34 | watch ClassicGold | analog gold face |
+| 35 | dashboard Cerise Wagon, walnut, engine running | RPM bar + gear letter live |
+| 36 | watch ClassicMilitary | 24h HRS readout |
+| 37 | dashboard Ambulance, medic white, lightbar + siren tiles | light cabin keeps text readable, striped band |
+| 38 | watch CaZio DigitalRed | red LCD |
+| 39 | dashboard Chevalier Cossette, red leather | sport: gold speed digits; trim band from the blue paint |
+| 40 | watch ClassicBrown | brown dial |
+| 41 | dashboard Taxi, black vinyl | yellow piping from the cabin accent |
+| 42 | watch CaZio DigitalDress | cool white LCD |
+| 43 | dashboard Chevalier D6 pickup, cocoa | 7 tiles (open bed = no TRUNK tile), 4 columns |
+| 44 | watch ClassicBlack | black dial |
+| 45 | dashboard with gamepad focus (pair closed) | 0.55 alpha accent cue on the focused tile + A/B hint in the footer |
