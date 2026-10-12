@@ -246,3 +246,19 @@ Decided (director): hook every vanilla UI entry point; next surfaces are screen 
 Discovered: Q129–Q131 + Q125–Q128 answers; engine font-size option is 2 on the 4K rig; female skeleton asset missing.
 Deferred: UI scale axis (scoped in STATE), controller session, the HOOK_MAP gaps.
 Next: S124 mockups for the four planned surfaces, then builds.
+
+## Loop 2 (13:00 →) — vehicle dashboards + CaZio watch (director: "plan and execute")
+
+### Shipped first cuts (commit 223c9cbf)
+- `ZeD_Dashboard.lua` — bottom-centre strip replacing `ISVehicleDashboard` (parked every frame). Speed + gear chip, RPM/FUEL/BATT bars, status-dot toggles (ENGINE, KEY, LIGHTS, DOORS, TRUNK*, HEATER*, RADIO, CRUISE), trim band from the paint HSV, family emphasis (normal / sport / utility / emergency / luxury), actions via `ISVehicleMenu` / `ISVehiclePartMenu`, FocusManager window when seated (claims only if no ZeD window owns focus; B releases). Mockup `zed_dashboard_v1.html` (5 variants).
+- `ZeD_Watch.lua` — the clock in the Java clock's footprint, only while a wrist watch is worn; CaZio LCD (Black green / Red / Dress) · analog Classic (Black / Brown / Gold / Military) · Expensive ivory with date window; 24h/12h per option; Zeller day-of-week; alarm square. Mockup `zed_cazio_watch_v1.html`.
+- `DASHBOARD_WATCH_SPEC.md` — spec + open questions for the director; HOOK_MAP rows #2 and #7 flipped to Owned.
+
+### Verified by bridge
+Compile + hot-load clean. `addVehicleDebug("Base.CarNormal")` (paint hue .15 / sat .05 / val .76, mechanicType 1), `vehicle:enter(0, player)` + `OnEnterVehicle`: strip visible at 1640,2060 (4K), vanilla dashboard invisible, 8 tiles / 6 enabled (no key on a debug car → KEY disabled; CRUISE display-only), focus left with the open World window as designed. Worn `WristWatch_Right_DigitalBlack` → Java clock parked, watch instance live. Toggle actions with a created key: see next entry.
+
+### Loop 2, pass 2 (13:05-13:25) - interior variants, brand names, lightbar tiles
+- Toggle actions verified through the element callbacks on a keyed Nyala: KEY -> keysIn, ENGINE -> running, LIGHTS, DOORS unlock, TRUNK unlock, ENGINE shut off (console lines `ZEDQA dash after ...`). Java clock confirmed parked (`javaClockVisible now=false`).
+- `ZeD_Dashboard.lua`: `INTERIORS` (18 cabins) + `MODEL_INTERIOR` (vanilla models, longest prefix) + `LIVERY_INTERIOR` (police / sheriff / trooper / swat / kst / pd / ambulance / hosp / fire / ranger / taxi / race override); chassis = `_mix(T.surf1, cabin, 0.35)`, tiles = `_mix(T.surf2, cabin, 0.28)`, 2 px cabin-accent piping along the bottom, paint trim band unchanged. `_brandName` = `getTextOrNull("IGUI_VehicleName" .. carModelName or name)` (vanilla ISVehicleMechanics lookup, burnt -> unburnt). `_family` no longer treats "lights" alone as emergency (the civilian Nyala body is `CarLights`). LIGHTBAR + SIREN tiles when `vehicle:hasLightbar()`, through the same `vehicle` client commands as `ISLightbarUI`. `_layout(nToggles)`: two rows always, columns = ceil(n/2) (min 3), so the strip is 498 / 560 / 622 px. Generic `tg.value(st)` tile value (cruise speed, lightbar mode, siren mode).
+- Mockup `zed_dashboard_v1.html` section 4 renders the 18 cabins from the same numbers; spec gained the interior table, brand rule and lightbar tiles.
+- Bridge tour (6 vehicles + 6 watch faces, each a fresh spawn, key, full tank, engine started from the tiles): Nyala slate 560 px, police Nyala patrol 622 px with LIGHTBAR cycling the real lightbar (mode 1 lit in the scene), Mercia Lang saddle, Cerise Wagon walnut running, Ambulance medic 622 px, Cossette red leather with paint-blue trim, Taxi black vinyl, Chevalier D6 cocoa 7 tiles. Watches: DigitalBlack / Expensive / ClassicGold / ClassicMilitary / DigitalRed / ClassicBrown / DigitalDress / ClassicBlack all drew their face. Zero mod errors (last STACK TRACE in the log is still the old probe at line 36550). Frames 28-45 in `ZeDUI/qa/S123_contact_sheet/`.
