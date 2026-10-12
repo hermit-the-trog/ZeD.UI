@@ -2,7 +2,7 @@
 
 Boot version: `0.1.1220305j` (last commit `85313e9a` — S122, May 3 2026)
 Baseline commit: `85313e9a` — S122 ItemCard dynamic state layer + cancel + rename + 480w polish
-Close version: `0.1.1231210d` (commits: `3fbb621d` verbs + doc reorg, final closeout commit below)
+Close version: `0.1.1231210e` (loop phase ended ~12:05; see the commit log for the 12 S123 commits)
 
 > **Boot mode active.** Ambient capture as decisions land. Custodian flushes to canon at closeout.
 > **NB:** The Oct 11 2026 doc reorg (STATE.md replaces PROJECT_STATE.md; retired docs → `archive/`) was never committed. Staged and committed as the first act of S123.
@@ -179,3 +179,18 @@ Health bodypart + exercise, Thermal pill + part, Identity disclosure, Skills hea
 
 ### Fix: card cancel fallback could throw (found via the debugger break)
 The harness's old queue clear called `forceStop` on a queued-but-unstarted `ISWaitWhileGettingUp`; vanilla `ISBaseTimedAction:forceStop` does `self.action:forceStop()` and `self.action` is nil before `start()` → `attempted index: forceStop of non-table: null`, and with the debugger's **Break On Error** on, the game halts. `ZeD_ItemCard:_dispatchProgressCancel` had the same forceStop-everything fallback; it now calls vanilla `ISTimedActionQueue:clearQueue()` instead. Note for Dude: I unchecked *Break On Error* in the Lua debugger toolbar so automated runs do not halt the game; re-check it if you want halts during play.
+
+### Suites saved: `ZeDUI/tools/qa/` (verbs, tabs, gamepad, band, perf + README)
+All compile under the game's `loadstring`; `suite_gamepad` re-ran green after the reload. Caveat learned while re-running: a row that is a stack representative (two Steaks) toggles expand/collapse on A instead of opening the card (S113 design), so suites that index rows by position must avoid stacks.
+
+### Pair closed → vanilla chrome check
+With the ZeD pair closed (`toggleBothPaired`), the vanilla inventory/loot pages stay hidden (`isVisible()` false, collapsed). Only on a fresh world load *before the first ZeD open* do the vanilla collapsed strips show at the top of the screen — design note for Dude: hide them at `OnGameStart` or open the pair automatically on gamepad.
+
+### Theme and text-size sweep (live `ZeD.applyTheme`, zero errors)
+Bases `dark`, `hicon`, `light` × sizes `large`, `small` all applied and rendered (frames 19–22 in the contact sheet); accents available: blue, green, mono, orange, pink, purple, red, teal, yellow. Restored dark/orange/small.
+
+### Contact sheet: `ZeDUI/qa/S123_contact_sheet/` (22 frames + README)
+Every tab in both windows, the ItemCard with a live READING band, craft recipe card, and the theme sweep, captured at 4K through the bridge for review without a play session.
+
+### Post-reload regressions
+`suite_verbs` green on every expectation (worn Bandeau UNEQUIP → inventory → EQUIP → equipped; READ, 2H bat EQUIP/UNEQUIP, EAT, DROP → ground, TAKE → inventory). Accent sweep: all 9 accents applied live without error, restored orange.

@@ -3,47 +3,49 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1231210d` (S123, Oct 12 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 12 2026
-**Next session:** S124 — the test loop (bridge → in-mod harness → gamepad drive). See Target.
+**Version:** `0.1.1231210e` (S123, Oct 12 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 12 2026
+**Next session:** S124 — Dude's review of the contact sheet + gap list, then the first unreplaced vanilla surface (design first). See Target.
 
 ## What ships
 
-- Character Window: Loot · Equip · Health · Thermal · Identity · Journal (3 sub-tabs) · Skills · Radio (contextual). Drawer = universal detail surface; ItemCard with Progress Band (reading / cooking / repairing), cancel, rename, 220w/480w presets.
+- Character Window: Loot · Equip · Health · Thermal · Identity · Journal (3 sub-tabs) · Skills · Radio (contextual). Drawer = universal detail surface; ItemCard with Progress Band (reading / cooking with burn danger / repairing), cancel, rename, 220w/480w presets.
 - World Window: Loot · Craft · Build · Maps · Forage · Animals · Radio. Mirrored chrome, container strip, multi-column inventory.
 - Context menu: single horizontal strip, 114 `fi-br-*` icons, first-word fallback, System 7 paper/ink.
-- Theme engine: 3 bases × 9 accents × 2 text sizes (`shared/ZeD/Tokens.lua`). Fonts: Fira Mono + Fira Sans Condensed bitmap `.fnt`.
-- Gamepad: S113 flat free-nav, every tab in both windows has a focusable builder (`_buildPanelFocusables` / `_buildWorldPanelFocusables`). Joypad API migration complete (`JoypadButton.<n>:isDown`).
+- Theme engine: 3 bases (dark, hicon, light) × 9 accents × 2 text sizes (`shared/ZeD/Tokens.lua`). Fonts: Fira Mono + Fira Sans Condensed bitmap `.fnt`.
+- Gamepad: S113 flat free-nav, every tab in both windows has a focusable builder. Sub-tab pills (Journal, Animals) now switch on A, not on focus. F9 debug overlay only in gamepad mode.
+- **QA bridge (dev, `-debug` only):** `QABridge.lua` polls `Zomboid/Lua/zedqa.go` and runs `Zomboid/Lua/zedqa.lua` in-game. Suites in `ZeDUI/tools/qa/`. Contact sheet in `ZeDUI/qa/S123_contact_sheet/`.
 
 ## Gamepad model (locked S113 · design director, confirmed Oct 11 2026)
 
-D-pad = navigate (cone-nav; U/D never leaves the panel, L/R crosses; left-biased like reading). A = left mouse. X = right mouse / context menu (hold = drag). B = contextual cancel only. Y = window-pair toggle (hold = close both). LB = Character window, RB = World window (absolute, not toggle). Tabs switch on A, not on focus. Focus paints exactly like mouse hover. Chords welcome where they stay predictable. Full spec: `GAMEPAD_SPEC.md`.
+D-pad = navigate (cone-nav; U/D never leaves the panel, L/R crosses; left-biased like reading). A = left mouse. X = right mouse / context menu (hold = drag). B = contextual cancel only. Y = window-pair toggle (hold = close both). LB = Character window, RB = World window (absolute, not toggle). Tabs and sub-tab pills switch on A, not on focus. Focus paints exactly like mouse hover. Chords welcome where they stay predictable. Full spec: `GAMEPAD_SPEC.md`.
 
-## Verified live on stable (S123, first run since the Oct 6 update)
+## Verified live on stable 42.20.2 (S123, via the bridge, zero mod errors)
 
-Mod loads clean: zero Lua/Java errors through world load, window pair, all 13 tabs (7 Character + 6 World, walked through the real strip click handlers), and every ItemCard header verb (UNEQUIP, EQUIP clothing, EQUIP 2H weapon, READ, EAT, DROP, TAKE) firing real TimedActions. Verb cluster re-derives its context after a verb (`ZeD_ItemCard:_effectiveContext`). Keyboard-and-mouse context-menu anchor is correct (cursor mode, live `getMouseX/Y`). Only vanilla map/asset errors remain in the log.
+Load · window pair · all 13 tabs + Journal's 3 sub-tabs · every ItemCard header verb (UNEQUIP, EQUIP clothing, EQUIP 2H weapon, READ, EAT, DROP, TAKE) with live verb-context · rename · Progress Band reading + cancel · Progress Band cooking on a real stove with BURNING danger · context-menu organism (open, nav, cancel; KBM anchor at cursor) · Radio tab on equip · multi-container columns · simulated D-pad in both windows · row A/X/B callbacks · activate on representative elements of every tab · theme 3 bases × 2 sizes + 9 accents · pair close/reopen keeps vanilla pages hidden · scroll-follow on Journal Recipes after the perf fix.
 
-**How it was verified — the bridge (Q130):** `-debug` Lua Command Line + a one-line `zq()` that `loadstring`s `Zomboid/Lua/zedqa.lua`. Write the file from the shell, type `zq()`, grep `ZEDQA` in `console.txt`. Recipes for driving the fullscreen game (focus restore, click pattern, key names) are in the S123 delta and Claude's memory. **QA save:** `Saves/Sandbox/2026-10-12_10-19-20` — zombie population None. Never QA in Rising/Apocalypse: S123 killed the Rising character (zombie adjacent when the game unpaused). Dude decides what happens to that save.
+Fixed in S123: five dead verb names; stale verb cluster; translator WARNs; Progress Band never lit (queue keyed by character, not playerNum); reading fallback nil window accessor; stale gamepad zone after a mouse tab click; card cancel fallback throwing on unstarted actions; recipe lists rebuilding focusables every frame (Journal Recipes −3.9 ms/frame).
 
 ## Known broken / unverified
 
-1. Not exercised live yet: Journal sub-tabs, Radio tab (no radio in the QA save), ItemCard rename, Progress Band under real cooking/reading, multi-container columns, context-menu organism A/X interaction, hold-X drag.
-2. **Nothing gamepad-side has been exercised on stable.** No controller was attached during S123. The S122 context-menu mispositioning report is most likely `InputModeDetector.getMode()` reading `gamepad` with the controller attached — re-check with it plugged in.
-3. Carried from S122: cooking→burning danger state needs Q125–Q128 probes.
-4. Deferred from S113, still open: Journal/Animals sub-tab pills live-switch on focus (should need A); grid-scroll surfaces (Thermal, Identity, Journal flyers, Forage) use the `onDpadDir` adapter, not real row focusables; hold-X drag has no visual feedback.
+1. **Nothing was exercised with a physical controller.** A/X/Y hold timers, LB/RB chords and hold-X drag need one. Re-check the S122 context-menu anchor report with the controller attached. Cone pick from the main inventory leftward into the Journal Recipes list landed on an inventory row in simulation — check on hardware.
+2. On a fresh world load, before the first ZeD open, the vanilla collapsed inventory/loot strips show at the top (hidden forever after the first open).
+3. Container strip lists only equipped bags + key rings; a bag lying in the main inventory has no tab until worn (design question, not changed).
+4. Deferred from S113: grid-scroll surfaces (Identity, Forage) keep the `onDpadDir` adapter; hold-X drag has no visual feedback.
 
 ## Target — S124 and after
 
-**Playable floor = full gamepad parity.** Dude tests on gamepad only; keyboard-and-mouse is not a real-world test.
+**Playable floor = full gamepad parity.** Dude tests on gamepad only.
 
-1. S124 (Code): fold the bridge into the mod as a dev module (`QABridge.lua`: tick-poll `Zomboid/Lua/zedqa.lua`, run, write pass/fail to a results file, no console bootstrap). Then a self-test script that walks both windows, every tab and sub-tab, every verb, the rename input and the Progress Band, and drives `ZeD.Input.Focus` directly to simulate D-pad/A/X/B/Y so gamepad parity is checked without a controller. Claude drives the game; Dude reviews a contact sheet.
-2. Then the "Known broken" list above, in order, until a multi-hour gamepad play session is worth Dude's time.
-3. Parked design: rotary menu for the most-used verbs (post-floor).
+1. Dude reviews `ZeDUI/qa/S123_contact_sheet/` and the gap list below; decides the first vanilla surface to replace and whether the container-strip rule changes.
+2. Gap list (zero ZeD coverage today, all vanilla chrome in play): B42 entity windows (crafting stations, build), vehicles (dashboard, radial, mechanics), hotbar, moodles/clock (Java), fishing, farming, fluid transfer, camping/BBQ/generator info, printed-media reader, sleeping, moveables, safehouse, trading, survival guide, feeding trough. Recommended order by session frequency: entity crafting stations → hotbar → vehicle dashboard/mechanics → fluid transfer.
+3. Controller session on the QA save with the bridge logging (`suite_gamepad` + the F9 overlay).
+4. Parked design: rotary menu for the most-used verbs (post-floor).
 
 ## Rules that bind every session
 
-No `border-radius`. 1px borders (2px on High Contrast). No surface shadows, no blur. Fira only. No emoji. Atoms → Molecules → Organisms; read `ZeD.T` fresh each frame; no `Tokens.lua` mutation. Hard Rule #11: no L3/R3 bindings, ever. QA only in the zombie-free QA save. Full rule set: `GLOSSARY.md` and the design-rule sections in `archive/PROJECT_STATE.md`.
+No `border-radius`. 1px borders (2px on High Contrast). No surface shadows, no blur. Fira only. No emoji. Atoms → Molecules → Organisms; read `ZeD.T` fresh each frame; no `Tokens.lua` mutation. Hard Rule #11: no L3/R3 bindings, ever. QA only in the zombie-free QA save (`Saves/Sandbox/2026-10-12_10-19-20`). Never skin vanilla. Full rule set: `GLOSSARY.md` and the design-rule sections in `archive/PROJECT_STATE.md`.
 
 ## Where things are
 
-`42/media/lua/client/ZeD/` code · `shared/ZeD/Tokens.lua` tokens · `PZAPI-KNOWLEDGE-BANK.md` 131 engine quirks (read the Q you need, not the file) · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39, equipment card v13/v15/v16 are the ItemCard canon) · `ZeDUI/deltas/` session journals · `reference/` engine research · `archive/` retired docs.
+`42/media/lua/client/ZeD/` code · `shared/ZeD/Tokens.lua` tokens · `PZAPI-KNOWLEDGE-BANK.md` 131 engine quirks + Q125–Q128 answers (read the Q you need, not the file) · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39, equipment card v13/v15/v16 are the ItemCard canon) · `ZeDUI/deltas/` session journals · `ZeDUI/tools/qa/` bridge suites · `ZeDUI/qa/` contact sheets · `reference/` engine research · `archive/` retired docs.
 Design system (tokens, components, brand book): the ZeD-UI Design System artifact on claude.ai.
