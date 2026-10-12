@@ -2015,10 +2015,15 @@ local function buildWorldContainers(playerObj)
                             if not isAnimal then
                                 local title = getText("IGUI_Dead_Person")
                                 if instanceof(so, "IsoDeadBody") then
-                                    local desc = so:getDescription()
-                                    if desc then
-                                        title = desc:getForename() .. " " .. desc:getSurname()
-                                    end
+                                    -- S123: the player's own corpse (and some B42 bodies) hand
+                                    -- back a description without getForename/getSurname — this
+                                    -- threw "Object tried to call nil" every frame after a death.
+                                    pcall(function()
+                                        local desc = so:getDescription()
+                                        if desc and desc.getForename and desc.getSurname then
+                                            title = desc:getForename() .. " " .. desc:getSurname()
+                                        end
+                                    end)
                                 end
                                 local corpseType = "inventorymale"
                                 local desc = instanceof(so, "IsoDeadBody") and so:getDescription() or nil

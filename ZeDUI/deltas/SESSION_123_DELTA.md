@@ -222,3 +222,12 @@ FocusManager plays the vanilla list-select tick on focus moves, button sound on 
 
 ### New doc: `HOOK_MAP.md`
 Every vanilla script that puts UI on screen, with exact entry points, owned / pass-through / gap status, and design targets. Includes the director's four planned surfaces (dashboard `ISPlayerDataObject.lua:124`, mechanics `:119` + `ISOpenMechanicsUIAction`, CaZio watch = Java clock replacement, screen icons = `ISEquippedItem.lua:1270`).
+
+### QA character starved
+Elma Forman (QA save) was at 22% body health from hunger/thirst after hours of 3x-speed test runs and died between reloads; PLAY on the save goes to new-character creation. Replaced with a new character in the same world; the final verification script turns on debug god mode so this cannot recur. Rule added to memory: QA characters get god mode at the start of every session.
+
+### Fix: per-frame error after a death (`ZeD_WorldWindow.buildWorldContainers`)
+When the QA character died, every frame logged `Object tried to call nil in buildWorldContainers` (line ~2020): the corpse block calls `desc:getForename()` on whatever `IsoDeadBody:getDescription()` returns, and the player's own body (B42) does not expose those. Now pcall-guarded and method-checked; the corpse falls back to the "Dead Person" title. Found only because the final verification scanned the log after the death.
+
+### Final verification (new character, fresh load)
+`Overrides/WorldMap` loads at boot · god mode on for the QA character · Health: injured 0 / wounded 0 / overall 100 · `ISWorldMap.ToggleWorldMap(0)` → pop-out open on Maps, focus on `map:canvas:cursor` · B folds, focus back to World. Contact sheet frames 26–27 show the pop-out opened through the vanilla toggle.
