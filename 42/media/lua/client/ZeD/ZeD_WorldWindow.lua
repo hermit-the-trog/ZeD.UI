@@ -3490,6 +3490,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                 if scroll then scroll:setScrollPos(0) end
             end
         end
+        -- S123: re-sync gamepad ring zones on every strip click (mirror of the
+        -- Character window fix; the gamepad tab path already syncs).
+        if _syncWorldRingZones then _syncWorldRingZones(win, content) end
         return true
     end
 

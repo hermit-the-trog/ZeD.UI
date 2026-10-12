@@ -3516,6 +3516,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 content._lastClickedItem = nil
             end
         end
+        -- S123: mouse tab clicks never re-synced the gamepad ring zones, so
+        -- after Journal -> Loot the charTabContent zone still held the Journal
+        -- pills and D-pad right from the inventory landed on invisible
+        -- elements. The gamepad path (_switchTabForNav) already syncs; now
+        -- every strip click does too.
+        if _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, content) end
         return true
     end
 
