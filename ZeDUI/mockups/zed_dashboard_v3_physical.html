@@ -102,7 +102,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     // badge plate on the pad
     badge(p,W-8-150,3,150,10,o.badge);
     if(o.accessory){ // police accessory switch box screwed onto the pad
-      const ax=560, ay=0, aw=150, ah=30; bevel(p,ax,ay,aw,ah,'#141414','#333','#000'); border(p,ax,ay,aw,ah,'#000'); screw(p,ax+3,ay+3); screw(p,ax+aw-6,ay+3);
+      const ax=24, ay=0, aw=150, ah=30; bevel(p,ax,ay,aw,ah,'#141414','#333','#000'); border(p,ax,ay,aw,ah,'#000'); screw(p,ax+3,ay+3); screw(p,ax+aw-6,ay+3);
       text(p,ax+8,ay+4,'LIGHTBAR',5,'#aaa',false); text(p,ax+8,ay+20,'0  1  2  3',5,'#777',false); knob(p,ax+58,ay+15,8,-60+o.accessory.lightbar*40,'#2a2a2a','#555','#ddd');
       text(p,ax+82,ay+4,'SIREN',5,'#aaa',false); text(p,ax+82,ay+20,'OFF YLP WL ALM',4,'#777',false); knob(p,ax+134,ay+15,8,-60+o.accessory.siren*40,'#2a2a2a','#555','#ddd');
     }
@@ -144,22 +144,22 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
       vbar(vx+4,'FUEL',s.fuel,s.fuelLow); vbar(vx+vw-20,'BATT',s.batt,s.battLow);
       // speed digits + gear row
       text(p,vx+92,vy+6,'km/h',5,on,false); text(p,vx+120,vy+12,s.speed==null?'---':String(s.speed),26,on,true,'r');
-      const gears=['P','R','N','D','2','1']; let gx=vx+38; gears.forEach(g=>{ const lit=g===s.gear; if(lit) el(p,gx-4,vy+46,9,9,on); text(p,gx,vy+48,g,6,lit?ph.bg:dim,true,'c'); gx+=10; });
-      if(s.cruise){ text(p,vx+120,vy+46,'CRUISE '+s.cruiseSpeed,5,on,true,'r'); }
+      const gears=['P','R','N','D','2','1']; let gx=vx+38; gears.forEach(g=>{ const lit=g===s.gear; if(lit) el(p,gx-4,vy+44,9,9,on); text(p,gx,vy+46,g,6,lit?ph.bg:dim,true,'c'); gx+=10; });
+      if(s.cruise){ text(p,vx+120,vy+44,'CRUISE '+s.cruiseSpeed,5,on,true,'r'); }
       // tach: rising segments with scale (rect runs along a shallow arc)
       const tx=vx+134, ty=vy+8, tw=190, n=24; text(p,tx,ty-2,'x1000 r/min',5,on,false);
       const k=s.rpm==null?0:Math.round(Math.min(1,s.rpm/8000)*n);
       for(let i=0;i<n;i++){ const h=6+Math.round(i*1.4); const lit=i<k; let c=lit?on:dim; if(lit&&i>=20) c='#FF5A4A'; else if(lit&&i>=17) c='#FFB347'; el(p,tx+i*8,ty+40-h,5,h,c); }
       for(let g=0;g<=8;g++){ text(p,tx+Math.round(g*(tw-6)/8),ty+44,String(g),5,g>=7?'#FF5A4A':on,false); }
       // tell-tales along the window bottom
-      TT.slice(0,10).forEach((t,i)=>{ lamp(p,vx+30+i*18,vy+vh-16,t[0],t[1],t[2]); });
-      text(p,vx+vw/2,vy+vh-6,o.brand,5,dim,true,'c',1);
+      TT.slice(0,10).forEach((t,i)=>{ lamp(p,vx+342+(i%5)*17,vy+12+Math.floor(i/5)*20,t[0],t[1],t[2]); });
+      text(p,vx+vw-26,vy+vh-7,o.brand,4,dim,true,'r',1);
     }
     // ---- driver switches under the hood ----
     const sy=hy+hh+4;
     text(p,hx+22,sy+1,'LIGHTS',5,'#888',false,'c'); knob(p,hx+22,sy+15,9,s.lights?40:-40,'#2a2a2a','#555','#ddd',o.focus==='lights'); text(p,hx+8,sy+24,'OFF',4,'#666'); text(p,hx+32,sy+24,'ON',4,'#666');
     // ignition cylinder
-    const ix=hx+56; bevel(p,ix,sy+2,34,26,'#1a1a1a','#3a3a3a','#000'); ring(p,ix+17,sy+15,8,'#9a9a9a',2); disc(p,ix+17,sy+15,6,'#111'); el(p,ix+16,sy+10,2,10,s.keyIn?'#d8d8d8':'#222'); if(s.keyIn){ el(p,ix+14,sy+21,6,3,'#d8d8d8'); } text(p,ix+17,sy-5,s.running?'RUN':(s.keyIn?'ON':'OFF'),5,s.running?'#44EE44':'#888',true,'c');
+    const ix=hx+56; bevel(p,ix,sy+2,34,26,'#1a1a1a','#3a3a3a','#000'); ring(p,ix+17,sy+15,8,'#9a9a9a',2); disc(p,ix+17,sy+15,6,'#111'); el(p,ix+16,sy+10,2,10,s.keyIn?'#d8d8d8':'#222'); if(s.keyIn){ el(p,ix+14,sy+21,6,3,'#d8d8d8'); }
     if(o.focus==='ignition'){ el(p,ix,sy+2,34,26,'rgba(196,154,42,0.55)'); }
     // door lock rocker
     const rx=ix+42; bevel(p,rx,sy+2,22,26,'#222','#333','#000'); el(p,rx+2,sy+4,18,11,s.locked?'#1a1a1a':'#2e2e2e'); el(p,rx+2,sy+16,18,10,s.locked?'#2e2e2e':'#1a1a1a'); lamp(p,rx+3,sy+5,'lock',s.locked,'#44EE44'); text(p,rx+11,sy+19,'LOCK',4,'#aaa',true,'c');
@@ -175,12 +175,12 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
       el(p,rx0+rw-70,ry0+6,56,20,'#050A14'); text(p,rx0+rw-42,ry0+10,s.radioOn?s.freq:'---.-',8,'#44EE44',true,'c'); pushBtn(p,rx0+rw-100,ry0+30,24,14,'PWR',s.radioOn,'#44EE44',o.focus==='radio'); knob(p,rx0+rw-28,ry0+36,7,s.radioOn?60:-120,'#2a2a2a','#555','#ddd'); text(p,rx0+6,ry0+rh-8,'MAKESHIFT · WIRES LIVE',4,'#7aa080',false); }
     else { bevel(p,rx0,ry0,rw,rh,rd.chassis,rd.hi==='#3A3A3A'?'#e0e0e0':rd.hi,rd.sh); border(p,rx0,ry0,rw,rh,'#000');
       // display window
-      bevel(p,rx0+6,ry0+6,130,22,rd.disp,'#000','#000'); const fOn=s.radioOn; text(p,rx0+12,ry0+10,fOn?s.freq:'---.-',12,fOn?rd.dispOn:rd.dispDim,true); text(p,rx0+70,ry0+10,'FM',6,fOn?rd.dispOn:rd.dispDim,true); text(p,rx0+12,ry0+21,fOn?s.station:'',5,rd.dispOn,false);
+      bevel(p,rx0+6,ry0+6,118,22,rd.disp,'#000','#000'); const fOn=s.radioOn; text(p,rx0+12,ry0+10,fOn?s.freq:'---.-',12,fOn?rd.dispOn:rd.dispDim,true); text(p,rx0+70,ry0+10,'FM',6,fOn?rd.dispOn:rd.dispDim,true); text(p,rx0+12,ry0+21,fOn?s.station:'',5,rd.dispOn,false);
       // chips + buttons
-      bevel(p,rx0+142,ry0+6,rw-148,36,rd.rec,rd.hi,rd.sh);
+      bevel(p,rx0+130,ry0+6,rw-136,36,rd.rec,rd.hi,rd.sh);
       const b=(x,y,w,lab,on)=>{ el(p,x,y,w,12,rd.btn); border(p,x,y,w,12,rd.btnB); text(p,x+w/2,y+3,lab,5,rd.txt,true,'c'); if(on){ el(p,x+2,y+2,3,3,'#FF3A2A'); } };
-      b(rx0+146,ry0+9,26,'PWR',s.radioOn); b(rx0+176,ry0+9,22,'<<'); b(rx0+202,ry0+9,22,'>>'); b(rx0+228,ry0+9,16,'1'); b(rx0+246,ry0+9,16,'2'); b(rx0+264,ry0+9,16,'3');
-      text(p,rx0+150,ry0+26,'VOL',5,rd.silk,false); knob(p,rx0+184,ry0+30,7,s.radioOn?60:-120,'#1a1a1a',rd.btnB,'#ddd'); text(p,rx0+200,ry0+26,'TUNE',5,rd.silk,false); knob(p,rx0+236,ry0+30,7,20,'#1a1a1a',rd.btnB,'#ddd');
+      b(rx0+134,ry0+9,24,'PWR',s.radioOn); b(rx0+161,ry0+9,18,'<<'); b(rx0+182,ry0+9,18,'>>'); b(rx0+203,ry0+9,13,'1'); b(rx0+219,ry0+9,13,'2'); b(rx0+235,ry0+9,13,'3');
+      text(p,rx0+136,ry0+26,'VOL',5,rd.silk,false); knob(p,rx0+166,ry0+30,7,s.radioOn?60:-120,'#1a1a1a',rd.btnB,'#ddd'); text(p,rx0+184,ry0+26,'TUNE',5,rd.silk,false); knob(p,rx0+222,ry0+30,7,20,'#1a1a1a',rd.btnB,'#ddd');
       text(p,rx0+6,ry0+rh-9,rd.name,4,rd.silk,true,'',1); }
     // HVAC panel
     const vy2=94, vh2=50; bevel(p,cx,vy2,cw,vh2,'#1a1a1a','#3a3a3a','#000'); border(p,cx,vy2,cw,vh2,'#000');
