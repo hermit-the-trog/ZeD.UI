@@ -5725,3 +5725,23 @@ Events.OnPostSave.Add(function()
         end
     end
 end)
+
+-- ============================================================================
+-- S123: hide the vanilla inventory / loot pages from the FIRST frame of a
+-- world, not only after the first ZeD open. Before this, a fresh load showed
+-- the vanilla collapsed strips at the top of the screen until the player
+-- pressed the inventory key. The pages are created on OnCreatePlayer, so a
+-- short OnTick retry covers any ordering difference between builds.
+-- ============================================================================
+Events.OnGameStart.Add(function()
+    local tries = 0
+    local function hideOnce()
+        tries = tries + 1
+        local vi = getPlayerInventory(0)
+        if vi or tries >= 120 then
+            if vi then _hideVanilla() end
+            Events.OnTick.Remove(hideOnce)
+        end
+    end
+    Events.OnTick.Add(hideOnce)
+end)
