@@ -1688,3 +1688,12 @@ then every test is: write `Zomboid/Lua/zedqa.lua` from outside the game, type `z
 **Q131: Stable `ISInventoryPaneContextMenu.unequipItem` is a silent no-op unless `playerObj:isEquipped(item)` is already true — including while that item's `ISEquipWeaponAction` is still queued.**
 
 Found S123. Firing UNEQUIP 120 ticks after EQUIP on a baseball bat did nothing because the equip had not landed yet; the bat ended up equipped. Tests (and any auto-chained verbs) must wait for the equip action to complete, or check `ISTimedActionQueue.getTimedActionQueue(player).queue[1].Type` before firing.
+
+---
+
+**Q125–Q128 answered (S123 live probes on stable 42.20.2, `Base.Trousers_Denim` / `Base.Steak`).**
+
+- **Q125** `item:getInsulation()` and `item:getScriptItem():getInsulation()` both exist; 0–1 float (jeans 0.70). Stable per frame.
+- **Q126** Wind resistance is `item:getWindresistance()` — lowercase **r**. `getWindResistance` does not exist on the item, and the script item has no wind getter at all. `item:getWaterResistance()` exists (0 on jeans).
+- **Q127** Food cooking getters: `getCookingTime()` (minutes accumulated on heat, starts 0), `getMinutesToCook()` (steak 50), `getMinutesToBurn()` (steak 70), `isCooked()`, `isBurnt()`, `isCookable()`. No `getCookedTime` / `getCookedDate`.
+- **Q128** `setCookingTime(n)` alone never flips `isCooked`/`isBurnt` — those flags are set by the Java cooking update while the item sits in an **activated heat source container** (stove/fire). So the danger window for the Progress Band is: `isCooked()` true (or `getCookingTime() >= getMinutesToCook()`) and not yet `isBurnt()`; burn progress = `(cookingTime - minutesToCook) / (minutesToBurn - minutesToCook)`. Cooking is **not** a TimedAction — nothing appears in `ISTimedActionQueue` — so it needs its own poll of the carded item's container parent (`container:getParent()` → `IsoStove`/fire, `:Activated()`).

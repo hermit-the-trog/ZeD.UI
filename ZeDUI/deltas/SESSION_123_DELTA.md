@@ -139,3 +139,24 @@ Zero references in the mod to any of these; they appear as stock vanilla chrome 
 - **Hotbar** (`ISHotbar`), **Moodles** (Java `MoodleUI`), clock/speed controls (Java).
 - **Fishing** `TensionUI`, **Farming** `ISFarmingWindow`, **Fluid transfer** `ISFluidTransferUI` / `ISFluidContainerPanel`, **Camping/BBQ/Generator** info windows, `ISLiteratureUI` (printed media reader), `ISSleepingUI`, `ISMoveableInfoWindow`, `ISSafehouseUI`, `ISTradingUI`, `ISSurvivalGuide`, `ISFeedingTroughUI`.
 Rule in force: never skin vanilla; each is a from-scratch build. Recommend ordering by session frequency: entity crafting stations → hotbar → vehicle dashboard/mechanics → fluid transfer → the rest.
+
+### Batch 2 (bridge-driven, zero errors)
+- World window gamepad: claim → `worldContainerStrip container:1`; right → `worldTabBar tab:loot`; after a strip click to Craft, D-pad down walks the tab bar (`tab:craft`, `tab:build`); back on Loot, left returns to the container strip — no stale zone. PASS
+- Radio tab: equipping `Base.RadioRed` adds the contextual `radio` tab; focusables `radio:browsePrev → browseNext → seek-` reachable by D-pad. PASS
+- Multi-container: wearing the schoolbag adds it to the strip (`cnt:3`); clicking `cnt:3` then `cnt:2` opens two MC columns (window 444 → 544 → 796), ring gains `charMC1(1)`/`charMC2(1)` (empty-column placeholders), D-pad right walks MC2 → container strip. PASS
+
+### Batch 3 (gamepad A/X without a controller)
+`Focus.dispatchJoypadDown` arms the A/X tap-vs-hold timers, but the OnTick resolver returns early when `getJoypadData(0)` is nil, so without a physical controller A/X never resolve. Not a bug — the resolver is engine glue. Element callbacks (`onActivate`, `onContextMenu`, `onCancel`) are driven directly in batch 4 instead. Hold-X drag is likewise untestable without a controller (needs `JoypadButton.X:isDown` over time).
+
+### Batch 4 (element callbacks = what A/X fire; zero errors)
+MC toggle-off by re-clicking `cnt:2`/`cnt:3` → window back to 444. `invrow:2.onActivate` opens the card (Apple, w=664); `invrow:3.onActivate` live-swaps (ID Card); again closes (444). `invrow:2.onContextMenu` spawns the ZeD strip with 6 items at the row; the strip's `onJoypadDown(B)` closes it. PASS
+
+### Q125–Q128 probed (answers in PZAPI-KNOWLEDGE-BANK)
+Insulation = `item:getInsulation()`; wind = `item:getWindresistance()` (lowercase r); cooking = `getCookingTime / getMinutesToCook / getMinutesToBurn / isCooked / isBurnt`; cooked/burnt flags only flip inside an activated heat container; cooking is not a TimedAction.
+
+### Implemented: sub-tab pills switch on A (GAMEPAD_SPEC open item)
+Journal `jsub:n` and Animals `animals:submode:*` focusables: `onFocus` is now a no-op (cue paint only), the switch moved to `onActivate`. Matches "tabs switch on A, never on focus".
+
+### Implemented: cooking → Progress Band with danger state (S122 #3c)
+`ItemActionHooks._pollCooking` watches each window's `_drawerItem`; when it is cookable Food inside an activated heat container it drives the Band: `active/COOKING` with minutes-to-cooked, then `danger/BURNING` with minutes-to-burnt once cooked (or past minutesToCook), `complete` on burnt or when the item leaves the card/heat. Emits "danger" on the mode flip so observers get `onDanger`.
+Live stove test (microwave found as `IsoStove`): with the steak carded in the World window and the heat source activated, the Band reported `mode=danger label=BURNING time=26m` (the probe had left the steak flagged cooked); when the microwave deactivated itself the poller sent `complete` and the Band cleared. Cooking time did not advance in a microwave without its timer — real-stove progression untested but uses the same path. PASS for the plumbing.

@@ -1980,7 +1980,10 @@ local function _buildJournalSubTabFocusables(win)
             x = z.x, y = z.y, w = z.w, h = z.h,
             id = "jsub:" .. tostring(z.idx or i),
             subTabIdx = z.idx or i,
-            onFocus = function(w, el)
+            -- S123: GAMEPAD_SPEC "tabs switch on A, never on focus" now applies
+            -- to sub-tab pills too. Focus only paints the cue; A switches.
+            onFocus = function(w, el) end,
+            onActivate = function(w, el)
                 if w._journalSubTab == el.subTabIdx then return end
                 w._journalSubTab = el.subTabIdx
                 -- Mirror the mouse handler (L3055) — clear search state on
@@ -1995,7 +1998,6 @@ local function _buildJournalSubTabFocusables(win)
                     w._jrecipeState.filterDirty = true
                 end
             end,
-            -- onActivate omitted — D-pad L/R is the live switch.
         }
     end
     return elements

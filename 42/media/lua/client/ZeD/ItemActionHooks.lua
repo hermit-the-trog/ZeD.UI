@@ -269,9 +269,84 @@ local function _pollReadingFallback(p)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- COOKING POLL (S123, Q127/Q128). Cooking is not a TimedAction: a Food item
+-- cooks while it sits in an ACTIVATED heat-source container (stove, fire).
+-- Watch the item each window currently cards; when its container parent is
+-- activated, drive the Band: "active" until minutesToCook, then "danger"
+-- (burn countdown) until isBurnt, then complete.
+-- ---------------------------------------------------------------------------
+local _cookTracked = {}   -- item -> true while we are reporting it
+
+local function _cardedItems()
+    local out = {}
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    if cw and cw._drawerItem then out[#out + 1] = cw._drawerItem end
+    if ww and ww._drawerItem then out[#out + 1] = ww._drawerItem end
+    return out
+ end
+
+local function _heatActive(item)
+    local ok, cnt = pcall(function() return item:getContainer() end)
+    if not ok or not cnt then return false end
+    local ok2, parent = pcall(function() return cnt:getParent() end)
+    if not ok2 or not parent or not parent.Activated then return false end
+    local ok3, act = pcall(parent.Activated, parent)
+    return ok3 and act == true
+end
+
+local function _pollCooking()
+    local seen = {}
+    for _, item in ipairs(_cardedItems()) do
+        if item and not seen[item] and instanceof and instanceof(item, "Food") then
+            seen[item] = true
+            local okC, cookable = pcall(item.isCookable, item)
+            if okC and cookable and _heatActive(item) then
+                local burnt  = (function() local ok, v = pcall(item.isBurnt, item);  return ok and v end)()
+                local cooked = (function() local ok, v = pcall(item.isCooked, item); return ok and v end)()
+                local ct     = (function() local ok, v = pcall(item.getCookingTime, item);   return ok and v or 0 end)()
+                local toCook = (function() local ok, v = pcall(item.getMinutesToCook, item); return ok and v or 0 end)()
+                local toBurn = (function() local ok, v = pcall(item.getMinutesToBurn, item); return ok and v or 0 end)()
+                if burnt then
+                    if _cookTracked[item] then _safeNotify(item, "complete", nil); _cookTracked[item] = nil end
+                else
+                    local danger = cooked or (toCook > 0 and ct >= toCook)
+                    local percent, timeStr, mode, label
+                    if danger then
+                        local span = math.max(1, toBurn - toCook)
+                        percent = math.max(0, math.min(1, (ct - toCook) / span))
+                        timeStr = string.format("%dm", math.max(0, math.ceil(toBurn - ct)))
+                        mode, label = "danger", "BURNING"
+                    else
+                        percent = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
+                        timeStr = string.format("%dm", math.max(0, math.ceil(toCook - ct)))
+                        mode, label = "active", "COOKING"
+                    end
+                    local desc = { kind = "cooking", label = label, mode = mode, percent = percent, timeStr = timeStr, _action = nil }
+                    if not _cookTracked[item] then
+                        _safeNotify(item, "start", desc); _cookTracked[item] = mode
+                    elseif _cookTracked[item] ~= mode then
+                        _safeNotify(item, "danger", desc); _cookTracked[item] = mode
+                    else
+                        _safeNotify(item, "tick", desc)
+                    end
+                end
+            elseif _cookTracked[item] then
+                _safeNotify(item, "complete", nil); _cookTracked[item] = nil
+            end
+        end
+    end
+    -- Items no longer carded: close them out.
+    for item, _ in pairs(_cookTracked) do
+        if not seen[item] then _safeNotify(item, "complete", nil); _cookTracked[item] = nil end
+    end
+end
+
 local _origOnTick = _onTick
 _onTick = function()
     _origOnTick()
+    pcall(_pollCooking)
     -- Also run the reading fallback for each active player
     if not getSpecificPlayer then return end
     local n = (getNumActivePlayers and getNumActivePlayers()) or 1
