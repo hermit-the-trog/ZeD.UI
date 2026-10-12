@@ -716,12 +716,11 @@ function ZeD_ItemCard:_dispatchProgressCancel()
         local p = getSpecificPlayer(self.playerNum or 0)
         if p and ISTimedActionQueue and ISTimedActionQueue.queues then
             local q = ISTimedActionQueue.getTimedActionQueue(p)  -- S123: queues are keyed by character, not playerNum
-            if q and q.queue then
-                for i = #q.queue, 1, -1 do
-                    local a = q.queue[i]
-                    if a and a.forceStop then pcall(a.forceStop, a) end
-                end
-            end
+            -- S123: never forceStop queued-but-unstarted actions — vanilla's
+            -- ISBaseTimedAction:forceStop indexes self.action, which is nil
+            -- until start(), and throws. ISTimedActionQueue:clearQueue is the
+            -- vanilla-safe way to drop the whole queue.
+            if q and q.clearQueue then pcall(q.clearQueue, q) end
         end
     end
     -- Clear the manager's active state so the Band stops rendering even
