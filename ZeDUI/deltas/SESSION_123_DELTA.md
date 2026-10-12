@@ -2,7 +2,7 @@
 
 Boot version: `0.1.1220305j` (last commit `85313e9a` — S122, May 3 2026)
 Baseline commit: `85313e9a` — S122 ItemCard dynamic state layer + cancel + rename + 480w polish
-Close version: `0.1.1231210e` (loop phase ended ~12:05; see the commit log for the 12 S123 commits)
+Close version: `0.1.1231210f` (session closed 12:50; see the commit log for the S123 commits)
 
 > **Boot mode active.** Ambient capture as decisions land. Custodian flushes to canon at closeout.
 > **NB:** The Oct 11 2026 doc reorg (STATE.md replaces PROJECT_STATE.md; retired docs → `archive/`) was never committed. Staged and committed as the first act of S123.
@@ -237,3 +237,12 @@ When the QA character died, every frame logged `Object tried to call nil in buil
 
 ### Also this block
 Remaining drawn em dashes (Animals "Pregnant — N%", card dock flag, location pill, Protection best/worst) replaced with ASCII — the 2x bitmap export has no U+2014. `suite_gamepad` re-run green on the new character (row 3 expectations are N/A with a two-item inventory).
+
+## Closeout (12:50)
+
+Built: QA bridge + suites + contact sheet; map pop-out + vanilla Map hook; capability-driven prompts; UI sounds; cooking Band danger; pills on A; F9 gating; HOOK_MAP.md.
+Fixed: dead verbs, verb context, translator WARNs, Band plumbing, stale gamepad zones, cancel-fallback crash, recipe-list perf, body-figure scale, dash glyphs, health wording, corpse-title crash, fresh-load vanilla strips.
+Decided (director): hook every vanilla UI entry point; next surfaces are screen icons, CaZio watch, dashboard, mechanics; map unfolds into a centred pop-out that must work on gamepad.
+Discovered: Q129–Q131 + Q125–Q128 answers; engine font-size option is 2 on the 4K rig; female skeleton asset missing.
+Deferred: UI scale axis (scoped in STATE), controller session, the HOOK_MAP gaps.
+Next: S124 mockups for the four planned surfaces, then builds.
