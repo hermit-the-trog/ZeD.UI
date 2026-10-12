@@ -23,7 +23,7 @@ D-pad = navigate (cone-nav; U/D never leaves the panel, L/R crosses; left-biased
 
 Load · pair · all 13 tabs + Journal sub-tabs · every ItemCard header verb with live verb-context · rename · Progress Band reading + cancel + cooking danger on a real stove · context-menu organism · Radio tab on equip · multi-container columns · simulated D-pad in both windows · row A/X/B callbacks · activation on representative elements of every tab · 3 bases × 2 sizes × 9 accents · pair close keeps vanilla hidden · scroll-follow on Journal Recipes after the perf fix · **map pop-out open / pan / fold by B / fold by click / open via `ISWorldMap.ToggleWorldMap`** · body figure fits its box for a female character.
 
-Fixed in S123 (18 commits): five dead verb names; stale verb cluster; translator WARNs; Progress Band never lit (queue keyed by character); reading fallback nil accessor; stale gamepad zone after mouse tab clicks; card cancel fallback throwing on unstarted actions; recipe lists rebuilding focusables every frame; **oversized body silhouette (female atlas scaled on the male canvas)**; missing dash glyphs and "-1" level range on cards; "17 of 17 injured" for a merely hungry character.
+Fixed in S123 (18 commits): five dead verb names; stale verb cluster; translator WARNs; Progress Band never lit (queue keyed by character); reading fallback nil accessor; stale gamepad zone after mouse tab clicks; card cancel fallback throwing on unstarted actions; recipe lists rebuilding focusables every frame; per-frame corpse-title error after a death; **oversized body silhouette (female atlas scaled on the male canvas)**; missing dash glyphs and "-1" level range on cards; "17 of 17 injured" for a merely hungry character.
 
 ## Known broken / unverified / design items
 
