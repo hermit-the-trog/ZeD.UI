@@ -22,3 +22,4 @@ Captured from the live game at 3840×2160 through the QA bridge (tab switches) a
 | 18 | World Forage | Time-of-day scrubber, weather chips, zone, categories, recent finds |
 
 Not pictured: multi-container columns (verified by script), context-menu strip (verified by script), Progress Band cooking danger state (verified by script on a real stove).
+| 19–22 | Theme sweep | dark/large, light/large, light/small, high-contrast/large — every base × size applied live via `ZeD.applyTheme`, zero errors; restored to dark/small |
