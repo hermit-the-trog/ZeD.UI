@@ -464,6 +464,8 @@ local _zonePanelField = {
     worldMainInv        = "_contentPanel",
     worldItemCard       = "_itemDrawerPanel",
     worldContainerStrip = "_containerStrip",
+    -- S123: map pop-out window (ZeD.MapsTab.openPopout) — one content zone
+    popMapContent       = "_contentPanel",
     -- charMC<N> / worldMC<N> all share their respective content panel
 }
 
@@ -562,6 +564,9 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
     if newEl and newEl.onFocus then
         _fireCb("element.onFocus", newEl.onFocus, w, newEl)
     end
+    -- S123: audible focus tick (vanilla list-select sound) so D-pad moves
+    -- are felt without looking for the cue. Mouse hover never routes here.
+    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
 
     if newZoneIdx ~= oldZoneIdx and w.onFocusZoneChanged then
         _fireCb("window.onFocusZoneChanged", w.onFocusZoneChanged, w,
@@ -863,6 +868,7 @@ end
 local function _handleConfirm(w)
     local el = Focus.getFocusedElement(w)
     if not el then return end
+    if el.onActivate then pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
     _fireCb("element.onActivate", el.onActivate, w, el)
 end
 
@@ -895,6 +901,7 @@ local function _handleBContextual()
     if not w then return end
     local el = Focus.getFocusedElement(w)
     if not el or not el.onCancel then return end
+    pcall(function() getSoundManager():playUISound("UIToggleTickBox") end)
     _fireCbR("element.onCancel", el.onCancel, w, el)
     -- Return value ignored — no fall-through path exists post-S113.
 end

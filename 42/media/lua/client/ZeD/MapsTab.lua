@@ -466,11 +466,23 @@ end
 -- window. Returns nil when another window has focus, or when the ring isn't
 -- initialized yet. Used to drive gamepad-only overlays without leaking them
 -- into KBM sessions.
+-- S123: the map can live in the World drawer OR in the unfolded pop-out
+-- window. Focus-dependent paint (cursor, toolbar cues) must read whichever
+-- of the two currently owns FocusManager focus.
+local function _focusOwner(win)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if not Focus or not win then return nil end
+    local fw = Focus.getFocusedWindow()
+    if fw == win then return win end
+    if win._mapPopout and fw == win._mapPopout then return fw end
+    return nil
+end
+
 local function _focusedEl(win)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    if not Focus then return nil end
-    if Focus.getFocusedWindow() ~= win then return nil end
-    return Focus.getFocusedElement(win)
+    local owner = _focusOwner(win)
+    if not Focus or not owner then return nil end
+    return Focus.getFocusedElement(owner)
 end
 
 -- Render cursor preview when a tool is active (MOUSE path only — skipped
@@ -655,9 +667,12 @@ local function renderMapToolbar(panel, win, x, y, w)
     -- owns focus (prevents stale paint when focus is on the Character window).
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     local focId = nil
-    if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win then
-        local fe = Focus.getFocusedElement and Focus.getFocusedElement(win)
-        focId = fe and fe.id or nil
+    do
+        local owner = _focusOwner(win)  -- S123: drawer or pop-out
+        if Focus and owner then
+            local fe = Focus.getFocusedElement and Focus.getFocusedElement(owner)
+            focId = fe and fe.id or nil
+        end
     end
 
     local rowH = MAP_TOOLBAR_ROW_H
@@ -751,6 +766,31 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + colSz + btnGap
     end
 
+    -- S123: UNFOLD / FOLD button, right-anchored. Pops the map out into a
+    -- large centred window (ZeD.MapsTab.openPopout) or folds it back.
+    do
+        local bx = x + w - 4 - btnSz
+        local isOpen = win._mapPopout ~= nil
+        if focId == "map:popout" then
+            local ac = T.accent
+            panel:drawRect(bx, btnY, btnSz, btnSz, 0.55, ac.r, ac.g, ac.b)
+        end
+        local bd = T.border
+        panel:drawRectBorder(bx, btnY, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
+        if not win._mapPopoutTex then
+            win._mapPopoutTex = getTexture("media/textures/ZeD/icons/crafting-game-037-map.png")
+            win._mapFoldTex   = getTexture("media/textures/ZeD/icons/compress.png")
+        end
+        local tex = isOpen and win._mapFoldTex or win._mapPopoutTex
+        local tc = T.text
+        if tex then
+            panel:drawTextureScaledAspect(tex, bx + 3, btnY + 3, btnSz - 6, btnSz - 6, 0.75, tc.r, tc.g, tc.b)
+        else
+            panel:drawText(isOpen and "x" or "+", bx + 6, btnY + 2, tc.r, tc.g, tc.b, 0.7, T.fontF1)
+        end
+        win._mapPopoutZone = { x = bx, y = btnY, w = btnSz, h = btnSz }
+    end
+
     local totalH = rowH
 
     -- Expanded rows: ALL icons in a wrapping grid
@@ -832,6 +872,27 @@ end
 function ZeD.MapsTab.render(panel, win, x, y, w, h)
     local T = ZeD.T
 
+    -- S123: while the map is unfolded into the pop-out, the drawer shows a
+    -- fold-back placeholder instead of a second live map (the Java UIWorldMap
+    -- is owned by exactly one panel at a time).
+    if win._mapPopout and panel ~= win._mapPopout._contentPanel then
+        local s1 = T.surf1
+        panel:drawRect(x, y, w, h, s1.a, s1.r, s1.g, s1.b)
+        local tm = getTextManager()
+        local msg1 = "MAP UNFOLDED"
+        local msg2 = "A or click here to fold it back"
+        local w1 = tm:MeasureStringX(T.fontF1, msg1)
+        local w2 = tm:MeasureStringX(T.fontF1, msg2)
+        local fh = tm:getFontHeight(T.fontF1)
+        local cy = y + math.floor(h / 2) - fh
+        ZeD.Atoms.drawSecondary(panel, msg1, x + math.floor((w - w1) / 2), cy, T.text)
+        ZeD.Atoms.drawSecondary(panel, msg2, x + math.floor((w - w2) / 2), cy + fh + 4, T.textDim)
+        win._mapFoldZone = { x = x, y = y, w = w, h = h }
+        if win._mapTextEntry then win._mapTextEntry:setVisible(false) end
+        return
+    end
+    win._mapFoldZone = nil
+
     -- Toolbar background
     local toolbarBg = T.surf1
     panel:drawRect(x, y, w, MAP_TOOLBAR_ROW_H, toolbarBg.a, toolbarBg.r, toolbarBg.g, toolbarBg.b)
@@ -891,6 +952,23 @@ end
 -- ============================================================================
 
 function ZeD.MapsTab.onClick(win, x, y)
+    -- S123: clicks on the drawer placeholder while unfolded -> fold back.
+    if win._mapPopout and not win._mapClickFromPopout then
+        local z = win._mapFoldZone
+        if z and x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
+            ZeD.MapsTab.closePopout(win)
+        end
+        return
+    end
+    -- S123: unfold / fold button
+    if win._mapPopoutZone then
+        local z = win._mapPopoutZone
+        if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
+            if win._mapPopout then ZeD.MapsTab.closePopout(win) else ZeD.MapsTab.openPopout(win) end
+            return
+        end
+    end
+
     -- Disclosure chevron toggle
     if win._mapDisclosureZone then
         local z = win._mapDisclosureZone
@@ -976,6 +1054,22 @@ function ZeD.MapsTab.buildFocusables(win)
     if not win then return {} end
     local elements = {}
 
+    -- S123: while unfolded, the drawer exposes a single "fold" target so A
+    -- on the placeholder brings the map back. The pop-out builds its own
+    -- elements through _renderPopout (flag set while it does).
+    if win._mapPopout and not win._mapBuildingForPopout then
+        local z = win._mapFoldZone
+        if z then
+            elements[1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "map:fold",
+                onActivate = function(w, _el) ZeD.MapsTab.closePopout(w) end,
+                onCancel   = function(w, _el) ZeD.MapsTab.closePopout(w) end,
+            }
+        end
+        return elements
+    end
+
     -- 1. Disclosure chevron (row 1, always present).
     local dz = win._mapDisclosureZone
     if dz then
@@ -1039,6 +1133,19 @@ function ZeD.MapsTab.buildFocusables(win)
                 end,
             }
         end
+    end
+
+    -- 3b. S123: unfold / fold button.
+    if win._mapPopoutZone then
+        local pz = win._mapPopoutZone
+        elements[#elements + 1] = {
+            x = pz.x, y = pz.y, w = pz.w, h = pz.h,
+            id = "map:popout",
+            isMapPopout = true,
+            onActivate = function(w, _el)
+                if w._mapPopout then ZeD.MapsTab.closePopout(w) else ZeD.MapsTab.openPopout(w) end
+            end,
+        }
     end
 
     -- 4. Canvas cursor pseudo-focusable (always last). Bounds = the map
@@ -1235,6 +1342,185 @@ end
 -- could scale by zoom so fine-tune at high zoom feels less twitchy.
 function ZeD.MapsTab.gpCursorStep()
     return MAP_GP_STEP_PX
+end
+
+-- ============================================================================
+-- POP-OUT (S123) -- "unfold" the map into a large centred window.
+--
+-- Mode, not a new feature: the pop-out reuses the SAME toolbar, tools,
+-- colours, pins, annotations, cursor and gamepad wiring as the drawer. The
+-- live Java UIWorldMap can only belong to one panel, so while the pop-out
+-- is open the drawer's map is parked (invisible) and the drawer renders a
+-- fold-back placeholder. Closing restores the drawer map untouched.
+--
+-- Gamepad: the pop-out registers as its own FocusManager window with one
+-- zone ("popMapContent"); elements come from the shared buildFocusables
+-- with every callback re-bound to the WORLD window (which owns the map
+-- state), and B on any of them folds the map back.
+-- ============================================================================
+
+function ZeD.MapsTab.isPopoutOpen(win)
+    return win ~= nil and win._mapPopout ~= nil
+end
+
+function ZeD.MapsTab._renderPopout(content, win, pop)
+    if not win or not pop or win._mapPopout ~= pop then return end
+    -- Track the window size (resizable chrome).
+    local bw = pop:getWidth()
+    local bh = pop:getBodyHeight()
+    if content:getWidth() ~= bw then content:setWidth(bw) end
+    if content:getHeight() ~= bh then content:setHeight(bh) end
+    if content:getY() ~= pop:getBodyY() then content:setY(pop:getBodyY()) end
+
+    ZeD.MapsTab.render(content, win, 0, 0, bw, bh)
+
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if not Focus or not pop._focusRing then return end
+    win._mapBuildingForPopout = true
+    local ok, src = pcall(ZeD.MapsTab.buildFocusables, win)
+    win._mapBuildingForPopout = false
+    if not ok or not src then return end
+
+    -- Re-bind callbacks to the world window; B folds the map on any element.
+    local wrapped = {}
+    for i = 1, #src do
+        local el = src[i]
+        local e = {}
+        for k, v in pairs(el) do e[k] = v end
+        if el.onActivate     then e.onActivate     = function(_, ee)      return el.onActivate(win, ee) end end
+        if el.onContextMenu  then e.onContextMenu  = function(_, ee)      return el.onContextMenu(win, ee) end end
+        if el.onHoldActivate then e.onHoldActivate = function(_, ee)      return el.onHoldActivate(win, ee) end end
+        if el.onFocus        then e.onFocus        = function(_, ee)      return el.onFocus(win, ee) end end
+        if el.onDpadDir      then e.onDpadDir      = function(_, ee, dir) return el.onDpadDir(win, ee, dir) end end
+        e.onCancel = function(_, _ee) ZeD.MapsTab.closePopout(win) end
+        e.promptB  = "Fold"
+        wrapped[#wrapped + 1] = e
+    end
+
+    -- Identity-preserve focus by id across the per-frame rebuild.
+    local preserveIdx = nil
+    local zone = pop._focusRing[1]
+    local oldEl = zone and zone.elements and zone.elements[zone.focusedElementIdx or 1]
+    if oldEl and oldEl.id then
+        for i, e in ipairs(wrapped) do if e.id == oldEl.id then preserveIdx = i; break end end
+    end
+    -- First landing: start on the canvas cursor so D-pad pans immediately.
+    if not preserveIdx and not pop._mapPopSeeded then
+        for i, e in ipairs(wrapped) do if e.isCanvasCursor then preserveIdx = i; break end end
+        if preserveIdx then pop._mapPopSeeded = true end
+    end
+    Focus.setRingZoneElements(pop, "popMapContent", wrapped, preserveIdx)
+    Focus.setZoneFocusable(pop, "popMapContent", #wrapped > 0)
+end
+
+function ZeD.MapsTab.openPopout(win)
+    if not win or win._mapPopout then return end
+    local sw = getCore():getScreenWidth()
+    local sh = getCore():getScreenHeight()
+    local pw = math.max(600, math.floor(sw * 0.72))
+    local ph = math.max(400, math.floor(sh * 0.78))
+    local pop = ZeD_Window:new(math.floor((sw - pw) / 2), math.floor((sh - ph) / 2), pw, ph, "Map")
+    pop:initialise()
+    pop:addToUIManager()
+    pop._zedLabel     = "MapPopout"
+    pop._isMapPopout  = true
+    pop._worldWin     = win
+    pop.minimumWidth  = 600
+    pop.minimumHeight = 400
+
+    local content = ZeD_Panel:new(0, pop:getBodyY(), pw, pop:getBodyHeight())
+    content:initialise()
+    pop:addChild(content)
+    pop._contentPanel = content
+    content._onPrerender = function(self) ZeD.MapsTab._renderPopout(self, win, pop) end
+
+    -- Mouse: same handlers the World drawer uses, routed through the shared
+    -- MapsTab entry points. The flag tells onClick the click is the pop-out's.
+    content.onMouseDown = function(self, x, y)
+        win._mapClickFromPopout = true
+        ZeD.MapsTab.onClick(win, x, y)
+        win._mapClickFromPopout = false
+        return true
+    end
+    content.onRightMouseDown = function(self, x, y)
+        win._mapClickFromPopout = true
+        ZeD.MapsTab.onRightClick(win, x, y)
+        win._mapClickFromPopout = false
+        return true
+    end
+    local function dragMove(self, dx, dy)
+        if win._mapDragging then
+            if not isMouseButtonDown(0) then
+                if win._worldMapPanel then win._worldMapPanel:onMouseUp(0, 0) end
+                win._mapDragging = false
+            elseif win._worldMapPanel then
+                win._worldMapPanel:onMouseMove(dx, dy)
+            end
+        end
+    end
+    content.onMouseMove        = function(self, dx, dy) ISPanel.onMouseMove(self, dx, dy); dragMove(self, dx, dy) end
+    content.onMouseMoveOutside = function(self, dx, dy) ISPanel.onMouseMoveOutside(self, dx, dy); dragMove(self, dx, dy) end
+    content.onMouseUp = function(self, x, y)
+        if win._mapDragging then
+            if win._worldMapPanel then win._worldMapPanel:onMouseUp(x, y) end
+            win._mapDragging = false
+        end
+        return true
+    end
+    content.onMouseUpOutside = content.onMouseUp
+    content.onMouseWheel = function(self, del)
+        if win._worldMapPanel then win._worldMapPanel:onMouseWheel(del) end
+        return true
+    end
+
+    -- Park the drawer's live map and text entry; render() builds fresh ones
+    -- inside the pop-out on its first frame.
+    win._worldMapPanelInline = win._worldMapPanel
+    if win._worldMapPanelInline then win._worldMapPanelInline:setVisible(false) end
+    win._worldMapPanel = nil
+    win._mapTextEntryInline = win._mapTextEntry
+    if win._mapTextEntryInline then win._mapTextEntryInline:setVisible(false) end
+    win._mapTextEntry = nil
+    win._mapDragging = false
+    win._mapPopout = pop
+
+    -- Gamepad registration: one content zone, elements rebuilt per frame.
+    pop._focusRing = {
+        { zone = "popMapContent", focusable = false, elements = {}, focusedElementIdx = 1,
+          uiRange = function(w) return 0, w:getWidth() end },
+    }
+    pop._focusIdx = 1
+    pop.close = function(self) ZeD.MapsTab.closePopout(win) end
+
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if Focus then
+        Focus.registerWindow(pop)
+        Focus.claimFocus(pop)
+    end
+    pcall(function() getSoundManager():playUISound("UIActivateTab") end)
+end
+
+function ZeD.MapsTab.closePopout(win)
+    local pop = win and win._mapPopout
+    if not pop then return end
+    win._mapPopout = nil
+    win._mapDragging = false
+
+    -- Drop the pop-out's map and text entry (children of the pop-out), then
+    -- restore the drawer's parked ones.
+    local big = win._worldMapPanel
+    if big then pcall(function() big:setVisible(false) end) end
+    if win._mapTextEntry then pcall(function() win._mapTextEntry:setVisible(false) end) end
+    win._worldMapPanel = win._worldMapPanelInline
+    win._worldMapPanelInline = nil
+    win._mapTextEntry = win._mapTextEntryInline
+    win._mapTextEntryInline = nil
+    win._mapFoldZone = nil
+
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if Focus then Focus.unregisterWindow(pop) end   -- hands focus back to the last registered window
+    pcall(function() pop:removeFromUIManager() end)
+    pcall(function() getSoundManager():playUISound("UIActivateTab") end)
 end
 
 -- ============================================================================
