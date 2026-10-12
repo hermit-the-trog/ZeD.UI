@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI Dashboard v2 — instrument clusters, Lua-flat preview</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#e6e3dc; font-family:'Fira Sans Condensed',sans-serif; padding:24px; }
+.banner { display:inline-block; background:#ffaa00; color:#000; font:bold 9px 'Fira Mono',monospace; letter-spacing:1px; padding:6px 12px; border:1px solid #000; margin-bottom:14px; }
+h2 { font:600 15px 'Fira Sans Condensed'; margin:26px 0 8px; }
+p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin-bottom:10px; line-height:1.5; }
+.row { display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; }
+.cl { position:relative; display:block; }
+.cl .px { position:absolute; }
+.cl .tx { position:absolute; white-space:nowrap; font-family:'Fira Mono',monospace; line-height:1; }
+.cap { font:9px 'Fira Mono',monospace; color:#8a8a8a; letter-spacing:1px; margin:6px 0 0; }
+table { border-collapse:collapse; font:11px 'Fira Mono',monospace; margin-top:8px; }
+td, th { border:1px solid #333; padding:4px 8px; text-align:left; color:#cfcac0; }
+th { color:#8a8a8a; font-weight:400; }
+</style>
+</head>
+<body>
+<div class="banner">ZED-UI · VEHICLE DASHBOARD v2 · INSTRUMENT CLUSTER · LUA-FLAT PREVIEW · S123 · FOR DIRECTOR REVIEW</div>
+<p class="note">Replaces the S123 first cut (flat tiles). Direction: 1980s to 1993 instrument clusters, drawn the way the live mod draws (rects and bitmap text only: needles are rect runs, arcs are rect dots, bar graphs are <code>drawSegBar</code>, buttons are the radio chassis bevel atoms). The outer frame is the car's interior material (same cabin table as the code: walnut + tan, saddle leather, red leather, black plastic, slate cloth, patrol black). The bezel is always matte black plastic, like a real cluster. Two gauge styles per model era: <b>digital</b> (VFD or LCD segments: luxury and modern cars) and <b>analog</b> (needle dials: everything else). Hardware controls on the right follow Visual Catalog v2.0 O22 (LED push buttons, rocker, keyhole) and M38 to M41. Everything keeps the verified S123 plumbing: state readers, vanilla verbs, D-pad across the controls, A toggles, B back to driving, passengers read-only.</p>
+
+<h2>1 · Digital VFD — Mercia Lang 4000 (luxury: cyan phosphor, walnut + tan frame)</h2>
+<div class="row"><div><div class="cl" id="c1"></div><div class="cap">760 x 128 at 1x · engine running · lights on · cruise 60</div></div></div>
+
+<h2>2 · Digital VFD — Dash Elite (modern: green phosphor, charcoal frame) · key in, engine off, fuel low</h2>
+<div class="row"><div><div class="cl" id="c2"></div><div class="cap">off-state readouts show placeholders (radio off-state contract) · FUEL lamp lit amber</div></div></div>
+
+<h2>3 · Digital LCD — Chevalier Cossette (sport: amber backlit LCD, red leather frame)</h2>
+<div class="row"><div><div class="cl" id="c3"></div><div class="cap">inverse LCD like the ValuTech radio: dark digits on amber · tach red zone</div></div></div>
+
+<h2>4 · Analog — Chevalier Nyala (slate cloth frame) · key in, engine running</h2>
+<div class="row"><div><div class="cl" id="c4"></div><div class="cap">needle dials: speed 0-180, tach 0-8 with red zone, quarter gauges FUEL and BATT, gear strip</div></div></div>
+
+<h2>5 · Analog — Police Chevalier Nyala (patrol black frame) · lightbar 2, siren WAIL</h2>
+<div class="row"><div><div class="cl" id="c5"></div><div class="cap">LBAR and SIREN controls appear only on lightbar vehicles; livery stripe on the frame</div></div></div>
+
+<h2>6 · Analog — Chevalier D6 pickup (cocoa vinyl frame) · no key</h2>
+<div class="row"><div><div class="cl" id="c6"></div><div class="cap">no trunk control (open bed) · KEY lamp red · everything dead until a key or hotwire</div></div></div>
+
+<h2>7 · Gamepad focus on a control</h2>
+<div class="row"><div><div class="cl" id="c7"></div><div class="cap">0.55 alpha accent fill on the focused button (ZeD focus rule) · footer prompt "A Lights off · B Drive"</div></div></div>
+
+<h2>Mapping (for the director)</h2>
+<table>
+<tr><th>Model (game name)</th><th>Gauges</th><th>Phosphor / face</th><th>Frame (cabin)</th></tr>
+<tr><td>Mercia Lang 4000 (CarLuxury)</td><td>digital VFD</td><td>cyan</td><td>walnut + tan</td></tr>
+<tr><td>Chevalier Primani (ModernCar02)</td><td>digital VFD</td><td>green</td><td>beige cloth</td></tr>
+<tr><td>Dash Elite (ModernCar)</td><td>digital VFD</td><td>green</td><td>charcoal</td></tr>
+<tr><td>Chevalier Cossette (SportsCar)</td><td>digital LCD</td><td>amber inverse</td><td>red leather</td></tr>
+<tr><td>Franklin All-Terrain (SUV)</td><td>analog</td><td>white ticks, orange needle</td><td>charcoal</td></tr>
+<tr><td>Chevalier Nyala, Dart, Horizon, Cerise Wagon, D6, Bulldriver, Rancher, Valuline, Step Van, Taxi, police, ambulance, fire</td><td>analog</td><td>white ticks, orange needle (red for sport liveries)</td><td>per cabin table</td></tr>
+</table>
+<p class="note" style="margin-top:14px">Decisions wanted: (1) digital vs analog assignment above; (2) whether warning zones on a digital tach may use amber/red segments (real 80s clusters do) or stay mono-colour like the radio rule; (3) frame thickness 6 px vs a thinner 3 px line; (4) whether the lamp strip uses words (KEY, DOOR) or icon glyphs from the icon set.</p>
+
+<script>
+(function(){
+  // ---- Lua-flat primitives (every call maps to drawRect / drawText in the mod) ----
+  function el(parent, x, y, w, h, color, extra){ const d=document.createElement('div'); d.className='px'; d.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;background:'+color+';'+(extra||''); parent.appendChild(d); return d; }
+  function border(parent, x, y, w, h, color){ el(parent,x,y,w,1,color); el(parent,x,y+h-1,w,1,color); el(parent,x,y,1,h,color); el(parent,x+w-1,y,1,h,color); }
+  function text(parent, x, y, s, size, color, bold, align){ const d=document.createElement('div'); d.className='tx'; d.textContent=s; d.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+size+'px;color:'+color+';font-weight:'+(bold?700:400)+';'+(align==='r'?'transform:translateX(-100%);':align==='c'?'transform:translateX(-50%);':''); parent.appendChild(d); return d; }
+  function run(parent, cx, cy, deg, r0, r1, color, thick){ const a=(deg-90)*Math.PI/180; for(let r=r0;r<=r1;r+=1){ el(parent, Math.round(cx+Math.cos(a)*r)-Math.floor(thick/2), Math.round(cy+Math.sin(a)*r)-Math.floor(thick/2), thick, thick, color); } }
+  function ticks(parent, cx, cy, r, degA, degB, n, len, color, thick){ for(let i=0;i<n;i++){ const d=degA+(degB-degA)*i/(n-1); run(parent,cx,cy,d,r-len,r,color,thick||1); } }
+  function segBar(parent, x, y, w, h, n, k, on, off, gap, vertical, warnFrom, warnColor){ for(let i=0;i<n;i++){ const lit=i<k; let c=lit?on:off; if(lit&&warnFrom!=null&&i>=warnFrom) c=warnColor; if(vertical){ const sh=Math.floor((h-gap*(n-1))/n); el(parent,x,y+h-(i+1)*(sh+gap)+gap,w,sh,c);} else { const sw=Math.floor((w-gap*(n-1))/n); el(parent,x+i*(sw+gap),y,sw,h,c);} } }
+  function bevelPanel(parent,x,y,w,h,bg,hi,sh){ el(parent,x,y,w,h,bg); el(parent,x,y,w,1,hi); el(parent,x,y,1,h,hi); el(parent,x,y+h-1,w,1,sh); el(parent,x+w-1,y,1,h,sh); }
+  function hwButton(parent,x,y,w,h,label,led,ledColor,focused,textColor){ bevelPanel(parent,x,y,w,h,'#2a2a2a','#3a3a3a','#050505'); border(parent,x,y,w,h,'#050505'); if(led){ el(parent,x+4,y+3,5,5,led==='on'?ledColor:'#1a1a1a'); border(parent,x+3,y+2,7,7,led==='on'?ledColor:'#333'); } text(parent,x+w/2,y+h-9,label,7,textColor||'#e0e0e0',true,'c'); if(focused){ el(parent,x,y,w,h,'rgba(196,154,42,0.55)'); } }
+  function lamp(parent,x,y,w,label,state,color){ // warning lamp: lit = filled colour with dark text, unlit = dark cell with dim text
+    const lit=state==='on'; el(parent,x,y,w,12,lit?color:'#1c1c1c'); border(parent,x,y,w,12,lit?color:'#2e2e2e'); text(parent,x+w/2,y+3,label,6,lit?'#0a0a0a':'#4a4a4a',true,'c'); }
+
+  const CAB = { walnut:{base:'#3d2d1c',hi:'#6b4e2e',tan:'#8a6a44'}, charcoal:{base:'#1f1f20',hi:'#3a3a3c'}, red:{base:'#4a0f12',hi:'#7a2024'}, slate:{base:'#3a3e45',hi:'#5a606a'}, patrol:{base:'#101218',hi:'#1e2330',stripe:'#2a5ad0'}, cocoa:{base:'#3a2616',hi:'#5c3f28'} };
+  const PH = { cyan:{bg:'#050A14',on:'#66DDFF',dim:'#1A3A4A',warn:'#FFB347',red:'#FF5A4A'}, green:{bg:'#050A14',on:'#44EE44',dim:'#1A3A1A',warn:'#FFB347',red:'#FF5A4A'}, amber:{bg:'#D4881F',on:'#1A0500',dim:'#C47015',warn:'#7a1a00',red:'#5a0000'} };
+
+  function cluster(id, o){
+    const p=document.getElementById(id); const W=760,H=128; p.style.width=W+'px'; p.style.height=H+'px';
+    const cab=CAB[o.cabin];
+    // frame = cabin material (6px), with a 1px highlight bevel; livery stripe for emergency
+    el(p,0,0,W,H,cab.base); el(p,1,1,W-2,1,cab.hi); el(p,1,1,1,H-2,cab.hi);
+    if(cab.tan){ el(p,0,H-3,W,3,cab.tan); }
+    if(cab.stripe){ for(let x=6;x<W-6;x+=24){ el(p,x,1,12,3,cab.stripe); el(p,x+12,1,12,3,'#CC4444'); } }
+    // bezel: matte black plastic
+    const bx=6,by=6,bw=W-12,bh=H-12; el(p,bx,by,bw,bh,'#141414'); el(p,bx,by,bw,1,'#333'); border(p,bx,by,bw,bh,'#000');
+    // face
+    const fx=bx+6, fy=by+6, fw=510, fh=bh-12;
+    const ph=PH[o.phosphor||'cyan'];
+    el(p,fx,fy,fw,fh,o.style==='digital'?ph.bg:'#0b0b0b'); border(p,fx,fy,fw,fh,'#000');
+    // lamp strip (top of the face)
+    const lamps=o.lamps; let lx=fx+6; lamps.forEach(l=>{ lamp(p,lx,fy+4,34,l[0],l[1],l[2]); lx+=38; });
+    // brand silkscreen
+    text(p,fx+fw-6,fy+fh-9,o.brand,6,'#5a5a5a',true,'r');
+    const s=o.state;
+    if(o.style==='digital'){
+      const on=ph.on, dim=ph.dim; const base=fy+20;
+      // FUEL vertical bar (left)
+      text(p,fx+8,base,'FUEL',6,on,false); text(p,fx+30,base+8,'F',6,on); text(p,fx+30,base+54,'E',6,on);
+      segBar(p,fx+10,base+8,14,54,10,s.fuel==null?0:Math.round(s.fuel*10),s.fuel!=null&&s.fuel<0.15?ph.warn:on,dim,2,true);
+      // SPEED box
+      el(p,fx+48,base+6,118,44,'rgba(0,0,0,0.25)'); border(p,fx+48,base+6,118,44,dim);
+      text(p,fx+52,base+10,'SPEED',6,on);
+      text(p,fx+150,base+16,s.speed==null?'---':String(s.speed),28,on,true,'r');
+      text(p,fx+150,base+42,'km/h',6,on,false,'r');
+      // TACH bar graph (rising segments) with scale
+      const tx=fx+176, ty=base+6, tw=224, th=48, n=24;
+      text(p,tx,ty-1,'TACH',6,on); text(p,tx+tw,ty-1,'x1000 r/min',6,on,false,'r');
+      const k=s.rpm==null?0:Math.round(Math.min(1,s.rpm/8000)*n);
+      for(let i=0;i<n;i++){ const segH=6+Math.round(i*1.6); const sx=tx+i*Math.floor(tw/n); const lit=i<k; let c=lit?on:dim; if(lit&&i>=20) c=ph.red; else if(lit&&i>=17) c=ph.warn; el(p,sx,ty+th-segH,6,segH,c); }
+      for(let g=0;g<=8;g++){ text(p,tx+Math.round(g*(tw-8)/8),ty+th+2,String(g),6,g>=7?ph.red:on,false); }
+      // BATT vertical bar (right)
+      text(p,tx+tw+12,base,'BATT',6,on);
+      segBar(p,tx+tw+14,base+8,14,54,10,s.batt==null?0:Math.round(s.batt*10),s.batt!=null&&s.batt<0.2?ph.warn:on,dim,2,true);
+      // gear strip + ignition line
+      const gears=['P','R','N','D','2','1']; let gx=fx+52; gears.forEach(g=>{ const lit=g===s.gear; el(p,gx,base+56,14,12,lit?on:'rgba(0,0,0,0.25)'); border(p,gx,base+56,14,12,dim); text(p,gx+7,base+59,g,7,lit?ph.bg:dim,true,'c'); gx+=16; });
+      text(p,gx+8,base+59,s.ign,7,on,false);
+      if(s.cruise){ text(p,fx+162,base+10,'CRUISE '+s.cruise,6,on,true,'r'); }
+    } else {
+      const tick='#e6e3dc', needle=o.needle||'#E07A2A', face='#0b0b0b';
+      // quarter gauges FUEL (far left) and BATT (far right)
+      function quarter(cx,cy,label,val,lo,hi,warn){ ticks(p,cx,cy,22,225,315,5,4,tick,1); run(p,cx,cy,225+(val==null?0:val)*90,0,18,warn?'#FF5A4A':needle,2); el(p,cx-2,cy-2,4,4,'#444'); text(p,cx-26,cy-6,lo,6,tick); text(p,cx+20,cy-6,hi,6,tick); text(p,cx,cy+8,label,6,'#8a8a8a',false,'c'); }
+      quarter(fx+36,fy+70,'FUEL',s.fuel,'E','F',s.fuel!=null&&s.fuel<0.15);
+      quarter(fx+fw-36,fy+70,'BATT',s.batt,'-','+',s.batt!=null&&s.batt<0.2);
+      // speed dial
+      function dial(cx,cy,r,ticksN,labels,val,max,redFrom){ el(p,cx-r-2,cy-r-2,2*r+4,2*r+4,'#0b0b0b'); for(let d=0;d<360;d+=6){ run(p,cx,cy,d,r+1,r+1,'#2a2a2a',1); } ticks(p,cx,cy,r,225,495,ticksN,6,tick,1); ticks(p,cx,cy,r,225,495,(ticksN-1)*2+1,3,'#777',1);
+        labels.forEach((L,i)=>{ const d=225+270*i/(labels.length-1); const a=(d-90)*Math.PI/180; text(p,Math.round(cx+Math.cos(a)*(r-14)),Math.round(cy+Math.sin(a)*(r-14))-3,L,7,(redFrom!=null&&i>=redFrom)?'#FF5A4A':tick,true,'c'); });
+        if(redFrom!=null){ ticks(p,cx,cy,r,225+270*redFrom/(labels.length-1),495,8,6,'#FF5A4A',2); }
+        const deg=225+270*Math.min(1,(val==null?0:val)/max); run(p,cx,cy,deg,-6,r-8,needle,2); el(p,cx-3,cy-3,6,6,'#444'); border(p,cx-3,cy-3,6,6,'#666'); }
+      dial(fx+150,fy+66,44,10,['0','20','40','60','80','100','120','140','160','180'],s.speed,180,null); text(p,fx+150,fy+88,'km/h',6,'#8a8a8a',false,'c');
+      dial(fx+fw-150,fy+66,44,9,['0','1','2','3','4','5','6','7','8'],s.rpm,8000,6); text(p,fx+fw-150,fy+88,'x1000 r/min',6,'#8a8a8a',false,'c');
+      // centre: gear strip + ignition readout (small LCD window)
+      const gears=['P','R','N','D','2','1']; let gx=fx+218; el(p,gx-4,fy+44,104,16,'#8E8F72'); border(p,gx-4,fy+44,104,16,'#000');
+      gears.forEach(g=>{ const lit=g===s.gear; if(lit) el(p,gx,fy+46,14,12,'#1a1a1a'); text(p,gx+7,fy+48,g,7,lit?'#8E8F72':'#2a2a1a',true,'c'); gx+=16; });
+      el(p,fx+214,fy+64,104,14,'#8E8F72'); border(p,fx+214,fy+64,104,14,'#000'); text(p,fx+266,fy+68,s.ign,7,'#1a1a1a',true,'c');
+      if(s.cruise){ text(p,fx+266,fy+84,'CRUISE '+s.cruise,7,tick,true,'c'); }
+    }
+    // ---- controls panel (right): recessed dark panel, O22 hardware ----
+    const cx=fx+fw+6, cy=fy, cw=bw-(fw+18), ch=fh;
+    bevelPanel(p,cx,cy,cw,ch,'#0a0a0a','#050505','#3a3a3a');
+    // ENGINE rocker (I/O) + KEY
+    const rk=cx+6; bevelPanel(p,rk,cy+8,20,34,'#222','#333','#000'); el(p,rk+1,cy+9,18,16,s.engine?'#2a2a2a':'#1a1a1a'); el(p,rk+1,cy+26,18,15,s.engine?'#1a1a1a':'#2a2a2a'); text(p,rk+10,cy+13,'I',7,s.engine?'#44EE44':'#555',true,'c'); text(p,rk+10,cy+30,'O',7,s.engine?'#555':'#e0e0e0',true,'c'); text(p,rk+10,cy+45,'ENGINE',6,'#888',false,'c');
+    const kx=rk+26; bevelPanel(p,kx,cy+8,22,34,'#222','#333','#000'); el(p,kx+7,cy+14,8,8,'#111'); border(p,kx+7,cy+14,8,8,'#555'); el(p,kx+10,cy+22,2,10,s.keyIn?'#e0e0e0':'#333'); text(p,kx+11,cy+45,s.keyIn?'KEY IN':'KEY',6,s.hasKey?'#888':'#aa3333',false,'c');
+    // LED push buttons grid
+    const btns=o.buttons; const bx0=kx+28, bw0=36, bh0=22; btns.forEach((b,i)=>{ const col=i%4, row=Math.floor(i/4); hwButton(p,bx0+col*(bw0+3),cy+8+row*(bh0+4),bw0,bh0,b[0],b[1],b[2]||'#44EE44',b[3]); });
+    // footer prompt (gamepad) under the buttons
+    if(o.prompt){ text(p,cx+cw-6,cy+ch-9,o.prompt,6,'#8a8a8a',false,'r'); }
+  }
+
+  const G='#44EE44', A='#FFB347', R='#FF5A4A', B='#5AA0FF';
+  cluster('c1',{cabin:'walnut',style:'digital',phosphor:'cyan',brand:'MERCIA LANG 4000 · ELECTRONIC CLUSTER',
+    lamps:[['KEY','on',G],['DOOR','off',A],['LAMP','on',B],['HEAT','on',G],['RADIO','off',G],['CRUISE','on',G],['ENG','off',R],['FUEL','off',A],['BATT','off',R]],
+    state:{speed:62,rpm:3100,fuel:0.72,batt:0.94,gear:'D',ign:'KEY IN · 3100 RPM',cruise:60,engine:true,keyIn:true,hasKey:true},
+    buttons:[['LIGHTS','on',B],['LOCK','on',G],['TRUNK','off',G],['HEAT','on',G],['RADIO','off',G],['CRUISE','on',G]]});
+  cluster('c2',{cabin:'charcoal',style:'digital',phosphor:'green',brand:'DASH ELITE',
+    lamps:[['KEY','on',G],['DOOR','on',A],['LAMP','off',B],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G],['ENG','off',R],['FUEL','on',A],['BATT','off',R]],
+    state:{speed:0,rpm:0,fuel:0.08,batt:0.61,gear:'P',ign:'KEY IN',cruise:null,engine:false,keyIn:true,hasKey:true},
+    buttons:[['LIGHTS','off',B],['LOCK','off',G],['TRUNK','off',G],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G]]});
+  cluster('c3',{cabin:'red',style:'digital',phosphor:'amber',brand:'CHEVALIER COSSETTE',
+    lamps:[['KEY','on',G],['DOOR','off',A],['LAMP','off',B],['HEAT','off',G],['RADIO','on',G],['CRUISE','off',G],['ENG','on',A],['FUEL','off',A],['BATT','off',R]],
+    state:{speed:118,rpm:6400,fuel:0.44,batt:0.88,gear:'D',ign:'KEY IN · 6400 RPM',cruise:null,engine:true,keyIn:true,hasKey:true},
+    buttons:[['LIGHTS','off',B],['LOCK','on',G],['TRUNK','on',G],['HEAT','off',G],['RADIO','on',G],['CRUISE','off',G]]});
+  cluster('c4',{cabin:'slate',style:'analog',brand:'CHEVALIER NYALA',
+    lamps:[['KEY','on',G],['DOOR','off',A],['LAMP','on',B],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G],['ENG','off',R],['FUEL','off',A],['BATT','off',R]],
+    state:{speed:44,rpm:2200,fuel:0.58,batt:0.97,gear:'D',ign:'KEY IN',cruise:null,engine:true,keyIn:true,hasKey:true},
+    buttons:[['LIGHTS','on',B],['LOCK','off',G],['TRUNK','off',G],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G]]});
+  cluster('c5',{cabin:'patrol',style:'analog',brand:'POLICE CHEVALIER NYALA',
+    lamps:[['KEY','on',G],['DOOR','off',A],['LAMP','on',B],['HEAT','off',G],['RADIO','on',G],['CRUISE','off',G],['LBAR','on',B],['SIREN','on',A],['ENG','off',R]],
+    state:{speed:0,rpm:900,fuel:0.91,batt:0.99,gear:'P',ign:'KEY IN',cruise:null,engine:true,keyIn:true,hasKey:true},
+    buttons:[['LIGHTS','on',B],['LOCK','on',G],['TRUNK','off',G],['HEAT','off',G],['RADIO','on',G],['CRUISE','off',G],['LBAR 2','on',B],['WAIL','on',A]]});
+  cluster('c6',{cabin:'cocoa',style:'analog',brand:'CHEVALIER D6',
+    lamps:[['KEY','on',R],['DOOR','off',A],['LAMP','off',B],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G],['ENG','off',R],['FUEL','off',A],['BATT','off',R]],
+    state:{speed:null,rpm:null,fuel:null,batt:null,gear:'P',ign:'NO KEY',cruise:null,engine:false,keyIn:false,hasKey:false},
+    buttons:[['LIGHTS','off',B],['LOCK','off',G],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G]]});
+  cluster('c7',{cabin:'slate',style:'analog',brand:'CHEVALIER NYALA',prompt:'A Lights off · B Drive',
+    lamps:[['KEY','on',G],['DOOR','off',A],['LAMP','on',B],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G],['ENG','off',R],['FUEL','off',A],['BATT','off',R]],
+    state:{speed:0,rpm:850,fuel:0.58,batt:0.97,gear:'P',ign:'KEY IN',cruise:null,engine:true,keyIn:true,hasKey:true},
+    buttons:[['LIGHTS','on',B,true],['LOCK','off',G],['TRUNK','off',G],['HEAT','off',G],['RADIO','off',G],['CRUISE','off',G]]});
+})();
+</script>
+</body>
+</html>
