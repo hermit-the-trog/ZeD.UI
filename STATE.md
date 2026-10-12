@@ -34,6 +34,9 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 5. Container strip lists only equipped bags + key rings (design question).
 5. Deferred from S113: grid-scroll surfaces (Identity, Forage) keep the `onDpadDir` adapter; hold-X drag has no visual feedback.
 
+- **Loop 2 (13:05-13:30) shipped:** vehicle dashboard with 18 interior cabins (`INTERIORS`), game brand names, LIGHTBAR + SIREN tiles, strip width per tile count; CaZio watch faces (8 items) all verified live; gamepad claim/B-release verified with the pair closed. Frames 28-45. Spec: `DASHBOARD_WATCH_SPEC.md`.
+
+
 ## Target — S124 and after
 
 **Playable floor = full gamepad parity.** Dude tests on gamepad only.

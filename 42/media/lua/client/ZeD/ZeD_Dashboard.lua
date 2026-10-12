@@ -280,8 +280,15 @@ local function _toggles(st)
         end }
     T[#T + 1] = { id = "cruise", label = "CRUISE",
         dot = function(s) return s.cruise and "on" or "off" end,
-        -- display only (vanilla binds cruise to a key, not the dashboard)
-    }
+        promptA = function(s) return s.cruise and "Cruise off" or "Cruise set" end,
+        enabled = function(s) return s.running end,
+        -- Mirrors vanilla ISVehicleRegulator: a tap toggles the regulator and the
+        -- first set takes the current speed (getCurrentSpeedForRegulator).
+        act = function(chr, v)
+            if v:isRegulator() then v:setRegulator(false); return end
+            local sp = v:getCurrentSpeedForRegulator()
+            if sp and sp >= 5 then v:setRegulatorSpeed(sp); v:setRegulator(true) end
+        end }
     return T
 end
 
@@ -351,6 +358,7 @@ function ZeD_Dashboard:prerender()
     if vd and vd.isVisible and vd:isVisible() then pcall(vd.setVisible, vd, false) end
 
     local st = _state(vehicle, chr)
+    local driver = _safe(function() return vehicle:isDriver(chr) end, false)
     local toggles = _toggles(st)
     local w, h, s = self:_layout(#toggles)
     local tm = getTextManager()
@@ -454,7 +462,7 @@ function ZeD_Dashboard:prerender()
         local x = tx0 + col * (tw + gap)
         local y = ty0 + row * (th + gap)
         local kind = tg.dot(st)
-        local enabled = (tg.enabled == nil) or tg.enabled(st)
+        local enabled = ((tg.enabled == nil) or tg.enabled(st)) and driver
         local s2 = _mix(T.surf2, interior.base, INTERIOR_BLEND * 0.8)
         if kind == "bad" then
             local dg = T.danger
@@ -490,7 +498,7 @@ function ZeD_Dashboard:prerender()
     end
 
     -- Footer line: prompts (gamepad) or brand
-    local brand = _brandName(vehicle, scriptName)
+    local brand = _brandName(vehicle, scriptName) .. (driver and "" or " - PASSENGER")
     local bwid = tm:MeasureStringX(T.fontF5, brand)
     self:drawText(brand, w - 8 - bwid, h - tm:getFontHeight(T.fontF5) - 2, 0.33, 0.33, 0.33, 1, T.fontF5)
     local Det = ZeD.Input and ZeD.Input.Detector
@@ -573,10 +581,12 @@ function D.show(character)
     local pn = character and character.getPlayerNum and character:getPlayerNum() or 0
     if pn ~= inst.playerNum then return end
     local vehicle = character:getVehicle()
-    if vehicle and vehicle:isDriver(character) then
+    if vehicle then
+        -- Any seat sees the strip (vanilla parity); only the driver gets the
+        -- actions and the gamepad focus claim.
         inst.vehicle = vehicle
         inst:setVisible(true)
-        inst:_claim()
+        if vehicle:isDriver(character) then inst:_claim() else inst:_release(); inst:_unregister() end
     else
         inst:setVisible(false)
         inst:_release(); inst:_unregister()
