@@ -2298,7 +2298,7 @@ local function drawBreedingSection(panel, x, y, w, animal, player)
         if ad.canSee(player, "pregnancy_bar") then
             local current, total = ad.getPregnancyProgress(animal)
             local ratio = total > 0 and (current / total) or 0
-            pregText = string.format("Pregnant — %d%%", math.floor(ratio * 100))
+            pregText = string.format("Pregnant - %d%%", math.floor(ratio * 100))
             curY = curY + drawVitalRow(panel, x, curY, w, "Pregnancy", 0,
                 pregText, pregText, true, ratio, T.info)
         else

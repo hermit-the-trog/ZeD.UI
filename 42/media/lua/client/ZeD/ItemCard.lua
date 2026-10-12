@@ -1289,7 +1289,7 @@ local function buildZoneConfigs(item)
         -- IS something to communicate (TORN/WORN flag or active patch).
         local dock = nil
         if zone.condIconKey or zone.flagText then
-            local dockFlag  = zone.flagText or "—"
+            local dockFlag  = zone.flagText or "-"
             local dockColor = T[zone.flagColorKey] or T.textSec
             if zone.flagText == "Leather" then dockColor = T.matLeather
             elseif zone.flagText == "Denim" then dockColor = T.matDenim
