@@ -91,3 +91,17 @@ Brand names (CaZio is locked); whether the analog readout should be hidden (dial
 
 ## Resolution note
 Both organisms use `T.scale` for geometry and the token fonts for text, so they will follow the UI scale axis when it lands (STATE.md item 3).
+
+---
+
+## Redesign track (Oct 12 2026, after the director's review) - v2 to v4 mockups
+
+The S123 first cuts above are superseded in look. The director: the Visual Catalog v2.0 already had the designs (O22 vehicle controls, O23 CaZio case, O24 classic watch, M38-M42 hardware molecules); HUD objects are physical items, not information panels; decoration, shape and era expression matter; stereos, temp/fan dials and AC belong in the dash; analog watches get their own controls; the Cossette is a Corvette (sporty, digital).
+
+Mockup lineage: `zed_dashboard_v2_cluster.html` (first instrument cluster) -> `zed_dashboard_v3_physical.html` (hood, chrome rings, tell-tale block, centre stack, head unit, HVAC, ignition cylinder, badge) -> `zed_dashboard_v4_binnacle.html` (arched binnacle with rounded corners, visor shadows, C4 and Cadillac digital dialects, four real head units: GM-grey cassette, black deck, sport amber with signal ladder, dial-scale with needle). Watch: `zed_cazio_watch_v2_case.html` -> `zed_cazio_watch_v3_physical.html` (straps, lugs, crown, champagne gold) -> `zed_cazio_watch_v4_casio.html` (A120-style front keys on digitals, ana-digi side pushers + dial LCD window on classics, chrono crown and pushers on Expensive, plain speed strip when no watch).
+
+Control contract (every watch family): play/pause, speed step (1x 2x 3x), alarm on/off, alarm set. Digital keys: ALARM, SET, SPEED, START/STOP (merges the catalog's four speed keys). The watch replaces the Java clock and the Java speed controls together.
+
+Dashboard contract: tell-tales are icon lamps; ignition is one cylinder (insert, start, stop; X removes the key); lights knob, lock rocker, trunk and cruise buttons; head unit drives the radio drawer verbs (power, volume, tune, browse, presets); TEMP knob = heater temperature, FAN = heater 0-3, A/C and HEAT push buttons; lightbar/siren as an accessory box on emergency cars. Static art ships as PNG plates drawn from the mockups; needles, lamps, digits and pointers draw live.
+
+Open for the director after v4: analog vs digital per model; positive vs negative LCD per digital item; square vs round classic cases; merged speed keys vs four explicit keys.
