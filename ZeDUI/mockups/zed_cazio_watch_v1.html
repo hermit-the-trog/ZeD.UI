@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI CaZio Watch v1 — Lua-flat render preview</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#e6e3dc; font-family:'Fira Sans Condensed',sans-serif; padding:24px; }
+.banner { display:inline-block; background:#ffaa00; color:#000; font:bold 9px 'Fira Mono',monospace; letter-spacing:1px; padding:6px 12px; border:1px solid #000; margin-bottom:14px; }
+h2 { font:600 15px 'Fira Sans Condensed'; margin:26px 0 8px; }
+p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:900px; margin-bottom:10px; }
+.row { display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap; }
+
+/* ===== WATCH ORGANISM — top-right HUD, replaces the Java clock. ===== */
+/* Digital (CaZio): LCD module 156x62 at 1x. Face colour by item variant. */
+.cazio { width:156px; height:62px; border:1px solid #3a3a3a; background:#1c1c1c; padding:6px 8px; position:relative; }
+.cazio .lcd { height:34px; border:1px solid #000; padding:3px 6px; display:flex; align-items:baseline; gap:6px; }
+.cazio .time { font:700 24px/26px 'Fira Mono',monospace; letter-spacing:1px; }
+.cazio .ampm { font:9px 'Fira Mono',monospace; }
+.cazio .date { position:absolute; left:8px; bottom:4px; font:9px 'Fira Mono',monospace; letter-spacing:1px; color:#8a8a8a; }
+.cazio .brand { position:absolute; right:8px; bottom:4px; font:700 8px 'Fira Mono',monospace; letter-spacing:2px; color:#555; }
+.cazio .alarm { position:absolute; right:10px; top:9px; width:6px; height:6px; background:#CC4444; }
+.lcd-black { background:#0d1a0d; color:#44ee44; }      /* DigitalBlack: green LCD */
+.lcd-red   { background:#1a0d0d; color:#ee5555; }      /* DigitalRed: red LCD */
+.lcd-dress { background:#101418; color:#dde6ee; }      /* DigitalDress: cool white LCD */
+
+/* Classic (analog): dial 62x62, hands as 1px/2px lines, 12 ticks. Date window on Expensive. */
+.classic { width:156px; height:62px; border:1px solid #3a3a3a; background:#1c1c1c; display:flex; align-items:center; gap:10px; padding:4px 8px; position:relative; }
+.dial { width:52px; height:52px; border:1px solid #000; position:relative; }
+.dial .tick { position:absolute; left:50%; top:2px; width:1px; height:5px; background:currentColor; transform-origin:50% 24px; }
+.dial .hh, .dial .mm { position:absolute; left:50%; top:50%; transform-origin:0 0; }
+.dial .hh { width:2px; height:14px; background:currentColor; margin-left:-1px; }
+.dial .mm { width:1px; height:20px; background:currentColor; }
+.dial .pin { position:absolute; left:50%; top:50%; width:3px; height:3px; margin:-1px 0 0 -1px; background:currentColor; }
+.classic .txt { flex:1; }
+.classic .t { font:700 16px 'Fira Mono',monospace; letter-spacing:1px; }
+.classic .d { font:9px 'Fira Mono',monospace; color:#8a8a8a; letter-spacing:1px; margin-top:2px; }
+.classic .brand { position:absolute; right:8px; bottom:4px; font:700 8px 'Fira Mono',monospace; letter-spacing:2px; color:#555; }
+.face-black    { background:#141414; color:#e6e3dc; }
+.face-brown    { background:#2a1d12; color:#e6d9c4; }
+.face-gold     { background:#3a2e10; color:#f0d070; }
+.face-military { background:#1c2416; color:#b9c9a3; }
+.face-expensive{ background:#f0ece0; color:#141414; }
+.datewin { position:absolute; right:8px; top:50%; margin-top:-5px; width:14px; height:10px; border:1px solid currentColor; font:7px/9px 'Fira Mono'; text-align:center; }
+</style>
+</head>
+<body>
+<div class="banner">ZED-UI · CAZIO WATCH v1 · LUA-FLAT PREVIEW · S123 · DESIGN FOR DIRECTOR REVIEW</div>
+<p class="note">Replaces the Java clock (<code>UIManager.getClock()</code>, 156×62 px at the top-right). Visible only while a wrist watch is worn (vanilla rule). The face is chosen from the worn item: <code>WristWatch_*_Digital*</code> → CaZio LCD module (colour per variant); <code>WristWatch_*_Classic*</code> and <code>Expensive</code> → analog dial with the ZeD type for the readout. 24 h / 12 h follows the game's clock-format option. The date line appears on digital and expensive faces only (parity with <code>isDateVisible</code>). No watch worn = nothing drawn, exactly like vanilla.</p>
+
+<h2>1 · CaZio digital — Black (green LCD), Red, Dress</h2>
+<div class="row">
+  <div class="cazio"><div class="lcd lcd-black"><span class="time">20:31</span><span class="ampm">24H</span></div><div class="alarm"></div><div class="date">WED 09 JUN 1993</div><div class="brand">CAZIO</div></div>
+  <div class="cazio"><div class="lcd lcd-red"><span class="time">8:31</span><span class="ampm">PM</span></div><div class="date">WED 09 JUN</div><div class="brand">CAZIO</div></div>
+  <div class="cazio"><div class="lcd lcd-dress"><span class="time">20:31</span><span class="ampm">24H</span></div><div class="date">09 JUN 1993</div><div class="brand">CAZIO</div></div>
+</div>
+<p class="note">Red square top-right = alarm set (the item's alarm). Digits in Fira Mono bold; the LCD panel is a flat fill with a 1px black bezel, no glow.</p>
+
+<h2>2 · Classic analog — Black, Brown, Gold, Military</h2>
+<div class="row">
+  <div class="classic"><div class="dial face-black"><div class="tick"></div><div class="tick" style="transform:rotate(90deg)"></div><div class="tick" style="transform:rotate(180deg)"></div><div class="tick" style="transform:rotate(270deg)"></div><div class="hh" style="transform:rotate(255deg)"></div><div class="mm" style="transform:rotate(6deg)"></div><div class="pin"></div></div><div class="txt"><div class="t">20:31</div><div class="d">WEDNESDAY</div></div><div class="brand">TIMEKS</div></div>
+  <div class="classic"><div class="dial face-brown"><div class="tick"></div><div class="tick" style="transform:rotate(90deg)"></div><div class="tick" style="transform:rotate(180deg)"></div><div class="tick" style="transform:rotate(270deg)"></div><div class="hh" style="transform:rotate(255deg)"></div><div class="mm" style="transform:rotate(6deg)"></div><div class="pin"></div></div><div class="txt"><div class="t">8:31</div><div class="d">PM</div></div><div class="brand">TIMEKS</div></div>
+  <div class="classic"><div class="dial face-gold"><div class="tick"></div><div class="tick" style="transform:rotate(90deg)"></div><div class="tick" style="transform:rotate(180deg)"></div><div class="tick" style="transform:rotate(270deg)"></div><div class="hh" style="transform:rotate(255deg)"></div><div class="mm" style="transform:rotate(6deg)"></div><div class="pin"></div></div><div class="txt"><div class="t">20:31</div><div class="d">WEDNESDAY</div></div><div class="brand">TIMEKS</div></div>
+  <div class="classic"><div class="dial face-military"><div class="tick"></div><div class="tick" style="transform:rotate(90deg)"></div><div class="tick" style="transform:rotate(180deg)"></div><div class="tick" style="transform:rotate(270deg)"></div><div class="hh" style="transform:rotate(255deg)"></div><div class="mm" style="transform:rotate(6deg)"></div><div class="pin"></div></div><div class="txt"><div class="t">2031</div><div class="d">HRS · WED</div></div><div class="brand">TIMEKS</div></div>
+</div>
+
+<h2>3 · Expensive — ivory face, date window, gold text</h2>
+<div class="row">
+  <div class="classic" style="background:#2a2310;border-color:#CCAA22"><div class="dial face-expensive"><div class="tick"></div><div class="tick" style="transform:rotate(90deg)"></div><div class="tick" style="transform:rotate(180deg)"></div><div class="tick" style="transform:rotate(270deg)"></div><div class="hh" style="transform:rotate(255deg)"></div><div class="mm" style="transform:rotate(6deg)"></div><div class="pin"></div><div class="datewin">9</div></div><div class="txt"><div class="t" style="color:#f0d070">20:31</div><div class="d">WED 09 JUN 1993</div></div><div class="brand" style="color:#8a7030">ROLLEX</div></div>
+</div>
+<p class="note" style="margin-top:22px">Layout rule: the module is always 156×62 at 1× (the Java clock's footprint) so nothing around it moves. Analog hands are drawn with ZeD line atoms (1px minute, 2px hour) from the dial centre; 4 ticks at 12/3/6/9 only. Brand names are placeholders for the director (CaZio for digital is the one that is locked).</p>
+</body>
+</html>
