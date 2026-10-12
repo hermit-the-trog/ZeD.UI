@@ -74,9 +74,14 @@ local function _timeStrings()
     local gt = getGameTime()
     local hour = gt:getHour()
     local min  = gt:getMinutes()
+    -- Options: getOptionClock24Hour (24h vs 12h) and getOptionClockFormat
+    -- (1 = Month/Day, 2 = Day/Month) are two different settings.
     local fmt24 = true
+    local ok24, v24 = pcall(function() return getCore():getOptionClock24Hour() end)
+    if ok24 and v24 == false then fmt24 = false end
+    local monthFirst = true
     local okF, f = pcall(function() return getCore():getOptionClockFormat() end)
-    if okF and f == 2 then fmt24 = false end
+    if okF and f == 2 then monthFirst = false end
     local timeStr, suffix
     if fmt24 then
         timeStr = string.format("%02d:%02d", hour, min); suffix = "24H"
@@ -88,9 +93,12 @@ local function _timeStrings()
     local month = (gt:getMonth() or 0) + 1
     local year  = gt:getYear() or 1993
     local dow   = DAYS[_dayOfWeek(year, month, day)] or ""
-    local dateStr = string.format("%s %02d %s %d", dow, day, MONTHS[month] or "", year)
+    local dateStr
+    if monthFirst then dateStr = string.format("%s %s %02d %d", dow, MONTHS[month] or "", day, year)
+    else dateStr = string.format("%s %02d %s %d", dow, day, MONTHS[month] or "", year) end
     return timeStr, suffix, dateStr, hour, min, day, dow
 end
+W._timeStrings = _timeStrings   -- exposed for QA probes
 
 -- Hand = run of small rects from (cx,cy) along angle (0 = 12 o'clock, clockwise).
 local function _drawHand(panel, cx, cy, angle, length, thick, c)
