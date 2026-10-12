@@ -131,7 +131,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     badge(p,W-8-150,6,150,10,o.badge);
     if(o.accessory){ const ax=24, ay=0, aw=150, ah=26; bevel(p,ax,ay,aw,ah,'#141414','#333','#000'); border(p,ax,ay,aw,ah,'#000'); screw(p,ax+3,ay+3); screw(p,ax+aw-6,ay+3);
       text(p,ax+8,ay+3,'LIGHTBAR',5,'#aaa',false); text(p,ax+8,ay+17,'0  1  2  3',5,'#777',false); knob(p,ax+58,ay+13,8,-60+o.accessory.lightbar*40,'#2a2a2a','#555','#ddd');
-      text(p,ax+78,ay+3,'SIREN',5,'#aaa',false); text(p,ax+78,ay+17,'OFF YLP WL ALM',4,'#777',false); knob(p,ax+138,ay+13,8,-60+o.accessory.siren*40,'#2a2a2a','#555','#ddd'); }
+      text(p,ax+78,ay+3,'SIREN',5,'#aaa',false); text(p,ax+78,ay+17,'0  1  2  3',5,'#777',false); knob(p,ax+138,ay+13,8,-60+o.accessory.siren*40,'#2a2a2a','#555','#ddd'); }
     // ---- binnacle ----
     const hx=8,hy=30,hw=520,hh=92,amp=16; hood(p,hx,hy,hw,hh,amp,16,'#121212','#3d3d3d','#000');
     for(let i=1;i<=3;i++){ const t=1; } // (shadow band under the lip)
