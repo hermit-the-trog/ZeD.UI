@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD-UI Vehicle Dashboard v1 — Lua-flat render preview</title>
+<style>
+/* LUA-FLAT RENDERING MODE: solid fills, 1px borders, square corners, no shadows, no blur.
+   Fonts: Fira Mono (F1 chrome / F3 data) + Fira Sans Condensed (F2 body / F4 heading / F5 micro). */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#e6e3dc; font-family:'Fira Sans Condensed',sans-serif; padding:24px; }
+.banner { display:inline-block; background:#ffaa00; color:#000; font:bold 9px 'Fira Mono',monospace; letter-spacing:1px; padding:6px 12px; border:1px solid #000; margin-bottom:14px; }
+h2 { font:600 15px 'Fira Sans Condensed'; color:#e6e3dc; margin:26px 0 8px; }
+p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:900px; margin-bottom:10px; }
+
+/* ===== DASHBOARD ORGANISM — bottom-centre HUD strip, 560x92 at 1x ===== */
+.dash { width:560px; height:92px; background:#141414; border:1px solid #3a3a3a; display:flex; position:relative; }
+.dash .trim { position:absolute; left:0; right:0; top:0; height:3px; }            /* paint-derived trim band */
+.dash .cluster { width:300px; display:flex; padding:10px 10px 8px 12px; gap:12px; border-right:1px solid #3a3a3a; }
+.dash .speed { width:118px; }
+.dash .speed .digits { font:700 34px/34px 'Fira Mono',monospace; color:#e6e3dc; letter-spacing:-1px; }
+.dash .speed .unit { font:10px 'Fira Mono',monospace; color:#8a8a8a; letter-spacing:1px; margin-top:2px; }
+.dash .speed .gear { display:inline-block; margin-left:8px; font:700 11px 'Fira Mono'; color:#0c0c0c; background:#e6e3dc; padding:1px 5px; }
+.dash .bars { flex:1; display:flex; flex-direction:column; gap:6px; }
+.bar { display:flex; align-items:center; gap:6px; font:10px 'Fira Mono',monospace; color:#8a8a8a; letter-spacing:1px; }
+.bar .lbl { width:34px; }
+.bar .track { flex:1; height:8px; background:#1c1c1c; border:1px solid #3a3a3a; position:relative; }
+.bar .fill { position:absolute; left:0; top:0; bottom:0; }
+.bar .val { width:34px; text-align:right; color:#e6e3dc; }
+.dash .toggles { flex:1; display:flex; flex-wrap:wrap; align-content:flex-start; gap:4px; padding:8px; }
+.tg { width:58px; height:36px; border:1px solid #3a3a3a; background:#1c1c1c; padding:4px 5px; position:relative; }
+.tg .dot { width:6px; height:6px; position:absolute; left:5px; top:5px; }
+.tg .k { position:absolute; right:4px; top:3px; font:9px 'Fira Sans Condensed'; color:#8a8a8a; }
+.tg .n { position:absolute; left:5px; bottom:4px; font:600 10px 'Fira Sans Condensed'; color:#e6e3dc; letter-spacing:.5px; }
+.tg.focus { background:rgba(212,146,42,.55); }   /* 0.55α accent focus cue (gamepad) */
+.tg.danger { background:rgba(204,68,68,.16); border-color:#CC4444; }
+.on   { background:#44AA44; }   /* positive */
+.off  { background:#555555; }
+.warn { background:#CCAA22; }
+.bad  { background:#CC4444; }
+.dash .footer { position:absolute; left:8px; bottom:3px; font:9px 'Fira Sans Condensed'; color:#8a8a8a; }
+.dash .brand { position:absolute; right:8px; bottom:3px; font:9px 'Fira Mono',monospace; color:#555; letter-spacing:1px; }
+
+/* Family variants: only the trim colour (paint-derived) and the cluster emphasis change. */
+.v-normal  .trim { background:#D4922A; }
+.v-sport   .trim { background:#CC4444; }
+.v-sport   .speed .digits { color:#E8A830; }
+.v-utility .trim { background:#4488CC; }
+.v-utility .cluster { width:260px; }
+.v-police  .trim { background:#4488CC; background-image:repeating-linear-gradient(90deg,#4488CC 0 12px,#CC4444 12px 24px); }
+.v-luxury  .trim { background:#CCAA22; }
+.v-luxury  { background:#161410; }
+.v-luxury  .tg { background:#1e1b14; }
+</style>
+</head>
+<body>
+<div class="banner">ZED-UI · VEHICLE DASHBOARD v1 · LUA-FLAT PREVIEW · S123 · DESIGN FOR DIRECTOR REVIEW</div>
+<p class="note">Replaces <code>ISVehicleDashboard</code> (hooked at <code>ISPlayerDataObject.vehicleDashboard</code> / OnEnterVehicle). Bottom-centre strip, 560×92 px at 1×. Left: cluster (speed, gear, RPM, fuel). Right: eight toggles, each a status dot + name + key hint. The 3px trim band at the top is derived from the vehicle's paint (HSV → accent); the family changes emphasis only, never the layout, so there is one organism to learn. Gamepad: the strip registers as a focus window while seated — D-pad moves across toggles, A toggles, B releases focus back to driving. Mouse: click a toggle.</p>
+
+<h2>1 · Normal car (CarNormal, paint orange) — engine running, 48 km/h, D, fuel 62 %</h2>
+<div class="dash v-normal">
+  <div class="trim"></div>
+  <div class="cluster">
+    <div class="speed"><div class="digits">48<span class="gear">D</span></div><div class="unit">KM/H · 2400 RPM</div></div>
+    <div class="bars">
+      <div class="bar"><span class="lbl">RPM</span><div class="track"><div class="fill" style="width:34%;background:#e6e3dc"></div></div><span class="val">2.4k</span></div>
+      <div class="bar"><span class="lbl">FUEL</span><div class="track"><div class="fill" style="width:62%;background:#44AA44"></div></div><span class="val">62%</span></div>
+      <div class="bar"><span class="lbl">BATT</span><div class="track"><div class="fill" style="width:88%;background:#44AA44"></div></div><span class="val">88%</span></div>
+    </div>
+  </div>
+  <div class="toggles">
+    <div class="tg"><div class="dot on"></div><span class="k">A</span><span class="n">ENGINE</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">KEY</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">LIGHTS</span></div>
+    <div class="tg"><div class="dot warn"></div><span class="k"></span><span class="n">DOORS</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">TRUNK</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">HEATER</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">RADIO</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">CRUISE</span></div>
+  </div>
+  <div class="footer">A Toggle · B Back to driving</div><div class="brand">CHEVALIER DART · ZeD</div>
+</div>
+
+<h2>2 · Sports (CarSports, paint red) — key in, engine off, low fuel warning</h2>
+<div class="dash v-sport">
+  <div class="trim"></div>
+  <div class="cluster">
+    <div class="speed"><div class="digits">0<span class="gear">P</span></div><div class="unit">KM/H · KEY IN</div></div>
+    <div class="bars">
+      <div class="bar"><span class="lbl">RPM</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="val">0</span></div>
+      <div class="bar"><span class="lbl">FUEL</span><div class="track"><div class="fill" style="width:9%;background:#CC4444"></div></div><span class="val" style="color:#CC4444">9%</span></div>
+      <div class="bar"><span class="lbl">BATT</span><div class="track"><div class="fill" style="width:41%;background:#CCAA22"></div></div><span class="val">41%</span></div>
+    </div>
+  </div>
+  <div class="toggles">
+    <div class="tg focus"><div class="dot off"></div><span class="k">A</span><span class="n">ENGINE</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">KEY</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">LIGHTS</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">DOORS</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">TRUNK</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">HEATER</span></div>
+    <div class="tg danger"><div class="dot bad"></div><span class="k"></span><span class="n">RADIO</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">CRUISE</span></div>
+  </div>
+  <div class="footer">A Start engine · B Back to driving</div><div class="brand">DASH RASH · ZeD</div>
+</div>
+
+<h2>3 · Utility (PickUp / Van, paint blue) — cluster narrower, trunk emphasised</h2>
+<div class="dash v-utility">
+  <div class="trim"></div>
+  <div class="cluster">
+    <div class="speed"><div class="digits">31<span class="gear">D</span></div><div class="unit">KM/H · 1900 RPM</div></div>
+    <div class="bars">
+      <div class="bar"><span class="lbl">RPM</span><div class="track"><div class="fill" style="width:22%;background:#e6e3dc"></div></div><span class="val">1.9k</span></div>
+      <div class="bar"><span class="lbl">FUEL</span><div class="track"><div class="fill" style="width:77%;background:#44AA44"></div></div><span class="val">77%</span></div>
+      <div class="bar"><span class="lbl">BATT</span><div class="track"><div class="fill" style="width:95%;background:#44AA44"></div></div><span class="val">95%</span></div>
+    </div>
+  </div>
+  <div class="toggles">
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">ENGINE</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">KEY</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">LIGHTS</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">DOORS</span></div>
+    <div class="tg focus"><div class="dot on"></div><span class="k">A</span><span class="n">TRUNK</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">HEATER</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">RADIO</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">CRUISE</span></div>
+  </div>
+  <div class="footer">A Unlock trunk · B Back to driving</div><div class="brand">FRANKLIN ALL-TERRAIN · ZeD</div>
+</div>
+
+<h2>4 · Police / emergency — trim is the livery stripe; same layout</h2>
+<div class="dash v-police">
+  <div class="trim"></div>
+  <div class="cluster">
+    <div class="speed"><div class="digits">72<span class="gear">D</span></div><div class="unit">KM/H · 3100 RPM</div></div>
+    <div class="bars">
+      <div class="bar"><span class="lbl">RPM</span><div class="track"><div class="fill" style="width:44%;background:#e6e3dc"></div></div><span class="val">3.1k</span></div>
+      <div class="bar"><span class="lbl">FUEL</span><div class="track"><div class="fill" style="width:35%;background:#CCAA22"></div></div><span class="val">35%</span></div>
+      <div class="bar"><span class="lbl">BATT</span><div class="track"><div class="fill" style="width:70%;background:#44AA44"></div></div><span class="val">70%</span></div>
+    </div>
+  </div>
+  <div class="toggles">
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">ENGINE</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">KEY</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">LIGHTS</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">DOORS</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">TRUNK</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">HEATER</span></div>
+    <div class="tg"><div class="dot on"></div><span class="k"></span><span class="n">RADIO</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">SIREN</span></div>
+  </div>
+  <div class="footer">A Toggle · B Back to driving</div><div class="brand">CHEVALIER NYALA · ZeD</div>
+</div>
+
+<h2>5 · Luxury (paint gold) — warmer chassis, gold trim</h2>
+<div class="dash v-luxury">
+  <div class="trim"></div>
+  <div class="cluster">
+    <div class="speed"><div class="digits">0<span class="gear">P</span></div><div class="unit">KM/H · NO KEY</div></div>
+    <div class="bars">
+      <div class="bar"><span class="lbl">RPM</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="val">0</span></div>
+      <div class="bar"><span class="lbl">FUEL</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="val">--</span></div>
+      <div class="bar"><span class="lbl">BATT</span><div class="track"><div class="fill" style="width:0%"></div></div><span class="val">--</span></div>
+    </div>
+  </div>
+  <div class="toggles">
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">ENGINE</span></div>
+    <div class="tg danger"><div class="dot bad"></div><span class="k"></span><span class="n">NO KEY</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">LIGHTS</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">DOORS</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">TRUNK</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">HEATER</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">RADIO</span></div>
+    <div class="tg"><div class="dot off"></div><span class="k"></span><span class="n">CRUISE</span></div>
+  </div>
+  <div class="footer">Hotwire from the vehicle menu</div><div class="brand">MERCIA LANG 4000 · ZeD</div>
+</div>
+
+<p class="note" style="margin-top:22px">States: dot green = on / locked / running; grey = off; yellow = partial (some doors locked, fuel &lt; 35 %); red = fault (no key, no radio installed, fuel &lt; 15 %, engine trouble). Fuel and battery only read while the key is in or the engine runs (vanilla rule). Engine chip colour follows engine condition when running. Low fuel pulses the FUEL row with the danger sine (0.08–0.25 α) rather than a flashing icon.</p>
+</body>
+</html>
