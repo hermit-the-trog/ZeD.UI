@@ -72,42 +72,47 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
   function roundClassic(id,o){
     const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
     strap(p,34,0,56,28,o.strapKind,o.strap1,o.strap2); strap(p,34,148,56,28,o.strapKind,o.strap1,o.strap2);
-    const cx=62, cy=88, R=46;
-    el(p,42,26,40,10,o.caseEdge); el(p,46,36,32,8,o.caseEdge); el(p,42,26,40,1,o.caseHi); el(p,34,27,56,1,'#000');
-    el(p,46,132,32,8,o.caseEdge); el(p,42,140,40,10,o.caseEdge); el(p,42,149,40,1,o.caseSh); el(p,34,148,56,1,'#000'); // lugs
-    disc(p,cx,cy,R+4,o.caseSh); disc(p,cx,cy,R+3,o.caseFill); ring(p,cx,cy,R+3,o.caseHi,1,180,360); ring(p,cx,cy,R+3,o.caseSh,1,0,180);
+    const cx=62, cy=88, R=40;
+    // lugs run from the straps into the cushion body
+    el(p,42,26,40,10,o.caseEdge); el(p,42,26,40,1,o.caseHi); el(p,34,27,56,1,'#000');
+    el(p,42,140,40,10,o.caseEdge); el(p,42,149,40,1,o.caseSh); el(p,34,148,56,1,'#000');
+    // cushion case body: outer chamfer (dark), plateau, inner chamfer (light) around the bezel
+    roundRect(p,10,34,104,108,22,o.caseSh); roundRect(p,12,36,100,104,20,o.caseFill); roundRectEdge(p,12,36,100,104,20,o.caseHi,o.caseSh);
+    roundRect(p,17,41,90,94,16,o.caseEdge); roundRectEdge(p,17,41,90,94,16,o.caseSh,o.caseHi);
+    disc(p,cx,cy,R+5,o.caseSh); disc(p,cx,cy,R+4,o.caseFill); ring(p,cx,cy,R+4,o.caseHi,1,180,360); ring(p,cx,cy,R+4,o.caseSh,1,0,180);
     disc(p,cx,cy,R-2,'#000'); disc(p,cx,cy,R-3,o.dial);
-    for(let d=0;d<360;d+=30){ const a=(d-90)*Math.PI/180; const rr=R-8; const bigT=(d%90===0); el(p,Math.round(cx+Math.cos(a)*rr)-1,Math.round(cy+Math.sin(a)*rr)-(bigT?3:2),2,bigT?6:4,o.index); }
-    text(p,cx,cy-22,'CaZio',4,o.index,true,'c'); text(p,cx,cy-16,'QUARTZ',3,o.index,false,'c');
+    for(let d=0;d<360;d+=30){ const a=(d-90)*Math.PI/180; const rr=R-7; const bigT=(d%90===0); el(p,Math.round(cx+Math.cos(a)*rr)-1,Math.round(cy+Math.sin(a)*rr)-(bigT?3:2),2,bigT?6:4,o.index); }
+    text(p,cx,cy-20,'CaZio',4,o.index,true,'c'); text(p,cx,cy-14,'QUARTZ',3,o.index,false,'c');
     // LCD window at six o'clock
-    const lw=44, lh=14, lx=cx-lw/2, ly=cy+12; bevel(p,lx-1,ly-1,lw+2,lh+2,'#000','#000','#333'); el(p,lx,ly,lw,lh,o.lcdBg);
+    const lw=44, lh=14, lx=cx-lw/2, ly=cy+10; bevel(p,lx-1,ly-1,lw+2,lh+2,'#000','#000','#333'); el(p,lx,ly,lw,lh,o.lcdBg);
     text(p,lx+2,ly+2,o.day,4,o.lcdFg,true); text(p,lx+lw-2,ly+2,o.date,4,o.lcdFg,true,'r'); speedInd(p,lx+2,ly+10,o.lcdFg,o.lcdDim,o.speed);
-    run(p,cx,cy,o.hourDeg,0,18,o.hand,3); run(p,cx,cy,o.minDeg,0,28,o.hand,2); if(o.lume){ run(p,cx,cy,o.hourDeg,5,15,o.lume,1); run(p,cx,cy,o.minDeg,8,24,o.lume,1); } disc(p,cx,cy,2,o.hand);
-    if(o.alarmArmed){ el(p,cx+16,cy-4,4,4,'#CC4444'); }
+    run(p,cx,cy,o.hourDeg,0,16,o.hand,3); run(p,cx,cy,o.minDeg,0,25,o.hand,2); if(o.lume){ run(p,cx,cy,o.hourDeg,5,13,o.lume,1); run(p,cx,cy,o.minDeg,8,21,o.lume,1); } disc(p,cx,cy,2,o.hand);
+    if(o.alarmArmed){ el(p,cx+14,cy-4,4,4,'#CC4444'); }
     // pushers at 10, 8 (left) and 2, 4 (right) + crown at 3, engraved labels on the case flank
-    const push=(deg,label,align)=>{ const a=(deg-90)*Math.PI/180; const x=Math.round(cx+Math.cos(a)*(R+6)), y=Math.round(cy+Math.sin(a)*(R+6)); el(p,x-3,y-3,6,6,o.caseFill); border(p,x-3,y-3,6,6,o.caseSh); el(p,x-2,y-2,4,1,o.caseHi); text(p,align==='l'?x-8:x+8,y-2,label,3,o.engrave,true,align==='l'?'r':''); };
-    push(300,'SET','l'); push(240,'SPEED','l'); push(60,'ALARM','r'); push(120,'START','r');
-    el(p,cx+R+4,cy-4,6,8,o.caseFill); el(p,cx+R+5,cy-3,4,1,o.caseHi); el(p,cx+R+5,cy+0,4,1,o.caseSh); el(p,cx+R+5,cy+3,4,1,o.caseSh);
+    const push=(x,y,label,align)=>{ el(p,x,y,6,7,o.caseFill); border(p,x,y,6,7,o.caseSh); el(p,x+1,y+1,4,1,o.caseHi); text(p,align==='l'?x-2:x+8,y+1,label,3,o.engrave,true,align==='l'?'r':''); };
+    push(6,cy-26,'SET','l'); push(6,cy+19,'SPEED','l'); push(112,cy-26,'ALARM','r'); push(112,cy+19,'START','r');
+    el(p,113,cy-5,7,10,o.caseFill); border(p,113,cy-5,7,10,o.caseSh); el(p,114,cy-3,5,1,o.caseHi); el(p,114,cy,5,1,o.caseSh); el(p,114,cy+3,5,1,o.caseSh);
   }
   function expensive(id,o){
     const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
     strap(p,30,0,64,30,'oyster',o.gold,o.goldSh); strap(p,30,146,64,30,'oyster',o.gold,o.goldSh);
-    const cx=62, cy=88, R=44;
+    const cx=62, cy=88, R=40;
     bevel(p,36,30,52,12,o.gold,'#fff4c0',o.goldSh); bevel(p,36,134,52,12,o.gold,'#fff4c0',o.goldSh);
-    disc(p,cx,cy,R+4,o.goldSh); disc(p,cx,cy,R+3,o.gold);
+    disc(p,cx,cy,R+12,o.goldSh); disc(p,cx,cy,R+10,o.gold); ring(p,cx,cy,R+10,'#fff4c0',1,200,340); ring(p,cx,cy,R+8,o.goldSh,1);
+    disc(p,cx,cy,R+5,o.goldSh); disc(p,cx,cy,R+4,o.gold);
     for(let d=0;d<360;d+=6){ run(p,cx,cy,d,R-2,R+3,(d%12===0)?'#fff4c0':o.goldSh,1); }
     disc(p,cx,cy,R-3,'#000'); disc(p,cx,cy,R-4,o.dial);
     for(let d=0;d<360;d+=30){ run(p,cx,cy,d,R-10,R-6,o.gold,(d%90===0)?3:2); }
-    text(p,cx,cy-22,'ROLLEX',4,o.ink,true,'c'); text(p,cx,cy-16,'OYSTER PERPETUAL',2,o.ink,false,'c');
-    el(p,cx+20,cy-5,12,10,'#ffffff'); border(p,cx+20,cy-5,12,10,o.gold); border(p,cx+19,cy-6,14,12,'rgba(255,255,255,0.25)'); text(p,cx+26,cy-3,o.date,6,'#000',true,'c');
-    run(p,cx,cy,o.hourDeg,0,18,o.gold,3); run(p,cx,cy,o.minDeg,0,28,o.gold,2); disc(p,cx,cy,2,o.gold);
+    text(p,cx,cy-20,'ROLLEX',4,o.ink,true,'c'); text(p,cx,cy-14,'OYSTER PERPETUAL',2,o.ink,false,'c');
+    el(p,cx+17,cy-5,12,10,'#ffffff'); border(p,cx+17,cy-5,12,10,o.gold); border(p,cx+16,cy-6,14,12,'rgba(255,255,255,0.25)'); text(p,cx+23,cy-3,o.date,6,'#000',true,'c');
+    run(p,cx,cy,o.hourDeg,0,16,o.gold,3); run(p,cx,cy,o.minDeg,0,25,o.gold,2); disc(p,cx,cy,2,o.gold);
     text(p,cx,cy+12,'SWISS MADE',2,o.ink,false,'c');
-    el(p,cx+R+3,cy-5,7,10,o.gold); for(let i=0;i<4;i++){ el(p,cx+R+4,cy-4+i*3,5,1,o.goldSh); }
-    const push=(deg,label)=>{ const a=(deg-90)*Math.PI/180; const x=Math.round(cx+Math.cos(a)*(R+6)), y=Math.round(cy+Math.sin(a)*(R+6)); el(p,x-3,y-4,7,8,o.gold); el(p,x-3,y-4,7,1,'#fff4c0'); text(p,x+6,y-2,label,3,'#cfcfcf',true); };
-    push(60,'START'); push(120,'SPEED'); text(p,cx+R+11,cy+7,'ALM',3,'#cfcfcf',true);
+    el(p,cx+R+10,cy-5,8,10,o.gold); for(let i=0;i<4;i++){ el(p,cx+R+11,cy-4+i*3,6,1,o.goldSh); }
+    const push=(deg,label)=>{ const a=(deg-90)*Math.PI/180; const x=Math.round(cx+Math.cos(a)*(R+13)), y=Math.round(cy+Math.sin(a)*(R+13)); el(p,x-3,y-4,7,8,o.gold); el(p,x-3,y-4,7,1,'#fff4c0'); text(p,x+6,y-2,label,3,'#cfcfcf',true); };
+    push(60,'START'); push(120,'SPEED'); text(p,cx+R+19,cy+7,'ALM',3,'#cfcfcf',true);
     if(o.alarmArmed){ el(p,cx-R+8,cy+22,3,3,'#CC4444'); }
     // engraved speed chevrons at six o'clock, lit in gold when active
-    const sx=cx-16, sy=cy+26; for(let i=0;i<3;i++){ const lit=o.speed>=i+1; for(let k=0;k<=i;k++){ el(p,sx+i*11+k*4,sy-2,2,5,lit?o.gold:'rgba(0,0,0,0.18)'); } } if(o.speed===0){ el(p,sx+34,sy-2,2,5,'#a02020'); el(p,sx+38,sy-2,2,5,'#a02020'); }
+    const sx=cx-16, sy=cy+23; for(let i=0;i<3;i++){ const lit=o.speed>=i+1; for(let k=0;k<=i;k++){ el(p,sx+i*11+k*4,sy-2,2,5,lit?o.gold:'rgba(0,0,0,0.18)'); } } if(o.speed===0){ el(p,sx+34,sy-2,2,5,'#a02020'); el(p,sx+38,sy-2,2,5,'#a02020'); }
   }
   function speedStrip(id,o){
     const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
