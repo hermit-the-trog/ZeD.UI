@@ -3,8 +3,8 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1231330f` (S123, Oct 12 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 12 2026
-**Next session:** S124 — mockups for the four planned surfaces (screen icons, CaZio watch, dashboard, mechanics) + the UI scale axis. See Target.
+**Version:** `0.1.1231925f` (S123, Oct 12 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 12 2026
+**Next session:** S124 — director plays the v5 HUD props (dashboard + CaZio watch) on the controller; then the UI scale axis and the screen-icons + mechanics mockups. See Target.
 
 ## What ships
 
@@ -34,14 +34,14 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 5. Container strip lists only equipped bags + key rings (design question).
 5. Deferred from S113: grid-scroll surfaces (Identity, Forage) keep the `onDpadDir` adapter; hold-X drag has no visual feedback.
 
-- **Loop 2 (13:05-13:30) shipped:** vehicle dashboard with 18 interior cabins (`INTERIORS`), game brand names, LIGHTBAR + SIREN tiles, strip width per tile count; CaZio watch faces (8 items) all verified live; gamepad claim/B-release verified with the pair closed. Frames 28-45. Spec: `DASHBOARD_WATCH_SPEC.md`.
+- **Loop 2 (13:00-19:25) shipped the v5 HUD props:** vehicle dashboard and CaZio watch rebuilt as physical props on PNG plates generated from the locked mockups (`ZeDUI/tools/plates/`): 19 dash designs (16 seen live), 8 watch faces + no-watch strip, every control on a vanilla verb, gamepad claim / cue / hint / cone-nav verified, passenger read-only. Java clock + speed controls parked off-screen (B42 ignores setVisible). Spec: `DASHBOARD_WATCH_SPEC.md`; crops: `ZeDUI/qa/S123_contact_sheet/`.
 
 
 ## Target — S124 and after
 
 **Playable floor = full gamepad parity.** Dude tests on gamepad only.
 
-1. Mockups first (the ItemCard rule), then build, in this order unless Dude reorders: **screen icons** (`ISEquippedItem`), **CaZio watch** (Java clock replacement + weather/speed), **vehicle dashboard** (`ISPlayerDataObject.vehicleDashboard`), **vehicle mechanics** (`ISOpenMechanicsUIAction`). Entry points and design targets in `HOOK_MAP.md`.
+1. CaZio watch and vehicle dashboard are built (v5, mockups first). Next mockups-first builds: **screen icons** (`ISEquippedItem`) and **vehicle mechanics** (`ISOpenMechanicsUIAction`). Open HUD questions: DigitalDress steel vs gold, the lost temperature readout, fire / ranger / race designs unseen live. Entry points and design targets in `HOOK_MAP.md`.
 2. UI scale axis (item 3 above).
 3. Controller session on the QA save with the bridge logging.
 4. Then the rest of the HOOK_MAP gaps by session frequency: entity crafting stations → hotbar → fluid transfer → the info cards.
@@ -52,5 +52,5 @@ No `border-radius`. 1px borders (2px on High Contrast). No surface shadows, no b
 
 ## Where things are
 
-`42/media/lua/client/ZeD/` code (`Overrides/` = vanilla hooks) · `shared/ZeD/Tokens.lua` tokens · `HOOK_MAP.md` vanilla UI ledger · `PZAPI-KNOWLEDGE-BANK.md` 131 engine quirks + Q125–Q128 answers · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39) · `ZeDUI/deltas/` session journals · `ZeDUI/tools/qa/` bridge suites · `ZeDUI/qa/` contact sheets · `reference/` engine research · `archive/` retired docs.
+`42/media/lua/client/ZeD/` code (`Overrides/` = vanilla hooks) · `shared/ZeD/Tokens.lua` tokens · `HOOK_MAP.md` vanilla UI ledger · `PZAPI-KNOWLEDGE-BANK.md` 137 engine quirks + Q125–Q137 answers · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39) · `ZeDUI/deltas/` session journals · `ZeDUI/tools/qa/` bridge suites · `ZeDUI/qa/` contact sheets · `reference/` engine research · `archive/` retired docs.
 Design system (tokens, components, brand book): the ZeD-UI Design System artifact on claude.ai.
