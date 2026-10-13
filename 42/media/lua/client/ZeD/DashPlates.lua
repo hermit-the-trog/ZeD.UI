@@ -1292,6 +1292,7 @@ ZeD.DashPlates.console_sedan = {
     y = 116
   },
   preset1 = {
+    face = "#2a2a2a",
     h = 9,
     led = nil,
     litText = {
@@ -1306,6 +1307,7 @@ ZeD.DashPlates.console_sedan = {
     y = 58
   },
   preset2 = {
+    face = "#2a2a2a",
     h = 9,
     led = nil,
     litText = {
@@ -1320,6 +1322,7 @@ ZeD.DashPlates.console_sedan = {
     y = 58
   },
   preset3 = {
+    face = "#2a2a2a",
     h = 9,
     led = nil,
     litText = {
@@ -1334,6 +1337,7 @@ ZeD.DashPlates.console_sedan = {
     y = 58
   },
   preset4 = {
+    face = "#2a2a2a",
     h = 9,
     led = nil,
     litText = {
@@ -1348,6 +1352,7 @@ ZeD.DashPlates.console_sedan = {
     y = 58
   },
   preset5 = {
+    face = "#2a2a2a",
     h = 9,
     led = nil,
     litText = {
@@ -1362,6 +1367,7 @@ ZeD.DashPlates.console_sedan = {
     y = 58
   },
   preset6 = {
+    face = "#2a2a2a",
     h = 9,
     led = nil,
     litText = {
@@ -1376,6 +1382,7 @@ ZeD.DashPlates.console_sedan = {
     y = 58
   },
   pwr = {
+    face = "#2a2a2a",
     h = 9,
     led = nil,
     litText = {
@@ -1428,6 +1435,7 @@ ZeD.DashPlates.console_sport = {
     y = 92
   },
   band = {
+    face = "#1a1a1a",
     h = 10,
     led = nil,
     litText = {
@@ -1486,6 +1494,7 @@ ZeD.DashPlates.console_sport = {
     t = "knob"
   },
   preset1 = {
+    face = "#1a1a1a",
     h = 10,
     led = nil,
     litText = {
@@ -1500,6 +1509,7 @@ ZeD.DashPlates.console_sport = {
     y = 54
   },
   preset2 = {
+    face = "#1a1a1a",
     h = 10,
     led = nil,
     litText = {
@@ -1514,6 +1524,7 @@ ZeD.DashPlates.console_sport = {
     y = 54
   },
   preset3 = {
+    face = "#1a1a1a",
     h = 10,
     led = nil,
     litText = {
@@ -1528,6 +1539,7 @@ ZeD.DashPlates.console_sport = {
     y = 54
   },
   preset4 = {
+    face = "#1a1a1a",
     h = 10,
     led = nil,
     litText = {
@@ -1542,6 +1554,7 @@ ZeD.DashPlates.console_sport = {
     y = 54
   },
   pwr = {
+    face = "#1a1a1a",
     h = 10,
     led = nil,
     litText = {
@@ -1556,6 +1569,7 @@ ZeD.DashPlates.console_sport = {
     y = 54
   },
   scan = {
+    face = "#1a1a1a",
     h = 10,
     led = nil,
     litText = {

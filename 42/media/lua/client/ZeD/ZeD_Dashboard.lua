@@ -589,7 +589,12 @@ function ZeD_Dashboard:_drawHeadUnit(A, st, ox, oy)
             local pn = tonumber(id:sub(7))
             local lit = (id == "pwr" and on) or (pn ~= nil and ps[pn] ~= nil and st.channel == ps[pn])
             if b.led and lit then self:_rect(b.led.x + ox, b.led.y + oy, 4, 4, b.led.c) end
-            if b.litText and lit then self:_text(b.litText.x + ox, b.litText.y + oy, b.litText.lab, 4, b.litText.c, "c") end
+            if b.litText and lit then
+                -- repaint the button face first: the plate prints the label as 4 px silkscreen and the lit
+                -- label is a 9 px F5 glyph, so the two would ghost against each other (S124)
+                if b.face then self:_rect(b.x + 1 + ox, b.y + 1 + oy, b.w - 2, b.h - 2, b.face) end
+                self:_text(b.litText.x + ox, b.litText.y + oy, b.litText.lab, 4, b.litText.c, "c")
+            end
             if id == "pwr" and lit and not b.led and not b.litText then self:_rect(b.x + 2 + ox, b.y + 2 + oy, 3, 3, "#FF3A2A") end
             self:_control(id, b.x + ox, b.y + oy, b.w, b.h, st, st.hasRadio and id ~= "band" and id ~= "set")
         end

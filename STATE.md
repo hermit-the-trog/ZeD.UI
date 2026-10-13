@@ -3,8 +3,8 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1231000g` (S123, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
-**Next session:** S124 — director plays the v5 HUD props (dashboard + CaZio watch) on the controller; then the UI scale axis and the screen-icons + mechanics mockups. See Target.
+**Version:** `0.1.1241530h` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
+**Next session:** S125 — true scaling phase 2: the two windows on the root scale (token table + atom text on the distance-field faces + literal widths), verified at 1.0 / 1.33 / 2.0. See Target.
 
 ## What ships
 
@@ -29,11 +29,12 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 
 1. **Nothing was exercised with a physical controller.** A/X/Y hold timers, LB/RB chords, hold-X drag, the S122 context-menu anchor report, and the real feel of the prompt strip + sounds need one.
 2. **No female skeleton asset** — `fig-bg-*.png` is male; the female figure shows a dim `f-body.png` silhouette instead (design asset needed).
-3. **Resolution scaling (open).** The engine ships ZeD fonts at 1x–4x and exposes a font-size option (`getCore():getOptionFontSize()` — **2 on Dude's 3840×2160 rig**); ZeD text already follows it, ZeD layout tokens do not, which is why the windows look tight at 4K. `T.scale` (1.0 / 1.15) is read in only 9 places; window widths (372 + 36 + 36), strip sizes and most row metrics are file constants. Plan: (a) add an `xlarge` TextSize preset for ≥1440p/4K using the 2x fonts, (b) make every window constant token-derived (`T.scale`), (c) auto-pick by screen height when nothing is persisted. Multi-session; audit = numeric literals in the two window files.
+3. **Resolution scaling (phase 1 done, phase 2 open).** The root scale and zoomed distance-field text exist (`shared/ZeD/Scale.lua`, `ZeD.Font.sdf`); the HUD props use them. The two windows still lay out at 1x with the bitmap slots: phase 2 scales the token table, moves the main slots to the atlases and converts the literal widths. `T.scale` (1.0 / 1.15) is read in only 9 places; window widths (372 + 36 + 36), strip sizes and most row metrics are file constants. Plan: (a) add an `xlarge` TextSize preset for ≥1440p/4K using the 2x fonts, (b) make every window constant token-derived (`T.scale`), (c) auto-pick by screen height when nothing is persisted. Multi-session; audit = numeric literals in the two window files.
 4. On a fresh world load before the first ZeD open, the vanilla collapsed inventory strips show at the top.
 5. Container strip lists only equipped bags + key rings (design question).
 5. Deferred from S113: grid-scroll surfaces (Identity, Forage) keep the `onDpadDir` adapter; hold-X drag has no visual feedback.
 
+- **S124 (Oct 13) true UI scaling, phase 1:** `ZeD.Scale.root()` = screen height / 1080 x a mild font-option multiplier (4K rig = 2.0); `ZeD.Text` draws through the engine zoom path; five Fira roles baked as 64 px distance-field atlases (`ZeDUI/tools/fonts/bake_sdf.py`) on spare slots; the dashboard and watch scale from the root with crisp text at 1x and 2x (`ZeDUI/qa/S124_scale/`). The windows still draw at 1x with bitmap fonts until phase 2.
 - **Loop 2 (13:00-19:25) shipped the v5 HUD props:** vehicle dashboard and CaZio watch rebuilt as physical props on PNG plates generated from the locked mockups (`ZeDUI/tools/plates/`): 19 dash designs (16 seen live), 8 watch faces + no-watch strip, every control on a vanilla verb, gamepad claim / cue / hint / cone-nav verified, passenger read-only. Java clock + speed controls parked off-screen (B42 ignores setVisible). Spec: `DASHBOARD_WATCH_SPEC.md`; crops: `ZeDUI/qa/S123_contact_sheet/`.
 
 
