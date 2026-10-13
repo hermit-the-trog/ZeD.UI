@@ -73,10 +73,10 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     const outer=document.getElementById(id); outer.style.width='150px'; outer.style.height='176px'; const p=document.createElement('div'); p.className='px'; p.style.cssText='left:13px;top:0;width:124px;height:176px;background:transparent;'; outer.appendChild(p); const W=124,H=176;
     strap(p,34,0,56,28,o.strapKind,o.strap1,o.strap2); strap(p,34,148,56,28,o.strapKind,o.strap1,o.strap2);
     const cx=62, cy=88, R=40;
-    // lugs run from the straps into the cushion body
-    el(p,34,26,56,10,o.caseEdge); el(p,34,26,56,1,o.caseHi); el(p,34,27,56,1,'#000');
-    el(p,34,140,56,10,o.caseEdge); el(p,34,149,56,1,o.caseSh); el(p,34,148,56,1,'#000');
-    // round case body matching the round face: outer rim, body, chamfer highlight, then the bezel ring
+    // integrated lugs: a shoulder block the width of the band, drawn over the band ends
+    roundRect(p,32,24,60,128,10,o.caseSh); roundRect(p,34,26,56,124,9,o.caseFill); roundRectEdge(p,34,26,56,124,9,o.caseHi,o.caseSh);
+    el(p,34,26,56,1,o.caseHi); el(p,34,149,56,1,o.caseSh);
+    // round case body on top of the shoulders: outer rim, body, chamfer highlight, then the bezel ring
     disc(p,cx,cy,R+13,o.caseSh); disc(p,cx,cy,R+11,o.caseFill); ring(p,cx,cy,R+11,o.caseHi,1,200,340); ring(p,cx,cy,R+11,o.caseSh,1,20,160);
     ring(p,cx,cy,R+7,o.caseSh,1); ring(p,cx,cy,R+6,o.caseHi,1,200,340);
     disc(p,cx,cy,R+5,o.caseSh); disc(p,cx,cy,R+4,o.caseFill); ring(p,cx,cy,R+4,o.caseHi,1,180,360); ring(p,cx,cy,R+4,o.caseSh,1,0,180);
@@ -97,7 +97,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     const outer=document.getElementById(id); outer.style.width='150px'; outer.style.height='176px'; const p=document.createElement('div'); p.className='px'; p.style.cssText='left:13px;top:0;width:124px;height:176px;background:transparent;'; outer.appendChild(p); const W=124,H=176;
     strap(p,30,0,64,30,'oyster',o.gold,o.goldSh); strap(p,30,146,64,30,'oyster',o.gold,o.goldSh);
     const cx=62, cy=88, R=40;
-    bevel(p,30,30,64,12,o.gold,'#fff4c0',o.goldSh); bevel(p,30,134,64,12,o.gold,'#fff4c0',o.goldSh);
+    roundRect(p,28,26,68,124,10,o.goldSh); roundRect(p,30,28,64,120,9,o.gold); roundRectEdge(p,30,28,64,120,9,'#fff4c0',o.goldSh);
     disc(p,cx,cy,R+12,o.goldSh); disc(p,cx,cy,R+10,o.gold); ring(p,cx,cy,R+10,'#fff4c0',1,200,340); ring(p,cx,cy,R+8,o.goldSh,1);
     disc(p,cx,cy,R+5,o.goldSh); disc(p,cx,cy,R+4,o.gold);
     for(let d=0;d<360;d+=6){ run(p,cx,cy,d,R-2,R+3,(d%12===0)?'#fff4c0':o.goldSh,1); }
