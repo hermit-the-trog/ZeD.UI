@@ -1030,7 +1030,7 @@ local function drawBreadcrumb(panel, win, x, y, w)
     -- Back triangle
     local triSz = T.px(8)
     local triY = y + math.floor((T.px(BREADCRUMB_H) - triSz) / 2)
-    A.drawTriangleLeft(panel, x + pad, triY, triSz, T.accent.r, T.accent.g, T.accent.b, 0.9)
+    A.drawTriangleLeft(panel, x + pad, triY, triSz, { r = T.accent.r, g = T.accent.g, b = T.accent.b, a = 0.9 })   -- colour table, not four numbers
 
     -- Label
     local label = ""

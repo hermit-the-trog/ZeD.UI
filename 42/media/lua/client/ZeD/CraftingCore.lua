@@ -1620,6 +1620,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     curY = curY + chipH + T.px(4)
 
     local catHdrH = T.sp.catHdrH  -- 15px, same as inventory category separators
+    local mx, my = panel:getMouseX(), panel:getMouseY()   -- hoisted: the HOW TO LEARN hover test below used these before they were declared (nil globals)
 
     -- Learn info section (readOnly + not accessible — renders ABOVE required)
     if showLearnSection then
@@ -1665,7 +1666,6 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local reqCount = #(rd.ingredients or {})
     local haveCount = reqCount - (rd.missingCount or 0)
     local secLabel = "REQUIRED"
-    local mx, my = panel:getMouseX(), panel:getMouseY()
     local reqHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
     M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), secLabel,
         haveCount .. "/" .. reqCount, not state.reqCollapsed, reqHdrHover, T.fontF1, true, T.px(6), catHdrH)
