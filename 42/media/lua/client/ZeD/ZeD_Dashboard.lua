@@ -339,7 +339,7 @@ function ZeD_Dashboard:new(playerNum)
     return o
 end
 
-function ZeD_Dashboard:_scale() local T = ZeD.T; return ((T and T.scale) or 1) * (D.scale or 1) end
+function ZeD_Dashboard:_scale() local Sc = ZeD.Scale; return ((Sc and Sc.root and Sc.root()) or 1) * (D.scale or 1) end   -- S124: root scale (1080p = 1.0)
 
 function ZeD_Dashboard:_layout()
     local s = self:_scale()
@@ -387,8 +387,8 @@ local function fontFor(size, big)
 end
 -- width of a string in BASE px (unscaled) for the font that `size` maps to
 function ZeD_Dashboard:_measure(str, size, big)
-    local f = fontFor(size, big); local s = self._s or 1
-    return getTextManager():MeasureStringX(f, tostring(str)) / s
+    local f = fontFor(size, big)
+    return getTextManager():MeasureStringX(ZeD.Text.uifont(f), tostring(str))   -- base units: text is zoomed by s at draw time
 end
 -- trim a label to fit maxW base px: whole words first, then characters, with a trailing dot
 function ZeD_Dashboard:_fit(str, size, maxW, big)
@@ -402,12 +402,12 @@ function ZeD_Dashboard:_fit(str, size, maxW, big)
 end
 function ZeD_Dashboard:_text(x, y, str, size, c, align, big)
     str = tostring(str)   -- anchors carry numeric labels (preset 1..6); MeasureStringX wants a String
-    local s = self._s; c = col(c); local f = fontFor(size, big)
-    local tm = getTextManager(); local w = tm:MeasureStringX(f, str)
+    local s = self._s; c = col(c); local f = ZeD.Text.uifont(fontFor(size, big))
+    local tm = getTextManager(); local w = tm:MeasureStringX(f, str) * s      -- screen px at zoom s
     local px = x * s
     if align == "r" then px = px - w elseif align == "c" then px = px - w / 2 end
-    local h = tm:getFontHeight(f); local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
-    self:drawText(str, math.floor(px), math.floor(py), c.r, c.g, c.b, c.a or 1, f)
+    local h = tm:getFontHeight(f) * s; local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
+    self:drawTextZoomed(str, math.floor(px), math.floor(py), s, c.r, c.g, c.b, c.a or 1, f)   -- S124: glyphs follow the root scale
 end
 function ZeD_Dashboard:_needle(an, val, max, color)
     if val == nil then val = 0 end
