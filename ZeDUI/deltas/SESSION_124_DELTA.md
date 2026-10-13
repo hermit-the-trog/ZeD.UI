@@ -28,3 +28,9 @@ Survey: the Character and World windows read spacing and heights through `ZeD.T`
 
 ### Phase 1 verified (Oct 13, live)
 Forced root scale 1.0 / 1.333 / 2.0 on the sports-car dash and the digital watch (`ZeDUI/qa/S124_scale/`): dash 800x172 -> 1066x229 -> 1600x344, watch 124x176 -> 165x234 -> 248x352, every overlay and label in place at each scale, zero errors. With the override cleared the rig's natural root is 2.0 (2160 / 1080, font option 26px = neutral), so the HUD props now draw at 2x on the 4K screen by default. Remaining softness in 2x text is the bitmap atlas; the distance-field Fira atlases replace it (baker running).
+
+### Phase 1 text engine verified (Oct 13, live, commit dec84360)
+- Five Fira roles baked as distance-field atlases (`ZeDUI/tools/fonts/bake_sdf.py`, Opus 5.5 subagent): 64 px face, spread 2, 512x512 pages (ASCII on page 1), 200 glyphs each. Slots: body=MainMenu1, sec=MainMenu2, stat=Title, head=Massive, title=Cred2 (`type = sdf`); `MediumNew` ignores the manifest. The windows keep the bitmap slots until phase 2.
+- Finding (Q141): `drawText`/`drawTextZoomed` never bind the engine's SDF shader (only the PZAPI text atoms and the world map do), so the atlas ramp is blended raw and softens with zoom. A 32 px / spread 4 bake was crisp only at ~0.4x; the 64 px / spread 2 bake measures near-ideal anti-aliasing at 13 and 26 px, and live captures at root 2.0 and 1.0 show crisp readouts, labels and watch digits.
+- Wrinkle to fix: lit preset labels (drawn as 9 px F5 over the plate's 4 px silkscreen) ghost against the baked label; cover the button face before the lit text or match the silkscreen size now that text scales.
+- Ghost fixed: lit head-unit labels now repaint the button face (`face` colour recorded in the btn anchors by the generator, DashPlates regenerated; plates unchanged) before the lit text. Verified live on the Cossette console at root 2.0.
