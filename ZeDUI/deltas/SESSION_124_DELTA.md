@@ -25,3 +25,6 @@ Survey: the Character and World windows read spacing and heights through `ZeD.T`
 
 - Health figure: the female thigh overlay files were named for the wrong side (each painted its thigh on the outer edge of its 120 px tile); swapped `f-thigh-l.png` / `f-thigh-r.png`. The male figure and the hit rects were already consistent: "-l" = the character's left, drawn on the viewer's right.
 - Watch: thermo module on the digital LCDs, DigitalDress gold (S123 pass 5, commit 4c8693e6).
+
+### Phase 1 verified (Oct 13, live)
+Forced root scale 1.0 / 1.333 / 2.0 on the sports-car dash and the digital watch (`ZeDUI/qa/S124_scale/`): dash 800x172 -> 1066x229 -> 1600x344, watch 124x176 -> 165x234 -> 248x352, every overlay and label in place at each scale, zero errors. With the override cleared the rig's natural root is 2.0 (2160 / 1080, font option 26px = neutral), so the HUD props now draw at 2x on the 4K screen by default. Remaining softness in 2x text is the bitmap atlas; the distance-field Fira atlases replace it (baker running).
