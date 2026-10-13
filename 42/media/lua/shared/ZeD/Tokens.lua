@@ -308,6 +308,20 @@ F.rsv1       = { font = UIFont.Cred1,     px = 20 }  -- Chicago 20px
 F.rsv2       = { font = UIFont.Cred2,     px = 24 }  -- Chicago 24px
 F.rsv3       = { font = UIFont.MainMenu1, px = 16 }  -- Lekton Bold 16px
 F.rsv4       = { font = UIFont.MainMenu2, px = 20 }  -- Lekton Bold 20px
+
+-- S124 phase 1: distance-field Fira (crisp at any zoom, Q139) on spare slots. The windows keep the
+-- bitmap slots above until phase 2 converts their text path; the HUD props draw with these.
+-- face / lineH = the atlas metrics (64 px face, lineH approximate). The engine draws an SDF atlas at its
+-- native face at zoom 1 and its edge smoothing is a fixed band tuned for drawing a face at ~0.4x, so the
+-- face is baked at 64 px: body 13 px x root 2 = 26 px lands at 0.4x (crisp), 1080p at 0.2x (hard-edged).
+-- (rsv3 / rsv4 Lekton are unmapped while MainMenu1/2 carry these; nothing used them.)
+F.sdf = {
+    sec   = { font = UIFont.MainMenu2, px = 11, face = 64, lineH = 77, sdf = true },  -- F1 Chrome: Fira Mono Bold
+    body  = { font = UIFont.MainMenu1, px = 13, face = 64, lineH = 77, sdf = true },  -- F2 Body: Fira Sans Medium
+    stat  = { font = UIFont.Title,     px = 11, face = 64, lineH = 77, sdf = true },  -- F3 Data: Fira Mono
+    head  = { font = UIFont.Massive,   px = 15, face = 64, lineH = 77, sdf = true },  -- F4 Heading: Fira Sans Cond SemiBold
+    title = { font = UIFont.Cred2,     px =  9, face = 64, lineH = 77, sdf = true },  -- F5 Micro: Fira Sans Cond (MediumNew ignores the manifest; Cred2 frees rsv2 Chicago, unused)
+}
 ZeD.Font = F
 
 -- ---------------------------------------------------------------------------

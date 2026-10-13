@@ -66,20 +66,32 @@ font Cred1
     img = rsv1_0.png,
 }
 
-font Cred2
-{
-    fnt = rsv2.fnt,
-    img = rsv2_0.png,
-}
-
 font MainMenu1
 {
-    fnt = rsv3.fnt,
-    img = rsv3_0.png,
+    fnt = sdf/body.fnt,
+    type = sdf,
 }
 
 font MainMenu2
 {
-    fnt = rsv4.fnt,
-    img = rsv4_0.png,
+    fnt = sdf/sec.fnt,
+    type = sdf,
+}
+
+font Title
+{
+    fnt = sdf/stat.fnt,
+    type = sdf,
+}
+
+font Massive
+{
+    fnt = sdf/head.fnt,
+    type = sdf,
+}
+
+font Cred2
+{
+    fnt = sdf/title.fnt,
+    type = sdf,
 }

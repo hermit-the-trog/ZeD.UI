@@ -3,3 +3,6 @@
 .vscode/
 .DS_Store
 Thumbs.db
+
+# dev output of the font baker (large PNG previews)
+ZeDUI/tools/fonts/preview_*.png
