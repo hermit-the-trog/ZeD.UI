@@ -112,12 +112,16 @@ function X.zoomFor(f, px)
     return px / n
 end
 
--- Width / height in SCREEN px of `str` drawn at `zoom`.
+-- The engine TextManager, captured once (the global getTextManager is replaced below by the proxy).
+S._realGetTextManager = S._realGetTextManager or getTextManager
+function X.realTM() return S._realGetTextManager() end
+
+-- Width / height in SCREEN px of `str` drawn at `zoom` (explicit zoom: measured on the raw manager).
 function X.width(f, str, zoom)
-    return getTextManager():MeasureStringX(uifont(f), tostring(str)) * (zoom or 1)
+    return X.realTM():MeasureStringX(uifont(f), tostring(str)) * (zoom or 1)
 end
 function X.height(f, zoom)
-    return getTextManager():getFontHeight(uifont(f)) * (zoom or 1)
+    return X.realTM():getFontHeight(uifont(f)) * (zoom or 1)
 end
 
 -- Draw `str` on element `el` at screen px (x, y) with `zoom`; align "l" | "c" | "r" around x.
@@ -151,19 +155,41 @@ end
 ZeD.TM = ZeD.TM or {}
 local TM = ZeD.TM
 function TM:MeasureStringX(font, str)
-    return getTextManager():MeasureStringX(font, tostring(str)) * X.zoomOf(font)
+    return X.realTM():MeasureStringX(font, tostring(str)) * X.zoomOf(font)
 end
 function TM:MeasureStringY(font, str)
-    return getTextManager():MeasureStringY(font, tostring(str)) * X.zoomOf(font)
+    return X.realTM():MeasureStringY(font, tostring(str)) * X.zoomOf(font)
 end
 function TM:getFontHeight(font)
-    return getTextManager():getFontHeight(font) * X.zoomOf(font)
+    return X.realTM():getFontHeight(font) * X.zoomOf(font)
 end
-setmetatable(TM, { __index = function(_, k)
-    local tm = getTextManager(); local v = tm[k]
-    if type(v) == "function" then return function(_, ...) return v(tm, ...) end end
-    return v
+-- getFontFromEnum(font):getLineHeight() is how vanilla panels (ISRichTextPanel) size their lines:
+-- for a zoomed font hand back a thin proxy whose getLineHeight is zoomed, everything else passes through.
+function TM:getFontFromEnum(font)
+    local real = X.realTM():getFontFromEnum(font)
+    local z = X.zoomOf(font)
+    if z == 1 or real == nil then return real end
+    S._fontProxy = S._fontProxy or {}
+    local c = S._fontProxy[font]
+    if c and c.z == z and c.real == real then return c.proxy end
+    local proxy = setmetatable({ getLineHeight = function() return real:getLineHeight() * z end },
+        { __index = function(_, k) local v = real[k]; if type(v) == "function" then return function(_, ...) return v(real, ...) end end; return v end })
+    S._fontProxy[font] = { z = z, real = real, proxy = proxy }
+    return proxy
+end
+-- Any other method: wrapped once and cached on TM (the TextManager is a singleton; the wrapper
+-- re-fetches it per call so a Lua reload never holds a stale object). Plain values pass through.
+setmetatable(TM, { __index = function(t, k)
+    local tm = X.realTM(); local v = tm[k]
+    if type(v) ~= "function" then return v end
+    local wrapper = function(_, ...) local real = X.realTM(); return real[k](real, ...) end
+    rawset(t, k, wrapper)
+    return wrapper
 end })
+-- The global: vanilla panels that ZeD hands a role font (tooltip description, rich text) measure
+-- through the proxy too, so their wrapping matches the zoomed draws. Vanilla fonts measure unchanged.
+getTextManager = function() return TM end
+print("[ZeD] Scale: text manager proxy installed (role fonts measure zoomed)")
 
 -- Re-apply the theme (token table, font heights) when the root scale changes.
 S._appliedRoot = S._appliedRoot or nil

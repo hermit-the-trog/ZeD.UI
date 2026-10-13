@@ -3,8 +3,8 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1242100i` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
-**Next session:** S125 — director plays the scaled UI on the 4K rig (pair, drawers, cards, HUD props) + the controller pass; then the two agent-flagged bugs and the vanilla-framed leftovers (tooltip, map labels). See Target.
+**Version:** `0.1.1242200j` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
+**Next session:** S125 - director plays the scaled UI on the 4K rig (pair, drawers, cards, HUD props, tooltips, map) + the controller pass; then the **vehicle mechanics tab** (mockup first, HOOK_MAP row 3), then the main menu (plan in `ZeDUI/deltas/SESSION_124_DELTA.md`). See Target.
 
 ## What ships
 
@@ -13,6 +13,7 @@ History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 - Context menu: single horizontal strip, 114 `fi-br-*` icons, first-word fallback, System 7 paper/ink.
 - Theme engine: 3 bases (dark, hicon, light) × 9 accents × 2 text sizes (`shared/ZeD/Tokens.lua`). Fonts: Fira Mono + Fira Sans Condensed bitmap `.fnt` (1x–4x sets shipped).
 - Gamepad: S113 flat free-nav; every tab in both windows has a focusable builder; sub-tab pills switch on A; **capability-driven button prompts** in every window footer (derived from the focused element's callbacks); UI sounds on focus / A / B; F9 overlay gamepad-only.
+- HUD: the vanilla left-edge window buttons are hidden (`Overrides/ScreenIcons.lua`, S124); hand slots stay until the screen-icons surface.
 - Dev: `QABridge.lua` (`-debug` only) runs `Zomboid/Lua/zedqa.lua` on a trigger file; suites in `ZeDUI/tools/qa/`; contact sheets in `ZeDUI/qa/`; `HOOK_MAP.md` lists every vanilla UI entry point with its status.
 
 ## Gamepad model (locked S113 · design director, confirmed Oct 11 2026)
@@ -29,7 +30,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 
 1. **Nothing was exercised with a physical controller.** A/X/Y hold timers, LB/RB chords, hold-X drag, the S122 context-menu anchor report, and the real feel of the prompt strip + sounds need one.
 2. **No female skeleton asset** — `fig-bg-*.png` is male; the female figure shows a dim `f-body.png` silhouette instead (design asset needed).
-3. **Resolution scaling: done (S124).** Root scale = screen height / 1080 x a mild font-option multiplier; tokens, text (distance-field Fira), borders, the HUD props and both windows draw in design units through `T.px`; a root change closes and reopens the pair. Left: the vanilla-framed tooltip, the vanilla map labels, and two pre-existing bugs the conversion agents spotted (CraftingCore `mx`/`my`, AnimalsTab breadcrumb arrow colour).
+3. **Resolution scaling: done (S124).** Root scale = screen height / 1080 x a mild font-option multiplier; tokens, text (distance-field Fira), borders, the HUD props, both windows, the tooltip frame and the embedded map labels draw in design units through `T.px`; a root change closes and reopens the pair. The global `getTextManager` is the `ZeD.TM` proxy (role fonts measure zoomed; explicit-zoom paths use `ZeD.Text.realTM()`). Left: the Java-drawn item tooltip (`ObjectTooltip`) keeps the engine size.
 4. On a fresh world load before the first ZeD open, the vanilla collapsed inventory strips show at the top.
 5. Container strip lists only equipped bags + key rings (design question).
 5. Deferred from S113: grid-scroll surfaces (Identity, Forage) keep the `onDpadDir` adapter; hold-X drag has no visual feedback.
@@ -42,7 +43,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 
 **Playable floor = full gamepad parity.** Dude tests on gamepad only.
 
-1. CaZio watch and vehicle dashboard are built (v5, mockups first). Next mockups-first builds: **screen icons** (`ISEquippedItem`) and **vehicle mechanics** (`ISOpenMechanicsUIAction`). Open HUD questions: fire / ranger / race designs unseen live (DigitalDress is gold and the digital LCDs carry the thermo as of Oct 13). Entry points and design targets in `HOOK_MAP.md`.
+1. CaZio watch and vehicle dashboard are built (v5, mockups first). Next mockups-first builds: **vehicle mechanics** (`ISOpenMechanicsUIAction` -> World window Vehicle tab), then the **main menu** (CRT room mockup `ZeDUI/mockups/zed-main-menu-crt-v7_1.html`, plan in the S124 delta), then **screen icons** (`ISEquippedItem`; its window buttons are already hidden). New ledger rows 20-25 (hutch, trough, animal genome / tracks / butcher hook, animals in vehicles, journal writing, keypad codes). Open HUD questions: fire / ranger / race designs unseen live (DigitalDress is gold and the digital LCDs carry the thermo as of Oct 13). Entry points and design targets in `HOOK_MAP.md`.
 2. UI scale axis (item 3 above).
 3. Controller session on the QA save with the bridge logging.
 4. Then the rest of the HOOK_MAP gaps by session frequency: entity crafting stations → hotbar → fluid transfer → the info cards.

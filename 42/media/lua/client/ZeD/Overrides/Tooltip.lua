@@ -21,6 +21,73 @@ local function applyTooltipOverrides()
     local _vanilla_inv_prerender = ISToolTipInv.prerender
     local _vanilla_inv_render    = ISToolTipInv.render
     local _vanilla_inv_new       = ISToolTipInv.new
+    local _vanilla_doLayout      = ISToolTip.doLayout
+    local _vanilla_getFont       = ISToolTip.GetFont
+    local _vanilla_renderContents = ISToolTip.renderContents
+
+    -- ========================================================================
+    -- Layout in design units (S124). Mirrors vanilla doLayout with the ZeD role
+    -- fonts (F2 title / description, F1 footnote) and T.px for every offset, so
+    -- the frame fits the zoomed text at any root scale.
+    -- ========================================================================
+    function ISToolTip.GetFont()
+        local T = ZeD.T
+        if T and T.fontF2 then return T.fontF2 end
+        return _vanilla_getFont()
+    end
+
+    function ISToolTip:doLayout()
+        local T = ZeD.T
+        if not T or not T.px then return _vanilla_doLayout(self) end
+        local TMx = ZeD.TM
+        local textX, textY, textWidth, textHeight = T.px(10), 0, 0, 0
+        local textureX, textureY, textureWidth, textureHeight = T.px(8), T.px(5), 0, 0
+        if self.texture then
+            textureWidth  = T.px(self.texture:getWidth())
+            textureHeight = T.px(self.texture:getHeight()) + T.px(5)
+            textX = textureX + textureWidth + T.px(10)
+        end
+        local nameWidth, nameHeight = 0, 0
+        if self.name then
+            nameWidth  = TMx:MeasureStringX(T.fontF2, self.name) + T.px(self.nameMarginX or 50)
+            nameHeight = TMx:getFontHeight(T.fontF2)
+            textureY = T.px(35)
+            textY    = T.px(25)
+        end
+        local defaultW = T.px(self.defaultMyWidth or 220)
+        textWidth, textHeight = self:layoutContents(textX, textY, math.max(defaultW, nameWidth))
+        local myWidth  = defaultW
+        local myHeight = math.max(nameHeight, math.max(textureY + textureHeight, textY + textHeight))
+        if myWidth < textX + textWidth then myWidth = textX + textWidth end
+        if myWidth < nameWidth then myWidth = nameWidth end
+        if self.footNote then
+            local noteWidth = TMx:MeasureStringX(T.fontF1, self.footNote)
+            if myWidth < noteWidth then myWidth = noteWidth end
+            myHeight = myHeight + TMx:getFontHeight(T.fontF1) + T.px(4)
+        end
+        if self.name then
+            myHeight = myHeight + math.max(0, TMx:getFontHeight(T.fontF2) - TMx:getFontHeight(T.fontF1)) + T.px(4)
+        end
+        self:setWidth(myWidth + T.px(20))
+        self:setHeight(myHeight)
+    end
+
+    function ISToolTip:renderContents()
+        local T = ZeD.T
+        if not T or not T.px then return _vanilla_renderContents(self) end
+        if self.description ~= "" then
+            if self.texture then
+                self.descriptionPanel:setX(self:getAbsoluteX() + T.px(8) + T.px(self.texture:getWidth()) + T.px(10))
+            else
+                self.descriptionPanel:setX(self:getAbsoluteX() + T.px(10))
+            end
+            local y = 0
+            if self.name then y = ZeD.TM:getFontHeight(T.fontF2) end
+            self.descriptionPanel:setY(self:getAbsoluteY() + y)
+            self.descriptionPanel:prerender()
+            self.descriptionPanel:render()
+        end
+    end
 
     -- ========================================================================
     -- ISToolTip:prerender()
@@ -94,18 +161,17 @@ local function applyTooltipOverrides()
         local bc = T.borderS
         self:drawRectBorder(0, 0, self.width, self.height, bc.a, bc.r, bc.g, bc.b)
 
-        -- Texture (vanilla)
+        -- Texture (design units, matches doLayout above)
         if self.texture then
-            -- S124 TODO scale? textureY 35/5, the native-size texture, title y 5 and footer -4 sit in vanilla doLayout's unscaled frame (description panel placed by vanilla); scale together with a ZeD doLayout
-            local textureY = self.name and 35 or 5
-            self:drawTextureScaledAspect(self.texture, pad, textureY,
-                self.texture:getWidth(), self.texture:getHeight(), 1, 1, 1, 1)
+            local textureY = self.name and T.px(35) or T.px(5)
+            self:drawTextureScaledAspect(self.texture, T.px(8), textureY,
+                T.px(self.texture:getWidth()), T.px(self.texture:getHeight()), 1, 1, 1, 1)
         end
 
         -- Title: accent color, body font
         if self.name then
             local ac = T.accent
-            self:drawText(self.name, pad, 5, ac.r, ac.g, ac.b, ac.a, T.fontF2)  -- S124 TODO scale? y 5 is vanilla doLayout frame (see texture note)
+            self:drawText(self.name, T.px(8), T.px(5), ac.r, ac.g, ac.b, ac.a, T.fontF2)
         end
 
         -- Description (ISRichTextPanel)
@@ -116,7 +182,7 @@ local function applyTooltipOverrides()
             local fontHgt = ZeD.TM:getFontHeight(T.fontF1)
             local fc = T.textSec
             self:drawTextCentre(self.footNote, self:getWidth() / 2,
-                self:getHeight() - fontHgt - 4, fc.r, fc.g, fc.b, fc.a, T.fontF1)  -- S124 TODO scale? -4 is vanilla doLayout frame (see texture note)
+                self:getHeight() - fontHgt - T.px(4), fc.r, fc.g, fc.b, fc.a, T.fontF1)
         end
     end
 
