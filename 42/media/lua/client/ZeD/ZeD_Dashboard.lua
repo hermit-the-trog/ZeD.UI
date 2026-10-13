@@ -404,10 +404,10 @@ function ZeD_Dashboard:_text(x, y, str, size, c, align, big)
     str = tostring(str)   -- anchors carry numeric labels (preset 1..6); MeasureStringX wants a String
     local s = self._s; c = col(c); local fe = fontFor(size, big); local f = ZeD.Text.uifont(fe)
     local z = ZeD.Text.zoomFor(fe, fe.px * s)                                   -- role design px x root scale
-    local tm = ZeD.TM; local w = tm:MeasureStringX(f, str) * z      -- screen px at zoom z
+    local w = ZeD.Text.width(f, str, z)                                        -- screen px at zoom z (raw manager x explicit zoom)
     local px = x * s
     if align == "r" then px = px - w elseif align == "c" then px = px - w / 2 end
-    local h = tm:getFontHeight(f) * z; local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
+    local h = ZeD.Text.height(f, z); local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
     self:drawTextZoomed(str, math.floor(px), math.floor(py), z, c.r, c.g, c.b, c.a or 1, f)   -- S124: glyphs follow the root scale
 end
 function ZeD_Dashboard:_needle(an, val, max, color)

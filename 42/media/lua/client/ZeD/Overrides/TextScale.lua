@@ -38,7 +38,7 @@ if not ISUIElement._zedTextScalePatched then
         if z == 1 then return origDrawTextRight(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
             str = tostring(str)
-            local w = getTextManager():MeasureStringX(font, str) * z
+            local w = X.realTM():MeasureStringX(font, str) * z
             self.javaObject:DrawText(font, str, x - w, y, z, r, g, b, a)
         end
     end
@@ -49,7 +49,7 @@ if not ISUIElement._zedTextScalePatched then
         if z == 1 then return origDrawTextCentre(self, str, x, y, r, g, b, a, font) end
         if self.javaObject ~= nil then
             str = tostring(str)
-            local w = getTextManager():MeasureStringX(font, str) * z
+            local w = X.realTM():MeasureStringX(font, str) * z
             self.javaObject:DrawText(font, str, x - w / 2, y, z, r, g, b, a)
         end
     end

@@ -149,6 +149,18 @@ function ZeD_WorldMap:createChildren()
             MapUtils.initDefaultStreetData(self)
         end
         MapUtils.initDefaultStyleV3(self)
+        -- S124: the label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
+        -- with the root so street and town names grow with the rest of the UI.
+        pcall(function()
+            local root = (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1
+            local styleAPI = self.mapAPI:getStyleAPI()
+            local BASE = { ["text-note"] = 40, ["text-street"] = 48, ["text-building"] = 48, ["text-place"] = 48, ["text-town"] = 48,
+                           ["text-forest"] = 32, ["text-water-small"] = 32, ["text-water-medium"] = 32, ["text-water-nofade"] = 32 }
+            for name, base in pairs(BASE) do
+                local layer = styleAPI:getLayerByName(name)
+                if layer then layer:setLineHeight(math.floor(base * root + 0.5)) end
+            end
+        end)
         if MapUtils.overlayPaper then
             MapUtils.overlayPaper(self)
         end
