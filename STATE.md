@@ -52,5 +52,5 @@ No `border-radius`. 1px borders (2px on High Contrast). No surface shadows, no b
 
 ## Where things are
 
-`42/media/lua/client/ZeD/` code (`Overrides/` = vanilla hooks) · `shared/ZeD/Tokens.lua` tokens · `HOOK_MAP.md` vanilla UI ledger · `PZAPI-KNOWLEDGE-BANK.md` 140 engine quirks + Q125–Q140 answers · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39) · `ZeDUI/deltas/` session journals · `ZeDUI/tools/qa/` bridge suites · `ZeDUI/qa/` contact sheets · `reference/` engine research · `archive/` retired docs.
+`42/media/lua/client/ZeD/` code (`Overrides/` = vanilla hooks) · `shared/ZeD/Tokens.lua` tokens · `HOOK_MAP.md` vanilla UI ledger · `PZAPI-KNOWLEDGE-BANK.md` 141 engine quirks + Q125–Q141 answers · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39) · `ZeDUI/deltas/` session journals · `ZeDUI/tools/qa/` bridge suites · `ZeDUI/qa/` contact sheets · `reference/` engine research · `archive/` retired docs.
 Design system (tokens, components, brand book): the ZeD-UI Design System artifact on claude.ai.

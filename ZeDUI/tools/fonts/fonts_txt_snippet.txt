@@ -1,0 +1,29 @@
+font Small
+{
+    fnt = sdf/body.fnt,
+    type = sdf,
+}
+
+font NewMedium
+{
+    fnt = sdf/sec.fnt,
+    type = sdf,
+}
+
+font Medium
+{
+    fnt = sdf/stat.fnt,
+    type = sdf,
+}
+
+font NewLarge
+{
+    fnt = sdf/head.fnt,
+    type = sdf,
+}
+
+font Code
+{
+    fnt = sdf/title.fnt,
+    type = sdf,
+}

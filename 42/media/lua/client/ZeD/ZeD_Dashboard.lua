@@ -380,15 +380,15 @@ function ZeD_Dashboard:_run(cx, cy, deg, r0, r1, c, thick)
     end
 end
 local function fontFor(size, big)
-    local T = ZeD.T
-    if big or (size or 5) >= 11 then return T.fontF4 end
-    if (size or 5) >= 7 then return T.fontF3 end
-    return T.fontF5
+    local F = ZeD.Font.sdf   -- S124: distance-field roles (crisp at any root scale)
+    if big or (size or 5) >= 11 then return F.head end
+    if (size or 5) >= 7 then return F.stat end
+    return F.title
 end
 -- width of a string in BASE px (unscaled) for the font that `size` maps to
 function ZeD_Dashboard:_measure(str, size, big)
     local f = fontFor(size, big)
-    return getTextManager():MeasureStringX(ZeD.Text.uifont(f), tostring(str))   -- base units: text is zoomed by s at draw time
+    return ZeD.Text.width(f, str, ZeD.Text.zoomFor(f, f.px))   -- base units (design px at root 1)
 end
 -- trim a label to fit maxW base px: whole words first, then characters, with a trailing dot
 function ZeD_Dashboard:_fit(str, size, maxW, big)
@@ -402,12 +402,13 @@ function ZeD_Dashboard:_fit(str, size, maxW, big)
 end
 function ZeD_Dashboard:_text(x, y, str, size, c, align, big)
     str = tostring(str)   -- anchors carry numeric labels (preset 1..6); MeasureStringX wants a String
-    local s = self._s; c = col(c); local f = ZeD.Text.uifont(fontFor(size, big))
-    local tm = getTextManager(); local w = tm:MeasureStringX(f, str) * s      -- screen px at zoom s
+    local s = self._s; c = col(c); local fe = fontFor(size, big); local f = ZeD.Text.uifont(fe)
+    local z = ZeD.Text.zoomFor(fe, fe.px * s)                                   -- role design px x root scale
+    local tm = getTextManager(); local w = tm:MeasureStringX(f, str) * z      -- screen px at zoom z
     local px = x * s
     if align == "r" then px = px - w elseif align == "c" then px = px - w / 2 end
-    local h = tm:getFontHeight(f) * s; local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
-    self:drawTextZoomed(str, math.floor(px), math.floor(py), s, c.r, c.g, c.b, c.a or 1, f)   -- S124: glyphs follow the root scale
+    local h = tm:getFontHeight(f) * z; local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
+    self:drawTextZoomed(str, math.floor(px), math.floor(py), z, c.r, c.g, c.b, c.a or 1, f)   -- S124: glyphs follow the root scale
 end
 function ZeD_Dashboard:_needle(an, val, max, color)
     if val == nil then val = 0 end

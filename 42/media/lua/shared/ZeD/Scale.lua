@@ -89,6 +89,27 @@ local function uifont(f)
 end
 X.uifont = uifont
 
+-- Nominal size (px) at which the engine draws a font entry at zoom 1. SDF faces are normalised
+-- by the engine; calibrate from the reported font height against the atlas line height.
+function X.nominal(f)
+    if type(f) ~= "table" then return nil end
+    if f.nominal then return f.nominal end
+    if f.sdf and f.face then
+        -- measured Oct 13: the engine draws a distance-field atlas at its native face size at zoom 1
+        -- (32 px face -> 10 x "H" = 223 px for the body role), so the nominal IS the face size
+        f.nominal = f.face
+    else
+        f.nominal = f.px
+    end
+    return f.nominal
+end
+-- Zoom that draws entry f `px` pixels tall (its design px times the root scale, usually).
+function X.zoomFor(f, px)
+    local n = X.nominal(f)
+    if not n or n <= 0 then return 1 end
+    return px / n
+end
+
 -- Width / height in SCREEN px of `str` drawn at `zoom`.
 function X.width(f, str, zoom)
     return getTextManager():MeasureStringX(uifont(f), tostring(str)) * (zoom or 1)
