@@ -167,15 +167,32 @@ end })
 
 -- Re-apply the theme (token table, font heights) when the root scale changes.
 S._appliedRoot = S._appliedRoot or nil
+-- Open windows keep their screen-px geometry, so after a root change the pair is closed and
+-- reopened (it restores from design units). Two ticks apart so the close settles first.
+S._reopenAt = nil
+local function reopenPairIfOpen()
+    local CW = ZeD_CharacterWindow
+    if CW and CW.isOpen and CW.toggleBothPaired and CW.isOpen() and getGameSpeed and getGameSpeed() > 0 then
+        pcall(CW.toggleBothPaired, 0)        -- close both
+        S._reopenAt = 3
+    end
+end
 local function rootChanged()
     if S._appliedRoot ~= nil and S._root ~= nil and math.abs(S._appliedRoot - S._root) > 0.001 and ZeD.applyTheme and not S._reapplying then
         S._reapplying = true
+        pcall(reopenPairIfOpen)   -- close FIRST: the close path persists geometry divided by the current (old) scale
         pcall(ZeD.applyTheme)
         S._reapplying = false
     end
 end
 if Events and Events.OnTick then
-    Events.OnTick.Add(function() if S._tick == 0 then rootChanged() end end)
+    Events.OnTick.Add(function()
+        if S._tick == 0 then rootChanged() end
+        if S._reopenAt then
+            S._reopenAt = S._reopenAt - 1
+            if S._reopenAt <= 0 then S._reopenAt = nil; local CW = ZeD_CharacterWindow; if CW and CW.toggleBothPaired then pcall(CW.toggleBothPaired, 0) end end
+        end
+    end)
 end
 
 return S

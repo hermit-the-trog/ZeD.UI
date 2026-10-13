@@ -3,8 +3,8 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1241530h` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
-**Next session:** S125 — true scaling phase 2: the two windows on the root scale (token table + atom text on the distance-field faces + literal widths), verified at 1.0 / 1.33 / 2.0. See Target.
+**Version:** `0.1.1242100i` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
+**Next session:** S125 — director plays the scaled UI on the 4K rig (pair, drawers, cards, HUD props) + the controller pass; then the two agent-flagged bugs and the vanilla-framed leftovers (tooltip, map labels). See Target.
 
 ## What ships
 
@@ -29,7 +29,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 
 1. **Nothing was exercised with a physical controller.** A/X/Y hold timers, LB/RB chords, hold-X drag, the S122 context-menu anchor report, and the real feel of the prompt strip + sounds need one.
 2. **No female skeleton asset** — `fig-bg-*.png` is male; the female figure shows a dim `f-body.png` silhouette instead (design asset needed).
-3. **Resolution scaling (phase 1 done, phase 2 open).** The root scale and zoomed distance-field text exist (`shared/ZeD/Scale.lua`, `ZeD.Font.sdf`); the HUD props use them. The two windows still lay out at 1x with the bitmap slots: phase 2 scales the token table, moves the main slots to the atlases and converts the literal widths. `T.scale` (1.0 / 1.15) is read in only 9 places; window widths (372 + 36 + 36), strip sizes and most row metrics are file constants. Plan: (a) add an `xlarge` TextSize preset for ≥1440p/4K using the 2x fonts, (b) make every window constant token-derived (`T.scale`), (c) auto-pick by screen height when nothing is persisted. Multi-session; audit = numeric literals in the two window files.
+3. **Resolution scaling: done (S124).** Root scale = screen height / 1080 x a mild font-option multiplier; tokens, text (distance-field Fira), borders, the HUD props and both windows draw in design units through `T.px`; a root change closes and reopens the pair. Left: the vanilla-framed tooltip, the vanilla map labels, and two pre-existing bugs the conversion agents spotted (CraftingCore `mx`/`my`, AnimalsTab breadcrumb arrow colour).
 4. On a fresh world load before the first ZeD open, the vanilla collapsed inventory strips show at the top.
 5. Container strip lists only equipped bags + key rings (design question).
 5. Deferred from S113: grid-scroll surfaces (Identity, Forage) keep the `onDpadDir` adapter; hold-X drag has no visual feedback.
@@ -53,5 +53,5 @@ No `border-radius`. 1px borders (2px on High Contrast). No surface shadows, no b
 
 ## Where things are
 
-`42/media/lua/client/ZeD/` code (`Overrides/` = vanilla hooks) · `shared/ZeD/Tokens.lua` tokens · `HOOK_MAP.md` vanilla UI ledger · `PZAPI-KNOWLEDGE-BANK.md` 141 engine quirks + Q125–Q141 answers · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39) · `ZeDUI/deltas/` session journals · `ZeDUI/tools/qa/` bridge suites · `ZeDUI/qa/` contact sheets · `reference/` engine research · `archive/` retired docs.
+`42/media/lua/client/ZeD/` code (`Overrides/` = vanilla hooks) · `shared/ZeD/Tokens.lua` tokens · `HOOK_MAP.md` vanilla UI ledger · `PZAPI-KNOWLEDGE-BANK.md` 142 engine quirks + Q125–Q142 answers · `KAHLUA-JAVA-BACKEND.md` · specs: `GAMEPAD_SPEC.md` `CONTEXT_MENU_SPEC.md` `TOOLTIP_SPEC.md` `CRAFTING_SPEC.md` `FORAGING_SPEC.md` `PROTECTION_SPEC.md` `TYPOGRAPHY_DECISION_PAIRING_D.md` · `ZeDUI/mockups/` (39) · `ZeDUI/deltas/` session journals · `ZeDUI/tools/qa/` bridge suites · `ZeDUI/qa/` contact sheets · `reference/` engine research · `archive/` retired docs.
 Design system (tokens, components, brand book): the ZeD-UI Design System artifact on claude.ai.
