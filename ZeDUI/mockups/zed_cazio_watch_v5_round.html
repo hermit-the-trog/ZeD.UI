@@ -70,7 +70,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     text(p,62,146,'WATER RESIST',3,o.metalTxt,false,'c',1);
   }
   function roundClassic(id,o){
-    const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
+    const outer=document.getElementById(id); outer.style.width='150px'; outer.style.height='176px'; const p=document.createElement('div'); p.className='px'; p.style.cssText='left:13px;top:0;width:124px;height:176px;background:transparent;'; outer.appendChild(p); const W=124,H=176;
     strap(p,34,0,56,28,o.strapKind,o.strap1,o.strap2); strap(p,34,148,56,28,o.strapKind,o.strap1,o.strap2);
     const cx=62, cy=88, R=40;
     // lugs run from the straps into the cushion body
@@ -94,7 +94,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     el(p,113,cy-5,7,10,o.caseFill); border(p,113,cy-5,7,10,o.caseSh); el(p,114,cy-3,5,1,o.caseHi); el(p,114,cy,5,1,o.caseSh); el(p,114,cy+3,5,1,o.caseSh);
   }
   function expensive(id,o){
-    const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
+    const outer=document.getElementById(id); outer.style.width='150px'; outer.style.height='176px'; const p=document.createElement('div'); p.className='px'; p.style.cssText='left:13px;top:0;width:124px;height:176px;background:transparent;'; outer.appendChild(p); const W=124,H=176;
     strap(p,30,0,64,30,'oyster',o.gold,o.goldSh); strap(p,30,146,64,30,'oyster',o.gold,o.goldSh);
     const cx=62, cy=88, R=40;
     bevel(p,36,30,52,12,o.gold,'#fff4c0',o.goldSh); bevel(p,36,134,52,12,o.gold,'#fff4c0',o.goldSh);
