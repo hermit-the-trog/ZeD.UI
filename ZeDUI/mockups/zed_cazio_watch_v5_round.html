@@ -62,7 +62,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     const lx=20, ly=48, lw=84, lh=34; bevel(p,lx-1,ly-1,lw+2,lh+2,'#000','#000','#333'); el(p,lx,ly,lw,lh,o.lcdBg);
     const fg=o.lcdFg, dim=o.lcdDim;
     if(o.setOpen){ text(p,lx+lw/2,ly+3,'ALARM SET',4,fg,false,'c'); text(p,lx+lw/2,ly+10,o.alarm,15,fg,true,'c',1); text(p,lx+lw/2,ly+27,'HOUR  A SET  B BACK',3,dim,false,'c'); }
-    else { text(p,lx+3,ly+3,o.pm?'P':'',4,fg,true); speedInd(p,lx+14,ly+5,fg,dim,o.speed); text(p,lx+lw-3,ly+3,o.alarmArmed?'ALM':'',4,fg,true,'r');
+    else { text(p,lx+3,ly+3,o.pm?'P':'',4,fg,true); speedInd(p,lx+14,ly+5,fg,dim,o.speed); text(p,lx+lw-3,ly+3,o.alarmArmed?'ALM':'',4,fg,true,'r'); text(p,lx+3,ly+27,o.thermo||'21\u00b0C',4,fg,true);
       text(p,lx+lw/2-6,ly+11,o.time,17,fg,true,'c',1); text(p,lx+lw-3,ly+15,o.day,5,fg,true,'r'); text(p,lx+lw-3,ly+22,o.date,5,fg,true,'r'); }
     text(p,62,86,'TIME · ALARM · SPEED · SET',3,'#8a8a8a',false,'c');
     frontKey(p,22,100,36,11,'ALARM',o.key1,false); frontKey(p,66,100,36,11,'SET',o.key2,!!o.setOpen);

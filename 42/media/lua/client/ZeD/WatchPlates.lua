@@ -400,6 +400,10 @@ ZeD.WatchPlates.digital_black = {
       x = 34,
       y = 53
     },
+    thermo = {
+      x = 23,
+      y = 75
+    },
     time = {
       size = 17,
       x = 56,
@@ -502,6 +506,10 @@ ZeD.WatchPlates.digital_dress = {
     speed = {
       x = 34,
       y = 53
+    },
+    thermo = {
+      x = 23,
+      y = 75
     },
     time = {
       size = 17,
@@ -606,6 +614,10 @@ ZeD.WatchPlates.digital_gold = {
       x = 34,
       y = 53
     },
+    thermo = {
+      x = 23,
+      y = 75
+    },
     time = {
       size = 17,
       x = 56,
@@ -708,6 +720,10 @@ ZeD.WatchPlates.digital_red = {
     speed = {
       x = 34,
       y = 53
+    },
+    thermo = {
+      x = 23,
+      y = 75
     },
     time = {
       size = 17,
