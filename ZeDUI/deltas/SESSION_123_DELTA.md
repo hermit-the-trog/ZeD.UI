@@ -284,3 +284,11 @@ Compile + hot-load clean. `addVehicleDebug("Base.CarNormal")` (paint hue .15 / s
 **Discovered.** Q132-Q137 in the knowledge bank (HashSet vehicle list, clock parking, addVehicleDebug square + far-vehicle physics NPE, Java strings, console rotation, TakeFullScreenshot).
 
 **Open for the director.** DigitalDress steel vs gold (`W.dressVariant`); the vanilla clock also showed the air temperature - gone with the watch (thermometer prop?); fire / ranger / race designs not seen live (no such vehicle in the QA cell); signal ladder is a fixed 5-of-8 (no API); the A tap resolver needs a physical controller (onActivate wiring verified directly); overall HUD size at 4K rides on the UI scale axis (dash 800x172, watch 124/150x176 at 1x).
+
+### Loop 2, pass 5 (Oct 13 2026, morning) - director decisions: thermo on the digital watches, DigitalDress is gold
+
+- **Thermo module.** The digital LCDs print the air temperature the way the vanilla clock did (`getClimateManager():getAirTemperatureForCharacter(player, false)`, Celsius/Fahrenheit from `getCore():getOptionTemperatureDisplayCelsius()`, rounded, degree sign = `string.char(176)`), bottom-left of the LCD under the speed indicator (anchor `lcd.thermo` = lx+3, ly+27). Mockup `zed_cazio_watch_v5_round.html`, generator `plates_watch.html` and `WatchPlates.lua` carry the new anchor; classic and expensive faces unchanged (director: digital only). Hidden while ALARM SET is open.
+- **DigitalDress = gold** (`W.dressVariant` default "gold"; the steel plate stays shipped).
+- `anchors2lua.pl` now emits the parent table (`ZeD = ZeD or {}`) for a dotted global - regenerating `WatchPlates.lua` had dropped it.
+- Verified live (fresh launch, hot reload of the regenerated anchors + organism): "58°F" on black / gold dress / red faces with the rig's Fahrenheit option, the stencil badge middle dot ("POLICE · UNIT 78") renders in the Fira bitmap font, no errors. Crops `qa_th2_*.png`, `qa_th_police_badge.png`.
+- Note for the pipeline: the game reads mod Lua at boot, so files regenerated after launch need the hot-reload script (`zedqa_hot2.lua`, which also reloads `WatchPlates.lua`).

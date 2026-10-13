@@ -27,7 +27,7 @@ local W = ZeD.Watch
 local PL = ZeD.WatchPlates
 local TEXDIR = "media/textures/ZeD/watch/"
 W.scale = W.scale or 1.0
-W.dressVariant = W.dressVariant or "dress"   -- "dress" (steel) or "gold" (director's call)
+W.dressVariant = W.dressVariant or "gold"   -- director (Oct 13 2026): the dress digital is gold   -- "dress" (steel) or "gold" (director's call)
 
 local function _safe(fn, default) local ok, v = pcall(fn); if ok then return v end; return default end
 local function hex(h)
@@ -46,6 +46,15 @@ local function _dayOfWeek(y, m, d)   -- Zeller, 1 = Sunday
     local k, j = y % 100, math.floor(y / 100)
     local h = (d + math.floor(13 * (m + 1) / 5) + k + math.floor(k / 4) + math.floor(j / 4) + 5 * j) % 7
     return ((h + 6) % 7) + 1
+end
+-- Air temperature as the vanilla clock shows it (ClimateManager, Celsius/Fahrenheit option); nil when unavailable
+local function _thermo(player)
+    local ok, t = pcall(function() return getClimateManager():getAirTemperatureForCharacter(player, false) end)
+    if not ok or type(t) ~= "number" then return nil end
+    local celsius = true
+    pcall(function() celsius = getCore():getOptionTemperatureDisplayCelsius() end)
+    if celsius == false then t = t * 9 / 5 + 32 end
+    return string.format("%d%s%s", math.floor(t + 0.5), string.char(176), (celsius == false) and "F" or "C")
 end
 local function _timeInfo()
     local gt = getGameTime()
@@ -226,6 +235,7 @@ function ZeD_Watch:prerender()
     self._hit = {}
     local speed = _speed()
     local ti = _timeInfo()
+    ti.thermo = _thermo(player)
     if not item then
         -- no watch: the plain speed strip
         local fw, fh = 100, 22
@@ -264,6 +274,7 @@ function ZeD_Watch:prerender()
             self:_text(L.time.x, L.time.y, ti.timeStr, 17, L.fg, "c")
             self:_text(L.day.x, L.day.y, ti.dow, 5, L.fg, "r")
             self:_text(L.date.x, L.date.y, tostring(ti.day), 5, L.fg, "r")
+            if L.thermo and ti.thermo then self:_text(L.thermo.x, L.thermo.y, ti.thermo, 4, L.fg, "l") end   -- thermo module (director, Oct 13 2026)
         end
         local kA, kS, kSp, kSt = A.keyAlarm, A.keySet, A.keySpeed, A.keyStart
         if self._setOpen then self:_rect(kS.x, kS.y, kS.w, kS.h, "#ffffff", 0.85) end

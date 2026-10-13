@@ -44,7 +44,7 @@ html, body { background:transparent; }
     roundRect(14,28,96,88,8,o.plate); roundRectEdge(14,28,96,88,8,'#000','#2a2a2a'); el(14,118,96,1,o.caseSh); el(14,119,96,1,o.caseHi);
     text(20,33,'CaZio',6,'#e0e0e0',true,'',0); el(88,31,14,7,o.wr); text(95,32,'WR',4,o.wrTxt||'#0a0a0a',true,'c'); text(62,41,'ALARM CHRONO · ILLUMINATOR',3,'#9a9a9a',false,'c');
     const lx=20, ly=48, lw=84, lh=34; bevel(lx-1,ly-1,lw+2,lh+2,'#000','#000','#333'); el(lx,ly,lw,lh,o.lcdBg);
-    A('lcd',{x:lx,y:ly,w:lw,h:lh,bg:o.lcdBg,fg:o.lcdFg,dim:o.lcdDim,pm:{x:lx+3,y:ly+3},speed:{x:lx+14,y:ly+5},alm:{x:lx+lw-3,y:ly+3},time:{x:lx+lw/2-6,y:ly+11,size:17},day:{x:lx+lw-3,y:ly+15},date:{x:lx+lw-3,y:ly+22},set:{title:{x:lx+lw/2,y:ly+3},value:{x:lx+lw/2,y:ly+10,size:15},hint:{x:lx+lw/2,y:ly+27}}});
+    A('lcd',{x:lx,y:ly,w:lw,h:lh,bg:o.lcdBg,fg:o.lcdFg,dim:o.lcdDim,pm:{x:lx+3,y:ly+3},speed:{x:lx+14,y:ly+5},alm:{x:lx+lw-3,y:ly+3},thermo:{x:lx+3,y:ly+27},time:{x:lx+lw/2-6,y:ly+11,size:17},day:{x:lx+lw-3,y:ly+15},date:{x:lx+lw-3,y:ly+22},set:{title:{x:lx+lw/2,y:ly+3},value:{x:lx+lw/2,y:ly+10,size:15},hint:{x:lx+lw/2,y:ly+27}}});
     text(62,86,'TIME · ALARM · SPEED · SET',3,'#8a8a8a',false,'c');
     frontKey('keyAlarm',22,100,36,11,'ALARM',o.key1); frontKey('keySet',66,100,36,11,'SET',o.key2);
     metalKey('keySpeed',14,124,44,16,'SPEED',o.metal,o.metalHi,o.metalTxt,true); metalKey('keyStart',66,124,44,16,'START',o.metal,o.metalHi,o.metalTxt,false);

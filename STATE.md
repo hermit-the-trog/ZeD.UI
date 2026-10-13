@@ -3,7 +3,7 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1231925f` (S123, Oct 12 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 12 2026
+**Version:** `0.1.1231000g` (S123, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
 **Next session:** S124 — director plays the v5 HUD props (dashboard + CaZio watch) on the controller; then the UI scale axis and the screen-icons + mechanics mockups. See Target.
 
 ## What ships
@@ -41,7 +41,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 
 **Playable floor = full gamepad parity.** Dude tests on gamepad only.
 
-1. CaZio watch and vehicle dashboard are built (v5, mockups first). Next mockups-first builds: **screen icons** (`ISEquippedItem`) and **vehicle mechanics** (`ISOpenMechanicsUIAction`). Open HUD questions: DigitalDress steel vs gold, the lost temperature readout, fire / ranger / race designs unseen live. Entry points and design targets in `HOOK_MAP.md`.
+1. CaZio watch and vehicle dashboard are built (v5, mockups first). Next mockups-first builds: **screen icons** (`ISEquippedItem`) and **vehicle mechanics** (`ISOpenMechanicsUIAction`). Open HUD questions: fire / ranger / race designs unseen live (DigitalDress is gold and the digital LCDs carry the thermo as of Oct 13). Entry points and design targets in `HOOK_MAP.md`.
 2. UI scale axis (item 3 above).
 3. Controller session on the QA save with the bridge logging.
 4. Then the rest of the HOOK_MAP gaps by session frequency: entity crafting stations → hotbar → fluid transfer → the info cards.
