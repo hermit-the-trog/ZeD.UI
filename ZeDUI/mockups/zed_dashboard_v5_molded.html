@@ -85,9 +85,9 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     // highlight along the curved top edge
     for(let x=hx; x<hx+hw; x++){ const ty=Math.floor(top(x)); if(ty<hy) el(p,x,ty,1,1,hi); } }
   // pad band whose lower edge follows the hood: band to 24 outside the hood span, to the hood edge inside (rounded shoulders)
-  function drawPad(p,pad,W,kind,hx,hy,hw,amp){ const top=hoodTopFn(kind,hx,hy,hw,amp); const bottom=(x)=>{ if(x<hx-6||x>=hx+hw+6) return 24; if(x<hx){ const d=hx-x; return 24+Math.round(6*(1-d/6)); } if(x>=hx+hw){ const d=x-(hx+hw); return 24+Math.round(6*(1-d/6)); } return Math.max(14,Math.round(top(x))); };
-    const LIP=14;
-    for(let x=0;x<W;x++){ const b=bottom(x); const t=Math.max(0,b-LIP); el(p,x,b,1,160-b,pad.lower); el(p,x,t,1,b-t,pad.base); el(p,x,t,1,1,pad.hi||'rgba(255,255,255,0.18)'); el(p,x,b-1,1,1,pad.seam); if(pad.kind==='wood'){ for(let y=t+2;y<b-2;y+=2){ const c=pad.grain[(y/2)%2]; if(((x*7+y*13)%97)<70) el(p,x,y,1,1,c); } } if(pad.kind==='leather'&&x%6===0&&x<W-3){ el(p,x,b-4,3,1,pad.seam); } } }
+  function drawPad(p,pad,W,kind,hx,hy,hw,amp){ const top=hoodTopFn(kind,hx,hy,hw,amp); const OUT=36; const bottom=(x)=>{ if(x<hx-6||x>=hx+hw+6) return OUT; if(x<hx){ const e=top(hx), d=hx-x; return Math.round(e+(OUT-e)*(d/6)); } if(x>=hx+hw){ const e=top(hx+hw-1), d=x-(hx+hw)+1; return Math.round(e+(OUT-e)*(d/6)); } return Math.max(12,Math.round(top(x))); };
+    const LIP=12;
+    for(let x=0;x<W;x++){ const b=bottom(x); const t=Math.max(0,b-LIP); el(p,x,b,1,172-b,pad.lower); el(p,x,t,1,b-t,pad.base); el(p,x,t,1,1,pad.hi||'rgba(255,255,255,0.18)'); el(p,x,b-1,1,1,pad.seam); if(pad.kind==='wood'){ for(let y=t+2;y<b-2;y+=2){ const c=pad.grain[(y/2)%2]; if(((x*7+y*13)%97)<70) el(p,x,y,1,1,c); } } if(pad.kind==='leather'&&x%6===0&&x<W-3){ el(p,x,b-4,3,1,pad.seam); } } }
 
   // ---------- badges ----------
   function badge(p,kind,x,y,label,sub){
@@ -178,11 +178,11 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
   }
 
   function dash(id,o){
-    const p=document.getElementById(id); const W=800,H=160; p.style.width=W+'px'; p.style.height=H+'px';
+    const p=document.getElementById(id); const W=800,H=172; p.style.width=W+'px'; p.style.height=H+'px';
     const pad=PAD[o.pad]; const s=o.state;
-    const hx=8,hy=30,hw=520,hh=92; const amp=o.hood==='arch'?(o.amp||16):(o.hood==='trap'?10:0);
+    const hx=8,hy=26,hw=520,hh=92; const amp=o.hood==='arch'?(o.amp||14):(o.hood==='trap'?10:0);
     drawPad(p,pad,W,o.hood,hx,hy,hw,amp);
-    badge(p,o.badge,W-8-150,12,o.badgeText,o.badgeSub);
+    badge(p,o.badge,W-8-150,25,o.badgeText,o.badgeSub);
     // ---- hood ----
     drawHood(p,o.hood,hx,hy,hw,hh,amp,'#121212','#3d3d3d','#000');
     drawHood(p,o.hood,hx+10,hy+8,hw-20,hh-16,Math.max(0,amp-6),'#070707','#1a1a1a','#1a1a1a');
@@ -256,7 +256,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     pushBtn(p,rx+28,sy+6,34,18,'TRUNK',null,null,o.focus==='trunk'); pushBtn(p,rx+66,sy+6,34,18,'CRUISE',s.cruise,'#44EE44',o.focus==='cruise');
     if(o.prompt){ text(p,hx+hw,sy+22,o.prompt,5,'#8a8a8a',false,'r'); }
     // ---- console ----
-    console_(p,o.console,540,252,H,o,s);
+    const cp=document.createElement('div'); cp.className='px'; cp.style.cssText='left:0;top:12px;width:'+W+'px;height:'+(H-12)+'px;background:transparent;'; p.appendChild(cp); console_(cp,o.console,540,252,H-12,o,s);
   }
 
   dash('d1',{pad:'walnut',hood:'arch',style:'cadillac',console:'luxury',badge:'chrome',badgeText:'MERCIA LANG 4000',brand:'ELECTRONIC INSTRUMENT CLUSTER',
