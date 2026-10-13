@@ -32,7 +32,8 @@ end
 -- Width preset: <320 → compact 220w; ≥320 → 480w.
 -- Returns (compact:bool, presetName:"220"|"480") for downstream branches.
 local function widthPreset(w)
-    if w < 320 then return true, "220" end
+    local T = ZeD.T
+    if w < T.px(320) then return true, "220" end
     return false, "480"
 end
 
@@ -125,22 +126,22 @@ end
 -- @return rowH, outDockRect (outDockRect = nil if no dock)
 local function _drawZoneRow220(panel, x, y, w, zCfg)
     local T  = ZeD.T
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local font  = T.fontF1
     local fontH = T.fontF1H or tm:getFontHeight(font)
 
     -- Row height: font height + generous breathing (8px = 4px above & below).
     -- Bar/dock track row. At fontH=10 → rowH=20; at fontH=18 → rowH=26.
-    local rowH  = math.max(fontH + 8, 20)
-    local dockH = math.max(fontH + 6, 18)
-    local barH  = math.max(math.floor(fontH * 0.55), 7)
+    local rowH  = math.max(fontH + T.px(8), T.px(20))
+    local dockH = math.max(fontH + T.px(6), T.px(18))
+    local barH  = math.max(math.floor(fontH * 0.55), T.px(7))
 
     -- Column widths derived from text metrics - name fits widest typical
     -- short label ("Right"); pct fits "100%"; dock is square dockH.
-    local nameW = math.max(tm:MeasureStringX(font, "Right") + 6, 40)
-    local pctW  = math.max(tm:MeasureStringX(font, "100%") + 4, 28)
-    local dockW = dockH + 4
-    local gap   = 6
+    local nameW = math.max(tm:MeasureStringX(font, "Right") + T.px(6), T.px(40))
+    local pctW  = math.max(tm:MeasureStringX(font, "100%") + T.px(4), T.px(28))
+    local dockW = dockH + T.px(4)
+    local gap   = T.px(6)
 
     local barX  = x + nameW + gap
     local pctX  = x + w - dockW - gap - pctW
@@ -156,7 +157,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
 
     -- Name (mono, T.text)
     local nameStr = zCfg.name or ""
-    panel:drawText(nameStr, x + 4, textY,
+    panel:drawText(nameStr, x + T.px(4), textY,
         T.text.r, T.text.g, T.text.b, T.text.a or 1, font)
 
     -- Bar (surf2 bg, segC fill, borderS frame)
@@ -172,7 +173,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
 
     -- Pct (mono, condition-colored, right-aligned)
     local pctStr   = tostring(math.floor(pct + 0.5)) .. "%"
-    local pctTextW = getTextManager():MeasureStringX(font, pctStr)
+    local pctTextW = ZeD.TM:MeasureStringX(font, pctStr)
     panel:drawText(pctStr, pctX + pctW - pctTextW, textY,
         condC.r, condC.g, condC.b, condC.a or 1, font)
 
@@ -200,7 +201,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
             (bg.a or 1) * alpha, bg.r, bg.g, bg.b)
         panel:drawRectBorder(dockX, dockY, dockW, dockH,
             (bd.a or 1) * alpha, bd.r, bd.g, bd.b)
-        local glyphW = getTextManager():MeasureStringX(font, glyph)
+        local glyphW = ZeD.TM:MeasureStringX(font, glyph)
         panel:drawText(glyph, dockX + math.floor((dockW - glyphW) / 2),
             dockY + math.floor((dockH - fontH) / 2),
             glyphC.r, glyphC.g, glyphC.b, (glyphC.a or 1) * alpha, font)
@@ -222,20 +223,20 @@ end
 -- @return rowH, outDockRect
 local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     local T  = ZeD.T
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local font  = T.fontF1
     local fontH = T.fontF1H or tm:getFontHeight(font)
 
-    local rowH  = math.max(fontH + 10, 22)
-    local dockH = math.max(fontH + 6, 20)
-    local barH  = math.max(math.floor(fontH * 0.5), 6)
+    local rowH  = math.max(fontH + T.px(10), T.px(22))
+    local dockH = math.max(fontH + T.px(6), T.px(20))
+    local barH  = math.max(math.floor(fontH * 0.5), T.px(6))
 
-    local nameW  = math.max(tm:MeasureStringX(font, "Right") + 12, 60)
-    local pctW   = math.max(tm:MeasureStringX(font, "100%") + 4, 36)
+    local nameW  = math.max(tm:MeasureStringX(font, "Right") + T.px(12), T.px(60))
+    local pctW   = math.max(tm:MeasureStringX(font, "100%") + T.px(4), T.px(36))
     local flagW  = flagWOverride
-                  or math.max(tm:MeasureStringX(font, "LEATHER") + 8, 76)
-    local dockW  = dockH + 4
-    local gap    = 8
+                  or math.max(tm:MeasureStringX(font, "LEATHER") + T.px(8), T.px(76))
+    local dockW  = dockH + T.px(4)
+    local gap    = T.px(8)
 
     local pctX  = x + nameW + gap
     local barX  = pctX + pctW + gap
@@ -333,8 +334,8 @@ local function _drawZoneSegBar(panel, x, y, w, h, zones)
         T.surf2.a or 1, T.surf2.r, T.surf2.g, T.surf2.b)
     panel:drawRectBorder(x, y, w, h,
         T.borderS.a or 1, T.borderS.r, T.borderS.g, T.borderS.b)
-    local pad = 1
-    local segGap = 1
+    local pad = T.px(1)
+    local segGap = T.px(1)
     local innerW = w - pad * 2
     local n = #zones
     local segW = math.floor((innerW - segGap * (n - 1)) / n)
@@ -701,11 +702,11 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
     local T  = ZeD.T
     local M  = ZeD.Molecules
     local A  = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     -- Section gap scales with font so the gap between top-stats / zones /
     -- facts breathes proportionally at larger text sizes.
     local f4H = T.fontF4H or tm:getFontHeight(T.fontF4)
-    local sectionGap = math.max(compact and 14 or 16, math.floor(f4H * 1.0))
+    local sectionGap = math.max(compact and T.px(14) or T.px(16), math.floor(f4H * 1.0))
 
     local cy = y
 
@@ -734,15 +735,15 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
         -- text-size presets get proportional breathing room instead of
         -- clipping. Each padding value floors at the small-font baseline +
         -- scales upward as fontH grows.
-        local tm     = getTextManager()
+        local tm     = ZeD.TM
         local font   = T.fontF1
         local fontH  = T.fontF1H or tm:getFontHeight(font)
-        local function scalePad(base) return math.max(base, math.floor(fontH * 0.6)) end
-        local hdrH   = math.max(fontH + 10, 24)            -- ZONES disclosure
-        local groupHdrH = math.max(fontH + 8, 20)          -- TORSO/UPPER ARM/...
+        local function scalePad(base) return math.max(T.px(base), math.floor(fontH * 0.6)) end  -- S124 scale: base is in design units
+        local hdrH   = math.max(fontH + T.px(10), T.px(24))            -- ZONES disclosure
+        local groupHdrH = math.max(fontH + T.px(8), T.px(20))          -- TORSO/UPPER ARM/...
         local groupPadAbove = scalePad(10)                 -- pad above each group (after first)
         local rowGap = scalePad(5)                         -- breathe between zone rows
-        local segH   = math.max(math.floor(fontH * 0.8), 12)
+        local segH   = math.max(math.floor(fontH * 0.8), T.px(12))
         local padAfterSegBar              = scalePad(12)
         local padAfterSoilRow             = scalePad(8)
         local padAfterDisclosureBeforeSegBar = scalePad(8)
@@ -774,9 +775,9 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             local labelC = T.accent
             card:drawText(chev, x, textY,
                 chevC.r, chevC.g, chevC.b, chevC.a or 1, font)
-            card:drawText("ZONES", x + 14, textY,
+            card:drawText("ZONES", x + T.px(14), textY,
                 labelC.r, labelC.g, labelC.b, labelC.a or 1, font)
-            local labelEndX = x + 14 + tm:MeasureStringX(font, "ZONES") + 8
+            local labelEndX = x + T.px(14) + tm:MeasureStringX(font, "ZONES") + T.px(8)
 
             if compact then
                 -- Right-aligned overall % only
@@ -787,8 +788,8 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 -- Inline composition: [chevron+label][seg-bar fills][%][DIRTY][WET]
                 -- Reserve right side for chips first, then % left of chips,
                 -- seg-bar fills the rest. Chip widths derive from text content.
-                local chipPadX  = 6
-                local chipGap   = 6
+                local chipPadX  = T.px(6)
+                local chipGap   = T.px(6)
                 local chips = {}
                 if soil and soil.dirt then
                     chips[#chips + 1] = {label = "DIRTY", color = T.soiledDirt or T.warning}
@@ -799,7 +800,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 end
 
                 -- Compute right-anchored cursor walking left
-                local chipH = math.max(fontH + 4, 16)
+                local chipH = math.max(fontH + T.px(4), T.px(16))
                 local rightCursor = x + w
                 local chipRects = {}
                 for i = #chips, 1, -1 do
@@ -817,13 +818,13 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 local sumX = rightCursor - sumW
                 card:drawText(condPctStr, sumX, textY,
                     condColor.r, condColor.g, condColor.b, condColor.a or 1, font)
-                local sumLeftEdge = sumX - 8
+                local sumLeftEdge = sumX - T.px(8)
 
                 -- Seg-bar fills middle (between label end and % left edge)
                 local barX = labelEndX
                 local barW = sumLeftEdge - barX
-                if barW > 20 then
-                    local barH = math.max(math.floor(fontH * 0.7), 10)
+                if barW > T.px(20) then
+                    local barH = math.max(math.floor(fontH * 0.7), T.px(10))
                     local barY = cy + math.floor((hdrH - barH) / 2)
                     _drawZoneSegBar(card, barX, barY, barW, barH, zones)
                 end
@@ -879,7 +880,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             local maxFlagW = 0
             if not compact then
                 local probeFont = T.fontF1
-                local minDashW = tm:MeasureStringX(probeFont, "-") + 4
+                local minDashW = tm:MeasureStringX(probeFont, "-") + T.px(4)
                 for _, zCfg in ipairs(zones) do
                     local flagStr = "-"
                     if zCfg.dock and zCfg.dock.flag then
@@ -890,7 +891,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                             or flagStr == "Ripped Sheets" then flagStr = "FABRIC"
                         end
                     end
-                    local fW = tm:MeasureStringX(probeFont, flagStr) + 4
+                    local fW = tm:MeasureStringX(probeFont, flagStr) + T.px(4)
                     if fW > maxFlagW then maxFlagW = fW end
                 end
                 maxFlagW = math.max(maxFlagW, minDashW)
@@ -949,19 +950,19 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
         local hasDisc = compact and panel.hasDisclosure
         local expanded = hasDisc and ((card._foldStates and card._foldStates[discKey]) ~= false) or (not hasDisc)
         if hasDisc then
-            local hdrH = 18
+            local hdrH = T.px(18)
             local font = T.fontF2
-            local labelH = T.fontF2H or getTextManager():MeasureStringY(font, "X")
+            local labelH = T.fontF2H or ZeD.TM:MeasureStringY(font, "X")
             local chev = expanded and "v" or ">"
             local textY = cy + math.floor((hdrH - labelH) / 2)
             card:drawText(chev, x, textY, T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF1)
-            card:drawText(panel.title or "Facts", x + 12, textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
+            card:drawText(panel.title or "Facts", x + T.px(12), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
             -- Absolute coords for fold hit (update() compares vs absolute mouse)
             local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
             card._foldHitRects[#card._foldHitRects + 1] = {
                 x = ax + x, y = ay + cy, w = w, h = hdrH, key = discKey,
             }
-            cy = cy + hdrH + 2
+            cy = cy + hdrH + T.px(2)
         end
         if expanded then
             -- Skip drawFactsTitle when the disclosure header already shows
@@ -969,10 +970,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             if not hasDisc then
                 cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or "Facts", compact) or 0)
             end
-            cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + 2
+            cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + T.px(2)
             for gi, group in ipairs(panel.groups or {}) do
                 if gi > 1 then
-                    cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + 2
+                    cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + T.px(2)
                 end
                 for _, row in ipairs(group.rows or {}) do
                     local lbl = row.label
@@ -997,9 +998,9 @@ end
 local function renderGenericBody(card, item, x, y, w, compact, scrollOff, contentClipBot)
     local T  = ZeD.T
     local M  = ZeD.Molecules
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local f4H = T.fontF4H or tm:getFontHeight(T.fontF4)
-    local sectionGap = math.max(compact and 14 or 16, math.floor(f4H * 1.0))
+    local sectionGap = math.max(compact and T.px(14) or T.px(16), math.floor(f4H * 1.0))
 
     local cy = y
 
@@ -1018,10 +1019,10 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
     local panel = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item)
     if panel then
         cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or "Facts", compact) or 0)
-        cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + 2
+        cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + T.px(2)
         for gi, group in ipairs(panel.groups or {}) do
             if gi > 1 then
-                cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + 2
+                cy = cy + (M.drawFactsRuleThin and M.drawFactsRuleThin(card, x, cy, w) or 0) + T.px(2)
             end
             for _, row in ipairs(group.rows or {}) do
                 local lbl = row.label
@@ -1042,9 +1043,10 @@ end
 -- :renderBody(ctx) - the universal organism entry.
 -- ---------------------------------------------------------------------------
 function ZeD_ItemCard:renderBody(ctx)
+    local T = ZeD.T
     if not self.item then return end
     local w = self:getWidth()
-    if w < 80 then return end
+    if w < T.px(80) then return end
 
     local item     = self.item
     local sourceCx = (ctx and ctx.sourceContext) or self.sourceContext or "inventory"
@@ -1096,14 +1098,14 @@ function ZeD_ItemCard:renderBody(ctx)
     --      name text is replaced by the lazy ZeD_TextInput child overlay.
     do
         local nameFont = T.fontF4
-        local nameH    = T.fontF4H or getTextManager():getFontHeight(nameFont)
-        local nameVPad = math.max(8, math.floor((T.fontF1H or 10) * 0.8))
-        local nameHPad = math.max(10, math.floor((T.fontF1H or 10) * 1.0))
+        local nameH    = T.fontF4H or ZeD.TM:getFontHeight(nameFont)
+        local nameVPad = math.max(T.px(8), math.floor((T.fontF1H or T.px(10)) * 0.8))
+        local nameHPad = math.max(T.px(10), math.floor((T.fontF1H or T.px(10)) * 1.0))
         local rowH     = nameH + nameVPad * 2
         local nbg      = T.surf1
         self:drawRect(0, cy, w, rowH, nbg.a or 1, nbg.r, nbg.g, nbg.b)
         local nsep = T.border
-        self:drawRect(0, cy + rowH - 1, w, 1, nsep.a or 1, nsep.r, nsep.g, nsep.b)
+        self:drawRect(0, cy + rowH - T.px(1), w, T.px(1), nsep.a or 1, nsep.r, nsep.g, nsep.b)
         if self._renaming and self._renameInput then
             -- Position input across the name row (overlay)
             local inp = self._renameInput
@@ -1114,7 +1116,7 @@ function ZeD_ItemCard:renderBody(ctx)
         else
             local nameStr = displayName
             local maxW = w - nameHPad * 2
-            if getTextManager():MeasureStringX(nameFont, nameStr) > maxW then
+            if ZeD.TM:MeasureStringX(nameFont, nameStr) > maxW then
                 nameStr = ZeD.Atoms.truncateText(nameStr, nameFont, maxW)
             end
             local nc = T.text
@@ -1146,10 +1148,10 @@ function ZeD_ItemCard:renderBody(ctx)
     -- proportional padding around the strip - without this, scroll content
     -- clips into the strip's visual footprint at larger fonts.
     local maintVerbs    = maintenanceVerbsForItem(item)
-    local f1H_strip     = T.fontF1H or getTextManager():getFontHeight(T.fontF1)
-    local vsBtnH        = 22                                          -- drawCardVerbStrip's hardcoded btn height
-    local vsTopPad      = math.max(8, math.floor(f1H_strip * 0.7))    -- breathe above buttons
-    local vsBotPad      = math.max(8, math.floor(f1H_strip * 0.7))    -- breathe below buttons (grow box room)
+    local f1H_strip     = T.fontF1H or ZeD.TM:getFontHeight(T.fontF1)
+    local vsBtnH        = T.px(22)                                          -- drawCardVerbStrip's hardcoded btn height
+    local vsTopPad      = math.max(T.px(8), math.floor(f1H_strip * 0.7))    -- breathe above buttons
+    local vsBotPad      = math.max(T.px(8), math.floor(f1H_strip * 0.7))    -- breathe below buttons (grow box room)
     local verbStripResvH = (#maintVerbs > 0) and (vsBtnH + vsTopPad + vsBotPad) or 0
     self._verbStripResvH = verbStripResvH
     local sbW = (self._sb and self._sb.visible) and self._sb.width or 0
@@ -1159,7 +1161,7 @@ function ZeD_ItemCard:renderBody(ctx)
         self:setStencilRect(0, self._headH, bodyW, bodyH)
         -- Body inner padding scales with font height - generous breathing
         -- around the entire scrollable region per memory feedback_padding_preference.
-        local bodyPad = math.max(compact and 12 or 14, math.floor((T.fontF1H or 10) * 1.0))
+        local bodyPad = math.max(compact and T.px(12) or T.px(14), math.floor((T.fontF1H or T.px(10)) * 1.0))
         local bodyX, bodyY = bodyPad, self._headH + bodyPad
         local scrollOff = self._scrollPixels or 0
         local innerW = bodyW - bodyPad * 2
@@ -1184,7 +1186,7 @@ function ZeD_ItemCard:renderBody(ctx)
     --    band, button position, and scroll reserve all stay in sync at any
     --    text size.
     if #maintVerbs > 0 then
-        local vsRightEdge = w - (compact and 8 or 12)
+        local vsRightEdge = w - (compact and T.px(8) or T.px(12))
         local vsBgY       = self:getHeight() - verbStripResvH
         local vsY         = vsBgY + vsTopPad
         local vsBg        = T.surf1
@@ -1203,9 +1205,9 @@ function ZeD_ItemCard:renderBody(ctx)
     -- 8) 3-sided border (left / right / bottom) - preserved from prerender
     local bc = T.border
     local h  = self:getHeight()
-    self:drawRect(0, 0, 1, h, bc.a or 1, bc.r, bc.g, bc.b)
-    self:drawRect(w - 1, 0, 1, h, bc.a or 1, bc.r, bc.g, bc.b)
-    self:drawRect(0, h - 1, w, 1, bc.a or 1, bc.r, bc.g, bc.b)
+    self:drawRect(0, 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)
+    self:drawRect(w - T.px(1), 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)
+    self:drawRect(0, h - T.px(1), w, T.px(1), bc.a or 1, bc.r, bc.g, bc.b)
 end
 
 -- ---------------------------------------------------------------------------

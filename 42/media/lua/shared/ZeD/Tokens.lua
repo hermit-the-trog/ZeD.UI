@@ -766,43 +766,49 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- Category headers: same fontF1, neutral color (not accent)
     T.textCat  = T.textHead
 
-    -- Font values: extract .font from rich atomics for drawText compatibility
-    T.fontF1  = size.fontF1.font    -- F1 Chrome (Fira Mono Bold)
-    T.fontF2  = size.fontF2.font    -- F2 Body (Fira Sans Regular)
-    T.fontF3  = size.fontF3.font    -- F3 Data (Fira Mono Regular)
-    T.fontF4  = size.fontF4.font    -- F4 Heading (Fira Sans Cond. SemiBold)
-    T.fontF5  = size.fontF5.font    -- F5 Micro (Fira Sans Cond. Regular)
-    -- Cached font heights (avoids per-frame getTextManager() bridge calls)
-    if getTextManager then
-        local tm = getTextManager()
-        T.fontF1H = tm:getFontHeight(T.fontF1)
-        T.fontF2H = tm:getFontHeight(T.fontF2)
-        T.fontF3H = tm:getFontHeight(T.fontF3)
-        T.fontF4H = tm:getFontHeight(T.fontF4)
-        T.fontF5H = tm:getFontHeight(T.fontF5)
+    -- S124 phase 2: the five role fonts live on the distance-field slots (ZeD.Font.sdf). The preset
+    -- keeps its px per role; the root scale multiplies at draw time (Overrides/TextScale.lua routes
+    -- ISUIElement text draws through the zoom path, ZeD.TM scales measurements) via ZeD.Text.zoomOf,
+    -- which reads T.fontPx / T.fontFace keyed by the UIFont value. Heights are cached further down,
+    -- after the palette is live.
+    local SD = ZeD.Font.sdf
+    local roleEntries = { SD.sec, SD.body, SD.stat, SD.head, SD.title }
+    local rolePx      = { size.fontF1.px, size.fontF2.px, size.fontF3.px, size.fontF4.px, size.fontF5.px }
+    T.fontPx, T.fontFace = {}, {}
+    for i = 1, 5 do
+        local e = roleEntries[i]
+        T["fontF" .. i] = e.font
+        T.fontPx[e.font]   = rolePx[i]
+        T.fontFace[e.font] = e.face or 64
     end
-    T.scale      = size.scale
-    T.titleBarH  = size.titleBarH
-    T.rowH       = size.rowH
-    T.buttonH    = size.buttonH
-    T.tabH       = size.tabH
-    T.inputH     = size.inputH
-    T.iconSm     = size.iconSm
-    T.iconMd     = size.iconMd
-    T.iconLg     = size.iconLg
-    T.iconXl     = size.iconXl
-    T.fillBarH   = size.fillBarH
-    T.checkboxSz = size.checkboxSz
-    T.closeBoxSz = size.closeBoxSz
-    T.statIconSz = size.statIconSz
-    T.contentPad = size.contentPad
-    T.colGap     = size.colGap
-    T.cardIconSz = size.cardIconSz
-    T.contextRowH = size.contextRowH
-    T.modalW     = size.modalW
-    T.modalH     = size.modalH
-    T.minWinW    = size.minWinW
-    T.minWinH    = size.minWinH
+    -- S124: T.scale = root scale (1080p = 1.0, from ZeD.Scale) x the text-size preset. Every px token
+    -- below is pre-scaled; literals in layout code go through T.px(units).
+    local root = (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1
+    local sc = root * (size.scale or 1)
+    T.scale = sc
+    T.root  = root
+    T.px    = function(units) return math.floor(units * sc + 0.5) end
+    T.titleBarH  = T.px(size.titleBarH)
+    T.rowH       = T.px(size.rowH)
+    T.buttonH    = T.px(size.buttonH)
+    T.tabH       = T.px(size.tabH)
+    T.inputH     = T.px(size.inputH)
+    T.iconSm     = T.px(size.iconSm)
+    T.iconMd     = T.px(size.iconMd)
+    T.iconLg     = T.px(size.iconLg)
+    T.iconXl     = T.px(size.iconXl)
+    T.fillBarH   = T.px(size.fillBarH)
+    T.checkboxSz = T.px(size.checkboxSz)
+    T.closeBoxSz = T.px(size.closeBoxSz)
+    T.statIconSz = T.px(size.statIconSz)
+    T.contentPad = T.px(size.contentPad)
+    T.colGap     = T.px(size.colGap)
+    T.cardIconSz = T.px(size.cardIconSz)
+    T.contextRowH = T.px(size.contextRowH)
+    T.modalW     = T.px(size.modalW)
+    T.modalH     = T.px(size.modalH)
+    T.minWinW    = T.px(size.minWinW)
+    T.minWinH    = T.px(size.minWinH)
 
     -- Thermal spectrum (per-theme: dark vibrant, light darker for contrast)
     T.tempCold = base.tempCold
@@ -824,9 +830,12 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.iconTone  = (ZeD.currentBase == "light") and {r = 0, g = 0, b = 0} or {r = 1, g = 1, b = 1}
 
     -- Spacing is always available (doesn't change with theme)
-    T.sp = ZeD.Spacing
+    T.sp = {}   -- scaled copy (S124); the static table stays the design-unit source
+    for k, v in pairs(ZeD.Spacing) do T.sp[k] = (type(v) == "number") and T.px(v) or v end
     -- Context-menu tokens — static, not theme-dependent (see ZeD.Ctx definition above)
-    T.ctx = ZeD.Ctx
+    T.ctx = {}  -- scaled copy (S124); counts and milliseconds stay as they are
+    local CTX_NOT_PX = { maxVisible = true, animMs = true, settleDelayMs = true }
+    for k, v in pairs(ZeD.Ctx) do T.ctx[k] = (type(v) == "number" and not CTX_NOT_PX[k]) and T.px(v) or v end
     -- Gamepad tokens — static, not theme-dependent (see ZeD.Gp definition above)
     -- S91: InputModeDetector + ActionMap read T.gp.stickThresh/triggerThresh/cooldownMs
     T.gp  = ZeD.Gp
@@ -837,6 +846,16 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
 
     -- Set the active palette
     ZeD.T = T
+    -- Cached font heights, zoomed (ZeD.Text.zoomOf reads ZeD.T, so this runs after the palette is live)
+    if getTextManager then
+        local tm = ZeD.TM
+        T.fontF1H = tm:getFontHeight(T.fontF1)
+        T.fontF2H = tm:getFontHeight(T.fontF2)
+        T.fontF3H = tm:getFontHeight(T.fontF3)
+        T.fontF4H = tm:getFontHeight(T.fontF4)
+        T.fontF5H = tm:getFontHeight(T.fontF5)
+    end
+    if ZeD.Scale then ZeD.Scale._appliedRoot = root end
 
     -- Fire a custom event so all open windows can refresh
     -- (components listen for this to re-read ZeD.T)

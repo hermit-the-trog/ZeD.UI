@@ -103,6 +103,8 @@ function X.nominal(f)
     end
     return f.nominal
 end
+-- Zoom for an explicit design px on a 64 px distance-field face (free-size text: licence name, radio frequency).
+function X.zoomPx(px, face) return px * S.root() / (face or 64) end
 -- Zoom that draws entry f `px` pixels tall (its design px times the root scale, usually).
 function X.zoomFor(f, px)
     local n = X.nominal(f)
@@ -126,6 +128,54 @@ function X.draw(el, f, str, x, y, zoom, r, g, b, a, align)
     if align == "r" then x = x - w elseif align == "c" then x = x - w / 2 end
     el:drawTextZoomed(str, math.floor(x), math.floor(y), zoom, r or 1, g or 1, b or 1, a or 1, uifont(f))
     return w
+end
+
+-- ---------------------------------------------------------------------------
+-- Zoom for a font value (phase 2): the five ZeD role fonts are registered by
+-- ZeD.applyTheme in ZeD.T.fontPx / fontFace; everything else (vanilla fonts) is 1.
+-- ---------------------------------------------------------------------------
+function X.zoomOf(font)
+    if font == nil then return 1 end
+    local T = ZeD.T
+    local px = T and T.fontPx and T.fontPx[font]
+    if not px then return 1 end
+    return px * S.root() / ((T.fontFace and T.fontFace[font]) or 64)
+end
+
+-- ---------------------------------------------------------------------------
+-- ZeD.TM — the text manager seen by ZeD code (every getTextManager() in the
+-- mod's own files was rewritten to ZeD.TM). Measurements of the role fonts are
+-- multiplied by their zoom so layout math matches the zoomed draws; anything
+-- else passes through to the engine's TextManager.
+-- ---------------------------------------------------------------------------
+ZeD.TM = ZeD.TM or {}
+local TM = ZeD.TM
+function TM:MeasureStringX(font, str)
+    return getTextManager():MeasureStringX(font, tostring(str)) * X.zoomOf(font)
+end
+function TM:MeasureStringY(font, str)
+    return getTextManager():MeasureStringY(font, tostring(str)) * X.zoomOf(font)
+end
+function TM:getFontHeight(font)
+    return getTextManager():getFontHeight(font) * X.zoomOf(font)
+end
+setmetatable(TM, { __index = function(_, k)
+    local tm = getTextManager(); local v = tm[k]
+    if type(v) == "function" then return function(_, ...) return v(tm, ...) end end
+    return v
+end })
+
+-- Re-apply the theme (token table, font heights) when the root scale changes.
+S._appliedRoot = S._appliedRoot or nil
+local function rootChanged()
+    if S._appliedRoot ~= nil and S._root ~= nil and math.abs(S._appliedRoot - S._root) > 0.001 and ZeD.applyTheme and not S._reapplying then
+        S._reapplying = true
+        pcall(ZeD.applyTheme)
+        S._reapplying = false
+    end
+end
+if Events and Events.OnTick then
+    Events.OnTick.Add(function() if S._tick == 0 then rootChanged() end end)
 end
 
 return S

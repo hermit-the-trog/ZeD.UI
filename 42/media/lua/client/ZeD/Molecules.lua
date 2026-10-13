@@ -57,11 +57,11 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
         local font   = c.font   or T.fontF3
         panel:drawRect(x, y, w, h, bg.a or 1.0, bg.r, bg.g, bg.b)
         panel:drawRectBorder(x, y, w, h, border.a or 1.0, border.r, border.g, border.b)
-        local tw = getTextManager():MeasureStringX(font, text)
-        local th = getTextManager():getFontHeight(font)
+        local tw = ZeD.TM:MeasureStringX(font, text)
+        local th = ZeD.TM:getFontHeight(font)
         local tx = x + math.floor((w - tw) / 2)
         local ty = y + math.floor((h - th) / 2)
-        if pressed then tx = tx + 1; ty = ty + 1 end
+        if pressed then tx = tx + T.px(1); ty = ty + T.px(1) end
         panel:drawText(text, tx, ty, txt.r, txt.g, txt.b, txt.a or 1, font)
         return
     end
@@ -87,11 +87,11 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
 
     -- Centered label (K22 Xanthus — instrument chrome)
-    local tw = getTextManager():MeasureStringX(T.fontF3, text)
-    local th = getTextManager():getFontHeight(T.fontF3)
+    local tw = ZeD.TM:MeasureStringX(T.fontF3, text)
+    local th = ZeD.TM:getFontHeight(T.fontF3)
     local tx = x + math.floor((w - tw) / 2)
     local ty = y + math.floor((h - th) / 2)
-    if pressed then tx = tx + 1; ty = ty + 1 end
+    if pressed then tx = tx + T.px(1); ty = ty + T.px(1) end
     panel:drawText(text, tx, ty, textColor.r, textColor.g, textColor.b, textColor.a or 1, T.fontF3)
 end
 
@@ -165,8 +165,8 @@ function ZeD.Molecules.Button(x, y, w, text, target, onclick, variant)
 
     -- Auto-width if not specified
     if not w then
-        w = getTextManager():MeasureStringX(T.fontF3, text) + sp.buttonPadX * 2
-        w = math.max(w, 60) -- minimum width
+        w = ZeD.TM:MeasureStringX(T.fontF3, text) + sp.buttonPadX * 2
+        w = math.max(w, T.px(60)) -- minimum width
     end
 
     local btn = ZeD_Button:new(x, y, w, T.buttonH, text, target, onclick)
@@ -227,7 +227,7 @@ function ZeD.Molecules.drawListRow(panel, x, y, w, item, hovered)
         textColor = ZeD.colorAlpha(T.text, alpha)
     end
 
-    local textY = y + (h - getTextManager():MeasureStringY(T.fontF2, item.text or "")) / 2
+    local textY = y + (h - ZeD.TM:MeasureStringY(T.fontF2, item.text or "")) / 2
     panel:drawText(item.text or "", cx, textY,
         textColor.r, textColor.g, textColor.b, textColor.a, T.fontF2)
 
@@ -245,7 +245,7 @@ function ZeD.Molecules.drawListRow(panel, x, y, w, item, hovered)
     end
 
     -- Bottom divider (soft)
-    A.drawDividerH(panel, x, y + h - 1, w, false)
+    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
 end
 
 
@@ -270,7 +270,7 @@ function ZeD.Molecules.drawTab(panel, x, y, text, active, hovered, disabled)
     local alpha = disabled and T.disabledAlpha or 1.0
 
     -- Measure text to determine tab width
-    local tw = getTextManager():MeasureStringX(T.fontF2, text)
+    local tw = ZeD.TM:MeasureStringX(T.fontF2, text)
     local w = tw + sp.tabPadX * 2
 
     -- Background
@@ -286,7 +286,7 @@ function ZeD.Molecules.drawTab(panel, x, y, text, active, hovered, disabled)
 
     -- Borders: top, left, right always. Bottom only if inactive.
     local bc = T.borderS
-    local bw = T.borderW
+    local bw = T.px(T.borderW)  -- S124 scale: T.borderW is design units (1, HC 2)
     -- Top
     panel:drawRect(x, y, w, bw, bc.a * alpha, bc.r, bc.g, bc.b)
     -- Left
@@ -307,7 +307,7 @@ function ZeD.Molecules.drawTab(panel, x, y, text, active, hovered, disabled)
     else
         textColor = ZeD.colorAlpha(T.textDim, alpha)
     end
-    local textY = y + (h - getTextManager():MeasureStringY(T.fontF2, text)) / 2
+    local textY = y + (h - ZeD.TM:MeasureStringY(T.fontF2, text)) / 2
     panel:drawText(text, x + sp.tabPadX, textY,
         textColor.r, textColor.g, textColor.b, textColor.a, T.fontF2)
 
@@ -357,7 +357,7 @@ function ZeD_TextInput:render()
     local sp = T.sp
     local alpha = self.disabled and T.disabledAlpha or 1.0
 
-    local textY = (self.height - getTextManager():MeasureStringY(T.fontF2, "X")) / 2
+    local textY = (self.height - ZeD.TM:MeasureStringY(T.fontF2, "X")) / 2
 
     if #self.text > 0 then
         -- Draw actual text
@@ -367,11 +367,11 @@ function ZeD_TextInput:render()
 
         -- Cursor after text
         if self.focused and self.cursorVisible then
-            local tw = getTextManager():MeasureStringX(T.fontF2, self.text)
-            local cursorX = sp.inputPadX + tw + 1
-            local cursorH = getTextManager():MeasureStringY(T.fontF2, "X")
+            local tw = ZeD.TM:MeasureStringX(T.fontF2, self.text)
+            local cursorX = sp.inputPadX + tw + T.px(1)
+            local cursorH = ZeD.TM:MeasureStringY(T.fontF2, "X")
             local ac = T.accent
-            self:drawRect(cursorX, textY, 1, cursorH, ac.a, ac.r, ac.g, ac.b)
+            self:drawRect(cursorX, textY, T.px(1), cursorH, ac.a, ac.r, ac.g, ac.b)
         end
     else
         -- Placeholder text
@@ -381,9 +381,9 @@ function ZeD_TextInput:render()
 
         -- Cursor at start
         if self.focused and self.cursorVisible then
-            local cursorH = getTextManager():MeasureStringY(T.fontF2, "X")
+            local cursorH = ZeD.TM:MeasureStringY(T.fontF2, "X")
             local ac = T.accent
-            self:drawRect(sp.inputPadX, textY, 1, cursorH, ac.a, ac.r, ac.g, ac.b)
+            self:drawRect(sp.inputPadX, textY, T.px(1), cursorH, ac.a, ac.r, ac.g, ac.b)
         end
     end
 end
@@ -446,7 +446,7 @@ function ZeD_SearchField:new(x, y, w, placeholder)
     self.__index = self
 
     o.placeholder = placeholder or getText("UI_ZeD_Search")
-    o.iconAreaW = 24   -- reserved width for the search icon
+    o.iconAreaW = 24   -- reserved width for the search icon (S124 scale: design units, wrapped with T.px where used)
     o.onFilter = nil   -- callback: function(self, text) — fires on each keystroke
     o.onSubmit = nil   -- callback: function(self, text) — fires on Enter
     o.borderEdges = nil
@@ -458,8 +458,8 @@ function ZeD_SearchField:createChildren()
 
     -- Real ISTextEntryBox captures keyboard focus and suppresses game keybinds
     local T = ZeD.T
-    local inputW = self.width - self.iconAreaW
-    local entry = ISTextEntryBox:new("", self.iconAreaW, 0, inputW, self.height)
+    local inputW = self.width - T.px(self.iconAreaW)
+    local entry = ISTextEntryBox:new("", T.px(self.iconAreaW), 0, inputW, self.height)
     entry:initialise()
     entry:instantiate()
     entry.font = T.fontF2
@@ -490,7 +490,7 @@ function ZeD_SearchField:prerender()
     local T = ZeD.T
     -- Sync input size to parent (toolbar resizes dynamically)
     if self.input then
-        self.input:setWidth(self.width - self.iconAreaW)
+        self.input:setWidth(self.width - T.px(self.iconAreaW))
         self.input:setHeight(self.height)
     end
     -- Background matches input
@@ -505,8 +505,8 @@ function ZeD_SearchField:render()
     local T = ZeD.T
     -- Search icon (/ character as a simple glyph)
     local iconColor = T.textDim
-    local iconY = (self.height - getTextManager():MeasureStringY(T.fontF1, "/")) / 2
-    self:drawText("/", 8, iconY,
+    local iconY = (self.height - ZeD.TM:MeasureStringY(T.fontF1, "/")) / 2
+    self:drawText("/", T.px(8), iconY,
         iconColor.r, iconColor.g, iconColor.b, iconColor.a, T.fontF1)
 end
 
@@ -577,8 +577,8 @@ function ZeD_TextEntry:render()
     if self._entry and self._entry:getText() == "" and not self._entry:isFocused() then
         local T = ZeD.T
         local pc = T.textDim
-        local py = 4
-        self:drawText(self.placeholder, T.sp.inputPadX or 6, py,
+        local py = T.px(4)
+        self:drawText(self.placeholder, T.sp.inputPadX or T.px(6), py,
             pc.r, pc.g, pc.b, pc.a or 0.5, T.fontF2)
     end
 end
@@ -637,10 +637,10 @@ function ZeD.Molecules.drawStatChip(panel, x, y, icon, value, state)
     end
 
     -- Value text (K22 Xanthus — chrome data voice)
-    local textY = y + (T.titleBarH - getTextManager():MeasureStringY(T.fontF3, value)) / 2
+    local textY = y + (T.titleBarH - ZeD.TM:MeasureStringY(T.fontF3, value)) / 2
     panel:drawText(value, cx, textY,
         valueColor.r, valueColor.g, valueColor.b, valueColor.a, T.fontF3)
-    cx = cx + getTextManager():MeasureStringX(T.fontF3, value)
+    cx = cx + ZeD.TM:MeasureStringX(T.fontF3, value)
 
     return cx - x  -- total width consumed
 end
@@ -666,7 +666,7 @@ function ZeD_ScrollbarState:new()
     o.x = 0
     o.y = 0
     o.width = T.sp.scrollbarW
-    o.height = 100
+    o.height = T.px(100)
     o.arrowH = T.sp.scrollbarW    -- arrows are square
     o.reserveBottom = 0           -- pixels to leave empty at the bottom
                                   -- (for grow box / resize grip integration)
@@ -691,10 +691,11 @@ function ZeD_ScrollbarState:getTrackHeight()
 end
 
 function ZeD_ScrollbarState:getThumbHeight()
+    local T = ZeD.T
     local trackH = self:getTrackHeight()
     if trackH <= 0 then return 0 end
     local thumbH = math.floor(trackH * self.barSizeRatio)
-    return math.max(20, math.min(thumbH, trackH))
+    return math.max(T.px(20), math.min(thumbH, trackH))
 end
 
 function ZeD_ScrollbarState:getThumbY()
@@ -773,10 +774,10 @@ function ZeD_ScrollbarState:draw(panel)
         local gripY = oy + thumbY + math.floor(thumbH / 2) - T.sp.scrollGripOff
         local gripX = ox + T.sp.scrollGripOff
         local gripW = w - T.sp.scrollGripMar
-        if gripW > 2 and thumbH > 16 then
+        if gripW > T.px(2) and thumbH > T.px(16) then
             local gc = T.textDim
             for i = 0, 2 do
-                panel:drawRect(gripX, gripY + i * T.sp.scrollGripOff, gripW, 1, gc.a, gc.r, gc.g, gc.b)
+                panel:drawRect(gripX, gripY + i * T.sp.scrollGripOff, gripW, T.px(1), gc.a, gc.r, gc.g, gc.b)
             end
         end
     end
@@ -867,7 +868,7 @@ function ZeD_DragState:new()
     o.ghostY     = 0       -- screen-absolute cursor Y
     o.startX     = 0       -- screen-absolute mouseDown X
     o.startY     = 0       -- screen-absolute mouseDown Y
-    o.threshold  = 4       -- px before drag activates
+    o.threshold  = 4       -- px before drag activates (S124 scale: design units, wrapped with T.px in checkThreshold)
     return o
 end
 
@@ -884,10 +885,11 @@ function ZeD_DragState:beginPending(items, ghostItem, screenX, screenY)
 end
 
 function ZeD_DragState:checkThreshold(screenX, screenY)
+    local T = ZeD.T
     if not self.pending then return false end
     local dx = math.abs(screenX - self.startX)
     local dy = math.abs(screenY - self.startY)
-    if dx >= self.threshold or dy >= self.threshold then
+    if dx >= T.px(self.threshold) or dy >= T.px(self.threshold) then
         self:activate()
         self.ghostX = screenX
         self.ghostY = screenY
@@ -915,15 +917,15 @@ function ZeD_DragState:drawGhost(panel)
     local item = self.ghostItem
     if not item then return end
 
-    local iconSz = 36
-    local pad    = 5
-    local fontH  = getTextManager():MeasureStringY(T.fontF3, "0")
-    local gw     = 58
-    local gh     = 48 + fontH + pad
+    local iconSz = T.px(36)
+    local pad    = T.px(5)
+    local fontH  = ZeD.TM:MeasureStringY(T.fontF3, "0")
+    local gw     = T.px(58)
+    local gh     = T.px(48) + fontH + pad
 
     -- Convert screen coords to panel-local, offset so cursor is top-left
-    local lx = self.ghostX - panel:getAbsoluteX() + 12
-    local ly = self.ghostY - panel:getAbsoluteY() - 8
+    local lx = self.ghostX - panel:getAbsoluteX() + T.px(12)
+    local ly = self.ghostY - panel:getAbsoluteY() - T.px(8)
 
     -- Background + border
     local bg = T.surf2
@@ -942,7 +944,7 @@ function ZeD_DragState:drawGhost(panel)
     local ty = ly + pad + iconSz + pad
     local tc = T.textSec
     local wt = string.format("%.1f", item:getUnequippedWeight())
-    panel:drawText(wt, lx + gw - pad - getTextManager():MeasureStringX(T.fontF3, wt), ty, tc.r, tc.g, tc.b, 0.85, T.fontF3)
+    panel:drawText(wt, lx + gw - pad - ZeD.TM:MeasureStringX(T.fontF3, wt), ty, tc.r, tc.g, tc.b, 0.85, T.fontF3)
     if self.ghostCount > 1 then
         local qty = "x" .. tostring(self.ghostCount)
         panel:drawText(qty, lx + pad, ty, tc.r, tc.g, tc.b, 0.85, T.fontF3)
@@ -1031,13 +1033,13 @@ function ZeD_Dropdown:render()
 
     -- Current value label
     local label = self:getSelectedLabel()
-    local textY = (T.inputH - getTextManager():MeasureStringY(T.fontF2, label)) / 2
+    local textY = (T.inputH - ZeD.TM:MeasureStringY(T.fontF2, label)) / 2
     local tc = ZeD.colorAlpha(T.text, alpha)
     self:drawText(label, sp.inputPadX, textY, tc.r, tc.g, tc.b, tc.a, T.fontF2)
 
     -- Disclosure arrow (geometric)
     local arrowColor = ZeD.colorAlpha(T.textDim, alpha)
-    local arrowSz = 5
+    local arrowSz = T.px(5)
     local arrowX = self.width - sp.inputPadX - arrowSz
     local arrowY = (T.inputH - arrowSz) / 2
     ZeD.Atoms.drawTriangleDown(self, arrowX, arrowY, arrowSz, arrowColor)
@@ -1090,7 +1092,7 @@ function ZeD_Dropdown:render()
 
                 -- Option label
                 local optColor = isHovered and T.accentBright or T.text
-                local optY = ry + (rowH - getTextManager():MeasureStringY(T.fontF2, opt.label)) / 2
+                local optY = ry + (rowH - ZeD.TM:MeasureStringY(T.fontF2, opt.label)) / 2
                 self:drawText(opt.label, sp.inputPadX, optY,
                     optColor.r, optColor.g, optColor.b, optColor.a, T.fontF2)
 
@@ -1108,10 +1110,10 @@ function ZeD_Dropdown:render()
         if #self.options > maxVis then
             local ac = T.textDim
             if self.scrollOffset > 0 then
-                ZeD.Atoms.drawTriangleUp(self, self.width - 12, listY + 2, 5, ac)
+                ZeD.Atoms.drawTriangleUp(self, self.width - T.px(12), listY + T.px(2), T.px(5), ac)
             end
             if self.scrollOffset < maxScroll then
-                ZeD.Atoms.drawTriangleDown(self, self.width - 12, listY + listH - 8, 5, ac)
+                ZeD.Atoms.drawTriangleDown(self, self.width - T.px(12), listY + listH - T.px(8), T.px(5), ac)
             end
         end
     end
@@ -1220,7 +1222,7 @@ function ZeD.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded, 
     local textH = T.rowH              -- text/arrow centered in this portion
     local h = heightOverride or textH  -- total strip height (bg + line)
     local font = fontOverride or T.fontF1
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local bleed = bleedLeft or 0
 
     -- Background (slightly elevated) — extends left by bleed to reach panel edge
@@ -1228,11 +1230,11 @@ function ZeD.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded, 
     panel:drawRect(x - bleed, y, w + bleed, h, bg.a, bg.r, bg.g, bg.b)
 
     -- Bottom border (strong — section boundary) — same bleed
-    ZeD.Atoms.drawDividerH(panel, x - bleed, y + h - 1, w + bleed, true)
+    ZeD.Atoms.drawDividerH(panel, x - bleed, y + h - T.px(1), w + bleed, true)
 
     -- Disclosure indicator (geometric) — centered in full header height
     -- Arrow at x (caller owns horizontal inset)
-    local discSz = math.max(8, math.floor(tm:getFontHeight(font) * 0.5))
+    local discSz = math.max(T.px(8), math.floor(tm:getFontHeight(font) * 0.5))
     local discX = x
     local discY = y + math.floor((h - discSz) / 2)
     if not noArrow then
@@ -1246,7 +1248,7 @@ function ZeD.Molecules.drawSectionHeader(panel, x, y, w, text, count, expanded, 
     local textY = y + (h - tm:getFontHeight(font)) / 2
 
     -- Section title
-    local titleX = noArrow and discX or (discX + discSz + 6)
+    local titleX = noArrow and discX or (discX + discSz + T.px(6))
     local tc = T.textHead
     panel:drawText(text, titleX, textY, tc.r, tc.g, tc.b, tc.a, font)
 
@@ -1280,7 +1282,7 @@ end
 -- Sourced from ZeD.Spacing.tabHeaderH so the value lives in one place. Read
 -- at module load (ZeD.Spacing is the static table defined in Tokens.lua, not
 -- the per-theme T.sp which only exists after applyTheme).
-local TAB_HEADER_H     = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37
+local TAB_HEADER_H     = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- S124 scale: these four stay design units; every use wraps T.px
 local TAB_HEADER_PAD   = 8    -- outer left/right pad (drawer sides → content edge)
 local TAB_HEADER_PAD_T = 8    -- content inset from top of scroll area
 local TAB_COL_GAP      = 10   -- gap between figure column and content column in Zone A
@@ -1298,14 +1300,14 @@ function ZeD.Molecules.drawTabHeader(panel, x, y, w, text, expanded, hovered, no
     -- the parent drawer panel's background — same rule as the radio drawer
     -- header. No bg paint here; just disclosure arrow + title + bottom rule.
     local T = ZeD.T
-    local pad = TAB_HEADER_PAD
-    local h   = TAB_HEADER_H
+    local pad = T.px(TAB_HEADER_PAD)
+    local h   = T.px(TAB_HEADER_H)
     local font = T.fontF4
-    local tm  = getTextManager()
+    local tm  = ZeD.TM
     local fullW = panel:getWidth() - x
 
     -- Disclosure arrow centered vertically in the strip.
-    local discSz = math.max(8, math.floor(tm:getFontHeight(font) * 0.5))
+    local discSz = math.max(T.px(8), math.floor(tm:getFontHeight(font) * 0.5))
     local discX  = x + pad
     local discY  = y + math.floor((h - discSz) / 2)
     if not noArrow then
@@ -1318,31 +1320,31 @@ function ZeD.Molecules.drawTabHeader(panel, x, y, w, text, expanded, hovered, no
     end
 
     -- Title text.
-    local titleX = noArrow and discX or (discX + discSz + 6)
+    local titleX = noArrow and discX or (discX + discSz + T.px(6))
     local textY  = y + math.floor((h - tm:getFontHeight(font)) / 2)
     local tc     = T.textHead
     panel:drawText(text, titleX, textY, tc.r, tc.g, tc.b, tc.a or 1.0, font)
 
     -- Bottom 1px rule extending edge-to-edge with the inventory column header
     -- on the opposite panel — same divider line, no bg fill.
-    ZeD.Atoms.drawDividerH(panel, x, y + h - 1, fullW, true)
+    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), fullW, true)
 
     return h
 end
 
 --- Return the standard tab header height (for measurement functions).
 function ZeD.Molecules.getTabHeaderH()
-    return TAB_HEADER_H
+    return ZeD.T.px(TAB_HEADER_H)  -- S124 scale: the getters return screen px
 end
 
 --- Return the standard tab content side padding.
 function ZeD.Molecules.getTabPad()
-    return TAB_HEADER_PAD
+    return ZeD.T.px(TAB_HEADER_PAD)
 end
 
 --- Return the standard tab content top padding (below header).
 function ZeD.Molecules.getTabPadTop()
-    return TAB_HEADER_PAD_T
+    return ZeD.T.px(TAB_HEADER_PAD_T)
 end
 
 --- Compute Zone A two-column layout (figure left, stats right).
@@ -1352,17 +1354,18 @@ end
 -- @param figW   Body figure width
 -- @param figH   Body figure height
 -- @return table { figX, figY, rightX, rightY, rightW, leftW }
-local ZONE_A_FIG_W = 220  -- fixed figure column width
+local ZONE_A_FIG_W = 220  -- fixed figure column width (S124 scale: design units; figW / figH / w arrive in screen px)
 
 function ZeD.Molecules.layoutZoneA(x, y, w, figW, figH)
+    local T = ZeD.T
     -- Pass contentW (post-scroll) as w so rightW is correct with or without scrollbar.
     -- Layout: [8px] [220px figure] [10px gap] [rightW] [8px right pad]
     -- With scroll (w=466):    rightW = 466-238-8 = 220
     -- Without scroll (w=480): rightW = 480-238-8 = 234
-    local leftX  = x + TAB_HEADER_PAD          -- 8px outer left pad
-    local leftW  = ZONE_A_FIG_W                -- 220px figure column
-    local rightX = leftX + leftW + TAB_COL_GAP -- +10px column gap
-    local rightW = w - TAB_HEADER_PAD - rightX + x  -- fills to 8px from right edge
+    local leftX  = x + T.px(TAB_HEADER_PAD)          -- 8px outer left pad
+    local leftW  = T.px(ZONE_A_FIG_W)                -- 220px figure column
+    local rightX = leftX + leftW + T.px(TAB_COL_GAP) -- +10px column gap
+    local rightW = w - T.px(TAB_HEADER_PAD) - rightX + x  -- fills to 8px from right edge
     return {
         figX   = leftX + math.floor((leftW - figW) / 2),  -- figure centered in 220px column
         figY   = y,
@@ -1395,9 +1398,9 @@ function ZeD.Molecules.drawStatRow(panel, x, y, w, label, value, valueColor, lab
     local T = ZeD.T
     local lblFont = labelFont or T.fontF1
 
-    local labelH = getTextManager():getFontHeight(lblFont)
-    local valueH = getTextManager():getFontHeight(T.fontF3)
-    local breathe = math.max(2, math.floor(math.max(labelH, valueH) * 0.15))
+    local labelH = ZeD.TM:getFontHeight(lblFont)
+    local valueH = ZeD.TM:getFontHeight(T.fontF3)
+    local breathe = math.max(T.px(2), math.floor(math.max(labelH, valueH) * 0.15))
     local rowH = math.max(labelH, valueH) + breathe
 
     local labelY = y + math.floor((rowH - labelH) / 2)
@@ -1406,30 +1409,30 @@ function ZeD.Molecules.drawStatRow(panel, x, y, w, label, value, valueColor, lab
     -- Label: uppercase, secondary color (chrome voice)
     local lc = T.textSec
     local upperLabel = string.upper(label)
-    local labelW = getTextManager():MeasureStringX(lblFont, upperLabel)
+    local labelW = ZeD.TM:MeasureStringX(lblFont, upperLabel)
     panel:drawText(upperLabel, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
 
     -- Value: K22 Xanthus, right-aligned, truncated with "..." if too wide
     local vc = valueColor or T.text
-    local gap = 8 -- minimum gap between label and value
+    local gap = T.px(8) -- minimum gap between label and value
     local maxValueW = w - labelW - gap
     local displayValue = value
-    local valueW = getTextManager():MeasureStringX(T.fontF3, displayValue)
+    local valueW = ZeD.TM:MeasureStringX(T.fontF3, displayValue)
 
     if valueW > maxValueW and maxValueW > 0 then
         -- Truncate with ellipsis
         local ellipsis = "..."
-        local ellipsisW = getTextManager():MeasureStringX(T.fontF3, ellipsis)
+        local ellipsisW = ZeD.TM:MeasureStringX(T.fontF3, ellipsis)
         local targetW = maxValueW - ellipsisW
         if targetW > 0 then
             -- Binary search for the right character count
             local len = #displayValue
-            while len > 0 and getTextManager():MeasureStringX(T.fontF3, string.sub(displayValue, 1, len)) > targetW do
+            while len > 0 and ZeD.TM:MeasureStringX(T.fontF3, string.sub(displayValue, 1, len)) > targetW do
                 len = len - 1
             end
             displayValue = string.sub(displayValue, 1, len) .. ellipsis
-            valueW = getTextManager():MeasureStringX(T.fontF3, displayValue)
+            valueW = ZeD.TM:MeasureStringX(T.fontF3, displayValue)
         else
             displayValue = ellipsis
             valueW = ellipsisW
@@ -1455,11 +1458,11 @@ end
 function ZeD.Molecules.drawStatRowDot(panel, x, y, w, label, value, dotColor)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local dotSz = 6
-    local dotGap = 4
-    local labelH = getTextManager():getFontHeight(T.fontF1)
-    local valueH = getTextManager():getFontHeight(T.fontF3)
-    local rowH = math.max(labelH, valueH) + math.max(2, math.floor(math.max(labelH, valueH) * 0.15))
+    local dotSz = T.px(6)
+    local dotGap = T.px(4)
+    local labelH = ZeD.TM:getFontHeight(T.fontF1)
+    local valueH = ZeD.TM:getFontHeight(T.fontF3)
+    local rowH = math.max(labelH, valueH) + math.max(T.px(2), math.floor(math.max(labelH, valueH) * 0.15))
     local dotY = y + math.floor((rowH - dotSz) / 2)
     A.drawStatusDot(panel, x, dotY, dotColor, dotSz)
     return ZeD.Molecules.drawStatRow(panel, x + dotSz + dotGap, y, w - dotSz - dotGap, label, value)
@@ -1509,9 +1512,9 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
     local T = ZeD.T
     local valFont = T.fontF3
     local lblFont = T.fontF2
-    local valH = getTextManager():getFontHeight(valFont)
-    local lblH = getTextManager():getFontHeight(lblFont)
-    local rowH = math.max(valH, lblH) + 8
+    local valH = ZeD.TM:getFontHeight(valFont)
+    local lblH = ZeD.TM:getFontHeight(lblFont)
+    local rowH = math.max(valH, lblH) + T.px(8)
 
     fillRatio = math.max(0, math.min(1, fillRatio or 0))
 
@@ -1531,8 +1534,8 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
     -- 2. Value badge (K22 Xanthus — data readout)
     local vc = valueColor or T.toneNorm
     local bg = T.surf3
-    local valW = getTextManager():MeasureStringX(valFont, value)
-    local badgeW = valW + 10
+    local valW = ZeD.TM:MeasureStringX(valFont, value)
+    local badgeW = valW + T.px(10)
     panel:drawRect(x, y, badgeW, rowH, T.badgeBgA, bg.r, bg.g, bg.b)
     local valX = x + math.floor((badgeW - valW) / 2)
     local textY = y + math.floor((rowH - valH) / 2)
@@ -1540,7 +1543,7 @@ function ZeD.Molecules.drawStatBarRow(panel, x, y, w, value, label, fillRatio, f
         vc.r, vc.g, vc.b, vc.a, valFont)
 
     -- 3. Label text (after badge — Lekton, metadata voice)
-    local labelX = x + badgeW + 6
+    local labelX = x + badgeW + T.px(6)
     local tc = T.text
     local lblY = y + math.floor((rowH - lblH) / 2)
     panel:drawText(label, labelX, lblY,
@@ -1603,42 +1606,42 @@ function ZeD.Molecules.drawWindowTitleBar(panel, x, y, w, title, stats)
     -- Stripe lines
     local stripeA = T.stripe.a
     if stripeA > 0 then
-        for sy = y + 2, y + tbH - 2, 4 do
-            panel:drawRect(x, sy, w, 1, stripeA, T.stripe.r, T.stripe.g, T.stripe.b)
+        for sy = y + T.px(2), y + tbH - T.px(2), T.px(4) do
+            panel:drawRect(x, sy, w, T.px(1), stripeA, T.stripe.r, T.stripe.g, T.stripe.b)
         end
     end
 
     -- Bottom border
-    panel:drawRect(x, y + tbH - 1, w, 1, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+    panel:drawRect(x, y + tbH - T.px(1), w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
 
     -- Title text with background box (K22 Xanthus — chrome voice)
     if title and title ~= "" then
         local titleFont = T.fontF3
         local titleX = x + T.sp.sm + T.closeBoxSz + T.sp.md
-        local titleY = y + math.floor((tbH - getTextManager():getFontHeight(titleFont)) / 2)
+        local titleY = y + math.floor((tbH - ZeD.TM:getFontHeight(titleFont)) / 2)
         local tbp = T.sp.titleBoxPad
         -- Truncate title to available width (leave room for stat cluster)
         local maxTitleW = w - (titleX - x) - T.sp.sm - tbp * 2
         local displayTitle = A.truncateText(title, titleFont, maxTitleW)
-        local titleW = getTextManager():MeasureStringX(titleFont, displayTitle)
-        M.drawBodyBg(panel, titleX - tbp, y + 1, titleW + tbp * 2, tbH - tbp, "surf2")
+        local titleW = ZeD.TM:MeasureStringX(titleFont, displayTitle)
+        M.drawBodyBg(panel, titleX - tbp, y + T.px(1), titleW + tbp * 2, tbH - tbp, "surf2")
         panel:drawText(displayTitle, titleX, titleY, T.textHead.r, T.textHead.g, T.textHead.b, T.textHead.a, titleFont)
     end
 
     -- Right-aligned stat cluster (truncated to available chrome width)
     if stats and #stats > 0 then
         local statX = x + w - T.sp.sm
-        local statFH = getTextManager():getFontHeight(T.fontF3)
+        local statFH = ZeD.TM:getFontHeight(T.fontF3)
         local statY = y + math.floor((tbH - statFH) / 2)
-        local dotSz = 5
-        local dotGap = 4
+        local dotSz = T.px(5)
+        local dotGap = T.px(4)
         local tc = T.text
         -- Left boundary: don't overlap title text (reuses titleFont from above)
-        local titleEndW = title and getTextManager():MeasureStringX(T.fontF3, title) or 0
+        local titleEndW = title and ZeD.TM:MeasureStringX(T.fontF3, title) or 0
         local minX = x + T.sp.sm + T.closeBoxSz + T.sp.md + titleEndW + T.sp.titleBoxPad * 2 + T.sp.md
         for i = #stats, 1, -1 do
             local stat = stats[i]
-            local sw = getTextManager():MeasureStringX(T.fontF3, stat.text)
+            local sw = ZeD.TM:MeasureStringX(T.fontF3, stat.text)
             local needed = sw + dotGap + dotSz + T.sp.md
             -- Skip this stat if it would overflow past the title
             if statX - needed < minX then break end
@@ -1650,9 +1653,10 @@ function ZeD.Molecules.drawWindowTitleBar(panel, x, y, w, title, stats)
             local dotY = y + math.floor((tbH - dotSz) / 2)
             -- 5x5 pixel-art circle: rows 0,4 = 3px centered; rows 1-3 = 5px
             local da = dc.a or 1
-            panel:drawRect(statX + 1, dotY,     3, 1, da, dc.r, dc.g, dc.b)
-            panel:drawRect(statX,     dotY + 1, 5, 3, da, dc.r, dc.g, dc.b)
-            panel:drawRect(statX + 1, dotY + 4, 3, 1, da, dc.r, dc.g, dc.b)
+            local p1, p4 = T.px(1), T.px(4)   -- S124 scale: design-unit pixel art, row r spans [T.px(r), T.px(r + 1)); dotSz = T.px(5)
+            panel:drawRect(statX + p1, dotY,      p4 - p1, p1,         da, dc.r, dc.g, dc.b)
+            panel:drawRect(statX,      dotY + p1, dotSz,   p4 - p1,    da, dc.r, dc.g, dc.b)
+            panel:drawRect(statX + p1, dotY + p4, p4 - p1, dotSz - p4, da, dc.r, dc.g, dc.b)
             statX = statX - T.sp.md
         end
     end
@@ -1677,12 +1681,12 @@ function ZeD.Molecules.drawDataRow(panel, label, value, x, y, labelColor, valueC
     local T = ZeD.T
     local lc = labelColor or ZeD.colorAlpha(T.textHead, 0.6)
     local vc = valueColor or T.text
-    local fh = getTextManager():getFontHeight(T.fontF4)
+    local fh = ZeD.TM:getFontHeight(T.fontF4)
 
     panel:drawText(label, x, y, lc.r, lc.g, lc.b, lc.a or 0.6, T.fontF4)
 
     if value then
-        local lw = getTextManager():MeasureStringX(T.fontF4, label)
+        local lw = ZeD.TM:MeasureStringX(T.fontF4, label)
         panel:drawText(value, x + lw + T.sp.sm, y, vc.r, vc.g, vc.b, vc.a or 1, T.fontF2)
     end
 
@@ -1694,7 +1698,10 @@ end
 -- ============================================================================
 -- Renders a horizontal strip of icon buttons. Each def in the array is:
 -- Icon padding inside rounded button — 20% of button size, min 4px
-local function _iconPad(btnSz) return math.max(4, math.floor(btnSz * 0.2)) end
+local function _iconPad(btnSz)
+    local T = ZeD.T
+    return math.max(T.px(4), math.floor(btnSz * 0.2))
+end
 
 --   {key, tex, colorKey, tip_on, tip_off}
 -- Returns a table of hit rects in absolute coords for use with updateActionStrip.
@@ -1710,7 +1717,7 @@ function ZeD.Molecules.drawActionStrip(panel, x, y, defs, item, hoverIdx)
     local A = ZeD.Atoms
     local AS = ZeD.ActionStrip
     local sp = T.sp
-    local btnSz = T.iconSm + 4
+    local btnSz = T.iconSm + T.px(4)
     local gap = sp.xs
     local absX = panel:getAbsoluteX()
     local absY = panel:getAbsoluteY()
@@ -1794,7 +1801,7 @@ function ZeD.Molecules.drawVerbStrip(panel, rightEdge, y, verbs, hoverIdx)
     local T   = ZeD.T
     local A   = ZeD.Atoms
     local AS  = ZeD.ActionStrip
-    local btnSz = T.iconSm + 4
+    local btnSz = T.iconSm + T.px(4)
     local gap   = T.sp.xs
     local absX  = panel:getAbsoluteX()
     local absY  = panel:getAbsoluteY()
@@ -1849,19 +1856,19 @@ end
 function ZeD.Molecules.drawDock(panel, x, y, totalW, label, fillSegs, tint, icon, hovered, greyed)
     local T   = ZeD.T
     local A   = ZeD.Atoms
-    local btnSz    = T.iconSm + 4
-    local bevel    = 2  -- matches ROUND_RADIUS = {2, 1}
+    local btnSz    = T.iconSm + T.px(4)
+    local bevel    = T.px(2)  -- matches ROUND_RADIUS = {2, 1}
     local dim      = greyed and 0.45 or 1.0
 
     -- Flag dimensions: height = button's straight section
     local flagH = btnSz - bevel * 2
     local flagY = y + bevel
-    local padX  = 4
+    local padX  = T.px(4)
     local textW = 0
     if label and label ~= "" then
-        textW = getTextManager():MeasureStringX(T.fontF1, label)
+        textW = ZeD.TM:MeasureStringX(T.fontF1, label)
     end
-    local flagW = math.max(4, textW + padX * 2)
+    local flagW = math.max(T.px(4), textW + padX * 2)
 
     -- Flag background: tint color, no outline
     local bgC = tint or T.textSec
@@ -1869,7 +1876,7 @@ function ZeD.Molecules.drawDock(panel, x, y, totalW, label, fillSegs, tint, icon
 
     -- Flag label: centered vertically in flag
     if label and label ~= "" then
-        local fontH = getTextManager():getFontHeight(T.fontF1)
+        local fontH = ZeD.TM:getFontHeight(T.fontF1)
         local ly    = flagY + math.floor((flagH - fontH) / 2)
         local lc    = tint or T.textSec
         panel:drawText(label, x + padX, ly, lc.r, lc.g, lc.b, (lc.a or 1) * dim, T.fontF1)
@@ -1935,12 +1942,12 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
     local A     = ZeD.Atoms
     local M     = ZeD.Molecules
     local sp    = T.sp
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
-    local btnSz = T.iconSm + 4
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
+    local btnSz = T.iconSm + T.px(4)
     local barH  = T.fillBarH
 
     -- Top-line height: tallest of text+breathing, bar, dock
-    local topH = math.max(bodyH + 4, barH + 4, btnSz)
+    local topH = math.max(bodyH + T.px(4), barH + T.px(4), btnSz)
 
     -- Two-column split mirrors the card's layout
     local colW   = math.floor((w - T.colGap) / 2)
@@ -1957,8 +1964,8 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
 
     -- Pct — left col, right-aligned (K22 Xanthus — data readout)
     local pctStr = tostring(math.floor(zone.pct or 0)) .. "%"
-    local pctW   = getTextManager():MeasureStringX(T.fontF3, pctStr)
-    local pctY   = y + math.floor((topH - getTextManager():getFontHeight(T.fontF3)) / 2)
+    local pctW   = ZeD.TM:MeasureStringX(T.fontF3, pctStr)
+    local pctY   = y + math.floor((topH - ZeD.TM:getFontHeight(T.fontF3)) / 2)
     panel:drawText(pctStr, leftX + colW - pctW, pctY,
         T.text.r, T.text.g, T.text.b, T.text.a, T.fontF3)
 
@@ -1991,8 +1998,8 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
             local d     = zone.dock
             local greyd = (d.state == "grey")
             -- Pre-measure width
-            local sTextW = d.flag and getTextManager():MeasureStringX(T.fontF1, d.flag) or 0
-            local flagW  = math.max(4, sTextW + 8)
+            local sTextW = d.flag and ZeD.TM:MeasureStringX(T.fontF1, d.flag) or 0
+            local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)  -- S124 scale: + 2 x drawDock padX, so the pre-measure matches drawDock
             local dockW  = d.icon and (flagW + btnSz) or flagW
             rx = rx - dockW
             M.drawDock(panel, rx, botY, nil, d.flag, nil, d.color, d.icon, hovered and not greyd, greyd)
@@ -2009,8 +2016,8 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
         -- Wet (blue) — flag only, no button
         if soiled and soiled.wet and soiled.wet > 0 then
             local lbl    = math.floor(soiled.wet) .. "%"
-            local sTextW = getTextManager():MeasureStringX(T.fontF1, lbl)
-            local flagW  = math.max(4, sTextW + 8)
+            local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
+            local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)
             rx = rx - flagW
             M.drawDock(panel, rx, botY, nil, lbl, nil, T.soiledWet, nil, false, false)
             rx = rx - sp.xs
@@ -2019,8 +2026,8 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
         -- Blood (red) — flag only, no button
         if soiled and soiled.blood and soiled.blood > 0 then
             local lbl    = math.floor(soiled.blood) .. "%"
-            local sTextW = getTextManager():MeasureStringX(T.fontF1, lbl)
-            local flagW  = math.max(4, sTextW + 8)
+            local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
+            local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)
             rx = rx - flagW
             M.drawDock(panel, rx, botY, nil, lbl, nil, T.soiledBlood, nil, false, false)
             rx = rx - sp.xs
@@ -2029,8 +2036,8 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
         -- Dirty (brown) — flag only, no button
         if soiled and soiled.dirt then
             local lbl    = "DIRTY"
-            local sTextW = getTextManager():MeasureStringX(T.fontF1, lbl)
-            local flagW  = math.max(4, sTextW + 8)
+            local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
+            local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)
             rx = rx - flagW
             M.drawDock(panel, rx, botY, nil, lbl, nil, T.soiledDirt, nil, false, false)
         end
@@ -2076,29 +2083,29 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
 
     local h, btnSz, padX, gap, btnPadX
     if compact then
-        h, btnSz, padX, gap, btnPadX = 30, 20, 3, 4, 7
+        h, btnSz, padX, gap, btnPadX = T.px(30), T.px(20), T.px(3), T.px(4), T.px(7)
     else
-        h, btnSz, padX, gap, btnPadX = 37, 22, 4, 6, 8
+        h, btnSz, padX, gap, btnPadX = T.px(37), T.px(22), T.px(4), T.px(6), T.px(8)
     end
 
     -- Surface bg + bottom separator
     local bg, bs = T.surf2, T.borderS
     panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
-    panel:drawRect(x, y + h - 1, w, 1, bs.a, bs.r, bs.g, bs.b)
+    panel:drawRect(x, y + h - T.px(1), w, T.px(1), bs.a, bs.r, bs.g, bs.b)
 
     -- Back button (raised System-7 chrome via surf4 highlight + borderS shadow)
     local backX = x + padX
     local backY = y + math.floor((h - btnSz) / 2)
     local hi, sh = T.surf4, T.borderS
     panel:drawRect(backX, backY, btnSz, btnSz, bg.a, bg.r, bg.g, bg.b)
-    panel:drawRect(backX, backY, btnSz, 1, hi.a, hi.r, hi.g, hi.b)
-    panel:drawRect(backX, backY, 1, btnSz, hi.a, hi.r, hi.g, hi.b)
-    panel:drawRect(backX, backY + btnSz - 1, btnSz, 1, sh.a, sh.r, sh.g, sh.b)
-    panel:drawRect(backX + btnSz - 1, backY, 1, btnSz, sh.a, sh.r, sh.g, sh.b)
+    panel:drawRect(backX, backY, btnSz, T.px(1), hi.a, hi.r, hi.g, hi.b)
+    panel:drawRect(backX, backY, T.px(1), btnSz, hi.a, hi.r, hi.g, hi.b)
+    panel:drawRect(backX, backY + btnSz - T.px(1), btnSz, T.px(1), sh.a, sh.r, sh.g, sh.b)
+    panel:drawRect(backX + btnSz - T.px(1), backY, T.px(1), btnSz, sh.a, sh.r, sh.g, sh.b)
 
-    local labelH = T.fontF1H or getTextManager():MeasureStringY(font, "<")
+    local labelH = T.fontF1H or ZeD.TM:MeasureStringY(font, "<")
     local backGlyph = "<"
-    local bgw = getTextManager():MeasureStringX(font, backGlyph)
+    local bgw = ZeD.TM:MeasureStringX(font, backGlyph)
     local tc = T.text
     panel:drawText(backGlyph, backX + math.floor((btnSz - bgw) / 2),
         backY + math.floor((btnSz - labelH) / 2),
@@ -2117,7 +2124,7 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
             local v = verbs[i]
             if i < #verbs then cursorR = cursorR - gap end
             local labelStr = v.label or ""
-            local lw   = getTextManager():MeasureStringX(font, labelStr)
+            local lw   = ZeD.TM:MeasureStringX(font, labelStr)
             local btnW = lw + btnPadX * 2
             cursorR    = cursorR - btnW
             local btnX = cursorR
@@ -2129,13 +2136,13 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
 
             local btnHi = v.primary and T.accentBright or T.surf4
             local btnSh = v.primary and ZeD.colorBlend(T.accent, T.base, 0.55) or T.borderS
-            panel:drawRect(btnX, btnY, btnW, 1,
+            panel:drawRect(btnX, btnY, btnW, T.px(1),
                 (btnHi.a or 1) * verbAlpha, btnHi.r, btnHi.g, btnHi.b)
-            panel:drawRect(btnX, btnY, 1, btnSz,
+            panel:drawRect(btnX, btnY, T.px(1), btnSz,
                 (btnHi.a or 1) * verbAlpha, btnHi.r, btnHi.g, btnHi.b)
-            panel:drawRect(btnX, btnY + btnSz - 1, btnW, 1,
+            panel:drawRect(btnX, btnY + btnSz - T.px(1), btnW, T.px(1),
                 (btnSh.a or 1) * verbAlpha, btnSh.r, btnSh.g, btnSh.b)
-            panel:drawRect(btnX + btnW - 1, btnY, 1, btnSz,
+            panel:drawRect(btnX + btnW - T.px(1), btnY, T.px(1), btnSz,
                 (btnSh.a or 1) * verbAlpha, btnSh.r, btnSh.g, btnSh.b)
 
             local lc = v.primary and T.textOnAccent or T.text
@@ -2155,12 +2162,12 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
     if nameW > 0 and name and name ~= "" then
         local nameFont = compact and font or T.fontF4
         local nameStr  = name
-        if getTextManager():MeasureStringX(nameFont, nameStr) > nameW then
+        if ZeD.TM:MeasureStringX(nameFont, nameStr) > nameW then
             nameStr = A.truncateText(nameStr, nameFont, nameW)
         end
         local nameH = (compact and (T.fontF1H or labelH))
                        or T.fontF4H
-                       or getTextManager():MeasureStringY(nameFont, nameStr)
+                       or ZeD.TM:MeasureStringY(nameFont, nameStr)
         local nameY = y + math.floor((h - nameH) / 2)
         local nc    = T.text
         panel:drawText(nameStr, nameX, nameY, nc.r, nc.g, nc.b, nc.a, nameFont)
@@ -2185,19 +2192,19 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
 
     local h, padX, gap, lblPadR
     if compact then
-        h, padX, gap, lblPadR = 24, 8, 4, 2
+        h, padX, gap, lblPadR = T.px(24), T.px(8), T.px(4), T.px(2)
     else
-        h, padX, gap, lblPadR = 28, 12, 6, 4
+        h, padX, gap, lblPadR = T.px(28), T.px(12), T.px(6), T.px(4)
     end
 
     -- Surface bg (surf1 — body color) + 1px bottom separator
     local bg, sep = T.surf1, T.border
     panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
-    panel:drawRect(x, y + h - 1, w, 1, sep.a, sep.r, sep.g, sep.b)
+    panel:drawRect(x, y + h - T.px(1), w, T.px(1), sep.a, sep.r, sep.g, sep.b)
 
     local font   = T.fontF1
-    local labelH = T.fontF1H or getTextManager():MeasureStringY(font, "M")
-    local rowY   = y + math.floor((h - 18) / 2)  -- chip atom is 18 tall
+    local labelH = T.fontF1H or ZeD.TM:MeasureStringY(font, "M")
+    local rowY   = y + math.floor((h - T.px(18)) / 2)  -- chip atom is 18 tall
 
     -- "MARKED" label (left, dim)
     local lblText  = "MARKED"
@@ -2205,7 +2212,7 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
     local labelC   = T.textDim
     panel:drawText(lblText, x + padX, labelTY,
         labelC.r, labelC.g, labelC.b, labelC.a, font)
-    local lblW = getTextManager():MeasureStringX(font, lblText)
+    local lblW = ZeD.TM:MeasureStringX(font, lblText)
 
     -- Three chips — composes Atoms.drawFlagChip ×3
     local cursorX = x + padX + lblW + lblPadR
@@ -2271,12 +2278,12 @@ function ZeD.Molecules.drawCardVerbStrip(panel, rightEdge, y, verbs, progressAct
     end
     local T        = ZeD.T
     local font     = T.fontF1
-    local btnH     = 22
-    local padX     = 10
-    local gap      = compact and 3 or 4
-    local glyphGap = 4
+    local btnH     = T.px(22)
+    local padX     = T.px(10)
+    local gap      = compact and T.px(3) or T.px(4)
+    local glyphGap = T.px(4)
     local alpha    = progressActive and 0.35 or 1.0
-    local labelH   = T.fontF1H or getTextManager():MeasureStringY(font, "X")
+    local labelH   = T.fontF1H or ZeD.TM:MeasureStringY(font, "X")
 
     local cursorR = rightEdge
     for i = #verbs, 1, -1 do
@@ -2284,10 +2291,10 @@ function ZeD.Molecules.drawCardVerbStrip(panel, rightEdge, y, verbs, progressAct
         if i < #verbs then cursorR = cursorR - gap end
 
         local labelStr = v.label or ""
-        local labelW   = getTextManager():MeasureStringX(font, labelStr)
+        local labelW   = ZeD.TM:MeasureStringX(font, labelStr)
         local glyphStr = (not compact) and v.glyph or nil
         local glyphW   = (glyphStr and glyphStr ~= "")
-            and getTextManager():MeasureStringX(font, glyphStr) or 0
+            and ZeD.TM:MeasureStringX(font, glyphStr) or 0
         local interGap = (glyphW > 0) and glyphGap or 0
         local btnW     = padX * 2 + glyphW + interGap + labelW
         cursorR        = cursorR - btnW
@@ -2368,9 +2375,9 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     local lblFont = T.fontF1
     local valFont = T.fontF2
 
-    local labelH = T.fontF1H or getTextManager():getFontHeight(lblFont)
-    local valueH = T.fontF2H or getTextManager():getFontHeight(valFont)
-    local rowH   = math.max(labelH, valueH) + 2  -- 2px breathe (matches mockup padding:1px 0)
+    local labelH = T.fontF1H or ZeD.TM:getFontHeight(lblFont)
+    local valueH = T.fontF2H or ZeD.TM:getFontHeight(valFont)
+    local rowH   = math.max(labelH, valueH) + T.px(2)  -- 2px breathe (matches mockup padding:1px 0)
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
@@ -2380,26 +2387,26 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     panel:drawText(lblText, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
 
-    local lblWMeasured = getTextManager():MeasureStringX(lblFont, lblText)
+    local lblWMeasured = ZeD.TM:MeasureStringX(lblFont, lblText)
     local lblColW = fixedLabelW or lblWMeasured
 
     -- Value column starts after the label column + 6px gap (mockup `gap:6px`)
-    local valX     = x + lblColW + 6
+    local valX     = x + lblColW + T.px(6)
     local maxValW  = w - (valX - x)
 
     -- Optional status dot — reserves space at the right edge before value
-    local dotSz   = 7
-    local dotGap  = 5
+    local dotSz   = T.px(7)
+    local dotGap  = T.px(5)
     local dotResW = dotColor and (dotSz + dotGap) or 0
     local valSlotW = maxValW - dotResW
 
     -- Value text (right-aligned, ellipsis if too wide)
     local valStr = value or ""
     local vc     = _resolveStatValColor(valueClass, T)
-    local valW   = getTextManager():MeasureStringX(valFont, valStr)
+    local valW   = ZeD.TM:MeasureStringX(valFont, valStr)
     if valSlotW > 0 and valW > valSlotW then
         valStr = A.truncateText(valStr, valFont, valSlotW)
-        valW   = getTextManager():MeasureStringX(valFont, valStr)
+        valW   = ZeD.TM:MeasureStringX(valFont, valStr)
     end
     local valDrawX = x + w - dotResW - valW
     panel:drawText(valStr, valDrawX, valueY,
@@ -2422,12 +2429,13 @@ end
 --- @param statRows Array of {label, value, valueClass, dotColor}
 --- @return height (sum of all row heights)
 function ZeD.Molecules.drawTopStatsList(panel, x, y, w, statRows)
+    local T = ZeD.T
     if not statRows or #statRows == 0 then return 0 end
-    local rowGap = 2
+    local rowGap = T.px(2)
     local cy = y
     for i, r in ipairs(statRows) do
         local rowH = ZeD.Molecules.drawCardStatRow(panel, x, cy, w,
-            r.label, r.value, r.valueClass, r.dotColor, 80)
+            r.label, r.value, r.valueClass, r.dotColor, T.px(80))
         cy = cy + rowH + (i < #statRows and rowGap or 0)
     end
     return cy - y
@@ -2445,10 +2453,10 @@ end
 function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local iconSz   = 56
-    local iconGap  = 10
-    local colGap   = 16
-    local rowGap   = 4
+    local iconSz   = T.px(56)
+    local iconGap  = T.px(10)
+    local colGap   = T.px(16)
+    local rowGap   = T.px(4)
 
     local gridX = x + iconSz + iconGap
     local gridW = w - iconSz - iconGap
@@ -2459,7 +2467,7 @@ function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows)
     panel:drawRect(x, y, iconSz, iconSz, bg.a, bg.r, bg.g, bg.b)
     panel:drawRectBorder(x, y, iconSz, iconSz, bd.a, bd.r, bd.g, bd.b)
     if iconTexture then
-        local pad = 4
+        local pad = T.px(4)
         A.drawIcon(panel, iconTexture, x + pad, y + pad, iconSz - pad * 2, 1.0, T.iconWhite)
     end
 
@@ -2498,11 +2506,11 @@ function ZeD.Molecules.drawFactsTitle(panel, x, y, w, text, compact)
     local T = ZeD.T
     local font = compact and T.fontF2 or T.fontF4
     local h = (compact and T.fontF2H) or T.fontF4H
-        or getTextManager():getFontHeight(font)
+        or ZeD.TM:getFontHeight(font)
     local c = T.text
     panel:drawText(text or "", x, y,
         c.r, c.g, c.b, c.a or 1, font)
-    return h + 2  -- mockup margin-bottom:2px
+    return h + T.px(2)  -- mockup margin-bottom:2px
 end
 
 --- 2px thick text-color rule (above first facts row).
@@ -2511,16 +2519,16 @@ function ZeD.Molecules.drawFactsRuleThick(panel, x, y, w)
     local c = T.text
     -- mockup margin:4px 0 (480w) or 2px 0 (220w) — caller manages outer spacing;
     -- molecule renders just the rule itself
-    panel:drawRect(x, y, w, 2, c.a, c.r, c.g, c.b)
-    return 2
+    panel:drawRect(x, y, w, T.px(2), c.a, c.r, c.g, c.b)
+    return T.px(2)
 end
 
 --- 1px thin border-color rule (between facts sub-blocks).
 function ZeD.Molecules.drawFactsRuleThin(panel, x, y, w)
     local T = ZeD.T
     local c = T.border
-    panel:drawRect(x, y, w, 1, c.a, c.r, c.g, c.b)
-    return 1
+    panel:drawRect(x, y, w, T.px(1), c.a, c.r, c.g, c.b)
+    return T.px(1)
 end
 
 --- Single facts row: bold label (left, sans 600) + mono bold value (right).
@@ -2547,11 +2555,11 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     local valueFont = T.fontF1
 
     local labelH = isSub and T.fontF2H or T.fontF4H
-        or getTextManager():getFontHeight(labelFont)
-    local valueH = T.fontF1H or getTextManager():getFontHeight(valueFont)
-    local rowH   = math.max(labelH, valueH) + 2  -- mockup padding:2px 0
+        or ZeD.TM:getFontHeight(labelFont)
+    local valueH = T.fontF1H or ZeD.TM:getFontHeight(valueFont)
+    local rowH   = math.max(labelH, valueH) + T.px(2)  -- mockup padding:2px 0
 
-    local indent = isSub and 14 or 0
+    local indent = isSub and T.px(14) or 0
     local labelC = isSub and T.textSec or T.text
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
@@ -2564,18 +2572,18 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     -- Uses ASCII "*" until Fira live-verify confirms "★" (U+2605) renders
     -- (Q15b — Fira font glyph gaps).
     if needsProbe then
-        local lblW    = getTextManager():MeasureStringX(labelFont, labelStr)
+        local lblW    = ZeD.TM:MeasureStringX(labelFont, labelStr)
         local badgeC  = T.warning
         local badgeFont = T.fontF1
-        local badgeH  = T.fontF1H or getTextManager():getFontHeight(badgeFont)
+        local badgeH  = T.fontF1H or ZeD.TM:getFontHeight(badgeFont)
         local badgeY  = y + math.floor((rowH - badgeH) / 2)
-        panel:drawText("*", x + indent + lblW + 4, badgeY,
+        panel:drawText("*", x + indent + lblW + T.px(4), badgeY,
             badgeC.r, badgeC.g, badgeC.b, badgeC.a or 1, badgeFont)
     end
 
     local vc   = _resolveStatValColor(valueClass, T)
     local vStr = value or ""
-    local vw   = getTextManager():MeasureStringX(valueFont, vStr)
+    local vw   = ZeD.TM:MeasureStringX(valueFont, vStr)
     panel:drawText(vStr, x + w - vw, valueY,
         vc.r, vc.g, vc.b, vc.a or 1, valueFont)
 
@@ -2593,7 +2601,7 @@ function ZeD.Molecules.drawProtZonePair(panel, x, y, w, zoneL, zoneR)
     local T    = ZeD.T
     local A    = ZeD.Atoms
     local font = T.fontF1
-    local secH = getTextManager():getFontHeight(font)
+    local secH = ZeD.TM:getFontHeight(font)
     local barH = T.fillBarH
     local colGap = T.sp.sm
     local colW = math.floor((w - colGap) / 2)
@@ -2611,7 +2619,7 @@ function ZeD.Molecules.drawProtZonePair(panel, x, y, w, zoneL, zoneR)
     drawZoneBar(rightX, zoneR)
 
     -- Row 2: Zone name + stats
-    local statsY = y + barH + 2
+    local statsY = y + barH + T.px(2)
 
     local function drawZoneStats(zx, zw, zone)
         if not zone then return end
@@ -2630,7 +2638,7 @@ function ZeD.Molecules.drawProtZonePair(panel, x, y, w, zoneL, zoneR)
 
         -- Stats right-aligned: "15%  S:0 B:0"
         local statsText = pctStr .. "  " .. dockStr
-        local statsW = getTextManager():MeasureStringX(font, statsText)
+        local statsW = ZeD.TM:MeasureStringX(font, statsText)
         local dc = T.textDim
         panel:drawText(statsText, zx + zw - statsW, statsY, dc.r, dc.g, dc.b, dc.a, font)
     end
@@ -2639,7 +2647,7 @@ function ZeD.Molecules.drawProtZonePair(panel, x, y, w, zoneL, zoneR)
     drawZoneStats(rightX, colW, zoneR)
 
     -- Total height: bar + gap + stats line + pair gap
-    return barH + 2 + secH + T.sp.xs
+    return barH + T.px(2) + secH + T.sp.xs
 end
 
 
@@ -2654,13 +2662,13 @@ end
 -- Returns:      stripH (20), zones table for click dispatch
 -- ============================================================================
 
-local STRIP_H = 20
+local STRIP_H = 20   -- S124 scale: design units; uses wrap with T.px
 
 function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightToggle, hoverZone)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
-    local h  = STRIP_H
+    local tm = ZeD.TM
+    local h  = T.px(STRIP_H)
     local font = T.fontF1
 
     -- Strip background
@@ -2668,17 +2676,17 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
     panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
 
     -- Bottom rule
-    A.drawDividerH(panel, x, y + h - 1, w, true)
+    A.drawDividerH(panel, x, y + h - T.px(1), w, true)
 
     -- "SORT" label
     local sortLabel = "SORT"
     local sc = T.textSec
     local labelW = tm:MeasureStringX(font, sortLabel)
     local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
-    panel:drawText(sortLabel, x + 6, textY, sc.r, sc.g, sc.b, sc.a, font)
+    panel:drawText(sortLabel, x + T.px(6), textY, sc.r, sc.g, sc.b, sc.a, font)
 
     -- Mode tabs with underline
-    local tabX = x + 6 + labelW + 8
+    local tabX = x + T.px(6) + labelW + T.px(8)
     local zones = {}
     for _, mode in ipairs(modes) do
         local tw = tm:MeasureStringX(font, mode.label)
@@ -2690,25 +2698,25 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
 
         -- Underline for active mode
         if isActive then
-            panel:drawRect(tabX, y + h - 2, tw, 1, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
+            panel:drawRect(tabX, y + h - T.px(2), tw, T.px(1), T.accent.a, T.accent.r, T.accent.g, T.accent.b)
         end
 
-        zones[#zones + 1] = { id = mode.id, x = tabX, y = y, w = tw + 8, h = h, type = "sort" }
-        tabX = tabX + tw + 12
+        zones[#zones + 1] = { id = mode.id, x = tabX, y = y, w = tw + T.px(8), h = h, type = "sort" }
+        tabX = tabX + tw + T.px(12)
     end
 
     -- Right-aligned toggle (status dot style)
     if rightToggle then
         local togLabel = rightToggle.label or "All"
-        local togW = tm:MeasureStringX(font, togLabel) + 14  -- dot + gap + text
-        local togX = x + w - togW - 6
-        local dotSz = 6
+        local togW = tm:MeasureStringX(font, togLabel) + T.px(14)  -- dot + gap + text
+        local togX = x + w - togW - T.px(6)
+        local dotSz = T.px(6)
         local dotColor = rightToggle.active and T.accent or T.textDim
         local dotY = y + math.floor((h - dotSz) / 2)
         A.drawStatusDot(panel, togX, dotY, dotColor, dotSz)
 
         local togTC = rightToggle.active and T.accent or T.textSec
-        panel:drawText(togLabel, togX + dotSz + 4, textY,
+        panel:drawText(togLabel, togX + dotSz + T.px(4), textY,
             togTC.r, togTC.g, togTC.b, togTC.a or 1, font)
 
         zones[#zones + 1] = { id = "toggle", x = togX, y = y, w = togW, h = h, type = "toggle" }
@@ -2727,8 +2735,8 @@ end
 function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, totalCount, ownedOnly, hoverZone)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
-    local h  = STRIP_H
+    local tm = ZeD.TM
+    local h  = T.px(STRIP_H)
     local font = T.fontF1
 
     -- Accent-tinted background
@@ -2736,22 +2744,22 @@ function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, to
     panel:drawRect(x, y, w, h, 0.08, ac.r, ac.g, ac.b)
 
     -- Accent bottom border
-    panel:drawRect(x, y + h - 1, w, 1, ac.a * 0.4, ac.r, ac.g, ac.b)
+    panel:drawRect(x, y + h - T.px(1), w, T.px(1), ac.a * 0.4, ac.r, ac.g, ac.b)
 
     local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
     local zones = {}
 
     -- Left: back affordance "< Recipes"
     local backLabel = "Recipes"
-    local arrowSz = 6
+    local arrowSz = T.px(6)
     local arrowY = y + math.floor((h - arrowSz) / 2)
-    A.drawTriangleLeft(panel, x + 6, arrowY, arrowSz, T.accent)
+    A.drawTriangleLeft(panel, x + T.px(6), arrowY, arrowSz, T.accent)
     local isBackHover = (hoverZone == "back")
     local backTC = isBackHover and T.accentBright or T.accent
-    local backX = x + 6 + arrowSz + 4
+    local backX = x + T.px(6) + arrowSz + T.px(4)
     panel:drawText(backLabel, backX, textY, backTC.r, backTC.g, backTC.b, backTC.a or 1, font)
     local backW = tm:MeasureStringX(font, backLabel)
-    zones[#zones + 1] = { id = "back", x = x, y = y, w = backX + backW + 4 - x, h = h, type = "back" }
+    zones[#zones + 1] = { id = "back", x = x, y = y, w = backX + backW + T.px(4) - x, h = h, type = "back" }
 
     -- Center: "N/total owned" stat
     local statStr = tostring(ownedCount) .. "/" .. tostring(totalCount) .. " owned"
@@ -2762,18 +2770,18 @@ function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, to
 
     -- Right: "Owned only" toggle
     local togLabel = "Owned only"
-    local dotSz = 6
-    local togW = tm:MeasureStringX(font, togLabel) + dotSz + 4
-    local togX = x + w - togW - 6
+    local dotSz = T.px(6)
+    local togW = tm:MeasureStringX(font, togLabel) + dotSz + T.px(4)
+    local togX = x + w - togW - T.px(6)
     local dotColor = ownedOnly and T.positive or T.textDim
     local dotY = y + math.floor((h - dotSz) / 2)
     A.drawStatusDot(panel, togX, dotY, dotColor, dotSz)
 
     local togTC = ownedOnly and T.positive or T.textSec
-    panel:drawText(togLabel, togX + dotSz + 4, textY,
+    panel:drawText(togLabel, togX + dotSz + T.px(4), textY,
         togTC.r, togTC.g, togTC.b, togTC.a or 1, font)
 
-    zones[#zones + 1] = { id = "ownedOnly", x = togX, y = y, w = togW + 6, h = h, type = "toggle" }
+    zones[#zones + 1] = { id = "ownedOnly", x = togX, y = y, w = togW + T.px(6), h = h, type = "toggle" }
 
     return h, zones
 end
@@ -2788,13 +2796,13 @@ end
 --   status: "can" (green), "miss" (red), "unknown" (grey)
 -- ============================================================================
 
-local RECIPE_ROW_H = 24
+local RECIPE_ROW_H = 24   -- S124 scale: design units; uses wrap with T.px
 
 function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pinned, freqCount, rowIdx)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
-    local h  = RECIPE_ROW_H
+    local tm = ZeD.TM
+    local h  = T.px(RECIPE_ROW_H)
 
     -- Stripe background (alternating even rows)
     if rowIdx and rowIdx % 2 == 0 then
@@ -2822,38 +2830,38 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
 
     -- Selection edge (2px accent bar)
     if selected then
-        panel:drawRect(cx, y, 2, h, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
+        panel:drawRect(cx, y, T.px(2), h, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
     end
-    cx = cx + 4  -- edge space
+    cx = cx + T.px(4)  -- edge space
 
     -- Status dot (6px): green=craftable, gold=missing ingredients, red=not known
-    local dotSz = 6
+    local dotSz = T.px(6)
     local dotColor
     if status == "can" then dotColor = T.positive
     elseif status == "miss" then dotColor = T.warning
     else dotColor = T.danger end
     local dotY = y + math.floor((h - dotSz) / 2)
     A.drawStatusDot(panel, cx, dotY, dotColor, dotSz)
-    cx = cx + dotSz + 4
+    cx = cx + dotSz + T.px(4)
 
     -- Icon (14px)
-    local iconSz = 14
+    local iconSz = T.px(14)
     if data.iconTex then
         local iconY = y + math.floor((h - iconSz) / 2)
         panel:drawTextureScaledAspect(data.iconTex, cx, iconY, iconSz, iconSz, 1, 1, 1, 1)
     end
-    cx = cx + iconSz + 4
+    cx = cx + iconSz + T.px(4)
 
     -- Name (F2, ellipsis if needed)
     local nameFont = T.fontF2
     local textY = y + math.floor((h - tm:getFontHeight(nameFont)) / 2)
-    local nameMaxW = w - (cx - x) - 24  -- reserve space for star
+    local nameMaxW = w - (cx - x) - T.px(24)  -- reserve space for star
 
     -- Freq badge eats into name space
     local freqBadgeW = 0
     if freqCount and freqCount > 0 then
         local freqStr = "x" .. tostring(freqCount)
-        freqBadgeW = tm:MeasureStringX(T.fontF5, freqStr) + 8
+        freqBadgeW = tm:MeasureStringX(T.fontF5, freqStr) + T.px(8)
         nameMaxW = nameMaxW - freqBadgeW
     end
 
@@ -2884,17 +2892,17 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
     end
 
     panel:drawText(nameStr, cx, textY, nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, nameFont)
-    cx = cx + nameW + 4
+    cx = cx + nameW + T.px(4)
 
     -- Freq badge (inline, warning color)
     if freqCount and freqCount > 0 then
         local freqStr = "x" .. tostring(freqCount)
         local wc = T.warning
-        panel:drawText(freqStr, cx, textY + 1, wc.r, wc.g, wc.b, 0.7, T.fontF5)
+        panel:drawText(freqStr, cx, textY + T.px(1), wc.r, wc.g, wc.b, 0.7, T.fontF5)
     end
 
     -- Star (right-aligned, hover-appear, accent when pinned)
-    local starX = x + w - 18
+    local starX = x + w - T.px(18)
     local starStr = pinned and "*" or "*"
     local starAlpha = pinned and 1.0 or (hovered and 0.5 or 0)
     if starAlpha > 0 then
@@ -2920,8 +2928,8 @@ end
 function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
-    local h  = RECIPE_ROW_H
+    local tm = ZeD.TM
+    local h  = T.px(RECIPE_ROW_H)
 
     -- Stripe
     if rowIdx and rowIdx % 2 == 0 then
@@ -2939,24 +2947,24 @@ function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx)
 
     -- Edge indicator (2px, owned = positive, otherwise blank)
     if owned then
-        panel:drawRect(cx, y, 2, h, T.positive.a, T.positive.r, T.positive.g, T.positive.b)
+        panel:drawRect(cx, y, T.px(2), h, T.positive.a, T.positive.r, T.positive.g, T.positive.b)
     end
-    cx = cx + 4
+    cx = cx + T.px(4)
 
     -- Status dot (6px)
-    local dotSz = 6
+    local dotSz = T.px(6)
     local dotColor = owned and T.positive or T.textDim
     local dotY = y + math.floor((h - dotSz) / 2)
     A.drawStatusDot(panel, cx, dotY, dotColor, dotSz)
-    cx = cx + dotSz + 4
+    cx = cx + dotSz + T.px(4)
 
     -- Icon (16px)
-    local iconSz = 16
+    local iconSz = T.px(16)
     if data.iconTex then
         local iconY = y + math.floor((h - iconSz) / 2)
         panel:drawTextureScaledAspect(data.iconTex, cx, iconY, iconSz, iconSz, 1, 1, 1, 1)
     end
-    cx = cx + iconSz + 4
+    cx = cx + iconSz + T.px(4)
 
     -- Name (F2, dim if not owned)
     local nameFont = T.fontF2
@@ -2966,7 +2974,7 @@ function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx)
 
     -- Truncate (reserve space for count)
     local countStr = tostring(data.have or 0) .. "/" .. tostring(data.need or 1)
-    local countW = tm:MeasureStringX(T.fontF3, countStr) + 8
+    local countW = tm:MeasureStringX(T.fontF3, countStr) + T.px(8)
     local nameMaxW = w - (cx - x) - countW
     local nameW = tm:MeasureStringX(nameFont, nameStr)
     if nameW > nameMaxW then
@@ -2983,7 +2991,7 @@ function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx)
 
     -- Count (right-aligned)
     local countColor = owned and T.positive or T.textDim
-    A.drawTextRight(panel, countStr, x + w - 6, textY, T.fontF3, countColor)
+    A.drawTextRight(panel, countStr, x + w - T.px(6), textY, T.fontF3, countColor)
 
     return h
 end
@@ -3003,8 +3011,8 @@ end
 function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
-    local h  = RECIPE_ROW_H
+    local tm = ZeD.TM
+    local h  = T.px(RECIPE_ROW_H)
     local missing = (data.have or 0) < (data.need or 1)
 
     -- Background: missing = red whisper, selected = accent bg
@@ -3024,17 +3032,17 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
 
     -- Selection edge (2px accent when this slot's alts are showing)
     if selected then
-        panel:drawRect(cx, y, 2, h, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
+        panel:drawRect(cx, y, T.px(2), h, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
     end
-    cx = cx + 4
+    cx = cx + T.px(4)
 
     -- Icon (18px)
-    local iconSz = 18
+    local iconSz = T.px(18)
     if data.iconTex then
         local iconY = y + math.floor((h - iconSz) / 2)
         panel:drawTextureScaledAspect(data.iconTex, cx, iconY, iconSz, iconSz, 1, 1, 1, 1)
     end
-    cx = cx + iconSz + 4
+    cx = cx + iconSz + T.px(4)
 
     -- Name + tag
     local nameFont = T.fontF2
@@ -3043,21 +3051,21 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
     local nameStr = data.displayName or data.name or ""
 
     -- Reserve space for count + consumable flag
-    local rightReserve = 50  -- count + flag space
+    local rightReserve = T.px(50)  -- count + flag space
     local nameMaxW = w - (cx - x) - rightReserve
 
     -- Tag inline (either "N▾" for alt-backed, or text tag for specific items)
     local tagStr, tagW, tagColor
     if (data.altCount or 0) > 0 then
         tagStr = tostring(data.altCount) .. "v"  -- ▾ via drawTriangleDown later
-        tagW = tm:MeasureStringX(T.fontF5, tagStr) + 2
+        tagW = tm:MeasureStringX(T.fontF5, tagStr) + T.px(2)
         tagColor = T.warning
-        nameMaxW = nameMaxW - tagW - 6
+        nameMaxW = nameMaxW - tagW - T.px(6)
     elseif data.tag then
         tagStr = data.tag
         tagW = tm:MeasureStringX(T.fontF5, tagStr)
         tagColor = T.textDim
-        nameMaxW = nameMaxW - tagW - 6
+        nameMaxW = nameMaxW - tagW - T.px(6)
     end
 
     -- Truncate name
@@ -3074,7 +3082,7 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
     end
 
     panel:drawText(nameStr, cx, textY, nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, nameFont)
-    cx = cx + nameW + 4
+    cx = cx + nameW + T.px(4)
 
     -- Tag render
     if tagStr then
@@ -3082,18 +3090,18 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
         local tagY = y + math.floor((h - tm:getFontHeight(tagFont)) / 2)
         if (data.altCount or 0) > 0 then
             -- Alt tag: bordered orange pill with N + tiny triangle
-            local pillW = tagW + 6
-            local pillH = tm:getFontHeight(tagFont) + 2
-            local pillY = tagY - 1
+            local pillW = tagW + T.px(6)
+            local pillH = tm:getFontHeight(tagFont) + T.px(2)
+            local pillY = tagY - T.px(1)
             panel:drawRectBorder(cx, pillY, pillW, pillH,
                 tagColor.a * 0.6, tagColor.r, tagColor.g, tagColor.b)
             -- Number
             local numStr = tostring(data.altCount)
-            panel:drawText(numStr, cx + 3, tagY, tagColor.r, tagColor.g, tagColor.b, 0.9, tagFont)
+            panel:drawText(numStr, cx + T.px(3), tagY, tagColor.r, tagColor.g, tagColor.b, 0.9, tagFont)
             -- Tiny down-triangle after number
             local numW = tm:MeasureStringX(tagFont, numStr)
-            local triSz = 4
-            local triX = cx + 3 + numW + 1
+            local triSz = T.px(4)
+            local triX = cx + T.px(3) + numW + T.px(1)
             local triY = tagY + math.floor((tm:getFontHeight(tagFont) - triSz) / 2)
             A.drawTriangleDown(panel, triX, triY, triSz, tagColor)
         else
@@ -3110,17 +3118,17 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
     end
     local countColor = missing and T.danger or T.positive
     local countFont = T.fontF3
-    local flagW = 14  -- space for consumable flag
-    A.drawTextRight(panel, countStr, x + w - flagW - 4, textY, countFont, countColor)
+    local flagW = T.px(14)  -- space for consumable flag
+    A.drawTextRight(panel, countStr, x + w - flagW - T.px(4), textY, countFont, countColor)
 
     -- Consumable flag (right corner): arrow = returned/kept, dash = consumed
     local flagX = x + w - flagW
     local flagColor = T.textDim
     if data.isKeep or data.isTool then
         -- Return arrow (left-pointing)
-        local arrSz = 5
+        local arrSz = T.px(5)
         local arrY = y + math.floor((h - arrSz) / 2)
-        A.drawTriangleLeft(panel, flagX + 4, arrY, arrSz, flagColor)
+        A.drawTriangleLeft(panel, flagX + T.px(4), arrY, arrSz, flagColor)
     else
         -- Consumed indicator: "-" dash
         local dashStr = "-"
@@ -3139,15 +3147,15 @@ end
 -- Returns: totalW (width of the stepper group), zones table for clicks
 -- ============================================================================
 
-local STEPPER_BTN_W = 22
+local STEPPER_BTN_W = 22   -- S124 scale: design units (both); uses wrap with T.px
 local STEPPER_H     = 22
 
 function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
-    local h  = STEPPER_H
-    local bw = STEPPER_BTN_W
+    local tm = ZeD.TM
+    local h  = T.px(STEPPER_H)
+    local bw = T.px(STEPPER_BTN_W)
     local font = T.fontF3
     local zones = {}
 
@@ -3164,8 +3172,8 @@ function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty)
 
     -- Qty readout (accent bg)
     local qtyStr = tostring(qty)
-    local qtyW = math.max(bw, tm:MeasureStringX(font, qtyStr) + 8)
-    local qtyX = x + bw + 1
+    local qtyW = math.max(bw, tm:MeasureStringX(font, qtyStr) + T.px(8))
+    local qtyX = x + bw + T.px(1)
     local ac = T.accent
     panel:drawRect(qtyX, y, qtyW, h, 0.15, ac.r, ac.g, ac.b)
     panel:drawRectBorder(qtyX, y, qtyW, h, T.borderS.a * 0.5, T.borderS.r, T.borderS.g, T.borderS.b)
@@ -3174,7 +3182,7 @@ function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty)
         ac.r, ac.g, ac.b, 1, font)
 
     -- [+] button
-    local incX = qtyX + qtyW + 1
+    local incX = qtyX + qtyW + T.px(1)
     local canInc = qty < maxQty
     local incColor = canInc and T.text or T.textDim
     local incBorder = canInc and T.borderS or T.textDim
@@ -3198,27 +3206,27 @@ end
 -- Returns: stripH (42), zones table for click dispatch
 -- ============================================================================
 
-local ACT_STRIP_H = 42
+local ACT_STRIP_H = 42   -- S124 scale: design units; uses wrap with T.px
 
 function ZeD.Molecules.drawCraftActionStrip(panel, x, y, w, qty, maxQty, canCraft, hoverZone, buildLabel)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
-    local h  = ACT_STRIP_H
+    local tm = ZeD.TM
+    local h  = T.px(ACT_STRIP_H)
     local zones = {}
 
     -- Top rule
     A.drawDividerH(panel, x, y, w, true)
 
     -- Center vertically in 42px strip
-    local innerH = STEPPER_H
+    local innerH = T.px(STEPPER_H)
     local innerY = y + math.floor((h - innerH) / 2)
-    local cx = x + 6
+    local cx = x + T.px(6)
 
     -- Qty stepper
     local stepW, stepZones = ZeD.Molecules.drawQtyStepper(panel, cx, innerY, qty, maxQty)
     for _, z in ipairs(stepZones) do zones[#zones + 1] = z end
-    cx = cx + stepW + 10
+    cx = cx + stepW + T.px(10)
 
     -- Max readout (bare number)
     local maxStr = tostring(maxQty)
@@ -3227,11 +3235,11 @@ function ZeD.Molecules.drawCraftActionStrip(panel, x, y, w, qty, maxQty, canCraf
     local maxY = innerY + math.floor((innerH - tm:getFontHeight(maxFont)) / 2)
     panel:drawText(maxStr, cx, maxY, maxColor.r, maxColor.g, maxColor.b, maxColor.a or 1, maxFont)
     local maxW = tm:MeasureStringX(maxFont, maxStr)
-    cx = cx + maxW + 10
+    cx = cx + maxW + T.px(10)
 
     -- BUILD button (fills remaining width)
     local btnX = cx
-    local btnW = x + w - 6 - btnX
+    local btnW = x + w - T.px(6) - btnX
     local btnH = innerH
     local btnY = innerY
     local label = buildLabel or "CRAFT"
@@ -3336,7 +3344,7 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         local letters = clean:sub(1, 2):upper()
         if letters == "" then letters = "?" end
         local font = T.fontF1 or T.fontF3
-        local tm = getTextManager()
+        local tm = ZeD.TM
         local textW = tm:MeasureStringX(font, letters)
         local textH = tm:getFontHeight(font)
         local tx = x + math.floor((ctx.cellW - textW) / 2)
@@ -3360,14 +3368,14 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
     -- Submenu indicator (3×3 corner triangle bottom-right)
     if flags.hasSub then
         local triColor = flags.isActive and paper or ink
-        A.drawCornerTri3x3(panel, x + ctx.cellW - ctx.submenuTriSz - 1,
-                                   y + ctx.cellH - ctx.submenuTriSz - 1, triColor)
+        A.drawCornerTri3x3(panel, x + ctx.cellW - ctx.submenuTriSz - T.px(1),
+                                   y + ctx.cellH - ctx.submenuTriSz - T.px(1), triColor)
     end
 
     -- Pin indicator (3×3 corner square top-right)
     if flags.isPinned then
         local pinColor = flags.isActive and paper or accent
-        A.drawCornerSq3x3(panel, x + ctx.cellW - ctx.pinDotSz - 1, y + 1, pinColor)
+        A.drawCornerSq3x3(panel, x + ctx.cellW - ctx.pinDotSz - T.px(1), y + T.px(1), pinColor)
     end
 end
 
@@ -3392,10 +3400,10 @@ function ZeD.Molecules.drawContextStrip(panel, x, y, state, T)
     local visibleCount = math.min(N, ctx.maxVisible)
     local innerW = visibleCount * ctx.cellW + math.max(0, visibleCount - 1) * ctx.gap
     local drilled = state.path and #state.path > 0
-    local topBorder = drilled and ctx.drilledBorderTop or 1
+    local topBorder = drilled and ctx.drilledBorderTop or T.px(1)
     -- Housing = inner (cell row) + 1px left/right + top border + 1px bottom
-    local housingW = innerW + 2
-    local housingH = ctx.cellH + topBorder + 1
+    local housingW = innerW + T.px(1) * 2
+    local housingH = ctx.cellH + topBorder + T.px(1)
 
     -- Shadow behind everything
     A.drawSteppedShadow(panel, x, y, housingW, housingH, ink)
@@ -3404,7 +3412,7 @@ function ZeD.Molecules.drawContextStrip(panel, x, y, state, T)
     panel:drawRect(x, y, housingW, housingH, ink.a or 1, ink.r, ink.g, ink.b)
 
     -- Interior starts 1px in from left, topBorder px down from top
-    local innerX = x + 1
+    local innerX = x + T.px(1)
     local innerY = y + topBorder
     local originX = state.trackOriginX or 0
     local track = state.trackItems or items
@@ -3513,7 +3521,7 @@ function ZeD.Molecules.drawContextFloatingLabel(panel, centerX, topY,
     local muted = T.textSec
     local textC = T.text
     local font  = T.fontF1  -- F1 Chrome: Fira Mono Bold
-    local tm    = getTextManager()
+    local tm    = ZeD.TM
 
     -- Build segments (text + color pairs) — multi-color draw via multiple drawText
     local segments = {}
@@ -3535,7 +3543,7 @@ function ZeD.Molecules.drawContextFloatingLabel(panel, centerX, topY,
 
     -- Pill dimensions
     local padH  = T.sp.md  -- 14px horizontal padding inside pill
-    local padV  = 3
+    local padV  = T.px(3)
     local textH = tm:getFontHeight(font)
     local pillW = totalW + padH * 2
     local pillH = textH + padV * 2
@@ -3578,13 +3586,13 @@ function ZeD.Molecules.drawContextTargetCard(panel, centerX, topY,
     local textC = T.text
     local nameFont = T.fontF2   -- F2 Body
     local metaFont = T.fontF5   -- F5 Micro
-    local tm = getTextManager()
+    local tm = ZeD.TM
 
     local iconSz = ctx.targetIconPx
-    local padL, padR, padV = 2, 6, 2
-    local iconToName = 5
-    local nameToSep  = 4
-    local sepToMeta  = 4
+    local padL, padR, padV = T.px(2), T.px(6), T.px(2)
+    local iconToName = T.px(5)
+    local nameToSep  = T.px(4)
+    local sepToMeta  = T.px(4)
 
     local nameStr = name or ""
     local metaStr = meta or ""
@@ -3596,7 +3604,7 @@ function ZeD.Molecules.drawContextTargetCard(panel, centerX, topY,
     local contentH = math.max(iconSz, tm:getFontHeight(nameFont))
     local cardH = contentH + padV * 2
     local cardW = padL + iconSz + iconToName + nameW
-        + (hasMeta and (nameToSep + 1 + sepToMeta + metaW) or 0) + padR
+        + (hasMeta and (nameToSep + T.px(1) + sepToMeta + metaW) or 0) + padR
     local cardX = centerX - math.floor(cardW / 2)
     local cardY = topY
 
@@ -3614,7 +3622,7 @@ function ZeD.Molecules.drawContextTargetCard(panel, centerX, topY,
     panel:drawRectBorder(iconX, iconY, iconSz, iconSz,
         ink.a or 1, ink.r, ink.g, ink.b)
     if iconTex then
-        A.drawIcon(panel, iconTex, iconX + 1, iconY + 1, iconSz - 2, 1, T.iconWhite)
+        A.drawIcon(panel, iconTex, iconX + T.px(1), iconY + T.px(1), iconSz - T.px(1) * 2, 1, T.iconWhite)
     end
 
     -- Name
@@ -3626,10 +3634,10 @@ function ZeD.Molecules.drawContextTargetCard(panel, centerX, topY,
     -- Meta (optional, separated by 1px vertical line)
     if hasMeta then
         local sepX = nameX + nameW + nameToSep
-        local sepY = cardY + 3
-        local sepH = cardH - 6
+        local sepY = cardY + T.px(3)
+        local sepH = cardH - T.px(3) * 2
         local sepC = T.border or muted
-        panel:drawRect(sepX, sepY, 1, sepH,
+        panel:drawRect(sepX, sepY, T.px(1), sepH,
             sepC.a or 1, sepC.r, sepC.g, sepC.b)
         local metaX = sepX + sepToMeta
         local metaY = cardY + math.floor((cardH - tm:getFontHeight(metaFont)) / 2)
@@ -3677,7 +3685,7 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
     local labelFont = T.fontF1   -- F1 Chrome — mono bold (was the floating label font)
     local bodyFont  = T.fontF2   -- F2 Body
     local stateFont = T.fontF5   -- F5 Micro
-    local tm = getTextManager()
+    local tm = ZeD.TM
 
     -- Build label segments for breadcrumb support. Top-level: just the action
     -- name in full ink. Submenu: "Parent > Child > Current" with parents and
@@ -3703,12 +3711,12 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
     local hasState = rawState and rawState ~= ""
 
     -- Sizing
-    local padH       = 10
-    local padV       = 5
-    local rowGap     = 3
-    local dividerGap = 5
-    local maxW       = 250
-    local minW       = 80
+    local padH       = T.px(10)
+    local padV       = T.px(5)
+    local rowGap     = T.px(3)
+    local dividerGap = T.px(5)
+    local maxW       = T.px(250)
+    local minW       = T.px(80)
 
     local labelH = tm:getFontHeight(labelFont)
     local bodyH  = tm:getFontHeight(bodyFont)
@@ -3739,7 +3747,7 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
         bodyTotalH = #bodyLines * bodyH
     end
     if hasState then
-        stateLines = (wrap and wrap(rawState, stateFont, innerW - 10)) or { rawState }
+        stateLines = (wrap and wrap(rawState, stateFont, innerW - T.px(10))) or { rawState }
         stateTotalH = #stateLines * stateH
     end
 
@@ -3749,13 +3757,13 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
         balH = balH + rowGap + bodyTotalH
     end
     if hasState then
-        balH = balH + dividerGap + 1 + rowGap + stateTotalH
+        balH = balH + dividerGap + T.px(1) + rowGap + stateTotalH
     end
 
     -- Position — direction set by state.pointerDir ("down" = default; bubble
     -- ABOVE strip with downward tail. "up" = bubble BELOW strip with upward
     -- tail; used when there isn't enough room above the cursor).
-    local pointerH = 3
+    local pointerH = T.px(3)
     local pointerDir = state.pointerDir or "down"
     local balX = centerX - math.floor(balW / 2)
     local balY
@@ -3803,18 +3811,18 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
         y = y + dividerGap
         local dashX, dashEndX = balX + padH, balX + balW - padH
         while dashX < dashEndX do
-            local dashW = math.min(4, dashEndX - dashX)
-            panel:drawRect(dashX, y, dashW, 1,
+            local dashW = math.min(T.px(4), dashEndX - dashX)
+            panel:drawRect(dashX, y, dashW, T.px(1),
                 muted.a or 0.6, muted.r, muted.g, muted.b)
-            dashX = dashX + 6
+            dashX = dashX + T.px(6)
         end
-        y = y + 1 + rowGap
+        y = y + T.px(1) + rowGap
 
         local dotC = (state.stateKind == "bad") and bad or good
-        local dotSz = 4
+        local dotSz = T.px(4)
         local dotY = y + math.floor((stateH - dotSz) / 2)
         A.drawStatusDot(panel, balX + padH, dotY, dotC, dotSz)
-        local textOffset = dotSz + 6
+        local textOffset = dotSz + T.px(6)
         for _, line in ipairs(stateLines) do
             panel:drawText(line, balX + padH + textOffset, y,
                 muted.r, muted.g, muted.b, 1, stateFont)
@@ -3848,9 +3856,9 @@ function ZeD.Molecules.drawStatusChip(panel, x, y, text, on, onColor, offColor, 
     -- The Fira font set in this mod doesn't carry the Unicode bullet glyphs
     -- ●/○ — they render as `?` placeholders. Paint a real square via drawRect
     -- aligned to the text baseline so the chip is font-independent.
-    local TM   = getTextManager()
+    local TM   = ZeD.TM
     local fh   = TM:getFontHeight(font)
-    local sqSz = math.max(6, math.floor(fh * 0.55))
+    local sqSz = math.max(T.px(6), math.floor(fh * 0.55))
     local sqY  = y + math.floor((fh - sqSz) / 2)
     local sqX  = x
 
@@ -3862,10 +3870,10 @@ function ZeD.Molecules.drawStatusChip(panel, x, y, text, on, onColor, offColor, 
     end
 
     -- Label follows the indicator with a 4px gap.
-    local labelX = sqX + sqSz + 4
+    local labelX = sqX + sqSz + T.px(4)
     panel:drawText(text, labelX, y, color.r, color.g, color.b, color.a or 1.0, font)
     local labelW = TM:MeasureStringX(font, text)
-    return (sqSz + 4 + labelW)
+    return (sqSz + T.px(4) + labelW)
 end
 
 -- ============================================================================
@@ -3899,17 +3907,17 @@ end
 function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, subtitle, locationTag)
     local T = ZeD.T
     if not T then return end
-    local TM = getTextManager()
+    local TM = ZeD.TM
 
     -- ZeD.Spacing.tabHeaderH is the canonical drawer-header strip height
     -- shared across the mod (Health / Equipment-Defense / Thermal / Identity
     -- / Skills / Maps toolbar / Radio drawer header).
-    local stripH    = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37
-    local btnSize   = 24
-    local btnGap    = 6
-    local pad       = 10
-    local pillPadX  = 12
-    local pillH     = 24
+    local stripH    = T.px((ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37)
+    local btnSize   = T.px(24)
+    local btnGap    = T.px(6)
+    local pad       = T.px(10)
+    local pillPadX  = T.px(12)
+    local pillH     = T.px(24)
     local font      = T.fontF1   -- mono small for counter + arrows
     local fontHead  = T.fontF2   -- sans for subtitle
     local fontPill  = T.fontF1
@@ -3918,7 +3926,7 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     -- (Project rule: avoid adding redundant backgrounds; use the parent's.)
     -- Just the 1px groove separating the header from the chassis below.
     local groove = T.borderS or { r = 0.22, g = 0.22, b = 0.22, a = 1.0 }
-    panel:drawRect(x, y + stripH - 1, w, 1, groove.a or 1.0, groove.r, groove.g, groove.b)
+    panel:drawRect(x, y + stripH - T.px(1), w, T.px(1), groove.a or 1.0, groove.r, groove.g, groove.b)
 
     local btnY = y + math.floor((stripH - btnSize) / 2)
     local pillY = y + math.floor((stripH - pillH) / 2)

@@ -285,7 +285,7 @@ end
 function radioMainDisplay(panel, x, y, w, h, brand, dd)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local TM = getTextManager()
+    local TM = ZeD.TM
 
     -- Brand palette select. Backlit substrate (cyan-VFD-blue / amber-LCD)
     -- shows ONLY when power is on. Powered-off mirrors real-hardware off
@@ -340,7 +340,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- as a recessed window in the chassis. Painted FIRST then the substrate
     -- fills the interior; subsequent content (chips, bars, frequency, data
     -- column) lays out against the post-frame interior bounds.
-    local frameW = 2
+    local frameW = T.px(2)
     panel:drawRect(x,                  y,                  w,      frameW, 1.0, 0, 0, 0)
     panel:drawRect(x,                  y + h - frameW,     w,      frameW, 1.0, 0, 0, 0)
     panel:drawRect(x,                  y,                  frameW, h,      1.0, 0, 0, 0)
@@ -354,7 +354,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- Display substrate fill, interior of the frame.
     panel:drawRect(x, y, w, h, bg.a or 1.0, bg.r, bg.g, bg.b)
 
-    local pad = 8
+    local pad = T.px(8)
     local cx = x + pad
     local cy = y + pad
     local maxX = x + w - pad
@@ -406,22 +406,22 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
         chipOnC  = { r = fgBright.r, g = fgBright.g, b = fgBright.b, a = (fgBright.a or 1.0) * 0.35 }
         chipOffC = { r = fgOff.r,    g = fgOff.g,    b = fgOff.b,    a = (fgOff.a    or 1.0) * 0.35 }
     end
-    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "AM",     amShow,     chipOnC, chipOffC, font) + 12
-    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "FM",     fmShow,     chipOnC, chipOffC, font) + 12
-    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "STEREO", stereoShow, chipOnC, chipOffC, font) + 12
+    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "AM",     amShow,     chipOnC, chipOffC, font) + T.px(12)
+    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "FM",     fmShow,     chipOnC, chipOffC, font) + T.px(12)
+    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "STEREO", stereoShow, chipOnC, chipOffC, font) + T.px(12)
 
-    cy = row1Y + fontHrow1 + 10
+    cy = row1Y + fontHrow1 + T.px(10)
 
     -- =========== ROW 2 — BATT + VOL bars ===========
     local labelFont = T.fontF1
     local labelH = TM:getFontHeight(labelFont)
-    local barH   = 12
+    local barH   = T.px(12)
 
     -- BATT label + 4 segments
     _silk(panel, cx, cy + math.floor((barH - labelH) / 2), "BATT", fgDim, labelFont)
     local battLabelW = TM:MeasureStringX(labelFont, "BATT")
-    local battSegX = cx + battLabelW + 6
-    local battSegW = 80
+    local battSegX = cx + battLabelW + T.px(6)
+    local battSegW = T.px(80)
     -- battery is 0..1; gate on (power AND hasBattery) so an absent or removed
     -- battery cell reads as empty rather than full.
     local battK = 0
@@ -434,26 +434,26 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     local barAlpha = power and 1.0 or 0.35
     local barOnC  = { r = fgBright.r, g = fgBright.g, b = fgBright.b, a = (fgBright.a or 1) * barAlpha }
     local barOffC = { r = fgOff.r,    g = fgOff.g,    b = fgOff.b,    a = (fgOff.a    or 1) * barAlpha }
-    A.drawSegBar(panel, battSegX, cy, battSegW, barH, 4, battK, barOnC, barOffC, 2)
+    A.drawSegBar(panel, battSegX, cy, battSegW, barH, 4, battK, barOnC, barOffC, T.px(2))
 
     -- VOL label + 8 segments (positioned after BATT bar with breathing room)
-    local volLabelX = battSegX + battSegW + 18
+    local volLabelX = battSegX + battSegW + T.px(18)
     _silk(panel, volLabelX, cy + math.floor((barH - labelH) / 2), "VOL", fgDim, labelFont)
     local volLabelW = TM:MeasureStringX(labelFont, "VOL")
-    local volSegX = volLabelX + volLabelW + 6
+    local volSegX = volLabelX + volLabelW + T.px(6)
     local volSegW = math.max(0, maxX - volSegX)
     local volK = power and math.floor(volF * 8 + 0.5) or 0
     if volK < 0 then volK = 0 end
     if volK > 8 then volK = 8 end
-    A.drawSegBar(panel, volSegX, cy, volSegW, barH, 8, volK, barOnC, barOffC, 2)
+    A.drawSegBar(panel, volSegX, cy, volSegW, barH, 8, volK, barOnC, barOffC, T.px(2))
 
-    cy = cy + barH + 14
+    cy = cy + barH + T.px(14)
 
     -- =========== ROW 3 — Big frequency (left) + data column (right) ===========
     -- Frequency painted in UIFont.Cred1 (largest standard font ~30px) so the
     -- station number is the visual anchor of the chassis. Unit suffix in mono
     -- F3 alongside the digits. Channel name in F2 below the frequency.
-    local freqFont    = UIFont.Cred1
+    local freqFont    = ZeD.Font.sdf.head; local freqZoom = ZeD.Text.zoomPx(30)   -- S124: 30 px design digits on the distance-field heading face (was UIFont.Cred1, 1x only)
     local unitFont    = T.fontF2
     local channelFont = T.fontF2
     -- Text colors don't gate on power — when the display is off the grey
@@ -469,7 +469,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     else
         freqDigits, freqUnit = "---.-", "MHz"
     end
-    local freqDigitsH = TM:getFontHeight(freqFont)
+    local freqDigitsH = ZeD.Text.height(freqFont, freqZoom)
     local channelH    = TM:getFontHeight(channelFont)
 
     -- Layout: freq + data column on the SAME centered row; station-name
@@ -480,21 +480,20 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     local row3AvailH = (y + h - pad) - cy
     local nameRowH   = channelH
     local nameRowY   = y + h - pad - nameRowH
-    local nameGap    = 6
+    local nameGap    = T.px(6)
     -- The freq+data block centers in the vertical space ABOVE the name row.
     local freqAvailH = nameRowY - nameGap - cy
     local row3StartY = cy + math.max(0, math.floor((freqAvailH - freqDigitsH) / 2))
 
-    panel:drawText(freqDigits, cx, row3StartY,
-        freqColor.r, freqColor.g, freqColor.b, freqColor.a or 1.0, freqFont)
-    local freqDigitsW = TM:MeasureStringX(freqFont, freqDigits)
+    ZeD.Text.draw(panel, freqFont, freqDigits, cx, row3StartY, freqZoom, freqColor.r, freqColor.g, freqColor.b, freqColor.a or 1.0, "l")
+    local freqDigitsW = ZeD.Text.width(freqFont, freqDigits, freqZoom)
 
     -- Unit suffix (kHz / MHz) at lower-right corner of the frequency block —
     -- baseline-aligned with bottom of the digits.
     if freqUnit ~= "" then
         local unitH = TM:getFontHeight(unitFont)
-        local unitX = cx + freqDigitsW + 6
-        local unitY = row3StartY + (freqDigitsH - unitH) - 2
+        local unitX = cx + freqDigitsW + T.px(6)
+        local unitY = row3StartY + (freqDigitsH - unitH) - T.px(2)
         panel:drawText(freqUnit, unitX, unitY,
             freqColor.r, freqColor.g, freqColor.b, freqColor.a or 1.0, unitFont)
     end
@@ -543,7 +542,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
         { label = "SIG",   value = (power and hasSignal) and "GOOD" or (power and "WEAK" or "-") },
     }
     local dataFont = T.fontF2
-    local dataLineH = TM:getFontHeight(dataFont) + 6
+    local dataLineH = TM:getFontHeight(dataFont) + T.px(6)
     local dataBlockH = #dataLabels * dataLineH
     local dataColX  = cx + math.floor(w * 0.55)
     -- Data column centers against the SAME vertical space as the freq digits
@@ -571,7 +570,7 @@ end
 function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local TM = getTextManager()
+    local TM = ZeD.TM
     -- Reset per-frame click-zone slots that this molecule owns. Other molecules
     -- own their own slots and clear them in their own renders.
     if win then
@@ -596,9 +595,9 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     -- Recessed control-strip host
     A.recessedPanel(panel, x, y, w, h, rec.recessedBg, rec.recessedHi, rec.recessedSh)
 
-    local pad      = 10
-    local pwrBtnH  = 30
-    local pillH    = 14    -- SEEK/VOL pills: thinner than buttons (mockup proportion)
+    local pad      = T.px(10)
+    local pwrBtnH  = T.px(30)
+    local pillH    = T.px(14)    -- SEEK/VOL pills: thinner than buttons (mockup proportion)
     local pwrBtnY  = y + math.floor((h - pwrBtnH) / 2)
     local pillY    = y + math.floor((h - pillH) / 2)
     local cx       = x + pad
@@ -612,26 +611,26 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     -- the button, left edge, with the label centered after.
     local power = _safeGet(dd, "getIsTurnedOn", false)
     local pwrLabel = power and "ON" or "OFF"
-    local pwrBtnW  = 60
+    local pwrBtnW  = T.px(60)
     if win then
         win._radioPwrZone = { x = cx, y = pwrBtnY, w = pwrBtnW, h = pwrBtnH }
     end
     ZeD.Molecules.drawButton(panel, cx, pwrBtnY, pwrBtnW, pwrBtnH, "", "flat", false, btnColors)
     -- Status indicator square inside the button at left edge
-    local dotSz = 10
-    local dotX  = cx + 6
+    local dotSz = T.px(10)
+    local dotX  = cx + T.px(6)
     local dotY  = pwrBtnY + math.floor((pwrBtnH - dotSz) / 2)
     local dotColor = power and { r = 0.85, g = 0.30, b = 0.20, a = 1.0 }
                             or { r = 0.50, g = 0.10, b = 0.05, a = 1.0 }
     panel:drawRect(dotX, dotY, dotSz, dotSz, dotColor.a, dotColor.r, dotColor.g, dotColor.b)
     -- Label drawn on the remaining space, right of dot
     local labelW    = TM:MeasureStringX(labelFont, pwrLabel)
-    local labelArea = pwrBtnW - dotSz - 12  -- room after dot+pad
-    local labelTx   = dotX + dotSz + 6 + math.floor((labelArea - labelW) / 2)
+    local labelArea = pwrBtnW - dotSz - T.px(12)  -- room after dot+pad
+    local labelTx   = dotX + dotSz + T.px(6) + math.floor((labelArea - labelW) / 2)
     local labelTy   = pwrBtnY + math.floor((pwrBtnH - labelH) / 2)
     panel:drawText(pwrLabel, labelTx, labelTy,
         btnColors.text.r, btnColors.text.g, btnColors.text.b, 1.0, labelFont)
-    cx = cx + pwrBtnW + 20
+    cx = cx + pwrBtnW + T.px(20)
 
     -- ============ Helper: draw a SEEK/VOL group ============
     -- Layout: outside silkscreen label ("SEEK"/"VOL") + `-` silkscreen +
@@ -646,35 +645,35 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
         local plusW   = TM:MeasureStringX(labelFont, "+")
         local pillW = math.floor((groupW
             - lLabelW           -- "SEEK" / "VOL" silkscreen
-            - 10                -- gap after label
+            - T.px(10)                -- gap after label
             - minusW            -- `-` glyph (label, not interactive)
-            - 10                -- gap
-            - 10                -- gap between buttons
-            - 10                -- gap before plus
+            - T.px(10)                -- gap
+            - T.px(10)                -- gap between buttons
+            - T.px(10)                -- gap before plus
             - plusW             -- `+` glyph (label, not interactive)
         ) / 2)
-        if pillW < 36 then pillW = 36 end
+        if pillW < T.px(36) then pillW = T.px(36) end
 
         local lx = gx
         -- Outside silkscreen label ("SEEK" / "VOL")
         panel:drawText(label, lx, labelCenterY,
             silkColor.r, silkColor.g, silkColor.b, silkColor.a or 1.0, labelFont)
-        lx = lx + lLabelW + 10
+        lx = lx + lLabelW + T.px(10)
 
         -- `-` silkscreen direction label (NOT interactive — outside-the-button)
         panel:drawText("-", lx, labelCenterY,
             silkColor.r, silkColor.g, silkColor.b, silkColor.a or 1.0, labelFont)
-        lx = lx + minusW + 10
+        lx = lx + minusW + T.px(10)
 
         -- Down button (left grey) — decrement action
         local downZone = { x = lx, y = pillY, w = pillW, h = pillH }
         ZeD.Molecules.drawButton(panel, lx, pillY, pillW, pillH, "", "flat", false, btnColors)
-        lx = lx + pillW + 10
+        lx = lx + pillW + T.px(10)
 
         -- Up button (right grey) — increment action
         local upZone = { x = lx, y = pillY, w = pillW, h = pillH }
         ZeD.Molecules.drawButton(panel, lx, pillY, pillW, pillH, "", "flat", false, btnColors)
-        lx = lx + pillW + 10
+        lx = lx + pillW + T.px(10)
 
         if win then
             if groupKey == "seek" then
@@ -691,10 +690,10 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     end
 
     -- Split remaining horizontal space evenly between SEEK and VOL.
-    local groupsAvail = maxX - cx - 16  -- 16px gap between groups
+    local groupsAvail = maxX - cx - T.px(16)  -- 16px gap between groups
     local groupW = math.floor(groupsAvail / 2)
     local seekEnd = drawGroup("SEEK", cx, groupW, "seek")
-    drawGroup("VOL", seekEnd + 16, groupW, "vol")
+    drawGroup("VOL", seekEnd + T.px(16), groupW, "vol")
 end
 
 ----------------------------------------------------------------------
@@ -722,7 +721,7 @@ function radioPresetBank(panel, x, y, w, h, brand, dd, win)
     -- Recessed bank host
     A.recessedPanel(panel, x, y, w, h, rec.recessedBg, rec.recessedHi, rec.recessedSh)
 
-    local pad = 10
+    local pad = T.px(10)
     local cx  = x + pad
     local cy  = y + pad
     local btnH = h - pad * 2
@@ -743,17 +742,17 @@ function radioPresetBank(panel, x, y, w, h, brand, dd, win)
 
     -- Add button anchors to the right edge — wider than a numbered slot now
     -- that it owns the space the old `-` minus button used to occupy.
-    local addBtnW  = btnH * 2 + 6   -- ~2x square (was sideBtnW + sideBtnW + gap)
+    local addBtnW  = btnH * 2 + T.px(6)   -- ~2x square (was sideBtnW + sideBtnW + gap)
     local addX     = x + w - pad - addBtnW
     -- Available width for the slot row.
-    local slotsAreaEnd = addX - 10
+    local slotsAreaEnd = addX - T.px(10)
     local slotsAreaW   = slotsAreaEnd - cx
     if slotsAreaW < 0 then slotsAreaW = 0 end
 
     -- Slot width derived from available space — divide evenly with 4px gaps.
-    local gap = 4
+    local gap = T.px(4)
     local slotW = math.floor((slotsAreaW - (visible - 1) * gap) / visible)
-    if slotW < 24 then slotW = 24 end
+    if slotW < T.px(24) then slotW = T.px(24) end
 
     for i = 1, visible do
         local sx = cx + (i - 1) * (slotW + gap)
@@ -801,15 +800,15 @@ function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)
     -- Center reference line (1px dim cyan)
     local mid = y + math.floor(h / 2)
     local dim = T.radio.vfd.dim
-    panel:drawRect(x, mid, w, 1, 0.30, dim.r, dim.g, dim.b)
+    panel:drawRect(x, mid, w, T.px(1), 0.30, dim.r, dim.g, dim.b)
 
     -- Each column gets a vertical line whose height = |wave[i]| * h/2.
-    local colW = math.max(1, math.floor((w - cols + 1) / cols))
+    local colW = math.max(T.px(1), math.floor((w - (cols - 1) * T.px(1)) / cols))  -- S124 scale: (cols - 1) one-px gaps
     local lineCol = T.radio.vfd.bright
     local lineA   = power and (lineCol.a or 1.0) or ((lineCol.a or 1.0) * 0.32)
     for i = 1, cols do
         local cx = x + (i - 1) * colW
-        local vh = math.floor(math.abs(wave[i]) * (h / 2 - 1))
+        local vh = math.floor(math.abs(wave[i]) * (h / 2 - T.px(1)))
         if vh > 0 then
             local cy = (wave[i] >= 0) and (mid - vh) or mid
             panel:drawRect(cx, cy, colW, vh, lineA, lineCol.r, lineCol.g, lineCol.b)
@@ -819,9 +818,9 @@ function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)
     -- Corner labels (SIG / + / −) — silkscreen-style on the chassis behind the wave.
     local font = T.fontF1
     local labelColor = T.radio.vfd.dim
-    panel:drawText("SIG", x + 4, y + 2, labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1.0, font)
-    panel:drawText("+", x + 4, y + 4, labelColor.r, labelColor.g, labelColor.b, 0.7, font)
-    panel:drawText("-", x + 4, y + h - getTextManager():getFontHeight(font) - 2, labelColor.r, labelColor.g, labelColor.b, 0.7, font)
+    panel:drawText("SIG", x + T.px(4), y + T.px(2), labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1.0, font)
+    panel:drawText("+", x + T.px(4), y + T.px(4), labelColor.r, labelColor.g, labelColor.b, 0.7, font)
+    panel:drawText("-", x + T.px(4), y + h - ZeD.TM:getFontHeight(font) - T.px(2), labelColor.r, labelColor.g, labelColor.b, 0.7, font)
 end
 
 ----------------------------------------------------------------------
@@ -838,19 +837,19 @@ function cdPlayerModule(panel, x, y, w, h, dd, win)
 
     A.recessedPanel(panel, x, y, w, h, rec.recessedBg, rec.recessedHi, rec.recessedSh)
 
-    local pad = 6
+    local pad = T.px(6)
     local cx = x + pad
     local cy = y + pad
 
     -- Brand silkscreen
     _silk(panel, cx, cy, "PT-CD200  *  1-BIT BITSTREAM  *  8X OVERSAMPLING", rec.silkScreen, T.fontF1)
-    cy = cy + getTextManager():getFontHeight(T.fontF1) + 2
+    cy = cy + ZeD.TM:getFontHeight(T.fontF1) + T.px(2)
 
     -- Green-VFD strip
-    local vfdH = math.max(20, math.floor((h - (cy - y) - pad) / 2))
+    local vfdH = math.max(T.px(20), math.floor((h - (cy - y) - pad) / 2))
     panel:drawRect(cx, cy, w - pad * 2, vfdH, cd.bg.a or 1.0, cd.bg.r, cd.bg.g, cd.bg.b)
     -- Inner shadow on the green VFD
-    panel:drawRect(cx, cy, w - pad * 2, 1, 0.55, 0, 0, 0)
+    panel:drawRect(cx, cy, w - pad * 2, T.px(1), 0.55, 0, 0, 0)
 
     -- Read media state (defensively).
     local hasMedia  = _safeGet(dd, "hasMedia", false)
@@ -867,19 +866,19 @@ function cdPlayerModule(panel, x, y, w, h, dd, win)
         mediaText = "NO DISC"
     end
     local txtColor = hasMedia and cd.bright or cd.dim
-    panel:drawText(mediaText, cx + 4, cy + math.floor((vfdH - getTextManager():getFontHeight(cdFont)) / 2),
+    panel:drawText(mediaText, cx + T.px(4), cy + math.floor((vfdH - ZeD.TM:getFontHeight(cdFont)) / 2),
         txtColor.r, txtColor.g, txtColor.b, txtColor.a or 1.0, cdFont)
 
-    cy = cy + vfdH + 4
+    cy = cy + vfdH + T.px(4)
 
     -- 7-button transport grid: << | > play | ▲ eject | || pause | [] stop | >> | ●
     local btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
-    local btnW = math.floor((w - pad * 2 - 6 * 2) / 7)
-    local btnH = math.min(18, (y + h - pad) - cy)
-    if btnH < 8 then btnH = 8 end
+    local btnW = math.floor((w - pad * 2 - 6 * T.px(2)) / 7)  -- S124 scale: 6 gaps of 2 px between 7 buttons
+    local btnH = math.min(T.px(18), (y + h - pad) - cy)
+    if btnH < T.px(8) then btnH = T.px(8) end
     local glyphs = { "<<", ">", "^", "||", "[]", ">>", "*" }
     for i, g in ipairs(glyphs) do
-        local bx = cx + (i - 1) * (btnW + 2)
+        local bx = cx + (i - 1) * (btnW + T.px(2))
         ZeD.Molecules.drawButton(panel, bx, cy, btnW, btnH, g, "flat", false, btnColors)
         if win then
             win._radioCDZones[i] = { x = bx, y = cy, w = btnW, h = btnH }
@@ -894,7 +893,7 @@ end
 ----------------------------------------------------------------------
 function brandBar(panel, x, y, w, h, brand, dd)
     local T = ZeD.T
-    local TM = getTextManager()
+    local TM = ZeD.TM
     local font = T.fontF1
     local th   = TM:getFontHeight(font)
     local ty   = y + math.floor((h - th) / 2)
@@ -905,23 +904,23 @@ function brandBar(panel, x, y, w, h, brand, dd)
         panel:drawRect(x, y, w, h, pt.brandBarBg.a or 1.0,
             pt.brandBarBg.r, pt.brandBarBg.g, pt.brandBarBg.b)
         -- 1px dark groove top edge
-        panel:drawRect(x, y, w, 1, 0.55, 0, 0, 0)
-        panel:drawText("PREMIUM TECHNOLOGIES", x + 10, ty,
+        panel:drawRect(x, y, w, T.px(1), 0.55, 0, 0, 0)
+        panel:drawText("PREMIUM TECHNOLOGIES", x + T.px(10), ty,
             pt.btnText.r, pt.btnText.g, pt.btnText.b, pt.btnText.a or 1.0, font)
         local rightText = "* AM/FM TUNER + CD"
         local rw = TM:MeasureStringX(font, rightText)
-        panel:drawText(rightText, x + w - 10 - rw, ty,
+        panel:drawText(rightText, x + w - T.px(10) - rw, ty,
             pt.btnText.r, pt.btnText.g, pt.btnText.b, 0.78, font)
     else
         local vt = T.radio.vt
         panel:drawRect(x, y, w, h, vt.chassisBg.a or 1.0,
             vt.chassisBg.r, vt.chassisBg.g, vt.chassisBg.b)
-        panel:drawRect(x, y, w, 1, 0.55, 0, 0, 0)
-        panel:drawText("VALUTECH", x + 10, ty,
+        panel:drawRect(x, y, w, T.px(1), 0.55, 0, 0, 0)
+        panel:drawText("VALUTECH", x + T.px(10), ty,
             vt.btnText.r, vt.btnText.g, vt.btnText.b, vt.btnText.a or 1.0, font)
         local rightText = "* AM/FM PORTABLE"
         local rw = TM:MeasureStringX(font, rightText)
-        panel:drawText(rightText, x + w - 10 - rw, ty,
+        panel:drawText(rightText, x + w - T.px(10) - rw, ty,
             vt.silkScreen.r, vt.silkScreen.g, vt.silkScreen.b, vt.silkScreen.a or 1.0, font)
     end
 end
@@ -944,46 +943,46 @@ function renderPremium(panel, x, y, w, h, win, radioEntry)
     panel:drawRect(x, y, w, h, pt.chassisBg.a or 1.0,
         pt.chassisBg.r, pt.chassisBg.g, pt.chassisBg.b)
 
-    local pad = 10
+    local pad = T.px(10)
     local cy = y + pad
     local innerW = w - pad * 2
     local cx = x + pad
 
     -- 1. Control strip — beefier (50px) for power button + recessed pills.
-    local stripH = 50
+    local stripH = T.px(50)
     if cy + stripH <= y + h - pad then
         radioControlStrip(panel, cx, cy, innerW, stripH, "premium", dd, win)
-        cy = cy + stripH + 8
+        cy = cy + stripH + T.px(8)
     end
 
     -- 2. Preset bank — taller buttons match mockup.
-    local presetH = 50
+    local presetH = T.px(50)
     if cy + presetH <= y + h - pad then
         radioPresetBank(panel, cx, cy, innerW, presetH, "premium", dd, win)
-        cy = cy + presetH + 8
+        cy = cy + presetH + T.px(8)
     end
 
     -- 3. Main display — taller (130px) so the big frequency has room. Optional
     -- signal wave overlays the right ~36% of the display width.
-    local displayH = 150
+    local displayH = T.px(150)
     local power = _safeGet(dd, "getIsTurnedOn", false)
     if cy + displayH <= y + h - pad then
-        local waveW = math.min(160, math.floor(innerW * 0.32))
-        local mainW = innerW - waveW - 4
+        local waveW = math.min(T.px(160), math.floor(innerW * 0.32))
+        local mainW = innerW - waveW - T.px(4)
         radioMainDisplay(panel, cx, cy, mainW, displayH, "premium", dd)
-        radioSignalWave(panel, cx + mainW + 4, cy, waveW, displayH, win, cacheKey, power)
-        cy = cy + displayH + 8
+        radioSignalWave(panel, cx + mainW + T.px(4), cy, waveW, displayH, win, cacheKey, power)
+        cy = cy + displayH + T.px(8)
     end
 
     -- 4. CD player module — recessed.
-    local cdH = 64
-    if cy + cdH <= y + h - pad - 22 then
+    local cdH = T.px(64)
+    if cy + cdH <= y + h - pad - T.px(22) then
         cdPlayerModule(panel, cx, cy, innerW, cdH, dd, win)
-        cy = cy + cdH + 8
+        cy = cy + cdH + T.px(8)
     end
 
     -- 5. Brand bar at bottom.
-    local brandH = 22
+    local brandH = T.px(22)
     local brandY = y + h - brandH
     brandBar(panel, x, brandY, w, brandH, "premium", dd)
 end
@@ -1000,36 +999,36 @@ function renderValutech(panel, x, y, w, h, win, radioEntry)
     panel:drawRect(x, y, w, h, vt.chassisBg.a or 1.0,
         vt.chassisBg.r, vt.chassisBg.g, vt.chassisBg.b)
 
-    local pad = 10
+    local pad = T.px(10)
     local cy = y + pad
     local innerW = w - pad * 2
     local cx = x + pad
 
     -- 1. Control strip — 50px gives the power button + pills proper breathing room.
-    local stripH = 50
+    local stripH = T.px(50)
     if cy + stripH <= y + h - pad then
         radioControlStrip(panel, cx, cy, innerW, stripH, "valutech", dd, win)
-        cy = cy + stripH + 8
+        cy = cy + stripH + T.px(8)
     end
 
     -- 2. Preset bank — 50px for the larger numbered buttons.
-    local presetH = 50
+    local presetH = T.px(50)
     if cy + presetH <= y + h - pad then
         radioPresetBank(panel, cx, cy, innerW, presetH, "valutech", dd, win)
-        cy = cy + presetH + 8
+        cy = cy + presetH + T.px(8)
     end
 
     -- 3. Main display — full innerW, 130px tall so the big frequency reads.
-    local displayH = 150
+    local displayH = T.px(150)
     if cy + displayH <= y + h - pad then
         radioMainDisplay(panel, cx, cy, innerW, displayH, "valutech", dd)
-        cy = cy + displayH + 8
+        cy = cy + displayH + T.px(8)
     end
 
     -- 4. (no CD module on ValuTech)
 
     -- 5. Brand bar
-    local brandH = 22
+    local brandH = T.px(22)
     local brandY = y + h - brandH
     brandBar(panel, x, brandY, w, brandH, "valutech", dd)
 end
@@ -1112,8 +1111,8 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         win._gpFocusedRadioCtl = nil
         local font = T.fontF2 or T.fontF1
         local txt = "No radio in range"
-        local tw = getTextManager():MeasureStringX(font, txt)
-        local th = getTextManager():getFontHeight(font)
+        local tw = ZeD.TM:MeasureStringX(font, txt)
+        local th = ZeD.TM:getFontHeight(font)
         local cc = T.textSec or T.text or { r = 0.6, g = 0.6, b = 0.6, a = 1.0 }
         panel:drawText(txt,
             x + math.floor((w - tw) / 2), y + math.floor((h - th) / 2),
@@ -1140,7 +1139,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     end
 
     -- Standard ZeD drawer-header strip height — sourced from the spacing token.
-    local headerH = (T.sp and T.sp.tabHeaderH) or 37
+    local headerH = (T.sp and T.sp.tabHeaderH) or T.px(37)
     -- 1. Drawer-internal header strip (browse + subtitle + location pill).
     -- Header molecule returns the prev/next browse-button rects so onClick
     -- can hit-test them; stash on win like the other radio click zones.

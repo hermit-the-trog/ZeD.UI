@@ -279,20 +279,20 @@ end
 
 function ZeD.ProtectionTab._measureRightColumn(data)
     local T     = ZeD.T
-    local headH = getTextManager():getFontHeight(T.fontF1)
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
+    local headH = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
     -- Stacked stat: label + labelValueGap + value + afterGap
     local stackedH = secH + T.sp.xs + bodyH + T.sp.sm
 
     local h = 0
 
     -- Grade box (2 label rows + padding)
-    local boxH = secH * 2 + T.sp.xs + 8
+    local boxH = secH * 2 + T.sp.xs + T.px(8)
     h = h + T.sp.sm + boxH + T.sp.sm
 
     -- Divider below grade
-    h = h + 1 + T.sp.afterLine
+    h = h + T.px(1) + T.sp.afterLine
 
     -- Stacked stat rows (worst, best, garments)
     local numStats = 2  -- worst + garments always

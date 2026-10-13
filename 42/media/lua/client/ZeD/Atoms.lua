@@ -64,7 +64,7 @@ end
 --- Draw right-aligned text (useful for metadata in list rows)
 function ZeD.Atoms.drawTextRight(panel, text, x, y, font, color)
     local c = color or ZeD.T.textSec
-    local tw = getTextManager():MeasureStringX(font or ZeD.T.fontF1, text)
+    local tw = ZeD.TM:MeasureStringX(font or ZeD.T.fontF1, text)
     panel:drawText(text, x - tw, y, c.r, c.g, c.b, c.a, font or ZeD.T.fontF1)
 end
 
@@ -81,14 +81,14 @@ end
 -- @param strong If true, uses borderS (stronger). Default uses border.
 function ZeD.Atoms.drawDividerH(panel, x, y, w, strong)
     local c = strong and ZeD.T.borderS or ZeD.T.border
-    local h = ZeD.T.borderW  -- 1px normally, 2px in High Contrast
+    local h = ZeD.T.px(ZeD.T.borderW)  -- 1px normally, 2px in High Contrast (S124 scale: T.borderW is design units)
     panel:drawRect(x, y, w, h, c.a, c.r, c.g, c.b)
 end
 
 --- Draw a vertical divider line
 function ZeD.Atoms.drawDividerV(panel, x, y, h, strong)
     local c = strong and ZeD.T.borderS or ZeD.T.border
-    local w = ZeD.T.borderW
+    local w = ZeD.T.px(ZeD.T.borderW)
     panel:drawRect(x, y, w, h, c.a, c.r, c.g, c.b)
 end
 
@@ -107,13 +107,13 @@ end
 function ZeD.Atoms.drawBorder(panel, x, y, w, h, edges, strong)
     local T = ZeD.T
     local c = strong ~= false and T.borderS or T.border
-    local bw = T.borderW
+    local bw = T.px(T.borderW)  -- S124 scale: T.borderW is design units (1, HC 2); the HC test below reads the raw token
 
     -- Default: all edges drawn
     if not edges then
         panel:drawRectBorder(x, y, w, h, c.a, c.r, c.g, c.b)
-        if bw >= 2 then
-            panel:drawRectBorder(x + 1, y + 1, w - 2, h - 2, c.a, c.r, c.g, c.b)
+        if T.borderW >= 2 then
+            panel:drawRectBorder(x + 1, y + 1, w - 2, h - 2, c.a, c.r, c.g, c.b)  -- S124 TODO scale? 1 = drawRectBorder's fixed 1 screen px (HC double ring); T.px(1) opens a gap until borders scale
         end
         return
     end
@@ -176,7 +176,7 @@ end
 function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor)
     local T = ZeD.T
     local h = T.fillBarH
-    local bw = T.borderW
+    local bw = T.px(T.borderW)  -- S124 scale: T.borderW is design units (1, HC 2); the HC test below reads the raw token
 
     -- Clamp percent
     percent = math.max(0.0, math.min(1.0, percent))
@@ -204,7 +204,7 @@ function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor)
             fc = T.accent
         end
         -- Minimum visible width of 2px so tiny values still show
-        fillW = math.max(2, fillW)
+        fillW = math.max(T.px(2), fillW)
         panel:drawRect(x + bw, y + bw, fillW, h - bw * 2, (fc.a or 1.0) * 0.5, fc.r, fc.g, fc.b)
     end
 
@@ -212,8 +212,8 @@ function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor)
     local bc = T.borderS
     panel:drawRectBorder(x, y, w, h, bc.a, bc.r, bc.g, bc.b)
     -- If High Contrast, draw a second border inset by 1px for thickness
-    if bw >= 2 then
-        panel:drawRectBorder(x + 1, y + 1, w - 2, h - 2, bc.a, bc.r, bc.g, bc.b)
+    if T.borderW >= 2 then
+        panel:drawRectBorder(x + 1, y + 1, w - 2, h - 2, bc.a, bc.r, bc.g, bc.b)  -- S124 TODO scale? 1 = drawRectBorder's fixed 1 screen px (HC double ring); T.px(1) opens a gap until borders scale
     end
 end
 
@@ -249,7 +249,7 @@ function ZeD.Atoms.drawGradientBar(panel, x, y, w, h, needlePct, stops)
 
     local clampedPct = math.max(0, math.min(1, needlePct or 0))
     local needleX = x + math.floor(w * clampedPct)
-    panel:drawRect(needleX - 1, y - 1, 2, h + 2, 0.9, 1.0, 1.0, 1.0)
+    panel:drawRect(needleX - T.px(1), y - T.px(1), T.px(1) * 2, h + T.px(1) * 2, 0.9, 1.0, 1.0, 1.0)
 end
 
 -- ============================================================================
@@ -271,7 +271,7 @@ function ZeD.Atoms.drawBarSegs(panel, x, y, w, h, segs)
     local fx = x
     for _, seg in ipairs(segs) do
         if seg.ratio > 0 and seg.color then
-            local fw = math.max(1, math.floor(w * seg.ratio))
+            local fw = math.max(T.px(1), math.floor(w * seg.ratio))
             local c = seg.color
             panel:drawRect(fx, y, fw, h, c.a or 0.55, c.r, c.g, c.b)
             fx = fx + fw
@@ -299,13 +299,14 @@ end
 -- @param offColor Color for unlit segments — RGBA table
 -- @param gap      Pixels between segments (default 1)
 function ZeD.Atoms.drawSegBar(panel, x, y, w, h, n, k, onColor, offColor, gap)
+    local T = ZeD.T
     if n <= 0 then return end
-    gap = gap or 1
+    gap = gap or T.px(1)
     if k < 0 then k = 0 end
     if k > n then k = n end
     -- Width per segment after subtracting (n-1) gaps. Floor so we never overrun.
     local segW = math.floor((w - gap * (n - 1)) / n)
-    if segW < 1 then segW = 1 end
+    if segW < T.px(1) then segW = T.px(1) end
     for i = 1, n do
         local sx = x + (i - 1) * (segW + gap)
         local c  = (i <= k) and onColor or offColor
@@ -347,17 +348,18 @@ function ZeD.Atoms.drawCheckbox(panel, x, y, checked, hovered, disabled)
     -- X mark when checked (two diagonal lines)
     if checked then
         local tc = T.textOnAccent
-        local m = 3  -- margin from edge for the X
+        local m = T.px(3)  -- margin from edge for the X
         -- Top-left to bottom-right
         -- PZ doesn't have drawLine, so we draw thin rects at angles
         -- Approximate with a series of 1px rects along the diagonal
-        for i = 0, sz - m * 2 - 1 do
+        local u = T.px(1)  -- S124 scale: strokes are 1 design px; the loop steps one dot at a time
+        for i = 0, sz - m * 2 - u, u do
             local px = x + m + i
             local py = y + m + i
-            panel:drawRect(px, py, 1, 1, tc.a * alpha, tc.r, tc.g, tc.b)
+            panel:drawRect(px, py, u, u, tc.a * alpha, tc.r, tc.g, tc.b)
             -- Other diagonal
-            local py2 = y + sz - m - 1 - i
-            panel:drawRect(px, py2, 1, 1, tc.a * alpha, tc.r, tc.g, tc.b)
+            local py2 = y + sz - m - u - i
+            panel:drawRect(px, py2, u, u, tc.a * alpha, tc.r, tc.g, tc.b)
         end
     end
 end
@@ -385,9 +387,9 @@ function ZeD.Atoms.drawBadge(panel, text, x, y, variant, disabled, font, noUpper
     if not noUpper then text = string.upper(text) end
 
     -- Measure text width
-    local tw = getTextManager():MeasureStringX(bdFont, text)
+    local tw = ZeD.TM:MeasureStringX(bdFont, text)
     local totalW = tw + padX * 2
-    local totalH = getTextManager():MeasureStringY(bdFont, text) + padY * 2
+    local totalH = ZeD.TM:MeasureStringY(bdFont, text) + padY * 2
 
     -- Pick colors based on variant
     local fgColor, bgAlpha
@@ -427,7 +429,7 @@ end
 -- ============================================================================
 
 function ZeD.Atoms.drawStatusDot(panel, x, y, color, size)
-    local sz = size or 7
+    local sz = size or ZeD.T.px(7)  -- S124 scale: size is screen px; the 1px rows below rasterize the circle at screen resolution
     local a = color.a or 1
     local r, g, b = color.r, color.g, color.b
     local rad = sz / 2
@@ -450,11 +452,11 @@ ZeD_Tooltip = ISPanel:derive("ZeD_Tooltip")
 
 function ZeD_Tooltip:new(x, y)
     -- Start with minimal size — it resizes to fit content
-    local o = ISPanel:new(x, y, 100, 40)
+    local o = ISPanel:new(x, y, ZeD.T.px(100), ZeD.T.px(40))
     setmetatable(o, self)
     self.__index = self
     o.lines = {}           -- Array of {text=, variant=} where variant is "heading","body","secondary"
-    o.maxWidth = 250
+    o.maxWidth = 250   -- S124 scale: maxWidth / padX / padY stay design units; wrapped with T.px where used
     o.padX = 10
     o.padY = 6
     o.moveWithMouse = false
@@ -480,14 +482,14 @@ function ZeD_Tooltip:recalcSize()
         elseif line.variant == "secondary" then font = T.fontF1
         else font = T.fontF2 end
 
-        local w = getTextManager():MeasureStringX(font, line.text)
-        local h = getTextManager():MeasureStringY(font, line.text)
+        local w = ZeD.TM:MeasureStringX(font, line.text)
+        local h = ZeD.TM:MeasureStringY(font, line.text)
         maxW = math.max(maxW, w)
-        totalH = totalH + h + 2  -- 2px line spacing
+        totalH = totalH + h + T.px(2)  -- 2px line spacing
     end
 
-    self:setWidth(math.min(maxW + self.padX * 2, self.maxWidth))
-    self:setHeight(totalH + self.padY * 2)
+    self:setWidth(math.min(maxW + T.px(self.padX) * 2, T.px(self.maxWidth)))
+    self:setHeight(totalH + T.px(self.padY) * 2)
 end
 
 function ZeD_Tooltip:prerender()
@@ -501,7 +503,7 @@ end
 
 function ZeD_Tooltip:render()
     local T = ZeD.T
-    local y = self.padY
+    local y = T.px(self.padY)
 
     for _, line in ipairs(self.lines) do
         local font, color
@@ -516,8 +518,8 @@ function ZeD_Tooltip:render()
             color = T.text
         end
 
-        self:drawText(line.text, self.padX, y, color.r, color.g, color.b, color.a, font)
-        y = y + getTextManager():MeasureStringY(font, line.text) + 2
+        self:drawText(line.text, T.px(self.padX), y, color.r, color.g, color.b, color.a, font)
+        y = y + ZeD.TM:MeasureStringY(font, line.text) + T.px(2)
     end
 end
 
@@ -534,8 +536,8 @@ function ZeD.Atoms.drawScrollTrack(panel, x, y, w, h)
     local T = ZeD.T
     -- Track background provided by window body — only draw borders
     local bc = T.borderS
-    panel:drawRect(x, y, 1, h, bc.a, bc.r, bc.g, bc.b)         -- left
-    panel:drawRect(x + w - 1, y, 1, h, bc.a, bc.r, bc.g, bc.b) -- right
+    panel:drawRect(x, y, T.px(1), h, bc.a, bc.r, bc.g, bc.b)         -- left
+    panel:drawRect(x + w - T.px(1), y, T.px(1), h, bc.a, bc.r, bc.g, bc.b) -- right
 end
 
 --- Draw the scrollbar thumb
@@ -583,7 +585,7 @@ function ZeD.Atoms.drawScrollArrow(panel, x, y, size, direction, state)
 
     local cx = x + math.floor(size / 2)  -- center x
     local cy = y + math.floor(size / 2)  -- center y
-    local arrSz = math.max(3, math.floor(size / 4))  -- half-height of arrow
+    local arrSz = math.max(T.px(3), math.floor(size / 4))  -- half-height of arrow (S124 scale: size is scaled; 1px rows rasterize at screen res)
 
     if direction == "up" then
         for row = 0, arrSz - 1 do
@@ -623,7 +625,7 @@ end
 -- @param w, h   Dimensions of the element
 function ZeD.Atoms.drawFocusRing(panel, x, y, w, h)
     local T = ZeD.T
-    local offset = 2  -- pixels outside the element
+    local offset = T.px(2)  -- pixels outside the element
     local fx = x - offset
     local fy = y - offset
     local fw = w + offset * 2
@@ -632,39 +634,39 @@ function ZeD.Atoms.drawFocusRing(panel, x, y, w, h)
     if T.borderW >= 2 then
         -- High Contrast: solid 2px border
         panel:drawRectBorder(fx, fy, fw, fh, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
-        panel:drawRectBorder(fx + 1, fy + 1, fw - 2, fh - 2, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
+        panel:drawRectBorder(fx + 1, fy + 1, fw - 2, fh - 2, T.accent.a, T.accent.r, T.accent.g, T.accent.b)  -- S124 TODO scale? 1 = drawRectBorder's fixed 1 screen px (HC double ring); T.px(1) opens a gap until borders scale
     else
         -- Standard: dashed border using small rect segments
-        local dashLen = 4
-        local gapLen = 3
+        local dashLen = T.px(4)
+        local gapLen = T.px(3)
         local ac = T.accent
 
         -- Top edge
         local cx = fx
         while cx < fx + fw do
             local segW = math.min(dashLen, fx + fw - cx)
-            panel:drawRect(cx, fy, segW, 1, ac.a, ac.r, ac.g, ac.b)
+            panel:drawRect(cx, fy, segW, T.px(1), ac.a, ac.r, ac.g, ac.b)
             cx = cx + dashLen + gapLen
         end
         -- Bottom edge
         cx = fx
         while cx < fx + fw do
             local segW = math.min(dashLen, fx + fw - cx)
-            panel:drawRect(cx, fy + fh - 1, segW, 1, ac.a, ac.r, ac.g, ac.b)
+            panel:drawRect(cx, fy + fh - T.px(1), segW, T.px(1), ac.a, ac.r, ac.g, ac.b)
             cx = cx + dashLen + gapLen
         end
         -- Left edge
         local cy = fy
         while cy < fy + fh do
             local segH = math.min(dashLen, fy + fh - cy)
-            panel:drawRect(fx, cy, 1, segH, ac.a, ac.r, ac.g, ac.b)
+            panel:drawRect(fx, cy, T.px(1), segH, ac.a, ac.r, ac.g, ac.b)
             cy = cy + dashLen + gapLen
         end
         -- Right edge
         cy = fy
         while cy < fy + fh do
             local segH = math.min(dashLen, fy + fh - cy)
-            panel:drawRect(fx + fw - 1, cy, 1, segH, ac.a, ac.r, ac.g, ac.b)
+            panel:drawRect(fx + fw - T.px(1), cy, T.px(1), segH, ac.a, ac.r, ac.g, ac.b)
             cy = cy + dashLen + gapLen
         end
     end
@@ -703,13 +705,13 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     -- Sizing presets — match v16 mockup dimensions
     local padX, padTop, padBot, gapV, barH, btnW, btnH
     if compact then
-        padX, padTop, padBot, gapV = 8, 5, 6, 4
-        barH    = 6
-        btnW, btnH = 16, 14
+        padX, padTop, padBot, gapV = T.px(8), T.px(5), T.px(6), T.px(4)
+        barH    = T.px(6)
+        btnW, btnH = T.px(16), T.px(14)
     else
-        padX, padTop, padBot, gapV = 12, 6, 7, 5
-        barH    = 8
-        btnW, btnH = 18, 18
+        padX, padTop, padBot, gapV = T.px(12), T.px(6), T.px(7), T.px(5)
+        barH    = T.px(8)
+        btnW, btnH = T.px(18), T.px(18)
     end
 
     -- Mode-driven colors
@@ -721,7 +723,7 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     local fillC    = accentC
     local sepC     = isDanger and T.danger or T.border
     local font     = T.fontF1
-    local labelH   = T.fontF1H or getTextManager():MeasureStringY(font, "X")
+    local labelH   = T.fontF1H or ZeD.TM:MeasureStringY(font, "X")
 
     -- Geometry
     local row1H  = math.max(labelH, btnH)
@@ -740,14 +742,14 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     -- Cancel button (right) — raised System-7 chrome via surf4 (light) + borderS (dark)
     local bg, hi, sh = T.surf2, T.surf4, T.borderS
     panel:drawRect(btnX, btnY, btnW, btnH, bg.a, bg.r, bg.g, bg.b)
-    panel:drawRect(btnX, btnY, btnW, 1, hi.a, hi.r, hi.g, hi.b)              -- top
-    panel:drawRect(btnX, btnY, 1, btnH, hi.a, hi.r, hi.g, hi.b)              -- left
-    panel:drawRect(btnX, btnY + btnH - 1, btnW, 1, sh.a, sh.r, sh.g, sh.b)    -- bottom
-    panel:drawRect(btnX + btnW - 1, btnY, 1, btnH, sh.a, sh.r, sh.g, sh.b)    -- right
+    panel:drawRect(btnX, btnY, btnW, T.px(1), hi.a, hi.r, hi.g, hi.b)              -- top
+    panel:drawRect(btnX, btnY, T.px(1), btnH, hi.a, hi.r, hi.g, hi.b)              -- left
+    panel:drawRect(btnX, btnY + btnH - T.px(1), btnW, T.px(1), sh.a, sh.r, sh.g, sh.b)    -- bottom
+    panel:drawRect(btnX + btnW - T.px(1), btnY, T.px(1), btnH, sh.a, sh.r, sh.g, sh.b)    -- right
     -- "x" glyph centered
     local glyph = "x"
-    local gw = getTextManager():MeasureStringX(font, glyph)
-    local gh = getTextManager():MeasureStringY(font, glyph)
+    local gw = ZeD.TM:MeasureStringX(font, glyph)
+    local gh = ZeD.TM:MeasureStringY(font, glyph)
     local tc = T.text
     panel:drawText(glyph, btnX + math.floor((btnW - gw) / 2),
         btnY + math.floor((btnH - gh) / 2),
@@ -755,16 +757,16 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
 
     -- Percent (right of time, left of cancel button, right-aligned)
     local pctStr = string.format("%d%%", math.floor((percent or 0) * 100))
-    local pctW = getTextManager():MeasureStringX(font, pctStr)
-    local gapBeforeBtn = 8
+    local pctW = ZeD.TM:MeasureStringX(font, pctStr)
+    local gapBeforeBtn = T.px(8)
     local pctX = btnX - gapBeforeBtn - pctW
     panel:drawText(pctStr, pctX, textY,
         pctC.r, pctC.g, pctC.b, pctC.a, font)
 
     -- Time (between label and percent, only if room remains)
     if timeStr and timeStr ~= "" then
-        local timeW  = getTextManager():MeasureStringX(font, timeStr)
-        local labelW = getTextManager():MeasureStringX(font, label or "")
+        local timeW  = ZeD.TM:MeasureStringX(font, timeStr)
+        local labelW = ZeD.TM:MeasureStringX(font, label or "")
         local timeX  = pctX - gapBeforeBtn - timeW
         if timeX > (x + padX + labelW + gapBeforeBtn) then
             panel:drawText(timeStr, timeX, textY,
@@ -785,7 +787,7 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
     panel:drawRectBorder(barX, barY, barW, barH, bbc.a, bbc.r, bbc.g, bbc.b)
 
     -- Bottom 1px separator (mode-colored — danger reads through chrome)
-    panel:drawRect(x, y + totalH - 1, w, 1, sepC.a, sepC.r, sepC.g, sepC.b)
+    panel:drawRect(x, y + totalH - T.px(1), w, T.px(1), sepC.a, sepC.r, sepC.g, sepC.b)
 
     -- Out-param: cancel button hit rect for caller's mouse/gamepad dispatch
     if outRect then
@@ -841,20 +843,20 @@ function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, co
     end
 
     -- Sizing
-    local h        = 18
-    local padX     = compact and 0 or 8
-    local gapInner = (compact or not (glyph and label)) and 0 or 4
+    local h        = T.px(18)
+    local padX     = compact and 0 or T.px(8)
+    local gapInner = (compact or not (glyph and label)) and 0 or T.px(4)
     local font     = T.fontF1
 
     -- Width computation
     local w
     if compact then
-        w = 22
+        w = T.px(22)
     else
-        local labelW = label and getTextManager():MeasureStringX(font, label) or 0
-        local glyphW = glyph and getTextManager():MeasureStringX(font, glyph) or 0
+        local labelW = label and ZeD.TM:MeasureStringX(font, label) or 0
+        local glyphW = glyph and ZeD.TM:MeasureStringX(font, glyph) or 0
         w = padX * 2 + glyphW + gapInner + labelW
-        if w < 22 then w = 22 end
+        if w < T.px(22) then w = T.px(22) end
     end
 
     -- Background + border
@@ -862,13 +864,13 @@ function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, co
     panel:drawRectBorder(x, y, w, h, brC.a, brC.r, brC.g, brC.b)
 
     -- Content (vertically centered)
-    local labelH = T.fontF1H or getTextManager():MeasureStringY(font, "X")
+    local labelH = T.fontF1H or ZeD.TM:MeasureStringY(font, "X")
     local textY  = y + math.floor((h - labelH) / 2)
 
     if compact then
         -- Icon-only: glyph centered within the 22-wide chip
         if glyph then
-            local gw = getTextManager():MeasureStringX(font, glyph)
+            local gw = ZeD.TM:MeasureStringX(font, glyph)
             panel:drawText(glyph, x + math.floor((w - gw) / 2), textY,
                 fgC.r, fgC.g, fgC.b, fgC.a, font)
         end
@@ -878,7 +880,7 @@ function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, co
         if glyph then
             panel:drawText(glyph, cursor, textY,
                 fgC.r, fgC.g, fgC.b, fgC.a, font)
-            cursor = cursor + getTextManager():MeasureStringX(font, glyph) + gapInner
+            cursor = cursor + ZeD.TM:MeasureStringX(font, glyph) + gapInner
         end
         if label then
             panel:drawText(label, cursor, textY,
@@ -954,7 +956,7 @@ function ZeD.Atoms.wrapText(text, font, maxW)
         local line = ""
         for _, word in ipairs(words) do
             local test = line == "" and word or (line .. " " .. word)
-            if getTextManager():MeasureStringX(font, test) > maxW then
+            if ZeD.TM:MeasureStringX(font, test) > maxW then
                 if line ~= "" then lines[#lines + 1] = line end
                 line = word
             else
@@ -972,7 +974,7 @@ end
 --- Uses binary search for efficiency.
 function ZeD.Atoms.truncateText(text, font, maxW)
     if maxW <= 0 then return "" end
-    local tm = getTextManager()
+    local tm = ZeD.TM
     if tm:MeasureStringX(font, text) <= maxW then return text end
     local ellW = tm:MeasureStringX(font, "...")
     if maxW <= ellW then return "..." end

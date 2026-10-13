@@ -78,12 +78,12 @@ local function drawLevelBadge(panel, x, y, h, level, font)
     local T = ZeD.T
     local bgA = level > 0 and 0.25 or 0.12
     local bg = T.surf3
-    panel:drawRect(x, y, BADGE_W, h, bgA, bg.r, bg.g, bg.b)
+    panel:drawRect(x, y, T.px(BADGE_W), h, bgA, bg.r, bg.g, bg.b)
 
     local lvStr = tostring(level)
-    local lvW = getTextManager():MeasureStringX(font, lvStr)
-    local lvX = x + math.floor((BADGE_W - lvW) / 2)
-    local lvY = y + math.floor((h - getTextManager():getFontHeight(font)) / 2)
+    local lvW = ZeD.TM:MeasureStringX(font, lvStr)
+    local lvX = x + math.floor((T.px(BADGE_W) - lvW) / 2)
+    local lvY = y + math.floor((h - ZeD.TM:getFontHeight(font)) / 2)
 
     if level <= 0 then
         local c = T.textDim
@@ -108,7 +108,7 @@ local function drawBoostPill(panel, x, y, rowH, boost, font)
     end
     local boostStr = "+" .. pctStr .. " XP"
     -- Pre-measure badge width for right-alignment
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local tw = tm:MeasureStringX(T.fontF5, string.upper(boostStr))
     local badgeW = tw + T.sp.badgePadX * 2
     local badgeH = tm:getFontHeight(T.fontF5) + T.sp.badgePadY * 2
@@ -396,7 +396,7 @@ local TM_DETAIL_PAD = 26
 
 -- Truncate text to fit within maxW, appending "..." if clipped.
 local function truncText(str, font, maxW)
-    local tm = getTextManager()
+    local tm = ZeD.TM
     if tm:MeasureStringX(font, str) <= maxW then return str end
     local ellW = tm:MeasureStringX(font, "...")
     local target = maxW - ellW
@@ -416,13 +416,14 @@ end
 -- Measure training section height for scroll content.
 -- Must match the draw layout: half-split into col1/col2 with prefixed expand keys.
 local function measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap, headerH, groupGap, expandedMap)
+    local T = ZeD.T
     if not training or #training == 0 then return 0 end
 
-    local collapsedRowH = math.max(secH + 10, 26)
-    local detailRowH    = secH + 12
+    local collapsedRowH = math.max(secH + T.px(10), T.px(26))
+    local detailRowH    = secH + T.px(12)
 
     -- Header area: gap + heading + groove + legend row
-    local headerArea = 12 + headH + ZeD.Spacing.headGap + 2 + 2 + secH + 4 + 2
+    local headerArea = T.px(12) + headH + T.px(ZeD.Spacing.headGap) + T.px(2) + T.px(2) + secH + T.px(4) + T.px(2)
 
     -- Split groups same way as draw: first half col1, second half col2
     local half = math.ceil(#training / 2)
@@ -431,10 +432,10 @@ local function measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap,
         local colH = 0
         for i = startIdx, endIdx do
             local group = training[i]
-            colH = colH + collapsedRowH + 1
+            colH = colH + collapsedRowH + T.px(1)
             local expandKey = colKey .. "_" .. group.label
             if expandedMap and expandedMap[expandKey] then
-                colH = colH + #group.items * (detailRowH + 1)
+                colH = colH + #group.items * (detailRowH + T.px(1))
             end
         end
         return colH
@@ -456,19 +457,19 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
 
     if not training or #training == 0 then return zones end
 
-    local collapsedRowH = math.max(secH + 10, 26)
-    local detailRowH    = secH + 12
-    local cy = startY + 12
+    local collapsedRowH = math.max(secH + T.px(10), T.px(26))
+    local detailRowH    = secH + T.px(12)
+    local cy = startY + T.px(12)
 
     -- ── Header: "TRAINING MATERIALS" ──
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local headingH = tm:getFontHeight(T.fontF4)
     local hnc = T.toneNorm
     panel:drawText("Training Materials", x, cy, hnc.r, hnc.g, hnc.b, hnc.a or 1, T.fontF4)
     cy = cy + headingH + T.sp.headGap
 
     A.drawGroove(panel, x, cy, w)
-    cy = cy + 2 + T.sp.afterGroove
+    cy = cy + T.px(2) + T.sp.afterGroove
 
     -- Legend row (left-aligned below heading)
     local legendDefs = {
@@ -477,21 +478,21 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
         TM_STATUS_MAP.collected,
         TM_STATUS_MAP.missing,
     }
-    local legRowH = secH + 4
+    local legRowH = secH + T.px(4)
     local legX = x
-    local legDotY = cy + math.floor((legRowH - A.SWATCH_H) / 2)
+    local legDotY = cy + math.floor((legRowH - T.px(A.SWATCH_H)) / 2)
 
     for _, def in ipairs(legendDefs) do
         local dotColor = T[def.token]
         A.drawLegendSwatch(panel, legX, legDotY, dotColor, def.ghost)
-        legX = legX + A.SWATCH_W + T.sp.xs
+        legX = legX + T.px(A.SWATCH_W) + T.sp.xs
         local lc = T.toneLo
         panel:drawText(def.label, legX, cy + math.floor((legRowH - secH) / 2),
             lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
-        legX = legX + tm:MeasureStringX(T.fontF1, def.label) + TM_DOT_GAP + T.sp.sm
+        legX = legX + tm:MeasureStringX(T.fontF1, def.label) + T.px(TM_DOT_GAP) + T.sp.sm
     end
 
-    cy = cy + legRowH + 2
+    cy = cy + legRowH + T.px(2)
 
     -- ── Split groups into 2 columns (simple half-split like CIO) ──
     local half = math.ceil(#training / 2)
@@ -516,8 +517,8 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             local isExpanded = expandedMap and expandedMap[expandKey]
 
             -- Chevron icon (scaled smaller than font height for visual balance)
-            local chevSz = math.max(8, math.floor(secH * 0.7))
-            local chevX = startX + 8
+            local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
+            local chevX = startX + T.px(8)
             local chevY = dy + math.floor((collapsedRowH - chevSz) / 2)
             if isExpanded then
                 A.drawTriangleDown(panel, chevX, chevY, chevSz, T.arrow)
@@ -526,7 +527,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             end
 
             -- Skill label (truncated to ~35% of column width)
-            local labelX = startX + 8 + chevSz + 8
+            local labelX = startX + T.px(8) + chevSz + T.px(8)
             local labelMaxW = math.floor(colWidth * 0.35)
             local labelStr = truncText(skillGroup.label, font, labelMaxW)
             local labelC = T.toneNorm
@@ -534,19 +535,19 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                 labelC.r, labelC.g, labelC.b, labelC.a or 1, font)
 
             -- Status dots (one per book, after label region) — theme tokens
-            local dotsX = labelX + labelMaxW + 8
-            local dotsY = dy + math.floor((collapsedRowH - A.SWATCH_H) / 2)
+            local dotsX = labelX + labelMaxW + T.px(8)
+            local dotsY = dy + math.floor((collapsedRowH - T.px(A.SWATCH_H)) / 2)
 
             for _, bookItem in ipairs(skillGroup.items) do
                 local def = TM_STATUS_MAP[bookItem.status] or TM_STATUS_MAP.missing
                 local dotColor = T[def.token]
                 A.drawLegendSwatch(panel, dotsX, dotsY, dotColor, def.ghost)
-                dotsX = dotsX + A.SWATCH_W + TM_DOT_GAP
+                dotsX = dotsX + T.px(A.SWATCH_W) + T.px(TM_DOT_GAP)
             end
 
             -- Row separator
             local bd = T.border
-            panel:drawRect(startX, dy + collapsedRowH, colWidth, 1, bd.a * 0.15, bd.r, bd.g, bd.b)
+            panel:drawRect(startX, dy + collapsedRowH, colWidth, T.px(1), bd.a * 0.15, bd.r, bd.g, bd.b)
 
             -- Click zone
             zones[#zones + 1] = {
@@ -557,24 +558,24 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                 h  = collapsedRowH,
             }
 
-            dy = dy + collapsedRowH + 1
+            dy = dy + collapsedRowH + T.px(1)
 
             -- ── Expanded detail rows ──
             if isExpanded then
-                local detailPad = startX + TM_DETAIL_PAD
+                local detailPad = startX + T.px(TM_DETAIL_PAD)
 
                 for _, bookItem in ipairs(skillGroup.items) do
                     local def = TM_STATUS_MAP[bookItem.status] or TM_STATUS_MAP.missing
 
                     -- Color chip (same dot as collapsed row)
                     local chipX = detailPad
-                    local chipY = dy + math.floor((detailRowH - A.SWATCH_H) / 2)
+                    local chipY = dy + math.floor((detailRowH - T.px(A.SWATCH_H)) / 2)
                     local dotColor = T[def.token]
                     A.drawLegendSwatch(panel, chipX, chipY, dotColor, def.ghost)
 
                     -- Book title + volume (truncated)
-                    local titleX = chipX + A.SWATCH_W + 6
-                    local titleMaxW = (startX + colWidth - 8) - titleX
+                    local titleX = chipX + T.px(A.SWATCH_W) + T.px(6)
+                    local titleMaxW = (startX + colWidth - T.px(8)) - titleX
                     local displayStr = bookItem.title
                     if bookItem.volume then
                         displayStr = displayStr .. " Vol. " .. bookItem.volume
@@ -586,8 +587,8 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
 
                     -- Detail row separator
                     local bd = T.border
-                    panel:drawRect(startX, dy + detailRowH, colWidth, 1, bd.a * 0.1, bd.r, bd.g, bd.b)
-                    dy = dy + detailRowH + 1
+                    panel:drawRect(startX, dy + detailRowH, colWidth, T.px(1), bd.a * 0.1, bd.r, bd.g, bd.b)
+                    dy = dy + detailRowH + T.px(1)
                 end
             end
         end
@@ -649,14 +650,14 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     end
 
     -- Font metrics
-    local headH = getTextManager():getFontHeight(T.fontF4)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
+    local headH = ZeD.TM:getFontHeight(T.fontF4)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
     -- Skill row dimensions (matching CIO: F.hgtSmall + 8)
-    local rowH = secH + 8
+    local rowH = secH + T.px(8)
     local rowGap = T.sp.rowGap
-    local headerH = secH + 14      -- skill group header height (not tab header)
+    local headerH = secH + T.px(14)      -- skill group header height (not tab header)
     local groupGap = T.sp.sm
 
     -- Pinned tab header (37px, not in scroll content)
@@ -801,12 +802,12 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
             local hdrColor = T.toneLo
             panel:drawText(group.name, startX, cy,
                 hdrColor.r, hdrColor.g, hdrColor.b, hdrColor.a or 1, font)
-            cy = cy + secH + 4
+            cy = cy + secH + T.px(4)
 
             -- Rule line under header
             local ruleC = T.border
-            panel:drawRect(startX, cy, colWidth, 1, ruleC.a, ruleC.r, ruleC.g, ruleC.b)
-            cy = cy + 1 + T.sp.afterGroove
+            panel:drawRect(startX, cy, colWidth, T.px(1), ruleC.a, ruleC.r, ruleC.g, ruleC.b)
+            cy = cy + T.px(1) + T.sp.afterGroove
 
             for _, skill in ipairs(group.skills) do
                 local _, bgColor = getProgressColors(T, skill.level, skill.xpProgress)
@@ -843,8 +844,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 drawLevelBadge(panel, startX, cy, rowH, skill.level, font)
 
                 -- Skill name
-                local nameX = startX + BADGE_W + 6
-                local nameY = cy + math.floor((rowH - getTextManager():getFontHeight(font)) / 2)
+                local nameX = startX + T.px(BADGE_W) + T.px(6)
+                local nameY = cy + math.floor((rowH - ZeD.TM:getFontHeight(font)) / 2)
                 local nc = T.toneNorm
                 panel:drawText(skill.name, nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
@@ -867,7 +868,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 -- scroll-follow keying, but paint reads the live element.
                 if focusedSkillName == skill.name
                    and ZeD.Atoms and ZeD.Atoms.drawAccentRing then
-                    ZeD.Atoms.drawAccentRing(panel, startX, cy, colWidth, rowH, 2, T.accent)
+                    ZeD.Atoms.drawAccentRing(panel, startX, cy, colWidth, rowH, T.px(2), T.accent)
                 end
 
                 cy = cy + rowH + rowGap
@@ -886,7 +887,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local sepTop = zoneABottom
     local sepBot = sepTop + xpGridH
     local sepC = T.border
-    panel:drawRect(sepX, sepTop, 1, sepBot - sepTop, sepC.a, sepC.r, sepC.g, sepC.b)
+    panel:drawRect(sepX, sepTop, T.px(1), sepBot - sepTop, sepC.a, sepC.r, sepC.g, sepC.b)
 
     end -- gridExpanded
 
@@ -918,11 +919,11 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- Training column separator
     if trainingH > 0 then
         local tmSepX = x + pad + colW + math.floor(colGap / 2)
-        local tmHeaderH = 12 + T.sp.beforeHead + headH + T.sp.headGap + 2 + 2 + secH + 4 + 2
+        local tmHeaderH = T.px(12) + T.sp.beforeHead + headH + T.sp.headGap + T.px(2) + T.px(2) + secH + T.px(4) + T.px(2)
         local tSepTop = trainingStartY + tmHeaderH
         local tSepBot = trainingStartY + trainingH
         if tSepBot > tSepTop then
-            panel:drawRect(tmSepX, tSepTop, 1, tSepBot - tSepTop, 0.04, 1.0, 1.0, 1.0)
+            panel:drawRect(tmSepX, tSepTop, T.px(1), tSepBot - tSepTop, 0.04, 1.0, 1.0, 1.0)
         end
     end
 

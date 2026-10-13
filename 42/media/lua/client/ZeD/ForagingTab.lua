@@ -379,12 +379,12 @@ end
 
 local function drawChip(panel, x, y, text, style, T)
     local A = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local font = T.fontF1
     local tw = tm:MeasureStringX(font, text)
     local th = tm:getFontHeight(font)
-    local padX = 6
-    local padY = 2
+    local padX = T.px(6)
+    local padY = T.px(2)
     local cw = tw + padX * 2
     local ch = th + padY * 2
 
@@ -429,7 +429,7 @@ local SKY_TICK_H       = 4     -- dawn/dusk tick height
 local function drawSkyArc(panel, x, y, w, h)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
 
     -- Read game time + season dawn/dusk
     local gt = getGameTime()
@@ -443,8 +443,8 @@ local function drawSkyArc(panel, x, y, w, h)
 
     -- Arc geometry (relative to cell origin)
     local centerX = math.floor(w / 2)
-    local horizY  = SKY_HORIZON_Y
-    local radius  = SKY_ARC_RADIUS
+    local horizY  = T.px(SKY_HORIZON_Y)
+    local radius  = T.px(SKY_ARC_RADIUS)
 
     -- Sky tint background (subtle mood color above horizon)
     -- Night: deep navy.  Day: warm amber.  Lerp by daylight strength.
@@ -458,9 +458,9 @@ local function drawSkyArc(panel, x, y, w, h)
     panel:drawRect(x, y, w, horizY, skyA, skyR, skyG, skyB)
 
     -- Below horizon: dark ground tint
-    panel:drawRect(x, y + horizY + 1, w, h - horizY - 1, 0.06, 0.03, 0.03, 0.03)
+    panel:drawRect(x, y + horizY + T.px(1), w, h - horizY - T.px(1), 0.06, 0.03, 0.03, 0.03)
 
-    -- Arc path (column-by-column semicircle, 1px wide, above horizon only)
+    -- Arc path (column-by-column semicircle, 1px wide, above horizon only)  -- S124 scale: the loop walks screen px, so the 1 px column width stays; thickness scales
     local arcColor = T.borderS
     local arcA = 0.35
     for col = 0, radius * 2 do
@@ -470,7 +470,7 @@ local function drawSkyArc(panel, x, y, w, h)
             local dy = math.sqrt(rSq)
             local arcY = horizY - math.floor(dy + 0.5)
             if arcY >= 0 then
-                panel:drawRect(x + centerX - radius + col, y + arcY, 1, 2,
+                panel:drawRect(x + centerX - radius + col, y + arcY, 1, T.px(2),
                     arcA, arcColor.r, arcColor.g, arcColor.b)
             end
         end
@@ -478,14 +478,14 @@ local function drawSkyArc(panel, x, y, w, h)
 
     -- Horizon line
     local bd = T.borderS
-    panel:drawRect(x, y + horizY, w, 1, bd.a * 0.5, bd.r, bd.g, bd.b)
+    panel:drawRect(x, y + horizY, w, T.px(1), bd.a * 0.5, bd.r, bd.g, bd.b)
 
     -- Dawn/dusk ticks (small vertical marks at horizon where arc meets)
     local tickColor = T.textDim
     local tickA = tickColor.a or 0.5
-    panel:drawRect(x + centerX - radius, y + horizY - SKY_TICK_H, 1, SKY_TICK_H * 2 + 1,
+    panel:drawRect(x + centerX - radius, y + horizY - T.px(SKY_TICK_H), T.px(1), T.px(SKY_TICK_H) * 2 + T.px(1),
         tickA, tickColor.r, tickColor.g, tickColor.b)
-    panel:drawRect(x + centerX + radius, y + horizY - SKY_TICK_H, 1, SKY_TICK_H * 2 + 1,
+    panel:drawRect(x + centerX + radius, y + horizY - T.px(SKY_TICK_H), T.px(1), T.px(SKY_TICK_H) * 2 + T.px(1),
         tickA, tickColor.r, tickColor.g, tickColor.b)
 
     -- Compute celestial body position
@@ -511,12 +511,12 @@ local function drawSkyArc(panel, x, y, w, h)
     local dotX = centerX + radius * math.cos(angle)
     local dotY = horizY - radius * math.sin(angle)
     -- Draw celestial body dot
-    local dotDrawX = x + math.floor(dotX) - math.floor(SKY_DOT_SZ / 2)
-    local dotDrawY = y + math.floor(dotY) - math.floor(SKY_DOT_SZ / 2)
-    A.drawStatusDot(panel, dotDrawX, dotDrawY, dotColor, SKY_DOT_SZ)
+    local dotDrawX = x + math.floor(dotX) - math.floor(T.px(SKY_DOT_SZ) / 2)
+    local dotDrawY = y + math.floor(dotY) - math.floor(T.px(SKY_DOT_SZ) / 2)
+    A.drawStatusDot(panel, dotDrawX, dotDrawY, dotColor, T.px(SKY_DOT_SZ))
 
     -- Subtle glow behind the dot (larger, faint)
-    local glowSz = SKY_DOT_SZ + 6
+    local glowSz = T.px(SKY_DOT_SZ) + T.px(6)
     local glowX = x + math.floor(dotX) - math.floor(glowSz / 2)
     local glowY = y + math.floor(dotY) - math.floor(glowSz / 2)
     A.drawStatusDot(panel, glowX, glowY, ZeD.colorAlpha(dotColor, 0.12), glowSz)
@@ -526,7 +526,7 @@ local function drawSkyArc(panel, x, y, w, h)
     local phaseFont = T.fontF1
     local phaseW = tm:MeasureStringX(phaseFont, phaseStr)
 
-    local phaseY = y + horizY + 8
+    local phaseY = y + horizY + T.px(8)
     local phaseX = x + math.floor((w - phaseW) / 2)
     local phaseColor = T.toneLo
     panel:drawText(phaseStr, phaseX, phaseY,
@@ -537,7 +537,7 @@ local function drawSkyArc(panel, x, y, w, h)
     local duskStr = string.format("%d", math.floor(dusk))
     local smallFont = T.fontF1
     local dawnW = tm:MeasureStringX(smallFont, dawnStr)
-    local labelY = y + horizY + 3
+    local labelY = y + horizY + T.px(3)
     local dimC = T.toneLo
     panel:drawText(dawnStr, x + centerX - radius - math.floor(dawnW / 2), labelY,
         dimC.r, dimC.g, dimC.b, 0.5, smallFont)
@@ -553,21 +553,21 @@ end
 local function drawHero(panel, win, x, y, w)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local tm = getTextManager()
-    local h = HERO_MIN_H
+    local tm = ZeD.TM
+    local h = T.px(HERO_MIN_H)
 
     -- Cell A — Sky Arc (sun/moon instrument gauge)
-    local sceneW = HERO_SCENE_W
+    local sceneW = T.px(HERO_SCENE_W)
     drawSkyArc(panel, x, y, sceneW, h)
     -- Right border
     local bd = T.border
-    panel:drawRect(x + sceneW, y, 1, h, bd.a, bd.r, bd.g, bd.b)
+    panel:drawRect(x + sceneW, y, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
 
     -- Cell C — radius/net (right side, fixed width)
-    local radX = x + w - HERO_RADIUS_W
-    local radCenterX = radX + math.floor(HERO_RADIUS_W / 2)
+    local radX = x + w - T.px(HERO_RADIUS_W)
+    local radCenterX = radX + math.floor(T.px(HERO_RADIUS_W) / 2)
     -- Left border
-    panel:drawRect(radX, y, 1, h, bd.a, bd.r, bd.g, bd.b)
+    panel:drawRect(radX, y, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
 
     -- Big radius number
     local radStr = string.format("%.1f", win._frameRadius or 0)
@@ -575,7 +575,7 @@ local function drawHero(panel, win, x, y, w)
     local radW = tm:MeasureStringX(bigFont, radStr)
     local radH = tm:getFontHeight(bigFont)
     local radTextX = radCenterX - math.floor(radW / 2)
-    local radTextY = y + 16
+    local radTextY = y + T.px(16)
     local radC = T.toneNorm
     panel:drawText(radStr, radTextX, radTextY, radC.r, radC.g, radC.b, radC.a or 1, bigFont)
 
@@ -583,7 +583,7 @@ local function drawHero(panel, win, x, y, w)
     local tilesLabel = "TILES"
     local tilesW = tm:MeasureStringX(T.fontF1, tilesLabel)
     local tilesX = radCenterX - math.floor(tilesW / 2)
-    local tilesY = radTextY + radH + 2
+    local tilesY = radTextY + radH + T.px(2)
     local tlc = T.toneLo
     panel:drawText(tilesLabel, tilesX, tilesY, tlc.r, tlc.g, tlc.b, tlc.a or 1, T.fontF1)
 
@@ -594,31 +594,31 @@ local function drawHero(panel, win, x, y, w)
     local netColor = netMod >= 0 and T.positive or T.danger
     local netW = tm:MeasureStringX(T.fontF3, netStr)
     local netX = radCenterX - math.floor(netW / 2)
-    local netY = tilesY + tm:getFontHeight(T.fontF1) + 6
+    local netY = tilesY + tm:getFontHeight(T.fontF1) + T.px(6)
     panel:drawText(netStr, netX, netY, netColor.r, netColor.g, netColor.b, netColor.a or 1, T.fontF3)
 
     -- "NET" label
     local netLabel = "NET"
     local netLW = tm:MeasureStringX(T.fontF1, netLabel)
     local netLX = radCenterX - math.floor(netLW / 2)
-    local netLY = netY + tm:getFontHeight(T.fontF3) + 2
+    local netLY = netY + tm:getFontHeight(T.fontF3) + T.px(2)
     local nlc = T.toneLo
     panel:drawText(netLabel, netLX, netLY, nlc.r, nlc.g, nlc.b, nlc.a or 1, T.fontF1)
 
     -- Cell B — info (middle, between scene and radius)
-    local infoX = x + sceneW + 1 + HERO_PAD
-    local infoW = radX - (x + sceneW + 1) - HERO_PAD * 2
+    local infoX = x + sceneW + T.px(1) + T.px(HERO_PAD)
+    local infoW = radX - (x + sceneW + T.px(1)) - T.px(HERO_PAD) * 2
 
     -- Zone name (Chicago heading font)
     local zoneName = win._frameZone or "Unknown"
-    local zoneY = y + HERO_PAD
+    local zoneY = y + T.px(HERO_PAD)
     local zoneColor = T.textHead
     panel:drawText(zoneName, infoX, zoneY, zoneColor.r, zoneColor.g, zoneColor.b, zoneColor.a or 1, T.fontF4)
 
     -- Chip row — bottom of info cell
-    local chipY = y + h - HERO_PAD - (tm:getFontHeight(T.fontF1) + 4)
+    local chipY = y + h - T.px(HERO_PAD) - (tm:getFontHeight(T.fontF1) + T.px(4))
     local chipX = infoX
-    local chipGap = 4
+    local chipGap = T.px(4)
     -- Dynamic chip styles based on live data
     local cond = win._frameCondition or "Fair"
     local condStyle = cond == "Good" and "on" or (cond == "Fair" and "pos" or "warn")
@@ -630,7 +630,7 @@ local function drawHero(panel, win, x, y, w)
     chipX = chipX + drawChip(panel, chipX, chipY, wx, wxStyle, T) + chipGap
 
     -- Bottom divider (strong)
-    A.drawDividerH(panel, x, y + h - 1, w, true)
+    A.drawDividerH(panel, x, y + h - T.px(1), w, true)
 
     return h
 end
@@ -648,8 +648,8 @@ local STANCES = {
 local function drawStanceRow(panel, win, x, y, w)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local tm = getTextManager()
-    local h = STANCE_ROW_H
+    local tm = ZeD.TM
+    local h = T.px(STANCE_ROW_H)
     local btnW = math.floor(w / #STANCES)
 
     -- Read live player state
@@ -677,7 +677,7 @@ local function drawStanceRow(panel, win, x, y, w)
         -- Border right (between buttons)
         if i < #STANCES then
             local bd = T.borderS
-            panel:drawRect(bx + bw, y, 1, h, bd.a, bd.r, bd.g, bd.b)
+            panel:drawRect(bx + bw, y, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
         end
 
         -- Label
@@ -703,7 +703,7 @@ local function drawStanceRow(panel, win, x, y, w)
     end
 
     -- Bottom divider
-    A.drawDividerH(panel, x, y + h - 1, w, false)
+    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
 
     return h
 end
@@ -714,14 +714,14 @@ end
 
 local function drawFocusRow(panel, win, x, y, w)
     local T = ZeD.T
-    local tm = getTextManager()
-    local h = FOCUS_ROW_H
+    local tm = ZeD.TM
+    local h = T.px(FOCUS_ROW_H)
 
     -- Lazy-create dropdown (with live options)
     local liveOpts = win._frameFocusOptions or { { id = "none", label = "All Categories" } }
     if not win._forageDropdown then
-        local ddW = w - FOCUS_PAD_X * 2 - FINDS_WT_W - FOCUS_GAP
-        local dd = ZeD_Dropdown:new(x + FOCUS_PAD_X, y + math.floor((h - T.inputH) / 2), ddW, liveOpts, "none")
+        local ddW = w - T.px(FOCUS_PAD_X) * 2 - T.px(FINDS_WT_W) - T.px(FOCUS_GAP)
+        local dd = ZeD_Dropdown:new(x + T.px(FOCUS_PAD_X), y + math.floor((h - T.inputH) / 2), ddW, liveOpts, "none")
         dd.onChange = function(self, selectedId)
             win._foragingFocus = selectedId == "none" and nil or selectedId
         end
@@ -731,8 +731,8 @@ local function drawFocusRow(panel, win, x, y, w)
 
     -- Reposition dropdown each frame + sync options when they change
     local dd = win._forageDropdown
-    local ddW = w - FOCUS_PAD_X * 2 - FINDS_WT_W - FOCUS_GAP
-    dd:setX(x + FOCUS_PAD_X)
+    local ddW = w - T.px(FOCUS_PAD_X) * 2 - T.px(FINDS_WT_W) - T.px(FOCUS_GAP)
+    dd:setX(x + T.px(FOCUS_PAD_X))
     dd:setY(y + math.floor((h - T.inputH) / 2))
     dd:setWidth(ddW)
     dd:setVisible(true)
@@ -743,9 +743,9 @@ local function drawFocusRow(panel, win, x, y, w)
     -- paints an opaque surf2 bg covering the inner area, we extend the cue
     -- 3px on each side so an accent halo remains visible around the widget.
     if _gpFocusMatches(win, function(el) return el.isDropdown end) then
-        local cx = x + FOCUS_PAD_X
+        local cx = x + T.px(FOCUS_PAD_X)
         local cy = y + math.floor((h - T.inputH) / 2)
-        local pad = 3
+        local pad = T.px(3)
         _paintGpCue(panel, cx - pad, cy - pad, ddW + pad * 2, T.inputH + pad * 2)
     end
 
@@ -754,12 +754,12 @@ local function drawFocusRow(panel, win, x, y, w)
     local chanceColor = T.toneNorm
     local chanceFont = T.fontF3
     local chanceW = tm:MeasureStringX(chanceFont, chanceStr)
-    local chanceX = x + w - FOCUS_PAD_X - chanceW
+    local chanceX = x + w - T.px(FOCUS_PAD_X) - chanceW
     local chanceY = y + math.floor((h - tm:getFontHeight(chanceFont)) / 2)
     panel:drawText(chanceStr, chanceX, chanceY, chanceColor.r, chanceColor.g, chanceColor.b, chanceColor.a or 1, chanceFont)
 
     -- Bottom divider
-    ZeD.Atoms.drawDividerH(panel, x, y + h - 1, w, false)
+    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), w, false)
 
     return h
 end
@@ -771,8 +771,8 @@ end
 local function drawDisclosure(panel, win, x, y, w)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local tm = getTextManager()
-    local h = DISCLOSURE_H
+    local tm = ZeD.TM
+    local h = T.px(DISCLOSURE_H)
     local isOpen = win._moreDetailOpen or false
 
     -- Check hover (suppressed when dropdown overlaps)
@@ -792,8 +792,8 @@ local function drawDisclosure(panel, win, x, y, w)
     end
 
     -- Disclosure triangle
-    local discSz = 6
-    local discX = x + GRID_PAD_X
+    local discSz = T.px(6)
+    local discX = x + T.px(GRID_PAD_X)
     local discY = y + math.floor((h - discSz) / 2)
     local discColor = T.arrow
     if isOpen then
@@ -805,12 +805,12 @@ local function drawDisclosure(panel, win, x, y, w)
     -- Label
     local label = "MORE DETAIL"
     local labelColor = T.toneNorm
-    local labelX = discX + discSz + 6
+    local labelX = discX + discSz + T.px(6)
     local labelY = y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2)
     panel:drawText(label, labelX, labelY, labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1, T.fontF1)
 
     -- Bottom border
-    A.drawDividerH(panel, x, y + h - 1, w, false)
+    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
 
     -- Store click zone
     win._forageDisclosureZone = { x = x, y = y, w = w, h = h }
@@ -822,10 +822,10 @@ end
 local function drawStatGrid(panel, x, y, w, items)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local cols = 2
     local colW = math.floor(w / cols)
-    local rowH = GRID_ROW_H
+    local rowH = T.px(GRID_ROW_H)
     local totalRows = math.ceil(#items / cols)
     local totalH = 0
 
@@ -840,11 +840,11 @@ local function drawStatGrid(panel, x, y, w, items)
 
         -- Status dot
         local dotColor = getDotColor(item.dot)
-        local dotY = cy + math.floor((rowH - GRID_DOT_SZ) / 2)
-        A.drawStatusDot(panel, cx + GRID_PAD_X, dotY, ZeD.colorAlpha(dotColor, alpha), GRID_DOT_SZ)
+        local dotY = cy + math.floor((rowH - T.px(GRID_DOT_SZ)) / 2)
+        A.drawStatusDot(panel, cx + T.px(GRID_PAD_X), dotY, ZeD.colorAlpha(dotColor, alpha), T.px(GRID_DOT_SZ))
 
         -- Label
-        local labelX = cx + GRID_PAD_X + GRID_DOT_SZ + GRID_DOT_GAP
+        local labelX = cx + T.px(GRID_PAD_X) + T.px(GRID_DOT_SZ) + T.px(GRID_DOT_GAP)
         local labelY = cy + math.floor((rowH - tm:getFontHeight(T.fontF1)) / 2)
         local lc = ZeD.colorAlpha(T.toneNorm, alpha)
         panel:drawText(item.label, labelX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
@@ -859,20 +859,20 @@ local function drawStatGrid(panel, x, y, w, items)
             vc = ZeD.colorAlpha(T.toneNorm, alpha)
         end
         local valW = tm:MeasureStringX(T.fontF3, valStr)
-        local valX = cx + colW - GRID_PAD_X - valW
+        local valX = cx + colW - T.px(GRID_PAD_X) - valW
         local valY = cy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2)
         panel:drawText(valStr, valX, valY, vc.r, vc.g, vc.b, vc.a or 1, T.fontF3)
 
         -- Right border between columns (only left column)
         if col == 0 then
             local bd = T.border
-            panel:drawRect(cx + colW, cy, 1, rowH, bd.a * 0.5, bd.r, bd.g, bd.b)
+            panel:drawRect(cx + colW, cy, T.px(1), rowH, bd.a * 0.5, bd.r, bd.g, bd.b)
         end
 
         -- Bottom border (except last row)
         if row < totalRows - 1 then
             local bd = T.border
-            panel:drawRect(cx, cy + rowH - 1, colW, 1, bd.a * 0.3, bd.r, bd.g, bd.b)
+            panel:drawRect(cx, cy + rowH - T.px(1), colW, T.px(1), bd.a * 0.3, bd.r, bd.g, bd.b)
         end
     end
 
@@ -883,8 +883,8 @@ end
 -- Draw sub-section header bar
 local function drawSubHeader(panel, x, y, w, text, countText)
     local T = ZeD.T
-    local tm = getTextManager()
-    local h = SUB_HEADER_H
+    local tm = ZeD.TM
+    local h = T.px(SUB_HEADER_H)
 
     -- Background
     local bg = T.surf2
@@ -892,16 +892,16 @@ local function drawSubHeader(panel, x, y, w, text, countText)
 
     -- Top + bottom borders
     ZeD.Atoms.drawDividerH(panel, x, y, w, false)
-    ZeD.Atoms.drawDividerH(panel, x, y + h - 1, w, false)
+    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), w, false)
 
     local labelY = y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2)
     local slc = T.toneLo
-    panel:drawText(text, x + GRID_PAD_X, labelY, slc.r, slc.g, slc.b, slc.a or 1, T.fontF1)
+    panel:drawText(text, x + T.px(GRID_PAD_X), labelY, slc.r, slc.g, slc.b, slc.a or 1, T.fontF1)
 
     -- Count (right-aligned)
     if countText then
         local cw = tm:MeasureStringX(T.fontF3, countText)
-        local cx = x + w - GRID_PAD_X - cw
+        local cx = x + w - T.px(GRID_PAD_X) - cw
         local snc = T.toneNorm
         panel:drawText(countText, cx, labelY, snc.r, snc.g, snc.b, snc.a or 1, T.fontF3)
     end
@@ -945,8 +945,8 @@ end
 
 local function drawFindsHeader(panel, x, y, w)
     local T = ZeD.T
-    local tm = getTextManager()
-    local h = FINDS_HEADER_H
+    local tm = ZeD.TM
+    local h = T.px(FINDS_HEADER_H)
 
     -- Background
     local bg = T.surf2
@@ -954,21 +954,21 @@ local function drawFindsHeader(panel, x, y, w)
 
     -- Top + bottom borders
     ZeD.Atoms.drawDividerH(panel, x, y, w, false)
-    ZeD.Atoms.drawDividerH(panel, x, y + h - 1, w, false)
+    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), w, false)
 
     local labelY = y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2)
     local lc = T.toneLo
 
     -- Column headers (Lekton, uppercase)
-    local colX = x + FINDS_PAD_X + FINDS_ICON_SZ + FINDS_ICON_GAP
+    local colX = x + T.px(FINDS_PAD_X) + T.px(FINDS_ICON_SZ) + T.px(FINDS_ICON_GAP)
     panel:drawText("DIST", colX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 
-    local nameX = colX + FINDS_DIST_W + 6
+    local nameX = colX + T.px(FINDS_DIST_W) + T.px(6)
     panel:drawText("NAME", nameX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 
     local wtLabel = "WT"
     local wtW = tm:MeasureStringX(T.fontF1, wtLabel)
-    local wtX = x + w - FINDS_PAD_X - wtW
+    local wtX = x + w - T.px(FINDS_PAD_X) - wtW
     panel:drawText(wtLabel, wtX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 
     return h
@@ -977,9 +977,9 @@ end
 local function drawFindsRows(panel, win, x, y, w, maxH)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local finds = win._recentFinds or {}
-    local h = FINDS_ROW_H
+    local h = T.px(FINDS_ROW_H)
 
     if #finds == 0 then
         -- Empty state
@@ -987,7 +987,7 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
         local emptyFont = T.fontF1
         local ew = tm:MeasureStringX(emptyFont, emptyText)
         local eh = tm:getFontHeight(emptyFont)
-        local emptyPad = 24
+        local emptyPad = T.px(24)
         local emptyX = x + math.floor((w - ew) / 2)
         local emptyY = y + emptyPad
         local ec = T.toneLo
@@ -995,7 +995,7 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
 
         -- Bottom border
         local totalH = emptyPad * 2 + eh
-        ZeD.Atoms.drawDividerH(panel, x, y + totalH - 1, w, false)
+        ZeD.Atoms.drawDividerH(panel, x, y + totalH - T.px(1), w, false)
         return totalH
     end
 
@@ -1012,22 +1012,22 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
             panel:drawRect(x, ry, w, h, hbg.a, hbg.r, hbg.g, hbg.b)
         end
 
-        local colX = x + FINDS_PAD_X
+        local colX = x + T.px(FINDS_PAD_X)
 
         -- Icon placeholder (small accent-colored dot)
-        local iconY = ry + math.floor((h - FINDS_ICON_SZ) / 2)
-        A.drawStatusDot(panel, colX + 2, iconY + 2, T.accent, FINDS_ICON_SZ - 4)
-        colX = colX + FINDS_ICON_SZ + FINDS_ICON_GAP
+        local iconY = ry + math.floor((h - T.px(FINDS_ICON_SZ)) / 2)
+        A.drawStatusDot(panel, colX + T.px(2), iconY + T.px(2), T.accent, T.px(FINDS_ICON_SZ) - T.px(4))
+        colX = colX + T.px(FINDS_ICON_SZ) + T.px(FINDS_ICON_GAP)
 
         -- Distance + bearing
         local distStr = tostring(find.dist or 0) .. "T " .. (find.bearing or "?")
         local distY = ry + math.floor((h - tm:getFontHeight(T.fontF3)) / 2)
         local dnc = T.toneNorm
         panel:drawText(distStr, colX, distY, dnc.r, dnc.g, dnc.b, dnc.a or 1, T.fontF3)
-        colX = colX + FINDS_DIST_W + 6
+        colX = colX + T.px(FINDS_DIST_W) + T.px(6)
 
         -- Name (Bahnschrift Body, neutral)
-        local nameMaxW = x + w - FINDS_PAD_X - FINDS_WT_W - 4 - colX
+        local nameMaxW = x + w - T.px(FINDS_PAD_X) - T.px(FINDS_WT_W) - T.px(4) - colX
         local nameStr = find.name
         local nameW = tm:MeasureStringX(T.fontF2, nameStr)
         if nameW > nameMaxW and nameMaxW > 0 then
@@ -1049,14 +1049,14 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
         -- Weight (K22, dim, right-aligned)
         local wtStr = string.format("%.1f", find.weight)
         local wtW = tm:MeasureStringX(T.fontF3, wtStr)
-        local wtX = x + w - FINDS_PAD_X - wtW
+        local wtX = x + w - T.px(FINDS_PAD_X) - wtW
         local wtY = ry + math.floor((h - tm:getFontHeight(T.fontF3)) / 2)
         local wnc = T.toneNorm
         panel:drawText(wtStr, wtX, wtY, wnc.r, wnc.g, wnc.b, wnc.a or 1, T.fontF3)
 
         -- Bottom border
         local bd = T.border
-        panel:drawRect(x, ry + h - 1, w, 1, bd.a * 0.3, bd.r, bd.g, bd.b)
+        panel:drawRect(x, ry + h - T.px(1), w, T.px(1), bd.a * 0.3, bd.r, bd.g, bd.b)
 
         totalH = totalH + h
     end
@@ -1103,19 +1103,19 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
 
     -- First pass: measure total content height for scroll
     -- (We draw directly with scroll offset applied)
-    local totalContentH = HERO_MIN_H + STANCE_ROW_H + FOCUS_ROW_H + DISCLOSURE_H
+    local totalContentH = T.px(HERO_MIN_H) + T.px(STANCE_ROW_H) + T.px(FOCUS_ROW_H) + T.px(DISCLOSURE_H)
     if win._moreDetailOpen then
         local catRows = math.ceil(#win._frameCategories / 2)
         local modRows = math.ceil(#win._frameModifiers / 2)
-        totalContentH = totalContentH + SUB_HEADER_H + catRows * GRID_ROW_H
-                                       + SUB_HEADER_H + modRows * GRID_ROW_H
+        totalContentH = totalContentH + T.px(SUB_HEADER_H) + catRows * T.px(GRID_ROW_H)
+                                       + T.px(SUB_HEADER_H) + modRows * T.px(GRID_ROW_H)
     end
-    totalContentH = totalContentH + FINDS_HEADER_H
+    totalContentH = totalContentH + T.px(FINDS_HEADER_H)
     local finds = win._recentFinds or {}
     if #finds == 0 then
-        totalContentH = totalContentH + 24 * 2 + 16  -- empty state approx
+        totalContentH = totalContentH + T.px(24) * 2 + T.px(16)  -- empty state approx
     else
-        totalContentH = totalContentH + #finds * FINDS_ROW_H
+        totalContentH = totalContentH + #finds * T.px(FINDS_ROW_H)
     end
 
     -- Update scrollbar

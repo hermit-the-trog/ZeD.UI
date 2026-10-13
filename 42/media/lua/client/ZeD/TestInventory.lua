@@ -44,11 +44,11 @@ local function toggleTestInventory()
     local T       = ZeD.T
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
-    local winW    = 600
-    local winH    = math.min(600, screenH - 80)
+    local winW    = T.px(600)
+    local winH    = math.min(T.px(600), screenH - T.px(80))
 
     local win = ZeD_Window:new(
-        screenW - winW - 20, 40,
+        screenW - winW - T.px(20), T.px(40),
         winW, winH,
         "ZeD Inventory Test"
     )
@@ -333,8 +333,9 @@ local function toggleTestInventory()
         end
         if self._colDrag then
             local cd = self._colDrag
+            local T = ZeD.T
             local delta = getMouseX() - cd.startX
-            local newW = math.max(30, math.min(math.floor(self:getWidth() / 2), cd.startW + delta))
+            local newW = math.max(T.px(30), math.min(math.floor(self:getWidth() / 2), cd.startW + delta))
             self._colWidths[cd.col] = newW
             return true
         end
@@ -356,8 +357,9 @@ local function toggleTestInventory()
         end
         if self._colDrag then
             local cd = self._colDrag
+            local T = ZeD.T
             local delta = getMouseX() - cd.startX
-            local newW = math.max(30, math.min(math.floor(self:getWidth() / 2), cd.startW + delta))
+            local newW = math.max(T.px(30), math.min(math.floor(self:getWidth() / 2), cd.startW + delta))
             self._colWidths[cd.col] = newW
             return true
         end

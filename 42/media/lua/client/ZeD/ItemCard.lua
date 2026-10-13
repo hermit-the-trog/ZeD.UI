@@ -19,10 +19,10 @@ local wrapText = ZeD.Atoms.wrapText
 
 local function getStatRowH()
     local T = ZeD.T
-    local a = getTextManager():getFontHeight(T.fontF1)
-    local b = getTextManager():getFontHeight(T.fontF2)
+    local a = ZeD.TM:getFontHeight(T.fontF1)
+    local b = ZeD.TM:getFontHeight(T.fontF2)
     local tall = math.max(a, b)
-    return tall + math.max(2, math.floor(tall * 0.15))
+    return tall + math.max(T.px(2), math.floor(tall * 0.15))
 end
 
 -- Returns a friendly subtype string for the Zone 1 stat anchor (e.g. body location for clothing).
@@ -533,21 +533,21 @@ local function drawItemSoilRow(panel, x, y, w, soil)
     local T  = ZeD.T
     local M  = ZeD.Molecules
     local sp = T.sp
-    local btnSz = T.iconSm + 4
+    local btnSz = T.iconSm + T.px(4)
     local rx = x + w   -- right cursor, grows leftward
 
     if soil.wet then
         local lbl    = soil.wet .. "%"
-        local sTextW = getTextManager():MeasureStringX(T.fontF1, lbl)
-        local flagW  = math.max(4, sTextW + 8)
+        local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
+        local flagW  = math.max(T.px(4), sTextW + T.px(8))
         rx = rx - flagW
         M.drawDock(panel, rx, y, nil, lbl, nil, T.soiledWet, nil, false, false)
         rx = rx - sp.xs
     end
     if soil.dirt then
         local lbl    = "DIRTY"
-        local sTextW = getTextManager():MeasureStringX(T.fontF1, lbl)
-        local flagW  = math.max(4, sTextW + 8)
+        local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
+        local flagW  = math.max(T.px(4), sTextW + T.px(8))
         rx = rx - flagW
         M.drawDock(panel, rx, y, nil, lbl, nil, T.soiledDirt, nil, false, false)
     end
@@ -652,10 +652,11 @@ end
 -- ---------------------------------------------------------------------------
 
 function ZeD_ItemCard:_startRename()
+    local T = ZeD.T
     if not self.item or self._renaming then return end
     if not self._renameInput then
         local card = self
-        local input = ZeD_TextInput:new(0, 0, 100, "Item name")
+        local input = ZeD_TextInput:new(0, 0, T.px(100), "Item name")
         input:initialise()
         self:addChild(input)
         input:setVisible(false)
@@ -906,11 +907,11 @@ function ZeD_ItemCard:_calcHeadH()
     local T        = ZeD.T
     local sp       = T.sp
     local statRowH = getStatRowH()
-    local bodyH    = getTextManager():getFontHeight(T.fontF2)
-    local headH    = getTextManager():getFontHeight(T.fontF4)
-    local btnSz    = T.iconSm + 4
+    local bodyH    = ZeD.TM:getFontHeight(T.fontF2)
+    local headH    = ZeD.TM:getFontHeight(T.fontF4)
+    local btnSz    = T.iconSm + T.px(4)
     local sbW      = (self._sb and self._sb.visible) and self._sb.width or 0
-    local innerW   = math.max(80, self:getWidth() - self.pad * 2 - sbW)
+    local innerW   = math.max(T.px(80), self:getWidth() - self.pad * 2 - sbW)
 
     -- Row 1: icon + name side by side
     local nameGap  = sp.sm  -- gap between icon and name
@@ -927,7 +928,7 @@ function ZeD_ItemCard:_calcHeadH()
     -- Row 3: action strip
     local row3H = sp.sm + btnSz + sp.sm
 
-    return self.pad + row1H + sp.cardAfterHead + row2H + sp.cardAfterBody + row3H + 1  -- +1 for bottom border
+    return self.pad + row1H + sp.cardAfterHead + row2H + sp.cardAfterBody + row3H + T.px(1)  -- +1 for bottom border
 end
 
 function ZeD_ItemCard:_calcBodyH()
@@ -935,13 +936,13 @@ function ZeD_ItemCard:_calcBodyH()
     local T        = ZeD.T
     local sp       = T.sp
     local statRowH = getStatRowH()
-    local bodyH    = getTextManager():getFontHeight(T.fontF2)
-    local secH     = getTextManager():getFontHeight(T.fontF1)
-    local headH    = getTextManager():getFontHeight(T.fontF4)
-    local btnSz    = T.iconSm + 4
-    local grooveH  = 2
+    local bodyH    = ZeD.TM:getFontHeight(T.fontF2)
+    local secH     = ZeD.TM:getFontHeight(T.fontF1)
+    local headH    = ZeD.TM:getFontHeight(T.fontF4)
+    local btnSz    = T.iconSm + T.px(4)
+    local grooveH  = T.px(2)
     local sbW      = (self._sb and self._sb.visible) and self._sb.width or 0
-    local innerW   = math.max(80, self:getWidth() - self.pad * 2 - sbW)
+    local innerW   = math.max(T.px(80), self:getWidth() - self.pad * 2 - sbW)
     local item     = self.item
     local cat      = getItemCategory(item)
 
@@ -950,8 +951,8 @@ function ZeD_ItemCard:_calcBodyH()
     -- Badges
     local alerts = getStatusAlerts(item)
     if #alerts > 0 then
-        local badgeH = getTextManager():getFontHeight(T.fontF3) + sp.badgePadY * 2
-        h = h + badgeH + 6
+        local badgeH = ZeD.TM:getFontHeight(T.fontF3) + sp.badgePadY * 2
+        h = h + badgeH + T.px(6)
     end
 
     -- Stats
@@ -962,7 +963,7 @@ function ZeD_ItemCard:_calcBodyH()
     h = h + statRowH * 2  -- category + weight
 
     -- Divider
-    h = h + sp.cardAfterBody + 1 + sp.cardAfterHead  -- after body, 1px divider, after heading
+    h = h + sp.cardAfterBody + T.px(1) + sp.cardAfterHead  -- after body, 1px divider, after heading
 
     -- Secondary bars (all bars except primary which is in head)
     -- Two-line layout: label+% row, then fill bar row
@@ -982,7 +983,7 @@ function ZeD_ItemCard:_calcBodyH()
             -- Item-level soil row (dirt + wet) sits above the per-zone list.
             if buildItemSoilCfg(item) then h = h + btnSz end
             local zones = getClothingZones(item)
-            local topRowH = math.max(bodyH + 4, T.fillBarH + 4, btnSz)
+            local topRowH = math.max(bodyH + T.px(4), T.fillBarH + T.px(4), btnSz)
             for i, zone in ipairs(zones) do
                 if i > 1 then h = h + grooveH end
                 h = h + topRowH
@@ -1000,7 +1001,7 @@ function ZeD_ItemCard:_calcBodyH()
         if #nutrition > 0 then
             h = h + T.rowH  -- section header
             if self._foldStates.food_nutrition then
-                local thickRule = 2; local thinRule = 1
+                local thickRule = T.px(2); local thinRule = T.px(1)
                 h = h + sp.cardBeforeHead + headH + sp.cardAfterHead + thickRule + sp.cardAfterHead
                 for i = 1, #nutrition do
                     h = h + statRowH
@@ -1016,21 +1017,21 @@ function ZeD_ItemCard:_calcBodyH()
         if #ingredients > 0 then
             h = h + T.rowH  -- section header
             if self._foldStates.food_ingredients then
-                local ingrLineH = secH + 2
+                local ingrLineH = secH + T.px(2)
                 local labelStr  = "INGREDIENTS: "
                 local names = {}
                 for _, ing in ipairs(ingredients) do names[#names + 1] = ing.name end
                 local fullStr   = labelStr .. table.concat(names, ", ")
                 local innerEstW = self:getWidth() - self.pad * 4
-                if innerEstW < 50 then innerEstW = 200 end
-                local fullW     = getTextManager():MeasureStringX(T.fontF1, fullStr)
+                if innerEstW < T.px(50) then innerEstW = T.px(200) end
+                local fullW     = ZeD.TM:MeasureStringX(T.fontF1, fullStr)
                 local lineCount = math.max(1, math.ceil(fullW / innerEstW))
                 h = h + sp.cardAfterHead + ingrLineH * lineCount + sp.cardAfterLabel + statRowH
             end
         end
     end
 
-    h = h + self.pad + T.borderW  -- bottom padding
+    h = h + self.pad + T.px(T.borderW)  -- bottom padding (S124: borderW is design units)
     return h
 end
 
@@ -1199,8 +1200,9 @@ function ZeD_ItemCard:update()
 end
 
 function ZeD_ItemCard:prerender()
+    local T = ZeD.T
     -- Safety: skip layout at tiny widths (drawer animation in progress)
-    if self:getWidth() < 80 then return end
+    if self:getWidth() < T.px(80) then return end
     -- Sync padding from token every frame so text size toggle takes effect immediately.
     self.pad    = ZeD.T.sp.sm
     self.colGap = ZeD.T.sp.sm
@@ -1268,9 +1270,9 @@ function ZeD_ItemCard:prerender()
     local bc = ZeD.T.border
     local w = self:getWidth()
     local h = self:getHeight()
-    self:drawRect(0, 0, 1, h, bc.a or 1, bc.r, bc.g, bc.b)          -- left
-    self:drawRect(w - 1, 0, 1, h, bc.a or 1, bc.r, bc.g, bc.b)      -- right
-    self:drawRect(0, h - 1, w, 1, bc.a or 1, bc.r, bc.g, bc.b)      -- bottom
+    self:drawRect(0, 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)          -- left
+    self:drawRect(w - T.px(1), 0, T.px(1), h, bc.a or 1, bc.r, bc.g, bc.b)      -- right
+    self:drawRect(0, h - T.px(1), w, T.px(1), bc.a or 1, bc.r, bc.g, bc.b)      -- bottom
 
 end
 
@@ -1323,8 +1325,9 @@ end
 -- RENDER: three-phase pipeline — sticky head → stenciled body → scrollbar
 -- ===========================================================================
 function ZeD_ItemCard:render()
+    local T = ZeD.T
     if not self.item then return end
-    if self:getWidth() < 80 then return end
+    if self:getWidth() < T.px(80) then return end
     -- S121: delegate body composition to ItemCardOrganism (renderBody method).
     -- The new organism handles back-bar, flag strip, progress band, body
     -- (clothing zones / facts dispatch), and maintenance verb strip per
@@ -1365,8 +1368,9 @@ function ZeD_ItemCard:onMouseUpOutside(x, y)
 end
 
 function ZeD_ItemCard:calcHeight()
-    if not self.item then return 100 end
-    if self:getWidth() < 80 then return 100 end
+    local T = ZeD.T
+    if not self.item then return T.px(100) end
+    if self:getWidth() < T.px(80) then return T.px(100) end
     return self:_calcHeadH() + self:_calcBodyH()
 end
 
@@ -1516,11 +1520,11 @@ function ZeD_ItemCard:_drawGpFocusOutline()
     local lx = r.x - ax
     local ly = r.y - ay
     local c  = T.accent
-    -- 2px outline inset 1px outside the button
-    local ox, oy = lx - 1, ly - 1
-    local ow, oh = r.w + 2, r.h + 2
+    -- 2px outline inset 1px outside the button  -- S124 TODO scale? drawRectBorder lines stay 1 px, so at root > 1 the two rings separate
+    local ox, oy = lx - T.px(1), ly - T.px(1)
+    local ow, oh = r.w + T.px(2), r.h + T.px(2)
     self:drawRectBorder(ox, oy, ow, oh, c.a or 1, c.r, c.g, c.b)
-    self:drawRectBorder(ox - 1, oy - 1, ow + 2, oh + 2, (c.a or 1) * 0.5, c.r, c.g, c.b)
+    self:drawRectBorder(ox - T.px(1), oy - T.px(1), ow + T.px(2), oh + T.px(2), (c.a or 1) * 0.5, c.r, c.g, c.b)
 end
 
 -- Return disclosure-header content-Y positions (section header top edges),
