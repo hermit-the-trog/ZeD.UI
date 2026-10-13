@@ -141,7 +141,7 @@ function ZeD_Watch:new(playerNum)
     return o
 end
 
-function ZeD_Watch:_scale() local T = ZeD.T; return ((T and T.scale) or 1) * (W.scale or 1) end
+function ZeD_Watch:_scale() local Sc = ZeD.Scale; return ((Sc and Sc.root and Sc.root()) or 1) * (W.scale or 1) end   -- S124: root scale (1080p = 1.0)
 
 function ZeD_Watch:_rect(x, y, w, h, c, a)
     local s = self._s; c = col(c)
@@ -165,12 +165,12 @@ local function fontFor(size)
     return T.fontF5
 end
 function ZeD_Watch:_text(x, y, str, size, c, align)
-    local s = self._s; c = col(c); local f = fontFor(size)
-    local tm = getTextManager(); local w = tm:MeasureStringX(f, str)
+    local s = self._s; c = col(c); local f = ZeD.Text.uifont(fontFor(size))
+    local tm = getTextManager(); local w = tm:MeasureStringX(f, str) * s      -- screen px at zoom s
     local px = x * s
     if align == "r" then px = px - w elseif align == "c" then px = px - w / 2 end
-    local h = tm:getFontHeight(f); local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
-    self:drawText(str, math.floor(px), math.floor(py), c.r, c.g, c.b, c.a or 1, f)
+    local h = tm:getFontHeight(f) * s; local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
+    self:drawTextZoomed(str, math.floor(px), math.floor(py), s, c.r, c.g, c.b, c.a or 1, f)   -- S124: glyphs follow the root scale
 end
 -- speed indicator: three lit-segment groups + multiplier, or PAUSE
 function ZeD_Watch:_speedInd(x, y, fg, dim, speed)
