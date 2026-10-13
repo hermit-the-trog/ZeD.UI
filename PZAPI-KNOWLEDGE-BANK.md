@@ -1708,3 +1708,11 @@ Found S123. Firing UNEQUIP 120 ticks after EQUIP on a baseball bat did nothing b
 - **Q135** Kahlua strings are Java strings: `string.char(183)` is the middle dot; UTF-8 byte pairs (`"\194\183"`) render as two glyphs. `TextManager:MeasureStringX(font, x)` requires a String - a number throws "expected argument of type String, got Double" (every frame if it sits in prerender).
 - **Q136** `console.txt` restarts mid-session once it grows large (seen after ~70k lines); `logs/<date>_DebugLog.txt` carries the Java log but no Lua `print` lines. Read bridge output right after each run.
 - **Q137** `getCore():TakeFullScreenshot("name.png")` writes a native-resolution PNG to `Zomboid/Screenshots/` synchronously from Lua - the way to inspect pixels from bridge scripts.
+
+---
+
+**Q138–Q140 (Oct 13 2026, UI scale probes on stable 42.20.2).**
+
+- **Q138** `ISUIElement:drawTextZoomed(str, x, y, zoom, r, g, b, a, font)` (Java `UIElement.DrawText(font, str, x, y, zoom, ...)`) scales text continuously - 1x, 1.37x, 2x, 2.5x, 3x all render in one call and `MeasureStringX(font, str) * zoom` is the exact drawn width. Bitmap atlases blur past ~1.4x.
+- **Q139** Fonts are SDF per slot through `media/fonts/EN/fonts.txt`: an entry `font Name { fnt = file.fnt, type = sdf, }` makes ANY slot a distance-field font (shader `media/shaders/sdf.frag`, alpha thresholded at 0.5). Vanilla ships Open Sans (SdfRegular/Bold/Italic/BoldItalic), Old Standard TT (SdfOld*), Caveat and RobertoSans; the map labels use SdfBold/SdfBoldItalic, print media the Old family, PZAPI atoms SdfRegular. SDF text zoomed 3x-4x stays crisp.
+- **Q140** The engine font-size option (`getOptionFontSize`, `getOptionFontSizeReal` - 2 on the 4K rig) does not change ZeD's bitmap fonts: the live `Small` slot measures the 1x face (line height 17 for the 13px body). The mod's `EN/2x,3x,4x` folders are not consulted for its slots. Treat the option as a user preference to read, not as a scale source. Also: `getCore():TakeFullScreenshot` writes an all-white frame while the fullscreen window is minimized.
