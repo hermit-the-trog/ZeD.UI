@@ -39,6 +39,8 @@ end
 
 -- ============================================================================
 -- CONSTANTS
+-- S124 scale: every constant below is a DESIGN UNIT (1 px at 1080p). Each use
+-- goes through T.px(...) at call time; never add them to screen px unwrapped.
 -- ============================================================================
 
 local CONTAINER_STRIP_W    = 36
@@ -47,7 +49,7 @@ local STRIP_SCROLL_ROW_H   = 16
 local DRAWER_W             = 260
 local ITEM_CARD_W          = 220
 local TAB_DRAWER_W         = 480
-local DRAWER_PX_SPEED      = DRAWER_W * 8   -- ~2080 px/sec, matches char window
+local DRAWER_PX_SPEED      = DRAWER_W * 8   -- ~2080 design units/sec, matches char window; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local ACTION_TAB_STRIP_W   = 36
 local ACTION_TAB_BTN_SZ    = 36
 -- Tab strip separator (matches CharacterWindow). Moved up from line ~207 in
@@ -126,22 +128,23 @@ local mcToggleWorldContainer
 -- predicate so hidden tabs (e.g., contextual tabs without their prerequisite)
 -- don't leave empty focus slots. Bounds match drawWorldTabStrip's curY math.
 local function _buildWorldTabBarElements(win)
+    local T = ZeD.T
     local elements = {}
     local curY = 0
     local lastGroup = 1
     for i, tab in ipairs(WORLD_TABS) do
         if isTabVisible(tab, win) then
             if tab.group ~= lastGroup then
-                curY = curY + TAB_SEP_MAR + TAB_SEP_H + TAB_SEP_MAR
+                curY = curY + T.px(TAB_SEP_MAR) + T.px(TAB_SEP_H) + T.px(TAB_SEP_MAR)
                 lastGroup = tab.group
             end
             elements[#elements + 1] = {
-                x = 0, y = curY, w = ACTION_TAB_BTN_SZ, h = ACTION_TAB_BTN_SZ,
+                x = 0, y = curY, w = T.px(ACTION_TAB_BTN_SZ), h = T.px(ACTION_TAB_BTN_SZ),
                 id       = "tab:" .. tab.id,
                 tabId    = tab.id,
                 tabIndex = i,
             }
-            curY = curY + ACTION_TAB_BTN_SZ
+            curY = curY + T.px(ACTION_TAB_BTN_SZ)
         end
     end
     return elements
@@ -215,6 +218,7 @@ _buildWorldLootFocusables = function(win)
     if not win or not win._containers then return {} end
     local n = #win._containers
     if n == 0 then return {} end
+    local T = ZeD.T
     local stripY = win:getBodyY()
     -- S108: match the visual render layout of drawWorldContainerStrip exactly.
     -- Strip visual order:
@@ -234,15 +238,15 @@ _buildWorldLootFocusables = function(win)
     --
     -- Mirrors Char S106 _buildLootFocusables pattern exactly, inverted for
     -- World's container layout (floor = last index, pinned top).
-    local colHdrH = 20
-    local zone3Y = stripY + CONTAINER_BTN_SZ + 1 + colHdrH
+    local colHdrH = T.px(20)
+    local zone3Y = stripY + T.px(CONTAINER_BTN_SZ) + T.px(1) + colHdrH
 
     local elements = {}
     local floorIdx = n
     local floorCnt = win._containers[floorIdx]
     if floorCnt and floorCnt.isFloor then
         elements[#elements + 1] = {
-            x = 0, y = stripY, w = CONTAINER_STRIP_W, h = CONTAINER_BTN_SZ,
+            x = 0, y = stripY, w = T.px(CONTAINER_STRIP_W), h = T.px(CONTAINER_BTN_SZ),
             id = "container:" .. tostring(floorIdx),
             containerIdx = floorIdx,
             -- S108 QA: onFocus no longer mutates _activeContainer (Char S106
@@ -306,9 +310,9 @@ _buildWorldLootFocusables = function(win)
     end
 
     for pos, ci in ipairs(listEntries) do
-        local cy = zone3Y + (pos - 1) * CONTAINER_BTN_SZ
+        local cy = zone3Y + (pos - 1) * T.px(CONTAINER_BTN_SZ)
         elements[#elements + 1] = {
-            x = 0, y = cy, w = CONTAINER_STRIP_W, h = CONTAINER_BTN_SZ,
+            x = 0, y = cy, w = T.px(CONTAINER_STRIP_W), h = T.px(CONTAINER_BTN_SZ),
             id = "container:" .. tostring(ci),
             containerIdx = ci,
             -- S108 QA: onFocus no longer mutates _activeContainer (Char S106
@@ -471,7 +475,7 @@ local function _buildForageFocusables(win)
     local scroll = win._forageScroll
     if scroll and scroll.visible and scroll.height and scroll.height > 0 then
         local sbW = (T and T.sp and T.sp.scrollbarW) or 10
-        local viewW = (scroll.x or 460) + sbW
+        local viewW = (scroll.x or ((T and T.px) and T.px(460) or 460)) + sbW
         elements[#elements + 1] = {
             x = 0, y = scroll.y or 0,
             w = viewW, h = scroll.height,
@@ -814,11 +818,12 @@ _buildWorldMCColumnFocusables = function(win, slot)
     if not cs then return {} end
 
     local elements = {}
-    local rowH  = (ZeD.T and ZeD.T.rowH) or 26
+    local T = ZeD.T
+    local rowH  = (T and T.rowH) or 26
     local items = cs.flatItems or {}
     local yMap  = cs.itemRenderYMap or {}
     local colX  = cs.renderX or 0
-    local colW  = cs.renderW or 200
+    local colW  = cs.renderW or T.px(200)
 
     for i = 1, #items do
         local item = items[i]
@@ -990,14 +995,15 @@ local function _rebuildWorldMCRingZones(win)
                 elements = mcEls,
                 focusedElementIdx = 1,
                 uiRange = function(w)
+                    local T = ZeD.T
                     local content = w._mainContent
                     if content and content._colStates and content._colStates[capturedSlot] then
                         local cs = content._colStates[capturedSlot]
                         if cs.renderX and cs.renderW then
-                            return CONTAINER_STRIP_W + cs.renderX, cs.renderW
+                            return T.px(CONTAINER_STRIP_W) + cs.renderX, cs.renderW
                         end
                     end
-                    return CONTAINER_STRIP_W, w._baseInvW or 372
+                    return T.px(CONTAINER_STRIP_W), T.px(w._baseInvW or 372)
                 end,
             }
             table.insert(ring, insertAt, newZone)
@@ -1094,13 +1100,14 @@ _buildWorldInvRowFocusables = function(win)
     -- pick neighbors. Prefer the renderer-stamped Y from _itemRenderYMap
     -- (Q91 pattern); fall back to index*rowH when the map hasn't been
     -- populated yet (first frame after tab switch).
-    local rowH = (ZeD.T and ZeD.T.rowH) or 26
+    local T = ZeD.T
+    local rowH = (T and T.rowH) or 26
     local yMap = c._itemRenderYMap or {}
     for i = 1, #items do
         local item = items[i]
         local yCoord = yMap[item] or (i * rowH)
         elements[#elements + 1] = {
-            x = 0, y = yCoord, w = 200, h = rowH,
+            x = 0, y = yCoord, w = T.px(200), h = rowH,
             id = "invrow:" .. tostring(i),
             item = item,
             itemIndex = i,
@@ -1338,15 +1345,16 @@ local TAB_ARROW_ROW_H  = 16
 -- ============================================================================
 
 local function measureWorldTabStripH(win)
+    local T = ZeD.T
     local totalH = 0
     local lastGroup = 1
     for _, tab in ipairs(WORLD_TABS) do
         if isTabVisible(tab, win) then
             if tab.group ~= lastGroup then
-                totalH = totalH + TAB_SEP_MAR + TAB_SEP_H + TAB_SEP_MAR
+                totalH = totalH + T.px(TAB_SEP_MAR) + T.px(TAB_SEP_H) + T.px(TAB_SEP_MAR)
                 lastGroup = tab.group
             end
-            totalH = totalH + ACTION_TAB_BTN_SZ
+            totalH = totalH + T.px(ACTION_TAB_BTN_SZ)
         end
     end
     return totalH
@@ -1357,7 +1365,7 @@ local function drawWorldTabStrip(self, win)
     local A  = ZeD.Atoms  -- S95: was missing; drawTriangleUp/Down calls below crashed
                           --      when World tab list overflowed and needed scroll arrows
                           --      (pre-existing latent bug, not an S95 regression).
-    local w  = ACTION_TAB_STRIP_W
+    local w  = T.px(ACTION_TAB_STRIP_W)
     local h  = self:getHeight()
 
     self:clearHitZones()
@@ -1366,11 +1374,11 @@ local function drawWorldTabStrip(self, win)
 
     -- LEFT border (mirrored from char window's right border)
     local bd = T.border
-    self:drawRect(0, 0, 1, h, bd.a, bd.r, bd.g, bd.b)
+    self:drawRect(0, 0, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
 
     -- Glyph metrics
     local font  = T.fontF1
-    local fontH = getTextManager():getFontHeight(font)
+    local fontH = ZeD.TM:getFontHeight(font)
     local mx, my = self:getMouseX(), self:getMouseY()
 
     -- Check if tabs overflow
@@ -1380,7 +1388,7 @@ local function drawWorldTabStrip(self, win)
     local arrowRowH = 0
 
     if needsScroll then
-        arrowRowH = TAB_ARROW_ROW_H
+        arrowRowH = T.px(TAB_ARROW_ROW_H)
         local maxScroll = totalTabH - (h - arrowRowH)
         if maxScroll < 0 then maxScroll = 0 end
         scrollOff = math.max(0, math.min(scrollOff, maxScroll))
@@ -1392,7 +1400,7 @@ local function drawWorldTabStrip(self, win)
         -- Bottom arrow row
         local rowY = h - arrowRowH
         local sep = T.borderS
-        self:drawRect(0, rowY, w, 1, sep.a, sep.r, sep.g, sep.b)
+        self:drawRect(0, rowY, w, T.px(1), sep.a, sep.r, sep.g, sep.b)
 
         local halfW = math.floor(w / 2)
 
@@ -1400,10 +1408,10 @@ local function drawWorldTabStrip(self, win)
         local hoverUp = canScrollUp and (mx >= 0 and mx < halfW and my >= rowY and my < h)
         if hoverUp then
             local s2 = T.surf2
-            self:drawRect(0, rowY + 1, halfW, arrowRowH - 1, s2.a, s2.r, s2.g, s2.b)
+            self:drawRect(0, rowY + T.px(1), halfW, arrowRowH - T.px(1), s2.a, s2.r, s2.g, s2.b)
         end
         local upC = canScrollUp and (hoverUp and T.text or T.textDim) or T.border
-        local arrowSz = 5
+        local arrowSz = T.px(5)
         A.drawTriangleUp(self, math.floor((halfW - arrowSz) / 2), rowY + math.floor((arrowRowH - arrowSz) / 2), arrowSz, upC)
         if canScrollUp then
             self:addHitZone("tab_scroll_up", 0, rowY, halfW, arrowRowH)
@@ -1413,7 +1421,7 @@ local function drawWorldTabStrip(self, win)
         local hoverDn = canScrollDown and (mx >= halfW and mx < w and my >= rowY and my < h)
         if hoverDn then
             local s2 = T.surf2
-            self:drawRect(halfW, rowY + 1, halfW, arrowRowH - 1, s2.a, s2.r, s2.g, s2.b)
+            self:drawRect(halfW, rowY + T.px(1), halfW, arrowRowH - T.px(1), s2.a, s2.r, s2.g, s2.b)
         end
         local dnC = canScrollDown and (hoverDn and T.text or T.textDim) or T.border
         A.drawTriangleDown(self, halfW + math.floor((halfW - arrowSz) / 2), rowY + math.floor((arrowRowH - arrowSz) / 2), arrowSz, dnC)
@@ -1455,15 +1463,15 @@ local function drawWorldTabStrip(self, win)
         else
             -- Group separator
             if tab.group ~= lastGroup then
-                curY = curY + TAB_SEP_MAR
+                curY = curY + T.px(TAB_SEP_MAR)
                 local sep = T.borderS
-                self:drawRect(1, curY, w - 5, TAB_SEP_H, sep.a, sep.r, sep.g, sep.b)
-                curY = curY + TAB_SEP_H + TAB_SEP_MAR
+                self:drawRect(T.px(1), curY, w - T.px(5), T.px(TAB_SEP_H), sep.a, sep.r, sep.g, sep.b)
+                curY = curY + T.px(TAB_SEP_H) + T.px(TAB_SEP_MAR)
                 lastGroup = tab.group
             end
 
             local isActive = (tab.id == visualActive)
-            local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + ACTION_TAB_BTN_SZ)
+            local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(ACTION_TAB_BTN_SZ))
             local isGpFocused = (gpFocusedTabId == tab.id) and not isActive
 
             -- S113c (KBM-parity): mouse hover and gamepad focus paint
@@ -1471,20 +1479,20 @@ local function drawWorldTabStrip(self, win)
             -- Hover/focus = 0.55α fill only.
             local ac = T.accent
             if isActive then
-                self:drawRect(1,     curY, w - 1, ACTION_TAB_BTN_SZ, 0.55, ac.r, ac.g, ac.b)
-                self:drawRect(w - 2, curY, 2,     ACTION_TAB_BTN_SZ, ac.a, ac.r, ac.g, ac.b)
+                self:drawRect(T.px(1),     curY, w - T.px(1), T.px(ACTION_TAB_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
+                self:drawRect(w - T.px(2), curY, T.px(2),     T.px(ACTION_TAB_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
             elseif isHover or isGpFocused then
-                self:drawRect(1,     curY, w - 1, ACTION_TAB_BTN_SZ, 0.55, ac.r, ac.g, ac.b)
+                self:drawRect(T.px(1),     curY, w - T.px(1), T.px(ACTION_TAB_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
             end
 
             -- Icon tint: active uses textOnAccent (contrasts with accent
             -- fill background); inactive keeps the accent-tinted ghost.
             local ic = isActive and T.textOnAccent or T.toneLo
             local iconAlpha = isActive and 1.0 or 0.7
-            local iconSz = 16  -- native icon size (16px source textures)
+            local iconSz = T.px(16)  -- icon size: 16 design units (16px source textures at 1080p)
             if tab.icon then
                 local ix = math.floor((w - iconSz) / 2)
-                local iy = curY + math.floor((ACTION_TAB_BTN_SZ - iconSz) / 2)
+                local iy = curY + math.floor((T.px(ACTION_TAB_BTN_SZ) - iconSz) / 2)
                 self:drawTextureScaledAspect(tab.icon, ix, iy, iconSz, iconSz, iconAlpha, ic.r, ic.g, ic.b)
             else
                 local color
@@ -1492,22 +1500,22 @@ local function drawWorldTabStrip(self, win)
                 elseif isHover then  color = T.text
                 else                 color = T.textDim
                 end
-                local glyphW = getTextManager():MeasureStringX(font, tab.glyph)
+                local glyphW = ZeD.TM:MeasureStringX(font, tab.glyph)
                 local gx = math.floor((w - glyphW) / 2)
-                local gy = curY + math.floor((ACTION_TAB_BTN_SZ - fontH) / 2)
+                local gy = curY + math.floor((T.px(ACTION_TAB_BTN_SZ) - fontH) / 2)
                 self:drawText(tab.glyph, gx, gy, color.r, color.g, color.b, color.a, font)
             end
 
             -- Bottom border between tabs
             local bd = T.border
-            self:drawRect(0, curY + ACTION_TAB_BTN_SZ - 1, w, 1, bd.a, bd.r, bd.g, bd.b)
+            self:drawRect(0, curY + T.px(ACTION_TAB_BTN_SZ) - T.px(1), w, T.px(1), bd.a, bd.r, bd.g, bd.b)
 
             -- Hit zone
-            if curY + ACTION_TAB_BTN_SZ > 0 and curY < tabAreaH then
-                self:addHitZone("tab:" .. tab.id, 0, curY, w, ACTION_TAB_BTN_SZ)
+            if curY + T.px(ACTION_TAB_BTN_SZ) > 0 and curY < tabAreaH then
+                self:addHitZone("tab:" .. tab.id, 0, curY, w, T.px(ACTION_TAB_BTN_SZ))
             end
 
-            curY = curY + ACTION_TAB_BTN_SZ
+            curY = curY + T.px(ACTION_TAB_BTN_SZ)
         end
     end
 
@@ -1516,9 +1524,11 @@ end
 
 -- Drawer width dispatch — mode-driven. MC columns live in content, not drawer.
 local function getWorldTargetDrawerW(win)
+    local T = ZeD.T
+    -- S124 scale: returns SCREEN px (compared against the animated _drawerEffW).
     if win._drawerOpen then
-        if win._drawerMode == "item" then return ITEM_CARD_W end
-        if win._drawerMode == "tab"  then return getWorldTabDrawerW(win._activeTab) end
+        if win._drawerMode == "item" then return T.px(ITEM_CARD_W) end
+        if win._drawerMode == "tab"  then return T.px(getWorldTabDrawerW(win._activeTab)) end
         return 0
     end
     return 0
@@ -1547,15 +1557,15 @@ local function renderPlaceholder(panel, tabDef, x, y, w, h)
     panel:drawText(tabDef.label, x + pad, y + pad,
         tc.r, tc.g, tc.b, tc.a, font)
 
-    local headH = getTextManager():getFontHeight(font)
+    local headH = ZeD.TM:getFontHeight(font)
     local grooveY = y + pad + headH + T.sp.headGap
 
     -- Groove divider
     local bd = T.border
-    panel:drawRect(x + pad, grooveY, w - pad * 2, 1, bd.a, bd.r, bd.g, bd.b)
+    panel:drawRect(x + pad, grooveY, w - pad * 2, T.px(1), bd.a, bd.r, bd.g, bd.b)
 
     -- Description
-    local descY = grooveY + 1 + T.sp.afterGroove
+    local descY = grooveY + T.px(1) + T.sp.afterGroove
     local secFont = T.fontF1
     local dim = T.textDim
     panel:drawText("Coming soon", x + pad, descY,
@@ -1571,13 +1581,15 @@ end
 local function getMcCapacity(win)
     if win._activeTab ~= "loot" then return 0 end
     local R = getR()
-    local minColW = R.MIN_COL_W or 140
+    local T = ZeD.T
+    -- S124 scale: InventoryRenderer exports MIN_COL_W / COMFORT_COL_W / getXferW as design units
+    local minColW = T.px(R.MIN_COL_W or 140)
     local screenW = getCore():getScreenWidth()
     -- Loot tab has no drawer, full space available
-    local availW = screenW - win:getX() - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W
+    local availW = screenW - win:getX() - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W)
     local maxN = 1
     for n = 2, 20 do
-        local xferW = R.getXferW and R.getXferW(n) or 32
+        local xferW = T.px(R.getXferW and R.getXferW(n) or 32)
         local needed = n * minColW + (n - 1) * xferW
         if needed > availW then break end
         maxN = n
@@ -1588,20 +1600,22 @@ end
 -- Compute ideal window width for N total columns, clamped to screen.
 local function mcComputeTargetWidthWorld(win, totalCols)
     local R = getR()
-    local comfortW = R.COMFORT_COL_W or 220
-    local xferW = R.getXferW and R.getXferW(totalCols) or 32
+    local T = ZeD.T
+    local comfortW = T.px(R.COMFORT_COL_W or 220)
+    local xferW = T.px(R.getXferW and R.getXferW(totalCols) or 32)
     local xferTotal = (totalCols - 1) * xferW
     local effectiveDrawerW = math.floor(win._drawerEffW or 0)
     local idealInvW = totalCols * comfortW + xferTotal
-    local idealWinW = CONTAINER_STRIP_W + idealInvW + effectiveDrawerW + ACTION_TAB_STRIP_W
+    local idealWinW = T.px(CONTAINER_STRIP_W) + idealInvW + effectiveDrawerW + T.px(ACTION_TAB_STRIP_W)
     local screenW = getCore():getScreenWidth()
-    local maxW = screenW - win:getX() - 10
+    local maxW = screenW - win:getX() - T.px(10)
     idealWinW = math.min(idealWinW, maxW)
     return idealWinW, idealInvW
 end
 
 -- Compute inventory drawer target width based on current state.
 local function computeInvDrawerTargetWorld(win)
+    local T = ZeD.T
     if not win._invDrawerOpen then return 0 end
     local mcSel = win._mcSelected or {}
     if #mcSel > 0 then
@@ -1613,7 +1627,7 @@ local function computeInvDrawerTargetWorld(win)
         end
         -- Single column (main hidden, 1 MC): keep base width, don't shrink
     end
-    return win._baseInvW or 372
+    return T.px(win._baseInvW or 372)
 end
 
 local function getColumnAtX(content, x)
@@ -1644,6 +1658,7 @@ local function enterWorldMC(win, content)
 end
 
 exitWorldMC = function(win, content)
+    local T = ZeD.T
     win._mcSelected = {}
     win._mainVisible = true
     content._colStates = nil
@@ -1652,9 +1667,9 @@ exitWorldMC = function(win, content)
         win._drawerOpen = false
     end
     -- Always snap window to base (prevents width corruption)
-    local baseInv = win._baseInvW or 372
+    local baseInv = T.px(win._baseInvW or 372)
     local drawerW = math.floor(win._drawerEffW or 0)
-    local snapW = CONTAINER_STRIP_W + baseInv + drawerW + ACTION_TAB_STRIP_W
+    local snapW = T.px(CONTAINER_STRIP_W) + baseInv + drawerW + T.px(ACTION_TAB_STRIP_W)
     win:setWidth(snapW)
 end
 
@@ -1666,6 +1681,7 @@ end
 _switchWorldTabForNav = function(win, content, tabId)
     if not win or not content or not tabId then return false end
     if win._activeTab == tabId then return false end
+    local T = ZeD.T
 
     if tabId == "loot" then
         win._activeTab  = "loot"
@@ -1675,11 +1691,11 @@ _switchWorldTabForNav = function(win, content, tabId)
         win._tabUnder   = nil
         content._selectedItems = {}
         content._lastClickedItem = nil
-        local baseInv = win._baseInvW or 372
+        local baseInv = T.px(win._baseInvW or 372)
         win._drawerEffW    = 0
         win._prevEffW      = 0
         win._invDrawerOpen = true
-        local snapW = CONTAINER_STRIP_W + baseInv + ACTION_TAB_STRIP_W
+        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
         win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
         win:setWidth(snapW)
         if _syncWorldRingZones then _syncWorldRingZones(win, content) end
@@ -1690,8 +1706,8 @@ _switchWorldTabForNav = function(win, content, tabId)
     local mcSel = win._mcSelected or {}
     if #mcSel > 0 then
         exitWorldMC(win, content)
-        local baseInv = win._baseInvW or 372
-        local snapW = CONTAINER_STRIP_W + baseInv + ACTION_TAB_STRIP_W
+        local baseInv = T.px(win._baseInvW or 372)
+        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
         win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
         win:setWidth(snapW)
     end
@@ -1712,6 +1728,7 @@ end
 -- Toggle inventory drawer. Enforces always-visible invariant.
 -- MUST be defined after exitWorldMC (forward reference would crash Kahlua).
 local function toggleInventoryDrawerWorld(win, content)
+    local T = ZeD.T
     if win._invDrawerOpen then
         if win._drawerMode == "tab" and win._drawerOpen then
             win._invDrawerOpen = false
@@ -1720,15 +1737,15 @@ local function toggleInventoryDrawerWorld(win, content)
             end
             -- Snap window to drawer-only width
             local drawerW = math.floor(win._drawerEffW or 0)
-            local snapW = CONTAINER_STRIP_W + drawerW + ACTION_TAB_STRIP_W
+            local snapW = T.px(CONTAINER_STRIP_W) + drawerW + T.px(ACTION_TAB_STRIP_W)
             win:setWidth(snapW)
         end
     else
         win._invDrawerOpen = true
         -- Snap window to include inventory
         local drawerW = math.floor(win._drawerEffW or 0)
-        local baseInv = win._baseInvW or 372
-        local snapW = CONTAINER_STRIP_W + baseInv + drawerW + ACTION_TAB_STRIP_W
+        local baseInv = T.px(win._baseInvW or 372)
+        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + drawerW + T.px(ACTION_TAB_STRIP_W)
         local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
         snapW = math.min(snapW, maxW)
         win:setWidth(snapW)
@@ -1839,16 +1856,17 @@ mcToggleWorldContainer = function(win, content, cIdx)
     end
 
     -- Snap window width for new column count
+    local T = ZeD.T
     local colCount = #selected + (win._mainVisible and 1 or 0)
-    local baseInv = win._baseInvW or 372
+    local baseInv = T.px(win._baseInvW or 372)
     if colCount >= 2 then
         local _, idealInvW = mcComputeTargetWidthWorld(win, colCount)
-        local snapW = CONTAINER_STRIP_W + idealInvW + ACTION_TAB_STRIP_W
-        local maxW = getCore():getScreenWidth() - win:getX() - 10
+        local snapW = T.px(CONTAINER_STRIP_W) + idealInvW + T.px(ACTION_TAB_STRIP_W)
+        local maxW = getCore():getScreenWidth() - win:getX() - T.px(10)
         snapW = math.min(snapW, maxW)
         win:setWidth(snapW)
     else
-        local snapW = CONTAINER_STRIP_W + baseInv + ACTION_TAB_STRIP_W
+        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
         win:setWidth(snapW)
     end
 
@@ -1865,14 +1883,19 @@ end
 local function saveWorldState(win)
     local po = win._playerObj
     if not po then return end
+    local T  = ZeD.T
+    local sc = (T and T.scale) or 1
     local md = po:getModData()
     md.ZeD_WinState = md.ZeD_WinState or {}
-    local baseW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W
+    -- S124 scale: persisted geometry is stored in DESIGN UNITS (screen px / T.scale).
+    -- _baseInvW already holds design units; x/y/h are screen px and are divided here.
+    -- Pre-S124 saves were written at scale 1.0, so they read back as-is.
+    local baseW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W   -- design units
     md.ZeD_WinState.world = {
-        x = win:getX(),
-        y = win:getY(),
+        x = win:getX() / sc,
+        y = win:getY() / sc,
         w = baseW,
-        h = win:getHeight(),
+        h = win:getHeight() / sc,
         activeTab  = win._activeTab,
         drawerMode = win._drawerMode,
         drawerOpen = win._drawerOpen,
@@ -1884,24 +1907,31 @@ local function restoreWorldState(win, playerObj)
     local md = playerObj:getModData()
     local ws = md.ZeD_WinState and md.ZeD_WinState.world
     if not ws then return end
+    local T = ZeD.T
+    local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
-    -- Clamp: top edge only (windows may clip off left/right, matching vanilla)
-    local x = ws.x or 40
-    local y = math.max(0, ws.y or 60)
-    local w = math.max(CONTAINER_STRIP_W + 200 + ACTION_TAB_STRIP_W, ws.w or 464)
-    local h = math.max(win.minimumHeight or 220, math.min(ws.h or 600, screenH - 20))
+    -- S124 scale: stored values are design units (see saveWorldState). Scale to screen px,
+    -- then clamp to the screen (a saved position can land off-screen after a root change).
+    local xU = ws.x or 40
+    local yU = math.max(0, ws.y or 60)
+    local wU = math.max(CONTAINER_STRIP_W + 200 + ACTION_TAB_STRIP_W, ws.w or 464)   -- design units
+    local x = T.px(xU)
+    local y = T.px(yU)
+    local w = T.px(wU)
+    local h = math.max(win.minimumHeight or T.px(220), math.min(T.px(ws.h or 600), screenH - T.px(20)))
     if y + h > screenH then y = math.max(0, screenH - h) end
+    x = math.max(0, math.min(x, screenW - w))
     win:setX(x)
     win:setY(y)
     win:setWidth(w)
     win:setHeight(h)
 
     -- Sync inventory drawer to restored width (no stale animation state)
-    local restoredInvW = w - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W
+    local restoredInvW = wU - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W   -- design units
     restoredInvW = math.max(restoredInvW, 200)
-    win._invDrawerEffW    = restoredInvW
-    win._invDrawerTargetW = restoredInvW
-    win._baseInvW         = restoredInvW
+    win._invDrawerEffW    = T.px(restoredInvW)
+    win._invDrawerTargetW = T.px(restoredInvW)
+    win._baseInvW         = restoredInvW                               -- design units
     win._prevDesiredW     = nil
 
     -- Restore active tab
@@ -2152,7 +2182,7 @@ end
 local function drawWorldContainerStrip(self, win, content)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local w  = CONTAINER_STRIP_W
+    local w  = T.px(CONTAINER_STRIP_W)
     local h  = self:getHeight()
 
     self:clearHitZones()
@@ -2240,13 +2270,13 @@ local function drawWorldContainerStrip(self, win, content)
     local containers = win._containers
     local mx, my = self:getMouseX(), self:getMouseY()
     local font   = T.fontF1
-    local fontH  = getTextManager():getFontHeight(font)
-    local iconSz = CONTAINER_BTN_SZ - 14  -- 22px icon in 36px cell
+    local fontH  = ZeD.TM:getFontHeight(font)
+    local iconSz = T.px(CONTAINER_BTN_SZ - 14)  -- 22px icon in 36px cell (design units)
 
     -- Strip background provided by ZeD_Window body — no redundant fill
     -- Right border (mirrored from char window's left border)
     local bd = T.border
-    self:drawRect(w - 1, 0, 1, h, bd.a, bd.r, bd.g, bd.b)
+    self:drawRect(w - T.px(1), 0, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
 
     -- --------------------------------------------------------
     -- ZONE 1: Floor container pinned at top (always last in containers[])
@@ -2261,7 +2291,7 @@ local function drawWorldContainerStrip(self, win, content)
             if ci == floorIdx then isMC = true; break end
         end
 
-        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + CONTAINER_BTN_SZ)
+        local isHover = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(CONTAINER_BTN_SZ))
         -- Zone 1 is "on" when: main visible (loot MC), or inventory open showing floor (non-loot)
         local mainVis
         if win._activeTab == "loot" then
@@ -2272,10 +2302,10 @@ local function drawWorldContainerStrip(self, win, content)
         if mainVis and (isActive or isMC) then
             -- S95 v3: active container filled with accent at readable alpha.
             local ac = T.accent
-            self:drawRect(0, curY, w - 1, CONTAINER_BTN_SZ, 0.55, ac.r, ac.g, ac.b)
-            self:drawRect(0, curY, 2, CONTAINER_BTN_SZ, ac.a, ac.r, ac.g, ac.b)
+            self:drawRect(0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
+            self:drawRect(0, curY, T.px(2), T.px(CONTAINER_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
         elseif isHover then
-            self:drawRect(0, curY, w - 1, CONTAINER_BTN_SZ, 0.04, T.text.r, T.text.g, T.text.b)
+            self:drawRect(0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.04, T.text.r, T.text.g, T.text.b)
         end
         -- S108 QA: gamepad focus cue on floor (mirrors Char S106). Stacks
         -- on top of mainVis paint — visually identical when both apply, but
@@ -2283,20 +2313,20 @@ local function drawWorldContainerStrip(self, win, content)
         -- floor via D-pad without tap-A) so they can see where focus is.
         if gpFocusedCI == floorIdx then
             local ac = T.accent
-            self:drawRect(0, curY, w - 1, CONTAINER_BTN_SZ, 0.55, ac.r, ac.g, ac.b)
+            self:drawRect(0, curY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
         end
 
         local iconAlpha = mainVis and 1 or 0.5
         local tex = floorCnt.texture
         if tex then
             local ix = math.floor((w - iconSz) / 2)
-            local iy = curY + math.floor((CONTAINER_BTN_SZ - iconSz) / 2)
+            local iy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
             self:drawTextureScaledAspect(tex, ix, iy, iconSz, iconSz, iconAlpha, 1, 1, 1)
         else
             local glyph = "F"
-            local gw = getTextManager():MeasureStringX(font, glyph)
+            local gw = ZeD.TM:MeasureStringX(font, glyph)
             local gx = math.floor((w - gw) / 2)
-            local gy = curY + math.floor((CONTAINER_BTN_SZ - fontH) / 2)
+            local gy = curY + math.floor((T.px(CONTAINER_BTN_SZ) - fontH) / 2)
             local color = mainVis and ((isActive or isMC) and T.accent or T.textSec) or T.textDim
             self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
         end
@@ -2309,20 +2339,20 @@ local function drawWorldContainerStrip(self, win, content)
         local mcCountF = #(win._mcSelected or {})
         if mainVis and mcCountF > 0 then
             local badge = tostring(mcCountF + 1)
-            local bw = getTextManager():MeasureStringX(font, badge)
-            local bx = 4
-            local by = curY + CONTAINER_BTN_SZ - fontH - 1
+            local bw = ZeD.TM:MeasureStringX(font, badge)
+            local bx = T.px(4)
+            local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
             local ac = T.accent
             self:drawText(badge, bx, by, ac.r, ac.g, ac.b, ac.a, font)
         end
 
-        self:addHitZone(floorIdx, 0, curY, w, CONTAINER_BTN_SZ)
-        curY = curY + CONTAINER_BTN_SZ
+        self:addHitZone(floorIdx, 0, curY, w, T.px(CONTAINER_BTN_SZ))
+        curY = curY + T.px(CONTAINER_BTN_SZ)
     end
 
     -- Divider below floor
     A.drawDividerH(self, 0, curY, w, true)
-    curY = curY + 1
+    curY = curY + T.px(1)
 
     local sortMode = win._containerSortMode or "dist"
 
@@ -2330,14 +2360,14 @@ local function drawWorldContainerStrip(self, win, content)
     -- ZONE 2: Sort mode label — aligned with column header bar
     -- Cycles: dist → wt → type → dist
     -- --------------------------------------------------------
-    local colHdrH     = 20
+    local colHdrH     = T.px(20)
     local sortRowY    = curY
     local sortRowH    = colHdrH
     local f5Font      = T.fontF5
-    local f5H         = getTextManager():getFontHeight(f5Font)
+    local f5H         = ZeD.TM:getFontHeight(f5Font)
     local isActive    = sortMode ~= "dist"
     local sortLabel   = string.upper(sortMode)
-    local labelW      = getTextManager():MeasureStringX(f5Font, sortLabel)
+    local labelW      = ZeD.TM:MeasureStringX(f5Font, sortLabel)
     local isSortHover = (mx >= 0 and mx < w and my >= sortRowY and my < sortRowY + sortRowH)
 
     local surf2 = T.surf2
@@ -2353,10 +2383,10 @@ local function drawWorldContainerStrip(self, win, content)
     local labelY = sortRowY + math.floor((sortRowH - f5H) / 2)
     self:drawText(sortLabel, labelX, labelY, sortColor.r, sortColor.g, sortColor.b, sortColor.a, f5Font)
     if isActive then
-        self:drawRect(labelX, labelY + f5H, labelW, 1, sortColor.a, sortColor.r, sortColor.g, sortColor.b)
+        self:drawRect(labelX, labelY + f5H, labelW, T.px(1), sortColor.a, sortColor.r, sortColor.g, sortColor.b)
     end
     self:addHitZone("wt_sort", 0, sortRowY, w, sortRowH)
-    A.drawDividerH(self, 0, sortRowY + sortRowH - 1, w, true)
+    A.drawDividerH(self, 0, sortRowY + sortRowH - T.px(1), w, true)
     curY = sortRowY + sortRowH
 
     -- --------------------------------------------------------
@@ -2384,13 +2414,13 @@ local function drawWorldContainerStrip(self, win, content)
     -- "dist" = natural order
 
     -- Scroll geometry
-    local totalListH = #listEntries * CONTAINER_BTN_SZ
+    local totalListH = #listEntries * T.px(CONTAINER_BTN_SZ)
     local scrollArrowH = 0
     local scrollOff = win._stripScrollOffset or 0
     local listAreaH = h - listStartY
     local needsScroll = totalListH > listAreaH
     if needsScroll then
-        scrollArrowH = STRIP_SCROLL_ROW_H
+        scrollArrowH = T.px(STRIP_SCROLL_ROW_H)
         listAreaH = h - listStartY - scrollArrowH
         local maxScroll = totalListH - listAreaH
         if maxScroll < 0 then maxScroll = 0 end
@@ -2419,51 +2449,51 @@ local function drawWorldContainerStrip(self, win, content)
         local isActive = (ci == win._activeContainer)
         local isViewed = (ci == win._viewedContainer)
         local isOn = isMC or isActive or isViewed
-        if cnt and drawY + CONTAINER_BTN_SZ > listStartY and drawY < listStartY + listAreaH then
-            local isHover = (mx >= 0 and mx < w and my >= drawY and my < drawY + CONTAINER_BTN_SZ)
+        if cnt and drawY + T.px(CONTAINER_BTN_SZ) > listStartY and drawY < listStartY + listAreaH then
+            local isHover = (mx >= 0 and mx < w and my >= drawY and my < drawY + T.px(CONTAINER_BTN_SZ))
 
             -- S95 v3: active / sole-MC / viewed containers filled with accent
             -- at readable alpha. Matches tab-strip active highlight.
             local isSoleActive = isMC and not win._mainVisible and #(win._mcSelected or {}) == 1
             if isSoleActive or isViewed then
                 local ac = T.accent
-                self:drawRect(0, drawY, w - 1, CONTAINER_BTN_SZ, 0.55, ac.r, ac.g, ac.b)
-                self:drawRect(0, drawY, 2, CONTAINER_BTN_SZ, ac.a, ac.r, ac.g, ac.b)
+                self:drawRect(0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
+                self:drawRect(0, drawY, T.px(2), T.px(CONTAINER_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
             elseif isOn then
                 local ac = T.accent
-                self:drawRect(0, drawY, w - 1, CONTAINER_BTN_SZ, 0.55, ac.r, ac.g, ac.b)
-                self:drawRect(0, drawY, 2, CONTAINER_BTN_SZ, ac.a, ac.r, ac.g, ac.b)
+                self:drawRect(0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
+                self:drawRect(0, drawY, T.px(2), T.px(CONTAINER_BTN_SZ), ac.a, ac.r, ac.g, ac.b)
             end
 
             -- Hover highlight
             if isHover then
-                self:drawRect(0, drawY, w - 1, CONTAINER_BTN_SZ, 0.04, T.text.r, T.text.g, T.text.b)
+                self:drawRect(0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.04, T.text.r, T.text.g, T.text.b)
             end
             -- S108 QA: gamepad focus cue on non-floor button. Stacks on top
             -- of selection/hover paint to guarantee visibility regardless of
             -- the button's base state. Mirrors Char S106.
             if gpFocusedCI == ci then
                 local ac = T.accent
-                self:drawRect(0, drawY, w - 1, CONTAINER_BTN_SZ, 0.55, ac.r, ac.g, ac.b)
+                self:drawRect(0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
             end
 
             -- Locked overlay
             if cnt.locked then
-                self:drawRect(0, drawY, w - 1, CONTAINER_BTN_SZ, 0.15, T.danger.r, T.danger.g, T.danger.b)
+                self:drawRect(0, drawY, w - T.px(1), T.px(CONTAINER_BTN_SZ), 0.15, T.danger.r, T.danger.g, T.danger.b)
             end
 
             -- Icon or glyph
             local tex = cnt.texture
             if tex then
                 local ix = math.floor((w - iconSz) / 2)
-                local iy = drawY + math.floor((CONTAINER_BTN_SZ - iconSz) / 2)
+                local iy = drawY + math.floor((T.px(CONTAINER_BTN_SZ) - iconSz) / 2)
                 local alpha = cnt.locked and 0.4 or 1
                 self:drawTextureScaledAspect(tex, ix, iy, iconSz, iconSz, alpha, 1, 1, 1)
             else
                 local glyph = string.sub(cnt.name or "?", 1, 1)
-                local gw = getTextManager():MeasureStringX(font, glyph)
+                local gw = ZeD.TM:MeasureStringX(font, glyph)
                 local gx = math.floor((w - gw) / 2)
-                local gy = drawY + math.floor((CONTAINER_BTN_SZ - fontH) / 2)
+                local gy = drawY + math.floor((T.px(CONTAINER_BTN_SZ) - fontH) / 2)
                 local color = isOn and T.accent or (cnt.locked and T.textDim or T.textSec)
                 self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
             end
@@ -2476,20 +2506,20 @@ local function drawWorldContainerStrip(self, win, content)
                 end
                 if mcIdx then
                     local badge = tostring(mcIdx)
-                    local bw = getTextManager():MeasureStringX(font, badge)
-                    local bx = 4
-                    local by = drawY + CONTAINER_BTN_SZ - fontH - 1
+                    local bw = ZeD.TM:MeasureStringX(font, badge)
+                    local bx = T.px(4)
+                    local by = drawY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
                     local ac = T.accent
                     self:drawText(badge, bx, by, ac.r, ac.g, ac.b, ac.a, font)
                 end
             end
 
             -- Bottom divider
-            self:drawRect(0, drawY + CONTAINER_BTN_SZ - 1, w, 1, bd.a, bd.r, bd.g, bd.b)
+            self:drawRect(0, drawY + T.px(CONTAINER_BTN_SZ) - T.px(1), w, T.px(1), bd.a, bd.r, bd.g, bd.b)
         end
         -- Hit zone (always register even if off-screen, for scroll calculation)
-        self:addHitZone(ci, 0, drawY, w, CONTAINER_BTN_SZ)
-        drawY = drawY + CONTAINER_BTN_SZ
+        self:addHitZone(ci, 0, drawY, w, T.px(CONTAINER_BTN_SZ))
+        drawY = drawY + T.px(CONTAINER_BTN_SZ)
     end
 
     if needsScroll then
@@ -2504,16 +2534,16 @@ local function drawWorldContainerStrip(self, win, content)
         -- Up arrow (left half)
         local arrowColor = scrollOff > 0 and T.text or T.textDim
         local upX = math.floor(w / 4)
-        local upY = arrowY + math.floor(scrollArrowH / 2) - 1
-        A.drawTriangleUp(self, upX, upY, 5, arrowColor)
+        local upY = arrowY + math.floor(scrollArrowH / 2) - T.px(1)
+        A.drawTriangleUp(self, upX, upY, T.px(5), arrowColor)
         self:addHitZone("scroll_up", 0, arrowY, math.floor(w / 2), scrollArrowH)
 
         -- Down arrow (right half)
         local maxScroll = totalListH - listAreaH
         local downColor = scrollOff < maxScroll and T.text or T.textDim
         local dnX = math.floor(w * 3 / 4)
-        local dnY = arrowY + math.floor(scrollArrowH / 2) - 1
-        A.drawTriangleDown(self, dnX, dnY, 5, downColor)
+        local dnY = arrowY + math.floor(scrollArrowH / 2) - T.px(1)
+        A.drawTriangleDown(self, dnX, dnY, T.px(5), downColor)
         self:addHitZone("scroll_down", math.floor(w / 2), arrowY, math.floor(w / 2), scrollArrowH)
     end
 end
@@ -2587,16 +2617,16 @@ function ZeD_WorldWindow.toggle(playerNum)
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
     local maxWinW = math.floor(screenW * 0.5)
-    local invW = 372
-    local winW = CONTAINER_STRIP_W + invW + ACTION_TAB_STRIP_W  -- 36 + 372 + 28 = 436
+    local invW = 372                                     -- design units (default inventory width)
+    local winW = T.px(CONTAINER_STRIP_W) + T.px(invW) + T.px(ACTION_TAB_STRIP_W)  -- 36 + 372 + 36 = 444 design units
     winW = math.min(winW, maxWinW)
-    local winH = math.min(420, screenH - 80)
+    local winH = math.min(T.px(420), screenH - T.px(80))
 
     -- Position: right page of two-page spread, left edge 5px right of center
-    local win = ZeD_Window:new(math.floor(screenW / 2) + 5, 0, winW, winH, "World")
+    local win = ZeD_Window:new(math.floor(screenW / 2) + T.px(5), 0, winW, winH, "World")
     win:initialise()
     win:addToUIManager()
-    win.minimumHeight = 220
+    win.minimumHeight = T.px(220)
     win._maxWinW = maxWinW
 
     -- No theme controls on world window — grow box only, no footer toggles
@@ -2643,7 +2673,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._containerTimer = 0
     win._stripScrollOffset = 0
     win._containerSortMode = "dist"  -- "dist" | "wt" | "type"
-    win._baseInvW = invW
+    win._baseInvW = invW             -- S124 scale: DESIGN UNITS (T.px() at every use; saved as-is)
 
     -- S115: radio contextual tab state. _kind tells RadioTab.render which
     -- discovery source to use ("world" -> 3x3 grid scan for IsoWaveSignal).
@@ -2718,8 +2748,8 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     -- Inventory drawer state (two-drawer architecture)
     win._invDrawerOpen    = true
-    win._invDrawerEffW    = invW
-    win._invDrawerTargetW = invW
+    win._invDrawerEffW    = T.px(invW)   -- screen px
+    win._invDrawerTargetW = T.px(invW)   -- screen px
     win._mainVisible      = true    -- floor container visible (toggleable on Loot)
 
     -- S98 ring model: construct AFTER container + MC state is initialized.
@@ -2763,16 +2793,18 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- Per-column MC zones have their own uiRange built inline by
         -- _rebuildWorldMCRingZones (column-precise via colStates renderX/W).
         local function _worldMainInvRange(w)
+            local T = ZeD.T
             local content = w._mainContent
             if content and content._colStates and #content._colStates >= 2 then
                 local mainCol = content._colStates[#content._colStates]
                 if mainCol and mainCol.renderX and mainCol.renderW then
-                    return CONTAINER_STRIP_W + mainCol.renderX, mainCol.renderW
+                    return T.px(CONTAINER_STRIP_W) + mainCol.renderX, mainCol.renderW
                 end
             end
-            return CONTAINER_STRIP_W, w._baseInvW or 372
+            return T.px(CONTAINER_STRIP_W), T.px(w._baseInvW or 372)
         end
         local function _worldDrawerRange(w)
+            local T = ZeD.T
             local dw = math.floor(w._drawerEffW or 0)
             -- S108 v2 QA: drawer x derived from live window geometry. In MC
             -- mode the inv area expands beyond baseInvW; old hardcoded
@@ -2780,7 +2812,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- in the wrong x position when card was open over MC. The drawer
             -- always sits between inv area (which can be wide) and the
             -- right-edge action tab strip — derive from total width.
-            local ix = w:getWidth() - ACTION_TAB_STRIP_W - dw
+            local ix = w:getWidth() - T.px(ACTION_TAB_STRIP_W) - dw
             return ix, dw
         end
 
@@ -2797,7 +2829,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                   end
                   return 1
               end)(),
-              uiRange = function(w) return 0, CONTAINER_STRIP_W end },
+              uiRange = function(w) return 0, ZeD.T.px(CONTAINER_STRIP_W) end },
             -- S108 v2: Per-column MC zones (worldMC1..worldMCN) inserted here
             -- by _rebuildWorldMCRingZones() called below ring construction.
             -- The single worldLootMCColumns zone has been removed.
@@ -2826,7 +2858,10 @@ function ZeD_WorldWindow.toggle(playerNum)
               focusable = #tabEls > 0,
               elements = tabEls,
               focusedElementIdx = activeIdx,
-              uiRange = function(w) return w:getWidth() - ACTION_TAB_STRIP_W, ACTION_TAB_STRIP_W end },
+              uiRange = function(w)
+                  local T = ZeD.T
+                  return w:getWidth() - T.px(ACTION_TAB_STRIP_W), T.px(ACTION_TAB_STRIP_W)
+              end },
         }
         -- S108 QA: prefer worldMainInv (idx 3) when focusable, else fall
         -- through to the first focusable zone. mainInv is non-focusable at
@@ -2866,7 +2901,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- CONTAINER STRIP — left edge, 36px wide
     -- ----------------------------------------------------------------
-    local containerStrip = ZeD_Panel:new(0, bodyY, CONTAINER_STRIP_W, bodyH)
+    local containerStrip = ZeD_Panel:new(0, bodyY, T.px(CONTAINER_STRIP_W), bodyH)
     containerStrip.anchorRight = false
     containerStrip:initialise()
     win:addChild(containerStrip)
@@ -2880,13 +2915,14 @@ function ZeD_WorldWindow.toggle(playerNum)
         local zone = self:hitZoneAt(x, y)
         if not zone then return true end
         local zid = zone.id
+        local T = ZeD.T
 
         -- Scroll arrows
         if zid == "scroll_up" then
-            win._stripScrollOffset = (win._stripScrollOffset or 0) - CONTAINER_BTN_SZ
+            win._stripScrollOffset = (win._stripScrollOffset or 0) - T.px(CONTAINER_BTN_SZ)
             return true
         elseif zid == "scroll_down" then
-            win._stripScrollOffset = (win._stripScrollOffset or 0) + CONTAINER_BTN_SZ
+            win._stripScrollOffset = (win._stripScrollOffset or 0) + T.px(CONTAINER_BTN_SZ)
             return true
         end
 
@@ -2911,7 +2947,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                         -- Same container: close inventory (snap)
                         win._invDrawerOpen = false
                         local drawerW = math.floor(win._drawerEffW or 0)
-                        local snapW = CONTAINER_STRIP_W + drawerW + ACTION_TAB_STRIP_W
+                        local snapW = T.px(CONTAINER_STRIP_W) + drawerW + T.px(ACTION_TAB_STRIP_W)
                         win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
                 win:setWidth(snapW)
                     elseif not win._invDrawerOpen then
@@ -2919,8 +2955,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                         win._viewedContainer = (zid ~= win._activeContainer) and zid or nil
                         win._invDrawerOpen = true
                         local drawerW = math.floor(win._drawerEffW or 0)
-                        local baseInv = win._baseInvW or 372
-                        local snapW = CONTAINER_STRIP_W + baseInv + drawerW + ACTION_TAB_STRIP_W
+                        local baseInv = T.px(win._baseInvW or 372)
+                        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + drawerW + T.px(ACTION_TAB_STRIP_W)
                         local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
                         win:setWidth(math.min(snapW, maxW))
                     else
@@ -2939,9 +2975,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     containerStrip.onMouseWheel = function(self, del)
+        local T = ZeD.T
         local total = #win._containers - 1  -- minus active
         if total > 0 then
-            win._stripScrollOffset = (win._stripScrollOffset or 0) + del * CONTAINER_BTN_SZ
+            win._stripScrollOffset = (win._stripScrollOffset or 0) + del * T.px(CONTAINER_BTN_SZ)
         end
         return true
     end
@@ -2949,7 +2986,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- CONTENT PANEL — item list, fills remaining width
     -- ----------------------------------------------------------------
-    content = ZeD_Panel:new(CONTAINER_STRIP_W, bodyY, winW - CONTAINER_STRIP_W - ACTION_TAB_STRIP_W, bodyH)
+    content = ZeD_Panel:new(T.px(CONTAINER_STRIP_W), bodyY, winW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W), bodyH)
     content.anchorRight = false  -- drawer prerender controls width, not ISPanel auto-resize
     content:initialise()
     win:addChild(content)
@@ -2972,8 +3009,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     content._sortAsc = true
 
     -- Column header Y offset — aligns with container strip's header row
-    content._hdrYOffset = CONTAINER_BTN_SZ + 1
-    content._defaultHdrYOffset = CONTAINER_BTN_SZ + 1
+    content._hdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
+    content._defaultHdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
 
     -- Collapse state
     content._collapsedGroups = {}
@@ -2999,14 +3036,14 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- DRAWER PANEL — right edge, slides open/closed with ItemCard
     -- ----------------------------------------------------------------
-    local drawer = ZeD_Panel:new(winW - ACTION_TAB_STRIP_W, bodyY, 0, bodyH)
+    local drawer = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, 0, bodyH)
     drawer.anchorRight = false
     drawer:initialise()
     win:addChild(drawer)
     win._drawerPanel = drawer
 
     -- Crafting tab search field (ISPanel child of drawer)
-    local craftSearch = ZeD_SearchField:new(0, 0, 200, "Search recipes...")
+    local craftSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search recipes...")
     craftSearch:initialise()
     craftSearch:setVisible(false)
     craftSearch.onFilter = function(self, text)
@@ -3025,7 +3062,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._craftSearch = craftSearch
 
     -- Building tab search field
-    local buildSearch = ZeD_SearchField:new(0, 0, 200, "Search structures...")
+    local buildSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search structures...")
     buildSearch:initialise()
     buildSearch:setVisible(false)
     buildSearch.onFilter = function(self, text)
@@ -3046,13 +3083,13 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- ITEM DRAWER — overlay panel for ItemCard, renders ON TOP of tab drawer
     -- ----------------------------------------------------------------
-    local itemDrawer = ZeD_Panel:new(winW - ACTION_TAB_STRIP_W, bodyY, 0, bodyH)
+    local itemDrawer = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, 0, bodyH)
     itemDrawer.anchorRight = false
     itemDrawer:initialise()
     win:addChild(itemDrawer)
     win._itemDrawerPanel = itemDrawer
 
-    local card = ZeD_ItemCard:new(0, 0, ITEM_CARD_W, bodyH, "drawer", playerNum)
+    local card = ZeD_ItemCard:new(0, 0, T.px(ITEM_CARD_W), bodyH, "drawer", playerNum)
     card:initialise()
     card:setVisible(false)
     itemDrawer:addChild(card)
@@ -3070,9 +3107,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         if showCard then
             -- World window: card always at left edge (inventory-facing)
             self:setX(drawer:getX())
-            self:setWidth(math.min(effectiveW, ITEM_CARD_W))
+            self:setWidth(math.min(effectiveW, T.px(ITEM_CARD_W)))
             card:setX(0)
-            card:setWidth(math.min(self:getWidth(), ITEM_CARD_W))
+            card:setWidth(math.min(self:getWidth(), T.px(ITEM_CARD_W)))
             card:setHeight(bodyH)
 
             -- Background fill (surf1, 0.98 alpha)
@@ -3081,7 +3118,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             self:drawRect(0, 0, self:getWidth(), dh, 0.98, wc.r, wc.g, wc.b)
             -- Left border (matches tab drawer's left divider)
             local bd = T.border
-            self:drawRect(0, 0, 1, dh, bd.a, bd.r, bd.g, bd.b)
+            self:drawRect(0, 0, T.px(1), dh, bd.a, bd.r, bd.g, bd.b)
         else
             self:setWidth(0)
         end
@@ -3105,9 +3142,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             local dt = UIManager.getMillisSinceLastRender() / 1000.0
             if dt > 0.1 then dt = 0.1 end
             if effW < targetW then
-                effW = math.min(effW + DRAWER_PX_SPEED * dt, targetW)
+                effW = math.min(effW + T.px(DRAWER_PX_SPEED) * dt, targetW)
             else
-                effW = math.max(effW - DRAWER_PX_SPEED * dt, targetW)
+                effW = math.max(effW - T.px(DRAWER_PX_SPEED) * dt, targetW)
             end
             win._drawerEffW = effW
         end
@@ -3129,11 +3166,11 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- loop below fires when MC columns can't all fit at MIN_COL_W.
         local mcItemCap = nil
         if mcActive and win._drawerMode == "item" then
-            local baseInv = win._baseInvW or 372
-            mcItemCap = CONTAINER_STRIP_W + baseInv + effectiveW + ACTION_TAB_STRIP_W
+            local baseInv = T.px(win._baseInvW or 372)
+            mcItemCap = T.px(CONTAINER_STRIP_W) + baseInv + effectiveW + T.px(ACTION_TAB_STRIP_W)
         end
         local maxW = mcItemCap
-            or (mcActive and (screenW - win:getX() - 10))
+            or (mcActive and (screenW - win:getX() - T.px(10)))
             or (win._maxWinW or math.floor(screenW * 0.5))
 
         if drawerDelta ~= 0 then
@@ -3150,34 +3187,36 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         -- invW is ALWAYS the residual
-        local invW = win:getWidth() - CONTAINER_STRIP_W - effectiveW - ACTION_TAB_STRIP_W
+        local invW = win:getWidth() - T.px(CONTAINER_STRIP_W) - effectiveW - T.px(ACTION_TAB_STRIP_W)
         invW = math.max(invW, 0)
 
         -- Track baseInvW ONLY when user manually resized (not from our snaps).
         if drawerDelta == 0 and effectiveW == 0 and not mcActive and invW > 0 then
-            local expectedW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W
+            local expectedW = T.px(CONTAINER_STRIP_W) + T.px(win._baseInvW or 372) + T.px(ACTION_TAB_STRIP_W)
             if win:getWidth() ~= expectedW then
-                win._baseInvW = invW
+                -- S124 scale: _baseInvW is stored in design units (screen px / T.scale);
+                -- kept fractional so save/restore round-trips without drift.
+                win._baseInvW = invW / (T.scale or 1)
             end
         end
 
         -- Dynamic minimum
         local bh = win:getBodyHeight()
-        win.minimumWidth = CONTAINER_STRIP_W + (win._invDrawerOpen and 200 or 0) + effectiveW + ACTION_TAB_STRIP_W
+        win.minimumWidth = T.px(CONTAINER_STRIP_W) + (win._invDrawerOpen and T.px(200) or 0) + effectiveW + T.px(ACTION_TAB_STRIP_W)
 
         -- ── MC eviction ──────────────────────────────────────────
         if mcActive and #(win._mcSelected) > 0 then
             local R = getR()
-            local minColW = R.MIN_COL_W or 140
+            local minColW = T.px(R.MIN_COL_W or 140)
             local totalCols = #win._mcSelected + (win._mainVisible and 1 or 0)
-            local xferW = R.getXferW and R.getXferW(totalCols) or 32
+            local xferW = T.px(R.getXferW and R.getXferW(totalCols) or 32)
             local usable = invW - (totalCols - 1) * xferW
             local perCol = totalCols > 0 and (usable / totalCols) or 0
             local evicted = false
             while perCol < minColW and #win._mcSelected > 0 do
                 table.remove(win._mcSelected, 1)
                 totalCols = #win._mcSelected + 1
-                xferW = R.getXferW and R.getXferW(totalCols) or 32
+                xferW = T.px(R.getXferW and R.getXferW(totalCols) or 32)
                 usable = invW - (totalCols - 1) * xferW
                 perCol = totalCols > 0 and (usable / totalCols) or invW
                 evicted = true
@@ -3212,20 +3251,20 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         -- Content: positioned after container strip, width = residual invW
-        content:setX(CONTAINER_STRIP_W)
+        content:setX(T.px(CONTAINER_STRIP_W))
         content:setWidth(math.max(invW, 0))
         content:setVisible(invW > 0)
 
         -- Drawer + action tab strip positioned after content
         containerStrip:setHeight(bh)
         content:setHeight(bh)
-        self:setX(CONTAINER_STRIP_W + invW)
+        self:setX(T.px(CONTAINER_STRIP_W) + invW)
         self:setHeight(bh)
-        actionTabStrip:setX(CONTAINER_STRIP_W + invW + effectiveW)
+        actionTabStrip:setX(T.px(CONTAINER_STRIP_W) + invW + effectiveW)
         actionTabStrip:setHeight(bh)
 
         -- Store divider position for top-Z drawing in win.render
-        win._dividerX = (effectiveW > 0 and invW > 0) and (CONTAINER_STRIP_W + invW) or nil
+        win._dividerX = (effectiveW > 0 and invW > 0) and (T.px(CONTAINER_STRIP_W) + invW) or nil
 
         -- Card visibility now managed by ITEM.DRAWER overlay panel
 
@@ -3258,7 +3297,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
             -- Card bg now drawn by ITEM.DRAWER overlay panel
             local bd = T.border
-            self:drawRect(0, 0, 1, dh, bd.a, bd.r, bd.g, bd.b)
+            self:drawRect(0, 0, T.px(1), dh, bd.a, bd.r, bd.g, bd.b)
 
             -- Tab content rendering (when in tab mode)
             if win._drawerMode == "tab" and win._activeTab then
@@ -3407,7 +3446,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- ACTION TAB STRIP — right edge, 28px wide
     -- ----------------------------------------------------------------
-    actionTabStrip = ZeD_Panel:new(winW - ACTION_TAB_STRIP_W, bodyY, ACTION_TAB_STRIP_W, bodyH)
+    actionTabStrip = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, T.px(ACTION_TAB_STRIP_W), bodyH)
     actionTabStrip.anchorRight = false
     actionTabStrip:initialise()
     win:addChild(actionTabStrip)
@@ -3421,13 +3460,14 @@ function ZeD_WorldWindow.toggle(playerNum)
         local zone = self:hitZoneAt(x, y)
         if not zone then return true end
         local zid = zone.id
+        local T = ZeD.T
 
         -- Scroll arrows
         if zid == "tab_scroll_up" then
-            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) - ACTION_TAB_BTN_SZ
+            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) - T.px(ACTION_TAB_BTN_SZ)
             return true
         elseif zid == "tab_scroll_down" then
-            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + ACTION_TAB_BTN_SZ
+            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + T.px(ACTION_TAB_BTN_SZ)
             return true
         end
 
@@ -3445,11 +3485,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                 content._selectedItems = {}
                 content._lastClickedItem = nil
                 -- Snap to base inventory width
-                local baseInv = win._baseInvW or 372
+                local baseInv = T.px(win._baseInvW or 372)
                 win._drawerEffW  = 0
                 win._prevEffW    = 0
                 win._invDrawerOpen = true
-                local snapW = CONTAINER_STRIP_W + baseInv + ACTION_TAB_STRIP_W
+                local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
                 win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
                 win:setWidth(snapW)
 
@@ -3459,7 +3499,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     -- Closing tab: if inventory hidden, reopen it first
                     if not win._invDrawerOpen then
                         win._invDrawerOpen = true
-                        win._invDrawerTargetW = win._baseInvW or 372
+                        win._invDrawerTargetW = T.px(win._baseInvW or 372)
                     end
                     win._activeTab  = "loot"  -- back to inventory-only = loot view
                     win._drawerOpen = false
@@ -3477,8 +3517,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                 local mcSel2 = win._mcSelected or {}
                 if #mcSel2 > 0 and tabId ~= "loot" then
                     exitWorldMC(win, content)
-                    local baseInv = win._baseInvW or 372
-                    local snapW = CONTAINER_STRIP_W + baseInv + ACTION_TAB_STRIP_W
+                    local baseInv = T.px(win._baseInvW or 372)
+                    local snapW = T.px(CONTAINER_STRIP_W) + baseInv + T.px(ACTION_TAB_STRIP_W)
                     win.minimumWidth = math.min(snapW, win.minimumWidth or snapW)
                 win:setWidth(snapW)
                 end
@@ -3503,9 +3543,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     actionTabStrip.onMouseWheel = function(self, del)
+        local T = ZeD.T
         local totalH = measureWorldTabStripH(win)
         if totalH > self:getHeight() then
-            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + del * ACTION_TAB_BTN_SZ
+            win._actionTabScrollOffset = (win._actionTabScrollOffset or 0) + del * T.px(ACTION_TAB_BTN_SZ)
             return true
         end
         return false
@@ -3601,6 +3642,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     -- Draw hook: render item list + update title bar stats
     content._onPrerender = function(self)
+        local T = ZeD.T
         -- Suppress vanilla loot panel if it re-shows
         local vl = getPlayerLoot(0)
         if vl and vl:getIsVisible() then vl:setVisible(false) end
@@ -3733,12 +3775,12 @@ function ZeD_WorldWindow.toggle(playerNum)
                             -- (e.g. floor when _activeContainer not in MC),
                             -- but it's empty. Placeholder keeps zone reachable.
                             local stripY = win:getBodyY()
-                            local rowH   = (ZeD.T and ZeD.T.rowH) or 26
-                            local colX, colW = 0, 200
+                            local rowH   = (T and T.rowH) or 26
+                            local colX, colW = 0, T.px(200)
                             local cs = self._colStates and self._colStates[#self._colStates]
                             if cs then
                                 colX = cs.renderX or 0
-                                colW = cs.renderW or 200
+                                colW = cs.renderW or T.px(200)
                             end
                             newEls = {{
                                 x = colX, y = stripY + rowH, w = colW, h = rowH,
@@ -4014,8 +4056,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- all children). S103: skip when windowshaded so the line doesn't
         -- bleed into the collapsed title-bar view (mirrors Character fix).
         if win._dividerX and not self.windowShaded then
-            local brd = ZeD.T.border
-            self:drawRect(win._dividerX, 0, 1, self:getHeight(), 1, brd.r, brd.g, brd.b)
+            local T = ZeD.T
+            local brd = T.border
+            self:drawRect(win._dividerX, 0, T.px(1), self:getHeight(), 1, brd.r, brd.g, brd.b)
         end
     end
 
@@ -4398,13 +4441,14 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     content.onMouseMove = function(self, dx, dy)
         ISPanel.onMouseMove(self, dx, dy)
+        local T = ZeD.T
         self._scroll:handleMouseMove(self:getMouseY())
 
         -- Column divider drag
         if self._colDrag then
             local cd = self._colDrag
             local delta = getMouseX() - cd.startX
-            local newW = math.max(30, math.min(math.floor(self:getWidth() / 2), cd.startW - delta))
+            local newW = math.max(T.px(30), math.min(math.floor(self:getWidth() / 2), cd.startW - delta))
             self._colWidths[cd.col] = newW
             return true
         end
@@ -4423,10 +4467,11 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseMoveOutside = function(self, dx, dy)
+        local T = ZeD.T
         if self._colDrag then
             local cd = self._colDrag
             local delta = getMouseX() - cd.startX
-            local newW = math.max(30, math.min(math.floor(self:getWidth() / 2), cd.startW - delta))
+            local newW = math.max(T.px(30), math.min(math.floor(self:getWidth() / 2), cd.startW - delta))
             self._colWidths[cd.col] = newW
             return true
         end

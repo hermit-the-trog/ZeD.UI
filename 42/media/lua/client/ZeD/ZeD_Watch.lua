@@ -167,7 +167,7 @@ end
 function ZeD_Watch:_text(x, y, str, size, c, align)
     local s = self._s; c = col(c); local fe = fontFor(size); local f = ZeD.Text.uifont(fe)
     local z = ZeD.Text.zoomFor(fe, fe.px * s)                                   -- role design px x root scale
-    local tm = getTextManager(); local w = tm:MeasureStringX(f, str) * z      -- screen px at zoom z
+    local tm = ZeD.TM; local w = tm:MeasureStringX(f, str) * z      -- screen px at zoom z
     local px = x * s
     if align == "r" then px = px - w elseif align == "c" then px = px - w / 2 end
     local h = tm:getFontHeight(f) * z; local py = y * s - math.max(0, (h - (size or 5) * s) / 2)

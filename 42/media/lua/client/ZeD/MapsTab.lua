@@ -277,12 +277,13 @@ function ZeD_WorldMap:onMouseDown(x, y)
 end
 
 function ZeD_WorldMap:onMouseMove(dx, dy)
+    local T = ZeD.T
     if self.dragging then
         local mouseX = self:getMouseX()
         local mouseY = self:getMouseY()
         if not self.dragMoved
-           and math.abs(mouseX - self.dragStartX) <= 4
-           and math.abs(mouseY - self.dragStartY) <= 4 then
+           and math.abs(mouseX - self.dragStartX) <= T.px(4)
+           and math.abs(mouseY - self.dragStartY) <= T.px(4) then
             return
         end
         self.dragMoved = true
@@ -304,9 +305,10 @@ end
 
 -- Right-click: context menu for annotation edit/delete
 function ZeD_WorldMap:onRightMouseDown(x, y)
+    local T = ZeD.T
     if not self._annotationHits then return false end
 
-    local hitRadius = 16
+    local hitRadius = T.px(16)
     for _, hit in ipairs(self._annotationHits) do
         local cx = hit.x + hit.w / 2
         local cy = hit.y + hit.h / 2
@@ -356,13 +358,14 @@ end
 
 -- Render stash map icons on top of the world map
 function ZeD_WorldMap:renderStashMaps()
+    local T = ZeD.T
     if not StashSystem then return end
     local stashNameList = StashSystem.getAlreadyReadMap()
     if not stashNameList then return end
 
     local iconTex = getTexture("Item_Map")
     if not iconTex then return end
-    local iconSize = 24
+    local iconSize = T.px(24)
     local pw, ph = self:getWidth(), self:getHeight()
 
     for i = 1, stashNameList:size() do
@@ -385,7 +388,7 @@ function ZeD_WorldMap:renderFlyerMarkers()
     if not PrintMediaDefinitions or not PrintMediaDefinitions.MiscDetails then return end
 
     local T = ZeD.T
-    local dotSz = 8
+    local dotSz = T.px(8)
     local ac = T.accent
     local pw, ph = self:getWidth(), self:getHeight()
 
@@ -411,9 +414,9 @@ function ZeD_WorldMap:renderAnnotations()
     if not annots or #annots == 0 then return end
 
     local T = ZeD.T
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local pw, ph = self:getWidth(), self:getHeight()
-    local sz = MAP_ANNOT_DRAW_SZ
+    local sz = T.px(MAP_ANNOT_DRAW_SZ)
     local halfSz = sz / 2
 
     self._annotationHits = {}
@@ -427,21 +430,21 @@ function ZeD_WorldMap:renderAnnotations()
             local c = colorDef
 
             if ann.iconId == "text" then
-                local dotSz = 6
+                local dotSz = T.px(6)
                 local dotX = sx + halfSz - dotSz / 2
                 local dotY = sy + halfSz - dotSz / 2
-                self:drawRect(dotX + 1, dotY,     dotSz - 2, 1,        0.9, c.r, c.g, c.b)
-                self:drawRect(dotX,     dotY + 1, dotSz,     dotSz - 2, 0.9, c.r, c.g, c.b)
-                self:drawRect(dotX + 1, dotY + dotSz - 1, dotSz - 2, 1, 0.9, c.r, c.g, c.b)
+                self:drawRect(dotX + T.px(1), dotY,     dotSz - T.px(2), T.px(1),        0.9, c.r, c.g, c.b)
+                self:drawRect(dotX,     dotY + T.px(1), dotSz,     dotSz - T.px(2), 0.9, c.r, c.g, c.b)
+                self:drawRect(dotX + T.px(1), dotY + dotSz - T.px(1), dotSz - T.px(2), T.px(1), 0.9, c.r, c.g, c.b)
             else
                 local tex = self._annotTextures and self._annotTextures[ann.iconId]
                 if tex then
                     self:drawTextureScaledAspect(tex, sx, sy, sz, sz, 0.9, c.r, c.g, c.b)
                 else
-                    local m = 4
-                    for di = 0, sz - m * 2 - 1 do
-                        self:drawRect(sx + m + di, sy + m + di, 1, 1, 0.7, c.r, c.g, c.b)
-                        self:drawRect(sx + m + di, sy + sz - m - 1 - di, 1, 1, 0.7, c.r, c.g, c.b)
+                    local m = T.px(4)
+                    for di = 0, sz - m * 2 - 1 do  -- S124 scale: walks screen px; the -1 is the inclusive loop bound
+                        self:drawRect(sx + m + di, sy + m + di, T.px(1), T.px(1), 0.7, c.r, c.g, c.b)
+                        self:drawRect(sx + m + di, sy + sz - m - T.px(1) - di, T.px(1), T.px(1), 0.7, c.r, c.g, c.b)
                     end
                 end
             end
@@ -449,8 +452,8 @@ function ZeD_WorldMap:renderAnnotations()
             if ann.text and ann.text ~= "" then
                 local tw = tm:MeasureStringX(T.fontF1, ann.text)
                 local tx = sx + halfSz - tw / 2
-                local ty = sy - tm:getFontHeight(T.fontF1) - 2
-                self:drawText(ann.text, tx + 1, ty + 1, 0, 0, 0, 0.6, T.fontF1)
+                local ty = sy - tm:getFontHeight(T.fontF1) - T.px(2)
+                self:drawText(ann.text, tx + T.px(1), ty + T.px(1), 0, 0, 0, 0.6, T.fontF1)
                 self:drawText(ann.text, tx, ty, c.r, c.g, c.b, 1, T.fontF1)
             end
 
@@ -499,20 +502,20 @@ function ZeD_WorldMap:renderToolCursor()
     if mx < 0 or my < 0 or mx > self:getWidth() or my > self:getHeight() then return end
 
     local T = ZeD.T
-    local sz = MAP_ANNOT_DRAW_SZ
+    local sz = T.px(MAP_ANNOT_DRAW_SZ)
     local colorDef = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
     local c = colorDef
 
     if win._mapActiveTool == "text" then
-        local dotSz = 6
+        local dotSz = T.px(6)
         local dotX = mx - dotSz / 2
         local dotY = my - dotSz / 2
-        self:drawRect(dotX + 1, dotY,     dotSz - 2, 1,        0.4, c.r, c.g, c.b)
-        self:drawRect(dotX,     dotY + 1, dotSz,     dotSz - 2, 0.4, c.r, c.g, c.b)
-        self:drawRect(dotX + 1, dotY + dotSz - 1, dotSz - 2, 1, 0.4, c.r, c.g, c.b)
+        self:drawRect(dotX + T.px(1), dotY,     dotSz - T.px(2), T.px(1),        0.4, c.r, c.g, c.b)
+        self:drawRect(dotX,     dotY + T.px(1), dotSz,     dotSz - T.px(2), 0.4, c.r, c.g, c.b)
+        self:drawRect(dotX + T.px(1), dotY + dotSz - T.px(1), dotSz - T.px(2), T.px(1), 0.4, c.r, c.g, c.b)
         local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or "Note"
         if previewText ~= "" then
-            self:drawText(previewText, mx + 6, my - 10, c.r, c.g, c.b, 0.4, T.fontF1)
+            self:drawText(previewText, mx + T.px(6), my - T.px(10), c.r, c.g, c.b, 0.4, T.fontF1)
         end
     else
         local tex = self._annotTextures and self._annotTextures[win._mapActiveTool]
@@ -550,28 +553,28 @@ function ZeD_WorldMap:renderGamepadCursor()
     -- Crosshair — two short orthogonal segments + a small gap in the middle
     -- so the exact pixel the cursor points at is never obscured. Pattern
     -- parallels AnimalsTab line 757 (idle-phase tile highlight).
-    local arm   = 8    -- arm length in pixels
-    local gap   = 3    -- half-gap (no pixels drawn within `gap` of center)
+    local arm   = T.px(8)    -- arm length in pixels
+    local gap   = T.px(3)    -- half-gap (no pixels drawn within `gap` of center)
     -- Horizontal arms
-    self:drawRect(cx - arm, cy,     arm - gap, 1, ac.a, ac.r, ac.g, ac.b)
-    self:drawRect(cx + gap, cy,     arm - gap, 1, ac.a, ac.r, ac.g, ac.b)
+    self:drawRect(cx - arm, cy,     arm - gap, T.px(1), ac.a, ac.r, ac.g, ac.b)
+    self:drawRect(cx + gap, cy,     arm - gap, T.px(1), ac.a, ac.r, ac.g, ac.b)
     -- Vertical arms
-    self:drawRect(cx,       cy - arm, 1, arm - gap, ac.a, ac.r, ac.g, ac.b)
-    self:drawRect(cx,       cy + gap, 1, arm - gap, ac.a, ac.r, ac.g, ac.b)
+    self:drawRect(cx,       cy - arm, T.px(1), arm - gap, ac.a, ac.r, ac.g, ac.b)
+    self:drawRect(cx,       cy + gap, T.px(1), arm - gap, ac.a, ac.r, ac.g, ac.b)
     -- Center pixel for precise targeting
-    self:drawRect(cx, cy, 1, 1, 1.0, ac.r, ac.g, ac.b)
+    self:drawRect(cx, cy, T.px(1), T.px(1), 1.0, ac.r, ac.g, ac.b)
 
     -- Tool preview at cursor when a tool is armed, so the user sees what
     -- A-press will place. Mirrors renderToolCursor's mouse-preview styling.
     if win._mapActiveTool then
-        local sz = MAP_ANNOT_DRAW_SZ
+        local sz = T.px(MAP_ANNOT_DRAW_SZ)
         local colorDef = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
         local c = colorDef
 
         if win._mapActiveTool == "text" then
             local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or "Note"
             if previewText ~= "" then
-                self:drawText(previewText, cx + 8, cy - 10, c.r, c.g, c.b, 0.5, T.fontF1)
+                self:drawText(previewText, cx + T.px(8), cy - T.px(10), c.r, c.g, c.b, 0.5, T.fontF1)
             end
         else
             local tex = self._annotTextures and self._annotTextures[win._mapActiveTool]
@@ -624,17 +627,17 @@ local function _drawIconBtn(panel, win, icon, bx, by, btnSz, isActive, isPinned,
     if tex then
         local tc = isActive and T.accent or T.text
         local alpha = isActive and 0.9 or 0.6
-        panel:drawTextureScaledAspect(tex, bx + 2, by + 2, btnSz - 4, btnSz - 4,
+        panel:drawTextureScaledAspect(tex, bx + T.px(2), by + T.px(2), btnSz - T.px(4), btnSz - T.px(4),
             alpha, tc.r, tc.g, tc.b)
     else
         local lbl = string.sub(icon.label, 1, 1)
         local dc = isActive and T.accent or T.textDim
-        panel:drawText(lbl, bx + 5, by + 2, dc.r, dc.g, dc.b, 0.6, T.fontF1)
+        panel:drawText(lbl, bx + T.px(5), by + T.px(2), dc.r, dc.g, dc.b, 0.6, T.fontF1)
     end
 
     if isPinned then
         local ac = T.accent
-        panel:drawRect(bx + 1, by + 1, 3, 3, 0.7, ac.r, ac.g, ac.b)
+        panel:drawRect(bx + T.px(1), by + T.px(1), T.px(3), T.px(3), 0.7, ac.r, ac.g, ac.b)
     end
 
     win._mapToolZones[#win._mapToolZones + 1] = {
@@ -646,11 +649,11 @@ end
 local function renderMapToolbar(panel, win, x, y, w)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local secH = tm:getFontHeight(T.fontF1)
-    local btnSz  = MAP_ICON_BTN_SZ
-    local btnGap = MAP_ICON_BTN_GAP
-    local colSz  = MAP_COLOR_SZ
+    local btnSz  = T.px(MAP_ICON_BTN_SZ)
+    local btnGap = T.px(MAP_ICON_BTN_GAP)
+    local colSz  = T.px(MAP_COLOR_SZ)
 
     win._mapToolZones  = {}
     win._mapColorZones = {}
@@ -675,26 +678,26 @@ local function renderMapToolbar(panel, win, x, y, w)
         end
     end
 
-    local rowH = MAP_TOOLBAR_ROW_H
+    local rowH = T.px(MAP_TOOLBAR_ROW_H)
     local btnY = y + math.floor((rowH - btnSz) / 2)
 
     -- Row 1: disclosure chevron + pinned icons + Aa + separator + color swatches
-    local curX = x + 4
+    local curX = x + T.px(4)
 
     -- Disclosure chevron
-    local chevSz = math.max(8, math.floor(secH * 0.7))
+    local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
     local chevY  = y + math.floor((rowH - chevSz) / 2)
     if focId == "map:disclosure" then
         local ac = T.accent
-        panel:drawRect(curX - 2, y, chevSz + 6, rowH, 0.55, ac.r, ac.g, ac.b)
+        panel:drawRect(curX - T.px(2), y, chevSz + T.px(6), rowH, 0.55, ac.r, ac.g, ac.b)
     end
     if expanded then
         A.drawTriangleDown(panel, curX, chevY, chevSz, T.arrow)
     else
         A.drawTriangleRight(panel, curX, chevY, chevSz, T.arrow)
     end
-    win._mapDisclosureZone = { x = curX, y = y, w = chevSz + 4, h = rowH }
-    curX = curX + chevSz + 6
+    win._mapDisclosureZone = { x = curX, y = y, w = chevSz + T.px(4), h = rowH }
+    curX = curX + chevSz + T.px(6)
 
     -- Pinned icon buttons. Ring-focus id for a pinned-row tool is
     -- "map:tool:<iconId>" (grid copies use "map:gridtool:<iconId>").
@@ -724,7 +727,7 @@ local function renderMapToolbar(panel, win, x, y, w)
         panel:drawRectBorder(curX, btnY, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
     end
     local tC = textActive and T.accent or T.textDim
-    panel:drawText("Aa", curX + 2, btnY + 2, tC.r, tC.g, tC.b, 0.7, T.fontF1)
+    panel:drawText("Aa", curX + T.px(2), btnY + T.px(2), tC.r, tC.g, tC.b, 0.7, T.fontF1)
     win._mapToolZones[#win._mapToolZones + 1] = {
         id = "text",
         x = curX, y = btnY, w = btnSz, h = btnSz,
@@ -733,8 +736,8 @@ local function renderMapToolbar(panel, win, x, y, w)
 
     -- Separator
     local sepC = T.border
-    panel:drawRect(curX, btnY, 1, btnSz, sepC.a * 0.4, sepC.r, sepC.g, sepC.b)
-    curX = curX + 1 + btnGap * 2
+    panel:drawRect(curX, btnY, T.px(1), btnSz, sepC.a * 0.4, sepC.r, sepC.g, sepC.b)
+    curX = curX + T.px(1) + btnGap * 2
 
     -- Color swatches. Paint the focus cue in a slightly oversized rect so
     -- it reads clearly around the small 14px swatch without obscuring the
@@ -747,14 +750,14 @@ local function renderMapToolbar(panel, win, x, y, w)
 
         if isFocCol then
             local ac = T.accent
-            panel:drawRect(curX - 2, colY - 2, colSz + 4, colSz + 4,
+            panel:drawRect(curX - T.px(2), colY - T.px(2), colSz + T.px(4), colSz + T.px(4),
                 0.55, ac.r, ac.g, ac.b)
         end
 
         panel:drawRect(curX, colY, colSz, colSz, 0.85, c.r, c.g, c.b)
         if isActiveCol then
             local bd = T.text
-            panel:drawRectBorder(curX - 1, colY - 1, colSz + 2, colSz + 2,
+            panel:drawRectBorder(curX - T.px(1), colY - T.px(1), colSz + T.px(2), colSz + T.px(2),
                 bd.a, bd.r, bd.g, bd.b)
         end
 
@@ -769,7 +772,7 @@ local function renderMapToolbar(panel, win, x, y, w)
     -- S123: UNFOLD / FOLD button, right-anchored. Pops the map out into a
     -- large centred window (ZeD.MapsTab.openPopout) or folds it back.
     do
-        local bx = x + w - 4 - btnSz
+        local bx = x + w - T.px(4) - btnSz
         local isOpen = win._mapPopout ~= nil
         if focId == "map:popout" then
             local ac = T.accent
@@ -784,9 +787,9 @@ local function renderMapToolbar(panel, win, x, y, w)
         local tex = isOpen and win._mapFoldTex or win._mapPopoutTex
         local tc = T.text
         if tex then
-            panel:drawTextureScaledAspect(tex, bx + 3, btnY + 3, btnSz - 6, btnSz - 6, 0.75, tc.r, tc.g, tc.b)
+            panel:drawTextureScaledAspect(tex, bx + T.px(3), btnY + T.px(3), btnSz - T.px(6), btnSz - T.px(6), 0.75, tc.r, tc.g, tc.b)
         else
-            panel:drawText(isOpen and "x" or "+", bx + 6, btnY + 2, tc.r, tc.g, tc.b, 0.7, T.fontF1)
+            panel:drawText(isOpen and "x" or "+", bx + T.px(6), btnY + T.px(2), tc.r, tc.g, tc.b, 0.7, T.fontF1)
         end
         win._mapPopoutZone = { x = bx, y = btnY, w = btnSz, h = btnSz }
     end
@@ -795,15 +798,15 @@ local function renderMapToolbar(panel, win, x, y, w)
 
     -- Expanded rows: ALL icons in a wrapping grid
     if expanded then
-        local gridX = x + 4
+        local gridX = x + T.px(4)
         local gridY = y + rowH
-        local gridW = w - 8
+        local gridW = w - T.px(8)
         local maxCols = math.max(1, math.floor(gridW / (btnSz + btnGap)))
         local col = 0
         local rowIdx = 0
 
         local bd = T.border
-        panel:drawRect(x, gridY - 1, w, 1, bd.a * 0.2, bd.r, bd.g, bd.b)
+        panel:drawRect(x, gridY - T.px(1), w, T.px(1), bd.a * 0.2, bd.r, bd.g, bd.b)
 
         local s1 = T.surf1
         local expandedRowCount = math.ceil(#MAP_ICONS / maxCols)
@@ -840,22 +843,22 @@ local function renderMapToolbar(panel, win, x, y, w)
     -- Inline text input (visible when text tool is active)
     if textActive then
         local inputY = y + totalH
-        local inputX = x + 4
-        local inputW = w - 8
+        local inputX = x + T.px(4)
+        local inputW = w - T.px(8)
         local inputBg = T.surf2
-        panel:drawRect(x, inputY, w, MAP_TEXT_INPUT_H, inputBg.a, inputBg.r, inputBg.g, inputBg.b)
+        panel:drawRect(x, inputY, w, T.px(MAP_TEXT_INPUT_H), inputBg.a, inputBg.r, inputBg.g, inputBg.b)
         local bds = T.borderS
-        panel:drawRect(x, inputY + MAP_TEXT_INPUT_H - 1, w, 1, bds.a * 0.3, bds.r, bds.g, bds.b)
+        panel:drawRect(x, inputY + T.px(MAP_TEXT_INPUT_H) - T.px(1), w, T.px(1), bds.a * 0.3, bds.r, bds.g, bds.b)
 
         if win._mapTextEntry then
             win._mapTextEntry:setX(inputX)
-            win._mapTextEntry:setY(inputY + 2)
+            win._mapTextEntry:setY(inputY + T.px(2))
             win._mapTextEntry:setWidth(inputW)
-            win._mapTextEntry:setHeight(MAP_TEXT_INPUT_H - 4)
+            win._mapTextEntry:setHeight(T.px(MAP_TEXT_INPUT_H) - T.px(4))
             win._mapTextEntry:setVisible(true)
         end
 
-        totalH = totalH + MAP_TEXT_INPUT_H
+        totalH = totalH + T.px(MAP_TEXT_INPUT_H)
     else
         if win._mapTextEntry then
             win._mapTextEntry:setVisible(false)
@@ -878,7 +881,7 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     if win._mapPopout and panel ~= win._mapPopout._contentPanel then
         local s1 = T.surf1
         panel:drawRect(x, y, w, h, s1.a, s1.r, s1.g, s1.b)
-        local tm = getTextManager()
+        local tm = ZeD.TM
         local msg1 = "MAP UNFOLDED"
         local msg2 = "A or click here to fold it back"
         local w1 = tm:MeasureStringX(T.fontF1, msg1)
@@ -886,7 +889,7 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         local fh = tm:getFontHeight(T.fontF1)
         local cy = y + math.floor(h / 2) - fh
         ZeD.Atoms.drawSecondary(panel, msg1, x + math.floor((w - w1) / 2), cy, T.text)
-        ZeD.Atoms.drawSecondary(panel, msg2, x + math.floor((w - w2) / 2), cy + fh + 4, T.textDim)
+        ZeD.Atoms.drawSecondary(panel, msg2, x + math.floor((w - w2) / 2), cy + fh + T.px(4), T.textDim)
         win._mapFoldZone = { x = x, y = y, w = w, h = h }
         if win._mapTextEntry then win._mapTextEntry:setVisible(false) end
         return
@@ -897,11 +900,11 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
 
     -- Toolbar background
     local toolbarBg = T.surf1
-    panel:drawRect(x, y, w, MAP_TOOLBAR_ROW_H, toolbarBg.a, toolbarBg.r, toolbarBg.g, toolbarBg.b)
+    panel:drawRect(x, y, w, T.px(MAP_TOOLBAR_ROW_H), toolbarBg.a, toolbarBg.r, toolbarBg.g, toolbarBg.b)
 
     -- Lazy-create inline text entry for map annotations
     if not win._mapTextEntry then
-        local te = ISTextEntryBox:new("Note", 0, 0, 100, MAP_TEXT_INPUT_H - 4)
+        local te = ISTextEntryBox:new("Note", 0, 0, T.px(100), T.px(MAP_TEXT_INPUT_H) - T.px(4))
         te:initialise()
         te:setVisible(false)
         panel:addChild(te)
@@ -910,7 +913,7 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
 
     local toolbarH = renderMapToolbar(panel, win, x, y, w)
     local bd = T.border
-    panel:drawRect(x, y + toolbarH - 1, w, 1, bd.a * 0.3, bd.r, bd.g, bd.b)
+    panel:drawRect(x, y + toolbarH - T.px(1), w, T.px(1), bd.a * 0.3, bd.r, bd.g, bd.b)
 
     -- Map area below toolbar
     local mapY = y + toolbarH
@@ -940,11 +943,11 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         mp:setVisible(true)
     else
         -- Fallback: show error state
-        local secH = getTextManager():getFontHeight(T.fontF1)
+        local secH = ZeD.TM:getFontHeight(T.fontF1)
         local centerX = x + math.floor(w / 2)
         local centerY = mapY + math.floor(mapH / 2) - secH
         local label = "MAP UNAVAILABLE"
-        local labelW = getTextManager():MeasureStringX(T.fontF1, label)
+        local labelW = ZeD.TM:MeasureStringX(T.fontF1, label)
         ZeD.Atoms.drawSecondary(panel, label, centerX - math.floor(labelW / 2), centerY, T.textDim)
     end
 end
@@ -1182,8 +1185,9 @@ function ZeD.MapsTab.buildFocusables(win)
             -- onDpadDir replaces the win-level isCanvasCursor intercept (which
             -- was deleted alongside the joypad direction wrappers in S113).
             onDpadDir = function(w, _el, dir)
+                local T = ZeD.T
                 if not (ZeD.MapsTab and ZeD.MapsTab.gpMoveCursor) then return false end
-                local step = (ZeD.MapsTab.gpCursorStep and ZeD.MapsTab.gpCursorStep()) or 6
+                local step = (ZeD.MapsTab.gpCursorStep and ZeD.MapsTab.gpCursorStep()) or T.px(6)
                 if     dir == "left"  then ZeD.MapsTab.gpMoveCursor(w, -step, 0)
                 elseif dir == "right" then ZeD.MapsTab.gpMoveCursor(w,  step, 0)
                 elseif dir == "up"    then ZeD.MapsTab.gpMoveCursor(w, 0, -step)
@@ -1248,13 +1252,14 @@ local MAP_GP_HIT_RADIUS_PX = 16   -- annotation hit radius for X-press
 -- to world-coord delta via a two-point uiToWorld sample so the conversion
 -- survives any projection tweaks (isometric vs top-down).
 function ZeD.MapsTab.gpMoveCursor(win, dx, dy)
+    local T = ZeD.T
     if not win then return end
     local mp = win._worldMapPanel
     if not mp then return end
     mp:seedGpCursor()
 
     local pw, ph   = mp:getWidth(), mp:getHeight()
-    local margin   = MAP_GP_PAN_MARGIN_PX
+    local margin   = T.px(MAP_GP_PAN_MARGIN_PX)
     local cxWant   = mp._gpCursorX + (dx or 0)
     local cyWant   = mp._gpCursorY + (dy or 0)
     local panDX, panDY = 0, 0
@@ -1307,11 +1312,12 @@ end
 -- the hit radius of the cursor, or nil. The hits table is refreshed each
 -- frame by renderAnnotations; this uses the most recent pass.
 function ZeD.MapsTab.gpFindAnnotAtCursor(win)
+    local T = ZeD.T
     if not win then return nil end
     local mp = win._worldMapPanel
     if not mp or not mp._annotationHits or not mp._gpCursorX then return nil end
     local cx, cy = mp._gpCursorX, mp._gpCursorY
-    local rSq = MAP_GP_HIT_RADIUS_PX * MAP_GP_HIT_RADIUS_PX
+    local rSq = T.px(MAP_GP_HIT_RADIUS_PX) * T.px(MAP_GP_HIT_RADIUS_PX)
     for _, hit in ipairs(mp._annotationHits) do
         local hx = hit.x + hit.w / 2
         local hy = hit.y + hit.h / 2
@@ -1343,7 +1349,8 @@ end
 -- Derived step per D-pad press. Held constant for now; future refinement
 -- could scale by zoom so fine-tune at high zoom feels less twitchy.
 function ZeD.MapsTab.gpCursorStep()
-    return MAP_GP_STEP_PX
+    local T = ZeD.T
+    return T.px(MAP_GP_STEP_PX)
 end
 
 -- ============================================================================
@@ -1416,19 +1423,20 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
 end
 
 function ZeD.MapsTab.openPopout(win)
+    local T = ZeD.T
     if not win or win._mapPopout then return end
     local sw = getCore():getScreenWidth()
     local sh = getCore():getScreenHeight()
-    local pw = math.max(600, math.floor(sw * 0.72))
-    local ph = math.max(400, math.floor(sh * 0.78))
+    local pw = math.max(T.px(600), math.floor(sw * 0.72))
+    local ph = math.max(T.px(400), math.floor(sh * 0.78))
     local pop = ZeD_Window:new(math.floor((sw - pw) / 2), math.floor((sh - ph) / 2), pw, ph, "Map")
     pop:initialise()
     pop:addToUIManager()
     pop._zedLabel     = "MapPopout"
     pop._isMapPopout  = true
     pop._worldWin     = win
-    pop.minimumWidth  = 600
-    pop.minimumHeight = 400
+    pop.minimumWidth  = T.px(600)
+    pop.minimumHeight = T.px(400)
 
     local content = ZeD_Panel:new(0, pop:getBodyY(), pw, pop:getBodyHeight())
     content:initialise()

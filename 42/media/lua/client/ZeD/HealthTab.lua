@@ -305,7 +305,7 @@ end
 
 function ZeD.HealthTab._ensureBodyFigure(win)
     if not win._healthBodyFigure then
-        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)
+        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- S124 scale: placeholder size, drawAt() is given the real (scaled) rect
         fig:initialise()
         fig:loadTextures()
         win._healthBodyFigure = fig
@@ -385,8 +385,8 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
 
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
     local curY = ry
 
@@ -405,9 +405,9 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     -- at 77% is not "17 of 17 injured"; low health shows as a dim note.
     local wounded = data.woundedCount or data.injuredCount
     if wounded == 0 then
-        local dotSz = 6
-        local dotGap = 4
-        local bodyFH = getTextManager():getFontHeight(T.fontF2)
+        local dotSz = T.px(6)
+        local dotGap = T.px(4)
+        local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
         local dotC = (data.injuredCount > 0) and T.warning or T.positive
         A.drawStatusDot(panel, rx, curY + math.floor((bodyFH - dotSz) / 2), dotC, dotSz)
         A.drawBody(panel, (data.injuredCount > 0) and "No injuries, low body health" or "No injuries", rx + dotSz + dotGap, curY)
@@ -433,8 +433,8 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
 
-    local headH = getTextManager():getFontHeight(T.fontF1)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
+    local headH = ZeD.TM:getFontHeight(T.fontF1)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local badgeH = secH + T.sp.badgePadY * 2
 
     local displayName = figureNameToDisplay(figureName)
@@ -460,15 +460,15 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
             local variant = SEV_VARIANT[cond.severity] or "neutral"
             local bw = A.drawBadge(panel, cond.label, bx, curY, variant)
             bx = bx + bw + T.sp.badgeGap
-            if bx + 40 > rx + rw then
+            if bx + T.px(40) > rx + rw then
                 bx = rx
-                curY = curY + badgeH + 2
+                curY = curY + badgeH + T.px(2)
             end
         end
         curY = curY + badgeH + T.sp.xs
     else
-        local dotSz = 6
-        local dotGap = 4
+        local dotSz = T.px(6)
+        local dotGap = T.px(4)
         A.drawStatusDot(panel, rx, curY + math.floor((secH - dotSz) / 2), T.positive, dotSz)
         A.drawSecondary(panel, "Healthy", rx + dotSz + dotGap, curY)
         curY = curY + secH + T.sp.xs
@@ -581,9 +581,9 @@ end
 function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
     local T    = ZeD.T
     local A    = ZeD.Atoms
-    local headH = getTextManager():getFontHeight(T.fontF1)
+    local headH = ZeD.TM:getFontHeight(T.fontF1)
     local font = T.fontF1
-    local secH = getTextManager():getFontHeight(font)
+    local secH = ZeD.TM:getFontHeight(font)
     local btnH = secH + T.sp.pillBtnPadV
     local gap  = T.sp.xs
     local colGap = T.sp.sm
@@ -680,13 +680,13 @@ local FIGURE_PAD_TOP = ZeD.Spacing.figurePadTop
 
 function ZeD.HealthTab._measureZoneA(data, rw)
     local T     = ZeD.T
-    local secH  = getTextManager():getFontHeight(T.fontF1)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local btnH  = secH + T.sp.pillBtnPadV
     local gap   = T.sp.xs
 
     -- Right column: summary section (heading moved to disclosure header)
     local rightH = 0
-    local statRowH = math.max(secH, getTextManager():getFontHeight(T.fontF2)) + 4
+    local statRowH = math.max(secH, ZeD.TM:getFontHeight(T.fontF2)) + T.px(4)
     rightH = rightH + statRowH + T.sp.rowGap
     rightH = rightH + T.fillBarH + T.sp.xs + secH + T.sp.sm
 
@@ -695,7 +695,7 @@ function ZeD.HealthTab._measureZoneA(data, rw)
     rightH = rightH + bwRows * (btnH + gap)
     rightH = rightH + #EXERCISE_EQUIPMENT * (btnH + gap)
 
-    return math.max(FIGURE_H, rightH)
+    return math.max(T.px(FIGURE_H), rightH)
 end
 
 -- ============================================================================
@@ -717,9 +717,9 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local data = win._healthCache
 
     -- Font metrics
-    local headH  = getTextManager():getFontHeight(T.fontF1)
-    local bodyH  = getTextManager():getFontHeight(T.fontF2)
-    local secH   = getTextManager():getFontHeight(T.fontF1)
+    local headH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyH  = ZeD.TM:getFontHeight(T.fontF2)
+    local secH   = ZeD.TM:getFontHeight(T.fontF1)
     local badgeH = secH + T.sp.badgePadY * 2
 
     -- S101 gamepad integration. Stash the content panel so _onPartClicked
@@ -775,12 +775,12 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- Zone B height (injury list)
     local zoneBH = 0
     if data.injuredCount > 0 then
-        zoneBH = zoneBH + 1 + T.sp.afterLine
+        zoneBH = zoneBH + T.px(1) + T.sp.afterLine
         for _, entry in ipairs(data.entries) do
-            zoneBH = zoneBH + bodyH + 2
-            local badgeRowH2 = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - 4)
+            zoneBH = zoneBH + bodyH + T.px(2)
+            local badgeRowH2 = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - T.px(4))
             zoneBH = zoneBH + badgeRowH2 + T.sp.xs
-            zoneBH = zoneBH + 1 + T.sp.afterGroove
+            zoneBH = zoneBH + T.px(1) + T.sp.afterGroove
         end
     end
 
@@ -820,7 +820,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         if injKey and injKey ~= win._lastPinnedInjuryKey then
             local focAbsY = lastInjuryYMap[injKey]
             if focAbsY then
-                local rowEstH = bodyH + 2 + badgeH + T.sp.xs + 1 + T.sp.afterGroove
+                local rowEstH = bodyH + T.px(2) + badgeH + T.sp.xs + T.px(1) + T.sp.afterGroove
                 local span    = math.max(1, totalContentH - scrollH)
                 local oldOff  = math.floor(scroll.scrollPos * span)
                 local logicalY = focAbsY - scrollY + oldOff
@@ -849,10 +849,10 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- (_healthFigureZone is stamped at the TOP of render now, not here)
 
     if figureExpanded then
-        local layout = M.layoutZoneA(x, curY, contentW, FIGURE_W, FIGURE_H)
+        local layout = M.layoutZoneA(x, curY, contentW, T.px(FIGURE_W), T.px(FIGURE_H))
 
         ZeD.HealthTab._drawBodyFigure(panel, win, data,
-            layout.figX, layout.figY, FIGURE_W, FIGURE_H)
+            layout.figX, layout.figY, T.px(FIGURE_W), T.px(FIGURE_H))
 
         -- S103: detail-view now reads _healthActivePart (gp focus overrides
         -- mouse hover); previously only _healthHoveredPart drove the swap.
@@ -875,7 +875,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     if data.injuredCount > 0 then
         -- Zone divider (full width, no padding)
         A.drawDividerH(panel, x, curY, w, true)
-        curY = curY + 1 + T.sp.afterLine
+        curY = curY + T.px(1) + T.sp.afterLine
         local listX = x + pad
         local listW = contentW
         local st = T.stripe
@@ -884,7 +884,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
 
             -- Alternating row stripe (drawn before content, full entry height estimated)
             if ei % 2 == 0 then
-                local entryH = bodyH + 2 + badgeH + T.sp.xs + 1 + T.sp.afterGroove
+                local entryH = bodyH + T.px(2) + badgeH + T.sp.xs + T.px(1) + T.sp.afterGroove
                 panel:drawRect(listX, curY, listW, entryH, st.a, st.r, st.g, st.b)
             end
 
@@ -898,7 +898,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
                    and Focus.getFocusedWindow() == win then
                     local el = Focus.getFocusedElement(win)
                     if el and el.injuryKey == entry.name then
-                        local entryH = bodyH + 2 + badgeH + T.sp.xs + 1 + T.sp.afterGroove
+                        local entryH = bodyH + T.px(2) + badgeH + T.sp.xs + T.px(1) + T.sp.afterGroove
                         local ac = T.accent
                         panel:drawRect(listX, curY, listW, entryH, 0.55, ac.r, ac.g, ac.b)
                     end
@@ -909,22 +909,22 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             A.drawBody(panel, entry.name, listX, curY, nameColor)
             local hpStr = math.floor(entry.health + 0.5) .. "%"
             A.drawTextRight(panel, hpStr, listX + listW, curY, T.fontF2, nameColor)
-            curY = curY + bodyH + 2
+            curY = curY + bodyH + T.px(2)
 
             local bx = listX
             for _, cond in ipairs(entry.conditions) do
                 local variant = SEV_VARIANT[cond.severity] or "neutral"
                 local bw = A.drawBadge(panel, cond.label, bx, curY, variant)
                 bx = bx + bw + T.sp.badgeGap
-                if bx + 40 > listX + listW then
+                if bx + T.px(40) > listX + listW then
                     bx = listX
-                    curY = curY + badgeH + 2
+                    curY = curY + badgeH + T.px(2)
                 end
             end
             curY = curY + badgeH + T.sp.xs
 
             A.drawDividerH(panel, listX, curY, listW)
-            curY = curY + 1 + T.sp.afterGroove
+            curY = curY + T.px(1) + T.sp.afterGroove
 
             -- S101 stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
             -- and scroll-follow above). Height = actual drawn extent including wrapped
@@ -970,7 +970,7 @@ end
 
 function ZeD.HealthTab._measureBadgeRows(conditions, maxW)
     local T = ZeD.T
-    local secH   = getTextManager():getFontHeight(T.fontF1)
+    local secH   = ZeD.TM:getFontHeight(T.fontF1)
     local badgeH  = secH + T.sp.badgePadY * 2
     local padX = T.sp.badgePadX
 
@@ -979,16 +979,16 @@ function ZeD.HealthTab._measureBadgeRows(conditions, maxW)
     local rows = 1
     local bx = 0
     for _, cond in ipairs(conditions) do
-        local tw = getTextManager():MeasureStringX(T.fontF1, string.upper(cond.label))
+        local tw = ZeD.TM:MeasureStringX(T.fontF1, string.upper(cond.label))
         local bw = tw + padX * 2
         bx = bx + bw + T.sp.badgeGap
-        if bx + 40 > maxW and bx > bw + T.sp.badgeGap then
+        if bx + T.px(40) > maxW and bx > bw + T.sp.badgeGap then
             rows = rows + 1
             bx = bw + T.sp.badgeGap
         end
     end
 
-    return rows * (badgeH + 2)
+    return rows * (badgeH + T.px(2))
 end
 
 -- ============================================================================

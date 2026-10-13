@@ -85,7 +85,7 @@ local function _invRowScreenAnchor(items)
             local el  = Focus.getFocusedElement(focWin)
             local cnt = focWin._mainContent
             if el and cnt then
-                local rowH = (ZeD.T and ZeD.T.rowH) or 26
+                local rowH = (ZeD.T and ZeD.T.rowH) or 26  -- S124 scale: T.rowH is pre-scaled; 26 only runs before ZeD.T exists (no T.px then)
                 -- el.x may be 0 (invrow focusables zero X). Use panel width
                 -- center for the X anchor so the bubble centers on the panel.
                 local ax = cnt:getAbsoluteX() + math.floor(cnt:getWidth() / 2)

@@ -50,16 +50,17 @@ local TRAIT_ICON_SZ = 18 -- trait icon size
 local CARD_RADIUS = { 10, 7, 5, 4, 3, 2, 2, 1, 1, 1 }
 
 local function fillRoundedCard(panel, x, y, w, h, r, g, b, a)
+    local T = ZeD.T  -- S124 scale: design row i covers [T.px(i - 1), T.px(i)) so rows tile without gaps
     -- Top rounded rows
     for i, inset in ipairs(CARD_RADIUS) do
-        panel:drawRect(x + inset, y + (i - 1), w - inset * 2, 1, a, r, g, b)
+        panel:drawRect(x + T.px(inset), y + T.px(i - 1), w - T.px(inset) * 2, T.px(i) - T.px(i - 1), a, r, g, b)
     end
     -- Bottom rounded rows
     for i, inset in ipairs(CARD_RADIUS) do
-        panel:drawRect(x + inset, y + h - i, w - inset * 2, 1, a, r, g, b)
+        panel:drawRect(x + T.px(inset), y + h - T.px(i), w - T.px(inset) * 2, T.px(i) - T.px(i - 1), a, r, g, b)
     end
     -- Middle fill
-    local midTop = #CARD_RADIUS
+    local midTop = T.px(#CARD_RADIUS)
     local midH   = h - midTop * 2
     if midH > 0 then
         panel:drawRect(x, y + midTop, w, midH, a, r, g, b)
@@ -67,47 +68,50 @@ local function fillRoundedCard(panel, x, y, w, h, r, g, b, a)
 end
 
 local function borderRoundedCard(panel, x, y, w, h, r, g, b, a)
+    local T = ZeD.T
     -- Top bevel outline (1px edge, not full scanlines)
     for i, inset in ipairs(CARD_RADIUS) do
-        local row = i - 1
+        local row = T.px(i - 1)
+        local rowH = T.px(i) - row  -- S124 scale: design row i covers [T.px(i - 1), T.px(i))
         if i == 1 then
             -- Outermost row: full scanline (the tip of the bevel)
-            panel:drawRect(x + inset, y + row, w - inset * 2, 1, a, r, g, b)
+            panel:drawRect(x + T.px(inset), y + row, w - T.px(inset) * 2, rowH, a, r, g, b)
         else
             local prevInset = CARD_RADIUS[i - 1]
-            local step = prevInset - inset
+            local step = T.px(prevInset) - T.px(inset)
             if step > 0 then
-                panel:drawRect(x + inset, y + row, step, 1, a, r, g, b)
-                panel:drawRect(x + w - inset - step, y + row, step, 1, a, r, g, b)
+                panel:drawRect(x + T.px(inset), y + row, step, rowH, a, r, g, b)
+                panel:drawRect(x + w - T.px(inset) - step, y + row, step, rowH, a, r, g, b)
             else
-                panel:drawRect(x + inset, y + row, 1, 1, a, r, g, b)
-                panel:drawRect(x + w - inset - 1, y + row, 1, 1, a, r, g, b)
+                panel:drawRect(x + T.px(inset), y + row, T.px(1), rowH, a, r, g, b)
+                panel:drawRect(x + w - T.px(inset) - T.px(1), y + row, T.px(1), rowH, a, r, g, b)
             end
         end
     end
     -- Bottom bevel outline (1px edge)
     for i, inset in ipairs(CARD_RADIUS) do
-        local row = h - i
+        local row = h - T.px(i)
+        local rowH = T.px(i) - T.px(i - 1)
         if i == 1 then
-            panel:drawRect(x + inset, y + row, w - inset * 2, 1, a, r, g, b)
+            panel:drawRect(x + T.px(inset), y + row, w - T.px(inset) * 2, rowH, a, r, g, b)
         else
             local prevInset = CARD_RADIUS[i - 1]
-            local step = prevInset - inset
+            local step = T.px(prevInset) - T.px(inset)
             if step > 0 then
-                panel:drawRect(x + inset, y + row, step, 1, a, r, g, b)
-                panel:drawRect(x + w - inset - step, y + row, step, 1, a, r, g, b)
+                panel:drawRect(x + T.px(inset), y + row, step, rowH, a, r, g, b)
+                panel:drawRect(x + w - T.px(inset) - step, y + row, step, rowH, a, r, g, b)
             else
-                panel:drawRect(x + inset, y + row, 1, 1, a, r, g, b)
-                panel:drawRect(x + w - inset - 1, y + row, 1, 1, a, r, g, b)
+                panel:drawRect(x + T.px(inset), y + row, T.px(1), rowH, a, r, g, b)
+                panel:drawRect(x + w - T.px(inset) - T.px(1), y + row, T.px(1), rowH, a, r, g, b)
             end
         end
     end
     -- Side edges
-    local midTop = #CARD_RADIUS
+    local midTop = T.px(#CARD_RADIUS)
     local midH   = h - midTop * 2
     if midH > 0 then
-        panel:drawRect(x,         y + midTop, 1, midH, a, r, g, b)
-        panel:drawRect(x + w - 1, y + midTop, 1, midH, a, r, g, b)
+        panel:drawRect(x,         y + midTop, T.px(1), midH, a, r, g, b)
+        panel:drawRect(x + w - T.px(1), y + midTop, T.px(1), midH, a, r, g, b)
     end
 end
 
@@ -292,16 +296,16 @@ end
 
 local function measureZoneAH()
     local T = ZeD.T
-    local secFH  = getTextManager():getFontHeight(T.fontF1)
-    local bodyFH = getTextManager():getFontHeight(T.fontF2)
-    local headerH = secFH + bodyFH + 20
-    local bodyH  = FIELD_PAD                          -- top padding
-    bodyH = bodyH + secFH + 12                        -- name row + gap
-    bodyH = bodyH + (bodyFH * 2 + 10) * 3             -- 3 field rows
-    bodyH = bodyH + 4 + bodyFH + 1 + bodyFH + 10      -- time survived
-    bodyH = bodyH + 4 + bodyFH + 1 + bodyFH           -- weapon + kills
-    bodyH = bodyH + FIELD_PAD                          -- bottom padding
-    return CARD_PAD + LAMINATE_W + headerH + bodyH + LAMINATE_W + CARD_PAD
+    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local headerH = secFH + bodyFH + T.px(20)
+    local bodyH  = T.px(FIELD_PAD)                          -- top padding
+    bodyH = bodyH + secFH + T.px(12)                        -- name row + gap
+    bodyH = bodyH + (bodyFH * 2 + T.px(10)) * 3             -- 3 field rows
+    bodyH = bodyH + T.px(4) + bodyFH + T.px(1) + bodyFH + T.px(10)      -- time survived
+    bodyH = bodyH + T.px(4) + bodyFH + T.px(1) + bodyFH           -- weapon + kills
+    bodyH = bodyH + T.px(FIELD_PAD)                          -- bottom padding
+    return T.px(CARD_PAD) + T.px(LAMINATE_W) + headerH + bodyH + T.px(LAMINATE_W) + T.px(CARD_PAD)
 end
 
 -- ============================================================================
@@ -310,25 +314,25 @@ end
 
 local function measureZoneBH(data)
     local T = ZeD.T
-    local headH = getTextManager():getFontHeight(T.fontF4)
+    local headH = ZeD.TM:getFontHeight(T.fontF4)
     local pad   = T.sp.sm
-    local h = pad + T.sp.beforeHead + headH + T.sp.headGap + 2 + T.sp.afterGroove  -- heading + groove
+    local h = pad + T.sp.beforeHead + headH + T.sp.headGap + T.px(2) + T.sp.afterGroove  -- heading + groove
 
     -- Positive traits
     if #data.posTraits > 0 then
-        local secH = getTextManager():getFontHeight(T.fontF1)
+        local secH = ZeD.TM:getFontHeight(T.fontF1)
         h = h + secH + T.sp.xs  -- "POSITIVE" subheading
         local rows = math.ceil(#data.posTraits / 2)
-        h = h + rows * (TRAIT_ROW_H + 2)
+        h = h + rows * (T.px(TRAIT_ROW_H) + T.px(2))
         h = h + T.sp.sm
     end
 
     -- Negative traits
     if #data.negTraits > 0 then
-        local secH = getTextManager():getFontHeight(T.fontF1)  -- F1 Lo for NEGATIVE label
+        local secH = ZeD.TM:getFontHeight(T.fontF1)  -- F1 Lo for NEGATIVE label
         h = h + secH + T.sp.xs  -- "NEGATIVE" subheading
         local rows = math.ceil(#data.negTraits / 2)
-        h = h + rows * (TRAIT_ROW_H + 2)
+        h = h + rows * (T.px(TRAIT_ROW_H) + T.px(2))
         h = h + T.sp.sm
     end
 
@@ -342,16 +346,16 @@ end
 local function renderLicenseBackground(panel, win, x, drawY, w)
     local A   = ZeD.Atoms
     local T   = ZeD.T
-    local pad = CARD_PAD
-    local lam = LAMINATE_W
-    local secFH  = getTextManager():getFontHeight(T.fontF1)
-    local bodyFH = getTextManager():getFontHeight(T.fontF2)
-    local headerH = secFH + bodyFH + 20
+    local pad = T.px(CARD_PAD)
+    local lam = T.px(LAMINATE_W)
+    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local headerH = secFH + bodyFH + T.px(20)
 
     -- Outer laminate shell (rounded corners)
     local cardX = x + pad
     local cardW = w - pad * 2
-    local cardBodyH = measureZoneAH() - CARD_PAD * 2 - LAMINATE_W * 2 - headerH
+    local cardBodyH = measureZoneAH() - T.px(CARD_PAD) * 2 - T.px(LAMINATE_W) * 2 - headerH
     local totalH = lam * 2 + headerH + cardBodyH
 
     fillRoundedCard(panel, cardX, drawY + pad, cardW, totalH,
@@ -377,19 +381,19 @@ local function renderLicenseBackground(panel, win, x, drawY, w)
 
     -- Sky blue photo frame (120x120 bust or full left column expanded)
     -- Coords hoisted so we can publish to win for avatar overlay positioning (Q52)
-    local photoX = innerX + math.floor((PHOTO_W - PHOTO_SIZE) / 2)
-    local photoY = innerCardY + FIELD_PAD
+    local photoX = innerX + math.floor((T.px(PHOTO_W) - T.px(PHOTO_SIZE)) / 2)
+    local photoY = innerCardY + T.px(FIELD_PAD)
     if win._identityPhotoExpanded then
-        panel:drawRect(innerX, innerCardY, PHOTO_W, cardBodyH,
+        panel:drawRect(innerX, innerCardY, T.px(PHOTO_W), cardBodyH,
             1.0, KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b)
-        win._identityPhotoRect = { x = innerX, y = innerCardY, w = PHOTO_W, h = cardBodyH, expanded = true }
+        win._identityPhotoRect = { x = innerX, y = innerCardY, w = T.px(PHOTO_W), h = cardBodyH, expanded = true }
     else
-        A.fillRounded(panel, photoX, photoY, PHOTO_SIZE, PHOTO_SIZE,
+        A.fillRounded(panel, photoX, photoY, T.px(PHOTO_SIZE), T.px(PHOTO_SIZE),
             KY.skyBlue.r, KY.skyBlue.g, KY.skyBlue.b, 1.0)
-        win._identityPhotoRect = { x = photoX, y = photoY, w = PHOTO_SIZE, h = PHOTO_SIZE }
+        win._identityPhotoRect = { x = photoX, y = photoY, w = T.px(PHOTO_SIZE), h = T.px(PHOTO_SIZE) }
     end
     -- Click zone for toggle (covers the left photo column area)
-    win._identityPhotoZone = { x = innerX, y = innerCardY, w = PHOTO_W, h = cardBodyH }
+    win._identityPhotoZone = { x = innerX, y = innerCardY, w = T.px(PHOTO_W), h = cardBodyH }
 
     -- Thin border around the outer laminate edge (10px bevel)
     borderRoundedCard(panel, cardX, drawY + pad, cardW, totalH,
@@ -402,31 +406,31 @@ end
 
 local function renderLicenseText(panel, win, data, x, drawY, w)
     local T    = ZeD.T
-    local pad  = CARD_PAD
-    local lam  = LAMINATE_W
-    local secFH  = getTextManager():getFontHeight(T.fontF1)
-    local bodyFH = getTextManager():getFontHeight(T.fontF2)
-    local headerH = secFH + bodyFH + 20
+    local pad  = T.px(CARD_PAD)
+    local lam  = T.px(LAMINATE_W)
+    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local headerH = secFH + bodyFH + T.px(20)
 
     local cardY = drawY + pad + lam + headerH
-    local dataX = x + pad + lam + PHOTO_W + FIELD_PAD
-    local dataW = w - pad * 2 - lam * 2 - PHOTO_W - FIELD_PAD * 2
-    local rowY  = cardY + FIELD_PAD
+    local dataX = x + pad + lam + T.px(PHOTO_W) + T.px(FIELD_PAD)
+    local dataW = w - pad * 2 - lam * 2 - T.px(PHOTO_W) - T.px(FIELD_PAD) * 2
+    local rowY  = cardY + T.px(FIELD_PAD)
 
     -- Name row
     local displayName = data.surname .. ", " .. data.forename
-    local tm = getTextManager()
-    panel:drawText(displayName, dataX, rowY, 0.07, 0.07, 0.07, 1.0, ZeD.Font.headLg.font)
+    local tm = ZeD.TM
+    ZeD.Text.draw(panel, ZeD.Font.sdf.head, displayName, dataX, rowY, ZeD.Text.zoomPx(17), 0.07, 0.07, 0.07, 1.0, "l")   -- S124: 17 px design heading on the distance-field face
 
     -- Weight pill
     local wtW = tm:MeasureStringX(T.fontF2, data.weightStr)
-    local pillX = dataX + dataW - wtW - 12
-    local pillY = rowY + 2
-    panel:drawRect(pillX, pillY, wtW + 10, bodyFH + 4,
+    local pillX = dataX + dataW - wtW - T.px(12)
+    local pillY = rowY + T.px(2)
+    panel:drawRect(pillX, pillY, wtW + T.px(10), bodyFH + T.px(4),
         0.1, KY.blue.r, KY.blue.g, KY.blue.b)
-    panel:drawText(data.weightStr, pillX + 5, pillY + 2,
+    panel:drawText(data.weightStr, pillX + T.px(5), pillY + T.px(2),
         KY.ink.r, KY.ink.g, KY.ink.b, 0.85, T.fontF2)
-    rowY = rowY + bodyFH + 12
+    rowY = rowY + bodyFH + T.px(12)
 
     -- Two-column data grid
     local colW = math.floor(dataW / 2)
@@ -438,36 +442,36 @@ local function renderLicenseText(panel, win, data, x, drawY, w)
     for _, row in ipairs(fields) do
         panel:drawText(row[1], dataX, rowY,
             KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-        panel:drawText(row[2], dataX, rowY + bodyFH + 1,
+        panel:drawText(row[2], dataX, rowY + bodyFH + T.px(1),
             0.1, 0.1, 0.1, 1.0, T.fontF4)
         panel:drawText(row[3], dataX + colW, rowY,
             KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-        panel:drawText(row[4], dataX + colW, rowY + bodyFH + 1,
+        panel:drawText(row[4], dataX + colW, rowY + bodyFH + T.px(1),
             0.1, 0.1, 0.1, 1.0, T.fontF4)
-        rowY = rowY + bodyFH * 2 + 10
-        panel:drawRect(dataX, rowY - 4, dataW, 1,
+        rowY = rowY + bodyFH * 2 + T.px(10)
+        panel:drawRect(dataX, rowY - T.px(4), dataW, T.px(1),
             0.08, KY.blue.r, KY.blue.g, KY.blue.b)
     end
 
     -- Time Survived
-    rowY = rowY + 4
+    rowY = rowY + T.px(4)
     panel:drawText("Time Survived", dataX, rowY,
         KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-    rowY = rowY + bodyFH + 1
+    rowY = rowY + bodyFH + T.px(1)
     panel:drawText(data.timeSurv, dataX, rowY, 0.1, 0.1, 0.1, 1.0, T.fontF4)
-    rowY = rowY + bodyFH + 10
-    panel:drawRect(dataX, rowY - 4, dataW, 1,
+    rowY = rowY + bodyFH + T.px(10)
+    panel:drawRect(dataX, rowY - T.px(4), dataW, T.px(1),
         0.08, KY.blue.r, KY.blue.g, KY.blue.b)
 
     -- Favorite Weapon | Zombies Killed
-    rowY = rowY + 4
+    rowY = rowY + T.px(4)
     panel:drawText("Favorite Weapon", dataX, rowY,
         KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-    panel:drawText(data.favWeapon, dataX, rowY + bodyFH + 1,
+    panel:drawText(data.favWeapon, dataX, rowY + bodyFH + T.px(1),
         0.1, 0.1, 0.1, 1.0, T.fontF4)
     panel:drawText("Zombies Killed", dataX + colW, rowY,
         KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
-    panel:drawText(data.zKills, dataX + colW, rowY + bodyFH + 1,
+    panel:drawText(data.zKills, dataX + colW, rowY + bodyFH + T.px(1),
         0.1, 0.1, 0.1, 1.0, T.fontF4)
 end
 
@@ -477,21 +481,21 @@ end
 
 local function renderTraitRow(panel, trait, tx, ty, tw, color)
     local T = ZeD.T
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
     -- Row background
-    panel:drawRect(tx, ty, tw, TRAIT_ROW_H,
+    panel:drawRect(tx, ty, tw, T.px(TRAIT_ROW_H),
         0.30, color.r, color.g, color.b)
 
     -- Icon
     if trait.texture then
-        local iconPad = math.floor((TRAIT_ROW_H - TRAIT_ICON_SZ) / 2)
-        panel:drawTexture(trait.texture, tx + iconPad, ty + iconPad, 1.0, 1.0, 1.0, 1.0)
+        local iconPad = math.floor((T.px(TRAIT_ROW_H) - T.px(TRAIT_ICON_SZ)) / 2)
+        panel:drawTextureScaledAspect(trait.texture, tx + iconPad, ty + iconPad, T.px(trait.texture:getWidth()), T.px(trait.texture:getHeight()), 1.0, 1.0, 1.0, 1.0)
     end
 
     -- Name
-    local nameX = tx + TRAIT_ICON_SZ + 12
-    local nameY = ty + math.floor((TRAIT_ROW_H - bodyH) / 2)
+    local nameX = tx + T.px(TRAIT_ICON_SZ) + T.px(12)
+    local nameY = ty + math.floor((T.px(TRAIT_ROW_H) - bodyH) / 2)
     panel:drawText(trait.name, nameX, nameY,
         T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF2)
 end
@@ -499,7 +503,7 @@ end
 local function renderTraitGroup(panel, traits, label, x, curY, contentW, color)
     local T    = ZeD.T
     local A    = ZeD.Atoms
-    local secH = getTextManager():getFontHeight(T.fontF1)
+    local secH = ZeD.TM:getFontHeight(T.fontF1)
 
     -- Subheading (F1 Lo)
     panel:drawText(label, x, curY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
@@ -512,12 +516,12 @@ local function renderTraitGroup(panel, traits, label, x, curY, contentW, color)
         local col = (i - 1) % 2
         local row = math.floor((i - 1) / 2)
         local tx = x + col * (colW + gap)
-        local ty = curY + row * (TRAIT_ROW_H + 2)
+        local ty = curY + row * (T.px(TRAIT_ROW_H) + T.px(2))
         renderTraitRow(panel, trait, tx, ty, colW, color)
     end
 
     local rows = math.ceil(#traits / 2)
-    curY = curY + rows * (TRAIT_ROW_H + 2) + T.sp.sm
+    curY = curY + rows * (T.px(TRAIT_ROW_H) + T.px(2)) + T.sp.sm
     return curY
 end
 
@@ -525,7 +529,7 @@ local function renderZoneB(panel, win, data, x, drawY, w)
     local T    = ZeD.T
     local A    = ZeD.Atoms
     local pad  = T.sp.sm
-    local headH = getTextManager():getFontHeight(T.fontF4)
+    local headH = ZeD.TM:getFontHeight(T.fontF4)
     local contentW = w - pad * 2
 
     local curY = drawY + pad
@@ -536,7 +540,7 @@ local function renderZoneB(panel, win, data, x, drawY, w)
 
     -- Groove divider
     A.drawGroove(panel, x + pad, curY, contentW)
-    curY = curY + 2 + T.sp.afterGroove
+    curY = curY + T.px(2) + T.sp.afterGroove
 
     local totalCount = #data.posTraits + #data.negTraits
 
@@ -642,16 +646,16 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
 
     -- KY seal — below bust in non-expanded, hidden in expanded (full-body covers area)
     if not win._identityPhotoExpanded then
-        local secFH  = getTextManager():getFontHeight(T.fontF1)
-        local bodyFH = getTextManager():getFontHeight(T.fontF2)
-        local cardHeaderH = secFH + bodyFH + 20
-        local cardY = drawY + CARD_PAD + LAMINATE_W + cardHeaderH
+        local secFH  = ZeD.TM:getFontHeight(T.fontF1)
+        local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+        local cardHeaderH = secFH + bodyFH + T.px(20)
+        local cardY = drawY + T.px(CARD_PAD) + T.px(LAMINATE_W) + cardHeaderH
         local sealTex = getTexture("media/textures/ZeD/KY-seal.png")
         if sealTex then
             -- Below the 120x120 photo frame
-            local sealSz = PHOTO_SIZE  -- 120x120, same as photo frame
-            local sealX = x + CARD_PAD + LAMINATE_W + math.floor((PHOTO_W - sealSz) / 2)
-            local sealY = cardY + FIELD_PAD + PHOTO_SIZE + 8
+            local sealSz = T.px(PHOTO_SIZE)  -- 120x120, same as photo frame
+            local sealX = x + T.px(CARD_PAD) + T.px(LAMINATE_W) + math.floor((T.px(PHOTO_W) - sealSz) / 2)
+            local sealY = cardY + T.px(FIELD_PAD) + T.px(PHOTO_SIZE) + T.px(8)
             panel:drawTextureScaledAspect(sealTex, sealX, sealY, sealSz, sealSz, 0.5, 1, 1, 1)
         end
     end

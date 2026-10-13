@@ -41,8 +41,9 @@ ZeD_ContextMenu = ZeD_Panel:derive("ZeD_ContextMenu")
 --   vanillaMenu:  reference to the hidden vanilla ISContextMenu (for bookkeeping)
 -- ============================================================================
 function ZeD_ContextMenu:new(player, anchorMode, anchorX, anchorY, target, actionTree, vanillaMenu)
+    local T = ZeD.T
     -- Seed with generous size; we recompute in _layout every frame
-    local o = ZeD_Panel:new(0, 0, 400, 240)
+    local o = ZeD_Panel:new(0, 0, T.px(400), T.px(240))
     setmetatable(o, self)
     self.__index = self
 
@@ -254,9 +255,9 @@ function ZeD_ContextMenu:_layout(T)
     local visibleCount = math.min(N, ctx.maxVisible)
     local innerW = visibleCount * ctx.cellW + math.max(0, visibleCount - 1) * ctx.gap
     local drilled = #self._ctx.path > 0
-    local topBorder = drilled and ctx.drilledBorderTop or 1
-    local housingW = innerW + 2
-    local housingH = ctx.cellH + topBorder + 1
+    local topBorder = drilled and ctx.drilledBorderTop or T.px(1)
+    local housingW = innerW + T.px(1) * 2   -- S124 scale: 1px left + right border, same as drawContextStrip
+    local housingH = ctx.cellH + topBorder + T.px(1)
 
     -- Target values for interpolation
     local targetOriginX
@@ -277,7 +278,7 @@ function ZeD_ContextMenu:_layout(T)
         labelTargetX = nil  -- will compute after stripX is known
     else
         -- Offset from strip interior left edge
-        labelTargetX = 1 + (self._ctx.selected - 1) * (ctx.cellW + ctx.gap) + ctx.cellW / 2
+        labelTargetX = T.px(1) + (self._ctx.selected - 1) * (ctx.cellW + ctx.gap) + ctx.cellW / 2
     end
 
     -- Kick a new animation if targets changed
@@ -333,7 +334,7 @@ function ZeD_ContextMenu:_layout(T)
     local panelCenterX = math.floor(self.width / 2)
     -- Strip Y in panel-local space is set by _positionAssembly (varies by
     -- flip direction). Default to 160 if positioning hasn't run yet.
-    local stripY = self._stripYLocal or 160
+    local stripY = self._stripYLocal or T.px(160)
     local stripX = panelCenterX - math.floor(housingW / 2)
 
     -- Now resolve labelX properly
@@ -362,10 +363,10 @@ function ZeD_ContextMenu:_layout(T)
     cache.stripW = housingW
     cache.stripH = housingH
     cache.innerW = innerW
-    cache.innerX = stripX + 1
+    cache.innerX = stripX + T.px(1)
     cache.innerY = stripY + topBorder
     cache.labelX = math.floor(self._currentLabelX + 0.5)
-    cache.labelY = stripY - ctx.labelMarginV + 4  -- rough label top (molecule computes exact)
+    cache.labelY = stripY - ctx.labelMarginV + T.px(4)  -- rough label top (molecule computes exact)
     cache.cardY  = cardY
     cache.assemblyLeft  = panelCenterX - math.floor(totalRowW / 2)
     cache.assemblyRight = panelCenterX + math.floor(totalRowW / 2)
@@ -430,7 +431,7 @@ function ZeD_ContextMenu:prerender()
     -- selection X). Apex sits a couple of pixels OFF the strip — above when
     -- normal orientation, below when flipped (cursor near top of screen).
     local bubbleCenterX = cache.stripX + math.floor(cache.stripW / 2)
-    local apexGap = 2
+    local apexGap = T.px(2)
     local apexY
     local pointerDir
     if self._flipped then
@@ -822,14 +823,15 @@ end
 -- ============================================================================
 
 function ZeD_ContextMenu:_positionAssembly()
-    local ctx = ZeD.T.ctx
+    local T = ZeD.T
+    local ctx = T.ctx
     -- Panel sized to hold the bubble on EITHER side of the strip — worst
     -- case is the same in both orientations (bubble extends ~bubbleReserve
     -- past the strip, ~stripH for the strip itself, edge buffers either side).
-    local estW = 400
-    local bubbleReserve = 160              -- max bubble + pointer + padding
-    local stripHLocal   = ctx.cellH + ctx.drilledBorderTop + 1
-    local edgeBuffer    = 8
+    local estW = T.px(400)
+    local bubbleReserve = T.px(160)        -- max bubble + pointer + padding
+    local stripHLocal   = ctx.cellH + ctx.drilledBorderTop + T.px(1)
+    local edgeBuffer    = T.px(8)
     local estH = bubbleReserve + stripHLocal + edgeBuffer
     self:setWidth(estW)
     self:setHeight(estH)
@@ -837,10 +839,10 @@ function ZeD_ContextMenu:_positionAssembly()
     -- Decide flip direction: when there's not enough room ABOVE the cursor
     -- for the bubble, flip and put the bubble BELOW the strip with an
     -- upward-pointing tail. If both sides fit, prefer normal (bubble above).
-    local cursorGap = 6
+    local cursorGap = T.px(6)
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
-    local pad = 8
+    local pad = T.px(8)
 
     self._flipped = false
     if self.anchorMode ~= "dock" then
@@ -870,7 +872,7 @@ function ZeD_ContextMenu:_positionAssembly()
         local psW = getPlayerScreenWidth  and getPlayerScreenWidth(self.player)  or getCore():getScreenWidth()
         local psH = getPlayerScreenHeight and getPlayerScreenHeight(self.player) or getCore():getScreenHeight()
         sx = psL + math.floor((psW - estW) / 2)
-        local moodleAllowance = 140
+        local moodleAllowance = 140   -- S124 TODO scale? clearance for vanilla HUD (moodles / hotbar), which follows the engine's own UI scale, not the ZeD root
         sy = psT + psH - estH - moodleAllowance
     else
         -- Cursor anchor — center the strip horizontally on the click point,

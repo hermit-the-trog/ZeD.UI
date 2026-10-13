@@ -187,7 +187,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local figH = T.sp.figureH
 
     -- Right column button height (for zone A height measurement)
-    local secH   = getTextManager():getFontHeight(T.fontF1)
+    local secH   = ZeD.TM:getFontHeight(T.fontF1)
     local btnH   = secH + T.sp.pillBtnPadV
     local btnGap = T.sp.xs
     local rightColH = #VIEWS * (btnH + btnGap)
@@ -281,7 +281,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
         else
             -- Grid off-viewport — pin to bottom 25% of viewport as a virtual
             -- scroll handle. Has no visual, only a focus target.
-            local gzH = math.max(24, math.floor(scrollH * 0.25))
+            local gzH = math.max(T.px(24), math.floor(scrollH * 0.25))
             local gzY = scrollY + scrollH - gzH
             win._thermalGridScrollZone = {
                 x = x + pad, y = gzY,
@@ -338,7 +338,7 @@ function ZeD.ThermalTab._renderViewGrid(panel, win, rx, ry, rw)
     local T    = ZeD.T
     local A    = ZeD.Atoms
     local font = T.fontF1
-    local secH = getTextManager():getFontHeight(font)
+    local secH = ZeD.TM:getFontHeight(font)
     local btnH = secH + T.sp.pillBtnPadV
     local gap  = T.sp.xs
     local activeIdx = win._thermalView or 1
@@ -378,7 +378,7 @@ end
 function ZeD.ThermalTab._ensureBodyFigure(win)
     if not win._thermalBodyFigure then
         -- Create as a standalone object — NOT a child panel
-        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)
+        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)  -- S124 scale: placeholder size, drawAt() is given the real (scaled) rect
         fig:initialise()
         fig:loadTextures()
         win._thermalBodyFigure = fig
@@ -425,8 +425,8 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local listX   = rx
     local listW   = rw
 
-    local headH = getTextManager():getFontHeight(T.fontF4)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
+    local headH = ZeD.TM:getFontHeight(T.fontF4)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local tc    = T.text
 
     -- Active view
@@ -444,31 +444,31 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local windStr = string.format("%.1f", data.windTemp)
 
     A.drawSecondary(panel, "CORE", curX, drawY)
-    curX = curX + getTextManager():MeasureStringX(T.fontF1, "CORE") + T.sp.sm
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, "CORE") + T.sp.sm
     panel:drawText(coreStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
-    curX = curX + getTextManager():MeasureStringX(T.fontF3, coreStr) + T.sp.lg
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF3, coreStr) + T.sp.lg
 
     A.drawSecondary(panel, "AIR", curX, drawY)
-    curX = curX + getTextManager():MeasureStringX(T.fontF1, "AIR") + T.sp.sm
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, "AIR") + T.sp.sm
     panel:drawText(airStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
-    curX = curX + getTextManager():MeasureStringX(T.fontF3, airStr) + T.sp.lg
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF3, airStr) + T.sp.lg
 
     A.drawSecondary(panel, "WIND", curX, drawY)
-    curX = curX + getTextManager():MeasureStringX(T.fontF1, "WIND") + T.sp.sm
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, "WIND") + T.sp.sm
     panel:drawText(windStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
 
     drawY = drawY + secH + T.sp.sm
 
     -- Gradient bar
-    A.drawGradientBar(panel, listX, drawY, listW, 6, (data.coreTemp - 30) / 12)
-    drawY = drawY + 6 + T.sp.md
+    A.drawGradientBar(panel, listX, drawY, listW, T.px(6), (data.coreTemp - 30) / 12)
+    drawY = drawY + T.px(6) + T.sp.md
 
     -- Section heading
     panel:drawText(view.label .. " by Region", listX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
     drawY = drawY + headH + T.sp.xs
 
     A.drawDividerH(panel, listX, drawY, listW, false)
-    drawY = drawY + 1 + T.sp.afterLine
+    drawY = drawY + T.px(1) + T.sp.afterLine
 
     -- Two-column body part grid
     local colGap = T.sp.sm
@@ -526,7 +526,7 @@ function ZeD.ThermalTab._renderDetailView(panel, win, data, partName, rx, ry, rw
         -- Alternating row stripe
         if ri % 2 == 0 then
             local st = T.stripe
-            local estH = math.max(getTextManager():getFontHeight(T.fontF1), getTextManager():getFontHeight(T.fontF2)) + 4
+            local estH = math.max(ZeD.TM:getFontHeight(T.fontF1), ZeD.TM:getFontHeight(T.fontF2)) + T.px(4)
             panel:drawRect(rx, curY, rw, estH, st.a, st.r, st.g, st.b)
         end
         local uiVal = nodeData[row.getterUI] or 0
@@ -553,24 +553,24 @@ end
 
 function ZeD.ThermalTab._measureGridContent(data, listW, scrollW)
     local T    = ZeD.T
-    local secH = getTextManager():getFontHeight(T.fontF1)
-    local headH = getTextManager():getFontHeight(T.fontF1)
+    local secH = ZeD.TM:getFontHeight(T.fontF1)
+    local headH = ZeD.TM:getFontHeight(T.fontF1)
 
     local total = 0
 
     -- Grid header: CORE/AIR/WIND line + gradient bar + section heading + divider
     total = total + secH + T.sp.sm          -- CORE/AIR/WIND line
-    total = total + 6 + T.sp.md             -- gradient bar
+    total = total + T.px(6) + T.sp.md             -- gradient bar
     total = total + headH + T.sp.xs         -- section heading
-    total = total + 1 + T.sp.afterLine      -- divider
+    total = total + T.px(1) + T.sp.afterLine      -- divider
 
     -- Body part rows (2 columns). rowH must match Molecules.drawStatBarRow:
     --   rowH = max(valFont=F3, lblFont=F2) + 8
     -- Previously used secH (F1) + 8, which under-measured by ~4px per row →
     -- with 9 rows the bottom row was clipped by ~36px ("halfway visible").
-    local valH = getTextManager():getFontHeight(T.fontF3)
-    local lblH = getTextManager():getFontHeight(T.fontF2)
-    local rowH = math.max(valH, lblH) + 8
+    local valH = ZeD.TM:getFontHeight(T.fontF3)
+    local lblH = ZeD.TM:getFontHeight(T.fontF2)
+    local rowH = math.max(valH, lblH) + T.px(8)
     local rowGap = T.sp.xs
     local numRows = math.ceil(#PART_ORDER / 2)
     total = total + numRows * (rowH + rowGap)

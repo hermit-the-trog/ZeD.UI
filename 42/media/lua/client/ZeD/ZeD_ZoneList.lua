@@ -14,7 +14,7 @@ require "ISUI/ISPanel"
 
 ZeD_ZoneList = ISPanel:derive("ZeD_ZoneList")
 
-local GROOVE_H = 2  -- 1px dark + 1px light
+local GROOVE_H = 2  -- 1px dark + 1px light (S124 scale: design units; uses wrap with T.px, matching drawGroove's T.px(2))
 
 -- ---------------------------------------------------------------------------
 -- CONSTRUCTOR
@@ -75,16 +75,16 @@ end
 -- ---------------------------------------------------------------------------
 function ZeD_ZoneList:_recalcHeights()
     local T = ZeD.T
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
-    local btnSz = T.iconSm + 4
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
+    local btnSz = T.iconSm + T.px(4)
     local barH  = T.fillBarH
-    local topH  = math.max(bodyH + 4, barH + 4, btnSz)
+    local topH  = math.max(bodyH + T.px(4), barH + T.px(4), btnSz)
 
     local heights = {}
     local offsets = {}
     local cumY = 0
     for i, zone in ipairs(self.zones) do
-        if i > 1 then cumY = cumY + GROOVE_H end
+        if i > 1 then cumY = cumY + T.px(GROOVE_H) end
         offsets[i] = cumY
 
         local hasDock = zone.dock ~= nil
@@ -160,7 +160,7 @@ function ZeD_ZoneList:render()
         if rowY + rowH > 0 and rowY < h then
             -- Groove divider before row (skip first)
             if i > 1 then
-                A.drawGroove(self, 0, rowY - GROOVE_H, contentW)
+                A.drawGroove(self, 0, rowY - T.px(GROOVE_H), contentW)
             end
 
             -- Draw zone row with hover state
@@ -187,15 +187,15 @@ function ZeD_ZoneList:_dockRect(i, contentW)
     if not zone or not zone.dock or zone.dock.state == "grey" then return nil end
 
     local T = ZeD.T
-    local btnSz = T.iconSm + 4
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
+    local btnSz = T.iconSm + T.px(4)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local barH  = T.fillBarH
-    local topH  = math.max(bodyH + 4, barH + 4, btnSz)
+    local topH  = math.max(bodyH + T.px(4), barH + T.px(4), btnSz)
 
     -- Dock button lives on the bottom line, right edge
     local d = zone.dock
-    local sTextW = d.flag and getTextManager():MeasureStringX(T.fontF1, d.flag) or 0
-    local flagW  = math.max(4, sTextW + 8)
+    local sTextW = d.flag and ZeD.TM:MeasureStringX(T.fontF1, d.flag) or 0
+    local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)  -- S124 scale: mirrors drawZoneRow / drawDock (2 x padX)
     local dockW  = d.icon and (flagW + btnSz) or flagW
 
     local bx = contentW - dockW

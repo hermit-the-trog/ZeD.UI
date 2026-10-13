@@ -108,7 +108,7 @@ local SLOT_REGIONS = {
 -- ============================================================================
 
 local GROUP_H    = 15  -- group header height (matches T.sp.catHdrH)
-local function getBackH() return 4 + ZeD.T.buttonH + 2 end  -- back bar: 4px above button + 2px below
+local function getBackH() local T = ZeD.T; return T.px(4) + T.buttonH + T.px(2) end  -- back bar: 4px above button + 2px below
 local COND_BAR_W = 80  -- condition bar width
 local PROT_COL_W = 32  -- protection stat column width
 local SWATCH_SZ  = 18  -- item swatch square size
@@ -117,9 +117,10 @@ local BADGE_SZ   = 13  -- attachment count badge size
 
 -- Pre-computed label column width (widest label across all slots, measured lazily)
 local _labelColW = nil
+local _labelColWScale = nil  -- S124 scale: re-measure when T.scale (root x text size) changes
 local function getLabelColW()
-    if _labelColW then return _labelColW end
-    local tm = getTextManager()
+    if _labelColW and _labelColWScale == ZeD.T.scale then return _labelColW end
+    local tm = ZeD.TM
     local T = ZeD.T
     local maxW = 0
     for _, group in ipairs(EQUIP_GROUPS) do
@@ -129,15 +130,17 @@ local function getLabelColW()
         end
     end
     _labelColW = maxW
+    _labelColWScale = T.scale
     return _labelColW
 end
 
 -- Default resizable column widths (matches inventory renderer pattern)
 local DIV_W = 6  -- divider hit zone width
 local function getDefaultColWidths(scale)
+    local T = ZeD.T
     return {
-        slot = getLabelColW() + 4,
-        cond = COND_BAR_W + 4,
+        slot = getLabelColW() + T.px(4),
+        cond = T.px(COND_BAR_W) + T.px(4),
         wt   = math.floor(40 * scale),
     }
 end
@@ -150,8 +153,8 @@ local function calcEquipColumns(w, win)
     local scale = T.scale or 1
     local padX  = sp.sm
     local rowH  = T.rowH
-    local iconW = rowH - 8
-    local iconGap = sp.iconGap or 6
+    local iconW = rowH - T.px(8)
+    local iconGap = sp.iconGap or T.px(6)
 
     -- Resizable column widths from win state
     local cw = win and win._equipColWidths
@@ -167,7 +170,7 @@ local function calcEquipColumns(w, win)
     local rightCols = slotColW + condColW + protColW * 3 + wtColW + padX
     local nameX = padX + iconW + iconGap
     local nameW = w - nameX - rightCols
-    if nameW < 40 then nameW = 40 end
+    if nameW < T.px(40) then nameW = T.px(40) end
 
     -- Column order: NAME SLOT COND BITE SCR BUL WT
     local slotX = nameX + nameW
@@ -329,8 +332,9 @@ end
 -- ============================================================================
 
 local function _ensureBodyFigure(win)
+    local T = ZeD.T
     if not win._equipBodyFigure then
-        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)
+        local fig = ZeD_BodyFigure:new(0, 0, T.px(100), T.px(100))
         fig:initialise()
         fig:loadTextures()
         win._equipBodyFigure = fig
@@ -382,8 +386,9 @@ end
 -- Uses T.rowH via M.drawSectionHeader (shared molecule across all tabs)
 
 local function _ensureDefBodyFigure(win)
+    local T = ZeD.T
     if not win._equipDefBodyFigure then
-        local fig = ZeD_BodyFigure:new(0, 0, 100, 100)
+        local fig = ZeD_BodyFigure:new(0, 0, T.px(100), T.px(100))
         fig:initialise()
         fig:loadTextures()
         win._equipDefBodyFigure = fig
@@ -470,8 +475,8 @@ end
 local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, dotGap)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local secH  = getTextManager():getFontHeight(T.fontF1)
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local labelValueGap = T.sp.xs
     local afterGap      = T.sp.sm
 
@@ -487,8 +492,8 @@ end
 local function _drawStackedStat(panel, x, y, label, value, valueColor)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local secH  = getTextManager():getFontHeight(T.fontF1)
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local labelValueGap = T.sp.xs
     local afterGap      = T.sp.sm
 
@@ -518,9 +523,9 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
     -- (was: gated on expanded; defense body is always rendered now)
 
     -- --- Dashboard content ---
-    local headH = getTextManager():getFontHeight(T.fontF1)
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
+    local headH = ZeD.TM:getFontHeight(T.fontF1)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
     local cw   = w
     local halfW = math.floor(cw / 2)
@@ -544,10 +549,10 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
 
         -- Letter grade box
         local gradeBoxColor = gradeColor(protData.grade)
-        local titleFH = T.fontF4H or getTextManager():getFontHeight(T.fontF4)
-        local gradeLetterW = getTextManager():MeasureStringX(T.fontF4, protData.grade)
-        local boxH = secH * 2 + T.sp.xs + 8
-        local boxW = math.max(gradeLetterW + 12, boxH)
+        local titleFH = T.fontF4H or ZeD.TM:getFontHeight(T.fontF4)
+        local gradeLetterW = ZeD.TM:MeasureStringX(T.fontF4, protData.grade)
+        local boxH = secH * 2 + T.sp.xs + T.px(8)
+        local boxW = math.max(gradeLetterW + T.px(12), boxH)
         local boxX = rightX
         local boxY = statY
 
@@ -559,11 +564,11 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         panel:drawText(protData.grade, gx, gy, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
 
         local lblX = boxX + boxW + T.sp.sm
-        panel:drawText("OVERALL GRADE", lblX, boxY + 4, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
+        panel:drawText("OVERALL GRADE", lblX, boxY + T.px(4), T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
         local avgStr = protData.avgBiteDef .. "% avg bite defense"
-        local avgY = boxY + 4 + secH + T.sp.xs
-        local dotSz = 6
-        local dotGap = 4
+        local avgY = boxY + T.px(4) + secH + T.sp.xs
+        local dotSz = T.px(6)
+        local dotGap = T.px(4)
         A.drawStatusDot(panel, lblX, avgY + math.floor((secH - dotSz) / 2), tierColor(protData.avgBiteDef), dotSz)
         panel:drawText(avgStr, lblX + dotSz + dotGap, avgY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
 
@@ -571,11 +576,11 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
 
         -- Divider below grade
         A.drawDividerH(panel, rightX, statY, rightW, false)
-        statY = statY + 1 + T.sp.afterLine
+        statY = statY + T.px(1) + T.sp.afterLine
 
         -- Stacked stat rows (label on line 1, dot + value on line 2)
-        local dotSz = 6
-        local dotGap = 4
+        local dotSz = T.px(6)
+        local dotGap = T.px(4)
         local worstValue
         if protData.worstPart.biteDef < 0 then
             worstValue = protData.worstPart.name .. " (uncovered)"
@@ -607,9 +612,9 @@ end
 local function _drawGroupHeader(panel, win, group, expanded, x, y, w)
     local T = ZeD.T
     local A = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    local h = GROUP_H
+    local h = T.px(GROUP_H)
     local hovered = mx >= x and mx < x + w and my >= y and my < y + h
     local padX = T.sp.sm
     local secFH = tm:getFontHeight(T.fontF1)
@@ -642,16 +647,16 @@ local function _drawGroupHeader(panel, win, group, expanded, x, y, w)
     local labelY = y + math.floor((h - secFH) / 2)
     local tri = expanded and "v " or "> "
     local label = tri .. group.label .. " (" .. count .. ")"
-    panel:drawText(label, x + padX + 2, labelY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
+    panel:drawText(label, x + padX + T.px(2), labelY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
 
     -- Weak divider (not strong — matches inventory)
-    A.drawDividerH(panel, x, y + h - 1, w, false)
+    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
 end
 
 local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local empty = not slot.item
     local rowH = T.rowH
 
@@ -721,10 +726,10 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     if slot.item then
         local condMax = safeGet(slot.item, "getConditionMax") or 0
         if condMax and condMax > 0 then
-            local barX = x + c.condX + 2
-            local barY = y + math.floor(rowH / 2) - 1
-            local barW = c.condColW - 4
-            local barH = 3
+            local barX = x + c.condX + T.px(2)
+            local barY = y + math.floor(rowH / 2) - T.px(1)
+            local barW = c.condColW - T.px(4)
+            local barH = T.px(3)
             local bg = T.surf3
             panel:drawRect(barX, barY, barW, barH, bg.a, bg.r, bg.g, bg.b)
             local fillW = math.max(0, math.floor(barW * slot.cond))
@@ -742,7 +747,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     if slot.item and slot.prot then
         local p = slot.prot
         local tierColor = ZeD.ProtectionTab.tierColor
-        local dotSz = 6
+        local dotSz = T.px(6)
         local dotY = y + math.floor((rowH - dotSz) / 2)
         local function drawProtDot(val, colX)
             if val > 0 then
@@ -762,29 +767,29 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     end
 
     -- Bottom divider
-    A.drawDividerH(panel, x, y + rowH - 1, w, false)
+    A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
 end
 
 -- ============================================================================
 -- COLUMN HEADER BAR — labels above the slot list
 -- ============================================================================
 
-local EQUIP_HDR_H = ZeD.T.sp.colHdrH
+local EQUIP_HDR_H = (ZeD.Spacing and ZeD.Spacing.colHdrH) or 20  -- S124 scale: design units (was ZeD.T.sp.colHdrH cached at load); uses go through T.px
 
 local function _drawEquipHeader(panel, x, y, w, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
 
     -- Background
     local surf2 = T.surf2
-    panel:drawRect(x, y, w, EQUIP_HDR_H, surf2.a, surf2.r, surf2.g, surf2.b)
+    panel:drawRect(x, y, w, T.px(EQUIP_HDR_H), surf2.a, surf2.r, surf2.g, surf2.b)
 
     -- Column layout (shared with _drawSlotRow)
     local cl = calcEquipColumns(w, win)
 
     local secFH = tm:getFontHeight(T.fontF5)
-    local textY = y + math.floor((EQUIP_HDR_H - secFH) / 2)
+    local textY = y + math.floor((T.px(EQUIP_HDR_H) - secFH) / 2)
     local c = T.toneNorm
 
     -- Center helper
@@ -805,9 +810,9 @@ local function _drawEquipHeader(panel, x, y, w, win)
 
     -- Divider hit zones for column resize (6px wide, centered on column edge)
     local divZones = {}
-    divZones[#divZones + 1] = { col = "slot", x = x + cl.slotX - DIV_W / 2, y = y, w = DIV_W, h = EQUIP_HDR_H }
-    divZones[#divZones + 1] = { col = "cond", x = x + cl.condX - DIV_W / 2, y = y, w = DIV_W, h = EQUIP_HDR_H }
-    divZones[#divZones + 1] = { col = "wt",   x = x + cl.wtX   - DIV_W / 2, y = y, w = DIV_W, h = EQUIP_HDR_H }
+    divZones[#divZones + 1] = { col = "slot", x = x + cl.slotX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
+    divZones[#divZones + 1] = { col = "cond", x = x + cl.condX - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
+    divZones[#divZones + 1] = { col = "wt",   x = x + cl.wtX   - T.px(DIV_W) / 2, y = y, w = T.px(DIV_W), h = T.px(EQUIP_HDR_H) }
     if win then win._equipDivZones = divZones end
 
     -- Divider hover feedback (2px accent line)
@@ -817,7 +822,7 @@ local function _drawEquipHeader(panel, x, y, w, win)
         for _, dz in ipairs(divZones) do
             if mx >= dz.x and mx < dz.x + dz.w and my >= dz.y and my < dz.y + dz.h then
                 local ac = T.accent
-                panel:drawRect(dz.x + DIV_W / 2 - 1, y, 2, EQUIP_HDR_H, ac.a, ac.r, ac.g, ac.b)
+                panel:drawRect(dz.x + T.px(DIV_W) / 2 - T.px(1), y, T.px(2), T.px(EQUIP_HDR_H), ac.a, ac.r, ac.g, ac.b)
                 break
             end
         end
@@ -830,10 +835,10 @@ local function _drawEquipHeader(panel, x, y, w, win)
         elseif colDrag.col == "cond" then divX = x + cl.condX
         else divX = x + cl.wtX end
         local ac = T.accent
-        panel:drawRect(divX - 1, y, 2, panel:getHeight() - y, ac.a, ac.r, ac.g, ac.b)
+        panel:drawRect(divX - T.px(1), y, T.px(2), panel:getHeight() - y, ac.a, ac.r, ac.g, ac.b)
     end
 
-    A.drawDividerH(panel, x, y + EQUIP_HDR_H - 1, w, true)
+    A.drawDividerH(panel, x, y + T.px(EQUIP_HDR_H) - T.px(1), w, true)
 end
 
 -- ============================================================================
@@ -848,7 +853,7 @@ local function _drawBackBar(panel, win, slot, x, y, w)
 
     -- Slot layer label (left-aligned, secondary)
     local layerX = x + sp.sm
-    local layerY = y + 4 + math.floor((T.buttonH - getTextManager():getFontHeight(T.fontF1)) / 2)
+    local layerY = y + T.px(4) + math.floor((T.buttonH - ZeD.TM:getFontHeight(T.fontF1)) / 2)
     if slot then
         local typeStr = slot.label or slot.type
         A.drawSecondary(panel, typeStr, layerX, layerY, T.textDim)
@@ -859,7 +864,7 @@ local function _drawBackBar(panel, win, slot, x, y, w)
     win._equipActionZones = win._equipActionZones or {}
     for i = 1, #win._equipActionZones do win._equipActionZones[i] = nil end
 
-    local btnY = y + 4
+    local btnY = y + T.px(4)
     local btnGap = sp.xs
     local rightX = x + w - sp.sm  -- right edge cursor; grows leftward
 
@@ -881,8 +886,8 @@ local function _drawBackBar(panel, win, slot, x, y, w)
         end
     end
     for _, btn in ipairs(actionBtns) do
-        local tw = getTextManager():MeasureStringX(T.fontF3, btn.label) + sp.buttonPadX * 2
-        local bw = math.max(tw, 60)
+        local tw = ZeD.TM:MeasureStringX(T.fontF3, btn.label) + sp.buttonPadX * 2
+        local bw = math.max(tw, T.px(60))
         rightX = rightX - bw
         if gpBtnId == btn.id then
             local ac = T.accent
@@ -897,7 +902,7 @@ local function _drawBackBar(panel, win, slot, x, y, w)
 
     -- Back button: just "<" — compact, fixed-width
     local btnLabel = "<"
-    local btnW = getTextManager():MeasureStringX(T.fontF3, btnLabel) + sp.buttonPadX * 2
+    local btnW = ZeD.TM:MeasureStringX(T.fontF3, btnLabel) + sp.buttonPadX * 2
     btnW = math.max(btnW, T.buttonH)  -- square-ish minimum
     local btnX = rightX - btnW
 
@@ -924,13 +929,13 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
     if not item then return y end
 
     local pad  = T.sp.sm
-    local secH = getTextManager():getFontHeight(T.fontF1)
+    local secH = ZeD.TM:getFontHeight(T.fontF1)
     local cx = x + pad
     local cw = w - pad * 2
     local cy = y + pad
 
     -- Icon (atom)
-    local iconSz = 48
+    local iconSz = T.px(48)
     local iconY  = cy
     if slot.tex then
         A.drawIcon(panel, slot.tex, cx, iconY, iconSz)
@@ -974,13 +979,13 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
     if #regions > 0 and instanceof(item, "Clothing") then
         -- Section divider + heading (atoms)
         A.drawDividerH(panel, cx, cy, cw, true)
-        cy = cy + 1 + pad
+        cy = cy + T.px(1) + pad
         A.drawSecondary(panel, "PROTECTION", cx, cy)
         cy = cy + secH + pad
 
         -- Body figure (left, compact)
-        local figW = 80
-        local figH = 110
+        local figW = T.px(80)
+        local figH = T.px(110)
         local figX = cx
         local figY = cy
         _drawCoverageFigure(panel, win, data, slot.type, figX, figY, figW, figH, item)
@@ -1020,7 +1025,7 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
         if #zones > 0 then
             -- Section divider + heading (atoms)
             A.drawDividerH(panel, cx, cy, cw, true)
-            cy = cy + 1 + pad
+            cy = cy + T.px(1) + pad
             A.drawSecondary(panel, "DETAIL ZONES", cx, cy)
             cy = cy + secH + pad
 
@@ -1039,15 +1044,15 @@ local function _drawCardContent(panel, win, data, slot, x, y, w, h)
             -- Item-level soil row (dirt + wet — they aren't per-zone in vanilla).
             local soil = CD.buildItemSoil(item)
             if soil then
-                local btnSz = T.iconSm + 4
+                local btnSz = T.iconSm + T.px(4)
                 CD.drawSoilRow(panel, cx, cy, cw, soil)
-                cy = cy + btnSz + 2
+                cy = cy + btnSz + T.px(2)
             end
 
             -- Per-zone rows. Stamp dock-button rects for click + gamepad dispatch.
             local rawZones = CD.getZones(item)
-            local btnSz = T.iconSm + 4
-            local grooveH = 2
+            local btnSz = T.iconSm + T.px(4)
+            local grooveH = T.px(2)
             win._equipDockZones = win._equipDockZones or {}
             for i = 1, #(win._equipDockZones or {}) do win._equipDockZones[i] = nil end
 
@@ -1224,7 +1229,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
     -- Pinned header: standard ZeD drawer-header strip (T.sp.tabHeaderH).
     -- Column headers (20px) always in scroll area
-    local headerH = T.sp.tabHeaderH or 37
+    local headerH = T.sp.tabHeaderH or T.px(37)
     local listExpanded = win._equipListExpanded
 
     -- Measure scrollable content
@@ -1234,17 +1239,17 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- not using a pinned header for defense any more).
     local defBodyH = math.max(0, defDashH - headerH)
     local slotRowH = T.rowH
-    local groupHeaderH_pre = GROUP_H
+    local groupHeaderH_pre = T.px(GROUP_H)
     local padTop = ZeD.Molecules.getTabPadTop()
     local hasDefBody = defBodyH > 0
     -- Layout: equipped inventory list first (collapsible), defense body below
     -- (always visible). T.sp.figurePadTop is the canonical gap above body
     -- figures across Health/Protection/Thermal — using it here keeps spacing
     -- consistent with the rest of the mod.
-    local figureGap = T.sp.figurePadTop or 12
+    local figureGap = T.sp.figurePadTop or T.px(12)
     local totalH = 0
     if listExpanded then
-        totalH = totalH + EQUIP_HDR_H
+        totalH = totalH + T.px(EQUIP_HDR_H)
         for gi, g in ipairs(data.groups) do
             totalH = totalH + groupHeaderH_pre
             if win._equipExpanded[g.id] then
@@ -1318,7 +1323,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         -- Column headers FIRST — equipped inventory list is the most-accessed
         -- region of this drawer.
         _drawEquipHeader(panel, x, drawY, contentW, win)
-        drawY = drawY + EQUIP_HDR_H
+        drawY = drawY + T.px(EQUIP_HDR_H)
 
         for gi, g in ipairs(data.groups) do
             local expanded = win._equipExpanded[g.id]
@@ -1327,9 +1332,9 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
             -- Store group zone + stamp Y for scroll-follow (keyed by group focus id)
             gzi = gzi + 1
-            win._equipGroupZones[gzi] = { x = x, y = drawY, w = contentW, h = GROUP_H, id = g.id }
+            win._equipGroupZones[gzi] = { x = x, y = drawY, w = contentW, h = T.px(GROUP_H), id = g.id }
             win._equipSlotYMap["__group_" .. tostring(g.id)] = drawY
-            drawY = drawY + GROUP_H
+            drawY = drawY + T.px(GROUP_H)
 
             -- Slot rows:
             -- Expanded: show all slots

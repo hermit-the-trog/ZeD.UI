@@ -55,9 +55,9 @@ local function applyTooltipOverrides()
             return _vanilla_render(self)
         end
 
-        local pad = T.sp and T.sp.sm or 8
+        local pad = T.sp and T.sp.sm or T.px(8)
 
-        -- Positioning (identical to vanilla)
+        -- Positioning (identical to vanilla; S124 scale: cursor / screen offsets stay vanilla px)
         local mx = getMouseX() + 32
         local my = getMouseY() + 10
         if not self.followMouse then
@@ -96,6 +96,7 @@ local function applyTooltipOverrides()
 
         -- Texture (vanilla)
         if self.texture then
+            -- S124 TODO scale? textureY 35/5, the native-size texture, title y 5 and footer -4 sit in vanilla doLayout's unscaled frame (description panel placed by vanilla); scale together with a ZeD doLayout
             local textureY = self.name and 35 or 5
             self:drawTextureScaledAspect(self.texture, pad, textureY,
                 self.texture:getWidth(), self.texture:getHeight(), 1, 1, 1, 1)
@@ -104,7 +105,7 @@ local function applyTooltipOverrides()
         -- Title: accent color, body font
         if self.name then
             local ac = T.accent
-            self:drawText(self.name, pad, 5, ac.r, ac.g, ac.b, ac.a, T.fontF2)
+            self:drawText(self.name, pad, 5, ac.r, ac.g, ac.b, ac.a, T.fontF2)  -- S124 TODO scale? y 5 is vanilla doLayout frame (see texture note)
         end
 
         -- Description (ISRichTextPanel)
@@ -112,10 +113,10 @@ local function applyTooltipOverrides()
 
         -- Footer
         if self.footNote then
-            local fontHgt = getTextManager():getFontHeight(T.fontF1)
+            local fontHgt = ZeD.TM:getFontHeight(T.fontF1)
             local fc = T.textSec
             self:drawTextCentre(self.footNote, self:getWidth() / 2,
-                self:getHeight() - fontHgt - 4, fc.r, fc.g, fc.b, fc.a, T.fontF1)
+                self:getHeight() - fontHgt - 4, fc.r, fc.g, fc.b, fc.a, T.fontF1)  -- S124 TODO scale? -4 is vanilla doLayout frame (see texture note)
         end
     end
 
@@ -149,6 +150,7 @@ local function applyTooltipOverrides()
         -- `end` is at the bottom of the function, tagged "context menu guard".
         if not ISContextMenu.instance or not ISContextMenu.instance.visibleCheck then
 
+        -- S124 scale: vanilla positioning of the Java-drawn item tooltip (DoTooltip is unscaled); offsets stay vanilla px
         local mx = getMouseX() + 24
         local my = getMouseY() + 24
         if not self.followMouse then

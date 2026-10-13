@@ -103,6 +103,7 @@ end
 -- trigger (S95). Children are hidden/restored so content doesn't render
 -- underneath the collapsed title bar.
 function ZeD_Window:setWindowShaded(shaded)
+    local T = ZeD.T
     if self.windowShaded == shaded then return end
     self.windowShaded = shaded
     local tbH = self:titleBarHeight()
@@ -117,7 +118,7 @@ function ZeD_Window:setWindowShaded(shaded)
             end
         end
     else
-        self:setHeight(self.preShadeHeight or 300)
+        self:setHeight(self.preShadeHeight or T.px(300))
         local children = self:getChildren()
         if children then
             for _, child in pairs(children) do
@@ -141,8 +142,8 @@ function ZeD_Window:footerHeight()
     if self.footerToggles then
         -- Footer sized to fit action strip buttons with comfortable vertical padding.
         local T = ZeD.T
-        local btnSz = T.iconSm + 4
-        return btnSz + T.sp.sm * 2 + 2
+        local btnSz = T.iconSm + T.px(4)
+        return btnSz + T.sp.sm * 2 + T.px(2)
     end
     -- Theme controls footer: same height as grow box
     if self.resizable then
@@ -312,13 +313,13 @@ function ZeD_Window:render()
         local fY = h - fH
 
         -- Footer background — inset 1px so the window border wraps over it
-        M.drawBodyBg(self, 1, fY, w - 2, fH - 1, "surf2")
+        M.drawBodyBg(self, T.px(1), fY, w - T.px(1) * 2, fH - T.px(1), "surf2")
 
         -- Groove separator at footer top edge
-        A.drawGroove(self, 1, fY, w - 2)
+        A.drawGroove(self, T.px(1), fY, w - T.px(1) * 2)
 
         -- Action strip — left-aligned, vertically centered below groove
-        local grooveH = 2  -- groove = 1px dark + 1px light
+        local grooveH = T.px(2)  -- groove = 1px dark + 1px light
         local stripX = sp.sm
         local stripY = fY + grooveH + sp.sm
         self.footerToggleRects = M.drawActionStrip(
@@ -337,12 +338,12 @@ function ZeD_Window:render()
 
         -- Footer bar background + top divider
         local s2 = T.surf2
-        self:drawRect(1, fY, w - 2, rh, s2.a, s2.r, s2.g, s2.b)
-        A.drawDividerH(self, 1, fY, w - 2, false)
+        self:drawRect(T.px(1), fY, w - T.px(1) * 2, rh, s2.a, s2.r, s2.g, s2.b)
+        A.drawDividerH(self, T.px(1), fY, w - T.px(1) * 2, false)
 
         -- Button style matches grow box: surf2 bg, borderS border, same size
         local btnX = 0
-        local btnGap = 4
+        local btnGap = T.px(4)
 
         -- 1. Theme dot: next theme's preview color
         local nextC
@@ -356,11 +357,12 @@ function ZeD_Window:render()
         local bg1 = hoverIdx == 1 and T.surf4 or s2
         self:drawRect(btnX, fY, rh, rh, bg1.a, bg1.r, bg1.g, bg1.b)
         self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        -- 5px filled circle centered
-        local cx, cy = btnX + math.floor((rh - 5) / 2), fY + math.floor((rh - 5) / 2)
-        self:drawRect(cx + 1, cy,     3, 1, 1, nextC.r, nextC.g, nextC.b)
-        self:drawRect(cx,     cy + 1, 5, 3, 1, nextC.r, nextC.g, nextC.b)
-        self:drawRect(cx + 1, cy + 4, 3, 1, 1, nextC.r, nextC.g, nextC.b)
+        -- 5px filled circle centered (S124 scale: design-unit pixel art, row r spans [T.px(r), T.px(r + 1)))
+        local p1, p4, p5 = T.px(1), T.px(4), T.px(5)
+        local cx, cy = btnX + math.floor((rh - p5) / 2), fY + math.floor((rh - p5) / 2)
+        self:drawRect(cx + p1, cy,      p4 - p1, p1,      1, nextC.r, nextC.g, nextC.b)
+        self:drawRect(cx,      cy + p1, p5,      p4 - p1, 1, nextC.r, nextC.g, nextC.b)
+        self:drawRect(cx + p1, cy + p4, p4 - p1, p5 - p4, 1, nextC.r, nextC.g, nextC.b)
         self._themeControlRects[1] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
         btnX = btnX + rh + btnGap
 
@@ -369,10 +371,10 @@ function ZeD_Window:render()
         local bg2 = hoverIdx == 2 and T.surf4 or s2
         self:drawRect(btnX, fY, rh, rh, bg2.a, bg2.r, bg2.g, bg2.b)
         self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        cx, cy = btnX + math.floor((rh - 5) / 2), fY + math.floor((rh - 5) / 2)
-        self:drawRect(cx + 1, cy,     3, 1, 1, ac.r, ac.g, ac.b)
-        self:drawRect(cx,     cy + 1, 5, 3, 1, ac.r, ac.g, ac.b)
-        self:drawRect(cx + 1, cy + 4, 3, 1, 1, ac.r, ac.g, ac.b)
+        cx, cy = btnX + math.floor((rh - p5) / 2), fY + math.floor((rh - p5) / 2)
+        self:drawRect(cx + p1, cy,      p4 - p1, p1,      1, ac.r, ac.g, ac.b)
+        self:drawRect(cx,      cy + p1, p5,      p4 - p1, 1, ac.r, ac.g, ac.b)
+        self:drawRect(cx + p1, cy + p4, p4 - p1, p5 - p4, 1, ac.r, ac.g, ac.b)
         self._themeControlRects[2] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
         btnX = btnX + rh + btnGap
 
@@ -380,8 +382,8 @@ function ZeD_Window:render()
         local bg3 = hoverIdx == 3 and T.surf4 or s2
         self:drawRect(btnX, fY, rh, rh, bg3.a, bg3.r, bg3.g, bg3.b)
         self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        local aW = getTextManager():MeasureStringX(T.fontF5, "A")
-        local aH = getTextManager():getFontHeight(T.fontF5)
+        local aW = ZeD.TM:MeasureStringX(T.fontF5, "A")
+        local aH = ZeD.TM:getFontHeight(T.fontF5)
         local aX = btnX + math.floor((rh - aW) / 2)
         local aY = fY + math.floor((rh - aH) / 2)
         self:drawText("A", aX, aY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF5)
@@ -393,8 +395,8 @@ function ZeD_Window:render()
         self:drawRect(btnX, fY, rh, rh, bg4.a, bg4.r, bg4.g, bg4.b)
         self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
         local rLbl = "R"
-        local rLblW = getTextManager():MeasureStringX(T.fontF5, rLbl)
-        local rLblH = getTextManager():getFontHeight(T.fontF5)
+        local rLblW = ZeD.TM:MeasureStringX(T.fontF5, rLbl)
+        local rLblH = ZeD.TM:getFontHeight(T.fontF5)
         local rLblX = btnX + math.floor((rh - rLblW) / 2)
         local rLblY = fY + math.floor((rh - rLblH) / 2)
         self:drawText(rLbl, rLblX, rLblY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF5)
@@ -406,8 +408,8 @@ function ZeD_Window:render()
         -- local dyTextC = isDyslexic and T.textOnAccent or T.text
         -- self:drawRect(btnX, fY, rh, rh, bg4.a, bg4.r, bg4.g, bg4.b)
         -- self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        -- local dyW = getTextManager():MeasureStringX(T.fontF1, "DY")
-        -- local dyH = getTextManager():getFontHeight(T.fontF1)
+        -- local dyW = ZeD.TM:MeasureStringX(T.fontF1, "DY")
+        -- local dyH = ZeD.TM:getFontHeight(T.fontF1)
         -- local dyX = btnX + math.floor((rh - dyW) / 2)
         -- local dyY = fY + math.floor((rh - dyH) / 2)
         -- self:drawText("DY", dyX, dyY, dyTextC.r, dyTextC.g, dyTextC.b, dyTextC.a, T.fontF1)
@@ -423,10 +425,10 @@ function ZeD_Window:render()
             if gpMode and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self then
                 local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
                 local prompts = _promptsFor(el)
-                local tm   = getTextManager()
+                local tm   = ZeD.TM
                 local font = T.fontF5
                 local fh   = tm:getFontHeight(font)
-                local box  = rh - 4
+                local box  = rh - T.px(4)
                 local px   = w - rh - btnGap - sp.sm
                 local minX = btnX + rh + btnGap * 3
                 local textY = fY + math.floor((rh - fh) / 2)
@@ -434,12 +436,12 @@ function ZeD_Window:render()
                     local p  = prompts[i]
                     local lw = tm:MeasureStringX(font, p.label)
                     local gw = tm:MeasureStringX(font, p.glyph)
-                    local total = box + 3 + lw
+                    local total = box + T.px(3) + lw
                     if px - total < minX then break end
                     local x0 = px - total
-                    self:drawRectBorder(x0, fY + 2, box, box, bs.a, bs.r, bs.g, bs.b)
+                    self:drawRectBorder(x0, fY + T.px(2), box, box, bs.a, bs.r, bs.g, bs.b)
                     self:drawText(p.glyph, x0 + math.floor((box - gw) / 2), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
-                    self:drawText(p.label, x0 + box + 3, textY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a, font)
+                    self:drawText(p.label, x0 + box + T.px(3), textY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a, font)
                     px = x0 - sp.sm * 2
                 end
             end
@@ -467,7 +469,7 @@ function ZeD_Window:render()
             if zx and zw and zw > 0 then
                 local locked = (Focus.isLocked and Focus.isLocked()) or false
                 local a = locked and (T.accentBright or T.accent) or T.accent
-                local barH = locked and 4 or 3
+                local barH = locked and T.px(4) or T.px(3)
                 local underY = h - barH
                 self:drawRect(zx, underY, zw, barH, 1.0, a.r, a.g, a.b)
             end
@@ -502,6 +504,7 @@ function ZeD_Window:_stopResize()
 end
 
 function ZeD_Window:onMouseDown(x, y)
+    local T = ZeD.T
     if not self:getIsVisible() then return end
 
     -- If update() already claimed this click for resize, don't also start a drag
@@ -525,7 +528,7 @@ function ZeD_Window:onMouseDown(x, y)
 
     -- Bottom edge resize
     if self.resizable and not self.windowShaded
-       and y >= h - 4 and x < w - rh then
+       and y >= h - T.px(4) and x < w - rh then
         self._resizing = true
         self._resizeYOnly = true
         self.moving = false
@@ -558,6 +561,7 @@ function ZeD_Window:onMouseDown(x, y)
 end
 
 function ZeD_Window:onMouseMove(dx, dy)
+    local T = ZeD.T
     if self._resizing then
         -- Safety: if mouse button released but we missed onMouseUp
         if not isMouseButtonDown(0) then
@@ -569,8 +573,8 @@ function ZeD_Window:onMouseMove(dx, dy)
         local newW = self._resizeYOnly and self.width or mx
         local newH = my
 
-        newW = math.max(newW, self.minimumWidth or 200)
-        newH = math.max(newH, self.minimumHeight or 120)
+        newW = math.max(newW, self.minimumWidth or T.px(200))
+        newH = math.max(newH, self.minimumHeight or T.px(120))
         newH = math.min(newH, getCore():getScreenHeight() - self:getY())
 
         self:setWidth(newW)
@@ -687,11 +691,12 @@ function ZeD_Window:update()
                     S.syncToModOptions()
                 elseif newHover == 4 then
                     -- Reset both windows to default page-spread layout
+                    local T = ZeD.T
                     local screenW = getCore():getScreenWidth()
                     local screenH = getCore():getScreenHeight()
-                    local defW = math.min(436, math.floor(screenW * 0.5))
-                    local defH = math.min(420, screenH - 80)
-                    local gap = 5  -- 5px each side = 10px total gap
+                    local defW = math.min(T.px(436), math.floor(screenW * 0.5))
+                    local defH = math.min(T.px(420), screenH - T.px(80))
+                    local gap = T.px(5)  -- 5px each side = 10px total gap
 
                     -- Position as page spread: character left, world right
                     local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
@@ -714,10 +719,10 @@ function ZeD_Window:update()
                         charWin._accentKey = nil
                         -- Reset inventory drawer state (S78 two-drawer)
                         charWin._invDrawerOpen    = true
-                        charWin._invDrawerEffW    = defW - 28 - 36  -- invW = defW minus strips
-                        charWin._invDrawerTargetW = defW - 28 - 36
+                        charWin._invDrawerEffW    = defW - T.px(28) - T.px(36)  -- invW = defW minus strips
+                        charWin._invDrawerTargetW = defW - T.px(28) - T.px(36)
                         charWin._prevDesiredW     = nil
-                        charWin._baseInvW         = defW - 28 - 36
+                        charWin._baseInvW         = (defW - T.px(28) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
                         -- Clear MC
                         charWin._mcSelected = {}
                         charWin._mcColStates = {}
@@ -744,10 +749,10 @@ function ZeD_Window:update()
                         worldWin._accentKey = nil
                         -- Reset inventory drawer state (S78 two-drawer)
                         worldWin._invDrawerOpen    = true
-                        worldWin._invDrawerEffW    = defW - 36 - 28  -- invW = defW minus strips
-                        worldWin._invDrawerTargetW = defW - 36 - 28
+                        worldWin._invDrawerEffW    = defW - T.px(36) - T.px(28)  -- invW = defW minus strips
+                        worldWin._invDrawerTargetW = defW - T.px(36) - T.px(28)
                         worldWin._prevDesiredW     = nil
-                        worldWin._baseInvW         = defW - 36 - 28
+                        worldWin._baseInvW         = (defW - T.px(36) - T.px(28)) / (T.scale or 1)  -- S124 scale: design units, as above
                         -- Clear MC
                         worldWin._mcSelected = {}
                         worldWin._mainVisible = true
@@ -1039,15 +1044,15 @@ function ZeD_ScrollList:drawListItem(y, index, entry, contentW)
 
     -- Disclosure triangle for expandable items
     if item and type(item) == "table" and item.expandable then
-        local triY = y + math.floor((h - 8) / 2)
+        local triY = y + math.floor((h - T.px(8)) / 2)
         local triColor = T.arrow
         local A = ZeD.Atoms
         if item.expanded and A.drawTriangleDown then
-            A.drawTriangleDown(self, textX, triY, 8, triColor)
+            A.drawTriangleDown(self, textX, triY, T.px(8), triColor)
         elseif A.drawTriangleRight then
-            A.drawTriangleRight(self, textX, triY, 8, triColor)
+            A.drawTriangleRight(self, textX, triY, T.px(8), triColor)
         end
-        textX = textX + 12
+        textX = textX + T.px(12)
     end
 
     -- Icon (tinted to match text color — accent on selected, theme text otherwise)
@@ -1062,7 +1067,7 @@ function ZeD_ScrollList:drawListItem(y, index, entry, contentW)
     -- Primary text
     local textColor = (item and type(item) == "table" and item.textColor) or T.text
     if index == self.selected then textColor = T.accentBright end
-    local textY = y + math.floor((h - getTextManager():getFontHeight(self.font)) / 2)
+    local textY = y + math.floor((h - ZeD.TM:getFontHeight(self.font)) / 2)
     self:drawText(entry.text or "", textX, textY,
         textColor.r, textColor.g, textColor.b, textColor.a or 1, self.font)
 
@@ -1075,9 +1080,9 @@ function ZeD_ScrollList:drawListItem(y, index, entry, contentW)
     end
     if meta then
         local metaColor = (item and type(item) == "table" and item.metaColor) or T.textSec
-        local metaW = getTextManager():MeasureStringX(T.fontF1, meta)
+        local metaW = ZeD.TM:MeasureStringX(T.fontF1, meta)
         local metaX = contentW - metaW - (T.sp.md)
-        local metaY = y + math.floor((h - getTextManager():getFontHeight(T.fontF1)) / 2)
+        local metaY = y + math.floor((h - ZeD.TM:getFontHeight(T.fontF1)) / 2)
         self:drawText(meta, metaX, metaY,
             metaColor.r, metaColor.g, metaColor.b, metaColor.a or 1, T.fontF1)
     end
@@ -1216,7 +1221,7 @@ function ZeD_TabPanel:onMouseDown(x, y)
     local T = ZeD.T
     local tabX = T.sp.sm
     for i, tab in ipairs(self.tabs) do
-        local tw = getTextManager():MeasureStringX(T.fontF5, tab.name) + self.tabPadH * 2
+        local tw = ZeD.TM:MeasureStringX(T.fontF5, tab.name) + self.tabPadH * 2
         if x >= tabX and x <= tabX + tw then
             self:activateTab(i)
             return
@@ -1247,33 +1252,33 @@ function ZeD_TabPanel:prerender()
 
     -- Content area border: left, right, bottom edges
     -- (top edge of content is the tab strip bottom line)
-    self:drawRect(0, tH - 1, w, 1, bc.a, bc.r, bc.g, bc.b)       -- top of content
-    self:drawRect(0, tH, 1, h - tH, bc.a, bc.r, bc.g, bc.b)       -- left edge
-    self:drawRect(w - 1, tH, 1, h - tH, bc.a, bc.r, bc.g, bc.b)   -- right edge
-    self:drawRect(0, h - 1, w, 1, bc.a, bc.r, bc.g, bc.b)          -- bottom edge
+    self:drawRect(0, tH - T.px(1), w, T.px(1), bc.a, bc.r, bc.g, bc.b)       -- top of content
+    self:drawRect(0, tH, T.px(1), h - tH, bc.a, bc.r, bc.g, bc.b)       -- left edge
+    self:drawRect(w - T.px(1), tH, T.px(1), h - tH, bc.a, bc.r, bc.g, bc.b)   -- right edge
+    self:drawRect(0, h - T.px(1), w, T.px(1), bc.a, bc.r, bc.g, bc.b)          -- bottom edge
 
     -- Tab strip left/right borders (above the content area)
-    self:drawRect(0, 0, 1, tH, bc.a, bc.r, bc.g, bc.b)             -- left
-    self:drawRect(w - 1, 0, 1, tH, bc.a, bc.r, bc.g, bc.b)         -- right
+    self:drawRect(0, 0, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)             -- left
+    self:drawRect(w - T.px(1), 0, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)         -- right
 
     local tabX = T.sp.sm
     for i, tab in ipairs(self.tabs) do
-        local tw = getTextManager():MeasureStringX(T.fontF5, tab.name) + self.tabPadH * 2
+        local tw = ZeD.TM:MeasureStringX(T.fontF5, tab.name) + self.tabPadH * 2
         local isActive = (i == self.activeIndex)
 
         if isActive then
             -- Active tab: filled with content bg, open bottom (connects to content)
             self:drawRect(tabX, 0, tw, tH, T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
-            self:drawRect(tabX, 0, tw, 1, bc.a, bc.r, bc.g, bc.b)          -- top
-            self:drawRect(tabX, 0, 1, tH, bc.a, bc.r, bc.g, bc.b)          -- left
-            self:drawRect(tabX + tw - 1, 0, 1, tH, bc.a, bc.r, bc.g, bc.b) -- right
+            self:drawRect(tabX, 0, tw, T.px(1), bc.a, bc.r, bc.g, bc.b)          -- top
+            self:drawRect(tabX, 0, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)          -- left
+            self:drawRect(tabX + tw - T.px(1), 0, T.px(1), tH, bc.a, bc.r, bc.g, bc.b) -- right
             -- Erase the content area top border behind the active tab (open bottom)
-            self:drawRect(tabX + 1, tH - 1, tw - 2, 1, T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
+            self:drawRect(tabX + T.px(1), tH - T.px(1), tw - T.px(1) * 2, T.px(1), T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
 
-            local textY = math.floor((tH - getTextManager():getFontHeight(T.fontF5)) / 2)
+            local textY = math.floor((tH - ZeD.TM:getFontHeight(T.fontF5)) / 2)
             self:drawText(tab.name, tabX + self.tabPadH, textY, T.accent.r, T.accent.g, T.accent.b, 1, T.fontF5)
         else
-            local textY = math.floor((tH - getTextManager():getFontHeight(T.fontF5)) / 2)
+            local textY = math.floor((tH - ZeD.TM:getFontHeight(T.fontF5)) / 2)
             local c = T.textSec
             self:drawText(tab.name, tabX + self.tabPadH, textY, c.r, c.g, c.b, c.a, T.fontF5)
         end
@@ -1327,7 +1332,7 @@ function ZeD_ItemGrid:render()
     local pad  = self.cellPad
     local availW = self.width - pad * 2
     local availH = self.height - pad * 2
-    local targetCell = self.targetCellSize or 48
+    local targetCell = self.targetCellSize or T.px(48)
 
     -- Auto-calculate columns from available width and target cell size
     local cols = math.max(1, math.floor((availW + gap) / (targetCell + gap)))
@@ -1371,17 +1376,17 @@ function ZeD_ItemGrid:render()
 
             if item.count and item.count > 1 then
                 local countStr = tostring(item.count)
-                local countW = getTextManager():MeasureStringX(T.fontF3, countStr)
-                local countX = cx + cellW - countW - 3
-                local countY = cy + cellH - getTextManager():getFontHeight(T.fontF3) - 2
+                local countW = ZeD.TM:MeasureStringX(T.fontF3, countStr)
+                local countX = cx + cellW - countW - T.px(3)
+                local countY = cy + cellH - ZeD.TM:getFontHeight(T.fontF3) - T.px(2)
                 self:drawText(countStr, countX, countY, T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF3)
             end
 
             if item.condition then
-                local barW = cellW - 4
-                local barH = 3
-                local barX = cx + 2
-                local barY = cy + cellH - barH - 2
+                local barW = cellW - T.px(2) * 2
+                local barH = T.px(3)
+                local barX = cx + T.px(2)
+                local barY = cy + cellH - barH - T.px(2)
                 local fillW = math.floor(barW * item.condition)
 
                 local barColor
@@ -1455,7 +1460,7 @@ function ZeD_Modal:prerender()
 
     local tbH = T.titleBarH
     ZeD.Molecules.drawBodyBg(self, mx, my, self.modalW, tbH, "surf2")
-    self:drawRect(mx, my + tbH - 1, self.modalW, 1, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+    self:drawRect(mx, my + tbH - T.px(1), self.modalW, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
 
     local titleText = "Confirm"
     local titleColor = T.textHead
@@ -1466,14 +1471,14 @@ function ZeD_Modal:prerender()
         titleText = "Warning"
         titleColor = T.danger
     end
-    local titleY = my + math.floor((tbH - getTextManager():getFontHeight(T.fontF4)) / 2)
+    local titleY = my + math.floor((tbH - ZeD.TM:getFontHeight(T.fontF4)) / 2)
     self:drawText(titleText, mx + (T.sp.md), titleY, titleColor.r, titleColor.g, titleColor.b, titleColor.a or 1, T.fontF4)
 
     local msgY = my + tbH + (T.sp.lg)
     self:drawText(self.message, mx + (T.sp.lg), msgY, T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
 
     local btnH = T.buttonH
-    local btnW = 90
+    local btnW = T.px(90)
     local btnGap = T.sp.md
     local btnY = my + self.modalH - btnH - (T.sp.md)
     local btnAreaW = btnW * 2 + btnGap
@@ -1558,7 +1563,7 @@ function ZeD_ScrollPanel:new(x, y, width, height)
     o.borderColor     = {r = 0, g = 0, b = 0, a = 0}
 
     -- Scroll state
-    o.contentHeight   = 500    -- total height of content (updated by onDrawContent return)
+    o.contentHeight   = T.px(500)    -- total height of content (updated by onDrawContent return)
     o.scrollPixels    = 0      -- current scroll offset in pixels
 
     -- Scrollbar: plain Lua state table, NOT an ISPanel child.

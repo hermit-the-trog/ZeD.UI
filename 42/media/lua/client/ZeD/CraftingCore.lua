@@ -274,7 +274,7 @@ end
 -- ============================================================================
 
 function CC.truncText(str, font, maxW)
-    local tm = getTextManager()
+    local tm = ZeD.TM
     if tm:MeasureStringX(font, str) <= maxW then return str end
     local ellW = tm:MeasureStringX(font, "...")
     local target = maxW - ellW
@@ -977,15 +977,15 @@ end
 function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local zones = state.zones
-    local headerH = CC.HEADER_H  -- 37px
+    local headerH = T.px(CC.HEADER_H)  -- 37px
     local colH    = CC.COL_HEADER_H  -- 20px
 
     -- ── Row 1: 37px — Dropdown LEFT, Search RIGHT ──────────────────
     -- Split: dropdown gets ~half, search gets ~half, 6px gap between
-    local pad = 6
-    local gap = 6
+    local pad = T.px(6)
+    local gap = T.px(6)
     local ddW = math.floor((w - pad * 2 - gap) * 0.45)  -- dropdown ~45%
     local searchW = w - pad * 2 - gap - ddW              -- search gets rest
 
@@ -1015,7 +1015,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         panel:drawRect(ddX, ddY, ddW, ddH, 0.08, ac.r, ac.g, ac.b)
         panel:drawRectBorder(ddX, ddY, ddW, ddH, ac.a * 0.3, ac.r, ac.g, ac.b)
         local frozenLabel = "Compatible"
-        panel:drawText(frozenLabel, ddX + 6, ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2),
+        panel:drawText(frozenLabel, ddX + T.px(6), ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2),
             ac.r, ac.g, ac.b, 0.8, T.fontF2)
     else
         -- Normal dropdown: show active category with arrow
@@ -1028,11 +1028,11 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
             activeCatLabel = string.upper(string.sub(activeCatLabel, 1, 1)) .. string.sub(activeCatLabel, 2)
         end
         local catTextY = ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2)
-        panel:drawText(activeCatLabel, ddX + 6, catTextY, T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
+        panel:drawText(activeCatLabel, ddX + T.px(6), catTextY, T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
 
         -- Down arrow
-        local arrowSz = 5
-        local arrowX = ddX + ddW - arrowSz - 8
+        local arrowSz = T.px(5)
+        local arrowX = ddX + ddW - arrowSz - T.px(8)
         local arrowY = ddY + math.floor((ddH - arrowSz) / 2)
         A.drawTriangleDown(panel, arrowX, arrowY, arrowSz, T.textSec)
 
@@ -1050,7 +1050,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     end
 
     -- Bottom rule on header row
-    A.drawDividerH(panel, x, y + headerH - 1, w, true)
+    A.drawDividerH(panel, x, y + headerH - T.px(1), w, true)
 
     return headerH  -- 37px; sort strip renders immediately below
 end
@@ -1060,12 +1060,13 @@ end
 -- ============================================================================
 
 function CC.renderStrip(panel, x, y, w, state, config)
+    local T = ZeD.T
     local zones = state.zones
     local mx, my = panel:getMouseX(), panel:getMouseY()
     if state.catDropdownOpen then mx, my = -1, -1 end  -- suppress hover when dropdown open
 
     -- Detect hover zone from previous frame's zones (strip zones persist between frames)
-    local stripH = CC.STRIP_H
+    local stripH = T.px(CC.STRIP_H)
     local hoverZone = nil
     if my >= y and my < y + stripH and mx >= x and mx < x + w then
         for _, z in ipairs(zones) do
@@ -1147,10 +1148,10 @@ end
 function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local T     = ZeD.T
     local A     = ZeD.Atoms
-    local tm    = getTextManager()
+    local tm    = ZeD.TM
     local zones = state.zones
     local scroll = state.scroll
-    local ROW_H = CC.ROW_H
+    local ROW_H = T.px(CC.ROW_H)
     local catHdrH = T.sp.catHdrH
 
     -- Sections + totalH are cached — only rebuilt when filterDirty was just processed
@@ -1160,7 +1161,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local pinSet      = state._pinSet or {}
     local freqCounts  = state._freqCounts or {}
 
-    if not sections or state._sectionsStale then
+    if not sections or state._sectionsStale or state._sectionsScale ~= T.scale then  -- S124 scale: totalH is screen px, rebuild when T.scale changes
         state._sectionsStale = false
 
         pinSet = {}
@@ -1239,6 +1240,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
 
         state._sections       = sections
         state._sectionsTotalH = totalH
+        state._sectionsScale  = T.scale
         state._pinSet         = pinSet
         state._freqCounts     = freqCounts
     end
@@ -1290,8 +1292,8 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         local hdrVisible = curY + catHdrH > visTop and curY < visBot
         if hdrVisible then
             local headerHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-            M.drawSectionHeader(panel, x + 6, curY, contentW - 6, sec.label,
-                #sec.items, not sec.collapsed, headerHover, T.fontF1, true, 6, catHdrH)
+            M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), sec.label,
+                #sec.items, not sec.collapsed, headerHover, T.fontF1, true, T.px(6), catHdrH)
             -- S105 gamepad: inline cue paint — accent overlay when focused.
             local pfx = (config and config.prefix) or "jrecipe"
             if state._gpFocusedId == (pfx .. ":section:" .. tostring(sec.id)) then
@@ -1360,12 +1362,12 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                 else
                     zones[#zones + 1] = {
                         type = "recipeRow", id = name,
-                        x = x, y = curY, w = contentW - 18, h = ROW_H,
+                        x = x, y = curY, w = contentW - T.px(18), h = ROW_H,
                         _scrolled = true,
                     }
                     zones[#zones + 1] = {
                         type = "recipeStar", id = name,
-                        x = x + contentW - 18, y = curY, w = 18, h = ROW_H,
+                        x = x + contentW - T.px(18), y = curY, w = T.px(18), h = ROW_H,
                         _scrolled = true,
                     }
                 end
@@ -1391,10 +1393,10 @@ end
 function CC.renderAltList(panel, x, y, w, h, state)
     local T     = ZeD.T
     local A     = ZeD.Atoms
-    local tm    = getTextManager()
+    local tm    = ZeD.TM
     local zones = state.zones
     local scroll = state.altScroll
-    local ROW_H = CC.ROW_H
+    local ROW_H = T.px(CC.ROW_H)
 
     local altData = state.altItems
     if not altData then return h end
@@ -1465,7 +1467,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
     -- Owned section
     if #owned > 0 then
         local headerStr = "OWNED"
-        M.drawSectionHeader(panel, x + 6, curY, contentW - 6, headerStr, #owned, true, false, T.fontF1, true, 6, catHdrH)
+        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), headerStr, #owned, true, false, T.fontF1, true, T.px(6), catHdrH)
         curY = curY + catHdrH
 
         for _, alt in ipairs(owned) do
@@ -1478,7 +1480,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
     -- Other section
     if #other > 0 then
         local headerStr = "OTHER COMPATIBLE"
-        M.drawSectionHeader(panel, x + 6, curY, contentW - 6, headerStr, #other, true, false, T.fontF1, true, 6, catHdrH)
+        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), headerStr, #other, true, false, T.fontF1, true, T.px(6), catHdrH)
         curY = curY + catHdrH
 
         for _, alt in ipairs(other) do
@@ -1493,7 +1495,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
         local msg = "No alternatives found"
         local msgW = tm:MeasureStringX(T.fontF1, msg)
         local dc = T.textDim
-        panel:drawText(msg, x + math.floor((contentW - msgW) / 2), curY + 6,
+        panel:drawText(msg, x + math.floor((contentW - msgW) / 2), curY + T.px(6),
             dc.r, dc.g, dc.b, 0.5, T.fontF1)
     end
 
@@ -1513,28 +1515,28 @@ end
 function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local T     = ZeD.T
     local A     = ZeD.Atoms
-    local tm    = getTextManager()
+    local tm    = ZeD.TM
     local zones = state.zones
     local scroll = state.cardScroll
-    local ROW_H = CC.ROW_H
+    local ROW_H = T.px(CC.ROW_H)
 
     if not rd then return h end
 
     local entry = rd.entry
 
     -- Measure total card content height
-    local headerH = 60  -- icon + name + description estimate
-    local chipH = 22
+    local headerH = T.px(60)  -- icon + name + description estimate
+    local chipH = T.px(22)
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
     local outputsH = ROW_H + #(entry.outputDefs or {}) * ROW_H
-    local actionH = config.readOnly and 0 or CC.ACT_STRIP_H
+    local actionH = config.readOnly and 0 or T.px(CC.ACT_STRIP_H)
     -- Learn info section height (readOnly + not accessible)
     local showLearnSection = config.readOnly and (not rd.learned or rd.hasSkill == false)
     local learnH = 0
     if showLearnSection then
-        learnH = ROW_H + #(rd.skills or {}) * ROW_H + 8
+        learnH = ROW_H + #(rd.skills or {}) * ROW_H + T.px(8)
     end
-    local totalH = headerH + chipH + 4 + inputsH + 4 + outputsH + learnH + actionH
+    local totalH = headerH + chipH + T.px(4) + inputsH + T.px(4) + outputsH + learnH + actionH
 
     -- Scrollbar (for very long ingredient lists)
     local scrollW = T.sp.scrollbarW
@@ -1562,45 +1564,45 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local curY = y - scrollOff
 
     -- Header block: icon + name + description
-    local iconSz = 36
-    local iconX = x + 6
-    local iconY = curY + 6
+    local iconSz = T.px(36)
+    local iconX = x + T.px(6)
+    local iconY = curY + T.px(6)
     local s3 = T.surf3
     panel:drawRect(iconX, iconY, iconSz, iconSz, s3.a, s3.r, s3.g, s3.b)
     panel:drawRectBorder(iconX, iconY, iconSz, iconSz, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
     if entry.iconTex then
-        panel:drawTextureScaledAspect(entry.iconTex, iconX + 2, iconY + 2, iconSz - 4, iconSz - 4, 1, 1, 1, 1)
+        panel:drawTextureScaledAspect(entry.iconTex, iconX + T.px(2), iconY + T.px(2), iconSz - T.px(4), iconSz - T.px(4), 1, 1, 1, 1)
     end
 
     -- Name (F2 13px, accent)
-    local nameX = iconX + iconSz + 6
+    local nameX = iconX + iconSz + T.px(6)
     local nameFont = T.fontF2
-    local nameStr = CC.truncText(entry.displayName, nameFont, contentW - (nameX - x) - 6)
-    panel:drawText(nameStr, nameX, curY + 6, T.accent.r, T.accent.g, T.accent.b, 1, nameFont)
+    local nameStr = CC.truncText(entry.displayName, nameFont, contentW - (nameX - x) - T.px(6))
+    panel:drawText(nameStr, nameX, curY + T.px(6), T.accent.r, T.accent.g, T.accent.b, 1, nameFont)
 
     -- Description (pre-baked during catalog build)
     if entry.description then
-        local descStr = CC.truncText(entry.description, T.fontF5, contentW - (nameX - x) - 6)
-        local descY = curY + 6 + tm:getFontHeight(nameFont) + 2
+        local descStr = CC.truncText(entry.description, T.fontF5, contentW - (nameX - x) - T.px(6))
+        local descY = curY + T.px(6) + tm:getFontHeight(nameFont) + T.px(2)
         panel:drawText(descStr, nameX, descY, T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF5)
     end
 
     curY = curY + headerH
 
     -- Chip row: KNOWN/UNKNOWN, SURFACE, LIGHT, time
-    local chipX = x + 6
+    local chipX = x + T.px(6)
     -- In readOnly (Journal), show accessibility: learned AND has skill
     local isAccessible = rd.learned and (rd.hasSkill ~= false)
     local learnedStr = isAccessible and "KNOWN" or "UNKNOWN"
     local learnedV = isAccessible and "positive" or "danger"
     local bw = A.drawBadge(panel, learnedStr, chipX, curY, learnedV)
-    chipX = chipX + bw + 4
+    chipX = chipX + bw + T.px(4)
 
     -- Surface requirement (pre-baked during catalog build)
     local needsSurface = entry.needSurface or false
     if needsSurface then
         bw = A.drawBadge(panel, "SURFACE", chipX, curY, "warning")
-        chipX = chipX + bw + 4
+        chipX = chipX + bw + T.px(4)
     end
 
     -- Craft time (getTime returns seconds)
@@ -1615,7 +1617,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         bw = A.drawBadge(panel, timeStr, chipX, curY, "accent", nil, nil, true)
     end
 
-    curY = curY + chipH + 4
+    curY = curY + chipH + T.px(4)
 
     local catHdrH = T.sp.catHdrH  -- 15px, same as inventory category separators
 
@@ -1623,24 +1625,24 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     if showLearnSection then
         local learnLabel = "HOW TO LEARN"
         local learnHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-        M.drawSectionHeader(panel, x + 6, curY, contentW - 6, learnLabel,
-            nil, true, learnHdrHover, T.fontF1, false, 6, catHdrH)
+        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), learnLabel,
+            nil, true, learnHdrHover, T.fontF1, false, T.px(6), catHdrH)
         curY = curY + catHdrH
 
         -- Skill requirements
         if rd.skills and #rd.skills > 0 then
             for _, sk in ipairs(rd.skills) do
                 local skColor = sk.met and T.positive or T.danger
-                local dotSz = 6
-                A.drawStatusDot(panel, x + 6, curY + math.floor((ROW_H - dotSz) / 2), skColor, dotSz)
+                local dotSz = T.px(6)
+                A.drawStatusDot(panel, x + T.px(6), curY + math.floor((ROW_H - dotSz) / 2), skColor, dotSz)
                 local skStr = sk.name .. " Level " .. tostring(sk.required)
-                panel:drawText(skStr, x + 6 + dotSz + 4,
+                panel:drawText(skStr, x + T.px(6) + dotSz + T.px(4),
                     curY + math.floor((ROW_H - tm:getFontHeight(T.fontF2)) / 2),
                     T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
                 -- Player level right-aligned
                 local lvlStr = tostring(sk.playerLevel) .. "/" .. tostring(sk.required)
                 local lvlColor = sk.met and T.positive or T.danger
-                A.drawTextRight(panel, lvlStr, x + contentW - 6,
+                A.drawTextRight(panel, lvlStr, x + contentW - T.px(6),
                     curY + math.floor((ROW_H - tm:getFontHeight(T.fontF3)) / 2),
                     T.fontF3, lvlColor)
                 curY = curY + ROW_H
@@ -1650,13 +1652,13 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         -- needToBeLearn hint
         if entry.needLearn then
             local hintStr = "Find recipe magazine or schematic"
-            panel:drawText(hintStr, x + 6,
+            panel:drawText(hintStr, x + T.px(6),
                 curY + math.floor((ROW_H - tm:getFontHeight(T.fontF5)) / 2),
                 T.textSec.r, T.textSec.g, T.textSec.b, 0.7, T.fontF5)
             curY = curY + ROW_H
         end
 
-        curY = curY + 4
+        curY = curY + T.px(4)
     end
 
     -- Required Items section (collapsible disclosure, matches inventory catHdrH)
@@ -1665,8 +1667,8 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local secLabel = "REQUIRED"
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local reqHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-    M.drawSectionHeader(panel, x + 6, curY, contentW - 6, secLabel,
-        haveCount .. "/" .. reqCount, not state.reqCollapsed, reqHdrHover, T.fontF1, true, 6, catHdrH)
+    M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), secLabel,
+        haveCount .. "/" .. reqCount, not state.reqCollapsed, reqHdrHover, T.fontF1, true, T.px(6), catHdrH)
     -- S105 gamepad: inline cue paint for focused card section header (REQUIRED).
     do
         local pfx = (config and config.prefix) or "jrecipe"
@@ -1715,12 +1717,12 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     end
 
     -- Outputs section (collapsible disclosure, matches inventory catHdrH)
-    curY = curY + 4
+    curY = curY + T.px(4)
     local outCount = #(entry.outputDefs or {})
     if outCount > 0 then
         local outHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-        M.drawSectionHeader(panel, x + 6, curY, contentW - 6, "OUTPUTS",
-            outCount, not state.outCollapsed, outHdrHover, T.fontF1, true, 6, catHdrH)
+        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), "OUTPUTS",
+            outCount, not state.outCollapsed, outHdrHover, T.fontF1, true, T.px(6), catHdrH)
         -- S105 gamepad: inline cue paint for focused card section header (OUTPUTS).
         do
             local pfx = (config and config.prefix) or "jrecipe"
@@ -1867,12 +1869,12 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
         listW = w
         cardW = 0
     elseif splitFrac >= 1 then
-        listW = CC.PANE_W_SPLIT
-        cardW = CC.PANE_W_SPLIT
+        listW = T.px(CC.PANE_W_SPLIT)
+        cardW = T.px(CC.PANE_W_SPLIT)
     else
         -- Interpolate
-        listW = math.floor(w - splitFrac * CC.PANE_W_SPLIT)
-        cardW = math.floor(splitFrac * CC.PANE_W_SPLIT)
+        listW = math.floor(w - splitFrac * T.px(CC.PANE_W_SPLIT))
+        cardW = math.floor(splitFrac * T.px(CC.PANE_W_SPLIT))
     end
 
     -- Left pane: recipe list or alt list
@@ -1895,8 +1897,8 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
         end
         if selRd then
             -- Vertical divider between panes
-            panel:drawRect(cardX, curY, 1, panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-            CC.renderCraftCard(panel, cardX + 1, curY, cardW - 1, panesH, state, config, selRd, win._playerObj)
+            panel:drawRect(cardX, curY, T.px(1), panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+            CC.renderCraftCard(panel, cardX + T.px(1), curY, cardW - T.px(1), panesH, state, config, selRd, win._playerObj)
         end
     end
 
@@ -1972,12 +1974,12 @@ local DD_MAX_VIS = 14  -- max visible rows before scroll kicks in
 function CC.renderCatDropdownOverlay(panel, state, data)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local geo = state._ddGeo
     local cats = data.categories or {}
 
     local font = T.fontF2
-    local rowH = DD_ROW_H
+    local rowH = T.px(DD_ROW_H)
     local totalRows = #cats
     local visibleCount = math.min(totalRows, DD_MAX_VIS)
     local listH = visibleCount * rowH
@@ -2027,11 +2029,11 @@ function CC.renderCatDropdownOverlay(panel, state, data)
         local label = cat.full or cat.label or cat.id
         local tc = isActive and T.accent or T.text
         local textY = ry + math.floor((rowH - tm:getFontHeight(font)) / 2)
-        panel:drawText(label, ddX + 6, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
+        panel:drawText(label, ddX + T.px(6), textY, tc.r, tc.g, tc.b, tc.a or 1, font)
 
         if cat.count then
             local countStr = tostring(cat.count)
-            A.drawTextRight(panel, countStr, ddX + ddW - 6, textY, T.fontF1, T.textDim)
+            A.drawTextRight(panel, countStr, ddX + ddW - T.px(6), textY, T.fontF1, T.textDim)
         end
     end
 
@@ -2039,11 +2041,11 @@ function CC.renderCatDropdownOverlay(panel, state, data)
     if needsScroll then
         if scrollOff > 0 then
             local arrowC = T.textSec
-            A.drawTriangleUp(panel, ddX + math.floor((ddW - 6) / 2), ddY + 2, 6, arrowC)
+            A.drawTriangleUp(panel, ddX + math.floor((ddW - T.px(6)) / 2), ddY + T.px(2), T.px(6), arrowC)
         end
         if scrollOff < maxScroll then
             local arrowC = T.textSec
-            A.drawTriangleDown(panel, ddX + math.floor((ddW - 6) / 2), ddY + listH - 8, 6, arrowC)
+            A.drawTriangleDown(panel, ddX + math.floor((ddW - T.px(6)) / 2), ddY + listH - T.px(8), T.px(6), arrowC)
         end
     end
 
@@ -2058,11 +2060,12 @@ end
 -- ============================================================================
 
 function CC.onClick(state, config, win, x, y, playerObj)
+    local T = ZeD.T
     -- When dropdown is open, do direct hit-test — consume ALL clicks
     if state.catDropdownOpen and state._ddGeo then
         local geo = state._ddGeo
         local cats = state.categoryList or {}
-        local rowH = DD_ROW_H
+        local rowH = T.px(DD_ROW_H)
         local ddX, ddY, ddW = geo.x, geo.y, geo.w
         local visCount = math.min(#cats, DD_MAX_VIS)
         local listH = visCount * rowH
@@ -2200,6 +2203,7 @@ end
 -- ============================================================================
 
 function CC.onMouseWheel(state, del, x, y, panelX, panelW)
+    local T = ZeD.T
     -- Dropdown scroll takes priority when open
     if state.catDropdownOpen then
         local totalRows = #(state.categoryList or {})
@@ -2212,7 +2216,7 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
 
     -- Determine which scroll area the mouse is over
     -- Left half = recipe/alt list, right half = card
-    local midX = panelX + CC.PANE_W_SPLIT
+    local midX = panelX + T.px(CC.PANE_W_SPLIT)
     if state.splitFrac > 0 and x >= midX then
         state.cardScroll:handleMouseWheel(del)
     elseif state.altSlotName then
@@ -2255,6 +2259,7 @@ end
 -- recipeStar zones intentionally NOT emitted as focusables — pin handled via
 -- X (onContextMenu) on the recipeRow itself per S107 design ruling.
 function CC.buildFocusables(win, state, prefix, pinKey, startAction)
+    local T = ZeD.T
     if not (win and state) then return {} end
 
     -- Dropdown open: focus locked to dropdown rows. DD_ROW_H = 20 / DD_MAX_VIS
@@ -2263,7 +2268,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
     if state.catDropdownOpen and state._ddGeo then
         local geo = state._ddGeo
         local cats = state.categoryList or {}
-        local rowH = 20
+        local rowH = T.px(20)
         local scrollOff = state.catDropdownScroll or 0
         local elements = {}
         local visCount = math.min(#cats - scrollOff, 14)

@@ -281,7 +281,7 @@ local function renderItemList(self)
     local rowH     = T.rowH             -- 26px (small) / 32px (large)
     local catHdrH  = T.sp.catHdrH       -- category group label row
     local colHdrH  = T.sp.colHdrH       -- column header bar
-    local iconW    = rowH - 8           -- item icon square (closer to text height)
+    local iconW    = rowH - T.px(8)           -- item icon square (closer to text height)
     local iconGap  = T.sp.iconGap       -- 6px  — icon → name gap
     local scrollW  = T.sp.scrollbarW    -- 14px — reserved for scrollbar
     local scale    = T.scale or 1.0     -- text scale factor
@@ -303,7 +303,7 @@ local function renderItemList(self)
     -- Responsive columns: drop one at a time as panel narrows
     -- Order: cond first, then cat. Name + WT always stay.
     local nameX    = padX + iconW + iconGap
-    local MIN_NAME = 80
+    local MIN_NAME = T.px(80)
     local catColW  = colWData.cat
     local condColW = colWData.cond
     local wtColW   = colWData.wt
@@ -336,10 +336,10 @@ local function renderItemList(self)
     local scrollX = colW - scrollW
 
     -- Font heights for vertical centering
-    local bodyFH = getTextManager():getFontHeight(T.fontF2)
-    local secFH  = getTextManager():getFontHeight(T.fontF1)
-    local statFH = getTextManager():getFontHeight(T.fontF3)
-    local f5FH   = getTextManager():getFontHeight(T.fontF5)
+    local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
+    local secFH  = ZeD.TM:getFontHeight(T.fontF1)
+    local statFH = ZeD.TM:getFontHeight(T.fontF3)
+    local f5FH   = ZeD.TM:getFontHeight(T.fontF5)
 
     -- Bar height — container toggle bar sits above all column content
     local barH = self._barH or 0
@@ -533,10 +533,10 @@ local function renderItemList(self)
             -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
             local wtStr  = ci.stats or ""
             local cntStr = ci.count  or ""
-            local wtW    = getTextManager():MeasureStringX(T.fontF1, wtStr)
-            local cntW   = getTextManager():MeasureStringX(T.fontF5, cntStr)
+            local wtW    = ZeD.TM:MeasureStringX(T.fontF1, wtStr)
+            local cntW   = ZeD.TM:MeasureStringX(T.fontF5, cntStr)
             local stackW = math.max(wtW, cntW)
-            local gap    = 2
+            local gap    = T.px(2)
             local stackH = secFH + gap + f5FH
             local stackY = barH + math.floor((infoAreaH - stackH) / 2)
             local htc    = T.toneHi
@@ -545,7 +545,7 @@ local function renderItemList(self)
             dT(cntStr, colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5)
 
             -- Left: icon + name (F4 norm), vertically centred in info area
-            local f4FH   = getTextManager():getFontHeight(T.fontF4)
+            local f4FH   = ZeD.TM:getFontHeight(T.fontF4)
             local nameY  = barH + math.floor((infoAreaH - f4FH) / 2)
             local cx     = padX
             if ci.texture then
@@ -558,7 +558,7 @@ local function renderItemList(self)
                 dT(name, cx, nameY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
             end
         end
-        aDiv(0, hdrY - 1, colW, true)
+        aDiv(0, hdrY - T.px(1), colW, true)
     end
 
     -- --------------------------------------------------------
@@ -581,7 +581,7 @@ local function renderItemList(self)
     colDefs[#colDefs + 1] = {"WT",   "wt",   wtX + padX,   wtX,    wtColW}
 
     -- Divider hit zones (registered BEFORE header zones for priority)
-    local DIV_W = 6
+    local DIV_W = T.px(6)
     if not self._compactMode then
         if showCat then
             hZ("div:cat", catX - DIV_W / 2, hdrY, DIV_W, colHdrH)
@@ -599,11 +599,11 @@ local function renderItemList(self)
         dT(label, drawX, hdrTextY, color.r, color.g, color.b, color.a, T.fontF5)
         -- Under/overline active sort column (System 7 style)
         if isActive then
-            local labelW = getTextManager():MeasureStringX(T.fontF5, label)
+            local labelW = ZeD.TM:MeasureStringX(T.fontF5, label)
             if sortAsc then
-                dR(drawX, hdrTextY + f5FH, labelW, 1, color.a, color.r, color.g, color.b)
+                dR(drawX, hdrTextY + f5FH, labelW, T.px(1), color.a, color.r, color.g, color.b)
             else
-                dR(drawX, hdrTextY - 1, labelW, 1, color.a, color.r, color.g, color.b)
+                dR(drawX, hdrTextY - T.px(1), labelW, T.px(1), color.a, color.r, color.g, color.b)
             end
         end
         hZ("hdr:" .. key, hitX, hdrY, hitW, colHdrH)
@@ -625,7 +625,7 @@ local function renderItemList(self)
                and zone.x >= xOff and zone.x < xOff + colW then
                 divHover = true
                 local ac = T.accent
-                dR(zone.x - xOff + DIV_W / 2 - 1, hdrY, 2, colHdrH, ac.a, ac.r, ac.g, ac.b)
+                dR(zone.x - xOff + DIV_W / 2 - T.px(1), hdrY, T.px(2), colHdrH, ac.a, ac.r, ac.g, ac.b)
             end
         end
         if not divHover then
@@ -647,10 +647,10 @@ local function renderItemList(self)
         elseif dragCol == "cond" then divX = condX
         else divX = wtX end
         local ac = T.accent
-        dR(divX - 1, hdrY, 2, h, ac.a, ac.r, ac.g, ac.b)
+        dR(divX - T.px(1), hdrY, T.px(2), h, ac.a, ac.r, ac.g, ac.b)
     end
 
-    aDiv(0, hdrY + colHdrH - 1, colW, true)
+    aDiv(0, hdrY + colHdrH - T.px(1), colW, true)
 
     -- --------------------------------------------------------
     -- DRAW ROWS (clipped to below column header)
@@ -805,7 +805,7 @@ local function renderItemList(self)
         local childParent = self._childParent and self._childParent[item]
         local isStackHead = stackInfo and stackInfo.count > 1
         local isChild     = childParent ~= nil
-        local childIndent = isChild and 10 or 0
+        local childIndent = isChild and T.px(10) or 0
 
         -- Icon (children don't show icon; stack header shows icon of rep)
         if not isChild then
@@ -843,10 +843,10 @@ local function renderItemList(self)
             local condMax = item:getConditionMax()
             if condMax and condMax > 0 then
                 local condPct = math.max(0, math.min(1, item:getCondition() / condMax))
-                local barX = condX + 2
-                local barY = y + math.floor(rowH / 2) - 1
-                local barW = condColW - 4
-                local barH = 3
+                local barX = condX + T.px(2)
+                local barY = y + math.floor(rowH / 2) - T.px(1)
+                local barW = condColW - T.px(4)
+                local barH = T.px(3)
 
                 local bg = T.surf3
                 dR(barX, barY, barW, barH, bg.a, bg.r, bg.g, bg.b)
@@ -876,7 +876,7 @@ local function renderItemList(self)
         -- it wins hit-testing for clicks on the arrow. Full-row item zone
         -- registers second for the rest of the row.
         if isStackHead then
-            hZ("stack:" .. stackInfo.key, 0, y, nameX + 16, rowH)
+            hZ("stack:" .. stackInfo.key, 0, y, nameX + T.px(16), rowH)
         end
         hZ(item, 0, y, scrollX, rowH)
 
@@ -901,8 +901,8 @@ local function renderItemList(self)
                 local catLabelY = y + math.floor((catHdrH - secFH) / 2)
                 local tri = isClosed and "> " or "v "
                 aSec(tri .. string.upper(cat) .. " (" .. #catGroup .. ")",
-                    padX + 2, catLabelY, T.toneLo)
-                aDiv(0, y + catHdrH - 1, scrollX, false)
+                    padX + T.px(2), catLabelY, T.toneLo)
+                aDiv(0, y + catHdrH - T.px(1), scrollX, false)
 
                 hZ("cat:" .. cat, 0, y, scrollX, catHdrH)
             end
@@ -932,7 +932,7 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     if #catOrder == 0 then
         local msg  = "INVENTORY EMPTY"
-        local msgW = getTextManager():MeasureStringX(T.fontF1, msg)
+        local msgW = ZeD.TM:MeasureStringX(T.fontF1, msg)
         local msgX = math.floor((scrollX - msgW) / 2)
         local msgY = contentTop + math.floor((visibleH - secFH) / 2)
         aSec(msg, msgX, msgY)
@@ -956,6 +956,7 @@ local XFER_W_NORMAL  = 32    -- transfer strip between columns (2-3 cols)
 local XFER_W_COMPACT = 24    -- narrower XFER strip at 4+ cols (drop badge, keep arrow+icon)
 
 -- Adaptive XFER strip width based on column count
+-- S124 scale: returns DESIGN units (exported; Character/World windows wrap it in T.px)
 local function getXferW(colCount)
     if colCount >= 4 then return XFER_W_COMPACT end
     return XFER_W_NORMAL
@@ -968,9 +969,9 @@ local function renderXferStrip(self, stripX, stripH, selectedContainers, contain
     local T = ZeD.T
     local A = ZeD.Atoms
     local y0 = topY or 0
-    local sw = xferW or XFER_W_NORMAL
-    local btnW = sw - 6  -- 3px margin each side
-    local compact = (sw <= XFER_W_COMPACT)
+    local sw = xferW or T.px(XFER_W_NORMAL)
+    local btnW = sw - T.px(6)  -- 3px margin each side
+    local compact = (sw <= T.px(XFER_W_COMPACT))
 
     -- Background
     local bg = T.surf1
@@ -978,12 +979,12 @@ local function renderXferStrip(self, stripX, stripH, selectedContainers, contain
 
     -- Left/right border lines
     local brd = T.border
-    self:drawRect(stripX, y0, 1, stripH - y0, brd.a, brd.r, brd.g, brd.b)
-    self:drawRect(stripX + sw - 1, y0, 1, stripH - y0, brd.a, brd.r, brd.g, brd.b)
+    self:drawRect(stripX, y0, T.px(1), stripH - y0, brd.a, brd.r, brd.g, brd.b)
+    self:drawRect(stripX + sw - T.px(1), y0, T.px(1), stripH - y0, brd.a, brd.r, brd.g, brd.b)
 
     -- Destination buttons (no header label — just small top padding)
-    local btnX = stripX + 3
-    local btnY = y0 + XFER_HDR_H
+    local btnX = stripX + T.px(3)
+    local btnY = y0 + T.px(XFER_HDR_H)
 
     local mx = self:getMouseX()
     local my = self:getMouseY()
@@ -992,30 +993,30 @@ local function renderXferStrip(self, stripX, stripH, selectedContainers, contain
         local container = containers[cIdx]
         local isSource  = (i == activeCol)
         local isHover   = mx >= btnX and mx < btnX + btnW
-                          and my >= btnY and my < btnY + XFER_BTN_H
+                          and my >= btnY and my < btnY + T.px(XFER_BTN_H)
 
         if isSource then
             local s2 = T.surf2
-            self:drawRect(btnX, btnY, btnW, XFER_BTN_H, 0.3, s2.r, s2.g, s2.b)
+            self:drawRect(btnX, btnY, btnW, T.px(XFER_BTN_H), 0.3, s2.r, s2.g, s2.b)
         elseif isHover then
             local pos = T.positive
-            self:drawRect(btnX, btnY, btnW, XFER_BTN_H, 0.15, pos.r, pos.g, pos.b)
-            self:drawRectBorder(btnX, btnY, btnW, XFER_BTN_H, 0.6, pos.r, pos.g, pos.b)
+            self:drawRect(btnX, btnY, btnW, T.px(XFER_BTN_H), 0.15, pos.r, pos.g, pos.b)
+            self:drawRectBorder(btnX, btnY, btnW, T.px(XFER_BTN_H), 0.6, pos.r, pos.g, pos.b)
         else
             local s3 = T.surf3
-            self:drawRect(btnX, btnY, btnW, XFER_BTN_H, s3.a, s3.r, s3.g, s3.b)
-            self:drawRectBorder(btnX, btnY, btnW, XFER_BTN_H, brd.a, brd.r, brd.g, brd.b)
+            self:drawRect(btnX, btnY, btnW, T.px(XFER_BTN_H), s3.a, s3.r, s3.g, s3.b)
+            self:drawRectBorder(btnX, btnY, btnW, T.px(XFER_BTN_H), brd.a, brd.r, brd.g, brd.b)
         end
 
         -- Arrow direction (geometric)
-        local arrowSz = 5
-        local arrowDrawY = btnY + math.floor((XFER_BTN_H - arrowSz) / 2)
+        local arrowSz = T.px(5)
+        local arrowDrawY = btnY + math.floor((T.px(XFER_BTN_H) - arrowSz) / 2)
         local arrowDrawX = btnX + math.floor((btnW - arrowSz) / 2)
         local txtColor = isSource and T.textDim or T.textSec
         if i == activeCol then
             -- Dash for source column (1px horizontal line)
             local dc = txtColor
-            self:drawRect(arrowDrawX, arrowDrawY + math.floor(arrowSz / 2), arrowSz, 1, dc.a or 1, dc.r, dc.g, dc.b)
+            self:drawRect(arrowDrawX, arrowDrawY + math.floor(arrowSz / 2), arrowSz, T.px(1), dc.a or 1, dc.r, dc.g, dc.b)
         elseif i < activeCol then
             A.drawTriangleLeft(self, arrowDrawX, arrowDrawY, arrowSz, txtColor)
         else
@@ -1024,9 +1025,9 @@ local function renderXferStrip(self, stripX, stripH, selectedContainers, contain
 
         -- Container icon (tiny)
         if container and container.texture then
-            local icoSz = compact and 10 or 12
+            local icoSz = compact and T.px(10) or T.px(12)
             local icoX = btnX + math.floor((btnW - icoSz) / 2)
-            local icoY = btnY + math.floor((XFER_BTN_H - icoSz) / 2)
+            local icoY = btnY + math.floor((T.px(XFER_BTN_H) - icoSz) / 2)
             self:drawTextureScaledAspect(container.texture, icoX, icoY, icoSz, icoSz,
                 isSource and 0.3 or 0.7, 1, 1, 1)
         end
@@ -1035,15 +1036,15 @@ local function renderXferStrip(self, stripX, stripH, selectedContainers, contain
         if not compact then
             local numStr = tostring(i)
             local numColor = isSource and T.textDim or T.text
-            A.drawSecondary(self, numStr, btnX + btnW - 8, arrowDrawY, numColor)
+            A.drawSecondary(self, numStr, btnX + btnW - T.px(8), arrowDrawY, numColor)
         end
 
         -- Hit zone for non-source buttons
         if not isSource then
-            self:addHitZone("xfer:" .. i, btnX, btnY, btnW, XFER_BTN_H)
+            self:addHitZone("xfer:" .. i, btnX, btnY, btnW, T.px(XFER_BTN_H))
         end
 
-        btnY = btnY + XFER_BTN_H + 2
+        btnY = btnY + T.px(XFER_BTN_H) + T.px(2)
     end
 end
 
@@ -1070,7 +1071,7 @@ local function renderContainerBar(self)
 
     -- Background
     local surf2 = T.surf2
-    self:drawRect(0, 0, w, CONTAINER_BAR_H, surf2.a, surf2.r, surf2.g, surf2.b)
+    self:drawRect(0, 0, w, T.px(CONTAINER_BAR_H), surf2.a, surf2.r, surf2.g, surf2.b)
 
     -- Build selection lookup: containerIdx → column number (1-based)
     local selMap = {}
@@ -1078,9 +1079,9 @@ local function renderContainerBar(self)
         selMap[cIdx] = colNum
     end
 
-    local secFH = getTextManager():getFontHeight(T.fontF1)
-    local btnY  = CBAR_PAD
-    local btnX  = CBAR_PAD
+    local secFH = ZeD.TM:getFontHeight(T.fontF1)
+    local btnY  = T.px(CBAR_PAD)
+    local btnX  = T.px(CBAR_PAD)
     local mx    = self:getMouseX()
     local my    = self:getMouseY()
 
@@ -1090,71 +1091,71 @@ local function renderContainerBar(self)
         local isSel   = colNum ~= nil
 
         -- Measure button width: icon + gap + name + padding
-        local label = truncateText(c.name or "???", T.fontF1, 80)
-        local labelW = getTextManager():MeasureStringX(T.fontF1, label)
-        local btnW = CBAR_PAD * 2 + labelW
+        local label = truncateText(c.name or "???", T.fontF1, T.px(80))
+        local labelW = ZeD.TM:MeasureStringX(T.fontF1, label)
+        local btnW = T.px(CBAR_PAD) * 2 + labelW
         if c.texture then
-            btnW = btnW + CBAR_ICON_SZ + T.sp.iconGap
+            btnW = btnW + T.px(CBAR_ICON_SZ) + T.sp.iconGap
         end
         if isSel then
             -- Extra room for badge number
-            btnW = btnW + 12
+            btnW = btnW + T.px(12)
         end
 
         -- Clamp to available space
-        if btnX + btnW > w - CBAR_PAD then break end
+        if btnX + btnW > w - T.px(CBAR_PAD) then break end
 
         local isHover = mx >= btnX and mx < btnX + btnW
-                        and my >= btnY and my < btnY + CBAR_BTN_H
+                        and my >= btnY and my < btnY + T.px(CBAR_BTN_H)
 
         -- Draw button
         if isSel then
             local ac = T.accent
-            self:drawRect(btnX, btnY, btnW, CBAR_BTN_H, 0.15, ac.r, ac.g, ac.b)
-            self:drawRectBorder(btnX, btnY, btnW, CBAR_BTN_H, 0.6, ac.r, ac.g, ac.b)
+            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.15, ac.r, ac.g, ac.b)
+            self:drawRectBorder(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.6, ac.r, ac.g, ac.b)
         elseif isHover then
             local s3 = T.surf3
-            self:drawRect(btnX, btnY, btnW, CBAR_BTN_H, s3.a, s3.r, s3.g, s3.b)
+            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), s3.a, s3.r, s3.g, s3.b)
             local ac = T.accent
-            self:drawRectBorder(btnX, btnY, btnW, CBAR_BTN_H, 0.3, ac.r, ac.g, ac.b)
+            self:drawRectBorder(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.3, ac.r, ac.g, ac.b)
         else
             local s3 = T.surf3
-            self:drawRect(btnX, btnY, btnW, CBAR_BTN_H, 0.5, s3.r, s3.g, s3.b)
+            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.5, s3.r, s3.g, s3.b)
             local brd = T.borderS
-            self:drawRectBorder(btnX, btnY, btnW, CBAR_BTN_H, brd.a, brd.r, brd.g, brd.b)
+            self:drawRectBorder(btnX, btnY, btnW, T.px(CBAR_BTN_H), brd.a, brd.r, brd.g, brd.b)
         end
 
         -- Icon
-        local cx = btnX + CBAR_PAD
+        local cx = btnX + T.px(CBAR_PAD)
         if c.texture then
-            local icoY = btnY + math.floor((CBAR_BTN_H - CBAR_ICON_SZ) / 2)
-            self:drawTextureScaledAspect(c.texture, cx, icoY, CBAR_ICON_SZ, CBAR_ICON_SZ,
+            local icoY = btnY + math.floor((T.px(CBAR_BTN_H) - T.px(CBAR_ICON_SZ)) / 2)
+            self:drawTextureScaledAspect(c.texture, cx, icoY, T.px(CBAR_ICON_SZ), T.px(CBAR_ICON_SZ),
                 isSel and 1 or 0.5, 1, 1, 1)
-            cx = cx + CBAR_ICON_SZ + T.sp.iconGap
+            cx = cx + T.px(CBAR_ICON_SZ) + T.sp.iconGap
         end
 
         -- Label
-        local textY = btnY + math.floor((CBAR_BTN_H - secFH) / 2)
+        local textY = btnY + math.floor((T.px(CBAR_BTN_H) - secFH) / 2)
         local textColor = isSel and T.text or T.textDim
         A.drawSecondary(self, label, cx, textY, textColor)
         cx = cx + labelW
 
         -- Badge number for selected containers
         if isSel then
-            cx = cx + 4
+            cx = cx + T.px(4)
             local badge = tostring(colNum)
             local ac = T.accent
             A.drawSecondary(self, badge, cx, textY, ac)
         end
 
         -- Hit zone
-        self:addHitZone("cbar:" .. ci, btnX, btnY, btnW, CBAR_BTN_H)
+        self:addHitZone("cbar:" .. ci, btnX, btnY, btnW, T.px(CBAR_BTN_H))
 
-        btnX = btnX + btnW + CBAR_BTN_GAP
+        btnX = btnX + btnW + T.px(CBAR_BTN_GAP)
     end
 
     -- Groove divider below bar
-    A.drawGroove(self, 0, CONTAINER_BAR_H - 2, w)
+    A.drawGroove(self, 0, T.px(CONTAINER_BAR_H) - T.px(2), w)
 end
 
 -- ============================================================================
@@ -1166,6 +1167,7 @@ end
 local COL_HDR_H = 22  -- container name header height per column
 
 local function renderMultiColumnContent(self)
+    local T = ZeD.T
     local colStates = self._colStates
     local selected  = self._selectedContainers
     local containers = self._containers
@@ -1190,7 +1192,7 @@ local function renderMultiColumnContent(self)
     -- Caller can pre-set _barH = 0 to suppress the container bar (e.g. character window).
     local showBar = (self._barH == nil) or (self._barH > 0)
     if showBar then
-        self._barH = CONTAINER_BAR_H
+        self._barH = T.px(CONTAINER_BAR_H)
     end
 
     if N <= 1 then
@@ -1239,11 +1241,11 @@ local function renderMultiColumnContent(self)
     -- Multi-column layout with adaptive XFER width and minimum column floor
     local totalW = self:getWidth()
     local h      = self:getHeight()
-    local xferW  = getXferW(N)
+    local xferW  = T.px(getXferW(N))
     local xferCount = N - 1
     local usableW   = totalW - (xferCount * xferW)
     local baseColW  = math.floor(usableW / N)
-    baseColW = math.max(baseColW, MIN_COL_W)  -- enforce minimum column width
+    baseColW = math.max(baseColW, T.px(MIN_COL_W))  -- enforce minimum column width
 
     -- Compute per-column X and W
     local layout = {}
@@ -1294,7 +1296,7 @@ local function renderMultiColumnContent(self)
             self._renderW           = lw
             self._compactMode       = true
             self._skipClearHitZones = true
-            self._hdrYOffset        = self._defaultHdrYOffset or 37
+            self._hdrYOffset        = self._defaultHdrYOffset or T.px(37)
             self._containerInfo     = {
                 name    = cData.name or "???",
                 stats   = statsStr,

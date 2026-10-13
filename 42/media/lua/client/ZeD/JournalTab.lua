@@ -385,9 +385,9 @@ end
 
 function ZeD.JournalTab._measureJournalContent(data, contentW, collapsedMap)
     local T = ZeD.T
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
-    local groupHeaderH = math.max(secH + 10, 26)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
+    local groupHeaderH = math.max(secH + T.px(10), T.px(26))
 
     local groups = groupEntriesByMonth(data.journalEntries)
     local totalH = 0
@@ -396,14 +396,14 @@ function ZeD.JournalTab._measureJournalContent(data, contentW, collapsedMap)
         totalH = totalH + secH + T.sp.sm
     else
         for _, group in ipairs(groups) do
-            totalH = totalH + groupHeaderH + 1  -- header + separator
+            totalH = totalH + groupHeaderH + T.px(1)  -- header + separator
             if not (collapsedMap and collapsedMap[group.key]) then
                 for _, wrapped in ipairs(group.entries) do
                     local entry = wrapped.entry
                     totalH = totalH + secH + T.sp.rowGap
                     local lines = wrapText(entry.text, T.fontF2, contentW)
-                    totalH = totalH + #lines * (bodyH + 2)
-                    totalH = totalH + T.sp.xs + 1 + T.sp.afterGroove
+                    totalH = totalH + #lines * (bodyH + T.px(2))
+                    totalH = totalH + T.sp.xs + T.px(1) + T.sp.afterGroove
                 end
             end
         end
@@ -419,8 +419,8 @@ end
 function ZeD.JournalTab._measureRecipeContent(recipeData, expandedMap, contentW)
     -- Grid-based measurement (expandedMap unused, kept for signature compat)
     local T = ZeD.T
-    local secH = getTextManager():getFontHeight(T.fontF1)
-    local pillH = secH + 8
+    local secH = ZeD.TM:getFontHeight(T.fontF1)
+    local pillH = secH + T.px(8)
     local catBarH = pillH + T.sp.xs
     local footerH = secH + T.sp.sm
     local pad = T.sp.sm
@@ -432,9 +432,9 @@ function ZeD.JournalTab._measureRecipeContent(recipeData, expandedMap, contentW)
         end
     end
 
-    local cols = math.max(1, math.floor((contentW or 200) / RCELL_STEP))
+    local cols = math.max(1, math.floor((contentW or T.px(200)) / (T.px(RCELL_SZ) + T.px(RCELL_GAP))))
     local rows = math.ceil(itemCount / cols)
-    return catBarH + rows * RCELL_STEP + pad + footerH
+    return catBarH + rows * (T.px(RCELL_SZ) + T.px(RCELL_GAP)) + pad + footerH
 end
 
 -- ============================================================================
@@ -451,11 +451,11 @@ local function drawSubTabStrip(panel, win, x, y, w)
     local padH = T.sp.md
     local gap  = T.sp.tabGap
     local bc   = T.borderS
-    local tm   = getTextManager()
+    local tm   = ZeD.TM
     local activeIdx = win._journalSubTab or 1
 
     -- Bottom border (separates strip from content below)
-    panel:drawRect(x, y + tH - 1, w, 1, bc.a, bc.r, bc.g, bc.b)
+    panel:drawRect(x, y + tH - T.px(1), w, T.px(1), bc.a, bc.r, bc.g, bc.b)
 
     -- S105 gamepad: resolve currently-focused element for pill focus cue paint.
     -- Cue paints only when charTabContent is the focused zone AND the live
@@ -480,11 +480,11 @@ local function drawSubTabStrip(panel, win, x, y, w)
         if isActive then
             -- Active tab: surf1 fill, top+left+right border, open bottom
             panel:drawRect(tabX, y, tw, tH, T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
-            panel:drawRect(tabX, y, tw, 1, bc.a, bc.r, bc.g, bc.b)           -- top
-            panel:drawRect(tabX, y, 1, tH, bc.a, bc.r, bc.g, bc.b)           -- left
-            panel:drawRect(tabX + tw - 1, y, 1, tH, bc.a, bc.r, bc.g, bc.b)  -- right
+            panel:drawRect(tabX, y, tw, T.px(1), bc.a, bc.r, bc.g, bc.b)           -- top
+            panel:drawRect(tabX, y, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)           -- left
+            panel:drawRect(tabX + tw - T.px(1), y, T.px(1), tH, bc.a, bc.r, bc.g, bc.b)  -- right
             -- Erase bottom border behind active tab (open bottom connects to content)
-            panel:drawRect(tabX + 1, y + tH - 1, tw - 2, 1,
+            panel:drawRect(tabX + T.px(1), y + tH - T.px(1), tw - T.px(2), T.px(1),
                 T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
 
             local textY = y + math.floor((tH - tm:getFontHeight(T.fontF1)) / 2)
@@ -519,11 +519,11 @@ local function drawSubTabStrip(panel, win, x, y, w)
         local searchGap = T.sp.sm
         local searchX = tabX + searchGap
         local searchW = x + w - searchX - T.sp.sm
-        if searchW > 60 then
+        if searchW > T.px(60) then
             local searchH = T.inputH  -- matches crafting tab search height
             -- Center in the full 37px header (TAB_TOP_PAD + tH), not just tH
-            local fullHeaderH = TAB_TOP_PAD + tH
-            local headerTopY = y - TAB_TOP_PAD
+            local fullHeaderH = T.px(TAB_TOP_PAD) + tH
+            local headerTopY = y - T.px(TAB_TOP_PAD)
             searchField:setX(searchX)
             searchField:setY(headerTopY + math.floor((fullHeaderH - searchH) / 2))
             searchField:setWidth(searchW)
@@ -567,8 +567,8 @@ local function renderJournal(panel, win, x, y, w, h)
     end
     local data = win._journalCache
 
-    local bodyH = getTextManager():getFontHeight(T.fontF2)
-    local secH  = getTextManager():getFontHeight(T.fontF1)
+    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
+    local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
     -- Scroll setup
     local scroll  = win._journalScroll
@@ -583,17 +583,17 @@ local function renderJournal(panel, win, x, y, w, h)
     local contentW = w
 
     -- Measure Zone A (kills disclosure + entry box)
-    local statRowEstH = math.max(secH, bodyH) + 4
+    local statRowEstH = math.max(secH, bodyH) + T.px(4)
     local zoneAEstH = T.sp.sm + statRowEstH + T.sp.rowGap
     if win._killsExpanded then
         -- 3 fixed rows (fire, vehicle, explosion) + all weapon categories
         local killRows = 3 + #data.weaponCats
         zoneAEstH = zoneAEstH + killRows * (statRowEstH + T.sp.rowGap)
     end
-    zoneAEstH = zoneAEstH + T.sp.xs + 2 + T.sp.afterGroove
-        + ENTRY_INPUT_H + T.sp.xs + T.buttonH + T.sp.sm + 1 + T.sp.afterLine
+    zoneAEstH = zoneAEstH + T.sp.xs + T.px(2) + T.sp.afterGroove
+        + T.px(ENTRY_INPUT_H) + T.sp.xs + T.buttonH + T.sp.sm + T.px(1) + T.sp.afterLine
 
-    local entryContentH = ZeD.JournalTab._measureJournalContent(data, contentW - scrollW - 2, win._journalGroupCollapsed)
+    local entryContentH = ZeD.JournalTab._measureJournalContent(data, contentW - scrollW - T.px(2), win._journalGroupCollapsed)
     local totalContentH = zoneAEstH + entryContentH
 
     local needsScroll = totalContentH > h
@@ -604,7 +604,7 @@ local function renderJournal(panel, win, x, y, w, h)
         scroll.y = y
         scroll.height = h
         scroll:setBarSize(h / totalContentH)
-        drawW = contentW - scrollW - 2
+        drawW = contentW - scrollW - T.px(2)
     else
         scroll:setScrollPos(0)
     end
@@ -638,7 +638,7 @@ local function renderJournal(panel, win, x, y, w, h)
         if ty and th then
             local prevScrollOff = math.floor(scroll.scrollPos * (totalContentH - h))
             local contentTy = ty - (y - prevScrollOff)  -- convert screen-space Y to content-space
-            local margin = 8
+            local margin = T.px(8)
             local viewTop = 0
             local viewBot = h
             local screenTop = contentTy - prevScrollOff
@@ -668,8 +668,8 @@ local function renderJournal(panel, win, x, y, w, h)
 
     -- Kills stat (expandable disclosure)
     local killColor = data.totalKills > 0 and T.danger or T.textDim
-    local chevSz = math.max(6, math.floor(getTextManager():getFontHeight(T.fontF1) * 0.6))
-    local chevronW = chevSz + 8
+    local chevSz = math.max(T.px(6), math.floor(ZeD.TM:getFontHeight(T.fontF1) * 0.6))
+    local chevronW = chevSz + T.px(8)
     win._killsRowY = curY
     local killsRowTop = curY
     -- S105 gamepad: focus cue painted UNDER the stat row so label/value read
@@ -679,7 +679,7 @@ local function renderJournal(panel, win, x, y, w, h)
         local ac = T.accent
         -- Use conservative est height (will be ~rowH); overdraw is clipped
         -- by the content stencil so spilling by a pixel is harmless.
-        local estH = math.max(bodyH, secH) + 4
+        local estH = math.max(bodyH, secH) + T.px(4)
         panel:drawRect(x, killsRowTop, drawW, estH, 0.55, ac.r, ac.g, ac.b)
     end
     local rowH = M.drawStatRow(panel, x + chevronW, curY, drawW - chevronW, "Zombies Killed", tostring(data.totalKills), T.toneHi, T.fontF2)
@@ -688,7 +688,7 @@ local function renderJournal(panel, win, x, y, w, h)
     -- Reads the real rowH returned by drawStatRow so the zone matches pixels.
     win._journalKillsZone = { x = x, y = killsRowTop, w = drawW, h = rowH }
 
-    local chevX = x + 2
+    local chevX = x + T.px(2)
     local chevY = curY + math.floor((rowH - chevSz) / 2)
     if win._killsExpanded then
         A.drawTriangleDown(panel, chevX, chevY, chevSz, T.arrow)
@@ -716,7 +716,7 @@ local function renderJournal(panel, win, x, y, w, h)
 
     curY = curY + T.sp.xs
     A.drawGroove(panel, x, curY, drawW)
-    curY = curY + 2 + T.sp.afterGroove
+    curY = curY + T.px(2) + T.sp.afterGroove
 
     -- Text entry + save button (positioned on the drawer panel — they are drawer children)
     local entryBox = win._journalInput
@@ -725,8 +725,8 @@ local function renderJournal(panel, win, x, y, w, h)
         entryBox:setX(x)
         entryBox:setY(curY)
         entryBox:setWidth(drawW)
-        entryBox:setHeight(ENTRY_INPUT_H)
-        curY = curY + ENTRY_INPUT_H + T.sp.xs
+        entryBox:setHeight(T.px(ENTRY_INPUT_H))
+        curY = curY + T.px(ENTRY_INPUT_H) + T.sp.xs
     end
     if saveBtn then
         local btnW = saveBtn:getWidth()
@@ -747,7 +747,7 @@ local function renderJournal(panel, win, x, y, w, h)
     end
 
     A.drawDividerH(panel, x, curY, drawW, true)
-    curY = curY + 1 + T.sp.afterLine
+    curY = curY + T.px(1) + T.sp.afterLine
 
     -- Filter entries by search text (if any), then group by month
     local filteredEntries = data.journalEntries
@@ -764,11 +764,11 @@ local function renderJournal(panel, win, x, y, w, h)
 
     -- Journal entries — grouped by month, newest first
     local groups = groupEntriesByMonth(filteredEntries, data.journalEntries)
-    local groupHeaderH = math.max(secH + 10, 26)
+    local groupHeaderH = math.max(secH + T.px(10), T.px(26))
     local groupZones = {}
     local deleteZones = {}
-    local chevSzG = math.max(6, math.floor(secH * 0.6))
-    local deleteBtnW = secH + 8  -- hit area for X button
+    local chevSzG = math.max(T.px(6), math.floor(secH * 0.6))
+    local deleteBtnW = secH + T.px(8)  -- hit area for X button
 
     if #groups == 0 then
         A.drawSecondary(panel, "No entries yet", x, curY, T.textDim)
@@ -785,26 +785,26 @@ local function renderJournal(panel, win, x, y, w, h)
                 local ac = T.accent
                 panel:drawRect(x, headerY, drawW, groupHeaderH, 0.55, ac.r, ac.g, ac.b)
             end
-            local chevX2 = x + 2
+            local chevX2 = x + T.px(2)
             local chevY2 = curY + math.floor((groupHeaderH - chevSzG) / 2)
             if collapsed then
                 A.drawTriangleRight(panel, chevX2, chevY2, chevSzG, T.arrow)
             else
                 A.drawTriangleDown(panel, chevX2, chevY2, chevSzG, T.arrow)
             end
-            local labelX = x + chevSzG + 8
+            local labelX = x + chevSzG + T.px(8)
             local labelY = curY + math.floor((groupHeaderH - secH) / 2)
             panel:drawText(group.label, labelX, labelY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a or 1, T.fontF1)
             -- Entry count
             local countStr = "(" .. group.count .. ")"
-            local countW = getTextManager():MeasureStringX(T.fontF3, countStr)
+            local countW = ZeD.TM:MeasureStringX(T.fontF3, countStr)
             A.drawStat(panel, countStr, x + drawW - countW, labelY, T.textCat)
 
             groupZones[#groupZones + 1] = { id = group.key, x = x, y = headerY, w = drawW, h = groupHeaderH }
             curY = curY + groupHeaderH
             -- Thin separator below header
             A.drawDividerH(panel, x, curY, drawW)
-            curY = curY + 1
+            curY = curY + T.px(1)
 
             -- Entries (if not collapsed)
             if not collapsed then
@@ -848,7 +848,7 @@ local function renderJournal(panel, win, x, y, w, h)
                         local ac = T.accent
                         panel:drawRect(delX, delY, deleteBtnW, secH, 0.55, ac.r, ac.g, ac.b)
                     end
-                    A.drawSecondary(panel, "x", delX + math.floor((deleteBtnW - getTextManager():MeasureStringX(T.fontF1, "x")) / 2), delY, T.textDim)
+                    A.drawSecondary(panel, "x", delX + math.floor((deleteBtnW - ZeD.TM:MeasureStringX(T.fontF1, "x")) / 2), delY, T.textDim)
                     deleteZones[#deleteZones + 1] = {
                         entryIdx = wrapped.idx,
                         x = delX, y = delY, w = deleteBtnW, h = secH,
@@ -859,12 +859,12 @@ local function renderJournal(panel, win, x, y, w, h)
                     local lines = wrapText(entry.text, T.fontF2, drawW)
                     for _, line in ipairs(lines) do
                         A.drawBody(panel, line, x, curY)
-                        curY = curY + bodyH + 2
+                        curY = curY + bodyH + T.px(2)
                     end
                     curY = curY + T.sp.xs
 
                     A.drawDividerH(panel, x, curY, drawW)
-                    curY = curY + 1 + T.sp.afterGroove
+                    curY = curY + T.px(1) + T.sp.afterGroove
                 end
             end
         end
@@ -953,8 +953,9 @@ end
 
 --- Mouse wheel handler for journal recipes sub-tab
 function ZeD.JournalTab.onRecipeMouseWheel(win, del, x, y)
+    local T = ZeD.T
     local state = getJRecipeState(win)
-    return ZeD.CraftingCore.onMouseWheel(state, del, x, y, 0, ZeD.CraftingCore.DRAWER_W)
+    return ZeD.CraftingCore.onMouseWheel(state, del, x, y, 0, T.px(ZeD.CraftingCore.DRAWER_W))
 end
 
 -- ============================================================================
@@ -1178,12 +1179,13 @@ end
 
 
 function ZeD_JournalMap:onMouseMove(dx, dy)
+    local T = ZeD.T
     if self.dragging then
         local mouseX = self:getMouseX()
         local mouseY = self:getMouseY()
         if not self.dragMoved
-           and math.abs(mouseX - self.dragStartX) <= 4
-           and math.abs(mouseY - self.dragStartY) <= 4 then
+           and math.abs(mouseX - self.dragStartX) <= T.px(4)
+           and math.abs(mouseY - self.dragStartY) <= T.px(4) then
             return
         end
         self.dragMoved = true
@@ -1205,10 +1207,11 @@ end
 
 -- Right-click: context menu for annotation edit/delete
 function ZeD_JournalMap:onRightMouseDown(x, y)
+    local T = ZeD.T
     if not self._annotationHits then return false end
 
     -- Hit-test against rendered annotations (16px radius)
-    local hitRadius = 16
+    local hitRadius = T.px(16)
     for _, hit in ipairs(self._annotationHits) do
         local cx = hit.x + hit.w / 2
         local cy = hit.y + hit.h / 2
@@ -1300,13 +1303,14 @@ end
 
 -- Render stash map icons on top of the world map (called from render())
 function ZeD_JournalMap:renderStashMaps()
+    local T = ZeD.T
     if not StashSystem then return end
     local stashNameList = StashSystem.getAlreadyReadMap()
     if not stashNameList then return end
 
     local iconTex = getTexture("Item_Map")
     if not iconTex then return end
-    local iconSize = 24
+    local iconSize = T.px(24)
     local pw, ph = self:getWidth(), self:getHeight()
 
     for i = 1, stashNameList:size() do
@@ -1330,7 +1334,7 @@ function ZeD_JournalMap:renderFlyerMarkers()
     if not PrintMediaDefinitions or not PrintMediaDefinitions.MiscDetails then return end
 
     local T = ZeD.T
-    local dotSz = 8
+    local dotSz = T.px(8)
     local ac = T.accent
     local pw, ph = self:getWidth(), self:getHeight()
 
@@ -1357,9 +1361,9 @@ function ZeD_JournalMap:renderAnnotations()
     if not annots or #annots == 0 then return end
 
     local T = ZeD.T
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local pw, ph = self:getWidth(), self:getHeight()
-    local sz = MAP_ANNOT_DRAW_SZ
+    local sz = T.px(MAP_ANNOT_DRAW_SZ)
     local halfSz = sz / 2
 
     -- Build hit-test list for right-click detection
@@ -1378,23 +1382,23 @@ function ZeD_JournalMap:renderAnnotations()
             -- Draw icon texture with color tint, or dot for text annotations
             if ann.iconId == "text" then
                 -- Text note marker: small filled dot (6px)
-                local dotSz = 6
+                local dotSz = T.px(6)
                 local dotX = sx + halfSz - dotSz / 2
                 local dotY = sy + halfSz - dotSz / 2
                 -- Dot body (approximate circle: 3 rows)
-                self:drawRect(dotX + 1, dotY,     dotSz - 2, 1,        0.9, c.r, c.g, c.b)
-                self:drawRect(dotX,     dotY + 1, dotSz,     dotSz - 2, 0.9, c.r, c.g, c.b)
-                self:drawRect(dotX + 1, dotY + dotSz - 1, dotSz - 2, 1, 0.9, c.r, c.g, c.b)
+                self:drawRect(dotX + T.px(1), dotY,     dotSz - T.px(2), T.px(1),        0.9, c.r, c.g, c.b)
+                self:drawRect(dotX,     dotY + T.px(1), dotSz,     dotSz - T.px(2), 0.9, c.r, c.g, c.b)
+                self:drawRect(dotX + T.px(1), dotY + dotSz - T.px(1), dotSz - T.px(2), T.px(1), 0.9, c.r, c.g, c.b)
             else
                 local tex = self._annotTextures and self._annotTextures[ann.iconId]
                 if tex then
                     self:drawTextureScaledAspect(tex, sx, sy, sz, sz, 0.9, c.r, c.g, c.b)
                 else
                     -- Fallback: X mark (two diagonals)
-                    local m = 4
+                    local m = T.px(4)
                     for di = 0, sz - m * 2 - 1 do
-                        self:drawRect(sx + m + di, sy + m + di, 1, 1, 0.7, c.r, c.g, c.b)
-                        self:drawRect(sx + m + di, sy + sz - m - 1 - di, 1, 1, 0.7, c.r, c.g, c.b)
+                        self:drawRect(sx + m + di, sy + m + di, T.px(1), T.px(1), 0.7, c.r, c.g, c.b)
+                        self:drawRect(sx + m + di, sy + sz - m - T.px(1) - di, T.px(1), T.px(1), 0.7, c.r, c.g, c.b)
                     end
                 end
             end
@@ -1403,9 +1407,9 @@ function ZeD_JournalMap:renderAnnotations()
             if ann.text and ann.text ~= "" then
                 local tw = tm:MeasureStringX(T.fontF1, ann.text)
                 local tx = sx + halfSz - tw / 2
-                local ty = sy - tm:getFontHeight(T.fontF1) - 2
+                local ty = sy - tm:getFontHeight(T.fontF1) - T.px(2)
                 -- Drop shadow for readability
-                self:drawText(ann.text, tx + 1, ty + 1, 0, 0, 0, 0.6, T.fontF1)
+                self:drawText(ann.text, tx + T.px(1), ty + T.px(1), 0, 0, 0, 0.6, T.fontF1)
                 self:drawText(ann.text, tx, ty, c.r, c.g, c.b, 1, T.fontF1)
             end
 
@@ -1427,22 +1431,22 @@ function ZeD_JournalMap:renderToolCursor()
     if mx < 0 or my < 0 or mx > self:getWidth() or my > self:getHeight() then return end
 
     local T = ZeD.T
-    local sz = MAP_ANNOT_DRAW_SZ
+    local sz = T.px(MAP_ANNOT_DRAW_SZ)
     local colorDef = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
     local c = colorDef
 
     if win._mapActiveTool == "text" then
         -- Ghost dot for text note placement
-        local dotSz = 6
+        local dotSz = T.px(6)
         local dotX = mx - dotSz / 2
         local dotY = my - dotSz / 2
-        self:drawRect(dotX + 1, dotY,     dotSz - 2, 1,        0.4, c.r, c.g, c.b)
-        self:drawRect(dotX,     dotY + 1, dotSz,     dotSz - 2, 0.4, c.r, c.g, c.b)
-        self:drawRect(dotX + 1, dotY + dotSz - 1, dotSz - 2, 1, 0.4, c.r, c.g, c.b)
+        self:drawRect(dotX + T.px(1), dotY,     dotSz - T.px(2), T.px(1),        0.4, c.r, c.g, c.b)
+        self:drawRect(dotX,     dotY + T.px(1), dotSz,     dotSz - T.px(2), 0.4, c.r, c.g, c.b)
+        self:drawRect(dotX + T.px(1), dotY + dotSz - T.px(1), dotSz - T.px(2), T.px(1), 0.4, c.r, c.g, c.b)
         -- Preview the text that will be placed
         local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or "Note"
         if previewText ~= "" then
-            self:drawText(previewText, mx + 6, my - 10, c.r, c.g, c.b, 0.4, T.fontF1)
+            self:drawText(previewText, mx + T.px(6), my - T.px(10), c.r, c.g, c.b, 0.4, T.fontF1)
         end
     else
         local tex = self._annotTextures and self._annotTextures[win._mapActiveTool]
@@ -1486,18 +1490,18 @@ local function _drawIconBtn(panel, win, icon, bx, by, btnSz, isActive, isPinned)
     if tex then
         local tc = isActive and T.accent or T.text
         local alpha = isActive and 0.9 or 0.6
-        panel:drawTextureScaledAspect(tex, bx + 2, by + 2, btnSz - 4, btnSz - 4,
+        panel:drawTextureScaledAspect(tex, bx + T.px(2), by + T.px(2), btnSz - T.px(4), btnSz - T.px(4),
             alpha, tc.r, tc.g, tc.b)
     else
         local lbl = string.sub(icon.label, 1, 1)
         local dc = isActive and T.accent or T.textDim
-        panel:drawText(lbl, bx + 5, by + 2, dc.r, dc.g, dc.b, 0.6, T.fontF1)
+        panel:drawText(lbl, bx + T.px(5), by + T.px(2), dc.r, dc.g, dc.b, 0.6, T.fontF1)
     end
 
     -- Pin dot (small accent dot top-left if pinned, in expanded view)
     if isPinned then
         local ac = T.accent
-        panel:drawRect(bx + 1, by + 1, 3, 3, 0.7, ac.r, ac.g, ac.b)
+        panel:drawRect(bx + T.px(1), by + T.px(1), T.px(3), T.px(3), 0.7, ac.r, ac.g, ac.b)
     end
 
     -- Click zone
@@ -1510,11 +1514,11 @@ end
 local function renderMapToolbar(panel, win, x, y, w)
     local T  = ZeD.T
     local A  = ZeD.Atoms
-    local tm = getTextManager()
+    local tm = ZeD.TM
     local secH = tm:getFontHeight(T.fontF1)
-    local btnSz  = MAP_ICON_BTN_SZ
-    local btnGap = MAP_ICON_BTN_GAP
-    local colSz  = MAP_COLOR_SZ
+    local btnSz  = T.px(MAP_ICON_BTN_SZ)
+    local btnGap = T.px(MAP_ICON_BTN_GAP)
+    local colSz  = T.px(MAP_COLOR_SZ)
 
     -- Clear toolbar zones
     win._mapToolZones  = {}
@@ -1526,22 +1530,22 @@ local function renderMapToolbar(panel, win, x, y, w)
     local expanded    = win._mapToolsExpanded or false
     local pins        = _getMapPins(win._playerObj)
 
-    local rowH = MAP_TOOLBAR_ROW_H
+    local rowH = T.px(MAP_TOOLBAR_ROW_H)
     local btnY = y + math.floor((rowH - btnSz) / 2)
 
     -- ---- Row 1: disclosure chevron + pinned icons + Aa + separator + color swatches ----
-    local curX = x + 4
+    local curX = x + T.px(4)
 
     -- Disclosure chevron
-    local chevSz = math.max(8, math.floor(secH * 0.7))
+    local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
     local chevY  = y + math.floor((rowH - chevSz) / 2)
     if expanded then
         A.drawTriangleDown(panel, curX, chevY, chevSz, T.arrow)
     else
         A.drawTriangleRight(panel, curX, chevY, chevSz, T.arrow)
     end
-    win._mapDisclosureZone = { x = curX, y = y, w = chevSz + 4, h = rowH }
-    curX = curX + chevSz + 6
+    win._mapDisclosureZone = { x = curX, y = y, w = chevSz + T.px(4), h = rowH }
+    curX = curX + chevSz + T.px(6)
 
     -- Pinned icon buttons (first row)
     for _, pid in ipairs(pins) do
@@ -1565,7 +1569,7 @@ local function renderMapToolbar(panel, win, x, y, w)
         panel:drawRectBorder(curX, btnY, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
     end
     local tC = textActive and T.accent or T.textDim
-    panel:drawText("Aa", curX + 2, btnY + 2, tC.r, tC.g, tC.b, 0.7, T.fontF1)
+    panel:drawText("Aa", curX + T.px(2), btnY + T.px(2), tC.r, tC.g, tC.b, 0.7, T.fontF1)
     win._mapToolZones[#win._mapToolZones + 1] = {
         id = "text",
         x = curX, y = btnY, w = btnSz, h = btnSz,
@@ -1574,8 +1578,8 @@ local function renderMapToolbar(panel, win, x, y, w)
 
     -- Separator
     local sepC = T.border
-    panel:drawRect(curX, btnY, 1, btnSz, sepC.a * 0.4, sepC.r, sepC.g, sepC.b)
-    curX = curX + 1 + btnGap * 2
+    panel:drawRect(curX, btnY, T.px(1), btnSz, sepC.a * 0.4, sepC.r, sepC.g, sepC.b)
+    curX = curX + T.px(1) + btnGap * 2
 
     -- Color swatches
     local colY = y + math.floor((rowH - colSz) / 2)
@@ -1586,7 +1590,7 @@ local function renderMapToolbar(panel, win, x, y, w)
         panel:drawRect(curX, colY, colSz, colSz, 0.85, c.r, c.g, c.b)
         if isActiveCol then
             local bd = T.text
-            panel:drawRectBorder(curX - 1, colY - 1, colSz + 2, colSz + 2,
+            panel:drawRectBorder(curX - T.px(1), colY - T.px(1), colSz + T.px(2), colSz + T.px(2),
                 bd.a, bd.r, bd.g, bd.b)
         end
 
@@ -1602,9 +1606,9 @@ local function renderMapToolbar(panel, win, x, y, w)
 
     -- ---- Expanded rows: ALL icons in a wrapping grid ----
     if expanded then
-        local gridX = x + 4
+        local gridX = x + T.px(4)
         local gridY = y + rowH
-        local gridW = w - 8
+        local gridW = w - T.px(8)
         local maxCols = math.max(1, math.floor(gridW / (btnSz + btnGap)))
         local col = 0
         local rowIdx = 0
@@ -1612,7 +1616,7 @@ local function renderMapToolbar(panel, win, x, y, w)
 
         -- Bottom border for first row
         local bd = T.border
-        panel:drawRect(x, gridY - 1, w, 1, bd.a * 0.2, bd.r, bd.g, bd.b)
+        panel:drawRect(x, gridY - T.px(1), w, T.px(1), bd.a * 0.2, bd.r, bd.g, bd.b)
 
         -- Background for expanded area
         local s1 = T.surf1
@@ -1646,23 +1650,23 @@ local function renderMapToolbar(panel, win, x, y, w)
     -- ---- Inline text input (visible when text tool is active) ----
     if textActive then
         local inputY = y + totalH
-        local inputX = x + 4
-        local inputW = w - 8
+        local inputX = x + T.px(4)
+        local inputW = w - T.px(8)
         local inputBg = T.surf2
-        panel:drawRect(x, inputY, w, MAP_TEXT_INPUT_H, inputBg.a, inputBg.r, inputBg.g, inputBg.b)
+        panel:drawRect(x, inputY, w, T.px(MAP_TEXT_INPUT_H), inputBg.a, inputBg.r, inputBg.g, inputBg.b)
         local bds = T.borderS
-        panel:drawRect(x, inputY + MAP_TEXT_INPUT_H - 1, w, 1, bds.a * 0.3, bds.r, bds.g, bds.b)
+        panel:drawRect(x, inputY + T.px(MAP_TEXT_INPUT_H) - T.px(1), w, T.px(1), bds.a * 0.3, bds.r, bds.g, bds.b)
 
         -- Position the text entry child (created lazily in renderMaps)
         if win._mapTextEntry then
             win._mapTextEntry:setX(inputX)
-            win._mapTextEntry:setY(inputY + 2)
+            win._mapTextEntry:setY(inputY + T.px(2))
             win._mapTextEntry:setWidth(inputW)
-            win._mapTextEntry:setHeight(MAP_TEXT_INPUT_H - 4)
+            win._mapTextEntry:setHeight(T.px(MAP_TEXT_INPUT_H) - T.px(4))
             win._mapTextEntry:setVisible(true)
         end
 
-        totalH = totalH + MAP_TEXT_INPUT_H
+        totalH = totalH + T.px(MAP_TEXT_INPUT_H)
     else
         if win._mapTextEntry then
             win._mapTextEntry:setVisible(false)
@@ -1677,11 +1681,11 @@ local function renderMaps(panel, win, x, y, w, h)
     local T = ZeD.T
     local toolbarBg = T.surf1
     -- Draw base row background first (renderMapToolbar handles expanded bg)
-    panel:drawRect(x, y, w, MAP_TOOLBAR_ROW_H, toolbarBg.a, toolbarBg.r, toolbarBg.g, toolbarBg.b)
+    panel:drawRect(x, y, w, T.px(MAP_TOOLBAR_ROW_H), toolbarBg.a, toolbarBg.r, toolbarBg.g, toolbarBg.b)
 
     -- Lazy-create inline text entry for map annotations
     if not win._mapTextEntry then
-        local te = ISTextEntryBox:new("Note", 0, 0, 100, MAP_TEXT_INPUT_H - 4)
+        local te = ISTextEntryBox:new("Note", 0, 0, T.px(100), T.px(MAP_TEXT_INPUT_H) - T.px(4))
         te:initialise()
         te:setVisible(false)
         panel:addChild(te)
@@ -1690,7 +1694,7 @@ local function renderMaps(panel, win, x, y, w, h)
 
     local toolbarH = renderMapToolbar(panel, win, x, y, w)
     local bd = T.border
-    panel:drawRect(x, y + toolbarH - 1, w, 1, bd.a * 0.3, bd.r, bd.g, bd.b)
+    panel:drawRect(x, y + toolbarH - T.px(1), w, T.px(1), bd.a * 0.3, bd.r, bd.g, bd.b)
 
     -- Map area below toolbar
     local mapY = y + toolbarH
@@ -1722,11 +1726,11 @@ local function renderMaps(panel, win, x, y, w, h)
         mp:setVisible(true)
     else
         -- Fallback: show error state
-        local secH = getTextManager():getFontHeight(T.fontF1)
+        local secH = ZeD.TM:getFontHeight(T.fontF1)
         local centerX = x + math.floor(w / 2)
         local centerY = mapY + math.floor(mapH / 2) - secH
         local label = "MAP UNAVAILABLE"
-        local labelW = getTextManager():MeasureStringX(T.fontF1, label)
+        local labelW = ZeD.TM:MeasureStringX(T.fontF1, label)
         ZeD.Atoms.drawSecondary(panel, label, centerX - math.floor(labelW / 2), centerY, T.textDim)
     end
 end
@@ -1822,7 +1826,7 @@ local FLYER_MODES = {
 local function renderFlyerDetail(panel, win, x, y, w, h)
     local T   = ZeD.T
     local A   = ZeD.Atoms
-    local tm  = getTextManager()
+    local tm  = ZeD.TM
     local secH  = tm:getFontHeight(T.fontF1)
     local pad = T.sp.sm
 
@@ -1850,7 +1854,7 @@ local function renderFlyerDetail(panel, win, x, y, w, h)
     local scrollW = T.sp.scrollbarW
 
     -- Image fills width, height from aspect ratio
-    local imgW = w - pad * 2 - scrollW - 2
+    local imgW = w - pad * 2 - scrollW - T.px(2)
     local imgH = imgW  -- default square if no texture
     if flyer.texture then
         local texW = flyer.texture:getWidth()
@@ -1870,7 +1874,7 @@ local function renderFlyerDetail(panel, win, x, y, w, h)
         scroll.y = y
         scroll.height = h
         scroll:setBarSize(h / totalContentH)
-        drawW = w - scrollW - 2
+        drawW = w - scrollW - T.px(2)
         imgW = drawW - pad * 2
         if flyer.texture then
             local texW = flyer.texture:getWidth()
@@ -1958,7 +1962,7 @@ local function renderFlyers(panel, win, x, y, w, h)
 
     local T    = ZeD.T
     local A    = ZeD.Atoms
-    local tm   = getTextManager()
+    local tm   = ZeD.TM
     local secH = tm:getFontHeight(T.fontF1)
 
     -- S105 gamepad: live focused element id for cue paints (mode pill + thumbs).
@@ -2040,20 +2044,20 @@ local function renderFlyers(panel, win, x, y, w, h)
     local tabPadG = ZeD.Molecules.getTabPad()  -- template padding for grid
 
     -- Responsive grid: fill available width, maintain 2:3 aspect ratio
-    local progRowH = secH + 8 + T.sp.xs
+    local progRowH = secH + T.px(8) + T.sp.xs
     local headerH = T.sp.sm + progRowH
 
     -- Compute responsive thumb size from available width
     local function computeGrid(availW)
         local gridW = availW - tabPadG * 2
         -- How many columns fit at minimum thumb width?
-        local minCellW = FLYER_MIN_THUMB_W + FLYER_COL_GAP
-        local cols = math.max(1, math.floor((gridW + FLYER_COL_GAP) / minCellW))
+        local minCellW = T.px(FLYER_MIN_THUMB_W) + T.px(FLYER_COL_GAP)
+        local cols = math.max(1, math.floor((gridW + T.px(FLYER_COL_GAP)) / minCellW))
         -- Expand thumb width to fill the available space
-        local thumbW = math.floor((gridW - (cols - 1) * FLYER_COL_GAP) / cols)
+        local thumbW = math.floor((gridW - (cols - 1) * T.px(FLYER_COL_GAP)) / cols)
         local thumbH = math.floor(thumbW * 1.5)  -- 2:3 ratio
-        local cellW = thumbW + FLYER_COL_GAP
-        local cellH = thumbH + secH + 4 + FLYER_ROW_GAP
+        local cellW = thumbW + T.px(FLYER_COL_GAP)
+        local cellH = thumbH + secH + T.px(4) + T.px(FLYER_ROW_GAP)
         local rows = math.ceil(#catalog / cols)
         local totalH = headerH + rows * cellH
         return cols, rows, thumbW, thumbH, cellW, cellH, totalH
@@ -2065,7 +2069,7 @@ local function renderFlyers(panel, win, x, y, w, h)
     local needsScroll = totalContentH > h
     local drawW = w
     if needsScroll then
-        drawW = w - scrollW - 2
+        drawW = w - scrollW - T.px(2)
         cols, rows, FLYER_THUMB_W, FLYER_THUMB_H, cellW, cellH, totalContentH = computeGrid(drawW)
 
         scroll.x = x + w - scrollW
@@ -2095,7 +2099,7 @@ local function renderFlyers(panel, win, x, y, w, h)
         if ty and th then
             local prevScrollOff = math.floor(scroll.scrollPos * (totalContentH - h))
             local contentTy = ty + prevScrollOff
-            local margin = 8
+            local margin = T.px(8)
             local screenTop = ty
             local screenBot = ty + th
             local newOff = prevScrollOff
@@ -2129,7 +2133,7 @@ local function renderFlyers(panel, win, x, y, w, h)
     local progRestStr = " / " .. tostring(totalFlyers) .. " Read"
     local dc = T.textDim  -- used below for thumbnail placeholder "?"
     local progF3H = tm:getFontHeight(T.fontF3)
-    local pillRowH = progF3H + 8
+    local pillRowH = progF3H + T.px(8)
     local progTextY = curY + math.floor((pillRowH - progF3H) / 2)
     local nc = T.toneNorm
     panel:drawText(progNumStr, x + tabPad, progTextY, nc.r, nc.g, nc.b, nc.a or 1, T.fontF3)
@@ -2205,9 +2209,9 @@ local function renderFlyers(panel, win, x, y, w, h)
             end
 
             -- Status dot (top-right corner) — matches book status dot pattern
-            local dotSz = 6
-            local dotX = fx + FLYER_THUMB_W - dotSz - 2
-            local dotY = fy + 2
+            local dotSz = T.px(6)
+            local dotX = fx + FLYER_THUMB_W - dotSz - T.px(2)
+            local dotY = fy + T.px(2)
             if isRead then
                 A.drawStatusDot(panel, dotX, dotY, T.positive, dotSz)
             else
@@ -2216,7 +2220,7 @@ local function renderFlyers(panel, win, x, y, w, h)
 
             -- Name below thumbnail (truncated)
             local nameStr = truncText(flyer.displayName, T.fontF2, FLYER_THUMB_W)
-            local nameY = fy + FLYER_THUMB_H + 2
+            local nameY = fy + FLYER_THUMB_H + T.px(2)
             local nc = T.toneNorm
             panel:drawText(nameStr, fx, nameY, nc.r, nc.g, nc.b, isRead and (nc.a or 1) or 0.4, T.fontF2)
 
@@ -2239,6 +2243,7 @@ end
 -- ============================================================================
 
 function ZeD.JournalTab.render(panel, win, x, y, w, h)
+    local T = ZeD.T
     -- Initialize sub-tab state if needed
     if not win._journalSubTab then
         win._journalSubTab = 1
@@ -2246,8 +2251,8 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
 
     -- Top padding: intentional 13px override (aligns sub-tab strip bottom with inventory column header)
     -- TAB_TOP_PAD = 13 kept — M.getTabPadTop() = 8 is too small for this alignment
-    y = y + TAB_TOP_PAD
-    h = h - TAB_TOP_PAD
+    y = y + T.px(TAB_TOP_PAD)
+    h = h - T.px(TAB_TOP_PAD)
 
     -- Draw sub-tab strip at top
     local tabStripH = drawSubTabStrip(panel, win, x, y, w)

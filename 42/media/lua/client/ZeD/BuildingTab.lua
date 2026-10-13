@@ -434,8 +434,9 @@ end
 -- ============================================================================
 
 function ZeD.BuildingTab.onMouseWheel(win, del, x, y)
+    local T = ZeD.T
     local state = getState(win)
-    return CC.onMouseWheel(state, del, x, y, 0, CC.DRAWER_W)
+    return CC.onMouseWheel(state, del, x, y, 0, T.px(CC.DRAWER_W))
 end
 
 -- ============================================================================
