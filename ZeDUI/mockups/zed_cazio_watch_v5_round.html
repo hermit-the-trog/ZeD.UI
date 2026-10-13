@@ -53,9 +53,11 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
 
   function digital(id,o){
     const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
-    strap(p,30,0,64,22,o.strapKind,o.strap1,o.strap2); strap(p,30,154,64,22,o.strapKind,o.strap1,o.strap2);
+    strap(p,30,0,64,26,o.strapKind,o.strap1,o.strap2); strap(p,30,150,64,26,o.strapKind,o.strap1,o.strap2);
     roundRect(p,6,20,112,136,12,o.caseFill); roundRectEdge(p,6,20,112,136,12,o.caseHi,o.caseSh);
-    roundRect(p,14,28,96,120,8,o.plate); roundRectEdge(p,14,28,96,120,8,'#000','#2a2a2a');
+    el(p,30,21,64,1,'#000'); el(p,30,154,64,1,'#000');
+    roundRect(p,14,28,96,88,8,o.plate); roundRectEdge(p,14,28,96,88,8,'#000','#2a2a2a');
+    el(p,14,118,96,1,o.caseSh); el(p,14,119,96,1,o.caseHi);
     text(p,20,33,'CaZio',6,'#e0e0e0',true,'',0); el(p,88,31,14,7,o.wr); text(p,95,32,'WR',4,'#0a0a0a',true,'c'); text(p,62,41,'ALARM CHRONO · ILLUMINATOR',3,'#9a9a9a',false,'c');
     const lx=20, ly=48, lw=84, lh=34; bevel(p,lx-1,ly-1,lw+2,lh+2,'#000','#000','#333'); el(p,lx,ly,lw,lh,o.lcdBg);
     const fg=o.lcdFg, dim=o.lcdDim;
@@ -65,13 +67,14 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     text(p,62,86,'TIME · ALARM · SPEED · SET',3,'#8a8a8a',false,'c');
     frontKey(p,22,100,36,11,'ALARM',o.key1,false); frontKey(p,66,100,36,11,'SET',o.key2,!!o.setOpen);
     metalKey(p,14,124,44,16,'SPEED',o.metal,o.metalHi,o.metalTxt,o.speed>0,o.runMark); metalKey(p,66,124,44,16,o.speed===0?'START':'STOP',o.metal,o.metalHi,o.metalTxt,null);
-    text(p,62,146,'WATER RESIST',3,'#8a8a8a',false,'c',1);
+    text(p,62,146,'WATER RESIST',3,o.metalTxt,false,'c',1);
   }
   function roundClassic(id,o){
     const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
-    strap(p,34,0,56,26,o.strapKind,o.strap1,o.strap2); strap(p,34,150,56,26,o.strapKind,o.strap1,o.strap2);
+    strap(p,34,0,56,28,o.strapKind,o.strap1,o.strap2); strap(p,34,148,56,28,o.strapKind,o.strap1,o.strap2);
     const cx=62, cy=88, R=46;
-    el(p,44,22,36,8,o.caseEdge); el(p,44,146,36,8,o.caseEdge); // lugs
+    el(p,42,26,40,10,o.caseEdge); el(p,46,36,32,8,o.caseEdge); el(p,42,26,40,1,o.caseHi); el(p,34,27,56,1,'#000');
+    el(p,46,132,32,8,o.caseEdge); el(p,42,140,40,10,o.caseEdge); el(p,42,149,40,1,o.caseSh); el(p,34,148,56,1,'#000'); // lugs
     disc(p,cx,cy,R+4,o.caseSh); disc(p,cx,cy,R+3,o.caseFill); ring(p,cx,cy,R+3,o.caseHi,1,180,360); ring(p,cx,cy,R+3,o.caseSh,1,0,180);
     disc(p,cx,cy,R-2,'#000'); disc(p,cx,cy,R-3,o.dial);
     for(let d=0;d<360;d+=30){ const a=(d-90)*Math.PI/180; const rr=R-8; const bigT=(d%90===0); el(p,Math.round(cx+Math.cos(a)*rr)-1,Math.round(cy+Math.sin(a)*rr)-(bigT?3:2),2,bigT?6:4,o.index); }
@@ -90,6 +93,7 @@ p.note { font:12px 'Fira Sans Condensed'; color:#8a8a8a; max-width:980px; margin
     const p=document.getElementById(id); const W=124,H=176; p.style.width=W+'px'; p.style.height=H+'px';
     strap(p,30,0,64,30,'oyster',o.gold,o.goldSh); strap(p,30,146,64,30,'oyster',o.gold,o.goldSh);
     const cx=62, cy=88, R=44;
+    bevel(p,36,30,52,12,o.gold,'#fff4c0',o.goldSh); bevel(p,36,134,52,12,o.gold,'#fff4c0',o.goldSh);
     disc(p,cx,cy,R+4,o.goldSh); disc(p,cx,cy,R+3,o.gold);
     for(let d=0;d<360;d+=6){ run(p,cx,cy,d,R-2,R+3,(d%12===0)?'#fff4c0':o.goldSh,1); }
     disc(p,cx,cy,R-3,'#000'); disc(p,cx,cy,R-4,o.dial);
