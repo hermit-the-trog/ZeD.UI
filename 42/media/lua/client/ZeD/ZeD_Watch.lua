@@ -191,8 +191,9 @@ function ZeD_Watch:_layout(frameW, frameH)
     local right = getPlayerScreenLeft(pn) + getPlayerScreenWidth(pn)
     local clock = UIManager.getClock()
     local x = right - w - math.floor(8 * s)
-    local y = getPlayerScreenTop(pn) + math.floor(2 * s)
-    if clock then x = math.min(x, clock:getX() + clock:getWidth() - w); y = clock:getY() end
+    -- Y anchors where the Java clock used to sit (it is parked off-screen, see prerender)
+    local y = getPlayerScreenTop(pn) + (W._clockY or 10)
+    if clock then x = math.min(x, clock:getX() + clock:getWidth() - w) end
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
     if self:getX() ~= x then self:setX(x) end
@@ -203,9 +204,21 @@ end
 function ZeD_Watch:prerender()
     local player = getSpecificPlayer(self.playerNum)
     if not player or (ISUIHandler and ISUIHandler.allUIVisible == false) then return end
-    -- park the Java clock and speed controls every frame
-    local clock = UIManager.getClock(); if clock and clock:isVisible() then pcall(clock.setVisible, clock, false) end
-    local sc = UIManager.getSpeedControls(); if sc and sc:isVisible() then pcall(sc.setVisible, sc, false) end
+    -- Park the Java clock and speed controls every frame. setVisible(false) is NOT enough in
+    -- B42 (UIManager renders both regardless of the flag), so they also go off-screen. Java
+    -- re-aligns their X every frame but leaves Y alone, so Y is the parking axis; the clock's
+    -- original Y is remembered as the anchor for this watch.
+    local clock = UIManager.getClock()
+    if clock then
+        local cy = clock:getY()
+        if cy >= 0 then W._clockY = cy; pcall(clock.setY, clock, -4000) end
+        if clock:isVisible() then pcall(clock.setVisible, clock, false) end
+    end
+    local sc = UIManager.getSpeedControls()
+    if sc then
+        if sc:getY() >= 0 then pcall(sc.setY, sc, -4000) end
+        if sc:isVisible() then pcall(sc.setVisible, sc, false) end
+    end
 
     local item = _wornWatch(player)
     local plateName, family = _plateFor(item)

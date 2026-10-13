@@ -132,6 +132,29 @@ local function _brandName(vehicle, scriptName)
     return s:upper()
 end
 
+-- Badge wording follows the locked mockups: oval/stamped badges carry the MAKE and the model goes
+-- on the cluster face (or the stamped sub line); script badges carry the MODEL; stencil badges are
+-- fleet markings with a unit number; chrome/decal badges carry the full name. Returns
+-- label, sub, clusterBrand.
+local function _badgeFor(design, vehicle, scriptName)
+    local full = _brandName(vehicle, scriptName)
+    local base = full:gsub("^.*POLICE%s+", "")                 -- "MULDRAUGH POLICE CHEVALIER NYALA" -> "CHEVALIER NYALA"
+    local make, model = base:match("^(%S+)%s+(.+)$")
+    if not make then make, model = base, nil end
+    local kind = design.badge
+    if kind == "oval" then return make, design.sub, base end
+    if kind == "script" then return model or base, design.sub, model or base end
+    if kind == "stamped" then return make, model or design.sub, make end
+    if kind == "stencil" then
+        local id = 0; pcall(function() id = vehicle:getId() or 0 end)   -- (_safe is declared further down)
+        local fleet = full:find("POLICE") and "POLICE" or make
+        local unit = (fleet == "TAXI") and "CAB" or ((fleet == "FIRE") and "ENGINE" or "UNIT")
+        -- Kahlua strings are Java strings: char 183 IS the middle dot (no UTF-8 byte pairs)
+        return fleet .. " " .. string.char(183) .. " " .. unit .. " " .. string.format("%02d", 10 + (id % 90)), design.sub, base
+    end
+    return full, design.sub, design.brand or base                  -- chrome, decal
+end
+
 -- ---------------------------------------------------------------------------
 -- Vehicle state (per frame, every read guarded)
 -- ---------------------------------------------------------------------------
@@ -168,7 +191,9 @@ local function _state(vehicle, chr)
     st.hasHeater = heater ~= nil
     st.heaterOn  = heater and _safe(function() return heater:getModData().active == true end, false) or false
     st.heaterTemp = heater and _safe(function() return tonumber(heater:getModData().temperature) or 0 end, 0) or 0  -- -25..25 (vanilla knob)
-    st.fan = (not st.heaterOn) and 0 or (st.heaterTemp >= 15 and 3 or (st.heaterTemp >= 0 and 2 or 1))
+    -- PZ keeps ONE heater number (-25..25): its sign is the side (A/C or heat), its magnitude the blower
+    local mag = math.abs(st.heaterTemp)
+    st.fan = (not st.heaterOn) and 0 or (mag >= 21 and 3 or (mag >= 12 and 2 or 1))
     st.ac = st.heaterOn and st.heaterTemp < 0
     local radio  = _safe(function() return vehicle:getPartById("Radio") end, nil)
     st.radioPart = radio
@@ -214,16 +239,17 @@ ACT.cruise = function(chr, v)
     if v:isRegulator() then v:setRegulator(false); return end
     local sp = v:getCurrentSpeedForRegulator(); if sp and sp >= 5 then v:setRegulatorSpeed(sp); v:setRegulator(true) end
 end
-ACT.heat   = function(chr, v, st) _sendHeater(chr, v, not st.heaterOn, st.heaterTemp) end
+ACT.heat   = function(chr, v, st) if st.heaterOn and not st.ac then _sendHeater(chr, v, false, st.heaterTemp) else _sendHeater(chr, v, true, math.max(8, math.abs(st.heaterTemp))) end end
 ACT.off    = function(chr, v, st) _sendHeater(chr, v, false, st.heaterTemp) end
 ACT.def    = function(chr, v, st) _sendHeater(chr, v, true, 25) end
-ACT.ac     = function(chr, v, st) if st.ac then _sendHeater(chr, v, false, st.heaterTemp) else _sendHeater(chr, v, true, -25) end end
+ACT.ac     = function(chr, v, st) if st.ac then _sendHeater(chr, v, false, st.heaterTemp) else _sendHeater(chr, v, true, -math.max(8, math.abs(st.heaterTemp))) end end
 ACT.tempup = function(chr, v, st) _sendHeater(chr, v, st.heaterOn, st.heaterTemp + 8) end
 ACT.tempdn = function(chr, v, st) _sendHeater(chr, v, st.heaterOn, st.heaterTemp - 8) end
 ACT.temp   = function(chr, v, st, secondary) if secondary then ACT.tempdn(chr, v, st) else ACT.tempup(chr, v, st) end end
-local function _fanTemp(f) return (f == 1) and -8 or ((f == 2) and 8 or 25) end
-ACT.fanup  = function(chr, v, st) local f = math.min(3, st.fan + 1); if f == 0 then _sendHeater(chr, v, false, st.heaterTemp) else _sendHeater(chr, v, true, _fanTemp(f)) end end
-ACT.fandn  = function(chr, v, st) local f = math.max(0, st.fan - 1); if f == 0 then _sendHeater(chr, v, false, st.heaterTemp) else _sendHeater(chr, v, true, _fanTemp(f)) end end
+local FAN_MAG = { 8, 17, 25 }
+local function _fanTemp(st, f) return ((st.heaterTemp or 0) < 0 and -1 or 1) * FAN_MAG[f] end
+ACT.fanup  = function(chr, v, st) local f = math.min(3, st.fan + 1); if f == 0 then _sendHeater(chr, v, false, st.heaterTemp) else _sendHeater(chr, v, true, _fanTemp(st, f)) end end
+ACT.fandn  = function(chr, v, st) local f = math.max(0, st.fan - 1); if f == 0 then _sendHeater(chr, v, false, st.heaterTemp) else _sendHeater(chr, v, true, _fanTemp(st, f)) end end
 ACT.fan    = function(chr, v, st, secondary) if secondary then ACT.fandn(chr, v, st) else ACT.fanup(chr, v, st) end end
 ACT.mode   = function() end
 ACT.lbar   = function(chr, v) sendClientCommand(chr, "vehicle", "setLightbarLightsMode", { mode = (v:getLightbarLightsMode() + 1) % 4 }) end
@@ -232,7 +258,7 @@ ACT.siren  = function(chr, v) pcall(function() getSoundManager():playUISound("Ve
 local MINHZ, MAXHZ, STEP = 88000, 108000, 100
 local function _chanName(hz)
     local zr = getZomboidRadio and getZomboidRadio()
-    if zr and zr.getChannelName then local n = _safe(function() return zr:getChannelName(hz) end, nil); if n and n ~= "" then return tostring(n) end end
+    if zr and zr.getChannelName then local n = _safe(function() return zr:getChannelName(hz) end, nil); if n and n ~= "" and not tostring(n):upper():find("UNKNOWN") then return tostring(n) end end
     return nil
 end
 ACT.pwr  = function(chr, v, st) if st.dd then pcall(function() getSoundManager():playUISound("VehicleRadioButton") end); st.dd:setIsTurnedOn(not st.dd:getIsTurnedOn()) end end
@@ -359,7 +385,23 @@ local function fontFor(size, big)
     if (size or 5) >= 7 then return T.fontF3 end
     return T.fontF5
 end
+-- width of a string in BASE px (unscaled) for the font that `size` maps to
+function ZeD_Dashboard:_measure(str, size, big)
+    local f = fontFor(size, big); local s = self._s or 1
+    return getTextManager():MeasureStringX(f, tostring(str)) / s
+end
+-- trim a label to fit maxW base px: whole words first, then characters, with a trailing dot
+function ZeD_Dashboard:_fit(str, size, maxW, big)
+    str = tostring(str or "")
+    if maxW == nil or maxW <= 0 or self:_measure(str, size, big) <= maxW then return str end
+    local t = str
+    while t:find("%s") and self:_measure(t, size, big) > maxW do t = (t:gsub("%s+%S*$", "")) end
+    if self:_measure(t, size, big) <= maxW then return t end   -- whole words dropped: no ellipsis dot
+    while #t > 1 and self:_measure(t .. ".", size, big) > maxW do t = t:sub(1, -2) end
+    return t .. "."
+end
 function ZeD_Dashboard:_text(x, y, str, size, c, align, big)
+    str = tostring(str)   -- anchors carry numeric labels (preset 1..6); MeasureStringX wants a String
     local s = self._s; c = col(c); local f = fontFor(size, big)
     local tm = getTextManager(); local w = tm:MeasureStringX(f, str)
     local px = x * s
@@ -488,7 +530,8 @@ function ZeD_Dashboard:_drawCluster(design, st, ox, oy, A)
     }
     if st.hasLightbar then lamps[#lamps + 1] = { "lbar", st.lightbarMode > 0, "#5AA0FF" }; lamps[#lamps + 1] = { "siren", st.sirenMode > 0, "#FFB347" } end
     for i, l in ipairs(lamps) do local an = A["lamp" .. (i - 1)]; if an then self:_lamp({ x = an.x + ox, y = an.y + oy }, l[1], l[2], l[3]) end end
-    if A.brand and design.brand then local an = off(A.brand, ox, oy); self:_text(an.x, an.y, design.brand, an.size, an.color, an.align) end
+    local brand = design.brand or self._clusterBrand
+    if A.brand and brand then local an = off(A.brand, ox, oy); self:_text(an.x, an.y, self:_fit(brand, an.size, 220), an.size, an.color, an.align) end
 end
 
 -- ---- switch row overlay ----
@@ -521,9 +564,9 @@ function ZeD_Dashboard:_drawHeadUnit(A, st, ox, oy)
         local freq = string.format("%.1f", (st.channel or 0) / 1000)
         local name = on and (_chanName(st.channel) or "") or ""
         if dsp.kind == "delco" then
-            if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, freq, 11, dsp.color, "r"); self:_text(dsp.station.x + ox, dsp.station.y + oy, name:upper(), 4, dsp.color, "l"); self:_rect(dsp.stereo.x + ox, dsp.stereo.y + oy, 3, 3, dsp.color); self:_text(dsp.stereo.tx + ox, dsp.stereo.ty + oy, "ST", 3, dsp.color, "l") end
+            if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, freq, 11, dsp.color, "r"); self:_text(dsp.station.x + ox, dsp.station.y + oy, self:_fit(name:upper(), 4, dsp.freq.x - dsp.station.x - self:_measure(freq, 11) - 6), 4, dsp.color, "l"); self:_rect(dsp.stereo.x + ox, dsp.stereo.y + oy, 3, 3, dsp.color); self:_text(dsp.stereo.tx + ox, dsp.stereo.ty + oy, "ST", 3, dsp.color, "l") end
         elseif dsp.kind == "sony" then
-            if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, "FM " .. freq, 7, dsp.color, "l"); self:_text(dsp.station.x + ox, dsp.station.y + oy, name:upper(), 4, dsp.color, "r") end
+            if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, "FM " .. freq, 7, dsp.color, "l"); self:_text(dsp.station.x + ox, dsp.station.y + oy, self:_fit(name:upper(), 4, dsp.station.x - dsp.freq.x - self:_measure("FM " .. freq, 7) - 6), 4, dsp.color, "r") end
         elseif dsp.kind == "kenwood" then
             if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, freq, 14, dsp.color, "l", true); self:_text(dsp.fm.x + ox, dsp.fm.y + oy, "FM", 5, dsp.color, "l"); self:_text(dsp.st.x + ox, dsp.st.y + oy, "ST", 5, dsp.color, "l") end
         elseif dsp.kind == "dial" then
@@ -594,7 +637,7 @@ function ZeD_Dashboard:_drawConsole(design, st, ox, oy)
                 self:_rect(an.x - 2 + ox, ky + oy, 14, 8, "#9a9a9a"); self:_rect(an.x - 2 + ox, ky + oy, 14, 1, "#e0e0e0"); self:_rect(an.x + 2 + ox, ky + 3 + oy, 6, 2, "#3a3a3a")
                 self:_control(id, an.x - 4 + ox, an.y - 2 + oy, 18, an.h + 4, st, st.hasHeater)
             elseif an.t == "btn" then
-                if an.led and id == "heat" and st.heaterOn then self:_rect(an.led.x + ox, an.led.y + oy, an.led.s or 4, an.led.s or 4, an.led.c) end
+                if an.led and id == "heat" and st.heaterOn and not st.ac then self:_rect(an.led.x + ox, an.led.y + oy, an.led.s or 4, an.led.s or 4, an.led.c) end
                 self:_control(id, an.x + ox, an.y + oy, an.w, an.h, st, st.hasHeater)
             end
         end
@@ -615,15 +658,17 @@ function ZeD_Dashboard:_drawConsole(design, st, ox, oy)
 end
 
 -- ---- badge overlay ----
-function ZeD_Dashboard:_drawBadge(design, ox, oy, label)
+local BADGE_MAXW = { chrome = 126, oval = 116, decal = 126, stencil = 126, stamped = 88, script = 100 }
+function ZeD_Dashboard:_drawBadge(design, ox, oy, label, sub)
     local A = PL["badge_" .. design.badge]; if not A then return end
     local t = A.text
+    label = self:_fit(label, t.size, BADGE_MAXW[design.badge] or 120)
     if t.t == "emboss" then
         self:_text(t.x + 1 + ox, t.y + 1 + oy, label, t.size, t.dark, t.align); self:_text(t.x + ox, t.y + oy, label, t.size, t.light, t.align)
     else
         self:_text(t.x + ox, t.y + oy, label, t.size, t.color, t.align)
     end
-    if A.sub and design.sub then self:_text(A.sub.x + ox, A.sub.y + oy, design.sub, A.sub.size, A.sub.color, A.sub.align) end
+    if A.sub and sub then self:_text(A.sub.x + ox, A.sub.y + oy, sub, A.sub.size, A.sub.color, A.sub.align) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -645,8 +690,12 @@ function ZeD_Dashboard:prerender()
     local scriptName = _safe(function() return tostring(vehicle:getScriptName() or "") end, "")
     local design, designId = _designFor(scriptName)
     self._designId = designId
+    self._badgeLabel, self._badgeSub, self._clusterBrand = _badgeFor(design, vehicle, scriptName)
     local Focus = ZeD.Input and ZeD.Input.Focus
-    self._focEl = (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
+    local DetM = ZeD.Input and ZeD.Input.Detector
+    local gamepad = DetM and DetM.getMode and DetM.getMode() == "gamepad"
+    -- the focus cue is a gamepad affordance: the dash still holds focus for the ring under mouse play, but paints nothing
+    self._focEl = (gamepad and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
     self._hit = {}; self._elements = {}
 
     local body = PL["body_" .. design.hood] or PL.body_arch
@@ -662,14 +711,15 @@ function ZeD_Dashboard:prerender()
     self:_plate("console_" .. design.console, cs.x, cs.y, cs.w, cs.h)
     self:_drawConsole(design, st, cs.x, cs.y)
     self:_plate("badge_" .. design.badge, bd.x, bd.y, bd.w, bd.h)
-    self:_drawBadge(design, bd.x, bd.y, _brandName(vehicle, scriptName))
+    self:_drawBadge(design, bd.x, bd.y, self._badgeLabel, self._badgeSub)
     if not self._driver then self:_text(BASE_W - 10, BASE_H - 12, "PASSENGER", 5, "#8a8a8a", "r") end
 
     local Det = ZeD.Input and ZeD.Input.Detector
     if Det and Det.getMode and Det.getMode() == "gamepad" and self._driver then
         local pr = PL.switches and PL.switches.prompt
         local hint = self._focEl and ("A " .. (self._focEl.promptA or "Press") .. (self._focEl.promptX and ("  X " .. self._focEl.promptX) or "") .. "  B Drive") or "Dash: re-enter the seat to focus"
-        if pr then self:_text(pr.x + sw.x, pr.y + sw.y, hint, pr.size, pr.color, pr.align) end
+        -- the mockup prints the prompt right-aligned to the hood edge (left of the console), not inside the switches plate
+        if pr then self:_text(cl.x + cl.w + 10, pr.y + sw.y, hint, pr.size, pr.color, "r") end
     end
     if Focus and Focus.setRingZoneElements then
         local zone = self._focusRing[1]
