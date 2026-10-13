@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD plates — dashboard layers (derived from zed_dashboard_v5_molded.html, locked Oct 12 2026)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { background:transparent; }
+.cl { position:absolute; left:0; top:0; display:block; overflow:hidden; }
+.cl .px { position:absolute; }
+.cl .tx { position:absolute; white-space:nowrap; font-family:'Fira Mono',monospace; line-height:1; }
+#anchors { position:absolute; left:0; top:2000px; color:transparent; font-size:1px; }
+</style>
+</head>
+<body>
+<div class="cl" id="plate"></div>
+<pre id="anchors"></pre>
+<script>
+// Static-art generator for the ZeD dashboard. Draw code is a faithful copy of the locked v5 mockup;
+// dynamic parts are not drawn here, they are recorded as anchors for the Lua overlay renderer.
+(function(){
+  const q = Object.fromEntries(new URLSearchParams(location.search).entries());
+  const ANCH = {};
+  function A(name, obj){ ANCH[name]=obj; }
+  const p = document.getElementById('plate');
+  function el(x,y,w,h,c){ const d=document.createElement('div'); d.className='px'; d.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;background:'+c+';'; p.appendChild(d); return d; }
+  function border(x,y,w,h,c){ el(x,y,w,1,c); el(x,y+h-1,w,1,c); el(x,y,1,h,c); el(x+w-1,y,1,h,c); }
+  function text(x,y,s,size,c,bold,align,ls){ const d=document.createElement('div'); d.className='tx'; d.textContent=s; d.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+size+'px;color:'+c+';font-weight:'+(bold?700:400)+';letter-spacing:'+(ls||0)+'px;'+(align==='r'?'transform:translateX(-100%);':align==='c'?'transform:translateX(-50%);':''); p.appendChild(d); return d; }
+  function run(cx,cy,deg,r0,r1,c,t){ const a=(deg-90)*Math.PI/180; for(let r=r0;r<=r1;r++){ el(Math.round(cx+Math.cos(a)*r)-Math.floor(t/2),Math.round(cy+Math.sin(a)*r)-Math.floor(t/2),t,t,c); } }
+  function ring(cx,cy,r,c,t,degA,degB){ const a0=(degA==null?0:degA), a1=(degB==null?360:degB); const step=180/(Math.PI*r); for(let d=a0; d<=a1; d+=step){ const a=(d-90)*Math.PI/180; el(Math.round(cx+Math.cos(a)*r)-Math.floor(t/2),Math.round(cy+Math.sin(a)*r)-Math.floor(t/2),t,t,c); } }
+  function disc(cx,cy,r,c){ for(let y=-r;y<=r;y++){ const w=Math.round(Math.sqrt(r*r-y*y)); el(cx-w,cy+y,2*w+1,1,c); } }
+  function bevel(x,y,w,h,bg,hi,sh){ el(x,y,w,h,bg); el(x,y,w,1,hi); el(x,y,1,h,hi); el(x,y+h-1,w,1,sh); el(x+w-1,y,1,h,sh); }
+  function screw(x,y){ el(x,y,3,3,'#3a3a3a'); el(x,y,1,1,'#777'); el(x+1,y+1,1,1,'#1a1a1a'); }
+  function roundRect(x,y,w,h,r,c){ for(let yy=0;yy<h;yy++){ let inset=0; if(yy<r){ inset=r-Math.round(Math.sqrt(r*r-(r-yy)*(r-yy))); } else if(yy>=h-r){ const d=yy-(h-r-1); inset=r-Math.round(Math.sqrt(Math.max(0,r*r-d*d))); } el(x+inset,y+yy,w-2*inset,1,c); } }
+  function roundRectEdge(x,y,w,h,r,hi,sh){ for(let yy=0;yy<h;yy++){ let inset=0; if(yy<r){ inset=r-Math.round(Math.sqrt(r*r-(r-yy)*(r-yy))); } else if(yy>=h-r){ const d=yy-(h-r-1); inset=r-Math.round(Math.sqrt(Math.max(0,r*r-d*d))); } el(x+inset,y+yy,1,1,yy<h/2?hi:sh); el(x+w-1-inset,y+yy,1,1,sh); if(yy===0) el(x+inset,y,w-2*inset,1,hi); if(yy===h-1) el(x+inset,y+yy,w-2*inset,1,sh); } }
+  function embossText(x,y,s,size,light,dark,align){ text(x+1,y+1,s,size,dark,true,align,1); text(x,y,s,size,light,true,align,1); }
+  function vent(x,y,w,h){ roundRect(x,y,w,h,4,'#0a0a0a'); for(let yy=y+3; yy<y+h-2; yy+=3){ el(x+5,yy,w-10,1,'#3a3a3a'); el(x+5,yy+1,w-10,1,'#050505'); } }
+  function roundVent(cx,cy,r){ ring(cx,cy,r+1,'#3a3a3a',1); disc(cx,cy,r,'#0a0a0a'); for(let yy=-r+3; yy<r-2; yy+=3){ const w=Math.round(Math.sqrt(r*r-yy*yy))-2; el(cx-w,cy+yy,2*w,1,'#3a3a3a'); } }
+  // knob body only (pointer is live); records the anchor
+  function knob(name,cx,cy,r,face,ringC,ptr,knurl){ ring(cx,cy,r+1,'#050505',1); disc(cx,cy,r,face); ring(cx,cy,r,ringC,1); if(knurl){ for(let d=0;d<360;d+=20){ run(cx,cy,d,r-2,r,'#f0f0f0',1); } } A(name,{t:'knob',cx:cx,cy:cy,r:r,ptr:ptr}); }
+  function arcScale(cx,cy,r,degA,degB,n,len,c,t){ for(let i=0;i<n;i++){ run(cx,cy,degA+(degB-degA)*i/(n-1),r-len,r,c,t||1); } }
+  // push button body with a dark LED socket; the lit LED and focus are live
+  function pushBtn(name,x,y,w,h,label,hasLed,ledC,fill){ bevel(x,y,w,h,fill||'#2a2a2a','#3d3d3d','#050505'); border(x,y,w,h,'#050505'); if(hasLed){ el(x+4,y+4,4,4,'#141414'); border(x+3,y+3,6,6,'#2a2a2a'); } text(x+w/2,y+h-9,label,6,'#d8d8d8',true,'c'); A(name,{t:'btn',x:x,y:y,w:w,h:h,led:hasLed?{x:x+4,y:y+4,c:ledC}:null}); }
+  function slider(name,x,y,w,label,trackA,trackB,detents){ text(x,y-7,label,5,'#aaa',false); el(x,y+3,w,4,'#0a0a0a'); border(x,y+3,w,4,'#000'); if(trackA){ el(x+1,y+4,Math.floor(w/2)-1,2,trackA); el(x+Math.floor(w/2),y+4,Math.floor(w/2)-1,2,trackB); } if(detents){ for(let i=0;i<detents;i++){ el(x+Math.round((w-2)*i/(detents-1)),y+9,1,2,'#666'); } } A(name,{t:'slider',x:x,y:y,w:w}); }
+  function lever(name,x,y,h,label,marks){ text(x+5,y-7,label,5,'#aaa',false,'c'); el(x+3,y,4,h,'#0a0a0a'); border(x+3,y,4,h,'#000'); marks.forEach((m,i)=>{ const my=y+Math.round((h-2)*(1-i/(marks.length-1))); el(x,my,2,1,'#777'); text(x+10,my-3,m,4,'#888',false); }); A(name,{t:'lever',x:x,y:y,h:h}); }
+  function segArcDim(cx,cy,r,degA,degB,n,dim){ for(let i=0;i<n;i++){ const d=degA+(degB-degA)*i/(n-1); const len=5+Math.round(i*6/n); run(cx,cy,d,r-len,r,dim,2); } }
+
+  // ---------- BODY (tintable greyscale lip + lower dash, black hood) ----------
+  const PADPLATE = {base:'#d0d0d0', grain:['#dcdcdc','#c4c4c4'], seam:'#ffffff', lower:'#999999', hi:'#f4f4f4', kind:'wood'};
+  function hoodTopFn(kind,hx,hy,hw,amp){ const cx=hx+hw/2; return function(x){ const u=(x-cx)/(hw/2); if(kind==='arch') return hy-amp*(1-u*u); if(kind==='trap') return hy-amp*Math.min(1,(1-Math.abs(u))*3); return hy; }; }
+  function hoodCornerR(kind){ return kind==='arch'?16:(kind==='trap'?8:3); }
+  function drawHood(kind,hx,hy,hw,hh,amp,fill,hi,sh){ const top=hoodTopFn(kind,hx,hy,hw,amp); const r=hoodCornerR(kind); const ymin=Math.min(...[hx,hx+hw/2].map(top)); for(let yy=Math.floor(ymin); yy<hy+hh; yy++){ let x0=hx, x1=hx+hw; if(yy<hy){ let lo=hx, hi2=hx+hw; while(lo<hi2&&top(lo)>yy) lo++; while(hi2>lo&&top(hi2-1)>yy) hi2--; x0=lo; x1=hi2; } else if(yy>=hy+hh-r){ const d=yy-(hy+hh-r-1); const ins=r-Math.round(Math.sqrt(Math.max(0,r*r-d*d))); x0=hx+ins; x1=hx+hw-ins; } if(x1<=x0) continue; el(x0,yy,x1-x0,1,fill); el(x0,yy,1,1,hi); el(x1-1,yy,1,1,sh); if(yy===Math.floor(ymin)||yy===hy+hh-1) el(x0,yy,x1-x0,1,yy<hy?hi:sh); } for(let x=hx; x<hx+hw; x++){ const ty=Math.floor(top(x)); if(ty<hy) el(x,ty,1,1,hi); } }
+  function drawPad(pad,W,H,kind,hx,hy,hw,amp){ const top=hoodTopFn(kind,hx,hy,hw,amp); const OUT=36; const bottom=(x)=>{ if(x<hx-6||x>=hx+hw+6) return OUT; if(x<hx){ const e=top(hx), d=hx-x; return Math.round(e+(OUT-e)*(d/6)); } if(x>=hx+hw){ const e=top(hx+hw-1), d=x-(hx+hw)+1; return Math.round(e+(OUT-e)*(d/6)); } return Math.max(12,Math.round(top(x))); };
+    const LIP=12; for(let x=0;x<W;x++){ const b=bottom(x); const t=Math.max(0,b-LIP); el(x,b,1,H-b,pad.lower); el(x,t,1,b-t,pad.base); el(x,t,1,1,pad.hi); el(x,b-1,1,1,pad.seam); for(let y=t+2;y<b-2;y+=2){ const c=pad.grain[(y/2)%2]; if(((x*7+y*13)%97)<70) el(x,y,1,1,c); } } }
+  function renderBody(hood){ const W=800,H=172; const hx=8,hy=26,hw=520,hh=92; const amp=hood==='arch'?(q.amp?parseInt(q.amp):14):(hood==='trap'?10:0);
+    drawPad(PADPLATE,W,H,hood,hx,hy,hw,amp); drawHood(hood,hx,hy,hw,hh,amp,'#121212','#3d3d3d','#000'); drawHood(hood,hx+10,hy+8,hw-20,hh-16,Math.max(0,amp-6),'#070707','#1a1a1a','#1a1a1a'); screw(hx+8,hy+hh-9); screw(hx+hw-11,hy+hh-9);
+    A('size',{w:W,h:H}); A('cluster',{x:hx+10,y:hy+8,w:hw-20,h:hh-16}); A('switches',{x:hx,y:hy+hh+4,w:230,h:30}); A('console',{x:536,y:38,w:260,h:134}); A('badge',{x:W-8-150,y:25,w:150,h:12}); return [W,H]; }
+
+  // ---------- CLUSTER (origin at the face: 500 x 76) ----------
+  function lampSlot(name,x,y){ A(name,{t:'lamp',x:x,y:y}); }
+  function renderCluster(style){ const fx=0, fy=0, fw=500, fh=76; const cy0=fy+fh/2+2; A('size',{w:fw,h:fh});
+    const lampsOf=(positions)=>{ positions.forEach((pt,i)=>lampSlot('lamp'+i,pt[0],pt[1])); };
+    if(style==='analog'){ const tick='#e6e3dc';
+      function chromeDial(cx,cy,r){ ring(cx,cy,r+3,'#cfcfcf',2); ring(cx,cy,r+1,'#2a2a2a',1); disc(cx,cy,r,'#0b0b0b'); ring(cx,cy,r+4,'rgba(0,0,0,0.5)',3,270,450); }
+      function bigDial(name,cx,cy,r,labels,max,redFrom,unit){ chromeDial(cx,cy,r); arcScale(cx,cy,r-2,240,480,(labels.length-1)*4+1,3,'#8a8a8a',1); arcScale(cx,cy,r-2,240,480,labels.length,6,tick,1);
+        labels.forEach((L,i)=>{ const d=240+240*i/(labels.length-1); const a=(d-90)*Math.PI/180; text(Math.round(cx+Math.cos(a)*(r-14)),Math.round(cy+Math.sin(a)*(r-14))-3,L,6,(redFrom!=null&&i>=redFrom)?'#FF5A4A':tick,true,'c'); });
+        if(redFrom!=null){ ring(cx,cy,r-2,'#FF5A4A',2,240+240*redFrom/(labels.length-1),480); } text(cx,cy+12,unit,5,'#8a8a8a',false,'c'); disc(cx,cy,3,'#555'); ring(cx,cy,3,'#888',1);
+        A(name,{t:'needle',cx:cx,cy:cy,r0:-6,r1:r-8,deg0:240,sweep:240,max:max,thick:2}); }
+      function smallDial(name,cx,cy,r,lo,hi,label){ chromeDial(cx,cy,r); arcScale(cx,cy,r-2,225,315,5,4,tick,1); text(cx-r+4,cy-10,lo,6,tick,true); text(cx+r-4,cy-10,hi,6,tick,true,'r'); text(cx,cy+6,label,5,'#8a8a8a',false,'c'); disc(cx,cy,2,'#555'); A(name,{t:'needle',cx:cx,cy:cy,r0:-3,r1:r-6,deg0:225,sweep:90,max:1,thick:2}); }
+      smallDial('fuel',fx+42,cy0+6,22,'E','F','FUEL'); bigDial('speed',fx+150,cy0,36,['0','40','80','120','160','200'],200,null,'km/h');
+      const gears=['P','R','N','D','2','1']; let gx=fx+150-18; gears.forEach(g=>{ text(gx,cy0+19,g,5,'#3a3a3a',false,'c'); gx+=7; }); A('prndl',{t:'prndl',x:fx+150-18,y:cy0+19,pitch:7,size:5,color:'#FFB347'});
+      bigDial('tach',fx+fw-150,cy0,36,['0','1','2','3','4','5','6','7','8'],8000,6,'x1000'); smallDial('batt',fx+fw-42,cy0+6,22,'-','+','BATT');
+      const bx=fx+fw/2-40, by=fy+16; roundRect(bx-6,by-5,92,48,4,'#0b0b0b'); border(bx-6,by-5,92,48,'#1e1e1e'); const pos=[]; for(let i=0;i<10;i++){ pos.push([bx+(i%5)*16,by+Math.floor(i/5)*20]); } lampsOf(pos);
+      A('brand',{t:'text',x:fx+fw/2,y:fy+fh-7,size:5,color:'#444',align:'c'}); }
+    else if(style==='c4'){ const on='#44EE44', dim='#153a15', amber='#FFB347', red='#FF5A4A', bg='#061006';
+      function win(x,y,w,h){ roundRect(x-2,y-2,w+4,h+4,5,'#000'); roundRect(x,y,w,h,4,bg); }
+      const lw=132, lh=fh-10; win(fx+6,fy+5,lw,lh); win(fx+fw-6-lw,fy+5,lw,lh);
+      const scx=fx+6+lw/2+4, scy=fy+5+lh-12; segArcDim(scx,scy,38,270,420,22,dim); [0,30,60,90,120,150,180].forEach((v,i)=>{ const d=270+150*i/6; const a=(d-90)*Math.PI/180; text(Math.round(scx+Math.cos(a)*46),Math.round(scy+Math.sin(a)*46)-3,String(v),5,amber,true,'c'); });
+      A('speedArc',{t:'segarc',cx:scx,cy:scy,r:38,degA:270,degB:420,n:22,on:on,warnFrom:null,warn:amber,red:red,redFrom:null,max:180});
+      A('speedDigits',{t:'digits',x:fx+6+lw-10,y:fy+5+lh-34,align:'r',color:amber,big:true}); text(fx+6+lw-10,fy+5+lh-8,'km/h',5,amber,false,'r'); text(fx+12,fy+5+lh-8,'SPEED',5,on,false);
+      const tcx=fx+fw-6-lw/2-4, tcy=fy+5+lh-12; segArcDim(tcx,tcy,38,270,420,22,dim); [0,2,4,6,8].forEach((v,i)=>{ const d=270+150*i/4; const a=(d-90)*Math.PI/180; text(Math.round(tcx+Math.cos(a)*46),Math.round(tcy+Math.sin(a)*46)-3,String(v),5,i>=3?red:amber,true,'c'); });
+      A('tachArc',{t:'segarc',cx:tcx,cy:tcy,r:38,degA:270,degB:420,n:22,on:on,warnFrom:16,warn:amber,red:red,redFrom:19,max:8000});
+      A('rpmDigits',{t:'digits',x:fx+fw-6-10,y:fy+5+lh-34,align:'r',color:amber,big:true,div:100}); text(fx+fw-6-10,fy+5+lh-8,'RPM/100',5,amber,false,'r'); text(fx+fw-6-lw+6,fy+5+lh-8,'TACH',5,on,false);
+      const px=fx+6+lw+8, pw=fw-2*(lw+6)-16, py=fy+8, ph=fh-16; roundRect(px-2,py-2,pw+4,ph+4,4,'#000'); roundRect(px,py,pw,ph,3,'#0d0d0d');
+      function ladder(name,x,label){ text(x+6,py+3,label,4,amber,false,'c'); for(let i=0;i<8;i++){ el(x+1,py+ph-10-(i+1)*5,10,3,dim); } A(name,{t:'ladder',x:x+1,yBottom:py+ph-10,n:8,pitch:5,w:10,h:3,on:on,warn:amber}); }
+      ladder('fuelLadder',px+6,'FUEL'); ladder('battLadder',px+pw-18,'VOLTS');
+      const gears=['P','R','N','D','2','1']; let gx=px+34; gears.forEach(g=>{ text(gx,py+10,g,6,'#3a3a3a',true,'c'); gx+=11; }); A('prndl',{t:'prndl',x:px+34,y:py+10,pitch:11,size:6,color:'#000',box:{dx:-4,dy:-2,w:9,h:9,c:amber}});
+      const pos=[]; for(let i=0;i<8;i++){ pos.push([px+28+(i%4)*17,py+22+Math.floor(i/4)*18]); } lampsOf(pos);
+      text(px+pw/2,py+ph-8,'UNLEADED FUEL ONLY',4,amber,true,'c'); A('cruiseText',{t:'text',x:px+pw/2,y:py+ph-16,size:4,color:on,align:'c'}); }
+    else if(style==='cadillac'){ const on='#66DDFF', dim='#12303c', scale='#CFE86A', bg='#050A14';
+      roundRect(fx+4,fy+4,fw-8,fh-8,6,'#000'); roundRect(fx+6,fy+6,fw-12,fh-12,5,bg);
+      function arc(name,cx,cy,label,max,labels,redFrom){ segArcDim(cx,cy,40,270,450,24,dim); labels.forEach((L,i)=>{ const d=270+180*i/(labels.length-1); const a=(d-90)*Math.PI/180; text(Math.round(cx+Math.cos(a)*47),Math.round(cy+Math.sin(a)*47)-3,L,5,scale,true,'c'); }); text(cx,cy-4,label,4,scale,false,'c');
+        A(name,{t:'segarc',cx:cx,cy:cy,r:40,degA:270,degB:450,n:24,on:on,warnFrom:null,warn:'#FFB347',red:'#FF5A4A',redFrom:redFrom,max:max}); A(name+'Digits',{t:'digits',x:cx,y:cy-20,align:'c',color:on,big:false}); }
+      arc('speedArc',fx+96,fy+fh-16,'KM/H',180,['0','30','60','90','120','150','180'],null); arc('tachArc',fx+fw-96,fy+fh-16,'RPM',8000,['0','1','2','3','4','5','6','7','8'],18);
+      const px=fx+fw/2-66, py=fy+12; text(px+8,py,'FUEL',4,scale,false,'c'); text(px+124,py,'BATT',4,scale,false,'c');
+      for(let i=0;i<10;i++){ el(px+2,py+58-(i+1)*5,12,3,dim); el(px+118,py+58-(i+1)*5,12,3,dim); } A('fuelLadder',{t:'ladder',x:px+2,yBottom:py+58,n:10,pitch:5,w:12,h:3,on:on,warn:'#FFB347'}); A('battLadder',{t:'ladder',x:px+118,yBottom:py+58,n:10,pitch:5,w:12,h:3,on:on,warn:'#FFB347'});
+      const gears=['P','R','N','D','2','1']; let gx=px+30; gears.forEach(g=>{ text(gx,py+6,g,6,dim,true,'c'); gx+=12; }); A('prndl',{t:'prndl',x:px+30,y:py+6,pitch:12,size:6,color:bg,box:{dx:-4,dy:-2,w:9,h:9,c:on}});
+      const pos=[]; for(let i=0;i<8;i++){ pos.push([px+24+(i%4)*18,py+20+Math.floor(i/4)*18]); } lampsOf(pos);
+      A('cruiseText',{t:'text',x:px+66,y:py+56,size:4,color:on,align:'c'}); A('brand',{t:'text',x:fx+fw-12,y:fy+fh-7,size:4,color:dim,align:'r'}); }
+    else { const ph={bg:'#050A14',on:'#44EE44',dim:'#1A3A1A'}; const vx=fx+8, vy=fy+6, vw=fw-16, vh=fh-12; roundRect(vx-2,vy-2,vw+4,vh+4,5,'#000'); roundRect(vx,vy,vw,vh,4,ph.bg); const on=ph.on, dim=ph.dim;
+      function vbar(name,x,label){ text(x+8,vy+6,label,5,on,false,'c'); for(let i=0;i<8;i++){ el(x+2,vy+vh-6-(i+1)*5,12,3,dim); } A(name,{t:'ladder',x:x+2,yBottom:vy+vh-6,n:8,pitch:5,w:12,h:3,on:on,warn:'#FFB347'}); }
+      vbar('fuelLadder',vx+6,'FUEL'); vbar('battLadder',vx+vw-22,'BATT');
+      text(vx+92,vy+6,'km/h',5,on,false); A('speedDigits',{t:'digits',x:vx+120,y:vy+12,align:'r',color:on,big:true});
+      const gears=['P','R','N','D','2','1']; let gx=vx+40; gears.forEach(g=>{ text(gx,vy+46,g,6,dim,true,'c'); gx+=10; }); A('prndl',{t:'prndl',x:vx+40,y:vy+46,pitch:10,size:6,color:ph.bg,box:{dx:-4,dy:-2,w:9,h:9,c:on}});
+      const tx=vx+134, ty=vy+8, tw=190, n=24; text(tx,ty-2,'x1000 r/min',5,on,false); for(let i=0;i<n;i++){ const h=6+Math.round(i*1.4); el(tx+i*8,ty+40-h,5,h,dim); } A('tachBars',{t:'bars',x:tx,yBase:ty+40,n:n,pitch:8,w:5,h0:6,dh:1.4,on:on,warnFrom:17,warn:'#FFB347',redFrom:20,red:'#FF5A4A',max:8000});
+      for(let g=0;g<=8;g++){ text(tx+Math.round(g*(tw-6)/8),ty+44,String(g),5,g>=7?'#FF5A4A':on,false); }
+      const pos=[]; for(let i=0;i<10;i++){ pos.push([vx+342+(i%5)*17,vy+12+Math.floor(i/5)*20]); } lampsOf(pos);
+      A('brand',{t:'text',x:vx+vw-26,y:vy+vh-7,size:4,color:dim,align:'r'}); }
+    return [fw,fh]; }
+
+  // ---------- SWITCHES (origin at hood left, switch row top: 230 x 30) ----------
+  function renderSwitches(){ const hx=0, sy=0; A('size',{w:230,h:30});
+    text(hx+22,sy+1,'LIGHTS',4,'#888',false,'c'); knob('lights',hx+22,sy+15,9,'#2a2a2a','#555','#ddd'); text(hx+8,sy+24,'OFF',4,'#666'); text(hx+32,sy+24,'ON',4,'#666');
+    const ix=hx+70; ring(ix,sy+15,13,'#9a9a9a',2); disc(ix,sy+15,11,'#1a1a1a'); ring(ix,sy+15,7,'#777',1); disc(ix,sy+15,5,'#0a0a0a'); el(ix-1,sy+9,2,12,'#222'); A('ignition',{t:'ignition',cx:ix,cy:sy+15,r:13,led:{x:ix+15,y:sy+6}});
+    const rx=ix+22; bevel(rx,sy+2,22,26,'#222','#333','#000'); el(rx+2,sy+4,18,11,'#2e2e2e'); el(rx+2,sy+16,18,10,'#1a1a1a'); text(rx+11,sy+19,'LOCK',4,'#aaa',true,'c'); A('lock',{t:'rocker',x:rx,y:sy+2,w:22,h:26,top:{x:rx+2,y:sy+4,w:18,h:11},bot:{x:rx+2,y:sy+16,w:18,h:10},lamp:{x:rx+3,y:sy+5}});
+    pushBtn('trunk',rx+28,sy+6,34,18,'TRUNK',false,null); pushBtn('cruise',rx+66,sy+6,34,18,'CRUISE',true,'#44EE44'); A('prompt',{t:'text',x:230,y:sy+22,size:5,color:'#8a8a8a',align:'r'}); return [230,30]; }
+
+  // ---------- HEAD UNITS ----------
+  function headUnit(x,y,w,h,kind){
+    if(kind==='none'){ bevel(x,y,w,h,'#141414','#2a2a2a','#000'); border(x,y,w,h,'#000'); text(x+w/2,y+h/2-3,'NO RADIO INSTALLED',5,'#333',true,'c'); return; }
+    if(kind==='makeshift'){ bevel(x,y,w,h,'#0c2a18','#1a4a2a','#000'); border(x,y,w,h,'#000'); for(let i=0;i<7;i++){ el(x+10+i*24,y+6,14,8,'#111'); el(x+10+i*24,y+18,6,12,'#3a3a3a'); } el(x+8,y+34,w-124,1,'#c8a040'); el(x+8,y+37,w-124,1,'#c8a040'); el(x+w-72,y+6,56,18,'#050A14'); A('display',{t:'display',x:x+w-72,y:y+6,w:56,h:18,kind:'makeshift',color:'#44EE44'}); pushBtn('pwr',x+w-110,y+26,26,13,'PWR',true,'#44EE44'); knob('vol',x+w-28,y+33,7,'#2a2a2a','#555','#ddd'); text(x+8,y+h-7,'MAKESHIFT · WIRES LIVE',4,'#7aa080',false); return; }
+    if(kind==='delco'||kind==='fleet'){ const g=kind==='fleet'?'#2a2a2a':'#8a8a8a', tx=kind==='fleet'?'#d0d0d0':'#2a2a2a'; bevel(x,y,w,h,g,kind==='fleet'?'#4a4a4a':'#b8b8b8',kind==='fleet'?'#000':'#3a3a3a'); border(x,y,w,h,'#1a1a1a');
+      text(x+22,y+3,'VOLUME',4,tx,true,'c',1); knob('vol',x+22,y+20,10,kind==='fleet'?'#1a1a1a':'#6a6a6a','#2a2a2a',kind==='fleet'?'#ddd':'#1a1a1a'); text(x+22,y+h-8,'ON · OFF',3,tx,false,'c');
+      text(x+w-22,y+3,'TUNE',4,tx,true,'c',1); knob('tune',x+w-22,y+20,10,kind==='fleet'?'#1a1a1a':'#6a6a6a','#2a2a2a',kind==='fleet'?'#ddd':'#1a1a1a'); text(x+w-22,y+h-8,'SEEK',3,tx,false,'c');
+      bevel(x+42,y+5,w-84,15,'#0a0a0a','#000','#444'); text(x+46,y+7,'PREMIUM',4,'#c0c0c0',true,'',1); A('display',{t:'display',x:x+42,y:y+5,w:w-84,h:15,kind:'delco',color:'#44EE44',freq:{x:x+w-48,y:y+6,align:'r',size:11},station:{x:x+46,y:y+13,size:4},stereo:{x:x+100,y:y+8,tx:x+105,ty:y+7}});
+      const b=(name,bx,lab,w2,bar)=>{ bevel(bx,y+26,w2,8,kind==='fleet'?'#3a3a3a':'#6a6a6a',kind==='fleet'?'#5a5a5a':'#9a9a9a','#1a1a1a'); border(bx,y+26,w2,8,'#1a1a1a'); text(bx+w2/2,y+21,lab,4,tx,true,'c'); if(bar) el(bx+w2/2-4,y+23,8,1,'#f0f0f0'); A(name,{t:'btn',x:bx,y:y+26,w:w2,h:8,led:null}); };
+      b('scan',x+44,'SCAN',24); b('seek',x+72,'SEEK',24); b('preset1',x+108,'1',16,true); b('preset2',x+128,'2',16,true); b('preset3',x+148,'3',16,true); b('preset4',x+168,'4',16,true); b('set',x+192,'SET',16);
+      if(kind==='delco'){ bevel(x+44,y+38,w-88,8,'#0a0a0a','#000','#444'); el(x+56,y+41,w-112,1,'#555'); el(x+60,y+40,10,4,'#4a4a4a'); el(x+w-70,y+40,10,4,'#4a4a4a'); } return; }
+    if(kind==='sony'){ bevel(x,y,w,h,'#1a1a1a','#3a3a3a','#000'); border(x,y,w,h,'#000');
+      knob('vol',x+20,y+24,11,'#2a2a2a','#555','#ddd',true); text(x+20,y+3,'VOL · PUSH ON',3,'#888',false,'c'); knob('tune',x+w-20,y+24,11,'#2a2a2a','#555','#ddd',true); text(x+w-20,y+3,'TUNE · SEEK',3,'#888',false,'c');
+      bevel(x+40,y+5,w-80,13,'#0a0a0a','#000','#333'); A('display',{t:'display',x:x+40,y:y+5,w:w-80,h:13,kind:'sony',color:'#44EE44',freq:{x:x+44,y:y+8,align:'l',size:7,prefix:'FM '},station:{x:x+w-44,y:y+8,size:4,align:'r'}}); text(x+w/2,y+20,'AUTO REVERSE · DOLBY B',3,'#777',false,'c');
+      bevel(x+40,y+24,w-80,9,'#0a0a0a','#000','#333'); el(x+52,y+28,w-104,1,'#444'); bevel(x+44,y+25,10,7,'#2a2a2a','#444','#000'); text(x+49,y+34,'EJECT',3,'#777',false,'c');
+      const k=(name,bx,lab)=>{ bevel(bx,y+38,18,9,'#2a2a2a','#444','#000'); border(bx,y+38,18,9,'#000'); text(bx+9,y+40,lab,4,'#ccc',true,'c'); A(name,{t:'btn',x:bx,y:y+38,w:18,h:9,led:null,litText:{x:bx+9,y:y+40,lab:lab,c:'#44EE44'}}); };
+      k('pwr',x+44,'FM'); k('preset1',x+66,'1'); k('preset2',x+86,'2'); k('preset3',x+106,'3'); k('preset4',x+126,'4'); k('preset5',x+146,'5'); k('preset6',x+166,'6'); text(x+w-44,y+40,'VALUTECH',3,'#777',true,'r',1); return; }
+    if(kind==='kenwood'){ bevel(x,y,w,h,'#101010','#333','#000'); border(x,y,w,h,'#000');
+      knob('vol',x+20,y+26,12,'#1a1a1a','#444','#ddd'); text(x+20,y+3,'VOL',3,'#888',false,'c'); knob('tune',x+w-20,y+26,12,'#1a1a1a','#444','#ddd'); text(x+w-20,y+3,'TUNE',3,'#888',false,'c');
+      bevel(x+40,y+5,110,18,'#0a0400','#000','#3a2a10'); A('display',{t:'display',x:x+40,y:y+5,w:110,h:18,kind:'kenwood',color:'#FFB347',freq:{x:x+44,y:y+7,align:'l',size:14},fm:{x:x+100,y:y+8},st:{x:x+100,y:y+16},ringOn:true});
+      text(x+156,y+4,'SIGNAL',3,'#888',false); for(let i=0;i<8;i++){ el(x+156+i*7,y+10,5,8,'#1c1c1c'); } A('signal',{t:'signal',x:x+156,y:y+10,n:8,pitch:7,w:5,h:8});
+      const k=(name,bx,lab)=>{ bevel(bx,y+30,22,10,'#1a1a1a','#333','#000'); border(bx,y+30,22,10,'#000'); text(bx+11,y+33,lab,4,'#aaa',true,'c'); A(name,{t:'btn',x:bx,y:y+30,w:22,h:10,led:null,litText:{x:bx+11,y:y+33,lab:lab,c:'#FFB347'}}); };
+      k('pwr',x+40,'FM1'); k('band',x+65,'FM2'); k('scan',x+90,'SCAN'); k('preset1',x+115,'1'); k('preset2',x+140,'2'); k('preset3',x+165,'3'); k('preset4',x+190,'4'); text(x+w/2,y+h-7,'PREMIUM TECHNOLOGIES · HIGH POWER',3,'#666',true,'c',1); return; }
+    if(kind==='dial'){ bevel(x,y,w,h,'#161616','#3a3a3a','#000'); border(x,y,w,h,'#000'); for(let yy=y+3;yy<y+h-3;yy+=4){ el(x+3,yy,w-6,1,'#1c1c1c'); }
+      knob('vol',x+20,y+22,11,'#9a9a9a','#e0e0e0','#333',true); knob('tune',x+w-20,y+22,11,'#9a9a9a','#e0e0e0','#333',true); text(x+20,y+37,'VOL · ON',3,'#888',false,'c'); text(x+w-20,y+37,'TUNING',3,'#888',false,'c');
+      bevel(x+42,y+6,w-84,16,'#6a6858','#f4f0d8','#2a2a20'); const sx=x+48, sw=w-96; [88,92,96,100,104,108].forEach((f,i)=>{ const px=sx+Math.round(sw*i/5); el(px,y+8,1,4,'#2a2a2a'); text(px,y+13,String(f),4,'#2a2a2a',true,'c'); }); for(let i=0;i<=25;i++){ el(sx+Math.round(sw*i/25),y+8,1,2,'#555'); } text(x+48,y+18,'FM',3,'#2a2a2a',true);
+      A('display',{t:'display',x:x+42,y:y+6,w:w-84,h:16,kind:'dial',litBg:'#d8d4b8',scale:{x:sx,w:sw,y:y+7,h:14},stereo:{x:x+w-66,y:y+2,tx:x+w-61,ty:y+1}});
+      for(let i=0;i<5;i++){ const bx=x+52+i*30; bevel(bx,y+27,24,12,'#2a2a2a','#555','#000'); border(bx,y+27,24,12,'#000'); el(bx+2,y+29,20,1,'#777'); text(bx+12,y+31,String(i+1),4,'#ccc',true,'c'); A('preset'+(i+1),{t:'btn',x:bx,y:y+27,w:24,h:12,led:null}); } text(x+w/2,y+h-7,'VALUTECH · SOLID STATE',3,'#666',true,'c',1); return; }
+  }
+
+  // ---------- CONSOLES (origin 536,38 in the dash: 260 x 134; the console code uses cx=4 for the inner x) ----------
+  function renderConsole(kind){ const cx=4, cw=252, H=134+26; A('size',{w:260,h:134}); A('headUnitArea',{x:cx,y:kind==='fleet'?42-26:(kind==='sport'?50-26:(kind==='luxury'?48-26:(kind==='modern'?46-26:46-26))),w:cw,h:kind==='fleet'?38:(kind==='sport'?48:(kind==='luxury'?50:(kind==='modern'?46:52)))});
+    // everything below is the v5 console code with y shifted by -26 (the plate starts at the console's rounded top)
+    const Y=(v)=>v-26;
+    if(kind==='luxury'){ roundRect(cx-4,Y(26),cw+8,H-30,10,'#141414'); roundRectEdge(cx-4,Y(26),cw+8,H-30,10,'#3a3a3a','#000');
+      for(let y=28;y<44;y++){ el(cx,Y(y),cw,1,(y%2)?'#3b2a19':'#4a3620'); } el(cx,Y(28),cw,1,'#5a4428'); el(cx,Y(43),cw,1,'#1a120a'); vent(cx+6,Y(31),60,10); vent(cx+cw-66,Y(31),60,10); text(cx+cw/2,Y(33),'MERCIA',5,'#c8a060',true,'c',3);
+      headUnit(cx,Y(48),cw,50,'delco');
+      const vy=Y(104); bevel(cx,vy,cw,48,'#101010','#3a3a3a','#000'); border(cx,vy,cw,48,'#000');
+      bevel(cx+8,vy+8,96,22,'#050A14','#000','#1A3A4A'); A('climateDisplay',{t:'climate',x:cx+8,y:vy+8,w:96,h:22,color:'#66DDFF',temp:{x:cx+12,y:vy+11,size:11},mode:{x:cx+62,y:vy+11},fan:{x:cx+62,y:vy+20}}); text(cx+8,vy+34,'ELECTRONIC CLIMATE CONTROL',3,'#777',true,'',1);
+      const key=(name,x,lab,led,ledC)=>{ bevel(x,vy+8,30,14,'#2a2a2a','#3d3d3d','#050505'); border(x,vy+8,30,14,'#050505'); if(led){ el(x+3,vy+11,3,3,'#141414'); } text(x+15,vy+12,lab,5,'#d8d8d8',true,'c'); A(name,{t:'btn',x:x,y:vy+8,w:30,h:14,led:led?{x:x+3,y:vy+11,c:ledC,s:3}:null}); };
+      key('tempdn',cx+112,'TEMP −',false); key('tempup',cx+146,'TEMP +',false); key('ac',cx+180,'A/C',true,'#5AA0FF'); key('heat',cx+214,'HEAT',true,'#FFB347');
+      const key2=(name,x,lab)=>{ bevel(x,vy+26,30,14,'#2a2a2a','#3d3d3d','#050505'); border(x,vy+26,30,14,'#050505'); text(x+15,vy+30,lab,5,'#d8d8d8',true,'c'); A(name,{t:'btn',x:x,y:vy+26,w:30,h:14,led:null}); };
+      key2('fandn',cx+112,'FAN −'); key2('fanup',cx+146,'FAN +'); key2('def',cx+180,'DEF'); key2('off',cx+214,'OFF'); return; }
+    if(kind==='sedan'){ roundRect(cx-4,Y(26),cw+8,H-30,10,'#141414'); roundRectEdge(cx-4,Y(26),cw+8,H-30,10,'#3a3a3a','#000'); vent(cx+4,Y(30),64,12); vent(cx+cw-68,Y(30),64,12);
+      headUnit(cx,Y(46),cw,52,'sony');
+      const vy=Y(104); bevel(cx,vy,cw,48,'#1a1a1a','#3a3a3a','#000'); border(cx,vy,cw,48,'#000');
+      slider('temp',cx+12,vy+14,90,'TEMP','#3a6ad0','#d04030'); slider('fan',cx+12,vy+34,90,'FAN',null,null,4);
+      pushBtn('ac',cx+120,vy+10,40,18,'A/C',true,'#5AA0FF'); pushBtn('heat',cx+164,vy+10,40,18,'HEAT',true,'#FFB347'); text(cx+120,vy+32,'VENT   FLOOR   DEF',4,'#666',false); for(let i=0;i<3;i++){ el(cx+124+i*28,vy+38,3,3,'#2a2a2a'); } A('modeLamps',{t:'lamps3',x:cx+124,y:vy+38,pitch:28,c:'#44EE44'}); text(cx+cw-6,vy+42,'CLIMATE',3,'#555',true,'r',1); return; }
+    if(kind==='sport'){ roundRect(cx-4,Y(26),cw+8,H-30,10,'#0e0e0e'); roundRectEdge(cx-4,Y(26),cw+8,H-30,10,'#3a3a3a','#000'); el(cx-4,Y(26),cw+8,2,'#D02020'); roundVent(cx+22,Y(38),10); roundVent(cx+cw-22,Y(38),10); text(cx+cw/2,Y(32),'COSSETTE',5,'#D02020',true,'c',3);
+      headUnit(cx,Y(50),cw,48,'kenwood');
+      const vy=Y(104); bevel(cx,vy,cw,48,'#121212','#3a3a3a','#000'); border(cx,vy,cw,48,'#000');
+      const kn=(name,x,lab,arc)=>{ text(x,vy+4,lab,4,'#aaa',false,'c'); if(arc){ ring(x,vy+27,13,'#3a6ad0',2,220,320); ring(x,vy+27,13,'#d04030',2,40,140); } knob(name,x,vy+27,9,'#1a1a1a','#cfcfcf','#ddd'); };
+      kn('temp',cx+34,'TEMP',true); kn('fan',cx+86,'FAN'); arcScale(cx+86,vy+27,14,240,480,4,3,'#aaa',1); kn('heat',cx+138,'HEAT'); text(cx+128,vy+42,'OFF',3,'#777',false); text(cx+144,vy+42,'ON',3,'#777',false);
+      pushBtn('ac',cx+176,vy+14,52,22,'A/C',true,'#5AA0FF'); text(cx+cw-6,vy+42,'SPORT CLIMATE',3,'#555',true,'r',1); return; }
+    if(kind==='fleet'){ roundRect(cx-4,Y(26),cw+8,H-30,3,'#141414'); roundRectEdge(cx-4,Y(26),cw+8,H-30,3,'#3a3a3a','#000'); vent(cx+4,Y(28),64,10); vent(cx+cw-68,Y(28),64,10);
+      headUnit(cx,Y(42),cw,38,'fleet');
+      const sy=Y(84); bevel(cx,sy,cw,30,'#0a0a0a','#2a2a2a','#000'); border(cx,sy,cw,30,'#000'); screw(cx+3,sy+3); screw(cx+cw-6,sy+3); text(cx+cw/2,sy+3,'SIREN CONTROLLER',4,'#aaa',true,'c',1);
+      text(cx+14,sy+12,'LIGHTBAR',4,'#aaa',false); text(cx+14,sy+23,'0  1  2  3',5,'#777',false); knob('lbar',cx+70,sy+18,8,'#2a2a2a','#555','#ddd');
+      text(cx+100,sy+12,'SIREN',4,'#aaa',false); text(cx+100,sy+23,'OFF YLP WL ALM',4,'#777',false); knob('siren',cx+176,sy+18,8,'#2a2a2a','#555','#ddd');
+      el(cx+200,sy+14,3,3,'#2a2a2a'); text(cx+206,sy+12,'SIREN',3,'#777',false); el(cx+200,sy+22,3,3,'#2a2a2a'); text(cx+206,sy+20,'LIGHTS',3,'#777',false); A('sirenLed',{x:cx+200,y:sy+14,c:'#FF5A4A'}); A('lbarLed',{x:cx+200,y:sy+22,c:'#5AA0FF'});
+      const vy=Y(118); bevel(cx,vy,cw,34,'#1a1a1a','#3a3a3a','#000'); border(cx,vy,cw,34,'#000'); slider('temp',cx+12,vy+12,90,'TEMP','#3a6ad0','#d04030'); slider('fan',cx+120,vy+12,70,'FAN',null,null,4); pushBtn('heat',cx+204,vy+8,40,18,'HEAT',true,'#FFB347'); return; }
+    if(kind==='truck'){ roundRect(cx-4,Y(26),cw+8,H-30,3,'#1a1a1a'); roundRectEdge(cx-4,Y(26),cw+8,H-30,3,'#3a3a3a','#000'); for(let i=0;i<260;i++){ const px=cx+((i*37)%cw), py=Y(24+((i*53)%(H-50))); el(px,py,1,1,(i%3)?'#0f0f0f':'#2a2a2a'); } vent(cx+4,Y(30),64,12); vent(cx+cw-68,Y(30),64,12);
+      headUnit(cx,Y(46),cw,52,'dial');
+      const vy=Y(104); bevel(cx,vy,cw,48,'#161616','#3a3a3a','#000'); border(cx,vy,cw,48,'#000');
+      lever('temp',cx+30,vy+12,30,'TEMP',['COLD','','HOT']); lever('fan',cx+90,vy+12,30,'FAN',['OFF','LO','HI']);
+      text(cx+150,vy+8,'HEATER',4,'#888',true,'',1); pushBtn('heat',cx+150,vy+16,44,18,'DEFROST',true,'#FFB347'); text(cx+cw-6,vy+42,'NO A/C',3,'#555',true,'r',1); return; }
+    if(kind==='modern'){ roundRect(cx-4,Y(26),cw+8,H-30,6,'#1c1c1e'); roundRectEdge(cx-4,Y(26),cw+8,H-30,6,'#3a3a3c','#000'); el(cx,Y(28),cw,14,'#8a8a8a'); for(let xx=cx+1;xx<cx+cw-1;xx+=2){ el(xx,Y(29),1,12,'#7a7a7a'); } vent(cx+6,Y(30),60,10); vent(cx+cw-66,Y(30),60,10); text(cx+cw/2,Y(32),'DASH',5,'#101010',true,'c',3);
+      headUnit(cx,Y(46),cw,46,'makeshift');
+      const vy=Y(98); bevel(cx,vy,cw,54,'#141414','#3a3a3a','#000'); border(cx,vy,cw,54,'#000');
+      bevel(cx+8,vy+8,60,20,'#c8cdb0','#000','#8a8f70'); A('climateDisplay',{t:'climate',x:cx+8,y:vy+8,w:60,h:20,color:'#1a1a1a',temp:{x:cx+12,y:vy+11,size:11},fanLabel:{x:cx+44,y:vy+11},fan:{x:cx+44,y:vy+18}});
+      const key=(name,x,y,lab,led,ledC)=>{ bevel(x,y,38,14,'#2a2a2a','#3d3d3d','#050505'); border(x,y,38,14,'#050505'); if(led){ el(x+3,y+5,3,3,'#141414'); } text(x+19,y+4,lab,5,'#d8d8d8',true,'c'); A(name,{t:'btn',x:x,y:y,w:38,h:14,led:led?{x:x+3,y:y+5,c:ledC,s:3}:null}); };
+      key('tempdn',cx+76,vy+8,'TEMP −',false); key('tempup',cx+118,vy+8,'TEMP +',false); key('ac',cx+160,vy+8,'A/C',true,'#5AA0FF'); key('heat',cx+202,vy+8,'AUTO',true,'#FFB347');
+      key('fandn',cx+76,vy+26,'FAN −',false); key('fanup',cx+118,vy+26,'FAN +',false); key('mode',cx+160,vy+26,'MODE',false); key('off',cx+202,vy+26,'OFF',false); text(cx+cw/2,vy+46,'PUSH BUTTON CLIMATE',3,'#555',true,'c',1); return; }
+  }
+  function renderHeadUnitOverlay(kind){ const cw=252; const h=52; headUnit(0,0,cw,h,kind); A('size',{w:cw,h:h}); return [cw,h]; }
+
+  // ---------- BADGES (shape only; text is live) ----------
+  function renderBadge(kind){ const x=0,y=0; A('size',{w:150,h:12});
+    if(kind==='chrome'){ bevel(x,y,150,10,'#9a9a9a','#e0e0e0','#3a3a3a'); border(x,y,150,10,'#2a2a2a'); A('text',{t:'emboss',x:x+75,y:y+2,size:7,light:'#f4f4f4',dark:'#2a2a2a',align:'c'}); }
+    else if(kind==='oval'){ roundRect(x,y,150,12,6,'#cfcfcf'); roundRect(x+2,y+2,146,8,4,'#101010'); A('text',{t:'text',x:x+75,y:y+3,size:6,color:'#e8e8e8',align:'c',ls:2}); }
+    else if(kind==='script'){ el(x,y,150,11,'#0a0a0a'); border(x,y,150,11,'#3a3a3a'); el(x+6,y+8,138,1,'#D02020'); A('text',{t:'text',x:x+8,y:y+1,size:7,color:'#E8E0C0',align:'l',ls:2}); A('sub',{t:'text',x:x+142,y:y+2,size:5,color:'#D02020',align:'r'}); }
+    else if(kind==='stencil'){ border(x,y,150,12,'#d8d8d8'); A('text',{t:'text',x:x+75,y:y+2,size:8,color:'#f0f0f0',align:'c',ls:3}); }
+    else if(kind==='stamped'){ el(x+100,y+1,44,10,'#1a1208'); border(x+100,y+1,44,10,'#6a5238'); A('text',{t:'emboss',x:x,y:y,size:8,light:'#6a5238',dark:'#1a1208',align:'l',ls:2}); A('sub',{t:'text',x:x+122,y:y+3,size:6,color:'#c8b090',align:'c'}); }
+    else if(kind==='decal'){ el(x,y,150,12,'#b8b8b8'); for(let xx=x+1;xx<x+149;xx+=2){ el(xx,y+1,1,10,'#a8a8a8'); } el(x+120,y+3,24,6,'#101010'); A('text',{t:'text',x:x+8,y:y+3,size:7,color:'#101010',align:'l',ls:1}); A('sub',{t:'text',x:x+132,y:y+4,size:4,color:'#b8b8b8',align:'c'}); }
+    return [150,12]; }
+
+  let size=[0,0];
+  const layer=q.layer||'body';
+  if(layer==='body') size=renderBody(q.hood||'arch');
+  else if(layer==='cluster') size=renderCluster(q.style||'analog');
+  else if(layer==='switches') size=renderSwitches();
+  else if(layer==='console'){ renderConsole(q.kind||'sedan'); size=[260,134]; }
+  else if(layer==='headunit') size=renderHeadUnitOverlay(q.kind||'none');
+  else if(layer==='badge') size=renderBadge(q.kind||'chrome');
+  p.style.width=size[0]+'px'; p.style.height=size[1]+'px';
+  document.getElementById('anchors').textContent='ANCHORS_'+'BEGIN'+JSON.stringify(ANCH)+'ANCHORS_'+'END';
+})();
+</script>
+</body>
+</html>

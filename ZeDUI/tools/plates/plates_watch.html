@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeD plates — watch items (derived from zed_cazio_watch_v5_round.html, locked Oct 12 2026)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { background:transparent; }
+.w { position:absolute; left:0; top:0; display:block; overflow:hidden; }
+.w .px { position:absolute; }
+.w .tx { position:absolute; white-space:nowrap; font-family:'Fira Mono',monospace; line-height:1; }
+#anchors { position:absolute; left:0; top:2000px; color:transparent; font-size:1px; }
+</style>
+</head>
+<body>
+<div class="w" id="plate"></div>
+<pre id="anchors"></pre>
+<script>
+(function(){
+  const q = Object.fromEntries(new URLSearchParams(location.search).entries());
+  const ANCH = {}; function A(n,o){ ANCH[n]=o; }
+  const p = document.getElementById('plate');
+  function el(x,y,w,h,c,extra){ const d=document.createElement('div'); d.className='px'; d.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;background:'+c+';'+(extra||''); p.appendChild(d); return d; }
+  function border(x,y,w,h,c){ el(x,y,w,1,c); el(x,y+h-1,w,1,c); el(x,y,1,h,c); el(x+w-1,y,1,h,c); }
+  function text(x,y,s,size,c,bold,align,ls){ const d=document.createElement('div'); d.className='tx'; d.textContent=s; d.style.cssText='left:'+x+'px;top:'+y+'px;font-size:'+size+'px;color:'+c+';font-weight:'+(bold?700:400)+';letter-spacing:'+(ls||0)+'px;'+(align==='r'?'transform:translateX(-100%);':align==='c'?'transform:translateX(-50%);':''); p.appendChild(d); return d; }
+  function run(cx,cy,deg,r0,r1,c,t){ const a=(deg-90)*Math.PI/180; for(let r=r0;r<=r1;r++){ el(Math.round(cx+Math.cos(a)*r)-Math.floor(t/2),Math.round(cy+Math.sin(a)*r)-Math.floor(t/2),t,t,c); } }
+  function ring(cx,cy,r,c,t,degA,degB){ const a0=(degA==null?0:degA), a1=(degB==null?360:degB); const step=180/(Math.PI*r); for(let d=a0; d<=a1; d+=step){ const a=(d-90)*Math.PI/180; el(Math.round(cx+Math.cos(a)*r)-Math.floor(t/2),Math.round(cy+Math.sin(a)*r)-Math.floor(t/2),t,t,c); } }
+  function disc(cx,cy,r,c){ for(let y=-r;y<=r;y++){ const w=Math.round(Math.sqrt(r*r-y*y)); el(cx-w,cy+y,2*w+1,1,c); } }
+  function roundRect(x,y,w,h,r,c){ for(let yy=0;yy<h;yy++){ let inset=0; if(yy<r){ inset=r-Math.round(Math.sqrt(r*r-(r-yy)*(r-yy))); } else if(yy>=h-r){ const d=yy-(h-r-1); inset=r-Math.round(Math.sqrt(Math.max(0,r*r-d*d))); } el(x+inset,y+yy,w-2*inset,1,c); } }
+  function roundRectEdge(x,y,w,h,r,hi,sh){ for(let yy=0;yy<h;yy++){ let inset=0; if(yy<r){ inset=r-Math.round(Math.sqrt(r*r-(r-yy)*(r-yy))); } else if(yy>=h-r){ const d=yy-(h-r-1); inset=r-Math.round(Math.sqrt(Math.max(0,r*r-d*d))); } el(x+inset,y+yy,1,1,hi); el(x+w-1-inset,y+yy,1,1,sh); if(yy===0) el(x+inset,y,w-2*inset,1,hi); if(yy===h-1) el(x+inset,y+yy,w-2*inset,1,sh); } }
+  function bevel(x,y,w,h,bg,hi,sh){ el(x,y,w,h,bg); el(x,y,w,1,hi); el(x,y,1,h,hi); el(x,y+h-1,w,1,sh); el(x+w-1,y,1,h,sh); }
+  function strap(x,y,w,h,kind,c1,c2){ if(kind==='leather'){ el(x,y,w,h,c1); el(x+3,y,1,h,c2); el(x+w-4,y,1,h,c2); }
+    else if(kind==='resin'){ el(x,y,w,h,c1); for(let yy=y+2;yy<y+h-1;yy+=4){ el(x+4,yy,w-8,1,c2); } }
+    else if(kind==='steel'){ for(let yy=y;yy+4<=y+h;yy+=5){ bevel(x,yy,w,4,c1,'#f0f0f0',c2); el(x+w/3,yy,1,4,c2); el(x+2*w/3,yy,1,4,c2); } }
+    else if(kind==='oyster'){ for(let yy=y;yy+4<=y+h;yy+=5){ bevel(x,yy,w,4,c1,'#fff4c0',c2); el(x+w/3-6,yy+1,12,2,'#fff0b0'); el(x+2*w/3-6,yy+1,12,2,'#fff0b0'); } }
+    else if(kind==='nato'){ el(x,y,w,h,c1); el(x+w/2-4,y,8,h,c2); el(x+w/2-1,y,2,h,c1); } }
+  function frontKey(name,x,y,w,h,label,color){ roundRect(x,y,w,h,2,color); el(x+2,y+1,w-4,1,'rgba(255,255,255,0.45)'); el(x+2,y+h-2,w-4,1,'rgba(0,0,0,0.35)'); text(x+w/2,y-6,label,4,'#cfcfcf',true,'c'); A(name,{t:'key',x:x,y:y,w:w,h:h,color:color}); }
+  function metalKey(name,x,y,w,h,label,fill,edge,txt,hasMark){ roundRect(x,y,w,h,3,fill); roundRectEdge(x,y,w,h,3,edge,'#000'); text(x+w/2+(hasMark?3:0),y+Math.floor((h-5)/2),label,5,txt,true,'c'); if(hasMark){ el(x+5,y+Math.floor(h/2)-2,4,4,'#1a1a1a'); border(x+4,y+Math.floor(h/2)-3,6,6,'#333'); } A(name,{t:'key',x:x,y:y,w:w,h:h,fill:fill,txt:txt,label:label,mark:hasMark?{x:x+5,y:y+Math.floor(h/2)-2}:null,labelX:x+w/2+(hasMark?3:0),labelY:y+Math.floor((h-5)/2)}); }
+
+  function digital(o){ const W=124,H=176; A('size',{w:W,h:H});
+    strap(26,0,72,26,o.strapKind,o.strap1,o.strap2); strap(26,150,72,26,o.strapKind,o.strap1,o.strap2);
+    roundRect(6,20,112,136,12,o.caseFill); roundRectEdge(6,20,112,136,12,o.caseHi,o.caseSh); el(26,21,72,1,'#000'); el(26,154,72,1,'#000');
+    roundRect(14,28,96,88,8,o.plate); roundRectEdge(14,28,96,88,8,'#000','#2a2a2a'); el(14,118,96,1,o.caseSh); el(14,119,96,1,o.caseHi);
+    text(20,33,'CaZio',6,'#e0e0e0',true,'',0); el(88,31,14,7,o.wr); text(95,32,'WR',4,o.wrTxt||'#0a0a0a',true,'c'); text(62,41,'ALARM CHRONO · ILLUMINATOR',3,'#9a9a9a',false,'c');
+    const lx=20, ly=48, lw=84, lh=34; bevel(lx-1,ly-1,lw+2,lh+2,'#000','#000','#333'); el(lx,ly,lw,lh,o.lcdBg);
+    A('lcd',{x:lx,y:ly,w:lw,h:lh,bg:o.lcdBg,fg:o.lcdFg,dim:o.lcdDim,pm:{x:lx+3,y:ly+3},speed:{x:lx+14,y:ly+5},alm:{x:lx+lw-3,y:ly+3},time:{x:lx+lw/2-6,y:ly+11,size:17},day:{x:lx+lw-3,y:ly+15},date:{x:lx+lw-3,y:ly+22},set:{title:{x:lx+lw/2,y:ly+3},value:{x:lx+lw/2,y:ly+10,size:15},hint:{x:lx+lw/2,y:ly+27}}});
+    text(62,86,'TIME · ALARM · SPEED · SET',3,'#8a8a8a',false,'c');
+    frontKey('keyAlarm',22,100,36,11,'ALARM',o.key1); frontKey('keySet',66,100,36,11,'SET',o.key2);
+    metalKey('keySpeed',14,124,44,16,'SPEED',o.metal,o.metalHi,o.metalTxt,true); metalKey('keyStart',66,124,44,16,'START',o.metal,o.metalHi,o.metalTxt,false);
+    text(62,146,'WATER RESIST',3,o.metalTxt,false,'c',1); A('runMark',{c:o.runMark}); }
+
+  function roundClassic(o){ const W=150,H=176; A('size',{w:W,h:H}); const ox=13; // frame offset, drawn inline
+    const px=(x)=>x+ox;
+    strap(px(34),0,56,28,o.strapKind,o.strap1,o.strap2); strap(px(34),148,56,28,o.strapKind,o.strap1,o.strap2);
+    const cx=px(62), cy=88, R=40;
+    roundRect(px(32),24,60,128,10,o.caseSh); roundRect(px(34),26,56,124,9,o.caseFill); roundRectEdge(px(34),26,56,124,9,o.caseHi,o.caseSh); el(px(34),26,56,1,o.caseHi); el(px(34),149,56,1,o.caseSh);
+    disc(cx,cy,R+13,o.caseSh); disc(cx,cy,R+11,o.caseFill); ring(cx,cy,R+11,o.caseHi,1,200,340); ring(cx,cy,R+11,o.caseSh,1,20,160);
+    ring(cx,cy,R+7,o.caseSh,1); ring(cx,cy,R+6,o.caseHi,1,200,340);
+    disc(cx,cy,R+5,o.caseSh); disc(cx,cy,R+4,o.caseFill); ring(cx,cy,R+4,o.caseHi,1,180,360); ring(cx,cy,R+4,o.caseSh,1,0,180);
+    disc(cx,cy,R-2,'#000'); disc(cx,cy,R-3,o.dial);
+    for(let d=0;d<360;d+=30){ const a=(d-90)*Math.PI/180; const rr=R-7; const bigT=(d%90===0); el(Math.round(cx+Math.cos(a)*rr)-1,Math.round(cy+Math.sin(a)*rr)-(bigT?3:2),2,bigT?6:4,o.index); }
+    text(cx,cy-20,'CaZio',4,o.index,true,'c'); text(cx,cy-14,'QUARTZ',3,o.index,false,'c');
+    const lw=44, lh=14, lx=cx-lw/2, ly=cy+10; bevel(lx-1,ly-1,lw+2,lh+2,'#000','#000','#333'); el(lx,ly,lw,lh,o.lcdBg);
+    A('lcd',{x:lx,y:ly,w:lw,h:lh,bg:o.lcdBg,fg:o.lcdFg,dim:o.lcdDim,day:{x:lx+2,y:ly+2},date:{x:lx+lw-2,y:ly+2},speed:{x:lx+2,y:ly+10},alm:{x:lx+lw-2,y:ly+10}});
+    disc(cx,cy,2,o.hand); A('hands',{cx:cx,cy:cy,hour:16,min:25,color:o.hand,lume:o.lume||null}); A('alarmDot',{x:cx+14,y:cy-4});
+    const push=(name,x,y,label,align)=>{ el(x,y,6,7,o.caseFill); border(x,y,6,7,o.caseSh); el(x+1,y+1,4,1,o.caseHi); text(align==='l'?x-2:x+8,y+1,label,3,o.engrave,true,align==='l'?'r':''); A(name,{t:'push',x:x-4,y:y-4,w:14,h:15}); };
+    push('pushSet',px(12),cy-30,'SET','l'); push('pushSpeed',px(12),cy+23,'SPEED','l'); push('pushAlarm',px(106),cy-30,'ALARM','r'); push('pushStart',px(106),cy+23,'START','r');
+    el(cx+R+12,cy-5,7,10,o.caseFill); border(cx+R+12,cy-5,7,10,o.caseSh); el(cx+R+13,cy-3,5,1,o.caseHi); el(cx+R+13,cy,5,1,o.caseSh); el(cx+R+13,cy+3,5,1,o.caseSh); A('crown',{t:'push',x:cx+R+10,y:cy-8,w:12,h:16}); }
+
+  function expensive(o){ const W=150,H=176; A('size',{w:W,h:H}); const ox=13; const px=(x)=>x+ox;
+    strap(px(30),0,64,30,'oyster',o.gold,o.goldSh); strap(px(30),146,64,30,'oyster',o.gold,o.goldSh);
+    const cx=px(62), cy=88, R=40;
+    roundRect(px(28),26,68,124,10,o.goldSh); roundRect(px(30),28,64,120,9,o.gold); roundRectEdge(px(30),28,64,120,9,'#fff4c0',o.goldSh);
+    disc(cx,cy,R+12,o.goldSh); disc(cx,cy,R+10,o.gold); ring(cx,cy,R+10,'#fff4c0',1,200,340); ring(cx,cy,R+8,o.goldSh,1);
+    disc(cx,cy,R+5,o.goldSh); disc(cx,cy,R+4,o.gold);
+    for(let d=0;d<360;d+=6){ run(cx,cy,d,R-2,R+3,(d%12===0)?'#fff4c0':o.goldSh,1); }
+    disc(cx,cy,R-3,'#000'); disc(cx,cy,R-4,o.dial);
+    for(let d=0;d<360;d+=30){ run(cx,cy,d,R-10,R-6,o.gold,(d%90===0)?3:2); }
+    text(cx,cy-20,'ROLLEX',4,o.ink,true,'c'); text(cx,cy-14,'OYSTER PERPETUAL',2,o.ink,false,'c');
+    el(cx+17,cy-5,12,10,'#ffffff'); border(cx+17,cy-5,12,10,o.gold); border(cx+16,cy-6,14,12,'rgba(255,255,255,0.25)'); A('dateWin',{x:cx+23,y:cy-3,size:6});
+    disc(cx,cy,2,o.gold); A('hands',{cx:cx,cy:cy,hour:16,min:25,color:o.gold,lume:null});
+    text(cx,cy+12,'SWISS MADE',2,o.ink,false,'c');
+    el(cx+R+10,cy-5,8,10,o.gold); for(let i=0;i<4;i++){ el(cx+R+11,cy-4+i*3,6,1,o.goldSh); } A('crown',{t:'push',x:cx+R+8,y:cy-8,w:12,h:16});
+    const push=(name,deg,label)=>{ const a=(deg-90)*Math.PI/180; const x=Math.round(cx+Math.cos(a)*(R+13)), y=Math.round(cy+Math.sin(a)*(R+13)); el(x-3,y-4,7,8,o.gold); el(x-3,y-4,7,1,'#fff4c0'); text(x+6,y-2,label,3,'#cfcfcf',true); A(name,{t:'push',x:x-6,y:y-7,w:14,h:14}); };
+    push('pushStart',60,'START'); push('pushSpeed',120,'SPEED'); text(cx+R+19,cy+7,'ALM',3,'#cfcfcf',true);
+    A('alarmDot',{x:cx-R+8,y:cy+22}); const sx=cx-16, sy=cy+23; for(let i=0;i<3;i++){ for(let k=0;k<=i;k++){ el(sx+i*11+k*4,sy-2,2,5,'rgba(0,0,0,0.18)'); } } A('chevrons',{x:sx,y:sy,color:o.gold,pause:'#a02020'}); }
+
+  const H=(h,m)=>((h%12)+m/60)*30;
+  const DIGITAL = {
+    black:{strapKind:'resin',strap1:'#141414',strap2:'#222',caseFill:'#1c1c1c',caseHi:'#4a4a4a',caseSh:'#000',plate:'#101010',wr:'#5AA0FF',lcdBg:'#0a0a0a',lcdFg:'#e8e8e8',lcdDim:'#2a2a2a',key1:'#D03030',key2:'#E8B020',metal:'#3a3a3a',metalHi:'#6a6a6a',metalTxt:'#d0d0d0',runMark:'#44EE44'},
+    red:{strapKind:'resin',strap1:'#6a1414',strap2:'#8a2020',caseFill:'#5a1212',caseHi:'#9a3a3a',caseSh:'#200',plate:'#141414',wr:'#5AA0FF',lcdBg:'#c8cdb0',lcdFg:'#1a1a1a',lcdDim:'#a8ad90',key1:'#E8B020',key2:'#3050C8',metal:'#7a2a2a',metalHi:'#b05050',metalTxt:'#f0d0d0',runMark:'#44EE44'},
+    dress:{strapKind:'steel',strap1:'#b0b0b0',strap2:'#5a5a5a',caseFill:'#a8a8a8',caseHi:'#f0f0f0',caseSh:'#3a3a3a',plate:'#141414',wr:'#5AA0FF',lcdBg:'#aebccc',lcdFg:'#101820',lcdDim:'#8a98a8',key1:'#6A4AD8',key2:'#20C8C0',metal:'#8a8a8a',metalHi:'#e0e0e0',metalTxt:'#1a1a1a',runMark:'#20A020'},
+    gold:{strapKind:'steel',strap1:'#C9A227',strap2:'#7a5a10',caseFill:'#b08a20',caseHi:'#f8e8a0',caseSh:'#5a4410',plate:'#8a6a18',wr:'#2a1a08',wrTxt:'#f0e0b0',lcdBg:'#d8cfa0',lcdFg:'#1a1208',lcdDim:'#b8ae80',key1:'#E8A070',key2:'#E06030',metal:'#b08a20',metalHi:'#f8e8a0',metalTxt:'#2a1a08',runMark:'#20A020'} };
+  const CLASSIC = {
+    black:{strapKind:'resin',strap1:'#141414',strap2:'#222',caseFill:'#1c1c1c',caseHi:'#4a4a4a',caseSh:'#000',caseEdge:'#2a2a2a',engrave:'#9a9a9a',dial:'#141414',index:'#e6e3dc',hand:'#e6e3dc',lcdBg:'#c8cdb0',lcdFg:'#1a1a1a',lcdDim:'#a8ad90'},
+    brown:{strapKind:'leather',strap1:'#5a3a1a',strap2:'#7a5030',caseFill:'#a8a8a8',caseHi:'#f0f0f0',caseSh:'#3a3a3a',caseEdge:'#8a8a8a',engrave:'#3a3a3a',dial:'#efe6d0',index:'#3a2a10',hand:'#3a2a10',lcdBg:'#c8cdb0',lcdFg:'#1a1a1a',lcdDim:'#a8ad90'},
+    gold:{strapKind:'steel',strap1:'#C9A227',strap2:'#7a5a10',caseFill:'#b08a20',caseHi:'#f8e8a0',caseSh:'#5a4410',caseEdge:'#8a6a18',engrave:'#3a2a08',dial:'#E8D8A8',index:'#3a2a10',hand:'#3a2a10',lcdBg:'#c8cdb0',lcdFg:'#1a1a1a',lcdDim:'#a8ad90'},
+    military:{strapKind:'nato',strap1:'#4a5a3a',strap2:'#2a3a22',caseFill:'#2a3020',caseHi:'#6a7a5a',caseSh:'#000',caseEdge:'#3a4a2a',engrave:'#8a9a7a',dial:'#1c2416',index:'#b9c9a3',hand:'#b9c9a3',lume:'#e8ffb0',lcdBg:'#8a9a6a',lcdFg:'#101a0a',lcdDim:'#7a8a5a'} };
+  const EXPENSIVE = {gold:'#C9A227',goldSh:'#7a5a10',dial:'#f0ece0',ink:'#141414'};
+
+  const kind=q.kind||'digital', v=q.variant||'black'; let size=[124,176];
+  if(kind==='digital'){ digital(DIGITAL[v]); size=[124,176]; }
+  else if(kind==='classic'){ roundClassic(CLASSIC[v]); size=[150,176]; }
+  else if(kind==='expensive'){ expensive(EXPENSIVE); size=[150,176]; }
+  p.style.width=size[0]+'px'; p.style.height=size[1]+'px';
+  document.getElementById('anchors').textContent='ANCHORS_'+'BEGIN'+JSON.stringify(ANCH)+'ANCHORS_'+'END';
+})();
+</script>
+</body>
+</html>
