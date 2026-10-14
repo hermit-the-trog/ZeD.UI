@@ -145,6 +145,27 @@ end
 -- @param x, y     Top-left of the container box
 -- @param size     Container size (use ZeD.T.iconSm/iconMd/iconLg/iconXl)
 -- @param alpha    Optional alpha (defaults to 1.0, use disabledAlpha for disabled)
+-- Sized textures (Oct 13 2026): icons baked at 8..64 px
+-- (ZeDUI/tools/icons/bake_tab_icons.py) as <dir><name>_<size>.png. Returns the
+-- smallest baked size at or above `px`, so a 2x screen draws a true 32 px icon
+-- instead of stretching a 16 px one, and every UI scale step (0.5x..2x) lands
+-- on a baked size. Cached; nil when the file is missing.
+local SIZED_STEPS = { 8, 12, 16, 20, 24, 28, 32, 36, 40, 48, 56, 64 }
+local _sizedCache = {}
+function ZeD.Atoms.sizedTexture(dir, name, px)
+    local pick = SIZED_STEPS[#SIZED_STEPS]
+    for _, step in ipairs(SIZED_STEPS) do
+        if step >= px then pick = step; break end
+    end
+    local key = dir .. name .. "_" .. pick
+    local t = _sizedCache[key]
+    if t == nil then
+        t = getTexture(key .. ".png") or false
+        _sizedCache[key] = t
+    end
+    return t or nil
+end
+
 function ZeD.Atoms.drawIcon(panel, texture, x, y, size, alpha, tint)
     if not texture then return end
     local a = alpha or 1.0

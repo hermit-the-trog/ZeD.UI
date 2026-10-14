@@ -29,6 +29,12 @@ local accentLabels = {"Red", "Orange", "Yellow", "Green", "Blue", "PZ Teal", "Pu
 local sizeKeys   = {"small", "large"}
 local sizeLabels = {"Small", "Large"}
 
+-- UI scale (Oct 13 2026, director): Auto fits the screen (1x at 1080p, 2x at 4K,
+-- nudged by the engine font-size option); the fixed steps override it.
+local scaleKeys   = {"auto", 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0}
+-- (no "%" in labels: ModOptions runs every label through getText, which chokes on it)
+local scaleLabels = {"Auto (fits the screen)", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"}
+
 -- Gamepad glyph display — controls which button-prompt glyph set is rendered.
 -- "Auto" follows InputModeDetector.getControllerType(); explicit choices
 -- force a specific glyph family regardless of the connected controller; "Off"
@@ -112,6 +118,23 @@ textSize = opts:addComboBox("textSize", "Text size",
 for i, label in ipairs(sizeLabels) do
     textSize:addItem(label, sizeKeys[i] == "small")  -- default: small
 end
+
+-- ----- UI SCALE -----
+local uiScale = opts:addComboBox("uiScale", "UI scale",
+    "Auto sizes the whole ZeD UI to your screen: 1x at 1080p, 2x at 4K. Pick a fixed size to override it (1x is the 1080p size).")
+for i, label in ipairs(scaleLabels) do
+    uiScale:addItem(label, i == 1)  -- default: Auto
+end
+local function applyScale()
+    local v = scaleKeys[uiScale:getValue() or 1]
+    if ZeD.Scale then
+        ZeD.Scale.userScale = (type(v) == "number") and v or nil
+        ZeD.Scale.refresh()   -- the Scale tick hook re-applies the theme and reopens the windows
+    end
+end
+uiScale.onChange = applyScale
+ZeD.Settings.applyScale = applyScale
+ZeD.Settings.uiScaleOption = uiScale   -- QA bridge drives it like the options screen
 
 -- ----- CHARACTER WINDOW ACCENT -----
 local charAccent = opts:addComboBox("charAccent", "Character window accent",
@@ -239,6 +262,7 @@ end
 -- the player's saved values by the time this fires.
 -- ---------------------------------------------------------------------------
 Events.OnGameStart.Add(function()
+    applyScale()   -- display preference: lives in the mod options, not in the save
     -- Try modData first (persists with save file), fall back to ModOptions
     local player = getSpecificPlayer(0)
     if player then

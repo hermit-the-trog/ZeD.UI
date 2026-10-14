@@ -61,24 +61,24 @@ local TAB_SEP_MAR          = 2
 
 -- Action tab definitions — group 2 reserved for contextual tabs
 local WORLD_TABS = {
-    { id = "loot",   label = "Loot",     group = 1, glyph = "L", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
-    { id = "craft",  label = "Crafting", group = 1, glyph = "C", icon = getTexture("media/textures/ZeD/TabIcons/craft-tab-white.png") },
-    { id = "build",  label = "Building", group = 1, glyph = "B", icon = getTexture("media/textures/ZeD/TabIcons/build-tab-white.png") },
-    { id = "maps",   label = "Maps",     group = 2, glyph = "M", icon = getTexture("media/textures/ZeD/TabIcons/map-tab-white.png") },
-    { id = "forage", label = "Foraging", group = 2, glyph = "F", icon = getTexture("media/textures/ZeD/TabIcons/forage-tab-white.png"),
+    { id = "loot",   label = "Loot",     group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
+    { id = "craft",  label = "Crafting", group = 1, glyph = "C", iconName = "craft-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/craft-tab-white.png") },
+    { id = "build",  label = "Building", group = 1, glyph = "B", iconName = "build-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/build-tab-white.png") },
+    { id = "maps",   label = "Maps",     group = 2, glyph = "M", iconName = "map-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/map-tab-white.png") },
+    { id = "forage", label = "Foraging", group = 2, glyph = "F", iconName = "forage-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/forage-tab-white.png"),
       visible = function(win) return true end },  -- always visible (informational surface)
-    { id = "animals", label = "Animals", group = 2, glyph = "A", icon = getTexture("media/textures/ZeD/TabIcons/farm-tab-white.png") },
+    { id = "animals", label = "Animals", group = 2, glyph = "A", iconName = "farm-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/farm-tab-white.png") },
     -- S115: Radio (contextual) — visible when at least one IsoWaveSignal radio
     -- is reachable in the player's 3x3 grid. Same predicate model as Foraging.
     { id = "radio",  label = "Radio",    group = 2, glyph = "R",
-      icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
+      iconName = "radio-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
     -- S124: Vehicle (contextual) — vehicle mechanics. Visible while a vehicle is
     -- within reach or an inspected one is within six tiles (ZeD.MechanicsTab).
     { id = "vehicle", label = "Vehicle", group = 2, glyph = "V",
-      icon = getTexture("media/textures/ZeD/TabIcons/vehicle-tab-white.png"),
+      iconName = "vehicle-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/vehicle-tab-white.png"),
       visible = function(win)
           return ZeD.MechanicsTab and ZeD.MechanicsTab.isVisible(win)
       end },
@@ -1509,7 +1509,9 @@ local function drawWorldTabStrip(self, win)
             if tab.icon then
                 local ix = math.floor((w - iconSz) / 2)
                 local iy = curY + math.floor((T.px(ACTION_TAB_BTN_SZ) - iconSz) / 2)
-                self:drawTextureScaledAspect(tab.icon, ix, iy, iconSz, iconSz, iconAlpha, ic.r, ic.g, ic.b)
+                -- baked at the drawn size when available (crisp at every root scale)
+            local tex = (tab.iconName and ZeD.Atoms.sizedTexture("media/textures/ZeD/TabIcons/", tab.iconName, iconSz)) or tab.icon
+            self:drawTextureScaledAspect(tex, ix, iy, iconSz, iconSz, iconAlpha, ic.r, ic.g, ic.b)
             else
                 local color
                 if isActive then     color = T.textOnAccent

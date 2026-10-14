@@ -26,6 +26,9 @@ S.BASE_H   = 1080
 S.MIN      = 0.75
 S.MAX      = 4.0
 S.override = S.override or nil
+-- Fixed UI scale chosen in the mod options (0.5 .. 2.0); nil = Auto (fit the screen).
+-- Absolute: 1.0 is the 1080p design size, so a 4K player can pick 1.5 instead of 2.0.
+S.userScale = S.userScale or nil
 
 -- Engine font-size option (UI_optionscreen_FontSize0..5 = 16px, 19px, 26px,
 -- 33px, 38px, "Scale with window height"). It does not touch ZeD fonts (Q140),
@@ -45,6 +48,7 @@ end
 -- Raw computation: screen height over the base, clamped, times the user knob.
 function S.compute()
     if S.override then return S.override end
+    if S.userScale then return S.userScale end
     local h = S.BASE_H
     pcall(function() h = getCore():getScreenHeight() end)
     if type(h) ~= "number" or h <= 0 then h = S.BASE_H end
