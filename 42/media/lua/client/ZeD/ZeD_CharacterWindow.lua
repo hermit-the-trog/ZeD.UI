@@ -480,17 +480,17 @@ local function getActiveScroll(win)
 end
 
 local CHAR_TABS = {
-    { id = "loot",     label = "Loot",       group = 1, glyph = "L", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
-    { id = "equip",    label = "Equipment",  group = 1, glyph = "E", icon = getTexture("media/textures/ZeD/TabIcons/equipment-tab-white.png") },
-    { id = "health",   label = "Health",     group = 1, glyph = "H", icon = getTexture("media/textures/ZeD/TabIcons/health-tab-white.png") },
-    { id = "thermal",  label = "Thermal",    group = 1, glyph = "T", icon = getTexture("media/textures/ZeD/TabIcons/thermal-tab-white.png") },
-    { id = "identity", label = "Identity",   group = 2, glyph = "I", icon = getTexture("media/textures/ZeD/TabIcons/identy-tab-white.png") },
-    { id = "journal",  label = "Journal",    group = 2, glyph = "J", icon = getTexture("media/textures/ZeD/TabIcons/journal-tab-white.png") },
-    { id = "skills",   label = "Skills",     group = 2, glyph = "S", icon = getTexture("media/textures/ZeD/TabIcons/skills-tab-white.png") },
+    { id = "loot",     label = "Loot",       group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
+    { id = "equip",    label = "Equipment",  group = 1, glyph = "E", iconName = "equipment-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/equipment-tab-white.png") },
+    { id = "health",   label = "Health",     group = 1, glyph = "H", iconName = "health-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/health-tab-white.png") },
+    { id = "thermal",  label = "Thermal",    group = 1, glyph = "T", iconName = "thermal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/thermal-tab-white.png") },
+    { id = "identity", label = "Identity",   group = 2, glyph = "I", iconName = "identy-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/identy-tab-white.png") },
+    { id = "journal",  label = "Journal",    group = 2, glyph = "J", iconName = "journal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/journal-tab-white.png") },
+    { id = "skills",   label = "Skills",     group = 2, glyph = "S", iconName = "skills-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/skills-tab-white.png") },
     -- S115: Radio (contextual). Visible only when an equipped/portable radio
     -- is present on the player. Mirrors World's contextual-tab predicate model.
     { id = "radio",    label = "Radio",      group = 2, glyph = "R",
-      icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
+      iconName = "radio-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
@@ -2527,7 +2527,9 @@ local function drawTabStrip(self, win)
         if tab.icon then
             local ix = math.floor((w - iconSz) / 2)
             local iy = curY + math.floor((T.px(TAB_BTN_SZ) - iconSz) / 2)
-            self:drawTextureScaledAspect(tab.icon, ix, iy, iconSz, iconSz, iconAlpha, ic.r, ic.g, ic.b)
+            -- baked at the drawn size when available (crisp at every root scale)
+        local tex = (tab.iconName and ZeD.Atoms.sizedTexture("media/textures/ZeD/TabIcons/", tab.iconName, iconSz)) or tab.icon
+        self:drawTextureScaledAspect(tex, ix, iy, iconSz, iconSz, iconAlpha, ic.r, ic.g, ic.b)
         else
             local glyphW = ZeD.TM:MeasureStringX(font, tab.glyph)
             local gx = math.floor((w - glyphW) / 2)
