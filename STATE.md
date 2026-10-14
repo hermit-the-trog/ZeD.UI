@@ -39,14 +39,24 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 - **Loop 2 (13:00-19:25) shipped the v5 HUD props:** vehicle dashboard and CaZio watch rebuilt as physical props on PNG plates generated from the locked mockups (`ZeDUI/tools/plates/`): 19 dash designs (16 seen live), 8 watch faces + no-watch strip, every control on a vanilla verb, gamepad claim / cue / hint / cone-nav verified, passenger read-only. Java clock + speed controls parked off-screen (B42 ignores setVisible). Spec: `DASHBOARD_WATCH_SPEC.md`; crops: `ZeDUI/qa/S123_contact_sheet/`.
 
 
-## Target — S124 and after
+## Target — after S124 (director's order, Oct 13 2026)
 
-**Playable floor = full gamepad parity.** Dude tests on gamepad only.
+**Playable floor = full gamepad parity.** Dude tests on gamepad only. Every surface starts as a mockup in `ZeDUI/mockups/` (the contract), then the build, then live QA on the QA save.
 
-1. CaZio watch and vehicle dashboard are built (v5, mockups first). **Vehicle mechanics is built** (World window Vehicle tab, Oct 13). Next mockups-first build: the **main menu** (CRT room mockup `ZeDUI/mockups/zed-main-menu-crt-v7_1.html`, plan in the S124 delta), then **screen icons** (`ISEquippedItem`; its window buttons are already hidden). New ledger rows 20-25 (hutch, trough, animal genome / tracks / butcher hook, animals in vehicles, journal writing, keypad codes). Open HUD questions: fire / ranger / race designs unseen live (DigitalDress is gold and the digital LCDs carry the thermo as of Oct 13). Entry points and design targets in `HOOK_MAP.md`.
-2. UI scale axis (item 3 above).
-3. Controller session on the QA save with the bridge logging.
-4. Then the rest of the HOOK_MAP gaps by session frequency: entity crafting stations → hotbar → fluid transfer → the info cards.
+1. **Finish every World window surface** (HOOK_MAP rows, by how often a long session hits them):
+   1. Crafting stations — B42 entity windows (row 1) with the oven / microwave timers (row 14): the Craft tab in station mode.
+   2. Info cards — generator, campfire, barbecue, farm plot (rows 11, 12): one shared card pattern in the World drawer.
+   3. Fluid transfer (row 8).
+   4. Furniture info and placement (row 15).
+   5. Animals tab additions — hutch, feeding trough, genome, tracks, butcher hook (rows 20-22).
+   6. Animals in trailers (row 23) in the Vehicle tab.
+   7. Keypad codes (row 25).
+2. **Character window: hands and hotbar** — the equipped primary / secondary items move into the Character window (retires the rest of the vanilla left-edge column, row 6) and the hotbar is integrated (row 5).
+3. **A home for moodles** (the Java `MoodlesUI`, row 7).
+4. **Main menu** — CRT room mockup `ZeDUI/mockups/zed-main-menu-crt-v7_1.html`, plan in the S124 delta.
+5. Controller session on the QA save with the bridge logging (any time the director has the pad in hand).
+
+Character-window readers (printed media row 13, journal writing row 24), fishing tension (row 10), fluid info in ItemCard (row 9) and sleeping (row 16) stay queued after these.
 
 ## Rules that bind every session
 
