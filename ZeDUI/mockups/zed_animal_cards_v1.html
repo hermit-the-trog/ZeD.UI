@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Animal Cards v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Animal cards, mockup v1 (Oct 14 2026)
+   HOOK_MAP rows 20-22: the hutch, the feeding trough, the butcher hook and
+   animal tracks become object cards in the World window's card drawer; the
+   Animals tab links to them; the genome editor (vanilla: animal cheats only)
+   becomes a debug section of the animal view. Every number is a DESIGN UNIT
+   (1 px at 1080p); Zoom = root scale. Data is real 42.20.2 behaviour (see the
+   parity table). Rules: 1px borders, no shadows, Fira only, no emoji, status
+   dots, one scroll per pane, verbs in the bar, confirmations in the footer,
+   focus = 0.55 accent. Parts: Visual Catalog v2.0 A04 fill bar, A14 status
+   dot, A22 LED, M10 section header, M14 breadcrumb, M18 fluid gauge, O14
+   progress tracker; the Animals tab keeps the approved v2 language
+   (zed-animals-v2-fira.html: submode strip, breadcrumb, category rows,
+   48 px animal rows).
+   ============================================================================ */
+:root {
+  --base:#050505; --surf1:#111111; --surf2:#191919; --surf3:#202020; --surf4:#292929;
+  --border:#353535; --borderS:#555555;
+  --text:rgba(255,255,255,.95); --textDim:rgba(199,199,199,.75);
+  --danger:#FF5533; --warning:#FFCC22; --positive:#44DD44; --info:#4FA8E0;
+  --accent:#D4922A; --accentBright:#E8A830; --onAccent:#0C0C0C;
+  --a22:rgba(212,146,42,.22); --a55:rgba(212,146,42,.55);
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --water:#3f86c8; --tainted:#7a8a3a; --blood:#8a1f1a; --feed:#b8964a;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1060px; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1060px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.stage-wrap { overflow:auto; padding-bottom:6px; }
+.stage { position:relative; width:1120px; height:556px; border:1px solid #2a2924; transform-origin:0 0; background:#14130f; overflow:hidden; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1060px; line-height:1.5; }
+
+/* window chrome (same as the live World window) */
+.win { position:absolute; left:18px; top:18px; width:924px; height:420px; background:color-mix(in srgb, var(--base) 95%, transparent); border:1px solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tbar { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS); background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.closebox { width:13px; height:13px; border:1px solid var(--textDim); background:var(--surf2); }
+.tbar .ttl, .tbar .tab { font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; }
+.tbar .ttl b { font-weight:400; color:var(--textDim); margin-left:8px; }
+.tbar .sp { flex:1; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; }
+.dot.pos { background:var(--positive); } .dot.warn { background:var(--warning); } .dot.dng { background:var(--danger); } .dot.off { background:transparent; border:1px solid var(--textDim); } .dot.inf { background:var(--info); }
+.wbody { flex:1; display:flex; min-height:0; }
+.wfoot { height:16px; flex:none; border-top:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; gap:3px; padding:0 3px; }
+.wfoot .mini { width:12px; height:12px; border:1px solid var(--border); font-family:var(--cond); font-size:9px; color:var(--textDim); display:flex; align-items:center; justify-content:center; }
+.wfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; align-items:center; }
+.glyph { display:inline-flex; width:12px; height:12px; border-radius:50%; font-family:var(--sans); font-weight:600; font-size:8px; color:#0c0c0c; align-items:center; justify-content:center; margin-right:4px; }
+.g-a { background:#5dbb3a; } .g-b { background:#d9452b; } .g-x { background:#3d7bd9; } .g-y { background:#e3b52a; }
+.wfoot .grip { margin-left:auto; width:12px; height:12px; background:repeating-linear-gradient(135deg, transparent 0 3px, var(--textDim) 3px 4px); opacity:.6; }
+.cstrip { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); }
+.cbtn { width:36px; height:36px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.cbtn.on { background:var(--accent); }
+.inv { width:372px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--borderS); background:var(--surf1); }
+.invh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.invh .h { font-family:var(--cond); font-weight:600; font-size:15px; } .invh .n { margin-left:auto; font-family:var(--cond); font-size:10px; color:var(--textDim); }
+.colh { height:20px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.colh .u { text-decoration:underline; text-underline-offset:2px; color:var(--text); }
+.irow { height:24px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; }
+.irow .ct { font-family:var(--mono); font-size:10px; color:var(--accent); } .irow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.irow .ds { font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.cath { height:18px; display:flex; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.tstrip { width:36px; flex:none; border-left:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.tbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accent); opacity:.8; }
+.tbtn.on { background:var(--accent); color:var(--onAccent); opacity:1; }
+.tsep { height:1px; background:var(--borderS); margin:2px 4px; }
+
+/* ---------------------------------------------------------------------------
+   OBJECT CARD — the drawer card shared by every info surface
+   --------------------------------------------------------------------------- */
+.drawer { width:480px; flex:none; display:flex; flex-direction:column; background:var(--surf1); min-width:0; position:relative; }
+.dh { height:37px; flex:none; display:flex; align-items:center; gap:6px; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.bbtn { height:22px; min-width:22px; padding:0 7px; display:flex; align-items:center; justify-content:center; gap:5px; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.bbtn.primary { background:var(--accent); color:var(--onAccent); border-top-color:var(--accentBright); border-left-color:var(--accentBright); }
+.bbtn.dis { opacity:.35; }
+.bbtn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.bbtn.primary.focus { box-shadow:none; background:var(--accentBright); }
+.dh .ico { width:22px; height:22px; flex:none; border:1px solid var(--borderS); background:var(--surf1); display:flex; align-items:center; justify-content:center; }
+.dh .ico i { width:12px; height:12px; display:block; }
+.dh .nm { font-family:var(--cond); font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pill { height:16px; padding:0 7px; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; white-space:nowrap; border:1px solid currentColor; }
+.pill.pos { color:var(--positive); } .pill.dng { color:var(--danger); } .pill.dim { color:var(--textDim); } .pill.warn { color:var(--warning); }
+.browse { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.vbar { height:32px; flex:none; display:flex; align-items:center; gap:4px; padding:0 8px; border-bottom:1px solid var(--borderS); background:var(--surf1); }
+.ob { flex:1; overflow-y:auto; min-height:0; padding:8px 10px 10px; display:flex; flex-direction:column; gap:8px; }
+.ob::-webkit-scrollbar { width:14px; } .ob::-webkit-scrollbar-track { background:var(--surf1); border-left:1px solid var(--border); } .ob::-webkit-scrollbar-thumb { background:var(--surf4); border:1px solid var(--borderS); }
+.meter .lr { display:flex; align-items:baseline; justify-content:space-between; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:4px; }
+.meter .lr .v { font-size:12px; color:var(--text); font-weight:500; letter-spacing:.5px; display:flex; gap:6px; align-items:center; }
+.fill { height:12px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.fill i { position:absolute; left:0; top:0; bottom:0; display:block; }
+.fill .zone { position:absolute; top:0; bottom:0; background:color-mix(in srgb, var(--info) 18%, transparent); border-left:1px solid color-mix(in srgb, var(--info) 60%, transparent); border-right:1px solid color-mix(in srgb, var(--info) 60%, transparent); }
+.fill i { z-index:1; }
+.cs { height:20px; display:flex; align-items:center; gap:6px; padding:0 2px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); border-bottom:1px solid var(--borderS); }
+.cs .c { margin-left:auto; font-weight:400; }
+.lrow { height:24px; display:grid; grid-template-columns:18px 1fr auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.lrow .ic, .pick .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.lrow .v { font-family:var(--mono); font-size:11px; color:var(--textDim); }
+.lrow.tot { font-family:var(--mono); font-size:11px; border-bottom:none; }
+.pick { height:26px; display:grid; grid-template-columns:18px 1fr auto auto auto; gap:8px; align-items:center; padding:0 2px; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.pick .loc { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.pick .gain { font-family:var(--mono); font-size:11px; color:var(--positive); }
+.pick.gpf { background:var(--a55); }
+.warnband { display:flex; gap:8px; align-items:flex-start; padding:7px 8px; border:1px solid var(--danger); background:color-mix(in srgb, var(--danger) 12%, transparent); font-size:12px; line-height:1.35; }
+.needs { font-family:var(--mono); font-size:10px; color:var(--textDim); display:flex; gap:6px; align-items:center; }
+.stat2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+.srow { height:20px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.srow .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; }
+.srow .v { font-family:var(--mono); font-size:12px; color:var(--text); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.dfoot { height:32px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:12px; }
+.dfoot .msg { display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dfoot.confirm { background:color-mix(in srgb, var(--danger) 12%, var(--surf2)); }
+.dfoot .sp { flex:1; }
+
+
+.win { left:auto; right:18px; width:552px; height:520px; }
+.tag { height:14px; padding:0 5px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--textDim); border:1px solid var(--border); white-space:nowrap; }
+.tag.acc { color:var(--accent); border-color:var(--accent); } .tag.dng { color:var(--danger); border-color:var(--danger); } .tag.pos { color:var(--positive); border-color:var(--positive); } .tag.warn { color:var(--warning); border-color:var(--warning); } .tag.inf { color:var(--info); border-color:var(--info); }
+.dim { color:var(--textDim); }
+.world { position:absolute; left:0; top:0; width:560px; height:556px; }
+.world svg { position:absolute; left:0; top:0; }
+.wlabel { position:absolute; display:flex; align-items:center; gap:6px; height:20px; padding:0 7px; background:color-mix(in srgb, var(--surf2) 92%, transparent); border:1px solid var(--borderS); font-family:var(--mono); font-size:10px; color:var(--text); white-space:nowrap; }
+
+/* card bits */
+.srow2 { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; }
+.srow2 .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; align-self:center; }
+.srow2 .v { font-family:var(--mono); font-size:11px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.leds { display:flex; gap:22px; align-items:center; font-family:var(--mono); font-size:10px; letter-spacing:1px; }
+.leds span { display:flex; align-items:center; gap:7px; }
+.led { width:9px; height:9px; border-radius:50%; border:1px solid #000; box-shadow:0 0 0 1px #444; }
+.led.on { background:var(--positive); } .led.off { background:#2a2a2a; } .led.red { background:var(--danger); }
+.needs2 { display:flex; flex-wrap:wrap; gap:4px 14px; font-family:var(--mono); font-size:10px; color:var(--text); }
+.needs2 span { display:flex; align-items:center; gap:6px; }
+.note { font-size:12px; line-height:1.4; color:var(--text); display:flex; gap:8px; align-items:flex-start; padding:5px 7px; border:1px solid var(--warning); background:color-mix(in srgb, var(--warning) 8%, transparent); }
+.closedplate { height:46px; display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--borderS); background:repeating-linear-gradient(135deg, var(--surf2) 0 6px, var(--surf1) 6px 12px); font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--textDim); }
+
+/* hutch */
+.nests { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+.nb { border:1px solid var(--borderS); background:var(--surf2); padding:6px 6px 5px; display:flex; flex-direction:column; gap:5px; min-height:98px; }
+.nb .h { display:flex; justify-content:space-between; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--accent); }
+.nb .eggs { display:grid; grid-template-columns:repeat(5, 1fr); gap:2px 2px; justify-items:center; }
+.nb .eggs svg { width:11px; height:14px; }
+.nb .hen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:11px; font-weight:500; }
+.nb .hen small { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.nb .bbtn { height:18px; font-size:9px; }
+.nb.gpf { box-shadow:inset 0 0 0 100px var(--a22); outline:1px solid var(--accent); }
+.arow { height:30px; display:grid; grid-template-columns:24px 1fr auto auto auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.arow .pt { width:22px; height:22px; border:1px solid var(--border); background:var(--surf3); display:flex; align-items:center; justify-content:center; }
+.arow small { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.arow .bbtn { height:20px; font-size:9px; min-width:46px; }
+.arow.gpf { background:var(--a55); }
+
+/* trough */
+.big { display:flex; align-items:baseline; gap:8px; }
+.big b { font-family:var(--cond); font-weight:600; font-size:34px; line-height:1; }
+.big span { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--textDim); }
+.tank { height:22px; border:1px solid var(--borderS); background:var(--surf1); position:relative; }
+.tank i { position:absolute; left:0; top:0; bottom:0; display:block; }
+.tank .tk { position:absolute; top:0; bottom:0; width:1px; background:var(--borderS); }
+.tank .lb { position:absolute; right:6px; top:3px; font-family:var(--mono); font-size:10px; color:var(--text); }
+
+/* hook */
+.hookgrid { display:grid; grid-template-columns:118px 1fr; gap:12px; }
+.carcass { width:118px; height:176px; border:1px solid var(--borderS); background:var(--surf2); position:relative; }
+.parts { display:flex; flex-direction:column; }
+.part { height:30px; display:grid; grid-template-columns:12px 64px 1fr auto; gap:8px; align-items:center; border-bottom:1px solid var(--border); }
+.part .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); }
+.part .v { font-family:var(--mono); font-size:11px; }
+.part .bbtn { height:20px; font-size:9px; min-width:58px; }
+.part.gone .v { color:var(--textDim); text-decoration:line-through; }
+.part.gpf { background:var(--a55); }
+.pband { border:1px solid var(--accent); background:color-mix(in srgb, var(--accent) 10%, var(--surf1)); padding:5px 8px; display:grid; grid-template-columns:1fr auto; gap:5px 10px; align-items:center; }
+.pband .t { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); }
+.pband .p { font-family:var(--mono); font-size:11px; }
+.pband .bar { grid-column:1 / -1; height:6px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.pband .bar i { position:absolute; left:0; top:0; bottom:0; background:var(--accent); }
+.pband .bbtn { height:20px; font-size:9px; }
+
+/* tracks */
+.trackgrid { display:grid; grid-template-columns:140px 1fr; gap:14px; align-items:start; }
+.trackimg { width:140px; height:96px; border:1px solid var(--borderS); background:#2b3322; position:relative; }
+
+/* animals tab */
+.subm { flex:none; display:flex; gap:0; padding:8px 10px 0; border-bottom:1px solid var(--borderS); }
+.subm span { height:24px; padding:0 14px; display:flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--textDim); border:1px solid var(--borderS); border-bottom:none; margin-right:-1px; background:var(--surf2); }
+.subm span.on { color:var(--text); background:var(--surf1); border-top:2px solid var(--accent); margin-bottom:-1px; }
+.crumb { font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; display:flex; gap:6px; align-items:center; }
+.cat { height:20px; display:flex; align-items:center; gap:6px; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); letter-spacing:.5px; }
+.cat .c { margin-left:auto; color:var(--textDim); font-weight:400; }
+.zband { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px 12px; }
+.zband .mm { font-family:var(--mono); font-size:9px; letter-spacing:1px; color:var(--accent); display:flex; flex-direction:column; gap:3px; }
+.zband .mm b { font-weight:500; color:var(--text); font-size:10px; letter-spacing:0; }
+.zband .fill { height:8px; }
+.srow3 { height:34px; display:grid; grid-template-columns:24px 1fr auto auto; gap:8px; align-items:center; padding:0 4px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.srow3 small { display:block; font-family:var(--mono); font-size:9px; color:var(--textDim); font-weight:400; }
+.srow3 .pt { width:22px; height:22px; border:1px solid var(--border); background:var(--surf3); }
+.srow3 .bbtn { height:20px; font-size:9px; min-width:46px; }
+.srow3.gpf { background:var(--a55); }
+.hbar { height:6px; width:90px; background:var(--surf1); border:1px solid var(--borderS); position:relative; display:inline-block; }
+.hbar i { position:absolute; left:0; top:0; bottom:0; background:var(--accent); }
+
+/* genome (debug) */
+.dbg { border:1px dashed var(--info); padding:6px 8px 8px; display:flex; flex-direction:column; gap:4px; }
+.dbg .hd { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--info); }
+.gene { height:26px; display:grid; grid-template-columns:104px 1fr 1fr 74px; gap:8px; align-items:center; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:10px; }
+.gene .n { font-family:var(--sans); font-size:12px; font-weight:500; }
+.gene .al { display:flex; align-items:center; gap:5px; color:var(--textDim); }
+.gene .al.u { color:var(--text); }
+.gene .al .d { font-weight:700; color:var(--accent); }
+.gene .bbtn { height:18px; font-size:9px; min-width:0; padding:0 5px; }
+.gene.h { height:18px; font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); }
+.gene.gpf { background:var(--a55); }
+
+/* notes */
+.notes { max-width:1060px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes p, .notes li { font-size:13px; line-height:1.6; color:#c4bfb1; }
+.notes ol { padding-left:20px; } .notes li { margin-bottom:8px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+table.parity { border-collapse:collapse; width:100%; font-size:12px; }
+table.parity th, table.parity td { border:1px solid #34322c; padding:5px 8px; text-align:left; vertical-align:top; color:#c4bfb1; line-height:1.45; }
+table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#d8c070; background:#17160f; text-transform:uppercase; }
+
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI · World window · animals · cards mockup v1</div>
+<h1>Hutch, feeding trough, butcher hook and tracks</h1>
+<p class="lede">Five vanilla windows still float over the game when you keep animals: the hutch's two tabs of nest boxes and perches, a read-only trough panel, the butcher hook's workstation, a tiny tracks readout and a debug genome editor. Here the first four become <b>cards in the World window's card drawer</b>, like the generator and fluid cards, and the <b>Animals tab links to them</b>: a zone lists its hutches and troughs, and the Butcher view lists your hooks. The genome editor stays where vanilla keeps it, behind animal cheats, as a debug section of the animal view. Switch the scenes above.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlState"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlInput"></div></div>
+  <div class="ctl"><span>Base</span><div class="seg" id="ctlBase"></div></div>
+  <div class="ctl"><span>World accent</span><div class="swatches" id="ctlAccent"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap"><div class="stage" id="stage">
+  <div class="world" id="world"></div>
+  <div class="win">
+    <div class="tbar"><div class="closebox"></div><div class="ttl">Ground<b id="gcount">0</b></div><div class="sp"></div><div class="tab"><span class="dot"></span><span id="tabname">Animals</span></div></div>
+    <div class="wbody">
+      <div class="cstrip"><div class="cbtn on"></div><div class="cbtn"></div></div>
+      <div class="drawer" id="drawer"></div>
+      <div class="tstrip" id="tstrip"></div>
+    </div>
+    <div class="wfoot" id="wfoot"></div>
+  </div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes" id="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>Cards in the card drawer.</b> The hutch, the trough, the butcher hook and an inspected track each open a card in the World window, over whatever tab is up, with a leash like the other cards. Every vanilla way in lands on the card: the world menu, the interact key (Shift + interact on a hutch, interact on a hook), Inspect Track from search mode or the inventory. The vanilla windows never show.</li>
+      <li><span class="rec">RECOMMEND</span><b>The hutch is one card, not two tabs.</b> The doors as two lamps; the four EGG LAYING BOXES with their eggs (vanilla's ten egg slots) or the hen sitting in them; COOP ROOSTING with every bird (GRAB, INFO; a dead one is grabbed as a corpse); the FLOOR's dirtiness with CLEAN and what cleaning takes. Vanilla's rules stay: no eggs while a hen sits on them, the boxes are out of reach with both doors shut, the perches with the main door shut. Added: GRAB EGGS for every box at once (vanilla's per-box grab, queued), PUT IN when you carry a bird (vanilla has it only in the world menu), and a line when every box is full, because the hens then lay outside.</li>
+      <li><span class="rec">RECOMMEND</span><b>The trough says food or water.</b> Vanilla's panel is a few numbers and three lines of advice. The card shows what is in it (the feed by kind, or the water in a gauge with its colour and Tainted), which zone it feeds and how many animals use it, and a warning when it sits outside a zone, where animals cannot use it. ADD FOOD moves feed from your bags into the trough, as the loot window does; ADD WATER opens the fluid card aimed at the trough; EMPTY pours the water out (footer confirm). The rule that a trough holds one or the other uses vanilla's own unused words as the NEEDS line.</li>
+      <li><span class="rec">RECOMMEND</span><b>The butcher hook is a work card.</b> Empty: the dead animals within reach or in your bags, HANG on the ones the hook takes and vanilla's reason on the ones it does not. Loaded: vanilla's 3D carcass stays (it changes as parts come off) beside a checklist of LEATHER, BLOOD, HEAD and MEAT with GATHER each; BLOOD gathers into a container you pick or BLEEDs onto the ground; the knife is the NEEDS line; a progress band with STOP while you work; REMOVE CORPSE. One line warns that taking the head or the meat first spills the blood still in it, since vanilla does that silently.</li>
+      <li><span class="rec">RECOMMEND</span><b>Tracks get a small card.</b> What it is, the species (or only its size below Tracking 5, as vanilla), how fresh it is, and the direction on a compass. Vanilla's window has no controller support and never closes by distance; the card does both.</li>
+      <li><span class="rec">RECOMMEND</span><b>The Animals tab links in.</b> A zone lists its HUTCHES and FEEDING TROUGHS with OPEN, and the zone's FOOD and WATER bars become real (today they always read 0). The "In hutch" tag on an animal opens its hutch. The Butcher view gains HOOKS, as the approved v2 animals mockup drew them, and its roster rows open the animal (today that click does nothing).</li>
+      <li><span class="alt">YOUR CALL</span><b>Genome stays a debug tool.</b> Vanilla offers Modify Genome only with animal cheats on (an admin power or the debug menu); players never see genes. Kept that way: a GENOME section at the end of the animal view, shown only with animal cheats on, with each gene's two alleles (which one is used, dominant, any disorder) and EDIT, SWITCH and DISORDER. Players keep what they have now: disorders revealed by Animal Care level.</li>
+      <li><b>On a controller.</b> Every card works from the pad (A on a box, a bird, a part or a list row; B closes the card). Vanilla's trough and tracks windows have no controller support at all.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Everything vanilla does, and where it goes</h2>
+    <table class="parity">
+      <tr><th style="width:38%">Vanilla</th><th>ZeD</th></tr>
+      <tr><td><b>Hutch window</b> (Hutch Info; Shift + interact; the zone window): tab Egg Laying Boxes (4 boxes, 10 egg slots each, the hen sitting as a 3D model with "Eggs: n"; right-click: Grab Eggs, Animal Info; covered when both doors are shut, with Open Egg Hatch Doors); tab Coop Roosting (20 perches, each bird as a 3D model with its name; right-click: Grab, Animal Info; Dirtiness bar green / orange over 40 / red over 70 with Clean, needing water and a mop, towel or broom, bleach optional; covered when the door is shut, with Open Doors); door and egg hatch buttons; closes past 5 tiles of the entry.</td><td>The hutch card: doors as lamps and verbs (OPEN / CLOSE DOOR, OPEN / CLOSE HATCH), EGG LAYING BOXES (eggs or the sitting hen, GRAB per box, GRAB EGGS for all), COOP ROOSTING (each bird, GRAB, INFO), FLOOR (dirtiness in vanilla's colours, CLEAN, the NEEDS checklist), PUT IN when carrying a bird; the same covers when doors are shut; leash 5 tiles from the entry.</td></tr>
+      <tr><td><b>Hutch world menu:</b> Hutch Info, Open / Close Door, Open / Close Egg hatch Door, Put %1 in Hutch (greyed: doors closed, hutch full).</td><td>Door items stay as direct actions; Hutch Info opens the card; Put in is on the card too, with vanilla's reasons as NEEDS lines.</td></tr>
+      <tr><td><b>Feeding trough panel</b> (Feeding Trough Info; no controller, no distance close): Animals in zone (linked animals), Linked to zone, Feeding (a number), Water (mL / max mL), three lines of advice; a hover tooltip within 13 tiles.</td><td>The trough card: FOOD or WATER as the pill, the feed by kind or the water gauge (colour, Tainted), ZONE and the animals using it, ADD FOOD, ADD WATER (fluid card), EMPTY; vanilla's food-or-water words as NEEDS lines. The hover tooltip stays.</td></tr>
+      <tr><td><b>Trough world menu:</b> the trough's fluid submenu (Container Info, Transfer Liquid, Empty, Add Liquid from Item), Feeding Trough Info; food goes in through the loot window.</td><td>Fluid items open the fluid card as today; Feeding Trough Info opens the trough card; the loot window still takes food.</td></tr>
+      <tr><td><b>Butcher hook window</b> (world menu, the hook's own menu, interact): Add Corpse (a pop-up of dead animals near the hook or carried, invalid ones greyed); with a corpse: the 3D carcass, Leather / Blood (litres) / Head / Meat with Gather (Blood: Gather or Bleed, a pop-up of containers or None), a progress bar, Remove Corpse; buttons off without a knife ("Need a Knife."); one user at a time; closes past 4 tiles; controller rows.</td><td>The hook card: DEAD ANIMALS NEARBY with HANG and vanilla's reasons; the carcass beside the LEATHER / BLOOD / HEAD / MEAT checklist with GATHER, COLLECT INTO (containers, or BLEED onto the ground), the progress band with STOP, the knife as NEEDS, REMOVE CORPSE, the in-use lock as a NEEDS line; leash 4 tiles.</td></tr>
+      <tr><td><b>Tracks window</b> (Inspect Track from search mode, a world track, or an inventory item): an icon, Type, Direction (N, NE...), Species (or Large / Small below Tracking 5), Freshness (exact or vague by Tracking); no controller, no distance close.</td><td>The track card: the same four facts with the direction on a compass, the Tracking level beside the species; leash for tracks on the ground, none for one in your bags.</td></tr>
+      <tr><td><b>Modify Genome</b> (animal cheats only): every gene with both alleles, value (and what passes to offspring), used, dominant, disorder; Edit, Switch, Add / Remove disorder.</td><td>The animal view's GENOME section, cheats only, the same values and edits.</td></tr>
+    </table>
+  </div>
+</section>
+
+<script>
+const S = { state:"hutch", input:"mouse", base:"hicon", accent:"orange", zoom:1 };
+const STATES = [["hutch","Hutch"],["hutchShut","Hutch, doors shut"],["troughFood","Trough, food"],["troughWater","Trough, water"],["troughOut","Trough, no zone"],["hookEmpty","Hook, empty"],["hook","Hook, carcass"],["hookBleed","Hook, bleeding"],["track","Tracks"],["zone","Animals: a zone"],["butcher","Animals: Butcher"],["genome","Animals: genome (cheats)"]];
+const $ = id => document.getElementById(id);
+const gp = () => S.input === "gamepad";
+const DOT = "&middot;";
+
+const CAPTIONS = {
+  hutch:"A henhouse in the morning, doors open: four nest boxes (one hen still sitting on two eggs, so those wait), seven birds on the perches, and a floor getting dirty. GRAB EGGS takes the six eggs from the three free boxes; CLEAN is ready because you carry water and a broom.",
+  hutchShut:"Night: both doors shut, as vanilla's advice says. The boxes and perches are covered, as in vanilla, and you are carrying a hen: PUT IN waits for a door, in vanilla's words.",
+  troughFood:"A triple metal trough with feed in it: what is inside by kind, the zone it feeds and the six animals using it. ADD FOOD lists the feed you carry; water cannot go in while there is food, in vanilla's own words.",
+  troughWater:"The same trough holding water: the gauge in the water's colour, tainted after rain. ADD WATER opens the fluid card aimed at the trough; EMPTY asks in the footer first.",
+  troughOut:"A wooden trough built outside any animal zone. Vanilla's panel says only \"Linked to zone: None\"; the card says what that means.",
+  hookEmpty:"An empty hook: the dead animals within two tiles or in your bags. The hook takes the large animals; vanilla's reason shows on the ones it does not.",
+  hook:"A cow on the hook with its leather already off; the carcass is vanilla's 3D figure, kept. BLOOD gathers into the bucket picked under COLLECT INTO (or BLEED lets it drain); taking the head or the meat first would spill it, so the card says so.",
+  hookBleed:"Bleeding onto the ground: the progress band (vanilla's own bleed progress) with STOP. GATHER stays live so you can switch to a bucket mid-way, as vanilla allows.",
+  track:"Inspect Track on deer prints in search mode, at Tracking 5: what it is, the species, how fresh it is, and the way it went. At Tracking 4 or less the same prints read Large and Very recent, as in vanilla.",
+  zone:"The Animals tab, inside a zone: its hutch and two troughs now listed with OPEN, and the FOOD and WATER bars reading the troughs (they read 0 today).",
+  butcher:"The Animals tab's Butcher view: HOOKS first (each hook, what hangs on it, what is left, the bleed in progress), then the livestock roster as today; a roster row now opens the animal.",
+  genome:"Animal cheats on (admin power or the debug menu): the animal view ends in a GENOME section, vanilla's editor in the tab's language. Pick a gene, then EDIT VALUE, DOMINANT, SWITCH (which allele is used) or DISORDER; a value in brackets is what passes to offspring. Without cheats the section does not exist."
+};
+
+/* ---------- shared pieces ---------- */
+function verb(label, kind, focus) { return `<span class="bbtn${kind ? " " + kind : ""}${focus && gp() ? " focus" : ""}">${label}</span>`; }
+function cs(label, right) { return `<div class="cs">${label}${right !== undefined ? `<span class="c">${right}</span>` : ""}</div>`; }
+const T = (t, k) => `<span class="tag ${k || ""}">${t}</span>`;
+const okDot = ok => `<span class="dot ${ok ? "pos" : "dng"}"></span>`;
+function card(icoColor, name, pill, pillKind, verbs, body, browse, foot) {
+  return `<div class="dh">${verb("&lt;")}<span class="ico"><i style="background:${icoColor}"></i></span><span class="nm">${name}</span><span class="pill ${pillKind}"><span class="dot" style="background:currentColor"></span>${pill}</span>${browse ? `<span class="browse">${verb("&lt;")}${browse}${verb("&gt;")}</span>` : ""}</div>
+    ${verbs ? `<div class="vbar">${verbs}</div>` : ""}<div class="ob">${body}</div>${foot || ""}`;
+}
+function needsLine(items) { return `<div class="needs2">${items.map(([ok, t]) => `<span>${ok === null ? `<span class="dot off"></span>` : okDot(ok)}${t}</span>`).join("")}</div>`; }
+function fill(frac, color) { return `<div class="fill"><i style="width:${Math.round(frac * 100)}%;background:${color}"></i></div>`; }
+const EGG = (on) => `<svg viewBox="0 0 11 14"><path d="M5.5 0.8C2.8 0.8 0.8 5 0.8 8.3c0 2.8 2.1 4.9 4.7 4.9s4.7-2.1 4.7-4.9C10.2 5 8.2 0.8 5.5 0.8z" fill="#e8dcc0" stroke="#000" stroke-width=".6" opacity="${on ? 1 : .2}"/></svg>`;
+const HEN = c => `<svg width="22" height="18" viewBox="0 0 22 18"><ellipse cx="11" cy="11" rx="8" ry="5.5" fill="${c}"/><circle cx="17" cy="6" r="3" fill="${c}"/><path d="M19.5 6l2 1-2 1z" fill="#d8a030"/><path d="M16 2.5c.6-1.4 2-1.4 2.2 0" fill="#c83a2a"/></svg>`;
+
+/* ---------- iso world ---------- */
+const TW = 64, TH = 32, OX = 290, OY = 150;
+const iso = (x, y) => [OX + (x - y) * TW / 2, OY + (x + y) * TH / 2];
+function diamond(x, y, fill, stroke, sw) {
+  const [cx, cy] = iso(x, y);
+  return `<polygon points="${cx},${cy} ${cx + TW / 2},${cy + TH / 2} ${cx},${cy + TH} ${cx - TW / 2},${cy + TH / 2}" fill="${fill}" stroke="${stroke || "none"}" stroke-width="${sw || 1}"/>`;
+}
+function box(x, y, w, d, h, top, left, right, inset) {
+  inset = inset || 0;
+  const p = (u, v) => iso(x + u, y + v);
+  const a = p(inset, inset), b = p(w - inset, inset), c = p(w - inset, d - inset), dd = p(inset, d - inset);
+  const up = q => [q[0], q[1] - h];
+  const pts = arr => arr.map(q => q.join(",")).join(" ");
+  return `<polygon points="${pts([dd, c, up(c), up(dd)])}" fill="${left}" stroke="rgba(0,0,0,.45)"/>
+          <polygon points="${pts([c, b, up(b), up(c)])}" fill="${right}" stroke="rgba(0,0,0,.45)"/>
+          <polygon points="${pts([up(a), up(b), up(c), up(dd)])}" fill="${top}" stroke="rgba(0,0,0,.45)"/>`;
+}
+function person(x, y) { const [px, py] = iso(x, y); return `<ellipse cx="${px}" cy="${py + 12}" rx="9" ry="4" fill="rgba(0,0,0,.4)"/><rect x="${px - 5}" y="${py - 24}" width="10" height="36" fill="#6b5a46"/><circle cx="${px}" cy="${py - 30}" r="6" fill="#c9a07a"/>`; }
+function ground(fenced) {
+  let s = "";
+  for (let y = -2; y < 9; y++) for (let x = -2; x < 9; x++) s += diamond(x, y, (x + y) % 2 ? "#2d3523" : "#29311f", "rgba(0,0,0,.2)");
+  if (fenced) {
+    for (let i = 0; i <= 6; i++) { s += diamond(i, 0, "rgba(212,146,42,.10)"); s += diamond(i, 6, "rgba(212,146,42,.10)"); s += diamond(0, i, "rgba(212,146,42,.10)"); s += diamond(6, i, "rgba(212,146,42,.10)"); }
+  }
+  return s;
+}
+function label(x, y, html) { const [cx, cy] = iso(x, y); return `<div class="wlabel" style="left:${cx + 8}px;top:${cy - 14}px">${html}</div>`; }
+function worldSVG(sc) {
+  let s = `<svg width="560" height="556" viewBox="0 0 560 556">`, lab = "";
+  const zoneish = ["zone", "butcher", "genome"].includes(sc);
+  s += ground(zoneish || sc.startsWith("hutch") || sc.startsWith("trough") && sc !== "troughOut");
+  if (sc.startsWith("hutch") || zoneish) {
+    s += box(1, 1, 2, 2, 46, "#7a5a3a", "#5e452c", "#4f3a25");
+    const [dx, dy] = iso(2, 3);
+    s += sc === "hutchShut" ? `<rect x="${dx - 22}" y="${dy - 34}" width="16" height="22" fill="#3a2a1a" stroke="#000"/>` : `<rect x="${dx - 22}" y="${dy - 34}" width="16" height="22" fill="#0e0b08" stroke="#000"/><rect x="${dx - 30}" y="${dy - 32}" width="7" height="22" fill="#5e452c" stroke="#000"/>`;
+    if (!zoneish) for (let i = 0; i < 3; i++) { const [hx, hy] = iso(3.6 + i * .5, 3.3 + (i % 2) * .6); s += `<g transform="translate(${hx - 11},${hy - 14})">${HEN(i === 1 ? "#f0ece0" : "#b07a3a")}</g>`; }
+  }
+  if (sc.startsWith("trough") || zoneish) {
+    const tx = zoneish ? 4 : 2, ty = zoneish ? 4 : 3;
+    s += box(tx, ty, 3, 1, 14, sc === "troughWater" ? "#3f86c8" : (sc === "troughOut" ? "#5a4a35" : "#b8964a"), "#6e737a", "#5c6168", .08);
+    if (zoneish) s += box(4, 2, 1, 1, 12, "#3f86c8", "#6e5436", "#5d462c", .1);
+  }
+  if (sc.startsWith("hook")) {
+    const [hx, hy] = iso(3, 3);
+    s += `<rect x="${hx - 34}" y="${hy - 120}" width="5" height="130" fill="#6e5436" stroke="#000"/><rect x="${hx + 30}" y="${hy - 120}" width="5" height="130" fill="#6e5436" stroke="#000"/><rect x="${hx - 36}" y="${hy - 124}" width="73" height="6" fill="#5d462c" stroke="#000"/><line x1="${hx}" y1="${hy - 118}" x2="${hx}" y2="${hy - 100}" stroke="#999" stroke-width="2"/>`;
+    if (sc !== "hookEmpty") s += `<path d="M${hx - 14} ${hy - 100} q14 -6 28 0 l4 60 q-18 18 -36 0z" fill="${sc === "hook" ? "#9a3a30" : "#9a3a30"}" stroke="#000"/>`;
+    if (sc === "hookBleed") s += `<ellipse cx="${hx}" cy="${hy + 8}" rx="${18}" ry="6" fill="#5a1410" opacity=".85"/>`;
+    if (sc === "hookEmpty") { const [cx, cy] = iso(4.6, 4.2); s += `<ellipse cx="${cx}" cy="${cy}" rx="30" ry="11" fill="#7a6a5a" stroke="#000"/><circle cx="${cx + 26}" cy="${cy - 4}" r="7" fill="#7a6a5a" stroke="#000"/>`; }
+  }
+  if (sc === "track") {
+    for (let i = 0; i < 6; i++) { const [fx, fy] = iso(1.6 + i * .7, 4.6 - i * .55); s += `<g transform="translate(${fx},${fy}) rotate(-28)"><ellipse cx="-3" cy="0" rx="2.4" ry="4.2" fill="#1c140c" opacity=".85"/><ellipse cx="3" cy="0" rx="2.4" ry="4.2" fill="#1c140c" opacity=".85"/><ellipse cx="0" cy="0" rx="9" ry="7" fill="none" stroke="#e8d070" stroke-width="1.5" opacity=".6"/></g>`; }
+    lab = label(3.4, 2.4, `<span class="dot" style="background:#e8d070"></span>Search mode ${DOT} Tracks`);
+  }
+  if (sc === "troughOut") lab = label(4, 2.2, `<span class="dot dng"></span>No animal zone here`);
+  s += person(sc.startsWith("hook") ? 4.4 : 5.2, sc.startsWith("hook") ? 3.2 : 5.4);
+  return s + `</svg>` + lab;
+}
+
+/* ---------- HUTCH ---------- */
+function nest(i, eggs, hen, focus) {
+  const egg = hen ? `<div class="hen">${HEN("#f0ece0")}<span>${hen}</span><small>SITTING ${DOT} ${eggs} EGGS</small></div>` : `<div class="eggs">${Array.from({ length: 10 }, (_, k) => EGG(k < eggs)).join("")}</div>`;
+  const btn = hen ? verb("HEN SITTING", "dis") : verb("GRAB", eggs ? "" : "dis", false);
+  return `<div class="nb${focus && gp() ? " gpf" : ""}"><span class="h"><span>BOX ${i}</span><span class="dim">${eggs}</span></span>${egg}<div style="margin-top:auto;display:flex">${btn}</div></div>`;
+}
+function bird(name, sub, color, tag, focus) {
+  return `<div class="arow${focus && gp() ? " gpf" : ""}"><span class="pt">${HEN(color)}</span><span>${name}<br><small>${sub}</small></span>${tag || "<span></span>"}${verb("GRAB")}${verb("INFO")}</div>`;
+}
+function hutchCard(shut) {
+  const verbs = shut
+    ? verb("OPEN DOOR", "primary", true) + verb("OPEN HATCH") + verb("PUT IN", "dis") + verb("CLEAN")
+    : verb("GRAB EGGS", "primary") + verb("CLEAN") + verb("CLOSE DOOR") + verb("CLOSE HATCH");
+  let b = `<div class="leds"><span><i class="led ${shut ? "off" : "on"}"></i>DOOR ${shut ? "SHUT" : "OPEN"}</span><span><i class="led ${shut ? "off" : "on"}"></i>EGG HATCH ${shut ? "SHUT" : "OPEN"}</span></div>`;
+  if (shut) b += needsLine([[false, "PUT IN: You need to have either door or eggs door open."]]);
+  b += cs("EGG LAYING BOXES", shut ? "4 BOXES" : "8 EGGS " + DOT + " 4 BOXES");
+  b += shut ? `<div class="closedplate">BOTH DOORS SHUT</div>` : `<div class="nests">${nest(1, 4, null, !shut)}${nest(2, 2, "Henrietta")}${nest(3, 2, null)}${nest(4, 0, null)}</div>`;
+  b += cs("COOP ROOSTING", "7 / 20");
+  if (shut) b += `<div class="closedplate">DOOR SHUT</div>`;
+  else {
+    b += bird("Clucky", "HEN " + DOT + " ADULT", "#b07a3a", T("LAYING", "pos"));
+    b += bird("Big Red", "COCK " + DOT + " ADULT", "#9a3a20");
+    b += bird("Pepper", "HEN " + DOT + " ADULT", "#3a3a3a", T("HUNGRY", "warn"));
+    b += bird("Hen", "HEN " + DOT + " ADULT", "#b07a3a", T("DEAD", "dng"));
+    b += bird("Dotty", "HEN " + DOT + " CHICK", "#e0c890");
+    b += bird("Speckles", "HEN " + DOT + " ADULT", "#8a7a6a");
+  }
+  b += cs("FLOOR", "DIRTINESS");
+  b += `<div class="meter"><div class="lr"><span>DIRTINESS</span><span class="v">46%</span></div>${fill(.46, "var(--warning)")}</div>`;
+  b += needsLine([[true, "Water " + DOT + " Water Bottle"], [true, "Mop, towel or broom " + DOT + " Broom"], [null, "Bleach " + DOT + " twice as fast"]]);
+  return card("#7a5a3a", "Henhouse", shut ? "SHUT" : "OPEN", shut ? "dim" : "pos", verbs, b);
+}
+
+/* ---------- TROUGH ---------- */
+function troughCard(kind) {
+  const food = kind === "troughFood", water = kind === "troughWater", out = kind === "troughOut";
+  let verbs, b = "", pill, pk;
+  if (food) {
+    verbs = verb("ADD FOOD", "primary", true) + verb("ADD WATER", "dis");
+    pill = "FOOD"; pk = "pos";
+    b += `<div class="big"><b>18.4</b><span>FEED</span></div>`;
+    b += needsLine([[false, "ADD WATER: Can't add water if trough contains feed."]]);
+    b += cs("IN THE TROUGH", "2");
+    b += `<div class="lrow"><span class="ic" style="background:#b8964a"></span><span>Animal Feed</span><span class="v">12.0 ${verb("TAKE")}</span></div>`;
+    b += `<div class="lrow"><span class="ic" style="background:#8fa04a"></span><span>Hay</span><span class="v">6.4 ${verb("TAKE")}</span></div>`;
+  } else if (water) {
+    verbs = verb("ADD WATER", "primary") + verb("EMPTY") + verb("ADD FOOD", "dis");
+    pill = "TAINTED"; pk = "dng";
+    b += `<div class="big"><b>96.0</b><span>L OF 150 L ${DOT} WATER</span></div>`;
+    b += `<div class="tank"><i style="width:64%;background:var(--water)"></i>${[.25, .5, .75].map(f => `<span class="tk" style="left:${f * 100}%"></span>`).join("")}<span class="lb">Water (Tainted)</span></div>`;
+    b += needsLine([[false, "ADD FOOD: Can't add feed if trough contains water."]]);
+  } else {
+    verbs = verb("ADD FOOD", "primary") + verb("ADD WATER");
+    pill = "EMPTY"; pk = "dim";
+    b += `<div class="warnband"><span class="dot dng" style="margin-top:4px"></span><span><b>Not in an animal zone.</b> Animals only eat and drink from troughs inside their zone.</span></div>`;
+  }
+  b += cs("ZONE", out ? "NONE" : "LINKED");
+  b += out ? `<div class="srow2"><span class="l">LINKED TO</span><span class="v">None</span></div>`
+           : `<div class="srow2"><span class="l">LINKED TO</span><span class="v">Livestock Zone #2 ${verb("OPEN")}</span><span class="l">ANIMALS</span><span class="v">6 use it ${DOT} <span class="dim">4 hens, 2 cows</span></span></div>`;
+  if (food || out) {
+    b += cs("YOUR FEED", "3");
+    b += `<div class="pick${gp() && food ? " gpf" : ""}"><span class="ic" style="background:#b8964a"></span><span>Animal Feed</span><span class="loc">BACKPACK</span><span class="gain">+8.0</span>${verb("ADD")}</div>`;
+    b += `<div class="pick"><span class="ic" style="background:#8fa04a"></span><span>Hay ${DOT} 3</span><span class="loc">INVENTORY</span><span class="gain">+6.0</span>${verb("ADD")}</div>`;
+    b += `<div class="pick"><span class="ic" style="background:#c8b46a"></span><span>Wheat</span><span class="loc">INVENTORY</span><span class="gain">+1.5</span>${verb("ADD")}</div>`;
+  } else {
+    b += cs("YOUR CONTAINERS", "2");
+    b += `<div class="pick"><span class="ic" style="background:var(--water)"></span><span>Bucket</span><span class="loc">IN HAND ${DOT} 9.5 L WATER</span><span></span>${verb("POUR")}</div>`;
+    b += `<div class="pick"><span class="ic" style="background:var(--water)"></span><span>Water Bottle</span><span class="loc">INVENTORY ${DOT} 1.0 L</span><span></span>${verb("POUR")}</div>`;
+  }
+  const foot = (water ? `<div class="dfoot confirm"><span class="msg"><span class="dot dng"></span>Pour 96.0 L of water out of the trough?</span><span class="sp"></span>${verb("CANCEL")}${verb("EMPTY", "primary")}</div>` : "");
+  return card("#6e737a", out ? "Wooden Trough" : "Metal Trough", pill, pk, verbs, b, null, foot);
+}
+
+/* ---------- HOOK ---------- */
+function carcassSVG(skinned) {
+  return `<div class="carcass"><svg width="118" height="176" viewBox="0 0 118 176"><line x1="59" y1="6" x2="59" y2="26" stroke="#999" stroke-width="2"/><path d="M40 26 q19 -8 38 0 l8 92 q-10 34 -27 46 q-17 -12 -27 -46z" fill="${skinned ? "#a8463a" : "#6a4a32"}" stroke="#000"/><path d="M50 60 q9 4 18 0 M48 84 q11 5 22 0 M50 108 q9 4 18 0" stroke="${skinned ? "#d9b0a0" : "#4a321f"}" fill="none"/></svg></div>`;
+}
+function part(l, v, btn, gone, focus) { return `<div class="part${gone ? " gone" : ""}${focus && gp() ? " gpf" : ""}">${gone ? `<span class="dot off"></span>` : `<span class="dot pos"></span>`}<span class="l">${l}</span><span class="v">${v}</span>${btn}</div>`; }
+function hookCard(sc) {
+  if (sc === "hookEmpty") {
+    let b = cs("DEAD ANIMALS NEARBY", "WITHIN 2 TILES OR CARRIED");
+    b += `<div class="pick${gp() ? " gpf" : ""}"><span class="ic" style="background:#7a6a5a"></span><span>Dead Cow</span><span class="loc">GROUND ${DOT} 1 TILE</span><span></span>${verb("HANG", "primary")}</div>`;
+    b += `<div class="pick"><span class="ic" style="background:#c8b8a0"></span><span>Dead Ewe</span><span class="loc">GROUND ${DOT} 2 TILES</span><span></span>${verb("HANG")}</div>`;
+    b += `<div class="pick" style="opacity:.55"><span class="ic" style="background:#d8c8b8"></span><span>Dead Hen</span><span class="loc">BACKPACK</span><span></span>${verb("HANG", "dis")}</div>`;
+    b += `<div class="needs" style="padding-left:28px"><span class="dot dng"></span>Not a valid dead animal for the Butcher Hook.</div>`;
+    b += cs("YOU HAVE");
+    b += needsLine([[true, "Knife " + DOT + " Hunting Knife"], [null, "Bucket for the blood " + DOT + " Bucket (empty)"]]);
+    return card("#6e5436", "Butcher Hook", "EMPTY", "dim", verb("ADD CORPSE", "primary") , b);
+  }
+  const bleeding = sc === "hookBleed";
+  let b = "";
+  if (bleeding) b += `<div class="pband"><span class="t">BLEEDING ONTO THE GROUND</span><span class="p">45% ${verb("STOP", "", true)}</span><div class="bar"><i style="width:45%"></i></div></div>`;
+  b += `<div class="hookgrid">${carcassSVG(true)}<div class="parts">`;
+  b += part("LEATHER", "Taken", verb("GATHER", "dis"), true);
+  b += part("BLOOD", bleeding ? "3.52 L left" : "6.40 L", bleeding ? verb("GATHER") : verb("GATHER", "primary"), false, !bleeding);
+  b += part("HEAD", "Yes", verb("GATHER", bleeding ? "dis" : ""), false);
+  b += part("MEAT", "Yes", verb("GATHER", bleeding ? "dis" : ""), false);
+  b += `<div class="srow2" style="margin-top:8px"><span class="l">KNIFE</span><span class="v">${okDot(true)}Hunting Knife</span><span class="l">BUTCHERING</span><span class="v">3</span></div>`;
+  b += `</div></div>`;
+  if (!bleeding) b += `<div class="note"><span class="dot warn" style="margin-top:4px"></span><span>Taking the head or the meat now spills the 6.40 L of blood still in it.</span></div>`;
+  b += cs("COLLECT INTO", "BLOOD");
+  b += `<div class="pick"><span class="ic" style="background:var(--surf4)"></span><span>Bucket</span><span class="loc">INVENTORY ${DOT} 0 / 10.0 L</span><span></span>${verb("INTO", bleeding ? "" : "primary")}</div>`;
+  b += `<div class="pick"><span class="ic" style="background:var(--surf4)"></span><span>Cooking Pot</span><span class="loc">BACKPACK ${DOT} 0 / 1.5 L</span><span></span>${verb("INTO")}</div>`;
+  b += `<div class="pick"><span class="ic" style="background:var(--blood)"></span><span>None</span><span class="loc">BLEED ONTO THE GROUND</span><span></span>${verb("BLEED", bleeding ? "dis" : "")}</div>`;
+  return card("#9a3a30", "Dead Cow", bleeding ? "BLEEDING" : "ON THE HOOK", bleeding ? "warn" : "pos", verb("REMOVE CORPSE", bleeding ? "dis" : ""), b);
+}
+
+/* ---------- TRACK ---------- */
+function compass(dir) {
+  const D = ["N","NE","E","SE","S","SW","W","NW"];
+  let s = `<svg width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="var(--surf2)" stroke="var(--borderS)"/><circle cx="60" cy="60" r="40" fill="none" stroke="var(--border)"/>`;
+  D.forEach((d, i) => {
+    const a = (i * 45 - 90) * Math.PI / 180, on = d === dir;
+    const x = 60 + Math.cos(a) * 47, y = 60 + Math.sin(a) * 47;
+    s += `<text x="${x}" y="${y + 3.5}" text-anchor="middle" font-family="Fira Mono" font-size="${d.length > 1 ? 8 : 10}" font-weight="700" fill="${on ? "var(--accent)" : "var(--textDim)"}">${d}</text>`;
+    if (on) { const x2 = 60 + Math.cos(a) * 34, y2 = 60 + Math.sin(a) * 34; s += `<line x1="60" y1="60" x2="${x2}" y2="${y2}" stroke="var(--accent)" stroke-width="4"/><circle cx="${x2}" cy="${y2}" r="4" fill="var(--accent)"/>`; }
+  });
+  return s + `<circle cx="60" cy="60" r="4" fill="var(--text)"/></svg>`;
+}
+function trackCard() {
+  let b = `<div class="trackgrid"><div style="display:flex;flex-direction:column;gap:8px;align-items:center"><div class="trackimg"><svg width="140" height="96" viewBox="0 0 140 96">${[0, 1, 2, 3].map(i => `<g transform="translate(${30 + i * 26},${70 - i * 14}) rotate(-28)"><ellipse cx="-3" cy="0" rx="3" ry="6" fill="#1c140c"/><ellipse cx="3" cy="0" rx="3" ry="6" fill="#1c140c"/></g>`).join("")}</svg></div>${compass("NE")}</div>`;
+  b += `<div class="srow2" style="row-gap:9px"><span class="l">TYPE</span><span class="v">Animal Tracks</span>
+    <span class="l">SPECIES</span><span class="v">Deer <span class="dim">${DOT} Tracking 5</span></span>
+    <span class="l">FRESHNESS</span><span class="v">${okDot(true)}Less than 12 hours</span>
+    <span class="l">DIRECTION</span><span class="v">North-east</span></div></div>`;
+  return card("#1c140c", "Animal Tracks", "VERY RECENT", "pos", "", b);
+}
+
+/* ---------- ANIMALS TAB ---------- */
+function animalsHead(sub) {
+  return `<div class="subm"><span${sub === "ranch" ? ` class="on"` : ""}>RANCH</span><span${sub === "butcher" ? ` class="on"` : ""}>BUTCHER</span></div>`;
+}
+function zoneView() {
+  let b = `<div class="crumb">&#9664; ALL ZONES</div>`;
+  b += `<div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:var(--cond);font-weight:600;font-size:16px">Livestock Zone #2</span><span class="dim" style="font-family:var(--mono);font-size:10px">9 ANIMALS ${DOT} 48 SQ.</span></div>`;
+  b += `<div class="zband"><div class="mm">FOOD <b>18.4 feed</b>${fill(.6, "var(--positive)")}</div><div class="mm">WATER <b>32 / 50 L</b>${fill(.64, "var(--water)")}</div><div class="mm">ROOF <b>12 of 48 sq.</b>${fill(.25, "var(--warning)")}</div></div>`;
+  b += `<div class="cat">v HUTCHES (1)<span class="c"></span></div>`;
+  b += `<div class="srow3${gp() ? " gpf" : ""}"><span class="pt" style="background:#7a5a3a"></span><span>Henhouse<small>7 / 20 BIRDS ${DOT} 8 EGGS ${DOT} DIRT 46%</small></span>${T("OPEN", "pos")}${verb("OPEN")}</div>`;
+  b += `<div class="cat">v FEEDING TROUGHS (2)<span class="c"></span></div>`;
+  b += `<div class="srow3"><span class="pt" style="background:#b8964a"></span><span>Metal Trough<small>FEED 18.4 ${DOT} 6 ANIMALS</small></span>${T("FOOD", "pos")}${verb("OPEN")}</div>`;
+  b += `<div class="srow3"><span class="pt" style="background:var(--water)"></span><span>Wooden Trough<small>WATER 32 / 50 L</small></span>${T("WATER", "inf")}${verb("OPEN")}</div>`;
+  b += `<div class="cat">v ANIMALS (9)<span class="c">SORT: NAME</span></div>`;
+  b += `<div class="srow3"><span class="pt">${HEN("#b07a3a")}</span><span>Clucky<small>HEN ${DOT} ADULT</small></span>${T("IN HUTCH")}${verb("HUTCH")}</div>`;
+  b += `<div class="srow3"><span class="pt" style="background:#6a4a32"></span><span>Bessie<small>COW ${DOT} ADULT</small></span>${T("MILKABLE", "inf")}<span></span></div>`;
+  return animalsHead("ranch") + `<div class="ob">${b}</div>`;
+}
+function butcherView() {
+  let b = `<div class="cat">v HOOKS (2)<span class="c">IN RANGE</span></div>`;
+  b += `<div class="srow3${gp() ? " gpf" : ""}"><span class="pt" style="background:#9a3a30"></span><span>Butcher Hook ${DOT} Dead Cow<small>BLOOD 3.5 L ${DOT} HEAD ${DOT} MEAT LEFT</small></span><span style="display:flex;align-items:center;gap:6px">${T("BLEEDING", "warn")}<span class="hbar"><i style="width:45%"></i></span></span>${verb("OPEN")}</div>`;
+  b += `<div class="srow3"><span class="pt" style="background:#6e5436"></span><span>Butcher Hook<small>BY THE BARN ${DOT} 9 TILES</small></span>${T("EMPTY")}${verb("OPEN")}</div>`;
+  b += `<div class="cat">v LIVESTOCK (4)<span class="c">HEAVIEST FIRST</span></div>`;
+  b += `<div class="srow3"><span class="pt" style="background:#6a4a32"></span><span>Bessie<small>COW ${DOT} ~180 KG MEAT</small></span><span class="dim" style="font-family:var(--mono);font-size:11px;color:var(--accent)">612 kg</span>${verb("OPEN")}</div>`;
+  b += `<div class="srow3"><span class="pt" style="background:#c8b8a0"></span><span>Dolly<small>EWE ${DOT} ~31 KG MEAT</small></span><span class="dim" style="font-family:var(--mono);font-size:11px;color:var(--accent)">72 kg</span>${verb("OPEN")}</div>`;
+  return animalsHead("butcher") + `<div class="ob">${b}</div>`;
+}
+function gene(n, a1, a2, used, dom, dis, focus) {
+  const al = (v, u, d) => `<span class="al${u ? " u" : ""}">${u ? `<span class="dot pos"></span>` : `<span class="dot off"></span>`}${v}${d ? ` <span class="d">D</span>` : ""}</span>`;
+  return `<div class="gene${focus && gp() ? " gpf" : ""}"><span class="n">${n}</span>${al(a1, used === 1, dom === 1)}${al(a2, used === 2, dom === 2)}<span>${dis ? T(dis, "dng") : ""}</span></div>`;
+}
+function genomeView() {
+  let b = `<div class="crumb">&#9664; LIVESTOCK ZONE #2</div>`;
+  b += `<div style="display:flex;gap:10px;align-items:center"><span class="pt" style="width:40px;height:40px;border:1px solid var(--borderS);background:#6a4a32"></span><span><span style="font-family:var(--cond);font-weight:600;font-size:16px;color:var(--accent)">Bessie</span><br><span class="dim" style="font-family:var(--mono);font-size:10px">HOLSTEIN ${DOT} COW ${DOT} ADULT</span></span></div>`;
+  b += cs("GENETICS", "ANIMAL CARE 7");
+  b += `<div class="srow2"><span class="l">DISORDER</span><span class="v">${T("POOR FERTILITY", "warn")}<span class="dim">Fewer young.</span></span></div>`;
+  b += `<div class="dbg"><div class="hd">GENOME<span class="tag inf">ANIMAL CHEATS</span><span style="margin-left:auto;color:var(--textDim);font-weight:400">19 GENES</span></div>`;
+  b += `<div class="gene h"><span>GENE</span><span>ALLELE 1</span><span>ALLELE 2</span><span></span></div>`;
+  b += gene("Max milk", "0.62", "0.48", 1, 1, null, true);
+  b += gene("Max weight", "0.55", "0.71 (0.58)", 2, 2);
+  b += gene("Meat ratio", "0.50", "0.44", 1, 1);
+  b += gene("Fertility", "0.40", "0.40", 1, 0, "POOR FERTILITY");
+  b += gene("Stress", "0.33", "0.61", 1, 1);
+  b += gene("Life expectancy", "0.70", "0.52", 2, 2);
+  b += `<div style="display:flex;gap:4px;margin-top:4px">${verb("EDIT VALUE")}${verb("DOMINANT")}${verb("SWITCH")}${verb("DISORDER")}<span class="dim" style="font-family:var(--mono);font-size:9px;margin-left:auto;align-self:center">D DOMINANT ${DOT} &#9679; USED</span></div></div>`;
+  return animalsHead("ranch") + `<div class="ob">${b}</div>`;
+}
+
+/* ---------- tab strip ---------- */
+function tabStrip(animals) {
+  return `<div class="tbtn${animals ? "" : " on"}">L</div><div class="tbtn">C</div><div class="tbtn">B</div><div class="tbtn">U</div><div class="tsep"></div><div class="tbtn">M</div><div class="tbtn">F</div><div class="tbtn${animals ? " on" : ""}">A</div><div class="tbtn">R</div>`;
+}
+
+/* ---------- theme + render ---------- */
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+const THEMES = {
+  dark:  { base:"#0C0C0C", surf1:"#141414", surf2:"#1C1C1C", surf3:"#242424", surf4:"#2C2C2C", border:"#202020", borderS:"#383838", text:"rgba(218,218,218,.9)", textDim:"rgba(161,161,161,.65)", danger:"#C45A2A", warning:"#C49A2A", positive:"#7A9A34", info:"#4F88B0" },
+  light: { base:"#C6C6C6", surf1:"#BEBEBE", surf2:"#B6B6B6", surf3:"#AEAEAE", surf4:"#A6A6A6", border:"#969696", borderS:"#767676", text:"rgba(12,12,12,.95)", textDim:"rgba(12,12,12,.72)", danger:"#7A2A11", warning:"#6B5510", positive:"#2A5511", info:"#1F4F7A" },
+  hicon: { base:"#050505", surf1:"#111111", surf2:"#191919", surf3:"#202020", surf4:"#292929", border:"#353535", borderS:"#555555", text:"rgba(255,255,255,.95)", textDim:"rgba(199,199,199,.75)", danger:"#FF5533", warning:"#FFCC22", positive:"#44DD44", info:"#4FA8E0" }
+};
+const ACCENTS = { red:[["#CC4444","#EE6666","#0C0C0C"],["#7A1A1A","#AA3333","#F2F0EC"]], orange:[["#D4922A","#E8A830","#0C0C0C"],["#7A5010","#B07818","#F2F0EC"]], yellow:[["#CCAA22","#EEDD44","#0C0C0C"],["#6B5F0A","#998811","#F2F0EC"]], green:[["#44AA44","#66CC66","#0C0C0C"],["#1F5A1F","#2E7A2E","#F2F0EC"]], blue:[["#4488CC","#66AAEE","#0C0C0C"],["#1A3F6B","#2A5A99","#F2F0EC"]], teal:[["#47A18C","#5CC4AA","#0C0C0C"],["#1A5548","#257A66","#F2F0EC"]], purple:[["#8855BB","#AA77DD","#0C0C0C"],["#4A2A6B","#663D99","#F2F0EC"]], pink:[["#DD5588","#FF77AA","#0C0C0C"],["#7A1F44","#A8305F","#F2F0EC"]], mono:[["#888888","#AAAAAA","#0C0C0C"],["#3A3A3A","#555555","#F2F0EC"]] };
+
+
+function render() {
+  const r = document.documentElement.style;
+  Object.entries(THEMES[S.base]).forEach(([k, v]) => r.setProperty("--" + k, v));
+  const ac = ACCENTS[S.accent][S.base === "light" ? 1 : 0];
+  r.setProperty("--accent", ac[0]); r.setProperty("--accentBright", ac[1]); r.setProperty("--onAccent", ac[2]);
+  r.setProperty("--a22", hexA(ac[0], .22)); r.setProperty("--a55", hexA(ac[0], .55));
+  $("stage").style.zoom = S.zoom;
+  const sc = S.state;
+  $("world").innerHTML = worldSVG(sc);
+  let html, animals = false;
+  if (sc.startsWith("hutch")) html = hutchCard(sc === "hutchShut");
+  else if (sc.startsWith("trough")) html = troughCard(sc);
+  else if (sc.startsWith("hook")) html = hookCard(sc);
+  else if (sc === "track") html = trackCard();
+  else { animals = true; html = sc === "zone" ? zoneView() : sc === "butcher" ? butcherView() : genomeView(); }
+  $("drawer").innerHTML = html;
+  $("tstrip").innerHTML = tabStrip(animals || sc === "hutch" || sc === "hutchShut");
+  $("tabname").textContent = animals || sc.startsWith("hutch") ? "Animals" : "Loot";
+  let f = `<span class="mini">&bull;</span><span class="mini">A</span><span class="mini">R</span>`;
+  if (gp()) {
+    const p = animals ? [["a", "Select"], ["b", "Back"], ["y", "Windows"]] : [["a", "Select"], ["b", "Close card"], ["y", "Windows"]];
+    f += `<span class="prompts">${p.map(([g, t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}</span>`;
+  }
+  $("wfoot").innerHTML = f + `<span class="grip"></span>`;
+  $("caption").textContent = CAPTIONS[sc];
+}
+
+function seg(id, items, cur, fn) { $(id).innerHTML = items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join(""); $(id).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.k)); }
+function sync() {
+  seg("ctlState", STATES, S.state, k => { S.state = k; render(); sync(); });
+  seg("ctlInput", [["mouse","Mouse"],["gamepad","Gamepad"]], S.input, k => { S.input = k; render(); sync(); });
+  seg("ctlBase", [["hicon","High contrast"],["dark","Dark"],["light","Light"]], S.base, k => { S.base = k; render(); sync(); });
+  seg("ctlZoom", [["1","1x (1080p)"],["1.5","1.5x"],["2","2x (4K)"]], String(S.zoom), k => { S.zoom = +k; render(); sync(); });
+  $("ctlAccent").innerHTML = Object.keys(ACCENTS).map(k => `<button title="${k}" data-k="${k}" class="${k === S.accent ? "on" : ""}" style="background:${ACCENTS[k][0][0]}"></button>`).join("");
+  $("ctlAccent").querySelectorAll("button").forEach(b => b.onclick = () => { S.accent = b.dataset.k; render(); sync(); });
+}
+sync(); render();
+</script>
+</body>
+</html>
