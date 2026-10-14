@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Crafting Stations v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Crafting stations, mockup v1 (Oct 13 2026)
+   World window Craft tab (CRAFTING_SPEC v1.0, locked S81) gains a STATION
+   selector. Every number is a DESIGN UNIT (1 px at 1080p); Zoom = root scale.
+   Data is real 42.20.2 content (craftrecipe_kiln.txt, drying rack recipes,
+   ISOvenUI ranges). Rules: 1px borders, no shadows/blur, Fira only, no emoji,
+   status dots, one scroll per pane, footer = action zone, focus = 0.55 accent.
+   ============================================================================ */
+:root {
+  --base:#050505; --surf1:#111111; --surf2:#191919; --surf3:#202020; --surf4:#292929;
+  --border:#353535; --borderS:#555555;
+  --text:rgba(255,255,255,.95); --textDim:rgba(199,199,199,.75);
+  --danger:#FF5533; --warning:#FFCC22; --positive:#44DD44;
+  --accent:#CCAA22; --accentBright:#EEDD44; --onAccent:#0C0C0C;
+  --a22:rgba(204,170,34,.22); --a55:rgba(204,170,34,.55);
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:980px; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.stage-wrap { overflow:auto; padding-bottom:6px; }
+.stage { position:relative; width:960px; height:456px; border:1px solid #2a2924;
+  background:radial-gradient(ellipse at 22% 35%, rgba(70,82,50,.55) 0%, transparent 55%), radial-gradient(ellipse at 78% 70%, rgba(60,52,40,.55) 0%, transparent 60%), repeating-linear-gradient(135deg, #1d1c17 0 6px, #191813 6px 12px); }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:980px; line-height:1.5; }
+
+/* window chrome (same as the live World window) */
+.win { position:absolute; left:18px; top:18px; width:924px; height:420px; background:color-mix(in srgb, var(--base) 95%, transparent); border:1px solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tbar { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS); background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.closebox { width:13px; height:13px; border:1px solid var(--textDim); background:var(--surf2); }
+.tbar .ttl, .tbar .tab { font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; }
+.tbar .ttl b { font-weight:400; color:var(--textDim); margin-left:8px; }
+.tbar .sp { flex:1; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; }
+.dot.pos { background:var(--positive); } .dot.warn { background:var(--warning); } .dot.dng { background:var(--danger); } .dot.off { background:transparent; border:1px solid var(--textDim); }
+.wbody { flex:1; display:flex; min-height:0; }
+.wfoot { height:16px; flex:none; border-top:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; gap:3px; padding:0 3px; }
+.wfoot .mini { width:12px; height:12px; border:1px solid var(--border); font-family:var(--cond); font-size:9px; color:var(--textDim); display:flex; align-items:center; justify-content:center; }
+.wfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; align-items:center; }
+.glyph { display:inline-flex; width:12px; height:12px; border-radius:50%; font-family:var(--sans); font-weight:600; font-size:8px; color:#0c0c0c; align-items:center; justify-content:center; margin-right:4px; }
+.g-a { background:#5dbb3a; } .g-b { background:#d9452b; } .g-x { background:#3d7bd9; } .g-y { background:#e3b52a; }
+.wfoot .grip { margin-left:auto; width:12px; height:12px; background:repeating-linear-gradient(135deg, transparent 0 3px, var(--textDim) 3px 4px); opacity:.6; }
+.cstrip { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); }
+.cbtn { width:36px; height:36px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.cbtn.on { background:var(--accent); }
+.inv { width:372px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--borderS); background:var(--surf1); }
+.invh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.invh .h { font-family:var(--cond); font-weight:600; font-size:15px; } .invh .n { margin-left:auto; font-family:var(--cond); font-size:10px; color:var(--textDim); }
+.colh { height:20px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.colh .u { text-decoration:underline; text-underline-offset:2px; color:var(--text); }
+.irow { height:24px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; }
+.irow .ct { font-family:var(--mono); font-size:10px; color:var(--accent); } .irow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.cath { height:18px; display:flex; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.tstrip { width:36px; flex:none; border-left:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.tbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accent); opacity:.8; }
+.tbtn.on { background:var(--accent); color:var(--onAccent); opacity:1; }
+.tsep { height:1px; background:var(--borderS); margin:2px 4px; }
+
+/* drawer: Craft tab per CRAFTING_SPEC + the station row */
+.drawer { width:480px; flex:none; display:flex; flex-direction:column; background:var(--surf1); min-width:0; position:relative; }
+.shead { flex:none; padding:6px 10px 6px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid var(--border); }
+.selrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.sel { height:22px; display:flex; align-items:center; gap:6px; padding:0 6px; border:1px solid var(--borderS); background:var(--surf2); cursor:pointer; min-width:0; }
+.sel .lbl { font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--accent); }
+.sel .val { font-size:12px; font-weight:500; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sel .arr { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.sel.station.bound { border-color:var(--accent); background:var(--a22); }
+.search { height:22px; display:flex; align-items:center; gap:6px; padding:0 6px; border:1px solid var(--border); background:var(--base); font-size:12px; color:var(--textDim); }
+.strip { height:24px; flex:none; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.6px; color:var(--textDim); }
+.strip .m { padding:2px 3px; } .strip .m.on { color:var(--accent); border-bottom:1px solid var(--accent); }
+.strip .tog { margin-left:auto; display:flex; align-items:center; gap:4px; }
+.band { flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; height:28px; border-bottom:1px solid var(--borderS); background:var(--surf2); }
+.band .nm { font-family:var(--cond); font-weight:600; font-size:14px; }
+.band .meta { font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.band .right { margin-left:auto; display:flex; align-items:center; gap:6px; font-size:11px; }
+.panes { flex:1; display:flex; min-height:0; }
+.list { width:240px; flex:none; border-right:1px solid var(--borderS); overflow:hidden; }
+.list.full { width:480px; border-right:none; }
+.sec { height:20px; display:flex; align-items:center; gap:6px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); }
+.sec.pin { color:var(--accent); } .sec .c { margin-left:auto; font-weight:400; }
+.rrow { height:24px; display:grid; grid-template-columns:2px 12px 18px 1fr auto; gap:0 6px; align-items:center; padding-right:10px; font-size:12px; font-weight:500; border-bottom:1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+.rrow:nth-child(even) { background:rgba(255,255,255,.022); }
+.rrow .edge { height:100%; } .rrow.sel { background:var(--a22); } .rrow.sel .edge { background:var(--accent); }
+.rrow.miss { background:color-mix(in srgb, var(--danger) 6%, transparent); }
+.rrow .nm { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rrow .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.rrow.station .nm { color:var(--textDim); }
+.tag { height:14px; padding:0 5px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--textDim); border:1px solid var(--border); }
+.tag.acc { color:var(--accent); border-color:var(--accent); } .tag.dng { color:var(--danger); border-color:var(--danger); }
+.card { flex:1; display:flex; flex-direction:column; min-width:0; }
+.chead { display:grid; grid-template-columns:36px 1fr; gap:8px; padding:10px; border-bottom:1px solid var(--border); }
+.chead .ic { width:36px; height:36px; border:1px solid var(--borderS); background:var(--surf2); }
+.chead .t { font-size:13px; font-weight:600; color:var(--accent); } .chead .d { font-size:10px; color:var(--textDim); line-height:1.3; margin-top:2px; }
+.chips { display:flex; gap:4px; padding:6px 10px; border-bottom:1px solid var(--border); }
+.cs { height:20px; display:flex; align-items:center; padding:0 10px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); background:var(--surf2); border-bottom:1px solid var(--border); }
+.cs .c { margin-left:auto; font-weight:400; }
+.slot { height:24px; display:grid; grid-template-columns:2px 18px 1fr auto 12px; gap:0 6px; align-items:center; padding-right:10px; font-size:12px; font-weight:500; }
+.slot.miss { background:color-mix(in srgb, var(--danger) 8%, transparent); } .slot.miss .edge { background:var(--danger); }
+.slot .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); justify-self:center; }
+.slot .n { font-family:var(--mono); font-size:11px; } .slot .fl { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.need { margin:8px 10px; padding:8px; border:1px solid var(--accent); background:var(--a22); font-size:12px; line-height:1.4; }
+.need .row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+.act { margin-top:auto; height:42px; display:flex; align-items:center; gap:6px; padding:0 10px; border-top:1px solid var(--borderS); background:var(--surf2); }
+.stp { display:flex; } .stp span { width:22px; height:22px; display:flex; align-items:center; justify-content:center; border:1px solid var(--borderS); font-family:var(--mono); font-size:12px; background:var(--surf3); }
+.stp .q { background:var(--accent); color:var(--onAccent); font-weight:700; border-color:var(--accent); }
+.mx { font-family:var(--mono); font-size:14px; }
+.btn { height:22px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; border:1px solid var(--borderS); background:var(--surf3); color:var(--text); cursor:pointer; white-space:nowrap; }
+.btn.primary { background:var(--accent); color:var(--onAccent); border-color:var(--accentBright); }
+.btn.outline { background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); border-color:var(--accent); }
+.btn.dis { opacity:.35; }
+.btn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.btn.grow { flex:1; }
+
+/* station dropdown */
+.dd { position:absolute; left:10px; top:34px; width:228px; background:var(--surf2); border:1px solid var(--borderS); z-index:5; }
+.dd .opt { height:26px; display:grid; grid-template-columns:18px 1fr auto; gap:6px; align-items:center; padding:0 8px; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.dd .opt .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.dd .opt .m { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.dd .opt.on { background:var(--a22); } .dd .opt.focus { background:var(--a55); }
+.dd .hd { height:18px; display:flex; align-items:center; padding:0 8px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); background:var(--surf1); border-bottom:1px solid var(--border); }
+
+/* machine panel (drying rack) */
+.mach { flex:1; overflow-y:auto; min-height:0; padding:8px 10px; display:flex; flex-direction:column; gap:8px; }
+.mrow { display:flex; align-items:center; gap:8px; font-size:12px; }
+.mlbl { font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--accent); }
+.grid { display:grid; grid-template-columns:repeat(10, 1fr); gap:4px; }
+.cell { height:38px; border:1px solid var(--border); background:var(--surf2); position:relative; display:flex; align-items:flex-start; justify-content:center; padding-top:4px; }
+.cell .it { width:20px; height:20px; border:1px solid var(--borderS); background:color-mix(in srgb, var(--positive) 18%, var(--surf3)); }
+.cell .pb { position:absolute; left:3px; right:3px; bottom:3px; height:4px; background:var(--surf3); } .cell .pb i { display:block; height:100%; background:var(--accent); }
+.cell.empty { border-style:dashed; background:transparent; }
+.cell.out .it { background:color-mix(in srgb, var(--warning) 25%, var(--surf3)); }
+.cell.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.prog { height:8px; background:var(--surf2); border:1px solid var(--borderS); flex:1; } .prog i { display:block; height:100%; background:var(--accent); }
+.pick { height:24px; display:grid; grid-template-columns:18px 1fr auto auto; gap:8px; align-items:center; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.pick .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.pick .loc { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+
+/* appliance chassis (oven / microwave) — 1993 hardware, radio-drawer precedent */
+.app { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.chassis { margin:8px 10px 6px; padding:10px 12px 20px; border:1px solid #6a675e; position:relative;
+  background:linear-gradient(180deg, #d9d5c9 0%, #c9c4b5 100%); color:#1c1b17; display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; }
+.chassis.mw { background:linear-gradient(180deg, #2b2b2b 0%, #1d1d1d 100%); border-color:#000; color:#d8d8d8; }
+.chassis .brand { position:absolute; left:0; right:0; text-align:center; bottom:5px; font-family:var(--cond); font-weight:600; font-size:9px; letter-spacing:2px; opacity:.7; }
+.knob { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.knob .k { width:58px; height:58px; border-radius:50%; position:relative; background:radial-gradient(circle at 40% 35%, #f4f1ea 0%, #b9b3a3 70%, #8d877a 100%); border:2px solid #5c584e; }
+.chassis.mw .knob .k { background:radial-gradient(circle at 40% 35%, #6a6a6a 0%, #2c2c2c 75%); border-color:#000; }
+.knob .k::after { content:''; position:absolute; left:50%; top:6px; width:4px; height:20px; margin-left:-2px; background:#1c1b17; transform-origin:50% 23px; transform:rotate(var(--rot)); }
+.chassis.mw .knob .k::after { background:#e0e0e0; }
+.knob .t { font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; }
+.knob .ticks { font-family:var(--mono); font-size:8px; opacity:.7; }
+.knob.focus .k { box-shadow:0 0 0 3px var(--a55); }
+.lcd { justify-self:center; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.lcd .scr { width:132px; height:44px; background:#0f1a10; border:2px solid #4a4a40; display:flex; align-items:center; justify-content:center; gap:8px; font-family:var(--mono); font-weight:700; font-size:22px; color:#66ee66; letter-spacing:2px; }
+.lcd .scr small { font-size:10px; color:#3a8a3a; letter-spacing:1px; }
+.lcd .row { display:flex; gap:6px; align-items:center; }
+.lamp { width:10px; height:10px; border-radius:50%; background:#5a2a1a; border:1px solid #2a1208; }
+.lamp.on { background:#ff6a2a; }
+.hwbtn { height:22px; padding:0 10px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; background:#efece4; color:#1c1b17; border:1px solid #6a675e; border-bottom-width:2px; }
+.chassis.mw .hwbtn { background:#3a3a3a; color:#e0e0e0; border-color:#000; }
+.hwbtn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.sw { display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; font-weight:700; }
+.sw .tr { width:26px; height:12px; border:1px solid #6a675e; background:#b9b3a3; position:relative; } .sw .tr i { position:absolute; top:1px; left:1px; width:11px; height:8px; background:#1c1b17; }
+.inside { padding:0 10px; overflow:hidden; }
+.cook { height:30px; display:grid; grid-template-columns:18px 1fr 120px 40px; gap:8px; align-items:center; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.cook .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.cook .pb { height:6px; background:var(--surf2); border:1px solid var(--borderS); } .cook .pb i { display:block; height:100%; }
+.cook .p { font-family:var(--mono); font-size:11px; text-align:right; }
+
+.dfoot { height:32px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:12px; }
+.dfoot .msg { display:flex; align-items:center; gap:6px; color:var(--textDim); white-space:nowrap; overflow:hidden; }
+.dfoot .r { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); }
+
+/* notes */
+.notes { max-width:1060px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes p, .notes li { font-size:13px; line-height:1.6; color:#c4bfb1; }
+.notes ol { padding-left:20px; } .notes li { margin-bottom:8px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+table.parity { border-collapse:collapse; width:100%; font-size:12px; }
+table.parity th, table.parity td { border:1px solid #34322c; padding:5px 8px; text-align:left; vertical-align:top; color:#c4bfb1; line-height:1.45; }
+table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#d8c070; background:#17160f; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI · World window · Craft tab · stations · mockup v1</div>
+<h1>Crafting stations</h1>
+<p class="lede">Stations become part of the Craft tab. A <b>Station</b> selector sits beside the category picker: <b>Hand</b> is crafting as today, and every station within reach is listed under it. Most stations are benches (forges, furnaces, kilns, pottery wheel, looms, mills, charcoal burners), which are simply the recipe list for that station, with fuel as an ingredient. Drying racks are machines with slots, start and stop. The oven and microwave are appliances, drawn as physical 1993 control panels the way the radio drawer is. Switch the states above the window.</p>
+
+<div class="controls">
+  <div class="ctl"><span>State</span><div class="seg" id="ctlState"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlInput"></div></div>
+  <div class="ctl"><span>Base</span><div class="seg" id="ctlBase"></div></div>
+  <div class="ctl"><span>World accent</span><div class="swatches" id="ctlAccent"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap"><div class="stage" id="stage">
+  <div class="win">
+    <div class="tbar"><div class="closebox"></div><div class="ttl">Ground<b>0</b></div><div class="sp"></div><div class="tab"><span class="dot"></span>Crafting</div></div>
+    <div class="wbody">
+      <div class="cstrip"><div class="cbtn on"></div><div class="cbtn"></div></div>
+      <div class="inv">
+        <div class="invh"><span class="h">Ground</span><span class="n">0 items</span></div>
+        <div class="colh"><span>DIST</span><span class="u">NAME</span><span>CAT</span><span>COND</span><span style="text-align:right">WT</span></div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:10px;color:var(--accent);opacity:.7">INVENTORY EMPTY</div>
+      </div>
+      <div class="drawer" id="drawer"></div>
+      <div class="tstrip"><div class="tbtn">L</div><div class="tbtn on">C</div><div class="tbtn">B</div><div class="tsep"></div><div class="tbtn">M</div><div class="tbtn">F</div><div class="tbtn">A</div></div>
+    </div>
+    <div class="wfoot" id="wfoot"></div>
+  </div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>Stations live in the Craft tab, not in a new tab.</b> They are the same recipe list and card with a different source, so the Station selector switches the source. The selector lists every usable station within four tiles (vanilla's reach) with its distance. Choosing one binds the tab to it, and walking away drops back to Hand.</li>
+      <li><span class="rec">RECOMMEND</span><b>Every vanilla way in lands here.</b> These are the station option in the world right-click menu, the controller Interact prompt, and clicking a big multi-tile station. Each opens the World window's Craft tab already bound to that station. The vanilla station window never shows. Only one player can use a station at a time, as in vanilla; a station in use by someone else shows a lock.</li>
+      <li><span class="rec">RECOMMEND</span><b>Hand mode tells you when a recipe needs a station.</b> Today the Craft tab can show a kiln recipe as craftable by hand, which is wrong. In Hand mode, station recipes keep their place in the list with the station's name as a tag and a hollow dot. Their card says which station they need and how far away the nearest one is, with a button that binds the tab to it.</li>
+      <li><span class="rec">RECOMMEND</span><b>Machines get a full-width panel.</b> A drying rack needs room for its 20 input slots, the drying progress, start and stop, its output slots and the items you can add. So the recipe list folds into a recipe dropdown and the slots take the drawer. Each slot shows its own progress bar.</li>
+      <li><span class="rec">RECOMMEND</span><b>Appliances are hardware.</b> The oven and microwave are 1993 objects, so their controls are a physical panel: knobs for temperature and timer, a green readout, a power lamp and an ON / OFF key. Below the panel, "In the oven" lists what is cooking with the item card's cooking band, including the burning warning. The oven also gets the °F / °C switch vanilla has, and its knobs move one stop per D-pad press. The alternative is plain steppers like the rest of the window.</li>
+      <li><b>Fuel.</b> Forges, furnaces and kilns have no fuel gauge in vanilla; fuel is an ingredient of each recipe. The card marks those ingredients with a FUEL tag rather than inventing a fuel system.</li>
+      <li><b>Also folded in.</b> The vanilla hand-craft window (its keybind and the HUD) and the build window already have ZeD tabs. Their remaining entry points get hooked to open the Craft and Build tabs, so no vanilla crafting window can appear.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Everything vanilla does, and where it goes</h2>
+    <table class="parity">
+      <tr><th style="width:34%">Vanilla</th><th>Craft tab</th></tr>
+      <tr><td>Station window: header with icon, name, info; component panels stacked</td><td>Station selector + a station band (icon, name, distance, state, lock) above the recipe list</td></tr>
+      <tr><td>Bench panel: categories, list / grid, filter, sort, recipe detail, manual input column, quantity − / + / MAX, craft, progress</td><td>The locked Craft tab as is (sections, search, sort, alternatives pane flip, quantity stepper, CRAFT, progress band), bound to the station's recipes</td></tr>
+      <tr><td>Machine panel (drying racks): recipe list, input slots, slots-full, duration, add by drag or click, remove, loot all, per-slot progress, start / cancel, select inputs</td><td>Machine panel: recipe dropdown, input grid with per-slot progress, START / STOP, output grid with TAKE ALL, "from your bags" list with ADD, duration and time left</td></tr>
+      <tr><td>Oven: temperature knob 0-300 in steps of 50, °F / °C, timer 0-120 min, on / off (needs power), closes past 3 tiles</td><td>Oven panel with the same ranges and switch, power lamp, contents with cooking bands</td></tr>
+      <tr><td>Microwave: power 5 positions, timer 0-60 min, on / off</td><td>Microwave panel (dark), same controls</td></tr>
+      <tr><td>Auto-close past 4 tiles, using-player lock, joypad focus</td><td>Falls back to Hand past 4 tiles; lock shown on the band; full cone-nav, A acts, B leaves the station</td></tr>
+    </table>
+  </div>
+</section>
+
+<script>
+const S = { state:"hand", input:"mouse", base:"hicon", accent:"yellow", zoom:1 };
+const STATES = [["hand","Hand (station recipe)"],["list","Station list"],["kiln","Small Kiln"],["rack","Drying rack"],["oven","Oven"],["micro","Microwave"]];
+const CAPTIONS = {
+  hand:"Hand mode. Station recipes keep their place with the station as a tag and a hollow dot. Their card says which station they need, how far the nearest is, and offers to bind the tab to it.",
+  list:"The Station selector lists Hand and every usable station within four tiles, with distance and kind. A taken station shows a lock.",
+  kiln:"Bound to a Small Kiln: the list holds only kiln recipes. The fuel ingredient carries a FUEL tag; the missing log is the only thing stopping the craft.",
+  rack:"A drying rack is a machine: slots with their own progress, START / STOP, outputs with TAKE ALL, and the items in your bags that fit the chosen recipe.",
+  oven:"The oven as a 1993 control panel: temperature and timer knobs, readout, power lamp, ON / OFF and the °F / °C switch. Below it, what is cooking, with the item card's cooking band.",
+  micro:"The microwave: the same layout on a dark panel, power level instead of temperature and a 60 minute timer."
+};
+const KILN = ["Fire 3 Bricks","Fire Clay Bowl","Fire Clay Crucible","Fire Clay Ingot Cast","Fire Clay Ingot Mold","Fire Clay Jar","Fire Clay Mug","Fire Glazed Clay Mug","Fire Clay Teacup","Fire Clay Bar Mold"];
+const HAND = [["Attach Filter to Gas Mask","can"],["Bind Spear Head With Duct Tape","can"],["Break Glass","can"],["Fire 3 Bricks","station","KILN"],["Fire Clay Bowl","station","KILN"],["Forge Rod Into Bar","station","FORGE"],["Make Campfire Kit","miss"],["Open Can of Beans","can"],["Dry Basil","station","RACK"],["Saw Logs","can"],["Sharpen Stick","can"]];
+const $ = id => document.getElementById(id);
+const gp = () => S.input === "gamepad";
+
+function header(station, open) {
+  const bound = station !== "Hand";
+  return `<div class="shead"><div class="selrow">
+    <div class="sel station${bound ? " bound" : ""}${gp() && open ? " " : ""}"><span class="lbl">STATION</span><span class="val">${station}</span><span class="arr">v</span></div>
+    <div class="sel"><span class="lbl">CATEGORY</span><span class="val">-- All --</span><span class="arr">v</span></div></div>
+    <div class="search">/ Search recipes...</div></div>`;
+}
+function strip() { return `<div class="strip"><span>SORT</span><span class="m on">CRAFTABLE</span><span class="m">KNOWN</span><span class="m">NAME</span><span class="m">FREQ</span><span class="m">RECENT</span><span class="tog"><span class="dot pos"></span>ALL</span></div>`; }
+function stationBand(name, meta, right) { return `<div class="band"><span class="nm">${name}</span><span class="meta">${meta}</span><span class="right">${right}</span></div>`; }
+
+function handView(listOpen) {
+  let rows = `<div class="sec">v ALL RECIPES <span class="c">(533)</span></div>`;
+  HAND.forEach(([n, st, tag], i) => {
+    const dot = st === "can" ? "pos" : st === "miss" ? "dng" : "off";
+    const sel = (!listOpen && n === "Fire 3 Bricks") ? " sel" : "";
+    rows += `<div class="rrow${sel}${st === "miss" ? " miss" : ""}${st === "station" ? " station" : ""}"><span class="edge"></span><span class="dot ${dot}"></span><span class="ic"></span><span class="nm">${n}</span>${tag ? `<span class="tag">${tag}</span>` : "<span></span>"}</div>`;
+  });
+  const card = `<div class="card"><div class="chead"><span class="ic"></span><div><div class="t">Fire 3 Bricks</div><div class="d">Fires unfired clay bricks into bricks.</div></div></div>
+    <div class="chips"><span class="tag acc">LRN</span><span class="tag">20s</span><span class="tag dng">NEEDS KILN</span></div>
+    <div class="need"><b>Needs a Small Kiln.</b> The nearest is 2 tiles away.<div class="row"><span class="btn outline${gp() ? " focus" : ""}">USE SMALL KILN</span></div></div>
+    <div class="cs">REQUIRED <span class="c">3/3</span></div>
+    <div class="slot"><span class="edge"></span><span class="ic"></span><span>Unfired Clay Brick</span><span class="n">3/3</span><span class="fl">x</span></div>
+    <div class="slot"><span class="edge"></span><span class="ic"></span><span>Fire starter <span class="tag acc">v6</span></span><span class="n">1/1</span><span class="fl">x</span></div>
+    <div class="slot"><span class="edge"></span><span class="ic"></span><span>Log or Charcoal <span class="tag">FUEL</span></span><span class="n">1/1</span><span class="fl">x</span></div>
+    <div class="act"><div class="stp"><span>+</span><span class="q">1</span><span>-</span></div><span class="mx">1</span><span class="btn grow dis">CRAFT</span></div></div>`;
+  let dd = "";
+  if (listOpen) {
+    dd = `<div class="dd"><div class="opt on"><span class="ic"></span><span>Hand</span><span class="m">ANY SURFACE</span></div>
+      <div class="hd">WITHIN REACH</div>
+      <div class="opt${gp() ? " focus" : ""}"><span class="ic"></span><span>Small Kiln</span><span class="m">2 TILES</span></div>
+      <div class="opt"><span class="ic"></span><span>Pottery Wheel</span><span class="m">3 TILES</span></div>
+      <div class="opt"><span class="ic"></span><span>Small Plant Drying Rack</span><span class="m">1 TILE</span></div>
+      <div class="opt"><span class="ic"></span><span>Stove</span><span class="m">2 TILES</span></div>
+      <div class="opt" style="color:var(--textDim)"><span class="ic"></span><span>Forge</span><span class="m">IN USE</span></div></div>`;
+  }
+  return header("Hand", listOpen) + strip() + `<div class="panes"><div class="list">${rows}</div>${card}</div>` + dd +
+    `<div class="dfoot"><span class="msg"><span class="dot off"></span>Fire 3 Bricks needs a Small Kiln</span><span class="r">HAND</span></div>`;
+}
+
+function kilnView() {
+  let rows = `<div class="sec">v SMALL KILN <span class="c">(${KILN.length})</span></div>`;
+  KILN.forEach((n, i) => {
+    const st = i === 0 ? "miss" : (i % 3 === 0 ? "miss" : "can");
+    rows += `<div class="rrow${i === 0 ? " sel" : ""}${st === "miss" ? " miss" : ""}"><span class="edge"></span><span class="dot ${st === "can" ? "pos" : "dng"}"></span><span class="ic"></span><span class="nm">${n}</span><span></span></div>`;
+  });
+  const card = `<div class="card"><div class="chead"><span class="ic"></span><div><div class="t">Fire 3 Bricks</div><div class="d">Fires unfired clay bricks into bricks.</div></div></div>
+    <div class="chips"><span class="tag acc">LRN</span><span class="tag">20s</span><span class="tag">KILN</span></div>
+    <div class="cs">REQUIRED <span class="c">1 miss</span></div>
+    <div class="slot"><span class="edge"></span><span class="ic"></span><span>Unfired Clay Brick</span><span class="n">3/3</span><span class="fl">x</span></div>
+    <div class="slot"><span class="edge"></span><span class="ic"></span><span>Fire starter <span class="tag acc">v6</span></span><span class="n">1/1</span><span class="fl">x</span></div>
+    <div class="slot miss"><span class="edge"></span><span class="ic"></span><span>Log or Charcoal <span class="tag">FUEL</span></span><span class="n">0/1</span><span class="fl">x</span></div>
+    <div class="cs">OUTPUTS <span class="c">1</span></div>
+    <div class="slot"><span class="edge"></span><span class="ic"></span><span>Clay Brick</span><span class="n" style="color:var(--accent)">x3</span><span></span></div>
+    <div class="act"><div class="stp"><span>+</span><span class="q">1</span><span>-</span></div><span class="mx" style="color:var(--danger)">0</span><span class="btn grow dis">CRAFT</span></div></div>`;
+  return header("Small Kiln") + strip() + stationBand("Small Kiln", "2 TILES  ·  BENCH", `<span class="dot pos"></span>In use by you`) +
+    `<div class="panes"><div class="list">${rows}</div>${card}</div>` +
+    `<div class="dfoot"><span class="msg"><span class="dot dng"></span>Missing fuel: a log or charcoal</span><span class="r">B  LEAVE STATION</span></div>`;
+}
+
+function rackView() {
+  let cells = "";
+  for (let i = 0; i < 20; i++) {
+    if (i < 6) cells += `<div class="cell${gp() && i === 2 ? " focus" : ""}"><span class="it"></span><span class="pb"><i style="width:${[46,46,46,46,12,12][i]}%"></i></span></div>`;
+    else cells += `<div class="cell empty"></div>`;
+  }
+  let outs = "";
+  for (let i = 0; i < 10; i++) outs += i < 2 ? `<div class="cell out"><span class="it"></span></div>` : `<div class="cell empty"></div>`;
+  return header("Small Plant Drying Rack") + stationBand("Small Plant Drying Rack", "1 TILE  ·  MACHINE", `<span class="dot pos"></span>Drying`) +
+    `<div class="mach">
+      <div class="mrow"><span class="mlbl">RECIPE</span><span class="sel" style="width:220px"><span class="val">Dry Basil</span><span class="arr">v</span></span><span style="color:var(--textDim);font-family:var(--mono);font-size:10px">2 DAYS EACH</span></div>
+      <div class="mrow"><span class="mlbl">INPUT</span><span style="font-family:var(--mono);font-size:10px;color:var(--textDim)">6 / 20</span></div>
+      <div class="grid">${cells}</div>
+      <div class="mrow"><span class="btn${gp() ? "" : ""}">STOP</span><span class="prog"><i style="width:46%"></i></span><span style="font-family:var(--mono);font-size:11px">46%  ·  ABOUT 1 DAY LEFT</span></div>
+      <div class="mrow"><span class="mlbl">OUTPUT</span><span style="font-family:var(--mono);font-size:10px;color:var(--textDim)">2</span><span class="btn outline" style="margin-left:auto">TAKE ALL</span></div>
+      <div class="grid">${outs}</div>
+      <div class="mrow"><span class="mlbl">FROM YOUR BAGS</span><span style="font-family:var(--mono);font-size:10px;color:var(--textDim)">fits Dry Basil</span></div>
+      <div class="pick"><span class="ic"></span><span>Basil  x4</span><span class="loc">BACKPACK</span><span class="btn">ADD</span></div>
+    </div>
+    <div class="dfoot"><span class="msg"><span class="dot pos"></span>Drying 6 bunches of basil</span><span class="r">B  LEAVE STATION</span></div>`;
+}
+
+function applianceView(mw) {
+  const ch = mw
+    ? `<div class="chassis mw"><div class="knob${gp() ? " focus" : ""}" style="--rot:72deg"><div class="k"></div><span class="t">POWER</span><span class="ticks">LO · · · HI</span></div>
+        <div class="lcd"><div class="scr">03:30 <small>MED-HI</small></div><div class="row"><span class="lamp on"></span><span class="hwbtn">ON/OFF</span></div></div>
+        <div class="knob" style="--rot:20deg"><div class="k"></div><span class="t">TIMER</span><span class="ticks">0 — 60 MIN</span></div><span class="brand">ValuTech · MICRO-WAVE 700</span></div>`
+    : `<div class="chassis"><div class="knob${gp() ? " focus" : ""}" style="--rot:150deg"><div class="k"></div><span class="t">TEMP</span><span class="ticks">OFF · 200 · 400 · 575 °F</span></div>
+        <div class="lcd"><div class="scr">45:00 <small>350°F</small></div><div class="row"><span class="lamp on"></span><span class="hwbtn">ON/OFF</span><span class="sw">°F <span class="tr"><i></i></span> °C</span></div></div>
+        <div class="knob" style="--rot:135deg"><div class="k"></div><span class="t">TIMER</span><span class="ticks">0 — 120 MIN</span></div><span class="brand">Premium Technologies · RANGE</span></div>`;
+  const items = mw
+    ? [["Bowl of Soup", 62, "warn", "HEATING"], ["Popcorn", 100, "pos", "DONE"]]
+    : [["Roast Chicken", 74, "warn", "COOKING"], ["Baking Tray with Muffins", 96, "dng", "BURNING SOON"], ["Pie", 30, "warn", "COOKING"]];
+  const rows = items.map(([n, p, c, s]) => `<div class="cook"><span class="ic"></span><span>${n} <span class="tag" style="${c === "dng" ? "color:var(--danger);border-color:var(--danger)" : ""}">${s}</span></span><span class="pb"><i style="width:${p}%;background:var(--${c === "pos" ? "positive" : c === "warn" ? "accent" : "danger"})"></i></span><span class="p">${p}%</span></div>`).join("");
+  return header(mw ? "Microwave" : "Stove") + stationBand(mw ? "Microwave" : "Stove", "2 TILES  ·  APPLIANCE", `<span class="dot pos"></span>Powered  ·  On`) +
+    `<div class="app">${ch}<div class="cs" style="margin:0">${mw ? "IN THE MICROWAVE" : "IN THE OVEN"} <span class="c">${items.length}</span></div><div class="inside">${rows}</div></div>
+    <div class="dfoot"><span class="msg"><span class="dot ${mw ? "pos" : "dng"}"></span>${mw ? "Heating, 3:30 left" : "Muffins burn in 2 minutes"}</span><span class="r">${gp() ? "D-PAD TURNS THE KNOB" : "DRAG OR WHEEL A KNOB"}</span></div>`;
+}
+
+function render() {
+  const r = document.documentElement.style;
+  Object.entries(THEMES[S.base]).forEach(([k, v]) => r.setProperty("--" + k, v));
+  const ac = ACCENTS[S.accent][S.base === "light" ? 1 : 0];
+  r.setProperty("--accent", ac[0]); r.setProperty("--accentBright", ac[1]); r.setProperty("--onAccent", ac[2]);
+  r.setProperty("--a22", hexA(ac[0], .22)); r.setProperty("--a55", hexA(ac[0], .55));
+  $("stage").style.zoom = S.zoom;
+  const v = { hand: () => handView(false), list: () => handView(true), kiln: kilnView, rack: rackView, oven: () => applianceView(false), micro: () => applianceView(true) }[S.state];
+  $("drawer").innerHTML = v();
+  let f = `<span class="mini">&bull;</span><span class="mini">A</span><span class="mini">R</span>`;
+  if (gp()) {
+    const p = S.state === "list" ? [["a","Choose"],["b","Close"]] : (S.state === "hand" ? [["a","Use station"],["x","Options"],["y","Close"]] : [["a","Select"],["b","Leave station"],["y","Close"]]);
+    f += `<span class="prompts">${p.map(([g,t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}</span>`;
+  }
+  $("wfoot").innerHTML = f + `<span class="grip"></span>`;
+  $("caption").textContent = CAPTIONS[S.state];
+}
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+const THEMES = {
+  dark:  { base:"#0C0C0C", surf1:"#141414", surf2:"#1C1C1C", surf3:"#242424", surf4:"#2C2C2C", border:"#202020", borderS:"#383838", text:"rgba(218,218,218,.9)", textDim:"rgba(161,161,161,.65)", danger:"#C45A2A", warning:"#C49A2A", positive:"#7A9A34" },
+  light: { base:"#C6C6C6", surf1:"#BEBEBE", surf2:"#B6B6B6", surf3:"#AEAEAE", surf4:"#A6A6A6", border:"#969696", borderS:"#767676", text:"rgba(12,12,12,.95)", textDim:"rgba(12,12,12,.72)", danger:"#7A2A11", warning:"#6B5510", positive:"#2A5511" },
+  hicon: { base:"#050505", surf1:"#111111", surf2:"#191919", surf3:"#202020", surf4:"#292929", border:"#353535", borderS:"#555555", text:"rgba(255,255,255,.95)", textDim:"rgba(199,199,199,.75)", danger:"#FF5533", warning:"#FFCC22", positive:"#44DD44" }
+};
+const ACCENTS = { red:[["#CC4444","#EE6666","#0C0C0C"],["#7A1A1A","#AA3333","#F2F0EC"]], orange:[["#D4922A","#E8A830","#0C0C0C"],["#7A5010","#B07818","#F2F0EC"]], yellow:[["#CCAA22","#EEDD44","#0C0C0C"],["#6B5F0A","#998811","#F2F0EC"]], green:[["#44AA44","#66CC66","#0C0C0C"],["#1F5A1F","#2E7A2E","#F2F0EC"]], blue:[["#4488CC","#66AAEE","#0C0C0C"],["#1A3F6B","#2A5A99","#F2F0EC"]], teal:[["#47A18C","#5CC4AA","#0C0C0C"],["#1A5548","#257A66","#F2F0EC"]], purple:[["#8855BB","#AA77DD","#0C0C0C"],["#4A2A6B","#663D99","#F2F0EC"]], pink:[["#DD5588","#FF77AA","#0C0C0C"],["#7A1F44","#A8305F","#F2F0EC"]], mono:[["#888888","#AAAAAA","#0C0C0C"],["#3A3A3A","#555555","#F2F0EC"]] };
+function seg(id, items, cur, fn) { $(id).innerHTML = items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join(""); $(id).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.k)); }
+function sync() {
+  seg("ctlState", STATES, S.state, k => { S.state = k; render(); sync(); });
+  seg("ctlInput", [["mouse","Mouse"],["gamepad","Gamepad"]], S.input, k => { S.input = k; render(); sync(); });
+  seg("ctlBase", [["hicon","High contrast"],["dark","Dark"],["light","Light"]], S.base, k => { S.base = k; render(); sync(); });
+  seg("ctlZoom", [["1","1x (1080p)"],["1.5","1.5x"],["2","2x (4K)"]], String(S.zoom), k => { S.zoom = +k; render(); sync(); });
+  $("ctlAccent").innerHTML = Object.keys(ACCENTS).map(k => `<button title="${k}" data-k="${k}" class="${k === S.accent ? "on" : ""}" style="background:${ACCENTS[k][0][0]}"></button>`).join("");
+  $("ctlAccent").querySelectorAll("button").forEach(b => b.onclick = () => { S.accent = b.dataset.k; render(); sync(); });
+}
+sync(); render();
+</script>
+</body>
+</html>
