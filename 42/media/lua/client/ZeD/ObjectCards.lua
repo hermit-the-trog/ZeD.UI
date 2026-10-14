@@ -133,7 +133,8 @@ function OC.tick(e, player)
     -- the leash applies to a card about a tile (a fluid card about your own
     -- bottles has none)
     local sq = t.sq
-    if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > OC.LEASH + 0.5) then
+    local leash = def.leash or OC.LEASH
+    if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash + 0.5) then
         return false
     end
     t._refreshT = (t._refreshT or OC.REFRESH) + 1
@@ -642,6 +643,12 @@ function ZeD_ObjectCard:new(x, y, w, h, playerNum)
 end
 
 function ZeD_ObjectCard:setEntry(entry)
+    -- the outgoing kind may tidy up (the placement card puts its gizmo away)
+    local old = self.entry
+    if old and old ~= entry and old.def and old.def.onClose then
+        local ok, err = pcall(old.def.onClose, old.t, self)
+        if not ok then print("[ZeD] ObjectCards: onClose failed: " .. tostring(err)) end
+    end
     self.entry = entry
     self._confirm = nil
     self._pendingFocus = nil

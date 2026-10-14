@@ -28,6 +28,7 @@ require "ZeD/ForagingTab"
 require "ZeD/AnimalsTab"
 require "ZeD/RadioTab"
 require "ZeD/MechanicsTab"
+require "ZeD/FurnitureTab"
 
 ZeD = ZeD or {}
 ZeD_WorldWindow = {}
@@ -78,6 +79,9 @@ local WORLD_TABS = {
     { id = "loot",   label = "Loot",     group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
     { id = "craft",  label = "Crafting", group = 1, glyph = "C", iconName = "craft-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/craft-tab-white.png") },
     { id = "build",  label = "Building", group = 1, glyph = "B", iconName = "build-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/build-tab-white.png") },
+    -- S124: Furniture — vanilla's moveables mode (pick up, place, rotate,
+    -- disassemble, repair); opening the tab starts the furniture cursor (ZeD.FurnitureTab)
+    { id = "furniture", label = "Furniture", group = 1, glyph = "U", iconName = "move-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/move-tab-white.png") },
     { id = "maps",   label = "Maps",     group = 2, glyph = "M", iconName = "map-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/map-tab-white.png") },
     { id = "forage", label = "Foraging", group = 2, glyph = "F", iconName = "forage-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/forage-tab-white.png"),
       visible = function(win) return true end },  -- always visible (informational surface)
@@ -819,6 +823,12 @@ _buildWorldPanelFocusables = function(win, content, tabId)
         end
         return {}
     end
+    if tabId == "furniture" then
+        if ZeD and ZeD.FurnitureTab and ZeD.FurnitureTab.buildFocusables then
+            return ZeD.FurnitureTab.buildFocusables(win)
+        end
+        return {}
+    end
     return {}
 end
 
@@ -1300,6 +1310,7 @@ local WORLD_TAB_DRAWER_WIDTHS = {
     animals = TAB_DRAWER_W,
     radio  = TAB_DRAWER_W,  -- S115 — radio chassis matches the wider tab drawer
     vehicle = TAB_DRAWER_W, -- S124 — Vehicle tab (item-card width)
+    furniture = TAB_DRAWER_W, -- S124 — Furniture tab
 }
 
 local function getWorldTabDrawerW(tab)
@@ -1315,6 +1326,7 @@ ZeD.ForagingTab.register(WORLD_TAB_RENDERERS)
 ZeD.AnimalsTab.register(WORLD_TAB_RENDERERS)
 ZeD.RadioTab.register(WORLD_TAB_RENDERERS)
 ZeD.MechanicsTab.register(WORLD_TAB_RENDERERS)
+ZeD.FurnitureTab.register(WORLD_TAB_RENDERERS)
 
 -- Fallback icon mapping for container types vanilla doesn't cover
 local ICON_FALLBACKS = {
@@ -3404,6 +3416,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         if win._drawerMode == "tab" and win._activeTab == "vehicle" then
             return ZeD.MechanicsTab.onMouseWheel(win, del)
         end
+        if win._drawerMode == "tab" and win._activeTab == "furniture" then
+            return ZeD.FurnitureTab.onMouseWheel(win, del)
+        end
         if win._drawerMode == "tab" then
             local scroll = getWorldActiveScroll(win)
             if scroll and scroll.visible then
@@ -3444,6 +3459,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
         if win._drawerMode == "tab" and win._activeTab == "vehicle" then
             return ZeD.MechanicsTab.onClick(win, x, y)
+        end
+        if win._drawerMode == "tab" and win._activeTab == "furniture" then
+            return ZeD.FurnitureTab.onClick(win, x, y)
         end
         return false
     end
@@ -3969,7 +3987,8 @@ function ZeD_WorldWindow.toggle(playerNum)
                  win._activeTab == "radio" or -- S117: per Char window — radio
                                             -- chassis zones stamped during
                                             -- render, picked up next frame.
-                 win._activeTab == "vehicle"  -- S124: Vehicle tab zones stamped during render
+                 win._activeTab == "vehicle" or -- S124: Vehicle tab zones stamped during render
+                 win._activeTab == "furniture"  -- S124: Furniture tab zones stamped during render
                ) then
             -- S98 per-frame refresh for NON-Loot World tabs. _forageStanceZones
             -- and _animalsSubmodeZones are populated by ForagingTab / AnimalsTab
@@ -4043,6 +4062,10 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
             if win._activeTab == "vehicle" and ZeD.MechanicsTab and ZeD.MechanicsTab.focusKey then
                 scrollKey = ZeD.MechanicsTab.focusKey(win)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            if win._activeTab == "furniture" and ZeD.FurnitureTab and ZeD.FurnitureTab.focusKey then
+                scrollKey = ZeD.FurnitureTab.focusKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             local alwaysRebuild = false
