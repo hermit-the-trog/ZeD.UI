@@ -14,10 +14,15 @@
 --   def.refresh(t, player)    -> fills t.d (data) and t.verbs every few frames
 --   def.title(t) / def.icon(t) / def.pill(t) -> header
 --   def.body(card, x, y, w, t, player) -> draws the body, returns its height
+--   def.status(t)  (optional)  -> { text, c, alarm } a state line in the footer
+--   def.onKey(t, key, card) (optional) -> true when the card takes the key
+--                                (asked only while the pointer is over the card)
 -- Verbs: { id, label, enabled, primary, run(player, t, card), jump = fid,
 --          confirm = "question" }. A verb with jump moves the view (and the
 -- controller focus) to a list in the body; one with confirm asks in the
 -- footer first. The card stays open within OC.LEASH tiles of the object.
+-- Zones may carry wheel(del) (the mouse wheel over them) and nofocus = true
+-- (clickable, but not a controller stop).
 -- ============================================================================
 
 require "ZeD/Molecules"
@@ -861,6 +866,12 @@ function ZeD_ObjectCard:prerender()
         end
         footH = math.max(T.px(32), #footLines * (tm:getFontHeight(T.fontF2) + T.px(2)) + T.px(12))
     end
+    -- otherwise the kind may keep a state line there (the lock card's answer)
+    local status = nil
+    if not self._confirm and def.status then
+        local sok, st = pcall(def.status, t)
+        if sok and st and st.text then status = st; footH = T.px(32) end
+    end
     local viewY, viewH = y, h - y - footH
     self._viewY, self._viewH = viewY, viewH
     local scroll = self.scroll
@@ -942,6 +953,16 @@ function ZeD_ObjectCard:prerender()
         for i, ln in ipairs(footLines) do
             self:drawText(ln, T.px(22), ty + (i - 1) * lh, T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
         end
+    elseif status then
+        local fy = h - footH
+        self:drawRect(0, fy, w, footH, 1, s2.r, s2.g, s2.b)
+        if status.alarm then self:drawRect(0, fy, w, footH, 0.12, T.danger.r, T.danger.g, T.danger.b) end
+        self:drawRect(0, fy, w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+        local f2 = T.fontF2
+        local ty = fy + math.floor((footH - tm:getFontHeight(f2)) / 2)
+        ZeD.Atoms.drawStatusDot(self, T.px(10), fy + math.floor((footH - T.px(7)) / 2), status.c or T.accent, T.px(7))
+        local s = ZeD.CraftingCore.truncText(status.text, f2, w - T.px(32))
+        self:drawText(s, T.px(22), ty, T.text.r, T.text.g, T.text.b, T.text.a, f2)
     end
 end
 
@@ -1019,8 +1040,55 @@ function ZeD_ObjectCard:onMouseDown(x, y) return self.entry ~= nil end
 function ZeD_ObjectCard:onMouseUp(x, y) return self.entry ~= nil end
 
 function ZeD_ObjectCard:onMouseWheel(del)
+    -- a zone with wheel (a dial) takes the wheel while the pointer is on it
+    local z = self:zoneAt(getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY())
+    if z and z.wheel then z.wheel(del); return true end
     if self.scroll.visible then self.scroll:handleMouseWheel(del) end
     return true
+end
+
+-- Pointer over the card (raw mouse state; nested children miss hover events)
+function ZeD_ObjectCard:pointerOver()
+    if not (self.entry and self:getIsVisible()) then return false end
+    local mx, my = getMouseX() - self:getAbsoluteX(), getMouseY() - self:getAbsoluteY()
+    return mx >= 0 and my >= 0 and mx < self:getWidth() and my < self:getHeight()
+end
+
+-- Keys for the open card: the World window passes key presses here while a
+-- card that reads keys is up and the pointer is over it.
+function OC.cardTakesKey(key)
+    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+    local e = card and card.entry
+    if not (e and e.def.onKey and card:pointerOver()) then return false end
+    local ok, took = pcall(e.def.onKey, e.t, key, card, false)
+    return ok and took == true
+end
+function OC.cardKey(key)
+    local card = ZeD_WorldWindow and ZeD_WorldWindow.getObjectCard and ZeD_WorldWindow.getObjectCard()
+    local e = card and card.entry
+    if not (e and e.def.onKey and card:pointerOver()) then return end
+    local ok, err = pcall(e.def.onKey, e.t, key, card, true)
+    if not ok then print("[ZeD] ObjectCards: key failed: " .. tostring(err)) end
+end
+
+-- The World window asks for key events once a card that reads keys opens
+-- (UIManager offers keys only to top-level elements). Chains any handlers
+-- the window already has.
+function OC.armKeys()
+    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    if not win or win._ocKeysArmed then return end
+    win._ocKeysArmed = true
+    local prevPress, prevConsumed = win.onKeyPress, win.isKeyConsumed
+    win.onKeyPress = function(self, key)
+        OC.cardKey(key)
+        if prevPress then return prevPress(self, key) end
+    end
+    win.isKeyConsumed = function(self, key)
+        if OC.cardTakesKey(key) then return true end
+        if prevConsumed then return prevConsumed(self, key) end
+        return false
+    end
+    win:setWantKeyEvents(true)
 end
 
 -- Gamepad elements (panel-local; the card sits at 0,0 in the drawer overlay).
@@ -1033,7 +1101,7 @@ function ZeD_ObjectCard:buildFocusables(win)
     local confirming = self._confirm ~= nil
     local off = self._off or 0
     for _, z in ipairs(self._zones) do
-        if z.fid and (not confirming or z.foot) then
+        if z.fid and not z.nofocus and (not confirming or z.foot) then
             local zz = z
             -- body elements sit at their unscrolled place, so up / down walks
             -- the card top to bottom; scroll-follow brings the focused one in
