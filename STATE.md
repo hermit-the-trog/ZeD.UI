@@ -3,13 +3,13 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1242200j` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
+**Version:** `0.1.1242300k` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
 **Next session:** S125 - director plays the scaled UI on the 4K rig (pair, drawers, cards, HUD props, tooltips, map) + the controller pass; then the **vehicle mechanics tab** (mockup first, HOOK_MAP row 3), then the main menu (plan in `ZeDUI/deltas/SESSION_124_DELTA.md`). See Target.
 
 ## What ships
 
 - Character Window: Loot · Equip · Health · Thermal · Identity · Journal (3 sub-tabs) · Skills · Radio (contextual). Drawer = universal detail surface; ItemCard with Progress Band (reading / cooking with burn danger / repairing), cancel, rename, 220w/480w presets.
-- World Window: Loot · Craft · Build · Maps · Forage · Animals · Radio. Mirrored chrome, container strip, multi-column inventory. **Maps unfold** into a centred pop-out (toolbar button, A on the fold placeholder, B folds; the Map key / mini-map / D-pad wheel / HUD button all open it — `Overrides/WorldMap.lua`).
+- World Window: Loot · Craft · Build · Maps · Forage · Animals · Radio · **Vehicle** (contextual: a vehicle within reach; scanline car figure tinted by condition, parts by area, part cards with header verbs, a NEEDS checklist per verb, install pick list, repair recipes, footer confirmations, INSPECT before the vanilla look-over). Mirrored chrome, container strip, multi-column inventory. **Maps unfold** into a centred pop-out (toolbar button, A on the fold placeholder, B folds; the Map key / mini-map / D-pad wheel / HUD button all open it — `Overrides/WorldMap.lua`).
 - Context menu: single horizontal strip, 114 `fi-br-*` icons, first-word fallback, System 7 paper/ink.
 - Theme engine: 3 bases (dark, hicon, light) × 9 accents × 2 text sizes (`shared/ZeD/Tokens.lua`). Fonts: Fira Mono + Fira Sans Condensed bitmap `.fnt` (1x–4x sets shipped).
 - Gamepad: S113 flat free-nav; every tab in both windows has a focusable builder; sub-tab pills switch on A; **capability-driven button prompts** in every window footer (derived from the focused element's callbacks); UI sounds on focus / A / B; F9 overlay gamepad-only.
@@ -43,7 +43,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 
 **Playable floor = full gamepad parity.** Dude tests on gamepad only.
 
-1. CaZio watch and vehicle dashboard are built (v5, mockups first). Next mockups-first builds: **vehicle mechanics** (`ISOpenMechanicsUIAction` -> World window Vehicle tab), then the **main menu** (CRT room mockup `ZeDUI/mockups/zed-main-menu-crt-v7_1.html`, plan in the S124 delta), then **screen icons** (`ISEquippedItem`; its window buttons are already hidden). New ledger rows 20-25 (hutch, trough, animal genome / tracks / butcher hook, animals in vehicles, journal writing, keypad codes). Open HUD questions: fire / ranger / race designs unseen live (DigitalDress is gold and the digital LCDs carry the thermo as of Oct 13). Entry points and design targets in `HOOK_MAP.md`.
+1. CaZio watch and vehicle dashboard are built (v5, mockups first). **Vehicle mechanics is built** (World window Vehicle tab, Oct 13). Next mockups-first build: the **main menu** (CRT room mockup `ZeDUI/mockups/zed-main-menu-crt-v7_1.html`, plan in the S124 delta), then **screen icons** (`ISEquippedItem`; its window buttons are already hidden). New ledger rows 20-25 (hutch, trough, animal genome / tracks / butcher hook, animals in vehicles, journal writing, keypad codes). Open HUD questions: fire / ranger / race designs unseen live (DigitalDress is gold and the digital LCDs carry the thermo as of Oct 13). Entry points and design targets in `HOOK_MAP.md`.
 2. UI scale axis (item 3 above).
 3. Controller session on the QA save with the bridge logging.
 4. Then the rest of the HOOK_MAP gaps by session frequency: entity crafting stations → hotbar → fluid transfer → the info cards.
