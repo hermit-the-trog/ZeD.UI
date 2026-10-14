@@ -26,6 +26,7 @@ require "ZeD/MapsTab"
 require "ZeD/ForagingTab"
 require "ZeD/AnimalsTab"
 require "ZeD/RadioTab"
+require "ZeD/MechanicsTab"
 
 ZeD = ZeD or {}
 ZeD_WorldWindow = {}
@@ -73,6 +74,13 @@ local WORLD_TABS = {
       icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
       visible = function(win)
           return win and win._radios and #win._radios > 0
+      end },
+    -- S124: Vehicle (contextual) — vehicle mechanics. Visible while a vehicle is
+    -- within reach or an inspected one is within six tiles (ZeD.MechanicsTab).
+    { id = "vehicle", label = "Vehicle", group = 2, glyph = "V",
+      icon = getTexture("media/textures/ZeD/TabIcons/vehicle-tab-white.png"),
+      visible = function(win)
+          return ZeD.MechanicsTab and ZeD.MechanicsTab.isVisible(win)
       end },
 }
 
@@ -789,6 +797,12 @@ _buildWorldPanelFocusables = function(win, content, tabId)
         end
         return {}
     end
+    if tabId == "vehicle" then
+        if ZeD and ZeD.MechanicsTab and ZeD.MechanicsTab.buildFocusables then
+            return ZeD.MechanicsTab.buildFocusables(win)
+        end
+        return {}
+    end
     return {}
 end
 
@@ -1269,6 +1283,7 @@ local WORLD_TAB_DRAWER_WIDTHS = {
     forage = TAB_DRAWER_W,
     animals = TAB_DRAWER_W,
     radio  = TAB_DRAWER_W,  -- S115 — radio chassis matches the wider tab drawer
+    vehicle = TAB_DRAWER_W, -- S124 — Vehicle tab (item-card width)
 }
 
 local function getWorldTabDrawerW(tab)
@@ -1283,6 +1298,7 @@ ZeD.MapsTab.register(WORLD_TAB_RENDERERS)
 ZeD.ForagingTab.register(WORLD_TAB_RENDERERS)
 ZeD.AnimalsTab.register(WORLD_TAB_RENDERERS)
 ZeD.RadioTab.register(WORLD_TAB_RENDERERS)
+ZeD.MechanicsTab.register(WORLD_TAB_RENDERERS)
 
 -- Fallback icon mapping for container types vanilla doesn't cover
 local ICON_FALLBACKS = {
@@ -2251,6 +2267,8 @@ local function drawWorldContainerStrip(self, win, content)
         -- Wave cache prunes against the new key set (entry.cacheKey is built
         -- from world coords by RadioTab.buildWorldRadios — stable identity).
         win._radios = ZeD.RadioTab.buildWorldRadios(win._playerObj)
+        -- S124: vehicles in reach for the Vehicle tab (same 30-frame timer)
+        if ZeD.MechanicsTab and ZeD.MechanicsTab.refresh then pcall(ZeD.MechanicsTab.refresh, win) end
         if #win._radios == 0 then
             win._radioIdx = 1
         elseif win._radioIdx > #win._radios then
@@ -2682,6 +2700,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._radios           = ZeD.RadioTab.buildWorldRadios(playerObj)
     win._radioIdx         = 1
     win._radioWaveCache   = {}
+    if ZeD.MechanicsTab and ZeD.MechanicsTab.refresh then pcall(ZeD.MechanicsTab.refresh, win) end
 
     -- Drawer state
     win._drawerOpen  = false
@@ -3335,6 +3354,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             ZeD.BuildingTab.onMouseWheel(win, del, self:getMouseX(), self:getMouseY())
             return true
         end
+        if win._drawerMode == "tab" and win._activeTab == "vehicle" then
+            return ZeD.MechanicsTab.onMouseWheel(win, del)
+        end
         if win._drawerMode == "tab" then
             local scroll = getWorldActiveScroll(win)
             if scroll and scroll.visible then
@@ -3373,6 +3395,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             ZeD.RadioTab.onClick(win, x, y)
             return true
         end
+        if win._drawerMode == "tab" and win._activeTab == "vehicle" then
+            return ZeD.MechanicsTab.onClick(win, x, y)
+        end
         return false
     end
 
@@ -3397,6 +3422,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         if win._drawerMode == "tab" and win._activeTab == "animals" then
             ZeD.AnimalsTab.onRightClick(win, x, y)
             return true
+        end
+        if win._drawerMode == "tab" and win._activeTab == "vehicle" then
+            return ZeD.MechanicsTab.onRightClick(win, x, y)
         end
         return false
     end
@@ -3873,9 +3901,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                  win._activeTab == "craft" or
                  win._activeTab == "build" or
                  win._activeTab == "maps" or
-                 win._activeTab == "radio"  -- S117: per Char window — radio
+                 win._activeTab == "radio" or -- S117: per Char window — radio
                                             -- chassis zones stamped during
                                             -- render, picked up next frame.
+                 win._activeTab == "vehicle"  -- S124: Vehicle tab zones stamped during render
                ) then
             -- S98 per-frame refresh for NON-Loot World tabs. _forageStanceZones
             -- and _animalsSubmodeZones are populated by ForagingTab / AnimalsTab
@@ -3943,6 +3972,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                     if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
                 end
             end
+            if win._activeTab == "vehicle" and ZeD.MechanicsTab and ZeD.MechanicsTab.focusKey then
+                scrollKey = ZeD.MechanicsTab.focusKey(win)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
             local alwaysRebuild = false
 
             -- S107 QA: identity-preserve focus by element id. When the
@@ -3993,6 +4026,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                 win._animalsNavFocusTarget = nil
             end
 
+            if win._activeTab == "vehicle" and win._mechFocusTarget and ZeD.MechanicsTab.focusTargetIndex then
+                local ti = ZeD.MechanicsTab.focusTargetIndex(win, newEls)
+                if ti then preserveIdx = ti; cardJumpIdx = ti end
+            end
             if dirty or alwaysRebuild or cardJumpIdx then
                 win._lastTabContentSnapshot = {
                     tab     = win._activeTab,

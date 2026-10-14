@@ -2068,8 +2068,10 @@ end
 --- @param x, y  Top-left
 --- @param w     Total width
 --- @param name  Item display name (ellipsis-truncated if too wide)
---- @param verbs Array of {label, primary} — drawn right-to-left.
+--- @param verbs Array of {label, primary, disabled?, danger?} — drawn right-to-left.
 ---              `primary=true` paints in accent (CTA); secondary in surf2.
+---              `disabled=true` greys that verb to .35 (Vehicle tab: needs unmet);
+---              `danger=true` draws danger text over the danger sine-pulse fill.
 --- @param progressActive  When true, verbs render at .35 alpha (no cursor)
 --- @param compact         220w preset (h=30, btn=20); else 480w (h=37, btn=22)
 --- @param outRects        Optional table; on return:
@@ -2130,25 +2132,31 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
             local btnX = cursorR
             local btnY = y + math.floor((h - btnSz) / 2)
 
+            local vAlpha = verbAlpha * (v.disabled and 0.35 or 1.0)
             local btnBg = v.primary and T.accent or T.surf2
-            panel:drawRect(btnX, btnY, btnW, btnSz, (btnBg.a or 1) * verbAlpha,
+            panel:drawRect(btnX, btnY, btnW, btnSz, (btnBg.a or 1) * vAlpha,
                 btnBg.r, btnBg.g, btnBg.b)
+            if v.danger and not v.primary and not v.disabled then
+                local pulse = math.sin((getTimestampMs() or 0) / 400) * 0.5 + 0.5
+                local fillA = T.dangerPulseMin + pulse * (T.dangerPulseMax - T.dangerPulseMin)
+                panel:drawRect(btnX, btnY, btnW, btnSz, fillA, T.danger.r, T.danger.g, T.danger.b)
+            end
 
             local btnHi = v.primary and T.accentBright or T.surf4
             local btnSh = v.primary and ZeD.colorBlend(T.accent, T.base, 0.55) or T.borderS
             panel:drawRect(btnX, btnY, btnW, T.px(1),
-                (btnHi.a or 1) * verbAlpha, btnHi.r, btnHi.g, btnHi.b)
+                (btnHi.a or 1) * vAlpha, btnHi.r, btnHi.g, btnHi.b)
             panel:drawRect(btnX, btnY, T.px(1), btnSz,
-                (btnHi.a or 1) * verbAlpha, btnHi.r, btnHi.g, btnHi.b)
+                (btnHi.a or 1) * vAlpha, btnHi.r, btnHi.g, btnHi.b)
             panel:drawRect(btnX, btnY + btnSz - T.px(1), btnW, T.px(1),
-                (btnSh.a or 1) * verbAlpha, btnSh.r, btnSh.g, btnSh.b)
+                (btnSh.a or 1) * vAlpha, btnSh.r, btnSh.g, btnSh.b)
             panel:drawRect(btnX + btnW - T.px(1), btnY, T.px(1), btnSz,
-                (btnSh.a or 1) * verbAlpha, btnSh.r, btnSh.g, btnSh.b)
+                (btnSh.a or 1) * vAlpha, btnSh.r, btnSh.g, btnSh.b)
 
-            local lc = v.primary and T.textOnAccent or T.text
+            local lc = v.primary and T.textOnAccent or (v.danger and T.danger or T.text)
             panel:drawText(labelStr, btnX + btnPadX,
                 btnY + math.floor((btnSz - labelH) / 2),
-                lc.r, lc.g, lc.b, (lc.a or 1) * verbAlpha, font)
+                lc.r, lc.g, lc.b, (lc.a or 1) * vAlpha, font)
 
             if outRects then
                 outRects.verbs[i] = {x = btnX, y = btnY, w = btnW, h = btnSz}
@@ -2449,8 +2457,10 @@ end
 --- @param w     Total available width (icon + gap + grid)
 --- @param iconTexture  PZ texture for the item icon (or nil for placeholder square)
 --- @param statRows     Array of {label, value, valueClass, dotColor}
+--- @param iconGhost    Optional: draw the icon at .3 alpha in a danger-bordered,
+---                     empty box (Vehicle tab: a missing part shows what fits)
 --- @return height
-function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows)
+function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows, iconGhost)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local iconSz   = T.px(56)
@@ -2464,11 +2474,11 @@ function ZeD.Molecules.drawTopStatsGrid(panel, x, y, w, iconTexture, statRows)
 
     -- Item icon: 56x56 surf2 box, ZeD.Atoms.drawIcon if texture present
     local bg, bd = T.surf2, T.borderS
-    panel:drawRect(x, y, iconSz, iconSz, bg.a, bg.r, bg.g, bg.b)
-    panel:drawRectBorder(x, y, iconSz, iconSz, bd.a, bd.r, bd.g, bd.b)
+    if iconGhost then bd = T.danger else panel:drawRect(x, y, iconSz, iconSz, bg.a, bg.r, bg.g, bg.b) end
+    panel:drawRectBorder(x, y, iconSz, iconSz, bd.a or 1, bd.r, bd.g, bd.b)
     if iconTexture then
         local pad = T.px(4)
-        A.drawIcon(panel, iconTexture, x + pad, y + pad, iconSz - pad * 2, 1.0, T.iconWhite)
+        A.drawIcon(panel, iconTexture, x + pad, y + pad, iconSz - pad * 2, iconGhost and 0.3 or 1.0, T.iconWhite)
     end
 
     -- Grid: pair rows from statRows[2k-1], statRows[2k]
