@@ -50,6 +50,10 @@ Legend — **Owned**: ZeD replaces it today · **Pass-through**: vanilla by deci
 | 24 | **Journal writing** | `ISUI/ISUIWriteJournal.lua:281 : ISUIWriteJournal:new(...)` | Write in a notebook / journal | Reader organism (row 13) with an edit mode |
 | 25 | **Keypad codes** (padlocks, doors) | `ISUI/ISWorldObjectContextMenu.lua:1536/1561 : ISDigitalCode:new(...)` | Check / set a combination | Small ZeD modal in the World drawer (digit atoms, gamepad D-pad) |
 
+## Build order (director, Oct 13 2026)
+
+Finish every World window surface first (rows 1+14, 11+12, 8, 15, 20-22, 23, 25 in that order), then the Character window hands + hotbar (rows 6, 5), then a home for moodles (row 7), then the main menu. Readers (13, 24), fishing tension (10), fluid info (9) and sleeping (16) follow.
+
 ## Design notes carried from the director (Oct 12 2026)
 
 - Dashboard, vehicle mechanics, CaZio watch and screen icons are the next planned surfaces. Suggested order given a long-session play test: screen icons (6) and CaZio watch (7) are always on screen and cheap; dashboard (2) + mechanics (3) are one design conversation (vehicle language); entity windows (1) are the largest but the most frequently hit.
