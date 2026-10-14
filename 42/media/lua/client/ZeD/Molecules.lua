@@ -2802,8 +2802,10 @@ end
 -- A 24px row in the recipe list: selection edge, status dot, icon, name, star.
 -- Striped bg, red whisper for missing, accent bg+edge for selected.
 --
--- data table: { name, displayName, iconTex, status, craftable }
---   status: "can" (green), "miss" (red), "unknown" (grey)
+-- data table: { name, displayName, iconTex, status, craftable, tag }
+--   status: "can" (green), "miss" (red), "unknown" (grey),
+--           "station" (hollow ring: made at a station, not by hand)
+--   tag:    optional short label drawn right (the station: "KILN")
 -- ============================================================================
 
 local RECIPE_ROW_H = 24   -- S124 scale: design units; uses wrap with T.px
@@ -2846,12 +2848,16 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
 
     -- Status dot (6px): green=craftable, gold=missing ingredients, red=not known
     local dotSz = T.px(6)
-    local dotColor
-    if status == "can" then dotColor = T.positive
-    elseif status == "miss" then dotColor = T.warning
-    else dotColor = T.danger end
     local dotY = y + math.floor((h - dotSz) / 2)
-    A.drawStatusDot(panel, cx, dotY, dotColor, dotSz)
+    if status == "station" then
+        A.drawStatusRing(panel, cx, dotY, T.textDim, dotSz)
+    else
+        local dotColor
+        if status == "can" then dotColor = T.positive
+        elseif status == "miss" then dotColor = T.warning
+        else dotColor = T.danger end
+        A.drawStatusDot(panel, cx, dotY, dotColor, dotSz)
+    end
     cx = cx + dotSz + T.px(4)
 
     -- Icon (14px)
@@ -2867,6 +2873,13 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
     local textY = y + math.floor((h - tm:getFontHeight(nameFont)) / 2)
     local nameMaxW = w - (cx - x) - T.px(24)  -- reserve space for star
 
+    -- Station tag (right, before the star): eats into name space
+    local tagW = 0
+    if data.tag and data.tag ~= "" then
+        tagW = tm:MeasureStringX(T.fontF1, data.tag) + T.px(10)
+        nameMaxW = nameMaxW - tagW - T.px(6)
+    end
+
     -- Freq badge eats into name space
     local freqBadgeW = 0
     if freqCount and freqCount > 0 then
@@ -2878,7 +2891,7 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
     local displayName = data.displayName or data.name or ""
     -- Unknown recipes get italic styling via dim color
     local nameColor
-    if status == "unknown" then
+    if status == "unknown" or status == "station" then
         nameColor = T.textDim
     elseif selected then
         nameColor = T.accent
@@ -2909,6 +2922,18 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
         local freqStr = "x" .. tostring(freqCount)
         local wc = T.warning
         panel:drawText(freqStr, cx, textY + T.px(1), wc.r, wc.g, wc.b, 0.7, T.fontF5)
+    end
+
+    -- Station tag box (dim outline, mono caps)
+    if tagW > 0 then
+        local th = T.px(14)
+        local tx = x + w - T.px(22) - tagW
+        local ty = y + math.floor((h - th) / 2)
+        local bd = T.border
+        panel:drawRectBorder(tx, ty, tagW, th, bd.a or 1, bd.r, bd.g, bd.b)
+        local tc = T.textDim
+        panel:drawText(data.tag, tx + T.px(5), ty + math.floor((th - tm:getFontHeight(T.fontF1)) / 2),
+            tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
     end
 
     -- Star (right-aligned, hover-appear, accent when pinned)
@@ -3066,11 +3091,17 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
 
     -- Tag inline (either "N▾" for alt-backed, or text tag for specific items)
     local tagStr, tagW, tagColor
+    local extraTag, extraW = nil, 0
     if (data.altCount or 0) > 0 then
         tagStr = tostring(data.altCount) .. "v"  -- ▾ via drawTriangleDown later
         tagW = tm:MeasureStringX(T.fontF5, tagStr) + T.px(2)
         tagColor = T.warning
         nameMaxW = nameMaxW - tagW - T.px(6)
+        if data.tag == "FUEL" then
+            extraTag = data.tag
+            extraW = tm:MeasureStringX(T.fontF1, extraTag) + T.px(10)
+            nameMaxW = nameMaxW - extraW - T.px(6)
+        end
     elseif data.tag then
         tagStr = data.tag
         tagW = tm:MeasureStringX(T.fontF5, tagStr)
@@ -3114,6 +3145,17 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
             local triX = cx + T.px(3) + numW + T.px(1)
             local triY = tagY + math.floor((tm:getFontHeight(tagFont) - triSz) / 2)
             A.drawTriangleDown(panel, triX, triY, triSz, tagColor)
+            -- Text tag after the pill (FUEL): dim outline box, mono caps
+            if extraTag then
+                local bx = cx + pillW + T.px(6)
+                local bh = T.px(14)
+                local by = y + math.floor((h - bh) / 2)
+                local bd = T.border
+                panel:drawRectBorder(bx, by, extraW, bh, bd.a or 1, bd.r, bd.g, bd.b)
+                local tc = T.textDim
+                panel:drawText(extraTag, bx + T.px(5), by + math.floor((bh - tm:getFontHeight(T.fontF1)) / 2),
+                    tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
+            end
         else
             panel:drawText(tagStr, cx, tagY, tagColor.r, tagColor.g, tagColor.b, 0.6, tagFont)
         end

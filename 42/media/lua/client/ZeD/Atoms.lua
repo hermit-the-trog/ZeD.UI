@@ -463,6 +463,33 @@ function ZeD.Atoms.drawStatusDot(panel, x, y, color, size)
     end
 end
 
+-- Hollow variant of the status dot: a ring one design pixel thick. Marks a
+-- state that is neither go nor stop (a recipe that needs a station).
+function ZeD.Atoms.drawStatusRing(panel, x, y, color, size)
+    local sz = size or ZeD.T.px(7)
+    local a = color.a or 1
+    local r, g, b = color.r, color.g, color.b
+    local rad = sz / 2
+    local inner = math.max(0, rad - math.max(1, ZeD.T.px(1)))
+    for row = 0, sz - 1 do
+        local dist = math.abs(row - rad + 0.5)
+        local halfW = math.floor(math.sqrt(math.max(0, rad * rad - dist * dist)) + 0.5)
+        if halfW > 0 then
+            local innerW = 0
+            if dist < inner then
+                innerW = math.floor(math.sqrt(inner * inner - dist * dist) + 0.5)
+            end
+            local cx = x + math.floor(rad)
+            if innerW <= 0 then
+                panel:drawRect(cx - halfW, y + row, halfW * 2, 1, a, r, g, b)
+            else
+                panel:drawRect(cx - halfW, y + row, halfW - innerW, 1, a, r, g, b)
+                panel:drawRect(cx + innerW, y + row, halfW - innerW, 1, a, r, g, b)
+            end
+        end
+    end
+end
+
 -- ============================================================================
 -- 07. TOOLTIP BUBBLE (component factory)
 -- A floating panel for hover information. Created as an ISPanel that gets
