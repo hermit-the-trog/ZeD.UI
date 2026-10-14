@@ -4190,6 +4190,13 @@ function ZeD_WorldWindow.toggle(playerNum)
                 for i, z in ipairs(win._focusRing) do
                     if z.zone == "worldItemCard" then win._focusIdx = i; break end
                 end
+                -- a card opened from the world menu (or after a walk, as 3D
+                -- placement does) finds no ZeD window focused: take focus, so
+                -- the controller is on the card without pressing RB first
+                local D = ZeD.Input and ZeD.Input.Detector
+                if D and D.getMode and D.getMode() == "gamepad" and Focus.getFocusedWindow() ~= win then
+                    Focus.claimFocus(win)
+                end
                 objCard._grabFocus = nil
             end
         end
