@@ -1839,7 +1839,8 @@ end
 local function structInfo(kind, o, player)
     local name, sub, badge, variant, prog
     if kind == "hutch" then
-        name = moveableName(o, getTextOrNull("ContextMenu_Hutch") or "Hutch")
+        local hk = ZeD.ObjectCards and ZeD.ObjectCards.kinds.hutch
+        name = (hk and hk.nameOf and hk.nameOf(o)) or moveableName(o, getTextOrNull("ContextMenu_Hutch") or "Hutch")
         local inside = ocall(o, "getAnimalInside")
         local eggs = 0
         for i = 0, (ocall(o, "getMaxNestBox") or 3) do
@@ -1848,7 +1849,10 @@ local function structInfo(kind, o, player)
         end
         sub = tostring(inside and inside:size() or 0) .. " / " .. tostring(ocall(o, "getMaxAnimals") or 20) .. " BIRDS \194\183 "
             .. eggs .. " EGGS \194\183 DIRT " .. math.floor((ocall(o, "getHutchDirt") or 0) + 0.5) .. "%"
-        if ocall(o, "isAllDoorClosed") then badge, variant = "Shut", "neutral" else badge, variant = "Open", "positive" end
+        -- which door is open (the OPEN button beside it opens the card)
+        if ocall(o, "isOpen") then badge, variant = "Door open", "positive"
+        elseif ocall(o, "isEggHatchDoorOpen") then badge, variant = "Hatch open", "positive"
+        else badge, variant = "Shut", "neutral" end
     elseif kind == "trough" then
         name = moveableName(o, getTextOrNull("ContextMenu_FeedingTrough") or "Feeding Trough")
         local cont = ocall(o, "getContainer")
@@ -1996,6 +2000,11 @@ local function hooksNear(win, player)
             end
         end
     end
+    -- nearest first
+    if player then
+        local function d2(o) local s = o:getSquare(); return (s:getX() - player:getX()) ^ 2 + (s:getY() - player:getY()) ^ 2 end
+        table.sort(list, function(a, b) return d2(a) < d2(b) end)
+    end
     win._animalsHookScan = { t = now, list = list }
     return list
 end
@@ -2036,8 +2045,18 @@ end
 -- ============================================================================
 local GENE_H = 24
 
+-- the engine names genes in lower case ("maxweight"): vanilla's 19, worded
+local GENE_LABELS = {
+    maxsize = "Max size", maxmilk = "Max milk", meatratio = "Meat ratio", agetogrow = "Age to grow",
+    maxwool = "Max wool", maxweight = "Max weight", lifeexpectancy = "Life expectancy", resistance = "Resistance",
+    strength = "Strength", fertility = "Fertility", aggressiveness = "Aggressiveness",
+    thirstresistance = "Thirst resistance", hungerresistance = "Hunger resistance", milkinc = "Milk rate",
+    woolinc = "Wool rate", eggsize = "Egg size", stress = "Stress", eggclutch = "Egg clutch",
+}
+
 local function geneLabel(n)
     n = tostring(n or "?")
+    if GENE_LABELS[string.lower(n)] then return GENE_LABELS[string.lower(n)] end
     local s = string.gsub(n, "(%u)", " %1")
     s = string.lower(s)
     return string.upper(string.sub(s, 1, 1)) .. string.sub(s, 2)
@@ -3583,5 +3602,6 @@ AT.gpCancel         = gpCancel
 -- ============================================================================
 
 function ZeD.AnimalsTab.register(dispatchTable)
-    dispatchTable["animals"] = ZeD.AnimalsTab.render
+    -- late-bound, so a reload of this file reaches the window
+    dispatchTable["animals"] = function(...) return ZeD.AnimalsTab.render(...) end
 end
