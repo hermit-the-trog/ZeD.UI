@@ -23,3 +23,31 @@ Director: "trailers next, start with the mockup", then "go with your recommendat
 
 ### Not seen live
 - A physical controller; a real hitch (the QA link set the tow fields without physics); a Horse trailer; a birth inside a moving trailer (the over-full state was forced); the doAnimalSubMenu fix alone (other animals were always near the QA trailer).
+
+## Padlock codes (HOOK_MAP row 25)
+
+Director: "keypad codes next, start with the mockup", then "go with your recommendations, build it. If vanilla keeps no record we don't save the code. Got to appeal to the hardcore players too." Mockup `ZeDUI/mockups/zed_padlock_codes_v1.html` (commit 1f357f7e); decision 6 (remember the code) declined.
+
+### Built
+- **The lock card** (`ObjectCardLock.lua`, kind `lock`, leash 4) for an `IsoThumpable` that takes a padlock:
+  - Header: the object's own name (`getEntityDisplayName`: "Wooden Crate (Basic)", "Small Metal Locker (Basic)"; `getName` is the entity id), its tile icon, a pill: SETTING A CODE / CODE LOCK / KEY LOCK / UNLOCKED.
+  - The padlock, drawn: steel shackle (up while setting a code), a dark combination body with three cream number wheels (the set digit, its neighbours rolling away) and ▲ / ▼ keys, or a brass key padlock with a keyway; "NO PADLOCK ON IT" when there is none. Input: ▲ / ▼, the mouse wheel over a wheel, the number keys and Backspace while the pointer is on the card (left to right, a bar under the wheel the next digit lands on), D-pad up / down on the focused wheel (A presses the card's verb, left / right move between wheels; while an action runs the D-pad moves on to STOP).
+  - LOCK (setting a code): vanilla's onSetDigitalCode (walk next to it, `ISPadlockByCodeAction` lock); NEEDS: a Combination Padlock in the main inventory (vanilla finds and removes it there), a code other than 000; the line "Locked to everyone, you included, until the code takes the padlock off"; the wheels return to 0 0 0 once it is locked.
+  - REMOVE PADLOCK (code lock): every try is vanilla's `ISPadlockByCodeAction` unlock (20 ticks), which only acts on the right code; the card marks its action and, once it has run with the object still locked, says "Wrong code: 3 1 9. The padlock stays on." (a cancelled try says nothing). Turning a wheel clears it. Right: the padlock back in the inventory, the container selected in the Loot pane, "Padlock off. It shows in the Loot pane."
+  - Key padlocks: REMOVE PADLOCK (vanilla's `onRemovePadlock`, needs the key), USE PADLOCK on a free object (vanilla's `onPutPadlock`, needs a Padlock with keys); USE COMBINATION PADLOCK switches the card to setting a code.
+  - The progress band (TRYING 3 1 9 / LOCKING / PUTTING THE PADLOCK ON / REMOVING THE PADLOCK / WALKING OVER) with STOP; the footer states readiness or the reason.
+  - WHAT IT LOCKS: the container (items and weight, or "hidden while locked"), the padlock, the key.
+- **Hooks** (`Overrides/Padlocks.lua`): `ISWorldObjectContextMenu.onPutDigitalPadlock`, `onRemoveDigitalPadlock` (the Java world menu resolves them by name when it builds) and both `...WalkToComplete` functions open the card (`OC.openNear`: the walk only past the leash). `ISDigitalCode` never shows, so its bugs go with it (the removal pop-up titled "Set your Code", B pressing OK, closing resetting the game speed, two digits in one box).
+- **Loot strip** (`ZeD_WorldWindow.lua`): a locked container's button gets a small red padlock mark; clicking it (or A on it) opens its lock card instead of doing nothing (A used to show its contents to a controller player).
+- **Card framework** (`ObjectCards.lua`): `def.status(t)` footer state line (alarm tint for failures), `zone.wheel(del)`, `zone.nofocus`, `def.onKey(t, key, card, act)` with `OC.armKeys` (the World window asks UIManager for key events and passes them to the open card while the pointer is on it; the key is consumed only then).
+
+### Verified live (QA save, `ZeDUI/tools/qa/zedqa_padlock.lua`; captures `ZeDUI/qa/S125_padlock/`)
+- Vanilla's Use Combination Padlock opened the card in setting mode; 0 0 0 refused with the reason; wheels by ▲ / ▼; LOCK ran vanilla's action (the crate locked, a padlock left the inventory, the card turned to CODE LOCK).
+- A wrong try (3 1 9) ran the band and said "Wrong code"; the right code took the padlock off, returned it and selected the crate in the Loot pane.
+- Real input: a click on the key-locked crate's strip button opened its card; a click on the locker's opened its code card; 3 1 9 typed on the keyboard with the pointer on the card (the game never saw those keys; a key pressed away from the card reached the game); the mouse wheel turned a wheel 5 -> 7; a real click on REMOVE PADLOCK opened the locker (5 items in the Loot pane).
+- Key padlock: REMOVE PADLOCK with its key (the padlock returned), USE PADLOCK on the free crate (KEY LOCK, key carried).
+- Controller logic: the focus list is back, the verb and the three wheels (the ▲ / ▼ keys skipped); D-pad up / down turned a wheel (0 -> 1 -> 0 -> 9), left / right passed on.
+- Found and fixed in QA: Kahlua's `%` keeps the sign (`-1 % 10` is -1), so a wheel turned below 0 read -1 and a crate locked with 407; the status line no longer lower-cases the name.
+
+### Not seen live
+- A physical controller; a multiplayer server (the actions are vanilla's own); a bar element or counter (same object class as the crates and lockers tested).

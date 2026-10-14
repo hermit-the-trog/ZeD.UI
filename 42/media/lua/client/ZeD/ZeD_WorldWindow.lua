@@ -290,6 +290,11 @@ _buildWorldLootFocusables = function(win)
                 local c = w._mainContent
                 if not c then return end
                 local cnt = w._containers and w._containers[el.containerIdx]
+                if cnt and cnt.locked then
+                    -- a locked container: its lock card instead of its contents
+                    if cnt.isoObject and ZeD.ObjectCardLock then pcall(ZeD.ObjectCardLock.openFor, w._playerObj, cnt.isoObject, false) end
+                    return
+                end
                 local isFloor = cnt and cnt.isFloor and true or false
                 if w._activeTab == "loot"
                    and w._mcSelected and #w._mcSelected > 0
@@ -353,6 +358,11 @@ _buildWorldLootFocusables = function(win)
                 local c = w._mainContent
                 if not c then return end
                 local cnt = w._containers and w._containers[el.containerIdx]
+                if cnt and cnt.locked then
+                    -- a locked container: its lock card instead of its contents
+                    if cnt.isoObject and ZeD.ObjectCardLock then pcall(ZeD.ObjectCardLock.openFor, w._playerObj, cnt.isoObject, false) end
+                    return
+                end
                 local isFloor = cnt and cnt.isFloor and true or false
                 if w._activeTab == "loot"
                    and w._mcSelected and #w._mcSelected > 0
@@ -2587,6 +2597,17 @@ local function drawWorldContainerStrip(self, win, content)
                 local color = isOn and T.accent or (cnt.locked and T.textDim or T.textSec)
                 self:drawText(glyph, gx, gy, color.r, color.g, color.b, color.a, font)
             end
+            -- a small padlock in the corner says why the button is dim
+            if cnt.locked then
+                local dg = T.danger
+                local lx = w - T.px(1) - T.px(11)
+                local ly = drawY + T.px(CONTAINER_BTN_SZ) - T.px(13)
+                local p1 = T.px(1)
+                self:drawRect(lx + T.px(2), ly, T.px(5), p1 * 2, 1, dg.r, dg.g, dg.b)
+                self:drawRect(lx + T.px(1), ly + p1, p1 * 2, T.px(4), 1, dg.r, dg.g, dg.b)
+                self:drawRect(lx + T.px(6), ly + p1, p1 * 2, T.px(4), 1, dg.r, dg.g, dg.b)
+                self:drawRect(lx, ly + T.px(4), T.px(9), T.px(6), 1, dg.r, dg.g, dg.b)
+            end
 
             -- MC column badge number (bottom-left corner, mirrored from char window)
             if isMC then
@@ -3060,6 +3081,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                     content._selectedItems = {}
                     content._lastClickedItem = nil
                 end
+            elseif cnt.isoObject and ZeD.ObjectCardLock then
+                -- a locked container: its lock card (code, key) instead of a dead click
+                pcall(ZeD.ObjectCardLock.openFor, win._playerObj, cnt.isoObject, false)
             end
         end
         return true
