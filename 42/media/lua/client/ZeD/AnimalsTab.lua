@@ -609,6 +609,7 @@ local function renameZone(win)
         entry:initialise()
         entry:instantiate()
         entry:setMaxTextLength(30)
+        entry.zedEntry = true   -- typed text follows the UI scale (ZeD.Text.fitEntry)
         entry:setVisible(false)
         win:addChild(entry)
         win._animalsRenameEntry = entry

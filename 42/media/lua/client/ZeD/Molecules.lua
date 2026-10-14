@@ -462,7 +462,12 @@ function ZeD_SearchField:createChildren()
     local entry = ISTextEntryBox:new("", T.px(self.iconAreaW), 0, inputW, self.height)
     entry:initialise()
     entry:instantiate()
-    entry.font = T.fontF2
+    -- Typed text and the placeholder follow the UI scale (ZeD.Text.fitEntry
+    -- swaps in the baked face each frame; Overrides/TextScale.lua)
+    entry.zedEntry = true
+    entry.javaObject:setCentreVertically(true)
+    entry:setPlaceholderText(self.placeholder or "")
+    self._shownPlaceholder = self.placeholder or ""
     entry.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.onCommandEntered = function()
@@ -490,8 +495,15 @@ function ZeD_SearchField:prerender()
     local T = ZeD.T
     -- Sync input size to parent (toolbar resizes dynamically)
     if self.input then
+        self.input:setX(T.px(self.iconAreaW))
         self.input:setWidth(self.width - T.px(self.iconAreaW))
         self.input:setHeight(self.height)
+        -- The owner may swap the placeholder by mode ("Filter alternatives...")
+        local ph = self.placeholder or ""
+        if self._shownPlaceholder ~= ph then
+            self._shownPlaceholder = ph
+            self.input:setPlaceholderText(ph)
+        end
     end
     -- Background matches input
     local bg = T.surf1
@@ -556,7 +568,7 @@ function ZeD_TextEntry:createChildren()
     entry:setMultipleLine(true)
     entry.javaObject:setMaxLines(self.maxLines)
     entry.javaObject:setMaxTextLength(self.maxLength)
-    entry.font = T.fontF2
+    entry.zedEntry = true   -- typed text follows the UI scale (ZeD.Text.fitEntry)
     -- Apply ZeD token colors to vanilla component
     entry.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     entry.borderColor = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = T.borderS.a }

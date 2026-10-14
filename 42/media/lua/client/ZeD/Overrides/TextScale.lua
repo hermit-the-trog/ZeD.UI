@@ -90,3 +90,17 @@ local function flagZedClasses()
 end
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(flagZedClasses) end
 flagZedClasses()
+
+-- Text entries: the Java text box under ISTextEntryBox draws its font at the
+-- native size, so ZeD entries (flag `zedEntry`: the search fields, note and
+-- rename boxes) switch to the baked face that matches the scale, and take the
+-- theme's text colours (ZeD.Text.fitEntry). Vanilla entries are untouched.
+require "ISUI/ISTextEntryBox"
+if ISTextEntryBox and not ISTextEntryBox._zedEntryPatched then
+    ISTextEntryBox._zedEntryPatched = true
+    local origEntryPrerender = ISTextEntryBox.prerender
+    function ISTextEntryBox:prerender()
+        if self.zedEntry then X.fitEntry(self) end
+        return origEntryPrerender(self)
+    end
+end
