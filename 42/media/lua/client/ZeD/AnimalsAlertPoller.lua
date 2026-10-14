@@ -171,10 +171,15 @@ local function computeZoneSummary(zone, animals)
         name     = "",
         count    = #animals,
         animals  = animals,
-        food     = 0,       -- 0–100 average (placeholder until trough API verified)
-        water    = 0,       -- 0–100 average
+        food     = 0,       -- 0–100: feed in the zone's troughs against what they hold full
+        water    = 0,       -- 0–100: water in the zone's troughs against their capacity
         roof     = 0,       -- 0–100 percentage of roofed squares
         maleWarnings = {},  -- list of species with male-on-male risk
+        troughs  = {},      -- IsoFeedingTrough (the zone's, as vanilla's zone window sums them)
+        hutches  = {},      -- IsoHutch
+        feed     = 0,       -- feed amount summed
+        waterL   = 0,       -- litres summed
+        waterMax = 0,
     }
 
     -- Zone name
@@ -182,6 +187,31 @@ local function computeZoneSummary(zone, animals)
         local ok, val = pcall(zone.getName, zone)
         summary.name = (ok and val) or "Unnamed Zone"
     end
+
+    -- Troughs and hutches (DesignationZoneAnimal getTroughsConnected / getHutchsConnected)
+    local function list(m)
+        local out = {}
+        if not zone[m] then return out end
+        local ok, arr = pcall(zone[m], zone)
+        if ok and arr then for i = 0, arr:size() - 1 do out[#out + 1] = arr:get(i) end end
+        return out
+    end
+    summary.troughs = list("getTroughsConnected")
+    summary.hutches = list("getHutchsConnected")
+    local feed, feedMax = 0, 0
+    for _, tr in ipairs(summary.troughs) do
+        local ok1, f = pcall(tr.getCurrentFeedAmount, tr)
+        local ok2, fm = pcall(tr.getMaxFeed, tr)
+        local ok3, wl = pcall(tr.getWater, tr)
+        local ok4, wm = pcall(tr.getMaxWater, tr)
+        if ok1 and f then feed = feed + f end
+        if ok2 and fm then feedMax = feedMax + fm end
+        if ok3 and wl then summary.waterL = summary.waterL + wl end
+        if ok4 and wm then summary.waterMax = summary.waterMax + wm end
+    end
+    summary.feed = feed
+    if feedMax > 0 then summary.food = math.min(100, math.floor(feed / feedMax * 100)) end
+    if summary.waterMax > 0 then summary.water = math.min(100, math.floor(summary.waterL / summary.waterMax * 100)) end
 
     -- Roof percentage: sample zone squares
     if zone.getX and zone.getY and zone.getWidth and zone.getHeight then

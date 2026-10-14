@@ -636,6 +636,41 @@ local function _buildAnimalsFocusables(win)
         }
     end
 
+    -- 2b. HOOK_MAP 20-22: a zone's hutches and troughs, the Butcher view's
+    -- hooks (A opens the card), an animal's hutch, and the genome editor
+    -- (animal cheats). Each list exists only while its view is drawn.
+    for _, sz in ipairs(win._animalsStructZones or {}) do
+        elements[#elements + 1] = {
+            x = sz.x, y = sz.y, w = sz.w, h = sz.h,
+            id = "animals:struct:" .. tostring(sz.kind) .. ":" .. tostring(sz.idx),
+            isStruct = true, structIdx = sz.idx, kind = sz.kind, obj = sz.obj,
+            onActivate = function(w, el) if AT.openStruct then AT.openStruct(el.kind, el.obj) end end,
+        }
+    end
+    if win._animalsHutchLink then
+        local z = win._animalsHutchLink
+        elements[#elements + 1] = {
+            x = z.x, y = z.y, w = z.w, h = z.h, id = "animals:hutchlink", isHutchLink = true, obj = z.obj,
+            onActivate = function(w, el) if AT.openStruct then AT.openStruct("hutch", el.obj) end end,
+        }
+    end
+    for _, gz in ipairs(win._animalsGenomeZones or {}) do
+        elements[#elements + 1] = {
+            x = gz.x, y = gz.y, w = gz.w, h = gz.h,
+            id = "animals:genome:" .. tostring(gz.gene) .. ":" .. tostring(gz.allele),
+            isGenome = true, gene = gz.gene, allele = gz.allele,
+            onActivate = function(w, el) w._animalsGenomeSel = { gene = el.gene, allele = el.allele } end,
+        }
+    end
+    for _, b in ipairs(win._animalsGenomeBtns or {}) do
+        elements[#elements + 1] = {
+            x = b.x, y = b.y, w = b.w, h = b.h, id = "animals:genomebtn:" .. tostring(b.id), isGenomeBtn = true, btnId = b.id,
+            onActivate = function(w, el)
+                if AT.genomeAct and w._animalsState then AT.genomeAct(w, el.btnId, w._animalsState.animalRef) end
+            end,
+        }
+    end
+
     -- 3. View-specific elements.
     if state.submode == "ranch" and state.view == "overview" then
         -- Section cat headers — only the ones with real disclosure toggles
@@ -725,11 +760,9 @@ local function _buildAnimalsFocusables(win)
             end
         end
     elseif state.submode == "butcher" then
-        -- Butcher submode renders butcher list in ALL views (AnimalsTab
-        -- render dispatch has no animal-view branch for butcher — it falls
-        -- through to renderButcherOverview regardless of state.view). So
-        -- butcher rows stay focusable whenever they're drawn, matching the
-        -- mouse interaction surface.
+        -- Butcher roster rows (the overview); a row opens the animal view,
+        -- whose breadcrumb leads back here. The zones exist only while the
+        -- roster is drawn.
         if win._animalsButcherZones then
             for i, bz in ipairs(win._animalsButcherZones) do
                 elements[#elements + 1] = {
@@ -751,8 +784,8 @@ local function _buildAnimalsFocusables(win)
             end
         end
     end
-    -- ranch/animal: submode pills + breadcrumb only. Detail content is
-    -- readout-only per design director.
+    -- ranch/animal: submode pills + breadcrumb, the hutch link and (with
+    -- animal cheats) the genome editor; the rest of the detail is readout.
 
     return elements
 end

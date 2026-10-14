@@ -187,7 +187,11 @@ end
 
 local function navigateBack(win)
     local state = getState(win)
-    if state.view == "animal" then
+    if state.view == "animal" and state.submode == "butcher" then
+        -- an animal opened from the Butcher roster goes back to that roster
+        state.view = "overview"
+        state.animalRef = nil
+    elseif state.view == "animal" then
         state.view = "zone"
         state.animalRef = nil
     elseif state.view == "zone" then
@@ -1813,6 +1817,360 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered)
 end
 
 -- ============================================================================
+-- M-STRUCT — HUTCHES / FEEDING TROUGHS / HOOKS rows (HOOK_MAP 20-22)
+-- One 34px row per structure: tile icon, name, a line of state, a badge and
+-- OPEN (the object card; walks there first when it is out of reach).
+-- ============================================================================
+local STRUCT_H = 34
+
+local function ocall(o, m, ...)
+    if o == nil or not o[m] then return nil end
+    local ok, r = pcall(o[m], o, ...)
+    if ok then return r end
+    return nil
+end
+
+local function moveableName(o, fallback)
+    local ok, n = pcall(function() return ISWorldObjectContextMenu.getMoveableDisplayName(o) end)
+    if ok and n and n ~= "" then return n end
+    return fallback
+end
+
+local function structInfo(kind, o, player)
+    local name, sub, badge, variant, prog
+    if kind == "hutch" then
+        name = moveableName(o, getTextOrNull("ContextMenu_Hutch") or "Hutch")
+        local inside = ocall(o, "getAnimalInside")
+        local eggs = 0
+        for i = 0, (ocall(o, "getMaxNestBox") or 3) do
+            local nb = ocall(o, "getNestBox", i)
+            eggs = eggs + (nb and (ocall(nb, "getEggsNb") or 0) or 0)
+        end
+        sub = tostring(inside and inside:size() or 0) .. " / " .. tostring(ocall(o, "getMaxAnimals") or 20) .. " BIRDS \194\183 "
+            .. eggs .. " EGGS \194\183 DIRT " .. math.floor((ocall(o, "getHutchDirt") or 0) + 0.5) .. "%"
+        if ocall(o, "isAllDoorClosed") then badge, variant = "Shut", "neutral" else badge, variant = "Open", "positive" end
+    elseif kind == "trough" then
+        name = moveableName(o, getTextOrNull("ContextMenu_FeedingTrough") or "Feeding Trough")
+        local cont = ocall(o, "getContainer")
+        local wl = ocall(o, "getWater") or 0
+        if cont and not cont:getItems():isEmpty() then
+            sub = string.format("FEED %.1f", ocall(o, "getCurrentFeedAmount") or 0); badge, variant = "Food", "positive"
+        elseif wl > 0 then
+            sub = string.format("WATER %.1f / %.1f L", wl, ocall(o, "getMaxWater") or 0); badge, variant = "Water", "info"
+        else
+            sub = "EMPTY"; badge, variant = "Empty", "neutral"
+        end
+        local linked = ocall(o, "getLinkedAnimals")
+        sub = sub .. " \194\183 " .. tostring(linked and linked:size() or 0) .. " ANIMALS"
+    else -- hook
+        name = getTextOrNull("ContextMenu_ButcherHook") or "Butcher Hook"
+        local a = ocall(o, "getAnimal")
+        local sq = o:getSquare()
+        local dist = (player and sq) and math.floor(math.sqrt((sq:getX() + 0.5 - player:getX()) ^ 2 + (sq:getY() + 0.5 - player:getY()) ^ 2) + 0.5) or 0
+        if a then
+            local md = a:getModData()
+            local cn = ocall(a, "getCustomName")
+            name = name .. " \194\183 " .. ((cn and cn ~= "") and cn or (ocall(a, "getFullName") or "?"))
+            local parts = {}
+            if md["leather"] then parts[#parts + 1] = "LEATHER" end
+            local blood = tonumber(md["BloodQty"]) or 0
+            if blood > 0 then parts[#parts + 1] = string.format("BLOOD %.1f L", blood) end
+            if not md["headless"] then parts[#parts + 1] = "HEAD" end
+            if md["parts"] then parts[#parts + 1] = "MEAT" end
+            sub = (#parts > 0 and (table.concat(parts, " \194\183 ") .. " LEFT") or "NOTHING LEFT") .. " \194\183 " .. dist .. " TILES"
+            if ocall(o, "isRemovingBlood") then
+                badge, variant = "Bleeding", "warning"
+                prog = ocall(o, "getRemovingBloodProgress") or 0
+            else
+                badge, variant = "On hook", "positive"
+            end
+        else
+            sub = tostring(dist) .. " TILES"
+            badge, variant = "Empty", "neutral"
+        end
+    end
+    return name, sub, badge, variant, prog
+end
+
+local function openStruct(kind, o)
+    local player = getSpecificPlayer(0)
+    local OC = ZeD.ObjectCards
+    if not (player and OC and OC.openNear and o) then return end
+    local sq = (kind == "hutch") and (ocall(o, "getEntrySq") or o:getSquare()) or o:getSquare()
+    local ok, err = pcall(OC.openNear, player, kind, o, sq)
+    if not ok then print("[ZeD] AnimalsTab: open " .. kind .. " failed: " .. tostring(err)) end
+end
+
+local function drawStructRow(panel, win, x, y, w, kind, o, idx, player)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local tm = ZeD.TM
+    local h = T.px(STRUCT_H)
+    if _gpFocusMatches(win, function(el) return el.isStruct and el.structIdx == idx end) then
+        _paintGpCue(panel, x, y, w, h)
+    end
+    local name, sub, badge, variant, prog = structInfo(kind, o, player)
+    local pad = T.px(AROW_PAD)
+    local isz = T.px(22)
+    local tex
+    if kind == "hook" and ocall(o, "getAnimal") and AD().resolvePortrait then
+        tex = getTexture(AD().resolvePortrait(o:getAnimal()))
+    else
+        tex = ZeD.ObjectCards and ZeD.ObjectCards.spriteIcon(o)
+    end
+    if tex then panel:drawTextureScaledAspect(tex, x + pad, y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1) end
+    -- OPEN (right)
+    local bf = T.fontF5 or T.fontF2
+    local bw = tm:MeasureStringX(bf, "OPEN") + T.px(16)
+    local bx = x + w - pad - bw
+    local by = y + math.floor((h - T.px(BTN_H)) / 2)
+    local rect = drawBtn(panel, bx, by, "OPEN", "neutral", bf)
+    -- badge (and the bleed bar for a hook)
+    local rx = bx - T.px(8)
+    local badgePadX = T.sp and T.sp.badgePadX or T.px(4)
+    if prog then
+        local pw = T.px(60)
+        rx = rx - pw
+        local py = y + math.floor((h - T.px(6)) / 2)
+        panel:drawRect(rx, py, pw, T.px(6), 1, T.surf1.r, T.surf1.g, T.surf1.b)
+        panel:drawRect(rx, py, math.floor(pw * math.max(0, math.min(1, prog))), T.px(6), 1, T.accent.r, T.accent.g, T.accent.b)
+        rx = rx - T.px(6)
+    end
+    if badge then
+        local bwid = tm:MeasureStringX(bf, string.upper(badge)) + badgePadX * 2
+        rx = rx - bwid
+        A.drawBadge(panel, badge, rx, y + math.floor((h - tm:getFontHeight(bf)) / 2) - T.px(2), variant, false, bf, true)
+        rx = rx - T.px(8)
+    end
+    local nx = x + pad + isz + T.px(8)
+    local f2 = T.fontF2
+    local ny = y + math.floor((h - tm:getFontHeight(f2) - tm:getFontHeight(bf)) / 2)
+    local trunc = ZeD.CraftingCore and ZeD.CraftingCore.truncText or function(s) return s end
+    panel:drawText(trunc(name, f2, rx - nx), nx, ny, T.text.r, T.text.g, T.text.b, 1, f2)
+    panel:drawText(trunc(sub, bf, rx - nx), nx, ny + tm:getFontHeight(f2), T.textDim.r, T.textDim.g, T.textDim.b, 0.7, bf)
+    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
+    win._animalsStructZones[#win._animalsStructZones + 1] = { x = x, y = y, w = w, h = h, kind = kind, obj = o, idx = idx, btn = rect }
+    return h
+end
+
+-- the zone's hutches and troughs, pinned under the info band
+local function drawZoneStructs(panel, win, x, y, w, summary, player)
+    local T = ZeD.T
+    local y0 = y
+    local catH = T.sp.colHdrH or T.px(20)
+    local idx = 0
+    for _, g in ipairs({ { kind = "hutch", label = "Hutches", list = summary.hutches or {} },
+                         { kind = "trough", label = "Feeding Troughs", list = summary.troughs or {} } }) do
+        if #g.list > 0 then
+            drawCatHeader(panel, x, y, w, g.label, #g.list, true, false, true)
+            y = y + catH
+            for _, o in ipairs(g.list) do
+                idx = idx + 1
+                y = y + drawStructRow(panel, win, x, y, w, g.kind, o, idx, player)
+            end
+        end
+    end
+    return y - y0
+end
+
+-- butcher hooks around you (scanned every two seconds)
+local HOOK_SCAN_R = 20
+local function hooksNear(win, player)
+    local now = getTimestampMs()
+    local c = win._animalsHookScan
+    if c and now - c.t < 2000 then return c.list end
+    local list = {}
+    local sq0 = player and player:getCurrentSquare()
+    if sq0 then
+        local cell = getCell()
+        for yy = sq0:getY() - HOOK_SCAN_R, sq0:getY() + HOOK_SCAN_R do
+            for xx = sq0:getX() - HOOK_SCAN_R, sq0:getX() + HOOK_SCAN_R do
+                local sq = cell:getGridSquare(xx, yy, sq0:getZ())
+                if sq then
+                    local objs = sq:getObjects()
+                    for i = 0, objs:size() - 1 do
+                        local o = objs:get(i)
+                        if instanceof(o, "IsoButcherHook") then list[#list + 1] = o end
+                    end
+                end
+            end
+        end
+    end
+    win._animalsHookScan = { t = now, list = list }
+    return list
+end
+
+local function drawHooks(panel, win, x, y, w, player)
+    local T = ZeD.T
+    local hooks = hooksNear(win, player)
+    if #hooks == 0 then return 0 end
+    local y0 = y
+    drawCatHeader(panel, x, y, w, "Hooks", #hooks, true, false, true)
+    y = y + (T.sp.colHdrH or T.px(20))
+    for i, o in ipairs(hooks) do
+        if i > 4 then break end   -- pinned: the four nearest in reading order
+        y = y + drawStructRow(panel, win, x, y, w, "hook", o, i, player)
+    end
+    return y - y0
+end
+
+-- "In hutch" on an animal: a row that opens its hutch
+local function drawInHutchRow(panel, win, x, y, w, animal, player)
+    local hutch = ocall(animal, "getHutch")
+    if not hutch then return 0 end
+    local T = ZeD.T
+    local h = T.px(STRUCT_H)
+    if _gpFocusMatches(win, function(el) return el.isHutchLink end) then _paintGpCue(panel, x, y, w, h) end
+    win._animalsStructZones = {}
+    local hh = drawStructRow(panel, win, x, y, w, "hutch", hutch, 1, player)
+    win._animalsHutchLink = win._animalsStructZones[1]
+    win._animalsStructZones = {}
+    return hh
+end
+
+-- ============================================================================
+-- GENOME (debug: animal cheats only, as vanilla's Modify Genome)
+-- Each gene's two alleles: value (and what passes to offspring), which one is
+-- used, dominant, disorder. Pick an allele, then -/+ 0.05, DOMINANT, SWITCH
+-- (which allele is used) or DISORDER (cycles vanilla's list).
+-- ============================================================================
+local GENE_H = 24
+
+local function geneLabel(n)
+    n = tostring(n or "?")
+    local s = string.gsub(n, "(%u)", " %1")
+    s = string.lower(s)
+    return string.upper(string.sub(s, 1, 1)) .. string.sub(s, 2)
+end
+
+local function genomeChanged(animal, disorder)
+    if disorder and AnimalGene and AnimalGene.checkGeneticDisorder then pcall(AnimalGene.checkGeneticDisorder, animal) end
+    if isClient() and sendAnimalGenome then pcall(sendAnimalGenome, animal) end
+end
+
+local function drawGenomeSection(panel, win, x, y, w, animal)
+    if not (AnimalContextMenu and AnimalContextMenu.cheat) then return 0 end
+    local list = ocall(animal, "getFullGenomeList")
+    if not list or list:size() == 0 then return 0 end
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local tm = ZeD.TM
+    local y0 = y
+    win._animalsGenomeZones = {}
+    local sel = win._animalsGenomeSel
+    -- header
+    local hdrFont = T.fontF1
+    local info = T.info or T.accent
+    panel:drawText("GENOME", x, y, info.r, info.g, info.b, 1, hdrFont)
+    local tagX = x + tm:MeasureStringX(hdrFont, "GENOME") + T.px(8)
+    A.drawBadge(panel, "Animal cheats", tagX, y - T.px(2), "info", false, T.fontF5 or hdrFont, true)
+    A.drawDividerH(panel, x, y + T.px(20) - T.px(1), w, false)
+    y = y + T.px(22)
+    local colN = T.px(110)
+    local colA = math.floor((w - colN - T.px(90)) / 2)
+    local f3, f5 = T.fontF3, T.fontF5 or T.fontF2
+    for gi = 0, list:size() - 1 do
+        local gene = list:get(gi)
+        local h = T.px(GENE_H)
+        panel:drawText(geneLabel(ocall(gene, "getName")), x + T.px(2), y + math.floor((h - tm:getFontHeight(T.fontF2)) / 2), T.text.r, T.text.g, T.text.b, 1, T.fontF2)
+        local dis = nil
+        for k = 1, 2 do
+            local al = ocall(gene, k == 1 and "getAllele1" or "getAllele2")
+            if al then
+                local ax = x + colN + (k - 1) * colA
+                local isSel = sel and sel.gene == gi and sel.allele == k
+                local gpSel = _gpFocusMatches(win, function(el) return el.isGenome and el.gene == gi and el.allele == k end)
+                if isSel or gpSel then _paintGpCue(panel, ax, y + T.px(2), colA - T.px(6), h - T.px(4)) end
+                local cur = ocall(al, "getCurrentValue") or 0
+                local tr = ocall(al, "getTrueRatioValue") or 0
+                local v = (tr > 0) and string.format("%.2f (%.2f)", tr, cur) or string.format("%.2f", cur)
+                local used = ocall(al, "isUsed") == true
+                local dy = y + math.floor((h - T.px(6)) / 2)
+                if used then A.drawStatusDot(panel, ax + T.px(4), dy, T.positive, T.px(6))
+                else A.drawStatusRing(panel, ax + T.px(4), dy, T.textDim, T.px(6)) end
+                local vc = used and T.text or T.textDim
+                panel:drawText(v, ax + T.px(14), y + math.floor((h - tm:getFontHeight(f3)) / 2), vc.r, vc.g, vc.b, 1, f3)
+                if ocall(al, "isDominant") then
+                    local dx = ax + T.px(14) + tm:MeasureStringX(f3, v) + T.px(6)
+                    panel:drawText("D", dx, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.accent.r, T.accent.g, T.accent.b, 1, f3)
+                end
+                local d = ocall(al, "getGeneticDisorder")
+                if d and d ~= "" then dis = d end
+                win._animalsGenomeZones[#win._animalsGenomeZones + 1] = { x = ax, y = y, w = colA - T.px(6), h = h, gene = gi, allele = k, al = al, g = gene }
+            end
+        end
+        if dis then
+            A.drawBadge(panel, dis, x + w - T.px(88), y + math.floor((h - tm:getFontHeight(f5)) / 2) - T.px(2), "danger", false, f5, true)
+        end
+        A.drawDividerH(panel, x, y + h - T.px(1), w, false)
+        y = y + h
+    end
+    -- controls (act on the picked allele)
+    y = y + T.px(6)
+    win._animalsGenomeBtns = {}
+    local bx = x
+    local selAl = nil
+    if sel then
+        for _, z in ipairs(win._animalsGenomeZones) do
+            if z.gene == sel.gene and z.allele == sel.allele then selAl = z end
+        end
+    end
+    for _, b in ipairs({ { id = "minus", label = "-0.05" }, { id = "plus", label = "+0.05" }, { id = "dominant", label = "DOMINANT" },
+                         { id = "switch", label = "SWITCH" }, { id = "disorder", label = "DISORDER" } }) do
+        if _gpFocusMatches(win, function(el) return el.isGenomeBtn and el.btnId == b.id end) then
+            local bw = tm:MeasureStringX(f5, b.label) + T.px(16)
+            _paintGpCue(panel, bx, y, bw, T.px(BTN_H))
+        end
+        local r = drawBtn(panel, bx, y, b.label, selAl and "neutral" or "neutral", f5)
+        r.id = b.id
+        win._animalsGenomeBtns[#win._animalsGenomeBtns + 1] = r
+        bx = bx + r.w + T.px(4)
+    end
+    win._animalsGenomeSelAl = selAl
+    y = y + T.px(BTN_H) + T.px(4)
+    return y - y0
+end
+
+local function genomeAct(win, id, animal)
+    local z = win._animalsGenomeSelAl
+    if not (z and animal) then return end
+    local al, gene = z.al, z.g
+    if id == "minus" or id == "plus" then
+        local v = (ocall(al, "getCurrentValue") or 0) + (id == "plus" and 0.05 or -0.05)
+        pcall(al.setCurrentValue, al, math.max(0, v))
+        genomeChanged(animal, false)
+    elseif id == "dominant" then
+        pcall(al.setDominant, al, not (ocall(al, "isDominant") == true))
+        genomeChanged(animal, false)
+    elseif id == "switch" then
+        local a1, a2 = ocall(gene, "getAllele1"), ocall(gene, "getAllele2")
+        if a1 and a2 then
+            local u1 = ocall(a1, "isUsed") == true
+            pcall(a1.setUsed, a1, not u1)
+            pcall(a2.setUsed, a2, u1)
+            genomeChanged(animal, false)
+        end
+    elseif id == "disorder" then
+        local listD = AnimalGenomeDefinitions and AnimalGenomeDefinitions.getGeneticDisorderList and AnimalGenomeDefinitions.getGeneticDisorderList()
+        if not listD then return end
+        local names = {}
+        if type(listD) == "table" then
+            for _, v in ipairs(listD) do names[#names + 1] = tostring(v) end
+        elseif listD.size then
+            for i = 0, listD:size() - 1 do names[#names + 1] = tostring(listD:get(i)) end
+        end
+        local cur = ocall(al, "getGeneticDisorder")
+        local nextD = names[1]
+        if cur and cur ~= "" then
+            nextD = nil
+            for i, n in ipairs(names) do if n == cur then nextD = names[i + 1] end end
+        end
+        pcall(al.setGeneticDisorder, al, nextD)
+        genomeChanged(animal, true)
+    end
+end
+
+-- ============================================================================
 -- O-ZNVW — RANCH ZONE DETAIL ORGANISM
 -- Composes: zone info band (pinned) + roster section header with sort
 -- cycle + scrollable animal roster rows.
@@ -1858,12 +2216,16 @@ local function renderRanchZone(panel, win, x, y, w, h)
     -- ── ZONE INFO BAND (pinned at top) ──
     local bandH = drawZoneInfoBand(panel, win, x, y, w, summary)
 
+    -- ── HUTCHES / FEEDING TROUGHS (pinned below the band) ──
+    win._animalsStructZones = {}
+    local structH = drawZoneStructs(panel, win, x, y + bandH, w, summary, player)
+
     -- ── ROSTER SECTION HEADER (pinned below band) ──
     local animals = ap.getAnimalsInZone(state.zoneName)
     local sortedAnimals = sortAnimals(animals, zs.sortMode)
     local rosterCount = #sortedAnimals
 
-    local secY = y + bandH
+    local secY = y + bandH + structH
     local catH = T.sp.colHdrH or T.px(20)
     drawCatHeader(panel, x, secY, w, "Animals", rosterCount, true, false)
 
@@ -2466,6 +2828,11 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
 
     local drawY = bodyTop - ds.scrollY + padTop
 
+    -- ── IN HUTCH (opens the hutch card) ──
+    win._animalsHutchLink = nil
+    local hutchH = drawInHutchRow(panel, win, x + pad, drawY, contentW - pad * 2, animal, player)
+    if hutchH > 0 then drawY = drawY + hutchH + T.px(SECTION_GAP) end
+
     -- ── VITALS ──
     local vitalsH = drawVitalsSection(panel, x + pad, drawY, contentW - pad * 2, animal, player)
     drawY = drawY + vitalsH + T.px(SECTION_GAP)
@@ -2481,6 +2848,28 @@ local function renderRanchAnimal(panel, win, x, y, w, h)
     -- ── GENETICS (Lv7+/9+) ──
     local genH = drawGeneticsSection(panel, x + pad, drawY, contentW - pad * 2, animal, player)
     if genH > 0 then drawY = drawY + genH + T.px(SECTION_GAP) end
+
+    -- ── GENOME (animal cheats only) ──
+    win._animalsGenomeZones, win._animalsGenomeBtns = nil, nil
+    local gnH = drawGenomeSection(panel, win, x + pad, drawY, contentW - pad * 2, animal)
+    if gnH > 0 then drawY = drawY + gnH + T.px(SECTION_GAP) end
+
+    -- gamepad: keep a focused genome element (or the hutch link) in view
+    do
+        local Focus = ZeD.Input and ZeD.Input.Focus
+        local fz = Focus and Focus.getFocusedZone and Focus.getFocusedZone(win)
+        local fe = fz and fz.zone == "worldTabContent" and Focus.getFocusedElement and Focus.getFocusedElement(win)
+        if fe and (fe.isGenome or fe.isGenomeBtn) then
+            local ty, th
+            for _, z in ipairs((fe.isGenome and win._animalsGenomeZones) or win._animalsGenomeBtns or {}) do
+                if (fe.isGenome and z.gene == fe.gene and z.allele == fe.allele) or (fe.isGenomeBtn and z.id == fe.btnId) then ty, th = z.y, z.h end
+            end
+            if ty then
+                if ty < bodyTop then ds.scrollY = math.max(0, ds.scrollY - (bodyTop - ty) - T.px(4))
+                elseif ty + th > bodyTop + bodyH then ds.scrollY = ds.scrollY + (ty + th - bodyTop - bodyH) + T.px(4) end
+            end
+        end
+    end
 
     panel:clearStencilRect()
 
@@ -2885,6 +3274,12 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
     -- Remaining content area (between chrome and footer)
     local contentH = (showFooter and footerY or (y + h)) - curY
 
+    -- zones of the views not drawn this frame must not answer clicks or focus
+    win._animalsStructZones = {}
+    win._animalsHutchLink = nil
+    win._animalsGenomeZones, win._animalsGenomeBtns = nil, nil
+    win._animalsButcherZones = nil   -- the Butcher roster rebuilds it when drawn
+
     -- Route to the right renderer
     if state.submode == "ranch" then
         if state.view == "overview" then
@@ -2895,7 +3290,14 @@ function ZeD.AnimalsTab.render(panel, win, x, y, w, h)
             renderRanchAnimal(panel, win, x, curY, w, contentH)
         end
     elseif state.submode == "butcher" then
-        renderButcherOverview(panel, win, x, curY, w, contentH)
+        if state.view == "animal" then
+            -- a roster row opens the animal (the same view as the Ranch one)
+            renderRanchAnimal(panel, win, x, curY, w, contentH)
+        else
+            -- HOOKS first (pinned), then the livestock roster
+            local hookH = drawHooks(panel, win, x, curY, w, getSpecificPlayer(0))
+            renderButcherOverview(panel, win, x, curY + hookH, w, contentH - hookH)
+        end
     end
 end
 
@@ -2994,6 +3396,42 @@ function ZeD.AnimalsTab.onClick(win, x, y)
            and y >= z.y and y < z.y + z.h then
             navigateBack(win)
             return true
+        end
+    end
+
+    -- Hutch / trough / hook rows: OPEN (or the whole row) opens the card
+    if win._animalsStructZones then
+        for _, sz in ipairs(win._animalsStructZones) do
+            if hitZone(sz, x, y) then
+                openStruct(sz.kind, sz.obj)
+                return true
+            end
+        end
+    end
+    if win._animalsHutchLink and hitZone(win._animalsHutchLink, x, y) then
+        local sc = win._animalsDetailScroll
+        if not sc or (y >= sc.top and y < sc.top + sc.h) then
+            openStruct("hutch", win._animalsHutchLink.obj)
+            return true
+        end
+    end
+    -- Genome (cheats): pick an allele, then the controls act on it
+    if win._animalsGenomeZones then
+        local sc = win._animalsDetailScroll
+        local inView = not sc or (y >= sc.top and y < sc.top + sc.h)
+        if inView then
+            for _, gz in ipairs(win._animalsGenomeZones) do
+                if hitZone(gz, x, y) then
+                    win._animalsGenomeSel = { gene = gz.gene, allele = gz.allele }
+                    return true
+                end
+            end
+            for _, b in ipairs(win._animalsGenomeBtns or {}) do
+                if hitZone(b, x, y) then
+                    genomeAct(win, b.id, getState(win).animalRef)
+                    return true
+                end
+            end
         end
     end
 
@@ -3113,6 +3551,20 @@ end
 
 AT.navigate         = navigate
 AT.navigateBack     = navigateBack
+-- HOOK_MAP 20-22: the cards link back here (a bird's INFO), and the World
+-- window's gamepad builder opens and edits through these.
+AT.openStruct       = openStruct
+AT.genomeAct        = genomeAct
+function AT.showAnimal(win, animal)
+    local state = getState(win)
+    state.submode = "ranch"
+    local zn = nil
+    local dz = ocall(animal, "getDZone")
+    if dz then zn = ocall(dz, "getName") end
+    state.zoneName = zn
+    state.view = zn and "zone" or "overview"
+    navigate(win, "animal", nil, animal)
+end
 AT.getState         = getState
 -- S109: exported for World window gamepad builder (submode live-switch on
 -- focus + sort-btn A-press + roster/butcher/zonecard navigate calls).
