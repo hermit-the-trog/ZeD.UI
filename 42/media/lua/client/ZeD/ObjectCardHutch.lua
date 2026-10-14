@@ -75,11 +75,31 @@ local function unequipHands(p)
     if sec and sec ~= prim then ISTimedActionQueue.add(ISUnequipAction:new(p, sec, 50)) end
 end
 
-local function grabEggs(p, h, boxes)
+-- Vanilla's queue drops whatever waits behind a finished ISHutchGrabEgg, so
+-- several boxes chain: the first is queued now, the rest one at a time from
+-- the refresh once you are idle (t.eggChain; any other verb cancels it).
+local function grabEggs(p, h, boxes, t)
     if #boxes == 0 then return end
     if not luautils.walkAdj(p, h:getEntrySq()) then return end
     unequipHands(p)
-    for _, b in ipairs(boxes) do ISTimedActionQueue.add(ISHutchGrabEgg:new(p, b.nest, h)) end
+    ISTimedActionQueue.add(ISHutchGrabEgg:new(p, boxes[1].nest, h))
+    if t then
+        t.eggChain = {}
+        for k = 2, #boxes do t.eggChain[#t.eggChain + 1] = boxes[k].nest end
+    end
+end
+
+local function chainEggs(t, player)
+    local chain = t.eggChain
+    if not (chain and #chain > 0) then return end
+    if ISTimedActionQueue.isPlayerDoingAction(player) then return end
+    while #chain > 0 do
+        local nest = table.remove(chain, 1)
+        if (call(nest, "getEggsNb") or 0) > 0 then
+            ISTimedActionQueue.add(ISHutchGrabEgg:new(player, nest, t.obj))
+            return
+        end
+    end
 end
 
 local function grabBird(p, h, b)
@@ -115,9 +135,18 @@ end
 -- ---------------------------------------------------------------------------
 -- REFRESH
 -- ---------------------------------------------------------------------------
+-- vanilla's names (Henhouse, Turkeyhouse): the hutch type from its tiles
 local function hutchName(h)
-    local ok, n = pcall(function() return ISWorldObjectContextMenu.getMoveableDisplayName(h) end)
-    if ok and n and n ~= "" then return n end
+    local spr = h:getSprite() and h:getSprite():getName()
+    local defs = HutchDefinitions and HutchDefinitions.hutchs
+    if spr and defs then
+        for k, d in pairs(defs) do
+            local hit = d.baseSprite == spr
+            for _, e in ipairs(d.eggHatchDoors or {}) do if e.sprite == spr or e.closedSprite == spr then hit = true end end
+            for _, e in ipairs(d.extraSprites or {}) do if e.sprite == spr or e.spriteOpen == spr then hit = true end end
+            if hit then return txt("ContextMenu_Hutch_" .. k, txt("ContextMenu_Hutch", "Hutch")) end
+        end
+    end
     return txt("ContextMenu_Hutch", "Hutch")
 end
 
@@ -138,6 +167,7 @@ end
 
 function def.refresh(t, player)
     local h = t.obj
+    chainEggs(t, player)
     local d = {}
     d.name = hutchName(h)
     d.icon = OC.spriteIcon(h)
@@ -196,11 +226,11 @@ function def.refresh(t, player)
     local verbs, needs = {}, {}
     local function doorVerb(primary)
         verbs[#verbs + 1] = { id = "door", label = string.upper(d.doorOpen and txt("ContextMenu_Close_door", "Close Door") or txt("ContextMenu_Open_door", "Open Door")),
-            primary = primary, run = function(p, tt) ISHutchMenu.onToggleDoor(tt.obj, p) end }
+            primary = primary, run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onToggleDoor(tt.obj, p) end }
     end
     local function hatchVerb()
         verbs[#verbs + 1] = { id = "hatch", label = d.hatchOpen and "CLOSE HATCH" or "OPEN HATCH",
-            run = function(p, tt) ISHutchMenu.onToggleEggHatchDoor(tt.obj, p) end }
+            run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onToggleEggHatchDoor(tt.obj, p) end }
     end
     local canClean = d.dirt > 0 and d.water ~= nil and d.mop ~= nil
     if d.allClosed then
@@ -208,10 +238,10 @@ function def.refresh(t, player)
         hatchVerb()
     else
         verbs[#verbs + 1] = { id = "eggs", label = string.upper(txt("IGUI_Hutch_GrabEggs", "Grab Eggs")), primary = #d.free > 0,
-            enabled = #d.free > 0, run = function(p, tt) grabEggs(p, tt.obj, tt.d.free) end }
+            enabled = #d.free > 0, run = function(p, tt) grabEggs(p, tt.obj, tt.d.free, tt) end }
     end
     verbs[#verbs + 1] = { id = "clean", label = string.upper(txt("IGUI_Hutch_Clean", "Clean")), enabled = canClean,
-        run = function(p, tt) clean(p, tt.obj) end }
+        run = function(p, tt) tt.eggChain = nil; clean(p, tt.obj) end }
     if not d.allClosed then
         doorVerb(false)
         hatchVerb()
@@ -219,12 +249,14 @@ function def.refresh(t, player)
     if d.carry then
         local full = d.count >= d.max
         verbs[#verbs + 1] = { id = "putin", label = "PUT IN", enabled = not d.allClosed and not full,
-            run = function(p, tt) ISHutchMenu.onPutAnimalInsideHutch(tt.obj, p) end }
+            run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onPutAnimalInsideHutch(tt.obj, p) end }
         if d.allClosed then needs[#needs + 1] = "PUT IN: " .. txt("IGUI_PutAnimalInHutch_DoorsClosed", "You need to have either door or eggs door open.")
         elseif full then needs[#needs + 1] = "PUT IN: " .. txt("IGUI_PutAnimalInHutch_HutchFull", "Hutch is full.") end
     end
     t.verbs, t.needs = verbs, needs
 end
+
+def.nameOf = hutchName   -- the Animals tab names hutch rows the same way
 
 function def.title(t) return t.d and t.d.name or txt("ContextMenu_Hutch", "Hutch") end
 function def.icon(t) return t.d and t.d.icon or nil end
@@ -315,7 +347,7 @@ local function drawBox(card, x, y, w, t, b)
     UI.button(card, x + T.px(6), by, label, { h = T.px(20), w = bw, disabled = not enabled, focused = focused })
     local bb = b
     card:zone({ fid = fid, x = x + T.px(6), y = by, w = bw, h = T.px(20), body = true,
-        run = enabled and function(c, p) grabEggs(p, t.obj, { bb }) end or nil })
+        run = enabled and function(c, p) grabEggs(p, t.obj, { bb }, t) end or nil })
     return h
 end
 
@@ -332,7 +364,7 @@ local function drawBird(card, x, y, w, t, b)
     UI.button(card, gx, by, "GRAB", { h = T.px(20), w = gw, focused = card._fid == gf })
     UI.button(card, ix, by, "INFO", { h = T.px(20), w = iw, focused = card._fid == inf })
     local bb = b
-    card:zone({ fid = gf, x = gx, y = by, w = gw, h = T.px(20), body = true, run = function(c, p) grabBird(p, t.obj, bb) end })
+    card:zone({ fid = gf, x = gx, y = by, w = gw, h = T.px(20), body = true, run = function(c, p) t.eggChain = nil; grabBird(p, t.obj, bb) end })
     card:zone({ fid = inf, x = ix, y = by, w = iw, h = T.px(20), body = true, run = function(c, p) showBird(p, bb.a) end })
     local rx = gx - T.px(8)
     if b.dead then
@@ -375,9 +407,16 @@ function def.body(card, x, y, w, t, player)
     local gap = T.px(8)
     local HW = UI.HW
 
-    -- doors
-    UI.led(card, x + T.px(2), y + T.px(4), HW.green, d.doorOpen, d.doorOpen and "DOOR OPEN" or "DOOR SHUT")
-    UI.led(card, x + T.px(130), y + T.px(4), HW.green, d.hatchOpen, d.hatchOpen and "EGG HATCH OPEN" or "EGG HATCH SHUT")
+    -- doors: two lamps, labels in the card's text colour
+    local tm = ZeD.TM
+    local f1 = T.fontF1
+    local lx = x + T.px(2)
+    for _, door in ipairs({ { d.doorOpen, d.doorOpen and "DOOR OPEN" or "DOOR SHUT" },
+                            { d.hatchOpen, d.hatchOpen and "EGG HATCH OPEN" or "EGG HATCH SHUT" } }) do
+        UI.led(card, lx, y + T.px(5), HW.green, door[1], nil)
+        card:drawText(door[2], lx + T.px(14), y + T.px(9) - math.floor(tm:getFontHeight(f1) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
+        lx = lx + T.px(14) + tm:MeasureStringX(f1, door[2]) + T.px(22)
+    end
     y = y + T.px(18) + gap
     if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
 
@@ -418,8 +457,8 @@ function def.body(card, x, y, w, t, player)
     y = y + T.px(4)
     local dirt = math.max(0, math.min(100, d.dirt))
     local fc = (dirt > 70 and T.danger) or (dirt > 40 and T.warning) or T.positive
-    y = y + UI.meter(card, x, y, w, string.upper(string.gsub(txt("IGUI_Hutch_Dirt", "Dirtiness: %1%%"), ":.*$", "")),
-        tostring(math.floor(dirt + 0.5)) .. "%", nil, dirt, fc)
+    -- (vanilla's IGUI_Hutch_Dirt takes an argument: reading it bare warns every frame)
+    y = y + UI.meter(card, x, y, w, "DIRTINESS", tostring(math.floor(dirt + 0.5)) .. "%", nil, dirt, fc)
     if d.dirt > 0 then
         y = y + T.px(6)
         y = y + checklist(card, x, y, w, {

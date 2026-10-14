@@ -26,8 +26,10 @@ local DOT = OC.DOT
 
 local function txt(k, fb, arg)
     if arg ~= nil then
-        local s = getTextOrNull and getTextOrNull(k)
-        return s and getText(k, arg) or ((fb or k) .. " " .. tostring(arg))
+        -- keys with a %1 slot: getText with the argument (a bare read warns)
+        local ok, s = pcall(getText, k, arg)
+        if ok and s and s ~= k then return s end
+        return (fb or k) .. " " .. tostring(arg)
     end
     local s = getTextOrNull and getTextOrNull(k)
     return s or fb or k
@@ -223,11 +225,10 @@ end
 -- ---------------------------------------------------------------------------
 -- REFRESH
 -- ---------------------------------------------------------------------------
+-- "Dead Angus Cow" (vanilla's corpse wording; ButcheringUtil.getCarcassName is the type key)
 local function carcassName(a)
-    local ok, n = pcall(function() return ButcheringUtil.getCarcassName(a) end)
-    if ok and n and n ~= "" then return n end
     local cn = call(a, "getCustomName")
-    return txt("IGUI_Item_AnimalCorpse", "Dead animal", (cn and cn ~= "") and cn or (call(a, "getFullName") or ""))
+    return txt("IGUI_Item_AnimalCorpse", "Dead", (cn and cn ~= "") and cn or (call(a, "getFullName") or ""))
 end
 
 function def.refresh(t, player)
