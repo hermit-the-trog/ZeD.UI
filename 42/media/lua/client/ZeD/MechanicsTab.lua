@@ -27,6 +27,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/MechFigs"
+require "ZeD/MechTrailer"
 
 ZeD = ZeD or {}
 ZeD.MechanicsTab = ZeD.MechanicsTab or {}
@@ -68,6 +69,10 @@ local DOT = string.char(183)   -- middle dot (Kahlua strings are Java strings)
 -- { vehicle = BaseVehicle, hood = VehiclePart|nil }
 local INSP = MT._insp or {}   -- kept across a hot reload of this file
 MT._insp = INSP
+-- Vehicles opened on purpose (a trailer's Check Animals, the towing link):
+-- they stay in the list to six tiles, as an inspection does. { [id] = BaseVehicle }
+local PIN = MT._pin or {}
+MT._pin = PIN
 
 -- ----------------------------------------------------------------------------
 -- Small helpers
@@ -165,13 +170,36 @@ function MT.buildVehicles(chr)
         if v and v:getSquare() and math.floor(v:getZ()) == cz then
             local d = distTo(chr, v)
             local vid = v:getId()
-            if d <= REACH_TILES or (INSP[vid] and d <= KEEP_TILES) or inside == v then
+            if d <= REACH_TILES or ((INSP[vid] or PIN[vid]) and d <= KEEP_TILES) or inside == v then
                 out[#out + 1] = { vehicle = v, id = vid, dist = d }
+            end
+        end
+    end
+    -- a car and the trailer it tows come as a pair (TOWING / TOWED BY link them)
+    local have = {}
+    for _, e in ipairs(out) do have[e.id] = true end
+    local n = #out
+    for i = 1, n do
+        local v = out[i].vehicle
+        local ok1, a = pcall(function() return v:getVehicleTowing() end)
+        local ok2, b = pcall(function() return v:getVehicleTowedBy() end)
+        for _, o in ipairs({ ok1 and a or false, ok2 and b or false }) do
+            if o and o:getSquare() and not have[o:getId()] then
+                have[o:getId()] = true
+                out[#out + 1] = { vehicle = o, id = o:getId(), dist = distTo(chr, o) }
             end
         end
     end
     table.sort(out, function(a, b) return a.dist < b.dist end)
     return out
+end
+
+function MT.pin(v) if v then PIN[v:getId()] = v end end
+
+-- Within the tab's reach (vanilla's trailer menus skip their walk from here)
+function MT.inReach(chr, v)
+    return chr ~= nil and v ~= nil and v:getSquare() ~= nil
+        and math.floor(v:getZ()) == math.floor(chr:getZ()) and distTo(chr, v) <= REACH_TILES
 end
 
 -- Called by the World window's periodic refresh (beside the radio list).
@@ -189,6 +217,9 @@ function MT.refresh(win)
         local alive = v and v:getSquare() ~= nil
         if not alive or distTo(chr, v) > KEEP_TILES then endInspection(vid, chr) end
     end
+    for vid, v in pairs(PIN) do
+        if not v:getSquare() or distTo(chr, v) > KEEP_TILES then PIN[vid] = nil end
+    end
     local want = s.pendingId or curId
     s.idx = 1
     if want then
@@ -200,6 +231,7 @@ function MT.refresh(win)
     local nc = currentEntry(s)
     if (nc and nc.id) ~= curId then
         s.view, s.card, s.verb, s.confirm = "overview", nil, nil, nil
+        s.animal, s.animalId = nil, nil
         s.scrollY, s.cardScroll = 0, 0
     end
 end
@@ -958,6 +990,7 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
     end
     local ks, kc = keyState(v, chr)
     yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Key", ks, kc == "pos" and T.positive or T.warning)
+    yy = yy + ZeD.MechTrailer.drawTowRow(panel, s, sx, yy, sw, v)
 end
 
 local function groupedParts(s, parts)
@@ -1029,7 +1062,11 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
 
     local footerH = T.px(FOOTER_H)
     local top = y + headerH
+    local TR = ZeD.MechTrailer
+    local trailer = TR.isTrailer(v)
+    if trailer then TR.prepare(s, v, chr) end
     local bandH = inspected and drawBand(panel, win, s, x, top, w, v, chr) or 0
+    if bandH == 0 and trailer then bandH = TR.drawBand(panel, s, x, top, w, v, chr) end
     top = top + bandH
     local bodyH = h - headerH - bandH - footerH
     local scrollW = T.sp.scrollbarW
@@ -1051,13 +1088,18 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
 
     panel:setStencilRect(x, top, w, bodyH)
     local cy = top - s.scrollY
+    local clip = { x = x, y = top, w = w, h = bodyH }
+    s.bodyClip = clip
 
-    -- zone A: figure + summary
+    -- zone A: figure + summary (an animal trailer's summary holds the trailer)
     local figW, figH = T.px(FIG_W), T.px(FIG_H)
     drawFigure(panel, s, x + pad, cy + pad, figW, figH, v, parts, hl, not inspected, s.working)
     local sx = x + pad + figW + T.px(COL_GAP)
     local sw = cw - (sx - x) - pad
-    if inspected then
+    local sumBottom = cy
+    if trailer and not (inspected and hl) then
+        sumBottom = TR.drawSummary(panel, win, s, sx, cy + pad, sw, v, chr, inspected)
+    elseif inspected then
         drawSummary(panel, s, sx, cy + pad, sw, v, chr, parts, hl)
     else
         local yy = cy + pad
@@ -1072,10 +1114,15 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
         yy = yy + M.drawStatRow(panel, sx, yy, sw, "Distance", tostring(math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5)) .. " tiles")
         local ks, kc = keyState(v, chr)
         yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Key", ks, kc == "pos" and T.positive or T.warning)
+        yy = yy + TR.drawTowRow(panel, s, sx, yy, sw, v)
     end
-    cy = cy + figH + pad * 2
+    cy = math.max(cy + figH + pad * 2, sumBottom + pad)
 
     s.lastRows = {}
+    -- an animal trailer's animals come before its parts
+    if trailer then
+        cy = TR.drawSections(panel, win, s, x, cy, cw, v, chr, clip, mouseIn and { x = mx, y = my } or nil)
+    end
     if inspected then
         -- column header with the two sort keys
         local hh = T.px(COLHDR_H)
@@ -1156,6 +1203,17 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
                 end
             end
         end
+    elseif trailer then
+        -- the parts wait for an inspection (INSPECT in the footer)
+        local ch = T.px(CAT_H)
+        local s2 = T.surf2
+        panel:drawRect(x, cy, cw, ch, s2.a, s2.r, s2.g, s2.b)
+        local tl = T.toneLo or T.accent
+        local ty = cy + math.floor((ch - T.fontF1H) / 2)
+        panel:drawText("> PARTS (" .. tostring(#parts) .. ")", x + pad, ty, tl.r, tl.g, tl.b, tl.a or 1, T.fontF1)
+        A.drawTextRight(panel, "INSPECT TO READ", x + cw - pad, ty, T.fontF1, T.textDim)
+        A.drawDividerH(panel, x, cy + ch - T.px(1), cw, false)
+        cy = cy + ch + T.px(8)
     else
         -- empty state below the figure
         local dc = T.textDim
@@ -1173,6 +1231,16 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
     if s.scrollY > s.maxScroll then s.scrollY = s.maxScroll end
     s.bodyRect = { x = x, y = top, w = w, h = bodyH }
     drawScrollbar(panel, x + w - scrollW, top, bodyH, total, s.scrollY)
+
+    -- opened from Check Animals: scroll just enough to show the animals
+    if s.showAnimals then
+        s.showAnimals = nil
+        if trailer and s.trAnimalsY then
+            local want = math.min(s.trAnimalsEnd or s.trAnimalsY, s.trAnimalsY + T.px(CAT_H + 3 * 40))
+            local delta = math.min(want - (top + bodyH), s.trAnimalsY - top)
+            if delta > 0 then s.scrollY = math.min(s.maxScroll, s.scrollY + delta) end
+        end
+    end
 
     -- gamepad scroll-follow for rows and headers
     if gpId then
@@ -1545,6 +1613,15 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
 end
 
 -- ----------------------------------------------------------------------------
+-- Shared helpers for MechTrailer.lua (the animal trailer page)
+-- ----------------------------------------------------------------------------
+MT._h = {
+    stamp = stamp, dotLine = dotLine, footerButton = footerButton, drawScrollbar = drawScrollbar,
+    vehicleName = vehicleName, overallCond = overallCond, now = now,
+    FOOTER_H = FOOTER_H, FOOTER_BTN_H = FOOTER_BTN_H,
+}
+
+-- ----------------------------------------------------------------------------
 -- Entry: renderer registered in the World window's dispatch table
 -- ----------------------------------------------------------------------------
 function MT.render(panel, win, x, y, w, h)
@@ -1552,10 +1629,13 @@ function MT.render(panel, win, x, y, w, h)
     if not T then return end
     local s = st(win)
     s.zones, s.byId = {}, {}
-    s.panel, s.gpId = panel, gpFocusedId(win)
+    s.panel, s.gpId, s.win = panel, gpFocusedId(win), win
+    local TR = ZeD.MechTrailer
     local chr = win._playerObj or getSpecificPlayer(0)
     local e = currentEntry(s)
+    if s.view ~= "animal" then TR.hideAvatar(s) end
     if not chr or not e or not e.vehicle or not e.vehicle:getSquare() then
+        TR.hideAvatar(s)
         local txtS = "No vehicle within reach"
         local f = T.fontF2
         local dc = T.textDim
@@ -1565,6 +1645,11 @@ function MT.render(panel, win, x, y, w, h)
     end
     local v = e.vehicle
     local inspected = INSP[v:getId()] ~= nil
+    if s.view == "animal" then
+        if TR.isTrailer(v) and TR.renderAnimal(panel, win, s, x, y, w, h, v, chr) then return end
+        TR.hideAvatar(s)
+        s.view, s.animal, s.animalId = "overview", nil, nil
+    end
     if s.view == "card" and s.card and inspected then
         renderCard(panel, win, s, x, y, w, h, v, chr)
     else
@@ -1586,13 +1671,13 @@ function MT.onClick(win, x, y)
     for i = #s.zones, 1, -1 do
         local z = s.zones[i]
         if hit(z, x, y) and (not z.clip or hit(z.clip, x, y)) then
-            pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+            if not z.disabled then pcall(function() getSoundManager():playUISound("UIActivateButton") end) end
             z.fn()
             return true
         end
     end
     -- figure part → card
-    if s.view ~= "card" then
+    if s.view == "overview" then
         local id = figurePartAt(s, x, y)
         if id and s.bodyRect and hit(s.bodyRect, x, y) then
             local e = currentEntry(s)
@@ -1606,7 +1691,7 @@ function MT.onRightClick(win, x, y)
     local s = st(win)
     local chr = win._playerObj or getSpecificPlayer(0)
     local e = currentEntry(s)
-    if not chr or not e or not INSP[e.id] then return true end
+    if not chr or not e or not INSP[e.id] or s.view == "animal" then return true end
     local id = nil
     if s.view == "card" then id = s.card
     else
@@ -1622,7 +1707,7 @@ end
 function MT.onMouseWheel(win, del)
     local s = st(win)
     local step = ZeD.T.px(SCROLL_STEP) * del
-    if s.view == "card" then
+    if s.view ~= "overview" then
         s.cardScroll = math.max(0, math.min(s.maxScroll or 0, s.cardScroll + step))
     else
         s.scrollY = math.max(0, math.min(s.maxScroll or 0, s.scrollY + step))
@@ -1648,6 +1733,8 @@ function MT.buildFocusables(win)
                 if s.confirm then s.confirm = nil else closeCard(win, s) end
                 return true
             end
+        elseif s.view == "animal" then
+            el.onCancel = function() ZeD.MechTrailer.closeAnimal(win, s); return true end
         end
         if zz.isRow then
             el.onContextMenu = function()
@@ -1672,6 +1759,7 @@ function MT.focusKey(win)
     if not s then return "none" end
     return tostring(s.view) .. ":" .. tostring(s.card) .. ":" .. tostring(math.floor(s.scrollY or 0)) .. ":"
         .. tostring(math.floor(s.cardScroll or 0)) .. ":" .. tostring(s.confirm) .. ":" .. tostring(#s.zones) .. ":" .. tostring(s.idx)
+        .. ":" .. tostring(s.animalId)
 end
 
 -- Focus target after a view change (card opened -> first verb; card closed -> its row)
@@ -1680,8 +1768,9 @@ function MT.focusTargetIndex(win, els)
     if not t then return nil end
     -- the new view's zones appear a frame later: keep the target until it lands
     win._mechFocusTries = (win._mechFocusTries or 0) + 1
-    local found = nil
+    local found = ZeD.MechTrailer.focusTarget(t, els)
     for i, e in ipairs(els) do
+        if found then break end
         if t == "card" and e.id:sub(1, 10) == "mech:verb:" then found = i; break end
         if e.id == t then found = i; break end
     end
@@ -1739,6 +1828,30 @@ end
 
 function MT.isInspected(vehicle)
     return vehicle ~= nil and INSP[vehicle:getId()] ~= nil
+end
+
+-- Vanilla entry (Overrides/TrailerAnimals.lua): Check Animal(s) in Trailer.
+-- Opens the Vehicle tab on the trailer, scrolled to its animals.
+function MT.openTrailer(chr, vehicle)
+    if not chr or not vehicle then return false end
+    if not (ZeD_WorldWindow and ZeD_WorldWindow.openTab and ZeD_WorldWindow.getWindow) then return false end
+    PIN[vehicle:getId()] = vehicle
+    if not ZeD_WorldWindow.isOpen() then
+        local ok = pcall(ZeD_WorldWindow.open, chr:getPlayerNum())
+        if not ok then return false end
+    end
+    local win = ZeD_WorldWindow.getWindow()
+    if not win then return false end
+    local s = st(win)
+    s.pendingId = vehicle:getId()
+    MT.refresh(win)
+    ZeD.MechTrailer.hideAvatar(s)
+    s.view, s.card, s.confirm, s.animal, s.animalId = "overview", nil, nil, nil, nil
+    s.collapsed["_animals"] = nil
+    s.showAnimals = true
+    win._mechFocusTarget = "animals"
+    ZeD_WorldWindow.openTab(chr:getPlayerNum(), "vehicle")
+    return true
 end
 
 -- Success / failure of an install or uninstall (vanilla flashes its window)

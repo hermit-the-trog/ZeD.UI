@@ -2224,7 +2224,9 @@ local function buildWorldContainers(playerObj)
                         local part = vehicle:getPartByIndex(pi)
                         if part and part:getItemContainer()
                            and vehicle:canAccessContainer(pi, playerObj) then
-                            local partName = part:getCategory() or "Vehicle"
+                            -- vanilla's name for the container (Trunk, Food Container...)
+                            local partName = getTextOrNull("IGUI_VehiclePart" .. tostring(part:getItemContainer():getType()))
+                                             or part:getCategory() or "Vehicle"
                             local vehType = part:getCategory() or ""
                             containers[#containers + 1] = {
                                 inventory = part:getItemContainer(),
@@ -4862,6 +4864,46 @@ end
 function ZeD_WorldWindow.getObjectCard()
     local win = _worldWin
     return win and win._drawerObject and win._objectCard or nil
+end
+
+-- Show one container (by its ItemContainer) in the Loot pane, leaving the tab
+-- drawer as it is. The container list rebuilds every 30 frames and only holds
+-- what is in reach, so a container still being walked to is looked for again
+-- each tick (forcing a rebuild every 20) for up to `tries` ticks.
+function ZeD_WorldWindow.selectContainer(inv, tries)
+    local win = _worldWin
+    if not (win and inv) then return false end
+    local n = 0
+    local function attempt()
+        if win ~= _worldWin then return true end
+        for i, c in ipairs(win._containers or {}) do
+            if c.inventory == inv then
+                local content = win._mainContent
+                if content and #(win._mcSelected or {}) > 0 and exitWorldMC then exitWorldMC(win, content) end
+                win._activeContainer = i
+                win._mainVisible = c.isFloor and true or false
+                if content then
+                    content._inventory = inv
+                    content._selectedItems = {}
+                    content._lastClickedItem = nil
+                end
+                if not win._invDrawerOpen then
+                    win._invDrawerOpen = true
+                    win._invDrawerTargetW = ZeD.T.px(win._baseInvW or 372)
+                end
+                return true
+            end
+        end
+        if n % 20 == 0 then win._containerTimer = 30 end
+        return false
+    end
+    if attempt() then return true end
+    local function tick()
+        n = n + 1
+        if attempt() or n >= (tries or 60) then Events.OnTick.Remove(tick) end
+    end
+    Events.OnTick.Add(tick)
+    return false
 end
 
 function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)

@@ -125,10 +125,11 @@ function AD.getThirst(animal)
     return 0
 end
 
+-- 0-100 like hunger and thirst (the engine keeps a character's health as 0-1)
 function AD.getHealth(animal)
     if not animal then return 0 end
     local ok, val = pcall(animal.getHealth, animal)
-    if ok and val then return val end
+    if ok and val then return val * 100 end
     return 0
 end
 
