@@ -138,7 +138,8 @@ local function axisRow(card, x, y, w, t, section, ax)
     -- nudges (right)
     local nud = isMove and MOVE_NUDGE or TURN_NUDGE
     local nl = isMove and "0.01" or "15"
-    local bw = math.max(T.px(38), UI.buttonW("+" .. nl))
+    -- one button width for both groups, so the six sliders line up
+    local bw = math.max(T.px(38), UI.buttonW("+" .. MOVE_NUDGE), UI.buttonW("-" .. MOVE_NUDGE))
     local plusX = x + w - bw
     local minusX = plusX - T.px(3) - bw
     local by = y + math.floor((h - T.px(20)) / 2)
