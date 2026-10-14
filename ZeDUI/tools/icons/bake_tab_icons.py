@@ -32,6 +32,7 @@ ICONS = {
     "farm-tab-white": "farm-tab-white.png",
     "radio-tab-white": "radio-tab-white.png",
     "vehicle-tab-white": "vehicle-tab.png",       # dark master, made white
+    "move-tab-white": "move-tab.png",             # Furniture tab (dark master, made white)
     "equipment-tab-white": "equipment-tab-white.png",
     "health-tab-white": "health-tab-white.png",
     "thermal-tab-white": "thermal-tab-white.png",

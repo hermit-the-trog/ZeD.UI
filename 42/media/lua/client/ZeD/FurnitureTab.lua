@@ -1,0 +1,764 @@
+-- ZeD-UI/42/media/lua/client/ZeD/FurnitureTab.lua
+-- ============================================================================
+-- FURNITURE TAB — World window (HOOK_MAP row 15; mockup zed_furniture_v1.html)
+-- Vanilla moves furniture with a world cursor (ISMoveableCursor) in five modes
+-- (pickup, place, rotate, scrap, repair), switched from the left-edge button's
+-- pop-up (hidden by ZeD) or the controller's radial, and explains the tile
+-- under the cursor in a floating ISMoveableInfoWindow. This tab is the home
+-- of that mode:
+--   * opening the tab starts the cursor; leaving it ends the cursor; a cursor
+--     started any other way (Install furniture, the controller wheel, a drag
+--     out of the inventory) opens the tab;
+--   * a strip of the five modes (vanilla's words);
+--   * TARGET: what the cursor reads, captured from vanilla's own info lines
+--     (ISMoveableSpriteProps:getInfoPanelDescription through setInfoPanel),
+--     shown as a preview, a status line, facts with dots and NEEDS lines;
+--   * ON THIS TILE / YOUR FURNITURE lists in place of the cycle key, FACING
+--     buttons, MAY YIELD from vanilla's scrap table;
+--   * a chip at the cursor tile with the name and the mode or first blocker;
+--     the vanilla info window stops drawing while the tab is up.
+-- Every layout number is a DESIGN UNIT (T.px at use).
+-- ============================================================================
+
+require "ZeD/Tokens"
+require "ZeD/Atoms"
+require "ZeD/Molecules"
+require "ZeD/ObjectCards"
+
+ZeD = ZeD or {}
+ZeD.FurnitureTab = ZeD.FurnitureTab or {}
+local FT = ZeD.FurnitureTab
+local UI = ZeD.ObjectCards.ui
+
+FT.cap = FT.cap or {}          -- per player: what the cursor read last
+FT.state = FT.state or { mode = "pickup" }
+local DOT = string.char(183)
+
+local MODES = {
+    { id = "pickup", key = "IGUI_Pickup", fb = "Pick up",     ready = "Ready to pick up",    no = "Cannot pick up" },
+    { id = "place",  key = "IGUI_Place",  fb = "Place",       ready = "Fits here",           no = "Does not fit here" },
+    { id = "rotate", key = "IGUI_Rotate", fb = "Rotate",      ready = "Turns in place",      no = "Cannot turn" },
+    { id = "scrap",  key = "IGUI_Scrap",  fb = "Disassemble", ready = "Ready to take apart", no = "Cannot take apart" },
+    { id = "repair", key = "IGUI_Repair", fb = "Repair",      ready = "Ready to repair",     no = "Cannot repair" },
+}
+local MODE_BY_ID = {}
+for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
+
+local PAD, HEAD_H, STRIP_H, BTN_H = 10, 37, 38, 26
+local PREV_W, PREV_H = 84, 104
+local ROW_H, FACT_H, SEC_H = 28, 18, 20
+local SCROLL_STEP = 40
+-- facing: vanilla's face index (1 N, 2 W, 3 S, 4 E)
+local FACES = { { "N", 1 }, { "E", 4 }, { "S", 3 }, { "W", 2 } }
+
+local function txt(k, fb) local s = getTextOrNull and getTextOrNull(k) return s or fb or k end
+local function call(o, m, ...) return ZeD.ObjectCards.call(o, m, ...) end
+local function col(c) return c.r, c.g, c.b end
+local function hit(z, x, y) return z ~= nil and x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
+
+local function cursorOf(pn)
+    local cell = getCell()
+    local d = cell and cell:getDrag(pn)
+    if d and d.Type == "ISMoveableCursor" then return d end
+    return nil
+end
+FT.cursorOf = cursorOf
+
+local function modeLabel(id)
+    local m = MODE_BY_ID[id]
+    return m and string.upper(txt(m.key, m.fb)) or string.upper(tostring(id))
+end
+
+-- ---------------------------------------------------------------------------
+-- Capture: vanilla builds its info box every frame through setInfoPanel; keep
+-- a copy of what it says (colours are 0..1 after setBodyText).
+-- ---------------------------------------------------------------------------
+function FT.capture(cur, sq, obj, mp, tex, panel)
+    local c = { sq = sq, obj = obj, mode = ISMoveableCursor.mode[cur.player], canCreate = cur.canCreate == true }
+    if mp then
+        c.mp = mp
+        c.tex = tex or mp.spriteName
+        local lines = {}
+        local tbl = panel and panel.bodyText and panel.bodyText.table
+        if tbl then
+            for _, ln in ipairs(tbl) do
+                local a, b = ln[1], ln[2]
+                lines[#lines + 1] = {
+                    a = a and { txt = tostring(a.txt or ""), r = a.r or 1, g = a.g or 1, b = a.b or 1 } or nil,
+                    b = b and { txt = tostring(b.txt or ""), r = b.r or 1, g = b.g or 1, b = b.b or 1 } or nil,
+                }
+            end
+        end
+        c.lines = lines
+    end
+    FT.cap[cur.player] = c
+end
+
+-- ok / bad / plain from vanilla's line colours (good and bad highlight colours)
+local function colorState(c)
+    if not c then return "plain" end
+    if c.g > c.r + 0.15 and c.g > 0.45 then return "ok" end
+    if c.r > c.g + 0.15 and c.r > 0.45 then return "bad" end
+    return "plain"
+end
+
+-- Turn vanilla's lines into name, facts and notes.
+local function readLines(c)
+    local out = { facts = {}, notes = {} }
+    local nameLabel = txt("IGUI_Name", "Name")
+    local lastLabel = nil
+    for _, ln in ipairs(c.lines or {}) do
+        if ln.a and ln.b then
+            local label = string.gsub(string.gsub(ln.a.txt, "%s+$", ""), ":$", "")
+            if label == nameLabel then
+                out.name = ln.b.txt
+            else
+                if label == "" then label = nil else lastLabel = label end
+                out.facts[#out.facts + 1] = { label = label and string.upper(label) or "", value = ln.b.txt, state = colorState(ln.b) }
+            end
+        elseif ln.a and ln.a.txt ~= "" then
+            local t = string.gsub(ln.a.txt, "^%-%s*", "")
+            out.notes[#out.notes + 1] = { text = t, state = colorState(ln.a) }
+        end
+    end
+    if not out.name and c.mp then
+        local ok, n = pcall(function() return Translator.getMoveableDisplayName(c.mp.name) end)
+        out.name = (ok and n) or c.mp.name or "?"
+    end
+    return out
+end
+FT.readLines = readLines
+
+local function iconOfSprite(name)
+    local t = name and getTexture(name)
+    if not t then return nil end
+    return call(t, "splitIcon") or t
+end
+
+local function displayName(mp)
+    if not mp then return "?" end
+    local ok, n = pcall(function() return Translator.getMoveableDisplayName(mp.name) end)
+    return (ok and n) or mp.name or "?"
+end
+
+-- ---------------------------------------------------------------------------
+-- Cursor lifecycle
+-- ---------------------------------------------------------------------------
+local function st(win)
+    local s = win._fur
+    if not s then
+        s = { zones = {}, byId = {}, scrollY = 0, maxScroll = 0 }
+        win._fur = s
+    end
+    return s
+end
+
+function FT.startCursor(pn, mode)
+    local player = getSpecificPlayer(pn)
+    if not player then return nil end
+    local cur = cursorOf(pn)
+    if not cur then
+        cur = ISMoveableCursor:new(player)
+        getCell():setDrag(cur, pn)
+    end
+    cur:setMoveableMode(mode or FT.state.mode or "pickup")
+    return cur
+end
+
+function FT.setMode(pn, mode)
+    FT.state.mode = mode
+    local cur = cursorOf(pn) or FT.startCursor(pn, mode)
+    if cur then cur:setMoveableMode(mode) end
+end
+
+-- the tab is up while the furniture cursor exists
+function FT.active(pn)
+    return FT.state.active == true and (pn == nil or pn == 0)
+end
+
+-- Leave the tab for the Loot view (the cursor went away some other way).
+local function leaveTab(pn)
+    if ZeD_WorldWindow and ZeD_WorldWindow.openTab then ZeD_WorldWindow.openTab(pn, "loot") end
+end
+
+-- Per tick: end the cursor when the tab goes, show the tab when a cursor
+-- appears another way.
+local function watch()
+    if not (ZeD_WorldWindow and ZeD_WorldWindow.isTabShowing) then return end
+    local pn = 0
+    local cur = cursorOf(pn)
+    local showing = ZeD_WorldWindow.isOpen() and ZeD_WorldWindow.isTabShowing("furniture")
+    local S = FT.state
+    if showing then return end
+    if S.active then
+        S.active = false
+        S.hadCursor = false
+        if cur then pcall(function() cur:exitCursor() end) end
+        return
+    end
+    if cur then
+        local nowMs = getTimestampMs and getTimestampMs() or 0
+        if (S.openingMs or 0) + 1500 < nowMs then
+            S.openingMs = nowMs
+            S.mode = ISMoveableCursor.mode[pn] or S.mode
+            pcall(ZeD_WorldWindow.openTab, pn, "furniture")
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- Drawing helpers (on the drawer panel)
+-- ---------------------------------------------------------------------------
+local function stamp(s, id, x, y, w, h, fn, opts)
+    local z = { id = id, x = x, y = y, w = w, h = h, fn = fn }
+    if opts then for k, v in pairs(opts) do z[k] = v end end
+    s.zones[#s.zones + 1] = z
+    s.byId[id] = z
+    return z
+end
+
+local function gpFocusedId(win)
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    if not Focus or not Focus.getFocusedWindow or Focus.getFocusedWindow() ~= win then return nil end
+    local zone = Focus.getFocusedZone and Focus.getFocusedZone(win)
+    if not zone or zone.zone ~= "worldTabContent" then return nil end
+    local el = Focus.getFocusedElement and Focus.getFocusedElement(win)
+    local id = el and el.id
+    if id and id:sub(1, 4) == "fur:" then return id end
+    return nil
+end
+
+local function dashed(panel, x, y, w, h, c)
+    local T = ZeD.T
+    local seg, one = T.px(4), T.px(1)
+    local sx = x
+    while sx < x + w do
+        local l = math.min(seg, x + w - sx)
+        panel:drawRect(sx, y, l, one, c.a or 1, col(c)); panel:drawRect(sx, y + h - one, l, one, c.a or 1, col(c))
+        sx = sx + seg * 2
+    end
+    local sy = y
+    while sy < y + h do
+        local l = math.min(seg, y + h - sy)
+        panel:drawRect(x, sy, one, l, c.a or 1, col(c)); panel:drawRect(x + w - one, sy, one, l, c.a or 1, col(c))
+        sy = sy + seg * 2
+    end
+end
+
+local function dotFor(state)
+    local T = ZeD.T
+    if state == "ok" then return T.positive end
+    if state == "bad" then return T.danger end
+    return nil
+end
+
+-- ---------------------------------------------------------------------------
+-- Content blocks; each returns its height. `vis(y, h)` says whether a block at
+-- y (unscrolled body coordinate) is inside the body view; rows outside are
+-- skipped (the drawer already holds the one stencil, which cannot nest).
+-- ---------------------------------------------------------------------------
+local function drawTarget(panel, s, x, y, w, c, mode, info)
+    local T, tm = ZeD.T, ZeD.TM
+    local pw, ph = T.px(PREV_W), T.px(PREV_H)
+    local ok = c and c.mp and c.canCreate
+    -- preview
+    if c and c.mp then
+        local s1 = T.surf1
+        panel:drawRect(x, y, pw, ph, 1, col(s1))
+        local tex = c.tex and getTexture(c.tex)
+        if tex then panel:drawTextureScaledAspect(tex, x + T.px(4), y + T.px(4), pw - T.px(8), ph - T.px(8), 1, 1, 1, 1) end
+        local bc = ok and T.borderS or T.danger
+        panel:drawRectBorder(x, y, pw, ph, bc.a or 1, col(bc))
+    else
+        dashed(panel, x, y, pw, ph, T.border)
+    end
+    -- name, status, facts
+    local tx = x + pw + T.px(10)
+    local tw = w - pw - T.px(10)
+    local f1, f2, f3, f4 = T.fontF1, T.fontF2, T.fontF3, T.fontF4
+    local cy = y
+    local m = MODE_BY_ID[mode] or MODES[1]
+    if not (c and c.mp) then
+        local msg = (mode == "place") and "Nothing to place" or "Point at furniture"
+        panel:drawText(msg, tx, cy, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f4)
+        return ph
+    end
+    local name = ZeD.CraftingCore.truncText(info.name or "?", f4, tw)
+    panel:drawText(name, tx, cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f4)
+    cy = cy + tm:getFontHeight(f4) + T.px(2)
+    local sc = ok and T.positive or T.danger
+    ZeD.Atoms.drawStatusDot(panel, tx, cy + math.floor((tm:getFontHeight(f1) - T.px(6)) / 2), sc, T.px(6))
+    panel:drawText(ok and m.ready or m.no, tx + T.px(11), cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
+    cy = cy + tm:getFontHeight(f1) + T.px(6)
+    -- facts: LABEL  value (with a dot for ok / bad)
+    local lw = 0
+    for _, f in ipairs(info.facts) do lw = math.max(lw, tm:MeasureStringX(f1, f.label)) end
+    lw = math.min(lw, math.floor(tw * 0.5))
+    local ac = T.accent
+    for _, f in ipairs(info.facts) do
+        local fh = T.px(FACT_H)
+        panel:drawText(ZeD.CraftingCore.truncText(f.label, f1, lw), tx, cy + math.floor((fh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+        local vx = tx + lw + T.px(10)
+        local dc = dotFor(f.state)
+        if dc then
+            ZeD.Atoms.drawStatusDot(panel, vx, cy + math.floor((fh - T.px(6)) / 2), dc, T.px(6))
+            vx = vx + T.px(11)
+        end
+        panel:drawText(ZeD.CraftingCore.truncText(f.value, f3, tx + tw - vx), vx, cy + math.floor((fh - tm:getFontHeight(f3)) / 2),
+            T.text.r, T.text.g, T.text.b, T.text.a or 1, f3)
+        cy = cy + fh
+    end
+    return math.max(ph, cy - y)
+end
+
+local function drawNotes(panel, x, y, w, notes)
+    local T, tm = ZeD.T, ZeD.TM
+    local y0 = y
+    local f2 = T.fontF2
+    for _, n in ipairs(notes) do
+        local dc = dotFor(n.state) or T.textDim
+        local lh = tm:getFontHeight(f2) + T.px(4)
+        ZeD.Atoms.drawStatusDot(panel, x + T.px(2), y + math.floor((lh - T.px(6)) / 2), dc, T.px(6))
+        panel:drawText(ZeD.CraftingCore.truncText(n.text, f2, w - T.px(16)), x + T.px(14), y + math.floor((lh - tm:getFontHeight(f2)) / 2),
+            T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+        y = y + lh
+    end
+    return y - y0
+end
+
+-- one list row: icon, name + sub, button
+local function drawRow(panel, s, x, y, w, id, tex, name, sub, label, primary, fn, enabled)
+    local T, tm = ZeD.T, ZeD.TM
+    local rh = T.px(ROW_H)
+    if primary then panel:drawRect(x, y, w, rh, 0.07, col(T.accent)) end
+    local isz = T.px(16)
+    if tex then panel:drawTextureScaledAspect(tex, x + T.px(2), y + math.floor((rh - isz) / 2), isz, isz, 1, 1, 1, 1) end
+    local bw = math.max(T.px(56), UI.buttonW(label))
+    local bx = x + w - T.px(2) - bw
+    local by = y + math.floor((rh - T.px(20)) / 2)
+    UI.button(panel, bx, by, label, { h = T.px(20), w = bw, primary = primary, disabled = enabled == false, focused = s.gpId == id })
+    stamp(s, id, bx, by, bw, T.px(20), fn)
+    local f2, f5 = T.fontF2, T.fontF5
+    local nx = x + T.px(2) + isz + T.px(8)
+    local nmax = bx - T.px(8) - nx
+    local ny = y + math.floor((rh - tm:getFontHeight(f2) - (sub and tm:getFontHeight(f5) or 0)) / 2)
+    panel:drawText(ZeD.CraftingCore.truncText(name or "?", f2, nmax), nx, ny, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+    if sub then
+        panel:drawText(ZeD.CraftingCore.truncText(sub, f5, nmax), nx, ny + tm:getFontHeight(f2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f5)
+    end
+    panel:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
+    return rh
+end
+
+-- facing: which face the cursor shows now (1 N, 2 W, 3 S, 4 E) and whether it turns
+local function facingInfo(cur, mode)
+    local omp = cur and cur.origMoveProps
+    if not omp then return nil end
+    local faces = call(omp, "hasFaces") == true
+    local dir = call(omp, "canRotateDirection") == true
+    if not (faces or dir) then return nil end
+    local idx = nil
+    if dir then idx = cur.joypadFacing end
+    if not idx and cur.currentMoveProps then idx = call(cur.currentMoveProps, "getFaceIndex") end
+    return { faces = faces, dir = dir, idx = idx }
+end
+
+local function setFacing(cur, mode, fi, idx)
+    if not cur then return end
+    if fi.dir then
+        cur.joypadFacing = idx
+    elseif mode == "rotate" then
+        cur.cursorFacing = nil
+        cur.objectIndex = idx
+    else
+        cur:setCursorFacing(idx)
+    end
+    pcall(function() getSoundManager():playUISound("UIObjectMenuObjectRotateOutline") end)
+end
+
+local function drawFacing(panel, s, x, y, w, cur, mode, fi)
+    local T, tm = ZeD.T, ZeD.TM
+    local h = T.px(24)
+    local f1 = T.fontF1
+    local ac = T.accent
+    panel:drawText("FACING", x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local bx = x + tm:MeasureStringX(f1, "FACING") + T.px(12)
+    local bw = T.px(42)
+    for _, fc in ipairs(FACES) do
+        local id = "fur:face:" .. fc[1]
+        local idx = fc[2]
+        UI.button(panel, bx, y + T.px(1), fc[1], { h = T.px(22), w = bw, primary = fi.idx == idx, focused = s.gpId == id })
+        stamp(s, id, bx, y + T.px(1), bw, T.px(22), function() setFacing(cur, mode, fi, idx) end)
+        bx = bx + bw + T.px(4)
+    end
+    return h
+end
+
+-- What a disassembly may give, from vanilla's scrap table (one row per item)
+local function yieldsOf(mp)
+    local out = {}
+    local defs = ISMoveableDefinitions and ISMoveableDefinitions:getInstance()
+    if not (defs and mp) then return out end
+    for _, mat in ipairs({ mp.material, mp.material2, mp.material3 }) do
+        local def = mat and defs.getScrapDefinition(mat)
+        if def then
+            for _, r in ipairs(def.returnItems or {}) do out[#out + 1] = { item = r.returnItem, max = r.maxAmount, chance = r.chancePerRoll } end
+            for _, r in ipairs(def.returnItemsStatic or {}) do out[#out + 1] = { item = r.returnItem, max = r.maxAmount, static = true } end
+        end
+    end
+    return out
+end
+
+local function drawYield(panel, x, y, w, r)
+    local T, tm = ZeD.T, ZeD.TM
+    local rh = T.px(24)
+    local si = getScriptManager():FindItem(r.item)
+    local tex = si and call(si, "getNormalTexture")
+    local isz = T.px(16)
+    if tex then panel:drawTextureScaledAspect(tex, x + T.px(2), y + math.floor((rh - isz) / 2), isz, isz, 1, 1, 1, 1) end
+    local f2, f3 = T.fontF2, T.fontF3
+    local name = (si and si:getDisplayName()) or tostring(r.item)
+    panel:drawText(ZeD.CraftingCore.truncText(name, f2, w - T.px(170)), x + T.px(2) + isz + T.px(8), y + math.floor((rh - tm:getFontHeight(f2)) / 2),
+        T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+    local ty = y + math.floor((rh - tm:getFontHeight(f3)) / 2)
+    ZeD.Atoms.drawTextRight(panel, r.static and "ALWAYS" or (tostring(r.chance or 0) .. "%"), x + w - T.px(2), ty, f3, T.textDim)
+    ZeD.Atoms.drawTextRight(panel, tostring(r.max or 0), x + w - T.px(80), ty, f3, T.text)
+    panel:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
+    return rh
+end
+
+-- ---------------------------------------------------------------------------
+-- RENDER
+-- ---------------------------------------------------------------------------
+function FT.render(panel, win, x, y, w, h)
+    local T, tm = ZeD.T, ZeD.TM
+    if not T then return end
+    local s = st(win)
+    s.zones, s.byId = {}, {}
+    s.gpId = gpFocusedId(win)
+    local pn = 0
+    local S = FT.state
+    local cur = cursorOf(pn)
+    if not S.active then
+        S.active = true
+        S.hadCursor = false
+        if not cur then cur = FT.startCursor(pn, S.mode) end
+    end
+    if cur then
+        S.hadCursor = true
+        S.mode = ISMoveableCursor.mode[pn] or S.mode
+    elseif S.hadCursor then
+        -- the cursor went (right click, the run key, interact): leave the tab
+        S.hadCursor = false
+        leaveTab(pn)
+        return
+    else
+        cur = FT.startCursor(pn, S.mode)
+    end
+    local mode = S.mode or "pickup"
+    local c = FT.cap[pn]
+    if c and c.mode ~= mode then c = nil end
+
+    -- header: title + pill
+    local hh = T.px(HEAD_H)
+    local s2 = T.surf2
+    panel:drawRect(x, y, w, hh, s2.a or 1, col(s2))
+    panel:drawRect(x, y + hh - T.px(1), w, T.px(1), T.borderS.a or 1, col(T.borderS))
+    local f4 = T.fontF4
+    local title = "Furniture"
+    panel:drawText(title, x + T.px(PAD), y + math.floor((hh - tm:getFontHeight(f4)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f4)
+    local pillC = (c and c.mp) and (c.canCreate and T.positive or T.danger) or T.textDim
+    UI.tag(panel, x + T.px(PAD) + tm:MeasureStringX(f4, title) + T.px(8), y + math.floor((hh - T.px(16)) / 2), modeLabel(mode), pillC, true)
+
+    -- mode strip
+    local sy = y + hh
+    local sh = T.px(STRIP_H)
+    panel:drawRect(x, sy + sh - T.px(1), w, T.px(1), T.borderS.a or 1, col(T.borderS))
+    local gap = T.px(4)
+    local bw = math.floor((w - T.px(16) - gap * (#MODES - 1)) / #MODES)
+    local bx = x + T.px(8)
+    for _, m in ipairs(MODES) do
+        local id = "fur:mode:" .. m.id
+        local mid = m.id
+        UI.button(panel, bx, sy + math.floor((sh - T.px(BTN_H)) / 2), string.upper(txt(m.key, m.fb)),
+            { h = T.px(BTN_H), w = bw, primary = mode == mid, focused = s.gpId == id })
+        stamp(s, id, bx, sy + math.floor((sh - T.px(BTN_H)) / 2), bw, T.px(BTN_H), function() FT.setMode(pn, mid) end)
+        bx = bx + bw + gap
+    end
+
+    -- body (scrolls as one unit; rows outside the view are skipped)
+    local top = sy + sh + T.px(8)
+    local bottom = y + h - T.px(6)
+    s.bodyTop, s.bodyBottom = top, bottom
+    local bx0, bw0 = x + T.px(PAD), w - T.px(PAD) * 2
+    local off = s.scrollY or 0
+    local cy = top - off
+    local function vis(yy, hh2) return yy >= top - T.px(2) and yy + hh2 <= bottom + T.px(2) end
+    local zonesBefore = #s.zones
+
+    local info = (c and c.mp) and readLines(c) or { facts = {}, notes = {} }
+    -- TARGET
+    local tH = T.px(PREV_H)
+    if c and c.mp then
+        local th0 = T.px(PREV_H)
+        local facts = #info.facts * T.px(FACT_H) + tm:getFontHeight(T.fontF4) + tm:getFontHeight(T.fontF1) + T.px(8)
+        tH = math.max(th0, facts)
+    end
+    if vis(cy, tH) then drawTarget(panel, s, bx0, cy, bw0, c, mode, info) end
+    cy = cy + tH + T.px(8)
+    -- notes (vanilla's blockers and remarks)
+    if #info.notes > 0 then
+        local nh = #info.notes * (tm:getFontHeight(T.fontF2) + T.px(4))
+        if vis(cy, nh) then drawNotes(panel, bx0, cy, bw0, info.notes) end
+        cy = cy + nh + T.px(6)
+    end
+    -- FACING (place, rotate)
+    if (mode == "place" or mode == "rotate") and cur then
+        local fi = facingInfo(cur, mode)
+        if fi then
+            if vis(cy, T.px(24)) then drawFacing(panel, s, bx0, cy, bw0, cur, mode, fi) end
+            cy = cy + T.px(24) + T.px(8)
+        end
+    end
+    -- MAY YIELD (disassemble)
+    if mode == "scrap" and c and c.mp then
+        local ys = yieldsOf(c.mp)
+        if #ys > 0 then
+            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, "MAY YIELD", "UP TO " .. DOT .. " ROLL CHANCE") end
+            cy = cy + T.px(SEC_H)
+            for _, r in ipairs(ys) do
+                if vis(cy, T.px(24)) then drawYield(panel, bx0, cy, bw0, r) end
+                cy = cy + T.px(24)
+            end
+            cy = cy + T.px(8)
+        end
+    end
+    -- lists
+    if cur then
+        if mode == "place" then
+            local list = cur.objectListCache
+            if not list then local ok, l = pcall(function() return cur:getInventoryObjectList() end); list = ok and l or {} end
+            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, "YOUR FURNITURE", tostring(#list)) end
+            cy = cy + T.px(SEC_H)
+            for i, e in ipairs(list) do
+                local it = e.object
+                local oi = cur.objectIndex or -1
+                local selected = (oi == i) or (oi < 1 and i == 1)
+                local idx = i
+                if vis(cy, T.px(ROW_H)) then
+                    drawRow(panel, s, bx0, cy, bw0, "fur:inv:" .. i, it and call(it, "getTex"), it and it:getDisplayName() or "?",
+                        (ZeD.ObjectCards.whereOf(it, getSpecificPlayer(pn)) or "") .. " " .. DOT .. " " .. string.format("%.1f", it and it:getActualWeight() or 0),
+                        selected and "ON CURSOR" or string.upper(txt("IGUI_Place", "Place")), selected,
+                        function() cur.objectIndex = idx; cur.cacheInvObjectSprite = nil; cur.cursorFacing = nil; cur.joypadFacing = nil end)
+                end
+                cy = cy + T.px(ROW_H)
+            end
+            if #list == 0 then
+                if vis(cy, T.px(22)) then panel:drawText("You carry no furniture.", bx0 + T.px(2), cy + T.px(4), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2) end
+                cy = cy + T.px(22)
+            end
+        elseif mode ~= "rotate" then
+            local list = cur.objectListCache
+            if type(list) == "table" and #list > 0 then
+                if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, "ON THIS TILE", tostring(#list)) end
+                cy = cy + T.px(SEC_H)
+                for i, e in ipairs(list) do
+                    local selected = (cur.objectIndex == i)
+                    local idx = i
+                    if vis(cy, T.px(ROW_H)) then
+                        drawRow(panel, s, bx0, cy, bw0, "fur:obj:" .. i, iconOfSprite(e.moveProps and e.moveProps.spriteName), displayName(e.moveProps),
+                            nil, "TARGET", selected, function() cur.objectIndex = idx end)
+                    end
+                    cy = cy + T.px(ROW_H)
+                end
+            end
+        end
+    end
+    -- scroll range
+    local total = (cy + off) - top
+    s.maxScroll = math.max(0, total - (bottom - top))
+    if (s.scrollY or 0) > s.maxScroll then s.scrollY = s.maxScroll end
+    if s.maxScroll > 0 then
+        local trackH = bottom - top
+        local thumbH = math.max(T.px(20), math.floor(trackH * (bottom - top) / math.max(1, total)))
+        local ty = top + math.floor((trackH - thumbH) * ((s.scrollY or 0) / s.maxScroll))
+        panel:drawRect(x + w - T.px(4), top, T.px(2), trackH, 0.5, col(T.border))
+        panel:drawRect(x + w - T.px(5), ty, T.px(4), thumbH, 1, col(T.borderS))
+    end
+    -- gamepad cue on the stamped zones (0.55 accent; buttons paint their own)
+    s.cur = cur
+end
+
+function FT.register(dispatch)
+    -- wrapper: a hot reload replaces the renderer, and a fault never takes the
+    -- window's frame down (logged once per distinct error)
+    dispatch["furniture"] = function(...)
+        local ok, err = pcall(ZeD.FurnitureTab.render, ...)
+        if not ok and FT._lastErr ~= tostring(err) then
+            FT._lastErr = tostring(err)
+            print("[ZeD] FurnitureTab: render failed: " .. tostring(err))
+        end
+    end
+end
+
+function FT.isVisible(win) return true end
+
+-- ---------------------------------------------------------------------------
+-- Mouse
+-- ---------------------------------------------------------------------------
+function FT.onClick(win, x, y)
+    local s = st(win)
+    for i = #s.zones, 1, -1 do
+        local z = s.zones[i]
+        if hit(z, x, y) and z.fn then
+            pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+            z.fn()
+            return true
+        end
+    end
+    return true
+end
+
+function FT.onMouseWheel(win, del)
+    local s = st(win)
+    s.scrollY = math.max(0, math.min(s.maxScroll or 0, (s.scrollY or 0) + ZeD.T.px(SCROLL_STEP) * del))
+    return true
+end
+
+-- ---------------------------------------------------------------------------
+-- Gamepad: this frame's zones; B hands the stick back to the world cursor
+-- ---------------------------------------------------------------------------
+function FT.buildFocusables(win)
+    local s = win and win._fur
+    if not s then return {} end
+    local els = {}
+    for _, z in ipairs(s.zones) do
+        local zz = z
+        els[#els + 1] = { x = zz.x, y = zz.y, w = zz.w, h = zz.h, id = zz.id,
+            onActivate = function() if zz.fn then zz.fn() end end,
+            onCancel = function()
+                local Focus = ZeD.Input and ZeD.Input.Focus
+                if Focus and Focus.releaseFocus then Focus.releaseFocus() end
+                return true
+            end,
+            promptB = "To the cursor" }
+    end
+    return els
+end
+
+function FT.focusKey(win)
+    local s = win and win._fur
+    if not s then return "none" end
+    local c = FT.cap[0]
+    return tostring(FT.state.mode) .. ":" .. tostring(#s.zones) .. ":" .. tostring(math.floor(s.scrollY or 0)) .. ":"
+        .. tostring(c and c.sq and (c.sq:getX() .. "," .. c.sq:getY()) or "-")
+end
+
+-- ---------------------------------------------------------------------------
+-- The chip at the cursor tile
+-- ---------------------------------------------------------------------------
+ZeD_FurnitureChip = ZeD_FurnitureChip or ISUIElement:derive("ZeD_FurnitureChip")
+
+function ZeD_FurnitureChip:new(pn)
+    local o = ISUIElement.new(self, 0, 0, 1, 1)
+    o.playerNum = pn
+    o.anchorLeft, o.anchorTop = true, true
+    return o
+end
+
+function ZeD_FurnitureChip:onMouseDown() return false end
+function ZeD_FurnitureChip:onMouseUp() return false end
+function ZeD_FurnitureChip:onRightMouseDown() return false end
+function ZeD_FurnitureChip:onRightMouseUp() return false end
+
+function ZeD_FurnitureChip:prerender()
+    local T, tm = ZeD.T, ZeD.TM
+    local pn = self.playerNum
+    local c = FT.cap[pn]
+    if not (FT.active(pn) and T and c and c.mp and c.sq and cursorOf(pn)) or c.mode ~= FT.state.mode then
+        self:setWidth(1); self:setHeight(1); self:setX(-10); self:setY(-10)
+        return
+    end
+    local info = readLines(c)
+    local ok = c.canCreate
+    local line = modeLabel(c.mode)
+    if not ok then
+        for _, n in ipairs(info.notes) do if n.state == "bad" then line = n.text; break end end
+        if line == modeLabel(c.mode) then
+            for _, f in ipairs(info.facts) do if f.state == "bad" then line = f.label .. " " .. f.value; break end end
+        end
+    end
+    self._name, self._line, self._ok = info.name or "?", line, ok
+    local f2, f1 = T.fontF2, T.fontF1
+    local w = T.px(7) + T.px(6) + T.px(6) + tm:MeasureStringX(f2, self._name) + T.px(8) + tm:MeasureStringX(f1, line) + T.px(7)
+    local h = T.px(20)
+    local sq = c.sq
+    local x = isoToScreenX(pn, sq:getX() + 1, sq:getY(), sq:getZ()) + T.px(6)
+    local y = isoToScreenY(pn, sq:getX(), sq:getY(), sq:getZ()) - math.floor(h / 2)
+    -- the mouse sits on the tile: flip above when the chip would cover it
+    local mx, my = getMouseX(), getMouseY()
+    if mx >= x and mx < x + w and my >= y and my < y + h then y = y - h - T.px(16) end
+    self:setX(x); self:setY(y); self:setWidth(w); self:setHeight(h)
+end
+
+function ZeD_FurnitureChip:render()
+    local T, tm = ZeD.T, ZeD.TM
+    if not (self._name and self:getWidth() > 2) then return end
+    local w, h = self:getWidth(), self:getHeight()
+    local s2 = T.surf2
+    self:drawRect(0, 0, w, h, 0.92, col(s2))
+    self:drawRectBorder(0, 0, w, h, T.borderS.a or 1, col(T.borderS))
+    local dc = self._ok and T.positive or T.danger
+    ZeD.Atoms.drawStatusDot(self, T.px(7), math.floor((h - T.px(6)) / 2), dc, T.px(6))
+    local f2, f1 = T.fontF2, T.fontF1
+    local nx = T.px(7) + T.px(12)
+    self:drawText(self._name, nx, math.floor((h - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+    local lc = self._ok and T.textDim or T.danger
+    self:drawText(self._line, nx + tm:MeasureStringX(f2, self._name) + T.px(8), math.floor((h - tm:getFontHeight(f1)) / 2), lc.r, lc.g, lc.b, lc.a or 1, f1)
+end
+
+local function ensureChip()
+    if FT.chip then return end
+    local chip = ZeD_FurnitureChip:new(0)
+    chip:initialise()
+    chip:addToUIManager()
+    FT.chip = chip
+end
+
+-- ---------------------------------------------------------------------------
+-- Hooks
+-- ---------------------------------------------------------------------------
+function FT.install()
+    if ISMoveableCursor and not ISMoveableCursor._zedFurnitureHooked then
+        ISMoveableCursor._zedFurnitureHooked = true
+        local orig = ISMoveableCursor.setInfoPanel
+        ISMoveableCursor.setInfoPanel = function(self, sq, obj, mp, tex)
+            local panel = orig(self, sq, obj, mp, tex)
+            local ok, err = pcall(FT.capture, self, sq, obj, mp, tex, panel)
+            if not ok then print("[ZeD] FurnitureTab: capture failed: " .. tostring(err)) end
+            return panel
+        end
+    end
+    if ISMoveableInfoWindow and not ISMoveableInfoWindow._zedFurnitureHooked then
+        ISMoveableInfoWindow._zedFurnitureHooked = true
+        local origR = ISMoveableInfoWindow.render
+        ISMoveableInfoWindow.render = function(self)
+            if FT.active(self.playerNum) then return end   -- the tab and the chip carry it
+            return origR(self)
+        end
+    end
+end
+
+if not FT._ticking then
+    FT._ticking = true
+    Events.OnTick.Add(function()
+        local ok, err = pcall(watch)
+        if not ok then print("[ZeD] FurnitureTab: watch failed: " .. tostring(err)) end
+        if FT.state.active then pcall(ensureChip) end
+    end)
+end
+if Events and Events.OnGameBoot then Events.OnGameBoot.Add(FT.install) end
+FT.install()
+
+print("[ZeD] FurnitureTab: Furniture tab loaded")
+return FT
