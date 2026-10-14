@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Fluids v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Fluid card, mockup v1 (Oct 13 2026)
+   Transfer Liquid + Container Info (HOOK_MAP rows 8 and 9): one fluid card in
+   the World window's card drawer, the slot the object cards use. Every number
+   is a DESIGN UNIT (1 px at 1080p); Zoom = root scale. Data is real 42.20.2
+   behaviour (see the parity table). Rules: 1px borders, no shadows/blur, Fira
+   only, no emoji, status dots, one scroll per pane, footer = confirmations,
+   focus = 0.55 accent. Parts reuse Visual Catalog v2.0: M16 slider, M18 fluid
+   gauge (horizontal, for the liquids list), A14 status dot; the tanks are the
+   vertical form of M18.
+   ============================================================================ */
+:root {
+  --base:#050505; --surf1:#111111; --surf2:#191919; --surf3:#202020; --surf4:#292929;
+  --border:#353535; --borderS:#555555;
+  --text:rgba(255,255,255,.95); --textDim:rgba(199,199,199,.75);
+  --danger:#FF5533; --warning:#FFCC22; --positive:#44DD44; --info:#4FA8E0;
+  --accent:#CCAA22; --accentBright:#EEDD44; --onAccent:#0C0C0C;
+  --a22:rgba(204,170,34,.22); --a55:rgba(204,170,34,.55);
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:980px; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.stage-wrap { overflow:auto; padding-bottom:6px; }
+.stage { position:relative; width:960px; height:516px; border:1px solid #2a2924; transform-origin:0 0;
+  background:radial-gradient(ellipse at 22% 35%, rgba(70,82,50,.55) 0%, transparent 55%), radial-gradient(ellipse at 78% 70%, rgba(60,52,40,.55) 0%, transparent 60%), repeating-linear-gradient(135deg, #1d1c17 0 6px, #191813 6px 12px); }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:980px; line-height:1.5; }
+
+/* window chrome (same as the live World window) */
+.win { position:absolute; left:18px; top:18px; width:924px; height:420px; background:color-mix(in srgb, var(--base) 95%, transparent); border:1px solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tbar { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS); background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.closebox { width:13px; height:13px; border:1px solid var(--textDim); background:var(--surf2); }
+.tbar .ttl, .tbar .tab { font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; }
+.tbar .ttl b { font-weight:400; color:var(--textDim); margin-left:8px; }
+.tbar .sp { flex:1; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; }
+.dot.pos { background:var(--positive); } .dot.warn { background:var(--warning); } .dot.dng { background:var(--danger); } .dot.off { background:transparent; border:1px solid var(--textDim); } .dot.inf { background:var(--info); }
+.wbody { flex:1; display:flex; min-height:0; }
+.wfoot { height:16px; flex:none; border-top:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; gap:3px; padding:0 3px; }
+.wfoot .mini { width:12px; height:12px; border:1px solid var(--border); font-family:var(--cond); font-size:9px; color:var(--textDim); display:flex; align-items:center; justify-content:center; }
+.wfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; align-items:center; }
+.glyph { display:inline-flex; width:12px; height:12px; border-radius:50%; font-family:var(--sans); font-weight:600; font-size:8px; color:#0c0c0c; align-items:center; justify-content:center; margin-right:4px; }
+.g-a { background:#5dbb3a; } .g-b { background:#d9452b; } .g-x { background:#3d7bd9; } .g-y { background:#e3b52a; }
+.wfoot .grip { margin-left:auto; width:12px; height:12px; background:repeating-linear-gradient(135deg, transparent 0 3px, var(--textDim) 3px 4px); opacity:.6; }
+.cstrip { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); }
+.cbtn { width:36px; height:36px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.cbtn.on { background:var(--accent); }
+.inv { width:372px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--borderS); background:var(--surf1); }
+.invh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.invh .h { font-family:var(--cond); font-weight:600; font-size:15px; } .invh .n { margin-left:auto; font-family:var(--cond); font-size:10px; color:var(--textDim); }
+.colh { height:20px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.colh .u { text-decoration:underline; text-underline-offset:2px; color:var(--text); }
+.irow { height:24px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; }
+.irow .ct { font-family:var(--mono); font-size:10px; color:var(--accent); } .irow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.irow .ds { font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.cath { height:18px; display:flex; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.tstrip { width:36px; flex:none; border-left:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.tbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accent); opacity:.8; }
+.tbtn.on { background:var(--accent); color:var(--onAccent); opacity:1; }
+.tsep { height:1px; background:var(--borderS); margin:2px 4px; }
+
+/* ---------------------------------------------------------------------------
+   OBJECT CARD — the drawer card shared by every info surface
+   --------------------------------------------------------------------------- */
+.drawer { width:480px; flex:none; display:flex; flex-direction:column; background:var(--surf1); min-width:0; position:relative; }
+.dh { height:37px; flex:none; display:flex; align-items:center; gap:6px; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.bbtn { height:22px; min-width:22px; padding:0 7px; display:flex; align-items:center; justify-content:center; gap:5px; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.bbtn.primary { background:var(--accent); color:var(--onAccent); border-top-color:var(--accentBright); border-left-color:var(--accentBright); }
+.bbtn.dis { opacity:.35; }
+.bbtn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.bbtn.primary.focus { box-shadow:none; background:var(--accentBright); }
+.dh .ico { width:22px; height:22px; flex:none; border:1px solid var(--borderS); background:var(--surf1); display:flex; align-items:center; justify-content:center; }
+.dh .ico i { width:12px; height:12px; display:block; }
+.dh .nm { font-family:var(--cond); font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pill { height:16px; padding:0 7px; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; white-space:nowrap; border:1px solid currentColor; }
+.pill.pos { color:var(--positive); } .pill.dng { color:var(--danger); } .pill.dim { color:var(--textDim); } .pill.warn { color:var(--warning); }
+.browse { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.vbar { height:32px; flex:none; display:flex; align-items:center; gap:4px; padding:0 8px; border-bottom:1px solid var(--borderS); background:var(--surf1); }
+.ob { flex:1; overflow-y:auto; min-height:0; padding:8px 10px 10px; display:flex; flex-direction:column; gap:8px; }
+.ob::-webkit-scrollbar { width:14px; } .ob::-webkit-scrollbar-track { background:var(--surf1); border-left:1px solid var(--border); } .ob::-webkit-scrollbar-thumb { background:var(--surf4); border:1px solid var(--borderS); }
+.meter .lr { display:flex; align-items:baseline; justify-content:space-between; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:4px; }
+.meter .lr .v { font-size:12px; color:var(--text); font-weight:500; letter-spacing:.5px; display:flex; gap:6px; align-items:center; }
+.fill { height:12px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.fill i { position:absolute; left:0; top:0; bottom:0; display:block; }
+.fill .zone { position:absolute; top:0; bottom:0; background:color-mix(in srgb, var(--info) 18%, transparent); border-left:1px solid color-mix(in srgb, var(--info) 60%, transparent); border-right:1px solid color-mix(in srgb, var(--info) 60%, transparent); }
+.fill i { z-index:1; }
+.cs { height:20px; display:flex; align-items:center; gap:6px; padding:0 2px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); border-bottom:1px solid var(--borderS); }
+.cs .c { margin-left:auto; font-weight:400; }
+.lrow { height:24px; display:grid; grid-template-columns:18px 1fr auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.lrow .ic, .pick .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.lrow .v { font-family:var(--mono); font-size:11px; color:var(--textDim); }
+.lrow.tot { font-family:var(--mono); font-size:11px; border-bottom:none; }
+.pick { height:26px; display:grid; grid-template-columns:18px 1fr auto auto auto; gap:8px; align-items:center; padding:0 2px; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.pick .loc { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.pick .gain { font-family:var(--mono); font-size:11px; color:var(--positive); }
+.pick.gpf { background:var(--a55); }
+.warnband { display:flex; gap:8px; align-items:flex-start; padding:7px 8px; border:1px solid var(--danger); background:color-mix(in srgb, var(--danger) 12%, transparent); font-size:12px; line-height:1.35; }
+.needs { font-family:var(--mono); font-size:10px; color:var(--textDim); display:flex; gap:6px; align-items:center; }
+.stat2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+.srow { height:20px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.srow .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; }
+.srow .v { font-family:var(--mono); font-size:12px; color:var(--text); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.dfoot { height:32px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:12px; }
+.dfoot .msg { display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dfoot.confirm { background:color-mix(in srgb, var(--danger) 12%, var(--surf2)); }
+.dfoot .sp { flex:1; }
+
+
+.win { height:480px; }
+.tag { height:14px; padding:0 5px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--textDim); border:1px solid var(--border); white-space:nowrap; }
+.tag.acc { color:var(--accent); border-color:var(--accent); } .tag.dng { color:var(--danger); border-color:var(--danger); } .tag.pos { color:var(--positive); border-color:var(--positive); }
+.tag.warn { color:var(--warning); border-color:var(--warning); }
+.tag.inf { color:var(--info); border-color:var(--info); }
+
+/* ---------------------------------------------------------------------------
+   FLUID CARD
+   --------------------------------------------------------------------------- */
+/* the two tanks: vertical M18 gauges with the after-pour level */
+.tanks { display:grid; grid-template-columns:150px 1fr 150px; gap:10px; align-items:stretch; }
+.vessel { display:flex; flex-direction:column; align-items:center; gap:5px; padding:6px 6px 7px; border:1px solid var(--border); background:var(--surf2); }
+.vessel.empty { border-style:dashed; background:transparent; }
+.vessel .lbl { font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--accent); }
+.vessel .vn { font-family:var(--cond); font-weight:600; font-size:13px; text-align:center; line-height:1.15; max-width:136px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.vessel .va { font-family:var(--mono); font-size:11px; color:var(--textDim); }
+.vessel .va b { color:var(--text); font-weight:500; }
+.vessel .hint { flex:1; display:flex; align-items:center; text-align:center; font-family:var(--mono); font-size:10px; color:var(--textDim); line-height:1.4; padding:0 6px; }
+.tank { position:relative; width:60px; height:104px; border:1px solid var(--borderS); background:var(--surf1); overflow:hidden; }
+.tank .lyr { position:absolute; left:0; right:0; }
+.tank .gone { position:absolute; left:0; right:0; background:repeating-linear-gradient(135deg, transparent 0 3px, rgba(255,255,255,.14) 3px 5px); }
+.tank .inc { position:absolute; left:0; right:0; opacity:.55; background-image:repeating-linear-gradient(135deg, transparent 0 3px, rgba(0,0,0,.35) 3px 5px); }
+.tank .after { position:absolute; left:-1px; right:-1px; height:0; border-top:2px solid var(--text); }
+.tank .tk { position:absolute; right:0; width:8px; height:0; border-top:1px solid var(--borderS); }
+.tank .tk.l { width:14px; }
+.flow { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+.flow .arrow { display:flex; align-items:center; width:100%; }
+.flow .arrow i { flex:1; height:4px; background:var(--accent); }
+.flow .arrow b { width:0; height:0; border-top:8px solid transparent; border-bottom:8px solid transparent; border-left:12px solid var(--accent); }
+.flow.off .arrow i { background:var(--border); } .flow.off .arrow b { border-left-color:var(--border); }
+.flow .amt { font-family:var(--cond); font-weight:600; font-size:28px; line-height:1; }
+.flow .amt small { font-family:var(--mono); font-weight:400; font-size:11px; color:var(--textDim); margin-left:3px; }
+.flow .sub { font-family:var(--mono); font-size:10px; color:var(--textDim); letter-spacing:.5px; }
+.flow .fl { font-family:var(--mono); font-size:10px; display:flex; align-items:center; gap:5px; }
+
+/* amount: M16 slider + steps */
+.amount { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; }
+.amount .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); }
+.slider { position:relative; height:22px; display:flex; align-items:center; }
+.slider .tr { position:absolute; left:0; right:0; height:6px; background:var(--surf1); border:1px solid var(--borderS); }
+.slider .fi { position:absolute; left:0; height:6px; background:var(--accent); }
+.slider .th { position:absolute; width:12px; height:18px; margin-left:-6px; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; }
+.slider .tick { position:absolute; width:1px; height:4px; top:16px; background:var(--borderS); }
+.slider.focus .th { box-shadow:0 0 0 3px var(--a55); background:var(--accentBright); }
+.steps { display:flex; gap:4px; }
+.steps .bbtn { height:20px; min-width:30px; font-size:9px; padding:0 5px; }
+
+/* liquids list: M18 horizontal gauge per liquid */
+.liq { height:24px; display:grid; grid-template-columns:12px 1fr 120px 56px 34px; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.liq .sw { width:12px; height:12px; border:1px solid var(--borderS); }
+.liq .bar { height:8px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.liq .bar i { position:absolute; left:0; top:0; bottom:0; }
+.liq .v { font-family:var(--mono); font-size:11px; text-align:right; }
+.liq .p { font-family:var(--mono); font-size:11px; color:var(--textDim); text-align:right; }
+.liq.tot { border-bottom:none; font-family:var(--mono); font-size:11px; color:var(--textDim); }
+.poison { height:24px; display:flex; align-items:center; gap:8px; padding:0 2px; border-bottom:1px solid var(--border); }
+.poison .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); }
+.poison .v { margin-left:auto; font-family:var(--mono); font-size:11px; display:flex; align-items:center; gap:6px; }
+
+/* your containers: FROM / INTO per row */
+.crow { height:30px; display:grid; grid-template-columns:18px 1fr 104px auto auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.crow .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.crow .nm { display:flex; flex-direction:column; min-width:0; }
+.crow .nm span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.crow .nm small { font-family:var(--mono); font-size:9px; color:var(--textDim); letter-spacing:.5px; }
+.crow .mini { display:flex; flex-direction:column; gap:2px; }
+.crow .mini .bar { height:6px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.crow .mini .bar i { position:absolute; left:0; top:0; bottom:0; }
+.crow .mini span { font-family:var(--mono); font-size:9px; color:var(--textDim); text-align:right; }
+.crow .tg { display:flex; justify-content:flex-end; min-width:74px; }
+.crow .two { display:flex; gap:4px; }
+.crow .two .bbtn { height:20px; min-width:44px; font-size:9px; }
+.crow.sel { background:color-mix(in srgb, var(--accent) 7%, transparent); }
+.crow.pin { border-bottom:1px solid var(--borderS); }
+
+/* progress band (item card) */
+.band { display:grid; grid-template-columns:auto 1fr auto auto; gap:10px; align-items:center; padding:6px 8px; border:1px solid var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent); }
+.band .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); }
+.band .pb { height:8px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.band .pb i { position:absolute; left:0; top:0; bottom:0; background:var(--accent); }
+.band .v { font-family:var(--mono); font-size:11px; }
+
+/* notes */
+.notes { max-width:1060px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes p, .notes li { font-size:13px; line-height:1.6; color:#c4bfb1; }
+.notes ol { padding-left:20px; } .notes li { margin-bottom:8px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+table.parity { border-collapse:collapse; width:100%; font-size:12px; }
+table.parity th, table.parity td { border:1px solid #34322c; padding:5px 8px; text-align:left; vertical-align:top; color:#c4bfb1; line-height:1.45; }
+table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#d8c070; background:#17160f; text-transform:uppercase; }
+
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI · World window · fluid card · mockup v1</div>
+<h1>Fluids: pour and container info</h1>
+<p class="lede">Vanilla opens a floating "Transfer Liquid" window: two boxes you fill by choosing an item from a pop-up menu, a Switch button, a slider and Pour. Its "Container Info" is a second window with the same box, read-only. ZeD folds both into one <b>fluid card</b> in the World window's card drawer, the slot the object cards use. Two tanks side by side show what pours where and how full each ends up, one amount control sets the pour, and your containers sit in a list under it, each with FROM and INTO. Switch the scenes above the window.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlState"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlInput"></div></div>
+  <div class="ctl"><span>Base</span><div class="seg" id="ctlBase"></div></div>
+  <div class="ctl"><span>World accent</span><div class="swatches" id="ctlAccent"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap"><div class="stage" id="stage">
+  <div class="win">
+    <div class="tbar"><div class="closebox"></div><div class="ttl">Ground<b id="gcount">0</b></div><div class="sp"></div><div class="tab"><span class="dot"></span><span id="tabname">Loot</span></div></div>
+    <div class="wbody">
+      <div class="cstrip"><div class="cbtn on"></div><div class="cbtn"></div></div>
+      <div class="inv" id="inv"></div>
+      <div class="drawer" id="drawer"></div>
+      <div class="tstrip"><div class="tbtn on">L</div><div class="tbtn">C</div><div class="tbtn">B</div><div class="tsep"></div><div class="tbtn">M</div><div class="tbtn">F</div><div class="tbtn">A</div></div>
+    </div>
+    <div class="wfoot" id="wfoot"></div>
+  </div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes" id="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>One fluid card for pouring and for Container Info, in the World window's card drawer.</b> Every vanilla way in opens it: an item's Liquid menu (Container Info, Transfer Liquid), a rain barrel, sink, toilet, bathtub or well (Transfer, Info), and a fluid slot on a crafting station. The container you opened it from is the starting point. Info is the same card with nothing chosen to pour into yet. The floating vanilla windows never show.</li>
+      <li><span class="rec">RECOMMEND</span><b>Two tanks, side by side.</b> POUR FROM on the left, POUR INTO on the right, each a vertical fill gauge in the liquid's own colour with a white line where it will end up. The hatched part leaves the left tank and arrives in the right one, so you see before you pour how full both will be. Between them, the arrow and the amount.</li>
+      <li><span class="rec">RECOMMEND</span><b>Your containers are a list, not a pop-up menu.</b> Vanilla fills each box by opening a menu of items. The card lists every liquid container you carry, with its fill and a tag saying what a pour would do (EMPTY, SAME, MIXES, FULL, WON'T MIX, WON'T TAKE, using vanilla's own reasons), and two buttons on each row: FROM and INTO. A world container you opened it from stays pinned at the top.</li>
+      <li><span class="rec">RECOMMEND</span><b>One amount control.</b> The catalog slider (M16) runs from nothing to the most that can pour (the smaller of what the left holds and the room in the right, vanilla's Max Pour), and starts at the most, as vanilla does. 1/4, 1/2 and ALL set it in one press. On a controller, left and right on the slider step it by 5% and hold repeats.</li>
+      <li><span class="rec">RECOMMEND</span><b>What is in it, as vanilla knows it.</b> Under the tanks, LIQUIDS lists what the left container holds, each liquid with its share, in vanilla's words (Water, Bleach, Mixture). Tainted water and poison show the way vanilla's tooltip shows them (the tainted label follows the sandbox setting; poison reads Mild to Deadly), with the warning on the pill.</li>
+      <li><span class="rec">RECOMMEND</span><b>Header verbs: POUR, SWITCH, EMPTY.</b> POUR walks to a world container if needed and runs vanilla's pour; while it runs, the item card's progress band shows the litres moved with STOP. SWITCH swaps the two sides. EMPTY pours the left container out on the ground and asks in the footer first. When POUR cannot run, the NEEDS line carries vanilla's reason ("Cannot mix these liquids.").</li>
+      <li><span class="rec">RECOMMEND</span><b>One distance rule, as the object cards.</b> Vanilla closes its window past 2 tiles from a world container. The card stays open within 6 tiles, like the other object cards, and walks back when you pour.</li>
+      <li><b>Litres everywhere.</b> Amounts read in litres, vanilla's unit: two decimals under 10 L (0.25 L), one under 100 L (96.0 L), whole litres above (160 L). A container whose amount vanilla hides reads UNKNOWN.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Everything vanilla does, and where it goes</h2>
+    <table class="parity">
+      <tr><th style="width:38%">Vanilla</th><th>Fluid card</th></tr>
+      <tr><td><b>Entry points:</b> item menu Liquid &gt; Container Info / Transfer Liquid / Empty (<code>ISFluidContainerMenu</code>); world containers Transfer / Info / Empty (<code>ISWorldObjectContextMenu.onFluidTransfer / onFluidInfo / onFluidEmpty</code>); crafting fluid slots (<code>ISFluidSlot</code>). All end in <code>ISFluidTransferUI.OpenPanel</code> or <code>ISFluidInfoUI.OpenPanel</code> through a short timed action.</td><td>Hook both <code>OpenPanel</code> functions: one card, in the World window drawer. Empty stays a right-click action and is also the EMPTY verb.</td></tr>
+      <tr><td><b>Transfer window:</b> Pouring From and Pouring To boxes, each a drop box (drag an item, or click for a menu of your items), container name, Capacity / Stored / Free, a vertical liquid bar with the after-pour level; Switch; Max Pour; slider (starts at max); Pouring amount; Pour and Close; the reason text in red when it cannot pour.</td><td>Two tanks with name, amount / capacity and the after-pour level; SWITCH; the amount control with Max Pour; POUR; NEEDS line with the reason; your containers list with FROM / INTO instead of the drop boxes.</td></tr>
+      <tr><td><b>Rules:</b> only items in your inventory that you may empty; a world container is fixed on one side; Max Pour = the smaller of the source amount and the target's free room, rounded; refusals: nothing to pour, container is full, cannot pour into itself, target locked, cannot mix these liquids, target does not take this liquid. While pouring, both boxes lock and the Pour button fills with progress.</td><td>The same rules. Row tags carry the refusal before you pick. While pouring, the progress band (litres moved, STOP) and the list locks.</td></tr>
+      <tr><td><b>Info window:</b> one read-only box (name, Capacity / Stored / Free, bar with a tooltip listing the liquids and their shares, tainted and poison lines). Closes past 2 tiles.</td><td>The same card with nothing in POUR INTO; LIQUIDS list with shares; tainted / poison on the pill and in the list.</td></tr>
+      <tr><td><b>Controller:</b> LB / RB pick the left / right item through a menu; A pours, X switches, B closes; the slider takes the D-pad.</td><td>LB / RB stay the window keys. D-pad walks the card; A on a row's FROM or INTO picks it; left / right on the slider set the amount; A on POUR; B closes (or cancels the EMPTY question).</td></tr>
+    </table>
+  </div>
+</section>
+
+<script>
+const S = { state:"pour", input:"mouse", base:"hicon", accent:"yellow", zoom:1 };
+const STATES = [["pour","Bottle into a pot"],["barrel","From a rain barrel"],["mix","Bleach mixture"],["cant","Will not mix"],["pouring","Pouring"],["empty","Empty (confirm)"],["info","Container Info"]];
+const $ = id => document.getElementById(id);
+const gp = () => S.input === "gamepad";
+const DOT = "&middot;";
+
+const CAPTIONS = {
+  pour:"A water bottle into an empty cooking pot. The amount starts at the most that can pour (all 1.20 L here). The hatched band leaves the bottle and lands in the pot; the white lines are where both end up.",
+  barrel:"Opened from a rain barrel's Transfer. The barrel is pinned at the top of the list; its water is tainted, so the pill and the liquid row say so (the sandbox shows tainted water). Max Pour is the room left in the bottle.",
+  mix:"A bucket of water with bleach in it. LIQUIDS gives each share; the poison line reads vanilla's level, and the pill warns. The cooking pot holds water, so the pour MIXES.",
+  cant:"Petrol into a bottle that holds water: vanilla refuses with \"Cannot mix these liquids.\" The tag on the row says WON'T MIX before you pick it, and the NEEDS line carries vanilla's reason once picked.",
+  pouring:"While it pours, the item card's progress band shows the litres moved, with STOP. The verbs and the list lock until it ends, as vanilla's boxes do.",
+  empty:"EMPTY pours the left container out on the ground, so it asks in the footer first.",
+  info:"Container Info on a mug of coffee: the same card with nothing to pour into yet. Pick INTO on any row (or FROM, to look at another container) and it becomes a pour."
+};
+
+/* ---------- shared pieces ---------- */
+function verb(label, kind, focus) { return `<span class="bbtn${kind ? " " + kind : ""}${focus && gp() ? " focus" : ""}">${label}</span>`; }
+function head(icon, name, pill) {
+  return `<div class="dh">${verb("&lt;", "", false)}<span class="ico"><i style="background:${icon}"></i></span><span class="nm">${name}</span>${pill}</div>`;
+}
+function cs(label, count) { return `<div class="cs">${label}${count !== undefined ? `<span class="c">${count}</span>` : ""}</div>`; }
+function confirmFoot(text, yes) { return `<div class="dfoot confirm"><span class="msg"><span class="dot dng"></span>${text}</span><span class="sp"></span>${verb("CANCEL", "", false)}${verb(yes, "primary", true)}</div>`; }
+function needsLine(items) { return items.length ? `<div class="needs"><span class="dot off"></span>${items.join(` ${DOT} `)}</div>` : ""; }
+function pill(text, kind, dotColor) { return `<span class="pill ${kind}"><span class="dot" style="background:${dotColor || "currentColor"}"></span>${text}</span>`; }
+
+const C = { water:"#5A8FC0", tainted:"#7C8A5C", petrol:"#C9A227", bleach:"#DCDCC8", coffee:"#6B4126", soup:"#B5652E" };
+/* litres: two decimals under 10 L, one under 100 L, whole litres above */
+const L = v => (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + " L";
+
+/* a vertical tank: cap litres; layers [[litres, colour]] bottom-up; after = litres after the pour;
+   inc = [litres, colour] arriving (drawn above the current fill) */
+function tank(cap, layers, after, inc) {
+  const H = 104, px = l => Math.round(H * l / cap);
+  let y = 0, html = "";
+  layers.forEach(([l, c]) => { const h = px(l); html += `<span class="lyr" style="bottom:${y}px;height:${h}px;background:${c}"></span>`; y += h; });
+  const now = y;
+  if (after !== undefined && after < layers.reduce((a, b) => a + b[0], 0)) {
+    const a = px(after); html += `<span class="gone" style="bottom:${a}px;height:${now - a}px"></span>`;
+  }
+  if (inc) { const h = px(inc[0]); html += `<span class="inc" style="bottom:${now}px;height:${h}px;background-color:${inc[1]}"></span>`; }
+  [0.25, 0.5, 0.75].forEach((f, i) => { html += `<span class="tk${i === 1 ? " l" : ""}" style="bottom:${Math.round(H * f)}px"></span>`; });
+  if (after !== undefined) html += `<span class="after" style="bottom:${px(after)}px"></span>`;
+  return `<div class="tank">${html}</div>`;
+}
+function vessel(lbl, name, amt, cap, layers, after, inc) {
+  return `<div class="vessel"><span class="lbl">${lbl}</span>${tank(cap, layers, after, inc)}<span class="vn">${name}</span><span class="va"><b>${amt}</b> / ${L(cap)}</span></div>`;
+}
+function emptyVessel(lbl, hint) { return `<div class="vessel empty"><span class="lbl">${lbl}</span><span class="hint">${hint}</span></div>`; }
+function flow(amount, max, fluidName, fluidColor, off) {
+  const num = amount === null ? "" : `<div class="amt">${amount}<small>L</small></div><span class="sub">MAX POUR ${max}</span>`;
+  return `<div class="flow${off ? " off" : ""}"><span class="fl"><span class="dot" style="background:${fluidColor}"></span>${fluidName}</span><div class="arrow"><i></i><b></b></div>${num}</div>`;
+}
+function amountRow(frac, focus, off) {
+  const ticks = [0.25, 0.5, 0.75].map(f => `<span class="tick" style="left:${f * 100}%"></span>`).join("");
+  return `<div class="amount"${off ? ` style="opacity:.35"` : ""}><span class="l">AMOUNT</span><div class="slider${focus && gp() ? " focus" : ""}"><span class="tr"></span><span class="fi" style="width:${frac * 100}%"></span>${ticks}<span class="th" style="left:${frac * 100}%"></span></div><div class="steps">${verb("1/4")}${verb("1/2")}${verb("ALL", frac === 1 ? "primary" : "")}</div></div>`;
+}
+function liq(name, color, litres, cap, pct, extra) {
+  return `<div class="liq"><span class="sw" style="background:${color}"></span><span>${name}${extra || ""}</span><span class="bar"><i style="width:${Math.round(100 * litres / cap)}%;background:${color}"></i></span><span class="v">${L(litres)}</span><span class="p">${pct}%</span></div>`;
+}
+/* a row of your containers: name, where, fill, tag, FROM / INTO */
+function crow(o) {
+  const fillPct = o.cap ? Math.round(100 * o.amt / o.cap) : 0;
+  const fromK = (o.isFrom ? "primary" : (o.amt <= 0 ? "dis" : "")) + (o.lock ? " dis" : "");
+  const intoK = (o.isInto ? "primary" : (o.noInto ? "dis" : "")) + (o.lock ? " dis" : "");
+  return `<div class="crow${o.isFrom || o.isInto ? " sel" : ""}${o.pin ? " pin" : ""}"><span class="ic"${o.tint ? ` style="background:${o.tint}"` : ""}></span>
+    <span class="nm"><span>${o.name}</span><small>${o.where}</small></span>
+    <span class="mini"><span class="bar"><i style="width:${fillPct}%;background:${o.color || "var(--borderS)"}"></i></span><span>${o.amtText || L(o.amt)} / ${L(o.cap)}</span></span>
+    <span class="tg">${o.isFrom ? "" : (o.tag || "")}</span>
+    <span class="two">${verb("FROM", fromK, o.focusFrom)}${verb("INTO", intoK, o.focusInto)}</span></div>`;
+}
+const T = (t, k) => `<span class="tag ${k || ""}">${t}</span>`;
+
+/* ---------- scenes ---------- */
+function scene() {
+  const st = S.state;
+  let name, icon, pl, verbs, body = "", foot = "";
+  if (st === "pour" || st === "pouring" || st === "empty") {
+    const pouring = st === "pouring";
+    name = "Water Bottle"; icon = C.water; pl = pill("WATER", "dim", C.water);
+    verbs = pouring ? verb("POUR", "primary dis") + verb("SWITCH", "dis") + verb("EMPTY", "dis")
+                    : verb("POUR", "primary", st === "pour") + verb("SWITCH") + verb("EMPTY");
+    const moved = pouring ? 0.55 : 0;
+    body += `<div class="tanks">${vessel("POUR FROM", "Water Bottle", L(1.20 - moved), 2.0, [[1.20 - moved, C.water]], 0, pouring ? [0, C.water] : undefined)}
+      ${flow("1.20", "1.20 L", "Water", C.water)}
+      ${vessel("POUR INTO", "Cooking Pot", L(moved), 3.0, moved ? [[moved, C.water]] : [], 1.20, [1.20 - moved, C.water])}</div>`;
+    if (pouring) body += `<div class="band"><span class="l">POURING</span><span class="pb"><i style="width:46%"></i></span><span class="v">0.55 of 1.20 L</span>${verb("STOP", "", true)}</div>`;
+    else body += amountRow(1, false);
+    body += cs("LIQUIDS", "WATER BOTTLE") + liq("Water", C.water, 1.20 - moved, 2.0, 100);
+    body += cs("YOUR CONTAINERS", "6");
+    const lk = pouring;   /* the list locks while it pours, as vanilla's boxes do */
+    body += crow({ name:"Water Bottle", where:"INVENTORY", amt:1.20 - moved, cap:2.0, color:C.water, tint:C.water, isFrom:true, lock:lk });
+    body += crow({ name:"Cooking Pot", where:"INVENTORY", amt:moved, cap:3.0, color:C.water, tint:moved ? C.water : null, tag:moved ? T("SAME") : T("EMPTY"), isInto:true, lock:lk });
+    body += crow({ name:"Mug", where:"INVENTORY", amt:0.10, cap:0.30, color:C.coffee, tint:C.coffee, tag:T("MIXES", "warn"), lock:lk });
+    body += crow({ name:"Gas Can", where:"BACKPACK", amt:5.0, cap:10.0, color:C.petrol, tint:C.petrol, tag:T("WON'T MIX", "dng"), noInto:true, lock:lk });
+    body += crow({ name:"Bucket", where:"BACKPACK", amt:0, cap:10.0, tag:T("EMPTY"), lock:lk });
+    body += crow({ name:"Bleach", where:"BACKPACK", amt:0.50, cap:1.0, color:C.bleach, tint:C.bleach, tag:T("WON'T TAKE", "dng"), noInto:true, lock:lk });
+    if (st === "empty") foot = confirmFoot("Pour 1.20 L of water out on the ground?", "EMPTY");
+  } else if (st === "barrel") {
+    name = "Rain Collector Barrel"; icon = "#4a5a3a"; pl = pill("TAINTED WATER", "dng", C.tainted);
+    verbs = verb("POUR", "primary", true) + verb("SWITCH") + verb("EMPTY");
+    body += `<div class="tanks">${vessel("POUR FROM", "Rain Collector Barrel", L(96.0), 160.0, [[96.0, C.tainted]], 94.3)}
+      ${flow("1.70", "1.70 L", "Water (Tainted)", C.tainted)}
+      ${vessel("POUR INTO", "Water Bottle", L(0.30), 2.0, [[0.30, C.water]], 2.0, [1.70, C.tainted])}</div>`;
+    body += amountRow(1, false);
+    body += cs("LIQUIDS", "RAIN COLLECTOR BARREL") + liq("Water", C.tainted, 96.0, 160.0, 100, ` ${T("TAINTED", "dng")}`);
+    body += cs("YOUR CONTAINERS", "3");
+    body += crow({ name:"Rain Collector Barrel", where:"WORLD " + DOT + " 1 TILE", amt:96.0, cap:160.0, color:C.tainted, tint:"#4a5a3a", tag:T("FROM", "acc"), isFrom:true, pin:true });
+    body += crow({ name:"Water Bottle", where:"INVENTORY", amt:0.30, cap:2.0, color:C.water, tint:C.water, tag:T("MIXES", "warn"), isInto:true });
+    body += crow({ name:"Cooking Pot", where:"INVENTORY", amt:0, cap:3.0, tag:T("EMPTY") });
+    body += crow({ name:"Bucket", where:"BACKPACK", amt:0, cap:10.0, tag:T("EMPTY") });
+  } else if (st === "mix") {
+    name = "Bucket"; icon = C.bleach; pl = pill("POISON " + DOT + " SEVERE", "dng", "var(--danger)");
+    verbs = verb("POUR", "primary") + verb("SWITCH") + verb("EMPTY");
+    body += `<div class="tanks">${vessel("POUR FROM", "Bucket", L(2.50), 10.0, [[2.0, C.water], [0.5, C.bleach]], 0)}
+      ${flow("2.50", "2.50 L", "Mixture", C.bleach)}
+      ${vessel("POUR INTO", "Cooking Pot", L(0.40), 3.0, [[0.40, C.water]], 2.90, [2.50, C.bleach])}</div>`;
+    body += amountRow(1, true);
+    body += cs("LIQUIDS", "MIXTURE") + liq("Water", C.water, 2.0, 2.5, 80) + liq("Bleach", C.bleach, 0.5, 2.5, 20);
+    body += `<div class="poison"><span class="l">POISON</span><span class="v"><span class="dot dng"></span>Severe</span></div>`;
+    body += cs("YOUR CONTAINERS", "4");
+    body += crow({ name:"Bucket", where:"BACKPACK", amt:2.50, cap:10.0, color:C.bleach, tint:C.bleach, tag:T("FROM", "acc"), isFrom:true });
+    body += crow({ name:"Cooking Pot", where:"INVENTORY", amt:0.40, cap:3.0, color:C.water, tint:C.water, tag:T("MIXES", "warn"), isInto:true });
+    body += crow({ name:"Water Bottle", where:"INVENTORY", amt:1.20, cap:2.0, color:C.water, tint:C.water, tag:T("MIXES", "warn") });
+    body += crow({ name:"Mug", where:"INVENTORY", amt:0, cap:0.30, tag:T("EMPTY") });
+  } else if (st === "cant") {
+    name = "Gas Can"; icon = C.petrol; pl = pill("PETROL", "dim", C.petrol);
+    verbs = verb("POUR", "primary dis") + verb("SWITCH") + verb("EMPTY");
+    body += `<div class="tanks">${vessel("POUR FROM", "Gas Can", L(5.0), 10.0, [[5.0, C.petrol]])}
+      ${flow("0.00", "0.00 L", "Petrol", C.petrol, true)}
+      ${vessel("POUR INTO", "Water Bottle", L(1.20), 2.0, [[1.20, C.water]])}</div>`;
+    body += needsLine(["Cannot mix these liquids."]);
+    body += amountRow(0, false, true);
+    body += cs("LIQUIDS", "GAS CAN") + liq("Petrol", C.petrol, 5.0, 10.0, 100);
+    body += cs("YOUR CONTAINERS", "4");
+    body += crow({ name:"Gas Can", where:"BACKPACK", amt:5.0, cap:10.0, color:C.petrol, tint:C.petrol, tag:T("FROM", "acc"), isFrom:true });
+    body += crow({ name:"Water Bottle", where:"INVENTORY", amt:1.20, cap:2.0, color:C.water, tint:C.water, tag:T("WON'T MIX", "dng"), isInto:true });
+    body += crow({ name:"Bucket", where:"BACKPACK", amt:0, cap:10.0, tag:T("EMPTY"), focusInto:true });
+    body += crow({ name:"Empty Bottle", where:"INVENTORY", amt:0, cap:1.0, tag:T("EMPTY") });
+  } else if (st === "info") {
+    name = "Mug"; icon = C.coffee; pl = pill("COFFEE", "dim", C.coffee);
+    verbs = verb("POUR", "primary dis") + verb("SWITCH", "dis") + verb("EMPTY");
+    body += `<div class="tanks">${vessel("POUR FROM", "Mug", L(0.25), 0.30, [[0.25, C.coffee]])}
+      ${flow(null, null, "Coffee", C.coffee, true)}
+      ${emptyVessel("POUR INTO", "Pick INTO on a container below")}</div>`;
+    body += cs("LIQUIDS", "MUG") + liq("Coffee", C.coffee, 0.25, 0.30, 100);
+    body += cs("YOUR CONTAINERS", "4");
+    body += crow({ name:"Mug", where:"INVENTORY", amt:0.25, cap:0.30, color:C.coffee, tint:C.coffee, tag:T("FROM", "acc"), isFrom:true });
+    body += crow({ name:"Water Bottle", where:"INVENTORY", amt:1.20, cap:2.0, color:C.water, tint:C.water, tag:T("MIXES", "warn"), focusInto:true });
+    body += crow({ name:"Cooking Pot", where:"INVENTORY", amt:0, cap:3.0, tag:T("EMPTY") });
+    body += crow({ name:"Bucket", where:"BACKPACK", amt:0, cap:10.0, tag:T("EMPTY") });
+  }
+  return head(icon, name, pl) + `<div class="vbar">${verbs}</div><div class="ob">${body}</div>` + foot;
+}
+
+/* left pane: the Loot tab underneath */
+function invPane() {
+  const rows = S.state === "barrel" ? [["Rain Collector Barrel", "Furniture", "1"]] : [];
+  $("gcount").textContent = rows.length;
+  $("inv").innerHTML = `<div class="invh"><span class="h">Ground</span><span class="n">${rows.length} items</span></div>
+    <div class="colh"><span>DIST</span><span class="u">NAME</span><span>CAT</span><span>COND</span><span style="text-align:right">WT</span></div>
+    ${rows.length ? rows.map(r => `<div class="irow"><span class="ds">1</span><span>${r[0]}</span><span class="ct">${r[1]}</span><span></span><span class="wt">${r[2]}.0</span></div>`).join("")
+      : `<div style="flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:10px;color:var(--accent);opacity:.7">INVENTORY EMPTY</div>`}`;
+}
+
+/* ---------- theme + render ---------- */
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+const THEMES = {
+  dark:  { base:"#0C0C0C", surf1:"#141414", surf2:"#1C1C1C", surf3:"#242424", surf4:"#2C2C2C", border:"#202020", borderS:"#383838", text:"rgba(218,218,218,.9)", textDim:"rgba(161,161,161,.65)", danger:"#C45A2A", warning:"#C49A2A", positive:"#7A9A34", info:"#4F88B0" },
+  light: { base:"#C6C6C6", surf1:"#BEBEBE", surf2:"#B6B6B6", surf3:"#AEAEAE", surf4:"#A6A6A6", border:"#969696", borderS:"#767676", text:"rgba(12,12,12,.95)", textDim:"rgba(12,12,12,.72)", danger:"#7A2A11", warning:"#6B5510", positive:"#2A5511", info:"#1F4F7A" },
+  hicon: { base:"#050505", surf1:"#111111", surf2:"#191919", surf3:"#202020", surf4:"#292929", border:"#353535", borderS:"#555555", text:"rgba(255,255,255,.95)", textDim:"rgba(199,199,199,.75)", danger:"#FF5533", warning:"#FFCC22", positive:"#44DD44", info:"#4FA8E0" }
+};
+const ACCENTS = { red:[["#CC4444","#EE6666","#0C0C0C"],["#7A1A1A","#AA3333","#F2F0EC"]], orange:[["#D4922A","#E8A830","#0C0C0C"],["#7A5010","#B07818","#F2F0EC"]], yellow:[["#CCAA22","#EEDD44","#0C0C0C"],["#6B5F0A","#998811","#F2F0EC"]], green:[["#44AA44","#66CC66","#0C0C0C"],["#1F5A1F","#2E7A2E","#F2F0EC"]], blue:[["#4488CC","#66AAEE","#0C0C0C"],["#1A3F6B","#2A5A99","#F2F0EC"]], teal:[["#47A18C","#5CC4AA","#0C0C0C"],["#1A5548","#257A66","#F2F0EC"]], purple:[["#8855BB","#AA77DD","#0C0C0C"],["#4A2A6B","#663D99","#F2F0EC"]], pink:[["#DD5588","#FF77AA","#0C0C0C"],["#7A1F44","#A8305F","#F2F0EC"]], mono:[["#888888","#AAAAAA","#0C0C0C"],["#3A3A3A","#555555","#F2F0EC"]] };
+
+
+function render() {
+  const r = document.documentElement.style;
+  Object.entries(THEMES[S.base]).forEach(([k, v]) => r.setProperty("--" + k, v));
+  const ac = ACCENTS[S.accent][S.base === "light" ? 1 : 0];
+  r.setProperty("--accent", ac[0]); r.setProperty("--accentBright", ac[1]); r.setProperty("--onAccent", ac[2]);
+  r.setProperty("--a22", hexA(ac[0], .22)); r.setProperty("--a55", hexA(ac[0], .55));
+  $("stage").style.zoom = S.zoom;
+  $("drawer").innerHTML = scene();
+  invPane();
+  let f = `<span class="mini">&bull;</span><span class="mini">A</span><span class="mini">R</span>`;
+  if (gp()) {
+    const p = S.state === "empty" ? [["a", "Select"], ["b", "Cancel"], ["y", "Close"]] : [["a", "Select"], ["x", "Options"], ["b", "Close card"], ["y", "Close"]];
+    f += `<span class="prompts">${p.map(([g, t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}</span>`;
+  }
+  $("wfoot").innerHTML = f + `<span class="grip"></span>`;
+  $("caption").textContent = CAPTIONS[S.state];
+}
+
+function seg(id, items, cur, fn) { $(id).innerHTML = items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join(""); $(id).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.k)); }
+function sync() {
+  seg("ctlState", STATES, S.state, k => { S.state = k; render(); sync(); });
+  seg("ctlInput", [["mouse","Mouse"],["gamepad","Gamepad"]], S.input, k => { S.input = k; render(); sync(); });
+  seg("ctlBase", [["hicon","High contrast"],["dark","Dark"],["light","Light"]], S.base, k => { S.base = k; render(); sync(); });
+  seg("ctlZoom", [["1","1x (1080p)"],["1.5","1.5x"],["2","2x (4K)"]], String(S.zoom), k => { S.zoom = +k; render(); sync(); });
+  $("ctlAccent").innerHTML = Object.keys(ACCENTS).map(k => `<button title="${k}" data-k="${k}" class="${k === S.accent ? "on" : ""}" style="background:${ACCENTS[k][0][0]}"></button>`).join("");
+  $("ctlAccent").querySelectorAll("button").forEach(b => b.onclick = () => { S.accent = b.dataset.k; render(); sync(); });
+}
+sync(); render();
+</script>
+</body>
+</html>
