@@ -130,8 +130,10 @@ function OC.tick(e, player)
         t = e.t
     end
     if player:getVehicle() or player:isDead() then return false end
+    -- the leash applies to a card about a tile (a fluid card about your own
+    -- bottles has none)
     local sq = t.sq
-    if not sq or math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > OC.LEASH + 0.5 then
+    if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > OC.LEASH + 0.5) then
         return false
     end
     t._refreshT = (t._refreshT or OC.REFRESH) + 1
@@ -143,7 +145,7 @@ function OC.tick(e, player)
     e._browseT = (e._browseT or OC.BROWSE_EVERY) + 1
     if e._browseT >= OC.BROWSE_EVERY or not e.list then
         e._browseT = 0
-        local ok, list = pcall(def.nearby, player)
+        local ok, list = pcall(def.nearby or function() return { t } end, player)
         e.list = ok and list or { t }
         e.idx = 1
         for i, o in ipairs(e.list) do if o.key == t.key then e.idx = i end end
@@ -208,7 +210,7 @@ function UI.buttonW(label)
 end
 
 -- Bordered tag ("BURNING", "FARMING 4"). Returns width.
-function UI.tag(card, x, y, text, c, withDot)
+function UI.tag(card, x, y, text, c, withDot, dotC)
     local T, tm = ZeD.T, ZeD.TM
     local f = T.fontF1
     c = c or T.textDim
@@ -216,7 +218,7 @@ function UI.tag(card, x, y, text, c, withDot)
     local dotW = withDot and T.px(11) or 0
     local w = tm:MeasureStringX(f, text) + T.px(12) + dotW
     card:drawRectBorder(x, y, w, h, c.a or 1, col(c))
-    if withDot then ZeD.Atoms.drawStatusDot(card, x + T.px(6), y + math.floor((h - T.px(6)) / 2), c, T.px(6)) end
+    if withDot then ZeD.Atoms.drawStatusDot(card, x + T.px(6), y + math.floor((h - T.px(6)) / 2), dotC or c, T.px(6)) end
     card:drawText(text, x + T.px(6) + dotW, y + math.floor((h - tm:getFontHeight(f)) / 2), c.r, c.g, c.b, c.a or 1, f)
     return w
 end
@@ -645,6 +647,9 @@ function ZeD_ObjectCard:setEntry(entry)
     self._pendingFocus = nil
     self._followId = nil
     self._wantGrab = entry ~= nil   -- pick the opening focus once the verbs exist
+    -- until then hold focus on the back button, so the last card's focused
+    -- row never scrolls the new card on its first frame
+    self._pendingFocus = entry and "oc:back" or nil
     self.scroll:setScrollPos(0)
     if entry and entry.t then entry.t._refreshT = OC.REFRESH end
 end
@@ -749,14 +754,14 @@ function ZeD_ObjectCard:prerender()
         self:zone({ fid = "oc:prev", x = prevX, y = by, w = aw, h = T.px(22), run = function() OC.browse(e, -1); self._confirm = nil; self.scroll:setScrollPos(0) end })
         rightX = prevX - T.px(10)
     end
-    local pillTxt, pillC = nil, nil
-    if def.pill then pillTxt, pillC = def.pill(t) end
+    local pillTxt, pillC, pillDot = nil, nil, nil
+    if def.pill then pillTxt, pillC, pillDot = def.pill(t) end
     local pillW = pillTxt and (UI.tagW(pillTxt) + T.px(11)) or 0
     local nf = T.fontF4
     local name = def.title and def.title(t) or "?"
     local nstr = ZeD.CraftingCore.truncText(name, nf, math.max(T.px(40), rightX - cx - pillW - T.px(10)))
     self:drawText(nstr, cx, math.floor((hh - tm:getFontHeight(nf)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, nf)
-    if pillTxt then UI.tag(self, cx + tm:MeasureStringX(nf, nstr) + T.px(8), math.floor((hh - T.px(16)) / 2), pillTxt, pillC, true) end
+    if pillTxt then UI.tag(self, cx + tm:MeasureStringX(nf, nstr) + T.px(8), math.floor((hh - T.px(16)) / 2), pillTxt, pillC, true, pillDot) end
 
     -- VERB BAR
     local y = hh
@@ -777,10 +782,13 @@ function ZeD_ObjectCard:prerender()
         y = y + vh
     end
     if self._wantGrab and t.verbs then
-        -- the controller lands on the primary verb, else the first live one
-        local pick
-        for i, v in ipairs(verbs) do
-            if v.primary and v.enabled ~= false then pick = "oc:verb:" .. tostring(v.id or i); break end
+        -- the controller lands where the kind asks, else on the primary verb,
+        -- else on the first live one
+        local pick = def.openFocus and def.openFocus(t) or nil
+        if not pick then
+            for i, v in ipairs(verbs) do
+                if v.primary and v.enabled ~= false then pick = "oc:verb:" .. tostring(v.id or i); break end
+            end
         end
         if not pick then
             for i, v in ipairs(verbs) do
@@ -938,6 +946,15 @@ function ZeD_ObjectCard:update()
             self._sbDrag = false
         end
     end
+    if down and self._pressFid then
+        -- a zone with drag (a slider) follows the mouse while it is held
+        for _, z in ipairs(self._zones) do
+            if z.fid == self._pressFid then
+                if z.drag then z.drag(self, mx, my) end
+                break
+            end
+        end
+    end
     if self._wasDown and not down and self._pressFid then
         local z = inside and self:zoneAt(mx, my)
         if z and z.fid == self._pressFid and z.run then z.run(self, self:player()) end
@@ -976,6 +993,10 @@ function ZeD_ObjectCard:buildFocusables(win)
                 onCancel = function(w, el)
                     if card._confirm then card._confirm = nil else card:close() end
                 end,
+                onDpadDir = zz.dpad and function(w, el, dir)
+                    if zz.dpad(dir) then return nil end
+                    return false
+                end or nil,
                 promptB = confirming and "Cancel" or "Close card",
             }
         end
