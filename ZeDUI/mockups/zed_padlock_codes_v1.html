@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Padlock Codes v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Padlock codes, mockup v1 (Oct 14 2026)
+   HOOK_MAP row 25: vanilla's ISDigitalCode pop-up (Use / Remove Combination
+   Padlock on a crate, locker, counter or bar you built) becomes a lock card in
+   the World window's card drawer, the language of the other object cards
+   (zed_animal_cards_v1.html, zed_info_cards_v1.html): back, icon, name, pill,
+   verbs in the bar, one scroll, NEEDS lines, the footer for state and
+   confirmations. The dial is the padlock itself: three number wheels on its
+   face (a hardware piece in the line of Visual Catalog v2.0 M38 rotary dial
+   and O22 vehicle controls: physical, not software). Every number is a DESIGN
+   UNIT (1 px at 1080p); Zoom = root scale. Data is real 42.20.2 behaviour
+   (see the parity table). Rules: 1px borders, no shadows on chrome, Fira only,
+   no emoji, status dots, focus = 0.55 accent.
+   ============================================================================ */
+:root {
+  --base:#050505; --surf1:#111111; --surf2:#191919; --surf3:#202020; --surf4:#292929;
+  --border:#353535; --borderS:#555555;
+  --text:rgba(255,255,255,.95); --textDim:rgba(199,199,199,.75);
+  --danger:#FF5533; --warning:#FFCC22; --positive:#44DD44; --info:#4FA8E0;
+  --accent:#D4922A; --accentBright:#E8A830; --onAccent:#0C0C0C;
+  --a22:rgba(212,146,42,.22); --a55:rgba(212,146,42,.55);
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1060px; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1060px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.stage-wrap { overflow:auto; padding-bottom:6px; }
+.stage { position:relative; width:1120px; height:556px; border:1px solid #2a2924; background:#14130f; overflow:hidden; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1060px; line-height:1.5; }
+
+/* window chrome (same as the live World window) */
+.win { position:absolute; left:18px; top:18px; width:924px; height:420px; background:color-mix(in srgb, var(--base) 95%, transparent); border:1px solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tbar { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS); background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.closebox { width:13px; height:13px; border:1px solid var(--textDim); background:var(--surf2); }
+.tbar .ttl, .tbar .tab { font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; }
+.tbar .ttl b { font-weight:400; color:var(--textDim); margin-left:8px; }
+.tbar .sp { flex:1; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; }
+.dot.pos { background:var(--positive); } .dot.warn { background:var(--warning); } .dot.dng { background:var(--danger); } .dot.off { background:transparent; border:1px solid var(--textDim); } .dot.inf { background:var(--info); }
+.wbody { flex:1; display:flex; min-height:0; }
+.wfoot { height:16px; flex:none; border-top:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; gap:3px; padding:0 3px; }
+.wfoot .mini { width:12px; height:12px; border:1px solid var(--border); font-family:var(--cond); font-size:9px; color:var(--textDim); display:flex; align-items:center; justify-content:center; }
+.wfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; align-items:center; }
+.glyph { display:inline-flex; width:12px; height:12px; border-radius:50%; font-family:var(--sans); font-weight:600; font-size:8px; color:#0c0c0c; align-items:center; justify-content:center; margin-right:4px; }
+.g-a { background:#5dbb3a; } .g-b { background:#d9452b; } .g-x { background:#3d7bd9; } .g-y { background:#e3b52a; }
+.wfoot .grip { margin-left:auto; width:12px; height:12px; background:repeating-linear-gradient(135deg, transparent 0 3px, var(--textDim) 3px 4px); opacity:.6; }
+.cstrip { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); }
+.cbtn { width:36px; height:36px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.cbtn.on { background:var(--accent); }
+.inv { width:372px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--borderS); background:var(--surf1); }
+.invh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.invh .h { font-family:var(--cond); font-weight:600; font-size:15px; } .invh .n { margin-left:auto; font-family:var(--cond); font-size:10px; color:var(--textDim); }
+.colh { height:20px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.colh .u { text-decoration:underline; text-underline-offset:2px; color:var(--text); }
+.irow { height:24px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; }
+.irow .ct { font-family:var(--mono); font-size:10px; color:var(--accent); } .irow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.irow .ds { font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.cath { height:18px; display:flex; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.tstrip { width:36px; flex:none; border-left:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.tbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accent); opacity:.8; }
+.tbtn.on { background:var(--accent); color:var(--onAccent); opacity:1; }
+.tsep { height:1px; background:var(--borderS); margin:2px 4px; }
+
+/* ---------------------------------------------------------------------------
+   OBJECT CARD — the drawer card shared by every info surface
+   --------------------------------------------------------------------------- */
+.drawer { width:480px; flex:none; display:flex; flex-direction:column; background:var(--surf1); min-width:0; position:relative; }
+.dh { height:37px; flex:none; display:flex; align-items:center; gap:6px; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.bbtn { height:22px; min-width:22px; padding:0 7px; display:flex; align-items:center; justify-content:center; gap:5px; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.bbtn.primary { background:var(--accent); color:var(--onAccent); border-top-color:var(--accentBright); border-left-color:var(--accentBright); }
+.bbtn.dis { opacity:.35; }
+.bbtn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.bbtn.primary.focus { box-shadow:none; background:var(--accentBright); }
+.dh .ico { width:22px; height:22px; flex:none; border:1px solid var(--borderS); background:var(--surf1); display:flex; align-items:center; justify-content:center; }
+.dh .ico i { width:12px; height:12px; display:block; }
+.dh .nm { font-family:var(--cond); font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pill { height:16px; padding:0 7px; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; white-space:nowrap; border:1px solid currentColor; }
+.pill.pos { color:var(--positive); } .pill.dng { color:var(--danger); } .pill.dim { color:var(--textDim); } .pill.warn { color:var(--warning); }
+.browse { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.vbar { height:32px; flex:none; display:flex; align-items:center; gap:4px; padding:0 8px; border-bottom:1px solid var(--borderS); background:var(--surf1); }
+.ob { flex:1; overflow-y:auto; min-height:0; padding:8px 10px 10px; display:flex; flex-direction:column; gap:8px; }
+.ob::-webkit-scrollbar { width:14px; } .ob::-webkit-scrollbar-track { background:var(--surf1); border-left:1px solid var(--border); } .ob::-webkit-scrollbar-thumb { background:var(--surf4); border:1px solid var(--borderS); }
+.meter .lr { display:flex; align-items:baseline; justify-content:space-between; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:4px; }
+.meter .lr .v { font-size:12px; color:var(--text); font-weight:500; letter-spacing:.5px; display:flex; gap:6px; align-items:center; }
+.fill { height:12px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.fill i { position:absolute; left:0; top:0; bottom:0; display:block; }
+.fill .zone { position:absolute; top:0; bottom:0; background:color-mix(in srgb, var(--info) 18%, transparent); border-left:1px solid color-mix(in srgb, var(--info) 60%, transparent); border-right:1px solid color-mix(in srgb, var(--info) 60%, transparent); }
+.fill i { z-index:1; }
+.cs { height:20px; display:flex; align-items:center; gap:6px; padding:0 2px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); border-bottom:1px solid var(--borderS); }
+.cs .c { margin-left:auto; font-weight:400; }
+.lrow { height:24px; display:grid; grid-template-columns:18px 1fr auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.lrow .ic, .pick .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.lrow .v { font-family:var(--mono); font-size:11px; color:var(--textDim); }
+.lrow.tot { font-family:var(--mono); font-size:11px; border-bottom:none; }
+.pick { height:26px; display:grid; grid-template-columns:18px 1fr auto auto auto; gap:8px; align-items:center; padding:0 2px; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.pick .loc { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.pick .gain { font-family:var(--mono); font-size:11px; color:var(--positive); }
+.pick.gpf { background:var(--a55); }
+.warnband { display:flex; gap:8px; align-items:flex-start; padding:7px 8px; border:1px solid var(--danger); background:color-mix(in srgb, var(--danger) 12%, transparent); font-size:12px; line-height:1.35; }
+.needs { font-family:var(--mono); font-size:10px; color:var(--textDim); display:flex; gap:6px; align-items:center; }
+.stat2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+.srow { height:20px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.srow .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; }
+.srow .v { font-family:var(--mono); font-size:12px; color:var(--text); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.dfoot { height:32px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:12px; }
+.dfoot .msg { display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dfoot.confirm { background:color-mix(in srgb, var(--danger) 12%, var(--surf2)); }
+.dfoot .sp { flex:1; }
+
+
+.win { left:auto; right:18px; width:924px; height:520px; }
+.world { position:absolute; left:0; top:0; width:200px; height:556px; }
+.world svg { position:absolute; left:0; top:0; }
+.wlabel { position:absolute; display:flex; align-items:center; gap:6px; height:20px; padding:0 7px; background:color-mix(in srgb, var(--surf2) 92%, transparent); border:1px solid var(--borderS); font-family:var(--mono); font-size:10px; color:var(--text); white-space:nowrap; }
+.dim { color:var(--textDim); }
+
+/* container strip with real icons and the locked mark */
+.cbtn { position:relative; }
+.cbtn svg { display:block; }
+.cbtn.locked { background:color-mix(in srgb, var(--danger) 15%, var(--surf1)); }
+.cbtn.locked svg.c { opacity:.4; }
+.cbtn .lk { position:absolute; right:2px; bottom:2px; }
+.cbtn.gpf { box-shadow:inset 0 0 0 100px var(--a55); }
+.cbtn.hov { box-shadow:inset 0 0 0 100px color-mix(in srgb, var(--text) 8%, transparent); }
+.cbtn.floor { margin-top:auto; border-top:1px solid var(--border); }
+.cstrip { display:flex; flex-direction:column; }
+.platelock { margin:14px 10px; height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:1px solid var(--borderS); background:repeating-linear-gradient(135deg, var(--surf2) 0 6px, var(--surf1) 6px 12px); font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--textDim); }
+
+/* card bits */
+.srow2 { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; }
+.srow2 .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; align-self:center; }
+.srow2 .v { font-family:var(--mono); font-size:11px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.needs2 { display:flex; flex-wrap:wrap; gap:4px 14px; font-family:var(--mono); font-size:10px; color:var(--text); }
+.needs2 span { display:flex; align-items:center; gap:6px; }
+.tag { height:14px; padding:0 5px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--textDim); border:1px solid var(--border); white-space:nowrap; }
+.tag.acc { color:var(--accent); border-color:var(--accent); } .tag.dng { color:var(--danger); border-color:var(--danger); } .tag.pos { color:var(--positive); border-color:var(--positive); }
+.pband { padding:6px 10px 7px; border-bottom:1px solid var(--borderS); display:flex; flex-direction:column; gap:5px; background:var(--surf1); }
+.pband .r { display:flex; align-items:center; gap:8px; }
+.pband .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1.5px; color:var(--accent); }
+.pband .p { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:12px; }
+.pband .bar { height:8px; background:var(--surf2); border:1px solid var(--borderS); } .pband .bar i { display:block; height:100%; background:var(--accent); }
+.dfoot.bad { background:color-mix(in srgb, var(--danger) 12%, var(--surf2)); }
+
+/* ---------------------------------------------------------------------------
+   THE PADLOCK — hardware, not chrome: a steel body with a three-wheel window
+   (combination) or a keyway (key padlock). Wheels are cream cylinders: the
+   set digit centred, its neighbours rolling away above and below.
+   --------------------------------------------------------------------------- */
+.lockwrap { position:relative; width:236px; height:214px; margin:2px auto 0; flex:none; }
+.lockwrap svg.body { position:absolute; left:0; top:0; }
+.wheel { position:absolute; top:112px; width:34px; height:60px; overflow:hidden;
+  background:linear-gradient(to bottom, #6e685a 0%, #cfc8b4 22%, #f2ecda 50%, #cfc8b4 78%, #6e685a 100%);
+  border-left:1px solid #1a1a1a; border-right:1px solid #1a1a1a;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; color:#151515; }
+.wheel .n { font-size:26px; line-height:28px; }
+.wheel .p, .wheel .q { font-size:12px; line-height:14px; color:#3a3628; opacity:.55; transform:scaleY(.62); }
+.wheel.gpf::after { content:""; position:absolute; inset:0; background:var(--a55); mix-blend-mode:multiply; }
+.wheel.gpf { outline:none; }
+.chev { position:absolute; width:34px; height:15px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(to bottom, #4a5058, #33383e); border-top:1px solid #6b727a; border-left:1px solid #6b727a; border-right:1px solid #111; border-bottom:1px solid #111; }
+.chev svg { display:block; }
+.chev.gpf { box-shadow:inset 0 0 0 100px var(--a55); }
+.chev.dis { opacity:.45; }
+.locknote { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:center; margin-top:-2px; }
+
+/* notes */
+.notes { max-width:1060px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes p, .notes li { font-size:13px; line-height:1.6; color:#c4bfb1; }
+.notes ol { padding-left:20px; } .notes li { margin-bottom:8px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+table.parity { border-collapse:collapse; width:100%; font-size:12px; }
+table.parity th, table.parity td { border:1px solid #34322c; padding:5px 8px; text-align:left; vertical-align:top; color:#c4bfb1; line-height:1.45; }
+table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#d8c070; background:#17160f; text-transform:uppercase; }
+
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI · World window · object cards · padlock codes · mockup v1</div>
+<h1>Padlock codes</h1>
+<p class="lede">Vanilla's combination padlock is set and opened in a small grey pop-up in the middle of the screen: three text boxes with ^ and v, OK and Cancel. The removal pop-up is titled "Set your Code", a wrong code closes it without a word, a code of 000 is refused without a word, and B on a controller presses OK. Here the crate's own <b>lock card</b> opens in the World window's card drawer, like the hutch and the trough: the padlock drawn as the dial (three wheels you turn), LOCK or REMOVE PADLOCK in the bar, vanilla's rules as NEEDS lines, the action's progress, and a plain answer when the code is wrong. The locked crate in the Loot strip opens it too. Switch the scenes above.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlState"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlInput"></div></div>
+  <div class="ctl"><span>Base</span><div class="seg" id="ctlBase"></div></div>
+  <div class="ctl"><span>World accent</span><div class="swatches" id="ctlAccent"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap"><div class="stage" id="stage">
+  <div class="world" id="world"></div>
+  <div class="win">
+    <div class="tbar"><div class="closebox"></div><div class="ttl" id="ttl">Floor<b>3</b></div><div class="sp"></div><div class="tab"><span class="dot"></span>Loot</div></div>
+    <div class="wbody">
+      <div class="cstrip" id="cstrip"></div>
+      <div class="inv" id="inv"></div>
+      <div class="drawer" id="drawer"></div>
+      <div class="tstrip" id="tstrip"></div>
+    </div>
+    <div class="wfoot" id="wfoot"></div>
+  </div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>A lock card in the card drawer.</b> Vanilla's Use Combination Padlock and Remove Combination Padlock (the world menu on a crate, locker, counter or bar you built) walk next to it and open a pop-up mid-screen. Here both open the lock card in the World window, with the walk when you are out of reach and a leash like the other cards. Clicking a locked container in the Loot strip opens the same card; today that click does nothing.</li>
+      <li><span class="rec">RECOMMEND</span><b>The dial is the padlock.</b> Three number wheels on the lock's face, each with a ▲ and a ▼; the mouse wheel turns the wheel under the pointer and the number keys type the code left to right (Backspace steps back). The shackle shows the state: up while you set a code, down while it is locked; once the padlock is off the card says so. Vanilla's three text boxes go.</li>
+      <li><span class="rec">RECOMMEND</span><b>Vanilla's rules, said out loud.</b> LOCK needs a Combination Padlock in your bags and a code other than 000 (vanilla quietly refuses 000; the card says so). A locked crate is shut to everyone, you included, until the code takes the padlock off, and the card says that before you lock it. REMOVE PADLOCK with the right code puts the padlock back in your bags. Both run vanilla's own action, with the progress band and STOP.</li>
+      <li><span class="rec">RECOMMEND</span><b>A wrong code says so.</b> Vanilla's pop-up closes and nothing happens, so you cannot tell a wrong code from a slip. The card runs every try as the same short action, then either takes the padlock off or says "Wrong code" in the footer and leaves the wheels where you set them. A try costs the same moment whether right or wrong, so the card does not make guessing faster than vanilla's menu.</li>
+      <li><span class="rec">RECOMMEND</span><b>Key padlocks on the same card.</b> A crate with a key padlock shows the key that fits, whether you carry it, and REMOVE PADLOCK (vanilla's Remove Padlock); an unlocked crate offers USE COMBINATION PADLOCK and USE PADLOCK when you carry one. A locked container in the Loot strip gets a small padlock mark, so its dim button explains itself.</li>
+      <li><span class="alt">YOUR CALL</span><b>Remember the code you set.</b> Vanilla keeps no record: forget the code and the crate stays shut until you break it. Option: the lock remembers who set it, and for that character the wheels open on the code with a SET BY YOU line (scene "Your own crate"); anyone else sees an ordinary lock. Leaving it out keeps vanilla's stakes.</li>
+      <li><b>Vanilla bugs fixed on the way.</b> The removal pop-up is titled "Set your Code"; B on a controller presses OK instead of Cancel; closing the pop-up drops the game speed back to normal; two digits typed into one box break the code (a 12 in the first box reads as 1200 and more).</li>
+      <li><b>On a controller.</b> D-pad left and right pick a wheel, up and down turn it, A presses LOCK or REMOVE PADLOCK, B closes the card. The Loot strip's locked button takes A like any container.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Everything vanilla does, and where it goes</h2>
+    <table class="parity">
+      <tr><th style="width:38%">Vanilla</th><th>ZeD</th></tr>
+      <tr><td><b>Ways in:</b> world menu Use Combination Padlock (a padlockable object you built: wooden and metal crates, small and big metal lockers, metal counters, bar elements; not locked; a Combination Padlock in your bags) and Remove Combination Padlock (any object with a code lock); both clear your queue and walk next to it first.</td><td>Both open the lock card (the walk only when out of reach); the locked container in the Loot strip opens it too. The menu items stay.</td></tr>
+      <tr><td><b>Pop-up:</b> "Set your Code" (also on removal) / "Enter the Digital Code", three digits 0-9 with ^ and v, typing allowed, OK and Cancel; mid-screen; closes when you take a step; closing resets the game speed; B presses OK on a controller.</td><td>The lock card: the padlock dial (wheels, ▲ ▼, mouse wheel, number keys, D-pad), LOCK / REMOVE PADLOCK in the bar, back closes; a leash instead of closing on the first step; game speed untouched; B closes.</td></tr>
+      <tr><td><b>Set (OK):</b> 000 does nothing; otherwise walk, then ISPadlockByCodeAction (20 ticks): the padlock leaves your bags and the object locks with the code.</td><td>LOCK with its NEEDS (the padlock in your bags, a code other than 000) and the note that it shuts the crate to everyone; the band while it runs.</td></tr>
+      <tr><td><b>Remove (OK):</b> the right code runs the action: the padlock back in your bags, the object unlocked. A wrong code: nothing, no message.</td><td>REMOVE PADLOCK: right, the same; wrong, "Wrong code" in the footer with the wheels kept.</td></tr>
+      <tr><td><b>While locked:</b> the container is shut to every character, its owner included (admins with the locked-doors power excepted); the loot window leaves it out. A key padlock opens for whoever carries one of its keys.</td><td>The Loot strip's dim button with a padlock mark opens the card; CONTENTS reads "Hidden while locked".</td></tr>
+      <tr><td><b>Key padlocks:</b> Use Padlock (a Padlock and its keys: the padlock goes on, the keys come to your bags) and Remove Padlock (with a key: the padlock comes back holding that key); direct actions, no window.</td><td>The world-menu items stay; the card shows the key that fits and whether you carry it, with REMOVE PADLOCK, and USE PADLOCK on an unlocked crate.</td></tr>
+    </table>
+  </div>
+</section>
+
+<script>
+const S = { state:"set", input:"mouse", base:"hicon", accent:"orange", zoom:1 };
+const STATES = [["set","Setting a code"],["set000","Code 000"],["locked","A locked crate (Loot strip)"],["trying","Trying a code"],["wrong","Wrong code"],["open","Padlock off"],["key","Key padlock"],["own","Your own crate (your call)"]];
+const $ = id => document.getElementById(id);
+const gp = () => S.input === "gamepad";
+const DOT = "&middot;";
+
+const CAPTIONS = {
+  set:"Use Combination Padlock on a wooden crate you built: the shackle is up while you set the code. The wheels read 4 1 7; LOCK is ready because a Combination Padlock is in your bags and the code is not 000. The line under the lock says what vanilla never does: the crate will be shut to you too until the code takes the padlock off.",
+  set000:"The same crate with the wheels left at 0 0 0. Vanilla's OK quietly does nothing for 000; here LOCK is off and the NEEDS line gives the reason.",
+  locked:"A metal locker with a code lock, opened from its dim button in the Loot strip (marked with a padlock; today that click does nothing). The wheels start at 0 0 0, as vanilla's do; the contents stay hidden while it is locked.",
+  trying:"REMOVE PADLOCK on 3 1 9: vanilla's 20-tick action runs with the progress band and STOP. The verbs wait until it ends.",
+  wrong:"3 1 9 was wrong. Vanilla's pop-up would simply have closed; the card says so in the footer and keeps the wheels where you left them, so the next try starts from there.",
+  open:"The right code took the padlock off: it is back in your bags, the card says there is no padlock on the locker, and the locker shows in the Loot pane. USE COMBINATION PADLOCK would set a new code; USE PADLOCK is off because you carry no key padlock.",
+  key:"A wooden crate with a key padlock and no key in your bags: the card says which key fits. REMOVE PADLOCK waits for it, in the card's NEEDS line. With the key in your bags the crate is open to you, as in vanilla.",
+  own:"Your call: the lock remembers who set it. For you, the wheels open on your own code with a SET BY YOU line; anyone else sees the ordinary locked crate."
+};
+
+/* ---------- shared pieces ---------- */
+function verb(label, kind, focus) { return `<span class="bbtn${kind ? " " + kind : ""}${focus && gp() ? " focus" : ""}">${label}</span>`; }
+function cs(label, right) { return `<div class="cs">${label}${right !== undefined ? `<span class="c">${right}</span>` : ""}</div>`; }
+const okDot = ok => `<span class="dot ${ok ? "pos" : "dng"}"></span>`;
+function needsLine(items) { return `<div class="needs2">${items.map(([ok, t]) => `<span>${ok === null ? `<span class="dot off"></span>` : okDot(ok)}${t}</span>`).join("")}</div>`; }
+function card(ico, name, pill, pillKind, verbs, body, band, foot) {
+  return `<div class="dh">${verb("&lt;")}<span class="ico">${ico}</span><span class="nm">${name}</span><span class="pill ${pillKind}"><span class="dot" style="background:currentColor"></span>${pill}</span></div>
+    ${verbs ? `<div class="vbar">${verbs}</div>` : ""}${band || ""}<div class="ob">${body}</div>${foot || ""}`;
+}
+const PADLOCK_GLYPH = (c, s) => `<svg class="lk" width="${s || 9}" height="${(s || 9) + 2}" viewBox="0 0 9 11"><path d="M2.2 4.6V3.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke="${c}" stroke-width="1.3"/><rect x=".8" y="4.6" width="7.4" height="5.6" fill="${c}"/></svg>`;
+const CRATE = (wood) => `<svg class="c" width="22" height="22" viewBox="0 0 22 22"><rect x="2" y="5" width="18" height="14" fill="${wood ? "#8a6a42" : "#6e747c"}" stroke="#111"/><path d="M2 9h18M2 14h18" stroke="#111" stroke-width=".8"/><rect x="9" y="3" width="4" height="3" fill="#333"/></svg>`;
+const LOCKER = `<svg class="c" width="22" height="22" viewBox="0 0 22 22"><rect x="5" y="2" width="12" height="18" fill="#5f7486" stroke="#111"/><path d="M7 5h8M7 7h8M7 9h8" stroke="#222" stroke-width=".8"/><rect x="13" y="11" width="2" height="3" fill="#222"/></svg>`;
+const FLOOR = `<svg class="c" width="22" height="22" viewBox="0 0 22 22"><path d="M3 16l8-4 8 4-8 4z" fill="#5a5040" stroke="#111"/></svg>`;
+const BAG = `<svg class="c" width="22" height="22" viewBox="0 0 22 22"><rect x="5" y="6" width="12" height="13" fill="#4b5a3a" stroke="#111"/><path d="M8 6V4h6v2" fill="none" stroke="#111"/></svg>`;
+
+/* ---------- the padlock ---------- */
+function chevron(up) { return `<svg width="10" height="6" viewBox="0 0 10 6"><path d="${up ? "M1 5L5 1L9 5" : "M1 1L5 5L9 1"}" fill="none" stroke="#e6e2d6" stroke-width="1.6"/></svg>`; }
+function padlock(digits, opts) {
+  opts = opts || {};
+  const open = !!opts.open, key = !!opts.key, foc = opts.focus;
+  const sy = open ? -16 : 0;
+  const steel = `<linearGradient id="st" x1="0" x2="1"><stop offset="0" stop-color="#6c737b"/><stop offset=".45" stop-color="#c3c9cf"/><stop offset="1" stop-color="#5a6168"/></linearGradient>`;
+  const body = key
+    ? `<linearGradient id="bd" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#c9a24c"/><stop offset="1" stop-color="#8a6a24"/></linearGradient>`
+    : `<linearGradient id="bd" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3d434a"/><stop offset="1" stop-color="#22262b"/></linearGradient>`;
+  let s = `<svg class="body" width="236" height="214" viewBox="0 0 236 214"><defs>${steel}${body}</defs>`;
+  // shackle: the right leg leaves its hole when open
+  s += `<g transform="translate(0,${sy})"><path d="M74 92 V58 a44 44 0 0 1 88 0 V92" fill="none" stroke="#222" stroke-width="18"/><path d="M74 92 V58 a44 44 0 0 1 88 0 V92" fill="none" stroke="url(#st)" stroke-width="14"/></g>`;
+  if (open) s += `<ellipse cx="162" cy="83" rx="8" ry="3" fill="#0c0c0c"/>`;
+  s += `<rect x="26" y="80" width="184" height="126" rx="12" fill="url(#bd)" stroke="#0c0c0c" stroke-width="1.5"/>`;
+  s += `<rect x="34" y="88" width="168" height="110" rx="8" fill="none" stroke="${key ? "#e2c070" : "#5a6068"}" stroke-width="1" opacity=".7"/>`;
+  if (key) {
+    s += `<circle cx="118" cy="138" r="13" fill="#3a2a10" stroke="#5a4418"/><rect x="114" y="140" width="8" height="22" fill="#3a2a10"/><circle cx="118" cy="138" r="5" fill="#120c04"/><rect x="116" y="138" width="4" height="20" fill="#120c04"/>`;
+    s += `<text x="118" y="190" text-anchor="middle" font-family="Fira Mono" font-size="9" font-weight="700" fill="#5a4418" letter-spacing="2">HARDENED</text>`;
+  } else {
+    s += `<rect x="50" y="108" width="136" height="68" fill="#0d0d0d" stroke="#000"/>`;
+  }
+  s += `</svg>`;
+  if (!key) {
+    const xs = [60, 101, 142];
+    digits.forEach((d, i) => {
+      const f = foc === i && gp();
+      const prev = (d + 9) % 10, next = (d + 1) % 10;
+      s += `<div class="chev${f ? " gpf" : ""}${opts.busy ? " dis" : ""}" style="left:${xs[i]}px;top:${92}px">${chevron(true)}</div>`;
+      s += `<div class="wheel${f ? " gpf" : ""}" style="left:${xs[i]}px"><span class="p">${prev}</span><span class="n">${d}</span><span class="q">${next}</span></div>`;
+      s += `<div class="chev${f ? " gpf" : ""}${opts.busy ? " dis" : ""}" style="left:${xs[i]}px;top:${177}px">${chevron(false)}</div>`;
+    });
+  }
+  return `<div class="lockwrap">${s}</div>`;
+}
+
+/* ---------- iso world (a slice left of the window) ---------- */
+const TW = 56, TH = 28, OX = 96, OY = 230;
+const iso = (x, y) => [OX + (x - y) * TW / 2, OY + (x + y) * TH / 2];
+function diamond(x, y, fill) { const [cx, cy] = iso(x, y); return `<polygon points="${cx},${cy} ${cx + TW / 2},${cy + TH / 2} ${cx},${cy + TH} ${cx - TW / 2},${cy + TH / 2}" fill="${fill}" stroke="rgba(0,0,0,.25)"/>`; }
+function box(x, y, w, d, h, top, left, right) {
+  const p = (u, v) => iso(x + u, y + v);
+  const a = p(0, 0), b = p(w, 0), c = p(w, d), dd = p(0, d);
+  const up = q => [q[0], q[1] - h];
+  const pts = arr => arr.map(q => q.join(",")).join(" ");
+  return `<polygon points="${pts([dd, c, up(c), up(dd)])}" fill="${left}" stroke="rgba(0,0,0,.5)"/><polygon points="${pts([c, b, up(b), up(c)])}" fill="${right}" stroke="rgba(0,0,0,.5)"/><polygon points="${pts([up(a), up(b), up(c), up(dd)])}" fill="${top}" stroke="rgba(0,0,0,.5)"/>`;
+}
+function person(x, y) { const [px, py] = iso(x, y); return `<ellipse cx="${px}" cy="${py + 12}" rx="8" ry="3.5" fill="rgba(0,0,0,.4)"/><rect x="${px - 5}" y="${py - 22}" width="10" height="34" fill="#6b5a46"/><circle cx="${px}" cy="${py - 28}" r="6" fill="#c9a07a"/>`; }
+function worldSVG(sc) {
+  let s = `<svg width="200" height="556" viewBox="0 0 200 556">`;
+  for (let y = -6; y < 8; y++) for (let x = -6; x < 8; x++) s += diamond(x, y, (x + y) % 2 ? "#3a3428" : "#332e24");
+  const locker = ["locked", "trying", "wrong", "open"].includes(sc);
+  if (locker) s += box(0, 0, 1, 1, 70, "#6f8496", "#5f7486", "#4e6172");
+  else s += box(0, 0, 1, 1, 34, sc === "key" ? "#8a6a42" : "#8a6a42", "#6e5232", "#5c432a");
+  const [lx, ly] = iso(0.5, 1);
+  if (!["open", "set", "set000"].includes(sc)) s += `<g transform="translate(${lx - 4},${ly - (locker ? 40 : 24)})">${PADLOCK_GLYPH(sc === "key" ? "#d0a848" : "#c3c9cf", 9).replace('class="lk"', "")}</g>`;
+  s += person(1.6, 1.4);
+  return s + `</svg>`;
+}
+
+/* ---------- Loot pane (inventory column) ---------- */
+function strip(sc) {
+  const locker = ["locked", "trying", "wrong", "open", "own"].includes(sc) && sc !== "own";
+  const target = locker ? LOCKER : CRATE(true);
+  const lockedNow = ["locked", "trying", "wrong", "key", "own"].includes(sc);
+  const onTarget = sc === "open";
+  let h = `<div class="cbtn">${BAG}</div>`;
+  h += `<div class="cbtn${lockedNow ? " locked" : ""}${onTarget ? " on" : ""}${sc === "locked" ? (gp() ? " gpf" : " hov") : ""}">${target}${lockedNow ? PADLOCK_GLYPH("var(--danger)") : ""}</div>`;
+  h += `<div class="cbtn">${CRATE(false)}</div>`;
+  h += `<div class="cbtn floor${onTarget ? "" : " on"}">${FLOOR}</div>`;
+  return h;
+}
+function invPane(sc) {
+  if (sc === "open") {
+    const rows = [["Tinned Beans", "Food", "x4", "2.4"], ["Box of 9mm Rounds", "Ammo", "x2", "0.6"], ["Bandage", "Medical", "x6", "0.6"], ["Hammer", "Tool", "", "1.0"], ["Rope", "Material", "x2", "1.0"]];
+    return `<div class="invh"><span class="h">Small Metal Locker</span><span class="n">5.6 / 30 · 15 items</span></div><div class="colh"><span></span><span class="u">NAME</span><span>CAT</span><span></span><span>WT</span></div>` +
+      rows.map(r => `<div class="irow"><span class="ic"></span><span>${r[0]} <span class="ds">${r[2]}</span></span><span class="ct">${r[1]}</span><span></span><span class="wt">${r[3]}</span></div>`).join("");
+  }
+  const rows = [["Plank", "Material", "x3", "3.0"], ["Nails", "Material", "x14", "0.1"], ["Empty Bottle", "Container", "", "0.3"]];
+  return `<div class="invh"><span class="h">Floor</span><span class="n">3.4 · 3 items</span></div><div class="colh"><span></span><span class="u">NAME</span><span>CAT</span><span></span><span>WT</span></div>` +
+    rows.map(r => `<div class="irow"><span class="ic"></span><span>${r[0]} <span class="ds">${r[2]}</span></span><span class="ct">${r[1]}</span><span></span><span class="wt">${r[3]}</span></div>`).join("");
+}
+
+/* ---------- the lock card ---------- */
+function setCard(zero) {
+  const d = zero ? [0, 0, 0] : [4, 1, 7];
+  const verbs = verb("LOCK", zero ? "dis" : "primary", !zero);
+  let b = padlock(d, { open: true, focus: zero ? 0 : -1 });
+  b += `<div class="locknote">Locked to everyone, you included, until the code takes the padlock off</div>`;
+  b += cs("WHAT IT LOCKS");
+  b += `<div class="srow2"><span class="l">CONTAINER</span><span class="v">Wooden Crate ${DOT} 9 items ${DOT} 12.4 / 40</span><span class="l">PADLOCK</span><span class="v"><span class="dot pos"></span>Combination Padlock ${DOT} in your bags</span></div>`;
+  b += cs("NEEDS " + DOT + " LOCK");
+  b += needsLine([[true, "Combination Padlock in your bags"], [!zero, zero ? "A code other than 000" : "A code other than 000"]]);
+  const foot = zero
+    ? `<div class="dfoot"><span class="msg"><span class="dot dng"></span>Can't lock: a code of 000 does nothing</span></div>`
+    : `<div class="dfoot"><span class="msg"><span class="dot pos"></span>Ready to lock the crate with 4 1 7</span></div>`;
+  return card(CRATE(true).replace('class="c" width="22" height="22"', 'width="16" height="16"'), "Wooden Crate", "SETTING A CODE", "dim", verbs, b, "", foot);
+}
+function enterCard(sc) {
+  const busy = sc === "trying", wrong = sc === "wrong", own = sc === "own";
+  const d = own ? [4, 1, 7] : (sc === "locked" ? [0, 0, 0] : [3, 1, 9]);
+  const name = own ? "Wooden Crate" : "Small Metal Locker";
+  const ico = (own ? CRATE(true) : LOCKER).replace('class="c" width="22" height="22"', 'width="16" height="16"');
+  const verbs = verb("REMOVE PADLOCK", busy ? "dis" : "primary", !busy && sc !== "locked");
+  const band = busy ? `<div class="pband"><div class="r"><span class="l">TRYING 3 1 9</span><span class="p">60%</span>${verb("STOP")}</div><div class="bar"><i style="width:60%"></i></div></div>` : "";
+  let b = padlock(d, { open: false, focus: sc === "locked" ? 0 : -1, busy });
+  b += cs("WHAT IT LOCKS");
+  b += `<div class="srow2"><span class="l">CONTAINER</span><span class="v">${name} ${DOT} hidden while locked</span><span class="l">PADLOCK</span><span class="v"><span class="dot dng"></span>Combination ${DOT} locked to everyone</span>${own ? `<span class="l">SET BY YOU</span><span class="v"><span class="dot inf"></span>4 1 7</span>` : ""}</div>`;
+  let foot;
+  if (busy) foot = `<div class="dfoot"><span class="msg"><span class="dot"></span>Trying the code</span></div>`;
+  else if (wrong) foot = `<div class="dfoot bad"><span class="msg"><span class="dot dng"></span>Wrong code: 3 1 9. The padlock stays on.</span></div>`;
+  else if (own) foot = `<div class="dfoot"><span class="msg"><span class="dot pos"></span>Ready to take the padlock off with 4 1 7</span></div>`;
+  else foot = `<div class="dfoot"><span class="msg"><span class="dot pos"></span>Ready to try ${d.join(" ")}</span></div>`;
+  return card(ico, name, "CODE LOCK", "dng", verbs, b, band, foot);
+}
+function openCard() {
+  const ico = LOCKER.replace('class="c" width="22" height="22"', 'width="16" height="16"');
+  const verbs = verb("USE COMBINATION PADLOCK", "", true) + verb("USE PADLOCK", "dis");
+  let b = `<div class="platelock">${PADLOCK_GLYPH("var(--textDim)", 14).replace('class="lk"', "")}NO PADLOCK ON IT</div>`;
+  b += cs("WHAT IT LOCKS");
+  b += `<div class="srow2"><span class="l">CONTAINER</span><span class="v">Small Metal Locker ${DOT} 15 items ${DOT} 5.6 / 30</span><span class="l">PADLOCK</span><span class="v"><span class="dot pos"></span>None ${DOT} the Combination Padlock is in your bags</span></div>`;
+  b += cs("NEEDS " + DOT + " USE PADLOCK");
+  b += needsLine([[false, "A Padlock with its keys in your bags"]]);
+  const foot = `<div class="dfoot"><span class="msg"><span class="dot pos"></span>Padlock off. The locker shows in the Loot pane.</span></div>`;
+  return card(ico, "Small Metal Locker", "UNLOCKED", "pos", verbs, b, "", foot);
+}
+function keyCard() {
+  const ico = CRATE(true).replace('class="c" width="22" height="22"', 'width="16" height="16"');
+  const verbs = verb("REMOVE PADLOCK", "dis", true);
+  let b = padlock([0, 0, 0], { key: true });
+  b += cs("WHAT IT LOCKS");
+  b += `<div class="srow2"><span class="l">CONTAINER</span><span class="v">Wooden Crate ${DOT} hidden while locked</span><span class="l">PADLOCK</span><span class="v"><span class="dot dng"></span>Key padlock ${DOT} opens for whoever carries its key</span><span class="l">KEY</span><span class="v">Padlock Key 2481 ${DOT} not in your bags</span></div>`;
+  b += cs("NEEDS " + DOT + " REMOVE PADLOCK");
+  b += needsLine([[false, "Padlock Key 2481 in your bags"]]);
+  const foot = `<div class="dfoot"><span class="msg"><span class="dot dng"></span>Can't remove the padlock: its key is not in your bags</span></div>`;
+  return card(ico, "Wooden Crate", "KEY LOCK", "dng", verbs, b, "", foot);
+}
+
+function tabStrip() {
+  return `<div class="tbtn on">L</div><div class="tbtn">C</div><div class="tbtn">B</div><div class="tbtn">U</div><div class="tsep"></div><div class="tbtn">M</div><div class="tbtn">F</div><div class="tbtn">A</div><div class="tbtn">R</div>`;
+}
+
+/* ---------- theme + render ---------- */
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+const THEMES = {
+  dark:  { base:"#0C0C0C", surf1:"#141414", surf2:"#1C1C1C", surf3:"#242424", surf4:"#2C2C2C", border:"#202020", borderS:"#383838", text:"rgba(218,218,218,.9)", textDim:"rgba(161,161,161,.65)", danger:"#C45A2A", warning:"#C49A2A", positive:"#7A9A34", info:"#4F88B0" },
+  light: { base:"#C6C6C6", surf1:"#BEBEBE", surf2:"#B6B6B6", surf3:"#AEAEAE", surf4:"#A6A6A6", border:"#969696", borderS:"#767676", text:"rgba(12,12,12,.95)", textDim:"rgba(12,12,12,.72)", danger:"#7A2A11", warning:"#6B5510", positive:"#2A5511", info:"#1F4F7A" },
+  hicon: { base:"#050505", surf1:"#111111", surf2:"#191919", surf3:"#202020", surf4:"#292929", border:"#353535", borderS:"#555555", text:"rgba(255,255,255,.95)", textDim:"rgba(199,199,199,.75)", danger:"#FF5533", warning:"#FFCC22", positive:"#44DD44", info:"#4FA8E0" }
+};
+const ACCENTS = { red:[["#CC4444","#EE6666","#0C0C0C"],["#7A1A1A","#AA3333","#F2F0EC"]], orange:[["#D4922A","#E8A830","#0C0C0C"],["#7A5010","#B07818","#F2F0EC"]], yellow:[["#CCAA22","#EEDD44","#0C0C0C"],["#6B5F0A","#998811","#F2F0EC"]], green:[["#44AA44","#66CC66","#0C0C0C"],["#1F5A1F","#2E7A2E","#F2F0EC"]], blue:[["#4488CC","#66AAEE","#0C0C0C"],["#1A3F6B","#2A5A99","#F2F0EC"]], teal:[["#47A18C","#5CC4AA","#0C0C0C"],["#1A5548","#257A66","#F2F0EC"]], purple:[["#8855BB","#AA77DD","#0C0C0C"],["#4A2A6B","#663D99","#F2F0EC"]], pink:[["#DD5588","#FF77AA","#0C0C0C"],["#7A1F44","#A8305F","#F2F0EC"]], mono:[["#888888","#AAAAAA","#0C0C0C"],["#3A3A3A","#555555","#F2F0EC"]] };
+
+
+function render() {
+  const r = document.documentElement.style;
+  Object.entries(THEMES[S.base]).forEach(([k, v]) => r.setProperty("--" + k, v));
+  const ac = ACCENTS[S.accent][S.base === "light" ? 1 : 0];
+  r.setProperty("--accent", ac[0]); r.setProperty("--accentBright", ac[1]); r.setProperty("--onAccent", ac[2]);
+  r.setProperty("--a22", hexA(ac[0], .22)); r.setProperty("--a55", hexA(ac[0], .55));
+  $("stage").style.zoom = S.zoom;
+  const sc = S.state;
+  $("world").innerHTML = worldSVG(sc);
+  $("cstrip").innerHTML = strip(sc);
+  $("inv").innerHTML = invPane(sc);
+  $("ttl").innerHTML = sc === "open" ? "Small Metal Locker<b>15</b>" : "Floor<b>3</b>";
+  let html;
+  if (sc === "set" || sc === "set000") html = setCard(sc === "set000");
+  else if (sc === "open") html = openCard();
+  else if (sc === "key") html = keyCard();
+  else html = enterCard(sc);
+  $("drawer").innerHTML = html;
+  $("tstrip").innerHTML = tabStrip();
+  let f = `<span class="mini">&bull;</span><span class="mini">A</span><span class="mini">R</span>`;
+  if (gp()) {
+    const p = [["a", "Lock / Remove"], ["b", "Close card"], ["y", "Windows"]];
+    f += `<span class="prompts"><span>D-PAD Wheels</span>${p.map(([g, t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}</span>`;
+  }
+  $("wfoot").innerHTML = f + `<span class="grip"></span>`;
+  $("caption").textContent = CAPTIONS[sc];
+}
+
+function seg(id, items, cur, fn) { $(id).innerHTML = items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join(""); $(id).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.k)); }
+function sync() {
+  seg("ctlState", STATES, S.state, k => { S.state = k; render(); sync(); });
+  seg("ctlInput", [["mouse","Mouse"],["gamepad","Gamepad"]], S.input, k => { S.input = k; render(); sync(); });
+  seg("ctlBase", [["hicon","High contrast"],["dark","Dark"],["light","Light"]], S.base, k => { S.base = k; render(); sync(); });
+  seg("ctlZoom", [["1","1x (1080p)"],["1.5","1.5x"],["2","2x (4K)"]], String(S.zoom), k => { S.zoom = +k; render(); sync(); });
+  $("ctlAccent").innerHTML = Object.keys(ACCENTS).map(k => `<button title="${k}" data-k="${k}" class="${k === S.accent ? "on" : ""}" style="background:${ACCENTS[k][0][0]}"></button>`).join("");
+  $("ctlAccent").querySelectorAll("button").forEach(b => b.onclick = () => { S.accent = b.dataset.k; render(); sync(); });
+}
+// #scene=key&input=gamepad&base=light opens a scene directly (review links)
+location.hash.slice(1).split("&").forEach(kv => { const [k, v] = kv.split("="); if (k === "scene" && CAPTIONS[v]) S.state = v; if (k === "input") S.input = v; if (k === "base" && THEMES[v]) S.base = v; });
+sync(); render();
+</script>
+</body>
+</html>
