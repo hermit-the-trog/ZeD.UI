@@ -919,8 +919,6 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
         if p.part:getWheelFriction() > 0 and item then
             yy = yy + M.drawStatRow(panel, sx, yy, sw, "Friction", tostring(round(p.part:getWheelFriction(), 2)))
         end
-        local dc2 = T.textDim
-        panel:drawText(isGamepad() and "A  Open part" or "Click to open", sx, yy + T.px(8), dc2.r, dc2.g, dc2.b, dc2.a or 1, T.fontF1)
         return
     end
     local ov = overallCond(v)
@@ -1074,12 +1072,6 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
         yy = yy + M.drawStatRow(panel, sx, yy, sw, "Distance", tostring(math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5)) .. " tiles")
         local ks, kc = keyState(v, chr)
         yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Key", ks, kc == "pos" and T.positive or T.warning)
-        local lines = A.wrapText("Part conditions show after you look the car over. The higher your Mechanics skill, the quicker the look.", T.fontF2, sw)
-        yy = yy + T.px(8)
-        for _, ln in ipairs(lines) do
-            panel:drawText(ln, sx, yy, dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
-            yy = yy + T.fontF2H
-        end
     end
     cy = cy + figH + pad * 2
 
@@ -1171,12 +1163,7 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
         local ty = cy + T.px(14)
         local ac = T.accent
         panel:drawText(t1, x + math.floor((cw - TM:MeasureStringX(T.fontF4, t1)) / 2), ty, ac.r, ac.g, ac.b, ac.a or 1, T.fontF4)
-        ty = ty + T.fontF4H + T.px(6)
-        local lines = A.wrapText("Walks to the car and looks it over, like vanilla's Mechanics option. The view stays open until you walk away.", T.fontF2, cw - pad * 4)
-        for _, ln in ipairs(lines) do
-            panel:drawText(ln, x + math.floor((cw - TM:MeasureStringX(T.fontF2, ln)) / 2), ty, dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
-            ty = ty + T.fontF2H
-        end
+        ty = ty + T.fontF4H
         cy = ty + T.px(14)
     end
     panel:clearStencilRect()
@@ -1201,30 +1188,21 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
     A.drawDividerH(panel, x, fy, w, false)
     local by = fy + math.floor((footerH - T.px(FOOTER_BTN_H)) / 2)
     local bx = x + T.px(8)
-    local dc = T.textDim
-    local msg
     if not inspected then
-        bx = bx + footerButton(panel, s, bx, by, "INSPECT", "primary", "mech:inspect", function()
+        footerButton(panel, s, bx, by, "INSPECT", "primary", "mech:inspect", function()
             ISVehicleMenu.onMechanic(chr, v)
-        end) + T.px(8)
-        msg = "Look the car over"
+        end)
     else
         local hood = v:getPartById("EngineDoor")
         if hood and hood:getDoor() and hood:getInventoryItem() and hood:getDoor():isOpen() then
-            bx = bx + footerButton(panel, s, bx, by, "CLOSE HOOD", "default", "mech:closehood", function()
+            footerButton(panel, s, bx, by, "CLOSE HOOD", "default", "mech:closehood", function()
                 ISTimedActionQueue.add(ISPathFindAction:pathToVehicleArea(chr, v, hood:getArea()))
                 ISTimedActionQueue.add(ISCloseVehicleDoor:new(chr, v, hood))
                 local e = INSP[v:getId()]
                 if e then e.hood = nil end
-            end) + T.px(8)
-            msg = "The hood is open"
-        else
-            msg = isGamepad() and "A opens a part" or "Click a part to open it"
+            end)
         end
     end
-    panel:drawText(msg, bx, fy + math.floor((footerH - T.fontF2H) / 2), dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
-    local skill = "MECHANICS " .. tostring(mechLevel(chr))
-    A.drawTextRight(panel, skill, x + w - T.px(10), fy + math.floor((footerH - T.fontF1H) / 2), T.fontF1, T.textDim)
 end
 
 -- ----------------------------------------------------------------------------
@@ -1374,7 +1352,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         local owned = 0
         for _, pk in ipairs(picks) do if not pk.none then owned = owned + 1 end end
         if s.pick > owned then s.pick = math.max(1, owned) end
-        section("FROM YOUR BAGS AND NEARBY", tostring(owned) .. " within reach")
+        section("FROM YOUR BAGS AND NEARBY", nil)
         for i, pk in ipairs(picks) do
             local rh = T.px(PICK_H)
             local sel = (not pk.none) and (i == s.pick)
@@ -1418,7 +1396,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         if not (fr[s.fixPick] and fr[s.fixPick].ok) then
             for i, r in ipairs(fr) do if r.ok then s.fixPick = i; break end end
         end
-        section("REPAIR WITH", tostring(#fr) .. (#fr == 1 and " recipe" or " recipes"))
+        section("REPAIR WITH", nil)
         for i, r in ipairs(fr) do
             local rh = T.px(FIX_H)
             local sel = (i == s.fixPick) and r.ok
@@ -1456,7 +1434,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     -- NEEDS for the highlighted verb
     local n = s.verb and needs[s.verb]
     if n and s.verb ~= "fix" then
-        section("NEEDS " .. DOT .. " " .. (VERB_LABEL[s.verb] or upper(s.verb)), isGamepad() and "follows the focused verb" or "hover a verb to switch")
+        section("NEEDS " .. DOT .. " " .. (VERB_LABEL[s.verb] or upper(s.verb)), nil)
         for _, r in ipairs(n.rows) do
             local rh = T.px(NEED_H)
             local dcol = r.ok and T.positive or (r.soft and T.warning or T.danger)
@@ -1563,7 +1541,6 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
             col = T.danger
         end
         dotLine(panel, bx, msgY, col, msg)
-        A2.drawTextRight(panel, "MECHANICS " .. tostring(mechLevel(chr)), x + w - T.px(10), fy + math.floor((footerH - T.fontF1H) / 2), T.fontF1, T.textDim)
     end
 end
 
