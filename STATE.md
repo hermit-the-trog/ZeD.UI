@@ -4,11 +4,12 @@ One page. What is true right now. Rewritten at every closeout, never appended to
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
 **Version:** `0.1.1242300k` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 13 2026
-**Next session:** S125 - director plays the scaled UI on the 4K rig (pair, drawers, cards, HUD props, tooltips, map) + the controller pass; then the **vehicle mechanics tab** (mockup first, HOOK_MAP row 3), then the main menu (plan in `ZeDUI/deltas/SESSION_124_DELTA.md`). See Target.
+**Next session:** S125 - director plays the crafting stations (kiln / forge / pottery benches, drying racks, oven, microwave) and the Vehicle tab on the 4K rig; then the next World window surface: info cards for generator, campfire, barbecue and farm plot (HOOK_MAP rows 11, 12), mockup first. See Target.
 
 ## What ships
 
 - Character Window: Loot · Equip · Health · Thermal · Identity · Journal (3 sub-tabs) · Skills · Radio (contextual). Drawer = universal detail surface; ItemCard with Progress Band (reading / cooking with burn danger / repairing), cancel, rename, 220w/480w presets.
+- World Window Craft tab works **at a station** (S124): a STATION select beside CATEGORY lists Hand and every station within 4 tiles. Benches (kilns, forges, pottery, looms...) show their own recipes and craft at the bench under vanilla's one-player lock; drying racks get a machine view (slots with per-slot progress, START / STOP, outputs, add from bags); ovens and microwaves get a 1993 control panel (knobs, readout, lamp, ON / OFF, °F / °C) with what is cooking. Hand mode keeps station recipes in place with a hollow dot and the station's tag, and their card offers USE <station>. Every vanilla way in lands there (station right-click / Interact / click, stove settings, crafting and build keys, item-menu craft entries, recipe books) — `Stations.lua`, `StationMachine.lua`, `StationAppliance.lua`, `Overrides/Stations.lua`.
 - World Window: Loot · Craft · Build · Maps · Forage · Animals · Radio · **Vehicle** (contextual: a vehicle within reach; scanline car figure tinted by condition, parts by area, part cards with header verbs, a NEEDS checklist per verb, install pick list, repair recipes, footer confirmations, INSPECT before the vanilla look-over). Mirrored chrome, container strip, multi-column inventory. **Maps unfold** into a centred pop-out (toolbar button, A on the fold placeholder, B folds; the Map key / mini-map / D-pad wheel / HUD button all open it — `Overrides/WorldMap.lua`).
 - Context menu: single horizontal strip, 114 `fi-br-*` icons, first-word fallback, System 7 paper/ink.
 - Theme engine: 3 bases (dark, hicon, light) × 9 accents × 2 text sizes (`shared/ZeD/Tokens.lua`). Fonts: Fira Mono + Fira Sans Condensed bitmap `.fnt` (1x–4x sets shipped).
@@ -33,6 +34,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 3. **Resolution scaling: done (S124).** A **UI scale** mod option (Auto, or a fixed 0.5x-2x; Auto = 1x at 1080p, 2x at 4K) overrides the automatic size, and the tab icons are baked at every drawn size (8-64 px, `ZeDUI/tools/icons/bake_tab_icons.py`) so they stay crisp. Root scale = screen height / 1080 x a mild font-option multiplier; tokens, text (distance-field Fira), borders, the HUD props, both windows, the tooltip frame and the embedded map labels draw in design units through `T.px`; a root change closes and reopens the pair. The global `getTextManager` is the `ZeD.TM` proxy (role fonts measure zoomed; explicit-zoom paths use `ZeD.Text.realTM()`). Left: the Java-drawn item tooltip (`ObjectTooltip`) keeps the engine size.
 4. On a fresh world load before the first ZeD open, the vanilla collapsed inventory strips show at the top.
 5. Container strip lists only equipped bags + key rings (design question).
+6. Typed text in the drawer search fields (Craft, Build) draws at the 1x font size on the 4K rig: the field is a Java text entry that the UI scale does not reach.
 5. Deferred from S113: grid-scroll surfaces (Identity, Forage) keep the `onDpadDir` adapter; hold-X drag has no visual feedback.
 
 - **S124 (Oct 13) true UI scaling, phase 1:** `ZeD.Scale.root()` = screen height / 1080 x a mild font-option multiplier (4K rig = 2.0); `ZeD.Text` draws through the engine zoom path; five Fira roles baked as 64 px distance-field atlases (`ZeDUI/tools/fonts/bake_sdf.py`) on spare slots; the dashboard and watch scale from the root with crisp text at 1x and 2x (`ZeDUI/qa/S124_scale/`). The windows still draw at 1x with bitmap fonts until phase 2.
@@ -44,7 +46,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
 **Playable floor = full gamepad parity.** Dude tests on gamepad only. Every surface starts as a mockup in `ZeDUI/mockups/` (the contract), then the build, then live QA on the QA save.
 
 1. **Finish every World window surface** (HOOK_MAP rows, by how often a long session hits them):
-   1. Crafting stations — B42 entity windows (row 1) with the oven / microwave timers (row 14): the Craft tab in station mode.
+   1. ~~Crafting stations (rows 1, 14)~~ — **done S124** (Craft tab station mode; drying-rack outputs and TAKE ALL not seen live: a full drying day did not fast-forward through the bridge).
    2. Info cards — generator, campfire, barbecue, farm plot (rows 11, 12): one shared card pattern in the World drawer.
    3. Fluid transfer (row 8).
    4. Furniture info and placement (row 15).

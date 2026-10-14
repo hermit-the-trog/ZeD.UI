@@ -746,6 +746,8 @@ end
 -- frame, so this wrapper returns {} until that state exists.
 local function _buildWorldCraftFocusables(win)
     if not (ZeD and ZeD.CraftingCore and ZeD.CraftingTab) then return {} end
+    -- S124: CraftingTab routes to the recipe view or a station's own view
+    if ZeD.CraftingTab.buildFocusables then return ZeD.CraftingTab.buildFocusables(win) end
     return ZeD.CraftingCore.buildFocusables(win, win and win._craftState,
         "craft", "ZeD_CraftPins", ZeD.CraftingTab.startCraft)
 end
@@ -3291,6 +3293,10 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         -- Crafting search field visibility (tab mode + craft tab active)
         local showCraft = effectiveW > 0 and win._drawerMode == "tab" and win._activeTab == "craft"
+        -- S124 stations: a drying rack or an oven has no recipe search
+        if showCraft and ZeD.Stations and ZeD.Stations.hidesSearch and ZeD.Stations.hidesSearch(win) then
+            showCraft = false
+        end
         win._craftSearch:setVisible(showCraft)
 
         local showBuild = effectiveW > 0 and win._drawerMode == "tab" and win._activeTab == "build"
@@ -3971,6 +3977,10 @@ function ZeD_WorldWindow.toggle(playerNum)
                     local lg = stk._listGeo
                     scrollKey = tostring(sp) .. ":" .. tostring(lg and lg.y or 0) .. ":" .. tostring(lg and lg.h or 0)
                         .. ":" .. tostring(stk.catDropdownOpen) .. ":" .. tostring(stk.catDropdownScroll or 0)
+                    -- S124 stations: binding, station dropdown and station-view controls
+                    if win._activeTab == "craft" and ZeD.CraftingTab and ZeD.CraftingTab.focusKey then
+                        scrollKey = scrollKey .. ":" .. tostring(ZeD.CraftingTab.focusKey(win))
+                    end
                     if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
                 end
             end
@@ -4629,6 +4639,51 @@ function ZeD_WorldWindow.open(playerNum)
     if not _worldWin then
         ZeD_WorldWindow.toggle(playerNum)
     end
+end
+
+-- S124: show a tab programmatically (stations, crafting and build keys).
+-- Replays a tab-strip click so every side effect (multi-select exit, drawer
+-- growth, gamepad ring re-sync) matches the mouse path. The strip stamps its
+-- hit zones while drawing, so a freshly opened window retries for a few ticks.
+-- toggle = true hides the tab again when it is already showing (vanilla's
+-- crafting and build keys toggle their windows).
+function ZeD_WorldWindow.isTabShowing(tabId)
+    local win = _worldWin
+    return win ~= nil and win._activeTab == tabId and win._drawerMode == "tab" and win._drawerOpen == true
+end
+
+function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
+    if not _worldWin then
+        local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
+        if not ok then return false end
+    end
+    local win = _worldWin
+    if not win then return false end
+    if ZeD_WorldWindow.isTabShowing(tabId) and not toggle then return true end
+    local wantClick = true
+    local function attempt()
+        if not wantClick then return true end
+        local strip = win._actionTabStrip
+        if strip and strip._hitZones then
+            for _, z in ipairs(strip._hitZones) do
+                if z.id == "tab:" .. tabId then
+                    wantClick = false
+                    strip:onMouseDown(z.x + 2, z.y + 2)
+                    return true
+                end
+            end
+        end
+        return false
+    end
+    if not attempt() then
+        local tries = 0
+        local function tick()
+            tries = tries + 1
+            if attempt() or tries >= 20 then Events.OnTick.Remove(tick) end
+        end
+        Events.OnTick.Add(tick)
+    end
+    return true
 end
 
 function ZeD_WorldWindow.close()

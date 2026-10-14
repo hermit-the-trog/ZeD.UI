@@ -38,7 +38,7 @@ local SKILL_INTERVAL     = 30
 local CONTAINER_INTERVAL = 90
 
 -- Sort rank
-local STATUS_RANK = { craftable = 0, unlocked = 1, missing = 2, locked = 3 }
+local STATUS_RANK = { craftable = 0, unlocked = 1, missing = 2, station = 2, locked = 3 }
 
 -- ============================================================================
 -- UTILITY — getInputName / getOutputName
@@ -211,7 +211,8 @@ end
 
 function CC.quickCraftCheck(rd, containers, typeCache)
     -- Already locked (not learned or missing skill) — skip ingredient check
-    if rd.status == "locked" then return "locked" end
+    -- Station recipes in Hand mode keep their status: no hand craft is possible
+    if rd.status == "locked" or rd.status == "station" then return rd.status end
 
     -- Check ALL inputs — tools/kept items are returned after craft but still needed to start
     local entry = rd.entry
@@ -450,6 +451,7 @@ function CC.prebakeInputs(recipe)
                 end
 
                 inputDefs[#inputDefs + 1] = {
+                    isFuel     = (validTypes["Base.Log"] or validTypes["Base.Charcoal"]) and true or false,
                     name       = inputName,
                     isTool     = isTool,
                     isKeep     = isKeep,
@@ -711,7 +713,7 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
             isTool     = inp.isTool,
             isKeep     = inp.isKeep,
             altCount   = inp.altCount or 0,
-            tag        = inp.tag,
+            tag        = (inp.isFuel and entry.heatStation) and "FUEL" or inp.tag,
             iconTex    = nil,  -- individual ingredient icons deferred
             validTypes = inp.validTypes,  -- needed for alt enumeration
         }
@@ -744,7 +746,9 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     rd.skills       = skills
     rd.missingCount = missingCount
     rd.craftTime    = craftTime
-    rd.status       = missingCount > 0 and "missing" or "craftable"
+    if rd.status ~= "station" then
+        rd.status   = missingCount > 0 and "missing" or "craftable"
+    end
 
     return containers
 end
@@ -979,22 +983,42 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     local A  = ZeD.Atoms
     local tm = ZeD.TM
     local zones = state.zones
-    local headerH = T.px(CC.HEADER_H)  -- 37px
-    local colH    = CC.COL_HEADER_H  -- 20px
+    local pfx = (config and config.prefix) or "jrecipe"
+    local ST = config and config.stations and ZeD.Stations or nil
+    local headerH = T.px(CC.HEADER_H)  -- 37px single row
 
-    -- ── Row 1: 37px — Dropdown LEFT, Search RIGHT ──────────────────
-    -- Split: dropdown gets ~half, search gets ~half, 6px gap between
     local pad = T.px(6)
     local gap = T.px(6)
-    local ddW = math.floor((w - pad * 2 - gap) * 0.45)  -- dropdown ~45%
-    local searchW = w - pad * 2 - gap - ddW              -- search gets rest
-
-    local ddX = x + pad
     local ddH = T.inputH  -- match search field height
-    local ddY = y + math.floor((headerH - ddH) / 2)      -- vertically centered in 37px
+    local ddX, ddY, ddW, searchX, searchY, searchW
 
-    local searchX = ddX + ddW + gap
-    local searchY = ddY  -- same vertical center
+    if ST then
+        -- Crafting: two rows. STATION and CATEGORY selects side by side, the
+        -- search field full width under them.
+        local selW = math.floor((w - pad * 2 - gap) / 2)
+        local stX, rowY = x + pad, y + pad
+        ddX, ddY = stX + selW + gap, rowY
+        ddW = w - pad * 2 - gap - selW
+        searchX, searchY, searchW = x + pad, rowY + ddH + gap, w - pad * 2
+        headerH = pad + ddH + gap + ddH + pad
+
+        local player = win and win._playerObj
+        local cur = player and ST.current(player) or nil
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
+            and mx >= stX and mx < stX + selW and my >= rowY and my < rowY + ddH
+        ST.drawSelect(panel, stX, rowY, selW, ddH, "STATION", cur and cur.name or "Hand",
+            cur ~= nil, state._gpFocusedId == (pfx .. ":stDrop"), hov)
+        zones[#zones + 1] = { type = "stationDropdown", x = stX, y = rowY, w = selW, h = ddH }
+        state._stGeo = { x = stX, y = rowY + ddH, w = selW }
+    else
+        -- Row 1: 37px — Dropdown LEFT (~45%), Search RIGHT, 6px gap between
+        ddW = math.floor((w - pad * 2 - gap) * 0.45)
+        ddX = x + pad
+        ddY = y + math.floor((headerH - ddH) / 2)      -- vertically centered in 37px
+        searchX, searchY = ddX + ddW + gap, ddY
+        searchW = w - pad * 2 - gap - ddW
+    end
 
     -- Position the actual ZeD_SearchField ISPanel child
     local searchKey = "_" .. config.prefix .. "Search"
@@ -1006,6 +1030,12 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         searchField:setHeight(ddH)
         -- Update placeholder based on mode
         searchField.placeholder = state.altSlotName and "Filter alternatives..." or "Search recipes..."
+        -- The field is a child panel and paints after the tab: with a dropdown
+        -- open over the search row, hide it for the frame (the window's
+        -- prerender shows it again).
+        if ST and (state.catDropdownOpen or state.stDropdownOpen) then
+            searchField:setVisible(false)
+        end
     end
 
     -- Category dropdown (drawn manually — ZeD_Dropdown as child panel is future work)
@@ -1018,29 +1048,36 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         panel:drawText(frozenLabel, ddX + T.px(6), ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2),
             ac.r, ac.g, ac.b, 0.8, T.fontF2)
     else
-        -- Normal dropdown: show active category with arrow
-        local bg = T.surf2
-        panel:drawRect(ddX, ddY, ddW, ddH, bg.a, bg.r, bg.g, bg.b)
-        panel:drawRectBorder(ddX, ddY, ddW, ddH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-
         local activeCatLabel = state.activeCat == "all" and "-- All --" or state.activeCat
         if #activeCatLabel > 0 then
             activeCatLabel = string.upper(string.sub(activeCatLabel, 1, 1)) .. string.sub(activeCatLabel, 2)
         end
-        local catTextY = ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2)
-        panel:drawText(activeCatLabel, ddX + T.px(6), catTextY, T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
+        if ST then
+            local mx, my = panel:getMouseX(), panel:getMouseY()
+            local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
+                and mx >= ddX and mx < ddX + ddW and my >= ddY and my < ddY + ddH
+            ST.drawSelect(panel, ddX, ddY, ddW, ddH, "CATEGORY", activeCatLabel, false,
+                state._gpFocusedId == (pfx .. ":catDrop"), hov)
+        else
+            -- Normal dropdown: show active category with arrow
+            local bg = T.surf2
+            panel:drawRect(ddX, ddY, ddW, ddH, bg.a, bg.r, bg.g, bg.b)
+            panel:drawRectBorder(ddX, ddY, ddW, ddH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
 
-        -- Down arrow
-        local arrowSz = T.px(5)
-        local arrowX = ddX + ddW - arrowSz - T.px(8)
-        local arrowY = ddY + math.floor((ddH - arrowSz) / 2)
-        A.drawTriangleDown(panel, arrowX, arrowY, arrowSz, T.textSec)
+            local catTextY = ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2)
+            panel:drawText(activeCatLabel, ddX + T.px(6), catTextY, T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
 
-        -- S105 gamepad: inline cue paint for focused category dropdown button.
-        local pfx = (config and config.prefix) or "jrecipe"
-        if state._gpFocusedId == (pfx .. ":catDrop") then
-            local ac = T.accent
-            panel:drawRect(ddX, ddY, ddW, ddH, 0.55, ac.r, ac.g, ac.b)
+            -- Down arrow
+            local arrowSz = T.px(5)
+            local arrowX = ddX + ddW - arrowSz - T.px(8)
+            local arrowY = ddY + math.floor((ddH - arrowSz) / 2)
+            A.drawTriangleDown(panel, arrowX, arrowY, arrowSz, T.textSec)
+
+            -- S105 gamepad: inline cue paint for focused category dropdown button.
+            if state._gpFocusedId == (pfx .. ":catDrop") then
+                local ac = T.accent
+                panel:drawRect(ddX, ddY, ddW, ddH, 0.55, ac.r, ac.g, ac.b)
+            end
         end
 
         zones[#zones + 1] = { type = "catDropdown", x = ddX, y = ddY, w = ddW, h = ddH }
@@ -1052,7 +1089,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
     -- Bottom rule on header row
     A.drawDividerH(panel, x, y + headerH - T.px(1), w, true)
 
-    return headerH  -- 37px; sort strip renders immediately below
+    return headerH  -- 37px (62px with the station row); sort strip renders below
 end
 
 -- ============================================================================
@@ -1063,7 +1100,7 @@ function CC.renderStrip(panel, x, y, w, state, config)
     local T = ZeD.T
     local zones = state.zones
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    if state.catDropdownOpen then mx, my = -1, -1 end  -- suppress hover when dropdown open
+    if state.catDropdownOpen or state.stDropdownOpen then mx, my = -1, -1 end  -- suppress hover when a dropdown is open
 
     -- Detect hover zone from previous frame's zones (strip zones persist between frames)
     local stripH = T.px(CC.STRIP_H)
@@ -1274,8 +1311,8 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
 
     local curY = y - scrollOff
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    -- Suppress hover when dropdown overlay is open
-    if state.catDropdownOpen then mx, my = -1, -1 end
+    -- Suppress hover when a dropdown overlay is open
+    if state.catDropdownOpen or state.stDropdownOpen then mx, my = -1, -1 end
     local rowIdx = 0
 
     -- Reusable row data table (zero alloc per row per frame)
@@ -1327,8 +1364,10 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                     if rd.status == "missing" then status = "miss"
                     elseif rd.status == "locked" then status = "unknown"
                     elseif rd.status == "craftable" then status = "can"
+                    elseif rd.status == "station" then status = "station"
                     elseif rd.status == "unlocked" then status = "miss" end
 
+                    rowData.tag = rd.stationTag
                     rowData.name = name
                     rowData.displayName = rd.entry.displayName
                     rowData.iconTex = rd.entry.iconTex
@@ -1536,7 +1575,19 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     if showLearnSection then
         learnH = ROW_H + #(rd.skills or {}) * ROW_H + T.px(8)
     end
-    local totalH = headerH + chipH + T.px(4) + inputsH + T.px(4) + outputsH + learnH + actionH
+    -- Hand mode, station recipe: "Needs a Primitive Kiln" box with a USE button
+    local stNeed = (not config.readOnly) and rd.stationNeed or nil
+    local stNear = nil
+    if stNeed and ZeD.Stations and playerObj then
+        stNear = ZeD.Stations.nearestFor(playerObj, entry.name)
+    end
+    local needH = 0
+    if stNeed then
+        needH = T.px(8) + T.fontF2H + T.px(2) + T.fontF2H + T.px(8)
+        if stNear then needH = needH + T.px(6) + T.px(22) end
+        needH = needH + T.px(8)
+    end
+    local totalH = headerH + chipH + T.px(4) + needH + inputsH + T.px(4) + outputsH + learnH + actionH
 
     -- Scrollbar (for very long ingredient lists)
     local scrollW = T.sp.scrollbarW
@@ -1615,9 +1666,49 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
             timeStr = string.format("%ds", math.floor(t))
         end
         bw = A.drawBadge(panel, timeStr, chipX, curY, "accent", nil, nil, true)
+        chipX = chipX + bw + T.px(4)
+    end
+
+    -- Station chip: what this recipe needs (Hand mode) or where it is made
+    if stNeed then
+        A.drawBadge(panel, "NEEDS " .. (stNeed.short or "STATION"), chipX, curY, "danger")
+    elseif rd.boundShort then
+        A.drawBadge(panel, rd.boundShort, chipX, curY, nil)
     end
 
     curY = curY + chipH + T.px(4)
+
+    if stNeed then
+        local bx, bw2 = x + T.px(10), contentW - T.px(20)
+        local bh = needH - T.px(8)
+        local ac = T.accent
+        panel:drawRect(bx, curY, bw2, bh, 0.12, ac.r, ac.g, ac.b)
+        panel:drawRectBorder(bx, curY, bw2, bh, ac.a or 1, ac.r, ac.g, ac.b)
+        local ty = curY + T.px(8)
+        local line1 = "Needs " .. ZeD.Stations.withArticle(stNeed.label) .. "."
+        panel:drawText(CC.truncText(line1, T.fontF2, bw2 - T.px(16)), bx + T.px(8), ty,
+            T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
+        ty = ty + T.fontF2H + T.px(2)
+        local line2 = stNear and ("The nearest is " .. string.lower(ZeD.Stations.tilesText(stNear.dist)) .. " away.")
+            or ("None within " .. tostring(ZeD.Stations.REACH) .. " tiles.")
+        panel:drawText(CC.truncText(line2, T.fontF2, bw2 - T.px(16)), bx + T.px(8), ty,
+            T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF2)
+        ty = ty + T.fontF2H
+        if stNear then
+            ty = ty + T.px(6)
+            local label = "USE " .. string.upper(stNear.name or "STATION")
+            local btnH = T.px(22)
+            local btnW = math.min(bw2 - T.px(16), ZeD.TM:MeasureStringX(T.fontF3, label) + T.px(24))
+            M.drawButton(panel, bx + T.px(8), ty, btnW, btnH, label, "primary")
+            local pfx = (config and config.prefix) or "jrecipe"
+            if state._gpFocusedId == (pfx .. ":stUse") then
+                panel:drawRect(bx + T.px(8), ty, btnW, btnH, 0.55, ac.r, ac.g, ac.b)
+            end
+            zones[#zones + 1] = { type = "stationUse", station = stNear,
+                x = bx + T.px(8), y = ty, w = btnW, h = btnH, _scrolled = true }
+        end
+        curY = curY + needH
+    end
 
     local catHdrH = T.sp.catHdrH  -- 15px, same as inventory category separators
     local mx, my = panel:getMouseX(), panel:getMouseY()   -- hoisted: the HOW TO LEARN hover test below used these before they were declared (nil globals)
@@ -1851,9 +1942,17 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
 
     local curY = y
 
-    -- Static header (cat dropdown + search)
+    -- Static header (cat dropdown + search; crafting adds the station select)
     local headerH = CC.renderStaticHeader(panel, x, curY, w, state, config, win)
     curY = curY + headerH
+
+    -- Station band (Craft tab bound to a bench)
+    if config.stations and ZeD.Stations and win._playerObj then
+        local cur = ZeD.Stations.current(win._playerObj)
+        if cur then
+            curY = curY + ZeD.Stations.drawBand(panel, x, curY, w, cur, win._playerObj)
+        end
+    end
 
     -- Contextual strip
     local stripH = CC.renderStrip(panel, x, curY, w, state, config)
@@ -1905,6 +2004,11 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- Category dropdown overlay (drawn LAST — on top of everything)
     if state.catDropdownOpen and state._ddGeo then
         CC.renderCatDropdownOverlay(panel, state, data)
+    end
+
+    -- Station dropdown overlay (crafting)
+    if config.stations and ZeD.Stations then
+        ZeD.Stations.drawDropdownFor(panel, state, win._playerObj, state._gpFocusedId, config.prefix)
     end
 
     -- S105 gamepad: scroll-follow with delta gate (Q99). Uses last-frame
@@ -2061,6 +2165,11 @@ end
 
 function CC.onClick(state, config, win, x, y, playerObj)
     local T = ZeD.T
+    -- Station dropdown open: it takes every click (pick a row or close)
+    if state.stDropdownOpen and ZeD.Stations then
+        ZeD.Stations.dropdownClick(state, playerObj, x, y)
+        return true
+    end
     -- When dropdown is open, do direct hit-test — consume ALL clicks
     if state.catDropdownOpen and state._ddGeo then
         local geo = state._ddGeo
@@ -2131,6 +2240,19 @@ function CC.onClick(state, config, win, x, y, playerObj)
 
             elseif zone.type == "catDropdown" then
                 state.catDropdownOpen = not state.catDropdownOpen
+                state.stDropdownOpen = false
+                return true
+
+            elseif zone.type == "stationDropdown" then
+                state.stDropdownOpen = not state.stDropdownOpen
+                state.stDropdownScroll = 0
+                state.catDropdownOpen = false
+                return true
+
+            elseif zone.type == "stationUse" then
+                if ZeD.Stations and playerObj and zone.station then
+                    ZeD.Stations.bind(playerObj, zone.station)
+                end
                 return true
 
             elseif zone.type == "altStrip_back" then
@@ -2204,6 +2326,10 @@ end
 
 function CC.onMouseWheel(state, del, x, y, panelX, panelW)
     local T = ZeD.T
+    if state.stDropdownOpen and ZeD.Stations then
+        ZeD.Stations.dropdownWheel(state, del)
+        return true
+    end
     -- Dropdown scroll takes priority when open
     if state.catDropdownOpen then
         local totalRows = #(state.categoryList or {})
@@ -2261,6 +2387,11 @@ end
 function CC.buildFocusables(win, state, prefix, pinKey, startAction)
     local T = ZeD.T
     if not (win and state) then return {} end
+
+    -- Station dropdown open: focus is locked to its rows
+    if state.stDropdownOpen and ZeD.Stations then
+        return ZeD.Stations.dropdownFocusables(state, win._playerObj, prefix)
+    end
 
     -- Dropdown open: focus locked to dropdown rows. DD_ROW_H = 20 / DD_MAX_VIS
     -- = 14 mirror the constants at the top of this file (kept literal here so
@@ -2387,6 +2518,31 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     state.filterDirty = true
                 end,
             }
+        elseif z.type == "stationDropdown" then
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":stDrop",
+                craftKind = "stDrop",
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    state.stDropdownOpen = not state.stDropdownOpen
+                    state.stDropdownScroll = 0
+                    state.catDropdownOpen = false
+                end,
+            }
+        elseif z.type == "stationUse" then
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":stUse",
+                craftKind = "stUse",
+                station = z.station,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    if ZeD.Stations and w._playerObj and el.station then
+                        ZeD.Stations.bind(w._playerObj, el.station)
+                    end
+                end,
+            }
         elseif z.type == "catDropdown" then
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
@@ -2486,5 +2642,6 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
             }
         end
     end
+    if ZeD.Stations then ZeD.Stations.addLeaveCancel(elements, win, prefix) end
     return elements
 end

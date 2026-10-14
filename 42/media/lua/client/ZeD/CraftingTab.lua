@@ -4,9 +4,16 @@
 -- Owns: catalog building (eager, game start), gatherData (skill+learn checks),
 -- gatherDetail (batch qty via HandcraftLogic), startCraft (HandcraftLogic exec).
 -- All rendering, filtering, pin management, state machine → CraftingCore.
+--
+-- Stations (HOOK_MAP rows 1, 14): the tab works by hand or at a station. In
+-- Hand mode, recipes that need a station keep their place with the station
+-- as a tag and are not craftable; bound to a bench, the list is the bench's
+-- recipes and CRAFT works at it (vanilla's lock and walk-to); bound to a
+-- drying rack or an oven the tab shows that machine's own view instead.
 -- ============================================================================
 
 require "ZeD/CraftingCore"
+require "ZeD/Stations"
 
 ZeD = ZeD or {}
 ZeD.CraftingTab = {}
@@ -93,7 +100,12 @@ local function buildCatalog()
             pcall(function() if recipe:isNeedSurface() then needSurface = true end end)
         end
 
+        -- Station this recipe needs (nil for hand recipes)
+        local stationInfo = ZeD.Stations and ZeD.Stations.recipeStation(recipe) or nil
+
         local entry = {
+            stationInfo   = stationInfo,
+            heatStation   = stationInfo and stationInfo.heat or false,
             recipe        = recipe,
             displayName   = recipe:getTranslationName() or recipe:getName(),
             name          = recipe:getName(),
@@ -154,9 +166,50 @@ Events.OnGameStart.Add(onGameStart)
 -- DATA GATHERING — cheap per-frame: skill/learn checks only
 -- ============================================================================
 
+-- The recipe list and categories for a bench: the catalog entries the bench
+-- makes, in catalog order. Cached per station.
+local _benchSource = {}
+local function benchSource(bench)
+    local c = _benchSource[bench.key]
+    if c then return c.list, c.cats end
+    local set = ZeD.Stations.recipeSet(bench)
+    local list, counts, order = {}, {}, {}
+    for _, entry in ipairs(_flatRecipes or {}) do
+        if set[entry.name] then
+            list[#list + 1] = entry
+            local id = string.lower(entry.category)
+            if not counts[id] then
+                counts[id] = 0
+                order[#order + 1] = { id = id, label = entry.category }
+            end
+            counts[id] = counts[id] + 1
+        end
+    end
+    table.sort(order, function(a, b) return a.label < b.label end)
+    local cats = { { id = "all", label = "All", full = "All", count = #list } }
+    for _, o in ipairs(order) do
+        cats[#cats + 1] = { id = o.id, label = o.label, full = o.label, count = counts[o.id] }
+    end
+    _benchSource[bench.key] = { list = list, cats = cats }
+    return list, cats
+end
+
+local function boundBench(playerObj)
+    local st = ZeD.Stations and playerObj and ZeD.Stations.current(playerObj)
+    if st and st.kind == "bench" then return st end
+    return nil
+end
+
 function ZeD.CraftingTab.gatherData(playerObj, win)
     buildCatalog()
     if not _flatRecipes then return { recipes = {}, categories = _categories, flatRecipes = _flatRecipes } end
+
+    local bench = boundBench(playerObj)
+    local srcKey = bench and bench.key or "hand"
+    if win._craftCacheKey ~= srcKey then
+        win._craftCache = nil
+        win._craftCacheKey = srcKey
+    end
 
     -- Throttled (every 30 frames)
     win._craftTimer = (win._craftTimer or 0) + 1
@@ -166,8 +219,16 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
     win._craftTimer = 0
 
     local recipes = {}
+    local source, categories = _flatRecipes, _categories
+    if bench then source, categories = benchSource(bench) end
+    local boundShort = nil
+    if bench then
+        for _, e in ipairs(source) do
+            if e.stationInfo then boundShort = e.stationInfo.short; break end
+        end
+    end
 
-    for _, entry in ipairs(_flatRecipes) do
+    for _, entry in ipairs(source) do
         -- Skill check
         local hasSkill = true
         local playerLevel = 0
@@ -193,7 +254,14 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
             status = "unlocked"
         end
 
+        -- Hand mode: a recipe that needs a station cannot be made by hand
+        local needs = (not bench) and entry.stationInfo or nil
+        if needs and status == "unlocked" then status = "station" end
+
         recipes[#recipes + 1] = {
+            stationNeed = needs,
+            stationTag  = needs and needs.short or nil,
+            boundShort  = bench and (entry.stationInfo and entry.stationInfo.short or boundShort) or nil,
             entry       = entry,
             status      = status,
             hasSkill    = hasSkill,
@@ -204,7 +272,7 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
         }
     end
 
-    local data = { recipes = recipes, categories = _categories, flatRecipes = _flatRecipes }
+    local data = { recipes = recipes, categories = categories, flatRecipes = source }
     win._craftCache = data
     return data
 end
@@ -220,8 +288,9 @@ local function gatherDetail(rd, playerObj, win)
     rd.maxBatchQty = 1
     local entry = rd.entry
     if entry.allowBatch and entry.recipe and rd.status == "craftable" then
+        local bench = boundBench(playerObj)
         pcall(function()
-            local l = HandcraftLogic.new(playerObj, nil, nil)
+            local l = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
             l:setRecipe(entry.recipe)
             l:setContainers(containers)
             rd.maxBatchQty = l:getPossibleCraftCount(true)
@@ -246,6 +315,20 @@ function ZeD.CraftingTab.startCraft(win, state)
     local recipe = entry.recipe
     local qty = state.qty or 1
 
+    -- At a bench: still bound and in reach, walk over if needed (vanilla's
+    -- HandcraftStartMultiple does the same), and the action carries the bench
+    -- so it keeps vanilla's one-player check (ISHandcraftAction:isValid).
+    local bench = nil
+    if ZeD.Stations then
+        local st = ZeD.Stations.validate(playerObj)
+        if st and st.kind == "bench" then bench = st end
+    end
+    if entry.stationInfo and not bench then return end
+    if bench then
+        if not ZeD.Stations.recipeSet(bench)[recipe:getName()] then return end
+        if ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, bench.obj) then return end
+    end
+
     -- Build containers
     local containers = CC.buildContainers(playerObj)
 
@@ -259,8 +342,8 @@ function ZeD.CraftingTab.startCraft(win, state)
             local action = ISBaseTimedAction.new(ISHandcraftAction, playerObj)
             action.stopOnAim    = false
             action.character    = playerObj
-            action.isoObject    = nil
-            action.craftBench   = nil
+            action.isoObject    = bench and bench.obj or nil
+            action.craftBench   = bench and bench.comp or nil
             action.containers   = containers
             action.manualInputs = nil  -- falsy → :start() auto-resolves inputs
             action.craftRecipe  = recipe
@@ -295,6 +378,7 @@ end
 -- ============================================================================
 
 local craftConfig = {
+    stations    = true,   -- STATION select, band, station recipes (Stations.lua)
     prefix      = "craft",
     pinKey      = "ZeD_CraftPins",
     countKey    = "ZeD_CraftCounts",
@@ -319,8 +403,47 @@ end
 -- MAIN RENDERER
 -- ============================================================================
 
+-- A bind or unbind elsewhere (dropdown, USE button, vanilla hook, walking
+-- away) resets what depends on the recipe source.
+local function syncStation(win, state)
+    local ST = ZeD.Stations
+    if not ST or state._stGen == ST.gen then return end
+    state._stGen = ST.gen
+    state.filterDirty = true
+    state.activeCat = "all"
+    state.catDropdownOpen = false
+    state.stDropdownOpen = false
+    state.stDropdownScroll = 0
+    if state.altSlotName then CC.exitAltMode(state) end
+    local bench = boundBench(win._playerObj)
+    if state.selected and bench and not ST.recipeSet(bench)[state.selected] then
+        CC.closeCraft(state)
+    end
+    if state.scroll then state.scroll:setScrollPos(0) end
+    win._craftCache = nil
+    win._craftTimer = 30
+end
+
+-- The view that replaces the recipe list for a machine or an appliance.
+local function stationView(win)
+    local ST = ZeD.Stations
+    local st = ST and win._playerObj and ST.current(win._playerObj)
+    if not st then return nil, nil end
+    if st.kind == "machine" and ZeD.StationMachine then return ZeD.StationMachine, st end
+    if (st.kind == "oven" or st.kind == "micro") and ZeD.StationAppliance then return ZeD.StationAppliance, st end
+    return nil, st
+end
+
 function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     local state = getState(win)
+    if ZeD.Stations and win._playerObj then ZeD.Stations.validate(win._playerObj) end
+    syncStation(win, state)
+
+    local view, st = stationView(win)
+    if view then
+        view.render(panel, win, x, y, w, h, state, st)
+        return
+    end
 
     -- Throttled data refresh
     local data = ZeD.CraftingTab.gatherData(win._playerObj, win)
@@ -356,6 +479,8 @@ end
 
 function ZeD.CraftingTab.onClick(win, x, y)
     local state = getState(win)
+    local view, st = stationView(win)
+    if view then return view.onClick(win, state, st, x, y) end
     return CC.onClick(state, craftConfig, win, x, y, win._playerObj)
 end
 
@@ -365,6 +490,7 @@ end
 
 function ZeD.CraftingTab.onRightClick(win, x, y)
     local state = getState(win)
+    if stationView(win) then return true end
     return CC.onRightClick(state, craftConfig, win, x, y)
 end
 
@@ -375,7 +501,28 @@ end
 function ZeD.CraftingTab.onMouseWheel(win, del, x, y)
     local T = ZeD.T
     local state = getState(win)
+    local view, st = stationView(win)
+    if view then return view.onMouseWheel(win, state, st, del, x, y) end
     return CC.onMouseWheel(state, del, x, y, 0, T.px(CC.DRAWER_W))
+end
+
+-- Gamepad focusables for the World window (recipe view or station view).
+function ZeD.CraftingTab.buildFocusables(win)
+    local state = win and win._craftState
+    if not state then return {} end
+    local view, st = stationView(win)
+    if view then return view.buildFocusables(win, state, st) end
+    return CC.buildFocusables(win, state, "craft", "ZeD_CraftPins", ZeD.CraftingTab.startCraft)
+end
+
+-- Focus-refresh key: changes whenever the station view's controls move.
+function ZeD.CraftingTab.focusKey(win)
+    local state = win and win._craftState
+    if not state then return nil end
+    local view, st = stationView(win)
+    local k = tostring(ZeD.Stations and ZeD.Stations.gen or 0) .. ":" .. tostring(state.stDropdownOpen) .. ":" .. tostring(state.stDropdownScroll or 0)
+    if view and view.focusKey then k = k .. ":" .. tostring(view.focusKey(win, state, st)) end
+    return k
 end
 
 -- ============================================================================
