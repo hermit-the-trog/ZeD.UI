@@ -18,6 +18,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
+require "ZeD/ObjectCards"
 require "ZeD/InventoryRenderer"
 require "ZeD/ItemCard"
 require "ZeD/CraftingTab"
@@ -50,6 +51,7 @@ local STRIP_SCROLL_ROW_H   = 16
 local DRAWER_W             = 260
 local ITEM_CARD_W          = 220
 local TAB_DRAWER_W         = 480
+local OBJECT_CARD_W        = 480   -- S124 object cards (generator, fires, farm plots)
 local DRAWER_PX_SPEED      = DRAWER_W * 8   -- ~2080 design units/sec, matches char window; scaled at use (T.px(DRAWER_PX_SPEED) * dt)
 local ACTION_TAB_STRIP_W   = 36
 local ACTION_TAB_BTN_SZ    = 36
@@ -58,6 +60,18 @@ local ACTION_TAB_BTN_SZ    = 36
 -- capture nil in Kahlua (common mistake #16).
 local TAB_SEP_H            = 1
 local TAB_SEP_MAR          = 2
+
+-- S124 object cards: drop the object card from the drawer. Hoisted above all
+-- consumers (tab switches, MC entry, item selection, the public close).
+local function dropObjectCard(win)
+    if not win or not win._drawerObject then return end
+    win._drawerObject = nil
+    if win._objectCard then win._objectCard:setEntry(nil) end
+    if win._drawerMode == "object" then
+        win._drawerMode = nil
+        win._drawerOpen = #(win._mcSelected or {}) > 0
+    end
+end
 
 -- Action tab definitions — group 2 reserved for contextual tabs
 local WORLD_TABS = {
@@ -1547,9 +1561,14 @@ local function getWorldTargetDrawerW(win)
     local T = ZeD.T
     -- S124 scale: returns SCREEN px (compared against the animated _drawerEffW).
     if win._drawerOpen then
-        if win._drawerMode == "item" then return T.px(ITEM_CARD_W) end
-        if win._drawerMode == "tab"  then return T.px(getWorldTabDrawerW(win._activeTab)) end
-        return 0
+        local base = 0
+        if win._drawerMode == "item" then base = T.px(ITEM_CARD_W)
+        elseif win._drawerMode == "tab" then base = T.px(getWorldTabDrawerW(win._activeTab)) end
+        -- S124: the object card needs its full width, over a tab or on its own
+        if win._drawerObject and win._drawerItem == nil then
+            return math.max(base, T.px(OBJECT_CARD_W))
+        end
+        return base
     end
     return 0
 end
@@ -1662,6 +1681,7 @@ local function getColumnAtX(content, x)
 end
 
 local function enterWorldMC(win, content)
+    dropObjectCard(win)
     if win._drawerMode == "item" then
         win._drawerItem = nil
         win._tabUnder = nil
@@ -1683,7 +1703,7 @@ exitWorldMC = function(win, content)
     win._mainVisible = true
     content._colStates = nil
     content._selectedContainers = nil
-    if win._drawerMode ~= "tab" and win._drawerMode ~= "item" then
+    if win._drawerMode ~= "tab" and win._drawerMode ~= "item" and win._drawerMode ~= "object" then
         win._drawerOpen = false
     end
     -- Always snap window to base (prevents width corruption)
@@ -1702,6 +1722,7 @@ _switchWorldTabForNav = function(win, content, tabId)
     if not win or not content or not tabId then return false end
     if win._activeTab == tabId then return false end
     local T = ZeD.T
+    dropObjectCard(win)
 
     if tabId == "loot" then
         win._activeTab  = "loot"
@@ -1917,7 +1938,7 @@ local function saveWorldState(win)
         w = baseW,
         h = win:getHeight() / sc,
         activeTab  = win._activeTab,
-        drawerMode = win._drawerMode,
+        drawerMode = (win._drawerMode ~= "object") and win._drawerMode or nil,
         drawerOpen = win._drawerOpen,
         accentKey  = win._accentKey,
     }
@@ -3118,6 +3139,13 @@ function ZeD_WorldWindow.toggle(playerNum)
     itemDrawer:addChild(card)
     win._itemCard = card
 
+    -- S124 object card (generator, fires, farm plots): same overlay, full width
+    local objCard = ZeD_ObjectCard:new(0, 0, T.px(OBJECT_CARD_W), bodyH, playerNum)
+    objCard:initialise()
+    objCard:setVisible(false)
+    itemDrawer:addChild(objCard)
+    win._objectCard = objCard
+
     itemDrawer._onPrerender = function(self)
         local T = ZeD.T
         local effectiveW = math.floor(win._drawerEffW)
@@ -3125,7 +3153,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         self:setHeight(bodyH)
 
         local showCard = win._drawerItem ~= nil and effectiveW > 0
+        local showObj = (not showCard) and win._drawerObject ~= nil and effectiveW > 0
         card:setVisible(showCard)
+        objCard:setVisible(showObj)
 
         if showCard then
             -- World window: card always at left edge (inventory-facing)
@@ -3142,6 +3172,13 @@ function ZeD_WorldWindow.toggle(playerNum)
             -- Left border (matches tab drawer's left divider)
             local bd = T.border
             self:drawRect(0, 0, T.px(1), dh, bd.a, bd.r, bd.g, bd.b)
+        elseif showObj then
+            self:setX(drawer:getX())
+            self:setWidth(math.min(effectiveW, T.px(OBJECT_CARD_W)))
+            objCard:setX(0)
+            objCard:setY(0)
+            objCard:setWidth(self:getWidth())
+            objCard:setHeight(bodyH)
         else
             self:setWidth(0)
         end
@@ -3150,6 +3187,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     itemDrawer.onMouseWheel = function(self, del)
         if card:getIsVisible() then
             card:onMouseWheel(del)
+        elseif objCard:getIsVisible() then
+            objCard:onMouseWheel(del)
         end
         return true
     end
@@ -3511,6 +3550,17 @@ function ZeD_WorldWindow.toggle(playerNum)
         if type(zid) == "string" and zid:sub(1, 4) == "tab:" then
             local tabId = zid:sub(5)
 
+            -- S124: a click on the tab under an open object card just closes
+            -- the card; any other tab click drops it and switches as usual.
+            if win._drawerObject then
+                local overTab = win._drawerMode == "tab" and win._drawerOpen and tabId == win._activeTab
+                dropObjectCard(win)
+                if overTab then
+                    if _syncWorldRingZones then _syncWorldRingZones(win, content) end
+                    return true
+                end
+            end
+
             if tabId == "loot" then
                 -- LOOT: snap to inventory-only state (no cross-animation)
                 win._activeTab  = "loot"
@@ -3605,6 +3655,10 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         if count == 1 then
             -- Item selected: show item card (overlay if tab active)
+            if win._drawerObject then   -- S124: the item card replaces an object card
+                win._drawerObject = nil
+                if win._objectCard then win._objectCard:setEntry(nil) end
+            end
             if singleItem ~= win._drawerItem then
                 win._itemCard:setItem(singleItem)
             end
@@ -3633,6 +3687,9 @@ function ZeD_WorldWindow.toggle(playerNum)
             win._drawerItem = nil
             if win._activeTab ~= "loot" then
                 win._drawerMode = "tab"
+                win._drawerOpen = true
+            elseif win._drawerObject then   -- S124: an object card stays open
+                win._drawerMode = "object"
                 win._drawerOpen = true
             elseif #(win._mcSelected or {}) > 0 then
                 win._drawerMode = nil
@@ -4074,9 +4131,44 @@ function ZeD_WorldWindow.toggle(playerNum)
         -- while `_drawerMode` stays "tab" — the card is still interactive.
         if Focus and win._focusRing then
             local cardVisible = (win._drawerItem ~= nil)
-            local cardEls = cardVisible and _buildWorldCardActionFocusables(win) or {}
-            Focus.setRingZoneElements(win, "worldItemCard", cardEls)
-            Focus.setZoneFocusable   (win, "worldItemCard", cardVisible and #cardEls > 0)
+            -- S124: the object card shares the card zone when no item card shows
+            local objCard = win._objectCard
+            local objVisible = (not cardVisible) and win._drawerObject ~= nil and objCard ~= nil
+                and objCard:getIsVisible()
+            local cardEls, keepIdx = {}, nil
+            if cardVisible then
+                cardEls = _buildWorldCardActionFocusables(win)
+            elseif objVisible then
+                -- keep the focused element by id across rebuilds; honour a
+                -- pending jump (ADD FUEL / LIGHT / confirm) once it is stamped
+                local zoneT
+                for _, z in ipairs(win._focusRing) do
+                    if z.zone == "worldItemCard" then zoneT = z; break end
+                end
+                local prev = zoneT and zoneT.elements and zoneT.elements[zoneT.focusedElementIdx or 1]
+                local wantId = objCard._pendingFocus or (prev and prev.id)
+                cardEls = objCard:buildFocusables(win)
+                for i, el in ipairs(cardEls) do
+                    if el.id == wantId then keepIdx = i; break end
+                end
+                if keepIdx and objCard._pendingFocus == wantId then objCard._pendingFocus = nil end
+                if not keepIdx and objCard._grabFocus then
+                    -- first verb, else the back button
+                    for i, el in ipairs(cardEls) do
+                        if string.sub(el.id or "", 1, 8) == "oc:verb:" then keepIdx = i; break end
+                    end
+                    keepIdx = keepIdx or 1
+                end
+            end
+            Focus.setRingZoneElements(win, "worldItemCard", cardEls, keepIdx)
+            Focus.setZoneFocusable   (win, "worldItemCard", (cardVisible or objVisible) and #cardEls > 0)
+            if objVisible and objCard._grabFocus and #cardEls > 0 then
+                -- opened from a menu: the controller lands on the card
+                for i, z in ipairs(win._focusRing) do
+                    if z.zone == "worldItemCard" then win._focusIdx = i; break end
+                end
+                objCard._grabFocus = nil
+            end
         end
 
         -- Active tab name → right-side stats when drawer is open
@@ -4650,6 +4742,63 @@ end
 function ZeD_WorldWindow.isTabShowing(tabId)
     local win = _worldWin
     return win ~= nil and win._activeTab == tabId and win._drawerMode == "tab" and win._drawerOpen == true
+end
+
+-- S124 object cards: open a card ({ def, t } from ZeD.ObjectCards) in the
+-- drawer. Opens the window if needed, clears the item selection, and overlays
+-- the active tab (or opens the drawer on the Loot view).
+function ZeD_WorldWindow.openObjectCard(playerNum, entry)
+    if not entry then return false end
+    if not _worldWin then
+        local ok = pcall(ZeD_WorldWindow.open, playerNum or 0)
+        if not ok then return false end
+    end
+    local win = _worldWin
+    if not (win and win._objectCard) then return false end
+    local content = win._mainContent
+    if content then
+        if #(win._mcSelected or {}) > 0 and exitWorldMC then exitWorldMC(win, content) end
+        content._selectedItems = {}
+        content._lastClickedItem = nil
+    end
+    win._drawerItem = nil
+    win._drawerObject = entry
+    if win._drawerMode ~= "tab" then win._drawerMode = "object" end
+    win._drawerOpen = true
+    win._objectCard:setEntry(entry)
+    win._objectCard._grabFocus = true
+    return true
+end
+
+-- Close the object card; the tab underneath (or the Loot view) shows again.
+function ZeD_WorldWindow.closeObjectCard()
+    local win = _worldWin
+    if not (win and win._drawerObject) then return end
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if win._focusRing and Focus then
+        local cardIdx, backIdx
+        local backZone = (win._drawerMode == "tab") and "worldTabContent" or "worldMainInv"
+        for i, z in ipairs(win._focusRing) do
+            if z.zone == "worldItemCard" then cardIdx = i
+            elseif z.zone == backZone and z.focusable then backIdx = i end
+        end
+        if not backIdx then
+            for i, z in ipairs(win._focusRing) do
+                if z.zone == "worldMainInv" then backIdx = i end
+            end
+        end
+        if cardIdx and backIdx and win._focusIdx == cardIdx then win._focusIdx = backIdx end
+        if cardIdx then
+            Focus.setRingZoneElements(win, "worldItemCard", {})
+            Focus.setZoneFocusable(win, "worldItemCard", false)
+        end
+    end
+    dropObjectCard(win)
+end
+
+function ZeD_WorldWindow.getObjectCard()
+    local win = _worldWin
+    return win and win._drawerObject and win._objectCard or nil
 end
 
 function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
