@@ -184,8 +184,19 @@ function def.resolve(player, arg)
     end
     local fc = c:getFluidContainer()
     -- vanilla: the opened container goes left when it is the source or holds
-    -- something; Container Info always looks at it on the left
-    if arg.info or arg.source or not fc:isEmpty() then t.from = c else t.into = c end
+    -- something; Container Info always looks at it on the left. A ZeD card
+    -- can aim it: into = true puts it on the right (the trough's ADD WATER),
+    -- target = a second container to pour into (the trough's POUR rows).
+    if arg.into then t.into = c
+    elseif arg.info or arg.source or not fc:isEmpty() then t.from = c else t.into = c end
+    if arg.target and ISFluidUtil.validateContainer(arg.target) then
+        t.into = arg.target
+        if not arg.target:isItem() then
+            t.pinned = arg.target
+            local owner = arg.target:getOwner()
+            t.sq = owner and call(owner, "getSquare") or nil
+        end
+    end
     return t
 end
 

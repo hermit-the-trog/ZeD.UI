@@ -107,6 +107,50 @@ function OC.open(player, kindId, obj)
     return ZeD_WorldWindow.openObjectCard(player:getPlayerNum(), { def = def, t = t }) and true or false
 end
 
+-- Open the card on an object that may be out of reach (the Animals tab lists
+-- hutches, troughs and hooks across a zone): past the kind's leash, walk next
+-- to sq first, then open (a one-tick action at the end of the walk).
+ZeDOpenCardAction = ZeDOpenCardAction or ISBaseTimedAction:derive("ZeDOpenCardAction")
+function ZeDOpenCardAction:isValid() return true end
+function ZeDOpenCardAction:update() end
+function ZeDOpenCardAction:start() end
+function ZeDOpenCardAction:stop() ISBaseTimedAction.stop(self) end
+function ZeDOpenCardAction:getDuration() return 1 end
+function ZeDOpenCardAction:perform()
+    local ok, err = pcall(OC.open, self.character, self.kind, self.obj)
+    if not ok then print("[ZeD] ObjectCards: open after walk failed: " .. tostring(err)) end
+    ISBaseTimedAction.perform(self)
+end
+function ZeDOpenCardAction:new(character, kind, obj)
+    local o = ISBaseTimedAction.new(self, character)
+    o.kind, o.obj = kind, obj
+    o.maxTime = 1
+    o.stopOnWalk, o.stopOnRun = false, false
+    return o
+end
+
+function OC.openNear(player, kindId, obj, sq)
+    local def = OC.kinds[kindId]
+    if not (def and player and obj) then return false end
+    local leash = def.leash or OC.LEASH
+    if sq and (math.floor(player:getZ()) ~= sq:getZ() or OC.squareDist(player, sq) > leash - 0.5) then
+        if luautils.walkAdj(player, sq) then
+            ISTimedActionQueue.add(ZeDOpenCardAction:new(player, kindId, obj))
+        end
+        return true
+    end
+    return OC.open(player, kindId, obj)
+end
+
+-- Sprite icon for a world object (a hutch, a trough): the tile's own icon.
+function OC.spriteIcon(obj)
+    local spr = obj and call(obj, "getSprite")
+    local name = spr and call(spr, "getName")
+    local tex = name and getTexture(name)
+    if not tex then return nil end
+    return call(tex, "splitIcon") or tex
+end
+
 -- Per-frame upkeep for the open entry: validity, leash, data and browse list.
 -- Returns false when the card should close.
 function OC.tick(e, player)
