@@ -132,13 +132,22 @@ local function stickActive(controllerIdx)
 end
 
 -- True if either trigger is held past threshold.
--- abs() because some drivers report [-1, 1] (where -1 = released) and others
--- report [0, 1]; abs works for both conventions and ignores the sign.
+-- Drivers disagree on the released value: [0, 1] pads rest at 0, XInput pads
+-- through GLFW rest at -1 (abs() of that reads as fully pressed and pinned
+-- the mode to gamepad). So a pull is measured from each trigger's resting
+-- value, the lowest it has read, over that trigger's full travel.
+local _triggerRest = {}
+local function triggerPulled(controllerIdx, axis, thresh)
+    local v = getControllerAxisValue(controllerIdx, axis)
+    local key = controllerIdx * 8 + axis
+    local rest = _triggerRest[key]
+    if rest == nil or v < rest then rest = v; _triggerRest[key] = v end
+    local travel = (rest < -0.5) and 2 or 1
+    return (v - rest) > thresh * travel
+end
 local function triggerActive(controllerIdx)
     local thresh = (ZeD.T and ZeD.T.gp and ZeD.T.gp.triggerThresh) or 0.15
-    local lt = getControllerAxisValue(controllerIdx, AXIS_LTRIGGER)
-    local rt = getControllerAxisValue(controllerIdx, AXIS_RTRIGGER)
-    return math.abs(lt) > thresh or math.abs(rt) > thresh
+    return triggerPulled(controllerIdx, AXIS_LTRIGGER, thresh) or triggerPulled(controllerIdx, AXIS_RTRIGGER, thresh)
 end
 
 -- True if any of our tracked gamepad buttons is currently held. Q109: the

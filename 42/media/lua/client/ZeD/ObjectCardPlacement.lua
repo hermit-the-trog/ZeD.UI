@@ -101,6 +101,9 @@ function def.refresh(t, player)
     t.needs = {}
 end
 
+-- a controller lands on the first slider, ready to move
+function def.openFocus(t) return "p3:move:x" end
+
 function def.title(t) return t.d and t.d.name or "Item" end
 function def.icon(t) return t.d and t.d.tex or nil end
 
@@ -194,6 +197,7 @@ function def.body(card, x, y, w, t, player)
     if not def.valid(t) then return 0 end
     local y0 = y
     -- the gizmo follows the group you work in: the controller's focus, else the mouse
+    -- (card._fid is set only while a controller drives the card)
     local fid = card._fid
     if fid and fid:sub(1, 8) == "p3:move:" then t.group = "translate"
     elseif fid and fid:sub(1, 8) == "p3:turn:" then t.group = "rotate" end
@@ -205,7 +209,7 @@ function def.body(card, x, y, w, t, player)
     local moveTop, moveBot = y, y + sec + rowH * 3
     local turnTop = moveBot + T.px(8)
     local turnBot = turnTop + sec + rowH * 3
-    if inCard and not isMouseButtonDown(0) then
+    if not fid and inCard and not isMouseButtonDown(0) then
         if my >= moveTop and my < moveBot then t.group = "translate"
         elseif my >= turnTop and my < turnBot then t.group = "rotate" end
     end
