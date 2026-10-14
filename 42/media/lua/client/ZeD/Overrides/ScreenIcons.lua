@@ -41,6 +41,12 @@ local function apply()
     function ISEquippedItem:prerender()
         origPrerender(self)
         if self.invBtn ~= nil and not self._zedIconsHidden then hideButtons(self) end
+        -- vanilla's prerender re-shows the furniture button every frame (and its
+        -- mode hint and pop-up while the furniture cursor is up): keep all three
+        -- down; the World window's Furniture tab is their home now
+        if self.movableBtn then self.movableBtn:setVisible(false) end
+        if self.movableTooltip then self.movableTooltip:setVisible(false) end
+        if self.movablePopup then self.movablePopup:setVisible(false) end
     end
     print("[ZeD] Overrides/ScreenIcons: vanilla window buttons hidden on the left-edge HUD column")
 end
