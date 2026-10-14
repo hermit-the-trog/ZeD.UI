@@ -120,6 +120,77 @@ end
 S._realGetTextManager = S._realGetTextManager or getTextManager
 function X.realTM() return S._realGetTextManager() end
 
+-- ---------------------------------------------------------------------------
+-- Text entries. The engine's Java text box (UITextBox2, under ISTextEntryBox)
+-- draws its font at the font's native pixel size: it has no zoom. So typed
+-- text follows the scale by switching faces: the Fira body face baked at
+-- 13 / 15 (Small / Large) and 18 / 22 / 26 / 30 px (four distance-field
+-- slots nothing in vanilla uses, re-registered as bitmap faces:
+-- media/fonts/generate_entry_fonts.py + EN/fonts.txt). The pick is the face
+-- closest to the scaled body size (body role px x root).
+-- ---------------------------------------------------------------------------
+-- slot, face px (the engine reports a line height about a third taller than the face)
+local ENTRY_SLOTS = { { "Small", 13 }, { "Large", 15 }, { "SdfOldRegular", 18 }, { "SdfOldItalic", 22 },
+                      { "SdfOldBoldItalic", 26 }, { "SdfRobertoSans", 30 } }
+local _entryFaces, _entryTarget, _entryFont = nil, nil, nil
+
+local function entryFaces()
+    if _entryFaces then return _entryFaces end
+    local faces = {}
+    local tm = X.realTM()
+    local lastH = 0
+    for _, e in ipairs(ENTRY_SLOTS) do
+        local f = UIFont and UIFont[e[1]]
+        if f then
+            -- each baked face is taller than the one before; a slot that did not
+            -- load (an older font manifest) breaks the run and is skipped
+            local h = tm:getFontHeight(f)
+            if h and h > lastH then
+                faces[#faces + 1] = { font = f, px = e[2] }
+                lastH = h
+            end
+        end
+    end
+    _entryFaces = faces
+    return faces
+end
+
+-- The UIFont a text entry should use right now.
+function X.entryFont()
+    local T = ZeD.T
+    local bodyPx = (T and T.fontPx and T.fontF2 and T.fontPx[T.fontF2]) or 13
+    local target = bodyPx * S.root()
+    if _entryTarget == target and _entryFont then return _entryFont end
+    local best, bestD = UIFont and UIFont.Small, nil
+    for _, f in ipairs(entryFaces()) do
+        local d = math.abs(f.px - target)
+        if not bestD or d < bestD then best, bestD = f.font, d end
+    end
+    _entryTarget, _entryFont = target, best
+    return best
+end
+
+-- Keep a ZeD text entry on the scaled face and the theme's text colours.
+-- Cheap enough to call every frame: it only touches Java on a change.
+function X.fitEntry(entry)
+    if not (entry and entry.javaObject) then return end
+    local f = X.entryFont()
+    if f and entry._zedFont ~= f then
+        entry._zedFont = f
+        entry:setFont(f)
+    end
+    local T = ZeD.T
+    local c, d = T and T.text, T and T.textDim
+    if c then
+        local key = string.format("%.3f,%.3f,%.3f,%.3f", c.r, c.g, c.b, c.a or 1)
+        if entry._zedTextKey ~= key then
+            entry._zedTextKey = key
+            entry.javaObject:setTextRGBA(c.r, c.g, c.b, c.a or 1)
+            if d then entry.javaObject:setPlaceholderTextRGBA(d.r, d.g, d.b, d.a or 1) end
+        end
+    end
+end
+
 -- Width / height in SCREEN px of `str` drawn at `zoom` (explicit zoom: measured on the raw manager).
 function X.width(f, str, zoom)
     return X.realTM():MeasureStringX(uifont(f), tostring(str)) * (zoom or 1)

@@ -918,6 +918,7 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     if not win._mapTextEntry then
         local te = ISTextEntryBox:new("Note", 0, 0, T.px(100), T.px(MAP_TEXT_INPUT_H) - T.px(4))
         te:initialise()
+        te.zedEntry = true   -- typed text follows the UI scale (ZeD.Text.fitEntry)
         te:setVisible(false)
         panel:addChild(te)
         win._mapTextEntry = te
