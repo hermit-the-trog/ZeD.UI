@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Furniture v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Furniture, mockup v1 (Oct 14 2026)
+   Moveables mode and Extended 3D Placement (HOOK_MAP row 15): a Furniture
+   tab in the World window (modes, the tile under the cursor, what you carry),
+   a cursor chip at the tile, and a placement card in the card drawer. Every
+   number is a DESIGN UNIT (1 px at 1080p); Zoom = root scale. Data is real
+   42.20.2 behaviour (see the parity table). Rules: 1px borders, no shadows,
+   Fira only, no emoji, status dots, one scroll per pane, footer = actions,
+   focus = 0.55 accent. Parts: Visual Catalog v2.0 M16 slider, A14 status
+   dot; the mode strip is the tab-strip segmented control; the NEEDS checklist
+   follows the Vehicle tab.
+   ============================================================================ */
+:root {
+  --base:#050505; --surf1:#111111; --surf2:#191919; --surf3:#202020; --surf4:#292929;
+  --border:#353535; --borderS:#555555;
+  --text:rgba(255,255,255,.95); --textDim:rgba(199,199,199,.75);
+  --danger:#FF5533; --warning:#FFCC22; --positive:#44DD44; --info:#4FA8E0;
+  --accent:#CCAA22; --accentBright:#EEDD44; --onAccent:#0C0C0C;
+  --a22:rgba(204,170,34,.22); --a55:rgba(204,170,34,.55);
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1060px; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.stage-wrap { overflow:auto; padding-bottom:6px; }
+.stage { position:relative; width:1120px; height:516px; border:1px solid #2a2924; transform-origin:0 0; background:#14130f; overflow:hidden; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1060px; line-height:1.5; }
+
+/* window chrome (same as the live World window) */
+.win { position:absolute; left:18px; top:18px; width:924px; height:420px; background:color-mix(in srgb, var(--base) 95%, transparent); border:1px solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tbar { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS); background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.closebox { width:13px; height:13px; border:1px solid var(--textDim); background:var(--surf2); }
+.tbar .ttl, .tbar .tab { font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; }
+.tbar .ttl b { font-weight:400; color:var(--textDim); margin-left:8px; }
+.tbar .sp { flex:1; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; }
+.dot.pos { background:var(--positive); } .dot.warn { background:var(--warning); } .dot.dng { background:var(--danger); } .dot.off { background:transparent; border:1px solid var(--textDim); } .dot.inf { background:var(--info); }
+.wbody { flex:1; display:flex; min-height:0; }
+.wfoot { height:16px; flex:none; border-top:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; gap:3px; padding:0 3px; }
+.wfoot .mini { width:12px; height:12px; border:1px solid var(--border); font-family:var(--cond); font-size:9px; color:var(--textDim); display:flex; align-items:center; justify-content:center; }
+.wfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; align-items:center; }
+.glyph { display:inline-flex; width:12px; height:12px; border-radius:50%; font-family:var(--sans); font-weight:600; font-size:8px; color:#0c0c0c; align-items:center; justify-content:center; margin-right:4px; }
+.g-a { background:#5dbb3a; } .g-b { background:#d9452b; } .g-x { background:#3d7bd9; } .g-y { background:#e3b52a; }
+.wfoot .grip { margin-left:auto; width:12px; height:12px; background:repeating-linear-gradient(135deg, transparent 0 3px, var(--textDim) 3px 4px); opacity:.6; }
+.cstrip { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); }
+.cbtn { width:36px; height:36px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.cbtn.on { background:var(--accent); }
+.inv { width:372px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--borderS); background:var(--surf1); }
+.invh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.invh .h { font-family:var(--cond); font-weight:600; font-size:15px; } .invh .n { margin-left:auto; font-family:var(--cond); font-size:10px; color:var(--textDim); }
+.colh { height:20px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.colh .u { text-decoration:underline; text-underline-offset:2px; color:var(--text); }
+.irow { height:24px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; }
+.irow .ct { font-family:var(--mono); font-size:10px; color:var(--accent); } .irow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.irow .ds { font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.cath { height:18px; display:flex; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.tstrip { width:36px; flex:none; border-left:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.tbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accent); opacity:.8; }
+.tbtn.on { background:var(--accent); color:var(--onAccent); opacity:1; }
+.tsep { height:1px; background:var(--borderS); margin:2px 4px; }
+
+/* ---------------------------------------------------------------------------
+   OBJECT CARD — the drawer card shared by every info surface
+   --------------------------------------------------------------------------- */
+.drawer { width:480px; flex:none; display:flex; flex-direction:column; background:var(--surf1); min-width:0; position:relative; }
+.dh { height:37px; flex:none; display:flex; align-items:center; gap:6px; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.bbtn { height:22px; min-width:22px; padding:0 7px; display:flex; align-items:center; justify-content:center; gap:5px; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.bbtn.primary { background:var(--accent); color:var(--onAccent); border-top-color:var(--accentBright); border-left-color:var(--accentBright); }
+.bbtn.dis { opacity:.35; }
+.bbtn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.bbtn.primary.focus { box-shadow:none; background:var(--accentBright); }
+.dh .ico { width:22px; height:22px; flex:none; border:1px solid var(--borderS); background:var(--surf1); display:flex; align-items:center; justify-content:center; }
+.dh .ico i { width:12px; height:12px; display:block; }
+.dh .nm { font-family:var(--cond); font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pill { height:16px; padding:0 7px; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; white-space:nowrap; border:1px solid currentColor; }
+.pill.pos { color:var(--positive); } .pill.dng { color:var(--danger); } .pill.dim { color:var(--textDim); } .pill.warn { color:var(--warning); }
+.browse { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.vbar { height:32px; flex:none; display:flex; align-items:center; gap:4px; padding:0 8px; border-bottom:1px solid var(--borderS); background:var(--surf1); }
+.ob { flex:1; overflow-y:auto; min-height:0; padding:8px 10px 10px; display:flex; flex-direction:column; gap:8px; }
+.ob::-webkit-scrollbar { width:14px; } .ob::-webkit-scrollbar-track { background:var(--surf1); border-left:1px solid var(--border); } .ob::-webkit-scrollbar-thumb { background:var(--surf4); border:1px solid var(--borderS); }
+.meter .lr { display:flex; align-items:baseline; justify-content:space-between; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:4px; }
+.meter .lr .v { font-size:12px; color:var(--text); font-weight:500; letter-spacing:.5px; display:flex; gap:6px; align-items:center; }
+.fill { height:12px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.fill i { position:absolute; left:0; top:0; bottom:0; display:block; }
+.fill .zone { position:absolute; top:0; bottom:0; background:color-mix(in srgb, var(--info) 18%, transparent); border-left:1px solid color-mix(in srgb, var(--info) 60%, transparent); border-right:1px solid color-mix(in srgb, var(--info) 60%, transparent); }
+.fill i { z-index:1; }
+.cs { height:20px; display:flex; align-items:center; gap:6px; padding:0 2px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); border-bottom:1px solid var(--borderS); }
+.cs .c { margin-left:auto; font-weight:400; }
+.lrow { height:24px; display:grid; grid-template-columns:18px 1fr auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.lrow .ic, .pick .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.lrow .v { font-family:var(--mono); font-size:11px; color:var(--textDim); }
+.lrow.tot { font-family:var(--mono); font-size:11px; border-bottom:none; }
+.pick { height:26px; display:grid; grid-template-columns:18px 1fr auto auto auto; gap:8px; align-items:center; padding:0 2px; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.pick .loc { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.pick .gain { font-family:var(--mono); font-size:11px; color:var(--positive); }
+.pick.gpf { background:var(--a55); }
+.warnband { display:flex; gap:8px; align-items:flex-start; padding:7px 8px; border:1px solid var(--danger); background:color-mix(in srgb, var(--danger) 12%, transparent); font-size:12px; line-height:1.35; }
+.needs { font-family:var(--mono); font-size:10px; color:var(--textDim); display:flex; gap:6px; align-items:center; }
+.stat2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+.srow { height:20px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.srow .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; }
+.srow .v { font-family:var(--mono); font-size:12px; color:var(--text); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.dfoot { height:32px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:12px; }
+.dfoot .msg { display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dfoot.confirm { background:color-mix(in srgb, var(--danger) 12%, var(--surf2)); }
+.dfoot .sp { flex:1; }
+
+
+.win { left:auto; right:18px; width:552px; height:480px; }
+.tag { height:14px; padding:0 5px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--textDim); border:1px solid var(--border); white-space:nowrap; }
+.tag.acc { color:var(--accent); border-color:var(--accent); } .tag.dng { color:var(--danger); border-color:var(--danger); } .tag.pos { color:var(--positive); border-color:var(--positive); } .tag.warn { color:var(--warning); border-color:var(--warning); }
+.tbtn svg { width:18px; height:18px; display:block; }
+
+/* the world (left of the window) */
+.world { position:absolute; left:0; top:0; width:560px; height:516px; }
+.world svg { position:absolute; left:0; top:0; }
+.chip { position:absolute; display:flex; align-items:center; gap:6px; height:20px; padding:0 7px; background:color-mix(in srgb, var(--surf2) 92%, transparent); border:1px solid var(--borderS); font-family:var(--mono); font-size:10px; color:var(--text); white-space:nowrap; }
+.chip b { font-family:var(--cond); font-weight:600; font-size:12px; letter-spacing:0; }
+.chip .why { color:var(--danger); }
+.chip .k { color:var(--textDim); }
+
+/* ---------------------------------------------------------------------------
+   FURNITURE TAB (drawer, 480 design units)
+   --------------------------------------------------------------------------- */
+.th { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.th .nm { font-family:var(--cond); font-weight:600; font-size:15px; }
+.modes { flex:none; display:grid; grid-template-columns:repeat(5, 1fr); gap:4px; padding:6px 8px; border-bottom:1px solid var(--borderS); background:var(--surf1); }
+.modes .bbtn { height:26px; flex-direction:column; gap:1px; padding:0 2px; }
+.modes .bbtn small { font-weight:400; font-size:8px; letter-spacing:.5px; opacity:.75; }
+.target { display:grid; grid-template-columns:84px 1fr; gap:10px; }
+.preview { width:84px; height:104px; border:1px solid var(--borderS); background:var(--surf1); position:relative; overflow:hidden; }
+.preview svg { position:absolute; left:0; top:0; }
+.tinfo { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.tinfo .nm { font-family:var(--cond); font-weight:600; font-size:17px; line-height:1.1; }
+.tinfo .st { font-family:var(--mono); font-size:10px; letter-spacing:.5px; display:flex; align-items:center; gap:6px; }
+.facts { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; margin-top:4px; }
+.facts .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; }
+.facts .v { font-family:var(--mono); font-size:11px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.facts .v .dim { color:var(--textDim); }
+.chk { display:flex; flex-direction:column; gap:3px; }
+.chk div { font-family:var(--mono); font-size:10px; display:flex; align-items:center; gap:6px; }
+.orow { height:28px; display:grid; grid-template-columns:18px 1fr auto auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.orow .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.orow small { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.orow.sel { background:color-mix(in srgb, var(--accent) 7%, transparent); }
+.orow .bbtn { height:20px; font-size:9px; min-width:56px; }
+.facing { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; }
+.facing .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); }
+.facing .dirs { display:flex; gap:4px; }
+.facing .dirs .bbtn { min-width:42px; }
+.yield { height:24px; display:grid; grid-template-columns:18px 1fr 70px 70px; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.yield .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.yield .v { font-family:var(--mono); font-size:11px; text-align:right; }
+.yield .p { font-family:var(--mono); font-size:11px; color:var(--textDim); text-align:right; }
+
+/* placement card: sliders */
+.axis { display:grid; grid-template-columns:22px 1fr 58px auto; gap:10px; align-items:center; height:28px; }
+.axis .l { font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accent); }
+.axis .v { font-family:var(--mono); font-size:11px; text-align:right; }
+.slider { position:relative; height:22px; display:flex; align-items:center; }
+.slider .tr { position:absolute; left:0; right:0; height:6px; background:var(--surf1); border:1px solid var(--borderS); }
+.slider .fi { position:absolute; left:0; height:6px; background:var(--accent); }
+.slider .th2 { position:absolute; width:12px; height:18px; margin-left:-6px; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; }
+.slider .tick { position:absolute; width:1px; height:4px; top:16px; background:var(--borderS); }
+.slider.focus .th2 { box-shadow:0 0 0 3px var(--a55); background:var(--accentBright); }
+.nudge { display:flex; gap:3px; }
+.nudge .bbtn { height:20px; min-width:34px; font-size:9px; padding:0 4px; }
+
+/* notes */
+.notes { max-width:1060px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes p, .notes li { font-size:13px; line-height:1.6; color:#c4bfb1; }
+.notes ol { padding-left:20px; } .notes li { margin-bottom:8px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+table.parity { border-collapse:collapse; width:100%; font-size:12px; }
+table.parity th, table.parity td { border:1px solid #34322c; padding:5px 8px; text-align:left; vertical-align:top; color:#c4bfb1; line-height:1.45; }
+table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#d8c070; background:#17160f; text-transform:uppercase; }
+
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI · World window · furniture · mockup v1</div>
+<h1>Furniture: move, place, rotate, take apart, repair, and 3D placement</h1>
+<p class="lede">Vanilla moves furniture with a world cursor in five modes, switched from a pop-up on the left-edge furniture button or a controller wheel, and explains the tile under the cursor in a floating box that trails the mouse. ZeD hid that left-edge button, so today the mouse has no way in. This mockup gives furniture a <b>Furniture tab</b> in the World window: the five modes, a full reading of the tile you point at, the objects on that tile, and the furniture you carry. A small chip at the cursor keeps the one line you need where you are looking. Vanilla's "Extended 3D Placement" window becomes a <b>placement card</b> in the card drawer. Switch the scenes above.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlState"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlInput"></div></div>
+  <div class="ctl"><span>Base</span><div class="seg" id="ctlBase"></div></div>
+  <div class="ctl"><span>World accent</span><div class="swatches" id="ctlAccent"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap"><div class="stage" id="stage">
+  <div class="world" id="world"></div>
+  <div class="win">
+    <div class="tbar"><div class="closebox"></div><div class="ttl">Ground<b id="gcount">0</b></div><div class="sp"></div><div class="tab"><span class="dot"></span><span id="tabname">Furniture</span></div></div>
+    <div class="wbody">
+      <div class="cstrip"><div class="cbtn on"></div><div class="cbtn"></div></div>
+      <div class="drawer" id="drawer"></div>
+      <div class="tstrip" id="tstrip"></div>
+    </div>
+    <div class="wfoot" id="wfoot"></div>
+  </div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes" id="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>A Furniture tab in the World window.</b> It sits after Building and brings back the mouse's way into furniture mode, which went away with the left-edge buttons. Opening the tab starts the furniture cursor; leaving the tab, or B, ends it. Every vanilla way in still works (the controller wheel's Move furniture, an item's Install furniture, dragging furniture out of the inventory) and lands on the tab.</li>
+      <li><span class="rec">RECOMMEND</span><b>The five modes are a strip on the tab.</b> PICK UP, PLACE, ROTATE, DISASSEMBLE, REPAIR, in vanilla's words, replace the button pop-up, the controller wheel and the mode key's cycling. The cycle key keeps working and lights the strip.</li>
+      <li><span class="rec">RECOMMEND</span><b>The tab reads the tile you point at.</b> A preview of the object, its name, a status line, then vanilla's facts as a checklist: encumbrance against what you can carry, the skill and its level, each tool with a dot for whether you have it, the chance to break, and whether it rotates. Vanilla's blockers ("Has items in container.", "Too heavy for inventory.", "Is being sat on."...) become NEEDS lines.</li>
+      <li><span class="rec">RECOMMEND</span><b>Lists instead of the cycle key.</b> Vanilla cycles through the objects on a tile, or the furniture you carry, with one key. The tab lists both: ON THIS TILE (pick which one to lift or take apart) and YOUR FURNITURE (pick which one goes on the cursor). FACING buttons (N, E, S, W) set the direction when placing or rotating, alongside vanilla's hold-and-drag.</li>
+      <li><span class="rec">RECOMMEND</span><b>DISASSEMBLE shows what it may give.</b> Vanilla only shows the chance to break. The tab adds MAY YIELD from vanilla's own scrap table (a wooden chair: up to 6 planks, 4 nails, 4 screws, each with its roll chance). REPAIR shows the damage word and the parts it takes, with what you have.</li>
+      <li><span class="rec">RECOMMEND</span><b>A chip at the cursor.</b> The tab is across the screen from where you look, so a small chip beside the target tile carries the name and one line: the mode when it can go ahead, or the first blocker in red. It replaces vanilla's floating box (and its position-cycling key).</li>
+      <li><span class="rec">RECOMMEND</span><b>Extended 3D Placement is a placement card.</b> It opens in the card drawer from the right-click option. MOVEMENT and ROTATION each have three sliders (X, Y, Z) with nudge buttons (0.01 of a tile, 15 degrees), REVERT and DONE. Vanilla's world gizmo stays: it shows the move arrows while you work in MOVEMENT and the turn rings in ROTATION. The card stays within vanilla's 3 tiles.</li>
+      <li><b>On a controller.</b> Pick the mode, the object or the facing on the tab; B hands the stick back to the world cursor, and the tab keeps reading the tile you aim at.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Everything vanilla does, and where it goes</h2>
+    <table class="parity">
+      <tr><th style="width:38%">Vanilla</th><th>Furniture tab / placement card</th></tr>
+      <tr><td><b>Ways in:</b> the left-edge furniture button and its pop-up (Quit, Pick up, Place, Rotate, Disassemble, Repair; hidden by ZeD), the controller wheel's Move furniture, an inventory item's Install furniture, dragging furniture out of the inventory, the world menu's Disassemble.</td><td>The Furniture tab (new mouse way in); every vanilla route opens the tab in the right mode. World-menu Disassemble stays a direct action.</td></tr>
+      <tr><td><b>Mode switching:</b> the pop-up, the mode key (cycles), the controller's radial on LB.</td><td>The mode strip; the mode key still cycles and lights the strip. LB stays ZeD's window key.</td></tr>
+      <tr><td><b>Info box</b> (trails the cursor, or bottom-left / centre / right by a key): mode title, a preview of the tile with the object outlined (red when it cannot go ahead), Name, Encumbrance, Skill (level / needed, green or red), Tool needed (each tool green or red), Required items (repair parts), Chance to break, Chance (repair), Damage (repair), Can / Can not rotate, blockers in red (items in container, too heavy, too hot, items on surface, water inside, materials inside, door barricaded / in frame, top of stairs, window open / barricaded / in frame, need to be standing inside, needs to be turned off, remove propane, being sat on); key hints.</td><td>The tab's TARGET block (preview, name, status, the same facts as a checklist with dots, NEEDS lines in vanilla's words) and the cursor chip (name + mode, or the first blocker). Key hints go; the strip and the lists replace them.</td></tr>
+      <tr><td><b>Cycling:</b> one key steps through the objects on the tile (pick up, disassemble, repair) or through the furniture you carry (place) or the faces (rotate); hold and drag to rotate.</td><td>ON THIS TILE and YOUR FURNITURE lists, FACING buttons; hold-and-drag stays.</td></tr>
+      <tr><td><b>Extended 3D Placement:</b> a window with Movement X / Y / Z (0 to 1 of the tile) and Rotation X / Y / Z (0 to 360), a slider and a number box for each, Revert and Close; a world gizmo (move or rotate, picked by hovering a group); closes past 3 tiles.</td><td>The placement card: the same six values with sliders, a readout and nudge buttons; REVERT, DONE; the gizmo follows the group you work in; the same 3 tiles.</td></tr>
+    </table>
+  </div>
+</section>
+
+<script>
+const S = { state:"pickup", input:"mouse", base:"hicon", accent:"yellow", zoom:1 };
+const STATES = [["pickup","Pick up"],["blocked","Pick up, blocked"],["place","Place"],["rotate","Rotate"],["scrap","Disassemble"],["repair","Repair"],["place3d","3D placement"]];
+const $ = id => document.getElementById(id);
+const gp = () => S.input === "gamepad";
+const DOT = "&middot;";
+
+const CAPTIONS = {
+  pickup:"Pick up mode, pointing at a kitchen chair that shares its tile with a rug. The tab reads the chair: what it weighs against what you can carry, no tool needed, it rotates. ON THIS TILE picks the rug instead. The chip at the tile says the same in one line.",
+  blocked:"A wardrobe with clothes inside: vanilla refuses, and its reason becomes the NEEDS line, the red status and the chip. Encumbrance shows the second reason: you could not carry it either.",
+  place:"Place mode with three pieces of furniture in your bags. YOUR FURNITURE picks the one on the cursor (vanilla's cycle key), FACING turns it, and the target tile reads whether it fits.",
+  rotate:"Rotate mode on a sofa: FACING turns it in place; vanilla's hold-and-drag still works on the tile.",
+  scrap:"Disassemble a wooden chair: the hammer you carry and the skill check in the checklist, the chance to break, and MAY YIELD from vanilla's scrap table with the most each roll can give.",
+  repair:"Repair a damaged wooden door: vanilla's damage word, the parts it takes against what you have, the tool and the chance. Two nails are missing, so the status, the NEEDS line and the chip say so.",
+  place3d:"Extended 3D Placement on a mug on a table: the placement card in the drawer, MOVEMENT and ROTATION in vanilla's ranges with nudges, REVERT and DONE. The world gizmo shows the turn rings because the focus is in ROTATION."
+};
+
+/* ---------- shared pieces ---------- */
+function verb(label, kind, focus) { return `<span class="bbtn${kind ? " " + kind : ""}${focus && gp() ? " focus" : ""}">${label}</span>`; }
+function cs(label, count) { return `<div class="cs">${label}${count !== undefined ? `<span class="c">${count}</span>` : ""}</div>`; }
+function needsLine(items) { return items.length ? `<div class="chk">${items.map(t => `<div><span class="dot dng"></span>${t}</div>`).join("")}</div>` : ""; }
+const T = (t, k) => `<span class="tag ${k || ""}">${t}</span>`;
+const okDot = ok => `<span class="dot ${ok ? "pos" : "dng"}"></span>`;
+
+/* ---------- iso world ---------- */
+const TW = 64, TH = 32, OX = 280, OY = 120;
+const iso = (x, y) => [OX + (x - y) * TW / 2, OY + (x + y) * TH / 2];
+function diamond(x, y, fill, stroke, sw) {
+  const [cx, cy] = iso(x, y);
+  return `<polygon points="${cx},${cy} ${cx + TW / 2},${cy + TH / 2} ${cx},${cy + TH} ${cx - TW / 2},${cy + TH / 2}" fill="${fill}" stroke="${stroke || "none"}" stroke-width="${sw || 1}"/>`;
+}
+/* an iso box on a tile: inset (0..0.5), height px, colours top/left/right */
+function box(x, y, h, top, left, right, inset, ghost) {
+  inset = inset || 0.12;
+  const p = (u, v) => iso(x + u, y + v);
+  const a = p(inset, inset), b = p(1 - inset, inset), c = p(1 - inset, 1 - inset), d = p(inset, 1 - inset);
+  const up = q => [q[0], q[1] - h];
+  const op = ghost ? ` opacity=".55" stroke="var(--positive)" stroke-dasharray="3 2"` : ` stroke="rgba(0,0,0,.45)"`;
+  const pts = arr => arr.map(q => q.join(",")).join(" ");
+  return `<polygon points="${pts([d, c, up(c), up(d)])}" fill="${left}"${op}/>
+          <polygon points="${pts([c, b, up(b), up(c)])}" fill="${right}"${op}/>
+          <polygon points="${pts([up(a), up(b), up(c), up(d)])}" fill="${top}"${op}/>`;
+}
+function worldSVG(sc) {
+  let s = `<svg width="560" height="516" viewBox="0 0 560 516">`;
+  for (let y = -1; y < 8; y++) for (let x = -1; x < 8; x++) {
+    const inside = x >= 1 && x <= 5 && y >= 1 && y <= 5;
+    s += diamond(x, y, inside ? ((x + y) % 2 ? "#3a3227" : "#352e24") : ((x + y) % 2 ? "#2b3322" : "#27301f"), "rgba(0,0,0,.25)");
+  }
+  // walls (back edges of the room)
+  for (let i = 1; i <= 5; i++) { const [cx, cy] = iso(i, 1); s += `<polygon points="${cx},${cy} ${cx + TW / 2},${cy + TH / 2} ${cx + TW / 2},${cy + TH / 2 - 70} ${cx},${cy - 70}" fill="#4a463e" stroke="rgba(0,0,0,.4)"/>`; }
+  for (let i = 1; i <= 5; i++) { const [cx, cy] = iso(1, i); s += `<polygon points="${cx},${cy} ${cx - TW / 2},${cy + TH / 2} ${cx - TW / 2},${cy + TH / 2 - 70} ${cx},${cy - 70}" fill="#3f3b34" stroke="rgba(0,0,0,.4)"/>`; }
+  // player
+  const [pxx, pyy] = iso(3.5, 5.5); s += `<ellipse cx="${pxx}" cy="${pyy + 12}" rx="9" ry="4" fill="rgba(0,0,0,.4)"/><rect x="${pxx - 5}" y="${pyy - 24}" width="10" height="36" fill="#6b5a46"/><circle cx="${pxx}" cy="${pyy - 30}" r="6" fill="#c9a07a"/>`;
+  let tx = 3, ty = 3, ok = true, label = "", line = "";
+  const rug = () => diamond(3, 3, "#6a2f2f", "#7d3a3a");
+  if (sc === "pickup") { s += rug() + box(3, 3, 26, "#8a6a44", "#6e5436", "#5d462c", .22); label = "Kitchen Chair"; line = "PICK UP"; }
+  if (sc === "blocked") { s += box(2, 2, 62, "#6b4e33", "#563e28", "#48331f", .06); tx = 2; ty = 2; ok = false; label = "Wardrobe"; line = "Has items in container."; }
+  if (sc === "place") { s += box(4, 3, 24, "#9a8a6a", "#7d6f55", "#6a5d46", .2, true); tx = 4; label = "Kitchen Chair"; line = "PLACE " + DOT + " FACING S"; }
+  if (sc === "rotate") { s += box(2, 3, 22, "#5a6e7a", "#475864", "#3b4a54", .04); s += box(2, 4, 22, "#5a6e7a", "#475864", "#3b4a54", .04); tx = 2; label = "Sofa"; line = "ROTATE " + DOT + " FACING E"; }
+  if (sc === "scrap") { s += box(3, 3, 26, "#8a6a44", "#6e5436", "#5d462c", .22); label = "Wooden Chair"; line = "DISASSEMBLE"; }
+  if (sc === "repair") { const [cx, cy] = iso(4, 1); s += `<polygon points="${cx + 6},${cy + 3} ${cx + TW / 2 - 4},${cy + TH / 2 - 2} ${cx + TW / 2 - 4},${cy + TH / 2 - 62} ${cx + 6},${cy - 57}" fill="#7a5530" stroke="rgba(0,0,0,.5)"/>`; tx = 4; ty = 1; ok = false; label = "Wooden Door"; line = "Nails: 2 needed"; }
+  if (sc === "place3d") {
+    s += box(3, 3, 30, "#7a6248", "#5f4b36", "#4f3e2c", .08);
+    const [cx, cy] = iso(3.5, 3.5); const my = cy - 34;
+    s += `<rect x="${cx - 5}" y="${my - 9}" width="10" height="10" fill="#d8d0c0" stroke="#000"/>`;
+    // rotate gizmo rings
+    s += `<ellipse cx="${cx}" cy="${my - 4}" rx="26" ry="10" fill="none" stroke="#3d7bd9" stroke-width="2"/><ellipse cx="${cx}" cy="${my - 4}" rx="10" ry="24" fill="none" stroke="#5dbb3a" stroke-width="2"/><ellipse cx="${cx}" cy="${my - 4}" rx="20" ry="20" fill="none" stroke="#d9452b" stroke-width="2" transform="rotate(35 ${cx} ${my - 4})"/>`;
+    s += `</svg>`;
+    return s;
+  }
+  // cursor tile
+  s += diamond(tx, ty, ok ? "rgba(68,221,68,.22)" : "rgba(255,85,51,.25)", ok ? "#44DD44" : "#FF5533", 2);
+  s += `</svg>`;
+  const [cx, cy] = iso(tx + 1, ty);
+  s += `<div class="chip" style="left:${cx + 6}px;top:${cy - 6}px"><span class="dot ${ok ? "pos" : "dng"}"></span><b>${label}</b><span class="${ok ? "k" : "why"}">${line}</span></div>`;
+  return s;
+}
+
+/* ---------- the furniture tab ---------- */
+const MODES = [["pickup","PICK UP"],["place","PLACE"],["rotate","ROTATE"],["scrap","DISASSEMBLE"],["repair","REPAIR"]];
+function modeStrip(cur, focusCur) {
+  return `<div class="modes">${MODES.map(([k, l]) => verb(l, k === cur ? "primary" : "", focusCur && k === cur)).join("")}</div>`;
+}
+function preview(fill, h, bad) {
+  return `<div class="preview"><svg width="84" height="104" viewBox="0 0 84 104">
+    <polygon points="42,70 76,87 42,104 8,87" fill="#352e24"/>
+    <polygon points="20,${86 - h} 42,${97 - h} 42,97 20,86" fill="${fill[1]}" stroke="${bad ? "#FF5533" : "#000"}"/>
+    <polygon points="42,${97 - h} 64,${86 - h} 64,86 42,97" fill="${fill[2]}" stroke="${bad ? "#FF5533" : "#000"}"/>
+    <polygon points="20,${86 - h} 42,${75 - h} 64,${86 - h} 42,${97 - h}" fill="${fill[0]}" stroke="${bad ? "#FF5533" : "#000"}"/></svg></div>`;
+}
+function target(name, status, ok, facts, pfill, ph) {
+  return `<div class="target">${preview(pfill, ph, !ok)}<div class="tinfo"><span class="nm">${name}</span>
+    <span class="st"><span class="dot ${ok ? "pos" : "dng"}"></span>${status}</span>
+    <div class="facts">${facts.map(([l, v]) => `<span class="l">${l}</span><span class="v">${v}</span>`).join("")}</div></div></div>`;
+}
+function orow(name, sub, sel, btn, focus, tint) {
+  return `<div class="orow${sel ? " sel" : ""}"><span class="ic"${tint ? ` style="background:${tint}"` : ""}></span><span>${name}<br><small>${sub}</small></span><span></span>${verb(btn, sel ? "primary" : "", focus)}</div>`;
+}
+function facing(cur, focus) {
+  return `<div class="facing"><span class="l">FACING</span><span class="dirs">${["N","E","S","W"].map(d => verb(d, d === cur ? "primary" : "", focus && d === cur)).join("")}</span></div>`;
+}
+function tabHead(pillText, pillKind) {
+  return `<div class="th"><span class="nm">Furniture</span><span class="pill ${pillKind}"><span class="dot" style="background:currentColor"></span>${pillText}</span></div>`;
+}
+const WOOD = ["#8a6a44", "#6e5436", "#5d462c"];
+
+function furnitureTab(sc) {
+  let body = "", head = "", mode = sc === "blocked" ? "pickup" : sc;
+  if (sc === "pickup") {
+    head = tabHead("PICK UP", "pos");
+    body += target("Kitchen Chair", "Ready to pick up", true, [
+      ["ENCUMBRANCE", `5.0 <span class="dim">${DOT} you 8.4 &rarr; 13.4 of 15</span>`],
+      ["TOOL NEEDED", `None`],
+      ["ROTATES", `${okDot(true)}Yes`]], WOOD, 26);
+    body += cs("ON THIS TILE", "2") + orow("Kitchen Chair", "FURNITURE", true, "TARGET", true, "#8a6a44") + orow("Rug", "FLOOR COVERING", false, "TARGET", false, "#6a2f2f");
+  } else if (sc === "blocked") {
+    head = tabHead("PICK UP", "dng");
+    body += target("Wardrobe", "Cannot pick up", false, [
+      ["ENCUMBRANCE", `${okDot(false)}40.0 <span class="dim">${DOT} you 8.4 of 15</span>`],
+      ["TOOL NEEDED", `None`],
+      ["ROTATES", `${okDot(true)}Yes`]], ["#6b4e33", "#563e28", "#48331f"], 60);
+    body += needsLine(["Has items in container.", "Too heavy for inventory."]);
+    body += cs("ON THIS TILE", "1") + orow("Wardrobe", "2 TILES", true, "TARGET", true, "#6b4e33");
+  } else if (sc === "place") {
+    head = tabHead("PLACE", "pos");
+    body += target("Kitchen Chair", "Fits here", true, [
+      ["ENCUMBRANCE", `5.0`], ["ROTATES", `${okDot(true)}Yes`]], WOOD, 26);
+    body += facing("S", false);
+    body += cs("YOUR FURNITURE", "3") + orow("Kitchen Chair", "INVENTORY " + DOT + " 5.0", true, "ON CURSOR", true, "#9a8a6a") + orow("Table Lamp", "BACKPACK " + DOT + " 2.0", false, "PLACE", false, "#c9b56a") + orow("Potted Plant", "INVENTORY " + DOT + " 3.0", false, "PLACE", false, "#4a6a3a");
+  } else if (sc === "rotate") {
+    head = tabHead("ROTATE", "pos");
+    body += target("Sofa", "Turns in place", true, [
+      ["SIZE", `2 tiles`], ["ROTATES", `${okDot(true)}Yes`]], ["#5a6e7a", "#475864", "#3b4a54"], 22);
+    body += facing("E", true);
+    body += cs("ON THIS TILE", "1") + orow("Sofa", "2 TILES", true, "TARGET", false, "#5a6e7a");
+  } else if (sc === "scrap") {
+    head = tabHead("DISASSEMBLE", "pos");
+    body += target("Wooden Chair", "Ready to take apart", true, [
+      ["TOOL NEEDED", `${okDot(true)}Hammer <span class="dim">${DOT} in hand</span>`],
+      ["SKILL", `${okDot(true)}Carpentry 2/0`],
+      ["CHANCE TO BREAK", `${okDot(true)}30%`]], WOOD, 26);
+    body += cs("MAY YIELD", "UP TO " + DOT + " ROLL CHANCE");
+    body += `<div class="yield"><span class="ic" style="background:#9a7a4a"></span><span>Plank</span><span class="v">6</span><span class="p">40%</span></div>`;
+    body += `<div class="yield"><span class="ic" style="background:#9a9a9a"></span><span>Nails</span><span class="v">4</span><span class="p">50%</span></div>`;
+    body += `<div class="yield"><span class="ic" style="background:#8a8a9a"></span><span>Screws</span><span class="v">4</span><span class="p">50%</span></div>`;
+    body += cs("ON THIS TILE", "1") + orow("Wooden Chair", "FURNITURE", true, "TARGET", true, "#8a6a44");
+  } else if (sc === "repair") {
+    head = tabHead("REPAIR", "dng");
+    body += target("Wooden Door", "Missing parts", false, [
+      ["DAMAGE", `<span class="dot warn"></span>Visibly damaged`],
+      ["TOOL NEEDED", `${okDot(true)}Hammer`],
+      ["SKILL", `${okDot(true)}Carpentry 2/1`],
+      ["CHANCE", `75%`]], ["#7a5530", "#6a4826", "#5a3c1f"], 58);
+    body += cs("REQUIRED ITEMS", "YOU HAVE");
+    body += `<div class="yield"><span class="ic" style="background:#9a7a4a"></span><span>Plank</span><span class="v">1</span><span class="p">${okDot(true)} 4</span></div>`;
+    body += `<div class="yield"><span class="ic" style="background:#9a9a9a"></span><span>Nails</span><span class="v">2</span><span class="p">${okDot(false)} 0</span></div>`;
+    body += needsLine(["Nails: 2 needed, you have 0."]);
+  }
+  return head + modeStrip(mode, sc === "repair") + `<div class="ob">${body}</div>`;
+}
+
+/* ---------- the placement card (card drawer, Loot underneath) ---------- */
+function axis(l, frac, val, nud, focus) {
+  return `<div class="axis"><span class="l">${l}</span><div class="slider${focus && gp() ? " focus" : ""}"><span class="tr"></span><span class="fi" style="width:${frac * 100}%"></span>${[.25, .5, .75].map(f => `<span class="tick" style="left:${f * 100}%"></span>`).join("")}<span class="th2" style="left:${frac * 100}%"></span></div><span class="v">${val}</span><span class="nudge">${verb("&minus;" + nud)}${verb("+" + nud)}</span></div>`;
+}
+function placementCard() {
+  let body = cs("MOVEMENT", "WITHIN THE TILE");
+  body += axis("X", .42, "0.42", "0.01") + axis("Y", .61, "0.61", "0.01") + axis("Z", .38, "0.38", "0.01");
+  body += cs("ROTATION", "DEGREES");
+  body += axis("X", 0, "0&deg;", "15") + axis("Y", 0, "0&deg;", "15") + axis("Z", 135 / 360, "135&deg;", "15", true);
+  return `<div class="dh">${verb("&lt;")}<span class="ico"><i style="background:#d8d0c0"></i></span><span class="nm">Mug</span><span class="pill dim"><span class="dot" style="background:currentColor"></span>ON A TABLE</span></div>
+    <div class="vbar">${verb("DONE", "primary")}${verb("REVERT")}</div><div class="ob">${body}</div>`;
+}
+
+/* ---------- tab strip ---------- */
+const SOFA = `<svg viewBox="0 0 18 18"><rect x="2" y="7" width="14" height="5" fill="currentColor"/><rect x="1" y="5" width="3" height="8" fill="currentColor"/><rect x="14" y="5" width="3" height="8" fill="currentColor"/><rect x="3" y="13" width="2" height="2" fill="currentColor"/><rect x="13" y="13" width="2" height="2" fill="currentColor"/></svg>`;
+function tabStrip(sc) {
+  const fur = sc !== "place3d";
+  return `<div class="tbtn${fur ? "" : " on"}">L</div><div class="tbtn">C</div><div class="tbtn">B</div><div class="tbtn${fur ? " on" : ""}">${SOFA}</div><div class="tsep"></div><div class="tbtn">M</div><div class="tbtn">F</div><div class="tbtn">A</div>`;
+}
+
+/* ---------- theme + render ---------- */
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+const THEMES = {
+  dark:  { base:"#0C0C0C", surf1:"#141414", surf2:"#1C1C1C", surf3:"#242424", surf4:"#2C2C2C", border:"#202020", borderS:"#383838", text:"rgba(218,218,218,.9)", textDim:"rgba(161,161,161,.65)", danger:"#C45A2A", warning:"#C49A2A", positive:"#7A9A34", info:"#4F88B0" },
+  light: { base:"#C6C6C6", surf1:"#BEBEBE", surf2:"#B6B6B6", surf3:"#AEAEAE", surf4:"#A6A6A6", border:"#969696", borderS:"#767676", text:"rgba(12,12,12,.95)", textDim:"rgba(12,12,12,.72)", danger:"#7A2A11", warning:"#6B5510", positive:"#2A5511", info:"#1F4F7A" },
+  hicon: { base:"#050505", surf1:"#111111", surf2:"#191919", surf3:"#202020", surf4:"#292929", border:"#353535", borderS:"#555555", text:"rgba(255,255,255,.95)", textDim:"rgba(199,199,199,.75)", danger:"#FF5533", warning:"#FFCC22", positive:"#44DD44", info:"#4FA8E0" }
+};
+const ACCENTS = { red:[["#CC4444","#EE6666","#0C0C0C"],["#7A1A1A","#AA3333","#F2F0EC"]], orange:[["#D4922A","#E8A830","#0C0C0C"],["#7A5010","#B07818","#F2F0EC"]], yellow:[["#CCAA22","#EEDD44","#0C0C0C"],["#6B5F0A","#998811","#F2F0EC"]], green:[["#44AA44","#66CC66","#0C0C0C"],["#1F5A1F","#2E7A2E","#F2F0EC"]], blue:[["#4488CC","#66AAEE","#0C0C0C"],["#1A3F6B","#2A5A99","#F2F0EC"]], teal:[["#47A18C","#5CC4AA","#0C0C0C"],["#1A5548","#257A66","#F2F0EC"]], purple:[["#8855BB","#AA77DD","#0C0C0C"],["#4A2A6B","#663D99","#F2F0EC"]], pink:[["#DD5588","#FF77AA","#0C0C0C"],["#7A1F44","#A8305F","#F2F0EC"]], mono:[["#888888","#AAAAAA","#0C0C0C"],["#3A3A3A","#555555","#F2F0EC"]] };
+
+
+function render() {
+  const r = document.documentElement.style;
+  Object.entries(THEMES[S.base]).forEach(([k, v]) => r.setProperty("--" + k, v));
+  const ac = ACCENTS[S.accent][S.base === "light" ? 1 : 0];
+  r.setProperty("--accent", ac[0]); r.setProperty("--accentBright", ac[1]); r.setProperty("--onAccent", ac[2]);
+  r.setProperty("--a22", hexA(ac[0], .22)); r.setProperty("--a55", hexA(ac[0], .55));
+  $("stage").style.zoom = S.zoom;
+  $("world").innerHTML = worldSVG(S.state);
+  $("drawer").innerHTML = S.state === "place3d" ? placementCard() : furnitureTab(S.state);
+  $("tstrip").innerHTML = tabStrip(S.state);
+  $("tabname").textContent = S.state === "place3d" ? "Loot" : "Furniture";
+  let f = `<span class="mini">&bull;</span><span class="mini">A</span><span class="mini">R</span>`;
+  if (gp()) {
+    const p = S.state === "place3d" ? [["a", "Select"], ["b", "Close card"], ["y", "Close"]] : [["a", "Select"], ["b", "To the cursor"], ["y", "Close"]];
+    f += `<span class="prompts">${p.map(([g, t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}</span>`;
+  }
+  $("wfoot").innerHTML = f + `<span class="grip"></span>`;
+  $("caption").textContent = CAPTIONS[S.state];
+}
+
+function seg(id, items, cur, fn) { $(id).innerHTML = items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join(""); $(id).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.k)); }
+function sync() {
+  seg("ctlState", STATES, S.state, k => { S.state = k; render(); sync(); });
+  seg("ctlInput", [["mouse","Mouse"],["gamepad","Gamepad"]], S.input, k => { S.input = k; render(); sync(); });
+  seg("ctlBase", [["hicon","High contrast"],["dark","Dark"],["light","Light"]], S.base, k => { S.base = k; render(); sync(); });
+  seg("ctlZoom", [["1","1x (1080p)"],["1.5","1.5x"],["2","2x (4K)"]], String(S.zoom), k => { S.zoom = +k; render(); sync(); });
+  $("ctlAccent").innerHTML = Object.keys(ACCENTS).map(k => `<button title="${k}" data-k="${k}" class="${k === S.accent ? "on" : ""}" style="background:${ACCENTS[k][0][0]}"></button>`).join("");
+  $("ctlAccent").querySelectorAll("button").forEach(b => b.onclick = () => { S.accent = b.dataset.k; render(); sync(); });
+}
+sync(); render();
+</script>
+</body>
+</html>
