@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Vehicle Mechanics Tab v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Vehicle Mechanics tab, mockup v1 (Oct 13 2026)
+   Lua-flat preview: every number below is a DESIGN UNIT (1 px at 1080p). The
+   game multiplies by the root scale (2.0 on the 4K rig); the Zoom control here
+   does the same. Colours come from shared/ZeD/Tokens.lua (three bases, nine
+   accents); the default is the director's live setting: High Contrast + yellow.
+   Rules honoured: 1px borders, no shadows, no blur, Fira only, no emoji,
+   status dots instead of coloured value text, generous padding, one scroll per
+   tab, footer = action zone, focus cue = 0.55 alpha accent fill.
+   ============================================================================ */
+:root {
+  --base:#050505; --surf1:#111111; --surf2:#191919; --surf3:#202020; --surf4:#292929;
+  --border:#353535; --borderS:#555555;
+  --text:rgba(255,255,255,.95); --textDim:rgba(199,199,199,.75);
+  --danger:#FF5533; --warning:#FFCC22; --positive:#44DD44;
+  --accent:#CCAA22; --accentBright:#EEDD44; --onAccent:#0C0C0C;
+  --a22:rgba(204,170,34,.22); --a55:rgba(204,170,34,.55);
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+
+/* ---------- page chrome (not part of the design) ---------- */
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:980px; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.stage-wrap { overflow:auto; padding-bottom:6px; }
+.stage { position:relative; width:960px; height:456px; background:
+   radial-gradient(ellipse at 22% 35%, rgba(70,82,50,.55) 0%, transparent 55%),
+   radial-gradient(ellipse at 78% 70%, rgba(60,52,40,.55) 0%, transparent 60%),
+   repeating-linear-gradient(135deg, #1d1c17 0 6px, #191813 6px 12px);
+   border:1px solid #2a2924; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:980px; line-height:1.5; }
+
+/* ---------- the window ---------- */
+.win { position:absolute; left:18px; top:18px; width:924px; height:420px; background:color-mix(in srgb, var(--base) 95%, transparent); border:1px solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tbar { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS);
+  background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.closebox { width:13px; height:13px; border:1px solid var(--textDim); position:relative; background:var(--surf2); }
+.closebox::before, .closebox::after { content:''; position:absolute; left:2px; right:2px; top:5px; height:1px; background:var(--textDim); transform:rotate(45deg); }
+.closebox::after { transform:rotate(-45deg); }
+.tbar .ttl { font-family:var(--mono); font-size:12px; color:var(--text); background:var(--surf2); padding:0 6px; }
+.tbar .ttl b { font-weight:400; color:var(--textDim); margin-left:8px; }
+.tbar .sp { flex:1; }
+.tbar .tab { font-family:var(--mono); font-size:12px; color:var(--text); background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; }
+.dot.pos { background:var(--positive); } .dot.warn { background:var(--warning); } .dot.dng { background:var(--danger); } .dot.off { background:transparent; border:1px solid var(--textDim); }
+.wbody { flex:1; display:flex; min-height:0; }
+.wfoot { height:16px; flex:none; border-top:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; gap:3px; padding:0 3px; }
+.wfoot .mini { width:12px; height:12px; border:1px solid var(--border); font-family:var(--cond); font-size:9px; color:var(--textDim); display:flex; align-items:center; justify-content:center; }
+.wfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; color:var(--text); align-items:center; }
+.glyph { display:inline-flex; width:12px; height:12px; border-radius:50%; font-family:var(--sans); font-weight:600; font-size:8px; color:#0c0c0c; align-items:center; justify-content:center; margin-right:4px; vertical-align:-2px; }
+.g-a { background:#5dbb3a; } .g-b { background:#d9452b; } .g-x { background:#3d7bd9; } .g-y { background:#e3b52a; }
+.wfoot .grip { margin-left:auto; width:12px; height:12px; background:repeating-linear-gradient(135deg, transparent 0 3px, var(--textDim) 3px 4px); opacity:.6; }
+
+/* container strip (World window: far left) */
+.cstrip { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.cbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--border); }
+.cbtn.on { background:var(--accent); }
+.cbtn svg { width:20px; height:20px; }
+.cbtn svg * { stroke:var(--text); }
+.cbtn.on svg * { stroke:var(--onAccent); }
+
+/* inventory pane */
+.inv { width:372px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--borderS); background:var(--surf1); }
+.invh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.invh .h { font-family:var(--cond); font-weight:600; font-size:15px; }
+.invh .n { margin-left:auto; font-family:var(--cond); font-size:10px; color:var(--textDim); }
+.colh { height:20px; flex:none; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--accent); }
+.colh .u { text-decoration:underline; text-underline-offset:2px; color:var(--text); }
+.cath { height:18px; display:flex; align-items:center; padding:0 6px; gap:6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--accent); cursor:default; }
+.irow { height:24px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; }
+.irow:nth-child(even) { background:color-mix(in srgb, var(--surf2) 70%, transparent); }
+.irow .nm { display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; }
+.irow .ct { font-family:var(--mono); font-size:10px; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.irow .cb { height:3px; background:var(--surf3); margin-right:12px; } .irow .cb i { display:block; height:3px; }
+.irow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.ico { width:16px; height:16px; flex:none; }
+
+/* drawer */
+.drawer { width:480px; flex:none; display:flex; flex-direction:column; background:var(--surf1); min-width:0; }
+.dh { height:37px; flex:none; display:flex; align-items:center; gap:6px; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.bbtn { height:22px; min-width:22px; padding:0 6px; display:flex; align-items:center; justify-content:center; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.bbtn.primary { background:var(--accent); color:var(--onAccent); border-top-color:var(--accentBright); border-left-color:var(--accentBright); }
+.bbtn.danger { color:var(--danger); animation:dpulse 2.2s ease-in-out infinite; }
+@keyframes dpulse { 0%,100% { background:color-mix(in srgb, var(--danger) 8%, var(--surf3)); } 50% { background:color-mix(in srgb, var(--danger) 25%, var(--surf3)); } }
+.bbtn.disabled { opacity:.35; cursor:default; animation:none; }
+.bbtn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.bbtn.primary.focus { box-shadow:none; background:var(--accentBright); }
+.pick.gpf { background:var(--a55); }
+.dh .cnt { font-family:var(--mono); font-size:11px; color:var(--textDim); min-width:24px; text-align:center; }
+.dh .vdiv { width:1px; height:20px; background:var(--borderS); margin:0 4px; }
+.dh .sub { font-family:var(--cond); font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dh .sp { flex:1; }
+.pill { height:16px; padding:0 7px; display:flex; align-items:center; background:var(--accent); color:var(--onAccent); font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; white-space:nowrap; }
+.dh .partico { width:22px; height:22px; flex:none; border:1px solid var(--borderS); background:var(--surf1); display:flex; align-items:center; justify-content:center; }
+.dh .verbs { display:flex; gap:4px; margin-left:auto; }
+.dscroll { flex:1; overflow-y:auto; overflow-x:hidden; min-height:0; }
+.dscroll::-webkit-scrollbar { width:14px; }
+.dscroll::-webkit-scrollbar-track { background:var(--surf1); border-left:1px solid var(--border); }
+.dscroll::-webkit-scrollbar-thumb { background:var(--surf4); border:1px solid var(--borderS); }
+.dfoot { height:32px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:12px; }
+.dfoot .msg { display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dfoot .skill { margin-left:auto; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:1px; color:var(--textDim); white-space:nowrap; }
+.dfoot.confirm { background:color-mix(in srgb, var(--danger) 12%, var(--surf2)); }
+
+/* zone A: figure + summary */
+.zoneA { display:grid; grid-template-columns:168px 1fr; gap:12px; padding:10px 10px 8px; }
+.fig { width:168px; height:232px; position:relative; }
+.fig svg { width:168px; height:232px; display:block; }
+.fig .pr { cursor:pointer; }
+.sumcol { min-width:0; display:flex; flex-direction:column; }
+.lblrow { display:flex; align-items:baseline; justify-content:space-between; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:4px; }
+.lblrow .v { font-size:12px; color:var(--text); display:flex; align-items:center; gap:6px; letter-spacing:.5px; }
+.fill { height:13px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.fill i { position:absolute; left:1px; top:1px; bottom:1px; opacity:.5; }
+.status { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; margin:8px 0 8px; }
+.line { height:1px; background:var(--border); margin:2px 0 6px; }
+.srow { height:20px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.srow .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; }
+.srow .v { font-family:var(--mono); font-size:12px; color:var(--text); display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hvname { font-family:var(--cond); font-weight:600; font-size:15px; margin-bottom:2px; }
+.hvcat { font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); margin-bottom:10px; }
+.hint { font-family:var(--mono); font-size:10px; color:var(--textDim); margin-top:10px; }
+
+/* zone B: part list */
+.plh { height:20px; display:grid; grid-template-columns:1fr 104px 84px; align-items:center; padding:0 10px; background:var(--surf2); border-top:1px solid var(--borderS); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--accent); }
+.plh span { cursor:pointer; } .plh .u { color:var(--text); text-decoration:underline; text-underline-offset:2px; }
+.plh .r { text-align:right; }
+.pcat { height:18px; display:flex; align-items:center; gap:6px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--accent); }
+.prow { height:24px; display:grid; grid-template-columns:16px 1fr 104px 84px; align-items:center; padding:0 10px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; cursor:pointer; }
+.prow.alt { background:color-mix(in srgb, var(--surf2) 70%, transparent); }
+.prow.hl { background:var(--a55); }
+.prow .nm { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prow .inf { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; padding-right:10px; white-space:nowrap; }
+.prow .cnd { display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+.prow .mb { width:40px; height:3px; background:var(--surf3); } .prow .mb i { display:block; height:3px; }
+.prow .pc { font-family:var(--mono); font-size:11px; width:32px; text-align:right; }
+.badge { height:14px; padding:0 5px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; }
+.badge.dng { background:color-mix(in srgb, var(--danger) 16%, transparent); color:var(--danger); }
+.badge.warn { background:color-mix(in srgb, var(--warning) 16%, transparent); color:var(--warning); }
+.badge.dim { background:var(--surf3); color:var(--textDim); }
+.empty { display:flex; flex-direction:column; align-items:center; gap:10px; padding:28px 20px 30px; text-align:center; }
+.empty .t { font-family:var(--cond); font-weight:600; font-size:15px; color:var(--accent); }
+.empty .s { font-size:12px; color:var(--textDim); max-width:300px; line-height:1.5; }
+
+/* part card */
+.pband { padding:6px 12px 7px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:5px; background:var(--surf1); }
+.pband .r { display:flex; align-items:center; gap:8px; }
+.pband .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1.5px; color:var(--accent); text-transform:uppercase; }
+.pband .p { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:12px; }
+.pband .x { width:18px; height:18px; display:flex; align-items:center; justify-content:center; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-size:11px; }
+.pband .bar { height:8px; background:var(--surf2); border:1px solid var(--borderS); } .pband .bar i { display:block; height:100%; background:var(--accent); }
+.pband.ok .l, .pband.ok .p { color:var(--positive); } .pband.ok .bar i { background:var(--positive); } .pband.ok { border-bottom-color:var(--positive); }
+.pband.bad .l, .pband.bad .p { color:var(--danger); } .pband.bad .bar i { background:var(--danger); } .pband.bad { border-bottom-color:var(--danger); }
+.cbody { padding:12px 12px 14px; display:flex; flex-direction:column; gap:10px; }
+.top { display:grid; grid-template-columns:56px 1fr; gap:12px; align-items:start; }
+.bigico { width:56px; height:56px; border:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; justify-content:center; }
+.bigico.missing { border-style:dashed; border-color:var(--danger); background:transparent; }
+.bigico svg { width:40px; height:40px; }
+.sgrid { display:grid; grid-template-columns:1fr 1fr; gap:3px 16px; }
+.sgrid .srow { height:18px; }
+.sec { display:flex; align-items:center; gap:6px; height:22px; margin:0 -12px; padding:0 12px; background:var(--surf2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); }
+.sec .tri { font-size:8px; color:var(--textDim); }
+.sec .aside { margin-left:auto; color:var(--textDim); font-weight:400; letter-spacing:.5px; }
+.need { height:20px; display:flex; align-items:center; gap:8px; font-size:12px; font-weight:500; }
+.need .q { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--text); }
+.need .k { font-family:var(--mono); font-size:9px; color:var(--textDim); letter-spacing:.5px; }
+.chance { display:flex; height:13px; border:1px solid var(--borderS); margin-top:2px; }
+.chance i { display:block; height:100%; opacity:.5; }
+.chancelbl { display:flex; justify-content:space-between; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; margin-top:3px; }
+.pick { height:26px; display:grid; grid-template-columns:16px 1fr 44px 34px 70px; align-items:center; gap:6px; padding:0 4px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; cursor:pointer; }
+.pick.sel { background:var(--a22); }
+.pick.none { color:var(--textDim); cursor:default; }
+.radio { width:10px; height:10px; border-radius:50%; border:1px solid var(--textDim); display:flex; align-items:center; justify-content:center; }
+.radio.on::after { content:''; width:4px; height:4px; border-radius:50%; background:var(--accent); }
+.pick .loc { font-family:var(--mono); font-size:9px; letter-spacing:.5px; color:var(--textDim); text-align:right; }
+.pick .mb { height:3px; background:var(--surf3); } .pick .mb i { display:block; height:3px; }
+.pick .pc { font-family:var(--mono); font-size:11px; text-align:right; }
+.about { font-size:12px; line-height:1.5; color:var(--textDim); }
+.fix { display:grid; grid-template-columns:16px 1fr; gap:2px 6px; align-items:center; padding:6px 4px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; cursor:pointer; }
+.fix .meta { grid-column:2; font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.fix.sel { background:var(--a22); } .fix.none { color:var(--textDim); cursor:default; }
+
+/* notes */
+.notes { max-width:1060px; margin-top:26px; display:grid; grid-template-columns:1fr; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes p, .notes li { font-size:13px; line-height:1.6; color:#c4bfb1; }
+.notes ol { padding-left:20px; } .notes li { margin-bottom:8px; }
+.notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+table.parity { border-collapse:collapse; width:100%; font-size:12px; }
+table.parity th, table.parity td { border:1px solid #34322c; padding:5px 8px; text-align:left; vertical-align:top; color:#c4bfb1; line-height:1.45; }
+table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#d8c070; background:#17160f; text-transform:uppercase; }
+.family { display:flex; gap:18px; flex-wrap:wrap; }
+.family figure { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.family figcaption { font-family:var(--mono); font-size:10px; color:#8f8a7c; letter-spacing:1px; }
+.family svg { background:#0a0a0a; border:1px solid #2a2924; }
+</style>
+</head>
+<body>
+
+<div class="banner">ZeD-UI · World window · contextual tab · mockup v1</div>
+<h1>Vehicle Mechanics</h1>
+<p class="lede">The vanilla mechanics window becomes a <b>Vehicle</b> tab in the World window, contextual like Radio: it appears when a vehicle is within reach and holds everything the vanilla screen does. It follows the Health tab's shape (figure, summary, part list) and every part opens as an item card with its verbs in the header. What each action needs is shown on the card before you press it, instead of in hover tooltips. Click any part in the figure or the list. Switch the states, the input mode and the theme above the window.</p>
+
+<div class="controls">
+  <div class="ctl"><span>State</span><div class="seg" id="ctlState"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlInput"></div></div>
+  <div class="ctl"><span>Base</span><div class="seg" id="ctlBase"></div></div>
+  <div class="ctl"><span>World accent</span><div class="swatches" id="ctlAccent"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+
+<div class="stage-wrap"><div class="stage" id="stage">
+  <div class="win" id="win">
+    <div class="tbar">
+      <div class="closebox"></div>
+      <div class="ttl">Trunk<b>3</b></div>
+      <div class="sp"></div>
+      <div class="tab"><span class="dot"></span>Vehicle</div>
+    </div>
+    <div class="wbody">
+      <div class="cstrip" id="cstrip"></div>
+      <div class="inv">
+        <div class="invh"><span class="h">Trunk</span><span class="n">12.4 / 50 &middot; 3 items</span></div>
+        <div class="colh"><span>DIST</span><span class="u">NAME</span><span>CAT</span><span>COND</span><span style="text-align:right">WT</span></div>
+        <div id="invlist"></div>
+      </div>
+      <div class="drawer" id="drawer"></div>
+      <div class="tstrip" id="tstrip" style="width:36px;flex:none;border-left:1px solid var(--borderS);background:var(--surf1);display:flex;flex-direction:column;"></div>
+    </div>
+    <div class="wfoot" id="wfoot"></div>
+  </div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>Where it lives.</b> A Vehicle tab in the World window's contextual group, after Animals. It shows when a vehicle is within reach and carries a count badge when there are several, browsed with the arrows in the tab header, the same way Radio browses radios. The vanilla Mechanics option (right-click, the hood, the V menu) lands here too.</li>
+      <li><span class="rec">RECOMMEND</span><b>Keep the inspection step.</b> Vanilla makes you walk to the car and look it over (faster with more Mechanics skill) before you see part conditions. The tab keeps that: before an inspection it shows the car's name and type and an INSPECT button in the footer (see "Not inspected"). After inspecting, the full view stays open until you walk away, as vanilla closes past six tiles.</li>
+      <li><span class="rec">RECOMMEND</span><b>The car figure.</b> It sits where the body figure sits on the Health tab and uses the same scanline look and grid box, so the two read as one family. Vanilla already has top-down part diagrams for every body shape (sedan, station wagon, small car, sports car, SUV, off-road, pickup, race car, van, three trailers). A small script can turn those into ZeD scanline masks automatically, the way the plate pipeline turned the dash mockups into art. The alternative is to draw the figures by hand, like the body figure; that is more work and more charm. Your call on art direction.</li>
+      <li><span class="rec">RECOMMEND</span><b>Part cards are item cards.</b> A part opens as the 480-wide item card: back arrow, name, verbs in the header, the progress band while you work. The NEEDS section lists what the highlighted verb needs (tools, skill, recipe, other parts that must be on or off, an empty tank, the key) with a dot for each, and the success and failure chance when there is a risk. Hovering or focusing another verb switches the list. Nothing hides in tooltips.</li>
+      <li><span class="rec">RECOMMEND</span><b>Installing without submenus.</b> A missing part's card lists every compatible part you can reach, from your bags and from nearby containers such as the trunk, with condition and where it is. Pick one, press INSTALL. Types you do not have stay listed, dimmed, so you know what to look for.</li>
+      <li><span class="rec">RECOMMEND</span><b>Confirm only what destroys.</b> Taking engine parts (it lowers the engine's condition) and smashing a window swap the footer to a YES / NO confirmation, the Animals tab pattern. Everything else runs on the first press, as in vanilla.</li>
+      <li><span class="rec">RECOMMEND</span><b>Gamepad.</b> The part list is the focus path; the figure follows the focused part instead of being a second set of stops. A opens a part, X opens the context menu with the same verbs, B goes back from a card to the list, Y closes the windows as usual. On a card the D-pad moves across the header verbs and down into the pick list. Switch Input to Gamepad to see the focus cue and the footer prompts. The figure scrolls away with the list, because a tab scrolls as one piece; pinning it would need an exception to that rule.</li>
+      <li><b>The hood.</b> Opening Mechanics through the hood opens it; vanilla closes it when the window closes. Here the footer offers CLOSE HOOD while it is open, and the hood closes by itself when you walk away.</li>
+      <li><b>Not in this tab.</b> Seat switching and the vehicle radial stay vanilla for now, animals in trailers are their own ledger row, and the debug cheat options stay in the debug-only context menu.</li>
+    </ol>
+  </div>
+
+  <div>
+    <h2>Body shapes</h2>
+    <p style="margin-bottom:10px">The figure changes with the body shape. These are outline sketches of four of the families; the build would derive each from the matching vanilla diagram.</p>
+    <div class="family" id="family"></div>
+  </div>
+
+  <div>
+    <h2>Everything the vanilla screen does, and where it goes</h2>
+    <table class="parity">
+      <tr><th style="width:34%">Vanilla</th><th>Vehicle tab</th></tr>
+      <tr><td>Name, mechanic type, overall condition, weight, engine power</td><td>Tab header (name, type pill); summary column (overall bar, engine, quality, loudness, weight, fuel, battery, key)</td></tr>
+      <tr><td>Two part lists (mechanical left, doors / bodywork / lights right), category headings, condition %, fuel and battery charge inline</td><td>One list grouped by area, front to back; condition bar and %, an info column (fuel, charge, pressure, open, locked, smashed); sort by area or by condition</td></tr>
+      <tr><td>Car diagram tinted by condition, blinking when missing or under 10%, hover tooltip, click selects</td><td>Scanline figure tinted by condition, missing parts dashed and pulsing, hover links figure and list both ways, click opens the card</td></tr>
+      <tr><td>Part detail: item, weight, remaining %, capacity / tire pressure / gasoline, braking force, loudness multiplier, door open / locked / lock broken, window open, temperature, engine loudness and quality, wheel friction</td><td>The card's stat grid shows the same facts per part type</td></tr>
+      <tr><td>Context menu: Repair (fixing recipes), Uninstall, Install (type, then owned item with condition), Open / Close / Smash window, Inflate / Deflate tire, Part info, Take engine parts, Repair engine, Repair lightbar</td><td>Header verbs on the card; Repair lists the fixing recipes as rows with their materials and skills; Install uses the pick list; Part info is the card's ABOUT text; X still opens a context menu with the same verbs</td></tr>
+      <tr><td>Requirement tooltips: tools 0/1, skill, recipe, part that must be installed or removed, container empty, key required, success / failure chance</td><td>NEEDS section on the card, one dotted row per requirement, chance bar when there is a risk; the footer says whether the highlighted verb is ready</td></tr>
+      <tr><td>Progress bar for the running action, green / red success or failure flash</td><td>The item card's progress band with cancel; it turns green or red when the action ends</td></tr>
+      <tr><td>Hood opens with the window and closes with it; window closes past six tiles; gamepad list navigation</td><td>CLOSE HOOD in the footer, auto-close on leaving; the tab falls back to "not inspected" past six tiles; full cone-nav</td></tr>
+    </table>
+    <p style="margin-top:10px">Build note: vanilla looks for parts and tools through the hidden vanilla inventory pages' container lists. The build must confirm those lists stay filled while ZeD keeps those pages hidden, or gather the containers itself.</p>
+  </div>
+</section>
+
+<script>
+/* ============================================================================
+   DATA — a 1993 Chevalier Nyala (Base.CarNormal, Standard). Requirements, item
+   names, fixing recipes and success formula come from the 42.20.2 scripts
+   (template_*.txt, vehiclesfixing.txt, VehicleUtils.calculateInstallationSuccess).
+   The player: Mechanics 3, knows Basic Mechanics, Metalworking 0.
+   ============================================================================ */
+const PLAYER = { mech: 3, metal: 0, recipes: { "Basic Mechanics": true } };
+const HAVE = {  // what VehicleUtils.getItems would find (bags + nearby containers)
+  "Jack": "Trunk", "Lug Wrench or Tire Iron": "Trunk", "Wrench": "Backpack", "Screwdriver": "Inventory",
+  "Spare Engine Parts": "Backpack", "Light Bulb": "Inventory", "Sheet Metal": "Backpack", "Screws": "Backpack"
+};
+const CATS = [
+  ["engine","UNDER HOOD"],["gastank","GAS TANK"],["tire","TIRES"],["brakes","BRAKES"],["suspension","SUSPENSION"],
+  ["lights","LIGHTS"],["door","DOORS"],["bodywork","BODYWORK"],["seat","SEATS"],["dashboard","DASHBOARD"]
+];
+const P = (id, name, cat, cond, o) => Object.assign({ id, name, cat, cond }, o || {});
+const PARTS = [
+  P("Engine","Engine","engine",58,{kind:"engine",item:"Engine",info:"Q 58"}),
+  P("Battery","Battery","engine",87,{kind:"battery",item:"Car Battery",info:"64% charge"}),
+  P("Heater","Heater","engine",100,{kind:"fixed",info:""}),
+  P("Muffler","Muffler","engine",34,{kind:"muffler",item:"Muffler - Regular",info:"x1.66 loud"}),
+  P("GasTank","Gas Tank","gastank",90,{kind:"gastank",item:"Gas Tank - Regular",info:"12 / 45 L"}),
+  P("TireFrontLeft","Front Left Tire","tire",64,{kind:"tire",item:"Tire - Regular",info:"28 / 35 psi",psi:28,fric:1.12,axle:"FrontLeft"}),
+  P("TireFrontRight","Front Right Tire","tire",71,{kind:"tire",item:"Tire - Regular",info:"33 / 35 psi",psi:33,fric:1.18,axle:"FrontRight"}),
+  P("TireRearLeft","Rear Left Tire","tire",0,{kind:"tire",missing:true,axle:"RearLeft"}),
+  P("TireRearRight","Rear Right Tire","tire",12,{kind:"tire",item:"Tire - Old",info:"9 / 35 psi",psi:9,fric:0.84,axle:"RearRight"}),
+  P("BrakeFrontLeft","Front Left Brake","brakes",80,{kind:"brake",item:"Brake - Regular",axle:"FrontLeft"}),
+  P("BrakeFrontRight","Front Right Brake","brakes",78,{kind:"brake",item:"Brake - Regular",axle:"FrontRight"}),
+  P("BrakeRearLeft","Rear Left Brake","brakes",45,{kind:"brake",item:"Brake - Old",axle:"RearLeft"}),
+  P("BrakeRearRight","Rear Right Brake","brakes",44,{kind:"brake",item:"Brake - Old",axle:"RearRight"}),
+  P("SuspensionFrontLeft","Front Left Suspension","suspension",88,{kind:"susp",item:"Suspension - Regular",axle:"FrontLeft"}),
+  P("SuspensionFrontRight","Front Right Suspension","suspension",86,{kind:"susp",item:"Suspension - Regular",axle:"FrontRight"}),
+  P("SuspensionRearLeft","Rear Left Suspension","suspension",62,{kind:"susp",item:"Suspension - Regular",axle:"RearLeft"}),
+  P("SuspensionRearRight","Rear Right Suspension","suspension",60,{kind:"susp",item:"Suspension - Regular",axle:"RearRight"}),
+  P("HeadlightLeft","Left Headlight","lights",100,{kind:"light",item:"Light Bulb"}),
+  P("HeadlightRight","Right Headlight","lights",0,{kind:"light",missing:true}),
+  P("HeadlightRearLeft","Left Taillight","lights",90,{kind:"light",item:"Light Bulb"}),
+  P("HeadlightRearRight","Right Taillight","lights",90,{kind:"light",item:"Light Bulb"}),
+  P("DoorFrontLeft","Front Left Door","door",72,{kind:"door",item:"Front Door",info:"Locked"}),
+  P("DoorFrontRight","Front Right Door","door",70,{kind:"door",item:"Front Door",info:"Closed"}),
+  P("DoorRearLeft","Rear Left Door","door",66,{kind:"door",item:"Rear Door",info:"Closed"}),
+  P("DoorRearRight","Rear Right Door","door",68,{kind:"door",item:"Rear Door",info:"Closed"}),
+  P("WindowFrontLeft","Front Left Window","door",100,{kind:"window",item:"Front Window",info:"Closed"}),
+  P("WindowFrontRight","Front Right Window","door",0,{kind:"window",smashed:true,item:"Front Window"}),
+  P("WindowRearLeft","Rear Left Window","door",100,{kind:"window",item:"Rear Window",info:"Closed"}),
+  P("WindowRearRight","Rear Right Window","door",100,{kind:"window",item:"Rear Window",info:"Closed"}),
+  P("EngineDoor","Hood","bodywork",62,{kind:"hood",item:"Hood",info:"Open"}),
+  P("TrunkDoor","Trunk Lid","bodywork",70,{kind:"lid",item:"Trunk Lid",info:"Closed"}),
+  P("Windshield","Windshield","bodywork",85,{kind:"glass",item:"Windshield"}),
+  P("WindshieldRear","Rear Windshield","bodywork",100,{kind:"glass",item:"Rear Windshield"}),
+  P("TruckBed","Trunk","bodywork",93,{kind:"fixed",info:"12.4 / 50"}),
+  P("SeatFrontLeft","Driver's Seat","seat",88,{kind:"seat",item:"Seat"}),
+  P("SeatFrontRight","Front Right Seat","seat",90,{kind:"seat",item:"Seat"}),
+  P("SeatRearLeft","Rear Left Seat","seat",95,{kind:"seat",item:"Seat"}),
+  P("SeatRearRight","Rear Right Seat","seat",95,{kind:"seat",item:"Seat"}),
+  P("GloveBox","Glove Box","dashboard",100,{kind:"fixed",info:"2.1 / 5"}),
+  P("Radio","Radio","dashboard",100,{kind:"fixed",item:"Radio"}),
+];
+const BY = Object.fromEntries(PARTS.map(p => [p.id, p]));
+const VEH = { name:"Chevalier Nyala", type:"STANDARD", power:85, quality:58, loud:41, mass:1250, fuel:"12 / 45 L", batt:"64% charge", key:"On key ring", engineLevel:4 };
+const COND_INFO = {
+  tire:"Low condition tires have less friction on the road. A critical lack of condition or pressure can also make the tire burst.",
+  brake:"Low condition brakes reduce a vehicle's stopping power.",
+  gastank:"Stores fuel. Low condition gas tanks have less container capacity and may leak fuel.",
+  battery:"Recharges while the engine is running. Drained by starting the engine, by active lights, siren and radio.",
+  lid:"A damaged trunk lid may result in objects falling from your vehicle."
+};
+
+/* ---------- helpers ---------- */
+const tier = c => c > 60 ? "pos" : c > 30 ? "warn" : "dng";
+const tcol = c => `var(--${({pos:"positive",warn:"warning",dng:"danger"})[tier(c)]})`;
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function chanceFor(skill) { // VehicleUtils.calculateInstallationSuccess with one skill entry
+  if (!skill) return [100, 0];
+  const d = skill - PLAYER.mech; if (d <= 0) return [100, 0];
+  const s = Math.max(0, 100 - (20 + d * 15)); return [s, 100 - s];
+}
+function overall() {
+  let t = 0; PARTS.forEach(p => t += (p.missing || p.smashed) ? 0 : p.cond); return Math.round(t / PARTS.length);
+}
+
+/* ---------- requirements per verb (from the part templates) ---------- */
+function toolRow(name) { const loc = HAVE[name]; return { ok: !!loc, label: name, q: loc ? "1/1" : "0/1", k: loc ? loc.toUpperCase() : "" }; }
+function skillRow(lvl) { return { ok: PLAYER.mech >= lvl, soft: true, label: "Mechanics", q: `${PLAYER.mech} / ${lvl}`, k: PLAYER.mech >= lvl ? "" : "RECOMMENDED" }; }
+function recipeRow(r) { return { ok: !!PLAYER.recipes[r], label: r, q: PLAYER.recipes[r] ? "Known" : "Unknown", k:"MAGAZINE" }; }
+function partRow(id, mustBeOn) { const p = BY[id]; const on = p && !p.missing; return { ok: mustBeOn ? on : !on, label: p ? p.name : id, q: mustBeOn ? (on ? "Installed" : "Missing") : (on ? "Installed" : "Removed"), k: mustBeOn ? "MUST BE ON" : "MUST BE OFF" }; }
+function needsFor(p, verb) {
+  const k = p.kind, rows = []; let skill = 0;
+  if (verb === "INSTALL" || verb === "UNINSTALL") {
+    if (k === "tire") { rows.push(toolRow("Jack"), toolRow("Lug Wrench or Tire Iron")); if (verb === "INSTALL") rows.push(partRow("Brake" + p.axle, true), partRow("Suspension" + p.axle, true)); skill = 1; }
+    else if (k === "brake" || k === "susp") { rows.push(toolRow("Jack"), toolRow("Wrench"), recipeRow("Basic Mechanics"), partRow("Tire" + p.axle, false)); skill = 3; }
+    else if (k === "battery" || k === "light") { rows.push(toolRow("Screwdriver")); }
+    else if (k === "muffler") { rows.push(toolRow("Wrench"), recipeRow("Basic Mechanics")); skill = 5; }
+    else if (k === "gastank") { rows.push(toolRow("Screwdriver"), toolRow("Wrench"), recipeRow("Basic Mechanics")); if (verb === "UNINSTALL") rows.push({ ok:false, label:"Gas Tank empty", q:"12 L left", k:"MUST BE EMPTY" }); skill = 5; }
+    else if (k === "door") { rows.push(toolRow("Wrench"), recipeRow("Basic Mechanics")); if (verb === "UNINSTALL") rows.push(partRow(p.id.replace("Door","Window"), false)); skill = 4; }
+    else if (k === "hood" || k === "lid") { rows.push(toolRow("Wrench"), recipeRow("Basic Mechanics")); skill = 3; }
+    else if (k === "window") { if (verb === "INSTALL") rows.push(partRow(p.id.replace("Window","Door"), true)); rows.push(toolRow("Screwdriver"), recipeRow("Basic Mechanics"), { ok:true, label:"Key", q:"On key ring", k:"" }); skill = 3; }
+    else if (k === "glass") { rows.push(toolRow("Screwdriver"), recipeRow("Basic Mechanics")); skill = 5; }
+    else if (k === "seat") { rows.push(toolRow("Screwdriver"), recipeRow("Basic Mechanics")); if (verb === "UNINSTALL") rows.push({ ok:true, label:"Seat empty", q:"Empty", k:"MUST BE EMPTY" }); skill = 1; }
+  }
+  if (verb === "INFLATE") rows.push(toolRow("Tire Pump"), { ok: (p.psi||0) < 40, label:"Below 40 psi", q:`${p.psi} psi`, k:"" });
+  if (verb === "DEFLATE") rows.push({ ok: (p.psi||0) > 0, label:"Some air left", q:`${p.psi} psi`, k:"" });
+  if (verb === "REPAIR ENGINE") rows.push({ ok: PLAYER.mech >= VEH.engineLevel, label:"Mechanics", q:`${PLAYER.mech} / ${VEH.engineLevel}`, k:"REQUIRED" }, toolRow("Wrench"), { ok:true, label:"Spare Engine Parts", q:"6", k:"BACKPACK" }, { ok:true, label:"Key", q:"On key ring", k:"" });
+  if (verb === "TAKE PARTS") rows.push({ ok: p.cond > 10, label:"Engine above 10%", q:`${p.cond}%`, k:"" }, { ok: PLAYER.mech >= VEH.engineLevel, label:"Mechanics", q:`${PLAYER.mech} / ${VEH.engineLevel}`, k:"REQUIRED" }, toolRow("Wrench"), { ok:true, label:"Key", q:"On key ring", k:"" });
+  if (verb === "REPAIR") rows.push({ ok:true, label:"Pick a recipe below", q:"", k:"" });
+  if (verb === "SMASH") rows.push({ ok:true, label:"Nothing; you walk over and break it", q:"", k:"" });
+  if (!rows.length) rows.push({ ok:true, label:"No tools needed", q:"", k:"" });
+  if (skill) rows.push(skillRow(skill));
+  const hard = rows.filter(r => !r.ok && !r.soft);
+  return { rows, chance: chanceFor(skill), blocked: hard.length > 0, blocker: hard[0] };
+}
+function verbsFor(p) {
+  if (p.kind === "fixed") return [];
+  if (p.kind === "engine") return ["REPAIR ENGINE", "TAKE PARTS"];
+  if (p.missing) return ["INSTALL"];
+  const v = [];
+  if (p.kind === "tire") v.push("INFLATE", "DEFLATE");
+  if (p.kind === "hood" || p.kind === "lid") v.push("REPAIR");
+  if (p.kind === "window" && !p.smashed) v.push("SMASH");
+  v.push("UNINSTALL");
+  return v;
+}
+const DANGER_VERBS = { "TAKE PARTS":1, "SMASH":1 };
+
+/* ============================================================================
+   STATE
+   ============================================================================ */
+const S = { state:"overview", input:"mouse", base:"hicon", accent:"yellow", zoom:1, hover:null, focus:null,
+            card:null, verb:null, pick:0, sort:"area", work:null, workPct:0, workPhase:null, confirm:false };
+const STATES = [
+  ["overview","Overview"],["hover","Hover a part"],["tire","Worn tire"],["install","Missing tire"],
+  ["engine","Engine"],["hood","Hood repair"],["working","Working"],["confirm","Confirm"],["uninspected","Not inspected"]
+];
+const CAPTIONS = {
+  overview:"Overview after an inspection. Figure and summary on top, every part below grouped by area, front to back. The trunk is open on the left because the car's containers join the container strip.",
+  hover:"Hovering a part lights it in the figure and in the list, and the summary column shows that part's quick facts. A gamepad focus paints the same way.",
+  tire:"A worn tire. INFLATE is dimmed because no tire pump is within reach; its NEEDS list says why. Hover the verbs to switch what NEEDS shows.",
+  install:"A missing tire. The pick list shows every compatible tire within reach: the spare in the trunk and an old tire in the backpack. Performance tires are listed, dimmed, so you know they exist.",
+  engine:"The engine. Both engine verbs need Mechanics 4 on this car, so they are dimmed and the footer names the blocker. Taking engine parts lowers the engine's condition, so it is a danger verb that asks for a footer confirmation.",
+  hood:"The hood. REPAIR lists the two vanilla fixing recipes as rows with their materials and skills; the welding recipe is out of reach without Metalworking.",
+  working:"An action running: the item card's progress band with cancel. It turns green when the part comes off (or red on a failure), then settles.",
+  confirm:"Smashing a window (and taking engine parts) destroys something, so the footer swaps to a YES / NO confirmation, the Animals tab pattern. No modal dialog.",
+  uninspected:"Within reach but not inspected yet. The tab shows what you can see from outside: the name, the body shape and its type. INSPECT walks over and looks the car over, as vanilla's Mechanics option does."
+};
+
+/* ============================================================================
+   ICONS (small line glyphs, drawn at design size)
+   ============================================================================ */
+const ICON = {
+  floor:'<svg viewBox="0 0 20 20" fill="none"><path d="M2 14 L10 18 L18 14 L10 10 Z" stroke-width="1.2"/><path d="M6 12 L14 16 M14 12 L6 16" stroke-width="1"/></svg>',
+  trunk:'<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="7" width="14" height="9" stroke-width="1.2"/><path d="M3 7 L5 4 H15 L17 7" stroke-width="1.2"/><path d="M9 11 H11" stroke-width="1.4"/></svg>',
+  glove:'<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="9" stroke-width="1.2"/><path d="M8 9 H12" stroke-width="1.4"/></svg>',
+  seat:'<svg viewBox="0 0 20 20" fill="none"><path d="M6 3 H12 L13 11 H6 Z" stroke-width="1.2"/><path d="M5 11 H15 V15 H5 Z" stroke-width="1.2"/></svg>',
+  loot:'<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="11" stroke-width="1.2"/><path d="M3 9 H17 M10 5 V16" stroke-width="1"/></svg>',
+  craft:'<svg viewBox="0 0 20 20" fill="none"><path d="M4 16 L12 8" stroke-width="1.6"/><path d="M11 4 L16 9 L13 12 L8 7 Z" stroke-width="1.2"/></svg>',
+  build:'<svg viewBox="0 0 20 20" fill="none"><path d="M3 16 H17 M5 16 V9 L10 5 L15 9 V16" stroke-width="1.2"/><path d="M8 16 V12 H12 V16" stroke-width="1"/></svg>',
+  maps:'<svg viewBox="0 0 20 20" fill="none"><path d="M3 5 L8 3 L12 5 L17 3 V15 L12 17 L8 15 L3 17 Z M8 3 V15 M12 5 V17" stroke-width="1.1"/></svg>',
+  forage:'<svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5" stroke-width="1.3"/><path d="M13 13 L17 17" stroke-width="1.6"/></svg>',
+  animals:'<svg viewBox="0 0 20 20" fill="none"><path d="M4 12 C4 8 7 6 10 6 C13 6 16 8 16 11 L16 15 H5 Z" stroke-width="1.2"/><path d="M13 6 L14 3 M7 7 L6 4" stroke-width="1.1"/></svg>',
+  vehicle:'<svg viewBox="0 0 20 20" fill="none"><path d="M3 12 L5 7 H15 L17 12 V15 H3 Z" stroke-width="1.2"/><path d="M6 15 V17 M14 15 V17" stroke-width="1.6"/><path d="M5 11 H7 M13 11 H15" stroke-width="1.3"/></svg>',
+  tiresm:'<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke-width="1.4"/><circle cx="10" cy="10" r="3" stroke-width="1.1"/></svg>',
+  tool:'<svg viewBox="0 0 20 20" fill="none"><path d="M5 15 L13 7" stroke-width="1.6"/><circle cx="14.5" cy="5.5" r="2.5" stroke-width="1.2"/></svg>',
+  tire:'<svg viewBox="0 0 40 40" fill="none" stroke="currentColor"><circle cx="20" cy="20" r="15" stroke-width="2"/><circle cx="20" cy="20" r="7" stroke-width="1.5"/><path d="M20 5 V9 M20 31 V35 M5 20 H9 M31 20 H35 M9 9 L12 12 M28 28 L31 31 M31 9 L28 12 M9 31 L12 28" stroke-width="1.5"/></svg>',
+  engine:'<svg viewBox="0 0 40 40" fill="none" stroke="currentColor"><rect x="7" y="13" width="24" height="16" stroke-width="2"/><path d="M11 13 V9 H27 V13 M31 17 H35 V25 H31 M7 19 H4 V24 H7" stroke-width="1.6"/><path d="M12 18 V24 M17 18 V24 M22 18 V24 M27 18 V24" stroke-width="1.2"/></svg>',
+  hood:'<svg viewBox="0 0 40 40" fill="none" stroke="currentColor"><path d="M8 30 L10 10 H30 L32 30 Z" stroke-width="2"/><path d="M14 14 H26" stroke-width="1.4"/></svg>',
+  window:'<svg viewBox="0 0 40 40" fill="none" stroke="currentColor"><path d="M8 30 L12 10 H30 L32 30 Z" stroke-width="2"/><path d="M15 26 L24 14 M20 27 L27 18" stroke-width="1.4"/></svg>',
+  part:'<svg viewBox="0 0 40 40" fill="none" stroke="currentColor"><rect x="9" y="9" width="22" height="22" stroke-width="2"/><path d="M15 20 H25 M20 15 V25" stroke-width="1.5"/></svg>'
+};
+const iconFor = p => p.kind === "tire" ? ICON.tire : p.kind === "engine" ? ICON.engine : (p.kind === "hood" || p.kind === "lid") ? ICON.hood : (p.kind === "window" || p.kind === "glass") ? ICON.window : ICON.part;
+
+/* ============================================================================
+   CAR FIGURE (top-down sedan, front up) — scanline fill tinted by condition,
+   inside the same perspective grid box as the Health tab's body figure.
+   ============================================================================ */
+const FIG = [ // [partId, svg shape, kind] — kind "fill" = scanline area, "glyph" = callout glyph
+  ["EngineDoor",'<path d="M64 46 Q84 40 104 46 L106 86 H62 Z"/>'],
+  ["HeadlightLeft",'<rect x="64" y="40" width="10" height="4"/>'],
+  ["HeadlightRight",'<rect x="94" y="40" width="10" height="4"/>'],
+  ["Windshield",'<path d="M62 88 H106 L100 102 H68 Z"/>'],
+  ["WindshieldRear",'<path d="M68 150 H100 L106 162 H62 Z"/>'],
+  ["TrunkDoor",'<path d="M62 164 H106 L104 194 Q84 199 64 194 Z"/>'],
+  ["HeadlightRearLeft",'<rect x="64" y="196" width="10" height="4"/>'],
+  ["HeadlightRearRight",'<rect x="94" y="196" width="10" height="4"/>'],
+  ["DoorFrontLeft",'<rect x="56" y="100" width="4" height="26"/>'],
+  ["DoorRearLeft",'<rect x="56" y="128" width="4" height="26"/>'],
+  ["DoorFrontRight",'<rect x="108" y="100" width="4" height="26"/>'],
+  ["DoorRearRight",'<rect x="108" y="128" width="4" height="26"/>'],
+  ["WindowFrontLeft",'<rect x="62" y="104" width="4" height="20"/>'],
+  ["WindowRearLeft",'<rect x="62" y="130" width="4" height="18"/>'],
+  ["WindowFrontRight",'<rect x="102" y="104" width="4" height="20"/>'],
+  ["WindowRearRight",'<rect x="102" y="130" width="4" height="18"/>'],
+  ["SeatFrontLeft",'<rect x="70" y="106" width="11" height="13"/>'],
+  ["SeatFrontRight",'<rect x="87" y="106" width="11" height="13"/>'],
+  ["SeatRearLeft",'<rect x="70" y="128" width="11" height="14"/>'],
+  ["SeatRearRight",'<rect x="87" y="128" width="11" height="14"/>'],
+  ["TireFrontLeft",'<rect x="46" y="58" width="8" height="26"/>'],
+  ["TireFrontRight",'<rect x="114" y="58" width="8" height="26"/>'],
+  ["TireRearLeft",'<rect x="46" y="156" width="8" height="26"/>'],
+  ["TireRearRight",'<rect x="114" y="156" width="8" height="26"/>'],
+  ["SuspensionFrontLeft",'<path d="M10 58 L34 62 L10 66 L34 70 L10 74"/>',"glyph"],
+  ["BrakeFrontLeft",'<circle cx="22" cy="84" r="7"/>',"glyph"],
+  ["SuspensionFrontRight",'<path d="M134 58 L158 62 L134 66 L158 70 L134 74"/>',"glyph"],
+  ["BrakeFrontRight",'<circle cx="146" cy="84" r="7"/>',"glyph"],
+  ["SuspensionRearLeft",'<path d="M10 156 L34 160 L10 164 L34 168 L10 172"/>',"glyph"],
+  ["BrakeRearLeft",'<circle cx="22" cy="182" r="7"/>',"glyph"],
+  ["SuspensionRearRight",'<path d="M134 156 L158 160 L134 164 L158 168 L134 172"/>',"glyph"],
+  ["BrakeRearRight",'<circle cx="146" cy="182" r="7"/>',"glyph"],
+  ["Engine",'<rect x="118" y="8" width="36" height="20"/>'],
+  ["Battery",'<rect x="16" y="10" width="22" height="14"/>'],
+  ["GasTank",'<rect x="16" y="208" width="34" height="16"/>'],
+  ["Muffler",'<rect x="120" y="212" width="32" height="8"/>'],
+];
+function gridBox() {
+  let g = '<g stroke="var(--textDim)" stroke-opacity=".22" stroke-width=".6" fill="none">';
+  g += '<rect x=".5" y=".5" width="167" height="231"/><rect x="18.5" y="18.5" width="131" height="195"/>';
+  g += '<path d="M.5 .5 L18.5 18.5 M167.5 .5 L149.5 18.5 M.5 231.5 L18.5 213.5 M167.5 231.5 L149.5 213.5"/>';
+  for (let x = 34; x < 150; x += 16) g += `<path d="M${x}.5 18.5 V213.5"/>`;
+  for (let y = 34; y < 214; y += 16) g += `<path d="M18.5 ${y}.5 H149.5"/>`;
+  return g + '</g>';
+}
+function figureSVG(opts) {
+  const unknown = opts && opts.unknown, hl = opts && opts.hl, workId = opts && opts.workId;
+  let s = `<svg viewBox="0 0 168 232" xmlns="http://www.w3.org/2000/svg">
+  <defs>${["positive","warning","danger","accent","textDim"].map(c => `<pattern id="sc-${c}" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="2" height="1" fill="var(--${c})"/></pattern>`).join("")}</defs>
+  ${gridBox()}
+  <g fill="none" stroke="var(--textDim)" stroke-opacity=".55" stroke-width=".8">
+    <path d="M58 40 Q84 30 110 40 L112 198 Q84 206 56 198 Z"/>
+    <path d="M38 17 L64 46 M118 18 L104 46 M34 66 L46 70 M134 66 L122 70 M29 84 L46 80 M139 84 L122 80 M34 164 L46 168 M134 164 L122 168 M29 182 L46 178 M139 182 L122 178 M38 208 L66 196 M128 212 L102 198"/>
+  </g>
+  <g stroke="var(--textDim)" stroke-opacity=".5" stroke-width=".6" fill="none">
+    <rect x="4.5" y="52.5" width="36" height="42"/><rect x="127.5" y="52.5" width="36" height="42"/>
+    <rect x="4.5" y="150.5" width="36" height="42"/><rect x="127.5" y="150.5" width="36" height="42"/>
+  </g>`;
+  FIG.forEach(([id, shape, kind]) => {
+    const p = BY[id]; if (!p) return;
+    const isHl = hl === id, isWork = workId === id;
+    let fill, stroke, extra = "";
+    if (unknown) { fill = "none"; stroke = "var(--textDim)"; }
+    else if (p.missing || p.smashed) { fill = "none"; stroke = "var(--danger)"; extra = ' stroke-dasharray="2 1.5" class="pr miss"'; }
+    else { const c = tier(p.cond) === "pos" ? "positive" : tier(p.cond) === "warn" ? "warning" : "danger"; fill = `url(#sc-${c})`; stroke = `var(--${c})`; }
+    if (kind === "glyph") {
+      s += `<g data-part="${id}" class="pr"${p.missing ? ' stroke-dasharray="2 1.5"' : ""} fill="none" stroke="${unknown ? "var(--textDim)" : stroke}" stroke-width="${unknown ? .7 : 1.6}" stroke-opacity="${unknown ? .6 : 1}">${shape}</g>`;
+      if (isHl || isWork) s += `<g pointer-events="none" fill="none" stroke="var(--accent)" stroke-width="3" stroke-opacity=".55">${shape}</g>`;
+    } else {
+      s += `<g data-part="${id}" class="pr"${extra} fill="${fill}" stroke="${stroke}" stroke-width=".8" stroke-opacity="${unknown ? .6 : .9}">${shape}</g>`;
+      if (isHl || isWork) s += `<g pointer-events="none" fill="var(--accent)" fill-opacity=".55">${shape}</g>`;
+    }
+  });
+  if (unknown) s += `<text x="84" y="124" text-anchor="middle" font-family="Fira Mono" font-weight="700" font-size="16" fill="var(--textDim)">?</text>`;
+  return s + `<style>.miss{animation:miss 1.2s ease-in-out infinite}@keyframes miss{50%{stroke-opacity:.25}}</style></svg>`;
+}
+
+/* ============================================================================
+   RENDER
+   ============================================================================ */
+const $ = id => document.getElementById(id);
+function bar(c, w) { return `<span class="mb"${w ? ` style="width:${w}px"` : ""}><i style="width:${c}%;background:${tcol(c)}"></i></span>`; }
+function fillBar(c, colorVar) { return `<div class="fill"><i style="width:calc(${c}% - 2px);background:${colorVar || tcol(c)}"></i></div>`; }
+function condCell(p) {
+  if (p.missing) return `<span class="badge dng">MISSING</span>`;
+  if (p.smashed) return `<span class="badge dng">SMASHED</span>`;
+  return `${bar(p.cond)}<span class="pc">${p.cond}%</span>`;
+}
+
+function renderChrome() {
+  const cs = [["floor",false],["trunk",true],["glove",false],["seat",false]];
+  $("cstrip").innerHTML = cs.map(([k,on]) => `<div class="cbtn${on ? " on" : ""}">${ICON[k]}</div>`).join("");
+  const inv = [
+    ["TOOLS (2)", [["Jack","Tool","",2.0,90,"tool"],["Lug Wrench","Tool","",1.5,100,"tool"]]],
+    ["CAR PARTS (1)", [["Tire - Regular","Car Part","",10.0,76,"tiresm"]]]
+  ];
+  $("invlist").innerHTML = inv.map(([h, rows]) => `<div class="cath">v ${h}</div>` + rows.map(r =>
+    `<div class="irow"><span></span><span class="nm"><span class="ico">${ICON[r[5]].replace('viewBox="0 0 20 20"','viewBox="0 0 20 20" stroke="var(--text)"')}</span>${r[0]}</span><span class="ct">${r[1]}</span><span class="cb"><i style="width:${r[4]}%;background:${tcol(r[4])}"></i></span><span class="wt">${r[3].toFixed(1)}</span></div>`).join("")).join("");
+  const tabs = [["loot",1],["craft",1],["build",1],["sep"],["maps",2],["forage",2],["animals",2],["vehicle",2,true]];
+  $("tstrip").innerHTML = tabs.map(t => t[0] === "sep" ? `<div style="height:1px;background:var(--borderS);margin:2px 4px"></div>` :
+    `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;position:relative;${t[2] ? "background:var(--accent);" : ""}">
+      <span style="width:20px;height:20px;display:block">${ICON[t[0]].replace('fill="none"', `fill="none" stroke="${t[2] ? "var(--onAccent)" : "var(--text)"}"`)}</span>
+      ${t[2] ? `<span style="position:absolute;right:2px;top:2px;min-width:10px;height:10px;padding:0 2px;background:var(--onAccent);color:var(--accent);font-family:var(--mono);font-weight:700;font-size:8px;line-height:10px;text-align:center">2</span>` : ""}</div>`).join("");
+}
+
+function renderWinFoot() {
+  let h = `<span class="mini">&bull;</span><span class="mini">A</span><span class="mini">R</span>`;
+  if (S.input === "gamepad") {
+    const inCard = !!S.card;
+    const p = [];
+    if (!inCard) p.push(["a","Open part"], ["x","Options"], ["y","Close"]);
+    else p.push(["a", S.verb ? S.verb.charAt(0) + S.verb.slice(1).toLowerCase() : "Select"], ["x","Options"], ["b","Back"]);
+    h += `<span class="prompts">${p.map(([g,t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}<span style="color:var(--textDim)">LB / RB windows</span></span>`;
+  }
+  $("wfoot").innerHTML = h + `<span class="grip"></span>`;
+}
+
+function headerOverview(unknown) {
+  return `<div class="dh"><span class="bbtn">&#9664;</span><span class="cnt">1/2</span><span class="bbtn">&#9654;</span><span class="vdiv"></span>
+    <span class="sub">${VEH.name}</span><span class="sp"></span><span class="pill">${VEH.type}</span></div>`;
+}
+
+function summaryHTML() {
+  const ov = overall();
+  const miss = PARTS.filter(p => p.missing || p.smashed).length, worn = PARTS.filter(p => !p.missing && !p.smashed && p.cond <= 60).length;
+  const hp = S.hover || S.focus;
+  if (hp && BY[hp]) {
+    const p = BY[hp], cat = CATS.find(c => c[0] === p.cat)[1];
+    let rows = "";
+    if (p.missing) rows += sr("ITEM", `<span class="dot dng"></span>Missing`);
+    else if (p.smashed) rows += sr("ITEM", `<span class="dot dng"></span>Smashed`);
+    else { rows += sr("ITEM", esc(p.item || p.name)); }
+    if (p.psi != null) rows += sr("PRESSURE", `${p.psi} / 35 psi`);
+    if (p.fric) rows += sr("FRICTION", p.fric.toFixed(2));
+    if (p.info && p.psi == null) rows += sr("STATE", esc(p.info));
+    return `<div class="hvname">${esc(p.name)}</div><div class="hvcat">${cat}</div>
+      <div class="lblrow"><span>CONDITION</span><span class="v">${p.missing || p.smashed ? "&mdash;" : p.cond + "%"}</span></div>
+      ${fillBar(p.missing || p.smashed ? 0 : p.cond)}<div style="height:10px"></div>${rows}
+      <div class="hint">${S.input === "gamepad" ? '<span class="glyph g-a">A</span>Open part' : "Click to open"}</div>`;
+  }
+  return `<div class="lblrow"><span>OVERALL</span><span class="v">${ov}%</span></div>${fillBar(ov)}
+    <div class="status"><span class="dot ${miss ? "dng" : worn ? "warn" : "pos"}"></span>${miss} missing &middot; ${worn} worn</div>
+    <div class="line"></div>
+    ${sr("ENGINE", `${VEH.power} hp`)}${sr("QUALITY", VEH.quality)}${sr("LOUDNESS", VEH.loud)}${sr("WEIGHT", VEH.mass.toLocaleString())}
+    ${sr("FUEL", VEH.fuel)}${sr("BATTERY", VEH.batt)}${sr("KEY", `<span class="dot pos"></span>${VEH.key}`)}`;
+}
+const sr = (l, v) => `<div class="srow"><span class="l">${l}</span><span class="v">${v}</span></div>`;
+
+function listHTML() {
+  const hl = S.hover || S.focus;
+  let rows = PARTS.slice();
+  let h = `<div class="plh"><span class="${S.sort === "area" ? "u" : ""}" data-sort="area">PART</span><span class="r" style="padding-right:10px">INFO</span><span class="r ${S.sort === "cond" ? "u" : ""}" data-sort="cond">COND</span></div>`;
+  let alt = false;
+  const rowHTML = p => { alt = !alt;
+    const dotc = p.missing || p.smashed ? "dng" : tier(p.cond);
+    return `<div class="prow${alt ? " alt" : ""}${hl === p.id ? " hl" : ""}" data-part="${p.id}"><span class="dot ${dotc}"></span><span class="nm">${esc(p.name)}</span><span class="inf">${esc(p.info || "")}</span><span class="cnd">${condCell(p)}</span></div>`; };
+  if (S.sort === "cond") {
+    rows.sort((a, b) => ((a.missing||a.smashed) ? -1 : a.cond) - ((b.missing||b.smashed) ? -1 : b.cond));
+    h += `<div class="pcat">v WORST FIRST (${rows.length})</div>` + rows.map(rowHTML).join("");
+  } else {
+    CATS.forEach(([k, label]) => { const g = rows.filter(p => p.cat === k); if (!g.length) return; alt = false;
+      h += `<div class="pcat">v ${label} (${g.length})</div>` + g.map(rowHTML).join(""); });
+  }
+  return h;
+}
+
+function overviewHTML() {
+  const hl = S.hover || S.focus;
+  return headerOverview() + `<div class="dscroll" id="dscroll">
+    <div class="zoneA"><div class="fig" id="fig">${figureSVG({ hl })}</div><div class="sumcol">${summaryHTML()}</div></div>
+    ${listHTML()}</div>` + footOverview();
+}
+function footOverview() {
+  return `<div class="dfoot"><span class="bbtn">CLOSE HOOD</span><span class="msg" style="color:var(--textDim)">The hood is open</span><span class="skill">MECHANICS ${PLAYER.mech} &middot; BASIC MECHANICS</span></div>`;
+}
+
+function uninspectedHTML() {
+  return headerOverview(true) + `<div class="dscroll">
+    <div class="zoneA"><div class="fig">${figureSVG({ unknown:true })}</div><div class="sumcol">
+      <div class="lblrow"><span>OVERALL</span><span class="v">?</span></div>${fillBar(0)}
+      <div class="status"><span class="dot off"></span>Not inspected</div><div class="line"></div>
+      ${sr("TYPE", "Standard")}${sr("BODY", "Four-door sedan")}${sr("DISTANCE", "2 tiles")}${sr("KEY", '<span class="dot pos"></span>On key ring')}
+      <div class="about" style="margin-top:10px">Part conditions show after you look the car over. The higher your Mechanics skill, the quicker the look.</div>
+    </div></div>
+    <div class="empty"><svg width="28" height="28" viewBox="0 0 20 20" fill="none" stroke="var(--textDim)">${ICON.vehicle.replace(/^<svg[^>]*>|<\/svg>$/g,"")}</svg>
+      <div class="t">Inspect the ${VEH.name} to read its parts</div><div class="s">Walks to the car and looks it over, like vanilla's Mechanics option. The view stays open until you walk away.</div></div>
+  </div><div class="dfoot"><span class="bbtn primary${S.input === "gamepad" ? " focus" : ""}">INSPECT</span><span class="msg" style="color:var(--textDim)">Look the car over</span><span class="skill">MECHANICS ${PLAYER.mech}</span></div>`;
+}
+
+/* ---------- part card ---------- */
+function cardHTML() {
+  const p = BY[S.card]; const verbs = verbsFor(p);
+  if (!S.verb || !verbs.includes(S.verb)) S.verb = verbs[0] || null;
+  const nInfo = S.verb ? needsFor(p, S.verb) : null;
+  const verbBtn = v => { const n = needsFor(p, v);
+    const cls = ["bbtn"]; if (v === verbs[0] && !n.blocked && !DANGER_VERBS[v]) cls.push("primary");
+    if (DANGER_VERBS[v]) cls.push("danger"); if (n.blocked) cls.push("disabled");
+    if (S.input === "gamepad" && S.verb === v && !p.missing) cls.push("focus");
+    return `<span class="${cls.join(" ")}" data-verb="${v}">${v}</span>`; };
+  let h = `<div class="dh"><span class="bbtn" data-back="1">&#9664;</span><span class="partico" style="color:var(--text)">${iconFor(p).replace('viewBox="0 0 40 40"','viewBox="0 0 40 40" width="16" height="16"')}</span>
+    <span class="sub">${esc(p.name)}</span><span class="verbs">${verbs.map(verbBtn).join("")}</span></div>`;
+  if (S.workPhase) {
+    const cls = S.workPhase === "done" ? "pband ok" : "pband";
+    const lbl = S.workPhase === "done" ? "Uninstalled" : "Uninstalling";
+    h += `<div class="${cls}"><div class="r"><span class="l">${lbl}</span><span class="p">${Math.round(S.workPct)}%</span>${S.workPhase === "done" ? "" : '<span class="x">&times;</span>'}</div><div class="bar"><i style="width:${S.workPct}%"></i></div></div>`;
+  }
+  h += `<div class="dscroll" id="dscroll"><div class="cbody">`;
+  // top block
+  let stats = "";
+  if (p.missing) stats += sr("CONDITION", '<span class="badge dng">MISSING</span>') + sr("TYPE", "Standard");
+  else if (p.smashed) stats += sr("CONDITION", '<span class="badge dng">SMASHED</span>') + sr("ITEM", esc(p.item));
+  else stats += sr("CONDITION", `<span class="dot ${tier(p.cond)}"></span>${p.cond}%`) + sr("ITEM", esc(p.item || p.name));
+  if (p.kind === "tire" && !p.missing) stats += sr("PRESSURE", `<span class="dot ${p.psi < 20 ? "dng" : p.psi < 30 ? "warn" : "pos"}"></span>${p.psi} / 35 psi`) + sr("FRICTION", p.fric.toFixed(2)) + sr("WEIGHT", "10") + sr("TYPE", "Standard");
+  if (p.kind === "tire" && p.missing) stats += sr("AXLE", "Rear left") + sr("FITS", "3 kinds");
+  if (p.kind === "window") stats += sr("STATE", p.info || "Closed") + sr("OPENS", "From inside");
+  if (p.kind === "engine") stats += sr("QUALITY", VEH.quality) + sr("LOUDNESS", VEH.loud) + sr("POWER", `${VEH.power} hp`) + sr("KEY", '<span class="dot pos"></span>On key ring');
+  if (p.kind === "hood") stats += sr("STATE", "Open") + sr("WEIGHT", "12") + sr("TYPE", "Standard") + sr("REPAIRED", "0 times");
+  if (p.kind === "brake") stats += sr("BRAKING", "Total 72") + sr("TYPE", "Standard");
+  h += `<div class="top"><div class="bigico${p.missing ? " missing" : ""}" style="color:${p.missing ? "var(--textDim)" : "var(--text)"}">${p.missing ? `<span style="opacity:.35;display:flex">${iconFor(p)}</span>` : iconFor(p)}</div><div class="sgrid">${stats}</div></div>`;
+  if (!p.missing && !p.smashed) h += fillBar(p.cond);
+
+  // install pick list
+  if (p.missing && p.kind === "tire") {
+    const picks = [["Tire - Regular", 76, "TRUNK"], ["Tire - Old", 41, "BACKPACK"], ["Tire - Performance", null, "NONE NEARBY"]];
+    h += `<div class="sec"><span class="tri">v</span>FROM YOUR BAGS AND NEARBY<span class="aside">${picks.filter(x => x[1] != null).length} within reach</span></div>`;
+    h += picks.map((x, i) => x[1] == null
+      ? `<div class="pick none"><span class="radio"></span><span>${x[0]}</span><span></span><span></span><span class="loc">${x[2]}</span></div>`
+      : `<div class="pick${S.pick === i ? (S.input === "gamepad" ? " sel gpf" : " sel") : ""}" data-pick="${i}"><span class="radio${S.pick === i ? " on" : ""}"></span><span>${x[0]}</span><span class="mb"><i style="width:${x[1]}%;background:${tcol(x[1])}"></i></span><span class="pc">${x[1]}%</span><span class="loc">${x[2]}</span></div>`).join("");
+  }
+  // repair recipes
+  if (p.kind === "hood" && S.verb === "REPAIR") {
+    h += `<div class="sec"><span class="tri">v</span>REPAIR WITH<span class="aside">2 recipes</span></div>`;
+    h += `<div class="fix sel"><span class="radio on"></span><span>Sheet Metal + 8 Screws</span><span class="meta">Mechanics 2 &middot; restores less &middot; all in your backpack</span></div>`;
+    h += `<div class="fix none"><span class="radio"></span><span>Sheet Metal + Propane Torch (2 uses)</span><span class="meta">Metalworking 1 &middot; Mechanics 2 &middot; restores more &middot; no torch within reach</span></div>`;
+  }
+  // needs
+  if (nInfo && S.verb !== "REPAIR") {
+    h += `<div class="sec"><span class="tri">v</span>NEEDS &middot; ${S.verb}<span class="aside">${S.input === "gamepad" ? "follows the focused verb" : "hover a verb to switch"}</span></div>`;
+    h += nInfo.rows.map(r => `<div class="need"><span class="dot ${r.ok ? "pos" : r.soft ? "warn" : "dng"}"></span>${esc(r.label)}<span class="q">${esc(r.q)}</span>${r.k ? `<span class="k">${r.k}</span>` : ""}</div>`).join("");
+    const [sc, fc] = nInfo.chance;
+    if (fc > 0) h += `<div><div class="chance"><i style="width:${sc}%;background:var(--positive)"></i><i style="width:${fc}%;background:var(--danger)"></i></div><div class="chancelbl"><span style="color:var(--positive)">SUCCESS ${sc}%</span><span style="color:var(--danger)">FAILURE ${fc}%</span></div></div>`;
+  }
+  const about = COND_INFO[p.kind] || (p.kind === "engine" ? "Engine quality and loudness come with the car. Repairing uses Spare Engine Parts; taking parts out lowers the engine's condition." : p.kind === "hood" ? "The hood covers the engine bay. Opening Mechanics from the hood opens it." : null);
+  if (about) h += `<div class="sec"><span class="tri">v</span>ABOUT</div><div class="about">${about}</div>`;
+  h += `</div></div>`;
+  // footer
+  if (S.confirm) {
+    h += `<div class="dfoot confirm"><span class="msg"><span class="dot dng"></span>${S.card === "Engine" ? "Take engine parts? The engine loses condition." : `Smash the ${esc(p.name.toLowerCase())}? The glass is lost.`}</span><span style="margin-left:auto;display:flex;gap:4px"><span class="bbtn danger${S.input === "gamepad" ? " focus" : ""}" data-confirm="yes">YES</span><span class="bbtn" data-confirm="no">NO</span></span></div>`;
+  } else if (S.workPhase) {
+    h += `<div class="dfoot"><span class="msg"><span class="dot"></span>${S.workPhase === "done" ? "Rear Right Tire is in your backpack" : "Removing the tire, 8 s"}</span><span class="skill">MECHANICS ${PLAYER.mech}</span></div>`;
+  } else {
+    let msg;
+    if (!nInfo) msg = `<span class="dot off"></span>Nothing to do here`;
+    else if (S.verb === "REPAIR") msg = `<span class="dot pos"></span>Ready to repair with Sheet Metal + 8 Screws`;
+    else if (nInfo.blocked) msg = `<span class="dot dng"></span>Can't ${S.verb.toLowerCase()}: ${esc(nInfo.blocker.label)} ${esc(nInfo.blocker.q)}`;
+    else if (S.verb === "INSTALL") msg = `<span class="dot pos"></span>Ready to install the ${["regular","old"][S.pick] || "regular"} tire`;
+    else msg = `<span class="dot pos"></span>Ready to ${S.verb.toLowerCase()}`;
+    h += `<div class="dfoot"><span class="msg">${msg}</span><span class="skill">MECHANICS ${PLAYER.mech}</span></div>`;
+  }
+  return h;
+}
+
+/* ---------- master render ---------- */
+let workTimer = null;
+function render() {
+  const r = document.documentElement.style;
+  Object.entries(THEMES[S.base]).forEach(([k, v]) => r.setProperty("--" + k, v));
+  const ac = ACCENTS[S.accent][S.base === "light" ? 1 : 0];
+  r.setProperty("--accent", ac[0]); r.setProperty("--accentBright", ac[1]); r.setProperty("--onAccent", ac[2]);
+  r.setProperty("--a22", hexA(ac[0], .22)); r.setProperty("--a55", hexA(ac[0], .55));
+  $("stage").style.zoom = S.zoom;
+  const scroll = $("dscroll") ? $("dscroll").scrollTop : 0;
+  if (S.state === "uninspected") $("drawer").innerHTML = uninspectedHTML();
+  else if (S.card) $("drawer").innerHTML = cardHTML();
+  else $("drawer").innerHTML = overviewHTML();
+  if ($("dscroll") && S.keepScroll) $("dscroll").scrollTop = scroll;
+  renderWinFoot();
+  $("caption").textContent = CAPTIONS[S.state] || "";
+  wire();
+}
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+
+function wire() {
+  const d = $("drawer");
+  d.querySelectorAll("[data-part]").forEach(el => {
+    el.addEventListener("mouseenter", () => { if (S.input !== "mouse" || S.card) return; S.hover = el.dataset.part; S.keepScroll = true; render(); });
+    el.addEventListener("mouseleave", () => { if (S.input !== "mouse" || S.card) return; S.hover = null; S.keepScroll = true; render(); });
+    el.addEventListener("click", () => openPart(el.dataset.part));
+  });
+  d.querySelectorAll("[data-sort]").forEach(el => el.addEventListener("click", () => { S.sort = el.dataset.sort; S.keepScroll = true; render(); }));
+  d.querySelectorAll("[data-back]").forEach(el => el.addEventListener("click", () => { S.card = null; S.confirm = false; S.workPhase = null; stopWork(); S.keepScroll = false; render(); }));
+  d.querySelectorAll("[data-verb]").forEach(el => {
+    el.addEventListener("mouseenter", () => { if (S.verb !== el.dataset.verb) { S.verb = el.dataset.verb; S.keepScroll = true; render(); } });
+    el.addEventListener("click", () => {
+      const v = el.dataset.verb;
+      if (el.classList.contains("disabled")) return;
+      if (DANGER_VERBS[v]) { S.confirm = true; S.keepScroll = true; render(); return; }
+      if (v === "UNINSTALL") { startWork(); return; }
+    });
+  });
+  d.querySelectorAll("[data-pick]").forEach(el => el.addEventListener("click", () => { S.pick = +el.dataset.pick; S.keepScroll = true; render(); }));
+  d.querySelectorAll("[data-confirm]").forEach(el => el.addEventListener("click", () => { S.confirm = false; S.keepScroll = true; render(); }));
+}
+function openPart(id) {
+  const p = BY[id]; if (!p) return;
+  S.card = id; S.verb = null; S.hover = null; S.confirm = false; S.workPhase = null; stopWork(); S.keepScroll = false; render();
+}
+function stopWork() { if (workTimer) { clearInterval(workTimer); workTimer = null; } }
+function startWork() {
+  stopWork(); S.workPhase = "run"; S.workPct = 0; render();
+  workTimer = setInterval(() => {
+    S.workPct += 2.5; S.keepScroll = true;
+    if (S.workPct >= 100) { S.workPct = 100; S.workPhase = "done"; stopWork(); render();
+      setTimeout(() => { if (S.workPhase === "done" && S.state === "working") { S.workPhase = "run"; S.workPct = 0; startWork(); } }, 1600); return; }
+    render();
+  }, 100);
+}
+
+/* ---------- themes and accents (Tokens.lua) ---------- */
+const THEMES = {
+  dark:  { base:"#0C0C0C", surf1:"#141414", surf2:"#1C1C1C", surf3:"#242424", surf4:"#2C2C2C", border:"#202020", borderS:"#383838", text:"rgba(218,218,218,.9)", textDim:"rgba(161,161,161,.65)", danger:"#C45A2A", warning:"#C49A2A", positive:"#7A9A34" },
+  light: { base:"#C6C6C6", surf1:"#BEBEBE", surf2:"#B6B6B6", surf3:"#AEAEAE", surf4:"#A6A6A6", border:"#969696", borderS:"#767676", text:"rgba(12,12,12,.95)", textDim:"rgba(12,12,12,.72)", danger:"#7A2A11", warning:"#6B5510", positive:"#2A5511" },
+  hicon: { base:"#050505", surf1:"#111111", surf2:"#191919", surf3:"#202020", surf4:"#292929", border:"#353535", borderS:"#555555", text:"rgba(255,255,255,.95)", textDim:"rgba(199,199,199,.75)", danger:"#FF5533", warning:"#FFCC22", positive:"#44DD44" }
+};
+const ACCENTS = { // [dark/hicon: accent, bright, onAccent], [light: ...]
+  red:[["#CC4444","#EE6666","#0C0C0C"],["#7A1A1A","#AA3333","#F2F0EC"]], orange:[["#D4922A","#E8A830","#0C0C0C"],["#7A5010","#B07818","#F2F0EC"]],
+  yellow:[["#CCAA22","#EEDD44","#0C0C0C"],["#6B5F0A","#998811","#F2F0EC"]], green:[["#44AA44","#66CC66","#0C0C0C"],["#1F5A1F","#2E7A2E","#F2F0EC"]],
+  blue:[["#4488CC","#66AAEE","#0C0C0C"],["#1A3F6B","#2A5A99","#F2F0EC"]], teal:[["#47A18C","#5CC4AA","#0C0C0C"],["#1A5548","#257A66","#F2F0EC"]],
+  purple:[["#8855BB","#AA77DD","#0C0C0C"],["#4A2A6B","#663D99","#F2F0EC"]], pink:[["#DD5588","#FF77AA","#0C0C0C"],["#7A1F44","#A8305F","#F2F0EC"]],
+  mono:[["#888888","#AAAAAA","#0C0C0C"],["#3A3A3A","#555555","#F2F0EC"]]
+};
+
+/* ---------- state presets ---------- */
+function setState(st) {
+  stopWork(); S.state = st; S.card = null; S.verb = null; S.hover = null; S.focus = null; S.confirm = false; S.workPhase = null; S.pick = 0; S.keepScroll = false;
+  if (st === "hover") S.hover = "TireRearRight";
+  if (st === "tire") { S.card = "TireRearRight"; S.verb = "INFLATE"; }
+  if (st === "install") { S.card = "TireRearLeft"; S.verb = "INSTALL"; }
+  if (st === "engine") { S.card = "Engine"; S.verb = "REPAIR ENGINE"; }
+  if (st === "hood") { S.card = "EngineDoor"; S.verb = "REPAIR"; }
+  if (st === "working") { S.card = "TireRearRight"; S.verb = "UNINSTALL"; render(); startWork(); syncCtl(); return; }
+  if (st === "confirm") { S.card = "WindowFrontLeft"; S.verb = "SMASH"; S.confirm = true; }
+  if (S.input === "gamepad" && !S.card && st !== "uninspected") S.focus = "TireRearRight";
+  render(); syncCtl();
+}
+function setInput(m) { S.input = m; S.hover = null; S.focus = (m === "gamepad" && !S.card && S.state !== "uninspected") ? "TireRearRight" : null; S.keepScroll = true; render(); syncCtl(); }
+
+/* ---------- controls ---------- */
+function seg(id, items, cur, fn) { $(id).innerHTML = items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join(""); $(id).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.k)); }
+function syncCtl() {
+  seg("ctlState", STATES, S.state, setState);
+  seg("ctlInput", [["mouse","Mouse"],["gamepad","Gamepad"]], S.input, setInput);
+  seg("ctlBase", [["hicon","High contrast"],["dark","Dark"],["light","Light"]], S.base, k => { S.base = k; S.keepScroll = true; render(); syncCtl(); });
+  seg("ctlZoom", [["1","1x (1080p)"],["1.5","1.5x"],["2","2x (4K)"]], String(S.zoom), k => { S.zoom = +k; render(); syncCtl(); });
+  $("ctlAccent").innerHTML = Object.keys(ACCENTS).map(k => `<button title="${k}" data-k="${k}" class="${k === S.accent ? "on" : ""}" style="background:${ACCENTS[k][0][0]}"></button>`).join("");
+  $("ctlAccent").querySelectorAll("button").forEach(b => b.onclick = () => { S.accent = b.dataset.k; S.keepScroll = true; render(); syncCtl(); });
+}
+
+/* ---------- body family thumbnails ---------- */
+function familyThumbs() {
+  const outline = (body, extra) => `<svg width="84" height="116" viewBox="0 0 168 232"><g fill="none" stroke="#9a9480" stroke-width="1.6">${body}</g><g fill="none" stroke="#9a9480" stroke-width="1.6">${extra || ""}</g></svg>`;
+  const wheels = (fy, ry) => `<rect x="46" y="${fy}" width="8" height="26"/><rect x="114" y="${fy}" width="8" height="26"/><rect x="46" y="${ry}" width="8" height="26"/><rect x="114" y="${ry}" width="8" height="26"/>`;
+  const items = [
+    ["SEDAN", outline('<path d="M58 40 Q84 30 110 40 L112 198 Q84 206 56 198 Z"/><path d="M62 88 H106 L100 102 H68 Z M68 150 H100 L106 162 H62 Z"/>', wheels(58,156))],
+    ["PICKUP", outline('<path d="M58 34 Q84 26 110 34 L112 120 H56 Z"/><rect x="56" y="122" width="56" height="84"/><path d="M62 82 H106 L100 96 H68 Z"/><rect x="62" y="128" width="44" height="72"/>', wheels(52,168))],
+    ["VAN", outline('<path d="M58 30 Q84 24 110 30 L112 208 H56 Z"/><path d="M62 52 H106 L102 66 H66 Z"/><path d="M84 70 V204"/>', wheels(40,170))],
+    ["SPORTS", outline('<path d="M60 48 Q84 34 108 48 L114 196 Q84 204 54 196 Z"/><path d="M62 104 H106 L100 118 H68 Z M70 152 H98 L104 160 H64 Z"/>', wheels(64,160))],
+  ];
+  $("family").innerHTML = items.map(([n, s]) => `<figure>${s}<figcaption>${n}</figcaption></figure>`).join("");
+}
+
+renderChrome(); familyThumbs(); syncCtl(); render();
+</script>
+</body>
+</html>
