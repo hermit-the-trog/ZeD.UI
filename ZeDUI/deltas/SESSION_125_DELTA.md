@@ -238,3 +238,20 @@ Fixed during QA: Escape in a number field did nothing (the game keeps the key in
 
 Verified live (1080p window): Time and Zombie pages, Find "respawn" across pages, number editing (out-of-range refused with the outline, Escape restoring, Tab to the next number, Return keeping), changed dots and the title count, the presets pop-up, loading Outbreak over changes (asks, then loads), Zombie Count driving the population and a step driving Zombie Count back, a typed number reading Custom, saving a preset (file written, chosen) and deleting it, the map options greying, NEXT into vanilla's occupation screen and its BACK onto the monitor, BACK to map / spawn and forward again (page and values kept).
 Not seen live: a real controller; Start Day following Start Month (vanilla's own call, run every frame); the skill multiplier greying (same rule as the map one).
+
+## Occupation and traits on the monitor
+
+Built: `ZeD_MainMenuTraits.lua` (ZeD_MMTraits). Vanilla's CharacterCreationProfession stays the engine, hidden: its occupation and trait lists, onSelectProf / addTrait / removeTrait (free traits from the occupation, traits that exclude each other), the points (with the sandbox's free points and negative-trait penalty), the starting skills, the builds file, the randomizer, and its NEXT (appearance) and BACK. Its `setVisible(true)` is redirected to the monitor.
+
+Decisions:
+- Three columns: OCCUPATION (picture, name, the points it gives: Custom +8, Blacksmith -6), traits to take under POSITIVE and NEGATIVE headers with counts, then CHOSEN and STARTING SKILLS.
+- One click takes a trait, one click on a chosen trait gives it back (vanilla needed select + Add, or a double-click). The occupation's own traits read Free and stay.
+- Trait names in plain text; a status dot by the cost says positive (green) or negative (red) instead of coloured names.
+- Starting skills: name, a ten-cell bar, the level, and the XP boost (+75% / +100% / +125%) as vanilla computes it.
+- The points left are in the title with a status dot; overspent, the dot is red, NEXT waits and the band says why (vanilla's words).
+- The band under the columns explains the occupation or trait under the pointer; with nothing under it, what the chosen occupation gives.
+- Strip: BACK | BUILDS... (saved builds; Save Build... names it in the strip with vanilla's rules; Delete <name>... asks in the strip and leaves the traits on screen alone, where vanilla loaded another build), RANDOM, CLEAR TRAITS (keeps the occupation) | NEXT.
+- Keys: Up / Down walk the occupations, Return goes on, Escape backs out. Controller: up / down within a column, left / right between columns, down past the end to the strip; A chooses / takes / gives back, X random, Y builds, B back. Vanilla's INFO pop-up is left out: the band explains each item.
+
+Verified live (1080p window): the three columns, choosing Burger Flipper (Keen Cook free, Cooking 2 +100%, Maintenance and Short Blade 1 +75%), taking and giving back a trait, the free trait refusing to go, overspending to -18 (red dot, NEXT off), RANDOM, CLEAR TRAITS, saving a build, loading it over a random one, deleting it, NEXT into vanilla's appearance screen and its BACK onto the monitor, BACK to sandbox options and forward again, the controller's column walk (logic).
+Not seen live: a real controller; the negative-trait penalty readout (sandbox default is off).
