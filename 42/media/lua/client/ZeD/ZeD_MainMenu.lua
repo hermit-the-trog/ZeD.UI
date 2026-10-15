@@ -310,10 +310,16 @@ function MM.modeName(mode)
 end
 
 -- A save folder named by date (vanilla's default) reads "<Mode>, <Mon> <D>".
+-- The game's own copies keep their tag: "..._crash" -> "Sandbox, Oct 12 (crash)".
 function MM.saveTitle(name, mode)
     name = tostring(name or "")
-    local _, mo, d = name:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)_%d%d%-%d%d%-%d%d$")
-    if mo and MONTHS[tonumber(mo)] then return MM.modeName(mode) .. ", " .. MONTHS[tonumber(mo)] .. " " .. tonumber(d) end
+    local _, mo, d, rest = name:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)_%d%d%-%d%d%-%d%d(.*)$")
+    if mo and MONTHS[tonumber(mo)] then
+        local t = MM.modeName(mode) .. ", " .. MONTHS[tonumber(mo)] .. " " .. tonumber(d)
+        local tag = rest and rest:match("^_(.+)$")
+        if tag then t = t .. " (" .. tag:gsub("_", " ") .. ")" elseif rest and rest ~= "" then t = t .. rest end
+        return t
+    end
     return name
 end
 
@@ -436,8 +442,23 @@ end
 
 MM.act = {
     continue  = function() fire("latestSaveOption") end,
-    newGame   = function() fire("survivalOption") end,
-    load      = function() fire("loadOption") end,
+    -- New Game and Load Game open on the monitor (ZeD_MainMenuSaves.lua); vanilla's
+    -- SOLO item also copies the default mods into the new game's list
+    newGame   = function()
+        MM.ctx.open = nil
+        local m = ms()
+        if not m or m.delay > 0 then return end
+        clickSound()
+        pcall(function() ActiveMods.getById("currentGame"):copyFrom(ActiveMods.getById("default")) end)
+        MM.showView("newgame")
+    end,
+    load      = function()
+        MM.ctx.open = nil
+        local m = ms()
+        if not m or m.delay > 0 or not MM.hasSaves() then return end
+        clickSound()
+        MM.showView("load")
+    end,
     join      = function() fire("onlineOption") end,
     host      = function() fire("onlineCoopOption") end,
     tutorial  = function() fire("tutorialOption") end,
@@ -615,6 +636,13 @@ function ZeD_MMDesk:createChildren()
     self.win = ZeD_MMWindow:new("main")
     self.win:initialise()
     self:addChild(self.win)
+    -- Load Game and New Game on the monitor (ZeD_MainMenuSaves.lua); one window shows at a time
+    self.loadWin = ZeD_MMLoad:new()
+    self.loadWin:initialise()
+    self:addChild(self.loadWin)
+    self.newWin = ZeD_MMNewGame:new()
+    self.newWin:initialise()
+    self:addChild(self.newWin)
     self.drop = ZeD_MMDrop:new()
     self.drop:initialise()
     self:addChild(self.drop)
@@ -648,8 +676,13 @@ end
 
 function ZeD_MMDesk:update()
     ISPanel.update(self)
-    MM.pointer(MM.ctx, { self.drop, self.win, self.bar, self })
-    -- the pull-down shows while a menu is open (a hidden panel gets no update of its own)
+    -- the view's window shows (hidden panels get no update of their own, so this lives here)
+    local v = MM.view or "main"
+    if self.win:isVisible() ~= (v == "main") then self.win:setVisible(v == "main") end
+    if self.loadWin:isVisible() ~= (v == "load") then self.loadWin:setVisible(v == "load") end
+    if self.newWin:isVisible() ~= (v == "newgame") then self.newWin:setVisible(v == "newgame") end
+    MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
+    -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
     if self.drop and self.drop:isVisible() ~= open then self.drop:setVisible(open) end
 end
@@ -731,14 +764,43 @@ local function aboutLines()
     return { { "ZeD-UI", "head" }, { "A total UI overhaul for Project Zomboid", "dim" }, { "Build " .. MM.version(), "dim" } }
 end
 
+-- The items of the open menu: a menu-bar title's, or a pop-up a window opened at a button
+-- (MM.openPopup: MORE, PLAYING AS). Returns items plus the bar position or the pop-up.
+function MM.openItems()
+    local key = MM.ctx.open
+    if not key then return nil end
+    local bar = MM.root and MM.root.bar
+    local pos = bar and bar.pos[key]
+    if pos then return MM.menuItems(key), pos, nil end
+    local pop = MM.popup
+    if pop and pop.key == key then return pop.items, nil, pop end
+    return nil
+end
+
+-- Opens a pop-up menu at a button: anchor = { x, y, w, h } in screen px; up = above it, right-aligned.
+function MM.openPopup(key, items, anchor, up)
+    MM.popup = { key = key, items = items, anchor = anchor, up = up }
+    MM.ctx.open = key
+    MM.ctx.dropFocus = 1
+end
+
+-- The live rows of the open menu (the controller walks these).
+function MM.dropLive()
+    local items = MM.openItems()
+    local live = {}
+    for _, it in ipairs(items or {}) do
+        if type(it) == "table" and it.text and not it.disabled then live[#live + 1] = it end
+    end
+    return live
+end
+
 function ZeD_MMDrop:prerender()
     self._hits = {}
     local key = MM.ctx.open
+    local items, pos, pop = MM.openItems()
+    if not items then return end
     local bar = MM.root and MM.root.bar
-    local pos = key and bar and bar.pos[key]
-    if not pos then return end
     local T = ZeD.T
-    local items = MM.menuItems(key)
     local font, f1, f3 = T.fontF2, T.fontF1, T.fontF3
     local rowH, padX, padY, sepH = T.px(DROP_ROW_H), T.px(DROP_PAD_X), T.px(DROP_PAD_Y), T.px(DROP_SEP_H)
     local lineH = T.px(17)
@@ -755,7 +817,15 @@ function ZeD_MMDrop:prerender()
         end
     end
     local step = T.px(3)
-    local x, y = bar.x + pos.x, bar.y + bar.height
+    local x, y
+    if pos then
+        x, y = bar.x + pos.x, bar.y + bar.height
+    else
+        local an = pop.anchor
+        w = math.max(w, an.w)
+        if pop.up then x, y = an.x + an.w - w, an.y - h - T.px(2)   -- above the button, right edges lined up
+        else x, y = an.x, an.y + an.h + T.px(2) end                  -- below it
+    end
     if self.x ~= x or self.y ~= y then self:setX(x); self:setY(y) end
     if self.width ~= w + step or self.height ~= h + step then self:setWidth(w + step); self:setHeight(h + step) end
 
@@ -767,7 +837,7 @@ function ZeD_MMDrop:prerender()
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local gp = MM.gamepad()
     local cy = padY
-    local firstLive = true
+    local live = 0
     for i, it in ipairs(items) do
         if it == "-" then
             self:drawRect(0, cy + math.floor((sepH - T.px(1)) / 2), w, T.px(1), bs.a, bs.r, bs.g, bs.b)
@@ -783,8 +853,11 @@ function ZeD_MMDrop:prerender()
             cy = cy + T.px(8) * 2 + lineH * 3
         else
             local id = "drop:" .. key .. ":" .. i
-            local lit = not it.disabled and ((MM.ctx.hot == id and not gp) or (gp and firstLive))
-            if not it.disabled then firstLive = false end
+            if not it.disabled then live = live + 1 end
+            local lit = false   -- the pointer's row, or the controller's (MM.ctx.dropFocus counts live rows)
+            if not it.disabled then
+                if gp then lit = (live == (MM.ctx.dropFocus or 1)) else lit = (MM.ctx.hot == id) end
+            end
             if lit then self:drawRect(T.px(1), cy, w - T.px(2), rowH, 0.55, T.accent.r, T.accent.g, T.accent.b) end
             local c = T.text
             local a = (c.a or 1) * (it.disabled and 0.38 or 1)
@@ -853,7 +926,7 @@ function ZeD_MMWindow:new(kind)
 end
 
 -- the pointer context this window reads hover from
-function ZeD_MMWindow:pctx() return self.kind == "main" and MM.ctx or self.ctx end
+function ZeD_MMWindow:pctx() if self.kind == "pause" then return self.ctx end; return MM.ctx end   -- the desk's windows share the menu bar's pointer
 
 function ZeD_MMWindow:setConfirm(on)
     if self.confirm == on then return end
@@ -1179,7 +1252,7 @@ end
 function ZeD_MMWindow:update()
     -- the frame's own controls (close box, theme squares) wait while a menu is open over them
     local before = tostring(ZeD.currentBase) .. tostring(ZeD.currentAccent) .. tostring(ZeD.currentSize)
-    if not (self.kind == "main" and MM.ctx.open) and not blocked() then ZeD_Window.update(self) end
+    if not (self.kind ~= "pause" and MM.ctx.open) and not blocked() then ZeD_Window.update(self) end
     local after = tostring(ZeD.currentBase) .. tostring(ZeD.currentAccent) .. tostring(ZeD.currentSize)
     if before ~= after and PZAPI and PZAPI.ModOptions then pcall(PZAPI.ModOptions.save, PZAPI.ModOptions) end
     if self.kind == "pause" then MM.pointer(self.ctx, { self }) end
@@ -1196,6 +1269,7 @@ function MM.attach(m)
         MM.pause = w
     else
         MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
+        MM.view = "main"
         local root = ZeD_MMDesk:new()
         root:initialise()
         m:addChild(root)
@@ -1204,7 +1278,56 @@ function MM.attach(m)
         -- vanilla's debug scenario list sat over the logo; it is in the Debug menu now
         local ds = DebugScenarios and DebugScenarios.instance
         if ds then ds:setVisible(false) end
+        -- Every vanilla way back to New Game or Load (map / spawn's BACK, character creation's
+        -- BACK, the mod list's return, a challenge's BACK) shows vanilla's screen with
+        -- setVisible(true): those land on the monitor instead.
+        MM.redirect(m.soloScreen, "newgame")
+        MM.redirect(m.loadScreen, "load")
     end
+end
+
+function MM.redirect(screen, view)
+    if not screen or screen._zedRedirect then return end
+    screen._zedRedirect = true
+    local orig = screen.setVisible
+    screen.setVisible = function(self, visible, joypadData)
+        if visible and MM.root then
+            orig(self, false, joypadData)
+            MM.showView(view, joypadData)
+            return
+        end
+        return orig(self, visible, joypadData)
+    end
+end
+
+-- Puts a view on the monitor: "main", "load" or "newgame". The menu comes back up
+-- (vanilla's bottom panel) and the controller focus returns to MainScreen.
+function MM.showView(view, joypadData)
+    local m = ms()
+    if not m then return end
+    MM.view = view
+    MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
+    local w = MM.activeWindow()
+    if w and w.onShow then w:onShow() end
+    if not m.bottomPanel:isVisible() then m.bottomPanel:setVisible(true) end
+    local jd = joypadData or (JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad())
+    if jd then jd.focus = m; updateJoypadFocus(jd) end
+end
+
+-- A vanilla screen takes over (map / spawn, mods, ...): the desk steps aside.
+function MM.toVanilla()
+    MM.ctx.open = nil
+    local m = ms()
+    if m and m.bottomPanel:isVisible() then m.bottomPanel:setVisible(false) end
+end
+
+-- The window the current view shows.
+function MM.activeWindow()
+    local r = MM.root
+    if not r then return nil end
+    if MM.view == "load" then return r.loadWin end
+    if MM.view == "newgame" then return r.newWin end
+    return r.win
 end
 
 -- Is our menu showing (vanilla's bottom panel visible = no other screen is up)?
@@ -1248,25 +1371,51 @@ function MM.afterPrerender(m)
 end
 
 -- ---------------------------------------------------------------------------
--- CONTROLLER + KEYS (MainScreen hands them in while our menu shows)
+-- CONTROLLER + KEYS (MainScreen hands them in while our menu shows). An open
+-- pull-down takes the D-pad, A and B first; otherwise the view's window does
+-- (joyA / joyB / joyX / joyY / joyDir).
 -- ---------------------------------------------------------------------------
 function MM.window(m)
     if m.inGame then return MM.pause end
-    return MM.root and MM.root.win
+    return MM.activeWindow()
 end
 
 function MM.joyDown(m, button)
+    if MM.ctx.open then
+        local live = MM.dropLive()
+        if button == Joypad.AButton then
+            local it = live[MM.ctx.dropFocus or 1]
+            MM.ctx.open = nil
+            if it and it.fn then it.fn() end
+        elseif button == Joypad.BButton then
+            MM.ctx.open = nil
+        end
+        return
+    end
     local w = MM.window(m)
     if not w then return end
-    MM.ctx.open = nil
     if button == Joypad.AButton then w:joyA()
     elseif button == Joypad.BButton then w:joyB()
-    elseif button == Joypad.YButton and not m.inGame and not w.confirm then MM.act.tos() end
+    elseif button == Joypad.XButton then if w.joyX then w:joyX() end
+    elseif button == Joypad.YButton then
+        if w.joyY then w:joyY()
+        elseif not m.inGame and not w.confirm then MM.act.tos() end
+    end
 end
 
 function MM.joyDir(m, dir)
+    if MM.ctx.open then
+        local n = #MM.dropLive()
+        if n > 0 and (dir == "up" or dir == "down") then
+            local f = (MM.ctx.dropFocus or 1) + (dir == "up" and -1 or 1)
+            if f < 1 then f = n elseif f > n then f = 1 end
+            MM.ctx.dropFocus = f
+            hoverSound()
+        end
+        return
+    end
     local w = MM.window(m)
-    if w then MM.ctx.open = nil; w:joyDir(dir) end
+    if w then w:joyDir(dir) end
 end
 
 -- the controller starts on the window's first button
@@ -1275,11 +1424,26 @@ function MM.joyFocus(m)
     if w then w.focusId = nil end
 end
 
--- Escape at the main menu closes an open menu, then a question. True = handled.
+-- Keys at the main menu. Escape closes an open menu, then a question, then leaves Load
+-- Game / New Game; Return plays / goes on. True = handled.
 function MM.keyRelease(m, key)
-    if m.inGame or not MM.isUp(m) or key ~= Keyboard.KEY_ESCAPE then return false end
-    if MM.ctx.open then MM.ctx.open = nil; return true end
+    if m.inGame or not MM.isUp(m) then return false end
     local w = MM.window(m)
-    if w and w.confirm then w:setConfirm(false); return true end
+    if key == Keyboard.KEY_ESCAPE then
+        if MM.ctx.open then MM.ctx.open = nil; return true end
+        if w and w.keyEscape and w:keyEscape() then return true end
+        if w and w.confirm then w:setConfirm(false); return true end
+        return false
+    end
+    if w and w.keyOther then return w:keyOther(key) end
     return false
 end
+
+-- shared with ZeD_MainMenuSaves.lua
+MM.drawBtn, MM.drawMark = drawBtn, drawMark
+MM.hoverSound, MM.clickSound = hoverSound, clickSound
+MM.textW, MM.fontH, MM.blocked, MM.now, MM.tex = textW, fontH, blocked, now, tex
+MM.DOT, MM.MONTHS = DOT, MONTHS
+MM.U = { BAR_H = BAR_H, STACK_PAD = STACK_PAD, STACK_GAP = STACK_GAP, WIDE_H = WIDE_H,
+         STRIP_PAD_X = STRIP_PAD_X, STRIP_PAD_Y = STRIP_PAD_Y, STRIP_BTN_H = STRIP_BTN_H,
+         STRIP_BTN_PAD = STRIP_BTN_PAD, STRIP_GAP = STRIP_GAP }

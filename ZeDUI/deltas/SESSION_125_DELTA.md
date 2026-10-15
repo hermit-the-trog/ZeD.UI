@@ -146,3 +146,20 @@ Departures from the mockup, all small: MODS (n) is a button in the pause window 
 ### Next
 
 Phase 2: Load Game and New Game on the monitor (mockup v9), Load Game leading with the character. Then map / spawn, character creation, Options and Mods each get a mockup. The game loading screen is row 27.
+
+## Main menu phase 2: Load Game + New Game on the monitor
+
+Director, after phase 1: "Things are looking really great! you think you could /loop until you have a solid version of all menus and a more robust mod manager? Settings menu is obviously the biggest mess after mod management, maybe bigger. I am confident at this point in letting you steer decisions making for the rest of menus and settings. Look for ways to improve UX while staying true to ZeD UI foundation." Then: "I dont need mockups". From here the front-end screens are designed in the build; decisions are listed per section for review.
+
+Built: `ZeD_MainMenuSaves.lua` (ZeD_MMLoad, ZeD_MMNewGame), views on the desk (`MM.showView`, one window at a time), pop-up menus at buttons (`MM.openPopup`, controller walks them), and redirects: vanilla's `soloScreen` / `loadScreen` `setVisible(true)` shows our window instead, so every vanilla way back (map / spawn BACK, character creation BACK, the mod list's return, a challenge's BACK) lands on the monitor.
+
+Decisions:
+- Load Game rows and preview lead with the character (director's note), the save's name under it; the game's own copies read "Sandbox, Oct 12 (crash)" / "(backup)".
+- Saves grouped by mode under inventory category headers (click to fold), newest mode first; "Find:" filters on character, save, mode and map.
+- Preview: the save's picture as a cropped band, then the facts grid (MODE, MAP, PLAYED, MODS, VERSION); PLAYING AS only when the save has a choice of character; what stops a save loading and mods not found as red-dot lines (vanilla's words).
+- MORE holds vanilla's Rename File (a field in the action strip, vanilla's name rules), New Player, Choose Mods, Open File Location. DELETE asks in the strip; deleting the last save goes to New Game as vanilla does and the main window's Continue follows.
+- New Game: vanilla's six playstyles as a 1993 icon view (chosen icon darkened, its name highlighted), vanilla's description; CHALLENGES opens vanilla's challenges in the same view (wide screenshots sit on their labels). NEXT runs vanilla's NewGameScreen.clickPlay.
+- Keys: Escape leaves a field, then a question, then the window; Return plays / goes on; Delete asks; arrows walk the saves / icons. Controller: list rows then the strip; Load: A play, X delete, Y more, B back; New Game: A next, Y choose mods, B back.
+
+Verified live (1080p window): list, wheel scroll, row click, Find with real typing, a dead character's dot, MORE pop-up, delete question, controller focus with scroll-follow and footer prompts, Choose Mods round trip (selection kept), New Game icon view, Custom Sandbox NEXT into vanilla's spawn screen and its BACK onto the monitor, challenges view and back.
+Not seen live: PLAY from Load Game (CONTINUE uses the same vanilla call), Rename on disk, New Player, deleting a save (the QA saves were left alone), PLAYING AS with two characters (no such save here).
