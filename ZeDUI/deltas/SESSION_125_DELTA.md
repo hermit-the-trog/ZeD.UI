@@ -111,3 +111,11 @@ Director on v2: "options would be best. each of the three placements are good fo
 
 ### Not seen live
 - A vehicle seat for the bottom row (logic: above the dashboard panel when it shows); split screen; multiplayer (the vanilla left column keeps its server buttons and could meet a Left-edge moodle column); the tutorial's blinking moodle in the copy (vanilla only).
+
+## Main menu: mockups v8 -> v9 (approved)
+
+Director: "main menu next, start with the mockup"; "ITEM SCALE. Scale is so bad right now" (v8's props were dollhouse-size against the monitor; redrawn at real size, then superseded); the director then drew the desk themselves (`ZeDUI/art/main_menu/zed-desk-crt.svg`, pixel art 480 x 270, one-point perspective, a SCREEN CANVAS slot, later enlarged to 240 x 180 = 960 x 720 at 1080p, and the props rescaled by the director); "rebuild the mockup on this desk"; "pause menu needs to look like a ZeD window. window frame, buttons..."; "ew, remove the default AI style on the new game selection, is that left bar part of our lifeforms? This should be a flashback to the era. I don't want current design leaking in too much" (saved as memory `feedback_era_not_modern`); "this is correct".
+
+Approved: `ZeDUI/mockups/zed_main_menu_v9.html` (HOOK_MAP row 26). The desk drawn at whole multiples (4x at 1080p, 8x at 4K; 6x with edge trim at 1440p); the menu bar and ZeD windows on the monitor built on the live frame (pinstriped title bar with close box and "name + section", Molecules.drawButton double-outline buttons, action strip, footer squares): Project Zomboid (Continue card + five ZeD buttons + Options / Mods / Workshop / Credits / Quit), Load Game (saves by mode under inventory category headers, Find field, preview with PLAYING AS, BACK / DELETE / MORE / PLAY, footer delete confirm), New Game (System 7 icon view of vanilla's `media/ui/playstyleIcons/*.png`, vanilla's descriptions, BACK / CHOOSE MODS / NEXT); the pause window (Resume, Options, Players and Invite in MP; Quit to Desktop / Save and Quit in the action strip). Also the belt buckle lost its middle bar (director: "doesnt work like that").
+
+Open: the desk's small life (case light, boombox needle, lamp flicker) is the director's call; the build has not started.
