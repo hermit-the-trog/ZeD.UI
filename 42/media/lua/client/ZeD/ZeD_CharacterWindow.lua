@@ -1640,6 +1640,41 @@ local function _buildEquipmentFocusables(win)
         end
     end
 
+    -- The belt's rows (HOOK_MAP rows 5 + 6, stamped by EquipmentTab under
+    -- HELD + BELT). A runs the row's button (DETACH / PUT BACK, or ATTACH's
+    -- list at the button); X opens the item's menu, or the slot's list when
+    -- it is empty, at the row.
+    local bzones = win and win._equipBeltZones
+    if bzones then
+        for i = 1, #bzones do
+            local z = bzones[i]
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "equipbelt:" .. tostring(z.i),
+                slotType = z.fid,
+                zone = z,
+                onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
+                onActivate = function(w, el)
+                    local p = w._itemDrawerPanel
+                    local b = el.zone.btn
+                    local ax = (p and p:getAbsoluteX() or 0) + b.x + math.floor(b.w / 2)
+                    local ay = (p and p:getAbsoluteY() or 0) + b.y
+                    ZeD.EquipmentTab.beltAction(w, el.zone, ax, ay)
+                end,
+                onContextMenu = function(w, el)
+                    local p = w._itemDrawerPanel
+                    local ax = (p and p:getAbsoluteX() or 0) + el.x + math.floor(el.w / 2)
+                    local ay = (p and p:getAbsoluteY() or 0) + el.y
+                    if el.zone.item then
+                        ISInventoryPaneContextMenu.createMenu(0, true, { el.zone.item }, ax, ay)
+                    elseif ZeD.Belt then
+                        ZeD.Belt.slotMenu(0, el.zone.i, ax, ay)
+                    end
+                end,
+            }
+        end
+    end
+
     -- Seed only when unset — this builder runs every prerender frame and
     -- would otherwise stomp the D-pad's onFocus-written value each tick.
     if elements[1] and win._gpFocusedEquipSlot == nil then
@@ -4230,6 +4265,20 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         end
                     end
                 end
+                -- List mode: a belt row's button (DETACH, PUT BACK, or
+                -- ATTACH's list). Pressed here, run on release over the same
+                -- button: a menu opened on the press would close on the
+                -- release (the menu closes on any click outside it).
+                if not win._equipSelected and win._equipBeltZones then
+                    for _, zone in ipairs(win._equipBeltZones) do
+                        local b = zone.btn
+                        if b and x >= b.x and x <= b.x + b.w
+                           and y >= b.y and y <= b.y + b.h then
+                            win._beltPress = { i = zone.i, action = zone.action }
+                            return true
+                        end
+                    end
+                end
                 -- List mode: slot row selection
                 if not win._equipSelected and win._equipSlotZones then
                     for _, zone in ipairs(win._equipSlotZones) do
@@ -4433,6 +4482,21 @@ function ZeD_CharacterWindow.toggle(playerNum)
     end
 
     drawer.onMouseUp = function(self, x, y)
+        -- A belt row's button: run its verb if released over the button pressed
+        local pr = win._beltPress
+        if pr then
+            win._beltPress = nil
+            for _, zone in ipairs(win._equipBeltZones or {}) do
+                local b = zone.btn
+                if zone.i == pr.i and zone.action == pr.action and b
+                   and x >= b.x and x <= b.x + b.w and y >= b.y and y <= b.y + b.h then
+                    ZeD.EquipmentTab.beltAction(win, zone,
+                        self:getAbsoluteX() + b.x + math.floor(b.w / 2),
+                        self:getAbsoluteY() + b.y)
+                end
+            end
+            return true
+        end
         -- Equipment column drag release
         if win._equipColDrag then
             win._equipColDrag = nil
@@ -4447,6 +4511,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- (onMouseMove and onMouseMoveOutside defined above with thermal hover + scroll drag)
 
     drawer.onMouseUpOutside = function(self, x, y)
+        win._beltPress = nil
         -- Equipment column drag release (outside panel)
         if win._equipColDrag then
             win._equipColDrag = nil
@@ -4470,6 +4535,16 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- inventory rows use — gives Drop / Wear / Read / Repair / etc. on the
     -- equipped item.
     drawer.onRightMouseUp = function(self, x, y)
+        if win._activeTab == "equip" and win._drawerMode == "tab"
+           and not win._equipSelected and win._equipBeltZones and ZeD.Belt then
+            for _, zone in ipairs(win._equipBeltZones) do
+                if x >= zone.x and x <= zone.x + zone.w
+                   and y >= zone.y and y <= zone.y + zone.h then
+                    ZeD.Belt.rightMenu(0, zone.i)
+                    return true
+                end
+            end
+        end
         if win._activeTab == "equip" and win._drawerMode == "tab"
            and not win._equipSelected and win._equipSlotZones then
             for _, zone in ipairs(win._equipSlotZones) do

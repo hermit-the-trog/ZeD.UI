@@ -831,6 +831,23 @@ local function renderItemList(self)
         dT(displayName, nameX + childIndent, textY,
             nameColor.r, nameColor.g, nameColor.b, nameColor.a, T.fontF2)
 
+        -- On the belt: a BELT n tag after the name (n = the key that draws it),
+        -- where vanilla puts its small hotbar icon
+        local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
+        if okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.tagFor then
+            local tag = ZeD.Belt.tagFor(aslot)
+            local tf = T.fontF1
+            local tw = ZeD.TM:MeasureStringX(tf, tag) + T.px(8)
+            local th = ZeD.TM:getFontHeight(tf) + T.px(2)
+            local tx = nameX + childIndent + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
+            if tx + tw <= nameX + nameW then
+                local ac = T.accent
+                local ty = y + math.floor((rowH - th) / 2)
+                dRB(tx, ty, tw, th, ac.a or 1, ac.r, ac.g, ac.b)
+                dT(tag, tx + T.px(4), ty + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
+            end
+        end
+
         local secTextY = y + math.floor((rowH - secFH) / 2)
 
         if showCat then
@@ -1392,6 +1409,13 @@ local function handleDrop(content, items, srcInventory)
     local playerObj = content._playerObj
     local playerNum = playerObj:getPlayerNum()
     local srcContainer = srcInventory or content._inventory
+
+    -- Over the belt (HUD): attach to a slot or equip into a hand. The belt
+    -- answers first, or a release over it would drop the items on the floor.
+    if ZeD.Belt and ZeD.Belt.takeDrop then
+        local ok, took = pcall(ZeD.Belt.takeDrop, playerNum, items)
+        if ok and took then return end
+    end
 
     -- Check if mouse is over a different column (multi-column transfer)
     local destContainer = nil
