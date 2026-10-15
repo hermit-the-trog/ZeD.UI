@@ -710,6 +710,7 @@ function ZeD_Dashboard:prerender()
         self:_rect(0, 0, BASE_W, BASE_H, "#1a1a1a")   -- plates missing: never let the dash vanish
     end
     local cl, sw, cs, bd = body.cluster, body.switches, body.console, body.badge
+    self._consoleRect = cs   -- the siren controller prop lines up on the console (ZeD_SirenController.lua)
     self:_plate("cluster_" .. design.style, cl.x, cl.y, cl.w, cl.h)
     self:_drawCluster(design, st, cl.x, cl.y, PL["cluster_" .. design.style] or {})
     self:_plate("switches", sw.x, sw.y, sw.w, sw.h)
