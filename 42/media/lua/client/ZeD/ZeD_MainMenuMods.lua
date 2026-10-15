@@ -225,7 +225,9 @@ function ZeD_MMMods:accept()
     local inst = ModSelector.instance
     m:acceptChanges()        -- Load / New Game land back on the monitor through the redirects
     if inst.joyfocus then inst:clearJoypadFocus(); inst.joyfocus.focus = inst.returnToUI; updateJoypadFocus(inst.joyfocus) end
-    if server then MM.toVanilla(); return end
+    -- server settings' mods: the settings window is back on the monitor (its redirect); the
+    -- controller goes to the desk, not to vanilla's hidden screen
+    if server then if MM.view == "mods" then MM.toVanilla() else MM.showView(MM.view) end; return end
     if MM.view == "mods" and ms() and ms().bottomPanel:isVisible() then MM.showView("main") end
 end
 
@@ -505,6 +507,8 @@ function ZeD_MMMods:prerender()
     local w, h = UI.placeOnTube(self)
     local all, on = self:counts()
     local section = (self.page == "order" and "Load Order") or (self.page == "maps" and "Map Order") or "Mods"
+    local md = model()
+    if md and md.isServerSettingsMods then section = "Server " .. section end   -- (a server's mods, from its settings)
     self.title = "Project Zomboid  +  " .. section
     self.titleStats = { { text = on .. " of " .. all .. " on", color = (on > 0) and T.positive or T.textDim } }
     ZeD_Window.prerender(self)

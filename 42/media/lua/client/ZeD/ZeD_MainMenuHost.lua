@@ -92,13 +92,13 @@ function ZeD_MMHost:abort()
     c:onAbortButtonDown()
 end
 
--- EDIT SETTINGS...: vanilla's editor (its BACK shows the host screen again, landing here)
+-- MANAGE SETTINGS...: vanilla's editor, on the monitor as the server settings window
+-- (ZeD_MainMenuServer.lua); its BACK shows the host screen again, landing here
 function ZeD_MMHost:editSettings()
     local c = coop()
     if not c then return end
     MM.clickSound()
-    c:onEditSettings()   -- (it hides the host screen, which leaves the view; then the menu steps aside)
-    MM.toVanilla()
+    c:onEditSettings()
 end
 
 function ZeD_MMHost:answer(yes)
