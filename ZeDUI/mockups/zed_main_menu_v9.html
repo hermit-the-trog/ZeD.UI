@@ -245,7 +245,7 @@ table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; c
 .mbar .mi.open.logo b { background:var(--onAccent); }
 .mbar .mr { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--textDim); padding-right:6px; }
 .dd { position:absolute; top:24px; left:0; min-width:236px; background:var(--surf1); border:1px solid var(--borderS); box-shadow:3px 3px 0 rgba(0,0,0,.55); padding:3px 0; z-index:30; }
-.dd .it { height:26px; padding:0 16px; display:flex; align-items:center; font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; }
+.dd .it { height:26px; padding:0 16px; display:flex; align-items:center; font-family:var(--sans); font-size:13px; font-weight:500; letter-spacing:0; color:var(--text); white-space:nowrap; }
 .dd .it.dis { opacity:.38; } .dd .it.hl { background:var(--a55); }
 .dd .sep { height:1px; background:var(--borderS); margin:4px 0; }
 .dd .about { padding:8px 16px; font-family:var(--mono); font-size:11px; color:var(--textDim); line-height:1.5; }
@@ -317,6 +317,45 @@ table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; c
 .steps { display:flex; gap:6px; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--textDim); }
 .steps b { color:var(--accent); font-weight:700; }
 
+
+/* ---------------------------------------------------------------------------
+   ZeD window chrome and buttons, as the live windows draw them
+   (ZeD_CharacterWindow title bar, Molecules.drawButton, the window footer)
+   --------------------------------------------------------------------------- */
+.zw { position:absolute; border:1px solid var(--borderS); background:color-mix(in srgb, var(--base) 95%, transparent); display:flex; flex-direction:column; color:var(--text); box-shadow:4px 4px 0 rgba(0,0,0,.45); }
+.zw .ztb { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS);
+  background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.zw .zx { position:relative; width:14px; height:14px; flex:none; border:1px solid var(--textDim); background:var(--surf2); }
+.zw .zx::before, .zw .zx::after { content:""; position:absolute; left:2px; top:5px; width:8px; height:1px; background:var(--textDim); transform:rotate(45deg); }
+.zw .zx::after { transform:rotate(-45deg); }
+.zw .zx.gpf { box-shadow:0 0 0 3px var(--a55); }
+.zw .zt { font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; white-space:nowrap; }
+.zw .zt i { font-style:normal; color:var(--textDim); margin:0 8px; }
+.zw .zr { margin-left:auto; font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.zw .zbody { flex:1; min-height:0; display:flex; flex-direction:column; background:var(--surf1); }
+.zw .zhead { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--cond); font-weight:600; font-size:15px; }
+.zw .zhead .tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--text); }
+.zw .zhead .rt { margin-left:auto; font-family:var(--mono); font-weight:400; font-size:11px; color:var(--textDim); }
+.zw .zact { flex:none; display:flex; align-items:center; gap:8px; padding:8px 10px; min-height:44px; background:var(--surf2); border-top:1px solid var(--borderS); }
+.zw .zact .sp { flex:1; } .zw .zact .ask { font-size:13px; font-weight:500; }
+.zw .zfoot { height:18px; flex:none; display:flex; align-items:center; gap:3px; padding:0 3px; border-top:1px solid var(--borderS); background:var(--surf2); }
+.zw .zfoot .mini { width:13px; height:13px; border:1px solid var(--borderS); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:9px; color:var(--text); }
+.zw .zfoot .mini i { width:6px; height:6px; border-radius:50%; background:var(--text); display:block; }
+.zw .zfoot .mini i.ac { background:var(--accent); }
+.zw .zfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; align-items:center; }
+/* Molecules.drawButton: a double rounded outline, Fira Mono label */
+.zb { position:relative; height:30px; padding:0 16px; display:inline-flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:12px; letter-spacing:.5px;
+  color:var(--text); border:1px solid var(--borderS); border-radius:4px; white-space:nowrap; flex:none; }
+.zb::after { content:""; position:absolute; inset:2px; border:1px solid var(--borderS); border-radius:2px; pointer-events:none; }
+.zb.pri { color:var(--accent); border-color:var(--accent); } .zb.pri::after { border-color:var(--accent); }
+.zb.dng { color:var(--danger); border-color:var(--danger); animation:dpulse 2.5s ease-in-out infinite; } .zb.dng::after { border-color:var(--danger); }
+@keyframes dpulse { 0%,100% { background:color-mix(in srgb, var(--danger) 8%, transparent); } 50% { background:color-mix(in srgb, var(--danger) 25%, transparent); } }
+.zb.hov { background:var(--a22); }
+.zb.gpf { background:var(--a55); }
+.zb.wide { display:flex; width:100%; height:34px; font-size:13px; }
+.zb.big { height:34px; padding:0 22px; font-size:13px; }
+.zstack { padding:12px; display:flex; flex-direction:column; gap:8px; }
+
 /* pause (in game) */
 .pbg { position:absolute; inset:0; background-size:cover; background-position:center; }
 .pdim { position:absolute; inset:0; background:rgba(0,0,0,.45); }
@@ -349,9 +388,10 @@ table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; c
       <li><span class="rec">RECOMMEND</span><b>The main menu on the screen.</b> A menu bar (ZeD, File, Multiplayer, Settings, Debug under -debug; the version and the time at the right) and one Project Zomboid window: Continue first with the last save's picture, name, character, mode, map and when you last played; New Game, Load Game, Join a Server, Host a Game, Tutorial; Options, Mods, Workshop, Credits and Quit in the footer. The menu bar repeats them; nothing lives only there.</li>
       <li><span class="rec">RECOMMEND</span><b>Load Game on the monitor.</b> Your saves grouped by mode (vanilla's folders), newest first, each with its picture, character, map and last played; a search box. The selected save on the right: its picture, mode, map, last played, mods, version, and PLAYING AS when a save has more than one character (vanilla's player list). Footer: BACK, then DELETE, MORE (vanilla's Rename File, New Player, Choose Mods, Open File Location) and PLAY. DELETE asks in the footer. A save whose character died shows dimmed with DEAD, and PLAY becomes NEW PLAYER, as vanilla.</li>
       <li><span class="rec">RECOMMEND</span><b>New Game on the monitor.</b> Vanilla's six modes as a list (Apocalypse, Outbreak, Rising, Extinction, Sandbox, Challenges) with vanilla's description and its mode art on the right; BACK, CHOOSE MODS, NEXT. NEXT goes on to vanilla's next screens (map and spawn, sandbox options, character creation) at first, full screen; each gets its own mockup later, character creation first.</li>
+      <li><span class="rec">RECOMMEND</span><b>Real ZeD windows.</b> Every window, on the monitor and the pause window in game, is a ZeD window as the Character and World windows draw it: the pinstriped title bar with the close box and "name + section", the window's own footer strip (theme, accent, text size), ZeD's buttons (the double rounded outline with the mono label; accent for the main action; red, pulsing, only on the confirm step of Delete and Quit), and the action strip above the footer. The close box is Back on Load and New Game, Resume on the pause window, Quit on the main window (asking in the footer).</li>
       <li><span class="rec">RECOMMEND</span><b>Quit and Delete ask in the footer.</b> No pop-ups: the window's footer turns into the question with CANCEL and the red action. The power button on your monitor's case is Quit too (it shows nothing until you point at it).</li>
       <li><span class="rec">RECOMMEND</span><b>Controller.</b> Each window is one D-pad list (Continue, the rows, then the footer); in Load Game the list, then PLAY; LB / RB do nothing here; A presses, B goes back (closes a menu, cancels a question, leaves Load / New Game). Prompts sit under the window.</li>
-      <li><span class="rec">RECOMMEND</span><b>The pause menu in game.</b> Escape (or Start) dims the world and opens a small ZeD window with vanilla's in-game list: Resume, Options, Players and Invite Friends in multiplayer, Save and Quit to Menu (vanilla's QUIT), Quit to Desktop; a line on top says whose game it is and where.</li>
+      <li><span class="rec">RECOMMEND</span><b>The pause menu in game.</b> Escape (or Start) dims the world and opens a ZeD window titled with your character: a Paused header with the game day and time, ZeD buttons for Resume (accent), Options, and Players and Invite Friends in multiplayer; the leaving actions sit in the action strip: Quit to Desktop and Save and Quit (vanilla's QUIT, back to the main menu). The title bar says which game. The close box, B and Escape resume.</li>
       <li><span class="rec">RECOMMEND</span><b>Other screen shapes.</b> 1080p and 4K are exact multiples. At 1440p the desk draws at 6x and trims a little from every edge, so pixels stay square; ultrawide screens trim the top and bottom (a wider version of the desk would avoid it). The screen canvas follows the desk, and the menu follows the screen.</li>
       <li><span class="alt">YOUR CALL</span><b>Small life on the desk.</b> Optional: the case's green light blinks while a save loads, the boombox needle drifts, the lamp flickers once now and then. None of it does anything. Want any of it?</li>
     </ol>
@@ -427,35 +467,44 @@ function menuBar() {
 }
 function prompts(x, y, items) { return gp() ? `<div class="tprom" style="left:${x}px;top:${y}px">${items.map(([g, t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}</div>` : ""; }
 
+/* ---------- a ZeD window (the live frame) ---------- */
+function zwin(o) {
+  // o: left, top, width, height?, title, sub, right, head?, body, act?, prompts?, closeFocus?
+  const foot = `<div class="zfoot"><span class="mini"><i></i></span><span class="mini"><i class="ac"></i></span><span class="mini">A</span><span class="mini">R</span>${
+    gp() && o.prompts ? `<span class="prompts">${o.prompts.map(([g, t]) => `<span><span class="glyph g-${g}">${g.toUpperCase()}</span>${t}</span>`).join("")}</span>` : ""}</div>`;
+  return `<div class="zw" style="left:${o.left}px;top:${o.top}px;width:${o.width}px${o.height ? `;height:${o.height}px` : ""}">
+    <div class="ztb"><span class="zx${o.closeFocus ? " gpf" : ""}"></span><span class="zt">${o.title}${o.sub ? `<i>+</i>${o.sub}` : ""}</span>${o.right ? `<span class="zr">${o.right}</span>` : ""}</div>
+    <div class="zbody">${o.head ? `<div class="zhead"><span class="tri"></span>${o.head}</div>` : ""}${o.body}</div>
+    ${o.act ? `<div class="zact">${o.act}</div>` : ""}${foot}</div>`;
+}
+
 /* ---------- the Project Zomboid window ---------- */
 function launcher() {
   const first = S.scene === "first", quit = S.scene === "quit";
-  let b = "";
+  let b = `<div class="zstack">`;
   if (!first) b += `<div class="cont"><img src="${THUMB}" alt=""><div class="info"><span class="k">CONTINUE</span><span class="n">Sandbox, Oct 12</span>
       <span class="l">Melisa Wiggins</span><span class="l">Sandbox ${DOT} Muldraugh, KY</span><span class="l">Last played Oct 14 2026, 7:52 PM</span>
-      <span class="go"><span class="bigbtn${gp() && S.scene === "main" ? " gpf" : ""}">CONTINUE</span></span></div></div>`;
+      <span class="go"><span class="zb pri big${gp() && S.scene === "main" ? " gpf" : ""}">CONTINUE</span></span></div></div>`;
   const rows = ["NEW GAME", "LOAD GAME", "JOIN A SERVER", "HOST A GAME", "TUTORIAL"];
   b += `<div class="rows">${rows.map((t, i) => {
     const on = (S.scene === "main" && !gp() && t === "LOAD GAME") || (first && gp() && i === 0);
-    return `<div class="row${first && i === 0 ? " prim" : ""}${on ? " on" : ""}">${t}<span class="cv"></span></div>`; }).join("")}</div>`;
-  const foot = quit
-    ? `<span class="ask">Quit Project Zomboid?</span><span class="sp"></span><span class="bbtn">CANCEL</span><span class="bbtn dng${gp() ? " focus" : ""}">QUIT</span>`
-    : `<span class="bbtn">OPTIONS</span><span class="bbtn">MODS (1)</span><span class="bbtn">WORKSHOP</span><span class="bbtn">CREDITS</span><span class="sp"></span><span class="bbtn">QUIT</span>`;
-  const top = first ? 150 : 84;
-  const win = `<div class="sw" style="left:180px;top:${top}px;width:600px"><div class="tbar"><div class="ttl">Project Zomboid</div><div class="sp"></div></div><div class="wb">${b}</div><div class="sfoot">${foot}</div></div>`;
+    return `<div class="row${first && i === 0 ? " prim" : ""}${on ? " on" : ""}">${t}<span class="cv"></span></div>`; }).join("")}</div></div>`;
+  const act = quit
+    ? `<span class="ask">Quit Project Zomboid?</span><span class="sp"></span><span class="zb">CANCEL</span><span class="zb dng${gp() ? " gpf" : ""}">QUIT</span>`
+    : `<span class="zb">OPTIONS</span><span class="zb">MODS (1)</span><span class="zb">WORKSHOP</span><span class="zb">CREDITS</span><span class="sp"></span><span class="zb">QUIT</span>`;
   const pr = quit ? [["a", "Quit"], ["b", "Cancel"]] : [["a", "Select"]].concat(["file", "mp", "settings", "about"].includes(S.scene) ? [["b", "Close"]] : []);
-  return win + prompts(180, first ? 560 : 640, pr);
+  return zwin({ left:150, top:first ? 120 : 56, width:660, title:"Project Zomboid", sub:"Main menu", right:`<span class="dot pos"></span>Build 42.20.2`, body:b, act, prompts:pr });
 }
 
 /* ---------- Load Game ---------- */
 const SAVES = [
   { cat:"SANDBOX" },
-  { t:"Sandbox, Oct 12", c:"Melisa Wiggins", m:"Muldraugh, KY", d:"Oct 14 2026, 7:52 PM", img:"THUMB", sel:true },
-  { t:"Sandbox, Apr 7", c:"Kate Ortiz", m:"Riverside, KY", d:"Aug 6 2026, 12:58 PM", img:"sand2" },
+  { t:"Sandbox, Oct 12", c:"Melisa Wiggins", m:"Muldraugh, KY", img:"THUMB", sel:true },
+  { t:"Sandbox, Apr 7", c:"Kate Ortiz", m:"Riverside, KY", img:"sand2" },
   { cat:"RISING" },
-  { t:"Rising, Aug 6", c:"Dale Hooper", m:"Rosewood, KY", d:"Oct 12 2026, 10:19 AM", img:"rising", dead:true },
+  { t:"Rising, Aug 6", c:"Dale Hooper", m:"Rosewood, KY", img:"rising", dead:true },
   { cat:"APOCALYPSE" },
-  { t:"Apocalypse, Apr 5", c:"Rob Mercer", m:"West Point, KY", d:"Apr 7 2026, 9:23 AM", img:"apoc" },
+  { t:"Apocalypse, Apr 5", c:"Rob Mercer", m:"West Point, KY", img:"apoc" },
 ];
 function loadWin() {
   const more = S.scene === "loadmore", del = S.scene === "loaddel";
@@ -468,14 +517,12 @@ function loadWin() {
   const prev = `<div class="lgp"><img src="${THUMB}" alt=""><div class="n">Sandbox, Oct 12</div>
     <div class="kv"><span>MODE</span><span>Sandbox</span><span>MAP</span><span>Muldraugh, KY</span><span>PLAYED</span><span>Oct 14 2026, 7:52 PM</span><span>MODS</span><span>ZeD UI</span><span>VERSION</span><span>42.20.2</span></div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:4px"><span class="k">PLAYING AS</span><span class="combo">Melisa Wiggins<i></i></span></div></div>`;
-  const foot = del
-    ? `<span class="ask">Delete Sandbox, Oct 12? It cannot be undone.</span><span class="sp"></span><span class="bbtn">CANCEL</span><span class="bbtn dng${gp() ? " focus" : ""}">DELETE</span>`
-    : `<span class="bbtn">BACK</span><span class="sp"></span><span class="bbtn dngo">DELETE</span><span class="bbtn${more ? " focus" : ""}">MORE</span><span class="bbtn primary${gp() ? "" : ""}">PLAY</span>`;
-  const moreMenu = more ? `<div class="dd" style="left:676px;top:auto;bottom:44px;min-width:210px"><div class="it hl">Rename File</div><div class="it">New Player</div><div class="it">Choose Mods...</div><div class="sep"></div><div class="it">Open File Location</div></div>` : "";
-  const win = `<div class="sw" style="left:30px;top:44px;width:900px;height:640px"><div class="tbar"><div class="ttl">Load Game</div><div class="sp"></div></div>
-    <div class="wb"><div class="lg"><div class="lgl"><div class="srch"><i></i>Search saves</div>${list}</div>${prev}</div></div><div class="sfoot" style="position:relative">${foot}${moreMenu}</div></div>`;
+  const act = del
+    ? `<span class="ask">Delete Sandbox, Oct 12? It cannot be undone.</span><span class="sp"></span><span class="zb">CANCEL</span><span class="zb dng${gp() ? " gpf" : ""}">DELETE</span>`
+    : `<span class="zb">BACK</span><span class="sp"></span><span class="zb">DELETE</span><span class="zb${more ? " hov" : ""}" style="position:relative">MORE${more ? `<div class="dd" style="left:auto;right:-2px;top:auto;bottom:34px;min-width:210px;text-align:left;letter-spacing:0"><div class="it hl">Rename File</div><div class="it">New Player</div><div class="it">Choose Mods...</div><div class="sep"></div><div class="it">Open File Location</div></div>` : ""}</span><span class="zb pri">PLAY</span>`;
+  const body = `<div class="lg" style="padding:12px">${`<div class="lgl"><div class="srch"><i></i>Search saves</div>${list}</div>`}${prev}</div>`;
   const pr = del ? [["a", "Delete"], ["b", "Cancel"]] : [["a", "Play"], ["x", "Delete"], ["b", "Back"]];
-  return win + prompts(30, 692, pr);
+  return zwin({ left:20, top:36, width:920, height:668, title:"Project Zomboid", sub:"Load Game", right:"6 saves", body, act, prompts:pr });
 }
 
 /* ---------- New Game ---------- */
@@ -492,19 +539,21 @@ function newGameWin() {
   const list = MODES.map((m, i) => `<div class="ngr${i === sel ? (gp() ? " gpf" : " sel") : ""}"><b>${m[0]}</b><small>${m[1]}</small></div>`).join("");
   const m = MODES[sel];
   const prev = `<div class="ngp"><div class="art">${m[0].toUpperCase()}<br>VANILLA'S MODE ART</div><div class="txt"><div class="n">${m[0]}</div><p>${m[2]}</p></div></div>`;
-  const win = `<div class="sw" style="left:30px;top:44px;width:900px;height:640px"><div class="tbar"><div class="ttl">New Game</div><div class="sp"></div></div>
-    <div class="wb"><div class="steps"><b>MODE</b><span>&rsaquo;</span><span>MAP AND SPAWN</span><span>&rsaquo;</span><span>CHARACTER</span></div><div class="ng"><div class="ngl">${list}</div>${prev}</div></div>
-    <div class="sfoot"><span class="bbtn">BACK</span><span class="sp"></span><span class="bbtn">CHOOSE MODS...</span><span class="bbtn primary">NEXT</span></div></div>`;
-  return win + prompts(30, 692, [["a", "Next"], ["y", "Choose mods"], ["b", "Back"]]);
+  const body = `<div class="ng" style="padding:12px"><div class="ngl">${list}</div>${prev}</div>`;
+  const act = `<span class="zb">BACK</span><span class="sp"></span><span class="zb">CHOOSE MODS...</span><span class="zb pri">NEXT</span>`;
+  return zwin({ left:20, top:36, width:920, height:668, title:"Project Zomboid", sub:"New Game", right:"Mode &rsaquo; Map and spawn &rsaquo; Character", body, act, prompts:[["a", "Next"], ["y", "Choose mods"], ["b", "Back"]] });
 }
 
-/* ---------- pause (in game) ---------- */
+/* ---------- pause (in game): a ZeD window over the dimmed world ---------- */
 function pauseHTML(mp) {
-  const items = ["RESUME", "OPTIONS"].concat(mp ? ["PLAYERS", "INVITE FRIENDS"] : [], ["SAVE AND QUIT TO MENU", "QUIT TO DESKTOP"]);
-  const rows = items.map((t, i) => `<div class="row${i === 0 ? " prim" : ""}${gp() && i === 0 ? " on" : ""}">${t}<span class="cv"></span></div>`).join("");
-  return `<div class="pbg" style="background-image:url(${PAUSE_BG})"></div><div class="pdim"></div>
-    <div class="sw pw" style="position:absolute"><div class="tbar"><div class="ttl">Paused</div><div class="sp"></div></div><div class="meta"><b>Melisa Wiggins</b> ${DOT} ${mp ? "Knox Survivors server" : "Sandbox, Oct 12"} ${DOT} Muldraugh, KY</div><div class="rows" style="border:none">${rows}</div></div>`
-    + prompts(780, 300 + 26 + 36 + items.length * 40 + 14, [["a", "Select"], ["b", "Resume"]]);
+  const items = ["RESUME", "OPTIONS"].concat(mp ? ["PLAYERS", "INVITE FRIENDS"] : []);
+  const btns = items.map((t, i) => `<span class="zb wide${i === 0 ? " pri" : ""}${gp() && i === 0 ? " gpf" : ""}${!gp() && t === "OPTIONS" ? " hov" : ""}">${t}</span>`).join("");
+  const body = `<div class="zstack">${btns}</div>`;
+  const act = `<span class="zb">QUIT TO DESKTOP</span><span class="sp"></span><span class="zb">SAVE AND QUIT</span>`;
+  const h = 26 + 37 + 24 + items.length * 42 + 44 + 18;
+  return `<div class="pbg" style="background-image:url(${PAUSE_BG})"></div><div class="pdim"></div>`
+    + zwin({ left:780, top:Math.round(540 - h / 2), width:360, title:"Melisa Wiggins", sub:"Paused", right:`<span class="dot pos"></span>${mp ? "Knox Survivors" : "Sandbox, Oct 12"}`,
+      head:`Paused<span class="rt">Day 3 ${DOT} 8:09 PM</span>`, body, act, prompts:[["a", "Select"], ["b", "Resume"]] });
 }
 
 function render() {
