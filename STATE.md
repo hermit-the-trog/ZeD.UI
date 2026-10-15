@@ -4,7 +4,7 @@ One page. What is true right now. Rewritten at every closeout, never appended to
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
 **Version:** `0.1.1242300k` (S124, Oct 13 2026) · **Game:** Build 42 42.21.0 (seen Oct 14 2026; the S125 work was built on 42.20.2) · **Last code change:** Oct 15 2026 (every main menu screen on the monitor)
-**Next session:** S126 - the director plays through every menu screen on the 4K rig (and the belt and moodles in game); then the game loading screen (row 27). See Target.
+**Next session:** S126 - the director plays through every menu screen (and the monitor switching off into the loading screen) on the 4K rig, and the belt and moodles in game; then a controller session and the queued Character-window readers. See Target.
 
 ## What ships
 
@@ -65,7 +65,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
    7. ~~Keypad codes (row 25)~~ — **done S125** (the lock card; verified live, see the S125 delta).
 2. ~~Hands and hotbar (rows 5, 6)~~ — **done S125** (the belt + Equip tab rows; verified live with the real mouse and keys, controller logic through the bridge, see the S125 delta).
 3. ~~A home for moodles (row 7)~~ — **done S125** (three placements as a setting, ZeD hover text; verified live in a 1080p window).
-4. ~~Main menu (row 26)~~ — **done S125**: the desk, the Project Zomboid window, the pause window, and every screen behind the items on the monitor (verified live in a 1080p window, screen by screen in the S125 delta; not seen live: a real controller, START on Host, a real server connection, editing a server whose mods differ from the menu's, which shows vanilla's editor by vanilla's design). **Next: the game loading screen (row 27).**
+4. ~~Main menu (row 26)~~ — **done S125**: the desk, the Project Zomboid window, the pause window, and every screen behind the items on the monitor (verified live in a 1080p window, screen by screen in the S125 delta; not seen live: a real controller, START on Host, a real server connection, editing a server whose mods differ from the menu's, which shows vanilla's editor by vanilla's design). The game loading screen (row 27) is the engine's and no Lua draws over it; at the director's choice (Oct 15) the desk's monitor switches off into it like a 1993 CRT.
 5. Controller session on the QA save with the bridge logging (any time the director has the pad in hand).
 
 Character-window readers (printed media row 13, journal writing row 24), fishing tension (row 10), fluid info in ItemCard (row 9) and sleeping (row 16) stay queued after these.
