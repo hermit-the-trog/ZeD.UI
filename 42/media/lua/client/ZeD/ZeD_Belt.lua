@@ -428,11 +428,8 @@ function ZeD_BeltHUD:_drawBuckle()
     self:drawRect(b.x + b.w - t, b.y, t, half, 1, col(BRASS_A)); self:drawRect(b.x + b.w - t, b.y + half, t, b.h - half, 1, col(BRASS_B))
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, col(BRASS_C))
     self:drawRectBorder(b.x + t, b.y + t, b.w - t * 2, b.h - t * 2, 1, col(BRASS_C))
-    -- the prong
-    local pw = T.px(3)
-    local px0 = b.x + math.floor((b.w - pw) / 2)
-    self:drawRect(px0, b.y + t, pw, half - t, 1, col(BRASS_A))
-    self:drawRect(px0, b.y + half, pw, b.h - half - t, 1, col(BRASS_B))
+    -- no bar across the middle (director: "doesnt work like that"); the
+    -- strap shows through the open frame
 end
 
 local function wearColor(T, f)
