@@ -73,3 +73,16 @@ Director: "hands and hotbar next, start with the mockup"; "hotbar also shows con
 
 ### Not seen live
 - A physical controller; a vehicle seat (the belt hides when `getVehicle()` is set); multiplayer (the left column's server buttons stay); more than eight slots (keys past 8 show "-").
+
+## Moodles: mockup v1 (HOOK_MAP row 7)
+
+Director: "moodles next, start with the mockup" (also: run live QA in a 1080p window, or close the game; saved as a memory). Mockup `ZeDUI/mockups/zed_moodles_v1.html` (whole-screen stage; scenes: at a glance, after a fight, cold rain, hover, just got worse, well fed, Health tab, in a car; Where / Art / Summary / Input / Base / Accent / Zoom controls).
+
+### Research
+- Java `zombie.ui.MoodlesUI` (one per player, right edge under the old clock; today the CaZio watch covers its top). `Moodles` (Lua-public): `getMoodleLevel(type)`, `getGoodBadNeutral(type)`, `getMoodleDisplayString(type)`, `getMoodleDescriptionString(type)`, `isMaxMoodleLevel(type)`; the `Moodle` objects (chevrons) are private. 26 `MoodleType`s: ENDURANCE, TIRED, HUNGRY, PANIC, SICK, BORED, UNHAPPY, BLEEDING, WET, HAS_A_COLD, ANGRY, STRESS, THIRST, INJURED, PAIN, HEAVY_LOAD, DRUNK, DEAD, ZOMBIE, HYPERTHERMIA, HYPOTHERMIA, WINDCHILL, CANT_SPRINT, UNCOMFORTABLE, NOXIOUS_SMELL, FOOD_EATEN.
+- Art: loose PNGs `media/ui/Moodles/<32|48|64|80|96|128>/` ("Mood_" faces and "Status_" icons, `_Moodles_BGsolid` / `_BGoutline` backings). `MoodleTextureSet` maps ENDURANCE -> Status_DifficultyBreathing, TIRED -> Mood_Sleepy, HUNGRY and FOOD_EATEN -> Status_Hunger, PANIC -> Mood_Panicked, SICK -> Mood_Nauseous, HAS_A_COLD -> Mood_Ill, INJURED -> Status_InjuredMinor, PAIN -> Mood_Pained, CANT_SPRINT -> Status_MovementRestricted, UNCOMFORTABLE -> Mood_Discomfort, the rest by name.
+- Vanilla draws: backing tinted grey -> green / red by level, a pulse, a wiggle on change, hover title + description; its percentage fill is switched off in 42.20 (`isPercentageBackground` returns false). Chevrons only on HYPERTHERMIA / HYPOTHERMIA, from `Thermoregulator.thermalChevronUp()` / `thermalChevronCount()` (Lua-public).
+- Earlier ZeD threads: Visual Catalog M27 Moodle icon, M29 Compound feeling, the workshop plan's "moodle bar with smart gravity", the two-windows plan's "Moodle opens linked tab", GAMEPAD_SPEC's reserved moodleBar slot.
+
+### Recommendations in the mockup
+Under the watch; worst on top; vanilla art in ZeD boxes (level = pips + border, pulse at 4, green for good); vanilla's temperature chevrons; hover chip in vanilla's words (no hidden numbers); click opens Thermal (Wet, Overheated, Cold, Windchill), Equip (Weighed Down, Restricted Movement, Uncomfortable) or the Health tab's new HOW YOU FEEL list (controller reading); vanilla's Moodle size option still steps the box size. Your call: the one-line summary (M29), recommended off.
