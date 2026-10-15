@@ -462,7 +462,7 @@ MM.act = {
         clickSound()
         MM.showView("load")
     end,
-    join      = function() fire("onlineOption") end,
+    join      = function() MM.ctx.open = nil; clickSound(); MM.showView("join") end,   -- ZeD_MainMenuJoin.lua (vanilla's item hides the menu after its screen shows)
     host      = function() fire("onlineCoopOption") end,
     tutorial  = function() fire("tutorialOption") end,
     options   = function() MM.openOptions() end,   -- ZeD_MainMenuOptions.lua (main menu and in game)
@@ -1373,7 +1373,7 @@ function MM.attach(m)
         MM.redirect(m.loadScreen, "load")
         MM.redirect(m.modSelect, "mods")
         for _, v in ipairs(MM.views) do
-            if v.screen then MM.redirect(m[v.screen], v.view) end
+            if v.screen then if v.mirror then MM.mirror(m[v.screen], v.view) else MM.redirect(m[v.screen], v.view) end end
         end
         MM.hookOptions(m)
     end
@@ -1432,11 +1432,32 @@ end
 -- maker (called when the desk builds, after every module has loaded), and the MainScreen
 -- field of the vanilla screen it stands in for (its setVisible(true) lands on the view).
 MM.views = MM.views or {}
-function MM.addView(view, field, make, screen)
+function MM.addView(view, field, make, screen, mirror)
     for _, v in ipairs(MM.views) do
-        if v.view == view then v.field, v.make, v.screen = field, make, screen; return end   -- a Lua reload replaces it
+        if v.view == view then v.field, v.make, v.screen, v.mirror = field, make, screen, mirror; return end   -- a Lua reload replaces it
     end
-    MM.views[#MM.views + 1] = { view = view, field = field, make = make, screen = screen }
+    MM.views[#MM.views + 1] = { view = view, field = field, make = make, screen = screen, mirror = mirror }
+end
+
+-- A vanilla screen that must stay "visible" to keep working (it only follows events while
+-- shown): it shows as vanilla wants but off the screen, and the view mirrors it; hiding
+-- it brings it back and leaves the view (whatever vanilla shows next takes over).
+function MM.mirror(screen, view)
+    if not screen or screen._zedRedirect then return end
+    screen._zedRedirect = true
+    local orig = screen.setVisible
+    screen.setVisible = function(self, visible, joypadData)
+        orig(self, visible, joypadData)
+        if not MM.root then return end
+        if visible then
+            if self:getX() > -10000 then self._zedX = self:getX() end
+            self:setX(-20000)
+            MM.showView(view, joypadData)
+        else
+            if self:getX() <= -10000 then self:setX(self._zedX or 0) end
+            if MM.view == view then MM.showView("main") end
+        end
+    end
 end
 
 -- Is our menu showing (vanilla's bottom panel visible = no other screen is up)?
