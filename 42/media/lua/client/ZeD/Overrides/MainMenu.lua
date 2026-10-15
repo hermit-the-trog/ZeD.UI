@@ -28,6 +28,7 @@ require "ZeD/ZeD_MainMenuTraits"
 require "ZeD/ZeD_MainMenuLooks"
 require "ZeD/ZeD_MainMenuCredits"
 require "ZeD/ZeD_MainMenuJoin"
+require "ZeD/ZeD_MainMenuHost"
 
 local MM = ZeD.MainMenu
 

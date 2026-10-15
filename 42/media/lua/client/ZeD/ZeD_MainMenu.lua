@@ -463,7 +463,11 @@ MM.act = {
         MM.showView("load")
     end,
     join      = function() MM.ctx.open = nil; clickSound(); MM.showView("join") end,   -- ZeD_MainMenuJoin.lua (vanilla's item hides the menu after its screen shows)
-    host      = function() fire("onlineCoopOption") end,
+    host      = function()   -- ZeD_MainMenuHost.lua: vanilla's COOP item without its trailing menu hide
+        MM.ctx.open = nil; clickSound()
+        local c = ms() and ms().onlineCoopScreen
+        if c then c:aboutToShow(); c:setVisible(true, JoypadState.getMainMenuJoypad()) end
+    end,
     tutorial  = function() fire("tutorialOption") end,
     options   = function() MM.openOptions() end,   -- ZeD_MainMenuOptions.lua (main menu and in game)
     mods      = function() MM.openMods() end,   -- the mod manager on the monitor (ZeD_MainMenuMods.lua)

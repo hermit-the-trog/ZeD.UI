@@ -295,3 +295,17 @@ Decisions:
 
 Verified live (1080p window): SAVED empty, PUBLIC with 83 live Steam servers (selection, details, description), the filters, adding a server (ZedQA Local, 127.0.0.1) through the form, adding an account (the form's notes), CONNECT: the Connecting window, "The server failed to respond" with the red dot, BACK onto Join; the account without a saved password asking in the strip and connecting with the typed one; removing the test server (nothing left behind); Load Game's rename field now visible in the strip.
 Not seen live: connecting to a real server (not done on purpose: it would sign in to somebody's server), the authenticator code, a locked public server's password question, sorting clicks, a real controller.
+
+## Host a game on the monitor
+
+Built: `ZeD_MainMenuHost.lua` (ZeD_MMHost). Vanilla's CoopOptionsScreen launches the co-op server and follows it (OnCoopServerMessage, the connection events) only while it is visible, so it is a mirrored view like Connecting: shown but off the screen, the window driving it. The menu's Host runs vanilla's COOP item steps itself (aboutToShow, setVisible) without the item handler's trailing menu hide.
+
+Decisions:
+- One panel: ACCOUNT (the Steam name under Steam; a field outside Steam, vanilla's name check), SERVER SETTINGS (a list box of the saved settings; MANAGE SETTINGS... opens vanilla's settings editor, whose BACK lands here again), MEMORY (vanilla's 0.75 to 16 GB list), then THE WORLD: SOFT RESET, DELETE WORLD, DELETE PLAYER (off while there is no world or player, as vanilla).
+- Each world action asks in the strip with a short question, and the window shows vanilla's whole explanation while it asks (what a soft reset keeps and clears; the two folders a delete removes; the character).
+- What keeps START from going shows with a red dot: an account name that will not do (outside Steam), vanilla's server-name check, a world too new or too old to load.
+- While the server starts: the settings' name, vanilla's status line with a blinking dot, its progress as a 30-cell segmented bar (and the soft reset's own bar); ABORT in the strip, BACK held until the server stops.
+
+Verified live (1080p window): Host from the menu (Steam account, servertest, 4 GB), the world buttons off with no world, MANAGE SETTINGS... into vanilla's editor and its BACK onto Host, BACK to the Project Zomboid window (vanilla's screen put back in place), the soft reset and delete world questions with vanilla's text.
+Not seen live: START (not run here: it launches a real server process and writes server files), ABORT, the account field outside Steam, a real controller.
+Still vanilla: the server settings editor (ServerSettingsScreen: settings files, the INI and sandbox pages, spawn regions and points, mods).
