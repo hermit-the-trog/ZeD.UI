@@ -16,7 +16,10 @@
 -- ============================================================================
 
 require "OptionScreens/MainScreen"
+require "OptionScreens/LoadGameScreen"
+require "OptionScreens/NewGameScreen"
 require "ZeD/ZeD_MainMenu"
+require "ZeD/ZeD_MainMenuSaves"
 
 local MM = ZeD.MainMenu
 
