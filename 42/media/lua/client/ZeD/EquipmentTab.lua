@@ -771,6 +771,169 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
 end
 
 -- ============================================================================
+-- THE BELT (HOOK_MAP rows 5 + 6) — the hotbar's slots under HELD + BELT
+-- A sub-header ("THE BELT · KEYS", "SLOT · WHAT GIVES IT"), then one row per
+-- slot in key order: the key in an accent badge, the item's icon, its name
+-- (or "Empty") over the slot's name and the worn item that gives the slot,
+-- the condition bar in the COND column, then IN HAND and the verb (DETACH,
+-- PUT BACK or ATTACH) at the right edge. Zones in win._equipBeltZones
+-- (CharacterWindow routes clicks; ATTACH opens the slot's list, as holding
+-- the slot's key does).
+-- ============================================================================
+-- the slots shown: all of them while HELD + BELT is open, the filled ones
+-- while it is folded (as the group's own rows do)
+local function _beltSlots(win, expanded)
+    local B = ZeD.Belt
+    if not (B and B.slots) then return {} end
+    local ok, slots = pcall(B.slots, win.playerNum or 0)
+    if not ok or not slots then return {} end
+    if expanded then return slots end
+    local out = {}
+    for _, s in ipairs(slots) do if s.item then out[#out + 1] = s end end
+    return out
+end
+
+-- two lines: the item over the slot
+local function _beltRowH()
+    local T, tm = ZeD.T, ZeD.TM
+    return math.floor(math.max(T.rowH, tm:getFontHeight(T.fontF2) + tm:getFontHeight(T.fontF1) + T.px(8)))
+end
+
+-- an accent outlined tag (IN HAND), as the inventory lists' BELT n
+local function _beltTag(panel, text, x, y)
+    local T, tm = ZeD.T, ZeD.TM
+    local tf = T.fontF1
+    local tw = tm:MeasureStringX(tf, text) + T.px(8)
+    local th = tm:getFontHeight(tf) + T.px(2)
+    local ac = T.accent
+    panel:drawRectBorder(x, y, tw, th, ac.a or 1, ac.r, ac.g, ac.b)
+    panel:drawText(text, x + T.px(4), y + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
+    return tw, th
+end
+
+local function _drawBeltRows(panel, win, slots, x, y, w, zones)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local B = ZeD.Belt
+    local c = calcEquipColumns(w, win)
+    local DOT = " " .. string.char(183) .. " "
+    local f1, f2 = T.fontF1, T.fontF2
+    local f1h, f2h = tm:getFontHeight(f1), tm:getFontHeight(f2)
+    -- sub-header, in the group headers' strip and type
+    local hh = T.px(GROUP_H)
+    local s2 = T.surf2
+    panel:drawRect(x, y, w, hh, s2.a or 1, s2.r, s2.g, s2.b)
+    local lo = T.toneLo
+    local hy = y + math.floor((hh - f1h) / 2)
+    panel:drawText("THE BELT" .. DOT .. "KEYS", x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
+    local cap = "SLOT" .. DOT .. "WHAT GIVES IT"
+    panel:drawText(cap, x + w - c.padX - tm:MeasureStringX(f1, cap), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
+    A.drawDividerH(panel, x, y + hh - T.px(1), w, false)
+    y = y + hh
+
+    local rowH = _beltRowH()
+    local player = win._playerObj
+    local keyW = math.max(tm:MeasureStringX(f1, "0") + T.px(8), f1h + T.px(4))
+    local keyH = f1h + T.px(4)
+    for ri, s in ipairs(slots) do
+        if ri % 2 == 1 then local st = T.stripe; panel:drawRect(x, y, w, rowH, st.a, st.r, st.g, st.b) end
+        local fid = "belt:" .. tostring(s.i)
+        if win._gpFocusedEquipSlot == fid then
+            local Focus = ZeD.Input and ZeD.Input.Focus
+            local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+            local zone = focWin == win and Focus.getFocusedZone and Focus.getFocusedZone(win)
+            if zone and zone.zone == "charTabContent" then
+                local ac = T.accent
+                panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
+            end
+        end
+        -- the key (an outlined "-" past the eighth slot, which has none)
+        local kx = x + c.padX
+        local ky = y + math.floor((rowH - keyH) / 2)
+        local kt = s.key or "-"
+        local ktx = kx + math.floor((keyW - tm:MeasureStringX(f1, kt)) / 2)
+        if s.key then
+            local ac = T.accent
+            panel:drawRect(kx, ky, keyW, keyH, ac.a or 1, ac.r, ac.g, ac.b)
+            local tc = T.textOnAccent
+            panel:drawText(kt, ktx, ky + T.px(2), tc.r, tc.g, tc.b, 1, f1)
+        else
+            local dc = T.textDim
+            panel:drawRectBorder(kx, ky, keyW, keyH, dc.a or 1, dc.r, dc.g, dc.b)
+            panel:drawText(kt, ktx, ky + T.px(2), dc.r, dc.g, dc.b, dc.a or 1, f1)
+        end
+        -- the icon
+        local iconX = kx + keyW + T.px(6)
+        local iconY = y + math.floor((rowH - c.iconW) / 2)
+        if s.item then
+            local tex = safeGet(s.item, "getTex")
+            if tex then panel:drawTextureScaledAspect(tex, iconX, iconY, c.iconW, c.iconW, 1, 1, 1, 1) end
+        end
+        -- the verb at the right edge, IN HAND before it
+        local action, label
+        if s.item and s.inHand then action, label = "putback", "PUT BACK"
+        elseif s.item then action, label = "detach", "DETACH"
+        else action, label = "attach", "ATTACH" end
+        local bh = math.min(rowH - T.px(6), T.buttonH or T.px(20))
+        local bw = tm:MeasureStringX(T.fontF3, label) + T.px(16)
+        local bx = x + w - c.padX - bw
+        local by = y + math.floor((rowH - bh) / 2)
+        local rightEdge = bx
+        if s.inHand then rightEdge = bx - T.px(6) - (tm:MeasureStringX(f1, "IN HAND") + T.px(8)) end
+        -- the item over the slot and what gives it: the name stops at the
+        -- COND column (its bar sits beside it), the slot line runs under both
+        local tx = iconX + c.iconW + c.iconGap
+        local textW = x + c.condX - T.px(6) - tx
+        local subW = rightEdge - T.px(8) - tx
+        local ty = y + math.floor((rowH - f2h - f1h - T.px(2)) / 2)
+        if s.item then
+            local tc = T.text
+            panel:drawText(A.truncateText(safeGet(s.item, "getDisplayName") or "?", f2, textW), tx, ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        else
+            local dc = T.textDim
+            panel:drawText("Empty", tx, ty, dc.r, dc.g, dc.b, dc.a or 1, f2)
+        end
+        local prov = B.provider(player, s.slot.slotType)
+        local from = prov and ("FROM THE " .. string.upper(safeGet(prov, "getDisplayName") or "")) or "ALWAYS THERE"
+        local sub = string.upper(B.slotName(s.slot)) .. DOT .. from
+        local th = T.toneHi
+        panel:drawText(A.truncateText(sub, f1, subW), tx, ty + f2h + T.px(2), th.r, th.g, th.b, th.a or 0.9, f1)
+        -- condition, in the COND column level with the name
+        local f = s.item and B.cond(s.item)
+        if f then
+            local barX, barY, barW, barH = x + c.condX + T.px(2), ty + math.floor(f2h / 2) - T.px(1), c.condColW - T.px(4), T.px(3)
+            local bg = T.surf3
+            panel:drawRect(barX, barY, barW, barH, bg.a, bg.r, bg.g, bg.b)
+            local fw = math.floor(barW * f)
+            if fw > 0 then
+                local fc = (f > 0.6 and T.positive) or (f > 0.3 and T.warning) or T.danger
+                panel:drawRect(barX, barY, fw, barH, fc.a or 1, fc.r, fc.g, fc.b)
+            end
+        end
+        ZeD.Molecules.drawButton(panel, bx, by, bw, bh, label, action == "attach" and "primary" or "default")
+        if s.inHand then
+            local tagW = tm:MeasureStringX(f1, "IN HAND") + T.px(8)
+            _beltTag(panel, "IN HAND", bx - T.px(6) - tagW, y + math.floor((rowH - f1h - T.px(2)) / 2))
+        end
+        zones[#zones + 1] = { x = x, y = y, w = w, h = rowH, i = s.i, item = s.item, action = action,
+                              btn = { x = bx, y = by, w = bw, h = bh }, fid = fid }
+        win._equipSlotYMap[fid] = y
+        A.drawDividerH(panel, x, y + rowH - T.px(1), w, false)
+        y = y + rowH
+    end
+    return y
+end
+
+-- Run a belt row's verb (mouse and controller)
+function ZeD.EquipmentTab.beltAction(win, zone, absX, absY)
+    local B = ZeD.Belt
+    if not (B and zone) then return end
+    local pn = win.playerNum or 0
+    if zone.action == "detach" and zone.item then B.detach(pn, zone.item)
+    elseif zone.action == "putback" then B.activate(pn, zone.i)
+    elseif zone.action == "attach" then B.slotMenu(pn, zone.i, absX or getMouseX(), absY or getMouseY()) end
+end
+
+-- ============================================================================
 -- COLUMN HEADER BAR — labels above the slot list
 -- ============================================================================
 
@@ -1252,6 +1415,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
         totalH = totalH + T.px(EQUIP_HDR_H)
         for gi, g in ipairs(data.groups) do
             totalH = totalH + groupHeaderH_pre
+            if g.id == "held" then totalH = totalH + groupHeaderH_pre + #_beltSlots(win, win._equipExpanded[g.id]) * _beltRowH() end
             if win._equipExpanded[g.id] then
                 totalH = totalH + #g.slots * slotRowH
             else
@@ -1318,6 +1482,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- Zone arrays — reset indices
     local gzi = 0
     local szi = 0
+    local beltZones = {}
 
     if listExpanded then
         -- Column headers FIRST — equipped inventory list is the most-accessed
@@ -1354,8 +1519,12 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                     drawY = drawY + T.rowH
                 end
             end
+            if g.id == "held" then
+                drawY = _drawBeltRows(panel, win, _beltSlots(win, expanded), x, drawY, contentW, beltZones)
+            end
         end
     end
+    win._equipBeltZones = beltZones
 
     -- Defense body (figure + stats) — always shown at the bottom of the tab,
     -- regardless of inventory list expansion. figureGap (T.sp.figurePadTop,
@@ -1418,5 +1587,6 @@ ZeD.EquipmentTab.getDefaultColWidths = getDefaultColWidths
 ZeD.EquipmentTab.getLabelColW = getLabelColW
 
 function ZeD.EquipmentTab.register(dispatchTable)
-    dispatchTable["equip"] = ZeD.EquipmentTab.render
+    -- looked up at draw time, so a hot reload of this file takes effect
+    dispatchTable["equip"] = function(...) return ZeD.EquipmentTab.render(...) end
 end

@@ -71,6 +71,12 @@ local _lastSwitchMs = 0
 -- button is held, and we never see stale "true" values.
 local _mouseClickedThisTick = false
 local _keyPressedThisTick   = false
+-- Mouse buttons polled every render frame: Events.OnMouseDown misses clicks
+-- on UI and every right-click (KB Q175), so a mouse player on a ZeD window
+-- never flipped back from "gamepad". Last state per button + when one last
+-- went down (menus opened by a click read it, see msSinceMouseClick).
+local _mouseHeld = { false, false, false }
+local _lastMouseClickMs = 0
 
 -- ---------------------------------------------------------------------------
 -- SDL STANDARD CONTROLLER AXIS INDICES
@@ -337,6 +343,26 @@ local function onMouseDown(_x, _y)
     _mouseClickedThisTick = true
 end
 
+-- Mouse button edges, any button, over the world or over UI.
+local function pollMouseButtons()
+    if not isMouseButtonDown then return end
+    for b = 0, 2 do
+        local down = isMouseButtonDown(b) and true or false
+        if down and not _mouseHeld[b + 1] then
+            _mouseClickedThisTick = true
+            _lastMouseClickMs = getTimestampMs() or 0
+        end
+        _mouseHeld[b + 1] = down
+    end
+end
+
+-- Milliseconds since a mouse button last went down (huge if never). A menu
+-- opened right after a click came from the mouse, whatever the mode says.
+function Detector.msSinceMouseClick()
+    if _lastMouseClickMs == 0 then return 1e12 end
+    return (getTimestampMs() or 0) - _lastMouseClickMs
+end
+
 -- Controller disconnected: fall back to KBM IF no other controllers remain.
 -- We don't force KBM if the user still has another controller plugged in.
 -- Don't touch mode when a manual lock is active — the user's explicit.
@@ -371,6 +397,7 @@ end
 Events.OnTick.Add(onTick)
 Events.OnKeyPressed.Add(onKeyPressed)
 Events.OnMouseDown.Add(onMouseDown)
+Events.OnRenderTick.Add(pollMouseButtons)
 Events.OnGamepadConnect.Add(onGamepadConnect)
 Events.OnGamepadDisconnect.Add(onGamepadDisconnect)
 

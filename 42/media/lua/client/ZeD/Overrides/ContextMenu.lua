@@ -41,6 +41,10 @@ require "ZeD/ZeD_ContextMenu"
 -- in case Detector hasn't loaded yet on some early frame.
 local function _isGamepadActive()
     local D = ZeD and ZeD.Input and ZeD.Input.Detector
+    -- a mouse button went down a moment ago: this menu is the mouse's (a
+    -- right-click on a window used to land at the item's inventory row or
+    -- the bottom of the screen when the last input was the controller)
+    if D and D.msSinceMouseClick and D.msSinceMouseClick() < 1500 then return false end
     return (D and D.getMode and D.getMode() == "gamepad") or false
 end
 
@@ -139,6 +143,26 @@ local function _invRowScreenAnchor(items)
 end
 
 -- ---------------------------------------------------------------------------
+-- EVERY FRESH MENU — ISContextMenu.get(player, x, y) hands back the player's
+-- one reused menu. Its anchor starts as the point asked for; the createMenu
+-- wrappers below then set their own. Without this a menu built straight on
+-- ISContextMenu.get (vanilla's hotbar slot menu, the belt's lists, other
+-- mods) kept the LAST menu's anchor and target, and opened wherever the
+-- previous menu had been.
+-- ---------------------------------------------------------------------------
+local origGet = ISContextMenu.get
+ISContextMenu.get = function(player, x, y)
+    local context = origGet(player, x, y)
+    if context then
+        context._zedTarget = nil
+        context._zedAnchorMode = "cursor"
+        context._zedAnchorX = x
+        context._zedAnchorY = y
+    end
+    return context
+end
+
+-- ---------------------------------------------------------------------------
 -- WORLD RMB + GAMEPAD X PATH — stamp the target on the returned menu.
 -- ISWorldObjectContextMenu.createMenu is the B42.16+ convergence point for
 -- both mouse RMB and the gamepad X button.
@@ -186,7 +210,11 @@ function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y)
     if menu then
         menu._zedTarget = items
         if _isGamepadActive() then
-            local ix, iy = _invRowScreenAnchor(items)
+            -- a caller that names the spot (X on an Equip row, a belt row or
+            -- a belt box) gets it; 0, 0 asks for the focused inventory row
+            local ix, iy
+            if x and y and (x > 0 or y > 0) then ix, iy = x, y
+            else ix, iy = _invRowScreenAnchor(items) end
             if ix and iy then
                 menu._zedAnchorMode = "cursor"
                 menu._zedAnchorX = ix
