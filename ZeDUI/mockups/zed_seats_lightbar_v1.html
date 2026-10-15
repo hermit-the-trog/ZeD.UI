@@ -142,7 +142,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; ma
     <h2>Decisions for you</h2>
     <ol>
       <li><span class="rec">RECOMMEND</span><b>The seat chooser is a small ZeD window where vanilla's was</b> (the middle of the screen, the same size), on <b>vanilla's own car outline</b> tinted to the text colour and <b>vanilla's own seat places</b>, so every car, van and a mod's vehicle lines up exactly as it does today.</li>
-      <li><span class="rec">RECOMMEND</span><b>Seats are drawn as seats, from above</b> (cushion, backrest, headrest, the strip's ink edge and step shadow). An empty seat shows its number (the key that takes it); when someone sits there you see them from above, head and shoulders, in the accent if it is you; items on a seat are a pile of junk (a box, a bag, a plank); a seat that isn't fitted is its dashed place. A seat you can't take from here (no seat fitted, items with nowhere to go, the back of a caged car) is stippled, like an off slice on the wheel. The pointed seat grows and turns the accent, as on the wheel.</li>
+      <li><span class="rec">RECOMMEND</span><b>Seats are drawn as seats, from above</b> (cushion, backrest, headrest, the strip's ink edge and step shadow). An empty seat shows its number (the key that takes it); when someone sits there you see a crash test dummy from above (the quartered target on its head, bolted shoulders and knees), in the accent if it is you; items on a seat are a pile of junk (a box, a bag, a plank); a seat that isn't fitted is its dashed place. A seat you can't take from here (no seat fitted, items with nowhere to go, the back of a caged car) is stippled, like an off slice on the wheel. The pointed seat grows and turns the accent, as on the wheel.</li>
       <li><span class="rec">RECOMMEND</span><b>The band names the pointed seat and says why not.</b> Vanilla prints the seat's name over the car and the reason in red text. Here the band under the title holds both: the name, and the reason with a status dot (red for "Must exit vehicle.", amber for "Item(s) on seat will be moved to another seat."). With nothing pointed it names your own seat. Vanilla's words are kept, so every language still works.</li>
       <li><span class="rec">RECOMMEND</span><b>Doors are small cells beside the car</b> where vanilla draws its faint exit arrows: one per door you could leave by. Pointing one says "Exit Vehicle" and which door. Holding Shift lights them and numbers them (Shift + number gets out there, as in vanilla); the footer says so, because vanilla never did.</li>
       <li><span class="rec">RECOMMEND</span><b>The lightbar is the siren controller already drawn on the police dash, up close.</b> The same faceplate, the same two rotary switches (lights OFF 1 2 3; siren STBY YELP WAIL ALARM, vanilla's four modes), the same two pilot lamps, made larger as its own 1993 prop. It rises above the dash instead of covering the car, so you can watch the bar flash while you set it. Click a word to turn the switch there, or click the knob to step it; the wheel turns it too. A controller moves between the two switches with the D-pad and turns them with up and down; B puts it away. Any lightbar vehicle gets it, including the ones whose dash has no controller drawn (the lights pickups and vans).</li>
@@ -230,14 +230,20 @@ function seatSvg(state, n, active, hideNum, w, h) {
     out += `<g stroke="${edge}" stroke-width="1" opacity=".55"><line x1="10" y1="7" x2="10" y2="32"/><line x1="30" y1="7" x2="30" y2="32"/><line x1="8" y1="39.5" x2="32" y2="39.5"/></g>`;
   }
   if (state === "you" || state === "person") {
-    const body = state === "you" ? (active ? "var(--onAccent)" : "var(--accent)") : "#5a5a5a";
+    // a crash test dummy from above: squared shoulder yoke, segmented arms, thighs with knee
+    // joint discs, bolts at the joints, and the quartered calibration target on the head
+    const body = state === "you" ? (active ? "var(--onAccent)" : "var(--accent)") : "#6a6a6a";
     const ln = state === "you" && active ? "var(--accentBright)" : "var(--ink)";
     out += `<g fill="${body}" stroke="${ln}" stroke-width="1">`
-      + `<rect x="11.5" y="14" width="7" height="18" rx="3.5"/><rect x="21.5" y="14" width="7" height="18" rx="3.5"/>`
-      + `<rect x="5" y="26" width="6" height="13" rx="3"/><rect x="29" y="26" width="6" height="13" rx="3"/>`
-      + `<ellipse cx="20" cy="37.5" rx="14" ry="7.5"/></g>`
-      + `<circle cx="20" cy="37" r="7.2" fill="${state === "you" ? "var(--paper)" : "#8a8a8a"}" stroke="${ln}" stroke-width="1"/>`
-      + `<path d="M15.5 34.5 Q20 31 24.5 34.5" fill="none" stroke="${ln}" stroke-width="1"/>`;
+      + `<rect x="11.5" y="16" width="7" height="16" rx="2"/><rect x="21.5" y="16" width="7" height="16" rx="2"/>`
+      + `<circle cx="15" cy="15.5" r="3.4"/><circle cx="25" cy="15.5" r="3.4"/>`
+      + `<rect x="5" y="20" width="6" height="9" rx="2"/><rect x="5" y="30" width="6" height="9" rx="2"/>`
+      + `<rect x="29" y="20" width="6" height="9" rx="2"/><rect x="29" y="30" width="6" height="9" rx="2"/>`
+      + `<rect x="6" y="31.5" width="28" height="11" rx="4"/>`
+      + `<circle cx="20" cy="37" r="7.2"/></g>`
+      + `<g fill="${ln}"><circle cx="9.5" cy="37" r="1.1"/><circle cx="30.5" cy="37" r="1.1"/><circle cx="15" cy="15.5" r="1.1"/><circle cx="25" cy="15.5" r="1.1"/></g>`
+      + `<circle cx="20" cy="37" r="4.3" fill="var(--paper)" stroke="${ln}" stroke-width=".9"/>`
+      + `<path d="M20 37 V32.7 A4.3 4.3 0 0 0 15.7 37 Z M20 37 V41.3 A4.3 4.3 0 0 0 24.3 37 Z" fill="${ln}"/>`;
   } else if (state === "items" || state === "itemsBlocked") {
     const jf = active ? "var(--accentBright)" : "var(--surf3)";
     out += `<g fill="${jf}" stroke="${fig}" stroke-width="1">`
