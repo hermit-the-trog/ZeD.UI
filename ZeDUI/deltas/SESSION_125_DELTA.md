@@ -269,3 +269,14 @@ Decisions:
 
 Verified live (1080p window): the figure turning (buttons, drag), skin and hair swatches, the sex change re-rolling the name and dropping the beard rows, a clothing pick (baseball cap on the figure), a tint from the palette (red socks on the figure), saving / loading / deleting an outfit, RANDOM, BACK to occupation and forward again, and PLAY: a throwaway game (ZedQA_Throwaway) loaded with the character as made (Angelique Norton, burger flipper); the throwaway save was deleted and latestSave.ini pointed back at the QA save.
 Not seen live: a real controller (on-screen keyboard for the names), the pose list, vanilla's all-outfits mode (sandbox "all clothes unlocked" adds an Outfit row).
+
+## Credits on the monitor
+
+Built: `ZeD_MainMenuCredits.lua` (ZeD_MMCredits). Vanilla's credits data (CreditsRoleGroup / CreditsRole, the translators, the studio logos, its opening and closing lines) as end titles in a ZeD window; vanilla's CreditsScreen:setVisible(true) is redirected, and the menu's Credits opens the view directly (vanilla's item handler hid the menu after its screen showed).
+
+Decisions:
+- The titles roll up a framed box from the bottom: each group's title in the heading face, its logo (white line art) tinted to the theme's heading colour, each role in the mono label face (accent), the names in the body face, all centred; the box's top and bottom fade in eight steps.
+- The strip is a transport: BACK | << PAUSE / PLAY >>; << and >> light up while active, a second press returns to playing; the roll stops on the last line (WWW.SPIFFOS.COM).
+- The wheel and up / down move the roll by hand. Keys: Space / Return pause, left / right rewind / fast, Escape back. Controller: A pause, X fast, Y rewind, B back.
+
+Verified live (1080p window): opening from the menu, the opening logo, a mid-roll capture (directors, the soundtrack heading), pause, fast forward (about 270 px a second), Escape back to the Project Zomboid window.

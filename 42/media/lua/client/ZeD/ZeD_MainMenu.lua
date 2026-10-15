@@ -468,7 +468,7 @@ MM.act = {
     options   = function() MM.openOptions() end,   -- ZeD_MainMenuOptions.lua (main menu and in game)
     mods      = function() MM.openMods() end,   -- the mod manager on the monitor (ZeD_MainMenuMods.lua)
     workshop  = function() fire("workshopOption") end,
-    credits   = function() fire("creditOption") end,
+    credits   = function() MM.ctx.open = nil; MM.clickSound(); MM.showView("credits") end,   -- ZeD_MainMenuCredits.lua (vanilla's item hides the menu after opening its screen)
     tos       = function() MM.ctx.open = nil; local m = ms(); if m then m:onClickTermsOfService() end end,
     reportBug = function() MM.ctx.open = nil; local m = ms(); if m then m:onClickReportBug() end end,
     resetLua  = function() getCore():ResetLua("default", "Force") end,

@@ -1306,6 +1306,12 @@ end
 -- vanilla's OPTIONS item (also how a Lua reset after "Apply" reopens Options)
 MainScreen._zedItemOrig = MainScreen._zedItemOrig or MainScreen.onMenuItemMouseDownMainMenu
 MainScreen.onMenuItemMouseDownMainMenu = function(item, x, y)
+    -- vanilla's CREDITS item hides the menu after its screen shows: the credits view opens straight
+    if item and item.internal == "CREDITS" and ms() and not ms().inGame and MM.root and ms().delay <= 0 then
+        getSoundManager():playUISound("UIActivateMainMenuItem")
+        MM.showView("credits")
+        return
+    end
     if item and item.internal == "OPTIONS" and ms() then
         local m = ms()
         if m and (m.inGame or m.delay <= 0) then
