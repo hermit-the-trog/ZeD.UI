@@ -68,6 +68,7 @@ local CARD_PAD, THUMB, CARD_GAP = 10, 128, 14
 local WIDE_H, BIG_PAD_X = 34, 22
 local STRIP_PAD_X, STRIP_PAD_Y, STRIP_BTN_H, STRIP_BTN_PAD, STRIP_GAP = 10, 8, 30, 16, 8
 local HEAD_H = 37
+local MOD_ROW_H = 28   -- (the pause window's Mods page)
 local WIN_TOP, WIN_TOP_FIRST = 20, 86   -- below the menu bar: with Continue / without
 
 local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
@@ -471,6 +472,26 @@ function MM.modCount()
     return ok and n or 0
 end
 
+-- The game's mods for the pause window's Mods page, with vanilla's checks
+-- (ISPauseModListUI): not found, not available, errors reported this session.
+function MM.pauseMods()
+    local t = {}
+    local list = getActivatedMods()
+    for i = 0, list:size() - 1 do
+        local id = list:get(i)
+        local info = getModInfoByID(id)
+        local e = { id = id, name = id }
+        if not info then e.status, e.bad = "Not found", true
+        else
+            e.name = info:getName()
+            if not info:isAvailable() then e.status, e.bad = "Not available", true
+            elseif PauseBuggedModList and PauseBuggedModList[e.name] then e.status, e.bad = "Errors this session", true end
+        end
+        t[#t + 1] = e
+    end
+    return t
+end
+
 function MM.version()
     if not MM._version then
         local ok, v = pcall(function() return getCore():getVersion() end)
@@ -579,7 +600,9 @@ MM.act = {
     resume    = function() fire("returnOption") end,
     players   = function() fire("scoreOption") end,
     invite    = function() fire("inviteOption") end,
-    modList   = function() local m = ms(); if m then m:onClickModList() end end,
+    -- the pause window's MODS: its own Mods page (vanilla's was a small unstyled list in the
+    -- screen's corner, ISPauseModListUI), on vanilla's data
+    modList   = function() local w = MM.pause; if w then w.page = "mods"; w.focusId = nil; clickSound() end end,
     saveQuit  = function() fire("exitOption") end,
 }
 
@@ -1052,10 +1075,31 @@ function ZeD_MMGlass:new()
     return o
 end
 
+-- QA (the click audit, Oct 15 2026): MM.debugHits = true outlines every click area of the
+-- desk, the menu bar, the pull-down and the view's window (magenta; disabled ones grey)
+-- and each window's close box (cyan), so a screenshot shows what answers where.
+function MM.drawHitOverlay(p, panels)
+    local ax, ay = p:getAbsoluteX(), p:getAbsoluteY()
+    for _, q in ipairs(panels) do
+        if q and q:isVisible() then
+            for _, h in ipairs(q._hits or {}) do
+                if h.disabled then p:drawRectBorder(h.x - ax, h.y - ay, h.w, h.h, 0.6, 0.6, 0.6, 0.6)
+                else p:drawRectBorder(h.x - ax, h.y - ay, h.w, h.h, 0.9, 1, 0, 1) end
+            end
+            local cb = q.closeRect and q:closeRect()
+            if cb then p:drawRectBorder(q:getAbsoluteX() + cb.x - ax, q:getAbsoluteY() + cb.y - ay, cb.w, cb.h, 1, 0, 1, 1) end
+        end
+    end
+end
+
 function ZeD_MMGlass:prerender()
     local L = MM.layout()
     if self.width ~= L.sw or self.height ~= L.sh then self:setWidth(L.sw); self:setHeight(L.sh) end
     MM.drawGlass(self, L)
+    if MM.debugHits and MM.root then
+        local r = MM.root
+        MM.drawHitOverlay(self, { r, r.bar, r.drop, MM.activeWindow() })
+    end
     if MM.ctx.hot == "power" then
         local T = ZeD.T
         local px, py, pw = nat(L, POWER)
@@ -1160,17 +1204,29 @@ function ZeD_MMWindow:build()
         self.titleStats = { { text = info.save, color = T.positive } }
         self._head = { y = y, h = T.px(HEAD_H), when = info.when }
         y = y + T.px(HEAD_H) + pad
-        local list = { { "resume", "RESUME", A.resume, "primary" }, { "options", "OPTIONS", A.options },
-                       { "mods", "MODS (" .. MM.modCount() .. ")", A.modList } }
-        if m and m.scoreOption then list[#list + 1] = { "players", "PLAYERS", A.players } end
-        if m and m.inviteOption then list[#list + 1] = { "invite", "INVITE FRIENDS", A.invite } end
-        for _, r in ipairs(list) do
-            row = row + 1
-            add({ id = r[1], text = r[2], variant = r[4] or "default", fn = r[3], row = row, col = 1,
-                  x = pad, y = y, w = w - pad * 2, h = T.px(WIDE_H) })
-            y = y + T.px(WIDE_H) + gap
+        self._mods = nil
+        if self.page == "mods" then
+            -- the game's mods, each with vanilla's word on it (ISPauseModListUI's checks)
+            self._head.label = "Mods"
+            local rh = T.px(MOD_ROW_H)
+            local items = MM.pauseMods()
+            local room = math.floor((getCore():getScreenHeight() * 0.8 - y - T.px(120)) / rh)
+            local shown = math.max(1, math.min(#items, room))
+            self._mods = { y = y, rh = rh, items = items, shown = shown }
+            y = y + shown * rh + ((#items > shown) and rh or 0) + pad
+        else
+            local list = { { "resume", "RESUME", A.resume, "primary" }, { "options", "OPTIONS", A.options },
+                           { "mods", "MODS (" .. MM.modCount() .. ")", A.modList } }
+            if m and m.scoreOption then list[#list + 1] = { "players", "PLAYERS", A.players } end
+            if m and m.inviteOption then list[#list + 1] = { "invite", "INVITE FRIENDS", A.invite } end
+            for _, r in ipairs(list) do
+                row = row + 1
+                add({ id = r[1], text = r[2], variant = r[4] or "default", fn = r[3], row = row, col = 1,
+                      x = pad, y = y, w = w - pad * 2, h = T.px(WIDE_H) })
+                y = y + T.px(WIDE_H) + gap
+            end
+            y = y - gap + pad
         end
-        y = y - gap + pad
     end
 
     -- the action strip
@@ -1203,6 +1259,8 @@ function ZeD_MMWindow:build()
             if m and m.workshopOption then left("workshop", "WORKSHOP", A.workshop) end
             left("credits", "CREDITS", A.credits)
             rights = { { "quit", "QUIT", A.askQuit, "default", cooling } }
+        elseif self.page == "mods" then
+            left("back", "BACK", function() self.page = nil; self.focusId = nil; clickSound() end)
         else
             left("quitDesktop", "QUIT TO DESKTOP", function() self:setConfirm(true) end, "default", cooling)
             rights = { { "saveQuit", "SAVE AND QUIT", A.saveQuit, "default", cooling } }
@@ -1294,12 +1352,14 @@ end
 -- B: answer No to a question; in game, otherwise resume
 function ZeD_MMWindow:joyB()
     if self.confirm then self:setConfirm(false); return end
+    if self.page then self.page = nil; self.focusId = nil; clickSound(); return end   -- (the pause window's Mods page)
     if self.kind == "pause" then MM.act.resume() end
 end
 
 function ZeD_MMWindow:getFooterPrompts()
     if not MM.gamepad() then return nil end
     if self.confirm then return { { glyph = "A", label = "Quit" }, { glyph = "B", label = "Cancel" } } end
+    if self.page then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } } end
     if self.kind == "pause" then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Resume" } } end
     return { { glyph = "A", label = "Select" }, { glyph = "Y", label = "Legal" } }
 end
@@ -1316,9 +1376,38 @@ function ZeD_MMWindow:prerender()
     if self._head then
         local hd = self._head
         self:drawRect(T.px(1), hd.y, w - T.px(2), hd.h, 1, s2.r, s2.g, s2.b)
-        ZeD.Molecules.drawTabHeader(self, 0, hd.y, w, "Paused", true, false)
+        ZeD.Molecules.drawTabHeader(self, 0, hd.y, w, hd.label or "Paused", true, false)
         local f3, d = T.fontF3, T.textDim
         self:drawText(hd.when, w - T.px(10) - textW(f3, hd.when), hd.y + math.floor((hd.h - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
+    end
+
+    -- the Mods page: each mod by name, its ID or vanilla's word on it (a red dot)
+    local md = self._mods
+    if md then
+        local pad = T.px(STACK_PAD)
+        local f2, f3 = T.fontF2, T.fontF3
+        local c, d = T.text, T.textDim
+        local y = md.y
+        for i = 1, md.shown do
+            local e = md.items[i]
+            local mid = y + math.floor(md.rh / 2)
+            local right = e.status or e.id
+            local rw = math.min(textW(f3, right), math.floor((w - pad * 2) * 0.5))
+            local rx = w - pad - rw
+            if e.bad then
+                local dsz = T.px(7)
+                ZeD.Atoms.drawStatusDot(self, rx - dsz - T.px(6), mid - math.floor(dsz / 2), T.danger, dsz)
+            end
+            local rc = e.bad and c or d
+            self:drawText(ZeD.Atoms.truncateText(right, f3, rw), rx, mid - math.floor(fontH(f3) / 2), rc.r, rc.g, rc.b, rc.a or 1, f3)
+            self:drawText(ZeD.Atoms.truncateText(e.name, f2, rx - pad - T.px(20)), pad, mid - math.floor(fontH(f2) / 2), c.r, c.g, c.b, c.a or 1, f2)
+            if i < md.shown then self:drawRect(pad, y + md.rh - T.px(1), w - pad * 2, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b) end
+            y = y + md.rh
+        end
+        if #md.items > md.shown then
+            local more = "and " .. (#md.items - md.shown) .. " more"
+            self:drawText(more, pad, y + math.floor((md.rh - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
+        end
     end
 
     -- the Continue card: the last save's picture, name, character, mode and map, when it was played
@@ -1402,6 +1491,12 @@ function ZeD_MMWindow:prerender()
     end
 end
 
+-- in game there is no desk glass: the pause window outlines its own click areas (QA)
+function ZeD_MMWindow:render()
+    ZeD_Window.render(self)
+    if MM.debugHits and self.kind == "pause" then MM.drawHitOverlay(self, { self }) end
+end
+
 -- no dragging, no WindowShade: the window sits where the menu puts it
 function ZeD_MMWindow:onMouseDown(x, y) return true end
 
@@ -1409,6 +1504,7 @@ function ZeD_MMWindow:onMouseDown(x, y) return true end
 -- MainScreen's children): no question pending, the controller on Resume.
 function ZeD_MMWindow:onEnterFromGame()
     self.confirm = false
+    self.page = nil
     self.focusId = "resume"
     self.ctx.hot, self.ctx.press = nil, nil
 end

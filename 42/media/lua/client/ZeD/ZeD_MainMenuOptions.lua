@@ -132,12 +132,43 @@ local function collect(el, out, depth)
     end
 end
 
+-- the controller page's deadzone stepper (vanilla: a "Deadzone" label over a "-" button, a
+-- value label and a "+" button). GameOptionControllerTab only builds the panels, so it is
+-- found through a collected button's target.
+local function stepperOwner(controls)
+    for _, c in ipairs(controls) do
+        local t = c.el and c.el.target
+        if type(t) == "table" and t.btnJoypadSensitivityM and t.btnJoypadSensitivityP and t.labelJoypadSensitivity then return t end
+    end
+    return nil
+end
+
 -- the rows of a page: headers, options (control + its label), descriptions
 function MM.optionRows(page)
     local o = mo()
     if not (o and page and page.view) then return {} end
     local bucket = { labels = {}, controls = {} }
     collect(page.view, bucket, 0)
+    -- the deadzone's three parts and its label become one stepper row
+    local st = stepperOwner(bucket.controls)
+    local stepper = nil
+    if st then
+        local dzText = getText("UI_optionscreen_gamepad_deadzone")
+        local keep = {}
+        for _, c in ipairs(bucket.controls) do
+            if c.el ~= st.btnJoypadSensitivityM and c.el ~= st.btnJoypadSensitivityP then keep[#keep + 1] = c end
+        end
+        bucket.controls = keep
+        local keepL = {}
+        for _, l in ipairs(bucket.labels) do
+            if l.el == st.labelJoypadSensitivity then -- the value: drawn in the row
+            elseif l.text == dzText and not stepper then
+                stepper = { kind = "stepper", label = l.text, owner = st, minus = st.btnJoypadSensitivityM, plus = st.btnJoypadSensitivityP,
+                            value = st.labelJoypadSensitivity, y = l.y, x = l.x }
+            else keepL[#keepL + 1] = l end
+        end
+        bucket.labels = keepL
+    end
     local optOf = {}
     for _, opt in ipairs(o.gameOptions.options or {}) do if opt.control then optOf[opt.control] = opt end end
     local keyOf = {}
@@ -170,6 +201,7 @@ function MM.optionRows(page)
             rows[#rows + 1] = { kind = l.medium and "header" or "note", text = l.text, y = l.y, x = l.x }
         end
     end
+    if stepper then rows[#rows + 1] = stepper end
     table.sort(rows, function(a, b) if math.abs(a.y - b.y) > 2 then return a.y < b.y end; return a.x < b.x end)
     -- the controller page's two special panels become one row
     local out, sawSpecial = {}, false
@@ -277,6 +309,7 @@ local function help(r)
     end)
     if r.kind == "key" then t = "Click the key, then press the new one (or a mouse button)." end
     if r.kind == "special" then t = "The button map editor and the controller test open on vanilla's controller page." end
+    if r.kind == "stepper" then t = "How far a stick must move before the game counts it, for the controller picked under Test Controller." end
     return t and UI.plain(t) or nil
 end
 
@@ -835,6 +868,31 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local tc = T.text
         self:drawText(ZeD.Atoms.truncateText(tostring(c:getText() or ""), f2, bw - T.px(12)), cx + T.px(6), by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         hit(rowId .. ":txt", cx, by, bw, bh, function() self:editText(r) end)
+    elseif r.kind == "stepper" then
+        -- the deadzone: [-] value [+] on vanilla's buttons (off until a test controller is chosen)
+        local bh = T.px(26)
+        local by = midY - math.floor(bh / 2)
+        local gap = T.px(8)
+        local off = (r.minus.enable == false)
+        -- the live value: vanilla's label reads it right after a step, before the engine has
+        -- applied it, so it showed the value one press behind
+        local tp = r.owner and r.owner.controllerTestPanel
+        local ctrl = tp and tp.selectedController
+        local val
+        if off then val = "Pick a Test Controller below"
+        elseif ctrl then val = string.format("%.2f", getControllerDeadZone(ctrl, 0))
+        else val = tostring(r.value.name or "") end
+        local vw = math.max(T.px(64), MM.textW(f2, val) + T.px(16))
+        local function step(id, text, x, btn)
+            local b = { x = x, y = by, w = bh, h = bh, text = text, variant = "default", disabled = (btn.enable == false) }
+            MM.drawBtn(self, b, hot == kind .. ":" .. id, false, false)
+            hit(id, b.x, b.y, b.w, b.h, function() if btn.onclick then btn.onclick(btn.target, btn) end end, { disabled = b.disabled })
+        end
+        step(rowId .. ":dzm", "-", cx, r.minus)
+        local tc = off and T.textDim or T.text
+        local vx = cx + bh + gap
+        self:drawText(val, vx + math.floor((vw - MM.textW(f2, val)) / 2), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+        step(rowId .. ":dzp", "+", vx + vw + gap, r.plus)
     elseif r.kind == "special" then
         local text = "OPEN CONTROLLER SETUP"
         local b = { x = cx, y = midY - math.floor(T.px(26) / 2), w = MM.textW(T.fontF3, text) + T.px(28), h = T.px(26), text = text, variant = "default" }
@@ -1008,6 +1066,7 @@ end
 local _render = ZeD_MMOptions.render
 function ZeD_MMOptions:render()
     _render(self)
+    if MM.debugHits and self.inGame then MM.drawHitOverlay(self, { self }) end   -- (QA: the click audit; at the menu the desk's glass draws it)
     local p = self._palette
     if not p then return end
     local T = ZeD.T
@@ -1074,6 +1133,10 @@ function ZeD_MMOptions:nudge(r, dir)
         return true
     elseif r.kind == "tick" and #(c.options or {}) > 1 then
         self._tickCol = math.max(1, math.min(#c.options, (self._tickCol or 1) + dir))
+        return true
+    elseif r.kind == "stepper" then
+        local b = (dir < 0) and r.minus or r.plus
+        if b.enable ~= false and b.onclick then b.onclick(b.target, b); MM.hoverSound() end
         return true
     end
     return false
@@ -1200,7 +1263,7 @@ function ZeD_MMOptions:getFooterPrompts()
     local r = self:focusedRow()
     local t = {}
     if r then
-        if r.kind == "combo" or r.kind == "volume" or r.kind == "slider" then t[#t + 1] = { glyph = "<>", label = "Change" } end
+        if r.kind == "combo" or r.kind == "volume" or r.kind == "slider" or r.kind == "stepper" then t[#t + 1] = { glyph = "<>", label = "Change" } end
         t[#t + 1] = { glyph = "A", label = (r.kind == "tick") and "Toggle" or "Select" }
     end
     t[#t + 1] = { glyph = "LB", label = "" }

@@ -33,6 +33,19 @@ require "ZeD/ZeD_MainMenuServer"
 
 local MM = ZeD.MainMenu
 
+-- Vanilla's host screen (built inside MainScreen:instantiate) asks for the colour
+-- "ProgressYellow", which 42.21 does not have. Its warning walks the Lua stack, and
+-- with the instantiate hook below on that stack the engine marks ZeD UI "[ERRORS]"
+-- in the pause screen's mod list (KB Q230). That one colour is answered quietly; any
+-- other name goes on to vanilla's lookup (a tail call: this frame leaves the stack).
+local QUIET_COLORS = { ProgressYellow = { r = 0.93, g = 0.76, b = 0.18, a = 1 } }
+_G._zedNamedColor = _G._zedNamedColor or namedColorToTable
+function namedColorToTable(name)
+    local q = QUIET_COLORS[name]
+    if q and not Colors.GetColorByName(name) then return { r = q.r, g = q.g, b = q.b, a = q.a } end
+    return _G._zedNamedColor(name)
+end
+
 -- the originals, captured once (a Lua reload of this file must not wrap the wrappers)
 MainScreen._zedOrig = MainScreen._zedOrig or {
     instantiate       = MainScreen.instantiate,
