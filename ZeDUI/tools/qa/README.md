@@ -23,3 +23,13 @@ Scripts in this folder were all run and passed on stable 42.20.2 in S123 (see `Z
 | `suite_gamepad.lua` | Simulated D-pad through `Focus.dispatchJoypadDir`, row callbacks (card open / live-swap / close, context menu, B), stale-zone check after a mouse Loot switch |
 | `suite_band.lua` | Progress Band: reading via the queue poll, cancel via the card, cooking on a real stove with the danger state |
 | `suite_perf.lua` | ms/tick per tab + builder cost of the recipe lists |
+
+## Windowed launches (Oct 14 2026)
+
+QA runs in a 1920 x 1080 window, never fullscreen (director). From PowerShell (the Bash tool hits the execution policy):
+
+- `& ZeDUI/tools/qa/pzlaunchwin.ps1` — windowed, -debug, continues the latest save (the QA save) through the bridge's autoload flag, clicks "click to start".
+- `& ZeDUI/tools/qa/pzlaunchwin.ps1 -MainMenu` — windowed, stops at the main menu (returns once the bridge has armed there).
+- `& ZeDUI/tools/qa/pzrestorewin.ps1` — after the game has closed: puts back the fullscreen display settings it backed up.
+
+The bridge polls OnFETick at the main menu and OnRenderTick in game (so it also runs while the pause menu is open). The window's client area is 1920 x 1080 at a desktop offset (find it with `GetClientRect` / `ClientToScreen`); real input: screen = offset + game coordinates.

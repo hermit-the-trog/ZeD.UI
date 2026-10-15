@@ -118,4 +118,31 @@ Director: "main menu next, start with the mockup"; "ITEM SCALE. Scale is so bad 
 
 Approved: `ZeDUI/mockups/zed_main_menu_v9.html` (HOOK_MAP row 26). The desk drawn at whole multiples (4x at 1080p, 8x at 4K; 6x with edge trim at 1440p); the menu bar and ZeD windows on the monitor built on the live frame (pinstriped title bar with close box and "name + section", Molecules.drawButton double-outline buttons, action strip, footer squares): Project Zomboid (Continue card + five ZeD buttons + Options / Mods / Workshop / Credits / Quit), Load Game (saves by mode under inventory category headers, Find field, preview with PLAYING AS, BACK / DELETE / MORE / PLAY, footer delete confirm), New Game (System 7 icon view of vanilla's `media/ui/playstyleIcons/*.png`, vanilla's descriptions, BACK / CHOOSE MODS / NEXT); the pause window (Resume, Options, Players and Invite in MP; Quit to Desktop / Save and Quit in the action strip). Also the belt buckle lost its middle bar (director: "doesnt work like that").
 
-Open: the desk's small life (case light, boombox needle, lamp flicker) is the director's call; the build has not started.
+Director then: "build it, motion is fine. I was hoping to use the new main menu background as the game loading screen, leave the old one as the background for the main menu PC though. So yes to motion on this screen, but this is not the loading screen, just menus". Reading: the "new background" is 42's illustrated scene the engine draws behind vanilla's screens; the "old one" is the title painting, which stays on the monitor. The loading screen is HOOK_MAP row 27, not started.
+
+## Main menu: built, phase 1 (HOOK_MAP row 26)
+
+Built: `ZeD_MainMenu.lua` (the desk, the menu bar and its pull-downs, the Project Zomboid window, the pause window, pointer and controller), `Overrides/MainMenu.lua` (hooks on vanilla's `MainScreen`), textures in `media/textures/ZeD/mainmenu/` (`desk.png` 480 x 270; `lamp_dim.png`, `dial_clean.png` motion patches; `wallpaper.png` / `wallpaper_lightning.png`: the old title painting and its lightning frame cropped to 4:3, own copies because the mod blanks vanilla's `media/ui/Title*.png`). `Organisms.lua`: `ZeD_Window` gained `themeFooter` (footer squares on a fixed-size window, no grow box), `noResetControl`, `globalAccentControl`, `getFooterPrompts()`. `Settings.lua` applies the mod options at the main menu; `QABridge.lua` arms at the main menu (OnFETick) and polls on OnRenderTick in game (OnTick stops while paused). `ZeDUI/tools/qa/pzlaunchwin.ps1 -MainMenu` launches windowed to the menu without autoload.
+
+Director mid-build: "can load game lead with the character name large, then the save name in a medium heading" — done on the Continue card (character large, save as an F4 heading, then mode and map, last played; a dead character gets a red status dot); carried into Load Game for phase 2.
+
+Departures from the mockup, all small: MODS (n) is a button in the pause window (vanilla's in-game Mods list had no other home); R (reset the Character / World windows) is only in the pause window's footer (nothing to reset at the menu); the ZeD menu also holds Terms of Service and Report a Bug, and Debug holds Scenarios (vanilla's debug scenario list sat over the old logo); a save's map reads "Knox Country" when it spans the county.
+
+### Verified live (1080p window, QA save, real mouse and keys; controller through the bridge)
+
+- Desk at 4x with nearest filtering (first build drew it smoothed: `getTexture` loads mod textures linear, KB Q205), the painting on the monitor, a held lightning flash measured (the lightning frame lights the room's window and the figures); the lights, needle and lamp run on timers.
+- Menu bar: File and ZeD pull-downs open, highlight on hover, close on an outside click; Settings > Mods (1 on) opened vanilla's Mods screen, Escape came back to the desk.
+- Window: hover fill, LOAD GAME opened vanilla's Load screen and Escape returned; QUIT asks in the strip (CANCEL hovered, QUIT red) and Escape cancels; the power button shows "Quit" on hover; controller focus moves through the rows and the strip with A / Y prompts in the footer.
+- CONTINUE loaded the QA save. Pause: Escape opens the ZeD window (vanilla's logo no longer drawn over it), hover, QUIT TO DESKTOP asks and CANCEL returns (the question also survives a frame stall and resets when the menu reopens), OPTIONS opened vanilla's options and BACK returned, controller D-pad and A ran SAVE AND QUIT back to the desk, which refreshed the Continue card.
+- Fixed during QA: a Kahlua and/or bug made the menu's "is it up" check return a table in game (KB Q206); a menu title click could not close its own menu; the pause question was reset by a frame stall (now reset on vanilla's `onEnterFromGame`, KB Q209).
+
+### Not seen live
+
+- A real controller (the bridge drove the handlers; the main-menu joypad focus is vanilla's).
+- 1440p (6x with edge trim) and ultrawide margins; 4K (8x) is the director's rig.
+- Multiplayer: PLAYERS / INVITE FRIENDS and the server name in the pause title; Host / Join beyond opening vanilla's screens.
+- Tutorial, Workshop, Credits, Terms of Service, Report a Bug (opens a browser), Reset Lua and Quit itself (only the question and CANCEL were pressed).
+
+### Next
+
+Phase 2: Load Game and New Game on the monitor (mockup v9), Load Game leading with the character. Then map / spawn, character creation, Options and Mods each get a mockup. The game loading screen is row 27.

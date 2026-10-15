@@ -59,22 +59,37 @@ local function poll()
     end
 end
 
-function B.install()
-    if B._installed then return end
-    B._installed = true
-    -- Prime _lastGo so a stale zedqa.go from a previous session does not
-    -- fire on boot; only a NEW write triggers a run.
-    B._lastGo = readAll("zedqa.go")
+-- frontEnd: true at the main menu, where OnTick does not run (OnFETick does).
+-- In game the bridge polls on OnRenderTick: OnTick stops while the pause menu
+-- is open, and the pause menu needs QA too. Each event is hooked once.
+function B.install(frontEnd)
+    if not B._installed then
+        B._installed = true
+        -- Prime _lastGo so a stale zedqa.go from a previous session does not
+        -- fire on boot; only a NEW write triggers a run.
+        B._lastGo = readAll("zedqa.go")
+    end
     -- a script error (even inside pcall) would otherwise open the Lua debugger
     -- and halt the game with the bridge in it (the debug toolbar's Break On
     -- Error box; -debug ticks it on every launch)
     if UIManager.setShowLuaDebuggerOnError then UIManager.setShowLuaDebuggerOnError(false) end
-    Events.OnTick.Add(poll)
-    print("[ZeD.QA] bridge armed (poll every " .. B.POLL_TICKS .. " ticks)")
+    if frontEnd then
+        if B._feHooked then return end
+        B._feHooked = true
+        Events.OnFETick.Add(poll)
+    else
+        if B._tickHooked then return end
+        B._tickHooked = true
+        Events.OnRenderTick.Add(poll)
+    end
+    print("[ZeD.QA] bridge armed (" .. (frontEnd and "main menu" or "in game") .. ", poll every " .. B.POLL_TICKS .. " ticks)")
 end
 
 Events.OnGameStart.Add(function()
-    if isDebugEnabled and isDebugEnabled() then B.install() end
+    if isDebugEnabled and isDebugEnabled() then B.install(false) end
+end)
+Events.OnMainMenuEnter.Add(function()
+    if isDebugEnabled and isDebugEnabled() then B.install(true) end
 end)
 
 -- QA autoload (Oct 14 2026): a windowed QA launch cannot rely on clicking the
