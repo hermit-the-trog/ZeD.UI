@@ -163,3 +163,22 @@ Decisions:
 
 Verified live (1080p window): list, wheel scroll, row click, Find with real typing, a dead character's dot, MORE pop-up, delete question, controller focus with scroll-follow and footer prompts, Choose Mods round trip (selection kept), New Game icon view, Custom Sandbox NEXT into vanilla's spawn screen and its BACK onto the monitor, challenges view and back.
 Not seen live: PLAY from Load Game (CONTINUE uses the same vanilla call), Rename on disk, New Player, deleting a save (the QA saves were left alone), PLAYING AS with two characters (no such save here).
+
+## The mod manager on the monitor
+
+Built: `ZeD_MainMenuMods.lua` (ZeD_MMMods). Vanilla's ModSelector stays built and keeps its model (`ModSelector.instance.model`: the enable / disable cascade, incompatibilities, favourites, presets in `pz_modlist_settings.cfg`, load order, map order, acceptChanges with its per-caller saves and Lua resets); its `setVisible(true)` is redirected to the monitor, so the main menu, Load Game's and New Game's Choose Mods and Server Settings all open this window.
+
+Decisions:
+- Filter tabs All / On / Favourites / Maps with counts (LB / RB on a controller) and a plain-text Find (name, ID, Workshop ID; vanilla's search broke on characters like "(" and "%").
+- Each row: the on / off box, the mod's icon (or its category's), the name, the ID; a mod that cannot run or is blocked by an enabled mod gets a red status dot and the reason in its second line ("Made for another game version (42.0 to 42.13)", "Needs X", "Conflicts with Y"); the favourite star at the right (shows on hover to add).
+- The detail pane: the mod's picture, name, author, verbs (TURN ON / TURN OFF, FAVOURITE, WORKSHOP PAGE, HOMEPAGE), the facts (version, game versions, mod ID, Workshop ID, type), NEEDS and CANNOT RUN WITH with a status dot per mod (on / off / not installed), the description; the pane scrolls as one unit.
+- Turning a mod on or off says which other mods came along (vanilla's requirement cascade happens silently).
+- Presets in one pop-up (Turn All On / Off, every saved preset, Save as Preset..., Paste Preset Text..., Copy / Delete the current one); names typed in a field in the action strip; written to disk at once (vanilla waited for Accept); a preset with mods that are not installed says which.
+- Load order and map order are views of the same window: numbered rows, a status dot per row (green: rules kept; amber: a load-before / load-after wish not kept; red: a mod it needs loads later), MOVE UP / MOVE DOWN, AUTO (vanilla's sort), DONE (blocked while a row is red, as vanilla). The selected mod's rules are spelled out.
+- BACK with changes asks in the strip: KEEP or DISCARD (vanilla's yes / no dialog). BACK without changes accepts, as vanilla does.
+- ModTemplate's warning (vanilla's text) asks in the strip before it turns on.
+
+Fixed during QA: a focused text field takes Return (onCommandEntered) and the same key then reached the menu: saving a preset also pressed ACCEPT, and in Load Game a rename would also have pressed PLAY. A Return a field just used is now swallowed.
+
+Verified live (1080p window): the list, tabs, detail, turning ZeD UI off, BACK asking, DISCARD restoring it (default.txt unchanged, no Lua reset), the presets pop-up, saving a preset by typing + Return (pz_modlist_settings.cfg written), deleting it, the load order view.
+Not seen live: more than one mod (only ZeD UI is installed here), so reordering, the order dots, requirement cascades, conflicts, map order and the Workshop / homepage links were not exercised; Server Settings' mod list.
