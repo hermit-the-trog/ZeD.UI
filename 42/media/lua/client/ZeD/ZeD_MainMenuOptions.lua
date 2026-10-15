@@ -871,7 +871,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local bs = T.borderS
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
-    local helpH = T.px(HELP_H)
+    local helpH = self.noHelpBand and 0 or T.px(HELP_H)   -- (a window without help text has no band)
     local vy, vh = y + T.px(1), h - helpH - T.px(2)
     local sbW = T.sp.scrollbarW
     local inner = w - T.px(2) - sbW
@@ -952,6 +952,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
         self:drawText(finding and "No option matches" or "", x + T.px(12), vy + T.px(12), d.r, d.g, d.b, d.a or 1, f2)
     end
     -- the help band: the option under the pointer (or the controller's)
+    if helpH == 0 then return end
     local hy = y + h - helpH
     local s2 = T.surf2
     self:drawRect(x + T.px(1), hy, w - T.px(2), helpH - T.px(1), 1, s2.r, s2.g, s2.b)
