@@ -362,3 +362,14 @@ Fixed:
 The loading screen's text (director: "can that be larger?"): it is drawn by the engine in ZeD's fonts at the size of the game's Font Size option (Options > User Interface > Font Size; the rig is on 19px). "Scale with window height" picks the 38px fonts at 4K (19px at 1080p), so the loading text doubles on the 4K rig while ZeD's own windows keep their size (KB Q233). Not changed: it is the director's setting.
 
 Not seen live: a real controller driving the pause Mods page and the deadzone row (simulated / mouse only).
+
+## The director's new desk art, and the paper map in game (Oct 15 2026)
+
+Desk: the director's updated `zed-desk-crt.svg` (bigger Project Zomboid poster, redrawn cola and car, a row of jacks on the case, Princess Quest 2's tower). Rendered and installed as before (`desk.png`, the lamp's dimmed patch regenerated); the hard disk light, the floppy light and the power button moved with the case and follow it. Checked at 4K.
+
+Paper map (director: "I'd also like to see the paper map used in the location selection for a new game, can that map be the map in the world window? Or options to show both"): the World window's Maps tab has SURVEY / PAPER pills at the right of its toolbar (drawer and pop-out; A switches, as the sub-tab pills do). SURVEY is vanilla's in-game map; PAPER is the illustrated Knox County map from the spawn screen, lined up on the world, with the player's notes and markers on it as before. The choice is kept per character. Both keep vanilla's fog of war: only explored ground shows, known ground (from maps read) a little dimmer (KB Q234, Q235). The illustration covers the base county only; a modded map elsewhere shows on SURVEY.
+
+Fixed on the way: the Maps tab never hid unexplored ground. It asked for "HideUnvisitedAreas", which the engine does not have (vanilla's flag is "HideUnvisited"), so the whole county showed from the first minute. It now hides unexplored ground as vanilla's map does (a stakes fix: maps found and read matter again).
+
+Verified live (4K, the QA save): SURVEY with the fog, PAPER by a real click (the explored patches in the illustration's style), Muldraugh marked known on the QA save and shown on both, SURVEY again by a real click (the data reloaded), the pills in the drawer and the pop-out, the controller's order (SURVEY, PAPER, unfold).
+Not seen live: a real controller on the pills, a modded map outside Knox County.

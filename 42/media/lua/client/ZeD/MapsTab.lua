@@ -117,10 +117,13 @@ function ZeD_WorldMap:instantiate()
     self.javaObject = UIWorldMap.new(self)
     self.mapAPI = self.javaObject:getAPIv3()
 
-    -- Configure: top-down, no debug, fog-of-war
+    -- Configure: top-down, no debug, fog-of-war ("HideUnvisited", as vanilla's in-game map sets
+    -- it in ISWorldMap:initDataAndStyle; the engine's default is off, and this read
+    -- "HideUnvisitedAreas" until Oct 15 2026, a name the engine does not have: the whole county
+    -- showed whatever the character had explored)
     self.mapAPI:setBoolean("Isometric", false)
     self.mapAPI:setBoolean("DebugInfo", false)
-    self.mapAPI:setBoolean("HideUnvisitedAreas", true)
+    self.mapAPI:setBoolean("HideUnvisited", true)
 
     -- Pre-load annotation icon textures
     self._annotTextures = {}
@@ -140,41 +143,106 @@ function ZeD_WorldMap:instantiate()
     self:createChildren()
 end
 
-function ZeD_WorldMap:createChildren()
-    -- Load full world map data
-    if MapUtils and MapUtils.initDefaultMapData then
-        MapUtils.initDefaultMapData(self)
-        self.mapAPI:setBoundsFromWorld()
-        if MapUtils.initDefaultStreetData then
-            MapUtils.initDefaultStreetData(self)
-        end
-        MapUtils.initDefaultStyleV3(self)
-        -- S124: the label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
-        -- with the root so street and town names grow with the rest of the UI.
-        pcall(function()
-            local root = (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1
-            local styleAPI = self.mapAPI:getStyleAPI()
-            local BASE = { ["text-note"] = 40, ["text-street"] = 48, ["text-building"] = 48, ["text-place"] = 48, ["text-town"] = 48,
-                           ["text-forest"] = 32, ["text-water-small"] = 32, ["text-water-medium"] = 32, ["text-water-nofade"] = 32 }
-            for name, base in pairs(BASE) do
-                local layer = styleAPI:getLayerByName(name)
-                if layer then layer:setLineHeight(math.floor(base * root + 0.5)) end
-            end
-        end)
-        if MapUtils.overlayPaper then
-            MapUtils.overlayPaper(self)
-        end
-        -- NOTE: getSymbolsAPIv2() crashes on embedded UIWorldMaps (Java uiSymbols is null).
-        -- Default annotations are skipped; we render our own overlays in render().
+-- THE TWO MAPS (director, Oct 15 2026: "the paper map used in the location selection ...
+-- options to show both the paper map and ingame map?"). SURVEY is vanilla's in-game map
+-- (its data, streets and style); PAPER is the illustrated county map the spawn screen shows
+-- (the base map's spawnSelectImagePyramid, laid out in world squares). Both keep vanilla's
+-- fog of war: only explored ground shows.
+local PAPER_MAX_ZOOM = 16.0   -- past this the illustration is only enlarged
+local PAPER_FILE = nil
+local function paperFile()
+    if PAPER_FILE == nil then
+        PAPER_FILE = false
+        local info = getMapInfo and getMapInfo("Muldraugh, KY")
+        local f = info and info.spawnSelectImagePyramid
+        if f and f ~= "" then PAPER_FILE = f end
     end
+    return PAPER_FILE or nil
+end
+ZeD.MapsTab.hasPaper = function() return paperFile() ~= nil end
+
+-- vanilla's in-game map: its data, streets, style (ISWorldMap:initDataAndStyle)
+local function initSurvey(mp)
+    if not (MapUtils and MapUtils.initDefaultMapData) then return end
+    MapUtils.initDefaultMapData(mp)
+    mp.mapAPI:setBoundsFromWorld()
+    if MapUtils.initDefaultStreetData then
+        MapUtils.initDefaultStreetData(mp)
+    end
+    MapUtils.initDefaultStyleV3(mp)
+    -- S124: the label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
+    -- with the root so street and town names grow with the rest of the UI.
+    pcall(function()
+        local root = (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1
+        local styleAPI = mp.mapAPI:getStyleAPI()
+        local BASE = { ["text-note"] = 40, ["text-street"] = 48, ["text-building"] = 48, ["text-place"] = 48, ["text-town"] = 48,
+                       ["text-forest"] = 32, ["text-water-small"] = 32, ["text-water-medium"] = 32, ["text-water-nofade"] = 32 }
+        for name, base in pairs(BASE) do
+            local layer = styleAPI:getLayerByName(name)
+            if layer then layer:setLineHeight(math.floor(base * root + 0.5)) end
+        end
+    end)
+    if MapUtils.overlayPaper then
+        MapUtils.overlayPaper(mp)
+    end
+    -- NOTE: getSymbolsAPIv2() crashes on embedded UIWorldMaps (Java uiSymbols is null).
+    -- Default annotations are skipped; we render our own overlays in render().
+end
+
+-- the illustration alone (MapSpawnSelectImage's setup), on vanilla's paper colours
+local function initPaper(mp)
+    local api = mp.mapAPI
+    api:addImagePyramid(paperFile())
+    api:setBoolean("ImagePyramid", true)
+    api:setBoundsFromWorld()
+    local r, g, b = 219 / 255, 215 / 255, 192 / 255
+    api:setBackgroundRGBA(r, g, b, 1.0)
+    api:setUnvisitedRGBA(r * 0.915, g * 0.915, b * 0.915, 1.0)
+    api:setUnvisitedGridRGBA(r * 0.777, g * 0.777, b * 0.777, 1.0)
+end
+
+-- SURVEY or PAPER on the one map (it keeps where it looks)
+function ZeD_WorldMap:applyStyle(paper)
+    local api = self.mapAPI
+    if paper and not paperFile() then paper = false end
+    local cx, cy, z = nil, nil, nil
+    if self._styled then cx, cy, z = api:getCenterWorldX(), api:getCenterWorldY(), api:getZoomF() end
+    api:getStyleAPI():clear()
+    api:clearImages()
+    api:clearData()
+    if paper then initPaper(self) else initSurvey(self) end
+    api:setBoolean("HideUnvisited", true)
+    self.paper = paper and true or false
+    self._styled = true
+    if cx then
+        api:centerOn(cx, cy)
+        api:setZoom(paper and math.min(z, PAPER_MAX_ZOOM) or z)
+    end
+end
+
+function ZeD_WorldMap:createChildren()
+    local md = self.playerObj and self.playerObj:getModData() or nil
+    self:applyStyle(md and md.ZeD_MapPaper == true)
 
     -- Center on player position
     if self.playerObj then
         self.mapAPI:centerOn(self.playerObj:getX(), self.playerObj:getY())
-        self.mapAPI:setZoom(18.0)
+        self.mapAPI:setZoom(self.paper and 15.0 or 18.0)
     end
 
     self._annotationsLoaded = false
+end
+
+-- the toolbar's SURVEY / PAPER (kept per character, as the pinned icons are)
+function ZeD.MapsTab.setPaper(win, paper)
+    local mp = win and win._worldMapPanel
+    if not mp then return end
+    paper = paper and paperFile() ~= nil
+    if mp.paper == paper then return end
+    local md = win._playerObj and win._playerObj:getModData()
+    if md then md.ZeD_MapPaper = paper end
+    mp:applyStyle(paper)
+    getSoundManager():playUISound("UIActivateTab")
 end
 
 -- Shared annotation placement — used by both mouse LMB and gamepad A-press.
@@ -781,6 +849,40 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + colSz + btnGap
     end
 
+    -- SURVEY / PAPER, right-anchored before the unfold button (a pill pair: A or a click
+    -- switches; only when the base map carries its illustration, and only where it fits)
+    win._mapStyleZones = {}
+    if ZeD.MapsTab.hasPaper() then
+        local f1 = T.fontF1
+        local mp = win._worldMapPanel
+        local isPaper = mp and mp.paper or false
+        local pills = { { id = "survey", text = "SURVEY" }, { id = "paper", text = "PAPER" } }
+        local pad = T.px(6)
+        local total = 0
+        for _, p in ipairs(pills) do p.w = tm:MeasureStringX(f1, p.text) + pad * 2; total = total + p.w end
+        local sx = x + w - T.px(4) - btnSz - btnGap * 3 - total
+        if sx > curX then
+            local ac, bd = T.accent, T.border
+            local th = tm:getFontHeight(f1)
+            for _, p in ipairs(pills) do
+                local on = (p.id == "paper") == isPaper
+                if focId == "map:style:" .. p.id then
+                    panel:drawRect(sx, btnY, p.w, btnSz, 0.55, ac.r, ac.g, ac.b)
+                end
+                if on then
+                    panel:drawRect(sx, btnY, p.w, btnSz, 0.2, ac.r, ac.g, ac.b)
+                    panel:drawRectBorder(sx, btnY, p.w, btnSz, 0.6, ac.r, ac.g, ac.b)
+                else
+                    panel:drawRectBorder(sx, btnY, p.w, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
+                end
+                local tc = on and T.accent or T.textDim
+                panel:drawText(p.text, sx + pad, btnY + math.floor((btnSz - th) / 2), tc.r, tc.g, tc.b, on and 0.9 or 0.7, f1)
+                win._mapStyleZones[#win._mapStyleZones + 1] = { id = p.id, x = sx, y = btnY, w = p.w, h = btnSz }
+                sx = sx + p.w
+            end
+        end
+    end
+
     -- S123: UNFOLD / FOLD button, right-anchored. Pops the map out into a
     -- large centred window (ZeD.MapsTab.openPopout) or folds it back.
     do
@@ -987,6 +1089,14 @@ function ZeD.MapsTab.onClick(win, x, y)
         end
     end
 
+    -- SURVEY / PAPER
+    for _, z in ipairs(win._mapStyleZones or {}) do
+        if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
+            ZeD.MapsTab.setPaper(win, z.id == "paper")
+            return
+        end
+    end
+
     -- Disclosure chevron toggle
     if win._mapDisclosureZone then
         local z = win._mapDisclosureZone
@@ -1151,6 +1261,16 @@ function ZeD.MapsTab.buildFocusables(win)
                 end,
             }
         end
+    end
+
+    -- 3a. SURVEY / PAPER pills (A switches, as the sub-tab pills do).
+    for _, sz in ipairs(win._mapStyleZones or {}) do
+        elements[#elements + 1] = {
+            x = sz.x, y = sz.y, w = sz.w, h = sz.h,
+            id = "map:style:" .. sz.id,
+            styleId = sz.id,
+            onActivate = function(w, el2) ZeD.MapsTab.setPaper(w, el2.styleId == "paper") end,
+        }
     end
 
     -- 3b. S123: unfold / fold button.
