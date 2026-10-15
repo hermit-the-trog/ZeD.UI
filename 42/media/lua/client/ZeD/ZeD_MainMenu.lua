@@ -37,17 +37,21 @@ local TEX = "media/textures/ZeD/mainmenu/"
 local DESK_W, DESK_H = 480, 270
 local TUBE_X, TUBE_Y, TUBE_W, TUBE_H = 120, 30, 240, 180   -- the CRT's screen
 local EDGE_ROW = 184             -- the desktop's front edge row at the picture's sides
-local WALL  = { r = 0x17 / 255, g = 0x13 / 255, b = 0x10 / 255 }
-local DESKC = { r = 0x7c / 255, g = 0x58 / 255, b = 0x31 / 255 }
+-- margins (only where the tube forces a smaller multiple, e.g. ultrawide): the night room's
+-- edges differ by side (the lamp is on the left), so each half of the screen gets its own
+-- (v3 desk, Oct 15 2026; measured from the render, ZeDUI/art/main_menu/v3/desk_info.json)
+local WALL_L = { r = 0x11 / 255, g = 0x09 / 255, b = 0x07 / 255 }
+local WALL_R = { r = 0x1e / 255, g = 0x14 / 255, b = 0x0c / 255 }
+local DESK_L = { r = 0x1f / 255, g = 0x0d / 255, b = 0x07 / 255 }
+local DESK_R = { r = 0x0d / 255, g = 0x05 / 255, b = 0x03 / 255 }
 -- lights and moving parts: { x, y, w, h } in native pixels
 local HDD      = { 146, 246, 3, 2 }    -- orange hard disk light (drawn lit in the picture)
 local FLOPPY   = { 300, 262, 3, 2 }    -- green floppy light (drawn lit in the picture)
-local HDD_OFF    = { r = 0.29, g = 0.19, b = 0.07 }
-local FLOPPY_OFF = { r = 0.17, g = 0.24, b = 0.16 }
+local HDD_OFF    = { r = 0x1f / 255, g = 0x14 / 255, b = 0x04 / 255 }   -- dark lens plastic in the room's light
+local FLOPPY_OFF = { r = 0x0e / 255, g = 0x18 / 255, b = 0x11 / 255 }
 local DIAL     = { 416, 120, 7, 10 }   -- the boombox dial without its needle (dial_clean.png)
 local NEEDLE   = { 419, 121, 1, 8 }    -- the red tuning needle
-local NEEDLE_C = { r = 0xb8 / 255, g = 0x33 / 255, b = 0x1f / 255 }
-local LAMP     = { 60, 92, 42, 36 }    -- the lamp's glow, dimmed (lamp_dim.png)
+local NEEDLE_C = { r = 0x7f / 255, g = 0x20 / 255, b = 0x12 / 255 }   -- equals the baked needle (it must not change colour when it drifts)
 local POWER    = { 126, 243, 10, 10 }  -- the case's power button: Quit
 
 -- The wallpaper: vanilla's old title painting and its lightning frame, cropped to the
@@ -246,14 +250,25 @@ end
 -- ---------------------------------------------------------------------------
 function MM.drawDesk(p, L, t)
     local s = L.s
-    -- margins (a screen wider or taller than the picture): wall above the desk's edge, desktop below
+    -- margins (a screen wider or taller than the picture): wall above the desk's edge, desktop
+    -- below, each half of the screen in its own side's colours
     local edge = L.oy + EDGE_ROW * s
-    if edge > 0 then p:drawRect(0, 0, L.sw, edge, 1, WALL.r, WALL.g, WALL.b) end
-    if edge < L.sh then p:drawRect(0, edge, L.sw, L.sh - edge, 1, DESKC.r, DESKC.g, DESKC.b) end
-    local desk = tex(TEX .. "desk.png")
+    local half = math.floor(L.sw / 2)
+    if edge > 0 then
+        p:drawRect(0, 0, half, edge, 1, WALL_L.r, WALL_L.g, WALL_L.b)
+        p:drawRect(half, 0, L.sw - half, edge, 1, WALL_R.r, WALL_R.g, WALL_R.b)
+    end
+    if edge < L.sh then
+        p:drawRect(0, edge, half, L.sh - edge, 1, DESK_L.r, DESK_L.g, DESK_L.b)
+        p:drawRect(half, edge, L.sw - half, L.sh - edge, 1, DESK_R.r, DESK_R.g, DESK_R.b)
+    end
+    -- the lamp lights the whole left side: on a dim beat the whole picture is the dipped one
+    lifeTick(t)
+    local l = life.lamp
+    local dipped = l.beats and l.i % 2 == 1
+    local desk = tex(TEX .. (dipped and "desk_lampdim.png" or "desk.png"))
     if desk then p:drawTextureScaledAspect(desk, L.ox, L.oy, DESK_W * s, DESK_H * s, 1, 1, 1, 1) end
 
-    lifeTick(t)
     if not life.hdd.on then
         local x, y, w, h = nat(L, HDD)
         p:drawRect(x, y, w, h, 1, HDD_OFF.r, HDD_OFF.g, HDD_OFF.b)
@@ -269,14 +284,6 @@ function MM.drawDesk(p, L, t)
             p:drawTextureScaledAspect(dial, x, y, w, h, 1, 1, 1, 1)
             local nx, ny, nw, nh = nat(L, NEEDLE)
             p:drawRect(nx + life.needle.dx * s, ny, nw, nh, 1, NEEDLE_C.r, NEEDLE_C.g, NEEDLE_C.b)
-        end
-    end
-    local l = life.lamp
-    if l.beats and l.i % 2 == 1 then
-        local lamp = tex(TEX .. "lamp_dim.png")
-        if lamp then
-            local x, y, w, h = nat(L, LAMP)
-            p:drawTextureScaledAspect(lamp, x, y, w, h, 1, 1, 1, 1)
         end
     end
 end
