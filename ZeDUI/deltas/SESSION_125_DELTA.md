@@ -219,3 +219,22 @@ Decisions:
 Verified live (1080p window): Apocalypse (4 towns) and Sandbox (11 towns, the list scrolls); picking a town glides the map; drag and wheel; each save-name message (an existing save's name, empty, "/", a leading dot, spaces); typing in the field and Return only leaving it; arrows and Escape; NEW SEED; NEXT handing the town, save name and seed to vanilla (Riverside, the name, the seed read back) and vanilla's occupation screen's BACK landing on the monitor with the town still chosen; BACK to New Game (vanilla clears the seed).
 Not seen live: a real controller (on-screen keyboard), World Select (only with map mods that cannot share a world), a challenge's spawn choice, video effects off.
 Found: vanilla's "Random" row never appears in 42.21 (KB Q214); left as vanilla.
+
+## Sandbox options on the monitor
+
+Built: `ZeD_MainMenuSandbox.lua` (ZeD_MMSandbox, a variant of the Options window: pages, Find, rows, the help band, list-box pop-ups and the controller come from it). Vanilla's SandboxOptionsScreen stays the engine, built and hidden: its controls hold every value, its presets load and save, its NEXT (SandboxVars, the preset's name, character creation) and BACK (map / spawn) run as vanilla. Its `setVisible(true)` is redirected to the monitor.
+
+Decisions:
+- Vanilla's nine pages in the list, Find across all of them (name and help text), rows with vanilla's section titles as headers, the help band showing vanilla's tooltip (with the number range).
+- A dot marks every option that differs from the chosen preset, and the title reads "Apocalypse, 2 changed" (vanilla marked differences from the game's defaults, so a preset lit up dozens of rows).
+- Numbers are edited in their row like a spreadsheet cell: click (or A), type (the old number is selected), Return keeps it, Tab keeps it and opens the next number (Shift+Tab: the one above), Escape puts the old number back, clicking elsewhere keeps it. A number out of range gets a red outline and Return will not keep it.
+- Options with named steps (Zombie Count's population, sprinter amount, ...) are one list box: each step with its number, then Custom Number... (edits in place). Vanilla's Advanced tick box, which switched all of them between a list and a number field, is gone.
+- Options that do nothing in the current setup (the mini map and "all known" without the world map; the skill multipliers while the global multiplier is on, and the global one while it is off) are greyed and inert, label included.
+- PRESETS... in the strip: every preset (the current one marked), Save as Preset... (name in a strip field, vanilla's name rules), Delete <name>... (user presets, asks in the strip). Picking a preset over changes asks "Load Outbreak? Your changes will be lost." Deleting a preset keeps the values on screen (vanilla swapped in whichever preset landed selected).
+- Keys: Return goes on (never while a number is open), Escape leaves a field, then a question, then the screen. Controller: rows, left / right step a list box, LB / RB pages, Y presets, B back.
+- All menu fields: Escape inside a field now leaves it, and in a question cancels it (the game kept Escape in the field; KB Q217).
+
+Fixed during QA: Escape in a number field did nothing (the game keeps the key in the field) and a later Return then pressed NEXT.
+
+Verified live (1080p window): Time and Zombie pages, Find "respawn" across pages, number editing (out-of-range refused with the outline, Escape restoring, Tab to the next number, Return keeping), changed dots and the title count, the presets pop-up, loading Outbreak over changes (asks, then loads), Zombie Count driving the population and a step driving Zombie Count back, a typed number reading Custom, saving a preset (file written, chosen) and deleting it, the map options greying, NEXT into vanilla's occupation screen and its BACK onto the monitor, BACK to map / spawn and forward again (page and values kept).
+Not seen live: a real controller; Start Day following Start Month (vanilla's own call, run every frame); the skill multiplier greying (same rule as the map one).
