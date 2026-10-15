@@ -97,6 +97,17 @@ function ZeD_Window:titleBarHeight()
     return ZeD.T.titleBarH
 end
 
+-- The close box's rect from the current scale and text size (a window built before the
+-- root scale settled, the menu's at 4K, kept a 1x box in the corner of a 2x title bar)
+function ZeD_Window:closeRect()
+    local cb = self._closeBtnRect
+    if not cb then return nil end
+    local T = ZeD.T
+    local sz = T.closeBoxSz
+    cb.x, cb.y, cb.w, cb.h = T.sp.sm, math.floor((self:titleBarHeight() - sz) / 2), sz, sz
+    return cb
+end
+
 -- Public WindowShade toggle. Collapses to title bar on true; expands to prior
 -- height on false. Idempotent (no-op if already in target state). Shared by
 -- the title-bar double-click path AND FocusManager's windowshade-on-stick
@@ -222,7 +233,7 @@ function ZeD_Window:prerender()
 
     -- Close box (drawn on top of title bar)
     if self._closeBtnRect then
-        local cb = self._closeBtnRect
+        local cb = self:closeRect()
         ZeD.Atoms.drawCloseBox(self, cb.x, cb.y, cb.w, self._closeHover)
     end
 
@@ -639,7 +650,7 @@ function ZeD_Window:update()
 
     -- Close box hit-testing (absolute coords, same pattern as grow box)
     if self._closeBtnRect then
-        local cb = self._closeBtnRect
+        local cb = self:closeRect()
         local mx = getMouseX() - self:getAbsoluteX()
         local my = getMouseY() - self:getAbsoluteY()
         local inside = mx >= cb.x and mx <= cb.x + cb.w and my >= cb.y and my <= cb.y + cb.h

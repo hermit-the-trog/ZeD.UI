@@ -83,7 +83,7 @@ end
 
 function ZeD_MMCredits:onShow()
     self.lines = self.lines or creditLines()
-    self.roll = 0
+    self.roll = nil   -- (set on the first frame: the titles start a third of the way up, not below an empty box)
     self.mode = "play"
     self._t = nil
     self.focusId = "play"
@@ -160,6 +160,7 @@ function ZeD_MMCredits:prerender()
     self._t = t
     local mult = 1
     if self.mode == "pause" then mult = 0 elseif self.mode == "fast" then mult = FAST elseif self.mode == "rewind" then mult = REWIND end
+    if self.roll == nil then self.roll = math.floor(vh * 0.35) end
     self.roll = self.roll + dt * T.px(SPEED) * mult
     local maxRoll = total + math.floor(vh / 2)
     if self.roll >= maxRoll then self.roll = maxRoll; if self.mode ~= "rewind" then self.mode = "pause" end end
@@ -226,7 +227,7 @@ function ZeD_MMCredits:joyX() self:setMode("fast") end
 function ZeD_MMCredits:joyY() self:setMode("rewind") end
 function ZeD_MMCredits:joyDir(dir)
     if dir == "up" or dir == "down" then
-        self.roll = math.max(0, self.roll + ((dir == "down") and 1 or -1) * ZeD.T.px(80))
+        self.roll = math.max(0, (self.roll or 0) + ((dir == "down") and 1 or -1) * ZeD.T.px(80))
         return
     end
     ZeD_MMWindow.joyDir(self, dir)
@@ -249,7 +250,7 @@ end
 function ZeD_MMCredits:close() self:back() end
 
 function ZeD_MMCredits:wheel(del)
-    self.roll = math.max(0, self.roll + del * ZeD.T.px(48))
+    self.roll = math.max(0, (self.roll or 0) + del * ZeD.T.px(48))
     return true
 end
 function ZeD_MMCredits:onMouseWheel(del) return MM.wheel(del) end

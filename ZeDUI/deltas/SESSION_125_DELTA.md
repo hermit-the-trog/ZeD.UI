@@ -342,3 +342,23 @@ Built (`ZeD_MainMenu.lua`): every game start from the desk (Continue, Load Game'
 
 Verified live (1080p window): the animation filmed frame by frame on its own, and in the real Continue path (the desk kept, the monitor switching off, then the QA save loading in 13 seconds); Continue by a real click loaded the save twice (12 s).
 Not seen live: the hand-off from Load Game's PLAY, New Game's PLAY and the tutorial (same call), a real controller.
+
+
+## Click audit of the menus (director, Oct 15 2026: "Would a click audit be worth while? Make sure interactions are working as intended")
+
+Checked fullscreen at 4K (the director's rig, UI scale 1.5x), as the director asked.
+
+How: a QA overlay (`MM.debugHits = true` through the bridge) outlines every click area of the desk, the menu bar, the pull-downs and the view's window (magenta, disabled grey) and each window's close box (cyan); `ZeDUI/tools/qa/zedqa_menu_audit.lua` walks every screen (the five pull-downs, Load Game, New Game, the mod manager, every Options page, Credits, Join, Host, Server Settings and its name form, then map / spawn, sandbox, occupation and traits, the character's looks, and back), lets each draw, reports click areas outside their window, overlapping or zero-sized, and screenshots each with the overlay (`ZeDUI/qa/S125_click_audit/`). The pause window, the in-game Options and the in-game window pair were checked by hand.
+
+Result: on all 27 screens the click areas sit exactly on what is drawn; none outside a window or zero-sized; the one overlap (a mod row under its tick box and star) is the intended order (the tick box and the star answer first).
+
+Fixed:
+- The close box (director: "the drawn box of the close button is in the wrong spot"). Every ZeD window worked out its close box once, when built; the main menu's windows are built before the 4K scale settles, so their box stayed 1x in the corner of a larger title bar (drawn and clicked there). It now follows the current scale every frame, for every ZeD window (KB Q231). Seen right at 4K on the menu windows and on the Character and World windows in game.
+- The pause window's MODS "error". It opened vanilla's mod list, small and unstyled in the screen's corner, which read "[ERRORS] ZeD UI" in red. ZeD had no error: vanilla's host screen asks for a colour 42.21 does not have ("ProgressYellow"), its warning walks the Lua stack, and ZeD's main menu hook was on that stack, so the engine marked ZeD (KB Q230). That colour is now answered quietly; the flag stayed clear at the menu, through a load and in play.
+- MODS on the pause window now opens a Mods page in the window: the game's mods by name with their IDs, and vanilla's own word in place of the ID with a red dot when it has one (not found, not available, errors this session). BACK (or B) returns; reopening the pause window starts on its main page.
+- Options, Controller page: the deadzone was four broken rows (a label, a stray box, "Select Gamepad", another box). It is one row now: Deadzone, - value +, on vanilla's buttons; off with "Pick a Test Controller below" until a controller is chosen under Test Controller; the D-pad's left / right step it. Vanilla's own value showed one press behind (it reads the value before the engine applies it); the row reads it live (KB Q232). Verified with the director's controller: 0.20 -> 0.25 -> 0.20 (left as it was), the test controller set back to None.
+- Credits started below an empty box for several seconds (it looked broken); the roll now starts a third of the way up, the first titles in view.
+
+The loading screen's text (director: "can that be larger?"): it is drawn by the engine in ZeD's fonts at the size of the game's Font Size option (Options > User Interface > Font Size; the rig is on 19px). "Scale with window height" picks the 38px fonts at 4K (19px at 1080p), so the loading text doubles on the 4K rig while ZeD's own windows keep their size (KB Q233). Not changed: it is the director's setting.
+
+Not seen live: a real controller driving the pause Mods page and the deadzone row (simulated / mouse only).
