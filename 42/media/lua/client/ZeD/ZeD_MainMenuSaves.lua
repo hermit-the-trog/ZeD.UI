@@ -46,6 +46,13 @@ local function plain(s) return (tostring(s or ""):gsub("<[^>]*>", " "):gsub("%s+
 local function stripSpecs(win, y, w, row, lefts, rights)
     local T = ZeD.T
     local f3 = T.fontF3
+    -- the strip's background goes down here, before the window's children draw: a field in
+    -- the strip (a rename, a preset name, a password) is a child and must show over it
+    local s2, bs = T.surf2, T.borderS
+    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    win:drawRect(T.px(1), y, w - T.px(2), stripH, 1, s2.r, s2.g, s2.b)
+    win:drawRect(T.px(1), y, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
+    win._stripBgAt = y
     local by, bh = y + T.px(U.STRIP_PAD_Y), T.px(U.STRIP_BTN_H)
     local function bw(text) return MM.textW(f3, text) + T.px(U.STRIP_BTN_PAD) * 2 end
     local col = 0
@@ -73,8 +80,10 @@ local function drawStripAndButtons(win, stripY, stripH, ask, askX)
     local T = ZeD.T
     local w = win.width
     local s2, bs = T.surf2, T.borderS
-    win:drawRect(T.px(1), stripY, w - T.px(2), stripH, 1, s2.r, s2.g, s2.b)
-    win:drawRect(T.px(1), stripY, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
+    if win._stripBgAt ~= stripY then   -- (stripSpecs already laid it under the children)
+        win:drawRect(T.px(1), stripY, w - T.px(2), stripH, 1, s2.r, s2.g, s2.b)
+        win:drawRect(T.px(1), stripY, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
+    end
     if ask then
         local f2, c = T.fontF2, T.text
         win:drawText(ask, askX or (T.px(U.STRIP_PAD_X) + T.px(4)), stripY + math.floor((stripH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
