@@ -35,7 +35,9 @@ function panel:prerender()
     local x = 20
     for _, e in ipairs(self.batch or {}) do
         local w, h = e.t:getWidthOrig() * K, e.t:getHeightOrig() * K
-        self:drawTextureScaledAspect(e.t, x, 15, w, h, 1, 1, 1, 1)
+        -- vanilla's own call: the packed drawing is trimmed, and only this one puts it back at
+        -- its offset inside the 263 x 600 canvas (an aspect fit centres the trimmed part)
+        self:drawTextureScaledUniform(e.t, x, 15, K, 1, 1, 1, 1)
         e.rect = { x = x, y = 15, w = w, h = h }
         x = x + w + 40
     end
