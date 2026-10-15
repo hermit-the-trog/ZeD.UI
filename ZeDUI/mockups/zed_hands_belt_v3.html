@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Hands and Belt v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Hands and hotbar, mockup v3 (Oct 14 2026)
+   HOOK_MAP rows 5 + 6: vanilla's hotbar (ISHotbar) and the hand slots of the
+   left-edge column (ISEquippedItem) become one HUD piece, managed from the
+   Character window's Equip tab. v1 (a physical belt-and-gloves prop) and v2
+   (a plain ZeD strip) led to the director's sketch:
+       [Main Hand] ==[3]=[4]={buckle}=[5]=[6]== [secondary hand]
+   "Buckle decoration in the center then slots on each side of the buckle,
+   hands are squares on each side of the belt. The belt sits behind hotbar
+   boxes with the icon inside, the boxes are just a little larger than the
+   belt, peeking up and down." The boxes are ZeD GUI (they follow the base and
+   accent); the belt and buckle are decoration. Parts: Visual Catalog v2.0
+   M30 Hands compact, A04 fill bar, A06 badge, A14 status dot. Every number is
+   a DESIGN UNIT (1 px at 1080p); Zoom = root scale. Data is real 42.20.2
+   behaviour (see the parity table). Rules: Fira only, no emoji, status dots,
+   focus = 0.55 accent.
+   ============================================================================ */
+:root {
+  --base:#050505; --surf1:#111111; --surf2:#191919; --surf3:#202020; --surf4:#292929;
+  --border:#353535; --borderS:#555555;
+  --text:rgba(255,255,255,.95); --textDim:rgba(199,199,199,.75);
+  --danger:#FF5533; --warning:#FFCC22; --positive:#44DD44; --info:#4FA8E0;
+  --accent:#D4922A; --accentBright:#E8A830; --onAccent:#0C0C0C;
+  --a22:rgba(212,146,42,.22); --a55:rgba(212,146,42,.55);
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --leatherTop:#5c4129; --leatherBot:#3b2a1b; --stitch:rgba(214,178,118,.55); --brassA:#e2c070; --brassB:#9c7428; --brassC:#4a3812;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1060px; }
+.sketch { font-family:var(--mono); font-size:12px; color:#e8d8a8; margin:8px 0 0; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1060px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.stage-wrap { overflow:auto; padding-bottom:6px; }
+.stage { position:relative; width:1120px; height:600px; border:1px solid #2a2924; overflow:hidden;
+  background:radial-gradient(ellipse at 50% 40%, #2c3324 0%, #20261a 55%, #161a12 100%); }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1060px; line-height:1.5; }
+
+/* window chrome (same as the live World window) */
+.win { position:absolute; left:18px; top:18px; width:924px; height:420px; background:color-mix(in srgb, var(--base) 95%, transparent); border:1px solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tbar { height:26px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--borderS); background:repeating-linear-gradient(to bottom, var(--surf3) 0 1px, var(--surf2) 1px 2px); }
+.closebox { width:13px; height:13px; border:1px solid var(--textDim); background:var(--surf2); }
+.tbar .ttl, .tbar .tab { font-family:var(--mono); font-size:12px; background:var(--surf2); padding:0 6px; display:flex; align-items:center; gap:6px; }
+.tbar .ttl b { font-weight:400; color:var(--textDim); margin-left:8px; }
+.tbar .sp { flex:1; }
+.dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; }
+.dot.pos { background:var(--positive); } .dot.warn { background:var(--warning); } .dot.dng { background:var(--danger); } .dot.off { background:transparent; border:1px solid var(--textDim); } .dot.inf { background:var(--info); }
+.wbody { flex:1; display:flex; min-height:0; }
+.wfoot { height:16px; flex:none; border-top:1px solid var(--borderS); background:var(--surf2); display:flex; align-items:center; gap:3px; padding:0 3px; }
+.wfoot .mini { width:12px; height:12px; border:1px solid var(--border); font-family:var(--cond); font-size:9px; color:var(--textDim); display:flex; align-items:center; justify-content:center; }
+.wfoot .prompts { display:flex; gap:12px; margin-left:12px; font-family:var(--mono); font-size:10px; align-items:center; }
+.glyph { display:inline-flex; width:12px; height:12px; border-radius:50%; font-family:var(--sans); font-weight:600; font-size:8px; color:#0c0c0c; align-items:center; justify-content:center; margin-right:4px; }
+.g-a { background:#5dbb3a; } .g-b { background:#d9452b; } .g-x { background:#3d7bd9; } .g-y { background:#e3b52a; }
+.wfoot .grip { margin-left:auto; width:12px; height:12px; background:repeating-linear-gradient(135deg, transparent 0 3px, var(--textDim) 3px 4px); opacity:.6; }
+.cstrip { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); }
+.cbtn { width:36px; height:36px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.cbtn.on { background:var(--accent); }
+.inv { width:372px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--borderS); background:var(--surf1); }
+.invh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.invh .h { font-family:var(--cond); font-weight:600; font-size:15px; } .invh .n { margin-left:auto; font-family:var(--cond); font-size:10px; color:var(--textDim); }
+.colh { height:20px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.colh .u { text-decoration:underline; text-underline-offset:2px; color:var(--text); }
+.irow { height:24px; display:grid; grid-template-columns:34px 1fr 64px 60px 34px; align-items:center; padding:0 6px; border-bottom:1px solid var(--border); font-size:13px; font-weight:500; }
+.irow .ct { font-family:var(--mono); font-size:10px; color:var(--accent); } .irow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.irow .ds { font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.cath { height:18px; display:flex; align-items:center; padding:0 6px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.tstrip { width:36px; flex:none; border-left:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.tbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accent); opacity:.8; }
+.tbtn.on { background:var(--accent); color:var(--onAccent); opacity:1; }
+.tsep { height:1px; background:var(--borderS); margin:2px 4px; }
+
+/* ---------------------------------------------------------------------------
+   OBJECT CARD — the drawer card shared by every info surface
+   --------------------------------------------------------------------------- */
+.drawer { width:480px; flex:none; display:flex; flex-direction:column; background:var(--surf1); min-width:0; position:relative; }
+.dh { height:37px; flex:none; display:flex; align-items:center; gap:6px; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.bbtn { height:22px; min-width:22px; padding:0 7px; display:flex; align-items:center; justify-content:center; gap:5px; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--text); cursor:pointer; white-space:nowrap; }
+.bbtn.primary { background:var(--accent); color:var(--onAccent); border-top-color:var(--accentBright); border-left-color:var(--accentBright); }
+.bbtn.dis { opacity:.35; }
+.bbtn.focus { box-shadow:inset 0 0 0 100px var(--a55); }
+.bbtn.primary.focus { box-shadow:none; background:var(--accentBright); }
+.dh .ico { width:22px; height:22px; flex:none; border:1px solid var(--borderS); background:var(--surf1); display:flex; align-items:center; justify-content:center; }
+.dh .ico i { width:12px; height:12px; display:block; }
+.dh .nm { font-family:var(--cond); font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pill { height:16px; padding:0 7px; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; white-space:nowrap; border:1px solid currentColor; }
+.pill.pos { color:var(--positive); } .pill.dng { color:var(--danger); } .pill.dim { color:var(--textDim); } .pill.warn { color:var(--warning); }
+.browse { margin-left:auto; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--textDim); }
+.vbar { height:32px; flex:none; display:flex; align-items:center; gap:4px; padding:0 8px; border-bottom:1px solid var(--borderS); background:var(--surf1); }
+.ob { flex:1; overflow-y:auto; min-height:0; padding:8px 10px 10px; display:flex; flex-direction:column; gap:8px; }
+.ob::-webkit-scrollbar { width:14px; } .ob::-webkit-scrollbar-track { background:var(--surf1); border-left:1px solid var(--border); } .ob::-webkit-scrollbar-thumb { background:var(--surf4); border:1px solid var(--borderS); }
+.meter .lr { display:flex; align-items:baseline; justify-content:space-between; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); margin-bottom:4px; }
+.meter .lr .v { font-size:12px; color:var(--text); font-weight:500; letter-spacing:.5px; display:flex; gap:6px; align-items:center; }
+.fill { height:12px; background:var(--surf1); border:1px solid var(--borderS); position:relative; }
+.fill i { position:absolute; left:0; top:0; bottom:0; display:block; }
+.fill .zone { position:absolute; top:0; bottom:0; background:color-mix(in srgb, var(--info) 18%, transparent); border-left:1px solid color-mix(in srgb, var(--info) 60%, transparent); border-right:1px solid color-mix(in srgb, var(--info) 60%, transparent); }
+.fill i { z-index:1; }
+.cs { height:20px; display:flex; align-items:center; gap:6px; padding:0 2px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); border-bottom:1px solid var(--borderS); }
+.cs .c { margin-left:auto; font-weight:400; }
+.lrow { height:24px; display:grid; grid-template-columns:18px 1fr auto; gap:8px; align-items:center; padding:0 2px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.lrow .ic, .pick .ic { width:16px; height:16px; background:var(--surf3); border:1px solid var(--border); }
+.lrow .v { font-family:var(--mono); font-size:11px; color:var(--textDim); }
+.lrow.tot { font-family:var(--mono); font-size:11px; border-bottom:none; }
+.pick { height:26px; display:grid; grid-template-columns:18px 1fr auto auto auto; gap:8px; align-items:center; padding:0 2px; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.pick .loc { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.pick .gain { font-family:var(--mono); font-size:11px; color:var(--positive); }
+.pick.gpf { background:var(--a55); }
+.warnband { display:flex; gap:8px; align-items:flex-start; padding:7px 8px; border:1px solid var(--danger); background:color-mix(in srgb, var(--danger) 12%, transparent); font-size:12px; line-height:1.35; }
+.needs { font-family:var(--mono); font-size:10px; color:var(--textDim); display:flex; gap:6px; align-items:center; }
+.stat2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+.srow { height:20px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.srow .l { font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:1px; color:var(--accent); white-space:nowrap; }
+.srow .v { font-family:var(--mono); font-size:12px; color:var(--text); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.dfoot { height:32px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-top:1px solid var(--borderS); background:var(--surf2); font-size:12px; }
+.dfoot .msg { display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dfoot.confirm { background:color-mix(in srgb, var(--danger) 12%, var(--surf2)); }
+.dfoot .sp { flex:1; }
+
+
+.win { left:18px; top:18px; width:924px; height:420px; }
+.charwin .wbody { flex-direction:row; overflow:hidden; }
+.charwin .drawer, .charwin .inv { overflow:hidden; }
+.charwin .drawer > *, .charwin .inv > * { flex:none; }
+.dim { color:var(--textDim); }
+.groundtex { position:absolute; inset:0; background:repeating-linear-gradient(26deg, rgba(0,0,0,.05) 0 2px, transparent 2px 22px), repeating-linear-gradient(-26deg, rgba(0,0,0,.05) 0 2px, transparent 2px 22px); }
+.who { position:absolute; left:540px; top:250px; }
+
+/* ---------------------------------------------------------------------------
+   THE BELT: [main hand] == slots {buckle} slots == [off hand]
+   The strap and buckle are decoration (leather and brass, theme-neutral like
+   the watch); the boxes on it are ZeD GUI and a little taller than the strap.
+   --------------------------------------------------------------------------- */
+.belt3 { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; color:var(--text); }
+.strap { position:relative; height:30px; display:flex; align-items:center; gap:14px; padding:0 12px;
+  background:linear-gradient(var(--leatherTop), var(--leatherBot)); border-top:1px solid #1a1108; border-bottom:1px solid #1a1108; }
+.strap::before, .strap::after { content:""; position:absolute; left:4px; right:4px; height:0; border-top:1px dashed var(--stitch); }
+.strap::before { top:4px; } .strap::after { bottom:4px; }
+.strap .side { position:relative; z-index:1; display:flex; gap:7px; }
+.buckle { position:relative; z-index:1; width:38px; height:40px; flex:none; }
+.buckle svg { display:block; }
+.box { position:relative; width:44px; height:44px; flex:none; background:var(--surf2); border:1px solid var(--borderS); display:flex; align-items:center; justify-content:center; }
+.box.hand { width:52px; height:52px; }
+.box svg { display:block; }
+.box .key { position:absolute; left:-1px; top:-1px; min-width:13px; height:12px; padding:0 3px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:8.5px; background:var(--accent); color:var(--onAccent); }
+.box .key.none { background:var(--surf3); color:var(--textDim); }
+.box .wb { position:absolute; left:3px; right:3px; bottom:2px; height:3px; background:var(--surf3); } .box .wb i { display:block; height:100%; }
+.box .lamp { position:absolute; right:3px; top:3px; width:6px; height:6px; border-radius:50%; background:var(--warning); }
+.box .nm { font-family:var(--mono); font-weight:700; font-size:7.5px; letter-spacing:.5px; color:var(--textDim); text-align:center; line-height:9px; }
+.box .tag { position:absolute; left:0; right:0; bottom:2px; text-align:center; font-family:var(--mono); font-weight:700; font-size:7px; letter-spacing:.5px; color:var(--accent); }
+.box .ammo { position:absolute; right:-1px; top:-1px; height:12px; padding:0 3px; display:flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:8px; background:var(--surf4); color:var(--text); border-left:1px solid var(--borderS); border-bottom:1px solid var(--borderS); }
+.box.empty { background:var(--surf1); }
+.box.inhand { border:1px dashed var(--accent); }
+.box.inhand svg, .box.ghost svg { opacity:.25; }
+.box.fit { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, var(--surf2)); }
+.box.fitHover { border:2px solid var(--accent); background:var(--a22); }
+.box.dimmed { opacity:.4; }
+.box .gpf { position:absolute; inset:-3px; background:var(--a55); pointer-events:none; }
+
+.hud-tip { position:absolute; background:var(--surf1); border:1px solid var(--borderS); padding:7px 9px 8px; min-width:200px; color:var(--text); font-size:12px; }
+.hud-tip .t { font-family:var(--cond); font-weight:600; font-size:14px; }
+.hud-tip .s { font-family:var(--mono); font-size:9px; letter-spacing:1px; color:var(--accent); margin:2px 0 6px; }
+.hud-tip .r { display:flex; justify-content:space-between; gap:14px; font-family:var(--mono); font-size:10px; margin-top:2px; white-space:nowrap; }
+.hud-tip .bar { height:4px; background:var(--surf3); margin-top:4px; } .hud-tip .bar i { display:block; height:100%; background:var(--positive); }
+.pop { position:absolute; background:var(--surf1); border:1px solid var(--borderS); min-width:220px; color:var(--text); }
+.pop .ph { height:22px; display:flex; align-items:center; padding:0 8px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--accent); background:var(--surf2); border-bottom:1px solid var(--borderS); }
+.pop .po { height:26px; display:grid; grid-template-columns:22px 1fr auto; gap:8px; align-items:center; padding:0 8px; font-size:12px; font-weight:500; border-bottom:1px solid var(--border); }
+.pop .po .ic { width:18px; height:18px; display:flex; align-items:center; justify-content:center; }
+.pop .po small { font-family:var(--mono); font-size:9px; color:var(--textDim); }
+.pop .po.hl { background:var(--a55); }
+.pop .po.rem { color:var(--danger); }
+.ghostdrag { position:absolute; opacity:.9; z-index:5; }
+.ghostdrag .lbl { position:absolute; left:28px; top:22px; font-family:var(--mono); font-size:10px; background:var(--surf2); border:1px solid var(--borderS); padding:1px 5px; color:var(--text); white-space:nowrap; }
+.prompts2 { position:absolute; display:flex; flex-direction:column; gap:4px; font-family:var(--mono); font-size:10px; color:#e8e2d6; }
+
+/* Character window, Equip tab (approved language) */
+.ctabs { width:36px; flex:none; border-right:1px solid var(--borderS); background:var(--surf1); display:flex; flex-direction:column; }
+.eqh { height:37px; flex:none; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--cond); font-weight:600; font-size:15px; }
+.eqcol { height:20px; display:grid; grid-template-columns:30px 1fr 64px 70px 40px; align-items:center; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--borderS); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); }
+.eqcat { height:20px; display:flex; align-items:center; padding:0 8px; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:9px; color:var(--accent); letter-spacing:.5px; }
+.eqrow { height:26px; display:grid; grid-template-columns:30px 1fr 64px 70px 40px; align-items:center; padding:0 8px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.eqrow .sl { font-family:var(--mono); font-size:10px; color:var(--accent); }
+.eqrow .wt { font-family:var(--mono); font-size:10px; color:var(--textDim); text-align:right; }
+.cbar { height:3px; width:52px; background:var(--surf3); } .cbar i { display:block; height:100%; background:var(--positive); }
+.ic { width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
+.bsec { height:22px; display:flex; align-items:center; gap:6px; padding:0 8px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--textDim); border-bottom:1px solid var(--borderS); margin-top:6px; }
+.bsec .c { margin-left:auto; font-weight:400; }
+.brow { height:30px; display:grid; grid-template-columns:24px 22px 1fr auto; gap:8px; align-items:center; padding:0 8px; border-bottom:1px solid var(--border); font-size:12px; font-weight:500; }
+.brow .key { width:18px; height:16px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:700; font-size:10px; color:var(--onAccent); background:var(--accent); }
+.brow .key.none { background:var(--surf3); color:var(--textDim); }
+.brow small { display:block; font-family:var(--mono); font-size:9px; color:var(--textDim); font-weight:400; }
+.brow .acts { display:flex; gap:4px; align-items:center; }
+.brow.gpf { background:var(--a55); }
+.tagb { height:14px; padding:0 5px; display:inline-flex; align-items:center; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.5px; color:var(--accent); border:1px solid var(--accent); white-space:nowrap; }
+.irow .tagb { margin-left:6px; }
+.sbtn { height:20px; padding:0 7px; display:inline-flex; align-items:center; background:var(--surf3); border-top:1px solid var(--surf4); border-left:1px solid var(--surf4); border-right:1px solid #000; border-bottom:1px solid #000; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:1px; color:var(--text); }
+.sbtn.primary { background:var(--accent); color:var(--onAccent); }
+
+
+
+/* notes */
+.notes { max-width:1060px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes p, .notes li { font-size:13px; line-height:1.6; color:#c4bfb1; }
+.notes ol { padding-left:20px; } .notes li { margin-bottom:8px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+table.parity { border-collapse:collapse; width:100%; font-size:12px; }
+table.parity th, table.parity td { border:1px solid #34322c; padding:5px 8px; text-align:left; vertical-align:top; color:#c4bfb1; line-height:1.45; }
+table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#d8c070; background:#17160f; text-transform:uppercase; }
+
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI · HUD + Character window · hands and hotbar · mockup v3</div>
+<h1>Hands and the belt</h1>
+<p class="lede">Vanilla shows what you hold as two grey circles in the top-left corner and what hangs on you as a bar of numbered squares at the bottom; a controller player gets no bar at all. Here, to the director's sketch, one belt runs along the bottom centre: the main hand as a square at its left end, the off hand at its right end, a buckle in the middle, and the hotbar slots on either side of the buckle as ZeD boxes sitting on the strap, a little taller than it. The Character window's Equip tab manages it. Switch the scenes above.</p>
+<p class="sketch">[Main Hand] ==[1]=[2]={buckle}=[3]=[4]=[5]== [Secondary hand]</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlState"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlInput"></div></div>
+  <div class="ctl"><span>Round counter (your call)</span><div class="seg" id="ctlAmmo"></div></div>
+  <div class="ctl"><span>Base</span><div class="seg" id="ctlBase"></div></div>
+  <div class="ctl"><span>World accent</span><div class="swatches" id="ctlAccent"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap"><div class="stage" id="stage">
+  <div class="groundtex"></div>
+  <div id="world"></div>
+  <div id="over"></div>
+  <div id="strip"></div>
+</div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>One belt across the bottom centre.</b> To your sketch: the main hand as a square at the belt's left end, the off hand at its right end, a buckle in the middle, the hotbar slots on either side of the buckle. The slots are ZeD boxes on the strap, a little taller than it, so they peek above and below; the boxes follow the base and accent, the strap and buckle are leather and brass decoration. In single player the vanilla left-edge column goes entirely (its window buttons already went).</li>
+      <li><span class="rec">RECOMMEND</span><b>Slots in key order around the buckle.</b> The first half of the slots sit left of the buckle (the odd one too), the rest right of it, numbered left to right. Each box carries the key that draws it in an accent badge (the key you bound, not the slot's position as vanilla prints); slots past the eighth have no key, as in vanilla. An empty slot shows its name in the box (BACK, BELT L, HOLSTER...); the full name is in the tooltip and the Equip tab. Slots come and go with what you wear and keep their numbers (vanilla's rule), so the buckle stays in the middle as the belt grows.</li>
+      <li><span class="rec">RECOMMEND</span><b>Hands at the ends.</b> The main hand is the left square, the off hand the right one, a little larger than the slots; empty, each shows PRIMARY or SECONDARY. A two-handed weapon sits in the main hand, and the off hand shows it faded with BOTH, since the hands are now apart (vanilla simply draws it twice). An item drawn from the belt leaves its box dashed and faded with IN HAND; a flashlight or walkie that is on carries a lamp dot.</li>
+      <li><span class="rec">RECOMMEND</span><b>Every item shows its condition.</b> A thin bar along the bottom of each box, in a hand or on the belt, in the inventory rows' colours (green, amber below 60%, red below 30%). Vanilla shows condition only in the tooltip.</li>
+      <li><span class="rec">RECOMMEND</span><b>Vanilla's controls, plus the missing ones.</b> A number key tapped draws the item or puts it back; held, it opens what fits that slot (instead of vanilla's radial), with REMOVE. Clicking a box does what its key does; right-click opens the item's menu with Attach. Dragging from your bags onto a box attaches it: the boxes that fit light up, the rest dim, and an occupied one says what it replaces. Dragging onto a hand equips it there. New: dragging an item off the belt into your bags detaches it, and dragging it from a slot to a hand draws it.</li>
+      <li><span class="rec">RECOMMEND</span><b>Controllers get the belt.</b> Vanilla hides the hotbar from controller players and gives them the D-pad Left wheel (every weapon in the bags and the best light). Here D-pad Left focuses the belt: left and right walk from the main hand through the slots to the off hand, A draws or puts back, X opens the slot's list, B leaves. Above it, IN YOUR BAGS carries the rest of the old wheel: the other weapons and the best light.</li>
+      <li><span class="rec">RECOMMEND</span><b>The Character window manages it.</b> The Equip tab's HELD + BELT group lists both hands and every belt slot with its key, what fills it and which worn item gives the slot, with ATTACH (what fits) and DETACH. Items on the belt carry a BELT n tag in the inventory lists, where vanilla puts its small hotbar icon.</li>
+      <li><span class="alt">YOUR CALL</span><b>A round counter for the gun in hand.</b> Vanilla shows the rounds only in the gun's tooltip; hardcore players count their shots. Option: a small counter in the main-hand square (11+1/15). Leaving it out keeps vanilla's stakes. Try it with the Round counter control.</li>
+      <li><span class="rec">RECOMMEND</span><b>Where it shows.</b> Hidden while you sit in a vehicle, because the dashboard takes the bottom centre (vanilla hides the bar only for the driver); the number keys keep working. Toggle UI hides it too. In split screen it belongs to player one, as in vanilla. In multiplayer the vanilla column keeps only its server buttons (safety, user, admin, war) until a multiplayer pass; Debug stays under -debug.</li>
+      <li><b>Vanilla bugs fixed on the way.</b> The bar prints the slot's position, so rebound keys show the wrong numbers. Controller players get no bar. The hand slots' "Primary" and "Secondary" labels never show. Nothing can be dragged off the bar.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Everything vanilla does, and where it goes</h2>
+    <table class="parity">
+      <tr><th style="width:38%">Vanilla</th><th>ZeD</th></tr>
+      <tr><td><b>Hotbar:</b> a bar of 60-pixel squares at the bottom centre; hidden for controller players, split-screen players 2-4 and the driver (passengers see it); Toggle UI hides it.</td><td>The belt at the bottom centre for mouse and controller, player one; hidden in any vehicle seat (the dashboard's place) and with Toggle UI; keys still work.</td></tr>
+      <tr><td><b>Slots:</b> Back always; worn items add theirs (Belt: Belt Left + Right; holsters; ALICE webbing; backpack bottoms); new ones go to the end so numbers stay; the order is saved on the character; removing the belt silently detaches its items.</td><td>The same slots, rules and saved order, one box each around the buckle; a slot that leaves takes only its box (the items stay in your bags, as in vanilla).</td></tr>
+      <tr><td><b>Per slot:</b> its position number, the item icon, a small marker when the item is in a hand, the provider's picture faded when empty, the slot name above the bar on hover, a dragged item previewed (red when it does not fit), the item tooltip on hover.</td><td>The bound key in an accent badge, the item with its condition bar, IN HAND dashed and faded, the slot's name in the box when empty, fitting boxes lit and the rest dimmed while dragging, "Replace" on an occupied one, the item tooltip with its slot and key.</td></tr>
+      <tr><td><b>Keys:</b> Hotbar 1-8 (default 1-8). Tap: draw into a hand (non-weapons to the off hand), or put back if held; a lamp or walkie on the belt toggles in place. Hold 500 ms: a radial of what fits, Remove. Fishing swallows the keys.</td><td>The same tap and toggle; hold opens the slot's list (what fits, REMOVE); fishing still swallows them.</td></tr>
+      <tr><td><b>Mouse:</b> click = the slot's key; right-click = the item's menu plus Attach (main-inventory items that fit; "No items available."); drag onto a slot attaches (replacing the occupant); nothing drags off.</td><td>The same, plus dragging off into the bags (detach) and onto a hand (draw).</td></tr>
+      <tr><td><b>Attach / detach:</b> inventory menu Attach (each fitting slot; "Replace:" tooltip; "Can be attached to:" when none fits) and "Remove %1 from %2"; animated actions (attach 30, detach 25 ticks).</td><td>Kept as they are; the Equip tab's ATTACH and DETACH and the belt's lists run the same actions.</td></tr>
+      <tr><td><b>Hand slots</b> (left column): hand silhouettes with the held items (a two-handed one twice), drag onto them to equip (top: primary, bottom: secondary, between: both), right-click for the item's menu, the item tooltip; size from the Sidebar Icon Size option.</td><td>The main-hand square (left end) and the off-hand square (right end): the same drops (a two-handed item dropped on either goes to both), right-click menu and tooltip; a two-handed item in the main hand, the off hand faded with BOTH; sized with the ZeD UI scale.</td></tr>
+      <tr><td><b>Left column buttons:</b> Inventory, Health, Crafting, Building, Furniture, Search, Zones, Map (hidden by ZeD since S124); Debug and Animation Recording (debug only); Safety, User Panel, Admin, War (multiplayer).</td><td>Gone in single player; Debug stays under -debug; the multiplayer buttons stay until a multiplayer pass.</td></tr>
+      <tr><td><b>Controller:</b> no hotbar; D-pad Left wheel = every weapon in the bags (equip primary or put away) and the best light (off hand, or toggle).</td><td>D-pad Left focuses the belt; IN YOUR BAGS above it carries the other weapons and the best light.</td></tr>
+      <tr><td><b>Inventory:</b> attached items get a small hotbar icon and are listed first; Transfer All skips them.</td><td>A BELT n tag in the Character window's lists; the rest unchanged.</td></tr>
+      <tr><td><b>Weight:</b> attached items count 70%, held or worn 30%.</td><td>Unchanged (no new readout).</td></tr>
+    </table>
+
+  </div>
+</section>
+
+<script>
+const S = { state:"walking", input:"mouse", ammo:"off", base:"hicon", accent:"orange", zoom:1 };
+const STATES = [["walking","On the belt"],["bat","Drawn: two hands"],["pistol","Drawn: pistol + light"],["hover","Hover"],["drag","Dragging onto the belt"],["hold","Holding a key"],["pad","Controller"],["nobelt","Only the back slot"],["window","Character window"]];
+const $ = id => document.getElementById(id);
+const gp = () => S.input === "gamepad";
+const DOT = "&middot;";
+
+const CAPTIONS = {
+  walking:"Walking with a full belt and empty hands: the bat (back), the hammer (belt left) and the hunting knife (belt right) left of the buckle; the pistol (holster) and the flashlight (shoulder holster) right of it (an odd slot goes left). The badges are the keys; the bars are each item's condition (the flashlight is nearly worn out).",
+  bat:"Key 1 drew the bat: it sits in the main hand with its condition, and the off hand shows it faded with BOTH, since it takes both hands; its slot keeps its outline, dashed, IN HAND.",
+  pistol:"Key 4 drew the pistol into the main hand and key 5 the flashlight into the off hand (a non-weapon goes to the off hand, vanilla's rule); the flashlight is on, so its square carries the lamp dot. With the Round counter control on, the main hand shows 11+1/15.",
+  hover:"The pointer over slot 3: the item tooltip, with the slot it hangs in and the key that draws it.",
+  drag:"Dragging a crowbar from the Character window: the back slot lights (it takes big weapons) and says what it would replace; the others, which cannot take it, dim. Dropping it on a hand would equip it instead.",
+  hold:"Key 3 held: what fits Belt Right from your inventory (screwdriver, wrench, kitchen knife) and REMOVE for the knife in it, instead of vanilla's radial.",
+  pad:"On a controller, D-pad Left focuses the belt (vanilla's weapon wheel lived there): left and right walk from the main hand through the slots to the off hand, A draws or puts back, X opens the slot's list, B leaves. IN YOUR BAGS carries the rest of the old wheel.",
+  nobelt:"No belt worn: only the back slot, which is always there, left of the buckle. A belt adds Belt Left and Belt Right, a holster its holster; new slots go to the end, so the keys you know keep their numbers, and the buckle stays in the middle.",
+  window:"The Character window's Equip tab: HELD + BELT lists both hands and every belt slot with its key, what fills it and which worn item gives the slot, with ATTACH and DETACH; belt items carry a BELT n tag in the inventory list."
+};
+
+const IC = {
+  bat: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M6 38 L9 41 L36 12 Q40 7 37 5 Q34 3 30 8 Z" fill="#c8a26a" stroke="#3a2a14" stroke-width="1.2"/><circle cx="7" cy="39" r="3" fill="#8a6a3a" stroke="#3a2a14"/></svg>`,
+  hammer: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M10 38 L14 41 L30 18 L26 15 Z" fill="#a8743a" stroke="#2a1a0a"/><path d="M18 8 L34 22 L38 18 L30 10 L26 12 L22 6 Z" fill="#7c858e" stroke="#20252a"/></svg>`,
+  knife: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M8 37 L13 41 L20 33 L15 29 Z" fill="#3a2a1a" stroke="#120a04"/><path d="M15 29 L20 33 L39 9 Q38 5 35 6 Z" fill="#cfd5db" stroke="#4a5058"/></svg>`,
+  pistol: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M6 14 L38 14 L38 21 L20 21 L17 36 L9 36 L12 21 L6 21 Z" fill="#2a2d31" stroke="#0a0b0c"/><rect x="8" y="12" width="28" height="3" fill="#4a4f55"/></svg>`,
+  flashlight: (s, on) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44">${on ? `<path d="M30 10 L44 2 L44 30 L34 22 Z" fill="rgba(255,226,140,.45)"/>` : ""}<rect x="6" y="18" width="20" height="9" fill="#3d5f8a" stroke="#14202e"/><path d="M26 15 L33 13 L33 32 L26 30 Z" fill="#5b7fae" stroke="#14202e"/><rect x="33" y="13" width="2" height="19" fill="${on ? "#ffe28c" : "#c9d2dc"}"/></svg>`,
+  crowbar: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M8 38 L36 10 Q40 6 36 4 Q33 3 31 6" fill="none" stroke="#b02a22" stroke-width="4" stroke-linecap="round"/></svg>`,
+  screwdriver: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M8 36 L14 42 L20 36 L14 30 Z" fill="#d8b23a" stroke="#4a3a0a"/><path d="M17 33 L36 14" stroke="#aab2ba" stroke-width="3"/></svg>`,
+  wrench: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M10 37 L30 15" stroke="#8a929a" stroke-width="5" stroke-linecap="round"/><path d="M27 8 Q36 4 38 13 L34 13 L32 16 L28 13 Z" fill="#8a929a" stroke="#30353a"/></svg>`,
+  kitchen: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M8 37 L13 41 L19 34 L14 30 Z" fill="#1a1a1a"/><path d="M14 30 L19 34 L38 12 L33 8 Z" fill="#dfe4e8" stroke="#5a6068"/></svg>`,
+  axe: (s) => `<svg width="${s}" height="${s}" viewBox="0 0 44 44"><path d="M8 40 L12 42 L34 10 L30 8 Z" fill="#b08a52" stroke="#3a2a14"/><path d="M26 4 Q40 6 40 18 L32 14 L28 10 Z" fill="#a03024" stroke="#3a0a08"/></svg>`,
+};
+function icon(id, s, extra) { return IC[id] ? IC[id](s, extra) : ""; }
+
+
+/* ---------- the belt ---------- */
+const SLOTS_FULL = [
+  { key:"1", short:"BACK", item:"bat", wear:72 },
+  { key:"2", short:"BELT L", item:"hammer", wear:64 },
+  { key:"3", short:"BELT R", item:"knife", wear:91 },
+  { key:"4", short:"HOLSTER", item:"pistol", wear:88 },
+  { key:"5", short:"SHOULDER", item:"flashlight", wear:26 },
+];
+const BOX = 44, HAND = 52, GAP = 7, SIDE_GAP = 14, PAD = 12, BUCKLE = 38, END_GAP = 10;
+function wearBar(pct) {
+  if (pct == null) return "";
+  const c = pct > 60 ? "var(--positive)" : pct > 30 ? "var(--warning)" : "var(--danger)";
+  return `<span class="wb"><i style="width:${pct}%;background:${c}"></i></span>`;
+}
+function box(o) {
+  const cls = ["box"];
+  if (o.hand) cls.push("hand");
+  if (!o.item) cls.push("empty");
+  if (o.state) cls.push(o.state === "dim" ? "dimmed" : o.state);
+  if (o.ghost) cls.push("ghost");
+  const ic = o.item ? icon(o.item, o.hand ? 40 : 34, o.on) : `<span class="nm">${o.label}</span>`;
+  const key = o.key !== undefined ? `<span class="key${o.key ? "" : " none"}">${o.key || "-"}</span>` : "";
+  const lamp = o.on && o.state !== "inhand" ? `<span class="lamp"></span>` : "";
+  const ammo = o.ammo ? `<span class="ammo">${o.ammo}</span>` : "";
+  let foot = "";
+  if (o.state === "inhand") foot = `<span class="tag">IN HAND</span>`;
+  else if (o.ghost) foot = `<span class="tag">BOTH</span>`;
+  else if (o.item) foot = wearBar(o.wear);
+  return `<div class="${cls.join(" ")}">${ic}${key}${lamp}${ammo}${foot}${o.focus ? `<span class="gpf"></span>` : ""}</div>`;
+}
+const BUCKLE_SVG = `<svg width="38" height="40" viewBox="0 0 38 40"><defs><linearGradient id="br" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e2c070"/><stop offset="1" stop-color="#9c7428"/></linearGradient></defs>
+  <rect x="3" y="3" width="32" height="34" rx="3" fill="none" stroke="url(#br)" stroke-width="5"/><rect x="0.5" y="0.5" width="37" height="39" rx="5" fill="none" stroke="#4a3812" stroke-width="1"/>
+  <rect x="5.5" y="5.5" width="27" height="29" rx="1.5" fill="none" stroke="#4a3812" stroke-width="1"/><path d="M19 6 L19 34" stroke="url(#br)" stroke-width="3"/><path d="M19 6 L19 34" stroke="#4a3812" stroke-width=".8" opacity=".6"/></svg>`;
+function split(n) { return Math.ceil(n / 2); }
+function stripHTML(opts) {
+  const n = opts.slots.length, k = split(n);
+  const slot = i => box(Object.assign({}, opts.slots[i], { label: opts.slots[i].short, state: opts.slotState[i], focus: opts.focus === i }));
+  let left = "", right = "";
+  for (let i = 0; i < n; i++) (i < k ? (left += slot(i)) : (right += slot(i)));
+  const main = box({ hand: true, label: "PRIMARY", item: opts.primary && opts.primary.item, wear: opts.primary && opts.primary.wear, ammo: opts.primary && opts.primary.ammo, focus: opts.focusHand === "p" });
+  const off = opts.primary && opts.primary.two
+    ? box({ hand: true, label: "SECONDARY", item: opts.primary.item, ghost: true })
+    : box({ hand: true, label: "SECONDARY", item: opts.secondary && opts.secondary.item, on: opts.secondary && opts.secondary.on, wear: opts.secondary && opts.secondary.wear, focus: opts.focusHand === "s" });
+  return `<div class="belt3">${main}<div class="strap"><div class="side">${left}</div><div class="buckle">${BUCKLE_SVG}</div><div class="side">${right}</div></div>${off}</div>`;
+}
+// stage x of a slot box's centre (the belt is centred at 560)
+function sideW(c) { return c > 0 ? c * BOX + (c - 1) * GAP : 0; }
+function beltW(n) { const k = split(n); return HAND * 2 + END_GAP * 2 + PAD * 2 + sideW(k) + sideW(n - k) + SIDE_GAP * 2 + BUCKLE; }
+function slotX(i, n) {
+  const k = split(n), x0 = 560 - beltW(n) / 2 + HAND + END_GAP + PAD;
+  if (i < k) return x0 + i * (BOX + GAP) + BOX / 2;
+  return x0 + sideW(k) + SIDE_GAP + BUCKLE + SIDE_GAP + (i - k) * (BOX + GAP) + BOX / 2;
+}
+const BELT_TOP = 600 - 16 - 52;
+
+function tip(cx, name, slot, key, cond) {
+  return `<div class="hud-tip" style="left:${cx - 105}px;top:${BELT_TOP - 112}px"><div class="t">${name}</div><div class="s">${slot} ${DOT} KEY ${key}</div><div class="r"><span class="dim">CONDITION</span><span>${cond}%</span></div><div class="bar"><i style="width:${cond}%"></i></div><div class="r"><span class="dim">WEIGHT</span><span>0.6 (0.42 on the belt)</span></div></div>`;
+}
+
+function charWindow() {
+  const tabs = ["L","E","H","T","I","J","S"].map(k => `<div class="tbtn${k === "E" ? " on" : ""}">${k}</div>`).join("");
+  let d = `<div class="eqh">v Equipped</div><div class="eqcol"><span></span><span class="u" style="text-decoration:underline;color:var(--text)">NAME</span><span>SLOT</span><span>COND</span><span style="text-align:right">WT</span></div>`;
+  ["HEAD + FACE (1)","TORSO (2)","ARMS + HANDS (2)","LEGS + FEET (3)"].forEach(c => { d += `<div class="eqcat">&gt; ${c}</div>`; });
+  d += `<div class="eqcat">v HELD + BELT (4)</div>`;
+  const row = (ic, name, slot, cond, wt) => `<div class="eqrow"><span class="ic">${ic}</span><span>${name}</span><span class="sl">${slot}</span><span>${cond !== null ? `<span class="cbar"><i style="width:${cond}%"></i></span>` : ""}</span><span class="wt">${wt}</span></div>`;
+  d += row(icon("bat", 18), "Baseball Bat <span class='dim'>" + DOT + " both hands</span>", "PRI+SEC", 72, "1.5");
+  d += row(`<svg width="18" height="18" viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" fill="#6b4c33"/></svg>`, "Leather Belt", "BELT", 90, "0.2");
+  d += row(`<svg width="18" height="18" viewBox="0 0 20 20"><path d="M3 4 L17 4 L15 16 L5 16 Z" fill="#3a2819"/></svg>`, "Holster", "HOLSTER", 85, "0.2");
+  d += row(`<svg width="18" height="18" viewBox="0 0 20 20"><path d="M3 3 L8 3 L17 15 L13 17 Z" fill="#4d3522"/></svg>`, "Shoulder Holster", "VEST", 80, "0.3");
+  d += `<div class="bsec">THE BELT ${DOT} KEYS<span class="c">SLOT ${DOT} WHAT GIVES IT</span></div>`;
+  const brow = (k, ic, slot, item, from, acts, gpf) => `<div class="brow${gpf && gp() ? " gpf" : ""}"><span class="key${k ? "" : " none"}">${k || "-"}</span><span class="ic">${ic}</span><span>${item}<small>${slot.toUpperCase()} ${DOT} ${from}</small></span><span class="acts">${acts}</span></div>`;
+  d += brow("1", icon("bat", 18), "Back", "Baseball Bat", "ALWAYS THERE", `<span class="tagb">IN HAND</span><span class="sbtn">PUT BACK</span>`);
+  d += brow("2", icon("hammer", 18), "Belt Left", "Hammer", "FROM THE LEATHER BELT", `<span class="sbtn">DETACH</span>`, true);
+  d += brow("3", icon("knife", 18), "Belt Right", "Hunting Knife", "FROM THE LEATHER BELT", `<span class="sbtn">DETACH</span>`);
+  d += brow("4", "", "Holster Right", "<span class='dim'>Empty</span>", "FROM THE HOLSTER", `<span class="sbtn primary">ATTACH &#9662;</span>`);
+  d += brow("5", icon("flashlight", 18), "Shoulder Holster", "Flashlight", "FROM THE SHOULDER HOLSTER", `<span class="sbtn">DETACH</span>`);
+  const inv = [["pistol","Pistol","Weapon","0.9",""],["hammer","Hammer","Tool","1.0","BELT 2"],["knife","Hunting Knife","Weapon","0.6","BELT 3"],["flashlight","Flashlight","Light","0.6","BELT 5"],["crowbar","Crowbar","Weapon","2.0",""],["screwdriver","Screwdriver","Tool","0.2",""]];
+  let iv = `<div class="invh"><span class="h">Inventory</span><span class="n">6.1 / 12 ${DOT} 14 items</span></div><div class="colh"><span></span><span class="u">NAME</span><span>CAT</span><span></span><span>WT</span></div>`;
+  iv += inv.map(r => `<div class="irow"><span class="ic">${icon(r[0], 18)}</span><span>${r[1]}${r[4] ? `<span class="tagb">${r[4]}</span>` : ""}</span><span class="ct">${r[2]}</span><span></span><span class="wt">${r[3]}</span></div>`).join("");
+  return `<div class="win charwin"><div class="tbar"><div class="closebox"></div><div class="ttl">Melisa Wiggins<b>Equipment</b></div><div class="sp"></div><div class="tab"><span class="dot"></span>100% ${DOT} 6.1 / 12</div></div>
+    <div class="wbody"><div class="ctabs">${tabs}</div><div class="drawer" style="border-right:1px solid var(--borderS)">${d}</div><div class="inv" style="border-right:1px solid var(--borderS)">${iv}</div><div class="cstrip"><div class="cbtn on"></div><div class="cbtn"></div></div></div>
+    <div class="wfoot"><span class="mini">&bull;</span><span class="mini">A</span><span class="mini">R</span>${gp() ? `<span class="prompts"><span><span class="glyph g-a">A</span>Select</span><span><span class="glyph g-x">X</span>Options</span><span><span class="glyph g-b">B</span>Back</span></span>` : ""}<span class="grip"></span></div></div>`;
+}
+
+/* ---------- the survivor in the world ---------- */
+function person(holding) {
+  return `<svg class="who" width="60" height="110" viewBox="0 0 60 110"><ellipse cx="30" cy="104" rx="16" ry="5" fill="rgba(0,0,0,.35)"/><rect x="22" y="40" width="16" height="44" fill="#5a6b7a"/><rect x="23" y="82" width="6" height="22" fill="#3a3f45"/><rect x="31" y="82" width="6" height="22" fill="#3a3f45"/><circle cx="30" cy="30" r="9" fill="#c9a07a"/>${holding === "bat" ? `<path d="M38 60 L56 20" stroke="#c8a26a" stroke-width="5" stroke-linecap="round"/>` : ""}${holding === "pistol" ? `<path d="M38 56 L50 52" stroke="#2a2d31" stroke-width="5"/><path d="M22 58 L8 56" stroke="#3d5f8a" stroke-width="5"/><path d="M8 56 L-30 40 L-30 72 Z" fill="rgba(255,226,140,.25)"/>` : ""}</svg>`;
+}
+
+/* ---------- theme + render ---------- */
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+const THEMES = {
+  dark:  { base:"#0C0C0C", surf1:"#141414", surf2:"#1C1C1C", surf3:"#242424", surf4:"#2C2C2C", border:"#202020", borderS:"#383838", text:"rgba(218,218,218,.9)", textDim:"rgba(161,161,161,.65)", danger:"#C45A2A", warning:"#C49A2A", positive:"#7A9A34", info:"#4F88B0" },
+  light: { base:"#C6C6C6", surf1:"#BEBEBE", surf2:"#B6B6B6", surf3:"#AEAEAE", surf4:"#A6A6A6", border:"#969696", borderS:"#767676", text:"rgba(12,12,12,.95)", textDim:"rgba(12,12,12,.72)", danger:"#7A2A11", warning:"#6B5510", positive:"#2A5511", info:"#1F4F7A" },
+  hicon: { base:"#050505", surf1:"#111111", surf2:"#191919", surf3:"#202020", surf4:"#292929", border:"#353535", borderS:"#555555", text:"rgba(255,255,255,.95)", textDim:"rgba(199,199,199,.75)", danger:"#FF5533", warning:"#FFCC22", positive:"#44DD44", info:"#4FA8E0" }
+};
+const ACCENTS = { red:[["#CC4444","#EE6666","#0C0C0C"],["#7A1A1A","#AA3333","#F2F0EC"]], orange:[["#D4922A","#E8A830","#0C0C0C"],["#7A5010","#B07818","#F2F0EC"]], yellow:[["#CCAA22","#EEDD44","#0C0C0C"],["#6B5F0A","#998811","#F2F0EC"]], green:[["#44AA44","#66CC66","#0C0C0C"],["#1F5A1F","#2E7A2E","#F2F0EC"]], blue:[["#4488CC","#66AAEE","#0C0C0C"],["#1A3F6B","#2A5A99","#F2F0EC"]], teal:[["#47A18C","#5CC4AA","#0C0C0C"],["#1A5548","#257A66","#F2F0EC"]], purple:[["#8855BB","#AA77DD","#0C0C0C"],["#4A2A6B","#663D99","#F2F0EC"]], pink:[["#DD5588","#FF77AA","#0C0C0C"],["#7A1F44","#A8305F","#F2F0EC"]], mono:[["#888888","#AAAAAA","#0C0C0C"],["#3A3A3A","#555555","#F2F0EC"]] };
+
+
+
+
+function render() {
+  const r = document.documentElement.style;
+  Object.entries(THEMES[S.base]).forEach(([k, v]) => r.setProperty("--" + k, v));
+  const ac = ACCENTS[S.accent][S.base === "light" ? 1 : 0];
+  r.setProperty("--accent", ac[0]); r.setProperty("--accentBright", ac[1]); r.setProperty("--onAccent", ac[2]);
+  r.setProperty("--a22", hexA(ac[0], .22)); r.setProperty("--a55", hexA(ac[0], .55));
+  $("stage").style.zoom = S.zoom;
+  const sc = S.state;
+  const slots = SLOTS_FULL.map(x => Object.assign({}, x));
+  let opts = { slots, slotState: [] };
+  let over = "", world = person(null);
+  const n = slots.length;
+  if (sc === "bat") {
+    opts.primary = { item: "bat", wear: 72, two: true }; opts.slotState[0] = "inhand"; world = person("bat");
+  } else if (sc === "pistol") {
+    opts.primary = { item: "pistol", wear: 88, ammo: S.ammo === "on" ? "11+1/15" : null };
+    opts.secondary = { item: "flashlight", on: true, wear: 26 };
+    opts.slotState[3] = "inhand"; opts.slotState[4] = "inhand"; world = person("pistol");
+  } else if (sc === "hover") {
+    over = tip(slotX(2, n), "Hunting Knife", "BELT RIGHT", "3", 91);
+  } else if (sc === "drag") {
+    opts.slotState = ["fitHover", "dim", "dim", "dim", "dim"];
+    over = charWindow().replace('class="win charwin"', 'class="win charwin" style="height:340px"');
+    const x0 = slotX(0, n);
+    over += `<div class="ghostdrag" style="left:${x0 - 14}px;top:${BELT_TOP + 8}px">${icon("crowbar", 34)}<span class="lbl">Crowbar</span></div>`;
+    over += `<div class="hud-tip" style="left:${x0 - 60}px;top:${BELT_TOP - 74}px;min-width:170px"><div class="s" style="margin:0 0 4px">ATTACH TO BACK ${DOT} KEY 1</div><div class="r"><span class="dim">Replace:</span><span>Baseball Bat</span></div></div>`;
+  } else if (sc === "hold") {
+    const x = slotX(2, n);
+    over = `<div class="pop" style="left:${x - 110}px;top:${BELT_TOP - 140}px"><div class="ph">BELT RIGHT ${DOT} KEY 3</div>
+      <div class="po hl"><span class="ic">${icon("screwdriver", 18)}</span><span>Screwdriver</span><small>INVENTORY</small></div>
+      <div class="po"><span class="ic">${icon("wrench", 18)}</span><span>Wrench</span><small>INVENTORY</small></div>
+      <div class="po"><span class="ic">${icon("kitchen", 18)}</span><span>Kitchen Knife</span><small>INVENTORY</small></div>
+      <div class="po rem"><span class="ic">${icon("knife", 18)}</span><span>REMOVE Hunting Knife</span><small></small></div></div>`;
+  } else if (sc === "pad") {
+    opts.focus = 3;
+    over = `<div class="pop" style="left:${560 - 145}px;top:${BELT_TOP - 116}px;min-width:290px"><div class="ph">IN YOUR BAGS</div>
+      <div class="po"><span class="ic">${icon("crowbar", 18)}</span><span>Crowbar</span><small>BACKPACK</small></div>
+      <div class="po"><span class="ic">${icon("axe", 18)}</span><span>Hand Axe</span><small>BACKPACK</small></div>
+      <div class="po"><span class="ic">${icon("flashlight", 18)}</span><span>Best light: Flashlight</span><small>BELT 5</small></div></div>`;
+  } else if (sc === "nobelt") {
+    opts.slots = [{ key: "1", short: "BACK", item: "bat", wear: 72 }];
+  } else if (sc === "window") {
+    opts.primary = { item: "bat", wear: 72, two: true }; opts.slotState[0] = "inhand";
+    over = charWindow();
+  }
+  $("strip").innerHTML = stripHTML(opts);
+  $("over").innerHTML = over;
+  $("world").innerHTML = sc === "window" || sc === "drag" ? "" : world;
+  if (gp() && sc !== "window" && sc !== "drag") {
+    const right = 560 + beltW(opts.slots.length) / 2 + 14;
+    $("over").innerHTML += `<div class="prompts2" style="left:${right}px;bottom:22px">${sc === "pad"
+      ? `<span><span class="glyph g-a">A</span>Draw / put back</span><span><span class="glyph g-x">X</span>Slot list</span><span><span class="glyph g-b">B</span>Leave</span>`
+      : `<span style="opacity:.8">D-PAD LEFT: the belt</span>`}</div>`;
+  }
+  $("caption").textContent = CAPTIONS[sc] + (sc === "pistol" && S.ammo === "off" ? " (Round counter is off.)" : "");
+}
+
+function seg(id, items, cur, fn) { $(id).innerHTML = items.map(([k, l]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join(""); $(id).querySelectorAll("button").forEach(b => b.onclick = () => fn(b.dataset.k)); }
+function sync() {
+  seg("ctlState", STATES, S.state, k => { S.state = k; render(); sync(); });
+  seg("ctlInput", [["mouse","Mouse"],["gamepad","Gamepad"]], S.input, k => { S.input = k; render(); sync(); });
+  seg("ctlAmmo", [["off","Off"],["on","On"]], S.ammo, k => { S.ammo = k; render(); sync(); });
+  seg("ctlBase", [["hicon","High contrast"],["dark","Dark"],["light","Light"]], S.base, k => { S.base = k; render(); sync(); });
+  seg("ctlZoom", [["1","1x (1080p)"],["1.5","1.5x"],["2","2x (4K)"]], String(S.zoom), k => { S.zoom = +k; render(); sync(); });
+  $("ctlAccent").innerHTML = Object.keys(ACCENTS).map(k => `<button title="${k}" data-k="${k}" class="${k === S.accent ? "on" : ""}" style="background:${ACCENTS[k][0][0]}"></button>`).join("");
+  $("ctlAccent").querySelectorAll("button").forEach(b => b.onclick = () => { S.accent = b.dataset.k; render(); sync(); });
+}
+// #scene=pad&input=gamepad&ammo=on&base=light opens a view directly (review links)
+location.hash.slice(1).split("&").forEach(kv => { const [k, v] = kv.split("="); if (k === "scene" && CAPTIONS[v]) S.state = v; if (k === "input") S.input = v; if (k === "ammo") S.ammo = v; if (k === "base" && THEMES[v]) S.base = v; });
+sync(); render();
+</script>
+</body>
+</html>
