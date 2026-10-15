@@ -145,8 +145,9 @@ function ZeD_Window:footerHeight()
         local btnSz = T.iconSm + T.px(4)
         return btnSz + T.sp.sm * 2 + T.px(2)
     end
-    -- Theme controls footer: same height as grow box
-    if self.resizable then
+    -- Theme controls footer: same height as grow box. A fixed-size window
+    -- (the main menu's windows) can keep the footer with themeFooter = true.
+    if self.resizable or self.themeFooter then
         return self:resizeWidgetHeight()
     end
     return 0
@@ -328,8 +329,10 @@ function ZeD_Window:render()
         )
     end
 
-    -- Footer: theme controls + grow box (resizable windows only)
-    if self.resizable then
+    -- Footer: theme controls + grow box (resizable windows; themeFooter keeps
+    -- the controls on a fixed-size window, without the grow box; noResetControl
+    -- drops R where there are no Character / World windows to reset)
+    if self.resizable or self.themeFooter then
         local rh = self:resizeWidgetHeight()
         local fY = h - rh
         local bs = T.borderS
@@ -391,6 +394,7 @@ function ZeD_Window:render()
         btnX = btnX + rh + btnGap
 
         -- 4. Reset window position: "R" label
+        if not self.noResetControl then
         local bg4 = hoverIdx == 4 and T.surf4 or s2
         self:drawRect(btnX, fY, rh, rh, bg4.a, bg4.r, bg4.g, bg4.b)
         self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
@@ -401,6 +405,7 @@ function ZeD_Window:render()
         local rLblY = fY + math.floor((rh - rLblH) / 2)
         self:drawText(rLbl, rLblX, rLblY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF5)
         self._themeControlRects[4] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
+        end
 
         -- 5. Dyslexic toggle (commented out — requires Lua reset, deferred)
         -- local isDyslexic = getCore():getOptionEnableDyslexicFont()
@@ -422,9 +427,14 @@ function ZeD_Window:render()
             local Focus = ZeD.Input and ZeD.Input.Focus
             local Det   = ZeD.Input and ZeD.Input.Detector
             local gpMode = Det and Det.getMode and Det.getMode() == "gamepad"
-            if gpMode and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self then
+            -- a window outside FocusManager (the main menu's) hands its own
+            -- prompts in: getFooterPrompts returns the list, or nil for none
+            local prompts = self.getFooterPrompts and self:getFooterPrompts() or nil
+            if not prompts and gpMode and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self then
                 local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
-                local prompts = _promptsFor(el)
+                prompts = _promptsFor(el)
+            end
+            if prompts then
                 local tm   = ZeD.TM
                 local font = T.fontF5
                 local fh   = tm:getFontHeight(font)
@@ -448,7 +458,7 @@ function ZeD_Window:render()
         end
 
         -- Grow box (right corner, same style)
-        A.drawGrowBox(self, w - rh, h - rh, rh)
+        if self.resizable then A.drawGrowBox(self, w - rh, h - rh, rh) end
     end
 
     -- S108 QA v7: Scoped accent underline at the BOTTOM edge of the window,
@@ -679,6 +689,10 @@ function ZeD_Window:update()
                 local S = ZeD.Settings
                 if newHover == 1 then
                     ZeD.applyTheme(S.cycleNext(S.baseKeys, ZeD.currentBase), nil, nil)
+                    S.syncToModOptions()
+                elseif newHover == 2 and self.globalAccentControl then
+                    -- A lone window (the main menu's) cycles the whole UI's accent
+                    ZeD.applyTheme(nil, S.cycleNext(S.accentKeys, ZeD.currentAccent), nil)
                     S.syncToModOptions()
                 elseif newHover == 2 then
                     -- Per-window accent: cycle this window's _accentKey independently

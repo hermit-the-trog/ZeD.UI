@@ -340,6 +340,14 @@ Events.OnGameStart.Add(function()
     end
 end)
 
+-- The main menu (Oct 14 2026) draws ZeD windows before any save loads: apply
+-- the mod options there too. Vanilla's own OnMainMenuEnter handler builds the
+-- options screen first, which loads the saved mod options.
+Events.OnMainMenuEnter.Add(function()
+    applyScale()
+    applyFromOptions()
+end)
+
 -- ---------------------------------------------------------------------------
 -- F-KEY SHORTCUTS FOR QUICK CYCLING (dev convenience)
 -- These work alongside ModOptions. The MODS tab won't reflect F-key changes
