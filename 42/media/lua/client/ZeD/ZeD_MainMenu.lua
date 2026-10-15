@@ -177,6 +177,11 @@ local function lifeTick(t)
     -- hard disk: a burst of flicker every few seconds
     local h = life.hdd
     if not h then h = { nextAt = t + rnd(1500, 4000), on = false }; life.hdd = h end
+    -- a game starting: the disk works the whole time the monitor switches off
+    if MM.powerOff and (not h.stopAt or h.stopAt - t < 200) then
+        h.stopAt = t + 600
+        if not h.flipAt then h.on = true; h.flipAt = t + rnd(30, 140) end
+    end
     if h.stopAt then
         if t >= h.stopAt then h.stopAt = nil; h.on = false; h.nextAt = t + rnd(2500, 9000)
         elseif t >= h.flipAt then h.on = not h.on; h.flipAt = t + rnd(30, 140) end
@@ -292,6 +297,7 @@ end
 function MM.drawGlass(p, L)
     local T = ZeD.T
     local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
+    MM.drawPowerOff(p, L)   -- (a game starting: the picture collapses under the glass)
     local step, line = math.max(2, T.px(3)), math.max(1, T.px(1))
     for y = ty, ty + th - 1, step do p:drawRect(tx, y, tw, line, 0.11, 0, 0, 0) end
     local band = math.max(1, math.floor(math.min(tw, th) * 0.008))
@@ -301,6 +307,86 @@ function MM.drawGlass(p, L)
         p:drawRect(tx, ty + th - d, tw, d, 0.025, 0, 0, 0)
         p:drawRect(tx, ty + d, d, th - 2 * d, 0.025, 0, 0, 0)
         p:drawRect(tx + tw - d, ty + d, d, th - 2 * d, 0.025, 0, 0, 0)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- STARTING A GAME: THE MONITOR SWITCHES OFF (director, Oct 15 2026)
+-- The engine draws the loading screen itself, black, and no Lua draws over it (KB Q229).
+-- Every vanilla start ends in forceChangeState(LoadingQueueState.new()); from the desk
+-- the monitor switches off first, as a 1993 CRT does (the picture squeezes into a
+-- bright line, the line into a dot, the dot fades) while the hard disk works, and then
+-- the engine takes over. About half a second; nothing on the desk answers meanwhile.
+-- ---------------------------------------------------------------------------
+local OFF_SQUEEZE, OFF_LINE, OFF_DOT, OFF_HOLD = 170, 150, 180, 100
+local OFF_TOTAL = OFF_SQUEEZE + OFF_LINE + OFF_DOT + OFF_HOLD
+local PHOSPHOR = { r = 0.86, g = 0.94, b = 1.0 }
+
+MM._origForceChangeState = MM._origForceChangeState or forceChangeState   -- (a Lua reload must not wrap the wrapper)
+function forceChangeState(state, ...)
+    local loading = state ~= nil and instanceof(state, "LoadingQueueState")
+    local o = MM.powerOff
+    if loading and o and o.state then return end   -- (a second start, Return or A again, while the first switches off)
+    local m = ms()
+    local root = MM.root
+    if loading and not o and root and root:isVisible() and m and not m.inGame then
+        MM.powerOff = { t0 = now(), state = state }
+        MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
+        return
+    end
+    return MM._origForceChangeState(state, ...)
+end
+
+-- (the desk's update) the switch-off done: vanilla's start goes on to the loading screen
+function MM.powerOffTick()
+    local o = MM.powerOff
+    if not o then return end
+    local t = now()
+    if o.state and t - o.t0 >= OFF_TOTAL then
+        local st = o.state
+        o.state, o.firedAt = nil, t
+        MM._origForceChangeState(st)
+    elseif not o.state and o.firedAt and t - o.firedAt > 2000 then
+        MM.powerOff = nil   -- still on the menu (the start did not go through): the monitor comes back
+    end
+end
+
+function MM.drawPowerOff(p, L)
+    local o = MM.powerOff
+    if not o then return end
+    local dt = now() - o.t0
+    local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
+    local px = math.max(1, L.s)   -- one pixel of the desk picture
+    local cx, cy = tx + tw / 2, ty + th / 2
+    local c = PHOSPHOR
+    if dt < OFF_SQUEEZE then
+        -- the picture squeezes toward the middle, brightening as it goes
+        local k = dt / OFF_SQUEEZE
+        local bh = math.max(px, math.floor(th * (1 - k * k)))
+        local by = math.floor(cy - bh / 2)
+        p:drawRect(tx, ty, tw, by - ty, 1, 0, 0, 0)
+        p:drawRect(tx, by + bh, tw, ty + th - by - bh, 1, 0, 0, 0)
+        p:drawRect(tx, by, tw, bh, 0.15 + 0.75 * k, c.r, c.g, c.b)
+        return
+    end
+    p:drawRect(tx, ty, tw, th, 1, 0, 0, 0)
+    local d = dt - OFF_SQUEEZE
+    if d < OFF_LINE then
+        -- the line draws in from both ends
+        local k = d / OFF_LINE
+        local lw = math.max(px * 2, math.floor(tw * (1 - k * k)))
+        local lx = math.floor(cx - lw / 2)
+        p:drawRect(lx, math.floor(cy - px * 1.5), lw, px * 3, 0.3, c.r, c.g, c.b)
+        p:drawRect(lx, math.floor(cy - px / 2), lw, px, 1, c.r, c.g, c.b)
+        return
+    end
+    d = d - OFF_LINE
+    if d < OFF_DOT then
+        -- the dot fades
+        local a = 1 - d / OFF_DOT
+        local ds = px * 2
+        p:drawRect(math.floor(cx - ds * 1.5), math.floor(cy - ds * 1.5), ds * 3, ds * 3, a * 0.3, c.r, c.g, c.b)
+        p:drawRect(math.floor(cx - ds / 2), math.floor(cy - ds / 2), ds, ds, a, c.r, c.g, c.b)
     end
 end
 
@@ -712,7 +798,11 @@ function ZeD_MMDesk:update()
         local w = self[rv.field]
         if w and w:isVisible() ~= (v == rv.view) then w:setVisible(v == rv.view) end
     end
-    MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
+    if MM.powerOff then
+        MM.powerOffTick()   -- a game starting: nothing answers until the engine takes over
+    else
+        MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
+    end
     -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
     if self.drop and self.drop:isVisible() ~= open then self.drop:setVisible(open) end
@@ -1493,8 +1583,9 @@ function MM.afterPrerender(m)
         if MM.igDrop and not (up and pv == "options") and MM.igDrop:isVisible() then MM.igDrop:setVisible(false); MM.ctx.open = nil end
     else
         local root = MM.root
-        if root and root:isVisible() ~= up then
-            root:setVisible(up)
+        local show = up or MM.powerOff ~= nil   -- (a game starting: the desk stays while the monitor switches off)
+        if root and root:isVisible() ~= show then
+            root:setVisible(show)
             if up then
                 MM.refresh()
                 MM.ctx.open, MM.ctx.press = nil, nil

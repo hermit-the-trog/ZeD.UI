@@ -333,3 +333,12 @@ Not seen live: a server whose mods differ (vanilla's editor shows then, by desig
 ## Polish
 
 - Options (and the looks window) colour palette: its frame takes a click itself, so a click between or around the swatches no longer reaches the row under the pop-up. Verified live (1080p window): the palette over the highlight colour rows, a click on its frame left it open with nothing changed, Escape closed it.
+
+## The game loading screen: the monitor switches off
+
+Research first (KB Q229): the single-player loading screen is drawn entirely by the engine (black, the walking zombie, "Loading...", the tips, Click to Start); no Lua can draw over it, so the director's wish (42's illustrated menu background as the loading screen) cannot be met by a Lua mod. Offered three ways; the director chose the smooth hand-off.
+
+Built (`ZeD_MainMenu.lua`): every game start from the desk (Continue, Load Game's PLAY, New Game through character creation, the tutorial) ends in vanilla's `forceChangeState(LoadingQueueState.new())`; that call is wrapped, and from the desk it first switches the monitor off as a 1993 CRT does: the picture brightens and squeezes into a line (170 ms), the line draws in to a dot (150 ms), the dot fades (180 ms), a beat of black (100 ms). The hard disk light works throughout. Then vanilla's call goes on and the engine's loading screen follows, unchanged (its zombie still sprints when the sandbox's zombies do). The desk stays drawn through it even when a screen has already stepped the menu aside; nothing on the desk answers meanwhile, and a second start (Return or A again) is ignored. If the start does not go through, the monitor comes back after two seconds.
+
+Verified live (1080p window): the animation filmed frame by frame on its own, and in the real Continue path (the desk kept, the monitor switching off, then the QA save loading in 13 seconds); Continue by a real click loaded the save twice (12 s).
+Not seen live: the hand-off from Load Game's PLAY, New Game's PLAY and the tutorial (same call), a real controller.
