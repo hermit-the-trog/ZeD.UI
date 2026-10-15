@@ -657,6 +657,13 @@ function ZeD_MMDesk:createChildren()
     self.optsWin = ZeD_MMOptions:new(false)
     self.optsWin:initialise()
     self:addChild(self.optsWin)
+    -- the later screens register themselves (MM.addView): map / spawn, ...
+    for _, v in ipairs(MM.views) do
+        local w = v.make()
+        w:initialise()
+        self:addChild(w)
+        self[v.field] = w
+    end
     self.drop = ZeD_MMDrop:new()
     self.drop:initialise()
     self:addChild(self.drop)
@@ -697,6 +704,10 @@ function ZeD_MMDesk:update()
     if self.newWin:isVisible() ~= (v == "newgame") then self.newWin:setVisible(v == "newgame") end
     if self.modsWin:isVisible() ~= (v == "mods") then self.modsWin:setVisible(v == "mods") end
     if self.optsWin:isVisible() ~= (v == "options") then self.optsWin:setVisible(v == "options") end
+    for _, rv in ipairs(MM.views) do
+        local w = self[rv.field]
+        if w and w:isVisible() ~= (v == rv.view) then w:setVisible(v == rv.view) end
+    end
     MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
     -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
@@ -1361,6 +1372,9 @@ function MM.attach(m)
         MM.redirect(m.soloScreen, "newgame")
         MM.redirect(m.loadScreen, "load")
         MM.redirect(m.modSelect, "mods")
+        for _, v in ipairs(MM.views) do
+            if v.screen then MM.redirect(m[v.screen], v.view) end
+        end
         MM.hookOptions(m)
     end
 end
@@ -1408,7 +1422,21 @@ function MM.activeWindow()
     if MM.view == "newgame" then return r.newWin end
     if MM.view == "mods" then return r.modsWin end
     if MM.view == "options" then return r.optsWin end
+    for _, rv in ipairs(MM.views) do
+        if MM.view == rv.view and r[rv.field] then return r[rv.field] end
+    end
     return r.win
+end
+
+-- A later screen's window on the monitor: its view name, the desk's field for it, a
+-- maker (called when the desk builds, after every module has loaded), and the MainScreen
+-- field of the vanilla screen it stands in for (its setVisible(true) lands on the view).
+MM.views = MM.views or {}
+function MM.addView(view, field, make, screen)
+    for _, v in ipairs(MM.views) do
+        if v.view == view then v.field, v.make, v.screen = field, make, screen; return end   -- a Lua reload replaces it
+    end
+    MM.views[#MM.views + 1] = { view = view, field = field, make = make, screen = screen }
 end
 
 -- Is our menu showing (vanilla's bottom panel visible = no other screen is up)?
