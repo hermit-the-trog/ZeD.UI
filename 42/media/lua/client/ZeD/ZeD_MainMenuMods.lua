@@ -78,6 +78,7 @@ function ZeD_MMMods:createChildren()
     -- (the same key then also reaches the menu once the field lets go: _enterAt swallows it)
     self.find.onCommandEntered = function() self._enterAt = MM.now(); self.find:unfocus() end
     self.field = UI.newEntry(self)     -- the strip's field: preset name, pasted preset text
+    self.field.onEscape = function() self:setConfirm(false) end
     self.field.onCommandEntered = function()
         self._enterAt = MM.now()
         if self.confirm == "save" then self:savePreset() elseif self.confirm == "paste" then self:pastePreset() end

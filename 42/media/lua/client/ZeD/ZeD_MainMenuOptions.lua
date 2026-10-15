@@ -348,6 +348,7 @@ function ZeD_MMOptions:createChildren()
     self.field = UI.newEntry(self)
     self.field:setVisible(false)
     self.field.onCommandEntered = function() self._enterAt = MM.now(); self:commitText() end
+    self.field.onEscape = function() self:setConfirm(false) end
 end
 
 -- the pages vanilla built (tab title + its panel)
@@ -926,6 +927,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 end
                 lx = lx + T.px(14)
                 local tc = T.text
+                if self.rowDisabled and self:rowDisabled(r) then tc = T.textDim end   -- (Sandbox: an option that does nothing now)
                 local label = r.label ~= "" and r.label or ""
                 self:drawText(ZeD.Atoms.truncateText(label, f2, lw - T.px(26)), lx, ry + math.floor((T.px(ROW_H) - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
                 local crh = (r.kind == "tick" and #(r.control.options or {}) > 1) and T.px(ROW_H) or rh
@@ -954,9 +956,9 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local s2 = T.surf2
     self:drawRect(x + T.px(1), hy, w - T.px(2), helpH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x + T.px(1), hy, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
-    local hr = focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)
+    local hr = self._cellRow or focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)   -- (_cellRow: a row edited in place)
     local htext = hr and help(hr) or nil
-    if hr and not htext and self:isChanged(hr) then htext = "Changed: APPLY or ACCEPT to keep it." end
+    if hr and not htext and self:isChanged(hr) then htext = self.changedNote or "Changed: APPLY or ACCEPT to keep it." end
     if htext then
         local tc = T.text
         local ly = hy + T.px(8)

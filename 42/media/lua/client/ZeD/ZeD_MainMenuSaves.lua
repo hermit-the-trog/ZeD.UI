@@ -109,6 +109,13 @@ local function newEntry(win)
     e:initialise()
     e:instantiate()
     e.font = ZeD.Text.entryFont and ZeD.Text.entryFont() or UIFont.Small
+    -- Escape inside a focused field never reaches the menu (KB Q217): the field leaves
+    -- itself, or runs its onEscape (a question's field cancels the question)
+    e.onOtherKey = function(entry, key)
+        if key == Keyboard.KEY_ESCAPE then
+            if entry.onEscape then entry.onEscape() else entry:unfocus() end
+        end
+    end
     win:addChild(e)
     return e
 end
@@ -166,6 +173,7 @@ function ZeD_MMLoad:createChildren()
     self.find.onCommandEntered = function() self._enterAt = MM.now(); self.find:unfocus() end
     self.renameEntry = newEntry(self)
     self.renameEntry.onCommandEntered = function() self._enterAt = MM.now(); self:rename() end
+    self.renameEntry.onEscape = function() self:setConfirm(false) end
     self.renameEntry:setVisible(false)
 end
 

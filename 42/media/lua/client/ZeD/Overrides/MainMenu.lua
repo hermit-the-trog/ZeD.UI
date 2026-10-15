@@ -23,6 +23,7 @@ require "ZeD/ZeD_MainMenuSaves"
 require "ZeD/ZeD_MainMenuMods"
 require "ZeD/ZeD_MainMenuOptions"
 require "ZeD/ZeD_MainMenuSpawn"
+require "ZeD/ZeD_MainMenuSandbox"
 
 local MM = ZeD.MainMenu
 
