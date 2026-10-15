@@ -329,3 +329,7 @@ Decisions:
 
 Verified live (1080p window): Host, MANAGE SETTINGS..., the empty list, NEW with a good and a bad name (the reason, NEXT off), Return to the mods step, CHOOSE MODS... into the mod manager ("Server Mods") and back, NEXT into the editor without a reload, a name changed (dot, "1 changed"), a port edited in its row with the range in the help band and Escape leaving it, the Map page, Spawn Regions (a region added and named, the list following it), EDIT SPAWN POINTS..., Custom Occupation added from the pop-up, a point added with Return, SAVE (the file written as the maps' own: `unemployed = {...}`), back in the editor with the changes kept, the Zombie and Presets pages, Workshop and Mods pages, CANCEL's question and KEEP EDITING, SAVE (zedqa.ini, _SandboxVars, _spawnregions written), DUPLICATE with Return, RENAME, DELETE twice, CANCEL with no changes, BACK onto Host and to the menu. The controller was simulated (bumpers skip the headers and wrap; the D-pad reaches list rows, the buttons, the strip). Every test file was deleted.
 Not seen live: a server whose mods differ (vanilla's editor shows then, by design), the Lua reload back to the menu's mods after such an edit, a real controller, Steam Workshop items with titles.
+
+## Polish
+
+- Options (and the looks window) colour palette: its frame takes a click itself, so a click between or around the swatches no longer reaches the row under the pop-up. Verified live (1080p window): the palette over the highlight colour rows, a click on its frame left it open with nothing changed, Escape closed it.
