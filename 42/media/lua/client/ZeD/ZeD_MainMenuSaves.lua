@@ -82,7 +82,9 @@ local function drawStripAndButtons(win, stripY, stripH, ask, askX)
     local ctx, gp = MM.ctx, MM.gamepad()
     local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
     for _, b in ipairs(win._specs) do
-        if not b.listRow then
+        -- a button inside a scrolled pane draws (and clicks) only while it is fully in view
+        local clipped = b.clipTop and (b.y < b.clipTop or b.y + b.h > b.clipBot)
+        if not b.listRow and not clipped then
             local hid = win.kind .. ":" .. b.id
             local hot = not gp and ctx.hot == hid
             MM.drawBtn(win, b, hot, gp and win.focusId == b.id, hot and ctx.press == hid)
@@ -159,7 +161,11 @@ function ZeD_MMLoad:createChildren()
     ZeD_Window.createChildren(self)
     self.find = newEntry(self)
     self.find.onTextChange = function() self:filter() end
+    -- a focused field takes Return itself (the key never reaches the menu): onCommandEntered
+    -- (the same key then also reaches the menu once the field lets go: _enterAt swallows it)
+    self.find.onCommandEntered = function() self._enterAt = MM.now(); self.find:unfocus() end
     self.renameEntry = newEntry(self)
+    self.renameEntry.onCommandEntered = function() self._enterAt = MM.now(); self:rename() end
     self.renameEntry:setVisible(false)
 end
 
@@ -364,7 +370,8 @@ function ZeD_MMLoad:chooseMods()
     local s = self:selected()
     if not s or not ModSelector or not ModSelector.instance then return end
     local jd = JoypadState.getMainMenuJoypad()
-    MM.toVanilla()
+    ModSelector.instance.model.isNewGame = false   -- vanilla leaves it set after a New Game visit
+    ModSelector.instance.model.isServerSettingsMods = false
     ModSelector.instance:setExistingSavefile(s.key)
     ModSelector.instance:setVisible(true, jd)
     ModSelector.instance:reloadMods()
@@ -785,6 +792,7 @@ end
 
 -- Return plays (or renames); Delete asks; the arrow keys walk the list
 function ZeD_MMLoad:keyOther(key)
+    if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     if self.confirm == "rename" then
         if key == Keyboard.KEY_RETURN then self:rename(); return true end
         return false
@@ -901,7 +909,8 @@ end
 function ZeD_MMNewGame:chooseMods()
     if not ModSelector or not ModSelector.instance then return end
     local jd = JoypadState.getMainMenuJoypad()
-    MM.toVanilla()
+    ModSelector.instance.model.loadGameFolder = nil
+    ModSelector.instance.model.isServerSettingsMods = false
     ModSelector.instance:setNewGame()
     ModSelector.instance:setVisible(true, jd)
     ModSelector.instance:reloadMods()
@@ -1077,3 +1086,7 @@ end
 function ZeD_MMGlass:onMouseWheel(del) return MM.wheel(del) end
 function ZeD_MMLoad:onMouseWheel(del) return MM.wheel(del) end
 function ZeD_MMDesk:onMouseWheel(del) return MM.wheel(del) end
+
+-- shared with ZeD_MainMenuMods.lua / ZeD_MainMenuOptions.lua
+MM.ui = { insetBox = insetBox, newEntry = newEntry, styleEntry = styleEntry, placeOnTube = placeOnTube,
+          stripSpecs = stripSpecs, drawStripAndButtons = drawStripAndButtons, plain = plain }

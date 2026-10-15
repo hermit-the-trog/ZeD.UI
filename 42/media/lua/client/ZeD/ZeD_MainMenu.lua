@@ -463,7 +463,7 @@ MM.act = {
     host      = function() fire("onlineCoopOption") end,
     tutorial  = function() fire("tutorialOption") end,
     options   = function() fire("optionsOption") end,
-    mods      = function() fire("modsOption") end,
+    mods      = function() MM.openMods() end,   -- the mod manager on the monitor (ZeD_MainMenuMods.lua)
     workshop  = function() fire("workshopOption") end,
     credits   = function() fire("creditOption") end,
     tos       = function() MM.ctx.open = nil; local m = ms(); if m then m:onClickTermsOfService() end end,
@@ -551,7 +551,7 @@ end
 
 function MM.pointer(ctx, panels)
     local down = isMouseButtonDown(0)
-    if blocked() then ctx.hot = nil; ctx.press = nil; ctx.wasDown = down; return end
+    if blocked() then ctx.hot = nil; ctx.press = nil; ctx.dragHit = nil; ctx.wasDown = down; return end
     local h = hitAt(panels, getMouseX(), getMouseY())
     if h and h.disabled then h = nil end
     local id = h and h.id or nil
@@ -561,8 +561,12 @@ function MM.pointer(ctx, panels)
     end
     -- a menu is open: pointing at another title switches to it
     if ctx.open and h and h.menu and h.menu ~= ctx.open then ctx.open = h.menu end
+    -- a held press on a draggable box (a slider, a scroll thumb) follows the mouse until release
+    if down and ctx.dragHit then ctx.dragHit.drag(getMouseX(), getMouseY()) end
+    if not down and ctx.dragHit then ctx.dragHit = nil end
     if down and not ctx.wasDown then
         ctx.press, ctx.pressMenu = id, h and h.menu or nil
+        if h and h.drag then ctx.dragHit = h; h.drag(getMouseX(), getMouseY()) end
         if h and h.menu then
             if ctx.open == h.menu then ctx.open = nil else ctx.open = h.menu end   -- the open menu's title closes it
         elseif ctx.open and not (h and h.inDrop) then
@@ -643,6 +647,9 @@ function ZeD_MMDesk:createChildren()
     self.newWin = ZeD_MMNewGame:new()
     self.newWin:initialise()
     self:addChild(self.newWin)
+    self.modsWin = ZeD_MMMods:new()
+    self.modsWin:initialise()
+    self:addChild(self.modsWin)
     self.drop = ZeD_MMDrop:new()
     self.drop:initialise()
     self:addChild(self.drop)
@@ -681,6 +688,7 @@ function ZeD_MMDesk:update()
     if self.win:isVisible() ~= (v == "main") then self.win:setVisible(v == "main") end
     if self.loadWin:isVisible() ~= (v == "load") then self.loadWin:setVisible(v == "load") end
     if self.newWin:isVisible() ~= (v == "newgame") then self.newWin:setVisible(v == "newgame") end
+    if self.modsWin:isVisible() ~= (v == "mods") then self.modsWin:setVisible(v == "mods") end
     MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
     -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
@@ -1283,6 +1291,7 @@ function MM.attach(m)
         -- setVisible(true): those land on the monitor instead.
         MM.redirect(m.soloScreen, "newgame")
         MM.redirect(m.loadScreen, "load")
+        MM.redirect(m.modSelect, "mods")
     end
 end
 
@@ -1327,6 +1336,7 @@ function MM.activeWindow()
     if not r then return nil end
     if MM.view == "load" then return r.loadWin end
     if MM.view == "newgame" then return r.newWin end
+    if MM.view == "mods" then return r.modsWin end
     return r.win
 end
 
@@ -1397,6 +1407,8 @@ function MM.joyDown(m, button)
     if button == Joypad.AButton then w:joyA()
     elseif button == Joypad.BButton then w:joyB()
     elseif button == Joypad.XButton then if w.joyX then w:joyX() end
+    elseif button == Joypad.LBumper then if w.joyBumper then w:joyBumper(-1) end
+    elseif button == Joypad.RBumper then if w.joyBumper then w:joyBumper(1) end
     elseif button == Joypad.YButton then
         if w.joyY then w:joyY()
         elseif not m.inGame and not w.confirm then MM.act.tos() end
