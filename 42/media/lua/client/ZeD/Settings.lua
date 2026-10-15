@@ -136,6 +136,19 @@ uiScale.onChange = applyScale
 ZeD.Settings.applyScale = applyScale
 ZeD.Settings.uiScaleOption = uiScale   -- QA bridge drives it like the options screen
 
+-- ----- MOODLES (Oct 14 2026, director: "options would be best. each of the
+-- three placements are good for different users") -----
+-- Where vanilla's moodles sit; they are drawn as vanilla draws them in all
+-- three (ZeD_Moodles.lua reads this option every frame, so a change applies
+-- at once). A display preference: lives in the mod options, not in the save.
+local moodleLabels = {"Right, under the watch", "Left edge", "Bottom, above the belt"}
+local moodlePlace = opts:addComboBox("moodlePlace", "Moodles",
+    "Where the moodles sit. Right: under the watch, where vanilla puts them. Left: down the left edge, below the windows. Bottom: a row above the belt (above the dashboard in a car).")
+for i, label in ipairs(moodleLabels) do
+    moodlePlace:addItem(label, i == 1)  -- default: right, under the watch
+end
+ZeD.Settings.moodlePlaceOption = moodlePlace
+
 -- ----- CHARACTER WINDOW ACCENT -----
 local charAccent = opts:addComboBox("charAccent", "Character window accent",
     "Per-window accent override for the Character window. Cycled via footer button.")
