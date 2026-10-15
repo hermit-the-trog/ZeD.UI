@@ -882,8 +882,8 @@ function ZeD_MMBar:prerender()
         self._hits[#self._hits + 1] = { id = "menu:" .. m.key, x = ax + x, y = ay, w = iw, h = h, menu = m.key }
         x = x + iw
     end
-    -- right: the build and the clock
-    local right = "Build " .. MM.version() .. DOT .. MM.clock()
+    -- right: the clock (the build is in the ZeD menu's About block, its one place)
+    local right = MM.clock()
     local f3 = T.fontF3
     local d = T.textDim
     self:drawText(right, w - T.px(12) - textW(f3, right), math.floor((h - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
@@ -905,8 +905,34 @@ function ZeD_MMDrop:new()
     return o
 end
 
-local function aboutLines()
-    return { { "ZeD-UI", "head" }, { "A total UI overhaul for Project Zomboid", "dim" }, { "Build " .. MM.version(), "dim" } }
+-- The ZeD menu's About block (director, Oct 15 2026: "say more about ZeD-GUI system, a short
+-- boilerplate on our custom built kernel"): the name, a short paragraph, then a few live facts
+-- like an About This Macintosh box. The game's build shows here and nowhere else on the menu.
+local ABOUT_W = 340   -- design units: the block's text width
+local ABOUT_BLURB = "ZeD-GUI runs on its own kernel, built from scratch for Project Zomboid: one sheet of colours, "
+    .. "type and spacing, one library of parts, its own text renderer, true scaling at any resolution and full "
+    .. "controller navigation. Nothing is reskinned. Each of the game's screens is replaced where the game opens "
+    .. "it, and the game's own rules run underneath."
+-- rows: { kind, text, value, h } with kind "title" | "sub" | "para" | "kv" | "gap"
+local function aboutRows()
+    local T = ZeD.T
+    local f2, f3 = T.fontF2, T.fontF3
+    local hf = ZeD.Font.sdf.head
+    local z = 22 * (T.scale or 1) / (hf.face or 64)
+    local rows = { { "title", "ZeD-GUI System", nil, math.floor(ZeD.Text.height(hf, z)) + T.px(2), z } }
+    rows[#rows + 1] = { "sub", "A custom-built interface kernel", nil, fontH(f3) + T.px(8) }
+    for _, l in ipairs(ZeD.Atoms.wrapText(ABOUT_BLURB, f2, T.px(ABOUT_W))) do rows[#rows + 1] = { "para", l, nil, fontH(f2) + T.px(2) } end
+    rows[#rows + 1] = { "gap", nil, nil, T.px(8) }
+    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    rows[#rows + 1] = { "kv", "DISPLAY", sw .. " x " .. sh .. DOT .. string.format("%.2fx", T.scale or 1), T.px(18) }
+    rows[#rows + 1] = { "kv", "INPUT", MM.gamepad() and "Controller" or "Keyboard and mouse", T.px(18) }
+    rows[#rows + 1] = { "kv", "GAME", "Build " .. MM.version(), T.px(18) }
+    return rows
+end
+local function aboutHeight(rows)
+    local h = 0
+    for _, r in ipairs(rows) do h = h + r[4] end
+    return h
 end
 
 -- The items of the open menu: a menu-bar title's, or a pop-up a window opened at a button
@@ -949,14 +975,13 @@ function ZeD_MMDrop:prerender()
     local T = ZeD.T
     local font, f1, f3 = T.fontF2, T.fontF1, T.fontF3
     local rowH, padX, padY, sepH = T.px(DROP_ROW_H), T.px(DROP_PAD_X), T.px(DROP_PAD_Y), T.px(DROP_SEP_H)
-    local lineH = T.px(17)
     -- size
     local w, h = T.px(DROP_MIN_W), padY * 2
     for _, it in ipairs(items) do
         if it == "-" then h = h + sepH
         elseif it.about then
-            for _, l in ipairs(aboutLines()) do w = math.max(w, textW(l[2] == "head" and f1 or f3, l[1]) + padX * 2) end
-            h = h + T.px(8) * 2 + lineH * 3
+            w = math.max(w, T.px(ABOUT_W) + padX * 2)
+            h = h + T.px(10) * 2 + aboutHeight(aboutRows())
         else
             w = math.max(w, textW(font, it.text) + padX * 2)
             h = h + rowH
@@ -1013,14 +1038,29 @@ function ZeD_MMDrop:prerender()
             self:drawRect(0, cy + math.floor((sepH - T.px(1)) / 2), w, T.px(1), bs.a, bs.r, bs.g, bs.b)
             cy = cy + sepH
         elseif it.about then
-            local ly = cy + T.px(8)
-            for _, l in ipairs(aboutLines()) do
-                local f = l[2] == "head" and f1 or f3
-                local c = l[2] == "head" and T.accent or T.textDim
-                self:drawText(l[1], padX, ly + math.floor((lineH - fontH(f)) / 2), c.r, c.g, c.b, c.a or 1, f)
-                ly = ly + lineH
+            local rows = aboutRows()
+            local ly = cy + T.px(10)
+            local f2 = T.fontF2
+            local kvX = padX + T.px(72)
+            for _, r in ipairs(rows) do
+                local kind = r[1]
+                if kind == "title" then
+                    local a = T.accent
+                    ZeD.Text.draw(self, ZeD.Font.sdf.head, r[2], padX, ly, r[5], a.r, a.g, a.b, a.a or 1, "l")
+                elseif kind == "sub" then
+                    local d = T.textDim
+                    self:drawText(r[2], padX, ly, d.r, d.g, d.b, d.a or 1, f3)
+                elseif kind == "para" then
+                    local c = T.text
+                    self:drawText(r[2], padX, ly, c.r, c.g, c.b, c.a or 1, f2)
+                elseif kind == "kv" then
+                    local a, c = T.accent, T.text
+                    self:drawText(r[2], padX, ly + math.floor((r[4] - fontH(f1)) / 2), a.r, a.g, a.b, a.a or 1, f1)
+                    self:drawText(r[3], kvX, ly + math.floor((r[4] - fontH(f3)) / 2), c.r, c.g, c.b, c.a or 1, f3)
+                end
+                ly = ly + r[4]
             end
-            cy = cy + T.px(8) * 2 + lineH * 3
+            cy = cy + T.px(10) * 2 + aboutHeight(rows)
         else
             local id = "drop:" .. key .. ":" .. i
             if not it.disabled then live = live + 1 end
@@ -1288,7 +1328,7 @@ function ZeD_MMWindow:build()
         wy = L.ty + barH + T.px(MM.continueInfo() and WIN_TOP or WIN_TOP_FIRST)
         if wy + h > L.ty + L.th then wy = math.max(L.ty + barH, L.ty + L.th - h) end
         self.title = "Project Zomboid  +  Main menu"
-        self.titleStats = { { text = "Build " .. MM.version(), color = T.positive } }
+        self.titleStats = nil   -- the build lives in the ZeD menu's About block only (director, Oct 15 2026)
     else
         x = math.floor((getCore():getScreenWidth() - w) / 2)
         wy = math.floor((getCore():getScreenHeight() - h) / 2)

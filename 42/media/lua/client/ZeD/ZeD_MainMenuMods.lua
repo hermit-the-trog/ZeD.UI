@@ -13,13 +13,15 @@
 -- Mods, and Server Settings all land on this window.
 --
 -- What it adds over vanilla, all on vanilla's data:
---   * filter tabs (All / Enabled / Favourites / Maps) and a plain-text Find
+--   * filter tabs (All / On / Starred / Maps / Problems) and a plain-text Find
 --   * a red status dot and the reason on any mod that cannot run (game
 --     version, a missing requirement) or is blocked by an enabled mod
 --   * a detail pane: picture, author, version, IDs, what it needs and what
 --     it conflicts with (each with its status dot), the description
 --   * turning a mod on or off says which other mods came along (requirements)
---   * presets in one pop-up, written to disk at once
+--   * profiles (Oct 15 2026): vanilla's presets as a page of their own, each with its
+--     load order kept (ZeD_modprofiles.txt), what loading it would change, new / update /
+--     rename / duplicate / delete / share as text, and the profile in use in the title
 --   * load order and map order as views of the same window, with the order
 --     rules shown per row and MOVE UP / MOVE DOWN / AUTO
 --   * BACK with changes asks in the action strip: KEEP or DISCARD
@@ -64,8 +66,9 @@ function ZeD_MMMods:new()
     o.filter = "all"         -- "all" | "enabled" | "favs" | "maps"
     o.sel = nil
     o.scroll, o.dscroll = 0, 0
-    o.confirm = false        -- false | "back" | "template" | "save" | "paste" | "delete"
-    o.preset = nil           -- the preset last loaded or saved (Copy / Delete act on it)
+    o.confirm = false        -- false | "back" | "template" | "save" | "paste" | "delete" | "update" | "rename" | "dup"
+    o.preset = nil           -- the profile last loaded or saved
+    o.psel = nil             -- the Profiles page's picked profile (nil: "No mods")
     o.note = nil             -- { text, untilMs }: what a toggle or a preset did
     return o
 end
@@ -81,7 +84,7 @@ function ZeD_MMMods:createChildren()
     self.field.onEscape = function() self:setConfirm(false) end
     self.field.onCommandEntered = function()
         self._enterAt = MM.now()
-        if self.confirm == "save" then self:savePreset() elseif self.confirm == "paste" then self:pastePreset() end
+        self:fieldEnter()
     end
     self.field:setVisible(false)
 end
@@ -94,6 +97,7 @@ function ZeD_MMMods:onShow()
     self.scroll, self.dscroll = 0, 0
     self.note = nil
     self.sel = nil
+    self.psel = nil
     self.focusId = nil
 end
 
@@ -108,6 +112,7 @@ function ZeD_MMMods:rows()
         if self.filter == "enabled" and not d.isActive then keep = false end
         if self.filter == "favs" and not d.favorite then keep = false end
         if self.filter == "maps" and d.category ~= "map" then keep = false end
+        if self.filter == "problems" and not self:problem(d) then keep = false end
         if keep and q ~= "" then
             local wid = ""
             pcall(function() wid = tostring(d.modInfo:getWorkshopID() or "") end)
@@ -119,16 +124,24 @@ function ZeD_MMMods:rows()
     return out
 end
 
+-- counts and profile comparisons run several times a frame: kept for a moment, dropped on any change
+local CACHE_MS = 150
+function ZeD_MMMods:dirty() self._cnt, self._diffs = nil, nil end
+
 function ZeD_MMMods:counts()
+    local c = self._cnt
+    if c and MM.now() - c.at < CACHE_MS then return c[1], c[2], c[3], c[4], c[5] end
     local m = model()
-    local all, on, favs, maps = 0, 0, 0, 0
+    local all, on, favs, maps, probs = 0, 0, 0, 0, 0
     for _, d in ipairs(m and m.sortedMods or {}) do
         all = all + 1
         if d.isActive then on = on + 1 end
         if d.favorite then favs = favs + 1 end
         if d.category == "map" then maps = maps + 1 end
+        if self:problem(d) then probs = probs + 1 end
     end
-    return all, on, favs, maps
+    self._cnt = { all, on, favs, maps, probs, at = MM.now() }
+    return all, on, favs, maps, probs
 end
 
 function ZeD_MMMods:selected()
@@ -187,6 +200,7 @@ function ZeD_MMMods:toggle(d, confirmed)
     if turnOn and d.modId == "ModTemplate" and not confirmed then self._templateFor = d; self:setConfirm("template"); return end
     local before = activeSet(m)
     m:forceActivateMods(d.modInfo, turnOn)
+    self:dirty()
     MM.clickSound()
     local after = activeSet(m)
     local extra = {}
@@ -204,7 +218,7 @@ function ZeD_MMMods:toggleFav(d)
     MM.clickSound()
 end
 
-function ZeD_MMMods:say(text) self.note = { text = text, untilMs = MM.now() + NOTE_MS } end
+function ZeD_MMMods:say(text) self.note = { text = text, untilMs = MM.now() + NOTE_MS }; self:dirty() end
 
 -- what changed since the screen opened (vanilla's Back test)
 function ZeD_MMMods:changed()
@@ -248,7 +262,76 @@ function ZeD_MMMods:back()
     if self:changed() then self:setConfirm("back") else self:accept() end
 end
 
--- PRESETS (vanilla's ModListPresets, on the model; saved at once) ----------------
+-- PROFILES (director, Oct 15 2026: "more robust features for managing mods and load profiles")
+-- A profile is vanilla's mod-list preset (pz_modlist_settings.cfg, so vanilla's own screen and
+-- its share text still work) plus what vanilla does not keep, in ZeD's own file
+-- Zomboid/Lua/ZeD_modprofiles.txt: the load order, and when it was saved and last loaded.
+-- The Profiles page lists them with what loading one would change; loading keeps the order.
+
+local PROFILE_FILE = "ZeD_modprofiles.txt"
+local Extra = { loaded = false, t = {} }   -- name -> { order = { ids }, saved = stamp, used = stamp }
+
+local function stamp()
+    local ok, s = pcall(function() return SimpleDateFormat.new("yyyy-MM-dd HH:mm", Locale.ENGLISH):format(Calendar.getInstance():getTime()) end)
+    return ok and tostring(s) or ""
+end
+
+local function extrasLoad()
+    Extra.t, Extra.loaded = {}, true
+    local r = getFileReader(PROFILE_FILE, false)
+    if not r then return end
+    local cur
+    local line = r:readLine()
+    while line do
+        local name = line:match("^%[(.+)%]$")
+        if name then
+            cur = { order = {} }
+            Extra.t[name] = cur
+        elseif cur then
+            local k, v = line:match("^(%a+)=(.*)$")
+            if k == "order" then for id in v:gmatch("[^;]+") do cur.order[#cur.order + 1] = id end
+            elseif k then cur[k] = v end
+        end
+        line = r:readLine()
+    end
+    r:close()
+end
+
+local function extrasSave()
+    local w = getFileWriter(PROFILE_FILE, true, false)
+    if not w then return end
+    w:write("ZeD-UI mod profiles: the load order and dates kept with each mod-list preset\n")
+    local names = {}
+    for n in pairs(Extra.t) do names[#names + 1] = n end
+    table.sort(names)
+    for _, n in ipairs(names) do
+        local e = Extra.t[n]
+        w:write("[" .. n .. "]\n")
+        if e.order and #e.order > 0 then w:write("order=" .. table.concat(e.order, ";") .. "\n") end
+        if e.saved and e.saved ~= "" then w:write("saved=" .. e.saved .. "\n") end
+        if e.used and e.used ~= "" then w:write("used=" .. e.used .. "\n") end
+    end
+    w:close()
+end
+
+local function extra(name)
+    if not Extra.loaded then extrasLoad() end
+    return name and Extra.t[name] or nil
+end
+
+-- the mod IDs of a vanilla preset: vanilla's file loader keys them "id" (value the id), its
+-- save keys them by id (value the Workshop number)
+local function presetIds(p)
+    local ids, set = {}, {}
+    for k, v in pairs(p or {}) do
+        local id = (type(v) == "string" and v ~= "" and not v:match("^%d+$")) and v or tostring(k):match("^[^\\]+")
+        if id and not set[id] then set[id] = true; ids[#ids + 1] = id end
+    end
+    table.sort(ids)
+    return ids, set
+end
+
+local function byName(a, b) return string.lower(tostring(a.name)) < string.lower(tostring(b.name)) end
 
 function ZeD_MMMods:presetNames()
     local m = model()
@@ -258,6 +341,82 @@ function ZeD_MMMods:presetNames()
     return t
 end
 
+-- the Profiles page's rows: "No mods" first (every mod off), then the saved profiles
+function ZeD_MMMods:profiles()
+    local t = { { name = nil, label = "No mods" } }
+    for _, n in ipairs(self:presetNames()) do t[#t + 1] = { name = n, label = n } end
+    return t
+end
+
+-- what loading a profile changes from the mods on now
+function ZeD_MMMods:profileDiff(p)
+    local key = p.name or false          -- false: the "No mods" row
+    local cache = self._diffs
+    if not cache or MM.now() - cache.at > CACHE_MS then cache = { at = MM.now() }; self._diffs = cache end
+    if cache[key] then return cache[key] end
+    local m = model()
+    local r = { on = {}, off = {}, missing = {}, cannot = {}, count = 0 }
+    cache[key] = r
+    if not m then return r end
+    local ids, want = {}, {}
+    if p.name then ids, want = presetIds(m.presets[p.name]) end
+    r.count = #ids
+    for _, id in ipairs(ids) do
+        local d = m.mods[id]
+        if not d then r.missing[#r.missing + 1] = id
+        elseif not d.isAvailable then r.cannot[#r.cannot + 1] = d
+        elseif not d.isActive then r.on[#r.on + 1] = d end
+    end
+    for id, d in pairs(m.mods or {}) do if d.isActive and not want[id] then r.off[#r.off + 1] = d end end
+    table.sort(r.on, byName); table.sort(r.off, byName); table.sort(r.cannot, byName)
+    -- noChange: loading turns nothing on or off; inUse: exactly the mods on now, all of them here
+    r.noChange = (#r.on == 0 and #r.off == 0)
+    r.inUse = p.name ~= nil and r.noChange and #r.missing == 0 and #r.cannot == 0
+    return r
+end
+
+-- the profile whose mods are the ones on now (nil: none)
+function ZeD_MMMods:profileInUse()
+    -- two profiles can hold the same mods: the one last loaded or saved wins
+    if self.preset and model() and model().presets[self.preset] and self:profileDiff({ name = self.preset }).inUse then return self.preset end
+    for _, p in ipairs(self:profiles()) do
+        if p.name and self:profileDiff(p).inUse then return p.name end
+    end
+    return nil
+end
+
+-- the order rules (vanilla's ModLoadOrderPanel:autoSort) over a list of mod IDs
+local function ruleOrder(m, ids)
+    local base = {}
+    for _, id in ipairs(ids) do if m.mods[id] then base[#base + 1] = { id = id, info = m.mods[id].modInfo } end end
+    table.sort(base, function(a, b) return a.id < b.id end)
+    local auto, added = {}, {}
+    local function indexOf(t, v) for i, x in ipairs(t) do if x == v then return i end end; return #t end
+    for _, val in ipairs(base) do
+        local temp = {}
+        for _, a in ipairs(jlist(val.info:getLoadAfter())) do if not added[a] then temp[#temp + 1] = a; added[a] = true end end
+        for _, r in ipairs(jlist(val.info:getRequire())) do if not added[r] then temp[#temp + 1] = r; added[r] = true end end
+        temp[#temp + 1] = val.id
+        local mIndex = #temp
+        for _, b in ipairs(jlist(val.info:getLoadBefore())) do if not added[b] then temp[#temp + 1] = b; added[b] = true end end
+        if added[val.id] then
+            local index = indexOf(auto, val.id)
+            for j = mIndex + 1, #temp do table.insert(auto, index + 1, temp[j]) end
+            for j = 1, mIndex - 1 do table.insert(auto, index, temp[j]) end
+        else
+            for j = 1, #temp do auto[#auto + 1] = temp[j] end
+            added[val.id] = true
+        end
+    end
+    -- only the listed mods stay
+    local inList = {}
+    for _, id in ipairs(ids) do inList[id] = true end
+    local out, seen = {}, {}
+    for _, id in ipairs(auto) do if inList[id] and not seen[id] then out[#out + 1] = id; seen[id] = true end end
+    return out
+end
+
+-- every mod off (the "No mods" profile)
 function ZeD_MMMods:setAll(on)
     local m = model()
     if not m then return end
@@ -269,70 +428,167 @@ function ZeD_MMMods:setAll(on)
         end
     end
     self.preset = nil
+    self:dirty()
 end
 
-function ZeD_MMMods:loadPreset(name)
+-- load: the profile's mods on (their requirements come along), the rest off, in the profile's order
+function ZeD_MMMods:loadProfile(p)
     local m = model()
-    local p = m and m.presets[name]
-    if not p then return end
-    local wanted = {}
-    for k, v in pairs(p) do
-        local id = (type(v) == "string" and v ~= "" and not v:match("^%d+$")) and v or tostring(k):match("^[^\\]+")
-        if id then wanted[id] = true end
-    end
-    local present, missing = {}, {}
-    for _, d in ipairs(m.sortedMods or {}) do
-        if wanted[d.modId] then
-            if not d.isActive and d.isAvailable then m:forceActivateMods(d.modInfo, true) end
-            present[#present + 1] = d.modId
-        elseif d.isActive then
-            m:forceActivateMods(d.modInfo, false)
-        end
-    end
-    for id in pairs(wanted) do if not m.mods[id] then missing[#missing + 1] = id end end
-    if #present > 0 then m:correctAndSaveModOrder(present) end
-    self.preset = name
+    if not (m and p) then return end
+    local diff = self:profileDiff(p)
     MM.clickSound()
-    if #missing > 0 then self:say("Not installed: " .. table.concat(missing, ", "))
-    else self:say("Loaded " .. name) end
+    if not p.name then
+        self:setAll(false)
+        self:say("No mods: " .. #diff.off .. " turned off")
+        self:leaveProfiles()
+        return
+    end
+    local _, want = presetIds(m.presets[p.name])
+    for _, d in ipairs(m.sortedMods or {}) do
+        if d.isActive and not want[d.modId] then m:forceActivateMods(d.modInfo, false) end
+    end
+    for _, d in ipairs(m.sortedMods or {}) do
+        if want[d.modId] and not d.isActive and d.isAvailable then m:forceActivateMods(d.modInfo, true) end
+    end
+    -- the saved order first, then anything else now on (requirements pulled in); a profile saved
+    -- before ZeD kept orders is sorted by the mods' own rules
+    local active = jlist(m:getActiveMods():getMods())
+    local isOn, seen, order = {}, {}, {}
+    for _, id in ipairs(active) do isOn[id] = true end
+    local e = extra(p.name)
+    if e and e.order and #e.order > 0 then
+        for _, id in ipairs(e.order) do if isOn[id] and not seen[id] then order[#order + 1] = id; seen[id] = true end end
+        for _, id in ipairs(active) do if not seen[id] then order[#order + 1] = id; seen[id] = true end end
+    else
+        order = ruleOrder(m, active)
+    end
+    if #order > 0 then m:correctAndSaveModOrder(order) end
+    e = e or { order = {} }
+    e.used = stamp()
+    Extra.t[p.name] = e
+    extrasSave()
+    self.preset = p.name
+    local bits = {}
+    if #diff.on > 0 then bits[#bits + 1] = #diff.on .. " turned on" end
+    if #diff.off > 0 then bits[#bits + 1] = #diff.off .. " turned off" end
+    local msg = "Loaded " .. p.name .. (#bits > 0 and (": " .. table.concat(bits, ", ")) or "")
+    if #diff.missing > 0 then msg = msg .. ". Not installed: " .. table.concat(diff.missing, ", ") end
+    self:say(msg)
+    self:leaveProfiles()
 end
 
-function ZeD_MMMods:savePreset()
+-- the mods on now, in load order, as a vanilla preset + ZeD's order (new, or replacing one)
+function ZeD_MMMods:writeProfile(name)
     local m = model()
-    local name = self.field:getText()
-    if not (m and name and name ~= "" and SandboxOptions.isValidPresetName(name)) then return end
-    local data = {}
+    if not (m and name and name ~= "") then return end
+    local data, order = {}, {}
     local list = m:getActiveMods():getMods()
     for i = 0, list:size() - 1 do
         local id = list:get(i)
         local wid = ""
         pcall(function() wid = m.mods[id] and m.mods[id].modInfo:getWorkshopID() or "" end)
         data[id] = wid or ""
+        order[#order + 1] = id
     end
     m.presets[name] = data
     m:saveModDataToFile()
+    self:dirty()
+    local e = extra(name) or {}
+    e.order, e.saved = order, stamp()
+    Extra.t[name] = e
+    extrasSave()
     self.preset = name
+    self.psel = name
+end
+
+function ZeD_MMMods:nameFree(name, except)
+    local m = model()
+    if not (name and name ~= "" and SandboxOptions.isValidPresetName(name)) then return false end
+    if name == "No mods" then return false end
+    return not (m and m.presets[name]) or name == except
+end
+
+function ZeD_MMMods:savePreset()          -- NEW...: the strip's field holds the name
+    local name = self.field:getText()
+    if not self:nameFree(name) then return end
+    self:writeProfile(name)
     self:setConfirm(false)
-    self:say("Saved " .. name)
+    self:say("Saved " .. name .. " (" .. #(extra(name).order or {}) .. " mods)")
+end
+
+function ZeD_MMMods:updateProfile()
+    local name = self.psel
+    if not name then return end
+    self:writeProfile(name)
+    self:setConfirm(false)
+    self:say("Updated " .. name .. " to the mods on now")
+end
+
+function ZeD_MMMods:renameProfile()
+    local m = model()
+    local old, new = self.psel, self.field:getText()
+    if not (m and old and self:nameFree(new, old)) then return end
+    if new ~= old then
+        m.presets[new], m.presets[old] = m.presets[old], nil
+        m:saveModDataToFile()
+        extra(old)
+        Extra.t[new], Extra.t[old] = Extra.t[old], nil
+        extrasSave()
+        if self.preset == old then self.preset = new end
+        self.psel = new
+        self:say("Renamed " .. old .. " to " .. new)
+    end
+    self:setConfirm(false)
+end
+
+function ZeD_MMMods:duplicateProfile()
+    local m = model()
+    local old, new = self.psel, self.field:getText()
+    if not (m and old and self:nameFree(new)) then return end
+    local copy = {}
+    for k, v in pairs(m.presets[old] or {}) do copy[k] = v end
+    m.presets[new] = copy
+    m:saveModDataToFile()
+    local e = extra(old)
+    local order = {}
+    for _, id in ipairs(e and e.order or {}) do order[#order + 1] = id end
+    Extra.t[new] = { order = order, saved = stamp() }
+    extrasSave()
+    self.psel = new
+    self:setConfirm(false)
+    self:say("Copied " .. old .. " as " .. new)
 end
 
 function ZeD_MMMods:deletePreset()
     local m = model()
-    if not (m and self.preset) then return end
-    m.presets[self.preset] = nil
+    local name = self.psel
+    if not (m and name) then return end
+    m.presets[name] = nil
     m:saveModDataToFile()
-    self:say("Deleted " .. self.preset)
-    self.preset = nil
+    extra(name)
+    Extra.t[name] = nil
+    extrasSave()
+    self:say("Deleted " .. name)
+    if self.preset == name then self.preset = nil end
+    self.psel = nil
     self:setConfirm(false)
 end
 
+-- vanilla's share text ("name:id;id;"), written in the profile's load order
 function ZeD_MMMods:copyPreset()
     local m = model()
-    if not (m and self.preset) then return end
-    Clipboard.setClipboard(m:getPresetShareText(self.preset))
-    self:say("Copied " .. self.preset .. " to the clipboard")
+    local name = self.psel
+    if not (m and name and m.presets[name]) then return end
+    local e = extra(name)
+    local ids, set = presetIds(m.presets[name])
+    local out, seen = {}, {}
+    for _, id in ipairs(e and e.order or {}) do if set[id] and not seen[id] then out[#out + 1] = id; seen[id] = true end end
+    for _, id in ipairs(ids) do if not seen[id] then out[#out + 1] = id end end
+    Clipboard.setClipboard(name .. ":" .. table.concat(out, ";") .. ";")
+    self:say("Copied " .. name .. " to the clipboard as text")
 end
 
+-- a pasted share text (vanilla's addSharedPreset), its order kept as written
 function ZeD_MMMods:pastePreset()
     local m = model()
     local txt = self.field:getText()
@@ -342,37 +598,69 @@ function ZeD_MMMods:pastePreset()
     m:addSharedPreset({ internal = "OK", parent = { entry = { getText = function() return txt end } } })
     m:saveModDataToFile()
     self:setConfirm(false)
-    for name in pairs(m.presets) do if not before[name] then self.preset = name; self:say("Added " .. name); return end end
-    self:say("Nothing to add: the text is not a preset")
+    for name in pairs(m.presets) do
+        if not before[name] then
+            local order = {}
+            local body = txt:match(":(.*)$") or ""
+            for v in body:gmatch("[^;]+") do local id = v:match("^[^\\]+"); if id and id:match("%S") then order[#order + 1] = id end end
+            extra(name)
+            Extra.t[name] = { order = order, saved = stamp() }
+            extrasSave()
+            self.psel = name
+            self:say("Added " .. name)
+            return
+        end
+    end
+    self:say("Nothing to add: the text is not a profile")
 end
 
-function ZeD_MMMods:presetItems()
-    local t = {
-        { text = "Turn All On", fn = function() self:setAll(true) end },
-        { text = "Turn All Off", fn = function() self:setAll(false) end },
-    }
-    local names = self:presetNames()
-    if #names > 0 then
-        t[#t + 1] = "-"
-        for _, n in ipairs(names) do t[#t + 1] = { text = n, fn = function() self:loadPreset(n) end } end
+function ZeD_MMMods:moreItems()
+    local t = {}
+    if self.psel then
+        t[#t + 1] = { text = "Rename " .. self.psel .. "...", fn = function() self:setConfirm("rename") end }
+        t[#t + 1] = { text = "Duplicate " .. self.psel .. "...", fn = function() self:setConfirm("dup") end }
+        t[#t + 1] = { text = "Copy as Text", fn = function() self:copyPreset() end }
     end
+    t[#t + 1] = { text = "Paste Profile Text...", fn = function() self:setConfirm("paste") end }
     t[#t + 1] = "-"
-    t[#t + 1] = { text = "Save as Preset...", fn = function() self:setConfirm("save") end }
-    t[#t + 1] = { text = "Paste Preset Text...", fn = function() self:setConfirm("paste") end }
-    if self.preset then
-        t[#t + 1] = { text = "Copy " .. self.preset .. " Text", fn = function() self:copyPreset() end }
-        t[#t + 1] = { text = "Delete " .. self.preset .. "...", fn = function() self:setConfirm("delete") end }
+    t[#t + 1] = { text = "Turn Every Mod On", fn = function() self:setAll(true); self:say("Every mod that can run is on"); self:leaveProfiles() end }
+    if self.psel then
+        t[#t + 1] = "-"
+        t[#t + 1] = { text = "Delete " .. self.psel .. "...", fn = function() self:setConfirm("delete") end }
     end
     return t
 end
 
-function ZeD_MMMods:openPresets()
+function ZeD_MMMods:openMore()
     for _, b in ipairs(self._specs) do
-        if b.id == "presets" then
-            MM.openPopup("presets", self:presetItems(), { x = self:getAbsoluteX() + b.x, y = self:getAbsoluteY() + b.y, w = b.w, h = b.h }, true)
+        if b.id == "more" then
+            MM.openPopup("profilesMore", self:moreItems(), { x = self:getAbsoluteX() + b.x, y = self:getAbsoluteY() + b.y, w = b.w, h = b.h }, true)
             return
         end
     end
+end
+
+function ZeD_MMMods:enterProfiles()
+    MM.clickSound()
+    MM.ctx.open = nil
+    self.confirm = false
+    self.field:setVisible(false)
+    self.page = "profiles"
+    local inUse = self:profileInUse()
+    self.psel = inUse or self.preset
+    if self.psel and not (model() and model().presets[self.psel]) then self.psel = nil end
+    self.scroll, self.dscroll = 0, 0
+    local idx = 1
+    for i, p in ipairs(self:profiles()) do if p.name == self.psel then idx = i end end
+    self.focusId = "prow:" .. idx
+end
+
+function ZeD_MMMods:leaveProfiles()
+    self.page = "list"
+    self.confirm = false
+    self.field:setVisible(false)
+    self.scroll, self.dscroll = 0, 0
+    self.focusId = nil
 end
 
 -- LOAD ORDER + MAP ORDER (vanilla's ModLoadOrderPanel / MapOrderUI rules) -----------
@@ -452,44 +740,29 @@ end
 function ZeD_MMMods:autoSort()
     local m = model()
     if not m then return end
-    local base = {}
-    for _, id in ipairs(self.order) do if m.mods[id] then base[#base + 1] = { id = id, info = m.mods[id].modInfo } end end
-    table.sort(base, function(a, b) return a.id < b.id end)
-    local auto, added = {}, {}
-    local function indexOf(t, v) for i, x in ipairs(t) do if x == v then return i end end; return #t end
-    for _, val in ipairs(base) do
-        local temp = {}
-        for _, a in ipairs(jlist(val.info:getLoadAfter())) do if not added[a] then temp[#temp + 1] = a; added[a] = true end end
-        for _, r in ipairs(jlist(val.info:getRequire())) do if not added[r] then temp[#temp + 1] = r; added[r] = true end end
-        temp[#temp + 1] = val.id
-        local mIndex = #temp
-        for _, b in ipairs(jlist(val.info:getLoadBefore())) do if not added[b] then temp[#temp + 1] = b; added[b] = true end end
-        if added[val.id] then
-            local index = indexOf(auto, val.id)
-            for j = mIndex + 1, #temp do table.insert(auto, index + 1, temp[j]) end
-            for j = 1, mIndex - 1 do table.insert(auto, index, temp[j]) end
-        else
-            for j = 1, #temp do auto[#auto + 1] = temp[j] end
-            added[val.id] = true
-        end
-    end
-    -- only the mods that are on stay in the list
-    local inList = {}
-    for _, id in ipairs(self.order) do inList[id] = true end
-    local out, seen = {}, {}
-    for _, id in ipairs(auto) do if inList[id] and not seen[id] then out[#out + 1] = id; seen[id] = true end end
-    self.order = out
+    self.order = ruleOrder(m, self.order)
     MM.clickSound()
 end
 
 -- THE STRIP'S QUESTIONS AND FIELDS ------------------------------------------------
 
+local FIELD_MODES = { save = true, paste = true, rename = true, dup = true }
+
+-- Return in the strip's field: the mode's own action
+function ZeD_MMMods:fieldEnter()
+    local c = self.confirm
+    if c == "save" then self:savePreset() elseif c == "paste" then self:pastePreset()
+    elseif c == "rename" then self:renameProfile() elseif c == "dup" then self:duplicateProfile() end
+end
+
 function ZeD_MMMods:setConfirm(mode)
     if self.confirm == mode then return end
     self.confirm = mode
     MM.ctx.open = nil
-    if mode == "save" or mode == "paste" then
-        self.field:setText(mode == "save" and (self.preset or "") or "")
+    if FIELD_MODES[mode] then
+        local pre = ""
+        if mode == "rename" then pre = self.psel or "" elseif mode == "dup" then pre = (self.psel or "") .. " copy" end
+        self.field:setText(pre)
         self.field:setVisible(true)
         self.field:focus()
     else
@@ -506,11 +779,13 @@ function ZeD_MMMods:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local all, on = self:counts()
-    local section = (self.page == "order" and "Load Order") or (self.page == "maps" and "Map Order") or "Mods"
+    local section = (self.page == "order" and "Load Order") or (self.page == "maps" and "Map Order") or (self.page == "profiles" and "Mod Profiles") or "Mods"
     local md = model()
     if md and md.isServerSettingsMods then section = "Server " .. section end   -- (a server's mods, from its settings)
     self.title = "Project Zomboid  +  " .. section
     self.titleStats = { { text = on .. " of " .. all .. " on", color = (on > 0) and T.positive or T.textDim } }
+    local inUse = self:profileInUse()
+    if inUse then table.insert(self.titleStats, 1, { text = inUse, color = T.accent }) end
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
@@ -522,6 +797,9 @@ function ZeD_MMMods:prerender()
         self:drawList(pad, bodyY, lw, bodyH)
         self:drawDetail(pad * 2 + lw, bodyY, w - pad * 3 - lw, bodyH)
         self.find:setVisible(true)
+    elseif self.page == "profiles" then
+        self.find:setVisible(false)
+        self:drawProfiles(pad, bodyY, w - pad * 2, bodyH)
     else
         self.find:setVisible(false)
         self:drawOrder(pad, bodyY, w - pad * 2, bodyH)
@@ -550,24 +828,44 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
             { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
             { "confirm:yes", "TURN ON", function() local d = self._templateFor; self:setConfirm(false); self:toggle(d, true) end, "primary" } })
     elseif self.confirm == "delete" then
-        ask = "Delete the preset " .. tostring(self.preset) .. "?"
+        ask = "Delete the profile " .. tostring(self.psel) .. "?"
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
             { "confirm:yes", "DELETE", function() self:deletePreset() end, "danger" } })
-    elseif self.confirm == "save" or self.confirm == "paste" then
-        ask = (self.confirm == "save") and "Preset name:" or "Preset text:"
-        local text = self.field:getText()
-        local valid = text and text ~= "" and ((self.confirm == "paste") or SandboxOptions.isValidPresetName(text))
+    elseif self.confirm == "update" then
+        local _, on = self:counts()
+        ask = "Replace " .. tostring(self.psel) .. " with the " .. on .. (on == 1 and " mod" or " mods") .. " on now?"
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", (self.confirm == "save") and "SAVE" or "ADD", function()
-                if self.confirm == "save" then self:savePreset() else self:pastePreset() end end, "primary", not valid } })
+            { "confirm:yes", "REPLACE", function() self:updateProfile() end, "primary" } })
+    elseif FIELD_MODES[self.confirm] then
+        local c = self.confirm
+        ask = (c == "save" and "New profile name:") or (c == "rename" and "Rename to:") or (c == "dup" and "Copy as:") or "Profile text:"
+        local text = self.field:getText()
+        local valid
+        if c == "paste" then valid = text and text:find(":", 1, true) ~= nil
+        elseif c == "rename" then valid = self:nameFree(text, self.psel)
+        else valid = self:nameFree(text) end
+        UI.stripSpecs(self, stripY, w, row, {}, {
+            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
+            { "confirm:yes", (c == "paste" and "ADD") or (c == "rename" and "RENAME") or "SAVE", function() self:fieldEnter() end, "primary", not valid } })
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
+    elseif self.page == "profiles" then
+        local isUser = self.psel ~= nil
+        local selDiff = self:profileDiff({ name = self.psel })
+        local inUse = isUser and selDiff.inUse
+        local loadOff = selDiff.noChange
+        UI.stripSpecs(self, stripY, w, row,
+            { { "back", "BACK", function() self:leaveProfiles(); MM.clickSound() end } },
+            { { "new", "NEW...", function() self:setConfirm("save") end },
+              { "update", "UPDATE...", function() self:setConfirm("update") end, "default", not isUser or inUse },
+              { "more", "MORE", function() self:openMore() end },
+              { "load", "LOAD", function() self:loadProfile({ name = self.psel }) end, "primary", loadOff } })
     elseif self.page ~= "list" then
         local _, firstBad = self:orderStates()
         UI.stripSpecs(self, stripY, w, row,
@@ -579,7 +877,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         pcall(function() mapConflicts = m and m:checkMapConflicts() or false end)
         local lefts = { { "back", "BACK", function() self:back() end } }
         local rights = {
-            { "presets", "PRESETS", function() self:openPresets() end },
+            { "profiles", "PROFILES", function() self:enterProfiles() end },
             { "order", "LOAD ORDER", function() self:enterOrder("order") end },
         }
         if mapConflicts then rights[#rights + 1] = { "maps", "MAP ORDER", function() self:enterOrder("maps") end } end
@@ -595,8 +893,8 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     -- the filter tabs (System 7 folder tabs), then Find
-    local all, on, favs, maps = self:counts()
-    local tabs = { { "all", "All " .. all }, { "enabled", "On " .. on }, { "favs", "Favourites " .. favs }, { "maps", "Maps " .. maps } }
+    local all, on, favs, maps, probs = self:counts()
+    local tabs = { { "all", "All " .. all }, { "enabled", "On " .. on }, { "favs", "Starred " .. favs }, { "maps", "Maps " .. maps }, { "problems", "Problems " .. probs } }
     local tH = T.px(TABS_H)
     self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), tH, 1, s2.r, s2.g, s2.b)
     local tx = x + T.px(8)
@@ -638,7 +936,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local star = MM.tex and MM.tex(STAR, true) or getTexture(STAR)
     if #rows == 0 then
         local d = T.textDim
-        local msg = (self.filter == "favs") and "No favourites yet" or "No mods match"
+        local msg = (self.filter == "favs") and "No favourites yet" or ((self.filter == "problems") and "Every mod can run" or "No mods match")
         self:drawText(msg, x + T.px(12), vy + T.px(12), d.r, d.g, d.b, d.a or 1, f2)
     end
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
@@ -985,17 +1283,196 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
     end
 end
 
+-- the Profiles page: the profiles on the left, what loading the picked one would do on the right
+function ZeD_MMMods:drawProfiles(x, y, w, h)
+    local T = ZeD.T
+    local m = model()
+    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+    local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
+    local listW = math.floor(w * 0.42)
+    UI.insetBox(self, x, y, listW, h)
+    local list = self:profiles()
+    local rh = T.px(ROW_H)
+    local rowsH = #list * rh
+    local vy, vh = y + T.px(1), h - T.px(2)
+    self.scroll = math.max(0, math.min(self.scroll, math.max(0, rowsH - vh)))
+    self._list = { x = x, y = vy, w = listW, h = vh }
+    local gp = MM.gamepad()
+    local ac = T.accent
+    local selP = list[1]
+    for _, p in ipairs(list) do if p.name == self.psel then selP = p end end
+    self:setStencilRect(x + T.px(1), vy, listW - T.px(2), vh)
+    for i, p in ipairs(list) do
+        local ry = vy + (i - 1) * rh - self.scroll
+        local rid = "prow:" .. i
+        self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, pname = p.name or false, ry = (i - 1) * rh, rh = rh,
+                                          fn = function() self:loadProfile(p) end }
+        if ry + rh > vy and ry < vy + vh then
+            if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, listW - T.px(2), rh, 0.55, ac.r, ac.g, ac.b)
+            elseif p == selP then self:drawRect(x + T.px(1), ry, listW - T.px(2), rh, 0.22, ac.r, ac.g, ac.b) end
+            self:drawRect(x + T.px(1), ry + rh - T.px(1), listW - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+            local diff = self:profileDiff(p)
+            -- status dot: the accent for the profile in use, red when mods are missing
+            local dsz = T.px(7)
+            local nx = x + T.px(12)
+            local dotC = (p.name and diff.inUse and T.accent) or ((#diff.missing + #diff.cannot > 0) and T.danger) or nil
+            if dotC then ZeD.Atoms.drawStatusDot(self, nx, ry + T.px(5) + math.floor((MM.fontH(f2) - dsz) / 2), dotC, dsz) end
+            nx = nx + dsz + T.px(8)
+            local maxW = x + listW - T.px(10) - nx
+            local nc = T.textHead
+            self:drawText(ZeD.Atoms.truncateText(p.label, f2, maxW), nx, ry + T.px(5), nc.r, nc.g, nc.b, nc.a or 1, f2)
+            local sub
+            if not p.name then sub = "Every mod off"
+            else
+                sub = diff.count .. (diff.count == 1 and " mod" or " mods")
+                if diff.inUse then sub = sub .. ", on now"
+                elseif #diff.missing > 0 then sub = sub .. ", " .. #diff.missing .. " not installed" end
+            end
+            local d = T.textDim
+            self:drawText(ZeD.Atoms.truncateText(sub, f3, maxW), nx, ry + rh - T.px(5) - MM.fontH(f3), d.r, d.g, d.b, d.a or 1, f3)
+            local cy0, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
+            self._hits[#self._hits + 1] = { id = "mods:prow:" .. i, x = ax + x, y = ay + cy0, w = listW, h = ch, fn = function() self:clickProfile(p, i) end }
+        end
+    end
+    self:clearStencilRect()
+    if rowsH > vh then
+        local sbW = T.sp.scrollbarW
+        local sx = x + listW - T.px(1) - sbW
+        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
+        local th = math.max(T.px(24), math.floor(vh * vh / rowsH))
+        ZeD.Atoms.drawScrollThumb(self, sx, vy + math.floor((vh - th) * self.scroll / (rowsH - vh)), sbW, th, "default")
+    end
+
+    -- the picked profile, in a framed pane that scrolls as one unit
+    local px0, pw0 = x + listW + T.px(12), w - listW - T.px(12)
+    local bs = T.borderS
+    self:drawRectBorder(px0, y, pw0, h, bs.a, bs.r, bs.g, bs.b)
+    self._detail = { x = px0, y = y, w = pw0, h = h }
+    local pad = T.px(DETAIL_PAD)
+    local ix, iw = px0 + pad, pw0 - pad * 2
+    self:setStencilRect(px0 + T.px(1), y + T.px(1), pw0 - T.px(2), h - T.px(2))
+    local cy = y + pad - self.dscroll
+    local diff = self:profileDiff(selP)
+    local hf = ZeD.Font.sdf.head
+    local z = 20 * (T.scale or 1) / (hf.face or 64)
+    local tc = T.textHead
+    ZeD.Text.draw(self, hf, ZeD.Atoms.truncateText(selP.label, T.fontF4, iw), ix, cy, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
+    cy = cy + math.floor(ZeD.Text.height(hf, z)) + T.px(2)
+    local dc, c = T.textDim, T.text
+    local e = extra(selP.name)
+    local facts = {}
+    if selP.name then
+        facts[#facts + 1] = diff.count .. (diff.count == 1 and " mod" or " mods")
+        if e and e.saved and e.saved ~= "" then facts[#facts + 1] = "saved " .. MM.playedText(e.saved) end
+    else
+        facts[#facts + 1] = "Plain Project Zomboid"
+    end
+    for _, l in ipairs(ZeD.Atoms.wrapText(table.concat(facts, ", "), f2, iw)) do
+        self:drawText(l, ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f2)
+        cy = cy + MM.fontH(f2) + T.px(2)
+    end
+    if e and e.used and e.used ~= "" then
+        self:drawText("Last loaded " .. MM.playedText(e.used), ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f2)
+        cy = cy + MM.fontH(f2) + T.px(2)
+    end
+    cy = cy + T.px(10)
+    local dsz = T.px(7)
+    local function dotLine(text, color, indent)
+        local first = true
+        local tx0 = ix + T.px(16) + (indent or 0)
+        for _, l in ipairs(ZeD.Atoms.wrapText(text, f2, ix + iw - tx0)) do
+            if first and color then ZeD.Atoms.drawStatusDot(self, ix + T.px(2), cy + math.floor((MM.fontH(f2) - dsz) / 2), color, dsz) end
+            self:drawText(l, tx0, cy, c.r, c.g, c.b, c.a or 1, f2)
+            cy = cy + MM.fontH(f2) + T.px(3)
+            first = false
+        end
+    end
+    local function label(text)
+        local la = T.accent
+        self:drawText(text, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+        cy = cy + T.px(KV_ROW_H)
+    end
+    -- what loading it does
+    label("LOADING IT")
+    if diff.noChange then
+        dotLine((#diff.missing + #diff.cannot > 0) and "Turns nothing on or off" or "Changes nothing: these are the mods on now", T.accent)
+    else
+        if #diff.on > 0 then
+            dotLine("Turns on " .. #diff.on, T.positive)
+            for _, d in ipairs(diff.on) do dotLine(tostring(d.name), nil, T.px(12)) end
+        end
+        if #diff.off > 0 then
+            dotLine("Turns off " .. #diff.off, T.textDim)
+            for _, d in ipairs(diff.off) do dotLine(tostring(d.name), nil, T.px(12)) end
+        end
+    end
+    if #diff.missing > 0 then
+        dotLine("Not installed " .. #diff.missing .. ": stays off", T.danger)
+        for _, id in ipairs(diff.missing) do dotLine(id, nil, T.px(12)) end
+    end
+    if #diff.cannot > 0 then
+        dotLine("Cannot run " .. #diff.cannot .. ": stays off", T.danger)
+        for _, d in ipairs(diff.cannot) do dotLine(tostring(d.name) .. " (" .. tostring(self:problem(d) or "cannot run") .. ")", nil, T.px(12)) end
+    end
+    -- the load order it keeps
+    if selP.name and diff.count > 0 then
+        cy = cy + T.px(10)
+        label("LOAD ORDER")
+        local ids, set = presetIds(m and m.presets[selP.name])
+        local order, seen = {}, {}
+        for _, id in ipairs(e and e.order or {}) do if set[id] and not seen[id] then order[#order + 1] = id; seen[id] = true end end
+        local kept = #order > 0
+        if not kept and m then order = ruleOrder(m, ids); for _, id in ipairs(order) do seen[id] = true end end
+        for _, id in ipairs(ids) do if not seen[id] then order[#order + 1] = id end end
+        local numW = MM.textW(f3, "000")
+        for i, id in ipairs(order) do
+            local md = m and m.mods[id]
+            self:drawText(tostring(i), ix + numW - MM.textW(f3, tostring(i)), cy + math.floor((MM.fontH(f2) - MM.fontH(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
+            local nm = md and tostring(md.name) or (id .. ", not installed")
+            self:drawText(ZeD.Atoms.truncateText(nm, f2, iw - numW - T.px(10)), ix + numW + T.px(10), cy, c.r, c.g, c.b, c.a or 1, f2)
+            cy = cy + MM.fontH(f2) + T.px(3)
+        end
+        if not kept then
+            cy = cy + T.px(4)
+            self:drawText("Sorted by the mods' own rules", ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f3)
+            cy = cy + MM.fontH(f3)
+        end
+    end
+    self:clearStencilRect()
+    local contentH = cy + self.dscroll - y + pad
+    self._detail.contentH = contentH
+    self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - h)))
+end
+
+-- a click picks the profile; a second click on it soon after loads it
+function ZeD_MMMods:clickProfile(p, i)
+    local t = MM.now()
+    if self.psel == p.name and self._lastPClick and t - self._lastPClick < 450 then
+        self._lastPClick = nil
+        self:loadProfile(p)
+        return
+    end
+    self._lastPClick = t
+    if self.psel ~= p.name then self.dscroll = 0; MM.hoverSound() end
+    self.psel = p.name
+    self.focusId = "prow:" .. i
+end
+
 -- CONTROLLER + KEYS ---------------------------------------------------------------
 
 function ZeD_MMMods:joyDir(dir)
-    if self.confirm == "save" or self.confirm == "paste" then
+    if FIELD_MODES[self.confirm] then
         if dir == "left" or dir == "right" then ZeD_MMWindow.joyDir(self, dir) end
         return
     end
     ZeD_MMWindow.joyDir(self, dir)
     for _, b in ipairs(self._specs) do
         if b.id == self.focusId and b.listRow then
-            if self.page == "list" then self.sel = b.key; self.dscroll = 0 else self.oSel = b.index end
+            if self.page == "list" then self.sel = b.key; self.dscroll = 0
+            elseif self.page == "profiles" then
+                if self.psel ~= (b.pname or nil) then self.dscroll = 0 end
+                self.psel = b.pname or nil
+            else self.oSel = b.index end
             local vh = self._list and self._list.h or 0
             if b.ry < self.scroll then self.scroll = b.ry
             elseif b.ry + b.rh > self.scroll + vh then self.scroll = b.ry + b.rh - vh end
@@ -1004,26 +1481,30 @@ function ZeD_MMMods:joyDir(dir)
 end
 
 function ZeD_MMMods:joyA()
-    if self.page ~= "list" and (self.focusId or ""):sub(1, 5) == "orow:" then return end   -- a row only picks; X / Y move it
+    if (self.page == "order" or self.page == "maps") and (self.focusId or ""):sub(1, 5) == "orow:" then return end   -- a row only picks; X / Y move it
     ZeD_MMWindow.joyA(self)
 end
 function ZeD_MMMods:joyB()
-    if self.confirm then self:setConfirm(false) else self:back() end
+    if self.confirm then self:setConfirm(false)
+    elseif self.page == "profiles" then self:leaveProfiles(); MM.clickSound()
+    else self:back() end
 end
 function ZeD_MMMods:joyX()
     if self.confirm then return end
+    if self.page == "profiles" then self:openMore() return end
     if self.page ~= "list" then self:move(1) return end
     self:toggleFav(self:selected())
 end
 function ZeD_MMMods:joyY()
     if self.confirm then return end
+    if self.page == "profiles" then self:setConfirm("save") return end
     if self.page ~= "list" then self:move(-1) return end
-    self:openPresets()
+    self:enterProfiles()
 end
 -- LB / RB walk the filter tabs
 function ZeD_MMMods:joyBumper(dir)
     if self.page ~= "list" or self.confirm then return end
-    local order = { "all", "enabled", "favs", "maps" }
+    local order = { "all", "enabled", "favs", "maps", "problems" }
     for i, k in ipairs(order) do
         if k == self.filter then
             local j = math.max(1, math.min(#order, i + dir))
@@ -1037,11 +1518,17 @@ function ZeD_MMMods:getFooterPrompts()
     if not MM.gamepad() then return nil end
     if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
     local f = self.focusId or ""
+    if self.page == "profiles" then
+        if f:sub(1, 5) == "prow:" then
+            return { { glyph = "A", label = "Load" }, { glyph = "Y", label = "New" }, { glyph = "X", label = "More" }, { glyph = "B", label = "Back" } }
+        end
+        return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
+    end
     if self.page ~= "list" then
         return { { glyph = "Y", label = "Move up" }, { glyph = "X", label = "Move down" }, { glyph = "B", label = "Back" } }
     end
     if f:sub(1, 5) == "mrow:" then
-        return { { glyph = "A", label = "On / off" }, { glyph = "X", label = "Favourite" }, { glyph = "Y", label = "Presets" }, { glyph = "LB", label = "" }, { glyph = "RB", label = "Filter" }, { glyph = "B", label = "Back" } }
+        return { { glyph = "A", label = "On / off" }, { glyph = "X", label = "Favourite" }, { glyph = "Y", label = "Profiles" }, { glyph = "LB", label = "" }, { glyph = "RB", label = "Filter" }, { glyph = "B", label = "Back" } }
     end
     return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
 end
@@ -1049,17 +1536,15 @@ end
 function ZeD_MMMods:keyEscape()
     if self.confirm then self:setConfirm(false); return true end
     if self.find:isFocused() then self.find:unfocus(); return true end
+    if self.page == "profiles" then self:leaveProfiles(); MM.clickSound(); return true end
     self:back()
     return true
 end
 
 function ZeD_MMMods:keyOther(key)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
-    if self.confirm == "save" or self.confirm == "paste" then
-        if key == Keyboard.KEY_RETURN then
-            if self.confirm == "save" then self:savePreset() else self:pastePreset() end
-            return true
-        end
+    if FIELD_MODES[self.confirm] then
+        if key == Keyboard.KEY_RETURN then self:fieldEnter(); return true end
         return false
     end
     if self.find:isFocused() then
@@ -1068,12 +1553,17 @@ function ZeD_MMMods:keyOther(key)
     end
     if self.confirm then return false end
     if key == Keyboard.KEY_RETURN then
-        if self.page == "list" then self:accept() else self:leaveOrder(true) end
+        if self.page == "list" then self:accept()
+        elseif self.page == "profiles" then self:loadProfile({ name = self.psel })
+        else self:leaveOrder(true) end
         return true
     end
+    if key == Keyboard.KEY_DELETE and self.page == "profiles" and self.psel then self:setConfirm("delete"); return true end
     if key == Keyboard.KEY_SPACE and self.page == "list" then self:toggle(self:selected()); return true end
     if key == Keyboard.KEY_UP or key == Keyboard.KEY_DOWN then
         if self.page == "list" then self.focusId = self.sel and ("mrow:" .. self.sel) or nil
+        elseif self.page == "profiles" then
+            for i, p in ipairs(self:profiles()) do if p.name == self.psel then self.focusId = "prow:" .. i end end
         else self.focusId = "orow:" .. (self.oSel or 1) end
         self:joyDir(key == Keyboard.KEY_UP and "up" or "down")
         return true
@@ -1093,7 +1583,7 @@ function ZeD_MMMods:wheel(del)
         return true
     end
     local d = self._detail
-    if self.page == "list" and d and mx >= d.x and mx <= d.x + d.w and my >= d.y and my <= d.y + d.h then
+    if (self.page == "list" or self.page == "profiles") and d and mx >= d.x and mx <= d.x + d.w and my >= d.y and my <= d.y + d.h then
         self.dscroll = self.dscroll + del * T.px(40)
         return true
     end
