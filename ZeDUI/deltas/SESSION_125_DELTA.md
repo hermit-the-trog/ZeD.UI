@@ -203,3 +203,19 @@ Fixed during QA: pop-up rows did not close their pop-up; long lists ran off the 
 
 Verified live (1080p window): all eight pages (Display, UI, Audio, Key Bindings, Accessibility, Controller, Multiplayer, Mods), list boxes with scroll, a change (Lock Framerate 60) marking Changed, BACK asking, DISCARD restoring it (framerate 120, nothing saved), key capture and the "already in use" question, Escape out of both; in game: the window over the world, a list box on its own pull-down, BACK to the pause window.
 Not seen live: APPLY / ACCEPT writing options (left alone on the director's options), the screen-settings countdown and restart notice, colour palette picks, the Advanced sounds screen, OPEN CONTROLLER SETUP, a mod text option.
+
+## Map / spawn on the monitor
+
+Built: `ZeD_MainMenuSpawn.lua` (ZeD_MMSpawn, ZeD_MMSpawnMap). Vanilla's MapSpawnSelect stays the engine: its fillList (towns for the game mode, map order, ignored maps), its save-name rules, the seed, clickNext (sandbox options or character creation next) and clickBack (New Game, Load Game, World Select). Its `setVisible(true)` is redirected to the monitor; vanilla's own map panel (the game's world map, same data and style) moves into the window. Later screens now register on the desk with `MM.addView(view, field, make, screen)` (window, redirect and controller routing in one call).
+
+Decisions:
+- Left: the towns in a list box (vanilla's names); below it SAVE NAME and SEED with a label over each field and NEW SEED beside the seed (only while a world is being made, as vanilla). Right: the map, and the town's name and description under it.
+- The map frames every house the town can start a new character in (vanilla's spawn points, all professions), marked with small accent squares, and glides between towns; never closer than vanilla's own zoom for the town. Drag pans, the wheel zooms.
+- The town's video (vanilla showed it above the description) plays in a small framed inset in the map's top-right corner; the houses are framed to its left. With video effects off, the still picture when the game has one.
+- The description is vanilla's text without its repeated centred title; the box is capped so the map stays large, longer text scrolls inside it (wheel or its scroll bar).
+- NEXT waits for a usable save name, as vanilla, but says why under the field with a red status dot: "Give the save a name.", "Use _ instead of spaces." (vanilla silently refused spaces), "Those characters can't be used.", "Can't start or end with a dot.", "A save with this name exists."
+- Keys: arrows walk the towns, Return goes on (a Return that just left a field is swallowed), Escape leaves a field, then the screen. Controller: towns, then the fields (A opens vanilla's on-screen keyboard), then the strip; A next, Y new seed, B back. Double-click a town goes on.
+
+Verified live (1080p window): Apocalypse (4 towns) and Sandbox (11 towns, the list scrolls); picking a town glides the map; drag and wheel; each save-name message (an existing save's name, empty, "/", a leading dot, spaces); typing in the field and Return only leaving it; arrows and Escape; NEW SEED; NEXT handing the town, save name and seed to vanilla (Riverside, the name, the seed read back) and vanilla's occupation screen's BACK landing on the monitor with the town still chosen; BACK to New Game (vanilla clears the seed).
+Not seen live: a real controller (on-screen keyboard), World Select (only with map mods that cannot share a world), a challenge's spawn choice, video effects off.
+Found: vanilla's "Random" row never appears in 42.21 (KB Q214); left as vanilla.
