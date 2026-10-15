@@ -40,15 +40,15 @@ local EDGE_ROW = 184             -- the desktop's front edge row at the picture'
 local WALL  = { r = 0x17 / 255, g = 0x13 / 255, b = 0x10 / 255 }
 local DESKC = { r = 0x7c / 255, g = 0x58 / 255, b = 0x31 / 255 }
 -- lights and moving parts: { x, y, w, h } in native pixels
-local HDD      = { 142, 248, 3, 2 }    -- orange hard disk light (drawn lit in the picture)
-local FLOPPY   = { 300, 261, 3, 2 }    -- green floppy light (drawn lit in the picture)
+local HDD      = { 146, 246, 3, 2 }    -- orange hard disk light (drawn lit in the picture)
+local FLOPPY   = { 300, 262, 3, 2 }    -- green floppy light (drawn lit in the picture)
 local HDD_OFF    = { r = 0.29, g = 0.19, b = 0.07 }
 local FLOPPY_OFF = { r = 0.17, g = 0.24, b = 0.16 }
 local DIAL     = { 416, 120, 7, 10 }   -- the boombox dial without its needle (dial_clean.png)
 local NEEDLE   = { 419, 121, 1, 8 }    -- the red tuning needle
 local NEEDLE_C = { r = 0xb8 / 255, g = 0x33 / 255, b = 0x1f / 255 }
 local LAMP     = { 60, 92, 42, 36 }    -- the lamp's glow, dimmed (lamp_dim.png)
-local POWER    = { 122, 246, 10, 10 }  -- the case's power button: Quit
+local POWER    = { 126, 243, 10, 10 }  -- the case's power button: Quit
 
 -- The wallpaper: vanilla's old title painting and its lightning frame, cropped to the
 -- screen's 4:3 around the figures (1440 x 1080 from x 470 of the 1920 x 1080 picture).
