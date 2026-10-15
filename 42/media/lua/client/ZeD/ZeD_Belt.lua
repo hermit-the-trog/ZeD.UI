@@ -7,8 +7,9 @@
 -- bottom (ISHotbar). Both become one HUD piece at the bottom centre, to the
 -- director's sketch:
 --     [Main Hand] ==[1]=[2]={buckle}=[3]=[4]== [Secondary hand]
--- a decorative leather strap with a brass buckle in the middle (decoration,
--- theme-neutral), the hotbar slots as ZeD boxes on the strap (a little taller
+-- a decorative leather strap with a buckle in the middle (decoration,
+-- theme-neutral: since Oct 15 2026 the character's profession buckle, 25
+-- designs, the plain KENTUCKY plate for any other), the hotbar slots as ZeD boxes on the strap (a little taller
 -- than it) on either side of the buckle in key order, the hands as squares at
 -- the two ends. The boxes follow the ZeD base and accent.
 --
@@ -34,7 +35,7 @@ local B = ZeD.Belt
 -- ----------------------------------------------------------------------------
 local BOX, HAND = 44, 52
 local GAP, SIDE_GAP, PAD, END_GAP = 7, 14, 12, 10
-local BUCKLE_W, BUCKLE_H = 38, 40
+local BUCKLE_W, BUCKLE_H = 58, 40   -- the profession buckle's own size (58 x 40 texels, one a unit)
 local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
@@ -50,6 +51,30 @@ end
 local LEATHER_TOP, LEATHER_BOT, LEATHER_EDGE = hex("#5c4129"), hex("#3b2a1b"), hex("#1a1108")
 local STITCH = { r = 0.84, g = 0.70, b = 0.46, a = 0.55 }
 local BRASS_A, BRASS_B, BRASS_C = hex("#e2c070"), hex("#9c7428"), hex("#4a3812")
+
+-- The player's profession buckle (director, Oct 15 2026; art by ZeDUI/tools/buckles/
+-- gen_buckles.py: 25 stable professions, 58 x 40, one texel a design unit). Loaded with
+-- nearest filtering like the main menu desk (KB Q205) and drawn at a whole multiple, so the
+-- pixels stay square. A modded or unknown profession wears the plain KENTUCKY plate
+-- (unemployed); a missing texture falls back to the brass frame.
+local BUCKLE_DIR = "media/textures/ZeD/buckles/buckle_"
+local NEAREST = 3
+local _buckleTex = {}
+local function buckleTexture(id)
+    local t = _buckleTex[id]
+    if t == nil then
+        t = Texture.getSharedTexture(BUCKLE_DIR .. id .. ".png", NEAREST) or false
+        _buckleTex[id] = t
+    end
+    return t or nil
+end
+local function professionId(p)
+    local id = nil
+    pcall(function() id = p:getDescriptor():getCharacterProfession():getName() end)
+    if id == nil then return nil end
+    id = string.lower(tostring(id))
+    return id:match("([^:]+)$")   -- "base:farmer" -> "farmer"
+end
 
 local function call(o, m, ...)
     if o == nil then return nil end
@@ -419,6 +444,16 @@ end
 function ZeD_BeltHUD:_drawBuckle()
     local T = ZeD.T
     local b = self._buckle
+    -- the profession's buckle, the largest whole multiple of 58 x 40 that fits, centred
+    local p = self:player()
+    local id = p and professionId(p)
+    local tex = (id and buckleTexture(id)) or buckleTexture("unemployed")
+    if tex then
+        local k = math.max(1, math.floor(T.scale or 1))
+        local w, h = 58 * k, 40 * k
+        self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - w) / 2), b.y + math.floor((b.h - h) / 2), w, h, 1, 1, 1, 1)
+        return
+    end
     local t = T.px(5)
     local half = math.floor(b.h / 2)
     -- the frame: brass, lit from above

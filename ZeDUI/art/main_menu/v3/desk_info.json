@@ -1,0 +1,21 @@
+{
+ "HDD_OFF": "#1f1404",
+ "FLOPPY_OFF": "#0e1811",
+ "HDD_ON": "#f49c21",
+ "FLOPPY_ON": "#36c538",
+ "NEEDLE_C": "#7f2012",
+ "WALL_L": "#110907",
+ "WALL_R": "#1e140c",
+ "DESK_L": "#1f0d07",
+ "DESK_R": "#0d0503",
+ "colours": 203,
+ "lua": [
+  "local HDD_OFF    = { r = 0x1f / 255, g = 0x14 / 255, b = 0x04 / 255 }",
+  "local FLOPPY_OFF = { r = 0x0e / 255, g = 0x18 / 255, b = 0x11 / 255 }",
+  "local NEEDLE_C   = { r = 0x7f / 255, g = 0x20 / 255, b = 0x12 / 255 }",
+  "local WALL_L     = { r = 0x11 / 255, g = 0x09 / 255, b = 0x07 / 255 }",
+  "local WALL_R     = { r = 0x1e / 255, g = 0x14 / 255, b = 0x0c / 255 }",
+  "local DESK_L     = { r = 0x1f / 255, g = 0x0d / 255, b = 0x07 / 255 }",
+  "local DESK_R     = { r = 0x0d / 255, g = 0x05 / 255, b = 0x03 / 255 }"
+ ]
+}
