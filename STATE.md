@@ -3,8 +3,8 @@
 One page. What is true right now. Rewritten at every closeout, never appended to.
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
-**Version:** `0.1.1242300k` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 14 2026
-**Next session:** S125 - director plays the crafting stations, the Vehicle tab, the object cards (generator, campfire, barbecue, farm plots) the fluid card, the Furniture tab, the animal cards, the trailer page and the lock card on the 4K rig; every World window surface on the list is done, so next is the Character window's hands and hotbar (HOOK_MAP rows 6 and 5), mockup first. See Target.
+**Version:** `0.1.1242300k` (S124, Oct 13 2026) · **Game:** Build 42 stable 42.20.2 (vanilla Lua last touched Oct 6 2026) · **Last code change:** Oct 14 2026 (the belt)
+**Next session:** S126 - director plays the belt (hands + hotbar) and the World window surfaces on the 4K rig; next on the list is a home for moodles (HOOK_MAP row 7), mockup first. See Target.
 
 ## What ships
 
@@ -21,7 +21,8 @@ History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 - Context menu: single horizontal strip, 114 `fi-br-*` icons, first-word fallback, System 7 paper/ink.
 - Theme engine: 3 bases (dark, hicon, light) × 9 accents × 2 text sizes (`shared/ZeD/Tokens.lua`). Fonts: Fira Mono + Fira Sans Condensed bitmap `.fnt` (1x–4x sets shipped).
 - Gamepad: S113 flat free-nav; every tab in both windows has a focusable builder; sub-tab pills switch on A; **capability-driven button prompts** in every window footer (derived from the focused element's callbacks); UI sounds on focus / A / B; F9 overlay gamepad-only.
-- HUD: the vanilla left-edge window buttons are hidden (`Overrides/ScreenIcons.lua`, S124); hand slots stay until the screen-icons surface.
+- HUD **belt** (S125, HOOK_MAP rows 5 + 6): the hands and the hotbar are one piece at the bottom centre, to the director's sketch: the hands as squares at the ends, the hotbar slots in key order either side of a brass buckle on a subtle leather strap, ZeD boxes a little taller than it. Every item shows its condition; IN HAND, BOTH for a two-handed weapon, key badges, a lamp dot for a light that is on; hover gives the slot's name and key and the item tooltip above the box. Click draws; drag a box onto a hand or into a list; drop from a ZeD list onto a box (fit / dimmed / REPLACE); right-click is vanilla's slot menu; holding a hotbar key opens the slot's list above it; D-pad Left focuses it (IN YOUR BAGS above = the rest of vanilla's wheel). Vanilla's hotbar keeps the data and keys but never draws; the left column loses the hand slots (the whole column in single player). The Equip tab's HELD + BELT lists every slot with DETACH / PUT BACK / ATTACH; list rows carry BELT n tags — `ZeD_Belt.lua`, `Overrides/Belt.lua`, `EquipmentTab.lua`. The vanilla left-edge window buttons stay hidden (`Overrides/ScreenIcons.lua`, S124).
+- **Context menus at the cursor** (S125): right-clicks on windows now count as mouse input (they never did, so after any controller input menus opened at the item's inventory row or the screen bottom), and a menu built straight on `ISContextMenu.get` no longer inherits the last menu's place (vanilla's hotbar menu, Journal, Maps).
 - Dev: `QABridge.lua` (`-debug` only) runs `Zomboid/Lua/zedqa.lua` on a trigger file; suites in `ZeDUI/tools/qa/`; contact sheets in `ZeDUI/qa/`; `HOOK_MAP.md` lists every vanilla UI entry point with its status.
 
 ## Gamepad model (locked S113 · design director, confirmed Oct 11 2026)
@@ -60,7 +61,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
    5. ~~Animals tab additions — hutch, feeding trough, genome, tracks, butcher hook (rows 20-22)~~ — **done S124** (animal cards + Animals tab links; verified live except a real Inspect Track, see the delta).
    6. ~~Animals in trailers (row 23) in the Vehicle tab~~ — **done S125** (the trailer page; verified live, see the S125 delta).
    7. ~~Keypad codes (row 25)~~ — **done S125** (the lock card; verified live, see the S125 delta).
-2. **Character window: hands and hotbar** — the equipped primary / secondary items move into the Character window (retires the rest of the vanilla left-edge column, row 6) and the hotbar is integrated (row 5).
+2. ~~Hands and hotbar (rows 5, 6)~~ — **done S125** (the belt + Equip tab rows; verified live with the real mouse and keys, controller logic through the bridge, see the S125 delta).
 3. **A home for moodles** (the Java `MoodlesUI`, row 7).
 4. **Main menu** — CRT room mockup `ZeDUI/mockups/zed-main-menu-crt-v7_1.html`, plan in the S124 delta.
 5. Controller session on the QA save with the bridge logging (any time the director has the pad in hand).
