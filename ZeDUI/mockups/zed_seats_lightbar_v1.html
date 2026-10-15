@@ -133,6 +133,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; ma
   <div class="ctl"><span>Look</span><div class="seg" id="ctlLook"></div></div>
   <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
 </div>
+<svg width="0" height="0" style="position:absolute"><defs><pattern id="stip" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1" height="4" fill="rgba(20,20,20,.38)"/></pattern></defs></svg>
 <div class="stage-wrap"><div class="stage" id="stage"></div></div>
 <div class="caption" id="caption"></div>
 
@@ -141,7 +142,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; ma
     <h2>Decisions for you</h2>
     <ol>
       <li><span class="rec">RECOMMEND</span><b>The seat chooser is a small ZeD window where vanilla's was</b> (the middle of the screen, the same size), on <b>vanilla's own car outline</b> tinted to the text colour and <b>vanilla's own seat places</b>, so every car, van and a mod's vehicle lines up exactly as it does today.</li>
-      <li><span class="rec">RECOMMEND</span><b>Seats are the context strip's cells.</b> An empty seat shows its number (the key that takes it); you are the seated figure in the accent; someone else is the seated figure in ink; items on a seat are a box. A seat you can't take from here (no seat fitted, items with nowhere to go, the back of a caged car) is stippled, like an off slice on the wheel. The pointed seat grows and turns the accent, as on the wheel.</li>
+      <li><span class="rec">RECOMMEND</span><b>Seats are drawn as seats, from above</b> (cushion, backrest, headrest, the strip's ink edge and step shadow). An empty seat shows its number (the key that takes it); when someone sits there you see them from above, head and shoulders, in the accent if it is you; items on a seat are a pile of junk (a box, a bag, a plank); a seat that isn't fitted is its dashed place. A seat you can't take from here (no seat fitted, items with nowhere to go, the back of a caged car) is stippled, like an off slice on the wheel. The pointed seat grows and turns the accent, as on the wheel.</li>
       <li><span class="rec">RECOMMEND</span><b>The band names the pointed seat and says why not.</b> Vanilla prints the seat's name over the car and the reason in red text. Here the band under the title holds both: the name, and the reason with a status dot (red for "Must exit vehicle.", amber for "Item(s) on seat will be moved to another seat."). With nothing pointed it names your own seat. Vanilla's words are kept, so every language still works.</li>
       <li><span class="rec">RECOMMEND</span><b>Doors are small cells beside the car</b> where vanilla draws its faint exit arrows: one per door you could leave by. Pointing one says "Exit Vehicle" and which door. Holding Shift lights them and numbers them (Shift + number gets out there, as in vanilla); the footer says so, because vanilla never did.</li>
       <li><span class="rec">RECOMMEND</span><b>The lightbar is the siren controller already drawn on the police dash, up close.</b> The same faceplate, the same two rotary switches (lights OFF 1 2 3; siren STBY YELP WAIL ALARM, vanilla's four modes), the same two pilot lamps, made larger as its own 1993 prop. It rises above the dash instead of covering the car, so you can watch the bar flash while you set it. Click a word to turn the switch there, or click the knob to step it; the wheel turns it too. A controller moves between the two switches with the D-pad and turns them with up and down; B puts it away. Any lightbar vehicle gets it, including the ones whose dash has no controller drawn (the lights pickups and vans).</li>
@@ -186,8 +187,8 @@ const SCENES = [
     seats: ["you", "empty", "off", "off"], doors: [1, 2], point: { door: 2 }, band: ["Exit Vehicle", "By the Front Right door.", ""], ptr: true,
     cap: "A door cell: you slide across and get out on that side (vanilla's own switch, then exit)." },
   { id: "s6", group: "Seats", label: "Van: controller", bg: "bgPickup", van: "vVan", car: "van", title: "Switch Seat", stat: "Franklin Valuline",
-    seats: ["you", "empty", "empty", "empty", "empty", "empty"], doors: [], point: { seat: 3 }, xdoor: 3, band: ["Middle Left", null], pad: true,
-    cap: "The six-seat van on a controller: the D-pad walks the seats (vanilla's grid), A sits, X gets out by the focused seat's door (its cell shows the X), B closes. The van is shown over the pickup's backdrop." },
+    seats: ["you", "person", "empty", "items", "empty", "none"], doors: [], point: { seat: 3 }, xdoor: 3, band: ["Middle Left", null], pad: true,
+    cap: "The six-seat van on a controller, every kind of seat: you (the driver), someone in the passenger seat, items on the middle right (they can be moved, so it can still be taken), no seat fitted at the back right (its place dashed). The D-pad walks the seats (vanilla's grid), A sits, X gets out by the focused seat's door (its cell shows the X), B closes. The van is shown over the pickup's backdrop." },
   { id: "s7", group: "Seats", label: "Keyboard: Shift held", bg: "bgPickup", van: "vPickup", car: "truck", title: "Switch Seat", stat: "Chevalier D6",
     seats: ["you", "empty"], doors: [1, 2], shift: true, band: ["Driver", "You are here.", ""], keys: true,
     cap: "Holding Shift lights the doors and numbers them; Shift + 2 gets out by the passenger door. The footer names the keys, which vanilla never showed." },
@@ -207,6 +208,48 @@ let cur = SCENES[0], look = "zed", zoom = 1;
 function seg(id, items, get, set) {
   const box = $(id); box.innerHTML = "";
   items.forEach(([v, t]) => { const b = el("button", get() === v ? "on" : "", "", t); b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+
+// A seat seen from above, facing the car's front (up): cushion with side bolsters, backrest,
+// headrest; the System 7 step shadow; drawn in a 40 x 56 box and scaled to the cell.
+// you / person: a seated figure (head, shoulders, arms, knees); items: a box, a bag, a plank.
+const SEAT_PARTS = `<path d="M7 3 H33 Q36 3 36 7 V33 H4 V7 Q4 3 7 3 Z"/><path d="M4 32 H36 Q38 32 38 35 V43 Q38 47 34 47 H6 Q2 47 2 43 V35 Q2 32 4 32 Z"/><rect x="13" y="47" width="14" height="6" rx="2"/>`;
+function seatSvg(state, n, active, hideNum, w, h) {
+  const off = state === "off" || state === "itemsBlocked";
+  const none = state === "none";
+  const fill = active ? "var(--accent)" : "var(--paper)";
+  const edge = active ? "var(--accentBright)" : "var(--ink)";
+  const fig = active ? "var(--onAccent)" : "var(--ink)";
+  let out = `<svg viewBox="-1 -1 42 58" width="${w}" height="${h}" style="position:absolute;left:0;top:0;overflow:visible">`;
+  if (none) {
+    // no seat fitted: its place, dashed
+    out += `<g fill="none" stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 2" opacity=".6">${SEAT_PARTS}</g>`;
+  } else {
+    out += `<g fill="var(--ink)" transform="translate(2 2)">${SEAT_PARTS}</g>`;
+    out += `<g fill="${fill}" stroke="${edge}" stroke-width="1">${SEAT_PARTS}</g>`;
+    out += `<g stroke="${edge}" stroke-width="1" opacity=".55"><line x1="10" y1="7" x2="10" y2="32"/><line x1="30" y1="7" x2="30" y2="32"/><line x1="8" y1="39.5" x2="32" y2="39.5"/></g>`;
+  }
+  if (state === "you" || state === "person") {
+    const body = state === "you" ? (active ? "var(--onAccent)" : "var(--accent)") : "#5a5a5a";
+    const ln = state === "you" && active ? "var(--accentBright)" : "var(--ink)";
+    out += `<g fill="${body}" stroke="${ln}" stroke-width="1">`
+      + `<rect x="11.5" y="14" width="7" height="18" rx="3.5"/><rect x="21.5" y="14" width="7" height="18" rx="3.5"/>`
+      + `<rect x="5" y="26" width="6" height="13" rx="3"/><rect x="29" y="26" width="6" height="13" rx="3"/>`
+      + `<ellipse cx="20" cy="37.5" rx="14" ry="7.5"/></g>`
+      + `<circle cx="20" cy="37" r="7.2" fill="${state === "you" ? "var(--paper)" : "#8a8a8a"}" stroke="${ln}" stroke-width="1"/>`
+      + `<path d="M15.5 34.5 Q20 31 24.5 34.5" fill="none" stroke="${ln}" stroke-width="1"/>`;
+  } else if (state === "items" || state === "itemsBlocked") {
+    const jf = active ? "var(--accentBright)" : "var(--surf3)";
+    out += `<g fill="${jf}" stroke="${fig}" stroke-width="1">`
+      + `<g transform="rotate(-24 21 39)"><rect x="5" y="37" width="32" height="4.5" rx="1"/></g>`
+      + `<g transform="rotate(-10 16 16)"><rect x="7.5" y="8" width="17" height="16"/><line x1="16" y1="8" x2="16" y2="24"/><line x1="12" y1="15" x2="20" y2="15" opacity=".6"/></g>`
+      + `<g transform="rotate(12 26 27)"><rect x="17.5" y="21" width="17" height="11" rx="4.5"/><line x1="20.5" y1="24" x2="31.5" y2="24"/><path d="M22.5 21 Q26 16.5 29.5 21" fill="none"/></g>`
+      + `</g>`;
+  } else if (!hideNum) {
+    out += `<text x="20" y="23.5" text-anchor="middle" font-family="Fira Mono, monospace" font-weight="700" font-size="14" fill="${none ? "var(--textDim)" : fig}">${n}</text>`;
+  }
+  if (off) out += `<g fill="url(#stip)" stroke="none">${SEAT_PARTS}</g>`;
+  return out + `</svg>`;
 }
 
 function cellHtml(state, n, active, opts = {}) {
@@ -253,8 +296,8 @@ function seatWindow(st, S) {
     const n = i + 1, [sx, sy] = car.seats[i];
     const active = S.point && S.point.seat === n;
     const cw = active ? 42 : 34, ch = active ? 58 : 48;
-    const { cls, inner } = cellHtml(state, n, active, { hideNum: S.shift });
-    fig.appendChild(el("div", cls, `left:${bx + sx - cw / 2}px;top:${by + sy - ch / 2}px;width:${cw}px;height:${ch}px;z-index:${active ? 3 : 2}`, inner));
+    fig.appendChild(el("div", "", `position:absolute;left:${bx + sx - cw / 2}px;top:${by + sy - ch / 2}px;width:${cw}px;height:${ch}px;z-index:${active ? 3 : 2}`,
+      seatSvg(state, n, active, S.shift, cw, ch)));
     if (active) ptrAt = [bx + sx, by + sy];
   });
   if (S.ptr && ptrAt) { const p = el("div", "", `position:absolute;left:${ptrAt[0] + 6}px;top:${ptrAt[1] + 4}px`, PTR); fig.appendChild(p); }
