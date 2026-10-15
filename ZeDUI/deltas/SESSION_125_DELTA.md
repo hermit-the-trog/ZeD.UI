@@ -86,3 +86,10 @@ Director: "moodles next, start with the mockup" (also: run live QA in a 1080p wi
 
 ### Recommendations in the mockup
 Under the watch; worst on top; vanilla art in ZeD boxes (level = pips + border, pulse at 4, green for good); vanilla's temperature chevrons; hover chip in vanilla's words (no hidden numbers); click opens Thermal (Wet, Overheated, Cold, Windchill), Equip (Weighed Down, Restricted Movement, Uncomfortable) or the Health tab's new HOW YOU FEEL list (controller reading); vanilla's Moodle size option still steps the box size. Your call: the one-line summary (M29), recommended off.
+
+### v1 rejected, v2 (same day)
+Director: "moodles are the one thing we really aren't touching other than moving them around. options to put bottom of screen above hot bar, or left or right vertical", then "we do our own hover text". Saved as memory `feedback_moodles_vanilla`.
+
+Mockup `ZeDUI/mockups/zed_moodles_v2.html`: vanilla's moodles as `MoodlesUI` draws them (art, round backing lerped grey -> Good / Bad highlight colour by level/4, outline ring, vanilla order, wiggle, chevrons, Moodle size option), in three places: right column under the watch (recommended: vanilla's own column, just moved), left column starting below the Character / World windows, or a row above the belt (above the dashboard in a car; needs a ZeD copy of vanilla's drawing). Hover text: a ZeD chip (status dot, vanilla's name and description, the chevrons in words).
+
+Engine facts: `MoodlesUI` sets x = screen width - 10, y = 120 in its constructor and its `update()` never moves it (position comes from outside; the build re-applies it each frame as the watch does for the clock). It lays slots out vertically only (`slotsPos` on Y, spacing = size + 10). Its hover text box is drawn to the LEFT of the column (x = -10 - text width - 6), so on the left edge it would be off-screen. Size: `getOptionMoodleSize()` 1-6 -> 32/48/64/80/96/128 px (7 = by font size); the director's is 2 (48 px). Backing colours: `Core.getGoodHighlitedColor()` / `getBadHighlitedColor()` (options.ini goodHighlightColor 0,1,0, badHighlightColor 1,0,0).
