@@ -336,14 +336,14 @@ table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; c
   <div>
     <h2>Decisions for you</h2>
     <ol>
-      <li><span class="rec">RECOMMEND</span><b>The room from v7.1, with a bigger monitor.</b> A desk at night: the computer in the middle, a window with the blinds half down, the Knox County poster, a July 1993 calendar, the desk lamp, a walkie, a soda, floppies, the keyboard and mouse. The monitor fills most of the screen so its screen is 1024 x 768 (at 1080p): the menu on it reads at ZeD's normal text sizes. v7.1's monitor was a third of this and its text was 6 to 9 px. The room and the monitor become plates (like the watch and the dashboard) and scale with the screen.</li>
+      <li><span class="rec">RECOMMEND</span><b>The room from v7.1, close up and at real size.</b> The monitor is a 17-inch CRT whose screen is 1024 x 768 at 1080p, so the menu on it reads at ZeD's normal text sizes (v7.1's monitor was a third of this, with 6 to 9 px text). Everything else is sized against it as in life (about 27 px a centimetre at the monitor): a close-up of a desk at night, the room showing around the monitor and cut by the frame. The blinds half down over the night window, the Knox County poster behind the lamp's head, a soda can, a pencil cup, the July 1993 blotter with a floppy on it, the top rows of the keyboard, the mouse. The room and the monitor become plates (like the watch and the dashboard) and scale with the screen.</li>
       <li><span class="rec">RECOMMEND</span><b>Everything on the screen at once.</b> One Project Zomboid window: Continue first, with your last save's picture, its name, your character, mode and map and when you last played (all from vanilla's Load screen); then New Game, Load Game, Join a Server, Host a Game, Tutorial; the footer holds Options, Mods, Workshop, Credits and Quit. v7.1 started on an empty desktop with Continue inside the File menu.</li>
       <li><span class="rec">RECOMMEND</span><b>The menu bar repeats them.</b> ZeD (About ZeD-UI), File (Continue, New Game, Load Game, Tutorial, Quit), Multiplayer (Join a Server, Host a Game), Settings (Options, Mods, Workshop), plus Debug under -debug; the version and the time at the right. It is there for the 1993 feel and for mouse habits: nothing lives only in the menu bar.</li>
       <li><span class="rec">RECOMMEND</span><b>Vanilla's actions, vanilla's screens first.</b> Every item runs vanilla's own handler by its id (LATESTSAVE, SOLO, LOAD, MULTIPLAYER, COOP, TUTORIAL, OPTIONS, MODS, WORKSHOP, CREDITS, EXIT), so nothing about saves, mods or servers changes. At first the New Game, Load, Join, Host, Options and Mods screens are vanilla's (full screen, over the room). Then each gets a ZeD window on this screen, with its own mockup: Load and New Game first (mode, map, sandbox), character creation next, Options and Mods last (v7.1's sketches are the start).</li>
       <li><span class="rec">RECOMMEND</span><b>Quit asks in the footer.</b> Quit, File &gt; Quit or the monitor's power button turn the window's footer into "Quit Project Zomboid?" with CANCEL and QUIT (ZeD's footer confirmation, no pop-up). Vanilla quits at once.</li>
       <li><span class="rec">RECOMMEND</span><b>Controller.</b> The window's buttons are one D-pad list starting on CONTINUE (on NEW GAME with no saves): up and down along Continue and the rows, then left and right along the footer; A presses; B cancels a quit or closes a menu. Prompts sit under the window like the ZeD windows' footers. The menu bar is for the mouse: everything in it is also in the window.</li>
       <li><span class="rec">RECOMMEND</span><b>The pause menu in game.</b> Escape (or Start) dims the world and opens a small ZeD window: Return to Game, Options, Save and Quit to Menu, Quit to Desktop, plus Scoreboard and Invite Friends in multiplayer (vanilla's in-game list). A line on top says whose game it is and where. Vanilla's in-game menu is the same screen with a different list, so the same hook serves both.</li>
-      <li><span class="alt">YOUR CALL</span><b>The props.</b> The floppy on the desk wears your last save's name, the calendar is July 1993 with the first days crossed off, the window shows the night with the blinds half down, the lamp is lit. Pure decoration: they do nothing when clicked (v7.1's poster gnome is gone). Keep, change or add?</li>
+      <li><span class="alt">YOUR CALL</span><b>The props.</b> The floppy on the blotter wears your last save's name, the blotter is July 1993 with the first days crossed off, the night shows under the blinds, the lamp is lit. Pure decoration: they do nothing when clicked (v7.1's poster gnome and walkie are gone; at real size there is no room for them). Keep, change or add?</li>
       <li><b>No emoji, Fira on the screen, prop lettering is printed on the props.</b> v7.1 used emoji for icons and a pixel face; the screen now uses ZeD's type and window chrome, so the main menu matches the rest of the mod.</li>
     </ol>
   </div>
@@ -412,88 +412,113 @@ const CAPTIONS = {
 
 /* ---------- the room (a prop: becomes plates) ---------- */
 function roomSVG() {
+  // Real-world scale: the monitor is a 17" CRT (about 41 cm wide = 1112 px),
+  // so the monitor's plane is ~27 px per cm; the wall behind is ~21 px per cm,
+  // the keyboard and mouse in front ~31. A close-up of the desk: the room only
+  // shows around the monitor, cut by the frame.
+  // blinds: 2.5 cm slats (52 px at the wall), half down
   let blinds = "";
-  for (let i = 0; i < 12; i++) {
-    const y = 128 + i * 16;
-    blinds += `<rect x="84" y="${y}" width="222" height="11" fill="#9c917c"/><rect x="84" y="${y + 9}" width="222" height="2" fill="#6e6553"/>`;
+  for (let i = 0; i < 7; i++) {
+    const y = i * 46;
+    blinds += `<rect x="0" y="${y}" width="348" height="40" fill="#a2977f"/><rect x="0" y="${y + 36}" width="348" height="4" fill="#6e6553"/><rect x="0" y="${y + 40}" width="348" height="6" fill="#0d1620"/>`;
   }
   let stripes = "";
-  for (let x = 0; x < 1920; x += 28) stripes += `<rect x="${x}" y="0" width="1" height="930" fill="rgba(255,255,255,.025)"/>`;
+  for (let x = 0; x < 1920; x += 36) stripes += `<rect x="${x}" y="0" width="2" height="935" fill="rgba(255,255,255,.022)"/>`;
   let grain = "";
-  for (let i = 0; i < 14; i++) { const y = 940 + i * 11; grain += `<path d="M0 ${y} Q 600 ${y + (i % 3) * 3 - 3} 1920 ${y + 2}" stroke="rgba(0,0,0,.16)" stroke-width="1" fill="none"/>`; }
+  for (let i = 0; i < 12; i++) { const y = 942 + i * 12; grain += `<path d="M0 ${y} Q 700 ${y + (i % 3) * 4 - 4} 1920 ${y + 3}" stroke="rgba(0,0,0,.16)" stroke-width="1.5" fill="none"/>`; }
+  // keyboard (31 px/cm: keys 1.9 cm = 58 px), only its top rows in frame
+  const row1 = ["Esc", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Back"];
   let keys = "";
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 18; c++) keys += `<rect x="${672 + c * 30}" y="${990 + r * 24}" width="25" height="19" rx="2" fill="#cdc2a3" stroke="#9e9378"/>`;
-  let cal = "";
-  for (let d = 1; d <= 31; d++) {
-    const i = d + 3, cx = 1797 + (i % 7) * 13, cy = 425 + Math.floor(i / 7) * 13;
-    cal += `<text x="${cx}" y="${cy}" font-family="Fira Mono" font-size="7" fill="#3a332a">${d}</text>`;
-    if (d <= 8) cal += `<path d="M${cx - 1} ${cy - 7} l9 8 M${cx + 8} ${cy - 7} l-9 8" stroke="#b33a2c" stroke-width="1.2"/>`;
+  let kx = 262;
+  row1.forEach(k => {
+    const w = (k === "Back") ? 112 : (k === "Esc" ? 70 : 56);
+    keys += `<rect x="${kx}" y="1000" width="${w}" height="46" rx="5" fill="#d9cfb2" stroke="#9e9378" stroke-width="1.5"/><rect x="${kx + 5}" y="1003" width="${w - 10}" height="34" rx="4" fill="#e6ddc2"/>`;
+    keys += `<text x="${kx + 10}" y="1024" font-family="Fira Sans" font-size="15" fill="#5a5243">${k}</text>`;
+    kx += w + 6;
+  });
+  let row2 = "";
+  kx = 262;
+  ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"].forEach(k => {
+    const w = k === "Tab" ? 92 : (k === "\\" ? 76 : 56);
+    row2 += `<rect x="${kx}" y="1052" width="${w}" height="46" rx="5" fill="#d9cfb2" stroke="#9e9378" stroke-width="1.5"/><rect x="${kx + 5}" y="1055" width="${w - 10}" height="34" rx="4" fill="#e6ddc2"/>`;
+    row2 += `<text x="${kx + 10}" y="1076" font-family="Fira Sans" font-size="15" fill="#5a5243">${k}</text>`;
+    kx += w + 6;
+  });
+  // the desk blotter calendar (60 x 45 cm), July 1993, under the floppies
+  let blot = "";
+  for (let c = 0; c < 7; c++) {
+    const x = 26 + c * 74;
+    blot += `<rect x="${x}" y="996" width="70" height="80" fill="none" stroke="#b9ad8f" stroke-width="1.5"/>`;
+    const d = c - 3;   // July 1993 began on a Thursday
+    if (d >= 1) blot += `<text x="${x + 6}" y="1016" font-family="Fira Sans Condensed" font-weight="600" font-size="16" fill="#6b5f4a">${d}</text>`;
+    if (d >= 1 && d <= 3) blot += `<path d="M${x + 8} ${1002} l54 66 M${x + 62} ${1002} l-54 66" stroke="#b33a2c" stroke-width="3" stroke-linecap="round"/>`;
   }
   return `<svg width="1920" height="1080" viewBox="0 0 1920 1080">
   <defs>
-    <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2c2823"/><stop offset="1" stop-color="#3a342c"/></linearGradient>
-    <linearGradient id="desk" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5a4430"/><stop offset="1" stop-color="#3a2b1d"/></linearGradient>
-    <linearGradient id="night" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0b1622"/><stop offset="1" stop-color="#1b2a36"/></linearGradient>
-    <radialGradient id="lampGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="rgba(255,190,110,.30)"/><stop offset="1" stop-color="rgba(255,190,110,0)"/></radialGradient>
+    <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2a2621"/><stop offset="1" stop-color="#38322a"/></linearGradient>
+    <linearGradient id="desk" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5c4632"/><stop offset="1" stop-color="#3a2b1d"/></linearGradient>
+    <linearGradient id="night" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0b1622"/><stop offset="1" stop-color="#1d2d3a"/></linearGradient>
+    <linearGradient id="can" x1="0" x2="1"><stop offset="0" stop-color="#7d1e19"/><stop offset=".35" stop-color="#d0413a"/><stop offset=".6" stop-color="#b8302a"/><stop offset="1" stop-color="#5e1612"/></linearGradient>
+    <linearGradient id="cup" x1="0" x2="1"><stop offset="0" stop-color="#3a352f"/><stop offset=".4" stop-color="#6a6258"/><stop offset="1" stop-color="#2e2a25"/></linearGradient>
+    <linearGradient id="shade" x1="0" x2="1"><stop offset="0" stop-color="#2c4434"/><stop offset=".5" stop-color="#466a52"/><stop offset="1" stop-color="#22362a"/></linearGradient>
+    <radialGradient id="lampGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="rgba(255,196,120,.34)"/><stop offset="1" stop-color="rgba(255,196,120,0)"/></radialGradient>
     <radialGradient id="crtGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="rgba(170,200,255,.16)"/><stop offset="1" stop-color="rgba(170,200,255,0)"/></radialGradient>
-    <radialGradient id="moon" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="rgba(160,190,230,.18)"/><stop offset="1" stop-color="rgba(160,190,230,0)"/></radialGradient>
-    <radialGradient id="vig" cx="0.5" cy="0.45" r="0.75"><stop offset="0.55" stop-color="rgba(0,0,0,0)"/><stop offset="1" stop-color="rgba(0,0,0,.7)"/></radialGradient>
+    <radialGradient id="moon" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="rgba(160,190,230,.16)"/><stop offset="1" stop-color="rgba(160,190,230,0)"/></radialGradient>
+    <radialGradient id="vig" cx="0.5" cy="0.45" r="0.78"><stop offset="0.55" stop-color="rgba(0,0,0,0)"/><stop offset="1" stop-color="rgba(0,0,0,.72)"/></radialGradient>
   </defs>
-  <rect width="1920" height="930" fill="url(#wall)"/>${stripes}
-  <!-- window, blinds half down, night outside -->
-  <rect x="66" y="104" width="258" height="380" fill="#4a3c2e"/><rect x="80" y="118" width="230" height="352" fill="url(#night)"/>
-  <circle cx="250" cy="390" r="16" fill="#cfd8e6" opacity=".65"/>
-  <path d="M80 470 L80 420 Q100 380 120 415 Q140 360 165 410 Q190 395 210 430 L230 440 Q260 405 310 445 L310 470 Z" fill="#05090d"/>
+  <rect width="1920" height="935" fill="url(#wall)"/>${stripes}
+  <!-- the window, left: blinds half down, the night below them (cut by the frame) -->
+  <rect x="0" y="0" width="348" height="560" fill="url(#night)"/>
+  <circle cx="232" cy="420" r="34" fill="#cfd8e6" opacity=".6"/>
+  <path d="M0 560 L0 470 Q40 430 70 470 Q110 400 150 455 Q190 430 220 480 Q270 440 348 500 L348 560 Z" fill="#04080c"/>
   ${blinds}
-  <rect x="80" y="118" width="230" height="8" fill="#b3a88f"/><path d="M296 126 L296 330" stroke="#d8cfb8" stroke-width="1.5"/>
-  <rect x="58" y="484" width="274" height="12" fill="#5a4a38"/>
-  <ellipse cx="200" cy="640" rx="220" ry="140" fill="url(#moon)"/>
-  <!-- shelf -->
-  <rect x="62" y="640" width="262" height="10" fill="#5e4c3a"/><rect x="62" y="650" width="262" height="4" fill="#2a2018"/>
-  ${["#7a2e24", "#2f4a6b", "#c99b3c", "#3f5a36", "#6b5a7a", "#8a6b3c"].map((c, i) => `<rect x="${82 + i * 19}" y="${570 + (i % 2) * 8}" width="16" height="${70 - (i % 2) * 8}" fill="${c}"/>`).join("")}
-  <rect x="210" y="604" width="92" height="36" rx="3" fill="#2b2b2b"/><circle cx="234" cy="622" r="11" fill="#151515" stroke="#555"/><circle cx="278" cy="622" r="11" fill="#151515" stroke="#555"/><rect x="226" y="608" width="60" height="5" fill="#8a8a8a"/>
-  <!-- poster: Knox County tourism board -->
-  <g transform="rotate(1.6 1685 205)">
-    <rect x="1598" y="70" width="174" height="250" fill="#14121c" stroke="#3b3530" stroke-width="3"/>
-    <text x="1685" y="104" text-anchor="middle" font-family="Fira Sans Condensed" font-weight="700" font-size="22" letter-spacing="2" fill="#c98a52">KNOX</text>
-    <text x="1685" y="126" text-anchor="middle" font-family="Fira Sans Condensed" font-weight="700" font-size="16" letter-spacing="3" fill="#c98a52">COUNTY</text>
-    <path d="M1640 150 L1700 140 L1735 165 L1728 230 L1690 255 L1648 240 L1632 190 Z" fill="#3b4a36" stroke="#6a7d5c"/>
-    <circle cx="1690" cy="200" r="4" fill="#c94a3a"/>
-    <text x="1685" y="282" text-anchor="middle" font-family="Fira Sans Condensed" font-size="11" letter-spacing="1" fill="#9e8f80">VISIT BEFORE</text>
-    <text x="1685" y="297" text-anchor="middle" font-family="Fira Sans Condensed" font-size="11" letter-spacing="1" fill="#9e8f80">IT'S TOO LATE</text>
-    <circle cx="1685" cy="66" r="5" fill="#c44"/>
+  <path d="M300 0 L300 330" stroke="#d8cfb8" stroke-width="3"/>
+  <rect x="348" y="0" width="30" height="580" fill="#4e3f30"/><rect x="0" y="560" width="392" height="28" fill="#5a4a38"/><rect x="0" y="588" width="392" height="8" fill="#2a2018"/>
+  <ellipse cx="190" cy="760" rx="260" ry="170" fill="url(#moon)"/>
+  <!-- the poster, right: Knox County tourism board (cut by the frame) -->
+  <g transform="rotate(1.4 1700 400)">
+    <rect x="1540" y="34" width="560" height="760" fill="#15131d" stroke="#3b3530" stroke-width="5"/>
+    <text x="1578" y="168" font-family="Fira Sans Condensed" font-weight="700" font-size="128" letter-spacing="6" fill="#c98a52">KNOX</text>
+    <text x="1582" y="242" font-family="Fira Sans Condensed" font-weight="700" font-size="62" letter-spacing="12" fill="#c98a52">COUNTY</text>
+    <path d="M1600 300 L1760 280 L1860 340 L1850 520 L1760 590 L1640 560 L1590 430 Z" fill="#33432f" stroke="#6a7d5c" stroke-width="3"/>
+    <circle cx="1740" cy="430" r="10" fill="#c94a3a"/>
+    <text x="1582" y="690" font-family="Fira Sans Condensed" font-size="34" letter-spacing="3" fill="#9e8f80">VISIT BEFORE</text>
+    <text x="1582" y="732" font-family="Fira Sans Condensed" font-size="34" letter-spacing="3" fill="#9e8f80">IT'S TOO LATE</text>
   </g>
-  <!-- calendar, July 1993 -->
-  <rect x="1788" y="370" width="104" height="138" fill="#efe6d0" stroke="#8a7e66"/>
-  <rect x="1788" y="370" width="104" height="30" fill="#b33a2c"/>
-  <text x="1840" y="391" text-anchor="middle" font-family="Fira Sans Condensed" font-weight="700" font-size="14" fill="#fff">JULY 1993</text>
-  ${cal}
-  <!-- desk -->
-  <rect x="0" y="930" width="1920" height="150" fill="url(#desk)"/>${grain}
-  <rect x="0" y="926" width="1920" height="6" fill="#6a5440"/>
-  <ellipse cx="960" cy="950" rx="700" ry="80" fill="url(#crtGlow)"/>
-  <!-- lamp -->
-  <ellipse cx="1690" cy="760" rx="260" ry="240" fill="url(#lampGlow)"/>
-  <ellipse cx="1700" cy="934" rx="46" ry="9" fill="#2c2c2c"/><rect x="1660" y="920" width="80" height="12" rx="5" fill="#3c3c3c"/>
-  <path d="M1700 922 L1652 790 L1716 690" stroke="#4a4a4a" stroke-width="7" fill="none" stroke-linecap="round"/>
-  <circle cx="1652" cy="790" r="7" fill="#5a5a5a"/>
-  <path d="M1690 668 L1752 668 L1774 714 L1668 714 Z" fill="#3e5a46" transform="rotate(-22 1716 690)"/>
-  <ellipse cx="1662" cy="734" rx="38" ry="10" fill="rgba(255,214,150,.65)" transform="rotate(-22 1716 690)"/>
-  <!-- soda, walkie, pencil cup -->
-  <rect x="300" y="866" width="34" height="66" rx="5" fill="#b8302a"/><rect x="300" y="866" width="34" height="8" rx="3" fill="#cfcfcf"/><rect x="300" y="924" width="34" height="8" rx="3" fill="#9a9a9a"/>
-  <text x="317" y="905" text-anchor="middle" font-family="Fira Sans Condensed" font-weight="700" font-size="10" fill="#fff">COLA</text>
-  <g transform="rotate(-10 236 890)"><rect x="222" y="846" width="30" height="84" rx="4" fill="#2a2a2a"/><rect x="230" y="812" width="5" height="36" fill="#444"/><rect x="228" y="856" width="18" height="22" fill="#3c3c3c"/><circle cx="244" cy="890" r="3" fill="#5fd06a"/></g>
-  <rect x="1556" y="870" width="40" height="60" rx="3" fill="#59524a"/><rect x="1562" y="836" width="4" height="40" fill="#c94a3a" transform="rotate(-6 1564 860)"/><rect x="1572" y="830" width="4" height="46" fill="#d8b23a"/><rect x="1582" y="838" width="4" height="40" fill="#3d6aa8" transform="rotate(5 1584 860)"/>
-  <!-- floppies (the top one wears the last save's name) -->
-  <g transform="rotate(-9 500 975)"><rect x="452" y="944" width="88" height="88" rx="3" fill="#1d1d1d"/><rect x="474" y="944" width="44" height="26" fill="#9a9a9a"/><rect x="464" y="988" width="64" height="40" fill="#efe9da"/>
-    <text x="496" y="1004" text-anchor="middle" font-family="Fira Mono" font-weight="700" font-size="9" fill="#2a2a2a">BACKUP</text></g>
-  <g transform="rotate(5 572 1000)"><rect x="530" y="960" width="88" height="88" rx="3" fill="#23345e"/><rect x="552" y="960" width="44" height="26" fill="#9a9a9a"/><rect x="542" y="1004" width="64" height="40" fill="#efe9da"/>
-    <text x="574" y="1020" text-anchor="middle" font-family="Fira Mono" font-weight="700" font-size="8" fill="#2a2a2a">SANDBOX</text><text x="574" y="1032" text-anchor="middle" font-family="Fira Mono" font-size="7" fill="#2a2a2a">10-12</text></g>
-  <!-- keyboard and mouse -->
-  <rect x="654" y="972" width="570" height="130" rx="8" fill="#d8ceb0" stroke="#a49a7e" stroke-width="2"/>${keys}
-  <rect x="1270" y="992" width="160" height="110" rx="6" fill="#2c3a4a"/>
-  <path d="M1340 1012 Q1336 1060 1352 1074 Q1370 1080 1378 1062 Q1384 1030 1370 1012 Q1356 1002 1340 1012 Z" fill="#ddd3b6" stroke="#a49a7e"/>
-  <path d="M1356 1010 L1358 1032" stroke="#a49a7e"/>
+  <!-- the desk -->
+  <rect x="0" y="935" width="1920" height="145" fill="url(#desk)"/>${grain}
+  <rect x="0" y="930" width="1920" height="7" fill="#6a5440"/>
+  <ellipse cx="960" cy="955" rx="760" ry="90" fill="url(#crtGlow)"/>
+  <!-- the blotter calendar, July 1993 -->
+  <rect x="0" y="950" width="560" height="130" fill="#e9dfc6"/><rect x="0" y="950" width="560" height="40" fill="#b33a2c"/>
+  <text x="22" y="980" font-family="Fira Sans Condensed" font-weight="700" font-size="26" letter-spacing="2" fill="#fff">JULY 1993</text>
+  ${blot}
+  <!-- the lamp, right: its head comes in from the top corner, pointing down at the desk -->
+  <ellipse cx="1700" cy="860" rx="380" ry="300" fill="url(#lampGlow)"/>
+  <path d="M1940 110 L2020 170 L1988 396 L1732 204 Z" fill="url(#shade)"/>
+  <ellipse cx="1860" cy="300" rx="160" ry="28" fill="rgba(255,222,165,.85)" transform="rotate(36.9 1860 300)"/>
+  <path d="M1732 204 L1988 396" stroke="#1c2c22" stroke-width="5"/>
+  <!-- the soda can (6.6 x 12.2 cm) -->
+  <rect x="118" y="610" width="176" height="325" rx="14" fill="url(#can)"/>
+  <ellipse cx="206" cy="612" rx="88" ry="16" fill="#c8c8c8"/><ellipse cx="206" cy="612" rx="70" ry="11" fill="#a6a6a6"/><rect x="196" y="604" width="34" height="9" rx="4" fill="#d9d9d9"/>
+  <rect x="118" y="900" width="176" height="30" rx="10" fill="#8e8e8e"/>
+  <text x="206" y="770" text-anchor="middle" font-family="Fira Sans Condensed" font-weight="700" font-size="58" fill="#fff" transform="rotate(-8 206 760)">COLA</text>
+  <path d="M138 640 L138 890" stroke="rgba(255,255,255,.25)" stroke-width="10"/>
+  <!-- the pencil cup (8 x 10 cm) -->
+  <path d="M1478 400 L1520 708" stroke="#c94a3a" stroke-width="13" stroke-linecap="round"/><path d="M1470 388 L1482 404" stroke="#3a2a1a" stroke-width="9" stroke-linecap="round"/>
+  <path d="M1560 360 L1560 708" stroke="#d8b23a" stroke-width="13" stroke-linecap="round"/><path d="M1560 346 L1560 366" stroke="#e8c9a0" stroke-width="11" stroke-linecap="round"/>
+  <path d="M1640 410 L1600 708" stroke="#3d6aa8" stroke-width="13" stroke-linecap="round"/>
+  <path d="M1452 700 L1666 700 L1656 935 L1462 935 Z" fill="url(#cup)"/><ellipse cx="1559" cy="700" rx="107" ry="18" fill="#22201c"/>
+  <!-- floppies on the blotter, left of the keyboard (9 x 9.4 cm, lying flat) -->
+  <g transform="translate(24 1026) rotate(9) skewX(-10)"><rect x="0" y="0" width="200" height="90" rx="5" fill="#1d1d1d"/><rect x="50" y="0" width="96" height="28" fill="#9a9a9a"/></g>
+  <g transform="translate(8 990) rotate(-5) skewX(-10)"><rect x="0" y="0" width="210" height="96" rx="5" fill="#23345e"/><rect x="52" y="0" width="100" height="30" fill="#9a9a9a"/><rect x="22" y="44" width="164" height="50" fill="#efe9da"/>
+    <text x="32" y="68" font-family="Fira Mono" font-weight="700" font-size="18" fill="#2a2a2a">SANDBOX</text><text x="32" y="88" font-family="Fira Mono" font-size="15" fill="#2a2a2a">10-12</text></g>
+  <!-- the keyboard (46 cm, in front, only its top rows in frame) -->
+  <rect x="236" y="984" width="1460" height="140" rx="14" fill="#d2c8aa" stroke="#a49a7e" stroke-width="3"/>${keys}${row2}
+  <!-- the mouse on its pad -->
+  <rect x="1716" y="958" width="240" height="140" rx="8" fill="#2c3a4a"/>
+  <path d="M1800 1092 Q1790 1000 1830 978 Q1872 966 1886 1010 Q1896 1060 1880 1092 Z" fill="#ddd3b6" stroke="#a49a7e" stroke-width="2"/>
+  <path d="M1844 974 L1846 1018" stroke="#a49a7e" stroke-width="2"/><path d="M1845 972 Q1840 940 1800 935" stroke="#8e846d" stroke-width="3" fill="none"/>
   <rect width="1920" height="1080" fill="url(#vig)"/>
   </svg>`;
 }
@@ -502,7 +527,7 @@ function roomSVG() {
 function monitorHTML(desk) {
   const hot = S.scene === "quit";
   return `<div class="crt"><div class="recess"></div>
-      <div class="lip"><span class="brand">ZeD DISPLAY</span><span class="model">14" COLOR &middot; 1024 x 768</span><span style="flex:1"></span>
+      <div class="lip"><span class="brand">ZeD DISPLAY</span><span class="model">17" COLOR &middot; 1024 x 768</span><span style="flex:1"></span>
         <span class="knob"></span><span class="knob"></span><span class="led"></span><span class="pwr${hot ? " hot" : ""}"><i></i></span></div></div>
     <div class="stand"></div>
     <div class="tube"><div class="wp" style="background-image:url(${WALLPAPER})"></div><div class="desk">${desk}</div><div class="glass"></div></div>`;
