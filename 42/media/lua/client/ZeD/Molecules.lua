@@ -39,6 +39,10 @@ ZeD.Molecules = ZeD.Molecules or {}
 -- @param colors   Optional override for "flat" variant — { bg, border, text, font? }.
 --                 Each value is an RGBA table. font is optional UIFont reference
 --                 (defaults to fontF3). Required only for variant == "flat".
+--                 The other variants read two optional fields: fill (an RGBA drawn
+--                 under the chrome: the 0.55 focus or 0.22 hover accent) and text
+--                 (the label colour, e.g. T.text over a focus fill, where a red or
+--                 accent label would sink into the accent).
 function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, colors)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -66,6 +70,12 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
         return
     end
 
+    -- Optional fill under the chrome (focus / hover accent)
+    if colors and colors.fill then
+        local f = colors.fill
+        A.fillRounded(panel, x, y, w, h, f.r, f.g, f.b, f.a or 1)
+    end
+
     -- Variant determines border, fill, and text color.
     -- Danger pulses a red fill to signal destructive action.
     local borderColor, textColor
@@ -82,6 +92,7 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
         borderColor = T.borderS
         textColor = T.text
     end
+    if colors and colors.text then textColor = colors.text end
 
     -- Rounded border (colored per variant)
     A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
@@ -4063,4 +4074,36 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     -- them in its onClick handler. The molecule itself stays click-agnostic
     -- so any future contextual drawer can reuse it identically.
     return prevZone, nextZone
+end
+
+-- ============================================================================
+-- GLYPH PROMPTS — a controller legend: each button's name boxed, then what it
+-- does (the window footers' prompt look, ZeD_Window:render). Used by the
+-- prompt (ZeD_Prompt.lua) and the keyboard (ZeD_Keyboard.lua).
+-- prompts = { "D-PAD Move", { glyph = "A", label = "Press" }, ... }: a plain
+-- string is a dim note. Draws left to right from x, centred in a strip of
+-- height h at y. Returns the right edge.
+-- ============================================================================
+function ZeD.Molecules.drawGlyphPrompts(panel, x, y, h, prompts)
+    local T = ZeD.T
+    local tm = ZeD.TM
+    local font = T.fontF5
+    local fh = tm:getFontHeight(font)
+    local box = h - T.px(4)
+    local textY = y + math.floor((h - fh) / 2)
+    local bs, tc, td = T.borderS, T.text, T.textDim
+    for _, p in ipairs(prompts or {}) do
+        if type(p) == "string" then
+            panel:drawText(p, x, textY, td.r, td.g, td.b, td.a or 1, font)
+            x = x + tm:MeasureStringX(font, p) + T.sp.sm * 2
+        else
+            local gw = tm:MeasureStringX(font, p.glyph)
+            local bw = math.max(box, gw + T.px(4))
+            panel:drawRectBorder(x, y + T.px(2), bw, box, bs.a or 1, bs.r, bs.g, bs.b)
+            panel:drawText(p.glyph, x + math.floor((bw - gw) / 2), textY, tc.r, tc.g, tc.b, tc.a or 1, font)
+            panel:drawText(p.label, x + bw + T.px(3), textY, td.r, td.g, td.b, td.a or 1, font)
+            x = x + bw + T.px(3) + tm:MeasureStringX(font, p.label) + T.sp.sm * 2
+        end
+    end
+    return x
 end
