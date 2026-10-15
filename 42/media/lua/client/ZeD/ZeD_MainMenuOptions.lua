@@ -1023,6 +1023,8 @@ function ZeD_MMOptions:render()
     self:drawRect(px, py, pw, ph, 1, s1.r, s1.g, s1.b)
     self:drawRectBorder(px, py, pw, ph, bs.a, bs.r, bs.g, bs.b)
     local cur = p.row.control.backgroundColor or {}
+    -- the pop-up's frame takes a click itself (nothing happens), so it never reaches the row under it
+    self._hits[#self._hits + 1] = { id = self.kind .. ":pal", x = ax + px, y = ay + py, w = pw, h = ph }
     for i, code in ipairs(PALETTE) do
         local col = paletteColor(code)
         local cx = px + T.px(4) + ((i - 1) % cols) * cell
