@@ -182,3 +182,24 @@ Fixed during QA: a focused text field takes Return (onCommandEntered) and the sa
 
 Verified live (1080p window): the list, tabs, detail, turning ZeD UI off, BACK asking, DISCARD restoring it (default.txt unchanged, no Lua reset), the presets pop-up, saving a preset by typing + Return (pz_modlist_settings.cfg written), deleting it, the load order view.
 Not seen live: more than one mod (only ZeD UI is installed here), so reordering, the order dots, requirement cascades, conflicts, map order and the Workshop / homepage links were not exercised; Server Settings' mod list.
+
+## Options on the monitor (and in game)
+
+Built: `ZeD_MainMenuOptions.lua` (ZeD_MMOptions, a key catcher). Vanilla's MainOptions stays the engine (built, hidden): the window reads its pages and controls every frame and changes them the way a click would; APPLY / ACCEPT run vanilla's `apply`. MainOptions' close, its two dialogs and its setVisible(true) come to the window (`MM.hookOptions`); MainScreen's OPTIONS item (also the reopen after a Lua reset) opens it. In game it is its own window centred over the dimmed world, opened from the pause window (with its own pull-down panel).
+
+Decisions:
+- Pages in a list on the left (vanilla's pages, in title case), a Find field over all of them (label and help text).
+- Rows are discovered: each control paired with the label on its row, section titles as headers, notes and descriptions as text. Mod options (ZeD UI's own included) and any future vanilla option appear by themselves.
+- Controls: list boxes open a pop-up of their choices (current one marked; long lists scroll and open on the current value; they open above when there is more room there); check boxes (several per row wrap); volume as a segmented bar; sliders as the catalog slider with the value; colours as a swatch with vanilla's 84-colour palette; key caps; buttons.
+- A dot marks every option changed since the window opened; the title says Changed.
+- The option under the pointer (or the controller) is explained in a band at the bottom: vanilla's tooltip.
+- BACK with changes asks in the strip: DISCARD or APPLY. DISCARD also puts edited key bindings back (vanilla kept them in the list and saved them at the next Apply).
+- The 20-second "Keep these screen settings?" countdown (GO BACK / KEEP) and "Restart to apply" (OK) are strip states.
+- Key bindings: the page lists vanilla's toggles first, then every binding by section. Clicking a key cap asks in the strip ("Press a key or mouse button for Forward." NO KEY / DEFAULT / CANCEL); a key already in use asks there ("S is already Backward." CANCEL / KEEP BOTH / TAKE IT).
+- The controller page's button-map editor and controller test open on vanilla's own controller page (OPEN CONTROLLER SETUP); its BACK / ACCEPT return to this window.
+- Controller: rows then the strip; left / right change a list box, volume or slider in place; LB / RB walk the pages; X APPLY, Y ACCEPT, B BACK.
+
+Fixed during QA: pop-up rows did not close their pop-up; long lists ran off the screen; a title-case helper broke on Kahlua's gsub-with-function (KB Q211).
+
+Verified live (1080p window): all eight pages (Display, UI, Audio, Key Bindings, Accessibility, Controller, Multiplayer, Mods), list boxes with scroll, a change (Lock Framerate 60) marking Changed, BACK asking, DISCARD restoring it (framerate 120, nothing saved), key capture and the "already in use" question, Escape out of both; in game: the window over the world, a list box on its own pull-down, BACK to the pause window.
+Not seen live: APPLY / ACCEPT writing options (left alone on the director's options), the screen-settings countdown and restart notice, colour palette picks, the Advanced sounds screen, OPEN CONTROLLER SETUP, a mod text option.

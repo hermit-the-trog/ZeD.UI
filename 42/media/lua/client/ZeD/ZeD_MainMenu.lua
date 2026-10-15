@@ -133,6 +133,9 @@ local function blocked()
     if m.checkSavefileModal then return true end
     if m.animPopup and m.animPopup:isReallyVisible() then return true end
     if m.infoModList and m.infoModList:isVisible() and m.infoModList:isMouseOver() then return true end
+    -- vanilla screens we hand over to (Advanced sounds, the controller page) own the mouse while up
+    if m.mainOptions and m.mainOptions.gameSounds and m.mainOptions.gameSounds:isVisible() then return true end
+    if MM._vanillaOptions then return true end
     local ds = DebugScenarios and DebugScenarios.instance
     if ds and ds:isVisible() and ds:isMouseOver() then return true end
     return false
@@ -462,7 +465,7 @@ MM.act = {
     join      = function() fire("onlineOption") end,
     host      = function() fire("onlineCoopOption") end,
     tutorial  = function() fire("tutorialOption") end,
-    options   = function() fire("optionsOption") end,
+    options   = function() MM.openOptions() end,   -- ZeD_MainMenuOptions.lua (main menu and in game)
     mods      = function() MM.openMods() end,   -- the mod manager on the monitor (ZeD_MainMenuMods.lua)
     workshop  = function() fire("workshopOption") end,
     credits   = function() fire("creditOption") end,
@@ -577,6 +580,7 @@ function MM.pointer(ctx, panels)
         -- act on release over the press's own box; a menu row also takes a press-drag from its title
         if h and h.fn and (ctx.press == id or (h.inDrop and ctx.pressMenu)) then
             if MM.debugFire then print("[ZeD.MM] fire " .. tostring(id) .. " press=" .. tostring(ctx.press) .. " t=" .. now()) end
+            if h.inDrop then ctx.open = nil end   -- a picked row closes its menu (pop-ups too)
             h.fn()
         end
         ctx.press, ctx.pressMenu = nil, nil
@@ -650,6 +654,9 @@ function ZeD_MMDesk:createChildren()
     self.modsWin = ZeD_MMMods:new()
     self.modsWin:initialise()
     self:addChild(self.modsWin)
+    self.optsWin = ZeD_MMOptions:new(false)
+    self.optsWin:initialise()
+    self:addChild(self.optsWin)
     self.drop = ZeD_MMDrop:new()
     self.drop:initialise()
     self:addChild(self.drop)
@@ -689,6 +696,7 @@ function ZeD_MMDesk:update()
     if self.loadWin:isVisible() ~= (v == "load") then self.loadWin:setVisible(v == "load") end
     if self.newWin:isVisible() ~= (v == "newgame") then self.newWin:setVisible(v == "newgame") end
     if self.modsWin:isVisible() ~= (v == "mods") then self.modsWin:setVisible(v == "mods") end
+    if self.optsWin:isVisible() ~= (v == "options") then self.optsWin:setVisible(v == "options") end
     MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
     -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
@@ -790,6 +798,7 @@ function MM.openPopup(key, items, anchor, up)
     MM.popup = { key = key, items = items, anchor = anchor, up = up }
     MM.ctx.open = key
     MM.ctx.dropFocus = 1
+    MM.ctx.dropScroll = 0
 end
 
 -- The live rows of the open menu (the controller walks these).
@@ -834,6 +843,29 @@ function ZeD_MMDrop:prerender()
         if pop.up then x, y = an.x + an.w - w, an.y - h - T.px(2)   -- above the button, right edges lined up
         else x, y = an.x, an.y + an.h + T.px(2) end                  -- below it
     end
+    -- room: the monitor's screen at the menu, the game screen in game. A list that does not
+    -- fit below its box opens above it when there is more room there, else it is cut and scrolls.
+    local full = h
+    if not pos then
+        local L = MM.layout()
+        local m = ms()
+        local inGame = m and m.inGame
+        local limTop = inGame and T.px(8) or (L.ty + T.px(4))
+        local limBot = inGame and (getCore():getScreenHeight() - T.px(8)) or (L.ty + L.th - T.px(4))
+        local an = pop.anchor
+        if not pop.up and y + h > limBot then
+            local below, above = limBot - y, an.y - T.px(2) - limTop
+            if above >= h then y = an.y - h - T.px(2)
+            elseif above > below then h = above; y = limTop
+            else h = math.max(rowH * 3, below) end
+        elseif pop.up and y < limTop then
+            h = math.max(rowH * 3, an.y - T.px(2) - limTop); y = limTop
+        end
+    end
+    local scrollMax = math.max(0, full - h)
+    MM.ctx.dropScrollMax = scrollMax
+    MM.ctx.dropScroll = math.max(0, math.min(MM.ctx.dropScroll or 0, scrollMax))
+    local off = MM.ctx.dropScroll
     if self.x ~= x or self.y ~= y then self:setX(x); self:setY(y) end
     if self.width ~= w + step or self.height ~= h + step then self:setWidth(w + step); self:setHeight(h + step) end
 
@@ -844,8 +876,9 @@ function ZeD_MMDrop:prerender()
 
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local gp = MM.gamepad()
-    local cy = padY
+    local cy = padY - off
     local live = 0
+    if scrollMax > 0 then self:setStencilRect(T.px(1), T.px(1), w - T.px(2), h - T.px(2)) end
     for i, it in ipairs(items) do
         if it == "-" then
             self:drawRect(0, cy + math.floor((sepH - T.px(1)) / 2), w, T.px(1), bs.a, bs.r, bs.g, bs.b)
@@ -867,13 +900,36 @@ function ZeD_MMDrop:prerender()
                 if gp then lit = (live == (MM.ctx.dropFocus or 1)) else lit = (MM.ctx.hot == id) end
             end
             if lit then self:drawRect(T.px(1), cy, w - T.px(2), rowH, 0.55, T.accent.r, T.accent.g, T.accent.b) end
+            -- the controller's row stays in view
+            if lit and gp and scrollMax > 0 then
+                if cy < padY then MM.ctx.dropScroll = off - (padY - cy)
+                elseif cy + rowH > h - padY then MM.ctx.dropScroll = off + (cy + rowH - (h - padY)) end
+            end
             local c = T.text
             local a = (c.a or 1) * (it.disabled and 0.38 or 1)
             self:drawText(it.text, padX, cy + math.floor((rowH - fontH(font)) / 2), c.r, c.g, c.b, a, font)
-            self._hits[#self._hits + 1] = { id = id, x = ax, y = ay + cy, w = w, h = rowH, fn = it.fn, disabled = it.disabled, inDrop = true }
+            local top, bot = math.max(cy, 0), math.min(cy + rowH, h)
+            if bot > top then
+                self._hits[#self._hits + 1] = { id = id, x = ax, y = ay + top, w = w, h = bot - top, fn = it.fn, disabled = it.disabled, inDrop = true }
+            end
             cy = cy + rowH
         end
     end
+    if scrollMax > 0 then
+        self:clearStencilRect()
+        -- a small scroll bar on the right edge: there is more
+        local sbW = T.px(4)
+        local th = math.max(T.px(16), math.floor(h * h / full))
+        local ty = math.floor((h - th) * off / scrollMax)
+        self:drawRect(w - sbW - T.px(2), ty, sbW, th, 0.6, T.textDim.r, T.textDim.g, T.textDim.b)
+    end
+end
+
+-- the wheel over an open pull-down scrolls it
+function MM.dropWheel(del)
+    if not MM.ctx.open or (MM.ctx.dropScrollMax or 0) <= 0 then return false end
+    MM.ctx.dropScroll = (MM.ctx.dropScroll or 0) + del * ZeD.T.px(DROP_ROW_H) * 2
+    return true
 end
 
 -- ============================================================================
@@ -1275,6 +1331,19 @@ function MM.attach(m)
         w:initialise()
         m:addChild(w)
         MM.pause = w
+        -- Options in game: its own window over the world, and a pull-down for its list boxes (added last: on top)
+        MM.pauseView = "pause"
+        local ow = ZeD_MMOptions:new(true)
+        ow:initialise()
+        m:addChild(ow)
+        ow:setVisible(false)
+        MM.pauseOpts = ow
+        local dr = ZeD_MMDrop:new()
+        dr:initialise()
+        m:addChild(dr)
+        dr:setVisible(false)
+        MM.igDrop = dr
+        MM.hookOptions(m)
     else
         MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
         MM.view = "main"
@@ -1292,6 +1361,7 @@ function MM.attach(m)
         MM.redirect(m.soloScreen, "newgame")
         MM.redirect(m.loadScreen, "load")
         MM.redirect(m.modSelect, "mods")
+        MM.hookOptions(m)
     end
 end
 
@@ -1337,6 +1407,7 @@ function MM.activeWindow()
     if MM.view == "load" then return r.loadWin end
     if MM.view == "newgame" then return r.newWin end
     if MM.view == "mods" then return r.modsWin end
+    if MM.view == "options" then return r.optsWin end
     return r.win
 end
 
@@ -1361,8 +1432,12 @@ end
 function MM.afterPrerender(m)
     local up = MM.isUp(m)
     if m.inGame then
+        local pv = MM.pauseView or "pause"
         local w = MM.pause
-        if w and w:isVisible() ~= up then w:setVisible(up) end
+        if w and w:isVisible() ~= (up and pv == "pause") then w:setVisible(up and pv == "pause") end
+        local ow = MM.pauseOpts
+        if ow and ow:isVisible() ~= (up and pv == "options") then ow:setVisible(up and pv == "options") end
+        if MM.igDrop and not (up and pv == "options") and MM.igDrop:isVisible() then MM.igDrop:setVisible(false); MM.ctx.open = nil end
     else
         local root = MM.root
         if root and root:isVisible() ~= up then
@@ -1386,7 +1461,10 @@ end
 -- (joyA / joyB / joyX / joyY / joyDir).
 -- ---------------------------------------------------------------------------
 function MM.window(m)
-    if m.inGame then return MM.pause end
+    if m.inGame then
+        if MM.pauseView == "options" and MM.pauseOpts then return MM.pauseOpts end
+        return MM.pause
+    end
     return MM.activeWindow()
 end
 
@@ -1459,3 +1537,6 @@ MM.DOT, MM.MONTHS = DOT, MONTHS
 MM.U = { BAR_H = BAR_H, STACK_PAD = STACK_PAD, STACK_GAP = STACK_GAP, WIDE_H = WIDE_H,
          STRIP_PAD_X = STRIP_PAD_X, STRIP_PAD_Y = STRIP_PAD_Y, STRIP_BTN_H = STRIP_BTN_H,
          STRIP_BTN_PAD = STRIP_BTN_PAD, STRIP_GAP = STRIP_GAP }
+
+-- the wheel over an open pull-down scrolls it (the drop is its own panel)
+function ZeD_MMDrop:onMouseWheel(del) return MM.dropWheel(del) end
