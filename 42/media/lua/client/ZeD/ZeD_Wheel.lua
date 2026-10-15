@@ -29,9 +29,13 @@ local W = ZeD.Wheel
 
 -- design units
 local U = {
-    CELL = 33, ICON = 24,     -- the strip's cell at 1.5x (director: larger cells)
-    GAP = 6,                  -- room between neighbouring cells along the ring
-    MIN_R = 1.7,              -- the ring's smallest radius, in cells
+    CELL = 22, ICON = 16,     -- a cell at rest: the strip's own size
+    CELL_ON = 33, ICON_ON = 24, -- the pointed cell grows to 1.5x (director, Oct 15: smaller at rest, bigger when pointed)
+    GAP = 10,                 -- room between neighbouring resting cells (centre to centre: CELL + GAP),
+                              -- enough that the grown cell clears its neighbours too
+    MIN_R = 28,               -- the ring's smallest radius: the pointed cell just clears the hub. Above
+                              -- it the ring follows the number of slices (director, Oct 15: "is the size of
+                              -- the wheel determined by the amount of actions?")
     DEAD = 0.4,               -- the pointer's dead zone, as a share of the ring's radius
     BUBBLE = 110,             -- room above the ring for the balloon
     HUB = 7,                  -- the small square at the centre
@@ -141,12 +145,17 @@ end
 -- ---------------------------------------------------------------------------
 -- GEOMETRY (the engine's)
 -- ---------------------------------------------------------------------------
+-- cell / icon at rest, the ring's radius, the centre, cell / icon when pointed. Neighbouring
+-- centres sit CELL + GAP apart in a straight line (the chord, not the arc), so a full
+-- wheel never overlaps.
 function W.geom(menu)
     local T = ZeD.T
     local n = #menu.slices
     local cell, icon = T.px(U.CELL), T.px(U.ICON)
-    local r = math.max(cell * U.MIN_R, n * (cell + T.px(U.GAP)) / (2 * math.pi))
-    return cell, icon, math.floor(r), math.floor(menu.width / 2), math.floor(menu.height / 2)
+    local cellOn, iconOn = T.px(U.CELL_ON), T.px(U.ICON_ON)
+    local r = T.px(U.MIN_R)
+    if n >= 3 then r = math.max(r, (cell + T.px(U.GAP)) / (2 * math.sin(math.pi / n))) end
+    return cell, icon, math.floor(r), math.floor(menu.width / 2), math.floor(menu.height / 2), cellOn, iconOn
 end
 
 -- the slice in a direction (dx, dy in screen terms: y down); 1-based, or -1
@@ -180,8 +189,8 @@ end
 function W.fit(menu)
     local T = ZeD.T
     if not (T and T.px) then return end
-    local cell, _, r = W.geom(menu)
-    local side = math.floor(math.max((menu.outerRadius or 200) * 2, 2 * (r + cell + T.px(U.BUBBLE))))
+    local _, _, r, _, _, cellOn = W.geom(menu)
+    local side = math.floor(math.max((menu.outerRadius or 200) * 2, 2 * (r + cellOn + T.px(U.BUBBLE))))
     if menu.width ~= side or menu.height ~= side then
         local cx, cy = (menu.x or 0) + (menu.width or side) / 2, (menu.y or 0) + (menu.height or side) / 2
         menu:setWidth(side)
@@ -219,7 +228,7 @@ function W.draw(menu)
     local slices = menu.slices or {}
     local n = #slices
     if n == 0 then return end
-    local cell, icon, r, cx, cy = W.geom(menu)
+    local cell, icon, r, cx, cy, cellOn, iconOn = W.geom(menu)
     -- the ring line through the cells and the hub
     local u = T.px(1)
     local step = T.px(U.DOT) / math.max(1, r)
@@ -231,15 +240,23 @@ function W.draw(menu)
     local hs = T.px(U.HUB)
     menu:drawRect(cx - math.floor(hs / 2), cy - math.floor(hs / 2), hs, hs, 1, PAPER.r, PAPER.g, PAPER.b)
     menu:drawRectBorder(cx - math.floor(hs / 2), cy - math.floor(hs / 2), hs, hs, 1, INK.r, INK.g, INK.b)
-    -- the cells, slice 1 at 12 o'clock and clockwise
+    -- the cells, slice 1 at 12 o'clock and clockwise: at rest the strip's size, the
+    -- pointed one grown and drawn last (over the ring line, never over a neighbour)
     local sstep = 360 / math.max(n, 2)
+    local function place(i, size)
+        local ang = math.rad(-90 + (i - 1) * sstep)
+        return math.floor(cx + r * math.cos(ang) - size / 2), math.floor(cy + r * math.sin(ang) - size / 2)
+    end
     for i, s in ipairs(slices) do
-        if not W.isPlace(s) then
-            local ang = math.rad(-90 + (i - 1) * sstep)
-            local x = math.floor(cx + r * math.cos(ang) - cell / 2)
-            local y = math.floor(cy + r * math.sin(ang) - cell / 2)
-            drawCell(menu, x, y, cell, icon, s, i == menu._zedPoint)
+        if not W.isPlace(s) and i ~= menu._zedPoint then
+            local x, y = place(i, cell)
+            drawCell(menu, x, y, cell, icon, s, false)
         end
+    end
+    local pi = menu._zedPoint
+    if pi and pi > 0 and slices[pi] and not W.isPlace(slices[pi]) then
+        local x, y = place(pi, cellOn)
+        drawCell(menu, x, y, cellOn, iconOn, slices[pi], true)
     end
     -- the balloon above the ring: the pointed slice, or the open category
     local state
@@ -264,12 +281,12 @@ function W.draw(menu)
         state = { labelText = menu._zedTitle }
     end
     if state then
-        local apexY = cy - r - math.floor(cell / 2) - T.px(6)
+        local apexY = cy - r - math.floor(cellOn / 2) - T.px(6)
         state.pointerDir = "down"
         -- no room above (a wheel near the screen's top): under the ring instead
         if menu:getAbsoluteY() + apexY - T.px(80) < 0 then
             state.pointerDir = "up"
-            apexY = cy + r + math.ceil(cell / 2) + T.px(6)
+            apexY = cy + r + math.ceil(cellOn / 2) + T.px(6)
         end
         local ok, err = pcall(ZeD.Molecules.drawContextBalloon, menu, cx, apexY, state, T)
         if not ok then print("[ZeD] Wheel: balloon: " .. tostring(err)) end
