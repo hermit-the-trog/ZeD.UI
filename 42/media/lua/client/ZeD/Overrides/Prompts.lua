@@ -92,6 +92,10 @@ local function onKey(key)
             if not (top.entry and top.entry:isFocused()) then top:pressPrimary(); return end
         end
     end
+    -- other ZeD surfaces that Escape puts away first (the seat chooser, the siren controller)
+    if not pauseUp and isEscape(key) and ZeD.EscapeTakers then
+        for _, take in pairs(ZeD.EscapeTakers) do if take() then return end end
+    end
     if ToggleEscapeMenu then return ToggleEscapeMenu(key) end
 end
 
