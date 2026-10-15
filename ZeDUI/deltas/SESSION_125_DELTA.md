@@ -255,3 +255,17 @@ Decisions:
 
 Verified live (1080p window): the three columns, choosing Burger Flipper (Keen Cook free, Cooking 2 +100%, Maintenance and Short Blade 1 +75%), taking and giving back a trait, the free trait refusing to go, overspending to -18 (red dot, NEXT off), RANDOM, CLEAR TRAITS, saving a build, loading it over a random one, deleting it, NEXT into vanilla's appearance screen and its BACK onto the monitor, BACK to sandbox options and forward again, the controller's column walk (logic).
 Not seen live: a real controller; the negative-trait penalty readout (sandbox default is off).
+
+## The character's looks on the monitor
+
+Built: `ZeD_MainMenuLooks.lua` (ZeD_MMLooks, a variant of the Options window's rows). Vanilla's CharacterCreationMain stays the engine, hidden: its controls and handlers (names re-rolled with the sex, beard and chest hair for men only, clothing from the occupation and traits, tints and fabric types only where an item has them), its saved outfits file, RANDOM, and PLAY (which starts the game). Its `setVisible(true)` is redirected to the monitor; what that call did (dress the character for the occupation and traits) runs when the window shows. Vanilla's own 3D figure moves into the window.
+
+Decisions:
+- Left: the figure in an inset box; under it turn left / pose (Idle, Walk, Run) / turn right. Dragging across the figure turns it; LB / RB and the arrow keys turn it too.
+- Right, one scrolling list: NAME (forename and surname fields, sex), BODY (skin as five swatches, chest hair), HAIR (style, colour as vanilla's 20 swatches, stubble), BEARD (men only), VOICE (type, pitch slider, the preview button), CLOTHING (each slot top to bottom: hat, glasses, necklace, dress, shirt, vest, T-shirt, belt, pants, skirt, socks, shoes; its item, a tint swatch where the item takes a tint, a fabric list where it has more than one).
+- Colours are picked on the row (swatches) instead of vanilla's pop-up pickers; a clothing tint uses the Options window's 84-colour palette.
+- The character's name is in the title bar.
+- Strip: BACK | OUTFITS... (saved outfits; Save Outfit... names it in the strip, default the character's name; Delete <name>... asks in the strip and leaves the character alone, where vanilla loaded another outfit), RANDOM | PLAY.
+
+Verified live (1080p window): the figure turning (buttons, drag), skin and hair swatches, the sex change re-rolling the name and dropping the beard rows, a clothing pick (baseball cap on the figure), a tint from the palette (red socks on the figure), saving / loading / deleting an outfit, RANDOM, BACK to occupation and forward again, and PLAY: a throwaway game (ZedQA_Throwaway) loaded with the character as made (Angelique Norton, burger flipper); the throwaway save was deleted and latestSave.ini pointed back at the QA save.
+Not seen live: a real controller (on-screen keyboard for the names), the pose list, vanilla's all-outfits mode (sandbox "all clothes unlocked" adds an Outfit row).
