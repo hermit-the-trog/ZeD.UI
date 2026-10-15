@@ -718,7 +718,8 @@ local function drawBtn(p, b, hot, focus, pressed)
     local ac = T.accent
     if focus then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.55)
     elseif hot then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.22) end
-    ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, b.variant, pressed)
+    -- over the focus fill the label takes the text colour (a red or accent label sinks into it)
+    ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, b.variant, pressed, focus and { text = T.text } or nil)
 end
 
 -- The ZeD mark: a square cut into a Z (top bar, bottom bar, the diagonal between).
