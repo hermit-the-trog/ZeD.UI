@@ -21,6 +21,7 @@ require "OptionScreens/NewGameScreen"
 require "ZeD/ZeD_MainMenu"
 require "ZeD/ZeD_MainMenuSaves"
 require "ZeD/ZeD_MainMenuMods"
+require "ZeD/ZeD_MainMenuOptions"
 
 local MM = ZeD.MainMenu
 
