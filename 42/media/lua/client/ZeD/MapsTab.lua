@@ -856,7 +856,7 @@ local function renderMapToolbar(panel, win, x, y, w)
         local f1 = T.fontF1
         local mp = win._worldMapPanel
         local isPaper = mp and mp.paper or false
-        local pills = { { id = "survey", text = "SURVEY" }, { id = "paper", text = "PAPER" } }
+        local pills = { { id = "survey", text = "Survey" }, { id = "paper", text = "Paper" } }
         local pad = T.px(6)
         local total = 0
         for _, p in ipairs(pills) do p.w = tm:MeasureStringX(f1, p.text) + pad * 2; total = total + p.w end

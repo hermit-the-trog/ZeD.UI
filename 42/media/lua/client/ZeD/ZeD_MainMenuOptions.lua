@@ -848,7 +848,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local text = keyLabel(r.entry)
         local capturing = (self.confirm == "key" and self._keyEntry == r.entry)
         local bw = math.max(T.px(90), MM.textW(T.fontF3, text) + T.px(24))
-        local b = { x = cx, y = midY - math.floor(T.px(26) / 2), w = bw, h = T.px(26), text = capturing and "PRESS A KEY" or text, variant = capturing and "primary" or "default" }
+        local b = { x = cx, y = midY - math.floor(T.px(26) / 2), w = bw, h = T.px(26), text = capturing and "Press a key" or text, variant = capturing and "primary" or "default", keepCase = not capturing }
         local id = rowId .. ":key"
         MM.drawBtn(self, b, hot == kind .. ":" .. id, false, false)
         hit(id, b.x, b.y, b.w, b.h, function() self:startCapture(r.entry) end)
@@ -1017,7 +1017,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     self:drawRect(x + T.px(1), hy, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
     local hr = self._cellRow or focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)   -- (_cellRow: a row edited in place)
     local htext = hr and help(hr) or nil
-    if hr and not htext and self:isChanged(hr) then htext = self.changedNote or "Changed: APPLY or ACCEPT to keep it." end
+    if hr and not htext and self:isChanged(hr) then htext = self.changedNote or "Changed: \"Apply\" or \"Accept\" to keep it." end
     if htext then
         local tc = T.text
         local ly = hy + T.px(8)

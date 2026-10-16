@@ -1820,7 +1820,7 @@ local FLYER_MODES = {
     { id = "all_za",  label = "All Z-A" },
     { id = "read",    label = "Read" },
     { id = "unread",  label = "Unread" },
-    { id = "on_map",  label = "On Map" },
+    { id = "on_map",  label = "On map" },
 }
 
 --- Render detail view: flyer fills drawer width, scrollable vertically
@@ -1909,7 +1909,7 @@ local function renderFlyerDetail(panel, win, x, y, w, h)
     local curY = y - scrollOff + pad
 
     -- Back button (top-left)
-    local backLabel = "< BACK"
+    local backLabel = "< Back"
     local backW = tm:MeasureStringX(T.fontF1, backLabel) + T.sp.md * 2
     local backX = x + pad
 

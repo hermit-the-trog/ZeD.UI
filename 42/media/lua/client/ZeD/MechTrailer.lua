@@ -530,6 +530,7 @@ end
 -- dim and still take focus (the reason reads beside them); A does nothing.
 local function smallBtn(panel, s, right, y, label, variant, id, fn, enabled, opts)
     local T = ZeD.T
+    label = ZeD.btnCase(label)   -- sentence case (the disabled look is the flat variant, which keeps its text)
     local bw = ZeD.TM:MeasureStringX(T.fontF3, label) + T.px(14)
     local bh = T.px(SBTN_H)
     local bx = right - bw

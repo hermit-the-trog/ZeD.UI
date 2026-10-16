@@ -713,7 +713,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
         local listH = y + h - T.px(48) - cy
         self:drawList("mods", ix, cy, iw, listH, rows, nil, function() end, "No mods: the server runs the game as it is.")
         cy = cy + listH + T.px(10)
-        note("Mods are chosen on the way in: CANCEL, EDIT, then CHOOSE MODS...")
+        note("Mods are chosen on the way in: \"Cancel\", \"Edit\", then \"Choose mods...\"")
     elseif panel.Type == "ServerSettingsScreenMapsPanel" then
         cy = cy + self:label("MAPS (WHERE THEY OVERLAP, THE ONE HIGHER UP WINS)", ix, cy)
         local rows = {}
@@ -811,7 +811,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
         self:button("presetApply", "APPLY", ix, cy, function()
             panel:onButtonApplyPreset(); self:refreshDiff(true); MM.clickSound() end, lb.items[lb.selected] == nil, 600, 1)
         cy = cy + bh + T.px(10)
-        note("APPLY sets every sandbox option of this server to the preset's.")
+        note("\"Apply\" sets every sandbox option of this server to the preset's.")
     end
 end
 
@@ -855,7 +855,7 @@ function ZeD_MMServer:drawFileList(x, y, w, h)
         if lb.selected == i and self._lastClick and t - self._lastClick < 450 then self._lastClick = nil; self:act("edit"); return end
         self._lastClick = t
         lb.selected = i
-    end, "No server settings yet: NEW... makes one.")
+    end, "No server settings yet: \"New...\" makes one.")
     -- the chosen settings' files
     local dx, dw = x + lw + T.px(10), w - lw - T.px(10)
     local bs = T.borderS

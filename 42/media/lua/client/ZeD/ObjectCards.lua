@@ -225,6 +225,7 @@ local function col(c) return c.r, c.g, c.b end
 function UI.button(card, x, y, label, opts)
     local T = ZeD.T
     opts = opts or {}
+    label = ZeD.btnCase(label)   -- sentence case, never all caps
     local font = T.fontF1
     local h = opts.h or T.px(22)
     local padX = T.px(8)
@@ -256,7 +257,7 @@ end
 
 function UI.buttonW(label)
     local T = ZeD.T
-    return ZeD.TM:MeasureStringX(T.fontF1, label) + T.px(16)
+    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.btnCase(label)) + T.px(16)
 end
 
 -- Bordered tag ("BURNING", "FARMING 4"). Returns width.

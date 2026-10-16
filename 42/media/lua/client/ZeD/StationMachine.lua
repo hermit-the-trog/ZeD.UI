@@ -412,7 +412,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     -- START / STOP + progress
     local bw, bh = T.px(70), T.px(22)
     local by = cy + math.floor((rowH - bh) / 2)
-    local btnLabel = d.running and "STOP" or "START"
+    local btnLabel = d.running and "Stop" or "Start"
     local enabled = d.running or d.canStart
     if enabled then
         M.drawButton(panel, lx, by, bw, bh, btnLabel, d.running and "default" or "primary")

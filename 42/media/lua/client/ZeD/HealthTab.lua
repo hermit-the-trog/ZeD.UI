@@ -502,9 +502,9 @@ local EXERCISE_LABELS = {
     pushups       = "Push-ups",
     situp         = "Sit-ups",
     burpees       = "Burpees",
-    barbellcurl   = "Barbell Curl",
-    dumbbellpress = "Dumbbell Press",
-    bicepscurl    = "Biceps Curl",
+    barbellcurl   = "Barbell curl",
+    dumbbellpress = "Dumbbell press",
+    bicepscurl    = "Biceps curl",
 }
 
 local DEFAULT_EXERCISE_TIME = 10  -- minutes

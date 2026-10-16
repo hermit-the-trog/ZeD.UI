@@ -888,6 +888,76 @@ function ZeD.colorBlend(base, overlay, strength)
 end
 
 -- ---------------------------------------------------------------------------
+-- BUTTON LABELS: sentence case
+-- Every button reads in sentence case ("Load game", "Take all", "New..."),
+-- never all caps (director, Oct 16 2026: all caps on buttons is fatiguing).
+-- Labels are still written in caps, or upper-cased from vanilla's words, in
+-- many places, so the button molecules pass their label through here right
+-- before they measure and draw it:
+--   * a label with any lower-case letter is left as written (a keycap's "q",
+--     a mod's own name, vanilla's Title Case words);
+--   * an all-caps label keeps its first letter a capital and drops the rest
+--     to lower case, except initials (OK, CD, TV, ...), words with a digit
+--     ("2X", "4WD") and the letter after a degree sign (the oven's "°F");
+--     ZED becomes ZeD.
+-- Hardware printed on the props (the car radio, the dash, keycaps) is not a
+-- button in this sense and keeps its caps: those draw their own text.
+-- Labels draw every frame, so results are cached; the cache keeps the last
+-- LABEL_CACHE_MAX labels and drops the oldest past that.
+-- ---------------------------------------------------------------------------
+local KEEP_CAPS = {
+    OK = "OK", CD = "CD", CDS = "CDs", TV = "TV", VHS = "VHS", AM = "AM", FM = "FM", ID = "ID",
+    HP = "HP", MP = "MP", PC = "PC", USB = "USB", NPC = "NPC", NPCS = "NPCs", XP = "XP", DLC = "DLC",
+    UI = "UI", HUD = "HUD", PZ = "PZ", ZED = "ZeD", OS = "OS", IP = "IP", PVP = "PvP", PVE = "PvE",
+    RGB = "RGB", FPS = "FPS", MHZ = "MHz", KHZ = "kHz", KM = "km", KG = "kg", LED = "LED", GPS = "GPS",
+}
+local DEGREE = string.char(176)
+local LABEL_CACHE_MAX = 512
+local labelCache, labelOrder, labelHead = {}, {}, 1
+
+local function toSentenceCase(s)
+    -- only an all-caps label with two or more capitals is turned
+    if s:find("%l") or not s:find("%u.*%u") then return s end
+    local parts, pos, first = {}, 1, true
+    while true do
+        local a, b = s:find("%w+", pos)
+        if not a then parts[#parts + 1] = s:sub(pos); break end
+        parts[#parts + 1] = s:sub(pos, a - 1)
+        local w = s:sub(a, b)
+        if KEEP_CAPS[w] then
+            w = KEEP_CAPS[w]
+        elseif w:find("%d") or (a > 1 and s:sub(a - 1, a - 1) == DEGREE) then
+            -- "2X", "4WD", the F of "°F": as written
+        else
+            w = w:lower()
+            if first then w = w:sub(1, 1):upper() .. w:sub(2) end
+        end
+        first = false
+        parts[#parts + 1] = w
+        pos = b + 1
+    end
+    return table.concat(parts)
+end
+
+function ZeD.btnCase(s)
+    if s == nil then return s end
+    s = tostring(s)
+    local hit = labelCache[s]
+    if hit then return hit end
+    local out = toSentenceCase(s)
+    -- FIFO: past the cap, the oldest cached label drops out
+    if #labelOrder >= LABEL_CACHE_MAX then
+        labelCache[labelOrder[labelHead]] = nil
+        labelOrder[labelHead] = s
+        labelHead = labelHead % LABEL_CACHE_MAX + 1
+    else
+        labelOrder[#labelOrder + 1] = s
+    end
+    labelCache[s] = out
+    return out
+end
+
+-- ---------------------------------------------------------------------------
 -- CONVENIENCE: Copy color fields into an existing table (zero allocation)
 -- Used by organism prerender() to sync PZ color tables with the active theme
 -- without creating new tables every frame.

@@ -740,7 +740,7 @@ local function drawBtn(p, b, hot, focus, pressed)
         local sb, st = T.borderS, T.text
         T.borderS = ZeD.colorAlpha(sb, (sb.a or 1) * 0.38)
         T.text    = ZeD.colorAlpha(st, (st.a or 1) * 0.38)
-        ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, "default", false)
+        ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, "default", false, b.keepCase and { keepCase = true } or nil)
         T.borderS, T.text = sb, st
         return
     end
@@ -748,7 +748,9 @@ local function drawBtn(p, b, hot, focus, pressed)
     if focus then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.55)
     elseif hot then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.22) end
     -- over the focus fill the label takes the text colour (a red or accent label sinks into it)
-    ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, b.variant, pressed, focus and { text = T.text } or nil)
+    -- (a spec with keepCase draws its text as given: a key's name)
+    local colors = (focus or b.keepCase) and { text = focus and T.text or nil, keepCase = b.keepCase } or nil
+    ZeD.Molecules.drawButton(p, b.x, b.y, b.w, b.h, b.text, b.variant, pressed, colors)
 end
 
 -- The ZeD mark: a square cut into a Z (top bar, bottom bar, the diagonal between).

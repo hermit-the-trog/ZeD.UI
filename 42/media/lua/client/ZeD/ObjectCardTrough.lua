@@ -205,8 +205,8 @@ function def.refresh(t, player)
             enabled = fc ~= nil and call(fc, "canPlayerEmpty") ~= false,
             run = function(p, tt) ISWorldObjectContextMenu.onFluidEmpty(p:getPlayerNum(), tt.obj:getFluidContainer()) end }
     end
-    if d.hasWater then needs[#needs + 1] = "ADD FOOD: " .. txt("Tooltip_FeedingTrough_WaterPresent", "Can't add feed if trough contains water.") end
-    if d.hasFood then needs[#needs + 1] = "ADD WATER: " .. txt("Tooltip_FeedingTrough_FeedPresent", "Can't add water if trough contains feed.") end
+    if d.hasWater then needs[#needs + 1] = "Add food: " .. txt("Tooltip_FeedingTrough_WaterPresent", "Can't add feed if trough contains water.") end
+    if d.hasFood then needs[#needs + 1] = "Add water: " .. txt("Tooltip_FeedingTrough_FeedPresent", "Can't add water if trough contains feed.") end
     t.verbs, t.needs = verbs, needs
 end
 

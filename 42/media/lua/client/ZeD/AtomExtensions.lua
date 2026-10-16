@@ -317,6 +317,7 @@ end
 function ZeD.Atoms.drawPillButton(panel, x, y, w, h, text, active, enabled, font)
     local T  = ZeD.T
     local sp = T.sp
+    text = ZeD.btnCase(text)   -- sentence case, never all caps
 
     -- Base surface (1px rounded)
     local s1 = T.surf1

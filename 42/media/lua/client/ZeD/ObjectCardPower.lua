@@ -152,17 +152,17 @@ function def.refresh(t, player)
         verbs[#verbs + 1] = { id = "take", label = "TAKE", enabled = takeOK,
             run = function(p, tt) ISWorldObjectContextMenu.onTakeGenerator(nil, tt.obj, p:getPlayerNum()) end }
         if not onOK then
-            if d.fuel <= 0 then needs[#needs + 1] = "TURN ON needs fuel"
-            elseif not d.conn then needs[#needs + 1] = "TURN ON needs it connected" end
+            if d.fuel <= 0 then needs[#needs + 1] = "Turn on: needs fuel"
+            elseif not d.conn then needs[#needs + 1] = "Turn on: needs it connected" end
         end
-        if d.pct < 100 and #d.cans == 0 then needs[#needs + 1] = "ADD FUEL needs a can with petrol" end
-        local plugWord = d.conn and "DISCONNECT" or "CONNECT"
+        if d.pct < 100 and #d.cans == 0 then needs[#needs + 1] = "Add fuel: needs a can with petrol" end
+        local plugWord = d.conn and "Disconnect" or "Connect"
         if not d.elec then
-            needs[#needs + 1] = plugWord .. (d.cond < 100 and " and FIX need" or " needs") .. " Electricity 3 or the generator magazine"
+            needs[#needs + 1] = plugWord .. (d.cond < 100 and " and fix: need" or ": needs") .. " Electricity 3 or the generator magazine"
         elseif d.cond < 100 and not d.scrap then
-            needs[#needs + 1] = "FIX needs Scrap Electronics"
+            needs[#needs + 1] = "Fix: needs Scrap Electronics"
         end
-        if d.conn then needs[#needs + 1] = "TAKE needs it disconnected" end
+        if d.conn then needs[#needs + 1] = "Take: needs it disconnected" end
     end
     t.verbs = verbs
     t.needs = needs

@@ -249,7 +249,7 @@ function def.refresh(t, player)
     local sq = t.sq
     if d.plowed then
         verbs[#verbs + 1] = { id = "sow", label = "SOW", enabled = #d.seeds > 0, primary = #d.seeds > 0, jump = "farm:sow:1" }
-        if #d.seeds == 0 then needs[#needs + 1] = "SOW needs seeds" end
+        if #d.seeds == 0 then needs[#needs + 1] = "Sow: needs seeds" end
     else
         local seeded = plant.state == "seeded"
         local canWater = d.alive and seeded and d.water < 100 and #d.water_src > 0
@@ -303,13 +303,13 @@ function def.refresh(t, player)
                 local hand = ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), ISFarmingMenu.getShovel(p), true)
                 ISTimedActionQueue.add(ISShovelAction:new(p, hand, tt.obj, 40))
             end }
-        if d.alive and seeded and d.water < 100 and #d.water_src == 0 then needs[#needs + 1] = "WATER needs water in your hands or inventory" end
+        if d.alive and seeded and d.water < 100 and #d.water_src == 0 then needs[#needs + 1] = "Water: needs water in your hands or inventory" end
         if pestsVisible then
             for _, pe in ipairs(d.pests) do
-                if pe.lvl > 0 and not pe.spray then needs[#needs + 1] = "TREAT needs " .. pe.def.sprayName end
+                if pe.lvl > 0 and not pe.spray then needs[#needs + 1] = "Treat: needs " .. pe.def.sprayName end
             end
         end
-        if not d.shovel then needs[#needs + 1] = "DIG UP needs a shovel or trowel" end
+        if not d.shovel then needs[#needs + 1] = "Dig up: needs a shovel or trowel" end
     end
     t.verbs, t.needs = verbs, needs
     t.pestsVisible = pestsVisible

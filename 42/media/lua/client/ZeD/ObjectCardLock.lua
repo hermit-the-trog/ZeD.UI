@@ -622,8 +622,8 @@ function def.body(card, x, y, w, t, player)
         y = y + needRow(card, x, y, w, d.haveKey, "Its key in your inventory")
     elseif d.mode == "open" and d.free then
         y = y + UI.section(card, x, y, w, "NEEDS") + T.px(4)
-        y = y + needRow(card, x, y, w, d.combo ~= nil, "USE COMBINATION PADLOCK: a Combination Padlock in your inventory")
-        y = y + needRow(card, x, y, w, d.keyPad ~= nil, "USE PADLOCK: a Padlock with its keys in your inventory")
+        y = y + needRow(card, x, y, w, d.combo ~= nil, "Use combination padlock: a Combination Padlock in your inventory")
+        y = y + needRow(card, x, y, w, d.keyPad ~= nil, "Use padlock: a Padlock with its keys in your inventory")
     end
     return y - y0
 end

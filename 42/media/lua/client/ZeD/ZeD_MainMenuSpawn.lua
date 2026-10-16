@@ -640,7 +640,7 @@ function ZeD_MMSpawn:drawDesc(x, y, w, h, it)
         self._descFor = key
         self.descScroll = 0
         local paras = townParagraphs(it.desc)
-        if self:isRandom(it) then paras = { "A town picked at random when you press NEXT." } end
+        if self:isRandom(it) then paras = { "A town picked at random when you press \"Next\"." } end
         local lines, ch = {}, T.px(14) + bigH + T.px(6)
         for pi, p in ipairs(paras) do
             if pi > 1 then ch = ch + T.px(6) end

@@ -750,9 +750,9 @@ function def.body(card, x, y, w, t, player)
 
     -- tanks + flow
     local vw = T.px(VESSEL_W)
-    local hint = "Pick INTO on a container below"
+    local hint = "Pick \"Into\" on a container below"
     local hFrom = drawVessel(card, x, y, vw, string.upper(txt("Fluid_Source", "Pouring From")), d.fromName, ffc,
-        layersOf(d.fromLiquids), fromAfter, nil, "Pick FROM on a container below")
+        layersOf(d.fromLiquids), fromAfter, nil, "Pick \"From\" on a container below")
     local hInto = drawVessel(card, x + w - vw, y, vw, string.upper(txt("Fluid_Target", "Pouring To")), d.intoName, ifc,
         layersOf(d.intoLiquids), intoAfter, incoming, hint)
     local th = math.max(hFrom, hInto)

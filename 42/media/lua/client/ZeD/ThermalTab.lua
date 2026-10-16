@@ -21,12 +21,12 @@ ZeD.ThermalTab = {}
 -- ============================================================================
 
 local VIEWS = {
-    { id = "skinTemp",  label = "Skin Temp",        getter = "getSkinCelcius",    format = "temp" },
-    { id = "response",  label = "Body Response",     getter = "getBodyResponse",   format = "pct"  },
-    { id = "vessels",   label = "Blood Vessels",     getter = "getPrimaryDelta",   format = "pct"  },
-    { id = "shiver",    label = "Shiver / Sweat",   getter = "getSecondaryDelta", format = "pct"  },
+    { id = "skinTemp",  label = "Skin temp",        getter = "getSkinCelcius",    format = "temp" },
+    { id = "response",  label = "Body response",     getter = "getBodyResponse",   format = "pct"  },
+    { id = "vessels",   label = "Blood vessels",     getter = "getPrimaryDelta",   format = "pct"  },
+    { id = "shiver",    label = "Shiver / sweat",   getter = "getSecondaryDelta", format = "pct"  },
     { id = "insul",     label = "Insulation",        getter = "getInsulation",     format = "pct"  },
-    { id = "wind",      label = "Wind Resistance",   getter = "getWindresist",     format = "pct"  },
+    { id = "wind",      label = "Wind resistance",   getter = "getWindresist",     format = "pct"  },
     { id = "wetness",   label = "Wetness",           getter = "getBodyWetness",    format = "pct"  },
 }
 
@@ -464,7 +464,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     drawY = drawY + T.px(6) + T.sp.md
 
     -- Section heading
-    panel:drawText(view.label .. " by Region", listX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
+    panel:drawText(view.label .. " by region", listX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
     drawY = drawY + headH + T.sp.xs
 
     A.drawDividerH(panel, listX, drawY, listW, false)

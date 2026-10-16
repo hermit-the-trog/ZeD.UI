@@ -250,8 +250,8 @@ function def.refresh(t, player)
         local full = d.count >= d.max
         verbs[#verbs + 1] = { id = "putin", label = "PUT IN", enabled = not d.allClosed and not full,
             run = function(p, tt) tt.eggChain = nil; ISHutchMenu.onPutAnimalInsideHutch(tt.obj, p) end }
-        if d.allClosed then needs[#needs + 1] = "PUT IN: " .. txt("IGUI_PutAnimalInHutch_DoorsClosed", "You need to have either door or eggs door open.")
-        elseif full then needs[#needs + 1] = "PUT IN: " .. txt("IGUI_PutAnimalInHutch_HutchFull", "Hutch is full.") end
+        if d.allClosed then needs[#needs + 1] = "Put in: " .. txt("IGUI_PutAnimalInHutch_DoorsClosed", "You need to have either door or eggs door open.")
+        elseif full then needs[#needs + 1] = "Put in: " .. txt("IGUI_PutAnimalInHutch_HutchFull", "Hutch is full.") end
     end
     t.verbs, t.needs = verbs, needs
 end
