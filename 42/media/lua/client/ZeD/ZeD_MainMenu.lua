@@ -104,9 +104,19 @@ local function tex(path, smooth)
     return t or nil
 end
 
+-- Start the desk's pictures loading while the game is still booting: the engine streams
+-- loose textures, and the menu stays dark until these are in (ZeD_MMWake). Asked for once
+-- here and not cached, so a texture system not yet ready cannot leave a "missing" behind.
+pcall(function()
+    for _, n in ipairs({ "desk.png", "desk_lampdim.png", "dial_clean.png" }) do Texture.getSharedTexture(TEX .. n, NEAREST) end
+    getTexture(WALLPAPER)
+    getTexture(WALLPAPER_ZAP)
+end)
+
 local function rnd(a, b) return a + (b - a) * ZombRand(10000) / 10000 end
 
 local function now() return getTimestampMs() end
+MM._bootMs = MM._bootMs or now()   -- the About block's UPTIME counts from here (the game's boot)
 
 local function ms() return MainScreen and MainScreen.instance end
 
@@ -789,9 +799,12 @@ function ZeD_MMDesk:createChildren()
     self.drop:initialise()
     self:addChild(self.drop)
     self.drop:setVisible(false)
-    self.glass = ZeD_MMGlass:new()   -- added last: drawn over everything on the screen
+    self.glass = ZeD_MMGlass:new()   -- drawn over everything on the monitor's screen
     self.glass:initialise()
     self:addChild(self.glass)
+    self.wake = ZeD_MMWake:new()     -- added last: dark over everything until the pictures are in
+    self.wake:initialise()
+    self:addChild(self.wake)
 end
 
 function ZeD_MMDesk:prerender()
@@ -832,7 +845,7 @@ function ZeD_MMDesk:update()
     if MM.powerOff then
         MM.powerOffTick()   -- a game starting: nothing answers until the engine takes over
     else
-        MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self })
+        if not MM.waking then MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self }) end   -- nothing answers in the dark
     end
     -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
@@ -912,27 +925,30 @@ function ZeD_MMDrop:new()
     return o
 end
 
--- The ZeD menu's About block (director, Oct 15 2026: "say more about ZeD-GUI system, a short
--- boilerplate on our custom built kernel"): the name, a short paragraph, then a few live facts
--- like an About This Macintosh box. The game's build shows here and nowhere else on the menu.
+-- The ZeD menu's About block (director, Oct 15 2026: the boilerplate is about the fictional
+-- Zero Day OS kernel the owner of this desk and computer built: "not advertising the
+-- features. Should read like half crazy idealist, half prepper"). Their words, then a few
+-- live facts the way an About This Macintosh box gives them. The game's build shows here
+-- and nowhere else on the menu.
 local ABOUT_W = 340   -- design units: the block's text width
-local ABOUT_BLURB = "ZeD-GUI runs on its own kernel, built from scratch for Project Zomboid: one sheet of colours, "
-    .. "type and spacing, one library of parts, its own text renderer, true scaling at any resolution and full "
-    .. "controller navigation. Nothing is reskinned. Each of the game's screens is replaced where the game opens "
-    .. "it, and the game's own rules run underneath."
--- rows: { kind, text, value, h } with kind "title" | "sub" | "para" | "kv" | "gap"
+local ABOUT_BLURB = "I wrote this kernel myself, at this desk, one night at a time, because the day is coming "
+    .. "when the big systems quit and nobody comes to fix them. No licence keys. No phone line. No "
+    .. "company in California that can switch it off. It boots from one floppy, it runs on a car "
+    .. "battery, and it keeps an honest count of what you have and where you put it. Information "
+    .. "wants to be free. Batteries want to be charged. Keep a backup in the cellar."
 local function aboutRows()
     local T = ZeD.T
     local f2, f3 = T.fontF2, T.fontF3
     local hf = ZeD.Font.sdf.head
     local z = 22 * (T.scale or 1) / (hf.face or 64)
-    local rows = { { "title", "ZeD-GUI System", nil, math.floor(ZeD.Text.height(hf, z)) + T.px(2), z } }
-    rows[#rows + 1] = { "sub", "A custom-built interface kernel", nil, fontH(f3) + T.px(8) }
+    local rows = { { "title", "Zero Day OS", nil, math.floor(ZeD.Text.height(hf, z)) + T.px(2), z } }
+    rows[#rows + 1] = { "sub", "The ZeD kernel. Do not unplug.", nil, fontH(f3) + T.px(8) }
     for _, l in ipairs(ZeD.Atoms.wrapText(ABOUT_BLURB, f2, T.px(ABOUT_W))) do rows[#rows + 1] = { "para", l, nil, fontH(f2) + T.px(2) } end
     rows[#rows + 1] = { "gap", nil, nil, T.px(8) }
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local up = math.floor((now() - (MM._bootMs or now())) / 60000)
+    rows[#rows + 1] = { "kv", "UPTIME", (up >= 60) and string.format("%d h %02d min", math.floor(up / 60), up % 60) or (up .. " min"), T.px(18) }
     rows[#rows + 1] = { "kv", "DISPLAY", sw .. " x " .. sh .. DOT .. string.format("%.2fx", T.scale or 1), T.px(18) }
-    rows[#rows + 1] = { "kv", "INPUT", MM.gamepad() and "Controller" or "Keyboard and mouse", T.px(18) }
     rows[#rows + 1] = { "kv", "GAME", "Build " .. MM.version(), T.px(18) }
     return rows
 end
@@ -1111,6 +1127,61 @@ end
 -- ============================================================================
 -- THE GLASS (scanlines and the tube's edge) and the power button's label
 -- ============================================================================
+-- ============================================================================
+-- THE WAKE-UP (director, Oct 15 2026: "a couple second hang where the main menu is
+-- only partially loaded ... fade in or hide until all is loaded"). At boot the engine is
+-- still streaming loose textures when the menu first draws: the menu bar and the windows
+-- showed for about 2.6 s over the bare margin colours before the desk and the wallpaper
+-- arrived. This panel, the desk's last child, keeps the whole screen dark until those
+-- pictures are ready, then fades the room up. Back from a game they are already loaded,
+-- and it steps aside at once.
+-- ============================================================================
+local WAKE_FADE_MS, WAKE_GIVE_UP_MS = 450, 10000
+local function texReady(path, smooth)
+    local t = tex(path, smooth)
+    if not t then return true end   -- a missing picture: nothing to wait for
+    local ok, r = pcall(function() return t:isReady() end)
+    if ok then return r and true or false end
+    return true
+end
+function MM.assetsReady()
+    return texReady(TEX .. "desk.png") and texReady(TEX .. "desk_lampdim.png") and texReady(TEX .. "dial_clean.png")
+        and texReady(WALLPAPER, true) and texReady(WALLPAPER_ZAP, true)
+end
+
+ZeD_MMWake = ISPanel:derive("ZeD_MMWake")
+
+function ZeD_MMWake:new()
+    local o = ISPanel:new(0, 0, getCore():getScreenWidth(), getCore():getScreenHeight())
+    setmetatable(o, self)
+    self.__index = self
+    o.background = false
+    o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
+    o.borderColor = { r = 0, g = 0, b = 0, a = 0 }
+    return o
+end
+
+function ZeD_MMWake:prerender()
+    local t = now()
+    if not self._t0 then self._t0 = t; MM.waking = true end
+    if not self._readyAt and (MM.assetsReady() or t - self._t0 > WAKE_GIVE_UP_MS) then
+        self._readyAt = t
+        MM.waking = false
+        if t - self._t0 < 50 then self._done = true end   -- ready on the first frame: no fade
+    end
+    local a = self._readyAt and (1 - (t - self._readyAt) / WAKE_FADE_MS) or 1
+    if self._done or a <= 0 then
+        self._done = true
+        MM.waking = false
+        self:setVisible(false)
+        return
+    end
+    local L = MM.layout()
+    if self.width ~= L.sw or self.height ~= L.sh then self:setWidth(L.sw); self:setHeight(L.sh) end
+    self:drawRect(0, 0, self.width, self.height, a, 0, 0, 0)
+end
+function ZeD_MMWake:render() end
+
 ZeD_MMGlass = ISPanel:derive("ZeD_MMGlass")
 
 function ZeD_MMGlass:new()
