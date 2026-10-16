@@ -52,7 +52,7 @@ h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; ma
 .grp { display:flex; gap:5px; align-items:center; }
 .grp.obj { margin-left:auto; }
 .grp.obj.first { padding-left:9px; border-left:1px solid var(--border); }
-.b { height:20px; display:inline-flex; align-items:center; padding:0 7px; font-family:var(--mono); font-weight:700; font-size:9px; letter-spacing:.2px; color:var(--text); background:var(--surf3); border:1px solid var(--btnB); border-radius:2px; white-space:nowrap; }
+.b { height:20px; display:inline-flex; align-items:center; padding:0 7px; font-family:var(--mono); font-weight:700; font-size:10px; letter-spacing:0; color:var(--text); background:var(--surf3); border:1px solid var(--btnB); border-radius:2px; white-space:nowrap; }
 .b.hov { box-shadow:inset 0 0 0 30px var(--a22); }
 .b.foc { box-shadow:inset 0 0 0 30px var(--a55); color:#f4f4f2; }
 .b.off { color:var(--textDim); }
@@ -125,12 +125,12 @@ h2.sec { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0
     <h2>Decisions for you</h2>
     <ol>
       <li><span class="rec">RECOMMEND</span><b>Yes, ZeD gets them.</b> The item menu moves one thing or a selection; these move a whole container, or just what matches, in one click, and players who learned them in vanilla will look for them.</li>
-      <li><span class="rec">RECOMMEND</span><b>Words, not pictures.</b> Vanilla's two "same type" buttons are small arrow pictures that only explain themselves in a tooltip. ZeD names them: <b>SAME TYPE</b> (into the container on show, or out of it in the World window) and <b>SAME TYPE, ALL NEARBY</b> (each thing goes into whichever nearby container already holds its type). The rest keep vanilla's words: TRANSFER ALL, TAKE ALL, TO FLOOR.</li>
+      <li><span class="rec">RECOMMEND</span><b>Words, not pictures.</b> Vanilla's two "same type" buttons are small arrow pictures that only explain themselves in a tooltip. ZeD names them: <b>Same type</b> (into the container on show, or out of it in the World window) and <b>Same type, all nearby</b> (each thing goes into whichever nearby container already holds its type). The rest keep vanilla's words: “Transfer all”, “Take all”, “To floor”.</li>
       <li><span class="rec">RECOMMEND</span><b>The row sits under the container's heading</b>, across the list only (not the tab rail or the container strip), the same place the fire and fluid cards keep their buttons. It belongs to the container on show and changes with it.</li>
       <li><span class="alt">YOUR CALL</span><b>Or at the bottom of the list</b>, where vanilla has it (the Row control above). Closer to vanilla, but a long list's last rows end up beside the buttons.</li>
-      <li><span class="rec">RECOMMEND</span><b>Pointing at a SAME TYPE button marks the rows it would move</b> (the light accent fill). Vanilla does the same; it's the only way to know before you click.</li>
-      <li><span class="rec">RECOMMEND</span><b>The container's own buttons run vanilla's own code</b>, so every rule stays vanilla's: the stove's only with power, Delete All only where the server allows it, the trunk's only when you stand at its lid. Buttons that other mods add to vanilla's row show up here too, as plain worded buttons. Where ZeD already has a fuller view, the button opens it: the stove's SETTINGS opens the oven panel in the Craft tab, the campfire's ADD FUEL opens the fire card's fuel list.</li>
-      <li><span class="rec">RECOMMEND</span><b>DELETE ALL asks first, in the row itself.</b> Vanilla asks with a pop-up; here the row becomes the question, with DELETE ALL where you just clicked it.</li>
+      <li><span class="rec">RECOMMEND</span><b>Pointing at a “Same type” button marks the rows it would move</b> (the light accent fill). Vanilla does the same; it's the only way to know before you click.</li>
+      <li><span class="rec">RECOMMEND</span><b>The container's own buttons run vanilla's own code</b>, so every rule stays vanilla's: the stove's only with power, Delete All only where the server allows it, the trunk's only when you stand at its lid. Buttons that other mods add to vanilla's row show up here too, as plain worded buttons. Where ZeD already has a fuller view, the button opens it: the stove's “Settings” opens the oven panel in the Craft tab, the campfire's “Add fuel” opens the fire card's fuel list.</li>
+      <li><span class="rec">RECOMMEND</span><b>“Delete all” asks first, in the row itself.</b> Vanilla asks with a pop-up; here the row becomes the question, with “Delete all” where you just clicked it.</li>
       <li><b>Controller:</b> the row's buttons are stops like any other; the D-pad reaches them from the list (up from the first row), A presses, and the footer's prompts name the button.</li>
     </ol>
   </div>
@@ -151,18 +151,18 @@ const WORLD = { x: 701, w: 372, k: "w" };
 // list rows in the capture (top, bottom)
 const R = { cNails: [141, 171], cPlank: [261, 291], wNails: [232, 262] };
 
-const CHAR_MOVES = ["TRANSFER ALL", "SAME TYPE", "SAME TYPE, ALL NEARBY"];
-const WORLD_MOVES = ["TAKE ALL", "SAME TYPE", "TO FLOOR"];
+const CHAR_MOVES = ["Transfer all", "Same type", "Same type, all nearby"];
+const WORLD_MOVES = ["Take all", "Same type", "To floor"];
 
 const SCENES = [
   { id: "s1", label: "Truck bed",
-    cap: "Both windows on the truck bed. Yours: TRANSFER ALL, SAME TYPE (only what the truck bed already holds a kind of), SAME TYPE, ALL NEARBY. The truck's: TAKE ALL, SAME TYPE (only kinds you already carry), TO FLOOR. An open truck bed has no buttons of its own." },
+    cap: "Both windows on the truck bed. Yours: “Transfer all”, “Same type” (only what the truck bed already holds a kind of), “Same type, all nearby”. The truck's: “Take all”, “Same type” (only kinds you already carry), “To floor”. An open truck bed has no buttons of its own." },
   { id: "s2", label: "Pointing at Same Type (take)", hover: ["w", 1], marks: [["w", "wNails"]],
-    cap: "The pointer on the truck's SAME TYPE: the rows it would take are marked (the nails here; the planks further down too), because you carry nails and a plank." },
+    cap: "The pointer on the truck's “Same type”: the rows it would take are marked (the nails here; the planks further down too), because you carry nails and a plank." },
   { id: "s3", label: "Pointing at Same Type, All Nearby", hover: ["c", 2], marks: [["c", "cNails"], ["c", "cPlank"]],
-    cap: "The pointer on your SAME TYPE, ALL NEARBY: your nails and plank are marked; each goes into whichever nearby container already holds nails or planks (here the truck bed)." },
+    cap: "The pointer on your “Same type, all nearby”: your nails and plank are marked; each goes into whichever nearby container already holds nails or planks (here the truck bed)." },
   { id: "s4", label: "Controller", focus: ["w", 0], legend: true,
-    cap: "On a controller: the focus fill on TAKE ALL (the D-pad reached it from the list); the footer names what A does." },
+    cap: "On a controller: the focus fill on “Take all” (the D-pad reached it from the list); the footer names what A does." },
 ];
 let cur = SCENES[0], place = "top", look = "zed", zoom = 1;
 
@@ -194,7 +194,7 @@ function askRow(k, q, yes) {
   const r = el("div", "row " + k);
   r.appendChild(el("span", "ask", "", `<i></i>${q}`));
   const g = el("div", "grp");
-  g.appendChild(el("span", "b", "", "CANCEL"));
+  g.appendChild(el("span", "b", "", "Cancel"));
   g.appendChild(el("span", "b dangerFill", "", yes));
   r.appendChild(g);
   return r;
@@ -275,28 +275,28 @@ const ICON = {
 const SLICES = [
   { t: "Truck bed", ic: "bed", nm: "Trunk", wt: "18.9/110kg", n: "21 items", moves: WORLD_MOVES, obj: [],
     p: "An open bed has no lid: the three moves only." },
-  { t: "The floor", ic: "floor", nm: "Ground", wt: "4.2/50kg", n: "6 items", moves: ["TAKE ALL", "SAME TYPE"], obj: [],
-    p: "The floor has no TO FLOOR (vanilla's floor buttons)." },
-  { t: "A car trunk, lid open", ic: "trunk", nm: "Trunk", pill: "OPEN", wt: "11.4/80kg", n: "9 items", moves: WORLD_MOVES, obj: [["CLOSE TRUNK"], ["LOCK TRUNK"]],
+  { t: "The floor", ic: "floor", nm: "Ground", wt: "4.2/50kg", n: "6 items", moves: ["Take all", "Same type"], obj: [],
+    p: "The floor has no “To floor” (vanilla's floor buttons)." },
+  { t: "A car trunk, lid open", ic: "trunk", nm: "Trunk", pill: "OPEN", wt: "11.4/80kg", n: "9 items", moves: WORLD_MOVES, obj: [["Close trunk"], ["Lock trunk"]],
     p: "Standing at the lid: close it, or lock it (when it has a lock)." },
-  { t: "A stove, with power", ic: "stove", nm: "Stove", pill: "OFF", pd: true, wt: "0.8/15kg", n: "2 items", moves: WORLD_MOVES, obj: [["TURN ON"], ["SETTINGS"]],
-    p: "Only with power, as in vanilla. SETTINGS opens the oven panel the Craft tab already has." },
-  { t: "A washing machine", ic: "washer", nm: "Washing Machine", pill: "ON", wt: "3.1/20kg", n: "4 items", moves: WORLD_MOVES, obj: [["TURN OFF"]],
-    p: "The switch reads what it will do (TURN ON / TURN OFF); the heading says what it is doing. A dryer is the same." },
-  { t: "A combination washer-dryer", ic: "washer", nm: "Washer / Dryer", pill: "WASHER", pd: true, wt: "0/20kg", n: "0 items", moves: WORLD_MOVES, obj: [["MODE: DRYER"], ["TURN ON"]],
-    p: "MODE switches it between washer and dryer (vanilla's Set Mode)." },
-  { t: "A mannequin", ic: "mannequin", nm: "Mannequin", wt: "2.6/10kg", n: "5 items", moves: WORLD_MOVES, obj: [["WEAR ALL"], ["SWITCH OUTFITS"]],
-    p: "SWITCH OUTFITS swaps your clothes for its; it reads STORE WORN OUTFIT or WEAR OUTFIT when one of you has nothing on (vanilla's three cases)." },
-  { t: "A propane barbecue", ic: "bbq", nm: "Propane Barbecue", pill: "OFF", pd: true, wt: "0/5kg", n: "0 items", moves: WORLD_MOVES, obj: [["TURN ON"], ["REMOVE TANK"]],
-    p: "REMOVE TANK, or INSERT TANK when it has none and you carry one." },
-  { t: "A campfire, burning", ic: "fire", nm: "Campfire", pill: "BURNING", wt: "1.2/5kg", n: "2 items", moves: WORLD_MOVES, obj: [["ADD FUEL"], ["PUT OUT"]],
-    p: "ADD FUEL opens the fire card's fuel list (the card ZeD already has)." },
-  { t: "A campfire, out", ic: "fireOut", nm: "Campfire", pill: "OUT", pd: true, wt: "0/5kg", n: "0 items", moves: WORLD_MOVES, obj: [["LIGHT"], ["ADD FUEL"], ["TAKE APART"]],
+  { t: "A stove, with power", ic: "stove", nm: "Stove", pill: "OFF", pd: true, wt: "0.8/15kg", n: "2 items", moves: WORLD_MOVES, obj: [["Turn on"], ["Settings"]],
+    p: "Only with power, as in vanilla. “Settings” opens the oven panel the Craft tab already has." },
+  { t: "A washing machine", ic: "washer", nm: "Washing Machine", pill: "ON", wt: "3.1/20kg", n: "4 items", moves: WORLD_MOVES, obj: [["Turn off"]],
+    p: "The switch reads what it will do (“Turn on” / “Turn off”); the heading says what it is doing. A dryer is the same." },
+  { t: "A combination washer-dryer", ic: "washer", nm: "Washer / Dryer", pill: "WASHER", pd: true, wt: "0/20kg", n: "0 items", moves: WORLD_MOVES, obj: [["Mode: dryer"], ["Turn on"]],
+    p: "“Mode” switches it between washer and dryer (vanilla's Set Mode)." },
+  { t: "A mannequin", ic: "mannequin", nm: "Mannequin", wt: "2.6/10kg", n: "5 items", moves: WORLD_MOVES, obj: [["Wear all"], ["Switch outfits"]],
+    p: "“Switch outfits” swaps your clothes for its; it reads “Store worn outfit” or “Wear outfit” when one of you has nothing on (vanilla's three cases)." },
+  { t: "A propane barbecue", ic: "bbq", nm: "Propane Barbecue", pill: "OFF", pd: true, wt: "0/5kg", n: "0 items", moves: WORLD_MOVES, obj: [["Turn on"], ["Remove tank"]],
+    p: "“Remove tank”, or “Insert tank” when it has none and you carry one." },
+  { t: "A campfire, burning", ic: "fire", nm: "Campfire", pill: "BURNING", wt: "1.2/5kg", n: "2 items", moves: WORLD_MOVES, obj: [["Add fuel"], ["Put out"]],
+    p: "“Add fuel” opens the fire card's fuel list (the card ZeD already has)." },
+  { t: "A campfire, out", ic: "fireOut", nm: "Campfire", pill: "OUT", pd: true, wt: "0/5kg", n: "0 items", moves: WORLD_MOVES, obj: [["Light"], ["Add fuel"], ["Take apart"]],
     p: "Too many for one row at this width: the campfire's own buttons go to a second row." },
-  { t: "A trash can", ic: "trash", nm: "Trash Can", wt: "2.9/10kg", n: "9 items", moves: WORLD_MOVES, obj: [["DELETE ALL", "danger"]],
-    p: "DELETE ALL in the warning style. Hidden where a server turns it off (vanilla's rule)." },
-  { t: "A trash can, after DELETE ALL", ic: "trash", nm: "Trash Can", wt: "2.9/10kg", n: "9 items", ask: "Delete all 9 items for good?",
-    p: "The row becomes the question; CANCEL or the B button backs out." },
+  { t: "A trash can", ic: "trash", nm: "Trash Can", wt: "2.9/10kg", n: "9 items", moves: WORLD_MOVES, obj: [["Delete all", "danger"]],
+    p: "“Delete all” in the warning style. Hidden where a server turns it off (vanilla's rule)." },
+  { t: "A trash can, after “Delete all”", ic: "trash", nm: "Trash Can", wt: "2.9/10kg", n: "9 items", ask: "Delete all 9 items for good?",
+    p: "The row becomes the question; “Cancel” or the B button backs out." },
   { t: "Your side (the Character window)", ic: "bag", nm: "Inventory", wt: "5.5/8kg", n: "12 items", k: "c", moves: CHAR_MOVES, obj: [],
     p: "Into the container the World window has open (the nearby ones, for ALL NEARBY). A bag you have open in the Character window gets the same row." },
 ];
@@ -317,7 +317,7 @@ function renderSlices() {
     if (S.pill) h.appendChild(el("span", "pill" + (S.pd ? " dim" : ""), "", "&#9679; " + S.pill));
     h.appendChild(el("span", "wt", "", `<b>${S.wt}</b><span>${S.n}</span>`));
     inner.appendChild(h);
-    const r = S.ask ? askRow(k, S.ask, "DELETE ALL") : buttonRow(k, S.moves, S.obj, null);
+    const r = S.ask ? askRow(k, S.ask, "Delete all") : buttonRow(k, S.moves, S.obj, null);
     r.classList.add("top");
     r.style.cssText = `position:relative;width:372px;min-height:${ROW_H}px`;
     inner.appendChild(r);
