@@ -459,12 +459,14 @@ local _zonePanelField = {
     charMainInv        = "_contentPanel",
     charItemCard       = "_itemDrawerPanel",
     charContainerStrip = "_containerStrip",
+    charCtl            = "_contentPanel",   -- the container buttons' row (ContainerControls)
     -- World window (mirrored layout — drawer on right, container on left)
     worldTabBar         = "_actionTabStrip",
     worldTabContent     = "_drawerPanel",
     worldMainInv        = "_contentPanel",
     worldItemCard       = "_itemDrawerPanel",
     worldContainerStrip = "_containerStrip",
+    worldCtl            = "_contentPanel",  -- the container buttons' row (ContainerControls)
     -- S123: map pop-out window (ZeD.MapsTab.openPopout) — one content zone
     popMapContent       = "_contentPanel",
     -- charMC<N> / worldMC<N> all share their respective content panel

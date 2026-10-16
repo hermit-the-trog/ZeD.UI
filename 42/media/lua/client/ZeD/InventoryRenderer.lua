@@ -233,6 +233,41 @@ end
 --   self._skipClearHitZones — caller handles clearHitZones
 -- ============================================================================
 
+-- Container buttons (ContainerControls): one row under the container's
+-- heading, single-container view only. These helpers keep renderItemList's
+-- locals unchanged (it sits at Kahlua's limit of 200 active locals):
+-- the heading's bottom and the row's height ride on self._ccInfoY / self._ccH.
+-- Returns where the column header starts.
+local function ccLayout(self, hdrY, barH, colW)
+    self._ccInfoY, self._ccH = hdrY, 0
+    local CTL = ZeD.ContainerControls
+    if CTL and self._ccSide and not self._compactMode and hdrY > barH then
+        local ok, h = pcall(CTL.layout, self, colW)
+        if ok then self._ccH = h or 0 else print("[ZeD] ContainerControls layout: " .. tostring(h)) end
+    else
+        self._ccMarks = nil
+        if self._cc then self._cc.layout = nil end
+    end
+    return hdrY + self._ccH
+end
+
+local function ccDraw(self, colW, xOff)
+    local ok, e = pcall(ZeD.ContainerControls.draw, self, self._ccInfoY, colW, xOff)
+    if not ok then print("[ZeD] ContainerControls draw: " .. tostring(e)) end
+end
+
+-- a row a pointed-at (or focused) Same type button would move (a stack's
+-- row when any of its things would)
+local function ccMarked(self, item)
+    local marks = self._ccMarks
+    if marks[item] then return true end
+    local stk = self._stacks and self._stacks[item]
+    if stk and stk.count > 1 then
+        for _, si in ipairs(stk.items) do if marks[si] then return true end end
+    end
+    return false
+end
+
 local function renderItemList(self)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -347,6 +382,10 @@ local function renderItemList(self)
     -- Header Y offset — pushed down by bar + container info header
     local hdrYOff = self._hdrYOffset
     local hdrY    = barH + ((type(hdrYOff) == "number") and hdrYOff or 0)
+
+    -- Container buttons: their row sits under the heading; the column
+    -- header and the list start below it (ccLayout above)
+    hdrY = ccLayout(self, hdrY, barH, colW)
 
     -- --------------------------------------------------------
     -- PRE-COMPUTE: Build item list + determine scroll state
@@ -525,10 +564,10 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     -- CONTAINER INFO HEADER (when hdrY > 0)
     -- --------------------------------------------------------
-    if hdrY > 0 then
+    if self._ccInfoY > 0 then
         local ci = self._containerInfo
         if ci then
-            local infoAreaH = hdrY - barH
+            local infoAreaH = self._ccInfoY - barH
 
             -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
             local wtStr  = ci.stats or ""
@@ -558,8 +597,11 @@ local function renderItemList(self)
                 dT(name, cx, nameY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
             end
         end
-        aDiv(0, hdrY - T.px(1), colW, true)
+        aDiv(0, self._ccInfoY - T.px(1), colW, true)
     end
+
+    -- the container buttons' row
+    if self._ccH > 0 then ccDraw(self, colW, xOff) end
 
     -- --------------------------------------------------------
     -- COLUMN HEADER BAR
@@ -726,6 +768,7 @@ local function renderItemList(self)
     for _, def in ipairs(colDefs) do
         hZ("hdr:" .. def[2], def[4], hdrY, def[5], colHdrH)
     end
+    if self._ccH > 0 then ZeD.ContainerControls.addZones(self) end
 
     self:setStencilRect(xOff, contentTop, scroll.visible and (colW - scrollW) or colW, visibleH)
 
@@ -763,6 +806,11 @@ local function renderItemList(self)
                 local s1 = T.surf1
                 dR(0, y, scrollX, rowH, 0.4, s1.r, s1.g, s1.b)
             end
+        end
+
+        -- Container buttons: rows a pointed-at Same type button would move
+        if self._ccMarks and ccMarked(self, item) then
+            dR(0, y, scrollX, rowH, 0.22, T.accent.r, T.accent.g, T.accent.b)
         end
 
         -- S96: gamepad-focused row accent fill (0.55 alpha, matches
