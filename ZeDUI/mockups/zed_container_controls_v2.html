@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI — Container Buttons v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:ital,wght@0,400;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI — Container buttons, mockup v2 (Oct 16 2026)
+   The row as built (the bottom of each list, one line that scrolls) with the
+   director's two asks: the container's own actions in the heading, between
+   the name and the weight; common actions as icons (with a hover hint),
+   unique actions as words. Icons are the ZeD library's own
+   (42/media/textures/ZeD/icons). Every number is a DESIGN UNIT (1 px at 1080p);
+   the slices show the World window's list column (372 wide) at 150%.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --text:#d3d4d3; --dim:rgba(211,212,211,.38);
+  --c-acc:#c18528; --c-a22:rgba(193,133,40,.22); --c-a55:rgba(193,133,40,.55);
+  --w-acc:#407dba; --w-a22:rgba(64,125,186,.22); --w-a55:rgba(64,125,186,.55);
+  --danger:#e0533a; --ok:#7fb24a;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+h2.sec { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-top:28px; }
+.sec + .lede { margin-top:4px; }
+
+/* the window's list column, drawn at 150% */
+.slices { display:grid; grid-template-columns:repeat(auto-fill, minmax(570px, 1fr)); gap:20px 22px; margin-top:14px; max-width:1240px; }
+.slice h3 { font-family:var(--cond); font-weight:600; font-size:14px; color:#efe6c4; margin-bottom:2px; }
+.slice p { font-size:12px; line-height:1.45; color:#a9a497; margin-bottom:6px; min-height:17px; }
+.sbox { width:560px; overflow:hidden; border:1px solid #2a2924; }
+.sin { position:relative; width:372px; transform:scale(1.5); transform-origin:0 0; font-family:var(--mono); }
+.w { --acc:var(--w-acc); --a22:var(--w-a22); --a55:var(--w-a55); --surf1:#171717; --surf2:#1c1e20; --surf3:#28292b; --hdr:#161617; --border:#383a3c; --btnB:#53565a; --stripe:#1d1d1d; }
+.c { --acc:var(--c-acc); --a22:var(--c-a22); --a55:var(--c-a55); --surf1:#1b1712; --surf2:#201e1b; --surf3:#2b2824; --hdr:#1a1612; --border:#3c3a37; --btnB:#57534d; --stripe:#1f1b15; }
+
+.hdr { position:relative; height:37px; display:flex; align-items:center; gap:8px; padding:0 8px; background:var(--hdr); border-bottom:1px solid var(--border); }
+.hdr .ic { width:17px; height:17px; flex:none; border-radius:2px; background:#4d5560; }
+.hdr .nm { font-family:var(--cond); font-weight:600; font-size:15px; color:var(--text); white-space:nowrap; margin-right:auto; }
+.hdr .acts { display:flex; gap:5px; align-items:center; min-width:0; }
+.hdr .wt { flex:none; text-align:right; line-height:1.1; margin-left:8px; }
+.hdr .wt b { display:block; font-family:var(--mono); font-size:11px; font-weight:700; color:var(--acc); }
+.hdr .wt span { font-family:var(--cond); font-size:9px; color:#bdbebc; }
+/* the heading's ribbon, when its actions are wider than the room */
+.hdr .rib { display:flex; align-items:center; gap:4px; min-width:0; }
+.hdr .rib .win { overflow:hidden; display:flex; gap:5px; }
+.cols { height:19px; display:flex; align-items:center; padding-left:40px; font-family:var(--mono); font-size:7.5px; color:#9d9e9c; background:var(--surf2); border-bottom:1px solid var(--border); }
+.cols span:nth-child(1) { width:160px; text-decoration:underline; } .cols span:nth-child(2) { width:70px; } .cols span:nth-child(3) { width:52px; }
+.irow { position:relative; height:30px; display:flex; align-items:center; gap:10px; padding-left:12px; font-family:var(--sans); font-size:13px; color:var(--text); background:var(--surf1); }
+.irow:nth-child(even) { background:var(--stripe); }
+.irow .sw { width:18px; height:14px; border-radius:2px; background:#5c6066; opacity:.85; }
+.irow .ct { margin-left:auto; margin-right:16px; font-family:var(--mono); font-size:11px; color:var(--acc); }
+.irow.mark::after { content:""; position:absolute; inset:0; background:var(--a22); }
+.cat { height:15px; padding-left:8px; font-family:var(--mono); font-size:9px; color:var(--acc); opacity:.8; background:var(--surf1); }
+.bot { height:28px; display:flex; align-items:center; gap:5px; padding:0 7px; background:var(--surf2); border-top:1px solid var(--border); }
+.foot { height:14px; display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:0 18px 0 6px; background:var(--surf2); border-top:1px solid var(--border); font-family:var(--mono); font-size:8px; color:#a9aaa8; }
+.foot .k { display:inline-block; min-width:10px; margin-right:3px; text-align:center; border:1px solid #77787a; color:#d3d4d3; line-height:10px; padding:0 2px; }
+
+/* buttons: the card verb chrome (UI.button); an icon button is a square of it */
+.b { height:20px; display:inline-flex; align-items:center; justify-content:center; padding:0 7px; font-family:var(--mono); font-weight:700; font-size:10px; color:var(--text); background:var(--surf3); border:1px solid var(--btnB); border-radius:2px; white-space:nowrap; flex:none; position:relative; }
+.b.i { width:24px; padding:0; }
+.b.i i { width:13px; height:13px; display:block; background:var(--text); -webkit-mask:var(--m) center / contain no-repeat; mask:var(--m) center / contain no-repeat; }
+.b.on i { background:var(--acc); }
+.b.danger { color:var(--danger); border-color:var(--danger); } .b.danger i { background:var(--danger); }
+.b.dangerFill { color:#fff; background:#b8432f; border-color:#d0553f; }
+.b.hov { box-shadow:inset 0 0 0 30px var(--a22); }
+.b.foc { box-shadow:inset 0 0 0 30px var(--a55); }
+.b.off { opacity:.38; }
+.arr { width:20px; height:20px; flex:none; border:1px solid var(--btnB); display:flex; align-items:center; justify-content:center; }
+.arr::before { content:""; width:0; height:0; border:4px solid transparent; }
+.arr.l::before { border-right:5px solid #bcbdbb; border-left:0; }
+.arr.r::before { border-left:5px solid #bcbdbb; border-right:0; }
+.arr.dim { opacity:.35; }
+.ask { display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:12px; color:var(--text); white-space:nowrap; margin-right:auto; }
+.ask i { width:6px; height:6px; background:var(--danger); display:inline-block; }
+/* ZeD's hover hint (ZeD_Tooltip: surf2, borderS, F2) */
+.tip { position:absolute; z-index:5; padding:4px 9px; background:var(--surf2); border:1px solid #6b6c6a; font-family:var(--sans); font-size:12px; color:var(--text); white-space:nowrap; box-shadow:2px 2px 0 rgba(0,0,0,.5); }
+.ptr { position:absolute; z-index:6; width:10px; height:16px; pointer-events:none; }
+
+/* the split, as a table */
+.split { margin-top:14px; border-collapse:collapse; font-size:12.5px; max-width:1100px; }
+.split th { text-align:left; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#8f8a7c; padding:4px 14px 6px 0; font-weight:500; }
+.split td { padding:5px 14px 5px 0; vertical-align:middle; color:#c4bfb1; border-top:1px solid #23221e; }
+.split td.ic { width:30px; }
+.split .glyph { width:18px; height:18px; display:block; background:#e8e2d0; -webkit-mask:var(--m) center / contain no-repeat; mask:var(--m) center / contain no-repeat; }
+.split b { color:#efe6c4; font-weight:600; }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI · in game · the container buttons · mockup v2</div>
+<h1>Container Buttons v2</h1>
+<p class="lede">The buttons as built (one row at the bottom of each list, scrolling sideways when it is wider than the list), with your two asks: <b>the container's own actions move into its heading</b>, between the name and the weight, and <b>common actions become icons</b>, the unique ones stay words. Every icon button says what it does in a hover hint (ZeD's own hint box) after a short pause; on a controller the footer names it. The icons are the ZeD library's. Each slice is the World window's list (or the Character window's) at 150%.</p>
+
+<h2 class="sec">Common and unique</h2>
+<p class="lede">Common: what every container has (the moves) and what many objects share. Unique: one kind of object's own, and anything a mod adds.</p>
+<table class="split" id="split"></table>
+
+<h2 class="sec">Every container</h2>
+<div class="slices" id="slices"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>Icons for the moves and for the actions many objects share</b> (Take all, Transfer all, Same type, Same type to all nearby, To floor; power, settings, light, add fuel, put out, lock, delete all). <b>Words for the rest</b>: Wear all, Switch outfits, Mode: dryer, Insert tank, Remove tank, Take apart, Add corpse, Close trunk, and every mod's button (we cannot know a picture for those).</li>
+      <li><span class="rec">RECOMMEND</span><b>A hover hint on every icon button</b>, in ZeD's hint box, after a short pause: the action in a few words ("Take all", "Take the kinds you already carry"). Word buttons need none. On a controller the footer's prompt names the focused icon ("A Take all").</li>
+      <li><span class="rec">RECOMMEND</span><b>The container's own actions sit in the heading</b>, between the name and the weight, words first, then icons; the moves stay at the bottom. With icons nearly every container fits; when one does not (the large text size, a campfire with a corpse to add) the heading's actions scroll like the bottom ribbon, between two small arrows, and the name never shortens.</li>
+      <li><span class="rec">RECOMMEND</span><b>Power shows its state</b>: the icon lights in the accent while the thing runs (a stove on, a washer going), dim while it is off. The hint says what a press will do ("Turn on" / "Turn off").</li>
+      <li><span class="rec">RECOMMEND</span><b>Delete all's question takes over the bottom row</b> ("Delete all 9 items for good?" Cancel / Delete all), where the other moves are, so the heading never changes height.</li>
+      <li><span class="alt">YOUR CALL</span><b>The icons.</b> Shown here from the library: inbox in (Take all), inbox out (Transfer all), two sheets (Same type), arrows spreading (Same type, all nearby), arrow to a line (To floor), power, gear, match, extinguisher, fire with logs (Add fuel), padlock, bin. Any can be swapped.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const ICON = {"take": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACHElEQVR42u3au2oUURgA4G/XmEpsA9qIQSIsUSzETrxgk1aTF7CRlFr4CikUEQVtfAEvraB4ewJBwVgERLyhbbRKNGPhDISQrLubObM7mf+HZeHs7Nn//+Z2zpltZVlmCHEfsxvaHmCu6kTaGh4BEAABEAABEAABEAABEAABEAABUHIcxpUS+rmc91UrgCk8xzUsbKOfq7iOV+jUBWAKL7BvXRELAxZffG8iB+2MOsDG4g2IsNn2SRDKBlhD1kdR/W6X5b9RWoyVDLCE03iJ/VsUN2jx33EG78tMuJVoUfRQFwRYxt4e2or4hlM5sDoA9ILQayTZ81WMA4rT4euoFl/FSHA7CMmLr2ooPAhCJcVXORfoB6Gy4queDBUIn7ts8wUnqyp+GLPBJZzAow0DmrW87XiKW92wboP/iwkcQwuv8WMYSQwTIBZERgUgS/CaTZDrXIpc4wgIgAAIgBSxO0Gf43UCOJigz8k6AVzIR3hl5nm+TgBHcanE/uYxnSLRMeniZv5+19Yrxb3soHncSDkXSD0ZeIuH+ICVPi54k/mpNJ0yuSoAYhwQAAEQAAEQAAEQAAEQAAEQACMJ8LPB9S+3dX9au9PjUxtPGwzwpJVlWQdvsKthxf/BkTbe4U4D9/5tLBaPx8fxGGcbUvwzzGC1uA2u5A238kNjp8Zv/xZrZ7DK5n+Q6OAizuEA9tS86F/4mF/s72Fx/Yd/AU5tqds2gCrOAAAAAElFTkSuQmCC", "xfer": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACMklEQVR42u3bTWsTURTG8V9GWzd+BBdil6UK7lxKFbQgim/oSkQUEb+LiFK7CehKEXHnS4srN7oSFOxSRL9BbBe21nGRCYSQoom5k0nnHBiGzB0O5/nP3DP35tzbyPNcydbAZdzEYeT4gCU8KX6XF0zJAKbxCJe2aX+MK9jciQCm8BRn/nLfS5zFzzKCyiomHhbwHHt2CoBBxJcOIaug+FIhZBUVXxqErMLiS4GQjUH8Oyxvk/3flg0hG4P4E2j1aVsrhJYKYdQAjuH0EOI7I8R1nCru7WcncbTKAF7hOn4PKF7XELiF433ehBy38brqOaCJG10Q/kV8r633dIeO+MVRB7s70VegWZyvFkJaQ/joQHhR5JXFFIGmAtCB8BBbA8wS+0GYH8BH5UaCgwSej8BHZSdDlbUAEAACQAAIAAEgAASAABAAAkA9rTGG4igcwb6ea9/xvi4AogtUCUCe4LiQINaLKWKNNyAABIAAkMKmEvicniQABxL4nJkkAOf1L3T8T5znJgnAIe11gKOyW5hLEWjK0tjd4rxk+MWPWSH+Tsq5QOrJwCc8wxdsDJDwZoquNJcyuDIAxDggAASAABAAAkAACAABIAAEgABQSQA/aqy/lWnX5Opq3zKs1BjAciPP81l8xK6aid/CwQyf8aCGT/8+Vjvl8WntTUvzNRH/RnsvwmbnM7hRXLgn8fL0Mdsv7T9rFxQbtPstkJjFNe19O/uxd8JFr+FrkeybWO1u/ANqubEQDqmQBwAAAABJRU5ErkJggg==", "same": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABOElEQVR42u3WMUpDQRQF0JMQEBQEUUglWthpF9CIlboBK0EQtBCyAzsb16BLUJAU9lZ2go2WbsHKFUhsUgQL8cfG/+feZqoZeId5b6Y1Go18Sw8D7GEFHf8z73jGLYb4nOaQ1gTALK5xgpZ65RVHeJsWYBYP2FHffGAfL1U2tcfrVc2LhwXcY74qQA+nmpEVnFcFGNSw53/K2cTN/hXArmali40qAKual9UqAJ0GAsxUfQWKTQAKqnUfF5grFWARl+Nv83rJLbCGx/Fa7AxYwg3aJQ/BTRyU/goclw6wVTpAt3SAdn6CAQhAAAIQgAAEIAABCEAAAhCAAAQgAAEIQAACEIAABCAAAQhAAAIQgAAEoPHp4LCBdT1VARimBQIQgKKH4G+zjH6Na+3/FWAbd2mBAAQgAE3KFw2jIWZfct8DAAAAAElFTkSuQmCC", "near": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADEklEQVR42u2bv2uTQRjHP4kJDtJI/wQdXEwddKmKm4oIglVo6+Sgg4uupbpkjJvURVAcBG0TxU7VFkHQwVapTjo46FgHt/ijSKmPw/u+8HrevXmTvHd5G++BQJJ7cs99P7ncjyd3BRHBsRWAc8AlYD8gwDvgFjAXvnbXGMcAysA9YNJQPgucBzYGEUAZaAKn2/g9Ac4Av1w0qpgz8QAngcfA9kEB0Il45xCKORTvFEIxp+KdQSjmWLwTCMU+iF8GFjXvPwVeuoZQ7IP4E0BLU/Y9FOoUQpYAtvUgPrIfwKnQ1wRhLoyVOwCbwEoP4iNrAccSesLHMFY2JiJZP6bkb3slIhXFpyH/WlPx2SEiLxSfetbttQEgDkEnPi0AFULdRltLlqbB68BX4FHKbt9uTBgH7thoqC0AAHczqqdlS7zLzVBuzQPwADwAD8AD8AD+Yyv04X8B3wM8AA/AA8iNqbvBIeAKsAt4BjQSPjsCXAyf3wbeJ/hOAkeBz8AMQf5PZy7i3wS+6TJCZRFZVZIU04ZEwoiIrMf81kWkavC9ptT5WkRKGj9b8a8qdb6Jx487HtFkadYMlc5ofG8YfL9ofA9p/GzFX9P4Ho7K42OAbkHw25RKTPleJ7624id/PkaqFHaPuE0ZqFaVLvhTRPam7IIrhp+ArfjTSfHVleAQcBnYDSwBDxMoVpVB6EOC7wRBqvtTOAglDYI24o8Dx3Xx/VLYL4Q8AA/AA+iDNcK5OP5o+h7gAXgAHoAH4AF4AB7AoAC4AFQyqKcS1rWlANQIjrU8B4Z7FL8U1lW30lILJ69qSgZmVUSGuzglVhGR5a12TK4melMhtAOgE28FQtZHZfcZyg4QXIWppOz2i8CooXwPOT4qOwHMG8pHU4wJ0W/+oKF8geDG2WZeB8GNNhCinrCzi29+Hhgj48tUtpKi5XDPP5ZRfQvAWSzcJLM1DbbrCbkQb3shlAUEq+JdLIV7gWBdvKu9QDcQnIh3uRnqBIIz8a53gxGEBwk+921Mdf2YBhNjEvxZGV2fB3hLcH3eeWr8D+5Qb1mi98StAAAAAElFTkSuQmCC", "floor": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADVklEQVR4nOWa3WuPYRjHP7+7TZGXKAdkHDiZExJOHGCpTTlgEaU0R3ImB/JS+wf4N5SFkllTXmJ2NrGXNA4cILOQyUQJ++rWVZbted/z2+/n/tTdnt/z3N/rua5rz/3y3M9dkcQ8sAa4COy0333AaeBNtR2pzEMCfPDDwIp/zk8Am6qdBEf1uThL8Ni5CyE8AW+BVRHXxoHV/3sClHC9wn/eBGoKR+A4AscROI7AcQSOI3AcgeMIHEfgOALHETiOwHEEjiNwHIHjCBxH4DgCxxE4jsBxBI4jcByB01BAewBoAaaA+8D1OfQr7f132YeUe7nvLylraZTUrZn0SlqaQp9Ekt7f49YsuhvmW6Z4yJGAczHOD0haXmICVkh6FKM9X40EjCYEMCRpZQkJ8DaHE7TPs8ZTyfFxdBJYklDnGbDbvvbOaHU5Po76L8Z3gQ0J2q/AYkoeBUZS1PGOPgTWUpx1ZispeGzjRTaUvQm0SppSOl5KWl+gCXjtq5T3mjLfSu8DkHRW6RmT1JwjARtMm5YzeWIhZwJ8OZXBuXeSNmZIwCZJ7zPYP5k3DgokwJcTGZrDR0lbU9TbJmkipc1fko4XiYGCCfClQ9LPlA5/nqM6snseLep/5U8WinMYuFRwap2FH8AR4FotbZLaB1wBFlAu34GDQE8t7hJrs5eShZTDN2A/cKeWt8m1AN1ZZ2Qp+ALsBfrrYZ/gdqAXWDZH9j4Be4AB6mij5BbgdsS22Cx8AFqBIepsReixNYf3BWyM26JHKcFXY0lsxLbEj+XQvgZ2AKPU+Zrgc2BzxjH7qjWhF5SNis8Es5RDCXP8D1anaj5VSuwE4566ZvsPb7VzT6z4hZSf1XSmMg8JqCkcgeMIHEfgOALHTTtuBDpt4jFpLx3+7S6JNqs7adpOsxVHE9BlM71xO/bn4ijHP/0dE3sixuaOmHH0WITmZoymKWLJa8KuRelK8Q87aE9Yolo0i/FFCctX7RFOdcVouiI0pfnn7EHwLxxRLLWp7L9stmtRRNncmUNTmn+OwHH290FMHd95DM5yftCuRRFlsy+Hpjz/9LfN+I6hljvBUvxjWuUGSZ2Snlrn0S+pLcUbla/j63qN13ob3lacxgd6WdJbK/44LvjS/PsNuSKNpGmquR0AAAAASUVORK5CYII=", "power": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFP0lEQVR42u2bW2xVVRCGv0NbqhYx8dqiVGvxVsBSHyyUColJrSjloYImmhgRDRLfTAwmJib4Zm1Cogkiag0aidIaAV+MFxAwonih2GKstxCLkli8F6Et8PuwV5OT07X22efsfS47dpL1MnuvWTN/ZvaaNWt2QhIFoG5guYV3Z74VmcL/nCYBmARgEoBJAHJFM4A1EchZA1TFBYBS4A7gXWAQ2BCBzA1G1jtAO1BSjACUAquAb4EeoCVicEuAVuBNYAC4LyogolDyZuAg8CJQk4ewrQVeBg4AiwsJwDTgBeB9oK4A36+5wC5gI1CRbwBmA58BDwCJAn7EE8BqYD9wbb4AaAU+TrPgKLAZaIrAyIXAq0ami+qAT8y3JzOSlMm4S9KI3HRK0kZJl6WR022ZuzXNnJmSNpk1XDQiaUUmNmVi/PI0i38uaV5AWdkAMD4aJH3ho8eYpPagdgUNgcXAa46tR8BTwAKgNw9xfwCYD3SatW1b8hagOaoQuELSMQfaJ0xYZBpKYTwgedwt6aRDt19N2ITygDLgdeACy7N/gaXAGwXcBbYAbcAJy7OLjO6lYXaBtUCjhT9m0tIPiuA8855Jv8csz5qAR7MNgat93GtVFu6aixBIHqt9wrQ2mxDoBMot/C7gpSI82T4PvGLhnwU87cykHEXRBSbZSaXDJgUdDqnsfGBmCm/QJDNhaDrQb5Ets+b+oCHwtsOdloV003yMdofubwVNhGolnbYI2BkD48fHXov+pyXVBPkGrHTsDk/GqNK1zrHjrQzyDfgBuDKF1ws0xKzc1wfMSeF9D1zllwdcbzEeU4CIG3VZeLNSaxepANziyPW7YwjAVsdZocUPgIWWCV8CR2MIwM+mVJdKzX4A2OJ8T4zL/nstvAYXANOAaocHxJVsuteY7HACANWO+t43MQZgwLEdVtsAqHQIORJjAAYd/EobANMdL/8eYwB+8zkzTACg3LEFjsYYgFGfQs8EAE456u4lMQbApfsZGwDD6dwlhuTS/R8bAEOOl6tiDIBL92M2AFxfzFkxBqA23c6W6gF/WF6ujzEA8yy8oeSdLTUV/soyoSnGANh07/U7C+yzTFiUnDrGiM7Bfju0zw+AnQ5Bt8YQgNuAsy38D/0A2AP8bZl0bwwBsOn8J/CRHwAjwA7LxDbg8hgZX2M8IJW2kXKDZCt+2spfpaS7YiouWuvIAifYZiuKJoBDwHWWvHo2XmGxmOkavIJomWWHq7edjW0HoA4LfyrwbJEbnzA6llmedVhnOC4WSiUNOG5Y7i/iC5EHHTp/Lakk0xaZNoewYUlzi9D4eknHHTovybZHaJtD4I+SKovI+BmSDjt07QnTJFUlacgh+KCkC4vA+Isl9Tl0HJJ0Sdgusdsdl6WS1B+gJS6Xo9rEtxyXoUuiapN73Kct7RdJTQUw/iZJR330eizqPsFNaXrznpBUlgfDp0paZ9Z00XO5aJQskbRZ/tQnqSWHxrf6uPw4dUmakgsAMIKfUXraJWlpJoqkAX6ZpN0B1l0vKZGrVtnk8bCk0QAK/SSpQ1KzSa6Cyi8zMd4paTDAOiOSHsrGlkSIP0cb8dpnawO+fxzvru4QXrPVUFJ19ly8xsYac95oIPg/AN8B9+C172dOId2zwrjdmPJPY8ZDKsLYENXHaY6kHXky/Iyk7ZLqotA9TAjY6AbgEbwfo8sjPumdxOv6WE+EXelRAzBO5wMr8Hp4F4UAYwTYjfcnWo+jbF+UAKQWVRuBG/G6tmqBS4HzzAD4y4wjeF1q/XhdnZ9i7wSPjP4DVcdiyuqKRKMAAAAASUVORK5CYII=", "settings": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADzUlEQVR42u2bTWgdZRSGn7lJE2gh0KYutBZDtf7EqnTlwiioEJe6EQVxU0uMXWhafxYiraKrblREKrpwJSK66aa66kJdFNQmtaKgqK10Z7EuclOjJo+LfBfC9f7MnW/mltyZF2b3fXPOee/MN+c959xEpWDEGkiKdK5GyVERUBFQEVARUBFQEVAR0BZjwAlgKsO9rwKezcHHQ8D2DPumgu9jndM07XQddQ2r6ofqzi7rUa9Vj6mXzQ9L6tvqjhT2dwZfV8Peo53Wd7rRbnW5yZG6ekTd3GL9qHo4rCkKdfUldaSF/c3Bt2b7yyGWngk43sGR8+ojahLW7lG/tX84o04G20nw5XyH9cd7JWA6pSOfqwcL/tXbYVGdCz6kwXSrWJMWanAYmAf2DNiB/wNwB/BPt6/AgQEMHuAWYPZ/WrvpCdgG/AiMD+hn/xJwI3Cx3RPw6gAHD7AVeLndEzAJnAlnwCBjBdgLnG1+Al4vQfAAQ8Abza/AQ8B0iSTAfcCDjVdgBPgO2F0yHfQLMFkDnilh8AC7gKdrwAfAu8BqiYIX+Bj4aH1aeKd6qg8p7NfqjHq9OqQOqzeoT6rf9MH+qRBrSy2QqI+rFwpScvvWCahWV6LuD/I3b1wIsSVpxNAW9bUcNX1dvSuFlm9c9+RIwuUQy5Ze5TDqhDqfgxP7egi+cc3kYHc+xNDWTreS2Dngz8gD5zTwfoZ97wELkbb/CDFEFUUnIp14h2wNUsPXKQbX5VEV3h7pxMkrtLdRmO2IJEV7fCWifC4wAvybcf8o8Fek8BneyH2BwocX0hCwFHH/JPIM2RUZXz0PAi7moLyy4v5I27/nQcCvkU7Mkm3MpQbMRNo+F0vARCgjxWAv8ESGfTPA7ZG2x7u+gn1KhZfUu3vIAu/N0XZPqXCRYmgppLedxFBNnc25r5haDPVLDs+rB9SbQo9vVL1ZfUpd6LccTtRrgCPAfsozLyDwCfD8MPBYDqftRkMCPAx81SiKnmWtY1Im/AzcWgP+Bl4oYVH0ELC8Xgx9BjxQkuBPNrLM5tbYArBpwINv2xr7PocCxEbAsUbwreoBW4GfKHF7/BLwygD/+oeb1W2ritAQayMytw1Y8KlHZFaA51Le9EvgYJrCQwFYBOaAL1Kun2sOvpMa7DYm95v66DphMdmnPL6B00E/FDYml2VQciQMMRY5Mreovqhu6segZNZR2R3qWzn39+rqm+rV/RyVRR1TP1WnMrS2xsMQZSzm1G0Z7E+pJ0IMbdel6Qtc6dJ29be5ioCKgIqAioCKgIqAioBC8B9FCgQifJc1fQAAAABJRU5ErkJggg==", "light": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFMklEQVR4nOWbeahVVRTGf/f4NM1Qs6eZOUA2IVnRg9JoMkmLIoNKIxqkTDClP1SaCIKEBjIspVBBtNLSCHyFZX9YEj0Is5KU4hGVlkM2aAMZpu+9L/ZtPbpc7rDPPue+O/jB5nLP2Xvts76919prTxlJJMCJwFLgJuAA8CDwDnWETEICVgN35/zvAmYAr3IcEHAy8BPQO+95J3A78AZ1gChB2ZsLKO/QC1gLTKXBCbitxLsm6wHX0aAmcCqwz1q7FI4A1wMf0GA94FYP5R36Am8D59NgBNwQI29/I2EIDURAS8z8o4E3izjNuiNgFNAcUO4K4EUagICLEtR3HzCXOiegJWGdi4FJHKc9oDtGeB04hRok4DJgFfAo0KdA/gwwIYV63YjwHLUASd3pLEn/6H88nfOuO41TuphUoI4eTVEOF7PzWn0OMKCAJ08TLyUMxxMjst9+No3NxUnAHXnPLk+5/rMtqqwe9F9XmFGki+6WNMjyjJb0t9LH9lowgdklIrj3gXnARuspaeNCYApVnA2OBb6kulgJzKxGxVGNzNSurVbFEXAm1cfp1WqICBhDbSCNAKuuCWg+nk2AHpobnAYMtZA+C0fAoAQCjwFLgOk2XCbBYCoDp+w0YDuw35byPwOuyr6V9F1gAHNU0o05QYUbUlcmCIgWVyDQGSPpvSL1uaDuYpepLQXl0yBhToqKnyDpMUlHytTZ6jKvC/jYuSUqdyRsCpA5OSXlJ0pq96zzN1dgVswP3ezxESMk/R5D5jFJzQkVHyrplZi67IlsyTrO7sjLHnn2Aq0xZG4GfiUMka01tgN3xiy7PrJt7a0xCn3ome/zGDJfIwwuemwDVthmbRy473uqezb4fMw1vTThhqUNMcu4tYpnTYmQCHI5MBE4mOu4tqXsrFZ7yrsnpq1PlfSDwvCFpAm58sj5c7WnkI0pOkFHenaD1iONcsNWoOJ/SZonqSlfLnkPFnkI65I0v8SH9vYcBv+QdJ6H4k7eAkmHA5XfIGlkMfnkPYgkvespeKm1dG758ZJ2eg57PqZ0qaQdgYp/XyRYK0kAkgZK2hpzTe8jSfutd5RDh4fdD5a0IlBxR+4zkvr7mBZFXvSVtEbp41CZlnf+4C5JPwfKb7O9C2+nSpkM882BpIFPJJ1Roq5zJW0JlH1Q0r1mwqRJAJKGSVpmXSsEX0uaXsLb95O00CZYIVglaUhcxeMQgCXXeg9J+tjD1g+ZCd1SaOjJSVMkfRuo+FeSrgxVvDtlsizExzBgrC1mDrcttAO24LDXFhw6SpQfbtvkbqEiLtzBq4XAIuAoSaGEDMZMvWwq7WKAEGwq40cqagIkTC2SPg1UfJ+Zk2/UWFMEDJS0RFJngOKuzAuSBlTq+6ig4q61plmAFIJt1msq2kBNCV2IOyx5gS2tO4c4IufXnSYbGSDzTzuhsswOXlcUTQFlnHKTLV2T8nL2OtuJ/pGeguJ16YdVGXxjMUFP+KQgH9DHIq604aK/Jywa7HHlFcMHPF7gCE1SbAHut8XMqiGT7Qblj7TtskPPaeAXs3N3qSLRfZ00EHnkWZCi8m719hxgTS0o7+BjAuNJB+522QPUGDIeJtBurZYEzoTGAYepMUQeedK46DCzFpX3JWAnybC83u8MtSaQv8duk1LPBLwVKLvDYgcX29c1AbuAR2LK7bRjMzXb9buR8RgFsvnsHkHuPeFi6LKrs+upA0Se+RxLs4Any3hzGUl1oTyBN0fdsOiiw0vsBqk7drbDnKXzF7sr86mVwb/nLqehOeHiTgAAAABJRU5ErkJggg==", "putout": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAE60lEQVR4nOWba6hVRRTHf2d7LNQsM2+mIdKH7Ontyc1MqehhD7ESsw9SQRZhFElBaKSQoURf/GhUtwf0IBOJHpQFlpgVGmqXiuwBxS3TMuiWCdn1/mNsRbfD3mfmnL332dvOH4Zz78ycefzPzJq1Zq1BEk2moZKWSPpUUp+kjZJmpGgvrxRJmiJphaQeSbslbZU025Wnafg1xePmEkx6mKSZkh6XtEvJuLZykIXGcR2wNqHsV2AcsI/WogOYCcwCLgeGB3znw2qTnV1Up+xI4CxgE/njJJvwNcBUoNLg989tloDxKcvTYAhwA7AImJyyrWqjBAwFzgYmeurdA8xtoN29wDbgGaCvTj033qeBeWSEikcGHGVL6wJgGtAFDCM/fAdcCXySUL4YWJFlh5UEAk4G7gVuBA6ntfjYVtlATb4Tat8Do7LsLKr5/0LgVeAz4NYCJu9whv0AtTgl68kPJqAT2Ay8a0dJo9I0a0yIyRubR0dVk6Qb7fgqC3pi8r7Mo6MIeLBkk38C+CEm/2uTD5kTMJVyTX5hQtmACeYDWZ8CO011DcUvNohj6tRZCXzQhB6wK6DubNMFRpIFJK2SH5skLZbUJWmIpNWe+nNzNnaOlnS/WXWpgKRRkrbElB2QtMYmXTuAogkYnCZIWiDpDUl/NDj/PVVb0pea+nqJLYy3geeAryg/eoFVlkaaJegMpKs929ThnWZZL9MKSEpuq06T9Iikz2PG2CtpfLPW4KEAJ6jfs3Sfmc5uVRxrKvVTTvg2SsBxwO2DtkoSFpnl+BKwn3Jgh6X/oBJ4I+R0hTuBOTaxUOwGHgMeBdxxWzpUPAQ4w6QbOCdlP/3A88AdwO8cIgRcDLycsZq82fbhHkqCKCHfXTm9mYON0GV3hSdQYgLuBl4ADsupz0nA+3ZxWrotMA94tkV999nR5ARlKVbAcODhBr8/YLdHbwUaMrX3jcsoGvpXc1oaqD87G2GlpOmSjqjRvo6XNEvShsC2+iWdXqTGiP0xTtLegAHvkHR+QMNuay2UtC+gzXVlIKA7YKCvmM+tkQ4mSfoxoO0riiSgw5Z1PTiP6pgmO5kTQMD6ogiITK9P0gf+wYIUyssa4MUAVTvEmZk5ogDDZn0dT3Ao7opxdAyG8z9MpyACJnvqOHMyLX6Ks8RqkNbR2TQBYz11PsqoL187zk4vhICOFhGwpawEjPDUiXNSNAOfpugbRy6IaHNEtDki2hwRbY6INkc1oM71gc7N7RmeGKUiYHUD7XXblVqpbn7roZpxe/Pt08UXta0MmG8epLYWgp20OQG9tDEB2wNM3/8tAb0WXVrv8qN0p8CAh4i1ARNyesBWC3Z27wWaIXugKAJ+9twJLDHnR1qc6ikvxGEaBfjtp2TU13me8p1FEfCFp87SDGLyLgNmeOrkEgobQsDrnjoTUwYmOp3gSU+dP4F1FAFJoyXtD3BefCPpFkmn2VO0eg6HEeY7XB4Yu1eYe6xy0D30t5fWCbsi0G/ywZ0iLUdknw+ZAlMElhc1+doAiU67us4rMiQO2+zXdzKgEEQ1jxRaGbDg4gdvKnLycdqZixB5oAXBjd96XocVHibXaWrtmTk9inCB2b9RAkQJ+T0W0rYswyXq4nOvAm4ry+QJDJUdbS/JXDrRnsWO8Rg3bgu5C1KXnG/RBVxusCOvVPgLvnMJlHVodGQAAAAASUVORK5CYII=", "fuel": "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", "lock": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACzElEQVR42u2bTUhUURTHf2Mt+qCo1GphtKkgqKCE6IuiRUWLPiByVRsDC4IyIWodrV20CoJAMAIliILAyo0LE2oZRhGkZFAkTSnTwpz5t/AFMrz7mhnfu28cz4HZnHlzPn5zz7vnPN7NSMKT7ACOAnuArUATsDL47hfwBRgGhoA+4K2PoDIJA1gOXAAuBUmXI8PAXeA+kEssQklJfOokXZT0TXOXr5LaApuxx5rECtgIdAMHYrY7AJwDPldzCRwEHgENCS3Y78BpYLAaARwDHgNLIq4pAG+CBD4A44G+EdgC7AeagUyEjd/AKeBlNd0DdkvKRdRxVtItSU0l2Nog6baknxH2JiXtiiP2OJJvlDQWEWyXpPoK7DZI6o6wOyppTTUA6HUEOCWpNQb7bZL+OHw8SBvAEUdg05LOxLhdtUjKO3wdThPAa0dQHQns2TccvgbTAnDIEVC/pExCzdWAw+e+Su3WzWEDaXVsc+1AEv11AbjqsN3quw9YFDQlq4v0T4GTCc8vz4DjRbpxYD2QL9dYpStgZ0jyAF0eBrgwHw3A9kqMVQqgOUSXB154APA8KIdSYkoMwKYQ3XtgwgOALPAxRL/ZJ4C1IbpR/MlIiG6dTwBLQ3Q5jwAmQ3TLfAIInas8Agi7B2TSBjAvxdUHdAQPL12yN3ioOVvGgFee4q7E/xDQWSqAHuBsjf3ZvUCLlYABMAAGwAAYAANgAAyAATAABsAAGABYnJLfzmA+L57xry0UAEPBfD5bMlYCBsAAGAADYAAMgAFYqACUhtO0OsEeWwEGwAAYAANgAAxA1QKYrsFcp8oBMFKDAD6VA6C/BgGE5uR6SaoOeMfMSa5akGFmXqYulLoCCsCVtAaUmOVfLoVyd4E+4GYNALgeVdKlHJg4D9wBVs2zxLPAZeBh1EWlnhipB9qAE8A2YEWVJj3BzLH7J8A94Mf/fvAXZBoZq0hkNiAAAAAASUVORK5CYII=", "trash": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABy0lEQVR42u2by0rDQBSGv9jqxguICIrFVxA3pfUpRGkFV+7cu3bhE7gW3YpICr6GCoqgD6CgoCuFVhfFS1w0C9GkJO1MO7H/vwkMmck5X86cmUlmvCAIMCwP2AA2gUVgpMv2msAlsAccAkYN9gwDGAaOgRXsqAasAx+mGhwybOCORecBKsC2qxEwDjwCo9jVKzADvLkWAcUeOA8wFj7LiPIGDZuMKa922a4fUTblIgCvTeKyMdI4mQQzJwEYdABxOaAMFFK2VWozdptWqYM6D8Bp0nmAb8nwfsoH1tQFBEAABKDTxVAlZlrqoqpJZ6DqAgIgAAIgAAIgAAIgAAIgAIOpfA+eEfVfYIu/n7XOgN2Ie/2sA6jFrCx/A7jHzj8EdQEBEAABEAABEAABEAABEAABEAAB6MNyOGo9X44p8/8jgKRbbQr0YVuOcoAACIAACIAACIAACEACvWfIr6YNAHcZAnCb9MY0O0VztI7FTTvu/BMwB3yZjoBP4CADb38/qfNpIwBgArgB5h0O/QWgYWsUqAPLwIuDzj+HtjXSVOpkGLwClsKrK7qg9UHlOm3Fbs4O54BVWqe5i8BsDx0OwoR8DhwBJ2n6/U99A5nWUXFyQNLIAAAAAElFTkSuQmCC"};
+const $ = s => document.querySelector(s);
+const el = (tag, cls, css, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (css) e.style.cssText = css; if (html != null) e.innerHTML = html; return e; };
+const PTR = `<svg class="ptr" viewBox="0 0 12 19"><path d="M0.5 0.5 L0.5 15.5 L4 12 L6.5 18 L8.5 17 L6 11.2 L11 11.2 Z" fill="#fff" stroke="#000" stroke-width="1"/></svg>`;
+const m = k => `--m:url(data:image/png;base64,${ICON[k]})`;
+
+// what each icon means (the hover hint)
+const HINT = {
+  take: "Take all", same_w: "Take the kinds you already carry", floor: "Everything to the floor",
+  xfer: "Transfer all", same_c: "Put in the kinds it already holds", near: "Each kind into a nearby container that holds it",
+  power_on: "Turn off", power_off: "Turn on", settings: "Settings", light: "Light", fuel: "Add fuel", putout: "Put out",
+  lock: "Lock trunk", trash: "Delete all",
+};
+const SPLIT = [
+  ["take", "Take all", "the World window: everything into your side", "icon"],
+  ["xfer", "Transfer all", "your side: everything into the World window's container", "icon"],
+  ["same", "Same type", "either side: only the kinds the other side already has", "icon"],
+  ["near", "Same type, all nearby", "your side: each kind into a nearby container that holds it", "icon"],
+  ["floor", "To floor", "the World window: everything onto the ground", "icon"],
+  ["power", "Turn on / Turn off", "stove, washer, dryer, washer-dryer, propane barbecue (lit while on)", "icon"],
+  ["settings", "Settings", "stove, microwave (the oven panel in the Craft tab)", "icon"],
+  ["light", "Light", "campfire, charcoal barbecue, fireplace (the fire card)", "icon"],
+  ["fuel", "Add fuel", "campfire, charcoal barbecue, fireplace (the fire card's fuel list)", "icon"],
+  ["putout", "Put out", "a burning fire", "icon"],
+  ["lock", "Lock trunk", "a car's trunk, from its lid", "icon"],
+  ["trash", "Delete all", "a trash can (asks first)", "icon"],
+  [null, "Wear all · Switch outfits · Store worn outfit · Wear outfit", "a mannequin", "word"],
+  [null, "Mode: dryer / Mode: washer", "a washer-dryer", "word"],
+  [null, "Insert tank · Remove tank", "a propane barbecue", "word"],
+  [null, "Take apart · Add corpse", "a campfire", "word"],
+  [null, "Close trunk", "a car's trunk, from its lid", "word"],
+  [null, "a mod's own buttons", "whatever a mod adds to vanilla's row", "word"],
+];
+
+function iconBtn(key, opts = {}) {
+  const b = el("span", "b i" + (opts.on ? " on" : "") + (opts.danger ? " danger" : "") + (opts.hov ? " hov" : "") + (opts.foc ? " foc" : "") + (opts.off ? " off" : ""));
+  b.appendChild(el("i", "", m(key)));
+  return b;
+}
+function wordBtn(t, opts = {}) {
+  return el("span", "b" + (opts.hov ? " hov" : "") + (opts.foc ? " foc" : "") + (opts.off ? " off" : "") + (opts.danger ? " danger" : "") + (opts.fill ? " dangerFill" : ""), "", t);
+}
+
+// one slice: heading (name, own actions, weight), a few rows, the bottom row, the footer
+function slice(S) {
+  const k = S.k || "w";
+  const card = el("div", "slice");
+  card.appendChild(el("h3", "", "", S.t));
+  card.appendChild(el("p", "", "", S.p));
+  const sb = el("div", "sbox");
+  const inner = el("div", "sin " + k);
+  const h = el("div", "hdr");
+  h.appendChild(el("span", "ic"));
+  h.appendChild(el("span", "nm", "", S.nm));
+  const own = S.own || [];
+  if (own.length) {
+    const box = el("div", S.ribbon ? "rib" : "acts");
+    let target = box;
+    if (S.ribbon) { box.appendChild(el("span", "arr l dim")); target = el("div", "win", `width:${S.ribbon}px`); box.appendChild(target); }
+    own.forEach(o => target.appendChild(o.icon ? iconBtn(o.icon, o) : wordBtn(o.word, o)));
+    if (S.ribbon) box.appendChild(el("span", "arr r"));
+    h.appendChild(box);
+  }
+  h.appendChild(el("span", "wt", "", `<b>${S.wt}</b><span>${S.n}</span>`));
+  inner.appendChild(h);
+  inner.appendChild(el("div", "cols", "", "<span>NAME</span><span>CAT</span><span>COND</span><span>WT</span>"));
+  if (!(S.rows && S.rows.length)) inner.appendChild(el("div", "", "height:64px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;letter-spacing:.5px;color:var(--acc);opacity:.7;background:var(--surf1)", "INVENTORY EMPTY"));
+  (S.rows || []).forEach(r => {
+    if (r.cat) { inner.appendChild(el("div", "cat", "", "v " + r.cat)); return; }
+    inner.appendChild(el("div", "irow" + (r.mark ? " mark" : ""), "", `<span class="sw"></span>${r.name}<span class="ct">${r.wt}</span>`));
+  });
+  const bot = el("div", "bot");
+  if (S.ask) {
+    bot.appendChild(el("span", "ask", "", `<i></i>${S.ask}`));
+    bot.appendChild(wordBtn("Cancel")); bot.appendChild(wordBtn("Delete all", { fill: true }));
+  } else {
+    (S.moves || []).forEach(o => bot.appendChild(iconBtn(o.icon, o)));
+  }
+  inner.appendChild(bot);
+  inner.appendChild(el("div", "foot", "", S.legend || ""));
+  sb.appendChild(inner);
+  card.appendChild(sb);
+  // a hover hint and the pointer over the named button
+  if (S.hint) {
+    requestAnimationFrame(() => {
+      const target = inner.querySelector(S.hint.sel);
+      if (!target) return;
+      const r = target.getBoundingClientRect(), ir = inner.getBoundingClientRect();
+      const x = (r.left - ir.left) / 1.5, y = (r.top - ir.top) / 1.5;
+      inner.appendChild(el("div", "", `position:absolute;left:${x + 13}px;top:${y + 11}px;z-index:6`, PTR));
+      inner.appendChild(el("div", "tip", `left:${x + 4}px;top:${S.hint.above ? y - 26 : y + 26}px`, S.hint.text));
+    });
+  }
+  return [card, sb, inner];
+}
+
+const W_MOVES = (o = {}) => [{ icon: "take", ...(o.take || {}) }, { icon: "same", ...(o.same || {}) }, { icon: "floor", ...(o.floor || {}) }];
+const bedRows = mark => [{ cat: "ITEM (11)" }, { name: "Amplifier", wt: "0.3" }, { name: "Electrical Wire", wt: "0.1" }, { name: "&gt; Nails x3", wt: "0.1", mark }, { name: "Remote Controller", wt: "0.4" }];
+const ROWS_BED = bedRows(false);
+const ROWS_FIRE = [{ cat: "ITEM (2)" }, { name: "Twigs", wt: "0.2" }, { name: "Broken Glass", wt: "0.5" }];
+const SLICES = [
+  { t: "A truck bed: no actions of its own", nm: "Trunk", wt: "17.4/110kg", n: "20 items", rows: ROWS_BED, moves: W_MOVES(),
+    p: "The heading stays the name and the weight; the moves are three icons at the bottom." },
+  { t: "Pointing at Same type", nm: "Trunk", wt: "17.4/110kg", n: "20 items", rows: bedRows(true), moves: W_MOVES({ same: { hov: true } }),
+    hint: { sel: ".bot .b:nth-child(2)", text: HINT.same_w, above: true },
+    p: "After a short pause the hint says what it does; the nails it would take are marked, as before." },
+  { t: "A controller on Take all", nm: "Trunk", wt: "17.4/110kg", n: "20 items", rows: ROWS_BED, moves: W_MOVES({ take: { foc: true } }),
+    legend: `<span><span class="k">A</span>Take all</span><span><span class="k">Y</span>Windows</span>`,
+    p: "The focus fill on the icon; the footer names it." },
+  { t: "Your side (the Character window)", k: "c", nm: "Inventory", wt: "5.5/8kg", n: "12 items",
+    rows: [{ cat: "ITEM (3)" }, { name: "&gt; Nails x2", wt: "0.1" }, { name: "Sharp Flint Flake", wt: "1.0" }, { name: "Plank", wt: "3.0" }],
+    moves: [{ icon: "xfer" }, { icon: "same" }, { icon: "near", hov: true }],
+    hint: { sel: ".bot .b:nth-child(3)", text: HINT.near, above: true },
+    p: "Transfer all, Same type, Same type to all nearby: three icons. Pointing at the last." },
+  { t: "A campfire, out", nm: "Campfire", wt: "1.7/15kg", n: "2 items", rows: ROWS_FIRE, moves: W_MOVES(),
+    own: [{ word: "Take apart" }, { icon: "light" }, { icon: "fuel" }],
+    p: "Its own actions in the heading: Take apart (unique, a word), Light and Add fuel (icons)." },
+  { t: "A campfire, burning", nm: "Campfire", wt: "2.2/15kg", n: "2 items", rows: ROWS_FIRE, moves: W_MOVES(),
+    own: [{ icon: "fuel", hov: true }, { icon: "putout" }],
+    hint: { sel: ".hdr .b:nth-child(1)", text: HINT.fuel },
+    p: "Add fuel and Put out; pointing at Add fuel." },
+  { t: "A stove, off", nm: "Stove", wt: "0.8/15kg", n: "2 items", rows: [{ cat: "FOOD (2)" }, { name: "Pot of Soup", wt: "2.1" }], moves: W_MOVES(),
+    own: [{ icon: "settings" }, { icon: "power" }],
+    p: "Settings and the power switch, dim while off; its hint reads Turn on." },
+  { t: "A stove, on", nm: "Stove", wt: "0.8/15kg", n: "2 items", rows: [{ cat: "FOOD (2)" }, { name: "Pot of Soup", wt: "2.1" }], moves: W_MOVES(),
+    own: [{ icon: "settings" }, { icon: "power", on: true, hov: true }],
+    hint: { sel: ".hdr .b:nth-child(2)", text: HINT.power_on },
+    p: "Running: the power icon lights in the accent; its hint says what a press does." },
+  { t: "A washer-dryer", nm: "Washer/Dryer", wt: "0.0/20kg", n: "0 items", rows: [], moves: W_MOVES({ take: { off: true }, same: { off: true }, floor: { off: true } }),
+    own: [{ word: "Mode: dryer" }, { icon: "power" }],
+    p: "Mode is its own (a word); the switch is the common icon. Nothing in it: the moves are dim." },
+  { t: "A mannequin", nm: "Mannequin", wt: "2.6/10kg", n: "5 items", rows: [{ cat: "CLOTHING (5)" }, { name: "Denim Jacket", wt: "1.2" }], moves: W_MOVES(),
+    own: [{ word: "Wear all" }, { word: "Switch outfits" }],
+    p: "Both are its own: words." },
+  { t: "A propane barbecue", nm: "Propane Barbecue", wt: "0.0/5kg", n: "0 items", rows: [], moves: W_MOVES({ take: { off: true }, same: { off: true }, floor: { off: true } }),
+    own: [{ word: "Remove tank" }, { icon: "power" }],
+    p: "Remove tank (a word) and the switch (an icon)." },
+  { t: "A car trunk, at its lid", nm: "Trunk", wt: "11.4/80kg", n: "9 items", rows: ROWS_BED.slice(0, 3), moves: W_MOVES(),
+    own: [{ word: "Close trunk" }, { icon: "lock" }],
+    p: "Close trunk (a word) and the padlock (an icon)." },
+  { t: "A trash can", nm: "Trash Can", wt: "2.9/10kg", n: "9 items", rows: ROWS_BED.slice(0, 3), moves: W_MOVES(),
+    own: [{ icon: "trash", danger: true }],
+    p: "Delete all is the bin, in the warning colour." },
+  { t: "A trash can, after the bin", nm: "Trash Can", wt: "2.9/10kg", n: "9 items", rows: ROWS_BED.slice(0, 3),
+    ask: "Delete all 9 items for good?",
+    p: "Its question takes over the bottom row; the heading does not change." },
+  { t: "Too many for the heading", nm: "Campfire", wt: "1.7/15kg", n: "2 items", rows: ROWS_FIRE, moves: W_MOVES(),
+    own: [{ word: "Take apart" }, { word: "Add corpse" }, { icon: "light" }, { icon: "fuel" }], ribbon: 150,
+    p: "A campfire with a corpse to add (or the large text size): the heading's actions scroll between two arrows, like the bottom row; the name stays whole." },
+];
+
+function render() {
+  const tb = $("#split");
+  tb.appendChild(el("tr", "", "", "<th></th><th>ACTION</th><th>WHERE</th><th>AS</th>"));
+  SPLIT.forEach(([k, name, where, as]) => {
+    const tr = el("tr");
+    const td = el("td", "ic");
+    if (k) td.appendChild(el("span", "glyph", m(k)));
+    tr.appendChild(td);
+    tr.appendChild(el("td", "", "", `<b>${name}</b>`));
+    tr.appendChild(el("td", "", "", where));
+    tr.appendChild(el("td", "", "", as === "icon" ? "an icon (with a hover hint)" : "a word"));
+    tb.appendChild(tr);
+  });
+  const box = $("#slices");
+  SLICES.forEach(S => {
+    const [card, sb, inner] = slice(S);
+    box.appendChild(card);
+    requestAnimationFrame(() => { sb.style.height = Math.ceil(inner.offsetHeight * 1.5) + "px"; });
+  });
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
