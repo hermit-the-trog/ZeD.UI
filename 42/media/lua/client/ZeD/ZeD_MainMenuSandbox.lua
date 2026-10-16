@@ -324,7 +324,7 @@ function ZeD_MMSandbox:openAdv(r, anchor)
         items[#items + 1] = { text = t, fn = function() self:setAdv(r, i) end }
     end
     items[#items + 1] = "-"
-    items[#items + 1] = { text = "Custom Number...", fn = function() self:startCell(r) end }
+    items[#items + 1] = { text = "Custom number...", fn = function() self:startCell(r) end }
     MM.openPopup("combo", items, anchor, false)
     MM.ctx.dropFocus = math.max(1, math.min(c.combo.selected or 1, #vals + 1))
 end
@@ -480,7 +480,7 @@ function ZeD_MMSandbox:presetItems()
         t[#t + 1] = { text = name, fn = function() self:pickPreset(i) end }
     end
     t[#t + 1] = "-"
-    t[#t + 1] = { text = "Save as Preset...", fn = function() self:setConfirm("save") end }
+    t[#t + 1] = { text = "Save as preset...", fn = function() self:setConfirm("save") end }
     local p = self:preset()
     if p and p.userDefined then
         t[#t + 1] = { text = "Delete " .. tostring(p.name) .. "...", fn = function() self:setConfirm("delete") end }

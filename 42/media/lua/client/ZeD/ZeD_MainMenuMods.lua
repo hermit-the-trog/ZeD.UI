@@ -619,11 +619,11 @@ function ZeD_MMMods:moreItems()
     if self.psel then
         t[#t + 1] = { text = "Rename " .. self.psel .. "...", fn = function() self:setConfirm("rename") end }
         t[#t + 1] = { text = "Duplicate " .. self.psel .. "...", fn = function() self:setConfirm("dup") end }
-        t[#t + 1] = { text = "Copy as Text", fn = function() self:copyPreset() end }
+        t[#t + 1] = { text = "Copy as text", fn = function() self:copyPreset() end }
     end
-    t[#t + 1] = { text = "Paste Profile Text...", fn = function() self:setConfirm("paste") end }
+    t[#t + 1] = { text = "Paste profile text...", fn = function() self:setConfirm("paste") end }
     t[#t + 1] = "-"
-    t[#t + 1] = { text = "Turn Every Mod On", fn = function() self:setAll(true); self:say("Every mod that can run is on"); self:leaveProfiles() end }
+    t[#t + 1] = { text = "Turn every mod on", fn = function() self:setAll(true); self:say("Every mod that can run is on"); self:leaveProfiles() end }
     if self.psel then
         t[#t + 1] = "-"
         t[#t + 1] = { text = "Delete " .. self.psel .. "...", fn = function() self:setConfirm("delete") end }

@@ -157,7 +157,7 @@ function ZeD_MMTraits:buildItems()
         t[#t + 1] = { text = text, fn = function() self:loadBuild(i) end }
     end
     if #t > 0 then t[#t + 1] = "-" end
-    t[#t + 1] = { text = "Save Build...", fn = function() self:setConfirm("save") end }
+    t[#t + 1] = { text = "Save build...", fn = function() self:setConfirm("save") end }
     if cur then t[#t + 1] = { text = "Delete " .. tostring(cur) .. "...", fn = function() self:setConfirm("delete") end } end
     return t
 end

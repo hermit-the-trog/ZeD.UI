@@ -405,14 +405,14 @@ end
 function ZeD_MMLoad:moreItems()
     local s = self:selected()
     local t = {
-        { text = "Rename File...", fn = function() self:startRename() end },
-        { text = "New Player", fn = function() self:newPlayer() end, disabled = (s == nil) or s.mode == "A Really CD DA" },
-        { text = "Choose Mods...", fn = function() self:chooseMods() end },
+        { text = "Rename file...", fn = function() self:startRename() end },
+        { text = "New player", fn = function() self:newPlayer() end, disabled = (s == nil) or s.mode == "A Really CD DA" },
+        { text = "Choose mods...", fn = function() self:chooseMods() end },
     }
     local okD, desk = pcall(isDesktopOpenSupported)
     if okD and desk then
         t[#t + 1] = "-"
-        t[#t + 1] = { text = "Open File Location", fn = function() self:openFolder() end }
+        t[#t + 1] = { text = "Open file location", fn = function() self:openFolder() end }
     end
     return t
 end
