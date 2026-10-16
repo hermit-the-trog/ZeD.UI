@@ -537,3 +537,7 @@ Mockup `ZeDUI/mockups/zed_car_radio_v1.html` (nine scenes over real 1080p captur
 ## Wallpaper (director, Oct 16 2026: "an option to change the desktop wallpaper on the main menu to the OG and new PZ main screen art")
 
 - Settings menu: Original wallpaper (the lamp-lit painting; the director: "Lamp lit is the OG") or New wallpaper, Build 42's own title screen, which is a video (`title_screen_background.bik`), playing on the tube, cut to 4:3 and dimmed like the painting. Kept in `Zomboid/Lua/ZeD_wallpaper.txt`; with the game's video effects off the painting stands in. Pull-down rows can carry a tick now.
+
+## Desktop icons late (director, Oct 16 2026: "desktop icons are loading slower than their text label")
+
+- The icon pictures are loose textures the engine streams in after boot, while the names are text and draw at once. Now the icons are asked for when the desktop's Lua loads, the wake-up waits for them with the desk's pictures (`MM.readyChecks`), and each cell draws its name only once its picture is in. The Continue card's save picture had the same lag (about 2 s after the card) and waits too. Filmed at boot: icons, names and the save picture all appear on the first frame the monitor opens.
