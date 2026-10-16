@@ -2,17 +2,21 @@
 -- ============================================================================
 -- CONTAINER BUTTONS — vanilla B42's row of container controls in the ZeD
 -- windows (mockup ZeDUI/mockups/zed_container_controls_v1.html, built
--- Oct 16 2026). One row of worded buttons at the bottom of each window's
--- list (the director moved it there from under the heading: "less noise
--- down there"), for the container that list shows:
---   Character window (your side):  Transfer all · Same type · Same type, all nearby
---   World window (the other side): Take all · Same type · To floor (not on the
---     floor), then after a divider the container's own buttons: vanilla's
---     object controls (a stove's Turn on / Settings, a washer's switch, a
---     mannequin's Wear all, a car trunk's Close / Lock, a campfire's Light /
---     Add fuel / Put out / Take apart, a propane barbecue's tank and switch,
---     and buttons other mods register) and a trash can's Delete all, which
---     asks first in the row itself.
+-- Oct 16 2026; v2 Oct 16 2026: zed_container_controls_v2.html). The moves sit
+-- in one row at the bottom of each window's list ("less noise down there");
+-- the container's own actions sit in its heading, between the name and the
+-- weight. Common actions are icons that name themselves in a hover hint, the
+-- unique ones are words. For the container that list shows:
+--   Character window (your side), bottom row: Transfer all · Same type ·
+--     Same type, all nearby (icons)
+--   World window (the other side), bottom row: Take all · Same type ·
+--     To floor (not on the floor) (icons); heading: the container's own
+--     buttons, vanilla's object controls, words first then icons (a stove's
+--     power and settings, a washer's switch, a mannequin's Wear all / Switch
+--     outfits, a car trunk's Close trunk / lock, a campfire's Take apart /
+--     light / add fuel / put out, a propane barbecue's tank and switch,
+--     buttons other mods register) and a trash can's Delete all (the bin),
+--     whose question takes over the bottom row.
 -- The moves keep vanilla's rules (ISInventoryPane:lootAll / transferAll and
 -- the same-type handlers' item tables) but aim at the containers the ZeD
 -- windows show, never at vanilla's parked pages. Items go through vanilla's
@@ -21,8 +25,9 @@
 -- (ISLootWindowContainerControls_HandlerList) run with a small stand-in for
 -- vanilla's loot window, so their visibility rules stay vanilla's. Light and
 -- Add fuel open the fire card on its own lists instead of a context menu.
--- The row is one line, a ribbon that scrolls sideways when its buttons are
--- wider than the column (the wheel, its arrows, the controller's focus).
+-- Each strip (the bottom row, the heading's actions) is one line, a ribbon
+-- that scrolls sideways when its buttons are wider than its room (the wheel,
+-- its arrows, the controller's focus); the name never shortens for them.
 -- Pointing at (or focusing) a Same type button marks the rows it would move.
 -- On a controller the buttons are stops in their own ring zone (charCtl /
 -- worldCtl, appended to the window's ring), reached by the D-pad.
@@ -77,6 +82,21 @@ local VANILLA = {
     ISLootWindowObjectControlHandler_AddFuelOption                 = "Add fuel",
     ISLootWindowObjectControlHandler_RemoveCampfire                = "Take apart",
     ISLootWindowObjectControlHandler_AddCorpseToCampfire           = "Add corpse",
+}
+-- vanilla's object controls many objects share draw as icons (the ZeD icon
+-- library); the rest stay words (director, Oct 16 2026: "can common actions
+-- be an icon, and unique actions be text?" ... "hover hints where it matters")
+local VANILLA_ICON = {
+    ISLootWindowObjectControlHandler_StoveToggle                  = "power",
+    ISLootWindowObjectControlHandler_ClothingWasherToggle         = "power",
+    ISLootWindowObjectControlHandler_ClothingDryerToggle          = "power",
+    ISLootWindowObjectControlHandler_CombinationWasherDryerToggle = "power",
+    ISLootWindowObjectControlHandler_PropaneBarbecueToggle        = "power",
+    ISLootWindowObjectControlHandler_StoveSettings                = "settings",
+    ISLootWindowObjectControlHandler_LightFireOption              = "fi-br-match-fire",
+    ISLootWindowObjectControlHandler_AddFuelOption                = "fi-br-campfire",
+    ISLootWindowObjectControlHandler_PutOut                       = "fi-br-fire-extinguisher",
+    ISLootWindowObjectControlHandler_VehicleLockTrunk             = "lock",
 }
 -- these open the fire card on one of its lists (its own Light / Add fuel)
 local FIRE_JUMP = {
@@ -356,9 +376,17 @@ local function objectSpecs(content, inv, object)
                         if title == "" then title = (okC and control and control.tooltip) or tostring(typ):gsub("^.*_", "") end
                         if fixed then title = sentence(title) end
                     end
+                    -- the washer-dryer's "Set mode: dryer" reads "Mode: dryer"
+                    if typ == "ISLootWindowObjectControlHandler_CombinationWasherDryerSetMode" then
+                        title = sentence((title:gsub("^[Ss]et%s+", "")))
+                    end
                     local jump = FIRE_JUMP[typ]
+                    local icon = VANILLA_ICON[typ]
+                    -- a switch lights while the thing runs (its words then read Turn off)
+                    local lit = icon == "power" and title:lower() == sentence(getText("ContextMenu_Turn_Off")):lower()
                     specs[#specs + 1] = {
                         id = "obj:" .. tostring(typ), label = title, enabled = true,
+                        icon = icon, hint = icon and title or nil, lit = lit,
                         run = function(ct, hit)
                             if jump and ZeD.ObjectCards and ZeD.ObjectCards.open(playerObj, "fire", object) then
                                 local ww = ZeD_WorldWindow.getWindow()
@@ -431,6 +459,7 @@ local function buildChar(content)
     local moves = {}
     local xfer = transferAllItems(playerObj, inv, dest)
     moves[#moves + 1] = { id = "xfer", label = "Transfer all", enabled = dest ~= nil and #xfer > 0,
+        icon = "inbox-out", hint = "Transfer all",
         run = function(ct)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, transferAllItems(playerObj, ct._inventory, d), d)
@@ -438,12 +467,14 @@ local function buildChar(content)
     local keep = function(item) return not item:isFavorite() and not item:isEquipped() end
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = "Same type", enabled = #same > 0, marks = sameSet,
+        icon = "copy", hint = "Put in the kinds it already holds",
         run = function(ct)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, (sameTypeItems(ct._inventory, d, keep)), d)
         end }
     local _, nearSet = nearbyPlan(playerObj, inv, nearbyContainers())
     moves[#moves + 1] = { id = "near", label = "Same type, all nearby", enabled = hasAny(nearSet), marks = nearSet,
+        icon = "arrows-from-dotted-line", hint = "Each kind into a nearby container that holds it",
         run = function(ct)
             for _, step in ipairs((nearbyPlan(playerObj, ct._inventory, nearbyContainers()))) do
                 CT.moveItems(playerObj, step.items, step.dest)
@@ -460,6 +491,7 @@ local function buildWorld(content)
     local onFloor = isFloor(inv)
     local moves = {}
     moves[#moves + 1] = { id = "take", label = "Take all", enabled = not inv:isEmptyOrUnwanted(playerObj),
+        icon = "inbox-in", hint = "Take all",
         run = function(ct)
             local src, d = ct._inventory, otherInventory(ct)
             if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
@@ -473,6 +505,7 @@ local function buildWorld(content)
     local keep = function(item) return not item:isFavorite() and not item:isUnwanted(playerObj) end
     local same, sameSet = sameTypeItems(inv, dest, keep)
     moves[#moves + 1] = { id = "same", label = "Same type", enabled = #same > 0, marks = sameSet,
+        icon = "copy", hint = "Take the kinds you already carry",
         run = function(ct)
             local src, d = ct._inventory, otherInventory(ct)
             if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
@@ -480,6 +513,7 @@ local function buildWorld(content)
         end }
     if not onFloor then
         moves[#moves + 1] = { id = "floor", label = "To floor", enabled = not inv:isEmpty(),
+            icon = "fi-br-arrow-down-to-dotted-line", hint = "Everything to the floor",
             run = function(ct)
                 local src = ct._inventory
                 local items = {}
@@ -497,13 +531,18 @@ local function buildWorld(content)
        and not (isClient() and not getServerOptions():getBoolean("TrashDeleteAll")) then
         local n = inv:getItems():size()
         objs[#objs + 1] = { id = "trash", label = "Delete all", enabled = true, danger = true,
+            icon = "trash", hint = "Delete all",
             ask = string.format("Delete all %d item%s for good?", n, n == 1 and "" or "s"),
             run = function()
                 local args = { x = object:getX(), y = object:getY(), z = object:getZ(), index = object:getObjectIndex() }
                 sendClientCommand(playerObj, "object", "emptyTrash", args)
             end }
     end
-    return moves, objs
+    -- in the heading: the words first, then the icons
+    local words, icons = {}, {}
+    for _, o in ipairs(objs) do if o.icon then icons[#icons + 1] = o else words[#words + 1] = o end end
+    for _, o in ipairs(icons) do words[#words + 1] = o end
+    return moves, words
 end
 
 -- ----------------------------------------------------------------------------
@@ -526,7 +565,7 @@ local function refresh(content)
     local other = otherInventory(content)
     local sig = tostring(content._inventory) .. "|" .. sizeOf(content._inventory) .. "|" .. tostring(other) .. "|" .. sizeOf(other)
     if cc.sig == sig and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
-    if cc.sig ~= sig and cc.invSeen ~= content._inventory then cc.ask = nil; cc.scrollX = 0 end   -- another container: no pending question, the ribbon from its start
+    if cc.sig ~= sig and cc.invSeen ~= content._inventory then cc.ask = nil; cc.sx = {} end   -- another container: no pending question, the ribbons from their start
     cc.invSeen = content._inventory
     cc.sig, cc.frame = sig, cc.tick
     local ok, moves, objs
@@ -543,66 +582,73 @@ end
 
 local function btnW(label) return ZeD.ObjectCards.ui.buttonW(label) end
 
--- Lays the row out for a list column colW wide; returns its height (0 = no
--- row). The row is always one line, a ribbon: when its buttons are wider than
--- the column it scrolls sideways (the mouse wheel over it, the arrows at its
--- ends, or the controller's focus walking along it) instead of wrapping.
--- Each rect keeps tx, its place along the ribbon; draw turns that into x.
+CT.ICON_W    = 24    -- design units: an icon button
+CT.ICON_SZ   = 13    -- the icon inside it
+CT.HINT_MS   = 450   -- the pause before an icon's hover hint shows
+CT.HEAD_MIN  = 90    -- a heading with less room than this sends its actions to the bottom row
+
+local ICON_TEX = {}
+local function iconTex(name)
+    if ICON_TEX[name] == nil then ICON_TEX[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
+    return ICON_TEX[name] or nil
+end
+
+-- a button's width: an icon button is a fixed square, a word button fits its word
+local function rectW(s)
+    if s.icon and iconTex(s.icon) then return ZeD.T.px(CT.ICON_W) end
+    return btnW(s.label)
+end
+
+-- Lays specs out along a strip between x0 and x1 (column-local). It fits:
+-- aligned left or right. It does not: one ribbon between two arrows, each
+-- rect keeping tx, its place along the ribbon (draw scrolls it).
+local function layStrip(specs, x0, x1, align)
+    local T = ZeD.T
+    local gap, bh = T.px(CT.GAP), T.px(CT.BTN_H)
+    local rects, tx = {}, 0
+    for _, s in ipairs(specs) do
+        local w = rectW(s)
+        rects[#rects + 1] = { key = s.id, label = s.label, icon = s.icon and iconTex(s.icon) and s.icon or nil, spec = s, tx = tx, w = w }
+        tx = tx + w + gap
+    end
+    local total = math.max(0, tx - gap)
+    local strip = { rects = rects, x0 = x0, x1 = x1 }
+    if total <= x1 - x0 then
+        local base = (align == "right") and (x1 - total) or x0
+        for _, r in ipairs(rects) do r.tx = base + r.tx end
+    else
+        local viewL = x0 + bh + gap
+        strip.scroll = { viewL = viewL, viewW = math.max(T.px(20), (x1 - bh - gap) - viewL), total = total }
+    end
+    return strip
+end
+
+-- Lays the bottom row out for a list column colW wide; returns its height
+-- (0 = no row). The row closes the list; the container's own actions go in
+-- the heading (drawHead), unless the heading has too little room for them.
 function CT.layout(content, colW)
     content._ccMarks = nil
     local cc = state(content)
     if not cc then return 0 end
     refresh(content)
+    cc.sx = cc.sx or {}
+    cc.hits, cc.arrows, cc.hintCand, cc.strips = {}, {}, nil, {}
     local T = ZeD.T
-    local rowH, bh = T.px(CT.ROW_H), T.px(CT.BTN_H)
     local padX, gap = T.px(CT.PAD_X), T.px(CT.GAP)
     local maxX = colW - padX
-    local by = math.floor((rowH - bh) / 2)
-    local rects = {}
-    local L = { rects = rects, h = rowH, by = by, bh = bh }
     if cc.ask then
         local wy, wn = btnW("Delete all"), btnW("Cancel")
-        rects[1] = { key = "no",  label = "Cancel", tx = maxX - wy - gap - wn, w = wn, ask = "no" }
-        rects[2] = { key = "yes", label = "Delete all", tx = maxX - wy, w = wy, ask = "yes", danger = true }
-        L.question = cc.ask.ask
-        cc.layout = L
-        return L.h
+        cc.bottom = { question = cc.ask.ask, x0 = padX, x1 = maxX, rects = {
+            { key = "no",  label = "Cancel", tx = maxX - wy - gap - wn, w = wn, ask = "no" },
+            { key = "yes", label = "Delete all", tx = maxX - wy, w = wy, ask = "yes", danger = true } } }
+        return T.px(CT.ROW_H)
     end
-    if #cc.moves + #cc.objs == 0 then cc.layout = nil; return 0 end
-    -- along the ribbon: the moves, a divider, the container's own buttons
-    local divGap = T.px(CT.DIV_PAD) * 2 + T.px(1)
-    local tx = 0
-    for _, s in ipairs(cc.moves) do
-        local w = btnW(s.label)
-        rects[#rects + 1] = { key = s.id, label = s.label, spec = s, tx = tx, w = w }
-        tx = tx + w + gap
-    end
-    local movesEnd = tx - gap
-    local objW = 0
-    for i, s in ipairs(cc.objs) do objW = objW + btnW(s.label) + (i > 1 and gap or 0) end
-    local both = #cc.moves > 0 and #cc.objs > 0
-    local total = (#cc.moves > 0 and movesEnd or 0) + (both and divGap or 0) + objW
-    local avail = maxX - padX
-    local ox
-    if total <= avail then
-        -- it fits: the moves from the left, the container's own at the right
-        for _, r in ipairs(rects) do r.tx = padX + r.tx end
-        ox = maxX - objW
-        if both then L.divX = ox - T.px(CT.DIV_PAD) - T.px(1) end
-    else
-        -- wider than the column: one ribbon between two arrows
-        ox = (#cc.moves > 0 and movesEnd or 0) + (both and divGap or 0)
-        if both then L.divX = movesEnd + T.px(CT.DIV_PAD) end
-        local viewL = padX + bh + gap
-        L.scroll = { viewL = viewL, viewW = (maxX - bh - gap) - viewL, total = total }
-    end
-    for _, s in ipairs(cc.objs) do
-        local w = btnW(s.label)
-        rects[#rects + 1] = { key = s.id, label = s.label, spec = s, tx = ox, w = w }
-        ox = ox + w + gap
-    end
-    cc.layout = L
-    return L.h
+    local specs = {}
+    for _, s in ipairs(cc.moves) do specs[#specs + 1] = s end
+    if cc.objsDown then for _, s in ipairs(cc.objs) do specs[#specs + 1] = s end end
+    if #specs == 0 and #cc.objs == 0 then cc.bottom = nil; return 0 end
+    cc.bottom = layStrip(specs, padX, maxX, "left")
+    return T.px(CT.ROW_H)
 end
 
 local function zoneName(content) return content._ccSide == "char" and "charCtl" or "worldCtl" end
@@ -618,135 +664,196 @@ local function focusedKey(content)
     return el and el.ccKey or nil
 end
 
-local function clampScroll(cc, S)
-    cc.scrollX = math.max(0, math.min(cc.scrollX or 0, S.total - S.viewW))
-end
-
--- Draws the row at top (content-local; xOff = the list column's x); atBottom:
--- the row closes the list (its rule on top), else it sits under a heading.
-function CT.draw(content, top, colW, xOff, atBottom)
+-- Draws one strip in a band (top, h) of the column at xOff; name keys its
+-- scroll and arrows ("bot": cc:-1 / cc:-2, "head": cc:-3 / cc:-4).
+local function drawStrip(content, strip, name, top, h, xOff)
     local cc = content._cc
-    local L = cc and cc.layout
-    if not L then return end
     local T = ZeD.T
     local UI = ZeD.ObjectCards.ui
-    local s2, ac = T.surf2, T.accent
-    local rowH, by, bh = L.h, L.by, L.bh
-    content:drawRect(xOff, top, colW, rowH, s2.a, s2.r, s2.g, s2.b)
-    ZeD.Atoms.drawDividerH(content, xOff, atBottom and top or (top + rowH - T.px(1)), colW, true)
+    local ac = T.accent
+    local bh = T.px(CT.BTN_H)
+    local by = top + math.floor((h - bh) / 2)
     local mx, my = content:getMouseX(), content:getMouseY()
-    local over = content:isMouseOver() and my >= top and my < top + rowH
+    local over = content:isMouseOver() and my >= top and my < top + h
     local fkey = focusedKey(content)
-    local S = L.scroll
-    cc.row = { x = xOff, y = top, w = colW, h = rowH }
-    -- the ribbon's window: where buttons show (all of the column when it fits)
-    local clipL, clipR, shift = xOff, xOff + colW, xOff
+    local S = strip.scroll
+    local clipL, clipR, shift = xOff + strip.x0, xOff + strip.x1, xOff
+    local sx = cc.sx[name] or 0
     if S then
-        clampScroll(cc, S)
+        local maxS = S.total - S.viewW
+        sx = math.max(0, math.min(sx, maxS))
         -- the controller's focus walks the ribbon: keep its button in view
         if fkey then
-            for _, r in ipairs(L.rects) do
+            for _, r in ipairs(strip.rects) do
                 if r.key == fkey then
-                    if r.tx < cc.scrollX then cc.scrollX = r.tx
-                    elseif r.tx + r.w > cc.scrollX + S.viewW then cc.scrollX = r.tx + r.w - S.viewW end
+                    if r.tx < sx then sx = r.tx
+                    elseif r.tx + r.w > sx + S.viewW then sx = r.tx + r.w - S.viewW end
                 end
             end
-            clampScroll(cc, S)
+            sx = math.max(0, math.min(sx, maxS))
         end
         clipL, clipR = xOff + S.viewL, xOff + S.viewL + S.viewW
-        shift = xOff + S.viewL - cc.scrollX
-        content:setStencilRect(clipL, top, S.viewW, rowH)
+        shift = xOff + S.viewL - sx
+        content:setStencilRect(clipL, top, S.viewW, h)
     end
-    if L.question then
-        local f2 = T.fontF2
-        local fh = ZeD.TM:getFontHeight(f2)
-        local dc, tc = T.danger, T.text
-        local qx = xOff + T.px(CT.PAD_X)
-        local qy = top + math.floor((rowH - fh) / 2)
-        local dot = T.px(6)
-        content:drawRect(qx, top + math.floor((rowH - dot) / 2), dot, dot, 1, dc.r, dc.g, dc.b)
-        local room = (xOff + L.rects[1].tx) - (qx + dot + T.px(6)) - T.px(6)
-        content:drawText(ZeD.Atoms.truncateText(L.question, f2, room), qx + dot + T.px(6), qy, tc.r, tc.g, tc.b, tc.a or 1, f2)
-    end
-    if L.divX then
-        local bs = T.borderS
-        content:drawRect(shift + L.divX, top + T.px(5), T.px(1), rowH - T.px(10), bs.a, bs.r, bs.g, bs.b)
-    end
-    local hits = {}
-    for i, r in ipairs(L.rects) do
+    cc.sx[name] = sx
+    cc.strips[name] = strip
+    local isz = T.px(CT.ICON_SZ)
+    for _, r in ipairs(strip.rects) do
         local s = r.spec
         local enabled = (s == nil) or s.enabled
-        local x, y = shift + r.tx, top + by
+        local danger = r.danger or (s and s.danger)
+        local x, y = shift + r.tx, by
         local focused = (fkey == r.key)
-        -- the part that shows (a button half past an arrow takes clicks only there)
         local vx0, vx1 = math.max(x, clipL), math.min(x + r.w, clipR)
         if vx1 > vx0 then
-            UI.button(content, x, y, r.label, { h = bh, w = r.w, disabled = not enabled, danger = r.danger or (s and s.danger),
-                focused = focused })
+            UI.button(content, x, y, r.icon and "" or r.label, { h = bh, w = r.w, disabled = not enabled, danger = danger, focused = focused })
+            if r.icon then
+                -- the icon: the text colour; the accent while its thing runs; the warning colour for Delete all
+                local c = (danger and T.danger) or ((s and s.lit) and ac) or T.text
+                ZeD.Atoms.drawIcon(content, iconTex(r.icon), x + math.floor((r.w - isz) / 2), y + math.floor((bh - isz) / 2), isz,
+                    enabled and 1 or 0.35, c)
+            end
         end
         local hover = over and vx1 > vx0 and mx >= vx0 and mx < vx1 and my >= y and my < y + bh
         if hover and enabled and not focused then content:drawRect(x, y, r.w, bh, 0.22, ac.r, ac.g, ac.b) end
         if (hover or focused) and s and s.enabled and s.marks then content._ccMarks = s.marks end
-        hits[i] = { key = r.key, label = r.label, x = x, y = y, w = r.w, h = bh, enabled = enabled,
-                    vx = vx0, vw = math.max(0, vx1 - vx0) }
+        -- an icon names itself in a hover hint, after a pause (CT.drawHint)
+        if hover and r.icon and s then cc.hintCand = { key = r.key, text = s.hint or s.label, x = x, y = y, w = r.w, h = bh, below = (name == "head") } end
+        cc.hits[#cc.hits + 1] = { key = r.key, label = (s and s.hint) or r.label, spec = s, ask = r.ask, x = x, y = y, w = r.w, h = bh,
+            enabled = enabled, vx = vx0, vw = math.max(0, vx1 - vx0) }
     end
-    cc.hits = hits
-    cc.arrows = nil
     if S then
         content:clearStencilRect()
         -- the arrows: a scrollbar's own, live while there is more that way
-        local canL, canR = cc.scrollX > 0, cc.scrollX < S.total - S.viewW
-        local ax = { xOff + T.px(CT.PAD_X), xOff + colW - T.px(CT.PAD_X) - bh }
-        cc.arrows = {}
+        local canL, canR = sx > 0, sx < S.total - S.viewW
+        local ax = { xOff + strip.x0, xOff + strip.x1 - bh }
+        local s2 = T.surf2
         for k, dir in ipairs({ "left", "right" }) do
             local can = (k == 1 and canL) or (k == 2 and canR)
-            local x, y = ax[k], top + by
-            local hov = can and over and mx >= x and mx < x + bh and my >= y and my < y + bh
-            ZeD.Atoms.drawScrollArrow(content, x, y, bh, dir, hov and "hover" or "default")
-            -- nothing more that way: the arrow fades into the row
-            if not can then content:drawRect(x, y, bh, bh, 0.6, s2.r, s2.g, s2.b) end
-            if can then cc.arrows[#cc.arrows + 1] = { idx = -k, x = x, y = y, w = bh, h = bh } end
+            local x = ax[k]
+            local hov = can and over and mx >= x and mx < x + bh and my >= by and my < by + bh
+            ZeD.Atoms.drawScrollArrow(content, x, by, bh, dir, hov and "hover" or "default")
+            if not can then content:drawRect(x, by, bh, bh, 0.6, s2.r, s2.g, s2.b) end
+            if can then cc.arrows[#cc.arrows + 1] = { idx = (name == "bot" and -k or -(k + 2)), x = x, y = by, w = bh, h = bh } end
         end
     end
 end
 
+-- Draws the bottom row at top (content-local; xOff = the list column's x);
+-- atBottom: the row closes the list (its rule on top).
+function CT.draw(content, top, colW, xOff, atBottom)
+    local cc = content._cc
+    local B = cc and cc.bottom
+    if not B then return end
+    local T = ZeD.T
+    local rowH = T.px(CT.ROW_H)
+    local s2 = T.surf2
+    content:drawRect(xOff, top, colW, rowH, s2.a, s2.r, s2.g, s2.b)
+    ZeD.Atoms.drawDividerH(content, xOff, atBottom and top or (top + rowH - T.px(1)), colW, true)
+    cc.row = { x = xOff, y = top, w = colW, h = rowH }
+    if B.question then
+        local f2 = T.fontF2
+        local fh = ZeD.TM:getFontHeight(f2)
+        local dc, tc = T.danger, T.text
+        local qx = xOff + B.x0
+        local dot = T.px(6)
+        content:drawRect(qx, top + math.floor((rowH - dot) / 2), dot, dot, 1, dc.r, dc.g, dc.b)
+        local room = (xOff + B.rects[1].tx) - (qx + dot + T.px(6)) - T.px(6)
+        content:drawText(ZeD.Atoms.truncateText(B.question, f2, room), qx + dot + T.px(6), top + math.floor((rowH - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+    end
+    drawStrip(content, B, "bot", top, rowH, xOff)
+end
+
+-- Draws the container's own actions in its heading, between the name (ending
+-- at x0) and the weight (starting at x1), the words first, then the icons;
+-- right-aligned against the weight, scrolling when they do not fit. A heading
+-- with too little room sends them to the bottom row instead (from the next
+-- frame); the name never shortens for them.
+function CT.drawHead(content, xOff, x0, x1, top, h)
+    local cc = content._cc
+    if not (cc and cc.objs and #cc.objs > 0) then
+        if cc then cc.headArea = nil end
+        return
+    end
+    local room = x1 - x0
+    local down = room < ZeD.T.px(CT.HEAD_MIN)
+    if down ~= (cc.objsDown or false) then cc.objsDown = down; cc.frame = -1000 end
+    if down then return end
+    cc.headArea = { x = xOff + x0, y = top, w = room, h = h }
+    drawStrip(content, layStrip(cc.objs, x0, x1, "right"), "head", top, h, xOff)
+end
+
+-- The hover hint: an icon names what it does in ZeD's hint box (ZeD_Tooltip's
+-- look: surf2, the strong border, F2) once the pointer has rested on it for
+-- CT.HINT_MS; above a bottom-row icon, below a heading one, kept inside the
+-- column. Drawn last, after the list's rows.
+function CT.drawHint(content)
+    local cc = content._cc
+    local c = cc and cc.hintCand
+    if not c then
+        if cc then cc.hintKey = nil end
+        return
+    end
+    local now = getTimestampMs()
+    if cc.hintKey ~= c.key then cc.hintKey, cc.hintSince = c.key, now; return end
+    if now - (cc.hintSince or now) < CT.HINT_MS then return end
+    local T = ZeD.T
+    local f2 = T.fontF2
+    local padX, padY = T.px(10), T.px(4)
+    local tw = ZeD.TM:MeasureStringX(f2, c.text)
+    local w, h = tw + padX * 2, ZeD.TM:getFontHeight(f2) + padY * 2
+    local R = cc.row
+    local colL = R and R.x or 0
+    local colR = R and (R.x + R.w) or content:getWidth()
+    local x = math.max(colL + T.px(2), math.min(c.x, colR - w - T.px(2)))
+    local y = c.below and (c.y + c.h + T.px(4)) or (c.y - h - T.px(4))
+    local s2, bs, tc = T.surf2, T.borderS, T.text
+    content:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
+    content:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
+    content:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    content:drawText(c.text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
+end
+
 -- Hit zones go in after the renderer clears its zones for the frame: each
--- button's showing part, and the arrows (cc:-1 left, cc:-2 right).
+-- button's showing part, and the arrows.
 function CT.addZones(content)
     local cc = content._cc
-    if not (cc and cc.layout and cc.hits) then return end
+    if not (cc and cc.hits) then return end
     for i, h in ipairs(cc.hits) do
         if h.vw > 0 then content:addHitZone("cc:" .. i, h.vx, h.y, h.vw, h.h) end
     end
     for _, a in ipairs(cc.arrows or {}) do content:addHitZone("cc:" .. a.idx, a.x, a.y, a.w, a.h) end
 end
 
--- Moves the ribbon one button left (-1) or right (+1).
-local function stepRibbon(cc, dir)
-    local L = cc.layout
-    local S = L and L.scroll
+-- Moves a ribbon one button left (-1) or right (+1).
+local function stepRibbon(cc, name, dir)
+    local strip = cc.strips and cc.strips[name]
+    local S = strip and strip.scroll
     if not S then return end
+    local sx = cc.sx[name] or 0
     if dir < 0 then
         local to = 0
-        for _, r in ipairs(L.rects) do if r.tx < cc.scrollX then to = r.tx end end
-        cc.scrollX = to
+        for _, r in ipairs(strip.rects) do if r.tx < sx then to = r.tx end end
+        sx = to
     else
-        for _, r in ipairs(L.rects) do
-            if r.tx + r.w > cc.scrollX + S.viewW + 1 then cc.scrollX = r.tx + r.w - S.viewW; break end
+        for _, r in ipairs(strip.rects) do
+            if r.tx + r.w > sx + S.viewW + 1 then sx = r.tx + r.w - S.viewW; break end
         end
     end
-    clampScroll(cc, S)
+    cc.sx[name] = math.max(0, math.min(sx, S.total - S.viewW))
 end
 
 -- The mouse wheel over a ribbon scrolls it sideways; true when it took the wheel.
 function CT.wheel(content, del)
     local cc = content and content._cc
-    local L = cc and cc.layout
-    local R = cc and cc.row
-    if not (L and L.scroll and R) then return false end
+    if not (cc and cc.strips) then return false end
     local mx, my = content:getMouseX(), content:getMouseY()
-    if not (mx >= R.x and mx < R.x + R.w and my >= R.y and my < R.y + R.h) then return false end
-    stepRibbon(cc, del > 0 and 1 or -1)
+    local function inside(R) return R and mx >= R.x and mx < R.x + R.w and my >= R.y and my < R.y + R.h end
+    local name = (inside(cc.row) and "bot") or (inside(cc.headArea) and "head") or nil
+    local strip = name and cc.strips[name]
+    if not (strip and strip.scroll) then return false end
+    stepRibbon(cc, name, del > 0 and 1 or -1)
     return true
 end
 
@@ -755,21 +862,24 @@ end
 -- ----------------------------------------------------------------------------
 function CT.press(content, idx)
     local cc = content._cc
-    if cc and idx and idx < 0 then stepRibbon(cc, idx == -1 and -1 or 1); return end
-    local L = cc and cc.layout
-    local r = L and L.rects[idx]
-    local h = cc and cc.hits and cc.hits[idx]
-    if not (r and h) then return end
+    if not (cc and idx) then return end
+    if idx < 0 then
+        local name = (idx >= -2) and "bot" or "head"
+        stepRibbon(cc, name, (idx == -1 or idx == -3) and -1 or 1)
+        return
+    end
+    local h = cc.hits and cc.hits[idx]
+    if not h then return end
     if isGamePaused() then return end
-    if r.ask == "no" then cc.ask = nil; return end
-    if r.ask == "yes" then
+    if h.ask == "no" then cc.ask = nil; return end
+    if h.ask == "yes" then
         local s = cc.ask
         cc.ask = nil
         if s then pcall(s.run, content, h) end
         cc.frame = -1000
         return
     end
-    local s = r.spec
+    local s = h.spec
     if not (s and s.enabled) then return end
     if s.ask then cc.ask = s; return end
     local ok, err = pcall(s.run, content, h)
@@ -785,11 +895,12 @@ function CT.cancelAsk(content)
 end
 
 -- ----------------------------------------------------------------------------
--- CONTROLLER: the row's buttons as one ring zone, appended to the window's
--- ring (appending keeps every other zone's index, so focus never jumps).
--- Every button is a stop, the ones scrolled out of view too (at their place
--- along the ribbon), so the D-pad walks on past the arrow and the ribbon
--- follows. Called by the window after the list renders.
+-- CONTROLLER: the heading's and the bottom row's buttons as one ring zone,
+-- appended to the window's ring (appending keeps every other zone's index,
+-- so focus never jumps). Every button is a stop, the ones scrolled out of
+-- view too (at their place along the ribbon), so the D-pad walks on past an
+-- arrow and the ribbon follows; the footer's prompt names an icon.
+-- Called by the window after the list renders.
 -- ----------------------------------------------------------------------------
 function CT.syncFocus(win, content)
     local F = ZeD.Input and ZeD.Input.Focus
@@ -803,7 +914,7 @@ function CT.syncFocus(win, content)
         win._focusRing[#win._focusRing + 1] = zone
     end
     local cc = content._cc
-    local hits = (cc and cc.layout and cc.hits) or {}
+    local hits = (cc and cc.bottom and cc.hits) or {}
     local parts = {}
     for _, h in ipairs(hits) do parts[#parts + 1] = h.key .. "@" .. h.x .. "," .. h.y .. "," .. h.w end
     local sig = table.concat(parts, ";")
