@@ -1,14 +1,17 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ZeD_Dashboard.lua
 -- ============================================================================
--- VEHICLE DASHBOARD v5 (S123) — a physical dash built from plates + live overlays.
+-- VEHICLE DASHBOARD v6 — pixel art, one plate per design, live parts from data.
 --
--- Design: ZeDUI/mockups/zed_dashboard_v5_molded.html (locked Oct 12 2026).
--- Static art ships as PNG plates generated from that mockup by
--- ZeDUI/tools/plates/plates_dash.html (body per hood molding, tintable by cabin;
--- cluster per gauge style; switch row; console per kind; badge shapes; head-unit
--- overlays). Each plate carries an anchor table (DashPlates.lua, generated) that
--- tells this file where the live parts go: needles, lit segments, digits, lamps,
--- knob pointers, LEDs, display text, hit rects.
+-- Art (director, Oct 16 2026): ZeDUI/tools/dashpx/ paints every dash as a lit
+-- height field (the binnacle sunk under the brow, its shadow over the dials) and
+-- writes ZeD/DashPx.lua: per design the plate, its state sprites, and the live
+-- parts the game draws over it — needles, ribbons, lamps, LEDs, gear letters,
+-- seven-segment figures, bars, knob pointers, lever tabs, badges, the clock, the
+-- fare meter, the climate readout, the radio slot — plus the click areas. This
+-- file reads that data; it has no per-design drawing code.
+--
+-- Density: one plate pixel per screen pixel at 1080p, a whole multiple k above
+-- (ZeD_PixelParts: nearest filtering, rects on the art grid), like the belt.
 --
 -- Replaces ISVehicleDashboard (parked, never removed). Every action is a vanilla
 -- verb (ISVehicleMenu / ISVehiclePartMenu / vehicle client commands / radio
@@ -19,89 +22,33 @@
 -- secondary (remove key, tune down, volume, store preset), B releases.
 -- Passengers see the dash read-only. HOOK_MAP.md #2 / #4.
 --
--- The radio slot shows the radio that is actually fitted (Oct 15 2026, "match
--- the dash to the radio"): the small face of the same radio the wheel's Device
--- Options brings up close (ZeD_CarRadio.lua), driven by the same code
--- (ZeD_RadioOps.lua) and vanilla's own presets. A click on its display brings
--- the radio up close.
+-- The radio slot shows the radio that is actually fitted: its small pixel face,
+-- the display drawn in pixel figures from the same state the radio up close
+-- reads (ZeD_RadioOps), and a click on the display brings the radio up close.
 -- ============================================================================
 
 require "ZeD/ZeD_Panel"
-require "ZeD/DashPlates"
-require "ZeD/RadioPlates"
+require "ZeD/DashPx"
+require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_RadioOps"
 
 ZeD = ZeD or {}
 ZeD.Dashboard = ZeD.Dashboard or {}
 local D = ZeD.Dashboard
-local PL = ZeD.DashPlates
+local DP = ZeD.DashPx
+local P = ZeD.Px
 local RO = ZeD.RadioOps
 
-local BASE_W, BASE_H = 800, 172
-local TEXDIR = "media/textures/ZeD/dash/"
-local ICONDIR = "media/textures/ZeD/icons/"
-D.scale = D.scale or 1.0   -- organism multiplier on top of T.scale (UI scale axis to come)
+local BASE_W, BASE_H = DP.w, DP.h
+local TEXDIR = "media/textures/ZeD/dashpx/"
+D.scale = D.scale or 1.0   -- organism multiplier on top of the root scale
+
+local function clamp01(v) if v == nil then return 0 end; if v < 0 then return 0 end; if v > 1 then return 1 end; return v end
+local function tex(name) return P.tex(TEXDIR .. name .. ".png") end
 
 -- ---------------------------------------------------------------------------
--- Colour helpers
+-- Vehicle -> design (ids match ZeD/DashPx.lua)
 -- ---------------------------------------------------------------------------
-local function hex(h)
-    h = tostring(h or "#ffffff"):gsub("#", "")
-    if #h == 3 then h = h:sub(1,1):rep(2) .. h:sub(2,2):rep(2) .. h:sub(3,3):rep(2) end
-    local r = tonumber(h:sub(1,2), 16) or 255
-    local g = tonumber(h:sub(3,4), 16) or 255
-    local b = tonumber(h:sub(5,6), 16) or 255
-    return { r = r/255, g = g/255, b = b/255, a = 1 }
-end
-local _colCache = {}
-local function col(c)
-    if type(c) == "table" then return c end
-    if not c then return { r = 1, g = 1, b = 1, a = 1 } end
-    local v = _colCache[c]
-    if not v then
-        if c:sub(1,4) == "rgba" then
-            local r,g,b,a = c:match("rgba%(([%d%.]+),%s*([%d%.]+),%s*([%d%.]+),%s*([%d%.]+)%)")
-            v = { r = (tonumber(r) or 0)/255, g = (tonumber(g) or 0)/255, b = (tonumber(b) or 0)/255, a = tonumber(a) or 1 }
-        else v = hex(c) end
-        _colCache[c] = v
-    end
-    return v
-end
-
--- Cabin tints: the mockup pad colours. The body plate is a #d0d0d0 greyscale, so
--- the tint is the pad colour divided by 0.82 to land on the mockup's exact tone.
-local function tintOf(h) local c = hex(h); return { r = math.min(1, c.r/0.82), g = math.min(1, c.g/0.82), b = math.min(1, c.b/0.82) } end
-local CABINS = {
-    walnut = tintOf("#3b2a19"), slate = tintOf("#3c4046"), red = tintOf("#4f1114"), patrol = tintOf("#15171c"),
-    cocoa = tintOf("#3d2919"), charcoal = tintOf("#222224"), beige = tintOf("#5a5240"), navy = tintOf("#20263a"),
-    burgundy = tintOf("#3a1018"), fleet = tintOf("#2a2b2c"), tan = tintOf("#4a3c2a"), khaki = tintOf("#3a3826"),
-    taxi = tintOf("#181818"), medic = tintOf("#4a4c4e"), fire = tintOf("#3a0e0a"), race = tintOf("#1c1c1c"),
-}
-
--- ---------------------------------------------------------------------------
--- Vehicle -> design (hood molding, gauge style, console, badge, cabin, accessory)
--- ---------------------------------------------------------------------------
-local DESIGNS = {
-    luxury    = { hood = "arch",   style = "cadillac", console = "luxury", badge = "chrome",  cabin = "walnut",   brand = "ELECTRONIC INSTRUMENT CLUSTER" },
-    nyala     = { hood = "arch",   style = "analog",   console = "sedan",  badge = "oval",    cabin = "slate" },
-    cossette  = { hood = "arch",   style = "c4",       console = "sport",  badge = "script",  cabin = "red",      sub = "5.0", needle = "#E03030" },
-    police    = { hood = "square", style = "analog",   console = "fleet",  badge = "stencil", cabin = "patrol",   accessory = true },
-    d6        = { hood = "square", style = "analog",   console = "truck",  badge = "stamped", cabin = "cocoa",    sub = "D6" },
-    dashelite = { hood = "trap",   style = "toyota",   console = "modern", badge = "decal",   cabin = "charcoal", sub = "EFI", brand = "DASH ELECTRONIC DISPLAY" },
-    primani   = { hood = "trap",   style = "toyota",   console = "modern", badge = "decal",   cabin = "beige",    sub = "EFI", brand = "ELECTRONIC DISPLAY" },
-    dart      = { hood = "arch",   style = "analog",   console = "sedan",  badge = "oval",    cabin = "navy" },
-    horizon   = { hood = "arch",   style = "analog",   console = "sedan",  badge = "chrome",  cabin = "burgundy" },
-    wagon     = { hood = "arch",   style = "analog",   console = "truck",  badge = "chrome",  cabin = "walnut" },
-    suv       = { hood = "square", style = "analog",   console = "modern", badge = "decal",   cabin = "charcoal", sub = "4X4" },
-    van       = { hood = "square", style = "analog",   console = "truck",  badge = "stamped", cabin = "fleet" },
-    bulldriver= { hood = "square", style = "analog",   console = "truck",  badge = "stamped", cabin = "tan",      sub = "V8" },
-    rancher   = { hood = "square", style = "analog",   console = "truck",  badge = "stamped", cabin = "khaki",    sub = "4X4" },
-    taxi      = { hood = "arch",   style = "analog",   console = "fleet",  badge = "stencil", cabin = "taxi" },
-    ambulance = { hood = "square", style = "analog",   console = "fleet",  badge = "stencil", cabin = "medic",    accessory = true },
-    fire      = { hood = "square", style = "analog",   console = "fleet",  badge = "stencil", cabin = "fire",     accessory = true },
-    ranger    = { hood = "square", style = "analog",   console = "fleet",  badge = "stencil", cabin = "khaki",    accessory = true },
-    race      = { hood = "arch",   style = "c4",       console = "sport",  badge = "script",  cabin = "race",     needle = "#E03030", sub = "RACE" },
-}
 local MODEL_DESIGN = {
     CarLuxury = "luxury", CarNormal = "nyala", CarLights = "nyala", SportsCar = "cossette", PickUpTruck = "d6",
     ModernCar = "dashelite", ModernCar02 = "primani", SmallCar = "dart", SmallCar02 = "horizon",
@@ -110,21 +57,22 @@ local MODEL_DESIGN = {
 }
 local LIVERY_DESIGN = {
     { "ambulance", "ambulance" }, { "hosp", "ambulance" }, { "fire", "fire" }, { "police", "police" }, { "sheriff", "police" },
-    { "trooper", "police" }, { "swat", "police" }, { "kst", "police" }, { "louisvillepd", "police" }, { "ranger", "ranger" },
-    { "taxi", "taxi" }, { "race", "race" },
+    { "trooper", "police" }, { "swat", "police" }, { "kst", "police" }, { "louisvillepd", "police" }, { "louisvillecounty", "police" },
+    { "westpoint", "police" }, { "ranger", "ranger" }, { "taxi", "taxi" }, { "race", "race" },
 }
 local function _designFor(scriptName)
     local n = tostring(scriptName or ""):gsub("^Base%.", "")
     local low = n:lower()
     for _, pair in ipairs(LIVERY_DESIGN) do
-        if low:find(pair[1], 1, true) then return DESIGNS[pair[2]], pair[2] end
+        if low:find(pair[1], 1, true) then return DP.designs[pair[2]], pair[2], true end
     end
     local best, bestLen = nil, 0
     for model, id in pairs(MODEL_DESIGN) do
         if n:sub(1, #model) == model and #model > bestLen then best, bestLen = id, #model end
     end
-    best = best or "nyala"
-    return DESIGNS[best], best
+    -- the third value: the game's own car family (a modded car falls back to the Nyala's dash)
+    if best then return DP.designs[best], best, true end
+    return DP.designs.nyala, "nyala", false
 end
 D._designFor = _designFor   -- exposed for QA probes
 
@@ -141,33 +89,54 @@ local function _brandName(vehicle, scriptName)
     return s:upper()
 end
 
--- Badge wording follows the locked mockups: oval/stamped badges carry the MAKE and the model goes
--- on the cluster face (or the stamped sub line); script badges carry the MODEL; stencil badges are
--- fleet markings with a unit number; chrome/decal badges carry the full name. Returns
--- label, sub, clusterBrand.
-local function _badgeFor(design, vehicle, scriptName)
-    local full = _brandName(vehicle, scriptName)
-    local base = full:gsub("^.*POLICE%s+", "")                 -- "MULDRAUGH POLICE CHEVALIER NYALA" -> "CHEVALIER NYALA"
-    local make, model = base:match("^(%S+)%s+(.+)$")
-    if not make then make, model = base, nil end
-    local kind = design.badge
-    if kind == "oval" then return make, design.sub, base end
-    if kind == "script" then return model or base, design.sub, model or base end
-    if kind == "stamped" then return make, model or design.sub, make end
-    if kind == "stencil" then
-        local id = 0; pcall(function() id = vehicle:getId() or 0 end)   -- (_safe is declared further down)
-        local fleet = full:find("POLICE") and "POLICE" or make
-        local unit = (fleet == "TAXI") and "CAB" or ((fleet == "FIRE") and "ENGINE" or "UNIT")
-        -- Kahlua strings are Java strings: char 183 IS the middle dot (no UTF-8 byte pairs)
-        return fleet .. " " .. string.char(183) .. " " .. unit .. " " .. string.format("%02d", 10 + (id % 90)), design.sub, base
+-- The game names a car "<livery> <maker> <model>": "Fossoil Chevalier D6", "Knox Distillery Franklin Valuline",
+-- "Wrecked Dash Rancher", "Muldraugh Police Chevalier Nyala". The maker is one of these five.
+local MAKERS = { CHEVALIER = true, DASH = true, FRANKLIN = true, MASTERSON = true, MERCIA = true }
+-- the service a fleet livery names leads its unit plate ("Meade Sheriff" -> SHERIFF, "State Trooper" -> TROOPER)
+local SERVICES = { "POLICE", "SHERIFF", "TROOPER", "SWAT", "RANGER", "FIRE", "AMBULANCE", "TAXI" }
+
+local function _join(words, i, j)
+    local s = ""
+    for n = i, j do s = (s == "") and words[n] or (s .. " " .. words[n]) end
+    return s
+end
+
+-- The badge roles a design's badge parts ask for: the maker and model as one line (full), the make, the
+-- model, the design's sub line ("5.0", "D6", "4X4"), and a fleet car's unit line ("TAXI · CAB 26").
+-- The livery never reaches a maker's badge: a Fossoil D6 still says CHEVALIER. A name with no maker in
+-- it is all livery when the car is one of the game's own ("Spiffo Van", "Creature Cruiser", "Taxi"), and the
+-- badge shows the design's own car; a modded car's name ("Ford Bronco") is its own maker and model.
+local function _badges(design, vehicle, scriptName, ownFamily)
+    local name = _brandName(vehicle, scriptName)
+    local words = {}
+    for w in name:gmatch("%S+") do words[#words + 1] = w end
+    local mi = nil
+    for i = 1, #words - 1 do if MAKERS[words[i]] then mi = i; break end end
+    local livery, make, model
+    if mi then
+        livery, make, model = _join(words, 1, mi - 1), words[mi], _join(words, mi + 1, #words)
+    elseif ownFamily then
+        livery, make, model = name, design.make or name, design.model or name
+    else
+        local fi = 1                                     -- a model year leads many modded names ("1992 Ford ...")
+        while fi < #words and words[fi]:match("^%d+$") do fi = fi + 1 end
+        livery, make = "", words[fi] or name
+        model = (fi < #words) and _join(words, fi + 1, #words) or make
     end
-    return full, design.sub, design.brand or base                  -- chrome, decal
+    local fleet = nil
+    for _, s in ipairs(SERVICES) do if livery:find(s, 1, true) then fleet = s; break end end
+    fleet = fleet or livery:match("^(%S+)") or make
+    local id = 0; pcall(function() id = vehicle:getId() or 0 end)
+    local word = (fleet == "TAXI") and "CAB" or ((fleet == "FIRE") and "ENGINE" or "UNIT")
+    -- Kahlua strings are Java strings: char 183 IS the middle dot (no UTF-8 byte pairs)
+    local unit = fleet .. " " .. string.char(183) .. " " .. word .. " " .. string.format("%02d", 10 + (id % 90))
+    return { full = make .. " " .. model, make = make, model = model, sub = design.sub or "", unit = unit, livery = livery, name = name }
 end
 
 -- ---------------------------------------------------------------------------
 -- Vehicle state (per frame, every read guarded)
 -- ---------------------------------------------------------------------------
-local function _safe(fn, default) local ok, v = pcall(fn); if ok then return v end; return default end
+local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
 
 local function _state(vehicle, chr)
     local st = {}
@@ -176,22 +145,18 @@ local function _state(vehicle, chr)
     st.keysIn   = _safe(function() return vehicle:isKeysInIgnition() end, false)
     st.hotwired = _safe(function() return vehicle:isHotwired() end, false)
     st.hasKey   = _safe(function() return chr:getInventory():haveThisKeyId(vehicle:getKeyId()) ~= nil end, false)
-    st.speed    = math.floor(math.abs(_safe(function() return vehicle:getCurrentSpeedKmHour() end, 0)) + 0.5)
-    st.rpm      = st.running and _safe(function() return vehicle:getEngineSpeed() end, 0) or 0
-    st.gear     = st.running and _safe(function() return tostring(vehicle:getTransmissionNumberLetter()) end, "D") or "P"
-    local live  = st.running or st.keysIn
-    st.fuel = nil
+    st.speed    = math.abs(_safe(function() return vehicle:getCurrentSpeedKmHour() end, 0))
+    st.rpmRaw   = st.running and _safe(function() return vehicle:getEngineSpeed() end, 0) or 0
+    st.gear     = _safe(function() return tostring(vehicle:getTransmissionNumberLetter()) end, "D")
     local tank = _safe(function() return vehicle:getPartById("GasTank") end, nil)
-    if live and tank and _safe(function() return tank:isContainer() end, false) then
-        st.fuel = _safe(function() return tank:getContainerContentAmount() / math.max(1, tank:getContainerCapacity()) end, nil)
+    st.fuelRaw = 0
+    if tank and _safe(function() return tank:isContainer() end, false) then
+        st.fuelRaw = _safe(function() return tank:getContainerContentAmount() / math.max(1, tank:getContainerCapacity()) end, 0)
     end
-    st.battery  = live and _safe(function() return vehicle:getBatteryCharge() end, nil) or nil
-    st.fuelLow  = st.fuel ~= nil and st.fuel < 0.15
-    st.battLow  = st.battery ~= nil and st.battery < 0.2
+    st.battRaw  = _safe(function() return vehicle:getBatteryCharge() end, 0)
     st.engineCond = _safe(function() return vehicle:getPartById("Engine"):getCondition() end, 100)
     st.engWarn  = st.engineCond < 40
     st.lights   = _safe(function() return vehicle:getHeadlightsOn() end, false)
-    st.lightsOk = _safe(function() return vehicle:getHeadlightCanEmmitLight() end, true)
     st.allLocked = _safe(function() return vehicle:areAllDoorsLocked() end, false)
     st.anyLocked = _safe(function() return vehicle:isAnyDoorLocked() end, false)
     st.hasTrunk  = _safe(function() return vehicle:getPartById("TruckBed") ~= nil end, false)
@@ -208,15 +173,72 @@ local function _state(vehicle, chr)
     local radio  = _safe(function() return vehicle:getPartById("Radio") end, nil)
     st.radioPart = radio
     st.radio     = radio and RO.read(radio) or nil
-    st.hasRadio  = st.radio ~= nil
     st.radioOn   = st.radio ~= nil and st.radio.on
     st.radioSwitch = st.radio ~= nil and st.radio.switchOn
-    st.radioKind = st.radio and st.radio.kind or "none"
     st.cruise    = _safe(function() return vehicle:isRegulator() end, false)
     st.cruiseSpeed = _safe(function() return vehicle:getRegulatorSpeed() end, 0)
     st.hasLightbar  = _safe(function() return vehicle:hasLightbar() end, false)
     st.lightbarMode = st.hasLightbar and _safe(function() return vehicle:getLightbarLightsMode() end, 0) or 0
     st.sirenMode    = st.hasLightbar and _safe(function() return vehicle:getLightbarSirenMode() end, 0) or 0
+    local gt = getGameTime and getGameTime()
+    st.hour   = gt and _safe(function() return gt:getHour() end, 10) or 10
+    st.minute = gt and _safe(function() return gt:getMinutes() end, 8) or 8
+    return st
+end
+
+-- How long each reading takes to settle (ms): needles have weight, the levers do not. A gauge
+-- starts from rest when the dash first shows a car (the needles sweep up as the key turns).
+local SETTLE = { speed_mph = 140, speed_kmh = 140, rpm = 160, fuel = 900, batt = 900, temp = 9000, oil = 600, volts = 700,
+                 tempF = 80, fanF = 80, modeF = 80 }
+local FROM_REST = { speed_mph = true, speed_kmh = true, rpm = true, fuel = true, batt = true, temp = true, oil = true, volts = true }
+
+-- The values the parts read (ZeDUI/tools/dashpx/live.py derives the same for the previews).
+function D.derive(st, mem, dtMs)
+    local live = st.running or st.keysIn or st.hotwired
+    local batt = st.battRaw or 0
+    st.power = (live and batt > 0.02) and true or false
+    local v = {}
+    v.speed_kmh = st.power and st.speed or 0
+    v.speed_mph = v.speed_kmh * 0.6214
+    v.rpm   = st.running and st.rpmRaw or 0
+    v.fuel  = st.power and clamp01(st.fuelRaw) or 0
+    v.batt  = st.power and clamp01(batt) or 0
+    v.temp  = st.running and (st.engWarn and 0.82 or 0.5) or (st.power and 0.12 or 0)
+    v.oil   = st.running and (0.45 + 0.35 * math.min(1, v.rpm / 6000)) or 0
+    v.volts = st.power and (st.running and 0.75 or (0.35 + 0.25 * batt)) or 0
+    v.tempF = clamp01(((st.heaterTemp or 0) + 25) / 50)
+    v.fanF  = (st.fan or 0) / 3
+    v.modeF = (not st.heaterOn) and 0 or (st.ac and 0.33 or ((st.heaterTemp or 0) >= 25 and 1 or 0.66))
+    for key, target in pairs(v) do
+        local tau = SETTLE[key]
+        local cur = mem[key]
+        if cur == nil then cur = FROM_REST[key] and 0 or target end
+        if tau and dtMs > 0 then cur = cur + (target - cur) * (dtMs / (tau + dtMs)) else cur = tau and cur or target end
+        mem[key] = cur
+        st[key] = cur
+    end
+    local check = st.power and not st.running         -- key on, engine off: the bulb check
+    st.check      = check
+    st.oilLamp    = check
+    st.genLamp    = check or (st.power and batt < 0.2)
+    st.brakeLamp  = check
+    st.beltLamp   = check
+    st.engLamp    = check or (st.running and st.engWarn) or false
+    st.fuelLamp   = st.power and v.fuel < 0.15
+    st.tempLamp   = st.power and v.temp > 0.8
+    st.hiBeam     = st.power and st.lights or false
+    st.lightsLamp = st.hiBeam
+    st.turnL, st.turnR, st.fourWD = false, false, false
+    st.cruiseLamp = st.power and st.cruise or false
+    st.keyLed     = st.keysIn
+    st.lightbar, st.siren = st.lightbarMode or 0, st.sirenMode or 0
+    st.lbarLamp   = st.lightbar > 0
+    st.sirenLamp  = st.siren > 0
+    st.heatOn     = st.heaterOn and not st.ac
+    st.shiftLamp  = st.running and v.rpm >= 6500
+    -- an automatic's selector: P with the engine off, R backing up, otherwise D (PZ counts gears internally)
+    local g = tostring(st.gear or "")
+    st.gearSel = (not st.running) and "P" or ((g == "R") and "R" or "D")
     return st
 end
 
@@ -312,9 +334,6 @@ local SECONDARY = { ignition = "Remove key", vol = "Volume", tune = "Tune -", te
 -- ---------------------------------------------------------------------------
 ZeD_Dashboard = ZeD_Panel:derive("ZeD_Dashboard")
 
-local _texCache = {}
-local function tex(path) local t = _texCache[path]; if t == nil then t = getTexture(path) or false; _texCache[path] = t end; return t or nil end
-
 function ZeD_Dashboard:new(playerNum)
     local o = ZeD_Panel:new(0, 0, BASE_W, BASE_H)
     setmetatable(o, self)
@@ -327,138 +346,32 @@ function ZeD_Dashboard:new(playerNum)
     o._focusRing = { { zone = "dashControls", focusable = false, elements = {}, focusedElementIdx = 1 } }
     o._focusIdx  = 1
     o._s = 1
+    o._mem = {}          -- the settling readings (needles have weight)
+    o._trips = {}        -- per vehicle: distance this session (the trip meter, the taxi's fare)
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     o.borderColor     = { r = 0, g = 0, b = 0, a = 0 }
     return o
 end
 
-function ZeD_Dashboard:_scale() local Sc = ZeD.Scale; return ((Sc and Sc.root and Sc.root()) or 1) * (D.scale or 1) end   -- S124: root scale (1080p = 1.0)
+function ZeD_Dashboard:_scale() local Sc = ZeD.Scale; return ((Sc and Sc.root and Sc.root()) or 1) * (D.scale or 1) end
 
+-- the largest whole multiple of the plate the scale allows, centred at the bottom of the player's screen
 function ZeD_Dashboard:_layout()
-    local s = self:_scale()
-    local w, h = math.floor(BASE_W * s), math.floor(BASE_H * s)
+    local k = P.k(self:_scale())
+    local w, h = BASE_W * k, BASE_H * k
     local pn = self.playerNum
     local x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - w) / 2)
-    local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - math.floor(6 * s)
+    local y = getPlayerScreenTop(pn) + getPlayerScreenHeight(pn) - h - 6 * k
     if self:getWidth() ~= w then self:setWidth(w) end
     if self:getHeight() ~= h then self:setHeight(h) end
     if self:getX() ~= x then self:setX(x) end
     if self:getY() ~= y then self:setY(y) end
-    return w, h, s
+    return w, h, k
 end
 
--- ---- primitive overlays (dash-local 1x units, scaled by s) ----
-function ZeD_Dashboard:_plate(name, x, y, w, h, tint, alpha)
-    local t = tex(TEXDIR .. name .. ".png"); if not t then return false end
-    local s = self._s
-    local c = tint or { r = 1, g = 1, b = 1 }
-    self:drawTextureScaledAspect(t, math.floor(x * s), math.floor(y * s), math.floor(w * s), math.floor(h * s), alpha or 1, c.r, c.g, c.b)
-    return true
-end
 function ZeD_Dashboard:_rect(x, y, w, h, c, a)
-    local s = self._s; c = col(c)
+    local s = self._s
     self:drawRect(math.floor(x * s), math.floor(y * s), math.max(1, math.floor(w * s)), math.max(1, math.floor(h * s)), a or c.a or 1, c.r, c.g, c.b)
-end
--- rect run from (cx,cy) along angle deg (0 = 12 o'clock, clockwise), radii r0..r1 in 1x units
-function ZeD_Dashboard:_run(cx, cy, deg, r0, r1, c, thick)
-    local s = self._s; c = col(c)
-    local a = (deg - 90) * math.pi / 180
-    local ca, sa = math.cos(a), math.sin(a)
-    local t = math.max(1, math.floor((thick or 2) * s))
-    local step = 1 / s
-    local r = r0
-    while r <= r1 do
-        self:drawRect(math.floor((cx + ca * r) * s - t / 2), math.floor((cy + sa * r) * s - t / 2), t, t, c.a or 1, c.r, c.g, c.b)
-        r = r + step
-    end
-end
-local function fontFor(size, big)
-    local F = ZeD.Font.sdf   -- S124: distance-field roles (crisp at any root scale)
-    if big or (size or 5) >= 11 then return F.head end
-    if (size or 5) >= 7 then return F.stat end
-    return F.title
-end
--- width of a string in BASE px (unscaled) for the font that `size` maps to
-function ZeD_Dashboard:_measure(str, size, big)
-    local f = fontFor(size, big)
-    return ZeD.Text.width(f, str, ZeD.Text.zoomFor(f, f.px))   -- base units (design px at root 1)
-end
--- trim a label to fit maxW base px: whole words first, then characters, with a trailing dot
-function ZeD_Dashboard:_fit(str, size, maxW, big)
-    str = tostring(str or "")
-    if maxW == nil or maxW <= 0 or self:_measure(str, size, big) <= maxW then return str end
-    local t = str
-    while t:find("%s") and self:_measure(t, size, big) > maxW do t = (t:gsub("%s+%S*$", "")) end
-    if self:_measure(t, size, big) <= maxW then return t end   -- whole words dropped: no ellipsis dot
-    while #t > 1 and self:_measure(t .. ".", size, big) > maxW do t = t:sub(1, -2) end
-    return t .. "."
-end
-function ZeD_Dashboard:_text(x, y, str, size, c, align, big)
-    str = tostring(str)   -- anchors carry numeric labels (preset 1..6); MeasureStringX wants a String
-    local s = self._s; c = col(c); local fe = fontFor(size, big); local f = ZeD.Text.uifont(fe)
-    local z = ZeD.Text.zoomFor(fe, fe.px * s)                                   -- role design px x root scale
-    local w = ZeD.Text.width(f, str, z)                                        -- screen px at zoom z (raw manager x explicit zoom)
-    local px = x * s
-    if align == "r" then px = px - w elseif align == "c" then px = px - w / 2 end
-    local h = ZeD.Text.height(f, z); local py = y * s - math.max(0, (h - (size or 5) * s) / 2)
-    self:drawTextZoomed(str, math.floor(px), math.floor(py), z, c.r, c.g, c.b, c.a or 1, f)   -- S124: glyphs follow the root scale
-end
-function ZeD_Dashboard:_needle(an, val, max, color)
-    if val == nil then val = 0 end
-    local deg = an.deg0 + an.sweep * math.max(0, math.min(1, val / (max or an.max)))
-    self:_run(an.cx, an.cy, deg, an.r0, an.r1, color or "#E07A2A", an.thick or 2)
-end
-function ZeD_Dashboard:_segarc(an, val)
-    if val == nil then return end
-    local k = math.floor(math.min(1, val / an.max) * an.n + 0.5)
-    for i = 0, k - 1 do
-        local d = an.degA + (an.degB - an.degA) * i / (an.n - 1)
-        local len = 5 + math.floor(i * 6 / an.n + 0.5)
-        local c = an.on
-        if an.redFrom and i >= an.redFrom then c = an.red elseif an.warnFrom and i >= an.warnFrom then c = an.warn end
-        self:_run(an.cx, an.cy, d, an.r - len, an.r, c, 2)
-    end
-end
-function ZeD_Dashboard:_ladder(an, val, warn)
-    if val == nil then return end
-    local k = math.floor(math.min(1, math.max(0, val)) * an.n + 0.5)
-    for i = 0, k - 1 do self:_rect(an.x, an.yBottom - (i + 1) * an.pitch, an.w, an.h, warn and an.warn or an.on) end
-end
-function ZeD_Dashboard:_bars(an, val)
-    if val == nil then return end
-    local k = math.floor(math.min(1, val / an.max) * an.n + 0.5)
-    for i = 0, k - 1 do
-        local h = an.h0 + math.floor(i * an.dh + 0.5)
-        local c = an.on
-        if an.redFrom and i >= an.redFrom then c = an.red elseif an.warnFrom and i >= an.warnFrom then c = an.warn end
-        self:_rect(an.x + i * an.pitch, an.yBase - h, an.w, h, c)
-    end
-end
-local GEARS = { "P", "R", "N", "D", "2", "1" }
-function ZeD_Dashboard:_prndl(an, gear)
-    for i, g in ipairs(GEARS) do
-        if g == gear then
-            local gx = an.x + (i - 1) * an.pitch
-            if an.box then self:_rect(gx + an.box.dx, an.y + an.box.dy, an.box.w, an.box.h, an.box.c) end
-            self:_text(gx, an.y, g, an.size, an.color, "c")
-        end
-    end
-end
-local LAMP_ICON = { door = "door-closed", lamp = "lightbulb-on", batt = "car-battery", fuel = "fuel-gauge", eng = "engine", radio = "fm-radio", cruise = "fi-br-gauge-circle-bolt", lbar = "siren-on", siren = "essential-collection-213-alarm", lock = "fi-br-lock" }
-function ZeD_Dashboard:_lamp(an, kind, lit, c)
-    local s = self._s; c = col(c)
-    local alpha = lit and 1 or 0.10
-    if kind == "key" then   -- rect-drawn key glyph (no key icon in the set yet)
-        local x, y = an.x, an.y
-        self:_rect(x + 2, y + 3, 6, 6, c, alpha); self:_rect(x + 4, y + 5, 2, 2, "#000000", lit and 1 or 0.10)
-        self:_rect(x + 8, y + 5, 8, 2, c, alpha); self:_rect(x + 13, y + 7, 1, 2, c, alpha); self:_rect(x + 10, y + 7, 1, 2, c, alpha)
-        return
-    end
-    local t = tex(ICONDIR .. (LAMP_ICON[kind] or "engine") .. ".png"); if not t then return end
-    self:drawTextureScaledAspect(t, math.floor(an.x * s), math.floor(an.y * s), math.floor(16 * s), math.floor(14 * s), alpha, c.r, c.g, c.b)
-end
-function ZeD_Dashboard:_knobPointer(an, deg)
-    self:_run(an.cx, an.cy, deg, an.r - 7, an.r - 2, an.ptr or "#dddddd", 2)
 end
 function ZeD_Dashboard:_focusCue(x, y, w, h)
     local T = ZeD.T; local ac = T.accent
@@ -474,229 +387,303 @@ function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
     if hr.enabled then
         local focused = self._focEl and self._focEl.id == "dash:" .. id
         if focused then self:_focusCue(x, y, w, h) end
+        -- X offers the secondary verb only when it can happen: "Remove key" needs a key in the lock
+        local secondary = SECONDARY[id]
+        if id == "ignition" and not st.keysIn then secondary = nil end
         self._elements[#self._elements + 1] = {
             x = hr.x, y = hr.y, w = hr.w, h = hr.h, id = "dash:" .. id,
-            promptA = _promptFor(id, st), promptX = SECONDARY[id], promptB = "Drive",
+            promptA = _promptFor(id, st), promptX = secondary, promptB = "Drive",
             onActivate = function(win, el) win:_fire(id, false) end,
-            onContextMenu = function(win, el) if SECONDARY[id] then win:_fire(id, true) end end,
+            onContextMenu = function(win, el) if secondary then win:_fire(id, true) end end,
             onCancel = function(win, el) win:_release() end,
         }
     end
 end
 
--- ---- cluster overlay ----
-local function off(an, ox, oy)
-    local o = {}
-    for k, v in pairs(an) do o[k] = v end
-    if an.cx then o.cx = an.cx + ox; o.cy = an.cy + oy end
-    if an.x then o.x = an.x + ox end
-    if an.y then o.y = an.y + oy end
-    if an.yBottom then o.yBottom = an.yBottom + oy end
-    if an.yBase then o.yBase = an.yBase + oy end
-    return o
-end
-function ZeD_Dashboard:_drawCluster(design, st, ox, oy, A)
-    local needle = design.needle or "#E07A2A"
-    local live = st.running or st.keysIn or st.hotwired
-    if design.style == "analog" then
-        if A.fuel then self:_needle(off(A.fuel, ox, oy), st.fuel, 1, st.fuelLow and "#FF5A4A" or needle) end
-        if A.speed then self:_needle(off(A.speed, ox, oy), st.speed, 200, needle) end
-        if A.tach then self:_needle(off(A.tach, ox, oy), st.rpm, 8000, needle) end
-        if A.batt then self:_needle(off(A.batt, ox, oy), st.battery, 1, st.battLow and "#FF5A4A" or needle) end
-    else
-        if A.speedArc then self:_segarc(off(A.speedArc, ox, oy), live and st.speed or nil) end
-        if A.tachArc then self:_segarc(off(A.tachArc, ox, oy), st.running and st.rpm or nil) end
-        if A.speedDigits then local an = off(A.speedDigits, ox, oy); self:_text(an.x, an.y, live and tostring(st.speed) or "---", 20, an.color, an.align, true) end
-        if A.rpmDigits then local an = off(A.rpmDigits, ox, oy); self:_text(an.x, an.y, st.running and tostring(math.floor(st.rpm / 100 + 0.5)) or "--", 20, an.color, an.align, true) end
-        if A.speedArcDigits then local an = off(A.speedArcDigits, ox, oy); self:_text(an.x, an.y, live and tostring(st.speed) or "---", 16, an.color, an.align, true) end
-        if A.tachArcDigits then local an = off(A.tachArcDigits, ox, oy); self:_text(an.x, an.y, st.running and tostring(math.floor(st.rpm + 0.5)) or "---", 16, an.color, an.align, true) end
-        if A.fuelLadder then self:_ladder(off(A.fuelLadder, ox, oy), st.fuel, st.fuelLow) end
-        if A.battLadder then self:_ladder(off(A.battLadder, ox, oy), st.battery, st.battLow) end
-        if A.tachBars then self:_bars(off(A.tachBars, ox, oy), st.running and st.rpm or nil) end
-        if A.cruiseText and st.cruise then local an = off(A.cruiseText, ox, oy); self:_text(an.x, an.y, "CRUISE " .. tostring(math.floor(st.cruiseSpeed + 0.5)), 4, an.color, an.align) end
-    end
-    if A.prndl then self:_prndl(off(A.prndl, ox, oy), st.gear) end
-    local noKey = (not st.hasKey) and (not st.keysIn) and (not st.hotwired)
-    local lamps = {
-        { "key", st.keysIn or noKey, noKey and "#FF5A4A" or "#44EE44" }, { "door", false, "#FFB347" }, { "lamp", st.lights, st.lightsOk and "#5AA0FF" or "#FF5A4A" },
-        { "batt", st.battLow, "#FF5A4A" }, { "fuel", st.fuelLow, "#FFB347" }, { "eng", st.engWarn and st.running, "#FF5A4A" },
-        { "radio", st.radioOn, "#44EE44" }, { "cruise", st.cruise, "#44EE44" },
-    }
-    if st.hasLightbar then lamps[#lamps + 1] = { "lbar", st.lightbarMode > 0, "#5AA0FF" }; lamps[#lamps + 1] = { "siren", st.sirenMode > 0, "#FFB347" } end
-    for i, l in ipairs(lamps) do local an = A["lamp" .. (i - 1)]; if an then self:_lamp({ x = an.x + ox, y = an.y + oy }, l[1], l[2], l[3]) end end
-    local brand = design.brand or self._clusterBrand
-    if A.brand and brand then local an = off(A.brand, ox, oy); self:_text(an.x, an.y, self:_fit(brand, an.size, 220), an.size, an.color, an.align) end
-end
-
--- ---- switch row overlay ----
-function ZeD_Dashboard:_drawSwitches(st, ox, oy)
-    local A = PL.switches; if not A then return end
-    local kn = A.lights; self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = kn.ptr }, st.lights and 40 or -40)
-    self:_control("lights", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st)
-    local ig = A.ignition; local ix, iy = ig.cx + ox, ig.cy + oy
-    self:_rect(ix - 1, iy - 6, 2, 12, (st.keysIn or st.hotwired) and "#d8d8d8" or "#222222")
-    if st.keysIn then self:_rect(ix - 3, iy + 6, 6, 3, "#d8d8d8") end
-    local noKey = (not st.hasKey) and (not st.keysIn) and (not st.hotwired)
-    if st.running then self:_rect(ig.led.x + ox, ig.led.y + oy, 3, 3, "#44EE44") elseif noKey then self:_rect(ig.led.x + ox, ig.led.y + oy, 3, 3, "#FF5A4A") end
-    self:_control("ignition", ix - ig.r, iy - ig.r, ig.r * 2, ig.r * 2, st, not noKey or st.running)
-    local lk = A.lock
-    self:_rect(lk.top.x + ox, lk.top.y + oy, lk.top.w, lk.top.h, st.anyLocked and "#1a1a1a" or "#2e2e2e")
-    self:_rect(lk.bot.x + ox, lk.bot.y + oy, lk.bot.w, lk.bot.h, st.anyLocked and "#2e2e2e" or "#1a1a1a")
-    self:_lamp({ x = lk.lamp.x + ox, y = lk.lamp.y + oy }, "lock", st.anyLocked, "#44EE44")
-    self:_control("lock", lk.x + ox, lk.y + oy, lk.w, lk.h, st)
-    local tr = A.trunk; self:_control("trunk", tr.x + ox, tr.y + oy, tr.w, tr.h, st, st.hasTrunk)
-    local cr = A.cruise; if st.cruise and cr.led then self:_rect(cr.led.x + ox, cr.led.y + oy, 4, 4, cr.led.c) end
-    self:_control("cruise", cr.x + ox, cr.y + oy, cr.w, cr.h, st, st.running)
-end
-
--- ---- console overlay ----
-local function clamp01(v) return math.max(0, math.min(1, v or 0)) end
--- the fitted radio's small face in the console's radio slot (RadioPlates.dash[kind][height]);
--- its display drawn live by the same code as the radio up close
-local DASH_PTR = { premium = "#202226" }
-function ZeD_Dashboard:_drawRadioHead(st, hu, ox, oy)
-    local r = st.radio
-    local A = ZeD.RadioPlates and ZeD.RadioPlates.dash[r.kind] and ZeD.RadioPlates.dash[r.kind][hu.h]
-    if not (A and self:_plate("dhead_" .. r.kind .. "_" .. hu.h, ox, oy, hu.w, hu.h)) then return false end
-    local s = self._s
-    local d = A.display
-    RO.drawDisplay(self, r.kind, (ox + d.x) * s, (oy + d.y) * s, d.w * s, d.h * s, s, r, false)
-    self:_control("radio", ox + d.x, oy + d.y, d.w, d.h, st, true)
-    local ptr = DASH_PTR[r.kind] or "#dddddd"
-    local kn = A.vol
-    self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = ptr }, -135 + 270 * clamp01(r.volume))
-    self:_control("vol", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, true)
-    kn = A.tune
-    self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = ptr }, ((r.channel or 0) / RO.STEP * 12) % 360)
-    self:_control("tune", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, true)
-    for _, b in ipairs(A.buttons) do self:_control(b.id, b.x + ox, b.y + oy, b.w, b.h, st, true) end
-    return true
-end
-function ZeD_Dashboard:_drawConsole(design, st, ox, oy)
-    local A = PL["console_" .. design.console]; if not A then return end
-    local hu = A.headUnitArea
-    if hu then
-        if not (st.radio and self:_drawRadioHead(st, hu, ox + hu.x, oy + hu.y)) then
-            self:_plate("headunit_none", ox + hu.x, oy + hu.y, hu.w, 52)   -- no radio fitted: the empty slot (its plate is 52 tall)
-        end
-    end
-    -- climate
-    local tC = math.floor(21 + (st.heaterTemp or 0) * 0.28 + 0.5)
-    if A.climateDisplay then
-        local cd = A.climateDisplay
-        if design.console == "luxury" then
-            self:_text(cd.temp.x + ox, cd.temp.y + oy, tostring(tC) .. "C", 11, cd.color, "l")
-            self:_text(cd.mode.x + ox, cd.mode.y + oy, st.heaterOn and (st.ac and "A/C" or "AUTO") or "OFF", 5, cd.color, "l")
-            self:_text(cd.fan.x + ox, cd.fan.y + oy, "FAN " .. tostring(st.fan), 5, cd.color, "l")
-        else
-            self:_text(cd.temp.x + ox, cd.temp.y + oy, tostring(tC), 11, cd.color, "l")
-            self:_text(cd.fanLabel.x + ox, cd.fanLabel.y + oy, "FAN", 4, cd.color, "l")
-            self:_text(cd.fan.x + ox, cd.fan.y + oy, tostring(st.fan), 7, cd.color, "l")
-        end
-    end
-    local tempF = clamp01(((st.heaterTemp or 0) + 25) / 50)
-    local fanF = (st.fan or 0) / 3
-    for _, id in ipairs({ "temp", "fan", "heat" }) do
-        local an = A[id]
-        if an then
-            local v = (id == "temp") and tempF or ((id == "fan") and fanF or (st.heaterOn and 1 or 0))
-            if an.t == "knob" then
-                local deg = (id == "temp") and ((v * 2 - 1) * 120) or ((id == "fan") and (240 + 80 * (st.fan or 0)) or (st.heaterOn and 60 or -60))
-                self:_knobPointer({ cx = an.cx + ox, cy = an.cy + oy, r = an.r, ptr = an.ptr }, deg)
-                self:_control(id, an.cx - an.r + ox, an.cy - an.r + oy, an.r * 2, an.r * 2, st, st.hasHeater)
-            elseif an.t == "slider" then
-                local kx = an.x + math.floor((an.w - 8) * v + 0.5)
-                self:_rect(kx + ox, an.y + oy, 8, 10, "#3a3a3a"); self:_rect(kx + ox, an.y + oy, 8, 1, "#6a6a6a"); self:_rect(kx + 3 + ox, an.y + 2 + oy, 2, 6, "#1a1a1a")
-                self:_control(id, an.x + ox, an.y - 2 + oy, an.w, 14, st, st.hasHeater)
-            elseif an.t == "lever" then
-                local ky = an.y + math.floor((an.h - 8) * (1 - v) + 0.5)
-                self:_rect(an.x - 2 + ox, ky + oy, 14, 8, "#9a9a9a"); self:_rect(an.x - 2 + ox, ky + oy, 14, 1, "#e0e0e0"); self:_rect(an.x + 2 + ox, ky + 3 + oy, 6, 2, "#3a3a3a")
-                self:_control(id, an.x - 4 + ox, an.y - 2 + oy, 18, an.h + 4, st, st.hasHeater)
-            elseif an.t == "btn" then
-                if an.led and id == "heat" and st.heaterOn and not st.ac then self:_rect(an.led.x + ox, an.led.y + oy, an.led.s or 4, an.led.s or 4, an.led.c) end
-                self:_control(id, an.x + ox, an.y + oy, an.w, an.h, st, st.hasHeater)
-            end
-        end
-    end
-    for _, id in ipairs({ "ac", "tempup", "tempdn", "fanup", "fandn", "def", "off", "mode" }) do
-        local b = A[id]
-        if b then
-            if b.led and id == "ac" and st.ac then self:_rect(b.led.x + ox, b.led.y + oy, b.led.s or 4, b.led.s or 4, b.led.c) end
-            self:_control(id, b.x + ox, b.y + oy, b.w, b.h, st, st.hasHeater and id ~= "mode")
-        end
-    end
-    if A.lbar then
-        local kn = A.lbar; self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = kn.ptr }, -60 + st.lightbarMode * 40); self:_control("lbar", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, st.hasLightbar)
-        kn = A.siren; self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = kn.ptr }, -60 + st.sirenMode * 40); self:_control("siren", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, st.hasLightbar)
-        if st.sirenMode > 0 and A.sirenLed then self:_rect(A.sirenLed.x + ox, A.sirenLed.y + oy, 3, 3, A.sirenLed.c) end
-        if st.lightbarMode > 0 and A.lbarLed then self:_rect(A.lbarLed.x + ox, A.lbarLed.y + oy, 3, 3, A.lbarLed.c) end
-    end
-end
-
--- ---- badge overlay ----
-local BADGE_MAXW = { chrome = 126, oval = 116, decal = 126, stencil = 126, stamped = 88, script = 100 }
-function ZeD_Dashboard:_drawBadge(design, ox, oy, label, sub)
-    local A = PL["badge_" .. design.badge]; if not A then return end
-    local t = A.text
-    label = self:_fit(label, t.size, BADGE_MAXW[design.badge] or 120)
-    if t.t == "emboss" then
-        self:_text(t.x + 1 + ox, t.y + 1 + oy, label, t.size, t.dark, t.align); self:_text(t.x + ox, t.y + oy, label, t.size, t.light, t.align)
-    else
-        self:_text(t.x + ox, t.y + oy, label, t.size, t.color, t.align)
-    end
-    if A.sub and sub then self:_text(A.sub.x + ox, A.sub.y + oy, sub, A.sub.size, A.sub.color, A.sub.align) end
+-- ---------------------------------------------------------------------------
+-- the trip meter and the fare (session distance, per vehicle)
+-- ---------------------------------------------------------------------------
+function ZeD_Dashboard:_trip(vehicle, st, dtMs)
+    local id = _safe(function() return vehicle:getId() end, 0)
+    local t = self._trips[id]
+    if not t then t = { miles = 0, fareMiles = 0 }; self._trips[id] = t end
+    local miles = (st.speed_mph or 0) * dtMs / 3600000
+    if st.running then t.miles = t.miles + miles; t.fareMiles = t.fareMiles + miles end
+    if not (st.keysIn or st.running or st.hotwired) then t.fareMiles = 0 end   -- the key out clears the meter
+    st.odo = (1000 + (id * 37) % 8000 + math.floor(t.miles)) % 10000
+    st.fare = 2.5 + 1.6 * t.fareMiles
 end
 
 -- ---------------------------------------------------------------------------
--- prerender: compose plates + overlays, rebuild hits and focus elements
+-- the radio in the slot: its pixel face, its display in pixel figures, its controls
+-- ---------------------------------------------------------------------------
+local function blinkOn(ms) return math.floor(getTimestampMs() / (ms or 250)) % 2 == 0 end
+
+function ZeD_Dashboard:_radioDisplay(cv, hp, ox, oy, r)
+    local x, y, w, h = ox + hp.x, oy + hp.y, hp.w, hp.h
+    local c = P.color(hp.color)
+    local ham = RO.HAM[hp.kind] == true
+    if not r.on then
+        if hp.style == "dot" then P.rect(cv, x - 2, y - 2, w + 4, h + 4, P.BLACK, 0.45) end   -- the backlight is out
+        return
+    end
+    local ghost = hp.ghost and P.color(hp.ghost) or nil
+    local tag = (r.flash and blinkOn(250)) and r.flash:gsub("STORE ", "P") or (r.scanning and "SCAN") or (r.muted and "MUTE") or nil
+    if hp.style == "seg" then
+        if ham then
+            local freq = RO.freqText(r.channel, true)                        -- "098.400"
+            P.digits(cv, freq, x + w - 3 - 6 * 9, y + 3, 6, 11, 9, 1, c, ghost, "l", 6)
+            P.text(cv, "CH" .. (r.presetIdx and string.format("%02d", r.presetIdx) or "--"), x + 3, y + 3, c)
+            P.text(cv, tag or (r.micMuted and "MIC" or "TX"), x + 3, y + 10, c)
+        else
+            local cd = r.playing
+            local txt
+            if cd then
+                local s = math.floor((r.cdMs or 0) / 1000)
+                txt = string.format("%d:%02d", math.floor(s / 60) % 100, s % 60)
+            else
+                txt = RO.freqText(r.channel, false)                             -- "98.4", "101.2"
+            end
+            local nfig = 0
+            for i = 1, #txt do local ch = txt:sub(i, i); if ch ~= "." and ch ~= ":" then nfig = nfig + 1 end end
+            local n = math.max(nfig, 3)
+            P.digits(cv, txt, x + w - 3 - n * 10 - (cd and 4 or 0), y + 2, 7, 13, 10, 2, c, ghost, "r", n)
+            P.text(cv, cd and "CD" or "FM", x + 3, y + 3, c)
+            local t2 = tag or ((not cd) and r.presetIdx and r.presetIdx <= 6 and ("P" .. r.presetIdx)) or nil
+            if t2 then P.text(cv, t2, x + 3, y + 10, c) end
+            if r.signal and not cd then
+                for i = 1, 3 do P.rect(cv, x + 13 + (i - 1) * 2, y + 8 - i * 2 + 1, 1, i * 2, c) end
+            end
+        end
+    else
+        local l1, l2
+        if ham then
+            l1 = "CH" .. (r.presetIdx and string.format("%02d", r.presetIdx) or "--") .. " " .. RO.freqText(r.channel, true)
+            local nm = (r.name and r.name:upper()) or (r.presetIdx and r.presets[r.presetIdx] and r.presets[r.presetIdx].name and r.presets[r.presetIdx].name:upper()) or ""
+            l2 = (r.flash and r.flash) or (r.muted and "MUTE") or (nm ~= "" and nm) or (r.micMuted and "MIC OFF" or "TX OK")
+        else
+            l1 = "FM " .. RO.freqText(r.channel, false) .. " MHZ"
+            l2 = r.flash or (r.scanning and "SCAN") or (r.muted and "MUTE") or (r.name and r.name:upper()) or ""
+        end
+        local n1 = math.floor((w - 3) / 6)
+        local n2 = math.floor((w - 3) / 4)
+        P.text(cv, l1:sub(1, n1), x + 2, y + 1, c, "57")
+        P.text(cv, RO.marquee(l2, n2), x + 2, y + 10, c, "35")
+    end
+end
+
+function ZeD_Dashboard:_drawHead(cv, st, hu, pending)
+    local r = st.radio
+    local H = r and DP.heads[r.kind]
+    if not H then
+        P.image(cv, tex("hu_blank"), hu.x, hu.y, hu.w, hu.h)
+        return
+    end
+    P.image(cv, tex(H.tex), hu.x, hu.y, H.w, H.h)
+    for _, hp in ipairs(H.parts) do
+        if hp.t == "display" then
+            self:_radioDisplay(cv, hp, hu.x, hu.y, r)
+            pending[#pending + 1] = { "radio", hu.x + hp.x - 2, hu.y + hp.y - 2, hp.w + 4, hp.h + 4, true }
+        elseif hp.t == "knob" then
+            local deg = (hp.id == "vol") and (135 + 270 * clamp01(r.volume)) or ((((r.channel or 0) / RO.STEP) * 12) % 360)
+            P.pointer(cv, hu.x + hp.cx, hu.y + hp.cy, deg, 3, hp.r - 2, 1, P.color(hp.ptr))
+            pending[#pending + 1] = { hp.id, hu.x + hp.cx - hp.r, hu.y + hp.cy - hp.r, hp.r * 2, hp.r * 2, true }
+        elseif hp.t == "button" then
+            pending[#pending + 1] = { hp.id, hu.x + hp.x, hu.y + hp.y, hp.w, hp.h, true }
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- the live parts
+-- ---------------------------------------------------------------------------
+local LOW = "#ff4a3a"
+local function frac(st, p)
+    local v = st[p.src]
+    if type(v) == "boolean" then v = v and 1 or 0 end
+    return (v or 0) / (p.max or 1)
+end
+
+function ZeD_Dashboard:_drawParts(des, st, cv, pending)
+    for _, p in ipairs(des.parts) do
+        local t = p.t
+        if t == "needle" then
+            local f = math.max(0, math.min(p.peg and 1.02 or 1, frac(st, p)))
+            local a = p.a0 + (p.a1 - p.a0) * f
+            local c = P.color((p.low_src and st[p.low_src]) and LOW or p.color)
+            P.needle(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 2, p.hub or 0, c)
+        elseif t == "ribbon" then
+            local f = clamp01(frac(st, p))
+            local xx = math.floor(p.x0 + (p.x1 - p.x0) * f + 0.5)
+            if p.mode == "fill" then
+                if xx > p.x0 then
+                    P.rect(cv, p.x0, p.y, xx - p.x0, p.h, P.color(p.color))
+                    P.rect(cv, p.x0, p.y, xx - p.x0, 1, P.shade(p.color, 1.25))
+                    P.rect(cv, p.x0, p.y + p.h - 1, xx - p.x0, 1, P.shade(p.color, 0.6))
+                end
+            else
+                P.rect(cv, xx + 1, p.y + 2, 2, p.h, P.BLACK, 0.45)
+                P.rect(cv, xx - 1, p.y, 1, p.h, P.color(p.color)); P.rect(cv, xx, p.y, 1, p.h, P.shade(p.color, 0.6))
+            end
+        elseif t == "lamp" then
+            if st[p.src] then
+                local c = P.color(p.color)
+                if p.halo then P.rects(cv, p.halo, c, 0.30) end
+                P.rects(cv, p.r, c)
+            end
+        elseif t == "led" then
+            if st[p.src] then P.rect(cv, p.x, p.y, p.w, p.h, P.color(p.color)) end
+        elseif t == "gear" then
+            if st.power then
+                local rr = p.letters[st.gearSel]
+                if rr then P.rects(cv, rr, P.color(p.color)) end
+            end
+        elseif t == "bars" then
+            if st.power then
+                local n = math.floor(clamp01(frac(st, p)) * #p.bars + 0.5)
+                for i = 1, n do
+                    local c = p.color
+                    if p.red_from and (i - 1) >= p.red_from then c = p.red or "#ff3a20"
+                    elseif p.warn_from and (i - 1) >= p.warn_from then c = p.warn or "#ffb02e" end
+                    P.rects(cv, p.bars[i], P.color(c))
+                end
+            end
+        elseif t == "digits" then
+            if st.power or p.always then
+                local v = st[p.src] or 0
+                local txt = (p.fmt == "rpm100") and tostring(math.floor(v / 100 + 0.5)) or tostring(math.floor(v + 0.5))
+                P.digits(cv, txt, p.x, p.y, p.cw, p.ch, p.pitch, p.st or 1, P.color(p.color), nil, p.align or "r", p.n)
+            end
+        elseif t == "ptr" then
+            local a
+            if p.angles then
+                local v = st[p.src]
+                if type(v) == "boolean" then v = v and 1 or 0 end
+                local i = math.max(1, math.min(#p.angles, math.floor((v or 0) + 0.5) + 1))
+                a = p.angles[i]
+            else
+                a = p.a0 + (p.a1 - p.a0) * clamp01(st[p.src] or 0)
+            end
+            P.pointer(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 1, P.color(p.color))
+        elseif t == "tab" then
+            local spr = tex(p.sprite)
+            local sz = des.sprites[p.sprite]
+            if spr and sz then
+                local x = math.floor(p.x0 + (p.x1 - p.x0) * clamp01(st[p.src] or 0) + 0.5)
+                P.image(cv, spr, x, p.y, sz[1], sz[2])
+            end
+        elseif t == "sprite" then
+            local on = st[p.src] and true or false
+            if on == (p.when ~= false) then P.image(cv, tex(p.sprite), p.x, p.y, p.w, p.h) end
+        elseif t == "badge" then
+            local label = self._badge and self._badge[p.role] or ""
+            if label ~= "" then
+                local s, font, scale = P.fit(label, p.font or "35", p.scale or 1, p.w)
+                local x = p.x + ((p.align or "c") == "c" and math.floor(p.w / 2) or 0)
+                local y = p.y + math.floor((p.h - P.fontHeight(font) * scale) / 2)
+                if p.style == "emboss" then P.text(cv, s, x + 1, y + 1, P.color("#f0f0ec"), font, scale, p.align or "c") end
+                P.text(cv, s, x, y, P.color(p.color or "#d8dade"), font, scale, p.align or "c", p.style, p.shadow)
+            end
+        elseif t == "clock" then
+            local h, m = st.hour or 10, st.minute or 0
+            local am = m * 6 - 90
+            local ah = (h % 12) * 30 + m * 0.5 - 90
+            local c = P.color(p.color)
+            P.pointer(cv, p.cx, p.cy, ah, 0, p.rh, 2, c, 1.5)
+            P.pointer(cv, p.cx, p.cy, am, 0, p.rm, 1, c, 1.5)
+        elseif t == "sticker" then
+            if self._scriptLow and self._scriptLow:find(p.match or "spiffo", 1, true) then
+                local S = DP.sticker
+                local stx = P.tex(S.tex)
+                if stx then
+                    local bx = p.x + math.floor((p.w - (S.w + 2 * S.pad)) / 2)
+                    local by = p.y + math.floor((p.h - (S.h + 2 * S.pad)) / 2)
+                    P.rects(cv, S.backing, P.color(S.rim), 1, bx + 1, by + 1)
+                    P.rects(cv, S.backing, P.color(S.color), 1, bx, by)
+                    P.image(cv, stx, bx + S.pad, by + S.pad, S.w, S.h)
+                end
+            end
+        elseif t == "headunit" then
+            self:_drawHead(cv, st, p, pending)
+        elseif t == "climate" then
+            if st.power then
+                local c = P.color(p.color or "#1c2418")
+                local tC = math.floor(21 + (st.heaterTemp or 0) * 0.28 + 0.5)
+                if (p.units or "C") == "F" then tC = math.floor(tC * 9 / 5 + 32 + 0.5) end
+                P.digits(cv, tostring(tC), p.x, p.y, 7, 11, 9, 1, c, nil, "l", 2)
+                P.text(cv, st.heaterOn and (st.ac and "A/C" or "AUTO") or "OFF", p.x + 21, p.y, c)
+                P.text(cv, "FAN" .. tostring(st.fan or 0), p.x + 21, p.y + 6, c)
+            end
+        elseif t == "meter" then
+            if st.power then
+                local f = st.fare or 0
+                P.digits(cv, string.format("%.2f", math.min(99.99, f)), p.x, p.y, p.cw or 6, p.ch or 9, p.pitch or 9, 1, P.color(p.color), nil, "r", 4)
+            end
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- prerender: the plate, the live parts, the hits and focus elements
 -- ---------------------------------------------------------------------------
 function ZeD_Dashboard:prerender()
     local chr = getSpecificPlayer(self.playerNum)
     local vehicle = chr and chr:getVehicle()
     if not chr or not vehicle or (ISUIHandler and ISUIHandler.allUIVisible == false) then self:setVisible(false); return end
+    if self.vehicle ~= vehicle then self._mem = {} end        -- a new car: its needles start from rest
     self.vehicle = vehicle
     local vd = getPlayerVehicleDashboard and getPlayerVehicleDashboard(self.playerNum)
     if vd and vd.isVisible and vd:isVisible() then pcall(vd.setVisible, vd, false) end
 
-    local w, h, s = self:_layout()
-    self._s = s
+    local w, h, k = self:_layout()
+    self._s = k
+    local now = getTimestampMs()
+    local dt = self._lastMs and math.max(0, math.min(250, now - self._lastMs)) or 0
+    self._lastMs = now
     local st = _state(vehicle, chr)
+    D.derive(st, self._mem, dt)
+    self:_trip(vehicle, st, dt)
     self._st = st
     self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
     local scriptName = _safe(function() return tostring(vehicle:getScriptName() or "") end, "")
-    local design, designId = _designFor(scriptName)
+    self._scriptLow = scriptName:lower()
+    local des, designId, ownFamily = _designFor(scriptName)
     self._designId = designId
-    self._badgeLabel, self._badgeSub, self._clusterBrand = _badgeFor(design, vehicle, scriptName)
+    self._badge = _badges(des, vehicle, scriptName, ownFamily)
     local Focus = ZeD.Input and ZeD.Input.Focus
     local DetM = ZeD.Input and ZeD.Input.Detector
     local gamepad = DetM and DetM.getMode and DetM.getMode() == "gamepad"
     -- the focus cue is a gamepad affordance: the dash still holds focus for the ring under mouse play, but paints nothing
     self._focEl = (gamepad and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
     self._hit = {}; self._elements = {}
+    self._consoleRect = des.console   -- the radio and siren props up close line up on the console (plate pixels; _s = k)
 
-    local body = PL["body_" .. design.hood] or PL.body_arch
-    local tint = CABINS[design.cabin] or CABINS.slate
-    if not self:_plate("body_" .. design.hood, 0, 0, BASE_W, BASE_H, tint) then
-        self:_rect(0, 0, BASE_W, BASE_H, "#1a1a1a")   -- plates missing: never let the dash vanish
+    local cv = P.canvas(self, 0, 0, k)
+    local plate = tex(des.plate)
+    if plate then P.image(cv, plate, 0, 0, BASE_W, BASE_H)
+    else self:drawRect(0, 0, w, h, 1, 0.1, 0.1, 0.1) end   -- art missing: never let the dash vanish
+    local pending = {}
+    self:_drawParts(des, st, cv, pending)
+    -- controls last, so a focus cue sits over the art
+    for _, hz in ipairs(des.hits) do
+        local en = true
+        if hz.needs then en = st[hz.needs] and true or false end
+        if hz.id == "ignition" then en = st.hasKey or st.keysIn or st.hotwired or st.running end
+        self:_control(hz.id, hz.x, hz.y, hz.w, hz.h, st, en)
     end
-    local cl, sw, cs, bd = body.cluster, body.switches, body.console, body.badge
-    self._consoleRect = cs   -- the siren controller prop lines up on the console (ZeD_SirenController.lua)
-    self:_plate("cluster_" .. design.style, cl.x, cl.y, cl.w, cl.h)
-    self:_drawCluster(design, st, cl.x, cl.y, PL["cluster_" .. design.style] or {})
-    self:_plate("switches", sw.x, sw.y, sw.w, sw.h)
-    self:_drawSwitches(st, sw.x, sw.y)
-    self:_plate("console_" .. design.console, cs.x, cs.y, cs.w, cs.h)
-    self:_drawConsole(design, st, cs.x, cs.y)
-    self:_plate("badge_" .. design.badge, bd.x, bd.y, bd.w, bd.h)
-    self:_drawBadge(design, bd.x, bd.y, self._badgeLabel, self._badgeSub)
-    if not self._driver then self:_text(BASE_W - 10, BASE_H - 12, "PASSENGER", 5, "#8a8a8a", "r") end
+    for _, c in ipairs(pending) do self:_control(c[1], c[2], c[3], c[4], c[5], st, c[6]) end
+    -- the top edge's two words: cream with a dark shadow, or a plain dark ink where the design's top edge is light
+    if not self._driver then
+        if des.passInk then P.text(cv, "PASSENGER", 12, 2, P.color(des.passInk), "35", 1, "l")
+        else P.text(cv, "PASSENGER", 12, 2, P.color("#d8d6cc"), "35", 1, "l", nil, "#101010") end
+    end
 
     local Det = ZeD.Input and ZeD.Input.Detector
     if Det and Det.getMode and Det.getMode() == "gamepad" and self._driver then
-        local pr = PL.switches and PL.switches.prompt
         local hint = self._focEl and ("A " .. (self._focEl.promptA or "Press") .. (self._focEl.promptX and ("  X " .. self._focEl.promptX) or "") .. "  B Drive") or "Dash: re-enter the seat to focus"
-        -- the mockup prints the prompt right-aligned to the hood edge (left of the console), not inside the switches plate
-        if pr then self:_text(cl.x + cl.w + 10, pr.y + sw.y, hint, pr.size, pr.color, "r") end
+        -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight)
+        if des.hintInk then P.text(cv, hint:upper(), DP.hintRight, 2, P.color(des.hintInk), "35", 1, "r")
+        else P.text(cv, hint:upper(), DP.hintRight, 2, P.color("#ece8dc"), "35", 1, "r", nil, "#101010") end
     end
     if Focus and Focus.setRingZoneElements then
         local zone = self._focusRing[1]
@@ -775,7 +762,7 @@ function D.install()
     inst:addToUIManager()
     inst:setVisible(false)
     D._instance = inst
-    print("[ZeD] Dashboard: v5 plate dashboard installed (vanilla parked)")
+    print("[ZeD] Dashboard: v6 pixel dashboard installed (vanilla parked)")
     return inst
 end
 function D.getInstance() return D._instance end
