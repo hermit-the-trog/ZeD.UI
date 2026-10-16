@@ -59,6 +59,23 @@ local function items()
 end
 local TRASH = { id = "trash", label = "Trash", open = function() MM.showView("trash") end }
 
+-- (director, Oct 16 2026: "desktop icons are loading slower than their text label") the
+-- icon pictures are loose textures the engine streams in after boot: they are asked for
+-- now, the menu's wake-up waits for them with the desk's own pictures, and a cell draws
+-- its name only once its picture is in, so the two always arrive together
+local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "trash", "dll" }
+pcall(function() for _, n in ipairs(ICON_IDS) do Texture.getSharedTexture(ICON_DIR .. n .. ".png", NEAREST) end end)
+local function iconReady(t)
+    if not t then return true end
+    local ok, r = pcall(function() return t:isReady() end)
+    return (not ok) or r
+end
+MM.readyChecks = MM.readyChecks or {}
+MM.readyChecks.desktopIcons = function()
+    for _, n in ipairs(ICON_IDS) do if not iconReady(icon(n)) then return false end end
+    return true
+end
+
 -- the icons' places on the screen: { item, x, y, w, h (the cell), ix, iy, isz (the picture), ly (its name) }
 local function cells(L)
     local T = ZeD.T
@@ -137,7 +154,9 @@ function ZeD_MMIcons:prerender()
         local off = it.off and it.off()
         local sel = self.focusId == it.id
         local tex = icon(it.id)
+        local ready = iconReady(tex)
         local k = sel and 0.55 or 1                       -- a selected icon darkens, as they did
+        if ready then                                     -- (picture and name come together)
         if tex then self:drawTextureScaledAspect(tex, c.ix, c.iy, c.isz, c.isz, off and 0.4 or 1, k, k, k) end
         -- its name, on a backing so it reads over the painting; selected: the accent
         local name = ZeD.Atoms.truncateText(it.label, f2, c.w - T.px(4))
@@ -153,6 +172,7 @@ function ZeD_MMIcons:prerender()
         end
         if not off then
             self._hits[#self._hits + 1] = { id = "desk:" .. it.id, x = c.x, y = c.y, w = c.w, h = c.h, fn = function() self:click(it.id) end }
+        end
         end
     end
     -- the controller's prompts along the screen's foot (the bare desktop only)

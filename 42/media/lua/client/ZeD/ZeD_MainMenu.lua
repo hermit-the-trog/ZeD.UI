@@ -603,6 +603,16 @@ function MM.refresh()
 end
 function MM.continueInfo() return MM._cont or nil end
 
+-- the Continue card's picture streams in like the desk's: the menu waits for it (it popped in
+-- about two seconds after the card at boot)
+MM.readyChecks = MM.readyChecks or {}
+MM.readyChecks.continueThumb = function()
+    local c = MM._cont
+    if not (c and c.thumb) then return true end
+    local ok, r = pcall(function() return c.thumb:isReady() end)
+    return (not ok) or r
+end
+
 function MM.hasSaves() local m = ms(); if m and m.hasSaveFiles then return true end; return false end
 
 function MM.modCount()
@@ -1318,9 +1328,16 @@ local function texReady(path, smooth)
     if ok then return r and true or false end
     return true
 end
+-- (other files add pictures to wait for: MM.readyChecks, functions that return false while not in)
+MM.readyChecks = MM.readyChecks or {}
 function MM.assetsReady()
-    return texReady(TEX .. "desk.png") and texReady(TEX .. "desk_lampdim.png") and texReady(TEX .. "dial_clean.png")
-        and texReady(WALLPAPER, true) and texReady(WALLPAPER_ZAP, true)
+    if not (texReady(TEX .. "desk.png") and texReady(TEX .. "desk_lampdim.png") and texReady(TEX .. "dial_clean.png")
+        and texReady(WALLPAPER, true) and texReady(WALLPAPER_ZAP, true)) then return false end
+    for _, fn in pairs(MM.readyChecks) do
+        local ok, r = pcall(fn)
+        if ok and r == false then return false end
+    end
+    return true
 end
 
 ZeD_MMWake = ISPanel:derive("ZeD_MMWake")
