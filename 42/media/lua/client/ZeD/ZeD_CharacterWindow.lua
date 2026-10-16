@@ -4957,6 +4957,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
     content._hdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
     content._defaultHdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
 
+    -- Container buttons (ContainerControls): the row under the heading
+    content._ccSide = "char"
+    content._ccWin  = win
+
     -- Collapse state
     content._collapsedGroups = {}
 
@@ -5048,6 +5052,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             self._activeCol = math.min(self._activeCol or #colSel, #colSel)
 
             win.title = #colSel .. " CONTAINERS"
+            self._ccEntry = nil
 
             r.renderMultiColumnContent(self)
         else
@@ -5075,7 +5080,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 }
                 self._inventory = cInv
             end
+            self._ccEntry = cnt
             r.renderItemList(self)
+        end
+        if ZeD.ContainerControls then
+            local okF, eF = pcall(ZeD.ContainerControls.syncFocus, win, self)
+            if not okF then print("[ZeD] ContainerControls focus: " .. tostring(eF)) end
         end
 
         -- --------------------------------------------------------
@@ -5347,6 +5357,15 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)
+        -- the container buttons' row
+        do
+            local ccZone = self:hitZoneAt(x, y)
+            local ccId = ccZone and ccZone.id
+            if type(ccId) == "string" and ccId:sub(1, 3) == "cc:" and ZeD.ContainerControls then
+                ZeD.ContainerControls.press(self, tonumber(ccId:sub(4)))
+                return true
+            end
+        end
         local w = self:getWidth()
 
         -- Multi-container: column-aware scroll check
