@@ -191,7 +191,7 @@ function ZeD_MMHost:prerender()
         local anchor = { x = ax + vx, y = ay + yy, w = boxW, h = bh2 }
         local fn = function() self:openCombo(combo, anchor) end
         if idle then self._hits[#self._hits + 1] = { id = hid, x = anchor.x, y = anchor.y, w = boxW, h = bh2, fn = fn, sound = true } end
-        self._specs[#self._specs + 1] = { id = id, listRow = true, row = 10 + #self._specs, col = 1, fn = fn }
+        self._specs[#self._specs + 1] = { id = id, listRow = true, row = 10 + #self._specs, col = 1, fn = fn, x = vx, y = yy, w = boxW, h = bh2 }
     end
     local function button(id, text, ry, fn, disabled)
         local bh2 = T.px(U.STRIP_BTN_H)

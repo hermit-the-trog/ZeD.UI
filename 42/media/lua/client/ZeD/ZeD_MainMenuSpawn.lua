@@ -497,7 +497,7 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
     cy = cy + lh
     if not self.nameEntry:isVisible() then self.nameEntry:setVisible(true) end
     UI.styleEntry(self.nameEntry, ix, cy, iw, fh)
-    self._specs[#self._specs + 1] = { id = "field:name", listRow = true, row = 500, col = 1, fn = function() self:edit(self.nameEntry) end }
+    self._specs[#self._specs + 1] = { id = "field:name", listRow = true, row = 500, col = 1, fn = function() self:edit(self.nameEntry) end, x = ix, y = cy, w = iw, h = fh }
     self._hits[#self._hits + 1] = { id = "spawn:name", x = ax + ix, y = ay + cy, w = iw, h = fh, fn = function() self.nameEntry:focus() end }
     cy = cy + fh
     -- why the name will not do
@@ -519,7 +519,7 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
     local bx = ix + iw - bw
     local fw = bx - T.px(8) - ix
     UI.styleEntry(self.seedEntry, ix, cy, fw, fh)
-    self._specs[#self._specs + 1] = { id = "field:seed", listRow = true, row = 501, col = 1, fn = function() self:edit(self.seedEntry) end }
+    self._specs[#self._specs + 1] = { id = "field:seed", listRow = true, row = 501, col = 1, fn = function() self:edit(self.seedEntry) end, x = ix, y = cy, w = fw, h = fh }
     self._hits[#self._hits + 1] = { id = "spawn:seed", x = ax + ix, y = ay + cy, w = fw, h = fh, fn = function() self.seedEntry:focus() end }
     self._specs[#self._specs + 1] = { id = "seed:new", text = bText, fn = function() self:newSeed() end, variant = "default", row = 501, col = 2,
                                       x = bx, y = cy, w = bw, h = fh }

@@ -1301,6 +1301,8 @@ function ZeD.MapsTab.buildFocusables(win)
             h = mp:getHeight(),
             id = "map:canvas:cursor",
             isCanvasCursor = true,
+            mapWin = win,      -- the window that owns the map (the pop-out's copies keep it)
+            extraPrompts = { { glyph = "RT LT", label = "Zoom" }, { glyph = "L-STICK", label = "Move" } },
             onFocus = function(w, _el)
                 -- Seed cursor on first landing so the crosshair appears
                 -- immediately (not after first D-pad press).
@@ -1375,7 +1377,11 @@ end
 -- pans the world instead so the cursor sits at the margin and the map
 -- scrolls underneath (classic "scrolloff" pattern).
 
-local MAP_GP_STEP_PX       = 6    -- cursor pixels per D-pad press
+local MAP_GP_STEP_PX       = 6    -- cursor pixels per D-pad press (held: speeds up to MAP_GP_STEP_MAX)
+local MAP_GP_STEP_MAX      = 40   -- cursor pixels per press once the D-pad has been held a while
+local MAP_GP_STICK_PX_S    = 900  -- cursor pixels a second with the left stick fully over
+local MAP_GP_STICK_DEAD    = 0.22 -- left stick dead zone
+local MAP_GP_ZOOM_EVERY_MS = 110  -- one zoom step this often while a trigger is pulled
 local MAP_GP_PAN_MARGIN_PX = 48   -- viewport margin that triggers auto-pan
 local MAP_GP_HIT_RADIUS_PX = 16   -- annotation hit radius for X-press
 
@@ -1479,12 +1485,75 @@ function ZeD.MapsTab.gpContextMenuAtCursor(win)
         hit.idx)
 end
 
--- Derived step per D-pad press. Held constant for now; future refinement
--- could scale by zoom so fine-tune at high zoom feels less twitchy.
+-- Step per D-pad press: small for a tap, growing while the D-pad is held
+-- (presses closer than 250 ms apart are the hold's repeats). Director, Oct 15
+-- 2026: "Map is really hard to use on controller".
+local _gpStep = { t = 0, n = 0 }
 function ZeD.MapsTab.gpCursorStep()
     local T = ZeD.T
-    return T.px(MAP_GP_STEP_PX)
+    local now = getTimestampMs()
+    if now - _gpStep.t < 250 then _gpStep.n = _gpStep.n + 1 else _gpStep.n = 0 end
+    _gpStep.t = now
+    local px = math.min(MAP_GP_STEP_MAX, MAP_GP_STEP_PX + _gpStep.n * 3)
+    return T.px(px)
 end
+
+-- Zoom the map one step on the controller's cursor (dir -1 in, +1 out: the
+-- mouse wheel's sense)
+function ZeD.MapsTab.gpZoom(win, dir)
+    local mp = win and win._worldMapPanel
+    if not (mp and mp.mapAPI) then return end
+    mp:seedGpCursor()
+    mp.mapAPI:zoomAt(mp._gpCursorX, mp._gpCursorY, dir)
+end
+
+-- Every tick, while the map's canvas has the controller: the left stick moves
+-- the cursor (panning at the edges), the triggers zoom on it (RT in, LT out).
+local _pad = { t = 0, zoomAt = 0, rest = {} }
+local function _triggerPull(cid, axis)
+    local v = getControllerAxisValue(cid, axis) or 0
+    local key = cid * 8 + axis
+    local rest = _pad.rest[key]
+    if rest == nil or v < rest then rest = v; _pad.rest[key] = v end
+    local travel = (rest < -0.5) and 2 or 1          -- XInput triggers rest at -1 (see InputModeDetector)
+    return (v - rest) / travel
+end
+local function _mapPadTick()
+    local now = getTimestampMs()
+    local dt = math.min(0.1, (now - _pad.t) / 1000)
+    _pad.t = now
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    local Det = ZeD.Input and ZeD.Input.Detector
+    if not (Focus and Focus.getFocusedWindow and Det and Det.getMode and Det.getMode() == "gamepad") then return end
+    local fw = Focus.getFocusedWindow()
+    local el = fw and Focus.getFocusedElement and Focus.getFocusedElement(fw)
+    if not (el and el.isCanvasCursor and el.mapWin) then return end
+    local win = el.mapWin
+    local mp = win._worldMapPanel
+    if not (mp and mp:isReallyVisible()) then return end
+    local jd = getJoypadData and getJoypadData(0)
+    local cid = jd and jd.id
+    if not cid then return end
+    -- the left stick
+    local sx = getControllerAxisValue(cid, 0) or 0
+    local sy = getControllerAxisValue(cid, 1) or 0
+    local mag = math.sqrt(sx * sx + sy * sy)
+    if mag > MAP_GP_STICK_DEAD then
+        local k = ((math.min(1, mag) - MAP_GP_STICK_DEAD) / (1 - MAP_GP_STICK_DEAD))
+        local speed = ZeD.T.px(MAP_GP_STICK_PX_S) * k * k * dt / mag
+        ZeD.MapsTab.gpMoveCursor(win, sx * speed, sy * speed)
+    end
+    -- the triggers
+    local lt, rt = _triggerPull(cid, 4), _triggerPull(cid, 5)
+    local dir = (rt > 0.3 and -1) or (lt > 0.3 and 1) or 0
+    if dir ~= 0 and now >= _pad.zoomAt then
+        ZeD.MapsTab.gpZoom(win, dir)
+        _pad.zoomAt = now + MAP_GP_ZOOM_EVERY_MS
+    elseif dir == 0 then
+        _pad.zoomAt = 0
+    end
+end
+if Events and Events.OnTick then Events.OnTick.Add(_mapPadTick) end
 
 -- ============================================================================
 -- POP-OUT (S123) -- "unfold" the map into a large centred window.

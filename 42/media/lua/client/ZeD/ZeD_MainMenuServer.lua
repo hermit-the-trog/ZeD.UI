@@ -603,7 +603,8 @@ function ZeD_MMServer:drawList(id, x, y, w, h, rows, sel, onPick, empty, row0, c
     for i, r in ipairs(rows) do
         local ry = vy - sc + (i - 1) * rh
         local fid = "l:" .. id .. ":" .. i
-        self._specs[#self._specs + 1] = { id = fid, listRow = true, row = (row0 or 100) + i, col = col or 1, fn = function() onPick(i) end }
+        self._specs[#self._specs + 1] = { id = fid, listRow = true, row = (row0 or 100) + i, col = col or 1, fn = function() onPick(i) end,
+                                          x = x + T.px(1), y = ry, w = rw, h = rh, listId = "pick:" .. id, clip = { x = x, y = vy, w = w, h = vh }, chosen = (i == sel) }
         if ry + rh > vy and ry < vy + vh then
             local hid = "srvset:" .. id .. ":" .. i
             if gp and self.focusId == fid then self:drawRect(x + T.px(1), ry, rw, rh, 0.55, ac.r, ac.g, ac.b)

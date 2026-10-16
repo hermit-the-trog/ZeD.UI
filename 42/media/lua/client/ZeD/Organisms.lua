@@ -304,6 +304,8 @@ local function _promptsFor(el)
     if el.onContextMenu  then out[#out + 1] = { glyph = "X", label = el.promptX or labels.x or "Menu" }
     elseif el.onReset    then out[#out + 1] = { glyph = "X", label = "Reset" } end
     if el.onCancel       then out[#out + 1] = { glyph = "B", label = el.promptB or labels.b or "Back" } end
+    -- controls the element answers to beyond the face buttons (the map: the triggers zoom, the stick moves)
+    if el.extraPrompts then for _, p in ipairs(el.extraPrompts) do out[#out + 1] = p end end
     out[#out + 1] = { glyph = "Y", label = "Windows" }
     return out
 end

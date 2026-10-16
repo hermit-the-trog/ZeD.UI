@@ -25,6 +25,7 @@
 
 require "ISUI/ISPanel"
 require "ZeD/Organisms"
+require "ZeD/Input/SpatialNav"
 
 ZeD = ZeD or {}
 ZeD.MainMenu = ZeD.MainMenu or {}
@@ -678,6 +679,11 @@ local function hitAt(panels, mx, my)
                 if mx >= h.x and mx < h.x + h.w and my >= h.y and my < h.y + h.h then return h end
             end
         end
+        -- a window is solid: what lies under it (the desktop's icons) does not answer through it
+        if p and p.blocksBelow and p:isVisible() then
+            local ax, ay = p:getAbsoluteX(), p:getAbsoluteY()
+            if mx >= ax and mx < ax + p.width and my >= ay and my < ay + p.height then return nil end
+        end
     end
     return nil
 end
@@ -772,6 +778,12 @@ function ZeD_MMDesk:createChildren()
     self.bar = ZeD_MMBar:new()
     self.bar:initialise()
     self:addChild(self.bar)
+    -- the desktop's icons (ZeD_MainMenuDesktop.lua), under every window
+    if ZeD_MMIcons then
+        self.icons = ZeD_MMIcons:new()
+        self.icons:initialise()
+        self:addChild(self.icons)
+    end
     self.win = ZeD_MMWindow:new("main")
     self.win:initialise()
     self:addChild(self.win)
@@ -845,7 +857,7 @@ function ZeD_MMDesk:update()
     if MM.powerOff then
         MM.powerOffTick()   -- a game starting: nothing answers until the engine takes over
     else
-        if not MM.waking then MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self }) end   -- nothing answers in the dark
+        if not MM.waking then MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self.icons, self }) end   -- nothing answers in the dark
     end
     -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
@@ -1266,6 +1278,7 @@ function ZeD_MMWindow:new(kind)
     o._specs = {}
     o._hits = {}
     o.ctx = { hot = nil, press = nil, wasDown = false }   -- the pause window's own pointer
+    o.blocksBelow = true   -- (hitAt: the desktop's icons do not answer through a window)
     return o
 end
 
@@ -1429,8 +1442,9 @@ function ZeD_MMWindow:build()
     return specs
 end
 
--- the controller's focus: rows of live buttons
-function ZeD_MMWindow:rows()
+-- the controller's focus: rows of live buttons (named focusRows: the Mods screen's
+-- rows() is its list of mods and used to shadow this, leaving its D-pad dead)
+function ZeD_MMWindow:focusRows()
     local rows, byRow = {}, {}
     for _, s in ipairs(self._specs) do
         if not s.disabled then
@@ -1445,7 +1459,7 @@ function ZeD_MMWindow:rows()
 end
 
 function ZeD_MMWindow:focusPos()
-    local rows = self:rows()
+    local rows = self:focusRows()
     for ri, r in ipairs(rows) do
         for ci, s in ipairs(r) do
             if s.id == self.focusId then return rows, ri, ci end
@@ -1455,9 +1469,80 @@ function ZeD_MMWindow:focusPos()
     return rows, nil, nil
 end
 
+-- The scrolled list (or scrolled pane) a control sits in, if any: the window's
+-- main list (rows with `ry`), a named pick list (`listId` + `clip`), a pane's
+-- buttons (`clipTop` / `clipBot`).
+function ZeD_MMWindow:listOf(s)
+    if s.listId then return s.listId end
+    if s.ry then return "list" end
+    if s.clipTop then return "pane" end
+    return nil
+end
+
+-- A control's rectangle in the window: its own, or for a row of the main list
+-- its place in the list. A control scrolled out of sight only counts when the
+-- move starts inside the same list (the list scrolls to follow); nothing out
+-- of sight is jumped to from outside.
+function ZeD_MMWindow:specRect(s, from)
+    local r, top, bot
+    if s.x and s.y and s.w and s.h then
+        r = { x = s.x, y = s.y, w = s.w, h = s.h }
+        if s.clip then top, bot = s.clip.y, s.clip.y + s.clip.h
+        elseif s.clipTop then top, bot = s.clipTop, s.clipBot end
+    else
+        local L = self._list
+        if s.ry and s.rh and L and L.x and L.y and L.w and L.h then
+            r = { x = L.x, y = L.y + s.ry - (self.scroll or 0), w = L.w, h = s.rh }
+            top, bot = L.y, L.y + L.h
+        end
+    end
+    if not r then return nil end
+    if top and not (r.y + r.h > top and r.y < bot) then
+        local lid = self:listOf(s)
+        if not (from and lid and self:listOf(from) == lid) then return nil end
+    end
+    return r
+end
+
+-- a list's chosen row (the one its details show), when it is in sight
+function ZeD_MMWindow:chosenRow(lid)
+    for _, s in ipairs(self._specs or {}) do
+        if not s.disabled and self:listOf(s) == lid then
+            local chosen = s.chosen == true or (s.key ~= nil and s.key == self.sel) or (s.index ~= nil and (s.index == self.sel or s.index == self.oSel))
+                or (s.rowRef ~= nil and type(s.rowRef) == "table" and s.rowRef.key ~= nil and s.rowRef.key == self.sel)
+                or (s.pname ~= nil and s.pname == (self.psel or false))
+            if chosen and self:specRect(s) then return s end
+        end
+    end
+    return nil
+end
+
+-- D-pad: spatial (ZeD.SpatialNav: the nearest control lined up that way, else
+-- the nearest that way at all); the old row grid only where controls have no
+-- rectangles (the New Game icon grid, the server pick lists)
 function ZeD_MMWindow:joyDir(dir)
     local rows, ri, ci = self:focusPos()
     if not ri then return end
+    local cur = rows[ri][ci]
+    local fr = self:specRect(cur)
+    if fr and ZeD.SpatialNav then
+        local cands = {}
+        for _, s in ipairs(self._specs or {}) do
+            if s ~= cur and not s.disabled then
+                local r = self:specRect(s, cur)
+                if r then cands[#cands + 1] = { spec = s, rect = r } end
+            end
+        end
+        local best = ZeD.SpatialNav.pick(fr, cands, dir, function(e) return e.rect end)
+        if best then
+            local spec = best.spec
+            -- coming into a list from outside it: its chosen row, not just the nearest one
+            local lid = self:listOf(spec)
+            if lid and lid ~= "pane" and lid ~= self:listOf(cur) then spec = self:chosenRow(lid) or spec end
+            if spec.id ~= self.focusId then self.focusId = spec.id; hoverSound() end
+            return
+        end
+    end
     if dir == "up" or dir == "down" then
         local nr = ri + (dir == "up" and -1 or 1)
         if nr < 1 or nr > #rows then return end
@@ -1640,9 +1725,16 @@ function ZeD_MMWindow:onEnterFromGame()
     self.ctx.hot, self.ctx.press = nil, nil
 end
 
--- the close box: Quit on the monitor, Resume in game
+-- the close box: on the monitor it closes the window and leaves the desktop (its icons
+-- open everything again; Quit is in File and on the power button); in game, Resume
 function ZeD_MMWindow:close()
-    if self.kind == "main" then MM.act.askQuit() else MM.act.resume() end
+    if self.kind == "main" then
+        if self.confirm then self:setConfirm(false) end
+        MM.clickSound()
+        MM.showView("desktop")
+    else
+        MM.act.resume()
+    end
 end
 
 function ZeD_MMWindow:update()
@@ -1739,6 +1831,7 @@ end
 function MM.activeWindow()
     local r = MM.root
     if not r then return nil end
+    if MM.view == "desktop" then return r.icons end   -- every window closed: the desktop's icons take the keys and the pad
     if MM.view == "load" then return r.loadWin end
     if MM.view == "newgame" then return r.newWin end
     if MM.view == "mods" then return r.modsWin end

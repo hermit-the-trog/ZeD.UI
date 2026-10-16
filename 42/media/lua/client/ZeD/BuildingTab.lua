@@ -237,6 +237,7 @@ function ZeD.BuildingTab.gatherData(playerObj, win)
     end
 
     local data = { recipes = recipes, categories = _categories, flatRecipes = _flatRecipes }
+    CC.carryStatus(win._buildCache, data)
     win._buildCache = data
     return data
 end
@@ -390,7 +391,11 @@ function ZeD.BuildingTab.render(panel, win, x, y, w, h)
     -- Throttled data refresh
     local data = ZeD.BuildingTab.gatherData(win._playerObj, win)
 
-    -- Background ingredient scan (15 recipes/frame, round-robin)
+    -- Can each be built now? Vanilla's build logic answers for every recipe
+    -- (CC.logicScan); the quick round-robin scan covers the rest.
+    if CC.logicScan(data, win, "build", function() return BuildLogic.new(win._playerObj, nil, nil) end) then
+        state.filterDirty = true
+    end
     CC.backgroundIngredientScan(data, win, "build")
 
     -- Gather detail for selected recipe
