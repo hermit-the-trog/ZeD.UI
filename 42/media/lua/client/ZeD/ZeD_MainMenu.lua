@@ -931,22 +931,34 @@ end
 -- live facts the way an About This Macintosh box gives them. The game's build shows here
 -- and nowhere else on the menu.
 local ABOUT_W = 340   -- design units: the block's text width
-local ABOUT_BLURB = "I wrote this kernel myself, at this desk, one night at a time, because the day is coming "
-    .. "when the big systems quit and nobody comes to fix them. No licence keys. No phone line. No "
-    .. "company in California that can switch it off. It boots from one floppy, it runs on a car "
-    .. "battery, and it keeps an honest count of what you have and where you put it. Information "
-    .. "wants to be free. Batteries want to be charged. Keep a backup in the cellar."
+-- The owner's words, typed by the owner (director, Oct 15 2026: their own draft, then "Dont
+-- use LLM patterns. It should sound disorganized"). Kept rough on purpose: the spelling,
+-- the missing apostrophes, the run-on, the asides. Do not tidy it.
+local ABOUT_PARAS = {
+    "Zero Day OS is a homemade SECURE kernal of Ynix made by some hard working freedom loving good "
+        .. "guys (mostly me). FBI and you government slime, if you are reading this you must have got "
+        .. "me--but I got you. This thing has state of the art anti phone tap programming in the BIOS "
+        .. "AND we just upgraded from 8 to 16bit encryption that my cousins elementary school friends "
+        .. "girlfriends uncle got out of MIT. dont ask. Suck on it commies!! You cant crack ZeD-OS. "
+        .. "also it runs off the truck battery if it comes to that. LONG LIVE FREEDOM",
+}
 local function aboutRows()
     local T = ZeD.T
     local f2, f3 = T.fontF2, T.fontF3
     local hf = ZeD.Font.sdf.head
     local z = 22 * (T.scale or 1) / (hf.face or 64)
     local rows = { { "title", "Zero Day OS", nil, math.floor(ZeD.Text.height(hf, z)) + T.px(2), z } }
-    rows[#rows + 1] = { "sub", "The ZeD kernel. Do not unplug.", nil, fontH(f3) + T.px(8) }
-    for _, l in ipairs(ZeD.Atoms.wrapText(ABOUT_BLURB, f2, T.px(ABOUT_W))) do rows[#rows + 1] = { "para", l, nil, fontH(f2) + T.px(2) } end
+    rows[#rows + 1] = { "sub", "secure Ynix kernal -- DO NOT UNPLUG", nil, fontH(f3) + T.px(8) }
+    for i, p in ipairs(ABOUT_PARAS) do
+        if i > 1 then rows[#rows + 1] = { "gap", nil, nil, T.px(6) } end
+        local kind = "para"
+        for _, l in ipairs(ZeD.Atoms.wrapText(p, f2, T.px(ABOUT_W))) do rows[#rows + 1] = { kind, l, nil, fontH(f2) + T.px(2) } end
+    end
     rows[#rows + 1] = { "gap", nil, nil, T.px(8) }
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
     local up = math.floor((now() - (MM._bootMs or now())) / 60000)
+    rows[#rows + 1] = { "kv", "ENCRYPTION", "16-bit (was 8)", T.px(18) }
+    rows[#rows + 1] = { "kv", "PHONE TAPS", "None found", T.px(18) }
     rows[#rows + 1] = { "kv", "UPTIME", (up >= 60) and string.format("%d h %02d min", math.floor(up / 60), up % 60) or (up .. " min"), T.px(18) }
     rows[#rows + 1] = { "kv", "DISPLAY", sw .. " x " .. sh .. DOT .. string.format("%.2fx", T.scale or 1), T.px(18) }
     rows[#rows + 1] = { "kv", "GAME", "Build " .. MM.version(), T.px(18) }
@@ -1064,7 +1076,7 @@ function ZeD_MMDrop:prerender()
             local rows = aboutRows()
             local ly = cy + T.px(10)
             local f2 = T.fontF2
-            local kvX = padX + T.px(72)
+            local kvX = padX + T.px(96)   -- room for the longest label (ENCRYPTION, PHONE TAPS)
             for _, r in ipairs(rows) do
                 local kind = r[1]
                 if kind == "title" then
@@ -1073,8 +1085,8 @@ function ZeD_MMDrop:prerender()
                 elseif kind == "sub" then
                     local d = T.textDim
                     self:drawText(r[2], padX, ly, d.r, d.g, d.b, d.a or 1, f3)
-                elseif kind == "para" then
-                    local c = T.text
+                elseif kind == "para" or kind == "shout" then
+                    local c = (kind == "shout") and T.accent or T.text
                     self:drawText(r[2], padX, ly, c.r, c.g, c.b, c.a or 1, f2)
                 elseif kind == "kv" then
                     local a, c = T.accent, T.text
