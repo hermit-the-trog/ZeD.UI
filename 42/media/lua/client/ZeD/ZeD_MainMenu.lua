@@ -62,6 +62,14 @@ local POWER    = { 126, 243, 10, 10 }  -- the case's power button: Quit
 local WALLPAPER, WALLPAPER_ZAP = TEX .. "wallpaper.png", TEX .. "wallpaper_lightning.png"
 local WALL_DIM = 0.55        -- the wallpaper sits back behind the windows
 
+-- The wallpaper choice (director, Oct 16 2026: "an option to change the desktop wallpaper on
+-- the main menu to the OG and new PZ main screen art"): "original", the painting above, or
+-- "new", Build 42's own title screen, a video (media/videos/title_screen_background.bik)
+-- played on the tube. With the game's video effects off the painting stands in. Kept in
+-- Zomboid/Lua/ZeD_wallpaper.txt.
+local WALL_FILE, WALL_VIDEO = "ZeD_wallpaper.txt", "title_screen_background.bik"
+local WALL_VIDEO_W, WALL_VIDEO_H = 1280, 720
+
 -- ---------------------------------------------------------------------------
 -- DESIGN UNITS (1 unit = 1 px at 1080p; T.px scales them)
 -- ---------------------------------------------------------------------------
@@ -299,9 +307,53 @@ function MM.drawDesk(p, L, t)
     end
 end
 
+function MM.wallpaper()
+    if MM._wall == nil then
+        MM._wall = "original"
+        local r = getFileReader(WALL_FILE, false)
+        if r then
+            local l = r:readLine()
+            r:close()
+            if l == "new" then MM._wall = "new" end
+        end
+    end
+    return MM._wall
+end
+
+function MM.setWallpaper(which)
+    MM._wall = which
+    local wr = getFileWriter(WALL_FILE, true, false)
+    if wr then wr:write(which .. "\n"); wr:close() end
+    clickSound()
+end
+
+-- the title video, started once (nil when it cannot play)
+local function wallVideo()
+    if MM._wallVid == nil then
+        MM._wallVid = false
+        local ok, v = pcall(getVideo, WALL_VIDEO, WALL_VIDEO_W, WALL_VIDEO_H)
+        if ok and v then MM._wallVid = v end
+    end
+    return MM._wallVid or nil
+end
+
 -- The painting fills the tube (both are 4:3), lightning over it, then dimmed.
 function MM.drawWallpaper(p, L, t)
     local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
+    -- the new one: Build 42's title video, cut to the tube's 4:3 (its middle, where the room is)
+    if MM.wallpaper() == "new" and getCore():getOptionDoVideoEffects() then
+        local v = wallVideo()
+        if v then
+            p:drawRect(tx, ty, tw, th, 1, 0, 0, 0)
+            v:RenderFrame()
+            local vw = math.floor(th * 16 / 9)
+            p:setStencilRect(tx, ty, tw, th)
+            p:drawTextureScaled(v, tx - math.floor((vw - tw) / 2), ty, vw, th, 1, 1, 1, 1)
+            p:clearStencilRect()
+            p:drawRect(tx, ty, tw, th, WALL_DIM, 0, 0, 0)
+            return
+        end
+    end
     local a = tex(WALLPAPER, true)
     if a then p:drawTextureScaledAspect(a, tx, ty, tw, th, 1, 1, 1, 1) end
     local zap = zapLevel(t)
@@ -664,7 +716,8 @@ MM.act = {
     tutorial  = function() fire("tutorialOption") end,
     options   = function() MM.openOptions() end,   -- ZeD_MainMenuOptions.lua (main menu and in game)
     mods      = function() MM.openMods() end,   -- the mod manager on the monitor (ZeD_MainMenuMods.lua)
-    workshop  = function() fire("workshopOption") end,
+    -- (vanilla's WORKSHOP item hides the menu after opening its screen: the monitor's window opens directly)
+    workshop  = function() MM.ctx.open = nil; if MM.views and ms() and ms().workshopSubmit then MM.showView("workshop") else fire("workshopOption") end end,
     credits   = function() MM.ctx.open = nil; MM.clickSound(); MM.showView("credits") end,   -- ZeD_MainMenuCredits.lua (vanilla's item hides the menu after opening its screen)
     tos       = function() MM.ctx.open = nil; local m = ms(); if m then m:onClickTermsOfService() end end,
     reportBug = function() MM.ctx.open = nil; local m = ms(); if m then m:onClickReportBug() end end,
@@ -731,6 +784,10 @@ function MM.menuItems(key)
     elseif key == "settings" then
         local t = { { text = "Options", fn = A.options }, { text = "Mods (" .. MM.modCount() .. " on)", fn = A.mods } }
         if m and m.workshopOption then t[#t + 1] = { text = "Workshop", fn = A.workshop } end
+        local wall = MM.wallpaper()
+        t[#t + 1] = "-"
+        t[#t + 1] = { text = "Original wallpaper", check = wall == "original", fn = function() MM.ctx.open = nil; MM.setWallpaper("original") end }
+        t[#t + 1] = { text = "New wallpaper", check = wall == "new", fn = function() MM.ctx.open = nil; MM.setWallpaper("new") end }
         return t
     elseif key == "debug" then
         local t = { { text = "Reset Lua", fn = A.resetLua } }
@@ -804,6 +861,19 @@ end
 -- ---------------------------------------------------------------------------
 local function drawBtn(p, b, hot, focus, pressed)
     local T = ZeD.T
+    if b.icon then   -- an icon button (its hover hint is the window's to draw)
+        local ac = T.accent
+        if not b.disabled then
+            if focus then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.55)
+            elseif hot or b.on then ZeD.Atoms.fillRounded(p, b.x, b.y, b.w, b.h, ac.r, ac.g, ac.b, 0.22) end
+        end
+        local bs = T.borderS
+        p:drawRectBorder(b.x, b.y, b.w, b.h, (bs.a or 1) * (b.disabled and 0.38 or 1), bs.r, bs.g, bs.b)
+        local isz = math.min(b.w, b.h) - T.px(8)
+        ZeD.Atoms.drawIcon(p, tex(b.icon, true), b.x + math.floor((b.w - isz) / 2), b.y + math.floor((b.h - isz) / 2), isz, b.disabled and 0.38 or 1,
+            (b.variant == "danger") and T.danger or nil)
+        return
+    end
     if b.disabled then
         local sb, st = T.borderS, T.text
         T.borderS = ZeD.colorAlpha(sb, (sb.a or 1) * 0.38)
@@ -1200,6 +1270,10 @@ function ZeD_MMDrop:prerender()
             local c = T.text
             local a = (c.a or 1) * (it.disabled and 0.38 or 1)
             self:drawText(it.text, padX, cy + math.floor((rowH - fontH(font)) / 2), c.r, c.g, c.b, a, font)
+            if it.check then   -- (the chosen one of a set: a lit square in the margin, as System 7 ticks it)
+                local sq = T.px(6)
+                self:drawRect(math.floor((padX - sq) / 2), cy + math.floor((rowH - sq) / 2), sq, sq, a, c.r, c.g, c.b)
+            end
             local top, bot = math.max(cy, 0), math.min(cy + rowH, h)
             if bot > top then
                 self._hits[#self._hits + 1] = { id = id, x = ax, y = ay + top, w = w, h = bot - top, fn = it.fn, disabled = it.disabled, inDrop = true }
