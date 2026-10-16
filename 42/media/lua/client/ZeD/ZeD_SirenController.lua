@@ -304,6 +304,7 @@ function S.toggle(character)
     if prop and prop:isReallyVisible() then prop:close(); return end
     local v = character:getVehicle()
     if not (v and v:hasLightbar()) then return end
+    if ZeD.CarRadio and ZeD.CarRadio.closeFor then ZeD.CarRadio.closeFor(pn) end   -- one prop up close at a time
     if not prop or prop.character ~= character then
         prop = ZeD_SirenController:new(character)
         prop:initialise()

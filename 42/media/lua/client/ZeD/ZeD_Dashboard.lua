@@ -16,17 +16,26 @@
 --
 -- Gamepad: registers as a FocusManager window when the driver is seated and no
 -- ZeD window owns focus. D-pad cone-nav across the controls, A fires, X = the
--- secondary (remove key, tune down, volume down, store preset), B releases.
+-- secondary (remove key, tune down, volume, store preset), B releases.
 -- Passengers see the dash read-only. HOOK_MAP.md #2 / #4.
+--
+-- The radio slot shows the radio that is actually fitted (Oct 15 2026, "match
+-- the dash to the radio"): the small face of the same radio the wheel's Device
+-- Options brings up close (ZeD_CarRadio.lua), driven by the same code
+-- (ZeD_RadioOps.lua) and vanilla's own presets. A click on its display brings
+-- the radio up close.
 -- ============================================================================
 
 require "ZeD/ZeD_Panel"
 require "ZeD/DashPlates"
+require "ZeD/RadioPlates"
+require "ZeD/ZeD_RadioOps"
 
 ZeD = ZeD or {}
 ZeD.Dashboard = ZeD.Dashboard or {}
 local D = ZeD.Dashboard
 local PL = ZeD.DashPlates
+local RO = ZeD.RadioOps
 
 local BASE_W, BASE_H = 800, 172
 local TEXDIR = "media/textures/ZeD/dash/"
@@ -195,20 +204,14 @@ local function _state(vehicle, chr)
     local mag = math.abs(st.heaterTemp)
     st.fan = (not st.heaterOn) and 0 or (mag >= 21 and 3 or (mag >= 12 and 2 or 1))
     st.ac = st.heaterOn and st.heaterTemp < 0
+    -- the fitted radio, read the same way its close-up reads it (ZeD_RadioOps)
     local radio  = _safe(function() return vehicle:getPartById("Radio") end, nil)
     st.radioPart = radio
-    st.radioItem = radio and _safe(function() return radio:getInventoryItem() end, nil) or nil
-    st.hasRadio  = st.radioItem ~= nil
-    local dd = st.hasRadio and _safe(function() return radio:getDeviceData() end, nil) or nil
-    st.dd = dd
-    st.radioOn   = dd and _safe(function() return dd:getIsTurnedOn() end, false) or false
-    st.channel   = dd and _safe(function() return dd:getChannel() end, 0) or 0
-    st.volume    = dd and _safe(function() return dd:getDeviceVolume() end, 0.5) or 0.5
-    st.radioKind = "none"
-    if st.radioItem then
-        local ft = _safe(function() return st.radioItem:getFullType() end, "")
-        st.radioKind = ft:find("MakeShift") and "makeshift" or "native"
-    end
+    st.radio     = radio and RO.read(radio) or nil
+    st.hasRadio  = st.radio ~= nil
+    st.radioOn   = st.radio ~= nil and st.radio.on
+    st.radioSwitch = st.radio ~= nil and st.radio.switchOn
+    st.radioKind = st.radio and st.radio.kind or "none"
     st.cruise    = _safe(function() return vehicle:isRegulator() end, false)
     st.cruiseSpeed = _safe(function() return vehicle:getRegulatorSpeed() end, 0)
     st.hasLightbar  = _safe(function() return vehicle:hasLightbar() end, false)
@@ -254,36 +257,23 @@ ACT.fan    = function(chr, v, st, secondary) if secondary then ACT.fandn(chr, v,
 ACT.mode   = function() end
 ACT.lbar   = function(chr, v) sendClientCommand(chr, "vehicle", "setLightbarLightsMode", { mode = (v:getLightbarLightsMode() + 1) % 4 }) end
 ACT.siren  = function(chr, v) pcall(function() getSoundManager():playUISound("VehicleSetSiren") end); sendClientCommand(chr, "vehicle", "setLightbarSirenMode", { mode = (v:getLightbarSirenMode() + 1) % 4 }) end
--- radio (device data on the vehicle's Radio part)
-local MINHZ, MAXHZ, STEP = 88000, 108000, 100
-local function _chanName(hz)
-    local zr = getZomboidRadio and getZomboidRadio()
-    if zr and zr.getChannelName then local n = _safe(function() return zr:getChannelName(hz) end, nil); if n and n ~= "" and not tostring(n):upper():find("UNKNOWN") then return tostring(n) end end
-    return nil
+-- radio: the same calls as the radio up close (vanilla's radio action code, vanilla's presets)
+local function _rp(st) return st.radio and st.radioPart end
+ACT.vol  = function(chr, v, st, secondary)
+    local p = _rp(st); if not p then return end
+    if secondary then RO.volStep(chr, p, 1, true) else RO.power(chr, p) end   -- VOL pushes for power; X turns it up (past full it starts over)
 end
-ACT.pwr  = function(chr, v, st) if st.dd then pcall(function() getSoundManager():playUISound("VehicleRadioButton") end); st.dd:setIsTurnedOn(not st.dd:getIsTurnedOn()) end end
-ACT.vol  = function(chr, v, st, secondary) if st.dd then local cur = st.dd:getDeviceVolume() or 0.5; local nv = secondary and (cur - 0.1) or (cur + 0.1); if nv > 1.001 then nv = 0 end; if nv < 0 then nv = 1 end; st.dd:setDeviceVolume(nv) end end
-ACT.tune = function(chr, v, st, secondary) if st.dd then local cur = st.dd:getChannel() or MINHZ; local nv = cur + (secondary and -STEP or STEP); if nv > MAXHZ then nv = MINHZ end; if nv < MINHZ then nv = MAXHZ end; st.dd:setChannel(nv) end end
-ACT.seek = function(chr, v, st, secondary)
-    if not st.dd then return end
-    local cur = st.dd:getChannel() or MINHZ
-    for i = 1, 200 do
-        cur = cur + (secondary and -STEP or STEP)
-        if cur > MAXHZ then cur = MINHZ end
-        if cur < MINHZ then cur = MAXHZ end
-        if _chanName(cur) then st.dd:setChannel(cur); return end
-    end
-end
-ACT.scan = ACT.seek
-ACT.band = function() end
-ACT.set  = function() end
-local function _presets(v) local md = v:getModData(); md.zedPresets = md.zedPresets or {}; return md.zedPresets end
+ACT.pwr  = function(chr, v, st) local p = _rp(st); if p then RO.power(chr, p) end end
+ACT.tune = function(chr, v, st, secondary) local p = _rp(st); if p then RO.tuneStep(chr, p, secondary and -1 or 1) end end
+ACT.seek = function(chr, v, st, secondary) local p = _rp(st); if p and st.radio.on then RO.seek(chr, p, secondary and -1 or 1) end end
+ACT.chup = function(chr, v, st) local p = _rp(st); if p and st.radio.on then RO.chStep(chr, p, 1) end end
+ACT.chdn = function(chr, v, st) local p = _rp(st); if p and st.radio.on then RO.chStep(chr, p, -1) end end
+ACT.mic  = function(chr, v, st) local p = _rp(st); if p then RO.mic(chr, p) end end
+ACT.radio = function(chr, v, st) local p = _rp(st); if p and ZeD.CarRadio then ZeD.CarRadio.toggle(chr, p) end end
 for i = 1, 6 do
     ACT["preset" .. i] = function(chr, v, st, secondary)
-        if not st.dd then return end
-        local ps = _presets(v)
-        if secondary or not ps[i] then ps[i] = st.dd:getChannel(); pcall(function() getSoundManager():playUISound("VehicleRadioButton") end); return end
-        st.dd:setChannel(ps[i])
+        local p = _rp(st); if not (p and st.radio.on) then return end
+        if secondary or not st.radio.presets[i] then RO.store(chr, p, i) else RO.recall(chr, p, i) end
     end
 end
 
@@ -296,11 +286,14 @@ local function _promptFor(id, st)
     if id == "cruise" then return st.cruise and "Cruise off" or "Cruise set" end
     if id == "heat" then return st.heaterOn and "Heater off" or "Heater on" end
     if id == "ac" then return st.ac and "A/C off" or "A/C" end
-    if id == "pwr" then return st.radioOn and "Radio off" or "Radio on" end
-    if id == "vol" then return "Volume +" end
+    if id == "pwr" or id == "vol" then return st.radioSwitch and "Radio off" or "Radio on" end
     if id == "tune" then return "Tune +" end
     if id == "seek" or id == "scan" then return "Seek" end
     if id:sub(1, 6) == "preset" then return "Preset" end
+    if id == "chup" then return "Channel +" end
+    if id == "chdn" then return "Channel -" end
+    if id == "mic" then return "Microphone" end
+    if id == "radio" then return "Radio up close" end
     if id == "temp" or id == "tempup" then return "Warmer" end
     if id == "tempdn" then return "Cooler" end
     if id == "fan" or id == "fanup" then return "Fan +" end
@@ -311,7 +304,7 @@ local function _promptFor(id, st)
     if id == "off" then return "Climate off" end
     return "Press"
 end
-local SECONDARY = { ignition = "Remove key", vol = "Volume -", tune = "Tune -", temp = "Cooler", fan = "Fan -", seek = "Seek back", scan = "Seek back",
+local SECONDARY = { ignition = "Remove key", vol = "Volume", tune = "Tune -", temp = "Cooler", fan = "Fan -", seek = "Seek back", scan = "Seek back",
     preset1 = "Store", preset2 = "Store", preset3 = "Store", preset4 = "Store", preset5 = "Store", preset6 = "Store" }
 
 -- ---------------------------------------------------------------------------
@@ -558,57 +551,34 @@ end
 
 -- ---- console overlay ----
 local function clamp01(v) return math.max(0, math.min(1, v or 0)) end
-function ZeD_Dashboard:_drawHeadUnit(A, st, ox, oy)
-    local on = st.radioOn
-    local dsp = A.display
-    if dsp then
-        local freq = string.format("%.1f", (st.channel or 0) / 1000)
-        local name = on and (_chanName(st.channel) or "") or ""
-        if dsp.kind == "delco" then
-            if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, freq, 11, dsp.color, "r"); self:_text(dsp.station.x + ox, dsp.station.y + oy, self:_fit(name:upper(), 4, dsp.freq.x - dsp.station.x - self:_measure(freq, 11) - 6), 4, dsp.color, "l"); self:_rect(dsp.stereo.x + ox, dsp.stereo.y + oy, 3, 3, dsp.color); self:_text(dsp.stereo.tx + ox, dsp.stereo.ty + oy, "ST", 3, dsp.color, "l") end
-        elseif dsp.kind == "sony" then
-            if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, "FM " .. freq, 7, dsp.color, "l"); self:_text(dsp.station.x + ox, dsp.station.y + oy, self:_fit(name:upper(), 4, dsp.station.x - dsp.freq.x - self:_measure("FM " .. freq, 7) - 6), 4, dsp.color, "r") end
-        elseif dsp.kind == "kenwood" then
-            if on then self:_text(dsp.freq.x + ox, dsp.freq.y + oy, freq, 14, dsp.color, "l", true); self:_text(dsp.fm.x + ox, dsp.fm.y + oy, "FM", 5, dsp.color, "l"); self:_text(dsp.st.x + ox, dsp.st.y + oy, "ST", 5, dsp.color, "l") end
-        elseif dsp.kind == "dial" then
-            if on then self:_rect(dsp.x + ox, dsp.y + oy, dsp.w, dsp.h, dsp.litBg, 0.85) end
-            local sc = dsp.scale; local f = math.max(88, math.min(108, (st.channel or 88000) / 1000)); local nx = sc.x + math.floor(sc.w * (f - 88) / 20 + 0.5)
-            self:_rect(nx + ox, sc.y + oy, 1, sc.h, "#D02020")
-            if on then self:_rect(dsp.stereo.x + ox, dsp.stereo.y + oy, 3, 3, "#44EE44"); self:_text(dsp.stereo.tx + ox, dsp.stereo.ty + oy, "STEREO", 3, "#aaaaaa", "l") end
-        elseif dsp.kind == "makeshift" then
-            self:_text(dsp.x + dsp.w / 2 + ox, dsp.y + 4 + oy, on and freq or "---.-", 8, dsp.color, "c")
-        end
-    end
-    if A.signal and on then local sg = A.signal; for i = 0, 4 do local c = (i < 4) and "#44EE44" or "#FFB347"; self:_rect(sg.x + i * sg.pitch + ox, sg.y + oy, sg.w, sg.h, c) end end
-    if A.vol then local kn = A.vol; self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = kn.ptr }, -120 + 240 * clamp01(st.volume)); self:_control("vol", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, st.hasRadio) end
-    if A.tune then local kn = A.tune; self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = kn.ptr }, -120 + 240 * clamp01(((st.channel or MINHZ) - MINHZ) / (MAXHZ - MINHZ))); self:_control("tune", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, st.hasRadio) end
-    local ps = self.vehicle and _presets(self.vehicle) or {}
-    for _, id in ipairs({ "pwr", "scan", "seek", "band", "set", "preset1", "preset2", "preset3", "preset4", "preset5", "preset6" }) do
-        local b = A[id]
-        if b then
-            local pn = tonumber(id:sub(7))
-            local lit = (id == "pwr" and on) or (pn ~= nil and ps[pn] ~= nil and st.channel == ps[pn])
-            if b.led and lit then self:_rect(b.led.x + ox, b.led.y + oy, 4, 4, b.led.c) end
-            if b.litText and lit then
-                -- repaint the button face first: the plate prints the label as 4 px silkscreen and the lit
-                -- label is a 9 px F5 glyph, so the two would ghost against each other (S124)
-                if b.face then self:_rect(b.x + 1 + ox, b.y + 1 + oy, b.w - 2, b.h - 2, b.face) end
-                self:_text(b.litText.x + ox, b.litText.y + oy, b.litText.lab, 4, b.litText.c, "c")
-            end
-            if id == "pwr" and lit and not b.led and not b.litText then self:_rect(b.x + 2 + ox, b.y + 2 + oy, 3, 3, "#FF3A2A") end
-            self:_control(id, b.x + ox, b.y + oy, b.w, b.h, st, st.hasRadio and id ~= "band" and id ~= "set")
-        end
-    end
+-- the fitted radio's small face in the console's radio slot (RadioPlates.dash[kind][height]);
+-- its display drawn live by the same code as the radio up close
+local DASH_PTR = { premium = "#202226" }
+function ZeD_Dashboard:_drawRadioHead(st, hu, ox, oy)
+    local r = st.radio
+    local A = ZeD.RadioPlates and ZeD.RadioPlates.dash[r.kind] and ZeD.RadioPlates.dash[r.kind][hu.h]
+    if not (A and self:_plate("dhead_" .. r.kind .. "_" .. hu.h, ox, oy, hu.w, hu.h)) then return false end
+    local s = self._s
+    local d = A.display
+    RO.drawDisplay(self, r.kind, (ox + d.x) * s, (oy + d.y) * s, d.w * s, d.h * s, s, r, false)
+    self:_control("radio", ox + d.x, oy + d.y, d.w, d.h, st, true)
+    local ptr = DASH_PTR[r.kind] or "#dddddd"
+    local kn = A.vol
+    self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = ptr }, -135 + 270 * clamp01(r.volume))
+    self:_control("vol", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, true)
+    kn = A.tune
+    self:_knobPointer({ cx = kn.cx + ox, cy = kn.cy + oy, r = kn.r, ptr = ptr }, ((r.channel or 0) / RO.STEP * 12) % 360)
+    self:_control("tune", kn.cx - kn.r + ox, kn.cy - kn.r + oy, kn.r * 2, kn.r * 2, st, true)
+    for _, b in ipairs(A.buttons) do self:_control(b.id, b.x + ox, b.y + oy, b.w, b.h, st, true) end
+    return true
 end
 function ZeD_Dashboard:_drawConsole(design, st, ox, oy)
     local A = PL["console_" .. design.console]; if not A then return end
     local hu = A.headUnitArea
-    if st.radioKind == "native" then
-        self:_drawHeadUnit(A, st, ox, oy)
-    elseif hu then
-        local plate = (st.radioKind == "makeshift") and "headunit_makeshift" or "headunit_none"
-        self:_plate(plate, ox + hu.x, oy + hu.y, hu.w, 52)
-        if st.radioKind == "makeshift" and PL.headunit_makeshift then self:_drawHeadUnit(PL.headunit_makeshift, st, ox + hu.x, oy + hu.y) end
+    if hu then
+        if not (st.radio and self:_drawRadioHead(st, hu, ox + hu.x, oy + hu.y)) then
+            self:_plate("headunit_none", ox + hu.x, oy + hu.y, hu.w, 52)   -- no radio fitted: the empty slot (its plate is 52 tall)
+        end
     end
     -- climate
     local tC = math.floor(21 + (st.heaterTemp or 0) * 0.28 + 0.5)
@@ -761,6 +731,22 @@ end
 function ZeD_Dashboard:onRightMouseDown(x, y)
     for _, hr in ipairs(self._hit or {}) do
         if hr.enabled and SECONDARY[hr.id] and x >= hr.x and x < hr.x + hr.w and y >= hr.y and y < hr.y + hr.h then self:_fire(hr.id, true); return true end
+    end
+    return false
+end
+
+-- the wheel turns the radio knob under the pointer (a positive delta is the wheel turned down)
+function ZeD_Dashboard:onMouseWheel(del)
+    local x, y = self:getMouseX(), self:getMouseY()
+    for _, hr in ipairs(self._hit or {}) do
+        if hr.enabled and (hr.id == "vol" or hr.id == "tune") and x >= hr.x and x < hr.x + hr.w and y >= hr.y and y < hr.y + hr.h then
+            local chr = getSpecificPlayer(self.playerNum)
+            local st = self._st
+            if chr and st and st.radio and self._driver then
+                if hr.id == "vol" then RO.volStep(chr, st.radioPart, del > 0 and -1 or 1, false) else RO.tuneStep(chr, st.radioPart, del > 0 and -1 or 1) end
+            end
+            return true
+        end
     end
     return false
 end
