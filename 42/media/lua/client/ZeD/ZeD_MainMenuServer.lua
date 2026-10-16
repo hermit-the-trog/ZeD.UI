@@ -494,7 +494,7 @@ function ZeD_MMServer:prerender()
     local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
-    self.title = "Project Zomboid  +  Server Settings"
+    self.title = "Project Zomboid  +  Server settings"
     self.titleStats = {}
     local clear = { r = 0, g = 0, b = 0, a = 0 }
     if m == "edit" then

@@ -473,7 +473,7 @@ function ZeD_MMLoad:prerender()
     local T = ZeD.T
     self._specs, self._hits = {}, {}
     local w, h = placeOnTube(self)
-    self.title = "Project Zomboid  +  Load Game"
+    self.title = "Project Zomboid  +  Load game"
     local n = #self.saves
     self.titleStats = { { text = n .. (n == 1 and " save" or " saves"), color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
@@ -990,7 +990,7 @@ function ZeD_MMNewGame:prerender()
     local maxH = L.th - T.px(U.BAR_H) - T.px(TOP_GAP) * 2
     if h > maxH then h = maxH end
     placeOnTube(self, h)
-    self.title = "Project Zomboid  +  " .. (self.challenges and "Challenges" or "New Game")
+    self.title = "Project Zomboid  +  " .. (self.challenges and "Challenges" or "New game")
     self.titleStats = {}
     ZeD_Window.prerender(self)
 

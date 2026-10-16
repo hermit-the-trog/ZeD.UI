@@ -275,7 +275,7 @@ function ZeD_MMTraits:prerender()
     local w, h = UI.placeOnTube(self)
     local p = prof()
     local pts = p and p:PointToSpend() or 0
-    self.title = "Project Zomboid  +  Occupation and Traits"
+    self.title = "Project Zomboid  +  Occupation and traits"
     self.titleStats = { { text = pts .. (math.abs(pts) == 1 and " point" or " points"), color = (pts >= 0) and T.positive or T.danger } }
     if p and getSandboxOptions():getOptionByName("NegativeTraitsPenalty"):getValue() ~= 1 then
         local off = p:negativeTraitOffset()

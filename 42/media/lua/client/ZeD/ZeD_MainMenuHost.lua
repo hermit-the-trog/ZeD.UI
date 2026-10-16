@@ -153,7 +153,7 @@ function ZeD_MMHost:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local c = coop()
-    self.title = "Project Zomboid  +  Host a Game"
+    self.title = "Project Zomboid  +  Host a game"
     self.titleStats = {}
     ZeD_Window.prerender(self)
     if not c then return end

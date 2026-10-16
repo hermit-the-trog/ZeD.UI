@@ -382,7 +382,7 @@ function ZeD_MMSpawn:prerender()
     local items = self:items()
     if self.sel > #items then self.sel = math.max(1, #items) end
     local it = items[self.sel]
-    self.title = "Project Zomboid  +  Spawn Location"
+    self.title = "Project Zomboid  +  Spawn location"
     self.titleStats = { { text = MM.modeName(getWorld():getGameMode()), color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
     if not isMouseButtonDown(0) then self._drag = nil end

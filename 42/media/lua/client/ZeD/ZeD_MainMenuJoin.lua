@@ -475,8 +475,8 @@ function ZeD_MMJoin:prerender()
     local w, h = UI.placeOnTube(self)
     local m = mp()
     if m and m.created then pcall(function() m:updateListSort() end) end
-    self.title = "Project Zomboid  +  " .. ((self.page == "server") and (self.form and self.form.server and "Edit Server" or "Add Server")
-        or ((self.page == "account") and (self.form and self.form.account and "Edit Account" or "Add Account") or "Join a Server"))
+    self.title = "Project Zomboid  +  " .. ((self.page == "server") and (self.form and self.form.server and "Edit server" or "Add server")
+        or ((self.page == "account") and (self.form and self.form.account and "Edit account" or "Add account") or "Join a server"))
     local nSaved = m and #getServerList() or 0
     self.titleStats = { { text = nSaved .. (nSaved == 1 and " saved server" or " saved servers"), color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
