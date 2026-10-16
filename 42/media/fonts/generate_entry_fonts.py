@@ -11,13 +11,13 @@ times ZeD.Scale.root) from:
 
   Small  13 px (body.fnt, generate_fonts.py)
   Large  15 px (bodyLg.fnt, generate_fonts.py)
-  SdfOldRegular     18 px  entry18   (1440p Auto, 1.25x-1.5x)
-  SdfOldItalic      22 px  entry22   (1.5x-1.75x)
-  SdfOldBoldItalic  26 px  entry26   (2x, the 4K Auto size)
-  SdfRobertoSans    30 px  entry30   (2x with the large text preset)
+  Dialogue  18 px  entry18   (1440p Auto, 1.25x-1.5x)
+  Intro     26 px  entry26   (2x, the 4K Auto size; larger sizes take it too)
 
-The four slots are vanilla distance-field faces nothing uses: no vanilla Lua,
-script or game class names them (the engine fills MediumNew and the AutoNorm
+The two slots are faces no vanilla text uses (Oct 16 2026: these were four
+Sdf slots until it turned out they are the printed newspapers' faces, named
+in their layouts; those went back to the game). No vanilla Lua, script or
+game class names Dialogue, and nothing sets the rich-text intro size (the engine fills MediumNew and the AutoNorm
 slots itself, so those cannot carry mod faces). Registered in EN/fonts.txt as
 plain bitmap faces.
 
@@ -30,7 +30,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from generate_fonts import generate_font, _FIRA_SANS_MED  # noqa: E402
 
-ENTRY_SIZES = {"entry18": 18, "entry22": 22, "entry26": 26, "entry30": 30}
+ENTRY_SIZES = {"entry18": 18, "entry26": 26}
 
 
 def main():

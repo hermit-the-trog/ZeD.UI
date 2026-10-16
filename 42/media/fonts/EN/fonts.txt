@@ -96,26 +96,14 @@ font Cred2
     type = sdf,
 }
 
-font SdfOldRegular
+font Dialogue
 {
     fnt = entry18.fnt,
     img = entry18_0.png,
 }
 
-font SdfOldItalic
-{
-    fnt = entry22.fnt,
-    img = entry22_0.png,
-}
-
-font SdfOldBoldItalic
+font Intro
 {
     fnt = entry26.fnt,
     img = entry26_0.png,
-}
-
-font SdfRobertoSans
-{
-    fnt = entry30.fnt,
-    img = entry30_0.png,
 }
