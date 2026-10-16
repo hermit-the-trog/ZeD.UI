@@ -25,14 +25,23 @@
 --   * load order and map order as views of the same window, with the order
 --     rules shown per row and MOVE UP / MOVE DOWN / AUTO
 --   * BACK with changes asks in the action strip: KEEP or DISCARD
+--   * (Oct 16 2026, director: "identifying conflicts, updating mods from the workshop,
+--     reloading the lua ... and saying why a full restart is required") conflicts the
+--     game never reports (the same Lua file or the same item / recipe in two mods, who
+--     wins and the fix: ZeD_ModScan), the Workshop state of every subscribed item (a
+--     Workshop tab, row tags, the detail's WORKSHOP line, Open in Steam), and a strip
+--     that says what pending changes need: a reload (no exit) or, when Steam updated a
+--     running mod, a restart for its pictures, with Quit to restart
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
 require "ZeD/ZeD_MainMenuSaves"
+require "ZeD/ZeD_ModScan"
 
 local MM = ZeD.MainMenu
 local U  = MM.U
 local UI = MM.ui
+local MS = ZeD.ModScan
 
 -- design units
 local LIST_SHARE = 0.48
@@ -97,6 +106,7 @@ function ZeD_MMMods:onShow()
     self.scroll, self.dscroll = 0, 0
     self.note = nil
     self.sel = nil
+    self.wsSel = nil
     self.psel = nil
     self.focusId = nil
 end
@@ -113,6 +123,7 @@ function ZeD_MMMods:rows()
         if self.filter == "favs" and not d.favorite then keep = false end
         if self.filter == "maps" and d.category ~= "map" then keep = false end
         if self.filter == "problems" and not self:problem(d) then keep = false end
+        if self.filter == "conflicts" and MS.count(d.modId) == 0 then keep = false end
         if keep and q ~= "" then
             local wid = ""
             pcall(function() wid = tostring(d.modInfo:getWorkshopID() or "") end)
@@ -130,18 +141,76 @@ function ZeD_MMMods:dirty() self._cnt, self._diffs = nil, nil end
 
 function ZeD_MMMods:counts()
     local c = self._cnt
-    if c and MM.now() - c.at < CACHE_MS then return c[1], c[2], c[3], c[4], c[5] end
+    if c and MM.now() - c.at < CACHE_MS then return c[1], c[2], c[3], c[4], c[5], c[6], c[7] end
     local m = model()
-    local all, on, favs, maps, probs = 0, 0, 0, 0, 0
+    local all, on, favs, maps, probs, confs = 0, 0, 0, 0, 0, 0
     for _, d in ipairs(m and m.sortedMods or {}) do
         all = all + 1
         if d.isActive then on = on + 1 end
         if d.favorite then favs = favs + 1 end
         if d.category == "map" then maps = maps + 1 end
         if self:problem(d) then probs = probs + 1 end
+        if MS.count(d.modId) > 0 then confs = confs + 1 end
     end
-    self._cnt = { all, on, favs, maps, probs, at = MM.now() }
-    return all, on, favs, maps, probs
+    local ws = #MS.ws.order
+    self._cnt = { all, on, favs, maps, probs, confs, ws, at = MM.now() }
+    return all, on, favs, maps, probs, confs, ws
+end
+
+-- the installed mod a Workshop item brought (nil: none, or not installed yet)
+function ZeD_MMMods:modForWs(wid)
+    local m = model()
+    for _, d in ipairs(m and m.sortedMods or {}) do
+        local w = nil
+        pcall(function() w = d.modInfo:getWorkshopID() end)
+        if w and tostring(w) == wid then return d end
+    end
+    return nil
+end
+
+-- the tags at a row's right: its conflicts, then what Steam is doing with it
+function ZeD_MMMods:rowChips(d)
+    local out = {}
+    local n = MS.count(d.modId)
+    if n > 0 then out[#out + 1] = { n .. (n == 1 and " conflict" or " conflicts"), "warning" } end
+    local it = MS.wsFor(d.modInfo)
+    if it then
+        if MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId) then out[#out + 1] = { "Updated", "accent" }
+        elseif it.state == "update" then out[#out + 1] = { "Update", "info" }
+        elseif it.state == "downloading" then out[#out + 1] = { "Downloading", "info" }
+        elseif it.state == "queued" then out[#out + 1] = { "Queued", "info" } end
+    end
+    return out
+end
+
+-- what the changes on the screen need, in a sentence for the strip; nil = nothing pending.
+-- restart = true when a running mod was updated by Steam (its pictures stay old until a restart)
+function ZeD_MMMods:pending()
+    local m = model()
+    if not m then return nil end
+    local turnedOn, turnedOff = 0, 0
+    for _, d in pairs(m.mods or {}) do
+        if d.isActive ~= d.defaultActive then
+            if d.isActive then turnedOn = turnedOn + 1 else turnedOff = turnedOff + 1 end
+        end
+    end
+    local reorder = false
+    pcall(function() reorder = ActiveMods.requiresResetLua(m:getActiveMods()) end)
+    local updated = MS.updatedLoaded()
+    if turnedOn == 0 and turnedOff == 0 and not reorder and #updated == 0 then return nil end
+    local parts = {}
+    if turnedOn > 0 then parts[#parts + 1] = turnedOn .. (turnedOn == 1 and " mod" or " mods") .. " turned on" end
+    if turnedOff > 0 then parts[#parts + 1] = turnedOff .. (#parts == 0 and (turnedOff == 1 and " mod" or " mods") or "") .. " turned off" end
+    if #parts == 0 and reorder then parts[#parts + 1] = "Load order changed" end
+    local names = {}
+    for _, id in ipairs(updated) do names[#names + 1] = MS.modName(id) end
+    local text = table.concat(parts, ", ")
+    if #updated > 0 then
+        local who = (#names <= 2) and table.concat(names, " and ") or (#names .. " mods")
+        text = (text ~= "" and (text .. ". ") or "") .. "Steam updated " .. who .. ": " .. (#names == 1 and "its" or "their") .. " new pictures need a restart."
+        return text, true
+    end
+    return text .. ". A reload covers it, no restart.", false
 end
 
 function ZeD_MMMods:selected()
@@ -237,7 +306,19 @@ function ZeD_MMMods:accept()
     if self.find:isFocused() then self.find:unfocus() end
     local server = m.isServerSettingsMods
     local inst = ModSelector.instance
+    -- a mod Steam updated while the game ran needs the reload vanilla would not run (no list change)
+    local force = false
+    if not (server or m.isNewGame or m.loadGameFolder) and #MS.updatedLoaded() > 0 then
+        local needed = true
+        pcall(function() needed = ActiveMods.requiresResetLua(m:getActiveMods()) end)
+        force = not needed
+    end
     m:acceptChanges()        -- Load / New Game land back on the monitor through the redirects
+    if force then
+        ms().bottomPanel:setVisible(false)
+        getCore():ResetLua("default", "modsChanged")
+        return
+    end
     if inst.joyfocus then inst:clearJoypadFocus(); inst.joyfocus.focus = inst.returnToUI; updateJoypadFocus(inst.joyfocus) end
     -- server settings' mods: the settings window is back on the monitor (its redirect); the
     -- controller goes to the desk, not to vanilla's hidden screen
@@ -255,6 +336,48 @@ function ZeD_MMMods:discard()
         d.favorite = d.defaultFav
     end
     self:accept()
+end
+
+-- the load order differs from the one running now (vanilla's own test)
+function ZeD_MMMods:reordered()
+    local m = model()
+    local r = false
+    if m then pcall(function() r = ActiveMods.requiresResetLua(m:getActiveMods()) end) end
+    return r
+end
+
+-- the strip's DISCARD while changes wait: every mod back to how it loaded, the load order
+-- too, and the screen stays
+function ZeD_MMMods:revert()
+    local m = model()
+    if not m then return end
+    for _, d in pairs(m.mods or {}) do
+        if d.isActive ~= d.defaultActive then m:forceActivateMods(d.modInfo, d.defaultActive) end
+    end
+    local order, seen = {}, {}
+    for _, id in ipairs(jlist(getActivatedMods())) do
+        if m.mods[id] and m.mods[id].isActive then order[#order + 1] = id; seen[id] = true end
+    end
+    for _, id in ipairs(jlist(m:getActiveMods():getMods())) do if not seen[id] then order[#order + 1] = id end end
+    m:correctAndSaveModOrder(order)
+    self:dirty()
+    MM.clickSound()
+    self:say("Changes discarded")
+end
+
+-- a conflict's fix: the mod whose copy loses moves to just after the one that wins
+function ZeD_MMMods:loadAfter(id, afterId)
+    local m = model()
+    if not m then return end
+    local out = {}
+    for _, x in ipairs(jlist(m:getActiveMods():getMods())) do if x ~= id then out[#out + 1] = x end end
+    local pos = #out + 1
+    for i, x in ipairs(out) do if x == afterId then pos = i + 1 end end
+    table.insert(out, pos, id)
+    m:correctAndSaveModOrder(out)
+    self:dirty()
+    MM.clickSound()
+    self:say(MS.modName(id) .. " now loads after " .. MS.modName(afterId) .. ". Reload to put it to work.")
 end
 
 function ZeD_MMMods:back()
@@ -776,6 +899,7 @@ end
 
 function ZeD_MMMods:prerender()
     local T = ZeD.T
+    if self.page == "list" then MS.step(); MS.wsPoll(true) end
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local all, on = self:counts()
@@ -794,6 +918,8 @@ function ZeD_MMMods:prerender()
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     if self.page == "list" then
         local lw = math.floor((w - pad * 3) * LIST_SHARE)
+        local _, tabsW = self:tabList()          -- the list widens (to a point) before its tabs would run out
+        lw = math.max(lw, math.min(tabsW, math.floor((w - pad * 3) * 0.62)))
         self:drawList(pad, bodyY, lw, bodyH)
         self:drawDetail(pad * 2 + lw, bodyY, w - pad * 3 - lw, bodyH)
         self.find:setVisible(true)
@@ -808,7 +934,7 @@ function ZeD_MMMods:prerender()
 end
 
 function ZeD_MMMods:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask)
+    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask, self._askX)
     ZeD_Window.render(self)
 end
 
@@ -817,6 +943,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
     local row = 1000
     local ask = nil
     local m = model()
+    self._askX = nil
     if self.confirm == "back" then
         ask = "Keep the changes to your mods?"
         UI.stripSpecs(self, stripY, w, row, {}, {
@@ -881,10 +1008,53 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
             { "order", "LOAD ORDER", function() self:enterOrder("order") end },
         }
         if mapConflicts then rights[#rights + 1] = { "maps", "MAP ORDER", function() self:enterOrder("maps") end } end
-        rights[#rights + 1] = { "accept", "ACCEPT", function() self:accept() end, "primary" }
-        UI.stripSpecs(self, stripY, w, row, lefts, rights)
+        if self.filter == "ws" then rights[#rights + 1] = { "wsopen", "Open the Workshop", function() MS.openWorkshop() end } end
+        -- changes waiting: the strip says what they need, DISCARD stays on the screen, RELOAD is vanilla's accept
+        local pend, restart = nil, false
+        if not (m and (m.isServerSettingsMods or m.isNewGame or m.loadGameFolder)) then pend, restart = self:pending() end
+        if pend then
+            if self:changed() or self:reordered() then rights[#rights + 1] = { "revert", "DISCARD", function() self:revert() end } end
+            rights[#rights + 1] = { "accept", "RELOAD", function() self:accept() end, "primary" }
+            if restart then rights[#rights + 1] = { "restart", "QUIT TO RESTART", function() MM.act.askQuit() end } end
+        else
+            rights[#rights + 1] = { "accept", "ACCEPT", function() self:accept() end, "primary" }
+        end
+        local askX = UI.stripSpecs(self, stripY, w, row, lefts, rights)
+        if pend then
+            local firstBtn = w
+            for _, b in ipairs(self._specs) do if b.row == row and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
+            local room = firstBtn - T.px(12) - (askX + T.px(4))
+            if room > T.px(60) then ask = ZeD.Atoms.truncateText(pend, T.fontF2, room); self._askX = askX + T.px(4) end
+        end
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
+end
+
+-- a tag on a list row: on the list's own fill, so a picked (accent-tinted) row keeps it readable
+local function rowBadge(p, text, x, y, variant)
+    local T = ZeD.T
+    local f = T.fontF1
+    local bw = MM.textW(f, text) + T.sp.badgePadX * 2
+    local bh = MM.fontH(f) + T.sp.badgePadY * 2
+    local b = T.base
+    p:drawRect(x, y, bw, bh, 1, b.r, b.g, b.b)
+    ZeD.Atoms.drawBadge(p, text, x, y, variant, false, f, true)
+end
+
+-- the filter tabs: All and On always, the rest while they hold something (or are open);
+-- a Conflicts or Workshop tab turning up is itself the news. Returns them and their width.
+function ZeD_MMMods:tabList()
+    local T = ZeD.T
+    local all, on, favs, maps, probs, confs, wsn = self:counts()
+    local tabs = { { "all", "All " .. all }, { "enabled", "On " .. on } }
+    local more = { { "favs", "Starred ", favs }, { "maps", "Maps ", maps }, { "problems", "Problems ", probs },
+                   { "conflicts", "Conflicts ", confs }, { "ws", "Workshop ", wsn } }
+    for _, t in ipairs(more) do
+        if t[3] > 0 or self.filter == t[1] then tabs[#tabs + 1] = { t[1], t[2] .. t[3] } end
+    end
+    local need = T.px(16)
+    for _, t in ipairs(tabs) do need = need + MM.textW(T.fontF2, t[2]) + T.sp.tabPadX * 2 + T.sp.tabGap end
+    return tabs, need
 end
 
 function ZeD_MMMods:drawList(x, y, w, h)
@@ -893,8 +1063,9 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     -- the filter tabs (System 7 folder tabs), then Find
-    local all, on, favs, maps, probs = self:counts()
-    local tabs = { { "all", "All " .. all }, { "enabled", "On " .. on }, { "favs", "Starred " .. favs }, { "maps", "Maps " .. maps }, { "problems", "Problems " .. probs } }
+    local tabs = self:tabList()
+    self._tabOrder = {}
+    for _, t in ipairs(tabs) do self._tabOrder[#self._tabOrder + 1] = t[1] end
     local tH = T.px(TABS_H)
     self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), tH, 1, s2.r, s2.g, s2.b)
     local tx = x + T.px(8)
@@ -919,7 +1090,8 @@ function ZeD_MMMods:drawList(x, y, w, h)
     self._hits[#self._hits + 1] = { id = "mods:find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
                                     fn = function() self.find:focus() end }
 
-    -- the rows
+    -- the rows (the Workshop tab lists Steam's items instead)
+    if self.filter == "ws" then self:drawWsRows(x, y, w, h, fY + fH); return end
     local rows = self:rows()
     if not self.sel and rows[1] then self.sel = rows[1].modId end
     local vy, vh = fY + fH, h - (fY + fH - y) - T.px(1)
@@ -936,7 +1108,8 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local star = MM.tex and MM.tex(STAR, true) or getTexture(STAR)
     if #rows == 0 then
         local d = T.textDim
-        local msg = (self.filter == "favs") and "No favourites yet" or ((self.filter == "problems") and "Every mod can run" or "No mods match")
+        local msg = (self.filter == "favs") and "No favourites yet" or ((self.filter == "problems") and "Every mod can run"
+            or ((self.filter == "conflicts") and (MS.res.done and "No conflicts among the mods running now" or "Checking the mods for conflicts") or "No mods match"))
         self:drawText(msg, x + T.px(12), vy + T.px(12), d.r, d.g, d.b, d.a or 1, f2)
     end
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
@@ -961,7 +1134,17 @@ function ZeD_MMMods:drawList(x, y, w, h)
             -- name, then id and what is wrong
             local nx = ix + T.px(ICON) + T.px(8)
             local starW = T.px(16)
-            local maxW = x + rw - T.px(10) - starW - T.px(6) - nx
+            -- the tags (conflicts, Steam's state) sit at the right, before the star
+            local chipR = x + rw - T.px(10) - starW - T.px(8)
+            for ci, chip in ipairs(self:rowChips(d)) do
+                local ctext = string.upper(chip[1])
+                local cwid = MM.textW(T.fontF1, ctext) + T.sp.badgePadX * 2
+                local chh = MM.fontH(T.fontF1) + T.sp.badgePadY * 2
+                chipR = chipR - cwid
+                rowBadge(self, ctext, chipR, ry + math.floor((rh - chh) / 2), chip[2])
+                chipR = chipR - T.px(6)
+            end
+            local maxW = chipR - T.px(4) - nx
             local nameC = (prob and not d.isActive) and T.textDim or T.textHead
             local l1y = ry + T.px(5)
             self:drawText(ZeD.Atoms.truncateText(tostring(d.name), f2, maxW), nx, l1y, nameC.r, nameC.g, nameC.b, nameC.a or 1, f2)
@@ -999,6 +1182,105 @@ function ZeD_MMMods:drawList(x, y, w, h)
         self._hits[#self._hits + 1] = { id = "mods:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, my)
             self.scroll = math.floor(((my - ay - vy) / vh) * rowsH - vh / 2) end }
     end
+end
+
+-- Steam's state of an item as a tag: text and colour
+local WS_TAG = { ok = "positive", update = "info", downloading = "info", queued = "info", missing = "warning", none = "neutral" }
+
+-- the Workshop tab's rows: every subscribed item with Steam's state, when it was
+-- updated and its size; an item that brought a mod has its on / off box
+function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
+    local T = ZeD.T
+    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+    local f2, f3 = T.fontF2, T.fontF3
+    local items = MS.ws.order
+    local vh = h - (vy - y) - T.px(1)
+    local rh = T.px(ROW_H)
+    local rowsH = #items * rh
+    local sbW = T.sp.scrollbarW
+    local over = rowsH > vh
+    local rw = w - T.px(2) - (over and sbW or 0)
+    self.scroll = math.max(0, math.min(self.scroll, math.max(0, rowsH - vh)))
+    self._list = { x = x, y = vy, w = w, h = vh }
+    if not self.wsSel and items[1] then self.wsSel = items[1].id; local d = self:modForWs(items[1].id); self.sel = d and d.modId or nil end
+    if #items == 0 then
+        local dc = T.textDim
+        local msg = MS.ws.steamOff and "Steam is not running, so there is no Workshop to read"
+            or ((MS.ws.pending or not MS.ws.asked) and "Asking Steam" or "Nothing subscribed on the Workshop")
+        self:drawText(msg, x + T.px(12), vy + T.px(12), dc.r, dc.g, dc.b, dc.a or 1, f2)
+    end
+    local gp, ac, cb = MM.gamepad(), T.accent, T.checkboxSz
+    self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
+    for i, it in ipairs(items) do
+        local ry = vy + (i - 1) * rh - self.scroll
+        local d = self:modForWs(it.id)
+        local rid = "wrow:" .. it.id
+        self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, key = d and d.modId or nil, wsid = it.id, chosen = self.wsSel == it.id,
+                                          fn = function() if d then self:toggle(d) else MS.openInSteam(it.id) end end, ry = (i - 1) * rh, rh = rh }
+        if ry + rh > vy and ry < vy + vh then
+            if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, rw, rh, 0.55, ac.r, ac.g, ac.b)
+            elseif self.wsSel == it.id then self:drawRect(x + T.px(1), ry, rw, rh, 0.22, ac.r, ac.g, ac.b) end
+            self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+            local cx = x + T.px(10)
+            if d then ZeD.Atoms.drawCheckbox(self, cx, ry + math.floor((rh - cb) / 2), d.isActive, MM.ctx.hot == "mods:wcb:" .. it.id, self:problem(d) ~= nil and not d.isActive) end
+            local nx = cx + cb + T.px(8)
+            -- the state tag at the right
+            local tx = x + rw - T.px(10)
+            if it.children == 0 then
+                local fresh = d and MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId)
+                local tag = string.upper(fresh and "Updated" or MS.WS_TEXT[it.state] or "")
+                local tw = MM.textW(T.fontF1, tag) + T.sp.badgePadX * 2
+                local th = MM.fontH(T.fontF1) + T.sp.badgePadY * 2
+                tx = tx - tw
+                rowBadge(self, tag, tx, ry + math.floor((rh - th) / 2), fresh and "accent" or WS_TAG[it.state])
+            end
+            local maxW = tx - T.px(8) - nx
+            local tc = T.textHead
+            self:drawText(ZeD.Atoms.truncateText(it.title, f2, maxW), nx, ry + T.px(5), tc.r, tc.g, tc.b, tc.a or 1, f2)
+            local sub
+            if it.children > 0 then sub = "Collection of " .. it.children .. " items"
+            elseif it.state == "missing" then sub = "Subscribed, Steam has not fetched it"
+            else
+                local bits = {}
+                local ago = MS.ago(it.updated)
+                if ago ~= "" then bits[#bits + 1] = "Updated " .. ago end
+                local sz = MS.size(it.size)
+                if sz ~= "" then bits[#bits + 1] = sz end
+                sub = table.concat(bits, " | ")
+            end
+            local dim = T.textDim
+            self:drawText(ZeD.Atoms.truncateText(sub, f3, maxW), nx, ry + rh - T.px(5) - MM.fontH(f3), dim.r, dim.g, dim.b, dim.a or 1, f3)
+            local cy0, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
+            self._hits[#self._hits + 1] = { id = "mods:wrow:" .. it.id, x = ax + x, y = ay + cy0, w = rw, h = ch, fn = function() self:clickWsRow(it, d) end }
+            if d then self._hits[#self._hits + 1] = { id = "mods:wcb:" .. it.id, x = ax + x, y = ay + cy0, w = cb + T.px(16), h = ch,
+                                                      fn = function() self.wsSel = it.id; self.sel = d.modId; self:toggle(d) end } end
+        end
+    end
+    self:clearStencilRect()
+    if over then
+        local sx = x + w - T.px(1) - sbW
+        ZeD.Atoms.drawScrollTrack(self, sx, vy, sbW, vh)
+        local thh = math.max(T.px(24), math.floor(vh * vh / rowsH))
+        local tyy = vy + math.floor((vh - thh) * self.scroll / (rowsH - vh))
+        ZeD.Atoms.drawScrollThumb(self, sx, tyy, sbW, thh, MM.ctx.hot == "mods:track" and "hover" or "default")
+        self._hits[#self._hits + 1] = { id = "mods:track", x = ax + sx, y = ay + vy, w = sbW, h = vh, drag = function(_, my)
+            self.scroll = math.floor(((my - ay - vy) / vh) * rowsH - vh / 2) end }
+    end
+end
+
+-- a Workshop row: a click picks it; a second click turns its mod on / off (or opens Steam's page)
+function ZeD_MMMods:clickWsRow(it, d)
+    local t = MM.now()
+    if self.wsSel == it.id and self._lastClick and t - self._lastClick < 450 then
+        self._lastClick = nil
+        if d then self:toggle(d) else MS.openInSteam(it.id) end
+        return
+    end
+    self._lastClick = t
+    if self.wsSel ~= it.id then self.dscroll = 0; MM.hoverSound() end
+    self.wsSel = it.id
+    self.sel = d and d.modId or nil
+    self.focusId = "wrow:" .. it.id
 end
 
 -- a click picks the mod; a second click on it soon after turns it on / off
@@ -1042,7 +1324,10 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
         top = y + nh + T.px(1)
     end
     local d = self:selected()
-    if not d then return end
+    if not d then
+        if self.filter == "ws" and self.wsSel and MS.ws.items[self.wsSel] then self:drawWsDetail(x, top, w, y + h - top) end
+        return
+    end
     local m = model()
     local info = d.modInfo
     local vy, vh = top, y + h - top
@@ -1095,7 +1380,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     verb("fav", d.favorite and "UNFAVOURITE" or "FAVOURITE", function() self:toggleFav(d) end)
     local wid, src, url = nil, "", ""
     pcall(function() wid = info:getWorkshopID(); src = tostring(info:getSource() or ""); url = tostring(info:getUrl() or "") end)
-    if wid and wid ~= "" and src == "Steam" then verb("workshop", "WORKSHOP PAGE", function() activateSteamOverlayToWorkshopItem(wid) end) end
+    if wid and wid ~= "" then verb("workshop", "Open in Steam", function() MS.openInSteam(wid) end) end
     if url ~= "" then verb("homepage", "HOMEPAGE", function() openUrl(url) end) end
     cy = math.max(cy + (ptex and psz or 0), by + bh) + T.px(12)
     -- what is wrong, as vanilla knows it
@@ -1128,8 +1413,35 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     kv("VERSION", ver)
     if vmin ~= "" or vmax ~= "" then kv("GAME", (vmin ~= "" and vmin or "any") .. " to " .. (vmax ~= "" and vmax or "any")) end
     kv("MOD ID", tostring(d.modId))
-    if wid and wid ~= "" then kv("WORKSHOP", tostring(wid)) end
+    -- what Steam is doing with it, and where it loads
+    local it = MS.wsFor(info)
+    local updatedNow = it and MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId)
+    if it then
+        local bits = { updatedNow and "Updated while the game ran" or MS.WS_TEXT[it.state] }
+        local ago = MS.ago(it.updated)
+        if ago ~= "" and not updatedNow then bits[#bits + 1] = "updated " .. ago end
+        local sz = MS.size(it.size)
+        if sz ~= "" then bits[#bits + 1] = sz end
+        kv("WORKSHOP", table.concat(bits, " | "))
+    end
+    if wid and wid ~= "" then kv("WORKSHOP ID", tostring(wid)) end
+    if d.isActive then
+        local order = jlist(m:getActiveMods():getMods())
+        for i, id in ipairs(order) do if id == d.modId then kv("LOAD ORDER", i .. " of " .. #order) end end
+    end
     kv("TYPE", (d.category and d.category ~= "") and (getTextOrNull(d.category) or d.category) or nil)
+    kv("REPLACES", MS.overrideText(d.modId))
+    if updatedNow then
+        cy = cy + T.px(4)
+        local c = T.text
+        local dsz = T.px(7)
+        ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.accent, dsz)
+        for _, l in ipairs(ZeD.Atoms.wrapText("Steam updated this mod while the game ran. A reload brings in its new code and scripts; pictures it already showed stay old until the game restarts.", f2, iw - dsz - T.px(7))) do
+            self:drawText(l, ix + dsz + T.px(7), cy, c.r, c.g, c.b, c.a or 1, f2)
+            cy = cy + MM.fontH(f2) + T.px(2)
+        end
+        cy = cy + T.px(4)
+    end
     -- what it needs and what it cannot run with, each with its state
     local function idList(label, ids, wantOn)
         if #ids == 0 then return end
@@ -1155,6 +1467,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     for id in pairs(d.incompatibleWith or {}) do inc[#inc + 1] = id end
     table.sort(inc)
     idList("CANNOT RUN WITH", inc, false)
+    cy = self:drawConflicts(d, ix, iw, cy, vy, vh)
     -- the description
     local desc = ""
     pcall(function() desc = MM.ui.plain(info:getDescription() or "") end)
@@ -1168,6 +1481,156 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     end
     self:clearStencilRect()
     -- the pane scrolls as one unit when it runs long
+    local contentH = cy + self.dscroll - vy + pad
+    self._detail.contentH = contentH
+    self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - vh)))
+end
+
+-- wrapped text in the detail pane; returns the y under it
+function ZeD_MMMods:paneText(text, x, cy, w, font, color)
+    local T = ZeD.T
+    for _, l in ipairs(ZeD.Atoms.wrapText(text, font, w)) do
+        self:drawText(l, x, cy, color.r, color.g, color.b, color.a or 1, font)
+        cy = cy + MM.fontH(font) + T.px(2)
+    end
+    return cy
+end
+
+-- a row of buttons in the detail pane (clipped with it); returns the y under them
+function ZeD_MMMods:paneVerbs(list, x, cy, w, vy, vh, row)
+    local T = ZeD.T
+    local bh = T.px(U.STRIP_BTN_H)
+    local bx = x
+    for i, v in ipairs(list) do
+        local bw = MM.textW(T.fontF3, ZeD.btnCase(v[2])) + T.px(U.STRIP_BTN_PAD) * 2
+        if bx + bw > x + w and bx > x then bx = x; cy = cy + bh + T.px(6) end
+        self._specs[#self._specs + 1] = { id = v[1], text = v[2], fn = v[3], variant = v[4] or "default", row = row, col = i,
+                                          x = bx, y = cy, w = bw, h = bh, clipTop = vy, clipBot = vy + vh }
+        bx = bx + bw + T.px(6)
+    end
+    return cy + bh
+end
+
+-- what a name looks like inside a button (long names are cut)
+local function shortName(n)
+    n = tostring(n)
+    if string.len(n) > 22 then n = string.sub(n, 1, 20) .. "..." end
+    return n
+end
+
+-- the CONFLICTS section: each conflict ZeD_ModScan found, who wins and why, and the fix
+function ZeD_MMMods:drawConflicts(d, ix, iw, cy, vy, vh)
+    local T = ZeD.T
+    local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
+    local loaded = MS.isLoaded(d.modId)
+    if not d.isActive and not loaded then return cy end
+    local m = model()
+    local list = loaded and MS.forMod(d.modId) or {}
+    cy = cy + T.px(4)
+    local la, dim, txt, head = T.accent, T.textDim, T.text, T.textHead
+    local kvH = T.px(KV_ROW_H)
+    self:drawText("CONFLICTS", ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    if #list > 0 then
+        local lw = MM.textW(f1, "CONFLICTS")
+        self:drawText(tostring(#list), ix + lw + T.px(8), cy, dim.r, dim.g, dim.b, dim.a or 1, f1)
+    end
+    cy = cy + kvH
+    if not loaded then return self:paneText("Checked once a reload brings it in.", ix, cy, iw, f2, dim) + T.px(4) end
+    if not MS.res.done then return self:paneText("Checking...", ix, cy, iw, f2, dim) + T.px(4) end
+    if #list == 0 then cy = self:paneText("None found.", ix, cy, iw, f2, dim) end
+    local order = {}
+    for i, id in ipairs(jlist(m:getActiveMods():getMods())) do order[id] = i end
+    local dsz = T.px(7)
+    local tx, tw = ix + dsz + T.px(7), iw - dsz - T.px(7)
+    for i, e in ipairs(list) do
+        local mine = e.loser == d.modId
+        local other = mine and e.winner or e.loser
+        local win, lose = MS.modName(e.winner), MS.modName(e.loser)
+        local many = #e.things > 1
+        local title
+        if e.kind == "file" then title = (many and ("Same " .. #e.things .. " files as ") or "Same file as ") .. MS.modName(other)
+        else
+            local kinds = {}
+            for noun in pairs(e.nouns) do kinds[#kinds + 1] = noun end
+            table.sort(kinds)
+            if not many then title = "Same " .. kinds[1] .. " as " .. MS.modName(other)
+            elseif #kinds == 1 then title = "Same " .. #e.things .. " " .. kinds[1] .. "s as " .. MS.modName(other)
+            else title = "Same " .. #e.things .. " definitions as " .. MS.modName(other) end
+        end
+        ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.warning, dsz)
+        cy = self:paneText(title, tx, cy, tw, f2, head)
+        cy = self:paneText(e.things[1] .. (many and (" and " .. (#e.things - 1) .. " more") or ""), tx, cy, tw, f3, dim) + T.px(2)
+        -- who wins, and whether that is on purpose (the winner needs the other: a patch for it)
+        local needs = false
+        local winInfo = getModInfoByID(e.winner)
+        for _, r in ipairs(jlist(winInfo and winInfo:getRequire())) do if r == e.loser then needs = true end end
+        -- (scripts are read in file-name order across every mod, not in load order: tested on
+        -- 42.21.0, so moving a mod cannot change who wins an item or a recipe)
+        local why
+        if e.kind == "file" then why = win .. " loads later, so its copy is the one the game uses; " .. lose .. "'s copy never runs."
+        else why = "Both define " .. (many and "them" or "it") .. "; " .. win .. "'s " .. (many and "versions win" or "version wins")
+            .. ". The game reads these by file name, not load order, so moving either mod changes nothing. Usually fine when one mod is a fix for the other." end
+        local fixed = e.kind == "file" and order[e.loser] and order[e.winner] and order[e.loser] > order[e.winner]
+        if needs then why = why .. " " .. win .. " needs " .. lose .. ", so this looks deliberate."
+        elseif fixed then why = why .. " " .. lose .. " loads after it once you reload." end
+        cy = self:paneText(why, tx, cy, tw, f2, txt) + T.px(6)
+        local verbs = {}
+        if e.kind == "file" and mine and not needs and not fixed and d.isActive then
+            verbs[#verbs + 1] = { "cf:after:" .. i, "Load " .. shortName(lose) .. " after it", function() self:loadAfter(e.loser, e.winner) end }
+        end
+        verbs[#verbs + 1] = { "cf:hide:" .. i, "FINE, HIDE THIS", function() MS.hide(e); self:dirty(); MM.clickSound() end }
+        cy = self:paneVerbs(verbs, tx, cy, tw, vy, vh, 600 + i) + T.px(10)
+    end
+    local hid = MS.hiddenFor(d.modId)
+    if hid > 0 then
+        cy = self:paneText(hid .. (hid == 1 and " conflict hidden." or " conflicts hidden."), ix, cy, iw, f2, dim) + T.px(4)
+        cy = self:paneVerbs({ { "cf:unhide", "SHOW AGAIN", function() MS.unhideFor(d.modId); self:dirty(); MM.clickSound() end } }, ix, cy, iw, vy, vh, 699) + T.px(8)
+    end
+    return cy
+end
+
+-- the Workshop tab's item that brought no installed mod (not fetched yet, a collection, a map pack)
+function ZeD_MMMods:drawWsDetail(x, vy, w, vh)
+    local T = ZeD.T
+    local it = MS.ws.items[self.wsSel]
+    if not it then return end
+    local pad = T.px(DETAIL_PAD)
+    local ix, iw = x + pad, w - pad * 2
+    self._detail = { x = x, y = vy, w = w, h = vh }
+    self:setStencilRect(x + T.px(1), vy + T.px(1), w - T.px(2), vh - T.px(2))
+    local cy = vy + pad - self.dscroll
+    local hf = ZeD.Font.sdf.head
+    local z = 20 * (T.scale or 1) / (hf.face or 64)
+    local tc = T.textHead
+    local bigH = math.floor(ZeD.Text.height(hf, z))
+    for i, l in ipairs(ZeD.Atoms.wrapText(it.title, T.fontF4, iw)) do
+        if i > 2 then break end
+        ZeD.Text.draw(self, hf, l, ix, cy, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
+        cy = cy + bigH
+    end
+    cy = self:paneVerbs({ { "workshop", "Open in Steam", function() MS.openInSteam(it.id) end } }, ix, cy + T.px(8), iw, vy, vh, 500) + T.px(12)
+    local f1, f2 = T.fontF1, T.fontF2
+    local kvH = T.px(KV_ROW_H)
+    local vx = ix + T.px(KV_LABEL_W)
+    local function kv(label, value)
+        if not value or value == "" then return end
+        local la, c = T.accent, T.text
+        self:drawText(label, ix, cy + math.floor((kvH - MM.fontH(f1)) / 2), la.r, la.g, la.b, la.a or 1, f1)
+        self:drawText(ZeD.Atoms.truncateText(value, f2, ix + iw - vx), vx, cy + math.floor((kvH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+        cy = cy + kvH
+    end
+    kv("WORKSHOP", it.children > 0 and ("Collection of " .. it.children) or MS.WS_TEXT[it.state])
+    local ago = MS.ago(it.updated)
+    if ago ~= "" then kv("UPDATED", ago) end
+    kv("SIZE", MS.size(it.size))
+    kv("WORKSHOP ID", it.id)
+    local why
+    if it.children > 0 then why = "A collection: its items show in this list on their own as Steam fetches them."
+    elseif it.state == "missing" then why = "You subscribe to it, but Steam has not downloaded it yet. Steam fetches Workshop items on its own (the game cannot start a download); it shows up here once it lands."
+    elseif it.state == "update" or it.state == "downloading" or it.state == "queued" then why = "Steam is fetching it on its own. This screen notices when it lands."
+    else why = "Installed, but no mod in it matches this game. It may hold mods for another version of the game." end
+    cy = self:paneText(why, ix, cy + T.px(8), iw, f2, T.text)
+    self:clearStencilRect()
     local contentH = cy + self.dscroll - vy + pad
     self._detail.contentH = contentH
     self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - vh)))
@@ -1468,7 +1931,10 @@ function ZeD_MMMods:joyDir(dir)
     ZeD_MMWindow.joyDir(self, dir)
     for _, b in ipairs(self._specs) do
         if b.id == self.focusId and b.listRow then
-            if self.page == "list" then self.sel = b.key; self.dscroll = 0
+            if self.page == "list" then
+                if b.wsid and self.wsSel ~= b.wsid then self.dscroll = 0 end
+                if b.wsid then self.wsSel = b.wsid; self.sel = b.key
+                else self.sel = b.key; self.dscroll = 0 end
             elseif self.page == "profiles" then
                 if self.psel ~= (b.pname or nil) then self.dscroll = 0 end
                 self.psel = b.pname or nil
@@ -1504,7 +1970,7 @@ end
 -- LB / RB walk the filter tabs
 function ZeD_MMMods:joyBumper(dir)
     if self.page ~= "list" or self.confirm then return end
-    local order = { "all", "enabled", "favs", "maps", "problems" }
+    local order = self._tabOrder or { "all", "enabled", "favs", "maps", "problems", "conflicts" }
     for i, k in ipairs(order) do
         if k == self.filter then
             local j = math.max(1, math.min(#order, i + dir))
@@ -1529,6 +1995,9 @@ function ZeD_MMMods:getFooterPrompts()
     end
     if f:sub(1, 5) == "mrow:" then
         return { { glyph = "A", label = "On / off" }, { glyph = "X", label = "Favourite" }, { glyph = "Y", label = "Profiles" }, { glyph = "LB", label = "" }, { glyph = "RB", label = "Filter" }, { glyph = "B", label = "Back" } }
+    end
+    if f:sub(1, 5) == "wrow:" then
+        return { { glyph = "A", label = "On / off" }, { glyph = "LB", label = "" }, { glyph = "RB", label = "Filter" }, { glyph = "B", label = "Back" } }
     end
     return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
 end
@@ -1561,7 +2030,8 @@ function ZeD_MMMods:keyOther(key)
     if key == Keyboard.KEY_DELETE and self.page == "profiles" and self.psel then self:setConfirm("delete"); return true end
     if key == Keyboard.KEY_SPACE and self.page == "list" then self:toggle(self:selected()); return true end
     if key == Keyboard.KEY_UP or key == Keyboard.KEY_DOWN then
-        if self.page == "list" then self.focusId = self.sel and ("mrow:" .. self.sel) or nil
+        if self.page == "list" and self.filter == "ws" then self.focusId = self.wsSel and ("wrow:" .. self.wsSel) or nil
+        elseif self.page == "list" then self.focusId = self.sel and ("mrow:" .. self.sel) or nil
         elseif self.page == "profiles" then
             for i, p in ipairs(self:profiles()) do if p.name == self.psel then self.focusId = "prow:" .. i end end
         else self.focusId = "orow:" .. (self.oSel or 1) end
