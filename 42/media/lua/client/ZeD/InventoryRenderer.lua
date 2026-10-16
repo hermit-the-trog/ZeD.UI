@@ -233,13 +233,13 @@ end
 --   self._skipClearHitZones — caller handles clearHitZones
 -- ============================================================================
 
--- Container buttons (ContainerControls): one row under the container's
--- heading, single-container view only. These helpers keep renderItemList's
--- locals unchanged (it sits at Kahlua's limit of 200 active locals):
--- the heading's bottom and the row's height ride on self._ccInfoY / self._ccH.
--- Returns where the column header starts.
+-- Container buttons (ContainerControls): one row at the bottom of the list
+-- (director, Oct 16 2026: "bottom is the right place. less noise down
+-- there"), single-container view only; the list ends above it. These helpers
+-- keep renderItemList's locals unchanged (it sits at Kahlua's limit of 200
+-- active locals): the row's height rides on self._ccH.
 local function ccLayout(self, hdrY, barH, colW)
-    self._ccInfoY, self._ccH = hdrY, 0
+    self._ccH = 0
     local CTL = ZeD.ContainerControls
     if CTL and self._ccSide and not self._compactMode and hdrY > barH then
         local ok, h = pcall(CTL.layout, self, colW)
@@ -248,11 +248,10 @@ local function ccLayout(self, hdrY, barH, colW)
         self._ccMarks = nil
         if self._cc then self._cc.layout = nil end
     end
-    return hdrY + self._ccH
 end
 
 local function ccDraw(self, colW, xOff)
-    local ok, e = pcall(ZeD.ContainerControls.draw, self, self._ccInfoY, colW, xOff)
+    local ok, e = pcall(ZeD.ContainerControls.draw, self, self:getHeight() - self._ccH, colW, xOff, true)
     if not ok then print("[ZeD] ContainerControls draw: " .. tostring(e)) end
 end
 
@@ -383,9 +382,8 @@ local function renderItemList(self)
     local hdrYOff = self._hdrYOffset
     local hdrY    = barH + ((type(hdrYOff) == "number") and hdrYOff or 0)
 
-    -- Container buttons: their row sits under the heading; the column
-    -- header and the list start below it (ccLayout above)
-    hdrY = ccLayout(self, hdrY, barH, colW)
+    -- Container buttons: their row sits at the bottom; the list ends above it
+    ccLayout(self, hdrY, barH, colW)
 
     -- --------------------------------------------------------
     -- PRE-COMPUTE: Build item list + determine scroll state
@@ -532,7 +530,7 @@ local function renderItemList(self)
     end
 
     local contentTop = hdrY + colHdrH
-    local visibleH   = h - contentTop
+    local visibleH   = h - contentTop - self._ccH   -- (the container buttons' row below)
     local scroll     = self._scroll
 
     -- Scrollbar geometry — uses panel-absolute X via xOff
@@ -564,10 +562,10 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     -- CONTAINER INFO HEADER (when hdrY > 0)
     -- --------------------------------------------------------
-    if self._ccInfoY > 0 then
+    if hdrY > 0 then
         local ci = self._containerInfo
         if ci then
-            local infoAreaH = self._ccInfoY - barH
+            local infoAreaH = hdrY - barH
 
             -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
             local wtStr  = ci.stats or ""
@@ -597,7 +595,7 @@ local function renderItemList(self)
                 dT(name, cx, nameY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
             end
         end
-        aDiv(0, self._ccInfoY - T.px(1), colW, true)
+        aDiv(0, hdrY - T.px(1), colW, true)
     end
 
     -- the container buttons' row
