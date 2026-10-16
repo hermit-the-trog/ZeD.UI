@@ -17,7 +17,9 @@
 -- D-pad move between them. They sit under the windows, as icons do.
 --
 -- The Trash opens a small window holding one file, system32.dll. EMPTY TRASH
--- cannot: the file is in use.
+-- deletes it, and with it the computer: the window asks the game's own "Quit
+-- Project Zomboid?" (director, Oct 16 2026: "What if deleting system32.dll
+-- queues the are quit game dialog?"). CANCEL keeps everything.
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -198,13 +200,19 @@ local FILE = { name = "system32.dll", size = "1,402 K", kind = "system file" }
 function ZeD_MMTrash:new()
     local o = ZeD_MMWindow.new(self, "trash")
     o.noResetControl = true
-    o.note = nil
     return o
 end
 
 function ZeD_MMTrash:onShow()
-    self.note = nil
+    self.confirm = false
     self.focusId = "close"
+end
+
+-- the question in the footer (the main window's own, a footer swap); off, the
+-- controller goes back to EMPTY TRASH
+function ZeD_MMTrash:setConfirm(on)
+    ZeD_MMWindow.setConfirm(self, on)
+    if not on then self.focusId = "empty" end
 end
 
 function ZeD_MMTrash:close()
@@ -213,10 +221,8 @@ function ZeD_MMTrash:close()
 end
 function ZeD_MMTrash:back() self:close() end
 
-function ZeD_MMTrash:empty()
-    MM.clickSound()
-    self.note = FILE.name .. " is in use. The Trash was not emptied."
-end
+-- emptying it takes system32.dll, and the computer with it
+function ZeD_MMTrash:empty() self:setConfirm(true) end
 
 function ZeD_MMTrash:prerender()
     local T = ZeD.T
@@ -227,11 +233,10 @@ function ZeD_MMTrash:prerender()
     local k = math.max(1, math.floor((T.scale or 1) + 0.5))
     local isz = ICON_PX * k
     local rowH = isz + T.px(12)
-    local noteH = MM.fontH(f2) + T.px(10)
     local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
     local tb = T.titleBarH
     local w = math.min(T.px(TRASH_W), L.tw - T.px(40))
-    local h = tb + pad + rowH + T.px(2) + noteH + pad + stripH + self:footerHeight()
+    local h = tb + pad + rowH + T.px(2) + pad + stripH + self:footerHeight()
     local x = L.tx + math.floor((L.tw - w) / 2)
     local y = L.ty + T.px(U.BAR_H) + math.floor((L.th - T.px(U.BAR_H) - h) / 2)
     if self.x ~= x or self.y ~= y then self:setX(x); self:setY(y) end
@@ -252,31 +257,32 @@ function ZeD_MMTrash:prerender()
     self:drawText(FILE.kind, nx, ry + math.floor(rowH / 2), td.r, td.g, td.b, td.a or 1, f2)
     self:drawText(FILE.size, bx + bw - T.px(12) - MM.textW(f3, FILE.size), ry + math.floor((rowH - MM.fontH(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
 
-    -- what EMPTY TRASH said
-    if self.note then
-        local ny = by + rowH + T.px(2) + T.px(6)
-        local dsz = T.px(7)
-        ZeD.Atoms.drawStatusDot(self, bx + T.px(2), ny + math.floor((MM.fontH(f2) - dsz) / 2), T.danger, dsz)
-        self:drawText(self.note, bx + T.px(2) + dsz + T.px(6), ny, tc.r, tc.g, tc.b, tc.a or 1, f2)
-    end
-
     local stripY = h - self:footerHeight() - stripH
-    UI.stripSpecs(self, stripY, w, 1000,
-        { { "close", "CLOSE", function() self:close() end } },
-        { { "empty", "EMPTY TRASH", function() self:empty() end } })
+    if self.confirm then
+        self._ask = "Quit Project Zomboid?"
+        UI.stripSpecs(self, stripY, w, 1000, {},
+            { { "confirm:no", "CANCEL", function() self:setConfirm(false) end, "default" },
+              { "confirm:yes", "QUIT", MM.act.quit, "danger" } })
+    else
+        self._ask = nil
+        UI.stripSpecs(self, stripY, w, 1000,
+            { { "close", "CLOSE", function() self:close() end } },
+            { { "empty", "EMPTY TRASH", function() self:empty() end } })
+    end
     self._stripY, self._stripH = stripY, stripH
 end
 
 function ZeD_MMTrash:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, nil)
+    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask)
     ZeD_Window.render(self)
 end
 
-function ZeD_MMTrash:joyB() self:close() end
+function ZeD_MMTrash:joyB() if self.confirm then self:setConfirm(false) else self:close() end end
 function ZeD_MMTrash:getFooterPrompts()
     if not MM.gamepad() then return nil end
+    if self.confirm then return { { glyph = "A", label = "Quit" }, { glyph = "B", label = "Cancel" } } end
     return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Close" } }
 end
-function ZeD_MMTrash:keyEscape() self:close(); return true end
+function ZeD_MMTrash:keyEscape() self:joyB(); return true end
 
 MM.addView("trash", "trashWin", function() return ZeD_MMTrash:new() end)

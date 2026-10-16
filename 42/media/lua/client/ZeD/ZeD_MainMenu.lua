@@ -609,7 +609,13 @@ MM.act = {
         else m:removeChild(ds); m:addChild(ds); ds:setVisible(true) end   -- re-added last: above the desk
     end,
     -- quitting asks in the window's action strip
-    askQuit   = function() MM.ctx.open = nil; local w = MM.root and MM.root.win; if w then w:setConfirm(true) end end,
+    askQuit   = function()   -- (from the desktop or another screen the main window comes up to ask)
+        MM.ctx.open = nil
+        local w = MM.root and MM.root.win
+        if not w then return end
+        if MM.view ~= "main" then MM.showView("main") end
+        w:setConfirm(true)
+    end,
     quit      = function()
         if isQuitCooldown() then return end
         local m = ms(); if m then m:quitToDesktop() end
