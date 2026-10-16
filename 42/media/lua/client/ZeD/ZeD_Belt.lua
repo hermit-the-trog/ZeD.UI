@@ -41,7 +41,7 @@ local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local LIST_ROW_H, LIST_W = 26, 290
 
-local DOT = string.char(183)
+local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 local function col(c) return c.r, c.g, c.b end
 local function hex(h)

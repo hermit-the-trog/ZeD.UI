@@ -32,7 +32,7 @@ local UI = ZeD.ObjectCards.ui
 
 FT.cap = FT.cap or {}          -- per player: what the cursor read last
 FT.state = FT.state or { mode = "pickup" }
-local DOT = string.char(183)
+local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 local MODES = {
     { id = "pickup", key = "IGUI_Pickup", fb = "Pick up",     ready = "Ready to pick up",    no = "Cannot pick up" },

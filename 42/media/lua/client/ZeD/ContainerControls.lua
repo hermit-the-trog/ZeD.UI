@@ -7,9 +7,9 @@
 -- tried the container's own actions in the heading and kept them here:
 -- "bottom row works best"). Common actions are icons that name themselves
 -- in a hover hint, the unique ones are words. For the container on show:
---   Character window (your side), bottom row: Transfer all · Same type ·
+--   Character window (your side), bottom row: Transfer all | Same type |
 --     Same type, all nearby (icons)
---   World window (the other side), bottom row: Take all · Same type ·
+--   World window (the other side), bottom row: Take all | Same type |
 --     To floor (not on the floor) (icons), then after a divider the
 --     container's own buttons, vanilla's object controls, words first then
 --     icons (a stove's

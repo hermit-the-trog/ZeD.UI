@@ -267,7 +267,7 @@ local function drawFuelStrip(card, x, y, w, d)
     local T, tm = ZeD.T, ZeD.TM
     local y0 = y
     local maxH = d.max / 60
-    -- big readout: time left + "OF FUEL · HOLDS 8 H"
+    -- big readout: time left + "OF FUEL | HOLDS 8 H"
     local bigPx = 26
     local bw = UI.big(card, OC.hm(d.fuel), x, y, bigPx, T.text) or 0
     local bigH = math.floor(T.px(bigPx) * 1.0)
@@ -361,7 +361,7 @@ local function propaneBody(card, x, y, w, t, player)
     local y0 = y
     local gap = T.px(8)
     local ph = T.px(104)
-    UI.plate(card, x, y, w, ph, "SUNDOWNER " .. DOT .. " PATIO GRILL", nil,
+    UI.plate(card, x, y, w, ph, "SUNDOWNER - PATIO GRILL", nil,
         { top = UI.hex("#2C2C2C"), bot = UI.hex("#1E1E1E"), noStripe = true })
     local top = y + T.px(10)
     -- tank needle

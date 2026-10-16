@@ -77,7 +77,7 @@ local MOD_ROW_H = 28   -- (the pause window's Mods page)
 local WIN_TOP, WIN_TOP_FIRST = 20, 86   -- below the menu bar: with Continue / without
 
 local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
-local DOT = " " .. string.char(183) .. " "
+local DOT = " | "   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 -- ---------------------------------------------------------------------------
 -- STATE

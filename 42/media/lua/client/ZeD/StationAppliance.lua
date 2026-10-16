@@ -45,13 +45,13 @@ local PAL = {
         top = hex("#D9D5C9"), bot = hex("#C9C4B5"), edge = hex("#6A675E"), text = hex("#1C1B17"),
         knob = hex("#CFC9BB"), knobHi = hex("#F4F1EA"), knobEdge = hex("#5C584E"), pointer = hex("#1C1B17"),
         key = hex("#EFECE4"), keyText = hex("#1C1B17"), keyEdge = hex("#6A675E"),
-        brand = "Premium Technologies  " .. ST.DOT .. "  RANGE",
+        brand = "Premium Technologies - RANGE",
     },
     micro = {
         top = hex("#2B2B2B"), bot = hex("#1D1D1D"), edge = hex("#000000"), text = hex("#D8D8D8"),
         knob = hex("#343434"), knobHi = hex("#6A6A6A"), knobEdge = hex("#000000"), pointer = hex("#E0E0E0"),
         key = hex("#3A3A3A"), keyText = hex("#E0E0E0"), keyEdge = hex("#000000"),
-        brand = "ValuTech  " .. ST.DOT .. "  MICRO-WAVE 700",
+        brand = "ValuTech - MICRO-WAVE 700",
     },
 }
 local LCD_BG, LCD_EDGE = hex("#0F1A10"), hex("#4A4A40")

@@ -35,7 +35,7 @@ OC.LEASH   = 6       -- tiles: the card closes past this (vanilla's plant window
 OC.CARD_W  = 480     -- design units
 OC.REFRESH = 15      -- frames between data refreshes
 OC.BROWSE_EVERY = 60 -- frames between nearby-object scans
-OC.DOT = string.char(183)
+OC.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 OC.kinds = OC.kinds or {}
 
 -- Safe Java / Lua method call: nil when the method is missing or throws.
