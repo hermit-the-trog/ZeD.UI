@@ -2,8 +2,9 @@
 -- ============================================================================
 -- CONTAINER BUTTONS — vanilla B42's row of container controls in the ZeD
 -- windows (mockup ZeDUI/mockups/zed_container_controls_v1.html, built
--- Oct 16 2026). One row of worded buttons under the container's heading in
--- each window's list, for the container that list shows:
+-- Oct 16 2026). One row of worded buttons at the bottom of each window's
+-- list (the director moved it there from under the heading: "less noise
+-- down there"), for the container that list shows:
 --   Character window (your side):  Transfer all · Same type · Same type, all nearby
 --   World window (the other side): Take all · Same type · To floor (not on the
 --     floor), then after a divider the container's own buttons: vanilla's
@@ -621,8 +622,9 @@ local function clampScroll(cc, S)
     cc.scrollX = math.max(0, math.min(cc.scrollX or 0, S.total - S.viewW))
 end
 
--- Draws the row at top (content-local; xOff = the list column's x).
-function CT.draw(content, top, colW, xOff)
+-- Draws the row at top (content-local; xOff = the list column's x); atBottom:
+-- the row closes the list (its rule on top), else it sits under a heading.
+function CT.draw(content, top, colW, xOff, atBottom)
     local cc = content._cc
     local L = cc and cc.layout
     if not L then return end
@@ -631,7 +633,7 @@ function CT.draw(content, top, colW, xOff)
     local s2, ac = T.surf2, T.accent
     local rowH, by, bh = L.h, L.by, L.bh
     content:drawRect(xOff, top, colW, rowH, s2.a, s2.r, s2.g, s2.b)
-    ZeD.Atoms.drawDividerH(content, xOff, top + rowH - T.px(1), colW, true)
+    ZeD.Atoms.drawDividerH(content, xOff, atBottom and top or (top + rowH - T.px(1)), colW, true)
     local mx, my = content:getMouseX(), content:getMouseY()
     local over = content:isMouseOver() and my >= top and my < top + rowH
     local fkey = focusedKey(content)

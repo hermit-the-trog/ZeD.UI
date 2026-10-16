@@ -4957,7 +4957,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     content._hdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
     content._defaultHdrYOffset = T.px(CONTAINER_BTN_SZ) + T.px(1)
 
-    -- Container buttons (ContainerControls): the row under the heading
+    -- Container buttons (ContainerControls): the row at the bottom of the list
     content._ccSide = "char"
     content._ccWin  = win
 
