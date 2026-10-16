@@ -20,6 +20,8 @@
 -- (ISLootWindowContainerControls_HandlerList) run with a small stand-in for
 -- vanilla's loot window, so their visibility rules stay vanilla's. Light and
 -- Add fuel open the fire card on its own lists instead of a context menu.
+-- The row is one line, a ribbon that scrolls sideways when its buttons are
+-- wider than the column (the wheel, its arrows, the controller's focus).
 -- Pointing at (or focusing) a Same type button marks the rows it would move.
 -- On a controller the buttons are stops in their own ring zone (charCtl /
 -- worldCtl, appended to the window's ring), reached by the D-pad.
@@ -523,7 +525,7 @@ local function refresh(content)
     local other = otherInventory(content)
     local sig = tostring(content._inventory) .. "|" .. sizeOf(content._inventory) .. "|" .. tostring(other) .. "|" .. sizeOf(other)
     if cc.sig == sig and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
-    if cc.sig ~= sig and cc.invSeen ~= content._inventory then cc.ask = nil end   -- another container: drop a pending question
+    if cc.sig ~= sig and cc.invSeen ~= content._inventory then cc.ask = nil; cc.scrollX = 0 end   -- another container: no pending question, the ribbon from its start
     cc.invSeen = content._inventory
     cc.sig, cc.frame = sig, cc.tick
     local ok, moves, objs
@@ -540,7 +542,11 @@ end
 
 local function btnW(label) return ZeD.ObjectCards.ui.buttonW(label) end
 
--- Lays the row out for a list column colW wide; returns its height (0 = no row).
+-- Lays the row out for a list column colW wide; returns its height (0 = no
+-- row). The row is always one line, a ribbon: when its buttons are wider than
+-- the column it scrolls sideways (the mouse wheel over it, the arrows at its
+-- ends, or the controller's focus walking along it) instead of wrapping.
+-- Each rect keeps tx, its place along the ribbon; draw turns that into x.
 function CT.layout(content, colW)
     content._ccMarks = nil
     local cc = state(content)
@@ -552,44 +558,48 @@ function CT.layout(content, colW)
     local maxX = colW - padX
     local by = math.floor((rowH - bh) / 2)
     local rects = {}
-    local L = { rects = rects, h = rowH }
+    local L = { rects = rects, h = rowH, by = by, bh = bh }
     if cc.ask then
         local wy, wn = btnW("Delete all"), btnW("Cancel")
-        rects[1] = { key = "no",  label = "Cancel", x = maxX - wy - gap - wn, y = by, w = wn, h = bh, ask = "no" }
-        rects[2] = { key = "yes", label = "Delete all", x = maxX - wy, y = by, w = wy, h = bh, ask = "yes", danger = true }
+        rects[1] = { key = "no",  label = "Cancel", tx = maxX - wy - gap - wn, w = wn, ask = "no" }
+        rects[2] = { key = "yes", label = "Delete all", tx = maxX - wy, w = wy, ask = "yes", danger = true }
         L.question = cc.ask.ask
         cc.layout = L
         return L.h
     end
     if #cc.moves + #cc.objs == 0 then cc.layout = nil; return 0 end
-    local x, line = padX, 0
+    -- along the ribbon: the moves, a divider, the container's own buttons
+    local divGap = T.px(CT.DIV_PAD) * 2 + T.px(1)
+    local tx = 0
     for _, s in ipairs(cc.moves) do
         local w = btnW(s.label)
-        if x > padX and x + w > maxX then line = line + 1; x = padX end
-        rects[#rects + 1] = { key = s.id, label = s.label, spec = s, x = x, y = line * rowH + by, w = w, h = bh }
-        x = x + w + gap
+        rects[#rects + 1] = { key = s.id, label = s.label, spec = s, tx = tx, w = w }
+        tx = tx + w + gap
     end
-    if #cc.objs > 0 then
-        local objW = 0
-        for i, s in ipairs(cc.objs) do objW = objW + btnW(s.label) + (i > 1 and gap or 0) end
-        local divW = T.px(CT.DIV_PAD) * 2 + T.px(1)
-        local fits = (#cc.moves == 0) or (x - gap + divW + objW <= maxX)
-        local ox
-        if fits then
-            ox = maxX - objW
-            if #cc.moves > 0 then L.div = { x = ox - T.px(CT.DIV_PAD) - T.px(1), line = line } end
-        else
-            line = line + 1
-            ox = padX
-        end
-        for _, s in ipairs(cc.objs) do
-            local w = btnW(s.label)
-            if ox > padX and ox + w > maxX and not fits then line = line + 1; ox = padX end
-            rects[#rects + 1] = { key = s.id, label = s.label, spec = s, x = ox, y = line * rowH + by, w = w, h = bh }
-            ox = ox + w + gap
-        end
+    local movesEnd = tx - gap
+    local objW = 0
+    for i, s in ipairs(cc.objs) do objW = objW + btnW(s.label) + (i > 1 and gap or 0) end
+    local both = #cc.moves > 0 and #cc.objs > 0
+    local total = (#cc.moves > 0 and movesEnd or 0) + (both and divGap or 0) + objW
+    local avail = maxX - padX
+    local ox
+    if total <= avail then
+        -- it fits: the moves from the left, the container's own at the right
+        for _, r in ipairs(rects) do r.tx = padX + r.tx end
+        ox = maxX - objW
+        if both then L.divX = ox - T.px(CT.DIV_PAD) - T.px(1) end
+    else
+        -- wider than the column: one ribbon between two arrows
+        ox = (#cc.moves > 0 and movesEnd or 0) + (both and divGap or 0)
+        if both then L.divX = movesEnd + T.px(CT.DIV_PAD) end
+        local viewL = padX + bh + gap
+        L.scroll = { viewL = viewL, viewW = (maxX - bh - gap) - viewL, total = total }
     end
-    L.h = (line + 1) * rowH
+    for _, s in ipairs(cc.objs) do
+        local w = btnW(s.label)
+        rects[#rects + 1] = { key = s.id, label = s.label, spec = s, tx = ox, w = w }
+        ox = ox + w + gap
+    end
     cc.layout = L
     return L.h
 end
@@ -607,6 +617,10 @@ local function focusedKey(content)
     return el and el.ccKey or nil
 end
 
+local function clampScroll(cc, S)
+    cc.scrollX = math.max(0, math.min(cc.scrollX or 0, S.total - S.viewW))
+end
+
 -- Draws the row at top (content-local; xOff = the list column's x).
 function CT.draw(content, top, colW, xOff)
     local cc = content._cc
@@ -615,47 +629,123 @@ function CT.draw(content, top, colW, xOff)
     local T = ZeD.T
     local UI = ZeD.ObjectCards.ui
     local s2, ac = T.surf2, T.accent
-    content:drawRect(xOff, top, colW, L.h, s2.a, s2.r, s2.g, s2.b)
-    ZeD.Atoms.drawDividerH(content, xOff, top + L.h - T.px(1), colW, true)
+    local rowH, by, bh = L.h, L.by, L.bh
+    content:drawRect(xOff, top, colW, rowH, s2.a, s2.r, s2.g, s2.b)
+    ZeD.Atoms.drawDividerH(content, xOff, top + rowH - T.px(1), colW, true)
     local mx, my = content:getMouseX(), content:getMouseY()
-    local over = content:isMouseOver()
+    local over = content:isMouseOver() and my >= top and my < top + rowH
     local fkey = focusedKey(content)
-    local hits = {}
+    local S = L.scroll
+    cc.row = { x = xOff, y = top, w = colW, h = rowH }
+    -- the ribbon's window: where buttons show (all of the column when it fits)
+    local clipL, clipR, shift = xOff, xOff + colW, xOff
+    if S then
+        clampScroll(cc, S)
+        -- the controller's focus walks the ribbon: keep its button in view
+        if fkey then
+            for _, r in ipairs(L.rects) do
+                if r.key == fkey then
+                    if r.tx < cc.scrollX then cc.scrollX = r.tx
+                    elseif r.tx + r.w > cc.scrollX + S.viewW then cc.scrollX = r.tx + r.w - S.viewW end
+                end
+            end
+            clampScroll(cc, S)
+        end
+        clipL, clipR = xOff + S.viewL, xOff + S.viewL + S.viewW
+        shift = xOff + S.viewL - cc.scrollX
+        content:setStencilRect(clipL, top, S.viewW, rowH)
+    end
     if L.question then
         local f2 = T.fontF2
         local fh = ZeD.TM:getFontHeight(f2)
         local dc, tc = T.danger, T.text
         local qx = xOff + T.px(CT.PAD_X)
-        local qy = top + math.floor((T.px(CT.ROW_H) - fh) / 2)
+        local qy = top + math.floor((rowH - fh) / 2)
         local dot = T.px(6)
-        content:drawRect(qx, top + math.floor((T.px(CT.ROW_H) - dot) / 2), dot, dot, 1, dc.r, dc.g, dc.b)
-        local room = (xOff + L.rects[1].x) - (qx + dot + T.px(6)) - T.px(6)
+        content:drawRect(qx, top + math.floor((rowH - dot) / 2), dot, dot, 1, dc.r, dc.g, dc.b)
+        local room = (xOff + L.rects[1].tx) - (qx + dot + T.px(6)) - T.px(6)
         content:drawText(ZeD.Atoms.truncateText(L.question, f2, room), qx + dot + T.px(6), qy, tc.r, tc.g, tc.b, tc.a or 1, f2)
     end
-    if L.div then
+    if L.divX then
         local bs = T.borderS
-        content:drawRect(xOff + L.div.x, top + L.div.line * T.px(CT.ROW_H) + T.px(5), T.px(1), T.px(CT.ROW_H) - T.px(10), bs.a, bs.r, bs.g, bs.b)
+        content:drawRect(shift + L.divX, top + T.px(5), T.px(1), rowH - T.px(10), bs.a, bs.r, bs.g, bs.b)
     end
+    local hits = {}
     for i, r in ipairs(L.rects) do
         local s = r.spec
         local enabled = (s == nil) or s.enabled
-        local x, y = xOff + r.x, top + r.y
+        local x, y = shift + r.tx, top + by
         local focused = (fkey == r.key)
-        UI.button(content, x, y, r.label, { h = r.h, w = r.w, disabled = not enabled, danger = r.danger or (s and s.danger),
-            focused = focused })
-        local hover = over and mx >= x and mx < x + r.w and my >= y and my < y + r.h
-        if hover and enabled and not focused then content:drawRect(x, y, r.w, r.h, 0.22, ac.r, ac.g, ac.b) end
+        -- the part that shows (a button half past an arrow takes clicks only there)
+        local vx0, vx1 = math.max(x, clipL), math.min(x + r.w, clipR)
+        if vx1 > vx0 then
+            UI.button(content, x, y, r.label, { h = bh, w = r.w, disabled = not enabled, danger = r.danger or (s and s.danger),
+                focused = focused })
+        end
+        local hover = over and vx1 > vx0 and mx >= vx0 and mx < vx1 and my >= y and my < y + bh
+        if hover and enabled and not focused then content:drawRect(x, y, r.w, bh, 0.22, ac.r, ac.g, ac.b) end
         if (hover or focused) and s and s.enabled and s.marks then content._ccMarks = s.marks end
-        hits[i] = { key = r.key, label = r.label, x = x, y = y, w = r.w, h = r.h, enabled = enabled }
+        hits[i] = { key = r.key, label = r.label, x = x, y = y, w = r.w, h = bh, enabled = enabled,
+                    vx = vx0, vw = math.max(0, vx1 - vx0) }
     end
     cc.hits = hits
+    cc.arrows = nil
+    if S then
+        content:clearStencilRect()
+        -- the arrows: a scrollbar's own, live while there is more that way
+        local canL, canR = cc.scrollX > 0, cc.scrollX < S.total - S.viewW
+        local ax = { xOff + T.px(CT.PAD_X), xOff + colW - T.px(CT.PAD_X) - bh }
+        cc.arrows = {}
+        for k, dir in ipairs({ "left", "right" }) do
+            local can = (k == 1 and canL) or (k == 2 and canR)
+            local x, y = ax[k], top + by
+            local hov = can and over and mx >= x and mx < x + bh and my >= y and my < y + bh
+            ZeD.Atoms.drawScrollArrow(content, x, y, bh, dir, hov and "hover" or "default")
+            -- nothing more that way: the arrow fades into the row
+            if not can then content:drawRect(x, y, bh, bh, 0.6, s2.r, s2.g, s2.b) end
+            if can then cc.arrows[#cc.arrows + 1] = { idx = -k, x = x, y = y, w = bh, h = bh } end
+        end
+    end
 end
 
--- Hit zones go in after the renderer clears its zones for the frame.
+-- Hit zones go in after the renderer clears its zones for the frame: each
+-- button's showing part, and the arrows (cc:-1 left, cc:-2 right).
 function CT.addZones(content)
     local cc = content._cc
     if not (cc and cc.layout and cc.hits) then return end
-    for i, h in ipairs(cc.hits) do content:addHitZone("cc:" .. i, h.x, h.y, h.w, h.h) end
+    for i, h in ipairs(cc.hits) do
+        if h.vw > 0 then content:addHitZone("cc:" .. i, h.vx, h.y, h.vw, h.h) end
+    end
+    for _, a in ipairs(cc.arrows or {}) do content:addHitZone("cc:" .. a.idx, a.x, a.y, a.w, a.h) end
+end
+
+-- Moves the ribbon one button left (-1) or right (+1).
+local function stepRibbon(cc, dir)
+    local L = cc.layout
+    local S = L and L.scroll
+    if not S then return end
+    if dir < 0 then
+        local to = 0
+        for _, r in ipairs(L.rects) do if r.tx < cc.scrollX then to = r.tx end end
+        cc.scrollX = to
+    else
+        for _, r in ipairs(L.rects) do
+            if r.tx + r.w > cc.scrollX + S.viewW + 1 then cc.scrollX = r.tx + r.w - S.viewW; break end
+        end
+    end
+    clampScroll(cc, S)
+end
+
+-- The mouse wheel over a ribbon scrolls it sideways; true when it took the wheel.
+function CT.wheel(content, del)
+    local cc = content and content._cc
+    local L = cc and cc.layout
+    local R = cc and cc.row
+    if not (L and L.scroll and R) then return false end
+    local mx, my = content:getMouseX(), content:getMouseY()
+    if not (mx >= R.x and mx < R.x + R.w and my >= R.y and my < R.y + R.h) then return false end
+    stepRibbon(cc, del > 0 and 1 or -1)
+    return true
 end
 
 -- ----------------------------------------------------------------------------
@@ -663,6 +753,7 @@ end
 -- ----------------------------------------------------------------------------
 function CT.press(content, idx)
     local cc = content._cc
+    if cc and idx and idx < 0 then stepRibbon(cc, idx == -1 and -1 or 1); return end
     local L = cc and cc.layout
     local r = L and L.rects[idx]
     local h = cc and cc.hits and cc.hits[idx]
@@ -694,7 +785,9 @@ end
 -- ----------------------------------------------------------------------------
 -- CONTROLLER: the row's buttons as one ring zone, appended to the window's
 -- ring (appending keeps every other zone's index, so focus never jumps).
--- Called by the window after the list renders.
+-- Every button is a stop, the ones scrolled out of view too (at their place
+-- along the ribbon), so the D-pad walks on past the arrow and the ribbon
+-- follows. Called by the window after the list renders.
 -- ----------------------------------------------------------------------------
 function CT.syncFocus(win, content)
     local F = ZeD.Input and ZeD.Input.Focus
