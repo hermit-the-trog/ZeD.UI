@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Mod Manager v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | the mod manager, mockup v1 (Oct 16 2026)
+   Director: "a robust mod/map/list manager is important to me": conflicts,
+   Workshop updates, reloading without exiting (and why a restart, when one is
+   needed), uploading to the Workshop, and a description editor with modern
+   layout controls. Three ZeD OS windows on the main menu's monitor, in the
+   menu's dark theme (colours sampled from a live capture). Everything shown is
+   reachable from Lua on 42.21.0 (see the notes). Design units: 1 px at 1080p.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --desk:#040506; --body:#0d100f; --panel:#121514; --surf2:#161918; --surf3:#1e2120; --title:#1b1d1d;
+  --border:#383b3a; --borderHi:#4a4e4c; --text:#d6d7d5; --dim:#868887; --faint:#5d605f;
+  --acc:#3f8f7d; --accB:#5fbca4; --a22:rgba(63,143,125,.22); --a55:rgba(63,143,125,.55);
+  --danger:#d9533c; --warn:#d2a23c; --ok:#86b94e; --info:#4f93d4;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1000px; height:720px; background:var(--desk); border:1px solid #2a2924; overflow:hidden; transform-origin:0 0; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+
+/* ---- the ZeD OS window ------------------------------------------------- */
+.win { position:absolute; left:10px; top:10px; width:980px; height:700px; background:var(--body); border:1px solid var(--border); display:flex; flex-direction:column; }
+.tb { height:26px; flex:none; display:flex; align-items:center; gap:10px; padding:0 8px; background:var(--title);
+      background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); border-bottom:1px solid var(--border);
+      font-family:var(--mono); font-size:12px; color:#b9bab8; }
+.tb .cb { width:13px; height:13px; border:1px solid #6b6d6c; }
+.tb .t { background:var(--title); padding:0 6px; }
+.tb .st { margin-left:auto; display:flex; gap:12px; align-items:center; font-size:11px; color:var(--dim); }
+.tb .st i { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:1px; }
+.main { flex:1; display:flex; min-height:0; gap:10px; padding:10px; }
+.col { display:flex; flex-direction:column; min-height:0; border:1px solid var(--border); background:var(--panel); }
+.strip { flex:none; height:40px; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-top:1px solid var(--border); }
+.strip .sp { flex:1; }
+.strip .msg { font-family:var(--sans); font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:0; }
+.strip .msg i { width:7px; height:7px; border-radius:50%; flex:none; }
+.foot { flex:none; height:14px; display:flex; align-items:center; gap:4px; padding:0 4px; border-top:1px solid var(--border); background:var(--surf2); }
+.foot span { width:10px; height:10px; border:1px solid #555; }
+
+.b { height:24px; display:inline-flex; align-items:center; justify-content:center; padding:0 10px; font-family:var(--mono); font-size:11px; color:var(--text);
+     background:transparent; border:1px solid var(--borderHi); border-radius:2px; box-shadow:inset 0 0 0 1px #000; white-space:nowrap; flex:none; }
+.b.pri { border-color:var(--acc); color:var(--accB); box-shadow:inset 0 0 0 1px #000, 0 0 0 1px rgba(63,143,125,.35); }
+.b.on { background:var(--a55); color:#fff; }
+.b.off { opacity:.4; }
+.b.sm { height:20px; padding:0 8px; font-size:10px; }
+.tabs { display:flex; gap:4px; padding:8px 8px 0; flex-wrap:wrap; }
+.tab { height:24px; padding:0 10px; display:flex; align-items:center; font-family:var(--sans); font-size:12px; color:var(--dim); border:1px solid var(--border); background:var(--surf2); }
+.tab.on { color:var(--accB); border-color:var(--acc); background:var(--surf3); }
+.find { margin:8px; height:26px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border); background:var(--body); font-family:var(--mono); font-size:11px; color:var(--dim); }
+.rows { flex:1; overflow:hidden; border-top:1px solid var(--border); }
+.row { position:relative; height:42px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #191c1b; }
+.row.sel { background:#16302a; }
+.row .ck { width:13px; height:13px; border:1px solid #6b6d6c; flex:none; display:flex; align-items:center; justify-content:center; }
+.row .ck.on { background:var(--acc); border-color:var(--accB); }
+.row .ck.on::after { content:""; width:6px; height:6px; background:#0b1210; }
+.row .nm { display:flex; flex-direction:column; min-width:0; }
+.row .nm b { font-family:var(--sans); font-weight:500; font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row .nm span { font-family:var(--mono); font-size:10px; color:var(--faint); }
+.row .chips { margin-left:auto; display:flex; gap:5px; align-items:center; }
+.chip { height:16px; padding:0 5px; display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:.3px; border:1px solid; white-space:nowrap; }
+.chip i { width:5px; height:5px; border-radius:50%; background:currentColor; }
+.c-warn { color:var(--warn); border-color:rgba(210,162,60,.6); }
+.c-bad { color:var(--danger); border-color:rgba(217,83,60,.6); }
+.c-info { color:var(--info); border-color:rgba(79,147,212,.6); }
+.c-ok { color:var(--ok); border-color:rgba(134,185,78,.5); }
+.c-dim { color:var(--dim); border-color:var(--border); }
+.bar { height:4px; background:#262a29; position:relative; width:60px; }
+.bar i { position:absolute; left:0; top:0; bottom:0; background:var(--info); }
+
+.det { flex:1; overflow:hidden; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+.det h2 { font-family:var(--cond); font-weight:700; font-size:20px; color:var(--text); }
+.det .by { font-size:12px; color:var(--dim); margin-top:-6px; }
+.btns { display:flex; gap:6px; flex-wrap:wrap; }
+.kv { display:grid; grid-template-columns:96px 1fr; gap:3px 10px; font-size:12px; }
+.kv .k { font-family:var(--mono); font-size:10px; font-weight:700; color:var(--acc); letter-spacing:.5px; padding-top:2px; }
+.kv .v { color:var(--text); }
+.sec { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:1px; color:var(--acc); border-bottom:1px solid var(--border); padding-bottom:3px; display:flex; justify-content:space-between; }
+.sec span { color:var(--dim); font-weight:400; }
+.cf { display:flex; gap:9px; font-size:12.5px; line-height:1.45; color:var(--text); }
+.cf > i { width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; }
+.cf .path { font-family:var(--mono); font-size:10.5px; color:var(--dim); display:block; margin:2px 0; }
+.cf .acts { display:flex; gap:6px; margin-top:5px; }
+.desc { font-size:12px; line-height:1.5; color:#a9aaa8; }
+
+/* forms */
+.lbl { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.6px; color:var(--acc); margin-bottom:4px; }
+.field { height:28px; border:1px solid var(--border); background:var(--body); display:flex; align-items:center; padding:0 8px; font-size:13px; color:var(--text); }
+.area { border:1px solid var(--border); background:var(--body); padding:8px 10px; font-size:12px; line-height:1.5; color:#bdbebc; }
+.segc { display:flex; }
+.segc span { height:26px; padding:0 12px; display:flex; align-items:center; border:1px solid var(--border); margin-left:-1px; font-family:var(--mono); font-size:11px; color:var(--dim); background:var(--surf2); }
+.segc span.on { background:var(--a55); color:#fff; border-color:var(--acc); position:relative; }
+.tags { display:grid; grid-template-columns:repeat(3, 1fr); gap:5px 12px; font-size:12px; color:var(--text); }
+.tags label { display:flex; align-items:center; gap:7px; }
+.tags .ck { width:12px; height:12px; border:1px solid #6b6d6c; }
+.tags .ck.on { background:var(--acc); border-color:var(--accB); }
+.check { display:flex; gap:8px; font-size:12px; color:var(--text); align-items:baseline; }
+.check i { width:7px; height:7px; border-radius:50%; flex:none; }
+.prog { flex:1; height:10px; background:#202423; border:1px solid var(--border); position:relative; max-width:330px; }
+.prog i { position:absolute; left:0; top:0; bottom:0; background:var(--acc); }
+
+/* the editor */
+.pal { width:150px; flex:none; padding:10px; display:flex; flex-direction:column; gap:5px; overflow:hidden; }
+.pal .pi { height:26px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border); background:var(--surf2); font-size:12px; color:var(--text); }
+.pal .pi em { width:16px; text-align:center; font-family:var(--mono); font-style:normal; font-size:11px; color:var(--accB); }
+.pal .gap { height:6px; }
+.canvas { flex:1; padding:12px; display:flex; flex-direction:column; gap:7px; overflow:hidden; background:var(--body); }
+.blk { position:relative; border:1px solid #232726; background:var(--panel); padding:8px 10px 8px 26px; }
+.blk .grip { position:absolute; left:7px; top:9px; width:10px; height:12px; background:repeating-linear-gradient(0deg, #4b4f4d 0 2px, transparent 2px 4px); }
+.blk .ty { position:absolute; right:8px; top:6px; font-family:var(--mono); font-size:9px; color:var(--faint); }
+.blk.sel { border-color:var(--acc); box-shadow:0 0 0 1px rgba(63,143,125,.4); }
+.blk .h { font-family:var(--cond); font-weight:700; font-size:17px; color:var(--text); }
+.blk p { font-size:12.5px; line-height:1.5; color:#c4c5c3; }
+.blk ul { padding-left:16px; font-size:12.5px; line-height:1.55; color:#c4c5c3; list-style:"- "; }
+.fmt { display:flex; gap:4px; margin-bottom:7px; }
+.fmt span { height:22px; min-width:24px; padding:0 6px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); background:var(--surf2); font-family:var(--mono); font-size:11px; color:var(--text); }
+.fmt span.on { background:var(--a55); color:#fff; }
+.img { height:84px; border:1px dashed #3c403e; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--dim); background:repeating-linear-gradient(45deg, #121514 0 8px, #151918 8px 16px); }
+.tbl { width:100%; border-collapse:collapse; font-size:11.5px; color:#c4c5c3; }
+.tbl td { border:1px solid #2a2e2d; padding:3px 6px; }
+.tbl tr:first-child td { font-weight:600; color:var(--text); background:#171b1a; }
+.addline { height:22px; border:1px dashed #2f3332; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--faint); }
+/* Steam's workshop description, as Steam shows it */
+.steam { flex:1; background:#1b2838; color:#acb2b8; padding:14px 16px; font-family:Arial, Helvetica, sans-serif; font-size:12.5px; line-height:1.5; overflow:hidden; }
+.steam .sh1 { color:#fff; font-size:17px; margin:2px 0 6px; }
+.steam .sh2 { color:#fff; font-size:14px; margin:10px 0 4px; }
+.steam ul { padding-left:18px; margin:2px 0 6px; }
+.steam .simg { height:84px; background:linear-gradient(135deg, #2a3f55, #16202d); margin:6px 0; display:flex; align-items:center; justify-content:center; color:#6b7f95; font-size:11px; }
+.steam table { border-collapse:collapse; margin:6px 0; font-size:11.5px; }
+.steam td { border:1px solid #3d4f63; padding:3px 7px; }
+.steam a { color:#66c0f4; text-decoration:none; }
+.steam .shr { height:1px; background:#3d4f63; margin:10px 0; }
+.codes { flex:1; background:#0a0c0b; color:#9fd3c5; padding:12px 14px; font-family:var(--mono); font-size:11px; line-height:1.6; white-space:pre; overflow:hidden; }
+.ph { height:28px; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--border); background:var(--surf2); }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | main menu | the mod manager | mockup v1</div>
+<h1>Mod Manager</h1>
+<p class="lede">What you asked for, on the monitor: <b>conflicts found</b> (not only the ones authors declare), <b>Workshop state</b> for every subscribed mod, <b>reload without exiting</b> and a plain reason when a full restart is the only way, an <b>upload screen</b> for your own mods, and a <b>description editor</b> with real layout tools and a live Steam preview. The Mods screen keeps everything it does today (tabs, Find, problem flags, load and map order, profiles); the new parts are added to it. Mod names here are made up.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Screen</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>Conflicts the game would never tell you about.</b> ZeD reads each mod's files and scripts: two mods shipping the same file (the one that loads later silently replaces the other), two mods defining the same item or recipe, a mod that needs another to load first. Each says in plain words who wins and why, with the fix one press away (move it in the load order, turn one off). Declared clashes, missing requirements and game version stay as they are today. A new <b>Conflicts</b> tab, and the count on each row.</li>
+      <li><span class="rec">RECOMMEND</span><b>Workshop state on every subscribed mod</b>: up to date, update waiting, downloading (with progress), subscribed but not installed, plus when it was last updated and its size. A <b>Workshop</b> tab lists everything you subscribe to, collections grouped. "Open in Steam" on each.</li>
+      <li><span class="lim">LIMIT</span><b>Steam does the downloading.</b> The game does not let a mod start a Workshop download or subscribe to an item (the Steam functions for that are closed to mods; checked on 42.21.0). ZeD shows what Steam is doing and opens the item's Steam page; when Steam finishes, the reload below picks it up.</li>
+      <li><span class="rec">RECOMMEND</span><b>The bottom strip says what your changes need</b>, before you leave the screen: "Reload" (vanilla's own Lua reload, the one it already runs when you accept a mod change: no exit, seconds) or "Restart needed", with the reason in a sentence naming the mod and the kind of file ("Tanks of Kentucky changed its textures; the game reads textures once, at start"). Which kinds of file truly need a restart gets tested in game before the messages are written.</li>
+      <li><span class="rec">RECOMMEND</span><b>An upload screen for your own mods</b>, on the game's own Workshop functions: your mod folders from the Workshop folder, title, visibility, tags, the preview picture checked against Steam's rules before you upload (not after), what will go up (files, size, mod.info found), the change note, and Upload with a progress bar. New items get created; existing ones updated.</li>
+      <li><span class="rec">RECOMMEND</span><b>The description editor writes Steam's own formatting</b> (Steam descriptions are plain text with formatting codes). You build with blocks: heading, text, list, numbered list, picture, quote, code, table, divider, link, spoiler; drag to reorder; bold, italic, underline, strike and links inside text. A live preview shows it the way Steam will; "Steam codes" shows the raw text to paste anywhere. Starting sections for what readers look for: Features, Requirements, Load order, Compatibility, Known issues, Changelog, Credits. A counter against Steam's 8,000 characters. Change notes use the same editor.</li>
+      <li><span class="alt">YOUR CALL</span><b>Where the upload screen lives.</b> Shown here behind the main window's Workshop button (vanilla's spot). It could also be a desktop icon of its own ("Workshop").</li>
+      <li><b>Controller:</b> every list, tab and button is a stop like today; the editor's blocks move with the D-pad and a held A to drag; text goes through the ZeD keyboard.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const STRIPS = '<div class="foot"><span></span><span></span><span></span></div>';
+
+// ---- the Mods screen ----------------------------------------------------------
+const MODS = [
+  { n: "Tidy Sorting", id: "TidySorting", on: 1, chips: [["c-warn", "2 conflicts"]] },
+  { n: "Hammer Recipes Fixed", id: "HammerFix", on: 1, chips: [["c-warn", "1 conflict"]] },
+  { n: "Tanks of Kentucky", id: "TanksKY", on: 1, chips: [["c-info", "Update", 0]] },
+  { n: "Knox Radio Plus", id: "KnoxRadioPlus", on: 1, chips: [["c-info", "Downloading", 42]] },
+  { n: "Muldraugh Expanded", id: "MuldraughX", on: 1, map: 1, chips: [] },
+  { n: "Common Kitchen", id: "CommonKitchen", on: 0, chips: [["c-bad", "Needs Kitchen Core"]] },
+  { n: "Rosewood Bunker", id: "RosewoodBunker", on: 0, map: 1, chips: [] },
+  { n: "ZeD UI", id: "ZeD_UI", on: 1, chips: [] },
+];
+function modsWindow(S) {
+  const tabs = [["All 8", "all"], ["On 6", "on"], ["Starred 1", "fav"], ["Maps 2", "maps"], ["Problems 1", "prob"], ["Conflicts 2", "conf"], ["Workshop 38", "ws"]];
+  const left = `<div class="col" style="width:430px">
+    <div class="tabs">${tabs.map(([t, k]) => `<span class="tab ${S.tab === k ? "on" : ""}">${t}</span>`).join("")}</div>
+    <div class="find">Find:</div>
+    <div class="rows">${(S.tab === "ws" ? wsRows() : MODS.filter(m => S.tab !== "conf" || m.chips.some(c => c[1].includes("conflict"))).map((m, i) => modRow(m, i === (S.sel || 0)))).join("")}</div>
+  </div>`;
+  const right = `<div class="col" style="flex:1"><div class="det">${S.detail()}</div></div>`;
+  return `<div class="win">
+    <div class="tb"><span class="cb"></span><span class="t">Project Zomboid  +  Mods</span><div class="st"><span><i style="background:var(--ok)"></i>6 of 8 on</span>${S.tab === "ws" ? '<span><i style="background:var(--info)"></i>Steam: 2 updates</span>' : ""}</div></div>
+    <div class="main">${left}${right}</div>
+    <div class="strip">${S.strip}</div>${STRIPS}</div>`;
+}
+function modRow(m, sel) {
+  const chips = m.chips.map(([c, t, p]) => p !== undefined && t === "Downloading"
+    ? `<span class="chip ${c}">${t} ${p}%</span><span class="bar"><i style="width:${p}%"></i></span>` : `<span class="chip ${c}"><i></i>${t}</span>`).join("");
+  return `<div class="row ${sel ? "sel" : ""}"><span class="ck ${m.on ? "on" : ""}"></span><div class="nm"><b>${m.n}</b><span>${m.id}</span></div><div class="chips">${chips}</div></div>`;
+}
+function wsRows() {
+  const R = [
+    ["Tanks of Kentucky", "Update waiting", "c-info", "Updated 2 h ago | 184 MB"],
+    ["Knox Radio Plus", "Downloading 42%", "c-info", "Updated today | 12 MB"],
+    ["Tidy Sorting", "Up to date", "c-ok", "Updated 3 days ago | 1.2 MB"],
+    ["Hammer Recipes Fixed", "Up to date", "c-ok", "Updated Sep 30 | 0.4 MB"],
+    ["Rosewood Bunker", "Up to date", "c-ok", "Updated Aug 12 | 96 MB"],
+    ["Kitchen Core", "Not installed", "c-warn", "Subscribed, Steam has not fetched it"],
+    ["Rural Kentucky (collection)", "12 items", "c-dim", "11 installed | 1 waiting"],
+  ];
+  return R.map(([n, s, c, sub], i) => `<div class="row ${i === 0 ? "sel" : ""}"><div class="nm"><b>${n}</b><span>${sub}</span></div><div class="chips"><span class="chip ${c}"><i></i>${s}</span></div></div>`).join("");
+}
+const DET_TIDY = () => `<h2>Tidy Sorting</h2><div class="by">by Fennick</div>
+  <div class="btns"><span class="b">Turn off</span><span class="b">Favourite</span><span class="b">Open in Steam</span></div>
+  <div class="kv"><span class="k">VERSION</span><span class="v">2.4.1</span><span class="k">GAME</span><span class="v">42.0 to any</span><span class="k">WORKSHOP</span><span class="v"><span class="chip c-ok"><i></i>Up to date</span>&nbsp; updated 3 days ago | 1.2 MB</span><span class="k">LOAD ORDER</span><span class="v">14 of 22</span></div>
+  <div class="sec">CONFLICTS<span>2</span></div>
+  <div class="cf"><i style="background:var(--warn)"></i><div><b>Same file as Knox Radio Plus</b><span class="path">media/lua/client/ISUI/ISInventoryPane.lua</span>Knox Radio Plus loads later, so its copy is the one the game uses; Tidy Sorting's sorting buttons will not appear.<div class="acts"><span class="b sm">Load Tidy Sorting after it</span><span class="b sm">Show both files</span></div></div></div>
+  <div class="cf"><i style="background:var(--warn)"></i><div><b>Same recipe as Hammer Recipes Fixed</b><span class="path">recipe "Make Hammer" (module Base)</span>Both define it; Hammer Recipes Fixed loads later and its version wins. Usually fine when one mod is a fix for the other.<div class="acts"><span class="b sm">Fine, hide this</span></div></div></div>
+  <div class="sec">NEEDS<span>0</span></div><div class="desc">Nothing else.</div>
+  <div class="sec">DESCRIPTION</div><div class="desc">Sorts your bags by kind with one press, keeps favourites on top and remembers each container's order.</div>`;
+const DET_TANKS = () => `<h2>Tanks of Kentucky</h2><div class="by">by Ridgeline Garage</div>
+  <div class="btns"><span class="b">Turn off</span><span class="b">Favourite</span><span class="b pri">Open in Steam</span></div>
+  <div class="kv"><span class="k">WORKSHOP</span><span class="v"><span class="chip c-info"><i></i>Update waiting</span>&nbsp; Steam has a newer copy (2 h ago)</span><span class="k">SIZE</span><span class="v">184 MB</span><span class="k">ID</span><span class="v">3021457812</span></div>
+  <div class="sec">WHAT CHANGED</div>
+  <div class="desc">The update replaces vehicle textures and two scripts. Steam fetches it on its own; this screen notices when it lands.</div>
+  <div class="sec">CONFLICTS<span>0</span></div><div class="desc">None found.</div>`;
+const SCENES = [
+  { id: "m1", label: "Mods: a conflict", cap: "Tidy Sorting selected: two conflicts ZeD found by reading the mods' files and scripts, each in plain words with the fix one press away. The rows carry their conflict and Workshop chips.",
+    html: () => modsWindow({ tab: "all", sel: 0, detail: DET_TIDY, strip: `<span class="b">Back</span><span class="sp"></span><span class="b">Profiles</span><span class="b">Load order</span><span class="b pri">Accept</span>` }) },
+  { id: "m2", label: "Mods: Workshop tab", cap: "The Workshop tab: every subscribed item with Steam's state, when it was updated and its size, collections grouped. Steam does the downloading; ZeD shows it and opens the item's Steam page.",
+    html: () => modsWindow({ tab: "ws", detail: DET_TANKS, strip: `<span class="b">Back</span><span class="sp"></span><span class="msg"><i style="background:var(--info)"></i>Steam is fetching 2 updates.</span><span class="b">Open the Workshop</span>` }) },
+  { id: "m3", label: "Mods: reload, no exit", cap: "Changes waiting that a reload covers: the strip says so before you leave. Reload is vanilla's own Lua reload (what Accept already runs): no exit.",
+    html: () => modsWindow({ tab: "on", sel: 3, detail: DET_TIDY, strip: `<span class="msg"><i style="background:var(--acc)"></i>2 mods turned on, Knox Radio Plus updated by Steam. A reload covers it, no restart.</span><span class="sp"></span><span class="b">Discard</span><span class="b pri">Reload</span>` }) },
+  { id: "m4", label: "Mods: restart needed", cap: "When only a restart will do, the strip says why in one sentence naming the mod and the kind of file, and offers to quit.",
+    html: () => modsWindow({ tab: "all", sel: 2, detail: DET_TANKS, strip: `<span class="msg"><i style="background:var(--warn)"></i>Restart needed: Tanks of Kentucky changed its textures, and the game reads textures once, at start.</span><span class="sp"></span><span class="b">Later</span><span class="b pri">Quit to restart</span>` }) },
+  { id: "u1", label: "Upload: your mod", cap: "The upload screen: your mod folders from the Workshop folder on the left; on the right everything Steam needs, each checked before you press Upload.", html: () => uploadWindow(false) },
+  { id: "u2", label: "Upload: uploading", cap: "Uploading: progress in the strip, where the button was.", html: () => uploadWindow(true) },
+  { id: "e1", label: "Editor: blocks + preview", cap: "The description editor: blocks on the left, your text in the middle (the selected block shows its formatting controls), the preview as Steam will show it on the right.", html: () => editorWindow("preview") },
+  { id: "e2", label: "Editor: Steam codes", cap: "The same description as Steam's formatting codes: what gets uploaded, and what you can copy to anywhere else.", html: () => editorWindow("codes") },
+];
+
+// ---- the upload screen ---------------------------------------------------------
+function uploadWindow(busy) {
+  const items = [["Tidy Sorting", "On the Workshop | 3 files changed since"], ["Rosewood Bunker", "Not on the Workshop yet"], ["Hammer Recipes Fixed", "On the Workshop | up to date"]];
+  const left = `<div class="col" style="width:300px"><div class="ph"><span class="lbl" style="margin:0">YOUR MODS</span></div><div class="rows" style="border:0">${items.map(([n, s], i) => `<div class="row ${i === 0 ? "sel" : ""}"><div class="nm"><b>${n}</b><span>${s}</span></div></div>`).join("")}</div>
+    <div style="padding:10px;border-top:1px solid var(--border)"><span class="b sm">New mod folder...</span></div></div>`;
+  const right = `<div class="col" style="flex:1;padding:14px 16px;gap:12px;display:flex;flex-direction:column">
+    <div style="display:flex;gap:16px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+        <div><div class="lbl">TITLE</div><div class="field">Tidy Sorting</div></div>
+        <div><div class="lbl">WHO CAN SEE IT</div><div class="segc"><span class="on">Public</span><span>Friends</span><span>Unlisted</span><span>Private</span></div></div>
+        <div><div class="lbl">TAGS</div><div class="tags">${["Build 42", "Interface", "Items", "Clothing", "Vehicles", "Map", "Weapons", "Realistic", "Misc"].map((t, i) => `<label><span class="ck ${[0, 1, 2].includes(i) ? "on" : ""}"></span>${t}</label>`).join("")}</div></div>
+      </div>
+      <div style="width:190px"><div class="lbl">PREVIEW PICTURE</div><div class="img" style="height:150px">preview.png</div>
+        <div class="check" style="margin-top:6px"><i style="background:var(--ok)"></i>512 x 512 PNG, 214 KB: Steam takes it</div></div>
+    </div>
+    <div><div class="lbl">DESCRIPTION</div><div class="area" style="height:74px;overflow:hidden">Sorts your bags by kind with one press, keeps favourites on top and remembers each container's order. Features: one-press sort, kept favourites...</div>
+      <div class="btns" style="margin-top:6px"><span class="b sm pri">Edit description...</span><span class="b sm">Copy Steam codes</span></div></div>
+    <div><div class="lbl">WHAT CHANGED (CHANGE NOTE)</div><div class="field" style="height:48px;align-items:flex-start;padding-top:6px;font-size:12px">Fixed the sort button vanishing in split screen. Works with Knox Radio Plus now.</div></div>
+    <div><div class="lbl">WHAT GOES UP</div>
+      <div class="check"><i style="background:var(--ok)"></i>mod.info found (id TidySorting, version 2.4.2)</div>
+      <div class="check"><i style="background:var(--ok)"></i>42 files, 1.3 MB | 3 changed since the last upload</div>
+      <div class="check"><i style="background:var(--warn)"></i>poster.png is 2048 px wide; the mod list shows it at 256. Fine, just heavy.</div></div>
+  </div>`;
+  const strip = busy
+    ? `<span class="b off">Back</span><span class="sp"></span><span class="msg">Uploading to the Workshop</span><span class="prog"><i style="width:64%"></i></span><span class="msg" style="font-family:var(--mono);font-size:11px;color:var(--dim)">64% | 0.8 of 1.3 MB</span>`
+    : `<span class="b">Back</span><span class="sp"></span><span class="b">Open in Steam</span><span class="b pri">Upload update</span>`;
+  return `<div class="win"><div class="tb"><span class="cb"></span><span class="t">Project Zomboid  +  Workshop</span><div class="st"><span>Signed in to Steam as Fennick</span></div></div>
+    <div class="main">${left}${right}</div><div class="strip">${strip}</div>${STRIPS}</div>`;
+}
+
+// ---- the description editor ----------------------------------------------------
+function editorWindow(view) {
+  const pal = `<div class="col pal">
+    <div class="lbl">ADD A BLOCK</div>
+    ${[["H", "Heading"], ["T", "Text"], ["-", "List"], ["1", "Numbered"], ["P", "Picture"], ['"', "Quote"], ["<>", "Code"], ["#", "Table"], ["_", "Divider"], ["@", "Link"], ["?", "Spoiler"]].map(([g, t]) => `<div class="pi"><em>${g}</em>${t}</div>`).join("")}
+    <div class="gap"></div><div class="lbl">ADD A SECTION</div>
+    ${["Features", "Requirements", "Load order", "Compatibility", "Known issues", "Changelog", "Credits"].map(t => `<div class="pi" style="height:22px;font-size:11.5px">${t}</div>`).join("")}
+  </div>`;
+  const canvas = `<div class="col canvas">
+    <div class="blk"><span class="grip"></span><span class="ty">HEADING</span><div class="h">Tidy Sorting</div></div>
+    <div class="blk"><span class="grip"></span><span class="ty">PICTURE</span><div class="img">banner.png (from the Steam page's pictures)</div></div>
+    <div class="blk sel"><span class="grip"></span><span class="ty">TEXT</span><div class="fmt"><span class="on">B</span><span><i>I</i></span><span><u>U</u></span><span><s>S</s></span><span>Link</span><span>Colour</span></div><p>Sorts your bags by kind with <b>one press</b>, keeps favourites on top and remembers each container's order.</p></div>
+    <div class="blk"><span class="grip"></span><span class="ty">LIST</span><div class="h" style="font-size:14px;margin-bottom:3px">Features</div><ul><li>One-press sort in every bag</li><li>Favourites stay on top</li><li>Each container remembers its order</li></ul></div>
+    <div class="blk"><span class="grip"></span><span class="ty">TABLE</span><table class="tbl"><tr><td>Works with</td><td>Notes</td></tr><tr><td>Knox Radio Plus</td><td>Load Tidy Sorting after it</td></tr><tr><td>ZeD UI</td><td>Buttons in the bottom row</td></tr></table></div>
+    <div class="addline">+ add a block here</div>
+  </div>`;
+  const preview = view === "codes"
+    ? `<div class="codes">[h1]Tidy Sorting[/h1]
+[img]https://i.imgur.com/banner.png[/img]
+
+Sorts your bags by kind with [b]one press[/b],
+keeps favourites on top and remembers each
+container's order.
+
+[h2]Features[/h2]
+[list]
+[*]One-press sort in every bag
+[*]Favourites stay on top
+[*]Each container remembers its order
+[/list]
+
+[table]
+[tr][th]Works with[/th][th]Notes[/th][/tr]
+[tr][td]Knox Radio Plus[/td][td]Load Tidy
+Sorting after it[/td][/tr]
+[tr][td]ZeD UI[/td][td]Buttons in the
+bottom row[/td][/tr]
+[/table]</div>`
+    : `<div class="steam"><div class="sh1">Tidy Sorting</div><div class="simg">banner.png</div>
+       <div>Sorts your bags by kind with <b style="color:#fff">one press</b>, keeps favourites on top and remembers each container's order.</div>
+       <div class="sh2">Features</div><ul><li>One-press sort in every bag</li><li>Favourites stay on top</li><li>Each container remembers its order</li></ul>
+       <table><tr><td><b>Works with</b></td><td><b>Notes</b></td></tr><tr><td>Knox Radio Plus</td><td>Load Tidy Sorting after it</td></tr><tr><td>ZeD UI</td><td>Buttons in the bottom row</td></tr></table></div>`;
+  const right = `<div class="col" style="width:330px"><div class="ph"><div class="segc"><span class="${view === "preview" ? "on" : ""}" style="height:20px;font-size:10px">As Steam shows it</span><span class="${view === "codes" ? "on" : ""}" style="height:20px;font-size:10px">Steam codes</span></div></div>${preview}</div>`;
+  return `<div class="win"><div class="tb"><span class="cb"></span><span class="t">Project Zomboid  +  Description: Tidy Sorting</span><div class="st"><span>Saved 1 min ago</span></div></div>
+    <div class="main">${pal}${canvas}${right}</div>
+    <div class="strip"><span class="b">Undo</span><span class="b">Redo</span><span class="sp"></span><span class="msg" style="font-family:var(--mono);font-size:11px;color:var(--dim)">1,284 of 8,000 characters</span><span class="b">Cancel</span><span class="b pri">Use this description</span></div>${STRIPS}</div>`;
+}
+
+let cur = SCENES[0], zoom = 1;
+function seg(id, items, get, set) {
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = get() === v ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function render() {
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), () => cur.id, v => { cur = SCENES.find(s => s.id === v); });
+  seg("#ctlZoom", [[1, "100%"], [1.25, "125%"], [0.8, "80%"]], () => zoom, v => { zoom = v; });
+  const st = $("#stage");
+  st.innerHTML = cur.html();
+  st.style.transform = zoom === 1 ? "" : `scale(${zoom})`;
+  $("#wrap").style.height = (720 * zoom + 4) + "px";
+  $("#wrap").style.width = (1000 * zoom + 4) + "px";
+  $("#caption").textContent = cur.cap;
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
