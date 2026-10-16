@@ -255,13 +255,6 @@ local function ccDraw(self, colW, xOff)
     if not ok then print("[ZeD] ContainerControls draw: " .. tostring(e)) end
 end
 
--- the container's own actions, in its heading between the name (ending at
--- x0) and the weight (starting at x1)
-local function ccHead(self, xOff, x0, x1, top, h)
-    local ok, e = pcall(ZeD.ContainerControls.drawHead, self, xOff, x0, x1, top, h)
-    if not ok then print("[ZeD] ContainerControls heading: " .. tostring(e)) end
-end
-
 -- an icon's hover hint, drawn last (over the rows)
 local function ccHint(self)
     local ok, e = pcall(ZeD.ContainerControls.drawHint, self)
@@ -606,10 +599,6 @@ local function renderItemList(self)
             if maxNameW > 0 then
                 local name = truncateText(ci.name or "", T.fontF4, maxNameW)
                 dT(name, cx, nameY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
-                -- the container's own actions, between the name and the weight
-                if self._ccH > 0 then
-                    ccHead(self, xOff, cx + ZeD.TM:MeasureStringX(T.fontF4, name) + T.px(8), colW - stackW - padX - T.px(8), barH, infoAreaH)
-                end
             end
         end
         aDiv(0, hdrY - T.px(1), colW, true)
