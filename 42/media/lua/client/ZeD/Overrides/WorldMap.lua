@@ -54,8 +54,29 @@ local function _zedOpenUnfolded(playerNum)
     return true
 end
 
+-- The map looks where it was asked to (vanilla's reveal-on-map for print media, a map
+-- item's Read): once the World window's map widget exists (it is built on the Maps
+-- tab's first draw), it is centred and zoomed there.
+local function _centerWhenReady(playerNum, centerX, centerY, zoom)
+    if not (centerX and centerY) then return end
+    local tries = 0
+    local function tick()
+        tries = tries + 1
+        local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        local mp = win and win._worldMapPanel
+        if mp and mp.mapAPI then
+            mp.mapAPI:centerOn(centerX, centerY)
+            if zoom then mp.mapAPI:setZoom(zoom) end
+            Events.OnTick.Remove(tick)
+        elseif tries > 60 then
+            Events.OnTick.Remove(tick)
+        end
+    end
+    Events.OnTick.Add(tick)
+end
+
 function ISWorldMap.ShowWorldMap(playerNum, centerX, centerY, zoom)
-    if _zedOpenUnfolded(playerNum) then return end
+    if _zedOpenUnfolded(playerNum) then _centerWhenReady(playerNum, centerX, centerY, zoom); return end
     return _origShow(playerNum, centerX, centerY, zoom)
 end
 
