@@ -649,17 +649,17 @@ function MM.menuItems(key)
     if key == "zed" then
         return { { about = true }, "-",
                  { text = "Credits", fn = A.credits },
-                 { text = "Terms of Service", fn = A.tos },
-                 { text = "Report a Bug", fn = A.reportBug } }
+                 { text = "Terms of service", fn = A.tos },
+                 { text = "Report a bug", fn = A.reportBug } }
     elseif key == "file" then
         return { { text = "Continue", fn = A.continue, disabled = not MM.continueInfo() },
-                 { text = "New Game", fn = A.newGame },
-                 { text = "Load Game", fn = A.load, disabled = not MM.hasSaves() },
+                 { text = "New game", fn = A.newGame },
+                 { text = "Load game", fn = A.load, disabled = not MM.hasSaves() },
                  { text = "Tutorial", fn = A.tutorial },
                  "-",
                  { text = "Quit", fn = A.askQuit } }
     elseif key == "mp" then
-        return { { text = "Join a Server", fn = A.join }, { text = "Host a Game", fn = A.host } }
+        return { { text = "Join a server", fn = A.join }, { text = "Host a game", fn = A.host } }
     elseif key == "settings" then
         local t = { { text = "Options", fn = A.options }, { text = "Mods (" .. MM.modCount() .. " on)", fn = A.mods } }
         if m and m.workshopOption then t[#t + 1] = { text = "Workshop", fn = A.workshop } end
