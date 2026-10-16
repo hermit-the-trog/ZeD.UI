@@ -4731,6 +4731,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     end
 
     content.onMouseWheel = function(self, del)
+        -- over the container buttons' ribbon: it scrolls sideways
+        if ZeD.ContainerControls and ZeD.ContainerControls.wheel(self, del) then return true end
         -- MC: scroll the column under mouse
         if #(win._mcSelected or {}) > 0 and self._colStates then
             local mx = self:getMouseX()
