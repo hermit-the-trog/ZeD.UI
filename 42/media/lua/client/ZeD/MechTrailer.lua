@@ -57,7 +57,7 @@ local ITEMS_TTL_MS = 700   -- water and feed lists
 local THIRST_MIN  = 0.1    -- vanilla offers water / feed past these (ISVehicleAnimalUI)
 local HUNGER_MIN  = 0.1
 
-local DOT = string.char(183)   -- middle dot (Kahlua strings are Java strings)
+local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 -- ----------------------------------------------------------------------------
 -- Small helpers

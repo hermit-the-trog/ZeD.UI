@@ -772,7 +772,7 @@ end
 
 -- ============================================================================
 -- THE BELT (HOOK_MAP rows 5 + 6) — the hotbar's slots under HELD + BELT
--- A sub-header ("THE BELT · KEYS", "SLOT · WHAT GIVES IT"), then one row per
+-- A sub-header ("THE BELT | KEYS", "SLOT | WHAT GIVES IT"), then one row per
 -- slot in key order: the key in an accent badge, the item's icon, its name
 -- (or "Empty") over the slot's name and the worn item that gives the slot,
 -- the condition bar in the COND column, then IN HAND and the verb (DETACH,
@@ -815,7 +815,7 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local B = ZeD.Belt
     local c = calcEquipColumns(w, win)
-    local DOT = " " .. string.char(183) .. " "
+    local DOT = " | "   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
     local f1, f2 = T.fontF1, T.fontF2
     local f1h, f2h = tm:getFontHeight(f1), tm:getFontHeight(f2)
     -- sub-header, in the group headers' strip and type

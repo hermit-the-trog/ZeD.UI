@@ -100,7 +100,7 @@ function ST.iconOf(obj, kind)
     return nil
 end
 
-ST.DOT = string.char(183)   -- middle dot; every ZeD font carries the glyph
+ST.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 local KIND_LABEL = { bench = "BENCH", machine = "MACHINE", oven = "APPLIANCE", micro = "APPLIANCE" }
 ST.KIND_LABEL = KIND_LABEL

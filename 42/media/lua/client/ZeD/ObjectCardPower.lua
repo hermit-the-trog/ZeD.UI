@@ -189,7 +189,7 @@ local function drawPlate(card, x, y, w, t)
     local T, tm, HW = ZeD.T, ZeD.TM, UI.HW
     local d = t.d
     local ph = T.px(102)
-    UI.plate(card, x, y, w, ph, "KNOX POWER " .. DOT .. " 5000 W " .. DOT .. " UNLEADED", "KP-5000-0419")
+    UI.plate(card, x, y, w, ph, "KNOX POWER - 5000 W - UNLEADED", "KP-5000-0419")
     local top = y + T.px(12)
     -- fuel needle (left)
     local gx, gy = x + T.px(12) + T.px(39), top + T.px(46)

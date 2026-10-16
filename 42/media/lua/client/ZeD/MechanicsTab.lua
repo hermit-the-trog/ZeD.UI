@@ -63,7 +63,7 @@ local CAT_ORDER = { "engine", "gastank", "tire", "brakes", "suspension", "lights
 local CAT_RANK = {}
 for i, c in ipairs(CAT_ORDER) do CAT_RANK[c] = i end
 
-local DOT = string.char(183)   -- middle dot (Kahlua strings are Java strings)
+local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 -- Inspections survive the World window closing (keyed by vehicle id):
 -- { vehicle = BaseVehicle, hood = VehiclePart|nil }

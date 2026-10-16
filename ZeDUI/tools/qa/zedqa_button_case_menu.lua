@@ -20,7 +20,8 @@ at(2, function()
 end)
 local views = { "main", "load", "newgame", "mods", "options", "srvset", "host", "join" }
 for i, v in ipairs(views) do
-    at(10 + (i - 1) * 40, function() MM.showView(v); say("view " .. tostring(MM.view)) end)
+    -- Mods opens the way its buttons open it (vanilla's model reloads its mods first; a bare showView lists none)
+    at(10 + (i - 1) * 40, function() if v == "mods" then MM.act.mods() else MM.showView(v) end; say("view " .. tostring(MM.view)) end)
     at(10 + (i - 1) * 40 + 30, function() shot(string.format("%02d_%s", i, v)) end)
 end
 local tz = 10 + #views * 40

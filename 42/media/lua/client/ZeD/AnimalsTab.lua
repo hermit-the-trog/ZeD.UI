@@ -1807,7 +1807,7 @@ local function drawAnimalRow(panel, x, y, w, animal, player, hovered)
     if ad.isBaby(animal) then sex = "Baby" end
     local age = ad.getAgeText(animal, player)
     local infoLine = species .. ", " .. sex
-    if age and age ~= "" then infoLine = infoLine .. " \194\183 " .. age end
+    if age and age ~= "" then infoLine = infoLine .. " | " .. age end
 
     panel:drawText(infoLine, textX, botY, T.textDim.r, T.textDim.g, T.textDim.b, 0.6, secFont)
 
@@ -1848,8 +1848,8 @@ local function structInfo(kind, o, player)
             local nb = ocall(o, "getNestBox", i)
             eggs = eggs + (nb and (ocall(nb, "getEggsNb") or 0) or 0)
         end
-        sub = tostring(inside and inside:size() or 0) .. " / " .. tostring(ocall(o, "getMaxAnimals") or 20) .. " BIRDS \194\183 "
-            .. eggs .. " EGGS \194\183 DIRT " .. math.floor((ocall(o, "getHutchDirt") or 0) + 0.5) .. "%"
+        sub = tostring(inside and inside:size() or 0) .. " / " .. tostring(ocall(o, "getMaxAnimals") or 20) .. " BIRDS | "
+            .. eggs .. " EGGS | DIRT " .. math.floor((ocall(o, "getHutchDirt") or 0) + 0.5) .. "%"
         -- which door is open (the OPEN button beside it opens the card)
         if ocall(o, "isOpen") then badge, variant = "Door open", "positive"
         elseif ocall(o, "isEggHatchDoorOpen") then badge, variant = "Hatch open", "positive"
@@ -1866,7 +1866,7 @@ local function structInfo(kind, o, player)
             sub = "EMPTY"; badge, variant = "Empty", "neutral"
         end
         local linked = ocall(o, "getLinkedAnimals")
-        sub = sub .. " \194\183 " .. tostring(linked and linked:size() or 0) .. " ANIMALS"
+        sub = sub .. " | " .. tostring(linked and linked:size() or 0) .. " ANIMALS"
     else -- hook
         name = getTextOrNull("ContextMenu_ButcherHook") or "Butcher Hook"
         local a = ocall(o, "getAnimal")
@@ -1875,14 +1875,14 @@ local function structInfo(kind, o, player)
         if a then
             local md = a:getModData()
             local cn = ocall(a, "getCustomName")
-            name = name .. " \194\183 " .. ((cn and cn ~= "") and cn or (ocall(a, "getFullName") or "?"))
+            name = name .. " | " .. ((cn and cn ~= "") and cn or (ocall(a, "getFullName") or "?"))
             local parts = {}
             if md["leather"] then parts[#parts + 1] = "LEATHER" end
             local blood = tonumber(md["BloodQty"]) or 0
             if blood > 0 then parts[#parts + 1] = string.format("BLOOD %.1f L", blood) end
             if not md["headless"] then parts[#parts + 1] = "HEAD" end
             if md["parts"] then parts[#parts + 1] = "MEAT" end
-            sub = (#parts > 0 and (table.concat(parts, " \194\183 ") .. " LEFT") or "NOTHING LEFT") .. " \194\183 " .. dist .. " TILES"
+            sub = (#parts > 0 and (table.concat(parts, " | ") .. " LEFT") or "NOTHING LEFT") .. " | " .. dist .. " TILES"
             if ocall(o, "isRemovingBlood") then
                 badge, variant = "Bleeding", "warning"
                 prog = ocall(o, "getRemovingBloodProgress") or 0
@@ -2398,7 +2398,7 @@ local function drawAnimalHeader(panel, x, y, w, animal, player)
     local infoLine = ""
     if age and age ~= "" then infoLine = age end
     if ad.canSee(player, "weight_rough") and weight > 0 then
-        if infoLine ~= "" then infoLine = infoLine .. "  \194\183  " end
+        if infoLine ~= "" then infoLine = infoLine .. "  |  " end
         infoLine = infoLine .. string.format("%.1f kg", weight)
     end
     if infoLine ~= "" then
@@ -2942,7 +2942,7 @@ local function drawButcherSummary(panel, x, y, w, eligible)
 
     -- Yield estimate line
     local yieldFont = T.fontF3 or ZeD.T.fontF2
-    local yieldStr = string.format("Est. %.1f kg meat  \194\183  %.1f kg total weight", totalMeat, totalWeight)
+    local yieldStr = string.format("Est. %.1f kg meat  |  %.1f kg total weight", totalMeat, totalWeight)
     panel:drawText(yieldStr, x + pad, curY, T.accent.r, T.accent.g, T.accent.b, 0.8, yieldFont)
     curY = curY + tm:getFontHeight(yieldFont) + pad
 
@@ -3007,7 +3007,7 @@ local function drawButcherRow(panel, x, y, w, entry, hovered)
 
     -- Estimated meat (after species)
     local specW = tm:MeasureStringX(secFont, specLine)
-    local meatStr = string.format("\194\183 ~%.1f kg meat", yield.estMeat)
+    local meatStr = string.format("| ~%.1f kg meat", yield.estMeat)
     panel:drawText(meatStr, textX + specW + T.px(6), botY,
         T.textDim.r, T.textDim.g, T.textDim.b, 0.5, secFont)
 

@@ -102,7 +102,7 @@ local function _join(words, i, j)
 end
 
 -- The badge roles a design's badge parts ask for: the maker and model as one line (full), the make, the
--- model, the design's sub line ("5.0", "D6", "4X4"), and a fleet car's unit line ("TAXI · CAB 26").
+-- model, the design's sub line ("5.0", "D6", "4X4"), and a fleet car's unit line ("TAXI - CAB 26").
 -- The livery never reaches a maker's badge: a Fossoil D6 still says CHEVALIER. A name with no maker in
 -- it is all livery when the car is one of the game's own ("Spiffo Van", "Creature Cruiser", "Taxi"), and the
 -- badge shows the design's own car; a modded car's name ("Ford Bronco") is its own maker and model.
@@ -128,8 +128,8 @@ local function _badges(design, vehicle, scriptName, ownFamily)
     fleet = fleet or livery:match("^(%S+)") or make
     local id = 0; pcall(function() id = vehicle:getId() or 0 end)
     local word = (fleet == "TAXI") and "CAB" or ((fleet == "FIRE") and "ENGINE" or "UNIT")
-    -- Kahlua strings are Java strings: char 183 IS the middle dot (no UTF-8 byte pairs)
-    local unit = fleet .. " " .. string.char(183) .. " " .. word .. " " .. string.format("%02d", 10 + (id % 90))
+    -- painted on the car: a plain hyphen (no middle dots, director Oct 16 2026)
+    local unit = fleet .. " - " .. word .. " " .. string.format("%02d", 10 + (id % 90))
     return { full = make .. " " .. model, make = make, model = model, sub = design.sub or "", unit = unit, livery = livery, name = name }
 end
 
