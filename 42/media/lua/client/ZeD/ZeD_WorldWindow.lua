@@ -3844,7 +3844,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             self._containers = win._containers
             self._barH = 0
             self._activeCol = math.min(self._activeCol or #colSel, #colSel)
-            win.title = #colSel .. " CONTAINERS"
+            win.title = #colSel .. " containers"
             self._ccEntry = nil
             win.titleStats = {}
             r.renderMultiColumnContent(self)

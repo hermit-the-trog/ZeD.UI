@@ -50,9 +50,9 @@ local function items()
     local A = MM.act
     return {
         { id = "pz", label = "Project Zomboid", open = function() MM.showView("main") end },
-        { id = "newgame", label = "New Game", open = function() A.newGame() end },
-        { id = "load", label = "Load Game", open = function() A.load() end, off = function() return not MM.hasSaves() end },
-        { id = "join", label = "Join a Server", open = function() A.join() end },
+        { id = "newgame", label = "New game", open = function() A.newGame() end },
+        { id = "load", label = "Load game", open = function() A.load() end, off = function() return not MM.hasSaves() end },
+        { id = "join", label = "Join a server", open = function() A.join() end },
         { id = "options", label = "Options", open = function() A.options() end },
         { id = "mods", label = "Mods", open = function() A.mods() end },
     }

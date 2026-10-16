@@ -779,7 +779,7 @@ function ZeD_MMMods:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local all, on = self:counts()
-    local section = (self.page == "order" and "Load Order") or (self.page == "maps" and "Map Order") or (self.page == "profiles" and "Mod Profiles") or "Mods"
+    local section = (self.page == "order" and "Load order") or (self.page == "maps" and "Map order") or (self.page == "profiles" and "Mod profiles") or "Mods"
     local md = model()
     if md and md.isServerSettingsMods then section = "Server " .. section end   -- (a server's mods, from its settings)
     self.title = "Project Zomboid  +  " .. section

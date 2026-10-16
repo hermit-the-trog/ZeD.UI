@@ -428,7 +428,7 @@ function ZeD_MMSandbox:prerender()
     local page = pages[self.pageIdx]
     local q = string.lower(tostring(self.find:getInternalText() or ""))
     local _, pname = self:preset()
-    self.title = "Project Zomboid  +  Sandbox Options"
+    self.title = "Project Zomboid  +  Sandbox options"
     local stat = pname
     if self.nDiff > 0 then stat = stat .. ", " .. self.nDiff .. " changed" end
     self.titleStats = { { text = stat, color = { r = 0, g = 0, b = 0, a = 0 } } }
