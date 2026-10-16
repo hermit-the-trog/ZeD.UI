@@ -1802,7 +1802,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         ty = ty + T.fontF2H
         if stNear then
             ty = ty + T.px(6)
-            local label = "USE " .. string.upper(stNear.name or "STATION")
+            local label = "Use " .. string.lower(stNear.name or "station")   -- a button: sentence case
             local btnH = T.px(22)
             local btnW = math.min(bw2 - T.px(16), ZeD.TM:MeasureStringX(T.fontF3, label) + T.px(24))
             M.drawButton(panel, bx + T.px(8), ty, btnW, btnH, label, "primary")

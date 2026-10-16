@@ -95,7 +95,7 @@ local AROW_DOT_SZ      = 7       -- stat dot diameter
 local AROW_DOT_GAP     = 6       -- gap between dots
 local AROW_PAD         = 6       -- row internal padding
 local SORT_MODES       = { "name", "species", "alerts" }
-local SORT_LABELS      = { name = "NAME", species = "SPECIES", alerts = "ALERTS" }
+local SORT_LABELS      = { name = "Name", species = "Species", alerts = "Alerts" }
 
 -- Footer
 local FOOTER_H         = 32      -- footer strip height
@@ -363,6 +363,7 @@ local function drawBtn(panel, x, y, label, variant, font)
     local A = ZeD.Atoms
     local tm = ZeD.TM
     local btnFont = font or T.fontF4 or ZeD.T.fontF2
+    label = ZeD.btnCase(label)   -- sentence case, never all caps
     local btnW = tm:MeasureStringX(btnFont, label) + T.px(16)
     local btnH = T.px(BTN_H)
 
@@ -873,11 +874,11 @@ local function drawZoneCreateFooter(panel, win, x, y, w)
 
     if zc.phase == "confirm" then
         -- YES + NO + CANCEL + prompt
-        win._zoneConfirmYes = drawBtn(panel, bx, btnY, "YES", "positive", btnFont)
+        win._zoneConfirmYes = drawBtn(panel, bx, btnY, "Yes", "positive", btnFont)
         bx = bx + win._zoneConfirmYes.w + T.px(6)
-        win._zoneConfirmNo = drawBtn(panel, bx, btnY, "NO", "danger", btnFont)
+        win._zoneConfirmNo = drawBtn(panel, bx, btnY, "No", "danger", btnFont)
         bx = bx + win._zoneConfirmNo.w + T.px(6)
-        win._zoneCancelBtn = drawBtn(panel, bx, btnY, "CANCEL", "neutral", btnFont)
+        win._zoneCancelBtn = drawBtn(panel, bx, btnY, "Cancel", "neutral", btnFont)
         bx = bx + win._zoneCancelBtn.w + T.px(8)
         local promptFont = T.fontF3 or ZeD.T.fontF2
         local nc = T.toneNorm
@@ -885,7 +886,7 @@ local function drawZoneCreateFooter(panel, win, x, y, w)
         panel:drawText("Create this zone?", bx, promptY, nc.r, nc.g, nc.b, nc.a or 1, promptFont)
     elseif zc.phase == "drawing" then
         -- CANCEL + "Release to set zone" hint
-        win._zoneCancelBtn = drawBtn(panel, bx, btnY, "CANCEL", "neutral", btnFont)
+        win._zoneCancelBtn = drawBtn(panel, bx, btnY, "Cancel", "neutral", btnFont)
         bx = bx + win._zoneCancelBtn.w + T.px(8)
         local hintFont = T.fontF3 or ZeD.T.fontF2
         local nc = T.toneNorm
@@ -893,7 +894,7 @@ local function drawZoneCreateFooter(panel, win, x, y, w)
         panel:drawText("Release to set zone", bx, hintY, nc.r, nc.g, nc.b, nc.a or 1, hintFont)
     else
         -- Just CANCEL (idle)
-        win._zoneCancelBtn = drawBtn(panel, bx, btnY, "CANCEL", "neutral", btnFont)
+        win._zoneCancelBtn = drawBtn(panel, bx, btnY, "Cancel", "neutral", btnFont)
     end
 
     return T.px(FOOTER_H)
@@ -1925,10 +1926,10 @@ local function drawStructRow(panel, win, x, y, w, kind, o, idx, player)
     if tex then panel:drawTextureScaledAspect(tex, x + pad, y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1) end
     -- OPEN (right)
     local bf = T.fontF5 or T.fontF2
-    local bw = tm:MeasureStringX(bf, "OPEN") + T.px(16)
+    local bw = tm:MeasureStringX(bf, "Open") + T.px(16)
     local bx = x + w - pad - bw
     local by = y + math.floor((h - T.px(BTN_H)) / 2)
-    local rect = drawBtn(panel, bx, by, "OPEN", "neutral", bf)
+    local rect = drawBtn(panel, bx, by, "Open", "neutral", bf)
     -- badge (and the bleed bar for a hook)
     local rx = bx - T.px(8)
     local badgePadX = T.sp and T.sp.badgePadX or T.px(4)
@@ -2134,8 +2135,8 @@ local function drawGenomeSection(panel, win, x, y, w, animal)
             if z.gene == sel.gene and z.allele == sel.allele then selAl = z end
         end
     end
-    for _, b in ipairs({ { id = "minus", label = "-0.05" }, { id = "plus", label = "+0.05" }, { id = "dominant", label = "DOMINANT" },
-                         { id = "switch", label = "SWITCH" }, { id = "disorder", label = "DISORDER" } }) do
+    for _, b in ipairs({ { id = "minus", label = "-0.05" }, { id = "plus", label = "+0.05" }, { id = "dominant", label = "Dominant" },
+                         { id = "switch", label = "Switch" }, { id = "disorder", label = "Disorder" } }) do
         if _gpFocusMatches(win, function(el) return el.isGenomeBtn and el.btnId == b.id end) then
             local bw = tm:MeasureStringX(f5, b.label) + T.px(16)
             _paintGpCue(panel, bx, y, bw, T.px(BTN_H))
@@ -2250,7 +2251,7 @@ local function renderRanchZone(panel, win, x, y, w, h)
 
     -- Sort label (right-aligned in category header)
     local sortFont = T.fontF5 or ZeD.T.fontF2
-    local sortLabel = SORT_LABELS[zs.sortMode] or "NAME"
+    local sortLabel = SORT_LABELS[zs.sortMode] or "Name"
     local sortText = "Sort: " .. sortLabel
     local sortTextW = tm:MeasureStringX(sortFont, sortText)
     local sortX = x + w - pad - sortTextW
@@ -3211,11 +3212,11 @@ local function drawFooterStrip(panel, win, x, y, w, view)
 
     if view == "zone" and win._animalsRenaming then
         -- Rename mode: YES + NO + RESET + hint (matches ItemCard)
-        win._animalsRenameSaveBtn = drawBtn(panel, bx, btnY, "YES", "positive", btnFont)
+        win._animalsRenameSaveBtn = drawBtn(panel, bx, btnY, "Yes", "positive", btnFont)
         bx = bx + win._animalsRenameSaveBtn.w + T.px(6)
-        win._animalsRenameCancelBtn = drawBtn(panel, bx, btnY, "NO", "neutral", btnFont)
+        win._animalsRenameCancelBtn = drawBtn(panel, bx, btnY, "No", "neutral", btnFont)
         bx = bx + win._animalsRenameCancelBtn.w + T.px(6)
-        win._animalsRenameResetBtn = drawBtn(panel, bx, btnY, "RESET", "neutral", btnFont)
+        win._animalsRenameResetBtn = drawBtn(panel, bx, btnY, "Reset", "neutral", btnFont)
         bx = bx + win._animalsRenameResetBtn.w + T.px(8)
         local hintFont = T.fontF3 or ZeD.T.fontF2
         local nc = T.toneNorm
@@ -3223,9 +3224,9 @@ local function drawFooterStrip(panel, win, x, y, w, view)
         panel:drawText("Type new name", bx, hintY, nc.r, nc.g, nc.b, nc.a or 1, hintFont)
     elseif view == "zone" and win._animalsRemoveConfirm then
         -- Remove confirmation: YES + NO + prompt
-        win._animalsRemoveYes = drawBtn(panel, bx, btnY, "YES", "positive", btnFont)
+        win._animalsRemoveYes = drawBtn(panel, bx, btnY, "Yes", "positive", btnFont)
         bx = bx + win._animalsRemoveYes.w + T.px(6)
-        win._animalsRemoveNo = drawBtn(panel, bx, btnY, "NO", "danger", btnFont)
+        win._animalsRemoveNo = drawBtn(panel, bx, btnY, "No", "danger", btnFont)
         bx = bx + win._animalsRemoveNo.w + T.px(8)
         local promptFont = T.fontF3 or ZeD.T.fontF2
         local nc = T.toneNorm
@@ -3233,10 +3234,10 @@ local function drawFooterStrip(panel, win, x, y, w, view)
         panel:drawText("Remove zone?", bx, promptY, nc.r, nc.g, nc.b, nc.a or 1, promptFont)
     elseif view == "zone" then
         -- Zone detail footer: Remove only (rename via clicking zone name)
-        win._animalsZoneRemoveBtn = drawBtn(panel, bx, btnY, "REMOVE", "danger", btnFont)
+        win._animalsZoneRemoveBtn = drawBtn(panel, bx, btnY, "Remove", "danger", btnFont)
     else
         -- Overview footer: Create Zone + hint
-        win._animalsAddZoneBtn = drawBtn(panel, bx, btnY, "+ CREATE ZONE", "accent", btnFont)
+        win._animalsAddZoneBtn = drawBtn(panel, bx, btnY, "+ Create zone", "accent", btnFont)
         -- S109: gamepad focus cue overlays drawBtn's outlined-button output.
         if _gpFocusMatches(win, function(el) return el.isCreateZone end) then
             local z = win._animalsAddZoneBtn

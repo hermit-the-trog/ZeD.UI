@@ -171,8 +171,8 @@ local function refreshPropane(t, player)
         end }
     verbs[#verbs + 1] = { id = "remove", label = "REMOVE TANK", enabled = d.tank,
         run = function(p, tt) ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj) end }
-    if not d.hasFuel then needs[#needs + 1] = "TURN ON needs a propane tank with gas" end
-    if not d.spare and not d.tank then needs[#needs + 1] = "INSERT TANK needs a propane tank" end
+    if not d.hasFuel then needs[#needs + 1] = "Turn on: needs a propane tank with gas" end
+    if not d.spare and not d.tank then needs[#needs + 1] = "Insert tank: needs a propane tank" end
     t.verbs, t.needs = verbs, needs
 end
 
@@ -236,10 +236,10 @@ function def.refresh(t, player)
             run = function(p, tt) ISCampingMenu.onRemoveCampfire(nil, p, tt.obj) end }
     end
     if full then needs[#needs + 1] = "The fire holds no more fuel"
-    elseif #d.fuelRows == 0 then needs[#needs + 1] = "ADD FUEL needs something that burns" end
+    elseif #d.fuelRows == 0 then needs[#needs + 1] = "Add fuel: needs something that burns" end
     if not d.lit and not canLight then
-        if d.fuel <= 0 then needs[#needs + 1] = "LIGHT needs fuel in the fire first"
-        else needs[#needs + 1] = "LIGHT needs a lighter or matches with tinder, or a notched plank and a stick" end
+        if d.fuel <= 0 then needs[#needs + 1] = "Light: needs fuel in the fire first"
+        else needs[#needs + 1] = "Light: needs a lighter or matches with tinder, or a notched plank and a stick" end
     end
     t.verbs, t.needs = verbs, needs
 end

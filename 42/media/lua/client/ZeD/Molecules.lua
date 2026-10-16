@@ -42,7 +42,8 @@ ZeD.Molecules = ZeD.Molecules or {}
 --                 The other variants read two optional fields: fill (an RGBA drawn
 --                 under the chrome: the 0.55 focus or 0.22 hover accent) and text
 --                 (the label colour, e.g. T.text over a focus fill, where a red or
---                 accent label would sink into the accent).
+--                 accent label would sink into the accent). keepCase = true draws
+--                 the label as given instead of in sentence case (a key's name).
 function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, colors)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -69,6 +70,11 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
         panel:drawText(text, tx, ty, txt.r, txt.g, txt.b, txt.a or 1, font)
         return
     end
+
+    -- Button words read in sentence case (ZeD.btnCase); the flat variant above is
+    -- printed hardware (radio chassis keys) and keeps what it is given, as does a
+    -- label passed with colors.keepCase (a key's name: SPACE, LSHIFT)
+    if not (colors and colors.keepCase) then text = ZeD.btnCase(text) end
 
     -- Optional fill under the chrome (focus / hover accent)
     if colors and colors.fill then
@@ -2148,7 +2154,7 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
         for i = #verbs, 1, -1 do
             local v = verbs[i]
             if i < #verbs then cursorR = cursorR - gap end
-            local labelStr = v.label or ""
+            local labelStr = ZeD.btnCase(v.label or "")   -- sentence case (draw only: ItemCard dispatches on the caps label)
             local lw   = ZeD.TM:MeasureStringX(font, labelStr)
             local btnW = lw + btnPadX * 2
             cursorR    = cursorR - btnW
@@ -2250,19 +2256,19 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
 
     if outRects then outRects.fav = outRects.fav or {} end
     local cw = A.drawFlagChip(panel, cursorX, rowY, "fav",
-        marks and marks.fav or false, "*", "FAV",
+        marks and marks.fav or false, "*", "Fav",
         outRects and outRects.fav or nil, compact)
     cursorX = cursorX + cw + gap
 
     if outRects then outRects.nocraft = outRects.nocraft or {} end
     cw = A.drawFlagChip(panel, cursorX, rowY, "nocraft",
-        marks and marks.nocraft or false, "o", "NO-CRAFT",
+        marks and marks.nocraft or false, "o", "No-craft",
         outRects and outRects.nocraft or nil, compact)
     cursorX = cursorX + cw + gap
 
     if outRects then outRects.dispose = outRects.dispose or {} end
     A.drawFlagChip(panel, cursorX, rowY, "dispose",
-        marks and marks.dispose or false, "x", "DISPOSE",
+        marks and marks.dispose or false, "x", "Dispose",
         outRects and outRects.dispose or nil, compact)
 
     return h
@@ -2321,7 +2327,7 @@ function ZeD.Molecules.drawCardVerbStrip(panel, rightEdge, y, verbs, progressAct
         local v = verbs[i]
         if i < #verbs then cursorR = cursorR - gap end
 
-        local labelStr = v.label or ""
+        local labelStr = ZeD.btnCase(v.label or "")   -- sentence case, never all caps
         local labelW   = ZeD.TM:MeasureStringX(font, labelStr)
         local glyphStr = (not compact) and v.glyph or nil
         local glyphW   = (glyphStr and glyphStr ~= "")
@@ -3317,7 +3323,7 @@ function ZeD.Molecules.drawCraftActionStrip(panel, x, y, w, qty, maxQty, canCraf
     local btnW = x + w - T.px(6) - btnX
     local btnH = innerH
     local btnY = innerY
-    local label = buildLabel or "CRAFT"
+    local label = ZeD.btnCase(buildLabel or "CRAFT")   -- sentence case, never all caps
 
     if canCraft then
         -- Accent fill + border — readable label

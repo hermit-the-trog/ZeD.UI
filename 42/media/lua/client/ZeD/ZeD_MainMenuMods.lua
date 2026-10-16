@@ -1267,11 +1267,11 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
             if #req + #after + #before == 0 then line("No order rules") end
             local s = states[self.oSel or 1]
             cy = cy + T.px(6)
-            if s == "bad" then line("A mod it needs loads after it; DONE waits until it is fixed", T.danger)
+            if s == "bad" then line("A mod it needs loads after it; \"Done\" waits until it is fixed", T.danger)
             elseif s == "soft" then line("Its load-before / load-after wish is not kept", T.warning) end
         end
         cy = cy + T.px(10)
-        if firstBad then line("Fix the red rows (or AUTO) to set the order", T.danger) end
+        if firstBad then line("Fix the red rows (or press \"Auto\") to set the order", T.danger) end
     else
         local la = T.accent
         self:drawText(string.upper(tostring(sel or "")), rx, cy, la.r, la.g, la.b, la.a or 1, f1)

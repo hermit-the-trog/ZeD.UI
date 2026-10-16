@@ -323,7 +323,7 @@ end
 -- Focus dropdown options (unlocked categories) ------------------------------
 local function getFocusOptions(win)
     local p = win._playerObj
-    local opts = { { id = "none", label = "All Categories" } }
+    local opts = { { id = "none", label = "All categories" } }
     if not p then return opts end
     local mgr = ISSearchManager.players[p]
     local perkLevel = mgr and mgr.perkLevel or p:getPerkLevel(Perks.PlantScavenging)
@@ -640,9 +640,9 @@ end
 -- ============================================================================
 
 local STANCES = {
-    { id = "searching", label = "SEARCHING" },
-    { id = "crouch",    label = "CROUCH"    },
-    { id = "aim",       label = "AIM"       },
+    { id = "searching", label = "Searching" },
+    { id = "crouch",    label = "Crouch"    },
+    { id = "aim",       label = "Aim"       },
 }
 
 local function drawStanceRow(panel, win, x, y, w)
@@ -718,7 +718,7 @@ local function drawFocusRow(panel, win, x, y, w)
     local h = T.px(FOCUS_ROW_H)
 
     -- Lazy-create dropdown (with live options)
-    local liveOpts = win._frameFocusOptions or { { id = "none", label = "All Categories" } }
+    local liveOpts = win._frameFocusOptions or { { id = "none", label = "All categories" } }
     if not win._forageDropdown then
         local ddW = w - T.px(FOCUS_PAD_X) * 2 - T.px(FINDS_WT_W) - T.px(FOCUS_GAP)
         local dd = ZeD_Dropdown:new(x + T.px(FOCUS_PAD_X), y + math.floor((h - T.inputH) / 2), ddW, liveOpts, "none")
