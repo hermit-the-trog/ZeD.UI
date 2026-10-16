@@ -124,6 +124,7 @@ function W.isOff(slice) return slice and not W.isPlace(slice) and not (slice.com
 function W.isBack(slice) return slice and texName(slice.texture):find("emotes/back", 1, true) ~= nil end
 function W.hasSub(slice)
     local c = slice and slice.command
+    if slice and slice._zedSub then return true end   -- (ZeD_QuickWheel: Eat, Drink ... open a wheel of items)
     return c and ISEmoteRadialMenu and c[1] == ISEmoteRadialMenu.fillMenu and c[3] ~= nil or false
 end
 

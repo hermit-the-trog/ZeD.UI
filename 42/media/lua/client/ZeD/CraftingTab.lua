@@ -273,6 +273,7 @@ function ZeD.CraftingTab.gatherData(playerObj, win)
     end
 
     local data = { recipes = recipes, categories = categories, flatRecipes = source }
+    CC.carryStatus(win._craftCache, data)
     win._craftCache = data
     return data
 end
@@ -448,7 +449,15 @@ function ZeD.CraftingTab.render(panel, win, x, y, w, h)
     -- Throttled data refresh
     local data = ZeD.CraftingTab.gatherData(win._playerObj, win)
 
-    -- Throttled background ingredient scan (every 300 frames ~5s)
+    -- Can each recipe be made now? Vanilla's crafting logic answers for every
+    -- recipe at once (CC.logicScan); the old quick scan only covers recipes it
+    -- could not answer. A changed answer re-filters the list.
+    local bench = boundBench(win._playerObj)
+    local benchKey = bench and tostring(bench.obj) or "hand"
+    if win._craftLogicBench ~= benchKey then win._craftLogic = nil; win._craftLogicBench = benchKey end
+    if CC.logicScan(data, win, "craft", function()
+        return HandcraftLogic.new(win._playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
+    end) then state.filterDirty = true end
     win._craftScanTimer = (win._craftScanTimer or 300) + 1
     if win._craftScanTimer >= 300 then
         win._craftScanTimer = 0

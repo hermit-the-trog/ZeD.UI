@@ -79,6 +79,7 @@
 -- ============================================================================
 
 require "ZeD/Tokens"
+require "ZeD/Input/SpatialNav"
 
 -- Namespace (triple-guard per Q21 — PZ can re-execute files in any order).
 ZeD = ZeD or {}
@@ -671,14 +672,31 @@ local function _pickWithCost(elements, focusedIdx, dir, costFn)
     return bestIdx
 end
 
--- Two-pass picker: cone first, then half-plane fallback. Returns (idx, pass)
--- where pass = "cone" | "half" | nil (nil when both passes missed).
+-- The picker (Oct 15 2026, director: "cone navigation is blocking directions
+-- that are logical ... freedom of movement is crucial"): ZeD.SpatialNav, by
+-- rectangles: the nearest element LINED UP that way (spans overlapping across
+-- the move), else the nearest that way at any angle. The strict 45-degree
+-- centre cone above sent Right past a button beside a tall row and made the
+-- player go down, over and up. _coneCost / _halfPlaneCost stay for reference.
+-- Returns (idx, pass): pass "cone" = lined up, "half" = off to the side (the
+-- debug overlay's cyan / magenta), nil when nothing lies that way.
 local function _pickBestWithFallback(elements, focusedIdx, dir)
-    local hit = _pickWithCost(elements, focusedIdx, dir, _coneCost)
-    if hit then return hit, "cone" end
-    hit = _pickWithCost(elements, focusedIdx, dir, _halfPlaneCost)
-    if hit then return hit, "half" end
-    return nil, nil
+    if not elements or #elements == 0 then return nil, nil end
+    if focusedIdx < 1 or focusedIdx > #elements then focusedIdx = 1 end
+    local from = elements[focusedIdx]
+    local N = ZeD.SpatialNav
+    if not (from and N) then return nil, nil end
+    local bestIdx, bestTier, bestCost = nil, nil, nil
+    for i = 1, #elements do
+        if i ~= focusedIdx then
+            local tier, c = N.cost(from, elements[i], dir)
+            if tier and (bestTier == nil or tier < bestTier or (tier == bestTier and c < bestCost)) then
+                bestIdx, bestTier, bestCost = i, tier, c
+            end
+        end
+    end
+    if not bestIdx then return nil, nil end
+    return bestIdx, (bestTier == 0) and "cone" or "half"
 end
 
 -- ---------------------------------------------------------------------------
@@ -735,6 +753,10 @@ local function _refreshDebugPicks(w)
             end
         end
         local pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir)
+        if not pickIdx and searchEls ~= elements then   -- nothing more in the panel: the next one over
+            searchEls, searchFromIdx = elements, fromIdx
+            pickIdx, pass = _pickBestWithFallback(searchEls, searchFromIdx, dir)
+        end
         if pickIdx then
             local el = searchEls[pickIdx]
             _debugLastPicks[dir] = {
@@ -941,10 +963,11 @@ local function _handleSpatialNav(w, dir)
 
     local fromIdx = _findCurrentFlatIdx(w, locator) or 1
 
-    -- S113c rule (design director): UP/DOWN never leaves the current panel.
-    -- Filter candidates to elements in the SAME zone as the focused element
-    -- for vertical motion. LEFT/RIGHT remain free to cross panels (that's
-    -- how users hop between tab-strip / drawer / inv / container-strip).
+    -- S113c rule (design director): UP/DOWN stays in the current panel while
+    -- the panel has anything more that way; Oct 15 2026 ("freedom of movement
+    -- is crucial") it then goes on to the next panel instead of stopping.
+    -- LEFT/RIGHT remain free to cross panels (that's how users hop between
+    -- tab-strip / drawer / inv / container-strip).
     -- Same-zone filter happens AFTER _collectFlat so all the bounds are
     -- already translated to window-local; only the candidate set shrinks.
     local searchEls, searchLoc = elements, locator
@@ -967,7 +990,13 @@ local function _handleSpatialNav(w, dir)
     end
 
     local newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
-    if not newPickIdx then return end  -- nothing in either pass — silent
+    if not newPickIdx and searchEls ~= elements then
+        -- nothing more that way in this panel: the nearest one beyond it
+        searchEls, searchLoc = elements, locator
+        fromIdx = _findCurrentFlatIdx(w, locator) or 1
+        newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
+    end
+    if not newPickIdx then return end  -- nothing that way at all — silent
 
     -- Translate filtered-list pick back to the original flat list so
     -- _applyFlatLanding writes the correct (zoneIdx, elementIdx).

@@ -1027,7 +1027,8 @@ function ZeD_MMNewGame:prerender()
                 tc = T.textOnAccent
             end
             self:drawText(title, lx, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
-            self._specs[#self._specs + 1] = { id = fid, listRow = true, row = r + 1, col = c + 1, fn = function() self:next() end, index = i }
+            self._specs[#self._specs + 1] = { id = fid, listRow = true, row = r + 1, col = c + 1, fn = function() self:next() end, index = i,
+                                              x = cx, y = cy, w = cellW, h = cellH }
             self._hits[#self._hits + 1] = { id = "newgame:" .. fid, x = ax + cx, y = ay + cy, w = cellW, h = cellH, fn = function() self:clickIcon(i) end }
         end
     end

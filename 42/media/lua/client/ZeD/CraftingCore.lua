@@ -259,7 +259,7 @@ function CC.backgroundIngredientScan(data, win, prefix)
     local checked = 0
     while checked < BG_BATCH_SIZE and checked < #recipes do
         local rd = recipes[cursor]
-        if rd and rd.status ~= "locked" then
+        if rd and rd.status ~= "locked" and not rd.fromLogic then
             rd.status = CC.quickCraftCheck(rd, containers, typeCache)
         end
         cursor = cursor + 1
@@ -268,6 +268,89 @@ function CC.backgroundIngredientScan(data, win, prefix)
     end
 
     win[cursorKey] = cursor
+end
+
+-- ============================================================================
+-- VANILLA'S ANSWER (Oct 15 2026, director: "I should only see what I can
+-- immediately craft cause all the materials, station and skill passes the
+-- check that all is green to craft"). Vanilla's crafting logic (HandcraftLogic
+-- / BuildLogic, a BaseCraftingLogic) holds every recipe and caches, per recipe,
+-- whether the character could make it now from the containers in reach:
+-- getCachedRecipeInfo(recipe):isValid() (known, skills) and :isCanPerform()
+-- (materials in the right amounts, tools, the bench). The same check greys
+-- vanilla's own list. Refreshed every LOGIC_EVERY_MS while the tab shows; a
+-- changed status re-filters the list. Recipes it answered are marked
+-- rd.fromLogic, and the quick scan below leaves them alone.
+-- ============================================================================
+local LOGIC_EVERY_MS = 1200
+
+function CC.logicScan(data, win, prefix, makeLogic)
+    local recipes = data and data.recipes
+    if not recipes or #recipes == 0 or not makeLogic then return false end
+    local now = getTimestampMs()
+    local atKey = "_" .. prefix .. "LogicAt"
+    if win[atKey] and now - win[atKey] < LOGIC_EVERY_MS then return false end
+    win[atKey] = now
+    local lKey, dKey = "_" .. prefix .. "Logic", "_" .. prefix .. "LogicData"
+    local logic = win[lKey]
+    if not logic then
+        local ok, l = pcall(makeLogic)
+        if not ok or not l then return false end
+        logic = l
+        win[lKey], win[dKey] = logic, nil
+    end
+    local ok = pcall(function()
+        -- the containers as they are now (and the quick scan's cache follows them),
+        -- then the recipes: setting them fills the per-recipe cache from those containers
+        local containers = CC.buildContainers(win._playerObj)
+        win["_" .. prefix .. "Containers"] = containers
+        win["_" .. prefix .. "TypeCache"] = nil
+        logic:setContainers(containers)
+        local lk = "_" .. prefix .. "LogicList"
+        if win[dKey] ~= data or not win[lk] then
+            local list = ArrayList.new()
+            for _, rd in ipairs(recipes) do if rd.entry.recipe then list:add(rd.entry.recipe) end end
+            win[lk] = list
+            win[dKey] = data
+        end
+        logic:setRecipes(win[lk])
+    end)
+    if not ok then win[lKey] = nil; return false end
+    local changed = false
+    for _, rd in ipairs(recipes) do
+        local r = rd.entry.recipe
+        if r and rd.status ~= "station" then
+            local info = nil
+            pcall(function() info = logic:getCachedRecipeInfo(r) end)
+            if info then
+                local st
+                if not info:isValid() then st = "locked"
+                elseif info:isCanPerform() then st = "craftable"
+                else st = "missing" end
+                -- (a recipe not learned or short of skill stays locked whatever the materials say)
+                if (rd.learned == false or rd.hasSkill == false) then st = "locked" end
+                rd.fromLogic = true
+                if st ~= rd.status then rd.status = st; changed = true end
+            end
+        end
+    end
+    return changed
+end
+
+-- The tabs rebuild their recipe rows every 30 frames (learned recipes, skills,
+-- the bench): the last craftable / missing answer carries over to the new rows
+-- until the next scan, so the list does not empty and refill between scans.
+function CC.carryStatus(oldData, newData)
+    if not (oldData and newData and oldData.recipes and newData.recipes) then return end
+    local prev = {}
+    for _, rd in ipairs(oldData.recipes) do prev[rd.entry.name] = rd end
+    for _, rd in ipairs(newData.recipes) do
+        local o = prev[rd.entry.name]
+        if o and o.fromLogic and rd.status ~= "locked" and rd.status ~= "station"
+           and (o.status == "craftable" or o.status == "missing") then
+            rd.status, rd.fromLogic = o.status, true
+        end
+    end
 end
 
 -- ============================================================================
@@ -534,6 +617,24 @@ end
 -- FILTERING + SORTING — parameterized by filter modes
 -- ============================================================================
 
+-- SHOW: "ready" | "known" | "all" (older state kept only showAll: on = all, off = known;
+-- the Journal's read-only list has no Ready)
+local SHOW_LABEL = { ready = "Ready", known = "Known", all = "All" }
+function CC.showMode(state, config)
+    if state.show then return state.show end
+    if state.showAll then return "all" end
+    return (config and config.readOnly) and "known" or "ready"
+end
+function CC.cycleShow(state, config)
+    local cur = CC.showMode(state, config)
+    local nxt
+    if config and config.readOnly then nxt = (cur == "all") and "known" or "all"
+    else nxt = (cur == "ready" and "known") or (cur == "known" and "all") or "ready" end
+    state.show = nxt
+    state.showAll = (nxt == "all")
+    state.filterDirty = true
+end
+
 function CC.filterAndSort(data, state, config)
     local recipes   = data.recipes
     local category  = state.activeCat or "all"
@@ -579,11 +680,15 @@ function CC.filterAndSort(data, state, config)
             end
         end
 
-        -- Filter: showAll toggle — when off, hide missing/locked
+        -- Filter: SHOW. Ready = only what can be made right now (vanilla's all-green
+        -- answer); Known = learned and skilled enough; All = everything. A search
+        -- looks through everything.
         local modeOut = false
-        if not searchOut and not searching and not state.showAll then
+        local show = CC.showMode(state, config)
+        if not searchOut and not searching and show ~= "all" then
             if entry.needLearn and not rd.learned then modeOut = true
-            elseif not rd.hasSkill then modeOut = true end
+            elseif not rd.hasSkill then modeOut = true
+            elseif show == "ready" and rd.status ~= "craftable" then modeOut = true end
         end
 
         -- Tally category counts (mode+search only, ignoring category selection)
@@ -746,7 +851,7 @@ function CC.gatherDetail(rd, playerObj, win, prefix)
     rd.skills       = skills
     rd.missingCount = missingCount
     rd.craftTime    = craftTime
-    if rd.status ~= "station" then
+    if rd.status ~= "station" and not rd.fromLogic then   -- (vanilla's answer counts amounts; this only counts one of each)
         rd.status   = missingCount > 0 and "missing" or "craftable"
     end
 
@@ -1150,7 +1255,8 @@ function CC.renderStrip(panel, x, y, w, state, config)
                 { id = "recent",    label = "Recent" },
             }
         end
-        local toggle = { label = "All", active = state.showAll }
+        local show = CC.showMode(state, config)
+        local toggle = { label = "Show: " .. SHOW_LABEL[show], active = show ~= "known" }
         local h, stripZones = M.drawSortStrip(panel, x, y, w,
             modes, state.sort, toggle, hoverZone)
         -- S105 gamepad: inline cue paint for focused sort/showAll button.
@@ -2234,8 +2340,7 @@ function CC.onClick(state, config, win, x, y, playerObj)
                 return true
 
             elseif zone.type == "showAllToggle" then
-                state.showAll = not state.showAll
-                state.filterDirty = true
+                CC.cycleShow(state, config)
                 return true
 
             elseif zone.type == "catDropdown" then
@@ -2514,8 +2619,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 journalKind = (prefix == "jrecipe") and "jrecipeShowAll" or nil,
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
-                    state.showAll = not state.showAll
-                    state.filterDirty = true
+                    CC.cycleShow(state, config)
                 end,
             }
         elseif z.type == "stationDropdown" then

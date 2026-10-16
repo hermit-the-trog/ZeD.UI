@@ -601,7 +601,7 @@ end
 
 -- Called when a structural dock button is clicked.
 -- Builds and queues the appropriate timed action for this player + zone.
-function ZeD_ItemCard:_onZonePress(zoneIdx, zone)
+function ZeD_ItemCard:_onZonePress(zoneIdx, zone, rect)
     if not self.item or not zone or not zone.dock then return end
     local player = getSpecificPlayer(self.playerNum)
     if not player then return end
@@ -611,6 +611,18 @@ function ZeD_ItemCard:_onZonePress(zoneIdx, zone)
     local parts = safeGet(item, "getCoveredParts")
     if not parts or zoneIdx > parts:size() then return end
     local part = parts:get(zoneIdx - 1)  -- Java 0-indexed
+
+    -- Oct 15 2026 (Inspect routed here, Overrides/Garment.lua): the dock opens
+    -- vanilla's own tailoring choices for the part (which fabric, patch every
+    -- hole, remove one patch or all), in the ZeD list under the dock. The
+    -- one-press repair below stays as the fallback.
+    if ZeD.Garment and ZeD.Garment.tailorMenu then
+        local x = rect and rect.x or (self:getAbsoluteX() + math.floor(self:getWidth() / 2))
+        local y = rect and (rect.y + rect.h) or self:getAbsoluteY()
+        local ok, err = pcall(ZeD.Garment.tailorMenu, player, item, part, x, y)
+        if ok then return end
+        print("[ZeD] ItemCard: tailoring list failed, one-press repair: " .. tostring(err))
+    end
 
     local visual   = safeGet(item, "getVisual")
     local holeCount = 0
@@ -1174,7 +1186,7 @@ function ZeD_ItemCard:update()
             local inRect = mx >= rect.x and mx < rect.x + rect.w
                        and my >= absRectY and my < absRectY + rect.h
             if self._zoneDockWasDown and not down and inRect then
-                self:_onZonePress(rect.zoneIdx, rect.zone)
+                self:_onZonePress(rect.zoneIdx, rect.zone, rect)
             end
         end
     end
@@ -1466,7 +1478,7 @@ function ZeD_ItemCard:getZoneDockElements()
             x = rect.x, y = rect.y, w = rect.w, h = rect.h,
             id = eid,
             onFocus    = function() card._gpFocusedBtnId = eid end,
-            onActivate = function() card:_onZonePress(zIdx, zone) end,
+            onActivate = function() card:_onZonePress(zIdx, zone, rect) end,
         }
     end
     return els
