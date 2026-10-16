@@ -317,6 +317,7 @@ function MM.drawGlass(p, L)
     local T = ZeD.T
     local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
     MM.drawPowerOff(p, L)   -- (a game starting: the picture collapses under the glass)
+    MM.drawPowerOn(p, L)    -- (the menu arriving: the picture opens out of a line)
     local step, line = math.max(2, T.px(3)), math.max(1, T.px(1))
     for y = ty, ty + th - 1, step do p:drawRect(tx, y, tw, line, 0.11, 0, 0, 0) end
     local band = math.max(1, math.floor(math.min(tw, th) * 0.008))
@@ -327,6 +328,73 @@ function MM.drawGlass(p, L)
         p:drawRect(tx, ty + d, d, th - 2 * d, 0.025, 0, 0, 0)
         p:drawRect(tx + tw - d, ty + d, d, th - 2 * d, 0.025, 0, 0, 0)
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- THE MENU ARRIVING: THE MONITOR SWITCHES ON (director, Oct 16 2026: "the screen should
+-- turn on when the main menu loads, it will help draw attention to it being the spot to
+-- interact with things"). The power-off played backwards and slower, as a 1993 CRT warms
+-- up: the room comes up with the tube dark, a dot lights in the middle, draws out into a
+-- line, the line opens into the picture, and the picture settles from a phosphor glare.
+-- About 0.9 s after the room; at boot, back from a game and after a mod reload (each
+-- builds the menu anew). The pointer waits until the picture is open.
+-- ---------------------------------------------------------------------------
+local ON_DOT, ON_LINE, ON_OPEN, ON_SETTLE = 90, 140, 240, 480
+local ON_DELAY_FADE, ON_DELAY_QUICK = 380, 120   -- after the room's fade starts / with no fade
+local ON_GLOW = { r = 0.86, g = 0.94, b = 1.0 }
+
+function MM.poweringOn()
+    local o = MM.powerOn
+    if not o then return false end
+    return now() - o.t0 < ON_DOT + ON_LINE + ON_OPEN
+end
+
+function MM.drawPowerOn(p, L)
+    local o = MM.powerOn
+    if not o or MM.powerOff then return end
+    local dt = now() - o.t0
+    local tx, ty, tw, th = L.tx, L.ty, L.tw, L.th
+    if dt >= ON_DOT + ON_LINE + ON_OPEN + ON_SETTLE then MM.powerOn = nil; return end
+    local px = math.max(1, L.s)   -- one pixel of the desk picture
+    local cx, cy = tx + tw / 2, ty + th / 2
+    local c = ON_GLOW
+    if dt < 0 then p:drawRect(tx, ty, tw, th, 1, 0, 0, 0); return end   -- dark until it is switched on
+    if dt < ON_DOT then
+        -- a dot lights in the middle
+        local k = dt / ON_DOT
+        p:drawRect(tx, ty, tw, th, 1, 0, 0, 0)
+        local d = px * 2
+        p:drawRect(math.floor(cx - d), math.floor(cy - d), d * 2, d * 2, 0.35 * k, c.r, c.g, c.b)
+        p:drawRect(math.floor(cx - d / 2), math.floor(cy - d / 2), d, d, k, c.r, c.g, c.b)
+        return
+    end
+    local d = dt - ON_DOT
+    if d < ON_LINE then
+        -- the dot draws out into a line, both ways
+        local k = d / ON_LINE
+        k = 1 - (1 - k) * (1 - k)
+        local lw = math.max(px * 2, math.floor(tw * k))
+        local lx = math.floor(cx - lw / 2)
+        p:drawRect(tx, ty, tw, th, 1, 0, 0, 0)
+        p:drawRect(lx, math.floor(cy - px * 1.5), lw, px * 3, 0.3, c.r, c.g, c.b)
+        p:drawRect(lx, math.floor(cy - px / 2), lw, px, 1, c.r, c.g, c.b)
+        return
+    end
+    d = d - ON_LINE
+    if d < ON_OPEN then
+        -- the line opens into the picture, glaring as it goes
+        local k = d / ON_OPEN
+        k = 1 - (1 - k) * (1 - k)
+        local bh = math.max(px, math.floor(th * k))
+        local by = math.floor(cy - bh / 2)
+        p:drawRect(tx, ty, tw, by - ty, 1, 0, 0, 0)
+        p:drawRect(tx, by + bh, tw, ty + th - by - bh, 1, 0, 0, 0)
+        p:drawRect(tx, by, tw, bh, 0.85 - 0.5 * k, c.r, c.g, c.b)
+        return
+    end
+    -- the glare settles off the picture
+    local k = (d - ON_OPEN) / ON_SETTLE
+    p:drawRect(tx, ty, tw, th, 0.35 * (1 - k) * (1 - k), c.r, c.g, c.b)
 end
 
 -- ---------------------------------------------------------------------------
@@ -865,7 +933,7 @@ function ZeD_MMDesk:update()
     if MM.powerOff then
         MM.powerOffTick()   -- a game starting: nothing answers until the engine takes over
     else
-        if not MM.waking then MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self.icons, self }) end   -- nothing answers in the dark
+        if not MM.waking and not MM.poweringOn() then MM.pointer(MM.ctx, { self.drop, MM.activeWindow(), self.bar, self.icons, self }) end   -- nothing answers in the dark
     end
     -- the pull-down shows while a menu is open
     local open = MM.ctx.open ~= nil
@@ -1200,6 +1268,9 @@ function ZeD_MMWake:prerender()
         self._readyAt = t
         MM.waking = false
         if t - self._t0 < 50 then self._done = true end   -- ready on the first frame: no fade
+        -- the monitor switches on as the room comes up (at once when there was no fade)
+        local m = ms()
+        if not (m and m.inGame) then MM.powerOn = { t0 = t + (self._done and ON_DELAY_QUICK or ON_DELAY_FADE) } end
     end
     local a = self._readyAt and (1 - (t - self._readyAt) / WAKE_FADE_MS) or 1
     if self._done or a <= 0 then
