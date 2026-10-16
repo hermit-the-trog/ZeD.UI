@@ -124,14 +124,14 @@ function X.realTM() return S._realGetTextManager() end
 -- Text entries. The engine's Java text box (UITextBox2, under ISTextEntryBox)
 -- draws its font at the font's native pixel size: it has no zoom. So typed
 -- text follows the scale by switching faces: the Fira body face baked at
--- 13 / 15 (Small / Large) and 18 / 22 / 26 / 30 px (four distance-field
--- slots nothing in vanilla uses, re-registered as bitmap faces:
+-- 13 / 15 (Small / Large) and 18 / 26 px (Dialogue and Intro: two slots no
+-- vanilla text uses. Oct 16 2026: they were four Sdf slots, which are the
+-- printed newspapers' faces; those went back to the game), as bitmap faces:
 -- media/fonts/generate_entry_fonts.py + EN/fonts.txt). The pick is the face
 -- closest to the scaled body size (body role px x root).
 -- ---------------------------------------------------------------------------
 -- slot, face px (the engine reports a line height about a third taller than the face)
-local ENTRY_SLOTS = { { "Small", 13 }, { "Large", 15 }, { "SdfOldRegular", 18 }, { "SdfOldItalic", 22 },
-                      { "SdfOldBoldItalic", 26 }, { "SdfRobertoSans", 30 } }
+local ENTRY_SLOTS = { { "Small", 13 }, { "Large", 15 }, { "Dialogue", 18 }, { "Intro", 26 } }
 local _entryFaces, _entryTarget, _entryFont = nil, nil, nil
 
 local function entryFaces()
