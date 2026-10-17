@@ -119,7 +119,7 @@ function ISSleepingUI:render()
     end
     local ok, drawn = pcall(S.draw, self, ox, oy, k, self.hourOfDay, self._zedAlarm)
     if not (ok and drawn) then
-        if not ok then print("[ZeD] sleep clock: " .. tostring(drawn)) end
+        if not ok then ZeD.logOnce("sleep clock", drawn) end
         return _render(self)
     end
 end

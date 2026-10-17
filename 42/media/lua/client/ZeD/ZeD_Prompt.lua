@@ -623,7 +623,7 @@ end
 -- ---------------------------------------------------------------------------
 local function buttonWidth(b)
     local T = ZeD.T
-    return math.max(T.px(U.BTN_MIN), tw(T.fontF3, upper(b.title)) + T.px(U.BTN_PAD) * 2)
+    return math.max(T.px(U.BTN_MIN), tw(T.fontF3, ZeD.btnCase(upper(b.title))) + T.px(U.BTN_PAD) * 2)
 end
 
 -- answers in footer order: the secondary first, the main one last (on the right)

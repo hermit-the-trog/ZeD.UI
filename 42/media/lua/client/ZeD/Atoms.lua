@@ -113,7 +113,7 @@ function ZeD.Atoms.drawBorder(panel, x, y, w, h, edges, strong)
     if not edges then
         panel:drawRectBorder(x, y, w, h, c.a, c.r, c.g, c.b)
         if T.borderW >= 2 then
-            panel:drawRectBorder(x + 1, y + 1, w - 2, h - 2, c.a, c.r, c.g, c.b)  -- S124 TODO scale? 1 = drawRectBorder's fixed 1 screen px (HC double ring); T.px(1) opens a gap until borders scale
+            do local i = (panel.zedScaled and T.px(1)) or 1; panel:drawRectBorder(x + i, y + i, w - 2 * i, h - 2 * i, c.a, c.r, c.g, c.b) end  -- HC double ring: inset by the border's own thickness (scaled on ZeD panels)
         end
         return
     end
@@ -234,7 +234,7 @@ function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor)
     panel:drawRectBorder(x, y, w, h, bc.a, bc.r, bc.g, bc.b)
     -- If High Contrast, draw a second border inset by 1px for thickness
     if T.borderW >= 2 then
-        panel:drawRectBorder(x + 1, y + 1, w - 2, h - 2, bc.a, bc.r, bc.g, bc.b)  -- S124 TODO scale? 1 = drawRectBorder's fixed 1 screen px (HC double ring); T.px(1) opens a gap until borders scale
+        do local i = (panel.zedScaled and T.px(1)) or 1; panel:drawRectBorder(x + i, y + i, w - 2 * i, h - 2 * i, bc.a, bc.r, bc.g, bc.b) end  -- HC double ring: inset by the border's own thickness (scaled on ZeD panels)
     end
 end
 
@@ -682,7 +682,7 @@ function ZeD.Atoms.drawFocusRing(panel, x, y, w, h)
     if T.borderW >= 2 then
         -- High Contrast: solid 2px border
         panel:drawRectBorder(fx, fy, fw, fh, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
-        panel:drawRectBorder(fx + 1, fy + 1, fw - 2, fh - 2, T.accent.a, T.accent.r, T.accent.g, T.accent.b)  -- S124 TODO scale? 1 = drawRectBorder's fixed 1 screen px (HC double ring); T.px(1) opens a gap until borders scale
+        do local i = (panel.zedScaled and T.px(1)) or 1; panel:drawRectBorder(fx + i, fy + i, fw - 2 * i, fh - 2 * i, T.accent.a, T.accent.r, T.accent.g, T.accent.b) end  -- HC: inset by the border's own thickness
     else
         -- Standard: dashed border using small rect segments
         local dashLen = T.px(4)

@@ -98,6 +98,9 @@ end
 -- ============================================================================
 
 local ZeD_WorldMap = ISUIElement:derive("ZeD_WorldMap")
+-- (its outlines scale with the UI like every ZeD element; it is local, so TextScale's
+-- class list cannot reach it; code audit Oct 17 2026)
+ZeD_WorldMap.zedScaled = true
 
 function ZeD_WorldMap:new(x, y, w, h, playerObj)
     local o = ISUIElement:new(x, y, w, h)

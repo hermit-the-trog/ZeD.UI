@@ -157,7 +157,7 @@ function TUI:render()
     local oy = sy + sh - ph - math.floor(70 * root) - self:getAbsoluteY()
     local ok, drawn = pcall(F.draw, self, ox, oy, k, self.zedTension or 0)
     if not (ok and drawn) then
-        if not ok then print("[ZeD] fishing rod: " .. tostring(drawn)) end
+        if not ok then ZeD.logOnce("fishing rod", drawn) end
         _prerender(self)
         return _render(self)
     end

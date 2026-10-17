@@ -219,7 +219,7 @@ local function drawCell(menu, x, y, cell, icon, slice, active)
     ctx.cellW, ctx.cellH, ctx.iconPx, ctx.submenuTriSz = cell, cell, icon, T.px(4)
     local ok, err = pcall(M.drawContextCell, menu, x, y, def, flags, T)
     ctx.cellW, ctx.cellH, ctx.iconPx, ctx.submenuTriSz = cw, ch, ip, ts
-    if not ok then print("[ZeD] Wheel: cell: " .. tostring(err)) end
+    if not ok then ZeD.logOnce("Wheel: cell", err) end
     if not active then menu:drawRectBorder(x, y, cell, cell, 1, INK.r, INK.g, INK.b) end
 end
 
@@ -290,7 +290,7 @@ function W.draw(menu)
             apexY = cy + r + math.ceil(cellOn / 2) + T.px(6)
         end
         local ok, err = pcall(ZeD.Molecules.drawContextBalloon, menu, cx, apexY, state, T)
-        if not ok then print("[ZeD] Wheel: balloon: " .. tostring(err)) end
+        if not ok then ZeD.logOnce("Wheel: balloon", err) end
     end
 end
 

@@ -469,7 +469,7 @@ function B.otherWeapons(playerObj)
             end
         elseif call(item, "canEmitLight") then
             if not best or best:getLightStrength() < item:getLightStrength() then best = item end
-            if isEquippedOrAttached and isEquippedOrAttached(playerObj, item) then
+            if playerObj:isEquipped(item) or (hb and hb:isItemAttached(item)) then  -- (vanilla's isEquippedOrAttached is local to ISDPadWheels, out of reach: its test inline; code audit Oct 17 2026)
                 if not bestEq or bestEq:getLightStrength() < item:getLightStrength() then bestEq = item end
             end
         end
@@ -951,8 +951,13 @@ function ZeD_BeltHUD:_tooltip(item, b)
             self._tip:setCharacter(self:player())
         else
             self._tip:setItem(item)
+            -- (the belt outlives a respawn: the tooltip follows the character now playing;
+            -- code audit Oct 17 2026)
+            local p = self:player()
+            if self._tipChr ~= p then self._tip:setCharacter(p) end
             self._tip:bringToTop()
         end
+        self._tipChr = self:player()
         local T = ZeD.T
         local chipH = ZeD.TM:getFontHeight(T.fontF1) + T.px(6)
         self._tip.followMouse = false
@@ -1003,7 +1008,7 @@ function ZeD_BeltHUD:_finishOut(x, y)
     -- into the bags (a ZeD inventory list): take it off the belt
     local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    for _, win in ipairs({ cw, ww }) do
+    for _, win in ipairs({ cw or false, ww or false }) do  -- (a closed window is false, not a nil hole that ends ipairs early; code audit Oct 17 2026)
         local c = win and win._contentPanel
         if c and c:isReallyVisible() and c:isMouseOver() then
             B.detach(self.playerNum, o.item)

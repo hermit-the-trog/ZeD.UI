@@ -410,7 +410,8 @@ function ZeD_SeatChooser:prerender()
     local T = ZeD.T
     if not (self.vehicle and T) then return end
     self.minimumWidth, self.minimumHeight = 0, 0
-    self:readSeats()
+    local okS, errS = pcall(self.readSeats, self)
+    if not okS then ZeD.logOnce("seat chooser", errS); self:close(); return end
     self.title = (self._playerSeat ~= -1) and getText("IGUI_SwitchSeat") or getText("IGUI_EnterVehicle")
     self.titleStats = { { text = vehicleName(self.vehicle) } }
     self:layout()
@@ -548,6 +549,9 @@ end
 
 function ZeD_SeatChooser:update()
     ISPanel.update(self)
+    -- the car gone from the world or the character dead: it closes, rather than reading a
+    -- vanished vehicle every frame (code audit Oct 17 2026)
+    if not (self.vehicle and self.vehicle:getSquare()) or self.character:isDead() then self:close(); return end
     -- the controller that holds it
     local jf = nil
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
