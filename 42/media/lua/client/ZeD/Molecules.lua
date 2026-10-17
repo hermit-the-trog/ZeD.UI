@@ -3061,7 +3061,7 @@ end
 -- ============================================================================
 -- 22. SLOT ROW (draw helper)
 -- A 24px row in the craft card's required items list.
--- Grid: 2px edge · 18px icon · flex name+tag · count · 12px consumable flag
+-- Grid: 2px edge | 18px icon | flex name+tag | count | 12px consumable flag
 --
 -- data table: { name, displayName, iconTex, have, need, altCount, isKeep, isTool, tag }
 --   altCount: number of alternatives (nil or 0 = specific item, no alt click)
@@ -3278,7 +3278,7 @@ end
 
 -- ============================================================================
 -- 24. CRAFT ACTION STRIP (draw helper)
--- Bottom-pinned 42px strip: [qty stepper] · max readout · [BUILD] button.
+-- Bottom-pinned 42px strip: [qty stepper] | max readout | [BUILD] button.
 -- buildLabel: "CRAFT" or "BUILD" (tab-specific).
 -- canCraft: false disables the button (grey, no click).
 -- Returns: stripH (42), zones table for click dispatch
