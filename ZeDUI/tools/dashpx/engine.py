@@ -87,7 +87,7 @@ F35 = {
     "6": ["011", "100", "111", "101", "111"], "7": ["111", "001", "010", "010", "010"], "8": ["111", "101", "111", "101", "111"],
     "9": ["111", "101", "111", "001", "110"], ".": ["0", "0", "0", "0", "1"], "'": ["1", "1", "0", "0", "0"],
     " ": ["00", "00", "00", "00", "00"], "-": ["000", "000", "111", "000", "000"], "/": ["001", "001", "010", "100", "100"],
-    "+": ["000", "010", "111", "010", "000"], "%": ["101", "001", "010", "100", "101"], "·": ["0", "0", "1", "0", "0"],
+    "+": ["000", "010", "111", "010", "000"], "%": ["101", "001", "010", "100", "101"], "·": ["0", "0", "1", "0", "0"], "\u00b0": ["111", "101", "111", "000", "000"],   # the degree sign (the digital watches' thermometer)
     "x": ["000", "101", "010", "101", "000"], ":": ["0", "1", "0", "1", "0"],
 }
 # a 5x7 face for nameplates and bigger numerals
@@ -114,6 +114,10 @@ F57 = {
     "J": ["00111", "00010", "00010", "00010", "00010", "10010", "01100"], "Q": ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
     "/": ["00001", "00010", "00010", "00100", "01000", "01000", "10000"], "&": ["01100", "10010", "10100", "01000", "10101", "10010", "01101"],
     "\u00b7": ["0", "0", "0", "1", "0", "0", "0"],
+    "\u00b0": ["0110", "1001", "1001", "0110", "0000", "0000", "0000"],
+    # for the radios' character displays (the signal bars, a clock's colon, CH+)
+    "|": ["1", "1", "1", "1", "1", "1", "1"], ":": ["0", "1", "0", "0", "0", "1", "0"],
+    "+": ["00000", "00100", "00100", "11111", "00100", "00100", "00000"],
 }
 FONTS = {"35": F35, "57": F57}
 
@@ -340,7 +344,9 @@ class Dash:
         return m
 
     # ---- render
-    def render(s, light=(-0.45, -1.0, 0.95), outline=True, gloom=None):
+    def render(s, light=(-0.45, -1.0, 0.95), outline=True, gloom=None, chrome_env="car"):
+        """chrome_env: what chrome reflects. "car": sky above, the dark cabin ahead, the floor below (the dashboards).
+        "room": a lit room; a face toward the viewer shows the room's middle tones, not a dark cabin (the appliances)."""
         h = s.h.astype(np.float64)
         hh = np.where(s.solid, h, h.min() if s.solid.any() else 0)
         gy, gx = np.gradient(hh)
@@ -381,7 +387,10 @@ class Dash:
         cm = s.mat == ci
         if cm.any():
             ny = n[..., 1]; nz = n[..., 2]
-            env = np.where(ny < -0.45, 7, np.where(ny < -0.18, 6, np.where(ny > 0.40, 4, np.where(ny > 0.15, 5, 2))))
+            if chrome_env == "room":
+                env = np.where(ny < -0.45, 7, np.where(ny < -0.18, 6, np.where(ny > 0.40, 2, np.where(ny > 0.15, 3, 4))))
+            else:
+                env = np.where(ny < -0.45, 7, np.where(ny < -0.18, 6, np.where(ny > 0.40, 4, np.where(ny > 0.15, 5, 2))))
             env = env + (spec > 0.55) * 2 - np.round(sh * 2).astype(int) - (cav > 0.25) * 1
             env = env - (np.abs(n[..., 0]) > 0.55) * 1
             idx[cm] = np.clip(env[cm], 0, 7)

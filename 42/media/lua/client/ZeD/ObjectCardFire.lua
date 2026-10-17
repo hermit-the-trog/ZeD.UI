@@ -5,19 +5,30 @@
 -- left on a strip that ends at the sandbox maximum, ADD FUEL (what you carry
 -- that burns and the time each piece adds), LIGHT WITH (the methods vanilla
 -- offers), what is on the fire with the item card's cooking reading, and
--- SMOULDERING as a third state. The propane barbecue gets its own plate: tank
--- needle, burner knob, flame lamp, hours of gas, then the grill's contents.
+-- SMOULDERING as a third state. The propane barbecue gets its own plate: the
+-- game's Jorge Foreguy cart grill in pixel art (director, Oct 16 2026; the
+-- shared plate template ZeD_Plate.lua draws it from PhysPx.lua): the burner
+-- knobs' pointers, the flames' glow under the hood, the lid thermometer, the
+-- tank gauge and the tank in the cart. The centre knob and the red igniter
+-- light it or shut it off, the cart takes a tank in or gives it back. Under the
+-- plate the hours of gas, then the grill's contents.
 -- Every action goes through vanilla's camping / barbecue handlers.
 -- ============================================================================
 
 require "ZeD/ObjectCards"
+require "ZeD/ZeD_PixelParts"
+require "ZeD/ZeD_Plate"
+require "ZeD/PhysPx"
 
 local OC = ZeD.ObjectCards
+local P = ZeD.Px
+local PL = ZeD.Plate
 local UI = OC.ui
 local call = OC.call
 local DOT = OC.DOT
 
 local PROPANE_FULL_MIN = 1200   -- a full propane tank: 20 hours of gas
+local GRILL_SETTLE_MS = 4000    -- the lid thermometer's needle creeps up after lighting, down after
 
 local function campfireSystem() return CCampfireSystem and CCampfireSystem.instance or nil end
 
@@ -355,32 +366,59 @@ local function fireBody(card, x, y, w, t, player)
     return y - y0
 end
 
+-- the grill's plate: what its live parts read (the thermometer settles, it has weight)
+local function grillState(t, d)
+    local st = { lit = d.lit, tank = d.tank, tankF = d.tank and math.max(0, math.min(1, d.fuel / PROPANE_FULL_MIN)) or 0 }
+    local target = d.lit and 0.74 or 0.04
+    local now = getTimestampMs()
+    local cur = t._grillT
+    if cur == nil then cur = target end
+    local dt = t._grillMs and math.max(0, math.min(250, now - t._grillMs)) or 0
+    cur = cur + (target - cur) * (dt / (GRILL_SETTLE_MS + dt))
+    t._grillT, t._grillMs = cur, now
+    st.grillTemp = cur
+    return st
+end
+local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
+
 local function propaneBody(card, x, y, w, t, player)
-    local T, tm, HW = ZeD.T, ZeD.TM, UI.HW
+    local T = ZeD.T
     local d = t.d
     local y0 = y
     local gap = T.px(8)
-    local ph = T.px(104)
-    UI.plate(card, x, y, w, ph, "SUNDOWNER - PATIO GRILL", nil,
-        { top = UI.hex("#2C2C2C"), bot = UI.hex("#1E1E1E"), noStripe = true })
-    local top = y + T.px(10)
-    -- tank needle
-    local gx, gy = x + T.px(12) + T.px(39), top + T.px(46)
-    UI.needle(card, gx, gy, T.px(33), d.tank and (d.fuel / PROPANE_FULL_MIN) or 0, "TANK", true)
-    -- burner knob
-    local kr = T.px(23)
-    local kx, ky = gx + T.px(39) + T.px(16) + kr, top + T.px(4) + kr
-    local focused = card._fid == "bbq:knob"
-    UI.knob(card, kx, ky, kr, d.lit and 0.62 or 0, focused, "BURNER")
-    card:zone({ fid = "bbq:knob", x = kx - kr - T.px(4), y = ky - kr - T.px(4), w = kr * 2 + T.px(8), h = kr * 2 + T.px(8), body = true,
-        run = t.toggle and function(c, p) t.toggle(p, t) end or nil })
-    -- flame lamp + hours of gas
-    local mx = kx + kr + T.px(20)
-    UI.led(card, mx, top + T.px(6), HW.red, d.lit, "FLAME")
+    local X = ZeD.PhysPx
+    local des = X and X.plates[X.fallback.propane]
+    if des then
+        local Sc = ZeD.Scale
+        local k = P.k((Sc and Sc.root and Sc.root()) or 1)
+        local px0 = x + PL.centre(w, des.w, k)
+        local cv = P.canvas(card, px0, y, k)
+        local st = grillState(t, d)
+        PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
+        -- the centre knob turns it on or off; the igniter lights it; the cart takes a tank or gives it back
+        local function tankFn(p, tt)
+            if tt.obj:hasPropaneTank() then ISBBQMenu.onRemovePropaneTank(nil, p:getPlayerNum(), tt.obj)
+            else
+                local tank = ISBBQMenu.FindPropaneTank(p, tt.obj)
+                if tank then ISBBQMenu.onInsertPropaneTank(nil, p:getPlayerNum(), tt.obj, tank) end
+            end
+        end
+        local function ignite(p, tt) if not tt.obj:isLit() and t.toggle then t.toggle(p, tt) end end
+        for _, c in ipairs(PL.controls(des, st)) do
+            local fid = "bbq:" .. c.id
+            local fn = nil
+            if c.id == "burner" then fn = t.toggle
+            elseif c.id == "ignite" then fn = (not d.lit and t.toggle) and ignite or nil
+            elseif c.id == "tank" then fn = (d.tank or d.spare) and tankFn or nil end
+            if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+            card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
+                run = fn and function(cc, p) fn(p, t) end or nil })
+        end
+        y = y + des.h * k + T.px(6)
+    end
     local gm = math.floor(d.fuel % 60)
     local hrs = d.tank and (tostring(math.floor(d.fuel / 60)) .. ":" .. (gm < 10 and "0" or "") .. tostring(gm)) or "0:00"
-    UI.lcd(card, mx, top + T.px(24), hrs, "HRS OF GAS")
-    y = y + ph + gap
+    y = y + UI.pair(card, x, y, w, "GAS LEFT", hrs .. " HRS", "TANK", d.tank and "IN" or "NONE") + gap
     if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
     local items = d.container and call(d.container, "getItems")
     local n = items and items:size() or 0

@@ -609,6 +609,61 @@ local function drawHam(p, kind, x, y, w, h, u, st, full)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- THE READING for the radio up close (director, Oct 16 2026: the faces in pixel
+-- art): what each face's display shows now, field by field, for the shared
+-- plate template's radioDisplay part (ZeD_Plate.lua) to draw in pixel figures.
+-- The same content as drawFM / drawHam below, blinking already applied; nil
+-- when the set is off (the template darkens a liquid-crystal glass).
+--   FM sets   band "FM" / "CD", big (the frequency, or the CD's time), unit,
+--             preset "P2", cdTag "CD" (a disc in), tag (STORE n / SCAN /
+--             MUTE), bars (signal 0 .. 4), line (the station, the CD's title)
+--   ValuTech  big, band, tag
+--   two-way   chLabel "CH", ch "02", big "146.520", unit, tx "TX OK" /
+--             "MIC OFF", line (the channel's name, a flash, MUTE)
+--   makeshift l1 / l2: the 16 x 2 character glass's two lines
+-- ---------------------------------------------------------------------------
+function O.displayReading(st, t)
+    if not (st and st.on) then return nil end
+    t = t or now()
+    local function blink(period) return math.floor(t / period) % 2 == 0 end
+    local kind = st.kind
+    if O.HAM[kind] then
+        local freq = O.freqText(st.channel, true)
+        local ch = st.presetIdx and string.format("%02d", st.presetIdx) or "--"
+        local preset = st.presetIdx and st.presets and st.presets[st.presetIdx]
+        local nameLine = st.flash or (st.muted and "MUTE") or (st.name and st.name:upper())
+            or (preset and preset.name and preset.name:upper()) or ""
+        if kind == "hammake" then
+            return { l1 = "CH" .. ch .. " " .. freq .. " MHz", l2 = nameLine }
+        end
+        return { chLabel = "CH", ch = ch, big = freq, unit = "MHz", tx = st.micMuted and "MIC OFF" or "TX OK", line = nameLine }
+    end
+    local freq = O.freqText(st.channel, false)
+    if kind == "makeshift" then
+        local sig = st.signal and "||||" or ""
+        local l1 = "FM" .. string.rep(" ", math.max(1, 6 - #freq)) .. freq .. "MHz"
+        l1 = l1 .. string.rep(" ", math.max(1, 17 - #l1 - #sig)) .. sig
+        return { l1 = l1, l2 = st.flash or (st.scanning and "SCAN") or (st.muted and "MUTE") or (st.name and st.name:upper()) or "" }
+    end
+    if kind == "valutech" then
+        local off = st.flash and not blink(250)                -- a STORE flash blinks the whole readout
+        local tag = (st.flash and (st.flash:gsub("STORE ", "P"))) or (st.scanning and "SCAN") or (st.muted and "MUTE")
+            or (st.presetIdx and st.presetIdx <= 6 and ("P" .. st.presetIdx)) or ""
+        return { big = off and "" or freq, band = "FM", tag = off and "" or tag }
+    end
+    -- the Premium Technologies CD receiver
+    local cd = st.playing
+    local tag = st.flash or (st.scanning and "SCAN") or (st.muted and "MUTE") or ""
+    if (st.flash or st.scanning) and not blink(300) then tag = "" end    -- a flash and SCAN blink, MUTE holds
+    if cd then
+        return { band = "CD", cd = true, big = elapsed(st.cdMs), unit = "", preset = "", cdTag = "", tag = tag, bars = 0,
+                 line = (st.mediaTitle or "COMPACT DISC"):upper() }
+    end
+    return { band = "FM", big = freq, unit = "MHz", preset = (st.presetIdx and st.presetIdx <= 6) and ("P" .. st.presetIdx) or "",
+             cdTag = st.hasMedia and "CD" or "", tag = tag, bars = st.signal and 4 or 0, line = (st.name or ""):upper() }
+end
+
 -- the whole glass: unlit when off (an LCD's backlight out), else the kind's readout
 function O.drawDisplay(p, kind, x, y, w, h, u, st, full)
     local dk = O.DISPLAY_KIND[kind] or "vfd"

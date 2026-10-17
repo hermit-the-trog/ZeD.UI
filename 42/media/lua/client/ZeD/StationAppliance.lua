@@ -1,28 +1,51 @@
 -- ZeD-UI/42/media/lua/client/ZeD/StationAppliance.lua
 -- ============================================================================
 -- APPLIANCE VIEW — the Craft tab bound to an oven or a microwave (HOOK_MAP 14)
--- Ovens and microwaves are 1993 hardware, so their controls are a physical
--- panel: a temperature (oven) or power (microwave) knob, a timer knob, a green
--- readout, a power lamp and an ON / OFF key; the oven adds vanilla's °F / °C
--- switch. Under the panel, "In the oven" lists what is cooking with the item
--- card's cooking reading (cooking, then burning).
+-- Each of the game's ovens and microwaves shows its own control panel in pixel
+-- art (director, Oct 16 2026: one plate per model, fixed size, centred): the
+-- 1956 green range, the 1962 red range, the 1985 grey range, the 1992 gas
+-- range, the restaurant range, the convection oven, the deep fryer, the 1990
+-- touchpad microwave and the 1979 dial microwave (ZeDUI/tools/physpx, data in
+-- PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua). The plate is
+-- picked by the object's tile; a modded oven or microwave borrows one.
+--
+-- Every panel drives vanilla's state, nothing more: on / off, the temperature
+-- (the oven's stops 0, 50 ... 300 °C; the microwave's five powers) and the
+-- timer. Knobs turn a stop a click (the left half down, the right half up, or
+-- the wheel; the D-pad on a controller). The touch pads work like the real
+-- ones:
+--   1985 range   BAKE starts it (at the set heat, 200 °C when unset), BROIL
+--                at the top heat; TIMER then ▲ / ▼ set the timer, else ▲ / ▼
+--                step the heat; CLEAR / OFF turns it off and clears the timer
+--   1992 range   BAKE then the number pads type the heat in the player's units
+--                (it lands on the nearest stop), TIMER then the pads type
+--                hours and minutes; START sets it going, CANCEL turns it off
+--   microwave    the number pads type minutes and seconds (TIME COOK starts a
+--                fresh entry), POWER LEVEL steps the power down a level, START
+--                cooks, STOP / CLEAR pauses (START goes on) or clears
+-- The temperature prints in the player's own unit (the game options; there is
+-- no unit switch on a stove). Under the plate a line says what it is doing;
+-- under that, "In the oven" lists what is cooking with the item card's cooking
+-- reading (cooking, then burning).
 -- Java contract (vanilla ISOvenUI / ISMicrowaveUI):
 --   IsoStove: getMaxTemperature / setMaxTemperature, getTimer / setTimer (s),
 --             isRunningFor (s), Activated, sync, syncSpriteGridObjects,
 --             getContainer():isPowered()
 --   on / off: sendClientCommand(player, 'stove', 'setOvenParamsAndToggle',
 --             { x, y, z, timer, maxTemperature })
---   °F / °C : getCore():setCelsius(bool) + saveOptions()
--- Knobs: click the left half to turn down, the right half to turn up, or use
--- the wheel; on a controller the D-pad turns a focused knob one stop.
 -- ============================================================================
 
 require "ZeD/Stations"
+require "ZeD/ZeD_PixelParts"
+require "ZeD/ZeD_Plate"
+require "ZeD/PhysPx"
 
 ZeD = ZeD or {}
 ZeD.StationAppliance = ZeD.StationAppliance or {}
 local SA = ZeD.StationAppliance
 local ST = ZeD.Stations
+local P = ZeD.Px
+local PL = ZeD.Plate
 local call = ST.call
 
 local DEG = string.char(176)
@@ -33,30 +56,14 @@ local OVEN_TIMES   = { 0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 60, 90, 120
 local MW_POWERS    = { 50, 70, 90, 110, 130 }
 local MW_POWER_TXT = { "LO", "MED-LO", "MED", "MED-HI", "HI" }
 local MW_TIMES     = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 45, 60 }
+local OVEN_MAX_MIN = 120          -- the ovens' timers run to two hours (the dials' scale)
+local MW_MAX_SEC   = 3600         -- a microwave's to an hour
+local BAKE_DEFAULT = 200          -- °C: BAKE with nothing set (350 °F lands nearest 200 °C)
+local ENTRY_MS     = 20000        -- a typed entry nobody starts is dropped (the real pads time out too)
+local SHOW_MS      = 6000         -- a readout called up (BAKE, TIMER, a step) shows this long
+local PRESS_MS     = 140          -- a pressed key's shade
 
-local function hex(h)
-    local n = tonumber(string.sub(h, 2), 16) or 0
-    return { r = math.floor(n / 65536) / 255, g = (math.floor(n / 256) % 256) / 255, b = (n % 256) / 255, a = 1 }
-end
-
--- Hardware palettes: cream enamel range, black plastic microwave
-local PAL = {
-    oven = {
-        top = hex("#D9D5C9"), bot = hex("#C9C4B5"), edge = hex("#6A675E"), text = hex("#1C1B17"),
-        knob = hex("#CFC9BB"), knobHi = hex("#F4F1EA"), knobEdge = hex("#5C584E"), pointer = hex("#1C1B17"),
-        key = hex("#EFECE4"), keyText = hex("#1C1B17"), keyEdge = hex("#6A675E"),
-        brand = "Premium Technologies - RANGE",
-    },
-    micro = {
-        top = hex("#2B2B2B"), bot = hex("#1D1D1D"), edge = hex("#000000"), text = hex("#D8D8D8"),
-        knob = hex("#343434"), knobHi = hex("#6A6A6A"), knobEdge = hex("#000000"), pointer = hex("#E0E0E0"),
-        key = hex("#3A3A3A"), keyText = hex("#E0E0E0"), keyEdge = hex("#000000"),
-        brand = "ValuTech - MICRO-WAVE 700",
-    },
-}
-local LCD_BG, LCD_EDGE = hex("#0F1A10"), hex("#4A4A40")
-local LCD_ON, LCD_DIM  = hex("#66EE66"), hex("#3A8A3A")
-local LAMP_ON, LAMP_OFF, LAMP_RIM = hex("#FF6A2A"), hex("#5A2A1A"), hex("#2A1208")
+local PX = function() return ZeD.PhysPx end
 
 -- ----------------------------------------------------------------------------
 -- STATE READING
@@ -71,18 +78,27 @@ local function nearestIdx(list, v)
 end
 
 local function isCelsius() return getCore() and getCore():isCelsius() end
-
--- °C oven value as the dial reads it: Fahrenheit rounded to the dial's 25s
-local function tempText(c)
-    if (c or 0) <= 0 then return "OFF" end
-    if isCelsius() then return tostring(math.floor(c + 0.5)) .. DEG .. "C" end
-    local f = c * 9 / 5 + 32
-    return tostring(math.floor(f / 25 + 0.5) * 25) .. DEG .. "F"
-end
+local function now() return getTimestampMs() end
 
 local function lists(kind)
     if kind == "micro" then return MW_POWERS, MW_TIMES end
     return OVEN_TEMPS, OVEN_TIMES
+end
+
+-- what the appliance is doing now: power, on, the heat, the timer and the time left on it (s)
+local function read(st)
+    local obj = st.obj
+    local r = {}
+    local cont = call(obj, "getContainer")
+    r.powered = (cont and call(cont, "isPowered")) and true or false
+    r.active = call(obj, "Activated") and true or false
+    r.on = r.active and r.powered
+    r.temp = call(obj, "getMaxTemperature") or 0
+    r.timer = call(obj, "getTimer") or 0
+    r.run = call(obj, "isRunningFor") or 0
+    r.left = 0
+    if r.timer > 0 then r.left = (r.run > 0) and math.max(0, r.timer - r.run) or r.timer end
+    return r
 end
 
 -- Minutes the timer knob shows: what is left while running, else the setting
@@ -93,24 +109,80 @@ local function timerMinutes(obj)
     return math.floor(t / 60 + 0.5)
 end
 
-local function clockText(obj)
-    local t = call(obj, "getTimer") or 0
-    local run = call(obj, "isRunningFor") or 0
-    local on = call(obj, "Activated")
-    local sec
-    if on and run > 0 and t > 0 then sec = math.max(0, t - run)
-    elseif t > 0 then sec = t
-    else return on and "ON" or "--:--" end
-    sec = math.floor(sec + 0.5)
-    return string.format("%02d:%02d", math.floor(sec / 60), sec % 60)
+-- the plate for this appliance: by its tile, else what its kind borrows
+local function spriteName(obj)
+    local spr = call(obj, "getSprite")
+    return spr and call(spr, "getName") or nil
+end
+local function isMwPlate(id) return id:sub(1, 3) == "mw_" end
+local function isOvenPlate(id) return id:sub(1, 5) == "oven_" or id == "fryer" end
+function SA.plateFor(st)
+    local X = PX()
+    if not X then return nil, nil end
+    local id = X.tiles[spriteName(st.obj) or ""]
+    if id and not ((st.kind == "micro" and isMwPlate(id)) or (st.kind ~= "micro" and isOvenPlate(id))) then id = nil end
+    id = id or X.fallback[st.kind] or "oven_modern"
+    return X.plates[id], id
 end
 
 -- ----------------------------------------------------------------------------
--- CONTROLS
+-- READOUTS
+-- ----------------------------------------------------------------------------
+local function gameClock()
+    local gt = getGameTime and getGameTime()
+    local h = gt and gt:getHour() or 10
+    local m = gt and gt:getMinutes() or 8
+    return h, m
+end
+-- the 12-hour clock the displays show when idle ("10:08")
+local function clock12(h, m)
+    local h12 = h % 12
+    if h12 == 0 then h12 = 12 end
+    return string.format("%d:%02d", h12, m)
+end
+-- an oven timer: hours and minutes ("0:24", "2:00")
+local function hmm(sec)
+    local m = math.ceil((sec or 0) / 60)
+    return string.format("%d:%02d", math.floor(m / 60), m % 60)
+end
+-- a microwave timer: minutes and seconds ("0:47", "60:00")
+local function mss(sec)
+    local s = math.ceil(sec or 0)
+    return string.format("%d:%02d", math.floor(s / 60), s % 60)
+end
+-- a temperature in the player's units, as the displays and the line show it (°F to the nearest 5)
+local function tempFig(c)
+    if isCelsius() then return tostring(math.floor(c + 0.5)) end
+    return tostring(math.floor((c * 9 / 5 + 32) / 5 + 0.5) * 5)
+end
+local function tempText(c) return tempFig(c) .. DEG .. (isCelsius() and "C" or "F") end
+
+-- typed entries: a microwave's minutes and seconds (up to 4 figures), an oven timer's hours
+-- and minutes (up to 3), an oven's heat as typed (up to 3)
+local function entryMS(e)
+    local d = string.rep("0", 4 - #e) .. e
+    return string.format("%d:%s", tonumber(d:sub(1, 2)), d:sub(3, 4)), tonumber(d:sub(1, 2)) * 60 + tonumber(d:sub(3, 4))
+end
+local function entryHM(e)
+    local d = string.rep("0", 3 - #e) .. e
+    return string.format("%d:%s", tonumber(d:sub(1, 1)), d:sub(2, 3)), tonumber(d:sub(1, 1)) * 60 + tonumber(d:sub(2, 3))
+end
+
+-- ----------------------------------------------------------------------------
+-- CONTROLS (vanilla's calls)
 -- ----------------------------------------------------------------------------
 local function apply(obj)
     call(obj, "sync")
     call(obj, "syncSpriteGridObjects", false, true)
+end
+
+local function setTemp(st, c) call(st.obj, "setMaxTemperature", c); apply(st.obj) end
+-- the timer to sec seconds left (while it runs, vanilla counts from the start)
+local function setLeft(st, sec)
+    local run = call(st.obj, "isRunningFor") or 0
+    if run > 0 and sec > 0 then sec = run + sec end
+    call(st.obj, "setTimer", sec)
+    apply(st.obj)
 end
 
 function SA.stepHeat(st, dir)
@@ -123,33 +195,239 @@ function SA.stepHeat(st, dir)
 end
 
 function SA.stepTimer(st, dir)
-    local obj = st.obj
     local _, times = lists(st.kind)
-    local i = nearestIdx(times, timerMinutes(obj))
+    local i = nearestIdx(times, timerMinutes(st.obj))
     i = math.max(1, math.min(#times, i + dir))
-    local min = times[i]
-    local run = call(obj, "isRunningFor") or 0
-    -- While running, the knob reads time left, so the new stop is time left too
-    local sec = min * 60
-    if run > 0 and min > 0 then sec = run + sec end
-    call(obj, "setTimer", sec)
-    apply(obj)
+    setLeft(st, times[i] * 60)      -- while running, the knob reads time left, so the new stop is time left too
 end
 
-function SA.toggle(player, st)
+-- on / off: vanilla's command, carrying the heat and the timer (time left while it runs, as vanilla's knob reads it)
+function SA.toggle(player, st, timerSec)
     local obj = st.obj
     local c = call(obj, "getContainer")
     if not (c and call(c, "isPowered")) then return end
-    local args = { x = obj:getX(), y = obj:getY(), z = obj:getZ(),
-                   timer = call(obj, "getTimer") or 0, maxTemperature = call(obj, "getMaxTemperature") or 0 }
+    if timerSec == nil then
+        local r = read(st)
+        timerSec = (r.run > 0 and r.timer > 0) and math.ceil(r.left / 60) * 60 or r.timer
+    end
+    local args = { x = obj:getX(), y = obj:getY(), z = obj:getZ(), timer = timerSec, maxTemperature = call(obj, "getMaxTemperature") or 0 }
     sendClientCommand(player, "stove", "setOvenParamsAndToggle", args)
 end
+local function switch(player, st, on)
+    if (call(st.obj, "Activated") and true or false) ~= on then SA.toggle(player, st) end
+end
 
-function SA.toggleUnits()
-    local core = getCore()
-    if not core then return end
-    core:setCelsius(not core:isCelsius())
-    core:saveOptions()
+-- ----------------------------------------------------------------------------
+-- KEYPADS — each appliance keeps its pad's memory: a typed entry and what it
+-- is for, a readout called up, the key last pressed
+-- ----------------------------------------------------------------------------
+SA._pads = SA._pads or {}
+local function padOf(st)
+    local p = SA._pads[st.key]
+    if not p then p = {}; SA._pads[st.key] = p end
+    local t = now()
+    if p.entry and t - (p.t or 0) > ENTRY_MS then p.entry, p.entryFor = nil, nil end
+    if p.show and t - (p.t or 0) > SHOW_MS then p.show = nil end
+    return p
+end
+local function touch(p, id) p.t = now(); p.pressId, p.pressT = id, p.t end
+local function digitOf(id) return id:match("^d(%d)$") end
+
+-- the 1985 range (LECTROMAX): BAKE, BROIL, TIMER, ▲ / ▼, CLEAR / OFF
+local function greyPress(player, st, r, p, id)
+    if id == "bake" then
+        if not r.active then
+            if r.temp <= 0 then setTemp(st, BAKE_DEFAULT) end
+            switch(player, st, true)
+        end
+        p.show = "bake"
+    elseif id == "broil" then
+        setTemp(st, OVEN_TEMPS[#OVEN_TEMPS])
+        if not r.active then switch(player, st, true) end
+        p.show = "bake"
+    elseif id == "timer" then
+        p.show = "timer"
+    elseif id == "up" or id == "down" then
+        local dir = (id == "up") and 1 or -1
+        if p.show == "timer" then
+            SA.stepTimer(st, dir)
+        elseif p.show == "bake" or r.active then
+            local i = math.max(2, math.min(#OVEN_TEMPS, nearestIdx(OVEN_TEMPS, r.temp) + dir))   -- OFF only by CLEAR / OFF
+            setTemp(st, OVEN_TEMPS[i])
+            p.show = "bake"
+        end
+    elseif id == "clearoff" then
+        if r.active then SA.toggle(player, st, 0) elseif r.timer > 0 then setLeft(st, 0) end   -- off, the timer cleared
+        p.show = nil
+    end
+end
+
+-- the 1992 range (PREMIUM TECHNOLOGIES): BAKE / TIMER then the number pads, START, CANCEL, BROIL
+local function modernPress(player, st, r, p, id)
+    local d = digitOf(id)
+    if id == "bake" then
+        p.entryFor, p.entry, p.show = "bake", "", "bake"
+    elseif id == "timer" then
+        p.entryFor, p.entry, p.show = "timer", "", "timer"
+    elseif d then
+        if not p.entryFor then p.entryFor, p.entry, p.show = "bake", "", "bake" end
+        local cap = 3
+        p.entry = ((p.entry or "") .. d):sub(-cap)
+    elseif id == "broil" then
+        setTemp(st, OVEN_TEMPS[#OVEN_TEMPS])
+        if not r.active then switch(player, st, true) end
+        p.entry, p.entryFor, p.show = nil, nil, "bake"
+    elseif id == "start" then
+        if p.entryFor == "bake" then
+            local c = r.temp > 0 and r.temp or BAKE_DEFAULT
+            local v = tonumber(p.entry or "")
+            if v then
+                if not isCelsius() then v = (v - 32) * 5 / 9 end
+                c = OVEN_TEMPS[math.max(2, nearestIdx(OVEN_TEMPS, v))]       -- the nearest stop the oven has (never OFF)
+            end
+            if c ~= r.temp then setTemp(st, c) end
+            if not r.active then switch(player, st, true) end
+            p.show = "bake"
+        elseif p.entryFor == "timer" then
+            if p.entry and p.entry ~= "" then
+                local _, mins = entryHM(p.entry)
+                setLeft(st, math.min(OVEN_MAX_MIN, mins) * 60)
+            end
+            p.show = "timer"
+        elseif not r.active and r.temp > 0 then
+            switch(player, st, true)
+            p.show = "bake"
+        end
+        p.entry, p.entryFor = nil, nil
+    elseif id == "cancel" then
+        if r.active then SA.toggle(player, st, 0) elseif r.timer > 0 then setLeft(st, 0) end
+        p.entry, p.entryFor, p.show = nil, nil, nil
+    end
+end
+
+-- the 1990 microwave (VALUTECH): the number pads type minutes and seconds
+local function mwWhitePress(player, st, r, p, id)
+    local d = digitOf(id)
+    if id == "timecook" then
+        p.entryFor, p.entry = "time", ""
+    elseif d then
+        if p.entryFor ~= "time" then p.entryFor, p.entry = "time", "" end
+        p.entry = ((p.entry or "") .. d):sub(-4)
+    elseif id == "power" then
+        local i = nearestIdx(MW_POWERS, r.temp) - 1          -- HI, MED-HI ... LO, then round to HI again
+        if i < 1 then i = #MW_POWERS end
+        setTemp(st, MW_POWERS[i])
+        p.show = "power"
+    elseif id == "start" then
+        if p.entryFor == "time" and p.entry and p.entry ~= "" then
+            local _, sec = entryMS(p.entry)
+            sec = math.max(1, math.min(MW_MAX_SEC, sec))
+            if r.active then setLeft(st, sec)
+            else SA.toggle(player, st, sec) end
+            p.paused = nil
+        elseif not r.active and r.timer > 0 then
+            SA.toggle(player, st, math.ceil(r.left))         -- go on from where STOP left it
+            p.paused = nil
+        end
+        p.entry, p.entryFor = nil, nil
+    elseif id == "stop" then
+        if r.active then
+            if r.timer > 0 then SA.toggle(player, st, math.max(1, math.ceil(r.left)))   -- paused: START goes on
+            else SA.toggle(player, st, 0) end
+            p.paused = true
+        else
+            if r.timer > 0 then setLeft(st, 0) end
+            p.entry, p.entryFor, p.paused = nil, nil, nil
+        end
+    end
+end
+
+-- one press on a plate's control (A, a click)
+function SA.press(player, st, pid, id, dir)
+    local r = read(st)
+    if not r.powered then return end
+    local p = padOf(st)
+    touch(p, id)
+    if pid == "oven_grey" then return greyPress(player, st, r, p, id) end
+    if pid == "oven_modern" then return modernPress(player, st, r, p, id) end
+    if pid == "mw_white" then return mwWhitePress(player, st, r, p, id) end
+    if id == "on" then switch(player, st, true)
+    elseif id == "off" then switch(player, st, false)
+    elseif id == "onoff" or id == "start" then SA.toggle(player, st)
+    elseif id == "heat" or id == "power" then SA.stepHeat(st, dir or 1)
+    elseif id == "timer" then SA.stepTimer(st, dir or 1) end
+end
+
+-- a knob turned a stop (the wheel, the D-pad, a click on one half)
+function SA.turn(player, st, pid, id, dir)
+    if not read(st).powered then return end
+    touch(padOf(st), nil)
+    if id == "heat" or id == "power" then SA.stepHeat(st, dir) elseif id == "timer" then SA.stepTimer(st, dir) end
+end
+
+-- ----------------------------------------------------------------------------
+-- THE PLATE'S STATE — what its live parts read
+-- ----------------------------------------------------------------------------
+local function plateState(st, pid, r, p)
+    local s = {}
+    s.powered, s.power = r.powered, r.powered
+    s.on = r.on                     -- lamps: lit while it is on and has power
+    s.switched = r.active           -- switches and keys: where the hand left them, power or not
+    s.celsius = isCelsius() and true or false
+    s.hour, s.minute = gameClock()
+    if st.kind == "micro" then
+        local i = nearestIdx(MW_POWERS, r.temp)
+        s.mwPowerIdx, s.mwPower = i - 1, i
+        s.cooking = r.on
+        s.timerF60 = math.min(1, r.left / MW_MAX_SEC)
+        if p.entryFor == "time" then s.mwText = entryMS(p.entry or "")
+        elseif r.active or r.timer > 0 then s.mwText = mss(r.left)
+        else s.mwText = clock12(s.hour, s.minute) end
+        return s
+    end
+    s.ovenStop = nearestIdx(OVEN_TEMPS, r.temp) - 1
+    s.timerF = math.min(1, r.left / (OVEN_MAX_MIN * 60))
+    s.timerOn = r.timer > 0 or p.show == "timer" or p.entryFor == "timer"
+    -- the display: a typed entry, a readout called up, the heat while it bakes, the timer, the clock
+    local showTemp = false
+    if p.entryFor == "bake" then
+        if p.entry and p.entry ~= "" then s.vfdText = p.entry; showTemp = true
+        else s.vfdText = tempFig(r.temp > 0 and r.temp or BAKE_DEFAULT); showTemp = true end
+    elseif p.entryFor == "timer" then
+        s.vfdText = (p.entry and p.entry ~= "") and entryHM(p.entry) or hmm(r.left)
+    elseif p.show == "timer" then
+        s.vfdText = hmm(r.left)
+    elseif (p.show == "bake" or r.active) and r.temp > 0 then
+        s.vfdText = tempFig(r.temp); showTemp = true
+    elseif r.timer > 0 then
+        s.vfdText = hmm(r.left)
+    else
+        s.vfdText = clock12(s.hour, s.minute)
+    end
+    s.unitF = showTemp and not s.celsius
+    s.unitC = showTemp and s.celsius
+    return s
+end
+
+-- what the plate shows for an appliance now (exposed for QA probes)
+function SA.plateState(st)
+    local _, pid = SA.plateFor(st)
+    return plateState(st, pid, read(st), padOf(st))
+end
+
+-- the line under the plate: what it is doing, in words
+local function stateLine(st, r)
+    if not r.powered then return "NO POWER" end
+    local dot = "  " .. ST.DOT .. "  "
+    if st.kind == "micro" then
+        local pw = MW_POWER_TXT[nearestIdx(MW_POWERS, r.temp)]
+        if r.on then return "COOKING" .. dot .. pw .. ((r.timer > 0) and (dot .. mss(r.left) .. " LEFT") or "") end
+        return "OFF" .. dot .. pw .. ((r.timer > 0) and (dot .. mss(r.left) .. " SET") or "")
+    end
+    local heat = (r.temp > 0) and tempText(r.temp) or "OFF"
+    local mins = math.ceil(r.left / 60)
+    if r.on then return "ON" .. dot .. heat .. ((r.timer > 0) and (dot .. mins .. " MIN LEFT") or "") end
+    return "OFF" .. ((r.temp > 0) and (dot .. "SET " .. heat) or "") .. ((r.timer > 0) and (dot .. "TIMER " .. mins .. " MIN") or "")
 end
 
 -- ----------------------------------------------------------------------------
@@ -193,42 +471,13 @@ local function contents(st)
 end
 
 -- ----------------------------------------------------------------------------
--- DRAWING HELPERS
--- ----------------------------------------------------------------------------
-local function disc(panel, cx, cy, r, c, a)
-    ZeD.Atoms.drawStatusDot(panel, math.floor(cx - r), math.floor(cy - r), { r = c.r, g = c.g, b = c.b, a = a or 1 }, math.floor(r * 2))
-end
-
--- A radial run of small squares (the knob's pointer line), deg 0 = up.
-local function run(panel, cx, cy, deg, r0, r1, c, thick)
-    local a = (deg - 90) * math.pi / 180
-    local ca, sa = math.cos(a), math.sin(a)
-    local t = math.max(1, thick)
-    local r = r0
-    while r <= r1 do
-        panel:drawRect(math.floor(cx + ca * r - t / 2), math.floor(cy + sa * r - t / 2), t, t, c.a or 1, c.r, c.g, c.b)
-        r = r + 1
-    end
-end
-
-local function knob(panel, cx, cy, r, pal, frac, focused)
-    local T = ZeD.T
-    if focused then disc(panel, cx, cy, r + T.px(4), T.accent, 0.55) end
-    disc(panel, cx, cy, r + T.px(2), pal.knobEdge)
-    disc(panel, cx, cy, r, pal.knob)
-    disc(panel, cx - r * 0.15, cy - r * 0.2, r * 0.62, pal.knobHi, 0.55)
-    local deg = -135 + 270 * math.max(0, math.min(1, frac))
-    run(panel, cx, cy, deg, r * 0.18, r * 0.82, pal.pointer, T.px(4))
-end
-
-local function centerText(panel, text, cx, y, font, c, a)
-    local w = ZeD.TM:MeasureStringX(font, text)
-    panel:drawText(text, math.floor(cx - w / 2), y, c.r, c.g, c.b, a or c.a or 1, font)
-end
-
--- ----------------------------------------------------------------------------
 -- RENDER
 -- ----------------------------------------------------------------------------
+local function plateTex(name)
+    local X = PX()
+    return P.tex((X and X.texdir or "media/textures/ZeD/physpx/") .. name .. ".png")
+end
+
 function SA.render(panel, win, x, y, w, h, state, st)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -239,18 +488,20 @@ function SA.render(panel, win, x, y, w, h, state, st)
     state._gpFocusedId = ST.focusedId(win)
     local fid = state._gpFocusedId
     local zones = state.zones
-    local obj = st.obj
     local mw = st.kind == "micro"
-    local pal = mw and PAL.micro or PAL.oven
 
     local headH = ST.renderViewHeader(panel, win, x, y, w, state, st)
     local rows = contents(st)
+    local des, pid = SA.plateFor(st)
+    local Sc = ZeD.Scale
+    local k = P.k((Sc and Sc.root and Sc.root()) or 1)
+    local plH = des and des.h * k or 0
 
-    -- Body: chassis + contents, one scrolling unit
-    local chH = T.px(132)
+    -- Body: the plate, its line, the contents; one scrolling unit
+    local lineH = tm:getFontHeight(T.fontF1)
     local rowH = T.px(30)
     local secH = T.sp.catHdrH
-    local totalH = T.px(8) + chH + T.px(8) + secH + math.max(1, #rows) * rowH + T.px(10)
+    local totalH = T.px(8) + plH + T.px(6) + lineH + T.px(10) + secH + math.max(1, #rows) * rowH + T.px(10)
     local viewY, viewH = y + headH, h - headH
     local scroll = state.scroll
     local needsScroll = totalH > viewH
@@ -267,108 +518,37 @@ function SA.render(panel, win, x, y, w, h, state, st)
     ST.followFocus(state, scroll, fid, viewY, viewH, totalH)
     panel:setStencilRect(x, viewY, cw, viewH)
 
-    -- Chassis (vertical gradient in bands)
-    local cx0, cy0, cwid = x + T.px(10), viewY + T.px(8) - off, cw - T.px(20)
-    local bands = 12
-    for i = 0, bands - 1 do
-        local f = i / (bands - 1)
-        local r = pal.top.r + (pal.bot.r - pal.top.r) * f
-        local g = pal.top.g + (pal.bot.g - pal.top.g) * f
-        local b = pal.top.b + (pal.bot.b - pal.top.b) * f
-        local by0 = cy0 + math.floor(chH * i / bands)
-        local by1 = cy0 + math.floor(chH * (i + 1) / bands)
-        panel:drawRect(cx0, by0, cwid, by1 - by0, 1, r, g, b)
-    end
-    panel:drawRectBorder(cx0, cy0, cwid, chH, 1, pal.edge.r, pal.edge.g, pal.edge.b)
-
-    local heats, times = lists(st.kind)
-    local hi = nearestIdx(heats, call(obj, "getMaxTemperature"))
-    local ti = nearestIdx(times, timerMinutes(obj))
-    local kr = T.px(29)
-    local colW = T.px(96)
-    local kcy = cy0 + T.px(12) + kr
-
-    -- Left knob: temperature / power
-    local lkx = cx0 + T.px(12) + math.floor(colW / 2)
-    knob(panel, lkx, kcy, kr, pal, (hi - 1) / (#heats - 1), fid == "craft:a:heat")
-    local ly = kcy + kr + T.px(6)
-    centerText(panel, mw and "POWER" or "TEMP", lkx, ly, T.fontF1, pal.text)
-    local ticks = mw and "LO  .  .  .  HI" or (isCelsius() and ("OFF  100  200  300" .. DEG .. "C") or ("OFF  200  400  575" .. DEG .. "F"))
-    centerText(panel, ticks, lkx, ly + tm:getFontHeight(T.fontF1), T.fontF5, pal.text, 0.75)
-    zones[#zones + 1] = { type = "aHeat", fid = "craft:a:heat", x = lkx - kr - T.px(4), y = kcy - kr - T.px(4), w = kr * 2 + T.px(8), h = kr * 2 + T.px(8) }
-
-    -- Right knob: timer
-    local rkx = cx0 + cwid - T.px(12) - math.floor(colW / 2)
-    knob(panel, rkx, kcy, kr, pal, (ti - 1) / (#times - 1), fid == "craft:a:timer")
-    centerText(panel, "TIMER", rkx, ly, T.fontF1, pal.text)
-    centerText(panel, mw and "0 - 60 MIN" or "0 - 120 MIN", rkx, ly + tm:getFontHeight(T.fontF1), T.fontF5, pal.text, 0.75)
-    zones[#zones + 1] = { type = "aTimer", fid = "craft:a:timer", x = rkx - kr - T.px(4), y = kcy - kr - T.px(4), w = kr * 2 + T.px(8), h = kr * 2 + T.px(8) }
-
-    -- Centre: readout, lamp, ON / OFF, °F / °C
-    local midX = math.floor((lkx + rkx) / 2)
-    local lcdW, lcdH = T.px(132), T.px(44)
-    local lcdX, lcdY = midX - math.floor(lcdW / 2), cy0 + T.px(14)
-    panel:drawRect(lcdX, lcdY, lcdW, lcdH, 1, LCD_BG.r, LCD_BG.g, LCD_BG.b)
-    panel:drawRectBorder(lcdX, lcdY, lcdW, lcdH, 1, LCD_EDGE.r, LCD_EDGE.g, LCD_EDGE.b)
-    panel:drawRectBorder(lcdX + 1, lcdY + 1, lcdW - 2, lcdH - 2, 1, LCD_EDGE.r, LCD_EDGE.g, LCD_EDGE.b)
-    local clock = clockText(obj)
-    local small = mw and MW_POWER_TXT[hi] or tempText(heats[hi])
-    local bigF, smallF = T.fontF4, T.fontF1
-    local bw = tm:MeasureStringX(bigF, clock)
-    local sw = tm:MeasureStringX(smallF, small)
-    local tx = midX - math.floor((bw + T.px(8) + sw) / 2)
-    panel:drawText(clock, tx, lcdY + math.floor((lcdH - tm:getFontHeight(bigF)) / 2), LCD_ON.r, LCD_ON.g, LCD_ON.b, 1, bigF)
-    panel:drawText(small, tx + bw + T.px(8), lcdY + math.floor((lcdH - tm:getFontHeight(smallF)) / 2) + T.px(2), LCD_DIM.r, LCD_DIM.g, LCD_DIM.b, 1, smallF)
-
-    local on = call(obj, "Activated") and true or false
-    local cont = call(obj, "getContainer")
-    local powered = cont and call(cont, "isPowered") and true or false
-    local keyW, keyH = T.px(64), T.px(22)
-    local swW = mw and 0 or T.px(64)
-    local lampSz = T.px(10)
-    local rowW = lampSz + T.px(6) + keyW + (mw and 0 or (T.px(8) + swW))
-    local rx0 = midX - math.floor(rowW / 2)
-    local ry = lcdY + lcdH + T.px(10)
-    local lamp = on and LAMP_ON or LAMP_OFF
-    disc(panel, rx0 + lampSz / 2, ry + keyH / 2, lampSz / 2 + 1, LAMP_RIM)
-    disc(panel, rx0 + lampSz / 2, ry + keyH / 2, lampSz / 2, lamp)
-    local kx = rx0 + lampSz + T.px(6)
-    panel:drawRect(kx, ry, keyW, keyH, powered and 1 or 0.45, pal.key.r, pal.key.g, pal.key.b)
-    panel:drawRectBorder(kx, ry, keyW, keyH, 1, pal.keyEdge.r, pal.keyEdge.g, pal.keyEdge.b)
-    panel:drawRect(kx, ry + keyH - T.px(2), keyW, T.px(2), 1, pal.keyEdge.r, pal.keyEdge.g, pal.keyEdge.b)
-    centerText(panel, "ON/OFF", kx + keyW / 2, ry + math.floor((keyH - tm:getFontHeight(T.fontF1)) / 2), T.fontF1, pal.keyText, powered and 1 or 0.45)
-    if fid == "craft:a:power" then
-        local ac = T.accent
-        panel:drawRect(kx, ry, keyW, keyH, 0.55, ac.r, ac.g, ac.b)
-    end
-    zones[#zones + 1] = { type = "aPower", fid = "craft:a:power", x = kx, y = ry, w = keyW, h = keyH }
-    if not mw then
-        local sx = kx + keyW + T.px(8)
-        local cel = isCelsius()
-        local f = T.fontF1
-        local fW = tm:MeasureStringX(f, DEG .. "F")
-        local trW, trH = T.px(24), T.px(12)
-        local tyy = ry + math.floor((keyH - trH) / 2)
-        panel:drawText(DEG .. "F", sx, ry + math.floor((keyH - tm:getFontHeight(f)) / 2), pal.text.r, pal.text.g, pal.text.b, cel and 0.5 or 1, f)
-        local trX = sx + fW + T.px(4)
-        panel:drawRect(trX, tyy, trW, trH, 1, pal.knob.r, pal.knob.g, pal.knob.b)
-        panel:drawRectBorder(trX, tyy, trW, trH, 1, pal.edge.r, pal.edge.g, pal.edge.b)
-        local nubW = math.floor(trW / 2) - T.px(2)
-        local nubX = cel and (trX + trW - T.px(2) - nubW) or (trX + T.px(2))
-        panel:drawRect(nubX, tyy + T.px(2), nubW, trH - T.px(4), 1, pal.pointer.r, pal.pointer.g, pal.pointer.b)
-        panel:drawText(DEG .. "C", trX + trW + T.px(4), ry + math.floor((keyH - tm:getFontHeight(f)) / 2), pal.text.r, pal.text.g, pal.text.b, cel and 1 or 0.5, f)
-        local swTotal = fW + T.px(4) + trW + T.px(4) + tm:MeasureStringX(f, DEG .. "C")
-        if fid == "craft:a:units" then
-            local ac = T.accent
-            panel:drawRect(sx - T.px(2), ry, swTotal + T.px(4), keyH, 0.55, ac.r, ac.g, ac.b)
+    -- the plate, fixed size, centred
+    local r = read(st)
+    local pad = padOf(st)
+    local cyy = viewY + T.px(8) - off
+    if des then
+        local px0 = x + PL.centre(cw, des.w, k)
+        local cv = P.canvas(panel, px0, cyy, k)
+        local pst = plateState(st, pid, r, pad)
+        PL.draw(cv, des, pst, { tex = plateTex, now = now() })
+        -- the controls: focus cue, a key's press, the click areas (panel px)
+        local list = PL.controls(des, pst)
+        local held = pad.pressId and (now() - (pad.pressT or 0) < PRESS_MS) and pad.pressId or nil
+        for _, c in ipairs(list) do
+            local cfid = "craft:a:" .. c.id
+            if c.enabled then
+                if held == c.id and c.kind ~= "turn" then PL.cue(cv, c, P.BLACK, 0.30) end
+                if fid == cfid then PL.cue(cv, c, T.accent, 0.55) end
+                zones[#zones + 1] = { type = "plate", fid = cfid, id = c.id, kind = c.kind, pid = pid,
+                                      x = px0 + c.x * k, y = cyy + c.y * k, w = c.w * k, h = c.h * k }
+            end
         end
-        zones[#zones + 1] = { type = "aUnits", fid = "craft:a:units", x = sx - T.px(2), y = ry, w = swTotal + T.px(4), h = keyH }
+        cyy = cyy + plH + T.px(6)
     end
-
-    centerText(panel, pal.brand, cx0 + cwid / 2, cy0 + chH - T.px(16), T.fontF5, pal.text, 0.7)
+    -- the line under the plate
+    local line = stateLine(st, r)
+    local lw = tm:MeasureStringX(T.fontF1, line)
+    local lc = r.powered and T.text or T.warning
+    panel:drawText(line, x + math.floor((cw - lw) / 2), cyy, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    cyy = cyy + lineH + T.px(10)
 
     -- Contents
-    local cyy = cy0 + chH + T.px(8)
     ZeD.Molecules.drawSectionHeader(panel, x + T.px(10), cyy, cw - T.px(20),
         mw and "IN THE MICROWAVE" or "IN THE OVEN", #rows, true, false, T.fontF1, true, T.px(6), secH, true)
     cyy = cyy + secH
@@ -376,38 +556,38 @@ function SA.render(panel, win, x, y, w, h, state, st)
         panel:drawText("Empty", x + T.px(16), cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
             T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2)
     end
-    for _, r in ipairs(rows) do
+    for _, rw in ipairs(rows) do
         local lx = x + T.px(16)
         local isz = T.px(16)
-        if r.tex then panel:drawTextureScaledAspect(r.tex, lx, cyy + math.floor((rowH - isz) / 2), isz, isz, 1, 1, 1, 1) end
+        if rw.tex then panel:drawTextureScaledAspect(rw.tex, lx, cyy + math.floor((rowH - isz) / 2), isz, isz, 1, 1, 1, 1) end
         local barW, pctW = T.px(110), T.px(40)
         local rx = x + cw - T.px(16)
         local nameMax = rx - pctW - barW - T.px(16) - (lx + isz + T.px(6))
         local tagW = 0
-        if r.tag then tagW = tm:MeasureStringX(T.fontF1, r.tag) + T.px(10) + T.px(6) end
-        local nstr = ZeD.CraftingCore.truncText(r.name, T.fontF2, math.max(T.px(30), nameMax - tagW))
+        if rw.tag then tagW = tm:MeasureStringX(T.fontF1, rw.tag) + T.px(10) + T.px(6) end
+        local nstr = ZeD.CraftingCore.truncText(rw.name, T.fontF2, math.max(T.px(30), nameMax - tagW))
         local nx = lx + isz + T.px(6)
         panel:drawText(nstr, nx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
-        if r.tag then
-            local col = (r.mode == "danger") and T.danger or ((r.mode == "pos") and T.positive or ((r.mode == "warn") and T.accent or T.textDim))
+        if rw.tag then
+            local col = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or ((rw.mode == "warn") and T.accent or T.textDim))
             local tgx = nx + tm:MeasureStringX(T.fontF2, nstr) + T.px(6)
             local th = T.px(14)
             local tgy = cyy + math.floor((rowH - th) / 2)
             panel:drawRectBorder(tgx, tgy, tagW - T.px(6), th, col.a or 1, col.r, col.g, col.b)
-            panel:drawText(r.tag, tgx + T.px(5), tgy + math.floor((th - tm:getFontHeight(T.fontF1)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF1)
+            panel:drawText(rw.tag, tgx + T.px(5), tgy + math.floor((th - tm:getFontHeight(T.fontF1)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF1)
         end
-        if r.p then
+        if rw.p then
             local bx = rx - pctW - barW
             local bh = T.px(6)
             local byy = cyy + math.floor((rowH - bh) / 2)
             local s2 = T.surf2
             panel:drawRect(bx, byy, barW, bh, s2.a, s2.r, s2.g, s2.b)
             panel:drawRectBorder(bx, byy, barW, bh, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-            local fc = (r.mode == "danger") and T.danger or ((r.mode == "pos") and T.positive or T.accent)
-            panel:drawRect(bx + T.px(1), byy + T.px(1), math.floor((barW - T.px(2)) * r.p), bh - T.px(2), 1, fc.r, fc.g, fc.b)
-            local ptxt = r.left and (r.mode == "danger" or r.mode == "warn") and (tostring(r.left) .. "m") or (tostring(math.floor(r.p * 100 + 0.5)) .. "%")
+            local fc = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or T.accent)
+            panel:drawRect(bx + T.px(1), byy + T.px(1), math.floor((barW - T.px(2)) * rw.p), bh - T.px(2), 1, fc.r, fc.g, fc.b)
+            local ptxt = rw.left and (rw.mode == "danger" or rw.mode == "warn") and (tostring(rw.left) .. "m") or (tostring(math.floor(rw.p * 100 + 0.5)) .. "%")
             A.drawTextRight(panel, ptxt, rx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3,
-                r.mode == "danger" and T.danger or T.text)
+                rw.mode == "danger" and T.danger or T.text)
         end
         A.drawDividerH(panel, x + T.px(10), cyy + rowH - T.px(1), cw - T.px(20), false)
         cyy = cyy + rowH
@@ -423,20 +603,18 @@ end
 -- ----------------------------------------------------------------------------
 local function hit(z, x, y) return x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 
+-- a click on a control: a knob turns toward the half clicked, a key presses
 local function act(player, st, z, dir)
-    if z.type == "aHeat" then SA.stepHeat(st, dir or 1)
-    elseif z.type == "aTimer" then SA.stepTimer(st, dir or 1)
-    elseif z.type == "aPower" then SA.toggle(player, st)
-    elseif z.type == "aUnits" then SA.toggleUnits() end
+    if z.kind == "turn" then SA.turn(player, st, z.pid, z.id, dir or 1)
+    else SA.press(player, st, z.pid, z.id) end
 end
 
 function SA.onClick(win, state, st, x, y)
     local player = win._playerObj
     if ST.viewHeaderClick(state, player, x, y) then return true end
     for _, z in ipairs(state.zones or {}) do
-        if z.type ~= "stationDropdown" and hit(z, x, y) then
-            local dir = (x < z.x + z.w / 2) and -1 or 1   -- knobs: left half down, right half up
-            act(player, st, z, dir)
+        if z.type == "plate" and hit(z, x, y) then
+            act(player, st, z, (x < z.x + z.w / 2) and -1 or 1)   -- knobs: left half down, right half up
             return true
         end
     end
@@ -446,7 +624,7 @@ end
 function SA.onMouseWheel(win, state, st, del, x, y)
     if state.stDropdownOpen then return ST.dropdownWheel(state, del) end
     for _, z in ipairs(state.zones or {}) do
-        if (z.type == "aHeat" or z.type == "aTimer") and hit(z, x, y) then
+        if z.type == "plate" and z.kind == "turn" and hit(z, x, y) then
             act(win._playerObj, st, z, del > 0 and -1 or 1)   -- wheel up turns up
             return true
         end
@@ -463,11 +641,11 @@ function SA.buildFocusables(win, state, st)
     for _, z in ipairs(state.zones or {}) do
         if z.fid then
             local el = {
-                x = z.x, y = z.y, w = z.w, h = z.h, id = z.fid, craftKind = z.type, zone = z,
+                x = z.x, y = z.y, w = z.w, h = z.h, id = z.fid, craftKind = z.kind, zone = z,
                 onFocus = function(w, e) end,
                 onActivate = function(w, e) act(w._playerObj, st, e.zone, 1) end,
             }
-            if z.type == "aHeat" or z.type == "aTimer" then
+            if z.kind == "turn" then
                 -- D-pad left / right turns the knob one stop; up / down navigates
                 el.onDpadDir = function(w, e, dir)
                     if dir == "left" then act(w._playerObj, st, e.zone, -1); return true end
@@ -482,9 +660,12 @@ function SA.buildFocusables(win, state, st)
     return out
 end
 
+-- the controls change with the plate and with power (an unpowered panel offers none)
 function SA.focusKey(win, state, st)
-    return "a" .. tostring(st.kind) .. "/" .. tostring(state.scroll and state.scroll.scrollPos or 0)
+    local _, pid = SA.plateFor(st)
+    return "a" .. tostring(pid) .. "/" .. tostring(read(st).powered) .. "/" .. tostring(#(state.zones or {}))
+        .. "/" .. tostring(state.scroll and state.scroll.scrollPos or 0)
 end
 
-print("[ZeD] StationAppliance: oven and microwave view loaded")
+print("[ZeD] StationAppliance: oven and microwave plates loaded")
 return SA

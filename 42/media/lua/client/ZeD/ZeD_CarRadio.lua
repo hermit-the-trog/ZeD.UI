@@ -6,11 +6,15 @@
 -- "love it, build it, yes match the dash to the radio"). HOOK_MAP row 4; the
 -- hook is Overrides/CarRadio.lua (ISVehicleMenu.onSignalDevice).
 --
--- The fitted radio's face (ZeDUI/tools/plates/bake_radio_plates.py, anchors in
--- RadioPlates.lua) rises above the dash's console, the road still in view, the
--- way the siren controller does (only one of the two is up at a time). Six
--- faces: Premium Technologies (CD), ValuTech, makeshift, and the two-way sets
--- (Premium Technologies ham, US ARMY COMM., makeshift ham).
+-- The fitted radio's face rises above the dash's console, the road still in
+-- view, the way the siren controller does (only one of the two is up at a
+-- time). Six faces in the dashboards' pixel art (director, Oct 16 2026; the
+-- plates in PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua):
+-- Premium Technologies (CD), ValuTech, makeshift, and the two-way sets
+-- (Premium Technologies ham, US ARMY COMM., makeshift ham). Live on each: the
+-- display in pixel figures (ZeD_RadioOps.displayReading), the knob pointers,
+-- the makeshift boards' rocker, the microphone lamp, the CD's edge in the slot,
+-- the RANGE line, and the ValuTech's preset names in ballpoint on its tape.
 --
 -- Mouse: VOL pushes for power (the makeshift boards have a rocker) and the
 -- wheel turns it; TUNE / the DIAL turn a step a click (right half up, left
@@ -27,27 +31,30 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
-require "ZeD/RadioPlates"
 require "ZeD/ZeD_RadioOps"
+require "ZeD/ZeD_PixelParts"
+require "ZeD/ZeD_Plate"
+require "ZeD/PhysPx"
 
 ZeD = ZeD or {}
 ZeD.CarRadio = ZeD.CarRadio or {}
 local R = ZeD.CarRadio
 R.props = R.props or {}
 local O = ZeD.RadioOps
+local P = ZeD.Px
+local PL = ZeD.Plate
 
-local TEX = "media/textures/ZeD/dash/"
-local GAP = 6                     -- units between the radio and the dash
+local GAP = 6                     -- plate pixels between the radio and the dash
 local PRESS_SHADE = 0.35          -- a held button's shade
-local TAPE_INK = { r = 0.114, g = 0.176, b = 0.478 }   -- blue ballpoint on the masking tape
-local TAPE_LINE, TAPE_TOP = 15, 0                        -- the handwriting's line height and offset on the tape (units)
 
-local _tex = {}
-local function tex(name)
-    local t = _tex[name]
-    if t == nil then t = getTexture(TEX .. name .. ".png") or false; _tex[name] = t end
-    return t or nil
+-- the face's plate for a radio kind (nil when there is none)
+local function plateFor(kind)
+    local X = ZeD.PhysPx
+    local id = X and X.radios[kind]
+    return id and X.plates[id] or nil
 end
+R.plateFor = plateFor
+local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 local function now() return getTimestampMs() end
 local function sound(name) pcall(function() getSoundManager():playUISound(name) end) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
@@ -118,33 +125,36 @@ function ZeD_CarRadio:close()
     end
 end
 
--- the face's controls (design units): the knobs, the buttons, the CD slot
-function ZeD_CarRadio:controls(A)
+-- the face's controls (plate pixels, from the plate's click areas): the knobs, the buttons, the CD slot
+function ZeD_CarRadio:controls(des)
     if self._ctlKind == self.kind and self._ctl then return self._ctl end
     local list = {}
-    list[#list + 1] = { id = "vol", knob = true, cx = A.vol.cx, cy = A.vol.cy, r = A.vol.r, x = A.vol.cx - A.vol.r, y = A.vol.cy - A.vol.r, w = A.vol.r * 2, h = A.vol.r * 2 }
-    list[#list + 1] = { id = "tune", knob = true, cx = A.tune.cx, cy = A.tune.cy, r = A.tune.r, x = A.tune.cx - A.tune.r, y = A.tune.cy - A.tune.r, w = A.tune.r * 2, h = A.tune.r * 2 }
-    for _, b in ipairs(A.buttons) do list[#list + 1] = { id = b.id, x = b.x, y = b.y, w = b.w, h = b.h } end
-    if A.slot then list[#list + 1] = { id = "slot", x = A.slot.x, y = A.slot.y - 2, w = A.slot.w, h = A.slot.h + 4 } end
+    for _, h in ipairs(des.hits or {}) do
+        local kind = h.kind or "press"
+        if kind ~= "look" then
+            local c = { id = h.id, x = h.x, y = h.y, w = h.w, h = h.h, kind = kind }
+            if kind == "turn" then c.knob, c.cx, c.cy, c.r = true, h.x + h.w / 2, h.y + h.h / 2, h.w / 2 end
+            list[#list + 1] = c
+        end
+    end
     self._ctl, self._ctlKind = list, self.kind
     return list
 end
 
 -- ---------------------------------------------------------------------------
--- LAYOUT: the dash's own scale; the right edge on the dash console's right edge
+-- LAYOUT: the dash's own whole multiple; the right edge on the dash console's right edge
 -- ---------------------------------------------------------------------------
 function ZeD_CarRadio:scale()
     local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
     if dash and dash._s then return dash._s end
     local Sc = ZeD.Scale
-    return ((Sc and Sc.root and Sc.root()) or 1) * ((ZeD.Dashboard and ZeD.Dashboard.scale) or 1)
+    return P.k(((Sc and Sc.root and Sc.root()) or 1) * ((ZeD.Dashboard and ZeD.Dashboard.scale) or 1))
 end
 
 function ZeD_CarRadio:layout(A)
-    local SH = ZeD.RadioPlates.shadow or 4
     local s = self:scale()
     local T = ZeD.T
-    local pw, ph = math.floor((A.w + SH) * s), math.floor((A.h + SH) * s)
+    local pw, ph = A.w * s, A.h * s
     local stripH = self.joyfocus and T.sp.scrollbarW or 0
     local w, h = pw, ph + (stripH > 0 and (T.px(4) + stripH) or 0)
     local pn = self.playerNum
@@ -169,120 +179,65 @@ function ZeD_CarRadio:layout(A)
 end
 
 -- ---------------------------------------------------------------------------
--- DRAWING
+-- DRAWING: the plate and its live parts (the template), then the cues
 -- ---------------------------------------------------------------------------
--- a straight run of small squares from the knob centre (the dash's knob pointer)
-local function pointer(p, cx, cy, deg, r0, r1, s, c)
-    local a = (deg - 90) * math.pi / 180
-    local ca, sa = math.cos(a), math.sin(a)
-    local t = math.max(1, math.floor(2 * s))
-    local r = r0
-    while r <= r1 do
-        p:drawRect(math.floor((cx + ca * r) * s - t / 2), math.floor((cy + sa * r) * s - t / 2), t, t, 1, c.r, c.g, c.b)
-        r = r + 1 / s
-    end
+local function rangeText(m)
+    if not (m and m > 0) then return nil end
+    local km = m / 1000
+    return "RANGE " .. ((km == math.floor(km)) and tostring(math.floor(km)) or string.format("%.1f", km)) .. " KM"
 end
 
--- hover / focus on a knob: a ring round it (a fill would hide the knurl)
-local function ring(p, cx, cy, r, s, alpha, c)
-    local rr = (r + 3) * s
-    local t = math.max(2, math.floor(2 * s))
-    local n = math.max(28, math.floor(2 * math.pi * rr / 2))
-    for i = 0, n - 1 do
-        local a = i / n * 2 * math.pi
-        p:drawRect(math.floor(cx * s + math.cos(a) * rr - t / 2), math.floor(cy * s + math.sin(a) * rr - t / 2), t, t, alpha, c.r, c.g, c.b)
+-- what the face's live parts read
+function ZeD_CarRadio:plateState(st, t)
+    local ps = {}
+    ps.radioOn, ps.power = st.on, st.on
+    ps.volF = st.volume or 0
+    ps.tuneF = ((((st.channel or 0) / O.STEP) * 12) % 360) / 360       -- an endless tuning knob turns with the frequency
+    ps.micMuted = (st.on and st.micMuted) and true or false             -- the lamp: lit while the set is on and the mic muted
+    ps.micLive = not st.micMuted                                          -- a talk/listen switch: latched in while the mic is live, on or off
+    ps.switchOn = st.switchOn
+    ps.hasMedia = st.hasMedia
+    ps.display = O.displayReading(st, t)
+    ps.range = rangeText(st.range)
+    if st.kind == "valutech" then                                         -- the presets' names on the masking tape
+        local names = {}
+        for i = 1, 6 do
+            local p = st.presets[i]
+            names[i] = p and O.tapeName(p.name) or ""
+        end
+        ps.tapeNames = names
     end
+    return ps
 end
-
-local PTR = { premium = { r = 0.13, g = 0.13, b = 0.15 } }
-local PTR_LIGHT = { r = 0.90, g = 0.90, b = 0.90 }
 
 function ZeD_CarRadio:prerender()
     local T = ZeD.T
-    local RP = ZeD.RadioPlates
-    if not (T and RP) then return end
+    if not T then return end
     local part = self:livePart()
     if not part then self:close(); return end
     local st = O.read(part)
     if not st then self:close(); return end
     self.st = st
     self.kind = st.kind
-    local A = RP.faces[st.kind]
-    if not A then self:close(); return end
-    self:layout(A)
+    local des = plateFor(st.kind)
+    if not des then self:close(); return end
+    self:layout(des)
     local s = self._s
-    local plate = tex("radio_" .. st.kind)
-    if plate then self:drawTextureScaledAspect(plate, 0, 0, self._pw, self._ph, 1, 1, 1, 1)
-    else self:drawRect(0, 0, math.floor(A.w * s), math.floor(A.h * s), 1, 0.12, 0.12, 0.13) end
+    local t = now()
+    local cv = P.canvas(self, 0, 0, s)
+    PL.draw(cv, des, self:plateState(st, t), { tex = plateTex, now = t })
 
-    -- the display
-    local d = A.display
-    O.drawDisplay(self, st.kind, d.x * s, d.y * s, d.w * s, d.h * s, s, st, true)
-
-    -- the CD slot: a disc's edge when one is in
-    if A.slot and st.hasMedia then
-        self:drawRect(math.floor((A.slot.x + 8) * s), math.floor((A.slot.y + A.slot.h / 2 - 0.5) * s), math.floor((A.slot.w - 16) * s), math.max(1, math.floor(1 * s)), 0.85, 0.78, 0.80, 0.82)
-    end
-    -- the ValuTech's masking tape: the presets' names in ballpoint
-    if A.tape then
-        local f = UIFont.Handwritten
-        local fh = ZeD.Text.realTM():getFontHeight(f)          -- the hand's line, sized to the tape
-        local jit = { 0, 1, 0, -1, 1, 0 }
-        for i = 1, 6 do
-            local p = st.presets[i]
-            if p then
-                local name = O.tapeName(p.name)
-                local z = TAPE_LINE * s / math.max(1, fh)
-                local room = (A.tape.pitch - 5) * s                  -- squeezed to its own button's width, as a hand would
-                local tw = ZeD.Text.realTM():MeasureStringX(f, name) * z
-                if tw > room then z = z * room / tw end
-                local lineH = fh * z
-                self:drawTextZoomed(name, math.floor((A.tape.first + 1 + (i - 1) * A.tape.pitch) * s), math.floor((A.tape.y + A.tape.h / 2 + TAPE_TOP + jit[i] * 0.5) * s - lineH / 2),
-                    z, TAPE_INK.r, TAPE_INK.g, TAPE_INK.b, 0.92, f)
-            end
-        end
-    end
-    -- the two-way sets: the microphone's lamp (lit = muted), the range on the sticker
-    if A.micLed and st.on and st.micMuted then
-        local cx, cy = (A.micLed.x + A.micLed.sz / 2) * s, (A.micLed.y + A.micLed.sz / 2) * s
-        local gl, gsz = tex("siren_glow"), 22 * s
-        if gl then self:drawTextureScaledAspect(gl, math.floor(cx - gsz / 2), math.floor(cy - gsz / 2), math.floor(gsz), math.floor(gsz), 0.75, 1, 0.23, 0.18) end
-        local led = tex("siren_led")
-        if led then self:drawTextureScaledAspect(led, math.floor(A.micLed.x * s), math.floor(A.micLed.y * s), math.floor(A.micLed.sz * s), math.floor(A.micLed.sz * s), 1, 1, 0.23, 0.18) end
-    end
-    if A.range and st.range and st.range > 0 then
-        local km = st.range / 1000
-        local txt = "RANGE " .. ((km == math.floor(km)) and tostring(math.floor(km)) or string.format("%.1f", km)) .. " KM"
-        local c = A.range.c or "#1A1A1A"
-        local cc = { tonumber(c:sub(2, 3), 16) / 255, tonumber(c:sub(4, 5), 16) / 255, tonumber(c:sub(6, 7), 16) / 255 }
-        O.dtext(self, ZeD.Font.sdf.sec, txt, A.range.x * s, (A.range.y - 4.5) * s, 9 * s, cc, 1, "c", 0.5 * s)
-    end
-
-    -- controls: knob pointers, presses, hover and focus
+    -- controls: a held key's shade, hover and focus (a ring round a knob, a fill over a key)
     local ac = T.accent
     local hits = {}
     local joy = self.joyfocus ~= nil
-    for _, c in ipairs(self:controls(A)) do
-        local r = { id = c.id, x = math.floor(c.x * s), y = math.floor(c.y * s), w = math.floor(c.w * s), h = math.floor(c.h * s), c = c }
-        hits[#hits + 1] = r
+    for _, c in ipairs(self:controls(des)) do
+        hits[#hits + 1] = { id = c.id, x = c.x * s, y = c.y * s, w = c.w * s, h = c.h * s, c = c }
         local focused = joy and self.focusId == c.id
         local hovered = (not joy) and self._hover == c.id
-        if c.knob then
-            local deg
-            if c.id == "vol" then deg = -135 + 270 * math.max(0, math.min(1, st.volume or 0))
-            else deg = ((st.channel or 0) / O.STEP * 12) % 360 end      -- an endless tuning knob turns with the frequency
-            pointer(self, c.cx, c.cy, deg, c.r * 0.30, c.r * 0.78, s, PTR[st.kind] or PTR_LIGHT)
-            if focused then ring(self, c.cx, c.cy, c.r, s, 0.55, ac)
-            elseif hovered then ring(self, c.cx, c.cy, c.r, s, 0.30, ac) end
-        else
-            if c.id == "pwr" then   -- the makeshift rocker: its lit half
-                local yy = st.switchOn and (c.y + 2) or (c.y + c.h - 5)
-                self:drawRect(math.floor((c.x + 3) * s), math.floor(yy * s), math.floor((c.w - 6) * s), math.max(1, math.floor(3 * s)), 0.9, 0.93, 0.42, 0.36)
-            end
-            if self._press and self._press.id == c.id then self:drawRect(r.x, r.y, r.w, r.h, PRESS_SHADE, 0, 0, 0) end
-            if focused then self:drawRect(r.x, r.y, r.w, r.h, 0.55, ac.r, ac.g, ac.b)
-            elseif hovered then self:drawRect(r.x, r.y, r.w, r.h, 0.22, ac.r, ac.g, ac.b) end
-        end
+        if not c.knob and self._press and self._press.id == c.id then PL.cue(cv, c, P.BLACK, PRESS_SHADE) end
+        if focused then PL.cue(cv, c, ac, 0.55)
+        elseif hovered then PL.cue(cv, c, ac, c.knob and 0.30 or 0.22) end
     end
     self._hits = hits
 
@@ -393,10 +348,12 @@ end
 -- the empty slot: the CDs carried, as the belt's list
 function ZeD_CarRadio:cdList()
     local part = self:livePart(); if not part then return end
-    local A = ZeD.RadioPlates.faces[self.kind]
+    local des = plateFor(self.kind)
+    if not des then return end
+    local slot = PL.find(self:controls(des), "slot")
     local s = self._s or 1
     -- over the slot, on the radio's top edge: the list stands above the radio, its display left clear
-    local x = self:getAbsoluteX() + math.floor(((A.slot and (A.slot.x + A.slot.w / 2)) or A.w / 2) * s)
+    local x = self:getAbsoluteX() + math.floor(((slot and (slot.x + slot.w / 2)) or des.w / 2) * s)
     local y = self:getAbsoluteY()
     local context = ISContextMenu.get(self.playerNum, x, y)
     self._list = context
@@ -585,7 +542,7 @@ function R.toggle(character, part)
     part = part or O.reachable(character)
     if not (part and part == O.reachable(character)) then return end
     local st = O.read(part)
-    if not (st and ZeD.RadioPlates.faces[st.kind]) then error("no face for this radio") end
+    if not (st and plateFor(st.kind)) then error("no face for this radio") end
     if ZeD.Siren and ZeD.Siren.props and ZeD.Siren.props[pn] and ZeD.Siren.props[pn]:isReallyVisible() then ZeD.Siren.props[pn]:close() end
     if not prop or prop.character ~= character then
         prop = ZeD_CarRadio:new(character, part)

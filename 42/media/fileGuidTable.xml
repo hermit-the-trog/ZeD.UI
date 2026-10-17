@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fileGuidTable>
+	<files>
+		<path>media/clothing/clothingItems/WristWatch_Left_DigitalTimez.xml</path>
+		<guid>6f3b2c1e-9a4d-4e57-b8c2-7d1e5a0f3c61</guid>
+	</files>
+	<files>
+		<path>media/clothing/clothingItems/WristWatch_Right_DigitalTimez.xml</path>
+		<guid>a2d94e7b-3c18-4f60-9e25-b4c7f81d0e93</guid>
+	</files>
+</fileGuidTable>

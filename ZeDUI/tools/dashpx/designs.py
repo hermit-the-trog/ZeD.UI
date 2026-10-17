@@ -650,7 +650,7 @@ DESIGNS = {
     "luxury":     ("Mercia Lang 4000", "v_saddle", 12, luxury, None, None, "premium"),
     "nyala":      ("Chevalier Nyala", "v_slate", 41, nyala, None, None, "valutech"),
     "cossette":   ("Chevalier Cossette", "v_red", 32, cossette, "5.0", None, "premium"),
-    "police":     ("Meade Sheriff", "v_patrol", 51, police, None, "MEADE · UNIT 26", "ham"),
+    "police":     ("Meade Sheriff", "v_patrol", 51, police, None, "MEADE - UNIT 26", "ham"),
     "d6":         ("Chevalier D6", "v_cocoa", 42, d6, "D6", None, "valutech"),
     "dashelite":  ("Dash Elite", "v_charcoal", 21, dashelite, "EFI", None, "premium"),
     "primani":    ("Chevalier Primani", "v_beige", 22, primani, "EFI", None, "premium"),
@@ -661,10 +661,10 @@ DESIGNS = {
     "van":        ("Franklin Valuline", "v_fleet", 44, van, None, None, "valutech"),
     "bulldriver": ("Dash Bulldriver", "v_tan", 45, bulldriver, "V8", None, "valutech"),
     "rancher":    ("Dash Rancher", "v_khaki", 46, rancher, "4X4", None, "army"),
-    "taxi":       ("Taxi", "v_taxi", 52, taxi, None, "TAXI · CAB 26", "valutech"),
-    "ambulance":  ("Ambulance", "v_medic", 53, ambulance, None, "AMBULANCE · UNIT 26", "ham"),
-    "fire":       ("Fire Department Chevalier D6", "v_firered", 54, fire, None, "FIRE · ENGINE 26", "ham"),
-    "ranger":     ("Ranger Chevalier Nyala", "v_forest", 55, ranger, None, "RANGER · UNIT 26", "ham"),
+    "taxi":       ("Taxi", "v_taxi", 52, taxi, None, "TAXI - CAB 26", "valutech"),
+    "ambulance":  ("Ambulance", "v_medic", 53, ambulance, None, "AMBULANCE - UNIT 26", "ham"),
+    "fire":       ("Fire Department Chevalier D6", "v_firered", 54, fire, None, "FIRE - ENGINE 26", "ham"),
+    "ranger":     ("Ranger Chevalier Nyala", "v_forest", 55, ranger, None, "RANGER - UNIT 26", "ham"),
     "race":       ("Race car", "v_race", 31, race, None, None, None),
 }
 ORDER = list(DESIGNS)

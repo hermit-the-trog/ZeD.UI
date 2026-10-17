@@ -17,6 +17,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
+require "ZeD/ZeD_TabPx"
 require "ZeD/InventoryRenderer"
 require "ZeD/ItemCard"
 require "ZeD/HealthTab"
@@ -2462,6 +2463,15 @@ local function drawTabStrip(self, win)
         local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(TAB_BTN_SZ))
         local isGpFocused = (gpFocusedTabId == tab.id) and not isActive
 
+        -- Oct 16 2026 (director): the tabs in lit pixel art (ZeD_TabPx): the
+        -- active tab a bevelled lit accent panel with its icon pressed in, hover
+        -- and gamepad focus the same soft wash (S113c parity kept), every icon a
+        -- small lit object in five tones of the accent. A tab without a lit
+        -- icon keeps the S113c look below.
+        local TPX = ZeD.TabPx
+        if TPX and TPX.has(tab.id) then
+            TPX.drawTab(self, 0, curY, w - T.px(1), T.px(TAB_BTN_SZ) - T.px(1), tab.id, isActive, isHover or isGpFocused, T.px(1))
+        else
         -- S113c (KBM-parity): mouse hover and gamepad focus paint identically.
         -- Active = 0.55α fill + 2px side strip. Hover/focus = 0.55α fill only.
         -- Side strip is the sole differentiator between "active" and "queued."
@@ -2492,6 +2502,7 @@ local function drawTabStrip(self, win)
             local color = isActive and T.textOnAccent or (isHover and T.text or T.textDim)
             self:drawText(tab.glyph, gx, gy, color.r, color.g, color.b, color.a, font)
         end
+        end -- close the lit-tab if/else (Oct 16 2026)
 
         -- Bottom border between tabs
         local bd = T.border

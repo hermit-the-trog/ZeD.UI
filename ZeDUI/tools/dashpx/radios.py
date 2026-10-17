@@ -104,11 +104,18 @@ def blank():
 
 
 def build():
+    """the six faces, drawn as their plates brought down to the slot (ZeDUI/tools/physpx/d_heads.py): kind -> (picture,
+    parts, {state picture name: picture}). face() above is the first, plainer set, kept for reference."""
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "physpx"))
+    import d_heads as DH
     heads = {}
     for k in KINDS:
-        img, parts = face(k)
+        img, parts, sprites, warns = DH.build(k)
+        if warns: raise SystemExit(f"head {k}: " + "; ".join(warns))
         img.save(os.path.join(OUT, f"dhead_{k}.png"))
-        heads[k] = (img, parts)
+        for nm, im in sprites.items(): im.save(os.path.join(OUT, f"{nm}.png"))
+        heads[k] = (img, parts, sprites)
     blank().save(os.path.join(OUT, "hu_blank.png"))
     with open(os.path.join(OUT, "dheads.json"), "w") as f:
         json.dump({k: v[1] for k, v in heads.items()}, f, separators=(",", ":"))

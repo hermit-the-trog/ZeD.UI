@@ -5,17 +5,18 @@
 -- "lightbar is cool, better than the plain version", then "build both").
 -- HOOK_MAP row 4; the hook is Overrides/Seats.lua (ISLightbarUITimedAction).
 --
--- The police dash's own siren controller brought up close: the faceplate
--- (ZeDUI/tools/plates/bake_siren_plate.py, anchors in SirenPlate.lua) with two
--- rotary switches, LIGHTS (OFF 1 2 3) and SIREN (vanilla's STANDBY YELP WAIL
--- ALARM), and their pilot lamps. It rises above the dash's console, so the car
--- and its bar stay in view; with no dash it sits above the bottom of the
--- player's screen. The wheel's Lightbar slice opens and closes it; leaving the
--- car, Escape or B puts it away.
+-- The police dash's own siren controller brought up close, in the dashboards'
+-- pixel art (director, Oct 16 2026; the plate in PhysPx.lua, drawn by the
+-- shared plate template ZeD_Plate.lua): two rotary switches, LIGHTS (OFF 1 2
+-- 3) and SIREN (STANDBY YELP WAIL ALARM, printed on the panel), their pointers
+-- and pilot lamps live. It rises above the dash's console, so the car and its
+-- bar stay in view; with no dash it sits above the bottom of the player's
+-- screen. The wheel's Lightbar slice opens and closes it; leaving the car,
+-- Escape or B puts it away.
 --
 -- Mouse: click a word to turn the switch there, click the knob to step it,
--- the wheel turns it. Controller: left / right picks a switch (the accent
--- fill), up / down turns it, A steps it, B puts it away. Every change is
+-- the wheel turns it. Controller: left / right picks a switch (a ring round
+-- its knob), up / down turns it, A steps it, B puts it away. Every change is
 -- vanilla's own command (setLightbarLightsMode / setLightbarSirenMode) with
 -- vanilla's sounds, so it works the same in multiplayer.
 -- ============================================================================
@@ -23,39 +24,24 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
-require "ZeD/SirenPlate"
+require "ZeD/ZeD_PixelParts"
+require "ZeD/ZeD_Plate"
+require "ZeD/PhysPx"
 
 ZeD = ZeD or {}
 ZeD.Siren = ZeD.Siren or {}
 local S = ZeD.Siren
 S.props = S.props or {}
+local P = ZeD.Px
+local PL = ZeD.Plate
 
-local TEX = "media/textures/ZeD/dash/"
-local GAP = 6                    -- units between the prop and the dash
-local LEG_PX = 10                -- the legends' size (units)
-local PTR_R0, PTR_R1 = 4, 20     -- the pointer line, from the knob centre (units)
-local LIGHTS_WORDS = { "OFF", "1", "2", "3" }
-local SIREN_KEYS = { "IGUI_VehicleLightbar_STANDBY", "IGUI_VehicleLightbar_YELP", "IGUI_VehicleLightbar_WAIL", "IGUI_VehicleLightbar_ALARM" }
+local GAP = 6                    -- plate pixels between the prop and the dash
+local GROUPS = { "lights", "siren" }
 
-local _tex = {}
-local function tex(name)
-    local t = _tex[name]
-    if t == nil then t = getTexture(TEX .. name .. ".png") or false; _tex[name] = t end
-    return t or nil
-end
-local function hexc(s)
-    s = tostring(s):gsub("#", "")
-    return { r = tonumber(s:sub(1, 2), 16) / 255, g = tonumber(s:sub(3, 4), 16) / 255, b = tonumber(s:sub(5, 6), 16) / 255 }
-end
+local function plate() local X = ZeD.PhysPx; return X and X.plates.siren or nil end
+local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name) end) end
-
-local function words(groupId)
-    if groupId == "lights" then return LIGHTS_WORDS end
-    local t = {}
-    for i, k in ipairs(SIREN_KEYS) do t[i] = getTextOrNull(k) and getText(k) or ({ "STANDBY", "YELP", "WAIL", "ALARM" })[i] end
-    return t
-end
 
 -- ---------------------------------------------------------------------------
 -- ZeD_SirenController
@@ -123,20 +109,19 @@ function ZeD_SirenController:close()
 end
 
 -- ---------------------------------------------------------------------------
--- LAYOUT: the dash's own scale; the right edge on the dash console's right edge
+-- LAYOUT: the dash's own whole multiple; the right edge on the dash console's right edge
 -- ---------------------------------------------------------------------------
 function ZeD_SirenController:scale()
     local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
     if dash and dash._s then return dash._s end
     local Sc = ZeD.Scale
-    return ((Sc and Sc.root and Sc.root()) or 1) * ((ZeD.Dashboard and ZeD.Dashboard.scale) or 1)
+    return P.k(((Sc and Sc.root and Sc.root()) or 1) * ((ZeD.Dashboard and ZeD.Dashboard.scale) or 1))
 end
 
-function ZeD_SirenController:layout()
-    local P = ZeD.SirenPlate
+function ZeD_SirenController:layout(des)
     local s = self:scale()
     local T = ZeD.T
-    local pw, ph = math.floor((P.w + P.shadow) * s), math.floor((P.h + P.shadow) * s)
+    local pw, ph = des.w * s, des.h * s
     local stripH = self.joyfocus and T.sp.scrollbarW or 0
     local w, h = pw, ph + (stripH > 0 and (T.px(4) + stripH) or 0)
     local pn = self.playerNum
@@ -144,7 +129,7 @@ function ZeD_SirenController:layout()
     local x, y
     if dash and dash:isVisible() and dash._consoleRect and dash.playerNum == pn then
         local cs, ds = dash._consoleRect, dash._s or s
-        x = dash:getX() + math.floor((cs.x + cs.w) * ds) - math.floor(P.w * s)
+        x = dash:getX() + math.floor((cs.x + cs.w) * ds) - des.w * s
         y = dash:getY() - h - math.floor(GAP * s)
     else
         x = getPlayerScreenLeft(pn) + math.floor((getPlayerScreenWidth(pn) - pw) / 2)
@@ -161,76 +146,30 @@ function ZeD_SirenController:layout()
 end
 
 -- ---------------------------------------------------------------------------
--- DRAWING
+-- DRAWING: the plate and its live parts (the template), then the cues
 -- ---------------------------------------------------------------------------
--- a straight run of small squares from the knob centre (the dash's knob pointer)
-local function pointer(p, cx, cy, deg, r0, r1, s, c)
-    local a = (deg - 90) * math.pi / 180
-    local ca, sa = math.cos(a), math.sin(a)
-    local t = math.max(1, math.floor(2 * s))
-    local r = r0
-    while r <= r1 do
-        p:drawRect(math.floor((cx + ca * r) * s - t / 2), math.floor((cy + sa * r) * s - t / 2), t, t, 1, c.r, c.g, c.b)
-        r = r + 1 / s
-    end
-end
-
 function ZeD_SirenController:prerender()
     local T = ZeD.T
-    local P = ZeD.SirenPlate
-    if not (T and P) then return end
+    local des = plate()
+    if not (T and des) then return end
     if not self:vehicle() then self:close(); return end
-    self:layout()
+    self:layout(des)
     local s = self._s
-    local X, F = ZeD.Text, ZeD.Font
     local lights, siren = self:modes()
-    local plate = tex("siren_plate")
-    if plate then self:drawTextureScaledAspect(plate, 0, 0, self._pw, self._ph, 1, 1, 1, 1)
-    else self:drawRect(0, 0, math.floor(P.w * s), math.floor(P.h * s), 1, 0.11, 0.11, 0.12) end
+    local cv = P.canvas(self, 0, 0, s)
+    PL.draw(cv, des, { lightsMode = lights, sirenMode = siren, lightsOn = lights > 0, sirenOn = siren > 0 }, { tex = plateTex, now = getTimestampMs() })
+    -- the click areas: a word turns its switch there ("lights:2"), a knob steps it ("siren:knob")
     local ac = T.accent
     local hits = {}
-    for gi, gp in ipairs(P.groups) do
-        local mode = gp.id == "lights" and lights or siren
-        -- the controller's switch: the accent fill under the knob (the knob is drawn over it)
-        if self.joyfocus and self.focus == gi then
-            self:drawRect(math.floor(gp.x * s), math.floor(gp.y * s), math.floor(gp.w * s), math.floor(gp.h * s), 0.55, ac.r, ac.g, ac.b)
-        end
-        -- the words around the knob (the one it points at, lit)
-        local f = F and F.sdf and (F.sdf.sec or F.sdf.stat)
-        local z = (X and f) and X.zoomFor(f, LEG_PX * s) or 1
-        for i, word in ipairs(words(gp.id)) do
-            local a = math.rad(P.angles[i])
-            local lx, ly = gp.kx + P.legR * math.sin(a), gp.ky - P.legR * math.cos(a)
-            local wpx = (X and f) and X.width(f, word, z) or ZeD.TM:MeasureStringX(T.fontF1, word)
-            local hpx = (X and f) and X.height(f, z) or ZeD.TM:getFontHeight(T.fontF1)
-            local r = { x = math.floor(lx * s - wpx / 2) - math.floor(3 * s), y = math.floor(ly * s - hpx / 2), w = math.floor(wpx) + math.floor(6 * s), h = math.floor(hpx) }
-            local id = gp.id .. ":" .. (i - 1)
-            hits[#hits + 1] = { id = id, x = r.x, y = r.y, w = r.w, h = r.h, group = gp.id, mode = i - 1 }
-            if self._hover == id and not self.joyfocus then self:drawRect(r.x, r.y, r.w, r.h, 0.22, ac.r, ac.g, ac.b) end
-            local c = (i - 1 == mode) and { r = 1, g = 1, b = 1 } or { r = 0.78, g = 0.78, b = 0.78 }
-            if X and f then X.draw(self, f, word, lx * s, ly * s - hpx / 2, z, c.r, c.g, c.b, 1, "c")
-            else self:drawText(word, math.floor(lx * s - wpx / 2), math.floor(ly * s - hpx / 2), c.r, c.g, c.b, 1, T.fontF1) end
-        end
-        -- the knob, its pointer
-        local kb = P.knobBox * s
-        local kx0, ky0 = math.floor((gp.kx - P.knobC) * s), math.floor((gp.ky - P.knobC) * s)
-        local kid = gp.id .. ":knob"
-        hits[#hits + 1] = { id = kid, x = math.floor((gp.kx - P.knobR) * s), y = math.floor((gp.ky - P.knobR) * s), w = math.floor(P.knobR * 2 * s), h = math.floor(P.knobR * 2 * s), group = gp.id, knob = true }
-        if self._hover == kid and not self.joyfocus then
-            self:drawRect(math.floor((gp.kx - P.knobR - 3) * s), math.floor((gp.ky - P.knobR - 3) * s), math.floor((P.knobR * 2 + 6) * s), math.floor((P.knobR * 2 + 6) * s), 0.22, ac.r, ac.g, ac.b)
-        end
-        local kt = tex("siren_knob")
-        if kt then self:drawTextureScaledAspect(kt, kx0, ky0, math.floor(kb), math.floor(kb), 1, 1, 1, 1) end
-        pointer(self, gp.kx, gp.ky, P.angles[1] + mode * 40, PTR_R0, PTR_R1, s, { r = 0.94, g = 0.94, b = 0.94 })
-        -- the pilot lamp
-        if mode > 0 then
-            local lc = hexc(gp.led.c)
-            local lcx, lcy = (gp.led.x + gp.led.sz / 2) * s, (gp.led.y + gp.led.sz / 2) * s
-            local gl, gsz = tex("siren_glow"), 28 * s
-            if gl then self:drawTextureScaledAspect(gl, math.floor(lcx - gsz / 2), math.floor(lcy - gsz / 2), math.floor(gsz), math.floor(gsz), 0.7, lc.r, lc.g, lc.b) end
-            local led = tex("siren_led")
-            if led then self:drawTextureScaledAspect(led, math.floor(gp.led.x * s), math.floor(gp.led.y * s), math.floor(gp.led.sz * s), math.floor(gp.led.sz * s), 1, lc.r, lc.g, lc.b) end
-        end
+    local focusKnob = self.joyfocus and (GROUPS[self.focus] .. ":knob") or nil
+    for _, c in ipairs(PL.controls(des, {})) do
+        local group, what = c.id:match("^(%a+):(%w+)$")
+        local knob = what == "knob"
+        local cue = knob and { x = c.x, y = c.y, w = c.w, h = c.h, kind = "turn" } or c   -- a knob's cue is a ring round it
+        hits[#hits + 1] = { id = c.id, x = c.x * s, y = c.y * s, w = c.w * s, h = c.h * s, group = group, knob = knob,
+                            mode = (not knob) and tonumber(what) or nil }
+        if c.id == focusKnob then PL.cue(cv, cue, ac, 0.55)
+        elseif self._hover == c.id and not self.joyfocus then PL.cue(cv, cue, ac, knob and 0.30 or 0.22) end
     end
     self._hits = hits
     -- the controller's strip under the faceplate
@@ -284,13 +223,13 @@ end
 -- ---------------------------------------------------------------------------
 function ZeD_SirenController:onGainJoypadFocus(joypadData) self.joyfocus = joypadData end
 function ZeD_SirenController:onLoseJoypadFocus(joypadData) self.joyfocus = nil end
-local function gid(self) return ZeD.SirenPlate.groups[self.focus].id end
+local function gid(self) return GROUPS[self.focus] end
 function ZeD_SirenController:onJoypadDown(button, joypadData)
     if button == Joypad.BButton then self:close()
     elseif button == Joypad.AButton then self:step(gid(self), 0) end
 end
 function ZeD_SirenController:onJoypadDirLeft() if self.focus > 1 then self.focus = self.focus - 1; sound("UISelectListItem") end end
-function ZeD_SirenController:onJoypadDirRight() if self.focus < #ZeD.SirenPlate.groups then self.focus = self.focus + 1; sound("UISelectListItem") end end
+function ZeD_SirenController:onJoypadDirRight() if self.focus < #GROUPS then self.focus = self.focus + 1; sound("UISelectListItem") end end
 function ZeD_SirenController:onJoypadDirUp() self:step(gid(self), 1) end
 function ZeD_SirenController:onJoypadDirDown() self:step(gid(self), -1) end
 
