@@ -178,6 +178,29 @@ function P.pointer(cv, cx, cy, deg, r0, r1, w, c, hub)
 end
 
 -- ---------------------------------------------------------------------------
+-- a ring on the art grid: every pixel whose centre lies between r0 and r1 from
+-- (cx, cy), drawn one run a row (two where the hole cuts the row). The plates use
+-- it as the cue round a knob (a fill over a knob would hide its knurl).
+-- ---------------------------------------------------------------------------
+function P.ring(cv, cx, cy, r0, r1, c, a)
+    for y = math.floor(cy - r1), math.ceil(cy + r1) do
+        local dy = math.abs(y + 0.5 - cy)
+        if dy <= r1 then
+            local xo = math.sqrt(r1 * r1 - dy * dy)
+            local xa, xb = math.ceil(cx - xo - 0.5), math.floor(cx + xo - 0.5)   -- the row's outer pixels
+            if dy < r0 then
+                local xi = math.sqrt(r0 * r0 - dy * dy)
+                local la, rb = math.floor(cx - xi - 0.5), math.ceil(cx + xi - 0.5)
+                if la >= xa then P.rect(cv, xa, y, la - xa + 1, 1, c, a) end
+                if xb >= rb then P.rect(cv, rb, y, xb - rb + 1, 1, c, a) end
+            elseif xb >= xa then
+                P.rect(cv, xa, y, xb - xa + 1, 1, c, a)
+            end
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- seven-segment figures: cw x ch cells, stroke t, a cell every `pitch`; '.' rides on the
 -- figure before it, ':' takes a narrow cell of its own; `ghost` draws the unlit segments
 -- ---------------------------------------------------------------------------

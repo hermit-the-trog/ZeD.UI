@@ -1,0 +1,227 @@
+<title>Makeshift Radio Boards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Fira+Sans+Condensed:wght@400;600&display=swap">
+<style>
+/* Layout: System 7 windows on the desk, one per board; each holds its circuit sheet, what the plate's controls are, and the plan. */
+:root {
+  --desk: #9a9a9a;            /* the desk behind the windows */
+  --surf: #c6c6c6;            /* window body */
+  --surf2: #b4b4b4;           /* insets, table stripes */
+  --border: #767676;
+  --ink: #111111;
+  --ink2: #3b3b3b;
+  --accent: #b5561a;          /* the plate legends: VOL, DIAL ... */
+  --accent-ink: #ffffff;
+  --stripe: rgba(0,0,0,0.10);
+  --paper: #f7f6f1;           /* a printed circuit sheet, both themes */
+  --paper-ink: #151515;
+  --chrome-hi: #ffffff;
+  --chrome-sh: #5e5e5e;
+  --ask: #fff3c9;
+  --ask-ink: #3a2a00;
+  --perf: #c9a46a;            /* phenolic perfboard */
+  --perf-hole: #6f5532;
+  --pcb: #2f6436;
+  --pcb-ink: #e9f2e2;
+  --f-chrome: "Fira Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-body: "Fira Sans Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #070707; --surf: #1b1b1b; --surf2: #262626; --border: #4a4a4a; --ink: #dadad9; --ink2: #a9a9a7;
+  --accent: #e88a3f; --accent-ink: #111111; --stripe: rgba(255,255,255,0.05); --chrome-hi: #3a3a3a; --chrome-sh: #000000;
+  --ask: #3a2f12; --ask-ink: #f4e3b2; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --desk: #070707; --surf: #1b1b1b; --surf2: #262626; --border: #4a4a4a; --ink: #dadad9; --ink2: #a9a9a7;
+  --accent: #e88a3f; --accent-ink: #111111; --stripe: rgba(255,255,255,0.05); --chrome-hi: #3a3a3a; --chrome-sh: #000000;
+  --ask: #3a2f12; --ask-ink: #f4e3b2; color-scheme: dark }
+
+body { background: var(--desk); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; max-width: 72ch; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.win { background: var(--surf); border: 1px solid var(--ink); box-shadow: 2px 2px 0 var(--chrome-sh); min-width: 0; }
+.bar { display: flex; align-items: center; gap: 10px; height: 26px; padding: 0 8px; border-bottom: 1px solid var(--ink);
+  background: repeating-linear-gradient(to bottom, var(--surf) 0 2px, var(--stripe) 2px 3px); }
+.bar .box { width: 11px; height: 11px; border: 1px solid var(--ink); background: var(--surf); flex: none; }
+.bar h2, .bar h1 { font-family: var(--f-chrome); font-weight: 700; font-size: 12px; letter-spacing: 0.04em;
+  background: var(--surf); padding: 0 6px; margin: 0 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.body { padding: 16px 18px 18px; display: grid; gap: 16px; }
+.lede { font-size: 17px; }
+.meta { font-family: var(--f-chrome); font-size: 11px; color: var(--ink2); letter-spacing: 0.02em; }
+
+.sheet { background: var(--paper); color: var(--paper-ink); border: 1px solid var(--border); overflow-x: auto; }
+.sheet svg { display: block; width: 100%; min-width: 860px; height: auto; }
+.sheet .cap { font-family: var(--f-chrome); font-size: 11px; padding: 6px 10px; border-top: 1px solid #c9c7bd; color: #3b3b3b; background: #efede6; }
+
+h3 { font-family: var(--f-chrome); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.groove { height: 2px; border-top: 1px solid var(--chrome-sh); border-bottom: 1px solid var(--chrome-hi); opacity: 0.6; }
+
+table.map { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.map th { font-family: var(--f-chrome); font-size: 11px; letter-spacing: 0.06em; text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--ink); }
+table.map td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid var(--border); }
+table.map tr:nth-child(even) td { background: var(--surf2); }
+.leg { font-family: var(--f-chrome); font-weight: 700; font-size: 12px; color: var(--accent); white-space: nowrap; }
+.ref { font-family: var(--f-chrome); font-size: 12px; white-space: nowrap; }
+.tablewrap { overflow-x: auto; min-width: 0; }
+
+.ask { background: var(--ask); color: var(--ask-ink); border: 1px solid var(--ink); padding: 12px 14px; display: grid; gap: 8px; }
+.ask h3 { color: var(--ask-ink); }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.opt { border: 1px solid var(--ink); background: var(--surf); color: var(--ink); padding: 10px 12px; display: grid; gap: 4px; }
+.opt b { font-family: var(--f-chrome); font-size: 12px; }
+.opt.rec b::after { content: "  RECOMMENDED"; color: var(--accent); font-size: 10px; letter-spacing: 0.06em; }
+
+.notes { display: grid; gap: 6px; padding-left: 0; margin: 0; list-style: none; }
+.notes li { padding-left: 14px; position: relative; max-width: 80ch; }
+.notes li::before { content: "•"; position: absolute; left: 2px; color: var(--ink2); }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+
+/* the board plans */
+.planbox { background: var(--surf2); border: 1px solid var(--border); padding: 8px; overflow-x: auto; }
+svg.plan { display: block; width: 100%; min-width: 620px; height: auto; font-family: var(--f-chrome); }
+svg.plan .perf { fill: var(--perf); }
+svg.plan .hole { fill: var(--perf-hole); opacity: 0.55; }
+svg.plan .zone { fill: rgba(255,255,255,0.18); stroke: #3d2c12; stroke-width: 0.8; stroke-dasharray: 3 2; }
+svg.plan .zlab { font-size: 6.2px; font-weight: 700; fill: #2a1c06; letter-spacing: 0.04em; }
+svg.plan .zlab.light { fill: var(--pcb-ink); }
+svg.plan .zsub { font-size: 5.2px; fill: #2a1c06; }
+svg.plan .addon { fill: var(--pcb); stroke: #173a1c; stroke-width: 1; }
+svg.plan .lcd { fill: #8b9e4c; stroke: #111; stroke-width: 1.5; }
+svg.plan .key { fill: #1d1d1d; stroke: #9aa0a6; stroke-width: 0.8; }
+svg.plan .ctl { font-size: 6px; font-weight: 700; fill: #111; }
+svg.plan .ctl.small { font-size: 4.6px; fill: var(--pcb-ink); }
+svg.plan .knob { fill: #1b1b1b; stroke: #8f8f8f; stroke-width: 1.2; }
+svg.plan .polyv { fill: rgba(240,240,232,0.75); stroke: #6d6d6d; stroke-width: 0.8; }
+svg.plan .rocker { fill: #b3261e; stroke: #111; stroke-width: 1; }
+svg.plan .chip { fill: #161616; }
+svg.plan .chiplab { font-size: 5px; fill: #e8e8e8; }
+svg.plan .lamp { fill: #ff3a2e; stroke: #111; stroke-width: 0.6; }
+svg.plan .tape { fill: #e6dcb8; stroke: #9a8f6c; stroke-width: 0.5; }
+svg.plan .wire { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg.plan .wire.red { stroke: #c62828; } svg.plan .wire.blk { stroke: #161616; }
+svg.plan .wire.sig { stroke: #e0b400; stroke-dasharray: 5 3; }
+svg.plan .wire.spk { stroke: #f2f2f2; } svg.plan .wire.ant { stroke: #3a6fd8; }
+svg.plan .wire.ribbon { stroke: #a9a9a9; stroke-width: 5; }
+svg.plan .note { font-size: 5.6px; fill: var(--ink); }
+.src li { margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <section class="win" aria-labelledby="t0">
+    <div class="bar"><span class="box"></span><h1 id="t0">Makeshift Radio Boards</h1><span class="box" style="visibility:hidden"></span></div>
+    <div class="body">
+      <p class="lede">Both makeshift sets become hand-wired boards that follow published circuits, wire for wire. The display, the keys and the RANGE strip sit on a salvaged board bolted on top, joined by a ribbon cable, as you chose.</p>
+      <p>The radio's circuit is settled and I'm painting it now. The two-way needs your okay on two things before I paint it: the circuit, and what the MIC key is.</p>
+      <p class="meta">Both drawings below are mine, redrawn from the netlists the boards are painted from. A program will check every painted wire against them before anything goes into the game. Lines that cross without a dot are not joined.</p>
+    </div>
+  </section>
+
+  <section class="win" aria-labelledby="t1">
+    <div class="bar"><span class="box"></span><h2 id="t1">Makeshift two-way · needs your okay</h2><span class="box" style="visibility:hidden"></span></div>
+    <div class="body">
+      <p>Talking Electronics' four-transistor walkie-talkie (Colin Mitchell, "27MHz Links", Fig. 24): the toy walkie-talkie circuit of the 1980s and 90s. One transistor listens and talks: it is a sensitive receiver while listening and a crystal-locked transmitter while talking. Three transistors amplify. The speaker is the microphone while you talk. One four-pole talk/listen switch changes everything over.</p>
+      <figure class="sheet" style="margin:0">
+        {{TWOWAY}}
+        <figcaption class="cap">Drawn in LISTEN. SW1-A to SW1-D are the four poles of one talk/listen switch. The orange legends are the plate's controls.</figcaption>
+      </figure>
+
+      <div class="two">
+        <div class="tablewrap">
+          <h3>What the plate's controls are</h3>
+          <table class="map">
+            <thead><tr><th>ON THE PLATE</th><th>IN THE CIRCUIT</th></tr></thead>
+            <tbody>
+              <tr><td class="leg">PWR</td><td>The on/off switch, <span class="ref">SW2</span>, between the 9 volt battery and everything else.</td></tr>
+              <tr><td class="leg">VOL</td><td>The 10k volume control, <span class="ref">VR1</span>. While you talk it also sets how loud your voice goes out.</td></tr>
+              <tr><td class="leg">DIAL</td><td>A knob glued onto the tuning slug of the coil, <span class="ref">T1</span>. It tunes what you hear; what you send stays on the crystal.</td></tr>
+              <tr><td class="leg">MIC</td><td>Your choice, below.</td></tr>
+              <tr><td class="leg">CH+ CH- MEM MUTE</td><td>Keys on the salvaged board, with the display and the red lamp. Its ribbon takes power and ground only.</td></tr>
+              <tr><td class="leg">RANGE</td><td>Stays a strip of masking tape on the board.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:grid; gap:12px; align-content:start; min-width:0">
+          <div class="ask">
+            <h3>Question 1 · the circuit</h3>
+            <p>Paint the two-way to this circuit? It is the only one of the four walkie-talkies in that article with a volume control, so it is the only one where PWR, VOL and DIAL are all real parts.</p>
+            <p>The alternative is the same article's crystal-less version with an LM386 and a small electret microphone: DIAL would tune talking and listening together, but VOL would turn nothing.</p>
+          </div>
+          <div class="ask">
+            <h3>Question 2 · the MIC key</h3>
+            <div class="opts">
+              <div class="opt rec"><b>MIC IS THE TALK/LISTEN SWITCH</b><span>A square latching push switch in the key row where MIC is now, its twelve lugs wired back to the board with a bundle of coloured wire. Microphone on shows it pushed in. The red lamp stays on the salvaged board.</span></div>
+              <div class="opt"><b>MIC STAYS A KEY</b><span>MIC is a key on the salvaged board like CH+. The real talk/listen switch is a slide switch on the main board, painted in listen, and nothing in the game moves it.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ul class="notes">
+        <li>The real circuit works on the 27 megahertz citizens' band. The salvaged display keeps showing the game's channels and frequencies, the same arrangement as the radio's.</li>
+        <li>In the game you still hear the other side while your microphone is on. The real switch would cut the receiver while you talk; the picture can't show that either way.</li>
+        <li>The article's text calls the emitter resistor 330 ohms; its drawing says 390. The board follows the drawing.</li>
+      </ul>
+
+      <div class="groove"></div>
+      <h3>Rough plan · 500 × 138, the approved places kept</h3>
+      <div class="planbox">{{PLAN_TWOWAY}}</div>
+    </div>
+  </section>
+
+  <section class="win" aria-labelledby="t2">
+    <div class="bar"><span class="box"></span><h2 id="t2">Makeshift radio · settled, painting now</h2><span class="box" style="visibility:hidden"></span></div>
+    <div class="body">
+      <p>The receiver is Philips' own test circuit for the TDA7000 single-chip receiver (data sheet, May 1992, Fig. 4), with an antenna lead where the test generator was, as Philips' own board has it. The amplifier is National's LM386 "minimum parts" circuit. One 220 nanofarad capacitor that is in neither drawing joins them, so the volume control doesn't carry the receiver's output voltage.</p>
+      <figure class="sheet" style="margin:0">
+        {{RADIO}}
+        <figcaption class="cap">The orange legends are the plate's controls. Blue: what joins the two published circuits.</figcaption>
+      </figure>
+      <div class="two">
+        <div class="tablewrap">
+          <h3>What the plate's controls are</h3>
+          <table class="map">
+            <thead><tr><th>ON THE PLATE</th><th>IN THE CIRCUIT</th></tr></thead>
+            <tbody>
+              <tr><td class="leg">PWR</td><td>The red rocker, <span class="ref">SW1</span>, between the 4.5 volt battery and both chips.</td></tr>
+              <tr><td class="leg">VOL</td><td>The 10k volume control, <span class="ref">VR1</span>, into the LM386.</td></tr>
+              <tr><td class="leg">TUNE</td><td>A two-gang tuning capacitor salvaged from a pocket radio, <span class="ref">CV</span>, in the TDA7000's oscillator.</td></tr>
+              <tr><td class="leg">Display, 1-6, SEEK</td><td>The salvaged board, as on the two-way.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="notes" style="align-content:start">
+          <li>The data sheet's muting switch is left off. Its "enabled" position is open, so leaving the switch and its 10k off wires the same circuit.</li>
+          <li>The data sheet leaves two oscillator capacitors without values. 33 and 100 picofarads put 88 to 108 megahertz on the dial.</li>
+          <li>The data sheet asks for 22k on the output at 4.5 volts (47k at 9 volts), so the radio runs on three cells.</li>
+        </ul>
+      </div>
+      <div class="groove"></div>
+      <h3>Rough plan · 440 × 128, the approved places kept</h3>
+      <div class="planbox">{{PLAN_RADIO}}</div>
+    </div>
+  </section>
+
+  <section class="win" aria-labelledby="t3">
+    <div class="bar"><span class="box"></span><h2 id="t3">Sources</h2><span class="box" style="visibility:hidden"></span></div>
+    <div class="body">
+      <ul class="notes src">
+        <li><a href="https://www.tel.uva.es/personales/tri/TDA7000_CNV_2.pdf" rel="noopener">Philips TDA7000 data sheet, May 1992</a>: Fig. 4 (the test circuit) and Figs. 5 and 6 (Philips' own board).</li>
+        <li><a href="https://www.talkingelectronics.com/projects/27MHz%20Transmitters/27MHz-1.pdf" rel="noopener">Talking Electronics, "27MHz Links"</a>: Fig. 24 and the walkie-talkies after it.</li>
+        <li>National Semiconductor (now Texas Instruments) LM386 data sheet: "Amplifier with Gain = 20, Minimum Parts".</li>
+      </ul>
+    </div>
+  </section>
+
+</div>

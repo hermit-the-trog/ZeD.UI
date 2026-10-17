@@ -7,8 +7,9 @@
 -- writes ZeD/DashPx.lua: per design the plate, its state sprites, and the live
 -- parts the game draws over it — needles, ribbons, lamps, LEDs, gear letters,
 -- seven-segment figures, bars, knob pointers, lever tabs, badges, the clock, the
--- fare meter, the climate readout, the radio slot — plus the click areas. This
--- file reads that data; it has no per-design drawing code.
+-- fare meter, the climate readout, the radio slot — plus the click areas. The
+-- shared plate template (ZeD_Plate.lua) draws the plate and its parts from that
+-- data; this file reads the car and acts on the controls.
 --
 -- Density: one plate pixel per screen pixel at 1080p, a whole multiple k above
 -- (ZeD_PixelParts: nearest filtering, rects on the art grid), like the belt.
@@ -31,6 +32,7 @@ require "ZeD/ZeD_Panel"
 require "ZeD/DashPx"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_RadioOps"
+require "ZeD/ZeD_Plate"
 
 ZeD = ZeD or {}
 ZeD.Dashboard = ZeD.Dashboard or {}
@@ -38,6 +40,7 @@ local D = ZeD.Dashboard
 local DP = ZeD.DashPx
 local P = ZeD.Px
 local RO = ZeD.RadioOps
+local PL = ZeD.Plate
 
 local BASE_W, BASE_H = DP.w, DP.h
 local TEXDIR = "media/textures/ZeD/dashpx/"
@@ -281,9 +284,12 @@ ACT.lbar   = function(chr, v) sendClientCommand(chr, "vehicle", "setLightbarLigh
 ACT.siren  = function(chr, v) pcall(function() getSoundManager():playUISound("VehicleSetSiren") end); sendClientCommand(chr, "vehicle", "setLightbarSirenMode", { mode = (v:getLightbarSirenMode() + 1) % 4 }) end
 -- radio: the same calls as the radio up close (vanilla's radio action code, vanilla's presets)
 local function _rp(st) return st.radio and st.radioPart end
+-- the makeshift sets switch on with their rocker (pwr); their volume control is a plain knob
+local ROCKER = { makeshift = true, hammake = true }
 ACT.vol  = function(chr, v, st, secondary)
     local p = _rp(st); if not p then return end
-    if secondary then RO.volStep(chr, p, 1, true) else RO.power(chr, p) end   -- VOL pushes for power; X turns it up (past full it starts over)
+    if secondary or ROCKER[st.radio.kind] then RO.volStep(chr, p, 1, true)    -- X (or a rocker set's knob) turns it up (past full it starts over)
+    else RO.power(chr, p) end                                                  -- VOL pushes for power
 end
 ACT.pwr  = function(chr, v, st) local p = _rp(st); if p then RO.power(chr, p) end end
 ACT.tune = function(chr, v, st, secondary) local p = _rp(st); if p then RO.tuneStep(chr, p, secondary and -1 or 1) end end
@@ -291,6 +297,16 @@ ACT.seek = function(chr, v, st, secondary) local p = _rp(st); if p and st.radio.
 ACT.chup = function(chr, v, st) local p = _rp(st); if p and st.radio.on then RO.chStep(chr, p, 1) end end
 ACT.chdn = function(chr, v, st) local p = _rp(st); if p and st.radio.on then RO.chStep(chr, p, -1) end end
 ACT.mic  = function(chr, v, st) local p = _rp(st); if p then RO.mic(chr, p) end end
+ACT.scan = function(chr, v, st) local p = _rp(st); if p and st.radio.on then RO.scanToggle(chr, p) end end
+ACT.mute = function(chr, v, st) local p = _rp(st); if p then RO.mute(chr, p) end end
+ACT.mem  = function(chr, v, st) local p = _rp(st); if p and st.radio.on then RO.memAdd(chr, p) end end
+ACT.eject = function(chr, v, st) local p = _rp(st); if p then RO.eject(chr, p) end end
+ACT.play = function(chr, v, st) local p = _rp(st); if p then RO.playStop(chr, p) end end
+-- the CD slot: a disc in it comes out; an empty one brings the radio up close, where the discs you carry are listed
+ACT.slot = function(chr, v, st)
+    local p = _rp(st); if not p then return end
+    if st.radio.hasMedia then RO.eject(chr, p) elseif ZeD.CarRadio then ZeD.CarRadio.toggle(chr, p) end
+end
 ACT.radio = function(chr, v, st) local p = _rp(st); if p and ZeD.CarRadio then ZeD.CarRadio.toggle(chr, p) end end
 for i = 1, 6 do
     ACT["preset" .. i] = function(chr, v, st, secondary)
@@ -308,9 +324,16 @@ local function _promptFor(id, st)
     if id == "cruise" then return st.cruise and "Cruise off" or "Cruise set" end
     if id == "heat" then return st.heaterOn and "Heater off" or "Heater on" end
     if id == "ac" then return st.ac and "A/C off" or "A/C" end
+    if id == "vol" and st.radio and ROCKER[st.radio.kind] then return "Volume +" end
     if id == "pwr" or id == "vol" then return st.radioSwitch and "Radio off" or "Radio on" end
+    if id == "mute" then return (st.radio and st.radio.muted) and "Sound on" or "Mute" end
+    if id == "mem" then return "Store channel" end
+    if id == "eject" then return "Eject" end
+    if id == "play" then return "Play / stop" end
+    if id == "slot" then return (st.radio and st.radio.hasMedia) and "Eject" or "Choose a disc" end
     if id == "tune" then return "Tune +" end
-    if id == "seek" or id == "scan" then return "Seek" end
+    if id == "seek" then return "Seek" end
+    if id == "scan" then return "Scan" end
     if id:sub(1, 6) == "preset" then return "Preset" end
     if id == "chup" then return "Channel +" end
     if id == "chdn" then return "Channel -" end
@@ -326,7 +349,7 @@ local function _promptFor(id, st)
     if id == "off" then return "Climate off" end
     return "Press"
 end
-local SECONDARY = { ignition = "Remove key", vol = "Volume", tune = "Tune -", temp = "Cooler", fan = "Fan -", seek = "Seek back", scan = "Seek back",
+local SECONDARY = { ignition = "Remove key", vol = "Volume", tune = "Tune -", temp = "Cooler", fan = "Fan -", seek = "Seek back",
     preset1 = "Store", preset2 = "Store", preset3 = "Store", preset4 = "Store", preset5 = "Store", preset6 = "Store" }
 
 -- ---------------------------------------------------------------------------
@@ -369,13 +392,9 @@ function ZeD_Dashboard:_layout()
     return w, h, k
 end
 
-function ZeD_Dashboard:_rect(x, y, w, h, c, a)
-    local s = self._s
-    self:drawRect(math.floor(x * s), math.floor(y * s), math.max(1, math.floor(w * s)), math.max(1, math.floor(h * s)), a or c.a or 1, c.r, c.g, c.b)
-end
+-- the gamepad's focus cue: the template's fill over the control (plate pixels)
 function ZeD_Dashboard:_focusCue(x, y, w, h)
-    local T = ZeD.T; local ac = T.accent
-    self:_rect(x, y, w, h, { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, 0.55)
+    PL.cue(self._cv, { x = x, y = y, w = w, h = h }, ZeD.T.accent, 0.55)
 end
 
 -- register a control: hit rect for the mouse, focus element for the pad (driver only)
@@ -415,212 +434,21 @@ function ZeD_Dashboard:_trip(vehicle, st, dtMs)
 end
 
 -- ---------------------------------------------------------------------------
--- the radio in the slot: its pixel face, its display in pixel figures, its controls
+-- the plate and its live parts: the template draws them (ZeD_Plate.lua); the
+-- dash lends it its textures, the badge lines, the sticker, the radio faces,
+-- and the list the head unit adds its controls to
 -- ---------------------------------------------------------------------------
-local function blinkOn(ms) return math.floor(getTimestampMs() / (ms or 250)) % 2 == 0 end
-
-function ZeD_Dashboard:_radioDisplay(cv, hp, ox, oy, r)
-    local x, y, w, h = ox + hp.x, oy + hp.y, hp.w, hp.h
-    local c = P.color(hp.color)
-    local ham = RO.HAM[hp.kind] == true
-    if not r.on then
-        if hp.style == "dot" then P.rect(cv, x - 2, y - 2, w + 4, h + 4, P.BLACK, 0.45) end   -- the backlight is out
-        return
-    end
-    local ghost = hp.ghost and P.color(hp.ghost) or nil
-    local tag = (r.flash and blinkOn(250)) and r.flash:gsub("STORE ", "P") or (r.scanning and "SCAN") or (r.muted and "MUTE") or nil
-    if hp.style == "seg" then
-        if ham then
-            local freq = RO.freqText(r.channel, true)                        -- "098.400"
-            P.digits(cv, freq, x + w - 3 - 6 * 9, y + 3, 6, 11, 9, 1, c, ghost, "l", 6)
-            P.text(cv, "CH" .. (r.presetIdx and string.format("%02d", r.presetIdx) or "--"), x + 3, y + 3, c)
-            P.text(cv, tag or (r.micMuted and "MIC" or "TX"), x + 3, y + 10, c)
-        else
-            local cd = r.playing
-            local txt
-            if cd then
-                local s = math.floor((r.cdMs or 0) / 1000)
-                txt = string.format("%d:%02d", math.floor(s / 60) % 100, s % 60)
-            else
-                txt = RO.freqText(r.channel, false)                             -- "98.4", "101.2"
-            end
-            local nfig = 0
-            for i = 1, #txt do local ch = txt:sub(i, i); if ch ~= "." and ch ~= ":" then nfig = nfig + 1 end end
-            local n = math.max(nfig, 3)
-            P.digits(cv, txt, x + w - 3 - n * 10 - (cd and 4 or 0), y + 2, 7, 13, 10, 2, c, ghost, "r", n)
-            P.text(cv, cd and "CD" or "FM", x + 3, y + 3, c)
-            local t2 = tag or ((not cd) and r.presetIdx and r.presetIdx <= 6 and ("P" .. r.presetIdx)) or nil
-            if t2 then P.text(cv, t2, x + 3, y + 10, c) end
-            if r.signal and not cd then
-                for i = 1, 3 do P.rect(cv, x + 13 + (i - 1) * 2, y + 8 - i * 2 + 1, 1, i * 2, c) end
-            end
-        end
-    else
-        local l1, l2
-        if ham then
-            l1 = "CH" .. (r.presetIdx and string.format("%02d", r.presetIdx) or "--") .. " " .. RO.freqText(r.channel, true)
-            local nm = (r.name and r.name:upper()) or (r.presetIdx and r.presets[r.presetIdx] and r.presets[r.presetIdx].name and r.presets[r.presetIdx].name:upper()) or ""
-            l2 = (r.flash and r.flash) or (r.muted and "MUTE") or (nm ~= "" and nm) or (r.micMuted and "MIC OFF" or "TX OK")
-        else
-            l1 = "FM " .. RO.freqText(r.channel, false) .. " MHZ"
-            l2 = r.flash or (r.scanning and "SCAN") or (r.muted and "MUTE") or (r.name and r.name:upper()) or ""
-        end
-        local n1 = math.floor((w - 3) / 6)
-        local n2 = math.floor((w - 3) / 4)
-        P.text(cv, l1:sub(1, n1), x + 2, y + 1, c, "57")
-        P.text(cv, RO.marquee(l2, n2), x + 2, y + 10, c, "35")
-    end
-end
-
-function ZeD_Dashboard:_drawHead(cv, st, hu, pending)
-    local r = st.radio
-    local H = r and DP.heads[r.kind]
-    if not H then
-        P.image(cv, tex("hu_blank"), hu.x, hu.y, hu.w, hu.h)
-        return
-    end
-    P.image(cv, tex(H.tex), hu.x, hu.y, H.w, H.h)
-    for _, hp in ipairs(H.parts) do
-        if hp.t == "display" then
-            self:_radioDisplay(cv, hp, hu.x, hu.y, r)
-            pending[#pending + 1] = { "radio", hu.x + hp.x - 2, hu.y + hp.y - 2, hp.w + 4, hp.h + 4, true }
-        elseif hp.t == "knob" then
-            local deg = (hp.id == "vol") and (135 + 270 * clamp01(r.volume)) or ((((r.channel or 0) / RO.STEP) * 12) % 360)
-            P.pointer(cv, hu.x + hp.cx, hu.y + hp.cy, deg, 3, hp.r - 2, 1, P.color(hp.ptr))
-            pending[#pending + 1] = { hp.id, hu.x + hp.cx - hp.r, hu.y + hp.cy - hp.r, hp.r * 2, hp.r * 2, true }
-        elseif hp.t == "button" then
-            pending[#pending + 1] = { hp.id, hu.x + hp.x, hu.y + hp.y, hp.w, hp.h, true }
-        end
-    end
-end
-
--- ---------------------------------------------------------------------------
--- the live parts
--- ---------------------------------------------------------------------------
-local LOW = "#ff4a3a"
-local function frac(st, p)
-    local v = st[p.src]
-    if type(v) == "boolean" then v = v and 1 or 0 end
-    return (v or 0) / (p.max or 1)
-end
-
-function ZeD_Dashboard:_drawParts(des, st, cv, pending)
-    for _, p in ipairs(des.parts) do
-        local t = p.t
-        if t == "needle" then
-            local f = math.max(0, math.min(p.peg and 1.02 or 1, frac(st, p)))
-            local a = p.a0 + (p.a1 - p.a0) * f
-            local c = P.color((p.low_src and st[p.low_src]) and LOW or p.color)
-            P.needle(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 2, p.hub or 0, c)
-        elseif t == "ribbon" then
-            local f = clamp01(frac(st, p))
-            local xx = math.floor(p.x0 + (p.x1 - p.x0) * f + 0.5)
-            if p.mode == "fill" then
-                if xx > p.x0 then
-                    P.rect(cv, p.x0, p.y, xx - p.x0, p.h, P.color(p.color))
-                    P.rect(cv, p.x0, p.y, xx - p.x0, 1, P.shade(p.color, 1.25))
-                    P.rect(cv, p.x0, p.y + p.h - 1, xx - p.x0, 1, P.shade(p.color, 0.6))
-                end
-            else
-                P.rect(cv, xx + 1, p.y + 2, 2, p.h, P.BLACK, 0.45)
-                P.rect(cv, xx - 1, p.y, 1, p.h, P.color(p.color)); P.rect(cv, xx, p.y, 1, p.h, P.shade(p.color, 0.6))
-            end
-        elseif t == "lamp" then
-            if st[p.src] then
-                local c = P.color(p.color)
-                if p.halo then P.rects(cv, p.halo, c, 0.30) end
-                P.rects(cv, p.r, c)
-            end
-        elseif t == "led" then
-            if st[p.src] then P.rect(cv, p.x, p.y, p.w, p.h, P.color(p.color)) end
-        elseif t == "gear" then
-            if st.power then
-                local rr = p.letters[st.gearSel]
-                if rr then P.rects(cv, rr, P.color(p.color)) end
-            end
-        elseif t == "bars" then
-            if st.power then
-                local n = math.floor(clamp01(frac(st, p)) * #p.bars + 0.5)
-                for i = 1, n do
-                    local c = p.color
-                    if p.red_from and (i - 1) >= p.red_from then c = p.red or "#ff3a20"
-                    elseif p.warn_from and (i - 1) >= p.warn_from then c = p.warn or "#ffb02e" end
-                    P.rects(cv, p.bars[i], P.color(c))
-                end
-            end
-        elseif t == "digits" then
-            if st.power or p.always then
-                local v = st[p.src] or 0
-                local txt = (p.fmt == "rpm100") and tostring(math.floor(v / 100 + 0.5)) or tostring(math.floor(v + 0.5))
-                P.digits(cv, txt, p.x, p.y, p.cw, p.ch, p.pitch, p.st or 1, P.color(p.color), nil, p.align or "r", p.n)
-            end
-        elseif t == "ptr" then
-            local a
-            if p.angles then
-                local v = st[p.src]
-                if type(v) == "boolean" then v = v and 1 or 0 end
-                local i = math.max(1, math.min(#p.angles, math.floor((v or 0) + 0.5) + 1))
-                a = p.angles[i]
-            else
-                a = p.a0 + (p.a1 - p.a0) * clamp01(st[p.src] or 0)
-            end
-            P.pointer(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 1, P.color(p.color))
-        elseif t == "tab" then
-            local spr = tex(p.sprite)
-            local sz = des.sprites[p.sprite]
-            if spr and sz then
-                local x = math.floor(p.x0 + (p.x1 - p.x0) * clamp01(st[p.src] or 0) + 0.5)
-                P.image(cv, spr, x, p.y, sz[1], sz[2])
-            end
-        elseif t == "sprite" then
-            local on = st[p.src] and true or false
-            if on == (p.when ~= false) then P.image(cv, tex(p.sprite), p.x, p.y, p.w, p.h) end
-        elseif t == "badge" then
-            local label = self._badge and self._badge[p.role] or ""
-            if label ~= "" then
-                local s, font, scale = P.fit(label, p.font or "35", p.scale or 1, p.w)
-                local x = p.x + ((p.align or "c") == "c" and math.floor(p.w / 2) or 0)
-                local y = p.y + math.floor((p.h - P.fontHeight(font) * scale) / 2)
-                if p.style == "emboss" then P.text(cv, s, x + 1, y + 1, P.color("#f0f0ec"), font, scale, p.align or "c") end
-                P.text(cv, s, x, y, P.color(p.color or "#d8dade"), font, scale, p.align or "c", p.style, p.shadow)
-            end
-        elseif t == "clock" then
-            local h, m = st.hour or 10, st.minute or 0
-            local am = m * 6 - 90
-            local ah = (h % 12) * 30 + m * 0.5 - 90
-            local c = P.color(p.color)
-            P.pointer(cv, p.cx, p.cy, ah, 0, p.rh, 2, c, 1.5)
-            P.pointer(cv, p.cx, p.cy, am, 0, p.rm, 1, c, 1.5)
-        elseif t == "sticker" then
-            if self._scriptLow and self._scriptLow:find(p.match or "spiffo", 1, true) then
-                local S = DP.sticker
-                local stx = P.tex(S.tex)
-                if stx then
-                    local bx = p.x + math.floor((p.w - (S.w + 2 * S.pad)) / 2)
-                    local by = p.y + math.floor((p.h - (S.h + 2 * S.pad)) / 2)
-                    P.rects(cv, S.backing, P.color(S.rim), 1, bx + 1, by + 1)
-                    P.rects(cv, S.backing, P.color(S.color), 1, bx, by)
-                    P.image(cv, stx, bx + S.pad, by + S.pad, S.w, S.h)
-                end
-            end
-        elseif t == "headunit" then
-            self:_drawHead(cv, st, p, pending)
-        elseif t == "climate" then
-            if st.power then
-                local c = P.color(p.color or "#1c2418")
-                local tC = math.floor(21 + (st.heaterTemp or 0) * 0.28 + 0.5)
-                if (p.units or "C") == "F" then tC = math.floor(tC * 9 / 5 + 32 + 0.5) end
-                P.digits(cv, tostring(tC), p.x, p.y, 7, 11, 9, 1, c, nil, "l", 2)
-                P.text(cv, st.heaterOn and (st.ac and "A/C" or "AUTO") or "OFF", p.x + 21, p.y, c)
-                P.text(cv, "FAN" .. tostring(st.fan or 0), p.x + 21, p.y + 6, c)
-            end
-        elseif t == "meter" then
-            if st.power then
-                local f = st.fare or 0
-                P.digits(cv, string.format("%.2f", math.min(99.99, f)), p.x, p.y, p.cw or 6, p.ch or 9, p.pitch or 9, 1, P.color(p.color), nil, "r", 4)
-            end
-        end
-    end
+function ZeD_Dashboard:_ctx(des, pending)
+    local ctx = self._plateCtx
+    if not ctx then ctx = { tex = tex }; self._plateCtx = ctx end
+    ctx.sprites   = des.sprites
+    ctx.badge     = self._badge
+    ctx.scriptLow = self._scriptLow
+    ctx.sticker   = DP.sticker
+    ctx.heads     = DP.heads
+    ctx.pending   = pending
+    ctx.now       = getTimestampMs()
+    return ctx
 end
 
 -- ---------------------------------------------------------------------------
@@ -659,11 +487,9 @@ function ZeD_Dashboard:prerender()
     self._consoleRect = des.console   -- the radio and siren props up close line up on the console (plate pixels; _s = k)
 
     local cv = P.canvas(self, 0, 0, k)
-    local plate = tex(des.plate)
-    if plate then P.image(cv, plate, 0, 0, BASE_W, BASE_H)
-    else self:drawRect(0, 0, w, h, 1, 0.1, 0.1, 0.1) end   -- art missing: never let the dash vanish
+    self._cv = cv
     local pending = {}
-    self:_drawParts(des, st, cv, pending)
+    PL.draw(cv, des, st, self:_ctx(des, pending), BASE_W, BASE_H)
     -- controls last, so a focus cue sits over the art
     for _, hz in ipairs(des.hits) do
         local en = true

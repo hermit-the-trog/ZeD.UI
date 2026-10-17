@@ -1,4 +1,4 @@
-"""Runs the real Lua (PixelFonts, ZeD_PixelParts, DashPx, ZeD_RadioOps, ZeD_Dashboard) under LuaJIT with the game's API
+"""Runs the real Lua (PixelFonts, ZeD_PixelParts, DashPx, ZeD_RadioOps, ZeD_Plate, ZeD_Dashboard) under LuaJIT with the game's API
 mocked, records every drawRect / drawTextureScaled, and paints them into an image: what the game would draw, frame for
 frame, for each design in a given state. Also checks the hit areas against the parts.
 usage: python luatest.py [k] [state]"""
@@ -11,9 +11,16 @@ import lupa.luajit21 as lj
 import designs as DZ
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MOD = os.path.join(HERE, "out", "mod", "ZeD-UI", "42")
-LUA_SRC = os.path.join(HERE, "lua")
-RADIOOPS = "/mnt/user-data/uploads/ZeD-UI/42/media/lua/client/ZeD/ZeD_RadioOps.lua"
+# In the repo (ZeDUI/tools/dashpx) the Lua and the textures are the mod's own; in a scratch copy, lua/ and out/mod.
+REPO = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
+if os.path.isdir(os.path.join(REPO, "42", "media", "lua", "client", "ZeD")) and not os.path.isdir(os.path.join(HERE, "lua")):
+    MOD = os.path.join(REPO, "42")
+    LUA_SRC = os.path.join(MOD, "media", "lua", "client", "ZeD")
+    RADIOOPS = os.path.join(LUA_SRC, "ZeD_RadioOps.lua")
+else:
+    MOD = os.path.join(HERE, "out", "mod", "ZeD-UI", "42")
+    LUA_SRC = os.path.join(HERE, "lua")
+    RADIOOPS = os.path.join(HERE, "..", "physpx", "lua", "ZeD_RadioOps.lua") if os.path.exists(os.path.join(HERE, "..", "physpx", "lua", "ZeD_RadioOps.lua")) else "/mnt/user-data/uploads/ZeD-UI/42/media/lua/client/ZeD/ZeD_RadioOps.lua"
 GAME_MEDIA = "/mnt/user-data/uploads/Project Zomboid/SteamApps/common/ProjectZomboid/"
 SCRIPTS = {"luxury": "Base.CarLuxury", "nyala": "Base.CarNormal", "cossette": "Base.SportsCar", "police": "Base.CarLightsPolice",
            "d6": "Base.PickUpTruck", "dashelite": "Base.ModernCar", "primani": "Base.ModernCar02", "dart": "Base.SmallCar",
@@ -175,6 +182,8 @@ def run(did, state, k=1, frames=40, dt=120, log=None, lua_after=None):
         L.execute(open(os.path.join(MOD, "media", "lua", "client", "ZeD", f)).read())
     L.execute(open(os.path.join(LUA_SRC, "ZeD_PixelParts.lua")).read())
     L.execute(open(RADIOOPS).read().replace("return O", "ZeD.RadioOps = O"))
+    if os.path.exists(os.path.join(LUA_SRC, "ZeD_Plate.lua")):          # the shared plate template draws the parts
+        L.execute(open(os.path.join(LUA_SRC, "ZeD_Plate.lua")).read())
     L.execute(open(os.path.join(LUA_SRC, "ZeD_Dashboard.lua")).read())
     L.execute(VEHICLE)
     if state.get("gamepad"):   # the input detector reports a pad; nothing holds focus, so the hint reads 're-enter the seat'

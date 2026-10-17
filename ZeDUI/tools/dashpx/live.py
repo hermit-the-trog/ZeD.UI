@@ -104,7 +104,8 @@ def pixels_to_runs(px):
 
 def needle_pixels(cx, cy, a_deg, r0, r1, w, hub=0.0):
     """the needle as art pixels: stepped along its length, thickened across its minor axis; split into lit and shade sides"""
-    ca, sa = math.cos(math.radians(a_deg)), math.sin(math.radians(a_deg))
+    a = a_deg * math.pi / 180                          # the Lua's arithmetic, so a needle on a pixel edge lands the same
+    ca, sa = math.cos(a), math.sin(a)
     px, py = -sa, ca                                   # across the needle
     lit_side = 1 if (px * LIGHT2[0] + py * LIGHT2[1]) > 0 else -1
     body, edge = set(), set()
@@ -131,7 +132,7 @@ def shade(color, f):
 
 def draw_text(cv, t, x, y, color, font="35", scale=1, align="l", style="flat", shadow=None):
     f = FONTS[font]
-    w = (sum(len(f.get(c, f[" "])[0]) + 1 for c in t) - 1) * scale
+    w = (sum(len(f.get(c, f.get(c.upper(), f[" "]))[0]) + 1 for c in t) - 1) * scale    # the glyphs drawn (lower case as upper)
     if align == "c": x -= w // 2
     elif align == "r": x -= w
     rows = len(f["A"])

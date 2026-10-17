@@ -1,9 +1,18 @@
 -- ZeD-UI/42/media/lua/client/ZeD/ObjectCardPower.lua
 -- ============================================================================
 -- OBJECT CARD: GENERATOR (HOOK_MAP row 11; mockup zed_info_cards_v1.html)
--- Faceplate (fuel needle, run / low-fuel / line lamps, hours left at the
--- current draw, I / O rocker), condition, what it powers in L/h, the indoor
--- fumes warning, and vanilla's generator actions as header verbs:
+-- The generator's own front panel in pixel art (director, Oct 16 2026: one
+-- plate per model): the red 1988 portable, the yellow contractor's set, the
+-- blue compact and the 1960s military set (ZeDUI/tools/physpx, data in
+-- PhysPx.lua, drawn by the shared plate template ZeD_Plate.lua; the plate is
+-- picked by the generator's item). Live on it: the engine switch and its lamp,
+-- the fuel gauge, the building's cord in the outlet, the OIL lamp (condition
+-- under a quarter), the meters (120 volts and 60 cycles while it runs, the
+-- load it carries). The engine switch turns it on or off and the outlet
+-- connects or disconnects it, with vanilla's rules. Under the plate: the run
+-- time left at the current draw and the fuel in litres; then condition, what
+-- it powers in L/h, the indoor fumes warning, and vanilla's generator actions
+-- as header verbs:
 --   TURN ON / OFF  ISActivateGenerator (on needs it connected and fuel; at 50%
 --                  condition or less it can fail to start, vanilla rolls that)
 --   ADD FUEL       ISAddFuel per petrol can (off, under a full tank)
@@ -15,13 +24,29 @@
 -- ============================================================================
 
 require "ZeD/ObjectCards"
+require "ZeD/ZeD_PixelParts"
+require "ZeD/ZeD_Plate"
+require "ZeD/PhysPx"
 
 local OC = ZeD.ObjectCards
+local P = ZeD.Px
+local PL = ZeD.Plate
 local UI = OC.ui
 local call = OC.call
 local DOT = OC.DOT
 
-local LOW_FUEL_PCT = 20
+local OIL_COND = 25           -- the OIL lamp lights under a quarter's condition (director, Oct 16 2026)
+-- The load meters' full scale: L/h burnt above the engine's own idle. Calibrated (Oct 16 2026) against vanilla's
+-- own figures (IsoGenerator, B42): idle 0.02; fridge and freezer together 0.13, a lone fridge or freezer 0.08; a
+-- stove, washer or dryer 0.09 each while running; a television 0.03, a radio 0.01; a battery charger 0.05; a light
+-- switch 0.002 while lit; a stacked washer-dryer 0.9 (ten times the others; vanilla's figure). So a lived-in house
+-- reads: the fridge and a few lights about a third of the scale, cooking on top about half, a whole house running
+-- everything nine tenths, and a second house on the same generator pins the needle. Past full scale the OVERLOAD lamp
+-- lights (the blue set's): vanilla adds no penalty, but the fuel burns that much faster.
+local LOAD_FULL = 0.5
+
+ZeD.ObjectCardPower = ZeD.ObjectCardPower or {}
+ZeD.ObjectCardPower.LOAD_FULL = LOAD_FULL
 
 local function isGenerator(o) return o ~= nil and instanceof(o, "IsoGenerator") end
 
@@ -114,7 +139,8 @@ function def.refresh(t, player)
     end
     local sq = g:getSquare()
     d.toxic = sq ~= nil and not sq:isOutside() and sq:getBuilding() ~= nil
-    local si = scriptItem(call(g, "getGeneratorItemType"))
+    d.itemType = call(g, "getGeneratorItemType")
+    local si = scriptItem(d.itemType)
     d.name = (si and call(si, "getDisplayName")) or "Generator"
     d.tex = si and call(si, "getNormalTexture") or nil
     d.cans = (not d.on and d.pct < 100) and petrolCans(player) or {}
@@ -130,6 +156,7 @@ function def.refresh(t, player)
         ISWorldObjectContextMenu.onActivateGenerator(nil, not tt.obj:isActivated(), tt.obj, p:getPlayerNum())
     end
     t.toggle = onOK and toggle or nil
+    t.plug = nil                       -- the outlet: only while it is off (below)
     if d.on then
         verbs[#verbs + 1] = { id = "power", label = "TURN OFF", primary = true, run = toggle }
         verbs[#verbs + 1] = { id = "fuel", label = "ADD FUEL", enabled = false }
@@ -147,8 +174,10 @@ function def.refresh(t, player)
         verbs[#verbs + 1] = { id = "power", label = "TURN ON", enabled = onOK, primary = primary == "power", run = toggle }
         verbs[#verbs + 1] = { id = "fix", label = "FIX", enabled = fixOK,
             run = function(p, tt) ISWorldObjectContextMenu.onFixGenerator(nil, tt.obj, p:getPlayerNum()) end }
+        local plug = function(p, tt) ISWorldObjectContextMenu.onPlugGenerator(nil, tt.obj, p:getPlayerNum(), not tt.obj:isConnected()) end
+        t.plug = plugOK and plug or nil
         verbs[#verbs + 1] = { id = "plug", label = d.conn and "DISCONNECT" or "CONNECT", enabled = plugOK, primary = primary == "plug",
-            run = function(p, tt) ISWorldObjectContextMenu.onPlugGenerator(nil, tt.obj, p:getPlayerNum(), not tt.obj:isConnected()) end }
+            run = plug }
         verbs[#verbs + 1] = { id = "take", label = "TAKE", enabled = takeOK,
             run = function(p, tt) ISWorldObjectContextMenu.onTakeGenerator(nil, tt.obj, p:getPlayerNum()) end }
         if not onOK then
@@ -185,58 +214,74 @@ local function hhmm(hours)
     return (h < 10 and "0" or "") .. tostring(h) .. ":" .. (m < 10 and "0" or "") .. tostring(m)
 end
 
+-- the plate for this generator: by its item, else the one a modded set borrows
+local function plateFor(d)
+    local X = ZeD.PhysPx
+    local id = X and (X.items[d.itemType or ""] or X.fallback.generator) or nil
+    return X and X.plates[id] or nil
+end
+local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
+
+-- what the plate's live parts read
+local function plateState(d)
+    local st = {}
+    st.running = d.on
+    st.connected = d.conn or d.on
+    st.fuel = math.max(0, math.min(1, d.fuel / d.max))
+    st.service = d.cond < OIL_COND
+    st.volts = d.on and 1 or 0
+    st.hz = d.on and 1 or 0
+    -- the load: what the powered things burn above the engine's own idle, in the sandbox's units
+    local fac = tonumber(SandboxVars and SandboxVars.GeneratorFuelConsumption) or 1
+    if fac <= 0 then fac = 1 end
+    local extra = math.max(0, (d.total or 0) - (d.base or 0)) / fac
+    st.load = d.on and math.max(0, math.min(1, extra / LOAD_FULL)) or 0
+    st.overload = d.on and extra > LOAD_FULL or false
+    return st
+end
+
+ZeD.ObjectCardPower.plateState = plateState
+
+-- the plate (fixed size, centred), its two controls, and the line under it
 local function drawPlate(card, x, y, w, t)
-    local T, tm, HW = ZeD.T, ZeD.TM, UI.HW
+    local T, tm = ZeD.T, ZeD.TM
     local d = t.d
-    local ph = T.px(102)
-    UI.plate(card, x, y, w, ph, "KNOX POWER - 5000 W - UNLEADED", "KP-5000-0419")
-    local top = y + T.px(12)
-    -- fuel needle (left)
-    local gx, gy = x + T.px(12) + T.px(39), top + T.px(46)
-    UI.needle(card, gx, gy, T.px(33), d.fuel / d.max, "FUEL", true)
-    -- rocker (right)
-    local rw, rh = T.px(28), T.px(46)
-    local rx = x + w - T.px(16) - rw
-    local ry = top + T.px(4)
-    local focused = card._fid == "gen:rocker"
-    UI.rocker(card, rx, ry, rw, rh, d.on, focused, "ENGINE")
-    card:zone({ fid = "gen:rocker", x = rx - T.px(2), y = ry - T.px(2), w = rw + T.px(4), h = rh + T.px(4), body = true,
-        run = t.toggle and function(c, p) t.toggle(p, t) end or nil })
-    -- lamps (left of the rocker)
-    local f1 = T.fontF1
-    local ledW = T.px(8) + T.px(6) + tm:MeasureStringX(f1, "LOW FUEL")
-    local lx = rx - T.px(18) - ledW
-    local lstep = T.px(16)
-    local ly = top + T.px(8)
-    UI.led(card, lx, ly, HW.green, d.on, "RUN")
-    UI.led(card, lx, ly + lstep, HW.amber, d.pct < LOW_FUEL_PCT, "LOW FUEL")
-    UI.led(card, lx, ly + lstep * 2, HW.green, d.conn, "LINE")
-    -- hours-left LCD (middle)
-    local mx = gx + T.px(39) + T.px(16)
-    local f5 = T.fontF5
-    local lab = HW.text
-    card:drawText("RUN TIME LEFT", mx, top + T.px(2), lab.r, lab.g, lab.b, 0.7, f5)
+    local des = plateFor(d)
+    if not des then return 0 end
+    local Sc = ZeD.Scale
+    local k = P.k((Sc and Sc.root and Sc.root()) or 1)
+    local px0 = x + PL.centre(w, des.w, k)
+    local cv = P.canvas(card, px0, y, k)
+    local st = plateState(d)
+    PL.draw(cv, des, st, { tex = plateTex, now = getTimestampMs() })
+    -- the engine switch turns it on / off; the outlet connects / disconnects (vanilla's rules: t.toggle, t.plug)
+    for _, c in ipairs(PL.controls(des, st)) do
+        local fid = "gen:" .. c.id
+        local fn = (c.id == "engine" and t.toggle) or (c.id == "outlet" and t.plug) or nil
+        if card._fid == fid then PL.cue(cv, c, T.accent, 0.55) end
+        card:zone({ fid = fid, x = px0 + c.x * k, y = y + c.y * k, w = c.w * k, h = c.h * k, body = true,
+            run = fn and function(cc, p) fn(p, t) end or nil })
+    end
+    local h = des.h * k + T.px(6)
     -- getTotalPowerUsing already carries the sandbox fuel factor: it is the
     -- litres burnt per game hour, so fuel / draw is the run time left
     local hrs, unit = "--:--", "HRS"
     if d.on then
         local draw = (d.total and d.total > 0) and d.total or d.base
         if draw and draw > 0 then
-            local h = d.fuel / draw
-            if h >= 100 then
-                local days = math.floor(h / 24)
+            local hh = d.fuel / draw
+            if hh >= 100 then
+                local days = math.floor(hh / 24)
                 hrs, unit = (days > 999) and "999+" or tostring(days), "DAYS"
             else
-                hrs = hhmm(h)
+                hrs = hhmm(hh)
             end
         end
     elseif d.fuel <= 0 then
         hrs = "00:00"
     end
-    UI.lcd(card, mx, top + T.px(2) + tm:getFontHeight(f5) + T.px(4), hrs, unit)
-    local litres = string.format("%.1f OF %d L", d.fuel, math.floor(d.max + 0.5))
-    card:drawText(litres, mx, top + T.px(2) + tm:getFontHeight(f5) + T.px(4) + T.px(30) + T.px(5), lab.r, lab.g, lab.b, 0.7, f5)
-    return ph
+    h = h + UI.pair(card, x, y + h, w, "RUN TIME LEFT", hrs .. " " .. unit, "FUEL", string.format("%.1f OF %d L", d.fuel, math.floor(d.max + 0.5)))
+    return h
 end
 
 function def.body(card, x, y, w, t, player)

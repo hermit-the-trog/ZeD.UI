@@ -1,0 +1,53 @@
+/* ZeD-UI: the watches this mod adds (director, Oct 16 2026).
+   The Timez Triathlon in steel: vanilla's Dress watch is gold (the gold CaZio on screen), so the steel
+   Timez is an item of its own. Built on vanilla's square wristwatch (the same wrist model as the Dress
+   watch, its own steel texture), worn on either wrist like every vanilla watch. On screen it wears the
+   timez_steel plate (ZeD_Watch.lua registers it). Loot: wherever the Dress watch turns up
+   (lua/server/Items/ZeD_WatchLoot.lua). */
+module Base
+{
+    item WristWatch_Left_DigitalTimez
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:alarmclockclothing,
+        Weight = 0.1,
+        Icon = ZeDWatchTimezSteel,
+        AlarmSound = WatchAlarmLoop,
+        BodyLocation = base:leftwrist,
+        ClothingExtraSubmenu = LeftWrist,
+        ClothingItem = WristWatch_Left_DigitalTimez,
+        ClothingItemExtra = Base.WristWatch_Right_DigitalTimez,
+        ClothingItemExtraOption = RightWrist,
+        Cosmetic = true,
+        MetalValue = 3.0,
+        SoundRadius = 7,
+        WorldStaticModel = ZeDDigitalWatchSteel,
+        Tags = base:digital;base:hasmetal;base:morewhennozombies,
+    }
+
+    item WristWatch_Right_DigitalTimez
+    {
+        DisplayCategory = Accessory,
+        ItemType = base:alarmclockclothing,
+        Weight = 0.1,
+        Icon = ZeDWatchTimezSteel,
+        AlarmSound = WatchAlarmLoop,
+        BodyLocation = base:rightwrist,
+        ClothingExtraSubmenu = RightWrist,
+        ClothingItem = WristWatch_Right_DigitalTimez,
+        ClothingItemExtra = Base.WristWatch_Left_DigitalTimez,
+        ClothingItemExtraOption = LeftWrist,
+        Cosmetic = true,
+        MetalValue = 3.0,
+        SoundRadius = 7,
+        WorldStaticModel = ZeDDigitalWatchSteel,
+        Tags = base:digital;base:hasmetal;base:morewhennozombies,
+    }
+
+    model ZeDDigitalWatchSteel
+    {
+        mesh = WorldItems/DigitalWatch,
+        texture = WorldItems/ZeDDigitalWatchSteel,
+        scale = 0.4,
+    }
+}

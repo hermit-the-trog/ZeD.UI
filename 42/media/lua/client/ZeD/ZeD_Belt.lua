@@ -34,7 +34,7 @@ local B = ZeD.Belt
 -- Constants (design units)
 -- ----------------------------------------------------------------------------
 local BOX, HAND = 44, 52
-local GAP, SIDE_GAP, PAD, END_GAP = 7, 14, 12, 10
+local GAP, SIDE_GAP, PAD, END_GAP = 11, 14, 12, 10   -- GAP 7 -> 11 (Oct 16 2026): each slot's strap material shows between the boxes
 local BUCKLE_W, BUCKLE_H = 58, 40   -- the profession buckle's own size (58 x 40 texels, one a unit)
 local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
@@ -49,7 +49,197 @@ local function hex(h)
     return { r = math.floor(n / 65536) / 255, g = (math.floor(n / 256) % 256) / 255, b = (n % 256) / 255, a = 1 }
 end
 local LEATHER_TOP, LEATHER_BOT, LEATHER_EDGE = hex("#5c4129"), hex("#3b2a1b"), hex("#1a1108")
-local STITCH = { r = 0.84, g = 0.70, b = 0.46, a = 0.55 }
+
+-- The strap in lit pixel art (director, Oct 16 2026: no stitching, more material, a light creaser line along each
+-- edge; art by ZeDUI/tools/physpx/d_belt.py): the left end, a 64-pixel middle that repeats without a seam, the right
+-- end, 30 texels tall, drawn at a whole multiple (like the buckle) so the pixels stay square.
+local STRAP_DIR = "media/textures/ZeD/belt/strap_"
+local STRAP_TEX_H, STRAP_TILE, STRAP_END = 30, 64, 8
+local _strapTex = {}
+local function strapTexture(part)
+    local t = _strapTex[part]
+    if t == nil then
+        t = Texture.getSharedTexture(STRAP_DIR .. part .. ".png", 3) or false   -- 3 = nearest filtering
+        _strapTex[part] = t
+    end
+    return t or nil
+end
+
+-- ----------------------------------------------------------------------------
+-- Each slot on its own attachment material (director, Oct 16 2026: "quick look you can see what is attached to
+-- what"). Every hotbar slot in vanilla comes from something worn (its AttachmentsProvided; the back slot is the
+-- body, or the bag on it): the strap behind a slot's box is that thing's material. The waist belt (whatever gives
+-- the belt slots) carries the buckle. Art: ZeDUI/tools/physpx/d_straps.py (the leather is d_belt.py's).
+-- B.MATERIALS is open: a mod's item adds its own line (full type -> material name).
+-- ----------------------------------------------------------------------------
+-- (a method call that never throws; the file's own `call` is declared further down)
+local function _call(o, m, ...)
+    if o == nil or o[m] == nil then return nil end
+    local ok, r = pcall(o[m], o, ...)
+    if ok then return r end
+    return nil
+end
+
+B.MATERIALS = B.MATERIALS or {}
+for ft, m in pairs({
+    ["Base.Belt2"] = "leather", ["Base.RopeBelt"] = "rope",
+    ["Base.Bag_ALICE_BeltSus"] = "webbing_olive", ["Base.Bag_ALICE_BeltSus_Green"] = "webbing_green",
+    ["Base.Bag_ALICE_BeltSus_Camo"] = "webbing_camo",
+    ["Base.SCBA"] = "harness", ["Base.SCBA_notank"] = "harness",
+    ["Base.Bag_NormalHikingBag"] = "pack", ["Base.Bag_BigHikingBag"] = "pack", ["Base.Bag_HikingBag_Travel"] = "pack",
+    ["Base.Bag_BigHikingBag_Travel"] = "pack", ["Base.Bag_SurvivorBag"] = "pack",
+    ["Base.Bag_ALICEpack"] = "webbing_olive", ["Base.Bag_ALICEpack_Army"] = "webbing_olive",
+    ["Base.Bag_ALICEpack_DesertCamo"] = "webbing_olive",
+    ["Base.Bag_CraftedFramepack_Large"] = "rope", ["Base.Bag_CraftedFramepack_Large2"] = "rope",
+    ["Base.Bag_CraftedFramepack_Large3"] = "rope", ["Base.Bag_TarpFramepack_Large"] = "rope",
+    ["Base.HolsterSimple"] = "holster_black", ["Base.HolsterSimple_Black"] = "holster_black",
+    ["Base.HolsterSimple_Brown"] = "holster_brown", ["Base.HolsterSimple_Green"] = "holster_green",
+    ["Base.Holster_DuctTape"] = "holster_tape", ["Base.Holster_Hide"] = "holster_hide",
+    ["Base.HolsterDouble"] = "holster_brown", ["Base.HolsterShoulder"] = "holster_brown", ["Base.HolsterAnkle"] = "holster_black",
+}) do if B.MATERIALS[ft] == nil then B.MATERIALS[ft] = m end end
+-- a provider no one named: by the slot's kind
+B.SLOT_MATERIAL = B.SLOT_MATERIAL or {
+    SmallBeltLeft = "leather", SmallBeltRight = "leather", WebbingLeft = "webbing_olive", WebbingRight = "webbing_olive",
+    HolsterRight = "holster_brown", HolsterLeft = "holster_brown", HolsterShoulder = "holster_brown", HolsterAnkle = "holster_black",
+    BedrollBottom = "pack", BedrollBottomBig = "pack", BedrollBottomALICE = "webbing_olive", Back = "sling",
+}
+-- worn things that are not bags but put a harness over the back (director, Oct 16 2026: the breathing pack's back slot
+-- is its harness, not the bare canvas sling); a bag on the back still wins. Open like B.MATERIALS.
+B.BACK_WORN = B.BACK_WORN or {}
+for ft, m in pairs({ ["Base.SCBA"] = "harness", ["Base.SCBA_notank"] = "harness" }) do
+    if B.BACK_WORN[ft] == nil then B.BACK_WORN[ft] = m end
+end
+local MAT_DIR = "media/textures/ZeD/belt/"
+local _matTex = {}
+local function matTexture(mat, part)
+    local key = mat .. "_" .. part
+    local t = _matTex[key]
+    if t == nil then
+        local path = (mat == "leather") and (STRAP_DIR .. part .. ".png") or (MAT_DIR .. key .. ".png")
+        t = Texture.getSharedTexture(path, 3) or false
+        _matTex[key] = t
+    end
+    return t or nil
+end
+B._matTexture = matTexture
+
+-- What closes the waist belt (director, Oct 16 2026: "rope is a knot. web/nylon belts get rectangle flat clip
+-- closure"): the leather belt keeps the profession buckle; the rope belt is tied in a knot; webbing and the breathing
+-- pack's nylon belt shut with the classic web-belt buckle (the director's references: GI brass on olive drab, black
+-- on black nylon). Art: ZeDUI/tools/physpx/d_closures.py, 58 x 40 like the buckle.
+-- B.CLOSURE is open: a mod's material adds its own line (material -> "buckle" | "knot" | "clip_brass" | "clip_black" |
+-- "clip_chrome"); none = no closure.
+B.CLOSURE = B.CLOSURE or {}
+for m, c in pairs({ leather = "buckle", rope = "knot", webbing_olive = "clip_brass", webbing_green = "clip_brass",
+                    webbing_camo = "clip_black", harness = "clip_black" }) do
+    if B.CLOSURE[m] == nil then B.CLOSURE[m] = c end
+end
+-- the rope belt stops under the knot between these two columns of the closure's 58 (d_closures.py KNOT_CUT): each
+-- rope's own strand takes over there, so the belt never shows through the knot
+B.KNOT_CUT = { 14, 44 }
+-- a closure's own height when it is not the buckle's 40 (the knot stands the hands' full 52 rows, for its frayed ends);
+-- centred on the buckle's place either way
+B.CLOSURE_H = B.CLOSURE_H or { knot = 52 }
+local _closureTex = {}
+local function closureTexture(kind)
+    local t = _closureTex[kind]
+    if t == nil then
+        t = Texture.getSharedTexture(MAT_DIR .. "closure_" .. kind .. ".png", 3) or false
+        _closureTex[kind] = t
+    end
+    return t or nil
+end
+
+-- The closure always sits between the belt's left and right slots (director, Oct 16 2026): after Belt L; before
+-- Belt R when there is no Belt L; with neither (no belt worn), in the middle of the row. Returns how many slots sit
+-- left of it.
+function B.closureAfter(slots)
+    local l, r
+    for i, s in ipairs(slots) do
+        local t = s and s.slot and s.slot.slotType
+        if t == "SmallBeltLeft" then l = i elseif t == "SmallBeltRight" then r = i end
+    end
+    if l then return l end
+    if r then return r - 1 end
+    return math.ceil(#slots / 2)
+end
+
+-- which worn item provides each slot type (the last to provide it, as vanilla gives the slot that item's icon),
+-- the bag on the back if any, and a harness worn on the back (B.BACK_WORN): { [slotType] = item, Back = bag or nil,
+-- BackWorn = item or nil }
+local function providers(chr)
+    local out = {}
+    local worn = chr and _call(chr, "getWornItems")
+    if not worn then return out end
+    for i = 0, worn:size() - 1 do
+        local item = worn:getItemByIndex(i)
+        if item and not _call(chr, "isHandItem", item) then
+            local ap = _call(item, "getAttachmentsProvided")
+            if ap then for j = 0, ap:size() - 1 do out[tostring(ap:get(j))] = item end end
+            if _call(item, "getAttachmentReplacement") == "Bag" then out.Back = item end
+            if B.BACK_WORN[tostring(_call(item, "getFullType") or "")] then out.BackWorn = item end
+        end
+    end
+    return out
+end
+
+-- the material behind a slot type, given the providers
+function B.materialFor(slotType, prov)
+    local item = prov and prov[slotType]
+    if item then
+        local m = B.MATERIALS[tostring(_call(item, "getFullType") or "")]
+        if m then return m end
+        if slotType == "Back" then return "pack" end            -- some other bag on the back
+    end
+    if slotType == "Back" and prov and prov.BackWorn then    -- no bag, but a harness over the back
+        return B.BACK_WORN[tostring(_call(prov.BackWorn, "getFullType") or "")] or "harness"
+    end
+    return B.SLOT_MATERIAL[slotType] or "leather"
+end
+
+-- the runs of strap from left to right: each slot's own (box plus half the gaps, the outer ones to the strap's ends),
+-- the waist belt's round the buckle, neighbours of one material merged into one piece. strap = {x, w}, boxes = the
+-- slot boxes in order, k = how many sit left of the buckle, gap = the gap in screen pixels, hole = {x0, x1} or nil:
+-- a stretch cut out of the strap (the rope's knot eye)
+function B.strapRuns(strapX, strapW, boxes, mats, waist, k, gap, hole)
+    local n = #boxes
+    local half = math.floor(gap / 2)
+    local runs = {}
+    for i = 1, n do
+        local b = boxes[i]
+        local x0 = (i == 1 and k >= 1) and strapX or (b.x - half)
+        local x1 = (i == n and k < n) and (strapX + strapW) or (b.x + b.w + half)
+        runs[i] = { x0, x1, mats[i] }
+    end
+    local lx0 = (k >= 1) and runs[k][2] or strapX
+    local lx1 = (k < n) and runs[k + 1][1] or (strapX + strapW)
+    local seq = {}
+    for i = 1, k do seq[#seq + 1] = runs[i] end
+    seq[#seq + 1] = { lx0, lx1, waist }
+    for i = k + 1, n do seq[#seq + 1] = runs[i] end
+    local out = {}
+    for _, r in ipairs(seq) do
+        local last = out[#out]
+        if r[2] > r[1] then
+            if last and last[3] == r[3] and last[2] >= r[1] - 1 then last[2] = r[2]
+            else out[#out + 1] = { r[1], r[2], r[3] } end
+        end
+    end
+    if hole then
+        -- the strap cut where the knot's eye is: a run across it becomes the piece up to it and the piece after it
+        local cut = {}
+        for _, r in ipairs(out) do
+            if r[1] < hole[2] and r[2] > hole[1] then
+                if hole[1] > r[1] then cut[#cut + 1] = { r[1], hole[1], r[3] } end
+                if r[2] > hole[2] then cut[#cut + 1] = { hole[2], r[2], r[3] } end
+            else
+                cut[#cut + 1] = r
+            end
+        end
+        out = cut
+    end
+    return out
+end
 local BRASS_A, BRASS_B, BRASS_C = hex("#e2c070"), hex("#9c7428"), hex("#4a3812")
 
 -- The player's profession buckle (director, Oct 15 2026; art by ZeDUI/tools/buckles/
@@ -327,7 +517,7 @@ function ZeD_BeltHUD:_layout(slots)
     local T = ZeD.T
     local px = T.px
     local n = #slots
-    local k = math.ceil(n / 2)
+    local k = B.closureAfter(slots)       -- the buckle / knot / clip goes between Belt L and Belt R
     local boxes = {}
     local hand, box = px(HAND), px(BOX)
     local h = hand
@@ -338,7 +528,10 @@ function ZeD_BeltHUD:_layout(slots)
     x = x + px(PAD)
     local by = math.floor((h - box) / 2)
     for i = 1, n do
-        if i == k + 1 then x = x + px(SIDE_GAP) + px(BUCKLE_W) + px(SIDE_GAP) - px(GAP) end
+        if i == k + 1 then
+            if k == 0 then x = x + px(BUCKLE_W) + px(SIDE_GAP)        -- the closure opens the strap
+            else x = x + px(SIDE_GAP) + px(BUCKLE_W) + px(SIDE_GAP) - px(GAP) end
+        end
         boxes[#boxes + 1] = { kind = "slot", i = i, s = slots[i], x = x, y = by, w = box, h = box }
         x = x + box + px(GAP)
     end
@@ -348,6 +541,8 @@ function ZeD_BeltHUD:_layout(slots)
         -- every slot on the left (one or none): the buckle closes the strap
         buckleX = x + px(SIDE_GAP)
         x = buckleX + px(BUCKLE_W)
+    elseif k == 0 then
+        buckleX = strapX + px(PAD)
     else
         buckleX = strapX + px(PAD) + k * box + (k - 1) * px(GAP) + px(SIDE_GAP)
     end
@@ -358,7 +553,38 @@ function ZeD_BeltHUD:_layout(slots)
     x = x + hand
     self._boxes = boxes
     self._strap = { x = strapX, y = math.floor((h - px(STRAP_H)) / 2), w = strapW, h = px(STRAP_H) }
+    -- each slot's material, the waist belt's under the buckle: providers looked up once a second, and at once when
+    -- the slots change (clothes put on or off)
+    local now = getTimestampMs and getTimestampMs() or 0
+    local sig = ""
+    for _, bx in ipairs(boxes) do
+        if bx.kind == "slot" then sig = sig .. tostring(bx.s and bx.s.slot and bx.s.slot.slotType or "") .. ";" end
+    end
+    if sig ~= self._provSig or not self._provAt or now - self._provAt > 1000 then
+        self._provAt, self._provSig = now, sig
+        self._prov = providers(self:player())
+    end
+    local prov = self._prov or {}
+    local mats, slotBoxes = {}, {}
+    for _, bx in ipairs(boxes) do
+        if bx.kind == "slot" then
+            slotBoxes[#slotBoxes + 1] = bx
+            mats[#mats + 1] = B.materialFor(bx.s and bx.s.slot and bx.s.slot.slotType or "", prov)
+        end
+    end
+    local waist = (prov.SmallBeltLeft or prov.SmallBeltRight) and
+        B.materialFor(prov.SmallBeltLeft and "SmallBeltLeft" or "SmallBeltRight", prov) or "leather"
     self._buckle = { x = buckleX, y = math.floor((h - px(BUCKLE_H)) / 2), w = px(BUCKLE_W), h = px(BUCKLE_H) }
+    -- the closure's art: 58 x 40 at the whole multiple ck, centred in the buckle's place
+    local ck = math.max(1, math.floor(T.scale or 1))
+    local cx = buckleX + math.floor((px(BUCKLE_W) - BUCKLE_W * ck) / 2)
+    local kind = B.CLOSURE[waist]
+    local hole = nil
+    if kind == "knot" and closureTexture("knot") then hole = { cx + B.KNOT_CUT[1] * ck, cx + B.KNOT_CUT[2] * ck } end
+    self._runs = B.strapRuns(strapX, strapW, slotBoxes, mats, waist, k, px(GAP), hole)
+    self._waist = waist
+    local chh = (kind and B.CLOSURE_H[kind]) or BUCKLE_H
+    self._closure = { kind = kind, x = cx, y = self._buckle.y + math.floor((px(BUCKLE_H) - chh * ck) / 2), k = ck, h = chh }
     return x, h
 end
 
@@ -416,9 +642,67 @@ local function dashedBorder(p, x, y, w, h, c, t)
     end
 end
 
+-- A filled circle in the box (x, y, s x s), built from one-pixel screen rows like ZeD.Atoms.drawStatusDot so its edge
+-- is crisp at every scale; the hands are round (director, Oct 16 2026: "make primary and secondary circles not square")
+local function disc(p, x, y, s, a, c)
+    local rad = s / 2
+    for row = 0, s - 1 do
+        local dy = math.abs(row - rad + 0.5)
+        local hw = math.floor(math.sqrt(math.max(0, rad * rad - dy * dy)) + 0.5)
+        if hw > 0 then p:drawRect(x + math.floor(rad) - hw, y + row, hw * 2, 1, a, c.r, c.g, c.b) end
+    end
+end
+-- its outline, t screen pixels thick
+local function ring(p, x, y, s, t, a, c)
+    local rad = s / 2
+    local inner = math.max(0, rad - t)
+    for row = 0, s - 1 do
+        local dy = math.abs(row - rad + 0.5)
+        local hw = math.floor(math.sqrt(math.max(0, rad * rad - dy * dy)) + 0.5)
+        if hw > 0 then
+            local iw = (dy < inner) and math.floor(math.sqrt(inner * inner - dy * dy) + 0.5) or 0
+            local cx = x + math.floor(rad)
+            if iw <= 0 then
+                p:drawRect(cx - hw, y + row, hw * 2, 1, a, c.r, c.g, c.b)
+            else
+                p:drawRect(cx - hw, y + row, hw - iw, 1, a, c.r, c.g, c.b)
+                p:drawRect(cx + iw, y + row, hw - iw, 1, a, c.r, c.g, c.b)
+            end
+        end
+    end
+end
+B._disc, B._ring = disc, ring
+
 function ZeD_BeltHUD:_drawStrap()
     local T = ZeD.T
     local s = self._strap
+    local runs = self._runs or { { s.x, s.x + s.w, "leather" } }
+    if strapTexture("mid") then
+        -- the pixel-art straps: whole multiple k, centred on the strap's row; each run its own piece (its two
+        -- cut ends and its middle repeated and clipped)
+        local k = math.max(1, math.floor(T.scale or 1))
+        local th, ew, tw = STRAP_TEX_H * k, STRAP_END * k, STRAP_TILE * k
+        local y = s.y + math.floor((s.h - th) / 2)
+        for _, r in ipairs(runs) do
+            local rx0, rx1, mat = r[1], r[2], r[3]
+            local L, M, R = matTexture(mat, "l"), matTexture(mat, "mid"), matTexture(mat, "r")
+            if not (L and M and R) then L, M, R = strapTexture("l"), strapTexture("mid"), strapTexture("r") end
+            local x0, x1 = rx0 + ew, rx1 - ew
+            if x1 > x0 then
+                self:setStencilRect(x0, y, x1 - x0, th)
+                local xx = x0
+                while xx < x1 do
+                    self:drawTextureScaled(M, xx, y, tw, th, 1, 1, 1, 1)
+                    xx = xx + tw
+                end
+                self:clearStencilRect()
+            end
+            self:drawTextureScaled(L, rx0, y, ew, th, 1, 1, 1, 1)
+            self:drawTextureScaled(R, rx1 - ew, y, ew, th, 1, 1, 1, 1)
+        end
+        return
+    end
+    -- the art missing: the plain leather (no stitching since Oct 16 2026)
     local bands = 6
     for i = 0, bands - 1 do
         local f = i / (bands - 1)
@@ -430,20 +714,20 @@ function ZeD_BeltHUD:_drawStrap()
     local e = T.px(1)
     self:drawRect(s.x, s.y, s.w, e, 1, col(LEATHER_EDGE))
     self:drawRect(s.x, s.y + s.h - e, s.w, e, 1, col(LEATHER_EDGE))
-    -- stitching along both edges
-    local d, g = T.px(4), T.px(3)
-    for _, sy in ipairs({ s.y + T.px(4), s.y + s.h - T.px(5) }) do
-        local xx = s.x + T.px(4)
-        while xx < s.x + s.w - T.px(4) do
-            self:drawRect(xx, sy, math.min(d, s.x + s.w - T.px(4) - xx), e, STITCH.a, STITCH.r, STITCH.g, STITCH.b)
-            xx = xx + d + g
-        end
-    end
 end
 
 function ZeD_BeltHUD:_drawBuckle()
     local T = ZeD.T
     local b = self._buckle
+    -- the closure by the waist belt's material (B.CLOSURE): the profession buckle on leather (and with no belt worn,
+    -- the default leather strap), a knot on rope, the flat clip on webbing and nylon
+    local c = self._closure
+    local kind = c and c.kind or "buckle"
+    if kind and kind ~= "buckle" then
+        local tex = closureTexture(kind)
+        if tex then self:drawTextureScaled(tex, c.x, c.y, BUCKLE_W * c.k, (c.h or BUCKLE_H) * c.k, 1, 1, 1, 1) end
+        return
+    end
     -- the profession's buckle, the largest whole multiple of 58 x 40 that fits, centred
     local p = self:player()
     local id = p and professionId(p)
@@ -477,9 +761,14 @@ function ZeD_BeltHUD:_drawBox(b, o)
     local p1 = T.px(1)
     local empty = not o.item
     local bg = empty and T.surf1 or T.surf2
-    self:drawRect(b.x, b.y, b.w, b.h, 0.95, col(bg))
-    if o.state == "fit" then self:drawRect(b.x, b.y, b.w, b.h, 0.14, col(T.accent)) end
-    if o.state == "fitHover" then self:drawRect(b.x, b.y, b.w, b.h, 0.22, col(T.accent)) end
+    local round = b.kind == "hand"
+    -- a fill over the whole box: the hands' a circle, the slots' a square
+    local function fill(a, c)
+        if round then disc(self, b.x, b.y, b.w, a, c) else self:drawRect(b.x, b.y, b.w, b.h, a, col(c)) end
+    end
+    fill(0.95, bg)
+    if o.state == "fit" then fill(0.14, T.accent) end
+    if o.state == "fitHover" then fill(0.22, T.accent) end
     -- the item, or the slot's name when empty
     if o.item then
         local tex = call(o.item, "getTex")
@@ -494,8 +783,12 @@ function ZeD_BeltHUD:_drawBox(b, o)
         local dc = T.textDim
         self:drawText(o.label, b.x + math.floor((b.w - lw) / 2), b.y + math.floor((b.h - tm:getFontHeight(f5)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f5)
     end
-    -- border: dashed accent while drawn, accent while a drop fits, else the line
-    if o.inHand then
+    -- border: dashed accent while drawn, accent while a drop fits, else the line (round on the hands)
+    if round then
+        if o.state == "fit" then ring(self, b.x, b.y, b.w, p1, 1, T.accent)
+        elseif o.state == "fitHover" then ring(self, b.x, b.y, b.w, p1 * 2, 1, T.accent)
+        else ring(self, b.x, b.y, b.w, p1, T.borderS.a or 1, T.borderS) end
+    elseif o.inHand then
         dashedBorder(self, b.x, b.y, b.w, b.h, T.accent, p1)
     elseif o.state == "fit" then
         self:drawRectBorder(b.x, b.y, b.w, b.h, 1, col(T.accent))
@@ -511,11 +804,15 @@ function ZeD_BeltHUD:_drawBox(b, o)
         local tag = o.inHand and "IN HAND" or "BOTH"
         local tw = tm:MeasureStringX(f5, tag)
         local ac = T.accent
-        self:drawText(tag, b.x + math.floor((b.w - tw) / 2), b.y + b.h - tm:getFontHeight(f5) - p1, ac.r, ac.g, ac.b, 1, f5)
+        local up = round and T.px(4) or 0                -- inside the circle's curve
+        self:drawText(tag, b.x + math.floor((b.w - tw) / 2), b.y + b.h - tm:getFontHeight(f5) - p1 - up, ac.r, ac.g, ac.b, 1, f5)
     elseif o.item then
         local f = B.cond(o.item)
         if f then
             local bx, by, bw = b.x + T.px(3), b.y + b.h - T.px(5), b.w - T.px(6)
+            if round then                                   -- a chord low in the circle
+                bw = math.floor(b.w * 0.56); bx = b.x + math.floor((b.w - bw) / 2); by = b.y + b.h - T.px(10)
+            end
             self:drawRect(bx, by, bw, T.px(3), 1, col(T.surf3))
             local fw = math.floor(bw * f)
             if fw > 0 then self:drawRect(bx, by, fw, T.px(3), 1, col(wearColor(T, f))) end
@@ -535,12 +832,18 @@ function ZeD_BeltHUD:_drawBox(b, o)
     -- a light or walkie that is on
     if o.lit and not o.inHand then
         local d = T.px(6)
-        ZeD.Atoms.drawStatusDot(self, b.x + b.w - d - T.px(3), b.y + T.px(3), T.warning, d)
+        local lx, ly = b.x + b.w - d - T.px(3), b.y + T.px(3)
+        if round then                                       -- on the circle's upper right, inside its edge
+            local rad = b.w / 2
+            lx = b.x + math.floor(rad + rad * 0.62 - d / 2) - T.px(2); ly = b.y + math.floor(rad - rad * 0.62 - d / 2) + T.px(2)
+        end
+        ZeD.Atoms.drawStatusDot(self, lx, ly, T.warning, d)
     end
-    if o.state == "no" then self:drawRect(b.x, b.y, b.w, b.h, 0.6, col(T.base)) end
+    if o.state == "no" then fill(0.6, T.base) end
     if o.focus then
         local ac = T.accent
-        self:drawRect(b.x - T.px(3), b.y - T.px(3), b.w + T.px(6), b.h + T.px(6), 0.55, ac.r, ac.g, ac.b)
+        if round then disc(self, b.x - T.px(3), b.y - T.px(3), b.w + T.px(6), 0.55, ac)
+        else self:drawRect(b.x - T.px(3), b.y - T.px(3), b.w + T.px(6), b.h + T.px(6), 0.55, ac.r, ac.g, ac.b) end
     end
 end
 

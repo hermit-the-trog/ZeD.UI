@@ -18,6 +18,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
+require "ZeD/ZeD_TabPx"
 require "ZeD/ObjectCards"
 require "ZeD/InventoryRenderer"
 require "ZeD/ItemCard"
@@ -1561,6 +1562,12 @@ local function drawWorldTabStrip(self, win)
             local isHover  = (mx >= 0 and mx < w and my >= curY and my < curY + T.px(ACTION_TAB_BTN_SZ))
             local isGpFocused = (gpFocusedTabId == tab.id) and not isActive
 
+            -- Oct 16 2026 (director): the tabs in lit pixel art (ZeD_TabPx), as
+            -- in the character window; a tab without a lit icon keeps the S113c look.
+            local TPX = ZeD.TabPx
+            if TPX and TPX.has(tab.id) then
+                TPX.drawTab(self, T.px(1), curY, w - T.px(1), T.px(ACTION_TAB_BTN_SZ) - T.px(1), tab.id, isActive, isHover or isGpFocused, T.px(1))
+            else
             -- S113c (KBM-parity): mouse hover and gamepad focus paint
             -- identically. Active = 0.55α fill + 2px right-edge strip.
             -- Hover/focus = 0.55α fill only.
@@ -1594,6 +1601,7 @@ local function drawWorldTabStrip(self, win)
                 local gy = curY + math.floor((T.px(ACTION_TAB_BTN_SZ) - fontH) / 2)
                 self:drawText(tab.glyph, gx, gy, color.r, color.g, color.b, color.a, font)
             end
+            end -- close the lit-tab if/else (Oct 16 2026)
 
             -- Bottom border between tabs
             local bd = T.border
