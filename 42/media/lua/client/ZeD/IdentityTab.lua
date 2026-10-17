@@ -174,15 +174,6 @@ local function getBodyHairName(char)
     return names[idx] or ("Level " .. idx)
 end
 
-local function getBuildLabel(weight)
-    if weight < 60 then return "Thin"
-    elseif weight < 75 then return "Lean"
-    elseif weight < 90 then return "Medium"
-    elseif weight < 105 then return "Heavy"
-    end
-    return "Large"
-end
-
 local function getFavouriteWeapon(char)
     local best, bestCount = nil, 0
     for key, val in pairs(char:getModData()) do
@@ -502,7 +493,6 @@ end
 
 local function renderTraitGroup(panel, traits, label, x, curY, contentW, color)
     local T    = ZeD.T
-    local A    = ZeD.Atoms
     local secH = ZeD.TM:getFontHeight(T.fontF1)
 
     -- Subheading (F1 Lo)
@@ -571,8 +561,6 @@ end
 function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
     local M    = ZeD.Molecules
-    local pad  = M.getTabPad()      -- 8px outer pad (unused in identity content but kept for future)
-    local padTop = M.getTabPadTop() -- 8px top pad below pinned header
 
     -- Throttled data refresh
     win._identityTimer = (win._identityTimer or 0) + 1

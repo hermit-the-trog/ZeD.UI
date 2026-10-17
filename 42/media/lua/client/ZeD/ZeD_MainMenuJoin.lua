@@ -40,7 +40,7 @@ local UI = MM.ui
 local LIST_SHARE = 0.56
 local TABS_H, FIND_H, FILTER_H, COLS_H, ROW_H, SUB_H = 30, 34, 30, 22, 46, 42
 local KV_LABEL_W, KV_ROW_H = 96, 20
-local FORM_LABEL_W, FORM_ROW_H, NOTE_H = 140, 34, 20
+local NOTE_H = 20
 
 local function ms() return MainScreen and MainScreen.instance end
 local function mp() local m = ms(); return m and m.multiplayer end

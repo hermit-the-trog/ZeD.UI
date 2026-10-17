@@ -255,16 +255,10 @@ local function _safeGet(dd, fnName, fallback)
     return v
 end
 
--- Format a PZ radio channel value to a display string.
 -- PZ stores channel as MHz × 1000 (vanilla RWMGeneral:setInfoLines line 80
 -- displays getChannel()/1000 .. " MHz" — so 88000 = 88 MHz, 96500 = 96.5 MHz).
 -- Always render as MHz with one decimal so the 0.1-step seek granularity is
 -- visible (88.0 → 88.1 → 88.2 ...).
-local function _formatFrequency(hz)
-    if hz == nil or hz == 0 then return "---.-" end
-    return string.format("%.1f MHz", hz / 1000)
-end
-
 -- Split formatted frequency into number + unit pair so the renderer can
 -- draw the number large and the unit smaller alongside.
 local function _splitFrequency(hz)
@@ -477,7 +471,6 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- spanning past the data column (so long station names don't collide
     -- with RANGE / SIG values). Frequency digits stay in the same Y
     -- regardless of power so toggling on/off doesn't shift them.
-    local row3AvailH = (y + h - pad) - cy
     local nameRowH   = channelH
     local nameRowY   = y + h - pad - nameRowH
     local nameGap    = T.px(6)
@@ -579,17 +572,15 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
         win._radioVolBtnZones    = {}  -- [1] = down, [2] = up
     end
 
-    local rec, btnColors, silkColor, pillBg, pillHi, pillSh
+    local rec, btnColors, silkColor
     if brand == "premium" then
         rec = T.radio.pt
         btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
         silkColor = rec.silkScreen
-        pillBg, pillHi, pillSh = rec.recessedBg, rec.recessedHi, rec.recessedSh
     else
         rec = T.radio.vt
         btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
         silkColor = rec.silkScreen
-        pillBg, pillHi, pillSh = rec.recessedBg, rec.recessedHi, rec.recessedSh
     end
 
     -- Recessed control-strip host

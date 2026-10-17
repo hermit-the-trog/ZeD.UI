@@ -225,7 +225,6 @@ function ZeD.Molecules.drawListRow(panel, x, y, w, item, hovered)
 
     -- Content positioning
     local cx = x + sp.sm  -- left padding
-    local cy = y  -- vertical center calculated per-element
 
     -- Icon (optional)
     if item.icon then
@@ -645,7 +644,6 @@ ZeD.Molecules.TextEntry = ZeD_TextEntry
 -- @return width  Total width of the chip (for layout math)
 function ZeD.Molecules.drawStatChip(panel, x, y, icon, value, state)
     local T = ZeD.T
-    local sp = T.sp
     local cx = x
 
     -- Pick value color based on state
@@ -2586,7 +2584,6 @@ end
 --- @return height
 function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, isSub, needsProbe)
     local T = ZeD.T
-    local A = ZeD.Atoms
 
     -- v13: label is sans-serif weight 600 (~T.fontF4 small) for main, fontF2 for sub
     -- v13: value is mono bold (T.fontF1)
@@ -3064,7 +3061,7 @@ end
 -- ============================================================================
 -- 22. SLOT ROW (draw helper)
 -- A 24px row in the craft card's required items list.
--- Grid: 2px edge · 18px icon · flex name+tag · count · 12px consumable flag
+-- Grid: 2px edge | 18px icon | flex name+tag | count | 12px consumable flag
 --
 -- data table: { name, displayName, iconTex, have, need, altCount, isKeep, isTool, tag }
 --   altCount: number of alternatives (nil or 0 = specific item, no alt click)
@@ -3281,7 +3278,7 @@ end
 
 -- ============================================================================
 -- 24. CRAFT ACTION STRIP (draw helper)
--- Bottom-pinned 42px strip: [qty stepper] · max readout · [BUILD] button.
+-- Bottom-pinned 42px strip: [qty stepper] | max readout | [BUILD] button.
 -- buildLabel: "CRAFT" or "BUILD" (tab-specific).
 -- canCraft: false disables the button (grey, no click).
 -- Returns: stripH (42), zones table for click dispatch
@@ -3379,7 +3376,6 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
     -- Active cell still uses the theme accent so selection feedback adapts.
     local ink    = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
     local paper  = { r = 0.95, g = 0.95, b = 0.95, a = 1 }
-    local muted  = T.textSec
     local accent = T.accent
     local accentBright = T.accentBright or T.accent
 
@@ -3760,7 +3756,6 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
     local paper  = { r = 1,    g = 1,    b = 1,    a = 1 }
     local muted  = { r = 0.42, g = 0.42, b = 0.42, a = 1 }
     local textC  = ink                                   -- primary text
-    local accent = T.accent                              -- accent stays theme-driven (submenu header tint)
     local good   = { r = 0.16, g = 0.49, b = 0.16, a = 1 }   -- darker green readable on white
     local bad    = { r = 0.76, g = 0.16, b = 0.16, a = 1 }   -- darker red readable on white
     local labelFont = T.fontF1   -- F1 Chrome — mono bold (was the floating label font)

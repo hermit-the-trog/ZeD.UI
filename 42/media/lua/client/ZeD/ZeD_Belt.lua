@@ -274,10 +274,6 @@ local function call(o, m, ...)
     if ok then return r end
     return nil
 end
-local function isGamepad()
-    local D = ZeD.Input and ZeD.Input.Detector
-    return (D and D.getMode and D.getMode() == "gamepad") or false
-end
 
 -- ----------------------------------------------------------------------------
 -- ZeD.Belt — slots, keys, names

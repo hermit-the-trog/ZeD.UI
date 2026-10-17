@@ -419,11 +419,11 @@ function ZeD_SeatChooser:prerender()
     local g = self._g
     local A, M = ZeD.Atoms, ZeD.Molecules
     local w = self.width
-    local tc, td = T.text, T.textDim
+    local tc = T.text
     local shift = (not self.joyfocus) and (isKeyDown(Keyboard.KEY_LSHIFT) or isKeyDown(Keyboard.KEY_RSHIFT))
 
     -- the band: the pointed seat (or door) and why not; with nothing pointed, your own seat
-    local s2, bs = T.surf2, T.borderS
+    local s2 = T.surf2
     self:drawRect(T.px(1), g.band.y, w - T.px(2), g.band.h, 1, T.surf1.r, T.surf1.g, T.surf1.b)
     A.drawDividerH(self, T.px(1), g.band.y + g.band.h - T.px(1), w - T.px(2), false)
     local name, why, dot

@@ -272,7 +272,6 @@ function ZeD_ContextMenu:_layout(T)
     -- Label X (panel-local). In truncating mode the selected cell is always
     -- at the visual center of the strip, so label centers on strip center.
     -- In non-truncating mode label tracks the actual cell.
-    local stripCenterLocal = 0  -- will be set after we know stripX
     local labelTargetX
     if self._ctx.truncating then
         labelTargetX = nil  -- will compute after stripX is known
@@ -388,7 +387,6 @@ end
 function ZeD_ContextMenu:prerender()
     if not self._ctx.open then return end
     local T = ZeD.T
-    local ctx = T.ctx
     local M = ZeD.Molecules
 
     -- Refresh visible items in case child lists changed (unusual but possible)
@@ -416,9 +414,7 @@ function ZeD_ContextMenu:prerender()
     --
     -- Target card was removed entirely: right-clicking already shows you what
     -- you clicked on (cursor sits below the strip on the click target).
-    local Registry = ZeD.ContextMenu.Registry
     local def = self._ctx.currentDef
-    local parent = self._ctx.parentDef
     local target = self._ctx.target
 
     local labelText = (def and def.name) or ""

@@ -34,7 +34,6 @@ CC.MAX_PINS        = 8
 CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
 
 -- Throttle intervals (frames)
-local SKILL_INTERVAL     = 30
 local CONTAINER_INTERVAL = 90
 
 -- Sort rank
@@ -1290,8 +1289,6 @@ end
 
 function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local T     = ZeD.T
-    local A     = ZeD.Atoms
-    local tm    = ZeD.TM
     local zones = state.zones
     local scroll = state.scroll
     local ROW_H = T.px(CC.ROW_H)
@@ -1537,9 +1534,7 @@ end
 
 function CC.renderAltList(panel, x, y, w, h, state)
     local T     = ZeD.T
-    local A     = ZeD.Atoms
     local tm    = ZeD.TM
-    local zones = state.zones
     local scroll = state.altScroll
     local ROW_H = T.px(CC.ROW_H)
 
