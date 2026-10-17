@@ -86,9 +86,6 @@ local EMPTY_PAD        = 40      -- padding for empty state text
 
 -- Zone detail view
 local ZINF_PAD         = 6       -- zone info band internal padding
-local ZINF_METER_W     = 120     -- wide fill meters in zone info band
-local ZINF_METER_H     = 8       -- fill meter bar height
-local ZINF_METER_GAP   = 10      -- gap between meters
 local AROW_H           = 48      -- animal roster row height
 local AROW_ICON_SZ     = 32      -- portrait icon size
 local AROW_DOT_SZ      = 7       -- stat dot diameter
@@ -106,7 +103,6 @@ local AHEAD_PAD        = 6       -- header internal padding
 local VITAL_BAR_W      = 100     -- fill bar width in vital rows
 local VITAL_BAR_H      = 8       -- fill bar height
 local VITAL_ROW_H      = 22      -- vital row height
-local DETAIL_PAD       = 6       -- detail view side padding
 local SECTION_GAP      = 8       -- gap between sections
 
 -- Butcher sub-mode
@@ -822,7 +818,6 @@ local function renderZoneCreateContent(panel, win, x, y, w, h)
     curY = curY + hdrH + pad
 
     -- Zone name
-    local lblFont = T.fontF1 or ZeD.T.fontF2
     local valFont = T.fontF3 or ZeD.T.fontF2
     local lblColor = T.textSec or T.textDim
     local nameFont = T.fontF4 or ZeD.T.fontF2
@@ -858,7 +853,6 @@ local function drawZoneCreateFooter(panel, win, x, y, w)
     local T = ZeD.T
     local A = ZeD.Atoms
     local zc = getZoneCreateState(win)
-    local sp = T.sp or {}
     local pad = T.px(6)
     local btnFont = T.fontF5 or ZeD.T.fontF2
     local btnH = T.px(BTN_H)
@@ -918,7 +912,6 @@ end
 
 local function drawEmptyState(panel, win, x, y, w, h)
     local T = ZeD.T
-    local A = ZeD.Atoms
     local tm = ZeD.TM
 
     -- Measure content block to center it vertically
@@ -1336,7 +1329,6 @@ end
 
 local function drawTotals(panel, x, y, w, totals)
     local T = ZeD.T
-    local A = ZeD.Atoms
     local pad = T.px(ZCARD_PAD)
     local curY = y
 
@@ -1406,11 +1398,8 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     end
 
     local T = ZeD.T
-    local A = ZeD.Atoms
     local M = ZeD.Molecules
     local pad = M.getTabPad()
-    local padTop = M.getTabPadTop()
-    local headerH = M.getTabHeaderH()
 
     -- Section collapse state
     if not win._animalsOverviewState then
@@ -2148,7 +2137,6 @@ local function renderRanchZone(panel, win, x, y, w, h)
     end
 
     local pad = M.getTabPad()
-    local padTop = M.getTabPadTop()
     local scrollW = T.sp.scrollbarW
 
     -- Reset click zones
@@ -2332,7 +2320,6 @@ local function drawAnimalHeader(panel, x, y, w, animal, player)
     local tags = ad.getConditionTags(animal, player)
     if #tags > 0 then
         local badgeFont = T.fontF5 or ZeD.T.fontF2
-        local badgePadX = T.sp and T.sp.badgePadX or T.px(4)
         local bx = textX
         for _, tag in ipairs(tags) do
             local variant = tag.sev
@@ -2600,7 +2587,6 @@ local function drawBreedingSection(panel, x, y, w, animal, player)
     local isPregnant = ad.isPregnant(animal)
     if isPregnant then
         local pregText = "Pregnant"
-        local pregColor = T.info
         if ad.canSee(player, "pregnancy_bar") then
             local current, total = ad.getPregnancyProgress(animal)
             local ratio = total > 0 and (current / total) or 0
@@ -3008,7 +2994,6 @@ local function renderButcherOverview(panel, win, x, y, w, h)
     end
 
     local pad = M.getTabPad()
-    local padTop = M.getTabPadTop()
     local scrollW = T.sp.scrollbarW
 
     win._animalsButcherZones = {}

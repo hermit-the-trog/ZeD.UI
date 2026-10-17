@@ -43,19 +43,9 @@ local TAB_TOP_PAD   = 13  -- aligns tab strip bottom with inventory column heade
 
 local wrapText = ZeD.Atoms.wrapText
 
--- Recipe status map (2 states)
-local RECIPE_STATUS = {
-    known   = { token = "positive", label = "KNOWN" },
-    unknown = { token = "textDim",  label = "UNKNOWN", ghost = true },
-}
-
-local RCP_DOT_GAP   = 4
-local RCP_DETAIL_PAD = 26
-
 -- Recipe icon grid constants (matches CraftingTab)
 local RCELL_SZ   = 43
 local RCELL_GAP  = 3
-local RCELL_STEP = RCELL_SZ + RCELL_GAP
 
 local truncText = ZeD.Atoms.truncateText
 
@@ -675,7 +665,6 @@ local function renderJournal(panel, win, x, y, w, h)
     local curY = y - scrollOff + T.sp.sm
 
     -- Kills stat (expandable disclosure)
-    local killColor = data.totalKills > 0 and T.danger or T.textDim
     local chevSz = math.max(T.px(6), math.floor(ZeD.TM:getFontHeight(T.fontF1) * 0.6))
     local chevronW = chevSz + T.px(8)
     win._killsRowY = curY
@@ -849,7 +838,6 @@ local function renderJournal(panel, win, x, y, w, h)
                         dateStr = dateStr .. " | " .. tostring(entry.source.name) .. ", page " .. tostring(entry.source.page)
                     end
 
-                    local entryTopY = curY
                     dateStr = truncText(dateStr, T.fontF3, drawW - deleteBtnW - T.px(4))
                     panel:drawText(dateStr, x, curY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF3)
 
@@ -898,7 +886,6 @@ end
 -- RECIPE DETAIL — helpers for ingredient checking (matches CraftingTab pattern)
 -- ============================================================================
 
-local DETAIL_CONTAINER_INTERVAL = 60
 
 --- Gather detail (ingredients + skills) for one selected recipe item.
 -- Uses CraftingCore shared utilities for container building, counting, and perk lookup.

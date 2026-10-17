@@ -378,7 +378,6 @@ end
 -- ============================================================================
 
 local function drawChip(panel, x, y, text, style, T)
-    local A = ZeD.Atoms
     local tm = ZeD.TM
     local font = T.fontF1
     local tw = tm:MeasureStringX(font, text)
@@ -607,7 +606,6 @@ local function drawHero(panel, win, x, y, w)
 
     -- Cell B — info (middle, between scene and radius)
     local infoX = x + sceneW + T.px(1) + T.px(HERO_PAD)
-    local infoW = radX - (x + sceneW + T.px(1)) - T.px(HERO_PAD) * 2
 
     -- Zone name (Chicago heading font)
     local zoneName = win._frameZone or "Unknown"
@@ -913,7 +911,6 @@ local function drawMoreBody(panel, win, x, y, w)
     if not win._moreDetailOpen then return 0 end
 
     local curY = y
-    local T = ZeD.T
     local categories = win._frameCategories or {}
     local modifiers  = win._frameModifiers  or {}
     local netMod     = win._frameNetMod     or 0
@@ -1099,7 +1096,6 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
     -- Scroll state
     local scroll = win._forageScroll
     local scrollOff = 0
-    local contentH = 0  -- will measure total content height
 
     -- First pass: measure total content height for scroll
     -- (We draw directly with scroll offset applied)

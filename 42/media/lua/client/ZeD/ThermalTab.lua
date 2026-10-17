@@ -71,7 +71,6 @@ for _, bp in ipairs(BODY_PART_TYPES) do
 end
 
 -- Figure top padding (Zone A height driven by right column content)
-local FIGURE_PAD_TOP = ZeD.Spacing.figurePadTop
 
 -- ============================================================================
 -- COLOR HELPERS
@@ -151,7 +150,6 @@ end
 
 function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
-    local A    = ZeD.Atoms
     local M    = ZeD.Molecules
     local pad  = M.getTabPad()      -- 8px outer pad
     local padTop = M.getTabPadTop() -- 8px top pad below pinned header
@@ -427,7 +425,6 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
 
     local headH = ZeD.TM:getFontHeight(T.fontF4)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
-    local tc    = T.text
 
     -- Active view
     local viewIdx = win._thermalView or 1
@@ -511,7 +508,6 @@ end
 
 function ZeD.ThermalTab._renderDetailView(panel, win, data, partName, rx, ry, rw, rh)
     local T    = ZeD.T
-    local A    = ZeD.Atoms
     local M    = ZeD.Molecules
 
     local nodeData = data.nodes[partName]

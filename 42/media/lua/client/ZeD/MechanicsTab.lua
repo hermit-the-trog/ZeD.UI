@@ -52,7 +52,6 @@ local PICK_H        = 26
 local FIX_H         = 38
 local MINI_BAR_W    = 40
 local PCT_W         = 34
-local INFO_W        = 110
 local SCROLL_STEP   = 48
 local CHANCE_H      = 13
 local FLASH_MS      = 1600
@@ -1216,7 +1215,6 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
         cy = cy + ch + T.px(8)
     else
         -- empty state below the figure
-        local dc = T.textDim
         local t1 = "Inspect the " .. vehicleName(v) .. " to read its parts"
         local ty = cy + T.px(14)
         local ac = T.accent

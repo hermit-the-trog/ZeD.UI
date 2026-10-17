@@ -413,7 +413,7 @@ function ZeD.Atoms.drawBadge(panel, text, x, y, variant, disabled, font, noUpper
     local totalH = ZeD.TM:MeasureStringY(bdFont, text) + padY * 2
 
     -- Pick colors based on variant
-    local fgColor, bgAlpha
+    local fgColor
     if variant == "danger" then
         fgColor = T.danger
     elseif variant == "warning" then

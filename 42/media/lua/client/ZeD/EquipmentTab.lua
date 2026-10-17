@@ -79,9 +79,6 @@ end
 local GROUP_H    = 15  -- group header height (matches T.sp.catHdrH)
 local COND_BAR_W = 80  -- condition bar width
 local PROT_COL_W = 32  -- protection stat column width
-local SWATCH_SZ  = 18  -- item swatch square size
-local TRI_SZ     = 7   -- disclosure triangle size
-local BADGE_SZ   = 13  -- attachment count badge size
 
 -- Pre-computed label column width (widest label across all slots, measured lazily)
 local _labelColW = nil
@@ -347,7 +344,6 @@ local function _drawDefenseDetailView(panel, win, protData, partName, rx, ry, rw
 
     -- Resolve figure display name → PZ part key
     local FIGURE_TO_PART = ZeD.ProtectionTab.FIGURE_TO_PART
-    local PART_NAMES     = ZeD.ProtectionTab.PART_NAMES
     local partStr = FIGURE_TO_PART[partName]
     if not partStr then return end
 
@@ -416,12 +412,8 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
     -- (was: gated on expanded; defense body is always rendered now)
 
     -- --- Dashboard content ---
-    local headH = ZeD.TM:getFontHeight(T.fontF1)
-    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
-    local cw   = w
-    local halfW = math.floor(cw / 2)
     local figW = T.sp.figureW
     local figH = T.sp.figureH
     local contentY = y + headerH
@@ -940,9 +932,6 @@ end
 
 function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local T   = ZeD.T
-    local A   = ZeD.Atoms
-    local M   = ZeD.Molecules
-    local pad = M.getTabPad()
 
     -- Throttled data refresh
     win._equipTimer = (win._equipTimer or 0) + 1
@@ -1040,7 +1029,6 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local defBodyH = math.max(0, defDashH - headerH)
     local slotRowH = T.rowH
     local groupHeaderH_pre = T.px(GROUP_H)
-    local padTop = ZeD.Molecules.getTabPadTop()
     local hasDefBody = defBodyH > 0
     -- Layout: equipped inventory list first (collapsible), defense body below
     -- (always visible). T.sp.figurePadTop is the canonical gap above body

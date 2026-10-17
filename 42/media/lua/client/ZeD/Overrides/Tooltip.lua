@@ -122,7 +122,6 @@ local function applyTooltipOverrides()
             return _vanilla_render(self)
         end
 
-        local pad = T.sp and T.sp.sm or T.px(8)
 
         -- Positioning (identical to vanilla; S124 scale: cursor / screen offsets stay vanilla px)
         local mx = getMouseX() + 32

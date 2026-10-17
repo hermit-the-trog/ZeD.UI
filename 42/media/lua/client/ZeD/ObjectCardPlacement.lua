@@ -16,7 +16,6 @@ require "ZeD/ObjectCards"
 
 local OC = ZeD.ObjectCards
 local UI = OC.ui
-local call = OC.call
 local DEG = string.char(176)
 
 local MOVE_NUDGE, TURN_NUDGE = 0.01, 15

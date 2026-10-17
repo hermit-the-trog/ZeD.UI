@@ -279,7 +279,6 @@ end
 
 function ZeD.ProtectionTab._measureRightColumn(data)
     local T     = ZeD.T
-    local headH = ZeD.TM:getFontHeight(T.fontF1)
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
     -- Stacked stat: label + labelValueGap + value + afterGap

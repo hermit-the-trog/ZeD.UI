@@ -2679,7 +2679,6 @@ local function drawContainerStrip(self, win, content)
         local mcCountM = #(win._mcSelected or {})
         if mainVis and mcCountM > 0 then
             local badge = tostring(mcCountM + 1)
-            local bw = ZeD.TM:MeasureStringX(font, badge)
             local bx = T.px(4)
             local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
             local ac = T.accent
@@ -5211,7 +5210,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local scrollW = T.sp.scrollbarW
     local countSelected        = r.countSelected
     local findIndex            = r.findIndex
-    local collectSelectedItems = r.collectSelectedItems
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)
@@ -5486,7 +5484,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     content.onMouseMove = function(self, dx, dy)
         local T = ZeD.T
-        local mx = self:getMouseX()
         local my = self:getMouseY()
         self._scroll:handleMouseMove(my)
 

@@ -1222,7 +1222,6 @@ end
 -- Dispatches to renderItemList per column with state swapping.
 -- ============================================================================
 
-local COL_HDR_H = 22  -- container name header height per column
 
 local function renderMultiColumnContent(self)
     local T = ZeD.T
