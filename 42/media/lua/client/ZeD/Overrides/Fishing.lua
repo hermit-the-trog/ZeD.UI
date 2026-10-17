@@ -83,7 +83,8 @@ end
 function F.draw(self, ox, oy, k, t)
     local i = 0
     if t > 0 then i = math.floor(math.min(1, t) * F.FRAMES + 0.5) end
-    local tex = getTexture(F.TEXDIR .. string.format("%02d", i) .. ".png")
+    -- nearest filtering (3), so the pixel art stays square at 2x / 4x (Oct 16 2026: getTexture smoothed it)
+    local tex = Texture.getSharedTexture(F.TEXDIR .. string.format("%02d", i) .. ".png", 3)
     local a = F.ANCH[i + 1]
     if not (tex and a) then return false end
     self:drawTextureScaledAspect(tex, ox, oy, F.W * k, F.H * k, 1, 1, 1, 1)
