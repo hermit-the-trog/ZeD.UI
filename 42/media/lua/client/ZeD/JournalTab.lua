@@ -1,11 +1,12 @@
 -- ZeD-UI/42/media/lua/client/ZeD/JournalTab.lua
 -- ============================================================================
 -- JOURNAL TAB — 4 sub-tabs inside the drawer.
---   [Journal | Recipes | Maps | Flyers]
---   Journal:  survival logbook + BBS-style diary (full width)
---   Recipes:  all learnable recipes grouped by skill, status dots, expandable
---   Maps:     embedded UIWorldMap with accumulated stash map + flyer markers
---   Flyers:   collected print media gallery with thumbnails from FlyerPics/
+--   [Journal | Notebooks | Papers | Recipes]
+--   Journal:   survival logbook + BBS-style diary (full width); Save can also
+--              write the entry into a carried notebook (Into)
+--   Notebooks: carried notebooks, the page small, a quick note (ZeD_JournalReaders)
+--   Papers:    carried newspapers, flyers, brochures; quick look (ZeD_JournalReaders)
+--   Recipes:   all learnable recipes grouped by skill, status dots, expandable
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -13,6 +14,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/CraftingCore"
+require "ZeD/ZeD_JournalReaders"
 
 ZeD = ZeD or {}
 ZeD.JournalTab = {}
@@ -58,11 +60,13 @@ local RCELL_STEP = RCELL_SZ + RCELL_GAP
 local truncText = ZeD.Atoms.truncateText
 
 -- Sub-tab definitions
+-- (Oct 16 2026, mockup zed_reader_v2: Flyers became Papers, Notebooks added; the
+-- Character window reads these by index: 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes)
 local SUB_TABS = {
-    { id = "journal", label = "Journal" },
-    { id = "recipes", label = "Recipes" },
-    -- { id = "maps",    label = "Maps" },  -- S67: moved to World Window MapsTab
-    { id = "flyers",  label = "Flyers" },
+    { id = "journal",   label = "Journal" },
+    { id = "notebooks", label = "Notebooks" },
+    { id = "papers",    label = "Papers" },
+    { id = "recipes",   label = "Recipes" },
 }
 
 -- ============================================================================
@@ -512,8 +516,12 @@ local function drawSubTabStrip(panel, win, x, y, w)
     -- Position active search field to the right of the tabs
     local searchField = nil
     if activeIdx == 1 then searchField = win._journalSearch
-    elseif activeIdx == 3 then
-        if not win._flyerOpenIdx then searchField = win._flyerSearch end
+    elseif activeIdx == 2 or activeIdx == 3 then
+        -- Notebooks and Papers share one search box (cleared on a sub-tab switch)
+        if ZeD.JournalReaders.searchVisible(win, activeIdx) and win._flyerSearch then
+            searchField = win._flyerSearch
+            searchField.placeholder = ZeD.JournalReaders.searchHint(activeIdx)
+        end
     end
     if searchField and searchField:isVisible() then
         local searchGap = T.sp.sm
@@ -733,6 +741,8 @@ local function renderJournal(panel, win, x, y, w, h)
         local btnX = x + drawW - btnW
         saveBtn:setX(btnX)
         saveBtn:setY(curY)
+        -- Into: the log only, or a carried notebook the character writes it in too
+        ZeD.JournalReaders.drawLogInto(panel, win, x, curY, drawW - btnW - T.sp.sm, T.buttonH)
         -- S105 gamepad: stamp save button hit zone + paint focus cue BEHIND
         -- the button's own render (button is a drawer child, so its prerender
         -- fires after this panel's prerender — cue ends up visually under it,
@@ -834,8 +844,13 @@ local function renderJournal(panel, win, x, y, w, h)
                     local dateStr  = "Day " .. tostring(survDay) .. "  "
                         .. monthStr .. " " .. dayStr .. ", " .. yearStr
                         .. " - " .. hourStr
+                    -- written into a notebook too: which, and the page
+                    if entry.source and entry.source.name then
+                        dateStr = dateStr .. " | " .. tostring(entry.source.name) .. ", page " .. tostring(entry.source.page)
+                    end
 
                     local entryTopY = curY
+                    dateStr = truncText(dateStr, T.fontF3, drawW - deleteBtnW - T.px(4))
                     panel:drawText(dateStr, x, curY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF3)
 
                     -- Delete X button (right-aligned on date row)
@@ -1737,509 +1752,6 @@ local function renderMaps(panel, win, x, y, w, h)
 end
 
 -- ============================================================================
--- FLYER CATALOG (built once, module-level cache)
--- ============================================================================
-
-local _flyerCatalog = nil
-
---- Build flyer catalog from PrintMediaDefinitions.MiscDetails.
--- Attempts to load textures from FlyerPics/ using capitalized key names.
-local function buildFlyerCatalog()
-    if _flyerCatalog then return _flyerCatalog end
-    _flyerCatalog = {}
-
-    if not PrintMediaDefinitions or not PrintMediaDefinitions.MiscDetails then
-        return _flyerCatalog
-    end
-
-    -- Collect and sort keys for stable ordering
-    local keys = {}
-    for key, _ in pairs(PrintMediaDefinitions.MiscDetails) do
-        keys[#keys + 1] = key
-    end
-    table.sort(keys)
-
-    for _, key in ipairs(keys) do
-        -- Capitalize first letter for texture lookup
-        local texName = key:sub(1, 1):upper() .. key:sub(2)
-        local texPath = "media/textures/printMedia/FlyerPics/" .. texName .. ".png"
-        local tex = getTexture(texPath)
-
-        -- Build display name: insert spaces before uppercase runs in the key
-        local displayName = texName:gsub("(%l)(%u)", "%1 %2")
-                                   :gsub("(%u+)(%u%l)", "%1 %2")
-                                   :gsub("(%a)(%d)", "%1 %2")
-
-        _flyerCatalog[#_flyerCatalog + 1] = {
-            key         = key,
-            displayName = displayName,
-            texture     = tex,
-            hasLocation = PrintMediaDefinitions.MiscDetails[key].location1 ~= nil,
-        }
-    end
-
-    return _flyerCatalog
-end
-
--- ============================================================================
--- FLYER COLLECTION DATA — tracks read/unread state via getReadPrintMedia()
--- ============================================================================
-
-local function gatherFlyerCollectionData(win)
-    win._flyerCollectTimer = (win._flyerCollectTimer or 60) + 1
-    if win._flyerCollectTimer < 60 and win._flyerCollected then return end
-    win._flyerCollectTimer = 0
-
-    local collected = {}
-    local count = 0
-    local ok, readSet = pcall(function() return win._playerObj:getReadPrintMedia() end)
-    if ok and readSet then
-        local iter = readSet:iterator()
-        while iter:hasNext() do
-            local id = iter:next()
-            collected[id] = true
-            count = count + 1
-        end
-    end
-    win._flyerCollected   = collected
-    win._flyerCollectedCt = count
-end
-
--- ============================================================================
--- RENDERER — FLYERS SUB-TAB (collected print media gallery)
--- ============================================================================
-
-local FLYER_MIN_THUMB_W = 60  -- minimum thumbnail width
-local FLYER_TARGET_COLS = 5   -- preferred column count
-local FLYER_COL_GAP = 6      -- gap between columns
-local FLYER_ROW_GAP = 6      -- gap between rows
-
--- Flyer filter/sort modes — single cycle button advances through these
-local FLYER_MODES = {
-    { id = "all_az",  label = "All A-Z" },
-    { id = "all_za",  label = "All Z-A" },
-    { id = "read",    label = "Read" },
-    { id = "unread",  label = "Unread" },
-    { id = "on_map",  label = "On map" },
-}
-
---- Render detail view: flyer fills drawer width, scrollable vertically
-local function renderFlyerDetail(panel, win, x, y, w, h)
-    local T   = ZeD.T
-    local A   = ZeD.Atoms
-    local tm  = ZeD.TM
-    local secH  = tm:getFontHeight(T.fontF1)
-    local pad = T.sp.sm
-
-    -- S105 gamepad: live focused element id for back-button cue.
-    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local gpFocusedId = nil
-    if Focus and Focus.getFocusedZone and Focus.getFocusedElement then
-        local fz = Focus.getFocusedZone(win)
-        if fz and fz.zone == "charTabContent" then
-            local fe = Focus.getFocusedElement(win)
-            gpFocusedId = fe and fe.id or nil
-        end
-    end
-
-    local catalog = buildFlyerCatalog()
-    local idx = win._flyerOpenIdx
-    local flyer = catalog[idx]
-    if not flyer then
-        win._flyerOpenIdx = nil
-        return
-    end
-
-    -- Scroll setup (reuse flyers scroll for detail view)
-    local scroll  = win._flyersScroll
-    local scrollW = T.sp.scrollbarW
-
-    -- Image fills width, height from aspect ratio
-    local imgW = w - pad * 2 - scrollW - T.px(2)
-    local imgH = imgW  -- default square if no texture
-    if flyer.texture then
-        local texW = flyer.texture:getWidth()
-        local texH = flyer.texture:getHeight()
-        imgH = math.floor(imgW * (texH / texW))
-    end
-
-    -- Total content: back button + image
-    local backH = T.buttonH
-    local totalContentH = pad + backH + pad + imgH + pad
-
-    local needsScroll = totalContentH > h
-    scroll.visible = needsScroll
-    local drawW = w
-    if needsScroll then
-        scroll.x = x + w - scrollW
-        scroll.y = y
-        scroll.height = h
-        scroll:setBarSize(h / totalContentH)
-        drawW = w - scrollW - T.px(2)
-        imgW = drawW - pad * 2
-        if flyer.texture then
-            local texW = flyer.texture:getWidth()
-            local texH = flyer.texture:getHeight()
-            imgH = math.floor(imgW * (texH / texW))
-        end
-        totalContentH = pad + backH + pad + imgH + pad
-        scroll:setBarSize(h / totalContentH)
-    else
-        scroll:setScrollPos(0)
-    end
-
-    -- S105 gamepad: grid-scroll pseudo-zone for flyer detail. Covers the
-    -- image region below the back button; D-pad up/down on this pseudo-zone
-    -- scrolls the flyer image. Only stamped when scrolling is actually
-    -- needed (tall flyer doesn't fit viewport).
-    if needsScroll then
-        win._flyerDetailScrollZone = { x = x, y = y, w = drawW, h = h }
-    else
-        win._flyerDetailScrollZone = nil
-    end
-
-    local stencilW = needsScroll and (w - scrollW) or w
-    panel:setStencilRect(x, y, stencilW, h)
-
-    local scrollOff = 0
-    if needsScroll then
-        scrollOff = math.floor(scroll.scrollPos * (totalContentH - h))
-    end
-
-    local curY = y - scrollOff + pad
-
-    -- Back button (top-left)
-    local backLabel = "< Back"
-    local backW = tm:MeasureStringX(T.fontF1, backLabel) + T.sp.md * 2
-    local backX = x + pad
-
-    local bc = T.borderS
-    panel:drawRect(backX, curY, backW, backH, T.surf2.a, T.surf2.r, T.surf2.g, T.surf2.b)
-    panel:drawRectBorder(backX, curY, backW, backH, bc.a, bc.r, bc.g, bc.b)
-    -- S105 gamepad: focus cue over the back button. Paints on top of the
-    -- surf2 fill; label renders after so it's readable over accent.
-    if gpFocusedId == "flyer:__back" then
-        local ac = T.accent
-        panel:drawRect(backX, curY, backW, backH, 0.55, ac.r, ac.g, ac.b)
-    end
-    local btY = curY + math.floor((backH - secH) / 2)
-    local tc = T.toneNorm
-    panel:drawText(backLabel, backX + T.sp.md, btY, tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
-
-    -- Store back button zone for click detection
-    win._flyerBackZone = { x = backX, y = curY, w = backW, h = backH }
-    curY = curY + backH + pad
-
-    -- Flyer image: fills width, natural aspect ratio, scrollable
-    local imgX = x + pad
-    if flyer.texture then
-        panel:drawTextureScaledAspect(flyer.texture, imgX, curY,
-            imgW, imgH, 1.0, 1, 1, 1)
-        local bd = T.border
-        panel:drawRectBorder(imgX, curY, imgW, imgH, bd.a * 0.3, bd.r, bd.g, bd.b)
-    else
-        local bg = T.surf2
-        panel:drawRect(imgX, curY, imgW, imgH, bg.a * 0.5, bg.r, bg.g, bg.b)
-        local msg = "No preview available"
-        local msgW = tm:MeasureStringX(T.fontF1, msg)
-        local dc = T.textDim
-        panel:drawText(msg, imgX + math.floor((imgW - msgW) / 2),
-            curY + math.floor(imgH / 2), dc.r, dc.g, dc.b, 0.5, T.fontF1)
-    end
-
-    panel:clearStencilRect()
-
-    if needsScroll then
-        scroll:draw(panel)
-    end
-end
-
-local function renderFlyers(panel, win, x, y, w, h)
-    -- Detail view: single flyer fills the drawer
-    if win._flyerOpenIdx then
-        renderFlyerDetail(panel, win, x, y, w, h)
-        return
-    end
-
-    local T    = ZeD.T
-    local A    = ZeD.Atoms
-    local tm   = ZeD.TM
-    local secH = tm:getFontHeight(T.fontF1)
-
-    -- S105 gamepad: live focused element id for cue paints (mode pill + thumbs).
-    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local gpFocusedId = nil
-    if Focus and Focus.getFocusedZone and Focus.getFocusedElement then
-        local fz = Focus.getFocusedZone(win)
-        if fz and fz.zone == "charTabContent" then
-            local fe = Focus.getFocusedElement(win)
-            gpFocusedId = fe and fe.id or nil
-        end
-    end
-
-    -- Search field positioned by drawSubTabStrip (in header, right of tabs)
-
-    local catalog = buildFlyerCatalog()
-
-    -- Refresh read/unread collection data (throttled)
-    gatherFlyerCollectionData(win)
-    local collected = win._flyerCollected or {}
-    local collectedCt = win._flyerCollectedCt or 0
-
-    -- Filter by search text
-    local searchQ = win._flyerSearchText or ""
-    if searchQ ~= "" then
-        local q = string.lower(searchQ)
-        local filtered = {}
-        for _, flyer in ipairs(catalog) do
-            if string.lower(flyer.displayName):find(q, 1, true) then
-                filtered[#filtered + 1] = flyer
-            end
-        end
-        catalog = filtered
-    end
-
-    -- Apply mode filter/sort (cycle button)
-    local modeIdx = win._flyerModeIdx or 1
-    local mode = FLYER_MODES[modeIdx]
-    if mode then
-        if mode.id == "all_za" then
-            -- Reverse alphabetical (catalog is already A-Z from buildFlyerCatalog)
-            local reversed = {}
-            for i = #catalog, 1, -1 do reversed[#reversed + 1] = catalog[i] end
-            catalog = reversed
-        elseif mode.id == "read" then
-            local f = {}
-            for _, flyer in ipairs(catalog) do
-                if collected[flyer.key] then f[#f + 1] = flyer end
-            end
-            catalog = f
-        elseif mode.id == "unread" then
-            local f = {}
-            for _, flyer in ipairs(catalog) do
-                if not collected[flyer.key] then f[#f + 1] = flyer end
-            end
-            catalog = f
-        elseif mode.id == "on_map" then
-            local f = {}
-            for _, flyer in ipairs(catalog) do
-                if flyer.hasLocation then f[#f + 1] = flyer end
-            end
-            catalog = f
-        end
-        -- "all_az" is the default order — no transform needed
-    end
-
-    -- S105 gamepad: cache last frame's zones BEFORE clearing for scroll-follow.
-    local lastFlyerClickZones = win._flyerClickZones
-    local lastFlyerModeZone   = win._flyerModeZone
-
-    -- Clear click zones
-    win._flyerClickZones = nil
-    win._flyerBackZone = nil
-    win._flyerModeZone = nil
-
-    -- Scroll setup
-    local scroll  = win._flyersScroll
-    local scrollW = T.sp.scrollbarW
-    local tabPadG = ZeD.Molecules.getTabPad()  -- template padding for grid
-
-    -- Responsive grid: fill available width, maintain 2:3 aspect ratio
-    local progRowH = secH + T.px(8) + T.sp.xs
-    local headerH = T.sp.sm + progRowH
-
-    -- Compute responsive thumb size from available width
-    local function computeGrid(availW)
-        local gridW = availW - tabPadG * 2
-        -- How many columns fit at minimum thumb width?
-        local minCellW = T.px(FLYER_MIN_THUMB_W) + T.px(FLYER_COL_GAP)
-        local cols = math.max(1, math.floor((gridW + T.px(FLYER_COL_GAP)) / minCellW))
-        -- Expand thumb width to fill the available space
-        local thumbW = math.floor((gridW - (cols - 1) * T.px(FLYER_COL_GAP)) / cols)
-        local thumbH = math.floor(thumbW * 1.5)  -- 2:3 ratio
-        local cellW = thumbW + T.px(FLYER_COL_GAP)
-        local cellH = thumbH + secH + T.px(4) + T.px(FLYER_ROW_GAP)
-        local rows = math.ceil(#catalog / cols)
-        local totalH = headerH + rows * cellH
-        return cols, rows, thumbW, thumbH, cellW, cellH, totalH
-    end
-
-    -- First pass: assume no scrollbar
-    local cols, rows, FLYER_THUMB_W, FLYER_THUMB_H, cellW, cellH, totalContentH = computeGrid(w)
-
-    local needsScroll = totalContentH > h
-    local drawW = w
-    if needsScroll then
-        drawW = w - scrollW - T.px(2)
-        cols, rows, FLYER_THUMB_W, FLYER_THUMB_H, cellW, cellH, totalContentH = computeGrid(drawW)
-
-        scroll.x = x + w - scrollW
-        scroll.y = y
-        scroll.height = h
-        scroll:setBarSize(h / totalContentH)
-    else
-        scroll:setScrollPos(0)
-    end
-    scroll.visible = needsScroll
-
-    -- S105 gamepad: scroll-follow with delta gate (Q99). Uses last frame's
-    -- cached thumbnail zones; one-frame lag is imperceptible. Only pins
-    -- when focused id changed — input-mode oscillation doesn't re-pin.
-    if needsScroll and gpFocusedId and gpFocusedId ~= win._lastPinnedJournalId then
-        local ty, th = nil, nil
-        if gpFocusedId == "flyer:__mode" and lastFlyerModeZone then
-            ty, th = lastFlyerModeZone.y, lastFlyerModeZone.h
-        elseif lastFlyerClickZones then
-            for _, z in ipairs(lastFlyerClickZones) do
-                if ("flyer:thumb:" .. tostring(z.idx)) == gpFocusedId then
-                    ty, th = z.y, z.h
-                    break
-                end
-            end
-        end
-        if ty and th then
-            local prevScrollOff = math.floor(scroll.scrollPos * (totalContentH - h))
-            local contentTy = ty + prevScrollOff
-            local margin = T.px(8)
-            local screenTop = ty
-            local screenBot = ty + th
-            local newOff = prevScrollOff
-            if screenTop < y + margin then
-                newOff = math.max(0, contentTy - y - margin)
-            elseif screenBot > y + h - margin then
-                newOff = math.min(totalContentH - h, contentTy + th - (y + h) + margin)
-            end
-            if newOff ~= prevScrollOff and totalContentH > h then
-                scroll:setScrollPos(newOff / (totalContentH - h))
-            end
-        end
-        win._lastPinnedJournalId = gpFocusedId
-    end
-
-    local stencilW = needsScroll and (w - scrollW) or w
-    panel:setStencilRect(x, y, stencilW, h)
-
-    local scrollOff = 0
-    if needsScroll then
-        scrollOff = math.floor(scroll.scrollPos * (totalContentH - h))
-    end
-
-    local tabPad = ZeD.Molecules.getTabPad()  -- 6px template padding
-    local curY = y - scrollOff + T.sp.sm
-
-    -- Progress counter (left) + cycle button (right) on same row
-    local fullCatalog = buildFlyerCatalog()
-    local totalFlyers = #fullCatalog
-    local progNumStr = tostring(collectedCt)
-    local progRestStr = " / " .. tostring(totalFlyers) .. " Read"
-    local dc = T.textDim  -- used below for thumbnail placeholder "?"
-    local progF3H = tm:getFontHeight(T.fontF3)
-    local pillRowH = progF3H + T.px(8)
-    local progTextY = curY + math.floor((pillRowH - progF3H) / 2)
-    local nc = T.toneNorm
-    panel:drawText(progNumStr, x + tabPad, progTextY, nc.r, nc.g, nc.b, nc.a or 1, T.fontF3)
-    local progNumW = tm:MeasureStringX(T.fontF3, progNumStr)
-    panel:drawText(progRestStr, x + tabPad + progNumW, progTextY, nc.r, nc.g, nc.b, nc.a or 1, T.fontF3)
-
-    -- Cycle button (right-aligned pill showing current mode)
-    local curMode = FLYER_MODES[modeIdx] or FLYER_MODES[1]
-    local modePillW = tm:MeasureStringX(T.fontF1, curMode.label) + T.sp.sm * 2
-    local modePillX = x + drawW - tabPad - modePillW
-    A.drawPillButton(panel, modePillX, curY, modePillW, pillRowH, curMode.label, true, false, T.fontF1)
-    -- S105 gamepad: focus cue overlay on the mode pill. Pill renders first,
-    -- cue sits on top; label text rendered inside drawPillButton reads
-    -- through at 0.55α.
-    if gpFocusedId == "flyer:__mode" then
-        local ac = T.accent
-        panel:drawRect(modePillX, curY, modePillW, pillRowH, 0.55, ac.r, ac.g, ac.b)
-    end
-    win._flyerModeZone = { x = modePillX, y = curY, w = modePillW, h = pillRowH }
-    curY = curY + pillRowH + T.sp.xs
-
-    local zones = {}
-
-    if #catalog == 0 then
-        A.drawSecondary(panel, "No flyers in database", x + tabPad, curY, T.textDim)
-    else
-        -- Left-align grid with template padding — no centering
-        local startX = x + tabPad
-        local gridOffX = 0
-
-        for i, flyer in ipairs(catalog) do
-            local col = (i - 1) % cols
-            local row = math.floor((i - 1) / cols)
-
-            local fx = startX + gridOffX + col * cellW
-            local fy = curY + row * cellH
-
-            local isRead = collected[flyer.key] or false
-            local thumbAlpha = isRead and 1.0 or 0.5
-
-            -- Thumbnail
-            if flyer.texture then
-                panel:drawTextureScaledAspect(flyer.texture, fx, fy,
-                    FLYER_THUMB_W, FLYER_THUMB_H, thumbAlpha, 1, 1, 1)
-            else
-                local bg = T.surf2
-                panel:drawRect(fx, fy, FLYER_THUMB_W, FLYER_THUMB_H,
-                    bg.a * 0.5, bg.r, bg.g, bg.b)
-                local qm = "?"
-                local qmW = tm:MeasureStringX(T.fontF2, qm)
-                local qmX = fx + math.floor((FLYER_THUMB_W - qmW) / 2)
-                local qmY = fy + math.floor((FLYER_THUMB_H - tm:getFontHeight(T.fontF2)) / 2)
-                panel:drawText(qm, qmX, qmY, dc.r, dc.g, dc.b, 0.3 * thumbAlpha, T.fontF2)
-            end
-
-            -- Unread: surf2 wash overlay
-            if not isRead then
-                local s2 = T.surf2
-                panel:drawRect(fx, fy, FLYER_THUMB_W, FLYER_THUMB_H,
-                    s2.a * 0.4, s2.r, s2.g, s2.b)
-            end
-
-            -- Border
-            local bd = T.border
-            panel:drawRectBorder(fx, fy, FLYER_THUMB_W, FLYER_THUMB_H,
-                bd.a * 0.3, bd.r, bd.g, bd.b)
-
-            -- S105 gamepad: focus cue overlay on focused thumbnail. Border is
-            -- preserved (already drawn); accent overlay signals focus.
-            if gpFocusedId == ("flyer:thumb:" .. tostring(i)) then
-                local ac = T.accent
-                panel:drawRect(fx, fy, FLYER_THUMB_W, FLYER_THUMB_H, 0.55, ac.r, ac.g, ac.b)
-            end
-
-            -- Status dot (top-right corner) — matches book status dot pattern
-            local dotSz = T.px(6)
-            local dotX = fx + FLYER_THUMB_W - dotSz - T.px(2)
-            local dotY = fy + T.px(2)
-            if isRead then
-                A.drawStatusDot(panel, dotX, dotY, T.positive, dotSz)
-            else
-                A.drawStatusDot(panel, dotX, dotY, T.textDim, dotSz)
-            end
-
-            -- Name below thumbnail (truncated)
-            local nameStr = truncText(flyer.displayName, T.fontF2, FLYER_THUMB_W)
-            local nameY = fy + FLYER_THUMB_H + T.px(2)
-            local nc = T.toneNorm
-            panel:drawText(nameStr, fx, nameY, nc.r, nc.g, nc.b, isRead and (nc.a or 1) or 0.4, T.fontF2)
-
-            -- Click zone
-            zones[#zones + 1] = { idx = i, x = fx, y = fy, w = FLYER_THUMB_W, h = FLYER_THUMB_H }
-        end
-    end
-
-    win._flyerClickZones = zones
-
-    panel:clearStencilRect()
-
-    if needsScroll then
-        scroll:draw(panel)
-    end
-end
-
--- ============================================================================
 -- MAIN RENDERER — sub-tab dispatch
 -- ============================================================================
 
@@ -2255,6 +1767,9 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
     y = y + T.px(TAB_TOP_PAD)
     h = h - T.px(TAB_TOP_PAD)
 
+    -- the Papers / Notebooks / Into hit zones start empty each frame
+    ZeD.JournalReaders.beginFrame(win)
+
     -- Draw sub-tab strip at top
     local tabStripH = drawSubTabStrip(panel, win, x, y, w)
 
@@ -2262,16 +1777,16 @@ function ZeD.JournalTab.render(panel, win, x, y, w, h)
     local contentY = y + tabStripH
     local contentH = h - tabStripH
 
-    -- Route to active sub-tab renderer
+    -- Route to active sub-tab renderer (1 Journal, 2 Notebooks, 3 Papers, 4 Recipes)
     local activeIdx = win._journalSubTab
     if activeIdx == 1 then
         renderJournal(panel, win, x, contentY, w, contentH)
     elseif activeIdx == 2 then
-        renderRecipes(panel, win, x, contentY, w, contentH)
-    -- elseif activeIdx == X then  -- S67: Maps moved to World Window MapsTab
-    --     renderMaps(panel, win, x, contentY, w, contentH)
+        ZeD.JournalReaders.renderNotebooks(panel, win, x, contentY, w, contentH)
     elseif activeIdx == 3 then
-        renderFlyers(panel, win, x, contentY, w, contentH)
+        ZeD.JournalReaders.renderPapers(panel, win, x, contentY, w, contentH)
+    elseif activeIdx == 4 then
+        renderRecipes(panel, win, x, contentY, w, contentH)
     end
 end
 
