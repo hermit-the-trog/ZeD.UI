@@ -85,8 +85,9 @@ at(725, function()
     local md = p:getModData()
     local e = md.ZeD_Journal and md.ZeD_Journal.entries and md.ZeD_Journal.entries[1]
     if e and e.source then table.remove(md.ZeD_Journal.entries, 1) end
-    w()._journalCache = nil
-    w()._jr.logInto = nil
+    -- (the window may have been rebuilt since: only touch what is there)
+    local x = w()
+    if x then x._journalCache = nil; if x._jr then x._jr.logInto = nil end end
     local inv = p:getInventory()
     for _, it in ipairs({ news, flier, book, pencil }) do if it then inv:Remove(it) end end
     say("DONE (newspaper had been read before: " .. tostring(hadRead) .. ")")
