@@ -375,8 +375,11 @@ function figure(mode) {
   let li = 0, ri = 0;
   const lines = SLOTS.map(([id, lb, x, y, ax, ay]) => {
     const left = x < 200, sx = left ? x + 67 : x + 9, sy = y + 30;
-    // (the lanes sit in the clear gutter between the slots and the photo, well off its edge)
-    const lane = left ? 100 + 4 * (li++) : 420 - 4 * (ri++);
+    // (each line turns at its own step, from the gutter in toward the body, top to bottom, so the
+    // turns stagger like a staircase; never past its target, never on the photo's edge)
+    const STEPS_L = [96, 112, 128, 154, 166, 178], STEPS_R = [424, 408, 392, 368, 354, 342];
+    let lane = left ? STEPS_L[li++] : STEPS_R[ri++];
+    lane = left ? Math.min(lane, ax - 10) : Math.max(lane, ax + 10);
     return `<polyline points="${sx},${sy} ${lane},${sy} ${lane},${ay} ${ax},${ay}" fill="none" stroke="${l}" stroke-width="1"/><circle cx="${ax}" cy="${ay}" r="2.5" fill="${l}"/>`;
   }).join("");
   if (mode === "none") return "";
