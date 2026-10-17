@@ -4,7 +4,7 @@ One page. What is true right now. Rewritten at every closeout, never appended to
 History lives in `archive/PROJECT_STATE.md` (through S122) and `ZeDUI/deltas/`.
 
 **Version:** `0.1.1242300k` (S124, Oct 13 2026) | **Game:** Build 42 42.21.0 (seen Oct 14 2026; the S125 work was built on 42.20.2) | **Last code change:** Oct 16 2026 (the mod manager: conflicts, Workshop state, reload or restart in the strip, the Workshop upload window and the description editor; the monitor switching on; Original / New wallpaper; desktop icons arriving with their names); before that Oct 16 the vehicle dashboard v6 (pixel art, installed by Claude Design), the container buttons and sentence-case buttons; before that Oct 15 2026, overnight (controller navigation by rectangles everywhere, the map on a controller, the ZeD OS desktop and Trash, Craft / Build SHOW Ready, quick use on the D-pad Right wheel, clothing's Inspect to the item card; before that the car radio up close and the dash matched to it; before that profession buckles and the v3 desk; before that the seat chooser and the siren controller; before that mod profiles, the ZeD-GUI About block, the radial wheels, vanilla's pop-ups as ZeD prompts)
-**Next session:** S126 - the director plays through every menu screen (and the monitor switching off into the loading screen) on the 4K rig, and the belt and moodles in game; then a controller session (including the new Journal sub-tabs: Notebooks, Papers). The readers (newspapers, flyers, notebooks) are built. See Target.
+**Next session:** the director's long play sessions (New Game, not Continue; Claude triages console.txt after each), then the settings work (vanilla Options organised like a modern game, settings ZeD makes moot greyed "Does nothing with ZeD active", a ZeD setup page that sets the vanilla settings its look depends on, ZeD's own settings, the Large font audit) and the inventory grid view (proposed). Design: redraw every human figure and its background to match the new pixel art, female versions included. The director's hands-on controller pass is LAST, at 95-98% done with design settled; Claude simulates the pad through the bridge until then.
 
 ## What ships
 
@@ -77,7 +77,7 @@ Fixed in S123 (20 commits): five dead verb names; stale verb cluster; translator
    - Profession buckles + the v3 main menu desk (Oct 15) — **done**: 25 buckles on the belt, the night room with the lamp flicker (see the S125 delta).
    - Container buttons, sentence-case buttons, pipes for separators (Oct 16) -- **done** (see the S125 delta).
    - Mod manager (Oct 16, mockup zed_mod_manager_v1) -- **done**: conflicts, Workshop state, reload or restart, the upload window and the description editor; also the monitor switching on, Original / New wallpaper and icons arriving with their names. Not seen live: a real upload (needs the director's say-so), a Steam update landing mid-session, a controller.
-5. Controller session on the QA save with the bridge logging (any time the director has the pad in hand).
+5. The director's hands-on controller session comes last, at 95-98% done with design settled (director, Oct 16 2026: the interruptions break their play; they catch most things watching QA runs). Until then every surface is covered with simulated pad input through the bridge.
 
 Fishing tension (row 10), fluid info in ItemCard (row 9) and sleeping (row 16) stay queued after these.
 
