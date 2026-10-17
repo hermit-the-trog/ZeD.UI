@@ -1829,33 +1829,6 @@ _switchWorldTabForNav = function(win, content, tabId)
     return true
 end
 
--- Toggle inventory drawer. Enforces always-visible invariant.
--- MUST be defined after exitWorldMC (forward reference would crash Kahlua).
-local function toggleInventoryDrawerWorld(win, content)
-    local T = ZeD.T
-    if win._invDrawerOpen then
-        if win._drawerMode == "tab" and win._drawerOpen then
-            win._invDrawerOpen = false
-            if #(win._mcSelected or {}) > 0 then
-                exitWorldMC(win, content)
-            end
-            -- Snap window to drawer-only width
-            local drawerW = math.floor(win._drawerEffW or 0)
-            local snapW = T.px(CONTAINER_STRIP_W) + drawerW + T.px(ACTION_TAB_STRIP_W)
-            win:setWidth(snapW)
-        end
-    else
-        win._invDrawerOpen = true
-        -- Snap window to include inventory
-        local drawerW = math.floor(win._drawerEffW or 0)
-        local baseInv = T.px(win._baseInvW or 372)
-        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + drawerW + T.px(ACTION_TAB_STRIP_W)
-        local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-        snapW = math.min(snapW, maxW)
-        win:setWidth(snapW)
-    end
-end
-
 mcToggleWorldContainer = function(win, content, cIdx)
     -- MC only allowed on Loot tab
     if win._activeTab ~= "loot" then return end

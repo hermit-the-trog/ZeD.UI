@@ -25,16 +25,6 @@ local function getStatRowH()
     return tall + math.max(T.px(2), math.floor(tall * 0.15))
 end
 
--- Returns a friendly subtype string for the Zone 1 stat anchor (e.g. body location for clothing).
-local function getItemSubtype(item)
-    if not item then return nil end
-    if instanceof(item, "Clothing") then
-        local bl = safeGet(item, "getBodyLocation")
-        return (bl and tostring(bl) ~= "") and tostring(bl):gsub("_", " ") or nil
-    end
-    return nil
-end
-
 local function getItemCategory(item)
     if not item then return "Item" end
     if safeGet(item, "getFluidContainer") then return "Fluid" end
@@ -346,48 +336,6 @@ end
 
 VERB_DISPATCH.repair  = function(card) tryFixingManager(card) end
 VERB_DISPATCH.sharpen = function(card) tryFixingManager(card) end
-
--- ---------------------------------------------------------------------------
--- Returns verb button defs for the action strip based on item type.
--- Each entry: {key, iconKey, active, tip}
--- active=false → greyed button (action unavailable)
--- ---------------------------------------------------------------------------
-local function getVerbsForItem(item)
-    if not item then return {} end
-    local verbs = {}
-    local cat = getItemCategory(item)
-    if cat == "Clothing" then
-        -- Need to call getClothingZones — defined below, so use a forward reference via pcall
-        -- We recompute the minimal check here to avoid a forward-declaration dependency.
-        local anyHole, anyUnpadded = false, false
-        local parts = safeGet(item, "getCoveredParts")
-        if parts then
-            for i = 0, parts:size() - 1 do
-                local part    = parts:get(i)
-                local visual  = safeGet(item, "getVisual")
-                local hc = 0
-                if visual then
-                    local ok, v = pcall(function() return visual:getHole(part) end)
-                    if ok and v then hc = v end
-                end
-                local patch = safeGet(item, "getPatchType", part)
-                if hc > 0 and not patch then anyHole = true end
-                if not patch then anyUnpadded = true end
-            end
-        end
-        table.insert(verbs, {key="repair_all", iconKey="fashion-004-needle",   active=anyHole,    tip="Repair all holes"})
-        table.insert(verbs, {key="pad_all",    iconKey="housekeeping-057-pillow", active=anyUnpadded, tip="Pad all empty zones"})
-    elseif cat == "Weapon" or cat == "Firearm" then
-        local cond = safeGet(item, "getCondition")
-        local mc   = safeGet(item, "getConditionMax")
-        local full = cond and mc and mc > 0 and cond >= mc
-        table.insert(verbs, {key="repair",  iconKey="home-improvements-033-hammer", active=not full, tip="Repair"})
-        if cat == "Weapon" then
-            table.insert(verbs, {key="sharpen", iconKey="home-improvements-047-saw", active=true, tip="Sharpen"})
-        end
-    end
-    return verbs
-end
 
 -- ---------------------------------------------------------------------------
 -- Clean display names for BloodBodyPartType enum values.

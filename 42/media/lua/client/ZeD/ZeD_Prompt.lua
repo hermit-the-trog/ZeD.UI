@@ -55,17 +55,12 @@ local U = {
 -- ---------------------------------------------------------------------------
 -- small helpers
 -- ---------------------------------------------------------------------------
-local function TM() return ZeD.TM end
 local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
 local function clamp(v, lo, hi) if v < lo then return lo end if v > hi then return hi end return v end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
 local function upper(s) return string.upper(tostring(s or "")) end
-local function gamepadMode()
-    local D = ZeD.Input and ZeD.Input.Detector
-    return D and D.getMode and D.getMode() == "gamepad" or false
-end
 
 -- the screen box a prompt stays inside: the player's part of the screen, or all of it
 local function screenBox(player)
