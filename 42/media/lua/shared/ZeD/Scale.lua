@@ -170,6 +170,19 @@ function X.entryFont()
     return best
 end
 
+-- The entry face closest to `px` design pixels at the current scale (a larger
+-- hand than the body: the notebook's page). Returns the font and its line height
+-- in screen px, which is the text box's own line pitch.
+function X.entryFontAt(px)
+    local target = px * S.root()
+    local best, bestD = UIFont and UIFont.Small, nil
+    for _, f in ipairs(entryFaces()) do
+        local d = math.abs(f.px - target)
+        if not bestD or d < bestD then best, bestD = f.font, d end
+    end
+    return best, X.realTM():getFontHeight(best)
+end
+
 -- Keep a ZeD text entry on the scaled face and the theme's text colours.
 -- Cheap enough to call every frame: it only touches Java on a change.
 function X.fitEntry(entry)
