@@ -98,11 +98,8 @@ local Focus = ZeD.Input.Focus
 local WS_GRACE_MS = 600
 
 -- SDL standard controller axis indices. Mirrored from InputModeDetector.
-local AXIS_LSTICK_X = 0
-local AXIS_LSTICK_Y = 1
 local AXIS_RSTICK_X = 2
 local AXIS_RSTICK_Y = 3
-local AXIS_LTRIGGER = 4
 
 -- Token readers. Triple-guard to tolerate T.gp not being populated at
 -- file-load time (same pattern as InputModeDetector / BumperChord).

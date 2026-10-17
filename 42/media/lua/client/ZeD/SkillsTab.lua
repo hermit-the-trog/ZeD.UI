@@ -610,7 +610,6 @@ end
 
 function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
-    local A    = ZeD.Atoms
     local M    = ZeD.Molecules
     local pad    = M.getTabPad()      -- 8px outer pad
     local padTop = M.getTabPadTop()   -- 8px top pad below pinned header

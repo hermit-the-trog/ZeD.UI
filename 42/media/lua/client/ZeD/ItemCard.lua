@@ -867,7 +867,6 @@ function ZeD_ItemCard:_calcHeadH()
     local T        = ZeD.T
     local sp       = T.sp
     local statRowH = getStatRowH()
-    local bodyH    = ZeD.TM:getFontHeight(T.fontF2)
     local headH    = ZeD.TM:getFontHeight(T.fontF4)
     local btnSz    = T.iconSm + T.px(4)
     local sbW      = (self._sb and self._sb.visible) and self._sb.width or 0
@@ -901,8 +900,6 @@ function ZeD_ItemCard:_calcBodyH()
     local headH    = ZeD.TM:getFontHeight(T.fontF4)
     local btnSz    = T.iconSm + T.px(4)
     local grooveH  = T.px(2)
-    local sbW      = (self._sb and self._sb.visible) and self._sb.width or 0
-    local innerW   = math.max(T.px(80), self:getWidth() - self.pad * 2 - sbW)
     local item     = self.item
     local cat      = getItemCategory(item)
 

@@ -484,7 +484,6 @@ end
 -- ---------------------------------------------------------------------------
 local function topStatsForItem(item)
     if not item then return {} end
-    local T   = ZeD.T
     local cat = categoryOf(item)
     local rows = {}
 
@@ -701,7 +700,6 @@ end
 local function renderClothingBody(card, item, x, y, w, compact, scrollOff, contentClipBot)
     local T  = ZeD.T
     local M  = ZeD.Molecules
-    local A  = ZeD.Atoms
     local tm = ZeD.TM
     -- Section gap scales with font so the gap between top-stats / zones /
     -- facts breathes proportionally at larger text sizes.
@@ -1057,7 +1055,6 @@ function ZeD_ItemCard:renderBody(ctx)
     local progressActive = action ~= nil
 
     local M  = ZeD.Molecules
-    local A  = ZeD.Atoms
     local T  = ZeD.T
 
     -- Reset per-frame hit rect tables before paint

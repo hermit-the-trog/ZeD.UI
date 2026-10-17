@@ -1650,7 +1650,6 @@ end
 -- Placeholder card for tabs without a registered renderer
 local function renderPlaceholder(panel, tabDef, x, y, w, h)
     local T   = ZeD.T
-    local A   = ZeD.Atoms
     local pad = T.sp.sm
 
     -- Heading
@@ -2047,7 +2046,6 @@ end
 
 local function buildWorldContainers(playerObj)
     local containers = {}
-    local playerNum = playerObj:getPlayerNum()
 
     -- Floor container: virtual aggregation of ground items
     if not _floorContainer then
@@ -2420,7 +2418,6 @@ local function drawWorldContainerStrip(self, win, content)
         local mcCountF = #(win._mcSelected or {})
         if mainVis and mcCountF > 0 then
             local badge = tostring(mcCountF + 1)
-            local bw = ZeD.TM:MeasureStringX(font, badge)
             local bx = T.px(4)
             local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
             local ac = T.accent
@@ -2598,7 +2595,6 @@ local function drawWorldContainerStrip(self, win, content)
                 end
                 if mcIdx then
                     local badge = tostring(mcIdx)
-                    local bw = ZeD.TM:MeasureStringX(font, badge)
                     local bx = T.px(4)
                     local by = drawY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
                     local ac = T.accent
@@ -3704,7 +3700,6 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- updateDrawer — 3-mode state machine (nil / item / tab)
     -- ----------------------------------------------------------------
     local function updateDrawer()
-        local prevMode = win._drawerMode
         local prevItem = win._drawerItem   -- S99: card-visibility snapshot
         local sel = content._selectedItems
         local count = 0
@@ -4370,10 +4365,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- MOUSE HANDLERS
     -- ----------------------------------------------------------------
-    local scrollW = T.sp.scrollbarW
     local countSelected        = r.countSelected
     local findIndex            = r.findIndex
-    local collectSelectedItems = r.collectSelectedItems
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)

@@ -44,7 +44,6 @@ function ZeD_Window:new(x, y, width, height, title)
 
     o.title = title or ""
     o.titleStats = {}
-    local T = ZeD.T
     o.backgroundColor = {r = 0, g = 0, b = 0, a = 0}
     o.borderColor     = {r = 0, g = 0, b = 0, a = 0}
     o.drawFrame     = false
@@ -1001,7 +1000,6 @@ function ZeD_ScrollList:prerender()
 end
 
 function ZeD_ScrollList:render()
-    local T = ZeD.T
     local w = self:getWidth()
     local h = self:getHeight()
     local rowH = self.itemheight

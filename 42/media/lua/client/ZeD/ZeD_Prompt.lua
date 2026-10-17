@@ -980,7 +980,7 @@ function ZeD_Prompt:prerender()
     self.minimumWidth, self.minimumHeight = 0, 0
     local g = self._g
     local A, M = ZeD.Atoms, ZeD.Molecules
-    local tc, td, ac = T.text, T.textDim, T.accent
+    local tc, ac = T.text, T.accent
     local w = self.width
     local focusOn = self.joyfocus ~= nil
     local function rowFill(r) if r then self:drawRect(r.x, r.y, r.w, r.h, 0.55, ac.r, ac.g, ac.b) end end
@@ -1081,7 +1081,7 @@ function ZeD_Prompt:prerender()
 
     -- footer: the action zone
     local f = g.foot
-    local s2, bs = T.surf2, T.borderS
+    local s2 = T.surf2
     self:drawRect(T.px(1), f.y, w - T.px(2), f.h, s2.a or 1, s2.r, s2.g, s2.b)
     A.drawDividerH(self, T.px(1), f.y, w - T.px(2), false)
     for i, r in ipairs(g.buttons) do

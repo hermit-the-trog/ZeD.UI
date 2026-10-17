@@ -298,8 +298,8 @@ function ZeD_Reader:drawSide(s)
     local pad = T.px(12)
     local x, w = s.x + pad, s.w - pad * 2
     local y = s.y + pad
-    local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
-    local tc, td, ac = T.text, T.textDim, T.accent
+    local f1, f2 = T.fontF1, T.fontF2
+    local tc, ac = T.text, T.accent
     -- THIS PIECE
     y = section(self, "THIS PIECE", x, y, w)
     local function kv(k, v, dot)

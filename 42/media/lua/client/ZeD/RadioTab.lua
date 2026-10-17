@@ -471,7 +471,6 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- spanning past the data column (so long station names don't collide
     -- with RANGE / SIG values). Frequency digits stay in the same Y
     -- regardless of power so toggling on/off doesn't shift them.
-    local row3AvailH = (y + h - pad) - cy
     local nameRowH   = channelH
     local nameRowY   = y + h - pad - nameRowH
     local nameGap    = T.px(6)
@@ -573,17 +572,15 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
         win._radioVolBtnZones    = {}  -- [1] = down, [2] = up
     end
 
-    local rec, btnColors, silkColor, pillBg, pillHi, pillSh
+    local rec, btnColors, silkColor
     if brand == "premium" then
         rec = T.radio.pt
         btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
         silkColor = rec.silkScreen
-        pillBg, pillHi, pillSh = rec.recessedBg, rec.recessedHi, rec.recessedSh
     else
         rec = T.radio.vt
         btnColors = { bg = rec.btnBg, border = rec.btnBorder, text = rec.btnText, font = T.fontF1 }
         silkColor = rec.silkScreen
-        pillBg, pillHi, pillSh = rec.recessedBg, rec.recessedHi, rec.recessedSh
     end
 
     -- Recessed control-strip host

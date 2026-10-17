@@ -1301,7 +1301,6 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     local T = ZeD.T
     local bs = T.borderS
     self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local pad = T.px(DETAIL_PAD)
     local ix, iw = x + pad, w - pad * 2
     -- the note band: what the last toggle or preset did
@@ -1358,7 +1357,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     end
     local author = ""
     pcall(function() author = tostring(info:getAuthor() or "") end)
-    local f2, f1, f3 = T.fontF2, T.fontF1, T.fontF3
+    local f2, f1 = T.fontF2, T.fontF1
     if author ~= "" then
         local dc = T.textDim
         self:drawText(ZeD.Atoms.truncateText("by " .. author, f2, tw), tx, ny + T.px(2), dc.r, dc.g, dc.b, dc.a or 1, f2)

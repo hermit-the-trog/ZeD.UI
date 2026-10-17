@@ -479,7 +479,7 @@ function ZeD_MMLoad:prerender()
     ZeD_Window.prerender(self)
 
     local tb = T.titleBarH
-    local pad, gap = T.px(U.STACK_PAD), T.px(U.STACK_GAP)
+    local pad = T.px(U.STACK_PAD)
     local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
@@ -493,7 +493,7 @@ function ZeD_MMLoad:prerender()
     local s = self:selected()
     local why = self:whyNot(s)
     local row = 1000
-    local ask, askX = nil, nil
+    local ask = nil
     if self.confirm == "delete" then
         ask = "Delete " .. (s and s.title or "") .. "? It cannot be undone."
         stripSpecs(self, stripY, w, row, {}, {
