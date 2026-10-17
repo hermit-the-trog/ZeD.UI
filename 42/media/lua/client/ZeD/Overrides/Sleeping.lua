@@ -75,7 +75,8 @@ end
 
 -- the clock radio at (ox, oy) in the panel, k screen pixels a plate pixel
 function S.draw(self, ox, oy, k, hourOfDay, alarm)
-    local tex = getTexture(S.TEX)
+    -- nearest filtering (3), so the pixel art stays square at 3x / 6x (Oct 16 2026: getTexture smoothed it)
+    local tex = Texture.getSharedTexture(S.TEX, 3)
     if not tex then return false end
     self:drawTextureScaledAspect(tex, ox, oy, S.W * k, S.H * k, 1, 1, 1, 1)
     local h24 = math.floor(hourOfDay or 0) % 24
