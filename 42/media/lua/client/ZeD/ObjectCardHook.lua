@@ -412,7 +412,7 @@ local function partRow(card, x, y, w, label, value, have, button, fid, enabled, 
 end
 
 function def.body(card, x, y, w, t, player)
-    local T, tm = ZeD.T, ZeD.TM
+    local T = ZeD.T
     local d, br = t.d, t.bridge
     if not (d and br and def.valid(t)) then return 0 end
     local y0 = y

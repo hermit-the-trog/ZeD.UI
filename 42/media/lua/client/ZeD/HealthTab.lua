@@ -89,19 +89,6 @@ local function ensureBodyPartTypes()
     }
 end
 
--- Reverse lookup: BodyFigure display name → PART_NAMES display name.
--- Only entries that differ need to be listed; all others match 1:1.
-local FIGURE_TO_DISPLAY = {
-    ["Left Upper Leg"]  = "Left Thigh",
-    ["Right Upper Leg"] = "Right Thigh",
-    ["Left Lower Leg"]  = "Left Shin",
-    ["Right Lower Leg"] = "Right Shin",
-}
-
-local function figureNameToDisplay(figureName)
-    return FIGURE_TO_DISPLAY[figureName] or figureName
-end
-
 -- ============================================================================
 -- REVERSE LOOKUP: figure display name → BodyPartType enum
 -- ============================================================================
@@ -385,7 +372,6 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
 
-    local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
     local curY = ry
@@ -433,11 +419,9 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
 
-    local headH = ZeD.TM:getFontHeight(T.fontF1)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local badgeH = secH + T.sp.badgePadY * 2
 
-    local displayName = figureNameToDisplay(figureName)
     local health = data.partHealth[figureName] or 100
     local conds = data.condsByFigureName[figureName]
 
@@ -488,12 +472,6 @@ local EXERCISE_BODYWEIGHT = {
 
 -- Equipment exercises (full-width rows below bodyweight)
 local EXERCISE_EQUIPMENT = {
-    "barbellcurl", "dumbbellpress", "bicepscurl",
-}
-
--- All exercises in order (for measurement)
-local EXERCISE_ORDER = {
-    "squats", "pushups", "situp", "burpees",
     "barbellcurl", "dumbbellpress", "bicepscurl",
 }
 
@@ -581,7 +559,6 @@ end
 function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
     local T    = ZeD.T
     local A    = ZeD.Atoms
-    local headH = ZeD.TM:getFontHeight(T.fontF1)
     local font = T.fontF1
     local secH = ZeD.TM:getFontHeight(font)
     local btnH = secH + T.sp.pillBtnPadV
@@ -676,7 +653,6 @@ end
 
 local FIGURE_W   = ZeD.Spacing.figureW
 local FIGURE_H   = ZeD.Spacing.figureH
-local FIGURE_PAD_TOP = ZeD.Spacing.figurePadTop
 
 function ZeD.HealthTab._measureZoneA(data, rw)
     local T     = ZeD.T
@@ -717,7 +693,6 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     local data = win._healthCache
 
     -- Font metrics
-    local headH  = ZeD.TM:getFontHeight(T.fontF1)
     local bodyH  = ZeD.TM:getFontHeight(T.fontF2)
     local secH   = ZeD.TM:getFontHeight(T.fontF1)
     local badgeH = secH + T.sp.badgePadY * 2

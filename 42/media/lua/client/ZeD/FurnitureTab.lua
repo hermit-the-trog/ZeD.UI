@@ -106,7 +106,6 @@ end
 local function readLines(c)
     local out = { facts = {}, notes = {} }
     local nameLabel = txt("IGUI_Name", "Name")
-    local lastLabel = nil
     for _, ln in ipairs(c.lines or {}) do
         -- vanilla's debug-only lines (magenta, grey DEBUG block) stay out
         local dbg = ln.a and ((ln.a.r > 0.9 and ln.a.g < 0.1 and ln.a.b > 0.9) or ln.a.txt == "DEBUG" or ln.a.txt == "END DEBUG")
@@ -612,7 +611,6 @@ function FT.render(panel, win, x, y, w, h)
     local off = s.scrollY or 0
     local cy = top - off
     local function vis(yy, hh2) return yy >= top - T.px(2) and yy + hh2 <= bottom + T.px(2) end
-    local zonesBefore = #s.zones
 
     local info = (c and c.mp) and readLines(c) or { facts = {}, notes = {} }
     -- TARGET

@@ -98,11 +98,8 @@ local Focus = ZeD.Input.Focus
 local WS_GRACE_MS = 600
 
 -- SDL standard controller axis indices. Mirrored from InputModeDetector.
-local AXIS_LSTICK_X = 0
-local AXIS_LSTICK_Y = 1
 local AXIS_RSTICK_X = 2
 local AXIS_RSTICK_Y = 3
-local AXIS_LTRIGGER = 4
 
 -- Token readers. Triple-guard to tolerate T.gp not being populated at
 -- file-load time (same pattern as InputModeDetector / BumperChord).
@@ -575,103 +572,6 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
         _fireCb("window.onFocusZoneChanged", w.onFocusZoneChanged, w,
             { new = newZone, old = w._focusRing[oldZoneIdx] })
     end
-end
-
--- ---------------------------------------------------------------------------
--- CONE SPATIAL NAV (two-pass: cone first, then half-plane fallback)
---
--- Pass 1 — strict 90° cone (preserved from S97 _coneCost): dominant-axis
---   absolute must be >= off-axis absolute. Off-axis weighted 2× so axis-
---   aligned moves feel cheaper than diagonals.
--- Pass 2 — half-plane fallback: any candidate in the direction (dy<0 for up,
---   etc.), no off-axis reject, same weighted distance formula. Catches Q102
---   dead-zones (full-width disclosure → split-column body) and other
---   irregular layouts that flat-nav surfaces.
--- No-wrap: nothing in either pass → silent no-op (accessibility).
--- ---------------------------------------------------------------------------
-
-local function _center(e)
-    return e.x + e.w * 0.5, e.y + e.h * 0.5
-end
-
--- S113c left-bias for U/D — candidates above-or-below the source are
--- cheaper when they sit to the LEFT than when they sit to the right of
--- source-x. Mirrors reading-order convention (LTR): D-pad UP picks the
--- top-left action; D-pad DOWN picks the bottom-left action. Tunable.
--- LEFT/RIGHT keep the original 2× weight (no preferential bias on axis-
--- aligned moves; horizontal nav is explicit).
-local OFF_WEIGHT_TO_LEFT  = 2  -- target is left of source on U/D — cheaper
-local OFF_WEIGHT_TO_RIGHT = 3  -- target is right of source on U/D — more expensive
-local OFF_WEIGHT_HORIZ    = 2  -- L/R nav unchanged
-
--- Pass 1: cone gate enforced. Returns nil if no candidate in cone.
-local function _coneCost(fromEl, toEl, dir)
-    local fx, fy = _center(fromEl)
-    local tx, ty = _center(toEl)
-    local dx, dy = tx - fx, ty - fy
-    if dir == "up" then
-        if dy >= 0 then return nil end
-        if math.abs(dx) > math.abs(dy) then return nil end
-        local off = (dx <= 0) and OFF_WEIGHT_TO_LEFT or OFF_WEIGHT_TO_RIGHT
-        return math.abs(dy) + math.abs(dx) * off
-    elseif dir == "down" then
-        if dy <= 0 then return nil end
-        if math.abs(dx) > math.abs(dy) then return nil end
-        local off = (dx <= 0) and OFF_WEIGHT_TO_LEFT or OFF_WEIGHT_TO_RIGHT
-        return math.abs(dy) + math.abs(dx) * off
-    elseif dir == "left" then
-        if dx >= 0 then return nil end
-        if math.abs(dy) > math.abs(dx) then return nil end
-        return math.abs(dx) + math.abs(dy) * OFF_WEIGHT_HORIZ
-    elseif dir == "right" then
-        if dx <= 0 then return nil end
-        if math.abs(dy) > math.abs(dx) then return nil end
-        return math.abs(dx) + math.abs(dy) * OFF_WEIGHT_HORIZ
-    end
-    return nil
-end
-
--- Pass 2: half-plane only — candidate just has to be in the right direction
--- (sign on dominant axis), no cone gate. Same weighted distance formula.
--- Left-bias on U/D mirrors _coneCost so the fallback stays consistent.
-local function _halfPlaneCost(fromEl, toEl, dir)
-    local fx, fy = _center(fromEl)
-    local tx, ty = _center(toEl)
-    local dx, dy = tx - fx, ty - fy
-    if dir == "up" then
-        if dy >= 0 then return nil end
-        local off = (dx <= 0) and OFF_WEIGHT_TO_LEFT or OFF_WEIGHT_TO_RIGHT
-        return math.abs(dy) + math.abs(dx) * off
-    elseif dir == "down" then
-        if dy <= 0 then return nil end
-        local off = (dx <= 0) and OFF_WEIGHT_TO_LEFT or OFF_WEIGHT_TO_RIGHT
-        return math.abs(dy) + math.abs(dx) * off
-    elseif dir == "left" then
-        if dx >= 0 then return nil end
-        return math.abs(dx) + math.abs(dy) * OFF_WEIGHT_HORIZ
-    elseif dir == "right" then
-        if dx <= 0 then return nil end
-        return math.abs(dx) + math.abs(dy) * OFF_WEIGHT_HORIZ
-    end
-    return nil
-end
-
--- Pick best candidate index using a cost function, skipping the focused index.
-local function _pickWithCost(elements, focusedIdx, dir, costFn)
-    if not elements or #elements == 0 then return nil end
-    if focusedIdx < 1 or focusedIdx > #elements then focusedIdx = 1 end
-    local focused = elements[focusedIdx]
-    if not focused then return nil end
-    local bestIdx, bestCost = nil, nil
-    for i = 1, #elements do
-        if i ~= focusedIdx then
-            local c = costFn(focused, elements[i], dir)
-            if c and (bestCost == nil or c < bestCost) then
-                bestIdx, bestCost = i, c
-            end
-        end
-    end
-    return bestIdx
 end
 
 -- The picker (Oct 15 2026, director: "cone navigation is blocking directions

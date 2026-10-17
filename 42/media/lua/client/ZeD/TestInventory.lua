@@ -320,7 +320,6 @@ local function toggleTestInventory()
     end
 
     content.onMouseMove = function(self, dx, dy)
-        local mx = self:getMouseX()
         local my = self:getMouseY()
         if self._activeScroll then
             self._activeScroll:handleMouseMove(my - self._activeScroll.y)

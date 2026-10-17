@@ -1650,7 +1650,6 @@ end
 -- Placeholder card for tabs without a registered renderer
 local function renderPlaceholder(panel, tabDef, x, y, w, h)
     local T   = ZeD.T
-    local A   = ZeD.Atoms
     local pad = T.sp.sm
 
     -- Heading
@@ -1827,33 +1826,6 @@ _switchWorldTabForNav = function(win, content, tabId)
     if _syncWorldRingZones then _syncWorldRingZones(win, content) end
     if _clearGpFocusState  then _clearGpFocusState(win)            end
     return true
-end
-
--- Toggle inventory drawer. Enforces always-visible invariant.
--- MUST be defined after exitWorldMC (forward reference would crash Kahlua).
-local function toggleInventoryDrawerWorld(win, content)
-    local T = ZeD.T
-    if win._invDrawerOpen then
-        if win._drawerMode == "tab" and win._drawerOpen then
-            win._invDrawerOpen = false
-            if #(win._mcSelected or {}) > 0 then
-                exitWorldMC(win, content)
-            end
-            -- Snap window to drawer-only width
-            local drawerW = math.floor(win._drawerEffW or 0)
-            local snapW = T.px(CONTAINER_STRIP_W) + drawerW + T.px(ACTION_TAB_STRIP_W)
-            win:setWidth(snapW)
-        end
-    else
-        win._invDrawerOpen = true
-        -- Snap window to include inventory
-        local drawerW = math.floor(win._drawerEffW or 0)
-        local baseInv = T.px(win._baseInvW or 372)
-        local snapW = T.px(CONTAINER_STRIP_W) + baseInv + drawerW + T.px(ACTION_TAB_STRIP_W)
-        local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-        snapW = math.min(snapW, maxW)
-        win:setWidth(snapW)
-    end
 end
 
 mcToggleWorldContainer = function(win, content, cIdx)
@@ -2074,7 +2046,6 @@ end
 
 local function buildWorldContainers(playerObj)
     local containers = {}
-    local playerNum = playerObj:getPlayerNum()
 
     -- Floor container: virtual aggregation of ground items
     if not _floorContainer then
@@ -2447,7 +2418,6 @@ local function drawWorldContainerStrip(self, win, content)
         local mcCountF = #(win._mcSelected or {})
         if mainVis and mcCountF > 0 then
             local badge = tostring(mcCountF + 1)
-            local bw = ZeD.TM:MeasureStringX(font, badge)
             local bx = T.px(4)
             local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
             local ac = T.accent
@@ -2625,7 +2595,6 @@ local function drawWorldContainerStrip(self, win, content)
                 end
                 if mcIdx then
                     local badge = tostring(mcIdx)
-                    local bw = ZeD.TM:MeasureStringX(font, badge)
                     local bx = T.px(4)
                     local by = drawY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
                     local ac = T.accent
@@ -3731,7 +3700,6 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- updateDrawer — 3-mode state machine (nil / item / tab)
     -- ----------------------------------------------------------------
     local function updateDrawer()
-        local prevMode = win._drawerMode
         local prevItem = win._drawerItem   -- S99: card-visibility snapshot
         local sel = content._selectedItems
         local count = 0
@@ -4397,10 +4365,8 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     -- MOUSE HANDLERS
     -- ----------------------------------------------------------------
-    local scrollW = T.sp.scrollbarW
     local countSelected        = r.countSelected
     local findIndex            = r.findIndex
-    local collectSelectedItems = r.collectSelectedItems
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)

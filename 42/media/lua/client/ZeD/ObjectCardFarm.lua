@@ -245,8 +245,6 @@ function def.refresh(t, player)
     t.d = d
 
     local verbs, needs = {}, {}
-    local pn = player:getPlayerNum()
-    local sq = t.sq
     if d.plowed then
         verbs[#verbs + 1] = { id = "sow", label = "SOW", enabled = #d.seeds > 0, primary = #d.seeds > 0, jump = "farm:sow:1" }
         if #d.seeds == 0 then needs[#needs + 1] = "Sow: needs seeds" end
@@ -356,7 +354,7 @@ local function drawPlantTag(card, x, y, w, d, title, sub)
     if d.tex then card:drawTextureScaledAspect(d.tex, x + T.px(4), y + T.px(4), ps - T.px(8), ps - T.px(8), 1, 1, 1, 1) end
     local tx = x + ps + T.px(10)
     local nameY = y + T.px(2)
-    local bw = UI.big(card, ZeD.CraftingCore.truncText(title, T.fontF4, w - ps - T.px(10)), tx, nameY, 17, T.text)
+    UI.big(card, ZeD.CraftingCore.truncText(title, T.fontF4, w - ps - T.px(10)), tx, nameY, 17, T.text)
     local f3 = T.fontF3
     card:drawText(sub, tx, y + ps - tm:getFontHeight(f3) - T.px(1), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f3)
     return ps
@@ -420,7 +418,6 @@ local function drawGarden(card, x, y, w, t, e)
     local cw = math.floor((w - gap * (cols - 1)) / cols)
     local ch = T.px(28)
     local f5 = T.fontF5
-    local y0 = y
     local sys = farmSys()
     for i, o in ipairs(list) do
         local c = (i - 1) % cols

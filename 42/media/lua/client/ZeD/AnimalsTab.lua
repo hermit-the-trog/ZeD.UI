@@ -86,9 +86,6 @@ local EMPTY_PAD        = 40      -- padding for empty state text
 
 -- Zone detail view
 local ZINF_PAD         = 6       -- zone info band internal padding
-local ZINF_METER_W     = 120     -- wide fill meters in zone info band
-local ZINF_METER_H     = 8       -- fill meter bar height
-local ZINF_METER_GAP   = 10      -- gap between meters
 local AROW_H           = 48      -- animal roster row height
 local AROW_ICON_SZ     = 32      -- portrait icon size
 local AROW_DOT_SZ      = 7       -- stat dot diameter
@@ -106,7 +103,6 @@ local AHEAD_PAD        = 6       -- header internal padding
 local VITAL_BAR_W      = 100     -- fill bar width in vital rows
 local VITAL_BAR_H      = 8       -- fill bar height
 local VITAL_ROW_H      = 22      -- vital row height
-local DETAIL_PAD       = 6       -- detail view side padding
 local SECTION_GAP      = 8       -- gap between sections
 
 -- Butcher sub-mode
@@ -822,7 +818,6 @@ local function renderZoneCreateContent(panel, win, x, y, w, h)
     curY = curY + hdrH + pad
 
     -- Zone name
-    local lblFont = T.fontF1 or ZeD.T.fontF2
     local valFont = T.fontF3 or ZeD.T.fontF2
     local lblColor = T.textSec or T.textDim
     local nameFont = T.fontF4 or ZeD.T.fontF2
@@ -858,7 +853,6 @@ local function drawZoneCreateFooter(panel, win, x, y, w)
     local T = ZeD.T
     local A = ZeD.Atoms
     local zc = getZoneCreateState(win)
-    local sp = T.sp or {}
     local pad = T.px(6)
     local btnFont = T.fontF5 or ZeD.T.fontF2
     local btnH = T.px(BTN_H)
@@ -918,7 +912,6 @@ end
 
 local function drawEmptyState(panel, win, x, y, w, h)
     local T = ZeD.T
-    local A = ZeD.Atoms
     local tm = ZeD.TM
 
     -- Measure content block to center it vertically
@@ -1175,45 +1168,6 @@ local function drawAlertRow(panel, x, y, w, alert)
 
     return T.px(ALERT_ROW_H)
 end
-
--- ============================================================================
--- M-MINIM — COMPACT INLINE METER (44px wide)
--- Fill bar + label below. Used in zone summary cards for food/water/roof.
--- Returns: total height consumed.
--- ============================================================================
-
-local MINIM_W      = 44
-local MINIM_BAR_H  = 6
-local MINIM_GAP    = 2
-local MINIM_TOTAL  = 0  -- computed at first use
-
-local function drawMiniMeter(panel, x, y, label, ratio, fillColor)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-
-    -- Bar
-    local bg = T.surf3 or T.surf1
-    panel:drawRect(x, y, T.px(MINIM_W), T.px(MINIM_BAR_H), bg.a or 0.3, bg.r, bg.g, bg.b)
-    ratio = math.max(0, math.min(1, ratio or 0))
-    if ratio > 0 then
-        local fc = fillColor or T.positive
-        local fillW = math.max(T.px(1), math.floor(T.px(MINIM_W) * ratio))
-        panel:drawRect(x, y, fillW, T.px(MINIM_BAR_H), (fc.a or 1) * 0.7, fc.r, fc.g, fc.b)
-    end
-    local bc = T.border or T.borderS
-    panel:drawRectBorder(x, y, T.px(MINIM_W), T.px(MINIM_BAR_H), (bc.a or 0.3), bc.r, bc.g, bc.b)
-
-    -- Label below
-    local lblFont = T.fontF5 or ZeD.T.fontF2
-    local lblH = ZeD.TM:getFontHeight(lblFont)
-    local lblW = ZeD.TM:MeasureStringX(lblFont, label)
-    local lblX = x + math.floor((T.px(MINIM_W) - lblW) / 2)
-    panel:drawText(label, lblX, y + T.px(MINIM_BAR_H) + T.px(MINIM_GAP),
-        T.textDim.r, T.textDim.g, T.textDim.b, 0.6, lblFont)
-
-    return T.px(MINIM_BAR_H) + T.px(MINIM_GAP) + lblH
-end
-
 -- ============================================================================
 -- M-ZRSUM — ZONE SUMMARY CARD
 -- Zone name + animal count + species breakdown + 3 mini-meters (food/water/roof)
@@ -1223,12 +1177,6 @@ end
 
 local ZCARD_PAD    = 6
 local ZCARD_MIN_H  = 52
-
-local function meterColorForRatio(T, ratio)
-    if ratio > 0.6 then return T.positive end
-    if ratio > 0.3 then return T.warning end
-    return T.danger
-end
 
 -- S109a: measure cardH ahead of the draw pass so bg + gamepad focus cue can
 -- cover the full card area (previously both were clamped to ZCARD_MIN_H,
@@ -1381,7 +1329,6 @@ end
 
 local function drawTotals(panel, x, y, w, totals)
     local T = ZeD.T
-    local A = ZeD.Atoms
     local pad = T.px(ZCARD_PAD)
     local curY = y
 
@@ -1451,11 +1398,8 @@ local function renderRanchOverview(panel, win, x, y, w, h)
     end
 
     local T = ZeD.T
-    local A = ZeD.Atoms
     local M = ZeD.Molecules
     local pad = M.getTabPad()
-    local padTop = M.getTabPadTop()
-    local headerH = M.getTabHeaderH()
 
     -- Section collapse state
     if not win._animalsOverviewState then
@@ -1560,39 +1504,6 @@ end
 -- male aggression warnings. Pinned at top of zone view, not scrolled.
 -- Returns: bandH consumed.
 -- ============================================================================
-
-local function drawZoneInfoMeter(panel, x, y, label, ratio, fillColor)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-
-    -- Background track
-    local bg = T.surf3 or T.surf1
-    panel:drawRect(x, y, T.px(ZINF_METER_W), T.px(ZINF_METER_H), bg.a or 0.3, bg.r, bg.g, bg.b)
-
-    -- Fill
-    ratio = math.max(0, math.min(1, ratio or 0))
-    if ratio > 0 then
-        local fillW = math.max(T.px(1), math.floor(T.px(ZINF_METER_W) * ratio))
-        panel:drawRect(x, y, fillW, T.px(ZINF_METER_H), (fillColor.a or 1) * 0.7, fillColor.r, fillColor.g, fillColor.b)
-    end
-
-    -- Border
-    local bc = T.border or T.borderS
-    panel:drawRectBorder(x, y, T.px(ZINF_METER_W), T.px(ZINF_METER_H), bc.a or 0.3, bc.r, bc.g, bc.b)
-
-    -- Label right of bar
-    local lblFont = T.fontF5 or ZeD.T.fontF2
-    local lblX = x + T.px(ZINF_METER_W) + T.px(4)
-    panel:drawText(label, lblX, y - T.px(1), T.textDim.r, T.textDim.g, T.textDim.b, 0.7, lblFont)
-
-    -- Percentage text above bar
-    local pctStr = tostring(math.floor(ratio * 100)) .. "%"
-    local pctW = ZeD.TM:MeasureStringX(lblFont, pctStr)
-    panel:drawText(pctStr, x + T.px(ZINF_METER_W) - pctW, y - ZeD.TM:getFontHeight(lblFont) - T.px(1),
-        T.text.r, T.text.g, T.text.b, 0.7, lblFont)
-
-    return T.px(ZINF_METER_H)
-end
 
 local function drawZoneInfoBand(panel, win, x, y, w, summary)
     local T = ZeD.T
@@ -2226,7 +2137,6 @@ local function renderRanchZone(panel, win, x, y, w, h)
     end
 
     local pad = M.getTabPad()
-    local padTop = M.getTabPadTop()
     local scrollW = T.sp.scrollbarW
 
     -- Reset click zones
@@ -2410,7 +2320,6 @@ local function drawAnimalHeader(panel, x, y, w, animal, player)
     local tags = ad.getConditionTags(animal, player)
     if #tags > 0 then
         local badgeFont = T.fontF5 or ZeD.T.fontF2
-        local badgePadX = T.sp and T.sp.badgePadX or T.px(4)
         local bx = textX
         for _, tag in ipairs(tags) do
             local variant = tag.sev
@@ -2678,7 +2587,6 @@ local function drawBreedingSection(panel, x, y, w, animal, player)
     local isPregnant = ad.isPregnant(animal)
     if isPregnant then
         local pregText = "Pregnant"
-        local pregColor = T.info
         if ad.canSee(player, "pregnancy_bar") then
             local current, total = ad.getPregnancyProgress(animal)
             local ratio = total > 0 and (current / total) or 0
@@ -3086,7 +2994,6 @@ local function renderButcherOverview(panel, win, x, y, w, h)
     end
 
     local pad = M.getTabPad()
-    local padTop = M.getTabPadTop()
     local scrollW = T.sp.scrollbarW
 
     win._animalsButcherZones = {}

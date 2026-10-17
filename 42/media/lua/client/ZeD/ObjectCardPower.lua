@@ -149,7 +149,6 @@ function def.refresh(t, player)
     t.d = d
 
     -- verbs, with vanilla's rules
-    local pn = player:getPlayerNum()
     local verbs, needs = {}, {}
     local onOK = d.on or (d.conn and d.fuel > 0)
     local function toggle(p, tt)
@@ -244,7 +243,7 @@ ZeD.ObjectCardPower.plateState = plateState
 
 -- the plate (fixed size, centred), its two controls, and the line under it
 local function drawPlate(card, x, y, w, t)
-    local T, tm = ZeD.T, ZeD.TM
+    local T = ZeD.T
     local d = t.d
     local des = plateFor(d)
     if not des then return 0 end

@@ -303,40 +303,6 @@ local function exitMultiContainer(win, content)
     win._lastSetX = snapX
 end
 
--- Toggle the inventory drawer open/closed. Enforces always-visible invariant.
--- MUST be defined after exitMultiContainer (forward reference would crash Kahlua).
-local function toggleInventoryDrawer(win, content)
-    local T = ZeD.T
-    if win._invDrawerOpen then
-        -- Can only close if tab drawer is open (always-visible invariant)
-        if win._drawerMode == "tab" and win._drawerOpen then
-            win._invDrawerOpen = false
-            if #(win._mcSelected or {}) > 0 then
-                exitMultiContainer(win, content)
-            end
-            -- Snap window to drawer-only width
-            local drawerW = math.floor(win._drawerEffW or 0)
-            local snapW = T.px(TAB_STRIP_W) + drawerW + T.px(CONTAINER_STRIP_W)
-            win:setWidth(snapW)
-            local snapX = win._anchorRightEdge - snapW
-            win:setX(snapX)
-            win._lastSetX = snapX
-        end
-    else
-        win._invDrawerOpen = true
-        -- Snap window to include inventory
-        local drawerW = math.floor(win._drawerEffW or 0)
-        local baseInv = T.px(win._baseInvW or 372)
-        local snapW = T.px(TAB_STRIP_W) + drawerW + baseInv + T.px(CONTAINER_STRIP_W)
-        local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
-        snapW = math.min(snapW, maxW)
-        win:setWidth(snapW)
-        local snapX = win._anchorRightEdge - snapW
-        win:setX(snapX)
-        win._lastSetX = snapX
-    end
-end
-
 -- S108 v2 Q104 forward-decl: mcToggleContainer's tail calls
 -- _syncRingZonesToActiveTab to refresh per-column charMC<n> ring zones.
 -- Without hoisting, the closure captures the name as a global at creation
@@ -2713,7 +2679,6 @@ local function drawContainerStrip(self, win, content)
         local mcCountM = #(win._mcSelected or {})
         if mainVis and mcCountM > 0 then
             local badge = tostring(mcCountM + 1)
-            local bw = ZeD.TM:MeasureStringX(font, badge)
             local bx = T.px(4)
             local by = curY + T.px(CONTAINER_BTN_SZ) - fontH - T.px(1)
             local ac = T.accent
@@ -3195,22 +3160,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 end
             end
             return baseX, (w._baseInvW and T.px(w._baseInvW)) or (w:getWidth() - T.px(TAB_STRIP_W) - dw - T.px(CONTAINER_STRIP_W))
-        end
-        -- S106: MC zone underline spans columns 1..N-1 (all but last). Dynamic
-        -- per-frame read from content._colStates.
-        local function _mcRange(w)
-            local T = ZeD.T
-            local dw = math.floor(w._drawerEffW or 0)
-            local baseX = T.px(TAB_STRIP_W) + dw
-            local cnt = w._mainContent
-            local cs = cnt and cnt._colStates
-            if not (cs and #cs >= 2) then return baseX, 0 end
-            local first = cs[1]
-            local lastMc = cs[#cs - 1]
-            if not (first and lastMc) then return baseX, 0 end
-            local fx = first.renderX or 0
-            local lx = (lastMc.renderX or 0) + (lastMc.renderW or 0)
-            return baseX + fx, math.max(0, lx - fx)
         end
 
         -- S100: charEquipDrawer removed from ring. The defense drawer is now
@@ -5261,7 +5210,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local scrollW = T.sp.scrollbarW
     local countSelected        = r.countSelected
     local findIndex            = r.findIndex
-    local collectSelectedItems = r.collectSelectedItems
     local handleDrop           = r.handleDrop
 
     content.onMouseDown = function(self, x, y)
@@ -5536,7 +5484,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     content.onMouseMove = function(self, dx, dy)
         local T = ZeD.T
-        local mx = self:getMouseX()
         local my = self:getMouseY()
         self._scroll:handleMouseMove(my)
 

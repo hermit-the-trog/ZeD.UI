@@ -55,17 +55,12 @@ local U = {
 -- ---------------------------------------------------------------------------
 -- small helpers
 -- ---------------------------------------------------------------------------
-local function TM() return ZeD.TM end
 local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
 local function clamp(v, lo, hi) if v < lo then return lo end if v > hi then return hi end return v end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 local function sound(name) pcall(function() getSoundManager():playUISound(name or "UIActivateButton") end) end
 local function upper(s) return string.upper(tostring(s or "")) end
-local function gamepadMode()
-    local D = ZeD.Input and ZeD.Input.Detector
-    return D and D.getMode and D.getMode() == "gamepad" or false
-end
 
 -- the screen box a prompt stays inside: the player's part of the screen, or all of it
 local function screenBox(player)
@@ -985,7 +980,7 @@ function ZeD_Prompt:prerender()
     self.minimumWidth, self.minimumHeight = 0, 0
     local g = self._g
     local A, M = ZeD.Atoms, ZeD.Molecules
-    local tc, td, ac = T.text, T.textDim, T.accent
+    local tc, ac = T.text, T.accent
     local w = self.width
     local focusOn = self.joyfocus ~= nil
     local function rowFill(r) if r then self:drawRect(r.x, r.y, r.w, r.h, 0.55, ac.r, ac.g, ac.b) end end
@@ -1086,7 +1081,7 @@ function ZeD_Prompt:prerender()
 
     -- footer: the action zone
     local f = g.foot
-    local s2, bs = T.surf2, T.borderS
+    local s2 = T.surf2
     self:drawRect(T.px(1), f.y, w - T.px(2), f.h, s2.a or 1, s2.r, s2.g, s2.b)
     A.drawDividerH(self, T.px(1), f.y, w - T.px(2), false)
     for i, r in ipairs(g.buttons) do

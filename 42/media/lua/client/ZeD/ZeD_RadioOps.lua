@@ -486,7 +486,7 @@ end
 
 -- FM sets: premium (VFD), valutech (amber), makeshift (16 x 2 characters)
 local function drawFM(p, kind, x, y, w, h, u, st, full)
-    local B, R = fonts()
+    local B = fonts()
     local dk = O.DISPLAY_KIND[kind]
     local c = COL[dk]
     local glow = GLOWS[dk]
@@ -565,7 +565,7 @@ end
 
 -- two-way sets: ham (grey LCD), army (red LEDs), hammake (16 x 2 characters)
 local function drawHam(p, kind, x, y, w, h, u, st, full)
-    local B, R = fonts()
+    local B = fonts()
     local dk = O.DISPLAY_KIND[kind]
     local c = COL[dk]
     local glow = GLOWS[dk]

@@ -349,7 +349,6 @@ function ZeD_MMLooks:drawFigure(x, y, w, h)
     end
     -- under it: turn left, the pose, turn right
     local by = y + boxH + T.px(10)
-    local f3 = T.fontF3
     local bw = T.px(36)
     local function btn(id, text, bx, bwid, fn)
         local b = { id = id, text = text, x = bx, y = by, w = bwid, h = bh, fn = fn, variant = "default", row = 900, col = (id == "turnL") and 1 or ((id == "pose") and 2 or 3) }

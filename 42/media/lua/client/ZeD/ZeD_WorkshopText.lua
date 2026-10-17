@@ -146,7 +146,7 @@ function BB.parse(s)
     local pos = 1
     while pos <= #s do
         -- the next block-level opening tag
-        local a, b, tag, arg = nil, nil, nil, nil
+        local a, b, tag = nil, nil, nil
         local from = pos
         while true do
             a, b, tag = s:find("%[(%a+%d?)[^%]]*%]", from)

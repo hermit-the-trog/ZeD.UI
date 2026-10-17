@@ -106,7 +106,6 @@ function def.body(card, x, y, w, t, player)
     local T, tm = ZeD.T, ZeD.TM
     local d = t.d
     if not d then return 0 end
-    local y0 = y
     local lw = T.px(140)
     -- the track itself
     local ih = T.px(96)
@@ -120,7 +119,6 @@ function def.body(card, x, y, w, t, player)
 
     -- facts
     local fx = x + lw + T.px(14)
-    local fw = w - lw - T.px(14)
     local fy = y
     local function fact(label, value, dot, dim)
         local f1, f2 = T.fontF1, T.fontF2
