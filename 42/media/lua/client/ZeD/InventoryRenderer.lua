@@ -235,7 +235,7 @@ local function ccLayout(self, hdrY, barH, colW)
     local CTL = ZeD.ContainerControls
     if CTL and self._ccSide and not self._compactMode and hdrY > barH then
         local ok, h = pcall(CTL.layout, self, colW)
-        if ok then self._ccH = h or 0 else print("[ZeD] ContainerControls layout: " .. tostring(h)) end
+        if ok then self._ccH = h or 0 else ZeD.logOnce("ContainerControls layout", h) end
     else
         self._ccMarks = nil
         if self._cc then self._cc.layout = nil end
@@ -244,13 +244,13 @@ end
 
 local function ccDraw(self, colW, xOff)
     local ok, e = pcall(ZeD.ContainerControls.draw, self, self:getHeight() - self._ccH, colW, xOff, true)
-    if not ok then print("[ZeD] ContainerControls draw: " .. tostring(e)) end
+    if not ok then ZeD.logOnce("ContainerControls draw", e) end
 end
 
 -- an icon's hover hint, drawn last (over the rows)
 local function ccHint(self)
     local ok, e = pcall(ZeD.ContainerControls.drawHint, self)
-    if not ok then print("[ZeD] ContainerControls hint: " .. tostring(e)) end
+    if not ok then ZeD.logOnce("ContainerControls hint", e) end
 end
 
 -- a row a pointed-at (or focused) Same type button would move (a stack's

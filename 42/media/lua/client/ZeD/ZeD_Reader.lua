@@ -278,7 +278,7 @@ local function section(self, label, x, y, w)
     local la = T.accent
     self:drawText(label, x, y, la.r, la.g, la.b, la.a or 1, T.fontF1)
     local h = fh(T.fontF1) + T.px(3)
-    self:drawRect(x, y + h, w, 1, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+    self:drawRect(x, y + h, w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
     return y + h + T.px(6)
 end
 
@@ -741,7 +741,7 @@ function ZeD_Reader:drawRail(r)
         local words = firstWords(self.pages[i])
         local c = words and tc or td
         self:drawText(ZeD.Atoms.truncateText(words or "Blank", f2, r.w - T.px(52)), r.x + T.px(42), y + math.floor((rh - fh(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-        self:drawRect(r.x + 1, y + rh - 1, r.w - 2, 1, T.border.a, T.border.r, T.border.g, T.border.b)
+        self:drawRect(r.x + T.px(1), y + rh - T.px(1), r.w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
         self._hits[#self._hits + 1] = { id = id, x = r.x, y = y, w = r.w, h = rh, fn = function() self:goPage(i) end }
         y = y + rh
     end
@@ -782,7 +782,7 @@ function ZeD_Reader:drawNotePage(a)
     -- (the box's first line starts LINE_TOP below its top; each rule runs under a line)
     local LINE_TOP = T.px(4)
     for i = 1, NB.LINES do
-        self:drawRect(mx + T.px(2), py + headH + T.px(2) + LINE_TOP + lh * i, pw - (mx - px) - T.px(2), 1, 1, RULE.r, RULE.g, RULE.b)
+        self:drawRect(mx + T.px(2), py + headH + T.px(2) + LINE_TOP + lh * i, pw - (mx - px) - T.px(2), T.px(1), 1, RULE.r, RULE.g, RULE.b)
     end
     -- the name (edited in place) and the page number
     local f3 = T.fontF3

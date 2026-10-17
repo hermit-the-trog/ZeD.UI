@@ -3421,7 +3421,14 @@ function ZeD_WorldWindow.toggle(playerNum)
             if win._drawerMode == "tab" and win._activeTab then
                 local renderer = WORLD_TAB_RENDERERS[win._activeTab]
                 if renderer then
-                    renderer(self, win, 0, 0, targetW, dh)
+                    -- (a tab that throws must not repeat its error every frame or leave its own clip
+                    -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
+                    local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
+                    if not okR then
+                        self:clearStencilRect()
+                        self:setStencilRect(0, 0, effectiveW, dh)
+                        ZeD.logOnce("world tab " .. tostring(win._activeTab), errR)
+                    end
                 else
                     -- Placeholder for unregistered tabs
                     local tabDef
@@ -3855,7 +3862,7 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
         if ZeD.ContainerControls then
             local okF, eF = pcall(ZeD.ContainerControls.syncFocus, win, self)
-            if not okF then print("[ZeD] ContainerControls focus: " .. tostring(eF)) end
+            if not okF then ZeD.logOnce("ContainerControls focus", eF) end
         end
 
         -- --------------------------------------------------------
@@ -4812,6 +4819,9 @@ end
 -- ============================================================================
 
 function ZeD_WorldWindow.open(playerNum)
+    -- (never for a dead character; code audit Oct 17 2026)
+    local p = getSpecificPlayer(playerNum or 0)
+    if p and p:isDead() then return end
     if not _worldWin then
         ZeD_WorldWindow.toggle(playerNum)
     end

@@ -349,7 +349,7 @@ local function section(panel, label, x, y, w)
     panel:drawText(label, x, y, la.r, la.g, la.b, la.a or 1, T.fontF1)
     local hh = fh(T.fontF1) + T.px(3)
     local bs = T.borderS
-    panel:drawRect(x, y + hh, w, 1, bs.a, bs.r, bs.g, bs.b)
+    panel:drawRect(x, y + hh, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     return y + hh + T.px(6)
 end
 
@@ -601,7 +601,7 @@ local function miniPage(panel, b, page, x, y, w)
     panel:drawRect(x, y, w, ph, 1, PAPER.r, PAPER.g, PAPER.b)
     panel:drawRect(x + margin, y, T.px(1), ph, 1, MARGIN.r, MARGIN.g, MARGIN.b)
     for i = 1, rows do
-        panel:drawRect(x + margin + T.px(1), y + T.px(10) + lh * i - 1, w - margin - T.px(1), 1, 1, RULE.r, RULE.g, RULE.b)
+        panel:drawRect(x + margin + T.px(1), y + T.px(10) + lh * i - T.px(1), w - margin - T.px(1), T.px(1), 1, RULE.r, RULE.g, RULE.b)
     end
     for i, l in ipairs(lines) do
         panel:drawText(l, x + margin + T.px(6), y + T.px(10) + lh * (i - 1) + (lh - fh(f)) - T.px(3), INK.r, INK.g, INK.b, 1, f)

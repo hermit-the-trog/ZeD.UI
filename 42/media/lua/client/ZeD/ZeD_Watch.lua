@@ -323,7 +323,8 @@ function ZeD_Watch:prerender()
         for i = 0, 3 do st["speed" .. i] = (speed == i) end
         local ctx = self._keyCtx
         if not ctx then ctx = { tex = function(name) return ZeD.Px.tex(X.texdir .. name .. ".png") end }; self._keyCtx = ctx end
-        PLT.draw(self:_canvas(k), des, st, ctx)
+        local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
+        if not okD then ZeD.logOnce("watch plate", eD); return end
         self:_hitsFrom(des, st, k)
         return
     end
@@ -345,7 +346,10 @@ function ZeD_Watch:prerender()
     st.lit = getTimestampMs() < (self._litUntil or 0)
     st.dark = (not st.lit) and _isDark(gt:getTimeOfDay() or st.hour) or false
     _reading(st.display, player, item, speed, self._setOpen, armed, alarmHour)
-    PLT.draw(self:_canvas(k), des, st, ctx)
+    -- (an add-on face with bad data logs once and is not drawn, rather than throwing every
+    -- frame on an always-visible prop; code audit Oct 17 2026)
+    local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
+    if not okD then ZeD.logOnce("watch plate " .. tostring(def and def.id), eD); return end
     self:_hitsFrom(des, st, k)
 end
 function ZeD_Watch:render() end

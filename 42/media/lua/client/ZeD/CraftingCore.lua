@@ -2614,7 +2614,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 journalKind = (prefix == "jrecipe") and "jrecipeShowAll" or nil,
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
-                    CC.cycleShow(state, config)
+                    CC.cycleShow(state, { readOnly = (prefix == "jrecipe") })  -- (the Journal list is read-only: Known and All; there is no config here; code audit Oct 17 2026)
                 end,
             }
         elseif z.type == "stationDropdown" then

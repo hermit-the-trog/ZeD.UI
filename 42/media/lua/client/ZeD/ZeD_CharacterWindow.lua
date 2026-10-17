@@ -3566,7 +3566,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer:addChild(recipeSearch)
     win._jrecipeSearch = recipeSearch
 
-    local flyerSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search flyers...")
+    local flyerSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search...")
     flyerSearch:initialise()
     flyerSearch:setVisible(false)
     flyerSearch.onFilter = function(self, text)
@@ -3583,7 +3583,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- the photo frame in IdentityTab. addChild between containerStrip and itemDrawer.
     local BUST_ZOOM     = 19     -- head+shoulders crop (tune in-game)
     local BUST_Y_OFFSET = -0.875 -- shift model down to show full head (tune in-game)
-    local identityModel = ISUI3DModel:new(0, 0, PHOTO_SIZE, PHOTO_SIZE)
+    local identityModel = ISUI3DModel:new(0, 0, T.px(120), T.px(120))  -- (the Identity photo frame; PHOTO_SIZE is IdentityTab's local, nil here; resized every frame after)
     identityModel:initialise()
     identityModel:instantiate()
     identityModel:setState("idle")
@@ -3920,6 +3920,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
         end
 
+        -- The Equip tab's item card hides every frame here; the Equip tab's own draw (below,
+        -- same frame) shows it again when it is in card mode. Only the Equip tab hid it
+        -- before, so after a tab switch it stayed over the new tab, catching clicks
+        -- (code audit Oct 17 2026).
+        if self._equipCard and self._equipCard:isVisible() then self._equipCard:setVisible(false) end
+
         -- Draw drawer background + content (in mc mode, only draw if item card is visible)
         local drawDrawer = effectiveW > 0 and (not mcActive or win._drawerMode == "item" or win._drawerMode == "tab")
         if drawDrawer then
@@ -3937,7 +3943,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if win._drawerMode == "tab" and win._activeTab then
                 local renderer = TAB_RENDERERS[win._activeTab]
                 if renderer then
-                    renderer(self, win, 0, 0, targetW, dh)
+                    -- (a tab that throws must not repeat its error every frame or leave its own clip
+                    -- set: log once, put the drawer's clip back, draw on; code audit Oct 17 2026)
+                    local okR, errR = pcall(renderer, self, win, 0, 0, targetW, dh)
+                    if not okR then
+                        self:clearStencilRect()
+                        self:setStencilRect(0, 0, effectiveW, dh)
+                        ZeD.logOnce("tab " .. tostring(win._activeTab), errR)
+                    end
                 else
                     -- Placeholder for unimplemented tabs
                     local label = win._activeTab
@@ -4837,9 +4850,30 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if vi and vi:getIsVisible() then vi:setVisible(false) end
         if vl and vl:getIsVisible() then vl:setVisible(false) end
 
+        -- The card's item gone (eaten, dropped, moved to the world): the card closes, as a
+        -- deselect would. Checked every 10 frames (code audit Oct 17 2026: the card and its
+        -- live buttons outlived the item, since the drawer only updated on a new selection).
+        self._goneTick = (self._goneTick or 0) + 1
+        if self._goneTick >= 10 then
+            self._goneTick = 0
+            local di, p = win._drawerItem, self._playerObj
+            if di and p then
+                local okC, here = pcall(function()
+                    local c = di:getContainer()
+                    return c ~= nil and (c == p:getInventory() or c:isInCharacterInventory(p))
+                end)
+                if okC and not here then
+                    if self._selectedItems then self._selectedItems[di] = nil end
+                    updateDrawer(self)
+                end
+            end
+        end
+
         -- Title bar stats: [heart] hp%  [pack] weight / max
         local inv = self._inventory
-        local weight = round(ISInventoryPage.loadWeight(inv), 2)
+        -- (the character's own load over their own max: the viewed bag's weight was read
+        -- here before; code audit Oct 17 2026)
+        local weight = round(self._playerObj:getInventory():getCapacityWeight(), 2)
         local maxWt = self._playerObj:getMaxWeight()
         local bd = self._playerObj:getBodyDamage()
         local hp = math.floor(bd:getOverallBodyHealth() + 0.5)
@@ -4936,7 +4970,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
         if ZeD.ContainerControls then
             local okF, eF = pcall(ZeD.ContainerControls.syncFocus, win, self)
-            if not okF then print("[ZeD] ContainerControls focus: " .. tostring(eF)) end
+            if not okF then ZeD.logOnce("ContainerControls focus", eF) end
         end
 
         -- --------------------------------------------------------
@@ -5661,6 +5695,8 @@ Events.OnKeyPressed.Remove(_vanillaInvKeyPressed)
 function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     playerNum = playerNum or 0
     if not getSpecificPlayer(playerNum) then return end
+    -- (never for a dead character: the windows reopen for the next one; code audit Oct 17 2026)
+    if getSpecificPlayer(playerNum):isDead() then return end
     if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
     if getCore():getGameMode() == "Tutorial" then return end
@@ -5691,6 +5727,7 @@ end
 function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     playerNum = playerNum or 0
     if not getSpecificPlayer(playerNum) then return end
+    if getSpecificPlayer(playerNum):isDead() then return end
     if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
     if getCore():getGameMode() == "Tutorial" then return end
@@ -5703,6 +5740,18 @@ function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     end
     _hideVanilla()
 end
+
+-- On death both windows close (vanilla destroys its inventory pages too). They
+-- are built afresh on the next open, so after a respawn they belong to the new
+-- character, not the dead one (code audit Oct 17 2026: they kept the dead player,
+-- queued actions against it and never rebound).
+Events.OnPlayerDeath.Add(function(playerObj)
+    pcall(function()
+        if _charWin and _charWin._playerObj == playerObj then ZeD_CharacterWindow.toggle(playerObj:getPlayerNum()) end
+        local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+        if ww and ww._playerObj == playerObj and ZeD_WorldWindow.close then ZeD_WorldWindow.close() end
+    end)
+end)
 
 Events.OnKeyPressed.Add(function(key)
     if getCore():isKey("Toggle Inventory", key) then

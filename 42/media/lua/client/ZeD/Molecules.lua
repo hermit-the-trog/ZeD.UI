@@ -4008,7 +4008,7 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     local pillY = y + math.floor((stripH - pillH) / 2)
 
     local arrowBtnColors = {
-        bg     = T.surf3 or bg,
+        bg     = T.surf3 or T.surf1,  -- (the fallback named an undefined bg; code audit Oct 17 2026)
         border = T.borderS or groove,
         text   = T.text   or { r = 1, g = 1, b = 1, a = 1 },
         font   = font,

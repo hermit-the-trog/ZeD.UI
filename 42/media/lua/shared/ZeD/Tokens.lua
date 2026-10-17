@@ -939,6 +939,19 @@ local function toSentenceCase(s)
     return table.concat(parts)
 end
 
+-- An error caught every frame (a draw, a tick) logs once per place and message, not
+-- once a frame: one bad texture or nil field must not flood console.txt.
+-- (code audit Oct 17 2026; capped so a message with changing numbers cannot grow it forever)
+local _logSeen, _logCount = {}, 0
+function ZeD.logOnce(key, msg)
+    local k = tostring(key) .. "|" .. tostring(msg)
+    if _logSeen[k] then return end
+    if _logCount >= 500 then return end
+    _logSeen[k] = true
+    _logCount = _logCount + 1
+    print("[ZeD] " .. tostring(key) .. ": " .. tostring(msg))
+end
+
 function ZeD.btnCase(s)
     if s == nil then return s end
     s = tostring(s)

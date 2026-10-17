@@ -67,7 +67,7 @@ function ZeD_Panel:prerender()
         local c = T.borderS
         self:drawRectBorder(0, 0, self.width, self.height, c.a, c.r, c.g, c.b)
         if T.borderW >= 2 then
-            self:drawRectBorder(1, 1, self.width - 2, self.height - 2, c.a, c.r, c.g, c.b)  -- S124 TODO scale? 1 = drawRectBorder's fixed 1 screen px (HC double ring); T.px(1) opens a gap until borders scale
+            do local i = T.px(1); self:drawRectBorder(i, i, self.width - 2 * i, self.height - 2 * i, c.a, c.r, c.g, c.b) end  -- HC double ring: inset by the border's own (scaled) thickness
         end
     end
 

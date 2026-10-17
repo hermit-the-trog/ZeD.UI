@@ -244,6 +244,7 @@ local origClear = ISContextMenu.clear
 function ISContextMenu:clear()
     origClear(self)
     self._zedSpawned = false
+    self._zedFailed = false
     -- If the previous RMB's ZeD organism is still alive (user re-clicked
     -- before dismissing), reap it. Guard against double-close by checking
     -- the organism's own open flag.
@@ -270,6 +271,10 @@ function ISContextMenu:prerender()
         return
     end
 
+    -- (ZeD's menu could not be made for this right-click: vanilla's menu shows, as it is,
+    -- until the next right-click clears the flag; code audit Oct 17 2026)
+    if self._zedFailed then return origPrerender(self) end
+
     if self._zedSpawned then
         -- Already handled — just keep it offscreen this frame.
         self:setX(-100000)
@@ -294,7 +299,7 @@ function ISContextMenu:prerender()
     self._zedSpawned = true
     local Registry = ZeD.ContextMenu.Registry
     if not Registry then
-        self._zedSpawned = false
+        self._zedFailed = true
         return origPrerender(self)
     end
     local target = self._zedTarget
@@ -302,7 +307,9 @@ function ISContextMenu:prerender()
     Registry.applyPins(tree, target)
 
     -- If tree is empty after translation (all options filtered?), bail to vanilla.
+    -- (marked failed so the next frame shows vanilla's menu instead of parking it offscreen)
     if #tree == 0 then
+        self._zedFailed = true
         return origPrerender(self)
     end
 
@@ -326,8 +333,8 @@ function ISContextMenu:prerender()
         -- If the ZeD organism failed to construct, fall back to vanilla so
         -- the player at least has a functioning context menu. Log the error
         -- so closeout can capture it for PZAPI-KNOWLEDGE-BANK if recurring.
-        print("[ZeD.ContextMenu] organism spawn failed: " .. tostring(menuOrErr))
-        self._zedSpawned = false
+        ZeD.logOnce("ContextMenu organism spawn failed", menuOrErr)
+        self._zedFailed = true
         return origPrerender(self)
     end
 end
@@ -339,7 +346,7 @@ end
 -- ---------------------------------------------------------------------------
 local origRender = ISContextMenu.render
 function ISContextMenu:render()
-    if self._zedSpawned and not self:isEmpty() then
+    if self._zedSpawned and not self._zedFailed and not self:isEmpty() then
         return   -- handled by ZeD organism
     end
     if self.parent and type(self.parent) == "table" and self.parent.options then

@@ -457,7 +457,13 @@ end
 function ZeD_Dashboard:prerender()
     local chr = getSpecificPlayer(self.playerNum)
     local vehicle = chr and chr:getVehicle()
-    if not chr or not vehicle or (ISUIHandler and ISUIHandler.allUIVisible == false) then self:setVisible(false); return end
+    -- (the car lost some way other than getting out: let go of the controller and the focus
+    -- ring too, so an unseen dash keeps neither; code audit Oct 17 2026)
+    if not chr or not vehicle then
+        self:setVisible(false); self.vehicle = nil; self:_release(); self:_unregister()
+        return
+    end
+    if ISUIHandler and ISUIHandler.allUIVisible == false then self:setVisible(false); return end
     if self.vehicle ~= vehicle then self._mem = {} end        -- a new car: its needles start from rest
     self.vehicle = vehicle
     local vd = getPlayerVehicleDashboard and getPlayerVehicleDashboard(self.playerNum)
@@ -489,7 +495,8 @@ function ZeD_Dashboard:prerender()
     local cv = P.canvas(self, 0, 0, k)
     self._cv = cv
     local pending = {}
-    PL.draw(cv, des, st, self:_ctx(des, pending), BASE_W, BASE_H)
+    local okD, eD = pcall(PL.draw, cv, des, st, self:_ctx(des, pending), BASE_W, BASE_H)
+    if not okD then ZeD.logOnce("dash plate", eD); return end  -- (code audit Oct 17 2026)
     -- controls last, so a focus cue sits over the art
     for _, hz in ipairs(des.hits) do
         local en = true

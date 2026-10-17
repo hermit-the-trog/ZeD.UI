@@ -712,7 +712,7 @@ function FT.register(dispatch)
         local ok, err = pcall(ZeD.FurnitureTab.render, ...)
         if not ok and FT._lastErr ~= tostring(err) then
             FT._lastErr = tostring(err)
-            print("[ZeD] FurnitureTab: render failed: " .. tostring(err))
+            ZeD.logOnce("FurnitureTab: render failed", err)
         end
     end
 end
@@ -855,7 +855,7 @@ function FT.install()
         ISMoveableCursor.setInfoPanel = function(self, sq, obj, mp, tex)
             local panel = orig(self, sq, obj, mp, tex)
             local ok, err = pcall(FT.capture, self, sq, obj, mp, tex, panel)
-            if not ok then print("[ZeD] FurnitureTab: capture failed: " .. tostring(err)) end
+            if not ok then ZeD.logOnce("FurnitureTab: capture failed", err) end
             return panel
         end
     end
@@ -891,7 +891,7 @@ if not FT._ticking then
     FT._ticking = true
     Events.OnTick.Add(function()
         local ok, err = pcall(watch)
-        if not ok then print("[ZeD] FurnitureTab: watch failed: " .. tostring(err)) end
+        if not ok then ZeD.logOnce("FurnitureTab: watch failed", err) end
         if FT.state.active then pcall(ensureChip) end
     end)
 end

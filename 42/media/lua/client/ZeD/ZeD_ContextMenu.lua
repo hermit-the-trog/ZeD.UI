@@ -868,7 +868,7 @@ function ZeD_ContextMenu:_positionAssembly()
         local psW = getPlayerScreenWidth  and getPlayerScreenWidth(self.player)  or getCore():getScreenWidth()
         local psH = getPlayerScreenHeight and getPlayerScreenHeight(self.player) or getCore():getScreenHeight()
         sx = psL + math.floor((psW - estW) / 2)
-        local moodleAllowance = 140   -- S124 TODO scale? clearance for vanilla HUD (moodles / hotbar), which follows the engine's own UI scale, not the ZeD root
+        local moodleAllowance = ZeD.T.px(140)   -- clearance for the belt and the bottom moodle row, which are ZeD's now and scale (code audit Oct 17 2026)
         sy = psT + psH - estH - moodleAllowance
     else
         -- Cursor anchor — center the strip horizontally on the click point,

@@ -498,3 +498,13 @@ Report only; no consolidation was done. The shared library has `ZeD.Atoms.safeGe
 - No `ipairs`/`pairs` over Java lists. All Java lists use `:size()`/`:get(i)`, and the five 1-based loops correctly read `:get(i - 1)`.
 - No Java enum compared to a string. The string compares (`getCategory`, `getFoodType`, `getContainerContentType`, `getType`) match vanilla's own usage, and enum values go through `tostring`.
 - No `//`, `goto`, bit operators or utf8 library.
+
+---
+
+## Fixed (Oct 17 2026, local session; verified in game at 1080p and 4K)
+
+All ten top findings and these others: 1.1 (ZeD_ObjectCard, ZeD_FurnitureChip, ZeD_MMBar, ZeD_MMDrop, ZeD_MMIcons and MapsTab's ZeD_WorldMap now draw scaled borders), 1.2 (high-contrast double rings inset by the border's own thickness), 1.3 (the readers' section and ruled lines), 1.4 (`ZeD.T.px(140)`), 1.5, 1.6, 1.7 (the prompt measures the label as drawn), 2.6 (object-card tick and header calls protected), 2.7, 2.8 (released only when the car is lost, not when the UI is hidden), 2.9 (watch and dash plates), 2.10, 2.11, 2.12, 3.1, 3.2, 3.3, 5.3 (`ZeD.logOnce` in Tokens.lua at all 15 sites), 5.4, 6.1. Also: an empty translated context menu now falls back to vanilla's menu instead of parking it off screen.
+
+Left as they are, on purpose: the pixel-art panels (the desk, the CRT glass and wake, the car radio, the siren controller) stay off the scaled-border list, their thin lines being art; 2.13-2.15 and the perf items, 3.6-3.8, 5.5, 5.6, 6.2 and the duplicated helpers (section 4) are for a quieter session. Not testable without a death: 2.2 (windows close on death and never open for a dead character); reviewed in code.
+
+Test: `ZeDUI/tools/qa/zedqa_audit_fixes.lua` (a throwing tab logs once and recovers, the Equip card hides on another tab, the item card closes when its item leaves, the title-bar weight), plus every suite.

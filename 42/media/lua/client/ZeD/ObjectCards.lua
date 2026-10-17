@@ -190,7 +190,7 @@ function OC.tick(e, player)
     if t._refreshT >= OC.REFRESH or not t.d then
         t._refreshT = 0
         local ok, err = pcall(def.refresh, t, player)
-        if not ok then print("[ZeD] ObjectCards: refresh failed (" .. tostring(def.id) .. "): " .. tostring(err)) end
+        if not ok then ZeD.logOnce("ObjectCards refresh " .. tostring(def.id), err) end
     end
     e._browseT = (e._browseT or OC.BROWSE_EVERY) + 1
     if e._browseT >= OC.BROWSE_EVERY or not e.list then
@@ -430,7 +430,10 @@ function UI.warn(card, x, y, w, text)
     local T = ZeD.T
     local pad = T.px(8)
     local dg = T.danger
-    local th = UI.para(card, x + pad + T.px(14), y + pad, w - pad * 2 - T.px(14), text, T.text)
+    -- (measured, not drawn: the paragraph draws once, over the tint; it drew twice before,
+    -- the first time under the tint; code audit Oct 17 2026)
+    local lines = ZeD.Atoms.wrapText(text or "", T.fontF2, w - pad * 2 - T.px(14)) or { text or "" }
+    local th = #lines * (ZeD.TM:getFontHeight(T.fontF2) + T.px(2))
     local h = th + pad * 2 - T.px(2)
     card:drawRect(x, y, w, h, 0.12, col(dg))
     card:drawRectBorder(x, y, w, h, dg.a or 1, col(dg))
@@ -599,7 +602,7 @@ function UI.lcd(card, x, y, big, small, minW)
     local h = T.px(30)
     card:drawRect(x, y, w, h, 1, HW.lcdBg.r, HW.lcdBg.g, HW.lcdBg.b)
     card:drawRectBorder(x, y, w, h, 1, HW.lcdEdge.r, HW.lcdEdge.g, HW.lcdEdge.b)
-    card:drawRectBorder(x + 1, y + 1, w - 2, h - 2, 1, HW.lcdEdge.r, HW.lcdEdge.g, HW.lcdEdge.b)
+    do local i = T.px(1); card:drawRectBorder(x + i, y + i, w - 2 * i, h - 2 * i, 1, HW.lcdEdge.r, HW.lcdEdge.g, HW.lcdEdge.b) end  -- (the LCD's second bezel line, inset by the scaled border)
     local tx = x + math.floor((w - bw - (small and (sw + T.px(8)) or 0)) / 2)
     card:drawText(big, tx, y + math.floor((h - tm:getFontHeight(bf)) / 2), HW.lcdOn.r, HW.lcdOn.g, HW.lcdOn.b, 1, bf)
     if small then
@@ -612,7 +615,7 @@ end
 function UI.led(card, x, y, c, on, label)
     local T, HW = ZeD.T, UI.HW
     local r = T.px(4)
-    UI.disc(card, x + r, y + r, r + 1, HW.ledRim)
+    UI.disc(card, x + r, y + r, r + T.px(1), HW.ledRim)
     UI.disc(card, x + r, y + r, r, on and c or HW.ledOff)
     if label then
         local f1 = T.fontF1
@@ -764,9 +767,20 @@ function ZeD_ObjectCard:prerender()
     if not e then return end
     local player = self:player()
     if not player then return end
-    if not OC.tick(e, player) then
+    -- (a card kind's own calls run every frame: a throw closes the card or drops that piece,
+    -- logged once, rather than repeating each frame; code audit Oct 17 2026)
+    local okT, alive = pcall(OC.tick, e, player)
+    if not okT then ZeD.logOnce("ObjectCards tick " .. tostring(e.def and e.def.id), alive) end
+    if not (okT and alive) then
         self:close()
         return
+    end
+    local function try(f, ...)
+        if not f then return nil end
+        local ok, a, b, c = pcall(f, ...)
+        if ok then return a, b, c end
+        ZeD.logOnce("ObjectCards header " .. tostring(e.def and e.def.id), a)
+        return nil
     end
     local T, tm = ZeD.T, ZeD.TM
     local w, h = self:getWidth(), self:getHeight()
@@ -791,7 +805,7 @@ function ZeD_ObjectCard:prerender()
     local isz = T.px(22)
     self:drawRect(cx, by, isz, isz, s1.a, s1.r, s1.g, s1.b)
     self:drawRectBorder(cx, by, isz, isz, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-    local icon = def.icon and def.icon(t)
+    local icon = try(def.icon, t)
     if icon then self:drawTextureScaledAspect(icon, cx + T.px(2), by + T.px(2), isz - T.px(4), isz - T.px(4), 1, 1, 1, 1) end
     cx = cx + isz + T.px(8)
     -- browse (right)
@@ -812,10 +826,10 @@ function ZeD_ObjectCard:prerender()
         rightX = prevX - T.px(10)
     end
     local pillTxt, pillC, pillDot = nil, nil, nil
-    if def.pill then pillTxt, pillC, pillDot = def.pill(t) end
+    pillTxt, pillC, pillDot = try(def.pill, t)
     local pillW = pillTxt and (UI.tagW(pillTxt) + T.px(11)) or 0
     local nf = T.fontF4
-    local name = def.title and def.title(t) or "?"
+    local name = try(def.title, t) or "?"
     local nstr = ZeD.CraftingCore.truncText(name, nf, math.max(T.px(40), rightX - cx - pillW - T.px(10)))
     self:drawText(nstr, cx, math.floor((hh - tm:getFontHeight(nf)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, nf)
     if pillTxt then UI.tag(self, cx + tm:MeasureStringX(nf, nstr) + T.px(8), math.floor((hh - T.px(16)) / 2), pillTxt, pillC, true, pillDot) end
@@ -896,7 +910,7 @@ function ZeD_ObjectCard:prerender()
     local pad = T.px(10)
     local ok, bodyH = pcall(def.body, self, pad, viewY + T.px(8) - off, bw - pad * 2, t, player)
     if not ok then
-        print("[ZeD] ObjectCards: body failed (" .. tostring(def.id) .. "): " .. tostring(bodyH))
+        ZeD.logOnce("ObjectCards body " .. tostring(def.id), bodyH)
         bodyH = 0
     end
     self._bodyH = (bodyH or 0) + T.px(18)

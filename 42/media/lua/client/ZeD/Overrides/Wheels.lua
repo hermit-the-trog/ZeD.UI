@@ -121,7 +121,7 @@ local function hookRadial()
     function R:prerender()
         if not self._zed then return end
         local ok, err = pcall(W.draw, self)
-        if not ok then print("[ZeD] Wheel: draw failed: " .. tostring(err)) end
+        if not ok then ZeD.logOnce("Wheel: draw failed", err) end
     end
     function R:render() end
     function R:update()
