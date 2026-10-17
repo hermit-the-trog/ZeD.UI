@@ -174,15 +174,6 @@ local function getBodyHairName(char)
     return names[idx] or ("Level " .. idx)
 end
 
-local function getBuildLabel(weight)
-    if weight < 60 then return "Thin"
-    elseif weight < 75 then return "Lean"
-    elseif weight < 90 then return "Medium"
-    elseif weight < 105 then return "Heavy"
-    end
-    return "Large"
-end
-
 local function getFavouriteWeapon(char)
     local best, bestCount = nil, 0
     for key, val in pairs(char:getModData()) do

@@ -255,16 +255,10 @@ local function _safeGet(dd, fnName, fallback)
     return v
 end
 
--- Format a PZ radio channel value to a display string.
 -- PZ stores channel as MHz × 1000 (vanilla RWMGeneral:setInfoLines line 80
 -- displays getChannel()/1000 .. " MHz" — so 88000 = 88 MHz, 96500 = 96.5 MHz).
 -- Always render as MHz with one decimal so the 0.1-step seek granularity is
 -- visible (88.0 → 88.1 → 88.2 ...).
-local function _formatFrequency(hz)
-    if hz == nil or hz == 0 then return "---.-" end
-    return string.format("%.1f MHz", hz / 1000)
-end
-
 -- Split formatted frequency into number + unit pair so the renderer can
 -- draw the number large and the unit smaller alongside.
 local function _splitFrequency(hz)

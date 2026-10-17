@@ -212,14 +212,6 @@ local function toggleContainer(content, cIdx, maxTotal)
     rebuildColStates(content)
 end
 
-local function collectFromMap(map)
-    local result = {}
-    for item, _ in pairs(map) do
-        result[#result + 1] = item
-    end
-    return result
-end
-
 -- ============================================================================
 -- ITEM LIST RENDERER
 -- Called as ZeD_Panel._onPrerender — self = the content ZeD_Panel.
@@ -300,12 +292,6 @@ local function renderItemList(self)
     end
     local function aSec(str, x, y, c)
         A.drawSecondary(self, str, xOff + x, y, c)
-    end
-    local function aTR(str, x, y)
-        A.drawTextRight(self, str, xOff + x, y)
-    end
-    local function aHead(str, x, y)
-        A.drawHeading(self, str, xOff + x, y)
     end
     local function aDiv(x, y, w, strong)
         A.drawDividerH(self, xOff + x, y, w, strong)

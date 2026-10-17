@@ -1175,45 +1175,6 @@ local function drawAlertRow(panel, x, y, w, alert)
 
     return T.px(ALERT_ROW_H)
 end
-
--- ============================================================================
--- M-MINIM — COMPACT INLINE METER (44px wide)
--- Fill bar + label below. Used in zone summary cards for food/water/roof.
--- Returns: total height consumed.
--- ============================================================================
-
-local MINIM_W      = 44
-local MINIM_BAR_H  = 6
-local MINIM_GAP    = 2
-local MINIM_TOTAL  = 0  -- computed at first use
-
-local function drawMiniMeter(panel, x, y, label, ratio, fillColor)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-
-    -- Bar
-    local bg = T.surf3 or T.surf1
-    panel:drawRect(x, y, T.px(MINIM_W), T.px(MINIM_BAR_H), bg.a or 0.3, bg.r, bg.g, bg.b)
-    ratio = math.max(0, math.min(1, ratio or 0))
-    if ratio > 0 then
-        local fc = fillColor or T.positive
-        local fillW = math.max(T.px(1), math.floor(T.px(MINIM_W) * ratio))
-        panel:drawRect(x, y, fillW, T.px(MINIM_BAR_H), (fc.a or 1) * 0.7, fc.r, fc.g, fc.b)
-    end
-    local bc = T.border or T.borderS
-    panel:drawRectBorder(x, y, T.px(MINIM_W), T.px(MINIM_BAR_H), (bc.a or 0.3), bc.r, bc.g, bc.b)
-
-    -- Label below
-    local lblFont = T.fontF5 or ZeD.T.fontF2
-    local lblH = ZeD.TM:getFontHeight(lblFont)
-    local lblW = ZeD.TM:MeasureStringX(lblFont, label)
-    local lblX = x + math.floor((T.px(MINIM_W) - lblW) / 2)
-    panel:drawText(label, lblX, y + T.px(MINIM_BAR_H) + T.px(MINIM_GAP),
-        T.textDim.r, T.textDim.g, T.textDim.b, 0.6, lblFont)
-
-    return T.px(MINIM_BAR_H) + T.px(MINIM_GAP) + lblH
-end
-
 -- ============================================================================
 -- M-ZRSUM — ZONE SUMMARY CARD
 -- Zone name + animal count + species breakdown + 3 mini-meters (food/water/roof)
@@ -1223,12 +1184,6 @@ end
 
 local ZCARD_PAD    = 6
 local ZCARD_MIN_H  = 52
-
-local function meterColorForRatio(T, ratio)
-    if ratio > 0.6 then return T.positive end
-    if ratio > 0.3 then return T.warning end
-    return T.danger
-end
 
 -- S109a: measure cardH ahead of the draw pass so bg + gamepad focus cue can
 -- cover the full card area (previously both were clamped to ZCARD_MIN_H,
@@ -1560,39 +1515,6 @@ end
 -- male aggression warnings. Pinned at top of zone view, not scrolled.
 -- Returns: bandH consumed.
 -- ============================================================================
-
-local function drawZoneInfoMeter(panel, x, y, label, ratio, fillColor)
-    local T = ZeD.T
-    local A = ZeD.Atoms
-
-    -- Background track
-    local bg = T.surf3 or T.surf1
-    panel:drawRect(x, y, T.px(ZINF_METER_W), T.px(ZINF_METER_H), bg.a or 0.3, bg.r, bg.g, bg.b)
-
-    -- Fill
-    ratio = math.max(0, math.min(1, ratio or 0))
-    if ratio > 0 then
-        local fillW = math.max(T.px(1), math.floor(T.px(ZINF_METER_W) * ratio))
-        panel:drawRect(x, y, fillW, T.px(ZINF_METER_H), (fillColor.a or 1) * 0.7, fillColor.r, fillColor.g, fillColor.b)
-    end
-
-    -- Border
-    local bc = T.border or T.borderS
-    panel:drawRectBorder(x, y, T.px(ZINF_METER_W), T.px(ZINF_METER_H), bc.a or 0.3, bc.r, bc.g, bc.b)
-
-    -- Label right of bar
-    local lblFont = T.fontF5 or ZeD.T.fontF2
-    local lblX = x + T.px(ZINF_METER_W) + T.px(4)
-    panel:drawText(label, lblX, y - T.px(1), T.textDim.r, T.textDim.g, T.textDim.b, 0.7, lblFont)
-
-    -- Percentage text above bar
-    local pctStr = tostring(math.floor(ratio * 100)) .. "%"
-    local pctW = ZeD.TM:MeasureStringX(lblFont, pctStr)
-    panel:drawText(pctStr, x + T.px(ZINF_METER_W) - pctW, y - ZeD.TM:getFontHeight(lblFont) - T.px(1),
-        T.text.r, T.text.g, T.text.b, 0.7, lblFont)
-
-    return T.px(ZINF_METER_H)
-end
 
 local function drawZoneInfoBand(panel, win, x, y, w, summary)
     local T = ZeD.T

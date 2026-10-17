@@ -55,12 +55,6 @@ local function _condClass(ratio)
     return "good"
 end
 
--- Probe wrapper - returns value if getter exists and returns non-nil; else nil
--- and sets the row's needsProbe flag at compose time.
-local function _probe(item, method, ...)
-    return safeGet(item, method, ...)
-end
-
 -- ---------------------------------------------------------------------------
 -- T4.1 DefenseFacts - clothing
 -- ---------------------------------------------------------------------------
