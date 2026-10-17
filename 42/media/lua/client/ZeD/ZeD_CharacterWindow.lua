@@ -470,8 +470,10 @@ local function getActiveScroll(win)
         -- Per-sub-tab scroll dispatch
         local subIdx = win._journalSubTab or 1
         if subIdx == 1 then return win._journalScroll end   -- Journal diary
-        if subIdx == 2 then return nil end    -- Recipes: scroll handled by CraftingCore
-        if subIdx == 3 then return win._flyersScroll end    -- Flyers gallery
+        if subIdx == 2 or subIdx == 3 then                  -- Notebooks, Papers
+            return ZeD.JournalReaders and ZeD.JournalReaders.scroll(win) or nil
+        end
+        if subIdx == 4 then return nil end    -- Recipes: scroll handled by CraftingCore
         return win._journalScroll
     end
     if win._activeTab == "identity" then return win._identityScroll end
@@ -2192,89 +2194,6 @@ local function _buildJournalRecipesFocusables(win)
         "jrecipe", nil, nil)
 end
 
--- S105 — Flyers sub-tab focusables. Mode-branched:
---   Detail view (_flyerOpenIdx set): back button + grid-scroll pseudo-zone
---     (tall flyer images need D-pad down to scroll since the back button
---     alone doesn't give cone-nav anywhere to go).
---   List view: mode pill first, then thumbnail grid (2D cone-nav).
--- Mirrors Equipment card-mode pattern (same zone, mode swap) — S100.
-local function _buildJournalFlyersFocusables(win)
-    if not win then return {} end
-
-    -- Detail view: back button + optional grid-scroll pseudo-zone.
-    if win._flyerOpenIdx and win._flyerBackZone then
-        local bz = win._flyerBackZone
-        if (bz.w or 0) <= 0 then return {} end
-        -- S113c: B (onCancel) on every element of the zoom view exits zoom.
-        -- User-reported "can't back out of flyer zoomed view" — the back
-        -- button alone was the only A-target, but cone-nav doesn't always
-        -- land on it cleanly from the gridScroll pseudo-zone, and there
-        -- was no B-escape. B now backs out from anywhere in the zoom.
-        local _exitZoom = function(w, el)
-            w._flyerOpenIdx = nil
-        end
-        local elements = {
-            {
-                x = bz.x, y = bz.y, w = bz.w, h = bz.h,
-                id = "flyer:__back",
-                journalKind = "flyerBack",
-                onFocus = function(w, el) end,
-                onActivate = _exitZoom,
-                onCancel   = _exitZoom,
-            },
-        }
-        local gz = win._flyerDetailScrollZone
-        if gz and (gz.w or 0) > 0 and (gz.h or 0) > 0 then
-            elements[#elements + 1] = {
-                x = gz.x, y = gz.y, w = gz.w, h = gz.h,
-                id = "flyer:__gridscroll",
-                isGridScroll = true,
-                journalKind = "flyerGridScroll",
-                onFocus = function(w, el) end,
-                onCancel = _exitZoom,
-                -- S113: D-pad U/D scrolls _flyersScroll; at limits, fall through.
-                onDpadDir = function(w, el, dir)
-                    local sc = w._flyersScroll
-                    if not sc then return false end
-                    local pos = sc.scrollPos or 0
-                    if dir == "down" and pos < 1 then
-                        sc:setScrollPos(pos + 0.08); return
-                    elseif dir == "up" and pos > 0 then
-                        sc:setScrollPos(pos - 0.08); return
-                    end
-                    return false
-                end,
-            }
-        end
-        return elements
-    end
-    if win._flyerOpenIdx then return {} end
-
-    local elements = {}
-
-    -- Thumbnail grid. Each thumbnail focusable — A opens detail view.
-    -- Mode pill (cycle filter) intentionally NOT focusable: it sits in the
-    -- top-right of the header row, cone-nav rejects mode-pill→first-thumbnail
-    -- (horizontal hop exceeds vertical distance). Flagging mode cycle as
-    -- mouse-only for this session; gamepad users browse thumbnails only.
-    local zones = win._flyerClickZones
-    if zones then
-        for _, z in ipairs(zones) do
-            elements[#elements + 1] = {
-                x = z.x, y = z.y, w = z.w, h = z.h,
-                id = "flyer:thumb:" .. tostring(z.idx),
-                journalKind = "flyerThumb",
-                flyerIdx = z.idx,
-                onFocus = function(w, el) end,
-                onActivate = function(w, el)
-                    w._flyerOpenIdx = el.flyerIdx
-                end,
-            }
-        end
-    end
-    return elements
-end
-
 -- S105 — Journal tab aggregator. Sub-tab pills always at elements[1..3],
 -- then sub-tab-specific content. Pill order preserved so cone-nav between
 -- them matches visual left-to-right.
@@ -2285,10 +2204,11 @@ local function _buildJournalFocusables(win)
     local subEls = {}
     if sub == 1 then
         subEls = _buildJournalSubContent(win)
-    elseif sub == 2 then
+    elseif sub == 2 or sub == 3 then
+        -- Notebooks, Papers (ZeD_JournalReaders stamps its own zones)
+        subEls = ZeD.JournalReaders and ZeD.JournalReaders.focusables(win) or {}
+    elseif sub == 4 then
         subEls = _buildJournalRecipesFocusables(win)
-    elseif sub == 3 then
-        subEls = _buildJournalFlyersFocusables(win)
     end
     for i = 1, #subEls do elements[#elements + 1] = subEls[i] end
     return elements
@@ -3401,12 +3321,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._thermalFigureZone     = nil
 
     -- Journal tab state
-    win._journalSubTab      = 1     -- active sub-tab: 1=Journal, 2=Recipes, 3=Flyers (Maps moved to World Window S67)
+    win._journalSubTab      = 1     -- active sub-tab: 1=Journal, 2=Notebooks, 3=Papers, 4=Recipes
     win._journalSubTabZones = nil   -- click zones for sub-tab strip
     win._mapDragging        = false -- true while map pan-drag is active
-    win._flyerOpenIdx       = nil   -- index into flyer catalog when viewing detail
-    win._flyerClickZones    = nil   -- click zones for flyer thumbnails
-    win._flyerBackZone      = nil   -- click zone for flyer detail back button
     win._journalScroll = ZeD_ScrollbarState:new()
     win._journalScroll.visible = false
     win._journalCache  = nil
@@ -3430,11 +3347,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._lastPinnedJournalId  = nil
     -- Recipe notebook state (journal Recipes sub-tab — CraftingCore readOnly)
     win._jrecipeState = nil   -- lazily created by JournalTab.getJRecipeState
-    -- Flyers gallery state (journal Flyers sub-tab)
-    win._flyersScroll = ZeD_ScrollbarState:new()
-    win._flyersScroll.visible = false
-    win._flyerModeIdx  = 1     -- index into FLYER_MODES cycle button
-    win._flyerModeZone = nil   -- click zone for cycle button
     -- Map annotation toolbar state
     win._mapActiveTool    = nil   -- active tool id (nil = pan mode)
     win._mapActiveColor   = 1     -- color palette index
@@ -3645,6 +3557,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local saveBtn = ZeD.Molecules.Button(0, 0, nil, "SAVE", nil, function()
         local text = journalInput:getText()
         if not text or text == "" then return end
+        -- Into a notebook: the character writes it there first; the log keeps it after
+        if ZeD.JournalReaders and ZeD.JournalReaders.saveLog(win, text) then return end
         local gt = getGameTime()
         local md = win._playerObj:getModData()
         md.ZeD_Journal = md.ZeD_Journal or { entries = {} }
@@ -3697,7 +3611,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     flyerSearch:setVisible(false)
     flyerSearch.onFilter = function(self, text)
         win._flyerSearchText = text
-        win._flyersScroll:setScrollPos(0)
+        if ZeD.JournalReaders then ZeD.JournalReaders.scroll(win):setScrollPos(0) end
     end
     drawer:addChild(flyerSearch)
     win._flyerSearch = flyerSearch
@@ -3977,8 +3891,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Show/hide journal search fields per sub-tab
         local subIdx = win._journalSubTab or 1
         win._journalSearch:setVisible(showJournal and subIdx == 1)
-        win._jrecipeSearch:setVisible(showJournal and subIdx == 2)
-        win._flyerSearch:setVisible(showJournal and subIdx == 3 and not win._flyerOpenIdx)  -- was 4, Maps removed S67
+        win._jrecipeSearch:setVisible(showJournal and subIdx == 4)
+        -- Notebooks (2) and Papers (3) share the one search box; the quick look hides it
+        local JR = ZeD.JournalReaders
+        win._flyerSearch:setVisible(showJournal and JR ~= nil and JR.searchVisible(win, subIdx))
+        if JR then JR.syncChildren(win, showJournal and subIdx == 2) end
         -- S67: Journal Maps sub-tab moved to World Window MapsTab.
         -- Map panel visibility block commented out.
         -- if win._worldMapPanel then ... end
@@ -4155,7 +4072,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer.onMouseWheel = function(self, del)
         if win._drawerMode == "tab" then
             -- Journal Recipes sub-tab: delegate to CraftingCore scroll
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 2 then
+            if win._activeTab == "journal" and (win._journalSubTab or 1) == 4 then
                 local mx = self:getMouseX()
                 local my = self:getMouseY()
                 ZeD.JournalTab.onRecipeMouseWheel(win, del, mx, my)
@@ -4350,38 +4267,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     return true
                 end
             end
-            -- Flyer thumbnail click (only in Flyers sub-tab, was idx 4, now 3 after Maps removal S67)
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 3 then
-                -- Back button in detail view
-                if win._flyerOpenIdx and win._flyerBackZone then
-                    local bz = win._flyerBackZone
-                    if x >= bz.x and x <= bz.x + bz.w and y >= bz.y and y <= bz.y + bz.h then
-                        win._flyerOpenIdx = nil
-                        return true
-                    end
-                end
-                -- Cycle button click (advance to next mode)
-                if not win._flyerOpenIdx and win._flyerModeZone then
-                    local mz = win._flyerModeZone
-                    if x >= mz.x and x <= mz.x + mz.w and y >= mz.y and y <= mz.y + mz.h then
-                        local nModes = 5  -- #FLYER_MODES
-                        win._flyerModeIdx = ((win._flyerModeIdx or 1) % nModes) + 1
-                        return true
-                    end
-                end
-                -- Thumbnail grid click to open detail view
-                if not win._flyerOpenIdx and win._flyerClickZones then
-                    for _, zone in ipairs(win._flyerClickZones) do
-                        if x >= zone.x and x <= zone.x + zone.w
-                           and y >= zone.y and y <= zone.y + zone.h then
-                            win._flyerOpenIdx = zone.idx
-                            return true
-                        end
-                    end
-                end
+            -- Notebooks / Papers / the log box's Into (ZeD_JournalReaders stamps the zones)
+            if win._activeTab == "journal" and ZeD.JournalReaders and ZeD.JournalReaders.onClick(win, x, y) then
+                return true
             end
             -- Journal Recipes sub-tab: delegate to CraftingCore via JournalTab
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 2 then
+            if win._activeTab == "journal" and (win._journalSubTab or 1) == 4 then
                 if ZeD.JournalTab.onRecipeClick(win, x, y) then
                     return true
                 end
@@ -5256,7 +5147,13 @@ function ZeD_CharacterWindow.toggle(playerNum)
             -- changes, or the category dropdown opens, so key the rebuild on
             -- those instead of rebuilding every frame.
             local scrollKey = nil
-            if win._activeTab == "journal" and (win._journalSubTab or 1) == 2 then
+            -- Notebooks / Papers: rows move with the tab's one scroll and its view
+            local jsub = win._journalSubTab or 1
+            if win._activeTab == "journal" and (jsub == 2 or jsub == 3) and ZeD.JournalReaders then
+                scrollKey = ZeD.JournalReaders.scrollKey(win)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            if win._activeTab == "journal" and jsub == 4 then
                 local stk = win._jrecipeState
                 if stk then
                     local sp = stk.scroll and stk.scroll.scrollPos or 0

@@ -301,6 +301,26 @@ function P.draw(panel, pg, ox, oy, k)
     end
 end
 
+-- the page's paper and pictures only, no words: a list's thumbnail, and a piece not
+-- read yet (reading it is vanilla's timed action; the tab never gives the words away)
+function P.drawArt(panel, pg, ox, oy, k, a)
+    a = a or 1
+    panel:drawRect(ox, oy, pg.w * k, pg.h * k, a, 0.86, 0.85, 0.83)
+    for _, e in ipairs(pg.els) do
+        if e.type == "texture" and not e.taken and (e.angle or 0) == 0 and (e.scaleX or 1) > 0 and (e.scaleY or 1) > 0 then
+            local w, h = (e.width or pg.w) * k, (e.height or pg.h) * k
+            local x = ox + ((e.x or 0) - (e.pivotX or 0) * (e.width or 0)) * k
+            local y = oy + ((e.y or 0) - (e.pivotY or 0) * (e.height or 0)) * k
+            if e.texture then
+                local tex = getTexture(e.texture)
+                if tex then panel:drawTextureScaledAspect(tex, x, y, w, h, (e.a or 1) * a, e.r or 1, e.g or 1, e.b or 1) end
+            else
+                panel:drawRect(x, y, w, h, (e.a or 1) * a, e.r or 1, e.g or 1, e.b or 1)
+            end
+        end
+    end
+end
+
 -- the stories' headlines, for the reader's side column
 function P.headlines(pg)
     local out = {}
