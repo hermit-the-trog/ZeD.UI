@@ -659,15 +659,27 @@ end
 -- `_cancelRect` (NEW) → progress-band cancel button (B9 wires to gamepad).
 -- ---------------------------------------------------------------------------
 local function stampGamepadFields(card, markRects, verbStripRects, verbList, cancelRect)
+    -- toggleRects / verbRects are ABSOLUTE screen coords: update() tests them
+    -- against getMouseX/Y, the gamepad ring converts them to drawer-local and
+    -- the focus outline subtracts the card's absolute origin. The draw helpers
+    -- stamp card-local rects, so lift them here (Oct 17 2026: left local, the
+    -- chips and verbs took no clicks and the pad could never reach the card).
+    local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
+    local function abs(r)
+        if not (r and r.x) then return nil end
+        return {x = ax + r.x, y = ay + r.y, w = r.w, h = r.h}
+    end
+
     -- Flag-strip chips → toggleRects (gamepad: fav/nocraft/dispose toggles).
     -- Existing TOGGLE_DEFS order: fav (i=1), protect (i=2), unwanted (i=3).
     card.toggleRects = card.toggleRects or {}
-    card.toggleRects[1] = markRects and markRects.fav     or nil
-    card.toggleRects[2] = markRects and markRects.nocraft or nil
-    card.toggleRects[3] = markRects and markRects.dispose or nil
+    card.toggleRects[1] = markRects and abs(markRects.fav)
+    card.toggleRects[2] = markRects and abs(markRects.nocraft)
+    card.toggleRects[3] = markRects and abs(markRects.dispose)
 
     -- Maintenance verb strip → verbRects + _verbDefs (gamepad: A activates).
-    card.verbRects = verbStripRects or {}
+    card.verbRects = {}
+    for i, r in ipairs(verbStripRects or {}) do card.verbRects[i] = abs(r) end
     card._verbDefs = {}
     for i, v in ipairs(verbList or {}) do
         card._verbDefs[i] = {
@@ -682,15 +694,7 @@ local function stampGamepadFields(card, markRects, verbStripRects, verbList, can
     -- Progress band cancel button. Absolute coords for update()'s hit test
     -- (matches _foldHitRects / _zoneDockRects convention). cancelRect is
     -- panel-local from drawProgressBand's outRect; absolutize here.
-    if cancelRect and cancelRect.x then
-        local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
-        card._cancelRect = {
-            x = ax + cancelRect.x, y = ay + cancelRect.y,
-            w = cancelRect.w, h = cancelRect.h,
-        }
-    else
-        card._cancelRect = nil
-    end
+    card._cancelRect = abs(cancelRect)
 end
 
 -- ---------------------------------------------------------------------------
