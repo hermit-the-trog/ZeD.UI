@@ -1351,20 +1351,38 @@ function ZeD_ItemCard:getActionStripElements()
     -- S122 (B9): Progress Band cancel as a leading focusable. Only present
     -- when an action is active (Manager.getActiveAction != nil). Lands as
     -- the first ring element when armed so X press hits it without ring nav.
-    -- _cancelRect is stamped absolute by stampGamepadFields; ring elements
-    -- expect panel-local (subtract abs offset).
+    -- Every rect here is ABSOLUTE, like toggleRects / verbRects / the zone
+    -- docks; the window converts them to drawer-local.
     if self._cancelRect and ZeD.ItemActionManager
        and ZeD.ItemActionManager.getActiveAction
        and ZeD.ItemActionManager.getActiveAction(item) then
         local cr = self._cancelRect
-        local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
         local eid = "cancel_band"
         els[#els + 1] = {
-            x = cr.x - ax, y = cr.y - ay, w = cr.w, h = cr.h,
+            x = cr.x, y = cr.y, w = cr.w, h = cr.h,
             id = eid,
             onFocus    = function() card._gpFocusedBtnId = eid end,
             onActivate = function() card:_dispatchProgressCancel() end,
         }
+    end
+
+    -- Header verbs (Eat / Wear / Drop ...): the card's main actions. Back-bar
+    -- rects are card-local (update() adds the origin), so lift them here.
+    local hb = self._backBarRects
+    if hb and hb.verbs and self._lastHeaderVerbs then
+        local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+        for i, r in ipairs(hb.verbs) do
+            local v = self._lastHeaderVerbs[i]
+            if r and r.x and v and v.label then
+                local eid, label = "hverb_" .. i, v.label
+                els[#els + 1] = {
+                    x = ax + r.x, y = ay + r.y, w = r.w, h = r.h,
+                    id = eid,
+                    onFocus    = function() card._gpFocusedBtnId = eid end,
+                    onActivate = function() card:_dispatchHeaderVerb(label) end,
+                }
+            end
+        end
     end
 
     local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
@@ -1468,6 +1486,15 @@ function ZeD_ItemCard:_drawGpFocusOutline()
     -- Progress Band cancel (S122 B9) — id "cancel_band"
     if not r and id == "cancel_band" and self._cancelRect then
         r = self._cancelRect
+    end
+    -- Header verbs — id "hverb_<i>"; back-bar rects are card-local
+    if not r then
+        local hi = tonumber(id:match("^hverb_(%d+)$") or "")
+        local hr = hi and self._backBarRects and self._backBarRects.verbs
+                   and self._backBarRects.verbs[hi]
+        if hr and hr.x then
+            r = {x = self:getAbsoluteX() + hr.x, y = self:getAbsoluteY() + hr.y, w = hr.w, h = hr.h}
+        end
     end
     if not r then return end
 

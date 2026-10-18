@@ -916,6 +916,55 @@ local function _handleSpatialNav(w, dir)
     -- Recover the original fromIdx in the unfiltered list for the log line.
     local logFromIdx = _findCurrentFlatIdx(w, locator) or 1
 
+    -- Oct 17 2026: a move never jumps over a whole panel. The picker prefers a
+    -- control LINED UP with the focused one, so Left from an inventory row went
+    -- straight past the open item card (its buttons sit at the card's top and
+    -- bottom, rarely level with the row) to the tab column. When a panel with
+    -- focusables lies between here and the pick, across the focused control's
+    -- span, land on that panel's best control instead (any angle).
+    do
+        local fromLoc, toLoc = locator[logFromIdx], locator[newFlatIdx]
+        local fromEl, toEl = elements[logFromIdx], elements[newFlatIdx]
+        if fromLoc and toLoc and fromEl and toEl and fromLoc.zoneIdx ~= toLoc.zoneIdx then
+            local horiz = (dir == "left" or dir == "right")
+            local fc = horiz and (fromEl.x + fromEl.w * 0.5) or (fromEl.y + fromEl.h * 0.5)
+            local tc = horiz and (toEl.x + toEl.w * 0.5) or (toEl.y + toEl.h * 0.5)
+            local fromPanel = _zonePanel(w, w._focusRing[fromLoc.zoneIdx].zone)
+            local toPanel   = _zonePanel(w, w._focusRing[toLoc.zoneIdx].zone)
+            local bestZi, bestDist
+            for zi = 1, #w._focusRing do
+                local z = w._focusRing[zi]
+                local p = (zi ~= fromLoc.zoneIdx and zi ~= toLoc.zoneIdx
+                           and z.focusable and z.elements and #z.elements > 0)
+                          and _zonePanel(w, z.zone) or nil
+                if p and p ~= fromPanel and p ~= toPanel and p:isVisible() then
+                    local px, py = _zoneOffset(w, z.zone)
+                    local pw, ph = p:getWidth(), p:getHeight()
+                    local pc = horiz and (px + pw * 0.5) or (py + ph * 0.5)
+                    local spans
+                    if horiz then spans = py < fromEl.y + fromEl.h and py + ph > fromEl.y
+                    else          spans = px < fromEl.x + fromEl.w and px + pw > fromEl.x end
+                    local d = math.abs(pc - fc)
+                    if spans and (pc - fc) * (tc - fc) > 0 and d < math.abs(tc - fc)
+                       and (not bestDist or d < bestDist) then
+                        bestZi, bestDist = zi, d
+                    end
+                end
+            end
+            if bestZi then
+                local subEls, subIdx = { fromEl }, {}
+                for i, loc in ipairs(locator) do
+                    if loc.zoneIdx == bestZi then
+                        subEls[#subEls + 1] = elements[i]
+                        subIdx[#subEls] = i
+                    end
+                end
+                local pick = _pickBestWithFallback(subEls, 1, dir)
+                if pick and subIdx[pick] then newFlatIdx, pass = subIdx[pick], "panel" end
+            end
+        end
+    end
+
     -- S113c: cross-zone landing on a TAB STRIP snaps to the active tab,
     -- not the spatially-closest tab. Rationale: when the user cone-navs
     -- INTO the tab waterfall from another panel, the active tab is the
