@@ -41,18 +41,19 @@ local EDGE_ROW = 184             -- the desktop's front edge row at the picture'
 -- margins (only where the tube forces a smaller multiple, e.g. ultrawide): the night room's
 -- edges differ by side (the lamp is on the left), so each half of the screen gets its own
 -- (v3 desk, Oct 15 2026; measured from the render, ZeDUI/art/main_menu/v3/desk_info.json)
-local WALL_L = { r = 0x11 / 255, g = 0x09 / 255, b = 0x07 / 255 }
-local WALL_R = { r = 0x1e / 255, g = 0x14 / 255, b = 0x0c / 255 }
-local DESK_L = { r = 0x1f / 255, g = 0x0d / 255, b = 0x07 / 255 }
-local DESK_R = { r = 0x0d / 255, g = 0x05 / 255, b = 0x03 / 255 }
+-- (Oct 19 2026: graded with the desk to Build 42's night room, ZeDUI/tools/menugrade/grade.py, strong)
+local WALL_L = { r = 0x00 / 255, g = 0x04 / 255, b = 0x13 / 255 }
+local WALL_R = { r = 0x00 / 255, g = 0x07 / 255, b = 0x12 / 255 }
+local DESK_L = { r = 0x03 / 255, g = 0x03 / 255, b = 0x11 / 255 }
+local DESK_R = { r = 0x00 / 255, g = 0x03 / 255, b = 0x12 / 255 }
 -- lights and moving parts: { x, y, w, h } in native pixels
 local HDD      = { 146, 246, 3, 2 }    -- orange hard disk light (drawn lit in the picture)
 local FLOPPY   = { 300, 262, 3, 2 }    -- green floppy light (drawn lit in the picture)
-local HDD_OFF    = { r = 0x1f / 255, g = 0x14 / 255, b = 0x04 / 255 }   -- dark lens plastic in the room's light
-local FLOPPY_OFF = { r = 0x0e / 255, g = 0x18 / 255, b = 0x11 / 255 }
+local HDD_OFF    = { r = 0x01 / 255, g = 0x07 / 255, b = 0x0e / 255 }   -- dark lens plastic in the room's light
+local FLOPPY_OFF = { r = 0x00 / 255, g = 0x0c / 255, b = 0x14 / 255 }
 local DIAL     = { 416, 120, 7, 10 }   -- the boombox dial without its needle (dial_clean.png)
 local NEEDLE   = { 419, 121, 1, 8 }    -- the red tuning needle
-local NEEDLE_C = { r = 0x7f / 255, g = 0x20 / 255, b = 0x12 / 255 }   -- equals the baked needle (it must not change colour when it drifts)
+local NEEDLE_C = { r = 0x3c / 255, g = 0x0e / 255, b = 0x0f / 255 }   -- equals the baked needle (it must not change colour when it drifts)
 local POWER    = { 126, 243, 10, 10 }  -- the case's power button: Quit
 
 -- The wallpaper: vanilla's old title painting and its lightning frame, cropped to the
