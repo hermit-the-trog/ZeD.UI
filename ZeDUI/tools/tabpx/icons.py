@@ -223,24 +223,25 @@ ICONS = {
     "dddddddddddddddd",
     ".....kkkkkk.....",
     "................"],
-# Foraging: a wild mushroom, spotted cap
+# Foraging: a magnifying glass, the game's search mode (Oct 19 2026, director: "forage icon, can it be a
+# magnifying glass?"; it was a wild mushroom)
 "forage": [
-    "................",
-    "................",
-    ".....wllllld....",
-    "...wllwwmmmmd...",
-    "..lllwwmmllmmd..",
-    ".lmmmmmmmllmmmd.",
-    ".lmllmmmmmmmmmd.",
-    "lmmllmmmmmmlldmd",
-    "lmmmmmmmmmmlldmd",
-    "dddddlllllddddk.",
-    ".....lmmmmd.....",
-    ".....lmmmmd.....",
-    ".....lmmmmd.....",
-    "....llmmmmdd....",
-    "....kddddddk....",
-    "................"],
+    ".....lll........",
+    "...llllllm......",
+    "..lllkkkmmm.....",
+    ".llkkkkkkkdd....",
+    ".llkwwkkkkdd....",
+    "llkkwkkkkkkkk...",
+    "llklkkkkkkkkk...",
+    "llkkkkkkkkkkk...",
+    ".lmkkkkkkkkk....",
+    ".mmkkkkkkkkk....",
+    "..mddkkkkkk.....",
+    "...ddkkkkkmd....",
+    ".....kkk..kmd...",
+    "...........kmd..",
+    "............kmdd",
+    ".............kkk"],
 # Animals: a cow's head from the front, horns, ears out, a pale muzzle (Oct 19 2026: the sheep read poorly;
 # director: "maybe a cow head")
 "animals": [

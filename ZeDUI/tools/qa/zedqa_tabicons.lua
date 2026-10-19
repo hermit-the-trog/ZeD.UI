@@ -8,7 +8,7 @@ local function t()
     if n == 2 then local cw = ZeD_CharacterWindow.getWindow(); if not (cw and cw:isVisible()) then ZeD_CharacterWindow.toggleBothPaired(0) end end
     if n == 20 then
         local cw, ww = ZeD_CharacterWindow.getWindow(), ZeD_WorldWindow.getWindow()
-        strip(cw, cw._tabStripPanel, "skills"); strip(ww, ww._actionTabStrip, "maps")
+        strip(cw, cw._tabStripPanel, "skills"); strip(ww, ww._actionTabStrip, "forage")
     end
     if n == 60 then pcall(function() getCore():TakeFullScreenshot("zqa_tabicons.png") end) end
     if n == 70 then
