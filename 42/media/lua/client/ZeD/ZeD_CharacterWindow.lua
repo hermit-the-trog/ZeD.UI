@@ -1181,7 +1181,9 @@ _buildInvRowFocusables = function(win)
     end
     -- Seed first-item focus so accent paints immediately on section enter
     -- (before D-pad fires its first onFocus).
-    if elements[1] and elements[1].item then
+    -- seed only when nothing is remembered: a rebuild (scroll, an item gone) must not
+    -- send focus back to the first row (Oct 19 2026 nav audit; see the seed-stomp rule)
+    if elements[1] and elements[1].item and win._gpFocusedRowItem == nil then
         win._gpFocusedRowItem = elements[1].item
         local cnt = win._mainContent
         if cnt then cnt._gpFocusedRowItem = elements[1].item end

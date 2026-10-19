@@ -1318,21 +1318,13 @@ function ZeD.MapsTab.buildFocusables(win)
             onContextMenu = function(w, _el)
                 ZeD.MapsTab.gpContextMenuAtCursor(w)
             end,
-            -- S113: D-pad on cursor moves it in panel pixels (with edge auto-
-            -- pan) instead of cone-nav-ing to the next focusable. Element-level
-            -- onDpadDir replaces the win-level isCanvasCursor intercept (which
-            -- was deleted alongside the joypad direction wrappers in S113).
-            onDpadDir = function(w, _el, dir)
-                local T = ZeD.T
-                if not (ZeD.MapsTab and ZeD.MapsTab.gpMoveCursor) then return false end
-                local step = (ZeD.MapsTab.gpCursorStep and ZeD.MapsTab.gpCursorStep()) or T.px(6)
-                if     dir == "left"  then ZeD.MapsTab.gpMoveCursor(w, -step, 0)
-                elseif dir == "right" then ZeD.MapsTab.gpMoveCursor(w,  step, 0)
-                elseif dir == "up"    then ZeD.MapsTab.gpMoveCursor(w, 0, -step)
-                elseif dir == "down"  then ZeD.MapsTab.gpMoveCursor(w, 0,  step)
-                else return false end
-                return  -- consumed
-            end,
+            -- Oct 19 2026 (the nav audit; director: "the map tab was
+            -- particularly unfriendly to my logic"): the D-pad no longer
+            -- moves the cursor. It moved it from S113 on, so on the map the
+            -- D-pad stopped navigating (only B got out). Now the D-pad
+            -- navigates here as everywhere; the left stick moves the cursor
+            -- (pushing it at an edge pans the map) and the triggers zoom,
+            -- as the footer says.
             onCancel = function(w, _el)
                 -- B tap: if a tool is armed, exit tool mode and consume B.
                 -- Otherwise (no tool), escape the cursor entirely by jumping
@@ -1736,6 +1728,12 @@ function ZeD.MapsTab.closePopout(win)
     if Focus then Focus.unregisterWindow(pop) end   -- hands focus back to the last registered window
     pcall(function() pop:removeFromUIManager() end)
     pcall(function() getSoundManager():playUISound("UIActivateTab") end)
+    -- the controller lands back on the unfold button it left from (Oct 19 2026
+    -- nav audit: it landed on the tab column)
+    if Focus and Focus.focusByIdSoon then
+        Focus.claimFocus(win)
+        Focus.focusByIdSoon(win, "worldTabContent", "map:popout")
+    end
 end
 
 -- ============================================================================
