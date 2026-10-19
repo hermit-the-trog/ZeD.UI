@@ -1174,7 +1174,8 @@ function ZeD_ItemCard:prerender()
     -- content height and clip Defense Facts + lower zone groups.
     if self.item then
         if self.mode == "drawer" and self.parent then
-            local parentH = self.parent:getHeight()
+            -- _fillH: a host that keeps a strip under the card (the Equip tab's layer strip)
+            local parentH = self._fillH or self.parent:getHeight()
             if self.height ~= parentH then self:setHeight(parentH) end
         else
             -- Inspect / non-drawer mode: rough sizing via legacy calc still
@@ -1459,7 +1460,11 @@ function ZeD_ItemCard:_drawGpFocusOutline()
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     local w     = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow()
     local zone  = (w and Focus.getFocusedZone) and Focus.getFocusedZone(w) or nil
-    if not zone or (zone.zone ~= "charItemCard" and zone.zone ~= "worldItemCard") then return end
+    if self._gpZone then
+        -- a card living in another zone (the Equip tab's, in charTabContent)
+        if not zone or zone.zone ~= self._gpZone then return end
+        if w._gpFocusedEquipSlot ~= "__card_" .. tostring(self._gpFocusedBtnId) then return end
+    elseif not zone or (zone.zone ~= "charItemCard" and zone.zone ~= "worldItemCard") then return end
 
     local r = nil
     local DEFS = ZeD.ActionStrip.TOGGLE_DEFS

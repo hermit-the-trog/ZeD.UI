@@ -149,6 +149,16 @@ for i, label in ipairs(moodleLabels) do
 end
 ZeD.Settings.moodlePlaceOption = moodlePlace
 
+-- ----- EQUIPPED VIEW (Oct 19 2026, director: "avatar view ... and list view
+-- are the two we want") -----
+-- The Equip tab's two views; the toggle in its Equipped heading sets this
+-- too, so the choice is remembered across saves (EquipDoll.lua reads it).
+local equipView = opts:addComboBox("equipView", "Equipped items",
+    "How the Equip tab shows what you wear: a list, or your character with each slot beside the place it is worn.")
+equipView:addItem("List", true)  -- default: the list
+equipView:addItem("Doll", false)
+ZeD.Settings.equipViewOption = equipView
+
 -- ----- CHARACTER WINDOW ACCENT -----
 local charAccent = opts:addComboBox("charAccent", "Character window accent",
     "Per-window accent override for the Character window. Cycled via footer button.")

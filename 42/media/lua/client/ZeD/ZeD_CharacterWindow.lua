@@ -1404,8 +1404,73 @@ end
 local function _buildEquipmentFocusables(win)
     local elements = {}
 
-    -- CARD MODE branch
+    -- CARD MODE branch: the Equip tab's own item card (a ZeD_ItemCard in the
+    -- drawer). Its buttons, as the inventory's card offers them: the header
+    -- verbs (Unequip, Drop...), the marks, the repair verbs, the clothing docks,
+    -- then the back arrow and a doll card's layer strip. The card stamps screen
+    -- coords; the zone's panel is the drawer. B goes back to the list / doll.
+    -- (Oct 19 2026: these were stand-in rects before, so the pad never reached
+    -- the card's real buttons.)
+    local eqCard = win and win._equipSelected and win._drawerPanel and win._drawerPanel._equipCard
+    if eqCard and eqCard:isVisible() and eqCard.item then
+        local dp = win._drawerPanel
+        local dax, day = dp:getAbsoluteX(), dp:getAbsoluteY()
+        local function back(w)
+            w._equipSelected = nil
+            w._gpFocusedEquipSlot = nil
+        end
+        local raw = eqCard:getActionStripElements() or {}
+        for _, e in ipairs(eqCard:getZoneDockElements() or {}) do raw[#raw + 1] = e end
+        for _, e in ipairs(raw) do
+            local orig = e.onFocus
+            elements[#elements + 1] = {
+                x = e.x - dax, y = e.y - day, w = e.w, h = e.h,
+                id = "equipcard:" .. tostring(e.id),
+                slotType = "__card_" .. tostring(e.id),
+                onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType; if orig then orig() end end,
+                onActivate = e.onActivate,
+                onCancel = back,
+                onDpadDir = function(w, el, dir)
+                    if dir == "up" and eqCard.scrollToPrevDisclosure then eqCard:scrollToPrevDisclosure(); return end
+                    if dir == "down" and eqCard.scrollToNextDisclosure then eqCard:scrollToNextDisclosure(); return end
+                    return false
+                end,
+            }
+        end
+        local bb = eqCard._backBarRects and eqCard._backBarRects.back
+        if bb and bb.x then
+            local cax, cay = eqCard:getAbsoluteX(), eqCard:getAbsoluteY()
+            elements[#elements + 1] = {
+                x = cax + bb.x - dax, y = cay + bb.y - day, w = bb.w, h = bb.h,
+                id = "equipcard:back", slotType = "__card_back",
+                onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType; eqCard._gpFocusedBtnId = nil end,
+                onActivate = back, onCancel = back,
+            }
+        end
+        for _, z in ipairs(win._equipLayerZones or {}) do
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "equipcard:" .. z.key, slotType = z.key, dir = z.dir,
+                onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType; eqCard._gpFocusedBtnId = nil end,
+                onActivate = function(w, el) ZeD.EquipDoll.stepLayer(w, el.dir) end,
+                onCancel = back,
+            }
+        end
+        -- a card just opened: focus starts on its first button (the main verb),
+        -- and B later returns to the slot or row it came from
+        if elements[1] and win._equipCardSeed ~= win._equipSelected then
+            win._equipCardSeed = win._equipSelected
+            elements._focusIdx = 1
+            win._gpFocusedEquipSlot = nil
+        end
+        if elements[1] and win._gpFocusedEquipSlot == nil then
+            win._gpFocusedEquipSlot = elements[1].slotType
+            if elements[1].onFocus then elements[1].onFocus(win, elements[1]) end
+        end
+        return elements
+    end
     if win and win._equipSelected then
+        -- (the card's first frame, before it has drawn: the stand-ins below)
         -- Prefer the button-shaped bounds (_equipBackBtnZone) for cone nav so
         -- D-pad down from back lands on the nearest action button. Fall back
         -- to the full-header zone if the button-specific stamp isn't ready.
@@ -1515,6 +1580,19 @@ local function _buildEquipmentFocusables(win)
         }
     end
 
+    -- The List | Doll toggle in the heading (EquipDoll.drawToggle). A picks the view.
+    for _, z in ipairs(win and win._equipViewZones or {}) do
+        elements[#elements + 1] = {
+            x = z.x, y = z.y, w = z.w, h = z.h,
+            id = "equipview:" .. z.view, slotType = z.key, view = z.view,
+            onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
+            onActivate = function(w, el)
+                ZeD.EquipDoll.setView(el.view)
+                w._equipListExpanded = true
+            end,
+        }
+    end
+
     -- S105 — Inject body-figure parts between disclosure and groups. When
     -- the defense disclosure is expanded, the body figure sits in the
     -- dashboard area immediately below the header, so spatial cone-nav
@@ -1558,6 +1636,8 @@ local function _buildEquipmentFocusables(win)
                 onFocus = function(w, el)
                     w._gpFocusedEquipSlot = el.slotType
                 end,
+                -- the doll: Left / Right cross the figure to the other column
+                onDpadDir = function(w, el, dir) return ZeD.EquipDoll.dpad(w, el, dir) end,
                 onActivate = function(w, el)
                     w._equipSelected = el.slotType
                     w._equipCache = nil
@@ -1641,6 +1721,30 @@ local function _buildEquipmentFocusables(win)
                     end
                 end,
             }
+        end
+    end
+
+    -- The doll's empty slots: stops for the pad so moves keep to its columns
+    -- and rows; nothing to open (no onActivate).
+    for _, z in ipairs(win and win._equipDollEmpty or {}) do
+        elements[#elements + 1] = {
+            x = z.x, y = z.y, w = z.w, h = z.h,
+            id = "equipslot:" .. z.type, slotType = z.type,
+            onFocus = function(w, el) w._gpFocusedEquipSlot = el.slotType end,
+            onDpadDir = function(w, el, dir) return ZeD.EquipDoll.dpad(w, el, dir) end,
+        }
+    end
+
+    -- Back from a card: focus returns to the slot or row that opened it
+    if win and win._equipCardSeed and not win._equipSelected then
+        local want = "equipslot:" .. tostring(win._equipCardSeed)
+        win._equipCardSeed = nil
+        for i, el in ipairs(elements) do
+            if el.id == want then
+                elements._focusIdx = i
+                win._gpFocusedEquipSlot = el.slotType
+                break
+            end
         end
     end
 
@@ -3620,7 +3724,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         self.mouseDown = false
         self.dragX = 0
         self:setCapture(false)
-        if not wasDrag then
+        if not wasDrag and win._activeTab == "identity" then
             win._identityPhotoExpanded = not win._identityPhotoExpanded
             win._identityCustomZoom = 0  -- reset zoom on toggle
             -- Auto-scroll to top so full-body avatar is fully visible (ISUI3DModel can't partial-clip)
@@ -3633,6 +3737,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Scroll wheel zoom when expanded
     identityModel.onMouseWheel = function(self, del)
+        -- on the Equip doll the wheel scrolls the tab, as anywhere else in it
+        if win._activeTab == "equip" and drawer.onMouseWheel then
+            return drawer.onMouseWheel(drawer, del)
+        end
         if win._identityPhotoExpanded then
             win._identityCustomZoom = win._identityCustomZoom - del * 2
         end
@@ -3914,6 +4022,43 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     end
                 end
 
+                -- The Equip tab's doll (EquipDoll.lua): the same model, full body, in the
+                -- doll's photo frame. A model can't be clipped, so a frame partly
+                -- scrolled out shrinks to the part showing (as the Identity photo does).
+                local dollLayer = win._equipDollLayer
+                local showLines = false
+                if not showAvatar and win._equipDollShown and win._equipDollPhoto
+                   and effectiveW > 0 and win._drawerMode == "tab" and win._activeTab == "equip"
+                   and not win._equipSelected and not win._drawerItem then
+                    local ph = win._equipDollPhoto
+                    local clip = win._equipDollClip
+                    local bY = win:getBodyY()
+                    local top, bot = ph.y, ph.y + ph.h
+                    if clip then
+                        top = math.max(top, clip.y)
+                        bot = math.min(bot, clip.y + clip.h)
+                    end
+                    if bot - top > T.px(40) then
+                        showAvatar = true
+                        model:setX(T.px(TAB_STRIP_W) + ph.x)
+                        model:setY(bY + top)
+                        model:setWidth(ph.w)
+                        model:setHeight(bot - top)
+                        model:setZoom(0)
+                        model:setYOffset(0)
+                    end
+                    showLines = true
+                end
+                if dollLayer then
+                    if showLines then
+                        dollLayer:setX(T.px(TAB_STRIP_W))
+                        dollLayer:setY(win:getBodyY())
+                        dollLayer:setWidth(math.floor(effectiveW))
+                        dollLayer:setHeight(win:getHeight() - win:getBodyY())
+                    end
+                    if dollLayer:isVisible() ~= showLines then dollLayer:setVisible(showLines) end
+                end
+
                 -- Q45: must set BOTH Lua and Java visibility
                 model:setVisible(showAvatar)
                 model.javaObject:setVisible(showAvatar)
@@ -4072,6 +4217,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
             -- Equipment tab click routing
             if win._activeTab == "equip" then
+                -- The List | Doll toggle, and a doll card's layer strip (EquipDoll.lua)
+                if ZeD.EquipDoll and ZeD.EquipDoll.onClick(win, x, y) then return true end
                 -- Card mode: back button
                 if win._equipSelected and win._equipBackZone then
                     local bz = win._equipBackZone
@@ -4551,6 +4698,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Identity avatar: after containerStrip (above drawer content), before itemDrawer
     win:addChild(identityModel)
+    -- The Equip doll's leader lines: above the model so their dots land on the
+    -- body; mouse events pass through to the drawer (EquipDoll.newLineLayer)
+    if ZeD.EquipDoll then
+        win._equipDollLayer = ZeD.EquipDoll.newLineLayer(win)
+        win:addChild(win._equipDollLayer)
+    end
 
     -- ITEM.DRAWER overlay: added LAST so card renders on top of drawer + content
     win:addChild(itemDrawer)
@@ -5157,6 +5310,16 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
                 end
             end
+            -- Equip: the doll's slots (and the list's rows) move with the tab's
+            -- scroll, the drawer's size and the view
+            if win._activeTab == "equip" then
+                local sc = win._equipScroll
+                local dp = win._drawerPanel
+                scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(ZeD.EquipDoll and ZeD.EquipDoll.view())
+                    .. ":" .. tostring(dp and dp:getWidth()) .. ":" .. tostring(dp and dp:getHeight())
+                    .. ":" .. tostring(win._equipSelected) .. ":" .. tostring(win._equipLayer)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
             local alwaysRebuild = false
             -- S107 QA: identity-preserve focus by element id across rebuilds.
             -- Without this, scroll-driven array shifts (always-rebuild on
@@ -5184,7 +5347,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     firstId = newEls[1] and newEls[1].id or nil,
                     lastId  = newEls[newN] and newEls[newN].id or nil,
                 }
-                Focus.setRingZoneElements(win, "charTabContent", newEls, preserveIdx)
+                -- a builder may name where focus lands (the Equip card opening / closing)
+                Focus.setRingZoneElements(win, "charTabContent", newEls, newEls._focusIdx or preserveIdx)
                 -- S100: stay focusable during equip card-mode transitions even
                 -- if newEls is momentarily empty (first frame of card entry —
                 -- back/action bounds stamped during render, AFTER this prerender
