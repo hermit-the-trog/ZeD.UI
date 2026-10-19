@@ -906,6 +906,8 @@ _buildWorldMCColumnFocusables = function(win, slot)
     local rowH  = (T and T.rowH) or 26
     local items = cs.flatItems or {}
     local yMap  = cs.itemRenderYMap or {}
+    local xMap  = cs.itemRenderXMap or {}   -- (the grid: each cell's x)
+    local gcell = cs.gridCell
     local colX  = cs.renderX or 0
     local colW  = cs.renderW or T.px(200)
 
@@ -913,7 +915,7 @@ _buildWorldMCColumnFocusables = function(win, slot)
         local item = items[i]
         local yCoord = yMap[item] or (i * rowH)
         elements[#elements + 1] = {
-            x = colX, y = yCoord, w = colW, h = rowH,
+            x = (xMap[item] or colX), y = yCoord, w = gcell or colW, h = gcell or rowH,
             id = "mcrow:" .. slot .. ":" .. tostring(i),
             item = item,
             itemIndex = i,
@@ -982,6 +984,8 @@ _buildWorldMCColumnFocusables = function(win, slot)
             end,
         }
     end
+    -- the column's List | Grid toggle
+    for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(cs.viewToggleRects)) do elements[#elements + 1] = e end
     -- S108 v2 QA: empty MC column needs a placeholder so the zone stays
     -- focusable. Otherwise bumpers skip empty containers, breaking the
     -- "each MC col is its own zone" model.
@@ -1187,11 +1191,13 @@ _buildWorldInvRowFocusables = function(win)
     local T = ZeD.T
     local rowH = (T and T.rowH) or 26
     local yMap = c._itemRenderYMap or {}
+    local xMap = c._itemRenderXMap or {}   -- (the grid: each cell's x)
+    local gcell = c._gridCell
     for i = 1, #items do
         local item = items[i]
         local yCoord = yMap[item] or (i * rowH)
         elements[#elements + 1] = {
-            x = 0, y = yCoord, w = T.px(200), h = rowH,
+            x = (xMap[item] or 0), y = yCoord, w = gcell or T.px(200), h = gcell or rowH,
             id = "invrow:" .. tostring(i),
             item = item,
             itemIndex = i,
@@ -1268,6 +1274,8 @@ _buildWorldInvRowFocusables = function(win)
         local cnt = win._mainContent
         if cnt then cnt._gpFocusedRowItem = elements[1].item end
     end
+    -- the column's List | Grid toggle (up from the first row reaches it)
+    for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)) do elements[#elements + 1] = e end
     return elements
 end
 
@@ -3912,6 +3920,17 @@ function ZeD_WorldWindow.toggle(playerNum)
                         dirty = true
                         win._lastMcActiveForMainInv = mcActive
                     end
+                    -- Oct 19 2026: rebuild on the rows' places too (scroll, List | Grid, width)
+                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
+                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
+                    if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
+                    local keepId = nil
+                    for _, z in ipairs(win._focusRing or {}) do
+                        if z.zone == "worldMainInv" then
+                            local fe = z.elements and z.elements[z.focusedElementIdx or 1]
+                            if fe and fe.isViewToggle then keepId = fe.id end
+                        end
+                    end
 
                     if dirty then
                         local snap = {}
@@ -3982,6 +4001,9 @@ function ZeD_WorldWindow.toggle(playerNum)
                                     end
                                     preserveIdx = math.min(oldIdx, #newEls)
                                 end
+                            end
+                            if keepId then
+                                for i, el in ipairs(newEls) do if el.id == keepId then preserveIdx = i end end
                             end
 
                             Focus.setRingZoneElements(win, "worldMainInv", newEls, preserveIdx)
@@ -4468,6 +4490,12 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         -- Category collapse (column-aware)
+        -- a column's List | Grid toggle (InventoryRenderer: "view:list:<container>" / "view:grid:<container>")
+        if type(zid) == "string" and zid:sub(1, 5) == "view:" then
+            ZeD.InventoryRenderer.onViewZone(zid)
+            return true
+        end
+
         if type(zid) == "string" and zid:sub(1, 4) == "cat:" then
             local cat = zid:sub(5)
             local catColIdx, catCs = getColumnAtX(self, x)

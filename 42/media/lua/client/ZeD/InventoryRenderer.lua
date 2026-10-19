@@ -265,6 +265,367 @@ local function ccMarked(self, item)
     return false
 end
 
+-- ============================================================================
+-- GRID VIEW (Oct 19 2026, mockup zed_inventory_grid_v1.html; director: "Go
+-- with inventory grid"). A List | Grid toggle in each column's heading; the
+-- list stays the default. The choice is remembered per container (the fridge
+-- set to grid opens as a grid next time), in the character's mod data. The
+-- grid shows the list's own order: no sorting of its own. Cells register the
+-- item itself as their hit zone, so selecting, dragging and the item's menu
+-- work exactly as on a row.
+-- ============================================================================
+local GRID_CELL, GRID_GAP = 52, 4
+local GRID_HINT_MS = 450
+
+-- a stable name for a container: the player's bag, a bag by its item id, a
+-- vehicle part, a world object by its square, else its kind
+local function containerKey(inv, playerObj)
+    if not inv then return nil end
+    local ok, k = pcall(function()
+        if playerObj and inv == playerObj:getInventory() then return "player" end
+        local it = inv:getContainingItem()
+        if it then return "item:" .. tostring(it:getID()) end
+        local vp = inv.getVehiclePart and inv:getVehiclePart()
+        if vp then
+            local v = vp:getVehicle()
+            return "veh:" .. tostring(v and v:getSqlId() or "?") .. ":" .. tostring(vp:getId())
+        end
+        local t = tostring(inv:getType())
+        local par = inv:getParent()
+        local sq = par and par.getSquare and par:getSquare()
+        if sq then return "obj:" .. sq:getX() .. "," .. sq:getY() .. "," .. sq:getZ() .. ":" .. t end
+        return "type:" .. t
+    end)
+    return ok and k or nil
+end
+ZeD.InventoryRenderer.containerKey = containerKey
+
+local function gridStore()
+    local p = getPlayer and getPlayer()
+    if not p then return nil end
+    local md = p:getModData()
+    md.ZeD_GridViews = md.ZeD_GridViews or {}
+    return md.ZeD_GridViews
+end
+
+function ZeD.InventoryRenderer.isGridKey(key)
+    local s = key and gridStore()
+    return s ~= nil and s[key] == true
+end
+
+function ZeD.InventoryRenderer.setGridKey(key, on)
+    local s = key and gridStore()
+    if s then s[key] = on and true or nil end
+end
+
+-- a toggle zone was clicked: "view:list:<key>" / "view:grid:<key>"
+function ZeD.InventoryRenderer.onViewZone(zid)
+    local view, key = tostring(zid):match("^view:(%a+):(.*)$")
+    if not (view and key) then return end
+    ZeD.InventoryRenderer.setGridKey(key, view == "grid")
+    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+end
+
+-- The toggle's controller elements for a column (each builder appends them):
+-- rects stamped by the renderer in panel coords; A picks the view.
+function ZeD.InventoryRenderer.toggleElements(rects)
+    local els = {}
+    for _, r in ipairs(rects or {}) do
+        els[#els + 1] = {
+            x = r.x, y = r.y, w = r.w, h = r.h,
+            id = "view:" .. r.view .. ":" .. tostring(r.key),
+            isViewToggle = true, view = r.view, key = r.key,
+            onFocus = function(w, el) end,
+            onActivate = function(w, el) ZeD.InventoryRenderer.setGridKey(el.key, el.view == "grid") end,
+        }
+    end
+    return els
+end
+
+local GRID_ICONS = {}
+local function gridIcon(name)
+    if GRID_ICONS[name] == nil then GRID_ICONS[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
+    return GRID_ICONS[name] or nil
+end
+
+-- is this item the controller's focused element in an inventory zone? (the
+-- rows' own test, shared with the grid's cells)
+local function gpFocusedItem(item)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+    local zone   = (focWin and Focus.getFocusedZone) and Focus.getFocusedZone(focWin) or nil
+    local zname  = zone and zone.zone or ""
+    local isInvZone = zname == "charMainInv" or zname == "worldMainInv"
+                   or (zname:match("^worldMC%d+$") ~= nil) or (zname:match("^charMC%d+$") ~= nil)
+    local focEl = focWin and Focus.getFocusedElement and Focus.getFocusedElement(focWin) or nil
+    return isInvZone and focEl ~= nil and focEl.item == item
+end
+
+local function gpFocusedToggle(id)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+    local focEl = focWin and Focus.getFocusedElement and Focus.getFocusedElement(focWin) or nil
+    return focEl ~= nil and focEl.isViewToggle and focEl.id == id
+end
+
+-- The grid's state for one column (renderItemList keeps it in one table GV)
+local function gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
+    local T = ZeD.T
+    local GV = { key = containerKey(inv, playerObj), toggles = {}, child = childParent }
+    GV.on   = ZeD.InventoryRenderer.isGridKey(GV.key)
+    GV.cell = T.px(GRID_CELL)
+    GV.gap  = T.px(GRID_GAP)
+    GV.cols = math.max(1, math.floor((colW - scrollW - padX * 2 + GV.gap) / (GV.cell + GV.gap)))
+    self._gridCell = GV.on and GV.cell or nil
+    return GV
+end
+
+local function gridCount(GV, list)
+    local n = 0
+    for _, it in ipairs(list or {}) do if not GV.child[it] then n = n + 1 end end
+    return n
+end
+
+local function gridH(GV, n)
+    if n <= 0 then return 0 end
+    return GV.gap + math.ceil(n / GV.cols) * (GV.cell + GV.gap)
+end
+
+-- List | Grid: two joined icon buttons ending at column-local x `right`, in
+-- the column heading (top barH, height areaH). Stamps GV.toggles (panel
+-- coords) and the hint candidate. Returns the width taken (with its gap).
+local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
+    if not GV.key then return 0 end
+    local T = ZeD.T
+    local bw, bh = T.px(22), T.px(18)
+    local tW = bw * 2 - T.px(1)
+    local tx = xOff + right - tW
+    local ty = barH + math.floor((areaH - bh) / 2)
+    local mx, my = self:getMouseX(), self:getMouseY()
+    local ac = T.accent
+    for i, v in ipairs({ "list", "grid" }) do
+        local zx = tx + (i - 1) * (bw - T.px(1))
+        local on = (v == "grid") == (GV.on and true or false)
+        local bg = on and ac or T.surf2
+        self:drawRect(zx, ty, bw, bh, 1, bg.r, bg.g, bg.b)
+        local br = on and T.accentBright or T.borderS
+        self:drawRectBorder(zx, ty, bw, bh, br.a or 1, br.r, br.g, br.b)
+        local isz = T.px(11)
+        ZeD.Atoms.drawIcon(self, gridIcon(v == "list" and "list" or "apps"), zx + math.floor((bw - isz) / 2),
+            ty + math.floor((bh - isz) / 2), isz, 1, on and T.textOnAccent or T.textDim)
+        local id = "view:" .. v .. ":" .. GV.key
+        local over = mx >= zx and mx < zx + bw and my >= ty and my < ty + bh
+        if gpFocusedToggle(id) then self:drawRect(zx, ty, bw, bh, 0.55, ac.r, ac.g, ac.b)
+        elseif over and not on then self:drawRect(zx, ty, bw, bh, 0.22, ac.r, ac.g, ac.b) end
+        if over then self._gridHintCand = { key = id, text = (v == "list") and "List view" or "Grid view", x = zx, y = ty + bh + T.px(4), below = true } end
+        GV.toggles[#GV.toggles + 1] = { x = zx, y = ty, w = bw, h = bh, view = v, key = GV.key, id = id }
+    end
+    return tW + padX
+end
+
+-- One cell: the icon, the stack's weight top right, its count bottom right, a
+-- condition line along the bottom, a BELT n badge; hover 0.22, selected
+-- deeper with the icon darkened (System 7's selected icon), the controller's
+-- focus 0.55. Its hit zone is the item itself, as a row's is.
+local function drawGridCell(self, GV, item, cx, cy)
+    local T = ZeD.T
+    local cell, xOff = GV.cell, GV.xOff
+    GV.ymap[item] = cy
+    GV.xmap[item] = xOff + cx
+    if cy + cell <= GV.top or cy >= GV.h then return end
+    local ax = xOff + cx
+    local ac, bs = T.accent, T.borderS
+    self:drawRect(ax, cy, cell, cell, 0.04, 1, 1, 1)
+    self:drawRectBorder(ax, cy, cell, cell, bs.a or 1, bs.r, bs.g, bs.b)
+    local isSelected = GV.sel and GV.sel[item]
+    if isSelected then self:drawRect(ax, cy, cell, cell, 0.36, ac.r, ac.g, ac.b) end
+    if self._ccMarks and ccMarked(self, item) then self:drawRect(ax, cy, cell, cell, 0.22, ac.r, ac.g, ac.b) end
+    local stackInfo = self._stacks and self._stacks[item]
+    local count = (stackInfo and stackInfo.count) or 1
+    local tex = item:getTex()
+    local isz = math.floor(cell * 32 / 52)
+    if tex then
+        local tint = isSelected and 0.7 or 1
+        self:drawTextureScaledAspect(tex, ax + math.floor((cell - isz) / 2), cy + math.floor((cell - isz) / 2), isz, isz, 1, tint, tint, tint)
+    end
+    -- the weight of the cell (the whole stack), top right
+    local wt = 0
+    if stackInfo and stackInfo.items then
+        for _, si in ipairs(stackInfo.items) do wt = wt + (si:getUnequippedWeight() or 0) end
+    else wt = item:getUnequippedWeight() or 0 end
+    local wtStr = string.format("%.1f", wt)
+    local f5 = T.fontF5
+    local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
+    self:drawRect(ax + cell - wtw - T.px(5), cy + T.px(1), wtw + T.px(4), GV.f5FH, 0.55, 0, 0, 0)
+    local th = T.toneHi
+    self:drawText(wtStr, ax + cell - wtw - T.px(3), cy + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
+    -- the count, bottom right
+    if count > 1 then
+        local cs = "x" .. count
+        local f1 = T.fontF1
+        local cw2 = ZeD.TM:MeasureStringX(f1, cs)
+        local cy2 = cy + cell - GV.secFH - T.px(4)
+        self:drawRect(ax + cell - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, 0.65, 0, 0, 0)
+        local tc = T.text
+        self:drawText(cs, ax + cell - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
+    end
+    -- on the belt: its key, top left (the list's BELT n tag)
+    local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
+    if okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.keyLabel then
+        local k = tostring(ZeD.Belt.keyLabel(aslot) or aslot)
+        local kw = math.max(ZeD.TM:MeasureStringX(f5, k) + T.px(6), GV.f5FH)
+        self:drawRect(ax, cy, kw, GV.f5FH, ac.a or 1, ac.r, ac.g, ac.b)
+        local tc = T.textOnAccent
+        self:drawText(k, ax + math.floor((kw - ZeD.TM:MeasureStringX(f5, k)) / 2), cy, tc.r, tc.g, tc.b, 1, f5)
+    end
+    -- condition, a line along the bottom (the list's colours)
+    local condMax = item:getConditionMax()
+    if condMax and condMax > 0 then
+        local f = math.max(0, math.min(1, item:getCondition() / condMax))
+        local bx, by, bw2 = ax + T.px(3), cy + cell - T.px(3), cell - T.px(6)
+        self:drawRect(bx, by, bw2, T.px(2), 1, 0.047, 0.047, 0.047)
+        local fc = (f > 0.6 and T.positive) or (f > 0.3 and T.warning) or T.danger
+        local fw = math.floor(bw2 * f)
+        if fw > 0 then self:drawRect(bx, by, fw, T.px(2), fc.a or 1, fc.r, fc.g, fc.b) end
+    end
+    -- pointer (0.22, and its name in a hint) / the controller (0.55)
+    local over = GV.mouseIn and GV.lmx >= cx and GV.lmx < cx + cell and GV.my >= cy and GV.my < cy + cell
+                 and GV.my >= GV.top and GV.my < GV.top + GV.visH
+    if gpFocusedItem(item) then
+        self:drawRect(ax, cy, cell, cell, 0.55, ac.r, ac.g, ac.b)
+    elseif over then
+        self:drawRect(ax, cy, cell, cell, 0.22, ac.r, ac.g, ac.b)
+    end
+    if over then
+        local nm = item:getName() or "?"
+        if count > 1 then nm = nm .. " x" .. count end
+        self._gridHintCand = { key = item, text = nm, x = ax, y = cy }
+    end
+    self:addHitZone(item, ax, cy, cell, cell)
+end
+
+-- A list of items as cells from y; returns the y after them
+local function drawGridList(self, GV, list, y)
+    local n = 0
+    local top = y + GV.gap
+    for _, item in ipairs(list or {}) do
+        if not GV.child[item] then
+            local c, r = n % GV.cols, math.floor(n / GV.cols)
+            drawGridCell(self, GV, item, GV.padX + c * (GV.cell + GV.gap), top + r * (GV.cell + GV.gap))
+            n = n + 1
+        end
+    end
+    return y + gridH(GV, n)
+end
+
+-- The column's heading: the container's icon and name on the left; its
+-- weight over its item count on the right, the List | Grid toggle left of them.
+-- (Moved out of renderItemList, Oct 19 2026: in -debug the game's compiler
+-- keeps every local a function declares, block or not, and stops at 200;
+-- renderItemList stood at 193.)
+local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, f5FH)
+    local ci = self._containerInfo
+    if not ci then return end
+    local T = ZeD.T
+    local infoAreaH = hdrY - barH
+    -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
+    local wtStr  = ci.stats or ""
+    local cntStr = ci.count  or ""
+    local wtW    = ZeD.TM:MeasureStringX(T.fontF1, wtStr)
+    local cntW   = ZeD.TM:MeasureStringX(T.fontF5, cntStr)
+    local stackW = math.max(wtW, cntW)
+    local gap    = T.px(2)
+    local stackH = secFH + gap + f5FH
+    local stackY = barH + math.floor((infoAreaH - stackH) / 2)
+    local htc    = T.toneHi
+    local ntc    = T.toneNorm
+    self:drawText(wtStr,  xOff + colW - wtW  - padX, stackY,               htc.r, htc.g, htc.b, htc.a, T.fontF1)
+    self:drawText(cntStr, xOff + colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5)
+    -- List | Grid, left of the weight (the zones go in after the hit zones are cleared)
+    stackW = stackW + drawViewToggle(self, GV, xOff, colW - stackW - padX * 2, barH, infoAreaH, padX)
+    -- Left: icon + name (F4 norm), vertically centred in info area
+    local f4FH  = ZeD.TM:getFontHeight(T.fontF4)
+    local nameY = barH + math.floor((infoAreaH - f4FH) / 2)
+    local cx    = padX
+    if ci.texture then
+        ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, nameY, f4FH, 1, T.iconWhite)
+        cx = cx + f4FH + T.sp.iconGap
+    end
+    local maxNameW = colW - stackW - cx - padX * 2
+    if maxNameW > 0 then
+        local name = ZeD.Atoms.truncateText(ci.name or "", T.fontF4, maxNameW)
+        self:drawText(name, xOff + cx, nameY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
+    end
+end
+
+-- The grid by category: each category's heading (as the list's: fold on a
+-- click) and its cells. Returns the y after them.
+local function drawGridGroups(self, GV, catOrder, groups, collapsed, stackedGroups, y, scrollX, catHdrH)
+    local T = ZeD.T
+    local xOff = GV.xOff
+    local s2 = T.surf2
+    for _, cat in ipairs(catOrder) do
+        local isClosed = collapsed[cat]
+        if y + catHdrH > GV.top and y < GV.h then
+            if GV.mouseIn and GV.my >= y and GV.my < y + catHdrH and GV.lmx < scrollX then
+                self:drawRect(xOff, y, scrollX, catHdrH, 0.06, T.text.r, T.text.g, T.text.b)
+            else
+                self:drawRect(xOff, y, scrollX, catHdrH, s2.a, s2.r, s2.g, s2.b)
+            end
+            ZeD.Atoms.drawSecondary(self, (isClosed and "> " or "v ") .. string.upper(cat) .. " (" .. #groups[cat] .. ")",
+                xOff + GV.padX + T.px(2), y + math.floor((catHdrH - GV.secFH) / 2), T.toneLo)
+            ZeD.Atoms.drawDividerH(self, xOff, y + catHdrH - T.px(1), scrollX, false)
+            self:addHitZone("cat:" .. cat, xOff, y, scrollX, catHdrH)
+        end
+        y = y + catHdrH
+        if not isClosed then y = drawGridList(self, GV, stackedGroups[cat], y) end
+    end
+    return y
+end
+
+-- the List | Grid toggle's hit zones (after the column clears its zones)
+local function addToggleZones(self, GV)
+    for _, r in ipairs(GV.toggles) do self:addHitZone(r.id, r.x, r.y, r.w, r.h) end
+end
+
+-- the grid's column bar: no columns to sort by, it names the list's order
+local function drawGridOrder(self, x, y, w, sortCol)
+    local T = ZeD.T
+    local names = { name = "NAME", cat = "CATEGORY", cond = "CONDITION", wt = "WEIGHT" }
+    local lbl = "ORDER: " .. (names[sortCol] or "NAME") .. ", AS THE LIST"
+    local tc = T.toneLo or T.textDim
+    self:drawText(ZeD.Atoms.truncateText(lbl, T.fontF5, w), x, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5)
+end
+
+-- A grid cell (its item's name) or the List | Grid toggle names itself after
+-- a pause, in the container buttons' hint look (drawn last, over the column)
+local function drawGridHint(self, GV, xOff, colW, contentTop)
+    local T = ZeD.T
+    local hc = self._gridHintCand
+    if not hc then
+        if self._gridHintCol == xOff then self._gridHintKey = nil end
+        return
+    end
+    local now = getTimestampMs()
+    if self._gridHintKey ~= hc.key then
+        self._gridHintKey, self._gridHintSince, self._gridHintCol = hc.key, now, xOff
+        return
+    end
+    if now - (self._gridHintSince or now) < GRID_HINT_MS then return end
+    local f2 = T.fontF2
+    local hpx, hpy = T.px(10), T.px(4)
+    local tw = ZeD.TM:MeasureStringX(f2, hc.text)
+    local bw, bh = tw + hpx * 2, ZeD.TM:getFontHeight(f2) + hpy * 2
+    local hx = math.max(xOff + T.px(2), math.min(hc.x, xOff + colW - bw - T.px(2)))
+    local hy = hc.below and hc.y or (hc.y - bh - T.px(4))
+    if not hc.below and hy < contentTop then hy = hc.y + GV.cell + T.px(4) end
+    local s2, bs, tc = T.surf2, T.borderS, T.text
+    self:drawRect(hx + T.px(2), hy + T.px(2), bw, bh, 0.5, 0, 0, 0)
+    self:drawRect(hx, hy, bw, bh, 1, s2.r, s2.g, s2.b)
+    self:drawRectBorder(hx, hy, bw, bh, bs.a, bs.r, bs.g, bs.b)
+    self:drawText(hc.text, hx + hpx, hy + hpy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+end
+
 local function renderItemList(self)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -514,14 +875,24 @@ local function renderItemList(self)
     self._stacks         = stacks
     self._childParent    = childParent
 
+    -- GRID: this container's view, and the cells' layout (a stack is one cell;
+    -- its children are never shown apart, as the card covers the stack)
+    -- (one table: renderItemList sits near Kahlua's 200-local limit; the grid's
+    -- drawing lives in drawGridList / drawViewToggle, outside this function)
+    self._gv = gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
+
     local totalContentH = 0
     if useGroups then
         for _, cat in ipairs(catOrder) do
             totalContentH = totalContentH + catHdrH
-            totalContentH = totalContentH + (catRowCount[cat] or 0) * rowH
+            if self._gv.on then
+                totalContentH = totalContentH + gridH(self._gv, gridCount(self._gv, stackedGroups[cat]))
+            else
+                totalContentH = totalContentH + (catRowCount[cat] or 0) * rowH
+            end
         end
     else
-        totalContentH = #flatItems * rowH
+        totalContentH = self._gv.on and gridH(self._gv, gridCount(self._gv, flatItems)) or (#flatItems * rowH)
     end
 
     local contentTop = hdrY + colHdrH
@@ -557,39 +928,11 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     -- CONTAINER INFO HEADER (when hdrY > 0)
     -- --------------------------------------------------------
+    self._viewToggleRects = self._gv.toggles
+    self._gridHintCand = nil
     if hdrY > 0 then
-        local ci = self._containerInfo
-        if ci then
-            local infoAreaH = hdrY - barH
-
-            -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
-            local wtStr  = ci.stats or ""
-            local cntStr = ci.count  or ""
-            local wtW    = ZeD.TM:MeasureStringX(T.fontF1, wtStr)
-            local cntW   = ZeD.TM:MeasureStringX(T.fontF5, cntStr)
-            local stackW = math.max(wtW, cntW)
-            local gap    = T.px(2)
-            local stackH = secFH + gap + f5FH
-            local stackY = barH + math.floor((infoAreaH - stackH) / 2)
-            local htc    = T.toneHi
-            local ntc    = T.toneNorm
-            dT(wtStr,  colW - wtW  - padX, stackY,               htc.r, htc.g, htc.b, htc.a, T.fontF1)
-            dT(cntStr, colW - cntW - padX, stackY + secFH + gap, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5)
-
-            -- Left: icon + name (F4 norm), vertically centred in info area
-            local f4FH   = ZeD.TM:getFontHeight(T.fontF4)
-            local nameY  = barH + math.floor((infoAreaH - f4FH) / 2)
-            local cx     = padX
-            if ci.texture then
-                aIcon(ci.texture, cx, nameY, f4FH, 1, ZeD.T.iconWhite)
-                cx = cx + f4FH + T.sp.iconGap
-            end
-            local maxNameW = colW - stackW - cx - padX * 2
-            if maxNameW > 0 then
-                local name = truncateText(ci.name or "", T.fontF4, maxNameW)
-                dT(name, cx, nameY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
-            end
-        end
+        -- (drawn by drawColumnHeading: renderItemList keeps its locals few, see there)
+        drawColumnHeading(self, self._gv, xOff, colW, barH, hdrY, padX, secFH, f5FH)
         aDiv(0, hdrY - T.px(1), colW, true)
     end
 
@@ -614,10 +957,15 @@ local function renderItemList(self)
         colDefs[#colDefs + 1] = {"COND", "cond", condX + padX, condX,  condColW}
     end
     colDefs[#colDefs + 1] = {"WT",   "wt",   wtX + padX,   wtX,    wtColW}
+    -- the grid has no columns to sort by: the bar names the list's order it shows
+    if self._gv.on then
+        drawGridOrder(self, xOff + padX, hdrTextY, colW - padX * 2, sortCol)
+        colDefs = {}
+    end
 
     -- Divider hit zones (registered BEFORE header zones for priority)
     local DIV_W = T.px(6)
-    if not self._compactMode then
+    if not self._compactMode and not self._gv.on then
         if showCat then
             hZ("div:cat", catX - DIV_W / 2, hdrY, DIV_W, colHdrH)
         end
@@ -727,8 +1075,8 @@ local function renderItemList(self)
             if logicalY < oldScrollOff then
                 scroll:setScrollPos(logicalY / (totalContentH - visibleH))
             -- If the focused row's logical bottom is below viewport, scroll down
-            elseif logicalY + rowH > oldScrollOff + visibleH then
-                local newOff = logicalY + rowH - visibleH
+            elseif logicalY + (self._gv.on and self._gv.cell or rowH) > oldScrollOff + visibleH then
+                local newOff = logicalY + (self._gv.on and self._gv.cell or rowH) - visibleH
                 scroll:setScrollPos(newOff / (totalContentH - visibleH))
             end
         end
@@ -749,7 +1097,7 @@ local function renderItemList(self)
     end
 
     -- Re-register divider + column header hit zones (must survive clear or co-exist)
-    if not self._compactMode then
+    if not self._compactMode and not self._gv.on then
         if showCat then
             hZ("div:cat", catX - DIV_W / 2, hdrY, DIV_W, colHdrH)
         end
@@ -762,6 +1110,8 @@ local function renderItemList(self)
         hZ("hdr:" .. def[2], def[4], hdrY, def[5], colHdrH)
     end
     if self._ccH > 0 then ZeD.ContainerControls.addZones(self) end
+    -- the List | Grid toggle (its rects are panel coords already)
+    addToggleZones(self, self._gv)
 
     self:setStencilRect(xOff, contentTop, scroll.visible and (colW - scrollW) or colW, visibleH)
 
@@ -949,7 +1299,20 @@ local function renderItemList(self)
         rowIdx = rowIdx + 1
     end
 
-    if useGroups then
+    -- GRID: the cells draw in drawGridList (outside this function: the local limit)
+    self._gv.xOff, self._gv.padX, self._gv.top, self._gv.h, self._gv.visH = xOff, padX, contentTop, h, visibleH
+    self._gv.sel, self._gv.ymap, self._gv.xmap = selectedItems, itemRenderYMap, {}
+    self._gv.mouseIn, self._gv.lmx, self._gv.my, self._gv.f5FH, self._gv.secFH = mouseInCol, localMx, my, f5FH, secFH
+    self._itemRenderXMap = self._gv.xmap
+
+
+    if self._gv.on then
+        if useGroups then
+            y = drawGridGroups(self, self._gv, catOrder, groups, collapsed, stackedGroups, y, scrollX, catHdrH)
+        else
+            y = drawGridList(self, self._gv, flatItems, y)
+        end
+    elseif useGroups then
         for _, cat in ipairs(catOrder) do
             local catGroup = groups[cat]
             local isClosed = collapsed[cat]
@@ -1010,6 +1373,9 @@ local function renderItemList(self)
 
     -- an icon's hover hint (container buttons), over everything
     if self._ccH > 0 then ccHint(self) end
+
+    -- a grid cell (its item's name) or the List | Grid toggle names itself
+    drawGridHint(self, self._gv, xOff, colW, contentTop)
 end
 
 -- ============================================================================
@@ -1392,6 +1758,10 @@ local function renderMultiColumnContent(self)
             -- it. Snapshotting after each render preserves each column's stamps
             -- for the next frame's focusable builder.
             cs.itemRenderYMap  = self._itemRenderYMap
+            -- the grid: each cell's x, the cell size, the List | Grid toggle (focusables read them)
+            cs.itemRenderXMap  = self._itemRenderXMap
+            cs.gridCell        = self._gridCell
+            cs.viewToggleRects = self._viewToggleRects
         end
     end
 
