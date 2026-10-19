@@ -159,6 +159,31 @@ equipView:addItem("List", true)  -- default: the list
 equipView:addItem("Doll", false)
 ZeD.Settings.equipViewOption = equipView
 
+-- ----- THE OTHER VIEW CHOICES (Oct 19 2026, director: "people can have all lists
+-- or all grids options for the most used menus") -----
+-- The inventory's view for every container that hasn't one of its own (each
+-- column's List | Grid toggle still sets one container; InventoryRenderer).
+local invView = opts:addComboBox("inventoryView", "Inventory",
+    "How containers show their items unless you set one with its List | Grid toggle: a list with columns, or a grid of icons.")
+invView:addItem("List", true)   -- default: the list
+invView:addItem("Grid", false)
+ZeD.Settings.inventoryViewOption = invView
+-- The right-click menu: the strip of icons, or a list of words (ZeD_ContextList).
+local ctxStyle = opts:addComboBox("contextStyle", "Context menu",
+    "The right-click menu: a strip of icons with the target and what the action needs, or a list, one action to a row, as the game's own.")
+ctxStyle:addItem("Icon strip", true)   -- default: the strip
+ctxStyle:addItem("List", false)
+ZeD.Settings.contextStyleOption = ctxStyle
+
+-- ----- ACTION BAR (Oct 19 2026, mockup ZeDUI/mockups/zed_action_bar_v2.html; director: "ship it") -----
+-- The bar over the character's head while an action runs (ZeD_ActionBar.lua reads this
+-- every frame, so a change applies at once). Verbose is the default.
+local actionBar = opts:addComboBox("actionBar", "Action bar",
+    "The bar over your character's head while it works. Verbose: what it is doing, with what, how far, and what comes next. Simple: ten segments, no words.")
+actionBar:addItem("Verbose", true)   -- default
+actionBar:addItem("Simple", false)
+ZeD.Settings.actionBarOption = actionBar
+
 -- ----- CHARACTER WINDOW ACCENT -----
 local charAccent = opts:addComboBox("charAccent", "Character window accent",
     "Per-window accent override for the Character window. Cycled via footer button.")

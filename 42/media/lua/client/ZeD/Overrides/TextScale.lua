@@ -82,7 +82,7 @@ end
 
 local ZED_CLASSES = { "ZeD_Panel", "ZeD_Window", "ZeD_Button", "ZeD_TextInput", "ZeD_TextEntry", "ZeD_SearchField",
     "ZeD_Tooltip", "ZeD_ScrollList", "ZeD_ScrollPanel", "ZeD_ZoneList", "ZeD_Dropdown", "ZeD_Modal", "ZeD_TabPanel",
-    "ZeD_ItemGrid", "ZeD_ItemCard", "ZeD_BodyFigure", "ZeD_ContextMenu", "ZeD_Dashboard", "ZeD_Watch",
+    "ZeD_ItemGrid", "ZeD_ItemCard", "ZeD_BodyFigure", "ZeD_ContextMenu", "ZeD_ContextList", "ZeD_Dashboard", "ZeD_Watch",
     -- (code audit Oct 17 2026: ZeD classes that derive straight from ISPanel / ISUIElement were
     -- missed and kept hairline borders at 4K. The pixel-art panels (the desk, the CRT glass and
     -- wake, the car radio, the siren controller) stay off this list: their thin lines are art.)
