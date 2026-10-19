@@ -12,6 +12,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/ZeD_BodyFigure"
 require "ZeD/ProtectionTab"
+require "ZeD/EquipDoll"
 
 ZeD = ZeD or {}
 ZeD.EquipmentTab = {}
@@ -949,17 +950,34 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- ================================================================
     -- CARD MODE — selected slot inspection
     -- ================================================================
+    -- a new selection starts at its outermost layer
+    if win._equipSelected ~= win._equipSelPrev then
+        win._equipSelPrev = win._equipSelected
+        win._equipLayer = 1
+    end
+    win._equipLayerZones = nil
+    win._equipDollEmpty = nil
+    win._equipDollShown = false   -- the doll's model + line layer follow this (CharacterWindow)
+    win._equipViewZones = nil
     if win._equipSelected then
-        -- Find the selected slot data
+        -- Find the selected slot data: a doll slot (its layers), or a list row
         local selSlot = nil
-        for _, g in ipairs(data.groups) do
-            for _, s in ipairs(g.slots) do
-                if s.type == win._equipSelected then
-                    selSlot = s
-                    break
+        local layerIdx, layerN = 1, 1
+        local Doll = ZeD.EquipDoll
+        if Doll.isDollKey(win._equipSelected) then
+            local item
+            item, layerIdx, layerN = Doll.selection(win)
+            if item then selSlot = { item = item } end
+        else
+            for _, g in ipairs(data.groups) do
+                for _, s in ipairs(g.slots) do
+                    if s.type == win._equipSelected then
+                        selSlot = s
+                        break
+                    end
                 end
+                if selSlot then break end
             end
-            if selSlot then break end
         end
 
         -- If selected item was unequipped externally, revert to list mode
@@ -979,12 +997,20 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
                 card.onBackClick = function(self)
                     win._equipSelected = nil
                 end
+                card._gpZone = "charTabContent"   -- its controller cue shows when the tab's zone has focus
+            end
+            -- A doll slot with layers: the layer strip under the card
+            local cardH = h
+            if (layerN or 1) > 1 then
+                cardH = h - Doll.layerStripH()
+                Doll.drawLayerStrip(panel, win, x, y + cardH, w, layerIdx, layerN, panel:getMouseX(), panel:getMouseY())
             end
             -- Per-frame sync: bounds, item, source context
             card:setX(x)
             card:setY(y)
             card:setWidth(w)
-            card:setHeight(h)
+            card:setHeight(cardH)
+            card._fillH = (cardH ~= h) and cardH or nil
             if card.item ~= selSlot.item then card:setItem(selSlot.item) end
             card.sourceContext = "equipped"
             card:setVisible(true)
@@ -1036,7 +1062,15 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- consistent with the rest of the mod.
     local figureGap = T.sp.figurePadTop or T.px(12)
     local totalH = 0
-    if listExpanded then
+    local Doll = ZeD.EquipDoll
+    local dollView = listExpanded and Doll.view() == "doll"
+    -- the doll fits the viewport before any scrollbar; measured from last frame's data
+    local dollH = 0
+    if dollView then
+        if not win._equipDollData then win._equipDollData = Doll.gather(win._playerObj, win.playerNum or 0) end
+        dollH = Doll.measure(win, w - T.sp.scrollbarW, h - headerH)
+        totalH = totalH + dollH
+    elseif listExpanded then
         totalH = totalH + T.px(EQUIP_HDR_H)
         for gi, g in ipairs(data.groups) do
             totalH = totalH + groupHeaderH_pre
@@ -1109,7 +1143,18 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     local szi = 0
     local beltZones = {}
 
-    if listExpanded then
+    if dollView then
+        -- the doll in place of the list (EquipDoll.lua); it stamps the slot,
+        -- belt and photo zones itself
+        win._equipGroupZones = {}
+        local dh = Doll.draw(panel, win, x, drawY, w - T.sp.scrollbarW, h - headerH, panel:getMouseX(), panel:getMouseY())
+        szi = #win._equipSlotZones
+        beltZones = win._equipBeltZones or {}
+        win._equipDollShown = true
+        win._equipDollClip = { x = x, y = scrollY, w = contentW, h = scrollH }
+        win._equipDollPanel = panel
+        drawY = drawY + dh
+    elseif listExpanded then
         -- Column headers FIRST — equipped inventory list is the most-accessed
         -- region of this drawer.
         _drawEquipHeader(panel, x, drawY, contentW, win)
@@ -1193,6 +1238,8 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
     -- Pinned header — labeled "Equipped" since it now toggles the inventory
     -- list visibility. Defense body is always shown at the bottom of the tab.
     ZeD.Molecules.drawTabHeader(panel, x, y, w, "Equipped", listExpanded)
+    -- List | Doll, at the heading's right edge
+    Doll.drawToggle(panel, win, x, y, w, headerH, panel:getMouseX(), panel:getMouseY())
     -- Zone field name kept (_equipDefenseZone) for backward compat with the
     -- existing CharacterWindow click + gamepad routing; the field now points
     -- at the "Equipped" disclosure but the zone semantics are unchanged.
