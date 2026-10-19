@@ -317,10 +317,13 @@ local function renderItemList(self)
     -- Reset to defaults when text scale changes
     local colWData = self._colWidths
     if not colWData or self._colWidthsScale ~= scale then
+        -- measured, not guessed (Oct 19 2026, Large text audit): the longest
+        -- common category ("Literature") and a weight in the columns' own
+        -- fonts, so Large shows "Literature" whole, not "Liter..."
         colWData = {
-            cat  = math.floor(70 * scale),
+            cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, "Literature"), T.px(96)) + padX * 2),
             cond = math.floor(50 * scale),
-            wt   = math.floor(40 * scale),
+            wt   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),
         }
         self._colWidths = colWData
         self._colWidthsScale = scale
@@ -329,7 +332,7 @@ local function renderItemList(self)
     -- Responsive columns: drop one at a time as panel narrows
     -- Order: cond first, then cat. Name + WT always stay.
     local nameX    = padX + iconW + iconGap
-    local MIN_NAME = T.px(80)
+    local MIN_NAME = T.px(100)   -- (Large text audit: names before categories; at Large the category drops before names crush)
     local catColW  = colWData.cat
     local condColW = colWData.cond
     local wtColW   = colWData.wt
@@ -342,7 +345,7 @@ local function renderItemList(self)
         condColW = 0
         showCat  = false
         catColW  = 0
-        wtColW   = math.floor(40 * scale)
+        wtColW   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2)
     else
         if (colW - nameX - catColW - condColW - wtColW - padX - scrollW) < MIN_NAME then
             showCond = false
@@ -865,7 +868,14 @@ local function renderItemList(self)
             prefix = expanded and "v " or "> "
             suffix = " x" .. tostring(stackInfo.count)
         end
-        local displayName = truncateText(prefix .. baseName .. suffix, T.fontF2, nameW - childIndent)
+        -- a cut name keeps its end: a stack's count survives ("> Apple (Fr... x6"; Large text audit)
+        local avail = nameW - childIndent
+        local displayName = prefix .. baseName .. suffix
+        if suffix ~= "" and ZeD.TM:MeasureStringX(T.fontF2, displayName) > avail then
+            displayName = truncateText(prefix .. baseName, T.fontF2, avail - ZeD.TM:MeasureStringX(T.fontF2, suffix)) .. suffix
+        else
+            displayName = truncateText(displayName, T.fontF2, avail)
+        end
         dT(displayName, nameX + childIndent, textY,
             nameColor.r, nameColor.g, nameColor.b, nameColor.a, T.fontF2)
 

@@ -788,27 +788,37 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.scale = sc
     T.root  = root
     T.px    = function(units) return math.floor(units * sc + 0.5) end
-    T.titleBarH  = T.px(size.titleBarH)
-    T.rowH       = T.px(size.rowH)
-    T.buttonH    = T.px(size.buttonH)
-    T.tabH       = T.px(size.tabH)
-    T.inputH     = T.px(size.inputH)
-    T.iconSm     = T.px(size.iconSm)
-    T.iconMd     = T.px(size.iconMd)
-    T.iconLg     = T.px(size.iconLg)
-    T.iconXl     = T.px(size.iconXl)
-    T.fillBarH   = T.px(size.fillBarH)
-    T.checkboxSz = T.px(size.checkboxSz)
-    T.closeBoxSz = T.px(size.closeBoxSz)
-    T.statIconSz = T.px(size.statIconSz)
-    T.contentPad = T.px(size.contentPad)
-    T.colGap     = T.px(size.colGap)
-    T.cardIconSz = T.px(size.cardIconSz)
-    T.contextRowH = T.px(size.contextRowH)
-    T.modalW     = T.px(size.modalW)
-    T.modalH     = T.px(size.modalH)
-    T.minWinW    = T.px(size.minWinW)
-    T.minWinH    = T.px(size.minWinH)
+    -- Oct 19 2026 (Large text audit): a preset value Large sizes for itself (row 34 vs 30, button
+    -- 30 vs 26 ...) takes the root scale only; multiplying it by Large's 1.15 as well grew rows 30%
+    -- for 15% more text (39 px rows) and pushed four rows in twenty off a full bag. Values both
+    -- presets share (the icons) and every literal through T.px still grow with Large.
+    local small = ZeD.TextSizes.small
+    local function SP(key)
+        local v = size[key]
+        if small and small[key] ~= v then return math.floor(v * root + 0.5) end
+        return T.px(v)
+    end
+    T.titleBarH  = SP("titleBarH")
+    T.rowH       = SP("rowH")
+    T.buttonH    = SP("buttonH")
+    T.tabH       = SP("tabH")
+    T.inputH     = SP("inputH")
+    T.iconSm     = SP("iconSm")
+    T.iconMd     = SP("iconMd")
+    T.iconLg     = SP("iconLg")
+    T.iconXl     = SP("iconXl")
+    T.fillBarH   = SP("fillBarH")
+    T.checkboxSz = SP("checkboxSz")
+    T.closeBoxSz = SP("closeBoxSz")
+    T.statIconSz = SP("statIconSz")
+    T.contentPad = SP("contentPad")
+    T.colGap     = SP("colGap")
+    T.cardIconSz = SP("cardIconSz")
+    T.contextRowH = SP("contextRowH")
+    T.modalW     = SP("modalW")
+    T.modalH     = SP("modalH")
+    T.minWinW    = SP("minWinW")
+    T.minWinH    = SP("minWinH")
 
     -- Thermal spectrum (per-theme: dark vibrant, light darker for contrast)
     T.tempCold = base.tempCold
