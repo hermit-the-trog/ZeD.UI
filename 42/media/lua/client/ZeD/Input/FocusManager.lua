@@ -161,6 +161,8 @@ local _wsGraceUntilMs  = 0
 -- (cone winner cyan, half-plane winner magenta if cone missed). Throwaway
 -- QA aid — strip after iteration converges.
 local _debugOverlay    = false
+-- Oct 19 2026: a dry run of a D-pad move (Focus.previewMove; the nav audit reads it)
+local _preview = nil
 -- Last-pick cache (per direction) so the overlay can highlight what
 -- _pickBestWithFallback would choose in that direction without re-running
 -- the picker every frame. Refreshed when overlay is on. Bounds in
@@ -842,7 +844,7 @@ local function _handleSpatialNav(w, dir)
     -- its position/state via the callback. Fires BEFORE generic onDpadDir
     -- so a drag-capable element can be reordered without conflicting with
     -- its idle-state navigation behavior.
-    if _xHeld and _xConsumed and _xElement and _xElement.onHoldContextDrag then
+    if not _preview and _xHeld and _xConsumed and _xElement and _xElement.onHoldContextDrag then
         _fireCb("element.onHoldContextDrag(dir)",
             function(ww, ee) _xElement.onHoldContextDrag(ww, ee, dir) end,
             _xWindow or w, _xElement)
@@ -854,8 +856,11 @@ local function _handleSpatialNav(w, dir)
     -- generic cone-nav.
     local focEl = Focus.getFocusedElement(w)
     if focEl and focEl.onDpadDir then
-        local result = _fireCbR("element.onDpadDir", focEl.onDpadDir, w, focEl, dir)
-        if result ~= false then return end
+        if _preview then _preview.custom = true end   -- (a dry run reports it, then picks as if it fell through)
+        if not _preview then
+            local result = _fireCbR("element.onDpadDir", focEl.onDpadDir, w, focEl, dir)
+            if result ~= false then return end
+        end
     end
 
     -- Generic flat cone-nav. Collect every element from focusable zones,
@@ -864,6 +869,33 @@ local function _handleSpatialNav(w, dir)
     if #elements == 0 then return end
 
     local fromIdx = _findCurrentFlatIdx(w, locator) or 1
+
+    -- Oct 19 2026 (the nav audit): back the way you came. The press opposite
+    -- to the last move returns to the control that move left, wherever the
+    -- picker would go: down from a map tool onto the map and up goes back to
+    -- that tool, not to the toolbar's first button; out to the tab column and
+    -- back returns to the same row. (Console menus do this.)
+    local OPP = { up = "down", down = "up", left = "right", right = "left" }
+    local last = w._navLast
+    local fromNow = locator[fromIdx] and w._focusRing[locator[fromIdx].zoneIdx]
+    local fromNowEl = fromNow and fromNow.elements and fromNow.elements[locator[fromIdx].elementIdx]
+    if last and last.dir == OPP[dir] and fromNow and fromNowEl
+       and last.toZone == fromNow.zone and last.toId == fromNowEl.id then
+        for i, loc in ipairs(locator) do
+            local z = w._focusRing[loc.zoneIdx]
+            local e = z and z.elements and z.elements[loc.elementIdx]
+            if z and e and z.zone == last.fromZone and e.id == last.fromId then
+                if _preview then
+                    _preview.zone, _preview.id, _preview.pass = z.zone, e.id, "back"
+                    return
+                end
+                w._navLast = { fromZone = fromNow.zone, fromId = fromNowEl.id, dir = dir, toZone = z.zone, toId = e.id }
+                print("[ZeD.Input] Focus: spatial " .. dir .. " -> back to " .. tostring(e.id) .. " [" .. _label(w) .. "]")
+                _applyFlatLanding(w, locator, fromIdx, i)
+                return
+            end
+        end
+    end
 
     -- S113c rule (design director): UP/DOWN stays in the current panel while
     -- the panel has anything more that way; Oct 15 2026 ("freedom of movement
@@ -915,6 +947,28 @@ local function _handleSpatialNav(w, dir)
 
     -- Recover the original fromIdx in the unfiltered list for the log line.
     local logFromIdx = _findCurrentFlatIdx(w, locator) or 1
+
+    -- Oct 19 2026 (the nav audit): Left / Right with nothing level in this
+    -- panel go on to the next panel that way, never to a control above or
+    -- below in the same panel. (A row's Left went to the container buttons
+    -- under the list, not the tab column; its Right to the List | Grid
+    -- toggle over the list, not the container column.)
+    if (dir == "left" or dir == "right") and pass == "half" then
+        local fl, tl = locator[logFromIdx], locator[newFlatIdx]
+        local fp = fl and _zonePanel(w, w._focusRing[fl.zoneIdx].zone)
+        local tp = tl and _zonePanel(w, w._focusRing[tl.zoneIdx].zone)
+        if fp and fp == tp then
+            local subEls, subIdx = { elements[logFromIdx] }, {}
+            for i, loc in ipairs(locator) do
+                if _zonePanel(w, w._focusRing[loc.zoneIdx].zone) ~= fp then
+                    subEls[#subEls + 1] = elements[i]
+                    subIdx[#subEls] = i
+                end
+            end
+            local pick, p2 = _pickBestWithFallback(subEls, 1, dir)
+            if pick and subIdx[pick] then newFlatIdx, pass = subIdx[pick], p2 end
+        end
+    end
 
     -- Oct 17 2026: a move never jumps over a whole panel. The picker prefers a
     -- control LINED UP with the focused one, so Left from an inventory row went
@@ -997,6 +1051,24 @@ local function _handleSpatialNav(w, dir)
         end
     end
 
+    if _preview then
+        local z = w._focusRing[locator[newFlatIdx].zoneIdx]
+        local e = z and z.elements and z.elements[locator[newFlatIdx].elementIdx]
+        _preview.zone, _preview.id, _preview.pass = z and z.zone, e and e.id, pass
+        return
+    end
+    -- remember this move, for the way back (above)
+    do
+        local fz = locator[logFromIdx] and w._focusRing[locator[logFromIdx].zoneIdx]
+        local fe = fz and fz.elements and fz.elements[locator[logFromIdx].elementIdx]
+        local tz = w._focusRing[locator[newFlatIdx].zoneIdx]
+        local te = tz and tz.elements and tz.elements[locator[newFlatIdx].elementIdx]
+        if fz and fe and tz and te and fe.id and te.id then
+            w._navLast = { fromZone = fz.zone, fromId = fe.id, dir = dir, toZone = tz.zone, toId = te.id }
+        else
+            w._navLast = nil
+        end
+    end
     print("[ZeD.Input] Focus: spatial " .. dir .. " -> flat[" .. newFlatIdx
        .. "/" .. #elements .. "] (" .. tostring(pass) .. ") zone="
        .. tostring(w._focusRing[locator[newFlatIdx].zoneIdx].zone)
@@ -1172,6 +1244,52 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
         -- Other action IDs (layout_mode, strip_*, inspect) not dispatched
         -- here. Strip menus fire when NO window has focus (OnTick path, TBD).
     end
+end
+
+-- Put focus on an element by id, in a zone of window w, as soon as it exists
+-- (an event that rebuilds a zone, like folding the map back, names where focus
+-- should land; the element appears a frame or two later). Tries for ~1 s.
+local _focusSoon = {}
+function Focus.focusByIdSoon(w, zoneName, id)
+    _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, id = id, tries = 60 }
+end
+local function _focusSoonTick()
+    if #_focusSoon == 0 then return end
+    for i = #_focusSoon, 1, -1 do
+        local f = _focusSoon[i]
+        local done = false
+        for zi, z in ipairs(f.w and f.w._focusRing or {}) do
+            if z.zone == f.zone and z.focusable then
+                for ei, e in ipairs(z.elements or {}) do
+                    if e.id == f.id then
+                        f.w._focusIdx = zi
+                        z.focusedElementIdx = ei
+                        f.w._navLast = nil
+                        if e.onFocus then pcall(e.onFocus, f.w, e) end
+                        done = true
+                        break
+                    end
+                end
+            end
+            if done then break end
+        end
+        f.tries = f.tries - 1
+        if done or f.tries <= 0 then table.remove(_focusSoon, i) end
+    end
+end
+if Events and Events.OnTick then Events.OnTick.Add(_focusSoonTick) end
+
+-- Oct 19 2026 (the controller nav audit): where a D-pad press would go from
+-- the focused element, without moving focus or running any handler.
+-- Returns { zone, id, pass } (nil zone = nothing that way), and custom = true
+-- when the element has its own D-pad handler (which would run first).
+function Focus.previewMove(w, dir)
+    _preview = {}
+    local ok = pcall(_handleSpatialNav, w, dir)
+    local r = _preview
+    _preview = nil
+    if not ok then r.err = true end
+    return r
 end
 
 function Focus.dispatchJoypadDir(w, dir, joypadData)
