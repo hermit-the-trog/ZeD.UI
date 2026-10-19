@@ -114,5 +114,6 @@ Events.OnMainMenuEnter.Add(function()
     local w = getFileWriter("zedqa.autoload", true, false)
     if w then w:write("0"); w:close() end
     autoTicks = 0
+    ZeD.QAAutoload = true   -- (ZeD setup's first-run page stays shut for a QA launch)
     Events.OnFETick.Add(autoload)
 end)
