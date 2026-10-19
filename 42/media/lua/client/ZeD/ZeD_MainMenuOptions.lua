@@ -34,6 +34,7 @@
 
 require "ZeD/ZeD_MainMenu"
 require "ZeD/ZeD_MainMenuSaves"
+require "ZeD/ZeD_MainMenuOptionGroups"
 require "OptionScreens/MainOptions"
 
 local MM = ZeD.MainMenu
@@ -186,6 +187,12 @@ function MM.optionRows(page)
         end
         if best then used[best] = true end
         local r = { kind = c.kind, control = c.el, label = best and best.text or "", y = c.y, x = c.x, opt = optOf[c.el] }
+        -- a lone tick box that carries its own words (vanilla's toggles): the words become
+        -- the row's name, so it reads like every other row (Oct 19 2026)
+        if c.kind == "tick" and not best and c.el.options and #c.el.options == 1 and tostring(c.el.options[1] or "") ~= "" then
+            r.label = tostring(c.el.options[1])
+            r.tickNoText = true
+        end
         if c.kind == "button" then
             local e = keyOf[c.el]
             if e then r.kind = "key"; r.entry = e
@@ -310,7 +317,24 @@ local function help(r)
     if r.kind == "key" then t = "Click the key, then press the new one (or a mouse button)." end
     if r.kind == "special" then t = "The button map editor and the controller test open on vanilla's controller page." end
     if r.kind == "stepper" then t = "How far a stick must move before the game counts it, for the controller picked under Test Controller." end
-    return t and UI.plain(t) or nil
+    t = t and UI.plain(t) or nil
+    -- the groups' marks (ZeD_MainMenuOptionGroups): why it does nothing, where it works, where it lives
+    if r.moot then return "Does nothing with ZeD active. " .. r.moot end
+    -- vanilla's tooltips often end without a full stop: add one before ZeD's words
+    local function join(a, b)
+        if not a or a == "" then return b end
+        if not a:match("[%.%!%?]%s*$") then a = a .. "." end
+        return a .. " " .. b
+    end
+    if r.only then t = join(t, r.only[2]) end
+    if r.why then t = join(t, r.why) end
+    return t
+end
+
+-- the line under a row's name: does nothing / only somewhere / where it lives
+local function underLine(r)
+    if r.moot then return "Does nothing with ZeD active" end
+    return r.under or (r.only and r.only[1])
 end
 
 -- ============================================================================
@@ -385,7 +409,7 @@ function ZeD_MMOptions:createChildren()
 end
 
 -- the pages vanilla built (tab title + its panel)
-function ZeD_MMOptions:pages()
+function ZeD_MMOptions:vpages()
     local o = mo()
     local t = {}
     local list = o and o.tabs and o.tabs.viewList or {}
@@ -396,8 +420,9 @@ function ZeD_MMOptions:pages()
     return t
 end
 
--- (cached for two seconds: the pairing walks every control; values are read live anyway)
-function ZeD_MMOptions:rowsFor(page)
+-- a vanilla page's rows (cached for two seconds: the pairing walks every
+-- control; values are read live anyway)
+function ZeD_MMOptions:vrowsFor(page)
     if not page then return {} end
     self._cache = self._cache or {}
     local c = self._cache[page.raw]
@@ -408,9 +433,53 @@ function ZeD_MMOptions:rowsFor(page)
     return rows
 end
 
+-- The window's pages are the groups (ZeD_MainMenuOptionGroups: ZeD setup,
+-- Display, Graphics, Audio, Controls, Gameplay, Interface, Accessibility,
+-- Mods), each re-filed from vanilla's pages.
+function ZeD_MMOptions:pages()
+    local t = {}
+    for _, g in ipairs(MM.optionGroups.GROUPS) do
+        t[#t + 1] = { title = g.title, raw = g.id, group = true, setup = g.setup }
+    end
+    return t
+end
+
+function ZeD_MMOptions:rowsFor(page)
+    if not page then return {} end
+    local now = MM.now()
+    local gc = self._groupCache
+    if not (gc and now - gc.at < 2000) then
+        gc = { at = now, rows = MM.optionGroups.build(self:vpages(), function(p) return self:vrowsFor(p) end) }
+        self._groupCache = gc
+    end
+    local rows = gc.rows[page.raw] or {}
+    -- the first time ZeD runs, its setup opens by itself with a word on top
+    if page.setup and self.firstRun then
+        local t = { { kind = "note", text = "First time with ZeD: these set the game up for ZeD's look. Change what you like, then Apply. They stay here, and each game setting is in its own group too." } }
+        for _, r in ipairs(rows) do t[#t + 1] = r end
+        return t
+    end
+    return rows
+end
+
+-- how many settings changed since the window opened (ZeD setup's copies not counted twice)
+function ZeD_MMOptions:changedCount()
+    local n, seen = 0, {}
+    for _, p in ipairs(self:pages()) do
+        if not p.setup then
+            for _, r in ipairs(self:rowsFor(p)) do
+                local k = rowKey(r)
+                if k and not seen[k] and self:isChanged(r) then seen[k] = true; n = n + 1 end
+            end
+        end
+    end
+    return n
+end
+
 -- every time Options opens: vanilla's toUI (Core -> controls, live values stored), a fresh snapshot
 function ZeD_MMOptions:onShow()
     self._cache = nil
+    self._groupCache = nil
     local o = mo()
     if o then pcall(function() o:toUI() end) end
     self.confirm = false
@@ -445,6 +514,7 @@ end
 -- CLOSING ---------------------------------------------------------------------
 
 function ZeD_MMOptions:finish()
+    self.firstRun = nil
     if self.find:isFocused() then self.find:unfocus() end
     self.confirm = false
     self:stopCapture()
@@ -480,6 +550,18 @@ function ZeD_MMOptions:discard()
         pcall(function() o:toUI() end)
     end
     self:finish()
+end
+
+-- DISCARD in the footer: the changes go, the window stays
+function ZeD_MMOptions:discardStay()
+    local fin = self.finish
+    self.finish = function() end
+    self:discard()
+    self.finish = fin
+    self.confirm = false
+    self._groupCache = nil
+    self._cache = nil
+    self:snapshot()
 end
 
 function ZeD_MMOptions:apply(closeAfter)
@@ -626,7 +708,8 @@ function ZeD_MMOptions:openVanillaController(page)
     MM._vanillaOptions = true
     if not self.inGame then MM.toVanilla() else MM.pauseView = "vanilla" end
     o:setVisible(true, JoypadState.getMainMenuJoypad())
-    pcall(function() o.tabs:activateView(page.raw) end)
+    -- (the groups file the controller page under Controls: open vanilla's own page)
+    pcall(function() o.tabs:activateView(getText("UI_optionscreen_controller")) end)
 end
 
 function ZeD_MMOptions:setConfirm(mode)
@@ -680,7 +763,8 @@ function ZeD_MMOptions:prerender()
         rows = {}
         for _, p in ipairs(pages) do
             local hits = {}
-            for _, r in ipairs(self:rowsFor(p)) do
+            -- (ZeD setup's rows are copies of rows in the other groups: found there)
+            for _, r in ipairs(p.setup and {} or self:rowsFor(p)) do
                 if r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" then
                     local hay = string.lower(tostring(r.label or "") .. " " .. tostring(help(r) or ""))
                     if hay:find(q, 1, true) then hits[#hits + 1] = r end
@@ -751,6 +835,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
     local ctx = self:pctx()
     local kind = self.kind
     local function hit(id, x, y, w, h, fn, extra)
+        if self._inert then return end   -- (a setting that does nothing with ZeD active)
         local top, bot = math.max(y, clip.y), math.min(y + h, clip.y + clip.h)
         if bot <= top then return end
         local hh = { id = kind .. ":" .. id, x = ax + x, y = ay + top, w = w, h = bot - top, fn = fn, sound = true }
@@ -776,7 +861,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local x0 = cx
         local ly = midY - math.floor(cb / 2)
         for i, name in ipairs(c.options or {}) do
-            local text = tostring(name or "")
+            local text = r.tickNoText and "" or tostring(name or "")
             local tw = (text ~= "") and (MM.textW(f2, text) + T.px(6)) or 0
             if x0 + cb + tw > cx + cw and x0 > cx then x0 = cx; ly = ly + cb + T.px(10) end
             local id = rowId .. ":t" .. i
@@ -919,8 +1004,10 @@ function ZeD_MMOptions:rowHeight(r, cw)
             if x0 + cb + tw > cw and x0 > 0 then x0 = 0; lines = lines + 1 end
             x0 = x0 + cb + tw + T.px(16)
         end
-        return math.max(T.px(ROW_H), lines * (cb + T.px(10)) + T.px(12))
+        return math.max(T.px(ROW_H), lines * (cb + T.px(10)) + T.px(12)) + (underLine(r) and MM.fontH(T.fontF1) or 0)
     end
+    -- a row with a line under its name grows by that line
+    if underLine(r) then return T.px(ROW_H) + MM.fontH(T.fontF1) + T.px(2) end
     return T.px(ROW_H)
 end
 
@@ -986,10 +1073,29 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 lx = lx + T.px(14)
                 local tc = T.text
                 if self.rowDisabled and self:rowDisabled(r) then tc = T.textDim end   -- (Sandbox: an option that does nothing now)
+                if r.moot then tc = T.textDim end
                 local label = r.label ~= "" and r.label or ""
                 self:drawText(ZeD.Atoms.truncateText(label, f2, lw - T.px(26)), lx, ry + math.floor((T.px(ROW_H) - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
-                local crh = (r.kind == "tick" and #(r.control.options or {}) > 1) and T.px(ROW_H) or rh
+                -- the line under the name (Does nothing with ZeD active / Only ... / Game: where it lives)
+                local ul = underLine(r)
+                if ul then
+                    local f1 = T.fontF1
+                    local uc = r.moot and T.warning or T.textDim
+                    self:drawText(ZeD.Atoms.truncateText(ul, f1, lw - T.px(26)), lx, ry + T.px(ROW_H) - T.px(6), uc.r, uc.g, uc.b, uc.a or 1, f1)
+                end
+                local crh = (r.kind == "tick" and #(r.control.options or {}) > 1) and T.px(ROW_H) or (ul and T.px(ROW_H) or rh)
+                -- a setting that does nothing with ZeD active: its control drawn, dimmed, and inert
+                self._inert = r.moot and true or false
                 self:drawControl(r, cx0, ry, cw, crh, rowId, clip)
+                self._inert = false
+                if r.moot then
+                    -- dim just the control (a drop-down's box, a bar and its number, else the row's control area)
+                    local dw = cw
+                    if r.kind == "combo" then dw = math.min(T.px(COMBO_W), cw)
+                    elseif r.kind == "volume" or r.kind == "slider" then dw = math.min(T.px(COMBO_W) + T.px(50), cw) end
+                    local s1 = T.surf1
+                    self:drawRect(cx0 - T.px(2), ry + T.px(2), dw + T.px(4), crh - T.px(4), 0.6, s1.r, s1.g, s1.b)
+                end
             end
         end
         ry = ry + rh
@@ -1017,7 +1123,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     self:drawRect(x + T.px(1), hy, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
     local hr = self._cellRow or focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)   -- (_cellRow: a row edited in place)
     local htext = hr and help(hr) or nil
-    if hr and not htext and self:isChanged(hr) then htext = self.changedNote or "Changed: \"Apply\" or \"Accept\" to keep it." end
+    if hr and not htext and self:isChanged(hr) then htext = self.changedNote or "Changed: Apply to keep it." end
     if htext then
         local tc = T.text
         local ly = hy + T.px(8)
@@ -1101,6 +1207,7 @@ end
 
 -- ACTIVATING A ROW (A on a controller, Space / Return on the keyboard) ---------------
 function ZeD_MMOptions:activateRow(r)
+    if r.moot then return end   -- does nothing with ZeD active: inert here too
     local c = r.control
     if r.kind == "combo" then
         local anchor = { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = ZeD.T.px(COMBO_W), h = ZeD.T.px(24) }
@@ -1118,6 +1225,7 @@ end
 
 -- left / right change a value in place (combo: previous / next; volume / slider: a step)
 function ZeD_MMOptions:nudge(r, dir)
+    if r.moot then return true end
     local c = r.control
     if r.kind == "combo" then
         local n = #(c.options or {})
@@ -1148,10 +1256,19 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
     local row = 1000
     local ask = nil
     if self.confirm == "back" then
-        ask = "Apply the changes?"
+        -- (Oct 19 2026: Apply keeps the window open, so Back with changes only
+        -- asks whether to lose them; the old Accept is gone)
+        local n = self:changedCount()
+        ask = (n == 1) and "Discard 1 change?" or ("Discard " .. math.max(n, 1) .. " changes?")
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "DISCARD", function() self:discard() end },
-            { "confirm:yes", "APPLY", function() self:apply(true) end, "primary" } })
+            { "confirm:no", "Keep editing", function() self:setConfirm(false) end },
+            { "confirm:yes", "Discard", function() self:discard() end, "primary" } })
+    elseif self.confirm == "discard" then
+        local n = self:changedCount()
+        ask = (n == 1) and "Discard 1 change?" or ("Discard " .. math.max(n, 1) .. " changes?")
+        UI.stripSpecs(self, stripY, w, row, {}, {
+            { "confirm:no", "Keep editing", function() self:setConfirm(false) end },
+            { "confirm:yes", "Discard", function() self:discardStay() end, "primary" } })
     elseif self.confirm == "monitor" then
         local left = math.max(0, math.ceil(((self._monitorUntil or 0) - MM.now()) / 1000))
         if left <= 0 then self:answerMonitor(false); return self:buildStrip(stripY, stripH, w) end
@@ -1190,10 +1307,12 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
         local fh = T.px(24)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     else
+        -- Back | Discard, Apply (Apply keeps the window open)
+        local changed = self:anyChanged()
         UI.stripSpecs(self, stripY, w, row,
             { { "back", "BACK", function() self:back() end } },
-            { { "apply", "APPLY", function() self:apply(false) end, "default", not self:anyChanged() },
-              { "accept", "ACCEPT", function() self:apply(true) end, "primary" } })
+            { { "discard", "DISCARD", function() self:setConfirm("discard") end, "default", not changed },
+              { "apply", "APPLY", function() self:apply(false) end, "primary", not changed } })
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -1243,8 +1362,8 @@ function ZeD_MMOptions:joyB()
     if self.confirm and self.confirm ~= "monitor" then self:setConfirm(false); return end
     self:back()
 end
-function ZeD_MMOptions:joyX() if not self.confirm then self:apply(false) end end
-function ZeD_MMOptions:joyY() if not self.confirm then self:apply(true) end end
+function ZeD_MMOptions:joyX() if not self.confirm and self:anyChanged() then self:setConfirm("discard") end end
+function ZeD_MMOptions:joyY() if not self.confirm and self:anyChanged() then self:apply(false) end end
 function ZeD_MMOptions:joyBumper(dir)
     if self.confirm then return end
     local n = #self:pages()
@@ -1268,8 +1387,10 @@ function ZeD_MMOptions:getFooterPrompts()
     end
     t[#t + 1] = { glyph = "LB", label = "" }
     t[#t + 1] = { glyph = "RB", label = "Page" }
-    t[#t + 1] = { glyph = "X", label = "Apply" }
-    t[#t + 1] = { glyph = "Y", label = "Accept" }
+    if self:anyChanged() then
+        t[#t + 1] = { glyph = "X", label = "Discard" }
+        t[#t + 1] = { glyph = "Y", label = "Apply" }
+    end
     t[#t + 1] = { glyph = "B", label = "Back" }
     return t
 end
@@ -1287,7 +1408,7 @@ function ZeD_MMOptions:keyOther(key)
     if key == Keyboard.KEY_RETURN and self._enterAt and MM.now() - self._enterAt < 400 then return true end
     if self.find:isFocused() or self.field:isFocused() then return false end
     if self.confirm then return false end
-    if key == Keyboard.KEY_RETURN then self:apply(true); return true end
+    if key == Keyboard.KEY_RETURN then if self:anyChanged() then self:apply(false) end; return true end
     return false
 end
 
