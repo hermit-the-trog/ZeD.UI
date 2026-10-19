@@ -91,11 +91,13 @@ local function getLabelColW()
     local maxW = 0
     for _, group in ipairs(EQUIP_GROUPS) do
         for _, slot in ipairs(group.slots) do
-            local w = tm:MeasureStringX(T.fontF5, slot.label or slot.type)
+            -- measured in F1, the font the SLOT column draws in (it was measured
+            -- in the narrower F5, so every label cut to "I..." even at Small)
+            local w = tm:MeasureStringX(T.fontF1, slot.label or slot.type)
             if w > maxW then maxW = w end
         end
     end
-    _labelColW = maxW
+    _labelColW = math.ceil(maxW + T.sp.sm * 2)   -- the row draws it inset by padX either side
     _labelColWScale = T.scale
     return _labelColW
 end
