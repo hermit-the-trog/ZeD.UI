@@ -308,14 +308,18 @@ local function gridStore()
     return md.ZeD_GridViews
 end
 
+-- a container's own choice (its List | Grid toggle), else the ZeD option "Inventory"
 function ZeD.InventoryRenderer.isGridKey(key)
     local s = key and gridStore()
-    return s ~= nil and s[key] == true
+    if s and s[key] ~= nil then return s[key] == true end
+    local o = ZeD.Settings and ZeD.Settings.inventoryViewOption
+    local ok, v = pcall(function() return o and o:getValue() end)
+    return ok and v == 2
 end
 
 function ZeD.InventoryRenderer.setGridKey(key, on)
     local s = key and gridStore()
-    if s then s[key] = on and true or nil end
+    if s then s[key] = on and true or false end   -- (false: this one a list, whatever the option says)
 end
 
 -- a toggle zone was clicked: "view:list:<key>" / "view:grid:<key>"

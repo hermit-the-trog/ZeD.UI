@@ -26,6 +26,7 @@ require "ISUI/ISWorldObjectContextMenu"
 require "ISUI/ISInventoryPaneContextMenu"
 require "ZeD/ContextMenuRegistry"
 require "ZeD/ZeD_ContextMenu"
+require "ZeD/ZeD_ContextList"
 
 -- Is the user actively driving with a gamepad RIGHT NOW?
 --
@@ -317,8 +318,12 @@ function ISContextMenu:prerender()
     local anchorX    = self._zedAnchorX or self:getX()
     local anchorY    = self._zedAnchorY or self:getY()
 
+    -- the ZeD option "Context menu": the icon strip or the list (Oct 19 2026)
+    local styleOpt = ZeD.Settings and ZeD.Settings.contextStyleOption
+    local okS, style = pcall(function() return styleOpt and styleOpt:getValue() end)
+    local Cls = (okS and style == 2 and ZeD_ContextList) or ZeD_ContextMenu
     local ok, menuOrErr = pcall(function()
-        local m = ZeD_ContextMenu:new(self.player, anchorMode, anchorX, anchorY,
+        local m = Cls:new(self.player, anchorMode, anchorX, anchorY,
                                        target, tree, self)
         m:initialise()
         m:open()   -- open() internally calls addToUIManager + bringToTop
