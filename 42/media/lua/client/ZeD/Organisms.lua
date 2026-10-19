@@ -674,7 +674,7 @@ function ZeD_Window:update()
     if self.footerToggles and self.footerItem and not self.windowShaded and not self.cardOwnsActionStrip then
         self.footerToggleHover, self.footerToggleWasDown = ZeD.Molecules.updateActionStrip(
             self.footerToggleRects, ZeD.ActionStrip.TOGGLE_DEFS,
-            self.footerItem, self.footerToggleHover, self.footerToggleWasDown
+            self.footerItem, self.footerToggleHover, self.footerToggleWasDown, self.playerNum
         )
     end
 

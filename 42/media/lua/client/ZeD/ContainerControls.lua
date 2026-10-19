@@ -239,6 +239,26 @@ local function transferAllItems(playerObj, src, dest)
     return items
 end
 
+-- The same two moves from outside the windows (a container's world menu, an
+-- item's menu with a controller). Walks to a container first, as vanilla does.
+function CT.takeAll(playerObj, src, dest)
+    if not (playerObj and src) then return end
+    dest = dest or playerObj:getInventory()
+    if not isFloor(src) and not luautils.walkToContainer(src, playerObj:getPlayerNum()) then return end
+    local items, heavy, n = takeAllItems(playerObj, src)
+    if heavy and n == 1 then
+        ISInventoryPaneContextMenu.equipHeavyItem(playerObj, heavy)
+        return
+    end
+    CT.moveItems(playerObj, items, dest)
+end
+
+function CT.transferAll(playerObj, src, dest)
+    if not (playerObj and src and dest) then return end
+    if not isFloor(dest) and not luautils.walkToContainer(dest, playerObj:getPlayerNum()) then return end
+    CT.moveItems(playerObj, transferAllItems(playerObj, src, dest), dest)
+end
+
 -- Same type, all nearby: vanilla's multi-container transfer. Each container
 -- takes the things of a type it already holds, as much as it has room for;
 -- each thing goes once.

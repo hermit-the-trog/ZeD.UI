@@ -330,6 +330,34 @@ function ZeD.InventoryRenderer.onViewZone(zid)
     pcall(function() getSoundManager():playUISound("UISelectListItem") end)
 end
 
+-- Double-click a row: vanilla's quick use. In your main inventory the item's
+-- basic action (eat, equip, wear, read); anywhere else it comes to your main
+-- inventory (ISInventoryPane:onMouseUp's rule). True when this click was the
+-- second of a pair, so the window skips its select / drag.
+local DBL_MS = 400
+function ZeD.InventoryRenderer.doubleClick(win, item, playerNum)
+    local now = getTimestampMs()
+    local last = win._zedLastClick
+    win._zedLastClick = { item = item, t = now }
+    if not (last and last.item == item and now - last.t <= DBL_MS) then return false end
+    win._zedLastClick = nil
+    local playerObj = getSpecificPlayer(playerNum)
+    local src = item:getContainer()
+    if not (playerObj and src) then return true end
+    local mainInv = playerObj:getInventory()
+    if src == mainInv then
+        ISInventoryPane.doContextualDblClick({ player = playerNum }, item)
+    elseif isForceDropHeavyItem and isForceDropHeavyItem(item) then
+        ISInventoryPaneContextMenu.equipHeavyItem(playerObj, item)
+    elseif not (item:isHumanCorpse() and playerObj:getVehicle()) then
+        local floor = src:getType() == "floor"
+        if floor or luautils.walkToContainer(src, playerNum) then
+            ZeD.ContainerControls.moveItems(playerObj, { item }, mainInv)
+        end
+    end
+    return true
+end
+
 -- The toggle's controller elements for a column (each builder appends them):
 -- rects stamped by the renderer in panel coords; A picks the view.
 function ZeD.InventoryRenderer.toggleElements(rects)

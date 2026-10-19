@@ -380,16 +380,18 @@ end
 --   ZeD_noCraft  → nocraft chip (matches existing S99 ActionStrip "protect" key)
 --   ZeD_unwanted → dispose chip (matches existing S99 ActionStrip "unwanted" key)
 -- ---------------------------------------------------------------------------
-local function readMarks(item)
+local function readMarks(item, playerNum)
     if not item then return {fav=false, nocraft=false, dispose=false} end
     local fav = safeGet(item, "isFavorite") or false
-    local md  = safeGet(item, "getModData")
-    local nc  = (md and md.ZeD_noCraft  == true) or false
-    local dis = false
-    -- "unwanted" is a per-player set in S99 ActionStrip.getState - use that
+    local nc, dis = false, false
+    -- no-craft is vanilla's "Unusable in Recipes" and unwanted is per player:
+    -- both through ActionStrip.getState (Oct 19 2026: no-craft was a ZeD-only
+    -- mark nothing read)
     if ZeD and ZeD.ActionStrip and ZeD.ActionStrip.getState then
-        local ok, v = pcall(ZeD.ActionStrip.getState, item, "unwanted")
+        local ok, v = pcall(ZeD.ActionStrip.getState, item, "unwanted", playerNum)
         if ok then dis = v and true or false end
+        local ok2, v2 = pcall(ZeD.ActionStrip.getState, item, "protect", playerNum)
+        if ok2 then nc = v2 and true or false end
     end
     return {fav = fav, nocraft = nc, dispose = dis}
 end
@@ -403,15 +405,21 @@ local function headerVerbsForContext(ctx, item)
     if not item then return {} end
     local cat = categoryOf(item)
 
+    -- MORE (Oct 19 2026, the single-path audit): the item's whole context menu,
+    -- in the player's chosen look, at the button: everything the card has no
+    -- room for (drop, put in, off hand, rename, vanilla's and mods' options)
+    -- is one press away on every card, mouse or controller.
+    local more = {label = "MORE", primary = false, isMore = true}
     if ctx == "equipped" then
         return {
             {label = "UNEQUIP", primary = true},
             {label = "DROP",    primary = false},
+            more,
         }
     end
 
     if ctx == "ground" then
-        return {{label = "TAKE", primary = true}}
+        return {{label = "TAKE", primary = true}, more}
     end
 
     -- inventory + container share the same primary verb logic, modulo TAKE
@@ -427,17 +435,29 @@ local function headerVerbsForContext(ctx, item)
         primary = {label = "READ", primary = true}
     elseif cat == "Drainable" then
         primary = {label = "USE", primary = true}
+    elseif cat == "Fluid" then
+        -- DRINK (Oct 19 2026): bottles and canteens had no card verb
+        local fc = safeGet(item, "getFluidContainer")
+        local empty = fc and safeGet(fc, "isEmpty")
+        if fc and not empty and not safeGet(item, "isSealed") then primary = {label = "DRINK", primary = true} end
+    elseif cat == "Container" then
+        -- WEAR (Oct 19 2026): a backpack couldn't be put on from its card
+        local loc = safeGet(item, "canBeEquipped")
+        if (loc and loc ~= "") or safeGet(item, "getBodyLocation") then primary = {label = "WEAR", primary = true} end
     else
         primary = nil
     end
 
     local verbs = {}
     if primary then verbs[#verbs + 1] = primary end
+    -- OFF HAND (Oct 19 2026): only the context menu equipped the second hand
+    if cat == "Weapon" or cat == "Firearm" then verbs[#verbs + 1] = {label = "OFF HAND", primary = false} end
     if ctx == "container" then
         table.insert(verbs, 1, {label = "TAKE", primary = (primary == nil)})
     elseif ctx == "inventory" then
         verbs[#verbs + 1] = {label = "DROP", primary = false}
     end
+    verbs[#verbs + 1] = more
     return verbs
 end
 
@@ -450,29 +470,29 @@ end
 local function maintenanceVerbsForItem(item)
     if not item then return {} end
     local cat = categoryOf(item)
+    -- (Oct 19 2026, the single-path audit: WASH, CLEAN and COOK were drawn
+    -- with nothing behind them and SHARPEN ran a repair. Now WASH washes,
+    -- shown when the garment is dirty or bloody; SHARPEN sharpens, shown on a
+    -- blade that isn't sharp; CLEAN and COOK are gone, as vanilla has no such
+    -- action on the item: cooking happens on a heat source, and the card's
+    -- progress band shows it.)
     if cat == "Clothing" then
-        return {
-            {label = "WASH",   glyph = "~", key = "wash"},
-            {label = "REPAIR", glyph = "+", key = "repair_all"},
-            {label = "PAD",    glyph = "#", key = "pad_all"},
-        }
+        local verbs = {}
+        local dirty = (safeGet(item, "getDirtiness") or 0) > 0 or (safeGet(item, "getBloodLevel") or 0) > 0
+        if dirty then verbs[#verbs + 1] = {label = "WASH", glyph = "~", key = "wash"} end
+        verbs[#verbs + 1] = {label = "REPAIR", glyph = "+", key = "repair_all"}
+        verbs[#verbs + 1] = {label = "PAD",    glyph = "#", key = "pad_all"}
+        return verbs
     elseif cat == "Weapon" then
-        return {
-            {label = "REPAIR",  glyph = "+", key = "repair"},
-            {label = "SHARPEN", glyph = "/", key = "sharpen"},
-        }
-    elseif cat == "Firearm" then
-        return {
-            {label = "REPAIR", glyph = "+", key = "repair"},
-            {label = "CLEAN",  glyph = "~", key = "clean"},
-        }
-    elseif cat == "Food" then
-        if safeGet(item, "isCookable") then
-            return {{label = "COOK", glyph = "*", key = "cook"}}
+        local verbs = {{label = "REPAIR", glyph = "+", key = "repair"}}
+        if safeGet(item, "hasSharpness") and (safeGet(item, "getSharpness") or 1) < 1 then
+            verbs[#verbs + 1] = {label = "SHARPEN", glyph = "/", key = "sharpen"}
         end
-        return {}
+        return verbs
+    elseif cat == "Firearm" then
+        return {{label = "REPAIR", glyph = "+", key = "repair"}}
     end
-    -- Literature, Container, Drainable, Key, Light, Fluid → no maintenance verbs
+    -- Food, Literature, Container, Drainable, Key, Light, Fluid → no maintenance verbs
     return {}
 end
 
@@ -1052,7 +1072,7 @@ function ZeD_ItemCard:renderBody(ctx)
 
     local item     = self.item
     local sourceCx = (ctx and ctx.sourceContext) or self.sourceContext or "inventory"
-    local marks    = (ctx and ctx.marks) or readMarks(item)
+    local marks    = (ctx and ctx.marks) or readMarks(item, self.playerNum)
     local compact  = select(1, widthPreset(w))
     local mgr      = ZeD.ItemActionManager
     local action   = mgr and mgr.getActiveAction(item) or nil
@@ -1084,7 +1104,10 @@ function ZeD_ItemCard:renderBody(ctx)
         for _, v in ipairs(headerVerbs) do
             if v.primary then primary = v; break end
         end
+        -- the narrow card keeps its main verb and MORE (everything else is in MORE's menu)
+        local moreV = headerVerbs[#headerVerbs].isMore and headerVerbs[#headerVerbs] or nil
         headerVerbs = primary and {primary} or {headerVerbs[1]}
+        if moreV and headerVerbs[1] ~= moreV then headerVerbs[#headerVerbs + 1] = moreV end
     end
     local displayName = safeGet(item, "getDisplayName") or "???"
     local bbH = M.drawCardBackBar(self, 0, cy, w, "",
