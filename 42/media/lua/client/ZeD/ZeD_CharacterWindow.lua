@@ -1093,11 +1093,13 @@ _buildInvRowFocusables = function(win)
     local T = ZeD.T
     local rowH = (T and T.rowH) or 26
     local yMap = c._itemRenderYMap or {}
+    local xMap = c._itemRenderXMap or {}   -- (the grid: each cell's x)
+    local gcell = c._gridCell
     for i = 1, #items do
         local item = items[i]
         local yCoord = yMap[item] or (i * rowH)
         elements[#elements + 1] = {
-            x = 0, y = yCoord, w = T.px(200), h = rowH,
+            x = (xMap[item] or 0), y = yCoord, w = gcell or T.px(200), h = gcell or rowH,
             id = "invrow:" .. tostring(i),
             item = item,
             itemIndex = i,
@@ -1184,6 +1186,8 @@ _buildInvRowFocusables = function(win)
         local cnt = win._mainContent
         if cnt then cnt._gpFocusedRowItem = elements[1].item end
     end
+    -- the column's List | Grid toggle (up from the first row reaches it)
+    for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(c._viewToggleRects)) do elements[#elements + 1] = e end
     return elements
 end
 
@@ -1229,6 +1233,8 @@ _buildCharacterMCColumnFocusables = function(win, slot)
     local rowH  = (T and T.rowH) or 26
     local items = cs.flatItems or {}
     local yMap  = cs.itemRenderYMap or {}
+    local xMap  = cs.itemRenderXMap or {}   -- (the grid: each cell's x)
+    local gcell = cs.gridCell
     local colX  = cs.renderX or 0
     local colW  = cs.renderW or T.px(200)
 
@@ -1236,7 +1242,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
         local item = items[i]
         local yCoord = yMap[item] or (i * rowH)
         elements[#elements + 1] = {
-            x = colX, y = yCoord, w = colW, h = rowH,
+            x = (xMap[item] or colX), y = yCoord, w = gcell or colW, h = gcell or rowH,
             id = "mcrow:" .. slot .. ":" .. tostring(i),
             item = item,
             itemIndex = i,
@@ -1304,6 +1310,8 @@ _buildCharacterMCColumnFocusables = function(win, slot)
             end,
         }
     end
+    -- the column's List | Grid toggle
+    for _, e in ipairs(ZeD.InventoryRenderer.toggleElements(cs.viewToggleRects)) do elements[#elements + 1] = e end
     -- S108 v2 QA: empty MC column needs a placeholder so the zone stays
     -- focusable. Otherwise bumpers skip empty containers.
     if #elements == 0 then
@@ -5170,6 +5178,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     end
                     -- First frame (no snapshot yet) is always dirty.
                     if not oldSnap then dirty = true end
+                    -- Oct 19 2026: the rows' places change with the scroll, the
+                    -- List | Grid view and the column's width too; the targets
+                    -- kept last build's places, so the pad picked by stale rows
+                    local geo = tostring(self._scroll and self._scroll.scrollPos) .. ":" .. tostring(self._gridCell)
+                        .. ":" .. tostring(self._renderW or self:getWidth()) .. ":" .. #(self._viewToggleRects or {})
+                    if win._lastInvRowGeo ~= geo then win._lastInvRowGeo = geo; dirty = true end
 
                     if dirty then
                         -- Snapshot: copy item refs into a separate table so the
@@ -5181,6 +5195,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         win._lastInvRowSnapshot = snap
 
                         local newEls = _buildInvRowFocusables(win)
+                        -- the toggle keeps the focus it has (it carries no item)
+                        local keepId = nil
+                        for _, z in ipairs(win._focusRing or {}) do
+                            if z.zone == "charMainInv" then
+                                local fe = z.elements and z.elements[z.focusedElementIdx or 1]
+                                if fe and fe.isViewToggle then keepId = fe.id end
+                            end
+                        end
                         if #newEls == 0 then
                             Focus.setRingZoneElements(win, "charMainInv", {})
                             Focus.setZoneFocusable   (win, "charMainInv", false)
@@ -5210,6 +5232,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
                                     end
                                     preserveIdx = math.min(oldIdx, #newEls)
                                 end
+                            end
+                            if keepId then
+                                for i, el in ipairs(newEls) do if el.id == keepId then preserveIdx = i end end
                             end
 
                             Focus.setRingZoneElements(win, "charMainInv", newEls, preserveIdx)
@@ -5501,6 +5526,17 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
             return true
         end
+
+        -- a column's List | Grid toggle (InventoryRenderer: "view:list:<container>" / "view:grid:<container>")
+
+        if type(zid) == "string" and zid:sub(1, 5) == "view:" then
+
+            ZeD.InventoryRenderer.onViewZone(zid)
+
+            return true
+
+        end
+
 
         if type(zid) == "string" and zid:sub(1, 4) == "cat:" then
             local cat = zid:sub(5)
