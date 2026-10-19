@@ -335,7 +335,59 @@ local function tryFixingManager(card)
 end
 
 VERB_DISPATCH.repair  = function(card) tryFixingManager(card) end
-VERB_DISPATCH.sharpen = function(card) tryFixingManager(card) end
+
+-- a word over the character's head when a verb can't run (vanilla's halo note)
+local function note(player, text) pcall(function() player:setHaloNote(text) end) end
+
+-- SHARPEN: vanilla's own (ISFirearmRadialMenu.sharpenWeapon): the whetstone
+-- recipe, else the poor one with a file; it ran a repair before (Oct 19 2026).
+VERB_DISPATCH.sharpen = function(card)
+    local player = getSpecificPlayer(card.playerNum)
+    if not (player and card.item) then return end
+    local SM = getScriptManager()
+    local containers = ISInventoryPaneContextMenu.getContainers(player)
+    for _, name in ipairs({ "SharpenBlade", "SharpenBladePoorlyWithFile" }) do
+        local recipe = SM:getCraftRecipe(name)
+        if recipe then
+            local logic = HandcraftLogic.new(player, nil, nil)
+            logic:setContainers(containers)
+            logic:setRecipeFromContextClick(recipe, card.item)
+            if logic:canPerformCurrentRecipe() then
+                ISInventoryPaneContextMenu.OnNewCraft(card.item, recipe, card.playerNum, false)
+                return
+            end
+        end
+    end
+    note(player, "Needs a whetstone or a file")
+end
+
+-- WASH: vanilla's own wash (ISWorldObjectContextMenu.onWashClothing: walks to
+-- the water, uses soap when you carry it) at the nearest water within two
+-- tiles; none in reach says so (Oct 19 2026: the button did nothing).
+VERB_DISPATCH.wash = function(card)
+    local player = getSpecificPlayer(card.playerNum)
+    if not (player and card.item) then return end
+    local sq = player:getCurrentSquare()
+    local best, bestD = nil, nil
+    if sq then
+        local cell = getCell()
+        for dx = -2, 2 do
+            for dy = -2, 2 do
+                local s = cell:getGridSquare(sq:getX() + dx, sq:getY() + dy, sq:getZ())
+                local objs = s and s:getObjects()
+                for i = 0, (objs and objs:size() or 0) - 1 do
+                    local o = objs:get(i)
+                    local ok, has = pcall(function() return o:hasWater() and o:getFluidAmount() > 0 end)
+                    local d = dx * dx + dy * dy
+                    if ok and has and (not bestD or d < bestD) then best, bestD = o, d end
+                end
+            end
+        end
+    end
+    if not best then note(player, "No water in reach"); return end
+    local soap = player:getInventory():getSoapList(nil, true)
+    ISWorldObjectContextMenu.onWashClothing(player, best, soap, nil, card.item)
+end
 
 -- ---------------------------------------------------------------------------
 -- Clean display names for BloodBodyPartType enum values.
@@ -774,6 +826,25 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
         if ISInventoryPane and ISInventoryPane.doContextualDblClick then
             ISInventoryPane.doContextualDblClick(stub, item)
         end
+    -- Oct 19 2026 (the single-path audit): verbs only the context menu had
+    elseif label == "DRINK" then
+        if CM.onDrinkFluid then CM.onDrinkFluid(item, 1, player, nil, item) end
+    elseif label == "WEAR" then
+        if CM.onWearItems then CM.onWearItems(items, playerNum) end
+    elseif label == "OFF HAND" then
+        if CM.OnSecondWeapon then CM.OnSecondWeapon(items, playerNum) end
+    elseif label == "MORE" then
+        -- the item's whole context menu (ZeD's look, the player's choice of
+        -- strip or list), opened under the MORE button
+        local x, y = getMouseX(), getMouseY()
+        local hv, rects = self._lastHeaderVerbs, self._backBarRects
+        for i, v in ipairs(hv or {}) do
+            local r = rects and rects.verbs and rects.verbs[i]
+            if v.isMore and r then x, y = self:getAbsoluteX() + r.x, self:getAbsoluteY() + r.y + r.h end
+        end
+        local inv = player:getInventory()
+        local mine = inv and item.getContainer and item:getContainer() and inv:containsRecursive(item) or false
+        CM.createMenu(playerNum, mine, items, x, y)
     end
 end
 
@@ -1083,7 +1154,7 @@ function ZeD_ItemCard:update()
     -- Toggle button interaction
     self.toggleHover, self.toggleWasDown = ZeD.Molecules.updateActionStrip(
         self.toggleRects, ZeD.ActionStrip.TOGGLE_DEFS,
-        self.item, self.toggleHover, self.toggleWasDown
+        self.item, self.toggleHover, self.toggleWasDown, self.playerNum
     )
 
     -- Verb button interaction
@@ -1386,6 +1457,19 @@ function ZeD_ItemCard:getActionStripElements()
         end
     end
 
+    -- The name row: A renames through the prompt (the controller keyboard
+    -- types into its field; the card's inline field is mouse and keys only)
+    local nr = self._nameRowRect
+    if nr and nr.x and not self._renaming and ZeD.ItemMenu and ZeD.ItemMenu.rename then
+        local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+        els[#els + 1] = {
+            x = ax + nr.x, y = ay + nr.y, w = nr.w, h = nr.h,
+            id = "name_row",
+            onFocus    = function() card._gpFocusedBtnId = "name_row" end,
+            onActivate = function() ZeD.ItemMenu.rename(item, card.playerNum or 0) end,
+        }
+    end
+
     local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
     for i, def in ipairs(DEFS) do
         local r = self.toggleRects and self.toggleRects[i]
@@ -1397,8 +1481,8 @@ function ZeD_ItemCard:getActionStripElements()
                 id = eid,
                 onFocus = function() card._gpFocusedBtnId = eid end,
                 onActivate = function()
-                    local cur = ZeD.ActionStrip.getState(item, tkey)
-                    ZeD.ActionStrip.setState(item, tkey, not cur)
+                    local cur = ZeD.ActionStrip.getState(item, tkey, card.playerNum)
+                    ZeD.ActionStrip.setState(item, tkey, not cur, card.playerNum)
                 end,
             }
         end
@@ -1500,6 +1584,11 @@ function ZeD_ItemCard:_drawGpFocusOutline()
         if hr and hr.x then
             r = {x = self:getAbsoluteX() + hr.x, y = self:getAbsoluteY() + hr.y, w = hr.w, h = hr.h}
         end
+    end
+    -- The name row — id "name_row"; card-local like the back bar
+    if not r and id == "name_row" and self._nameRowRect then
+        local nr = self._nameRowRect
+        r = {x = self:getAbsoluteX() + nr.x, y = self:getAbsoluteY() + nr.y, w = nr.w, h = nr.h}
     end
     if not r then return end
 

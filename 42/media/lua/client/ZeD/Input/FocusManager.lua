@@ -1539,8 +1539,9 @@ Events.ZeD_InputModeChanged.Add(_onModeChanged)
 -- F9 chosen because it's unbound in vanilla PZ (Keyboard.KEY_F11 is the
 -- engine binding for "Toggle Lua Debugger" — using it would pop the debugger
 -- on every press; verified in shared/keyBinding.lua).
+-- Debug builds only (-debug): players may bind F9 to something of their own.
 Events.OnKeyPressed.Add(function(key)
-    if key == Keyboard.KEY_F9 then
+    if key == Keyboard.KEY_F9 and isDebugEnabled() then
         Focus.toggleDebugOverlay()
     end
 end)

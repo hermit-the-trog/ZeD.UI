@@ -1788,7 +1788,7 @@ end
 -- @param hoverIdx   Previous hover index
 -- @param wasDown    Previous wasDown state
 -- @return newHover, newWasDown
-function ZeD.Molecules.updateActionStrip(rects, defs, item, hoverIdx, wasDown)
+function ZeD.Molecules.updateActionStrip(rects, defs, item, hoverIdx, wasDown, playerNum)
     local mx = getMouseX()
     local my = getMouseY()
     local down = isMouseButtonDown(0)
@@ -1804,8 +1804,8 @@ function ZeD.Molecules.updateActionStrip(rects, defs, item, hoverIdx, wasDown)
     -- Click-on-release
     if wasDown and not down and newHover then
         local def = defs[newHover]
-        local cur = ZeD.ActionStrip.getState(item, def.key)
-        ZeD.ActionStrip.setState(item, def.key, not cur)
+        local cur = ZeD.ActionStrip.getState(item, def.key, playerNum)
+        ZeD.ActionStrip.setState(item, def.key, not cur, playerNum)
     end
 
     return newHover, (down and newHover ~= nil)

@@ -974,14 +974,33 @@ ZeD.ActionStrip.TOGGLE_DEFS = {
 
 local _safeGet = ZeD.Atoms.safeGet  -- reuse public helper (line 18)
 
-function ZeD.ActionStrip.getState(item, key)
+-- a window's player number (split-screen: never assume player 1)
+function ZeD.playerNumOf(w)
+    local p = w and w._playerObj
+    return p and p:getPlayerNum() or 0
+end
+
+-- Oct 19 2026 (the single-path audit): the no-craft chip is vanilla's own
+-- "Set to be Unusable in Recipes" (item:setNoRecipes), so vanilla's crafting
+-- honours it and the context menu shows it; the old ZeD-only mark
+-- (modData.ZeD_noCraft, which nothing read) carries over once. playerNum: the
+-- card's player (split-screen), 0 when not given.
+local function _markPlayer(playerNum) return getSpecificPlayer(playerNum or 0) end
+
+function ZeD.ActionStrip.getState(item, key, playerNum)
     if key == "fav" then
         return _safeGet(item, "isFavorite") or false
     elseif key == "protect" then
+        local p = _markPlayer(playerNum)
+        if not p then return false end
         local md = _safeGet(item, "getModData")
-        return md and md.ZeD_noCraft == true
+        if md and md.ZeD_noCraft == true then
+            _safeGet(item, "setNoRecipes", p, true)
+            md.ZeD_noCraft = nil
+        end
+        return _safeGet(item, "isNoRecipes", p) or false
     elseif key == "unwanted" then
-        local p = getSpecificPlayer(0)
+        local p = _markPlayer(playerNum)
         if p then return _safeGet(item, "isUnwanted", p) or false end
         return false
     end
@@ -1039,14 +1058,16 @@ function ZeD.Atoms.truncateText(text, font, maxW)
     return string.sub(text, 1, lo) .. "..."
 end
 
-function ZeD.ActionStrip.setState(item, key, value)
+function ZeD.ActionStrip.setState(item, key, value, playerNum)
     if key == "fav" then
         _safeGet(item, "setFavorite", value, true)
     elseif key == "protect" then
+        local p = _markPlayer(playerNum)
+        if p then _safeGet(item, "setNoRecipes", p, value and true or false) end
         local md = _safeGet(item, "getModData")
-        if md then md.ZeD_noCraft = value or nil end
+        if md then md.ZeD_noCraft = nil end
     elseif key == "unwanted" then
-        local p = getSpecificPlayer(0)
+        local p = _markPlayer(playerNum)
         if p then _safeGet(item, "setUnwanted", p, value) end
     end
 end

@@ -1165,7 +1165,7 @@ _buildInvRowFocusables = function(win)
                 if not el.item then return end
                 if ISInventoryPane and ISInventoryPane.doContextualDblClick then
                     pcall(ISInventoryPane.doContextualDblClick,
-                          { player = 0 }, el.item)
+                          { player = ZeD.playerNumOf(w) }, el.item)
                 end
             end,
             onContextMenu = function(w, el)
@@ -1174,7 +1174,7 @@ _buildInvRowFocusables = function(win)
                     local cnt = w._mainContent
                     local stk = cnt and cnt._stacks and cnt._stacks[el.item]
                     local itemsArr = (stk and stk.count > 1) and stk.items or {el.item}
-                    ISInventoryPaneContextMenu.createMenu(0, true, itemsArr, 0, 0)
+                    ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), true, itemsArr, 0, 0)
                 end
             end,
         }
@@ -1297,7 +1297,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                 if not el.item then return end
                 if ISInventoryPane and ISInventoryPane.doContextualDblClick then
                     pcall(ISInventoryPane.doContextualDblClick,
-                          { player = 0 }, el.item)
+                          { player = ZeD.playerNumOf(w) }, el.item)
                 end
             end,
             onContextMenu = function(w, el)
@@ -1307,7 +1307,7 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                     local cs2 = cnt and cnt._colStates and cnt._colStates[el.colIdx]
                     local stk = cs2 and cs2.stacks and cs2.stacks[el.item]
                     local itemsArr = (stk and stk.count > 1) and stk.items or {el.item}
-                    ISInventoryPaneContextMenu.createMenu(0, true, itemsArr, 0, 0)
+                    ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), true, itemsArr, 0, 0)
                 end
             end,
         }
@@ -1678,7 +1678,7 @@ local function _buildEquipmentFocusables(win)
                     -- (parity with inv-row context menu pattern). Anchored at the
                     -- focused slot row's screen position.
                     if not el.item then return end
-                    local playerObj = getSpecificPlayer(0)
+                    local playerObj = getSpecificPlayer(ZeD.playerNumOf(w))
                     if not playerObj then return end
                     local pNum = playerObj:getPlayerNum()
                     local inv  = playerObj:getInventory()
@@ -1725,9 +1725,9 @@ local function _buildEquipmentFocusables(win)
                     local ax = (p and p:getAbsoluteX() or 0) + el.x + math.floor(el.w / 2)
                     local ay = (p and p:getAbsoluteY() or 0) + el.y
                     if el.zone.item then
-                        ISInventoryPaneContextMenu.createMenu(0, true, { el.zone.item }, ax, ay)
+                        ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), true, { el.zone.item }, ax, ay)
                     elseif ZeD.Belt then
-                        ZeD.Belt.slotMenu(0, el.zone.i, ax, ay)
+                        ZeD.Belt.slotMenu(ZeD.playerNumOf(w), el.zone.i, ax, ay)
                     end
                 end,
             }
@@ -4561,7 +4561,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             for _, zone in ipairs(win._equipBeltZones) do
                 if x >= zone.x and x <= zone.x + zone.w
                    and y >= zone.y and y <= zone.y + zone.h then
-                    ZeD.Belt.rightMenu(0, zone.i)
+                    ZeD.Belt.rightMenu(ZeD.playerNumOf(win), zone.i)
                     return true
                 end
             end
@@ -4572,7 +4572,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 if zone.item
                    and x >= zone.x and x <= zone.x + zone.w
                    and y >= zone.y and y <= zone.y + zone.h then
-                    local playerObj = getSpecificPlayer(0)
+                    local playerObj = getSpecificPlayer(ZeD.playerNumOf(win))
                     if playerObj then
                         local pNum = playerObj:getPlayerNum()
                         local inv  = playerObj:getInventory()
@@ -5568,6 +5568,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         local item = zid
         if type(item) == "string" then return true end  -- not an item
+        -- double-click: vanilla's quick use (InventoryRenderer.doubleClick)
+        if not isCtrlKeyDown() and not isShiftKeyDown() and self._playerObj
+            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum()) then
+            self._deferredSelect = nil
+            return true
+        end
 
         local screenX, screenY = getMouseX(), getMouseY()
         self._deferredSelect = nil

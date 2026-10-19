@@ -969,7 +969,7 @@ _buildWorldMCColumnFocusables = function(win, slot)
                 if not el.item then return end
                 if ISInventoryPane and ISInventoryPane.doContextualDblClick then
                     pcall(ISInventoryPane.doContextualDblClick,
-                          { player = 0 }, el.item)
+                          { player = ZeD.playerNumOf(w) }, el.item)
                 end
             end,
             onContextMenu = function(w, el)
@@ -979,7 +979,7 @@ _buildWorldMCColumnFocusables = function(win, slot)
                     local cs2 = cnt and cnt._colStates and cnt._colStates[el.colIdx]
                     local stk = cs2 and cs2.stacks and cs2.stacks[el.item]
                     local itemsArr = (stk and stk.count > 1) and stk.items or {el.item}
-                    ISInventoryPaneContextMenu.createMenu(0, false, itemsArr, 0, 0)
+                    ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), false, itemsArr, 0, 0)
                 end
             end,
         }
@@ -1255,7 +1255,7 @@ _buildWorldInvRowFocusables = function(win)
                 if not el.item then return end
                 if ISInventoryPane and ISInventoryPane.doContextualDblClick then
                     pcall(ISInventoryPane.doContextualDblClick,
-                          { player = 0 }, el.item)
+                          { player = ZeD.playerNumOf(w) }, el.item)
                 end
             end,
             onContextMenu = function(w, el)
@@ -1264,7 +1264,7 @@ _buildWorldInvRowFocusables = function(win)
                     local cnt = w._mainContent
                     local stk = cnt and cnt._stacks and cnt._stacks[el.item]
                     local itemsArr = (stk and stk.count > 1) and stk.items or {el.item}
-                    ISInventoryPaneContextMenu.createMenu(0, false, itemsArr, 0, 0)
+                    ISInventoryPaneContextMenu.createMenu(ZeD.playerNumOf(w), false, itemsArr, 0, 0)
                 end
             end,
         }
@@ -4523,6 +4523,12 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         local item = zid
         if type(item) == "string" then return true end  -- not an item
+        -- double-click: vanilla's quick use (InventoryRenderer.doubleClick)
+        if not isCtrlKeyDown() and not isShiftKeyDown() and self._playerObj
+            and ZeD.InventoryRenderer.doubleClick(self, item, self._playerObj:getPlayerNum()) then
+            self._deferredSelect = nil
+            return true
+        end
 
         local screenX, screenY = getMouseX(), getMouseY()
         self._deferredSelect = nil
