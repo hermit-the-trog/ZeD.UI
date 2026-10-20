@@ -146,11 +146,13 @@ function ZeD_WorldMap:instantiate()
     self:createChildren()
 end
 
--- THE TWO MAPS (director, Oct 15 2026: "the paper map used in the location selection ...
--- options to show both the paper map and ingame map?"). SURVEY is vanilla's in-game map
--- (its data, streets and style); PAPER is the illustrated county map the spawn screen shows
--- (the base map's spawnSelectImagePyramid, laid out in world squares). Both keep vanilla's
--- fog of war: only explored ground shows.
+-- THE THREE MAPS (director, Oct 15 2026: "the paper map used in the location selection ...
+-- options to show both the paper map and ingame map?"; Oct 19 2026: "there should be two
+-- survey maps, one in color"). SURVEY is vanilla's in-game map (its data, streets and
+-- style); COLOR is the same ground as the base map's colour picture (pyramid.zip, the
+-- aerial look); PAPER is the illustrated county map the spawn screen shows (the base map's
+-- spawnSelectImagePyramid, laid out in world squares: not as detailed up close, but fun to
+-- look at). All keep vanilla's fog of war: only explored ground shows.
 local PAPER_MAX_ZOOM = 16.0   -- past this the illustration is only enlarged
 local PAPER_FILE = nil
 local function paperFile()
@@ -192,12 +194,26 @@ local function initSurvey(mp)
     -- Default annotations are skipped; we render our own overlays in render().
 end
 
+-- the world's map data, undrawn (no style layers): without it the engine has no
+-- world until Survey has loaded once, and zoom throws. Loading it also adds each
+-- map folder's colour picture (MapUtils.initDirectoryMapData's addImages).
+local function initDataOnly(mp)
+    if MapUtils and MapUtils.initDefaultMapData then pcall(MapUtils.initDefaultMapData, mp) end
+end
+
+-- the colour picture alone over the (undrawn) data
+local function initColor(mp)
+    local api = mp.mapAPI
+    initDataOnly(mp)
+    api:setBoolean("ImagePyramid", true)
+    api:setBoundsFromWorld()
+end
+
 -- the illustration alone (MapSpawnSelectImage's setup), on vanilla's paper colours
 local function initPaper(mp)
     local api = mp.mapAPI
-    -- the world's map data too, undrawn (no style layers): without it the
-    -- engine has no world until Survey has loaded once, and zoom throws
-    if MapUtils and MapUtils.initDefaultMapData then pcall(MapUtils.initDefaultMapData, mp) end
+    initDataOnly(mp)
+    api:clearImages()                 -- (not the colour picture the data brought)
     api:addImagePyramid(paperFile())
     api:setBoolean("ImagePyramid", true)
     api:setBoundsFromWorld()
@@ -207,18 +223,27 @@ local function initPaper(mp)
     api:setUnvisitedGridRGBA(r * 0.777, g * 0.777, b * 0.777, 1.0)
 end
 
--- SURVEY or PAPER on the one map (it keeps where it looks)
-function ZeD_WorldMap:applyStyle(paper)
+-- SURVEY, COLOR or PAPER on the one map (it keeps where it looks)
+function ZeD_WorldMap:applyStyle(style)
     local api = self.mapAPI
-    if paper and not paperFile() then paper = false end
+    if style == true then style = "paper" elseif style == false or style == nil then style = "survey" end
+    if style == "paper" and not paperFile() then style = "survey" end
+    local paper = style == "paper"
     local cx, cy, z = nil, nil, nil
     if self._styled then cx, cy, z = api:getCenterWorldX(), api:getCenterWorldY(), api:getZoomF() end
     api:getStyleAPI():clear()
     api:clearImages()
     api:clearData()
-    if paper then initPaper(self) else initSurvey(self) end
+    api:setBoolean("ImagePyramid", false)
+    if paper then initPaper(self) elseif style == "color" then initColor(self) else initSurvey(self) end
     api:setBoolean("HideUnvisited", true)
-    self.paper = paper and true or false
+    -- street and place names: Survey's; not over a picture (the paper prints its own)
+    pcall(function()
+        api:setBoolean("ShowStreetNames", style == "survey")
+        api:setBoolean("PlaceNames", style == "survey")
+    end)
+    self.style = style
+    self.paper = paper
     self._styled = true
     if cx then
         api:centerOn(cx, cy)
@@ -239,9 +264,17 @@ function ZeD_WorldMap:_zoomTo(z)
     self._pendingZoom = self._zoomTries < 10 and z or nil
 end
 
+-- the character's map style ("survey" / "color" / "paper"; the older true/false
+-- ZeD_MapPaper carries over)
+local function savedStyle(md)
+    if not md then return "survey" end
+    if md.ZeD_MapStyle then return md.ZeD_MapStyle end
+    return (md.ZeD_MapPaper == true) and "paper" or "survey"
+end
+
 function ZeD_WorldMap:createChildren()
     local md = self.playerObj and self.playerObj:getModData() or nil
-    self:applyStyle(md and md.ZeD_MapPaper == true)
+    self:applyStyle(savedStyle(md))
 
     -- Center on player position
     if self.playerObj then
@@ -252,17 +285,18 @@ function ZeD_WorldMap:createChildren()
     self._annotationsLoaded = false
 end
 
--- the toolbar's SURVEY / PAPER (kept per character, as the pinned icons are)
-function ZeD.MapsTab.setPaper(win, paper)
+-- the toolbar's SURVEY / COLOR / PAPER (kept per character, as the pinned icons are)
+function ZeD.MapsTab.setStyle(win, style)
     local mp = win and win._worldMapPanel
     if not mp then return end
-    paper = paper and paperFile() ~= nil
-    if mp.paper == paper then return end
+    if style == "paper" and not paperFile() then return end
+    if mp.style == style then return end
     local md = win._playerObj and win._playerObj:getModData()
-    if md then md.ZeD_MapPaper = paper end
-    mp:applyStyle(paper)
+    if md then md.ZeD_MapStyle = style; md.ZeD_MapPaper = nil end
+    mp:applyStyle(style)
     getSoundManager():playUISound("UIActivateTab")
 end
+function ZeD.MapsTab.setPaper(win, paper) ZeD.MapsTab.setStyle(win, paper and "paper" or "survey") end
 
 -- Shared annotation placement — used by both mouse LMB and gamepad A-press.
 -- uiX / uiY are panel-local pixel coordinates inside the map panel. Returns
@@ -879,14 +913,14 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + colSz + btnGap
     end
 
-    -- SURVEY / PAPER, right-anchored before the unfold button (a pill pair: A or a click
+    -- SURVEY / COLOR / PAPER, right-anchored before the unfold button (a pill pair: A or a click
     -- switches; only when the base map carries its illustration, and only where it fits)
     win._mapStyleZones = {}
     if ZeD.MapsTab.hasPaper() then
         local f1 = T.fontF1
         local mp = win._worldMapPanel
-        local isPaper = mp and mp.paper or false
-        local pills = { { id = "survey", text = "Survey" }, { id = "paper", text = "Paper" } }
+        local cur = mp and mp.style or "survey"
+        local pills = { { id = "survey", text = "Survey" }, { id = "color", text = "Color" }, { id = "paper", text = "Paper" } }
         local pad = T.px(6)
         local total = 0
         for _, p in ipairs(pills) do p.w = tm:MeasureStringX(f1, p.text) + pad * 2; total = total + p.w end
@@ -895,7 +929,7 @@ local function renderMapToolbar(panel, win, x, y, w)
             local ac, bd = T.accent, T.border
             local th = tm:getFontHeight(f1)
             for _, p in ipairs(pills) do
-                local on = (p.id == "paper") == isPaper
+                local on = p.id == cur
                 if focId == "map:style:" .. p.id then
                     panel:drawRect(sx, btnY, p.w, btnSz, 0.55, ac.r, ac.g, ac.b)
                 end
@@ -1122,7 +1156,7 @@ function ZeD.MapsTab.onClick(win, x, y)
     -- SURVEY / PAPER
     for _, z in ipairs(win._mapStyleZones or {}) do
         if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
-            ZeD.MapsTab.setPaper(win, z.id == "paper")
+            ZeD.MapsTab.setStyle(win, z.id)
             return
         end
     end
@@ -1293,13 +1327,13 @@ function ZeD.MapsTab.buildFocusables(win)
         end
     end
 
-    -- 3a. SURVEY / PAPER pills (A switches, as the sub-tab pills do).
+    -- 3a. SURVEY / COLOR / PAPER pills (A switches, as the sub-tab pills do).
     for _, sz in ipairs(win._mapStyleZones or {}) do
         elements[#elements + 1] = {
             x = sz.x, y = sz.y, w = sz.w, h = sz.h,
             id = "map:style:" .. sz.id,
             styleId = sz.id,
-            onActivate = function(w, el2) ZeD.MapsTab.setPaper(w, el2.styleId == "paper") end,
+            onActivate = function(w, el2) ZeD.MapsTab.setStyle(w, el2.styleId) end,
         }
     end
 
