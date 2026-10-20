@@ -20,6 +20,13 @@
 -- art carries a "dark" picture and its live parts carry night colours.
 -- No watch worn: a boom box's tape deck keys set the game speed.
 --
+-- ON THE BELT (Oct 19 2026, the "Watch" option, default): the worn watch shows
+-- small on the belt (WatchMini.lua, laid out by ZeD_Belt.lua) and this panel
+-- stays tucked away (still parking the Java clock). Its face pops the full
+-- watch up above it, or where the player last dragged it (drag it by any part
+-- that is not a control; kept per character); it tucks back after a few idle
+-- seconds or another press on the small one.
+--
 -- THE WATCH REGISTRY (for ZeD-UI's own watches and for addons alike):
 --   ZeD.Watch.register{
 --       plate  = "timez_steel",                      -- the plate's id
@@ -45,6 +52,7 @@ require "ZeD/ZeD_Panel"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_Plate"
 require "ZeD/PhysPx"
+require "ZeD/WatchMini"
 
 ZeD = ZeD or {}
 ZeD.Watch = ZeD.Watch or {}
@@ -193,10 +201,30 @@ local function _wornWatch(player)
         local item = wi and wi:getItem()
         if item and instanceof(item, "AlarmClockClothing") then
             local loc = tostring(wi:getLocation() or ""):lower()
-            if loc:find("wrist") or loc == "" then return item end
+            if loc:find("wrist") or loc == "" then return item, loc end
         end
     end
     return nil
+end
+
+-- ---------------------------------------------------------------------------
+-- On the belt (the "Watch" option; WatchMini.lua draws the small one)
+-- ---------------------------------------------------------------------------
+W.POP_IDLE_MS = 6000     -- the full watch tucks back after this long untouched
+
+function W.beltMode()
+    local o = ZeD.Settings and ZeD.Settings.watchPlaceOption
+    return not o or o:getValue() == 1
+end
+
+-- the watch for the belt: item, plate, wrist ("left" / "right"), or nil
+function W.beltWatch(player)
+    if not (player and W.beltMode() and ZeD.WatchMini) then return nil end
+    local item, loc = _wornWatch(player)
+    if not item then return nil end
+    local plate = _defFor(item).plate
+    if not ZeD.WatchMini.has(plate) then return nil end
+    return item, plate, (loc and loc:find("right")) and "right" or "left"
 end
 
 -- ---------------------------------------------------------------------------
@@ -227,6 +255,39 @@ local function _alarmStep(item, dir)
     pcall(function() item:setHour(h); item:setMinute(0) end)
 end
 W._alarmStep = _alarmStep
+
+-- the small watch's reading (reused table)
+local _mini = {}
+function W.miniState(player, item)
+    local gt = getGameTime()
+    _mini.hour, _mini.minute = gt:getHour(), gt:getMinutes()
+    local ok24, v24 = pcall(function() return getCore():getOptionClock24Hour() end)
+    _mini.fmt24 = not (ok24 and v24 == false)
+    _mini.speed = _speed()
+    _mini.armed = _safe(function() return item:isAlarmSet() end, false) and true or false
+    local inst = W._instance
+    _mini.lit = inst ~= nil and getTimestampMs() < (inst._litUntil or 0)
+    _mini.dark = (not _mini.lit) and _isDark(gt:getTimeOfDay() or _mini.hour) or false
+    return _mini
+end
+
+-- a press on the small watch: its pushers act as the full watch's; the face pops it
+function W.act(id)
+    local inst = W._instance
+    if not inst then return end
+    if id == "face" then W.togglePop(); return end
+    pcall(inst._act, inst, id)
+    inst._popTouched = getTimestampMs()
+end
+
+function W.togglePop(on)
+    local inst = W._instance
+    if not inst then return end
+    if on == nil then on = not inst._popped end
+    inst._popped = on and true or false
+    inst._popTouched = getTimestampMs()
+    if not on then inst._setOpen = false end
+end
 
 -- ---------------------------------------------------------------------------
 -- The organism
@@ -333,7 +394,21 @@ function ZeD_Watch:prerender()
     local des, ctx = _plateOf(def)
     if not des then return end
     self._def = def
+    self._belt = W.beltWatch(player) ~= nil
+    if self._belt and not self._popped then
+        -- tucked: the small one on the belt is the watch
+        if self:getWidth() ~= 0 then self:setWidth(0); self:setHeight(0) end
+        for i = #self._hit, 1, -1 do self._hit[i] = nil end
+        return
+    end
+    if not self._belt then self._popped = false end
     self:_layout(des.w, des.h, k); self._s = k
+    if self._belt then
+        self:_placePopped(des.w * k, des.h * k)
+        local now = getTimestampMs()
+        if self:isMouseOver() or self._dragAt or self._setOpen then self._popTouched = now
+        elseif now - (self._popTouched or now) > W.POP_IDLE_MS then W.togglePop(false); return end
+    end
 
     local armed = _safe(function() return item:isAlarmSet() end, false) and true or false
     local alarmHour = _safe(function() return item:getHour() end, 6) or 6
@@ -370,17 +445,74 @@ function ZeD_Watch:_act(id)
     if id == "setdn" then _alarmStep(item, -1); return end
 end
 
+-- the popped watch's spot: where the player dragged it (kept per character, in
+-- design units), else just above the small one, outer edges lined up
+function ZeD_Watch:_placePopped(w, h)
+    local T = ZeD.T
+    local sc = (T and T.scale) or 1
+    local x, y
+    if self._dragAt then
+        x, y = self._dragX, self._dragY
+    else
+        local p = getSpecificPlayer(self.playerNum)
+        local saved = p and p:getModData().ZeD_WatchPop
+        if saved and saved.x then
+            x, y = saved.x * sc, saved.y * sc
+        else
+            local bx, by, bw, side = nil, nil, nil, nil
+            if ZeD.Belt and ZeD.Belt.watchScreen then bx, by, bw, side = ZeD.Belt.watchScreen() end
+            if not bx then return end
+            x = (side == "left") and bx or (bx + bw - w)
+            y = by - T.px(8) - h
+        end
+    end
+    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    x = math.max(0, math.min(x, sw - w)); y = math.max(0, math.min(y, sh - h))
+    if self:getX() ~= x then self:setX(x) end
+    if self:getY() ~= y then self:setY(y) end
+end
+
 function ZeD_Watch:onMouseDown(x, y)
     for _, hr in ipairs(self._hit or {}) do
         if x >= hr.x and x < hr.x + hr.w and y >= hr.y and y < hr.y + hr.h then
             pcall(function() getSoundManager():playUISound("UIActivateButton") end)
             local ok, err = pcall(self._act, self, hr.id)
             if not ok then print("[ZeD] Watch: action " .. tostring(hr.id) .. " failed: " .. tostring(err)) end
+            self._popTouched = getTimestampMs()
             return true
         end
     end
+    -- the popped watch: anything that is not a control drags it
+    if self._belt and self._popped then
+        self._dragAt = { mx = getMouseX(), my = getMouseY(), x = self:getX(), y = self:getY() }
+        self._dragX, self._dragY = self:getX(), self:getY()
+        self:setCapture(true)
+        return true
+    end
     return false
 end
+
+function ZeD_Watch:onMouseMove(dx, dy)
+    local d = self._dragAt
+    if not d then return end
+    self._dragX = d.x + (getMouseX() - d.mx)
+    self._dragY = d.y + (getMouseY() - d.my)
+end
+function ZeD_Watch:onMouseMoveOutside(dx, dy) self:onMouseMove(dx, dy) end
+
+function ZeD_Watch:onMouseUp(x, y)
+    local d = self._dragAt
+    if not d then return false end
+    self._dragAt = nil
+    self:setCapture(false)
+    if math.abs(self._dragX - d.x) + math.abs(self._dragY - d.y) >= 2 then
+        local p = getSpecificPlayer(self.playerNum)
+        local sc = (ZeD.T and ZeD.T.scale) or 1
+        if p then p:getModData().ZeD_WatchPop = { x = self:getX() / sc, y = self:getY() / sc } end
+    end
+    return true
+end
+function ZeD_Watch:onMouseUpOutside(x, y) self:onMouseUp(x, y) end
 
 -- ---------------------------------------------------------------------------
 -- Lifecycle

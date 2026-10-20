@@ -1869,11 +1869,12 @@ local function handleDrop(content, items, srcInventory)
         if ok and took then return end
     end
 
-    -- Check if mouse is over a different column (multi-column transfer)
-    local destContainer = nil
+    -- A rolled-up side's tab (WindowCurtain) takes the drop for its container;
+    -- otherwise: is the mouse over a different column (multi-column transfer)
+    local destContainer = ZeD.Curtain and ZeD.Curtain.dropTarget and ZeD.Curtain.dropTarget() or nil
     local mx = content:getMouseX()
     local dropColIdx, dropCs = getColumnAtX(content, mx)
-    if dropColIdx and dropCs and dropCs.inventory ~= srcContainer then
+    if not destContainer and dropColIdx and dropCs and dropCs.inventory ~= srcContainer then
         destContainer = dropCs.inventory
     end
 

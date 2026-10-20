@@ -12,6 +12,7 @@
 require "ISUI/ISPanel"
 require "ISUI/ISMouseDrag"
 require "ISUI/ISInventoryPage"
+require "ZeD/WindowCurtain"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
@@ -1174,6 +1175,7 @@ _syncWorldRingZones = function(win, content)
     Focus.setZoneFocusable   (win, "worldItemCard", false)
 
     if _clearGpFocusState then _clearGpFocusState(win) end
+    if win._rolled and win._curtain and win._curtain.onFrame then win._curtain.onFrame() end
 end
 
 -- S96 — Build inventory-row focusables for the World Window's active container.
@@ -1978,7 +1980,7 @@ local function saveWorldState(win)
     -- Pre-S124 saves were written at scale 1.0, so they read back as-is.
     local baseW = CONTAINER_STRIP_W + (win._baseInvW or 372) + ACTION_TAB_STRIP_W   -- design units
     md.ZeD_WinState.world = {
-        x = win:getX() / sc,
+        x = (win:getX() - (win._rolled and win._rollW or 0)) / sc,   -- (a rolled side: where the window starts unrolled)
         y = win:getY() / sc,
         w = baseW,
         h = win:getHeight() / sc,
@@ -3310,8 +3312,11 @@ function ZeD_WorldWindow.toggle(playerNum)
             if win:getWidth() > maxW then win:setWidth(maxW) end
         end
 
-        -- invW is ALWAYS the residual
-        local invW = win:getWidth() - T.px(CONTAINER_STRIP_W) - effectiveW - T.px(ACTION_TAB_STRIP_W)
+        -- invW is ALWAYS the residual. A rolled-up side (WindowCurtain) has
+        -- no strip and no inventory: the window is the drawer and the tabs.
+        ZeD.Curtain.sync(win)
+        local stripW = win._rolled and 0 or T.px(CONTAINER_STRIP_W)
+        local invW = win._rolled and 0 or (win:getWidth() - stripW - effectiveW - T.px(ACTION_TAB_STRIP_W))
         invW = math.max(invW, 0)
 
         -- Track baseInvW ONLY when user manually resized (not from our snaps).
@@ -3326,7 +3331,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         -- Dynamic minimum
         local bh = win:getBodyHeight()
-        win.minimumWidth = T.px(CONTAINER_STRIP_W) + (win._invDrawerOpen and T.px(200) or 0) + effectiveW + T.px(ACTION_TAB_STRIP_W)
+        win.minimumWidth = stripW + (win._invDrawerOpen and not win._rolled and T.px(200) or 0) + effectiveW + T.px(ACTION_TAB_STRIP_W)
 
         -- ── MC eviction ──────────────────────────────────────────
         if mcActive and #(win._mcSelected) > 0 then
@@ -3375,20 +3380,21 @@ function ZeD_WorldWindow.toggle(playerNum)
         end
 
         -- Content: positioned after container strip, width = residual invW
-        content:setX(T.px(CONTAINER_STRIP_W))
+        content:setX(stripW)
         content:setWidth(math.max(invW, 0))
         content:setVisible(invW > 0)
+        containerStrip:setVisible(not win._rolled)
 
         -- Drawer + action tab strip positioned after content
         containerStrip:setHeight(bh)
         content:setHeight(bh)
-        self:setX(T.px(CONTAINER_STRIP_W) + invW)
+        self:setX(stripW + invW)
         self:setHeight(bh)
-        actionTabStrip:setX(T.px(CONTAINER_STRIP_W) + invW + effectiveW)
+        actionTabStrip:setX(stripW + invW + effectiveW)
         actionTabStrip:setHeight(bh)
 
         -- Store divider position for top-Z drawing in win.render
-        win._dividerX = (effectiveW > 0 and invW > 0) and (T.px(CONTAINER_STRIP_W) + invW) or nil
+        win._dividerX = (effectiveW > 0 and invW > 0) and (stripW + invW) or nil
 
         -- Card visibility now managed by ITEM.DRAWER overlay panel
 
@@ -4308,6 +4314,41 @@ function ZeD_WorldWindow.toggle(playerNum)
             self:drawRect(win._dividerX, 0, T.px(1), self:getHeight(), 1, brd.r, brd.g, brd.b)
         end
     end
+
+    -- Curtain (WindowCurtain.lua): the containers roll up under their title
+    -- while a tab drawer stays open (the map as a minimap)
+    ZeD.Curtain.attach(win, {
+        sideW = function() return ZeD.T.px(CONTAINER_STRIP_W) + content:getWidth() end,
+        canRoll = function()
+            return win._drawerOpen and win._drawerMode == "tab" and win._activeTab ~= nil
+                and #(win._mcSelected or {}) == 0 and (win._rolled or content:isVisible())
+        end,
+        chip = function()
+            local e = win._containers and win._containers[win._activeContainer]
+            local inv = e and e.inventory
+            return e and e.name or "World", inv and inv:getItems():size() or 0
+        end,
+        dropInv = function()
+            local e = win._containers and win._containers[win._activeContainer]
+            return e and e.inventory
+        end,
+        title = function()
+            for _, tab in ipairs(WORLD_TABS) do if tab.id == win._activeTab then return tab.label end end
+            return "World"
+        end,
+        onChange = function(rolled)
+            if not rolled and _syncWorldRingZones then _syncWorldRingZones(win, content) end
+        end,
+        onFrame = function()
+            local Focus = ZeD.Input and ZeD.Input.Focus
+            if not (Focus and win._focusRing) then return end
+            Focus.setRingZoneElements(win, "worldMainInv", {})
+            Focus.setZoneFocusable(win, "worldMainInv", false)
+            local el = ZeD.Curtain.padElement(win, containerStrip:getX(), containerStrip:getY())
+            Focus.setRingZoneElements(win, "worldContainerStrip", el and { el } or {}, 1)
+            Focus.setZoneFocusable(win, "worldContainerStrip", el ~= nil)
+        end,
+    })
 
     -- ----------------------------------------------------------------
     -- FLOOR-AWARE TRANSFER — _floorContainer is virtual (no IsoObject),

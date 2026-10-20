@@ -39,6 +39,7 @@ local BUCKLE_W, BUCKLE_H = 58, 40   -- the profession buckle's own size (58 x 40
 local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
+local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
@@ -518,6 +519,17 @@ function ZeD_BeltHUD:_layout(slots)
     local hand, box = px(HAND), px(BOX)
     local h = hand
     local x = 0
+    -- the worn watch (the "Watch" option): right wrist left of the main hand,
+    -- left wrist right of the off hand (the main hand is the game's right hand)
+    local wItem, wPlate, wWrist = nil, nil, nil
+    if ZeD.Watch and ZeD.Watch.beltWatch then wItem, wPlate, wWrist = ZeD.Watch.beltWatch(self:player()) end
+    local mw, mh = px(ZeD.WatchMini and ZeD.WatchMini.W or 44), px(ZeD.WatchMini and ZeD.WatchMini.H or 46)
+    local watchBox = wItem and { kind = "watch", item = wItem, plate = wPlate, wrist = wWrist, y = math.floor((h - mh) / 2), w = mw, h = mh } or nil
+    if watchBox and wWrist == "right" then
+        watchBox.x = x
+        boxes[#boxes + 1] = watchBox
+        x = x + mw + px(WRIST)
+    end
     boxes[#boxes + 1] = { kind = "hand", which = "p", x = x, y = 0, w = hand, h = hand }
     x = x + hand + px(END_GAP)
     local strapX = x
@@ -547,6 +559,12 @@ function ZeD_BeltHUD:_layout(slots)
     x = x + px(END_GAP)
     boxes[#boxes + 1] = { kind = "hand", which = "s", x = x, y = 0, w = hand, h = hand }
     x = x + hand
+    if watchBox and wWrist ~= "right" then
+        x = x + px(WRIST)
+        watchBox.x = x
+        boxes[#boxes + 1] = watchBox
+        x = x + mw
+    end
     self._boxes = boxes
     self._strap = { x = strapX, y = math.floor((h - px(STRAP_H)) / 2), w = strapW, h = px(STRAP_H) }
     -- each slot's material, the waist belt's under the buckle: providers looked up once a second, and at once when
@@ -608,6 +626,7 @@ end
 -- What a box would do with the current drag: "fit" / "no" / nil
 function ZeD_BeltHUD:_dropState(b, items)
     if not items then return nil end
+    if b.kind == "watch" then return "no" end
     if b.kind == "hand" then
         for _, it in ipairs(items) do if B.handTakes(it) then return "fit", it end end
         return "no"
@@ -781,9 +800,10 @@ function ZeD_BeltHUD:_drawBox(b, o)
     end
     -- border: dashed accent while drawn, accent while a drop fits, else the line (round on the hands)
     if round then
-        if o.state == "fit" then ring(self, b.x, b.y, b.w, p1, 1, T.accent)
-        elseif o.state == "fitHover" then ring(self, b.x, b.y, b.w, p1 * 2, 1, T.accent)
-        else ring(self, b.x, b.y, b.w, p1, T.borderS.a or 1, T.borderS) end
+        -- (two design units: director, Oct 19 2026, "primary and secondary circles need thicker outline")
+        if o.state == "fit" then ring(self, b.x, b.y, b.w, p1 * 2, 1, T.accent)
+        elseif o.state == "fitHover" then ring(self, b.x, b.y, b.w, p1 * 3, 1, T.accent)
+        else ring(self, b.x, b.y, b.w, p1 * 2, T.borderS.a or 1, T.borderS) end
     elseif o.inHand then
         dashedBorder(self, b.x, b.y, b.w, b.h, T.accent, p1)
     elseif o.state == "fit" then
@@ -885,7 +905,11 @@ function ZeD_BeltHUD:prerender()
 
     for _, b in ipairs(self._boxes) do
         local o = {}
-        if b.kind == "hand" then
+        if b.kind == "watch" then
+            ZeD.WatchMini.draw(self, b.x, b.y, b.plate, ZeD.Watch.miniState(p, b.item))
+            if gpTarget == b then self:drawRect(b.x, b.y, b.w, b.h, 0.55, col(T.accent)) end
+            if b == over and not dragging then self._hover = { b = b } end
+        elseif b.kind == "hand" then
             local item = b.which == "p" and pri or (not two and sec or nil)
             o.item = item
             o.label = b.which == "p" and "PRIMARY" or "SECONDARY"
@@ -896,14 +920,16 @@ function ZeD_BeltHUD:prerender()
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
             o.lit = s.item and not instanceof(s.item, "HandWeapon") and call(s.item, "canBeActivated") and call(s.item, "isActivated")
         end
-        -- a drag in progress lights the boxes that take it (and dims the rest)
-        if dragging then
-            local st = self:_dropState(b, dragging)
-            if st == "fit" then o.state = (b == over) and "fitHover" or "fit" else o.state = "no" end
+        if b.kind ~= "watch" then
+            -- a drag in progress lights the boxes that take it (and dims the rest)
+            if dragging then
+                local st = self:_dropState(b, dragging)
+                if st == "fit" then o.state = (b == over) and "fitHover" or "fit" else o.state = "no" end
+            end
+            o.focus = gpTarget == b
+            self:_drawBox(b, o)
+            if b == over and not dragging then self._hover = { b = b, item = o.item } end
         end
-        o.focus = gpTarget == b
-        self:_drawBox(b, o)
-        if b == over and not dragging then self._hover = { b = b, item = o.item } end
     end
 
     -- the hovered box: its name and key, and the item tooltip (not while a
@@ -916,6 +942,16 @@ function ZeD_BeltHUD:prerender()
         self:_chip(hv.b, string.upper(s.name) .. (s.key and (" " .. DOT .. " KEY " .. s.key) or ""))
     elseif hv and hv.b.kind == "hand" then
         self:_chip(hv.b, hv.b.which == "p" and "PRIMARY" or "SECONDARY")
+    elseif hv and hv.b.kind == "watch" then
+        local id = ZeD.WatchMini.hit(hv.b.plate, mx - hv.b.x, my - hv.b.y)
+        local name = string.upper(call(hv.b.item, "getDisplayName") or "WATCH")
+        local sp = ZeD.Watch.miniState(p, hv.b.item).speed
+        local lbl = (id == "speed" and ("SPEED " .. DOT .. " " .. math.max(sp, 1) .. "X"))
+            or (id == "start" and (sp == 0 and "START" or "PAUSE"))
+            or (id == "light" and "LIGHT")
+            or (id == "face" and (name .. " " .. DOT .. " " .. ((ZeD.Watch.getInstance() and ZeD.Watch.getInstance()._popped) and "TUCK AWAY" or "FULL WATCH")))
+            or name
+        self:_chip(hv.b, lbl)
     end
     if dragging and over and over.kind == "slot" then
         local st, it = self:_dropState(over, dragging)
@@ -975,6 +1011,14 @@ function ZeD_BeltHUD:onMouseDown(x, y)
     if not self._drawn then return false end
     local b = self:boxAt(x, y)
     if not b then return false end
+    if b.kind == "watch" then
+        local id = ZeD.WatchMini.hit(b.plate, x - b.x, y - b.y)
+        if id then
+            pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+            ZeD.Watch.act(id)
+        end
+        return true
+    end
     self._press = { b = b, x = getMouseX(), y = getMouseY() }
     if b.kind == "slot" and b.s.item and not b.s.inHand then
         self._out = { item = b.s.item, from = b, active = false }
@@ -1044,6 +1088,7 @@ function ZeD_BeltHUD:onRightMouseUp(x, y)
     if not self._drawn then return false end
     local b = self:boxAt(x, y)
     if not b then return false end
+    if b.kind == "watch" then return true end
     local p = self:player()
     if b.kind == "slot" then
         B.rightMenu(self.playerNum, b.i)
@@ -1063,7 +1108,7 @@ function B.takeDrop(playerNum, items)
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
     local b = hud:boxAt(mx, my)
-    if not b then return true end   -- over the strap: no drop to the floor either
+    if not b or b.kind == "watch" then return true end   -- over the strap or the watch: no drop to the floor either
     local st, it = hud:_dropState(b, items)
     if st ~= "fit" then return true end
     if b.kind == "hand" then
@@ -1073,6 +1118,19 @@ function B.takeDrop(playerNum, items)
         B.attach(playerNum, it, b.i)
     end
     return true
+end
+
+-- Where the small watch sits on screen: x, y, w and the side ("left" of the
+-- main hand for a right-wrist watch, else "right"), or nil
+function B.watchScreen()
+    local hud = B._hud
+    if not (hud and hud._drawn) then return nil end
+    for _, b in ipairs(hud._boxes) do
+        if b.kind == "watch" then
+            return hud:getAbsoluteX() + b.x, hud:getAbsoluteY() + b.y, b.w, (b.wrist == "right") and "left" or "right"
+        end
+    end
+    return nil
 end
 
 -- Where a slot's box sits on screen (the hold-a-key list opens above it)
@@ -1100,11 +1158,16 @@ function B.focus(playerNum)
     local hud = B._hud
     if not (hud and hud:wanted() and hud._drawn) then return false end
     local p = hud:player()
-    -- start on the first slot (after the main hand)
-    hud._gp = { idx = math.min(2, #hud._boxes), inList = false, row = 1, list = B.otherWeapons(p) }
+    -- start on the first slot (after the main hand, and the watch when it sits there)
+    hud._gp = { idx = hud:_firstSlotIdx(), inList = false, row = 1, list = B.otherWeapons(p) }
     setJoypadFocus(playerNum, hud)
     p:setJoypadIgnoreAimUntilCentered(true)
     return true
+end
+
+function ZeD_BeltHUD:_firstSlotIdx()
+    for i, b in ipairs(self._boxes) do if b.kind == "slot" then return i end end
+    return math.min(2, #self._boxes)
 end
 
 function ZeD_BeltHUD:_leavePad()
@@ -1153,6 +1216,11 @@ function ZeD_BeltHUD:onJoypadDown(button)
     end
     local b = self:_gpBox()
     if not b then return end
+    if b.kind == "watch" then
+        if button == Joypad.AButton then ZeD.Watch.act("start")
+        elseif button == Joypad.XButton then ZeD.Watch.act("speed") end
+        return
+    end
     if button == Joypad.AButton then
         if b.kind == "slot" then
             B.activate(self.playerNum, b.i)
@@ -1183,7 +1251,7 @@ function ZeD_BeltHUD:onLoseJoypadFocus(joypadData)
     if not (ctx and ctx:isAnyVisible()) then self._gp = nil end
 end
 function ZeD_BeltHUD:onGainJoypadFocus(joypadData)
-    if not self._gp then self._gp = { idx = math.min(2, #self._boxes), inList = false, row = 1, list = B.otherWeapons(self:player()) } end
+    if not self._gp then self._gp = { idx = self:_firstSlotIdx(), inList = false, row = 1, list = B.otherWeapons(self:player()) } end
 end
 
 -- IN YOUR BAGS: the rest of vanilla's D-pad Left wheel, above the belt

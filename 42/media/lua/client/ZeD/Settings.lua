@@ -174,6 +174,14 @@ local ctxStyle = opts:addComboBox("contextStyle", "Context menu",
 ctxStyle:addItem("Icon strip", true)   -- default: the strip
 ctxStyle:addItem("List", false)
 ZeD.Settings.contextStyleOption = ctxStyle
+-- The watch you wear: a small one on the belt, outside the hand of its wrist
+-- (WatchMini.lua; its face pops the full watch up), or the full watch in the
+-- top right corner as before. No watch worn: the tape deck keys stay in the corner.
+local watchPlace = opts:addComboBox("watchPlace", "Watch",
+    "Where the watch you wear shows: small on the belt beside the hand of its wrist (press its face for the full watch, which you can drag anywhere), or the full watch in the top right corner.")
+watchPlace:addItem("On the belt", true)   -- default (director, Oct 19 2026)
+watchPlace:addItem("Corner", false)
+ZeD.Settings.watchPlaceOption = watchPlace
 
 -- ----- ACTION BAR (Oct 19 2026, mockup ZeDUI/mockups/zed_action_bar_v2.html; director: "ship it") -----
 -- The bar over the character's head while an action runs (ZeD_ActionBar.lua reads this
