@@ -195,6 +195,9 @@ end
 -- the illustration alone (MapSpawnSelectImage's setup), on vanilla's paper colours
 local function initPaper(mp)
     local api = mp.mapAPI
+    -- the world's map data too, undrawn (no style layers): without it the
+    -- engine has no world until Survey has loaded once, and zoom throws
+    if MapUtils and MapUtils.initDefaultMapData then pcall(MapUtils.initDefaultMapData, mp) end
     api:addImagePyramid(paperFile())
     api:setBoolean("ImagePyramid", true)
     api:setBoundsFromWorld()
@@ -219,8 +222,21 @@ function ZeD_WorldMap:applyStyle(paper)
     self._styled = true
     if cx then
         api:centerOn(cx, cy)
-        api:setZoom(paper and math.min(z, PAPER_MAX_ZOOM) or z)
+        self:_zoomTo(paper and math.min(z, PAPER_MAX_ZOOM) or z)
     end
+end
+
+-- setZoom needs the map's world loaded: the paper style (pictures only, no
+-- data) has none until it has drawn once, and the engine throws. Retried at
+-- the next render until it takes (vanilla's spawn map zooms in prerender too).
+function ZeD_WorldMap:_zoomTo(z)
+    if pcall(function() self.mapAPI:setZoom(z) end) then
+        self._pendingZoom, self._zoomTries = nil, nil
+        return
+    end
+    -- (each miss logs the engine's stack; give up after a few frames)
+    self._zoomTries = (self._zoomTries or 0) + 1
+    self._pendingZoom = self._zoomTries < 10 and z or nil
 end
 
 function ZeD_WorldMap:createChildren()
@@ -230,7 +246,7 @@ function ZeD_WorldMap:createChildren()
     -- Center on player position
     if self.playerObj then
         self.mapAPI:centerOn(self.playerObj:getX(), self.playerObj:getY())
-        self.mapAPI:setZoom(self.paper and 15.0 or 18.0)
+        self:_zoomTo(self.paper and 15.0 or 18.0)
     end
 
     self._annotationsLoaded = false
@@ -672,6 +688,7 @@ end
 -- ISUIElement render — draw overlays on top of the Java map.
 -- Do NOT call ISUIElement.render(self) — Java UIWorldMap handles its own rendering.
 function ZeD_WorldMap:render()
+    if self._pendingZoom then self:_zoomTo(self._pendingZoom) end
     self:renderStashMaps()
     self:renderFlyerMarkers()
     self:renderAnnotations()

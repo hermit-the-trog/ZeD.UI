@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Belt Watch v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ZeD-UI mockup: the mini watch on the belt (Oct 19 2026).
+   One design unit = 2 CSS px here (what 4K looks like). Pixel parts are the
+   game's own textures plus gen.py's minis, drawn at whole multiples. */
+:root {
+  --u: 2px;
+  --page: #1b1e22; --panel: #23272c; --ink: #d8dce1; --dim: #8a9199; --line: #3a3f46;
+  --accent: #d9982e; --slot: rgba(22, 24, 28, 0.92); --tab: #3b82c4;
+  --grass: #4a5a2c;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #1b1e22; } }
+:root[data-theme="dark"] { --page: #1b1e22; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: "Fira Sans", sans-serif; }
+main { max-width: 1240px; margin: 0 auto; padding: 28px 16px 60px; }
+h1 { font-family: "Fira Mono", monospace; font-weight: 500; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 0 0 22px; }
+h2 { font-family: "Fira Mono", monospace; font-weight: 500; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+section { margin: 0 0 30px; }
+.stage { background: var(--grass); background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,.04) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 60%, rgba(0,0,0,.08) 0 2px, transparent 3px);
+  background-size: 14px 14px, 22px 22px;
+  border: 1px solid var(--line); padding: 24px; overflow-x: auto; position: relative; }
+.stage.tall { padding-top: 400px; }
+.row { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.note { color: var(--dim); font-size: 13px; margin: 8px 0 0; line-height: 1.5; max-width: 760px; }
+.px { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+
+/* the belt, laid out by belt() below in design units */
+.belt { position: relative; margin: 0 auto; }
+.belt > * { position: absolute; }
+.strap { background-repeat: repeat-x; background-size: calc(64 * var(--u)) calc(30 * var(--u)); image-rendering: pixelated; }
+.hand { border-radius: 50%; background: var(--slot); border: calc(2 * var(--u)) solid #4d545d; display: grid; place-items: center;
+  font-size: calc(9 * var(--u)); color: #8a9199; letter-spacing: .02em; }
+.box { background: var(--slot); border: 1px solid var(--line); display: grid; place-items: center;
+  font-size: calc(9 * var(--u)); color: #8a9199; }
+.box b { position: absolute; left: 0; top: 0; width: calc(12 * var(--u)); height: calc(12 * var(--u)); background: var(--tab);
+  color: #10161d; font: 600 calc(10 * var(--u))/calc(12 * var(--u)) "Fira Sans", sans-serif; text-align: center; }
+.watch { cursor: pointer; }
+.focus::after { content: ""; position: absolute; inset: 0; background: var(--accent); opacity: .55; mix-blend-mode: multiply; }
+.hover::after { content: ""; position: absolute; inset: 0; background: var(--accent); opacity: .22; }
+.pop { position: absolute; }
+
+/* the states strip */
+.state { text-align: center; }
+.state .frame { background: var(--grass); border: 1px solid var(--line); padding: 14px 18px; position: relative; }
+.state .cap { font-family: "Fira Mono", monospace; font-size: 11px; color: var(--dim); margin-top: 6px; letter-spacing: .06em; }
+.legend { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13px; margin-top: 12px; }
+.legend dt { font-family: "Fira Mono", monospace; color: var(--accent); font-size: 12px; }
+.legend dd { margin: 0; color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+<h1>Mini watch on the belt | v1</h1>
+
+<section>
+  <h2>Today</h2>
+  <div class="stage"><img class="px" src="img/today.png" width="840" alt="The belt as it is in game today" style="margin:0 auto"></div>
+</section>
+
+<section>
+  <h2>CaZio digital | left wrist, outside the off hand</h2>
+  <div class="stage"><div id="b1"></div></div>
+  <dl class="legend">
+    <dt>Left pusher</dt><dd>Speed: 1x, 2x, 3x (the three marks under the time)</dd>
+    <dt>Right pusher</dt><dd>Start / pause (green light on the case while running)</dd>
+    <dt>Face</dt><dd>Pops the full watch up for the alarm</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>Timez Easy Reader | left wrist</h2>
+  <div class="stage"><div id="b2"></div></div>
+  <dl class="legend">
+    <dt>8 o'clock pusher</dt><dd>Speed</dd>
+    <dt>4 o'clock pusher</dt><dd>Start / pause</dd>
+    <dt>Crown</dt><dd>Indiglow (lights the dial, as on the full watch)</dd>
+    <dt>Face</dt><dd>Pops the full watch up</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>States</h2>
+  <div class="row" id="states"></div>
+</section>
+
+<section>
+  <h2>Face pressed | the full watch pops up</h2>
+  <div class="stage tall"><div id="b3"></div></div>
+  <p class="note">It tucks back onto the belt after a few idle seconds or a second press on either watch.</p>
+</section>
+
+<section>
+  <h2>Right wrist | outside the main hand</h2>
+  <div class="stage"><div id="b4"></div></div>
+</section>
+</main>
+
+<script>
+// Belt geometry in design units (ZeD_Belt.lua): hands 52, slots 44, gaps 11,
+// side gaps 14, strap ends 10, buckle 58 x 40, strap 30. The mini is 44 x 46.
+const U = 2, HAND = 52, BOX = 44, GAP = 11, SIDE = 14, END = 10, BW = 58, BH = 40, STRAP = 30, MW = 44, MH = 46;
+const H = 64;   // the row height
+function el(tag, cls, css, html) {
+  const e = document.createElement(tag); if (cls) e.className = cls;
+  Object.assign(e.style, css || {}); if (html) e.innerHTML = html; return e;
+}
+const IMG = {
+  mini_cazio: "img/mini_cazio.png",
+  mini_cazio_x3: "img/mini_cazio_x3.png",
+  mini_cazio_paused: "img/mini_cazio_paused.png",
+  mini_cazio_night: "img/mini_cazio_night.png",
+  mini_timez: "img/mini_timez.png",
+  mini_timez_night: "img/mini_timez_night.png",
+  mini_timez_lit: "img/mini_timez_lit.png",
+};
+const px = n => (n * U) + "px";
+function belt(id, opt) {
+  const host = document.getElementById(id);
+  const b = el("div", "belt"); host.appendChild(b);
+  // the watch sits outside the hand of its wrist: right wrist left of the
+  // main hand, left wrist right of the off hand (WRIST units from the circle)
+  const WRIST = 8;
+  const onMain = opt.watch && opt.side === "main", onOff = opt.watch && opt.side !== "main";
+  const items = [{ k: "box", n: 1, label: "BACK" }, { k: "box", n: 2, label: "BELT L" }, { k: "buckle" }, { k: "box", n: 3, label: "BELT R" }];
+  const handL = onMain ? MW + WRIST : 0;
+  let x = handL + HAND + SIDE;
+  const strapX = x;
+  x += END;
+  const placed = [];
+  items.forEach((it, i) => {
+    const w = it.k === "box" ? BOX : BW;
+    placed.push({ ...it, x, w });
+    x += w + (i < items.length - 1 ? GAP : 0);
+  });
+  x += END;
+  const strapW = x - strapX;
+  const handR = x + SIDE;
+  const total = handR + HAND + (onOff ? WRIST + MW : 0);
+  b.style.width = px(total); b.style.height = px(H);
+  const mid = H / 2;
+  // strap: ends + repeating middle
+  b.appendChild(el("img", "px", { left: px(strapX), top: px(mid - STRAP / 2), width: px(8), height: px(STRAP) })).src = "img/strap_l.png";
+  b.appendChild(el("div", "strap", { left: px(strapX + 8), top: px(mid - STRAP / 2), width: px(strapW - 16), height: px(STRAP), backgroundImage: "url(img/strap_mid.png)" }));
+  b.appendChild(el("img", "px", { left: px(strapX + strapW - 8), top: px(mid - STRAP / 2), width: px(8), height: px(STRAP) })).src = "img/strap_r.png";
+  // hands
+  b.appendChild(el("div", "hand", { left: px(handL), top: px(mid - HAND / 2), width: px(HAND), height: px(HAND) }, "PRIMARY"));
+  b.appendChild(el("div", "hand", { left: px(handR), top: px(mid - HAND / 2), width: px(HAND), height: px(HAND) }, "SECONDARY"));
+  placed.forEach(p => {
+    if (p.k === "box") {
+      b.appendChild(el("div", "box", { left: px(p.x), top: px(mid - BOX / 2), width: px(BOX), height: px(BOX) }, `<b>${p.n}</b>${p.label}`));
+    } else {
+      b.appendChild(el("img", "px", { left: px(p.x), top: px(mid - BH / 2), width: px(BW), height: px(BH) })).src = "img/buckle.png";
+    }
+  });
+  if (opt.watch) {
+    const wx = onMain ? 0 : handR + HAND + WRIST;
+    const w = el("div", "watch" + (opt.cls ? " " + opt.cls : ""), { left: px(wx), top: px(mid - MH / 2), width: px(MW), height: px(MH) });
+    const im = el("img", "px", { width: px(MW), height: px(MH) }); im.src = IMG[`mini_${opt.watch}${opt.state ? "_" + opt.state : ""}`];
+    w.appendChild(im); b.appendChild(w);
+    if (opt.pop) {
+      const full = opt.watch === "cazio" ? { src: "img/full_cazio.png", w: 124, h: 176 } : { src: "img/full_timez.png", w: 150, h: 176 };
+      // the full watch rises above the mini, its outer edge lined up with the mini's, 8 units over the belt
+      const left = onMain ? 0 : total - full.w;
+      const pi = el("img", "px pop", { left: px(left), top: px(mid - MH / 2 - 8 - full.h), width: px(full.w), height: px(full.h) });
+      pi.src = full.src; b.appendChild(pi);
+    }
+  }
+}
+belt("b1", { watch: "cazio" });
+belt("b2", { watch: "timez" });
+belt("b3", { watch: "cazio", pop: true });
+belt("b4", { watch: "timez", side: "main" });
+
+// states: each mini at 3x on a bit of grass
+const S = [
+  ["cazio", "", "Running 1x"], ["cazio", "x3", "Running 3x"], ["cazio", "paused", "Paused"], ["cazio", "night", "Night"],
+  ["timez", "", "Day"], ["timez", "night", "Night"], ["timez", "lit", "Indiglow"], ["cazio", "", "Controller focus", "focus"]
+];
+const host = document.getElementById("states");
+S.forEach(([w, st, cap, cls]) => {
+  const s = el("div", "state");
+  const f = el("div", "frame");
+  const box = el("div", cls || "", { position: "relative", width: (MW * 3) + "px", height: (MH * 3) + "px" });
+  const im = el("img", "px", { width: (MW * 3) + "px", height: (MH * 3) + "px" }); im.src = IMG[`mini_${w}${st ? "_" + st : ""}`];
+  box.appendChild(im); f.appendChild(box); s.appendChild(f);
+  s.appendChild(el("div", "cap", {}, cap)); host.appendChild(s);
+});
+</script>
+</body>
+</html>
