@@ -6,6 +6,7 @@
 -- Same annotation data as JournalTab Maps sub-tab (modData.ZeD_MapAnnotations).
 -- ============================================================================
 
+require "ZeD/FlyerMap"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
@@ -432,7 +433,13 @@ function ZeD_WorldMap:onMouseMove(dx, dy)
 end
 
 function ZeD_WorldMap:onMouseUp(x, y)
+    -- a click (no drag) on a pinned flyer opens it (FlyerMap)
+    local click = self.dragging and not self.dragMoved
     self.dragging = false
+    if click then
+        local pin = ZeD.FlyerMap.hit(self, x, y)
+        if pin then ZeD.FlyerMap.open(self, pin) end
+    end
     return true
 end
 
@@ -517,37 +524,10 @@ function ZeD_WorldMap:renderStashMaps()
 end
 
 -- Render flyer location markers from PrintMediaDefinitions
--- (only the pieces this character has read, every location of each, as
--- vanilla's ISWorldMap:renderPrintMedia; Oct 19 2026: it drew every flyer in
--- the game, read or not, which gave away every advertised place)
+-- the read pieces' places as pinned flyers (FlyerMap.lua: only what this
+-- character has read, as vanilla's ISWorldMap:renderPrintMedia)
 function ZeD_WorldMap:renderFlyerMarkers()
-    if not PrintMediaDefinitions or not PrintMediaDefinitions.MiscDetails then return end
-    local chr = self.playerObj
-    local read = chr and chr.getReadPrintMedia and chr:getReadPrintMedia()
-    if not read or read:isEmpty() then return end
-
-    local T = ZeD.T
-    local dotSz = T.px(8)
-    local ac = T.accent
-    local pw, ph = self:getWidth(), self:getHeight()
-
-    local ids = ArrayList.new(read)
-    for i = 0, ids:size() - 1 do
-        local detail = PrintMediaDefinitions.MiscDetails[ids:get(i)]
-        for j = 1, 5 do
-            local locs = detail and detail["location" .. j]
-            if not locs then break end
-            for _, loc in ipairs(locs) do
-                local cx = (loc.x1 + loc.x2) / 2
-                local cy = (loc.y1 + loc.y2) / 2
-                local sx = self.mapAPI:worldToUIX(cx, cy) - dotSz / 2
-                local sy = self.mapAPI:worldToUIY(cx, cy) - dotSz / 2
-                if sx > -dotSz and sy > -dotSz and sx < pw and sy < ph then
-                    self:drawRect(sx, sy, dotSz, dotSz, 0.8, ac.r, ac.g, ac.b)
-                end
-            end
-        end
-    end
+    ZeD.FlyerMap.draw(self)
 end
 
 -- Render user-placed annotations from modData
@@ -688,6 +668,7 @@ function ZeD_WorldMap:renderGamepadCursor()
     if not el or not el.isCanvasCursor then return end
 
     self:seedGpCursor()
+    self._gpCursorLive = true     -- (FlyerMap's card follows the cursor)
     local cx, cy = self._gpCursorX, self._gpCursorY
 
     local T = ZeD.T
@@ -733,11 +714,13 @@ end
 -- Do NOT call ISUIElement.render(self) — Java UIWorldMap handles its own rendering.
 function ZeD_WorldMap:render()
     if self._pendingZoom then self:_zoomTo(self._pendingZoom) end
+    self._gpCursorLive = false
     self:renderStashMaps()
     self:renderFlyerMarkers()
     self:renderAnnotations()
     self:renderToolCursor()
     self:renderGamepadCursor()
+    ZeD.FlyerMap.drawCard(self)          -- the hovered pin's card, on top
 end
 
 -- ============================================================================
@@ -1500,6 +1483,11 @@ function ZeD.MapsTab.gpPlaceAtCursor(win)
     if not win then return end
     local mp = win._worldMapPanel
     if not mp or not mp._gpCursorX then return end
+    -- no tool armed and the cursor on a pinned flyer: A reads it (FlyerMap)
+    if not win._mapActiveTool then
+        local pin = ZeD.FlyerMap.hit(mp, mp._gpCursorX, mp._gpCursorY)
+        if pin then ZeD.FlyerMap.open(mp, pin); return end
+    end
     _placeAnnotationAt(mp, mp._gpCursorX, mp._gpCursorY)
 end
 

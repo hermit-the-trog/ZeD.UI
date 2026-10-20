@@ -67,6 +67,7 @@ local function _centerWhenReady(playerNum, centerX, centerY, zoom)
         if mp and mp.mapAPI then
             mp.mapAPI:centerOn(centerX, centerY)
             if zoom then mp.mapAPI:setZoom(zoom) end
+            if ZeD.FlyerMap and ZeD.FlyerMap.flash then ZeD.FlyerMap.flash(centerX, centerY) end   -- (the place pulses)
             Events.OnTick.Remove(tick)
         elseif tries > 60 then
             Events.OnTick.Remove(tick)
