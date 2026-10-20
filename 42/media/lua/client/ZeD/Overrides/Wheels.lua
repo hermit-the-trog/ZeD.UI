@@ -23,11 +23,73 @@
 require "ISUI/ISRadialMenu"
 require "ISUI/ISBackButtonWheel"
 require "ZeD/ZeD_Wheel"
+require "ZeD/SafeMode"
 
 local W = ZeD.Wheel
 
 local function ready()
     return ZeD and ZeD.T and ZeD.T.px and ZeD.T.ctx and ZeD.Molecules and ZeD.Molecules.drawContextCell and true or false
+end
+
+-- ---------------------------------------------------------------------------
+-- Safe mode (SafeMode.lua): a wheel is built once, as the engine's RadialMenu
+-- or as ZeD's plain element, and kept. On the way into safe mode every ZeD
+-- wheel drops its element so its next show builds the engine's (instantiate
+-- below goes vanilla while safe mode holds); on the way out the engine's drop
+-- theirs and come back as ZeD's. Wheels seen so far are kept in a short list:
+-- every build and every show (each starts with clear) moves a wheel to the
+-- end, so the one least recently used is dropped first and the long-lived
+-- shared wheel stays on it.
+-- ---------------------------------------------------------------------------
+local made = {}
+local MADE_MAX = 64
+
+local function remember(menu)
+    for i = 1, #made do
+        if made[i] == menu then
+            if i < #made then
+                table.remove(made, i)
+                made[#made + 1] = menu
+            end
+            return
+        end
+    end
+    if #made >= MADE_MAX then table.remove(made, 1) end
+    made[#made + 1] = menu
+end
+
+-- off the screen, and built again (whichever way) the next time it is shown
+local function rebuildOnNextShow(menu)
+    if menu.javaObject then pcall(menu.removeFromUIManager, menu) end
+    local jf = menu.joyfocus
+    if jf and jf.focus == menu then jf.focus = nil end
+    menu.javaObject = nil
+    if menu._zed then
+        menu._zed = nil
+        menu.zedScaled = nil
+        -- ZeD sized it for its cells; the engine's is sized by its radius
+        if menu.outerRadius then menu.width, menu.height = menu.outerRadius * 2, menu.outerRadius * 2 end
+    end
+end
+
+local function wheelsToVanilla()
+    for i = #made, 1, -1 do
+        local m = made[i]
+        if m._zed then rebuildOnNextShow(m) end
+    end
+end
+
+local function wheelsToZed()
+    if not ready() then return end
+    for i = #made, 1, -1 do
+        local m = made[i]
+        if not m._zed and m.javaObject then rebuildOnNextShow(m) end
+    end
+end
+
+-- true when a call belongs to the engine's wheel (its own, or any wheel in safe mode)
+local function engineSide(menu)
+    return not menu._zed and (menu.javaObject ~= nil or ZeD.Safe.on())
 end
 
 -- run a slice's command as vanilla does (after the wheel has gone)
@@ -53,7 +115,8 @@ local function hookRadial()
 
     -- a plain element (drawn in Lua) in place of the engine's RadialMenu
     function R:instantiate()
-        if not ready() then return O.instantiate(self) end
+        remember(self)
+        if not ready() or ZeD.Safe.on() then return O.instantiate(self) end
         self._zed = true
         self.zedScaled = true          -- ZeD borders scale with the root (Overrides/TextScale.lua)
         self.wantMouseEvents = true    -- the wheel takes its clicks, as the engine's did
@@ -63,7 +126,7 @@ local function hookRadial()
 
     -- the slices live in Lua (the engine's copy only when the engine draws)
     function R:addSlice(text, texture, command, arg1, arg2, arg3, arg4, arg5, arg6)
-        if self.javaObject and not self._zed then
+        if engineSide(self) then
             return O.addSlice(self, text, texture, command, arg1, arg2, arg3, arg4, arg5, arg6)
         end
         local slice = { text = text, texture = texture, command = { command, arg1, arg2, arg3, arg4, arg5, arg6 } }
@@ -72,20 +135,21 @@ local function hookRadial()
     end
 
     function R:clear()
-        if self.javaObject and not self._zed then return O.clear(self) end
+        remember(self)   -- every show starts here: the wheel counts as just used
+        if engineSide(self) then return O.clear(self) end
         self.slices = {}
         W.onClear(self)
     end
 
     function R:setSliceText(i, text)
-        if self.javaObject and not self._zed then return O.setSliceText(self, i, text) end
+        if engineSide(self) then return O.setSliceText(self, i, text) end
         if i < 1 or i > #self.slices then return end
         self.slices[i].text = text
         self.slices[i]._zedTex = nil
     end
 
     function R:setSliceTexture(i, texture)
-        if self.javaObject and not self._zed then return O.setSliceTexture(self, i, texture) end
+        if engineSide(self) then return O.setSliceTexture(self, i, texture) end
         if i < 1 or i > #self.slices then return end
         self.slices[i].texture = texture
         self.slices[i]._zedTex = nil
@@ -151,6 +215,7 @@ local function hookRoutes()
         ISBackButtonWheel._zedRoutes = true
         local orig = ISBackButtonWheel.onCommand
         ISBackButtonWheel.onCommand = function(self, command)
+            if ZeD.Safe.on() then return orig(self, command) end
             local paused = UIManager.getSpeedControls() and UIManager.getSpeedControls():getCurrentGameSpeed() == 0
             if command == "PlayerInfo" and not paused and openPair(self.playerNum) then
                 setJoypadFocus(self.playerNum, nil)
@@ -164,6 +229,7 @@ local function hookRoutes()
         ISSearchWindow._zedRoute = true
         local orig = ISSearchWindow.toggleWindow
         ISSearchWindow.toggleWindow = function(character)
+            if ZeD.Safe.on() then return orig(character) end
             local pn = character and character.getPlayerNum and character:getPlayerNum() or 0
             if openWorldTab(pn, "forage") then return end
             return orig(character)
@@ -174,6 +240,7 @@ local function hookRoutes()
         ISDesignationZonePanel._zedRoute = true
         local orig = ISDesignationZonePanel.toggleZoneUI
         ISDesignationZonePanel.toggleZoneUI = function(playerNum)
+            if ZeD.Safe.on() then return orig(playerNum) end
             if openWorldTab(playerNum, "animals") then return end
             return orig(playerNum)
         end
@@ -182,6 +249,7 @@ local function hookRoutes()
         ISDPadWheels._zedRoute = true
         local orig = ISDPadWheels.showAnimalZoneUI
         ISDPadWheels.showAnimalZoneUI = function(playerNum)
+            if ZeD.Safe.on() then return orig(playerNum) end
             if openWorldTab(playerNum, "animals") then return end   -- (vanilla's first-time zone note stays with its panel)
             return orig(playerNum)
         end
@@ -191,6 +259,7 @@ end
 local function apply()
     hookRadial()
     hookRoutes()
+    ZeD.Safe.register("wheels", { leave = wheelsToVanilla, enter = wheelsToZed })
     if not _G._zedWheelsAnnounced then
         _G._zedWheelsAnnounced = true
         print("[ZeD] Overrides/Wheels: vanilla's radial wheels drawn as ZeD wheels; wheel slices route to ZeD windows")

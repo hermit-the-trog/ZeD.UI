@@ -14,6 +14,7 @@
 
 require "ISUI/ISPanel"
 require "ZeD/Tokens"
+require "ZeD/SafeMode"
 
 ZeD_Panel = ISPanel:derive("ZeD_Panel")
 
@@ -71,9 +72,10 @@ function ZeD_Panel:prerender()
         end
     end
 
-    if self._onPrerender then
-        self._onPrerender(self)
-    end
+    -- the hook runs under pcall (SafeMode.lua): a failure clears the stencils it
+    -- set, counts towards safe mode's watchdog and is logged once
+    local fn = self._onPrerender
+    if fn then ZeD.Safe.guard(self, fn) end
 end
 
 -- ============================================================================
@@ -82,9 +84,21 @@ end
 -- ============================================================================
 
 function ZeD_Panel:render()
-    if self._onRender then
-        self._onRender(self)
-    end
+    local fn = self._onRender
+    if fn then ZeD.Safe.guard(self, fn) end
+end
+
+-- Stencils are counted per panel, so a draw hook that fails between setting
+-- one and clearing it can have it cleared for it (ZeD.Safe.guard)
+function ZeD_Panel:setStencilRect(x, y, w, h)
+    self._zedStencilN = (self._zedStencilN or 0) + 1
+    return ISPanel.setStencilRect(self, x, y, w, h)
+end
+
+function ZeD_Panel:clearStencilRect()
+    local n = self._zedStencilN
+    if n and n > 0 then self._zedStencilN = n - 1 end
+    return ISPanel.clearStencilRect(self)
 end
 
 -- ============================================================================

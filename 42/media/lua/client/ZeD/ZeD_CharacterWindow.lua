@@ -18,6 +18,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
+require "ZeD/SafeMode"
 require "ZeD/ZeD_TabPx"
 require "ZeD/InventoryRenderer"
 require "ZeD/ItemCard"
@@ -3065,6 +3066,8 @@ end
 -- ============================================================================
 
 local function _hideVanilla()
+    -- safe mode (SafeMode.lua): the game's own pages stay as they are
+    if ZeD.Safe.on() then return end
     local vi = getPlayerInventory(0)
     local vl = getPlayerLoot(0)
     if vi then vi:setVisible(false) end
@@ -3092,8 +3095,13 @@ end
 -- immediately would double-fire or fight the tap/hold timing. Keeping a
 -- single path (FocusManager OnTick) keeps Y semantics consistent whether
 -- a window is focused or not.
+-- In safe mode (SafeMode.lua) vanilla's own onYPress runs again: Y opens the
+-- game's inventory, and FocusManager's tap opens nothing (toggleBothPaired).
 if ISButtonPrompt then
-    ISButtonPrompt.onYPress = function(self) end
+    local _vanillaOnYPress = ISButtonPrompt.onYPress
+    ISButtonPrompt.onYPress = function(self)
+        if _vanillaOnYPress and ZeD.Safe.on() then return _vanillaOnYPress(self) end
+    end
 end
 
 function ZeD_CharacterWindow.isOpen()
@@ -3124,6 +3132,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
         _hideVanilla()
         return
     end
+
+    -- safe mode (SafeMode.lua): the window does not open; callers fall back to vanilla's
+    if ZeD.Safe.on() then return end
 
     local playerObj = getSpecificPlayer(playerNum)
     if not playerObj then return end
@@ -3474,6 +3485,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Tab strip panel — left edge, fixed 28px wide
     local strip = ZeD_Panel:new(0, bodyY, T.px(TAB_STRIP_W), bodyH)
+    strip._zedLabel = "char tab strip"   -- its own name in console.txt and safe mode's watchdog
     strip.anchorRight = false
     strip:initialise()
     win:addChild(strip)
@@ -3616,6 +3628,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     restoreCharState(win, playerObj)
 
     local drawer = ZeD_Panel:new(T.px(TAB_STRIP_W), bodyY, 0, bodyH)
+    drawer._zedLabel = "char drawer"   -- its own name in console.txt and safe mode's watchdog
     drawer.anchorRight = false
     drawer:initialise()
     win:addChild(drawer)
@@ -3763,6 +3776,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- ITEM DRAWER — overlay panel for ItemCard, renders ON TOP of tab drawer
     -- ----------------------------------------------------------------
     local itemDrawer = ZeD_Panel:new(T.px(TAB_STRIP_W), bodyY, 0, bodyH)
+    itemDrawer._zedLabel = "char item drawer"   -- its own name in console.txt and safe mode's watchdog
     itemDrawer.anchorRight = false
     itemDrawer:initialise()
     -- addChild deferred: itemDrawer added LAST so it renders on top of all siblings
@@ -4697,6 +4711,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Content panel — right of tab strip + drawer (fixed width)
     content = ZeD_Panel:new(T.px(TAB_STRIP_W), bodyY, T.px(win._baseInvW), bodyH)
+    content._zedLabel = "char content"   -- its own name in console.txt and safe mode's watchdog
     content.anchorRight = false  -- drawer prerender controls position/width, not ISPanel auto-resize
     content:initialise()
     win:addChild(content)
@@ -4708,6 +4723,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Container strip — right edge, redesigned vertical layout
     containerStrip = ZeD_Panel:new(T.px(TAB_STRIP_W) + T.px(win._baseInvW), bodyY, T.px(CONTAINER_STRIP_W), bodyH)
+    containerStrip._zedLabel = "char container strip"   -- its own name in console.txt and safe mode's watchdog
     containerStrip.anchorRight = false
     containerStrip:initialise()
     win:addChild(containerStrip)
@@ -5013,11 +5029,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Safety: clear any stencil leaked from drawer panel's tab renderer
         self:clearStencilRect()
 
-        -- Suppress vanilla if another system re-showed it
+        -- Suppress vanilla if another system re-showed it (not once safe mode has
+        -- handed it back: this window may draw one last frame after a trip)
         local vi = getPlayerInventory(0)
         local vl = getPlayerLoot(0)
-        if vi and vi:getIsVisible() then vi:setVisible(false) end
-        if vl and vl:getIsVisible() then vl:setVisible(false) end
+        if vi and vi:getIsVisible() and not ZeD.Safe.on() then vi:setVisible(false) end
+        if vl and vl:getIsVisible() and not ZeD.Safe.on() then vl:setVisible(false) end
 
         -- The card's item gone (eaten, dropped, moved to the world): the card closes, as a
         -- deselect would. Checked every 10 frames (code audit Oct 17 2026: the card and its
@@ -5930,6 +5947,20 @@ end
 local _vanillaInvKeyPressed = ISInventoryPage.onKeyPressed
 Events.OnKeyPressed.Remove(_vanillaInvKeyPressed)
 
+-- A window that fails to open trips safe mode (SafeMode.lua): both windows close
+-- and the game's own pages show. The press still gets an inventory: the one the
+-- trip just showed, or, if that did not happen, vanilla's key handler opens it.
+local function _openOrStepAside(open, playerNum, where)
+    local ok, err = pcall(open, playerNum)
+    if ok then return true end
+    ZeD.Safe.trip(where, err)
+    local vi = getPlayerInventory(0)
+    if vi and not vi:getIsVisible() and (playerNum or 0) == 0 then
+        pcall(_vanillaInvKeyPressed, getCore():getKey("Toggle Inventory"))
+    end
+    return false
+end
+
 -- Public paired-open API — extracted from the I-key handler body in S95 so
 -- the same paired sequencing is available to gamepad Y-tap (FocusManager).
 -- Behavior:
@@ -5944,20 +5975,22 @@ function ZeD_CharacterWindow.toggleBothPaired(playerNum)
     if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
     if getCore():getGameMode() == "Tutorial" then return end
+    -- safe mode: the game's own inventory answers (its key handler, its Y prompt)
+    if ZeD.Safe.on() then return end
 
     local charOpen  = ZeD_CharacterWindow.isOpen()
     local worldOpen = ZeD_WorldWindow.isOpen()
 
     if not charOpen and not worldOpen then
-        ZeD_CharacterWindow.toggle(playerNum)
-        ZeD_WorldWindow.open(playerNum)
+        if not _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") then return end
+        if not _openOrStepAside(ZeD_WorldWindow.open, playerNum, "the World window failed to open") then return end
     elseif charOpen and worldOpen then
         ZeD_CharacterWindow.toggle(playerNum)
         ZeD_WorldWindow.close()
     elseif charOpen and not worldOpen then
-        ZeD_WorldWindow.open(playerNum)
+        if not _openOrStepAside(ZeD_WorldWindow.open, playerNum, "the World window failed to open") then return end
     elseif not charOpen and worldOpen then
-        ZeD_CharacterWindow.toggle(playerNum)
+        if not _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") then return end
     end
 
     _hideVanilla()
@@ -5975,12 +6008,13 @@ function ZeD_CharacterWindow.ensureBothOpenForGamepad(playerNum)
     if getGameSpeed() <= 0 then return end
     if not getPlayerInventory(playerNum) then return end
     if getCore():getGameMode() == "Tutorial" then return end
+    if ZeD.Safe.on() then return end   -- safe mode: no ZeD windows (SafeMode.lua)
 
     if not ZeD_CharacterWindow.isOpen() then
-        ZeD_CharacterWindow.toggle(playerNum)
+        if not _openOrStepAside(ZeD_CharacterWindow.toggle, playerNum, "the Character window failed to open") then return end
     end
     if ZeD_WorldWindow and not ZeD_WorldWindow.isOpen() then
-        if ZeD_WorldWindow.open then ZeD_WorldWindow.open(playerNum) end
+        if ZeD_WorldWindow.open and not _openOrStepAside(ZeD_WorldWindow.open, playerNum, "the World window failed to open") then return end
     end
     _hideVanilla()
 end
@@ -5997,14 +6031,44 @@ Events.OnPlayerDeath.Add(function(playerObj)
     end)
 end)
 
-Events.OnKeyPressed.Add(function(key)
+-- The inventory key (kept on the module so QA can press it). In safe mode the
+-- game's own handler answers it.
+function ZeD_CharacterWindow._onKeyPressed(key)
+    if ZeD.Safe.on() then
+        _vanillaInvKeyPressed(key)
+        return
+    end
     if getCore():isKey("Toggle Inventory", key) then
         ZeD_CharacterWindow.toggleBothPaired(0)
         return
     end
     -- Pass non-inventory keys through to vanilla handler
     _vanillaInvKeyPressed(key)
-end)
+end
+Events.OnKeyPressed.Add(ZeD_CharacterWindow._onKeyPressed)
+
+-- Safe mode's hand-back (SafeMode.lua): both windows close, even one that broke
+-- halfway through opening, and the game's own inventory and loot pages show.
+-- Taking over again hides those pages, as a world's first frame does (S123);
+-- the windows stay closed until the inventory key opens them.
+local function _closeForSafeMode()
+    if _charWin then
+        local ok = pcall(ZeD_CharacterWindow.toggle, 0)
+        if not ok or _charWin then
+            local w = _charWin
+            _charWin = nil
+            pcall(function()
+                if ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
+            end)
+            pcall(w.removeFromUIManager, w)
+        end
+    end
+    if ZeD_WorldWindow and ZeD_WorldWindow.forceClose then pcall(ZeD_WorldWindow.forceClose) end
+    local vi, vl = getPlayerInventory(0), getPlayerLoot(0)
+    if vi then vi:setVisible(true) end
+    if vl then vl:setVisible(true) end
+end
+ZeD.Safe.register("windows", { leave = _closeForSafeMode, enter = _hideVanilla })
 
 -- Save state on game save
 Events.OnPostSave.Add(function()

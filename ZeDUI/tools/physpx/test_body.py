@@ -84,6 +84,15 @@ for sex in ("m", "f"):
     # every bone inside the body: no skeleton pixel outside the traced outline (Oct 17 2026: the hips poked out)
     outside = int(((np.array(sk_img)[..., 3] > 0) & ~SK.silhouette(sex)).sum())
     check(f"{sex}: no bone outside the body's outline", outside == 0, outside)
+    # the head, neck, shoulders and chest evenly inside it (Oct 19 2026): flesh shows between the bones' dark rim and
+    # the outline's line, so no drawn skeleton pixel there sits on that line or the pixel just inside it
+    from scipy import ndimage as _ndi
+    _sil = SK.silhouette(sex)
+    _d = _ndi.distance_transform_edt(_sil)
+    _drawn = np.array(sk_img)[..., 3] > 0
+    _top = np.isin(owner, [SK.PID[p] for p in ("head", "neck", "up-torso")])
+    _near = int((_drawn & _top & (_d < 2.0)).sum())
+    check(f"{sex}: head, shoulders and chest leave the outline showing", _near == 0, _near)
     for light in (False, True):
         for (pw, ph, want_s) in ((220, 260, 1), (440, 520, 2), (300, 300, 1), (500, 700, 2), (165, 195, 0.75)):
             L, g, fig = lua_for(sex, light)

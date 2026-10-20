@@ -1,6 +1,6 @@
 -- ZeD QA (Oct 16 2026): the lit window tabs. Opens both windows, screenshots, switches the character window to a few
--- tabs and the world window to Crafting, screenshots each, puts the tabs back.
-local function say(s) print("ZEDQA tabs " .. tostring(s)) end
+-- tabs and the world window to Crafting, screenshots each, puts the tabs back. grep "ZEDQA tl".
+local function say(s) print("ZEDQA tl " .. tostring(s)) end
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
 local cw0, ww0
 at(5, function()

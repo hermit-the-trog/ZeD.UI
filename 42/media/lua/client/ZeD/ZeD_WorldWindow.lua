@@ -19,6 +19,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
+require "ZeD/SafeMode"
 require "ZeD/ZeD_TabPx"
 require "ZeD/ObjectCards"
 require "ZeD/InventoryRenderer"
@@ -2696,6 +2697,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     playerNum = playerNum or 0
 
     if _worldWin then
+        ZeD_WorldWindow._endZoneDraw()
         saveWorldState(_worldWin)
         -- S93 Layer 3: tear down joypad focus registration before dropping ref.
         -- unregisterWindow internally releases focus if this window holds it.
@@ -2708,6 +2710,9 @@ function ZeD_WorldWindow.toggle(playerNum)
         _floorContainer = nil
         return
     end
+
+    -- safe mode (SafeMode.lua): the window does not open; callers fall back to vanilla's
+    if ZeD.Safe.on() then return end
 
     local playerObj = getSpecificPlayer(playerNum)
     if not playerObj then return end
@@ -2752,6 +2757,7 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     -- Override close
     win.close = function(self)
+        ZeD_WorldWindow._endZoneDraw()
         saveWorldState(self)
         -- S93 Layer 3: drop joypad focus before teardown. unregisterWindow
         -- internally calls releaseFocus if this window currently holds it,
@@ -3003,6 +3009,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- CONTAINER STRIP — left edge, 36px wide
     -- ----------------------------------------------------------------
     local containerStrip = ZeD_Panel:new(0, bodyY, T.px(CONTAINER_STRIP_W), bodyH)
+    containerStrip._zedLabel = "world container strip"   -- its own name in console.txt and safe mode's watchdog
     containerStrip.anchorRight = false
     containerStrip:initialise()
     win:addChild(containerStrip)
@@ -3091,6 +3098,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- CONTENT PANEL — item list, fills remaining width
     -- ----------------------------------------------------------------
     content = ZeD_Panel:new(T.px(CONTAINER_STRIP_W), bodyY, winW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W), bodyH)
+    content._zedLabel = "world content"   -- its own name in console.txt and safe mode's watchdog
     content.anchorRight = false  -- drawer prerender controls width, not ISPanel auto-resize
     content:initialise()
     win:addChild(content)
@@ -3145,6 +3153,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- DRAWER PANEL — right edge, slides open/closed with ItemCard
     -- ----------------------------------------------------------------
     local drawer = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, 0, bodyH)
+    drawer._zedLabel = "world drawer"   -- its own name in console.txt and safe mode's watchdog
     drawer.anchorRight = false
     drawer:initialise()
     win:addChild(drawer)
@@ -3192,6 +3201,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ITEM DRAWER — overlay panel for ItemCard, renders ON TOP of tab drawer
     -- ----------------------------------------------------------------
     local itemDrawer = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, 0, bodyH)
+    itemDrawer._zedLabel = "world item drawer"   -- its own name in console.txt and safe mode's watchdog
     itemDrawer.anchorRight = false
     itemDrawer:initialise()
     win:addChild(itemDrawer)
@@ -3603,6 +3613,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- ACTION TAB STRIP — right edge, 28px wide
     -- ----------------------------------------------------------------
     actionTabStrip = ZeD_Panel:new(winW - T.px(ACTION_TAB_STRIP_W), bodyY, T.px(ACTION_TAB_STRIP_W), bodyH)
+    actionTabStrip._zedLabel = "world action strip"   -- its own name in console.txt and safe mode's watchdog
     actionTabStrip.anchorRight = false
     actionTabStrip:initialise()
     win:addChild(actionTabStrip)
@@ -3816,9 +3827,10 @@ function ZeD_WorldWindow.toggle(playerNum)
     -- Draw hook: render item list + update title bar stats
     content._onPrerender = function(self)
         local T = ZeD.T
-        -- Suppress vanilla loot panel if it re-shows
+        -- Suppress vanilla loot panel if it re-shows (not once safe mode has handed
+        -- it back: this window may draw one last frame after a trip)
         local vl = getPlayerLoot(0)
-        if vl and vl:getIsVisible() then vl:setVisible(false) end
+        if vl and vl:getIsVisible() and not ZeD.Safe.on() then vl:setVisible(false) end
 
         local mcSel = win._mcSelected or {}
         local colCount = #mcSel + (win._mainVisible and 1 or 0)
@@ -4899,6 +4911,7 @@ function ZeD_WorldWindow.open(playerNum)
     -- (never for a dead character; code audit Oct 17 2026)
     local p = getSpecificPlayer(playerNum or 0)
     if p and p:isDead() then return end
+    if ZeD.Safe.on() then return end   -- safe mode: no ZeD window (SafeMode.lua)
     if not _worldWin then
         ZeD_WorldWindow.toggle(playerNum)
     end
@@ -5046,8 +5059,16 @@ function ZeD_WorldWindow.openTab(playerNum, tabId, toggle)
     return true
 end
 
+-- A livestock zone drawing in progress ends with the window: AnimalsTab holds
+-- the world menu off and the zones shown while one runs
+function ZeD_WorldWindow._endZoneDraw()
+    local AT = ZeD.AnimalsTab
+    if AT and AT.endZoneDraw then pcall(AT.endZoneDraw) end
+end
+
 function ZeD_WorldWindow.close()
     if _worldWin then
+        ZeD_WorldWindow._endZoneDraw()
         saveWorldState(_worldWin)
         -- S93 Layer 3: drop joypad focus before teardown. This public module
         -- function is reached when the Character Window close path calls
@@ -5062,6 +5083,24 @@ function ZeD_WorldWindow.close()
         _worldWin = nil
         _floorContainer = nil
     end
+end
+
+-- Safe mode's hand-back (SafeMode.lua, through ZeD_CharacterWindow's "windows"
+-- hook): closes the window even when it broke halfway through opening and the
+-- ordinary close fails on it
+function ZeD_WorldWindow.forceClose()
+    ZeD_WorldWindow._endZoneDraw()
+    local ok = pcall(ZeD_WorldWindow.close)
+    if ok and not _worldWin then return end
+    local w = _worldWin
+    _worldWin = nil
+    _floorContainer = nil
+    if not w then return end
+    pcall(function()
+        if ZeD.MapsTab and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(w) end
+        if ZeD.Input and ZeD.Input.Focus then ZeD.Input.Focus.unregisterWindow(w) end
+    end)
+    pcall(w.removeFromUIManager, w)
 end
 
 -- Save state on game save

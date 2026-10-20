@@ -27,6 +27,10 @@ require "ISUI/ISInventoryPaneContextMenu"
 require "ZeD/ContextMenuRegistry"
 require "ZeD/ZeD_ContextMenu"
 require "ZeD/ZeD_ContextList"
+require "ZeD/SafeMode"
+
+-- In safe mode (SafeMode.lua) every hook below hands straight to vanilla's own
+-- function, so the game's menu opens and draws as it would without ZeD.
 
 -- Is the user actively driving with a gamepad RIGHT NOW?
 --
@@ -153,6 +157,7 @@ end
 -- ---------------------------------------------------------------------------
 local origGet = ISContextMenu.get
 ISContextMenu.get = function(player, x, y)
+    if ZeD.Safe.on() then return origGet(player, x, y) end
     local context = origGet(player, x, y)
     if context then
         context._zedTarget = nil
@@ -170,6 +175,7 @@ end
 -- ---------------------------------------------------------------------------
 local origWorldCreateMenu = ISWorldObjectContextMenu.createMenu
 function ISWorldObjectContextMenu.createMenu(player, worldobjects, x, y, test)
+    if ZeD.Safe.on() then return origWorldCreateMenu(player, worldobjects, x, y, test) end
     local menu = origWorldCreateMenu(player, worldobjects, x, y, test)
     if menu and not test then
         menu._zedTarget = worldobjects
@@ -206,8 +212,10 @@ end
 -- dock-bottom). Falls back to dock if we can't resolve the row position.
 -- ---------------------------------------------------------------------------
 local origInvCreateMenu = ISInventoryPaneContextMenu.createMenu
-function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y)
-    local menu = origInvCreateMenu(player, isInInv, items, x, y)
+function ISInventoryPaneContextMenu.createMenu(player, isInInv, items, x, y, origin)
+    -- (origin: vanilla's sixth argument, passed through as it came)
+    if ZeD.Safe.on() then return origInvCreateMenu(player, isInInv, items, x, y, origin) end
+    local menu = origInvCreateMenu(player, isInInv, items, x, y, origin)
     if menu then
         menu._zedTarget = items
         if _isGamepadActive() then
@@ -262,6 +270,7 @@ end
 -- ---------------------------------------------------------------------------
 local origPrerender = ISContextMenu.prerender
 function ISContextMenu:prerender()
+    if ZeD.Safe.on() then return origPrerender(self) end
     -- Submenu instances — these are the child ISContextMenu objects vanilla
     -- creates via getNew() for drill-down. Our ActionDef tree handles
     -- submenus entirely in the ZeD organism (via the path/drillInto state),
@@ -351,6 +360,7 @@ end
 -- ---------------------------------------------------------------------------
 local origRender = ISContextMenu.render
 function ISContextMenu:render()
+    if ZeD.Safe.on() then return origRender(self) end
     if self._zedSpawned and not self._zedFailed and not self:isEmpty() then
         return   -- handled by ZeD organism
     end

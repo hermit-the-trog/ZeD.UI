@@ -12,9 +12,11 @@
 --   * ISEntityUI.OpenBuildWindow   — the build key and build entries: Build
 --     tab, recipe selected.
 -- The vanilla windows never show. Vanilla runs only when ZeD declines (no
--- World window, or an entity that is not a station ZeD draws).
+-- World window, or an entity that is not a station ZeD draws), and every time
+-- while safe mode is on (SafeMode.lua).
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/Stations"
 
 local ST = ZeD.Stations
@@ -67,6 +69,7 @@ local function apply()
 
         local origOpenWindow = ISEntityUI.OpenWindow
         ISEntityUI.OpenWindow = function(player, entity)
+            if ZeD.Safe.on() then return origOpenWindow(player, entity) end   -- safe mode: vanilla's window
             local ok, handled = pcall(function()
                 if not (player and entity) then return false end
                 if not ISEntityUI.CanOpenWindowFor(player, entity) then return false end
@@ -84,6 +87,7 @@ local function apply()
         -- vanilla key does.
         local origHandcraft = ISEntityUI.OpenHandcraftWindow
         ISEntityUI.OpenHandcraftWindow = function(player, isoObject, queryOverride, ignoreFindSurface, recipe, itemString)
+            if ZeD.Safe.on() then return origHandcraft(player, isoObject, queryOverride, ignoreFindSurface, recipe, itemString) end
             local ok, handled = pcall(function()
                 if not player then return false end
                 local cur = ST.current(player)
@@ -103,6 +107,7 @@ local function apply()
 
         local origBuild = ISEntityUI.OpenBuildWindow
         ISEntityUI.OpenBuildWindow = function(player, isoObject, queryOverride, ignoreFindSurface, recipe, itemString)
+            if ZeD.Safe.on() then return origBuild(player, isoObject, queryOverride, ignoreFindSurface, recipe, itemString) end
             local ok, handled = pcall(function()
                 if not player then return false end
                 local plain = (recipe == nil) and (itemString == nil or itemString == "")
@@ -122,6 +127,7 @@ local function apply()
         ISOvenUITimedAction._zedHooked = true
         local origPerform = ISOvenUITimedAction.perform
         function ISOvenUITimedAction:perform()
+            if ZeD.Safe.on() then return origPerform(self) end
             local obj = self.mcwave or self.stove
             local ok, handled = pcall(function() return ST.open(self.character, obj) end)
             if ok and handled then

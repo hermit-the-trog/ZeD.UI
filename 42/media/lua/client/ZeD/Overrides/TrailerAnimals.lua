@@ -12,8 +12,12 @@
 --     the animal, so it did nothing; it now removes the one you picked;
 --   * "Put Animal in Trailer" vanished when a carcass in your hands was the
 --     only thing to load (doAnimalSubMenu never counted it); it now stays.
+--
+-- While safe mode is on (SafeMode.lua) all of it is vanilla's again, the two
+-- bugs included.
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/MechanicsTab"
 
 -- a carcass in the hands that vanilla's Add Animal lists (not a skeleton)
@@ -32,6 +36,7 @@ local function apply()
         ISCheckAnimalInsideTrailer._zedHooked = true
         local origPerform = ISCheckAnimalInsideTrailer.perform
         function ISCheckAnimalInsideTrailer:perform()
+            if ZeD.Safe.on() then return origPerform(self) end   -- safe mode: vanilla's window
             local MT = ZeD and ZeD.MechanicsTab
             local ok, handled = pcall(function()
                 return MT and MT.openTrailer and MT.openTrailer(self.character, self.vehicle)
@@ -49,6 +54,7 @@ local function apply()
 
         local origCheck = ISVehicleMenu.onCheckAnimalInside
         function ISVehicleMenu.onCheckAnimalInside(vehicle, playerObj)
+            if ZeD.Safe.on() then return origCheck(vehicle, playerObj) end
             local MT = ZeD and ZeD.MechanicsTab
             if MT and MT.inReach and MT.inReach(playerObj, vehicle) and not playerObj:getVehicle() then
                 local ok, handled = pcall(MT.openTrailer, playerObj, vehicle)
@@ -58,7 +64,9 @@ local function apply()
         end
 
         -- vanilla: ISRemoveAnimalFromTrailer:new(playerObj, vehicle) — no animal
+        local origRemove = ISVehicleMenu.onRemoveAnimalFromTrailer
         function ISVehicleMenu.onRemoveAnimalFromTrailer(playerObj, animal, vehicle)
+            if ZeD.Safe.on() and origRemove then return origRemove(playerObj, animal, vehicle) end
             local vec = vehicle:getAreaCenter("AnimalEntry")
             local sq = getSquare(vec:getX(), vec:getY(), vehicle:getZ())
             if luautils.walkAdj(playerObj, sq) then
@@ -69,6 +77,7 @@ local function apply()
         -- vanilla's held-carcass branch adds its option but never sets added
         local origSub = ISVehicleMenu.doAnimalSubMenu
         function ISVehicleMenu.doAnimalSubMenu(subMenu, playerObj, vehicle)
+            if ZeD.Safe.on() then return origSub(subMenu, playerObj, vehicle) end
             local added = origSub(subMenu, playerObj, vehicle)
             if not added and heldCarcass(playerObj) then added = true end
             return added

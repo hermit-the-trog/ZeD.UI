@@ -10,9 +10,12 @@
 --     card drawer instead of ISExtendedPlacementUI. Controller players get
 --     the option back (the engine leaves it out for them), in the world
 --     menu and on a ground item's menu.
--- Vanilla runs only when ZeD declines (no World window, item gone).
+-- Vanilla runs only when ZeD declines (no World window, item gone). While
+-- safe mode is on (SafeMode.lua) vanilla runs every time and the extra menu
+-- options stay out, as the engine has it.
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/ObjectCards"
 require "ZeD/FurnitureTab"
 require "ZeD/ObjectCardPlacement"
@@ -59,6 +62,7 @@ local function addPlaceOption(context, list, player)
 end
 
 local function onFillWorld(pn, context, worldobjects, test)
+    if ZeD.Safe.on() then return end   -- safe mode: the engine's menu as it is
     if not (JoypadState and JoypadState.players[pn + 1]) then return end   -- the engine offers it to everyone else
     local player = getSpecificPlayer(pn)
     if not (player and worldobjects) or player:getVehicle() then return end
@@ -80,6 +84,7 @@ local function onFillWorld(pn, context, worldobjects, test)
 end
 
 local function onFillInventory(pn, context, items)
+    if ZeD.Safe.on() then return end
     local player = getSpecificPlayer(pn)
     if not (player and items) or player:getVehicle() then return end
     local list = {}
@@ -104,6 +109,7 @@ local function apply()
         ISExtendedPlacementAction._zedHooked = true
         local orig = ISExtendedPlacementAction.perform
         ISExtendedPlacementAction.perform = function(self)
+            if ZeD.Safe.on() then return orig(self) end   -- safe mode: vanilla's placement window
             local ok, handled = pcall(OC.open, self.character, "place3d", self.item)
             if ok and handled then
                 ISBaseTimedAction.perform(self)

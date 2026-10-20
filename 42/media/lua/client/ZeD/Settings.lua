@@ -96,7 +96,7 @@ end
 -- ---------------------------------------------------------------------------
 -- REGISTER AT FILE LOAD TIME (so MODS tab shows our options)
 -- ---------------------------------------------------------------------------
-local opts = PZAPI.ModOptions:create("ZeD_UI", "ZeD UI")
+local opts = PZAPI.ModOptions:create("ZeD_UI", "ZeD-GUI")
 
 -- ----- BASE THEME -----
 baseTheme = opts:addComboBox("baseTheme", "Base theme",
@@ -225,6 +225,17 @@ inputModeLock = opts:addComboBox("inputModeLock", "Input mode lock",
 for i, label in ipairs(inputLockLabels) do
     inputModeLock:addItem(label, inputLockKeys[i] == "auto")  -- default: auto
 end
+
+-- ----- SAFE MODE (Oct 19 2026, director: if ZeD ever fails to open, a bad day
+-- is a setting flip rather than a hotfix) -----
+-- On hands the game back to its own interface (SafeMode.lua reads this at most
+-- every half second, so a change applies at once); ZeD also steps aside by itself
+-- for a session when it hits an error that keeps repeating.
+local safeMode = opts:addComboBox("safeMode", "Safe mode",
+    "On: ZeD UI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD UI ever fails to open. ZeD UI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.")
+safeMode:addItem("Off", true)   -- default
+safeMode:addItem("On: the game's own interface", false)
+ZeD.Settings.safeModeOption = safeMode
 
 -- ----- APPLY FUNCTION -----
 -- Reads combo box indices and converts to our key strings

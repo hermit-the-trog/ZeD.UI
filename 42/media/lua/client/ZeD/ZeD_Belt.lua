@@ -25,6 +25,7 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/ZeD_Panel"
+require "ZeD/SafeMode"
 
 ZeD = ZeD or {}
 ZeD.Belt = ZeD.Belt or {}
@@ -499,8 +500,10 @@ end
 
 function ZeD_BeltHUD:player() return getSpecificPlayer(self.playerNum) end
 
--- Should the belt show? (not dead, not in a vehicle seat, UI not toggled off)
+-- Should the belt show? (not dead, not in a vehicle seat, UI not toggled off,
+-- not in safe mode: SafeMode.lua, vanilla's hotbar is back then)
 function ZeD_BeltHUD:wanted()
+    if ZeD.Safe.on() then return false end
     local p = self:player()
     if not p or p:isDead() then return false end
     if p:getVehicle() then return false end

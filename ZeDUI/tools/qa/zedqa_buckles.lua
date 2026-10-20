@@ -3,12 +3,12 @@
 -- the QA character each stable profession in turn (vanilla's
 -- CharacterProfessionDefinition list, as the admin "choose profession" panel
 -- does) and captures the belt. The original profession goes back at the end.
--- Run in game: copy to Zomboid/Lua/zedqa.lua, bump zedqa.go; grep "ZEDQA bk".
+-- Run in game: copy to Zomboid/Lua/zedqa.lua, bump zedqa.go; grep "ZEDQA bks".
 -- Prints the belt's buckle rect so the captures can be cropped.
 
 local p = getPlayer()
 local desc = p:getDescriptor()
-local function say(s) print("ZEDQA bk " .. tostring(s)) end
+local function say(s) print("ZEDQA bks " .. tostring(s)) end
 local original = desc:getCharacterProfession()
 local list = {}
 local defs = CharacterProfessionDefinition.getProfessions()

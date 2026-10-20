@@ -50,10 +50,10 @@ SKULL_M = [
     "..######################..",
     "..###oooo########oooo###..",
     "..##oooooo######oooooo##..",
-    ".###oooooo######oooooo###.",
-    ".###oooooo##nn##oooooo###.",
-    ".###oooooo#nnnn#oooooo###.",
-    ".####oooo##nnnn##oooo####.",
+    "..##oooooo######oooooo##..",              # the cheeks a pixel in each side (Oct 19 2026: the cranium sits
+    "..##oooooo##nn##oooooo##..",              # inside the band now, and wider cheeks stood out from it again)
+    "..##oooooo#nnnn#oooooo##..",
+    "..###oooo##nnnn##oooo###..",
     "...########nnnn########...",
     "....########nn########....",
     "....##################....",
@@ -80,14 +80,16 @@ SKULL_F = [
     ".######################.",
     ".######################.",
     "..####################..",
-    "..###oooo######oooo###..",
-    "..##oooooo####oooooo##..",
-    ".###oooooo####oooooo###.",
-    ".###oooooo#nn#oooooo###.",
-    ".####oooo#nnnn#oooo####.",
-    "..########nnnn########..",
-    "...########nn########...",
-    "....################....",
+    # the face narrower (Oct 19 2026): her outline's face is slim, and with the bones kept MARGIN in it clipped her
+    # sockets and cheeks; five-pixel sockets, the same nose and jaw, all inside the band
+    "..####ooo######ooo####..",
+    "..###ooooo####ooooo###..",
+    "..###ooooo####ooooo###..",
+    "...##ooooo#nn#ooooo##...",
+    "...###ooo#nnnn#ooo###...",
+    "....######nnnn######....",
+    "....#######nn#######....",
+    ".....##############.....",
     ".....#tttttttttttt#.....",
     "......------------......",
     "......#tttttttttt#......",
@@ -117,6 +119,28 @@ SEX = {
 }
 
 
+MARGIN = 3          # the outline's line, a pixel of flesh, the bone's dark rim, then bone
+
+
+def inner_region(sex):
+    """where bone may go (Oct 19 2026: "a little of the outline peeking out the top of the shoulders and head, so
+    skeleton parts all look evenly contained"). The bone's dark rim is drawn outside its pixels, so to show flesh
+    between the rim and the outline's line the bone keeps MARGIN (3) pixels in. A limb only five to ten pixels across
+    (her forearms and wrists, the hands, the ankles) has no room for that on both sides, so the band follows the room:
+    3 where a disc 11 across fits (head, shoulders, chest, hips, thighs), 2 where one 7 across fits, else 1."""
+    om = outline(sex)
+    def disc_se(r):
+        q = int(math.ceil(r))
+        yy, xx = np.mgrid[-q:q + 1, -q:q + 1]
+        return xx * xx + yy * yy <= r * r
+    wide = ndi.binary_opening(om, structure=disc_se(5.6))
+    mid = ndi.binary_opening(om, structure=disc_se(3.2))
+    e = {k: ndi.binary_erosion(om, iterations=k) for k in (1, 2, MARGIN)}
+    # the wide test spreads a little so a band never steps down right at a shoulder's or hip's own edge
+    wide = ndi.binary_dilation(wide, iterations=1) & om
+    return (e[MARGIN] & wide) | (e[2] & mid & ~wide) | (e[1] & ~mid & ~wide)
+
+
 class Skel:
     def __init__(s, sex):
         s.sex = sex
@@ -124,6 +148,10 @@ class Skel:
         s.p = Plate(f"{sex}_skeleton", W, H, seed=41)
         s.d = s.p.d
         s.owner = np.zeros((H, W), np.int16)
+        # the bones MARGIN pixels in from the body's edge all round (Oct 19 2026: "a little of the outline peeking out the
+        # top of the shoulders and head, so skeleton parts all look evenly contained"): the outline's line, a pixel of
+        # flesh, the bone's rim, then bone. Every mask is cut to this before it is shaped, so its bevel follows the cut.
+        s.inner = inner_region(sex)
 
     def mark(s, m, part):
         s.owner[m] = PID[part]
@@ -142,22 +170,25 @@ class Skel:
         m = Mask(W, H).poly(pts).get()
         if knob:
             m |= disc(s.d, a[0], a[1], w0 * 0.64) | disc(s.d, b[0], b[1], w1 * 0.64)
+        m &= s.inner
         s.d.slab(m, Z_FACE + z, mat, bevel=max(1.2, min(w0, w1) * 0.45), polish=0.3, power=0.55)
         s.mark(m, part)
         return m
 
     def curve(s, part, pts, w, z=2.5, mat="bone"):
-        m = Mask(W, H).line(pts, w).get(0.45)
+        m = Mask(W, H).line(pts, w).get(0.45) & s.inner
         s.d.slab(m, Z_FACE + z, mat, bevel=max(0.8, w / 2), polish=0.35, power=0.6)
         s.mark(m, part)
         return m
 
     def blob(s, part, m, z=3.0, bevel=2.5, mat="bone"):
+        m = m & s.inner
         s.d.slab(m, Z_FACE + z, mat, bevel=bevel, polish=0.35, power=0.6)
         s.mark(m, part)
         return m
 
     def hole(s, m, depth=2.0, dark=0.6):
+        m = m & s.inner
         s.d.well(m, depth, bevel=0.8)
         s.d.seam(m, dark)
 
@@ -275,7 +306,9 @@ def fit(sex):
     # the shoulder joint sits 6 under the collar bones; from it to the fingertips the arm divides 30 : 25 : 19 (upper
     # arm, forearm, hand), Oct 17 2026: the upper arm had grown too long when the collar bones moved up
     clav_y = L["neck"] + 0.42 * (L["sh_y"] - L["neck"])
-    shj_y = float(L["sh_y"])                          # the shoulder joint at the outline's full-shoulder row
+    # the shoulder joint at the deltoid, two rows above the outline's full-shoulder row (Oct 19 2026: on the neck's slope
+    # it pulled the shoulders in; the ribcage's top ribs widen to meet it, so it does not float)
+    shj_y = L["sh_y"] - 2.0
     reach = L["fing"] - 1 - shj_y
     el_y = shj_y + reach * 30 / 74.0
     wr_y = shj_y + reach * 55 / 74.0
@@ -293,7 +326,7 @@ def fit(sex):
               for sd in (-1, 1)},
         el_y=el_y, elbow=arm_off(el_y), wr_y=wr_y, wrist=arm_off(wr_y), fing=L["fing"], hand=arm_off(L["fing"] - 3),
         arm=max(5.0, arm_w * 0.40),
-        rib_top=clav_y + 2, rib_bot=pt - 12, rib=L["chest_w"] / 2.0 - 2.0, rib_lo=L["waist_w"] / 2.0 - 2.5,
+        rib_top=clav_y + 2, rib_bot=pt - 12, rib=L["chest_w"] / 2.0 - 1.5, rib_lo=L["waist_w"] / 2.0 - 2.5,
         pel_top=pt, pel_w=L["hip_w"] / 2.0 - 3.0,
         hip_y=L["crotch"] - 9, hip=leg_off(L["crotch"] + 3) - 4.0, troch=leg_off(L["crotch"] + 3) + 1.5,
         knee_y=L["knee"], knee=leg_off(L["knee"]), ankle_y=L["ankle"], ankle=leg_off(L["ankle"]),
@@ -310,7 +343,11 @@ def build(sex):
     sk = SKULL_M if c["skull_map"] == "SKULL_M" else SKULL_F
     sw, shh = len(sk[0]), len(sk)
     F0 = fit(sex)
-    x0, y0 = int(round(F0["bc"] - sw / 2.0)), F0["neck"] - 1 - shh
+    y0 = F0["neck"] - 1 - shh
+    # centred on the head's own outline (the cranium's rows), not the shoulders' centre line
+    om0 = outline(sex)
+    hcs = [(np.nonzero(om0[y])[0].min() + np.nonzero(om0[y])[0].max()) / 2.0 for y in range(y0 + 4, y0 + 12) if om0[y].any()]
+    x0 = int(math.floor(float(np.mean(hcs)) - sw / 2.0 + 0.5))
     def cells(chars):
         m = np.zeros((H, W), bool)
         for r_, row in enumerate(sk):
@@ -318,6 +355,26 @@ def build(sex):
                 if ch in chars: m[y0 + r_, x0 + q] = True
         return m
     whole = cells("#ontr-c")
+    # the skull symmetric inside the band (Oct 19 2026: her traced head is lopsided at the crown, and the skull cut to it
+    # took a dent): the room on each side is the narrower of the two, mirrored about the skull's centre
+    cx2 = 2 * x0 + sw - 1
+    xs_ = np.arange(W)
+    mirror_ok = np.zeros_like(S.inner)
+    ok_x = (cx2 - xs_ >= 0) & (cx2 - xs_ < W)
+    mirror_ok[:, ok_x] = S.inner[:, (cx2 - xs_)[ok_x]]
+    whole &= mirror_ok
+    # and no swelling at the temples where the outline reaches out to the ears (Oct 17 2026 "ear like"): the cranium's
+    # rows above the eyes never wider than the eye rows themselves, once the dome has reached that width
+    eye_r = y0 + [i for i, r in enumerate(sk) if "o" in r][0]
+    face_w = max(int(whole[y].sum()) for y in range(eye_r, eye_r + 3))
+    reached = False
+    for y in range(y0, eye_r):
+        w_ = int(whole[y].sum())
+        if w_ >= face_w - 2: reached = True
+        if reached and w_ > face_w:
+            xs = np.nonzero(whole[y])[0]
+            cut = (w_ - face_w) // 2
+            whole[y, xs[:cut]] = False; whole[y, xs[len(xs) - cut:]] = False
     S.blob("head", whole, z=4.6, bevel=4.0)                     # the dome rounds over from every edge
     # the brow and the cheekbones a little proud, the temples a little in
     eyes = cells("o")
@@ -326,14 +383,14 @@ def build(sex):
     d.h[brow] += 0.5
     S.hole(eyes, 3.0, 0.95)
     S.hole(cells("n"), 2.2, 0.92)
-    teeth = cells("t")
+    teeth = cells("t") & S.inner
     S.hole(cells("-"), 1.6, 0.72)
     # the lower jaw its own surface below the teeth, flatter than the dome so it takes the light, and the chin standing
     # proud at its foot (Oct 17 2026: "needs a chin")
     gap_row = [i for i, r in enumerate(sk) if "-" in r][0]
-    jaw = cells("#c") & (d.YY > y0 + gap_row + 1)
+    jaw = cells("#c") & (d.YY > y0 + gap_row + 1) & S.inner
     d.slab(jaw, Z_FACE + 4.0, "bone", bevel=1.4, polish=0.35, power=0.6)
-    chin = cells("c")
+    chin = cells("c") & S.inner
     d.slab(chin, Z_FACE + 4.6, "bone", bevel=1.0, polish=0.4, power=0.6)
     d.seam(jaw & (d.YY == y0 + gap_row + 2), 0.18)          # under the lower teeth
     # the teeth over it all: flat and evenly lit (Oct 17 2026: hers looked crooked in the dome's shading), a gap every
@@ -368,37 +425,81 @@ def build(sex):
     for side in (-1, 1):
         sy = F["shj_y"]
         xs = np.nonzero(om_[int(round(sy))])[0]
+        # against the top corner of the ribcage (the director's references, Oct 19 2026): just outside the cage's top
+        # ribs, never past the arm's own line or the shoulder's outline
         off = F["side"][side]["arm_top"]
         if len(xs):
             edge = (xs.max() - BC) if side > 0 else (BC - xs.min())
-            off = min(off, edge - aw * 0.6 - 0.5)
+            off = min(off, edge - aw * 0.72 - MARGIN + 0.5)
+        # low enough that the ball and the shoulder blade's tip over it clear the shoulder's top by the margin
+        cx_ = int(round(BC + side * off))
+        col = np.nonzero(om_[:, cx_])[0]
+        col = col[col > F["neck"]]
+        if len(col): sy = max(sy, col.min() + MARGIN + aw * 0.72 - 0.5)
         shj_of[side] = (BC + side * off, sy)
-    # ---- the collar bones, from the breastbone out to the shoulders
+    # ---- the collar bones: near straight from the breastbone out to the top of each shoulder ball, the shoulder
+    # blade's tip (acromion) capping the ball
     for side in (-1, 1):
-        ex = shj_of[side][0] - side * 1.5
-        S.curve("up-torso", [(BC + side * 3, shy + 2.5), ((BC + ex) / 2.0, shy + 0.5), (ex, shy + 2.0)], 2.8, z=3.6)
-        # the acromion: the shoulder blade's tip, from the collar bone's end down over the top of the upper arm
-        # (director, Oct 17 2026: "add back the bone connecting the shoulders to the collar bone")
         hx, hy = shj_of[side]
-        S.curve("up-torso", [(ex, shy + 2.0), (ex + side * 1.6, (shy + hy) / 2.0 + 0.5), (hx + side * 0.4, hy - aw * 0.55)],
-                2.6, z=3.7)
+        ex = hx - side * 0.5
+        S.curve("up-torso", [(BC + side * 3, shy + 2.0), ((BC + ex) / 2.0, shy + 0.8), (ex, hy - aw * 0.55)], 2.8, z=3.6)
+        S.curve("up-torso", [(ex - side * 1.0, hy - aw * 0.6), (hx + side * aw * 0.55, hy - aw * 0.35)], 2.4, z=3.9)
     # ---- the ribcage, inside the chest's outline: eight pairs from the spine round to the breastbone
     rt, rb, rib, rib_lo = F["rib_top"], F["rib_bot"], F["rib"], F["rib_lo"]
     S.blob("up-torso", M().rect(BC - 1.8, rt - 2, 3.6, rb - rt + 8).get(), z=1.8, bevel=0.8, mat="bone_joint")
-    n = 8
-    step = (rb - rt - 9) / (n - 1)
-    for k in range(n):
-        yk = rt + 3 + k * step
-        t = k / (n - 1)
-        wdt = rib * (0.84 + 0.16 * math.sin(math.pi * min(1.0, 0.25 + t * 0.9))) + (rib_lo - rib) * max(0.0, t - 0.55) * 2.0
-        drop = 6.0 + 4.0 * t
+    sb = rt + 0.68 * (rb - rt)                  # the breastbone's tip
+    reach_ = min(abs(shj_of[-1][0] - BC), abs(shj_of[1][0] - BC)) - aw * 0.7
+    # Oct 19 2026 ("bottom of the ribs are too sharp, IRL round out"; the director's pixel references): the cage drawn
+    # as one rounded barrel and cut into separate rib bars by curved gaps, the way the references read. Its lower corners
+    # are round, and under the breastbone it opens in a smooth arch (the costal arch), so nothing hangs to a point.
+    cb = rb + 2.0                               # the cage's foot
+    hgt = cb - rt
+    # the cage's half width down its height: wide at the top to carry the shoulders (the upper ribs reach the joints,
+    # Oct 19 2026), fullest a little above the middle, narrowing to the waist
+    ky = [rt, rt + 0.30 * hgt, rt + 0.58 * hgt, cb]
+    kw = [reach_ * 0.96, max(rib, reach_ * 0.86), rib, rib_lo]
+    R_lo, R_hi = 7.0, 2.5                       # the corners' radii, foot and top
+    def half(y):
+        w_ = float(np.interp(y, ky, kw))
+        if y > cb - R_lo:
+            q = (y - (cb - R_lo)) / R_lo
+            w_ -= R_lo * (1.0 - math.sqrt(max(0.0, 1.0 - q * q)))
+        if y < rt + R_hi:
+            q = ((rt + R_hi) - y) / R_hi
+            w_ -= R_hi * (1.0 - math.sqrt(max(0.0, 1.0 - q * q)))
+        return w_
+    arch_w = rib_lo * 0.60                      # the arch's half width at the cage's foot
+    cage = np.zeros((H, W), bool)
+    for yy in range(int(math.floor(rt)), int(math.ceil(cb)) + 1):
+        yc = yy + 0.5
+        if yc < rt or yc > cb: continue
+        ax = np.abs(d.XX[yy] + 0.5 - BC)
+        row = ax <= half(yc)
+        if yc > sb:
+            row &= ax >= arch_w * math.sqrt((yc - sb) / (cb - sb))
+        cage[yy] = row
+    # the gaps between the ribs: level at the breastbone, dropping toward the sides, more so lower down
+    n = 10
+    pitch = hgt / (n + 0.15)
+    gaps = M()
+    for j in range(1, n):
+        yg = rt + j * pitch
+        hw_ = half(yg)
+        droop = 2.0 + 3.2 * j / (n - 1)
         for side in (-1, 1):
-            pts = [(BC + side * 2.4, yk - 1.2), (BC + side * wdt * 0.62, yk - 2.6), (BC + side * wdt, yk + 1.4),
-                   (BC + side * wdt * 0.94, yk + drop * 0.62)]
-            if k < n - 2:
-                pts += [(BC + side * wdt * 0.55, yk + drop), (BC + side * 3.6, yk + drop * 0.85)]
-            S.curve("up-torso", pts, 2.1 if k < n - 1 else 1.8, z=2.6)
-    sb = rt + 0.68 * (rb - rt)
+            pts = [(BC + side * x, yg - 0.4 + droop * (x / hw_) ** 1.7) for x in np.linspace(2.0, hw_ + 3.0, 24)]
+            gaps.line(pts, 1.5)
+    ribs = cage & ~gaps.get(0.45)
+    # no slivers: a rib the gaps and the round corner leave too small to read is dropped, not left as a crumb
+    lab, nl_ = ndi.label(ribs)
+    if nl_:
+        sizes = ndi.sum(ribs, lab, range(1, nl_ + 1))
+        for i_, sz in enumerate(sizes):
+            if sz < 10: ribs[lab == i_ + 1] = False
+    S.blob("up-torso", ribs, z=2.6, bevel=1.1)
+    # the costal cartilage: the ribs' inner ends along the arch and beside the breastbone a touch darker than bone
+    cart = ribs & ~ndi.binary_erosion(cage | ~ribs, iterations=1) & (d.YY > sb)
+    d.tex[cart] -= 0.05
     S.blob("up-torso", M().poly([(BC - 3.0, rt + 1), (BC + 3.0, rt + 1), (BC + 2.2, sb - 3), (BC, sb), (BC - 2.2, sb - 3)]).get(),
            z=3.4, bevel=1.2)
     # ---- the lower back: lumbar vertebrae from the ribs to the pelvis
@@ -434,20 +535,65 @@ def build(sex):
     for side in (-1, 1):
         S.hole(M().ellipse(BC + side * pw * 0.42, pt + 18.5, 2.8 * fl ** 0.4, 2.4).get(), 1.8, 0.62)
 
+    # ---- a limb's room, row by row: the run of the inner region nearest a guide line, its edges smoothed (Oct 19 2026:
+    # the forearms and shins are drawn to fit the room inside the band rather than placed and then shaved by it)
+    def room(ya, yb, xa, xb):
+        ys_, ls_, rs_ = [], [], []
+        for y in range(int(math.ceil(ya)), int(math.floor(yb)) + 1):
+            tx = xa + (xb - xa) * (y - ya) / max(1e-6, yb - ya)
+            xs = np.nonzero(S.inner[y])[0]
+            if not len(xs): continue
+            runs_, st = [], xs[0]
+            for i_ in range(1, len(xs) + 1):
+                if i_ == len(xs) or xs[i_] != xs[i_ - 1] + 1:
+                    runs_.append((st, xs[i_ - 1])); st = xs[i_] if i_ < len(xs) else st
+            l_, r_ = min(runs_, key=lambda rr: 0 if rr[0] <= tx <= rr[1] else min(abs(rr[0] - tx), abs(rr[1] - tx)))
+            if not (l_ - 3 <= tx <= r_ + 3): continue
+            ys_.append(y + 0.5); ls_.append(float(l_)); rs_.append(r_ + 1.0)
+        if len(ys_) < 3: return None
+        ys_ = np.array(ys_)
+        deg = 2 if len(ys_) > 8 else 1
+        L_ = np.polyval(np.polyfit(ys_, ls_, deg), ys_)
+        R_ = np.polyval(np.polyfit(ys_, rs_, deg), ys_)
+        # never past the real room on any row
+        return ys_, np.maximum(L_, ls_), np.minimum(R_, rs_)
+    def strip(rm, side, f0, f1, minw=0.0, cap=None):
+        """the part of a limb's room between fractions f0..f1 across it, measured from the body's side (medial); where
+        the room is wider than the bones need (cap), they keep their own width, centred in it"""
+        ys_, L_, R_ = rm
+        left, right = [], []
+        for y, l_, r_ in zip(ys_, L_, R_):
+            if cap is not None and r_ - l_ > cap:
+                c_ = (l_ + r_) / 2.0
+                l_, r_ = c_ - cap / 2.0, c_ + cap / 2.0
+            a_, b_ = (l_, r_) if side > 0 else (r_, l_)          # from medial to lateral
+            p0, p1 = a_ + (b_ - a_) * f0, a_ + (b_ - a_) * f1
+            lo, hi = min(p0, p1), max(p0, p1)
+            if hi - lo < minw: c_ = (lo + hi) / 2.0; lo, hi = c_ - minw / 2.0, c_ + minw / 2.0
+            left.append((lo, y)); right.append((hi, y))
+        return M().poly(left + right[::-1]).get()
+
     # ---- the arms, down each arm's centre line in the outline
     aw = F["arm"]
     for side in (-1, 1):
         sfx = "r" if side < 0 else "l"
         Fs = F["side"][side]
         shj = shj_of[side]
+        S.blob(f"bicep-{sfx}", disc(d, shj[0], shj[1], aw * 0.72), z=3.8, bevel=1.4, mat="bone")       # the shoulder ball
         el = (BC + side * Fs["elbow"], F["el_y"])
         wr = (BC + side * Fs["wrist"], F["wr_y"])
         S.bone(f"bicep-{sfx}", shj, el, aw, aw * 0.9, z=3.4)
-        S.bone(f"wrist-{sfx}", (el[0] + side * 1.5, el[1] + 2.5), (wr[0] + side * 1.6, wr[1]), aw * 0.46, aw * 0.56, z=3.0)
-        S.bone(f"wrist-{sfx}", (el[0] - side * 1.5, el[1] + 2.5), (wr[0] - side * 1.4, wr[1]), aw * 0.52, aw * 0.40, z=3.2)
+        # the forearm's two bones side by side in the room the band leaves, or one where it is too slim for two
+        rm = room(el[1] + 2.0, wr[1] + 0.5, el[0], wr[0])
+        if rm is not None:
+            if float(np.median(rm[2] - rm[1])) >= 5.0:
+                S.blob(f"wrist-{sfx}", strip(rm, side, 0.0, 0.46, cap=aw * 1.3), z=3.2, bevel=1.0)
+                S.blob(f"wrist-{sfx}", strip(rm, side, 0.58, 1.0, cap=aw * 1.3), z=3.0, bevel=1.0)
+            else:
+                S.blob(f"wrist-{sfx}", strip(rm, side, 0.0, 1.0, 1.6, cap=aw * 0.8), z=3.1, bevel=0.9)
         # the hand: the wrist's little bones, then the fingers spread across the hand's own width in the outline, row by
         # row down to its fingertips, so they follow its bend and stay inside it (Oct 17 2026)
-        om = outline(sex)
+        om = S.inner                      # the hand's room inside the band (Oct 19 2026)
         rows_ = []
         tx = wr[0]
         for y in range(int(round(wr[1])) + 2, F["fing"]):
@@ -498,9 +644,14 @@ def build(sex):
         S.blob(f"thigh-{sfx}", disc(d, top[0] + side * 1.4, top[1] - 0.5, fw * 0.32), z=3.2, bevel=1.0, mat="bone_joint")
         S.bone(f"thigh-{sfx}", top, (knee[0], knee[1] - 2), fw * 0.92, fw * 1.05, z=3.4)
         S.blob(f"ankle-{sfx}", disc(d, knee[0], knee[1] + 1, fw * 0.48), z=4.2, bevel=1.4, mat="bone_joint")    # kneecap
-        S.bone(f"ankle-{sfx}", (knee[0] - side * 0.5, knee[1] + 4.5), (ank[0] - side * 0.4, ank[1]), tw * 0.86, tw * 0.62, z=3.4)
-        S.bone(f"ankle-{sfx}", (knee[0] + side * tw * 0.62, knee[1] + 5.5), (ank[0] + side * tw * 0.5, ank[1]), tw * 0.30,
-               tw * 0.28, z=3.0)
+        # the shin: the tibia on the inside, the slim fibula outside it, both in the room the band leaves
+        rm = room(knee[1] + 4.0, ank[1] + 0.5, knee[0], ank[0])
+        if rm is not None:
+            if float(np.median(rm[2] - rm[1])) >= 6.0:
+                S.blob(f"ankle-{sfx}", strip(rm, side, 0.0, 0.66, cap=tw * 1.25), z=3.4, bevel=1.4)
+                S.blob(f"ankle-{sfx}", strip(rm, side, 0.78, 1.0, 1.4, cap=tw * 1.25), z=3.0, bevel=0.8)
+            else:
+                S.blob(f"ankle-{sfx}", strip(rm, side, 0.0, 1.0, 1.6, cap=tw * 0.9), z=3.3, bevel=1.1)
         # the foot from the front, down to the outline's soles
         fb = F["bot"] - 1
         S.blob(f"foot-{sfx}", M().ellipse(ank[0], ank[1] + 4, 4.0, 2.6).get(), z=3.4, bevel=1.4, mat="bone_joint")
@@ -509,9 +660,8 @@ def build(sex):
             p1 = (ank[0] + side * (-3.2 + 1.7 * k + 0.4 * (k - 1)), fb - abs(k - 1) * 0.8)
             S.curve(f"foot-{sfx}", [p0, p1], 1.7 if k == 0 else 1.4, z=3.3)
 
-    # ---- every bone inside the body's outline, one pixel in (Oct 17 2026), so nothing pokes out where the body is thin
-    inner = ndi.binary_erosion(outline(sex), iterations=1)
-    d.solid &= inner
+    # ---- every bone inside the body's outline, MARGIN pixels in (Oct 17, Oct 19 2026), so nothing touches its edge
+    d.solid &= S.inner
     S.owner[~d.solid] = 0
     return S
 

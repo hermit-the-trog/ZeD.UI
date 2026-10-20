@@ -9,9 +9,11 @@
 --     timed action); the pour walks when it runs;
 --   * ISFluidTransferUI.OpenPanel / ISFluidInfoUI.OpenPanel catch every
 --     other caller (crafting station fluid slots, mods).
--- Vanilla runs only when ZeD declines (no World window, invalid container).
+-- Vanilla runs only when ZeD declines (no World window, invalid container),
+-- and every time while safe mode is on (SafeMode.lua).
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/ObjectCards"
 require "ZeD/ObjectCardFluid"
 
@@ -35,6 +37,7 @@ local function apply()
         ISFluidTransferUI._zedHooked = true
         local orig = ISFluidTransferUI.OpenPanel
         ISFluidTransferUI.OpenPanel = function(_player, _container, _source)
+            if ZeD.Safe.on() then return orig(_player, _container, _source) end   -- safe mode: vanilla's window
             if openCard("transfer", _player, _container, _source, false) then return end
             return orig(_player, _container, _source)
         end
@@ -43,6 +46,7 @@ local function apply()
         ISFluidInfoUI._zedHooked = true
         local orig = ISFluidInfoUI.OpenPanel
         ISFluidInfoUI.OpenPanel = function(_player, _container)
+            if ZeD.Safe.on() then return orig(_player, _container) end
             if openCard("info", _player, _container, true, true) then return end
             return orig(_player, _container)
         end
@@ -51,6 +55,7 @@ local function apply()
         ISFluidContainerMenu._zedHooked = true
         local orig = ISFluidContainerMenu.showUI
         ISFluidContainerMenu.showUI = function(playerObj, container, ui)
+            if ZeD.Safe.on() then return orig(playerObj, container, ui) end
             local info = (ui == ISFluidInfoUI)
             if openCard("item menu", playerObj, wrap(container), false, info) then return end
             return orig(playerObj, container, ui)
@@ -60,11 +65,13 @@ local function apply()
         ISWorldObjectContextMenu._zedFluidHooked = true
         local origT = ISWorldObjectContextMenu.onFluidTransfer
         ISWorldObjectContextMenu.onFluidTransfer = function(player, fluidcontainer)
+            if ZeD.Safe.on() then return origT(player, fluidcontainer) end
             if openCard("world transfer", getSpecificPlayer(player), wrap(fluidcontainer), true, false) then return end
             return origT(player, fluidcontainer)
         end
         local origI = ISWorldObjectContextMenu.onFluidInfo
         ISWorldObjectContextMenu.onFluidInfo = function(player, fluidcontainer)
+            if ZeD.Safe.on() then return origI(player, fluidcontainer) end
             if openCard("world info", getSpecificPlayer(player), wrap(fluidcontainer), true, true) then return end
             return origI(player, fluidcontainer)
         end

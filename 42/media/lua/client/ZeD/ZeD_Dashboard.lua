@@ -29,6 +29,7 @@
 -- ============================================================================
 
 require "ZeD/ZeD_Panel"
+require "ZeD/SafeMode"
 require "ZeD/DashPx"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_RadioOps"
@@ -600,6 +601,7 @@ function D.install()
 end
 function D.getInstance() return D._instance end
 function D.show(character)
+    if ZeD.Safe.on() then return end   -- safe mode: vanilla's dashboard stays (SafeMode.lua)
     if not (character and instanceof(character, "IsoPlayer") and character:isLocalPlayer()) then return end
     local inst = D._instance or D.install()
     local pn = character.getPlayerNum and character:getPlayerNum() or 0
@@ -621,6 +623,27 @@ function D.hide(character)
     inst.vehicle = nil
     inst:setVisible(false); inst:_release(); inst:_unregister()
 end
+
+-- Safe mode (SafeMode.lua): this dash hides and lets go of the controller, and
+-- vanilla's (parked by setVisible only, still in the UI with its car) shows
+-- again for a driver. Taking over again shows this one for whoever is seated;
+-- its prerender hides vanilla's.
+ZeD.Safe.register("dashboard", {
+    leave = function()
+        local inst = D._instance
+        if inst then
+            inst:setVisible(false)
+            pcall(inst._release, inst)
+            pcall(inst._unregister, inst)
+        end
+        local vd = getSpecificPlayer(0) and getPlayerVehicleDashboard and getPlayerVehicleDashboard(0)
+        if vd and vd.vehicle and not (ISUIHandler and ISUIHandler.allUIVisible == false) then vd:setVisible(true) end
+    end,
+    enter = function()
+        local p = getSpecificPlayer(0)
+        if p and p:getVehicle() then D.show(p) end
+    end,
+})
 
 Events.OnGameStart.Add(function() D._instance = nil; D.install() end)
 Events.OnEnterVehicle.Add(function(character) pcall(D.show, character) end)

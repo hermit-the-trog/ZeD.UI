@@ -7,12 +7,14 @@
 -- notebook's page instead (ZeD_Reader, notebook mode). Everything else is
 -- vanilla's: the action, its light and pencil rules, the animation and sounds,
 -- the modal's addToUIManager and controller focus, its stop and perform
--- closing the window. Vanilla's window is used only if the reader cannot open.
+-- closing the window. Vanilla's window is used only if the reader cannot open,
+-- or while ZeD's safe mode is on.
 -- ============================================================================
 
 require "TimedActions/ISWriteSomething"
 require "ISUI/ISUIWriteJournal"
 require "ZeD/ZeD_Reader"
+require "ZeD/SafeMode"
 
 if not (ISWriteSomething and ISWriteSomething.start and ISUIWriteJournal) then return end
 
@@ -20,6 +22,7 @@ local _start = ISWriteSomething._zedOrigStart or ISWriteSomething.start
 ISWriteSomething._zedOrigStart = _start
 
 function ISWriteSomething:start()
+    if ZeD.Safe.on() then return _start(self) end   -- safe mode: vanilla's journal window
     local action = self
     local origNew = ISUIWriteJournal.new
     ISUIWriteJournal.new = function(cls, x, y, w, h, target, onclick, character, notebook, defaultEntryText, title, lineNumber, editable, numberOfPages)

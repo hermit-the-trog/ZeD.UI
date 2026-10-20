@@ -14,9 +14,20 @@
 -- Right-click "Use" on a world radio also calls ISRadioWindow.activate
 -- (ISWorldObjectContextMenu.lua:222) — that's user-initiated and rare; left
 -- alone this session. Will be replaced by ZeD context menu route in S115b.
+--
+-- While ZeD's safe mode is on, vanilla's handler is put back (the popup opens
+-- on equip again) and taken off once more when safe mode goes off.
 -- ============================================================================
 
+require "ZeD/SafeMode"
+
+ZeD = ZeD or {}
+-- kept on the module so a reload of this file still knows whether vanilla's handler is off
+ZeD.RadioWindowHook = ZeD.RadioWindowHook or { removed = false }
+local RW = ZeD.RadioWindowHook
+
 local function suppressVanillaRadioAutoOpen()
+    if RW.removed then return end
     if ISRadioWindow == nil or ISRadioWindow.onEquip == nil then return end
     -- Events.OnEquipPrimary / .OnEquipSecondary are PZ event tables that
     -- expose a .Remove(handler) method. Calling it with the same function
@@ -27,17 +38,37 @@ local function suppressVanillaRadioAutoOpen()
     if Events and Events.OnEquipSecondary and Events.OnEquipSecondary.Remove then
         Events.OnEquipSecondary.Remove(ISRadioWindow.onEquip)
     end
+    RW.removed = true
+end
+
+-- safe mode: vanilla's handler goes back on, once
+local function restoreVanillaRadioAutoOpen()
+    if not RW.removed then return end
+    RW.removed = false
+    if ISRadioWindow == nil or ISRadioWindow.onEquip == nil then return end
+    if Events and Events.OnEquipPrimary and Events.OnEquipPrimary.Add then
+        Events.OnEquipPrimary.Add(ISRadioWindow.onEquip)
+    end
+    if Events and Events.OnEquipSecondary and Events.OnEquipSecondary.Add then
+        Events.OnEquipSecondary.Add(ISRadioWindow.onEquip)
+    end
 end
 
 -- Defer to OnGameBoot so vanilla's ISRadioWindow.lua has already executed
 -- its top-level Events.OnEquipPrimary.Add(...) calls before we remove them.
-Events.OnGameBoot.Add(suppressVanillaRadioAutoOpen)
+Events.OnGameBoot.Add(function()
+    if ZeD.Safe.on() then return end
+    suppressVanillaRadioAutoOpen()
+end)
+
+ZeD.Safe.register("radio window", { leave = restoreVanillaRadioAutoOpen, enter = suppressVanillaRadioAutoOpen })
 
 -- S115b: replace vanilla's auto-open behavior with our own — when the player
 -- equips a radio, if the ZeD Character Window is open, flip its active tab to
 -- the radio tab so the drawer is showing the just-equipped device. Doesn't
 -- force-open the window; if the user has it closed, equipping doesn't pop it.
 local function onEquipRadioAutoSwitch(player, item)
+    if ZeD.Safe.on() then return end
     if player == nil or player ~= getPlayer() then return end
     if item == nil or not instanceof(item, "Radio") then return end
     -- Refresh the radio list immediately so the predicate that gates the tab

@@ -288,6 +288,8 @@ local function apply()
     local orig = ISDPadWheels.onDisplayRight
     function ISDPadWheels.onDisplayRight(joypadData)
         orig(joypadData)
+        -- safe mode: vanilla's D-pad Right wheel, untouched
+        if ZeD.Safe and ZeD.Safe.on() then return end
         local isPaused = UIManager.getSpeedControls() and UIManager.getSpeedControls():getCurrentGameSpeed() == 0
         if isPaused or not joypadData then return end
         local playerObj = getSpecificPlayer(joypadData.player)

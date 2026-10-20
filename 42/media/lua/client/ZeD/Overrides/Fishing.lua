@@ -23,9 +23,11 @@
 -- the approved mockup until Design's plate pipeline draws the final art,
 -- with the same anchors); the line, the pointer and the MAX glow are drawn
 -- live on it, at whole multiples (2 at 1080p, 4 at 4K).
+-- While ZeD's safe mode is on, vanilla's dial draws instead.
 -- ============================================================================
 
 require "Fishing/TensionUI"
+require "ZeD/SafeMode"
 
 if not (Fishing and Fishing.ISTensionUI) then return end
 local TUI = Fishing.ISTensionUI
@@ -138,14 +140,18 @@ TUI._zedOrigUpdateValue = _update
 
 -- keep vanilla's raw tension as well as its dial angle
 function TUI:updateValue(val)
+    if ZeD.Safe.on() then return _update(self, val) end   -- safe mode: vanilla's dial
     self.zedTension = val
     return _update(self, val)
 end
 
 -- (vanilla's dial face was drawn here; the rod draws in render)
-function TUI:prerender() end
+function TUI:prerender()
+    if ZeD.Safe.on() then return _prerender(self) end   -- safe mode: vanilla's dial face
+end
 
 function TUI:render()
+    if ZeD.Safe.on() then return _render(self) end   -- safe mode: vanilla's dial
     local pn = self.playerIndex or 0
     local sx, sy = getPlayerScreenLeft(pn), getPlayerScreenTop(pn)
     local sw, sh = getPlayerScreenWidth(pn), getPlayerScreenHeight(pn)
