@@ -112,6 +112,17 @@ local function saveCharState(win)
     }
 end
 
+-- The remembered layout is also written while the window is open, about once
+-- a second: the game's OnPostSave runs after the save is already on disk, so a
+-- Save and Quit with the window open would otherwise lose every move, resize
+-- and tab change made since the window last closed.
+local function saveCharStateThrottled(win)
+    local now = getTimestampMs()
+    if now - (win._lastStateSaveMs or 0) < 1000 then return end
+    win._lastStateSaveMs = now
+    saveCharState(win)
+end
+
 local function restoreCharState(win, playerObj)
     local md = playerObj:getModData()
     local cs = md.ZeD_WinState and md.ZeD_WinState.char
@@ -187,7 +198,18 @@ local function getTargetDrawerW(win)
     if win._drawerOpen then
         if win._drawerMode == "item" then return T.px(ITEM_CARD_W) end
         if win._drawerMode == "tab" then
-            return T.px(getTabDrawerW(win._activeTab))
+            local want = T.px(getTabDrawerW(win._activeTab))
+            -- The window is capped at half the screen, so on a small screen or a
+            -- large text size a wide tab would squeeze the inventory beside it
+            -- below its 200-unit minimum. Give the tab only the room left after
+            -- the inventory's minimum (it scrolls), never less than the standard
+            -- drawer. Multi-column Loot lifts the cap, so it is left alone there.
+            if win._invDrawerOpen and not win._rolled and #(win._mcSelected or {}) == 0 then
+                local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
+                local room = maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(200)
+                want = math.max(math.min(want, T.px(DRAWER_W)), math.min(want, room))
+            end
+            return want
         end
         return 0
     end
@@ -262,6 +284,63 @@ local function getColumnAtX(content, x)
         end
     end
     return nil, nil
+end
+
+-- Right-click picks its items the way vanilla's inventory pane does: the row
+-- under the cursor becomes the selection unless it is already part of a
+-- multi-selection, which is then kept. A stack header or a stack's main row
+-- stands for the whole stack. A click on empty space uses the current
+-- selection. Returns the menu's items and whether the selection changed.
+local function _rmbMenuItems(content, x, y, colIdx, colCs)
+    local sel = (colCs and colCs.selectedItems) or content._selectedItems
+    local stacksTbl = (colCs and colCs.stacks) or content._stacks
+    local zone = content:hitZoneAt(x, y)
+    local zid = zone and zone.id
+    local rep, clicked
+    if type(zid) == "string" then
+        if zid:sub(1, 6) == "stack:" then
+            -- stacks are keyed by their main item, not by the key string
+            local key = zid:sub(7)
+            for _, info in pairs(stacksTbl or {}) do
+                if info and info.key == key then
+                    rep, clicked = info.rep or (info.items and info.items[1]), info.items
+                    break
+                end
+            end
+        end
+    elseif zid ~= nil then
+        rep = zid
+        local stk = stacksTbl and stacksTbl[zid]
+        if stk and stk.count > 1 and stk.items then clicked = stk.items else clicked = { zid } end
+    end
+
+    local menuItems = {}
+    if not rep or not clicked then
+        for item in pairs(sel) do menuItems[#menuItems + 1] = item end
+        return menuItems, false
+    end
+
+    local selCount, clickedInSel = 0, false
+    for _ in pairs(sel) do selCount = selCount + 1 end
+    for _, it in ipairs(clicked) do
+        if sel[it] then clickedInSel = true; break end
+    end
+    if selCount > 1 and clickedInSel then
+        for item in pairs(sel) do menuItems[#menuItems + 1] = item end
+        return menuItems, false
+    end
+
+    -- Select the clicked row (same bookkeeping as a plain left-click)
+    for k in pairs(sel) do sel[k] = nil end
+    sel[rep] = true
+    if colCs then
+        colCs.lastClickedItem = rep
+        content._selectedItems = sel
+        content._activeCol = colIdx
+    end
+    content._lastClickedItem = rep
+    for _, it in ipairs(clicked) do menuItems[#menuItems + 1] = it end
+    return menuItems, true
 end
 
 local function enterMultiContainer(win, content)
@@ -551,6 +630,8 @@ local togglePinSkill
 local function _rebuildCharMCRingZones(win)
     local ring = win and win._focusRing
     if not ring then return end
+    -- the new zones start from this build: the per-frame refresh rebuilds them next frame
+    win._lastMCSnap = nil
 
     local focusedName = nil
     if win._focusIdx and ring[win._focusIdx] then
@@ -1340,6 +1421,71 @@ _buildCharacterMCColumnFocusables = function(win, slot)
     return elements
 end
 
+-- True when a Loot column's pad targets need rebuilding: its rows (the same
+-- items in the same order), scroll, view, row height, place or container
+-- changed since the last build. Records the new state when it says yes.
+-- No tables or strings are made on the frames where nothing changed.
+local function _charMCColumnDirty(win, slot, cs)
+    win._lastMCSnap = win._lastMCSnap or {}
+    local snap = win._lastMCSnap[slot]
+    local items = cs.flatItems or {}
+    local n = #items
+    local scrollPos = cs.scroll and cs.scroll.scrollPos
+    local yMap = cs.itemRenderYMap
+    local y1 = yMap and n > 0 and yMap[items[1]] or nil
+    local nToggles = cs.viewToggleRects and #cs.viewToggleRects or 0
+    if snap and snap.n == n and snap.scrollPos == scrollPos and snap.y1 == y1
+       and snap.gridCell == cs.gridCell and snap.renderX == cs.renderX
+       and snap.renderW == cs.renderW and snap.rowH == ZeD.T.rowH
+       and snap.containerIdx == cs.containerIdx and snap.nToggles == nToggles then
+        local same = true
+        local old = snap.items
+        for i = 1, n do
+            if old[i] ~= items[i] then same = false; break end
+        end
+        if same then return false end
+    end
+    local copy = {}
+    for i = 1, n do copy[i] = items[i] end
+    win._lastMCSnap[slot] = {
+        n = n, items = copy, scrollPos = scrollPos, y1 = y1,
+        gridCell = cs.gridCell, renderX = cs.renderX, renderW = cs.renderW,
+        rowH = ZeD.T.rowH, containerIdx = cs.containerIdx, nToggles = nToggles,
+    }
+    return true
+end
+
+-- Per-frame refresh of the Loot tab's per-column charMC<n> zones. Each column
+-- is rebuilt only when it changed (_charMCColumnDirty): rebuilding every column
+-- every frame made a table, an id string and four closures per row, for
+-- mouse players too. Focus is kept on the same item across a rebuild.
+local function _refreshCharMCZones(win, Focus)
+    if win._activeTab ~= "loot" then
+        win._lastMCSnap = nil  -- the zones are rebuilt on the way back
+        return
+    end
+    local mcSel = win._mcSelected or {}
+    local content = win._mainContent
+    local colStates = content and content._colStates
+    for slot = 1, #mcSel do
+        local cs = colStates and colStates[slot]
+        if not cs or _charMCColumnDirty(win, slot, cs) then
+            local newEls = _buildCharacterMCColumnFocusables(win, slot) or {}
+            local preserveIdx = 1
+            if #newEls > 0 and win._gpFocusedMCItem then
+                for i, el in ipairs(newEls) do
+                    if el.item == win._gpFocusedMCItem then
+                        preserveIdx = i
+                        break
+                    end
+                end
+            end
+            Focus.setRingZoneElements(win, "charMC" .. slot, newEls, preserveIdx)
+            Focus.setZoneFocusable   (win, "charMC" .. slot, #newEls > 0)
+        end
+    end
+end
+
 -- S99 — Item card action strip focusables. Delegates to the card organism
 -- which stamps live button rects (absolute screen coords) each frame via
 -- M14 drawActionStrip / M16 drawVerbStrip. Element order is FAV, PROTECT,
@@ -1787,12 +1933,15 @@ local function _buildHealthExerciseFocusables(win)
             id = "exercise:" .. tostring(z.id or i),
             exerciseId = z.id,
             enabled = z.enabled,
+            zone = z,
             onFocus = function(w, el)
                 w._gpFocusedExercise = el.exerciseId
             end,
+            -- A pill starts its exercise for the chosen time; the time row's
+            -- - and + step it (HealthTab.activateExerciseZone, shared with the mouse)
             onActivate = function(w, el)
-                if el.enabled and ZeD.HealthTab and ZeD.HealthTab._startExercise then
-                    ZeD.HealthTab._startExercise(w._playerObj, el.exerciseId)
+                if ZeD.HealthTab and ZeD.HealthTab.activateExerciseZone then
+                    ZeD.HealthTab.activateExerciseZone(w, el.zone)
                 end
             end,
         }
@@ -1870,6 +2019,33 @@ local function _buildHealthBodyPartFocusables(win)
         win._gpFocusedBodyPart = elements[1].partName
     end
     return elements
+end
+
+-- Mouse path to the same treatment menu: right-click on the body figure or an
+-- injury row opens vanilla's body-part menu (bandage, stitch, splint, remove
+-- glass or bullet, disinfect, poultice, clean burn), the gesture vanilla's
+-- health panel uses. Rows scrolled under the pinned header and the scrollbar
+-- do not count. Returns true when a part was hit.
+local function _healthTreatAt(win, panel, x, y)
+    if not (ZeD.HealthTab and ZeD.HealthTab._onPartClicked) then return false end
+    local fz = win._healthFigureZone
+    if fz and y < fz.y + fz.h then return false end
+    local sc = win._healthScroll
+    if sc and sc.visible and x >= sc.x then return false end
+    if win._healthFigureExpanded and win._healthBodyFigure then
+        local part = win._healthBodyFigure:hitTestAt(x, y)
+        if part then
+            ZeD.HealthTab._onPartClicked(win, part, panel, x, y)
+            return true
+        end
+    end
+    for _, z in ipairs(win._healthInjuryZones or {}) do
+        if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
+            ZeD.HealthTab._onPartClicked(win, z.bodyPartName, panel, x, y)
+            return true
+        end
+    end
+    return false
 end
 
 -- S103 — Health disclosure focusable (element[1] when expanded AND when
@@ -2641,6 +2817,97 @@ end
 
 local STRIP_SCROLL_ROW_H = 16  -- height of the bottom [^ v] scroll row
 
+-- Installs a freshly built bag list and keeps every choice on the same bag it
+-- was on, matched by its inventory rather than its place in the list (taking
+-- off a bag listed before another one used to switch the pane to the other
+-- bag). A viewed bag that is gone falls back to the main inventory; an active
+-- bag that is gone falls back to the main inventory and drops its selection;
+-- a multi-column bag that is gone loses its column.
+local function remapCharContainers(win, content, oldList, newList)
+    local function find(oldIdx)
+        local old = oldList and oldIdx and oldList[oldIdx]
+        if not old then return nil end
+        for i, c in ipairs(newList) do
+            if c.inventory == old.inventory then return i end
+        end
+        return nil
+    end
+    win._containers = newList
+
+    local active = find(win._activeContainer)
+    if active then
+        win._activeContainer = active
+    else
+        win._activeContainer = 1
+        content._inventory = newList[1].inventory
+        content._selectedItems = {}
+        content._lastClickedItem = nil
+    end
+    if win._viewedContainer then win._viewedContainer = find(win._viewedContainer) end
+
+    local mcOld = win._mcSelected
+    if mcOld and #mcOld > 0 then
+        local mcNew, moved = {}, false
+        for _, oldIdx in ipairs(mcOld) do
+            local i = find(oldIdx)
+            if i then mcNew[#mcNew + 1] = i end
+            if i ~= oldIdx then moved = true end
+        end
+        win._mcSelected = mcNew
+        -- Any column whose bag went away or changed place needs its column
+        -- state rebuilt; a bag that only shifted keeps its own scroll and
+        -- selection because its state is re-pointed at the new place first.
+        if moved then
+            if #mcNew == 0 then
+                exitMultiContainer(win, content)
+            else
+                for _, cs in ipairs(content._colStates or {}) do
+                    local newIdx = nil
+                    for i, c in ipairs(newList) do
+                        if c.inventory == cs.inventory then newIdx = i; break end
+                    end
+                    cs.containerIdx = newIdx
+                end
+                local colSel = {}
+                for _, ci in ipairs(mcNew) do colSel[#colSel + 1] = ci end
+                if win._mainVisible then colSel[#colSel + 1] = 1 end
+                content._selectedContainers = colSel
+                content._containers = newList
+                getR().rebuildColStates(content)
+                if #mcNew ~= #mcOld or (content._activeCol or 1) > #colSel then
+                    content._activeCol = #colSel
+                end
+            end
+            win._invDrawerTargetW = computeInvDrawerTarget(win)
+            if _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, content) end
+        end
+    end
+end
+
+-- Sorts the strip's display order in place: "wt" heaviest first, "type" by
+-- name, "dist" leaves the natural (or hand-dragged) order. The main inventory
+-- stays first. Each bag's weight is read once per sort, not once per compare.
+local function sortContainerOrder(containers, order, sortMode)
+    if sortMode == "wt" then
+        local wt = {}
+        for _, ci in ipairs(order) do
+            local inv = containers[ci] and containers[ci].inventory
+            wt[ci] = inv and inv:getCapacityWeight() or 0
+        end
+        table.sort(order, function(a, b)
+            if containers[a].isMain then return true end
+            if containers[b].isMain then return false end
+            return wt[a] > wt[b]
+        end)
+    elseif sortMode == "type" then
+        table.sort(order, function(a, b)
+            if containers[a].isMain then return true end
+            if containers[b].isMain then return false end
+            return (containers[a].name or "") < (containers[b].name or "")
+        end)
+    end
+end
+
 local function drawContainerStrip(self, win, content)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -2666,23 +2933,12 @@ local function drawContainerStrip(self, win, content)
         end
     end
 
-    -- Periodic container refresh (~every 30 frames)
+    -- Periodic container refresh (~every 30 frames). The active, viewed and
+    -- multi-column bags follow their bag, not their place in the list.
     win._containerTimer = (win._containerTimer or 0) + 1
     if win._containerTimer >= 30 then
         win._containerTimer = 0
-        win._containers = buildContainers(win._playerObj)
-        local found = false
-        for i, c in ipairs(win._containers) do
-            if i == win._activeContainer then found = true; break end
-        end
-        if not found then
-            win._activeContainer = 1
-            content._inventory = win._containers[1].inventory
-        end
-        -- Validate viewed container
-        if win._viewedContainer and not win._containers[win._viewedContainer] then
-            win._viewedContainer = nil
-        end
+        remapCharContainers(win, content, win._containers, buildContainers(win._playerObj))
 
         -- S115: refresh equipped radios + clamp browse index. Wave cache
         -- prunes against the new key set (entry.cacheKey is the equipped slot
@@ -2713,22 +2969,12 @@ local function drawContainerStrip(self, win, content)
         win._containerOrder = order
     end
     local sortMode = win._containerSortMode or "dist"
-    if sortMode == "wt" then
-        table.sort(order, function(a, b)
-            if containers[a].isMain then return true end
-            if containers[b].isMain then return false end
-            local wa = containers[a].inventory and containers[a].inventory:getCapacityWeight() or 0
-            local wb = containers[b].inventory and containers[b].inventory:getCapacityWeight() or 0
-            return wa > wb
-        end)
-    elseif sortMode == "type" then
-        table.sort(order, function(a, b)
-            if containers[a].isMain then return true end
-            if containers[b].isMain then return false end
-            return (containers[a].name or "") < (containers[b].name or "")
-        end)
+    -- Re-sort only when the list just refreshed (every 30 frames, above), the
+    -- order was rebuilt or the sort mode changed, not every frame
+    if win._containerTimer == 0 or win._sortedOrder ~= order or win._sortedMode ~= sortMode then
+        win._sortedOrder, win._sortedMode = order, sortMode
+        sortContainerOrder(containers, order, sortMode)
     end
-    -- "dist" = natural order, no sort
 
     -- Strip background provided by ZeD_Window body — no redundant fill
     -- Left border
@@ -3918,7 +4164,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
         -- Dynamic min/max
-        win.minimumWidth = T.px(TAB_STRIP_W) + effectiveW + (win._invDrawerOpen and not win._rolled and T.px(200) or 0) + cStripW
+        -- (never above the maximum, so a resize drag and the cap above agree)
+        win.minimumWidth = math.min(maxW, T.px(TAB_STRIP_W) + effectiveW + (win._invDrawerOpen and not win._rolled and T.px(200) or 0) + cStripW)
         win.maximumWidth = maxW
 
         -- ── MC eviction: check columns fit at MIN_COL_W ──────────
@@ -4234,9 +4481,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
         return true
     end
 
-    -- NOTE: health figure right-click → treatment menu is in backlog.
-    -- ISPanel child dispatch + manual isMouseButtonDown both failed to detect clicks.
-
     drawer.onMouseDown = function(self, x, y)
         if win._drawerMode == "tab" then
             -- S115: radio tab routing — delegate to RadioTab.onClick which
@@ -4436,12 +4680,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     return true
                 end
             end
-            -- Health exercise button click detection
+            -- Health exercise pills and the session time's - / + buttons
             if win._activeTab == "health" and win._healthExerciseZones then
                 for _, zone in ipairs(win._healthExerciseZones) do
                     if zone.enabled and x >= zone.x and x <= zone.x + zone.w
                        and y >= zone.y and y <= zone.y + zone.h then
-                        ZeD.HealthTab._startExercise(win._playerObj, zone.id)
+                        ZeD.HealthTab.activateExerciseZone(win, zone)
                         return true
                     end
                 end
@@ -4576,6 +4820,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- inventory rows use — gives Drop / Wear / Read / Repair / etc. on the
     -- equipped item.
     drawer.onRightMouseUp = function(self, x, y)
+        -- Health: the body figure or an injury row opens vanilla's treatment menu
+        if win._activeTab == "health" and win._drawerMode == "tab" then
+            _healthTreatAt(win, self, x, y)
+            return true
+        end
         if win._activeTab == "equip" and win._drawerMode == "tab"
            and not win._equipSelected and win._equipBeltZones and ZeD.Belt then
             for _, zone in ipairs(win._equipBeltZones) do
@@ -5280,24 +5529,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- Each MC selection has its own ring zone; loop and refresh elements.
         -- Identity-preserve via _gpFocusedMCItem (per-zone preserveIdx). Ring
         -- structure (zone count) updated by _rebuildCharMCRingZones on MC
-        -- toggle, not here.
-        if Focus and win._focusRing and win._activeTab == "loot" then
-            local mcSel = win._mcSelected or {}
-            for slot = 1, #mcSel do
-                local zoneName = "charMC" .. slot
-                local newEls = _buildCharacterMCColumnFocusables(win, slot) or {}
-                local preserveIdx = 1
-                if #newEls > 0 and win._gpFocusedMCItem then
-                    for i, el in ipairs(newEls) do
-                        if el.item == win._gpFocusedMCItem then
-                            preserveIdx = i
-                            break
-                        end
-                    end
-                end
-                Focus.setRingZoneElements(win, zoneName, newEls, preserveIdx)
-                Focus.setZoneFocusable   (win, zoneName, #newEls > 0)
-            end
+        -- toggle, not here. Only changed columns rebuild (_refreshCharMCZones).
+        if Focus and win._focusRing then
+            _refreshCharMCZones(win, Focus)
         end
 
         if Focus and win._focusRing and (
@@ -5450,6 +5684,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             local brd = T.border
             self:drawRect(win._dividerX, 0, T.px(1), self:getHeight(), 1, brd.r, brd.g, brd.b)
         end
+        saveCharStateThrottled(self)  -- keep the remembered layout current (about once a second)
     end
 
     -- Curtain (WindowCurtain.lua): the inventory side (right of the drawer)
@@ -5859,46 +6094,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if self._drag:isActive() or self._drag:isPending() then return true end
 
         local colIdx, colCs = getColumnAtX(self, x)
-        local sel = (colCs and colCs.selectedItems) or self._selectedItems
         local inv = (colCs and colCs.inventory) or self._inventory
 
-        -- Build context menu items: use current selection, or the clicked item transiently
-        -- Don't change the persistent selection — RMB is context menu only
-        local zone = self:hitZoneAt(x, y)
-        local menuItems = {}
-        local hasSelection = false
-        for _ in pairs(sel) do hasSelection = true; break end
-
-        if hasSelection then
-            for item, _ in pairs(sel) do menuItems[#menuItems + 1] = item end
-        elseif zone and type(zone.id) == "string" and zone.id:sub(1, 6) == "stack:" then
-            -- S100: right-click on a stack header → target the full stack.
-            local key = zone.id:sub(7)
-            local stacksTbl = (colCs and colCs.stacks) or self._stacks
-            local stk = stacksTbl and stacksTbl[key]
-            -- stacks is keyed by REP item, not key string. Iterate to find.
-            if not stk then
-                for _, info in pairs(stacksTbl or {}) do
-                    if info and info.key == key then stk = info; break end
-                end
-            end
-            if stk and stk.items then
-                for _, it in ipairs(stk.items) do
-                    menuItems[#menuItems + 1] = it
-                end
-            end
-        elseif zone and type(zone.id) ~= "string" then
-            -- S100: clicking a stack rep's non-chevron area also targets the full stack.
-            local stacksTbl = (colCs and colCs.stacks) or self._stacks
-            local stk = stacksTbl and stacksTbl[zone.id]
-            if stk and stk.count > 1 then
-                for _, it in ipairs(stk.items) do
-                    menuItems[#menuItems + 1] = it
-                end
-            else
-                menuItems[#menuItems + 1] = zone.id
-            end
-        end
+        -- The menu acts on the row under the cursor, as in vanilla: a row that
+        -- is not already selected becomes the selection first (see _rmbMenuItems).
+        local menuItems, reselected = _rmbMenuItems(self, x, y, colIdx, colCs)
+        if reselected then updateDrawer(self) end
 
         if #menuItems == 0 then return true end
 
@@ -6031,6 +6232,49 @@ Events.OnPlayerDeath.Add(function(playerObj)
     end)
 end)
 
+-- A respawned character is a new player object with empty modData, so it would
+-- open both windows at their default place and size. The dead character's
+-- remembered layout (ZeD_WinState: position, size, tab, accent of each window)
+-- is kept in memory and handed to the new character when it has none of its
+-- own. Registered once; everything lives on one ZeD field, so no new local
+-- names are added to this big file's main chunk. The stash
+-- is taken after the listener above has closed the windows, so it holds their
+-- final layout, and is dropped on leaving to the main menu so it never reaches
+-- a character in another save.
+if not ZeD._winStateCarry then
+    ZeD._winStateCarry = { stash = nil }
+    function ZeD._winStateCarry.copy(src)
+        if type(src) ~= "table" then return src end
+        local out = {}
+        for k, v in pairs(src) do out[k] = ZeD._winStateCarry.copy(v) end
+        return out
+    end
+    Events.OnPlayerDeath.Add(function(playerObj)
+        pcall(function()
+            if playerObj:getPlayerNum() ~= 0 then return end
+            local md = playerObj:getModData()
+            ZeD._winStateCarry.stash = md.ZeD_WinState and ZeD._winStateCarry.copy(md.ZeD_WinState) or nil
+        end)
+    end)
+    Events.OnCreatePlayer.Add(function(playerNum)
+        if playerNum ~= 0 then return end
+        pcall(function()
+            local stash = ZeD._winStateCarry.stash
+            if not stash then return end
+            local p = getSpecificPlayer(0)
+            if not p then return end
+            local md = p:getModData()
+            if md.ZeD_WinState == nil then
+                md.ZeD_WinState = ZeD._winStateCarry.copy(stash)
+            end
+            ZeD._winStateCarry.stash = nil
+        end)
+    end)
+    if Events.OnMainMenuEnter then
+        Events.OnMainMenuEnter.Add(function() ZeD._winStateCarry.stash = nil end)
+    end
+end
+
 -- The inventory key (kept on the module so QA can press it). In safe mode the
 -- game's own handler answers it.
 function ZeD_CharacterWindow._onKeyPressed(key)
@@ -6097,16 +6341,29 @@ end)
 -- the vanilla collapsed strips at the top of the screen until the player
 -- pressed the inventory key. The pages are created on OnCreatePlayer, so a
 -- short OnTick retry covers any ordering difference between builds.
+-- A respawn rebuilds those pages (vanilla's OnCreatePlayer) without a new
+-- OnGameStart, and both ZeD windows closed on the death, so the retry is armed
+-- again whenever player one is created. Listener order is not fixed, so it
+-- keeps hiding for a short while after it first finds a page (the old page
+-- may still be the one it finds first), then stops.
 -- ============================================================================
-Events.OnGameStart.Add(function()
-    local tries = 0
-    local function hideOnce()
-        tries = tries + 1
-        local vi = getPlayerInventory(0)
-        if vi or tries >= 120 then
-            if vi then _hideVanilla() end
-            Events.OnTick.Remove(hideOnce)
-        end
+local _hideTries, _hideSeen = 0, 0
+local function _hideVanillaTick()
+    _hideTries = _hideTries + 1
+    if getPlayerInventory(0) then
+        _hideVanilla()
+        _hideSeen = _hideSeen + 1
     end
-    Events.OnTick.Add(hideOnce)
+    if _hideSeen >= 30 or _hideTries >= 120 then
+        Events.OnTick.Remove(_hideVanillaTick)
+    end
+end
+local function _armHideVanilla()
+    _hideTries, _hideSeen = 0, 0
+    Events.OnTick.Remove(_hideVanillaTick)
+    Events.OnTick.Add(_hideVanillaTick)
+end
+Events.OnGameStart.Add(_armHideVanilla)
+Events.OnCreatePlayer.Add(function(playerNum)
+    if playerNum == 0 then _armHideVanilla() end
 end)

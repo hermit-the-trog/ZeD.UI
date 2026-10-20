@@ -186,60 +186,85 @@ function ZeD_Window:clearStencilRect()
     return ISPanel.clearStencilRect(self)
 end
 
+-- The palette a window with its own accent draws in, built once per base theme and
+-- accent (both tables are fixed) rather than blended again every frame
+local accentPalettes = {}
+local function windowAccentPalette(baseKey, accentKey)
+    local ck = baseKey .. "|" .. accentKey
+    local p = accentPalettes[ck]
+    if p then return p end
+    local accentSet = ZeD.AccentColors[accentKey]
+    local variant = baseKey == "light" and accentSet.light or accentSet.dark
+    local pac = variant.accent
+    p = {
+        accent       = variant.accent,
+        accentBright = variant.bright,
+        hover        = variant.hover,
+        textOnAccent = variant.textOnAccent,
+        toneHi       = { r=pac.r, g=pac.g, b=pac.b, a=0.90 },
+        toneLo       = { r=pac.r, g=pac.g, b=pac.b, a=0.50 },
+        accentDim    = { r=pac.r, g=pac.g, b=pac.b, a=0.55 },
+    }
+    p.textSec = p.toneLo
+    -- Re-tint surfaces with this window's accent (none: the base theme's own)
+    local base = ZeD.BaseThemes[baseKey]
+    if accentKey ~= "mono" then
+        local TINT = 0.03
+        local ac = baseKey == "light" and variant.bright or variant.accent
+        local blend = ZeD.colorBlend
+        p.base    = blend(base.base, ac, TINT)
+        p.surf1   = blend(base.surf1, ac, TINT)
+        p.surf2   = blend(base.surf2, ac, TINT)
+        p.surf3   = blend(base.surf3, ac, TINT)
+        p.surf4   = blend(base.surf4, ac, TINT)
+        p.border  = blend(base.border, ac, TINT)
+        p.borderS = blend(base.borderS, ac, TINT)
+        p.text     = blend(base.text, ac, TINT * 0.5)
+        p.textHead = blend(base.textHead, ac, TINT * 0.5)
+    else
+        p.base = base.base;  p.surf1 = base.surf1; p.surf2 = base.surf2
+        p.surf3 = base.surf3; p.surf4 = base.surf4
+        p.border = base.border; p.borderS = base.borderS
+        p.text = base.text; p.textHead = base.textHead
+    end
+    accentPalettes[ck] = p
+    return p
+end
+
 function ZeD_Window:_drawFrame()
     local T = ZeD.T
 
     -- Per-window accent override: swap ZeD.T accent + tinted surface fields for this render cycle
-    if self._accentKey and ZeD.AccentColors[self._accentKey] then
-        local accentSet = ZeD.AccentColors[self._accentKey]
-        local variant = ZeD.currentBase == "light" and accentSet.light or accentSet.dark
-        self._savedAccent = {
-            accent       = T.accent,
-            accentBright = T.accentBright,
-            hover        = T.hover,
-            textOnAccent = T.textOnAccent,
-            textSec      = T.textSec,
-            toneHi       = T.toneHi,
-            toneLo       = T.toneLo,
-            accentDim    = T.accentDim,
-            base = T.base, surf1 = T.surf1, surf2 = T.surf2,
-            surf3 = T.surf3, surf4 = T.surf4,
-            border = T.border, borderS = T.borderS,
-            text = T.text, textHead = T.textHead,
-        }
-        T.accent       = variant.accent
-        T.accentBright = variant.bright
-        T.hover        = variant.hover
-        T.textOnAccent = variant.textOnAccent
-        -- Rebuild 3-tone tokens from the per-window accent
-        local pac = variant.accent
-        T.toneHi   = { r=pac.r, g=pac.g, b=pac.b, a=0.90 }
-        T.toneLo   = { r=pac.r, g=pac.g, b=pac.b, a=0.50 }
-        T.accentDim = { r=pac.r, g=pac.g, b=pac.b, a=0.55 }
-        T.textSec  = T.toneLo
-        -- Re-tint surfaces with this window's accent
-        local isLight = ZeD.currentBase == "light"
-        local TINT = isLight and 0.03 or 0.03
-        if self._accentKey ~= "mono" then
-            local base = ZeD.BaseThemes[ZeD.currentBase]
-            local ac = isLight and variant.bright or variant.accent
-            local blend = ZeD.colorBlend
-            T.base    = blend(base.base, ac, TINT)
-            T.surf1   = blend(base.surf1, ac, TINT)
-            T.surf2   = blend(base.surf2, ac, TINT)
-            T.surf3   = blend(base.surf3, ac, TINT)
-            T.surf4   = blend(base.surf4, ac, TINT)
-            T.border  = blend(base.border, ac, TINT)
-            T.borderS = blend(base.borderS, ac, TINT)
-            T.text     = blend(base.text, ac, TINT * 0.5)
-            T.textHead = blend(base.textHead, ac, TINT * 0.5)
-        else
-            local base = ZeD.BaseThemes[ZeD.currentBase]
-            T.base = base.base;  T.surf1 = base.surf1; T.surf2 = base.surf2
-            T.surf3 = base.surf3; T.surf4 = base.surf4
-            T.border = base.border; T.borderS = base.borderS
-            T.text = base.text; T.textHead = base.textHead
-        end
+    if self._accentKey and ZeD.AccentColors[self._accentKey] and ZeD.BaseThemes[ZeD.currentBase] then
+        local pal = windowAccentPalette(ZeD.currentBase, self._accentKey)
+        -- the global values are kept in a table this window reuses (restored in _restoreAccent)
+        local s = self._accentStore
+        if not s then s = {}; self._accentStore = s end
+        s.accent       = T.accent
+        s.accentBright = T.accentBright
+        s.hover        = T.hover
+        s.textOnAccent = T.textOnAccent
+        s.textSec      = T.textSec
+        s.toneHi       = T.toneHi
+        s.toneLo       = T.toneLo
+        s.accentDim    = T.accentDim
+        s.base = T.base; s.surf1 = T.surf1; s.surf2 = T.surf2
+        s.surf3 = T.surf3; s.surf4 = T.surf4
+        s.border = T.border; s.borderS = T.borderS
+        s.text = T.text; s.textHead = T.textHead
+        self._savedAccent = s
+        T.accent       = pal.accent
+        T.accentBright = pal.accentBright
+        T.hover        = pal.hover
+        T.textOnAccent = pal.textOnAccent
+        T.toneHi       = pal.toneHi
+        T.toneLo       = pal.toneLo
+        T.accentDim    = pal.accentDim
+        T.textSec      = pal.textSec
+        T.base = pal.base; T.surf1 = pal.surf1; T.surf2 = pal.surf2
+        T.surf3 = pal.surf3; T.surf4 = pal.surf4
+        T.border = pal.border; T.borderS = pal.borderS
+        T.text = pal.text; T.textHead = pal.textHead
     end
 
     local w = self:getWidth()
@@ -678,18 +703,27 @@ end
 function ZeD_Window:update()
     ISPanel.update(self)
 
+    -- These controls poll the raw mouse, so each one has to tell a press that began on
+    -- it from a button that was already down when the pointer arrived (a drag released
+    -- over the close box, a held button crossing the grow box) and from a press that
+    -- landed on another window drawn above this one. `fresh` is the frame the button
+    -- went down; the squares and boxes arm on that frame only, while isMouseOver says
+    -- no window above holds the pointer (the engine's own picking, as for a click).
+    local down = isMouseButtonDown(0)
+    local fresh = down and not self._uiPrevDown
+    self._uiPrevDown = down
+
     -- Close box hit-testing (absolute coords, same pattern as grow box)
     if self._closeBtnRect and not self._closeOnRod then
         local cb = self:closeRect()
         local mx = getMouseX() - self:getAbsoluteX()
         local my = getMouseY() - self:getAbsoluteY()
         local inside = mx >= cb.x and mx <= cb.x + cb.w and my >= cb.y and my <= cb.y + cb.h
+        if inside and not self:isMouseOver() then inside = false end
         self._closeHover = inside
 
-        if inside and isMouseButtonDown(0) then
-            if not self._closeWasDown then
-                self._closeWasDown = true
-            end
+        if down then
+            if fresh and inside then self._closeWasDown = true end
         elseif self._closeWasDown then
             self._closeWasDown = false
             if inside then
@@ -718,15 +752,15 @@ function ZeD_Window:update()
                 break
             end
         end
+        if newHover and not self:isMouseOver() then newHover = nil end   -- another window is over it
         self._themeControlHover = newHover
 
-        if newHover and isMouseButtonDown(0) then
-            if not self._themeControlWasDown then
-                self._themeControlWasDown = true
-            end
+        if down then
+            if fresh and newHover then self._themeControlWasDown = newHover end   -- which square the press began on
         elseif self._themeControlWasDown then
+            local armed = self._themeControlWasDown
             self._themeControlWasDown = false
-            if newHover and ZeD.Settings then
+            if newHover and newHover == armed and ZeD.Settings then
                 local S = ZeD.Settings
                 if newHover == 1 then
                     ZeD.applyTheme(S.cycleNext(S.baseKeys, ZeD.currentBase), nil, nil)
@@ -737,8 +771,16 @@ function ZeD_Window:update()
                     S.syncToModOptions()
                 elseif newHover == 2 then
                     -- Per-window accent: cycle this window's _accentKey independently
-                    local currentKey = self._accentKey or ZeD.currentAccent
-                    self._accentKey = S.cycleNext(S.accentKeys, currentKey)
+                    -- (the cycle runs through the colours, then a step that follows
+                    -- the Accent color option, which is where a window starts)
+                    local keys, curKey = S.accentKeys, self._accentKey
+                    if curKey == nil then
+                        self._accentKey = keys[1]
+                    elseif curKey == keys[#keys] then
+                        self._accentKey = nil
+                    else
+                        self._accentKey = S.cycleNext(keys, curKey)
+                    end
                     -- Persist per-window accent to modData + ModOptions
                     S.syncWindowAccent(self)
                 elseif newHover == 3 then
@@ -749,7 +791,7 @@ function ZeD_Window:update()
                     local T = ZeD.T
                     local screenW = getCore():getScreenWidth()
                     local screenH = getCore():getScreenHeight()
-                    local defW = math.min(T.px(436), math.floor(screenW * 0.5))
+                    local defW = math.min(T.px(444), math.floor(screenW * 0.5))   -- 36 + 372 + 36 design units, as a fresh open
                     local defH = math.min(T.px(420), screenH - T.px(80))
                     local gap = T.px(5)  -- 5px each side = 10px total gap
 
@@ -772,12 +814,13 @@ function ZeD_Window:update()
                         charWin._prevEffW   = 0
                         charWin._drawerMode = nil
                         charWin._accentKey = nil
+                        S.syncWindowAccent(charWin)   -- the option, the next open and the saved copy follow
                         -- Reset inventory drawer state (S78 two-drawer)
                         charWin._invDrawerOpen    = true
-                        charWin._invDrawerEffW    = defW - T.px(28) - T.px(36)  -- invW = defW minus strips
-                        charWin._invDrawerTargetW = defW - T.px(28) - T.px(36)
+                        charWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
+                        charWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
                         charWin._prevDesiredW     = nil
-                        charWin._baseInvW         = (defW - T.px(28) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
+                        charWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
                         -- Clear MC
                         charWin._mcSelected = {}
                         charWin._mcColStates = {}
@@ -802,12 +845,13 @@ function ZeD_Window:update()
                         worldWin._prevEffW   = 0
                         worldWin._drawerMode = nil
                         worldWin._accentKey = nil
+                        S.syncWindowAccent(worldWin)
                         -- Reset inventory drawer state (S78 two-drawer)
                         worldWin._invDrawerOpen    = true
-                        worldWin._invDrawerEffW    = defW - T.px(36) - T.px(28)  -- invW = defW minus strips
-                        worldWin._invDrawerTargetW = defW - T.px(36) - T.px(28)
+                        worldWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
+                        worldWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
                         worldWin._prevDesiredW     = nil
-                        worldWin._baseInvW         = (defW - T.px(36) - T.px(28)) / (T.scale or 1)  -- S124 scale: design units, as above
+                        worldWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: design units, as above
                         -- Clear MC
                         worldWin._mcSelected = {}
                         worldWin._mainVisible = true
@@ -838,12 +882,14 @@ function ZeD_Window:update()
 
     if self._resizing then return end  -- already resizing, handled by onMouseMove
 
-    -- Only start resize on fresh mouse-down
-    if not isMouseButtonDown(0) then
+    -- Only start resize on fresh mouse-down: a button already held when the pointer
+    -- reaches the corner (a drag from another window) never starts one, nor does a
+    -- press that landed on a window above this one
+    if not down then
         self._growBoxWasDown = false
         return
     end
-    if self._growBoxWasDown then return end  -- already processed this press
+    if not fresh or not self:isMouseOver() then return end
 
     local mx = getMouseX() - self:getAbsoluteX()
     local my = getMouseY() - self:getAbsoluteY()

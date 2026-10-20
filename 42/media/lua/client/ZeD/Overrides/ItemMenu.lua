@@ -52,20 +52,23 @@ local function onMove(items, dest, pn)
     local playerObj = getSpecificPlayer(pn)
     if not playerObj then return end
     if dest:getType() ~= "floor" and not luautils.walkToContainer(dest, pn) then return end
-    local keep = {}
+    -- Like vanilla's onMoveItemsTo, a favourite moves when the player asks for it by
+    -- name. Which destinations are offered for a favourite is decided in addMoveTo.
     for _, it in ipairs(items) do
-        if not it:isFavorite() then
-            if playerObj:isEquipped(it) then ISTimedActionQueue.add(ISUnequipAction:new(playerObj, it, 50)) end
-            keep[#keep + 1] = it
-        end
+        if playerObj:isEquipped(it) then ISTimedActionQueue.add(ISUnequipAction:new(playerObj, it, 50)) end
     end
-    CT.moveItems(playerObj, keep, dest)
+    CT.moveItems(playerObj, items, dest)
 end
 
 local function addMoveTo(context, playerObj, pn, items)
     local dests = {}
+    local anyFav = false
+    for _, it in ipairs(items) do if it:isFavorite() then anyFav = true; break end end
     local function add(name, inv)
-        if inv and not allIn(items, inv) then dests[#dests + 1] = { name = name, inv = inv } end
+        -- vanilla's canMoveTo rule: a favourite is not offered a place outside your own inventory
+        if not inv then return end
+        if anyFav and not inv:isInCharacterInventory(playerObj) then return end
+        if not allIn(items, inv) then dests[#dests + 1] = { name = name, inv = inv } end
     end
     local wInv, wName = worldActive()
     add(wName or txt("ContextMenu_MoveToContainer", "Container"), wInv)

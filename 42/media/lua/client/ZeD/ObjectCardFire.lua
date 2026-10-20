@@ -115,15 +115,25 @@ local function fuelRows(info, current, max, player)
     table.sort(list, function(a, b)
         return ISCampingMenu.getFuelDurationForItem(a) > ISCampingMenu.getFuelDurationForItem(b)
     end)
+    local totalN, totalDur = 0, 0
     for _, it in ipairs(list) do
         local count = info.itemCount[it:getName()] or 1
         local dur = ISCampingMenu.getFuelDurationForItem(it) or 0
+        -- vanilla's cap loop: as many of this type as the fire still holds
+        local fitN = count
+        while current + dur * fitN > max and fitN > 1 do fitN = fitN - 1 end
+        totalN = totalN + count
+        totalDur = totalDur + dur * count
         rows[#rows + 1] = {
             item = it, fullType = it:getFullType(), name = it:getName() .. (count > 1 and (" x" .. tostring(count)) or ""),
+            baseName = it:getName(),
             tex = it:getTex(), where = OC.whereOf(it, player), dur = dur, count = count,
             fits = current + dur <= max,
+            fitN = fitN, allFits = (fitN == count),
         }
     end
+    -- the all-types total (vanilla's "All (N)" across the list)
+    rows.totalN, rows.totalDur = totalN, totalDur
     return rows
 end
 
@@ -213,6 +223,15 @@ function def.refresh(t, player)
     local addAction = (t.kind == "campfire") and ISAddFuelAction or ISBBQAddFuel
     t.addFuel = function(p, row)
         ISCampingMenu.onAddFuel(p, t.obj, row.fullType, addAction, d.fuel)
+    end
+    -- vanilla's bulk adds: every one of a type that fits (or all that fit),
+    -- and everything on the list. The capped count is passed explicitly
+    -- because vanilla only checks the cap per item, not across the batch.
+    t.addFuelMany = function(p, row)
+        ISCampingMenu.onAddMultipleFuel(p, t.obj, row.fullType, addAction, d.fuel, (not row.allFits) and row.fitN or nil)
+    end
+    t.addFuelAll = function(p)
+        ISCampingMenu.onAddAllFuel(p, t.obj, addAction, d.fuel)
     end
     local petrolA = (t.kind == "campfire") and ISLightFromPetrol or ISBBQLightFromPetrol
     local tinderA = (t.kind == "campfire") and ISLightFromLiterature or ISBBQLightFromLiterature
@@ -344,7 +363,20 @@ local function fireBody(card, x, y, w, t, player)
 
     if #d.fuelRows > 0 then
         y = y + UI.section(card, x, y, w, "ADD FUEL FROM YOUR BAGS", "ADDS")
-        for i, r in ipairs(d.fuelRows) do
+        local rows = d.fuelRows
+        -- one button for everything on the list, when more than one piece
+        -- is carried and the whole lot fits (vanilla's "All")
+        if #rows > 1 and (rows.totalN or 0) > 1 then
+            local lotFits = d.fuel + rows.totalDur <= d.max
+            y = y + UI.pick(card, x, y, w, {
+                tex = rows[1].tex, name = "All fuel (" .. tostring(rows.totalN) .. ")",
+                gain = "+" .. OC.hm(rows.totalDur),
+                tag = (not lotFits) and "FULL" or nil, tagC = T.textDim,
+                button = "ADD ALL", fid = "fire:fuelall", enabled = lotFits,
+                run = function(c, p) t.addFuelAll(p) end,
+            })
+        end
+        for i, r in ipairs(rows) do
             local rr = r
             local gain = "+" .. OC.hm(r.dur) .. (r.count > 1 and " each" or "")
             y = y + UI.pick(card, x, y, w, {
@@ -353,6 +385,16 @@ local function fireBody(card, x, y, w, t, player)
                 button = "ADD", fid = "fire:fuel:" .. i, enabled = r.fits,
                 run = function(c, p) t.addFuel(p, rr) end,
             })
+            -- several of this type: add all of them, or all that fit
+            if r.fitN > 1 then
+                y = y + UI.pick(card, x, y, w, {
+                    tex = r.tex,
+                    name = r.baseName .. ": " .. (r.allFits and "all" or "all that fit") .. " (" .. tostring(r.fitN) .. ")",
+                    gain = "+" .. OC.hm(r.dur * r.fitN),
+                    button = "ADD ALL", fid = "fire:fuelmany:" .. i, enabled = r.fits,
+                    run = function(c, p) t.addFuelMany(p, rr) end,
+                })
+            end
         end
         y = y + gap
     end

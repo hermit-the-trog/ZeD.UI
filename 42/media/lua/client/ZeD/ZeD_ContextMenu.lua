@@ -140,6 +140,7 @@ function ZeD_ContextMenu:open()
             if setJoypadFocus then setJoypadFocus(self.player, self) end
         end)
     end
+    self:setWantKeyEvents(true)
     self:addToUIManager()
     -- setAlwaysOnTop doesn't exist on ISPanel; bringToTop is the right call.
     pcall(function() self:bringToTop() end)
@@ -749,8 +750,9 @@ function ZeD_ContextMenu:onRightMouseDownOutside(x, y)
 end
 
 function ZeD_ContextMenu:onMouseUpOutside(x, y)
-    -- Click outside the menu closes it
-    self:cancel()
+    -- Click outside the menu closes it outright, from any submenu depth
+    -- (Esc and gamepad B still step back one level through cancel)
+    self:close()
 end
 
 -- Scroll wheel inside the menu advances the selection (bonus mouse affordance)
@@ -799,6 +801,15 @@ function ZeD_ContextMenu:onJoypadDirRight(joypadData) self:next() end
 -- ============================================================================
 -- KEYBOARD INPUT (spec §5)
 -- ============================================================================
+
+-- The keys the strip takes, so the game does not also act on them (Escape
+-- would otherwise open the pause menu over the strip). Built once at load.
+local NAV = {}
+if Keyboard then
+    NAV = { [Keyboard.KEY_LEFT] = true, [Keyboard.KEY_RIGHT] = true, [Keyboard.KEY_RETURN] = true,
+            [Keyboard.KEY_ESCAPE] = true, [Keyboard.KEY_BACK] = true, [Keyboard.KEY_TAB] = true }
+end
+function ZeD_ContextMenu:isKeyConsumed(key) return NAV[key] == true end
 
 function ZeD_ContextMenu:onKeyPress(key)
     if     key == Keyboard.KEY_LEFT   then self:prev()

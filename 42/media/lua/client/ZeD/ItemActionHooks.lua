@@ -153,6 +153,10 @@ end)
 -- the per-character reading-handler in IsoGameCharacter). Detect via
 -- :isReading() and resolve the book via :getReadingItem() / :getReadBook().
 local _readActiveItem = {}  -- pn → item currently being read
+local _readScanTick = {}    -- pn → ticks since the inventory was last scanned for the book
+local READ_RESCAN = 30      -- the book found is trusted this many ticks before looking again
+local READ_PROBES = { "getReadingItem", "getReadBook", "getCurrentReadingItem",
+                      "getLastReadBook", "getReadCharacter" }
 
 local function _pollReadingFallback(p)
     if not p or not p.isReading then return end
@@ -167,9 +171,7 @@ local function _pollReadingFallback(p)
         --    (Reading actions equip the book to a hand for the duration.)
         local book = nil
         local probeName = nil
-        for _, method in ipairs({"getReadingItem", "getReadBook",
-                                  "getCurrentReadingItem", "getLastReadBook",
-                                  "getReadCharacter"}) do
+        for _, method in ipairs(READ_PROBES) do
             if not book and p[method] then
                 local ok2, b = pcall(p[method], p)
                 if ok2 and b then book = b; probeName = method end
@@ -191,6 +193,18 @@ local function _pollReadingFallback(p)
         -- equip the book during reading. If multiple Lit items exist, prefer
         -- the one currently displayed in any open ItemCard (matches user
         -- intent — they opened the card for the book they're reading).
+        -- The scan is the costly step, so once a book has been found it is
+        -- kept for a while instead of being searched for again every tick
+        -- (progress still updates every tick below).
+        if not book and _readActiveItem[pn] then
+            local t = (_readScanTick[pn] or 0) + 1
+            if t < READ_RESCAN then
+                _readScanTick[pn] = t
+                book = _readActiveItem[pn]; probeName = "kept"
+            else
+                _readScanTick[pn] = 0
+            end
+        end
         if not book and p.getInventory then
             local ok2, inv = pcall(p.getInventory, p)
             if ok2 and inv and inv.getItems then
@@ -266,6 +280,7 @@ local function _pollReadingFallback(p)
             _safeNotify(prev, "complete", nil)
             _readActiveItem[pn] = nil
         end
+        _readScanTick[pn] = nil
     end
 end
 

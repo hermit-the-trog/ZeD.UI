@@ -95,10 +95,14 @@ local function isEscape(key)
     return ok and r or false
 end
 
+-- the handler that was current when ZeD stepped in (vanilla's, or another mod's
+-- wrapper of it): ZeD's onKey passes every key on to it
+local previousToggle = nil
+
 local function onKey(key)
     -- safe mode: the keys are vanilla's pause menu toggle's alone, as before ZeD
     if ZeD.Safe.on() then
-        if ToggleEscapeMenu then return ToggleEscapeMenu(key) end
+        if previousToggle then return previousToggle(key) end
         return
     end
     local P = ZeD and ZeD.Prompt
@@ -116,15 +120,21 @@ local function onKey(key)
     if not pauseUp and isEscape(key) and ZeD.EscapeTakers then
         for _, take in pairs(ZeD.EscapeTakers) do if take() then return end end
     end
-    if ToggleEscapeMenu then return ToggleEscapeMenu(key) end
+    if previousToggle then return previousToggle(key) end
 end
 
+-- ZeD's handler becomes ToggleEscapeMenu itself, with the one that was current
+-- behind it. A mod that loads later and wraps the global in the usual way
+-- (remove it from the event, replace it, add the wrapper) then wraps ZeD's
+-- handler and the chain stays single: the pause menu cannot toggle twice.
 local function hookKeys()
     if _G._zedPromptKeys then return end
     if not (ToggleEscapeMenu and Events and Events.OnKeyPressed and Events.OnKeyPressed.Remove) then return end
     _G._zedPromptKeys = true
-    Events.OnKeyPressed.Remove(ToggleEscapeMenu)
-    Events.OnKeyPressed.Add(onKey)
+    previousToggle = ToggleEscapeMenu
+    Events.OnKeyPressed.Remove(previousToggle)
+    ToggleEscapeMenu = onKey
+    Events.OnKeyPressed.Add(ToggleEscapeMenu)
 end
 
 local function apply()

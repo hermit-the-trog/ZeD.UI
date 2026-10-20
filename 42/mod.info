@@ -2,5 +2,5 @@ name=ZeD-GUI
 id=ZeD_UI
 description=Total UI overhaul for Project Zomboid. System 7.1.2 inspired interface with full theming support. Custom fonts (Fira Mono + Fira Sans), 988-entry context menu icon map covering 100% of vanilla ContextMenu_* and Fluid_* keys.
 modversion=0.1.1242300k
-versionMin=42.0.2
+versionMin=42.17.0
 author=ZeD Team

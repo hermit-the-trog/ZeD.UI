@@ -311,6 +311,23 @@ local function collectParts(v, chr)
     return list
 end
 
+-- The part models for the overview, rebuilt about four times a second (and
+-- right after an action) instead of every frame: each one reads a handful of
+-- Java getters and builds strings.
+local PARTS_CACHE_MS = 250
+local function cachedParts(s, v, chr)
+    local c = s.partsCache
+    local vid = v:getId()
+    local t = now()
+    if c and c.vid == vid and t - c.t < PARTS_CACHE_MS then return c.list end
+    local list = collectParts(v, chr)
+    local byId = {}
+    for _, p in ipairs(list) do byId[p.id] = p end
+    s.partsCache = { vid = vid, t = t, list = list }
+    s.partById = byId
+    return list
+end
+
 -- vanilla ISVehicleMechanics:recalculGeneralCondition (missing items count as 0)
 local function overallCond(v)
     local total, n = 0, 0
@@ -565,6 +582,18 @@ local function fixRows(part, chr)
     return rows
 end
 
+-- fixRows for the render paths, held for the same 300 ms as needsFor and
+-- dropped by every action. Each call walks every fixer through the inventory.
+local function cachedFixRows(s, part, chr)
+    local key = part:getId()
+    local c = s.fixCache
+    local t = now()
+    if c and c.key == key and t - c.t < 300 then return c.rows end
+    local rows = fixRows(part, chr)
+    s.fixCache = { key = key, t = t, rows = rows }
+    return rows
+end
+
 -- Needs + availability for one verb. Returns { rows, chance = {s, f}, ok, blocker }
 local needsCompute
 local function needsFor(s, part, verb, chr, v)
@@ -644,7 +673,7 @@ needsCompute = function(s, part, verb, chr, v)
         rows[#rows + 1] = { ok = hasBar, label = partName("lightbar"), value = hasBar and "1/1" or "0/1" }
         for _, r in ipairs(rows) do if not r.ok and not r.soft then ok = false end end
     elseif verb == "fix" then
-        local fr = fixRows(part, chr)
+        local fr = cachedFixRows(s, part, chr)
         local any = false
         for _, r in ipairs(fr) do if r.ok then any = true end end
         ok = any
@@ -682,7 +711,7 @@ local function runVerb(s, verb, part, chr)
         end
     end
     s.items = nil   -- tools and parts move; re-read next frame
-    s.needsCache = nil
+    s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
 end
 
 -- Vanilla's own part menu, rendered by ZeD's context-menu hook (X / right-click)
@@ -1027,10 +1056,12 @@ local function openCard(win, s, id)
     s.view, s.card, s.verb, s.confirm = "card", id, nil, nil
     s.cardScroll, s.pick, s.fixPick = 0, 1, 1
     s.items = nil
+    s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
     win._mechFocusTarget = "card"
 end
 local function closeCard(win, s)
     s.view, s.confirm = "overview", nil
+    s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
     win._mechFocusTarget = s.card and ("mech:row:" .. s.card) or nil
     s.card = nil
 end
@@ -1040,9 +1071,7 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
     local A = ZeD.Atoms
     local M = ZeD.Molecules
     local TM = ZeD.TM
-    local parts = collectParts(v, chr)
-    s.partById = {}
-    for _, p in ipairs(parts) do s.partById[p.id] = p end
+    local parts = cachedParts(s, v, chr)
 
     -- header: browse + vehicle name + type pill
     local prevZ, nextZ = M.drawDrawerInternalHeader(panel, x, y, w,
@@ -1457,7 +1486,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
 
     -- repair: recipe rows (pickable; the header REPAIR runs the picked one)
     if s.verb == "fix" then
-        local fr = fixRows(part, chr)
+        local fr = cachedFixRows(s, part, chr)
         if s.fixPick > #fr then s.fixPick = 1 end
         if not (fr[s.fixPick] and fr[s.fixPick].ok) then
             for i, r in ipairs(fr) do if r.ok then s.fixPick = i; break end end
@@ -1592,7 +1621,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         elseif n and n.ok then
             local what = (VERB_LABEL[s.verb] or s.verb)
             if s.verb == "fix" then
-                local r = fixRows(part, chr)[s.fixPick]
+                local r = cachedFixRows(s, part, chr)[s.fixPick]
                 msg = "Ready to repair" .. (r and (" with " .. r.label) or "")
             elseif s.verb == "install" then
                 local pk = installPicks(part, chr, itemsFor(s, chr))[s.pick]
@@ -1860,7 +1889,7 @@ if Events and Events.OnMechanicActionDone then
         local s = st(win)
         s.flash = { ok = success and true or false, untilMs = now() + FLASH_MS }
         s.items = nil
-        s.needsCache = nil
+        s.needsCache, s.fixCache, s.partsCache = nil, nil, nil
     end)
 end
 

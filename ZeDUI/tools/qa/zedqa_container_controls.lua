@@ -67,34 +67,71 @@ local function queueEmpty()
     return not q or not q.queue or #q.queue == 0
 end
 
+-- the pickup: the nearest of the loaded cell, else one spawned beside the character (removed at the end). The
+-- character is left wherever the last run ended, so the QA save's own pickup is not always loaded.
+local spawned = {}
+local function nearVehicle(pred)
+    local best, bd
+    local it = getCell():getVehicles():iterator()
+    while it:hasNext() do
+        local v = it:next()
+        if pred(v) then local d = v:DistTo(p); if not bd or d < bd then best, bd = v, d end end
+    end
+    return best
+end
+local function spawnVehicle(script, dx, dy)
+    local sq = getCell():getGridSquare(math.floor(p:getX()) + dx, math.floor(p:getY()) + dy, math.floor(p:getZ()))
+    if not sq then say("no square for " .. script); return nil end
+    local ok, v = pcall(addVehicleDebug, script, IsoDirections.N, nil, sq)
+    if ok and v then spawned[#spawned + 1] = v; return v end
+    return nil
+end
+local function removeSpawned()
+    for _, v in ipairs(spawned) do pcall(function() v:permanentlyRemove() end) end
+    spawned = {}
+end
+-- (forward declarations: abort jumps the run to its last step, the one that puts everything back)
+local steps
+local si, wait = 1, 0
+local dead = false
+local function abort(msg) say("ERR " .. msg); dead = true; si = #steps - 1 end
+local openedPair, snapped = false, false
+
 -- the run: each step waits for its minimum ticks and an empty action queue
-local steps = {
+steps = {
     { 1, function()
         local ui = UIManager.getUI()
         for i = 0, ui:size() - 1 do local e = ui:get(i); if e:getClass():getSimpleName() == "UIDebugConsole" then e:setVisible(false) end end
         p:setGodMod(true)
         p:setTimedActionInstantCheat(true)
-        local best, bd
-        local it = getCell():getVehicles():iterator()
-        while it:hasNext() do
-            local v = it:next()
-            if v:getScriptName() == "Base.PickUpTruck" then local d = v:DistTo(p); if not bd or d < bd then best, bd = v, d end end
+        pickup = nearVehicle(function(v) return v:getScriptName() == "Base.PickUpTruck" end)
+        if not pickup then
+            pickup = spawnVehicle("Base.PickUpTruck", -4, 0)
+            say("no pickup in the loaded cell; spawned one beside the character: " .. tostring(pickup ~= nil))
         end
-        pickup = best
-        local part = pickup and (pickup:getPartById("TruckBed") or pickup:getPartById("TruckBedOpen"))
-        local c = part and pickup:getAreaCenter(part:getArea())
-        if c then p:teleportTo(c:getX(), c:getY(), 0) end
         say("pickup " .. tostring(pickup ~= nil))
+        if not pickup then abort("no pickup in the loaded cell and the spawn failed") end
+    end },
+    -- (a moment for a spawned pickup to settle before the character steps onto its bed)
+    { 20, function()
+        local part = pickup:getPartById("TruckBed") or pickup:getPartById("TruckBedOpen")
+        local c = part and pickup:getAreaCenter(part:getArea())
+        if not c then abort("no pickup truck bed to stand at"); return end
+        p:teleportTo(c:getX(), c:getY(), 0)
+        -- the pair open, so the World window lists the bed (a script before this one may have shut it)
+        if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn); openedPair = true end
     end },
     { 40, function()
         local part = pickup:getPartById("TruckBed") or pickup:getPartById("TruckBedOpen")
         bed = part:getItemContainer()
+        if not bed then abort("the truck bed has no container"); return end
+        if not ww() then abort("the World window is not open"); return end
         for i = 0, bed:getItems():size() - 1 do before[bed:getItems():get(i)] = "bed" end
         for i = 0, p:getInventory():getItems():size() - 1 do before[p:getInventory():getItems():get(i)] = "bag" end
+        snapped = true
         local function put(inv, ft, n) for _ = 1, n do local it = inv:AddItem(ft); if it then given[#given + 1] = it end end end
         put(bed, "Base.Nails", 3); put(bed, "Base.Plank", 4); put(bed, "Base.TinnedBeans", 2); put(bed, "Base.Screws", 2)
         put(p:getInventory(), "Base.Nails", 2); put(p:getInventory(), "Base.Plank", 1)
-        if not ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     end },
     { 40, function() say("bed selected " .. tostring(select(bed))) end },
     { 40, function()
@@ -173,7 +210,8 @@ local steps = {
         for _, it in ipairs(given) do pcall(function() if it:getContainer() then it:getContainer():Remove(it) end end) end
         local inv = p:getInventory()
         local extra = {}
-        for i = 0, inv:getItems():size() - 1 do local it = inv:getItems():get(i); if not before[it] then extra[#extra + 1] = it end end
+        -- (an aborted run took no snapshot of the bag: it has nothing of its own to sort out)
+        for i = 0, (snapped and inv:getItems():size() or 0) - 1 do local it = inv:getItems():get(i); if not before[it] then extra[#extra + 1] = it end end
         for _, it in ipairs(extra) do
             if before[it] == nil then pcall(function() inv:Remove(it) end) end
         end
@@ -185,13 +223,14 @@ local steps = {
         local csq = getCell():getGridSquare(math.floor(p:getX()) + 1, math.floor(p:getY()), 0)
         local clo = csq and SCampfireSystem.instance:getLuaObjectOnSquare(csq)
         if clo then pcall(function() SCampfireSystem.instance:removeCampfire(clo) end) end
-        if ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
-        counts("restored")
-        say("DONE")
+        -- the pair back as it was found
+        if openedPair and ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
+        if snapped then counts("restored") end
+        removeSpawned()
+        say("DONE" .. (dead and " (aborted)" or ""))
     end },
 }
 
-local si, wait = 1, 0
 local function t()
     local s = steps[si]
     if not s then Events.OnTick.Remove(t); return end

@@ -9,7 +9,9 @@
 -- buttons. The window buttons are hidden here: each opens a vanilla surface
 -- that a ZeD tab owns. The hand slots stay until the ZeD screen-icons surface
 -- replaces the whole column (HOOK_MAP row 6). Debug and multiplayer buttons are
--- left alone (dev / MP only, no ZeD equivalent).
+-- left alone (dev / MP only, no ZeD equivalent), as is any button another mod
+-- added to the column. The Tutorial keeps the whole column: its first lesson
+-- blinks the heart button.
 --
 -- Hiding happens after the vanilla prerender because the buttons are created in
 -- initialise() and the panel is rebuilt by checkSidebarSizeOption() whenever the
@@ -52,7 +54,8 @@ local function apply()
     local origPrerender = ISEquippedItem.prerender
     function ISEquippedItem:prerender()
         origPrerender(self)
-        if ZeD.Safe.on() then return end
+        -- the Tutorial's first lesson blinks the heart button: vanilla's column stays
+        if ZeD.Safe.on() or getCore():getGameMode() == "Tutorial" then return end
         if self.invBtn ~= nil and not self._zedIconsHidden then hideButtons(self) end
         -- vanilla's prerender re-shows the furniture button every frame (and its
         -- mode hint and pop-up while the furniture cursor is up): keep all three

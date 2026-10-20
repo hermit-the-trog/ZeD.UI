@@ -880,7 +880,14 @@ function ZeD_BeltHUD:_chip(b, text)
     self:drawText(text, x + T.px(6), y + T.px(3), ac.r, ac.g, ac.b, 1, f1)
 end
 
+-- The belt draws under the safe-mode guard (SafeMode.lua): a failing frame is
+-- logged once and its stencils cleared, and repeated failures hand the screen
+-- back to vanilla's hotbar rather than throwing every frame.
 function ZeD_BeltHUD:prerender()
+    ZeD.Safe.guard(self, ZeD_BeltHUD._prerender, "belt")
+end
+
+function ZeD_BeltHUD:_prerender()
     local T = ZeD.T
     if not T then return end
     local p = self:player()

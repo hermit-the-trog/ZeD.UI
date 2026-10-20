@@ -6,12 +6,29 @@
 -- a quick note written (a few seconds a line) and checked on the page. Journal:
 -- Into the notebook, Save, and the log entry naming the page. Takes the items
 -- and the log entry back. grep "ZEDQA jrd"; Screenshots/zqa_jr_*.png.
+-- The QA save is often at night and vanilla refuses to write in the dark, so before the
+-- quick note the run sets noon, queues the write once the light has reached the player
+-- (the steps after it count from that moment), checks the line is on the page, and puts
+-- the time of day back at the end.
 local p = getPlayer()
 local pn = p:getPlayerNum()
+local gt = getGameTime()
+local tod0 = gt:getTimeOfDay()
 local function say(s) print("ZEDQA jrd " .. tostring(s)) end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_jr_" .. n .. ".png") end) end
 local steps, tick = {}, 0
-local function at(n, fn) steps[#steps + 1] = { n = n, fn = fn } end
+local function at(n, fn) steps[#steps + 1] = { n = n, fn = fn } end        -- n ticks after the start (before the write)
+local later = {}
+local function after(n, fn) later[#later + 1] = { n = n, fn = fn } end     -- n ticks after the write is queued
+local NOTE = "fossoil on the flyer too. go round back"
+local noonAt, queuedAt = nil, nil
+local function pageWith(item, line)
+    for i = 1, item:getPageToWrite() do
+        local t = item:seePage(i)
+        if t and string.find(t, line, 1, true) then return i end
+    end
+    return nil
+end
 local function media(id) return { id = string.lower(id), title = "Print_Media_" .. id .. "_title", info = "Print_Media_" .. id .. "_info", text = "Print_Text_" .. id .. "_info" } end
 local function w() return ZeD_CharacterWindow.getWindow() end
 local J = ZeD.JournalReaders
@@ -58,30 +75,36 @@ end)
 at(125, function() local x = w(); x._jr.paperOpen = nil; x._journalSubTab = 2 end)
 at(160, function()
     say("note field " .. tostring(w()._jrNote and w()._jrNote:isVisible()) .. " page " .. tostring(w()._jr.nbPage[book:getID()]))
+    w()._jrNote:setText(NOTE)
+    -- noon, then the write waits for the light below
+    noonAt = tick
+    gt:setTimeOfDay(12)
+end)
+after(0, function()
     shot("04_notebooks")
-    w()._jrNote:setText("fossoil on the flyer too. go round back")
     J.writeNote(w())
 end)
-at(420, function()
-    say("after write p1 " .. tostring(book:seePage(1)):gsub("\n", " / "))
+after(260, function()
+    local pg = pageWith(book, NOTE)
+    if pg then say("ok written line on page " .. tostring(pg)) else say("FAIL written line missing") end
     shot("05_written")
     local x = w(); x._journalSubTab = 1
     x._jr.logInto = book:getID()
     x._journalInput:setText("saw 3 of them by the gas station around noon")
 end)
-at(450, function()
+after(290, function()
     shot("06_into")
     local btn = w()._journalSaveBtn
     btn.onclick(btn.target, btn)
 end)
-at(720, function()
+after(560, function()
     local md = p:getModData()
     local e = md.ZeD_Journal and md.ZeD_Journal.entries and md.ZeD_Journal.entries[1]
     say("log entry " .. tostring(e and e.text) .. " | source " .. tostring(e and e.source and e.source.name) .. " p" .. tostring(e and e.source and e.source.page))
     say("book p1 now " .. tostring(book:seePage(1)):gsub("\n", " / "))
     shot("07_logged")
 end)
-at(725, function()
+after(565, function()
     local md = p:getModData()
     local e = md.ZeD_Journal and md.ZeD_Journal.entries and md.ZeD_Journal.entries[1]
     if e and e.source then table.remove(md.ZeD_Journal.entries, 1) end
@@ -90,12 +113,23 @@ at(725, function()
     if x then x._journalCache = nil; if x._jr then x._jr.logInto = nil end end
     local inv = p:getInventory()
     for _, it in ipairs({ news, flier, book, pencil }) do if it then inv:Remove(it) end end
+    gt:setTimeOfDay(tod0)
     say("DONE (newspaper had been read before: " .. tostring(hadRead) .. ")")
 end)
 local function onTick()
     tick = tick + 1
     for _, s in ipairs(steps) do if s.n == tick then local ok, e = pcall(s.fn); if not ok then say("ERR " .. s.n .. " " .. tostring(e)) end end end
-    if tick > 730 then Events.OnTick.Remove(onTick) end
+    -- the write waits for the light after noon (400 ticks at most, then it is queued anyway so a failure shows)
+    if noonAt and tick > noonAt and not queuedAt and (not p:tooDarkToRead() or tick - noonAt >= 400) then
+        queuedAt = tick
+        say("light after " .. (tick - noonAt) .. " ticks: tooDark " .. tostring(p:tooDarkToRead()))
+    end
+    if queuedAt then
+        for _, s in ipairs(later) do
+            if s.n == tick - queuedAt then local ok, e = pcall(s.fn); if not ok then say("ERR +" .. s.n .. " " .. tostring(e)) end end
+        end
+        if tick - queuedAt > 570 then Events.OnTick.Remove(onTick) end
+    end
 end
 Events.OnTick.Add(onTick)
 say("start")

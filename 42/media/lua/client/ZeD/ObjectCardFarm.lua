@@ -410,21 +410,47 @@ local function drawPhaseStrip(card, x, y, w, d)
     return ch
 end
 
+-- The garden grid and its summary read each plot's plant. Asking the farming
+-- system for it copies the plant's whole data table, so the grid reads the
+-- plant each list entry already holds and brings those up to date a few times
+-- a second instead of twice per plot per frame.
+local GARDEN_SYNC_MS = 250
+local function syncGarden(e, t)
+    local list = (e and e.list) or { t }
+    local now = getTimestampMs and getTimestampMs() or 0
+    local holder = e or t
+    if holder._gardenStamp and now - holder._gardenStamp < GARDEN_SYNC_MS and holder._gardenList == list then return end
+    holder._gardenStamp, holder._gardenList = now, list
+    local sys = farmSys()
+    for _, o in ipairs(list) do
+        local plant = o.obj
+        if not plant and sys then plant = sys:getLuaObjectOnSquare(o.sq); o.obj = plant end
+        if plant then pcall(plant.updateFromIsoObject, plant) end
+    end
+end
+
+-- A plot's plant, or nil when the plot was dug up.
+local function gardenPlant(o)
+    local plant = o.obj
+    if plant and plant:getIsoObject() then return plant end
+    return nil
+end
+
 local function drawGarden(card, x, y, w, t, e)
     local T, tm = ZeD.T, ZeD.TM
+    syncGarden(e, t)
     local list = (e and e.list) or { t }
     local cols = 8
     local gap = T.px(4)
     local cw = math.floor((w - gap * (cols - 1)) / cols)
     local ch = T.px(28)
     local f5 = T.fontF5
-    local sys = farmSys()
     for i, o in ipairs(list) do
         local c = (i - 1) % cols
         local r = math.floor((i - 1) / cols)
         local cx = x + c * (cw + gap)
         local cy = y + r * (ch + gap)
-        local plant = sys and sys:getLuaObjectOnSquare(o.sq)
+        local plant = gardenPlant(o)
         local cur = o.key == t.key
         local plowed = plant and plant.state == "plow"
         local s2 = T.surf2
@@ -487,10 +513,10 @@ end
 
 local function gardenSummary(t, e)
     local list = (e and e.list) or { t }
-    local sys = farmSys()
+    syncGarden(e, t)
     local parched, thirsty = 0, 0
     for _, o in ipairs(list) do
-        local plant = sys and sys:getLuaObjectOnSquare(o.sq)
+        local plant = gardenPlant(o)
         if plant and plant.state == "seeded" and plant:isAlive() then
             local w = plant.waterLvl or 0
             if w <= 50 then parched = parched + 1 elseif w <= 60 then thirsty = thirsty + 1 end

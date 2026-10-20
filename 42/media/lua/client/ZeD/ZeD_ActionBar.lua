@@ -34,6 +34,7 @@
 
 require "ZeD/ZeD_Panel"
 require "ZeD/ZeD_PixelParts"
+require "ZeD/SafeMode"
 require "TimedActions/ISBaseTimedAction"
 
 ZeD = ZeD or {}
@@ -249,7 +250,8 @@ if not AB._hooked then
         local wanted = self.useProgressBar ~= false and not SELF_HIDDEN[self.Type]
         self._zedBar = wanted
         self._zedStartMs = getTimestampMs()
-        if self.action and self.character and instanceof(self.character, "IsoPlayer") and self.character:isLocalPlayer() then
+        -- safe mode: the game's own bar stays on, ours is hidden
+        if not ZeD.Safe.on() and self.action and self.character and instanceof(self.character, "IsoPlayer") and self.character:isLocalPlayer() then
             pcall(function() self.action:setUseProgressBar(false) end)
         end
         return r
@@ -616,12 +618,36 @@ function AB.install(playerNum)
     local layer = ZeD_ActionBarLayer:new(playerNum)
     layer:initialise()
     layer:addToUIManager()
-    layer:setVisible(true)
+    layer:setVisible(not ZeD.Safe.on())
     pcall(function() layer:backMost() end)
     AB._layers[playerNum] = layer
     print("[ZeD] ActionBar: layer installed for player " .. tostring(playerNum) .. " (" .. AB.mode() .. ")")
     return layer
 end
+
+-- Safe mode: the engine's bar comes back (also for the actions already running, which
+-- were switched off when they were created) and our layers hide; ZeD back, the reverse.
+local function setEngineBars(on)
+    for pn, _ in pairs(AB._layers) do
+        local chr = getSpecificPlayer(pn)
+        local q = chr and queueOf(chr)
+        local list = q and q.queue
+        for i = 1, list and #list or 0 do
+            local a = list[i]
+            -- only the ones ZeD took the bar from: vanilla's own "no bar" stays
+            if a.action and a._zedBar then
+                pcall(function() a.action:setUseProgressBar(on) end)
+            end
+        end
+    end
+end
+local function setLayersShown(shown)
+    for _, layer in pairs(AB._layers) do layer:setVisible(shown) end
+end
+ZeD.Safe.register("action bar", {
+    leave = function() setEngineBars(true); setLayersShown(false) end,
+    enter = function() setEngineBars(false); setLayersShown(true) end,
+})
 
 Events.OnGameStart.Add(function() AB._layers = {}; AB._jobs = {}; AB._ends = {}; AB._last = {}; AB.install(0) end)
 Events.OnCreatePlayer.Add(function(playerNum) if playerNum and playerNum > 0 then AB.install(playerNum) end end)

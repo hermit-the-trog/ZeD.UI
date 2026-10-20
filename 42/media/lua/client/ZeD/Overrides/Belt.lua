@@ -10,10 +10,13 @@
 --   the hold does not then draw the item.
 -- * D-pad Left (vanilla's weapon wheel) focuses the belt on a controller.
 -- * The vanilla left-edge column loses its hand slots (the belt shows the
---   hands); in single player without -debug the whole column goes, since its
---   window buttons were already hidden (Overrides/ScreenIcons.lua). The
---   multiplayer buttons (safety, user, admin, war) stay until a multiplayer
---   pass; Debug stays under -debug.
+--   hands); in single player without -debug the column itself goes once only
+--   ZeD's replaced parts are left on it, since its window buttons were already
+--   hidden (Overrides/ScreenIcons.lua). A button another mod added to the
+--   column keeps it up. The multiplayer buttons (safety, user, admin, war)
+--   stay until a multiplayer pass; Debug stays under -debug.
+-- * The Tutorial keeps vanilla's column whole: its first lesson blinks the
+--   heart button.
 -- * Safe mode (SafeMode.lua, the "belt" hook) hands all of it back: vanilla's
 --   hotbar methods (kept in ZeD.Safe._originals.ISHotbar) and its place on the
 --   screen, the hand slots and the column, vanilla's hold-a-key radial and
@@ -52,6 +55,53 @@ local function holdKeepPressed(key)
     if not x then x, y = getMouseX(), getMouseY() end
     heldOpen[key] = true
     B.slotMenu(0, i, x, y)
+end
+
+-- The Tutorial teaches the heart button in vanilla's left-edge column (and
+-- blinks it), so there vanilla's column stays exactly as it is.
+local function inTutorial()
+    return getCore():getGameMode() == "Tutorial"
+end
+
+-- The column's own children: the hands the belt shows, the window buttons
+-- ZeD's tabs replace (Overrides/ScreenIcons.lua) and the hover pop-ups that
+-- belong to them. Anything else on the column (a button another mod added,
+-- vanilla's Debug button under forceEnable) is not ours to hide.
+local COLUMN_OWN = { "mainHand", "offHand", "invBtn", "healthBtn", "craftingBtn", "buildBtn",
+    "movableBtn", "searchBtn", "zoneBtn", "mapBtn", "movableTooltip", "movablePopup", "metaPopup", "mapPopup" }
+-- frames the column waits before deciding, so other mods' hooks have added theirs
+local COLUMN_SETTLE = 30
+
+local function columnForeignVisible(panel)
+    local own = {}
+    for _, key in ipairs(COLUMN_OWN) do
+        local v = panel[key]
+        if v then own[v] = true end
+    end
+    if panel.children then
+        for _, child in pairs(panel.children) do
+            if not own[child] and child.getIsVisible and child:getIsVisible() then return true end
+        end
+    end
+    return false
+end
+
+-- Single player without -debug: the column goes once nothing but ZeD's
+-- replaced parts are left on it. Anything else showing keeps it up.
+local function columnPrerender(self)
+    if self._zedColKeep then return end
+    local frames = (self._zedColFrames or 0) + 1
+    self._zedColFrames = frames
+    if frames < COLUMN_SETTLE then return end
+    if frames == COLUMN_SETTLE and columnForeignVisible(self) then
+        self._zedColKeep = true
+        print("[ZeD] Overrides/Belt: the left-edge column has buttons from elsewhere; leaving it up")
+        return
+    end
+    if self:getIsVisible() then
+        self:setVisible(false)
+        self._zedColHidden = true
+    end
 end
 
 local function keyReleased(key)
@@ -142,7 +192,7 @@ local function apply()
         -- vanilla's render without the hand items (the belt shows them): the
         -- heart's shake on damage, the debug text, the button tooltips, FPS
         function ISEquippedItem:render()
-            if ZeD.Safe.on() then return origRender(self) end   -- safe mode: vanilla's, hands and all
+            if ZeD.Safe.on() or inTutorial() then return origRender(self) end   -- safe mode and the Tutorial: vanilla's, hands and all
             if self.mainHand and self.mainHand:getIsVisible() then self.mainHand:setVisible(false) end
             if self.offHand and self.offHand:getIsVisible() then self.offHand:setVisible(false) end
             -- the hands leave the hover list too (it tests bounds, not visibility;
@@ -182,9 +232,20 @@ local function apply()
         local origPre = ISEquippedItem.prerender
         function ISEquippedItem:prerender()
             origPre(self)
-            if ZeD.Safe.on() then return end
-            -- single player without -debug: nothing left in the column
-            if not isClient() and not getCore():getDebug() and self:getIsVisible() then self:setVisible(false) end
+            if ZeD.Safe.on() or inTutorial() then return end
+            -- single player without -debug: the column goes when nothing but
+            -- ZeD's replaced parts is left on it
+            if not isClient() and not getCore():getDebug() then columnPrerender(self) end
+        end
+        -- a button added to the column after it was put away brings it back
+        local origAddChild = ISEquippedItem.addChild
+        function ISEquippedItem:addChild(child)
+            origAddChild(self, child)
+            if self._zedColHidden and child and child.getIsVisible and child:getIsVisible() then
+                self._zedColKeep = true
+                self._zedColHidden = nil
+                if not (ISUIHandler and ISUIHandler.allUIVisible == false) then self:setVisible(true) end
+            end
         end
     end
     if getPlayerHotbar and getPlayerHotbar(0) then swapKeyHandlers() end
@@ -201,6 +262,7 @@ ZeD.Safe.register("belt", {
         eachColumn(function(eq)
             if eq._zedOverAll then eq.mouseOverList = eq._zedOverAll; eq._zedOverAll = nil end
             eq._zedHandsOut = nil
+            eq._zedColFrames, eq._zedColKeep, eq._zedColHidden = nil, nil, nil
             if eq.mainHand then eq.mainHand:setVisible(true) end
             if eq.offHand then eq.offHand:setVisible(true) end
             if not (ISUIHandler and ISUIHandler.allUIVisible == false) then eq:setVisible(true) end

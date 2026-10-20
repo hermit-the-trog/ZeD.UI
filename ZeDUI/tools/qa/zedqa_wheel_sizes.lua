@@ -11,12 +11,29 @@ local steps, tick = {}, 0
 local function at(n, fn) steps[#steps + 1] = { n = n, fn = fn } end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_ws_" .. n .. ".png") end) end
 local function find(full) local items = p:getInventory():getItems(); for i = 0, items:size() - 1 do local x = items:get(i); if x:getFullType() == full then return x end end end
-local car
+-- the gun wheel needs a ranged weapon in hand: the character's pistol, or one given for the run
+-- (find returns nothing, not nil, when there is none, which handed setPrimaryHandItem no argument)
+local gave
+local function pistol()
+    local x = find("Base.Pistol")
+    if not x then x = p:getInventory():AddItem("Base.Pistol"); gave = x end
+    return x
+end
+-- the pickup the 11-slice vehicle wheel needs: one within 20 tiles, else one spawned beside the character (removed at
+-- the end). The character is left wherever the last run ended, so the QA save's own pickup is not always near.
+local car, spawnedCar
 do local it = getCell():getVehicles():iterator(); while it:hasNext() do local v = it:next(); if v:getScript():getFullName() == "Base.PickUpTruck" and v:DistTo(p) < 20 then car = v end end end
+if not car then
+    local sq = getCell():getGridSquare(math.floor(p:getX()) - 4, math.floor(p:getY()), math.floor(p:getZ()))
+    local ok, v = pcall(function() return sq and addVehicleDebug("Base.PickUpTruck", IsoDirections.N, nil, sq) end)
+    if ok and v then car, spawnedCar = v, v end
+    print("ZEDQA ws no pickup within 20 tiles; spawned one beside the character: " .. tostring(spawnedCar ~= nil))
+    if not car then print("ZEDQA ws ERR no pickup within 20 tiles and the spawn failed: the vehicle wheel scenes run without one") end
+end
 local prim = p:getPrimaryHandItem()
 local bw = getPlayerData(0).backButtonWheel
 local scenes = {
-    { "a_gun3", function() p:setPrimaryHandItem(find("Base.Pistol")); local f = ISFirearmRadialMenu:new(p); f:fillMenu(); f:display() end, -1 },
+    { "a_gun3", function() p:setPrimaryHandItem(pistol()); local f = ISFirearmRadialMenu:new(p); f:fillMenu(); f:display() end, -1 },
     { "b_dright3", function() ISDPadWheels.onDisplayRight({ player = 0, id = -1 }) end, 2 },
     { "c_emotes5", function() ISEmoteRadialMenu:new(p):fillMenu() end, 4 },
     { "d_signal9", function() ISEmoteRadialMenu:new(p):fillMenu("signal") end, 8 },
@@ -39,7 +56,11 @@ for _, sc in ipairs(scenes) do
     end
     t0 = t0 + 55
 end
-at(t0, function() p:setPrimaryHandItem(prim); if p:getVehicle() then p:getVehicle():exit(p); triggerEvent("OnExitVehicle", p) end; print("ZEDQA ws done") end)
+at(t0, function() p:setPrimaryHandItem(prim); if gave then p:getInventory():Remove(gave) end; if p:getVehicle() then p:getVehicle():exit(p); triggerEvent("OnExitVehicle", p) end end)
+at(t0 + 3, function()
+    if spawnedCar then pcall(function() spawnedCar:permanentlyRemove() end); spawnedCar = nil end
+    print("ZEDQA ws done")
+end)
 local function t()
     tick = tick + 1
     for _, s in ipairs(steps) do if s.n == tick then local ok, e = pcall(s.fn); if not ok then print("ZEDQA ws ERR " .. s.n .. " " .. tostring(e)) end end end

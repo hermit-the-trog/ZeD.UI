@@ -26,6 +26,21 @@ local function near(pred, maxD)
     end
     return best
 end
+-- cars spawned beside the character when the QA save's own are not loaded near it (the character is left wherever
+-- the last run ended); removed at the end
+local spawned = {}
+local dead = false
+local finalAt = nil
+-- (an abort skips the other steps and jumps the tick counter to just before the final one)
+local function abort(msg) say("ERR " .. msg); dead = true; if finalAt then tick = finalAt - 2 end end
+local function final(n, fn) finalAt = n; steps[#steps + 1] = { n = n, fn = fn, final = true } end   -- runs even after an abort
+local function spawn(script, dx, dy)
+    local sq = getCell():getGridSquare(math.floor(p:getX()) + dx, math.floor(p:getY()) + dy, math.floor(p:getZ()))
+    if not sq then say("no square for " .. script); return nil end
+    local ok, v = pcall(addVehicleDebug, script, IsoDirections.N, nil, sq)
+    if ok and v then spawned[#spawned + 1] = v; say("spawned " .. script .. " beside the character"); return v end
+    return nil
+end
 local function radioPart(v) return v and v:getPartById("Radio") end
 local function enter(v)
     if not v then say("no vehicle"); return end
@@ -84,8 +99,14 @@ at(2, function()
         local v = clim:getClimateFloat(i); local n = tostring(v:getName()):lower()
         if n:find("fog") or n:find("precip") or n:find("cloud") then v:setEnableAdmin(true); v:setAdminValue(0) end
     end
+    -- the QA save's own cars when they are loaded near the character; else ones spawned beside it (removed at the end)
     pickup = near(function(v) return v:getScriptName() == "Base.PickUpTruck" end, 25)
     police = near(function(v) return v:hasLightbar() end, 25)
+    if not pickup then pickup = spawn("Base.PickUpTruck", -4, 0) end
+    if not police then police = spawn("Base.CarLightsPolice", 4, 0) end
+    if not (pickup and police) then abort("no " .. (pickup and "police car with a lightbar" or "pickup") .. " within 25 tiles and the spawn failed"); return end
+end)
+at(10, function()
     for _, v in ipairs({ pickup, police }) do
         local part = radioPart(v)
         local item = part and part:getInventoryItem()
@@ -93,6 +114,7 @@ at(2, function()
         if v then orig[v] = item and item:getFullType() or nil end
     end
     if pickup and not orig[pickup] then fit(pickup, "Base.RadioRed"); orig[pickup] = "Base.RadioRed" end
+    if police and not orig[police] then fit(police, "Base.HamRadio1"); orig[police] = "Base.HamRadio1" end
 end)
 
 -- 1. the pickup: Premium Technologies (CD)
@@ -166,11 +188,17 @@ at(915, function()
     CR.takeEscape()
 end)
 at(925, function() report("police restored"); leave() end)
-at(940, function() say("DONE") end)
+final(940, function()
+    leave()
+    CR.takeEscape()
+    for _, v in ipairs(spawned) do pcall(function() v:permanentlyRemove() end) end
+    spawned = {}
+    say("DONE" .. (dead and " (aborted)" or ""))
+end)
 
 local function t()
     tick = tick + 1
-    for _, s in ipairs(steps) do if s.n == tick then local ok, e = pcall(s.fn); if not ok then say("ERR " .. s.n .. " " .. tostring(e)) end end end
+    for _, s in ipairs(steps) do if s.n == tick and (s.final or not dead) then local ok, e = pcall(s.fn); if not ok then say("ERR " .. s.n .. " " .. tostring(e)) end end end
     if tick > 960 then Events.OnTick.Remove(t) end
 end
 Events.OnTick.Add(t)

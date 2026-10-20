@@ -281,20 +281,35 @@ print("[ZeD] Scale: text manager proxy installed (role fonts measure zoomed)")
 
 -- Re-apply the theme (token table, font heights) when the root scale changes.
 S._appliedRoot = S._appliedRoot or nil
--- Open windows keep their screen-px geometry, so after a root change the pair is closed and
--- reopened (it restores from design units). Two ticks apart so the close settles first.
+-- Open windows keep their screen-px geometry, so after a root change every window that is
+-- open is closed and reopened (it restores from design units). Two ticks apart so the close
+-- settles first. Each window is closed and reopened on its own, so a lone Character or World
+-- window comes back alone (the pair toggle would open or close the missing partner), and
+-- neither needs the game running: a scale picked from the pause menu applies at once.
 S._reopenAt = nil
-local function reopenPairIfOpen()
-    local CW = ZeD_CharacterWindow
-    if CW and CW.isOpen and CW.toggleBothPaired and CW.isOpen() and getGameSpeed and getGameSpeed() > 0 then
-        pcall(CW.toggleBothPaired, 0)        -- close both
-        S._reopenAt = 3
-    end
+S._reopenChar, S._reopenWorld = false, false
+local function reopenWindowsIfOpen()
+    local CW, WW = ZeD_CharacterWindow, ZeD_WorldWindow
+    local charOpen  = (CW and CW.isOpen and CW.isOpen()) and true or false
+    local worldOpen = (WW and WW.isOpen and WW.isOpen()) and true or false
+    if not charOpen and not worldOpen then return end
+    if charOpen and CW.toggle then pcall(CW.toggle, 0) end    -- close (saves the geometry at the old scale)
+    if worldOpen and WW.close then pcall(WW.close) end
+    S._reopenChar, S._reopenWorld = charOpen, worldOpen
+    S._reopenAt = 3
+end
+local function reopenWindowsClosed()
+    local p = getSpecificPlayer and getSpecificPlayer(0)
+    if not p or p:isDead() then return end       -- a dead character's windows wait for the next one
+    local CW, WW = ZeD_CharacterWindow, ZeD_WorldWindow
+    if S._reopenChar and CW and CW.toggle and CW.isOpen and not CW.isOpen() then pcall(CW.toggle, 0) end
+    if S._reopenWorld and WW and WW.open then pcall(WW.open, 0) end
+    S._reopenChar, S._reopenWorld = false, false
 end
 local function rootChanged()
     if S._appliedRoot ~= nil and S._root ~= nil and math.abs(S._appliedRoot - S._root) > 0.001 and ZeD.applyTheme and not S._reapplying then
         S._reapplying = true
-        pcall(reopenPairIfOpen)   -- close FIRST: the close path persists geometry divided by the current (old) scale
+        pcall(reopenWindowsIfOpen)   -- close FIRST: the close path persists geometry divided by the current (old) scale
         pcall(ZeD.applyTheme)
         S._reapplying = false
     end
@@ -304,7 +319,7 @@ if Events and Events.OnTick then
         if S._tick == 0 then rootChanged() end
         if S._reopenAt then
             S._reopenAt = S._reopenAt - 1
-            if S._reopenAt <= 0 then S._reopenAt = nil; local CW = ZeD_CharacterWindow; if CW and CW.toggleBothPaired then pcall(CW.toggleBothPaired, 0) end end
+            if S._reopenAt <= 0 then S._reopenAt = nil; pcall(reopenWindowsClosed) end
         end
     end)
 end

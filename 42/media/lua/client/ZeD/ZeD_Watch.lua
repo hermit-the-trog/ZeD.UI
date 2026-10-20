@@ -41,7 +41,7 @@
 -- wears this plate". An item nobody registered borrows a CaZio (digital or not).
 --
 -- The controls every plate may carry (click area ids):
---   speed  steps the game speed 1x 2x 3x     start  pauses / runs
+--   speed  steps the game speed 1x 2x 3x 4x    start  pauses / runs
 --   alarm  arms or disarms the alarm         set, crown  open / close the alarm's setting
 --   light  lights the watch (Timez)          setdn, setup  the alarm hour -1 / +1 while setting
 --                                             (one hour past 23 or before 0 is OFF)
@@ -232,15 +232,26 @@ end
 -- Game speed through the Java speed controls (parked, but still the authority)
 -- ---------------------------------------------------------------------------
 local function _speed() local sc = UIManager.getSpeedControls(); return sc and sc:getCurrentGameSpeed() or 1 end
+local SPEED_BUTTON = { [2] = "Fast Forward x 1", [3] = "Fast Forward x 2", [4] = "Wait" }
+local SPEED_MULT = { [2] = 5, [3] = 20, [4] = 40 }
 local function _setSpeed(n)
     local sc = UIManager.getSpeedControls(); if not sc then return end
     if n <= 0 then pcall(function() sc:ButtonClicked("Pause") end); return end
+    -- the fast speeds go through the clock's own buttons: SetCurrentGameSpeed only moves
+    -- the speed index and resets the time multiplier to 1, so x5 / x20 / x40 would
+    -- show on the watch while time kept running at x1
+    local button = SPEED_BUTTON[n]
+    if button and pcall(function() sc:ButtonClicked(button) end) then return end
     local ok = pcall(function() sc:SetCurrentGameSpeed(n) end)
     if not ok and n == 1 then pcall(function() sc:ButtonClicked("Play") end) end
+    local mult = SPEED_MULT[n]
+    if ok and mult then pcall(function() getGameTime():setMultiplier(mult) end) end
 end
 W._lastRun = W._lastRun or 1
 local function _actStart() local sp = _speed(); if sp == 0 then _setSpeed(W._lastRun or 1) else W._lastRun = sp; _setSpeed(0) end end
-local function _actSpeed() local sp = _speed(); if sp == 0 then return end; local n = sp + 1; if n > 3 then n = 1 end; W._lastRun = n; _setSpeed(n) end
+-- steps through every running speed vanilla offers: 1 (x1), 2 (x5), 3 (x20), 4 (x40, its Wait button)
+local SPEED_TOP = 4
+local function _actSpeed() local sp = _speed(); if sp == 0 then return end; local n = sp + 1; if n > SPEED_TOP then n = 1 end; W._lastRun = n; _setSpeed(n) end
 
 -- the alarm hour one step on (+1) or back (-1); between 23 and 0 sits OFF
 local function _alarmStep(item, dir)
@@ -387,7 +398,8 @@ function ZeD_Watch:prerender()
         if not des then return end
         self:_layout(des.w, des.h, k); self._s = k
         local st = self._keySt or {}; self._keySt = st
-        for i = 0, 3 do st["speed" .. i] = (speed == i) end
+        -- the deck has no key for x40 (Wait): its top key stays down for it
+        for i = 0, 3 do st["speed" .. i] = (speed == i) or (i == 3 and speed > 3) end
         local ctx = self._keyCtx
         if not ctx then ctx = { tex = function(name) return ZeD.Px.tex(X.texdir .. name .. ".png") end }; self._keyCtx = ctx end
         local okD, eD = pcall(PLT.draw, self:_canvas(k), des, st, ctx)
