@@ -102,6 +102,12 @@ local function ensureFigureToBPType()
     for _, entry in ipairs(BODY_PART_TYPES) do
         FIGURE_TO_BPTYPE[entry.figure] = entry.type
     end
+    -- Injury rows carry the list name ("Left Thigh", "Left Shin"), which can
+    -- differ from the figure's name for the same part: map those too.
+    ensurePartNames()
+    for bpType, name in pairs(PART_NAMES) do
+        if FIGURE_TO_BPTYPE[name] == nil then FIGURE_TO_BPTYPE[name] = bpType end
+    end
 end
 
 -- ============================================================================
@@ -122,8 +128,23 @@ local SEV_VARIANT = {
 -- CONDITION CLASSIFIER
 -- ============================================================================
 
-local function classifyConditions(bp)
+-- What the tab reveals follows vanilla's health panel exactly: a bandage hides
+-- infection, a lodged bullet, glass and burns from view; infection shows only
+-- to a First Aid 9+ doctor or once it has grown past what the doctor's level
+-- can miss; severity words ("Severe", "Moderate", "Good") appear only at the
+-- First Aid levels where vanilla's doctor can judge them. doctorLevel is the
+-- viewing character's First Aid level.
+local function qualify(label, word)
+    if word then return label .. " (" .. word .. ")" end
+    return label
+end
+
+local function classifyConditions(bp, doctorLevel)
     local conds = {}
+    local doc = doctorLevel or 0
+    local cheat = ISHealthPanel and ISHealthPanel.cheat
+    local bandaged = bp:bandaged()
+    local word
 
     if bp:bitten() then
         conds[#conds + 1] = { label = "Bitten", severity = "critical" }
@@ -132,29 +153,52 @@ local function classifyConditions(bp)
         conds[#conds + 1] = { label = "Bleeding", severity = "danger" }
     end
     if bp:deepWounded() then
-        conds[#conds + 1] = { label = "Deep Wound", severity = "danger" }
+        word = nil
+        if doc > 4 or cheat then
+            if bp:getDeepWoundTime() > 10 then word = "Severe"
+            elseif bp:getDeepWoundTime() > 8 then word = "Moderate" end
+        end
+        conds[#conds + 1] = { label = qualify("Deep Wound", word), severity = "danger" }
     end
-    if bp:isInfectedWound() then
+    if bp:isInfectedWound() and not bandaged
+       and (doc > 8 or bp:getWoundInfectionLevel() * 10 >= (2.5 - doc) or cheat) then
         conds[#conds + 1] = { label = "Infected", severity = "danger" }
     end
     if bp:getFractureTime() > 0 and bp:getSplintFactor() == 0 then
-        conds[#conds + 1] = { label = "Fracture", severity = "danger" }
+        word = nil
+        if doc > 6 or cheat then
+            if bp:getFractureTime() > 50 then word = "Severe"
+            elseif bp:getFractureTime() > 20 then word = "Moderate" end
+        end
+        conds[#conds + 1] = { label = qualify("Fracture", word), severity = "danger" }
     end
-    if bp:haveBullet() then
+    if bp:haveBullet() and not bandaged then
         conds[#conds + 1] = { label = "Lodged Bullet", severity = "danger" }
     end
-    if bp:haveGlass() then
+    if bp:haveGlass() and not bandaged then
         conds[#conds + 1] = { label = "Glass Shards", severity = "danger" }
     end
 
     if bp:scratched() then
-        conds[#conds + 1] = { label = "Scratch", severity = "warning" }
+        word = nil
+        if doc > 2 or cheat then
+            if bp:getScratchTime() > 17 then word = "Severe"
+            elseif bp:getScratchTime() > 14 then word = "Moderate" end
+        end
+        conds[#conds + 1] = { label = qualify("Scratch", word), severity = "warning" }
     end
     if bp:isCut() then
-        conds[#conds + 1] = { label = "Laceration", severity = "warning" }
+        word = nil
+        if doc > 2 or cheat then
+            if bp:getCutTime() > 17 then word = "Severe"
+            elseif bp:getCutTime() > 14 then word = "Moderate" end
+        end
+        conds[#conds + 1] = { label = qualify("Laceration", word), severity = "warning" }
     end
-    if bp:getBurnTime() > 0 then
-        conds[#conds + 1] = { label = "Burn", severity = "warning" }
+    if bp:getBurnTime() > 0 and not bandaged then
+        word = nil
+        if (doc > 4 or cheat) and bp:isNeedBurnWash() then word = "Needs Cleaning" end
+        conds[#conds + 1] = { label = qualify("Burn", word), severity = "warning" }
     end
 
     -- Stiffness / muscle strain (exercise soreness)
@@ -185,10 +229,29 @@ local function classifyConditions(bp)
         end
     end
     if bp:stitched() then
-        conds[#conds + 1] = { label = "Stitched", severity = "positive" }
+        word = nil
+        if doc > 6 or cheat then
+            word = (bp:getStitchTime() > 40) and "Good" or "Needs Time"
+        end
+        conds[#conds + 1] = { label = qualify("Stitched", word), severity = "positive" }
     end
     if bp:getSplintFactor() > 0 then
-        conds[#conds + 1] = { label = "Splinted", severity = "positive" }
+        word = nil
+        if doc > 4 or cheat then
+            if bp:getSplintFactor() > 4 then word = "Good"
+            elseif bp:getFractureTime() > 2 then word = "Moderate" end
+        end
+        conds[#conds + 1] = { label = qualify("Splinted", word), severity = "positive" }
+    end
+    -- Poultices on the part, as vanilla lists them
+    if bp:getPlantainFactor() > 0 then
+        conds[#conds + 1] = { label = getText("ContextMenu_PlantainCataplasm"), severity = "positive" }
+    end
+    if bp:getComfreyFactor() > 0 then
+        conds[#conds + 1] = { label = getText("ContextMenu_ComfreyCataplasm"), severity = "positive" }
+    end
+    if bp:getGarlicFactor() > 0 then
+        conds[#conds + 1] = { label = getText("ContextMenu_GarlicCataplasm"), severity = "positive" }
     end
 
     table.sort(conds, function(a, b)
@@ -233,10 +296,13 @@ function ZeD.HealthTab.gatherData(playerObj)
         typeToFigure[bp.type] = bp.figure
     end
 
+    -- The viewer is the patient here, so the patient's First Aid is the doctor's
+    local doctorLevel = playerObj:getPerkLevel(Perks.Doctor)
+
     for i = 1, parts:size() do
         local bp = parts:get(i - 1)
         local health = bp:getHealth()
-        local conds = classifyConditions(bp)
+        local conds = classifyConditions(bp, doctorLevel)
         local bpType = bp:getType()
         local figureName = typeToFigure[bpType]
 
@@ -485,7 +551,17 @@ local EXERCISE_LABELS = {
     bicepscurl    = "Biceps curl",
 }
 
+-- Session length, as vanilla's fitness window sets it: 10 to 60 minutes in
+-- steps of 10, starting at 10. The choice lives on the window.
 local DEFAULT_EXERCISE_TIME = 10  -- minutes
+local MIN_EXERCISE_TIME     = 10
+local MAX_EXERCISE_TIME     = 60
+local EXERCISE_TIME_STEP    = 10
+
+function ZeD.HealthTab.getExerciseMinutes(win)
+    local m = win and win._healthExerciseMinutes or DEFAULT_EXERCISE_TIME
+    return math.max(MIN_EXERCISE_TIME, math.min(MAX_EXERCISE_TIME, m))
+end
 
 -- Global condition check (same rules as vanilla ISFitnessUI:updateButtons)
 local function canExercise(playerObj)
@@ -511,7 +587,7 @@ local function isExerciseAvailable(playerObj, exerciseId)
 end
 
 -- Start exercise (replicates vanilla ISFitnessUI:equipItems + onClick OK)
-function ZeD.HealthTab._startExercise(playerObj, exerciseId)
+function ZeD.HealthTab._startExercise(playerObj, exerciseId, minutes)
     if not FitnessExercises or not FitnessExercises.exercisesType then return end
     local exeData = FitnessExercises.exercisesType[exerciseId]
     if not exeData then return end
@@ -545,13 +621,27 @@ function ZeD.HealthTab._startExercise(playerObj, exerciseId)
         end
     end
 
-    -- Initialize fitness system and start exercise action (10 min default)
+    -- Initialize fitness system and start exercise action for the chosen time
     local fitness = playerObj:getFitness()
     fitness:init()
     fitness:setCurrentExercise(exeData.type)
 
-    local action = ISFitnessAction:new(playerObj, exerciseId, DEFAULT_EXERCISE_TIME, exeData, exeData.type)
+    local action = ISFitnessAction:new(playerObj, exerciseId, minutes or DEFAULT_EXERCISE_TIME, exeData, exeData.type)
     ISTimedActionQueue.addGetUpAndThen(playerObj, action)
+end
+
+-- Runs one zone of the exercise area, for the mouse and the pad alike: a pill
+-- starts its exercise for the chosen time; the - and + buttons step the time.
+-- Returns true when the zone did something.
+function ZeD.HealthTab.activateExerciseZone(win, zone)
+    if not win or not zone or not zone.enabled then return false end
+    if zone.timeStep then
+        local m = ZeD.HealthTab.getExerciseMinutes(win) + zone.timeStep
+        win._healthExerciseMinutes = math.max(MIN_EXERCISE_TIME, math.min(MAX_EXERCISE_TIME, m))
+        return true
+    end
+    ZeD.HealthTab._startExercise(win._playerObj, zone.id, ZeD.HealthTab.getExerciseMinutes(win))
+    return true
 end
 
 -- Render exercise buttons:
@@ -644,6 +734,35 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
         curY = curY + btnH + gap
     end
 
+    -- Session time: label on the left, [-] minutes [+] on the right. The time
+    -- can be changed while exercising; it applies to the next start.
+    local mins   = ZeD.HealthTab.getExerciseMinutes(win)
+    local readW  = ZeD.TM:MeasureStringX(font, "60") + T.px(16)
+    local incX   = rx + rw - btnH
+    local readX  = incX - readW
+    local decX   = readX - btnH
+    local canDec = mins > MIN_EXERCISE_TIME
+    local canInc = mins < MAX_EXERCISE_TIME
+    A.drawSecondary(panel, A.truncateText(getText("IGUI_FitnessTime"), font, math.max(0, decX - rx - T.sp.sm)),
+        rx, curY + math.floor((btnH - secH) / 2))
+    _paintExerciseFocusCue("time:dec", decX, curY, btnH, btnH)
+    A.drawPillButton(panel, decX, curY, btnH, btnH, "-", false, canDec, font)
+    local minStr = tostring(mins)
+    local tc = T.text
+    panel:drawText(minStr, readX + math.floor((readW - ZeD.TM:MeasureStringX(font, minStr)) / 2),
+        curY + math.floor((btnH - secH) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
+    _paintExerciseFocusCue("time:inc", incX, curY, btnH, btnH)
+    A.drawPillButton(panel, incX, curY, btnH, btnH, "+", false, canInc, font)
+    win._healthExerciseZones[zoneIdx + 1] = {
+        id = "time:dec", timeStep = -EXERCISE_TIME_STEP,
+        x = decX, y = curY, w = btnH, h = btnH, enabled = canDec,
+    }
+    win._healthExerciseZones[zoneIdx + 2] = {
+        id = "time:inc", timeStep = EXERCISE_TIME_STEP,
+        x = incX, y = curY, w = btnH, h = btnH, enabled = canInc,
+    }
+    curY = curY + btnH + gap
+
     return curY
 end
 
@@ -670,6 +789,7 @@ function ZeD.HealthTab._measureZoneA(data, rw)
     local bwRows = math.ceil(#EXERCISE_BODYWEIGHT / 2)
     rightH = rightH + bwRows * (btnH + gap)
     rightH = rightH + #EXERCISE_EQUIPMENT * (btnH + gap)
+    rightH = rightH + btnH + gap  -- session time row
 
     return math.max(T.px(FIGURE_H), rightH)
 end

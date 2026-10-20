@@ -313,12 +313,22 @@ function ISContextMenu:prerender()
         return origPrerender(self)
     end
     local target = self._zedTarget
-    local tree = Registry.buildActionsFromVanilla(self.options, target, self)
-    Registry.applyPins(tree, target)
+    -- The translation runs under pcall: if it throws, the right-click falls back to
+    -- vanilla's own menu instead of leaving the player with no menu at all.
+    local okT, tree = pcall(function()
+        local t = Registry.buildActionsFromVanilla(self.options, target, self)
+        Registry.applyPins(t, target)
+        return t
+    end)
+    if not okT then
+        ZeD.logOnce("ContextMenu translation failed", tree)
+        self._zedFailed = true
+        return origPrerender(self)
+    end
 
     -- If tree is empty after translation (all options filtered?), bail to vanilla.
     -- (marked failed so the next frame shows vanilla's menu instead of parking it offscreen)
-    if #tree == 0 then
+    if type(tree) ~= "table" or #tree == 0 then
         self._zedFailed = true
         return origPrerender(self)
     end

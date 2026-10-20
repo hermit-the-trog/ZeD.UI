@@ -248,16 +248,21 @@ local firstTicks = 0
 local function firstRun()
     firstTicks = firstTicks + 1
     if firstTicks < 120 then return end   -- let the desk settle
-    Events.OnFETick.Remove(firstRun)
-    if ZeD.QAAutoload then return end
-    local r = getFileReader(SEEN_FILE, false)
-    if r then r:close(); return end
+    if ZeD.QAAutoload then Events.OnFETick.Remove(firstRun); return end
     local m = MainScreen and MainScreen.instance
     local win = MM.root and MM.root.optsWin
-    if not m or m.inGame or not win or MM.view ~= "main" or not MM.openOptions then return end
+    if not m or m.inGame or not win or MM.view ~= "main" or not MM.openOptions then
+        Events.OnFETick.Remove(firstRun); return
+    end
+    -- the screen is still fading in (openOptions would refuse): try again next tick
+    if (m.delay or 0) > 0 and firstTicks < 1200 then return end
+    Events.OnFETick.Remove(firstRun)
+    local r = getFileReader(SEEN_FILE, false)
+    if r then r:close(); return end
+    MM.openOptions()
+    if MM.view ~= "options" then return end   -- it did not open: the marker stays unwritten, so the next launch tries again
     local w = getFileWriter(SEEN_FILE, true, false)
     if w then w:write("1"); w:close() end
-    MM.openOptions()
     win.firstRun = true
     win.pageIdx = 1
     win.scroll = 0

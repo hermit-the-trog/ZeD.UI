@@ -7,6 +7,14 @@
 -- instead of the vanilla full-screen map. Vanilla is only reached when ZeD
 -- cannot serve the request (no player, world not loaded, pop-out failed),
 -- and always while ZeD's safe mode is on. See HOOK_MAP.md.
+--
+-- Vanilla's rules still decide whether there is a map to read. Show refuses
+-- when the server or sandbox turns the world map off (and in the Tutorial),
+-- as vanilla's does. Toggle opens through vanilla's own Toggle, which
+-- checks the light ("Too dark to read."), refuses after a splitscreen death,
+-- and queues the short map-reading action whose end calls Show, so ZeD's map
+-- costs what vanilla's costs. Only closing an open pop-out skips all of that,
+-- so the map can always be put away in the dark.
 -- ============================================================================
 
 require "ZeD/SafeMode"
@@ -84,6 +92,7 @@ end
 
 function ISWorldMap.ShowWorldMap(playerNum, centerX, centerY, zoom)
     if ZeD.Safe.on() then return _origShow(playerNum, centerX, centerY, zoom) end   -- safe mode: vanilla's map
+    if not ISWorldMap.IsAllowed() then return end   -- no world map on this server / sandbox, or the Tutorial (vanilla's first check)
     if _zedOpenUnfolded(playerNum) then _centerWhenReady(playerNum, centerX, centerY, zoom); return end
     return _origShow(playerNum, centerX, centerY, zoom)
 end
@@ -101,11 +110,12 @@ end
 function ISWorldMap.ToggleWorldMap(playerNum)
     if ZeD.Safe.on() then return _origToggle(playerNum) end
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    if win and win._mapPopout then
+    if win and win._mapPopout then   -- (closing never waits on the light, as in vanilla)
         ZeD.MapsTab.closePopout(win)
         return
     end
-    if _zedOpenUnfolded(playerNum) then return end
+    -- Opening is vanilla's: its Allow / light / post-death checks, then the
+    -- map-reading action, which ends in ShowWorldMap above and so in ZeD's map.
     return _origToggle(playerNum)
 end
 

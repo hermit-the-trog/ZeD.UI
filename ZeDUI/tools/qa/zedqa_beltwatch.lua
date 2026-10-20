@@ -14,6 +14,7 @@ local hud = ZeD.Belt.getHUD()
 local W = ZeD.Watch
 local opt = ZeD.Settings.watchPlaceOption
 local was = opt:getValue()
+local popWas = p:getModData().ZeD_WatchPop   -- the saved pop-up position, put back at the end
 local inv = p:getInventory()
 local w1, w2
 local function wear(it) p:setWornItem(it:getBodyLocation(), it) end
@@ -77,7 +78,7 @@ at(600, function()
 end)
 at(610, function()
     p:removeWornItem(w2); inv:Remove(w2)
-    p:getModData().ZeD_WatchPop = nil
+    p:getModData().ZeD_WatchPop = popWas
     opt:setValue(was)
     say("DONE")
 end)

@@ -6,6 +6,15 @@
 # once the QA bridge has armed there.
 param([switch]$MainMenu)
 $S = $PSScriptRoot
+# refuse to launch while a Workshop staging copy of ZeD-UI exists: the game scans
+# Workshop\*\Contents\mods before Zomboid\mods and the first folder with the mod id wins
+$staged = @(Get-ChildItem -Path "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
+    Where-Object { Select-String -LiteralPath $_.FullName -Pattern '^\s*id=ZeD_UI\s*$' -Quiet -ErrorAction SilentlyContinue } |
+    ForEach-Object { $_.FullName -replace '[\\/]mods[\\/].*$', '' } | Select-Object -Unique)
+if ($staged.Count -gt 0) {
+    foreach ($folder in $staged) { Write-Output "A Workshop staging copy of ZeD-UI is at $folder; the game would load it instead of the dev mod. Remove its Contents folder (stage it again right before an upload)." }
+    exit 3
+}
 $opt = "C:\Users\danie\Zomboid\options.ini"
 $bak = Join-Path $S "options.ini.fullscreen.bak"
 if (-not (Test-Path $bak)) { Copy-Item $opt $bak }

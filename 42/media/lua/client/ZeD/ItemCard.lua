@@ -660,37 +660,25 @@ function ZeD_ItemCard:setItem(item)
 end
 
 -- ---------------------------------------------------------------------------
--- RENAME UI (S122) — click name row to rename, Enter to commit, Esc to cancel
+-- RENAME - click the name row to open the rename prompt
 -- ---------------------------------------------------------------------------
 
+-- The name row opens the same prompt the item menu and the controller use
+-- (ZeD.ItemMenu.rename: vanilla's text box, with its length check). The
+-- card's inline text field cannot take typing, so it is no longer started.
 function ZeD_ItemCard:_startRename()
-    local T = ZeD.T
-    if not self.item or self._renaming then return end
-    if not self._renameInput then
-        local card = self
-        local input = ZeD_TextInput:new(0, 0, T.px(100), "Item name")
-        input:initialise()
-        self:addChild(input)
-        input:setVisible(false)
-        input.onSubmit = function(self_, text)
-            card:_commitRename(text)
-        end
-        self._renameInput = input
-    end
-    local cur = self._renameInput
-    local name = (self.item.getName and (function() local ok, v = pcall(self.item.getName, self.item); return ok and v end)())
-                or (self.item.getDisplayName and (function() local ok, v = pcall(self.item.getDisplayName, self.item); return ok and v end)())
-                or ""
-    cur.text = name
-    cur.focused = true
-    cur.disabled = false
-    self._renaming = true
+    if not self.item then return end
+    local ren = ZeD.ItemMenu and ZeD.ItemMenu.rename
+    if ren then ren(self.item, self.playerNum or 0) end
 end
 
 function ZeD_ItemCard:_commitRename(text)
     if not self.item then self:_cancelRename(); return end
     text = text and tostring(text):match("^%s*(.-)%s*$") or ""
-    if text ~= "" then
+    local ok, cur = pcall(self.item.getName, self.item)
+    -- Nothing typed, or the same name back: leave the item alone (no
+    -- custom-name flag for an item nobody renamed).
+    if text ~= "" and not (ok and cur == text) then
         if self.item.setName then pcall(self.item.setName, self.item, text) end
         if self.item.setCustomName then pcall(self.item.setCustomName, self.item, true) end
     end
@@ -754,6 +742,10 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
     local playerNum = self.playerNum or 0
     local player    = getSpecificPlayer(playerNum)
     if not player then return end
+    -- A sleeping character takes no clicks (vanilla's inventory refuses them)
+    if player.isAsleep and player:isAsleep() then return end
+    -- A card whose item is gone must not send actions into a nil container
+    if not item:getContainer() then return end
 
     -- Vanilla helpers expect an array of items (they run getActualItems on it
     -- to unpack stacks). Every name below was verified against the Oct 6 2026
@@ -797,8 +789,7 @@ function ZeD_ItemCard:_dispatchHeaderVerb(label)
     elseif label == "DROP" then
         if CM.onDropItems then CM.onDropItems(items, playerNum) end
     elseif label == "TAKE" then
-        -- Floor items use ZeD_WorldWindow.transferFromFloor (Q44 — virtual
-        -- _floorContainer breaks ISInventoryTransferAction silently).
+        -- Floor items go through ZeD_WorldWindow.transferFromFloor (vanilla's transfer from the shared floor container).
         local cnt = item.getContainer and item:getContainer() or nil
         if ZeD_WorldWindow and ZeD_WorldWindow.transferFromFloor and cnt
            and cnt.getType and cnt:getType() == "floor" then
@@ -1097,8 +1088,8 @@ function ZeD_ItemCard:update()
             self._backWasDown = downAbs and inBack or false
         end
 
-        -- Name row click → enter rename mode
-        if self._nameRowRect and not self._renaming then
+        -- Name row click -> the rename prompt
+        if self._nameRowRect then
             local nr = self._nameRowRect
             local rx, ry = nr.x + ax, nr.y + ay
             local inName = mxAbs >= rx and mxAbs < rx + nr.w
@@ -1107,22 +1098,6 @@ function ZeD_ItemCard:update()
                 self:_startRename()
             end
             self._nameWasDown = downAbs and inName or false
-        end
-
-        -- During rename: Esc cancels, click outside the input commits/cancels.
-        if self._renaming and self._renameInput then
-            local inp = self._renameInput
-            if downAbs and self._nameRowRect then
-                local nr = self._nameRowRect
-                local rx, ry = nr.x + ax, nr.y + ay
-                local inputAreaTop = ry
-                local inputAreaBot = ry + nr.h
-                local inInput = mxAbs >= rx and mxAbs < rx + nr.w
-                            and myAbs >= inputAreaTop and myAbs < inputAreaBot
-                if not inInput then
-                    self:_commitRename(inp.text)
-                end
-            end
         end
 
         -- Progress Band cancel button → forceStop the active action

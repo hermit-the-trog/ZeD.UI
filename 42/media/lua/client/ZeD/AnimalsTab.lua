@@ -304,6 +304,29 @@ local function sortAnimals(animals, mode)
     return result
 end
 
+-- The zone roster sorted for the ranch view. Building the sort keys reads
+-- every animal's name and (for the alerts sort) its condition tags, so the
+-- result is kept for half a second and rebuilt at once when the sort mode,
+-- the zone or the animals themselves change.
+local SORT_CACHE_MS = 500
+local function sortedRoster(zs, animals, mode, zoneName)
+    local t = getTimestampMs and getTimestampMs() or 0
+    local c = zs._sortCache
+    local n = #animals
+    if c and c.mode == mode and c.zone == zoneName and c.n == n and t - c.t < SORT_CACHE_MS then
+        local same = true
+        for i = 1, n do
+            if animals[i] ~= c.src[i] then same = false break end
+        end
+        if same then return c.list end
+    end
+    local src = {}
+    for i = 1, n do src[i] = animals[i] end
+    local list = sortAnimals(animals, mode)
+    zs._sortCache = { mode = mode, zone = zoneName, n = n, t = t, src = src, list = list }
+    return list
+end
+
 -- ============================================================================
 -- STAT DOT COLOR — maps 0–100 value to green/amber/red
 -- ============================================================================
@@ -2180,7 +2203,7 @@ local function renderRanchZone(panel, win, x, y, w, h)
 
     -- ── ROSTER SECTION HEADER (pinned below band) ──
     local animals = ap.getAnimalsInZone(state.zoneName)
-    local sortedAnimals = sortAnimals(animals, zs.sortMode)
+    local sortedAnimals = sortedRoster(zs, animals, zs.sortMode, state.zoneName)
     local rosterCount = #sortedAnimals
 
     local secY = y + bandH + structH

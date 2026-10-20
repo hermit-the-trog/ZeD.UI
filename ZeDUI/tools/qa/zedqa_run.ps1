@@ -878,6 +878,15 @@ if ($Check) {
     exit 0
 }
 
+# refuse to start: a Workshop staging copy of ZeD-UI would shadow the dev mod (checked before the lock is read or written)
+$staged = @(Get-ChildItem -Path "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/42/mod.info", "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/common/mod.info", "C:/Users/danie/Zomboid/Workshop/*/Contents/mods/*/mod.info" -ErrorAction SilentlyContinue |
+    Where-Object { Select-String -LiteralPath $_.FullName -Pattern '^\s*id=ZeD_UI\s*$' -Quiet -ErrorAction SilentlyContinue } |
+    ForEach-Object { $_.FullName -replace '[\\/]mods[\\/].*$', '' } | Select-Object -Unique)
+if ($staged.Count -gt 0) {
+    foreach ($folder in $staged) { Write-Output "A Workshop staging copy of ZeD-UI is at $folder; the game would load it instead of the dev mod. Remove its Contents folder (stage it again right before an upload)." }
+    exit 3
+}
+
 # refuse to start: the shared game
 $lock = Get-LockState
 if ($lock -match '^busy') { Write-Output "zedqa_run: not starting: $LockFile says busy (another session holds the game)"; exit 2 }

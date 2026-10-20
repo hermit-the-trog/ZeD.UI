@@ -33,6 +33,7 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 12. **Change note:** what changed since the last tester build.
 13. **Save**, then **Upload**, and confirm in the strip. Wait for the result. The first time, Steam may ask you to accept the Workshop agreement on the item's page before anyone else can see it.
 14. Open the item in Steam and check that it is still hidden and the size is about 25 MB. Don't subscribe on this computer: the copy in `Zomboid/mods` is already there, and two copies of the same mod clash.
+15. Remove `Zomboid/Workshop/ZeD-UI/Contents` after the upload and the check in step 14 (`workshop.txt` and `preview.png` stay). The staged copy has the same mod id as the dev mod, and the game loads the Workshop folder first, so it would shadow the dev mod with a copy that has no QA bridge. Stage again right before the next upload.
 
 ## What to send testers
 

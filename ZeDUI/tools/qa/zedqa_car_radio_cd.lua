@@ -23,6 +23,21 @@ local function near(pred, maxD)
     end
     return best
 end
+-- the pickup spawned beside the character when the QA save's own is not loaded near it (the character is left
+-- wherever the last run ended); removed at the end
+local spawned = {}
+local dead = false
+local finalAt = nil
+-- (an abort skips the other steps and jumps the tick counter to just before the final one)
+local function abort(msg) say("ERR " .. msg); dead = true; if finalAt then tick = finalAt - 2 end end
+local function final(n, fn) finalAt = n; steps[#steps + 1] = { n = n, fn = fn, final = true } end   -- runs even after an abort
+local function spawn(script, dx, dy)
+    local sq = getCell():getGridSquare(math.floor(p:getX()) + dx, math.floor(p:getY()) + dy, math.floor(p:getZ()))
+    if not sq then say("no square for " .. script); return nil end
+    local ok, v = pcall(addVehicleDebug, script, IsoDirections.N, nil, sq)
+    if ok and v then spawned[#spawned + 1] = v; say("spawned " .. script .. " beside the character"); return v end
+    return nil
+end
 local function part() return pickup and pickup:getPartById("Radio") end
 local function prop() return CR.props[pn] end
 local function report(tag)
@@ -38,6 +53,11 @@ local function fit(ft)
     say("fit " .. ft)
 end
 
+at(1, function()
+    pickup = near(function(v) return v:getScriptName() == "Base.PickUpTruck" end, 25)
+    if not pickup then pickup = spawn("Base.PickUpTruck", -4, 0) end
+    if not pickup then abort("no pickup within 25 tiles and the spawn failed") end
+end)
 at(2, function()
     local r = getFileReader("zed_reload_cr.lua", false)
     if r then
@@ -48,11 +68,12 @@ at(2, function()
         local fn, err = loadstring(table.concat(lines, "\n"))
         if fn then local ok, e = pcall(fn); say("reloaded ZeD_CarRadio ok=" .. tostring(ok) .. " " .. tostring(e)) else say("reload parse " .. tostring(err)) end
     end
-    pickup = near(function(v) return v:getScriptName() == "Base.PickUpTruck" end, 25)
+    if pickup and part() and not part():getInventoryItem() then fit("Base.RadioRed") end   -- a spawned pickup comes without one
     say("pickup " .. tostring(pickup) .. " radio=" .. tostring(part() and part():getInventoryItem() and part():getInventoryItem():getFullType()))
     say("hand font height " .. tostring(ZeD.Text.realTM():getFontHeight(UIFont.Handwritten)))
 end)
-at(10, function() pickup:enter(0, p); triggerEvent("OnEnterVehicle", p) end)
+-- (a spawned pickup gets a moment to settle before the character gets in)
+at(26, function() pickup:enter(0, p); triggerEvent("OnEnterVehicle", p) end)
 at(40, function()
     ISVehicleMenu.onSignalDevice(p, part())
     local dd = part():getDeviceData()
@@ -85,11 +106,16 @@ at(535, function()
     p:getInventory():Remove(cd)
 end)
 at(545, function() pickup:exit(p); triggerEvent("OnExitVehicle", p) end)
-at(560, function() say("DONE") end)
+final(560, function()
+    if pickup and p:getVehicle() == pickup then pickup:exit(p); triggerEvent("OnExitVehicle", p) end
+    for _, v in ipairs(spawned) do pcall(function() v:permanentlyRemove() end) end
+    spawned = {}
+    say("DONE" .. (dead and " (aborted)" or ""))
+end)
 
 local function t()
     tick = tick + 1
-    for _, s in ipairs(steps) do if s.n == tick then local ok, e = pcall(s.fn); if not ok then say("ERR " .. s.n .. " " .. tostring(e)) end end end
+    for _, s in ipairs(steps) do if s.n == tick and (s.final or not dead) then local ok, e = pcall(s.fn); if not ok then say("ERR " .. s.n .. " " .. tostring(e)) end end end
     if tick > 580 then Events.OnTick.Remove(t) end
 end
 Events.OnTick.Add(t)

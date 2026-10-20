@@ -299,4 +299,8 @@ Write-Host '== SUMMARY ==' -ForegroundColor Cyan
 "  workshop.txt: {0}" -f $(if ($wsId) { "kept; item id $wsId (Upload updates that item)" } elseif (Test-Path -LiteralPath $wsTxt) { 'kept; no id yet (the first Upload creates the item)' } else { 'none yet (ZeD''s upload window writes it on Save)' })
 '  biggest files:'
 foreach ($r in ($copy | Sort-Object Size -Descending | Select-Object -First 10)) { '    {0,10}  {1}' -f (Mb $r.Size), $r.Rel }
+if (-not $DryRun) {
+    Write-Host ''
+    Warn 'The staged copy now shadows the dev mod in the game: remove C:/Users/danie/Zomboid/Workshop/ZeD-UI/Contents after the upload, or the game loads the staged copy.'
+}
 exit 0

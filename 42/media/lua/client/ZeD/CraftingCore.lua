@@ -612,6 +612,31 @@ function CC.resolveCategory(recipe, skillName)
     return category
 end
 
+-- A category's name as the player reads it: vanilla's translated label when
+-- the game has one (its crafting window uses IGUI_CraftingCategories_*), the
+-- raw name otherwise. The raw name stays the key everywhere else.
+local _catLabelCache = {}
+function CC.categoryLabel(raw)
+    if raw == nil or raw == "" then return "" end
+    raw = tostring(raw)
+    local hit = _catLabelCache[raw]
+    if hit then return hit end
+    local cap = string.upper(string.sub(raw, 1, 1)) .. string.sub(raw, 2)
+    local label = getTextOrNull and getTextOrNull("IGUI_CraftingCategories_" .. cap)
+    _catLabelCache[raw] = label or cap
+    return label or cap
+end
+
+-- The label for the category the list is currently filtered to.
+function CC.activeCategoryLabel(state)
+    local id = state.activeCat
+    if id == nil or id == "all" then return CC.categoryLabel("All") end
+    for _, c in ipairs(state.categoryList or {}) do
+        if c.id == id then return CC.categoryLabel(c.full or c.label or id) end
+    end
+    return CC.categoryLabel(id)
+end
+
 -- ============================================================================
 -- FILTERING + SORTING — parameterized by filter modes
 -- ============================================================================
@@ -964,6 +989,7 @@ function CC.createState()
         altSlotName      = nil,        -- nil = list mode, slot name = alt mode
         altSlotIdx       = nil,        -- index into ingredients for selected slot
         altItems         = nil,        -- cached alt enumeration result
+        picks            = {},         -- chosen ingredient per slot: picks[recipe][slotIdx] = full type
         reqCollapsed     = false,      -- REQUIRED section collapsed
         outCollapsed     = false,      -- OUTPUTS section collapsed
         catDropdownOpen  = false,      -- category dropdown expanded
@@ -994,6 +1020,7 @@ end
 
 function CC.openCraft(state, recipeId)
     state.selected = recipeId
+    state.picks = {}   -- a fresh recipe starts on the game's own choice of ingredients
     state.qty = 1
     state.splitTarget = 1
     -- Exit alt mode if active
@@ -1004,6 +1031,7 @@ end
 
 function CC.closeCraft(state)
     state.selected = nil
+    state.picks = {}
     state.qty = 1
     state.splitTarget = 0
     if state.altSlotName then CC.exitAltMode(state) end
@@ -1152,10 +1180,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         panel:drawText(frozenLabel, ddX + T.px(6), ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2),
             ac.r, ac.g, ac.b, 0.8, T.fontF2)
     else
-        local activeCatLabel = state.activeCat == "all" and "-- All --" or state.activeCat
-        if #activeCatLabel > 0 then
-            activeCatLabel = string.upper(string.sub(activeCatLabel, 1, 1)) .. string.sub(activeCatLabel, 2)
-        end
+        local activeCatLabel = CC.activeCategoryLabel(state)
         if ST then
             local mx, my = panel:getMouseX(), panel:getMouseY()
             local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
@@ -1425,6 +1450,17 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local visTop = y
     local visBot = y + h
 
+    -- The header and row zones are only a function of the list's layout, so
+    -- the same zone tables are handed back frame after frame until the list
+    -- scrolls, resizes or changes (a thousand rows would otherwise allocate a
+    -- thousand tables a frame). Nothing downstream edits a stamped zone.
+    local zc = state._rowZoneCache
+    local zreuse = zc and zc.sections == sections and zc.x == x and zc.y0 == curY
+        and zc.w == contentW and zc.rowH == ROW_H and zc.hdrH == catHdrH
+        and zc.ro == (config.readOnly and true or false) or false
+    local zlist = zreuse and zc.list or {}
+    local zi = 0
+
     for _, sec in ipairs(sections) do
         -- Section header — always stamp zone (gamepad cone-nav targets off-
         -- screen disclosures; scroll-follow brings them into view). Draw only
@@ -1441,11 +1477,17 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                 panel:drawRect(x, curY, contentW, catHdrH, 0.55, ac.r, ac.g, ac.b)
             end
         end
-        zones[#zones + 1] = {
-            type = "sectionHeader", id = sec.id,
-            x = x, y = curY, w = contentW, h = catHdrH,
-            _scrolled = true,
-        }
+        zi = zi + 1
+        local hz = zlist[zi]
+        if not hz then
+            hz = {
+                type = "sectionHeader", id = sec.id,
+                x = x, y = curY, w = contentW, h = catHdrH,
+                _scrolled = true,
+            }
+            zlist[zi] = hz
+        end
+        zones[#zones + 1] = hz
         curY = curY + catHdrH
 
         -- Rows: always stamp zones for cone-nav (S107 QA — scroll past
@@ -1495,27 +1537,40 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                 end
 
                 -- Click zones (readOnly: full row, no star) — stamped UNCONDITIONALLY.
-                if config.readOnly then
-                    zones[#zones + 1] = {
+                zi = zi + 1
+                local rz = zlist[zi]
+                if not rz then
+                    rz = {
                         type = "recipeRow", id = name,
-                        x = x, y = curY, w = contentW, h = ROW_H,
+                        x = x, y = curY, w = config.readOnly and contentW or (contentW - T.px(18)), h = ROW_H,
                         _scrolled = true,
                     }
-                else
-                    zones[#zones + 1] = {
-                        type = "recipeRow", id = name,
-                        x = x, y = curY, w = contentW - T.px(18), h = ROW_H,
-                        _scrolled = true,
-                    }
-                    zones[#zones + 1] = {
-                        type = "recipeStar", id = name,
-                        x = x + contentW - T.px(18), y = curY, w = T.px(18), h = ROW_H,
-                        _scrolled = true,
-                    }
+                    zlist[zi] = rz
+                end
+                zones[#zones + 1] = rz
+                if not config.readOnly then
+                    zi = zi + 1
+                    local sz = zlist[zi]
+                    if not sz then
+                        sz = {
+                            type = "recipeStar", id = name,
+                            x = x + contentW - T.px(18), y = curY, w = T.px(18), h = ROW_H,
+                            _scrolled = true,
+                        }
+                        zlist[zi] = sz
+                    end
+                    zones[#zones + 1] = sz
                 end
                 curY = curY + ROW_H
             end
         end
+    end
+
+    if not zreuse then
+        state._rowZoneCache = {
+            sections = sections, x = x, y0 = y - scrollOff, w = contentW, rowH = ROW_H,
+            hdrH = catHdrH, ro = config.readOnly and true or false, list = zlist,
+        }
     end
 
     panel:clearStencilRect()
@@ -1526,6 +1581,206 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     end
 
     return h
+end
+
+-- ============================================================================
+-- CHOSEN INGREDIENTS - which item type fills a slot (the craft uses it)
+-- ============================================================================
+
+-- An item type's display name (cached).
+local _typeNames = {}
+function CC.typeName(fullType)
+    local n = _typeNames[fullType]
+    if n then return n end
+    n = fullType
+    pcall(function()
+        local script = ScriptManager.instance:getItem(fullType)
+        if script and script:getDisplayName() then n = script:getDisplayName() end
+    end)
+    _typeNames[fullType] = n
+    return n
+end
+
+-- The type picked for a slot of the recipe, or nil when the game chooses.
+function CC.pickFor(state, recipeName, slotIdx)
+    local p = state.picks and state.picks[recipeName]
+    return p and p[slotIdx] or nil
+end
+
+-- Pick a type for a slot; picking the same type again clears it.
+function CC.togglePick(state, recipeName, slotIdx, fullType)
+    if not (recipeName and slotIdx and fullType) then return end
+    state.picks = state.picks or {}
+    local p = state.picks[recipeName]
+    if not p then
+        p = {}
+        state.picks[recipeName] = p
+    end
+    if p[slotIdx] == fullType then p[slotIdx] = nil else p[slotIdx] = fullType end
+end
+
+-- A row of the open alternatives list that can be chosen: marks the chosen
+-- one, stamps its click zone (and the gamepad cue when focused).
+function CC.stampAltPick(panel, state, alt, x, y, w, rowH, viewY, viewH)
+    local T = ZeD.T
+    local ac = T.accent
+    local picked = CC.pickFor(state, state.selected, state.altSlotIdx) == alt.fullType
+    if picked then
+        panel:drawRect(x, y, w, rowH, 0.16, ac.r, ac.g, ac.b)
+        panel:drawRect(x, y, T.px(3), rowH, 1, ac.r, ac.g, ac.b)
+    end
+    if state._gpFocusedId and state._gpFocusedId == ((state._pickPrefix or "craft") .. ":altPick:" .. tostring(alt.fullType)) then
+        panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
+    end
+    if y + rowH > viewY and y < viewY + viewH then
+        local zones = state.zones
+        zones[#zones + 1] = {
+            type = "altPick", id = alt.fullType,
+            x = x, y = y, w = w, h = rowH,
+            _scrolled = true,
+        }
+    end
+end
+
+-- The craft action for a recipe whose ingredients were chosen. The chosen
+-- types are offered to a handcraft logic in manual-select mode (as vanilla's
+-- crafting window does when the player picks items) and the action is built
+-- from it, so the game uses what was chosen. Returns nil when nothing was
+-- chosen or the choice no longer covers the recipe (an item used up, moved
+-- out of reach): the caller then starts the usual automatic craft.
+--
+-- The slots the player did not choose for keep the items the game fills them
+-- with (autoPopulateInputs, as vanilla's panel does), so the recipe stays
+-- complete. Each chosen slot is filtered to its own input before its items
+-- are offered, so a chosen type lands in that slot and nowhere else.
+-- `used` (optional) is a set of items already promised to an earlier craft
+-- of the same batch: they are skipped, and the items this craft takes are
+-- added to it. Tools and kept items are not consumed, so they are never skipped.
+
+-- Kahlua has no next(); whether a table has any entry.
+local function hasAny(t) for _ in pairs(t) do return true end return false end
+
+-- Fill one item slot of the logic from the containers: only items of
+-- fullType when given (anything the slot accepts otherwise), skipping the
+-- items in skip.
+local function fillPickSlot(logic, script, containers, fullType, skip)
+    logic:setManualSelectInputScriptFilter(script)
+    local data = logic:getRecipeData():getDataForInputScript(script)
+    logic:clearManualInputsFor(data)
+    for ci = 0, containers:size() - 1 do
+        local items = containers:get(ci):getItems()
+        for j = 0, items:size() - 1 do
+            if data:isInputItemsSatisfied() then return end
+            local it = items:get(j)
+            if it and (not fullType or it:getFullType() == fullType) and not (skip and skip[it]) then
+                logic:offerInputItem(it)
+            end
+        end
+    end
+end
+
+-- Whether the slot currently holds an item from the set.
+local function slotHoldsAny(logic, script, set)
+    local list = logic:getManualInputsFor(script, ArrayList.new())
+    for i = 0, list:size() - 1 do
+        if set[list:get(i)] then return true end
+    end
+    return false
+end
+
+function CC.pickedCraftAction(playerObj, state, entry, bench, containers, used)
+    local picks = state.picks and entry and state.picks[entry.name]
+    if not (picks and hasAny(picks) and entry.recipe and entry.inputDefs and containers) then return nil end
+    local action = nil
+    local ok = pcall(function()
+        local logic = HandcraftLogic.new(playerObj, bench and bench.comp or nil, bench and bench.obj or nil)
+        logic:setContainers(containers)
+        logic:setRecipe(entry.recipe)
+        logic:setManualSelectInputs(true)
+        logic:autoPopulateInputs()
+        local defs = entry.inputDefs
+        for idx = 1, #defs do
+            local def = defs[idx]
+            local script = def.inputRef
+            if script and script:getResourceType() == ResourceType.Item then
+                local skip = (used and not (def.isTool or def.isKeep)) and used or nil
+                local fullType = picks[idx]
+                if fullType then
+                    fillPickSlot(logic, script, containers, fullType, skip)
+                elseif skip and hasAny(skip) and slotHoldsAny(logic, script, skip) then
+                    fillPickSlot(logic, script, containers, nil, skip)
+                end
+            end
+        end
+        logic:setManualSelectInputScriptFilter(nil)
+        if logic:canPerformCurrentRecipe() then
+            action = ISHandcraftAction.FromLogic(logic, 0)
+            if used then
+                for idx = 1, #defs do
+                    local def = defs[idx]
+                    local script = def.inputRef
+                    if script and not (def.isTool or def.isKeep) and script:getResourceType() == ResourceType.Item then
+                        local list = logic:getManualInputsFor(script, ArrayList.new())
+                        for i = 0, list:size() - 1 do used[list:get(i)] = true end
+                    end
+                end
+            end
+        end
+    end)
+    return ok and action or nil
+end
+
+-- Queue the crafts for the selected recipe when the player chose ingredients,
+-- one action per craft of the batch. Returns true when it handled the click
+-- (even if a bench check declined it, as the usual start does) and false when
+-- the usual automatic start should run instead: nothing chosen, or the choice
+-- cannot be met right now.
+function CC.startPickedCraft(win, state)
+    local playerObj = win._playerObj
+    local name = state.selected
+    local entry = state._selEntry
+    local picks = state.picks and name and state.picks[name]
+    if not (playerObj and entry and entry.name == name and entry.recipe and picks and hasAny(picks)) then return false end
+
+    -- at a bench: still bound and carrying this recipe, as the usual start checks
+    local bench = nil
+    if ZeD.Stations then
+        local st = ZeD.Stations.validate(playerObj)
+        if st and st.kind == "bench" then bench = st end
+    end
+    if entry.stationInfo and not bench then return false end
+    if bench and not ZeD.Stations.recipeSet(bench)[entry.recipe:getName()] then return false end
+
+    local containers = CC.buildContainers(playerObj)
+    local actions = {}
+    local used = {}
+    for i = 1, (state.qty or 1) do
+        local a = CC.pickedCraftAction(playerObj, state, entry, bench, containers, used)
+        if not a then return false end
+        actions[i] = a
+    end
+
+    if bench and ISEntityUI and ISEntityUI.WalkToEntity and not ISEntityUI.WalkToEntity(playerObj, bench.obj) then return true end
+    local queued = pcall(function()
+        for i = 1, #actions do ISTimedActionQueue.add(actions[i]) end
+    end)
+    if queued then
+        CC.incrementCraftCount(playerObj, name, state._countKey or "ZeD_CraftCounts")
+    end
+
+    state.qty = 1
+    state.filterDirty = true
+    win._craftCache = nil
+    win["_craftContainerTimer"] = 90
+    win["_craftTypeCache"] = nil
+    return true
+end
+
+-- Start the craft or build for the selected recipe: the chosen ingredients
+-- when there are any, else the tab's own automatic start.
+function CC.runStart(win, state, startAction)
+    if state._pickOn and CC.startPickedCraft(win, state) then return end
+    if startAction then startAction(win, state) end
 end
 
 -- ============================================================================
@@ -1613,6 +1868,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
         for _, alt in ipairs(owned) do
             rowIdx = rowIdx + 1
             M.drawAltRow(panel, x, curY, contentW, alt, true, rowIdx)
+            if state._pickOn then CC.stampAltPick(panel, state, alt, x, curY, contentW, ROW_H, y, h) end
             curY = curY + ROW_H
         end
     end
@@ -1878,9 +2134,10 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- Slot rows (hidden when collapsed)
     if not state.reqCollapsed then
         for idx, ing in ipairs(rd.ingredients or {}) do
+            local chosen = state._pickOn and CC.pickFor(state, state.selected, idx) or nil
             local slotData = {
                 name = ing.name,
-                displayName = ing.name,
+                displayName = chosen and (ing.name .. ": " .. CC.typeName(chosen)) or ing.name,
                 iconTex = ing.iconTex,
                 have = ing.have,
                 need = ing.need,
@@ -2007,6 +2264,14 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- S105 gamepad: stash win ref on state so helpers (dropdown overlay) can
     -- resolve the live focused ring element without a signature change.
     state._focusWin = win
+    -- choosing ingredients is offered only where the craft is built from the
+    -- choice: the Craft tab (handcraft logic), unless a config says otherwise
+    -- with pickIngredients
+    local pickOn = config.pickIngredients
+    if pickOn == nil then pickOn = (config.prefix == "craft") end
+    state._pickOn = (pickOn and not config.readOnly) and true or false
+    state._pickPrefix = config.prefix
+    state._countKey = config.countKey
 
     -- S105 gamepad: resolve the currently-focused ring element id once per
     -- frame and stash on state so each render function paints its cue inline
@@ -2095,6 +2360,7 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
                 break
             end
         end
+        state._selEntry = selRd and selRd.entry or nil
         if selRd then
             -- Vertical divider between panes
             panel:drawRect(cardX, curY, T.px(1), panesH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
@@ -2231,7 +2497,7 @@ function CC.renderCatDropdownOverlay(panel, state, data)
             panel:drawRect(ddX, ry, ddW, rowH, 0.55, ac.r, ac.g, ac.b)
         end
 
-        local label = cat.full or cat.label or cat.id
+        local label = CC.categoryLabel(cat.full or cat.label or cat.id)
         local tc = isActive and T.accent or T.text
         local textY = ry + math.floor((rowH - tm:getFontHeight(font)) / 2)
         panel:drawText(label, ddX + T.px(6), textY, tc.r, tc.g, tc.b, tc.a or 1, font)
@@ -2377,6 +2643,11 @@ function CC.onClick(state, config, win, x, y, playerObj)
                 end
                 return true
 
+            elseif zone.type == "altPick" then
+                -- choose this item type for the open slot (again to clear)
+                CC.togglePick(state, state.selected, state.altSlotIdx, zone.id)
+                return true
+
             elseif zone.type == "action_dec" then
                 state.qty = math.max(1, state.qty - 1)
                 return true
@@ -2388,9 +2659,7 @@ function CC.onClick(state, config, win, x, y, playerObj)
 
             elseif zone.type == "action_build" then
                 -- Delegate to tab-specific startAction
-                if config.startAction then
-                    config.startAction(win, state)
-                end
+                CC.runStart(win, state, config.startAction)
                 return true
             end
         end
@@ -2531,8 +2800,33 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
 
     local zones = state.zones or {}
     local elements = {}
+    -- The recipe rows and section headers are rebuilt from the zones every
+    -- frame, and there can be a thousand rows: each element (with its id
+    -- string and closures) is made once and only its box is updated after.
+    local fc = state._focusCache
+    if not fc or fc.prefix ~= prefix or fc.pinKey ~= pinKey or fc.made > 4000 then
+        fc = { prefix = prefix, pinKey = pinKey, rows = {}, sections = {}, made = 0 }
+        state._focusCache = fc
+    end
+    -- a recipe can sit in two sections (pinned and all), so the cache is
+    -- per id and per occurrence within the frame
+    local occRow, occSec = {}, {}
     for _, z in ipairs(zones) do
+        local n, slot = 0, nil
         if z.type == "recipeRow" then
+            n = (occRow[z.id] or 0) + 1
+            occRow[z.id] = n
+            slot = fc.rows
+        elseif z.type == "sectionHeader" then
+            n = (occSec[z.id] or 0) + 1
+            occSec[z.id] = n
+            slot = fc.sections
+        end
+        local cached = slot and slot[z.id] and slot[z.id][n]
+        if cached then
+            cached.x, cached.y, cached.w, cached.h = z.x, z.y, z.w, z.h
+            elements[#elements + 1] = cached
+        elseif z.type == "recipeRow" then
             local el = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
                 id = prefix .. ":row:" .. tostring(z.id),
@@ -2575,8 +2869,12 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 end
             end
             elements[#elements + 1] = el
+            local lst = fc.rows[z.id]
+            if not lst then lst = {}; fc.rows[z.id] = lst end
+            lst[n] = el
+            fc.made = fc.made + 1
         elseif z.type == "sectionHeader" then
-            elements[#elements + 1] = {
+            local sel = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
                 id = prefix .. ":section:" .. tostring(z.id),
                 isDisclosure = true,
@@ -2593,6 +2891,11 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     state._sectionsStale = true
                 end,
             }
+            elements[#elements + 1] = sel
+            local slst = fc.sections[z.id]
+            if not slst then slst = {}; fc.sections[z.id] = slst end
+            slst[n] = sel
+            fc.made = fc.made + 1
         elseif z.type == "sortMode" then
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
@@ -2688,6 +2991,18 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     end
                 end,
             }
+        elseif z.type == "altPick" then
+            -- A = choose this item type for the open slot (again to clear)
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":altPick:" .. tostring(z.id),
+                craftKind = "altPick",
+                fullType = z.id,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    CC.togglePick(state, state.selected, state.altSlotIdx, el.fullType)
+                end,
+            }
         elseif z.type == "altStrip_back" then
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
@@ -2736,7 +3051,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 craftKind = "actBuild",
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
-                    if startAction then startAction(w, state) end
+                    CC.runStart(w, state, startAction)
                 end,
             }
         end

@@ -26,11 +26,22 @@ local function towards(m, i)
     local a = math.rad(-90 + (i - 1) * 360 / math.max(n, 2))
     return cx + r * math.cos(a), cy + r * math.sin(a)
 end
-local car
+-- the pickup the character steps into: one within 20 tiles, else one spawned beside the character (removed at the
+-- end). The character is left wherever the last run ended, so the QA save's own pickup is not always near.
+local car, spawnedCar
 do
     local it = getCell():getVehicles():iterator()
     while it:hasNext() do local v = it:next(); if v:getScript():getFullName() == "Base.PickUpTruck" and v:DistTo(p) < 20 then car = v end end
 end
+if not car then
+    local sq = getCell():getGridSquare(math.floor(p:getX()) - 4, math.floor(p:getY()), math.floor(p:getZ()))
+    local ok, v = pcall(function() return sq and addVehicleDebug("Base.PickUpTruck", IsoDirections.N, nil, sq) end)
+    if ok and v then car, spawnedCar = v, v end
+    say("no pickup within 20 tiles; spawned one beside the character: " .. tostring(spawnedCar ~= nil))
+    if not car then say("ERR no pickup within 20 tiles and the spawn failed: the inside-the-vehicle wheel scenes run without one") end
+end
+local pairWasOpen = ZeD_CharacterWindow.isOpen()
+local gaveGear = {}   -- the clip and bullets given for the gun wheel, taken back at the end
 local inv = p:getInventory()
 local function find(full) local items = inv:getItems(); for i = 0, items:size() - 1 do local x = items:get(i); if x:getFullType() == full then return x end end end
 local pistol, torch, prim, sec = find("Base.Pistol"), find("Base.HandTorch"), p:getPrimaryHandItem(), p:getSecondaryHandItem()
@@ -70,8 +81,8 @@ at(270, function() shot("07_signal_point"); ZeD.Wheel.qaPoint = nil; menu:undisp
 -- 4. firearm (pistol in hand)
 at(285, function()
     if pistol then p:setPrimaryHandItem(pistol) end
-    if not find("Base.9mmClip") then inv:AddItem("Base.9mmClip") end
-    if not find("Base.Bullets9mm") then for _ = 1, 20 do inv:AddItem("Base.Bullets9mm") end end
+    if not find("Base.9mmClip") then gaveGear[#gaveGear + 1] = inv:AddItem("Base.9mmClip") end
+    if not find("Base.Bullets9mm") then for _ = 1, 20 do gaveGear[#gaveGear + 1] = inv:AddItem("Base.Bullets9mm") end end
 end)
 at(300, function() local f = ISFirearmRadialMenu:new(p); f:fillMenu(); f:display(); info("gun") end)
 at(320, function() ZeD.Wheel.qaPoint = 1 end)
@@ -110,7 +121,14 @@ at(630, function()
     if bw then bw:onCommand("PlayerInfo") end
     say("player info route: char=" .. tostring(ZeD_CharacterWindow.isOpen()) .. " vanillaInfo=" .. tostring(getPlayerInfoPanel(pn) and getPlayerInfoPanel(pn):isReallyVisible()))
 end)
-at(670, function() shot("14_playerinfo_route"); say("DONE") end)
+at(670, function() shot("14_playerinfo_route") end)
+at(675, function()
+    -- the pair back as it was found, the spawned pickup (if any) gone
+    if not pairWasOpen and ZeD_CharacterWindow.isOpen() then ZeD_CharacterWindow.toggleBothPaired(pn) end
+    for _, it in ipairs(gaveGear) do pcall(function() if it:getContainer() then it:getContainer():Remove(it) end end) end
+    if spawnedCar then pcall(function() spawnedCar:permanentlyRemove() end); spawnedCar = nil end
+    say("DONE")
+end)
 
 local function t()
     tick = tick + 1

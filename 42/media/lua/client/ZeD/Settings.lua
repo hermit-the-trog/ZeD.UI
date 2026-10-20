@@ -19,6 +19,9 @@ ZeD = ZeD or {}
 
 -- ---------------------------------------------------------------------------
 -- INDEX <-> KEY MAPPING
+-- A combo is saved in ModOptions.ini as its item's position, so a list only ever
+-- grows at the END: an item inserted or moved earlier would change what every
+-- player's saved choice means.
 -- ---------------------------------------------------------------------------
 local baseKeys   = {"dark", "light", "hicon"}
 local baseLabels = {"Dark", "Light", "High contrast"}
@@ -56,6 +59,26 @@ local function keyToIndex(keys, key)
     return 1
 end
 
+-- The two window-accent combos carry one more item after the colours: "Same as
+-- Accent color", which means no override of their own. It is last, so saved
+-- indices keep their meaning. Its key is nil.
+local accentFollowIdx = #accentKeys + 1
+local function windowAccentIndex(key)
+    for i, k in ipairs(accentKeys) do
+        if k == key then return i end
+    end
+    return accentFollowIdx
+end
+
+-- ModOptions.ini written now: vanilla re-reads it every time it builds the
+-- options screen, so a change made in game that is not saved is lost at the
+-- main menu and for the next character.
+local function saveModOptions()
+    if PZAPI and PZAPI.ModOptions and PZAPI.ModOptions.save then
+        pcall(PZAPI.ModOptions.save, PZAPI.ModOptions)
+    end
+end
+
 -- Expose for footer theme controls
 ZeD.Settings = ZeD.Settings or {}
 ZeD.Settings.baseKeys      = baseKeys
@@ -71,26 +94,27 @@ local baseTheme, accentColor, textSize
 -- inputModeLock overrides the InputModeDetector auto-detection.
 local glyphDisplay, inputModeLock
 
+-- The character's own copy of the theme in its modData. It follows the mod
+-- options and is never read back over them: the options are the one source for
+-- the base theme, the accent and the text size.
+local function copyThemeToCharacter()
+    local player = getSpecificPlayer(0)
+    if not player then return end
+    local md = player:getModData()
+    md.ZeD_Theme = md.ZeD_Theme or {}
+    md.ZeD_Theme.base   = ZeD.currentBase
+    md.ZeD_Theme.accent = ZeD.currentAccent
+    md.ZeD_Theme.size   = ZeD.currentSize
+end
+
 -- Sync current theme state back to ModOptions combo boxes (called after footer button changes)
 function ZeD.Settings.syncToModOptions()
     if not baseTheme then return end
     baseTheme:setValue(keyToIndex(baseKeys, ZeD.currentBase))
     accentColor:setValue(keyToIndex(accentKeys, ZeD.currentAccent))
     textSize:setValue(keyToIndex(sizeKeys, ZeD.currentSize))
-    -- Also persist to player modData (belt-and-suspenders — ModOptions save can be unreliable)
-    local player = getSpecificPlayer(0)
-    if player then
-        local md = player:getModData()
-        md.ZeD_Theme = md.ZeD_Theme or {}
-        md.ZeD_Theme.base   = ZeD.currentBase
-        md.ZeD_Theme.accent = ZeD.currentAccent
-        md.ZeD_Theme.size   = ZeD.currentSize
-        -- Preserve per-window accents already in modData
-        local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-        local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-        if charWin and charWin._accentKey then md.ZeD_Theme.charAccent = charWin._accentKey end
-        if worldWin and worldWin._accentKey then md.ZeD_Theme.worldAccent = worldWin._accentKey end
-    end
+    copyThemeToCharacter()
+    saveModOptions()
 end
 
 -- ---------------------------------------------------------------------------
@@ -125,14 +149,18 @@ local uiScale = opts:addComboBox("uiScale", "UI scale",
 for i, label in ipairs(scaleLabels) do
     uiScale:addItem(label, i == 1)  -- default: Auto
 end
-local function applyScale()
-    local v = scaleKeys[uiScale:getValue() or 1]
+-- idx: the item just picked (vanilla hands the new index to onChange; the stored
+-- value is only updated at Apply). Without it, the stored value is used.
+local function applyScale(idx)
+    local v = scaleKeys[tonumber(idx) or uiScale:getValue() or 1]
     if ZeD.Scale then
         ZeD.Scale.userScale = (type(v) == "number") and v or nil
         ZeD.Scale.refresh()   -- the Scale tick hook re-applies the theme and reopens the windows
     end
 end
-uiScale.onChange = applyScale
+-- (onChange and onChangeApply both get the option, then the new index)
+uiScale.onChange = function(_, sel) applyScale(sel) end
+uiScale.onChangeApply = function(_, sel) applyScale(sel) end
 ZeD.Settings.applyScale = applyScale
 ZeD.Settings.uiScaleOption = uiScale   -- QA bridge drives it like the options screen
 
@@ -193,18 +221,21 @@ actionBar:addItem("Simple", false)
 ZeD.Settings.actionBarOption = actionBar
 
 -- ----- CHARACTER WINDOW ACCENT -----
+-- Default: the same as the Accent color above (the last item, so saved indices keep their meaning).
 local charAccent = opts:addComboBox("charAccent", "Character window accent",
-    "Per-window accent override for the Character window. Cycled via footer button.")
+    "An accent of its own for the Character window, or the same as Accent color. Cycled via footer button.")
 for i, label in ipairs(accentLabels) do
-    charAccent:addItem(label, accentKeys[i] == "orange")  -- default: orange
+    charAccent:addItem(label, false)
 end
+charAccent:addItem("Same as Accent color", true)
 
 -- ----- WORLD WINDOW ACCENT -----
 local worldAccent = opts:addComboBox("worldAccent", "World window accent",
-    "Per-window accent override for the World window. Cycled via footer button.")
+    "An accent of its own for the World window, or the same as Accent color. Cycled via footer button.")
 for i, label in ipairs(accentLabels) do
-    worldAccent:addItem(label, accentKeys[i] == "orange")  -- default: orange
+    worldAccent:addItem(label, false)
 end
+worldAccent:addItem("Same as Accent color", true)
 
 -- ----- GLYPH DISPLAY (S91 Gamepad Phase 1) -----
 -- Sets which button-prompt artwork is used in footer prompt strips.
@@ -238,41 +269,81 @@ safeMode:addItem("On: the game's own interface", false)
 ZeD.Settings.safeModeOption = safeMode
 
 -- ----- APPLY FUNCTION -----
--- Reads combo box indices and converts to our key strings
-local function applyFromOptions()
-    local baseIdx   = baseTheme:getValue()   or 1
-    local accentIdx = accentColor:getValue()  or 2
-    local sizeIdx   = textSize:getValue()     or 1
+-- The index the player has picked in a combo. While the options screen is open
+-- vanilla keeps the pick on the control and stores it in the option only at
+-- Apply, so the option's own value is stale until then; the control is read
+-- first, the option after.
+local function pickedIdx(opt)
+    local el = opt.element
+    return (el and el.selected) or opt:getValue()
+end
 
-    local base   = baseKeys[baseIdx]   or "dark"
-    local accent = accentKeys[accentIdx] or "orange"
-    local size   = sizeKeys[sizeIdx]   or "small"
+-- Reads the three theme combos and converts the indices to our key strings.
+-- `changed` / `sel`: the combo that just changed and the new index vanilla hands
+-- to onChange; the other two are read as picked. With no arguments (game start,
+-- main menu) the stored values are used.
+local function applyFromOptions(changed, sel)
+    local baseIdx, accentIdx, sizeIdx
+    if changed then
+        baseIdx   = (changed == baseTheme   and tonumber(sel)) or pickedIdx(baseTheme)
+        accentIdx = (changed == accentColor and tonumber(sel)) or pickedIdx(accentColor)
+        sizeIdx   = (changed == textSize    and tonumber(sel)) or pickedIdx(textSize)
+    else
+        baseIdx, accentIdx, sizeIdx = baseTheme:getValue(), accentColor:getValue(), textSize:getValue()
+    end
+
+    local base   = baseKeys[baseIdx or 1]     or "dark"
+    local accent = accentKeys[accentIdx or 2] or "orange"
+    local size   = sizeKeys[sizeIdx or 1]     or "small"
 
     ZeD.applyTheme(base, accent, size)
 end
-
 -- ----- ON CHANGE -----
--- Fires when the player changes a value in the MODS tab
-baseTheme.onChange   = applyFromOptions
-accentColor.onChange = applyFromOptions
-textSize.onChange    = applyFromOptions
+-- Fires when the player changes a value in the MODS tab (the new index comes
+-- with it, so the change shows at once). onChangeApply fires at Apply, so a
+-- value is also committed where there was no live preview.
+local function onThemeChange(opt, sel) applyFromOptions(opt, sel) end
+local function onThemeApply(opt, sel)
+    applyFromOptions(opt, sel)
+    copyThemeToCharacter()
+end
+baseTheme.onChange   = onThemeChange
+accentColor.onChange = onThemeChange
+textSize.onChange    = onThemeChange
+baseTheme.onChangeApply   = onThemeApply
+accentColor.onChangeApply = onThemeApply
+textSize.onChangeApply    = onThemeApply
 
--- Per-window accent onChange: apply to live window if it exists
-charAccent.onChange = function()
-    local key = accentKeys[charAccent:getValue() or 2] or "orange"
-    local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+-- Per-window accent: apply to the live window if it exists, and to the one the
+-- next open restores. The saved window state carries its own accent which the
+-- next open prefers, so the pick is written there too (Options wins over it).
+local function setWindowAccent(getWin, pendingField, stateKey, idx)
+    local key = accentKeys[tonumber(idx) or accentFollowIdx]   -- nil: follows Accent color
+    local win = getWin and getWin()
     if win then win._accentKey = key end
+    ZeD[pendingField] = key
+    local player = getSpecificPlayer(0)
+    if player then
+        local md = player:getModData()
+        local st = md.ZeD_WinState and md.ZeD_WinState[stateKey]
+        if st then st.accentKey = key end
+    end
 end
-worldAccent.onChange = function()
-    local key = accentKeys[worldAccent:getValue() or 2] or "orange"
-    local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-    if win then win._accentKey = key end
+local function onCharAccent(_, sel)
+    setWindowAccent(ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow, "_pendingCharAccent", "char", sel)
 end
+local function onWorldAccent(_, sel)
+    setWindowAccent(ZeD_WorldWindow and ZeD_WorldWindow.getWindow, "_pendingWorldAccent", "world", sel)
+end
+charAccent.onChange  = onCharAccent
+charAccent.onChangeApply  = onCharAccent
+worldAccent.onChange = onWorldAccent
+worldAccent.onChangeApply = onWorldAccent
 
 -- Glyph display: store the selection to modData. GlyphManager (Phase 4)
 -- will read it; Phase 1 just persists the user's preference.
-glyphDisplay.onChange = function()
-    local key = glyphKeys[glyphDisplay:getValue() or 1] or "auto"
+glyphDisplay.onChange = function(_, sel)
+    local key = glyphKeys[tonumber(sel) or glyphDisplay:getValue() or 1] or "auto"
     local player = getSpecificPlayer(0)
     if player then
         local md = player:getModData()
@@ -284,8 +355,8 @@ end
 -- Input mode lock: wire directly to the detector. "auto" clears the lock;
 -- "kbm" / "gamepad" pin the mode. The detector's setLockedMode handles the
 -- nil-vs-string semantics internally.
-inputModeLock.onChange = function()
-    local key = inputLockKeys[inputModeLock:getValue() or 1] or "auto"
+inputModeLock.onChange = function(_, sel)
+    local key = inputLockKeys[tonumber(sel) or inputModeLock:getValue() or 1] or "auto"
     local player = getSpecificPlayer(0)
     if player then
         local md = player:getModData()
@@ -301,19 +372,24 @@ inputModeLock.onChange = function()
     end
 end
 
--- Sync a single window's accent to ModOptions + modData (called from footer button)
+-- Sync a single window's accent to ModOptions + modData (called from footer button).
+-- A window with no accent key of its own follows the Accent color option.
 function ZeD.Settings.syncWindowAccent(win)
-    if not win or not win._accentKey then return end
+    if not win then return end
     local key = win._accentKey
     -- Determine which window this is and sync the correct ModOption
     local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     if win == charWin and charAccent then
-        charAccent:setValue(keyToIndex(accentKeys, key))
+        charAccent:setValue(windowAccentIndex(key))
+        ZeD._pendingCharAccent = key
     elseif win == worldWin and worldAccent then
-        worldAccent:setValue(keyToIndex(accentKeys, key))
+        worldAccent:setValue(windowAccentIndex(key))
+        ZeD._pendingWorldAccent = key
+    else
+        return
     end
-    -- Also persist to player modData
+    -- Also persist to player modData (a copy that follows the options)
     local player = getSpecificPlayer(0)
     if player then
         local md = player:getModData()
@@ -321,83 +397,92 @@ function ZeD.Settings.syncWindowAccent(win)
         if win == charWin then md.ZeD_Theme.charAccent = key end
         if win == worldWin then md.ZeD_Theme.worldAccent = key end
     end
+    saveModOptions()
+end
+
+-- The input mode lock from its stored value: "auto" leaves the detector alone
+-- when it has no lock to clear (game start), `clear` also lifts a lock (discard).
+local function applyInputLock(clear)
+    if not (inputModeLock and ZeD.Input and ZeD.Input.Detector and ZeD.Input.Detector.setLockedMode) then return end
+    local key = inputLockKeys[inputModeLock:getValue() or 1] or "auto"
+    if key ~= "auto" then
+        ZeD.Input.Detector.setLockedMode(key)
+    elseif clear then
+        ZeD.Input.Detector.setLockedMode(nil)
+    end
+end
+
+-- The per-window accents the next open of each window starts from (nil: follow Accent color).
+-- Each window also remembers its own accent in the character's saved window state, and
+-- the next open prefers that over the pending value: with a character loaded, the saved
+-- one is brought to the option's pick too, so a pick made at the main menu is not
+-- overridden by the accent the window was last closed with.
+local function applyWindowAccentsFromOptions()
+    if charAccent then
+        ZeD._pendingCharAccent = accentKeys[charAccent:getValue() or accentFollowIdx]
+    end
+    if worldAccent then
+        ZeD._pendingWorldAccent = accentKeys[worldAccent:getValue() or accentFollowIdx]
+    end
+    local player = getSpecificPlayer(0)
+    local ws = player and player:getModData().ZeD_WinState
+    if ws then
+        if ws.char then ws.char.accentKey = ZeD._pendingCharAccent end
+        if ws.world then ws.world.accentKey = ZeD._pendingWorldAccent end
+    end
+end
+
+-- Everything from the stored option values. The options window's discard runs this
+-- (see hookOptionsDiscard below): the controls are back at the stored picks, but the
+-- live preview of the discarded ones (theme, scale) would otherwise stay on screen.
+function ZeD.Settings.reapplyFromOptions()
+    applyScale()
+    applyFromOptions()
+    applyWindowAccentsFromOptions()
+    local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    if charWin then charWin._accentKey = ZeD._pendingCharAccent end
+    if worldWin then worldWin._accentKey = ZeD._pendingWorldAccent end
+    applyInputLock(true)
+end
+
+-- The options window's DISCARD (and the footer's discard-and-stay, which goes through
+-- it) puts the controls back but does not call the handlers above, so it is wrapped
+-- once to re-apply the stored values afterwards. The window's file loads in its own
+-- order, so the wrap is made when the menu or a game starts, not at file load.
+local discardHooked = false
+local function hookOptionsDiscard()
+    if discardHooked or not (ZeD_MMOptions and ZeD_MMOptions.discard) then return end
+    discardHooked = true
+    local plainDiscard = ZeD_MMOptions.discard
+    ZeD_MMOptions.discard = function(self, ...)
+        local r = plainDiscard(self, ...)
+        pcall(ZeD.Settings.reapplyFromOptions)
+        return r
+    end
 end
 
 -- ---------------------------------------------------------------------------
 -- APPLY SAVED SETTINGS WHEN GAME STARTS
 -- ModOptions:load() runs before OnGameStart, so combo boxes already have
--- the player's saved values by the time this fires.
+-- the player's saved values by the time this fires. The mod options are the
+-- one source for the theme, the accents and the gamepad choices: what the
+-- player picks there applies to every character, and a copy kept in a
+-- character's own data never overrides it.
 -- ---------------------------------------------------------------------------
 Events.OnGameStart.Add(function()
+    hookOptionsDiscard()
     applyScale()   -- display preference: lives in the mod options, not in the save
-    -- Try modData first (persists with save file), fall back to ModOptions
-    local player = getSpecificPlayer(0)
-    if player then
-        local md = player:getModData()
-        if md.ZeD_Theme then
-            local base   = md.ZeD_Theme.base   or "dark"
-            local accent = md.ZeD_Theme.accent  or "orange"
-            local size   = md.ZeD_Theme.size    or "small"
-            ZeD.applyTheme(base, accent, size)
-            -- Sync global ModOptions to match
-            if baseTheme then
-                baseTheme:setValue(keyToIndex(baseKeys, base))
-                accentColor:setValue(keyToIndex(accentKeys, accent))
-                textSize:setValue(keyToIndex(sizeKeys, size))
-            end
-            -- Sync per-window accent ModOptions from modData
-            if md.ZeD_Theme.charAccent and charAccent then
-                charAccent:setValue(keyToIndex(accentKeys, md.ZeD_Theme.charAccent))
-            end
-            if md.ZeD_Theme.worldAccent and worldAccent then
-                worldAccent:setValue(keyToIndex(accentKeys, md.ZeD_Theme.worldAccent))
-            end
-            -- Store per-window accents for window restore (read by restoreCharState/restoreWorldState)
-            ZeD._pendingCharAccent  = md.ZeD_Theme.charAccent
-            ZeD._pendingWorldAccent = md.ZeD_Theme.worldAccent
-            -- Restore S91 gamepad settings if present (falls through to applyFromOptions
-            -- defaults otherwise). Glyph display is stored only; input mode lock
-            -- feeds the detector immediately if the detector is loaded.
-            if md.ZeD_Gamepad then
-                if md.ZeD_Gamepad.glyphDisplay and glyphDisplay then
-                    glyphDisplay:setValue(keyToIndex(glyphKeys, md.ZeD_Gamepad.glyphDisplay))
-                end
-                if md.ZeD_Gamepad.inputModeLock and inputModeLock then
-                    inputModeLock:setValue(keyToIndex(inputLockKeys, md.ZeD_Gamepad.inputModeLock))
-                    if ZeD.Input and ZeD.Input.Detector and ZeD.Input.Detector.setLockedMode then
-                        local key = md.ZeD_Gamepad.inputModeLock
-                        if key == "auto" then
-                            ZeD.Input.Detector.setLockedMode(nil)
-                        else
-                            ZeD.Input.Detector.setLockedMode(key)
-                        end
-                    end
-                end
-            end
-            return
-        end
-    end
     applyFromOptions()
-    -- Fall back: read per-window accents from ModOptions
-    if charAccent then
-        ZeD._pendingCharAccent = accentKeys[charAccent:getValue() or 2]
-    end
-    if worldAccent then
-        ZeD._pendingWorldAccent = accentKeys[worldAccent:getValue() or 2]
-    end
-    -- Fall back: apply input mode lock from ModOptions if no modData exists
-    if inputModeLock and ZeD.Input and ZeD.Input.Detector and ZeD.Input.Detector.setLockedMode then
-        local key = inputLockKeys[inputModeLock:getValue() or 1] or "auto"
-        if key ~= "auto" then
-            ZeD.Input.Detector.setLockedMode(key)
-        end
-    end
+    applyWindowAccentsFromOptions()   -- read by restoreCharState / restoreWorldState
+    applyInputLock(false)
 end)
 
 -- The main menu (Oct 14 2026) draws ZeD windows before any save loads: apply
 -- the mod options there too. Vanilla's own OnMainMenuEnter handler builds the
 -- options screen first, which loads the saved mod options.
 Events.OnMainMenuEnter.Add(function()
+    hookOptionsDiscard()
     applyScale()
     applyFromOptions()
 end)

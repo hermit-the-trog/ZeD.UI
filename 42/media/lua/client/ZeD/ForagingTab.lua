@@ -355,6 +355,51 @@ local function getFocusChance(win)
     return mn .. "-" .. mx .. "%"
 end
 
+-- Vanilla reads the foraging focus only from the search window object it
+-- keeps per character (sprite affinity, tracks, icon re-rolls, server zone
+-- requests). ZeD never shows that window, so the chosen focus is written to
+-- it here. Vanilla creates it for every player at start; createUI builds it
+-- (without showing it) if it is somehow missing.
+local function getSearchWindow(win, create)
+    local p = win._playerObj
+    if not p or not ISSearchWindow or not ISSearchWindow.players then return nil end
+    local sw = ISSearchWindow.players[p]
+    if not sw and create and ISSearchWindow.createUI then
+        pcall(ISSearchWindow.createUI, p:getPlayerNum())
+        sw = ISSearchWindow.players[p]
+    end
+    return sw
+end
+
+local function applyForagingFocus(win, selectedId)
+    local focus = (selectedId ~= "none") and selectedId or nil
+    win._foragingFocus = focus
+    local sw = getSearchWindow(win, true)
+    if sw then sw.searchFocusCategory = focus or "None" end
+end
+
+-- Each frame: follow the search window's category (it can be changed from
+-- vanilla's own window), and fall back to no focus when the category is no
+-- longer offered (perk level dropped), the way vanilla's
+-- updateSearchFocusCategories does. Never leaves the field nil.
+local function syncForagingFocus(win, opts)
+    local sw = getSearchWindow(win, false)
+    if not sw then return end
+    local cat = sw.searchFocusCategory or "None"
+    if cat ~= "None" then
+        local offered = false
+        for i = 1, #opts do
+            if opts[i].id == cat then offered = true break end
+        end
+        if not offered then cat = "None" end
+    end
+    if sw.searchFocusCategory ~= cat then sw.searchFocusCategory = cat end
+    win._foragingFocus = (cat ~= "None") and cat or nil
+    local dd = win._forageDropdown
+    local id = (cat ~= "None") and cat or "none"
+    if dd and not dd.isOpen and dd.selectedId ~= id then dd.selectedId = id end
+end
+
 -- Recent finds queue (module-level, keyed by playerNum) ---------------------
 ZeD.ForagingTab._findQueues = {}
 
@@ -721,7 +766,7 @@ local function drawFocusRow(panel, win, x, y, w)
         local ddW = w - T.px(FOCUS_PAD_X) * 2 - T.px(FINDS_WT_W) - T.px(FOCUS_GAP)
         local dd = ZeD_Dropdown:new(x + T.px(FOCUS_PAD_X), y + math.floor((h - T.inputH) / 2), ddW, liveOpts, "none")
         dd.onChange = function(self, selectedId)
-            win._foragingFocus = selectedId == "none" and nil or selectedId
+            applyForagingFocus(win, selectedId)
         end
         panel:addChild(dd)
         win._forageDropdown = dd
@@ -1078,9 +1123,19 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
     win._frameCondition  = getCondition(win._frameNetMod)
     win._frameStance     = getStanceLabel(win)
     local zoneKey        = getZoneKey(win)
-    win._frameCategories = getCategories(win, zoneKey)
-    win._frameModifiers  = getModifiers(win)
-    win._frameFocusOptions = getFocusOptions(win)
+    -- The category list, trait modifiers and focus options build tables and
+    -- Java trait handles, so they are refreshed on a short timer (or at once
+    -- when the zone changes) instead of every frame.
+    local nowMs = getTimestampMs and getTimestampMs() or 0
+    if not win._frameCategories or zoneKey ~= win._frameCatZone
+            or nowMs - (win._frameCatStamp or 0) > 250 then
+        win._frameCatZone      = zoneKey
+        win._frameCatStamp     = nowMs
+        win._frameCategories   = getCategories(win, zoneKey)
+        win._frameModifiers    = getModifiers(win)
+        win._frameFocusOptions = getFocusOptions(win)
+    end
+    syncForagingFocus(win, win._frameFocusOptions)
 
     -- Sync recent finds from discovery hook queue
     local playerNum = win._playerObj and win._playerObj:getPlayerNum() or 0

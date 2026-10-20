@@ -50,6 +50,8 @@ end
 
 -- a part's key for the short-lived state below
 local function keyOf(part)
+    -- no part (the vehicle is gone): a key that no radio holds
+    if not part then return "none" end
     return _safe(function() return tostring(part:getVehicle():getId()) .. ":" .. tostring(part:getId()) end, tostring(part))
 end
 O.keyOf = keyOf
@@ -176,13 +178,17 @@ local function run(mode, chr, part, arg)
 end
 O.run = run
 
-local function stopScan(part) O._scan[keyOf(part)] = nil end
+local function stopScan(part)
+    if not part then return end   -- the vehicle is gone: nothing is scanning
+    O._scan[keyOf(part)] = nil
+end
 O.stopScan = stopScan
 
 function O.power(chr, part) stopScan(part); return run("ToggleOnOff", chr, part) end
 
 -- dir +1 / -1 a tenth; wrap = the dash's one-button volume (past full it starts over)
 function O.volStep(chr, part, dir, wrap)
+    if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
     local cur = _safe(function() return dd:getDeviceVolume() end, 0.5)
     local nv = math.floor((cur + 0.1 * dir) * 10 + 0.5) / 10
@@ -191,6 +197,7 @@ function O.volStep(chr, part, dir, wrap)
 end
 
 function O.mute(chr, part)
+    if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
     local cur = _safe(function() return dd:getDeviceVolume() end, 0.5)
     if cur > 0.001 then
@@ -205,6 +212,7 @@ O.setChannel = setChannel
 
 -- one click of TUNE / the DIAL (mult: the fast-turn multiplier); the band wraps
 function O.tuneStep(chr, part, dir, mult)
+    if not part then return false end
     stopScan(part)
     local dd = part:getDeviceData(); if not dd then return false end
     local lo, hi = _safe(function() return dd:getMinChannelRange() end, 88000), _safe(function() return dd:getMaxChannelRange() end, 108000)
@@ -228,6 +236,7 @@ function O.nextStation(dd, dir)
 end
 
 function O.seek(chr, part, dir)
+    if not part then return false end
     stopScan(part)
     local hz = O.nextStation(part:getDeviceData(), dir or 1)
     if hz then return setChannel(chr, part, hz) end
@@ -236,6 +245,7 @@ end
 
 -- SCAN: on to the next station, a few seconds on each, until pressed again
 function O.scanToggle(chr, part)
+    if not part then return false end
     local k = keyOf(part)
     if O._scan[k] then O._scan[k] = nil; return true end
     local hz = O.nextStation(part:getDeviceData(), 1)
@@ -262,6 +272,7 @@ if Events and Events.OnTick then Events.OnTick.Add(scanTick) end
 
 -- presets: vanilla's own list (the first six are the buttons on an FM set)
 local function presetsOf(part)
+    if not part then return nil, nil, nil end   -- the vehicle is gone
     local dd = part:getDeviceData()
     local pc = dd and _safe(function() return dd:getDevicePresets() end, nil)
     local l = pc and _safe(function() return pc:getPresets() end, nil)
@@ -346,6 +357,7 @@ function O.rename(chr, part, idx, name)
 end
 
 function O.mic(chr, part)
+    if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
     return run("MuteMicrophone", chr, part, not _safe(function() return dd:getMicIsMuted() end, false))
 end
@@ -376,6 +388,7 @@ end
 
 -- a CD in / out: vanilla's action through the queue (it takes a moment, like vanilla)
 local function mediaAction(chr, part, isRemove, item)
+    if not (chr and part) then return false end
     if not (ISDeviceMediaAction and ISDeviceBatteryAction) then return false end
     local param = _safe(function() return ISDeviceBatteryAction:getDeviceDataParameter(chr, part, "VehiclePart") end, nil)
     local a = ISDeviceMediaAction:new(chr, isRemove, item, param)
@@ -390,6 +403,7 @@ function O.insert(chr, part, item)
     return mediaAction(chr, part, false, item)
 end
 function O.eject(chr, part)
+    if not part then return false end
     local dd = part:getDeviceData()
     if not (dd and _safe(function() return dd:hasMedia() end, false)) then return false end
     return mediaAction(chr, part, true, nil)

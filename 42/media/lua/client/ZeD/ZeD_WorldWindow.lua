@@ -184,6 +184,37 @@ end
 -- window-local space so the cone algorithm can traverse tabBar<->panel
 -- without a frame mismatch.
 -- S95 v3: onFocus auto-activates, matching the tab-strip behavior.
+-- The strip's non-floor container indices in display order, kept on the window.
+-- Sorted again only when forced (the container list just refreshed), when the
+-- list itself was replaced, or when the sort mode changed, not every frame.
+-- "wt" heaviest first (each bag's weight read once per sort), "type" by name,
+-- "dist" leaves the natural order. Callers must not change the returned table.
+local function _worldStripListOrder(win, force)
+    local containers = win._containers
+    local sortMode = win._containerSortMode or "dist"
+    local list = win._worldListOrder
+    if force or not list or win._worldListFor ~= containers or win._worldListMode ~= sortMode then
+        list = {}
+        for i, c in ipairs(containers) do
+            if not c.isFloor then list[#list + 1] = i end
+        end
+        if sortMode == "wt" then
+            local wt = {}
+            for _, ci in ipairs(list) do
+                local inv = containers[ci].inventory
+                wt[ci] = inv and inv:getCapacityWeight() or 0
+            end
+            table.sort(list, function(a, b) return wt[a] > wt[b] end)
+        elseif sortMode == "type" then
+            table.sort(list, function(a, b)
+                return (containers[a].name or "") < (containers[b].name or "")
+            end)
+        end
+        win._worldListOrder, win._worldListFor, win._worldListMode = list, containers, sortMode
+    end
+    return list
+end
+
 -- S113c: shared gamepad-drag reorder for World container strip. Mirror of
 -- _gpReorderCharContainer. World containers don't have a stable
 -- _containerOrder structure equivalent to Char's — World uses listEntries
@@ -324,24 +355,8 @@ _buildWorldLootFocusables = function(win)
     -- Elements 2..N: non-floor containers in listEntries display order.
     -- Replicate drawWorldContainerStrip's listEntries build + sort so focus
     -- element y-coords track the actual rendered positions.
-    local listEntries = {}
-    for i, c in ipairs(win._containers) do
-        if not c.isFloor then
-            listEntries[#listEntries + 1] = i
-        end
-    end
-    local sortMode = win._containerSortMode or "dist"
-    if sortMode == "wt" then
-        table.sort(listEntries, function(a, b)
-            local wa = win._containers[a].inventory and win._containers[a].inventory:getCapacityWeight() or 0
-            local wb = win._containers[b].inventory and win._containers[b].inventory:getCapacityWeight() or 0
-            return wa > wb
-        end)
-    elseif sortMode == "type" then
-        table.sort(listEntries, function(a, b)
-            return (win._containers[a].name or "") < (win._containers[b].name or "")
-        end)
-    end
+    -- (the stored order the strip drew, not sorted again here)
+    local listEntries = _worldStripListOrder(win)
 
     for pos, ci in ipairs(listEntries) do
         local cy = zone3Y + (pos - 1) * T.px(CONTAINER_BTN_SZ)
@@ -1043,12 +1058,56 @@ _clearGpFocusState = function(w)
     if c then c._gpFocusedRowItem = nil end
 end
 
+-- True when a Loot column's pad targets need rebuilding: its rows (the same
+-- items in the same order), scroll, view, row height, place or container
+-- changed since the last build. Records the new state when it says yes.
+-- No tables or strings are made on the frames where nothing changed.
+local function _worldMCColumnDirty(win, slot, cs)
+    win._lastMCSnap = win._lastMCSnap or {}
+    local snap = win._lastMCSnap[slot]
+    local items = cs.flatItems or {}
+    local n = #items
+    local scrollPos = cs.scroll and cs.scroll.scrollPos
+    local yMap = cs.itemRenderYMap
+    local y1 = yMap and n > 0 and yMap[items[1]] or nil
+    local nToggles = cs.viewToggleRects and #cs.viewToggleRects or 0
+    if snap and snap.n == n and snap.scrollPos == scrollPos and snap.y1 == y1
+       and snap.gridCell == cs.gridCell and snap.renderX == cs.renderX
+       and snap.renderW == cs.renderW and snap.rowH == ZeD.T.rowH
+       and snap.containerIdx == cs.containerIdx and snap.nToggles == nToggles then
+        local same = true
+        local old = snap.items
+        for i = 1, n do
+            if old[i] ~= items[i] then same = false; break end
+        end
+        if same then return false end
+    end
+    local copy = {}
+    for i = 1, n do copy[i] = items[i] end
+    win._lastMCSnap[slot] = {
+        n = n, items = copy, scrollPos = scrollPos, y1 = y1,
+        gridCell = cs.gridCell, renderX = cs.renderX, renderW = cs.renderW,
+        rowH = ZeD.T.rowH, containerIdx = cs.containerIdx, nToggles = nToggles,
+    }
+    return true
+end
+
+-- True when the slot's pad targets must be rebuilt: the column has no state
+-- yet, or _worldMCColumnDirty says it changed.
+local function _worldMCSlotStale(win, content, slot)
+    local colStates = content._colStates
+    local cs = colStates and colStates[slot]
+    return (not cs) or _worldMCColumnDirty(win, slot, cs)
+end
+
 -- S108 v2 — Dynamic per-column MC ring zone restructuring. Each MC selection
 -- becomes its own ring zone (worldMC1..worldMCN); bumpers cycle them as
 -- standard ring zones. Removes the old single `worldLootMCColumns` zone.
 -- Insertion point: between worldContainerStrip and worldMainInv (matches the
 -- visual layout where MC cols sit left of mainInv in the content panel).
 local function _rebuildWorldMCRingZones(win)
+    -- the zones are rebuilt here, so the per-frame change check starts fresh
+    if win then win._lastMCSnap = nil end
     local ring = win and win._focusRing
     if not ring then return end
 
@@ -1431,10 +1490,9 @@ end
 -- Module-level singleton ref
 local _worldWin = nil
 
--- Floor container — created once per player, reused across toggle cycles
+-- Floor container — vanilla's (ISInventoryPage.GetFloorContainer), fetched on the
+-- window's first container scan and refilled by it (see buildWorldContainers)
 local _floorContainer = nil
--- Maps floor items → their real per-square containers (saved before AddItem reparents)
-local _floorRealContainers = {}
 
 -- Tab strip separator — TAB_SEP_H/TAB_SEP_MAR hoisted up to line ~52 in S94
 -- so _buildWorldTabBarElements can see them as upvalues. TAB_ARROW_ROW_H
@@ -1639,7 +1697,19 @@ local function getWorldTargetDrawerW(win)
     if win._drawerOpen then
         local base = 0
         if win._drawerMode == "item" then base = T.px(ITEM_CARD_W)
-        elseif win._drawerMode == "tab" then base = T.px(getWorldTabDrawerW(win._activeTab)) end
+        elseif win._drawerMode == "tab" then
+            base = T.px(getWorldTabDrawerW(win._activeTab))
+            -- The window is capped at half the screen, so on a small screen or a
+            -- large text size a wide tab would squeeze the inventory beside it
+            -- below its 200-unit minimum. Give the tab only the room left after
+            -- the inventory's minimum (it scrolls), never less than the standard
+            -- drawer. Multi-column Loot lifts the cap, so it is left alone there.
+            if win._invDrawerOpen and not win._rolled and #(win._mcSelected or {}) == 0 then
+                local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
+                local room = maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(200)
+                base = math.max(math.min(base, T.px(DRAWER_W)), math.min(base, room))
+            end
+        end
         -- S124: the object card needs its full width, over a tab or on its own
         if win._drawerObject and win._drawerItem == nil then
             return math.max(base, T.px(OBJECT_CARD_W))
@@ -1753,6 +1823,63 @@ local function getColumnAtX(content, x)
         end
     end
     return nil, nil
+end
+
+-- Right-click picks its items the way vanilla's inventory pane does: the row
+-- under the cursor becomes the selection unless it is already part of a
+-- multi-selection, which is then kept. A stack header or a stack's main row
+-- stands for the whole stack. A click on empty space uses the current
+-- selection. Returns the menu's items and whether the selection changed.
+local function _worldRmbMenuItems(content, x, y, colIdx, colCs)
+    local sel = (colCs and colCs.selectedItems) or content._selectedItems
+    local stacksTbl = (colCs and colCs.stacks) or content._stacks
+    local zone = content:hitZoneAt(x, y)
+    local zid = zone and zone.id
+    local rep, clicked
+    if type(zid) == "string" then
+        if zid:sub(1, 6) == "stack:" then
+            -- stacks are keyed by their main item, not by the key string
+            local key = zid:sub(7)
+            for _, info in pairs(stacksTbl or {}) do
+                if info and info.key == key then
+                    rep, clicked = info.rep or (info.items and info.items[1]), info.items
+                    break
+                end
+            end
+        end
+    elseif zid ~= nil then
+        rep = zid
+        local stk = stacksTbl and stacksTbl[zid]
+        if stk and stk.count > 1 and stk.items then clicked = stk.items else clicked = { zid } end
+    end
+
+    local menuItems = {}
+    if not rep or not clicked then
+        for item in pairs(sel) do menuItems[#menuItems + 1] = item end
+        return menuItems, false
+    end
+
+    local selCount, clickedInSel = 0, false
+    for _ in pairs(sel) do selCount = selCount + 1 end
+    for _, it in ipairs(clicked) do
+        if sel[it] then clickedInSel = true; break end
+    end
+    if selCount > 1 and clickedInSel then
+        for item in pairs(sel) do menuItems[#menuItems + 1] = item end
+        return menuItems, false
+    end
+
+    -- Select the clicked row (same bookkeeping as a plain left-click)
+    for k in pairs(sel) do sel[k] = nil end
+    sel[rep] = true
+    if colCs then
+        colCs.lastClickedItem = rep
+        content._selectedItems = sel
+        content._activeCol = colIdx
+    end
+    content._lastClickedItem = rep
+    for _, it in ipairs(clicked) do menuItems[#menuItems + 1] = it end
+    return menuItems, true
 end
 
 local function enterWorldMC(win, content)
@@ -1992,6 +2119,17 @@ local function saveWorldState(win)
     }
 end
 
+-- The remembered layout is also written while the window is open, about once
+-- a second: the game's OnPostSave runs after the save is already on disk, so a
+-- Save and Quit with the window open would otherwise lose every move, resize
+-- and tab change made since the window last closed.
+local function saveWorldStateThrottled(win)
+    local now = getTimestampMs()
+    if now - (win._lastStateSaveMs or 0) < 1000 then return end
+    win._lastStateSaveMs = now
+    saveWorldState(win)
+end
+
 local function restoreWorldState(win, playerObj)
     local md = playerObj:getModData()
     local ws = md.ZeD_WinState and md.ZeD_WinState.world
@@ -2060,15 +2198,22 @@ end
 local function buildWorldContainers(playerObj)
     local containers = {}
 
-    -- Floor container: virtual aggregation of ground items
+    -- Floor container: the ground items around the player. It is vanilla's own
+    -- floor container (ISInventoryPage.GetFloorContainer), filled the way its
+    -- loot window fills it. An item belongs to one container at a time, so a
+    -- second floor container of ZeD's would steal the items back and forth
+    -- with vanilla's hidden loot window, and a transfer queued from one would
+    -- find its item gone. Sharing vanilla's lets floor moves be vanilla's own
+    -- transfer action, which in multiplayer is the server's item transaction.
     if not _floorContainer then
-        _floorContainer = ItemContainer.new("floor", nil, nil)
+        if ISInventoryPage and ISInventoryPage.GetFloorContainer then
+            _floorContainer = ISInventoryPage.GetFloorContainer(playerObj:getPlayerNum())
+        else
+            _floorContainer = ItemContainer.new("floor", nil, nil)
+        end
     end
     _floorContainer:removeItemsFromProcessItems()
     _floorContainer:clear()
-
-    -- Track which items are still on the ground this cycle
-    local currentFloorItems = {}
 
     local cx = math.floor(playerObj:getX())
     local cy = math.floor(playerObj:getY())
@@ -2101,13 +2246,7 @@ local function buildWorldContainers(playerObj)
                         local o = wobs:get(i)
                         if o and o:getItem() then
                             local item = o:getItem()
-                            -- Save real container before AddItem reparents
-                            local curCont = item:getContainer()
-                            if curCont and curCont ~= _floorContainer then
-                                _floorRealContainers[item] = curCont
-                            end
                             _floorContainer:AddItem(item)
-                            currentFloorItems[item] = true
                             -- Item-containers on the ground (dropped backpacks)
                             if item:getCategory() == "Container" then
                                 containers[#containers + 1] = {
@@ -2237,17 +2376,27 @@ local function buildWorldContainers(playerObj)
                                 isFloor = false,
                                 sourceType = "vehicle",
                             }
+                            -- Bags on the seats and in the trunk get a button of their own,
+                            -- as in vanilla's loot window (not the glove box's)
+                            if part:getId() and part:getId() ~= "GloveBox" then
+                                local pItems = part:getItemContainer():getItems()
+                                for bi = 0, pItems:size() - 1 do
+                                    local bag = pItems:get(bi)
+                                    if bag and bag:getCategory() == "Container" then
+                                        containers[#containers + 1] = {
+                                            inventory = bag:getInventory(),
+                                            name = bag:getName(),
+                                            texture = bag:getTex(),
+                                            isFloor = false,
+                                            sourceType = "vehicle_container",
+                                        }
+                                    end
+                                end
+                            end
                         end
                     end
                 end
             end
-        end
-    end
-
-    -- Purge stale entries from real-container lookup
-    for item in pairs(_floorRealContainers) do
-        if not currentFloorItems[item] then
-            _floorRealContainers[item] = nil
         end
     end
 
@@ -2484,25 +2633,9 @@ local function drawWorldContainerStrip(self, win, content)
     -- ZONE 3: Non-floor container buttons (scrollable)
     -- --------------------------------------------------------
     local listStartY = curY
-    local listEntries = {}
-    for i, c in ipairs(containers) do
-        if not c.isFloor then
-            listEntries[#listEntries + 1] = i
-        end
-    end
-
-    if sortMode == "wt" then
-        table.sort(listEntries, function(a, b)
-            local wa = containers[a].inventory and containers[a].inventory:getCapacityWeight() or 0
-            local wb = containers[b].inventory and containers[b].inventory:getCapacityWeight() or 0
-            return wa > wb
-        end)
-    elseif sortMode == "type" then
-        table.sort(listEntries, function(a, b)
-            return (containers[a].name or "") < (containers[b].name or "")
-        end)
-    end
-    -- "dist" = natural order
+    -- Sorted again only when the list just refreshed (every 30 frames, above),
+    -- was replaced or the sort mode changed, not every frame ("dist" = natural order)
+    local listEntries = _worldStripListOrder(win, win._containerTimer == 0)
 
     -- Scroll geometry
     local totalListH = #listEntries * T.px(CONTAINER_BTN_SZ)
@@ -2667,30 +2800,52 @@ function ZeD_WorldWindow.getFloorContainer()
     return _floorContainer
 end
 
---- Transfer a single InventoryItem off the virtual floor into destInv.
---- Mirrors vanilla ISGrabItemAction:transferItem (removes the IsoWorldInventoryObject).
---- Returns true on success.
+--- Take one ground item into destInv (the player's inventory, a bag, or a
+--- container): the one routing point for every floor pickup in ZeD.
+--- As vanilla's loot window (its drag and drop and its Grab), this queues
+--- vanilla's transfer action from the floor container the item is in. In
+--- single player that action takes the item off its square when its time is
+--- up; on a multiplayer client the server's item transaction moves it, and
+--- the client changes nothing itself. Returns true when the transfer is queued.
 function ZeD_WorldWindow.transferFromFloor(playerObj, item, destInv)
-    if not _floorContainer then return false end
-    if item:getContainer() ~= _floorContainer then return false end
+    if not (playerObj and item and destInv) then return false end
     local worldItem = item:getWorldItem()
-    if not worldItem then return false end
+    if not (worldItem and worldItem:getSquare()) then return false end
+    -- the floor container the item sits in (vanilla's, which this window shares)
+    local src = item:getContainer()
+    if not src or src:getType() ~= "floor" or src == destInv then return false end
     if not destInv:isItemAllowed(item) then return false end
-    if not destInv:hasRoomFor(playerObj, item) then return false end
-
-    local sq = worldItem:getSquare()
-    if sq then
-        sq:transmitRemoveItemFromSquare(worldItem)
-        worldItem:removeFromWorld()
-        worldItem:removeFromSquare()
-        worldItem:setSquare(nil)
-    end
-    item:setWorldItem(nil)
-    item:setJobDelta(0.0)
-    destInv:AddItem(item)
-    destInv:setDrawDirty(true)
-    _floorRealContainers[item] = nil
+    ISTimedActionQueue.add(ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, src, destInv))
     return true
+end
+
+-- The item card's item gone (eaten, used up by a craft, taken by another
+-- player, picked up off the ground by someone else): the card closes, as a
+-- deselect would, so its buttons never act on an item that isn't there.
+-- An item the player took into their own inventory keeps its card (with
+-- inventory buttons). Checked every 10 frames, as the Character window does.
+local function closeCardIfItemGone(win, content)
+    win._goneTick = (win._goneTick or 0) + 1
+    if win._goneTick < 10 then return end
+    win._goneTick = 0
+    local di = win._drawerItem
+    if not di then return end
+    local ok, here = pcall(function()
+        local c = di:getContainer()
+        if c == nil then return false end
+        if c:getType() == "floor" then
+            local wi = di:getWorldItem()
+            return wi ~= nil and wi:getSquare() ~= nil
+        end
+        return true
+    end)
+    if ok and not here then
+        if content._selectedItems then content._selectedItems[di] = nil end
+        for _, cs in ipairs(content._colStates or {}) do
+            if cs.selectedItems then cs.selectedItems[di] = nil end
+        end
+        if win._updateDrawer then win._updateDrawer() end
+    end
 end
 
 function ZeD_WorldWindow.toggle(playerNum)
@@ -3341,7 +3496,8 @@ function ZeD_WorldWindow.toggle(playerNum)
 
         -- Dynamic minimum
         local bh = win:getBodyHeight()
-        win.minimumWidth = stripW + (win._invDrawerOpen and not win._rolled and T.px(200) or 0) + effectiveW + T.px(ACTION_TAB_STRIP_W)
+        -- (never above the maximum, so a resize drag and the cap above agree)
+        win.minimumWidth = math.min(maxW, stripW + (win._invDrawerOpen and not win._rolled and T.px(200) or 0) + effectiveW + T.px(ACTION_TAB_STRIP_W))
 
         -- ── MC eviction ──────────────────────────────────────────
         if mcActive and #(win._mcSelected) > 0 then
@@ -3832,6 +3988,8 @@ function ZeD_WorldWindow.toggle(playerNum)
         local vl = getPlayerLoot(0)
         if vl and vl:getIsVisible() and not ZeD.Safe.on() then vl:setVisible(false) end
 
+        closeCardIfItemGone(win, self)
+
         local mcSel = win._mcSelected or {}
         local colCount = #mcSel + (win._mainVisible and 1 or 0)
 
@@ -4051,20 +4209,25 @@ function ZeD_WorldWindow.toggle(playerNum)
         if Focus and win._focusRing and win._activeTab == "loot" then
             local mcSel = win._mcSelected or {}
             for slot = 1, #mcSel do
-                local zoneName = "worldMC" .. slot
-                local newEls = _buildWorldMCColumnFocusables(win, slot) or {}
-                local preserveIdx = 1
-                if #newEls > 0 and win._gpFocusedMCItem then
-                    for i, el in ipairs(newEls) do
-                        if el.item == win._gpFocusedMCItem then
-                            preserveIdx = i
-                            break
+                -- rebuilt only when the column changed (_worldMCSlotStale)
+                if _worldMCSlotStale(win, self, slot) then
+                    local zoneName = "worldMC" .. slot
+                    local newEls = _buildWorldMCColumnFocusables(win, slot) or {}
+                    local preserveIdx = 1
+                    if #newEls > 0 and win._gpFocusedMCItem then
+                        for i, el in ipairs(newEls) do
+                            if el.item == win._gpFocusedMCItem then
+                                preserveIdx = i
+                                break
+                            end
                         end
                     end
+                    Focus.setRingZoneElements(win, zoneName, newEls, preserveIdx)
+                    Focus.setZoneFocusable   (win, zoneName, #newEls > 0)
                 end
-                Focus.setRingZoneElements(win, zoneName, newEls, preserveIdx)
-                Focus.setZoneFocusable   (win, zoneName, #newEls > 0)
             end
+        else
+            win._lastMCSnap = nil  -- the zones are rebuilt on the way back to Loot
         end
 
         -- S98/S99 per-frame refresh for worldTabContent zone. Runs for
@@ -4325,6 +4488,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             local brd = T.border
             self:drawRect(win._dividerX, 0, T.px(1), self:getHeight(), 1, brd.r, brd.g, brd.b)
         end
+        saveWorldStateThrottled(self)  -- keep the remembered layout current (about once a second)
     end
 
     -- Curtain (WindowCurtain.lua): the containers roll up under their title
@@ -4363,17 +4527,18 @@ function ZeD_WorldWindow.toggle(playerNum)
     })
 
     -- ----------------------------------------------------------------
-    -- FLOOR-AWARE TRANSFER — _floorContainer is virtual (no IsoObject),
-    -- so ISInventoryTransferAction can't use it directly.
-    --   TO floor   → ISInventoryPaneContextMenu.dropItem()
-    --   FROM floor → use saved real container (per-square) as source
-    --   Otherwise  → normal ISInventoryTransferAction
+    -- FLOOR-AWARE TRANSFER
+    --   TO floor   → ISInventoryPaneContextMenu.dropItem() (vanilla's drop)
+    --   FROM floor → ZeD_WorldWindow.transferFromFloor (vanilla's transfer
+    --                from the floor container; the server's in multiplayer)
+    --   Otherwise  → vanilla's transfer action, with vanilla's own time
     -- ----------------------------------------------------------------
     local function doTransfer(contentPanel, items, srcInv, destInv)
         local playerObj = contentPanel._playerObj
         local playerNum = playerObj:getPlayerNum()
-        local srcIsFloor  = (srcInv == _floorContainer)
-        local destIsFloor = (destInv == _floorContainer)
+        local srcIsFloor  = srcInv ~= nil and srcInv:getType() == "floor"
+        local destIsFloor = destInv ~= nil and destInv:getType() == "floor"
+        if srcIsFloor and destIsFloor then return end
 
         for _, item in ipairs(items) do
             if destIsFloor then
@@ -4381,28 +4546,11 @@ function ZeD_WorldWindow.toggle(playerNum)
                     ISInventoryPaneContextMenu.dropItem(item, playerNum)
                 end
             elseif srcIsFloor then
-                -- _floorContainer is virtual (no IsoObject parent) — ISInventoryTransferAction
-                -- can't validate it.  Mirror vanilla ISGrabItemAction:transferItem instead:
-                -- remove the IsoWorldInventoryObject from the square, then AddItem to dest.
-                local worldItem = item:getWorldItem()
-                if worldItem and destInv:isItemAllowed(item) and destInv:hasRoomFor(playerObj, item) then
-                    local sq = worldItem:getSquare()
-                    if sq then
-                        sq:transmitRemoveItemFromSquare(worldItem)
-                        worldItem:removeFromWorld()
-                        worldItem:removeFromSquare()
-                        worldItem:setSquare(nil)
-                    end
-                    item:setWorldItem(nil)
-                    item:setJobDelta(0.0)
-                    destInv:AddItem(item)
-                    destInv:setDrawDirty(true)
-                    _floorRealContainers[item] = nil
-                end
+                ZeD_WorldWindow.transferFromFloor(playerObj, item, destInv)
             else
                 if item:getContainer() == srcInv and destInv:isItemAllowed(item) then
                     ISTimedActionQueue.add(
-                        ISInventoryTransferAction:new(playerObj, item, srcInv, destInv, 0)
+                        ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, srcInv, destInv)
                     )
                 end
             end
@@ -4835,44 +4983,12 @@ function ZeD_WorldWindow.toggle(playerNum)
         if self._drag:isActive() or self._drag:isPending() then return true end
 
         local colIdx, colCs = getColumnAtX(self, x)
-        local sel = (colCs and colCs.selectedItems) or self._selectedItems
         local inv = (colCs and colCs.inventory) or self._inventory
 
-        -- Build context menu items: use current selection, or the clicked item transiently
-        -- Don't change the persistent selection — RMB is context menu only
-        local zone = self:hitZoneAt(x, y)
-        local menuItems = {}
-        local hasSelection = false
-        for _ in pairs(sel) do hasSelection = true; break end
-
-        if hasSelection then
-            -- Use existing selection for context menu
-            for item, _ in pairs(sel) do menuItems[#menuItems + 1] = item end
-        elseif zone and type(zone.id) == "string" and zone.id:sub(1, 6) == "stack:" then
-            -- S100: right-click on stack chevron → target the full stack
-            local key = zone.id:sub(7)
-            local stacksTbl = (colCs and colCs.stacks) or self._stacks
-            local stk
-            for _, info in pairs(stacksTbl or {}) do
-                if info and info.key == key then stk = info; break end
-            end
-            if stk and stk.items then
-                for _, it in ipairs(stk.items) do
-                    menuItems[#menuItems + 1] = it
-                end
-            end
-        elseif zone and type(zone.id) ~= "string" then
-            -- S100: if this item is a stack rep, target the full stack
-            local stacksTbl = (colCs and colCs.stacks) or self._stacks
-            local stk = stacksTbl and stacksTbl[zone.id]
-            if stk and stk.count > 1 then
-                for _, it in ipairs(stk.items) do
-                    menuItems[#menuItems + 1] = it
-                end
-            else
-                menuItems[#menuItems + 1] = zone.id
-            end
-        end
+        -- The menu acts on the row under the cursor, as in vanilla: a row that
+        -- is not already selected becomes the selection first (see _worldRmbMenuItems).
+        local menuItems, reselected = _worldRmbMenuItems(self, x, y, colIdx, colCs)
+        if reselected then updateDrawer() end
 
         if #menuItems == 0 then return true end
 
@@ -5019,7 +5135,9 @@ function ZeD_WorldWindow.selectContainer(inv, tries)
     if attempt() then return true end
     local function tick()
         n = n + 1
-        if attempt() or n >= (tries or 60) then Events.OnTick.Remove(tick) end
+        -- an error in attempt() ends the retries too (the tick never outlives it)
+        local ok, done = pcall(attempt)
+        if not ok or done or n >= (tries or 60) then Events.OnTick.Remove(tick) end
     end
     Events.OnTick.Add(tick)
     return false

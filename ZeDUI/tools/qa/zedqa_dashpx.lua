@@ -32,7 +32,9 @@ at(t, leave)
 t = t + 20
 for _, e in ipairs(LIST) do
     local tag, script = e[1], e[2]
+    local entered = false
     at(t, function()
+        entered = false
         local sq = getCell():getGridSquare(math.floor(p:getX()) + 5, math.floor(p:getY()) + 2, math.floor(p:getZ()))
         local v = sq and addVehicleDebug(script, IsoDirections.N, nil, sq) or nil
         if not v then say(tag .. " spawn failed " .. script); return end
@@ -44,12 +46,22 @@ for _, e in ipairs(LIST) do
             if it then pcall(function() it:setCurrentUsesFloat(1.0) end); pcall(function() it:setUsedDelta(1.0) end) end
         end)
         pcall(function() curKey = p:getInventory():AddItem(v:createVehicleKey()) end)
-        v:enter(0, p); triggerEvent("OnEnterVehicle", p)
+        -- (the game's own OnEnterVehicle handlers assume the character is seated: a car that cannot be entered,
+        -- like the wrecked Nyala, whose seat the game refuses, must not fire the event, and its row must not
+        -- report the dashboard left over from the car before)
+        local okEnter = false; pcall(function() okEnter = v:enter(0, p) end)
+        entered = p:getVehicle() ~= nil
+        if not entered then
+            local seat = false; pcall(function() seat = v:isSeatInstalled(0) end)
+            say(tag .. " could not enter " .. script .. " (enter=" .. tostring(okEnter) .. " seat0 installed=" .. tostring(seat) .. ")")
+            return
+        end
+        triggerEvent("OnEnterVehicle", p)
     end)
-    at(t + 20, function() if cur then pcall(function() cur:setKeysInIgnition(true) end) end end)
-    at(t + 95, function() pcall(function() getCore():TakeFullScreenshot("zqa_dashpx_" .. tag .. "_keyon.png") end) end)
+    at(t + 20, function() if cur and entered then pcall(function() cur:setKeysInIgnition(true) end) end end)
+    at(t + 95, function() if entered then pcall(function() getCore():TakeFullScreenshot("zqa_dashpx_" .. tag .. "_keyon.png") end) end end)
     at(t + 110, function()
-        if not cur then return end
+        if not cur or not entered then return end
         pcall(function() ISVehicleMenu.onStartEngine(p) end)
         local d = D.getInstance(); if not (d and d._st) then say(tag .. " no dashboard"); return end
         if not d._st.radioOn then d:_fire("pwr", false) end
@@ -59,6 +71,7 @@ for _, e in ipairs(LIST) do
         if lb then d:_fire("lbar", false) end
     end)
     at(t + 335, function()
+        if not entered then return end
         local d = D.getInstance()
         pcall(function() getCore():TakeFullScreenshot("zqa_dashpx_" .. tag .. ".png") end)
         local x, y, w, h = -1, -1, -1, -1

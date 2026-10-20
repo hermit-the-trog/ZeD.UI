@@ -63,6 +63,169 @@ for i, icon in ipairs(MAP_ICONS) do
 end
 
 -- ============================================================================
+-- VANILLA'S MAP RULES — whether there is a map, and whether it can be read
+-- ============================================================================
+
+-- The server / sandbox "Allow World Map" setting, and no map in the Tutorial
+-- (ISWorldMap.IsAllowed).
+function ZeD.MapsTab.isAllowed()
+    if ISWorldMap and ISWorldMap.IsAllowed then return ISWorldMap.IsAllowed() == true end
+    if getCore():getGameMode() == "Tutorial" then return false end
+    return SandboxVars.Map ~= nil and SandboxVars.Map.AllowWorldMap == true
+end
+
+-- "Map needs light": vanilla's check before it opens the map
+-- (ISWorldMap.ToggleWorldMap). Too dark to read unless an admin, in debug, or
+-- in a vehicle with a live battery, a torch on, or any charge left.
+function ZeD.MapsTab.tooDark(playerObj)
+    if not playerObj then return false end
+    local needs
+    if ISWorldMap and ISWorldMap.NeedsLight then needs = ISWorldMap.NeedsLight()
+    else needs = SandboxVars.Map ~= nil and SandboxVars.Map.MapNeedsLight == true end
+    if not needs then return false end
+    if isAdmin() or getCore():getDebug() then return false end
+    if not playerObj:tooDarkToRead() then return false end
+    local v = playerObj:getVehicle()
+    if v and (v:hasLiveBattery() or playerObj:getTorchStrength() > 0 or v:getBatteryCharge() > 0) then
+        return false
+    end
+    return true
+end
+
+-- ============================================================================
+-- INK — vanilla's rules for marking the map (ISWorldMapSymbols canWrite,
+-- canErase, checkInventory). Each colour needs its own pen or pencil; a mark
+-- needs something to write with; changing or deleting one needs an eraser;
+-- an illiterate character cannot write or edit notes (symbols are fine).
+-- ============================================================================
+
+-- the pen behind each of MAP_COLORS (same order), and vanilla's line for a missing one
+local MAP_COLOR_PENS = {
+    { item = "Pencil",   need = "Tooltip_Map_NeedPencil" },
+    { item = "Pen",      need = "Tooltip_Map_NeedBlackPen" },
+    { item = "BluePen",  need = "Tooltip_Map_NeedBluePen" },
+    { item = "RedPen",   need = "Tooltip_Map_NeedRedPen" },
+    { item = "GreenPen", need = "Tooltip_Map_NeedGreenPen" },
+}
+
+-- a pen by its tag or its type, as vanilla looks for one
+local function _invHasPen(inv, item)
+    local ok, has = pcall(function()
+        return inv:containsTagRecurse(ItemTag.get(ResourceLocation.of(item)))
+    end)
+    if ok and has then return true end
+    return inv:containsTypeRecurse(item) == true
+end
+
+-- What the character can mark with: pen[i] per colour, write, erase, literate.
+-- Looked up at most four times a second (the toolbar asks every frame); an
+-- action passes fresh = true to look again right then.
+local _ink = { t = -1, pen = {} }
+local function _mapInk(playerObj, fresh)
+    local now = getTimestampMs()
+    if not fresh and _ink.who == playerObj and now - _ink.t < 250 then return _ink end
+    _ink.who, _ink.t = playerObj, now
+    local inv = playerObj and playerObj:getInventory()
+    _ink.write = false
+    for i, p in ipairs(MAP_COLOR_PENS) do
+        local has = (inv == nil) or _invHasPen(inv, p.item)
+        _ink.pen[i] = has
+        if has then _ink.write = true end
+    end
+    _ink.erase = (inv == nil) or inv:containsTypeRecurse("Base.Eraser") or inv:containsTagRecurse(ItemTag.ERASER)
+    _ink.literate = not (playerObj and playerObj:hasTrait(CharacterTrait.ILLITERATE))
+    return _ink
+end
+
+-- vanilla's line over the character's head
+local function _inkSay(playerObj, key)
+    if playerObj and HaloTextHelper then HaloTextHelper.addBadText(playerObj, getText(key)) end
+end
+
+-- whether a tool can be used, and vanilla's reason when not
+local function _toolAllowed(toolId, ink)
+    if not ink.write then return false, "Tooltip_Map_CantWrite" end
+    if toolId == "text" and not ink.literate then return false, "ContextMenu_Illiterate" end
+    return true
+end
+
+-- whether a mark can be changed (new text or colour), and why not
+local function _editAllowed(ink)
+    if not ink.literate then return false, "ContextMenu_Illiterate" end
+    if not (ink.write and ink.erase) then return false, "Tooltip_Map_CantEdit" end
+    return true
+end
+
+-- The colour to mark with: the chosen one while its pen is at hand, else the
+-- first colour that is (vanilla picks the first pen it finds the same way).
+local function _inkColor(win, ink)
+    local c = win._mapActiveColor or 1
+    if ink.pen[c] then return c end
+    for i = 1, #MAP_COLORS do
+        if ink.pen[i] then win._mapActiveColor = i; return i end
+    end
+    return nil
+end
+
+-- the next colour round from cur that has its pen
+local function _nextInkColor(cur, ink)
+    for step = 1, #MAP_COLORS do
+        local i = ((cur - 1 + step) % #MAP_COLORS) + 1
+        if ink.pen[i] then return i end
+    end
+    return cur
+end
+
+-- Every frame from the toolbar: a tool whose pen was put away is put down, as
+-- vanilla's map does when the inventory changes, and the colour follows the pens.
+local function _enforceInk(win)
+    local ink = _mapInk(win._playerObj)
+    local tool = win._mapActiveTool
+    if tool then
+        local ok = _toolAllowed(tool, ink)
+        if ok and tool == "text" and win._mapEditAnnotIdx then ok = _editAllowed(ink) end
+        if not ok then win._mapActiveTool = nil; win._mapEditAnnotIdx = nil end
+    end
+    if ink.write then _inkColor(win, ink) end
+    return ink
+end
+
+-- Toolbar or A press on a tool: pick it up (or put it down again)
+local function _armTool(win, toolId)
+    if win._mapActiveTool == toolId then
+        win._mapActiveTool = nil
+        win._mapEditAnnotIdx = nil
+        return
+    end
+    local ok, why = _toolAllowed(toolId, _mapInk(win._playerObj, true))
+    if not ok then _inkSay(win._playerObj, why); return end
+    win._mapActiveTool = toolId
+    win._mapEditAnnotIdx = nil
+end
+
+-- Toolbar or A press on a colour: only a colour whose pen is at hand
+local function _pickColor(win, idx)
+    local ink = _mapInk(win._playerObj, true)
+    if not ink.pen[idx] then
+        local p = MAP_COLOR_PENS[idx]
+        _inkSay(win._playerObj, p and p.need or "Tooltip_Map_CantWrite")
+        return
+    end
+    win._mapActiveColor = idx
+end
+
+-- a context-menu option greyed out with vanilla's reason on hover
+local function _optionNeeds(opt, key)
+    if not opt then return end
+    opt.notAvailable = true
+    local tip = ISToolTip:new()
+    tip:initialise()
+    tip:setVisible(false)
+    tip.description = getText(key)
+    opt.toolTip = tip
+end
+
+-- ============================================================================
 -- PIN HELPERS — persistent per-player pinned icon list
 -- ============================================================================
 
@@ -310,7 +473,19 @@ local function _placeAnnotationAt(mp, uiX, uiY)
     local worldX = mp.mapAPI:uiToWorldX(uiX, uiY)
     local worldY = mp.mapAPI:uiToWorldY(uiX, uiY)
     local toolId = win._mapActiveTool
-    local colorIdx = win._mapActiveColor or 1
+
+    -- vanilla's ink rules, looked at again at the moment of marking
+    local ink = _mapInk(mp.playerObj, true)
+    local ok, why = _toolAllowed(toolId, ink)
+    if ok and toolId == "text" and win._mapEditAnnotIdx then ok, why = _editAllowed(ink) end
+    if not ok then
+        _inkSay(mp.playerObj, why)
+        win._mapActiveTool = nil
+        win._mapEditAnnotIdx = nil
+        return true
+    end
+    local colorIdx = _inkColor(win, ink) or 1
+    mp.playerObj:playSoundLocal(toolId == "text" and "MapAddNote" or "MapAddSymbol")
 
     local md = mp.playerObj:getModData()
     if not md.ZeD_MapAnnotations then md.ZeD_MapAnnotations = {} end
@@ -365,22 +540,39 @@ local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
 
     local ctx = ISContextMenu.get(0, absX, absY)
 
-    ctx:addOption("Delete", mp, function(self2)
+    -- vanilla's tools: deleting needs an eraser; recolouring or rewording
+    -- needs an eraser and a pen (and reading); greyed with the reason when not
+    local ink = _mapInk(mp.playerObj, true)
+    local canEdit, editWhy = _editAllowed(ink)
+
+    local optDel = ctx:addOption("Delete", mp, function(self2)
+        if not _mapInk(self2.playerObj, true).erase then _inkSay(self2.playerObj, "Tooltip_Map_CantErase"); return end
         local md2 = self2.playerObj:getModData()
         if md2.ZeD_MapAnnotations then
             table.remove(md2.ZeD_MapAnnotations, hitIdx)
+            self2.playerObj:playSoundLocal("MapRemoveMarking")
         end
     end)
+    if not ink.erase then _optionNeeds(optDel, "Tooltip_Map_CantErase") end
 
-    ctx:addOption("Change Color", mp, function(self2)
+    local optCol = ctx:addOption("Change Color", mp, function(self2)
+        local ink2 = _mapInk(self2.playerObj, true)
+        local ok2, why2 = _editAllowed(ink2)
+        if not ok2 then _inkSay(self2.playerObj, why2); return end
         local md2 = self2.playerObj:getModData()
         local a = md2.ZeD_MapAnnotations and md2.ZeD_MapAnnotations[hitIdx]
-        if a then a.colorIdx = ((a.colorIdx or 1) % #MAP_COLORS) + 1 end
+        if a then   -- round to the next colour there is a pen for
+            a.colorIdx = _nextInkColor(a.colorIdx or 1, ink2)
+            self2.playerObj:playSoundLocal("MapAddSymbol")
+        end
     end)
+    if not canEdit then _optionNeeds(optCol, editWhy) end
 
-    ctx:addOption("Edit Note", mp, function(self2)
+    local optEdit = ctx:addOption("Edit Note", mp, function(self2)
         local pwin = self2._parentWin
         if not pwin then return end
+        local ok2, why2 = _editAllowed(_mapInk(self2.playerObj, true))
+        if not ok2 then _inkSay(self2.playerObj, why2); return end
         local md2 = self2.playerObj:getModData()
         local a = md2.ZeD_MapAnnotations and md2.ZeD_MapAnnotations[hitIdx]
         if a then
@@ -392,6 +584,7 @@ local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
             end
         end
     end)
+    if not canEdit then _optionNeeds(optEdit, editWhy) end
 end
 
 -- Mouse drag for panning (or annotation placement when tool is active)
@@ -440,6 +633,25 @@ function ZeD_WorldMap:onMouseUp(x, y)
         local pin = ZeD.FlyerMap.hit(self, x, y)
         if pin then ZeD.FlyerMap.open(self, pin) end
     end
+    return true
+end
+
+-- A drag keeps panning past the map's edge and ends wherever the button is
+-- let go, as on vanilla's map (ISWorldMap:onMouseMoveOutside / onMouseUpOutside).
+-- Without these a release over the container strip or off the window left the
+-- map panning with the pointer until the next click on it.
+function ZeD_WorldMap:onMouseMoveOutside(dx, dy)
+    if self.dragging and not isMouseButtonDown(0) then   -- (a release the map never heard)
+        self.dragging = false
+        self.dragMoved = false
+        return true
+    end
+    return self:onMouseMove(dx, dy)
+end
+
+function ZeD_WorldMap:onMouseUpOutside(x, y)
+    self.dragging = false
+    self.dragMoved = false
     return true
 end
 
@@ -727,6 +939,12 @@ end
 -- TOOLBAR
 -- ============================================================================
 
+-- a tool or colour the character lacks the pen for, greyed over
+local function _dimBtn(panel, bx, by, bw, bh)
+    local s = ZeD.T.surf1
+    panel:drawRect(bx, by, bw, bh, 0.65, s.r, s.g, s.b)
+end
+
 --- Draw a single icon tool button at (bx, by). `isGpFocused` paints the
 -- 0.55α accent focus cue when this button is the currently-focused ring
 -- element (gamepad path); the caller computes the match by id.
@@ -767,6 +985,9 @@ local function _drawIconBtn(panel, win, icon, bx, by, btnSz, isActive, isPinned,
         panel:drawRect(bx + T.px(1), by + T.px(1), T.px(3), T.px(3), 0.7, ac.r, ac.g, ac.b)
     end
 
+    -- nothing to write with: the marks are greyed (a press says why)
+    if not _mapInk(win._playerObj).write then _dimBtn(panel, bx, by, btnSz, btnSz) end
+
     win._mapToolZones[#win._mapToolZones + 1] = {
         id = icon.id,
         x = bx, y = by, w = btnSz, h = btnSz,
@@ -786,6 +1007,7 @@ local function renderMapToolbar(panel, win, x, y, w)
     win._mapColorZones = {}
     win._mapToolRMBZones = {}
 
+    local ink         = _enforceInk(win)   -- (first: it may put a tool down or move the colour)
     local activeTool  = win._mapActiveTool
     local activeColor = win._mapActiveColor or 1
     local expanded    = win._mapToolsExpanded or false
@@ -855,6 +1077,7 @@ local function renderMapToolbar(panel, win, x, y, w)
     end
     local tC = textActive and T.accent or T.textDim
     panel:drawText("Aa", curX + T.px(2), btnY + T.px(2), tC.r, tC.g, tC.b, 0.7, T.fontF1)
+    if not _toolAllowed("text", ink) then _dimBtn(panel, curX, btnY, btnSz, btnSz) end
     win._mapToolZones[#win._mapToolZones + 1] = {
         id = "text",
         x = curX, y = btnY, w = btnSz, h = btnSz,
@@ -882,7 +1105,9 @@ local function renderMapToolbar(panel, win, x, y, w)
         end
 
         panel:drawRect(curX, colY, colSz, colSz, 0.85, c.r, c.g, c.b)
-        if isActiveCol then
+        if not ink.pen[ci] then
+            _dimBtn(panel, curX, colY, colSz, colSz)   -- no pen of this colour at hand
+        elseif isActiveCol then
             local bd = T.text
             panel:drawRectBorder(curX - T.px(1), colY - T.px(1), colSz + T.px(2), colSz + T.px(2),
                 bd.a, bd.r, bd.g, bd.b)
@@ -1033,6 +1258,42 @@ end
 -- MAIN RENDERER
 -- ============================================================================
 
+-- Vanilla's world-map rules hold on the tab and the pop-out too: no map where
+-- the server or sandbox turns the world map off (or in the Tutorial), and none
+-- to read in the dark where the map needs light. The light is looked at twice
+-- a second; while either rule refuses, the refusal is drawn in place of the
+-- toolbar and map, which stay hidden, and true is returned.
+local _light = { t = -1 }
+local function _mapBlocked(panel, win, x, y, w, h)
+    local msg = nil
+    if not ZeD.MapsTab.isAllowed() then
+        msg = "MAP UNAVAILABLE"
+    else
+        local now = getTimestampMs()
+        if _light.who ~= win._playerObj or now - _light.t >= 500 then
+            _light.who, _light.t = win._playerObj, now
+            _light.dark = ZeD.MapsTab.tooDark(win._playerObj)
+        end
+        if _light.dark then msg = "TOO DARK TO READ" end
+    end
+    win._mapBlocked = msg ~= nil
+    if not msg then return false end
+
+    local T, tm = ZeD.T, ZeD.TM
+    local s1 = T.surf1
+    panel:drawRect(x, y, w, h, s1.a, s1.r, s1.g, s1.b)
+    local mw = tm:MeasureStringX(T.fontF1, msg)
+    local fh = tm:getFontHeight(T.fontF1)
+    ZeD.Atoms.drawSecondary(panel, msg, x + math.floor((w - mw) / 2), y + math.floor((h - fh) / 2), T.textDim)
+    if win._worldMapPanel then win._worldMapPanel:setVisible(false) end
+    if win._mapTextEntry then win._mapTextEntry:setVisible(false) end
+    -- no toolbar this frame: nothing for a click or the controller to land on
+    win._mapToolZones, win._mapColorZones, win._mapToolRMBZones, win._mapStyleZones = {}, {}, {}, {}
+    win._mapDisclosureZone, win._mapPopoutZone = nil, nil
+    win._mapBlockedZone = { x = x, y = y, w = w, h = h }
+    return true
+end
+
 function ZeD.MapsTab.render(panel, win, x, y, w, h)
     local T = ZeD.T
 
@@ -1058,6 +1319,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     -- Only the drawer path (no pop-out) may clear the fold zone; the pop-out
     -- renders through this same function every frame and must not race it.
     if not win._mapPopout then win._mapFoldZone = nil end
+
+    if _mapBlocked(panel, win, x, y, w, h) then return end
 
     -- Toolbar background
     local toolbarBg = T.surf1
@@ -1127,6 +1390,7 @@ function ZeD.MapsTab.onClick(win, x, y)
         end
         return
     end
+    if win._mapBlocked then return end   -- no map here, or too dark to read it
     -- S123: unfold / fold button
     if win._mapPopoutZone then
         local z = win._mapPopoutZone
@@ -1158,11 +1422,7 @@ function ZeD.MapsTab.onClick(win, x, y)
         for _, zone in ipairs(win._mapToolZones) do
             if x >= zone.x and x <= zone.x + zone.w
                and y >= zone.y and y <= zone.y + zone.h then
-                if win._mapActiveTool == zone.id then
-                    win._mapActiveTool = nil  -- deselect
-                else
-                    win._mapActiveTool = zone.id
-                end
+                _armTool(win, zone.id)   -- (again on the armed tool puts it down)
                 return
             end
         end
@@ -1173,7 +1433,7 @@ function ZeD.MapsTab.onClick(win, x, y)
         for _, zone in ipairs(win._mapColorZones) do
             if x >= zone.x and x <= zone.x + zone.w
                and y >= zone.y and y <= zone.y + zone.h then
-                win._mapActiveColor = zone.idx
+                _pickColor(win, zone.idx)
                 return
             end
         end
@@ -1192,6 +1452,7 @@ function ZeD.MapsTab.onClick(win, x, y)
 end
 
 function ZeD.MapsTab.onRightClick(win, x, y)
+    if win._mapBlocked then return end   -- no map here, or too dark to read it
     -- Expanded toolbar: RMB toggles pin state
     if win._mapToolsExpanded and win._mapToolRMBZones then
         for _, zone in ipairs(win._mapToolRMBZones) do
@@ -1245,6 +1506,20 @@ function ZeD.MapsTab.buildFocusables(win)
         return elements
     end
 
+    -- No map here, or too dark to read it: the drawer offers nothing; the
+    -- pop-out keeps one target over the refusal so A (or B) folds it away.
+    if win._mapBlocked then
+        local bz = win._mapBlockedZone
+        if win._mapBuildingForPopout and bz then
+            elements[1] = {
+                x = bz.x, y = bz.y, w = bz.w, h = bz.h,
+                id = "map:blocked",
+                onActivate = function(w, _el) ZeD.MapsTab.closePopout(w) end,
+            }
+        end
+        return elements
+    end
+
     -- 1. Disclosure chevron (row 1, always present).
     local dz = win._mapDisclosureZone
     if dz then
@@ -1277,11 +1552,7 @@ function ZeD.MapsTab.buildFocusables(win)
                 onActivate = function(w, el2)
                     -- Re-selecting the active tool deselects; otherwise arm
                     -- the tool. Matches mouse onClick behavior.
-                    if w._mapActiveTool == el2.toolId then
-                        w._mapActiveTool = nil
-                    else
-                        w._mapActiveTool = el2.toolId
-                    end
+                    _armTool(w, el2.toolId)
                 end,
             }
             if isGrid then
@@ -1304,7 +1575,7 @@ function ZeD.MapsTab.buildFocusables(win)
                 isMapColor = true,
                 colorIdx = cz.idx,
                 onActivate = function(w, el2)
-                    w._mapActiveColor = el2.colorIdx
+                    _pickColor(w, el2.colorIdx)
                 end,
             }
         end

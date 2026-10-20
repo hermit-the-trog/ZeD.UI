@@ -266,6 +266,17 @@ local function idFromName(name, index)
     return base
 end
 
+-- Vanilla tooltip text carries rich-text tags (<LINE>, <INDENT:20>, <RGB:1,0,0>).
+-- The strip's bubble and the list draw plain text, so line breaks become real
+-- ones and every other tag is dropped.
+local function plainTip(s)
+    s = tostring(s or "")
+    s = s:gsub("<[Ll][Ii][Nn][Ee]>", "\n"):gsub("<[Bb][Rr]>", "\n")
+    s = s:gsub("<[^>]*>", " ")
+    s = s:gsub("[ \t]+", " "):gsub(" *\n *", "\n")
+    return (s:gsub("^%s+", ""):gsub("%s+$", ""))
+end
+
 -- Translate a single vanilla option into an ActionDef
 local function makeActionDef(option, index, vanillaMenu, target)
     local def = {}
@@ -312,7 +323,7 @@ local function makeActionDef(option, index, vanillaMenu, target)
     def.state = function(_target)
         local gated = option.isDisabled or option.notAvailable or option.badColor
         if gated and option.toolTip and option.toolTip.description then
-            return tostring(option.toolTip.description)
+            return plainTip(option.toolTip.description)
         end
         return ""
     end
@@ -322,19 +333,13 @@ local function makeActionDef(option, index, vanillaMenu, target)
     -- name because that duplicates the floating label (which already shows
     -- the action name). The molecule collapses the body section when empty.
     if option.toolTip and option.toolTip.description then
-        def.body = tostring(option.toolTip.description)
+        def.body = plainTip(option.toolTip.description)
     else
         def.body = nil
     end
 
     -- Fire: call original onSelect with target + preserved params.
-    -- Q44 pre-transfer: the World Window virtual _floorContainer has no
-    -- IsoObject parent, so vanilla ISInventoryTransferAction silently fails
-    -- when the source is that container. Move floor items into player
-    -- inventory synchronously via transferFromFloor before the vanilla
-    -- onSelect fires. For Grab that yields the desired end-state; for
-    -- Wear/Equip/Move-to/Eat the subsequent vanilla action operates on
-    -- items already in a real (inventory) container and proceeds normally.
+    -- floor items stay in vanilla's shared floor container; vanilla's handlers transfer them themselves.
     def.onFire = function(_target)
         if not option.onSelect then return end
         local params = {}
@@ -344,21 +349,6 @@ local function makeActionDef(option, index, vanillaMenu, target)
         -- Vanilla onSelect signature: function(target_or_nil, param1, ..., param10)
         local selfArg = option.target
         if selfArg == nil then selfArg = _target end
-
-        local ZWW = ZeD_WorldWindow
-        local floor = ZWW and ZWW.getFloorContainer and ZWW.getFloorContainer()
-        if floor and ZWW.transferFromFloor and type(selfArg) == "table" then
-            local playerObj = getSpecificPlayer(0)
-            local playerInv = playerObj and playerObj:getInventory()
-            if playerInv then
-                for i = 1, #selfArg do
-                    local it = selfArg[i]
-                    if it and it.getContainer and it:getContainer() == floor then
-                        pcall(ZWW.transferFromFloor, playerObj, it, playerInv)
-                    end
-                end
-            end
-        end
 
         pcall(option.onSelect, selfArg,
             params[1], params[2], params[3], params[4], params[5],

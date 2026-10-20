@@ -9,6 +9,10 @@ local function mk(ft) if instanceItem then return instanceItem(ft) end; return I
 local own, ownLoc = nil, nil
 local made = {}
 local tod0 = gt:getTimeOfDay()
+-- the full plates show in the corner; the watch sits on the belt by default now (Oct 19), where only the small
+-- one shows, so this run puts it in the corner and gives the option back at the end
+local placeOpt = ZeD.Settings and ZeD.Settings.watchPlaceOption
+local placeWas = placeOpt and placeOpt:getValue()
 local LIST = { "DigitalBlack", "DigitalDress", "DigitalRed", "DigitalTimez", "ClassicBlack", "ClassicGold", "ClassicBrown",
                "ClassicMilitary", "Expensive" }
 local function inst() return W.getInstance() end
@@ -46,6 +50,7 @@ at(5, function()
         say("no own watch; location " .. tostring(ownLoc))
     end
     setGameSpeed(1)
+    if placeOpt then placeOpt:setValue(2) end   -- Corner
     gt:setTimeOfDay(10.97)
     -- the new item: does it exist, its name, icon, model
     local t = mk("Base.WristWatch_Left_DigitalTimez")
@@ -53,7 +58,7 @@ at(5, function()
     say("item left " .. tostring(t ~= nil) .. " right " .. tostring(r ~= nil))
     if t then
         say("name '" .. tostring(t:getDisplayName()) .. "' icon " .. tostring(t:getTexture() and t:getTexture():getName()) ..
-            " world " .. tostring(t:getWorldStaticModel()) .. " clothing " .. tostring(t:getClothingItem() and t:getClothingItem():getName()) ..
+            " world " .. tostring(t:getWorldStaticModel()) .. " clothing " .. tostring(t:getClothingItem() ~= nil) .. "/" .. tostring(t:getClothingItemName()) ..
             " digital " .. tostring(t:isDigital()) .. " class " .. tostring(instanceof(t, "AlarmClockClothing")))
     end
 end)
@@ -92,14 +97,18 @@ n = n + 260      -- wait past the light's 3 s
 at(n, function() say("light out: lit=" .. tostring(inst()._st.lit) .. " dark=" .. tostring(inst()._st.dark)) end)
 at(n + 10, function()
     -- put everything back
+    -- (the worn list shrinks as a watch comes off: collect the watches first, then take them off)
     local worn = p:getWornItems()
+    local watches = {}
     for i = 0, worn:size() - 1 do
         local wi = worn:get(i); local it = wi and wi:getItem()
-        if it and instanceof(it, "AlarmClockClothing") then p:removeWornItem(it) end
+        if it and instanceof(it, "AlarmClockClothing") then watches[#watches + 1] = it end
     end
+    for _, it in ipairs(watches) do p:removeWornItem(it) end
     for _, it in pairs(made) do inv:Remove(it) end
     if own and ownLoc then p:setWornItem(ownLoc, own) end
     gt:setTimeOfDay(tod0)
+    if placeOpt and placeWas then placeOpt:setValue(placeWas) end
     say("restored own watch " .. tostring(own and own:getFullType()) .. "; DONE")
 end)
 

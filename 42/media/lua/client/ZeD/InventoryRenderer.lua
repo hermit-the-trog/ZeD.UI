@@ -658,6 +658,176 @@ local function drawGridHint(self, GV, xOff, colW, contentTop)
     self:drawText(hc.text, hx + hpx, hy + hpy, tc.r, tc.g, tc.b, tc.a or 1, f2)
 end
 
+-- ============================================================================
+-- LIST MODEL
+-- A list's rows: its categories, the items sorted in each, and the stacks.
+-- Built only when the container changes (its item count or weight, the sort,
+-- the folds, what the player holds), and every MODEL_REFRESH draws anyway for
+-- what changes nothing of those (a renamed item, a worn-down condition).
+-- Each open column rebuilt and re-sorted its whole list every frame before.
+-- (Kept out of renderItemList, which sits near Kahlua's 200-local limit.)
+-- ============================================================================
+
+local MODEL_REFRESH = 30
+
+-- the folds that are set in a fold table, as one string ("" when none)
+local function foldKey(t)
+    if not t then return "" end
+    local s = ""
+    for k, v in pairs(t) do
+        if v then s = s .. tostring(k) .. "\n" end
+    end
+    return s
+end
+
+-- equipped or worn by the player (hidden from their own list: the Equip tab shows them)
+local function heldByPlayer(playerObj, item)
+    local okE, eq = pcall(function() return item:isEquipped() end)
+    if okE and eq then return true end
+    local okP, peq = pcall(function() return playerObj:isEquipped(item) end)
+    return okP and peq or false
+end
+
+local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
+    local groups, catOrder, flatItems = {}, {}, {}
+    local items = inv and inv:getItems()
+    if items then
+        for i = 0, items:size() - 1 do
+            local item = items:get(i)
+            if item and not item:isHidden() and not (isPlayerInv and heldByPlayer(playerObj, item)) then
+                local cat = item:getCategory() or "Other"
+                if not groups[cat] then
+                    groups[cat] = {}
+                    catOrder[#catOrder + 1] = cat
+                end
+                groups[cat][#groups[cat] + 1] = item
+            end
+        end
+    end
+
+    local sorter    = makeSorter(sortCol, sortAsc)
+    local useGroups = (sortCol == "name" or sortCol == "cat")
+    local stacks = {}          -- rep item → stack info
+    local childParent = {}     -- child item → stack info
+
+    -- Build one stack per (cat, fullType); emit representative + optional
+    -- children into flatItems in render order. Expanded stacks show their
+    -- child rows indented beneath the header. Vanilla PZ UX.
+    local function emitStacks(itemList)
+        local byType = {}
+        local ordered = {}
+        for _, item in ipairs(itemList) do
+            local ft = item.getFullType and item:getFullType() or tostring(item)
+            if not byType[ft] then
+                byType[ft] = { rep = item, items = { item }, count = 1, key = ft }
+                ordered[#ordered + 1] = byType[ft]
+            else
+                local s = byType[ft]
+                s.items[#s.items + 1] = item
+                s.count = s.count + 1
+            end
+        end
+        for _, s in ipairs(ordered) do
+            flatItems[#flatItems + 1] = s.rep
+            stacks[s.rep] = s
+            if s.count > 1 and expandedStacks[s.key] then
+                for ci = 2, #s.items do
+                    flatItems[#flatItems + 1] = s.items[ci]
+                    childParent[s.items[ci]] = s
+                end
+            end
+        end
+    end
+
+    -- S100: stacked per-category iteration list for the useGroups draw path.
+    -- The draw loop iterates per-cat; without this the original unstacked
+    -- groups[cat] would be used, bypassing stacking entirely.
+    local stackedGroups = {}
+    local catRowCount = {}  -- cat → rendered row count (stacks + expanded children)
+    if useGroups then
+        if sortCol == "cat" and not sortAsc then
+            table.sort(catOrder, function(a, b) return a > b end)
+        else
+            table.sort(catOrder)
+        end
+        for _, cat in ipairs(catOrder) do
+            table.sort(groups[cat], sorter)
+            if not (collapsed and collapsed[cat]) then
+                local before = #flatItems
+                emitStacks(groups[cat])
+                catRowCount[cat] = #flatItems - before
+                -- Snapshot the stacked rows for this category so the draw
+                -- loop can iterate per-cat without using the unstacked source.
+                local catRows = {}
+                for i = before + 1, #flatItems do
+                    catRows[#catRows + 1] = flatItems[i]
+                end
+                stackedGroups[cat] = catRows
+            else
+                catRowCount[cat] = 0
+                stackedGroups[cat] = {}
+            end
+        end
+    else
+        -- Non-grouped (sortCol = cond/wt): stack across all items.
+        local all = {}
+        for _, cat in ipairs(catOrder) do
+            for _, item in ipairs(groups[cat]) do
+                all[#all + 1] = item
+            end
+        end
+        table.sort(all, sorter)
+        emitStacks(all)
+    end
+
+    return {
+        groups = groups, catOrder = catOrder, flatItems = flatItems, useGroups = useGroups,
+        stacks = stacks, childParent = childParent, stackedGroups = stackedGroups,
+        catRowCount = catRowCount,
+    }
+end
+
+-- The list model for this column's container: the cached one while nothing
+-- it is built from has changed, a fresh one otherwise.
+local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
+    local items = inv and inv:getItems()
+    local n = items and items:size() or -1
+    local w = inv and inv:getCapacityWeight() or -1
+    local ph, sh = nil, nil
+    if isPlayerInv then
+        ph, sh = playerObj:getPrimaryHandItem(), playerObj:getSecondaryHandItem()
+    end
+    local cf, ef = foldKey(collapsed), foldKey(expandedStacks)
+    local cache = self._modelCache
+    if not cache then
+        cache = {}
+        self._modelCache, self._modelCacheN = cache, 0
+    end
+    local key = inv or cache   -- (no container: one shared empty model)
+    local c = cache[key]
+    if c and c.age < MODEL_REFRESH and c.n == n and c.w == w and c.sortCol == sortCol
+       and c.sortAsc == sortAsc and c.cf == cf and c.ef == ef and c.ph == ph and c.sh == sh
+       and c.isP == isPlayerInv then
+        c.age = c.age + 1
+        return c.m
+    end
+    if not c then
+        -- containers come and go as the player walks: start over past a few dozen
+        self._modelCacheN = (self._modelCacheN or 0) + 1
+        if self._modelCacheN > 24 then
+            cache = {}
+            self._modelCache, self._modelCacheN = cache, 1
+            key = inv or cache
+        end
+        c = {}
+        cache[key] = c
+    end
+    c.age, c.n, c.w, c.sortCol, c.sortAsc = 0, n, w, sortCol, sortAsc
+    c.cf, c.ef, c.ph, c.sh, c.isP = cf, ef, ph, sh, isPlayerInv
+    c.m = buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
+    return c.m
+end
+
 local function renderItemList(self)
     local T  = ZeD.T
     local A  = ZeD.Atoms
@@ -718,6 +888,7 @@ local function renderItemList(self)
             cond = math.floor(50 * scale),
             wt   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),
         }
+        colWData.wtC = colWData.wt   -- the compact (side-by-side) weight column, never resized
         self._colWidths = colWData
         self._colWidthsScale = scale
     end
@@ -738,7 +909,7 @@ local function renderItemList(self)
         condColW = 0
         showCat  = false
         catColW  = 0
-        wtColW   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2)
+        wtColW   = colWData.wtC or math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2)
     else
         if (colW - nameX - catColW - condColW - wtColW - padX - scrollW) < MIN_NAME then
             showCond = false
@@ -777,126 +948,23 @@ local function renderItemList(self)
     -- PRE-COMPUTE: Build item list + determine scroll state
     -- --------------------------------------------------------
 
-    local groups    = {}
-    local catOrder  = {}
-    local flatItems = {}
-
     local inv = self._inventory
     -- Hide equipped items from player's main inventory (shown in Equipment tab)
     local playerObj = self._playerObj
     local isPlayerInv = playerObj and inv and inv == playerObj:getInventory()
-    if inv then
-        local items = inv:getItems()
-        if items then
-            for i = 0, items:size() - 1 do
-                local item = items:get(i)
-                if item and not item:isHidden() then
-                    -- Skip equipped/worn items in player inventory
-                    local skip = false
-                    if isPlayerInv then
-                        local okE, eq = pcall(function() return item:isEquipped() end)
-                        if okE and eq then skip = true end
-                        if not skip and playerObj then
-                            local okP, peq = pcall(function() return playerObj:isEquipped(item) end)
-                            if okP and peq then skip = true end
-                        end
-                    end
-                    if not skip then
-                        local cat = item:getCategory() or "Other"
-                        if not groups[cat] then
-                            groups[cat] = {}
-                            catOrder[#catOrder + 1] = cat
-                        end
-                        groups[cat][#groups[cat] + 1] = item
-                    end
-                end
-            end
-        end
-    end
 
     local sortCol  = self._sortCol or "name"
     local sortAsc  = self._sortAsc
-    local sorter   = makeSorter(sortCol, sortAsc)
-    local useGroups = (sortCol == "name" or sortCol == "cat")
     local collapsed = self._collapsedGroups
 
-    -- S100: item stacking. Group items by fullType within each category;
-    -- identical items collapse into one row with a count badge. Expanded
-    -- stacks show child rows indented beneath the header. Vanilla PZ UX.
+    -- S100: item stacking (identical items collapse into one row with a count
+    -- badge). The rows are built in itemModel, only when the container changes.
     self._expandedStacks = self._expandedStacks or {}
-    local expandedStacks = self._expandedStacks
-    local stacks = {}          -- rep item → stack info
-    local childParent = {}     -- child item → stack info
-
-    -- Build one stack per (cat, fullType); emit representative + optional
-    -- children into flatItems in render order.
-    local function emitStacks(itemList)
-        local byType = {}
-        local ordered = {}
-        for _, item in ipairs(itemList) do
-            local ft = item.getFullType and item:getFullType() or tostring(item)
-            if not byType[ft] then
-                byType[ft] = { rep = item, items = { item }, count = 1, key = ft }
-                ordered[#ordered + 1] = byType[ft]
-            else
-                local s = byType[ft]
-                s.items[#s.items + 1] = item
-                s.count = s.count + 1
-            end
-        end
-        for _, s in ipairs(ordered) do
-            flatItems[#flatItems + 1] = s.rep
-            stacks[s.rep] = s
-            if s.count > 1 and expandedStacks[s.key] then
-                for ci = 2, #s.items do
-                    flatItems[#flatItems + 1] = s.items[ci]
-                    childParent[s.items[ci]] = s
-                end
-            end
-        end
-    end
-
-    -- S100: stacked per-category iteration list for the useGroups draw path.
-    -- The draw loop iterates per-cat; without this the original unstacked
-    -- groups[cat] would be used, bypassing stacking entirely.
-    local stackedGroups = {}
-
-    local catRowCount = {}  -- cat → rendered row count (stacks + expanded children)
-    if useGroups then
-        if sortCol == "cat" and not sortAsc then
-            table.sort(catOrder, function(a, b) return a > b end)
-        else
-            table.sort(catOrder)
-        end
-        for _, cat in ipairs(catOrder) do
-            table.sort(groups[cat], sorter)
-            if not collapsed[cat] then
-                local before = #flatItems
-                emitStacks(groups[cat])
-                catRowCount[cat] = #flatItems - before
-                -- Snapshot the stacked rows for this category so the draw
-                -- loop can iterate per-cat without using the unstacked source.
-                local catRows = {}
-                for i = before + 1, #flatItems do
-                    catRows[#catRows + 1] = flatItems[i]
-                end
-                stackedGroups[cat] = catRows
-            else
-                catRowCount[cat] = 0
-                stackedGroups[cat] = {}
-            end
-        end
-    else
-        -- Non-grouped (sortCol = cond/wt): stack across all items.
-        local all = {}
-        for _, cat in ipairs(catOrder) do
-            for _, item in ipairs(groups[cat]) do
-                all[#all + 1] = item
-            end
-        end
-        table.sort(all, sorter)
-        emitStacks(all)
-    end
+    local M = itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, self._expandedStacks)
+    local groups, catOrder, flatItems = M.groups, M.catOrder, M.flatItems
+    local useGroups, stackedGroups, catRowCount = M.useGroups, M.stackedGroups, M.catRowCount
+    local childParent = M.childParent
+    local stacks = M.stacks
 
     self._flatItems      = flatItems
     self._invRowItems    = flatItems   -- S96: alias for focusable builder (external consumers)
@@ -1768,8 +1836,9 @@ local function renderMultiColumnContent(self)
                 count   = countStr,
                 texture = cData.texture,
             }
-            self._colWidths      = nil
-            self._colWidthsScale = nil
+            -- each column keeps its own widths (measured once, not every frame)
+            self._colWidths      = cs.colWidths
+            self._colWidthsScale = cs.colWidthsScale
 
             -- S100: per-column stack expand state
             self._expandedStacks = cs.expandedStacks or {}
@@ -1778,6 +1847,8 @@ local function renderMultiColumnContent(self)
             renderItemList(self)
 
             -- Save back computed data
+            cs.colWidths       = self._colWidths
+            cs.colWidthsScale  = self._colWidthsScale
             cs.flatItems       = self._flatItems
             cs.sortCol         = self._sortCol
             cs.sortAsc         = self._sortAsc
@@ -1841,7 +1912,8 @@ end
 
 -- ============================================================================
 -- DROP HANDLER
--- Resolves where dragged items land: another column, vanilla pane, or floor.
+-- Resolves where dragged items land: another column, vanilla pane, a
+-- container button, or (released over the world only) the floor.
 -- ============================================================================
 
 local function getColumnAtX(content, x)
@@ -1853,6 +1925,48 @@ local function getColumnAtX(content, x)
         end
     end
     return nil, nil
+end
+
+-- The container under the pointer on a window's container buttons, or nil.
+-- The Character window names its buttons "cnt:<index>", the World window by
+-- the bare index (its Floor button too). A locked container takes nothing.
+local function stripDropTarget(win)
+    if not win or not win._containerStrip then return nil end
+    local strip = win._containerStrip
+    if not strip:isMouseOver() then return nil end
+    local zone = strip:hitZoneAt(strip:getMouseX(), strip:getMouseY())
+    if not zone then return nil end
+    local zid = zone.id
+    local ci = nil
+    if type(zid) == "number" then
+        ci = zid
+    elseif type(zid) == "string" and zid:sub(1, 4) == "cnt:" then
+        ci = tonumber(zid:sub(5))
+    end
+    local cnt = ci and win._containers and win._containers[ci]
+    if not cnt or cnt.locked then return nil end
+    return cnt.inventory
+end
+
+-- True when the pointer is over a window or panel that takes the mouse (as
+-- vanilla's pane asks before it drops dragged items on the floor). Read once
+-- per drop, never per frame. When it can't tell, it answers true: a drop that
+-- does nothing beats items left on the ground.
+local function pointerOverUI()
+    local ok, over = pcall(function()
+        local mx, my = getMouseX(), getMouseY()
+        local uis = UIManager.getUI()
+        for i = 0, uis:size() - 1 do
+            local ui = uis:get(i)
+            if ui:isPointOver(mx, my) then
+                -- a see-through overlay (it lets clicks through) is not a window
+                local okC, takes = pcall(function() return ui:isConsumeMouseEvents() end)
+                if not okC or takes then return true end
+            end
+        end
+        return false
+    end)
+    return (not ok) or over
 end
 
 local function handleDrop(content, items, srcInventory)
@@ -1939,57 +2053,38 @@ local function handleDrop(content, items, srcInventory)
 
         -- Container strip detection (waterfall sidebar — both windows)
         if not destContainer then
-            local function tryStripResolve(win)
-                if not win or not win._containerStrip then return nil end
-                local strip = win._containerStrip
-                if not strip:isMouseOver() then return nil end
-                local smx, smy = strip:getMouseX(), strip:getMouseY()
-                local zone = strip:hitZoneAt(smx, smy)
-                if not zone then return nil end
-                local zid = zone.id
-                if type(zid) == "string" and zid:sub(1, 4) == "cnt:" then
-                    local ci = tonumber(zid:sub(5))
-                    if ci and win._containers and win._containers[ci] then
-                        return win._containers[ci].inventory
-                    end
-                end
-                return nil
-            end
-            destContainer = tryStripResolve(charWin)
-            if not destContainer then
-                destContainer = tryStripResolve(worldWin)
-            end
+            destContainer = stripDropTarget(charWin) or stripDropTarget(worldWin)
         end
     end
 
-    -- Same container = no-op
-    if destContainer and destContainer == srcContainer then return end
+    local srcIsFloor  = srcContainer ~= nil and srcContainer:getType() == "floor"
+    local destIsFloor = destContainer ~= nil and destContainer:getType() == "floor"
 
-    -- Detect virtual floor container (can't use ISInventoryTransferAction with it)
-    local floorContainer = ZeD_WorldWindow.getFloorContainer and ZeD_WorldWindow.getFloorContainer()
-    local srcIsVirtualFloor  = floorContainer and srcContainer == floorContainer
-    local destIsVirtualFloor = floorContainer and destContainer == floorContainer
+    -- Same container = no-op
+    if destContainer and (destContainer == srcContainer or (srcIsFloor and destIsFloor)) then return end
+
+    -- No container under the pointer. As vanilla: items fall to the floor only
+    -- on a release over the world, never over a window (the source list, a
+    -- tab, the card, a locked container's button), and never from the floor.
+    if not destContainer and (srcIsFloor or pointerOverUI()) then return end
 
     for _, item in ipairs(items) do
-        if item:getContainer() ~= srcContainer then
+        local cur = item:getContainer()
+        if not (cur == srcContainer or (srcIsFloor and cur ~= nil and cur:getType() == "floor")) then
             -- Item moved/gone, skip
-        elseif destIsVirtualFloor then
-            -- Dropping TO floor — use vanilla drop action (floor container is virtual)
+        elseif destIsFloor or not destContainer then
+            -- To the floor: vanilla's drop action
             if not item:isFavorite() then
                 ISInventoryPaneContextMenu.dropItem(item, playerNum)
             end
-        elseif destContainer then
-            if srcIsVirtualFloor then
-                ZeD_WorldWindow.transferFromFloor(playerObj, item, destContainer)
-            elseif destContainer:isItemAllowed(item) then
-                ISTimedActionQueue.add(
-                    ISInventoryTransferAction:new(playerObj, item, srcContainer, destContainer, 0)
-                )
-            end
-        else
-            if not item:isFavorite() then
-                ISInventoryPaneContextMenu.dropItem(item, playerNum)
-            end
+        elseif srcIsFloor then
+            -- Off the floor: the World window's routing point (vanilla's transfer)
+            ZeD_WorldWindow.transferFromFloor(playerObj, item, destContainer)
+        elseif destContainer:isItemAllowed(item) then
+            -- vanilla's own transfer time (as its loot window's drag and drop)
+            ISTimedActionQueue.add(
+                ISInventoryTransferUtil.newInventoryTransferAction(playerObj, item, srcContainer, destContainer)
+            )
         end
     end
 end

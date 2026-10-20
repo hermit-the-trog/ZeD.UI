@@ -72,6 +72,15 @@ local SUB_TABS = {
 local function groupEntriesByMonth(entries, originalArray)
     local byKey = {}
     local keyOrder = {}
+    -- one pass over the original array, so a filtered list finds each
+    -- entry's stable index without rescanning it per entry
+    local origIndex = nil
+    if originalArray and originalArray ~= entries then
+        origIndex = {}
+        for oi, oe in ipairs(originalArray) do
+            if origIndex[oe] == nil then origIndex[oe] = oi end
+        end
+    end
     for i, entry in ipairs(entries) do
         local m = entry.month or 0
         local yr = entry.year or 0
@@ -87,12 +96,7 @@ local function groupEntriesByMonth(entries, originalArray)
             keyOrder[#keyOrder + 1] = key
         end
         -- Find stable index in original array (for delete even when filtered)
-        local origIdx = i
-        if originalArray and originalArray ~= entries then
-            for oi, oe in ipairs(originalArray) do
-                if oe == entry then origIdx = oi; break end
-            end
-        end
+        local origIdx = (origIndex and origIndex[entry]) or i
         byKey[key].entries[#byKey[key].entries + 1] = { idx = origIdx, entry = entry }
     end
     -- Sort groups newest first
@@ -108,6 +112,58 @@ local function groupEntriesByMonth(entries, originalArray)
         result[#result + 1] = g
     end
     return result
+end
+
+-- Wrapped lines for one entry's text, remembered per width and font. Wrapping
+-- measures every word, so doing it for every entry twice a frame was the
+-- journal's main cost. The memory is dropped when the font or text scale
+-- changes, and when it has grown past a few thousand entries (window resizes
+-- leave old widths behind).
+local _wrapFontKey = nil
+local _wrapByWidth = {}
+local _wrapCount = 0
+local function wrappedLines(entry, font, width)
+    local fk = tostring(font) .. "|" .. tostring(ZeD.T.scale)
+    if fk ~= _wrapFontKey or _wrapCount > 4000 then
+        _wrapFontKey, _wrapByWidth, _wrapCount = fk, {}, 0
+    end
+    local byEntry = _wrapByWidth[width]
+    if not byEntry then
+        byEntry = {}
+        _wrapByWidth[width] = byEntry
+    end
+    local text = entry.text
+    local hit = byEntry[entry]
+    if hit and hit.text == text then return hit.lines end
+    local lines = wrapText(text, font, width)
+    byEntry[entry] = { text = text, lines = lines }
+    _wrapCount = _wrapCount + 1
+    return lines
+end
+
+-- The month groups for the entries the search leaves, rebuilt only when the
+-- entry list or the search text changes (the first and last entries and the
+-- count catch an add or a delete, as the list is the player's live data).
+local function journalGroups(win, entries, searchQ)
+    local n = #entries
+    local c = win._journalGroupCache
+    if c and c.src == entries and c.n == n and c.first == entries[1]
+            and c.last == entries[n] and c.q == searchQ then
+        return c.groups
+    end
+    local filtered = entries
+    if searchQ ~= "" then
+        local q = string.lower(searchQ)
+        filtered = {}
+        for _, entry in ipairs(entries) do
+            if string.lower(entry.text or ""):find(q, 1, true) then
+                filtered[#filtered + 1] = entry
+            end
+        end
+    end
+    local groups = groupEntriesByMonth(filtered, entries)
+    win._journalGroupCache = { src = entries, n = n, first = entries[1], last = entries[n], q = searchQ, groups = groups }
+    return groups
 end
 
 -- ============================================================================
@@ -377,13 +433,15 @@ end
 -- HEIGHT MEASUREMENT — Journal
 -- ============================================================================
 
-function ZeD.JournalTab._measureJournalContent(data, contentW, collapsedMap)
+-- groups: the month groups the draw pass will show (search applied); the
+-- scrollbar is sized from the same list.
+function ZeD.JournalTab._measureJournalContent(data, contentW, collapsedMap, groups)
     local T = ZeD.T
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local groupHeaderH = math.max(secH + T.px(10), T.px(26))
 
-    local groups = groupEntriesByMonth(data.journalEntries)
+    groups = groups or groupEntriesByMonth(data.journalEntries)
     local totalH = 0
 
     if #groups == 0 then
@@ -395,7 +453,7 @@ function ZeD.JournalTab._measureJournalContent(data, contentW, collapsedMap)
                 for _, wrapped in ipairs(group.entries) do
                     local entry = wrapped.entry
                     totalH = totalH + secH + T.sp.rowGap
-                    local lines = wrapText(entry.text, T.fontF2, contentW)
+                    local lines = wrappedLines(entry, T.fontF2, contentW)
                     totalH = totalH + #lines * (bodyH + T.px(2))
                     totalH = totalH + T.sp.xs + T.px(1) + T.sp.afterGroove
                 end
@@ -591,7 +649,8 @@ local function renderJournal(panel, win, x, y, w, h)
     zoneAEstH = zoneAEstH + T.sp.xs + T.px(2) + T.sp.afterGroove
         + T.px(ENTRY_INPUT_H) + T.sp.xs + T.buttonH + T.sp.sm + T.px(1) + T.sp.afterLine
 
-    local entryContentH = ZeD.JournalTab._measureJournalContent(data, contentW - scrollW - T.px(2), win._journalGroupCollapsed)
+    local entryGroups = journalGroups(win, data.journalEntries, win._journalSearchText or "")
+    local entryContentH = ZeD.JournalTab._measureJournalContent(data, contentW - scrollW - T.px(2), win._journalGroupCollapsed, entryGroups)
     local totalContentH = zoneAEstH + entryContentH
 
     local needsScroll = totalContentH > h
@@ -749,20 +808,11 @@ local function renderJournal(panel, win, x, y, w, h)
     curY = curY + T.px(1) + T.sp.afterLine
 
     -- Filter entries by search text (if any), then group by month
-    local filteredEntries = data.journalEntries
-    local searchQ = win._journalSearchText or ""
-    if searchQ ~= "" then
-        local q = string.lower(searchQ)
-        filteredEntries = {}
-        for i, entry in ipairs(data.journalEntries) do
-            if string.lower(entry.text or ""):find(q, 1, true) then
-                filteredEntries[#filteredEntries + 1] = entry
-            end
-        end
-    end
+    -- (the grouped list is cached; it is rebuilt only when the entries or
+    -- the search text change)
+    local groups = journalGroups(win, data.journalEntries, win._journalSearchText or "")
 
     -- Journal entries — grouped by month, newest first
-    local groups = groupEntriesByMonth(filteredEntries, data.journalEntries)
     local groupHeaderH = math.max(secH + T.px(10), T.px(26))
     local groupZones = {}
     local deleteZones = {}
@@ -859,7 +909,7 @@ local function renderJournal(panel, win, x, y, w, h)
 
                     curY = curY + secH + T.sp.rowGap
 
-                    local lines = wrapText(entry.text, T.fontF2, drawW)
+                    local lines = wrappedLines(entry, T.fontF2, drawW)
                     for _, line in ipairs(lines) do
                         A.drawBody(panel, line, x, curY)
                         curY = curY + bodyH + T.px(2)

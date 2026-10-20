@@ -647,9 +647,13 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     ZeD.currentAccent = accentKey or ZeD.currentAccent
     ZeD.currentSize   = sizeKey   or ZeD.currentSize
 
-    local base   = ZeD.BaseThemes[ZeD.currentBase]
+    -- A key that names nothing (an old or hand-edited save) falls back to the default
+    -- rather than throwing below
+    if not ZeD.BaseThemes[ZeD.currentBase]     then ZeD.currentBase   = "dark"   end
+    if not ZeD.AccentColors[ZeD.currentAccent] then ZeD.currentAccent = "orange" end
     -- Medium removed — fall back to small if persisted
-    if ZeD.currentSize == "medium" then ZeD.currentSize = "small" end
+    if ZeD.currentSize == "medium" or not ZeD.TextSizes[ZeD.currentSize] then ZeD.currentSize = "small" end
+    local base   = ZeD.BaseThemes[ZeD.currentBase]
     local size   = ZeD.TextSizes[ZeD.currentSize]
 
     -- Determine which accent variant to use based on base theme
