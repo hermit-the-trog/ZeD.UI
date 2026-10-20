@@ -8,9 +8,11 @@
 --     ISCampingMenu.onDisplayInfo, ISBBQMenu.onDisplayInfo,
 --     ISFarmingMenu.onInfo) open the card at once: no walk, no info cursor;
 --   * the info timed actions' perform is the fallback for any other caller.
--- Vanilla runs only when ZeD declines (no World window, object not found).
+-- Vanilla runs only when ZeD declines (no World window, object not found),
+-- and every time while safe mode is on (SafeMode.lua).
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/ObjectCards"
 require "ZeD/ObjectCardPower"
 require "ZeD/ObjectCardFire"
@@ -30,6 +32,7 @@ local function hookHandler(tbl, name, label, pick)
     tbl["_zed_" .. name] = true
     local orig = tbl[name]
     tbl[name] = function(...)
+        if ZeD.Safe.on() then return orig(...) end   -- safe mode: vanilla's info window
         local player, kind, obj = pick(...)
         if player and obj and route(label, player, kind, obj) then return end
         return orig(...)
@@ -42,6 +45,7 @@ local function hookPerform(cls, label, kind, objOf)
     cls._zedInfoHooked = true
     local orig = cls.perform
     cls.perform = function(self)
+        if ZeD.Safe.on() then return orig(self) end
         if route(label, self.character, kind, objOf(self)) then
             ISBaseTimedAction.perform(self)
             return

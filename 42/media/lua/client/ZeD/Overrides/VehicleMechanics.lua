@@ -9,9 +9,11 @@
 --
 -- ISVehicleMenu.onMechanic is wrapped too: when the vehicle is already
 -- inspected, the tab opens straight away instead of repeating the look.
--- Vanilla runs when ZeD declines (no World window available).
+-- Vanilla runs when ZeD declines (no World window available), and every time
+-- while safe mode is on (SafeMode.lua).
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/MechanicsTab"
 
 local function apply()
@@ -19,6 +21,7 @@ local function apply()
         ISOpenMechanicsUIAction._zedHooked = true
         local origPerform = ISOpenMechanicsUIAction.perform
         function ISOpenMechanicsUIAction:perform()
+            if ZeD.Safe.on() then return origPerform(self) end   -- safe mode: vanilla's mechanics window
             local MT = ZeD and ZeD.MechanicsTab
             local ok, handled = pcall(function()
                 return MT and MT.openFromAction and MT.openFromAction(self.character, self.vehicle, self.usedHood)
@@ -34,6 +37,7 @@ local function apply()
         ISVehicleMenu._zedMechHooked = true
         local origOnMechanic = ISVehicleMenu.onMechanic
         function ISVehicleMenu.onMechanic(playerObj, vehicle)
+            if ZeD.Safe.on() then return origOnMechanic(playerObj, vehicle) end
             local MT = ZeD and ZeD.MechanicsTab
             if MT and MT.isInspected and MT.isInspected(vehicle) and not playerObj:getVehicle() then
                 local ok, handled = pcall(MT.openFromAction, playerObj, vehicle, nil)

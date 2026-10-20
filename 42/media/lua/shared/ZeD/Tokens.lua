@@ -954,6 +954,10 @@ end
 -- (code audit Oct 17 2026; capped so a message with changing numbers cannot grow it forever)
 local _logSeen, _logCount = {}, 0
 function ZeD.logOnce(key, msg)
+    -- every failing frame still counts towards safe mode's watchdog (client/ZeD/SafeMode.lua),
+    -- before the dedup below; this file loads first, so it is looked up when called
+    local safe = ZeD.Safe
+    if safe and safe.fault then safe.fault(key, msg) end
     local k = tostring(key) .. "|" .. tostring(msg)
     if _logSeen[k] then return end
     if _logCount >= 500 then return end

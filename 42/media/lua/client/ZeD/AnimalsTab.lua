@@ -39,6 +39,7 @@ require "ZeD/Molecules"
 require "ZeD/AnimalsData"
 require "ZeD/AnimalsAlertPoller"
 require "ZeD/AnimalsStressInference"
+require "ZeD/SafeMode"
 -- Zone creation uses DesignationZoneAnimal directly (no vanilla UI panels)
 
 ZeD = ZeD or {}
@@ -474,6 +475,9 @@ local function startZoneCreate(win)
 
     -- Block world context menu during zone drawing
     ISWorldObjectContextMenu.disableWorldMenu = true
+    -- ZeD holds the world menu off and the zones shown until this drawing ends
+    -- (safe mode and the World window closing end it too: AT.endZoneDraw)
+    AT._zoneDrawWin = win
 end
 
 -- ============================================================================
@@ -565,6 +569,30 @@ cancelZoneCreate = function(win)
     local player = getSpecificPlayer(0)
     if player then player:setSeeDesignationZone(false) end
     ISWorldObjectContextMenu.disableWorldMenu = false
+    AT._zoneDrawWin = nil
+end
+
+-- Ends a zone drawing ZeD has in progress, if any: the world menu comes back
+-- on and the zones are hidden again. Safe mode starting and the World window
+-- closing call it; it does nothing when no drawing is under way.
+function AT.endZoneDraw()
+    local win = AT._zoneDrawWin
+    if not win then return end
+    AT._zoneDrawWin = nil
+    local ok, err = pcall(cancelZoneCreate, win)
+    if not ok then
+        print("[ZeD] Animals: the zone drawing could not be ended cleanly: " .. tostring(err))
+        -- whatever failed above, the world menu and the zones are handed back
+        ISWorldObjectContextMenu.disableWorldMenu = false
+        local player = getSpecificPlayer(0)
+        if player then pcall(player.setSeeDesignationZone, player, false) end
+    end
+end
+
+-- safe mode (SafeMode.lua): a drawing in progress ends as ZeD steps aside;
+-- nothing to take over again on the way back
+if ZeD.Safe and ZeD.Safe.register then
+    ZeD.Safe.register("animal zones", { leave = AT.endZoneDraw, enter = function() end })
 end
 
 confirmZoneCreate = function(win)

@@ -5,10 +5,10 @@
 -- Read), the read quick look (page, places, words). Notebooks: the page small,
 -- a quick note written (a few seconds a line) and checked on the page. Journal:
 -- Into the notebook, Save, and the log entry naming the page. Takes the items
--- and the log entry back. grep "ZEDQA jr"; Screenshots/zqa_jr_*.png.
+-- and the log entry back. grep "ZEDQA jrd"; Screenshots/zqa_jr_*.png.
 local p = getPlayer()
 local pn = p:getPlayerNum()
-local function say(s) print("ZEDQA jr " .. tostring(s)) end
+local function say(s) print("ZEDQA jrd " .. tostring(s)) end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_jr_" .. n .. ".png") end) end
 local steps, tick = {}, 0
 local function at(n, fn) steps[#steps + 1] = { n = n, fn = fn } end

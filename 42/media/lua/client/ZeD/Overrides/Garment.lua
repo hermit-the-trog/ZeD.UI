@@ -14,10 +14,12 @@
 -- or patched part's dock opens vanilla's own tailoring choices for that part
 -- (ZeD.Garment.tailorMenu: which fabric to patch with, patch every hole,
 -- remove the patch or all of them, with vanilla's skill and defence notes),
--- in the ZeD list. Vanilla's window still opens if the card cannot.
+-- in the ZeD list. Vanilla's window still opens if the card cannot, and
+-- always while safe mode is on (SafeMode.lua).
 -- HOOK_MAP row 30.
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ISUI/ISInventoryPaneContextMenu"
 require "ISUI/ISGarmentUI"
 
@@ -80,6 +82,7 @@ local function apply()
     local vanilla = ISInventoryPaneContextMenu.onInspectClothingUI
     ISInventoryPaneContextMenu._zedGarmentVanilla = vanilla
     ISInventoryPaneContextMenu.onInspectClothingUI = function(player, clothing)
+        if ZeD.Safe.on() then return vanilla(player, clothing) end   -- safe mode: ISGarmentUI
         local ok, done = pcall(openCard, player, clothing)
         if ok and done then return end
         if not ok then print("[ZeD] Garment: Inspect kept vanilla's window: " .. tostring(done)) end

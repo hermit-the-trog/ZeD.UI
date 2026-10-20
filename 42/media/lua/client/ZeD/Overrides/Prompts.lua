@@ -30,9 +30,11 @@ require "ISUI/ISBombTimerDialog"
 require "ISUI/ISOnScreenKeyboard"
 require "ZeD/ZeD_Prompt"
 require "ZeD/ZeD_Keyboard"
+require "ZeD/SafeMode"
 
+-- (in safe mode every pop-up and the keyboard are vanilla's: SafeMode.lua)
 local function ready()
-    return ZeD and ZeD.T and ZeD.T.px and ZeD.Prompt and ZeD_Prompt ~= nil
+    return ZeD and ZeD.T and ZeD.T.px and ZeD.Prompt and ZeD_Prompt ~= nil and not ZeD.Safe.on()
 end
 
 -- cls:new(...) -> the ZeD prompt when called on the class itself
@@ -51,6 +53,15 @@ local function hookNew(cls, name, build)
     end
 end
 
+-- Safe mode: vanilla's Show would reuse the ZeD keyboard left in
+-- OnScreenKeyboard.instance, so put that one away and let vanilla build its own
+local function dropZedKeyboard()
+    local kb = OnScreenKeyboard.instance
+    if not (kb and ZeD.Keyboard and kb == ZeD.Keyboard.instance) then return end
+    pcall(function() if kb:isReallyVisible() then kb:hide() end end)
+    OnScreenKeyboard.instance = nil
+end
+
 local function hookKeyboard()
     if not OnScreenKeyboard or OnScreenKeyboard._zedHooked then return end
     OnScreenKeyboard._zedHooked = true
@@ -58,6 +69,10 @@ local function hookKeyboard()
     -- IsVisible / Hide / GetCurrentText are vanilla's: they ask OnScreenKeyboard.instance,
     -- which is the ZeD keyboard once it has been shown
     OnScreenKeyboard.Show = function(playerNum, textEntryBox, joypadData)
+        if ZeD.Safe.on() then
+            dropZedKeyboard()
+            return origShow(playerNum, textEntryBox, joypadData)
+        end
         if OnScreenKeyboard.IsVisible() then return OnScreenKeyboard.instance end
         if ready() and ZeD.Keyboard and ZeD.Keyboard.get then
             local ok, k = pcall(function()
@@ -81,6 +96,11 @@ local function isEscape(key)
 end
 
 local function onKey(key)
+    -- safe mode: the keys are vanilla's pause menu toggle's alone, as before ZeD
+    if ZeD.Safe.on() then
+        if ToggleEscapeMenu then return ToggleEscapeMenu(key) end
+        return
+    end
     local P = ZeD and ZeD.Prompt
     local top = P and P.top and P.top()
     local ms = MainScreen and MainScreen.instance

@@ -2,7 +2,7 @@
 -- spawn, repair, fuel, battery, key, enter, key in (screenshot: the bulb check), start, radio + heater +
 -- headlights (+ lightbar, no siren), screenshot (Zomboid/Screenshots/zqa_dashpx_<tag>.png), print the
 -- dashboard's screen rect and badge, leave, remove. The van is the Spiffo's van (the sticker shows); five livery
--- cars after the 19 check the badges against the game's names (a missing script just logs 'spawn failed').
+-- cars after the 19 check the badges against the game's names (a missing script just logs 'spawn failed'). grep "ZEDQA dpx".
 local p = getPlayer(); local D = ZeD.Dashboard
 local LIST = {
     { "01_luxury", "Base.CarLuxury" }, { "02_nyala", "Base.CarNormal" }, { "03_cossette", "Base.SportsCar" },
@@ -17,7 +17,7 @@ local LIST = {
     { "22_wreckednyala", "Base.CarNormalSmashedFront" }, { "23_meadesheriff", "Base.ModernCarLightsMeadeSheriff" },
     { "24_lcpd", "Base.CarLightsLouisvilleCounty" },
 }
-local function say(s) print("ZEDQA dash " .. tostring(s)) end
+local function say(s) print("ZEDQA dpx " .. tostring(s)) end
 if getGameSpeed() == 0 then setGameSpeed(1) end
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
 local cur, curKey = nil, nil

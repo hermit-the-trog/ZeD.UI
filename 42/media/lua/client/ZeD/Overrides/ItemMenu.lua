@@ -18,6 +18,10 @@
 require "ISUI/ISInventoryPaneContextMenu"
 require "ISUI/ISTextBox"
 require "ZeD/ContainerControls"
+require "ZeD/SafeMode"
+
+-- In safe mode (SafeMode.lua) both menu fillers step aside: vanilla's own
+-- Move To / Loot all / Transfer all stay, aimed at its own pages, which are back.
 
 local CT = ZeD.ContainerControls
 local RENAME_MAX = 28   -- vanilla's MAXIMUM_RENAME_LENGTH
@@ -126,6 +130,7 @@ local function onRename(item, pn)
 end
 
 local function onFillInventory(pn, context, rawItems)
+    if ZeD.Safe.on() then return end
     local playerObj = getSpecificPlayer(pn)
     if not (playerObj and context and rawItems) then return end
     local items = ISInventoryPane.getActualItems(rawItems)
@@ -166,7 +171,7 @@ local function padlocked(obj)
 end
 
 local function onFillWorld(pn, context, worldobjects, test)
-    if test then return end
+    if test or ZeD.Safe.on() then return end
     local playerObj = getSpecificPlayer(pn)
     if not (playerObj and context and worldobjects) or playerObj:getVehicle() then return end
     local found, seen = {}, {}

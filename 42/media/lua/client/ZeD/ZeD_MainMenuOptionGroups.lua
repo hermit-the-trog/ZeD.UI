@@ -86,7 +86,7 @@ G.GROUPS = {
         { "Language", { "language", "comlang" } },
     } },
     { id = "access", title = "Accessibility", sections = {
-        { "Colours", { "goodHighColor", "badHighColor", "colorblindPatterns" } },
+        { "Colors", { "goodHighColor", "badHighColor", "colorblindPatterns" } },
         { "Reading", { "enableDyslexicFont" } },
         { "Weather", { "disableLightningDuringStorms" } },
     } },

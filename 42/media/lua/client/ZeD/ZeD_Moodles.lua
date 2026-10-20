@@ -31,6 +31,7 @@
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/ZeD_Panel"
+require "ZeD/SafeMode"
 
 ZeD = ZeD or {}
 ZeD.Moodles = ZeD.Moodles or {}
@@ -377,7 +378,7 @@ function M.install(playerNum)
     local layer = ZeD_MoodleLayer:new(playerNum)
     layer:initialise()
     layer:addToUIManager()
-    layer:setVisible(true)
+    layer:setVisible(not ZeD.Safe.on())   -- safe mode: hidden until ZeD takes over again
     M._layers[playerNum] = layer
     print("[ZeD] Moodles: layer installed for player " .. tostring(playerNum) .. " (" .. M.place() .. ")")
     return layer
@@ -389,9 +390,31 @@ function M.getLayer(playerNum) return M._layers[playerNum or 0] end
 -- so a move made any earlier never reaches the screen.
 local function preDraw()
     if not ZeD.T then return end
+    if ZeD.Safe.on() then return end   -- safe mode: vanilla's column stays where the engine puts it
     for _, layer in pairs(M._layers) do layer:_place() end
 end
 Events.OnPreUIDraw.Add(preDraw)
+
+-- Safe mode (SafeMode.lua): the layers hide and vanilla's column goes back to
+-- its own spot (the engine resets its x every frame but not its y, which "right"
+-- and "bottom" moved). Taking over again shows the layers; preDraw moves the
+-- column again.
+ZeD.Safe.register("moodles", {
+    leave = function()
+        for pn, layer in pairs(M._layers) do
+            layer:setVisible(false)
+            layer._show = false
+            local mui = getSpecificPlayer(pn) and layer:vanilla()
+            if mui then
+                mui:setX(getPlayerScreenLeft(pn) + getPlayerScreenWidth(pn) - EDGE - mui:getWidth())
+                mui:setY(getPlayerScreenTop(pn) + 120)
+            end
+        end
+    end,
+    enter = function()
+        for _, layer in pairs(M._layers) do layer:setVisible(true) end
+    end,
+})
 
 Events.OnGameStart.Add(function() M._layers = {}; M.install(0) end)
 Events.OnCreatePlayer.Add(function(playerNum) if playerNum and playerNum > 0 then M.install(playerNum) end end)

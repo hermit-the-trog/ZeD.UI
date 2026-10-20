@@ -11,9 +11,11 @@
 --     menu, interact: every path ends in this action);
 --   * tracks: ISInspectAnimalTrackAction:perform (search mode icon, a track on
 --     the ground, a track item).
--- Vanilla runs only when ZeD declines (no World window, object not found).
+-- Vanilla runs only when ZeD declines (no World window, object not found),
+-- and every time while safe mode is on (SafeMode.lua).
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/ObjectCards"
 require "ZeD/ObjectCardHutch"
 require "ZeD/ObjectCardTrough"
@@ -34,6 +36,7 @@ local function hookPerform(cls, label, kind, pick)
     cls._zedCardHooked = true
     local orig = cls.perform
     cls.perform = function(self)
+        if ZeD.Safe.on() then return orig(self) end   -- safe mode: vanilla's window
         local player, obj = pick(self)
         if player and obj and route(label, OC.open, player, kind, obj) then
             ISBaseTimedAction.perform(self)
@@ -49,6 +52,7 @@ local function apply()
         ISHutchMenu._zedCardHooked = true
         local orig = ISHutchMenu.onInfo
         ISHutchMenu.onInfo = function(hutch, chr)
+            if ZeD.Safe.on() then return orig(hutch, chr) end
             local entry = hutch and hutch.getEntrySq and hutch:getEntrySq()
             if chr and hutch and route("hutch info", OC.openNear, chr, "hutch", hutch, entry) then return end
             return orig(hutch, chr)
@@ -61,6 +65,7 @@ local function apply()
         ISFeedingTroughMenu._zedCardHooked = true
         local orig = ISFeedingTroughMenu.onInfo
         ISFeedingTroughMenu.onInfo = function(trough, chr)
+            if ZeD.Safe.on() then return orig(trough, chr) end
             if chr and trough and route("trough info", OC.openNear, chr, "trough", trough, trough:getSquare()) then return end
             return orig(trough, chr)
         end

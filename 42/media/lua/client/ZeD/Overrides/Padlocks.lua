@@ -7,12 +7,15 @@
 -- ISDigitalCode. ZeD opens the lock card (ObjectCardLock.lua) instead, with
 -- the walk only when the object is out of the card's reach. The after-walk
 -- functions are routed too, for anything else that calls them. Vanilla runs
--- when ZeD declines (no World window).
+-- when ZeD declines (no World window), and every time while safe mode is on
+-- (SafeMode.lua).
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/ObjectCardLock"
 
 local function open(playerNum, thump, set)
+    if ZeD.Safe.on() then return false end   -- safe mode: vanilla's ISDigitalCode
     local LK = ZeD and ZeD.ObjectCardLock
     local p = getSpecificPlayer(playerNum)
     if not (LK and LK.openFor and p and thump) then return false end

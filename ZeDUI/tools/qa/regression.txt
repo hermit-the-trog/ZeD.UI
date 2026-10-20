@@ -1,0 +1,135 @@
+# ZeDUI/tools/qa/regression.txt  (Oct 19 2026)
+# The default manifest of zedqa_run.ps1: the bridge QA library, run unattended
+# on the ZeD-QA save in the order below, at 1080p windowed or 4K fullscreen.
+#
+# One script per line, relative to this folder:
+#   <script> | <tag> | timeout=<s> | end=<regex> | expect=<regex>    # comment
+# Only the script is required. <tag> is the script's "ZEDQA <tag>" prefix (the
+# runner reads it from the script's say() when left out); every tag must be
+# unique across the manifest (the runner refuses a repeat). timeout= overrides
+# -TimeoutSec for that script. end= names the line that ends a script that
+# prints no DONE. expect= is an exception the script raises on purpose (it is
+# not counted as a failure). Blank lines and # comments are skipped.
+#
+# Allowlist rule: only in-game scripts that end with a DONE line and put back
+# what they add. Accepted leftovers (QA-save conventions): god mode on, the
+# character moved beside the pickup, clear weather from the radio captures.
+# Never here: anything that makes a save, kills the character, reaches the
+# Workshop, runs at the main menu, or needs the real mouse between runs (the
+# runner refuses the never-unattended names itself; see the end of this file).
+
+# ---- first: the pair open, unpaused, god mode
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+
+# ---- the five suites (need both windows open; the prelude did that)
+suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
+suite_verbs.lua | verbs                          # item card header verbs through the real dispatch (leaves its book, bat, apple)
+suite_gamepad.lua | gp                           # simulated D-pad, row callbacks, stale-zone check
+suite_band.lua | band                            # progress band: reading, cancel; cooking if a stove is near
+suite_perf.lua | perf                            # ms per tick on every tab + recipe builder cost
+
+# ---- windows, cards, the pad
+zedqa_audit_fixes.lua | af | expect=QA: a tab that throws   # throwing tab logs once, equip card hides, card outlives item, weight
+zedqa_card_pad.lua | cp                          # pad into the item card and back, Health tab drawer reach
+zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
+zedqa_onepath.lua | op                           # single-path fixes: Move To, Rename, double-click, Take all, card verbs
+zedqa_grid.lua | grid                            # inventory grid, cell card, pad walk, List | Grid toggle
+zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
+zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
+zedqa_curtain.lua | cu                           # World window curtain roll / unroll, controller stop
+zedqa_curtain2.lua | cv                          # Character window curtain, tab switches while rolled
+zedqa_navevents.lua | ev                         # where pad focus lands after cards, strips, tabs, LB / RB, the map
+zedqa_navmap.lua | nav                           # cone-nav audit of every tab: traps, islands, stuck
+zedqa_furniture.lua | fu | end=ZEDQA fu after leaving tab   # Furniture tab cursor and modes (prints no DONE)
+zedqa_tabicons.lua | ti                          # both tab strips with Skills / Forage active
+zedqa_tabs_lit.lua | tl                          # lit window tabs, then put back (after tabicons: the pair is open)
+
+# ---- scale
+zedqa_win.lua | win                              # the pair at the natural root and at a forced 1.0
+zedqa_rootchange.lua | rc                        # a root change re-derives the geometry
+zedqa_scalewalk.lua | sw                         # main tabs of both windows at natural and 1.0
+zedqa_uiscale.lua | scale                        # UI scale steps, back to Auto (the current setting)
+
+# ---- maps, journal, print
+zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
+zedqa_mapstyles.lua | mst                        # Survey / Color / Paper at two zooms on Muldraugh
+zedqa_flyers.lua | fl                            # the Maps tab marks only flyers read
+zedqa_flyermap.lua | fm                          # flyer pins, hover card, reader from a pin, Show on map
+zedqa_journal_refs.lua | jr                      # Journal tab diary and Flyers gallery
+zedqa_journal_readers.lua | jrd                  # Notebooks, Papers, Into; items and log entry taken back
+zedqa_reader.lua | rd                            # the reader through vanilla's Read: paper, words, zoom, flyer, map
+zedqa_reader_refs.lua | rr                       # reader reference captures; items taken back
+zedqa_notebook.lua | nb                          # writing in a notebook through vanilla's Write; locked notebook
+zedqa_print_fit.lua | pf                         # newspaper stories fitted to their columns (prototype)
+zedqa_print_typeset.lua | ts                     # newspaper page typeset by ZeD (prototype)
+
+# ---- prompts and props
+zedqa_prompts.lua | pr                           # every prompt kind through vanilla's constructors, answered harmlessly
+zedqa_fishing.lua | fi                           # vanilla's tension meter fed each tension
+zedqa_props_plates.lua | props                   # rod and clock radio plates on a test panel
+
+# ---- belt and watch
+zedqa_belt_strap.lua | belt                      # the pixel-art belt strap
+zedqa_straps.lua | straps                        # per-slot strap materials, four loadouts, all taken off
+zedqa_buckle.lua | bk                            # the buckle stays on the screen centre with a watch on either wrist
+zedqa_buckles.lua | bks                          # every profession's buckle; the profession goes back
+zedqa_beltwatch.lua | bw                         # the mini watch on the belt: pop, drag, tuck, Corner mode
+zedqa_watches2.lua | watches                     # the nine watch plates by day and night; own watch and time back
+
+# ---- containers (these move the character to the pickup's truck bed)
+zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
+zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
+zedqa_container_controls_captures.lua | cc       # ZeD and vanilla windows on the truck bed (mockup backdrops)
+zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows; shirt taken back
+
+# ---- wheels (the pickup within 20 tiles: after the container scripts)
+zedqa_wheel_sizes.lua | ws                       # the ZeD wheel at 3 to 11 slices
+zedqa_wheels.lua | wh                            # vanilla's wheels through vanilla's functions, routed slices
+
+# ---- vehicles (spawned beside the character and removed; the QA save's own cars are put back)
+zedqa_seat_lightbar_vanilla.lua | sl             # seat chooser and lightbar from vanilla's entry points
+zedqa_car_radio_build.lua | rb                   # the car radio up close with each radio fitted; radios put back
+zedqa_car_radio_cd.lua | cd                      # CD deck: list, insert, play, eject; the ValuTech's tape
+zedqa_dash_props_smoke.lua | sm                  # v6 dash, radio up close, siren controller still draw
+zedqa_tm.lua | tm                                # tooltip frame, map labels, dash text after the measure fix
+zedqa_tour3.lua | t3                             # seven dash designs on spawned cars
+zedqa_dash19.lua | dash | timeout=480            # every dashboard design on a spawned car (19 cars)
+zedqa_dashpx.lua | dpx | timeout=720             # the pixel-art v6 dashboards (24 cars)
+
+# ---- last: the long one
+zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)
+
+# ---- left out: in-game but not self-cleaning, or not safe unattended
+# zedqa_animals.lua                 setup builder: a hen house, hens, a dead cow that stay (more each run)
+# zedqa_padlock.lua                 setup builder: crates and a locked locker that stay, padlocks given
+# zedqa_trailer.lua                 setup builder: a livestock trailer with animals that stay
+# zedqa_stations.lua                builds a kiln, a pottery wheel and a drying rack that stay
+# zedqa_mech.lua                    spawns a damaged sedan and gives tools that stay (a new car each launch)
+# zedqa_mech2.lua                   needs zedqa_mech's sedan; a real install that stays
+# zedqa_seats_build.lua             keeps its spawned cars for a real-input pass ("vehicles kept")
+# zedqa_belt.lua                    no DONE line; leaves the belt, holster and weapons on
+# zedqa_watch.lua                   v5: takes the worn watches away and leaves a Digital Black one on
+# zedqa_car_radio_vanilla.lua       leaves a CD in the pickup's radio (upsets zedqa_car_radio_cd); vanilla's window is gone now
+# zedqa_seat_outlines.lua           asset capture for tools/seats/bake_car_outlines.py, made in a 1080p window
+# zedqa_container_controls_mouse.lua  real-mouse companion: setup waits, a second run cleans up
+# zedqa_container_ribbon.lua        leaves a campfire and ends without DONE; a second run cleans up (real mouse wheel)
+# zedqa_container_v2.lua            one step per run for real mouse hovers; "end" run cleans up
+# zedqa_car_radio_live.lua          real mouse and keys through gin.ps1; runs until told "stop"
+# zedqa_controls.lua                v5: needs the character already in a car
+# zedqa_gamepad2.lua                v5: enters any SportsCar in the cell (a far car drops the game to the main menu)
+# zedqa_gamepad3.lua                v5: the same far-car hazard
+# zedqa_tour.lua                    v5: enters cars anywhere in the cell (far-car hazard)
+# zedqa_hot.lua, zedqa_hot2.lua     hot-reload helpers (read Zomboid/Lua/hot_*.lua), not tests
+#
+# ---- left out: main menu (need a -MainMenu launch)
+# zedqa_button_case_menu.lua, zedqa_header_fit.lua, zedqa_mod_conflicts.lua, zedqa_power_on.lua,
+# zedqa_settings.lua, zedqa_trash_quit.lua (also quits the game)
+#
+# ---- never unattended (director; zedqa_run.ps1 refuses these names)
+# zedqa_new_qa_save.lua (makes a save), zedqa_mod_workshop.lua, zedqa_mods_open.lua,
+# zedqa_mods_profiles.lua, zedqa_workshop_upload.lua (Workshop: never upload without sign-off),
+# zedqa_overnight_game.lua, zedqa_overnight_verify.lua, zedqa_menu_audit.lua, zedqa_menu_case.lua,
+# zedqa_menu_nav.lua, zedqa_desktop.lua, zedqa_desk_v3.lua, zedqa_menushot.lua, zedqa_titlevideo.lua,
+# zedqa_death_sleep.lua (kills the character), zedqa_modapi_probe.lua, zedqa_modapi_probe2.lua,
+# zedqa_modapi_probe3.lua, zedqa_body.lua, zedqa_avatar.lua, zedqa_avatar_capture.lua,
+# zedqa_figure_tabs.lua (design captures)

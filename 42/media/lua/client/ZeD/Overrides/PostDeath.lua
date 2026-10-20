@@ -17,15 +17,77 @@
 -- and Shut down only when every player on this screen is dead.
 -- Controller: A Restart, X Main menu, B Shut down (vanilla's own mapping);
 -- asking, A Shut down, B Cancel. Return presses the default.
+-- While ZeD's safe mode is on, the screen is vanilla's again: its three
+-- buttons (built the first time they are needed), its size and place, its
+-- scrolling lines and its controller mapping. It turns back into the alert
+-- when safe mode goes off.
 -- ============================================================================
 
 require "ISUI/ISPostDeathUI"
+require "ZeD/SafeMode"
 
 if not ISPostDeathUI then return end
 
 ZeD = ZeD or {}
 ZeD.Death = ZeD.Death or { records = {} }
 local D = ZeD.Death
+
+-- vanilla's methods, kept once (a Lua reload of this file must not keep ZeD's as "vanilla")
+ISPostDeathUI._zedOrig = ISPostDeathUI._zedOrig or {
+    createChildren           = ISPostDeathUI.createChildren,
+    prerender                = ISPostDeathUI.prerender,
+    render                   = ISPostDeathUI.render,
+    onMouseDown              = ISPostDeathUI.onMouseDown,
+    onMouseUp                = ISPostDeathUI.onMouseUp,
+    onMouseUpOutside         = ISPostDeathUI.onMouseUpOutside,   -- ISPanelJoypad's (inherited)
+    onMouseMove              = ISPostDeathUI.onMouseMove,
+    onMouseWheel             = ISPostDeathUI.onMouseWheel,
+    onGainJoypadFocus        = ISPostDeathUI.onGainJoypadFocus,
+    onJoypadBeforeDeactivate = ISPostDeathUI.onJoypadBeforeDeactivate,
+    onJoypadReactivate       = ISPostDeathUI.onJoypadReactivate,
+    onJoypadDown             = ISPostDeathUI.onJoypadDown,       -- ISPanelJoypad's (inherited)
+    onJoypadDirUp            = ISPostDeathUI.onJoypadDirUp,      -- ISPanelJoypad's (inherited)
+    onJoypadDirDown          = ISPostDeathUI.onJoypadDirDown,    -- ISPanelJoypad's (inherited)
+}
+local O = ISPostDeathUI._zedOrig
+
+-- The screen handed to vanilla: its buttons built (ZeD's alert builds none) or
+-- shown again, its size and place vanilla's, the controller on its buttons.
+local function toVanilla(self)
+    self._asking, self._down, self._hits, self._listRect = false, nil, {}, nil
+    if not self.buttonRespawn then
+        O.createChildren(self)   -- (builds, sizes and places them)
+    else
+        local w, h = self.buttonRespawn:getWidth(), self.buttonQuit:getBottom()
+        self:setWidth(w); self:setHeight(h)
+        self:setX(self.screenX + (self.screenWidth - w) / 2)
+        self:setY(self.screenY + (self.screenHeight - 40 - h))
+    end
+    self._zedVanilla = true
+    if self.joyfocus and O.onGainJoypadFocus then O.onGainJoypadFocus(self, self.joyfocus) end
+end
+
+-- ...and taken back: vanilla's buttons hidden and off the controller
+local function toZeD(self)
+    self._zedVanilla = nil
+    if self.buttonQuit and O.onJoypadBeforeDeactivate then pcall(O.onJoypadBeforeDeactivate, self, self.joyfocus) end
+    if self.buttonRespawn then self.buttonRespawn:setVisible(false) end
+    if self.buttonExit then self.buttonExit:setVisible(false) end
+    if self.buttonQuit then self.buttonQuit:setVisible(false) end
+end
+
+-- true while safe mode holds: this screen is vanilla's (switched over the first time it is asked)
+local function vanilla(self)
+    if ZeD.Safe.on() then
+        if not self._zedVanilla then
+            local ok, err = pcall(toVanilla, self)
+            if not ok then self._zedVanilla = true; print("[ZeD] death screen: could not hand back to vanilla: " .. tostring(err)) end
+        end
+        return true
+    end
+    if self._zedVanilla then toZeD(self) end
+    return false
+end
 
 local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
 local BLACK, WHITE, GREY = { r = 0, g = 0, b = 0 }, { r = 1, g = 1, b = 1 }, { r = 0.6, g = 0.6, b = 0.6 }
@@ -226,10 +288,13 @@ function ISPostDeathUI:zedShutDown() self._asking = false; self:onConfirmQuitToD
 -- ---------------------------------------------------------------------------
 -- vanilla's panel, drawn by ZeD
 -- ---------------------------------------------------------------------------
--- (no vanilla buttons: the alert draws its own)
-function ISPostDeathUI:createChildren() end
+-- (no vanilla buttons: the alert draws its own; in safe mode, vanilla's)
+function ISPostDeathUI:createChildren()
+    if ZeD.Safe.on() then self._zedVanilla = true; return O.createChildren(self) end
+end
 
 function ISPostDeathUI:prerender()
+    if vanilla(self) then return O.prerender(self) end
     ISPostDeathUI.instance[self.playerIndex] = self
     self.screenX, self.screenY = getPlayerScreenLeft(self.playerIndex), getPlayerScreenTop(self.playerIndex)
     self.screenWidth, self.screenHeight = getPlayerScreenWidth(self.playerIndex), getPlayerScreenHeight(self.playerIndex)
@@ -345,6 +410,7 @@ function ISPostDeathUI:prerender()
 end
 
 function ISPostDeathUI:render()
+    if vanilla(self) then return O.render(self) end
     -- (everything is drawn in prerender; vanilla's scrolling lines are not drawn)
 end
 
@@ -357,6 +423,7 @@ local function hitAt(self, x, y)
 end
 
 function ISPostDeathUI:onMouseDown(x, y)
+    if vanilla(self) then return O.onMouseDown(self, x, y) end
     if not self.waitOver then return false end
     local h = hitAt(self, x, y)
     self._down = h and h.fn and h.id or nil
@@ -364,6 +431,7 @@ function ISPostDeathUI:onMouseDown(x, y)
 end
 
 function ISPostDeathUI:onMouseUp(x, y)
+    if vanilla(self) then return O.onMouseUp(self, x, y) end
     if not self.waitOver then return false end
     local down = self._down
     self._down = nil
@@ -375,10 +443,17 @@ function ISPostDeathUI:onMouseUp(x, y)
     return true
 end
 
-function ISPostDeathUI:onMouseUpOutside(x, y) self._down = nil end
-function ISPostDeathUI:onMouseMove(dx, dy) return self.waitOver and true or false end
+function ISPostDeathUI:onMouseUpOutside(x, y)
+    if vanilla(self) then if O.onMouseUpOutside then return O.onMouseUpOutside(self, x, y) end; return end
+    self._down = nil
+end
+function ISPostDeathUI:onMouseMove(dx, dy)
+    if vanilla(self) then return O.onMouseMove(self, dx, dy) end
+    return self.waitOver and true or false
+end
 
 function ISPostDeathUI:onMouseWheel(del)
+    if vanilla(self) then return O.onMouseWheel(self, del) end
     local r = self._listRect
     if r and inRect(r, self:getMouseX(), self:getMouseY()) then
         self._listScroll = math.max(0, math.min(r.max, (self._listScroll or 0) + del * ZeD.T.px(18)))
@@ -387,10 +462,18 @@ function ISPostDeathUI:onMouseWheel(del)
 end
 
 -- the controller: vanilla's own mapping (A respawn, X exit, B quit); asking, A Shut down and B Cancel
-function ISPostDeathUI:onGainJoypadFocus(joypadData) self.joyfocus = joypadData end
-function ISPostDeathUI:onJoypadBeforeDeactivate(joypadData) end
-function ISPostDeathUI:onJoypadReactivate(joypadData) end
+function ISPostDeathUI:onGainJoypadFocus(joypadData)
+    self.joyfocus = joypadData
+    if vanilla(self) then return O.onGainJoypadFocus(self, joypadData) end
+end
+function ISPostDeathUI:onJoypadBeforeDeactivate(joypadData)
+    if vanilla(self) then return O.onJoypadBeforeDeactivate(self, joypadData) end
+end
+function ISPostDeathUI:onJoypadReactivate(joypadData)
+    if vanilla(self) then return O.onJoypadReactivate(self, joypadData) end
+end
 function ISPostDeathUI:onJoypadDown(button, joypadData)
+    if vanilla(self) then if O.onJoypadDown then return O.onJoypadDown(self, button, joypadData) end; return end
     if not self.waitOver then return end
     if self._asking then
         if button == Joypad.AButton then self:zedShutDown() elseif button == Joypad.BButton then self:zedCancel() end
@@ -400,11 +483,19 @@ function ISPostDeathUI:onJoypadDown(button, joypadData)
     elseif button == Joypad.XButton then self:zedMenu()
     elseif button == Joypad.BButton then self:zedAsk() end
 end
-function ISPostDeathUI:onJoypadDirUp() if self._listRect then self._listScroll = math.max(0, (self._listScroll or 0) - ZeD.T.px(18)) end end
-function ISPostDeathUI:onJoypadDirDown() if self._listRect then self._listScroll = math.min(self._listRect.max, (self._listScroll or 0) + ZeD.T.px(18)) end end
+function ISPostDeathUI:onJoypadDirUp(joypadData)
+    if vanilla(self) then if O.onJoypadDirUp then return O.onJoypadDirUp(self, joypadData) end; return end
+    if self._listRect then self._listScroll = math.max(0, (self._listScroll or 0) - ZeD.T.px(18)) end
+end
+function ISPostDeathUI:onJoypadDirDown(joypadData)
+    if vanilla(self) then if O.onJoypadDirDown then return O.onJoypadDirDown(self, joypadData) end; return end
+    if self._listRect then self._listScroll = math.min(self._listRect.max, (self._listScroll or 0) + ZeD.T.px(18)) end
+end
 
 -- Return presses the default (Restart; asking, Shut down); Escape answers no
+-- (vanilla's screen has no keys: none in safe mode)
 Events.OnKeyPressed.Add(function(key)
+    if ZeD.Safe.on() then return end
     for _, ui in pairs(ISPostDeathUI.instance or {}) do
         if ui and ui.waitOver and ui:isReallyVisible() then
             if key == Keyboard.KEY_RETURN then

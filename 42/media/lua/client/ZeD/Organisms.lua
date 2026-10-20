@@ -19,6 +19,7 @@ require "ISUI/ISPanel"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
+require "ZeD/SafeMode"
 
 ZeD = ZeD or {}
 
@@ -163,7 +164,29 @@ function ZeD_Window:footerHeight()
     return 0
 end
 
+-- The frame draws under pcall (SafeMode.lua): a failure counts towards safe
+-- mode's watchdog and is logged once, rather than throwing every frame
 function ZeD_Window:prerender()
+    ZeD.Safe.guard(self, ZeD_Window._drawFrame)
+end
+
+function ZeD_Window:render()
+    if not ZeD.Safe.guard(self, ZeD_Window._drawFooter) then self:_restoreAccent() end
+end
+
+-- Stencils counted per window, as on ZeD_Panel (ZeD.Safe.guard clears the ones a failed draw left)
+function ZeD_Window:setStencilRect(x, y, w, h)
+    self._zedStencilN = (self._zedStencilN or 0) + 1
+    return ISPanel.setStencilRect(self, x, y, w, h)
+end
+
+function ZeD_Window:clearStencilRect()
+    local n = self._zedStencilN
+    if n and n > 0 then self._zedStencilN = n - 1 end
+    return ISPanel.clearStencilRect(self)
+end
+
+function ZeD_Window:_drawFrame()
     local T = ZeD.T
 
     -- Per-window accent override: swap ZeD.T accent + tinted surface fields for this render cycle
@@ -274,7 +297,7 @@ local PROMPT_LABELS = {
     ["map:popout"]      = { a = "Unfold" },
     ["map:tool"]        = { a = "Tool" },
     ["map:gridtool"]    = { a = "Tool",   x = "Pin" },
-    ["map:color"]       = { a = "Colour" },
+    ["map:color"]       = { a = "Color" },
     ["craft:row"]       = { a = "Recipe" },
     ["jrecipe:row"]     = { a = "Recipe" },
     ["build:row"]       = { a = "Recipe" },
@@ -309,7 +332,7 @@ local function _promptsFor(el)
     return out
 end
 
-function ZeD_Window:render()
+function ZeD_Window:_drawFooter()
     if self.isCollapsed or self.windowShaded then return end
 
     local T = ZeD.T
@@ -499,6 +522,12 @@ function ZeD_Window:render()
     end
 
     -- Restore global accent after this window's render cycle
+    self:_restoreAccent()
+end
+
+-- The global accent back after this window's render cycle (also when the draw failed)
+function ZeD_Window:_restoreAccent()
+    local T = ZeD.T
     if self._savedAccent then
         local s = self._savedAccent
         T.accent       = s.accent

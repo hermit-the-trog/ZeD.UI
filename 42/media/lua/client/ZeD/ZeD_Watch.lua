@@ -49,6 +49,7 @@
 -- ============================================================================
 
 require "ZeD/ZeD_Panel"
+require "ZeD/SafeMode"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_Plate"
 require "ZeD/PhysPx"
@@ -349,12 +350,16 @@ function ZeD_Watch:_canvas(k)
 end
 
 function ZeD_Watch:prerender()
+    -- safe mode (SafeMode.lua): nothing parked, and this watch hides (a watch made
+    -- after safe mode began hides here; the "watch" hook below shows it again)
+    if ZeD.Safe.on() then self:setVisible(false); return end
     local player = getSpecificPlayer(self.playerNum)
     if not player or (ISUIHandler and ISUIHandler.allUIVisible == false) then return end
     -- Park the Java clock and speed controls every frame. setVisible(false) is NOT enough in
     -- B42 (UIManager renders both regardless of the flag), so they also go off-screen. Java
     -- re-aligns their X every frame but leaves Y alone, so Y is the parking axis; the clock's
-    -- original Y is remembered as the anchor for this watch.
+    -- original Y is remembered as the anchor for this watch, and both are remembered for
+    -- safe mode to put back.
     local clock = UIManager.getClock()
     if clock then
         local cy = clock:getY()
@@ -363,7 +368,8 @@ function ZeD_Watch:prerender()
     end
     local sc = UIManager.getSpeedControls()
     if sc then
-        if sc:getY() >= 0 then pcall(sc.setY, sc, -4000) end
+        local sy = sc:getY()
+        if sy >= 0 then W._speedY = sy; pcall(sc.setY, sc, -4000) end
         if sc:isVisible() then pcall(sc.setVisible, sc, false) end
     end
 
@@ -528,5 +534,30 @@ function W.install()
     return inst
 end
 function W.getInstance() return W._instance end
+
+-- Safe mode (SafeMode.lua): the Java clock and speed controls go back where they
+-- were and show; this watch hides. Taking over again shows it, and its next
+-- prerender parks them again.
+ZeD.Safe.register("watch", {
+    leave = function()
+        local inst = W._instance
+        if inst then inst:setVisible(false) end
+        if not getSpecificPlayer(0) then return end   -- the main menu: nothing was parked
+        local clock = UIManager.getClock and UIManager.getClock()
+        if clock then
+            if W._clockY then clock:setY(W._clockY) end
+            clock:setVisible(true)
+        end
+        local sc = UIManager.getSpeedControls and UIManager.getSpeedControls()
+        if sc then
+            if W._speedY then sc:setY(W._speedY) end
+            sc:setVisible(true)
+        end
+    end,
+    enter = function()
+        local inst = W._instance
+        if inst then inst:setVisible(true) end
+    end,
+})
 
 Events.OnGameStart.Add(function() W._instance = nil; W.install() end)

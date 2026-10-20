@@ -12,9 +12,11 @@
 -- a watch the character set). The case is a plate (media/textures/ZeD/props/
 -- clock_radio.png, 330 x 84 plate pixels; Design's plate pipeline draws the
 -- final one); the lit segments are drawn live on it at whole multiples.
+-- While ZeD's safe mode is on, vanilla's clock picture draws instead.
 -- ============================================================================
 
 require "ISUI/ISSleepingUI"
+require "ZeD/SafeMode"
 
 if not ISSleepingUI then return end
 
@@ -101,6 +103,7 @@ local _render = ISSleepingUI._zedOrigRender or ISSleepingUI.render
 ISSleepingUI._zedOrigRender = _render
 
 function ISSleepingUI:render()
+    if ZeD.Safe.on() then return _render(self) end   -- safe mode: vanilla's clock
     ISPanel.render(self)
     local pn = self.playerIndex
     local w, h = getPlayerScreenWidth(pn), getPlayerScreenHeight(pn)

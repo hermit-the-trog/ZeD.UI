@@ -5,15 +5,21 @@
 -- ISWorldMap.ToggleWorldMap / ShowWorldMap / HideWorldMap. Every one of
 -- those now opens ZeD's unfolded map (World window → Maps tab → pop-out)
 -- instead of the vanilla full-screen map. Vanilla is only reached when ZeD
--- cannot serve the request (no player, world not loaded, pop-out failed).
--- See HOOK_MAP.md.
+-- cannot serve the request (no player, world not loaded, pop-out failed),
+-- and always while ZeD's safe mode is on. See HOOK_MAP.md.
 -- ============================================================================
+
+require "ZeD/SafeMode"
 
 if not ISWorldMap then return end
 
-local _origShow   = ISWorldMap.ShowWorldMap
-local _origHide   = ISWorldMap.HideWorldMap
-local _origToggle = ISWorldMap.ToggleWorldMap
+-- the originals, kept once (a Lua reload of this file must not wrap the wrappers)
+ISWorldMap._zedOrigShow   = ISWorldMap._zedOrigShow   or ISWorldMap.ShowWorldMap
+ISWorldMap._zedOrigHide   = ISWorldMap._zedOrigHide   or ISWorldMap.HideWorldMap
+ISWorldMap._zedOrigToggle = ISWorldMap._zedOrigToggle or ISWorldMap.ToggleWorldMap
+local _origShow   = ISWorldMap._zedOrigShow
+local _origHide   = ISWorldMap._zedOrigHide
+local _origToggle = ISWorldMap._zedOrigToggle
 
 -- Returns true when ZeD handled the request.
 local function _zedOpenUnfolded(playerNum)
@@ -77,11 +83,13 @@ local function _centerWhenReady(playerNum, centerX, centerY, zoom)
 end
 
 function ISWorldMap.ShowWorldMap(playerNum, centerX, centerY, zoom)
+    if ZeD.Safe.on() then return _origShow(playerNum, centerX, centerY, zoom) end   -- safe mode: vanilla's map
     if _zedOpenUnfolded(playerNum) then _centerWhenReady(playerNum, centerX, centerY, zoom); return end
     return _origShow(playerNum, centerX, centerY, zoom)
 end
 
 function ISWorldMap.HideWorldMap(playerNum)
+    if ZeD.Safe.on() then return _origHide(playerNum) end
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     if win and win._mapPopout and ZeD.MapsTab and ZeD.MapsTab.closePopout then
         ZeD.MapsTab.closePopout(win)
@@ -91,6 +99,7 @@ function ISWorldMap.HideWorldMap(playerNum)
 end
 
 function ISWorldMap.ToggleWorldMap(playerNum)
+    if ZeD.Safe.on() then return _origToggle(playerNum) end
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     if win and win._mapPopout then
         ZeD.MapsTab.closePopout(win)

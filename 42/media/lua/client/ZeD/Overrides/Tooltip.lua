@@ -7,6 +7,10 @@
 -- ============================================================================
 
 require "ZeD/Tokens"
+require "ZeD/SafeMode"
+
+-- In safe mode (SafeMode.lua) every method below calls vanilla's own, kept
+-- before the first override, so tooltips look and sit as they do without ZeD.
 
 -- ============================================================================
 -- Apply overrides AFTER all vanilla files are loaded
@@ -14,16 +18,27 @@ require "ZeD/Tokens"
 local function applyTooltipOverrides()
     if not ISToolTip or not ISToolTipInv then return end
 
-    -- Cache vanilla methods for fallback
-    local _vanilla_prerender     = ISToolTip.prerender
-    local _vanilla_render        = ISToolTip.render
-    local _vanilla_new           = ISToolTip.new
-    local _vanilla_inv_prerender = ISToolTipInv.prerender
-    local _vanilla_inv_render    = ISToolTipInv.render
-    local _vanilla_inv_new       = ISToolTipInv.new
-    local _vanilla_doLayout      = ISToolTip.doLayout
-    local _vanilla_getFont       = ISToolTip.GetFont
-    local _vanilla_renderContents = ISToolTip.renderContents
+    -- Cache vanilla methods for fallback (once: a second run keeps the first
+    -- copies, so safe mode never lands on ZeD's own methods)
+    local V = ISToolTip._zedVanilla
+    if not V then
+        V = {
+            prerender = ISToolTip.prerender, render = ISToolTip.render, new = ISToolTip.new,
+            invPrerender = ISToolTipInv.prerender, invRender = ISToolTipInv.render, invNew = ISToolTipInv.new,
+            doLayout = ISToolTip.doLayout, getFont = ISToolTip.GetFont, renderContents = ISToolTip.renderContents,
+        }
+        ISToolTip._zedVanilla = V
+    end
+    local _vanilla_prerender     = V.prerender
+    local _vanilla_render        = V.render
+    local _vanilla_new           = V.new
+    local _vanilla_inv_prerender = V.invPrerender
+    local _vanilla_inv_render    = V.invRender
+    local _vanilla_inv_new       = V.invNew
+    local _vanilla_doLayout      = V.doLayout
+    local _vanilla_getFont       = V.getFont
+    local _vanilla_renderContents = V.renderContents
+    local Safe = ZeD.Safe
 
     -- ========================================================================
     -- Layout in design units (S124). Mirrors vanilla doLayout with the ZeD role
@@ -31,12 +46,14 @@ local function applyTooltipOverrides()
     -- the frame fits the zoomed text at any root scale.
     -- ========================================================================
     function ISToolTip.GetFont()
+        if Safe.on() then return _vanilla_getFont() end
         local T = ZeD.T
         if T and T.fontF2 then return T.fontF2 end
         return _vanilla_getFont()
     end
 
     function ISToolTip:doLayout()
+        if Safe.on() then return _vanilla_doLayout(self) end
         local T = ZeD.T
         if not T or not T.px then return _vanilla_doLayout(self) end
         local TMx = ZeD.TM
@@ -73,6 +90,7 @@ local function applyTooltipOverrides()
     end
 
     function ISToolTip:renderContents()
+        if Safe.on() then return _vanilla_renderContents(self) end
         local T = ZeD.T
         if not T or not T.px then return _vanilla_renderContents(self) end
         if self.description ~= "" then
@@ -94,7 +112,7 @@ local function applyTooltipOverrides()
     -- ========================================================================
     function ISToolTip:prerender()
         local T = ZeD.T
-        if not T or not T.surf1 then
+        if not T or not T.surf1 or Safe.on() then
             return _vanilla_prerender(self)
         end
 
@@ -118,7 +136,7 @@ local function applyTooltipOverrides()
     -- ========================================================================
     function ISToolTip:render()
         local T = ZeD.T
-        if not T or not T.base then
+        if not T or not T.base or Safe.on() then
             return _vanilla_render(self)
         end
 
@@ -190,7 +208,7 @@ local function applyTooltipOverrides()
     -- ========================================================================
     function ISToolTipInv:prerender()
         local T = ZeD.T
-        if not T or not T.surf1 then
+        if not T or not T.surf1 or Safe.on() then
             return _vanilla_inv_prerender(self)
         end
         if self.owner and not self.owner:isReallyVisible() then
@@ -205,7 +223,7 @@ local function applyTooltipOverrides()
     -- ========================================================================
     function ISToolTipInv:render()
         local T = ZeD.T
-        if not T or not T.base then
+        if not T or not T.base or Safe.on() then
             return _vanilla_inv_render(self)
         end
 
@@ -285,6 +303,7 @@ local function applyTooltipOverrides()
     -- ========================================================================
     function ISToolTip:new()
         local o = _vanilla_new(self)
+        if Safe.on() then return o end
         local T = ZeD.T
         if T and T.base and T.borderS then
             o.backgroundColor = { r = T.base.r, g = T.base.g, b = T.base.b, a = T.surf2.a }
@@ -302,6 +321,7 @@ local function applyTooltipOverrides()
     -- ========================================================================
     function ISToolTipInv:new(item)
         local o = _vanilla_inv_new(self, item)
+        if Safe.on() then return o end
         local T = ZeD.T
         if T and T.base and T.borderS then
             o.backgroundColor = { r = T.base.r, g = T.base.g, b = T.base.b, a = T.surf2.a }

@@ -7,17 +7,34 @@
 --   * ISLightbarUITimedAction:perform (the wheel's Lightbar slice) brings up the
 --     siren controller prop (ZeD_SirenController.lua) instead of ISLightbarUI.
 -- Both keep vanilla's flow around them (the paused check, the timed action).
--- If either ZeD surface fails to open, vanilla's window opens instead.
+-- If either ZeD surface fails to open, vanilla's window opens instead. While
+-- safe mode is on (SafeMode.lua) vanilla's windows open every time, and
+-- turning it on puts away a chooser or a controller already on screen.
 -- ============================================================================
 
+require "ZeD/SafeMode"
 require "ZeD/ZeD_SeatChooser"
 require "ZeD/ZeD_SirenController"
+
+-- safe mode turning on: the chooser and the controller go away (Escape no
+-- longer reaches them, the prompts' key hook passes it to vanilla)
+local function putAway()
+    local seats = ZeD.Seats and ZeD.Seats.windows or {}
+    for _, w in pairs(seats) do
+        if w and w:isReallyVisible() then pcall(w.close, w) end
+    end
+    local props = ZeD.Siren and ZeD.Siren.props or {}
+    for _, p in pairs(props) do
+        if p and p:isReallyVisible() then pcall(p.close, p) end
+    end
+end
 
 local function apply()
     if ISVehicleMenu and ISVehicleMenu.onShowSeatUI and not ISVehicleMenu._zedSeats then
         local vanilla = ISVehicleMenu.onShowSeatUI
         ISVehicleMenu._zedSeats = vanilla
         ISVehicleMenu.onShowSeatUI = function(playerObj, vehicle)
+            if ZeD.Safe.on() then return vanilla(playerObj, vehicle) end   -- safe mode: ISVehicleSeatUI
             local ok, err = pcall(ZeD.Seats.toggle, playerObj, vehicle)
             if not ok then
                 print("[ZeD] Seats: the seat chooser kept vanilla's: " .. tostring(err))
@@ -29,6 +46,7 @@ local function apply()
         local vanilla = ISLightbarUITimedAction.perform
         ISLightbarUITimedAction._zedSiren = vanilla
         function ISLightbarUITimedAction:perform()
+            if ZeD.Safe.on() then return vanilla(self) end   -- safe mode: ISLightbarUI
             local ok, err = pcall(ZeD.Siren.toggle, self.character)
             if not ok then
                 print("[ZeD] Seats: the lightbar kept vanilla's: " .. tostring(err))
@@ -51,3 +69,6 @@ end
 
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(apply) end
 apply()
+
+-- nothing of vanilla's is parked here; the wrappers above ask at call time
+ZeD.Safe.register("seats and lightbar", { leave = putAway, enter = function() end })
