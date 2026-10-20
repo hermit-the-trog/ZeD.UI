@@ -57,7 +57,7 @@ section { margin: 0 0 30px; }
 <section>
   <h2>Containers rolled up | the map alone</h2>
   <div class="frame" data-h="430"><div class="stage" id="f2"></div></div>
-  <p class="note">The containers roll up into the title bar as a tab and the window narrows to the map, keeping its right edge. Pressing the tab rolls them back down.</p>
+  <p class="note">The containers roll up under their title like a minimized window; the window keeps its full width and the map stays put. Pressing the tab rolls them back down.</p>
 </section>
 
 <section>
@@ -101,15 +101,24 @@ plate(f1, 550, `Inventory <span class="n">35</span> ${tri("up")}`);
 cut(f1, 1100, 2, 160, 22, 650, 2);                                 // (over the old name; the name moves right)
 plate(f1, 700, `Glen Finnegan`);
 
+// the World window with its containers rolled up: the chrome keeps the full
+// width it has with the Maps drawer open; only the containers' side rolls up
+// under its title, like a minimized window, and the map stays as it is
+function rolledWorld(stage) {
+  cut(stage, 965, 0, 925, 26);                                     // the whole title bar
+  cut(stage, 1100, 0, 70, 26, 1806, 0);                            // (clear the old "Maps" plate)
+  cut(stage, 1373, 26, 517, 395);                                  // the map and the tab rail, where they are
+  const edge = document.createElement("div");                      // the rolled side's bottom edge
+  Object.assign(edge.style, { position: "absolute", left: "965px", top: "26px", width: "408px", height: "1px", background: "#4a4f56" });
+  stage.appendChild(edge);
+  plate(stage, 998, `${tri("down")} Ground <span class="n">0</span>`, "chip");
+  plate(stage, 1388, `Maps ${tri("up")}`);
+}
+
 // 2) containers rolled up
 const f2 = document.getElementById("f2");
 cut(f2, ...CW);
-cut(f2, 1373, 26, 517, 395);                                       // the map and the tab rail, where they are
-cut(f2, 1100, 0, 517, 26, 1373, 0);                                // title stripes
-cut(f2, 965, 0, 35, 26, 1373, 0);                                  // the close box
-plate(f2, 1410, `${tri("down")} Ground <span class="n">0</span>`, "chip");
-plate(f2, 1520, `Maps ${tri("up")}`);
-cut(f2, 1373, 405, 517, 16);                                       // footer
+rolledWorld(f2);
 plate(f2, 550, `Inventory <span class="n">35</span> ${tri("up")}`);
 cut(f2, 1100, 2, 160, 22, 650, 2);
 plate(f2, 700, `Glen Finnegan`);
@@ -120,12 +129,7 @@ cut(f3, 516, 0, 442, 26);                                          // title bar 
 cut(f3, 1100, 2, 268, 22, 550, 2);
 plate(f3, 551, `${tri("down")} Inventory <span class="n">35</span>`, "chip");
 plate(f3, 680, `Glen Finnegan`);
-cut(f3, 1373, 26, 517, 395);
-cut(f3, 1100, 0, 517, 26, 1373, 0);
-cut(f3, 965, 0, 35, 26, 1373, 0);
-plate(f3, 1410, `${tri("down")} Ground <span class="n">0</span>`, "chip");
-plate(f3, 1520, `Maps ${tri("up")}`);
-cut(f3, 1373, 405, 517, 16);
+rolledWorld(f3);
 
 // the tab's states, 3x
 const host = document.getElementById("chips");
