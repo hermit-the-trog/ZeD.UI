@@ -88,6 +88,21 @@ end
 Events.OnGameStart.Add(function()
     if isDebugEnabled and isDebugEnabled() then B.install(false) end
 end)
+
+-- The QA save's map is all known (Oct 19 2026, director: "activate all map known
+-- on start so we can see what the maps look like"), so the Maps tab shows the
+-- whole of Kentucky in QA. Only Saves/Sandbox/ZeD-QA with -debug: a real game
+-- keeps its fog.
+Events.OnGameStart.Add(function()
+    if not (isDebugEnabled and isDebugEnabled()) then return end
+    local ok, save = pcall(function() return getWorld():getWorld() end)
+    if not (ok and save == "ZeD-QA") then return end
+    -- Kentucky (the paper map's picture is 19801 x 16086 squares; the meta grid's
+    -- bounds run far past the land)
+    local x1, y1, x2, y2 = 0, 0, 20000, 17000
+    local done = pcall(function() WorldMapVisited.getInstance():setKnownInSquares(x1, y1, x2, y2) end)
+    print("[ZeD.QA] ZeD-QA: the whole map known (" .. x1 .. "," .. y1 .. " to " .. x2 .. "," .. y2 .. ") " .. tostring(done))
+end)
 Events.OnMainMenuEnter.Add(function()
     if isDebugEnabled and isDebugEnabled() then B.install(true) end
 end)

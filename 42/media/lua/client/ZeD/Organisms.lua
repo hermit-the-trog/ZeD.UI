@@ -231,7 +231,7 @@ function ZeD_Window:prerender()
     ZeD.Molecules.drawWindowTitleBar(self, 0, 0, w, self.title, self.titleStats)
 
     -- Close box (drawn on top of title bar)
-    if self._closeBtnRect and not self._rolled then   -- (a rolled-up side: the close box is on its rod, WindowCurtain)
+    if self._closeBtnRect and not self._closeOnRod then   -- (a rolled-up side: the close box is on its rod, WindowCurtain)
         local cb = self:closeRect()
         ZeD.Atoms.drawCloseBox(self, cb.x, cb.y, cb.w, self._closeHover)
     end
@@ -650,7 +650,7 @@ function ZeD_Window:update()
     ISPanel.update(self)
 
     -- Close box hit-testing (absolute coords, same pattern as grow box)
-    if self._closeBtnRect and not self._rolled then
+    if self._closeBtnRect and not self._closeOnRod then
         local cb = self:closeRect()
         local mx = getMouseX() - self:getAbsoluteX()
         local my = getMouseY() - self:getAbsoluteY()

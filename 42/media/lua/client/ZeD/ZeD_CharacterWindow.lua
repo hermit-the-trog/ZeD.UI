@@ -11,6 +11,7 @@
 require "ISUI/ISPanel"
 require "ISUI/ISMouseDrag"
 require "ISUI/ISUI3DModel"
+require "ZeD/WindowCurtain"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
@@ -96,7 +97,7 @@ local function saveCharState(win)
     -- _baseInvW already holds design units; positions/heights are screen px and are
     -- divided here. Pre-S124 saves were written at scale 1.0, so they read back as-is.
     local baseW  = TAB_STRIP_W + (win._baseInvW or 372) + CONTAINER_STRIP_W   -- design units
-    local anchor = (win._anchorRightEdge or (win:getX() + T.px(baseW))) / sc   -- design units
+    local anchor = ((win._anchorRightEdge or (win:getX() + T.px(baseW))) + (win._rolled and win._rollW or 0)) / sc   -- design units (a rolled side: its unrolled right edge)
     md.ZeD_WinState.char = {
         x = anchor - baseW,
         y = win:getY() / sc,
@@ -674,6 +675,7 @@ _syncRingZonesToActiveTab = function(win, content)
     Focus.setZoneFocusable   (win, "charItemCard", false)
 
     _clearGpFocusState(win)
+    if win._rolled and win._curtain and win._curtain.onFrame then win._curtain.onFrame() end
 end
 
 -- Switch active tab from a gamepad-nav context. Mirrors the "different tab"
@@ -3883,8 +3885,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
 
-        -- invW is ALWAYS the residual
-        local invW = win:getWidth() - T.px(TAB_STRIP_W) - effectiveW - T.px(CONTAINER_STRIP_W)
+        -- invW is ALWAYS the residual. A rolled-up inventory side (WindowCurtain,
+        -- right of the drawer) has no inventory and no container strip.
+        ZeD.Curtain.sync(win)
+        local cStripW = win._rolled and 0 or T.px(CONTAINER_STRIP_W)
+        local invW = win._rolled and 0 or (win:getWidth() - T.px(TAB_STRIP_W) - effectiveW - cStripW)
         invW = math.max(invW, 0)
 
         -- Track baseInvW ONLY when user manually resized (not from our snaps).
@@ -3899,7 +3904,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
         -- Dynamic min/max
-        win.minimumWidth = T.px(TAB_STRIP_W) + effectiveW + (win._invDrawerOpen and T.px(200) or 0) + T.px(CONTAINER_STRIP_W)
+        win.minimumWidth = T.px(TAB_STRIP_W) + effectiveW + (win._invDrawerOpen and not win._rolled and T.px(200) or 0) + cStripW
         win.maximumWidth = maxW
 
         -- ── MC eviction: check columns fit at MIN_COL_W ──────────
@@ -3949,6 +3954,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
         -- Container strip stays right of inventory
         containerStrip:setX(T.px(TAB_STRIP_W) + effectiveW + invW)
+        containerStrip:setVisible(not win._rolled)
 
         -- Sync all child heights to current window body
         local bodyH = win:getBodyHeight()
@@ -5428,6 +5434,36 @@ function ZeD_CharacterWindow.toggle(playerNum)
             self:drawRect(win._dividerX, 0, T.px(1), self:getHeight(), 1, brd.r, brd.g, brd.b)
         end
     end
+
+    -- Curtain (WindowCurtain.lua): the inventory side (right of the drawer)
+    -- rolls up under its title while a tab drawer stays open
+    ZeD.Curtain.attach(win, {
+        side = "right",
+        sideW = function() return content:getWidth() + ZeD.T.px(CONTAINER_STRIP_W) end,
+        canRoll = function()
+            return win._drawerOpen and win._drawerMode == "tab" and win._activeTab ~= nil
+                and #(win._mcSelected or {}) == 0 and (win._rolled or content:isVisible())
+        end,
+        chip = function()
+            local inv = content._inventory
+            local e = win._containers and win._containers[win._activeContainer]
+            local name = (e and not e.isMain and e.name) or "Inventory"
+            return name, inv and inv:getItems():size() or 0
+        end,
+        dropInv = function() return content._inventory end,
+        onChange = function(rolled)
+            if not rolled and _syncRingZonesToActiveTab then _syncRingZonesToActiveTab(win, content) end
+        end,
+        onFrame = function()
+            local Focus = ZeD.Input and ZeD.Input.Focus
+            if not (Focus and win._focusRing) then return end
+            Focus.setRingZoneElements(win, "charMainInv", {})
+            Focus.setZoneFocusable(win, "charMainInv", false)
+            local el = ZeD.Curtain.padElement(win, containerStrip:getX(), containerStrip:getY())
+            Focus.setRingZoneElements(win, "charContainerStrip", el and { el } or {}, 1)
+            Focus.setZoneFocusable(win, "charContainerStrip", el ~= nil)
+        end,
+    })
 
     -- ----------------------------------------------------------------
     -- MOUSE HANDLERS (identical to TestInventory — proven in Layers 3-7)

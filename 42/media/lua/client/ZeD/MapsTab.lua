@@ -483,17 +483,27 @@ function ZeD_WorldMap:renderStashMaps()
 end
 
 -- Render flyer location markers from PrintMediaDefinitions
+-- (only the pieces this character has read, every location of each, as
+-- vanilla's ISWorldMap:renderPrintMedia; Oct 19 2026: it drew every flyer in
+-- the game, read or not, which gave away every advertised place)
 function ZeD_WorldMap:renderFlyerMarkers()
     if not PrintMediaDefinitions or not PrintMediaDefinitions.MiscDetails then return end
+    local chr = self.playerObj
+    local read = chr and chr.getReadPrintMedia and chr:getReadPrintMedia()
+    if not read or read:isEmpty() then return end
 
     local T = ZeD.T
     local dotSz = T.px(8)
     local ac = T.accent
     local pw, ph = self:getWidth(), self:getHeight()
 
-    for _, detail in pairs(PrintMediaDefinitions.MiscDetails) do
-        if detail.location1 then
-            for _, loc in ipairs(detail.location1) do
+    local ids = ArrayList.new(read)
+    for i = 0, ids:size() - 1 do
+        local detail = PrintMediaDefinitions.MiscDetails[ids:get(i)]
+        for j = 1, 5 do
+            local locs = detail and detail["location" .. j]
+            if not locs then break end
+            for _, loc in ipairs(locs) do
                 local cx = (loc.x1 + loc.x2) / 2
                 local cy = (loc.y1 + loc.y2) / 2
                 local sx = self.mapAPI:worldToUIX(cx, cy) - dotSz / 2
