@@ -884,7 +884,11 @@ function ZeD_BeltHUD:prerender()
     if not self:wanted() then self._drawn = false; return end
     local slots = B.slots(self.playerNum)
     local w, h = self:_layout(slots)
-    local sx = getPlayerScreenLeft(self.playerNum) + math.floor((getPlayerScreenWidth(self.playerNum) - w) / 2)
+    -- the buckle on the screen's centre (director, Oct 19 2026: the belt may sit off centre;
+    -- the buckle is where the eye goes)
+    local b = self._buckle
+    local bx = b and (b.x + math.floor(b.w / 2)) or math.floor(w / 2)
+    local sx = getPlayerScreenLeft(self.playerNum) + math.floor(getPlayerScreenWidth(self.playerNum) / 2) - bx
     local sy = getPlayerScreenTop(self.playerNum) + getPlayerScreenHeight(self.playerNum) - h - T.px(BOTTOM)
     if self:getX() ~= sx then self:setX(sx) end
     if self:getY() ~= sy then self:setY(sy) end
