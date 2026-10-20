@@ -18,12 +18,17 @@
 -- The tab: press it to roll the side down; drop items on it to put them in
 -- the side's container; with a controller it is a stop on the D-pad (A).
 --
+-- The rolled side is on the window's left (the World window: containers left of
+-- the drawer) or, with spec.side = "right", on its right (the Character
+-- window: the inventory right of the drawer). A left side's rod carries the
+-- window's close box; a right side's window keeps its own.
+--
 -- A window opts in with ZeD.Curtain.attach(win, spec):
 --   spec.sideW()       screen px of the side that rolls (strip + inventory)
 --   spec.canRoll()     true while rolling makes sense (a tab drawer is open)
 --   spec.chip()        name, count for the rolled tab
 --   spec.dropInv()     the inventory a drop on the tab goes to
---   spec.title()       the window's title while rolled (the open tab's name)
+--   spec.title()       the window's title while rolled (optional; else it keeps its own)
 --   spec.onChange(rolled)  after a roll / unroll (focus zones)
 --   spec.onFrame()     every frame while rolled (the tab's controller stop)
 -- and its layout reads win._rolled (no strip, no inventory) and calls
@@ -80,7 +85,7 @@ function ZeD_CurtainRod:chipRect()
     local label = tostring(name or "") .. "  " .. tostring(count or "")
     self._label = label
     local tbH = T.titleBarH
-    local x = T.sp.sm + T.closeBoxSz + T.sp.md - T.sp.titleBoxPad
+    local x = self.win._closeOnRod and (T.sp.sm + T.closeBoxSz + T.sp.md - T.sp.titleBoxPad) or T.sp.sm
     local w = T.px(TRI_W) + T.sp.sm + ZeD.TM:MeasureStringX(T.fontF3, label) + T.sp.titleBoxPad * 2
     local h = tbH - T.px(6)
     return { x = x, y = math.floor((tbH - h) / 2), w = w, h = h }
@@ -107,10 +112,13 @@ function ZeD_CurtainRod:prerender()
     ZeD.Molecules.drawWindowTitleBar(self, 0, 0, w, nil, nil)
     local bs = T.borderS
     self:drawRectBorder(0, 0, w, h, bs.a, bs.r, bs.g, bs.b)
-    -- the close box closes the window
-    local cb = T.closeBoxSz
-    self._closeRect = { x = T.sp.sm, y = math.floor((tbH - cb) / 2), w = cb, h = cb }
-    ZeD.Atoms.drawCloseBox(self, self._closeRect.x, self._closeRect.y, cb, self._overClose)
+    -- the close box closes the window (a left rod's: it is the window's left end)
+    self._closeRect = nil
+    if win._closeOnRod then
+        local cb = T.closeBoxSz
+        self._closeRect = { x = T.sp.sm, y = math.floor((tbH - cb) / 2), w = cb, h = cb }
+        ZeD.Atoms.drawCloseBox(self, self._closeRect.x, self._closeRect.y, cb, self._overClose)
+    end
     -- the tab: the title plate, bordered (pressable), with the roll-down triangle
     if h > tbH then return end
     local r = self:chipRect()
@@ -222,11 +230,14 @@ function C.roll(win)
     local sideW = math.floor(spec.sideW())
     if sideW <= 0 then return end
     local x, y, h = win:getX(), win:getY(), win:getHeight()
+    local right = spec.side == "right"
     win._rolled = true
     win._rollW = sideW
+    win._closeOnRod = not right
     -- width first: setX keeps a top-level panel on screen against its current width
     win:setWidth(win:getWidth() - sideW)
-    win:setX(x + sideW)
+    if right then x = x + win:getWidth()      -- the rod: where the side was, right of the window
+    else win:setX(x + sideW) end
     local rod = win._rod
     if not rod then
         rod = ZeD_CurtainRod:new(win, x, y, sideW, h)
@@ -257,9 +268,11 @@ function C.finishUnroll(win)
     if not win._rolled then return end
     local w = win._rollW or 0
     win._rolled = false
-    local x = win:getX() - w
+    local right = win._curtain and win._curtain.side == "right"
+    local x = right and win:getX() or (win:getX() - w)
     win:setWidth(win:getWidth() + w)
     win:setX(math.max(0, x))
+    win._closeOnRod = nil
     local rod = win._rod
     if rod then rod:setVisible(false); rod:removeFromUIManager() end
     if win._curtain and win._curtain.onChange then win._curtain.onChange(false) end
@@ -276,11 +289,13 @@ function C.sync(win)
         -- (the rod hides itself while the window is closed; it stays in the UI manager)
         if not rod:isVisible() and not win.windowShaded then rod:setVisible(true) end
         if win.windowShaded and rod:isVisible() then rod:setVisible(false) end
-        rod:setX(win:getX() - win._rollW)
+        rod:setX((spec.side == "right") and (win:getX() + win:getWidth()) or (win:getX() - win._rollW))
         rod:setY(win:getY())
     end
-    win.title = spec.title() or win.title
-    win.titleStats = {}
+    if spec.title then
+        win.title = spec.title() or win.title
+        win.titleStats = {}
+    end
     if spec.onFrame then spec.onFrame() end
 end
 
@@ -303,7 +318,7 @@ function C.padElement(win, px, py)
     local r = rod and rod._chip
     if not (win._rolled and r) then return nil end
     return {
-        x = -win._rollW + r.x - px, y = r.y - py, w = r.w, h = r.h,
+        x = ((win._curtain.side == "right") and win:getWidth() or -win._rollW) + r.x - px, y = r.y - py, w = r.w, h = r.h,
         id = "curtain:unroll",
         promptA = "Unroll",
         onFocus = function() end,
