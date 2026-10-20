@@ -102,6 +102,18 @@ function ZeD_Reader:setPrint(item)
     self.zoomIx, self.panX, self.panY, self.wscroll, self.storyIx = 1, 0, 0, 0, nil
 end
 
+-- a printed piece known only by its id (a pin on the flyer map, FlyerMap.lua)
+function ZeD_Reader:setPrintMedia(m)
+    self.mode = "print"
+    self.item = nil
+    self.media = m
+    self.page = P.page(m)
+    self.words = P.words(m)
+    self.places = P.places(m)
+    self.view = self.page and "paper" or "words"
+    self.zoomIx, self.panX, self.panY, self.wscroll, self.storyIx = 1, 0, 0, 0, nil
+end
+
 function ZeD_Reader:close()
     -- (a notebook's window closing ends the write action, as vanilla's Cancel does)
     if self.mode == "notebook" then self:endWriting(); return end
@@ -911,6 +923,15 @@ function R.openPrint(playerObj, item)
     if not (playerObj and P.media(item)) then return false end
     local win = window(playerObj)
     win:setPrint(item)
+    show(win)
+    return true
+end
+
+-- a piece by its id (the flyer map's pins)
+function R.openPrintId(playerObj, id)
+    if not (playerObj and id) then return false end
+    local win = window(playerObj)
+    win:setPrintMedia(P.ofId(id))
     show(win)
     return true
 end

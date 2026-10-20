@@ -45,7 +45,15 @@ function P.media(item)
     return md and md.printMedia or nil
 end
 function P.ofId(id)
-    return { id = id, title = "Print_Media_" .. id .. "_title", info = "Print_Media_" .. id .. "_info", text = "Print_Text_" .. id .. "_info" }
+    local m = { id = id, title = "Print_Media_" .. id .. "_title", info = "Print_Media_" .. id .. "_info", text = "Print_Text_" .. id .. "_info" }
+    -- the game's own keys from its registry (a piece's keys use its proper name,
+    -- "Print_Media_SunstarMotel_title" for sunstarmotel), as vanilla's world map
+    pcall(function()
+        local loc = ResourceLocation.of(id)
+        local v = Brochure.get(loc) or Flier.get(loc)
+        if v then m.title, m.info, m.text = v:getTranslationKey(), v:getTranslationInfoKey(), v:getTranslationTextKey() end
+    end)
+    return m
 end
 function P.title(m) return m and (getTextOrNull(m.title) or m.id) or "" end
 
