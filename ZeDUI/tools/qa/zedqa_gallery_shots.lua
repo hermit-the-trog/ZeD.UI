@@ -1,4 +1,4 @@
--- ZeDUI/tools/qa/zedqa_workshop_shots.lua  (Oct 20 2026)
+-- ZeDUI/tools/qa/zedqa_gallery_shots.lua  (Oct 20 2026)
 -- Steam Workshop screenshots: clean, good-looking scenes of ZeD-UI, staged in a
 -- town street, each one a full-resolution getCore():TakeFullScreenshot of
 -- ws_<nn>_<name>.png in Zomboid/Screenshots. Meant for the ZeD-QA save
