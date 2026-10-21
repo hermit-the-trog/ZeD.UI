@@ -317,9 +317,9 @@ local function getModifiers(win)
         { key = "bodyPenalty",       label = ZeD.tr("UI_ZeD_Forage_ModHealth")   },
         { key = "exhaustionPenalty", label = ZeD.tr("UI_ZeD_Forage_ModFatigue")  },
         { key = "clothingPenalty",   label = ZeD.tr("UI_ZeD_Forage_ModClothing") },
-        { key = "weatherPenalty",    label = ZeD.tr("UI_ZeD_Forage_ModWeather")  },
+        { key = "weatherPenalty",    label = ZeD.tr("IGUI_SearchMode_Tip_Weather_Title")  },
         { key = "movementPenalty",   label = ZeD.tr("UI_ZeD_Forage_ModMoving")   },
-        { key = "lightPenalty",      label = ZeD.tr("UI_ZeD_Forage_ModDarkness") },
+        { key = "lightPenalty",      label = ZeD.tr("IGUI_SearchMode_Tip_Darkness_Title") },
     }
     for _, pm in ipairs(penaltyMap) do
         local v = m[pm.key] or 1
@@ -1091,7 +1091,7 @@ local function drawFindsHeader(panel, x, y, w)
     local wtLabel = ZeD.tr("UI_ZeD_Forage_HeadWeight")
     local wtW = tm:MeasureStringX(T.fontF1, wtLabel)
     local wtX = x + w - T.px(FINDS_PAD_X) - wtW
-    local nameLabel = ZeD.Atoms.truncateText(ZeD.tr("UI_ZeD_Forage_HeadName"), T.fontF1, wtX - nameX - T.px(8))
+    local nameLabel = ZeD.Atoms.truncateText(ZeD.upper(ZeD.tr("IGUI_Name")), T.fontF1, wtX - nameX - T.px(8))
     panel:drawText(nameLabel, nameX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
     panel:drawText(wtLabel, wtX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 

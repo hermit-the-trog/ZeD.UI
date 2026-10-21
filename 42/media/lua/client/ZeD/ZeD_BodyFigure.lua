@@ -380,36 +380,36 @@ end
 -- These are ZeD's own anatomical names (a design choice), not vanilla's.
 -- ============================================================================
 ZeD.PartKeys = {
-    ["Head"]            = "UI_ZeD_Part_Head",
-    ["Neck"]            = "UI_ZeD_Part_Neck",
-    ["Upper Torso"]     = "UI_ZeD_Part_UpperTorso",
-    ["Lower Torso"]     = "UI_ZeD_Part_LowerTorso",
-    ["Back"]            = "UI_ZeD_Part_Back",
-    ["Groin"]           = "UI_ZeD_Part_Groin",
-    ["Left Upper Arm"]  = "UI_ZeD_Part_LeftUpperArm",
-    ["Right Upper Arm"] = "UI_ZeD_Part_RightUpperArm",
-    ["Left Forearm"]    = "UI_ZeD_Part_LeftForearm",
-    ["Right Forearm"]   = "UI_ZeD_Part_RightForearm",
-    ["Left Hand"]       = "UI_ZeD_Part_LeftHand",
-    ["Right Hand"]      = "UI_ZeD_Part_RightHand",
-    ["Left Upper Leg"]  = "UI_ZeD_Part_LeftUpperLeg",
-    ["Right Upper Leg"] = "UI_ZeD_Part_RightUpperLeg",
-    ["Left Lower Leg"]  = "UI_ZeD_Part_LeftLowerLeg",
-    ["Right Lower Leg"] = "UI_ZeD_Part_RightLowerLeg",
-    ["Left Thigh"]      = "UI_ZeD_Part_LeftThigh",
-    ["Right Thigh"]     = "UI_ZeD_Part_RightThigh",
-    ["Left Shin"]       = "UI_ZeD_Part_LeftShin",
-    ["Right Shin"]      = "UI_ZeD_Part_RightShin",
-    ["Left Foot"]       = "UI_ZeD_Part_LeftFoot",
-    ["Right Foot"]      = "UI_ZeD_Part_RightFoot",
+    ["Head"]            = "IGUI_health_Head",
+    ["Neck"]            = "IGUI_health_Neck",
+    ["Upper Torso"]     = "IGUI_health_Upper_Torso",
+    ["Lower Torso"]     = "IGUI_health_Lower_Torso",
+    ["Back"]            = "IGUI_health_Back",
+    ["Groin"]           = "IGUI_health_Groin",
+    ["Left Upper Arm"]  = "IGUI_health_Left_Upper_Arm",
+    ["Right Upper Arm"] = "IGUI_health_Right_Upper_Arm",
+    ["Left Forearm"]    = "IGUI_health_Left_Forearm",
+    ["Right Forearm"]   = "IGUI_health_Right_Forearm",
+    ["Left Hand"]       = "IGUI_health_Left_Hand",
+    ["Right Hand"]      = "IGUI_health_Right_Hand",
+    ["Left Upper Leg"]  = "BODYPART_LEFT_UPPER_LEG",
+    ["Right Upper Leg"] = "BODYPART_RIGHT_UPPER_LEG",
+    ["Left Lower Leg"]  = "BODYPART_LEFT_LOWER_LEG",
+    ["Right Lower Leg"] = "BODYPART_RIGHT_LOWER_LEG",
+    ["Left Thigh"]      = "IGUI_health_Left_Thigh",
+    ["Right Thigh"]     = "IGUI_health_Right_Thigh",
+    ["Left Shin"]       = "IGUI_health_Left_Shin",
+    ["Right Shin"]      = "IGUI_health_Right_Shin",
+    ["Left Foot"]       = "IGUI_health_Left_Foot",
+    ["Right Foot"]      = "IGUI_health_Right_Foot",
 }
 ZeD.PartAbbrevKeys = {
-    ["HEAD"]       = "UI_ZeD_PartAbbr_Head",
-    ["NECK"]       = "UI_ZeD_PartAbbr_Neck",
+    ["HEAD"]       = "IGUI_health_Head",
+    ["NECK"]       = "IGUI_health_Neck",
     ["U. TORSO"]   = "UI_ZeD_PartAbbr_UpperTorso",
     ["L. TORSO"]   = "UI_ZeD_PartAbbr_LowerTorso",
-    ["BACK"]       = "UI_ZeD_PartAbbr_Back",
-    ["GROIN"]      = "UI_ZeD_PartAbbr_Groin",
+    ["BACK"]       = "IGUI_health_Back",
+    ["GROIN"]      = "IGUI_health_Groin",
     ["L. UARM"]    = "UI_ZeD_PartAbbr_LeftUpperArm",
     ["R. UARM"]    = "UI_ZeD_PartAbbr_RightUpperArm",
     ["L. FOREARM"] = "UI_ZeD_PartAbbr_LeftForearm",
@@ -434,7 +434,7 @@ end
 -- the same for the short pill names ("L. UARM")
 function ZeD.partAbbrev(name)
     local k = name and ZeD.PartAbbrevKeys[name]
-    if k then return ZeD.tr(k) end
+    if k then return ZeD.upper(ZeD.tr(k)) end
     return name
 end
 

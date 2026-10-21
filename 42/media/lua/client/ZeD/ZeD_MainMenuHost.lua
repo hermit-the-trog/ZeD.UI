@@ -218,7 +218,7 @@ function ZeD_MMHost:prerender()
         cy = cy + rowH
         button("edit", ZeD.upper(UI.plain(getText("UI_coopscreen_edit_settings"))), cy, function() self:editSettings() end)
         cy = cy + rowH
-        label(ZeD.tr("UI_ZeD_Host_LabelMemory"), cy)
+        label(ZeD.upper(ZeD.tr("IGUI_GameStats_Memory")), cy)
         box("memory", cy, c.memoryComboBox)
         cy = cy + rowH + T.px(10)
         -- the world's upkeep

@@ -634,7 +634,7 @@ function def.body(card, x, y, w, t, player)
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_NeedsRemove")) + T.px(4)
         y = y + needRow(card, x, y, w, d.haveKey, ZeD.tr("UI_ZeD_Lock_NeedKey"))
     elseif d.mode == "open" and d.free then
-        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_Needs")) + T.px(4)
+        y = y + UI.section(card, x, y, w, ZeD.upper(ZeD.tr("Tooltip_craft_Needs"))) + T.px(4)
         y = y + needRow(card, x, y, w, d.combo ~= nil, ZeD.tr("UI_ZeD_Lock_NeedUseCombo"))
         y = y + needRow(card, x, y, w, d.keyPad ~= nil, ZeD.tr("UI_ZeD_Lock_NeedUsePad"))
     end

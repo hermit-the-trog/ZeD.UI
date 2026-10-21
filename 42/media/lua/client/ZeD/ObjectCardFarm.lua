@@ -20,15 +20,15 @@ local call = OC.call
 local DOT = OC.DOT
 
 -- (translation keys, shown through ZeD.tr where they are drawn)
-local PHASES = { "UI_ZeD_Farm_PhaseSeedling", "UI_ZeD_Farm_PhaseYoung", "UI_ZeD_Farm_PhaseAlmostReady",
-                 "UI_ZeD_Farm_PhaseReady", "UI_ZeD_Farm_PhaseBlooming", "UI_ZeD_Farm_PhaseRotten" }
+local PHASES = { "Farming_Seedling", "Farming_Young", "UI_ZeD_Farm_PhaseAlmostReady",
+                 "UI_ZeD_Farm_PhaseReady", "Farming_In_bloom", "Farming_Rotten" }
 
 -- label is a translation key; sprayName is the English fallback if the game has no name for the spray
 local PESTS = {
-    { key = "mildewLvl", label = "UI_ZeD_Farm_PestMildew",  cure = "Mildew", spray = "GardeningSprayMilk",       sprayName = "Mildew Spray" },
-    { key = "fliesLvl",  label = "UI_ZeD_Farm_PestFlies",   cure = "Flies",  spray = "GardeningSprayCigarettes", sprayName = "Pest Flies Spray" },
-    { key = "aphidLvl",  label = "UI_ZeD_Farm_PestAphids",  cure = "Aphids", spray = "GardeningSprayAphids",     sprayName = "Aphids Spray" },
-    { key = "slugsLvl",  label = "UI_ZeD_Farm_PestSlugs",   cure = "Slugs",  spray = "SlugRepellent",            sprayName = "Slug Repellent" },
+    { key = "mildewLvl", label = "Farming_Mildew",  cure = "Mildew", spray = "GardeningSprayMilk",       sprayName = "Mildew Spray" },
+    { key = "fliesLvl",  label = "Farming_Pest_Flies",   cure = "Flies",  spray = "GardeningSprayCigarettes", sprayName = "Pest Flies Spray" },
+    { key = "aphidLvl",  label = "Farming_Aphids",  cure = "Aphids", spray = "GardeningSprayAphids",     sprayName = "Aphids Spray" },
+    { key = "slugsLvl",  label = "Farming_Slugs",   cure = "Slugs",  spray = "SlugRepellent",            sprayName = "Slug Repellent" },
 }
 
 local function farmSys() return CFarmingSystem and CFarmingSystem.instance or nil end
@@ -197,10 +197,10 @@ local function seedRows(player, skill)
                 local knows = skill >= 6 or (props.seasonRecipe and player:isRecipeActuallyKnown(props.seasonRecipe))
                 if seasons and knows and props.sowMonth then
                     local T = ZeD.T
-                    if inList(props.bestMonth) then row.tag, row.tagC = ZeD.tr("UI_ZeD_Farm_TagBestMonth"), T.positive
+                    if inList(props.bestMonth) then row.tag, row.tagC = ZeD.upper(ZeD.tr("Farming_Tooltip_BestMonth2")), T.positive
                     elseif inList(props.riskMonth) then row.tag, row.tagC = ZeD.tr("UI_ZeD_Farm_TagRiskyMonth"), T.warning
                     elseif inList(props.sowMonth) then row.tag, row.tagC = ZeD.tr("UI_ZeD_Farm_TagInSeason"), T.positive
-                    else row.tag, row.tagC = ZeD.tr("UI_ZeD_Farm_TagOutOfSeason"), T.danger end
+                    else row.tag, row.tagC = ZeD.upper(ZeD.tr("Farming_Tooltip_BadMonth")), T.danger end
                 end
                 rows[#rows + 1] = row
             end
@@ -331,13 +331,13 @@ function def.pill(t)
     local d = t.d
     if not d then return nil end
     if d.plowed then return ZeD.tr("UI_ZeD_Farm_PillEmpty"), T.textDim end
-    if d.state == "rotten" then return ZeD.tr("UI_ZeD_Farm_PhaseRotten"), T.danger end
+    if d.state == "rotten" then return ZeD.upper(ZeD.tr("Farming_Rotten")), T.danger end
     if not d.alive then return ZeD.upper(d.state == "harvested" and getText("Farming_Harvested") or getText("Farming_Dead")), T.danger end
     if t.obj:canHarvest() then return ZeD.tr("UI_ZeD_Farm_PhaseReady"), T.positive end
     local w = d.water
-    if w <= 25 then return ZeD.tr("UI_ZeD_Farm_PillParched"), T.danger end
-    if w <= 50 then return ZeD.tr("UI_ZeD_Farm_PillDry"), T.danger end
-    if w <= 60 then return ZeD.tr("UI_ZeD_Farm_PillThirsty"), T.warning end
+    if w <= 25 then return ZeD.upper(ZeD.tr("Farming_Parched")), T.danger end
+    if w <= 50 then return ZeD.upper(ZeD.tr("Farming_Dry")), T.danger end
+    if w <= 60 then return ZeD.upper(ZeD.tr("Farming_Thirsty")), T.warning end
     return ZeD.tr("UI_ZeD_Farm_PillGrowing"), T.positive
 end
 
@@ -400,7 +400,7 @@ local function drawPhaseStrip(card, x, y, w, d)
         else
             card:drawRectBorder(cx, y, cw, ch, bc.a or 1, bc.r, bc.g, bc.b)
         end
-        local label = ZeD.CraftingCore.truncText(ZeD.tr(PHASES[i]), f5, cw - T.px(4))
+        local label = ZeD.CraftingCore.truncText(ZeD.upper(ZeD.tr(PHASES[i])), f5, cw - T.px(4))
         local lw = tm:MeasureStringX(f5, label)
         card:drawText(label, cx + math.floor((cw - lw) / 2), y + math.floor((ch - tm:getFontHeight(f5)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f5)
     end
@@ -572,7 +572,7 @@ function def.body(card, x, y, w, t, player)
                 UI.tag(card, rx - tw, ry + math.floor((rh - T.px(16)) / 2), lockTag(6), T.textDim)
             end
         end
-        y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Farm_NextStage"), nextV, ZeD.tr("UI_ZeD_Farm_Compost"), d.compost and txt("Farming_Compost_True", "Yes") or txt("Farming_Compost_False", "No")) + gap
+        y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Farm_NextStage"), nextV, ZeD.upper(ZeD.tr("Farming_Compost")), d.compost and txt("Farming_Compost_True", "Yes") or txt("Farming_Compost_False", "No")) + gap
         -- WATER
         if d.alive then
             local word, dotC = waterWord(d.water)
@@ -585,9 +585,9 @@ function def.body(card, x, y, w, t, player)
                     local b = farming_vegetableconf.calcWater(d.water, d.waterMax or 100)
                     if a == -1 or b == -1 then fillC = UI.hex("#FA8C00") elseif a < -1 or b < -1 then fillC = T.danger end
                 elseif d.water < d.waterNeeded then fillC = T.danger end
-                y = y + UI.meter(card, x, y, w, ZeD.tr("UI_ZeD_Farm_Water"), word, dotC, d.water, fillC, { lo, hi }) + gap
+                y = y + UI.meter(card, x, y, w, ZeD.upper(ZeD.tr("Fluid_Name_Water")), word, dotC, d.water, fillC, { lo, hi }) + gap
             else
-                y = y + UI.meter(card, x, y, w, ZeD.tr("UI_ZeD_Farm_Water"), word, dotC, 0, nil, nil, lockTag(4)) + gap
+                y = y + UI.meter(card, x, y, w, ZeD.upper(ZeD.tr("Fluid_Name_Water")), word, dotC, 0, nil, nil, lockTag(4)) + gap
             end
         end
         if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
@@ -601,7 +601,7 @@ function def.body(card, x, y, w, t, player)
                 local rh = T.px(24)
                 local f1 = T.fontF1
                 local ac = T.accent
-                card:drawText(ZeD.tr(pe.def.label), x + T.px(2), y + math.floor((rh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+                card:drawText(ZeD.upper(ZeD.tr(pe.def.label)), x + T.px(2), y + math.floor((rh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
                 local bw = UI.buttonW(ZeD.tr("UI_ZeD_Farm_Treat"))
                 local bx = x + w - bw - T.px(2)
                 local by = y + math.floor((rh - T.px(20)) / 2)

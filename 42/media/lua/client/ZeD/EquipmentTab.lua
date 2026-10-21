@@ -254,6 +254,9 @@ function ZeD.EquipmentTab.gatherData(playerObj)
                     local locStr = string.lower(tostring(loc))
                     local colon  = locStr:find(":")
                     if colon then locStr = locStr:sub(colon + 1) end
+                    -- vanilla writes some with underscores (jacket_bulky, pants_skinny,
+                    -- jackethat_bulky, knee_left); the slot table keeps them without
+                    locStr = locStr:gsub("_", "")
                     local mapping = LOCATION_TO_SLOT[locStr]
                     if mapping then
                         local slot = groups[mapping.gi].slots[mapping.si]
@@ -575,6 +578,12 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
         panel:drawRect(x, y, w, rowH, T.selectionA or 0.25, ac.r, ac.g, ac.b)
     end
 
+    -- Being dragged: dimmed, as the inventory lists dim the rows they carry
+    if slot.item and ZeD.EquipmentTab.draggedItem(win) == slot.item then
+        local s1 = T.surf1
+        panel:drawRect(x, y, w, rowH, 0.4, s1.r, s1.g, s1.b)
+    end
+
     -- Gamepad focus fill — 0.55 alpha accent across the row. Gated on live
     -- ring focus being on charTabContent so the cue clears the instant LB/RB
     -- bumpers away (per user design rule: only the currently-focused zone
@@ -775,7 +784,7 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         local action, label
         if s.item and s.inHand then action, label = "putback", ZeD.tr("UI_ZeD_Equip_PutBack")
         elseif s.item then action, label = "detach", ZeD.tr("UI_ZeD_Equip_Detach")
-        else action, label = "attach", ZeD.tr("UI_ZeD_Equip_Attach") end
+        else action, label = "attach", ZeD.upper(ZeD.tr("ContextMenu_Attach")) end
         local inHandTxt = ZeD.tr("UI_ZeD_Equip_InHand")
         local bh = math.min(rowH - T.px(6), T.buttonH or T.px(20))
         local bw = tm:MeasureStringX(T.fontF3, label) + T.px(16)
@@ -861,16 +870,17 @@ local function _drawEquipHeader(panel, x, y, w, win)
 
     -- Center helper
     local function drawCentered(label, colStart, colW)
+        label = ZeD.Atoms.truncateText(label, T.fontF5, colW)   -- the game's column words can be long
         local tw = tm:MeasureStringX(T.fontF5, label)
         local tx = x + colStart + math.floor((colW - tw) / 2)
         panel:drawText(label, tx, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
     end
 
     -- Column order: NAME SLOT COND BITE SCR BUL WT
-    panel:drawText(ZeD.tr("UI_ZeD_Equip_ColName"), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
+    panel:drawText(ZeD.upper(ZeD.tr("IGUI_Name")), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColSlot"), cl.slotX, cl.slotColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColCond"), cl.condX, cl.condColW)
-    drawCentered(ZeD.tr("UI_ZeD_Equip_ColBite"), cl.biteX, cl.protColW)
+    drawCentered(ZeD.upper(ZeD.tr("IGUI_health_Bite")), cl.biteX, cl.protColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColScratch"), cl.scrX,  cl.protColW)
     drawCentered(ZeD.tr("UI_ZeD_Equip_ColBullet"), cl.bulX,  cl.protColW)
     A.drawTextRight(panel, ZeD.tr("UI_ZeD_Equip_ColWeight"), x + cl.wtX + cl.wtColW - cl.padX, textY, T.fontF5, c)
@@ -943,6 +953,145 @@ function ZeD.EquipmentTab._handleAction(win, actionId, slot)
         win._equipCache = nil
 
     end
+end
+
+-- ============================================================================
+-- DRAG SOURCE (Oct 20 2026, director-approved)
+-- A press on a worn or held item (a list row, or a doll slot) waits. Released
+-- without moving it is the click it always was (the item card). Moved off the
+-- slot it becomes the inventory lists' own drag: the same DragState molecule
+-- (ghost, the belt's drop cue, the curtain tab) and the same drop handler
+-- (InventoryRenderer.handleDrop: the container columns, the World window, a
+-- rolled tab, the belt, the floor). Nothing here unequips: handleDrop queues
+-- vanilla's transfer (ISTransferAction takes the item off) or vanilla's drop
+-- (ISInventoryPaneContextMenu.dropItem), so a refusing action refuses as in
+-- vanilla. The drawer owns the mouse (it captures it, as the column dividers
+-- do); the drag state lives on the window (win._equipDrag).
+-- ============================================================================
+
+local function equipDrag(win)
+    local d = win._equipDrag
+    if not d then
+        d = ZeD.Molecules.DragState:new()
+        win._equipDrag = d
+    end
+    return d
+end
+
+-- The filled slot under (x, y), drawer-local: a list row, or a doll slot
+local function slotZoneAt(win, x, y)
+    for _, zone in ipairs(win._equipSlotZones or {}) do
+        if zone.item
+           and x >= zone.x and x <= zone.x + zone.w
+           and y >= zone.y and y <= zone.y + zone.h then
+            return zone
+        end
+    end
+    return nil
+end
+
+-- The click: the slot's item card
+local function selectSlot(win, slotType)
+    win._equipSelected = slotType
+    win._equipCache = nil              -- force fresh data for the card
+    win._gpFocusedEquipSlot = nil      -- reseed to the back button
+end
+
+-- The item being dragged (a drag that has started), for the dim on its slot
+function ZeD.EquipmentTab.draggedItem(win)
+    local d = win and win._equipDrag
+    if d and d:isActive() and d.items then return d.items[1] end
+    return nil
+end
+
+-- True while the drag is pending or running (the drawer then owns the mouse)
+function ZeD.EquipmentTab.dragBusy(win)
+    local d = win and win._equipDrag
+    return d ~= nil and (d:isActive() or d:isPending())
+end
+
+-- Mouse down on the drawer, list mode or doll: true when a filled slot took the press
+function ZeD.EquipmentTab.pressSlot(win, panel, x, y)
+    if win._equipSelected then return false end
+    local zone = slotZoneAt(win, x, y)
+    if not zone then return false end
+    local d = equipDrag(win)
+    d:cancel()
+    win._equipPress = zone
+    d:beginPending({ zone.item }, zone.item, getMouseX(), getMouseY())
+    return true
+end
+
+-- Mouse move on the drawer: past the threshold the press becomes a drag. True while it is the drag's.
+function ZeD.EquipmentTab.dragMove(win, panel)
+    local d = win._equipDrag
+    if not d then return false end
+    if d:isPending() then
+        -- the button came up where this drawer never heard it (a release the engine
+        -- did not route here): the press is over, never a drag
+        if isMouseButtonDown and not isMouseButtonDown(0) then
+            d:cancel()
+            win._equipPress = nil
+            return false
+        end
+        if d:checkThreshold(getMouseX(), getMouseY()) then
+            win._equipPress = nil
+            panel:setCapture(true)
+        end
+        return true
+    elseif d:isActive() then
+        d:updateGhostPos(getMouseX(), getMouseY())
+        return true
+    end
+    return false
+end
+
+-- Where a release lands. Back on the Equip tab (the drawer) is nothing; the
+-- rest is the inventory's own handleDrop, with the item's container as the
+-- source (so its own column, or the same bag, is no move).
+local function dropEquipped(win, panel, items)
+    local item = items and items[1]
+    local content = win._contentPanel
+    if not (item and content) then return end
+    local mx, my = getMouseX(), getMouseY()
+    local ax, ay = panel:getAbsoluteX(), panel:getAbsoluteY()
+    if mx >= ax and mx < ax + panel:getWidth() and my >= ay and my < ay + panel:getHeight() then return end
+    local src = item:getContainer()
+    if not src then return end
+    ZeD.InventoryRenderer.handleDrop(content, items, src)
+end
+
+-- Mouse up on the drawer (or outside it): the drop, or the plain click. True when it was the press's.
+function ZeD.EquipmentTab.dragRelease(win, panel)
+    local d = win._equipDrag
+    if not d then return false end
+    if d:isActive() then
+        local items = d:complete()
+        panel:setCapture(false)
+        win._equipPress = nil
+        dropEquipped(win, panel, items)
+        win._equipCache = nil
+        return true
+    end
+    if d:isPending() then
+        d:cancel()
+        local zone = win._equipPress
+        win._equipPress = nil
+        if zone then selectSlot(win, zone.type) end
+        return true
+    end
+    return false
+end
+
+-- Right button during a drag (or a press): the drag is called off, nothing is selected
+function ZeD.EquipmentTab.dragCancel(win, panel)
+    local d = win._equipDrag
+    if not (d and (d:isActive() or d:isPending())) then return false end
+    local wasActive = d:isActive()
+    d:cancel()
+    win._equipPress = nil
+    if wasActive then panel:setCapture(false) end
+    return true
 end
 
 -- ============================================================================

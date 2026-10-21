@@ -386,7 +386,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     cy = cy + rowH + gap
 
     -- INPUT grid: drying first (with progress), then waiting, then empty
-    lw = label(panel, ZeD.tr("UI_ZeD_Machine_Input"), lx, cy, rowH)
+    lw = label(panel, ZeD.upper(ZeD.tr("EC_CraftLogic_Inputs")), lx, cy, rowH)
     label(panel, tostring(#d.drying + #d.waiting) .. " / " .. tostring(d.cap), lx + lw + T.px(8), cy, rowH, T.textDim)
     cy = cy + rowH
     local cellW = math.floor((iw - (COLS - 1) * cg) / COLS)
@@ -452,12 +452,12 @@ function SM.render(panel, win, x, y, w, h, state, st)
     cy = cy + rowH + gap
 
     -- OUTPUT grid + TAKE ALL
-    lw = label(panel, ZeD.tr("UI_ZeD_Machine_Output"), lx, cy, rowH)
+    lw = label(panel, ZeD.upper(ZeD.tr("EC_CraftLogic_Outputs")), lx, cy, rowH)
     label(panel, tostring(#d.outputs), lx + lw + T.px(8), cy, rowH, T.textDim)
     if #d.outputs > 0 then
         local tw = T.px(80)
         local ty = cy + math.floor((rowH - bh) / 2)
-        M.drawButton(panel, rx - tw, ty, tw, bh, ZeD.tr("UI_ZeD_Machine_TakeAll"), "primary")
+        M.drawButton(panel, rx - tw, ty, tw, bh, ZeD.upper(ZeD.tr("IGUI_invpage_Loot_all")), "primary")
         if fid == "craft:m:takeAll" then
             local ac = T.accent
             panel:drawRect(rx - tw, ty, tw, bh, 0.55, ac.r, ac.g, ac.b)

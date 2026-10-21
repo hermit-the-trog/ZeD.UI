@@ -294,8 +294,8 @@ function MS.wsState(st)
 end
 
 -- (translation keys by state; MS.wsText gives the player's words)
-MS.WS_TEXT = { downloading = "UI_ZeD_ModScan_WsDownloading", queued = "UI_ZeD_ModScan_WsQueued", update = "UI_ZeD_ModScan_WsUpdate",
-               ok = "UI_ZeD_ModScan_WsOk", missing = "UI_ZeD_ModScan_WsMissing", none = "UI_ZeD_ModScan_WsNone" }
+MS.WS_TEXT = { downloading = "UI_WorkshopServerItemState_Downloading", queued = "UI_ZeD_ModScan_WsQueued", update = "UI_ZeD_ModScan_WsUpdate",
+               ok = "UI_ZeD_ModScan_WsOk", missing = "UI_ZeD_ModScan_WsMissing", none = "UI_WorkshopServerItemState_NotSubscribed" }
 function MS.wsText(state)
     local k = MS.WS_TEXT[state]
     return k and ZeD.tr(k) or nil

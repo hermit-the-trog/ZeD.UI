@@ -89,13 +89,13 @@ function M.DefenseFacts(item)
     -- Group 1: bite/scratch/bullet
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = getText("Tooltip_BiteDefense"),    short = ZeD.tr("UI_ZeD_Card_ShortBite"),
+            {label = getText("Tooltip_BiteDefense"),    short = ZeD.tr("IGUI_health_Bite"),
              value = biteDef    and _pct(biteDef)    or "0%",
              valueClass = (biteDef    or 0) > 0 and "warn" or "dim"},
-            {label = getText("Tooltip_ScratchDefense"), short = ZeD.tr("UI_ZeD_Card_ShortScratch"),
+            {label = getText("Tooltip_ScratchDefense"), short = ZeD.tr("IGUI_health_Scratch"),
              value = scratchDef and _pct(scratchDef) or "0%",
              valueClass = (scratchDef or 0) > 0 and "warn" or "dim"},
-            {label = getText("Tooltip_BulletDefense"),  short = ZeD.tr("UI_ZeD_Card_ShortBullet"),
+            {label = getText("Tooltip_BulletDefense"),  short = ZeD.tr("IGUI_health_Bullet"),
              value = bulletDef  and _pct(bulletDef)  or "0%",
              valueClass = (bulletDef  or 0) > 0 and "warn" or "dim"},
         },
@@ -265,7 +265,7 @@ function M.ContainerFacts(item)
 
     panel.groups[#panel.groups + 1] = {
         rows = {
-            {label = ZeD.tr("UI_ZeD_Capacity"), value = (current and cap) and string.format("%.1f / %d kg", current, cap) or "-",
+            {label = ZeD.tr("Tooltip_container_Capacity"), value = (current and cap) and string.format("%.1f / %d kg", current, cap) or "-",
              valueClass = _condClass(fillRatio and (1 - fillRatio) or nil)},
             {label = ZeD.tr("UI_ZeD_Card_Items"), value = count and tostring(count) or "-"},
         },

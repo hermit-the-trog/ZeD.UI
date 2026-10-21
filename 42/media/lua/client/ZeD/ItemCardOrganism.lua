@@ -99,9 +99,9 @@ local ZONE_GROUP_MAP = {
     ["Upper Torso"]     = {"UI_ZeD_Card_ZoneTorso",    "UI_ZeD_Card_ZoneUpper"},
     ["Lower Torso"]     = {"UI_ZeD_Card_ZoneTorso",    "UI_ZeD_Card_ZoneLower"},
     ["Back"]            = {"UI_ZeD_Card_ZoneTorso",    "IGUI_health_Back"},
-    ["Head"]            = {"UI_ZeD_Card_ZoneHead",     "IGUI_health_Head"},
-    ["Neck"]            = {"UI_ZeD_Card_ZoneHead",     "IGUI_health_Neck"},
-    ["Groin"]           = {"UI_ZeD_Card_ZoneGroin",    "IGUI_health_Groin"},
+    ["Head"]            = {"IGUI_health_Head",     "IGUI_health_Head"},
+    ["Neck"]            = {"IGUI_health_Head",     "IGUI_health_Neck"},
+    ["Groin"]           = {"IGUI_health_Groin",    "IGUI_health_Groin"},
     ["Left Upper Arm"]  = {"UI_ZeD_Card_ZoneUpperArm", "UI_ZeD_Card_ZoneLeft"},
     ["Right Upper Arm"] = {"UI_ZeD_Card_ZoneUpperArm", "UI_ZeD_Card_ZoneRight"},
     ["Left Forearm"]    = {"UI_ZeD_Card_ZoneLowerArm", "UI_ZeD_Card_ZoneLeft"},
@@ -635,7 +635,7 @@ local function topStatsForItem(item)
         end
     elseif cat == "Container" then
         local cap = safeGet(item, "getItemCapacity") or 0
-        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Capacity"),
+        rows[#rows + 1] = {label = ZeD.tr("Tooltip_container_Capacity"),
             value = string.format("%d", math.floor(cap + 0.5))}
         local inner = safeGet(item, "getInventory")
         if inner then
@@ -837,7 +837,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 local chipGap   = T.px(6)
                 local chips = {}
                 if soil and soil.dirt then
-                    chips[#chips + 1] = {label = ZeD.tr("UI_ZeD_Card_Dirty"), color = T.soiledDirt or T.warning}
+                    chips[#chips + 1] = {label = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty")), color = T.soiledDirt or T.warning}
                 end
                 if soil and soil.wet then
                     chips[#chips + 1] = {label = ZeD.tr("UI_ZeD_Card_WetPct", tostring(soil.wet) .. "%"),
@@ -953,7 +953,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                     if prevGroup ~= nil then cy = cy + groupPadAbove end
                     local hdrTY = cy + math.floor((groupHdrH - fontH) / 2)
                     local hdrC  = T.accent
-                    card:drawText(ZeD.tr(groupName), x, hdrTY,
+                    card:drawText(ZeD.upper(ZeD.tr(groupName)), x, hdrTY,
                         hdrC.r, hdrC.g, hdrC.b, hdrC.a or 1, font)
                     cy = cy + groupHdrH
                     prevGroup = groupName

@@ -30,7 +30,7 @@ local LIST_SHARE, ROW_H, LABEL_W, PAD, THUMB = 0.32, 44, 128, 12, 96
 
 -- vanilla's visibility numbers (setVisibilityInteger), in the order the screen offers them
 -- (translation keys: the button names, the "Seen by ..." line under them, and the upload question)
-local VIS = { { 0, "UI_ZeD_Workshop_VisPublic" }, { 1, "UI_ZeD_Workshop_VisFriends" }, { 3, "UI_ZeD_Workshop_VisUnlisted" }, { 2, "UI_ZeD_Workshop_VisPrivate" } }
+local VIS = { { 0, "UI_WorkshopSubmit_VisibilityPublic" }, { 1, "UI_WorkshopSubmit_VisibilityFriendsOnly" }, { 3, "UI_WorkshopSubmit_VisibilityUnlisted" }, { 2, "UI_WorkshopSubmit_VisibilityPrivate" } }
 local VIS_SEEN = { [0] = "UI_ZeD_Workshop_SeenEveryone", [1] = "UI_ZeD_Workshop_SeenFriends", [2] = "UI_ZeD_Workshop_SeenOnlyYou", [3] = "UI_ZeD_Workshop_SeenLink" }
 local VIS_ASK = { [0] = "UI_ZeD_Workshop_AskEveryone", [1] = "UI_ZeD_Workshop_AskFriends", [2] = "UI_ZeD_Workshop_AskOnlyYou", [3] = "UI_ZeD_Workshop_AskLink" }
 
@@ -413,7 +413,7 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     local bh = T.px(U.STRIP_BTN_H)
     local f2, f3, dim = T.fontF2, T.fontF3, T.textDim
     -- TITLE
-    label(self, ZeD.tr("UI_ZeD_Workshop_LabelTitle"), ix, cy, T.px(24))
+    label(self, ZeD.upper(ZeD.trBare("UI_WorkshopSubmit_ItemTitle")), ix, cy, T.px(24))
     cy = cy + self:formEntry(self.titleE, "f:title", vx, cy, vw) + T.px(10)
     -- WHO CAN SEE IT
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelWho"), ix, cy, bh)
@@ -425,7 +425,7 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     cy = cy + bh + T.px(4)
     cy = self:paneText(ZeD.tr(VIS_SEEN[self.vis] or VIS_SEEN[0]), vx, cy, vw, f3, dim) + T.px(8)
     -- TAGS
-    label(self, ZeD.tr("UI_ZeD_Workshop_LabelTags"), ix, cy, bh)
+    label(self, ZeD.upper(ZeD.trBare("UI_WorkshopSubmit_ItemTags")), ix, cy, bh)
     bx = vx
     local tags = {}
     pcall(function() tags = jlist(SteamWorkshopItem.getAllowedTags()) end)
@@ -473,7 +473,7 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
     local bh = T.px(U.STRIP_BTN_H)
     local f2, f3, dim, txt = T.fontF2, T.fontF3, T.textDim, T.text
     -- DESCRIPTION
-    label(self, ZeD.tr("UI_ZeD_Workshop_LabelDescription"), ix, cy, T.px(20))
+    label(self, ZeD.upper(ZeD.trBare("UI_WorkshopSubmit_ItemDescription")), ix, cy, T.px(20))
     local plain = BB.plain(self.desc)
     if plain == "" then cy = self:paneText(ZeD.tr("UI_ZeD_Workshop_NoneYet"), vx, cy + T.px(2), vw, f2, dim)
     else
@@ -487,7 +487,7 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
     end
     local n = #self.desc
     cy = self:paneText(ZeD.tr("UI_ZeD_DescEdit_Count", BB.count(n), BB.count(BB.LIMIT)), vx, cy + T.px(2), vw, f3, (n > BB.LIMIT) and T.danger or dim) + T.px(6)
-    local bx = self:formBtn("desc:edit", ZeD.tr("UI_ZeD_Workshop_EditDescription"), function() self:openEditor() end, vx, cy, "default", 400, 1) + T.px(6)
+    local bx = self:formBtn("desc:edit", ZeD.tr("UI_WorkshopSubmit_EditDescription"), function() self:openEditor() end, vx, cy, "default", 400, 1) + T.px(6)
     self:formBtn("desc:copy", ZeD.tr("UI_ZeD_Workshop_CopyCodes"), function() Clipboard.setClipboard(self.desc); self:say(ZeD.tr("UI_ZeD_Workshop_CodesCopied")); MM.clickSound() end,
         bx, cy, "default", 400, 2, self.desc == "")
     cy = cy + bh + T.px(12)

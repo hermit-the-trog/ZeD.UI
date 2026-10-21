@@ -323,7 +323,7 @@ local function _promptKey(id, st)
     if id == "ignition" then if st.running then return "ContextMenu_VehicleShutOff" elseif st.keysIn or st.hotwired then return "UI_ZeD_Dash_PromptStart" elseif st.hasKey then return "UI_ZeD_Dash_PromptInsertKey" else return "UI_ZeD_Dash_PromptNoKey" end end
     if id == "lights" then return st.lights and "UI_ZeD_Dash_PromptLightsOff" or "UI_ZeD_Dash_PromptLightsOn" end
     if id == "lock" then return st.anyLocked and "UI_ZeD_Dash_PromptUnlock" or "UI_ZeD_Dash_PromptLock" end
-    if id == "trunk" then return st.trunkLocked and "UI_ZeD_Dash_PromptUnlockTrunk" or "UI_ZeD_Dash_PromptLockTrunk" end
+    if id == "trunk" then return st.trunkLocked and "IGUI_UnlockTrunk" or "IGUI_LockTrunk" end
     if id == "cruise" then return st.cruise and "UI_ZeD_Dash_PromptCruiseOff" or "UI_ZeD_Dash_PromptCruiseSet" end
     if id == "heat" then return st.heaterOn and "UI_ZeD_Dash_PromptHeaterOff" or "UI_ZeD_Dash_PromptHeaterOn" end
     if id == "ac" then return st.ac and "UI_ZeD_Dash_PromptAcOff" or "UI_ZeD_Dash_PromptAc" end
@@ -360,7 +360,7 @@ local SECONDARY = { ignition = "UI_ZeD_Dash_PromptRemoveKey", vol = "IGUI_RadioV
 ZeD.trDefaults({
     UI_ZeD_Dash_PromptStart = "Start", UI_ZeD_Dash_PromptInsertKey = "Insert key", UI_ZeD_Dash_PromptNoKey = "No key",
     UI_ZeD_Dash_PromptLightsOff = "Lights off", UI_ZeD_Dash_PromptLightsOn = "Lights on", UI_ZeD_Dash_PromptUnlock = "Unlock",
-    UI_ZeD_Dash_PromptLock = "Lock", UI_ZeD_Dash_PromptUnlockTrunk = "Unlock trunk", UI_ZeD_Dash_PromptLockTrunk = "Lock trunk",
+    UI_ZeD_Dash_PromptLock = "Lock",
     UI_ZeD_Dash_PromptCruiseOff = "Cruise off", UI_ZeD_Dash_PromptCruiseSet = "Cruise set", UI_ZeD_Dash_PromptHeaterOff = "Heater off",
     UI_ZeD_Dash_PromptHeaterOn = "Heater on", UI_ZeD_Dash_PromptAcOff = "A/C off", UI_ZeD_Dash_PromptAc = "A/C",
     UI_ZeD_Dash_PromptVolumePlus = "Volume +", UI_ZeD_Dash_PromptRadioOff = "Radio off", UI_ZeD_Dash_PromptRadioOn = "Radio on",

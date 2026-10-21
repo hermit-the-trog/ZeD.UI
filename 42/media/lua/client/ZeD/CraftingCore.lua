@@ -619,8 +619,8 @@ end
 function CC.tagText(tag, altCount)
     if tag == nil then return nil end
     if tag == "FUEL" and (altCount or 0) > 0 then return tag end
-    if tag == "TOOL" then return ZeD.tr("UI_ZeD_Craft_TagTool") end
-    if tag == "KEEP" then return ZeD.tr("UI_ZeD_Craft_TagKeep") end
+    if tag == "TOOL" then return ZeD.upper(ZeD.tr("IGUI_ItemCat_Tool")) end
+    if tag == "KEEP" then return ZeD.upper(ZeD.trBare("IGUI_CraftUI_SourceKeep")) end
     if tag == "FUEL" then return ZeD.tr("UI_ZeD_Craft_TagFuel") end
     return tag
 end
@@ -1198,7 +1198,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
             local mx, my = panel:getMouseX(), panel:getMouseY()
             local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
                 and mx >= ddX and mx < ddX + ddW and my >= ddY and my < ddY + ddH
-            ST.drawSelect(panel, ddX, ddY, ddW, ddH, ZeD.tr("UI_ZeD_Craft_CategoryLabel"), activeCatLabel, false,
+            ST.drawSelect(panel, ddX, ddY, ddW, ddH, ZeD.upper(ZeD.tr("IGUI_invpanel_Category")), activeCatLabel, false,
                 state._gpFocusedId == (pfx .. ":catDrop"), hov)
         else
             -- Normal dropdown: show active category with arrow
@@ -1387,7 +1387,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
             end
             if #freqItems > 0 then
                 sections[#sections + 1] = {
-                    id = "freq", label = "UI_ZeD_Craft_FreqUsed", color = T.warning,
+                    id = "freq", label = "IGUI_SortType_MostUsed", color = T.warning,
                     items = freqItems, collapsed = state.freqCollapsed,
                 }
             end
@@ -2022,7 +2022,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- Surface requirement (pre-baked during catalog build)
     local needsSurface = entry.needSurface or false
     if needsSurface then
-        bw = A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeSurface"), chipX, curY, "warning")
+        bw = A.drawBadge(panel, ZeD.upper(ZeD.tr("IGUI_CraftingWindow_Surface")), chipX, curY, "warning")
         chipX = chipX + bw + T.px(4)
     end
 
@@ -2183,7 +2183,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local outCount = #(entry.outputDefs or {})
     if outCount > 0 then
         local outHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.tr("UI_ZeD_Craft_Outputs"),
+        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.upper(ZeD.tr("IGUI_CraftingWindow_Creates")),
             outCount, not state.outCollapsed, outHdrHover, T.fontF1, true, T.px(6), catHdrH)
         -- S105 gamepad: inline cue paint for focused card section header (OUTPUTS).
         do
@@ -2233,7 +2233,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         if state.qty > maxQty and maxQty > 0 then state.qty = maxQty end
         if state.qty < 1 then state.qty = 1 end
         local canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0
-        local label = ZeD.tr(config.buildLabel or "UI_ZeD_Craft_ActCraft")
+        local label = ZeD.upper(ZeD.tr(config.buildLabel or "IGUI_CraftingWindow_Craft"))
         local _, actionZones = M.drawCraftActionStrip(panel, x, actionY, w,
             state.qty, maxQty, canCraft, nil, label)
         for _, z in ipairs(actionZones) do

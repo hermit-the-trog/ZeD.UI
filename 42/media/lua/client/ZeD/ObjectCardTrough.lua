@@ -219,9 +219,9 @@ function def.pill(t)
     if d.hasFood then return ZeD.tr("UI_ZeD_Trough_PillFood"), T.positive end
     if d.hasWater then
         if d.tainted then return ZeD.upper(txt("Tooltip_tainted", "Tainted")), T.danger end
-        return ZeD.tr("UI_ZeD_Trough_PillWater"), T.textDim, d.waterColor
+        return ZeD.upper(ZeD.tr("Fluid_Name_Water")), T.textDim, d.waterColor
     end
-    return ZeD.tr("UI_ZeD_Trough_PillEmpty"), T.textDim
+    return ZeD.upper(ZeD.tr("Fluid_Empty")), T.textDim
 end
 
 -- ---------------------------------------------------------------------------
@@ -284,7 +284,7 @@ function def.body(card, x, y, w, t, player)
     end
 
     -- zone
-    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Trough_Zone"), d.zone and ZeD.tr("UI_ZeD_Trough_ZoneLinked") or ZeD.tr("UI_ZeD_Trough_ZoneNone"))
+    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Trough_Zone"), d.zone and ZeD.tr("UI_ZeD_Trough_ZoneLinked") or ZeD.upper(ZeD.tr("IGUI_None")))
     y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Trough_LinkedTo"), d.zoneName or txt("IGUI_Animal_TroughNotLinked", "None"),
         ZeD.tr("UI_ZeD_Trough_Animals"), d.zone and ZeD.tr("UI_ZeD_Trough_UseIt", d.linked) or nil)
     y = y + gap

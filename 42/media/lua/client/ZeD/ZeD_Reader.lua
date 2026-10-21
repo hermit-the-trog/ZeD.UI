@@ -739,7 +739,7 @@ function ZeD_Reader:drawRail(r)
     local bs, s1 = T.borderS, T.surf1
     self:drawRect(r.x, r.y, r.w, r.h, 1, s1.r, s1.g, s1.b)
     self:drawRectBorder(r.x, r.y, r.w, r.h, bs.a, bs.r, bs.g, bs.b)
-    local y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPages"), r.x + T.px(10), r.y + T.px(10), r.w - T.px(20))
+    local y = section(self, ZeD.upper(ZeD.trBare("IGUI_Pages")), r.x + T.px(10), r.y + T.px(10), r.w - T.px(20))
     local f2, f3 = T.fontF2, T.fontF3
     local rh = fh(f2) + T.px(14)
     local ac, tc, td = T.accent, T.text, T.textDim

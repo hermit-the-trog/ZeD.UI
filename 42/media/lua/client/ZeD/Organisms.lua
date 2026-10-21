@@ -1517,7 +1517,7 @@ function ZeD_Modal.show(message, confirmText, cancelText, onConfirm, onCancel, f
     local screenH = getCore():getScreenHeight()
     local overlay = ZeD_Modal:new(0, 0, screenW, screenH)
     overlay.message     = message
-    overlay.confirmText = confirmText or ZeD.tr("UI_ZeD_Status_OK")
+    overlay.confirmText = confirmText or ZeD.upper(ZeD.tr("UI_Ok"))
     overlay.cancelText  = cancelText or ZeD.tr("UI_Cancel")
     overlay.onConfirm   = onConfirm
     overlay.onCancel    = onCancel
@@ -1536,7 +1536,7 @@ function ZeD_Modal:new(x, y, width, height)
     o.backgroundColor = {r = 0, g = 0, b = 0, a = 0}
     o.borderColor     = {r = 0, g = 0, b = 0, a = 0}
     o.message     = ""
-    o.confirmText = ZeD.tr("UI_ZeD_Status_OK")
+    o.confirmText = ZeD.upper(ZeD.tr("UI_Ok"))
     o.cancelText  = ZeD.tr("UI_Cancel")
     o.onConfirm   = nil
     o.onCancel    = nil

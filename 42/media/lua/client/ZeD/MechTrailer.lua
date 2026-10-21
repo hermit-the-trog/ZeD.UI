@@ -711,7 +711,7 @@ function TR.drawSummary(panel, win, s, sx, sy, sw, v, chr, inspected)
     -- TRUNK LID: vanilla shuts every loading option behind it
     local lid = lidPart(v)
     if lid and lid:getDoor() then
-        sumLabel(panel, sx, yy, srh, ZeD.tr("UI_ZeD_Veh_TrunkLid"))
+        sumLabel(panel, sx, yy, srh, ZeD.upper(ZeD.tr("IGUI_VehiclePartTrunkDoor")))
         local by = yy + math.floor((srh - T.px(SBTN_H)) / 2)
         local bw = smallBtn(panel, s, sx + sw, by, upper(open and getText("UI_Close") or getText("IGUI_Open")), open and "default" or "primary", "mech:lid",
             function() toggleLid(chr, v) end, true, { clip = s.bodyClip })
@@ -732,7 +732,7 @@ function TR.drawSummary(panel, win, s, sx, sy, sw, v, chr, inspected)
     end
     if alive > 0 then
         sumLabel(panel, sx, yy, srh, upper(getText("IGUI_Animal_Thirsty")))
-        local tt = (thirsty > 0) and ZeD.tr("UI_ZeD_Veh_ThirstyCount", thirsty, alive) or ZeD.tr("UI_ZeD_Veh_None")
+        local tt = (thirsty > 0) and ZeD.tr("UI_ZeD_Veh_ThirstyCount", thirsty, alive) or ZeD.tr("IGUI_None")
         local l3 = rText(panel, sx + sw, yy, srh, tt, T.fontF3)
         rDot(panel, l3 - T.px(5), yy, srh, thirsty > 0 and T.danger or T.positive)
         yy = yy + srh
@@ -1241,7 +1241,7 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
     local msgY = fy + math.floor((footerH - T.fontF2H) / 2)
     local lid = lidPart(v)
     if not open and lid and lid:getDoor() and not busy then
-        bx = bx + hp.footerButton(panel, s, bx, by, ZeD.tr("UI_ZeD_Veh_OpenLid"), "primary", "mech:openlid", function() toggleLid(chr, v) end) + T.px(10)
+        bx = bx + hp.footerButton(panel, s, bx, by, ZeD.upper(ZeD.tr("ContextMenu_OpenLid")), "primary", "mech:openlid", function() toggleLid(chr, v) end) + T.px(10)
     end
     local msg, col
     if busy then msg, col = ZeD.tr("UI_ZeD_Veh_WorkingBack"), T.accent

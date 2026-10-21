@@ -21,12 +21,12 @@ ZeD.ThermalTab = {}
 -- ============================================================================
 
 local VIEWS = {
-    { id = "skinTemp",  key = "UI_ZeD_Thermal_ViewSkinTemp",   getter = "getSkinCelcius",    format = "temp" },
-    { id = "response",  key = "UI_ZeD_Thermal_ViewResponse",   getter = "getBodyResponse",   format = "pct"  },
-    { id = "vessels",   key = "UI_ZeD_Thermal_ViewVessels",    getter = "getPrimaryDelta",   format = "pct"  },
+    { id = "skinTemp",  key = "IGUI_Temp_SkinTemperature",   getter = "getSkinCelcius",    format = "temp" },
+    { id = "response",  key = "IGUI_Temp_BodyResponse",   getter = "getBodyResponse",   format = "pct"  },
+    { id = "vessels",   key = "IGUI_Temp_BloodVessels",    getter = "getPrimaryDelta",   format = "pct"  },
     { id = "shiver",    key = "UI_ZeD_Thermal_ViewShiver",     getter = "getSecondaryDelta", format = "pct"  },
     { id = "insul",     vkey = "IGUI_Temp_Insulation",         getter = "getInsulation",     format = "pct"  },
-    { id = "wind",      key = "UI_ZeD_Thermal_ViewWind",       getter = "getWindresist",     format = "pct"  },
+    { id = "wind",      key = "IGUI_Temp_WindResistance",       getter = "getWindresist",     format = "pct"  },
     { id = "wetness",   key = "UI_ZeD_Thermal_ViewWetness",    getter = "getBodyWetness",    format = "pct"  },
 }
 
@@ -471,7 +471,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local windStr = ZeD.ThermalTab.tempText(data.windTemp)
     local coreLbl = ZeD.tr("UI_ZeD_Thermal_Core")
     local airLbl  = ZeD.tr("UI_ZeD_Thermal_Air")
-    local windLbl = ZeD.tr("UI_ZeD_Thermal_Wind")
+    local windLbl = ZeD.upper(ZeD.tr("IGUI_Fishing_Wind"))
 
     A.drawSecondary(panel, coreLbl, curX, drawY)
     curX = curX + ZeD.TM:MeasureStringX(T.fontF1, coreLbl) + T.sp.sm

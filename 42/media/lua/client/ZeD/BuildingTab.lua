@@ -364,7 +364,7 @@ local buildConfig = {
     prefix      = "build",
     pinKey      = "ZeD_BuildPins",
     countKey    = "ZeD_BuildCounts",
-    buildLabel  = "UI_ZeD_Craft_ActBuild",   -- a key (CraftingCore translates it where it draws)
+    buildLabel  = "IGUI_CraftingWindow_Build",   -- a key (CraftingCore translates it where it draws)
     startAction = function(win, state)
         ZeD.BuildingTab.startBuild(win, state)
     end,

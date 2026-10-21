@@ -668,7 +668,7 @@ function ZeD_MMJoin:drawColumnHeads(x, y, w)
     self:drawRect(x, y + hH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f1, la = T.fontF1, T.accent
     local cols = self:columnX(x, w)
-    for _, c in ipairs({ { "name", ZeD.tr("UI_ZeD_Join_ColName"), cols.name }, { "player", ZeD.tr("UI_ZeD_Join_ColPlayers"), cols.players }, { "ping", ZeD.tr("UI_ZeD_Join_ColPing"), cols.ping } }) do
+    for _, c in ipairs({ { "name", ZeD.upper(ZeD.tr("UI_servers_sortType_Name")), cols.name }, { "player", ZeD.upper(ZeD.trBare("UI_servers_players")), cols.players }, { "ping", ZeD.upper(ZeD.tr("UI_servers_sortType_Ping")), cols.ping } }) do
         local cx = c[3]
         self:drawText(c[2], cx, y + math.floor((hH - MM.fontH(f1)) / 2), la.r, la.g, la.b, la.a or 1, f1)
         local tw = MM.textW(f1, c[2])
@@ -782,18 +782,18 @@ function ZeD_MMJoin:drawDetails(x, y, w, h)
         cy = cy + kvH
     end
     kv(ZeD.tr("UI_ZeD_Join_KvAddress"), (sv:getDisplayIp() and sv:getDisplayIp() ~= "") and s(sv:getDisplayIp()) or "-")
-    kv(ZeD.tr("UI_ZeD_Join_KvPort"), s(sv:getDisplayPort() or "-"))
-    kv(ZeD.tr("UI_ZeD_Join_ColPlayers"), (sv:getPlayers() and sv:getMaxPlayers()) and ZeD.tr("UI_ZeD_Join_PlayersOf", s(sv:getPlayers()), s(sv:getMaxPlayers())) or "-")
-    kv(ZeD.tr("UI_ZeD_Join_ColPing"), (sv:getPing() and tonumber(sv:getPing()) and tonumber(sv:getPing()) > -1) and ZeD.tr("UI_ZeD_Join_PingMs", s(sv:getPing())) or "-")
-    kv(ZeD.tr("UI_ZeD_Join_KvMap"), (sv:getMapName() and sv:getMapName() ~= "") and s(sv:getMapName()) or "-")
-    kv(ZeD.tr("UI_ZeD_Join_KvVersion"), (sv:getVersion() and sv:getVersion() ~= "") and s(sv:getVersion()) or "-")
+    kv(ZeD.upper(ZeD.trBare("UI_servers_Port")), s(sv:getDisplayPort() or "-"))
+    kv(ZeD.upper(ZeD.trBare("UI_servers_players")), (sv:getPlayers() and sv:getMaxPlayers()) and ZeD.tr("UI_ZeD_Join_PlayersOf", s(sv:getPlayers()), s(sv:getMaxPlayers())) or "-")
+    kv(ZeD.upper(ZeD.tr("UI_servers_sortType_Ping")), (sv:getPing() and tonumber(sv:getPing()) and tonumber(sv:getPing()) > -1) and ZeD.tr("UI_ZeD_Join_PingMs", s(sv:getPing())) or "-")
+    kv(ZeD.upper(ZeD.trBare("UI_servers_Map")), (sv:getMapName() and sv:getMapName() ~= "") and s(sv:getMapName()) or "-")
+    kv(ZeD.upper(ZeD.trBare("UI_servers_version")), (sv:getVersion() and sv:getVersion() ~= "") and s(sv:getVersion()) or "-")
     local known = sv:isResponded()
-    kv(ZeD.tr("UI_ZeD_Join_KvPassword"), known and getText(sv:isPasswordProtected() and "UI_Yes" or "UI_No") or "-")
+    kv(ZeD.upper(ZeD.trBare("UI_servers_password")), known and getText(sv:isPasswordProtected() and "UI_Yes" or "UI_No") or "-")
     kv(ZeD.tr("UI_ZeD_Join_KvWhitelist"), known and getText(sv:isOpen() and "UI_No" or "UI_Yes") or "-")
     local wipe = sv:getLastWipe() or 0
     if wipe and wipe > 0 then
         local days = math.floor((getTimestamp() - wipe) / 86400)
-        kv(ZeD.tr("UI_ZeD_Join_KvLastWipe"), ((days <= 0) and getText("UI_servers_wipe_today") or getText("UI_servers_wipe_days_ago", days)))
+        kv(ZeD.upper(ZeD.trBare("UI_servers_last_wipe")), ((days <= 0) and getText("UI_servers_wipe_today") or getText("UI_servers_wipe_days_ago", days)))
     end
     cy = cy + T.px(8)
     -- the description and the mods (plain), as far as the box allows
@@ -806,7 +806,7 @@ function ZeD_MMJoin:drawDetails(x, y, w, h)
     local mods = s(sv:getMods())
     if mods ~= "" then
         lines[#lines + 1] = { "", f2, T.text }
-        lines[#lines + 1] = { ZeD.tr("UI_ZeD_Join_KvMods"), f1, T.accent }
+        lines[#lines + 1] = { ZeD.upper(ZeD.trBare("UI_servers_mods")), f1, T.accent }
         local list = mods:gsub(";", ","):gsub(",%s*", ", ")
         for _, l in ipairs(ZeD.Atoms.wrapText(list, f3, iw)) do lines[#lines + 1] = { l, f3, T.textDim } end
     end
@@ -902,7 +902,7 @@ function ZeD_MMJoin:buildStrip(stripY, stripH, w)
         ask = getText("UI_servers_server_password")
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", ZeD.tr("UI_ZeD_MainMenu_Ok"), function() self:answerPassword() end, "primary", (self.field:getText() or "") == "" } })
+            { "confirm:yes", ZeD.upper(ZeD.tr("UI_Ok")), function() self:answerPassword() end, "primary", (self.field:getText() or "") == "" } })
         fieldIn(ask)
     elseif self.confirm == "delServer" or self.confirm == "forget" then
         local sv = r and r.server

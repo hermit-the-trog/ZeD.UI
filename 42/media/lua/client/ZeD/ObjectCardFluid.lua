@@ -254,7 +254,7 @@ function def.refresh(t, player)
         r.tag, r.tagK = nil, nil
         if ffc and not r.isFrom then
             if FluidContainer.CanTransfer(ffc, fc) then
-                if fc:isEmpty() then r.tag = ZeD.tr("UI_ZeD_Fluid_TagEmpty")
+                if fc:isEmpty() then r.tag = ZeD.upper(ZeD.tr("Fluid_Empty"))
                 else
                     local prim = ffc:getPrimaryFluid()
                     if prim and ffc:isPureFluid(prim) and fc:isPureFluid(prim) then r.tag = ZeD.tr("UI_ZeD_Fluid_TagSame")
@@ -267,7 +267,7 @@ function def.refresh(t, player)
                 r.canInto = false
             end
         elseif not r.isFrom and fc:isEmpty() then
-            r.tag = ZeD.tr("UI_ZeD_Fluid_TagEmpty")
+            r.tag = ZeD.upper(ZeD.tr("Fluid_Empty"))
         end
         if d.pouring then r.canFrom, r.canInto = false, false end
     end
@@ -351,7 +351,7 @@ function def.pill(t)
     local d = t.d
     if not (d and t.from) then return nil end
     if d.tainted then return ZeD.upper(txt("Tooltip_tainted", "Tainted")), T.danger end
-    if not d.fluid then return ZeD.tr("UI_ZeD_Fluid_PillEmpty"), T.textDim end
+    if not d.fluid then return ZeD.upper(ZeD.tr("Fluid_Empty")), T.textDim end
     return ZeD.upper(d.fluid), T.textDim, d.fluidColor
 end
 

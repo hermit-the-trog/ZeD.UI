@@ -200,7 +200,7 @@ local function classifyConditions(bp, doctorLevel)
     end
     if bp:getBurnTime() > 0 and not bandaged then
         word = nil
-        if (doc > 4 or cheat) and bp:isNeedBurnWash() then word = ZeD.tr("UI_ZeD_Health_NeedsCleaning") end
+        if (doc > 4 or cheat) and bp:isNeedBurnWash() then word = ZeD.tr("IGUI_health_NeedCleaning") end
         conds[#conds + 1] = { label = qualify(ZeD.tr("UI_ZeD_Health_Burn"), word), severity = "warning" }
     end
 
@@ -234,7 +234,7 @@ local function classifyConditions(bp, doctorLevel)
     if bp:stitched() then
         word = nil
         if doc > 6 or cheat then
-            word = (bp:getStitchTime() > 40) and getText("IGUI_health_Good") or ZeD.tr("UI_ZeD_Health_NeedsTime")
+            word = (bp:getStitchTime() > 40) and getText("IGUI_health_Good") or ZeD.tr("IGUI_health_NeedTime")
         end
         conds[#conds + 1] = { label = qualify(getText("IGUI_health_Stitched"), word), severity = "positive" }
     end
@@ -544,15 +544,15 @@ local EXERCISE_EQUIPMENT = {
     "barbellcurl", "dumbbellpress", "bicepscurl",
 }
 
--- vkey = vanilla's own word for the exercise; key = ZeD's
+-- vkey = vanilla's own word for the exercise (key = a ZeD phrase, none left today)
 local EXERCISE_LABELS = {
     squats        = { vkey = "IGUI_Squats" },
     pushups       = { vkey = "IGUI_PushUps" },
     situp         = { vkey = "IGUI_SitUps" },
     burpees       = { vkey = "IGUI_Burpees" },
-    barbellcurl   = { key = "UI_ZeD_Health_BarbellCurl" },
-    dumbbellpress = { key = "UI_ZeD_Health_DumbbellPress" },
-    bicepscurl    = { key = "UI_ZeD_Health_BicepsCurl" },
+    barbellcurl   = { vkey = "IGUI_BarbellCurl" },
+    dumbbellpress = { vkey = "IGUI_DumbbellPress" },
+    bicepscurl    = { vkey = "IGUI_BicepsCurl" },
 }
 
 -- the exercise's name in the player's language (an unknown exercise id shows as is)
@@ -575,14 +575,26 @@ function ZeD.HealthTab.getExerciseMinutes(win)
     return math.max(MIN_EXERCISE_TIME, math.min(MAX_EXERCISE_TIME, m))
 end
 
+-- Why vanilla's fitness window greys its OK button, as the translation key of
+-- the tooltip it shows (vanilla ISFitnessUI:updateButtons: later rules
+-- overwrite earlier ones, so the last that applies is the one shown). Nil when
+-- none of the five apply. Climbing greys the button with no tooltip.
+local function exerciseBlockKey(playerObj)
+    local moodles = playerObj:getMoodles()
+    local key = nil
+    if moodles:getMoodleLevel(MoodleType.ENDURANCE) > 2 then key = "Tooltip_TooExhaustedFitness" end
+    if moodles:getMoodleLevel(MoodleType.HEAVY_LOAD) > 2 then key = "Tooltip_TooHeavyFitness" end
+    if playerObj:getVariableBoolean("sitonground") or playerObj:isSittingOnFurniture() then
+        key = "Tooltip_StandStillFitness"
+    end
+    if playerObj:getVehicle() then key = "Tooltip_CantDriveAndFitness" end
+    if moodles:getMoodleLevel(MoodleType.PAIN) > 3 then key = "Tooltip_TooMuchPainFitness" end
+    return key
+end
+
 -- Global condition check (same rules as vanilla ISFitnessUI:updateButtons)
 local function canExercise(playerObj)
-    local moodles = playerObj:getMoodles()
-    if moodles:getMoodleLevel(MoodleType.ENDURANCE) > 2 then return false end
-    if moodles:getMoodleLevel(MoodleType.HEAVY_LOAD) > 2 then return false end
-    if moodles:getMoodleLevel(MoodleType.PAIN) > 3 then return false end
-    if playerObj:getVariableBoolean("sitonground") or playerObj:isSittingOnFurniture() then return false end
-    if playerObj:getVehicle() then return false end
+    if exerciseBlockKey(playerObj) then return false end
     if playerObj:isClimbing() then return false end
     return true
 end
@@ -596,6 +608,153 @@ local function isExerciseAvailable(playerObj, exerciseId)
         return playerObj:getInventory():contains(exeData.item, true)
     end
     return true
+end
+
+-- ----------------------------------------------------------------------------
+-- EXERCISE INFO: what vanilla's fitness window says about the chosen exercise.
+-- Same sources as vanilla ISFitnessUI: the exercise's tooltip from
+-- FitnessExercises, one stiffness line per legs / arms / abs entry of its
+-- stiffness list (chest has no line in vanilla), the Regularity bar from the
+-- player's Fitness, the "(Requires X)" note for a missing item, and the reason
+-- vanilla gives for greying OK. Vanilla's own words throughout.
+-- ----------------------------------------------------------------------------
+
+local STIFFNESS_KEYS = {
+    legs = "IGUI_Fitness_LegsStiffness",
+    arms = "IGUI_Fitness_ArmsStiffness",
+    abs  = "IGUI_Fitness_AbsStiffness",
+}
+
+local _fitnessInitTried = {}  -- player number -> true once Fitness:init was tried for a missing regularity
+
+-- The player's regularity for one exercise, 0 to 1 (vanilla bar = regularity / 100). Nil if unreadable.
+local function readRegularity(playerObj, exeId)
+    local fitness = playerObj:getFitness()
+    if not fitness then return nil end
+    local ok, v = pcall(function() return fitness:getRegularity(exeId) end)
+    if (not ok or type(v) ~= "number") and not _fitnessInitTried[playerObj:getPlayerNum()] then
+        -- vanilla's window calls init() when it opens; do the same once if the map was never filled
+        _fitnessInitTried[playerObj:getPlayerNum()] = true
+        pcall(function() fitness:init() end)
+        ok, v = pcall(function() return fitness:getRegularity(exeId) end)
+    end
+    if not ok or type(v) ~= "number" then return nil end
+    return math.max(0, math.min(1, v / 100))
+end
+
+-- Everything vanilla shows for one exercise, as data:
+--   { id, name, desc, stiff = { text... }, warn = { text... }, regularity = 0..1 or nil }
+-- skipReg: leave the regularity out (the layout reserve does not need it).
+function ZeD.HealthTab.exerciseInfo(playerObj, exeId, skipReg)
+    if not playerObj or not FitnessExercises or not FitnessExercises.exercisesType then return nil end
+    local exeData = FitnessExercises.exercisesType[exeId]
+    if not exeData then return nil end
+    local info = {
+        id    = exeId,
+        name  = ZeD.HealthTab.exerciseLabel(exeId),
+        desc  = exeData.tooltip,
+        stiff = {},
+        warn  = {},
+    }
+    if exeData.stiffness then
+        for part in string.gmatch(exeData.stiffness, "[^,]+") do
+            local key = STIFFNESS_KEYS[part]
+            if key then info.stiff[#info.stiff + 1] = getText(key) end
+        end
+    end
+    if exeData.item and not isExerciseAvailable(playerObj, exeId) then
+        local itemName = getItemDisplayName and getItemDisplayName(exeData.item) or exeData.item
+        info.warn[#info.warn + 1] = getText("IGUI_FitnessNeedItem", itemName)
+    end
+    local blockKey = exerciseBlockKey(playerObj)
+    if blockKey then info.warn[#info.warn + 1] = getText(blockKey) end
+    if not skipReg then info.regularity = readRegularity(playerObj, exeId) end
+    return info
+end
+
+-- Lays the info out for a column width w (no drawing): returns { items, h }.
+-- Items carry their y inside the block; drawExerciseInfo paints them.
+local function layoutExerciseInfo(info, w)
+    local T, A, TM = ZeD.T, ZeD.Atoms, ZeD.TM
+    local f1, f2 = T.fontF1, T.fontF2
+    local h1, h2 = TM:getFontHeight(f1), TM:getFontHeight(f2)
+    local lg, sg = T.px(2), T.sp.xs
+    local dotSz, dotGap = T.px(6), T.px(4)
+    local items, y = {}, 0
+
+    items[#items + 1] = { kind = "name", y = y, text = A.truncateText(info.name, f2, w) }
+    y = y + h2 + sg
+
+    if info.desc and info.desc ~= "" then
+        local lines = A.wrapText(info.desc, f1, w)
+        items[#items + 1] = { kind = "lines", y = y, lines = lines, sec = true, fh = h1, lg = lg }
+        y = y + #lines * (h1 + lg) + sg
+    end
+
+    for _, s in ipairs(info.stiff) do
+        local lines = A.wrapText(s, f2, w)
+        items[#items + 1] = { kind = "lines", y = y, lines = lines, sec = false, fh = h2, lg = lg }
+        y = y + #lines * (h2 + lg) + sg
+    end
+
+    -- Regularity: vanilla's word over its bar (the bar's room is always reserved)
+    items[#items + 1] = { kind = "bar", y = y, text = getText("IGUI_FitnessRegularity"), fh = h1, lg = lg }
+    y = y + h1 + lg + T.fillBarH + sg
+
+    for _, s in ipairs(info.warn) do
+        local lines = A.wrapText(s, f2, math.max(T.px(20), w - dotSz - dotGap))
+        items[#items + 1] = { kind = "warn", y = y, lines = lines, fh = h2, lg = lg,
+                              dotSz = dotSz, dotGap = dotGap }
+        y = y + #lines * (h2 + lg) + sg
+    end
+
+    return { items = items, h = y }
+end
+
+local function drawExerciseInfo(panel, x, y, w, lay, info)
+    local T, A = ZeD.T, ZeD.Atoms
+    for _, it in ipairs(lay.items) do
+        local iy = y + it.y
+        if it.kind == "name" then
+            A.drawBody(panel, it.text, x, iy, T.textHead)
+        elseif it.kind == "lines" then
+            for i, line in ipairs(it.lines) do
+                local ly = iy + (i - 1) * (it.fh + it.lg)
+                if it.sec then A.drawSecondary(panel, line, x, ly)
+                else A.drawBody(panel, line, x, ly) end
+            end
+        elseif it.kind == "bar" then
+            if info.regularity then
+                A.drawSecondary(panel, it.text, x, iy)
+                A.drawFillBar(panel, x, iy + it.fh + it.lg, w, info.regularity, false, T.positive)
+            end
+        elseif it.kind == "warn" then
+            -- status dot + default text (warning colour lives on the dot only)
+            A.drawStatusDot(panel, x, iy + math.floor((it.fh - it.dotSz) / 2), T.warning, it.dotSz)
+            for i, line in ipairs(it.lines) do
+                A.drawBody(panel, line, x + it.dotSz + it.dotGap, iy + (i - 1) * (it.fh + it.lg))
+            end
+        end
+    end
+end
+
+-- Which exercise the info describes: the pad's focused pill or the mouse's
+-- hovered pill (the pad leads unless the mouse is the active device), else the
+-- last one started, else vanilla's preselected squats.
+local function pickInfoExercise(win, hoverId)
+    local focusId = nil
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
+       and Focus.getFocusedWindow() == win then
+        local el = Focus.getFocusedElement(win)
+        local id = el and el.exerciseId
+        if id and not string.find(tostring(id), "^time:") then focusId = id end
+    end
+    local det = ZeD and ZeD.Input and ZeD.Input.Detector
+    local kbm = det and det.getMode and det.getMode() == "kbm"
+    local id
+    if kbm then id = hoverId or focusId else id = focusId or hoverId end
+    return id or win._healthExerciseSel or "squats"
 end
 
 -- Start exercise (replicates vanilla ISFitnessUI:equipItems + onClick OK)
@@ -652,6 +811,7 @@ function ZeD.HealthTab.activateExerciseZone(win, zone)
         win._healthExerciseMinutes = math.max(MIN_EXERCISE_TIME, math.min(MAX_EXERCISE_TIME, m))
         return true
     end
+    win._healthExerciseSel = zone.id   -- the info below keeps describing the exercise just started
     ZeD.HealthTab._startExercise(win._playerObj, zone.id, ZeD.HealthTab.getExerciseMinutes(win))
     return true
 end
@@ -704,6 +864,21 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
         panel:drawRect(bx, by, bw, bh, 0.55, ac.r, ac.g, ac.b)
     end
 
+    -- Mouse hover: 0.22 alpha accent over an enabled pill, and the pill under
+    -- the mouse (enabled or not) picks which exercise the info below describes.
+    local hoverId = nil
+    local mouseX, mouseY = panel:getMouseX(), panel:getMouseY()
+    local mouseIn = mouseX >= 0 and mouseY >= 0
+        and mouseX < panel:getWidth() and mouseY < panel:getHeight()
+    local function _paintExerciseHoverCue(exeId, bx, by, bw, bh, enabled)
+        if not mouseIn then return end
+        if mouseX < bx or mouseX >= bx + bw or mouseY < by or mouseY >= by + bh then return end
+        if not string.find(tostring(exeId), "^time:") then hoverId = exeId end
+        if not enabled then return end
+        local ac = T.accent
+        panel:drawRect(bx, by, bw, bh, 0.22, ac.r, ac.g, ac.b)
+    end
+
     for idx, exeId in ipairs(EXERCISE_BODYWEIGHT) do
         local label = ZeD.HealthTab.exerciseLabel(exeId)
         local enabled = globalEnabled and not isExercising and isExerciseAvailable(playerObj, exeId)
@@ -714,6 +889,7 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
 
         _paintExerciseFocusCue(exeId, bx, by, colW, btnH)
         A.drawPillButton(panel, bx, by, colW, btnH, label, false, enabled, font)
+        _paintExerciseHoverCue(exeId, bx, by, colW, btnH, enabled)
 
         zoneIdx = zoneIdx + 1
         win._healthExerciseZones[zoneIdx] = {
@@ -735,6 +911,7 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
 
         _paintExerciseFocusCue(exeId, rx, curY, rw, btnH)
         A.drawPillButton(panel, rx, curY, rw, btnH, label, false, enabled, font)
+        _paintExerciseHoverCue(exeId, rx, curY, rw, btnH, enabled)
 
         zoneIdx = zoneIdx + 1
         win._healthExerciseZones[zoneIdx] = {
@@ -759,12 +936,14 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
         rx, curY + math.floor((btnH - secH) / 2))
     _paintExerciseFocusCue("time:dec", decX, curY, btnH, btnH)
     A.drawPillButton(panel, decX, curY, btnH, btnH, "-", false, canDec, font)
+    _paintExerciseHoverCue("time:dec", decX, curY, btnH, btnH, canDec)
     local minStr = tostring(mins)
     local tc = T.text
     panel:drawText(minStr, readX + math.floor((readW - ZeD.TM:MeasureStringX(font, minStr)) / 2),
         curY + math.floor((btnH - secH) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
     _paintExerciseFocusCue("time:inc", incX, curY, btnH, btnH)
     A.drawPillButton(panel, incX, curY, btnH, btnH, "+", false, canInc, font)
+    _paintExerciseHoverCue("time:inc", incX, curY, btnH, btnH, canInc)
     win._healthExerciseZones[zoneIdx + 1] = {
         id = "time:dec", timeStep = -EXERCISE_TIME_STEP,
         x = decX, y = curY, w = btnH, h = btnH, enabled = canDec,
@@ -775,7 +954,73 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
     }
     curY = curY + btnH + gap
 
+    -- What vanilla's fitness window says about the exercise: description,
+    -- stiffness, regularity, warnings
+    curY = ZeD.HealthTab._renderExerciseInfo(panel, win, rx, curY, rw, hoverId)
+
     return curY
+end
+
+-- Divider, then the info block for the chosen exercise (see pickInfoExercise).
+-- The block's room is reserved for the tallest exercise (_measureExerciseInfo),
+-- so hovering from one pill to the next never moves what is below.
+function ZeD.HealthTab._renderExerciseInfo(panel, win, rx, ry, rw, hoverId)
+    local T, A = ZeD.T, ZeD.Atoms
+    local info = ZeD.HealthTab.exerciseInfo(win._playerObj, pickInfoExercise(win, hoverId))
+    if not info then return ry end
+    local w = math.min(rw, win._healthInfoW or rw)
+    A.drawDividerH(panel, rx, ry, rw)
+    local y = ry + T.px(1) + T.sp.afterGroove
+    -- the wrapped lines only change with the exercise, the width, the fonts or the warnings:
+    -- measured once, not every frame
+    local TM = ZeD.TM
+    local sig = table.concat({ info.id, tostring(w), tostring(T.scale), TM:getFontHeight(T.fontF1),
+                               TM:getFontHeight(T.fontF2), info.name, tostring(info.desc), #info.stiff,
+                               table.concat(info.warn, "|") }, "|")
+    local cached = win._healthInfoLay
+    local lay
+    if cached and cached.sig == sig then
+        lay = cached.lay
+    else
+        lay = layoutExerciseInfo(info, w)
+        win._healthInfoLay = { sig = sig, lay = lay }
+    end
+    drawExerciseInfo(panel, rx, y, w, lay, info)
+    win._healthInfoShown = info.id   -- which exercise the block described this frame (QA reads it)
+    win._healthInfoUsedH = lay.h
+    return y + math.max(win._healthInfoH or 0, lay.h)
+end
+
+-- Room the info block takes in the right column: divider + gap + the tallest
+-- exercise's block at the narrowest column width (scrollbar present). Stamps
+-- _healthInfoW / _healthInfoH on the window for the renderer. Cached on what
+-- changes the layout (width, fonts, which warnings apply).
+function ZeD.HealthTab._measureExerciseInfo(win, w)
+    local T, TM = ZeD.T, ZeD.TM
+    local playerObj = win and win._playerObj
+    if not playerObj or not FitnessExercises or not FitnessExercises.exercisesType then return 0 end
+    local wrapW = math.max(T.px(60), ZeD.Molecules.layoutZoneA(0, 0, w - T.sp.scrollbarW, 0, 0).rightW)
+    local sig = { wrapW, tostring(T.scale), TM:getFontHeight(T.fontF1), TM:getFontHeight(T.fontF2),
+                  exerciseBlockKey(playerObj) or "-" }
+    for _, exeId in ipairs(EXERCISE_EQUIPMENT) do
+        sig[#sig + 1] = isExerciseAvailable(playerObj, exeId) and "1" or "0"
+    end
+    local key = table.concat(sig, "|")
+    local cache = win._healthInfoCache
+    if not cache or cache.key ~= key then
+        local maxH = 0
+        local function consider(exeId)
+            local info = ZeD.HealthTab.exerciseInfo(playerObj, exeId, true)
+            if info then maxH = math.max(maxH, layoutExerciseInfo(info, wrapW).h) end
+        end
+        for _, exeId in ipairs(EXERCISE_BODYWEIGHT) do consider(exeId) end
+        for _, exeId in ipairs(EXERCISE_EQUIPMENT) do consider(exeId) end
+        cache = { key = key, h = maxH }
+        win._healthInfoCache = cache
+    end
+    win._healthInfoW = wrapW
+    win._healthInfoH = cache.h
+    return T.px(1) + T.sp.afterGroove + cache.h
 end
 
 -- ============================================================================
@@ -785,7 +1030,7 @@ end
 local FIGURE_W   = ZeD.Spacing.figureW
 local FIGURE_H   = ZeD.Spacing.figureH
 
-function ZeD.HealthTab._measureZoneA(data, rw)
+function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local btnH  = secH + T.sp.pillBtnPadV
@@ -802,6 +1047,7 @@ function ZeD.HealthTab._measureZoneA(data, rw)
     rightH = rightH + bwRows * (btnH + gap)
     rightH = rightH + #EXERCISE_EQUIPMENT * (btnH + gap)
     rightH = rightH + btnH + gap  -- session time row
+    rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)  -- exercise info block
 
     return math.max(T.px(FIGURE_H), rightH)
 end
@@ -876,7 +1122,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- Zone A body: figure + dashboard (only when expanded)
     local zoneABodyH = 0
     if figureExpanded then
-        zoneABodyH = ZeD.HealthTab._measureZoneA(data, w) + padTop + pad
+        zoneABodyH = ZeD.HealthTab._measureZoneA(data, w, win) + padTop + pad
     end
 
     -- Zone B height (injury list)

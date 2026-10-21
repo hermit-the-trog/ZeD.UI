@@ -347,8 +347,8 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
         local bx = cx + cw - pad
         local row = 1000 + i * 2
         bx = self:headBtn("del:" .. i, bx, hy, { icon = ICON .. "cross-small.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintRemove"), fn = function() self:remove(i) end, row = row, col = 9, variant = "danger" })
-        bx = self:headBtn("dn:" .. i, bx, hy, { icon = ICON .. "arrow-down.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintMoveDown"), fn = function() self:move(i, 1) end, row = row, col = 8, disabled = i == #self.blocks })
-        bx = self:headBtn("up:" .. i, bx, hy, { icon = ICON .. "arrow-up.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintMoveUp"), fn = function() self:move(i, -1) end, row = row, col = 7, disabled = i == 1 })
+        bx = self:headBtn("dn:" .. i, bx, hy, { icon = ICON .. "arrow-down.png", hint = ZeD.tr("UI_ServerSettings_ButtonMoveDown"), fn = function() self:move(i, 1) end, row = row, col = 8, disabled = i == #self.blocks })
+        bx = self:headBtn("up:" .. i, bx, hy, { icon = ICON .. "arrow-up.png", hint = ZeD.tr("UI_ServerSettings_ButtonMoveUp"), fn = function() self:move(i, -1) end, row = row, col = 7, disabled = i == 1 })
         if isSel and (b.kind == "h1" or b.kind == "h2" or b.kind == "h3") then
             bx = bx - T.px(6)
             for lv = 3, 1, -1 do

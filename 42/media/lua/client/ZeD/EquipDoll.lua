@@ -57,12 +57,12 @@ local function set(t) local s = {} for _, v in ipairs(t) do s[v] = true end retu
 -- y to y, in the doll's units: the photo's centre is x 260) and the body
 -- locations each one gathers. Vanilla's locations, lower case, no underscores.
 D.SLOTS = {
-    { id = "head",  key = "UI_ZeD_Doll_Head",  side = "L", row = 0, av = { 262, 40, 92 },
+    { id = "head",  key = "IGUI_health_Head",  side = "L", row = 0, av = { 262, 40, 92 },
       locs = set{ "hat", "fullhat", "fullsuithead", "fullsuitheadscba",
                   "mask", "maskeyes", "maskfull", "ears", "eartop", "nose" } },
     { id = "eyes",  key = "UI_ZeD_Doll_Eyes",  side = "L", row = 1, av = { 258, 80, 80 },
       locs = set{ "eyes", "lefteye", "righteye" } },
-    { id = "neck",  key = "UI_ZeD_Doll_Neck",  side = "L", row = 2, av = { 262, 116, 116 },
+    { id = "neck",  key = "UI_ClothingType_Neck",  side = "L", row = 2, av = { 262, 116, 116 },
       locs = set{ "scarf", "necktexture", "necklace", "necklacelong", "neck" } },
     { id = "torso", key = "UI_ZeD_Doll_Torso", side = "L", row = 3, av = { 256, 186, 186 },
       locs = set{ "tshirt", "tanktop", "shirt", "shortsleeveshirt", "torso1", "torso1legs1", "torsoextra",
@@ -75,14 +75,14 @@ D.SLOTS = {
     { id = "hands", key = "UI_ZeD_Doll_Hands", side = "L", row = 5, av = { 200, 320, 320 },
       locs = set{ "hands", "handsleft", "handsright", "leftmiddlefinger", "rightmiddlefinger", "leftringfinger",
                   "rightringfinger" } },
-    { id = "back",  key = "UI_ZeD_Doll_Back",  side = "R", row = 0, av = { 312, 150, 150 },
+    { id = "back",  key = "UI_ClothingType_Back",  side = "R", row = 0, av = { 312, 150, 150 },
       locs = set{ "back", "satchel" } },
-    { id = "belt",  key = "UI_ZeD_Doll_Belt",  side = "R", row = 2, av = { 292, 236, 236 },
+    { id = "belt",  key = "UI_ClothingType_Belt",  side = "R", row = 2, av = { 292, 236, 236 },
       locs = set{ "belt", "beltextra", "fannypackfront", "fannypackback", "webbing", "ankleholster", "ammostrap" } },
     { id = "arms",  key = "UI_ZeD_Doll_Arms",  side = "R", row = 3, av = { 322, 280, 300 },
       locs = set{ "leftwrist", "rightwrist", "leftarm", "rightarm", "forearmleft", "forearmright", "elbowleft",
                   "elbowright", "shoulderpadleft", "shoulderpadright", "sportshoulderpad", "sportshoulderpaddontop" } },
-    { id = "legs",  key = "UI_ZeD_Doll_Legs",  side = "R", row = 4, av = { 300, 260, 460 },
+    { id = "legs",  key = "UI_ClothingType_Legs1",  side = "R", row = 4, av = { 300, 260, 460 },
       locs = set{ "pants", "pantsskinny", "pantsextra", "shortpants", "shortsshort", "legs1", "skirt", "longskirt",
                   "dress", "longdress", "underwearbottom", "codpiece", "kneeleft", "kneeright", "thighleft", "thighright",
                   "calfleft", "calfright", "calflefttexture", "calfrighttexture", "gaiterleft", "gaiterright" } },
@@ -254,6 +254,11 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
     local ac = T.accent
     if item then
         panel:drawRect(bx, by, b, b, 0.04, 1, 1, 1)
+        if ZeD.EquipmentTab and ZeD.EquipmentTab.draggedItem(win) == item then
+            -- being dragged: dimmed, as the inventory lists dim the rows they carry
+            local s1 = T.surf1
+            panel:drawRect(bx, by, b, b, 0.4, s1.r, s1.g, s1.b)
+        end
         local bs = T.borderS
         panel:drawRectBorder(bx, by, b, b, bs.a or 1, bs.r, bs.g, bs.b)
         local tex = itemTex(item)
@@ -352,7 +357,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local items = data.slots[def.id].items
         local item = items[1]
         local key = "doll:" .. def.id
-        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.tr(def.key), mx, my)
+        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.upper(ZeD.tr(def.key)), mx, my)
         if item then
             zones[#zones + 1] = { x = bx, y = by, w = b, h = b, type = key, item = item }
             if over then

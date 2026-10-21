@@ -38,7 +38,7 @@ local CATALOG = {
     poorlife      = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Fragile_Label",       desc = "UI_ZeD_Animals_Dis_Fragile_Desc" },
     skinny        = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Skinny_Label",        desc = "UI_ZeD_Animals_Dis_Skinny_Desc" },
     gluttonous    = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Gluttonous_Label",    desc = "UI_ZeD_Animals_Dis_Gluttonous_Desc" },
-    highthirst    = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Thirsty_Label",       desc = "UI_ZeD_Animals_Dis_Thirsty_Desc" },
+    highthirst    = { sev = "minor",    label = "IGUI_Animal_Thirsty",       desc = "UI_ZeD_Animals_Dis_Thirsty_Desc" },
     highstress    = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Anxious_Label",       desc = "UI_ZeD_Animals_Dis_Anxious_Desc" },
     fidget        = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Restless_Label",      desc = "UI_ZeD_Animals_Dis_Restless_Desc" },
     craven        = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Craven_Label",        desc = "UI_ZeD_Animals_Dis_Craven_Desc" },

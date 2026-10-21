@@ -55,6 +55,7 @@ zedqa_mapshot.lua | ms                           # both windows, then the Maps t
 zedqa_mapstyles.lua | mst                        # Survey / Color / Paper at two zooms on Muldraugh
 zedqa_flyers.lua | fl                            # the Maps tab marks only flyers read
 zedqa_flyermap.lua | fm                          # flyer pins, hover card, reader from a pin, Show on map
+zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's store, one-time migration, Delete; all taken back
 zedqa_journal_refs.lua | jr                      # Journal tab diary and Flyers gallery
 zedqa_journal_readers.lua | jrd                  # Notebooks, Papers, Into; items and log entry taken back
 zedqa_reader.lua | rd                            # the reader through vanilla's Read: paper, words, zoom, flyer, map
@@ -97,7 +98,9 @@ zedqa_dash19.lua | dash | timeout=480            # every dashboard design on a s
 zedqa_dashpx.lua | dpx | timeout=720             # the pixel-art v6 dashboards (24 cars)
 
 # ---- last: the long one
-zedqa_testlang.lua | tlang | timeout=600       # every screen with the stretched test language (screenshots zqa_tl_*)
+zedqa_exinfo.lua | ex                            # Health tab exercise info: vanilla's description, stiffness, regularity, warnings
+zedqa_equipdrag.lua | eqd | timeout=240          # Equip rows and doll slots as drag sources: click, drag, cancel, bag, floor, same place (fake mouse; all put back)
+zedqa_testlang.lua | tlang | timeout=600      # every screen with the stretched test language (screenshots zqa_tl_*)
 zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
 zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)
 

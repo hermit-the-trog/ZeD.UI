@@ -47,7 +47,7 @@ local function _classifyAction(self)
     end
     if t and t ~= "" then
         local lower = string.lower(t)
-        if lower:find("cook")    then return "cooking",   ZeD.tr("UI_ZeD_ItemAct_Cooking")   end
+        if lower:find("cook")    then return "cooking",   ZeD.upper(ZeD.tr("IGUI_invpanel_Cooking"))   end
         if lower:find("read")    then return "reading",   ZeD.tr("UI_ZeD_ItemAct_Reading")   end
         if lower:find("repair")
            or lower:find("fix")  then return "repairing", ZeD.tr("UI_ZeD_ItemAct_Repairing") end
@@ -334,11 +334,11 @@ local function _pollCooking()
                         local span = math.max(1, toBurn - toCook)
                         percent = math.max(0, math.min(1, (ct - toCook) / span))
                         timeStr = ZeD.tr("UI_ZeD_ItemAct_MinutesShort", math.max(0, math.ceil(toBurn - ct)))
-                        mode, label = "danger", ZeD.tr("UI_ZeD_ItemAct_Burning")
+                        mode, label = "danger", ZeD.upper(ZeD.tr("IGUI_invpanel_Burning"))
                     else
                         percent = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
                         timeStr = ZeD.tr("UI_ZeD_ItemAct_MinutesShort", math.max(0, math.ceil(toCook - ct)))
-                        mode, label = "active", ZeD.tr("UI_ZeD_ItemAct_Cooking")
+                        mode, label = "active", ZeD.upper(ZeD.tr("IGUI_invpanel_Cooking"))
                     end
                     local desc = { kind = "cooking", label = label, mode = mode, percent = percent, timeStr = timeStr, _action = nil }
                     if not _cookTracked[item] then

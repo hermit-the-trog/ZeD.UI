@@ -462,7 +462,7 @@ function ZeD_SearchField:new(x, y, w, placeholder)
     setmetatable(o, self)
     self.__index = self
 
-    o.placeholder = placeholder or ZeD.tr("UI_ZeD_Search")
+    o.placeholder = placeholder or ZeD.tr("IGUI_FilterSearch")
     o.iconAreaW = 24   -- reserved width for the search icon (S124 scale: design units, wrapped with T.px where used)
     o.onFilter = nil   -- callback: function(self, text) — fires on each keystroke
     o.onSubmit = nil   -- callback: function(self, text) — fires on Enter
@@ -2063,7 +2063,7 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
 
         -- Dirty (brown) — flag only, no button
         if soiled and soiled.dirt then
-            local lbl    = ZeD.tr("UI_ZeD_Dock_Dirty")
+            local lbl    = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty"))
             local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
             local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)
             rx = rx - flagW

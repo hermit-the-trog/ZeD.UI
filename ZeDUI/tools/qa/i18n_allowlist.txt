@@ -101,7 +101,7 @@ ItemCard.lua|hverb_
 # Category record: shared with CraftingCore, which uses the id and label; the drawn name goes through CC.categoryLabel.
 JournalTab.lua|All
 
-# Map icon and colour names: never drawn (only the first letter shows when a texture is missing).
+# Map icon names: never drawn (only the first letter shows when a texture is missing).
 MapsTab.lua|House
 MapsTab.lua|Target
 MapsTab.lua|Skull
@@ -116,11 +116,6 @@ MapsTab.lua|Food
 MapsTab.lua|Axe
 MapsTab.lua|Gears
 MapsTab.lua|Check
-MapsTab.lua|Pencil
-MapsTab.lua|Black
-MapsTab.lua|Blue
-MapsTab.lua|Red
-MapsTab.lua|Green
 
 # Busy-state id compared by code ("walking"); the drawn words are the UI_ZeD_Lock_Busy keys.
 ObjectCardLock.lua|walking
