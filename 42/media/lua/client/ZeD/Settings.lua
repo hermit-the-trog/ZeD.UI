@@ -303,7 +303,13 @@ do
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
-        if o then o.zedNameKey = key end
+        if o then
+            o.zedNameKey = key
+            -- the item each option starts on (its addItem marked true above): still the default here,
+            -- since ModOptions.ini is read later, when vanilla builds its options screen. ZeD setup's
+            -- Defaults button and the help band's "Default:" read it (Oct 21 2026, mockup zed_settings_v2)
+            o.zedDefault = o.selected
+        end
     end
 end
 

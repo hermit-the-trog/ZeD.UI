@@ -469,7 +469,7 @@ end
 -- (UI.json is the source of truth; keep the two in step.)
 -- ---------------------------------------------------------------------------
 ZeD.trDefaults({
-    UI_ZeD_ModName = "ZeD UI",
+    UI_ZeD_ModName = "ZeD-GUI",
     UI_ZeD_ModDesc = "Total UI overhaul for Project Zomboid",
 
     UI_ZeD_Settings_BaseTheme = "Base theme",

@@ -144,6 +144,29 @@ G.SETUP_GAME = {
     { "doVideoEffects", "UI_ZeD_Options_GroupGraphics", "UI_ZeD_Options_SecEffects", "UI_ZeD_Options_WhyVideoEffects" },
 }
 
+-- ZeD setup: ZeD's own options in five groups, each with the control it is drawn with
+-- (Oct 21 2026, mockup ZeDUI/mockups/zed_settings_v2.html; director: "Apply and commit").
+-- The value is still the combo's item (ModOptions saves that number), so a saved choice keeps
+-- its meaning; only the drawing changes (ZeD_MainMenuOptions' drawControl):
+--   "seg"    a switch of joined buttons, the pick filled with the accent (two or three choices)
+--   "swatch" the nine accents as squares; the window accents add "Same as Accent"
+--   "scale"  a stepped slider: Auto at the left, then the fixed sizes
+--   "onoff"  an on/off switch (item 1 Off, item 2 On); danger: red when on
+--   nil      the drop-down, as before (a long list of names)
+-- A control too wide for the space (a long translation, the test language) is drawn as the drop-down.
+-- { group title, { { option id, style, danger = , under = the line under its name,
+--   short = shorter words for a switch's choices or the slider's steps, by item (the drop-down
+--   on the Mods page keeps the full ones) } } }
+-- An option of ZeD's this table doesn't name (a new one) lands under Other, as a drop-down.
+G.ZED_GROUPS = {
+    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "seg" }, { "accentColor", "swatch" }, { "textSize", "seg" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "seg" }, { "equipView", "seg" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" } } },
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "seg", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "seg" }, { "actionBar", "seg" } } },
+    { "UI_ZeD_Options_ZedControls", { { "contextStyle", "seg" }, { "glyphDisplay" }, { "inputModeLock" } } },
+    { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", danger = true, under = "UI_ZeD_Options_UnderSafeMode" },
+                                     { "testLanguage", "onoff" } } },
+}
+
 -- a shallow copy carrying a note under its name (ZeD setup's copies; the
 -- original row stays as it is in its own group)
 local function copyRow(r, under, why)
@@ -227,26 +250,50 @@ function G.build(pages, rowsOf)
             for _, r in ipairs(rows) do t[#t + 1] = r end
         end
     end
-    -- ZeD setup: ZeD's own options (their controls on the Mods page), then the
-    -- game settings ZeD's look depends on
+    -- ZeD setup: ZeD's own options (their controls on the Mods page) in their groups,
+    -- then the game settings ZeD's look depends on
     local setup = {}
     local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
     local mods = byPage.mods or {}
-    local zrows = {}
+    local zrow, zorder = {}, {}   -- option id -> its row's copy; the ids in Settings.lua's order
     for _, opt in ipairs(zo and zo.data or {}) do
         if opt.element then
             for _, r in ipairs(mods) do
                 if r.control == opt.element then
                     -- the name is drawn through ZeD.tr each frame (ZeD_MainMenuOptions), so the test language reaches it
                     r.labelKey = opt.zedNameKey
-                    zrows[#zrows + 1] = copyRow(r, nil)
+                    -- its help: vanilla's options screen never gives a mod's drop-down the option's
+                    -- tooltip, so the band read nothing; the key is beside the name's (UI_ZeD_Settings_<x>Tip)
+                    r.zedTipKey = opt.zedNameKey and (opt.zedNameKey .. "Tip")
+                    local c = copyRow(r, nil)
+                    c.zedDefault = opt.zedDefault   -- (Settings.lua: the item it starts on)
+                    zrow[opt.id] = c
+                    zorder[#zorder + 1] = opt.id
                 end
             end
         end
     end
-    if #zrows > 0 then
-        setup[#setup + 1] = { kind = "header", text = ZeD.tr("UI_ZeD_Options_HeadLook") }
-        for _, r in ipairs(zrows) do setup[#setup + 1] = r end
+    local placed = {}
+    for _, grp in ipairs(G.ZED_GROUPS) do
+        local list = {}
+        for _, e in ipairs(grp[2]) do
+            local c = zrow[e[1]]
+            if c and not placed[e[1]] then
+                c.zedStyle, c.zedDanger, c.under, c.zedShort = e[2], e.danger, e.under, e.short
+                list[#list + 1] = c
+                placed[e[1]] = true
+            end
+        end
+        if #list > 0 then
+            setup[#setup + 1] = { kind = "header", text = G.text(grp[1]) }
+            for _, c in ipairs(list) do setup[#setup + 1] = c end
+        end
+    end
+    local rest = {}
+    for _, id in ipairs(zorder) do if not placed[id] then rest[#rest + 1] = zrow[id] end end
+    if #rest > 0 then
+        setup[#setup + 1] = { kind = "header", text = getText("UI_ServerSettingGroup_Other") }
+        for _, c in ipairs(rest) do setup[#setup + 1] = c end
     end
     local grows = {}
     for _, e in ipairs(G.SETUP_GAME) do

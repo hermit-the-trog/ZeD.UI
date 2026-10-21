@@ -30,6 +30,8 @@
 --   * binding a key happens in the strip: press the key (or a mouse button),
 --     NO KEY / DEFAULT / CANCEL; a key already in use asks there too
 --   * LB / RB walk the pages; left / right change a value in place
+--   * ZeD setup draws ZeD's own options as switches, swatches, a stepped slider
+--     and on/off switches, in five groups, with a Defaults button (Oct 21 2026)
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -314,6 +316,7 @@ local function help(r)
             t = c.tooltip
         end
     end)
+    if r.zedTipKey then t = ZeD.tr(r.zedTipKey) end   -- ZeD's own options (ZeD_MainMenuOptionGroups)
     if r.kind == "key" then t = ZeD.tr("UI_ZeD_Options_HelpKey") end
     if r.kind == "special" then t = ZeD.tr("UI_ZeD_Options_HelpSpecial") end
     if r.kind == "stepper" then t = ZeD.tr("UI_ZeD_Options_HelpDeadzone") end
@@ -827,6 +830,254 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     end
 end
 
+-- ============================================================================
+-- ZeD SETUP'S CONTROLS (Oct 21 2026, mockup ZeDUI/mockups/zed_settings_v2.html)
+-- Each of ZeD's own options is still a combo (ModOptions saves its item's number); these
+-- draw it as the control that fits it, and a click picks the item exactly as the drop-down
+-- would (setCombo). Left / right step it (nudge), A moves to the next choice (activateRow).
+-- ============================================================================
+local SEG_PAD, SEG_H = 12, 24
+local SW_SZ, SW_GAP = 22, 4
+local SW_TRACK, SW_KNOB = 44, 18
+local SCALE_W, SCALE_MIN = 270, 140
+
+-- the accents in Settings.lua's order (the swatches' items 1..9)
+local function accentKeys() return (ZeD.Settings and ZeD.Settings.accentKeys) or {} end
+
+-- an accent's colour for the base theme in use (Light has its own, darker set)
+local function accentColor(key)
+    local set = ZeD.AccentColors and ZeD.AccentColors[key]
+    if not set then return nil end
+    local v = (ZeD.currentBase == "light") and set.light or set.dark
+    return v and v.accent
+end
+
+-- a scale as words: 2 -> "2x", 1.333 -> "1.33x"
+local function scaleText(v)
+    local s = string.format("%.2f", tonumber(v) or 1):gsub("0+$", ""):gsub("%.$", "")
+    return s .. "x"
+end
+
+-- what the stepped slider says beside it: the size picked, or what Auto picks on this screen
+local function scaleReadout(c)
+    if (c.selected or 1) == 1 then
+        local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
+        return ZeD.tr("UI_ZeD_Options_ScaleAutoNow", scaleText(root))
+    end
+    return comboText(c, c.selected)
+end
+
+-- a choice's words on a ZeD control: the short ones where G.ZED_GROUPS gives them, else the item's
+local function itemText(r, i)
+    local k = r.zedShort and r.zedShort[i]
+    if k then return ZeD.tr(k) end
+    return comboText(r.control, i)
+end
+
+-- the width a ZeD control needs in the space cw (wider: drawn as the drop-down). The window
+-- accents' "Same as Accent" button shrinks to a tenth swatch when the button does not fit
+-- (r._swCompact, read by drawZedControl).
+local function zedWidth(r, cw)
+    local T = ZeD.T
+    local c = r.control
+    local f2 = T.fontF2
+    local n = #(c.options or {})
+    if r.zedStyle == "seg" then
+        local w = 0
+        for i = 1, n do w = w + MM.textW(f2, itemText(r, i)) + T.px(SEG_PAD) * 2 end
+        return w
+    elseif r.zedStyle == "swatch" then
+        local k = #accentKeys()
+        local w = k * T.px(SW_SZ) + (k - 1) * T.px(SW_GAP)
+        r._swCompact = false
+        if n > k then
+            local full = w + T.px(10) + T.px(30) + MM.textW(f2, ZeD.tr("UI_ZeD_Options_SameAsAccent"))
+            if full <= cw then return full end
+            r._swCompact = true
+            return w + T.px(SW_GAP) + T.px(SW_SZ)
+        end
+        return w
+    elseif r.zedStyle == "scale" then
+        return T.px(SCALE_MIN) + T.px(14) + MM.textW(f2, scaleReadout(c))
+    elseif r.zedStyle == "onoff" then
+        return T.px(SW_TRACK) + T.px(10) + MM.textW(f2, ZeD.upper(getText("UI_Off")))
+    end
+    return math.huge   -- (no style: the drop-down)
+end
+
+function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
+    local T = ZeD.T
+    local c = r.control
+    local f2 = T.fontF2
+    local bs = T.borderS
+    local kind = self.kind
+    local hot = self:pctx().hot
+    local n = #(c.options or {})
+    local sel = c.selected or 1
+    local dim = c.disabled and 0.4 or 1
+    local midY = ry + math.floor(T.px(ROW_H) / 2)
+    local function isHot(id) return hot == kind .. ":" .. id end
+    local function pick(i) return function() if i ~= c.selected then setCombo(c, i) end end end
+
+    if r.zedStyle == "seg" then
+        -- joined outline buttons; the pick filled with the accent
+        local bh = T.px(SEG_H)
+        local by = midY - math.floor(bh / 2)
+        local x0 = cx
+        for i = 1, n do
+            local t = itemText(r, i)
+            local bw = MM.textW(f2, t) + T.px(SEG_PAD) * 2
+            local id = rowId .. ":seg" .. i
+            local on = (i == sel)
+            local bg = on and T.accent or (isHot(id) and T.surf4 or T.surf3)
+            self:drawRect(x0, by, bw, bh, 1, bg.r, bg.g, bg.b)
+            if not on then
+                -- the System 7 lit edge on the buttons not picked
+                local hi = T.chromeHi or T.surf4
+                self:drawRect(x0 + T.px(1), by + T.px(1), bw - T.px(2), T.px(1), hi.a or 1, hi.r, hi.g, hi.b)
+            end
+            if i > 1 then self:drawRect(x0, by, T.px(1), bh, bs.a, bs.r, bs.g, bs.b) end
+            local tc = on and T.textOnAccent or T.text
+            self:drawText(t, x0 + T.px(SEG_PAD), by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
+            hit(id, x0, by, bw, bh, pick(i), { disabled = c.disabled })
+            x0 = x0 + bw
+        end
+        self:drawRectBorder(cx, by, x0 - cx, bh, bs.a, bs.r, bs.g, bs.b)
+
+    elseif r.zedStyle == "swatch" then
+        -- the nine accents; the pick framed in the heading colour
+        local keys = accentKeys()
+        local sz, gap = T.px(SW_SZ), T.px(SW_GAP)
+        local sy = midY - math.floor(sz / 2)
+        local th = T.textHead
+        local x0 = cx
+        local function frame(x, y, w, h)
+            self:drawRectBorder(x - T.px(3), y - T.px(3), w + T.px(6), h + T.px(6), th.a or 1, th.r, th.g, th.b)
+            self:drawRectBorder(x - T.px(2), y - T.px(2), w + T.px(4), h + T.px(4), th.a or 1, th.r, th.g, th.b)
+        end
+        for i, key in ipairs(keys) do
+            local col = accentColor(key)
+            local id = rowId .. ":sw" .. i
+            if col then self:drawRect(x0, sy, sz, sz, dim, col.r, col.g, col.b) end
+            self:drawRectBorder(x0, sy, sz, sz, 0.45, 0, 0, 0)
+            if i == sel then frame(x0, sy, sz, sz)
+            elseif isHot(id) then self:drawRectBorder(x0 - T.px(2), sy - T.px(2), sz + T.px(4), sz + T.px(4), 0.6, th.r, th.g, th.b) end
+            hit(id, x0, sy, sz, sz, pick(i), { disabled = c.disabled })
+            x0 = x0 + sz + gap
+        end
+        x0 = x0 - gap
+        -- a window's accent: "Same as Accent" (the item after the nine), with the Accent color in it
+        local follow = #keys + 1
+        if n >= follow and r._swCompact then
+            -- no room for the button: a tenth swatch, the Accent color ringed (its name shows beside it)
+            x0 = x0 + gap
+            local id = rowId .. ":same"
+            local ac, s1 = T.accent, T.surf1
+            self:drawRect(x0, sy, sz, sz, dim, ac.r, ac.g, ac.b)
+            self:drawRect(x0 + T.px(5), sy + T.px(5), sz - T.px(10), sz - T.px(10), 1, s1.r, s1.g, s1.b)
+            self:drawRect(x0 + T.px(8), sy + T.px(8), sz - T.px(16), sz - T.px(16), dim, ac.r, ac.g, ac.b)
+            self:drawRectBorder(x0, sy, sz, sz, 0.45, 0, 0, 0)
+            if sel == follow then frame(x0, sy, sz, sz)
+            elseif isHot(id) then self:drawRectBorder(x0 - T.px(2), sy - T.px(2), sz + T.px(4), sz + T.px(4), 0.6, th.r, th.g, th.b) end
+            hit(id, x0, sy, sz, sz, pick(follow), { disabled = c.disabled })
+            x0 = x0 + sz
+        elseif n >= follow then
+            x0 = x0 + T.px(10)
+            local st = ZeD.tr("UI_ZeD_Options_SameAsAccent")
+            local chW, chH = T.px(30) + MM.textW(f2, st), T.px(SEG_H)
+            local chY = midY - math.floor(chH / 2)
+            local id = rowId .. ":same"
+            local bg = isHot(id) and T.surf4 or T.surf3
+            self:drawRect(x0, chY, chW, chH, 1, bg.r, bg.g, bg.b)
+            self:drawRectBorder(x0, chY, chW, chH, bs.a, bs.r, bs.g, bs.b)
+            local q = T.px(10)
+            local ac = T.accent
+            self:drawRect(x0 + T.px(8), midY - math.floor(q / 2), q, q, dim, ac.r, ac.g, ac.b)
+            self:drawRectBorder(x0 + T.px(8), midY - math.floor(q / 2), q, q, 0.4, 0, 0, 0)
+            local tc = T.text
+            self:drawText(st, x0 + T.px(24), chY + math.floor((chH - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
+            if sel == follow then frame(x0, chY, chW, chH) end
+            hit(id, x0, chY, chW, chH, pick(follow), { disabled = c.disabled })
+            x0 = x0 + chW
+        end
+        -- the pick's name, when there is room for it
+        if sel <= #keys or r._swCompact then
+            local name = (sel <= #keys) and comboText(c, sel) or ZeD.tr("UI_ZeD_Options_SameAsAccent")
+            local nx = x0 + T.px(12)
+            if nx + MM.textW(f2, name) <= cx + cw then
+                local d = T.textDim
+                self:drawText(name, nx, midY - math.floor(MM.fontH(f2) / 2), d.r, d.g, d.b, d.a or 1, f2)
+            end
+        end
+
+    elseif r.zedStyle == "scale" then
+        -- a stepped track: a tick and its name under every step, Auto at the left
+        local ro = scaleReadout(c)
+        local tw = math.min(T.px(SCALE_W), cw - T.px(14) - MM.textW(f2, ro))
+        local barY = midY - T.px(3)
+        local s1, ac = T.surf1, T.accent
+        local function stepX(i) return cx + math.floor((i - 1) / math.max(1, n - 1) * tw) end
+        self:drawRect(cx, barY, tw, T.px(6), 1, s1.r, s1.g, s1.b)
+        self:drawRect(cx, barY, stepX(sel) - cx, T.px(6), dim, ac.r, ac.g, ac.b)
+        self:drawRectBorder(cx, barY, tw, T.px(6), bs.a, bs.r, bs.g, bs.b)
+        local f1 = T.fontF1
+        local d = T.textDim
+        -- a tick under every step; a step's name where it does not run into another: the two ends
+        -- first, then the rest left to right (all eight at 1x, fewer with Large text)
+        local spans = {}
+        local function place(i)
+            local lt = itemText(r, i)
+            local lw = MM.textW(f1, lt)
+            local lx = math.max(cx, math.min(cx + tw - lw, stepX(i) - math.floor(lw / 2)))
+            for _, sp in ipairs(spans) do
+                if lx < sp[2] + T.px(4) and lx + lw + T.px(4) > sp[1] then return end
+            end
+            spans[#spans + 1] = { lx, lx + lw }
+            local lc = (i == sel) and T.text or d
+            self:drawText(lt, lx, barY + T.px(12), lc.r, lc.g, lc.b, lc.a or 1, f1)
+        end
+        for i = 1, n do self:drawRect(stepX(i), barY + T.px(7), T.px(1), T.px(4), bs.a, bs.r, bs.g, bs.b) end
+        place(1)
+        if n > 1 then place(n) end
+        for i = 2, n - 1 do place(i) end
+        local id = rowId .. ":sc"
+        local thW, thH = T.px(12), T.px(18)
+        local thX, thY = stepX(sel) - math.floor(thW / 2), midY - math.floor(thH / 2)
+        local tbk = isHot(id) and T.accentBright or T.text
+        self:drawRect(thX, thY, thW, thH, 1, tbk.r, tbk.g, tbk.b)
+        self:drawRectBorder(thX, thY, thW, thH, bs.a, bs.r, bs.g, bs.b)
+        self:drawRect(thX + T.px(1), thY + thH, thW, T.px(1), 0.4, 0, 0, 0)
+        local tc = T.text
+        self:drawText(ro, cx + tw + T.px(14), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
+        -- a click picks the nearest step (no drag: a new UI scale re-lays the window out under the pointer)
+        local ax = self:getAbsoluteX()
+        hit(id, cx - T.px(8), thY, tw + T.px(16), thH + MM.fontH(f1), function()
+            local f = (getMouseX() - ax - cx) / math.max(1, tw)
+            local i = math.max(1, math.min(n, math.floor(f * (n - 1) + 0.5) + 1))
+            if i ~= c.selected then setCombo(c, i) end
+        end, { disabled = c.disabled })
+
+    elseif r.zedStyle == "onoff" then
+        -- square-ended switch: the knob slides right and the track fills when on (red for Safe mode)
+        local on = (sel == 2)
+        local tw, th = T.px(SW_TRACK), T.px(SEG_H)
+        local ty = midY - math.floor(th / 2)
+        local id = rowId .. ":onoff"
+        local fill = on and (r.zedDanger and T.danger or T.accent) or (isHot(id) and T.surf4 or T.surf3)
+        self:drawRect(cx, ty, tw, th, dim, fill.r, fill.g, fill.b)
+        if on then self:drawRectBorder(cx, ty, tw, th, 1, fill.r, fill.g, fill.b)
+        else self:drawRectBorder(cx, ty, tw, th, bs.a, bs.r, bs.g, bs.b) end
+        local kw = T.px(SW_KNOB)
+        local kx = on and (cx + tw - T.px(2) - kw) or (cx + T.px(2))
+        local kc = on and T.textOnAccent or T.text
+        self:drawRect(kx, ty + T.px(2), kw, th - T.px(4), 1, kc.r, kc.g, kc.b)
+        local st = ZeD.upper(getText(on and "UI_On" or "UI_Off"))
+        local tc = (on and r.zedDanger) and T.danger or T.text
+        self:drawText(st, cx + tw + T.px(10), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
+        hit(id, cx, ty, tw + T.px(10) + MM.textW(f2, st), th, pick(on and 1 or 2), { disabled = c.disabled })
+    end
+end
+
 -- one row's control, drawn at (cx, ry) in width cw; registers its hit boxes
 function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
     local T = ZeD.T
@@ -846,6 +1097,13 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         self._hits[#self._hits + 1] = hh
     end
     local midY = ry + math.floor(rh / 2)
+    if r.zedStyle == "scale" then midY = ry + math.floor(T.px(ROW_H) / 2) end   -- (its row is taller: the step names go under it)
+    -- ZeD's own options on ZeD setup: the control each one wants (ZeD_MainMenuOptionGroups
+    -- G.ZED_GROUPS). Too wide for the space: the drop-down below instead.
+    if r.kind == "combo" and r.zedStyle and zedWidth(r, cw) <= cw then
+        self:drawZedControl(r, cx, ry, cw, rowId, hit)
+        return
+    end
     if r.kind == "combo" then
         local bw = math.min(T.px(COMBO_W), cw)
         local bh = T.px(24)
@@ -1009,6 +1267,8 @@ function ZeD_MMOptions:rowHeight(r, cw)
         end
         return math.max(T.px(ROW_H), lines * (cb + T.px(10)) + T.px(12)) + (underLine(r) and MM.fontH(T.fontF1) or 0)
     end
+    -- UI scale's stepped slider: the step names go under the track
+    if r.zedStyle == "scale" then return T.px(ROW_H) + MM.fontH(T.fontF1) + T.px(6) end
     -- a row with a line under its name grows by that line
     if underLine(r) then return T.px(ROW_H) + MM.fontH(T.fontF1) + T.px(2) end
     return T.px(ROW_H)
@@ -1019,7 +1279,8 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local bs = T.borderS
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
-    local helpH = self.noHelpBand and 0 or T.px(HELP_H)   -- (a window without help text has no band)
+    -- the help band: three lines of the body font (Oct 21 2026: two cut the longer ZeD tips short)
+    local helpH = self.noHelpBand and 0 or math.max(T.px(HELP_H), T.px(14) + 3 * (MM.fontH(T.fontF2) + T.px(3)))   -- (a window without help text has no band)
     local vy, vh = y + T.px(1), h - helpH - T.px(2)
     local sbW = T.sp.scrollbarW
     local inner = w - T.px(2) - sbW
@@ -1128,11 +1389,21 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local hr = self._cellRow or focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)   -- (_cellRow: a row edited in place)
     local htext = hr and help(hr) or nil
     if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
+    -- ZeD's own options: their default in a column at the right of the band (mockup zed_settings_v2)
+    local dcol = 0
+    if hr and hr.zedDefault and hr.control then
+        local dt = ZeD.tr("UI_ZeD_Options_DefaultIs", comboText(hr.control, hr.zedDefault))
+        dcol = math.min(T.px(240), MM.textW(f2, dt) + T.px(26))
+        local dx = x + w - T.px(1) - dcol
+        local bd, d = T.border, T.textDim
+        self:drawRect(dx, hy + T.px(7), T.px(1), helpH - T.px(14), bd.a or 1, bd.r, bd.g, bd.b)
+        self:drawText(ZeD.Atoms.truncateText(dt, f2, dcol - T.px(24)), dx + T.px(12), hy + T.px(8), d.r, d.g, d.b, d.a or 1, f2)
+    end
     if htext then
         local tc = T.text
         local ly = hy + T.px(8)
-        for k, l in ipairs(ZeD.Atoms.wrapText(htext, f2, w - T.px(24))) do
-            if k > 2 then break end
+        for k, l in ipairs(ZeD.Atoms.wrapText(htext, f2, w - T.px(24) - dcol)) do
+            if k > 3 then break end
             self:drawText(l, x + T.px(12), ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
             ly = ly + MM.fontH(f2) + T.px(3)
         end
@@ -1213,7 +1484,11 @@ end
 function ZeD_MMOptions:activateRow(r)
     if r.moot then return end   -- does nothing with ZeD active: inert here too
     local c = r.control
-    if r.kind == "combo" then
+    if r.kind == "combo" and r.zedStyle then
+        -- ZeD setup's switches, swatches and slider: the next choice (an on/off flips)
+        local n = #(c.options or {})
+        if n > 0 and not c.disabled then setCombo(c, (c.selected or 1) % n + 1); MM.clickSound() end
+    elseif r.kind == "combo" then
         local anchor = { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = ZeD.T.px(COMBO_W), h = ZeD.T.px(24) }
         self:openCombo(r, anchor)
     elseif r.kind == "tick" then
@@ -1252,6 +1527,25 @@ function ZeD_MMOptions:nudge(r, dir)
         return true
     end
     return false
+end
+
+-- ZeD setup's DEFAULTS: every one of ZeD's own options back on the item it starts on (the game
+-- settings below them are the game's, left alone). Like any change here it waits for Apply.
+function ZeD_MMOptions:zedSetupRows()
+    for _, p in ipairs(self:pages()) do if p.setup then return self:rowsFor(p) end end
+    return {}
+end
+function ZeD_MMOptions:zedOffDefault()
+    for _, r in ipairs(self:zedSetupRows()) do
+        if r.zedDefault and r.control and r.control.selected ~= r.zedDefault then return true end
+    end
+    return false
+end
+function ZeD_MMOptions:zedDefaults()
+    for _, r in ipairs(self:zedSetupRows()) do
+        local c = r.control
+        if r.zedDefault and c and not c.disabled and c.selected ~= r.zedDefault then setCombo(c, r.zedDefault) end
+    end
 end
 
 -- THE STRIP -----------------------------------------------------------------------
@@ -1311,10 +1605,14 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
         local fh = T.px(24)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     else
-        -- Back | Discard, Apply (Apply keeps the window open)
+        -- Back (| Defaults on ZeD setup) | Discard, Apply (Apply keeps the window open)
         local changed = self:anyChanged()
-        UI.stripSpecs(self, stripY, w, row,
-            { { "back", getText("UI_btn_back"), function() self:back() end } },
+        local lefts = { { "back", getText("UI_btn_back"), function() self:back() end } }
+        local pg = self:pages()[self.pageIdx]
+        if pg and pg.setup and tostring(self.find:getInternalText() or "") == "" then
+            lefts[2] = { "defaults", ZeD.tr("UI_ZeD_Options_Defaults"), function() self:zedDefaults() end, "default", not self:zedOffDefault() }
+        end
+        UI.stripSpecs(self, stripY, w, row, lefts,
             { { "discard", ZeD.tr("UI_ZeD_Options_Discard"), function() self:setConfirm("discard") end, "default", not changed },
               { "apply", getText("UI_btn_apply"), function() self:apply(false) end, "primary", not changed } })
     end
@@ -1387,7 +1685,8 @@ function ZeD_MMOptions:getFooterPrompts()
     local t = {}
     if r then
         if r.kind == "combo" or r.kind == "volume" or r.kind == "slider" or r.kind == "stepper" then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
-        t[#t + 1] = { glyph = "A", label = ZeD.tr((r.kind == "tick") and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") }
+        local toggles = (r.kind == "tick") or (r.zedStyle == "onoff")
+        t[#t + 1] = { glyph = "A", label = ZeD.tr(toggles and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") }
     end
     t[#t + 1] = { glyph = "LB", label = "" }
     t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Options_PromptPage") }
