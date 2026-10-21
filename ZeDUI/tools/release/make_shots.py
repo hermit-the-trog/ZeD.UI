@@ -23,6 +23,8 @@ Shot list (see ZeDUI/workshop/shots/shots.json):
 {
   "screens": "C:/Users/danie/Zomboid/Screenshots",     source folder (relative paths resolve here)
   "out": "out",                                         relative to the JSON's folder
+  "patches": [[x0,y0,x1,y1,dx,dy]],                     copy pixels over a corner of every source
+                                                        (the debug text), from dx, dy away
   "shots": [
     { "id": "hero", "kind": "ingame", "src": "ws_01_street.png",
       "box": [x0,y0,x1,y1],              optional, ingame: the part of the scene to show
@@ -80,6 +82,7 @@ STRIPE    = (64, 61, 56)       # System 7 racing stripes
 TITLE_TX  = (238, 233, 222)
 SUB_TX    = (168, 163, 152)
 ACCENT    = (212, 146, 42)     # #D4922A
+MARK      = "ZeD-GUI"          # the mod's display name, top right of every feature picture
 FRAME     = (86, 82, 74)       # hairline round each picture, so dark crops keep an edge
 INK       = (10, 10, 10)
 PAPER     = (255, 255, 255)
@@ -481,7 +484,7 @@ def title_band(im, title, number):
     bx = M
     d.rectangle([bx, yc - 13, bx + 26, yc + 13], fill=BAND)
     d.rectangle([bx, yc - 13, bx + 26, yc + 13], outline=STRIPE, width=2)
-    mark = "ZeD UI"
+    mark = MARK
     mw = F_MARK.getlength(mark)
     mx = W - M - mw
     stripes(d, bx + 26 + 18, tx0 - 30, yc)
@@ -548,7 +551,18 @@ def load_src(path, stub):
     return im
 
 
-def render(shot, screens, n, stub, debug):
+def patch(im, patches):
+    """Cover small things the capture should not show (the debug corner's text) by
+    copying the pixels from dx, dy away: each patch is [x0, y0, x1, y1, dx, dy]."""
+    for x0, y0, x1, y1, dx, dy in patches:
+        x0, y0 = max(0, x0), max(0, y0)
+        x1, y1 = min(im.width, x1), min(im.height, y1)
+        if x1 > x0 and y1 > y0:
+            im.paste(im.crop((x0 + dx, y0 + dy, x1 + dx, y1 + dy)), (x0, y0))
+    return im
+
+
+def render(shot, screens, n, stub, debug, patches=()):
     cache = {}
 
     def get(name):
@@ -557,6 +571,8 @@ def render(shot, screens, n, stub, debug):
             cache[path] = load_src(path, stub)
             if cache[path] is None:
                 print("  skip %s: no %s" % (shot["id"], path))
+            elif patches:
+                patch(cache[path], patches)
         return cache[path]
 
     src = get(shot["src"])
@@ -763,7 +779,7 @@ def main():
         if only and shot["id"] not in only:
             continue
         name = "%02d_%s" % (n, shot["id"])
-        img = render(shot, screens, n, a.stub, a.debug)
+        img = render(shot, screens, n, a.stub, a.debug, spec.get("patches", ()))
         if img is None:
             continue
         png = os.path.join(out, name + ".png")

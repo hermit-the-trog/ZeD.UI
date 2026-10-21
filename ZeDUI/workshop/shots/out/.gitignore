@@ -1,0 +1,3 @@
+# 1920x1080 PNG masters are rebuilt by ZeDUI/tools/release/make_shots.py; only the JPGs go to Steam
+*.png
+!contact.png
