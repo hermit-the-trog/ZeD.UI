@@ -572,8 +572,20 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
         panel:drawRect(x, y, w, rowH, st.a, st.r, st.g, st.b)
     end
 
-    -- Selection highlight (mouse-clicked card-mode)
-    if selected then
+    -- Gamepad focus on this row (the 0.55 accent fill below): gated on live ring focus
+    -- being on charTabContent so the cue clears the instant LB/RB bumpers away
+    local washed = false
+    if win and slot.type and win._gpFocusedEquipSlot == slot.type then
+        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
+        if focWin == win and Focus.getFocusedZone then
+            local zone = Focus.getFocusedZone(win)
+            washed = (zone and zone.zone == "charTabContent") and true or false
+        end
+    end
+
+    -- Selection highlight (mouse-clicked card-mode); the focus fill replaces it while focused
+    if selected and not washed then
         local ac = T.accent
         panel:drawRect(x, y, w, rowH, T.selectionA or 0.25, ac.r, ac.g, ac.b)
     end
@@ -588,16 +600,9 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     -- ring focus being on charTabContent so the cue clears the instant LB/RB
     -- bumpers away (per user design rule: only the currently-focused zone
     -- shows its active item).
-    if win and slot.type and win._gpFocusedEquipSlot == slot.type then
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-        if focWin == win and Focus.getFocusedZone then
-            local zone = Focus.getFocusedZone(win)
-            if zone and zone.zone == "charTabContent" then
-                local ac = T.accent
-                panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
-            end
-        end
+    if washed then
+        local ac = T.accent
+        panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
     end
 
     -- Column layout: NAME SLOT COND BITE SCR BUL WT
@@ -617,11 +622,11 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     -- Name
     local textY = y + math.floor((rowH - bodyFH) / 2)
     if empty then
-        local dc = selected and T.textOnAccent or (T.textDim or T.textSec)
+        local dc = washed and T.textOnFocus or (T.textDim or T.textSec)
         panel:drawText("---", x + c.nameX, textY, dc.r, dc.g, dc.b, dc.a or 0.28, T.fontF2)
     else
         local name = safeGet(slot.item, "getDisplayName") or safeGet(slot.item, "getName") or "?"
-        local nameColor = selected and T.accent or T.text
+        local nameColor = washed and T.textOnFocus or (selected and T.toneHi or T.text)
         name = A.truncateText(name, T.fontF2, c.nameW)
         panel:drawText(name, x + c.nameX, textY,
             nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, T.fontF2)
@@ -629,7 +634,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
 
     -- Slot label (truncated to fit column)
     local typeStr = ZeD.EquipmentTab.wordsOf(slot)
-    local typeColor = selected and T.textOnAccent or T.toneHi
+    local typeColor = washed and T.textOnFocus or T.toneHi
     typeStr = A.truncateText(typeStr, T.fontF1, c.slotColW - c.padX * 2)
     panel:drawText(typeStr, x + c.slotX + c.padX, secTextY,
         typeColor.r, typeColor.g, typeColor.b, typeColor.a or 0.9, T.fontF1)
@@ -717,7 +722,7 @@ local function _beltTag(panel, text, x, y)
     local tf = T.fontF1
     local tw = tm:MeasureStringX(tf, text) + T.px(8)
     local th = tm:getFontHeight(tf) + T.px(2)
-    local ac = T.accent
+    local ac = T.accentText
     panel:drawRectBorder(x, y, tw, th, ac.a or 1, ac.r, ac.g, ac.b)
     panel:drawText(text, x + T.px(4), y + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
     return tw, th
@@ -749,6 +754,7 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     for ri, s in ipairs(slots) do
         if ri % 2 == 1 then local st = T.stripe; panel:drawRect(x, y, w, rowH, st.a, st.r, st.g, st.b) end
         local fid = "belt:" .. tostring(s.i)
+        local washB = false
         if win._gpFocusedEquipSlot == fid then
             local Focus = ZeD.Input and ZeD.Input.Focus
             local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
@@ -756,6 +762,7 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
             if zone and zone.zone == "charTabContent" then
                 local ac = T.accent
                 panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
+                washB = true
             end
         end
         -- the key (an outlined "-" past the eighth slot, which has none)
@@ -799,16 +806,16 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         local subW = rightEdge - T.px(8) - tx
         local ty = y + math.floor((rowH - f2h - f1h - T.px(2)) / 2)
         if s.item then
-            local tc = T.text
+            local tc = washB and T.textOnFocus or T.text
             panel:drawText(A.truncateText(safeGet(s.item, "getDisplayName") or "?", f2, textW), tx, ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
         else
-            local dc = T.textDim
+            local dc = washB and T.textOnFocus or T.textDim
             panel:drawText(ZeD.tr("UI_ZeD_Equip_Empty"), tx, ty, dc.r, dc.g, dc.b, dc.a or 1, f2)
         end
         local prov = B.provider(player, s.slot.slotType)
         local from = prov and ZeD.tr("UI_ZeD_Equip_BeltFrom", ZeD.upper(safeGet(prov, "getDisplayName") or "")) or ZeD.tr("UI_ZeD_Equip_BeltAlways")
         local sub = ZeD.upper(B.slotName(s.slot)) .. DOT .. from
-        local th = T.toneHi
+        local th = washB and T.textOnFocus or T.toneHi
         panel:drawText(A.truncateText(sub, f1, subW), tx, ty + f2h + T.px(2), th.r, th.g, th.b, th.a or 0.9, f1)
         -- condition, in the COND column level with the name
         local f = s.item and B.cond(s.item)

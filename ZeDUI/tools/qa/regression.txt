@@ -125,6 +125,9 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 # zedqa_gamepad3.lua                v5: the same far-car hazard
 # zedqa_tour.lua                    v5: enters cars anywhere in the cell (far-car hazard)
 # zedqa_hot.lua, zedqa_hot2.lua     hot-reload helpers (read Zomboid/Lua/hot_*.lua), not tests
+# zedqa_visual_audit.lua            a few hundred screenshots; run by hand: manifest "zedqa_prelude.lua | pre", then (optional,
+#                                   a targeted run) "zedqa_va_only.lua | vao", then "zedqa_visual_audit.lua | va | timeout=900"
+# zedqa_va_only.lua                 sets ZEDQA_VA_ONLY / ZEDQA_VA_BASES for the audit above (only the sections named)
 #
 # ---- left out: main menu (need a -MainMenu launch)
 # zedqa_button_case_menu.lua, zedqa_header_fit.lua, zedqa_mod_conflicts.lua, zedqa_power_on.lua,

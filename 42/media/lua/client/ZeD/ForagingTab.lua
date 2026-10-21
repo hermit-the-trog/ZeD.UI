@@ -467,15 +467,15 @@ local function drawChip(panel, x, y, text, style, T, maxW)
     if style == "on" then
         -- accent style — condition chip
         bg = ZeD.colorAlpha(T.accent, 0.15)
-        tc = T.accent
+        tc = T.accentText
         bc = T.accent
     elseif style == "pos" then
         bg = ZeD.colorAlpha(T.positive, 0.12)
-        tc = T.positive
+        tc = T.positiveText
         bc = ZeD.colorAlpha(T.positive, 0.4)
     elseif style == "warn" then
         bg = ZeD.colorAlpha(T.warning, 0.12)
-        tc = T.warning
+        tc = T.warningText
         bc = ZeD.colorAlpha(T.warning, 0.4)
     else
         -- neutral

@@ -837,11 +837,11 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 local chipGap   = T.px(6)
                 local chips = {}
                 if soil and soil.dirt then
-                    chips[#chips + 1] = {label = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty")), color = T.soiledDirt or T.warning}
+                    chips[#chips + 1] = {label = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty")), color = T.soiledDirt or T.warning, text = T.soiledDirtText}
                 end
                 if soil and soil.wet then
                     chips[#chips + 1] = {label = ZeD.tr("UI_ZeD_Card_WetPct", tostring(soil.wet) .. "%"),
-                                         color = T.soiledWet or T.info}
+                                         color = T.soiledWet or T.info, text = T.soiledWetText}
                 end
 
                 -- Compute right-anchored cursor walking left
@@ -885,8 +885,9 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                     local lw = tm:MeasureStringX(font, c.label)
                     local lx = r.x + math.floor((r.w - lw) / 2)
                     local ly = r.y + math.floor((r.h - fontH) / 2)
+                    local tcol = c.text or col
                     card:drawText(c.label, lx, ly,
-                        col.r, col.g, col.b, col.a or 1, font)
+                        tcol.r, tcol.g, tcol.b, tcol.a or 1, font)
                 end
             end
         end

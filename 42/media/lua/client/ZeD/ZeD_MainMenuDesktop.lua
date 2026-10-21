@@ -158,7 +158,7 @@ function ZeD_MMIcons:prerender()
         local k = sel and 0.55 or 1                       -- a selected icon darkens, as they did
         if ready then                                     -- (picture and name come together)
         if tex then self:drawTextureScaledAspect(tex, c.ix, c.iy, c.isz, c.isz, off and 0.4 or 1, k, k, k) end
-        -- its name, on a backing so it reads over the painting; selected: the accent
+        -- its name, on a theme backing (surf1) so it reads over the painting on every theme; selected: the accent
         local name = ZeD.Atoms.truncateText((it.id == "trash") and ZeD.tr(it.label) or it.label, f2, c.w - T.px(4))
         local nw = MM.textW(f2, name)
         local nx = c.x + math.floor((c.w - nw) / 2)
@@ -167,7 +167,8 @@ function ZeD_MMIcons:prerender()
             self:drawRect(bx, c.ly, bw, c.lh, 1, ac.r, ac.g, ac.b)
             self:drawText(name, nx, c.ly + T.px(2), onAc.r, onAc.g, onAc.b, off and 0.6 or 1, f2)
         else
-            self:drawRect(bx, c.ly, bw, c.lh, 0.6, 0, 0, 0)
+            local s1 = T.surf1
+            self:drawRect(bx, c.ly, bw, c.lh, 0.92, s1.r, s1.g, s1.b)
             self:drawText(name, nx, c.ly + T.px(2), tc.r, tc.g, tc.b, off and 0.45 or 1, f2)
         end
         if not off then

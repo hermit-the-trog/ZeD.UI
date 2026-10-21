@@ -195,17 +195,11 @@ local function windowAccentPalette(baseKey, accentKey)
     if p then return p end
     local accentSet = ZeD.AccentColors[accentKey]
     local variant = baseKey == "light" and accentSet.light or accentSet.dark
-    local pac = variant.accent
     p = {
         accent       = variant.accent,
         accentBright = variant.bright,
         hover        = variant.hover,
-        textOnAccent = variant.textOnAccent,
-        toneHi       = { r=pac.r, g=pac.g, b=pac.b, a=0.90 },
-        toneLo       = { r=pac.r, g=pac.g, b=pac.b, a=0.50 },
-        accentDim    = { r=pac.r, g=pac.g, b=pac.b, a=0.55 },
     }
-    p.textSec = p.toneLo
     -- Re-tint surfaces with this window's accent (none: the base theme's own)
     local base = ZeD.BaseThemes[baseKey]
     if accentKey ~= "mono" then
@@ -227,6 +221,9 @@ local function windowAccentPalette(baseKey, accentKey)
         p.border = base.border; p.borderS = base.borderS
         p.text = base.text; p.textHead = base.textHead
     end
+    -- the readable text colours (accentText, toneHi/Lo, textSec, textDim, textOnAccent, textOnFocus,
+    -- the status *Text variants) are solved against THIS palette's surfaces and accent
+    ZeD.deriveReadable(p, baseKey)
     accentPalettes[ck] = p
     return p
 end
@@ -243,11 +240,8 @@ function ZeD_Window:_drawFrame()
         s.accent       = T.accent
         s.accentBright = T.accentBright
         s.hover        = T.hover
-        s.textOnAccent = T.textOnAccent
-        s.textSec      = T.textSec
-        s.toneHi       = T.toneHi
-        s.toneLo       = T.toneLo
-        s.accentDim    = T.accentDim
+        local rk = ZeD.READABLE_KEYS
+        for i = 1, #rk do s[rk[i]] = T[rk[i]] end
         s.base = T.base; s.surf1 = T.surf1; s.surf2 = T.surf2
         s.surf3 = T.surf3; s.surf4 = T.surf4
         s.border = T.border; s.borderS = T.borderS
@@ -256,11 +250,7 @@ function ZeD_Window:_drawFrame()
         T.accent       = pal.accent
         T.accentBright = pal.accentBright
         T.hover        = pal.hover
-        T.textOnAccent = pal.textOnAccent
-        T.toneHi       = pal.toneHi
-        T.toneLo       = pal.toneLo
-        T.accentDim    = pal.accentDim
-        T.textSec      = pal.textSec
+        for i = 1, #rk do T[rk[i]] = pal[rk[i]] end
         T.base = pal.base; T.surf1 = pal.surf1; T.surf2 = pal.surf2
         T.surf3 = pal.surf3; T.surf4 = pal.surf4
         T.border = pal.border; T.borderS = pal.borderS
@@ -559,11 +549,8 @@ function ZeD_Window:_restoreAccent()
         T.accent       = s.accent
         T.accentBright = s.accentBright
         T.hover        = s.hover
-        T.textOnAccent = s.textOnAccent
-        T.textSec      = s.textSec
-        T.toneHi       = s.toneHi
-        T.toneLo       = s.toneLo
-        T.accentDim    = s.accentDim
+        local rk = ZeD.READABLE_KEYS
+        for i = 1, #rk do T[rk[i]] = s[rk[i]] end
         T.base = s.base; T.surf1 = s.surf1; T.surf2 = s.surf2
         T.surf3 = s.surf3; T.surf4 = s.surf4
         T.border = s.border; T.borderS = s.borderS
@@ -1160,14 +1147,14 @@ function ZeD_ScrollList:drawListItem(y, index, entry, contentW)
     if item and type(item) == "table" and item.icon then
         local iconSz = T.iconSm
         local iconY = y + math.floor((h - iconSz) / 2)
-        local ic = (index == self.selected) and T.accentBright or T.text
+        local ic = (index == self.selected) and T.accentText or T.text
         self:drawTextureScaledAspect(item.icon, textX, iconY, iconSz, iconSz, ic.a or 1, ic.r, ic.g, ic.b)
         textX = textX + iconSz + (T.sp.sm)
     end
 
     -- Primary text
     local textColor = (item and type(item) == "table" and item.textColor) or T.text
-    if index == self.selected then textColor = T.accentBright end
+    if index == self.selected then textColor = T.accentText end
     local textY = y + math.floor((h - ZeD.TM:getFontHeight(self.font)) / 2)
     self:drawText(entry.text or "", textX, textY,
         textColor.r, textColor.g, textColor.b, textColor.a or 1, self.font)

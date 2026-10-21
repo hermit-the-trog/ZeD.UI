@@ -2750,11 +2750,11 @@ local function drawTabStrip(self, win)
             self:drawRect(0, curY, w - T.px(1), T.px(TAB_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
         end
 
-        -- Icon tint: active tabs use textOnAccent so the icon contrasts with
-        -- the accent fill background. Inactive tabs keep the accent-tinted
-        -- ghost look (toneLo) at reduced alpha.
-        local ic = isActive and T.textOnAccent or T.toneLo
-        local iconAlpha = isActive and 1.0 or 0.7
+        -- Icon tint: a tab on the 0.55 accent wash (active, hover, pad focus) takes textOnFocus so
+        -- the icon contrasts with it; inactive tabs keep the accent-tinted ghost look (toneLo),
+        -- which is already the faintest colour that reads, so it draws at full alpha.
+        local ic = (isActive or isHover or isGpFocused) and T.textOnFocus or T.toneLo
+        local iconAlpha = 1.0
         local iconSz = T.px(16)  -- icon size: 16 design units (16px source textures at 1080p)
         if tab.icon then
             local ix = math.floor((w - iconSz) / 2)
@@ -2778,6 +2778,12 @@ local function drawTabStrip(self, win)
         -- Hit zone — always active, clicking exits mc mode if needed
         if curY + T.px(TAB_BTN_SZ) > 0 and curY < tabAreaH then
             self:addHitZone("tab:" .. tab.id, 0, curY, w, T.px(TAB_BTN_SZ))
+            -- hover hint: the tab's name beside the icon after the pause (mouse only)
+            if isHover and my < tabAreaH and (not self.isMouseOver or self:isMouseOver()) then
+                win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_CharacterWindow.tabLabel(tab),
+                                     x = self:getX(), y = self:getY() + curY, w = w, h = T.px(TAB_BTN_SZ), side = "r" }
+                ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
+            end
         end
 
         curY = curY + T.px(TAB_BTN_SZ)
@@ -4998,6 +5004,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- ITEM.DRAWER overlay: added LAST so card renders on top of drawer + content
     win:addChild(itemDrawer)
+
+    -- The tab hover hint: a click-through layer above everything (ZeD.Atoms.newHintLayer)
+    win._tabHintLayer = ZeD.Atoms.newHintLayer(win, "_tabHintCand")
+    win._tabHintLayer:setWidth(win:getWidth())
+    win._tabHintLayer:setHeight(win:getHeight())
+    win:addChild(win._tabHintLayer)
 
     win._stripScrollOffset = 0
     win._stripDrag = nil

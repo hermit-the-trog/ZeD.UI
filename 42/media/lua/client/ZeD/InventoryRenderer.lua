@@ -490,7 +490,8 @@ local function drawGridCell(self, GV, item, cx, cy)
     if cy + cell <= GV.top or cy >= GV.h then return end
     local ax = xOff + cx
     local ac, bs = T.accent, T.borderS
-    self:drawRect(ax, cy, cell, cell, 0.04, 1, 1, 1)
+    local st = T.stripe
+    self:drawRect(ax, cy, cell, cell, st.a, st.r, st.g, st.b)
     self:drawRectBorder(ax, cy, cell, cell, bs.a or 1, bs.r, bs.g, bs.b)
     local isSelected = GV.sel and GV.sel[item]
     if isSelected then self:drawRect(ax, cy, cell, cell, 0.36, ac.r, ac.g, ac.b) end
@@ -511,8 +512,10 @@ local function drawGridCell(self, GV, item, cx, cy)
     local wtStr = string.format("%.1f", wt)
     local f5 = T.fontF5
     local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
-    self:drawRect(ax + cell - wtw - T.px(5), cy + T.px(1), wtw + T.px(4), GV.f5FH, 0.55, 0, 0, 0)
-    local th = T.toneHi
+    -- (the chips fill from tokens like the belt's chips, so fill and text share one theme)
+    local s1 = T.surf1
+    self:drawRect(ax + cell - wtw - T.px(5), cy + T.px(1), wtw + T.px(4), GV.f5FH, 0.92, s1.r, s1.g, s1.b)
+    local th = T.accentText or T.text
     self:drawText(wtStr, ax + cell - wtw - T.px(3), cy + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
     -- the count, bottom right
     if count > 1 then
@@ -520,7 +523,7 @@ local function drawGridCell(self, GV, item, cx, cy)
         local f1 = T.fontF1
         local cw2 = ZeD.TM:MeasureStringX(f1, cs)
         local cy2 = cy + cell - GV.secFH - T.px(4)
-        self:drawRect(ax + cell - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, 0.65, 0, 0, 0)
+        self:drawRect(ax + cell - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, 0.92, s1.r, s1.g, s1.b)
         local tc = T.text
         self:drawText(cs, ax + cell - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
     end
@@ -538,7 +541,8 @@ local function drawGridCell(self, GV, item, cx, cy)
     if condMax and condMax > 0 then
         local f = math.max(0, math.min(1, item:getCondition() / condMax))
         local bx, by, bw2 = ax + T.px(3), cy + cell - T.px(3), cell - T.px(6)
-        self:drawRect(bx, by, bw2, T.px(2), 1, 0.047, 0.047, 0.047)
+        local tr = T.surf3
+        self:drawRect(bx, by, bw2, T.px(2), tr.a or 1, tr.r, tr.g, tr.b)
         local fc = (f > 0.6 and T.positive) or (f > 0.3 and T.warning) or T.danger
         local fw = math.floor(bw2 * f)
         if fw > 0 then self:drawRect(bx, by, fw, T.px(2), fc.a or 1, fc.r, fc.g, fc.b) end
@@ -583,13 +587,44 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     if not ci then return end
     local T = ZeD.T
     local infoAreaH = hdrY - barH
-    -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
     local wtStr  = ci.stats or ""
     local cntStr = ci.count  or ""
     local wtW    = ZeD.TM:MeasureStringX(T.fontF1, wtStr)
     local cntW   = ZeD.TM:MeasureStringX(T.fontF5, cntStr)
-    local stackW = math.max(wtW, cntW)
     local gap    = T.px(2)
+    local f4FH   = ZeD.TM:getFontHeight(T.fontF4)
+    if self._compactMode and (f4FH + gap + secFH) <= infoAreaH then
+        -- A column among several is narrow (about 210 px): the weight stack and the toggle on the
+        -- right left the name three or four letters ("Sma..."). Here the name takes the whole line
+        -- (the toggle is the only thing right of it), and the weight and the item count sit under it.
+        local togW = drawViewToggle(self, GV, xOff, colW - padX, barH, infoAreaH, padX)
+        local totalH = f4FH + gap + secFH
+        local topY   = barH + math.floor((infoAreaH - totalH) / 2)
+        local htc, ntc = T.toneHi, T.toneNorm
+        local cx = padX
+        if ci.texture then
+            ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, topY, f4FH, 1, T.iconTone or T.iconWhite)
+            cx = cx + f4FH + T.sp.iconGap
+        end
+        local maxNameW = colW - togW - cx - padX
+        if maxNameW > 0 then
+            local name = ZeD.Atoms.truncateText(ci.name or "", T.fontF4, maxNameW)
+            self:drawText(name, xOff + cx, topY, ntc.r, ntc.g, ntc.b, ntc.a, T.fontF4)
+        end
+        -- the weight, then the count on the same baseline when it fits (the weight alone when not)
+        local lineY = topY + f4FH + gap
+        local lineW = colW - togW - padX * 2
+        if wtW <= lineW then
+            self:drawText(wtStr, xOff + padX, lineY, htc.r, htc.g, htc.b, htc.a, T.fontF1)
+            local cx2 = padX + wtW + T.px(8)
+            if cx2 + cntW <= padX + lineW then
+                self:drawText(cntStr, xOff + cx2, lineY + math.max(0, secFH - f5FH), ntc.r, ntc.g, ntc.b, ntc.a, T.fontF5)
+            end
+        end
+        return
+    end
+    -- Right: 2-row stack — weight (F1 hi) over count (F5 norm)
+    local stackW = math.max(wtW, cntW)
     local stackH = secFH + gap + f5FH
     local stackY = barH + math.floor((infoAreaH - stackH) / 2)
     local htc    = T.toneHi
@@ -599,11 +634,10 @@ local function drawColumnHeading(self, GV, xOff, colW, barH, hdrY, padX, secFH, 
     -- List | Grid, left of the weight (the zones go in after the hit zones are cleared)
     stackW = stackW + drawViewToggle(self, GV, xOff, colW - stackW - padX * 2, barH, infoAreaH, padX)
     -- Left: icon + name (F4 norm), vertically centred in info area
-    local f4FH  = ZeD.TM:getFontHeight(T.fontF4)
     local nameY = barH + math.floor((infoAreaH - f4FH) / 2)
     local cx    = padX
     if ci.texture then
-        ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, nameY, f4FH, 1, T.iconWhite)
+        ZeD.Atoms.drawIcon(self, ci.texture, xOff + cx, nameY, f4FH, 1, T.iconTone or T.iconWhite)
         cx = cx + f4FH + T.sp.iconGap
     end
     local maxNameW = colW - stackW - cx - padX * 2
@@ -643,13 +677,27 @@ local function addToggleZones(self, GV)
     for _, r in ipairs(GV.toggles) do self:addHitZone(r.id, r.x, r.y, r.w, r.h) end
 end
 
--- the grid's column bar: no columns to sort by, it names the list's order
-local function drawGridOrder(self, x, y, w, sortCol)
+-- the grid's column bar: the list's own sort keys and labels (same state, same
+-- "hdr:<key>" zones, same underline), laid end to end from the left instead of
+-- over columns the grid doesn't have. Same row shape as renderItemList's colDefs:
+-- {label, key, drawX, hitX, hitW} in column-local x. A key that no longer fits
+-- is left off (Name always stays).
+local function gridSortDefs(padX, colW)
     local T = ZeD.T
-    local names = { name = "UI_ZeD_Inv_ColName", cat = "IGUI_invpanel_Category", cond = "IGUI_invpanel_Condition", wt = "UI_ZeD_Inv_OrderWt" }
-    local lbl = ZeD.tr("UI_ZeD_Inv_OrderLine", ZeD.upper(ZeD.tr(names[sortCol] or "UI_ZeD_Inv_ColName")))
-    local tc = T.toneLo or T.textDim
-    self:drawText(ZeD.Atoms.truncateText(lbl, T.fontF5, w), x, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5)
+    local keys = {
+        { "UI_ZeD_Inv_ColName", "name" }, { "UI_ZeD_Inv_ColCat", "cat" },
+        { "UI_ZeD_Inv_ColCond", "cond" }, { "UI_ZeD_Inv_ColWt", "wt" },
+    }
+    local defs, x = {}, 0
+    for i, k in ipairs(keys) do
+        local label = ZeD.tr(k[1])
+        local lead = (i == 1) and padX or math.floor(padX / 2)   -- Name lines up with the first cell
+        local w = ZeD.TM:MeasureStringX(T.fontF5, label) + lead + padX
+        if i > 1 and x + w > colW then break end
+        defs[#defs + 1] = { label, k[2], x + lead, x, math.min(w, colW - x) }
+        x = x + w
+    end
+    return defs
 end
 
 -- A grid cell (its item's name) or the List | Grid toggle names itself after
@@ -1080,11 +1128,8 @@ local function renderItemList(self)
         colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW}
     end
     colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW}
-    -- the grid has no columns to sort by: the bar names the list's order it shows
-    if self._gv.on then
-        drawGridOrder(self, xOff + padX, hdrTextY, colW - padX * 2, sortCol)
-        colDefs = {}
-    end
+    -- the grid has no columns: its bar carries the same sort keys end to end
+    if self._gv.on then colDefs = gridSortDefs(padX, scroll.visible and (colW - scrollW) or colW) end
 
     -- Divider hit zones (registered BEFORE header zones for priority)
     local DIV_W = T.px(6)
@@ -1265,9 +1310,18 @@ local function renderItemList(self)
             dR(0, y, scrollX, rowH, st.a, st.r, st.g, st.b)
         end
 
+        -- S96/S100/S113c: the controller's focus (0.55 accent fill, matching the
+        -- active tab/container grammar), only on the one row that is both this
+        -- panel's seed AND the live focused element of an inventory zone
+        -- (gpFocusedItem: mainInv + per-column MC zones). Decided first: a
+        -- focused row skips the 0.18 selection wash and draws its text in
+        -- T.textOnFocus, so its labels never sit as accent on accent.
+        local onFocus = (item == self._gpFocusedRowItem) and gpFocusedItem(item) or false
+        local focusTxt = onFocus and (T.textOnFocus or T.toneNorm) or nil
+
         -- Selected row bg
         local isSelected = selectedItems[item]
-        if isSelected then
+        if isSelected and not onFocus then
             local ac = T.accent
             dR(0, y, scrollX, rowH, T.selectionA, ac.r, ac.g, ac.b)
             if self._drag and self._drag:isActive() then
@@ -1281,37 +1335,9 @@ local function renderItemList(self)
             dR(0, y, scrollX, rowH, 0.22, T.accent.r, T.accent.g, T.accent.b)
         end
 
-        -- S96: gamepad-focused row accent fill (0.55 alpha, matches
-        -- active tab/container grammar). Drawn AFTER selection bg so
-        -- accent overlays when both mouse-selected + gamepad-focused.
-        -- S100: gated on the currently-focused ring zone being a mainInv
-        -- zone, so the cue clears when LB/RB bumpers to another zone
-        -- (only the focused zone shows its active item).
-        if item == self._gpFocusedRowItem then
-            local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-            local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-            local zone   = (focWin and Focus.getFocusedZone) and Focus.getFocusedZone(focWin) or nil
-            local zname  = zone and zone.zone or ""
-            -- S106 / S108 v2: mainInv + per-column MC zones (charMC1..N,
-            -- worldMC1..N) accepted as focus-paint zones. Old single
-            -- charLootMCColumns / worldLootMCColumns zones removed in S108 v2.
-            -- Item identity unique per Java object so no extra disambiguation.
-            local isInvZone = zname == "charMainInv" or zname == "worldMainInv"
-                           or (zname:match("^worldMC%d+$") ~= nil)
-                           or (zname:match("^charMC%d+$") ~= nil)
-            -- S113c: ALSO gate on the LIVE focused element's item matching
-            -- this row's item. Both Char and World content panels seed
-            -- `_gpFocusedRowItem` to their first row each frame, so without
-            -- this cross-check both panels paint accent simultaneously even
-            -- though only one window owns gamepad focus. The live focused
-            -- element is unique per session — so painting on item-match
-            -- naturally restricts the cue to the one actually-focused row.
-            local focEl    = focWin and Focus.getFocusedElement and Focus.getFocusedElement(focWin) or nil
-            local liveItem = focEl and focEl.item or nil
-            if isInvZone and liveItem == item then
-                local ac = T.accent
-                dR(0, y, scrollX, rowH, 0.55, ac.r, ac.g, ac.b)
-            end
+        if onFocus then
+            local ac = T.accent
+            dR(0, y, scrollX, rowH, 0.55, ac.r, ac.g, ac.b)
         end
 
         -- S100 stacking: detect this row's stack role. Stack header shows
@@ -1334,7 +1360,7 @@ local function renderItemList(self)
 
         -- Name (truncated to column width), with stack prefix / suffix
         local textY  = y + math.floor((rowH - bodyFH) / 2)
-        local nameColor = isSelected and T.toneHi or T.toneNorm
+        local nameColor = focusTxt or (isSelected and T.toneHi or T.toneNorm)
         local baseName = item:getName() or "???"
         local prefix = ""
         local suffix = ""
@@ -1364,7 +1390,7 @@ local function renderItemList(self)
             local th = ZeD.TM:getFontHeight(tf) + T.px(2)
             local tx = nameX + childIndent + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
             if tx + tw <= nameX + nameW then
-                local ac = T.accent
+                local ac = focusTxt or T.accentText or T.accent
                 local ty = y + math.floor((rowH - th) / 2)
                 dRB(tx, ty, tw, th, ac.a or 1, ac.r, ac.g, ac.b)
                 dT(tag, tx + T.px(4), ty + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
@@ -1375,7 +1401,7 @@ local function renderItemList(self)
 
         if showCat then
             local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
-            local cc = T.toneHi
+            local cc = focusTxt or T.toneHi
             dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
         end
 
@@ -1410,7 +1436,7 @@ local function renderItemList(self)
         local wt    = item:getUnequippedWeight()
         local wtStr = string.format("%.1f", wt)
         local wtTextY = y + math.floor((rowH - statFH) / 2)
-        A.drawTextRight(self, wtStr, xOff + wtX + wtColW - padX, wtTextY, T.fontF3, T.toneHi)
+        A.drawTextRight(self, wtStr, xOff + wtX + wtColW - padX, wtTextY, T.fontF3, focusTxt or T.toneHi)
 
         -- Hit zones: for stack headers, register chevron-area zone FIRST so
         -- it wins hit-testing for clicks on the arrow. Full-row item zone

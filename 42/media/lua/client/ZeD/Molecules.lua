@@ -88,10 +88,10 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
     local borderColor, textColor
     if variant == "primary" then
         borderColor = T.accent
-        textColor = T.accent
+        textColor = T.accentText
     elseif variant == "danger" then
         borderColor = T.danger
-        textColor = T.danger
+        textColor = T.dangerText
         local pulse = math.sin((getTimestampMs() or 0) / 400) * 0.5 + 0.5
         local fillA = T.dangerPulseMin + pulse * (T.dangerPulseMax - T.dangerPulseMin)
         A.fillRounded(panel, x, y, w, h, T.danger.r, T.danger.g, T.danger.b, fillA)
@@ -99,7 +99,12 @@ function ZeD.Molecules.drawButton(panel, x, y, w, h, text, variant, pressed, col
         borderColor = T.borderS
         textColor = T.text
     end
-    if colors and colors.text then textColor = colors.text end
+    if colors and colors.text then
+        textColor = colors.text
+    elseif colors and colors.fill and (colors.fill.a or 1) >= 0.5 then
+        -- the 0.55 accent focus wash: the label is the focus ink, whatever the variant's own colour
+        textColor = T.textOnFocus
+    end
 
     -- Rounded border (colored per variant)
     A.borderDoubleRounded(panel, x, y, w, h, borderColor.r, borderColor.g, borderColor.b, borderColor.a or 1)
@@ -239,7 +244,7 @@ function ZeD.Molecules.drawListRow(panel, x, y, w, item, hovered)
     if selected then
         textColor = ZeD.colorAlpha(T.textOnAccent, alpha)
     elseif hovered and not disabled then
-        textColor = ZeD.colorAlpha(T.accentBright, alpha)
+        textColor = ZeD.colorAlpha(T.accentText, alpha)
     else
         textColor = ZeD.colorAlpha(T.text, alpha)
     end
@@ -252,9 +257,9 @@ function ZeD.Molecules.drawListRow(panel, x, y, w, item, hovered)
     if item.meta then
         local metaColor
         if selected then
-            metaColor = ZeD.colorAlpha(T.textOnAccent, alpha * 0.8)
+            metaColor = ZeD.colorAlpha(T.textOnAccent, alpha)
         elseif hovered and not disabled then
-            metaColor = ZeD.colorAlpha(T.accentBright, alpha * 0.6)
+            metaColor = ZeD.colorAlpha(T.accentText, alpha)
         else
             metaColor = ZeD.colorAlpha(T.textSec, alpha)
         end
@@ -318,7 +323,7 @@ function ZeD.Molecules.drawTab(panel, x, y, text, active, hovered, disabled)
     -- Label
     local textColor
     if active then
-        textColor = ZeD.colorAlpha(T.accent, alpha)
+        textColor = ZeD.colorAlpha(T.accentText, alpha)
     elseif hovered and not disabled then
         textColor = ZeD.colorAlpha(T.text, alpha)
     else
@@ -650,9 +655,9 @@ function ZeD.Molecules.drawStatChip(panel, x, y, icon, value, state)
     -- Pick value color based on state
     local valueColor
     if state == "danger" then
-        valueColor = T.danger
+        valueColor = T.dangerText
     elseif state == "warning" then
-        valueColor = T.warning
+        valueColor = T.warningText
     else
         valueColor = T.textSec
     end
@@ -1119,7 +1124,7 @@ function ZeD_Dropdown:render()
                     T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
 
                 -- Option label
-                local optColor = isHovered and T.accentBright or T.text
+                local optColor = isHovered and T.accentText or T.text
                 local optY = ry + (rowH - ZeD.TM:MeasureStringY(T.fontF2, opt.label)) / 2
                 self:drawText(opt.label, sp.inputPadX, optY,
                     optColor.r, optColor.g, optColor.b, optColor.a, T.fontF2)
@@ -1770,8 +1775,8 @@ function ZeD.Molecules.drawActionStrip(panel, x, y, defs, item, hoverIdx)
         if tex then
             local iconPad = _iconPad(btnSz)
             local iconSz  = btnSz - iconPad * 2
-            local iconAlpha = isOn and 1.0 or (isHov and 0.6 or 0.35)
-            local iconTint  = isOn and T[def.colorKey] or T.iconWhite
+            local iconAlpha = isOn and 1.0 or (isHov and 0.85 or 0.65)
+            local iconTint  = isOn and T[def.colorKey] or T.iconTone
             A.drawIcon(panel, tex, bx + iconPad, y + iconPad, iconSz, iconAlpha, iconTint)
         end
 
@@ -1852,7 +1857,7 @@ function ZeD.Molecules.drawVerbStrip(panel, rightEdge, y, verbs, hoverIdx)
             local iconPad = _iconPad(btnSz)
             local iconSz  = btnSz - iconPad * 2
             local iconAlpha = verb.active and (isHov and 1.0 or 0.85) or 0.25
-            A.drawIcon(panel, vtex, bx + iconPad, y + iconPad, iconSz, iconAlpha, T.iconWhite)
+            A.drawIcon(panel, vtex, bx + iconPad, y + iconPad, iconSz, iconAlpha, T.iconTone)
         end
 
         rects[i] = {x = absX + bx, y = absY + y, w = btnSz, h = btnSz}
@@ -1881,6 +1886,19 @@ end
 -- @param greyed    bool — dim entire dock to 0.45 opacity
 -- @return width    Total width consumed
 -- ============================================================================
+local function dockLabelColor(T, tint)
+    -- the flag's wash keeps the plain colour; its words use the text variant of the same hue
+    if not tint or tint == T.textSec then return T.text end
+    if tint == T.soiledWet then return T.soiledWetText end
+    if tint == T.soiledBlood then return T.soiledBloodText end
+    if tint == T.soiledDirt then return T.soiledDirtText end
+    if tint == T.danger then return T.dangerText end
+    if tint == T.warning then return T.warningText end
+    if tint == T.positive then return T.positiveText end
+    if tint == T.info then return T.infoText end
+    return tint
+end
+
 function ZeD.Molecules.drawDock(panel, x, y, totalW, label, fillSegs, tint, icon, hovered, greyed)
     local T   = ZeD.T
     local A   = ZeD.Atoms
@@ -1906,7 +1924,7 @@ function ZeD.Molecules.drawDock(panel, x, y, totalW, label, fillSegs, tint, icon
     if label and label ~= "" then
         local fontH = ZeD.TM:getFontHeight(T.fontF1)
         local ly    = flagY + math.floor((flagH - fontH) / 2)
-        local lc    = tint or T.textSec
+        local lc    = dockLabelColor(T, tint)
         panel:drawText(label, x + padX, ly, lc.r, lc.g, lc.b, (lc.a or 1) * dim, T.fontF1)
     end
 
@@ -1920,7 +1938,7 @@ function ZeD.Molecules.drawDock(panel, x, y, totalW, label, fillSegs, tint, icon
         local iconPad = _iconPad(btnSz)
         local iconSz  = btnSz - iconPad * 2
         local iAlpha    = greyed and 0.2 or (hovered and 0.85 or 0.65)
-        local iconTint  = (not greyed and tint) and tint or T.iconWhite
+        local iconTint  = (not greyed and tint) and tint or T.iconTone
         A.drawIcon(panel, icon, bx + iconPad, y + iconPad, iconSz, iAlpha, iconTint)
 
         return flagW + btnSz
@@ -2181,7 +2199,7 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
             panel:drawRect(btnX + btnW - T.px(1), btnY, T.px(1), btnSz,
                 (btnSh.a or 1) * vAlpha, btnSh.r, btnSh.g, btnSh.b)
 
-            local lc = v.primary and T.textOnAccent or (v.danger and T.danger or T.text)
+            local lc = v.primary and T.textOnAccent or (v.danger and T.dangerText or T.text)
             panel:drawText(labelStr, btnX + btnPadX,
                 btnY + math.floor((btnSz - labelH) / 2),
                 lc.r, lc.g, lc.b, (lc.a or 1) * vAlpha, font)
@@ -2385,10 +2403,10 @@ end
 -- to a color from the active theme. Inline so Phase 4 facts factories don't
 -- need to import any extra utility.
 local function _resolveStatValColor(valueClass, T)
-    if     valueClass == "warn" then return T.warning
-    elseif valueClass == "bad"  then return T.danger
+    if     valueClass == "warn" then return T.warningText
+    elseif valueClass == "bad"  then return T.dangerText
     elseif valueClass == "dim"  then return T.textDim
-    elseif valueClass == "good" then return T.positive
+    elseif valueClass == "good" then return T.positiveText
     else                              return T.text
     end
 end
@@ -2417,9 +2435,9 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
-    -- Label: F1 mono bold, full T.accent (not toneLo)
+    -- Label: F1 mono bold, the accent as legible text (not toneLo)
     local lblText = ZeD.upper(label or "")
-    local lc      = T.accent
+    local lc      = T.accentText
     panel:drawText(lblText, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
 
@@ -2750,7 +2768,7 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
         end
         local isActive = (mode.id == activeMode)
         local isHover = (hoverZone == mode.id)
-        local tc = isActive and T.accent or (isHover and T.accentBright or T.textSec)
+        local tc = isActive and T.accentText or (isHover and T.accentText or T.textSec)
 
         panel:drawText(label, tabX, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
 
@@ -2771,7 +2789,7 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
         local dotY = y + math.floor((h - dotSz) / 2)
         A.drawStatusDot(panel, togX, dotY, dotColor, dotSz)
 
-        local togTC = rightToggle.active and T.accent or T.textSec
+        local togTC = rightToggle.active and T.accentText or T.textSec
         panel:drawText(togLabel, togX + dotSz + T.px(4), textY,
             togTC.r, togTC.g, togTC.b, togTC.a or 1, font)
 
@@ -2811,7 +2829,7 @@ function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, to
     local arrowY = y + math.floor((h - arrowSz) / 2)
     A.drawTriangleLeft(panel, x + T.px(6), arrowY, arrowSz, T.accent)
     local isBackHover = (hoverZone == "back")
-    local backTC = isBackHover and T.accentBright or T.accent
+    local backTC = T.accentText
     local backX = x + T.px(6) + arrowSz + T.px(4)
     panel:drawText(backLabel, backX, textY, backTC.r, backTC.g, backTC.b, backTC.a or 1, font)
     local backW = tm:MeasureStringX(font, backLabel)
@@ -2900,7 +2918,7 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
     else
         local dotColor
         if status == "can" then dotColor = T.positive
-        elseif status == "miss" then dotColor = T.warning
+        elseif status == "miss" then dotColor = T.warningText
         else dotColor = T.danger end
         A.drawStatusDot(panel, cx, dotY, dotColor, dotSz)
     end
@@ -3471,7 +3489,7 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
 
     -- Pin indicator (3×3 corner square top-right)
     if flags.isPinned then
-        local pinColor = flags.isActive and paper or accent
+        local pinColor = flags.isActive and paper or ink
         A.drawCornerSq3x3(panel, x + ctx.cellW - ctx.pinDotSz - T.px(1), y + T.px(1), pinColor)
     end
 end

@@ -260,7 +260,9 @@ function ZeD_ContextList:prerender()
                     self:drawRect(x + T.px(1), cy, w - T.px(2), rowH, (isSel and not off) and 0.55 or 0.3, ac.r, ac.g, ac.b)
                 end
                 local a = off and 0.38 or 1
-                local tc = (def.stateKind and def.stateKind(self._ctx.target) == "bad") and T.danger or T.text
+                -- on the controller's 0.55 fill the label is the focus ink (red or plain text would vanish into it)
+                local tc = (isSel and not off) and T.textOnFocus
+                    or ((def.stateKind and def.stateKind(self._ctx.target) == "bad") and T.dangerText or T.text)
                 local ix = x + padX
                 local isz = T.px(ICON)
                 if def.iconTexture then

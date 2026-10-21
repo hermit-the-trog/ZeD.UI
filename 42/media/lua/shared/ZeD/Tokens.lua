@@ -67,7 +67,7 @@ ZeD.BaseThemes = {
         -- Interactive state opacities
         selectionA    = 0.18,   -- selected row bg alpha
         dangerPulseMin = 0.08,  -- danger button sine pulse floor
-        dangerPulseMax = 0.25,  -- danger button sine pulse ceiling
+        dangerPulseMax = 0.12,  -- danger button sine pulse ceiling (capped: red text must stay legible over the pulse)
         dangerHoverMul = 1.20,  -- danger text brightness on hover
         -- Scrollbar thumb opacities
         scrollThumbA      = 0.30,   -- default thumb
@@ -104,11 +104,11 @@ ZeD.BaseThemes = {
 
     light = {
         name     = "Light",
-        base     = hex("#C6C6C6", 0.92),
-        surf1    = hex("#BEBEBE", 0.92),
-        surf2    = hex("#B6B6B6", 0.92),
-        surf3    = hex("#AEAEAE", 0.92),
-        surf4    = hex("#A6A6A6", 0.92),
+        base     = hex("#C6C6C6", 0.97),
+        surf1    = hex("#BEBEBE", 0.97),
+        surf2    = hex("#B6B6B6", 0.97),
+        surf3    = hex("#AEAEAE", 0.97),
+        surf4    = hex("#A6A6A6", 0.97),
         border   = hex("#969696", 1.0),
         borderS  = hex("#767676", 1.0),
         text     = rgba(0.047, 0.047, 0.047, 0.95),  -- neutral near-black
@@ -129,7 +129,7 @@ ZeD.BaseThemes = {
         modalOverlayA = 0.35,
         selectionA    = 0.18,
         dangerPulseMin = 0.08,
-        dangerPulseMax = 0.25,
+        dangerPulseMax = 0.12,
         dangerHoverMul = 1.15,
         scrollThumbA      = 0.30,
         scrollThumbHoverA = 0.20,
@@ -188,7 +188,7 @@ ZeD.BaseThemes = {
         modalOverlayA = 0.60,
         selectionA    = 0.25,
         dangerPulseMin = 0.10,
-        dangerPulseMax = 0.30,
+        dangerPulseMax = 0.12,
         dangerHoverMul = 1.15,
         scrollThumbA      = 0.40,
         scrollThumbHoverA = 0.30,
@@ -628,6 +628,136 @@ ZeD.Radio.lcd.segOff  = hex("#C47015")
 ZeD.Radio.lcd.chipOff = hex("#5A3010")
 
 -- ---------------------------------------------------------------------------
+-- READABLE TEXT COLOURS (contrast audit Oct 20 2026)
+-- Text tokens are derived from the surfaces they sit on, not picked by hand:
+-- a colour moves only as far toward the surface's contrasting end (white on
+-- dark surfaces, black on light) as it needs to reach the target ratio.
+-- 4.6 for text, 3.0 for headings and marks (WCAG). Fills, dots and bars keep
+-- the plain colours; only text uses the derived ones.
+-- Runs where the palette is rebuilt (applyTheme, and a window's own accent
+-- palette), never per frame.
+-- ---------------------------------------------------------------------------
+local function lin(c)
+    if c <= 0.03928 then return c / 12.92 end
+    return ((c + 0.055) / 1.055) ^ 2.4
+end
+
+local function lum(c)
+    return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b)
+end
+
+-- WCAG contrast ratio of two {r,g,b} colours (alpha ignored)
+function ZeD.contrast(a, b)
+    local l1, l2 = lum(a), lum(b)
+    if l1 < l2 then l1, l2 = l2, l1 end
+    return (l1 + 0.05) / (l2 + 0.05)
+end
+
+-- fg moved toward white (up = true) or black in 4% steps until it has minR against
+-- every opaque colour in bgs; the first step that passes, so the hue stays as close as it can
+function ZeD.legible(fg, minR, bgs, up)
+    local goal = up and 1 or 0
+    for i = 0, 25 do
+        local t = i * 0.04
+        local c = { r = fg.r + (goal - fg.r) * t, g = fg.g + (goal - fg.g) * t, b = fg.b + (goal - fg.b) * t, a = 1 }
+        local ok = true
+        for j = 1, #bgs do
+            if ZeD.contrast(c, bgs[j]) < minR then ok = false; break end
+        end
+        if ok then return c end
+    end
+    return { r = goal, g = goal, b = goal, a = 1 }
+end
+
+-- Ink or paper, whichever reads better on this fill (pure black or white if neither reaches 4.5)
+local INK, PAPER = hex("#0C0C0C"), hex("#F2F0EC")
+local BLACK, WHITE = { r = 0, g = 0, b = 0, a = 1 }, { r = 1, g = 1, b = 1, a = 1 }
+function ZeD.textOn(fill)
+    local c = (ZeD.contrast(INK, fill) >= ZeD.contrast(PAPER, fill)) and INK or PAPER
+    if ZeD.contrast(c, fill) < 4.5 then c = (c == INK) and BLACK or WHITE end
+    return c
+end
+
+-- Every field deriveReadable writes onto a palette (a window with its own accent swaps them all)
+ZeD.READABLE_KEYS = {
+    "accentText", "toneHi", "toneLo", "textSec", "accentDim", "textDim", "textOnAccent", "textOnFocus",
+    "dangerText", "warningText", "positiveText", "infoText", "textOnWarning", "textOnDanger",
+    "soiledWetText", "soiledBloodText", "soiledDirtText",
+}
+
+-- A surface stack (surface, then one optional wash) as one opaque colour over a world grey
+local function flatOver(world, s, c, ca)
+    local sa = s.a or 1
+    local r, g, b = s.r * sa + world * (1 - sa), s.g * sa + world * (1 - sa), s.b * sa + world * (1 - sa)
+    if c then
+        r, g, b = c.r * ca + r * (1 - ca), c.g * ca + g * (1 - ca), c.b * ca + b * (1 - ca)
+    end
+    return { r = r, g = g, b = b }
+end
+
+-- P is a palette with accent, hover, text, surf1, surf2 (ZeD.T, or a window's own accent palette);
+-- the base theme supplies the rest. Writes the READABLE_KEYS fields onto P.
+function ZeD.deriveReadable(P, baseKey)
+    local base  = ZeD.BaseThemes[baseKey] or ZeD.BaseThemes.dark
+    local up    = (baseKey ~= "light")                 -- dark and high contrast text moves toward white
+    local world = up and 1 or 0                        -- worst-case backdrop behind a translucent surface
+    local ac    = P.accent
+    local s1, s2 = P.surf1, P.surf2
+    local hov   = P.hover
+    local st    = base.stripe
+    local bgs = {
+        flatOver(world, s1), flatOver(world, s2),
+        flatOver(world, s1, st, st.a), flatOver(world, s1, hov, hov.a), flatOver(world, s2, hov, hov.a),
+        flatOver(world, s1, ac, base.selectionA), flatOver(world, s1, ac, 0.22),
+    }
+    local f1 = bgs[1]
+
+    -- the accent as text (list weights, tab labels, titles); was accent at alpha 0.9
+    local at = ZeD.legible(ac, 4.7, bgs, up)
+    P.accentText, P.toneHi = at, at
+
+    -- ghost tiers: start dim (45% toward the text colour from the surface, 30% toward the accent),
+    -- then the faintest colour that passes 4.6; was accent at alpha 0.5 / 0.55 (1.5-1.7 : 1)
+    local tx = P.text
+    local g0 = {
+        r = (f1.r + (tx.r - f1.r) * 0.45) * 0.70 + ac.r * 0.30,
+        g = (f1.g + (tx.g - f1.g) * 0.45) * 0.70 + ac.g * 0.30,
+        b = (f1.b + (tx.b - f1.b) * 0.45) * 0.70 + ac.b * 0.30,
+    }
+    local ghost = ZeD.legible(g0, 4.6, bgs, up)
+    P.toneLo, P.textSec, P.accentDim = ghost, ghost, ghost
+    P.textDim = ZeD.legible({
+        r = f1.r + (tx.r - f1.r) * 0.40, g = f1.g + (tx.g - f1.g) * 0.40, b = f1.b + (tx.b - f1.b) * 0.40,
+    }, 4.6, bgs, up)
+
+    -- label on a solid accent fill: ink or paper
+    P.textOnAccent = ZeD.textOn(ac)
+
+    -- label on the 0.55 accent focus wash: pure black or white, whichever is worse-case better
+    -- over both a black and a white world
+    local w0, w1 = flatOver(0, s1, ac, 0.55), flatOver(1, s1, ac, 0.55)
+    local kb = math.min(ZeD.contrast(BLACK, w0), ZeD.contrast(BLACK, w1))
+    local kw = math.min(ZeD.contrast(WHITE, w0), ZeD.contrast(WHITE, w1))
+    P.textOnFocus = (kb >= kw) and BLACK or WHITE
+
+    -- status and soiled colours as text: same hue, moved only as far as it needs to read on the
+    -- surfaces and on its own badge wash (fills, dots and bars keep the plain colours)
+    local n = #bgs
+    local list = { bgs[1], bgs[2], bgs[3], bgs[4], bgs[5], bgs[6], bgs[7] }
+    local bw = math.max(base.badgeBgA, 0.12)
+    local function variant(c, washA)
+        list[n + 1] = flatOver(world, s1, c, washA)
+        return ZeD.legible(c, 4.6, list, up)
+    end
+    P.textOnWarning, P.textOnDanger = ZeD.textOn(base.warning), ZeD.textOn(base.danger)   -- label on a solid status fill
+    P.dangerText, P.warningText = variant(base.danger, bw), variant(base.warning, bw)
+    P.positiveText, P.infoText  = variant(base.positive, bw), variant(base.info, bw)
+    P.soiledWetText   = variant(base.soiledWet, 0.20)
+    P.soiledBloodText = variant(base.soiledBlood, 0.20)
+    P.soiledDirtText  = variant(base.soiledDirt, 0.20)
+end
+
+-- ---------------------------------------------------------------------------
 -- ACTIVE PALETTE: ZeD.T
 -- This is what every component reads. It's rebuilt whenever the player
 -- changes any setting. Components never reference BaseThemes or AccentColors
@@ -758,18 +888,17 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
 
     -- 3-tone system: each F-role can use any of these three color tiers
     --   toneNorm = neutral white/black (no accent influence)
-    --   toneHi   = accent at 90% alpha (primary accent text)
-    --   toneLo   = accent at 50% alpha (ghost / secondary accent text)
+    --   toneHi   = the accent as text (accentText: the accent moved only as far as it needs to read)
+    --   toneLo   = ghost / secondary accent text (the faintest colour that still passes 4.6 : 1)
     T.toneNorm = T.textHead
-    T.toneHi   = { r = T.accent.r, g = T.accent.g, b = T.accent.b, a = 0.90 }
-    T.toneLo   = { r = T.accent.r, g = T.accent.g, b = T.accent.b, a = 0.50 }
     -- Disclosure triangle color: toneNorm at 60% alpha (all expand/collapse chevrons)
     T.arrow    = { r = T.toneNorm.r, g = T.toneNorm.g, b = T.toneNorm.b, a = 0.60 }
 
-    -- Secondary label color = toneLo (F1 at 50% accent — stat labels, section labels, category rows)
-    T.textSec  = T.toneLo
-    -- Dimmed accent: same hue at ~55% alpha for tertiary/supporting accent text
-    T.accentDim = { r = T.accent.r, g = T.accent.g, b = T.accent.b, a = 0.55 }
+    -- Derived readable text colours (contrast audit Oct 20 2026): accentText / toneHi, toneLo /
+    -- textSec / accentDim (stat labels, section labels, category rows), textDim, textOnAccent,
+    -- textOnFocus (labels on the 0.55 focus wash) and the *Text variants of the status and soiled
+    -- colours. Rebuilt here, on theme or accent change, never per frame.
+    ZeD.deriveReadable(T, ZeD.currentBase)
     -- Category headers: same fontF1, neutral color (not accent)
     T.textCat  = T.textHead
 

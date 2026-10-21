@@ -1570,7 +1570,7 @@ function ZeD_MMMods:drawConflicts(d, ix, iw, cy, vy, vh)
             elseif #kinds == 1 and k1 then title = ZeD.tr(k1.same, #e.things, MS.modName(other))
             else title = ZeD.tr("UI_ZeD_Mods_SameDefinitions", #e.things, MS.modName(other)) end
         end
-        ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.warning, dsz)
+        ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.warningText, dsz)
         cy = self:paneText(title, tx, cy, tw, f2, head)
         cy = self:paneText(many and ZeD.tr("UI_ZeD_Mods_AndMore", MS.thingText(e.things[1]), #e.things - 1) or MS.thingText(e.things[1]), tx, cy, tw, f3, dim) + T.px(2)
         -- who wins, and whether that is on purpose (the winner needs the other: a patch for it)

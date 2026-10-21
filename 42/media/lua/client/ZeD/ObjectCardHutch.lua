@@ -336,7 +336,7 @@ local function drawBox(card, x, y, w, t, b)
             local ey = cy + math.floor(k / 5) * (esz + T.px(4))
             local a = (k < b.eggs) and 1 or 0.2
             if tex then card:drawTextureScaledAspect(tex, ex, ey, esz, esz, a, 1, 1, 1)
-            else ZeD.Atoms.drawStatusDot(card, ex, ey, { r = 0.91, g = 0.86, b = 0.75, a = a }, esz) end
+            else local eg = ZeD.T.textHead; ZeD.Atoms.drawStatusDot(card, ex, ey, { r = eg.r, g = eg.g, b = eg.b, a = a }, esz) end
         end
     end
     -- GRAB (bottom)
