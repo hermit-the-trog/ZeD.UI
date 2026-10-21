@@ -233,13 +233,28 @@ function C.roll(win)
     if sideW <= 0 then return end
     local x, y, h = win:getX(), win:getY(), win:getHeight()
     local right = spec.side == "right"
+    -- The exact screen-px geometry before the roll (never design units): the
+    -- unroll gives the width back to the pixel, at the x / y the rolled window
+    -- was moved to. The saved layout of both windows adds the rolled side back
+    -- (saveCharState / saveWorldState), so the rolled size is never persisted.
+    local snap = { x = x, y = y, w = win:getWidth(), h = h }
+    win._curtainSnap = snap
     win._rolled = true
     win._rollW = sideW
     win._closeOnRod = not right
+    -- The window's minimum width still belongs to the unrolled layout until
+    -- its next frame, and the engine enforces it right after a mouse press
+    -- (ISUIElement:onResize after the window's update): the roll was undone to
+    -- that minimum at once, and the unroll then added the side again (a wider
+    -- window, shoved along the screen edge). The rolled window's minimum is no
+    -- wider than itself; the window's layout sets its own one next frame.
+    local rolledW = snap.w - sideW
+    win.minimumWidth = math.min(win.minimumWidth or rolledW, rolledW)
     -- width first: setX keeps a top-level panel on screen against its current width
-    win:setWidth(win:getWidth() - sideW)
+    win:setWidth(rolledW)
     if right then x = x + win:getWidth()      -- the rod: where the side was, right of the window
     else win:setX(x + sideW) end
+    snap.rx, snap.rw = win:getX(), win:getWidth()   -- the rolled window as it starts
     local rod = win._rod
     if not rod then
         rod = ZeD_CurtainRod:new(win, x, y, sideW, h)
@@ -247,9 +262,10 @@ function C.roll(win)
         rod:instantiate()
         win._rod = rod
     end
-    rod:setX(x); rod:setY(y); rod:setWidth(sideW)
+    -- size before position (setX / setY keep a top-level panel on screen against its current size)
+    rod:setWidth(sideW); rod:setHeight(h)
+    rod:setX(x); rod:setY(y)
     rod._h, rod._target = h, ZeD.T.titleBarH
-    rod:setHeight(h)
     rod:addToUIManager()
     rod:setVisible(true)
     if spec.onChange then spec.onChange(true) end
@@ -269,11 +285,25 @@ end
 function C.finishUnroll(win)
     if not win._rolled then return end
     local w = win._rollW or 0
+    local snap = win._curtainSnap
     win._rolled = false
+    win._curtainSnap = nil
     local right = win._curtain and win._curtain.side == "right"
-    local x = right and win:getX() or (win:getX() - w)
-    win:setWidth(win:getWidth() + w)
-    win:setX(math.max(0, x))
+    -- The width from before the roll, to the pixel, unless something resized
+    -- the rolled window (a tab with another drawer width): then the rolled
+    -- width plus the side. x: where the window was before the roll, moved as
+    -- far as the rolled window was moved (the same as the rolled x, less the
+    -- side on the left). The height and y were never touched.
+    local fullW, x = win:getWidth() + w, right and win:getX() or (win:getX() - w)
+    if snap then
+        if win:getWidth() == snap.rw then fullW = snap.w end
+        x = snap.x + (win:getX() - snap.rx)
+    end
+    -- Width first, then x: setWidth / setX keep a top-level panel on screen
+    -- against its current width, so the wider window must be in place first.
+    x = math.max(0, math.min(x, getCore():getScreenWidth() - fullW))
+    win:setWidth(fullW)
+    win:setX(x)
     win._closeOnRod = nil
     local rod = win._rod
     if rod then rod:setVisible(false); rod:removeFromUIManager() end
@@ -286,6 +316,19 @@ function C.sync(win)
     if not win._rolled then return end
     local spec = win._curtain
     if not spec.canRoll() then C.finishUnroll(win); return end
+    -- A rolled window moves with its rod: keep both on screen, so the unroll
+    -- finds room for the side at the window's own x (never shoved aside)
+    local scrW = getCore():getScreenWidth()
+    local wx, ww = win:getX(), win:getWidth()
+    local minX, maxX = 0, scrW - ww
+    if spec.side == "right" then maxX = scrW - ww - win._rollW else minX = win._rollW end
+    if maxX >= minX then
+        local cx = math.max(minX, math.min(wx, maxX))
+        if cx ~= wx then
+            win:setX(cx)
+            if win._lastSetX then win._lastSetX = cx end
+        end
+    end
     local rod = win._rod
     if rod then
         -- (the rod hides itself while the window is closed; it stays in the UI manager)

@@ -204,7 +204,11 @@ local function getTargetDrawerW(win)
             -- below its 200-unit minimum. Give the tab only the room left after
             -- the inventory's minimum (it scrolls), never less than the standard
             -- drawer. Multi-column Loot lifts the cap, so it is left alone there.
-            if win._invDrawerOpen and not win._rolled and #(win._mcSelected or {}) == 0 then
+            -- (A rolled side (WindowCurtain) keeps the cap: the drawer stays as wide as it
+            -- was, so a roll and an unroll only take the side away and give it back. Lifting
+            -- the cap while rolled widened the drawer, shoved the window against the screen
+            -- edge and left it elsewhere and at another size after the unroll.)
+            if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
                 local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
                 local room = maxW - T.px(TAB_STRIP_W) - T.px(CONTAINER_STRIP_W) - T.px(200)
                 want = math.max(math.min(want, T.px(DRAWER_W)), math.min(want, room))
@@ -3880,6 +3884,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- ----------------------------------------------------------------
     win._drawerOpen     = false
     win._drawerEffW     = 0      -- pixel-based animation (replaces progress 0-1)
+    win._prevEffW       = 0      -- (a restored tab drawer's first frame widens the window too; nil lost it)
     win._drawerItem     = nil
     win._drawerMode     = nil    -- 'item' | 'tab' | nil
     win._tabUnder       = nil    -- saved tab id for snap-back
