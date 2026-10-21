@@ -29,8 +29,8 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 8. Pick the **ZeD-UI** folder on the left. The checks on the right must all pass, including what goes up and the preview.
 9. **Who can see it:** **Unlisted** (anyone with the link; the director chose it for the tester builds). Never Public until the director says so.
 10. **Tags:** Build 42, Interface, QoL, WIP.
-11. **Description:** write it in ZeD's description editor. Say it is a test build, which version it is, and how to report problems (see below).
-12. **Change note:** what changed since the last tester build.
+11. **Description:** paste ZeDUI/workshop/tester_description_0.2.0-t1.bbcode into ZeD's description editor (later builds: copy it and change the version line). It says it is a test build, which version, and where to report.
+12. **Change note:** ZeDUI/workshop/tester_changenote_0.2.0-t1.txt for the first build; after that, what changed since the last tester build.
 13. **Save**, then **Upload**, and confirm in the strip. Wait for the result. The first time, Steam may ask you to accept the Workshop agreement on the item's page before anyone else can see it.
 14. Open the item in Steam and check that it is still hidden and the size is about 35 MB. Don't subscribe on this computer: the copy in `Zomboid/mods` is already there, and two copies of the same mod clash.
 15. Remove `Zomboid/Workshop/ZeD-UI/Contents` after the upload and the check in step 14 (`workshop.txt` and `preview.png` stay). The staged copy has the same mod id as the dev mod, and the game loads the Workshop folder first, so it would shadow the dev mod with a copy that has no QA bridge. Stage again right before the next upload.
