@@ -203,7 +203,7 @@ function def.icon(t) return t.d and t.d.tex or nil end
 function def.pill(t)
     local T = ZeD.T
     if t.d and t.d.on then return ZeD.tr("UI_ZeD_Power_PillRunning"), T.positive end
-    return ZeD.tr("UI_ZeD_Power_PillOff"), T.textDim
+    return ZeD.upper(ZeD.tr("UI_Off")), T.textDim
 end
 
 -- "33:20" from hours
@@ -301,7 +301,7 @@ function def.body(card, x, y, w, t, player)
     local condC = d.cond > 50 and T.positive or T.warning
     local condTxt = tostring(d.cond) .. "%"
     if d.cond <= 50 then condTxt = ZeD.tr("UI_ZeD_Power_MayFail", condTxt) end
-    y = y + UI.meter(card, x, y, w, ZeD.tr("UI_ZeD_Power_Condition"), condTxt, d.cond <= 50 and T.warning or nil, d.cond, condC) + gap
+    y = y + UI.meter(card, x, y, w, ZeD.upper(ZeD.tr("IGUI_invpanel_Condition")), condTxt, d.cond <= 50 and T.warning or nil, d.cond, condC) + gap
 
     if t.needs and #t.needs > 0 then
         y = y + UI.needs(card, x, y, w, t.needs) + gap
@@ -318,7 +318,7 @@ function def.body(card, x, y, w, t, player)
         local tc = T.text
         ZeD.Atoms.drawTextRight(card, (d.totalStr and string.upper(d.totalStr)) or string.format("%.4f L/H", d.total or 0),
             x + w - T.px(2), y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tf, tc)
-        local totalTxt = ZeD.tr("UI_ZeD_Power_Total")
+        local totalTxt = ZeD.upper(ZeD.tr("IGUI_Total"))
         local lw = ZeD.TM:MeasureStringX(tf, totalTxt)
         local vw = ZeD.TM:MeasureStringX(tf, (d.totalStr and string.upper(d.totalStr)) or "0.0000 L/H")
         card:drawText(totalTxt, x + w - T.px(2) - vw - T.px(12) - lw, y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tc.r, tc.g, tc.b, tc.a or 1, tf)

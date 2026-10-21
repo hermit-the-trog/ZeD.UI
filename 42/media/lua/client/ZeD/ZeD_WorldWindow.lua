@@ -3006,7 +3006,6 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._forageDisclosureZone = nil
     win._forageDropdown      = nil
     win._mapTextEntry       = nil
-    win._mapEditAnnotIdx    = nil
 
     -- Multi-container state
     win._mcSelected = {}

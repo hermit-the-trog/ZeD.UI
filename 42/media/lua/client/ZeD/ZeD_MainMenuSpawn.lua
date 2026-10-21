@@ -493,7 +493,7 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
         self:drawText(text, ix, ry + math.floor((lh - MM.fontH(f1)) / 2) - T.px(1), la.r, la.g, la.b, la.a or 1, f1)
     end
     -- SAVE NAME
-    label(ZeD.tr("UI_ZeD_Spawn_LabelSaveName"), cy, "field:name")
+    label(ZeD.upper(ZeD.trBare("UI_mapselecter_savename")), cy, "field:name")
     cy = cy + lh
     if not self.nameEntry:isVisible() then self.nameEntry:setVisible(true) end
     UI.styleEntry(self.nameEntry, ix, cy, iw, fh)
@@ -511,7 +511,7 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
     end
     cy = cy + T.px(NOTE_H)
     -- SEED, and a fresh one beside it
-    label(ZeD.tr("UI_ZeD_Spawn_LabelSeed"), cy, "field:seed")
+    label(ZeD.upper(ZeD.tr("UI_advWorld_seed_label")), cy, "field:seed")
     cy = cy + lh
     if not self.seedEntry:isVisible() then self.seedEntry:setVisible(true) end
     local bText = ZeD.tr("UI_ZeD_Spawn_NewSeed")

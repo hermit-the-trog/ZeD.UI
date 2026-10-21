@@ -1560,7 +1560,7 @@ function ZeD_MMWindow:build()
     self._sx = T.px(STRIP_PAD_X)
     local rights = {}
     if self.confirm then
-        self._ask = ZeD.tr((self.kind == "main") and "UI_ZeD_MainMenu_AskQuitGame" or "UI_ZeD_MainMenu_AskQuitDesktop")
+        self._ask = ZeD.tr((self.kind == "main") and "UI_ZeD_MainMenu_AskQuitGame" or "IGUI_ConfirmQuitToDesktop")
         rights = { { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end, "default" },
                    { "confirm:yes", getText("UI_mainscreen_exit"), A.quit, "danger" } }
     else

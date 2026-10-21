@@ -421,13 +421,13 @@ local function stateLine(st, r)
     local dot = "  " .. ST.DOT .. "  "
     if st.kind == "micro" then
         local pw = ZeD.tr(MW_POWER_TXT[nearestIdx(MW_POWERS, r.temp)])
-        if r.on then return ZeD.tr("UI_ZeD_Appliance_Cooking") .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Left", mss(r.left))) or "") end
-        return ZeD.tr("UI_ZeD_Appliance_Off") .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Set", mss(r.left))) or "")
+        if r.on then return ZeD.upper(ZeD.tr("IGUI_invpanel_Cooking")) .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Left", mss(r.left))) or "") end
+        return ZeD.upper(ZeD.tr("UI_Off")) .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Set", mss(r.left))) or "")
     end
-    local heat = (r.temp > 0) and tempText(r.temp) or ZeD.tr("UI_ZeD_Appliance_Off")
+    local heat = (r.temp > 0) and tempText(r.temp) or ZeD.upper(ZeD.tr("UI_Off"))
     local mins = math.ceil(r.left / 60)
-    if r.on then return ZeD.tr("UI_ZeD_Appliance_On") .. dot .. heat .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_MinLeft", mins)) or "") end
-    return ZeD.tr("UI_ZeD_Appliance_Off") .. ((r.temp > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_SetHeat", heat)) or "") .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_TimerMin", mins)) or "")
+    if r.on then return ZeD.upper(ZeD.tr("UI_On")) .. dot .. heat .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_MinLeft", mins)) or "") end
+    return ZeD.upper(ZeD.tr("UI_Off")) .. ((r.temp > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_SetHeat", heat)) or "") .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_TimerMin", mins)) or "")
 end
 
 -- ----------------------------------------------------------------------------
@@ -448,19 +448,19 @@ local function contents(st)
                 local toCook = call(it, "getMinutesToCook") or 0
                 local toBurn = call(it, "getMinutesToBurn") or 0
                 if call(it, "isBurnt") then
-                    row.tag, row.mode, row.p = "UI_ZeD_Appliance_Burnt", "danger", 1
+                    row.tag, row.mode, row.p = "IGUI_invpanel_Burnt", "danger", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
                     local span = math.max(1, toBurn - toCook)
                     row.p = math.max(0, math.min(1, (ct - toCook) / span))
                     if on then
-                        row.tag, row.mode = "UI_ZeD_Appliance_Burning", "danger"
+                        row.tag, row.mode = "IGUI_invpanel_Burning", "danger"
                     else
-                        row.tag, row.mode, row.p = "UI_ZeD_Appliance_Cooked", "pos", nil   -- done and safe: no bar
+                        row.tag, row.mode, row.p = "Tooltip_food_Cooked", "pos", nil   -- done and safe: no bar
                     end
                     row.left = math.max(0, math.ceil(toBurn - ct))
                 else
                     row.p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
-                    row.tag, row.mode = on and "UI_ZeD_Appliance_Cooking" or "UI_ZeD_Appliance_Raw", on and "warn" or "dim"
+                    row.tag, row.mode = on and "IGUI_invpanel_Cooking" or "UI_ZeD_Appliance_Raw", on and "warn" or "dim"
                     row.left = math.max(0, math.ceil(toCook - ct))
                 end
             end
@@ -564,7 +564,7 @@ function SA.render(panel, win, x, y, w, h, state, st)
         local rx = x + cw - T.px(16)
         local nameMax = rx - pctW - barW - T.px(16) - (lx + isz + T.px(6))
         local tagW = 0
-        local tagTxt = rw.tag and ZeD.tr(rw.tag) or nil
+        local tagTxt = rw.tag and ZeD.upper(ZeD.tr(rw.tag)) or nil
         if tagTxt then tagW = tm:MeasureStringX(T.fontF1, tagTxt) + T.px(10) + T.px(6) end
         local nstr = ZeD.CraftingCore.truncText(rw.name, T.fontF2, math.max(T.px(30), nameMax - tagW))
         local nx = lx + isz + T.px(6)

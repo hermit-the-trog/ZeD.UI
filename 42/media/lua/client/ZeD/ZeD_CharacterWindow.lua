@@ -3697,7 +3697,6 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._mapToolsExpanded = false -- disclosure triangle state
     win._mapDisclosureZone = nil  -- click zone for disclosure chevron
     win._mapToolRMBZones  = nil   -- RMB zones for pin toggling in expanded view
-    win._mapEditAnnotIdx  = nil   -- annotation index being edited (text tool inline edit)
 
     -- Identity tab state
     win._identityScroll = ZeD_ScrollbarState:new()
@@ -3937,7 +3936,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._journalSearch = journalSearch
     win._journalSearchText = ""
 
-    local recipeSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("UI_ZeD_Char_JournalSearchRecipes"))
+    local recipeSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("IGUI_CraftingWindow_SearchRecipes"))
     recipeSearch:initialise()
     recipeSearch:setVisible(false)
     recipeSearch.onFilter = function(self, text)
@@ -3950,7 +3949,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer:addChild(recipeSearch)
     win._jrecipeSearch = recipeSearch
 
-    local flyerSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("UI_ZeD_Search"))
+    local flyerSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("IGUI_FilterSearch"))
     flyerSearch:initialise()
     flyerSearch:setVisible(false)
     flyerSearch.onFilter = function(self, text)
@@ -4406,6 +4405,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer.onMouseMove = function(self, dx, dy)
         ISPanel.onMouseMove(self, dx, dy)
         local T = ZeD.T
+        -- Equipment row drag (a press on a worn item that has moved)
+        if ZeD.EquipmentTab.dragMove(win, self) then return true end
         -- Equipment column drag update
         if win._equipColDrag then
             local cd = win._equipColDrag
@@ -4445,6 +4446,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer.onMouseMoveOutside = function(self, dx, dy)
         ISPanel.onMouseMoveOutside(self, dx, dy)
         local T = ZeD.T
+        -- Equipment row drag continues outside the panel (the drawer captures the mouse)
+        if ZeD.EquipmentTab.dragMove(win, self) then return true end
         -- Equipment column drag continues outside panel
         if win._equipColDrag then
             local cd = win._equipColDrag
@@ -4599,18 +4602,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
                         end
                     end
                 end
-                -- List mode: slot row selection
-                if not win._equipSelected and win._equipSlotZones then
-                    for _, zone in ipairs(win._equipSlotZones) do
-                        if x >= zone.x and x <= zone.x + zone.w
-                           and y >= zone.y and y <= zone.y + zone.h then
-                            win._equipSelected = zone.type
-                            win._equipCache = nil  -- force fresh data for card
-                            win._gpFocusedEquipSlot = nil  -- reseed to back button
-                            return true
-                        end
-                    end
-                end
+                -- List mode and doll: a filled slot's press. Released in place it
+                -- selects (the item card); moved off, it is the inventory's drag
+                -- (EquipmentTab.pressSlot and its siblings below).
+                if ZeD.EquipmentTab.pressSlot(win, self, x, y) then return true end
             end
             -- Journal sub-tab strip click detection
             if win._activeTab == "journal" and win._journalSubTabZones then
@@ -4791,6 +4786,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
             end
             return true
         end
+        -- Equipment row drag: the drop, or the plain click that never moved
+        if ZeD.EquipmentTab.dragRelease(win, self) then return true end
         -- Equipment column drag release
         if win._equipColDrag then
             win._equipColDrag = nil
@@ -4806,6 +4803,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     drawer.onMouseUpOutside = function(self, x, y)
         win._beltPress = nil
+        -- Equipment row drag released outside the drawer: the drop
+        if ZeD.EquipmentTab.dragRelease(win, self) then return true end
         -- Equipment column drag release (outside panel)
         if win._equipColDrag then
             win._equipColDrag = nil
@@ -4820,6 +4819,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- S67: Map RMB handlers (pin toggle, annotation context menu) removed.
     -- Maps sub-tab moved to World Window MapsTab.
     drawer.onRightMouseDown = function(self, x, y)
+        -- a right press calls off an Equip row's drag (as it does the lists')
+        ZeD.EquipmentTab.dragCancel(win, self)
         return true
     end
 
@@ -5683,6 +5684,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         _baseWinRender(self)
         if content._drag and content._drag:isActive() then
             content._drag:drawGhost(self)
+        end
+        -- an Equip row's drag (EquipmentTab: the drawer owns that mouse)
+        if win._equipDrag and win._equipDrag:isActive() then
+            win._equipDrag:drawGhost(self)
         end
         -- 1px vertical divider between drawer and inventory (top Z, after
         -- all children). S103: skip when windowshaded — the shaded state

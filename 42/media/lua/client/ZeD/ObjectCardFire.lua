@@ -212,7 +212,7 @@ function def.refresh(t, player)
         d.smoulder = (not d.lit) and (call(t.obj, "isSmouldering") == true)
     end
     d.max = fuelMax()
-    d.name = (io and call(io, "getTileName")) or (t.kind == "campfire" and ZeD.tr("UI_ZeD_Fire_Campfire") or ZeD.tr("UI_ZeD_Fire_Fire"))
+    d.name = (io and call(io, "getTileName")) or (t.kind == "campfire" and ZeD.tr("IGUI_Campfire_Campfire") or ZeD.tr("UI_ZeD_Fire_Fire"))
     d.tex = spriteIcon(io)
     d.container = io and call(io, "getContainer")
     local info = ISCampingMenu.getNearbyFuelInfo(player)
@@ -281,12 +281,12 @@ function def.pill(t)
     local d = t.d
     if not d then return nil end
     if d.propane then
-        if d.lit then return ZeD.tr("UI_ZeD_Fire_PillBurning"), T.positive end
-        if not d.tank then return ZeD.tr("UI_ZeD_Fire_PillNoTank"), T.textDim end
-        return ZeD.tr("UI_ZeD_Fire_PillOff"), T.textDim
+        if d.lit then return ZeD.upper(ZeD.tr("IGUI_Fireplace_Burning")), T.positive end
+        if not d.tank then return ZeD.upper(ZeD.tr("Tooltip_NoTank")), T.textDim end
+        return ZeD.upper(ZeD.tr("UI_Off")), T.textDim
     end
-    if d.lit then return ZeD.tr("UI_ZeD_Fire_PillBurning"), T.positive end
-    if d.smoulder then return ZeD.tr("UI_ZeD_Fire_PillSmouldering"), T.warning end
+    if d.lit then return ZeD.upper(ZeD.tr("IGUI_Fireplace_Burning")), T.positive end
+    if d.smoulder then return ZeD.upper(ZeD.tr("IGUI_Fireplace_Smouldering")), T.warning end
     return ZeD.tr("UI_ZeD_Fire_PillOut"), T.textDim
 end
 
@@ -372,7 +372,7 @@ local function fireBody(card, x, y, w, t, player)
                 tex = rows[1].tex, name = ZeD.tr("UI_ZeD_Fire_AllFuel", rows.totalN),
                 gain = "+" .. OC.hm(rows.totalDur),
                 tag = (not lotFits) and ZeD.tr("UI_ZeD_Fire_TagFull") or nil, tagC = T.textDim,
-                button = ZeD.tr("UI_ZeD_Fire_AddAll"), fid = "fire:fuelall", enabled = lotFits,
+                button = ZeD.tr("ContextMenu_AddAll"), fid = "fire:fuelall", enabled = lotFits,
                 run = function(c, p) t.addFuelAll(p) end,
             })
         end
@@ -391,7 +391,7 @@ local function fireBody(card, x, y, w, t, player)
                     tex = r.tex,
                     name = ZeD.tr(r.allFits and "UI_ZeD_Fire_NameAll" or "UI_ZeD_Fire_NameAllThatFit", r.baseName, r.fitN),
                     gain = "+" .. OC.hm(r.dur * r.fitN),
-                    button = ZeD.tr("UI_ZeD_Fire_AddAll"), fid = "fire:fuelmany:" .. i, enabled = r.fits,
+                    button = ZeD.tr("ContextMenu_AddAll"), fid = "fire:fuelmany:" .. i, enabled = r.fits,
                     run = function(c, p) t.addFuelMany(p, rr) end,
                 })
             end
@@ -460,7 +460,7 @@ local function propaneBody(card, x, y, w, t, player)
     end
     local gm = math.floor(d.fuel % 60)
     local hrs = d.tank and (tostring(math.floor(d.fuel / 60)) .. ":" .. (gm < 10 and "0" or "") .. tostring(gm)) or "0:00"
-    y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Fire_GasLeft"), ZeD.tr("UI_ZeD_Fire_Hrs", hrs), ZeD.tr("UI_ZeD_Fire_Tank"), d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.tr("UI_ZeD_Fire_TankNone")) + gap
+    y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Fire_GasLeft"), ZeD.tr("UI_ZeD_Fire_Hrs", hrs), ZeD.tr("UI_ZeD_Fire_Tank"), d.tank and ZeD.tr("UI_ZeD_Fire_TankIn") or ZeD.upper(ZeD.tr("IGUI_None"))) + gap
     if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
     local items = d.container and call(d.container, "getItems")
     local n = items and items:size() or 0

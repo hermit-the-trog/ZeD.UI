@@ -1,0 +1,542 @@
+{
+  "note": "Placeholder run: real QA captures stand in for the ws_* shots, to tune make_shots.py. Not for upload (test saves, pseudo-locale strings, a debug console).",
+  "screens": "C:/Users/danie/Zomboid/Screenshots",
+  "out": "out_placeholder",
+  "shots": [
+    {
+      "n": 1,
+      "id": "hero",
+      "kind": "ingame",
+      "src": "zqa_cc_zed_truckbed.png",
+      "avoid": [
+        [
+          552,
+          0,
+          1935,
+          830
+        ],
+        [
+          1939,
+          0,
+          2820,
+          830
+        ],
+        [
+          1880,
+          940,
+          2220,
+          1240
+        ]
+      ],
+      "balloons": [
+        {
+          "head": "Your window",
+          "text": "What you carry, wear and know, in one place",
+          "anchor": [
+            700,
+            826
+          ],
+          "side": "bottom"
+        },
+        {
+          "head": "The world's window",
+          "text": "The trunk, the floor and every container in reach",
+          "anchor": [
+            2818,
+            300
+          ],
+          "side": "right"
+        },
+        {
+          "text": "Your hands and hotbar ride on a belt",
+          "anchor": [
+            1917,
+            2073
+          ],
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "id": "card_weapon",
+      "kind": "feature",
+      "src": "zqa_cp_card.png",
+      "title": "Item cards",
+      "caption": "Click an item, a generator, a campfire or a padlock: one card says it all.",
+      "crops": [
+        {
+          "box": [
+            588,
+            0,
+            1112,
+            845
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "head": "One card per thing",
+          "text": "What it is, its numbers and what you can do with it",
+          "anchor": [
+            686,
+            152
+          ],
+          "side": "left"
+        },
+        {
+          "head": "Condition",
+          "text": "A status dot and a plain number",
+          "anchor": [
+            1050,
+            371
+          ],
+          "side": "right"
+        },
+        {
+          "head": "Combat facts",
+          "text": "Damage, range, swing time and knockback, as the game counts them",
+          "anchor": [
+            688,
+            526
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Actions live at the bottom: repair, equip, drop",
+          "anchor": [
+            1092,
+            770
+          ],
+          "side": "right"
+        },
+        {
+          "head": "Seven tabs",
+          "text": "Loot, wear, health, warmth, ID, journal, skills",
+          "anchor": [
+            596,
+            300
+          ],
+          "side": "left"
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "id": "health",
+      "kind": "feature",
+      "src": "zqa_cv_1.png",
+      "title": "Health",
+      "caption": "Your body on one tab, and the exercise sets the game hides in a menu.",
+      "crops": [
+        {
+          "box": [
+            68,
+            0,
+            1104,
+            845
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "head": "Body figure",
+          "text": "Every wound shows where it is, as it heals",
+          "anchor": [
+            296,
+            330
+          ],
+          "target": [
+            290,
+            140,
+            470,
+            640
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Overall health, then every injury in plain words",
+          "anchor": [
+            1088,
+            197
+          ],
+          "side": "right"
+        },
+        {
+          "head": "Exercise",
+          "text": "Pick a set and the minutes, then go",
+          "anchor": [
+            1088,
+            598
+          ],
+          "side": "right"
+        },
+        {
+          "text": "Squats, push-ups, curls: all of them on one panel",
+          "anchor": [
+            1088,
+            414
+          ],
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "id": "equip_doll",
+      "kind": "feature",
+      "src": "zqa_doll_1.png",
+      "title": "What you wear",
+      "caption": "A list when you want numbers, a doll when you want to see it.",
+      "crops": [
+        {
+          "box": [
+            68,
+            0,
+            1104,
+            845
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "head": "Equip doll",
+          "text": "Each slot is wired to the part of the body it covers",
+          "anchor": [
+            683,
+            337
+          ],
+          "target": [
+            500,
+            150,
+            720,
+            790
+          ],
+          "side": "right"
+        },
+        {
+          "text": "Empty slots show what could go there",
+          "anchor": [
+            285,
+            202
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Worn items show their condition under the icon",
+          "anchor": [
+            285,
+            526
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Switch between the list and the doll",
+          "anchor": [
+            1084,
+            87
+          ],
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "id": "maps",
+      "kind": "feature",
+      "src": "zqa_fm_survey.png",
+      "title": "Maps",
+      "caption": "Read a map in your hands or in the World window, in three styles.",
+      "layout": {
+        "fill": 0.96,
+        "gap": 40
+      },
+      "crops": [
+        {
+          "box": [
+            2753,
+            126,
+            3711,
+            811
+          ],
+          "label": "SURVEY"
+        },
+        {
+          "src": "zqa_fm_paper.png",
+          "box": [
+            2753,
+            126,
+            3711,
+            811
+          ],
+          "label": "PAPER"
+        },
+        {
+          "src": "zqa_fm_card.png",
+          "box": [
+            2753,
+            126,
+            3711,
+            811
+          ],
+          "label": "FLYER PINS"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "A clean survey style for planning routes",
+          "anchor": [
+            3150,
+            420
+          ],
+          "crop": 0,
+          "side": "top"
+        },
+        {
+          "text": "Or the old paper look, coffee stains and all",
+          "anchor": [
+            3420,
+            300
+          ],
+          "crop": 1,
+          "side": "top"
+        },
+        {
+          "head": "Flyer pins",
+          "text": "Flyers you've read drop a pin where they point",
+          "anchor": [
+            3190,
+            408
+          ],
+          "crop": 2,
+          "side": "top"
+        }
+      ]
+    },
+    {
+      "n": 6,
+      "id": "belt_watch",
+      "kind": "feature",
+      "src": "zqa_bw_2.png",
+      "title": "The belt and the watch",
+      "caption": "The watch is a real item in the loot. Wear it and it shows up on your belt.",
+      "layout": {
+        "zoom": 1.5
+      },
+      "crops": [
+        {
+          "box": [
+            1580,
+            1650,
+            2250,
+            2130
+          ],
+          "resample": "nearest"
+        }
+      ],
+      "balloons": [
+        {
+          "head": "A watch you use",
+          "text": "Time, date, temperature, alarm and a stopwatch",
+          "anchor": [
+            2192,
+            1805
+          ],
+          "target": [
+            2010,
+            1665,
+            2200,
+            2015
+          ],
+          "side": "right"
+        },
+        {
+          "text": "Buttons work: set the alarm like you would in 1993",
+          "anchor": [
+            2034,
+            1875
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Tucked away it's a tiny watch on your belt",
+          "anchor": [
+            2236,
+            2077
+          ],
+          "side": "right"
+        },
+        {
+          "head": "The belt",
+          "text": "Hands, back slot and hotbar in one strip",
+          "anchor": [
+            1601,
+            2074
+          ],
+          "side": "left"
+        }
+      ]
+    },
+    {
+      "n": 7,
+      "id": "dash",
+      "kind": "feature",
+      "src": "zqa_dashpx_01_luxury_keyon.png",
+      "title": "Driving",
+      "caption": "Every car gets a dashboard drawn for it, and the radio that came with it.",
+      "layout": {
+        "zoom": 1.0
+      },
+      "crops": [
+        {
+          "box": [
+            1180,
+            1780,
+            2720,
+            2150
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "head": "Pixel dashboard",
+          "text": "Speed, fuel and engine heat, the way your car shows them",
+          "anchor": [
+            1644,
+            1860
+          ],
+          "side": "top"
+        },
+        {
+          "text": "Warning lights come on when something's wrong",
+          "anchor": [
+            1408,
+            2000
+          ],
+          "side": "bottom"
+        },
+        {
+          "text": "Turn the key to start",
+          "anchor": [
+            1255,
+            2082
+          ],
+          "side": "left"
+        },
+        {
+          "head": "Car radio",
+          "text": "Tune, seek and play your tapes",
+          "anchor": [
+            2409,
+            1940
+          ],
+          "side": "top"
+        },
+        {
+          "text": "Heat, fan and air on real buttons",
+          "anchor": [
+            2207,
+            2085
+          ],
+          "side": "bottom"
+        }
+      ]
+    },
+    {
+      "n": 8,
+      "id": "desk",
+      "kind": "ingame",
+      "src": "mm_card2.png",
+      "avoid": [
+        [
+          552,
+          180,
+          1368,
+          762
+        ]
+      ],
+      "balloons": [
+        {
+          "head": "The main menu",
+          "text": "Your last save waits on the screen, one click to go on",
+          "anchor": [
+            572,
+            300
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Menus up top, like a 1993 Mac",
+          "anchor": [
+            490,
+            133
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Mods opens a real mod manager: clashes, order, Workshop",
+          "anchor": [
+            718,
+            736
+          ],
+          "side": "bottom"
+        }
+      ]
+    },
+    {
+      "n": 9,
+      "id": "dash_day_night",
+      "kind": "feature",
+      "src": "zqa_dashpx_14_rancher.png",
+      "title": "Day and night",
+      "caption": "Stand-in: key off and key on. The real one is the same dash at noon and at midnight.",
+      "layout": {
+        "direction": "column",
+        "fill": 0.62,
+        "gap": 28
+      },
+      "crops": [
+        {
+          "box": [
+            1150,
+            1780,
+            2730,
+            2150
+          ],
+          "label": "KEY OFF"
+        },
+        {
+          "src": "zqa_dashpx_14_rancher_keyon.png",
+          "box": [
+            1150,
+            1780,
+            2730,
+            2150
+          ],
+          "label": "KEY ON"
+        }
+      ],
+      "balloons": [
+        {
+          "head": "Lit like the real thing",
+          "text": "Gauges glow at night, the way your car's panel does",
+          "anchor": [
+            1500,
+            1900
+          ],
+          "crop": 1,
+          "side": "left"
+        },
+        {
+          "text": "Each car model has its own dash and radio",
+          "anchor": [
+            2500,
+            1900
+          ],
+          "crop": 0,
+          "side": "right"
+        }
+      ]
+    }
+  ]
+}

@@ -4,14 +4,19 @@
 --
 -- THE RULE: new visible text goes in Translate/EN/UI.json under a UI_ZeD_<Area>_<What> key
 -- (UI_ZeD_Card_Needs, UI_ZeD_ActionBar_Reading...) and is drawn through ZeD.tr. Never a
--- bare English phrase in the code. Words built from parts get ONE key with placeholders
+-- bare English phrase in the code. If the game already has the same phrase, use the game's key
+-- instead (ZeD.tr("IGUI_health_Left_Foot") works with any key): the game's wording wins, so the
+-- phrase arrives translated in every language the game ships. Words built from parts get ONE key with placeholders
 -- (%1 to %4), never glued pieces, because word order changes between languages.
 --
 --   ZeD.tr(key, a, b, c, d)    the text for key in the player's language. %1..%4 take the
 --                              arguments (numbers print without a trailing ".0").
 --                              A key the translation files lack gives the English that
 --                              ZeD.trDefault registered for it, and failing that the key.
+--   ZeD.trBare(key, ...)       the same text without the colon, full stop and spaces the game puts at
+--                              the end of a label or message ("Map:" -> "Map"); for borrowed wording.
 --   ZeD.trPlain(key, ...)      the same text, never stretched by the test language (fixed cells).
+--   Capitals: a tag or column head the game spells in lower case is drawn ZeD.upper(ZeD.tr(key)).
 --   ZeD.trEnglish(key, ...)    the registered English for key, whatever the player's language.
 --   ZeD.trDefault(key, text)   registers the English fallback for a key, in code, so a
 --                              missing or broken translation file never shows raw keys.
@@ -389,6 +394,47 @@ function ZeD.tr(key, ...)
     return fill(raw, a1, a2, a3, a4)
 end
 
+-- ZeD.trBare(key, a, b, c, d): ZeD.tr, minus the punctuation the game hangs on a label or a
+-- sentence: trailing spaces, colons and full stops ("Map:", "Mods :", "Too dark to read.").
+-- For a tag, a column head or a row label that borrows the game's wording ("game wording
+-- wins") where the game's own text is a form label or a message. The Chinese and Japanese
+-- full-width colon and the ideographic full stop go too. The test language stretches the
+-- bare text, so its brackets still close the phrase.
+local FW_COLON, IDEO_STOP = string.char(65306), string.char(12290)
+local bareCache, bareCount = {}, 0
+local function bareEnd(s)
+    local hit = bareCache[s]
+    if hit then return hit end
+    local out = s
+    while true do
+        local cut = out:gsub("[%s:%.]+$", "")
+        local last = cut:sub(#cut, #cut)
+        if last == FW_COLON or last == IDEO_STOP then cut = cut:sub(1, #cut - 1) end
+        if cut == out then break end
+        out = cut
+    end
+    if out == "" then out = s end   -- never strip a text to nothing
+    if bareCount >= 256 then bareCache, bareCount = {}, 0 end
+    bareCache[s] = out
+    bareCount = bareCount + 1
+    return out
+end
+
+function ZeD.trBare(key, ...)
+    if key == nil then return "" end
+    key = tostring(key)
+    local a1, a2, a3, a4 = ...
+    a1, a2, a3, a4 = argText(a1), argText(a2), argText(a3), argText(a4)
+
+    local on = testOn()
+    local raw = lookup(key)
+    if raw == nil then raw = defaults[key] end
+    if raw == nil then return key end   -- a missing key stays visibly raw
+    raw = bareEnd(raw)
+    if on then raw = stretch(raw) end
+    return fill(raw, a1, a2, a3, a4)
+end
+
 -- ZeD.trPlain(key, a, b, c, d): the translation exactly as ZeD.tr gives it, but never
 -- stretched by the test language. For text that sits in a fixed-size cell by design
 -- (the watch's LCD day cell, say), where stretching would only test the wrong thing.
@@ -432,27 +478,14 @@ ZeD.trDefaults({
     UI_ZeD_Settings_Dark = "Dark",
     UI_ZeD_Settings_Light = "Light",
     UI_ZeD_Settings_HighContrast = "High contrast",
-    UI_ZeD_Settings_Small = "Small",
-    UI_ZeD_Settings_Large = "Large",
 
-    UI_ZeD_Accent_Red = "Red",
-    UI_ZeD_Accent_Orange = "Orange",
-    UI_ZeD_Accent_Yellow = "Yellow",
-    UI_ZeD_Accent_Green = "Green",
-    UI_ZeD_Accent_Blue = "Blue",
-    UI_ZeD_Accent_Purple = "Purple",
-    UI_ZeD_Accent_Pink = "Pink",
     UI_ZeD_Accent_Teal = "PZ Teal",
-    UI_ZeD_Accent_None = "None",
 
     UI_ZeD_Status_Danger = "DANGER",
     UI_ZeD_Status_Warning = "WARNING",
-    UI_ZeD_Status_OK = "OK",
     UI_ZeD_Status_Info = "INFO",
 
     UI_ZeD_Close = "Close",
-    UI_ZeD_Search = "Search...",
     UI_ZeD_NoResults = "No results",
     UI_ZeD_Weight = "Weight",
-    UI_ZeD_Capacity = "Capacity",
 })

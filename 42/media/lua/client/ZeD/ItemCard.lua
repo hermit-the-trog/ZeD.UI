@@ -545,7 +545,7 @@ local function drawItemSoilRow(panel, x, y, w, soil)
         rx = rx - sp.xs
     end
     if soil.dirt then
-        local lbl    = ZeD.tr("UI_ZeD_Card_Dirty")
+        local lbl    = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty"))
         local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
         local flagW  = math.max(T.px(4), sTextW + T.px(8))
         rx = rx - flagW

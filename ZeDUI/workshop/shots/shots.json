@@ -1,0 +1,268 @@
+{
+  "note": "The Workshop gallery, in story order. Sources are the ws_*.png captures (3840 x 2160, UI scale Auto, dark theme, orange accent) from the capture script. Crop boxes and anchors are estimates from older QA captures until the real ones exist: every one marked box_todo / anchor_todo gets set from the real capture (run with --debug to see them). ws_25 (main menu) and ws_26 (mod manager) are not in the capture list yet. Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json",
+  "screens": "C:/Users/danie/Zomboid/Screenshots",
+  "out": "out",
+  "shots": [
+    { "id": "hero", "kind": "ingame", "src": "ws_01_both_windows_street.png",
+      "avoid": [[552, 0, 1935, 830], [1939, 0, 2820, 830]],
+      "balloons": [
+        { "head": "Your window", "text": "What you carry, wear and know, all in one place",
+          "anchor": [700, 826], "side": "bottom", "anchor_todo": true },
+        { "head": "The world's window", "text": "The floor, the shelves, the car beside you: every container in reach",
+          "anchor": [2818, 300], "side": "right", "anchor_todo": true },
+        { "text": "Your hands and hotbar ride on a belt",
+          "anchor": [1917, 2040], "side": "right", "anchor_todo": true }
+      ] },
+
+    { "id": "character_window", "kind": "feature", "src": "ws_07_skills.png",
+      "title": "Your window",
+      "caption": "Loot, wear, health, warmth, ID, journal and skills: one window, seven tabs.",
+      "crops": [ { "box": [68, 0, 1104, 845], "box_todo": true } ],
+      "balloons": [
+        { "head": "Seven tabs", "text": "Everything about you is one click away",
+          "anchor": [74, 300], "side": "left", "anchor_todo": true },
+        { "head": "Skills", "text": "Every skill, its level and how close the next one is",
+          "anchor": [1090, 330], "side": "right", "anchor_todo": true },
+        { "text": "Health and carry weight stay in the title bar on every tab",
+          "anchor": [1090, 24], "side": "right", "anchor_todo": true }
+      ] },
+
+    { "id": "world_window", "kind": "feature", "src": "ws_01_both_windows_street.png",
+      "title": "The world's window",
+      "caption": "Loot, crafting, building, maps, foraging, animals, the radio and the car next to you.",
+      "layout": { "fill": 0.9, "gap": 56 },
+      "crops": [
+        { "box": [1939, 0, 2820, 830], "label": "LOOT", "box_todo": true },
+        { "src": "ws_21_curtain_rolled.png", "box": [1900, 0, 3800, 860], "label": "ROLLED UP", "box_todo": true }
+      ],
+      "balloons": [
+        { "head": "Every container", "text": "One button for each container in reach",
+          "anchor": [1960, 300], "crop": 0, "side": "top", "anchor_todo": true },
+        { "head": "Roll it up", "text": "The loot side rolls up under the title; the map stays open",
+          "anchor": [2300, 30], "crop": 1, "side": "top", "anchor_todo": true },
+        { "text": "Drop items on the rolled tab to put them in that container",
+          "anchor": [2100, 30], "crop": 1, "side": "bottom", "anchor_todo": true },
+        { "text": "Tabs for everything around you",
+          "anchor": [3770, 300], "crop": 1, "side": "bottom", "anchor_todo": true }
+      ] },
+
+    { "id": "item_cards", "kind": "feature", "src": "ws_02_food_card.png",
+      "title": "Item cards",
+      "caption": "Click an item, a generator, a campfire, a farm plot or a padlock: one card says it all.",
+      "layout": { "fill": 0.56, "gap": 80 },
+      "crops": [
+        { "box": [588, 0, 1112, 845], "box_todo": true },
+        { "src": "ws_03_weapon_card.png", "box": [588, 0, 1112, 845], "box_todo": true }
+      ],
+      "balloons": [
+        { "head": "One card for everything", "text": "What it is, its numbers and what you can do with it",
+          "anchor": [690, 152], "crop": 0, "side": "left", "anchor_todo": true },
+        { "head": "Nutrition label", "text": "Calories, carbs, fat and protein, laid out like a real food label",
+          "anchor": [700, 560], "crop": 0, "side": "left", "anchor_todo": true },
+        { "text": "What it's made of, in a line of plain words",
+          "anchor": [700, 720], "crop": 0, "side": "left", "anchor_todo": true },
+        { "text": "Condition as a dot and a plain number",
+          "anchor": [1100, 371], "crop": 1, "side": "right", "anchor_todo": true },
+        { "head": "Combat facts", "text": "Damage, range, swing time and knockback",
+          "anchor": [1100, 560], "crop": 1, "side": "right", "anchor_todo": true },
+        { "text": "What you can do sits at the bottom: equip, repair, drop",
+          "anchor": [1100, 770], "crop": 1, "side": "right", "anchor_todo": true }
+      ] },
+
+    { "id": "health", "kind": "feature", "src": "ws_04_health_body.png",
+      "title": "Health",
+      "caption": "Your body on one tab, and exercise right beside it.",
+      "layout": { "fill": 0.62, "gap": 64 },
+      "crops": [
+        { "box": [140, 100, 600, 700], "box_todo": true },
+        { "src": "ws_05_exercise.png", "box": [570, 100, 1100, 700], "box_todo": true }
+      ],
+      "balloons": [
+        { "head": "Body figure", "text": "Every wound shows where it is, and heals as you watch",
+          "anchor": [300, 330], "target": [290, 140, 470, 640], "crop": 0, "side": "left", "anchor_todo": true },
+        { "text": "Overall health, then every injury in plain words",
+          "anchor": [1090, 197], "crop": 1, "side": "right", "anchor_todo": true },
+        { "head": "Exercise", "text": "Squats, push-ups, burpees and curls on one panel",
+          "anchor": [1090, 414], "crop": 1, "side": "right", "anchor_todo": true },
+        { "text": "Set the minutes, then go",
+          "anchor": [1090, 598], "crop": 1, "side": "bottom", "anchor_todo": true }
+      ] },
+
+    { "id": "equip_doll", "kind": "feature", "src": "ws_06_equip_doll.png",
+      "title": "What you wear",
+      "caption": "A list when you want the numbers, a doll when you want to see it.",
+      "crops": [ { "box": [68, 0, 1104, 845], "box_todo": true } ],
+      "balloons": [
+        { "head": "Equip doll", "text": "Each slot is wired to the part of the body it covers",
+          "anchor": [683, 337], "target": [500, 150, 720, 790], "side": "right", "anchor_todo": true },
+        { "text": "Empty slots show what could go there",
+          "anchor": [285, 202], "side": "left", "anchor_todo": true },
+        { "text": "Worn items show their condition under the icon",
+          "anchor": [285, 526], "side": "left", "anchor_todo": true },
+        { "text": "Switch between the list and the doll",
+          "anchor": [1084, 87], "side": "right", "anchor_todo": true }
+      ] },
+
+    { "id": "maps", "kind": "feature", "src": "ws_08_map_survey.png",
+      "title": "Maps",
+      "caption": "Read the map beside your loot or unfold it big, in three styles.",
+      "layout": { "fill": 0.96, "gap": 40 },
+      "crops": [
+        { "box": [2753, 50, 3711, 811], "label": "SURVEY", "box_todo": true },
+        { "src": "ws_09_map_color.png", "box": [2753, 50, 3711, 811], "label": "COLOR", "box_todo": true },
+        { "src": "ws_10_map_paper.png", "box": [2753, 50, 3711, 811], "label": "PAPER", "box_todo": true }
+      ],
+      "balloons": [
+        { "text": "Survey: clean lines for planning a route",
+          "anchor": [3150, 420], "crop": 0, "side": "top", "anchor_todo": true },
+        { "text": "Color: woods, water and towns at a glance",
+          "anchor": [3200, 420], "crop": 1, "side": "top", "anchor_todo": true },
+        { "text": "Paper: the old road map from the glovebox",
+          "anchor": [3420, 300], "crop": 2, "side": "top", "anchor_todo": true }
+      ] },
+
+    { "id": "flyer_pins", "kind": "feature", "src": "ws_11_flyer_pins.png",
+      "title": "Flyers on the map",
+      "caption": "Read a flyer once and the map remembers the place.",
+      "crops": [ { "box": [2700, 40, 3840, 830], "box_todo": true } ],
+      "balloons": [
+        { "head": "Flyer pins", "text": "Flyers you've read drop a pin where they point",
+          "anchor": [3190, 408], "side": "left", "anchor_todo": true },
+        { "text": "Hover a pin for what the flyer said",
+          "anchor": [3460, 470], "side": "right", "anchor_todo": true },
+        { "text": "Click it to read the flyer again",
+          "anchor": [3460, 520], "side": "right", "anchor_todo": true },
+        { "head": "Mark it up", "text": "Symbols, notes and four ink colours",
+          "anchor": [2950, 86], "side": "left", "anchor_todo": true }
+      ] },
+
+    { "id": "crafting", "kind": "feature", "src": "ws_12_crafting_recipe.png",
+      "title": "Crafting",
+      "caption": "Kilns, forges, ovens, drying racks: Build 42's crafting, right at the station.",
+      "crops": [ { "box": [2740, 40, 3760, 820], "box_todo": true } ],
+      "balloons": [
+        { "head": "Any bench, any station", "text": "Recipes for your hands and every station within reach",
+          "anchor": [2986, 86], "side": "left", "anchor_todo": true },
+        { "text": "Search and sort every recipe you know",
+          "anchor": [2910, 154], "side": "left", "anchor_todo": true },
+        { "head": "Recipe card", "text": "What it needs, what you have, what's still missing",
+          "anchor": [3380, 504], "side": "right", "anchor_todo": true },
+        { "text": "Craft one, or set how many",
+          "anchor": [3566, 768], "side": "right", "anchor_todo": true }
+      ] },
+
+    { "id": "context_menus", "kind": "feature", "src": "ws_13_context_strip.png",
+      "title": "Right-click menus",
+      "caption": "Pick the icon strip or the list in Options, Mods, ZeD UI.",
+      "crops": [
+        { "box": [1560, 880, 2290, 1180], "label": "ICON STRIP", "place": [150, 300, 900], "box_todo": true },
+        { "src": "ws_14_context_list.png", "box": [1600, 700, 2400, 1500], "label": "LIST", "place": [1180, 170, 620], "box_todo": true }
+      ],
+      "balloons": [
+        { "head": "Icon strip", "text": "Every action as an icon, with what it needs",
+          "anchor": [1920, 1060], "crop": 0, "side": "bottom", "anchor_todo": true },
+        { "text": "The action's name sits over the strip",
+          "anchor": [1920, 975], "crop": 0, "side": "top", "anchor_todo": true },
+        { "head": "Or a list", "text": "One action to a row, like the game's own menu",
+          "anchor": [2100, 900], "crop": 1, "side": "left", "anchor_todo": true }
+      ] },
+
+    { "id": "wheels", "kind": "ingame", "src": "ws_20_wheel.png",
+      "balloons": [
+        { "head": "On a controller", "text": "Everything you can do with a mouse, you can do with a pad",
+          "anchor": [1700, 1000], "side": "left", "anchor_todo": true },
+        { "text": "Emotes, the car and quick use, all on wheels",
+          "anchor": [2140, 1000], "side": "right", "anchor_todo": true }
+      ] },
+
+    { "id": "belt_watch", "kind": "feature", "src": "ws_16_watch_popped.png",
+      "title": "The belt and the watch",
+      "caption": "The watch is a real item in the loot. Wear it and it rides on your belt.",
+      "layout": { "zoom": 1.5 },
+      "crops": [ { "box": [1580, 1650, 2250, 2130], "resample": "nearest", "box_todo": true } ],
+      "balloons": [
+        { "head": "A watch you use", "text": "Time, date, temperature, alarm and a stopwatch",
+          "anchor": [2192, 1805], "target": [2010, 1665, 2200, 2015], "side": "right", "anchor_todo": true },
+        { "text": "The buttons work: set the alarm, run the stopwatch",
+          "anchor": [2034, 1875], "side": "left", "anchor_todo": true },
+        { "text": "Tucked away, it's a small watch on your belt",
+          "anchor": [2236, 2077], "side": "right", "anchor_todo": true },
+        { "head": "The belt", "text": "Your hands and hotbar in one strip, each item's condition under it",
+          "anchor": [1601, 2074], "side": "left", "anchor_todo": true }
+      ] },
+
+    { "id": "action_bar", "kind": "feature", "src": "ws_17_action_bar.png",
+      "title": "The action bar",
+      "caption": "Rather not read? Options turns it into ten little lights.",
+      "layout": { "zoom": 1.5 },
+      "crops": [ { "box": [1620, 780, 2220, 1120], "resample": "nearest", "box_todo": true } ],
+      "balloons": [
+        { "head": "What you're doing", "text": "In words, over your head: reading, moving, cooking",
+          "anchor": [1880, 880], "side": "left", "anchor_todo": true },
+        { "text": "How far the queue has got: 3 of 6",
+          "anchor": [2010, 880], "side": "right", "anchor_todo": true },
+        { "text": "One bar for the whole job, a notch for each item",
+          "anchor": [1920, 915], "side": "bottom", "anchor_todo": true }
+      ] },
+
+    { "id": "dash", "kind": "feature", "src": "ws_18_dash_day.png",
+      "title": "Driving",
+      "caption": "Every car gets a dashboard drawn for it, and the radio that came with it.",
+      "layout": { "direction": "column", "fill": 0.6, "gap": 28 },
+      "crops": [
+        { "box": [1150, 1780, 2730, 2150], "label": "DAY", "box_todo": true },
+        { "src": "ws_19_dash_night.png", "box": [1150, 1780, 2730, 2150], "label": "NIGHT", "box_todo": true }
+      ],
+      "balloons": [
+        { "head": "Pixel dashboard", "text": "Speed, fuel and engine heat, the way your car shows them",
+          "anchor": [1644, 1860], "crop": 0, "side": "left", "anchor_todo": true },
+        { "text": "Turn the key to start",
+          "anchor": [1255, 2082], "crop": 0, "side": "left", "anchor_todo": true },
+        { "head": "Car radio", "text": "Tune, seek and play your tapes",
+          "anchor": [2409, 1940], "crop": 0, "side": "right", "anchor_todo": true },
+        { "head": "At night", "text": "The gauges light up like a real panel",
+          "anchor": [1500, 1950], "crop": 1, "side": "left", "anchor_todo": true },
+        { "text": "Heat, fan and air on real buttons",
+          "anchor": [2207, 2085], "crop": 1, "side": "right", "anchor_todo": true }
+      ] },
+
+    { "id": "menus_settings", "kind": "feature", "src": "ws_25_main_menu.png",
+      "title": "Menus and settings",
+      "caption": "Load, new game, mods, options, sandbox: ZeD windows, with the game's own logic underneath.",
+      "layout": { "fill": 0.96, "gap": 40 },
+      "crops": [
+        { "box": [960, 200, 2900, 1560], "label": "MAIN MENU", "box_todo": true },
+        { "src": "ws_26_mod_manager.png", "box": [960, 300, 2880, 1860], "label": "MODS", "box_todo": true },
+        { "src": "ws_22_options.png", "box": [960, 300, 2880, 1860], "label": "OPTIONS", "box_todo": true }
+      ],
+      "balloons": [
+        { "head": "The desk", "text": "The main menu is a 1993 desk; your last save waits on the screen",
+          "anchor": [1660, 520], "crop": 0, "side": "top", "anchor_todo": true },
+        { "head": "Mod manager", "text": "Load order, clashes between mods and which one wins",
+          "anchor": [1900, 900], "crop": 1, "side": "bottom", "anchor_todo": true },
+        { "head": "Your colours", "text": "Theme, accent, text size and a UI scale for big screens",
+          "anchor": [1900, 700], "crop": 2, "side": "top", "anchor_todo": true },
+        { "head": "Safe mode", "text": "If ZeD ever fails to open, the game's own screens come back",
+          "anchor": [1900, 1400], "crop": 2, "side": "bottom", "anchor_todo": true }
+      ] },
+
+    { "id": "clean_hud", "kind": "ingame", "src": "ws_23_clean_hud.png",
+      "balloons": [
+        { "text": "The watch sits in the corner, the time at a glance",
+          "anchor": [3700, 150], "side": "left", "anchor_todo": true },
+        { "text": "Moodles stay the game's own, where you want them",
+          "anchor": [3720, 600], "side": "left", "anchor_todo": true },
+        { "text": "Hands, hotbar and buckle on one belt",
+          "anchor": [1917, 2040], "side": "top", "anchor_todo": true }
+      ] },
+
+    { "id": "looting", "kind": "ingame", "src": "ws_24_looting.png",
+      "avoid": [[552, 0, 1935, 830], [1939, 0, 2820, 830]],
+      "balloons": [
+        { "text": "Your bags on one side, the cupboards on the other",
+          "anchor": [1937, 500], "side": "bottom", "anchor_todo": true },
+        { "text": "The bar over your head counts the queue down",
+          "anchor": [1920, 900], "side": "right", "anchor_todo": true }
+      ] }
+  ]
+}

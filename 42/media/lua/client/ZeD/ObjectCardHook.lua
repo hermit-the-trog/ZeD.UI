@@ -481,7 +481,7 @@ function def.body(card, x, y, w, t, player)
     py = py + T.px(6)
     local perk = PerkFactory and PerkFactory.getPerk(Perks.Butchering)
     py = py + UI.pair(card, px, py, pw, ZeD.tr("UI_ZeD_Hook_Knife"), d.knife and d.knife:getDisplayName() or txt("IGUI_None", "None"))
-    py = py + UI.pair(card, px, py, pw, perk and ZeD.upper(perk:getName()) or ZeD.tr("UI_ZeD_Hook_Butchering"), tostring(d.skill))
+    py = py + UI.pair(card, px, py, pw, perk and ZeD.upper(perk:getName()) or ZeD.upper(ZeD.tr("IGUI_perks_Butchering")), tostring(d.skill))
     y = math.max(y + ah, py) + gap
 
     -- the consequence vanilla does silently

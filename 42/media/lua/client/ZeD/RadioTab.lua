@@ -543,7 +543,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- aligned value. (2-WAY removed — this is the AM/FM chassis only;
     -- shortwave/walkie-talkie chassis surfaces 2-WAY in its own design.)
     local dataLabels = {
-        { label = ZeD.tr("UI_ZeD_Radio_RangeLabel"), value = string.format("%d-%d MHz", math.floor(minHz / 1000), math.floor(maxHz / 1000)) },
+        { label = ZeD.upper(ZeD.tr("IGUI_RadioStrength")), value = string.format("%d-%d MHz", math.floor(minHz / 1000), math.floor(maxHz / 1000)) },
         { label = ZeD.tr("UI_ZeD_Radio_Sig"),   value = (power and hasSignal) and ZeD.tr("UI_ZeD_Radio_SigGood") or (power and ZeD.tr("UI_ZeD_Radio_SigWeak") or "-") },
     }
     local dataFont = T.fontF2
@@ -613,7 +613,7 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     -- Single button (not separate icon + button). Status dot painted inside
     -- the button, left edge, with the label centered after.
     local power = _safeGet(dd, "getIsTurnedOn", false)
-    local pwrLabel = power and ZeD.tr("UI_ZeD_Radio_On") or ZeD.tr("UI_ZeD_Radio_Off")
+    local pwrLabel = power and ZeD.upper(ZeD.tr("UI_On")) or ZeD.upper(ZeD.tr("UI_Off"))
     local pwrBtnW  = T.px(60)
     if win then
         win._radioPwrZone = { x = cx, y = pwrBtnY, w = pwrBtnW, h = pwrBtnH }
@@ -627,8 +627,9 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
                             or { r = 0.50, g = 0.10, b = 0.05, a = 1.0 }
     panel:drawRect(dotX, dotY, dotSz, dotSz, dotColor.a, dotColor.r, dotColor.g, dotColor.b)
     -- Label drawn on the remaining space, right of dot
-    local labelW    = TM:MeasureStringX(labelFont, pwrLabel)
     local labelArea = pwrBtnW - dotSz - T.px(12)  -- room after dot+pad
+    pwrLabel        = ZeD.Atoms.truncateText(pwrLabel, labelFont, labelArea)   -- the game's word for On / Off can be long
+    local labelW    = TM:MeasureStringX(labelFont, pwrLabel)
     local labelTx   = dotX + dotSz + T.px(6) + math.floor((labelArea - labelW) / 2)
     local labelTy   = pwrBtnY + math.floor((pwrBtnH - labelH) / 2)
     panel:drawText(pwrLabel, labelTx, labelTy,
@@ -862,7 +863,7 @@ function cdPlayerModule(panel, x, y, w, h, dd, win)
     local cdFont = T.fontF3
     local mediaText
     if hasMedia and type(mediaIdx) == "number" and mediaIdx >= 0 then
-        mediaText = ZeD.tr("UI_ZeD_Radio_CdTrack", string.format("%02d", mediaIdx + 1), playing and ZeD.tr("UI_ZeD_Radio_CdPlay") or ZeD.tr("UI_ZeD_Radio_CdStop"))
+        mediaText = ZeD.tr("UI_ZeD_Radio_CdTrack", string.format("%02d", mediaIdx + 1), playing and ZeD.upper(ZeD.tr("IGUI_media_play")) or ZeD.upper(ZeD.tr("IGUI_media_stop")))
     elseif hasMedia then
         mediaText = ZeD.tr("UI_ZeD_Radio_CdLoaded")
     else

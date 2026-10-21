@@ -30,11 +30,11 @@ local baseKeys   = {"dark", "light", "hicon"}
 local baseLabels = {"UI_ZeD_Settings_Dark", "UI_ZeD_Settings_Light", "UI_ZeD_Settings_HighContrast"}
 
 local accentKeys   = {"red", "orange", "yellow", "green", "blue", "teal", "purple", "pink", "mono"}
-local accentLabels = {"UI_ZeD_Accent_Red", "UI_ZeD_Accent_Orange", "UI_ZeD_Accent_Yellow", "UI_ZeD_Accent_Green", "UI_ZeD_Accent_Blue",
-                      "UI_ZeD_Accent_Teal", "UI_ZeD_Accent_Purple", "UI_ZeD_Accent_Pink", "UI_ZeD_Accent_None"}
+local accentLabels = {"ContextMenu_Red", "ContextMenu_Orange", "ContextMenu_Yellow", "ContextMenu_Green", "ContextMenu_Blue",
+                      "UI_ZeD_Accent_Teal", "ContextMenu_Purple", "ContextMenu_Pink", "IGUI_None"}
 
 local sizeKeys   = {"small", "large"}
-local sizeLabels = {"UI_ZeD_Settings_Small", "UI_ZeD_Settings_Large"}
+local sizeLabels = {"UI_optionscreen_Small", "UI_optionscreen_Large"}
 
 -- UI scale (Oct 13 2026, director): Auto fits the screen (1x at 1080p, 2x at 4K,
 -- nudged by the engine font-size option); the fixed steps override it.

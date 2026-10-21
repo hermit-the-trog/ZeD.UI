@@ -407,12 +407,12 @@ function ZeD_MMLoad:moreItems()
     local t = {
         { text = ZeD.tr("UI_ZeD_Saves_RenameFile"), fn = function() self:startRename() end },
         { text = ZeD.btnCase(getText("UI_LoadGameScreen_ButtonNewPlayer")), fn = function() self:newPlayer() end, disabled = (s == nil) or s.mode == "A Really CD DA" },
-        { text = ZeD.tr("UI_ZeD_Saves_ChooseMods"), fn = function() self:chooseMods() end },
+        { text = ZeD.tr("UI_LoadGameScreen_ButtonChooseMods"), fn = function() self:chooseMods() end },
     }
     local okD, desk = pcall(isDesktopOpenSupported)
     if okD and desk then
         t[#t + 1] = "-"
-        t[#t + 1] = { text = ZeD.tr("UI_ZeD_Saves_OpenFileLocation"), fn = function() self:openFolder() end }
+        t[#t + 1] = { text = ZeD.tr("UI_LoadGameScreen_ButtonBrowseFiles"), fn = function() self:openFolder() end }
     end
     return t
 end
@@ -710,7 +710,7 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         cy = cy + kvH
     end
     kv(ZeD.tr("UI_ZeD_Saves_KvMode"), MM.modeName(s.mode))
-    kv(ZeD.tr("UI_ZeD_Saves_KvMap"), MM.mapText(s.mapName))
+    kv(ZeD.upper(ZeD.trBare("UI_servers_Map")), MM.mapText(s.mapName))
     kv(ZeD.tr("UI_ZeD_Saves_KvPlayed"), s.played)
     -- mods: names, and any the game cannot find
     local names, missing = {}, {}
@@ -725,9 +725,9 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
             end
         end
     end)
-    local modsText = (#names > 0) and table.concat(names, ", ") or ((#missing > 0) and ZeD.tr("UI_ZeD_Saves_ModsMissing", #missing) or ZeD.tr("UI_ZeD_Saves_ModsNone"))
-    kv(ZeD.tr("UI_ZeD_Saves_KvMods"), modsText)
-    kv(ZeD.tr("UI_ZeD_Saves_KvVersion"), tostring(s.info.worldVersion or "?"))
+    local modsText = (#names > 0) and table.concat(names, ", ") or ((#missing > 0) and ZeD.tr("UI_ZeD_Saves_ModsMissing", #missing) or ZeD.tr("IGUI_None"))
+    kv(ZeD.upper(ZeD.trBare("UI_LoadGameScreen_Mods")), modsText)
+    kv(ZeD.upper(ZeD.tr("Version")), tostring(s.info.worldVersion or "?"))
     -- PLAYING AS: a list box when the save has more than one character to play
     local opts = self:playerOptions(s)
     if #opts > 1 then

@@ -265,7 +265,7 @@ function def.pill(t)
     local d = t.d
     if not d then return nil end
     if d.allClosed then return ZeD.tr("UI_ZeD_Hutch_PillShut"), T.textDim end
-    return ZeD.tr("UI_ZeD_Hutch_PillOpen"), T.positive
+    return ZeD.upper(ZeD.tr("IGUI_Open")), T.positive
 end
 
 -- the controller lands on the first box with eggs to take, else the verbs
@@ -340,7 +340,7 @@ local function drawBox(card, x, y, w, t, b)
         end
     end
     -- GRAB (bottom)
-    local label = b.hen and ZeD.tr("UI_ZeD_Hutch_HenSitting") or ZeD.tr("UI_ZeD_Hutch_Grab")
+    local label = b.hen and ZeD.tr("UI_ZeD_Hutch_HenSitting") or ZeD.upper(ZeD.tr("IGUI_Hutch_Grab"))
     local enabled = (not b.hen) and b.eggs > 0 and b.nest ~= nil
     local bw = math.min(w - T.px(12), UI.buttonW(label))
     local by = y + h - T.px(6) - T.px(20)
@@ -356,7 +356,7 @@ local function drawBird(card, x, y, w, t, b)
     local h = T.px(BIRD_H)
     local isz = T.px(22)
     if b.tex then card:drawTextureScaledAspect(b.tex, x + T.px(2), y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1) end
-    local grabTxt, infoTxt = ZeD.tr("UI_ZeD_Hutch_Grab"), ZeD.tr("UI_ZeD_Hutch_Info")
+    local grabTxt, infoTxt = ZeD.upper(ZeD.tr("IGUI_Hutch_Grab")), ZeD.upper(ZeD.tr("IGUI_Animal_Info"))
     local gw, iw = UI.buttonW(grabTxt), UI.buttonW(infoTxt)
     local ix = x + w - T.px(2) - iw
     local gx = ix - T.px(4) - gw
@@ -369,7 +369,7 @@ local function drawBird(card, x, y, w, t, b)
     card:zone({ fid = inf, x = ix, y = by, w = iw, h = T.px(20), body = true, run = function(c, p) showBird(p, bb.a) end })
     local rx = gx - T.px(8)
     if b.dead then
-        local deadTxt = ZeD.tr("UI_ZeD_Hutch_Dead")
+        local deadTxt = ZeD.upper(ZeD.tr("IGUI_DesignationZone_Dead"))
         local tw = UI.tagW(deadTxt)
         UI.tag(card, rx - tw, y + math.floor((h - T.px(16)) / 2), deadTxt, T.danger)
         rx = rx - tw - T.px(8)
@@ -455,7 +455,7 @@ function def.body(card, x, y, w, t, player)
     y = y + gap
 
     -- floor
-    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Hutch_Floor"), "")
+    y = y + UI.section(card, x, y, w, ZeD.upper(ZeD.tr("ContextMenu_Floor")), "")
     y = y + T.px(4)
     local dirt = math.max(0, math.min(100, d.dirt))
     local fc = (dirt > 70 and T.danger) or (dirt > 40 and T.warning) or T.positive

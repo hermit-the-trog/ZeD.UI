@@ -177,7 +177,7 @@ function ZeD_MMMods:rowChips(d)
     if it then
         if MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId) then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipUpdated"), "accent" }
         elseif it.state == "update" then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipUpdate"), "info" }
-        elseif it.state == "downloading" then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipDownloading"), "info" }
+        elseif it.state == "downloading" then out[#out + 1] = { ZeD.upper(ZeD.tr("UI_WorkshopServerItemState_Downloading")), "info" }
         elseif it.state == "queued" then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipQueued"), "info" } end
     end
     return out
@@ -961,7 +961,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         ask = MM.ui.plain(getText("UI_modselector_modTemplateWarn"))
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", ZeD.tr("UI_ZeD_Mods_TurnOn"), function() local d = self._templateFor; self:setConfirm(false); self:toggle(d, true) end, "primary" } })
+            { "confirm:yes", ZeD.tr("ContextMenu_Turn_On"), function() local d = self._templateFor; self:setConfirm(false); self:toggle(d, true) end, "primary" } })
     elseif self.confirm == "delete" then
         ask = ZeD.tr("UI_ZeD_Mods_AskDelete", tostring(self.psel))
         UI.stripSpecs(self, stripY, w, row, {}, {
@@ -1196,8 +1196,8 @@ end
 -- Steam's state of an item as a tag: text and colour
 local WS_TAG = { ok = "positive", update = "info", downloading = "info", queued = "info", missing = "warning", none = "neutral" }
 -- (its words, as translation keys: the small caps tag on the Workshop tab's rows)
-local WS_TAG_TEXT = { ok = "UI_ZeD_Mods_TagOk", update = "UI_ZeD_Mods_TagUpdate", downloading = "UI_ZeD_Mods_TagDownloading",
-                      queued = "UI_ZeD_Mods_TagQueued", missing = "UI_ZeD_Mods_TagMissing", none = "UI_ZeD_Mods_TagNone" }
+local WS_TAG_TEXT = { ok = "UI_ZeD_Mods_TagOk", update = "UI_ZeD_Mods_TagUpdate", downloading = "UI_WorkshopServerItemState_Downloading",
+                      queued = "UI_ZeD_Mods_TagQueued", missing = "UI_ZeD_Mods_TagMissing", none = "UI_WorkshopServerItemState_NotSubscribed" }
 
 -- the Workshop tab's rows: every subscribed item with Steam's state, when it was
 -- updated and its size; an item that brought a mod has its on / off box
@@ -1240,7 +1240,7 @@ function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
             local tx = x + rw - T.px(10)
             if it.children == 0 then
                 local fresh = d and MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId)
-                local tag = fresh and ZeD.tr("UI_ZeD_Mods_ChipUpdated") or (WS_TAG_TEXT[it.state] and ZeD.tr(WS_TAG_TEXT[it.state]) or "")
+                local tag = fresh and ZeD.tr("UI_ZeD_Mods_ChipUpdated") or (WS_TAG_TEXT[it.state] and ZeD.upper(ZeD.tr(WS_TAG_TEXT[it.state])) or "")
                 local tw = MM.textW(T.fontF1, tag) + T.sp.badgePadX * 2
                 local th = MM.fontH(T.fontF1) + T.sp.badgePadY * 2
                 tx = tx - tw
@@ -1387,12 +1387,12 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
                                           row = 500, col = #self._specs + 1, x = bx, y = by, w = bw, h = bh, clipTop = vy, clipBot = vy + vh }
         bx = bx + bw + T.px(6)
     end
-    verb("toggle", ZeD.tr(d.isActive and "UI_ZeD_Mods_VerbTurnOff" or "UI_ZeD_Mods_VerbTurnOn"), function() self:toggle(d) end, d.isActive and "default" or "primary", (not d.isActive) and prob ~= nil)
+    verb("toggle", ZeD.tr(d.isActive and "ContextMenu_Turn_Off" or "ContextMenu_Turn_On"), function() self:toggle(d) end, d.isActive and "default" or "primary", (not d.isActive) and prob ~= nil)
     verb("fav", ZeD.tr(d.favorite and "UI_ZeD_Mods_VerbUnfavourite" or "UI_ZeD_Mods_VerbFavourite"), function() self:toggleFav(d) end)
     local wid, src, url = nil, "", ""
     pcall(function() wid = info:getWorkshopID(); src = tostring(info:getSource() or ""); url = tostring(info:getUrl() or "") end)
     if wid and wid ~= "" then verb("workshop", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() MS.openInSteam(wid) end) end
-    if url ~= "" then verb("homepage", ZeD.tr("UI_ZeD_Mods_VerbHomepage"), function() openUrl(url) end) end
+    if url ~= "" then verb("homepage", ZeD.tr("Homepage"), function() openUrl(url) end) end
     cy = math.max(cy + (ptex and psz or 0), by + bh) + T.px(12)
     -- what is wrong, as vanilla knows it
     if prob then
@@ -1421,9 +1421,9 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     pcall(function() ver = tostring(info:getModVersion() or "") end)
     pcall(function() local v = info:getVersionMin(); if v then vmin = v:toString() end end)
     pcall(function() local v = info:getVersionMax(); if v then vmax = v:toString() end end)
-    kv(ZeD.tr("UI_ZeD_Mods_KvVersion"), ver)
+    kv(ZeD.upper(ZeD.tr("Version")), ver)
     if vmin ~= "" or vmax ~= "" then kv(ZeD.tr("UI_ZeD_Mods_KvGame"), ZeD.tr("UI_ZeD_Mods_VersionRange", vmin ~= "" and vmin or ZeD.tr("UI_ZeD_Mods_Any"), vmax ~= "" and vmax or ZeD.tr("UI_ZeD_Mods_Any"))) end
-    kv(ZeD.tr("UI_ZeD_Mods_KvModId"), tostring(d.modId))
+    kv(ZeD.upper(ZeD.tr("ModID")), tostring(d.modId))
     -- what Steam is doing with it, and where it loads
     local it = MS.wsFor(info)
     local updatedNow = it and MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId)
@@ -1433,9 +1433,9 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
         if ago ~= "" and not updatedNow then bits[#bits + 1] = ZeD.tr("UI_ZeD_Mods_UpdatedAgoLower", ago) end
         local sz = MS.size(it.size)
         if sz ~= "" then bits[#bits + 1] = sz end
-        kv(ZeD.tr("UI_ZeD_Mods_KvWorkshop"), table.concat(bits, " | "))
+        kv(ZeD.upper(ZeD.tr("UI_mainscreen_workshop")), table.concat(bits, " | "))
     end
-    if wid and wid ~= "" then kv(ZeD.tr("UI_ZeD_Mods_KvWorkshopId"), tostring(wid)) end
+    if wid and wid ~= "" then kv(ZeD.upper(ZeD.tr("WorkshopID")), tostring(wid)) end
     if d.isActive then
         local order = jlist(m:getActiveMods():getMods())
         for i, id in ipairs(order) do if id == d.modId then kv(ZeD.tr("UI_ZeD_Mods_KvLoadOrder"), ZeD.tr("UI_ZeD_Mods_OrderOf", i, #order)) end end
@@ -1631,11 +1631,11 @@ function ZeD_MMMods:drawWsDetail(x, vy, w, vh)
         self:drawText(ZeD.Atoms.truncateText(value, f2, ix + iw - vx), vx, cy + math.floor((kvH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
         cy = cy + kvH
     end
-    kv(ZeD.tr("UI_ZeD_Mods_KvWorkshop"), it.children > 0 and ZeD.tr("UI_ZeD_Mods_WsCollection", it.children) or MS.wsText(it.state))
+    kv(ZeD.upper(ZeD.tr("UI_mainscreen_workshop")), it.children > 0 and ZeD.tr("UI_ZeD_Mods_WsCollection", it.children) or MS.wsText(it.state))
     local ago = MS.ago(it.updated)
     if ago ~= "" then kv(ZeD.tr("UI_ZeD_Mods_KvUpdated"), ago) end
     kv(ZeD.tr("UI_ZeD_Mods_KvSize"), MS.size(it.size))
-    kv(ZeD.tr("UI_ZeD_Mods_KvWorkshopId"), it.id)
+    kv(ZeD.upper(ZeD.tr("WorkshopID")), it.id)
     local why
     if it.children > 0 then why = ZeD.tr("UI_ZeD_Mods_WhyCollection")
     elseif it.state == "missing" then why = ZeD.tr("UI_ZeD_Mods_WhyMissing")
@@ -1720,8 +1720,8 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
         self._specs[#self._specs + 1] = { id = id, text = text, fn = fn, variant = "default", disabled = disabled, row = 500, col = #self._specs + 1, x = bx, y = cy, w = bw, h = bh }
         bx = bx + bw + T.px(6)
     end
-    btn("up", ZeD.tr("UI_ZeD_Mods_MoveUp"), function() self:move(-1) end, (self.oSel or 1) <= 1)
-    btn("down", ZeD.tr("UI_ZeD_Mods_MoveDown"), function() self:move(1) end, (self.oSel or 1) >= #self.order)
+    btn("up", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), function() self:move(-1) end, (self.oSel or 1) <= 1)
+    btn("down", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), function() self:move(1) end, (self.oSel or 1) >= #self.order)
     cy = cy + bh + T.px(14)
     local sel = self.order[self.oSel or 1]
     if self.page == "order" then
@@ -2005,7 +2005,7 @@ function ZeD_MMMods:getFooterPrompts()
         return { { glyph = "A", label = sel }, { glyph = "B", label = back } }
     end
     if self.page ~= "list" then
-        return { { glyph = "Y", label = ZeD.tr("UI_ZeD_Mods_PromptMoveUp") }, { glyph = "X", label = ZeD.tr("UI_ZeD_Mods_PromptMoveDown") }, { glyph = "B", label = back } }
+        return { { glyph = "Y", label = ZeD.tr("UI_ServerSettings_ButtonMoveUp") }, { glyph = "X", label = ZeD.tr("UI_ServerSettings_ButtonMoveDown") }, { glyph = "B", label = back } }
     end
     if f:sub(1, 5) == "mrow:" then
         return { { glyph = "A", label = ZeD.tr("UI_ZeD_Mods_PromptOnOff") }, { glyph = "X", label = ZeD.tr("UI_ZeD_Mods_PromptFavourite") }, { glyph = "Y", label = ZeD.tr("UI_ZeD_Mods_BtnProfiles") }, { glyph = "LB", label = "" }, { glyph = "RB", label = ZeD.tr("UI_ZeD_Mods_PromptFilter") }, { glyph = "B", label = back } }

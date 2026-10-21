@@ -314,7 +314,7 @@ end)
 step(5, function() testOpt:setValue(2) end)
 poll(0, 240, function() return ZeD.trTestOn() end, function() say("ERR the test language did not come on within 240 frames") end)
 step(3, function()
-    local a, b = ZeD.tr("UI_ZeD_Close"), ZeD.tr("UI_ZeD_Search")
+    local a, b = ZeD.tr("UI_ZeD_Close"), ZeD.tr("IGUI_FilterSearch")
     local on = tostring(a):sub(1, 1) == "["
     say("test language: Close=" .. tostring(a) .. " Search=" .. tostring(b) .. " bracketed=" .. tostring(on))
     if not on then say("ERR the test language is not on: stopping, nothing put back wrong"); jumpAbort = true end

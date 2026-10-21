@@ -264,7 +264,7 @@ function ZeD_MMServer:pages()
         local d = it.item
         if d.category then
             cat = d.category.name
-            t[#t + 1] = { head = true, title = ZeD.tr((cat == "INI") and "UI_ZeD_Server_HeadServer" or "UI_ZeD_Server_HeadSandbox"), item = d }
+            t[#t + 1] = { head = true, title = ZeD.upper(ZeD.tr((cat == "INI") and "UI_ZeD_Server_HeadServer" or "UI_mainscreen_sandbox")), item = d }
         else
             t[#t + 1] = { title = s(it.text), raw = s(cat) .. ":" .. s(it.text), page = d.page, panel = d.panel, category = cat, item = d }
         end
@@ -724,8 +724,8 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
         cy = cy + listH + T.px(8)
         local has = lb.items[lb.selected] ~= nil
         local bx = ix
-        bx = bx + self:button("mapUp", ZeD.tr("UI_ZeD_Mods_MoveUp"), bx, cy, function() panel:onButtonMoveUp(); touched() end, not has or lb.selected <= 1, 600, 1) + T.px(8)
-        bx = bx + self:button("mapDown", ZeD.tr("UI_ZeD_Mods_MoveDown"), bx, cy, function() panel:onButtonMoveDown(); touched() end, not has or lb.selected >= #lb.items, 600, 2) + T.px(8)
+        bx = bx + self:button("mapUp", ZeD.tr("UI_ServerSettings_ButtonMoveUp"), bx, cy, function() panel:onButtonMoveUp(); touched() end, not has or lb.selected <= 1, 600, 1) + T.px(8)
+        bx = bx + self:button("mapDown", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), bx, cy, function() panel:onButtonMoveDown(); touched() end, not has or lb.selected >= #lb.items, 600, 2) + T.px(8)
         bx = bx + self:button("mapRemove", getText("UI_btn_remove"), bx, cy, function() panel:onButtonRemove(); touched() end, not has, 600, 3) + T.px(8)
         local addText = ZeD.tr("UI_ZeD_Server_AddInstalled")
         local anchor = { x = ax + bx, y = ay + cy, w = MM.textW(T.fontF3, addText) + T.px(U.STRIP_BTN_PAD) * 2, h = bh }
@@ -736,7 +736,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
         self._otherFor = { kind = "map", panel = panel }
         self:place(self.other, ix, cy, math.min(iw, T.px(360)))
     elseif panel.Type == "SpawnRegionsPanel" then
-        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelRegions"), ix, cy)
+        cy = cy + self:label(ZeD.upper(ZeD.tr("UI_ServerSettingGroup_SpawnRegions")), ix, cy)
         local rows = {}
         for _, it in ipairs(lb.items) do rows[#rows + 1] = { text = (s(it.item.name) ~= "") and it.item.name or ZeD.tr("UI_ZeD_Server_NoName"), sub = it.item.file } end
         local listH = math.max(T.px(90), y + h - cy - T.px(250))
@@ -751,7 +751,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
             if self.regName:isFocused() and (self.regName:getText() or "") ~= it.item.name then it.item.name = self.regName:getText() or ""; touched() end
             if self.regFile:isFocused() and (self.regFile:getText() or "") ~= it.item.file then it.item.file = self.regFile:getText() or ""; touched() end
             local la = T.accent
-            self:drawText(ZeD.tr("UI_ZeD_Server_LabelRegName"), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
+            self:drawText(ZeD.upper(ZeD.tr("IGUI_Name")), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
             self:place(self.regName, ix + lw, cy, fw)
             cy = cy + fh + T.px(8)
             self:drawText(ZeD.tr("UI_ZeD_Server_LabelRegFile"), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
@@ -917,7 +917,7 @@ function ZeD_MMServer:drawNameForm(m, x, y, w, h)
     local from = p.settings and p.settings:getName() or ""
     local title = (m == "new") and ZeD.tr("UI_ZeD_Server_TitleNew") or ((m == "duplicate") and ZeD.tr("UI_ZeD_Server_TitleCopy", from) or ZeD.tr("UI_ZeD_Server_TitleRename", from))
     cy = cy + self:heading(title, ix, cy) + T.px(16)
-    cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelName"), ix, cy)
+    cy = cy + self:label(ZeD.upper(ZeD.tr("IGUI_Name")), ix, cy)
     self:place(self.nameEntry, ix, cy, math.min(iw, T.px(400)))
     -- vanilla's page reads its own field on NEXT / ACCEPT
     if s(p.entry:getText()) ~= (self.nameEntry:getText() or "") then p.entry:setText(self.nameEntry:getText() or "") end

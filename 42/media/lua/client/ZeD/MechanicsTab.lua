@@ -267,7 +267,7 @@ local function partInfo(part, chr, v)
     local door = part:getDoor()
     if door then
         if door:isOpen() then return ZeD.tr("UI_ZeD_Veh_StOpen") end
-        if door:isLockBroken() then return ZeD.tr("UI_ZeD_Veh_StLockBroken") end
+        if door:isLockBroken() then return ZeD.tr("IGUI_LockBroken") end
         if door:isLocked() then return getText("EC_Locked") end
         return ZeD.tr("UI_ZeD_Veh_StClosed")
     end
@@ -400,7 +400,7 @@ end
 local VERB_LABEL = {
     install = "IGUI_Install", uninstall = "IGUI_Uninstall", fix = "IGUI_Repair", inflate = "UI_ZeD_Veh_VInflate",
     deflate = "UI_ZeD_Veh_VDeflate", openWindow = "ContextMenu_Open_window", closeWindow = "ContextMenu_Close_window",
-    smash = "UI_ZeD_Veh_VSmash", repairEngine = "UI_ZeD_Veh_VRepairEngine", takeParts = "UI_ZeD_Veh_VTakeParts",
+    smash = "UI_ZeD_Veh_VSmash", repairEngine = "IGUI_RepairEngine", takeParts = "UI_ZeD_Veh_VTakeParts",
     repairLightbar = "IGUI_Repair",
 }
 local function vlabel(id) return upper(ZeD.tr(VERB_LABEL[id] or tostring(id))) end
@@ -481,7 +481,7 @@ local function tableNeeds(rows, part, chr, v, key, items)
         local notEmpty = occupied or hasContent or (cont ~= nil and not cont:isEmpty())
         rows[#rows + 1] = { ok = not notEmpty, label = ZeD.tr("UI_ZeD_Veh_PartEmpty", partName(part:getId())),
                             value = notEmpty and (hasContent and ZeD.tr("UI_ZeD_Veh_AmountLeft", round(part:getContainerContentAmount(), 1)) or ZeD.tr("UI_ZeD_Veh_NotEmpty")) or getText("Fluid_Empty"),
-                            kicker = ZeD.tr("UI_ZeD_Veh_KMustBeEmpty") }
+                            kicker = ZeD.upper(ZeD.trBare("IGUI_CraftingWindow_IsEmpty")) }
     end
     if key == "install" and kv.requireInstalled then
         for _, id in ipairs(kv.requireInstalled:split(";")) do
@@ -497,7 +497,7 @@ local function tableNeeds(rows, part, chr, v, key, items)
             local need = tonumber(level) or 0
             local have = chr:getPerkLevel(Perks.FromString(name))
             rows[#rows + 1] = { ok = have >= need, soft = true, label = txt("IGUI_perks_" .. name, name),
-                                value = tostring(have) .. " / " .. tostring(need), kicker = have >= need and nil or ZeD.tr("UI_ZeD_Veh_KRecommended") }
+                                value = tostring(have) .. " / " .. tostring(need), kicker = have >= need and nil or ZeD.upper(ZeD.tr("UI_optionscreen_recommended")) }
         end
     end
     local success, failure = VehicleUtils.calculateInstallationSuccess(perks, chr)
@@ -621,7 +621,7 @@ needsCompute = function(s, part, verb, chr, v)
             if pick and not pick.none then
                 rows[#rows + 1] = { ok = true, label = pick.name, value = tostring(pick.cond) .. "%", kicker = pick.loc }
             else
-                rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Veh_NeedPart"), value = ZeD.tr("UI_ZeD_Veh_None"), kicker = ZeD.tr("UI_ZeD_Veh_KWithinReach") }
+                rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Veh_NeedPart"), value = ZeD.tr("IGUI_None"), kicker = ZeD.tr("UI_ZeD_Veh_KWithinReach") }
                 ok = false
             end
         end

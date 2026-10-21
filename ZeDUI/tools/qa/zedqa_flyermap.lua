@@ -71,6 +71,8 @@ at(330, function()
     local md = p:getModData()
     if md.ZeD_FlyerSeen then md.ZeD_FlyerSeen["fossoil1:1:1"] = nil; md.ZeD_FlyerSeen["zedqa_here:1:1"] = nil end
     PrintMediaDefinitions.MiscDetails.zedqa_here = nil
+    -- (Show on map at 260 unfolded the map into the pop-out: fold it back)
+    if ww()._mapPopout and ZeD.MapsTab.closePopout then ZeD.MapsTab.closePopout(ww()) end
     if style0 then ZeD.MapsTab.setStyle(ww(), style0) end
     pcall(function() ZeD_WorldWindow.getWindow()._worldMapPanel.mapAPI:centerOn(p:getX(), p:getY()) end)
     say("read back to " .. read:size())

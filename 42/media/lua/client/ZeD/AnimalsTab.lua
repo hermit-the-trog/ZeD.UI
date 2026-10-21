@@ -1174,7 +1174,7 @@ local SEV_VARIANT = {
 local ALERT_LABELS = {
     udder_urgent = "IGUI_Animal_Udder",
     ready_milk   = "ContextMenu_Milk",
-    ready_shear  = "UI_ZeD_Animals_AlertShear",
+    ready_shear  = "ContextMenu_Shear",
     thirsty      = "IGUI_Animal_Thirsty",
     hungry       = "Moodles_Hungry_lvl2",
     stressed     = "IGUI_Animal_Stressed",
@@ -1837,7 +1837,7 @@ local function structInfo(kind, o, player)
             sub = ZeD.tr("UI_ZeD_Animals_TroughWater", string.format("%.1f", wl), string.format("%.1f", ocall(o, "getMaxWater") or 0))
             badge, variant = getText("IGUI_FeedingTroughUI_Water"), "info"
         else
-            sub = ZeD.tr("UI_ZeD_Animals_TroughEmpty"); badge, variant = getText("Fluid_Empty"), "neutral"
+            sub = ZeD.upper(ZeD.tr("Fluid_Empty")); badge, variant = getText("Fluid_Empty"), "neutral"
         end
         local linked = ocall(o, "getLinkedAnimals")
         local nLinked = linked and linked:size() or 0
@@ -1852,11 +1852,11 @@ local function structInfo(kind, o, player)
             local cn = ocall(a, "getCustomName")
             name = name .. " | " .. ((cn and cn ~= "") and cn or (ocall(a, "getFullName") or "?"))
             local parts = {}
-            if md["leather"] then parts[#parts + 1] = ZeD.tr("UI_ZeD_Animals_HookLeather") end
+            if md["leather"] then parts[#parts + 1] = ZeD.upper(ZeD.trBare("IGUI_ButcherHook_Leather")) end
             local blood = tonumber(md["BloodQty"]) or 0
             if blood > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Animals_HookBlood", string.format("%.1f", blood)) end
-            if not md["headless"] then parts[#parts + 1] = ZeD.tr("UI_ZeD_Animals_HookHead") end
-            if md["parts"] then parts[#parts + 1] = ZeD.tr("UI_ZeD_Animals_HookMeat") end
+            if not md["headless"] then parts[#parts + 1] = ZeD.upper(ZeD.trBare("IGUI_ButcherHook_Head")) end
+            if md["parts"] then parts[#parts + 1] = ZeD.upper(ZeD.trBare("IGUI_ButcherHook_Meat")) end
             sub = (#parts > 0 and ZeD.tr("UI_ZeD_Animals_HookLeft", table.concat(parts, " | ")) or ZeD.tr("UI_ZeD_Animals_HookNothingLeft"))
                 .. " | " .. ZeD.tr(dist == 1 and "UI_ZeD_Animals_TilesOne" or "UI_ZeD_Animals_TilesMany", dist)
             if ocall(o, "isRemovingBlood") then

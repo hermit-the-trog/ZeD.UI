@@ -646,8 +646,8 @@ end
 -- the grid's column bar: no columns to sort by, it names the list's order
 local function drawGridOrder(self, x, y, w, sortCol)
     local T = ZeD.T
-    local names = { name = "UI_ZeD_Inv_ColName", cat = "UI_ZeD_Inv_OrderCat", cond = "UI_ZeD_Inv_OrderCond", wt = "UI_ZeD_Inv_OrderWt" }
-    local lbl = ZeD.tr("UI_ZeD_Inv_OrderLine", ZeD.tr(names[sortCol] or "UI_ZeD_Inv_ColName"))
+    local names = { name = "UI_ZeD_Inv_ColName", cat = "IGUI_invpanel_Category", cond = "IGUI_invpanel_Condition", wt = "UI_ZeD_Inv_OrderWt" }
+    local lbl = ZeD.tr("UI_ZeD_Inv_OrderLine", ZeD.upper(ZeD.tr(names[sortCol] or "UI_ZeD_Inv_ColName")))
     local tc = T.toneLo or T.textDim
     self:drawText(ZeD.Atoms.truncateText(lbl, T.fontF5, w), x, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5)
 end

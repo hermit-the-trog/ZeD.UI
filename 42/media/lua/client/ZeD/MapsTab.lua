@@ -2,10 +2,12 @@
 -- ============================================================================
 -- MAPS TAB — World Window standalone tab.
 -- Embedded UIWorldMap with stash map markers, flyer location dots,
--- user-placed annotations (15 icons, 5 colors, text notes).
--- Same annotation data as JournalTab Maps sub-tab (modData.ZeD_MapAnnotations).
+-- user-placed marks (15 icons, 5 inks, text notes). Since Oct 20 2026 the
+-- marks live in vanilla's own map store and the engine draws them
+-- (MapNotes.lua); the old modData.ZeD_MapAnnotations is only a backup.
 -- ============================================================================
 
+require "ZeD/MapNotes"
 require "ZeD/FlyerMap"
 require "ZeD/Tr"
 require "ZeD/Tokens"
@@ -39,13 +41,12 @@ local MAP_ICONS = {
     { id = "checkmark",   tex = "media/ui/LootableMaps/map_checkmark.png",   label = "Check" },
 }
 
-local MAP_COLORS = {
-    { r = 0.6, g = 0.6, b = 0.6, a = 0.9, label = "Pencil" },
-    { r = 0.1, g = 0.1, b = 0.1, a = 0.9, label = "Black" },
-    { r = 0.2, g = 0.4, b = 0.9, a = 0.9, label = "Blue" },
-    { r = 0.9, g = 0.2, b = 0.2, a = 0.9, label = "Red" },
-    { r = 0.2, g = 0.8, b = 0.3, a = 0.9, label = "Green" },
-}
+-- vanilla's inks (MapNotes.INKS: the colour vanilla's map gives each pen), so
+-- the swatch, the preview and the mark the engine draws are one colour
+local MAP_COLORS = {}
+for i, k in ipairs(ZeD.MapNotes.INKS) do
+    MAP_COLORS[i] = { r = k.r, g = k.g, b = k.b, a = 1.0, label = k.item }
+end
 
 local MAP_ICON_BTN_SZ   = 20
 local MAP_ICON_BTN_GAP  = 4
@@ -53,7 +54,6 @@ local MAP_COLOR_SZ      = 14
 -- Sourced from ZeD.Spacing.tabHeaderH so all drawer / toolbar headers stay
 -- in lockstep when the token is tuned.
 local MAP_TOOLBAR_ROW_H = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37
-local MAP_ANNOT_DRAW_SZ = 22
 local MAP_TEXT_INPUT_H   = 24
 
 local MAP_DEFAULT_PINS = { "house", "target", "skull", "star", "cross", "checkmark" }
@@ -184,8 +184,8 @@ local function _enforceInk(win)
     local tool = win._mapActiveTool
     if tool then
         local ok = _toolAllowed(tool, ink)
-        if ok and tool == "text" and win._mapEditAnnotIdx then ok = _editAllowed(ink) end
-        if not ok then win._mapActiveTool = nil; win._mapEditAnnotIdx = nil end
+        if ok and tool == "text" and win._mapEdit then ok = _editAllowed(ink) end
+        if not ok then win._mapActiveTool = nil; win._mapEdit = nil end
     end
     if ink.write then _inkColor(win, ink) end
     return ink
@@ -195,13 +195,13 @@ end
 local function _armTool(win, toolId)
     if win._mapActiveTool == toolId then
         win._mapActiveTool = nil
-        win._mapEditAnnotIdx = nil
+        win._mapEdit = nil
         return
     end
     local ok, why = _toolAllowed(toolId, _mapInk(win._playerObj, true))
     if not ok then _inkSay(win._playerObj, why); return end
     win._mapActiveTool = toolId
-    win._mapEditAnnotIdx = nil
+    win._mapEdit = nil
 end
 
 -- Toolbar or A press on a colour: only a colour whose pen is at hand
@@ -284,6 +284,11 @@ end
 function ZeD_WorldMap:instantiate()
     self.javaObject = UIWorldMap.new(self)
     self.mapAPI = self.javaObject:getAPIv3()
+    -- the world map's own item, as vanilla's map binds it (ISWorldMap:instantiate):
+    -- the engine then draws vanilla's store of marks and notes on this map
+    -- (MapNotes.lua). First, before anything asks the map for its symbols.
+    ZeD.MapNotes.bind(self)
+    if self.playerObj then pcall(ZeD.MapNotes.migrate, self.playerObj) end
 
     -- Configure: top-down, no debug, fog-of-war ("HideUnvisited", as vanilla's in-game map sets
     -- it in ISWorldMap:initDataAndStyle; the engine's default is off, and this read
@@ -331,17 +336,9 @@ local function paperFile()
 end
 ZeD.MapsTab.hasPaper = function() return paperFile() ~= nil end
 
--- vanilla's in-game map: its data, streets, style (ISWorldMap:initDataAndStyle)
-local function initSurvey(mp)
-    if not (MapUtils and MapUtils.initDefaultMapData) then return end
-    MapUtils.initDefaultMapData(mp)
-    mp.mapAPI:setBoundsFromWorld()
-    if MapUtils.initDefaultStreetData then
-        MapUtils.initDefaultStreetData(mp)
-    end
-    MapUtils.initDefaultStyleV3(mp)
-    -- S124: the label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
-    -- with the root so street and town names grow with the rest of the UI.
+-- S124: the label layers are sized in their own units (ISMapDefinitions: 48 / 40 / 32); scale them
+-- with the root so street and town names, and the player's notes, grow with the rest of the UI.
+local function scaleLabels(mp)
     pcall(function()
         local root = (ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1
         local styleAPI = mp.mapAPI:getStyleAPI()
@@ -352,11 +349,55 @@ local function initSurvey(mp)
             if layer then layer:setLineHeight(math.floor(base * root + 0.5)) end
         end
     end)
+end
+
+-- Over a picture (Color, Paper) the map still needs vanilla's text layers: the
+-- player's notes are written in "text-note" (vanilla's hand) and the map's own
+-- labels in theirs, as on vanilla's map. Without them the engine falls back to
+-- one default hand for every label.
+local function initTextLayers(mp)
+    if MapUtils and MapUtils.initDefaultTextLayersV3 then pcall(MapUtils.initDefaultTextLayersV3, mp) end
+    scaleLabels(mp)
+end
+
+-- The map's own place labels: every text layer MapUtils.initDefaultTextLayersV3 makes
+-- except "text-note", the player's own hand (notes and symbols are not in these layers).
+local LABEL_LAYERS = { "text-street", "text-building", "text-place", "text-town", "text-forest",
+                       "text-water-small", "text-water-medium", "text-water-nofade" }
+ZeD.MapsTab.LABEL_LAYERS = LABEL_LAYERS
+
+-- Paper prints its own names on the illustration, so the map's labels (worldmap-annotations)
+-- would only double them: every fill stop of those layers goes fully transparent. The
+-- player's notes (text-note) and symbols are untouched and still draw.
+local function hideLabels(mp)
+    pcall(function()
+        local styleAPI = mp.mapAPI:getStyleAPI()
+        for _, name in ipairs(LABEL_LAYERS) do
+            local layer = styleAPI:getLayerByName(name)
+            if layer then
+                for i = 0, layer:getFillStops() - 1 do
+                    layer:setFillRGBA(i, layer:getFillRed(i), layer:getFillGreen(i), layer:getFillBlue(i), 0)
+                end
+            end
+        end
+    end)
+end
+
+-- vanilla's in-game map: its data, streets, style (ISWorldMap:initDataAndStyle)
+local function initSurvey(mp)
+    if not (MapUtils and MapUtils.initDefaultMapData) then return end
+    MapUtils.initDefaultMapData(mp)
+    mp.mapAPI:setBoundsFromWorld()
+    if MapUtils.initDefaultStreetData then
+        MapUtils.initDefaultStreetData(mp)
+    end
+    MapUtils.initDefaultStyleV3(mp)
+    scaleLabels(mp)
     if MapUtils.overlayPaper then
         MapUtils.overlayPaper(mp)
     end
-    -- NOTE: getSymbolsAPIv2() crashes on embedded UIWorldMaps (Java uiSymbols is null).
-    -- Default annotations are skipped; we render our own overlays in render().
+    -- (the marks and notes, and the map's own labels, are vanilla's store, drawn
+    -- by the engine through the item bound in instantiate: MapNotes.lua)
 end
 
 -- the world's map data, undrawn (no style layers): without it the engine has no
@@ -372,6 +413,7 @@ local function initColor(mp)
     initDataOnly(mp)
     api:setBoolean("ImagePyramid", true)
     api:setBoundsFromWorld()
+    initTextLayers(mp)
 end
 
 -- the illustration alone (MapSpawnSelectImage's setup), on vanilla's paper colours
@@ -386,6 +428,8 @@ local function initPaper(mp)
     api:setBackgroundRGBA(r, g, b, 1.0)
     api:setUnvisitedRGBA(r * 0.915, g * 0.915, b * 0.915, 1.0)
     api:setUnvisitedGridRGBA(r * 0.777, g * 0.777, b * 0.777, 1.0)
+    initTextLayers(mp)
+    hideLabels(mp)
 end
 
 -- SURVEY, COLOR or PAPER on the one map (it keeps where it looks)
@@ -450,6 +494,40 @@ function ZeD_WorldMap:createChildren()
     self._annotationsLoaded = false
 end
 
+-- A restyle empties the map's data and pictures and loads them again, and the
+-- engine's render thread may at that moment still be drawing this map's last
+-- frame from those same lists (WorldMapPyramidStyleLayer.renderVisibleCells
+-- reads the picture list unguarded; emptied under it, it throws an
+-- IndexOutOfBoundsException, regression Oct 20 2026). So a map that is on
+-- screen is restyled only once it has been left out of RESTYLE_HOLD frames:
+-- ZeD.MapsTab.render keeps it hidden till then (_restyleStep) and restyles it
+-- there. A map not drawn lately is restyled at once. self.style is the style
+-- chosen from the moment it is asked for (the toolbar shows it).
+local RESTYLE_HOLD = 3
+function ZeD_WorldMap:requestStyle(style)
+    local drawn = self._drawnMs
+    if not drawn or getTimestampMs() - drawn > 500 then
+        self._styleWanted, self._styleHold = nil, nil
+        self:applyStyle(style)
+        return
+    end
+    self._styleWanted, self._styleHold = style, 0
+    self.style = style
+    self.paper = style == "paper"
+end
+
+-- Each frame from ZeD.MapsTab.render: true while a restyle holds the map off
+-- the screen; on the frame after the hold it restyles and returns false.
+function ZeD_WorldMap:_restyleStep()
+    if not self._styleWanted then return false end
+    self._styleHold = (self._styleHold or 0) + 1
+    if self._styleHold <= RESTYLE_HOLD then return true end
+    local style = self._styleWanted
+    self._styleWanted, self._styleHold = nil, nil
+    self:applyStyle(style)
+    return false
+end
+
 -- the toolbar's SURVEY / COLOR / PAPER (kept per character, as the pinned icons are)
 function ZeD.MapsTab.setStyle(win, style)
     local mp = win and win._worldMapPanel
@@ -458,7 +536,7 @@ function ZeD.MapsTab.setStyle(win, style)
     if mp.style == style then return end
     local md = win._playerObj and win._playerObj:getModData()
     if md then md.ZeD_MapStyle = style; md.ZeD_MapPaper = nil end
-    mp:applyStyle(style)
+    mp:requestStyle(style)
     getSoundManager():playUISound("UIActivateTab")
 end
 function ZeD.MapsTab.setPaper(win, paper) ZeD.MapsTab.setStyle(win, paper and "paper" or "survey") end
@@ -478,19 +556,18 @@ local function _placeAnnotationAt(mp, uiX, uiY)
     -- vanilla's ink rules, looked at again at the moment of marking
     local ink = _mapInk(mp.playerObj, true)
     local ok, why = _toolAllowed(toolId, ink)
-    if ok and toolId == "text" and win._mapEditAnnotIdx then ok, why = _editAllowed(ink) end
+    if ok and toolId == "text" and win._mapEdit then ok, why = _editAllowed(ink) end
     if not ok then
         _inkSay(mp.playerObj, why)
         win._mapActiveTool = nil
-        win._mapEditAnnotIdx = nil
+        win._mapEdit = nil
         return true
     end
     local colorIdx = _inkColor(win, ink) or 1
-    mp.playerObj:playSoundLocal(toolId == "text" and "MapAddNote" or "MapAddSymbol")
+    local N = ZeD.MapNotes
 
-    local md = mp.playerObj:getModData()
-    if not md.ZeD_MapAnnotations then md.ZeD_MapAnnotations = {} end
-
+    -- into vanilla's store, through vanilla's calls (MapNotes.lua)
+    local done = false
     if toolId == "text" then
         local noteText = ZeD.tr("UI_ZeD_Map_NoteDefault")
         if win._mapTextEntry then
@@ -498,46 +575,76 @@ local function _placeAnnotationAt(mp, uiX, uiY)
             if t and t ~= "" then noteText = t end
         end
 
-        -- Editing existing annotation (right-click → Edit Note path): update
-        -- text on the same entry and exit text mode.
-        if win._mapEditAnnotIdx then
-            local annots = md.ZeD_MapAnnotations
-            local a = annots and annots[win._mapEditAnnotIdx]
-            if a then a.text = noteText end
-            win._mapEditAnnotIdx = nil
+        -- Editing a note (right-click > Edit note): new words on the same
+        -- note, then out of text mode.
+        local ed = win._mapEdit
+        if ed then
+            win._mapEdit = nil
             win._mapActiveTool = nil
+            if N.contains(ed.api, ed.sym) then done = N.setText(ed.sym, noteText, ed.api) end
         else
-            local annots = md.ZeD_MapAnnotations
-            annots[#annots + 1] = {
-                worldX   = worldX,
-                worldY   = worldY,
-                iconId   = "text",
-                colorIdx = colorIdx,
-                text     = noteText,
-            }
+            done = N.addNote(noteText, worldX, worldY, colorIdx) ~= nil
         end
     else
-        -- Icon annotation: persistent mode (tool stays active so user can
-        -- drop a string of the same marker without re-selecting).
-        local annots = md.ZeD_MapAnnotations
-        annots[#annots + 1] = {
-            worldX   = worldX,
-            worldY   = worldY,
-            iconId   = toolId,
-            colorIdx = colorIdx,
-            text     = "",
-        }
+        -- A mark: the tool stays up, so a string of the same mark can be
+        -- dropped without picking it again.
+        done = N.addSymbol(N.SYMBOL_BY_ICON[toolId], worldX, worldY, colorIdx) ~= nil
     end
+    if done then mp.playerObj:playSoundLocal(toolId == "text" and "MapAddNote" or "MapAddSymbol") end
     return true
 end
 
--- Shared annotation-edit context menu. Opens at absolute screen coords
--- (absX, absY) for annotation index `hitIdx`. Used by mouse RMB and by the
--- gamepad X-press when the cursor is over an annotation.
-local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
-    local md = mp.playerObj:getModData()
-    local annots = md and md.ZeD_MapAnnotations
-    if not annots or not annots[hitIdx] then return end
+-- Sharing (multiplayer): vanilla's own panel, opened as its sharing tool does
+-- (ISWorldMapSymbolTool_Sharing:showPropertiesUI): one ISWorldMapSharing made
+-- on the map, the mark set on it, closed by the panel itself (B, or a click
+-- outside), which applies the choice. Vanilla shows the tool on the world map in
+-- multiplayer only; ZeD's menu offers it for the marks this player owns.
+local function _canShare(sym)
+    return isClient() and ISWorldMapSharing ~= nil and sym ~= nil and sym:canClientModify() == true
+end
+
+local function _openSharing(mp, sym, fromPad)
+    if not _canShare(sym) then return end
+    local pn = (mp.playerObj and mp.playerObj:getPlayerNum()) or 0
+    mp.playerNum = pn                           -- (the panel reads mapUI.playerNum)
+    local jd = JoypadState and JoypadState.players and JoypadState.players[pn + 1] or nil
+    local ui = mp._zedSharingUI
+    if not ui then
+        ui = ISWorldMapSharing:new(mp)
+        mp:addChild(ui)
+        mp._zedSharingUI = ui
+        -- vanilla's close hands the pad to the map; ZeD gives it back to the window
+        ui.close = function(self2)
+            ISWorldMapSharing.close(self2)
+            if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus then
+                ZeD.Input.Focus.reclaimEngineFocus()
+            end
+        end
+    end
+    if not ui:isVisible() then
+        ui:setVisible(true)
+        mp:addChild(ui)
+    end
+    ui:setCurrentSymbol(sym)
+    ui:setX(math.max(0, math.floor((mp:getWidth() - ui:getWidth()) / 2)))
+    ui:setY(math.max(0, math.floor((mp:getHeight() - ui:getHeight()) / 2)))
+    if fromPad and jd then
+        -- a frame later: the menu that was just chosen from lets go of the pad as it closes
+        local fire
+        fire = function()
+            Events.OnTick.Remove(fire)
+            if ui:isVisible() then pcall(setJoypadFocus, pn, ui) end
+        end
+        Events.OnTick.Add(fire)
+    end
+end
+
+-- Shared mark-edit context menu. Opens at absolute screen coords (absX, absY)
+-- for the mark `sym` (from MapNotes.hitAt on this map, with its `api`). Used by
+-- mouse RMB and by the gamepad X-press when the cursor is over a mark.
+local function _openAnnotContextMenu(mp, absX, absY, sym, api, fromPad)
+    local N = ZeD.MapNotes
+    if not (sym and api and N.canModify(sym)) then return end
 
     local ctx = ISContextMenu.get(0, absX, absY)
 
@@ -548,9 +655,7 @@ local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
 
     local optDel = ctx:addOption(getText("ContextMenu_Delete"), mp, function(self2)
         if not _mapInk(self2.playerObj, true).erase then _inkSay(self2.playerObj, "Tooltip_Map_CantErase"); return end
-        local md2 = self2.playerObj:getModData()
-        if md2.ZeD_MapAnnotations then
-            table.remove(md2.ZeD_MapAnnotations, hitIdx)
+        if N.contains(api, sym) and N.remove(sym, api) then
             self2.playerObj:playSoundLocal("MapRemoveMarking")
         end
     end)
@@ -560,27 +665,32 @@ local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
         local ink2 = _mapInk(self2.playerObj, true)
         local ok2, why2 = _editAllowed(ink2)
         if not ok2 then _inkSay(self2.playerObj, why2); return end
-        local md2 = self2.playerObj:getModData()
-        local a = md2.ZeD_MapAnnotations and md2.ZeD_MapAnnotations[hitIdx]
-        if a then   -- round to the next colour there is a pen for
-            a.colorIdx = _nextInkColor(a.colorIdx or 1, ink2)
+        if N.contains(api, sym) then   -- round to the next colour there is a pen for
+            N.setInk(sym, _nextInkColor(N.inkOf(sym) or 1, ink2), api)
             self2.playerObj:playSoundLocal("MapAddSymbol")
         end
     end)
     if not canEdit then _optionNeeds(optCol, editWhy) end
 
+    -- multiplayer: vanilla's sharing panel for this mark (vanilla's own word for it)
+    if _canShare(sym) then
+        ctx:addOption(getText("IGUI_Map_Sharing"), mp, function(self2)
+            if N.contains(api, sym) then _openSharing(self2, sym, fromPad) end
+        end)
+    end
+
+    -- (only a note has words: vanilla's marks carry none)
+    if not sym:isText() then return end
     local optEdit = ctx:addOption(getText("IGUI_Map_EditNote"), mp, function(self2)
         local pwin = self2._parentWin
         if not pwin then return end
         local ok2, why2 = _editAllowed(_mapInk(self2.playerObj, true))
         if not ok2 then _inkSay(self2.playerObj, why2); return end
-        local md2 = self2.playerObj:getModData()
-        local a = md2.ZeD_MapAnnotations and md2.ZeD_MapAnnotations[hitIdx]
-        if a then
+        if N.contains(api, sym) then
             pwin._mapActiveTool = "text"
-            pwin._mapEditAnnotIdx = hitIdx
+            pwin._mapEdit = { sym = sym, api = api }
             if pwin._mapTextEntry then
-                pwin._mapTextEntry:setText(a.text or "")
+                pwin._mapTextEntry:setText(N.textOf(sym) or "")
                 pwin._mapTextEntry:setVisible(true)
             end
         end
@@ -656,24 +766,12 @@ function ZeD_WorldMap:onMouseUpOutside(x, y)
     return true
 end
 
--- Right-click: context menu for annotation edit/delete
+-- Right-click: context menu for a mark's edit / delete
 function ZeD_WorldMap:onRightMouseDown(x, y)
-    local T = ZeD.T
-    if not self._annotationHits then return false end
-
-    local hitRadius = T.px(16)
-    for _, hit in ipairs(self._annotationHits) do
-        local cx = hit.x + hit.w / 2
-        local cy = hit.y + hit.h / 2
-        local ddx = x - cx
-        local ddy = y - cy
-        if ddx * ddx + ddy * ddy <= hitRadius * hitRadius then
-            _openAnnotContextMenu(self,
-                self:getAbsoluteX() + x, self:getAbsoluteY() + y, hit.idx)
-            return true
-        end
-    end
-    return false
+    local sym, api = ZeD.MapNotes.hitAt(self, x, y, ZeD.T.px(16))
+    if not sym then return false end
+    _openAnnotContextMenu(self, self:getAbsoluteX() + x, self:getAbsoluteY() + y, sym, api)
+    return true
 end
 
 -- Mouse wheel for zoom
@@ -743,62 +841,29 @@ function ZeD_WorldMap:renderFlyerMarkers()
     ZeD.FlyerMap.draw(self)
 end
 
--- Render user-placed annotations from modData
+-- The marks and notes are vanilla's store, drawn by the engine (the map is
+-- bound to the world map's item in instantiate). What is left to do here is
+-- vanilla's per-frame call that loads the map's own labels into the store
+-- once (ISWorldMap:prerender); ZeD draws no marks of its own.
 function ZeD_WorldMap:renderAnnotations()
-    local md = self.playerObj:getModData()
-    local annots = md and md.ZeD_MapAnnotations
-    if not annots or #annots == 0 then return end
+    ZeD.MapNotes.initDefaults()
+end
 
-    local T = ZeD.T
-    local tm = ZeD.TM
-    local pw, ph = self:getWidth(), self:getHeight()
-    local sz = T.px(MAP_ANNOT_DRAW_SZ)
-    local halfSz = sz / 2
-
-    self._annotationHits = {}
-
-    for i, ann in ipairs(annots) do
-        local sx = self.mapAPI:worldToUIX(ann.worldX, ann.worldY) - halfSz
-        local sy = self.mapAPI:worldToUIY(ann.worldX, ann.worldY) - halfSz
-
-        if sx > -sz and sy > -sz and sx < pw and sy < ph then
-            local colorDef = MAP_COLORS[ann.colorIdx or 1] or MAP_COLORS[1]
-            local c = colorDef
-
-            if ann.iconId == "text" then
-                local dotSz = T.px(6)
-                local dotX = sx + halfSz - dotSz / 2
-                local dotY = sy + halfSz - dotSz / 2
-                self:drawRect(dotX + T.px(1), dotY,     dotSz - T.px(2), T.px(1),        0.9, c.r, c.g, c.b)
-                self:drawRect(dotX,     dotY + T.px(1), dotSz,     dotSz - T.px(2), 0.9, c.r, c.g, c.b)
-                self:drawRect(dotX + T.px(1), dotY + dotSz - T.px(1), dotSz - T.px(2), T.px(1), 0.9, c.r, c.g, c.b)
-            else
-                local tex = self._annotTextures and self._annotTextures[ann.iconId]
-                if tex then
-                    self:drawTextureScaledAspect(tex, sx, sy, sz, sz, 0.9, c.r, c.g, c.b)
-                else
-                    local m = T.px(4)
-                    for di = 0, sz - m * 2 - 1 do  -- S124 scale: walks screen px; the -1 is the inclusive loop bound
-                        self:drawRect(sx + m + di, sy + m + di, T.px(1), T.px(1), 0.7, c.r, c.g, c.b)
-                        self:drawRect(sx + m + di, sy + sz - m - T.px(1) - di, T.px(1), T.px(1), 0.7, c.r, c.g, c.b)
-                    end
-                end
-            end
-
-            if ann.text and ann.text ~= "" then
-                local tw = tm:MeasureStringX(T.fontF1, ann.text)
-                local tx = sx + halfSz - tw / 2
-                local ty = sy - tm:getFontHeight(T.fontF1) - T.px(2)
-                self:drawText(ann.text, tx + T.px(1), ty + T.px(1), 0, 0, 0, 0.6, T.fontF1)
-                self:drawText(ann.text, tx, ty, c.r, c.g, c.b, 1, T.fontF1)
-            end
-
-            self._annotationHits[#self._annotationHits + 1] = {
-                idx = i,
-                x = sx, y = sy, w = sz, h = sz,
-            }
+-- A mark or note as it will land: vanilla's own preview draws
+-- (ISWorldMapSymbols:renderSymbol, ISWorldMapSymbolTool_AddNote:render), so the
+-- preview is the size and hand of the mark the engine will draw there.
+local function _previewMark(mp, toolId, x, y, c, alpha, text)
+    local s = ((ISMap and ISMap.SCALE) or 0.666) * mp.mapAPI:getWorldScale()
+    if toolId == "text" then
+        if text and text ~= "" then
+            pcall(function()
+                mp.javaObject:DrawTextSdfRotated("text-note", text, x, y, 0.5, 0.5, 0.0, s, false, true, c.r, c.g, c.b, alpha)
+            end)
         end
+        return
     end
+    local tex = mp._annotTextures and mp._annotTextures[toolId]
+    if tex then mp.javaObject:DrawSymbol(tex, x, y, 20, 20, 0.0, s, false, false, c.r, c.g, c.b, alpha) end
 end
 
 -- Read the currently-focused ring element if focus belongs to the owning
@@ -836,29 +901,11 @@ function ZeD_WorldMap:renderToolCursor()
 
     local mx, my = self:getMouseX(), self:getMouseY()
     if mx < 0 or my < 0 or mx > self:getWidth() or my > self:getHeight() then return end
+    if win._mapEdit then return end   -- (rewording a note: the next click puts the words on it)
 
-    local T = ZeD.T
-    local sz = T.px(MAP_ANNOT_DRAW_SZ)
-    local colorDef = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
-    local c = colorDef
-
-    if win._mapActiveTool == "text" then
-        local dotSz = T.px(6)
-        local dotX = mx - dotSz / 2
-        local dotY = my - dotSz / 2
-        self:drawRect(dotX + T.px(1), dotY,     dotSz - T.px(2), T.px(1),        0.4, c.r, c.g, c.b)
-        self:drawRect(dotX,     dotY + T.px(1), dotSz,     dotSz - T.px(2), 0.4, c.r, c.g, c.b)
-        self:drawRect(dotX + T.px(1), dotY + dotSz - T.px(1), dotSz - T.px(2), T.px(1), 0.4, c.r, c.g, c.b)
-        local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
-        if previewText ~= "" then
-            self:drawText(previewText, mx + T.px(6), my - T.px(10), c.r, c.g, c.b, 0.4, T.fontF1)
-        end
-    else
-        local tex = self._annotTextures and self._annotTextures[win._mapActiveTool]
-        if tex then
-            self:drawTextureScaledAspect(tex, mx - sz / 2, my - sz / 2, sz, sz, 0.5, c.r, c.g, c.b)
-        end
-    end
+    local c = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
+    local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
+    _previewMark(self, win._mapActiveTool, mx, my, c, 0.5, previewText)
 end
 
 -- Lazy-seed the gamepad cursor to panel center on first focus. Stored on the
@@ -903,29 +950,17 @@ function ZeD_WorldMap:renderGamepadCursor()
 
     -- Tool preview at cursor when a tool is armed, so the user sees what
     -- A-press will place. Mirrors renderToolCursor's mouse-preview styling.
-    if win._mapActiveTool then
-        local sz = T.px(MAP_ANNOT_DRAW_SZ)
-        local colorDef = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
-        local c = colorDef
-
-        if win._mapActiveTool == "text" then
-            local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
-            if previewText ~= "" then
-                self:drawText(previewText, cx + T.px(8), cy - T.px(10), c.r, c.g, c.b, 0.5, T.fontF1)
-            end
-        else
-            local tex = self._annotTextures and self._annotTextures[win._mapActiveTool]
-            if tex then
-                self:drawTextureScaledAspect(tex, cx - sz / 2, cy - sz / 2,
-                    sz, sz, 0.5, c.r, c.g, c.b)
-            end
-        end
+    if win._mapActiveTool and not win._mapEdit then
+        local c = MAP_COLORS[win._mapActiveColor or 1] or MAP_COLORS[1]
+        local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
+        _previewMark(self, win._mapActiveTool, cx, cy, c, 0.5, previewText)
     end
 end
 
 -- ISUIElement render — draw overlays on top of the Java map.
 -- Do NOT call ISUIElement.render(self) — Java UIWorldMap handles its own rendering.
 function ZeD_WorldMap:render()
+    self._drawnMs = getTimestampMs()   -- (requestStyle: drawn lately, so restyle after a hold)
     if self._pendingZoom then self:_zoomTo(self._pendingZoom) end
     self._gpCursorLive = false
     self:renderStashMaps()
@@ -1106,6 +1141,9 @@ local function renderMapToolbar(panel, win, x, y, w)
         end
 
         panel:drawRect(curX, colY, colSz, colSz, 0.85, c.r, c.g, c.b)
+        -- (vanilla's inks are dark: a faint edge keeps each swatch apart from the toolbar)
+        local sb = T.border
+        panel:drawRectBorder(curX, colY, colSz, colSz, sb.a * 0.3, sb.r, sb.g, sb.b)
         if not ink.pen[ci] then
             _dimBtn(panel, curX, colY, colSz, colSz)   -- no pen of this colour at hand
         elseif isActiveCol then
@@ -1275,7 +1313,7 @@ local function _mapBlocked(panel, win, x, y, w, h)
             _light.who, _light.t = win._playerObj, now
             _light.dark = ZeD.MapsTab.tooDark(win._playerObj)
         end
-        if _light.dark then msg = ZeD.tr("UI_ZeD_Map_TooDark") end
+        if _light.dark then msg = ZeD.upper(ZeD.trBare("ContextMenu_TooDark")) end
     end
     win._mapBlocked = msg ~= nil
     if not msg then return false end
@@ -1334,6 +1372,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         te.zedEntry = true   -- typed text follows the UI scale (ZeD.Text.fitEntry)
         te:setVisible(false)
         panel:addChild(te)
+        -- vanilla's note limit (its note box takes 45 characters)
+        pcall(function() te:setMaxTextLength(ZeD.MapNotes.NOTE_MAX_CHARS) end)
         win._mapTextEntry = te
     end
 
@@ -1366,7 +1406,13 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         mp:setY(mapY)
         mp:setWidth(w)
         mp:setHeight(mapH)
-        mp:setVisible(true)
+        -- a restyle on hold: the map stays off the screen a few frames (requestStyle)
+        local holding = mp:_restyleStep()
+        mp:setVisible(not holding)
+        if holding then
+            local s1 = T.surf1
+            panel:drawRect(x, mapY, w, mapH, s1.a, s1.r, s1.g, s1.b)
+        end
     else
         -- Fallback: show error state
         local secH = ZeD.TM:getFontHeight(T.fontF1)
@@ -1650,7 +1696,7 @@ function ZeD.MapsTab.buildFocusables(win)
                 -- canvas with no way to reach the toolbar (S113c QA finding).
                 if w._mapActiveTool then
                     w._mapActiveTool = nil
-                    w._mapEditAnnotIdx = nil
+                    w._mapEdit = nil
                     return true
                 end
                 if w._focusRing then
@@ -1763,26 +1809,16 @@ function ZeD.MapsTab.gpPlaceAtCursor(win)
     _placeAnnotationAt(mp, mp._gpCursorX, mp._gpCursorY)
 end
 
--- Return the annotation hit (from mp._annotationHits) whose center is within
--- the hit radius of the cursor, or nil. The hits table is refreshed each
--- frame by renderAnnotations; this uses the most recent pass.
+-- The mark under the controller's cursor ({ sym, api }), or nil: the
+-- engine's hit test on vanilla's store, then the nearest mark within the hit
+-- radius (MapNotes.hitAt).
 function ZeD.MapsTab.gpFindAnnotAtCursor(win)
-    local T = ZeD.T
     if not win then return nil end
     local mp = win._worldMapPanel
-    if not mp or not mp._annotationHits or not mp._gpCursorX then return nil end
-    local cx, cy = mp._gpCursorX, mp._gpCursorY
-    local rSq = T.px(MAP_GP_HIT_RADIUS_PX) * T.px(MAP_GP_HIT_RADIUS_PX)
-    for _, hit in ipairs(mp._annotationHits) do
-        local hx = hit.x + hit.w / 2
-        local hy = hit.y + hit.h / 2
-        local ddx = cx - hx
-        local ddy = cy - hy
-        if ddx * ddx + ddy * ddy <= rSq then
-            return hit
-        end
-    end
-    return nil
+    if not mp or not mp._gpCursorX then return nil end
+    local sym, api = ZeD.MapNotes.hitAt(mp, mp._gpCursorX, mp._gpCursorY, ZeD.T.px(MAP_GP_HIT_RADIUS_PX))
+    if not sym then return nil end
+    return { sym = sym, api = api }
 end
 
 -- X-press while canvas cursor is focused: if the cursor is over an
@@ -1798,7 +1834,7 @@ function ZeD.MapsTab.gpContextMenuAtCursor(win)
     _openAnnotContextMenu(mp,
         mp:getAbsoluteX() + mp._gpCursorX,
         mp:getAbsoluteY() + mp._gpCursorY,
-        hit.idx)
+        hit.sym, hit.api, true)
 end
 
 -- Step per D-pad press: small for a tap, growing while the D-pad is held

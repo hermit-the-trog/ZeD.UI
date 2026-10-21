@@ -106,7 +106,7 @@ end
 -- Where an item sits, for list rows: INVENTORY or the bag's name.
 function OC.whereOf(item, player)
     local c = item and call(item, "getContainer")
-    if not c or c == player:getInventory() then return ZeD.tr("UI_ZeD_ObjCard_WhereInventory") end
+    if not c or c == player:getInventory() then return ZeD.upper(ZeD.tr("ContextMenu_MoveToInventory")) end
     local bag = call(c, "getContainingItem")
     local n = bag and call(bag, "getDisplayName")
     return n and ZeD.upper(n) or ZeD.tr("UI_ZeD_ObjCard_WhereNearby")
@@ -479,18 +479,18 @@ function UI.cookRows(card, x, y, w, container, on)
                 local toCook = call(it, "getMinutesToCook") or 0
                 local toBurn = call(it, "getMinutesToBurn") or 0
                 if call(it, "isBurnt") then
-                    tag, mode, p = ZeD.tr("UI_ZeD_ObjCard_TagBurnt"), "dng", 1
+                    tag, mode, p = ZeD.upper(ZeD.tr("IGUI_invpanel_Burnt")), "dng", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
                     if on then
-                        tag, mode = ZeD.tr("UI_ZeD_ObjCard_TagBurning"), "dng"
+                        tag, mode = ZeD.upper(ZeD.tr("IGUI_invpanel_Burning")), "dng"
                         p = math.max(0, math.min(1, (ct - toCook) / math.max(1, toBurn - toCook)))
                         left = math.max(0, math.ceil(toBurn - ct))
                     else
-                        tag, mode = ZeD.tr("UI_ZeD_ObjCard_TagCooked"), "pos"
+                        tag, mode = ZeD.upper(ZeD.tr("Tooltip_food_Cooked")), "pos"
                     end
                 else
                     p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
-                    tag, mode = on and ZeD.tr("UI_ZeD_ObjCard_TagCooking") or ZeD.tr("UI_ZeD_ObjCard_TagRaw"), on and "acc" or "dim"
+                    tag, mode = on and ZeD.upper(ZeD.tr("IGUI_invpanel_Cooking")) or ZeD.tr("UI_ZeD_ObjCard_TagRaw"), on and "acc" or "dim"
                     left = on and math.max(0, math.ceil(toCook - ct)) or nil
                 end
             end

@@ -639,7 +639,7 @@ function ZeD_Prompt:stripPrompts()
         local t = tostring(b and b.title or "")
         return ZeD.upper(t:sub(1, 1)) .. t:sub(2):lower()
     end
-    local ok, press, cancel = ZeD.tr("UI_ZeD_Status_OK"), ZeD.tr("UI_ZeD_Prompt_Press"), ZeD.tr("UI_Cancel")
+    local ok, press, cancel = ZeD.upper(ZeD.tr("UI_Ok")), ZeD.tr("UI_ZeD_Prompt_Press"), ZeD.tr("UI_Cancel")
     local move, moveStep = ZeD.tr("UI_ZeD_Prompt_DPadMove"), ZeD.tr("UI_ZeD_Prompt_DPadMoveStep")
     if K == "note" then return { { glyph = "A", label = ok }, { glyph = "B", label = ok } } end
     if K == "rich" then

@@ -71,7 +71,7 @@ local LABEL_A = {
 for i = 1, 6 do LABEL_A["p" .. i] = "UI_ZeD_RadioPrompt_Listen" end
 ZeD.trDefaults({
     UI_ZeD_RadioPrompt_Tune = "Tune", UI_ZeD_RadioPrompt_Eject = "Eject", UI_ZeD_RadioPrompt_Scan = "Scan",
-    UI_ZeD_RadioPrompt_Seek = "Seek", UI_ZeD_RadioPrompt_Mute = "Mute", UI_ZeD_RadioPrompt_PlayStop = "Play / Stop",
+    UI_ZeD_RadioPrompt_Seek = "Seek", UI_ZeD_RadioPrompt_Mute = "Mute", UI_ZeD_RadioPrompt_PlayStop = "Play / stop",
     UI_ZeD_RadioPrompt_InsertCd = "Insert a CD", UI_ZeD_RadioPrompt_ChannelUp = "Channel up",
     UI_ZeD_RadioPrompt_ChannelDown = "Channel down", UI_ZeD_RadioPrompt_StoreChannel = "Store channel",
     UI_ZeD_RadioPrompt_Listen = "Listen", UI_ZeD_RadioPrompt_Press = "Press", UI_ZeD_RadioPrompt_Store = "Store",

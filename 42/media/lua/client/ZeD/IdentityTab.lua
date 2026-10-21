@@ -451,7 +451,7 @@ local function renderLicenseText(panel, win, data, x, drawY, w)
 
     -- Time Survived
     rowY = rowY + T.px(4)
-    panel:drawText(ZeD.tr("UI_ZeD_Identity_TimeSurvived"), dataX, rowY,
+    panel:drawText(ZeD.tr("IGUI_char_Survived_For"), dataX, rowY,
         KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
     rowY = rowY + bodyFH + T.px(1)
     panel:drawText(data.timeSurv, dataX, rowY, 0.1, 0.1, 0.1, 1.0, T.fontF4)

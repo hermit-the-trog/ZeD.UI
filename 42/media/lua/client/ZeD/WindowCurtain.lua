@@ -60,6 +60,7 @@ local function anyDragActive()
         local w = get and get()
         local c = w and w._mainContent
         if c and c._drag and c._drag:isActive() then return true end
+        if w and w._equipDrag and w._equipDrag:isActive() then return true end   -- an Equip row's drag
     end
     return false
 end

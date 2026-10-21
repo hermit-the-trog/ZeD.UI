@@ -1282,7 +1282,7 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
             { "confirm:yes", getText("ContextMenu_Keep"), function() self:answerMonitor(true) end, "primary" } })
     elseif self.confirm == "restart" then
         ask = MM.ui.plain(getText("UI_restart_game_to_apply"))
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:yes", ZeD.tr("UI_ZeD_MainMenu_Ok"), function() self:answerRestart() end, "primary" } })
+        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:yes", ZeD.upper(ZeD.tr("UI_Ok")), function() self:answerRestart() end, "primary" } })
     elseif self.confirm == "key" then
         local e = self._keyEntry
         ask = ZeD.tr("UI_ZeD_Options_AskKey", (e and e.txt and labelText(e.txt) or ZeD.tr("UI_ZeD_Options_AskKeyIt")))
