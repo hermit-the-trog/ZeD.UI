@@ -684,6 +684,92 @@ function ZeD_Window:onMouseUpOutside(x, y)
 end
 
 -- ---------------------------------------------------------------------------
+-- Reset both windows to the default page-spread layout: the "R" square in a
+-- window's footer (also called by the QA scripts). A rolled side
+-- (WindowCurtain) comes back down first, so the reset starts from the whole
+-- window.
+-- ---------------------------------------------------------------------------
+function ZeD_Window.resetLayout()
+    local S = ZeD.Settings
+    local T = ZeD.T
+    local screenW = getCore():getScreenWidth()
+    local screenH = getCore():getScreenHeight()
+    local defW = math.min(T.px(444), math.floor(screenW * 0.5))   -- 36 + 372 + 36 design units, as a fresh open
+    local defH = math.min(T.px(420), screenH - T.px(80))
+    local gap = T.px(5)  -- 5px each side = 10px total gap
+
+    -- Position as page spread: character left, world right
+    local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    for _, w in ipairs({ charWin or false, worldWin or false }) do
+        if w and w._rolled and ZeD.Curtain and ZeD.Curtain.finishUnroll then ZeD.Curtain.finishUnroll(w) end
+    end
+    if charWin then
+        charWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
+        charWin:setWidth(defW)
+        charWin:setHeight(defH)
+        charWin:setX(math.floor(screenW / 2) - defW - gap)
+        charWin:setY(0)
+        charWin._anchorRightEdge = charWin:getX() + defW
+        charWin._lastSetX = charWin:getX()
+        charWin._preDrawerW = nil
+        -- Reset saved settings: tab, drawer, accent
+        charWin._activeTab = "loot"
+        charWin._drawerOpen = false
+        charWin._drawerEffW = 0
+        charWin._prevEffW   = 0
+        charWin._drawerMode = nil
+        charWin._accentKey = nil
+        if S then S.syncWindowAccent(charWin) end   -- the option, the next open and the saved copy follow
+        -- Reset inventory drawer state (S78 two-drawer)
+        charWin._invDrawerOpen    = true
+        charWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
+        charWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
+        charWin._prevDesiredW     = nil
+        charWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
+        -- Clear MC
+        charWin._mcSelected = {}
+        charWin._mcColStates = {}
+        charWin._mainVisible = true
+        -- Clear persisted state so defaults apply on next load
+        if charWin._playerObj then
+            local md = charWin._playerObj:getModData()
+            if md.ZeD_WinState then md.ZeD_WinState.char = nil end
+        end
+    end
+    if worldWin then
+        worldWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
+        worldWin:setWidth(defW)
+        worldWin:setHeight(defH)
+        worldWin:setX(math.floor(screenW / 2) + gap)
+        worldWin:setY(0)
+        worldWin._anchorRightEdge = worldWin:getX() + defW
+        worldWin._lastSetX = worldWin:getX()
+        worldWin._preDrawerW = nil
+        worldWin._drawerOpen = false
+        worldWin._drawerEffW = 0
+        worldWin._prevEffW   = 0
+        worldWin._drawerMode = nil
+        worldWin._accentKey = nil
+        if S then S.syncWindowAccent(worldWin) end
+        -- Reset inventory drawer state (S78 two-drawer)
+        worldWin._invDrawerOpen    = true
+        worldWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
+        worldWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
+        worldWin._prevDesiredW     = nil
+        worldWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: design units, as above
+        -- Clear MC
+        worldWin._mcSelected = {}
+        worldWin._mainVisible = true
+        -- Clear persisted state
+        if worldWin._playerObj then
+            local md = worldWin._playerObj:getModData()
+            if md.ZeD_WinState then md.ZeD_WinState.world = nil end
+        end
+    end
+end
+
+-- ---------------------------------------------------------------------------
 -- Grow box resize via update() with absolute coordinates.
 -- Child panels can't eat these clicks because we check raw screen position.
 -- (WHAT_CODE_DID.md quirk #1)
@@ -775,80 +861,7 @@ function ZeD_Window:update()
                     ZeD.applyTheme(nil, nil, S.cycleNext(S.sizeKeys, ZeD.currentSize))
                     S.syncToModOptions()
                 elseif newHover == 4 then
-                    -- Reset both windows to default page-spread layout
-                    local T = ZeD.T
-                    local screenW = getCore():getScreenWidth()
-                    local screenH = getCore():getScreenHeight()
-                    local defW = math.min(T.px(444), math.floor(screenW * 0.5))   -- 36 + 372 + 36 design units, as a fresh open
-                    local defH = math.min(T.px(420), screenH - T.px(80))
-                    local gap = T.px(5)  -- 5px each side = 10px total gap
-
-                    -- Position as page spread: character left, world right
-                    local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-                    local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
-                    if charWin then
-                        charWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
-                        charWin:setWidth(defW)
-                        charWin:setHeight(defH)
-                        charWin:setX(math.floor(screenW / 2) - defW - gap)
-                        charWin:setY(0)
-                        charWin._anchorRightEdge = charWin:getX() + defW
-                        charWin._lastSetX = charWin:getX()
-                        charWin._preDrawerW = nil
-                        -- Reset saved settings: tab, drawer, accent
-                        charWin._activeTab = "loot"
-                        charWin._drawerOpen = false
-                        charWin._drawerEffW = 0
-                        charWin._prevEffW   = 0
-                        charWin._drawerMode = nil
-                        charWin._accentKey = nil
-                        S.syncWindowAccent(charWin)   -- the option, the next open and the saved copy follow
-                        -- Reset inventory drawer state (S78 two-drawer)
-                        charWin._invDrawerOpen    = true
-                        charWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
-                        charWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
-                        charWin._prevDesiredW     = nil
-                        charWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
-                        -- Clear MC
-                        charWin._mcSelected = {}
-                        charWin._mcColStates = {}
-                        charWin._mainVisible = true
-                        -- Clear persisted state so defaults apply on next load
-                        if charWin._playerObj then
-                            local md = charWin._playerObj:getModData()
-                            if md.ZeD_WinState then md.ZeD_WinState.char = nil end
-                        end
-                    end
-                    if worldWin then
-                        worldWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
-                        worldWin:setWidth(defW)
-                        worldWin:setHeight(defH)
-                        worldWin:setX(math.floor(screenW / 2) + gap)
-                        worldWin:setY(0)
-                        worldWin._anchorRightEdge = worldWin:getX() + defW
-                        worldWin._lastSetX = worldWin:getX()
-                        worldWin._preDrawerW = nil
-                        worldWin._drawerOpen = false
-                        worldWin._drawerEffW = 0
-                        worldWin._prevEffW   = 0
-                        worldWin._drawerMode = nil
-                        worldWin._accentKey = nil
-                        S.syncWindowAccent(worldWin)
-                        -- Reset inventory drawer state (S78 two-drawer)
-                        worldWin._invDrawerOpen    = true
-                        worldWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
-                        worldWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
-                        worldWin._prevDesiredW     = nil
-                        worldWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: design units, as above
-                        -- Clear MC
-                        worldWin._mcSelected = {}
-                        worldWin._mainVisible = true
-                        -- Clear persisted state
-                        if worldWin._playerObj then
-                            local md = worldWin._playerObj:getModData()
-                            if md.ZeD_WinState then md.ZeD_WinState.world = nil end
-                        end
-                    end
+                    ZeD_Window.resetLayout()   -- both windows back to the default page spread
                 -- elseif newHover == 5 then
                 --     local cur = getCore():getOptionEnableDyslexicFont()
                 --     getCore():setOptionEnableDyslexicFont(not cur)
