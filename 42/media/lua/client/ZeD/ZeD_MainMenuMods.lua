@@ -172,13 +172,13 @@ end
 function ZeD_MMMods:rowChips(d)
     local out = {}
     local n = MS.count(d.modId)
-    if n > 0 then out[#out + 1] = { n .. (n == 1 and " conflict" or " conflicts"), "warning" } end
+    if n > 0 then out[#out + 1] = { ZeD.tr(n == 1 and "UI_ZeD_Mods_ChipConflictOne" or "UI_ZeD_Mods_ChipConflictMany", n), "warning" } end
     local it = MS.wsFor(d.modInfo)
     if it then
-        if MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId) then out[#out + 1] = { "Updated", "accent" }
-        elseif it.state == "update" then out[#out + 1] = { "Update", "info" }
-        elseif it.state == "downloading" then out[#out + 1] = { "Downloading", "info" }
-        elseif it.state == "queued" then out[#out + 1] = { "Queued", "info" } end
+        if MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId) then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipUpdated"), "accent" }
+        elseif it.state == "update" then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipUpdate"), "info" }
+        elseif it.state == "downloading" then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipDownloading"), "info" }
+        elseif it.state == "queued" then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipQueued"), "info" } end
     end
     return out
 end
@@ -199,18 +199,22 @@ function ZeD_MMMods:pending()
     local updated = MS.updatedLoaded()
     if turnedOn == 0 and turnedOff == 0 and not reorder and #updated == 0 then return nil end
     local parts = {}
-    if turnedOn > 0 then parts[#parts + 1] = turnedOn .. (turnedOn == 1 and " mod" or " mods") .. " turned on" end
-    if turnedOff > 0 then parts[#parts + 1] = turnedOff .. (#parts == 0 and (turnedOff == 1 and " mod" or " mods") or "") .. " turned off" end
-    if #parts == 0 and reorder then parts[#parts + 1] = "Load order changed" end
+    if turnedOn > 0 then parts[#parts + 1] = ZeD.tr(turnedOn == 1 and "UI_ZeD_Mods_TurnedOnOne" or "UI_ZeD_Mods_TurnedOnMany", turnedOn) end
+    if turnedOff > 0 then
+        if #parts == 0 then parts[#parts + 1] = ZeD.tr(turnedOff == 1 and "UI_ZeD_Mods_TurnedOffOne" or "UI_ZeD_Mods_TurnedOffMany", turnedOff)
+        else parts[#parts + 1] = ZeD.tr("UI_ZeD_Mods_TurnedOffShort", turnedOff) end
+    end
+    if #parts == 0 and reorder then parts[#parts + 1] = ZeD.tr("UI_ZeD_Mods_LoadOrderChanged") end
     local names = {}
     for _, id in ipairs(updated) do names[#names + 1] = MS.modName(id) end
     local text = table.concat(parts, ", ")
     if #updated > 0 then
-        local who = (#names <= 2) and table.concat(names, " and ") or (#names .. " mods")
-        text = (text ~= "" and (text .. ". ") or "") .. "Steam updated " .. who .. ": " .. (#names == 1 and "its" or "their") .. " new pictures need a restart."
+        local who = (#names == 1) and names[1] or ((#names == 2) and ZeD.tr("UI_ZeD_ModScan_ListAnd", names[1], names[2]) or ZeD.tr("UI_ZeD_Mods_NMods", #names))
+        local says = ZeD.tr(#names == 1 and "UI_ZeD_Mods_SteamUpdatedOne" or "UI_ZeD_Mods_SteamUpdatedMany", who)
+        text = (text ~= "") and ZeD.tr("UI_ZeD_Mods_PendingThenSteam", text, says) or says
         return text, true
     end
-    return text .. ". A reload covers it, no restart.", false
+    return ZeD.tr("UI_ZeD_Mods_PendingReload", text), false
 end
 
 function ZeD_MMMods:selected()
@@ -227,8 +231,8 @@ function ZeD_MMMods:problem(d)
         local vmin, vmax = "", ""
         pcall(function() local v = d.modInfo:getVersionMin(); if v then vmin = v:toString() end end)
         pcall(function() local v = d.modInfo:getVersionMax(); if v then vmax = v:toString() end end)
-        local range = (vmin ~= "" or vmax ~= "") and (" (" .. (vmin ~= "" and vmin or "?") .. " to " .. (vmax ~= "" and vmax or "?") .. ")") or ""
-        return "Made for another game version" .. range
+        if vmin ~= "" or vmax ~= "" then return ZeD.tr("UI_ZeD_Mods_ProbVersionRange", vmin ~= "" and vmin or "?", vmax ~= "" and vmax or "?") end
+        return ZeD.tr("UI_ZeD_Mods_ProbVersion")
     end
     if not d.isAvailable then
         local missing = {}
@@ -237,8 +241,8 @@ function ZeD_MMMods:problem(d)
             if not r then missing[#missing + 1] = id
             elseif not r.isAvailable then missing[#missing + 1] = r.name end
         end
-        if #missing > 0 then return "Needs " .. table.concat(missing, ", ") end
-        return "Cannot run"
+        if #missing > 0 then return ZeD.tr("UI_ZeD_Mods_ProbNeeds", table.concat(missing, ", ")) end
+        return ZeD.tr("UI_ZeD_Mods_ProbCannot")
     end
     if d.isIncompatible and not d.isActive then
         local by = {}
@@ -246,7 +250,7 @@ function ZeD_MMMods:problem(d)
             local r = m.mods[id]
             if r and r.isActive then by[#by + 1] = r.name end
         end
-        return "Conflicts with " .. table.concat(by, ", ")
+        return ZeD.tr("UI_ZeD_Mods_ProbConflicts", table.concat(by, ", "))
     end
     return nil
 end
@@ -276,7 +280,7 @@ function ZeD_MMMods:toggle(d, confirmed)
     for id in pairs(after) do if not before[id] and id ~= d.modId then extra[#extra + 1] = m.mods[id] and m.mods[id].name or id end end
     for id in pairs(before) do if not after[id] and id ~= d.modId then extra[#extra + 1] = m.mods[id] and m.mods[id].name or id end end
     if #extra > 0 then
-        self:say((turnOn and "Also turned on (needed): " or "Also turned off (needs it): ") .. table.concat(extra, ", "))
+        self:say(ZeD.tr(turnOn and "UI_ZeD_Mods_AlsoOn" or "UI_ZeD_Mods_AlsoOff", table.concat(extra, ", ")))
     end
 end
 
@@ -362,7 +366,7 @@ function ZeD_MMMods:revert()
     m:correctAndSaveModOrder(order)
     self:dirty()
     MM.clickSound()
-    self:say("Changes discarded")
+    self:say(ZeD.tr("UI_ZeD_Mods_SayDiscarded"))
 end
 
 -- a conflict's fix: the mod whose copy loses moves to just after the one that wins
@@ -377,7 +381,7 @@ function ZeD_MMMods:loadAfter(id, afterId)
     m:correctAndSaveModOrder(out)
     self:dirty()
     MM.clickSound()
-    self:say(MS.modName(id) .. " now loads after " .. MS.modName(afterId) .. ". Reload to put it to work.")
+    self:say(ZeD.tr("UI_ZeD_Mods_SayLoadAfter", MS.modName(id), MS.modName(afterId)))
 end
 
 function ZeD_MMMods:back()
@@ -466,7 +470,7 @@ end
 
 -- the Profiles page's rows: "No mods" first (every mod off), then the saved profiles
 function ZeD_MMMods:profiles()
-    local t = { { name = nil, label = "No mods" } }
+    local t = { { name = nil, label = ZeD.tr("UI_ZeD_Mods_NoMods") } }
     for _, n in ipairs(self:presetNames()) do t[#t + 1] = { name = n, label = n } end
     return t
 end
@@ -562,7 +566,7 @@ function ZeD_MMMods:loadProfile(p)
     MM.clickSound()
     if not p.name then
         self:setAll(false)
-        self:say("No mods: " .. #diff.off .. " turned off")
+        self:say(ZeD.tr("UI_ZeD_Mods_SayNoMods", #diff.off))
         self:leaveProfiles()
         return
     end
@@ -592,10 +596,10 @@ function ZeD_MMMods:loadProfile(p)
     extrasSave()
     self.preset = p.name
     local bits = {}
-    if #diff.on > 0 then bits[#bits + 1] = #diff.on .. " turned on" end
-    if #diff.off > 0 then bits[#bits + 1] = #diff.off .. " turned off" end
-    local msg = "Loaded " .. p.name .. (#bits > 0 and (": " .. table.concat(bits, ", ")) or "")
-    if #diff.missing > 0 then msg = msg .. ". Not installed: " .. table.concat(diff.missing, ", ") end
+    if #diff.on > 0 then bits[#bits + 1] = ZeD.tr("UI_ZeD_Mods_BitOn", #diff.on) end
+    if #diff.off > 0 then bits[#bits + 1] = ZeD.tr("UI_ZeD_Mods_BitOff", #diff.off) end
+    local msg = (#bits > 0) and ZeD.tr("UI_ZeD_Mods_SayLoadedBits", p.name, table.concat(bits, ", ")) or ZeD.tr("UI_ZeD_Mods_SayLoaded", p.name)
+    if #diff.missing > 0 then msg = ZeD.tr("UI_ZeD_Mods_SayNotInstalled", msg, table.concat(diff.missing, ", ")) end
     self:say(msg)
     self:leaveProfiles()
 end
@@ -627,7 +631,7 @@ end
 function ZeD_MMMods:nameFree(name, except)
     local m = model()
     if not (name and name ~= "" and SandboxOptions.isValidPresetName(name)) then return false end
-    if name == "No mods" then return false end
+    if name == "No mods" or name == ZeD.tr("UI_ZeD_Mods_NoMods") then return false end   -- (the pseudo-profile's row: its English and its translated name)
     return not (m and m.presets[name]) or name == except
 end
 
@@ -636,7 +640,7 @@ function ZeD_MMMods:savePreset()          -- NEW...: the strip's field holds the
     if not self:nameFree(name) then return end
     self:writeProfile(name)
     self:setConfirm(false)
-    self:say("Saved " .. name .. " (" .. #(extra(name).order or {}) .. " mods)")
+    self:say(ZeD.tr("UI_ZeD_Mods_SaySaved", name, #(extra(name).order or {})))
 end
 
 function ZeD_MMMods:updateProfile()
@@ -644,7 +648,7 @@ function ZeD_MMMods:updateProfile()
     if not name then return end
     self:writeProfile(name)
     self:setConfirm(false)
-    self:say("Updated " .. name .. " to the mods on now")
+    self:say(ZeD.tr("UI_ZeD_Mods_SayUpdated", name))
 end
 
 function ZeD_MMMods:renameProfile()
@@ -659,7 +663,7 @@ function ZeD_MMMods:renameProfile()
         extrasSave()
         if self.preset == old then self.preset = new end
         self.psel = new
-        self:say("Renamed " .. old .. " to " .. new)
+        self:say(ZeD.tr("UI_ZeD_Mods_SayRenamed", old, new))
     end
     self:setConfirm(false)
 end
@@ -679,7 +683,7 @@ function ZeD_MMMods:duplicateProfile()
     extrasSave()
     self.psel = new
     self:setConfirm(false)
-    self:say("Copied " .. old .. " as " .. new)
+    self:say(ZeD.tr("UI_ZeD_Mods_SayCopied", old, new))
 end
 
 function ZeD_MMMods:deletePreset()
@@ -691,7 +695,7 @@ function ZeD_MMMods:deletePreset()
     extra(name)
     Extra.t[name] = nil
     extrasSave()
-    self:say("Deleted " .. name)
+    self:say(ZeD.tr("UI_ZeD_Mods_SayDeleted", name))
     if self.preset == name then self.preset = nil end
     self.psel = nil
     self:setConfirm(false)
@@ -708,7 +712,7 @@ function ZeD_MMMods:copyPreset()
     for _, id in ipairs(e and e.order or {}) do if set[id] and not seen[id] then out[#out + 1] = id; seen[id] = true end end
     for _, id in ipairs(ids) do if not seen[id] then out[#out + 1] = id end end
     Clipboard.setClipboard(name .. ":" .. table.concat(out, ";") .. ";")
-    self:say("Copied " .. name .. " to the clipboard as text")
+    self:say(ZeD.tr("UI_ZeD_Mods_SayCopiedText", name))
 end
 
 -- a pasted share text (vanilla's addSharedPreset), its order kept as written
@@ -730,26 +734,26 @@ function ZeD_MMMods:pastePreset()
             Extra.t[name] = { order = order, saved = stamp() }
             extrasSave()
             self.psel = name
-            self:say("Added " .. name)
+            self:say(ZeD.tr("UI_ZeD_Mods_SayAdded", name))
             return
         end
     end
-    self:say("Nothing to add: the text is not a profile")
+    self:say(ZeD.tr("UI_ZeD_Mods_SayNothingToAdd"))
 end
 
 function ZeD_MMMods:moreItems()
     local t = {}
     if self.psel then
-        t[#t + 1] = { text = "Rename " .. self.psel .. "...", fn = function() self:setConfirm("rename") end }
-        t[#t + 1] = { text = "Duplicate " .. self.psel .. "...", fn = function() self:setConfirm("dup") end }
-        t[#t + 1] = { text = "Copy as text", fn = function() self:copyPreset() end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_Mods_MoreRename", self.psel), fn = function() self:setConfirm("rename") end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_Mods_MoreDuplicate", self.psel), fn = function() self:setConfirm("dup") end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_Mods_MoreCopyText"), fn = function() self:copyPreset() end }
     end
-    t[#t + 1] = { text = "Paste profile text...", fn = function() self:setConfirm("paste") end }
+    t[#t + 1] = { text = ZeD.tr("UI_ZeD_Mods_MorePaste"), fn = function() self:setConfirm("paste") end }
     t[#t + 1] = "-"
-    t[#t + 1] = { text = "Turn every mod on", fn = function() self:setAll(true); self:say("Every mod that can run is on"); self:leaveProfiles() end }
+    t[#t + 1] = { text = ZeD.tr("UI_ZeD_Mods_MoreAllOn"), fn = function() self:setAll(true); self:say(ZeD.tr("UI_ZeD_Mods_SayAllOn")); self:leaveProfiles() end }
     if self.psel then
         t[#t + 1] = "-"
-        t[#t + 1] = { text = "Delete " .. self.psel .. "...", fn = function() self:setConfirm("delete") end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_Mods_MoreDelete", self.psel), fn = function() self:setConfirm("delete") end }
     end
     return t
 end
@@ -817,7 +821,7 @@ function ZeD_MMMods:leaveOrder(keep)
             mo:clear()
             for _, name in ipairs(self.order) do mo:add(name) end
         end
-        self:say(self.page == "order" and "Load order set" or "Map order set")
+        self:say(ZeD.tr(self.page == "order" and "UI_ZeD_Mods_SayOrderSet" or "UI_ZeD_Mods_SayMapsSet"))
     end
     MM.clickSound()
     self.page = "list"
@@ -884,7 +888,7 @@ function ZeD_MMMods:setConfirm(mode)
     MM.ctx.open = nil
     if FIELD_MODES[mode] then
         local pre = ""
-        if mode == "rename" then pre = self.psel or "" elseif mode == "dup" then pre = (self.psel or "") .. " copy" end
+        if mode == "rename" then pre = self.psel or "" elseif mode == "dup" then pre = ZeD.tr("UI_ZeD_Mods_CopyName", self.psel or "") end
         self.field:setText(pre)
         self.field:setVisible(true)
         self.field:focus()
@@ -903,11 +907,15 @@ function ZeD_MMMods:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local all, on = self:counts()
-    local section = (self.page == "order" and "Load order") or (self.page == "maps" and "Map order") or (self.page == "profiles" and "Mod profiles") or "Mods"
     local md = model()
-    if md and md.isServerSettingsMods then section = "Server " .. section end   -- (a server's mods, from its settings)
-    self.title = "Project Zomboid  +  " .. section
-    self.titleStats = { { text = on .. " of " .. all .. " on", color = (on > 0) and T.positive or T.textDim } }
+    local server = md and md.isServerSettingsMods   -- (a server's mods, from its settings)
+    local section
+    if self.page == "order" then section = server and "UI_ZeD_Mods_TitleServerOrder" or "UI_ZeD_Mods_TitleOrder"
+    elseif self.page == "maps" then section = server and "UI_ZeD_Mods_TitleServerMaps" or "UI_ZeD_Mods_TitleMaps"
+    elseif self.page == "profiles" then section = server and "UI_ZeD_Mods_TitleServerProfiles" or "UI_ZeD_Mods_TitleProfiles"
+    else section = server and "UI_ZeD_Mods_TitleServer" or "UI_ZeD_Mods_Title" end
+    self.title = ZeD.tr("UI_ZeD_Mods_TitleFmt", ZeD.tr(section))
+    self.titleStats = { { text = ZeD.tr("UI_ZeD_Mods_StatOn", on, all), color = (on > 0) and T.positive or T.textDim } }
     local inUse = self:profileInUse()
     if inUse then table.insert(self.titleStats, 1, { text = inUse, color = T.accent }) end
     ZeD_Window.prerender(self)
@@ -945,37 +953,37 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
     local m = model()
     self._askX = nil
     if self.confirm == "back" then
-        ask = "Keep the changes to your mods?"
+        ask = ZeD.tr("UI_ZeD_Mods_AskKeep")
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "DISCARD", function() self:discard() end },
-            { "confirm:yes", "KEEP", function() self:accept() end, "primary" } })
+            { "confirm:no", ZeD.tr("UI_ZeD_Options_Discard"), function() self:discard() end },
+            { "confirm:yes", getText("ContextMenu_Keep"), function() self:accept() end, "primary" } })
     elseif self.confirm == "template" then
         ask = MM.ui.plain(getText("UI_modselector_modTemplateWarn"))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "TURN ON", function() local d = self._templateFor; self:setConfirm(false); self:toggle(d, true) end, "primary" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Mods_TurnOn"), function() local d = self._templateFor; self:setConfirm(false); self:toggle(d, true) end, "primary" } })
     elseif self.confirm == "delete" then
-        ask = "Delete the profile " .. tostring(self.psel) .. "?"
+        ask = ZeD.tr("UI_ZeD_Mods_AskDelete", tostring(self.psel))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "DELETE", function() self:deletePreset() end, "danger" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deletePreset() end, "danger" } })
     elseif self.confirm == "update" then
         local _, on = self:counts()
-        ask = "Replace " .. tostring(self.psel) .. " with the " .. on .. (on == 1 and " mod" or " mods") .. " on now?"
+        ask = ZeD.tr(on == 1 and "UI_ZeD_Mods_AskReplaceOne" or "UI_ZeD_Mods_AskReplaceMany", tostring(self.psel), on)
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "REPLACE", function() self:updateProfile() end, "primary" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Mods_Replace"), function() self:updateProfile() end, "primary" } })
     elseif FIELD_MODES[self.confirm] then
         local c = self.confirm
-        ask = (c == "save" and "New profile name:") or (c == "rename" and "Rename to:") or (c == "dup" and "Copy as:") or "Profile text:"
+        ask = ZeD.tr((c == "save" and "UI_ZeD_Mods_AskNewName") or (c == "rename" and "UI_ZeD_Saves_AskRename") or (c == "dup" and "UI_ZeD_Mods_AskCopyAs") or "UI_ZeD_Mods_AskProfileText")
         local text = self.field:getText()
         local valid
         if c == "paste" then valid = text and text:find(":", 1, true) ~= nil
         elseif c == "rename" then valid = self:nameFree(text, self.psel)
         else valid = self:nameFree(text) end
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", (c == "paste" and "ADD") or (c == "rename" and "RENAME") or "SAVE", function() self:fieldEnter() end, "primary", not valid } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", (c == "paste" and getText("UI_btn_add")) or (c == "rename" and getText("UI_btn_rename")) or getText("UI_btn_save"), function() self:fieldEnter() end, "primary", not valid } })
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
         local firstBtn = w
@@ -988,36 +996,36 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         local inUse = isUser and selDiff.inUse
         local loadOff = selDiff.noChange
         UI.stripSpecs(self, stripY, w, row,
-            { { "back", "BACK", function() self:leaveProfiles(); MM.clickSound() end } },
-            { { "new", "NEW...", function() self:setConfirm("save") end },
-              { "update", "UPDATE...", function() self:setConfirm("update") end, "default", not isUser or inUse },
-              { "more", "MORE", function() self:openMore() end },
-              { "load", "LOAD", function() self:loadProfile({ name = self.psel }) end, "primary", loadOff } })
+            { { "back", getText("UI_btn_back"), function() self:leaveProfiles(); MM.clickSound() end } },
+            { { "new", ZeD.tr("UI_ZeD_Mods_BtnNew"), function() self:setConfirm("save") end },
+              { "update", ZeD.tr("UI_ZeD_Mods_BtnUpdate"), function() self:setConfirm("update") end, "default", not isUser or inUse },
+              { "more", ZeD.tr("UI_ZeD_Saves_More"), function() self:openMore() end },
+              { "load", getText("UI_mainscreen_load"), function() self:loadProfile({ name = self.psel }) end, "primary", loadOff } })
     elseif self.page ~= "list" then
         local _, firstBad = self:orderStates()
         UI.stripSpecs(self, stripY, w, row,
-            { { "back", "BACK", function() self:leaveOrder(false) end } },
-            { { "auto", "AUTO", function() self:autoSort() end, "default", self.page ~= "order" },
-              { "done", "DONE", function() self:leaveOrder(true) end, "primary", self.page == "order" and firstBad ~= nil } })
+            { { "back", getText("UI_btn_back"), function() self:leaveOrder(false) end } },
+            { { "auto", ZeD.tr("UI_ZeD_Mods_BtnAuto"), function() self:autoSort() end, "default", self.page ~= "order" },
+              { "done", getText("UI_mods_Done"), function() self:leaveOrder(true) end, "primary", self.page == "order" and firstBad ~= nil } })
     else
         local mapConflicts = false
         pcall(function() mapConflicts = m and m:checkMapConflicts() or false end)
-        local lefts = { { "back", "BACK", function() self:back() end } }
+        local lefts = { { "back", getText("UI_btn_back"), function() self:back() end } }
         local rights = {
-            { "profiles", "PROFILES", function() self:enterProfiles() end },
-            { "order", "LOAD ORDER", function() self:enterOrder("order") end },
+            { "profiles", ZeD.tr("UI_ZeD_Mods_BtnProfiles"), function() self:enterProfiles() end },
+            { "order", ZeD.tr("UI_ZeD_Mods_BtnLoadOrder"), function() self:enterOrder("order") end },
         }
-        if mapConflicts then rights[#rights + 1] = { "maps", "MAP ORDER", function() self:enterOrder("maps") end } end
-        if self.filter == "ws" then rights[#rights + 1] = { "wsopen", "Open the Workshop", function() MS.openWorkshop() end } end
+        if mapConflicts then rights[#rights + 1] = { "maps", ZeD.tr("UI_ZeD_Mods_BtnMapOrder"), function() self:enterOrder("maps") end } end
+        if self.filter == "ws" then rights[#rights + 1] = { "wsopen", ZeD.tr("UI_ZeD_Mods_BtnOpenWorkshop"), function() MS.openWorkshop() end } end
         -- changes waiting: the strip says what they need, DISCARD stays on the screen, RELOAD is vanilla's accept
         local pend, restart = nil, false
         if not (m and (m.isServerSettingsMods or m.isNewGame or m.loadGameFolder)) then pend, restart = self:pending() end
         if pend then
-            if self:changed() or self:reordered() then rights[#rights + 1] = { "revert", "DISCARD", function() self:revert() end } end
-            rights[#rights + 1] = { "accept", "RELOAD", function() self:accept() end, "primary" }
-            if restart then rights[#rights + 1] = { "restart", "QUIT TO RESTART", function() MM.act.askQuit() end } end
+            if self:changed() or self:reordered() then rights[#rights + 1] = { "revert", ZeD.tr("UI_ZeD_Options_Discard"), function() self:revert() end } end
+            rights[#rights + 1] = { "accept", ZeD.tr("UI_ZeD_Mods_BtnReload"), function() self:accept() end, "primary" }
+            if restart then rights[#rights + 1] = { "restart", ZeD.tr("UI_ZeD_Mods_BtnQuitRestart"), function() MM.act.askQuit() end } end
         else
-            rights[#rights + 1] = { "accept", "ACCEPT", function() self:accept() end, "primary" }
+            rights[#rights + 1] = { "accept", getText("UI_btn_accept"), function() self:accept() end, "primary" }
         end
         local askX = UI.stripSpecs(self, stripY, w, row, lefts, rights)
         if pend then
@@ -1046,11 +1054,11 @@ end
 function ZeD_MMMods:tabList()
     local T = ZeD.T
     local all, on, favs, maps, probs, confs, wsn = self:counts()
-    local tabs = { { "all", "All " .. all }, { "enabled", "On " .. on } }
-    local more = { { "favs", "Starred ", favs }, { "maps", "Maps ", maps }, { "problems", "Problems ", probs },
-                   { "conflicts", "Conflicts ", confs }, { "ws", "Workshop ", wsn } }
+    local tabs = { { "all", ZeD.tr("UI_ZeD_Mods_TabAll", all) }, { "enabled", ZeD.tr("UI_ZeD_Mods_TabOn", on) } }
+    local more = { { "favs", "UI_ZeD_Mods_TabStarred", favs }, { "maps", "UI_ZeD_Mods_TabMaps", maps }, { "problems", "UI_ZeD_Mods_TabProblems", probs },
+                   { "conflicts", "UI_ZeD_Mods_TabConflicts", confs }, { "ws", "UI_ZeD_Mods_TabWorkshop", wsn } }
     for _, t in ipairs(more) do
-        if t[3] > 0 or self.filter == t[1] then tabs[#tabs + 1] = { t[1], t[2] .. t[3] } end
+        if t[3] > 0 or self.filter == t[1] then tabs[#tabs + 1] = { t[1], ZeD.tr(t[2], t[3]) } end
     end
     local need = T.px(16)
     for _, t in ipairs(tabs) do need = need + MM.textW(T.fontF2, t[2]) + T.sp.tabPadX * 2 + T.sp.tabGap end
@@ -1083,8 +1091,9 @@ function ZeD_MMMods:drawList(x, y, w, h)
     self:drawRect(x + T.px(1), fY, w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, fY + fH - T.px(1), w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
-    self:drawText("Find:", x + T.px(8), fY + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-    local ex = x + T.px(8) + MM.textW(f2, "Find:") + T.px(8)
+    local findLabel = ZeD.tr("UI_ZeD_Options_Find")
+    self:drawText(findLabel, x + T.px(8), fY + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+    local ex = x + T.px(8) + MM.textW(f2, findLabel) + T.px(8)
     local eh = T.px(24)
     UI.styleEntry(self.find, ex, fY + math.floor((fH - eh) / 2), x + w - T.px(8) - ex, eh)
     self._hits[#self._hits + 1] = { id = "mods:find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height,
@@ -1108,8 +1117,8 @@ function ZeD_MMMods:drawList(x, y, w, h)
     local star = MM.tex and MM.tex(STAR, true) or getTexture(STAR)
     if #rows == 0 then
         local d = T.textDim
-        local msg = (self.filter == "favs") and "No favourites yet" or ((self.filter == "problems") and "Every mod can run"
-            or ((self.filter == "conflicts") and (MS.res.done and "No conflicts among the mods running now" or "Checking the mods for conflicts") or "No mods match"))
+        local msg = (self.filter == "favs") and ZeD.tr("UI_ZeD_Mods_EmptyFavs") or ((self.filter == "problems") and ZeD.tr("UI_ZeD_Mods_EmptyProblems")
+            or ((self.filter == "conflicts") and ZeD.tr(MS.res.done and "UI_ZeD_Mods_EmptyConflicts" or "UI_ZeD_Mods_EmptyChecking") or ZeD.tr("UI_ZeD_Mods_EmptyNone")))
         self:drawText(msg, x + T.px(12), vy + T.px(12), d.r, d.g, d.b, d.a or 1, f2)
     end
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
@@ -1137,7 +1146,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
             -- the tags (conflicts, Steam's state) sit at the right, before the star
             local chipR = x + rw - T.px(10) - starW - T.px(8)
             for ci, chip in ipairs(self:rowChips(d)) do
-                local ctext = string.upper(chip[1])
+                local ctext = chip[1]
                 local cwid = MM.textW(T.fontF1, ctext) + T.sp.badgePadX * 2
                 local chh = MM.fontH(T.fontF1) + T.sp.badgePadY * 2
                 chipR = chipR - cwid
@@ -1186,6 +1195,9 @@ end
 
 -- Steam's state of an item as a tag: text and colour
 local WS_TAG = { ok = "positive", update = "info", downloading = "info", queued = "info", missing = "warning", none = "neutral" }
+-- (its words, as translation keys: the small caps tag on the Workshop tab's rows)
+local WS_TAG_TEXT = { ok = "UI_ZeD_Mods_TagOk", update = "UI_ZeD_Mods_TagUpdate", downloading = "UI_ZeD_Mods_TagDownloading",
+                      queued = "UI_ZeD_Mods_TagQueued", missing = "UI_ZeD_Mods_TagMissing", none = "UI_ZeD_Mods_TagNone" }
 
 -- the Workshop tab's rows: every subscribed item with Steam's state, when it was
 -- updated and its size; an item that brought a mod has its on / off box
@@ -1205,8 +1217,8 @@ function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
     if not self.wsSel and items[1] then self.wsSel = items[1].id; local d = self:modForWs(items[1].id); self.sel = d and d.modId or nil end
     if #items == 0 then
         local dc = T.textDim
-        local msg = MS.ws.steamOff and "Steam is not running, so there is no Workshop to read"
-            or ((MS.ws.pending or not MS.ws.asked) and "Asking Steam" or "Nothing subscribed on the Workshop")
+        local msg = MS.ws.steamOff and ZeD.tr("UI_ZeD_Mods_WsNoSteam")
+            or ZeD.tr((MS.ws.pending or not MS.ws.asked) and "UI_ZeD_Mods_WsAsking" or "UI_ZeD_Mods_WsNothing")
         self:drawText(msg, x + T.px(12), vy + T.px(12), dc.r, dc.g, dc.b, dc.a or 1, f2)
     end
     local gp, ac, cb = MM.gamepad(), T.accent, T.checkboxSz
@@ -1228,7 +1240,7 @@ function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
             local tx = x + rw - T.px(10)
             if it.children == 0 then
                 local fresh = d and MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId)
-                local tag = string.upper(fresh and "Updated" or MS.WS_TEXT[it.state] or "")
+                local tag = fresh and ZeD.tr("UI_ZeD_Mods_ChipUpdated") or (WS_TAG_TEXT[it.state] and ZeD.tr(WS_TAG_TEXT[it.state]) or "")
                 local tw = MM.textW(T.fontF1, tag) + T.sp.badgePadX * 2
                 local th = MM.fontH(T.fontF1) + T.sp.badgePadY * 2
                 tx = tx - tw
@@ -1238,12 +1250,12 @@ function ZeD_MMMods:drawWsRows(x, y, w, h, vy)
             local tc = T.textHead
             self:drawText(ZeD.Atoms.truncateText(it.title, f2, maxW), nx, ry + T.px(5), tc.r, tc.g, tc.b, tc.a or 1, f2)
             local sub
-            if it.children > 0 then sub = "Collection of " .. it.children .. " items"
-            elseif it.state == "missing" then sub = "Subscribed, Steam has not fetched it"
+            if it.children > 0 then sub = ZeD.tr("UI_ZeD_Mods_WsCollectionItems", it.children)
+            elseif it.state == "missing" then sub = ZeD.tr("UI_ZeD_Mods_WsNotFetched")
             else
                 local bits = {}
                 local ago = MS.ago(it.updated)
-                if ago ~= "" then bits[#bits + 1] = "Updated " .. ago end
+                if ago ~= "" then bits[#bits + 1] = ZeD.tr("UI_ZeD_Mods_WsUpdatedAgo", ago) end
                 local sz = MS.size(it.size)
                 if sz ~= "" then bits[#bits + 1] = sz end
                 sub = table.concat(bits, " | ")
@@ -1360,7 +1372,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     local f2, f1 = T.fontF2, T.fontF1
     if author ~= "" then
         local dc = T.textDim
-        self:drawText(ZeD.Atoms.truncateText("by " .. author, f2, tw), tx, ny + T.px(2), dc.r, dc.g, dc.b, dc.a or 1, f2)
+        self:drawText(ZeD.Atoms.truncateText(ZeD.tr("UI_ZeD_Mods_By", author), f2, tw), tx, ny + T.px(2), dc.r, dc.g, dc.b, dc.a or 1, f2)
         ny = ny + MM.fontH(f2) + T.px(4)
     end
     -- the verbs for this mod (the card's header verbs)
@@ -1375,12 +1387,12 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
                                           row = 500, col = #self._specs + 1, x = bx, y = by, w = bw, h = bh, clipTop = vy, clipBot = vy + vh }
         bx = bx + bw + T.px(6)
     end
-    verb("toggle", d.isActive and "TURN OFF" or "TURN ON", function() self:toggle(d) end, d.isActive and "default" or "primary", (not d.isActive) and prob ~= nil)
-    verb("fav", d.favorite and "UNFAVOURITE" or "FAVOURITE", function() self:toggleFav(d) end)
+    verb("toggle", ZeD.tr(d.isActive and "UI_ZeD_Mods_VerbTurnOff" or "UI_ZeD_Mods_VerbTurnOn"), function() self:toggle(d) end, d.isActive and "default" or "primary", (not d.isActive) and prob ~= nil)
+    verb("fav", ZeD.tr(d.favorite and "UI_ZeD_Mods_VerbUnfavourite" or "UI_ZeD_Mods_VerbFavourite"), function() self:toggleFav(d) end)
     local wid, src, url = nil, "", ""
     pcall(function() wid = info:getWorkshopID(); src = tostring(info:getSource() or ""); url = tostring(info:getUrl() or "") end)
-    if wid and wid ~= "" then verb("workshop", "Open in Steam", function() MS.openInSteam(wid) end) end
-    if url ~= "" then verb("homepage", "HOMEPAGE", function() openUrl(url) end) end
+    if wid and wid ~= "" then verb("workshop", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() MS.openInSteam(wid) end) end
+    if url ~= "" then verb("homepage", ZeD.tr("UI_ZeD_Mods_VerbHomepage"), function() openUrl(url) end) end
     cy = math.max(cy + (ptex and psz or 0), by + bh) + T.px(12)
     -- what is wrong, as vanilla knows it
     if prob then
@@ -1409,33 +1421,33 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     pcall(function() ver = tostring(info:getModVersion() or "") end)
     pcall(function() local v = info:getVersionMin(); if v then vmin = v:toString() end end)
     pcall(function() local v = info:getVersionMax(); if v then vmax = v:toString() end end)
-    kv("VERSION", ver)
-    if vmin ~= "" or vmax ~= "" then kv("GAME", (vmin ~= "" and vmin or "any") .. " to " .. (vmax ~= "" and vmax or "any")) end
-    kv("MOD ID", tostring(d.modId))
+    kv(ZeD.tr("UI_ZeD_Mods_KvVersion"), ver)
+    if vmin ~= "" or vmax ~= "" then kv(ZeD.tr("UI_ZeD_Mods_KvGame"), ZeD.tr("UI_ZeD_Mods_VersionRange", vmin ~= "" and vmin or ZeD.tr("UI_ZeD_Mods_Any"), vmax ~= "" and vmax or ZeD.tr("UI_ZeD_Mods_Any"))) end
+    kv(ZeD.tr("UI_ZeD_Mods_KvModId"), tostring(d.modId))
     -- what Steam is doing with it, and where it loads
     local it = MS.wsFor(info)
     local updatedNow = it and MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId)
     if it then
-        local bits = { updatedNow and "Updated while the game ran" or MS.WS_TEXT[it.state] }
+        local bits = { updatedNow and ZeD.tr("UI_ZeD_Mods_UpdatedWhileRan") or MS.wsText(it.state) }
         local ago = MS.ago(it.updated)
-        if ago ~= "" and not updatedNow then bits[#bits + 1] = "updated " .. ago end
+        if ago ~= "" and not updatedNow then bits[#bits + 1] = ZeD.tr("UI_ZeD_Mods_UpdatedAgoLower", ago) end
         local sz = MS.size(it.size)
         if sz ~= "" then bits[#bits + 1] = sz end
-        kv("WORKSHOP", table.concat(bits, " | "))
+        kv(ZeD.tr("UI_ZeD_Mods_KvWorkshop"), table.concat(bits, " | "))
     end
-    if wid and wid ~= "" then kv("WORKSHOP ID", tostring(wid)) end
+    if wid and wid ~= "" then kv(ZeD.tr("UI_ZeD_Mods_KvWorkshopId"), tostring(wid)) end
     if d.isActive then
         local order = jlist(m:getActiveMods():getMods())
-        for i, id in ipairs(order) do if id == d.modId then kv("LOAD ORDER", i .. " of " .. #order) end end
+        for i, id in ipairs(order) do if id == d.modId then kv(ZeD.tr("UI_ZeD_Mods_KvLoadOrder"), ZeD.tr("UI_ZeD_Mods_OrderOf", i, #order)) end end
     end
-    kv("TYPE", (d.category and d.category ~= "") and (getTextOrNull(d.category) or d.category) or nil)
-    kv("REPLACES", MS.overrideText(d.modId))
+    kv(ZeD.tr("UI_ZeD_Mods_KvType"), (d.category and d.category ~= "") and (getTextOrNull(d.category) or d.category) or nil)
+    kv(ZeD.tr("UI_ZeD_Mods_KvReplaces"), MS.overrideText(d.modId))
     if updatedNow then
         cy = cy + T.px(4)
         local c = T.text
         local dsz = T.px(7)
         ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.accent, dsz)
-        for _, l in ipairs(ZeD.Atoms.wrapText("Steam updated this mod while the game ran. A reload brings in its new code and scripts; pictures it already showed stay old until the game restarts.", f2, iw - dsz - T.px(7))) do
+        for _, l in ipairs(ZeD.Atoms.wrapText(ZeD.tr("UI_ZeD_Mods_UpdatedNote"), f2, iw - dsz - T.px(7))) do
             self:drawText(l, ix + dsz + T.px(7), cy, c.r, c.g, c.b, c.a or 1, f2)
             cy = cy + MM.fontH(f2) + T.px(2)
         end
@@ -1451,21 +1463,21 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
         for _, id in ipairs(ids) do
             local r = m.mods[id]
             local color, state
-            if not r then color, state = T.danger, "not installed"
-            elseif r.isActive then color, state = (wantOn and T.positive or T.danger), "on"
-            else color, state = T.textDim, "off" end
+            if not r then color, state = T.danger, "UI_ZeD_Mods_ListNotInstalled"
+            elseif r.isActive then color, state = (wantOn and T.positive or T.danger), "UI_ZeD_Mods_ListOn"
+            else color, state = T.textDim, "UI_ZeD_Mods_ListOff" end
             local dsz = T.px(7)
             ZeD.Atoms.drawStatusDot(self, ix + T.px(4), cy + math.floor((MM.fontH(f2) - dsz) / 2), color, dsz)
             local c = T.text
-            self:drawText(ZeD.Atoms.truncateText((r and r.name or id) .. ", " .. state, f2, iw - T.px(20)), ix + T.px(16), cy, c.r, c.g, c.b, c.a or 1, f2)
+            self:drawText(ZeD.Atoms.truncateText(ZeD.tr(state, r and r.name or id), f2, iw - T.px(20)), ix + T.px(16), cy, c.r, c.g, c.b, c.a or 1, f2)
             cy = cy + MM.fontH(f2) + T.px(4)
         end
     end
-    idList("NEEDS", jlist(info:getRequire()), true)
+    idList(ZeD.tr("UI_ZeD_Mods_ListNeeds"), jlist(info:getRequire()), true)
     local inc = {}
     for id in pairs(d.incompatibleWith or {}) do inc[#inc + 1] = id end
     table.sort(inc)
-    idList("CANNOT RUN WITH", inc, false)
+    idList(ZeD.tr("UI_ZeD_Mods_ListCannotWith"), inc, false)
     cy = self:drawConflicts(d, ix, iw, cy, vy, vh)
     -- the description
     local desc = ""
@@ -1528,15 +1540,16 @@ function ZeD_MMMods:drawConflicts(d, ix, iw, cy, vy, vh)
     cy = cy + T.px(4)
     local la, dim, txt, head = T.accent, T.textDim, T.text, T.textHead
     local kvH = T.px(KV_ROW_H)
-    self:drawText("CONFLICTS", ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    local head1 = ZeD.tr("UI_ZeD_Mods_ConflictsHead")
+    self:drawText(head1, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     if #list > 0 then
-        local lw = MM.textW(f1, "CONFLICTS")
+        local lw = MM.textW(f1, head1)
         self:drawText(tostring(#list), ix + lw + T.px(8), cy, dim.r, dim.g, dim.b, dim.a or 1, f1)
     end
     cy = cy + kvH
-    if not loaded then return self:paneText("Checked once a reload brings it in.", ix, cy, iw, f2, dim) + T.px(4) end
-    if not MS.res.done then return self:paneText("Checking...", ix, cy, iw, f2, dim) + T.px(4) end
-    if #list == 0 then cy = self:paneText("None found.", ix, cy, iw, f2, dim) end
+    if not loaded then return self:paneText(ZeD.tr("UI_ZeD_Mods_ConflictsLater"), ix, cy, iw, f2, dim) + T.px(4) end
+    if not MS.res.done then return self:paneText(ZeD.tr("UI_ZeD_Mods_ConflictsChecking"), ix, cy, iw, f2, dim) + T.px(4) end
+    if #list == 0 then cy = self:paneText(ZeD.tr("UI_ZeD_Mods_ConflictsNone"), ix, cy, iw, f2, dim) end
     local order = {}
     for i, id in ipairs(jlist(m:getActiveMods():getMods())) do order[id] = i end
     local dsz = T.px(7)
@@ -1547,18 +1560,19 @@ function ZeD_MMMods:drawConflicts(d, ix, iw, cy, vy, vh)
         local win, lose = MS.modName(e.winner), MS.modName(e.loser)
         local many = #e.things > 1
         local title
-        if e.kind == "file" then title = (many and ("Same " .. #e.things .. " files as ") or "Same file as ") .. MS.modName(other)
+        if e.kind == "file" then title = many and ZeD.tr("UI_ZeD_Mods_SameFiles", #e.things, MS.modName(other)) or ZeD.tr("UI_ZeD_Mods_SameFile", MS.modName(other))
         else
             local kinds = {}
             for noun in pairs(e.nouns) do kinds[#kinds + 1] = noun end
             table.sort(kinds)
-            if not many then title = "Same " .. kinds[1] .. " as " .. MS.modName(other)
-            elseif #kinds == 1 then title = "Same " .. #e.things .. " " .. kinds[1] .. "s as " .. MS.modName(other)
-            else title = "Same " .. #e.things .. " definitions as " .. MS.modName(other) end
+            local k1 = MS.kindOf(kinds[1])
+            if not many then title = ZeD.tr(k1 and k1.sameOne or "UI_ZeD_Mods_SameDefinition", MS.modName(other))
+            elseif #kinds == 1 and k1 then title = ZeD.tr(k1.same, #e.things, MS.modName(other))
+            else title = ZeD.tr("UI_ZeD_Mods_SameDefinitions", #e.things, MS.modName(other)) end
         end
         ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.warning, dsz)
         cy = self:paneText(title, tx, cy, tw, f2, head)
-        cy = self:paneText(e.things[1] .. (many and (" and " .. (#e.things - 1) .. " more") or ""), tx, cy, tw, f3, dim) + T.px(2)
+        cy = self:paneText(many and ZeD.tr("UI_ZeD_Mods_AndMore", MS.thingText(e.things[1]), #e.things - 1) or MS.thingText(e.things[1]), tx, cy, tw, f3, dim) + T.px(2)
         -- who wins, and whether that is on purpose (the winner needs the other: a patch for it)
         local needs = false
         local winInfo = getModInfoByID(e.winner)
@@ -1566,24 +1580,23 @@ function ZeD_MMMods:drawConflicts(d, ix, iw, cy, vy, vh)
         -- (scripts are read in file-name order across every mod, not in load order: tested on
         -- 42.21.0, so moving a mod cannot change who wins an item or a recipe)
         local why
-        if e.kind == "file" then why = win .. " loads later, so its copy is the one the game uses; " .. lose .. "'s copy never runs."
-        else why = "Both define " .. (many and "them" or "it") .. "; " .. win .. "'s " .. (many and "versions win" or "version wins")
-            .. ". The game reads these by file name, not load order, so moving either mod changes nothing. Usually fine when one mod is a fix for the other." end
+        if e.kind == "file" then why = ZeD.tr("UI_ZeD_Mods_WhyFile", win, lose)
+        else why = ZeD.tr(many and "UI_ZeD_Mods_WhyScriptMany" or "UI_ZeD_Mods_WhyScriptOne", win) end
         local fixed = e.kind == "file" and order[e.loser] and order[e.winner] and order[e.loser] > order[e.winner]
-        if needs then why = why .. " " .. win .. " needs " .. lose .. ", so this looks deliberate."
-        elseif fixed then why = why .. " " .. lose .. " loads after it once you reload." end
+        if needs then why = why .. " " .. ZeD.tr("UI_ZeD_Mods_WhyNeeds", win, lose)
+        elseif fixed then why = why .. " " .. ZeD.tr("UI_ZeD_Mods_WhyFixed", lose) end
         cy = self:paneText(why, tx, cy, tw, f2, txt) + T.px(6)
         local verbs = {}
         if e.kind == "file" and mine and not needs and not fixed and d.isActive then
-            verbs[#verbs + 1] = { "cf:after:" .. i, "Load " .. shortName(lose) .. " after it", function() self:loadAfter(e.loser, e.winner) end }
+            verbs[#verbs + 1] = { "cf:after:" .. i, ZeD.tr("UI_ZeD_Mods_VerbLoadAfter", shortName(lose)), function() self:loadAfter(e.loser, e.winner) end }
         end
-        verbs[#verbs + 1] = { "cf:hide:" .. i, "FINE, HIDE THIS", function() MS.hide(e); self:dirty(); MM.clickSound() end }
+        verbs[#verbs + 1] = { "cf:hide:" .. i, ZeD.tr("UI_ZeD_Mods_VerbHide"), function() MS.hide(e); self:dirty(); MM.clickSound() end }
         cy = self:paneVerbs(verbs, tx, cy, tw, vy, vh, 600 + i) + T.px(10)
     end
     local hid = MS.hiddenFor(d.modId)
     if hid > 0 then
-        cy = self:paneText(hid .. (hid == 1 and " conflict hidden." or " conflicts hidden."), ix, cy, iw, f2, dim) + T.px(4)
-        cy = self:paneVerbs({ { "cf:unhide", "SHOW AGAIN", function() MS.unhideFor(d.modId); self:dirty(); MM.clickSound() end } }, ix, cy, iw, vy, vh, 699) + T.px(8)
+        cy = self:paneText(ZeD.tr(hid == 1 and "UI_ZeD_Mods_HiddenOne" or "UI_ZeD_Mods_HiddenMany", hid), ix, cy, iw, f2, dim) + T.px(4)
+        cy = self:paneVerbs({ { "cf:unhide", ZeD.tr("UI_ZeD_Mods_VerbShowAgain"), function() MS.unhideFor(d.modId); self:dirty(); MM.clickSound() end } }, ix, cy, iw, vy, vh, 699) + T.px(8)
     end
     return cy
 end
@@ -1607,7 +1620,7 @@ function ZeD_MMMods:drawWsDetail(x, vy, w, vh)
         ZeD.Text.draw(self, hf, l, ix, cy, z, tc.r, tc.g, tc.b, tc.a or 1, "l")
         cy = cy + bigH
     end
-    cy = self:paneVerbs({ { "workshop", "Open in Steam", function() MS.openInSteam(it.id) end } }, ix, cy + T.px(8), iw, vy, vh, 500) + T.px(12)
+    cy = self:paneVerbs({ { "workshop", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() MS.openInSteam(it.id) end } }, ix, cy + T.px(8), iw, vy, vh, 500) + T.px(12)
     local f1, f2 = T.fontF1, T.fontF2
     local kvH = T.px(KV_ROW_H)
     local vx = ix + T.px(KV_LABEL_W)
@@ -1618,16 +1631,16 @@ function ZeD_MMMods:drawWsDetail(x, vy, w, vh)
         self:drawText(ZeD.Atoms.truncateText(value, f2, ix + iw - vx), vx, cy + math.floor((kvH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
         cy = cy + kvH
     end
-    kv("WORKSHOP", it.children > 0 and ("Collection of " .. it.children) or MS.WS_TEXT[it.state])
+    kv(ZeD.tr("UI_ZeD_Mods_KvWorkshop"), it.children > 0 and ZeD.tr("UI_ZeD_Mods_WsCollection", it.children) or MS.wsText(it.state))
     local ago = MS.ago(it.updated)
-    if ago ~= "" then kv("UPDATED", ago) end
-    kv("SIZE", MS.size(it.size))
-    kv("WORKSHOP ID", it.id)
+    if ago ~= "" then kv(ZeD.tr("UI_ZeD_Mods_KvUpdated"), ago) end
+    kv(ZeD.tr("UI_ZeD_Mods_KvSize"), MS.size(it.size))
+    kv(ZeD.tr("UI_ZeD_Mods_KvWorkshopId"), it.id)
     local why
-    if it.children > 0 then why = "A collection: its items show in this list on their own as Steam fetches them."
-    elseif it.state == "missing" then why = "You subscribe to it, but Steam has not downloaded it yet. Steam fetches Workshop items on its own (the game cannot start a download); it shows up here once it lands."
-    elseif it.state == "update" or it.state == "downloading" or it.state == "queued" then why = "Steam is fetching it on its own. This screen notices when it lands."
-    else why = "Installed, but no mod in it matches this game. It may hold mods for another version of the game." end
+    if it.children > 0 then why = ZeD.tr("UI_ZeD_Mods_WhyCollection")
+    elseif it.state == "missing" then why = ZeD.tr("UI_ZeD_Mods_WhyMissing")
+    elseif it.state == "update" or it.state == "downloading" or it.state == "queued" then why = ZeD.tr("UI_ZeD_Mods_WhyFetching")
+    else why = ZeD.tr("UI_ZeD_Mods_WhyNoMod") end
     cy = self:paneText(why, ix, cy + T.px(8), iw, f2, T.text)
     self:clearStencilRect()
     local contentH = cy + self.dscroll - vy + pad
@@ -1707,15 +1720,15 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
         self._specs[#self._specs + 1] = { id = id, text = text, fn = fn, variant = "default", disabled = disabled, row = 500, col = #self._specs + 1, x = bx, y = cy, w = bw, h = bh }
         bx = bx + bw + T.px(6)
     end
-    btn("up", "MOVE UP", function() self:move(-1) end, (self.oSel or 1) <= 1)
-    btn("down", "MOVE DOWN", function() self:move(1) end, (self.oSel or 1) >= #self.order)
+    btn("up", ZeD.tr("UI_ZeD_Mods_MoveUp"), function() self:move(-1) end, (self.oSel or 1) <= 1)
+    btn("down", ZeD.tr("UI_ZeD_Mods_MoveDown"), function() self:move(1) end, (self.oSel or 1) >= #self.order)
     cy = cy + bh + T.px(14)
     local sel = self.order[self.oSel or 1]
     if self.page == "order" then
         local d = sel and m and m.mods[sel]
         if d then
             local la = T.accent
-            self:drawText(string.upper(tostring(d.name)), rx, cy, la.r, la.g, la.b, la.a or 1, f1)
+            self:drawText(ZeD.upper(tostring(d.name)), rx, cy, la.r, la.g, la.b, la.a or 1, f1)
             cy = cy + T.px(20)
             local function names(ids)
                 local t = {}
@@ -1723,25 +1736,25 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
                 return table.concat(t, ", ")
             end
             local req, after, before = jlist(d.modInfo:getRequire()), jlist(d.modInfo:getLoadAfter()), jlist(d.modInfo:getLoadBefore())
-            if #req > 0 then line("Needs, loaded first: " .. names(req)) end
-            if #after > 0 then line("Loads after: " .. names(after)) end
-            if #before > 0 then line("Loads before: " .. names(before)) end
-            if #req + #after + #before == 0 then line("No order rules") end
+            if #req > 0 then line(ZeD.tr("UI_ZeD_Mods_RuleNeeds", names(req))) end
+            if #after > 0 then line(ZeD.tr("UI_ZeD_Mods_RuleAfter", names(after))) end
+            if #before > 0 then line(ZeD.tr("UI_ZeD_Mods_RuleBefore", names(before))) end
+            if #req + #after + #before == 0 then line(ZeD.tr("UI_ZeD_Mods_RuleNone")) end
             local s = states[self.oSel or 1]
             cy = cy + T.px(6)
-            if s == "bad" then line("A mod it needs loads after it; \"Done\" waits until it is fixed", T.danger)
-            elseif s == "soft" then line("Its load-before / load-after wish is not kept", T.warning) end
+            if s == "bad" then line(ZeD.tr("UI_ZeD_Mods_RuleBad"), T.danger)
+            elseif s == "soft" then line(ZeD.tr("UI_ZeD_Mods_RuleSoft"), T.warning) end
         end
         cy = cy + T.px(10)
-        if firstBad then line("Fix the red rows (or press \"Auto\") to set the order", T.danger) end
+        if firstBad then line(ZeD.tr("UI_ZeD_Mods_RuleFix"), T.danger) end
     else
         local la = T.accent
-        self:drawText(string.upper(tostring(sel or "")), rx, cy, la.r, la.g, la.b, la.a or 1, f1)
+        self:drawText(ZeD.upper(tostring(sel or "")), rx, cy, la.r, la.g, la.b, la.a or 1, f1)
         cy = cy + T.px(20)
         local conf = {}
         pcall(function() conf = jlist(m:getMapConflicts(sel)) end)
-        if #conf > 0 then line("Shares map cells with: " .. table.concat(conf, ", ")) end
-        line("Maps nearer the top win where they overlap")
+        if #conf > 0 then line(ZeD.tr("UI_ZeD_Mods_MapShares", table.concat(conf, ", "))) end
+        line(ZeD.tr("UI_ZeD_Mods_MapRule"))
     end
 end
 
@@ -1784,11 +1797,12 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
             local nc = T.textHead
             self:drawText(ZeD.Atoms.truncateText(p.label, f2, maxW), nx, ry + T.px(5), nc.r, nc.g, nc.b, nc.a or 1, f2)
             local sub
-            if not p.name then sub = "Every mod off"
+            if not p.name then sub = ZeD.tr("UI_ZeD_Mods_ProfEveryOff")
             else
-                sub = diff.count .. (diff.count == 1 and " mod" or " mods")
-                if diff.inUse then sub = sub .. ", on now"
-                elseif #diff.missing > 0 then sub = sub .. ", " .. #diff.missing .. " not installed" end
+                local one = diff.count == 1
+                if diff.inUse then sub = ZeD.tr(one and "UI_ZeD_Mods_ProfCountOneOn" or "UI_ZeD_Mods_ProfCountManyOn", diff.count)
+                elseif #diff.missing > 0 then sub = ZeD.tr(one and "UI_ZeD_Mods_ProfCountOneMissing" or "UI_ZeD_Mods_ProfCountManyMissing", diff.count, #diff.missing)
+                else sub = ZeD.tr(one and "UI_ZeD_Mods_ProfCountOne" or "UI_ZeD_Mods_ProfCountMany", diff.count) end
             end
             local d = T.textDim
             self:drawText(ZeD.Atoms.truncateText(sub, f3, maxW), nx, ry + rh - T.px(5) - MM.fontH(f3), d.r, d.g, d.b, d.a or 1, f3)
@@ -1824,17 +1838,17 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
     local e = extra(selP.name)
     local facts = {}
     if selP.name then
-        facts[#facts + 1] = diff.count .. (diff.count == 1 and " mod" or " mods")
-        if e and e.saved and e.saved ~= "" then facts[#facts + 1] = "saved " .. MM.playedText(e.saved) end
+        facts[#facts + 1] = ZeD.tr(diff.count == 1 and "UI_ZeD_Mods_ProfCountOne" or "UI_ZeD_Mods_ProfCountMany", diff.count)
+        if e and e.saved and e.saved ~= "" then facts[#facts + 1] = ZeD.tr("UI_ZeD_Mods_ProfSaved", MM.playedText(e.saved)) end
     else
-        facts[#facts + 1] = "Plain Project Zomboid"
+        facts[#facts + 1] = ZeD.tr("UI_ZeD_Mods_ProfPlain")
     end
     for _, l in ipairs(ZeD.Atoms.wrapText(table.concat(facts, ", "), f2, iw)) do
         self:drawText(l, ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f2)
         cy = cy + MM.fontH(f2) + T.px(2)
     end
     if e and e.used and e.used ~= "" then
-        self:drawText("Last loaded " .. MM.playedText(e.used), ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f2)
+        self:drawText(ZeD.tr("UI_ZeD_Mods_ProfLastLoaded", MM.playedText(e.used)), ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f2)
         cy = cy + MM.fontH(f2) + T.px(2)
     end
     cy = cy + T.px(10)
@@ -1855,31 +1869,31 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
         cy = cy + T.px(KV_ROW_H)
     end
     -- what loading it does
-    label("LOADING IT")
+    label(ZeD.tr("UI_ZeD_Mods_ProfLoadingIt"))
     if diff.noChange then
-        dotLine((#diff.missing + #diff.cannot > 0) and "Turns nothing on or off" or "Changes nothing: these are the mods on now", T.accent)
+        dotLine(ZeD.tr((#diff.missing + #diff.cannot > 0) and "UI_ZeD_Mods_ProfNothingOnOff" or "UI_ZeD_Mods_ProfNoChange"), T.accent)
     else
         if #diff.on > 0 then
-            dotLine("Turns on " .. #diff.on, T.positive)
+            dotLine(ZeD.tr("UI_ZeD_Mods_ProfTurnsOn", #diff.on), T.positive)
             for _, d in ipairs(diff.on) do dotLine(tostring(d.name), nil, T.px(12)) end
         end
         if #diff.off > 0 then
-            dotLine("Turns off " .. #diff.off, T.textDim)
+            dotLine(ZeD.tr("UI_ZeD_Mods_ProfTurnsOff", #diff.off), T.textDim)
             for _, d in ipairs(diff.off) do dotLine(tostring(d.name), nil, T.px(12)) end
         end
     end
     if #diff.missing > 0 then
-        dotLine("Not installed " .. #diff.missing .. ": stays off", T.danger)
+        dotLine(ZeD.tr("UI_ZeD_Mods_ProfMissing", #diff.missing), T.danger)
         for _, id in ipairs(diff.missing) do dotLine(id, nil, T.px(12)) end
     end
     if #diff.cannot > 0 then
-        dotLine("Cannot run " .. #diff.cannot .. ": stays off", T.danger)
-        for _, d in ipairs(diff.cannot) do dotLine(tostring(d.name) .. " (" .. tostring(self:problem(d) or "cannot run") .. ")", nil, T.px(12)) end
+        dotLine(ZeD.tr("UI_ZeD_Mods_ProfCannot", #diff.cannot), T.danger)
+        for _, d in ipairs(diff.cannot) do dotLine(ZeD.tr("UI_ZeD_Mods_ProfCannotRow", tostring(d.name), tostring(self:problem(d) or ZeD.tr("UI_ZeD_Mods_ProbCannotLower"))), nil, T.px(12)) end
     end
     -- the load order it keeps
     if selP.name and diff.count > 0 then
         cy = cy + T.px(10)
-        label("LOAD ORDER")
+        label(ZeD.tr("UI_ZeD_Mods_KvLoadOrder"))
         local ids, set = presetIds(m and m.presets[selP.name])
         local order, seen = {}, {}
         for _, id in ipairs(e and e.order or {}) do if set[id] and not seen[id] then order[#order + 1] = id; seen[id] = true end end
@@ -1890,13 +1904,13 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
         for i, id in ipairs(order) do
             local md = m and m.mods[id]
             self:drawText(tostring(i), ix + numW - MM.textW(f3, tostring(i)), cy + math.floor((MM.fontH(f2) - MM.fontH(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
-            local nm = md and tostring(md.name) or (id .. ", not installed")
+            local nm = md and tostring(md.name) or ZeD.tr("UI_ZeD_Mods_ListNotInstalled", id)
             self:drawText(ZeD.Atoms.truncateText(nm, f2, iw - numW - T.px(10)), ix + numW + T.px(10), cy, c.r, c.g, c.b, c.a or 1, f2)
             cy = cy + MM.fontH(f2) + T.px(3)
         end
         if not kept then
             cy = cy + T.px(4)
-            self:drawText("Sorted by the mods' own rules", ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f3)
+            self:drawText(ZeD.tr("UI_ZeD_Mods_ProfSortedByRules"), ix, cy, dc.r, dc.g, dc.b, dc.a or 1, f3)
             cy = cy + MM.fontH(f3)
         end
     end
@@ -1981,24 +1995,25 @@ end
 
 function ZeD_MMMods:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
+    local sel, back = ZeD.tr("UI_ZeD_MainMenu_PromptSelect"), ZeD.btnCase(getText("UI_btn_back"))
+    if self.confirm then return { { glyph = "A", label = sel }, { glyph = "B", label = getText("UI_Cancel") } } end
     local f = self.focusId or ""
     if self.page == "profiles" then
         if f:sub(1, 5) == "prow:" then
-            return { { glyph = "A", label = "Load" }, { glyph = "Y", label = "New" }, { glyph = "X", label = "More" }, { glyph = "B", label = "Back" } }
+            return { { glyph = "A", label = ZeD.btnCase(getText("UI_mainscreen_load")) }, { glyph = "Y", label = ZeD.tr("UI_ZeD_Mods_PromptNew") }, { glyph = "X", label = ZeD.tr("UI_ZeD_Saves_More") }, { glyph = "B", label = back } }
         end
-        return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
+        return { { glyph = "A", label = sel }, { glyph = "B", label = back } }
     end
     if self.page ~= "list" then
-        return { { glyph = "Y", label = "Move up" }, { glyph = "X", label = "Move down" }, { glyph = "B", label = "Back" } }
+        return { { glyph = "Y", label = ZeD.tr("UI_ZeD_Mods_PromptMoveUp") }, { glyph = "X", label = ZeD.tr("UI_ZeD_Mods_PromptMoveDown") }, { glyph = "B", label = back } }
     end
     if f:sub(1, 5) == "mrow:" then
-        return { { glyph = "A", label = "On / off" }, { glyph = "X", label = "Favourite" }, { glyph = "Y", label = "Profiles" }, { glyph = "LB", label = "" }, { glyph = "RB", label = "Filter" }, { glyph = "B", label = "Back" } }
+        return { { glyph = "A", label = ZeD.tr("UI_ZeD_Mods_PromptOnOff") }, { glyph = "X", label = ZeD.tr("UI_ZeD_Mods_PromptFavourite") }, { glyph = "Y", label = ZeD.tr("UI_ZeD_Mods_BtnProfiles") }, { glyph = "LB", label = "" }, { glyph = "RB", label = ZeD.tr("UI_ZeD_Mods_PromptFilter") }, { glyph = "B", label = back } }
     end
     if f:sub(1, 5) == "wrow:" then
-        return { { glyph = "A", label = "On / off" }, { glyph = "LB", label = "" }, { glyph = "RB", label = "Filter" }, { glyph = "B", label = "Back" } }
+        return { { glyph = "A", label = ZeD.tr("UI_ZeD_Mods_PromptOnOff") }, { glyph = "LB", label = "" }, { glyph = "RB", label = ZeD.tr("UI_ZeD_Mods_PromptFilter") }, { glyph = "B", label = back } }
     end
-    return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
+    return { { glyph = "A", label = sel }, { glyph = "B", label = back } }
 end
 
 function ZeD_MMMods:keyEscape()

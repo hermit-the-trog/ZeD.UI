@@ -23,19 +23,30 @@ ZeD.JournalTab = {}
 -- CONSTANTS
 -- ============================================================================
 
-local MONTHS = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" }
-local MONTHS_FULL = { "January","February","March","April","May","June","July","August","September","October","November","December" }
+-- Month names are translation keys, translated where they are drawn: the short ones are
+-- ZeD's, the full ones the game's own (the sandbox start-month names).
+local MONTHS = {
+    "UI_ZeD_Journal_MonthJan", "UI_ZeD_Journal_MonthFeb", "UI_ZeD_Journal_MonthMar", "UI_ZeD_Journal_MonthApr",
+    "UI_ZeD_Journal_MonthMay", "UI_ZeD_Journal_MonthJun", "UI_ZeD_Journal_MonthJul", "UI_ZeD_Journal_MonthAug",
+    "UI_ZeD_Journal_MonthSep", "UI_ZeD_Journal_MonthOct", "UI_ZeD_Journal_MonthNov", "UI_ZeD_Journal_MonthDec",
+}
+local MONTHS_FULL = {
+    "Sandbox_StartMonth_option1", "Sandbox_StartMonth_option2", "Sandbox_StartMonth_option3", "Sandbox_StartMonth_option4",
+    "Sandbox_StartMonth_option5", "Sandbox_StartMonth_option6", "Sandbox_StartMonth_option7", "Sandbox_StartMonth_option8",
+    "Sandbox_StartMonth_option9", "Sandbox_StartMonth_option10", "Sandbox_StartMonth_option11", "Sandbox_StartMonth_option12",
+}
 
+-- (tr: the translation key of the label; the game's own weapon skill names where it has them)
 local WEAPON_CAT_ORDER = {
-    { key = "Blunt",      label = "Blunt" },
-    { key = "SmallBlunt", label = "Small Blunt" },
-    { key = "LongBlade",  label = "Long Blade" },
-    { key = "SmallBlade", label = "Small Blade" },
-    { key = "Axe",        label = "Axe" },
-    { key = "Spear",      label = "Spear" },
-    { key = "Firearm",    label = "Firearm" },
-    { key = "Unarmed",    label = "Unarmed" },
-    { key = "Other",      label = "Other" },
+    { key = "Blunt",      tr = "IGUI_perks_Blunt" },
+    { key = "SmallBlunt", tr = "IGUI_perks_SmallBlunt" },
+    { key = "LongBlade",  tr = "IGUI_perks_LongBlade" },
+    { key = "SmallBlade", tr = "IGUI_perks_SmallBlade" },
+    { key = "Axe",        tr = "IGUI_perks_Axe" },
+    { key = "Spear",      tr = "IGUI_perks_Spear" },
+    { key = "Firearm",    tr = "IGUI_perks_Firearm" },
+    { key = "Unarmed",    tr = "UI_ZeD_Journal_WeaponUnarmed" },
+    { key = "Other",      tr = "UI_ZeD_Journal_WeaponOther" },
 }
 
 local ENTRY_INPUT_H = 48  -- 3-line text entry height
@@ -53,10 +64,10 @@ local truncText = ZeD.Atoms.truncateText
 -- (Oct 16 2026, mockup zed_reader_v2: Flyers became Papers, Notebooks added; the
 -- Character window reads these by index: 1 Journal, 2 Notebooks, 3 Papers, 4 Recipes)
 local SUB_TABS = {
-    { id = "journal",   label = "Journal" },
-    { id = "notebooks", label = "Notebooks" },
-    { id = "papers",    label = "Papers" },
-    { id = "recipes",   label = "Recipes" },
+    { id = "journal",   key = "UI_ZeD_Journal_TabJournal" },
+    { id = "notebooks", key = "UI_ZeD_Journal_TabNotebooks" },
+    { id = "papers",    key = "UI_ZeD_Journal_TabPapers" },
+    { id = "recipes",   key = "IGUI_LiteratureUI_Recipes" },   -- (the game's own "Recipes")
 }
 
 -- ============================================================================
@@ -90,7 +101,7 @@ local function groupEntriesByMonth(entries, originalArray)
                 key     = key,
                 month   = m,
                 year    = yr,
-                label   = (MONTHS_FULL[m + 1] or "???") .. ", Year " .. yr,
+                label   = ZeD.tr("UI_ZeD_Journal_GroupLabel", MONTHS_FULL[m + 1] and ZeD.tr(MONTHS_FULL[m + 1]) or "???", yr),
                 entries = {},
             }
             keyOrder[#keyOrder + 1] = key
@@ -147,8 +158,9 @@ end
 local function journalGroups(win, entries, searchQ)
     local n = #entries
     local c = win._journalGroupCache
+    local lang = ZeD.trTestOn() and 1 or 0   -- (the group names are translated; the test language changes them)
     if c and c.src == entries and c.n == n and c.first == entries[1]
-            and c.last == entries[n] and c.q == searchQ then
+            and c.last == entries[n] and c.q == searchQ and c.lang == lang then
         return c.groups
     end
     local filtered = entries
@@ -162,7 +174,7 @@ local function journalGroups(win, entries, searchQ)
         end
     end
     local groups = groupEntriesByMonth(filtered, entries)
-    win._journalGroupCache = { src = entries, n = n, first = entries[1], last = entries[n], q = searchQ, groups = groups }
+    win._journalGroupCache = { src = entries, n = n, first = entries[1], last = entries[n], q = searchQ, lang = lang, groups = groups }
     return groups
 end
 
@@ -314,11 +326,11 @@ function ZeD.JournalTab.gatherData(playerObj)
 
         if zk.weapon then
             for _, def in ipairs(WEAPON_CAT_ORDER) do
-                weaponCats[#weaponCats + 1] = { label = def.label, count = zk.weapon[def.key] or 0 }
+                weaponCats[#weaponCats + 1] = { label = ZeD.tr(def.tr), count = zk.weapon[def.key] or 0 }
             end
         else
             for _, def in ipairs(WEAPON_CAT_ORDER) do
-                weaponCats[#weaponCats + 1] = { label = def.label, count = 0 }
+                weaponCats[#weaponCats + 1] = { label = ZeD.tr(def.tr), count = 0 }
             end
         end
     end
@@ -526,7 +538,8 @@ local function drawSubTabStrip(panel, win, x, y, w)
     local zones = {}
 
     for i, tab in ipairs(SUB_TABS) do
-        local tw = tm:MeasureStringX(T.fontF1, tab.label) + padH * 2
+        local tabLabel = ZeD.tr(tab.key)
+        local tw = tm:MeasureStringX(T.fontF1, tabLabel) + padH * 2
         local isActive = (i == activeIdx)
 
         if isActive then
@@ -540,11 +553,11 @@ local function drawSubTabStrip(panel, win, x, y, w)
                 T.surf1.a, T.surf1.r, T.surf1.g, T.surf1.b)
 
             local textY = y + math.floor((tH - tm:getFontHeight(T.fontF1)) / 2)
-            panel:drawText(tab.label, tabX + padH, textY,
+            panel:drawText(tabLabel, tabX + padH, textY,
                 T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF1)
         else
             local textY = y + math.floor((tH - tm:getFontHeight(T.fontF1)) / 2)
-            panel:drawText(tab.label, tabX + padH, textY,
+            panel:drawText(tabLabel, tabX + padH, textY,
                 T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a or 1, T.fontF1)
         end
 
@@ -575,8 +588,8 @@ local function drawSubTabStrip(panel, win, x, y, w)
         local searchGap = T.sp.sm
         local searchX = tabX + searchGap
         local searchW = x + w - searchX - T.sp.sm
+        local searchH = T.inputH  -- matches crafting tab search height
         if searchW > T.px(60) then
-            local searchH = T.inputH  -- matches crafting tab search height
             -- Center in the full 37px header (TAB_TOP_PAD + tH), not just tH
             local fullHeaderH = T.px(TAB_TOP_PAD) + tH
             local headerTopY = y - T.px(TAB_TOP_PAD)
@@ -584,6 +597,17 @@ local function drawSubTabStrip(panel, win, x, y, w)
             searchField:setY(headerTopY + math.floor((fullHeaderH - searchH) / 2))
             searchField:setWidth(searchW)
             searchField:setHeight(searchH)
+        else
+            -- The tabs leave no room (long words): the search gets its own row under
+            -- the strip, full width, and the content below moves down by that row.
+            local rowPad = T.sp.sm
+            local rowW = w - rowPad * 2
+            if rowW < T.px(60) then rowW = T.px(60) end
+            searchField:setX(x + rowPad)
+            searchField:setY(y + tH + rowPad)
+            searchField:setWidth(rowW)
+            searchField:setHeight(searchH)
+            tH = tH + searchH + rowPad * 2
         end
     end
 
@@ -738,7 +762,7 @@ local function renderJournal(panel, win, x, y, w, h)
         local estH = math.max(bodyH, secH) + T.px(4)
         panel:drawRect(x, killsRowTop, drawW, estH, 0.55, ac.r, ac.g, ac.b)
     end
-    local rowH = M.drawStatRow(panel, x + chevronW, curY, drawW - chevronW, "Zombies Killed", tostring(data.totalKills), T.toneHi, T.fontF2)
+    local rowH = M.drawStatRow(panel, x + chevronW, curY, drawW - chevronW, getText("IGUI_char_Zombies_Killed"), tostring(data.totalKills), T.toneHi, T.fontF2)
     win._killsRowH = rowH
     -- S105 gamepad: stamp the kills-row hit zone for focusable builder.
     -- Reads the real rowH returned by drawStatRow so the zone matches pixels.
@@ -757,11 +781,11 @@ local function renderJournal(panel, win, x, y, w, h)
         local indent = T.sp.md
         local innerW = drawW - indent
 
-        rowH = M.drawStatRowDot(panel, x + indent, curY, innerW, "Fire", tostring(data.fireKills), T.warning)
+        rowH = M.drawStatRowDot(panel, x + indent, curY, innerW, ZeD.tr("UI_ZeD_Journal_KillFire"), tostring(data.fireKills), T.warning)
         curY = curY + rowH + T.sp.rowGap
-        rowH = M.drawStatRowDot(panel, x + indent, curY, innerW, "Vehicle", tostring(data.carKills), T.info)
+        rowH = M.drawStatRowDot(panel, x + indent, curY, innerW, ZeD.tr("UI_ZeD_Journal_KillVehicle"), tostring(data.carKills), T.info)
         curY = curY + rowH + T.sp.rowGap
-        rowH = M.drawStatRowDot(panel, x + indent, curY, innerW, "Explosion", tostring(data.explosionKills), T.danger)
+        rowH = M.drawStatRowDot(panel, x + indent, curY, innerW, ZeD.tr("UI_ZeD_Journal_KillExplosion"), tostring(data.explosionKills), T.danger)
         curY = curY + rowH + T.sp.rowGap
 
         for _, cat in ipairs(data.weaponCats) do
@@ -820,7 +844,7 @@ local function renderJournal(panel, win, x, y, w, h)
     local deleteBtnW = secH + T.px(8)  -- hit area for X button
 
     if #groups == 0 then
-        A.drawSecondary(panel, "No entries yet", x, curY, T.textDim)
+        A.drawSecondary(panel, ZeD.tr("UI_ZeD_Journal_NoEntries"), x, curY, T.textDim)
     else
         for _, group in ipairs(groups) do
             local collapsed = win._journalGroupCollapsed[group.key]
@@ -866,26 +890,32 @@ local function renderJournal(panel, win, x, y, w, h)
                     end
                     entryIdx = entryIdx + 1
                     local entry = wrapped.entry
-                    local monthStr = MONTHS[(entry.month or 0) + 1] or "???"
-                    local dayStr   = tostring((entry.day or 0) + 1)
-                    local yearStr  = tostring(entry.year or 0)
-                    local hourStr  = string.format("%02d:%02d", entry.hour or 0, entry.minute or 0)
+                    -- The stamp is built once per entry and language state (the loop draws every
+                    -- entry each frame, and a translated phrase costs more than a concatenation).
+                    local stampKey = ZeD.trTestOn() and "t" or "n"
+                    local dateStr = wrapped.stamp
+                    if dateStr == nil or wrapped.stampKey ~= stampKey then
+                        local monthStr = MONTHS[(entry.month or 0) + 1] and ZeD.tr(MONTHS[(entry.month or 0) + 1]) or "???"
+                        local dayStr   = tostring((entry.day or 0) + 1)
+                        local yearStr  = tostring(entry.year or 0)
+                        local hourStr  = string.format("%02d:%02d", entry.hour or 0, entry.minute or 0)
 
-                    -- Compute survival day (stored on new entries; derive for old ones)
-                    local survDay = entry.survivalDay
-                    if not survDay then
-                        local gt = getGameTime()
-                        local entryEpoch = (entry.year or 0) * 360 + (entry.month or 0) * 30 + (entry.day or 0)
-                        local startEpoch = gt:getStartYear() * 360 + gt:getStartMonth() * 30 + gt:getStartDay()
-                        survDay = math.max(1, entryEpoch - startEpoch + 1)
-                    end
+                        -- Compute survival day (stored on new entries; derive for old ones)
+                        local survDay = entry.survivalDay
+                        if not survDay then
+                            local gt = getGameTime()
+                            local entryEpoch = (entry.year or 0) * 360 + (entry.month or 0) * 30 + (entry.day or 0)
+                            local startEpoch = gt:getStartYear() * 360 + gt:getStartMonth() * 30 + gt:getStartDay()
+                            survDay = math.max(1, entryEpoch - startEpoch + 1)
+                        end
 
-                    local dateStr  = "Day " .. tostring(survDay) .. "  "
-                        .. monthStr .. " " .. dayStr .. ", " .. yearStr
-                        .. " - " .. hourStr
-                    -- written into a notebook too: which, and the page
-                    if entry.source and entry.source.name then
-                        dateStr = dateStr .. " | " .. tostring(entry.source.name) .. ", page " .. tostring(entry.source.page)
+                        dateStr = ZeD.tr("UI_ZeD_Journal_EntryStamp", survDay, monthStr, dayStr, yearStr)
+                            .. " - " .. hourStr
+                        -- written into a notebook too: which, and the page
+                        if entry.source and entry.source.name then
+                            dateStr = dateStr .. " | " .. ZeD.tr("UI_ZeD_Journal_EntrySource", tostring(entry.source.name), tostring(entry.source.page))
+                        end
+                        wrapped.stamp, wrapped.stampKey = dateStr, stampKey
                     end
 
                     dateStr = truncText(dateStr, T.fontF3, drawW - deleteBtnW - T.px(4))

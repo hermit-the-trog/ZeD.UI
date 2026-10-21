@@ -50,14 +50,14 @@ local function items()
     local A = MM.act
     return {
         { id = "pz", label = "Project Zomboid", open = function() MM.showView("main") end },
-        { id = "newgame", label = "New game", open = function() A.newGame() end },
-        { id = "load", label = "Load game", open = function() A.load() end, off = function() return not MM.hasSaves() end },
-        { id = "join", label = "Join a server", open = function() A.join() end },
-        { id = "options", label = "Options", open = function() A.options() end },
-        { id = "mods", label = "Mods", open = function() A.mods() end },
+        { id = "newgame", label = ZeD.btnCase(getText("UI_NewGameScreen_title")), open = function() A.newGame() end },
+        { id = "load", label = ZeD.tr("UI_ZeD_MainMenu_LoadGame"), open = function() A.load() end, off = function() return not MM.hasSaves() end },
+        { id = "join", label = ZeD.tr("UI_ZeD_MainMenu_JoinServer"), open = function() A.join() end },
+        { id = "options", label = ZeD.btnCase(getText("UI_mainscreen_option")), open = function() A.options() end },
+        { id = "mods", label = getText("UI_NewGame_Mods"), open = function() A.mods() end },
     }
 end
-local TRASH = { id = "trash", label = "Trash", open = function() MM.showView("trash") end }
+local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() MM.showView("trash") end }   -- (label: a translation key, drawn through ZeD.tr)
 
 -- (director, Oct 16 2026: "desktop icons are loading slower than their text label") the
 -- icon pictures are loose textures the engine streams in after boot: they are asked for
@@ -159,7 +159,7 @@ function ZeD_MMIcons:prerender()
         if ready then                                     -- (picture and name come together)
         if tex then self:drawTextureScaledAspect(tex, c.ix, c.iy, c.isz, c.isz, off and 0.4 or 1, k, k, k) end
         -- its name, on a backing so it reads over the painting; selected: the accent
-        local name = ZeD.Atoms.truncateText(it.label, f2, c.w - T.px(4))
+        local name = ZeD.Atoms.truncateText((it.id == "trash") and ZeD.tr(it.label) or it.label, f2, c.w - T.px(4))
         local nw = MM.textW(f2, name)
         local nx = c.x + math.floor((c.w - nw) / 2)
         local bx, bw = nx - T.px(4), nw + T.px(8)
@@ -183,7 +183,7 @@ function ZeD_MMIcons:prerender()
         local w = T.px(260)
         self:drawRect(L.tx + T.px(EDGE), y, w, h, 1, s2.r, s2.g, s2.b)
         self:drawRectBorder(L.tx + T.px(EDGE), y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
-        ZeD.Molecules.drawGlyphPrompts(self, L.tx + T.px(EDGE) + T.sp.sm, y, h, { "D-PAD Move", { glyph = "A", label = "Open" } })
+        ZeD.Molecules.drawGlyphPrompts(self, L.tx + T.px(EDGE) + T.sp.sm, y, h, { ZeD.tr("UI_ZeD_Desktop_PromptDpad"), { glyph = "A", label = getText("IGUI_Open") } })
     end
 end
 
@@ -215,7 +215,7 @@ end
 ZeD_MMTrash = ZeD_MMWindow:derive("ZeD_MMTrash")
 
 local TRASH_W = 440
-local FILE = { name = "system32.dll", size = "1,402 K", kind = "system file" }
+local FILE = { name = "system32.dll", size = "1,402 K", kind = "UI_ZeD_Desktop_FileKind" }   -- (kind: a translation key)
 
 function ZeD_MMTrash:new()
     local o = ZeD_MMWindow.new(self, "trash")
@@ -261,8 +261,8 @@ function ZeD_MMTrash:prerender()
     local y = L.ty + T.px(U.BAR_H) + math.floor((L.th - T.px(U.BAR_H) - h) / 2)
     if self.x ~= x or self.y ~= y then self:setX(x); self:setY(y) end
     if self.width ~= w or self.height ~= h then self:setWidth(w); self:setHeight(h) end
-    self.title = "Trash"
-    self.titleStats = { { text = "1 item", color = { r = 0, g = 0, b = 0, a = 0 } } }   -- (no status dot: a plain count)
+    self.title = ZeD.tr("UI_ZeD_Desktop_Trash")
+    self.titleStats = { { text = ZeD.tr("UI_ZeD_Desktop_OneItem"), color = { r = 0, g = 0, b = 0, a = 0 } } }   -- (no status dot: a plain count)
     ZeD_Window.prerender(self)
 
     -- the one file in it
@@ -274,20 +274,20 @@ function ZeD_MMTrash:prerender()
     local tc, td = T.text, T.textDim
     local nx = bx + T.px(20) + isz
     self:drawText(FILE.name, nx, ry + math.floor(rowH / 2) - MM.fontH(f2), tc.r, tc.g, tc.b, tc.a or 1, f2)
-    self:drawText(FILE.kind, nx, ry + math.floor(rowH / 2), td.r, td.g, td.b, td.a or 1, f2)
+    self:drawText(ZeD.tr(FILE.kind), nx, ry + math.floor(rowH / 2), td.r, td.g, td.b, td.a or 1, f2)
     self:drawText(FILE.size, bx + bw - T.px(12) - MM.textW(f3, FILE.size), ry + math.floor((rowH - MM.fontH(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
 
     local stripY = h - self:footerHeight() - stripH
     if self.confirm then
-        self._ask = "Quit Project Zomboid?"
+        self._ask = ZeD.tr("UI_ZeD_MainMenu_AskQuitGame")
         UI.stripSpecs(self, stripY, w, 1000, {},
-            { { "confirm:no", "CANCEL", function() self:setConfirm(false) end, "default" },
-              { "confirm:yes", "QUIT", MM.act.quit, "danger" } })
+            { { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end, "default" },
+              { "confirm:yes", getText("UI_mainscreen_exit"), MM.act.quit, "danger" } })
     else
         self._ask = nil
         UI.stripSpecs(self, stripY, w, 1000,
-            { { "close", "CLOSE", function() self:close() end } },
-            { { "empty", "EMPTY TRASH", function() self:empty() end } })
+            { { "close", getText("UI_btn_close"), function() self:close() end } },
+            { { "empty", ZeD.tr("UI_ZeD_Desktop_EmptyTrash"), function() self:empty() end } })
     end
     self._stripY, self._stripH = stripY, stripH
 end
@@ -300,8 +300,8 @@ end
 function ZeD_MMTrash:joyB() if self.confirm then self:setConfirm(false) else self:close() end end
 function ZeD_MMTrash:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Quit" }, { glyph = "B", label = "Cancel" } } end
-    return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Close" } }
+    if self.confirm then return { { glyph = "A", label = getText("IGUI_Exit") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Close") } }
 end
 function ZeD_MMTrash:keyEscape() self:joyB(); return true end
 

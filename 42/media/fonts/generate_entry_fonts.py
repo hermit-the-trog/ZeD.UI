@@ -28,7 +28,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from generate_fonts import generate_font, _FIRA_SANS_MED  # noqa: E402
+from generate_fonts import generate_font, print_missing, _FIRA_SANS_MED  # noqa: E402
 
 ENTRY_SIZES = {"entry18": 18, "entry26": 26}
 
@@ -39,9 +39,11 @@ def main():
         print(f"ERROR: TTF not found: {_FIRA_SANS_MED}")
         sys.exit(1)
     for name, size in ENTRY_SIZES.items():
-        count, aw, ah = generate_font(name, _FIRA_SANS_MED, "Fira Sans", 0, 0, size, 1, out_dir)
-        print(f"  {name}: {count} chars, {aw}x{ah} atlas")
+        count, aw, ahs = generate_font(name, _FIRA_SANS_MED, "Fira Sans", 0, 0, size, 1, out_dir)
+        sizes = " + ".join(f"{aw}x{h}" for h in ahs)
+        print(f"  {name}: {count} chars, {len(ahs)} page(s) {sizes}")
 
 
 if __name__ == "__main__":
     main()
+    print_missing()

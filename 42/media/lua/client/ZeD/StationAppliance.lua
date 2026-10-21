@@ -54,7 +54,7 @@ local DEG = string.char(176)
 local OVEN_TEMPS   = { 0, 50, 100, 150, 200, 250, 300 }              -- °C
 local OVEN_TIMES   = { 0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 60, 90, 120 }
 local MW_POWERS    = { 50, 70, 90, 110, 130 }
-local MW_POWER_TXT = { "LO", "MED-LO", "MED", "MED-HI", "HI" }
+local MW_POWER_TXT = { "UI_ZeD_Appliance_PowerLo", "UI_ZeD_Appliance_PowerMedLo", "UI_ZeD_Appliance_PowerMed", "UI_ZeD_Appliance_PowerMedHi", "UI_ZeD_Appliance_PowerHi" }   -- keys
 local MW_TIMES     = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 45, 60 }
 local OVEN_MAX_MIN = 120          -- the ovens' timers run to two hours (the dials' scale)
 local MW_MAX_SEC   = 3600         -- a microwave's to an hour
@@ -417,17 +417,17 @@ end
 
 -- the line under the plate: what it is doing, in words
 local function stateLine(st, r)
-    if not r.powered then return "NO POWER" end
+    if not r.powered then return ZeD.tr("UI_ZeD_Appliance_NoPower") end
     local dot = "  " .. ST.DOT .. "  "
     if st.kind == "micro" then
-        local pw = MW_POWER_TXT[nearestIdx(MW_POWERS, r.temp)]
-        if r.on then return "COOKING" .. dot .. pw .. ((r.timer > 0) and (dot .. mss(r.left) .. " LEFT") or "") end
-        return "OFF" .. dot .. pw .. ((r.timer > 0) and (dot .. mss(r.left) .. " SET") or "")
+        local pw = ZeD.tr(MW_POWER_TXT[nearestIdx(MW_POWERS, r.temp)])
+        if r.on then return ZeD.tr("UI_ZeD_Appliance_Cooking") .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Left", mss(r.left))) or "") end
+        return ZeD.tr("UI_ZeD_Appliance_Off") .. dot .. pw .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_Set", mss(r.left))) or "")
     end
-    local heat = (r.temp > 0) and tempText(r.temp) or "OFF"
+    local heat = (r.temp > 0) and tempText(r.temp) or ZeD.tr("UI_ZeD_Appliance_Off")
     local mins = math.ceil(r.left / 60)
-    if r.on then return "ON" .. dot .. heat .. ((r.timer > 0) and (dot .. mins .. " MIN LEFT") or "") end
-    return "OFF" .. ((r.temp > 0) and (dot .. "SET " .. heat) or "") .. ((r.timer > 0) and (dot .. "TIMER " .. mins .. " MIN") or "")
+    if r.on then return ZeD.tr("UI_ZeD_Appliance_On") .. dot .. heat .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_MinLeft", mins)) or "") end
+    return ZeD.tr("UI_ZeD_Appliance_Off") .. ((r.temp > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_SetHeat", heat)) or "") .. ((r.timer > 0) and (dot .. ZeD.tr("UI_ZeD_Appliance_TimerMin", mins)) or "")
 end
 
 -- ----------------------------------------------------------------------------
@@ -448,19 +448,19 @@ local function contents(st)
                 local toCook = call(it, "getMinutesToCook") or 0
                 local toBurn = call(it, "getMinutesToBurn") or 0
                 if call(it, "isBurnt") then
-                    row.tag, row.mode, row.p = "BURNT", "danger", 1
+                    row.tag, row.mode, row.p = "UI_ZeD_Appliance_Burnt", "danger", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
                     local span = math.max(1, toBurn - toCook)
                     row.p = math.max(0, math.min(1, (ct - toCook) / span))
                     if on then
-                        row.tag, row.mode = "BURNING", "danger"
+                        row.tag, row.mode = "UI_ZeD_Appliance_Burning", "danger"
                     else
-                        row.tag, row.mode, row.p = "COOKED", "pos", nil   -- done and safe: no bar
+                        row.tag, row.mode, row.p = "UI_ZeD_Appliance_Cooked", "pos", nil   -- done and safe: no bar
                     end
                     row.left = math.max(0, math.ceil(toBurn - ct))
                 else
                     row.p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
-                    row.tag, row.mode = on and "COOKING" or "RAW", on and "warn" or "dim"
+                    row.tag, row.mode = on and "UI_ZeD_Appliance_Cooking" or "UI_ZeD_Appliance_Raw", on and "warn" or "dim"
                     row.left = math.max(0, math.ceil(toCook - ct))
                 end
             end
@@ -550,10 +550,10 @@ function SA.render(panel, win, x, y, w, h, state, st)
 
     -- Contents
     ZeD.Molecules.drawSectionHeader(panel, x + T.px(10), cyy, cw - T.px(20),
-        mw and "IN THE MICROWAVE" or "IN THE OVEN", #rows, true, false, T.fontF1, true, T.px(6), secH, true)
+        ZeD.tr(mw and "UI_ZeD_Appliance_InMicrowave" or "UI_ZeD_Appliance_InOven"), #rows, true, false, T.fontF1, true, T.px(6), secH, true)
     cyy = cyy + secH
     if #rows == 0 then
-        panel:drawText("Empty", x + T.px(16), cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
+        panel:drawText(ZeD.tr("UI_ZeD_Appliance_Empty"), x + T.px(16), cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
             T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2)
     end
     for _, rw in ipairs(rows) do
@@ -564,7 +564,8 @@ function SA.render(panel, win, x, y, w, h, state, st)
         local rx = x + cw - T.px(16)
         local nameMax = rx - pctW - barW - T.px(16) - (lx + isz + T.px(6))
         local tagW = 0
-        if rw.tag then tagW = tm:MeasureStringX(T.fontF1, rw.tag) + T.px(10) + T.px(6) end
+        local tagTxt = rw.tag and ZeD.tr(rw.tag) or nil
+        if tagTxt then tagW = tm:MeasureStringX(T.fontF1, tagTxt) + T.px(10) + T.px(6) end
         local nstr = ZeD.CraftingCore.truncText(rw.name, T.fontF2, math.max(T.px(30), nameMax - tagW))
         local nx = lx + isz + T.px(6)
         panel:drawText(nstr, nx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
@@ -574,7 +575,7 @@ function SA.render(panel, win, x, y, w, h, state, st)
             local th = T.px(14)
             local tgy = cyy + math.floor((rowH - th) / 2)
             panel:drawRectBorder(tgx, tgy, tagW - T.px(6), th, col.a or 1, col.r, col.g, col.b)
-            panel:drawText(rw.tag, tgx + T.px(5), tgy + math.floor((th - tm:getFontHeight(T.fontF1)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF1)
+            panel:drawText(tagTxt, tgx + T.px(5), tgy + math.floor((th - tm:getFontHeight(T.fontF1)) / 2), col.r, col.g, col.b, col.a or 1, T.fontF1)
         end
         if rw.p then
             local bx = rx - pctW - barW
@@ -585,7 +586,7 @@ function SA.render(panel, win, x, y, w, h, state, st)
             panel:drawRectBorder(bx, byy, barW, bh, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
             local fc = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or T.accent)
             panel:drawRect(bx + T.px(1), byy + T.px(1), math.floor((barW - T.px(2)) * rw.p), bh - T.px(2), 1, fc.r, fc.g, fc.b)
-            local ptxt = rw.left and (rw.mode == "danger" or rw.mode == "warn") and (tostring(rw.left) .. "m") or (tostring(math.floor(rw.p * 100 + 0.5)) .. "%")
+            local ptxt = rw.left and (rw.mode == "danger" or rw.mode == "warn") and ZeD.tr("UI_ZeD_Appliance_MinShort", rw.left) or (tostring(math.floor(rw.p * 100 + 0.5)) .. "%")
             A.drawTextRight(panel, ptxt, rx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3,
                 rw.mode == "danger" and T.danger or T.text)
         end

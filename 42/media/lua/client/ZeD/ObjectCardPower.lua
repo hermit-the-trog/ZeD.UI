@@ -141,7 +141,7 @@ function def.refresh(t, player)
     d.toxic = sq ~= nil and not sq:isOutside() and sq:getBuilding() ~= nil
     d.itemType = call(g, "getGeneratorItemType")
     local si = scriptItem(d.itemType)
-    d.name = (si and call(si, "getDisplayName")) or "Generator"
+    d.name = (si and call(si, "getDisplayName")) or getText("ContextMenu_Generator")
     d.tex = si and call(si, "getNormalTexture") or nil
     d.cans = (not d.on and d.pct < 100) and petrolCans(player) or {}
     d.elec = canElectric(player)
@@ -157,51 +157,53 @@ function def.refresh(t, player)
     t.toggle = onOK and toggle or nil
     t.plug = nil                       -- the outlet: only while it is off (below)
     if d.on then
-        verbs[#verbs + 1] = { id = "power", label = "TURN OFF", primary = true, run = toggle }
-        verbs[#verbs + 1] = { id = "fuel", label = "ADD FUEL", enabled = false }
-        verbs[#verbs + 1] = { id = "fix", label = "FIX", enabled = false }
-        verbs[#verbs + 1] = { id = "plug", label = d.conn and "DISCONNECT" or "CONNECT", enabled = false }
-        verbs[#verbs + 1] = { id = "take", label = "TAKE", enabled = false }
-        needs[#needs + 1] = "Turn it off to add fuel, fix or " .. (d.conn and "disconnect" or "connect") .. " it"
+        verbs[#verbs + 1] = { id = "power", label = getText("ContextMenu_Turn_Off"), primary = true, run = toggle }
+        verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = false }
+        verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = false }
+        verbs[#verbs + 1] = { id = "plug", label = d.conn and ZeD.tr("UI_ZeD_Power_Disconnect") or ZeD.tr("UI_ZeD_Power_Connect"), enabled = false }
+        verbs[#verbs + 1] = { id = "take", label = getText("ContextMenu_Take"), enabled = false }
+        needs[#needs + 1] = ZeD.tr(d.conn and "UI_ZeD_Power_NeedOffDisconnect" or "UI_ZeD_Power_NeedOffConnect")
     else
         local fuelOK = d.pct < 100 and #d.cans > 0
         local fixOK = d.cond < 100 and d.elec and d.scrap
         local plugOK = d.elec
         local takeOK = not d.conn
         local primary = (d.fuel <= 0 and fuelOK and "fuel") or (onOK and "power") or (not d.conn and plugOK and "plug") or nil
-        verbs[#verbs + 1] = { id = "fuel", label = "ADD FUEL", enabled = fuelOK, primary = primary == "fuel", jump = "gen:can:1" }
-        verbs[#verbs + 1] = { id = "power", label = "TURN ON", enabled = onOK, primary = primary == "power", run = toggle }
-        verbs[#verbs + 1] = { id = "fix", label = "FIX", enabled = fixOK,
+        verbs[#verbs + 1] = { id = "fuel", label = getText("ContextMenu_GeneratorAddFuel"), enabled = fuelOK, primary = primary == "fuel", jump = "gen:can:1" }
+        verbs[#verbs + 1] = { id = "power", label = getText("ContextMenu_Turn_On"), enabled = onOK, primary = primary == "power", run = toggle }
+        verbs[#verbs + 1] = { id = "fix", label = ZeD.tr("UI_ZeD_Power_Fix"), enabled = fixOK,
             run = function(p, tt) ISWorldObjectContextMenu.onFixGenerator(nil, tt.obj, p:getPlayerNum()) end }
         local plug = function(p, tt) ISWorldObjectContextMenu.onPlugGenerator(nil, tt.obj, p:getPlayerNum(), not tt.obj:isConnected()) end
         t.plug = plugOK and plug or nil
-        verbs[#verbs + 1] = { id = "plug", label = d.conn and "DISCONNECT" or "CONNECT", enabled = plugOK, primary = primary == "plug",
+        verbs[#verbs + 1] = { id = "plug", label = d.conn and ZeD.tr("UI_ZeD_Power_Disconnect") or ZeD.tr("UI_ZeD_Power_Connect"), enabled = plugOK, primary = primary == "plug",
             run = plug }
-        verbs[#verbs + 1] = { id = "take", label = "TAKE", enabled = takeOK,
+        verbs[#verbs + 1] = { id = "take", label = getText("ContextMenu_Take"), enabled = takeOK,
             run = function(p, tt) ISWorldObjectContextMenu.onTakeGenerator(nil, tt.obj, p:getPlayerNum()) end }
         if not onOK then
-            if d.fuel <= 0 then needs[#needs + 1] = "Turn on: needs fuel"
-            elseif not d.conn then needs[#needs + 1] = "Turn on: needs it connected" end
+            if d.fuel <= 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedFuel")
+            elseif not d.conn then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedConnected") end
         end
-        if d.pct < 100 and #d.cans == 0 then needs[#needs + 1] = "Add fuel: needs a can with petrol" end
-        local plugWord = d.conn and "Disconnect" or "Connect"
+        if d.pct < 100 and #d.cans == 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedCan") end
         if not d.elec then
-            needs[#needs + 1] = plugWord .. (d.cond < 100 and " and fix: need" or ": needs") .. " Electricity 3 or the generator magazine"
+            local nk
+            if d.conn then nk = d.cond < 100 and "UI_ZeD_Power_NeedElecUnplugFix" or "UI_ZeD_Power_NeedElecUnplug"
+            else nk = d.cond < 100 and "UI_ZeD_Power_NeedElecPlugFix" or "UI_ZeD_Power_NeedElecPlug" end
+            needs[#needs + 1] = ZeD.tr(nk)
         elseif d.cond < 100 and not d.scrap then
-            needs[#needs + 1] = "Fix: needs Scrap Electronics"
+            needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedScrap")
         end
-        if d.conn then needs[#needs + 1] = "Take: needs it disconnected" end
+        if d.conn then needs[#needs + 1] = ZeD.tr("UI_ZeD_Power_NeedDisconnected") end
     end
     t.verbs = verbs
     t.needs = needs
 end
 
-function def.title(t) return t.d and t.d.name or "Generator" end
+function def.title(t) return t.d and t.d.name or getText("ContextMenu_Generator") end
 function def.icon(t) return t.d and t.d.tex or nil end
 function def.pill(t)
     local T = ZeD.T
-    if t.d and t.d.on then return "RUNNING", T.positive end
-    return "OFF", T.textDim
+    if t.d and t.d.on then return ZeD.tr("UI_ZeD_Power_PillRunning"), T.positive end
+    return ZeD.tr("UI_ZeD_Power_PillOff"), T.textDim
 end
 
 -- "33:20" from hours
@@ -264,14 +266,14 @@ local function drawPlate(card, x, y, w, t)
     local h = des.h * k + T.px(6)
     -- getTotalPowerUsing already carries the sandbox fuel factor: it is the
     -- litres burnt per game hour, so fuel / draw is the run time left
-    local hrs, unit = "--:--", "HRS"
+    local hrs, unitKey = "--:--", "UI_ZeD_Power_Hrs"
     if d.on then
         local draw = (d.total and d.total > 0) and d.total or d.base
         if draw and draw > 0 then
             local hh = d.fuel / draw
             if hh >= 100 then
                 local days = math.floor(hh / 24)
-                hrs, unit = (days > 999) and "999+" or tostring(days), "DAYS"
+                hrs, unitKey = (days > 999) and "999+" or tostring(days), "UI_ZeD_Power_Days"
             else
                 hrs = hhmm(hh)
             end
@@ -279,7 +281,8 @@ local function drawPlate(card, x, y, w, t)
     elseif d.fuel <= 0 then
         hrs = "00:00"
     end
-    h = h + UI.pair(card, x, y + h, w, "RUN TIME LEFT", hrs .. " " .. unit, "FUEL", string.format("%.1f OF %d L", d.fuel, math.floor(d.max + 0.5)))
+    h = h + UI.pair(card, x, y + h, w, ZeD.tr("UI_ZeD_Power_RunTimeLeft"), ZeD.tr(unitKey, hrs), ZeD.tr("UI_ZeD_Power_Fuel"),
+        ZeD.tr("UI_ZeD_Power_FuelOf", string.format("%.1f", d.fuel), math.floor(d.max + 0.5)))
     return h
 end
 
@@ -290,22 +293,22 @@ function def.body(card, x, y, w, t, player)
     local y0 = y
     local gap = T.px(8)
     if d.toxic then
-        y = y + UI.warn(card, x, y, w, "Indoors. Running it here fills the building with toxic fumes. Move it outside first.") + gap
+        y = y + UI.warn(card, x, y, w, ZeD.tr("UI_ZeD_Power_Fumes")) + gap
     end
     y = y + drawPlate(card, x, y, w, t) + gap
 
     -- condition
     local condC = d.cond > 50 and T.positive or T.warning
     local condTxt = tostring(d.cond) .. "%"
-    if d.cond <= 50 then condTxt = condTxt .. " " .. DOT .. " may fail to start" end
-    y = y + UI.meter(card, x, y, w, "CONDITION", condTxt, d.cond <= 50 and T.warning or nil, d.cond, condC) + gap
+    if d.cond <= 50 then condTxt = ZeD.tr("UI_ZeD_Power_MayFail", condTxt) end
+    y = y + UI.meter(card, x, y, w, ZeD.tr("UI_ZeD_Power_Condition"), condTxt, d.cond <= 50 and T.warning or nil, d.cond, condC) + gap
 
     if t.needs and #t.needs > 0 then
         y = y + UI.needs(card, x, y, w, t.needs) + gap
     end
 
     if d.on then
-        y = y + UI.section(card, x, y, w, "POWERING", tostring(#d.items))
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Power_Powering"), tostring(#d.items))
         for _, it in ipairs(d.items) do
             y = y + UI.row(card, x, y, w, nil, it.name, it.val)
         end
@@ -315,22 +318,23 @@ function def.body(card, x, y, w, t, player)
         local tc = T.text
         ZeD.Atoms.drawTextRight(card, (d.totalStr and string.upper(d.totalStr)) or string.format("%.4f L/H", d.total or 0),
             x + w - T.px(2), y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tf, tc)
-        local lw = ZeD.TM:MeasureStringX(tf, "TOTAL")
+        local totalTxt = ZeD.tr("UI_ZeD_Power_Total")
+        local lw = ZeD.TM:MeasureStringX(tf, totalTxt)
         local vw = ZeD.TM:MeasureStringX(tf, (d.totalStr and string.upper(d.totalStr)) or "0.0000 L/H")
-        card:drawText("TOTAL", x + w - T.px(2) - vw - T.px(12) - lw, y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tc.r, tc.g, tc.b, tc.a or 1, tf)
+        card:drawText(totalTxt, x + w - T.px(2) - vw - T.px(12) - lw, y + math.floor((th - ZeD.TM:getFontHeight(tf)) / 2), tc.r, tc.g, tc.b, tc.a or 1, tf)
         y = y + th
     elseif #d.cans > 0 then
-        y = y + UI.section(card, x, y, w, "ADD FUEL FROM YOUR BAGS", "ADDS")
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Fire_AddFromBags"), ZeD.tr("UI_ZeD_Fire_Adds"))
         local room = math.max(0, d.max - d.fuel)
         for i, c in ipairs(d.cans) do
             local add = math.min(c.amt, room)
             local cc = c
             y = y + UI.pick(card, x, y, w, {
                 tex = c.tex,
-                name = string.format("%s (%.1f of %d L)", c.name, c.amt, math.floor(c.cap + 0.5)),
+                name = ZeD.tr("UI_ZeD_Power_CanName", c.name, string.format("%.1f", c.amt), math.floor(c.cap + 0.5)),
                 where = c.where,
                 gain = string.format("+%.1f L", add),
-                button = "ADD",
+                button = getText("UI_btn_add"),
                 fid = "gen:can:" .. i,
                 enabled = room > 0,
                 run = function(card2, p)

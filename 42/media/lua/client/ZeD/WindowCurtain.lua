@@ -36,6 +36,7 @@
 -- ============================================================================
 
 require "ISUI/ISPanel"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.Curtain = ZeD.Curtain or {}
@@ -320,7 +321,7 @@ function C.padElement(win, px, py)
     return {
         x = ((win._curtain.side == "right") and win:getWidth() or -win._rollW) + r.x - px, y = r.y - py, w = r.w, h = r.h,
         id = "curtain:unroll",
-        promptA = "Unroll",
+        promptA = ZeD.tr("UI_ZeD_Curtain_Unroll"),
         onFocus = function() end,
         onActivate = function(w) C.unroll(w) end,
     }

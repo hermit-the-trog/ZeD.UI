@@ -194,9 +194,9 @@ function ZeD_ContextMenu:_currentItems()
         node = node[p].children
     end
     local list = { {
-        id = "__back", name = "< Back", isBack = true,
+        id = "__back", name = ZeD.tr("UI_ZeD_CtxMenu_Back"), isBack = true,
         category = "NAV",
-        body = "Return to previous level.",
+        body = ZeD.tr("UI_ZeD_CtxMenu_BackBody"),
         disabled = function() return false end,
         stateKind = function() return "ok" end,
         state = function() return "" end,

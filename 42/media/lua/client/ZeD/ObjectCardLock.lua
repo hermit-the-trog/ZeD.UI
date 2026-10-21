@@ -93,7 +93,19 @@ function def.valid(t)
     return o ~= nil and o:getSquare() ~= nil and (call(o, "getObjectIndex") or -1) >= 0
 end
 
--- The padlock action running (or queued) on this object, and its label.
+-- What the band says of a running padlock action: its label token (see lockAction)
+-- through the translations.
+function LK.busyText(label, act)
+    if label == "locking" then return ZeD.tr("UI_ZeD_Lock_BusyLocking") end
+    if label == "trying" then return ZeD.tr("UI_ZeD_Lock_BusyTrying", spaced(act and act.code)) end
+    if label == "putting" then return ZeD.tr("UI_ZeD_Lock_BusyPutting") end
+    if label == "removing" then return ZeD.tr("UI_ZeD_Lock_BusyRemoving") end
+    if label == "walking" then return ZeD.tr("UI_ZeD_Lock_BusyWalking") end
+    return ""
+end
+
+-- The padlock action running (or queued) on this object, and its label token
+-- (locking, trying, putting, removing, walking: the player reads LK.busyText of it).
 local function lockAction(player, t)
     local q = ISTimedActionQueue.getTimedActionQueue(player)
     local list = q and q.queue
@@ -102,11 +114,11 @@ local function lockAction(player, t)
         if (a.Type == "ISPadlockByCodeAction" or a.Type == "ISPadlockAction") and a.thump == t.obj then
             local label
             if a.Type == "ISPadlockByCodeAction" then
-                label = a.lock and "LOCKING" or ("TRYING " .. spaced(a.code))
+                label = a.lock and "locking" or "trying"
             else
-                label = a.lock and "PUTTING THE PADLOCK ON" or "REMOVING THE PADLOCK"
+                label = a.lock and "putting" or "removing"
             end
-            if i > 1 then label = "WALKING OVER" end
+            if i > 1 then label = "walking" end
             return list[1], label, a
         end
     end
@@ -147,7 +159,7 @@ function def.refresh(t, player)
     end
     -- the padlock just came off with our try: show the container in the Loot pane
     if t.d and t.d.codeLocked and not d.codeLocked then
-        t.flash = { text = "Padlock off. It shows in the Loot pane.", untilMs = now() + FLASH_MS }
+        t.flash = { text = ZeD.tr("UI_ZeD_Lock_FlashOff"), untilMs = now() + FLASH_MS }
         t.wrong, t.setting = nil, false
         if c and ZeD_WorldWindow and ZeD_WorldWindow.selectContainer then ZeD_WorldWindow.selectContainer(c, 120) end
     end
@@ -160,26 +172,27 @@ function def.refresh(t, player)
     elseif d.keyLocked then d.mode = "key"
     elseif t.setting and d.free then d.mode = "set"
     else d.mode = "open" end
-    local head, label = lockAction(player, t)
+    local head, label, lact = lockAction(player, t)
     d.busy, d.busyLabel = head, label
+    d.busyText = label and LK.busyText(label, lact) or nil
     t.d = d
 
     -- verbs
     local verbs = {}
     local busy = head ~= nil
     if d.mode == "set" then
-        verbs[1] = { id = "lock", label = "LOCK", primary = true, enabled = (not busy) and d.combo ~= nil and codeOf(t) ~= 0,
+        verbs[1] = { id = "lock", label = ZeD.tr("UI_ZeD_Lock_Lock"), primary = true, enabled = (not busy) and d.combo ~= nil and codeOf(t) ~= 0,
             run = function(p, tt) LK.lock(p, tt) end }
     elseif d.mode == "enter" then
-        verbs[1] = { id = "remove", label = "REMOVE PADLOCK", primary = true, enabled = not busy,
+        verbs[1] = { id = "remove", label = getText("ContextMenu_RemovePadlock"), primary = true, enabled = not busy,
             run = function(p, tt) LK.try(p, tt) end }
     elseif d.mode == "key" then
-        verbs[1] = { id = "remove", label = "REMOVE PADLOCK", primary = true, enabled = (not busy) and d.haveKey,
+        verbs[1] = { id = "remove", label = getText("ContextMenu_RemovePadlock"), primary = true, enabled = (not busy) and d.haveKey,
             run = function(p, tt) ISWorldObjectContextMenu.onRemovePadlock(nil, p:getPlayerNum(), tt.obj) end }
     else
-        verbs[1] = { id = "usecombo", label = "USE COMBINATION PADLOCK", enabled = (not busy) and d.free and d.combo ~= nil,
+        verbs[1] = { id = "usecombo", label = getText("ContextMenu_PutCombinationPadlock"), enabled = (not busy) and d.free and d.combo ~= nil,
             run = function(p, tt) tt.setting = true; tt.digits = { 0, 0, 0 }; tt.cursor = 1; tt.wrong = nil; tt._refreshT = OC.REFRESH end }
-        verbs[2] = { id = "usepad", label = "USE PADLOCK", enabled = (not busy) and d.free and d.keyPad ~= nil,
+        verbs[2] = { id = "usepad", label = getText("ContextMenu_PutPadlock"), enabled = (not busy) and d.free and d.keyPad ~= nil,
             run = function(p, tt)
                 local pad = keyPadlock(p)
                 if pad then ISWorldObjectContextMenu.onPutPadlock(nil, p:getPlayerNum(), tt.obj, pad) end
@@ -264,10 +277,10 @@ function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
-    if d.mode == "set" then return "SETTING A CODE", T.textDim end
-    if d.mode == "enter" then return "CODE LOCK", T.danger end
-    if d.mode == "key" then return "KEY LOCK", d.haveKey and T.warning or T.danger end
-    return "UNLOCKED", T.positive
+    if d.mode == "set" then return ZeD.tr("UI_ZeD_Lock_PillSetting"), T.textDim end
+    if d.mode == "enter" then return ZeD.tr("UI_ZeD_Lock_PillCode"), T.danger end
+    if d.mode == "key" then return ZeD.tr("UI_ZeD_Lock_PillKey"), d.haveKey and T.warning or T.danger end
+    return ZeD.tr("UI_ZeD_Lock_PillUnlocked"), T.positive
 end
 function def.openFocus(t)
     local d = t.d
@@ -279,21 +292,21 @@ function def.status(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
-    if d.busy then return { text = d.busyLabel == "WALKING OVER" and "Walking over to the padlock" or "Working on the padlock", c = T.accent } end
+    if d.busy then return { text = d.busyLabel == "walking" and ZeD.tr("UI_ZeD_Lock_StatusWalking") or ZeD.tr("UI_ZeD_Lock_StatusWorking"), c = T.accent } end
     if d.mode == "set" then
-        if not d.combo then return { text = "Can't lock: no Combination Padlock in your inventory", c = T.danger } end
-        if codeOf(t) == 0 then return { text = "Can't lock: a code of 000 does nothing", c = T.danger } end
-        return { text = "Ready to lock it with " .. codeText(t), c = T.positive }
+        if not d.combo then return { text = ZeD.tr("UI_ZeD_Lock_StatusNoCombo"), c = T.danger } end
+        if codeOf(t) == 0 then return { text = ZeD.tr("UI_ZeD_Lock_StatusZeroCode"), c = T.danger } end
+        return { text = ZeD.tr("UI_ZeD_Lock_StatusReadyLock", codeText(t)), c = T.positive }
     end
     if d.mode == "enter" then
         if t.wrong then
-            return { text = "Wrong code: " .. spaced(t.wrong) .. ". The padlock stays on.", c = T.danger, alarm = true }
+            return { text = ZeD.tr("UI_ZeD_Lock_StatusWrong", spaced(t.wrong)), c = T.danger, alarm = true }
         end
-        return { text = "Ready to try " .. codeText(t), c = T.positive }
+        return { text = ZeD.tr("UI_ZeD_Lock_StatusReadyTry", codeText(t)), c = T.positive }
     end
     if d.mode == "key" then
-        if d.haveKey then return { text = "Ready to remove the padlock with its key", c = T.positive } end
-        return { text = "Can't remove the padlock: its key is not in your inventory", c = T.danger }
+        if d.haveKey then return { text = ZeD.tr("UI_ZeD_Lock_StatusReadyKey"), c = T.positive } end
+        return { text = ZeD.tr("UI_ZeD_Lock_StatusNoKey"), c = T.danger }
     end
     if t.flash and now() < t.flash.untilMs then return { text = t.flash.text, c = T.positive } end
     return nil
@@ -495,20 +508,20 @@ local function band(card, x, y, w, t, player)
     card:drawRect(x, y, w, h, 0.10, col(ac))
     card:drawRectBorder(x, y, w, h, 1, col(ac))
     local f1 = T.fontF1
-    card:drawText(d.busyLabel or "", x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
-    local bw = UI.buttonW("STOP")
+    card:drawText(d.busyText or "", x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local bw = UI.buttonW(getText("IGUI_media_stop"))
     local bx = x + w - T.px(6) - bw
     local by = y + math.floor((h - T.px(22)) / 2)
-    UI.button(card, bx, by, "STOP", { focused = card._fid == "lk:stop" })
+    UI.button(card, bx, by, getText("IGUI_media_stop"), { focused = card._fid == "lk:stop" })
     card:zone({ fid = "lk:stop", x = bx, y = by, w = bw, h = T.px(22), body = true,
         run = function() pcall(function() ISTimedActionQueue.clear(player) end) end })
     local pct = 0
-    if d.busyLabel ~= "WALKING OVER" then pcall(function() pct = d.busy:getJobDelta() end) end
+    if d.busyLabel ~= "walking" then pcall(function() pct = d.busy:getJobDelta() end) end
     local s = tostring(math.floor(pct * 100 + 0.5)) .. "%"
     local f3 = T.fontF3
     local sw = tm:MeasureStringX(f3, s)
     card:drawText(s, bx - T.px(10) - sw, y + math.floor((h - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, 1, f3)
-    local barX = x + T.px(8) + tm:MeasureStringX(f1, d.busyLabel or "") + T.px(12)
+    local barX = x + T.px(8) + tm:MeasureStringX(f1, d.busyText or "") + T.px(12)
     local barW = bx - T.px(10) - sw - T.px(10) - barX
     if barW > T.px(20) then
         local bh = T.px(8)
@@ -568,7 +581,7 @@ function def.body(card, x, y, w, t, player)
             i = i + 1
         end
         card:drawRectBorder(x, y, w, ph, T.borderS.a or 1, col(T.borderS))
-        local lbl = "NO PADLOCK ON IT"
+        local lbl = ZeD.tr("UI_ZeD_Lock_NoPadlock")
         local f1 = T.fontF1
         local lw2 = tm:MeasureStringX(f1, lbl)
         local dc = T.textDim
@@ -579,7 +592,7 @@ function def.body(card, x, y, w, t, player)
     end
     if d.mode == "set" then
         -- what vanilla never says: the lock shuts the crate to you too
-        local note = "Locked to everyone, you included, until the code takes the padlock off"
+        local note = ZeD.tr("UI_ZeD_Lock_NoteSet")
         local f1 = T.fontF1
         local dc = T.textDim
         local lh = tm:getFontHeight(f1) + T.px(2)
@@ -592,38 +605,38 @@ function def.body(card, x, y, w, t, player)
     end
 
     -- what it locks
-    y = y + UI.section(card, x, y, w, "WHAT IT LOCKS") + T.px(4)
+    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_WhatItLocks")) + T.px(4)
     local contents
-    if d.lockedToMe then contents = "hidden while locked"
-    elseif d.items then contents = tostring(d.items) .. (d.items == 1 and " item" or " items") .. " " .. DOT .. " "
-        .. string.format("%.1f", d.weight or 0) .. " / " .. tostring(math.floor((d.cap or 0) + 0.5))
+    if d.lockedToMe then contents = ZeD.tr("UI_ZeD_Lock_Hidden")
+    elseif d.items then contents = ZeD.tr(d.items == 1 and "UI_ZeD_Lock_ItemsOne" or "UI_ZeD_Lock_ItemsMany", d.items,
+        string.format("%.1f", d.weight or 0), math.floor((d.cap or 0) + 0.5))
     else contents = "" end
-    y = y + fact(card, x, y, w, "CONTAINER", d.name .. (contents ~= "" and (" " .. DOT .. " " .. contents) or ""))
+    y = y + fact(card, x, y, w, ZeD.tr("UI_ZeD_Lock_FactContainer"), d.name .. (contents ~= "" and (" " .. DOT .. " " .. contents) or ""))
     if d.mode == "enter" then
-        y = y + fact(card, x, y, w, "PADLOCK", "Combination " .. DOT .. " locked to everyone", T.danger)
+        y = y + fact(card, x, y, w, ZeD.tr("UI_ZeD_Lock_FactPadlock"), ZeD.tr("UI_ZeD_Lock_PadComboLocked"), T.danger)
     elseif d.mode == "key" then
-        y = y + fact(card, x, y, w, "PADLOCK", "Key padlock " .. DOT .. " opens for whoever carries its key", d.haveKey and T.positive or T.danger)
-        y = y + fact(card, x, y, w, "KEY", "Padlock Key " .. DOT .. (d.haveKey and " in your inventory" or " not in your inventory"))
+        y = y + fact(card, x, y, w, ZeD.tr("UI_ZeD_Lock_FactPadlock"), ZeD.tr("UI_ZeD_Lock_PadKeyOpens"), d.haveKey and T.positive or T.danger)
+        y = y + fact(card, x, y, w, ZeD.tr("UI_ZeD_Lock_FactKey"), ZeD.tr(d.haveKey and "UI_ZeD_Lock_KeyIn" or "UI_ZeD_Lock_KeyNotIn"))
     elseif d.mode == "set" then
-        y = y + fact(card, x, y, w, "PADLOCK", d.combo and ("Combination Padlock " .. DOT .. " in your inventory") or "No Combination Padlock in your inventory",
+        y = y + fact(card, x, y, w, ZeD.tr("UI_ZeD_Lock_FactPadlock"), d.combo and ZeD.tr("UI_ZeD_Lock_ComboIn") or ZeD.tr("UI_ZeD_Lock_ComboNone"),
             d.combo and T.positive or T.danger)
     else
-        y = y + fact(card, x, y, w, "PADLOCK", "None", T.positive)
+        y = y + fact(card, x, y, w, ZeD.tr("UI_ZeD_Lock_FactPadlock"), getText("IGUI_None"), T.positive)
     end
     y = y + T.px(8)
 
     -- needs
     if d.mode == "set" then
-        y = y + UI.section(card, x, y, w, "NEEDS " .. DOT .. " LOCK") + T.px(4)
-        y = y + needRow(card, x, y, w, d.combo ~= nil, "Combination Padlock in your inventory")
-        y = y + needRow(card, x, y, w, codeOf(t) ~= 0, "A code other than 000")
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_NeedsLock")) + T.px(4)
+        y = y + needRow(card, x, y, w, d.combo ~= nil, ZeD.tr("UI_ZeD_Lock_NeedCombo"))
+        y = y + needRow(card, x, y, w, codeOf(t) ~= 0, ZeD.tr("UI_ZeD_Lock_NeedCode"))
     elseif d.mode == "key" then
-        y = y + UI.section(card, x, y, w, "NEEDS " .. DOT .. " REMOVE PADLOCK") + T.px(4)
-        y = y + needRow(card, x, y, w, d.haveKey, "Its key in your inventory")
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_NeedsRemove")) + T.px(4)
+        y = y + needRow(card, x, y, w, d.haveKey, ZeD.tr("UI_ZeD_Lock_NeedKey"))
     elseif d.mode == "open" and d.free then
-        y = y + UI.section(card, x, y, w, "NEEDS") + T.px(4)
-        y = y + needRow(card, x, y, w, d.combo ~= nil, "Use combination padlock: a Combination Padlock in your inventory")
-        y = y + needRow(card, x, y, w, d.keyPad ~= nil, "Use padlock: a Padlock with its keys in your inventory")
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Lock_Needs")) + T.px(4)
+        y = y + needRow(card, x, y, w, d.combo ~= nil, ZeD.tr("UI_ZeD_Lock_NeedUseCombo"))
+        y = y + needRow(card, x, y, w, d.keyPad ~= nil, ZeD.tr("UI_ZeD_Lock_NeedUsePad"))
     end
     return y - y0
 end

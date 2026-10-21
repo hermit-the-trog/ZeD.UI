@@ -26,10 +26,15 @@
 -- n get out, the seat key and Escape close), the controller's seat grid.
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
+ZeD.trDefaults({
+    UI_ZeD_Seat_ByDoor = "By the %1 door.", UI_ZeD_Seat_DpadMove = "D-PAD Move", UI_ZeD_Seat_Sit = "Sit",
+    UI_ZeD_Seat_GetOutHere = "Get out here", UI_ZeD_Seat_NumberGetOut = "+ number: Get out",
+})
 
 ZeD = ZeD or {}
 ZeD.Seats = ZeD.Seats or {}
@@ -318,7 +323,7 @@ function ZeD_SeatChooser:layout()
         end
     end
     -- the footer's one answer
-    local label = string.upper(getText("UI_Cancel"))
+    local label = ZeD.upper(getText("UI_Cancel"))
     local bw = math.max(T.px(U.BTN_MIN), tw(T.fontF3, label) + T.px(U.BTN_PAD) * 2)
     local bh = T.px(U.BTN_H)
     g.cancel = { x = w - T.px(U.FOOT_PAD) - bw, y = footY + math.floor((footH - bh) / 2), w = bw, h = bh, label = label }
@@ -432,7 +437,7 @@ function ZeD_SeatChooser:prerender()
     local ps = self:pointedSeat()
     if pd then
         name = getText("IGUI_ExitVehicle")
-        why, dot = "By the " .. seatName(self._script, pd - 1) .. " door.", "accent"
+        why, dot = ZeD.tr("UI_ZeD_Seat_ByDoor", seatName(self._script, pd - 1)), "accent"
     elseif ps and self._seats[ps] then
         name = seatName(self._script, ps - 1)
         why, dot = self:reason(self._seats[ps])
@@ -487,15 +492,15 @@ end
 function ZeD_SeatChooser:stripPrompts()
     local inside = self._playerSeat ~= -1
     if self.joyfocus then
-        local t = { "D-PAD Move", { glyph = "A", label = "Sit" } }
-        if inside then t[#t + 1] = { glyph = "X", label = "Get out here" } end
-        t[#t + 1] = { glyph = "B", label = "Cancel" }
+        local t = { ZeD.tr("UI_ZeD_Seat_DpadMove"), { glyph = "A", label = ZeD.tr("UI_ZeD_Seat_Sit") } }
+        if inside then t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Seat_GetOutHere") } end
+        t[#t + 1] = { glyph = "B", label = getText("UI_Cancel") }
         return t
     end
     local n = #(self._seats or {})
-    local t = { { glyph = (n > 1) and ("1-" .. n) or "1", label = "Sit" } }
-    if inside then t[#t + 1] = { glyph = "SHIFT", label = "+ number: Get out" } end
-    t[#t + 1] = { glyph = "ESC", label = "Cancel" }
+    local t = { { glyph = (n > 1) and ("1-" .. n) or "1", label = ZeD.tr("UI_ZeD_Seat_Sit") } }
+    if inside then t[#t + 1] = { glyph = "SHIFT", label = ZeD.tr("UI_ZeD_Seat_NumberGetOut") } end
+    t[#t + 1] = { glyph = "ESC", label = getText("UI_Cancel") }
     return t
 end
 

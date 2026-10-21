@@ -164,7 +164,7 @@ local function corpsesNear(player)
                         local o = list:get(i)
                         if instanceof(o, "IsoDeadBody") and o:isAnimal() then
                             local n = math.floor(OC.squareDist(player, sq) + 0.5)
-                            out[#out + 1] = { c = o, where = "GROUND " .. DOT .. " " .. n .. (n == 1 and " TILE" or " TILES") }
+                            out[#out + 1] = { c = o, where = ZeD.tr(n == 1 and "UI_ZeD_Hook_GroundTile" or "UI_ZeD_Hook_GroundTiles", n) }
                         end
                     end
                 end
@@ -269,14 +269,14 @@ function def.refresh(t, player)
 
     local verbs, needs = {}, {}
     if d.animal then
-        verbs[#verbs + 1] = { id = "remove", label = string.upper(txt("IGUI_ButcherHook_RemoveCorpse", "Remove Corpse")),
+        verbs[#verbs + 1] = { id = "remove", label = ZeD.upper(txt("IGUI_ButcherHook_RemoveCorpse", "Remove Corpse")),
             enabled = not d.busy, run = function(p, tt) removeCorpse(p, tt) end }
         if not d.knife then needs[#needs + 1] = txt("Tooltip_Animal_NoKnifeButcher", "Need a Knife.") end
     else
-        verbs[#verbs + 1] = { id = "add", label = string.upper(txt("ContextMenu_AddCorpse", "Add Corpse")), primary = true,
+        verbs[#verbs + 1] = { id = "add", label = ZeD.upper(txt("ContextMenu_AddCorpse", "Add Corpse")), primary = true,
             enabled = not d.busy and d.corpses and #d.corpses > 0, jump = "hook:hang:1" }
     end
-    if d.inUse then needs[#needs + 1] = "Someone else is using the hook." end
+    if d.inUse then needs[#needs + 1] = ZeD.tr("UI_ZeD_Hook_InUseBy") end
     t.verbs, t.needs = verbs, needs
 end
 
@@ -291,10 +291,10 @@ function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
-    if d.inUse then return "IN USE", T.warning end
-    if not d.animal then return "EMPTY", T.textDim end
-    if d.bleeding then return "BLEEDING", T.warning end
-    return "ON THE HOOK", T.positive
+    if d.inUse then return ZeD.tr("UI_ZeD_Hook_PillInUse"), T.warning end
+    if not d.animal then return ZeD.tr("UI_ZeD_Hook_PillEmpty"), T.textDim end
+    if d.bleeding then return ZeD.tr("UI_ZeD_Hook_PillBleeding"), T.warning end
+    return ZeD.tr("UI_ZeD_Hook_PillOnHook"), T.positive
 end
 
 -- the card goes: the hook stops reporting to it, the figure goes with it
@@ -360,17 +360,17 @@ local function drawBand(card, x, y, w, t)
     card:drawRect(x, y, w, h, 0.10, col(ac))
     card:drawRectBorder(x, y, w, h, 1, col(ac))
     local f1, f3 = T.fontF1, T.fontF3
-    local lbl = string.upper(br.actionText or txt("IGUI_ButcherHook_Bleed", "Bleed"))
-    if t.d.bleeding and not currentAction(card:player()) then lbl = "BLEEDING ONTO THE GROUND" end
+    local lbl = ZeD.upper(br.actionText or txt("IGUI_ButcherHook_Bleed", "Bleed"))
+    if t.d.bleeding and not currentAction(card:player()) then lbl = ZeD.tr("UI_ZeD_Hook_BleedingOnGround") end
     card:drawText(lbl, x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     local p = math.max(0, math.min(1, br.progressBar.progress or 0))
     local rx = x + w - T.px(6)
     local act = currentAction(card:player())
     if act then
-        local bw = UI.buttonW("STOP")
+        local bw = UI.buttonW(getText("IGUI_media_stop"))
         rx = rx - bw
         local fid = "hook:stop"
-        UI.button(card, rx, y + math.floor((h - T.px(20)) / 2), "STOP", { h = T.px(20), focused = card._fid == fid })
+        UI.button(card, rx, y + math.floor((h - T.px(20)) / 2), getText("IGUI_media_stop"), { h = T.px(20), focused = card._fid == fid })
         card:zone({ fid = fid, x = rx, y = y + math.floor((h - T.px(20)) / 2), w = bw, h = T.px(20), body = true,
             run = function() pcall(function() act:forceStop() end) end })
         rx = rx - T.px(10)
@@ -421,13 +421,13 @@ function def.body(card, x, y, w, t, player)
     if not d.animal then
         if card._hookAvatar then def.onClose({ obj = nil }, card) end
         if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
-        y = y + UI.section(card, x, y, w, "DEAD ANIMALS NEARBY", "WITHIN 2 TILES OR CARRIED")
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Hook_DeadNearby"), ZeD.tr("UI_ZeD_Hook_Within2"))
         local anyBad = false
         for i, r in ipairs(d.corpses or {}) do
             local rr = r
             if not r.valid then anyBad = true end
-            y = y + UI.pick(card, x, y, w, { tex = r.tex, name = r.name, where = r.where, button = "HANG",
-                tag = (not r.valid) and "NOT FOR THE HOOK" or nil, tagC = T.danger,
+            y = y + UI.pick(card, x, y, w, { tex = r.tex, name = r.name, where = r.where, button = ZeD.tr("UI_ZeD_Hook_Hang"),
+                tag = (not r.valid) and ZeD.tr("UI_ZeD_Hook_NotForHook") or nil, tagC = T.danger,
                 fid = "hook:hang:" .. i, enabled = r.valid and not d.busy,
                 run = function(c, p) hang(p, t, rr.c) end })
         end
@@ -457,13 +457,13 @@ function def.body(card, x, y, w, t, player)
     local can = d.knife ~= nil and not d.busy
     local blood = br.blood or 0
     local hasBuckets = #d.buckets > 0
-    py = py + partRow(card, px, py, pw, string.upper(string.gsub(txt("IGUI_ButcherHook_Leather", "Leather:"), ":%s*$", "")),
-        br.leather and txt("IGUI_Yes", "Yes") or "Taken", br.leather, string.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:leather",
+    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Leather", "Leather:"), ":%s*$", "")),
+        br.leather and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.leather, ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:leather",
         can and br.leather ~= nil, function(c, p) gather(p, t, "leather") end)
     -- blood: while vanilla bleeds it out you may still switch to a container
     local bloodOK = d.knife ~= nil and blood > 0 and (not d.busy or (d.bleeding and hasBuckets and not d.inUse and not currentAction(player)))
-    local bloodBtn = hasBuckets and string.upper(txt("IGUI_ButcherHook_Gather", "Gather")) or string.upper(txt("IGUI_ButcherHook_Bleed", "Bleed"))
-    py = py + partRow(card, px, py, pw, string.upper(string.gsub(txt("IGUI_ButcherHook_Blood", "Blood:"), ":%s*$", "")),
+    local bloodBtn = hasBuckets and ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")) or ZeD.upper(txt("IGUI_ButcherHook_Bleed", "Bleed"))
+    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Blood", "Blood:"), ":%s*$", "")),
         blood > 0 and L(blood) or txt("IGUI_No", "No"), blood > 0, bloodBtn, "hook:blood", bloodOK,
         function(c, p)
             if hasBuckets then
@@ -472,35 +472,36 @@ function def.body(card, x, y, w, t, player)
                 bleed(p, t, nil)
             end
         end)
-    py = py + partRow(card, px, py, pw, string.upper(string.gsub(txt("IGUI_ButcherHook_Head", "Head:"), ":%s*$", "")),
-        br.head and txt("IGUI_Yes", "Yes") or "Taken", br.head, string.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:head",
+    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Head", "Head:"), ":%s*$", "")),
+        br.head and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.head, ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:head",
         can and br.head == true, function(c, p) gather(p, t, "head") end)
-    py = py + partRow(card, px, py, pw, string.upper(string.gsub(txt("IGUI_ButcherHook_Meat", "Meat:"), ":%s*$", "")),
-        br.meat and txt("IGUI_Yes", "Yes") or "Taken", br.meat ~= nil, string.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:meat",
+    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Meat", "Meat:"), ":%s*$", "")),
+        br.meat and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.meat ~= nil, ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:meat",
         can and br.meat ~= nil, function(c, p) gather(p, t, "meat") end)
     py = py + T.px(6)
-    py = py + UI.pair(card, px, py, pw, "KNIFE", d.knife and d.knife:getDisplayName() or "None")
-    py = py + UI.pair(card, px, py, pw, "BUTCHERING", tostring(d.skill))
+    local perk = PerkFactory and PerkFactory.getPerk(Perks.Butchering)
+    py = py + UI.pair(card, px, py, pw, ZeD.tr("UI_ZeD_Hook_Knife"), d.knife and d.knife:getDisplayName() or txt("IGUI_None", "None"))
+    py = py + UI.pair(card, px, py, pw, perk and ZeD.upper(perk:getName()) or ZeD.tr("UI_ZeD_Hook_Butchering"), tostring(d.skill))
     y = math.max(y + ah, py) + gap
 
     -- the consequence vanilla does silently
     if blood > 0 and (br.meat or br.head) then
-        local msg = br.meat and ("Taking the meat now loses the " .. L(blood) .. " of blood still in it; the head splashes it.")
-            or ("Taking the head now splashes the " .. L(blood) .. " of blood still in it.")
+        local msg = br.meat and ZeD.tr("UI_ZeD_Hook_BloodLostMeat", L(blood))
+            or ZeD.tr("UI_ZeD_Hook_BloodLostHead", L(blood))
         y = y + UI.needs(card, x, y, w, { msg }) + gap
     end
 
     -- where the blood goes
     if blood > 0 then
-        y = y + UI.section(card, x, y, w, "COLLECT INTO", string.upper(string.gsub(txt("IGUI_ButcherHook_Blood", "Blood:"), ":%s*$", "")))
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Hook_CollectInto"), ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Blood", "Blood:"), ":%s*$", "")))
         local intoOK = d.knife ~= nil and (not d.busy or (d.bleeding and not d.inUse and not currentAction(player)))
         for i, b in ipairs(d.buckets) do
             local bb = b
-            y = y + UI.pick(card, x, y, w, { tex = b.tex, name = b.name, where = b.where, button = "INTO",
+            y = y + UI.pick(card, x, y, w, { tex = b.tex, name = b.name, where = b.where, button = ZeD.tr("UI_ZeD_Fluid_Into"),
                 fid = "hook:into:" .. i, enabled = intoOK, run = function(c, p) bleed(p, t, bb.item) end })
         end
-        y = y + UI.pick(card, x, y, w, { name = txt("IGUI_None", "None"), where = "BLEED ONTO THE GROUND",
-            button = string.upper(txt("IGUI_ButcherHook_Bleed", "Bleed")), fid = "hook:bleed",
+        y = y + UI.pick(card, x, y, w, { name = txt("IGUI_None", "None"), where = ZeD.tr("UI_ZeD_Hook_BleedOnGround"),
+            button = ZeD.upper(txt("IGUI_ButcherHook_Bleed", "Bleed")), fid = "hook:bleed",
             enabled = d.knife ~= nil and not d.busy, run = function(c, p) bleed(p, t, nil) end })
     end
     return y - y0

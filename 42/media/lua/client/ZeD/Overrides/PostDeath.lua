@@ -25,6 +25,7 @@
 
 require "ISUI/ISPostDeathUI"
 require "ZeD/SafeMode"
+require "ZeD/Tr"
 
 if not ISPostDeathUI then return end
 
@@ -89,7 +90,7 @@ local function vanilla(self)
     return false
 end
 
-local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
+-- (the month names are vanilla's: Farming_Month_1 .. Farming_Month_12)
 local BLACK, WHITE, GREY = { r = 0, g = 0, b = 0 }, { r = 1, g = 1, b = 1 }, { r = 0.6, g = 0.6, b = 0.6 }
 
 -- ---------------------------------------------------------------------------
@@ -119,9 +120,9 @@ local function killsLine(p)
     for _, c in ipairs(data.weaponCats or {}) do
         if (c.count or 0) > 0 then parts[#parts + 1] = { c.label, c.count } end
     end
-    if (data.fireKills or 0) > 0 then parts[#parts + 1] = { "Fire", data.fireKills } end
-    if (data.carKills or 0) > 0 then parts[#parts + 1] = { "Vehicle", data.carKills } end
-    if (data.explosionKills or 0) > 0 then parts[#parts + 1] = { "Explosion", data.explosionKills } end
+    if (data.fireKills or 0) > 0 then parts[#parts + 1] = { ZeD.tr("UI_ZeD_Death_KillFire"), data.fireKills } end
+    if (data.carKills or 0) > 0 then parts[#parts + 1] = { ZeD.tr("UI_ZeD_Death_KillVehicle"), data.carKills } end
+    if (data.explosionKills or 0) > 0 then parts[#parts + 1] = { ZeD.tr("UI_ZeD_Death_KillExplosion"), data.explosionKills } end
     table.sort(parts, function(a, b) return a[2] > b[2] end)
     local s = {}
     for _, x in ipairs(parts) do s[#s + 1] = x[1] .. " " .. x[2] end
@@ -132,9 +133,10 @@ function D.capture(playerObj)
     local pn = playerObj:getPlayerNum()
     local rec = {}
     local who = playerObj:getDescriptor()
-    rec.name = who and (who:getForename() .. " " .. who:getSurname()) or "You"
+    rec.name = who and (who:getForename() .. " " .. who:getSurname()) or ZeD.tr("IGUI_WarManager_You")
     local gt = getGameTime()
-    rec.when = string.format("%s %d, %d, %02d:%02d.", MONTHS[gt:getMonth() + 1] or "", gt:getDay() + 1, gt:getYear(), gt:getHour(), math.floor((gt:getTimeOfDay() % 1) * 60))
+    rec.when = ZeD.tr("UI_ZeD_Death_When", ZeD.tr("Farming_Month_" .. (gt:getMonth() + 1)), gt:getDay() + 1, gt:getYear(),
+        string.format("%02d:%02d", gt:getHour(), math.floor((gt:getTimeOfDay() % 1) * 60)))
     rec.lines = {}
     pcall(function() rec.lines[#rec.lines + 1] = gt:getDeathString(playerObj) end)
     pcall(function() local s = gt:getZombieKilledText(playerObj); if s then rec.lines[#rec.lines + 1] = s end end)
@@ -264,9 +266,9 @@ local function recordRows(rec, w, f2)
         for _, l in ipairs(ZeD.Atoms.wrapText(text, f2, w)) do rows[#rows + 1] = { l, bold } end
     end
     for _, l in ipairs(rec.lines or {}) do add(l, false) end
-    if rec.kills and rec.kills ~= "" then add("Kills", true); add(rec.kills, false) end
-    if rec.skills and rec.skills ~= "" then add("Best skills", true); add(rec.skills, false) end
-    if rec.last and rec.last ~= "" then add("The last line in the log", true); add(rec.last, false) end
+    if rec.kills and rec.kills ~= "" then add(ZeD.tr("UI_ZeD_Death_Kills"), true); add(rec.kills, false) end
+    if rec.skills and rec.skills ~= "" then add(ZeD.tr("UI_ZeD_Death_BestSkills"), true); add(rec.skills, false) end
+    if rec.last and rec.last ~= "" then add(ZeD.tr("UI_ZeD_Death_LastLine"), true); add(rec.last, false) end
     return rows
 end
 
@@ -314,7 +316,7 @@ function ISPostDeathUI:prerender()
     local icon = T.px(U.ICON)
     local k = math.max(1, math.floor(icon / 32))
     icon = 32 * k
-    local rec = D.records[self.playerIndex] or { name = "You", lines = self.lines or {} }
+    local rec = D.records[self.playerIndex] or { name = ZeD.tr("IGUI_WarManager_You"), lines = self.lines or {} }
     -- measure: the head row, the list, the buttons
     local frameIn = one * 4 + one * 3          -- outer line, white gap, the heavy frame
     local innerW = w - frameIn * 2 - pad * 2
@@ -340,10 +342,10 @@ function ISPostDeathUI:prerender()
     -- the icon and the words
     drawGrave(self, x0, y + math.floor((headH - icon) / 2), k)
     if asking then
-        self:drawText("Are you sure?", x0 + textX, y + math.floor((headH - fh(fHead)) / 2), 0, 0, 0, 1, fHead)
+        self:drawText(ZeD.tr("UI_ZeD_Death_AreYouSure"), x0 + textX, y + math.floor((headH - fh(fHead)) / 2), 0, 0, 0, 1, fHead)
     else
         local ty = y + math.floor((headH - (fh(fHead) + T.px(6) + fh(f2))) / 2)
-        self:drawText(rec.name .. " died.", x0 + textX, ty, 0, 0, 0, 1, fHead)
+        self:drawText(ZeD.tr("UI_ZeD_Death_Died", rec.name), x0 + textX, ty, 0, 0, 0, 1, fHead)
         if rec.when then self:drawText(rec.when, x0 + textX, ty + fh(fHead) + T.px(6), 0, 0, 0, 1, f2) end
     end
     y = y + headH
@@ -391,14 +393,15 @@ function ISPostDeathUI:prerender()
     local right = x0 + innerW
     local gap = T.px(U.BTN_GAP)
     if asking then
-        local b2 = bw("Shut down"); local b1 = bw("Cancel")
-        self:zedButton("yes", right - b2, y, b2, btnH, "Shut down", true, true, function() self:zedShutDown() end)
-        self:zedButton("no", right - b2 - gap - b1, y, b1, btnH, "Cancel", false, true, function() self:zedCancel() end)
+        local shutDown, cancel = ZeD.tr("UI_ZeD_Death_ShutDown"), ZeD.tr("UI_Cancel")
+        local b2 = bw(shutDown); local b1 = bw(cancel)
+        self:zedButton("yes", right - b2, y, b2, btnH, shutDown, true, true, function() self:zedShutDown() end)
+        self:zedButton("no", right - b2 - gap - b1, y, b1, btnH, cancel, false, true, function() self:zedCancel() end)
     else
         local labels = {}
-        if rules.respawn then labels[#labels + 1] = { "restart", "Restart", true, rules.respawnEnabled, function() self:zedRestart() end } end
-        labels[#labels + 1] = { "menu", "Main menu", false, rules.exit, function() self:zedMenu() end }
-        labels[#labels + 1] = { "quit", "Shut down", false, rules.quit, function() self:zedAsk() end }
+        if rules.respawn then labels[#labels + 1] = { "restart", ZeD.tr("UI_ZeD_Death_Restart"), true, rules.respawnEnabled, function() self:zedRestart() end } end
+        labels[#labels + 1] = { "menu", ZeD.tr("UI_ZeD_Death_MainMenu"), false, rules.exit, function() self:zedMenu() end }
+        labels[#labels + 1] = { "quit", ZeD.tr("UI_ZeD_Death_ShutDown"), false, rules.quit, function() self:zedAsk() end }
         local x = right
         for _, b in ipairs(labels) do
             local wdt = bw(b[2])

@@ -174,7 +174,7 @@ function ZeD_MMServer:new()
     o.snap = {}
     o.diff, o.nDiff = {}, 0
     o.dirty = false       -- a special page (maps, regions, Workshop) changed
-    o.changedNote = "Changed since this page opened."
+    o.changedNote = "UI_ZeD_Server_ChangedNote"   -- (a translation key; the Options window's help band turns it into words)
     o.ctx = { hot = nil, press = nil, wasDown = false }
     return o
 end
@@ -264,7 +264,7 @@ function ZeD_MMServer:pages()
         local d = it.item
         if d.category then
             cat = d.category.name
-            t[#t + 1] = { head = true, title = (cat == "INI") and "Server" or "Sandbox", item = d }
+            t[#t + 1] = { head = true, title = ZeD.tr((cat == "INI") and "UI_ZeD_Server_HeadServer" or "UI_ZeD_Server_HeadSandbox"), item = d }
         else
             t[#t + 1] = { title = s(it.text), raw = s(cat) .. ":" .. s(it.text), page = d.page, panel = d.panel, category = cat, item = d }
         end
@@ -415,8 +415,9 @@ function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
     self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
-    self:drawText("Find:", x + T.px(8), y + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-    local ex = x + T.px(8) + MM.textW(f2, "Find:") + T.px(8)
+    local findLabel = ZeD.tr("UI_ZeD_Options_Find")
+    self:drawText(findLabel, x + T.px(8), y + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+    local ex = x + T.px(8) + MM.textW(f2, findLabel) + T.px(8)
     UI.styleEntry(self.find, ex, y + math.floor((fH - T.px(24)) / 2), x + w - T.px(8) - ex, T.px(24))
     if not self.find:isVisible() then self.find:setVisible(true) end
     self._hits[#self._hits + 1] = { id = "srvset:find", x = ax + self.find.x, y = ay + self.find.y, w = self.find.width, h = self.find.height, fn = function() self.find:focus() end }
@@ -435,7 +436,7 @@ function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
         local rh = p.head and T.px(HEAD_H) or T.px(PAGE_ROW_H)
         if yy + rh > ry and yy < ry + vh then
             if p.head then
-                ZeD.Molecules.drawSectionHeader(self, x + T.px(9), yy, rw - T.px(10), string.upper(p.title), nil, true, false, T.fontF1, false, T.px(8), rh, true)
+                ZeD.Molecules.drawSectionHeader(self, x + T.px(9), yy, rw - T.px(10), p.title, nil, true, false, T.fontF1, false, T.px(8), rh, true)
             else
                 local isSel = (i == self.pageIdx) and not finding
                 local hid = "srvset:page:" .. i
@@ -494,14 +495,14 @@ function ZeD_MMServer:prerender()
     local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
-    self.title = "Project Zomboid  +  Server settings"
+    self.title = ZeD.tr("UI_ZeD_Server_Title")
     self.titleStats = {}
     local clear = { r = 0, g = 0, b = 0, a = 0 }
     if m == "edit" then
         pcall(function() S.pageEdit:syncStartDay() end)   -- vanilla's render keeps Start Day's days; it does not run while hidden
         self:refreshDiff(false)
         local stat = s(S.pageEdit.settings and S.pageEdit.settings:getName())
-        if self.nDiff > 0 then stat = stat .. ", " .. self.nDiff .. " changed" end
+        if self.nDiff > 0 then stat = ZeD.tr("UI_ZeD_Sandbox_StatChanged", stat, self.nDiff) end
         self.titleStats = { { text = stat, color = clear } }
     elseif m == "points" and S.pageSpawnPoints.region then
         self.titleStats = { { text = s(S.pageSpawnPoints.region.file), color = clear } }
@@ -707,39 +708,39 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
     local function touched() self.dirty = true end
     local lb = panel.listbox
     if panel.Type == "ServerSettingsScreenModsPanel" then
-        cy = cy + self:label("THE SERVER'S MODS", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelMods"), ix, cy)
         local rows = {}
         for _, it in ipairs(lb.items) do rows[#rows + 1] = { text = it.item.modInfo and it.item.modInfo:getName() or it.item.modID, sub = it.item.modID } end
         local listH = y + h - T.px(48) - cy
-        self:drawList("mods", ix, cy, iw, listH, rows, nil, function() end, "No mods: the server runs the game as it is.")
+        self:drawList("mods", ix, cy, iw, listH, rows, nil, function() end, ZeD.tr("UI_ZeD_Server_NoMods"))
         cy = cy + listH + T.px(10)
-        note("Mods are chosen on the way in: \"Cancel\", \"Edit\", then \"Choose mods...\"")
+        note(ZeD.tr("UI_ZeD_Server_ModsNote"))
     elseif panel.Type == "ServerSettingsScreenMapsPanel" then
-        cy = cy + self:label("MAPS (WHERE THEY OVERLAP, THE ONE HIGHER UP WINS)", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelMaps"), ix, cy)
         local rows = {}
         for _, it in ipairs(lb.items) do rows[#rows + 1] = { text = it.item.mapFolder } end
         local listH = math.max(T.px(90), y + h - cy - bh - fh - T.px(56))
-        self:drawList("maps", ix, cy, iw, listH, rows, lb.selected, function(i) lb.selected = i end, "No maps", 100, 1)
+        self:drawList("maps", ix, cy, iw, listH, rows, lb.selected, function(i) lb.selected = i end, ZeD.tr("UI_ZeD_Server_NoMaps"), 100, 1)
         cy = cy + listH + T.px(8)
         local has = lb.items[lb.selected] ~= nil
         local bx = ix
-        bx = bx + self:button("mapUp", "MOVE UP", bx, cy, function() panel:onButtonMoveUp(); touched() end, not has or lb.selected <= 1, 600, 1) + T.px(8)
-        bx = bx + self:button("mapDown", "MOVE DOWN", bx, cy, function() panel:onButtonMoveDown(); touched() end, not has or lb.selected >= #lb.items, 600, 2) + T.px(8)
-        bx = bx + self:button("mapRemove", "REMOVE", bx, cy, function() panel:onButtonRemove(); touched() end, not has, 600, 3) + T.px(8)
-        local addText = "ADD INSTALLED..."
+        bx = bx + self:button("mapUp", ZeD.tr("UI_ZeD_Mods_MoveUp"), bx, cy, function() panel:onButtonMoveUp(); touched() end, not has or lb.selected <= 1, 600, 1) + T.px(8)
+        bx = bx + self:button("mapDown", ZeD.tr("UI_ZeD_Mods_MoveDown"), bx, cy, function() panel:onButtonMoveDown(); touched() end, not has or lb.selected >= #lb.items, 600, 2) + T.px(8)
+        bx = bx + self:button("mapRemove", getText("UI_btn_remove"), bx, cy, function() panel:onButtonRemove(); touched() end, not has, 600, 3) + T.px(8)
+        local addText = ZeD.tr("UI_ZeD_Server_AddInstalled")
         local anchor = { x = ax + bx, y = ay + cy, w = MM.textW(T.fontF3, addText) + T.px(U.STRIP_BTN_PAD) * 2, h = bh }
         self:button("mapAdd", addText, bx, cy, function()
             self:openPick("maps", panel.comboBox, anchor, function() panel:onAddInstalledMap(); touched() end) end, #(panel.comboBox.options or {}) == 0, 600, 4)
         cy = cy + bh + T.px(14)
-        cy = cy + self:label("ADD A MAP FOLDER", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelAddMap"), ix, cy)
         self._otherFor = { kind = "map", panel = panel }
         self:place(self.other, ix, cy, math.min(iw, T.px(360)))
     elseif panel.Type == "SpawnRegionsPanel" then
-        cy = cy + self:label("SPAWN REGIONS", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelRegions"), ix, cy)
         local rows = {}
-        for _, it in ipairs(lb.items) do rows[#rows + 1] = { text = (s(it.item.name) ~= "") and it.item.name or "(no name)", sub = it.item.file } end
+        for _, it in ipairs(lb.items) do rows[#rows + 1] = { text = (s(it.item.name) ~= "") and it.item.name or ZeD.tr("UI_ZeD_Server_NoName"), sub = it.item.file } end
         local listH = math.max(T.px(90), y + h - cy - T.px(250))
-        self:drawList("regions", ix, cy, iw, listH, rows, lb.selected, function(i) lb.selected = i; lb.currentItem = nil end, "No spawn regions", 100, 1)
+        self:drawList("regions", ix, cy, iw, listH, rows, lb.selected, function(i) lb.selected = i; lb.currentItem = nil end, ZeD.tr("UI_ZeD_Server_NoRegions"), 100, 1)
         cy = cy + listH + T.px(8)
         local it = lb.items[lb.selected]
         local lw = T.px(60)
@@ -750,68 +751,68 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
             if self.regName:isFocused() and (self.regName:getText() or "") ~= it.item.name then it.item.name = self.regName:getText() or ""; touched() end
             if self.regFile:isFocused() and (self.regFile:getText() or "") ~= it.item.file then it.item.file = self.regFile:getText() or ""; touched() end
             local la = T.accent
-            self:drawText("NAME", ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
+            self:drawText(ZeD.tr("UI_ZeD_Server_LabelRegName"), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
             self:place(self.regName, ix + lw, cy, fw)
             cy = cy + fh + T.px(8)
-            self:drawText("FILE", ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
+            self:drawText(ZeD.tr("UI_ZeD_Server_LabelRegFile"), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
             self:place(self.regFile, ix + lw, cy, fw)
             cy = cy + fh + T.px(10)
         end
         local file = it and s(it.item.file) or ""
         local validFile = it ~= nil and not luautils.stringStarts(file, "media") and not file:contains("/") and not file:contains("\\") and file:sub(-15) == "spawnpoints.lua"
         local bx = ix
-        bx = bx + self:button("regAdd", "ADD", bx, cy, function()
+        bx = bx + self:button("regAdd", getText("UI_btn_add"), bx, cy, function()
             panel:onButtonAddRegion(); lb.currentItem = nil; touched()
             self._regFor = lb.items[lb.selected]
             self.regName:setText(""); self.regFile:setText("")
             self.regName:setVisible(true); self.regName:focus()
         end, false, 600, 1) + T.px(8)
-        bx = bx + self:button("regRemove", "REMOVE", bx, cy, function() panel:onButtonRemoveRegion(); self._regFor = nil; touched() end, it == nil, 600, 2) + T.px(8)
-        self:button("regEdit", "EDIT SPAWN POINTS...", bx, cy, function() lb.currentItem = nil; openPoints(panel) end, not validFile, 600, 3)
+        bx = bx + self:button("regRemove", getText("UI_btn_remove"), bx, cy, function() panel:onButtonRemoveRegion(); self._regFor = nil; touched() end, it == nil, 600, 2) + T.px(8)
+        self:button("regEdit", ZeD.tr("UI_ZeD_Server_EditPoints"), bx, cy, function() lb.currentItem = nil; openPoints(panel) end, not validFile, 600, 3)
         cy = cy + bh + T.px(8)
         if it and not validFile then
             -- vanilla's reason, plain: a map's own file is read only; ours must be a plain name ending spawnpoints.lua
             cy = self:why(UI.plain(luautils.stringStarts(file, "media") and getText("UI_ServerSettings_ButtonEditRegion_tooltip1") or getText("UI_ServerSettings_ButtonEditRegion_tooltip2")), ix, cy, iw) + T.px(6)
         end
         cy = cy + T.px(6)
-        cy = cy + self:label("FIXED SPAWN POINT (X,Y,Z)", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelFixedPoint"), ix, cy)
         if self.spawnPt:isFocused() and s(panel.entry:getText()) ~= (self.spawnPt:getText() or "") then panel.entry:setText(self.spawnPt:getText() or ""); touched() end
         self:place(self.spawnPt, ix, cy, math.min(iw, T.px(240)))
         cy = cy + fh + T.px(6)
         note(UI.plain(getText("UI_ServerOption_SpawnPoint_tooltip")))
     elseif panel.Type == "ServerSettingsScreenWorkshopPanel" then
-        cy = cy + self:label("STEAM WORKSHOP ITEMS", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelWorkshop"), ix, cy)
         local rows = {}
         for _, it2 in ipairs(lb.items) do
             local det = panel.itemDetails and panel.itemDetails[it2.item.workshopID]
             rows[#rows + 1] = { text = det and det:getTitle() or it2.item.workshopID, sub = it2.item.workshopID }
         end
         local listH = math.max(T.px(90), y + h - cy - bh - fh - T.px(56))
-        self:drawList("workshop", ix, cy, iw, listH, rows, lb.selected, function(i) lb.selected = i end, "No Workshop items", 100, 1)
+        self:drawList("workshop", ix, cy, iw, listH, rows, lb.selected, function(i) lb.selected = i end, ZeD.tr("UI_ZeD_Server_NoWorkshop"), 100, 1)
         cy = cy + listH + T.px(8)
         local bx = ix
-        bx = bx + self:button("wsRemove", "REMOVE", bx, cy, function() panel:onButtonRemove(); touched() end, lb.items[lb.selected] == nil, 600, 1) + T.px(8)
-        local addText = "ADD INSTALLED..."
+        bx = bx + self:button("wsRemove", getText("UI_btn_remove"), bx, cy, function() panel:onButtonRemove(); touched() end, lb.items[lb.selected] == nil, 600, 1) + T.px(8)
+        local addText = ZeD.tr("UI_ZeD_Server_AddInstalled")
         local anchor = { x = ax + bx, y = ay + cy, w = MM.textW(T.fontF3, addText) + T.px(U.STRIP_BTN_PAD) * 2, h = bh }
         self:button("wsAdd", addText, bx, cy, function()
             self:openPick("workshop", panel.comboBox, anchor, function() panel:onAddInstalledItem(); touched() end) end, #(panel.comboBox.options or {}) == 0, 600, 2)
         cy = cy + bh + T.px(14)
-        cy = cy + self:label("ADD BY WORKSHOP ID", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelAddWorkshop"), ix, cy)
         self._otherFor = { kind = "workshop", panel = panel }
         self:place(self.other, ix, cy, math.min(iw, T.px(360)))
         local t = self.other:getText() or ""
-        if t ~= "" and not panel:isValidWorkshopID(t) then self:why("Not a Workshop ID (only its digits).", ix, cy + fh + T.px(6), iw) end
+        if t ~= "" and not panel:isValidWorkshopID(t) then self:why(ZeD.tr("UI_ZeD_Server_BadWorkshopId"), ix, cy + fh + T.px(6), iw) end
     elseif panel.Type == "SandboxPresetPanel" then
-        cy = cy + self:label("START FROM A PRESET", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelPreset"), ix, cy)
         local rows = {}
-        for _, it2 in ipairs(lb.items) do rows[#rows + 1] = { text = s(it2.text), sub = it2.item.userDefined and "yours" or nil } end
+        for _, it2 in ipairs(lb.items) do rows[#rows + 1] = { text = s(it2.text), sub = it2.item.userDefined and ZeD.tr("UI_ZeD_Server_PresetYours") or nil } end
         local listH = math.max(T.px(90), y + h - cy - bh - T.px(70))
         self:drawList("presets", ix, cy, iw, listH, rows, lb.selected, function(i) lb.selected = i end, nil, 100, 1)
         cy = cy + listH + T.px(8)
-        self:button("presetApply", "APPLY", ix, cy, function()
+        self:button("presetApply", getText("UI_btn_apply"), ix, cy, function()
             panel:onButtonApplyPreset(); self:refreshDiff(true); MM.clickSound() end, lb.items[lb.selected] == nil, 600, 1)
         cy = cy + bh + T.px(10)
-        note("\"Apply\" sets every sandbox option of this server to the preset's.")
+        note(ZeD.tr("UI_ZeD_Server_PresetNote"))
     end
 end
 
@@ -855,7 +856,7 @@ function ZeD_MMServer:drawFileList(x, y, w, h)
         if lb.selected == i and self._lastClick and t - self._lastClick < 450 then self._lastClick = nil; self:act("edit"); return end
         self._lastClick = t
         lb.selected = i
-    end, "No server settings yet: \"New...\" makes one.")
+    end, ZeD.tr("UI_ZeD_Server_NoSettings"))
     -- the chosen settings' files
     local dx, dw = x + lw + T.px(10), w - lw - T.px(10)
     local bs = T.borderS
@@ -865,7 +866,7 @@ function ZeD_MMServer:drawFileList(x, y, w, h)
     local name = s(it.text)
     local ix, cy = dx + T.px(14), y + T.px(12)
     cy = cy + self:heading(name, ix, cy) + T.px(10)
-    cy = cy + self:label("ITS FILES", ix, cy)
+    cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelFiles"), ix, cy)
     self:drawFiles(name, ix, cy, dw - T.px(28), name)
 end
 
@@ -894,15 +895,15 @@ function ZeD_MMServer:nameProblem(m)
     if not S then return "" end
     local name = self.nameEntry:getText() or ""
     local mgr = getServerSettingsManager()
-    if name == "" then return "Give the settings a name." end
+    if name == "" then return ZeD.tr("UI_ZeD_Server_ErrNoName") end
     -- (vanilla lets these through, and the files then land in the wrong place or fail)
-    if name:find('[\\/:%*%?"<>|]') then return 'A name cannot use \\ / : * ? " < > |' end
+    if name:find('[\\/:%*%?"<>|]') then return ZeD.tr("UI_ZeD_Server_ErrCharacters") end
     if m == "duplicate" or m == "rename" then
         local p = (m == "duplicate") and S.pageDuplicate or S.pageRename
-        if p.settings and name == p.settings:getName() then return "Choose a different name." end
+        if p.settings and name == p.settings:getName() then return ZeD.tr("UI_ZeD_Server_ErrSameName") end
     end
-    if not mgr:isValidNewName(name) then return "That name is taken, or has characters a file name cannot use." end
-    if not mgr:settingsFolderValidLengthChecks(name) then return "That name is too long for the settings folder." end
+    if not mgr:isValidNewName(name) then return ZeD.tr("UI_ZeD_Server_ErrTaken") end
+    if not mgr:settingsFolderValidLengthChecks(name) then return ZeD.tr("UI_ZeD_Server_ErrTooLong") end
     return nil
 end
 
@@ -914,9 +915,9 @@ function ZeD_MMServer:drawNameForm(m, x, y, w, h)
     local cy = y + T.px(20)
     local p = (m == "new") and S.pageNew or ((m == "duplicate") and S.pageDuplicate or S.pageRename)
     local from = p.settings and p.settings:getName() or ""
-    local title = (m == "new") and "New server settings" or ((m == "duplicate") and ("Copy " .. from) or ("Rename " .. from))
+    local title = (m == "new") and ZeD.tr("UI_ZeD_Server_TitleNew") or ((m == "duplicate") and ZeD.tr("UI_ZeD_Server_TitleCopy", from) or ZeD.tr("UI_ZeD_Server_TitleRename", from))
     cy = cy + self:heading(title, ix, cy) + T.px(16)
-    cy = cy + self:label("NAME", ix, cy)
+    cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelName"), ix, cy)
     self:place(self.nameEntry, ix, cy, math.min(iw, T.px(400)))
     -- vanilla's page reads its own field on NEXT / ACCEPT
     if s(p.entry:getText()) ~= (self.nameEntry:getText() or "") then p.entry:setText(self.nameEntry:getText() or "") end
@@ -926,10 +927,10 @@ function ZeD_MMServer:drawNameForm(m, x, y, w, h)
     cy = cy + T.px(34)
     local newName = self.nameEntry:getText() or ""
     if m == "new" then
-        cy = cy + self:label("IT MAKES THESE FILES", ix, cy)
+        cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelMakes"), ix, cy)
         self:drawFiles(newName, ix, cy, iw, nil)
     elseif not why then
-        cy = cy + self:label((m == "duplicate") and "THE COPIES" or "THE FILES BECOME", ix, cy)
+        cy = cy + self:label(ZeD.tr((m == "duplicate") and "UI_ZeD_Server_LabelCopies" or "UI_ZeD_Server_LabelBecome"), ix, cy)
         self:drawFiles(newName, ix, cy, iw, from)
     end
 end
@@ -941,8 +942,8 @@ function ZeD_MMServer:drawDelete(x, y, w, h)
     local ix = x + T.px(24)
     local cy = y + T.px(20)
     local name = s(S.pageDelete.settings and S.pageDelete.settings:getName())
-    cy = cy + self:heading("Delete " .. name, ix, cy) + T.px(16)
-    cy = cy + self:label("THESE FILES GO", ix, cy)
+    cy = cy + self:heading(ZeD.tr("UI_ZeD_Server_TitleDelete", name), ix, cy) + T.px(16)
+    cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelGo"), ix, cy)
     self:drawFiles(name, ix, cy, w - T.px(48), name)
 end
 
@@ -953,8 +954,8 @@ function ZeD_MMServer:drawMods(x, y, w, h)
     local rows = {}
     for _, it in ipairs(cw.listbox.items) do rows[#rows + 1] = { text = it.item.modInfo and it.item.modInfo:getName() or it.item.modID, sub = it.item.modID } end
     local cy = y + self:heading(s(cw.settings and cw.settings:getName()), x, y) + T.px(10)
-    cy = cy + self:label("THE SERVER'S MODS", x, cy)
-    self:drawList("chooseMods", x, cy, w, y + h - cy, rows, nil, function() end, "No mods: the server runs the game as it is.")
+    cy = cy + self:label(ZeD.tr("UI_ZeD_Server_LabelMods"), x, cy)
+    self:drawList("chooseMods", x, cy, w, y + h - cy, rows, nil, function() end, ZeD.tr("UI_ZeD_Server_NoMods"))
 end
 
 
@@ -968,8 +969,8 @@ function ZeD_MMServer:pointsProblem()
         if it.item.professionType == "unemployed" then hasUnemployed = true end
         if #(it.item.points or {}) == 0 and not empty then empty = profLabel(it.item.professionType) end
     end
-    if not hasUnemployed then return profLabel("unemployed") .. " needs a point: anyone whose occupation is not listed spawns there." end
-    if empty then return empty .. " has no points yet: add one, or remove it." end
+    if not hasUnemployed then return ZeD.tr("UI_ZeD_Server_PointsNeedsOne", profLabel("unemployed")) end
+    if empty then return ZeD.tr("UI_ZeD_Server_PointsEmpty", empty) end
     return nil
 end
 
@@ -983,8 +984,8 @@ function ZeD_MMServer:drawPoints(x, y, w, h)
     local bh = T.px(U.STRIP_BTN_H)
     local fh = T.px(FIELD_H)
     local cy = y
-    self:label("OCCUPATIONS", x, cy)
-    self:label("ITS SPAWN POINTS (X,Y,Z)", px, cy)
+    self:label(ZeD.tr("UI_ZeD_Server_LabelOccupations"), x, cy)
+    self:label(ZeD.tr("UI_ZeD_Server_LabelPoints"), px, cy)
     cy = cy + MM.fontH(T.fontF1) + T.px(6)
     local listH = h - (cy - y) - bh - fh - MM.fontH(T.fontF1) - T.px(70)
     local pl = pg.profListBox
@@ -992,15 +993,15 @@ function ZeD_MMServer:drawPoints(x, y, w, h)
     local profs = {}
     for _, it in ipairs(pl.items) do
         local n = #(it.item.points or {})
-        profs[#profs + 1] = { text = profLabel(it.item.professionType), sub = n .. ((n == 1) and " point" or " points") }
+        profs[#profs + 1] = { text = profLabel(it.item.professionType), sub = ZeD.tr((n == 1) and "UI_ZeD_Server_PointCountOne" or "UI_ZeD_Server_PointCountMany", n) }
     end
-    self:drawList("profs", x, cy, half, listH, profs, pl.selected, function(i) pl.selected = i; pg:fillPointList() end, "No occupations", 100, 1)
+    self:drawList("profs", x, cy, half, listH, profs, pl.selected, function(i) pl.selected = i; pg:fillPointList() end, ZeD.tr("UI_ZeD_Server_NoOccupations"), 100, 1)
     local pts = {}
     for _, it in ipairs(pg.pointListBox.items) do pts[#pts + 1] = { text = s(it.text) } end
     self:drawList("points", px, cy, half, listH, pts, pg.pointListBox.selected, function(i) pg.pointListBox.selected = i end,
-        pl.items[pl.selected] and "No points" or "Choose an occupation", 100, 2)
+        ZeD.tr(pl.items[pl.selected] and "UI_ZeD_Server_NoPoints" or "UI_ZeD_Server_ChooseOccupation"), 100, 2)
     cy = cy + listH + T.px(8)
-    local addText = "ADD OCCUPATION..."
+    local addText = ZeD.tr("UI_ZeD_Server_AddOccupation")
     local anchor = { x = ax + x, y = ay + cy, w = MM.textW(T.fontF3, addText) + T.px(U.STRIP_BTN_PAD) * 2, h = bh }
     local bx = x + self:button("profAdd", addText, x, cy, function()
         self:openPick("profs", pg.profComboBox, anchor, function(i)
@@ -1009,11 +1010,11 @@ function ZeD_MMServer:drawPoints(x, y, w, h)
             if id and not pg:isProfessionInList(id) then addProf(pg, id, {}, true); pg:fillProfessionCombo() end
         end) end, #(pg.profComboBox.options or {}) == 0, 600, 1) + T.px(8)
     -- (vanilla's remove handlers run as the list box's, through the page)
-    self:button("profRemove", "REMOVE", bx, cy, function() pg.onRemoveProfession(pl, pl.selected) end, pl.items[pl.selected] == nil, 600, 2)
-    self:button("ptRemove", "REMOVE", px, cy, function() pg.onRemovePoint(pg.pointListBox, pg.pointListBox.selected) end, pg.pointListBox.items[pg.pointListBox.selected] == nil, 600, 3)
+    self:button("profRemove", getText("UI_btn_remove"), bx, cy, function() pg.onRemoveProfession(pl, pl.selected) end, pl.items[pl.selected] == nil, 600, 2)
+    self:button("ptRemove", getText("UI_btn_remove"), px, cy, function() pg.onRemovePoint(pg.pointListBox, pg.pointListBox.selected) end, pg.pointListBox.items[pg.pointListBox.selected] == nil, 600, 3)
     cy = cy + bh + T.px(12)
-    self:label("ANOTHER OCCUPATION (ITS ID)", x, cy)
-    self:label("ADD A POINT", px, cy)
+    self:label(ZeD.tr("UI_ZeD_Server_LabelAnotherOccupation"), x, cy)
+    self:label(ZeD.tr("UI_ZeD_Server_LabelAddPoint"), px, cy)
     cy = cy + MM.fontH(T.fontF1) + T.px(6)
     self._otherFor = { kind = "profession", panel = pg }
     self:place(self.other, x, cy, half)
@@ -1102,40 +1103,41 @@ function ZeD_MMServer:buildStrip(stripY, stripH, w)
     local m = self:mode()
     local row = 1000
     local ask = nil
-    local lefts, rights = { { "back", "BACK", function() self:act("back") end } }, {}
+    local cancel = getText("UI_btn_cancel")
+    local lefts, rights = { { "back", getText("UI_btn_back"), function() self:act("back") end } }, {}
     if self.confirm == "discard" then
-        ask = "Leave without saving the changes?"
+        ask = ZeD.tr("UI_ZeD_Server_AskLeave")
         lefts = {}
-        rights = { { "confirm:no", "KEEP EDITING", function() self:setConfirm(false) end },
-                   { "confirm:yes", "DISCARD", function() self:act("back") end, "danger" } }
+        rights = { { "confirm:no", ZeD.tr("UI_ZeD_Options_KeepEditing"), function() self:setConfirm(false) end },
+                   { "confirm:yes", ZeD.tr("UI_ZeD_Options_Discard"), function() self:act("back") end, "danger" } }
     elseif m == "list" then
         local none = not (S and S.pageStart.listbox.items[S.pageStart.listbox.selected])
         rights = {
-            { "new", "NEW...", function() self:act("new") end },
-            { "duplicate", "DUPLICATE...", function() self:act("duplicate") end, "default", none },
-            { "rename", "RENAME...", function() self:act("rename") end, "default", none },
-            { "delete", "DELETE...", function() self:act("delete") end, "default", none },
-            { "edit", "EDIT", function() self:act("edit") end, "primary", none } }
+            { "new", ZeD.tr("UI_ZeD_Mods_BtnNew"), function() self:act("new") end },
+            { "duplicate", ZeD.tr("UI_ZeD_Server_BtnDuplicate"), function() self:act("duplicate") end, "default", none },
+            { "rename", ZeD.tr("UI_ZeD_Server_BtnRename"), function() self:act("rename") end, "default", none },
+            { "delete", ZeD.tr("UI_ZeD_Server_BtnDelete"), function() self:act("delete") end, "default", none },
+            { "edit", getText("UI_servers_button_edit"), function() self:act("edit") end, "primary", none } }
     elseif m == "new" then
-        rights = { { "next", "NEXT", function() self:act("accept") end, "primary", self:nameProblem(m) ~= nil } }
+        rights = { { "next", getText("UI_btn_next"), function() self:act("accept") end, "primary", self:nameProblem(m) ~= nil } }
     elseif m == "duplicate" or m == "rename" then
-        lefts = { { "back", "CANCEL", function() self:act("back") end } }
-        rights = { { "accept", (m == "duplicate") and "DUPLICATE" or "RENAME", function() self:act("accept") end, "primary", self:nameProblem(m) ~= nil } }
+        lefts = { { "back", cancel, function() self:act("back") end } }
+        rights = { { "accept", (m == "duplicate") and ZeD.tr("UI_ZeD_Server_Duplicate") or getText("UI_btn_rename"), function() self:act("accept") end, "primary", self:nameProblem(m) ~= nil } }
     elseif m == "delete" then
-        ask = "Delete these settings? It cannot be undone."
+        ask = ZeD.tr("UI_ZeD_Server_AskDelete")
         lefts = {}
-        rights = { { "confirm:no", "CANCEL", function() self:act("back") end },
-                   { "confirm:yes", "DELETE", function() self:act("accept") end, "danger" } }
+        rights = { { "confirm:no", cancel, function() self:act("back") end },
+                   { "confirm:yes", getText("UI_btn_delete"), function() self:act("accept") end, "danger" } }
     elseif m == "mods" then
-        lefts = { { "back", "CANCEL", function() self:act("back") end } }
-        rights = { { "choose", "CHOOSE MODS...", function() self:act("choose") end },
-                   { "next", "NEXT", function() self:act("next") end, "primary" } }
+        lefts = { { "back", cancel, function() self:act("back") end } }
+        rights = { { "choose", getText("UI_NewGame_ChooseMods"), function() self:act("choose") end },
+                   { "next", getText("UI_btn_next"), function() self:act("next") end, "primary" } }
     elseif m == "edit" then
-        lefts = { { "back", "CANCEL", function() self:act("back") end } }
-        rights = { { "save", "SAVE", function() self:act("save") end, "primary" } }
+        lefts = { { "back", cancel, function() self:act("back") end } }
+        rights = { { "save", getText("UI_btn_save"), function() self:act("save") end, "primary" } }
     elseif m == "points" then
-        lefts = { { "back", "CANCEL", function() self:act("back") end } }
-        rights = { { "save", "SAVE", function() self:act("save") end, "primary", self:pointsProblem() ~= nil } }
+        lefts = { { "back", cancel, function() self:act("back") end } }
+        rights = { { "save", getText("UI_btn_save"), function() self:act("save") end, "primary", self:pointsProblem() ~= nil } }
     end
     UI.stripSpecs(self, stripY, w, row, lefts, rights)
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
@@ -1165,19 +1167,20 @@ end
 
 function ZeD_MMServer:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
-    if self:mode() ~= "edit" then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } } end
+    local sel = ZeD.tr("UI_ZeD_MainMenu_PromptSelect")
+    if self.confirm then return { { glyph = "A", label = sel }, { glyph = "B", label = getText("UI_Cancel") } } end
+    if self:mode() ~= "edit" then return { { glyph = "A", label = sel }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } } end
     local r = self:focusedRow()
     local t = {}
     if r then
-        if r.kind == "combo" then t[#t + 1] = { glyph = "<>", label = "Change" } end
-        t[#t + 1] = { glyph = "A", label = (r.kind == "tick") and "Toggle" or ((r.kind == "entry") and "Edit" or "Select") }
+        if r.kind == "combo" then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
+        t[#t + 1] = { glyph = "A", label = ZeD.tr((r.kind == "tick") and "UI_ZeD_Options_PromptToggle" or ((r.kind == "entry") and "UI_ZeD_Sandbox_PromptEdit" or "UI_ZeD_MainMenu_PromptSelect")) }
     else
-        t[#t + 1] = { glyph = "A", label = "Select" }
+        t[#t + 1] = { glyph = "A", label = sel }
     end
     t[#t + 1] = { glyph = "LB", label = "" }
-    t[#t + 1] = { glyph = "RB", label = "Page" }
-    t[#t + 1] = { glyph = "B", label = "Cancel" }
+    t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Options_PromptPage") }
+    t[#t + 1] = { glyph = "B", label = getText("UI_Cancel") }
     return t
 end
 

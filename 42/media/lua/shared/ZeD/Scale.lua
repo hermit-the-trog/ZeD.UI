@@ -30,11 +30,15 @@ S.override = S.override or nil
 -- Absolute: 1.0 is the 1080p design size, so a 4K player can pick 1.5 instead of 2.0.
 S.userScale = S.userScale or nil
 
--- Engine font-size option (UI_optionscreen_FontSize0..5 = 16px, 19px, 26px,
--- 33px, 38px, "Scale with window height"). It does not touch ZeD fonts (Q140),
--- so it becomes the user's taste knob: 26px (the rig's setting) and the
--- adaptive choice are neutral, the others nudge the whole UI.
-S.USER_MUL = { [0] = 0.85, [1] = 0.92, [2] = 1.0, [3] = 1.15, [4] = 1.3, [5] = 1.0 }
+-- Engine font-size option. getOptionFontSize() is the options combo's own
+-- 1-based index: 1 = 16px, 2 = 19px, 3 = 26px, 4 = 33px, 5 = 38px,
+-- 6 = "Scale with window height" (the game's default). It does not touch ZeD
+-- fonts (Q140), so it becomes the user's taste knob. 19px (the rig's setting,
+-- where the approved look was tuned), 26px and the adaptive choice are
+-- neutral; 16px shrinks the UI a step, 33px and 38px grow it. (Until Oct 20
+-- 2026 this table was keyed 0..5, so every fixed size read the step above it
+-- and 38px fell back to neutral.)
+S.USER_MUL = { [1] = 0.85, [2] = 1.0, [3] = 1.0, [4] = 1.15, [5] = 1.3, [6] = 1.0 }
 
 S._root = nil
 S._tick = 0
@@ -108,7 +112,8 @@ function X.nominal(f)
     return f.nominal
 end
 -- Zoom for an explicit design px on a 64 px distance-field face (free-size text: licence name, radio frequency).
-function X.zoomPx(px, face) return px * S.root() / (face or 64) end
+-- When the game's fonts stand in for ZeD's (X.fallback, below) the default face is the stand-in's.
+function X.zoomPx(px, face) return px * S.root() / (face or X.freeFace or 64) end
 -- Zoom that draws entry f `px` pixels tall (its design px times the root scale, usually).
 function X.zoomFor(f, px)
     local n = X.nominal(f)
@@ -132,6 +137,10 @@ function X.realTM() return S._realGetTextManager() end
 -- ---------------------------------------------------------------------------
 -- slot, face px (the engine reports a line height about a third taller than the face)
 local ENTRY_SLOTS = { { "Small", 13 }, { "Large", 15 }, { "Dialogue", 18 }, { "Intro", 26 } }
+-- While the game's fonts stand in for ZeD's (X.fallback, below), entries and roles
+-- use the game's three text fonts; the face size is read off each one's line height.
+local GAME_SLOTS = { "Small", "Medium", "Large" }
+local GAME_ENTRY_SLOTS = { { "Small", 0 }, { "Medium", 0 }, { "Large", 0 } }
 local _entryFaces, _entryTarget, _entryFont = nil, nil, nil
 
 local function entryFaces()
@@ -139,14 +148,15 @@ local function entryFaces()
     local faces = {}
     local tm = X.realTM()
     local lastH = 0
-    for _, e in ipairs(ENTRY_SLOTS) do
+    local slots = X.fallback and GAME_ENTRY_SLOTS or ENTRY_SLOTS
+    for _, e in ipairs(slots) do
         local f = UIFont and UIFont[e[1]]
         if f then
             -- each baked face is taller than the one before; a slot that did not
             -- load (an older font manifest) breaks the run and is skipped
             local h = tm:getFontHeight(f)
             if h and h > lastH then
-                faces[#faces + 1] = { font = f, px = e[2] }
+                faces[#faces + 1] = { font = f, px = (e[2] > 0) and e[2] or h * 0.75 }
                 lastH = h
             end
         end
@@ -202,6 +212,131 @@ function X.fitEntry(entry)
             if d then entry.javaObject:setPlaceholderTextRGBA(d.r, d.g, d.b, d.a or 1) end
         end
     end
+end
+
+-- ---------------------------------------------------------------------------
+-- When the game's fonts stand in for ZeD's.
+-- The five role fonts are 64 px distance-field atlases on the slots named in
+-- ZeD.Font.sdf, put there by media/fonts/EN/fonts.txt. The game reads a
+-- language's own fonts.txt over the English one, so PL and RU carry copies of
+-- ZeD's list (Fira covers Latin, Greek and Cyrillic). Two cases still swap the
+-- atlases out, and ZeD cannot follow:
+--   * Chinese, Traditional Chinese, Japanese, Korean and Thai: the game's list
+--     for the language reloads those slots with its own bitmap faces, and Fira
+--     has none of those scripts anyway.
+--   * The Dyslexic font option (English only): the game then reads
+--     EN/fontsDyslexic.txt in place of ZeD's list.
+-- Zooming a bitmap face as if it were the 64 px atlas draws every label a few
+-- pixels tall. So each role slot is checked against ZeD's atlas (a
+-- distance-field font with the atlas's line height). If any is not, every role
+-- draws in the game's own Small / Medium / Large font nearest its height, at
+-- native size, and free-size text (headings, radio digits) zooms the tallest of
+-- the three. Readable rather than the ZeD look.
+-- ---------------------------------------------------------------------------
+X.fallback = X.fallback or false        -- true while the game's fonts stand in
+X.freeFace = X.freeFace or nil          -- the default face for zoomPx while they do
+X._fontsSettled = X._fontsSettled or false
+X._fontsLogged = X._fontsLogged or false
+local ROLE_KEYS = { "sec", "body", "stat", "head", "title" }
+
+-- true = the slot holds ZeD's atlas, false = something else, nil = not loaded yet.
+-- The engine reports a font's height as its tallest glyph's reach (about 78-83 on ZeD's 64 px
+-- atlases, depending on the glyph set), so the test is "a distance-field font at least about a
+-- face tall". Every font the game puts in these slots is a bitmap of 50 px or less.
+local function slotIsZedAtlas(tm, e)
+    local h = tm:getFontHeight(e.slot)
+    if type(h) ~= "number" or h <= 0 then return nil end
+    local okSdf, isSdf = pcall(function() return tm:isSdf(e.slot) end)
+    if okSdf and isSdf == false then return false end
+    return h >= (e.zedFace or 64) * 0.9
+end
+
+-- The game font whose line height is nearest `lineH` screen px.
+local function gameFontNear(tm, lineH)
+    local best, bestD = UIFont.Small, nil
+    for _, name in ipairs(GAME_SLOTS) do
+        local f = UIFont[name]
+        local h = f and tm:getFontHeight(f)
+        if h and h > 0 then
+            local d = math.abs(h - lineH)
+            if not bestD or d < bestD then best, bestD = f, d end
+        end
+    end
+    return best
+end
+
+-- The tallest game font and its line height.
+local function gameFontTallest(tm)
+    local best, bestH = UIFont.Large, 0
+    for _, name in ipairs(GAME_SLOTS) do
+        local f = UIFont[name]
+        local h = f and tm:getFontHeight(f)
+        if h and h > bestH then best, bestH = f, h end
+    end
+    return best, bestH
+end
+
+-- "RU" or "EN, Dyslexic font on", for the log line.
+local function fontSetName()
+    local lang, dys = "?", false
+    pcall(function() lang = tostring(Translator.getLanguage():name()) end)
+    pcall(function() dys = getCore():getOptionEnableDyslexicFont() and true or false end)
+    return lang .. (dys and ", Dyslexic font on" or "")
+end
+
+-- Checks the role slots and points ZeD.Font.sdf either at ZeD's atlases or at the
+-- game's stand-in. Returns X.fallback. ZeD.applyTheme calls it before it registers
+-- the role fonts; the tick below repeats it until the fonts have loaded.
+function X.checkRoleFonts()
+    local F = ZeD.Font and ZeD.Font.sdf
+    if not (F and UIFont) then return X.fallback end
+    local tm = X.realTM()
+    local foreign, unknown = false, false
+    for _, k in ipairs(ROLE_KEYS) do
+        local e = F[k]
+        if e then
+            e.slot = e.slot or e.font           -- the slot ZeD's list puts this atlas on
+            e.zedFace = e.zedFace or e.face
+            local zed = slotIsZedAtlas(tm, e)
+            if zed == nil then unknown = true elseif zed == false then foreign = true end
+        end
+    end
+    X._fontsSettled = not unknown
+    local standIn, standH = nil, 0
+    if foreign then standIn, standH = gameFontTallest(tm) end
+    local was = X.fallback
+    X.fallback = foreign and standH > 0
+    for _, k in ipairs(ROLE_KEYS) do
+        local e = F[k]
+        if e then
+            if X.fallback then
+                -- the face size a bitmap of that line height matches, so zoomFor / zoomPx keep their px
+                e.font = standIn
+                e.face = standH * (e.zedFace or 64) / (e.lineH or 77)
+            else
+                e.font = e.slot
+                e.face = e.zedFace
+            end
+            e.nominal = nil
+        end
+    end
+    X.freeFace = X.fallback and (standH * 64 / 77) or nil
+    if was ~= X.fallback then _entryFaces, _entryTarget, _entryFont = nil, nil, nil end
+    if X._fontsSettled and (was ~= X.fallback or not X._fontsLogged) then
+        X._fontsLogged = true
+        if X.fallback then
+            print("[ZeD] Fonts: the game's own fonts hold the role slots (" .. fontSetName() .. "); ZeD text draws in the game's Small / Medium / Large at native size")
+        else
+            print("[ZeD] Fonts: ZeD's distance-field role fonts are in place (" .. fontSetName() .. ")")
+        end
+    end
+    return X.fallback
+end
+
+-- The game font a role of `px` design px draws in while X.fallback is on (native size, no zoom).
+-- Target: the line height the role has on ZeD's atlas (face 64, line 77) at the current scale.
+function X.roleFallbackFont(px)
+    return gameFontNear(X.realTM(), (px or 13) * S.root() * 77 / 64)
 end
 
 -- Width / height in SCREEN px of `str` drawn at `zoom` (explicit zoom: measured on the raw manager).
@@ -314,9 +449,21 @@ local function rootChanged()
         S._reapplying = false
     end
 end
+-- The role-font check runs again until the fonts have loaded; if the answer changes, the theme
+-- is re-applied so the roles move to (or off) the game's fonts.
+local function fontsSettle()
+    if X._fontsSettled or not (ZeD.T and ZeD.applyTheme) or S._reapplying then return end
+    local was = X.fallback
+    X.checkRoleFonts()
+    if X.fallback ~= was then
+        S._reapplying = true
+        pcall(ZeD.applyTheme)
+        S._reapplying = false
+    end
+end
 if Events and Events.OnTick then
     Events.OnTick.Add(function()
-        if S._tick == 0 then rootChanged() end
+        if S._tick == 0 then rootChanged(); fontsSettle() end
         if S._reopenAt then
             S._reopenAt = S._reopenAt - 1
             if S._reopenAt <= 0 then S._reopenAt = nil; pcall(reopenWindowsClosed) end

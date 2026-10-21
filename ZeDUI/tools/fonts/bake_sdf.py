@@ -2,14 +2,14 @@
 Bake signed-distance-field (SDF) BMFont atlases for the five ZeD-UI Fira roles.
 
 Run from the repo root:
-    py -3.14 ZeDUI/tools/fonts/bake_sdf.py                 # all roles, 64 px face, spread 4
+    py -3.14 ZeDUI/tools/fonts/bake_sdf.py                 # all roles, 64 px face, spread 2
     py -3.14 ZeDUI/tools/fonts/bake_sdf.py body stat       # a subset
     py -3.14 ZeDUI/tools/fonts/bake_sdf.py --face 32       # vanilla-sized face
-    py -3.14 ZeDUI/tools/fonts/bake_sdf.py --spread 2      # tighter field (see SPREAD)
+    py -3.14 ZeDUI/tools/fonts/bake_sdf.py --spread 4      # vanilla's field slope (see SPREAD)
 
 Output (42/media/fonts/sdf/):
     <role>.fnt            BMFont text descriptor
-    <role>1.png, ...      512x512 RGBA pages (RGB white, alpha = distance field)
+    <role>1.png, ...      1024x1024 RGBA pages (RGB white, alpha = distance field)
 and ZeDUI/tools/fonts/fonts_txt_snippet.txt (the fonts.txt blocks for the integrator).
 
 Format contract = the engine's own SDF fonts (media/fonts/sdfRegular.fnt, made with Hiero),
@@ -75,11 +75,13 @@ FACE_PX = 64
 # On the raw-alpha path a pixel fully inside a stroke only reaches 0.5 + halfwidth / (2 *
 # spread), so with 4 at 64 px Fira stems peak near 0.8-0.9 opacity; 2 gets them to 1.0 and
 # halves the edge ramp (see preview_sdf.py's UI-size rows), at the cost of half the room
-# for sdf.frag outlines/shadows and a harder edge below ~0.15x.
-PAD = 4           # box padding in face px (vanilla: padding=4,4,4,4)
-SPREAD = 4.0      # distance (face px) mapped to alpha 0 / 1 around the 0.5 edge
+# for sdf.frag outlines/shadows and a harder edge below ~0.15x. The shipped atlases use 2,
+# so a plain run reproduces them; pass --spread 4 for vanilla's slope.
+PAD = 2           # box padding in face px (vanilla: padding=4,4,4,4)
+SPREAD = 2.0      # distance (face px) mapped to alpha 0 / 1 around the 0.5 edge
 SS = 8            # supersampling: glyphs are rendered at FACE_PX * SS
-PAGE = 512        # atlas page size, like the engine's own multi-page SDF fonts
+PAGE = 1024       # atlas page size (the engine's own SDF fonts use 512; the parser reads each
+                  # page file at whatever size it is, and the wider character set needs fewer files)
 GUTTER = 1        # empty px between packed glyphs (and along the page edges)
 
 # role, TTF file, typography role, fonts.txt slot
@@ -92,10 +94,11 @@ ROLES = [
 ]
 SNIPPET_ORDER = ["Small", "NewMedium", "Medium", "NewLarge", "Code"]
 
-# ASCII, Latin-1 (incl. degree 176 and middle dot 183), dashes, curly quotes, bullet,
-# ellipsis, euro
-CHARSET = (list(range(32, 127)) + list(range(160, 256)) +
-           [0x2013, 0x2014, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2026, 0x20AC])
+# The character set is shared with the bitmap baker (42/media/fonts/zed_charset.py): ASCII,
+# Latin-1, Latin Extended-A, a chosen part of Latin Extended-B, Greek, Cyrillic, typographic
+# punctuation, currency. Code points a TTF does not draw are skipped and reported.
+sys.path.insert(0, str(REPO / "42" / "media" / "fonts"))
+from zed_charset import CHAR_IDS as CHARSET, is_core  # noqa: E402
 
 FONT_DIR = os.path.expanduser("~/AppData/Local/Microsoft/Windows/Fonts")
 FONT_DIR_SYS = os.path.join(os.environ.get("WINDIR", "C:\\Windows"), "Fonts")
@@ -294,10 +297,12 @@ def bake_glyph(font_hi, ch, base):
 
 
 def pack(glyphs):
-    """Shelf-pack inked glyphs into PAGE x PAGE pages, ASCII first (tallest first within
-    each group) so ordinary strings stay on one texture. Returns the page count."""
+    """Shelf-pack inked glyphs into PAGE x PAGE pages: ASCII first, then the rest of the
+    old set (Latin-1, the old punctuation), then everything else (tallest first within each
+    group) so ordinary strings stay on one texture. Returns the page count."""
     inked = [g for g in glyphs if g["alpha"] is not None]
-    inked.sort(key=lambda g: (g["id"] > 126, -g["h"], -g["w"], g["id"]))
+    inked.sort(key=lambda g: (0 if g["id"] < 127 else (1 if is_core(g["id"]) else 2),
+                              -g["h"], -g["w"], g["id"]))
     page, x, y, shelf = 0, GUTTER, GUTTER, 0
     for g in inked:
         if g["w"] + 2 * GUTTER > PAGE or g["h"] + 2 * GUTTER > PAGE:

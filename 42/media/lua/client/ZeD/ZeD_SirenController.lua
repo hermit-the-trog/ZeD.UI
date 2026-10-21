@@ -21,6 +21,7 @@
 -- vanilla's sounds, so it works the same in multiplayer.
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
@@ -37,6 +38,9 @@ local PL = ZeD.Plate
 
 local GAP = 6                    -- plate pixels between the prop and the dash
 local GROUPS = { "lights", "siren" }
+ZeD.trDefaults({
+    UI_ZeD_Siren_Dpad = "D-PAD Left / Right: switch   Up / Down: turn", UI_ZeD_Siren_Step = "Step", UI_ZeD_Hud_PutAway = "Put away",
+})
 
 local function plate() local X = ZeD.PhysPx; return X and X.plates.siren or nil end
 local function plateTex(name) return P.tex(ZeD.PhysPx.texdir .. name .. ".png") end
@@ -179,7 +183,7 @@ function ZeD_SirenController:prerender()
         self:drawRect(0, y, self.width, self._stripH, 1, s2.r, s2.g, s2.b)
         self:drawRectBorder(0, y, self.width, self._stripH, bs.a or 1, bs.r, bs.g, bs.b)
         ZeD.Molecules.drawGlyphPrompts(self, T.sp.sm, y, self._stripH, {
-            "D-PAD Left / Right: switch   Up / Down: turn", { glyph = "A", label = "Step" }, { glyph = "B", label = "Put away" } })
+            ZeD.tr("UI_ZeD_Siren_Dpad"), { glyph = "A", label = ZeD.tr("UI_ZeD_Siren_Step") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } })
     end
 end
 

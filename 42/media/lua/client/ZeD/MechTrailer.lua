@@ -24,6 +24,7 @@
 -- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/AnimalsData"
@@ -68,7 +69,7 @@ local function txt(key, fallback)
     local t = getTextOrNull and getTextOrNull(key) or nil
     return t or fallback
 end
-local function upper(s) return string.upper(tostring(s or "")) end
+local function upper(s) return ZeD.upper(tostring(s or "")) end
 local function call(o, m, ...)
     if not o then return nil end
     local f = o[m]
@@ -150,13 +151,13 @@ local function model(a, chr)
     }
     local tags = {}
     if dead then
-        tags[1] = { label = "DEAD", sev = "danger" }
+        tags[1] = { label = upper(getText("IGUI_DesignationZone_Dead")), sev = "danger" }
     else
-        if m.thirst >= 0.5 then tags[#tags + 1] = { label = "THIRSTY", sev = "danger" }
-        elseif m.thirst >= THIRST_MIN then tags[#tags + 1] = { label = "THIRSTY", sev = "warning" } end
-        if m.hunger >= 0.5 then tags[#tags + 1] = { label = "HUNGRY", sev = "danger" }
-        elseif m.hunger >= HUNGER_MIN then tags[#tags + 1] = { label = "HUNGRY", sev = "warning" } end
-        if m.stress >= 50 then tags[#tags + 1] = { label = "STRESSED", sev = "warning" } end
+        if m.thirst >= 0.5 then tags[#tags + 1] = { label = upper(getText("IGUI_Animal_Thirsty")), sev = "danger" }
+        elseif m.thirst >= THIRST_MIN then tags[#tags + 1] = { label = upper(getText("IGUI_Animal_Thirsty")), sev = "warning" } end
+        if m.hunger >= 0.5 then tags[#tags + 1] = { label = upper(getText("Moodles_Hungry_lvl2")), sev = "danger" }
+        elseif m.hunger >= HUNGER_MIN then tags[#tags + 1] = { label = upper(getText("Moodles_Hungry_lvl2")), sev = "warning" } end
+        if m.stress >= 50 then tags[#tags + 1] = { label = upper(getText("IGUI_Animal_Stressed")), sev = "warning" } end
     end
     m.tags = tags
     return m
@@ -215,10 +216,10 @@ local function portraitOf(a) return texture(AD().resolvePortrait(a)) end
 -- (AnimalContextMenu.doWaterAnimalMenu / doFeedFromHandMenu)
 -- ----------------------------------------------------------------------------
 local function locOf(item, chr)
-    if item == chr:getPrimaryHandItem() or item == chr:getSecondaryHandItem() then return "IN HAND" end
+    if item == chr:getPrimaryHandItem() or item == chr:getSecondaryHandItem() then return ZeD.tr("UI_ZeD_Veh_LocInHand") end
     local c = item:getContainer()
     if not c then return "" end
-    if c == chr:getInventory() then return "INVENTORY" end
+    if c == chr:getInventory() then return upper(getText("IGUI_Controller_Inventory")) end
     local ci = c:getContainingItem()
     if ci then return upper(ci:getName()) end
     return ""
@@ -236,7 +237,7 @@ local function waterSources(chr)
         if not seen[key] then
             seen[key] = true
             out[#out + 1] = { item = it, name = it:getName(),
-                              meta = locOf(it, chr) .. "  " .. DOT .. "  " .. tostring(math.floor(ml + 0.5)) .. " ML" }
+                              meta = ZeD.tr("UI_ZeD_Veh_WaterMeta", locOf(it, chr), math.floor(ml + 0.5)) }
         end
     end
     return out
@@ -301,8 +302,8 @@ end
 -- ----------------------------------------------------------------------------
 local function tilesFromBack(d)
     local n = math.floor(d + 0.5)
-    if n < 1 then return "AT THE BACK" end
-    return tostring(n) .. (n == 1 and " TILE" or " TILES") .. " FROM THE BACK"
+    if n < 1 then return ZeD.tr("UI_ZeD_Veh_AtBack") end
+    return ZeD.tr(n == 1 and "UI_ZeD_Veh_TileFromBack" or "UI_ZeD_Veh_TilesFromBack", n)
 end
 
 local function loadCandidates(s, v, chr)
@@ -323,7 +324,7 @@ local function loadCandidates(s, v, chr)
             list[#list + 1] = {
                 key = "held", held = true, port = bodyProxy(body),
                 name = getText("IGUI_Item_AnimalCorpse", nm or speciesLabel(body:getModData()["AnimalType"])),
-                size = body:getModData()["animalTrailerSize"] or 0, loc = "IN YOUR HANDS", dist = 0,
+                size = body:getModData()["animalTrailerSize"] or 0, loc = ZeD.tr("UI_ZeD_Veh_InYourHands"), dist = 0,
                 ok = ok, why = (not ok) and tooBig or nil,
                 run = function() ISVehicleMenu.onAddAnimalFromHandsInTrailer(chr, body, v) end,
             }
@@ -336,7 +337,7 @@ local function loadCandidates(s, v, chr)
             local ok = v:canAddAnimalInTrailer(a)
             list[#list + 1] = {
                 key = "held", held = true, port = a, name = ad.getDisplayName(a),
-                size = call(a, "getAnimalTrailerSize") or 0, loc = "IN YOUR HANDS", dist = 0,
+                size = call(a, "getAnimalTrailerSize") or 0, loc = ZeD.tr("UI_ZeD_Veh_InYourHands"), dist = 0,
                 ok = ok, why = (not ok) and tooBig or nil,
                 run = function() ISVehicleMenu.onAddAnimalFromHandsInTrailer(chr, hand, v) end,
             }
@@ -441,9 +442,9 @@ end
 -- Car <-> trailer: one press switches pages
 local function towLink(v)
     local by = call(v, "getVehicleTowedBy")
-    if by then return by, "TOWED BY" end
+    if by then return by, "towedBy" end   -- internal ids; the row translates them where it draws
     local towing = call(v, "getVehicleTowing")
-    if towing then return towing, "TOWING" end
+    if towing then return towing, "towing" end
     return nil, nil
 end
 function TR.goTo(s, other)
@@ -456,11 +457,12 @@ end
 -- ----------------------------------------------------------------------------
 -- The running trailer action: a band with its progress and the cancel X
 -- ----------------------------------------------------------------------------
+-- text keys: the band translates its label where it draws
 local ACT_LABEL = {
-    ISAddAnimalInTrailer = "PUTTING IN", ISRemoveAnimalFromTrailer = "TAKING OUT",
-    ISGiveWaterToAnimal = "GIVING WATER", ISFeedAnimalFromHand = "FEEDING",
-    ISOpenVehicleDoor = "OPENING THE LID", ISCloseVehicleDoor = "CLOSING THE LID",
-    ISUnlockVehicleDoor = "UNLOCKING THE LID",
+    ISAddAnimalInTrailer = "UI_ZeD_Veh_ActPuttingIn", ISRemoveAnimalFromTrailer = "UI_ZeD_Veh_ActTakingOut",
+    ISGiveWaterToAnimal = "UI_ZeD_Veh_ActGivingWater", ISFeedAnimalFromHand = "UI_ZeD_Veh_ActFeeding",
+    ISOpenVehicleDoor = "UI_ZeD_Veh_ActOpeningLid", ISCloseVehicleDoor = "UI_ZeD_Veh_ActClosingLid",
+    ISUnlockVehicleDoor = "UI_ZeD_Veh_ActUnlockingLid",
 }
 local function ours(a, v)
     if a.vehicle == v then return true end
@@ -480,8 +482,8 @@ local function trailerAction(chr, v)
     end
     if not target then return nil, nil end
     local label = ACT_LABEL[target.Type]
-    if target.Type == "ISRemoveAnimalFromTrailer" and target.grab then label = "GRABBING" end
-    if list[1] ~= target then label = "WALKING TO THE BACK" end
+    if target.Type == "ISRemoveAnimalFromTrailer" and target.grab then label = "UI_ZeD_Veh_ActGrabbing" end
+    if list[1] ~= target then label = "UI_ZeD_Veh_ActWalkingBack" end
     return list[1], label
 end
 
@@ -490,9 +492,9 @@ function TR.drawBand(panel, s, x, y, w, v, chr)
     if not head then return 0 end
     local pct = 0
     pcall(function() pct = head:getJobDelta() end)
-    if label == "WALKING TO THE BACK" then pct = 0 end
+    if label == "UI_ZeD_Veh_ActWalkingBack" then pct = 0 end
     local rect = {}
-    local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", label, pct, nil, rect, false)
+    local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", ZeD.tr(label), pct, nil, rect, false)
     if rect.w then
         H().stamp(s, "mech:cancel", rect.x, rect.y, rect.w, rect.h, function()
             pcall(function() ISTimedActionQueue.clear(chr) end)
@@ -620,7 +622,7 @@ local function containerRow(panel, s, sx, yy, sw, v, chr, partId, label, open, e
     local srh = T.px(SROW_H)
     local lw = sumLabel(panel, sx, yy, srh, label)
     local by = yy + math.floor((srh - T.px(SBTN_H)) / 2)
-    local bw = smallBtn(panel, s, sx + sw, by, "OPEN", "default", "mech:open:" .. partId,
+    local bw = smallBtn(panel, s, sx + sw, by, upper(getText("IGUI_Open")), "default", "mech:open:" .. partId,
         function() openContainer(chr, v, part) end, open, { clip = s.bodyClip })
     local r = sx + sw - bw - T.px(8)
     r = rText(panel, r, yy, srh, string.format("%.1f / %d", info.weight, math.floor(info.cap + 0.5)), T.fontF3) - T.px(6)
@@ -628,8 +630,8 @@ local function containerRow(panel, s, sx, yy, sw, v, chr, partId, label, open, e
     fillBar(panel, r - barW, yy + math.floor(srh / 2) - T.px(2), barW, info.cap > 0 and info.weight / info.cap or 0)
     r = r - barW - T.px(8)
     local what
-    if info.n == 0 then what = "Empty"
-    elseif eggs and info.allEggs then what = tostring(info.n) .. (info.n == 1 and " egg" or " eggs")
+    if info.n == 0 then what = getText("Fluid_Empty")
+    elseif eggs and info.allEggs then what = ZeD.tr(info.n == 1 and "UI_ZeD_Veh_EggOne" or "UI_ZeD_Veh_EggMany", info.n)
     else
         what = info.best:getDisplayName() .. " " .. DOT .. " " .. tostring(info.bestN)
         if info.n > info.bestN then what = what .. " +" .. tostring(info.n - info.bestN) end
@@ -648,14 +650,14 @@ function TR.drawTowRow(panel, s, sx, yy, sw, v)
     if not other then return 0 end
     local T = ZeD.T
     local srh = T.px(SROW_H)
-    local lw = sumLabel(panel, sx, yy, srh, label)
+    local lw = sumLabel(panel, sx, yy, srh, ZeD.tr(label == "towing" and "UI_ZeD_Veh_Towing" or "UI_ZeD_Veh_TowedBy"))
     local by = yy + math.floor((srh - T.px(SBTN_H)) / 2)
     local bw = smallBtn(panel, s, sx + sw, by, ">", "default", "mech:tow", function() TR.goTo(s, other) end, true,
         { clip = s.bodyClip })
     local name = H().vehicleName(other)
-    if label == "TOWING" and TR.isTrailer(other) then
+    if label == "towing" and TR.isTrailer(other) then
         local n = #animalsOf(other)
-        name = name .. " " .. DOT .. " " .. tostring(n) .. (n == 1 and " animal" or " animals")
+        name = name .. " " .. DOT .. " " .. ZeD.tr(n == 1 and "UI_ZeD_Animals_AnimalCountOne" or "UI_ZeD_Animals_AnimalCountMany", n)
     end
     local r = sx + sw - bw - T.px(8)
     local avail = r - (sx + lw + T.px(8))
@@ -677,9 +679,9 @@ function TR.drawSummary(panel, win, s, sx, sy, sw, v, chr, inspected)
 
     -- SPACE: used of the trailer's size, then the floor bar and its key
     local rh = math.max(T.fontF1H, T.fontF3H)
-    sumLabel(panel, sx, yy, rh, "SPACE")
-    local val = fmt(used) .. " of " .. fmt(cap) .. " " .. DOT .. " "
-                .. (over and (fmt(used - cap) .. " over") or (fmt(cap - used) .. " left"))
+    sumLabel(panel, sx, yy, rh, ZeD.tr("UI_ZeD_Veh_Space"))
+    local val = over and ZeD.tr("UI_ZeD_Veh_SpaceOver", fmt(used), fmt(cap), fmt(used - cap))
+                or ZeD.tr("UI_ZeD_Veh_SpaceLeft", fmt(used), fmt(cap), fmt(cap - used))
     local left = rText(panel, sx + sw, yy, rh, val, T.fontF3)
     if over then rDot(panel, left - T.px(5), yy, rh, T.danger) end
     yy = yy + rh + T.px(4)
@@ -709,17 +711,17 @@ function TR.drawSummary(panel, win, s, sx, sy, sw, v, chr, inspected)
     -- TRUNK LID: vanilla shuts every loading option behind it
     local lid = lidPart(v)
     if lid and lid:getDoor() then
-        sumLabel(panel, sx, yy, srh, "TRUNK LID")
+        sumLabel(panel, sx, yy, srh, ZeD.tr("UI_ZeD_Veh_TrunkLid"))
         local by = yy + math.floor((srh - T.px(SBTN_H)) / 2)
-        local bw = smallBtn(panel, s, sx + sw, by, open and "CLOSE" or "OPEN", open and "default" or "primary", "mech:lid",
+        local bw = smallBtn(panel, s, sx + sw, by, upper(open and getText("UI_Close") or getText("IGUI_Open")), open and "default" or "primary", "mech:lid",
             function() toggleLid(chr, v) end, true, { clip = s.bodyClip })
-        local l2 = rText(panel, sx + sw - bw - T.px(8), yy, srh, open and "Open" or "Shut", T.fontF3)
+        local l2 = rText(panel, sx + sw - bw - T.px(8), yy, srh, open and ZeD.tr("UI_ZeD_Veh_StOpen") or ZeD.tr("UI_ZeD_Animals_BadgeShut"), T.fontF3)
         rDot(panel, l2 - T.px(5), yy, srh, open and T.positive or T.textDim)
         yy = yy + srh
     end
     -- the Food Container they eat from, the Egg Container hens lay in
-    yy = yy + containerRow(panel, s, sx, yy, sw, v, chr, "TrailerAnimalFood", "FOOD", open, false)
-    yy = yy + containerRow(panel, s, sx, yy, sw, v, chr, "TrailerAnimalEggs", "EGGS", open, true)
+    yy = yy + containerRow(panel, s, sx, yy, sw, v, chr, "TrailerAnimalFood", upper(getText("IGUI_ItemCat_Food")), open, false)
+    yy = yy + containerRow(panel, s, sx, yy, sw, v, chr, "TrailerAnimalEggs", upper(ZeD.tr("UI_ZeD_Animals_Eggs")), open, true)
     -- THIRSTY: a trailer holds no water, they are watered by hand
     local alive, thirsty = 0, 0
     for _, m in ipairs(ms) do
@@ -729,8 +731,8 @@ function TR.drawSummary(panel, win, s, sx, sy, sw, v, chr, inspected)
         end
     end
     if alive > 0 then
-        sumLabel(panel, sx, yy, srh, "THIRSTY")
-        local tt = (thirsty > 0) and (tostring(thirsty) .. " of " .. tostring(alive) .. " " .. DOT .. " no water inside") or "None"
+        sumLabel(panel, sx, yy, srh, upper(getText("IGUI_Animal_Thirsty")))
+        local tt = (thirsty > 0) and ZeD.tr("UI_ZeD_Veh_ThirstyCount", thirsty, alive) or ZeD.tr("UI_ZeD_Veh_None")
         local l3 = rText(panel, sx + sw, yy, srh, tt, T.fontF3)
         rDot(panel, l3 - T.px(5), yy, srh, thirsty > 0 and T.danger or T.positive)
         yy = yy + srh
@@ -739,7 +741,7 @@ function TR.drawSummary(panel, win, s, sx, sy, sw, v, chr, inspected)
     if inspected then
         local h = H()
         local ov = h.overallCond(v)
-        yy = yy + ZeD.Molecules.drawStatRowDot(panel, sx, yy, sw, "Overall", tostring(ov) .. "%", statusColor(T, ov))
+        yy = yy + ZeD.Molecules.drawStatRowDot(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), tostring(ov) .. "%", statusColor(T, ov))
     end
     return yy
 end
@@ -793,7 +795,7 @@ local function drawAnimalRow(panel, win, s, x, y, w, m, idx, clip, hovered)
     local right = x + w - pad
     local szs = fmt(m.size)
     A.drawTextRight(panel, szs, right, y + math.floor((rh - T.fontF3H) / 2), T.fontF3, T.text)
-    right = right - math.max(TM:MeasureStringX(T.fontF3, szs), TM:MeasureStringX(T.fontF1, "SPACE")) - T.px(12)
+    right = right - math.max(TM:MeasureStringX(T.fontF3, szs), TM:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Veh_Space"))) - T.px(12)
     -- tags, right-aligned before it
     local f1 = T.fontF1
     local bh = T.fontF1H + T.sp.badgePadY * 2
@@ -829,7 +831,7 @@ local function drawAnimalRow(panel, win, s, x, y, w, m, idx, clip, hovered)
     end
     -- species, sex, age
     local ad = AD()
-    local sex = m.baby and "BABY" or (m.female and "FEMALE" or "MALE")
+    local sex = upper(m.baby and getText("IGUI_Animal_Baby") or (m.female and getText("IGUI_Animal_Female") or getText("IGUI_Animal_Male")))
     local sub = upper(speciesLabel(m.atype)) .. ", " .. sex
     local age = ad.getAgeText(m.a, (win and win._playerObj) or getSpecificPlayer(0))
     if age and age ~= "" then sub = sub .. " " .. DOT .. " " .. upper(age) end
@@ -855,7 +857,7 @@ local function drawLoadRow(panel, s, x, y, w, c, clip, primary, open)
     local tx = x + pad + ps + T.px(8)
     local by = y + math.floor((rh - T.px(SBTN_H)) / 2)
     local enabled = c.ok and open
-    local bw = smallBtn(panel, s, x + w - pad, by, "PUT IN", primary and "primary" or "default", "mech:load:" .. c.key,
+    local bw = smallBtn(panel, s, x + w - pad, by, ZeD.tr("UI_ZeD_Veh_PutIn"), primary and "primary" or "default", "mech:load:" .. c.key,
         c.run, enabled, { clip = clip })
     local right = x + w - pad - bw - T.px(12)
     local szs = fmt(c.size)
@@ -887,12 +889,12 @@ function TR.drawSections(panel, win, s, x, cy, cw, v, chr, clip, hover)
     end
     -- ANIMALS
     s.trAnimalsY = cy
-    cy = cy + catHeader(panel, s, x, cy, cw, "_animals", "ANIMALS", #ms, "SPACE", clip)
+    cy = cy + catHeader(panel, s, x, cy, cw, "_animals", upper(getText("IGUI_ScavengeUI_Animals")), #ms, ZeD.tr("UI_ZeD_Veh_Space"), clip)
     if not s.collapsed["_animals"] then
         if #ms == 0 then
             local rh = T.px(AROW_H)
             local dc = T.textDim
-            panel:drawText("No animals inside", x + pad, cy + math.floor((rh - T.fontF2H) / 2), dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
+            panel:drawText(ZeD.tr("UI_ZeD_Veh_NoAnimalsInside"), x + pad, cy + math.floor((rh - T.fontF2H) / 2), dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
             cy = cy + rh
         end
         for i, m in ipairs(ms) do
@@ -906,7 +908,7 @@ function TR.drawSections(panel, win, s, x, cy, cw, v, chr, clip, hover)
     if open then
         local cands = loadCandidates(s, v, chr)
         if #cands > 0 then
-            cy = cy + catHeader(panel, s, x, cy, cw, "_load", "LOAD FROM HERE", #cands, "SIZE", clip)
+            cy = cy + catHeader(panel, s, x, cy, cw, "_load", ZeD.tr("UI_ZeD_Veh_LoadFromHere"), #cands, ZeD.tr("UI_ZeD_Veh_SizeHdr"), clip)
             if not s.collapsed["_load"] then
                 local firstOk = nil
                 for i, c in ipairs(cands) do if c.ok then firstOk = i; break end end
@@ -1036,12 +1038,14 @@ local function vital(panel, x, y, w, label, value, pct, dotColor)
 end
 
 local function hungerWord(h)
-    if h < 20 then return "Well-fed" elseif h < 50 then return "Peckish" elseif h < 80 then return "Hungry" end
-    return "Starving"
+    if h < 20 then return getText("IGUI_Animal_WellFed") elseif h < 50 then return getText("Moodles_Hungry_lvl1")
+    elseif h < 80 then return getText("Moodles_Hungry_lvl2") end
+    return getText("IGUI_Animal_Starving")
 end
 local function thirstWord(t)
-    if t < 20 then return "Hydrated" elseif t < 50 then return "Parched" elseif t < 80 then return "Thirsty" end
-    return "Dehydrated"
+    if t < 20 then return ZeD.tr("UI_ZeD_Animals_ThirstHydrated") elseif t < 50 then return ZeD.tr("UI_ZeD_Animals_ThirstParched")
+    elseif t < 80 then return getText("IGUI_Animal_Thirsty") end
+    return ZeD.tr("UI_ZeD_Animals_ThirstDehydrated")
 end
 
 -- Returns false when the animal has left the trailer (the caller shows the page)
@@ -1061,9 +1065,9 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
     -- header: back, name, REMOVE / GRAB / INFO (a carcass: REMOVE / GRAB)
     local verbs = {}
     local function add(id, label, enabled, primary) verbs[#verbs + 1] = { id = id, label = label, enabled = enabled, primary = primary } end
-    add("remove", "REMOVE", open, m.dead)
-    add("grab", "GRAB", open and canPick, false)
-    if not m.dead then add("info", "INFO", true, false) end
+    add("remove", upper(getText("ContextMenu_Remove")), open, m.dead)
+    add("grab", upper(getText("ContextMenu_Grab")), open and canPick, false)
+    if not m.dead then add("info", upper(getText("ContextMenu_Info")), true, false) end
     local defs = {}
     for i, vb in ipairs(verbs) do defs[i] = { label = vb.label, primary = vb.primary and vb.enabled, disabled = not vb.enabled } end
     local rects = {}
@@ -1105,25 +1109,25 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
     local vy = cy
     local cap = v:getAnimalTrailerSize()
     if m.dead then
-        vy = vy + vital(panel, gx, vy, gw, "STATE", "Dead", nil, T.danger)
+        vy = vy + vital(panel, gx, vy, gw, upper(ZeD.tr("UI_ZeD_Veh_State")), getText("IGUI_DesignationZone_Dead"), nil, T.danger)
     else
         local health = m.health
         local ht = ad.getHealthText(a, chr)
         if not ht or ht == "" then ht = tostring(math.floor(health)) .. "%" end
-        vy = vy + vital(panel, gx, vy, gw, "HEALTH", ht, health)
+        vy = vy + vital(panel, gx, vy, gw, upper(getText("IGUI_HealthTooltip")), ht, health)
         local hu = m.hunger * 100
-        vy = vy + vital(panel, gx, vy, gw, "HUNGER", hungerWord(hu), 100 - hu)
+        vy = vy + vital(panel, gx, vy, gw, upper(getText("IGUI_StatsAndBody_Hunger")), hungerWord(hu), 100 - hu)
         local th = m.thirst * 100
-        vy = vy + vital(panel, gx, vy, gw, "THIRST", thirstWord(th), 100 - th)
+        vy = vy + vital(panel, gx, vy, gw, upper(getText("IGUI_StatsAndBody_Thirst")), thirstWord(th), 100 - th)
         local st = ad.getStressText(a, chr)
         if not st or st == "" then st = tostring(math.floor(m.stress)) .. "%" end
-        vy = vy + vital(panel, gx, vy, gw, "STRESS", st, 100 - m.stress)
+        vy = vy + vital(panel, gx, vy, gw, upper(getText("IGUI_StatsAndBody_Stress")), st, 100 - m.stress)
         if ad.canSee(chr, "weight_rough") then
             local kg = ad.getWeight(a)
-            if kg > 0 then vy = vy + vital(panel, gx, vy, gw, "WEIGHT", string.format("%.0f kg", kg)) end
+            if kg > 0 then vy = vy + vital(panel, gx, vy, gw, upper(getText("IGUI_char_Weight")), ZeD.tr("UI_ZeD_Animals_WeightKg", string.format("%.0f", kg))) end
         end
     end
-    vy = vy + vital(panel, gx, vy, gw, "SPACE", fmt(m.size) .. " of " .. fmt(cap))
+    vy = vy + vital(panel, gx, vy, gw, ZeD.tr("UI_ZeD_Veh_Space"), ZeD.tr("UI_ZeD_Veh_OfCap", fmt(m.size), fmt(cap)))
     local figTop = cy
     cy = cy + math.max(ah, vy - cy) + T.px(12)
 
@@ -1163,11 +1167,11 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
         local have = carried(s, chr, a)
         -- GIVE WATER: shown when vanilla offers it (thirst past 10%)
         if m.thirst >= THIRST_MIN then
-            section("GIVE WATER", "FROM YOUR BAGS")
+            section(upper(getText("ContextMenu_WaterAnimal")), ZeD.tr("UI_ZeD_Veh_FromYourBags"))
             if #have.water == 0 then dimLine(getText("ContextMenu_NoWaterItemFound")) end
             for i, wsrc in ipairs(have.water) do
                 local item = wsrc.item
-                pickRow("mech:water:" .. tostring(i), T.info, wsrc.name, wsrc.meta, "WATER", function()
+                pickRow("mech:water:" .. tostring(i), T.info, wsrc.name, wsrc.meta, upper(getText("IGUI_FeedingTroughUI_Water")), function()
                     AnimalContextMenu.onGiveWater(chr, a, item)
                 end)
             end
@@ -1175,12 +1179,12 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
         end
         -- FEED: what it eats from what you carry (hunger past 10%)
         if m.hunger >= HUNGER_MIN then
-            section("FEED", "WHAT IT EATS FROM YOUR BAGS")
-            if #have.feed == 0 then dimLine("Nothing it eats in your bags") end
+            section(upper(getText("ContextMenu_Feed")), ZeD.tr("UI_ZeD_Veh_WhatItEats"))
+            if #have.feed == 0 then dimLine(ZeD.tr("UI_ZeD_Veh_NothingItEats")) end
             for i, f in ipairs(have.feed) do
                 local item = f.item
                 local nm = f.name .. ((f.n > 1) and (" " .. DOT .. " " .. tostring(f.n)) or "")
-                pickRow("mech:feed:" .. tostring(i), T.positive, nm, f.loc, "FEED", function()
+                pickRow("mech:feed:" .. tostring(i), T.positive, nm, f.loc, upper(getText("ContextMenu_Feed")), function()
                     AnimalContextMenu.onFeedAnimalFood(chr, a, item)
                 end)
             end
@@ -1189,7 +1193,7 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
     end
 
     -- NEEDS, in vanilla's words
-    section("NEEDS", nil)
+    section(upper(getText("Tooltip_craft_Needs")), nil)
     local function need(ok, label, kicker)
         local rh = T.px(NEED_H)
         local d = T.px(DOT_SZ)
@@ -1206,10 +1210,10 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
         panel:drawText(lb, tx, cy + math.floor((rh - T.fontF2H) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
         cy = cy + rh
     end
-    need(open, open and "Trunk lid open" or getText("Tooltip_Animal_OpenTrunkDoor"), "TO REACH IN")
+    need(open, open and ZeD.tr("UI_ZeD_Veh_LidOpen") or getText("Tooltip_Animal_OpenTrunkDoor"), ZeD.tr("UI_ZeD_Veh_KToReachIn"))
     if not canPick then
         local kg = (not m.dead) and ad.getWeight(a) or 0
-        need(false, "GRAB: " .. getText("Tooltip_Animal_TooHeavy"), (kg > 0) and string.format("%.0f KG", kg) or nil)
+        need(false, ZeD.tr("UI_ZeD_Veh_GrabWhy", getText("Tooltip_Animal_TooHeavy")), (kg > 0) and ZeD.tr("UI_ZeD_Veh_KgCaps", string.format("%.0f", kg)) or nil)
     end
     cy = cy + T.px(10)
     panel:clearStencilRect()
@@ -1237,13 +1241,13 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
     local msgY = fy + math.floor((footerH - T.fontF2H) / 2)
     local lid = lidPart(v)
     if not open and lid and lid:getDoor() and not busy then
-        bx = bx + hp.footerButton(panel, s, bx, by, "OPEN LID", "primary", "mech:openlid", function() toggleLid(chr, v) end) + T.px(10)
+        bx = bx + hp.footerButton(panel, s, bx, by, ZeD.tr("UI_ZeD_Veh_OpenLid"), "primary", "mech:openlid", function() toggleLid(chr, v) end) + T.px(10)
     end
     local msg, col
-    if busy then msg, col = "Working at the back of the trailer", T.accent
+    if busy then msg, col = ZeD.tr("UI_ZeD_Veh_WorkingBack"), T.accent
     elseif not open then msg, col = getText("Tooltip_Animal_OpenTrunkDoor"), T.danger
-    elseif m.dead then msg, col = "Ready to take the carcass out at the back", T.positive
-    else msg, col = "Ready to walk " .. (m.female and "her" or "him") .. " out at the back", T.positive end
+    elseif m.dead then msg, col = ZeD.tr("UI_ZeD_Veh_ReadyCarcass"), T.positive
+    else msg, col = ZeD.tr(m.female and "UI_ZeD_Veh_ReadyWalkHer" or "UI_ZeD_Veh_ReadyWalkHim"), T.positive end
     hp.dotLine(panel, bx, msgY, col, msg)
     return true
 end

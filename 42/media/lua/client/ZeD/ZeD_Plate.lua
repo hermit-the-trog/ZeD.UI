@@ -55,11 +55,15 @@
 -- with needs waits for st[needs] (an oven's keys need power).
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/ZeD_RadioOps"
 
 ZeD = ZeD or {}
 ZeD.Plate = ZeD.Plate or {}
+ZeD.trDefaults({
+    UI_ZeD_Dash_ClimateAc = "A/C", UI_ZeD_Dash_ClimateAuto = "AUTO", UI_ZeD_Dash_ClimateOff = "OFF", UI_ZeD_Dash_ClimateFan = "FAN%1",
+})
 local PL = ZeD.Plate
 local P = ZeD.Px
 
@@ -103,13 +107,13 @@ local function headDisplay(cv, hp, ox, oy, r)
         return
     end
     local ghost = hp.ghost and P.color(hp.ghost) or nil
-    local tag = (r.flash and blinkOn(250)) and r.flash:gsub("STORE ", "P") or (r.scanning and "SCAN") or (r.muted and "MUTE") or nil
+    local tag = (r.flash and blinkOn(250)) and r.flashShort or (r.scanning and RO.word("scan")) or (r.muted and RO.word("mute")) or nil
     if hp.style == "seg" then
         if ham then
             local freq = RO.freqText(r.channel, true)                        -- "098.400"
             P.digits(cv, freq, x + w - 3 - 6 * 9, y + 3, 6, 11, 9, 1, c, ghost, "l", 6)
             P.text(cv, "CH" .. (r.presetIdx and string.format("%02d", r.presetIdx) or "--"), x + 3, y + 3, c)
-            P.text(cv, tag or (r.micMuted and "MIC" or "TX"), x + 3, y + 10, c)
+            P.text(cv, tag or (r.micMuted and RO.word("mic") or "TX"), x + 3, y + 10, c)
         else
             local cd = r.playing
             local txt
@@ -134,11 +138,11 @@ local function headDisplay(cv, hp, ox, oy, r)
         local l1, l2
         if ham then
             l1 = "CH" .. (r.presetIdx and string.format("%02d", r.presetIdx) or "--") .. " " .. RO.freqText(r.channel, true)
-            local nm = (r.name and r.name:upper()) or (r.presetIdx and r.presets[r.presetIdx] and r.presets[r.presetIdx].name and r.presets[r.presetIdx].name:upper()) or ""
-            l2 = (r.flash and r.flash) or (r.muted and "MUTE") or (nm ~= "" and nm) or (r.micMuted and "MIC OFF" or "TX OK")
+            local nm = (r.name and ZeD.upper(r.name)) or (r.presetIdx and r.presets[r.presetIdx] and r.presets[r.presetIdx].name and ZeD.upper(r.presets[r.presetIdx].name)) or ""
+            l2 = (r.flash and r.flash) or (r.muted and RO.word("mute")) or (nm ~= "" and nm) or (r.micMuted and RO.word("micOff") or RO.word("txOk"))
         else
             l1 = "FM " .. RO.freqText(r.channel, false) .. " MHZ"
-            l2 = r.flash or (r.scanning and "SCAN") or (r.muted and "MUTE") or (r.name and r.name:upper()) or ""
+            l2 = r.flash or (r.scanning and RO.word("scan")) or (r.muted and RO.word("mute")) or (r.name and ZeD.upper(r.name)) or ""
         end
         local n1 = math.floor((w - 3) / 6)
         local n2 = math.floor((w - 3) / 4)
@@ -184,7 +188,7 @@ local function headUnit(cv, st, hu, ctx)
             local ink = P.color(hp.color)
             for i = 1, hp.n do
                 local pr = r.presets and r.presets[i]
-                local nm = pr and pr.name and RO.tapeName(pr.name):upper() or ""     -- the slot's small letters are capitals
+                local nm = pr and pr.name and ZeD.upper(RO.tapeName(pr.name)) or ""     -- the slot's small letters are capitals
                 if nm ~= "" then
                     local s = P.fit(nm, "35", 1, hp.w - 2)
                     P.text(cv, s, hu.x + hp.first + (i - 1) * hp.pitch, hu.y + hp.y, ink, "35", 1, "c")
@@ -422,8 +426,8 @@ function PL.drawParts(cv, parts, st, ctx)
                 local tC = math.floor(21 + (st.heaterTemp or 0) * 0.28 + 0.5)
                 if (p.units or "C") == "F" then tC = math.floor(tC * 9 / 5 + 32 + 0.5) end
                 P.digits(cv, tostring(tC), p.x, p.y, 7, 11, 9, 1, c, nil, "l", 2)
-                P.text(cv, st.heaterOn and (st.ac and "A/C" or "AUTO") or "OFF", p.x + 21, p.y, c)
-                P.text(cv, "FAN" .. tostring(st.fan or 0), p.x + 21, p.y + 6, c)
+                P.text(cv, st.heaterOn and (st.ac and ZeD.tr("UI_ZeD_Dash_ClimateAc") or ZeD.tr("UI_ZeD_Dash_ClimateAuto")) or ZeD.tr("UI_ZeD_Dash_ClimateOff"), p.x + 21, p.y, c)
+                P.text(cv, ZeD.tr("UI_ZeD_Dash_ClimateFan", tostring(st.fan or 0)), p.x + 21, p.y + 6, c)
             end
         elseif t == "meter" then
             if st.power then

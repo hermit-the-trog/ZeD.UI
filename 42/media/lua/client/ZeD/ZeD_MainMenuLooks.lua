@@ -143,10 +143,10 @@ function ZeD_MMLooks:rowsNow()
     if not v or not d then return rows end
     local male = not d:isFemale()
     local function head(t) rows[#rows + 1] = { kind = "header", text = t } end
-    head("Name")
+    head(getText("IGUI_Name"))
     rows[#rows + 1] = { kind = "name", label = label("UI_characreation_forename"), entry = self.fore, key = "fore" }
     rows[#rows + 1] = { kind = "name", label = label("UI_characreation_surname"), entry = self.sur, key = "sur" }
-    rows[#rows + 1] = { kind = "combo", label = "Sex", control = v.genderCombo }
+    rows[#rows + 1] = { kind = "combo", label = getText("IGUI_char_Sex"), control = v.genderCombo }
     head(label("UI_characreation_body"))
     rows[#rows + 1] = { kind = "swatch", label = label("UI_SkinColor"), colors = v.skinColors or {}, cur = v.skinColor, key = "skin",
         pick = function(i) v.colorPickerSkin.index = i; v:onSkinColorPicked(v.skinColors[i], true) end }
@@ -169,7 +169,7 @@ function ZeD_MMLooks:rowsNow()
     rows[#rows + 1] = { kind = "slider", label = label("UI_characreation_voicepitch"), control = v.voicePitchSlider }
     rows[#rows + 1] = { kind = "button", label = "", control = v.voiceDemoButton }
     head(label("UI_characreation_clothing"))
-    if v.outfitCombo then rows[#rows + 1] = { kind = "combo", label = "Outfit", control = v.outfitCombo } end
+    if v.outfitCombo then rows[#rows + 1] = { kind = "combo", label = getText("UI_ClothingType_Outfit"), control = v.outfitCombo } end
     local slots = {}
     for loc, combo in pairs(v.clothingCombo or {}) do
         local lbl = v.clothingComboLabel and v.clothingComboLabel[loc]
@@ -358,7 +358,7 @@ function ZeD_MMLooks:drawFigure(x, y, w, h)
     btn("turnR", ">", x + w - bw, bw, function() self:turn(1) end)
     local pw = w - bw * 2 - T.px(16)
     local cur = ANIMS[self.anim or 1]
-    btn("pose", string.upper(getText(cur[1])), x + bw + T.px(8), pw, function()
+    btn("pose", ZeD.upper(getText(cur[1])), x + bw + T.px(8), pw, function()
         local items = {}
         for i, a in ipairs(ANIMS) do
             local t = getText(a[1])
@@ -377,7 +377,7 @@ function ZeD_MMLooks:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local v = looks()
-    self.title = "Project Zomboid  +  Character"
+    self.title = ZeD.tr("UI_ZeD_Looks_Title")
     local name = (self.fore:getText() or "") .. " " .. (self.sur:getText() or "")
     self.titleStats = { { text = name, color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
@@ -412,8 +412,8 @@ function ZeD_MMLooks:outfitItems()
         t[#t + 1] = { text = text, fn = function() self:loadOutfit(i) end }
     end
     if #t > 0 then t[#t + 1] = "-" end
-    t[#t + 1] = { text = "Save outfit...", fn = function() self:setConfirm("save") end }
-    if cur then t[#t + 1] = { text = "Delete " .. tostring(cur) .. "...", fn = function() self:setConfirm("delete") end } end
+    t[#t + 1] = { text = ZeD.tr("UI_ZeD_Looks_SaveOutfit"), fn = function() self:setConfirm("save") end }
+    if cur then t[#t + 1] = { text = ZeD.tr("UI_ZeD_Looks_DeleteOutfit", tostring(cur)), fn = function() self:setConfirm("delete") end } end
     return t
 end
 
@@ -470,7 +470,7 @@ function ZeD_MMLooks:setConfirm(mode)
         local v = looks()
         local text = v and v.savedBuilds.options[v.savedBuilds.selected] or nil
         if not text then text = ((self.fore:getText() or "") .. " " .. (self.sur:getText() or "")):gsub("^%s+", ""):gsub("%s+$", "") end
-        if text == "" then text = "Preset" end
+        if text == "" then text = ZeD.tr("UI_ZeD_Looks_PresetName") end
         self.field:setText(tostring(text))
         self.field:setVisible(true)
         self.field:focus()
@@ -512,12 +512,12 @@ function ZeD_MMLooks:buildStrip(stripY, stripH, w)
     local row = 1000
     local ask = nil
     if self.confirm == "save" then
-        ask = "Outfit name:"
+        ask = ZeD.tr("UI_ZeD_Looks_AskOutfitName")
         local v = looks()
         local valid = v and v:saveBuildValidate(self.field:getText() or "") or false
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "SAVE", function() self:saveOutfit() end, "primary", not valid } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_save"), function() self:saveOutfit() end, "primary", not valid } })
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
         local firstBtn = w
@@ -526,16 +526,16 @@ function ZeD_MMLooks:buildStrip(stripY, stripH, w)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     elseif self.confirm == "delete" then
         local v = looks()
-        ask = "Delete the outfit " .. tostring(v and v.savedBuilds.options[v.savedBuilds.selected] or "") .. "?"
+        ask = ZeD.tr("UI_ZeD_Looks_AskDeleteOutfit", tostring(v and v.savedBuilds.options[v.savedBuilds.selected] or ""))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "DELETE", function() self:deleteOutfit() end, "danger" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deleteOutfit() end, "danger" } })
     else
         UI.stripSpecs(self, stripY, w, row,
-            { { "back", "BACK", function() self:back() end } },
-            { { "outfits", "OUTFITS...", function() self:openOutfits() end },
-              { "random", "RANDOM", function() self:random() end },
-              { "play", string.upper(getText("UI_btn_play")), function() self:play() end, "primary" } })
+            { { "back", getText("UI_btn_back"), function() self:back() end } },
+            { { "outfits", ZeD.tr("UI_ZeD_Looks_Outfits"), function() self:openOutfits() end },
+              { "random", getText("UI_characreation_random"), function() self:random() end },
+              { "play", ZeD.upper(getText("UI_btn_play")), function() self:play() end, "primary" } })
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -589,16 +589,16 @@ function ZeD_MMLooks:joyY() if not self.confirm then self:openOutfits() end end
 
 function ZeD_MMLooks:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
+    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
     local t = {}
     local r = self:focusedRow()
-    if r and (r.kind == "combo" or r.kind == "cloth" or r.kind == "swatch" or r.kind == "slider") then t[#t + 1] = { glyph = "<>", label = "Change" } end
-    t[#t + 1] = { glyph = "A", label = "Select" }
+    if r and (r.kind == "combo" or r.kind == "cloth" or r.kind == "swatch" or r.kind == "slider") then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
+    t[#t + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }
     t[#t + 1] = { glyph = "LB", label = "" }
-    t[#t + 1] = { glyph = "RB", label = "Turn" }
-    t[#t + 1] = { glyph = "X", label = "Random" }
-    t[#t + 1] = { glyph = "Y", label = "Outfits" }
-    t[#t + 1] = { glyph = "B", label = "Back" }
+    t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Looks_PromptTurn") }
+    t[#t + 1] = { glyph = "X", label = getText("UI_mapspawn_random") }
+    t[#t + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Looks_PromptOutfits") }
+    t[#t + 1] = { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) }
     return t
 end
 

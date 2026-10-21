@@ -93,7 +93,7 @@ local function nameOf(c)
     local fc = c and c:getFluidContainer()
     local n = fc and call(fc, "getTranslatedContainerName")
     if n and n ~= "" then return n end
-    return (owner and call(owner, "getTileName")) or "Container"
+    return (owner and call(owner, "getTileName")) or ZeD.tr("UI_ZeD_Fluid_Container")
 end
 
 local function iconOf(c)
@@ -138,21 +138,23 @@ local REASONS = nil
 local function tagForReason(reason)
     if not REASONS then
         REASONS = {
-            [txt("Fluid_Reason_Target_Full", "Container is full.")] = { "FULL", "dim" },
-            [txt("Fluid_Reason_Mixing_Locked", "Cannot mix these liquids.")] = { "WON'T MIX", "dng" },
-            [txt("Fluid_Reason_Target_Filter", "Cannot pour this liquid into target container.")] = { "WON'T TAKE", "dng" },
-            [txt("Fluid_Reason_Target_Locked", "Cannot pour into target container.")] = { "WON'T TAKE", "dng" },
+            -- (the tag is a translation key, shown through ZeD.tr below)
+            [txt("Fluid_Reason_Target_Full", "Container is full.")] = { "UI_ZeD_Fluid_TagFull", "dim" },
+            [txt("Fluid_Reason_Mixing_Locked", "Cannot mix these liquids.")] = { "UI_ZeD_Fluid_TagWontMix", "dng" },
+            [txt("Fluid_Reason_Target_Filter", "Cannot pour this liquid into target container.")] = { "UI_ZeD_Fluid_TagWontTake", "dng" },
+            [txt("Fluid_Reason_Target_Locked", "Cannot pour into target container.")] = { "UI_ZeD_Fluid_TagWontTake", "dng" },
         }
     end
     local r = reason and REASONS[reason]
-    if r then return r[1], r[2] end
+    if r then return ZeD.tr(r[1]), r[2] end
     return nil, nil
 end
 
 -- The engine refuses any pour into a container you carry while your
 -- inventory is over its limit, then reports its last reason ("Cannot mix
 -- these liquids."). Name the real cause instead.
-local TOO_FULL = "You carry too much to pour into a container in your bags."
+-- (an internal marker; the sentence the player reads is UI_ZeD_Fluid_TooFull)
+local TOO_FULL = "ZeD:TooFull"
 local function carriedTarget(fc, player)
     local o = fc and fc:getOwner()
     return o ~= nil and instanceof(o, "InventoryItem") and o:isInPlayerInventory()
@@ -230,10 +232,10 @@ function def.refresh(t, player)
     local rows = {}
     if t.pinned then
         rows[1] = { c = t.pinned, key = "pin", pin = true,
-            where = "NEARBY" }
+            where = ZeD.tr("UI_ZeD_ObjCard_WhereNearby") }
         if t.sq then
             local n = math.floor(OC.squareDist(player, t.sq) + 0.5)
-            rows[1].where = "NEARBY " .. DOT .. " " .. tostring(n) .. (n == 1 and " TILE" or " TILES")
+            rows[1].where = ZeD.tr(n == 1 and "UI_ZeD_Fluid_NearbyTile" or "UI_ZeD_Fluid_NearbyTiles", n)
         end
     end
     for _, r in ipairs(carried(player)) do rows[#rows + 1] = r end
@@ -252,20 +254,20 @@ function def.refresh(t, player)
         r.tag, r.tagK = nil, nil
         if ffc and not r.isFrom then
             if FluidContainer.CanTransfer(ffc, fc) then
-                if fc:isEmpty() then r.tag = "EMPTY"
+                if fc:isEmpty() then r.tag = ZeD.tr("UI_ZeD_Fluid_TagEmpty")
                 else
                     local prim = ffc:getPrimaryFluid()
-                    if prim and ffc:isPureFluid(prim) and fc:isPureFluid(prim) then r.tag = "SAME"
-                    else r.tag, r.tagK = "MIXES", "warn" end
+                    if prim and ffc:isPureFluid(prim) and fc:isPureFluid(prim) then r.tag = ZeD.tr("UI_ZeD_Fluid_TagSame")
+                    else r.tag, r.tagK = ZeD.tr("UI_ZeD_Fluid_TagMixes"), "warn" end
                 end
             else
                 local why = reasonFor(ffc, fc, player)
-                if why == TOO_FULL then r.tag, r.tagK = "TOO HEAVY", "dng"
+                if why == TOO_FULL then r.tag, r.tagK = ZeD.tr("UI_ZeD_Fluid_TagTooHeavy"), "dng"
                 else r.tag, r.tagK = tagForReason(why) end
                 r.canInto = false
             end
         elseif not r.isFrom and fc:isEmpty() then
-            r.tag = "EMPTY"
+            r.tag = ZeD.tr("UI_ZeD_Fluid_TagEmpty")
         end
         if d.pouring then r.canFrom, r.canInto = false, false end
     end
@@ -298,17 +300,17 @@ function def.refresh(t, player)
     -- verbs
     local verbs, needs = {}, {}
     local pourOK = d.can and d.max > 0 and (t.frac or 0) > 0 and not d.pouring
-    verbs[#verbs + 1] = { id = "pour", label = txt("Fluid_Transfer", "Pour"):upper(), primary = true, enabled = pourOK,
+    verbs[#verbs + 1] = { id = "pour", label = ZeD.upper(txt("Fluid_Transfer", "Pour")), primary = true, enabled = pourOK,
         run = function(p, tt) def.pour(p, tt) end }
-    verbs[#verbs + 1] = { id = "switch", label = txt("Fluid_Swap", "Switch"):upper(),
+    verbs[#verbs + 1] = { id = "switch", label = ZeD.upper(txt("Fluid_Swap", "Switch")),
         enabled = (t.from ~= nil or t.into ~= nil) and not d.pouring,
         run = function(p, tt) setSides(tt, tt.into, tt.from) end }
     local emptyOK = ffc ~= nil and not ffc:isEmpty() and ffc:canPlayerEmpty() and not t.from:isResource() and not d.pouring
     local emptyQ = nil
     if emptyOK then
-        emptyQ = "Pour " .. L(ffc:getAmount()) .. " of " .. string.lower(d.fluid or "liquid") .. " out on the ground?"
+        emptyQ = ZeD.tr("UI_ZeD_Fluid_ConfirmEmpty", L(ffc:getAmount()), string.lower(d.fluid or ZeD.tr("UI_ZeD_Fluid_LiquidWord")))
     end
-    verbs[#verbs + 1] = { id = "empty", label = txt("Fluid_Empty", "Empty"):upper(), enabled = emptyOK, danger = true,
+    verbs[#verbs + 1] = { id = "empty", label = ZeD.upper(txt("Fluid_Empty", "Empty")), enabled = emptyOK, danger = true,
         confirm = emptyQ,
         run = function(p, tt)
             local c = tt.from
@@ -317,7 +319,7 @@ function def.refresh(t, player)
             if c:isItem() then ISFluidContainerMenu.emptyFluidContainer(p, fc)
             else ISWorldObjectContextMenu.onFluidEmpty(p:getPlayerNum(), fc) end
         end }
-    if d.reason then needs[#needs + 1] = d.reason end
+    if d.reason then needs[#needs + 1] = (d.reason == TOO_FULL) and ZeD.tr("UI_ZeD_Fluid_TooFull") or d.reason end
     t.verbs, t.needs = verbs, needs
 end
 
@@ -348,9 +350,9 @@ function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not (d and t.from) then return nil end
-    if d.tainted then return string.upper(txt("Tooltip_tainted", "Tainted")), T.danger end
-    if not d.fluid then return "EMPTY", T.textDim end
-    return string.upper(d.fluid), T.textDim, d.fluidColor
+    if d.tainted then return ZeD.upper(txt("Tooltip_tainted", "Tainted")), T.danger end
+    if not d.fluid then return ZeD.tr("UI_ZeD_Fluid_PillEmpty"), T.textDim end
+    return ZeD.upper(d.fluid), T.textDim, d.fluidColor
 end
 
 -- An empty POUR INTO lands the controller on the first container that takes it.
@@ -473,7 +475,7 @@ local function drawVessel(card, x, y, w, label, name, fc, layers, after, incomin
     local nw = tm:MeasureStringX(f2, n)
     card:drawText(n, x + math.floor((w - nw) / 2), cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
     cy = cy + tm:getFontHeight(f2) + T.px(2)
-    local amt = fc:isHiddenAmount() and txt("Fluid_Unknown", "Unknown"):upper() or (L(fc:getAmount()) .. " / " .. L(fc:getCapacity()))
+    local amt = fc:isHiddenAmount() and ZeD.upper(txt("Fluid_Unknown", "Unknown")) or (L(fc:getAmount()) .. " / " .. L(fc:getCapacity()))
     local aw = tm:MeasureStringX(f3, amt)
     card:drawText(amt, x + math.floor((w - aw) / 2), cy, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f3)
     return h
@@ -515,7 +517,7 @@ local function drawFlow(card, x, y, w, h, d, amount, live)
         UI.big(card, big, bx, by, bpx, live and T.text or T.textDim)
         card:drawText("L", bx + bigW + T.px(3), by + T.px(bpx) - tm:getFontHeight(T.fontF3), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF3)
         if not d.pouring then
-            local sub = string.upper(txt("Fluid_Max_Transfer", "Max Pour")) .. " " .. L(d.max or 0)
+            local sub = ZeD.upper(txt("Fluid_Max_Transfer", "Max Pour")) .. " " .. L(d.max or 0)
             local sw = tm:MeasureStringX(T.fontF5, sub)
             card:drawText(sub, x + math.floor((w - sw) / 2), by + T.px(bpx) + T.px(4), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF5)
         end
@@ -528,8 +530,9 @@ local function drawAmount(card, x, y, w, t)
     local h = T.px(22)
     local f1 = T.fontF1
     local ac = T.accent
-    card:drawText("AMOUNT", x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
-    local labels = { { "1/4", 0.25 }, { "1/2", 0.5 }, { "ALL", 1 } }
+    local amountTxt = ZeD.upper(getText("Fluid_Amount"))
+    card:drawText(amountTxt, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local labels = { { "1/4", 0.25 }, { "1/2", 0.5 }, { ZeD.upper(getText("Fluid_All")), 1 } }
     local bx = x + w
     for i = #labels, 1, -1 do
         local lb = labels[i]
@@ -543,7 +546,7 @@ local function drawAmount(card, x, y, w, t)
             run = function() t.frac = frac; t._refreshT = OC.REFRESH end })
         bx = bx - T.px(4)
     end
-    local sx0 = x + tm:MeasureStringX(f1, "AMOUNT") + T.px(14)
+    local sx0 = x + tm:MeasureStringX(f1, amountTxt) + T.px(14)
     local sx1 = bx - T.px(10)
     local sw = sx1 - sx0
     local trY = y + math.floor(h / 2) - T.px(3)
@@ -589,16 +592,17 @@ local function drawPouring(card, x, y, w, t)
     card:drawRect(x, y, w, h, 0.10, col(ac))
     card:drawRectBorder(x, y, w, h, 1, col(ac))
     local f1, f3 = T.fontF1, T.fontF3
-    local lbl = string.upper(txt("Fluid_Transferring", "Pouring"))
+    local lbl = ZeD.upper(txt("Fluid_Transferring", "Pouring"))
     card:drawText(lbl, x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     local act = t.action
     local delta = jobDelta(act)
     local total = t.pourAmount or 0
-    local v = L(total * delta):gsub(" L$", "") .. " of " .. L(total)
-    local bw = UI.buttonW("STOP")
+    local done = L(total * delta):gsub(" L$", "")
+    local v = ZeD.tr("UI_ZeD_Fluid_PourProgress", done, L(total))
+    local bw = UI.buttonW(getText("IGUI_media_stop"))
     local bx = x + w - T.px(6) - bw
     local fid = "fl:stop"
-    UI.button(card, bx, y + math.floor((h - T.px(20)) / 2), "STOP", { h = T.px(20), focused = card._fid == fid })
+    UI.button(card, bx, y + math.floor((h - T.px(20)) / 2), getText("IGUI_media_stop"), { h = T.px(20), focused = card._fid == fid })
     card:zone({ fid = fid, x = bx, y = y + math.floor((h - T.px(20)) / 2), w = bw, h = T.px(20), body = true,
         run = function() if act then pcall(function() act:forceStop() end) end; t._refreshT = OC.REFRESH end })
     local vw = tm:MeasureStringX(f3, v)
@@ -631,7 +635,7 @@ local function drawLiquids(card, x, y, w, d, fc)
         local nx = x + T.px(2) + sw + T.px(8)
         card:drawText(l.name, nx, y + math.floor((rh - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
         if d.tainted and (l.tainted or l.poison) then
-            UI.tag(card, nx + tm:MeasureStringX(f2, l.name) + T.px(6), y + math.floor((rh - T.px(16)) / 2), string.upper(txt("Tooltip_tainted", "Tainted")), T.danger)
+            UI.tag(card, nx + tm:MeasureStringX(f2, l.name) + T.px(6), y + math.floor((rh - T.px(16)) / 2), ZeD.upper(txt("Tooltip_tainted", "Tainted")), T.danger)
         end
         local pctW, valW, barW = T.px(36), T.px(62), T.px(120)
         local rx = x + w - T.px(2)
@@ -650,7 +654,7 @@ local function drawLiquids(card, x, y, w, d, fc)
     if d.poison then
         local f1, f3 = T.fontF1, T.fontF3
         local ac = T.accent
-        card:drawText(string.upper(txt("Fluid_Poison", "Poison")), x + T.px(2), y + math.floor((rh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+        card:drawText(ZeD.upper(txt("Fluid_Poison", "Poison")), x + T.px(2), y + math.floor((rh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
         local vw = tm:MeasureStringX(f3, d.poison)
         ZeD.Atoms.drawTextRight(card, d.poison, x + w - T.px(2), y + math.floor((rh - tm:getFontHeight(f3)) / 2), f3, T.text)
         ZeD.Atoms.drawStatusDot(card, x + w - T.px(2) - vw - T.px(11), y + math.floor((rh - T.px(6)) / 2), T.danger, T.px(6))
@@ -666,7 +670,8 @@ local function drawRows(card, x, y, w, t, d)
     local y0 = y
     local rh = T.px(30)
     local f2, f5 = T.fontF2, T.fontF5
-    local btnW = math.max(T.px(44), UI.buttonW("INTO"), UI.buttonW("FROM"))
+    local fromTxt, intoTxt = ZeD.tr("UI_ZeD_Fluid_From"), ZeD.tr("UI_ZeD_Fluid_Into")
+    local btnW = math.max(T.px(44), UI.buttonW(intoTxt), UI.buttonW(fromTxt))
     for _, r in ipairs(d.rows) do
         if r.isFrom or r.isInto then card:drawRect(x, y, w, rh, 0.07, col(T.accent)) end
         local isz = T.px(16)
@@ -676,9 +681,9 @@ local function drawRows(card, x, y, w, t, d)
         local fromX = intoX - T.px(4) - btnW
         local by = y + math.floor((rh - T.px(20)) / 2)
         local fFid, iFid = "fl:from:" .. r.key, "fl:into:" .. r.key
-        UI.button(card, fromX, by, "FROM", { h = T.px(20), w = btnW, primary = r.isFrom, disabled = not (r.isFrom or r.canFrom),
+        UI.button(card, fromX, by, fromTxt, { h = T.px(20), w = btnW, primary = r.isFrom, disabled = not (r.isFrom or r.canFrom),
             focused = card._fid == fFid })
-        UI.button(card, intoX, by, "INTO", { h = T.px(20), w = btnW, primary = r.isInto, disabled = not (r.isInto or r.canInto),
+        UI.button(card, intoX, by, intoTxt, { h = T.px(20), w = btnW, primary = r.isInto, disabled = not (r.isInto or r.canInto),
             focused = card._fid == iFid })
         local rr = r
         card:zone({ fid = fFid, x = fromX, y = by, w = btnW, h = T.px(20), body = true,
@@ -698,7 +703,7 @@ local function drawRows(card, x, y, w, t, d)
             UI.tag(card, rx - tw, y + math.floor((rh - T.px(16)) / 2), r.tag, tc)
             rx = rx - tw - T.px(8)
         else
-            rx = rx - UI.tagW("WON'T TAKE") - T.px(8)
+            rx = rx - UI.tagW(ZeD.tr("UI_ZeD_Fluid_TagWontTake")) - T.px(8)
         end
         -- mini gauge: bar + "amt / cap"
         local gw = T.px(104)
@@ -707,7 +712,7 @@ local function drawRows(card, x, y, w, t, d)
         card:drawRect(gx, gy, gw, T.px(6), 1, col(T.surf1))
         if r.color and r.cap > 0 then card:drawRect(gx, gy, math.floor(gw * math.min(1, r.amt / r.cap)), T.px(6), 1, col(r.color)) end
         card:drawRectBorder(gx, gy, gw, T.px(6), T.borderS.a or 1, col(T.borderS))
-        local at = r.hidden and txt("Fluid_Unknown", "Unknown"):upper() or (L(r.amt) .. " / " .. L(r.cap))
+        local at = r.hidden and ZeD.upper(txt("Fluid_Unknown", "Unknown")) or (L(r.amt) .. " / " .. L(r.cap))
         ZeD.Atoms.drawTextRight(card, at, gx + gw, gy + T.px(8), f5, T.textDim)
         -- name + where
         local nx = x + T.px(2) + isz + T.px(8)
@@ -750,10 +755,10 @@ function def.body(card, x, y, w, t, player)
 
     -- tanks + flow
     local vw = T.px(VESSEL_W)
-    local hint = "Pick \"Into\" on a container below"
-    local hFrom = drawVessel(card, x, y, vw, string.upper(txt("Fluid_Source", "Pouring From")), d.fromName, ffc,
-        layersOf(d.fromLiquids), fromAfter, nil, "Pick \"From\" on a container below")
-    local hInto = drawVessel(card, x + w - vw, y, vw, string.upper(txt("Fluid_Target", "Pouring To")), d.intoName, ifc,
+    local hint = ZeD.tr("UI_ZeD_Fluid_HintInto")
+    local hFrom = drawVessel(card, x, y, vw, ZeD.upper(txt("Fluid_Source", "Pouring From")), d.fromName, ffc,
+        layersOf(d.fromLiquids), fromAfter, nil, ZeD.tr("UI_ZeD_Fluid_HintFrom"))
+    local hInto = drawVessel(card, x + w - vw, y, vw, ZeD.upper(txt("Fluid_Target", "Pouring To")), d.intoName, ifc,
         layersOf(d.intoLiquids), intoAfter, incoming, hint)
     local th = math.max(hFrom, hInto)
     drawFlow(card, x + vw + T.px(10), y, w - vw * 2 - T.px(20), th, d, (ffc and ifc) and (amount or 0) or nil, ffc ~= nil and ifc ~= nil)
@@ -769,12 +774,12 @@ function def.body(card, x, y, w, t, player)
 
     -- liquids
     if ffc and #d.fromLiquids > 0 then
-        y = y + UI.section(card, x, y, w, string.upper(txt("Fluid_Fluids", "Liquids")), string.upper(d.fromName or ""))
+        y = y + UI.section(card, x, y, w, ZeD.upper(txt("Fluid_Fluids", "Liquids")), ZeD.upper(d.fromName or ""))
         y = y + drawLiquids(card, x, y, w, d, ffc) + gap
     end
 
     -- your containers
-    y = y + UI.section(card, x, y, w, "YOUR CONTAINERS", tostring(#d.rows))
+    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Fluid_YourContainers"), tostring(#d.rows))
     y = y + drawRows(card, x, y, w, t, d)
     return y - y0
 end

@@ -200,7 +200,7 @@ function MM.optionRows(page)
             elseif (c.el.title == "" or c.el.title == nil) and c.el.colorPicker then r.kind = "color" end
         end
         if c.kind == "desc" then r.text = UI.plain(c.el.text or "") end
-        if c.kind == "special" then r.label = (c.el.Type == "ISControllerTestPanel") and "Controller test" or "Button map" end
+        if c.kind == "special" then r.label = ZeD.tr((c.el.Type == "ISControllerTestPanel") and "UI_ZeD_Options_ControllerTest" or "UI_ZeD_Options_ButtonMap") end
         if not (c.kind == "desc" and (r.text == nil or r.text == "")) then rows[#rows + 1] = r end
     end
     for _, l in ipairs(bucket.labels) do
@@ -214,7 +214,7 @@ function MM.optionRows(page)
     local out, sawSpecial = {}, false
     for _, r in ipairs(rows) do
         if r.kind == "special" then
-            if not sawSpecial then out[#out + 1] = { kind = "special", label = "Button map and test" }; sawSpecial = true end
+            if not sawSpecial then out[#out + 1] = { kind = "special", label = ZeD.tr("UI_ZeD_Options_ButtonMapAndTest") }; sawSpecial = true end
         else
             out[#out + 1] = r
         end
@@ -230,7 +230,7 @@ function MM.keyRows(page)
     local toggles = {}
     for _, r in ipairs(generic) do if r.kind == "tick" then toggles[#toggles + 1] = r end end
     if #toggles > 0 then
-        rows[#rows + 1] = { kind = "header", text = "Toggles" }
+        rows[#rows + 1] = { kind = "header", text = ZeD.tr("UI_ZeD_Options_Toggles"), id = "toggles" }   -- (id: ZeD_MainMenuOptionGroups finds this header by it)
         for _, r in ipairs(toggles) do rows[#rows + 1] = r end
     end
     for _, e in ipairs(MainOptions.keyText or {}) do
@@ -314,27 +314,29 @@ local function help(r)
             t = c.tooltip
         end
     end)
-    if r.kind == "key" then t = "Click the key, then press the new one (or a mouse button)." end
-    if r.kind == "special" then t = "The button map editor and the controller test open on vanilla's controller page." end
-    if r.kind == "stepper" then t = "How far a stick must move before the game counts it, for the controller picked under Test Controller." end
+    if r.kind == "key" then t = ZeD.tr("UI_ZeD_Options_HelpKey") end
+    if r.kind == "special" then t = ZeD.tr("UI_ZeD_Options_HelpSpecial") end
+    if r.kind == "stepper" then t = ZeD.tr("UI_ZeD_Options_HelpDeadzone") end
     t = t and UI.plain(t) or nil
     -- the groups' marks (ZeD_MainMenuOptionGroups): why it does nothing, where it works, where it lives
-    if r.moot then return "Does nothing with ZeD active. " .. r.moot end
+    -- (r.moot, r.only[2] and r.why are translation keys or plain words: G.text turns them into the player's language)
+    if r.moot then return ZeD.tr("UI_ZeD_Options_MootHelp", MM.optionGroups.text(r.moot)) end
     -- vanilla's tooltips often end without a full stop: add one before ZeD's words
     local function join(a, b)
         if not a or a == "" then return b end
         if not a:match("[%.%!%?]%s*$") then a = a .. "." end
         return a .. " " .. b
     end
-    if r.only then t = join(t, r.only[2]) end
-    if r.why then t = join(t, r.why) end
+    if r.only then t = join(t, MM.optionGroups.text(r.only[2])) end
+    if r.why then t = join(t, MM.optionGroups.text(r.why)) end
     return t
 end
 
 -- the line under a row's name: does nothing / only somewhere / where it lives
 local function underLine(r)
-    if r.moot then return "Does nothing with ZeD active" end
-    return r.under or (r.only and r.only[1])
+    if r.moot then return ZeD.tr("UI_ZeD_Options_MootUnder") end
+    if r.under then return MM.optionGroups.text(r.under) end
+    return r.only and MM.optionGroups.text(r.only[1])
 end
 
 -- ============================================================================
@@ -439,7 +441,7 @@ end
 function ZeD_MMOptions:pages()
     local t = {}
     for _, g in ipairs(MM.optionGroups.GROUPS) do
-        t[#t + 1] = { title = g.title, raw = g.id, group = true, setup = g.setup }
+        t[#t + 1] = { title = MM.optionGroups.text(g.title), raw = g.id, group = true, setup = g.setup }
     end
     return t
 end
@@ -455,7 +457,7 @@ function ZeD_MMOptions:rowsFor(page)
     local rows = gc.rows[page.raw] or {}
     -- the first time ZeD runs, its setup opens by itself with a word on top
     if page.setup and self.firstRun then
-        local t = { { kind = "note", text = "First time with ZeD: these set the game up for ZeD's look. Change what you like, then Apply. They stay here, and each game setting is in its own group too." } }
+        local t = { { kind = "note", text = ZeD.tr("UI_ZeD_Options_FirstRunNote") } }
         for _, r in ipairs(rows) do t[#t + 1] = r end
         return t
     end
@@ -747,9 +749,9 @@ function ZeD_MMOptions:prerender()
     if self.pageIdx > #pages then self.pageIdx = 1 end
     local page = pages[self.pageIdx]
     local q = string.lower(tostring(self.find:getInternalText() or ""))
-    self.title = "Project Zomboid  +  Options"
+    self.title = ZeD.tr("UI_ZeD_Options_Title")
     self.titleStats = {}
-    if self:anyChanged() then self.titleStats = { { text = "Changed", color = T.accent } } end
+    if self:anyChanged() then self.titleStats = { { text = ZeD.tr("UI_ZeD_Options_Changed"), color = T.accent } } end
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
@@ -800,8 +802,9 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
-    self:drawText("Find:", x + T.px(8), y + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-    local ex = x + T.px(8) + MM.textW(f2, "Find:") + T.px(8)
+    local findLabel = ZeD.tr("UI_ZeD_Options_Find")
+    self:drawText(findLabel, x + T.px(8), y + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+    local ex = x + T.px(8) + MM.textW(f2, findLabel) + T.px(8)
     local eh = T.px(24)
     UI.styleEntry(self.find, ex, y + math.floor((fH - eh) / 2), x + w - T.px(8) - ex, eh)
     local kind = self.kind
@@ -933,7 +936,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local text = keyLabel(r.entry)
         local capturing = (self.confirm == "key" and self._keyEntry == r.entry)
         local bw = math.max(T.px(90), MM.textW(T.fontF3, text) + T.px(24))
-        local b = { x = cx, y = midY - math.floor(T.px(26) / 2), w = bw, h = T.px(26), text = capturing and "Press a key" or text, variant = capturing and "primary" or "default", keepCase = not capturing }
+        local b = { x = cx, y = midY - math.floor(T.px(26) / 2), w = bw, h = T.px(26), text = capturing and ZeD.tr("UI_ZeD_Options_PressKey") or text, variant = capturing and "primary" or "default", keepCase = not capturing }
         local id = rowId .. ":key"
         MM.drawBtn(self, b, hot == kind .. ":" .. id, false, false)
         hit(id, b.x, b.y, b.w, b.h, function() self:startCapture(r.entry) end)
@@ -964,7 +967,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local tp = r.owner and r.owner.controllerTestPanel
         local ctrl = tp and tp.selectedController
         local val
-        if off then val = "Pick a Test Controller below"
+        if off then val = ZeD.tr("UI_ZeD_Options_PickController")
         elseif ctrl then val = string.format("%.2f", getControllerDeadZone(ctrl, 0))
         else val = tostring(r.value.name or "") end
         local vw = math.max(T.px(64), MM.textW(f2, val) + T.px(16))
@@ -979,7 +982,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         self:drawText(val, vx + math.floor((vw - MM.textW(f2, val)) / 2), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         step(rowId .. ":dzp", "+", vx + vw + gap, r.plus)
     elseif r.kind == "special" then
-        local text = "OPEN CONTROLLER SETUP"
+        local text = ZeD.tr("UI_ZeD_Options_OpenController")
         local b = { x = cx, y = midY - math.floor(T.px(26) / 2), w = MM.textW(T.fontF3, text) + T.px(28), h = T.px(26), text = text, variant = "default" }
         local id = rowId .. ":spc"
         MM.drawBtn(self, b, hot == kind .. ":" .. id, false, false)
@@ -1043,7 +1046,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
         local visible = ry + rh > vy and ry < vy + vh
         if r.kind == "header" then
             if visible then
-                ZeD.Molecules.drawSectionHeader(self, x + T.px(12), ry + T.px(3), inner - T.px(12), tostring(r.text):upper(), nil, true, false, T.fontF1, false, T.px(11), T.px(HEAD_H), true)
+                ZeD.Molecules.drawSectionHeader(self, x + T.px(12), ry + T.px(3), inner - T.px(12), ZeD.upper(tostring(r.text)), nil, true, false, T.fontF1, false, T.px(11), T.px(HEAD_H), true)
             end
         elseif r.kind == "note" or r.kind == "desc" then
             if visible then
@@ -1075,6 +1078,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 if self.rowDisabled and self:rowDisabled(r) then tc = T.textDim end   -- (Sandbox: an option that does nothing now)
                 if r.moot then tc = T.textDim end
                 local label = r.label ~= "" and r.label or ""
+                if r.labelKey then label = ZeD.tr(r.labelKey) end   -- ZeD's own options: read at draw time (test language)
                 self:drawText(ZeD.Atoms.truncateText(label, f2, lw - T.px(26)), lx, ry + math.floor((T.px(ROW_H) - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
                 -- the line under the name (Does nothing with ZeD active / Only ... / Game: where it lives)
                 local ul = underLine(r)
@@ -1113,7 +1117,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     end
     if #rows == 0 then
         local d = T.textDim
-        self:drawText(finding and "No option matches" or "", x + T.px(12), vy + T.px(12), d.r, d.g, d.b, d.a or 1, f2)
+        self:drawText(finding and ZeD.tr("UI_ZeD_Options_NoMatch") or "", x + T.px(12), vy + T.px(12), d.r, d.g, d.b, d.a or 1, f2)
     end
     -- the help band: the option under the pointer (or the controller's)
     if helpH == 0 then return end
@@ -1123,7 +1127,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     self:drawRect(x + T.px(1), hy, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
     local hr = self._cellRow or focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)   -- (_cellRow: a row edited in place)
     local htext = hr and help(hr) or nil
-    if hr and not htext and self:isChanged(hr) then htext = self.changedNote or "Changed: Apply to keep it." end
+    if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
     if htext then
         local tc = T.text
         local ly = hy + T.px(8)
@@ -1259,47 +1263,47 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
         -- (Oct 19 2026: Apply keeps the window open, so Back with changes only
         -- asks whether to lose them; the old Accept is gone)
         local n = self:changedCount()
-        ask = (n == 1) and "Discard 1 change?" or ("Discard " .. math.max(n, 1) .. " changes?")
+        ask = (n == 1) and ZeD.tr("UI_ZeD_Options_AskDiscardOne") or ZeD.tr("UI_ZeD_Options_AskDiscardMany", math.max(n, 1))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "Keep editing", function() self:setConfirm(false) end },
-            { "confirm:yes", "Discard", function() self:discard() end, "primary" } })
+            { "confirm:no", ZeD.tr("UI_ZeD_Options_KeepEditing"), function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Options_Discard"), function() self:discard() end, "primary" } })
     elseif self.confirm == "discard" then
         local n = self:changedCount()
-        ask = (n == 1) and "Discard 1 change?" or ("Discard " .. math.max(n, 1) .. " changes?")
+        ask = (n == 1) and ZeD.tr("UI_ZeD_Options_AskDiscardOne") or ZeD.tr("UI_ZeD_Options_AskDiscardMany", math.max(n, 1))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "Keep editing", function() self:setConfirm(false) end },
-            { "confirm:yes", "Discard", function() self:discardStay() end, "primary" } })
+            { "confirm:no", ZeD.tr("UI_ZeD_Options_KeepEditing"), function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Options_Discard"), function() self:discardStay() end, "primary" } })
     elseif self.confirm == "monitor" then
         local left = math.max(0, math.ceil(((self._monitorUntil or 0) - MM.now()) / 1000))
         if left <= 0 then self:answerMonitor(false); return self:buildStrip(stripY, stripH, w) end
-        ask = "Keep these screen settings? Going back in " .. left .. (left == 1 and " second." or " seconds.")
+        ask = (left == 1) and ZeD.tr("UI_ZeD_Options_AskMonitorOne") or ZeD.tr("UI_ZeD_Options_AskMonitorMany", left)
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "GO BACK", function() self:answerMonitor(false) end },
-            { "confirm:yes", "KEEP", function() self:answerMonitor(true) end, "primary" } })
+            { "confirm:no", ZeD.tr("UI_ZeD_Options_GoBack"), function() self:answerMonitor(false) end },
+            { "confirm:yes", getText("ContextMenu_Keep"), function() self:answerMonitor(true) end, "primary" } })
     elseif self.confirm == "restart" then
         ask = MM.ui.plain(getText("UI_restart_game_to_apply"))
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:yes", "OK", function() self:answerRestart() end, "primary" } })
+        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:yes", ZeD.tr("UI_ZeD_MainMenu_Ok"), function() self:answerRestart() end, "primary" } })
     elseif self.confirm == "key" then
         local e = self._keyEntry
-        ask = "Press a key or mouse button for " .. (e and e.txt and labelText(e.txt) or "it") .. "."
+        ask = ZeD.tr("UI_ZeD_Options_AskKey", (e and e.txt and labelText(e.txt) or ZeD.tr("UI_ZeD_Options_AskKeyIt")))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:clear", "NO KEY", function() self:clearKey() end },
-            { "confirm:default", "DEFAULT", function() self:defaultKey() end },
-            { "confirm:no", "CANCEL", function() self:stopCapture(); self:setConfirm(false) end } })
+            { "confirm:clear", ZeD.tr("UI_ZeD_Options_NoKey"), function() self:clearKey() end },
+            { "confirm:default", ZeD.tr("UI_ZeD_Options_KeyDefault"), function() self:defaultKey() end },
+            { "confirm:no", getText("UI_btn_cancel"), function() self:stopCapture(); self:setConfirm(false) end } })
     elseif self.confirm == "dup" then
         local d = self._dup
         local other = d and d.others[1] and d.others[1].txt and labelText(d.others[1].txt) or ""
         local fake = d and { keyCode = d.key, shift = d.shift, ctrl = d.ctrl, alt = d.alt } or nil
-        ask = keyLabel(fake) .. " is already " .. other .. "."
+        ask = ZeD.tr("UI_ZeD_Options_AskDup", keyLabel(fake), other)
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self._dup = nil; self:setConfirm(false) end },
-            { "confirm:both", "KEEP BOTH", function() self:answerDup(false) end },
-            { "confirm:yes", "TAKE IT", function() self:answerDup(true) end, "primary" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self._dup = nil; self:setConfirm(false) end },
+            { "confirm:both", getText("UI_optionscreen_KeybindKeep"), function() self:answerDup(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Options_TakeIt"), function() self:answerDup(true) end, "primary" } })
     elseif self.confirm == "text" then
-        ask = "Value:"
+        ask = ZeD.tr("UI_ZeD_Options_AskValue")
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "SET", function() self:commitText() end, "primary" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Options_Set"), function() self:commitText() end, "primary" } })
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
         local firstBtn = w
@@ -1310,9 +1314,9 @@ function ZeD_MMOptions:buildStrip(stripY, stripH, w)
         -- Back | Discard, Apply (Apply keeps the window open)
         local changed = self:anyChanged()
         UI.stripSpecs(self, stripY, w, row,
-            { { "back", "BACK", function() self:back() end } },
-            { { "discard", "DISCARD", function() self:setConfirm("discard") end, "default", not changed },
-              { "apply", "APPLY", function() self:apply(false) end, "primary", not changed } })
+            { { "back", getText("UI_btn_back"), function() self:back() end } },
+            { { "discard", ZeD.tr("UI_ZeD_Options_Discard"), function() self:setConfirm("discard") end, "default", not changed },
+              { "apply", getText("UI_btn_apply"), function() self:apply(false) end, "primary", not changed } })
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -1378,20 +1382,20 @@ end
 
 function ZeD_MMOptions:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
+    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
     local r = self:focusedRow()
     local t = {}
     if r then
-        if r.kind == "combo" or r.kind == "volume" or r.kind == "slider" or r.kind == "stepper" then t[#t + 1] = { glyph = "<>", label = "Change" } end
-        t[#t + 1] = { glyph = "A", label = (r.kind == "tick") and "Toggle" or "Select" }
+        if r.kind == "combo" or r.kind == "volume" or r.kind == "slider" or r.kind == "stepper" then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
+        t[#t + 1] = { glyph = "A", label = ZeD.tr((r.kind == "tick") and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") }
     end
     t[#t + 1] = { glyph = "LB", label = "" }
-    t[#t + 1] = { glyph = "RB", label = "Page" }
+    t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Options_PromptPage") }
     if self:anyChanged() then
-        t[#t + 1] = { glyph = "X", label = "Discard" }
-        t[#t + 1] = { glyph = "Y", label = "Apply" }
+        t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Options_Discard") }
+        t[#t + 1] = { glyph = "Y", label = ZeD.btnCase(getText("UI_btn_apply")) }
     end
-    t[#t + 1] = { glyph = "B", label = "Back" }
+    t[#t + 1] = { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) }
     return t
 end
 

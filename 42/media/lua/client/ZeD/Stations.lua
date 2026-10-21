@@ -18,6 +18,7 @@
 -- Overrides/Stations.lua.
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/CraftingCore"
 
 ZeD = ZeD or {}
@@ -76,7 +77,7 @@ function ST.nameOf(obj, kind)
             local s = getTextOrNull("IGUI_ContainerTitle_" .. tostring(t))
             if s and s ~= "" then return s end
         end
-        return kind == "micro" and "Microwave" or "Oven"
+        return getText(kind == "micro" and "IGUI_ContainerTitle_microwave" or "IGUI_ContainerTitle_stove")
     end
     local style = nil
     if ISEntityUI and ISEntityUI.GetEntityUiStyle then
@@ -85,7 +86,7 @@ function ST.nameOf(obj, kind)
     end
     local n = style and call(style, "getDisplayName")
     if not n or n == "" then n = call(obj, "getEntityDisplayName") end
-    if not n or n == "" then n = "Station" end
+    if not n or n == "" then n = ZeD.tr("UI_ZeD_Station_Fallback") end
     return tostring(n)
 end
 
@@ -102,7 +103,9 @@ end
 
 ST.DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
-local KIND_LABEL = { bench = "BENCH", machine = "MACHINE", oven = "APPLIANCE", micro = "APPLIANCE" }
+-- the keys of the kind words on the station band (translated where they are drawn)
+local KIND_LABEL = { bench = "UI_ZeD_Station_KindBench", machine = "UI_ZeD_Station_KindMachine",
+    oven = "UI_ZeD_Station_KindAppliance", micro = "UI_ZeD_Station_KindAppliance" }
 ST.KIND_LABEL = KIND_LABEL
 
 function ST.reachFor(kind)
@@ -125,7 +128,13 @@ end
 
 function ST.tilesText(d)
     local n = math.max(1, math.floor((d or 0) + 0.5))
-    return n == 1 and "1 TILE" or (tostring(n) .. " TILES")
+    return n == 1 and ZeD.tr("UI_ZeD_Station_TileOne") or ZeD.tr("UI_ZeD_Station_TileMany", n)
+end
+
+-- "The nearest is 3 tiles away." (a whole sentence per count, never glued)
+function ST.nearestText(d)
+    local n = math.max(1, math.floor((d or 0) + 0.5))
+    return n == 1 and ZeD.tr("UI_ZeD_Station_NearestOne") or ZeD.tr("UI_ZeD_Station_NearestMany", n)
 end
 
 local function keyFor(sq, kind, obj)
@@ -253,11 +262,11 @@ end
 -- short row tag ("KILN", "FORGE").
 -- ----------------------------------------------------------------------------
 local SHORT_TAG = {
-    WoodCharcoal = "CHARCOAL", CoffeeMachine = "COFFEE",
-    DryingRackGrain = "RACK", DryingRackHerb = "RACK",
-    DryLeatherLarge = "RACK", DryLeatherMedium = "RACK", DryLeathersmall = "RACK",
-    Stone_Quern = "QUERN", Stone_Mill = "MILL",
-    RemoveFlesh = "BEAM", RemoveFur = "BEAM", TanLeather = "BARREL",
+    WoodCharcoal = "UI_ZeD_Station_ShortCharcoal", CoffeeMachine = "UI_ZeD_Station_ShortCoffee",
+    DryingRackGrain = "UI_ZeD_Station_ShortRack", DryingRackHerb = "UI_ZeD_Station_ShortRack",
+    DryLeatherLarge = "UI_ZeD_Station_ShortRack", DryLeatherMedium = "UI_ZeD_Station_ShortRack", DryLeathersmall = "UI_ZeD_Station_ShortRack",
+    Stone_Quern = "UI_ZeD_Station_ShortQuern", Stone_Mill = "UI_ZeD_Station_ShortMill",
+    RemoveFlesh = "UI_ZeD_Station_ShortBeam", RemoveFur = "UI_ZeD_Station_ShortBeam", TanLeather = "UI_ZeD_Station_ShortBarrel",
 }
 local HEAT_TAG = { Forge = true, PrimitiveForge = true, AdvancedForge = true,
     Furnace = true, PrimitiveFurnace = true, AdvancedFurnace = true,
@@ -270,7 +279,8 @@ function ST.recipeStation(recipe)
     local name = call(recipe, "getName")
     if not name then return nil end
     local cached = _recipeStation[name]
-    if cached ~= nil then return cached or nil end
+    -- (the words are cached; the test language flips them, so a flip recomputes)
+    if cached ~= nil and (cached == false or cached.tt == ZeD.trTestOn()) then return cached or nil end
     local info = false
     if call(recipe, "requiresSpecificWorkstation") then
         local tags = call(recipe, "getTags")
@@ -284,31 +294,36 @@ function ST.recipeStation(recipe)
                 if HEAT_TAG[tag] then heat = true end
                 if not short then
                     short = SHORT_TAG[tag]
-                    if not short then
+                    if short then
+                        short = ZeD.tr(short)
+                    else
                         local last = nil
                         for word in string.gmatch(lbl, "[%a%-]+") do last = word end
-                        short = string.upper(last or lbl)
+                        short = ZeD.upper(last or lbl)
                     end
                 end
             end
         end
         if #labels > 0 then
             local label = labels[1]
-            for i = 2, #labels do label = label .. (i == #labels and " or " or ", ") .. labels[i] end
-            info = { label = label, short = short or "STATION", heat = heat }
+            for i = 2, #labels do
+                label = ZeD.tr(i == #labels and "UI_ZeD_Station_ListOr" or "UI_ZeD_Station_ListComma", label, labels[i])
+            end
+            info = { label = label, short = short or ZeD.tr("UI_ZeD_Station_ShortFallback"), heat = heat, tt = ZeD.trTestOn() }
         end
     end
     _recipeStation[name] = info
     return info or nil
 end
 
--- "a Primitive Kiln" / "an Advanced Forge"
-function ST.withArticle(label)
+-- "Needs a Primitive Kiln." / "Needs an Advanced Forge." One sentence per article, so a
+-- language with no articles writes the same words in both keys.
+function ST.needsText(label)
     local first = string.lower(string.sub(label or "", 1, 1))
     if first == "a" or first == "e" or first == "i" or first == "o" or first == "u" then
-        return "an " .. label
+        return ZeD.tr("UI_ZeD_Station_NeedsAn", label)
     end
-    return "a " .. label
+    return ZeD.tr("UI_ZeD_Station_NeedsA", label)
 end
 
 -- ----------------------------------------------------------------------------
@@ -487,7 +502,7 @@ local OPT_H, HDR_H, DD_MAX_VIS = 26, 18, 9
 function ST.dropdownRows(player)
     local rows = { { kind = "hand" } }
     local list = ST.nearby(player)
-    rows[#rows + 1] = { kind = "hdr", label = (#list > 0) and "WITHIN REACH" or "NOTHING WITHIN REACH" }
+    rows[#rows + 1] = { kind = "hdr", label = ZeD.tr((#list > 0) and "UI_ZeD_Station_InReach" or "UI_ZeD_Station_NoneInReach") }
     for _, st in ipairs(list) do rows[#rows + 1] = { kind = "station", st = st } end
     return rows
 end
@@ -558,8 +573,8 @@ function ST.drawDropdown(panel, geo, rows, scrollOff, current, focusId, prefix)
                 panel:drawRect(ix, iy, isz, isz, s3.a, s3.r, s3.g, s3.b)
                 panel:drawRectBorder(ix, iy, isz, isz, T.border.a, T.border.r, T.border.g, T.border.b)
             end
-            local name = (r.kind == "hand") and "Hand" or r.st.name
-            local meta = (r.kind == "hand") and "ANY SURFACE" or (r.st.inUse and "IN USE" or ST.tilesText(r.st.dist))
+            local name = (r.kind == "hand") and ZeD.tr("UI_ZeD_Station_Hand") or r.st.name
+            local meta = (r.kind == "hand") and ZeD.tr("UI_ZeD_Station_AnySurface") or (r.st.inUse and ZeD.tr("UI_ZeD_Station_InUse") or ST.tilesText(r.st.dist))
             local mf = T.fontF1
             local mw = tm:MeasureStringX(mf, meta)
             local nf = T.fontF2
@@ -594,16 +609,16 @@ end
 function ST.stateText(st, player)
     local T = ZeD.T
     if st.kind == "bench" then
-        return "In use by you", T.positive
+        return ZeD.tr("UI_ZeD_Station_StateInUseByYou"), T.positive
     elseif st.kind == "machine" then
-        if st.comp and call(st.comp, "isRunning") then return "Running", T.positive end
-        return "Idle", T.textDim
+        if st.comp and call(st.comp, "isRunning") then return ZeD.tr("UI_ZeD_Station_StateRunning"), T.positive end
+        return ZeD.tr("UI_ZeD_Station_StateIdle"), T.textDim
     else
         local c = call(st.obj, "getContainer")
         local powered = c and call(c, "isPowered")
-        if not powered then return "No power", T.danger end
-        if call(st.obj, "Activated") then return "On", T.positive end
-        return "Off", T.textDim
+        if not powered then return ZeD.tr("UI_ZeD_Station_StateNoPower"), T.danger end
+        if call(st.obj, "Activated") then return getText("UI_On"), T.positive end
+        return getText("UI_Off"), T.textDim
     end
 end
 
@@ -631,7 +646,7 @@ function ST.drawBand(panel, x, y, w, st, player)
     local stX = x + w - T.px(10) - stW
     panel:drawText(stTxt, stX, y + math.floor((h - tm:getFontHeight(sf)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, sf)
     A.drawStatusDot(panel, stX - dotSz - T.px(5), y + math.floor((h - dotSz) / 2), stCol, dotSz)
-    local meta = ST.tilesText(st.dist) .. "  " .. ST.DOT .. "  " .. (KIND_LABEL[st.kind] or "")
+    local meta = ST.tilesText(st.dist) .. "  " .. ST.DOT .. "  " .. (KIND_LABEL[st.kind] and ZeD.tr(KIND_LABEL[st.kind]) or "")
     local mf = T.fontF1
     local nf = T.fontF4
     local metaW = tm:MeasureStringX(mf, meta)
@@ -708,7 +723,7 @@ function ST.dropdownFocusables(state, player, prefix)
                     state.stDropdownOpen = false
                     state.stDropdownScroll = 0
                 end,
-                promptB = "Close",
+                promptB = getText("UI_Close"),
             }
         end
     end
@@ -723,7 +738,7 @@ function ST.addLeaveCancel(elements, win, prefix)
     for _, el in ipairs(elements) do
         if not el.onCancel then
             el.onCancel = function(w, _el) ST.unbind(w._playerObj) end
-            el.promptB = "Leave station"
+            el.promptB = ZeD.tr("UI_ZeD_Station_Leave")
         end
     end
 end
@@ -754,7 +769,7 @@ function ST.renderViewHeader(panel, win, x, y, w, state, st)
     local sx, sy, sw = x + pad, y + pad, w - pad * 2
     local mx, my = panel:getMouseX(), panel:getMouseY()
     local hov = (not state.stDropdownOpen) and mx >= sx and mx < sx + sw and my >= sy and my < sy + h
-    ST.drawSelect(panel, sx, sy, sw, h, "STATION", st.name, true, state._gpFocusedId == "craft:stDrop", hov)
+    ST.drawSelect(panel, sx, sy, sw, h, ZeD.tr("UI_ZeD_Station_SelectLabel"), st.name, true, state._gpFocusedId == "craft:stDrop", hov)
     state.zones[#state.zones + 1] = { type = "stationDropdown", x = sx, y = sy, w = sw, h = h }
     state._stGeo = { x = sx, y = sy + h, w = math.floor(sw / 2) }
     ZeD.Atoms.drawDividerH(panel, x, y + pad * 2 + h - T.px(1), w, true)

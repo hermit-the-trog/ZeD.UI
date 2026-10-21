@@ -94,8 +94,8 @@ end
 function def.refresh(t, player)
     t.d = { name = t.item:getDisplayName(), tex = t.item:getTex() }
     t.verbs = {
-        { id = "done", label = "DONE", primary = true, run = function(p, tt, card) card:close() end },
-        { id = "revert", label = string.upper(getText("IGUI_ExtendedPlacement_Revert")), run = function(p, tt) revert(tt) end },
+        { id = "done", label = getText("UI_mods_Done"), primary = true, run = function(p, tt, card) card:close() end },
+        { id = "revert", label = ZeD.upper(getText("IGUI_ExtendedPlacement_Revert")), run = function(p, tt) revert(tt) end },
     }
     t.needs = {}
 end
@@ -103,7 +103,7 @@ end
 -- a controller lands on the first slider, ready to move
 function def.openFocus(t) return "p3:move:x" end
 
-function def.title(t) return t.d and t.d.name or "Item" end
+function def.title(t) return t.d and t.d.name or ZeD.tr("UI_ZeD_Place_Item") end
 function def.icon(t) return t.d and t.d.tex or nil end
 
 -- the card leaves: save the placement and put the gizmo away (vanilla close())
@@ -214,10 +214,10 @@ function def.body(card, x, y, w, t, player)
     end
     pcall(driveGizmo, t)
 
-    y = y + UI.section(card, x, y, w, string.upper(getText("IGUI_ExtendedPlacement_ModeMovement")), "WITHIN THE TILE")
+    y = y + UI.section(card, x, y, w, ZeD.upper(getText("IGUI_ExtendedPlacement_ModeMovement")), ZeD.tr("UI_ZeD_Place_WithinTile"))
     for _, ax in ipairs(AXES.move) do y = y + axisRow(card, x, y, w, t, "move", ax) end
     y = y + T.px(8)
-    y = y + UI.section(card, x, y, w, string.upper(getText("IGUI_ExtendedPlacement_ModeRotation")), "DEGREES")
+    y = y + UI.section(card, x, y, w, ZeD.upper(getText("IGUI_ExtendedPlacement_ModeRotation")), ZeD.tr("UI_ZeD_Place_Degrees"))
     for _, ax in ipairs(AXES.turn) do y = y + axisRow(card, x, y, w, t, "turn", ax) end
     return y - y0
 end

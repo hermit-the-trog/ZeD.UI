@@ -20,6 +20,7 @@
 -- ============================================================================
 
 require "ZeD/ZeD_PrintPage"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.FlyerMap = ZeD.FlyerMap or {}
@@ -176,8 +177,8 @@ function F.drawCard(mp)
     if not p then return end
     local meta = F.meta(p.id)
     local title, teaser = meta.title, meta.teaser
-    local status = p.done and "Been there" or "Not been there"
-    local hint = pad and "A to read" or "Click to read"
+    local status = ZeD.tr(p.done and "UI_ZeD_Flyer_BeenThere" or "UI_ZeD_Flyer_NotBeenThere")
+    local hint = ZeD.tr(pad and "UI_ZeD_Flyer_PadRead" or "UI_ZeD_Flyer_ClickRead")
     local f2, f1 = T.fontF2, T.fontF1
     local tm = ZeD.TM
     local padX, padY = T.px(8), T.px(6)

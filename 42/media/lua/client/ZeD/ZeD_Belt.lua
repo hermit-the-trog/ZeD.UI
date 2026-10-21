@@ -22,6 +22,7 @@
 -- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/ZeD_Panel"
@@ -292,19 +293,40 @@ function B.keyLabel(i)
     return name
 end
 
+-- slot type -> the key of its short name on the box (Back is vanilla's own word, below)
 local SHORT = {
-    Back = "BACK", SmallBeltLeft = "BELT L", SmallBeltRight = "BELT R",
-    HolsterRight = "HOLSTER", HolsterLeft = "HOLSTER L", HolsterShoulder = "SHOULDER", HolsterAnkle = "ANKLE",
-    WebbingLeft = "WEB L", WebbingRight = "WEB R",
-    BedrollBottom = "PACK", BedrollBottomBig = "PACK", BedrollBottomALICE = "PACK",
+    SmallBeltLeft = "UI_ZeD_Belt_SlotBeltL", SmallBeltRight = "UI_ZeD_Belt_SlotBeltR",
+    HolsterRight = "UI_ZeD_Belt_SlotHolster", HolsterLeft = "UI_ZeD_Belt_SlotHolsterL",
+    HolsterShoulder = "UI_ZeD_Belt_SlotShoulder", HolsterAnkle = "UI_ZeD_Belt_SlotAnkle",
+    WebbingLeft = "UI_ZeD_Belt_SlotWebL", WebbingRight = "UI_ZeD_Belt_SlotWebR",
+    BedrollBottom = "UI_ZeD_Belt_SlotPack", BedrollBottomBig = "UI_ZeD_Belt_SlotPack", BedrollBottomALICE = "UI_ZeD_Belt_SlotPack",
 }
-function B.shortName(slotType) return SHORT[slotType] or string.upper(tostring(slotType or "")) end
+ZeD.trDefaults({
+    UI_ZeD_Belt_SlotBeltL = "BELT L", UI_ZeD_Belt_SlotBeltR = "BELT R", UI_ZeD_Belt_SlotHolster = "HOLSTER",
+    UI_ZeD_Belt_SlotHolsterL = "HOLSTER L", UI_ZeD_Belt_SlotShoulder = "SHOULDER", UI_ZeD_Belt_SlotAnkle = "ANKLE",
+    UI_ZeD_Belt_SlotWebL = "WEB L", UI_ZeD_Belt_SlotWebR = "WEB R", UI_ZeD_Belt_SlotPack = "PACK",
+    UI_ZeD_Belt_Tag = "BELT %1", UI_ZeD_Belt_InHand = "IN HAND", UI_ZeD_Belt_Both = "BOTH",
+    UI_ZeD_Belt_SlotKey = "%1 | KEY %2", UI_ZeD_Belt_Watch = "WATCH", UI_ZeD_Belt_WatchSpeed = "SPEED | %1X",
+    UI_ZeD_Belt_WatchStart = "START", UI_ZeD_Belt_WatchLight = "LIGHT", UI_ZeD_Belt_WatchTuck = "%1 | TUCK AWAY",
+    UI_ZeD_Belt_WatchFull = "%1 | FULL WATCH", UI_ZeD_Belt_Replace = "REPLACE %1",
+    UI_ZeD_Belt_InBags = "IN YOUR BAGS", UI_ZeD_Belt_BestLight = "Best light: %1",
+})
+function B.shortName(slotType)
+    if slotType == "Back" then return ZeD.upper(getText("IGUI_HotbarAttachment_Back")) end
+    local key = SHORT[slotType]
+    if key then return ZeD.tr(key) end
+    return string.upper(tostring(slotType or ""))
+end
+-- "PRIMARY" / "SECONDARY" (vanilla's words for the two hands)
+function B.handName(which)
+    return ZeD.upper(getText(which == "p" and "IGUI_PrimaryTooltip" or "IGUI_SecondaryTooltip"))
+end
 function B.slotName(slot)
     if not slot then return "" end
     return getTextOrNull("IGUI_HotbarAttachment_" .. tostring(slot.slotType)) or tostring(slot.name or slot.slotType)
 end
 -- "BELT 3" in the inventory lists (the key that draws it)
-function B.tagFor(i) return "BELT " .. tostring(B.keyLabel(i) or i) end
+function B.tagFor(i) return ZeD.tr("UI_ZeD_Belt_Tag", tostring(B.keyLabel(i) or i)) end
 
 -- The worn item that gives a slot (Back is always there)
 function B.provider(playerObj, slotType)
@@ -820,7 +842,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
     -- the foot: IN HAND / BOTH, or the condition bar
     local f5 = T.fontF5
     if o.inHand or o.ghost then
-        local tag = o.inHand and "IN HAND" or "BOTH"
+        local tag = o.inHand and ZeD.tr("UI_ZeD_Belt_InHand") or ZeD.tr("UI_ZeD_Belt_Both")
         local tw = tm:MeasureStringX(f5, tag)
         local ac = T.accent
         local up = round and T.px(4) or 0                -- inside the circle's curve
@@ -926,7 +948,7 @@ function ZeD_BeltHUD:_prerender()
         elseif b.kind == "hand" then
             local item = b.which == "p" and pri or (not two and sec or nil)
             o.item = item
-            o.label = b.which == "p" and "PRIMARY" or "SECONDARY"
+            o.label = B.handName(b.which)
             if b.which == "s" and two then o.item = pri; o.ghost = true end
             o.lit = item and call(item, "canBeActivated") and call(item, "isActivated")
         else
@@ -953,24 +975,24 @@ function ZeD_BeltHUD:_prerender()
     local hv = self._hover
     if hv and hv.b.kind == "slot" then
         local s = hv.b.s
-        self:_chip(hv.b, string.upper(s.name) .. (s.key and (" " .. DOT .. " KEY " .. s.key) or ""))
+        self:_chip(hv.b, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", ZeD.upper(s.name), s.key) or ZeD.upper(s.name))
     elseif hv and hv.b.kind == "hand" then
-        self:_chip(hv.b, hv.b.which == "p" and "PRIMARY" or "SECONDARY")
+        self:_chip(hv.b, B.handName(hv.b.which))
     elseif hv and hv.b.kind == "watch" then
         local id = ZeD.WatchMini.hit(hv.b.plate, mx - hv.b.x, my - hv.b.y)
-        local name = string.upper(call(hv.b.item, "getDisplayName") or "WATCH")
+        local name = ZeD.upper(call(hv.b.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch"))
         local sp = ZeD.Watch.miniState(p, hv.b.item).speed
-        local lbl = (id == "speed" and ("SPEED " .. DOT .. " " .. math.max(sp, 1) .. "X"))
-            or (id == "start" and (sp == 0 and "START" or "PAUSE"))
-            or (id == "light" and "LIGHT")
-            or (id == "face" and (name .. " " .. DOT .. " " .. ((ZeD.Watch.getInstance() and ZeD.Watch.getInstance()._popped) and "TUCK AWAY" or "FULL WATCH")))
+        local lbl = (id == "speed" and ZeD.tr("UI_ZeD_Belt_WatchSpeed", math.max(sp, 1)))
+            or (id == "start" and (sp == 0 and ZeD.tr("UI_ZeD_Belt_WatchStart") or ZeD.upper(getText("UI_Pause"))))
+            or (id == "light" and ZeD.tr("UI_ZeD_Belt_WatchLight"))
+            or (id == "face" and ZeD.tr((ZeD.Watch.getInstance() and ZeD.Watch.getInstance()._popped) and "UI_ZeD_Belt_WatchTuck" or "UI_ZeD_Belt_WatchFull", name))
             or name
         self:_chip(hv.b, lbl)
     end
     if dragging and over and over.kind == "slot" then
         local st, it = self:_dropState(over, dragging)
         local cur = over.s.item
-        if st == "fit" and cur then self:_chip(over, "REPLACE " .. string.upper(cur:getDisplayName())) end
+        if st == "fit" and cur then self:_chip(over, ZeD.tr("UI_ZeD_Belt_Replace", ZeD.upper(cur:getDisplayName()))) end
     end
     self:_tooltip(hv and hv.item or nil, hv and hv.b or nil)
 
@@ -1284,7 +1306,7 @@ function ZeD_BeltHUD:_drawPadList()
     self:drawRect(x, y, lw, hh, 1, col(T.surf2))
     local f1, f2 = T.fontF1, T.fontF2
     local ac = T.accent
-    self:drawText("IN YOUR BAGS", x + T.px(8), y + math.floor((hh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    self:drawText(ZeD.tr("UI_ZeD_Belt_InBags"), x + T.px(8), y + math.floor((hh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     if #rows == 0 then return end
     for n, e in ipairs(rows) do
         local ry = y + hh + (n - 1) * rh
@@ -1292,13 +1314,13 @@ function ZeD_BeltHUD:_drawPadList()
         local tex = call(e.item, "getTex")
         local isz = T.px(18)
         if tex then self:drawTextureScaledAspect(tex, x + T.px(8), ry + math.floor((rh - isz) / 2), isz, isz, 1, 1, 1, 1) end
-        local name = (e.kind == "light" and "Best light: " or "") .. e.item:getDisplayName()
+        local name = e.kind == "light" and ZeD.tr("UI_ZeD_Belt_BestLight", e.item:getDisplayName()) or e.item:getDisplayName()
         local tc = T.text
         self:drawText(name, x + T.px(34), ry + math.floor((rh - tm:getFontHeight(f2)) / 2), tc.r, tc.g, tc.b, 1, f2)
-        local where = "INVENTORY"
+        local where = ZeD.upper(getText("IGUI_InventoryTooltip"))
         local c = e.item:getContainer()
         local bag = c and c:getContainingItem()
-        if bag then where = string.upper(bag:getName()) end
+        if bag then where = ZeD.upper(bag:getName()) end
         if e.item:getAttachedSlot() > 0 then where = B.tagFor(e.item:getAttachedSlot()) end
         ZeD.Atoms.drawTextRight(self, where, x + lw - T.px(8), ry + math.floor((rh - tm:getFontHeight(f1)) / 2), f1, T.textDim)
         self:drawRect(x, ry + rh - T.px(1), lw, T.px(1), 1, col(T.border))

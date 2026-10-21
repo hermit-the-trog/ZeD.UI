@@ -10,6 +10,7 @@
 
 require "ISUI/ISPanel"
 require "ZeD/Tokens"
+require "ZeD/Tr"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
@@ -28,6 +29,28 @@ ZeD = ZeD or {}
 local SORT_COLS = {"name", "cat", "cond", "wt"}
 ZeD.InventoryRenderer = {}  -- shared module, consumed by ZeD_CharacterWindow
 
+-- An item's category as vanilla's inventory shows it: the display category set in the item
+-- script, else the Java category. This KEY groups, sorts and names the collapsed state;
+-- catLabel turns it into the player's word (vanilla's IGUI_ItemCat_<key>), the key itself
+-- when the game has no word for it.
+function ZeD.InventoryRenderer.catKey(item)
+    local dc = item:getDisplayCategory()
+    if dc and dc ~= "" then return dc end
+    return item:getCategory() or "Other"
+end
+-- (kept per key: rows ask every frame; dropped when the game's language changes, ZeD._trGen)
+local _catLbl, _catGen = {}, -1
+function ZeD.InventoryRenderer.catLabel(key)
+    key = tostring(key)
+    if _catGen ~= ZeD._trGen then _catLbl, _catGen = {}, ZeD._trGen end
+    local s = _catLbl[key]
+    if s == nil then
+        s = (getTextOrNull and getTextOrNull("IGUI_ItemCat_" .. key)) or key
+        _catLbl[key] = s
+    end
+    return s
+end
+
 local function getCondPct(item)
     local mx = item:getConditionMax()
     if not mx or mx <= 0 then return -1 end
@@ -44,13 +67,13 @@ local function makeSorter(col, asc)
     elseif col == "cat" then
         if asc then
             return function(a, b)
-                local ca, cb = a:getCategory() or "", b:getCategory() or ""
+                local ca, cb = ZeD.InventoryRenderer.catKey(a), ZeD.InventoryRenderer.catKey(b)
                 if ca ~= cb then return ca < cb end
                 return (a:getName() or "") < (b:getName() or "")
             end
         else
             return function(a, b)
-                local ca, cb = a:getCategory() or "", b:getCategory() or ""
+                local ca, cb = ZeD.InventoryRenderer.catKey(a), ZeD.InventoryRenderer.catKey(b)
                 if ca ~= cb then return ca > cb end
                 return (a:getName() or "") < (b:getName() or "")
             end
@@ -449,7 +472,7 @@ local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
         local over = mx >= zx and mx < zx + bw and my >= ty and my < ty + bh
         if gpFocusedToggle(id) then self:drawRect(zx, ty, bw, bh, 0.55, ac.r, ac.g, ac.b)
         elseif over and not on then self:drawRect(zx, ty, bw, bh, 0.22, ac.r, ac.g, ac.b) end
-        if over then self._gridHintCand = { key = id, text = (v == "list") and "List view" or "Grid view", x = zx, y = ty + bh + T.px(4), below = true } end
+        if over then self._gridHintCand = { key = id, text = (v == "list") and getText("IGUI_CraftingWindow_ListView") or ZeD.tr("UI_ZeD_Inv_GridView"), x = zx, y = ty + bh + T.px(4), below = true } end
         GV.toggles[#GV.toggles + 1] = { x = zx, y = ty, w = bw, h = bh, view = v, key = GV.key, id = id }
     end
     return tW + padX
@@ -604,7 +627,7 @@ local function drawGridGroups(self, GV, catOrder, groups, collapsed, stackedGrou
             else
                 self:drawRect(xOff, y, scrollX, catHdrH, s2.a, s2.r, s2.g, s2.b)
             end
-            ZeD.Atoms.drawSecondary(self, (isClosed and "> " or "v ") .. string.upper(cat) .. " (" .. #groups[cat] .. ")",
+            ZeD.Atoms.drawSecondary(self, (isClosed and "> " or "v ") .. ZeD.upper(ZeD.InventoryRenderer.catLabel(cat)) .. " (" .. #groups[cat] .. ")",
                 xOff + GV.padX + T.px(2), y + math.floor((catHdrH - GV.secFH) / 2), T.toneLo)
             ZeD.Atoms.drawDividerH(self, xOff, y + catHdrH - T.px(1), scrollX, false)
             self:addHitZone("cat:" .. cat, xOff, y, scrollX, catHdrH)
@@ -623,8 +646,8 @@ end
 -- the grid's column bar: no columns to sort by, it names the list's order
 local function drawGridOrder(self, x, y, w, sortCol)
     local T = ZeD.T
-    local names = { name = "NAME", cat = "CATEGORY", cond = "CONDITION", wt = "WEIGHT" }
-    local lbl = "ORDER: " .. (names[sortCol] or "NAME") .. ", AS THE LIST"
+    local names = { name = "UI_ZeD_Inv_ColName", cat = "UI_ZeD_Inv_OrderCat", cond = "UI_ZeD_Inv_OrderCond", wt = "UI_ZeD_Inv_OrderWt" }
+    local lbl = ZeD.tr("UI_ZeD_Inv_OrderLine", ZeD.tr(names[sortCol] or "UI_ZeD_Inv_ColName"))
     local tc = T.toneLo or T.textDim
     self:drawText(ZeD.Atoms.truncateText(lbl, T.fontF5, w), x, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF5)
 end
@@ -695,7 +718,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
         for i = 0, items:size() - 1 do
             local item = items:get(i)
             if item and not item:isHidden() and not (isPlayerInv and heldByPlayer(playerObj, item)) then
-                local cat = item:getCategory() or "Other"
+                local cat = ZeD.InventoryRenderer.catKey(item)
                 if not groups[cat] then
                     groups[cat] = {}
                     catOrder[#catOrder + 1] = cat
@@ -884,7 +907,7 @@ local function renderItemList(self)
         -- common category ("Literature") and a weight in the columns' own
         -- fonts, so Large shows "Literature" whole, not "Liter..."
         colWData = {
-            cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, "Literature"), T.px(96)) + padX * 2),
+            cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
             cond = math.floor(50 * scale),
             wt   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),
         }
@@ -1048,15 +1071,15 @@ local function renderItemList(self)
     local hdrTextY = hdrY + math.floor((colHdrH - f5FH) / 2)
 
     local colDefs = {
-        {"NAME", "name", nameX, 0, catX},
+        {ZeD.tr("UI_ZeD_Inv_ColName"), "name", nameX, 0, catX},
     }
     if showCat then
-        colDefs[#colDefs + 1] = {"CAT",  "cat",  catX + padX,  catX,   catColW}
+        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCat"),  "cat",  catX + padX,  catX,   catColW}
     end
     if showCond then
-        colDefs[#colDefs + 1] = {"COND", "cond", condX + padX, condX,  condColW}
+        colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColCond"), "cond", condX + padX, condX,  condColW}
     end
-    colDefs[#colDefs + 1] = {"WT",   "wt",   wtX + padX,   wtX,    wtColW}
+    colDefs[#colDefs + 1] = {ZeD.tr("UI_ZeD_Inv_ColWt"),   "wt",   wtX + padX,   wtX,    wtColW}
     -- the grid has no columns to sort by: the bar names the list's order it shows
     if self._gv.on then
         drawGridOrder(self, xOff + padX, hdrTextY, colW - padX * 2, sortCol)
@@ -1079,6 +1102,8 @@ local function renderItemList(self)
         local label, key, drawX, hitX, hitW = def[1], def[2], def[3], def[4], def[5]
         local isActive = (sortCol == key)
         local color = T.toneNorm
+        -- a header never runs past its own column: too long ends in "..."
+        label = truncateText(label, T.fontF5, hitX + hitW - drawX - T.px(2))
         dT(label, drawX, hdrTextY, color.r, color.g, color.b, color.a, T.fontF5)
         -- Under/overline active sort column (System 7 style)
         if isActive then
@@ -1349,7 +1374,7 @@ local function renderItemList(self)
         local secTextY = y + math.floor((rowH - secFH) / 2)
 
         if showCat then
-            local catLabel = truncateText(item:getCategory() or "", T.fontF1, catColW - padX * 2)
+            local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
             local cc = T.toneHi
             dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
         end
@@ -1428,7 +1453,7 @@ local function renderItemList(self)
 
                 local catLabelY = y + math.floor((catHdrH - secFH) / 2)
                 local tri = isClosed and "> " or "v "
-                aSec(tri .. string.upper(cat) .. " (" .. #catGroup .. ")",
+                aSec(tri .. ZeD.upper(ZeD.InventoryRenderer.catLabel(cat)) .. " (" .. #catGroup .. ")",
                     padX + T.px(2), catLabelY, T.toneLo)
                 aDiv(0, y + catHdrH - T.px(1), scrollX, false)
 
@@ -1459,7 +1484,7 @@ local function renderItemList(self)
     -- EMPTY STATE
     -- --------------------------------------------------------
     if #catOrder == 0 then
-        local msg  = "INVENTORY EMPTY"
+        local msg  = ZeD.tr("UI_ZeD_Inv_Empty")
         local msgW = ZeD.TM:MeasureStringX(T.fontF1, msg)
         local msgX = math.floor((scrollX - msgW) / 2)
         local msgY = contentTop + math.floor((visibleH - secFH) / 2)
@@ -1815,7 +1840,7 @@ local function renderMultiColumnContent(self)
             local capStr   = capacity > 0 and string.format("%.1f", capacity) or "---"
             local statsStr = string.format("%.1f/%skg", weight, capStr)
             local itemCount = inv and inv:getItems():size() or 0
-            local countStr  = itemCount .. " items"
+            local countStr  = ZeD.tr(itemCount == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", itemCount)
 
             -- Bind column state onto self
             self._inventory         = cs.inventory

@@ -165,7 +165,7 @@ function ZeD_Reader:prerender()
     local name = who and (who:getForename() .. " " .. who:getSurname()) or ""
     self.title = name .. "  +  " .. P.title(self.media)
     local read = self:isRead()
-    self.titleStats = read and { { text = "Read", color = T.positive } } or {}
+    self.titleStats = read and { { text = ZeD.tr("UI_ZeD_Reader_StatRead"), color = T.positive } } or {}
     local g = self:layout()
     ZeD_Window.prerender(self)
     self.minimumWidth, self.minimumHeight = 0, 0
@@ -233,7 +233,7 @@ function ZeD_Reader:drawWords(c)
                 end
                 y = y + T.px(6)
             elseif b.kind == "pic" then
-                local lines = A.wrapText("Picture: " .. b.text, f3, tw0 - T.px(16))
+                local lines = A.wrapText(ZeD.tr("UI_ZeD_Reader_Picture", b.text), f3, tw0 - T.px(16))
                 local bh = #lines * (fh(f3) + T.px(2)) + T.px(12)
                 if drawIt then
                     self:drawRect(px + pad, y, tw0, bh, 1, 0.867, 0.839, 0.765)
@@ -313,7 +313,7 @@ function ZeD_Reader:drawSide(s)
     local f1, f2 = T.fontF1, T.fontF2
     local tc, ac = T.text, T.accent
     -- THIS PIECE
-    y = section(self, "THIS PIECE", x, y, w)
+    y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPiece"), x, y, w)
     local function kv(k, v, dot)
         self:drawText(k, x, y + 2, ac.r, ac.g, ac.b, ac.a or 1, f1)
         local vx = x + T.px(64)
@@ -325,16 +325,16 @@ function ZeD_Reader:drawSide(s)
         self:drawText(ZeD.Atoms.truncateText(v, f2, x + w - vx), vx, y, tc.r, tc.g, tc.b, tc.a or 1, f2)
         y = y + fh(f2) + T.px(5)
     end
-    kv("KIND", P.kind(self.item))
+    kv(ZeD.tr("UI_ZeD_Reader_LabelKind"), P.kindName(P.kind(self.item)))
     local date = P.title(self.media):match(" %- (.+)$")
-    if date then kv("DATE", date) end
+    if date then kv(ZeD.tr("UI_ZeD_Reader_LabelDate"), date) end
     local read = self:isRead()
-    kv("READ", read and "Yes" or "Not yet", read and T.positive or T.textDim)
+    kv(ZeD.tr("UI_ZeD_Reader_LabelRead"), read and getText("UI_Yes") or ZeD.tr("UI_ZeD_Reader_NotYet"), read and T.positive or T.textDim)
     y = y + T.px(10)
     -- ON THIS PAGE: its stories (a press jumps to it in Words)
     local heads = P.headlines(self.page)
     if #heads > 0 then
-        y = section(self, "ON THIS PAGE", x, y, w)
+        y = section(self, ZeD.tr("UI_ZeD_Reader_HeadStories"), x, y, w)
         for i, h in ipairs(heads) do
             local lines = ZeD.Atoms.wrapText(h, f2, w - T.px(12))
             local rh = #lines * (fh(f2) + T.px(2)) + T.px(U.ROW_PAD) * 2
@@ -354,16 +354,16 @@ function ZeD_Reader:drawSide(s)
     end
     -- PLACES: vanilla's Show on map
     if #self.places > 0 then
-        y = section(self, "PLACES", x, y, w)
+        y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPlaces"), x, y, w)
         for i, loc in ipairs(self.places) do
-            local label = (#self.places == 1) and P.title(self.media) or ("Place " .. i)
+            local label = (#self.places == 1) and P.title(self.media) or ZeD.tr("UI_ZeD_Reader_PlaceN", i)
             local bh = T.px(U.BTN_H)
             local boxH = fh(f2) + T.px(8) + bh + T.px(16)
             if y + boxH > s.y + s.h - pad then break end
             self:drawRect(x, y, w, boxH, 1, T.base.r, T.base.g, T.base.b)
             self:drawRectBorder(x, y, w, boxH, bs.a, bs.r, bs.g, bs.b)
             self:drawText(ZeD.Atoms.truncateText(label, f2, w - T.px(16)), x + T.px(8), y + T.px(8), tc.r, tc.g, tc.b, tc.a or 1, f2)
-            local text = "Show on map"
+            local text = ZeD.tr("UI_ZeD_Reader_ShowOnMap")
             local bw = tw(T.fontF3, text) + T.px(U.BTN_PAD) * 2
             local b = { x = x + T.px(8), y = y + T.px(8) + fh(f2) + T.px(6), w = bw, h = bh }
             local id = "place:" .. i
@@ -395,12 +395,12 @@ function ZeD_Reader:drawStrip(st)
         x = x + bw + T.px(U.GAP)
         return bw
     end
-    btn("back", "BACK", function() self:close() end)
+    btn("back", getText("UI_btn_back"), function() self:close() end)
     x = x + T.px(6)
     if self.page then
-        btn("view:paper", "PAPER", function() self:setView("paper") end, "default", self.view == "paper")
+        btn("view:paper", ZeD.tr("UI_ZeD_Reader_ViewPaper"), function() self:setView("paper") end, "default", self.view == "paper")
         x = x - T.px(U.GAP) + 1
-        btn("view:words", "WORDS", function() self:setView("words") end, "default", self.view == "words")
+        btn("view:words", ZeD.tr("UI_ZeD_Reader_ViewWords"), function() self:setView("words") end, "default", self.view == "words")
     end
     if self.view == "paper" and self.page then
         -- the zoom, at the right
@@ -721,7 +721,7 @@ function ZeD_Reader:prerenderNotebook()
     local who = self.character:getDescriptor()
     local name = who and (who:getForename() .. " " .. who:getSurname()) or ""
     self.title = name .. "  +  " .. tostring(self.item:getName())
-    self.titleStats = self.readOnly and { { text = "Reading" } } or { { text = "Writing", color = T.accent } }
+    self.titleStats = self.readOnly and { { text = ZeD.tr("UI_ZeD_Reader_StatReading") } } or { { text = ZeD.tr("UI_ZeD_Reader_StatWriting"), color = T.accent } }
     local g = self:layout()
     ZeD_Window.prerender(self)
     self.minimumWidth, self.minimumHeight = 0, 0
@@ -739,7 +739,7 @@ function ZeD_Reader:drawRail(r)
     local bs, s1 = T.borderS, T.surf1
     self:drawRect(r.x, r.y, r.w, r.h, 1, s1.r, s1.g, s1.b)
     self:drawRectBorder(r.x, r.y, r.w, r.h, bs.a, bs.r, bs.g, bs.b)
-    local y = section(self, "PAGES", r.x + T.px(10), r.y + T.px(10), r.w - T.px(20))
+    local y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPages"), r.x + T.px(10), r.y + T.px(10), r.w - T.px(20))
     local f2, f3 = T.fontF2, T.fontF3
     local rh = fh(f2) + T.px(14)
     local ac, tc, td = T.accent, T.text, T.textDim
@@ -752,7 +752,7 @@ function ZeD_Reader:drawRail(r)
         self:drawText(num, r.x + T.px(32) - tw(f3, num), y + math.floor((rh - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
         local words = firstWords(self.pages[i])
         local c = words and tc or td
-        self:drawText(ZeD.Atoms.truncateText(words or "Blank", f2, r.w - T.px(52)), r.x + T.px(42), y + math.floor((rh - fh(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+        self:drawText(ZeD.Atoms.truncateText(words or ZeD.tr("UI_ZeD_Reader_Blank"), f2, r.w - T.px(52)), r.x + T.px(42), y + math.floor((rh - fh(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
         self:drawRect(r.x + T.px(1), y + rh - T.px(1), r.w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
         self._hits[#self._hits + 1] = { id = id, x = r.x, y = y, w = r.w, h = rh, fn = function() self:goPage(i) end }
         y = y + rh
@@ -777,7 +777,7 @@ function ZeD_Reader:drawNotePage(a)
         local s2, bs = T.surf2, T.borderS
         self:drawRect(px, a.y + T.px(10), pw, band - T.px(6), 1, s2.r, s2.g, s2.b)
         self:drawRectBorder(px, a.y + T.px(10), pw, band - T.px(6), bs.a, bs.r, bs.g, bs.b)
-        local why = self.otherLock and "Locked by its writer. You can read it; you cannot write in it." or "No pencil or pen: you can read it, not write in it."
+        local why = self.otherLock and ZeD.tr("UI_ZeD_Reader_ReadOnlyLocked") or ZeD.tr("UI_ZeD_Reader_ReadOnlyNoTool")
         local tc = T.text
         self:drawText(why, px + T.px(12), a.y + T.px(10) + math.floor((band - T.px(6) - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
     end
@@ -798,7 +798,7 @@ function ZeD_Reader:drawNotePage(a)
     end
     -- the name (edited in place) and the page number
     local f3 = T.fontF3
-    local pn = "Page " .. self.pageIx .. " of " .. self.nPages
+    local pn = ZeD.tr("UI_ZeD_Reader_PageOf", self.pageIx, self.nPages)
     self:drawText(pn, px + pw - T.px(20) - tw(f3, pn), py + T.px(30), INK_DIM.r, INK_DIM.g, INK_DIM.b, 1, f3)
     local tx, tyy = mx + T.px(12), py + T.px(18)
     local tWidth = pw - (mx - px) - T.px(40) - tw(f3, pn)
@@ -830,7 +830,7 @@ function ZeD_Reader:drawNotePage(a)
     local lines = 0
     for _ in (text .. "\n"):gmatch("(.-)\n") do lines = lines + 1 end
     if text == "" then lines = 0 end
-    local count = lines .. " of " .. NB.LINES .. " lines | " .. ZeD.BB_count(#text) .. " of " .. ZeD.BB_count(NB.LINES * NB.LETTERS) .. " letters"
+    local count = ZeD.tr("UI_ZeD_Reader_Counts", lines, NB.LINES, ZeD.BB_count(#text), ZeD.BB_count(NB.LINES * NB.LETTERS))
     self:drawText(count, mx + T.px(10), py + ph - T.px(30), INK_DIM.r, INK_DIM.g, INK_DIM.b, 1, f3)
 end
 
@@ -863,24 +863,25 @@ function ZeD_Reader:drawNoteStrip(st)
         return bw
     end
     if self.confirm == "erase" then
-        local q = "Erase page " .. self.pageIx .. "? Its words cannot be brought back."
+        local q = ZeD.tr("UI_ZeD_Reader_EraseAsk", self.pageIx)
         local tc = T.text
         self:drawText(q, x, st.y + math.floor((st.h - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
         local right = st.w - T.px(U.PAD)
-        local ew = tw(T.fontF3, "Erase") + T.px(U.BTN_PAD) * 2
-        btn("confirm:no", "KEEP IT", function() self.confirm = nil end, "default", false, right - ew - T.px(U.GAP))
-        btn("confirm:yes", "ERASE", function() self:erasePage() end, "danger", false, right)
+        local eraseText = ZeD.tr("UI_ZeD_Reader_Erase")
+        local ew = tw(T.fontF3, ZeD.btnCase(eraseText)) + T.px(U.BTN_PAD) * 2
+        btn("confirm:no", ZeD.tr("UI_ZeD_Reader_KeepIt"), function() self.confirm = nil end, "default", false, right - ew - T.px(U.GAP))
+        btn("confirm:yes", eraseText, function() self:erasePage() end, "danger", false, right)
         return
     end
-    btn("back", "BACK", function() self:endWriting() end)
+    btn("back", getText("UI_btn_back"), function() self:endWriting() end)
     if not self.readOnly then
         local locked = self:isLockedByMe()
-        if not locked then btn("erase", "ERASE PAGE", function() self.confirm = "erase" end, "danger") end
-        btn("lock", locked and "UNLOCK" or "LOCK", function() self:toggleLock() end, "default", locked)
+        if not locked then btn("erase", ZeD.tr("UI_ZeD_Reader_ErasePage"), function() self.confirm = "erase" end, "danger") end
+        btn("lock", locked and ZeD.tr("UI_ZeD_Reader_Unlock") or ZeD.tr("UI_ZeD_Reader_Lock"), function() self:toggleLock() end, "default", locked)
     end
     -- the pages, in the middle
     local f3 = T.fontF3
-    local label = "Page " .. self.pageIx .. " of " .. self.nPages
+    local label = ZeD.tr("UI_ZeD_Reader_PageOf", self.pageIx, self.nPages)
     local mid = math.floor(st.w / 2)
     local lw = tw(f3, label) + T.px(16)
     x = mid - math.floor(lw / 2) - bh - T.px(U.GAP)
@@ -889,7 +890,7 @@ function ZeD_Reader:drawNoteStrip(st)
     self:drawText(label, x + T.px(8), by + math.floor((bh - fh(f3)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
     x = x + lw
     btn("next", ">", function() self:turnPage(1) end, "default", false)
-    if not self.readOnly and not self:isLockedByMe() then btn("done", "DONE", function() self:done() end, "primary", false, st.w - T.px(U.PAD)) end
+    if not self.readOnly and not self:isLockedByMe() then btn("done", getText("UI_mods_Done"), function() self:done() end, "primary", false, st.w - T.px(U.PAD)) end
 end
 
 -- ---------------------------------------------------------------------------

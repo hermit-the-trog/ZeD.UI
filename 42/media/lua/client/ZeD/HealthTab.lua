@@ -135,7 +135,7 @@ local SEV_VARIANT = {
 -- First Aid levels where vanilla's doctor can judge them. doctorLevel is the
 -- viewing character's First Aid level.
 local function qualify(label, word)
-    if word then return label .. " (" .. word .. ")" end
+    if word then return ZeD.tr("UI_ZeD_Health_Qualified", label, word) end
     return label
 end
 
@@ -146,68 +146,71 @@ local function classifyConditions(bp, doctorLevel)
     local bandaged = bp:bandaged()
     local word
 
+    -- The words are vanilla's own health-panel words where it has them (IGUI_health_*);
+    -- the few it lacks are ZeD keys. They are read here, every time the tab re-reads the
+    -- body (a few times a second), so a change of language shows within moments.
     if bp:bitten() then
-        conds[#conds + 1] = { label = "Bitten", severity = "critical" }
+        conds[#conds + 1] = { label = getText("IGUI_health_Bitten"), severity = "critical" }
     end
     if bp:bleeding() then
-        conds[#conds + 1] = { label = "Bleeding", severity = "danger" }
+        conds[#conds + 1] = { label = getText("IGUI_health_Bleeding"), severity = "danger" }
     end
     if bp:deepWounded() then
         word = nil
         if doc > 4 or cheat then
-            if bp:getDeepWoundTime() > 10 then word = "Severe"
-            elseif bp:getDeepWoundTime() > 8 then word = "Moderate" end
+            if bp:getDeepWoundTime() > 10 then word = getText("IGUI_health_Severe")
+            elseif bp:getDeepWoundTime() > 8 then word = getText("IGUI_health_Moderate") end
         end
-        conds[#conds + 1] = { label = qualify("Deep Wound", word), severity = "danger" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_DeepWound"), word), severity = "danger" }
     end
     if bp:isInfectedWound() and not bandaged
        and (doc > 8 or bp:getWoundInfectionLevel() * 10 >= (2.5 - doc) or cheat) then
-        conds[#conds + 1] = { label = "Infected", severity = "danger" }
+        conds[#conds + 1] = { label = getText("IGUI_health_Infected"), severity = "danger" }
     end
     if bp:getFractureTime() > 0 and bp:getSplintFactor() == 0 then
         word = nil
         if doc > 6 or cheat then
-            if bp:getFractureTime() > 50 then word = "Severe"
-            elseif bp:getFractureTime() > 20 then word = "Moderate" end
+            if bp:getFractureTime() > 50 then word = getText("IGUI_health_Severe")
+            elseif bp:getFractureTime() > 20 then word = getText("IGUI_health_Moderate") end
         end
-        conds[#conds + 1] = { label = qualify("Fracture", word), severity = "danger" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Fracture"), word), severity = "danger" }
     end
     if bp:haveBullet() and not bandaged then
-        conds[#conds + 1] = { label = "Lodged Bullet", severity = "danger" }
+        conds[#conds + 1] = { label = getText("IGUI_health_LodgedBullet"), severity = "danger" }
     end
     if bp:haveGlass() and not bandaged then
-        conds[#conds + 1] = { label = "Glass Shards", severity = "danger" }
+        conds[#conds + 1] = { label = ZeD.tr("UI_ZeD_Health_GlassShards"), severity = "danger" }
     end
 
     if bp:scratched() then
         word = nil
         if doc > 2 or cheat then
-            if bp:getScratchTime() > 17 then word = "Severe"
-            elseif bp:getScratchTime() > 14 then word = "Moderate" end
+            if bp:getScratchTime() > 17 then word = getText("IGUI_health_Severe")
+            elseif bp:getScratchTime() > 14 then word = getText("IGUI_health_Moderate") end
         end
-        conds[#conds + 1] = { label = qualify("Scratch", word), severity = "warning" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Scratch"), word), severity = "warning" }
     end
     if bp:isCut() then
         word = nil
         if doc > 2 or cheat then
-            if bp:getCutTime() > 17 then word = "Severe"
-            elseif bp:getCutTime() > 14 then word = "Moderate" end
+            if bp:getCutTime() > 17 then word = getText("IGUI_health_Severe")
+            elseif bp:getCutTime() > 14 then word = getText("IGUI_health_Moderate") end
         end
-        conds[#conds + 1] = { label = qualify("Laceration", word), severity = "warning" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Cut"), word), severity = "warning" }
     end
     if bp:getBurnTime() > 0 and not bandaged then
         word = nil
-        if (doc > 4 or cheat) and bp:isNeedBurnWash() then word = "Needs Cleaning" end
-        conds[#conds + 1] = { label = qualify("Burn", word), severity = "warning" }
+        if (doc > 4 or cheat) and bp:isNeedBurnWash() then word = ZeD.tr("UI_ZeD_Health_NeedsCleaning") end
+        conds[#conds + 1] = { label = qualify(ZeD.tr("UI_ZeD_Health_Burn"), word), severity = "warning" }
     end
 
     -- Stiffness / muscle strain (exercise soreness)
     local stiffness = bp:getStiffness()
     if stiffness >= 5 then
         if stiffness < 20 then
-            conds[#conds + 1] = { label = "Minor Muscle Strain", severity = "warning" }
+            conds[#conds + 1] = { label = getText("IGUI_health_MinorStiffness"), severity = "warning" }
         else
-            conds[#conds + 1] = { label = "Muscle Strain", severity = "danger" }
+            conds[#conds + 1] = { label = getText("IGUI_health_Stiffness"), severity = "danger" }
         end
     end
 
@@ -215,33 +218,33 @@ local function classifyConditions(bp, doctorLevel)
     local pain = bp:getAdditionalPain()
     if pain > 10 then
         if pain > 50 then
-            conds[#conds + 1] = { label = "Heavy Pain", severity = "danger" }
+            conds[#conds + 1] = { label = getText("IGUI_health_HeavyPain"), severity = "danger" }
         else
-            conds[#conds + 1] = { label = "Pain", severity = "warning" }
+            conds[#conds + 1] = { label = getText("IGUI_health_Pain"), severity = "warning" }
         end
     end
 
     if bp:bandaged() then
         if bp:getBandageLife() > 0 then
-            conds[#conds + 1] = { label = "Bandaged", severity = "positive" }
+            conds[#conds + 1] = { label = getText("IGUI_health_Bandaged"), severity = "positive" }
         else
-            conds[#conds + 1] = { label = "Dirty Bandage", severity = "warning" }
+            conds[#conds + 1] = { label = getText("IGUI_health_DirtyBandage"), severity = "warning" }
         end
     end
     if bp:stitched() then
         word = nil
         if doc > 6 or cheat then
-            word = (bp:getStitchTime() > 40) and "Good" or "Needs Time"
+            word = (bp:getStitchTime() > 40) and getText("IGUI_health_Good") or ZeD.tr("UI_ZeD_Health_NeedsTime")
         end
-        conds[#conds + 1] = { label = qualify("Stitched", word), severity = "positive" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Stitched"), word), severity = "positive" }
     end
     if bp:getSplintFactor() > 0 then
         word = nil
         if doc > 4 or cheat then
-            if bp:getSplintFactor() > 4 then word = "Good"
-            elseif bp:getFractureTime() > 2 then word = "Moderate" end
+            if bp:getSplintFactor() > 4 then word = getText("IGUI_health_Good")
+            elseif bp:getFractureTime() > 2 then word = getText("IGUI_health_Moderate") end
         end
-        conds[#conds + 1] = { label = qualify("Splinted", word), severity = "positive" }
+        conds[#conds + 1] = { label = qualify(getText("IGUI_health_Splinted"), word), severity = "positive" }
     end
     -- Poultices on the part, as vanilla lists them
     if bp:getPlantainFactor() > 0 then
@@ -445,7 +448,7 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
     -- Overall stat row
     local pct = math.floor(data.overall + 0.5)
     local pctColor = pctToStatusColor(pct)
-    local rowH = M.drawStatRow(panel, rx, curY, rw, "Overall", pct .. "%", pctColor)
+    local rowH = M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Health_Overall"), pct .. "%", pctColor)
     curY = curY + rowH + T.sp.rowGap
 
     -- Fill bar
@@ -462,9 +465,9 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
         local bodyFH = ZeD.TM:getFontHeight(T.fontF2)
         local dotC = (data.injuredCount > 0) and T.warning or T.positive
         A.drawStatusDot(panel, rx, curY + math.floor((bodyFH - dotSz) / 2), dotC, dotSz)
-        A.drawBody(panel, (data.injuredCount > 0) and "No injuries, low body health" or "No injuries", rx + dotSz + dotGap, curY)
+        A.drawBody(panel, (data.injuredCount > 0) and ZeD.tr("UI_ZeD_Health_NoInjuriesLow") or ZeD.tr("UI_ZeD_Health_NoInjuries"), rx + dotSz + dotGap, curY)
     else
-        A.drawBody(panel, wounded .. " of " .. data.totalParts .. " injured", rx, curY)
+        A.drawBody(panel, ZeD.tr("UI_ZeD_Health_InjuredOf", wounded, data.totalParts), rx, curY)
     end
     curY = curY + secH + T.sp.sm
 
@@ -496,7 +499,7 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
     -- Health % stat row
     local pct = math.floor(health + 0.5)
     local pctColor = pctToStatusColor(pct)
-    local rowH = M.drawStatRowDot(panel, rx, curY, rw, "Health", pct .. "%", pctColor)
+    local rowH = M.drawStatRowDot(panel, rx, curY, rw, getText("IGUI_XP_Health"), pct .. "%", pctColor)
     curY = curY + rowH + T.sp.rowGap
 
     -- Health fill bar
@@ -520,7 +523,7 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
         local dotSz = T.px(6)
         local dotGap = T.px(4)
         A.drawStatusDot(panel, rx, curY + math.floor((secH - dotSz) / 2), T.positive, dotSz)
-        A.drawSecondary(panel, "Healthy", rx + dotSz + dotGap, curY)
+        A.drawSecondary(panel, ZeD.tr("UI_ZeD_Health_Healthy"), rx + dotSz + dotGap, curY)
         curY = curY + secH + T.sp.xs
     end
 
@@ -541,15 +544,24 @@ local EXERCISE_EQUIPMENT = {
     "barbellcurl", "dumbbellpress", "bicepscurl",
 }
 
+-- vkey = vanilla's own word for the exercise; key = ZeD's
 local EXERCISE_LABELS = {
-    squats        = "Squats",
-    pushups       = "Push-ups",
-    situp         = "Sit-ups",
-    burpees       = "Burpees",
-    barbellcurl   = "Barbell curl",
-    dumbbellpress = "Dumbbell press",
-    bicepscurl    = "Biceps curl",
+    squats        = { vkey = "IGUI_Squats" },
+    pushups       = { vkey = "IGUI_PushUps" },
+    situp         = { vkey = "IGUI_SitUps" },
+    burpees       = { vkey = "IGUI_Burpees" },
+    barbellcurl   = { key = "UI_ZeD_Health_BarbellCurl" },
+    dumbbellpress = { key = "UI_ZeD_Health_DumbbellPress" },
+    bicepscurl    = { key = "UI_ZeD_Health_BicepsCurl" },
 }
+
+-- the exercise's name in the player's language (an unknown exercise id shows as is)
+function ZeD.HealthTab.exerciseLabel(exeId)
+    local d = EXERCISE_LABELS[exeId]
+    if not d then return exeId end
+    if d.vkey then return getText(d.vkey) end
+    return ZeD.tr(d.key)
+end
 
 -- Session length, as vanilla's fitness window sets it: 10 to 60 minutes in
 -- steps of 10, starting at 10. The choice lives on the window.
@@ -693,7 +705,7 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
     end
 
     for idx, exeId in ipairs(EXERCISE_BODYWEIGHT) do
-        local label = EXERCISE_LABELS[exeId] or exeId
+        local label = ZeD.HealthTab.exerciseLabel(exeId)
         local enabled = globalEnabled and not isExercising and isExerciseAvailable(playerObj, exeId)
 
         local isLeft = ((idx - 1) % 2 == 0)
@@ -718,7 +730,7 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
 
     -- Equipment exercises: full-width rows
     for _, exeId in ipairs(EXERCISE_EQUIPMENT) do
-        local label = EXERCISE_LABELS[exeId] or exeId
+        local label = ZeD.HealthTab.exerciseLabel(exeId)
         local enabled = globalEnabled and not isExercising and isExerciseAvailable(playerObj, exeId)
 
         _paintExerciseFocusCue(exeId, rx, curY, rw, btnH)
@@ -1001,7 +1013,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             end
 
             local nameColor = T[SEV_VARIANT[entry.worstSev]] or T.text
-            A.drawBody(panel, entry.name, listX, curY, nameColor)
+            A.drawBody(panel, ZeD.partLabel(entry.name), listX, curY, nameColor)
             local hpStr = math.floor(entry.health + 0.5) .. "%"
             A.drawTextRight(panel, hpStr, listX + listW, curY, T.fontF2, nameColor)
             curY = curY + bodyH + T.px(2)
@@ -1052,7 +1064,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     end
 
     -- Pinned header — drawn on top of scroll content
-    M.drawTabHeader(panel, x, y, w, "Health", figureExpanded)
+    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Health"), figureExpanded)
 
     if needsScroll then
         scroll:draw(panel)
@@ -1074,7 +1086,7 @@ function ZeD.HealthTab._measureBadgeRows(conditions, maxW)
     local rows = 1
     local bx = 0
     for _, cond in ipairs(conditions) do
-        local tw = ZeD.TM:MeasureStringX(T.fontF1, string.upper(cond.label))
+        local tw = ZeD.TM:MeasureStringX(T.fontF1, ZeD.upper(cond.label))
         local bw = tw + padX * 2
         bx = bx + bw + T.sp.badgeGap
         if bx + T.px(40) > maxW and bx > bw + T.sp.badgeGap then

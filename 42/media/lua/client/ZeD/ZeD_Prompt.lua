@@ -623,7 +623,7 @@ end
 -- ---------------------------------------------------------------------------
 local function buttonWidth(b)
     local T = ZeD.T
-    return math.max(T.px(U.BTN_MIN), tw(T.fontF3, ZeD.btnCase(upper(b.title))) + T.px(U.BTN_PAD) * 2)
+    return math.max(T.px(U.BTN_MIN), tw(T.fontF3, ZeD.btnCase(ZeD.upper(b.title))) + T.px(U.BTN_PAD) * 2)
 end
 
 -- answers in footer order: the secondary first, the main one last (on the right)
@@ -635,27 +635,32 @@ end
 
 function ZeD_Prompt:stripPrompts()
     local K, f = self.kind, self:focusId()
-    local noWord = function(b) local t = tostring(b and b.title or ""); return t:sub(1, 1):upper() .. t:sub(2):lower() end
-    if K == "note" then return { { glyph = "A", label = "OK" }, { glyph = "B", label = "OK" } } end
+    local noWord = function(b)
+        local t = tostring(b and b.title or "")
+        return ZeD.upper(t:sub(1, 1)) .. t:sub(2):lower()
+    end
+    local ok, press, cancel = ZeD.tr("UI_ZeD_Status_OK"), ZeD.tr("UI_ZeD_Prompt_Press"), ZeD.tr("UI_Cancel")
+    local move, moveStep = ZeD.tr("UI_ZeD_Prompt_DPadMove"), ZeD.tr("UI_ZeD_Prompt_DPadMoveStep")
+    if K == "note" then return { { glyph = "A", label = ok }, { glyph = "B", label = ok } } end
     if K == "rich" then
         local list = {}
-        if self._maxScroll and self._maxScroll > 0 then list[#list + 1] = "D-PAD Scroll" end
+        if self._maxScroll and self._maxScroll > 0 then list[#list + 1] = ZeD.tr("UI_ZeD_Prompt_DPadScroll") end
         if self.yesno then
-            list[#list + 1] = "D-PAD Move"
-            list[#list + 1] = { glyph = "A", label = "Press" }
+            list[#list + 1] = move
+            list[#list + 1] = { glyph = "A", label = press }
             list[#list + 1] = { glyph = "B", label = noWord(self.no) }
         else
-            list[#list + 1] = { glyph = "A", label = "OK" }
+            list[#list + 1] = { glyph = "A", label = ok }
         end
         return list
     end
     if K == "text" then
-        if f == "field" then return { "D-PAD Move", { glyph = "A", label = "Keyboard" }, { glyph = "B", label = "Cancel" } } end
-        return { "D-PAD Move", { glyph = "A", label = "Press" }, { glyph = "B", label = "Cancel" } }
+        if f == "field" then return { move, { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Keyboard") }, { glyph = "B", label = cancel } } end
+        return { move, { glyph = "A", label = press }, { glyph = "B", label = cancel } }
     end
-    if K == "alarm" then return { "D-PAD Move / Step", { glyph = "A", label = "Press" }, { glyph = "B", label = "Close" } } end
-    if K == "timer" then return { "D-PAD Move / Step", { glyph = "A", label = "Press" }, { glyph = "B", label = "Cancel" } } end
-    return { "D-PAD Move", { glyph = "A", label = "Press" }, { glyph = "B", label = noWord(self.no) } }
+    if K == "alarm" then return { moveStep, { glyph = "A", label = press }, { glyph = "B", label = ZeD.tr("UI_ZeD_Close") } } end
+    if K == "timer" then return { moveStep, { glyph = "A", label = press }, { glyph = "B", label = cancel } } end
+    return { move, { glyph = "A", label = press }, { glyph = "B", label = noWord(self.no) } }
 end
 
 -- A field: the prompt draws the inset box (System 7 field: base fill, border, dark
@@ -753,7 +758,7 @@ function ZeD_Prompt:layout()
         bodyH = padT + viewH + T.px(U.PARA_GAP)
     elseif K == "text" then
         local lblFont = T.fontF1
-        local label = upper(self.text)
+        local label = ZeD.upper(self.text)
         local callerW = T.px(self._vanillaW or 0)
         w = clamp(math.max(minW, T.px(U.TEXT_W), callerW, tw(lblFont, label) + padL + padR), minW, maxW)
         local y = tbH + padT
@@ -794,7 +799,7 @@ function ZeD_Prompt:layout()
         g.steppers = {}
         g.rowFocus = {}
         g.boxes = {}
-        for _, row in ipairs({ { id = "hour", label = "HOUR", entry = self.hours }, { id = "minute", label = "MINUTE", entry = self.mins } }) do
+        for _, row in ipairs({ { id = "hour", label = ZeD.tr("UI_ZeD_Prompt_Hour"), entry = self.hours }, { id = "minute", label = ZeD.tr("UI_ZeD_Prompt_Minute"), entry = self.mins } }) do
             local vh = boxH(row.entry)
             local rh = math.max(T.px(U.ROW_H), vh + T.px(8))
             local st, gap, vw = T.px(U.STEP), T.px(U.STEP_GAP), T.px(U.VAL_W)
@@ -819,7 +824,7 @@ function ZeD_Prompt:layout()
         bodyH = y - tbH + padB
     elseif K == "timer" then
         local lblFont = T.fontF1
-        local label = upper(self.prompt or "")
+        local label = ZeD.upper(self.prompt or "")
         local steps = { "-10", "-5", "-1", "+1", "+5", "+10" }
         local smW = {}
         local rowW = T.px(U.TVAL_W)
@@ -1090,7 +1095,7 @@ function ZeD_Prompt:prerender()
         if i == #g.buttons then variant = g.costly and "danger" or "primary" end
         local id = (b == self.yes and "yes") or (b == self.no and "no") or "ok"
         local st = focusOn and (self:focusId() == id and "focus" or nil) or self:stateOf("btn" .. i)
-        drawAnswer(self, r, upper(b.title), variant, st, b.enable == false)
+        drawAnswer(self, r, ZeD.upper(b.title), variant, st, b.enable == false)
     end
     -- the controller's strip: what the buttons do here
     if g.strip then

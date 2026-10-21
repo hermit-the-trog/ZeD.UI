@@ -2,6 +2,21 @@
 
 *Written Oct 20 2026. The director's call (Oct 19): translation for the whole mod; cover what we can, and let the community translate the way it does for every other mod.*
 
+## Status (Oct 20 2026)
+
+Confirmed in game today: the mod's own `Translate/EN/UI.json` loads and merges with the game's, so translators can ship a file of the same name for their language.
+
+- **Phase 1 (what was broken):** done. The first 28 phrases moved into `UI.json` and load. Context menu icons match by the game's keys instead of English wording. The pixel letters fall back to the regular face when a word has a letter they lack. The fonts carry the extra Latin letters.
+- **Phase 2 (the sweep):** done for every window and screen. Every phrase ZeD draws now goes through `ZeD.tr` with a `UI_ZeD_` key: the HUD (belt, watch, dash, radio, action bar, seat chooser), the Character window and all its tabs, the World window and its tabs, the item and object cards, the wheels, prompts and context menus, the main menu and every screen under it, and Settings. `UI.json` holds 2,390 phrases. Wherever the game already had the word (item names, body parts, skills, moodles, context options, sandbox options) the code uses the game's own, so those come in every language for free. Numbers inside sentences are one phrase with `%1` markers, and "one" and "many" are separate phrases where the count shows.
+- **The guard:** `ZeDUI/tools/qa/i18n_guard.py` runs outside the game. It checks that `UI.json` is valid, that every key the code asks for exists, that the number of values passed matches the markers, and that no new bare English phrase is drawn to screen. The few phrases left English on purpose (debug text, ids, painted art, art data) are in `i18n_allowlist.txt` with the reason. Run it with the other outside-the-game tests before a release.
+- **Phase 4 (pixel letters):** the accented capitals for the Latin languages and the Cyrillic capitals are drawn in the pixel faces, and a word with a letter the faces still lack (Chinese, Japanese, Korean, Thai) draws in the regular face instead.
+- **Phase 5 (translator kit):** done. `TRANSLATING.md` explains the job in plain terms and `ZeDUI/i18n/UI_ZeD.context.md` lists every phrase with its English, where it shows and how long it can be. The director's decision stands: contributed translations are included with credit, and translators' own mods work too.
+- **Left English on purpose:** words painted into the art (watch, radio and dash plates), hardware marks (FM, MHz, CH), model and maker names, radio presets saved into the device, and the automatic action bar label for mods' unknown actions.
+- **Still to do:**
+  - Phase 3, the screenshot walk with the test language: turn it on, walk every screen, and fix whatever clips, overlaps or loses its brackets. The sweep made the phrases translatable; this proves the layouts hold when they get longer.
+  - Contributed translations: none yet. The first ones will show which phrases are unclear and which limits are too tight.
+  - A few size notes from the sweep to settle (two phrases are longer in English than the limit written for them), and removing the old unused stat builders in `ItemCard.lua`.
+
 ## The short version
 
 Translating is the community's job, and that's normal for Project Zomboid. Making ZeD **translatable** is ours, and today it isn't. Once it is, a translator ships text files and nothing else: no fonts, no code.

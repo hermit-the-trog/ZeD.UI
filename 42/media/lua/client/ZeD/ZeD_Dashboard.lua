@@ -28,6 +28,7 @@
 -- reads (ZeD_RadioOps), and a click on the display brings the radio up close.
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/ZeD_Panel"
 require "ZeD/SafeMode"
 require "ZeD/DashPx"
@@ -90,7 +91,7 @@ local function _brandName(vehicle, scriptName)
         if not name and key:find("Burnt") then name = getTextOrNull("IGUI_VehicleName" .. (key:gsub("Burnt", ""))) end
     end
     local s = name and tostring(name) or tostring(scriptName or ""):gsub("^Base%.", ""):gsub("(%l)(%u)", "%1 %2")
-    return s:upper()
+    return ZeD.upper(s)
 end
 
 -- The game names a car "<livery> <maker> <model>": "Fossoil Chevalier D6", "Knox Distillery Franklin Valuline",
@@ -131,9 +132,9 @@ local function _badges(design, vehicle, scriptName, ownFamily)
     for _, s in ipairs(SERVICES) do if livery:find(s, 1, true) then fleet = s; break end end
     fleet = fleet or livery:match("^(%S+)") or make
     local id = 0; pcall(function() id = vehicle:getId() or 0 end)
-    local word = (fleet == "TAXI") and "CAB" or ((fleet == "FIRE") and "ENGINE" or "UNIT")
+    local wordKey = (fleet == "TAXI") and "UI_ZeD_Dash_UnitCab" or ((fleet == "FIRE") and "UI_ZeD_Dash_UnitEngine" or "UI_ZeD_Dash_UnitUnit")
     -- painted on the car: a plain hyphen (no middle dots, director Oct 16 2026)
-    local unit = fleet .. " - " .. word .. " " .. string.format("%02d", 10 + (id % 90))
+    local unit = ZeD.tr(wordKey, fleet, string.format("%02d", 10 + (id % 90)))
     return { full = make .. " " .. model, make = make, model = model, sub = design.sub or "", unit = unit, livery = livery, name = name }
 end
 
@@ -317,41 +318,64 @@ for i = 1, 6 do
 end
 
 -- Prompt labels for the gamepad strip
-local function _promptFor(id, st)
-    if id == "ignition" then if st.running then return "Shut off" elseif st.keysIn or st.hotwired then return "Start" elseif st.hasKey then return "Insert key" else return "No key" end end
-    if id == "lights" then return st.lights and "Lights off" or "Lights on" end
-    if id == "lock" then return st.anyLocked and "Unlock" or "Lock" end
-    if id == "trunk" then return st.trunkLocked and "Unlock trunk" or "Lock trunk" end
-    if id == "cruise" then return st.cruise and "Cruise off" or "Cruise set" end
-    if id == "heat" then return st.heaterOn and "Heater off" or "Heater on" end
-    if id == "ac" then return st.ac and "A/C off" or "A/C" end
-    if id == "vol" and st.radio and ROCKER[st.radio.kind] then return "Volume +" end
-    if id == "pwr" or id == "vol" then return st.radioSwitch and "Radio off" or "Radio on" end
-    if id == "mute" then return (st.radio and st.radio.muted) and "Sound on" or "Mute" end
-    if id == "mem" then return "Store channel" end
-    if id == "eject" then return "Eject" end
-    if id == "play" then return "Play / stop" end
-    if id == "slot" then return (st.radio and st.radio.hasMedia) and "Eject" or "Choose a disc" end
-    if id == "tune" then return "Tune +" end
-    if id == "seek" then return "Seek" end
-    if id == "scan" then return "Scan" end
-    if id:sub(1, 6) == "preset" then return "Preset" end
-    if id == "chup" then return "Channel +" end
-    if id == "chdn" then return "Channel -" end
-    if id == "mic" then return "Microphone" end
-    if id == "radio" then return "Radio up close" end
-    if id == "temp" or id == "tempup" then return "Warmer" end
-    if id == "tempdn" then return "Cooler" end
-    if id == "fan" or id == "fanup" then return "Fan +" end
-    if id == "fandn" then return "Fan -" end
-    if id == "lbar" then return "Lightbar" end
-    if id == "siren" then return "Siren" end
-    if id == "def" then return "Defrost" end
-    if id == "off" then return "Climate off" end
-    return "Press"
+-- (the words are keys in Translate/<LANG>/UI.json, UI_ZeD_Dash_Prompt<Name>; Shut off, Microphone, Lightbar and Volume are vanilla's)
+local function _promptKey(id, st)
+    if id == "ignition" then if st.running then return "ContextMenu_VehicleShutOff" elseif st.keysIn or st.hotwired then return "UI_ZeD_Dash_PromptStart" elseif st.hasKey then return "UI_ZeD_Dash_PromptInsertKey" else return "UI_ZeD_Dash_PromptNoKey" end end
+    if id == "lights" then return st.lights and "UI_ZeD_Dash_PromptLightsOff" or "UI_ZeD_Dash_PromptLightsOn" end
+    if id == "lock" then return st.anyLocked and "UI_ZeD_Dash_PromptUnlock" or "UI_ZeD_Dash_PromptLock" end
+    if id == "trunk" then return st.trunkLocked and "UI_ZeD_Dash_PromptUnlockTrunk" or "UI_ZeD_Dash_PromptLockTrunk" end
+    if id == "cruise" then return st.cruise and "UI_ZeD_Dash_PromptCruiseOff" or "UI_ZeD_Dash_PromptCruiseSet" end
+    if id == "heat" then return st.heaterOn and "UI_ZeD_Dash_PromptHeaterOff" or "UI_ZeD_Dash_PromptHeaterOn" end
+    if id == "ac" then return st.ac and "UI_ZeD_Dash_PromptAcOff" or "UI_ZeD_Dash_PromptAc" end
+    if id == "vol" and st.radio and ROCKER[st.radio.kind] then return "UI_ZeD_Dash_PromptVolumePlus" end
+    if id == "pwr" or id == "vol" then return st.radioSwitch and "UI_ZeD_Dash_PromptRadioOff" or "UI_ZeD_Dash_PromptRadioOn" end
+    if id == "mute" then return (st.radio and st.radio.muted) and "UI_ZeD_Dash_PromptSoundOn" or "UI_ZeD_Dash_PromptMute" end
+    if id == "mem" then return "UI_ZeD_Dash_PromptStoreChannel" end
+    if id == "eject" then return "UI_ZeD_Dash_PromptEject" end
+    if id == "play" then return "UI_ZeD_Dash_PromptPlayStop" end
+    if id == "slot" then return (st.radio and st.radio.hasMedia) and "UI_ZeD_Dash_PromptEject" or "UI_ZeD_Dash_PromptChooseDisc" end
+    if id == "tune" then return "UI_ZeD_Dash_PromptTunePlus" end
+    if id == "seek" then return "UI_ZeD_Dash_PromptSeek" end
+    if id == "scan" then return "UI_ZeD_Dash_PromptScan" end
+    if id:sub(1, 6) == "preset" then return "UI_ZeD_Dash_PromptPreset" end
+    if id == "chup" then return "UI_ZeD_Dash_PromptChannelPlus" end
+    if id == "chdn" then return "UI_ZeD_Dash_PromptChannelMinus" end
+    if id == "mic" then return "IGUI_RadioMicrophone" end
+    if id == "radio" then return "UI_ZeD_Dash_PromptRadioUp" end
+    if id == "temp" or id == "tempup" then return "UI_ZeD_Dash_PromptWarmer" end
+    if id == "tempdn" then return "UI_ZeD_Dash_PromptCooler" end
+    if id == "fan" or id == "fanup" then return "UI_ZeD_Dash_PromptFanPlus" end
+    if id == "fandn" then return "UI_ZeD_Dash_PromptFanMinus" end
+    if id == "lbar" then return "ContextMenu_VehicleLightbar" end
+    if id == "siren" then return "UI_ZeD_Dash_PromptSiren" end
+    if id == "def" then return "UI_ZeD_Dash_PromptDefrost" end
+    if id == "off" then return "UI_ZeD_Dash_PromptClimateOff" end
+    return "UI_ZeD_Dash_PromptPress"
 end
-local SECONDARY = { ignition = "Remove key", vol = "Volume", tune = "Tune -", temp = "Cooler", fan = "Fan -", seek = "Seek back",
-    preset1 = "Store", preset2 = "Store", preset3 = "Store", preset4 = "Store", preset5 = "Store", preset6 = "Store" }
+-- the second verb (X / right-click) per control, as keys
+local SECONDARY = { ignition = "UI_ZeD_Dash_PromptRemoveKey", vol = "IGUI_RadioVolume", tune = "UI_ZeD_Dash_PromptTuneMinus",
+    temp = "UI_ZeD_Dash_PromptCooler", fan = "UI_ZeD_Dash_PromptFanMinus", seek = "UI_ZeD_Dash_PromptSeekBack",
+    preset1 = "UI_ZeD_Dash_PromptStore", preset2 = "UI_ZeD_Dash_PromptStore", preset3 = "UI_ZeD_Dash_PromptStore",
+    preset4 = "UI_ZeD_Dash_PromptStore", preset5 = "UI_ZeD_Dash_PromptStore", preset6 = "UI_ZeD_Dash_PromptStore" }
+ZeD.trDefaults({
+    UI_ZeD_Dash_PromptStart = "Start", UI_ZeD_Dash_PromptInsertKey = "Insert key", UI_ZeD_Dash_PromptNoKey = "No key",
+    UI_ZeD_Dash_PromptLightsOff = "Lights off", UI_ZeD_Dash_PromptLightsOn = "Lights on", UI_ZeD_Dash_PromptUnlock = "Unlock",
+    UI_ZeD_Dash_PromptLock = "Lock", UI_ZeD_Dash_PromptUnlockTrunk = "Unlock trunk", UI_ZeD_Dash_PromptLockTrunk = "Lock trunk",
+    UI_ZeD_Dash_PromptCruiseOff = "Cruise off", UI_ZeD_Dash_PromptCruiseSet = "Cruise set", UI_ZeD_Dash_PromptHeaterOff = "Heater off",
+    UI_ZeD_Dash_PromptHeaterOn = "Heater on", UI_ZeD_Dash_PromptAcOff = "A/C off", UI_ZeD_Dash_PromptAc = "A/C",
+    UI_ZeD_Dash_PromptVolumePlus = "Volume +", UI_ZeD_Dash_PromptRadioOff = "Radio off", UI_ZeD_Dash_PromptRadioOn = "Radio on",
+    UI_ZeD_Dash_PromptSoundOn = "Sound on", UI_ZeD_Dash_PromptMute = "Mute", UI_ZeD_Dash_PromptStoreChannel = "Store channel",
+    UI_ZeD_Dash_PromptEject = "Eject", UI_ZeD_Dash_PromptPlayStop = "Play / stop", UI_ZeD_Dash_PromptChooseDisc = "Choose a disc",
+    UI_ZeD_Dash_PromptTunePlus = "Tune +", UI_ZeD_Dash_PromptSeek = "Seek", UI_ZeD_Dash_PromptScan = "Scan",
+    UI_ZeD_Dash_PromptPreset = "Preset", UI_ZeD_Dash_PromptChannelPlus = "Channel +", UI_ZeD_Dash_PromptChannelMinus = "Channel -",
+    UI_ZeD_Dash_PromptRadioUp = "Radio up close", UI_ZeD_Dash_PromptWarmer = "Warmer", UI_ZeD_Dash_PromptCooler = "Cooler",
+    UI_ZeD_Dash_PromptFanPlus = "Fan +", UI_ZeD_Dash_PromptFanMinus = "Fan -", UI_ZeD_Dash_PromptSiren = "Siren",
+    UI_ZeD_Dash_PromptDefrost = "Defrost", UI_ZeD_Dash_PromptClimateOff = "Climate off", UI_ZeD_Dash_PromptPress = "Press",
+    UI_ZeD_Dash_PromptRemoveKey = "Remove key", UI_ZeD_Dash_PromptTuneMinus = "Tune -", UI_ZeD_Dash_PromptSeekBack = "Seek back",
+    UI_ZeD_Dash_PromptStore = "Store", UI_ZeD_Dash_PromptDrive = "Drive", UI_ZeD_Dash_Passenger = "PASSENGER",
+    UI_ZeD_Dash_HintAxb = "A %1  X %2  B %3", UI_ZeD_Dash_HintAb = "A %1  B %2", UI_ZeD_Dash_HintReenter = "Dash: re-enter the seat to focus",
+    UI_ZeD_Dash_UnitCab = "%1 - CAB %2", UI_ZeD_Dash_UnitEngine = "%1 - ENGINE %2", UI_ZeD_Dash_UnitUnit = "%1 - UNIT %2",
+})
 
 -- ---------------------------------------------------------------------------
 -- The organism
@@ -412,7 +436,9 @@ function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
         if id == "ignition" and not st.keysIn then secondary = nil end
         self._elements[#self._elements + 1] = {
             x = hr.x, y = hr.y, w = hr.w, h = hr.h, id = "dash:" .. id,
-            promptA = _promptFor(id, st), promptX = secondary, promptB = "Drive",
+            promptA = self._pad and ZeD.tr(_promptKey(id, st)) or nil,
+            promptX = (self._pad and secondary) and ZeD.tr(secondary) or nil,
+            promptB = self._pad and ZeD.tr("UI_ZeD_Dash_PromptDrive") or nil,
             onActivate = function(win, el) win:_fire(id, false) end,
             onContextMenu = function(win, el) if secondary then win:_fire(id, true) end end,
             onCancel = function(win, el) win:_release() end,
@@ -488,6 +514,7 @@ function ZeD_Dashboard:prerender()
     local Focus = ZeD.Input and ZeD.Input.Focus
     local DetM = ZeD.Input and ZeD.Input.Detector
     local gamepad = DetM and DetM.getMode and DetM.getMode() == "gamepad"
+    self._pad = gamepad and true or false      -- the controller prompts' words are looked up only while a pad plays
     -- the focus cue is a gamepad affordance: the dash still holds focus for the ring under mouse play, but paints nothing
     self._focEl = (gamepad and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
     self._hit = {}; self._elements = {}
@@ -508,16 +535,23 @@ function ZeD_Dashboard:prerender()
     for _, c in ipairs(pending) do self:_control(c[1], c[2], c[3], c[4], c[5], st, c[6]) end
     -- the top edge's two words: cream with a dark shadow, or a plain dark ink where the design's top edge is light
     if not self._driver then
-        if des.passInk then P.text(cv, "PASSENGER", 12, 2, P.color(des.passInk), "35", 1, "l")
-        else P.text(cv, "PASSENGER", 12, 2, P.color("#d8d6cc"), "35", 1, "l", nil, "#101010") end
+        local pass = ZeD.tr("UI_ZeD_Dash_Passenger")
+        if des.passInk then P.text(cv, pass, 12, 2, P.color(des.passInk), "35", 1, "l")
+        else P.text(cv, pass, 12, 2, P.color("#d8d6cc"), "35", 1, "l", nil, "#101010") end
     end
 
     local Det = ZeD.Input and ZeD.Input.Detector
     if Det and Det.getMode and Det.getMode() == "gamepad" and self._driver then
-        local hint = self._focEl and ("A " .. (self._focEl.promptA or "Press") .. (self._focEl.promptX and ("  X " .. self._focEl.promptX) or "") .. "  B Drive") or "Dash: re-enter the seat to focus"
+        local hint
+        if self._focEl then
+            local pa, pb = self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress"), ZeD.tr("UI_ZeD_Dash_PromptDrive")
+            hint = self._focEl.promptX and ZeD.tr("UI_ZeD_Dash_HintAxb", pa, self._focEl.promptX, pb) or ZeD.tr("UI_ZeD_Dash_HintAb", pa, pb)
+        else
+            hint = ZeD.tr("UI_ZeD_Dash_HintReenter")
+        end
         -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight)
-        if des.hintInk then P.text(cv, hint:upper(), DP.hintRight, 2, P.color(des.hintInk), "35", 1, "r")
-        else P.text(cv, hint:upper(), DP.hintRight, 2, P.color("#ece8dc"), "35", 1, "r", nil, "#101010") end
+        if des.hintInk then P.text(cv, ZeD.upper(hint), DP.hintRight, 2, P.color(des.hintInk), "35", 1, "r")
+        else P.text(cv, ZeD.upper(hint), DP.hintRight, 2, P.color("#ece8dc"), "35", 1, "r", nil, "#101010") end
     end
     if Focus and Focus.setRingZoneElements then
         local zone = self._focusRing[1]

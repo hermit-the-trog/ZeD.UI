@@ -30,33 +30,42 @@ local BB = ZeD.BB
 BB.LIMIT = 8000
 
 -- the blocks the editor offers, in its palette's order: kind, name, a starting text
+-- (names and starting texts are translation keys, or "" for none; BB.text turns one into the
+-- player's language where it shows: the palette, and the text a new block starts with)
 BB.KINDS = {
-    { "h1", "Heading", "Heading" },
-    { "text", "Text", "" },
-    { "list", "List", "First point\nSecond point" },
-    { "olist", "Numbered", "First step\nSecond step" },
-    { "img", "Picture", "https://" },
-    { "quote", "Quote", "" },
-    { "code", "Code", "" },
-    { "table", "Table", "Works with | Notes\nAnother mod | How they get along" },
-    { "divider", "Divider", "" },
-    { "url", "Link", "https://\nWhere it goes" },
-    { "spoiler", "Spoiler", "" },
+    { "h1", "UI_ZeD_DescEdit_PalHeading", "UI_ZeD_DescEdit_StartHeading" },
+    { "text", "UI_ZeD_DescEdit_PalText", "" },
+    { "list", "UI_ZeD_DescEdit_PalList", "UI_ZeD_DescEdit_StartList" },
+    { "olist", "UI_ZeD_DescEdit_PalNumbered", "UI_ZeD_DescEdit_StartNumbered" },
+    { "img", "UI_ZeD_DescEdit_PalPicture", "https://" },
+    { "quote", "UI_ZeD_DescEdit_PalQuote", "" },
+    { "code", "UI_ZeD_DescEdit_PalCode", "" },
+    { "table", "UI_ZeD_DescEdit_PalTable", "UI_ZeD_DescEdit_StartTable" },
+    { "divider", "UI_ZeD_DescEdit_PalDivider", "" },
+    { "url", "UI_ZeD_DescEdit_PalLink", "UI_ZeD_DescEdit_StartLink" },
+    { "spoiler", "UI_ZeD_DescEdit_PalSpoiler", "" },
 }
 BB.NAME = {}
 for _, k in ipairs(BB.KINDS) do BB.NAME[k[1]] = k[2] end
-BB.NAME.h2, BB.NAME.h3 = "Heading", "Heading"
+BB.NAME.h2, BB.NAME.h3 = "UI_ZeD_DescEdit_PalHeading", "UI_ZeD_DescEdit_PalHeading"
 
--- the sections readers look for: a heading and what goes under it
+-- the sections readers look for: a heading and what goes under it (keys, as above)
 BB.SECTIONS = {
-    { "Features", "list", "What it does\nWhat else it does" },
-    { "Requirements", "list", "Build 42" },
-    { "Load order", "olist", "This mod\nMods that patch it" },
-    { "Compatibility", "table", "Works with | Notes\nAnother mod | How they get along" },
-    { "Known issues", "list", "" },
-    { "Changelog", "list", "1.0: first release" },
-    { "Credits", "text", "" },
+    { "UI_ZeD_DescEdit_SecFeatures", "list", "UI_ZeD_DescEdit_SecFeaturesBody" },
+    { "UI_ZeD_DescEdit_SecRequirements", "list", "UI_ZeD_DescEdit_SecRequirementsBody" },
+    { "UI_ZeD_DescEdit_SecLoadOrder", "olist", "UI_ZeD_DescEdit_SecLoadOrderBody" },
+    { "UI_ZeD_DescEdit_SecCompat", "table", "UI_ZeD_DescEdit_StartTable" },
+    { "UI_ZeD_DescEdit_SecKnownIssues", "list", "" },
+    { "UI_ZeD_DescEdit_SecChangelog", "list", "UI_ZeD_DescEdit_SecChangelogBody" },
+    { "UI_ZeD_DescEdit_SecCredits", "text", "" },
 }
+
+-- A name or starting text from the lists above: the translation of a key, "" or an address as it is.
+-- (a "\n" a translator typed as two characters, the way the game's own files do, is a line break)
+function BB.text(s)
+    if s == nil or s == "" or s:sub(1, 8) ~= "UI_ZeD_D" then return s or "" end
+    return (ZeD.tr(s):gsub("\\n", "\n"))
+end
 
 local function trim(s) return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
 BB.trim = trim
@@ -363,7 +372,7 @@ function BB.drawBlock(p, b, x, y, w)
         if p then
             p:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
             local name = trim(t):match("([^/]+)$") or trim(t)
-            local s = "Picture: " .. ((name ~= "" and name ~= "https:") and name or "no address yet")
+            local s = ZeD.tr("UI_ZeD_DescEdit_PicturePreview", (name ~= "" and name ~= "https:") and name or ZeD.tr("UI_ZeD_DescEdit_NoAddress"))
             p:drawText(ZeD.Atoms.truncateText(s, f3, w - T.px(16)), x + T.px(8), y + math.floor((h - tm:getFontHeight(f3)) / 2), dim.r, dim.g, dim.b, dim.a or 1, f3)
         end
         return h

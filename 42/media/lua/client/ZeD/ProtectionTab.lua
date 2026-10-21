@@ -6,6 +6,7 @@
 
 require "ZeD/Tokens"
 require "ZeD/Atoms"
+require "ZeD/ZeD_BodyFigure"
 
 ZeD = ZeD or {}
 ZeD.ProtectionTab = {}
@@ -250,7 +251,7 @@ function ZeD.ProtectionTab.gatherData(playerObj)
     local uncoveredParts = {}
     for _, partStr in ipairs(ALL_PARTS) do
         if not coveredSet[partStr] then
-            uncoveredParts[#uncoveredParts + 1] = PART_ABBREV[partStr] or partStr
+            uncoveredParts[#uncoveredParts + 1] = ZeD.partAbbrev(PART_ABBREV[partStr] or partStr)
         end
     end
 

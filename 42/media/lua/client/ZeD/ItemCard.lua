@@ -358,7 +358,7 @@ VERB_DISPATCH.sharpen = function(card)
             end
         end
     end
-    note(player, "Needs a whetstone or a file")
+    note(player, ZeD.tr("UI_ZeD_Card_NeedWhetstone"))
 end
 
 -- WASH: vanilla's own wash (ISWorldObjectContextMenu.onWashClothing: walks to
@@ -384,7 +384,7 @@ VERB_DISPATCH.wash = function(card)
             end
         end
     end
-    if not best then note(player, "No water in reach"); return end
+    if not best then note(player, ZeD.tr("UI_ZeD_Card_NoWaterInReach")); return end
     local soap = player:getInventory():getSoapList(nil, true)
     ISWorldObjectContextMenu.onWashClothing(player, best, soap, nil, card.item)
 end
@@ -545,7 +545,7 @@ local function drawItemSoilRow(panel, x, y, w, soil)
         rx = rx - sp.xs
     end
     if soil.dirt then
-        local lbl    = "DIRTY"
+        local lbl    = ZeD.tr("UI_ZeD_Card_Dirty")
         local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
         local flagW  = math.max(T.px(4), sTextW + T.px(8))
         rx = rx - flagW
@@ -1118,8 +1118,8 @@ function ZeD_ItemCard:update()
                 if inAbsRect(vr) then hover = i; break end
             end
             if self._headerVerbWasDown and not downAbs and hover then
-                local label = self._lastHeaderVerbs and self._lastHeaderVerbs[hover]
-                              and self._lastHeaderVerbs[hover].label
+                local hv = self._lastHeaderVerbs and self._lastHeaderVerbs[hover]
+                local label = hv and (hv.id or hv.label)
                 if label then self:_dispatchHeaderVerb(label) end
             end
             self._headerVerbWasDown = downAbs and (hover ~= nil) or false
@@ -1421,7 +1421,7 @@ function ZeD_ItemCard:getActionStripElements()
         for i, r in ipairs(hb.verbs) do
             local v = self._lastHeaderVerbs[i]
             if r and r.x and v and v.label then
-                local eid, label = "hverb_" .. i, v.label
+                local eid, label = "hverb_" .. i, (v.id or v.label)
                 els[#els + 1] = {
                     x = ax + r.x, y = ay + r.y, w = r.w, h = r.h,
                     id = eid,

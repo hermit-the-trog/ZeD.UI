@@ -13,6 +13,7 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.IdentityTab = {}
@@ -121,29 +122,30 @@ end
 
 local function getHairColorName(char)
     local hc = char:getHumanVisual():getHairColor()
-    if not hc then return "Unknown" end
+    if not hc then return ZeD.tr("UI_ZeD_Identity_Unknown") end
     local r, g, b = hc:getRedFloat(), hc:getGreenFloat(), hc:getBlueFloat()
     local brightness = r * 0.299 + g * 0.587 + b * 0.114
+    -- vanilla's paint-colour words where it has them (ContextMenu_*), else ZeD's
     if brightness > 0.75 then
-        if r > 0.85 and g > 0.85 then return "White" end
-        return "Blonde"
+        if r > 0.85 and g > 0.85 then return getText("ContextMenu_White") end
+        return ZeD.tr("UI_ZeD_Identity_HairBlonde")
     elseif brightness > 0.5 then
-        if r > g + 0.15 then return "Auburn" end
-        return "Light Brown"
+        if r > g + 0.15 then return ZeD.tr("UI_ZeD_Identity_HairAuburn") end
+        return getText("ContextMenu_Light_Brown")
     elseif brightness > 0.3 then
-        if r > g + 0.1 and r > 0.45 then return "Red" end
-        if r > 0.35 and g > 0.25 then return "Brown" end
-        return "Dark Brown"
+        if r > g + 0.1 and r > 0.45 then return getText("ContextMenu_Red") end
+        if r > 0.35 and g > 0.25 then return getText("ContextMenu_Brown") end
+        return ZeD.tr("UI_ZeD_Identity_HairDarkBrown")
     elseif brightness > 0.15 then
-        if r > g + 0.08 then return "Dark Red" end
-        return "Dark Brown"
+        if r > g + 0.08 then return ZeD.tr("UI_ZeD_Identity_HairDarkRed") end
+        return ZeD.tr("UI_ZeD_Identity_HairDarkBrown")
     end
-    return "Black"
+    return getText("ContextMenu_Black")
 end
 
 local function getHairStyleName(char)
     local hairModel = char:getHumanVisual():getHairModel()
-    if not hairModel or hairModel == "" then return "Bald" end
+    if not hairModel or hairModel == "" then return getText("IGUI_Hair_Bald") end
     local style
     if char:isFemale() then
         style = getHairStylesInstance():FindFemaleStyle(hairModel)
@@ -153,25 +155,28 @@ local function getHairStyleName(char)
     if style and style:getName() and style:getName() ~= "" then
         return getText("IGUI_Hair_" .. style:getName())
     end
-    return "Bald"
+    return getText("IGUI_Hair_Bald")
 end
 
 local function getBeardStyleName(char)
-    if char:isFemale() then return "N/A" end
+    if char:isFemale() then return ZeD.tr("UI_ZeD_Identity_NotApplicable") end
     local beardModel = char:getHumanVisual():getBeardModel()
-    if not beardModel or beardModel == "" then return "None" end
+    if not beardModel or beardModel == "" then return getText("IGUI_None") end
     local style = getBeardStylesInstance():FindStyle(beardModel)
     if style and style:getName() and style:getName() ~= "" then
         return getText("IGUI_Beard_" .. style:getName())
     end
-    return "None"
+    return getText("IGUI_None")
 end
 
 local function getBodyHairName(char)
     local idx = char:getHumanVisual():getBodyHairIndex()
-    if not idx or idx <= 0 then return "None" end
-    local names = { "Light", "Normal", "Heavy", "Very Heavy" }
-    return names[idx] or ("Level " .. idx)
+    if not idx or idx <= 0 then return getText("IGUI_None") end
+    if idx == 1 then return ZeD.tr("UI_ZeD_Identity_BodyHairLight") end
+    if idx == 2 then return ZeD.tr("UI_ZeD_Identity_BodyHairNormal") end
+    if idx == 3 then return ZeD.tr("UI_ZeD_Identity_BodyHairHeavy") end
+    if idx == 4 then return ZeD.tr("UI_ZeD_Identity_BodyHairVeryHeavy") end
+    return ZeD.tr("UI_ZeD_Identity_BodyHairLevel", idx)
 end
 
 local function getFavouriteWeapon(char)
@@ -183,7 +188,7 @@ local function getFavouriteWeapon(char)
             bestCount = val
         end
     end
-    return best or "None"
+    return best or getText("IGUI_None")
 end
 
 -- ============================================================================
@@ -224,9 +229,9 @@ end
 
 function ZeD.IdentityTab.gatherData(playerObj)
     local data = {
-        surname    = "Unknown",
+        surname    = ZeD.tr("UI_ZeD_Identity_Unknown"),
         forename   = "",
-        weightStr  = "-- kg",
+        weightStr  = ZeD.tr("UI_ZeD_Identity_WeightKg", "--"),
         sexStr     = "--",
         profession = "--",
         hairStyle  = "--",
@@ -234,7 +239,7 @@ function ZeD.IdentityTab.gatherData(playerObj)
         facialHair = "--",
         hairColor  = "--",
         timeSurv   = "--",
-        favWeapon  = "None",
+        favWeapon  = getText("IGUI_None"),
         zKills     = "0",
         posTraits  = {},
         negTraits  = {},
@@ -244,13 +249,13 @@ function ZeD.IdentityTab.gatherData(playerObj)
 
     local desc = playerObj:getDescriptor()
     if desc then
-        data.surname  = desc:getSurname()  or "Unknown"
+        data.surname  = desc:getSurname()  or ZeD.tr("UI_ZeD_Identity_Unknown")
         data.forename = desc:getForename() or ""
     end
 
     local weight = math.floor(playerObj:getNutrition():getWeight())
-    data.weightStr  = weight .. " kg"
-    data.sexStr     = playerObj:isFemale() and "Female" or "Male"
+    data.weightStr  = ZeD.tr("UI_ZeD_Identity_WeightKg", weight)
+    data.sexStr     = playerObj:isFemale() and getText("IGUI_char_Female") or getText("IGUI_char_Male")
     if desc and desc:getCharacterProfession() then
         local prof    = desc:getCharacterProfession()
         -- CharacterProfessionDefinition.getCharacterProfessionDefinition() gives the Lua-side
@@ -261,7 +266,7 @@ function ZeD.IdentityTab.gatherData(playerObj)
         -- so iterate words manually instead
         local words = {}
         for word in raw:gmatch("%S+") do
-            words[#words + 1] = word:sub(1, 1):upper() .. word:sub(2):lower()
+            words[#words + 1] = ZeD.upper(word:sub(1, 1)) .. word:sub(2):lower()
         end
         data.profession = #words > 0 and table.concat(words, " ") or raw
     end
@@ -426,9 +431,9 @@ local function renderLicenseText(panel, win, data, x, drawY, w)
     -- Two-column data grid
     local colW = math.floor(dataW / 2)
     local fields = {
-        { "Sex",        data.sexStr,     "Profession",  data.profession },
-        { "Hair Style", data.hairStyle,  "Body Hair",   data.bodyHair   },
-        { "Hair Color", data.hairColor,  "Facial Hair", data.facialHair },
+        { getText("IGUI_char_Sex"),                data.sexStr,     ZeD.tr("UI_ZeD_Identity_Profession"), data.profession },
+        { ZeD.tr("UI_ZeD_Identity_HairStyle"),     data.hairStyle,  ZeD.tr("UI_ZeD_Identity_BodyHair"),   data.bodyHair   },
+        { ZeD.tr("UI_ZeD_Identity_HairColor"),     data.hairColor,  ZeD.tr("UI_ZeD_Identity_FacialHair"), data.facialHair },
     }
     for _, row in ipairs(fields) do
         panel:drawText(row[1], dataX, rowY,
@@ -446,7 +451,7 @@ local function renderLicenseText(panel, win, data, x, drawY, w)
 
     -- Time Survived
     rowY = rowY + T.px(4)
-    panel:drawText("Time Survived", dataX, rowY,
+    panel:drawText(ZeD.tr("UI_ZeD_Identity_TimeSurvived"), dataX, rowY,
         KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
     rowY = rowY + bodyFH + T.px(1)
     panel:drawText(data.timeSurv, dataX, rowY, 0.1, 0.1, 0.1, 1.0, T.fontF4)
@@ -456,11 +461,11 @@ local function renderLicenseText(panel, win, data, x, drawY, w)
 
     -- Favorite Weapon | Zombies Killed
     rowY = rowY + T.px(4)
-    panel:drawText("Favorite Weapon", dataX, rowY,
+    panel:drawText(getText("IGUI_char_Favourite_Weapon"), dataX, rowY,
         KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
     panel:drawText(data.favWeapon, dataX, rowY + bodyFH + T.px(1),
         0.1, 0.1, 0.1, 1.0, T.fontF4)
-    panel:drawText("Zombies Killed", dataX + colW, rowY,
+    panel:drawText(getText("IGUI_char_Zombies_Killed"), dataX + colW, rowY,
         KY.inkDim.r, KY.inkDim.g, KY.inkDim.b, KY.inkDim.a, T.fontF1)
     panel:drawText(data.zKills, dataX + colW, rowY + bodyFH + T.px(1),
         0.1, 0.1, 0.1, 1.0, T.fontF4)
@@ -525,7 +530,7 @@ local function renderZoneB(panel, win, data, x, drawY, w)
     local curY = drawY + pad
 
     -- Heading (F4 Norm)
-    panel:drawText("Traits", x + pad, curY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
+    panel:drawText(getText("IGUI_char_Traits"), x + pad, curY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
     curY = curY + T.sp.beforeHead + headH + T.sp.headGap
 
     -- Groove divider
@@ -535,21 +540,21 @@ local function renderZoneB(panel, win, data, x, drawY, w)
     local totalCount = #data.posTraits + #data.negTraits
 
     if totalCount == 0 then
-        A.drawSecondary(panel, "No traits", x + pad, curY, T.textDim)
+        A.drawSecondary(panel, ZeD.tr("UI_ZeD_Identity_NoTraits"), x + pad, curY, T.textDim)
         return
     end
 
     -- Positive traits
     if #data.posTraits > 0 then
         curY = renderTraitGroup(panel, data.posTraits,
-            "POSITIVE (" .. #data.posTraits .. ")",
+            ZeD.tr("UI_ZeD_Identity_TraitsPositive", #data.posTraits),
             x + pad, curY, contentW, T.positive)
     end
 
     -- Negative traits
     if #data.negTraits > 0 then
         curY = renderTraitGroup(panel, data.negTraits,
-            "NEGATIVE (" .. #data.negTraits .. ")",
+            ZeD.tr("UI_ZeD_Identity_TraitsNegative", #data.negTraits),
             x + pad, curY, contentW, T.danger)
     end
 end
@@ -678,7 +683,7 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     -- Collapsed (bust) → right-pointing chevron; expanded (full body) → down.
     -- L/R tree-nav (gamepad) + header click (mouse) + photo click (mouse on
     -- ISUI3DModel) all converge on the same _identityPhotoExpanded toggle.
-    M.drawTabHeader(panel, x, y, w, "Identity", win._identityPhotoExpanded)
+    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Char_TabIdentity"), win._identityPhotoExpanded)
 
     if needsScroll then
         scroll:draw(panel)

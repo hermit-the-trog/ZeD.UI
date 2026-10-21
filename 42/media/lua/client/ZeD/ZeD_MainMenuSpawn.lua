@@ -209,19 +209,19 @@ function ZeD_MMSpawn:nameProblem()
     if not self:hasDetails() then return nil end
     local raw = self.nameEntry:getText() or ""
     local name = sanitizeWorldName(raw)
-    if raw == "" or name == "" then return "Give the save a name." end
+    if raw == "" or name == "" then return ZeD.tr("UI_ZeD_Spawn_ErrNoName") end
     if name ~= raw then
         local spaced = raw:gsub(" ", "_")
-        if spaced == name then return "Use _ instead of spaces." end
-        return "Those characters can't be used."
+        if spaced == name then return ZeD.tr("UI_ZeD_Spawn_ErrSpaces") end
+        return ZeD.tr("UI_ZeD_Spawn_ErrCharacters")
     end
-    if luautils.stringStarts(name, ".") or luautils.stringEnds(name, ".") then return "Can't start or end with a dot." end
+    if luautils.stringStarts(name, ".") or luautils.stringEnds(name, ".") then return ZeD.tr("UI_ZeD_Spawn_ErrDot") end
     local key = getWorld():getGameMode() .. getFileSeparator() .. name
     if key ~= self._existsKey then
         self._existsKey = key
         self._exists = checkSaveFolderExists(key)
     end
-    if self._exists then return "A save with this name exists." end
+    if self._exists then return ZeD.tr("UI_ZeD_Spawn_ErrExists") end
     return nil
 end
 
@@ -382,7 +382,7 @@ function ZeD_MMSpawn:prerender()
     local items = self:items()
     if self.sel > #items then self.sel = math.max(1, #items) end
     local it = items[self.sel]
-    self.title = "Project Zomboid  +  Spawn location"
+    self.title = ZeD.tr("UI_ZeD_Spawn_Title")
     self.titleStats = { { text = MM.modeName(getWorld():getGameMode()), color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
     if not isMouseButtonDown(0) then self._drag = nil end
@@ -416,8 +416,8 @@ function ZeD_MMSpawn:prerender()
 
     -- the action strip
     UI.stripSpecs(self, stripY, w, 1000,
-        { { "back", "BACK", function() self:back() end } },
-        { { "next", "NEXT", function() self:next() end, "primary", (it == nil) or (self:nameProblem() ~= nil) } })
+        { { "back", getText("UI_btn_back"), function() self:back() end } },
+        { { "next", getText("UI_btn_next"), function() self:next() end, "primary", (it == nil) or (self:nameProblem() ~= nil) } })
     self._stripY, self._stripH = stripY, stripH
     self._cur = it
 end
@@ -493,7 +493,7 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
         self:drawText(text, ix, ry + math.floor((lh - MM.fontH(f1)) / 2) - T.px(1), la.r, la.g, la.b, la.a or 1, f1)
     end
     -- SAVE NAME
-    label("SAVE NAME", cy, "field:name")
+    label(ZeD.tr("UI_ZeD_Spawn_LabelSaveName"), cy, "field:name")
     cy = cy + lh
     if not self.nameEntry:isVisible() then self.nameEntry:setVisible(true) end
     UI.styleEntry(self.nameEntry, ix, cy, iw, fh)
@@ -511,10 +511,10 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
     end
     cy = cy + T.px(NOTE_H)
     -- SEED, and a fresh one beside it
-    label("SEED", cy, "field:seed")
+    label(ZeD.tr("UI_ZeD_Spawn_LabelSeed"), cy, "field:seed")
     cy = cy + lh
     if not self.seedEntry:isVisible() then self.seedEntry:setVisible(true) end
-    local bText = "NEW SEED"
+    local bText = ZeD.tr("UI_ZeD_Spawn_NewSeed")
     local bw = MM.textW(f3, bText) + T.px(U.STRIP_BTN_PAD) * 2
     local bx = ix + iw - bw
     local fw = bx - T.px(8) - ix
@@ -640,7 +640,7 @@ function ZeD_MMSpawn:drawDesc(x, y, w, h, it)
         self._descFor = key
         self.descScroll = 0
         local paras = townParagraphs(it.desc)
-        if self:isRandom(it) then paras = { "A town picked at random when you press \"Next\"." } end
+        if self:isRandom(it) then paras = { ZeD.tr("UI_ZeD_Spawn_RandomDesc") } end
         local lines, ch = {}, T.px(14) + bigH + T.px(6)
         for pi, p in ipairs(paras) do
             if pi > 1 then ch = ch + T.px(6) end
@@ -700,13 +700,13 @@ function ZeD_MMSpawn:getFooterPrompts()
     if not MM.gamepad() then return nil end
     local f = self.focusId or ""
     if f:sub(1, 5) == "town:" then
-        local t = { { glyph = "A", label = "Next" } }
-        if self:hasDetails() then t[#t + 1] = { glyph = "Y", label = "New seed" } end
-        t[#t + 1] = { glyph = "B", label = "Back" }
+        local t = { { glyph = "A", label = ZeD.btnCase(getText("UI_btn_next")) } }
+        if self:hasDetails() then t[#t + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Spawn_PromptNewSeed") } end
+        t[#t + 1] = { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) }
         return t
     end
-    if f:sub(1, 6) == "field:" then return { { glyph = "A", label = "Edit" }, { glyph = "B", label = "Back" } } end
-    return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
+    if f:sub(1, 6) == "field:" then return { { glyph = "A", label = ZeD.tr("UI_ZeD_Sandbox_PromptEdit") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } } end
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } }
 end
 
 -- Escape: leave a field, then the screen

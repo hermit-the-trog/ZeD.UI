@@ -16,6 +16,7 @@
 -- ============================================================================
 
 require "ISUI/ISPanel"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 
@@ -371,6 +372,72 @@ local function mapPart(fig, cx, cy)
 end
 
 -- Suffix → display name mapping (for hit test → ThermalTab communication)
+-- ============================================================================
+-- TRANSLATED PART NAMES. The English medic-style names ARE the part ids all over
+-- the Health, Thermal and Equipment tabs (colour maps, hover state, focus keys),
+-- so they stay English in the data; this turns one into the player's language
+-- right where it is drawn: ZeD.partLabel("Left Forearm"), ZeD.partAbbrev("L. FOREARM").
+-- These are ZeD's own anatomical names (a design choice), not vanilla's.
+-- ============================================================================
+ZeD.PartKeys = {
+    ["Head"]            = "UI_ZeD_Part_Head",
+    ["Neck"]            = "UI_ZeD_Part_Neck",
+    ["Upper Torso"]     = "UI_ZeD_Part_UpperTorso",
+    ["Lower Torso"]     = "UI_ZeD_Part_LowerTorso",
+    ["Back"]            = "UI_ZeD_Part_Back",
+    ["Groin"]           = "UI_ZeD_Part_Groin",
+    ["Left Upper Arm"]  = "UI_ZeD_Part_LeftUpperArm",
+    ["Right Upper Arm"] = "UI_ZeD_Part_RightUpperArm",
+    ["Left Forearm"]    = "UI_ZeD_Part_LeftForearm",
+    ["Right Forearm"]   = "UI_ZeD_Part_RightForearm",
+    ["Left Hand"]       = "UI_ZeD_Part_LeftHand",
+    ["Right Hand"]      = "UI_ZeD_Part_RightHand",
+    ["Left Upper Leg"]  = "UI_ZeD_Part_LeftUpperLeg",
+    ["Right Upper Leg"] = "UI_ZeD_Part_RightUpperLeg",
+    ["Left Lower Leg"]  = "UI_ZeD_Part_LeftLowerLeg",
+    ["Right Lower Leg"] = "UI_ZeD_Part_RightLowerLeg",
+    ["Left Thigh"]      = "UI_ZeD_Part_LeftThigh",
+    ["Right Thigh"]     = "UI_ZeD_Part_RightThigh",
+    ["Left Shin"]       = "UI_ZeD_Part_LeftShin",
+    ["Right Shin"]      = "UI_ZeD_Part_RightShin",
+    ["Left Foot"]       = "UI_ZeD_Part_LeftFoot",
+    ["Right Foot"]      = "UI_ZeD_Part_RightFoot",
+}
+ZeD.PartAbbrevKeys = {
+    ["HEAD"]       = "UI_ZeD_PartAbbr_Head",
+    ["NECK"]       = "UI_ZeD_PartAbbr_Neck",
+    ["U. TORSO"]   = "UI_ZeD_PartAbbr_UpperTorso",
+    ["L. TORSO"]   = "UI_ZeD_PartAbbr_LowerTorso",
+    ["BACK"]       = "UI_ZeD_PartAbbr_Back",
+    ["GROIN"]      = "UI_ZeD_PartAbbr_Groin",
+    ["L. UARM"]    = "UI_ZeD_PartAbbr_LeftUpperArm",
+    ["R. UARM"]    = "UI_ZeD_PartAbbr_RightUpperArm",
+    ["L. FOREARM"] = "UI_ZeD_PartAbbr_LeftForearm",
+    ["R. FOREARM"] = "UI_ZeD_PartAbbr_RightForearm",
+    ["L. HAND"]    = "UI_ZeD_PartAbbr_LeftHand",
+    ["R. HAND"]    = "UI_ZeD_PartAbbr_RightHand",
+    ["L. THIGH"]   = "UI_ZeD_PartAbbr_LeftThigh",
+    ["R. THIGH"]   = "UI_ZeD_PartAbbr_RightThigh",
+    ["L. SHIN"]    = "UI_ZeD_PartAbbr_LeftShin",
+    ["R. SHIN"]    = "UI_ZeD_PartAbbr_RightShin",
+    ["L. FOOT"]    = "UI_ZeD_PartAbbr_LeftFoot",
+    ["R. FOOT"]    = "UI_ZeD_PartAbbr_RightFoot",
+}
+
+-- the player-language name of one of the English part names above (anything else comes back as is)
+function ZeD.partLabel(name)
+    local k = name and ZeD.PartKeys[name]
+    if k then return ZeD.tr(k) end
+    return name
+end
+
+-- the same for the short pill names ("L. UARM")
+function ZeD.partAbbrev(name)
+    local k = name and ZeD.PartAbbrevKeys[name]
+    if k then return ZeD.tr(k) end
+    return name
+end
+
 local SUFFIX_TO_DISPLAY = {
     ["head"]      = "Head",
     ["neck"]      = "Neck",

@@ -36,6 +36,7 @@
 -- _ccWin; the windows set _ccEntry to the container entry on show.
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/ObjectCards"
 
 ZeD = ZeD or {}
@@ -66,8 +67,8 @@ local OURS = {
 local VANILLA = {
     ISLootWindowObjectControlHandler_MannequinWearAll              = true,
     ISLootWindowObjectControlHandler_MannequinSwitchOutfit         = true,
-    ISLootWindowObjectControlHandler_PropaneBarbecueRemoveTank     = "Remove tank",
-    ISLootWindowObjectControlHandler_PropaneBarbecueAddTank        = "Insert tank",
+    ISLootWindowObjectControlHandler_PropaneBarbecueRemoveTank     = "UI_ZeD_Controls_RemoveTank",
+    ISLootWindowObjectControlHandler_PropaneBarbecueAddTank        = "UI_ZeD_Controls_InsertTank",
     ISLootWindowObjectControlHandler_PropaneBarbecueToggle         = true,
     ISLootWindowObjectControlHandler_ClothingWasherToggle          = true,
     ISLootWindowObjectControlHandler_ClothingDryerToggle           = true,
@@ -77,11 +78,11 @@ local VANILLA = {
     ISLootWindowObjectControlHandler_StoveToggle                   = true,
     ISLootWindowObjectControlHandler_VehicleLockTrunk              = true,
     ISLootWindowObjectControlHandler_VehicleCloseTrunk             = true,
-    ISLootWindowObjectControlHandler_PutOut                        = "Put out",
-    ISLootWindowObjectControlHandler_LightFireOption               = "Light",
-    ISLootWindowObjectControlHandler_AddFuelOption                 = "Add fuel",
-    ISLootWindowObjectControlHandler_RemoveCampfire                = "Take apart",
-    ISLootWindowObjectControlHandler_AddCorpseToCampfire           = "Add corpse",
+    ISLootWindowObjectControlHandler_PutOut                        = "UI_ZeD_Controls_PutOut",
+    ISLootWindowObjectControlHandler_LightFireOption               = "ContextMenu_Light",
+    ISLootWindowObjectControlHandler_AddFuelOption                 = "ContextMenu_GeneratorAddFuel",
+    ISLootWindowObjectControlHandler_RemoveCampfire                = "UI_ZeD_Controls_TakeApart",
+    ISLootWindowObjectControlHandler_AddCorpseToCampfire           = "ContextMenu_AddCorpse",
 }
 -- vanilla's object controls many objects share draw as icons (the ZeD icon
 -- library); the rest stay words (director, Oct 16 2026: "can common actions
@@ -113,9 +114,16 @@ local function zedFloor()
     return ZeD_WorldWindow and ZeD_WorldWindow.getFloorContainer and ZeD_WorldWindow.getFloorContainer() or nil
 end
 
--- A vanilla Title Case label as a button word ("Set Mode: Dryer" -> "Set mode: dryer")
+-- A vanilla Title Case label as a button word ("Set Mode: Dryer" -> "Set mode: dryer").
+-- Only English is re-cased: other languages capitalise by their own rules (German nouns),
+-- so their vanilla wording is left exactly as the translators wrote it.
 local function sentence(s)
     s = tostring(s or "")
+    if CT._english == nil then
+        local ok, name = pcall(function() return Translator.getLanguage():name() end)
+        CT._english = (not ok) or tostring(name) == "EN"
+    end
+    if not CT._english then return s end
     return s:sub(1, 1):upper() .. s:sub(2):lower()
 end
 
@@ -389,7 +397,8 @@ local function objectSpecs(content, inv, object)
                     local title
                     local fixed = VANILLA[typ]
                     if type(fixed) == "string" then
-                        title = fixed
+                        -- a ZeD phrase reads as its translator wrote it; vanilla's key gets the button case
+                        if fixed:sub(1, 7) == "UI_ZeD_" then title = ZeD.tr(fixed) else title = sentence(getText(fixed)) end
                     else
                         local okC, control = pcall(h.getControl, h)
                         title = okC and control and control.title or ""
@@ -478,23 +487,23 @@ local function buildChar(content)
     local dest = otherInventory(content)
     local moves = {}
     local xfer = transferAllItems(playerObj, inv, dest)
-    moves[#moves + 1] = { id = "xfer", label = "Transfer all", enabled = dest ~= nil and #xfer > 0,
-        icon = "inbox-out", hint = "Transfer all",
+    moves[#moves + 1] = { id = "xfer", label = sentence(getText("IGUI_invpage_Transfer_all")), enabled = dest ~= nil and #xfer > 0,
+        icon = "inbox-out", hint = sentence(getText("IGUI_invpage_Transfer_all")),
         run = function(ct)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, transferAllItems(playerObj, ct._inventory, d), d)
         end }
     local keep = function(item) return not item:isFavorite() and not item:isEquipped() end
     local same, sameSet = sameTypeItems(inv, dest, keep)
-    moves[#moves + 1] = { id = "same", label = "Same type", enabled = #same > 0, marks = sameSet,
-        icon = "copy", hint = "Put in the kinds it already holds",
+    moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
+        icon = "copy", hint = ZeD.tr("UI_ZeD_Controls_HintPutInKinds"),
         run = function(ct)
             local d = otherInventory(ct)
             CT.moveItems(playerObj, (sameTypeItems(ct._inventory, d, keep)), d)
         end }
     local _, nearSet = nearbyPlan(playerObj, inv, nearbyContainers())
-    moves[#moves + 1] = { id = "near", label = "Same type, all nearby", enabled = hasAny(nearSet), marks = nearSet,
-        icon = "arrows-from-dotted-line", hint = "Each kind into a nearby container that holds it",
+    moves[#moves + 1] = { id = "near", label = ZeD.tr("UI_ZeD_Controls_SameTypeNearby"), enabled = hasAny(nearSet), marks = nearSet,
+        icon = "arrows-from-dotted-line", hint = ZeD.tr("UI_ZeD_Controls_HintNearby"),
         run = function(ct)
             for _, step in ipairs((nearbyPlan(playerObj, ct._inventory, nearbyContainers()))) do
                 CT.moveItems(playerObj, step.items, step.dest)
@@ -510,8 +519,8 @@ local function buildWorld(content)
     local dest = otherInventory(content)
     local onFloor = isFloor(inv)
     local moves = {}
-    moves[#moves + 1] = { id = "take", label = "Take all", enabled = not inv:isEmptyOrUnwanted(playerObj),
-        icon = "inbox-in", hint = "Take all",
+    moves[#moves + 1] = { id = "take", label = sentence(getText("IGUI_invpage_Loot_all")), enabled = not inv:isEmptyOrUnwanted(playerObj),
+        icon = "inbox-in", hint = sentence(getText("IGUI_invpage_Loot_all")),
         run = function(ct)
             local src, d = ct._inventory, otherInventory(ct)
             if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
@@ -524,16 +533,16 @@ local function buildWorld(content)
         end }
     local keep = function(item) return not item:isFavorite() and not item:isUnwanted(playerObj) end
     local same, sameSet = sameTypeItems(inv, dest, keep)
-    moves[#moves + 1] = { id = "same", label = "Same type", enabled = #same > 0, marks = sameSet,
-        icon = "copy", hint = "Take the kinds you already carry",
+    moves[#moves + 1] = { id = "same", label = ZeD.tr("UI_ZeD_Controls_SameType"), enabled = #same > 0, marks = sameSet,
+        icon = "copy", hint = ZeD.tr("UI_ZeD_Controls_HintTakeKinds"),
         run = function(ct)
             local src, d = ct._inventory, otherInventory(ct)
             if not isFloor(src) and not luautils.walkToContainer(src, pn) then return end
             CT.moveItems(playerObj, (sameTypeItems(src, d, keep)), d)
         end }
     if not onFloor then
-        moves[#moves + 1] = { id = "floor", label = "To floor", enabled = not inv:isEmpty(),
-            icon = "fi-br-arrow-down-to-dotted-line", hint = "Everything to the floor",
+        moves[#moves + 1] = { id = "floor", label = ZeD.tr("UI_ZeD_Controls_ToFloor"), enabled = not inv:isEmpty(),
+            icon = "fi-br-arrow-down-to-dotted-line", hint = ZeD.tr("UI_ZeD_Controls_HintToFloor"),
             run = function(ct)
                 local src = ct._inventory
                 local items = {}
@@ -550,9 +559,9 @@ local function buildWorld(content)
     if isTrashCan(object) and not inv:isEmpty()
        and not (isClient() and not getServerOptions():getBoolean("TrashDeleteAll")) then
         local n = inv:getItems():size()
-        objs[#objs + 1] = { id = "trash", label = "Delete all", enabled = true, danger = true,
-            icon = "trash", hint = "Delete all",
-            ask = string.format("Delete all %d item%s for good?", n, n == 1 and "" or "s"),
+        objs[#objs + 1] = { id = "trash", label = sentence(getText("IGUI_invpage_RemoveAll")), enabled = true, danger = true,
+            icon = "trash", hint = sentence(getText("IGUI_invpage_RemoveAll")),
+            ask = ZeD.tr(n == 1 and "UI_ZeD_Controls_DeleteAskOne" or "UI_ZeD_Controls_DeleteAskMany", n),
             run = function()
                 local args = { x = object:getX(), y = object:getY(), z = object:getZ(), index = object:getObjectIndex() }
                 sendClientCommand(playerObj, "object", "emptyTrash", args)
@@ -669,10 +678,11 @@ function CT.layout(content, colW)
     local padX, gap = T.px(CT.PAD_X), T.px(CT.GAP)
     local maxX = colW - padX
     if cc.ask then
-        local wy, wn = btnW("Delete all"), btnW("Cancel")
+        local delTxt, cancelTxt = sentence(getText("IGUI_invpage_RemoveAll")), getText("UI_Cancel")
+        local wy, wn = btnW(delTxt), btnW(cancelTxt)
         cc.bottom = { question = cc.ask.ask, x0 = padX, x1 = maxX, rects = {
-            { key = "no",  label = "Cancel", tx = maxX - wy - gap - wn, w = wn, ask = "no" },
-            { key = "yes", label = "Delete all", tx = maxX - wy, w = wy, ask = "yes", danger = true } } }
+            { key = "no",  label = cancelTxt, tx = maxX - wy - gap - wn, w = wn, ask = "no" },
+            { key = "yes", label = delTxt, tx = maxX - wy, w = wy, ask = "yes", danger = true } } }
         return T.px(CT.ROW_H)
     end
     if #cc.moves + #cc.objs == 0 then cc.bottom = nil; return 0 end

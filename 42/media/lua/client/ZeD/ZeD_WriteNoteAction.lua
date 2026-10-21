@@ -12,6 +12,7 @@
 -- ============================================================================
 
 require "TimedActions/ISBaseTimedAction"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.Notes = ZeD.Notes or {}
@@ -43,10 +44,10 @@ end
 
 -- why the character cannot write in it now (nil: they can)
 function N.why(playerObj, item)
-    if N.otherLock(playerObj, item) then return "Locked by its writer" end
-    if N.lockedByMe(playerObj, item) then return "Locked: unlock it on the full page to write" end
-    if not N.hasWritingTool(playerObj) then return "No pencil or pen" end
-    if playerObj:tooDarkToRead() then return "Too dark to write" end
+    if N.otherLock(playerObj, item) then return ZeD.tr("UI_ZeD_Notebook_WhyLockedOther") end
+    if N.lockedByMe(playerObj, item) then return ZeD.tr("UI_ZeD_Notebook_WhyLockedMine") end
+    if not N.hasWritingTool(playerObj) then return ZeD.tr("UI_ZeD_Notebook_WhyNoTool") end
+    if playerObj:tooDarkToRead() then return ZeD.tr("UI_ZeD_Notebook_WhyTooDark") end
     return nil
 end
 
@@ -91,7 +92,7 @@ end
 -- the name it carries in a list: a renamed one by its name, with the kind of book under it
 function N.kind(item)
     local ok, s = pcall(function() return item:getScriptItem():getDisplayName() end)
-    return ok and s or "Notebook"
+    return ok and s or ZeD.tr("UI_ZeD_Notebook_Kind")
 end
 
 function N.pagesWritten(item)

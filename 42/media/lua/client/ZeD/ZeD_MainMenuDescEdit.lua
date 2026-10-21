@@ -68,7 +68,7 @@ function ZeD_MMDescEdit:onShow()
     local src = MM.wsEditor or { text = "" }
     self.src = src
     self.blocks = BB.parse(src.text or "")
-    if #self.blocks == 0 then self.blocks = { { kind = "h1", text = (src.title ~= "" and src.title) or "Your mod" }, { kind = "text", text = "" } } end
+    if #self.blocks == 0 then self.blocks = { { kind = "h1", text = (src.title ~= "" and src.title) or ZeD.tr("UI_ZeD_DescEdit_DefaultTitle") }, { kind = "text", text = "" } } end
     self.sel = 1
     self.cscroll, self.pscroll = 0, 0
     self.undo, self.redo = {}, {}
@@ -130,8 +130,8 @@ end
 
 function ZeD_MMDescEdit:addSection(s)
     self:snapshot()
-    self:add("h2", s[1], true)
-    self:add(s[2], s[3], true)
+    self:add("h2", BB.text(s[1]), true)
+    self:add(s[2], BB.text(s[3]), true)
     MM.clickSound()
 end
 
@@ -211,7 +211,7 @@ function ZeD_MMDescEdit:prerender()
     if cur and not self._loading and self.edit:getText() ~= cur.text then self:typed() end
     local w, h = UI.placeOnTube(self)
     local t = self.src and self.src.title or ""
-    self.title = "Project Zomboid  +  Description" .. ((t ~= "") and (": " .. t) or "")
+    self.title = (t ~= "") and ZeD.tr("UI_ZeD_DescEdit_TitleNamed", t) or ZeD.tr("UI_ZeD_DescEdit_Title")
     self.titleStats = {}
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
@@ -250,22 +250,22 @@ function ZeD_MMDescEdit:drawPalette(x, y, w, h)
     local f1 = T.fontF1
     local ix, iw = x + T.px(8), w - T.px(16)
     local cy = y + T.px(8)
-    self:drawText("ADD A BLOCK", ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    self:drawText(ZeD.tr("UI_ZeD_DescEdit_AddBlock"), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     cy = cy + MM.fontH(f1) + T.px(6)
     -- two to a row: the sections fit under them
     local half = math.floor((iw - T.px(4)) / 2)
     for i, k in ipairs(BB.KINDS) do
         local col = (i - 1) % 2
-        local ny = self:palBtn("add:" .. k[1], k[2], function() self:add(k[1], k[3]) end, ix + col * (half + T.px(4)), cy, half, 100 + math.floor((i - 1) / 2))
+        local ny = self:palBtn("add:" .. k[1], BB.text(k[2]), function() self:add(k[1], BB.text(k[3])) end, ix + col * (half + T.px(4)), cy, half, 100 + math.floor((i - 1) / 2))
         self._specs[#self._specs].col = col + 1
         if col == 1 or i == #BB.KINDS then cy = ny end
     end
     cy = cy + T.px(8)
-    self:drawText("ADD A SECTION", ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    self:drawText(ZeD.tr("UI_ZeD_DescEdit_AddSection"), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     cy = cy + MM.fontH(f1) + T.px(6)
     for i, s in ipairs(BB.SECTIONS) do
         if cy + T.px(U.STRIP_BTN_H) > y + h - T.px(4) then break end
-        cy = self:palBtn("sec:" .. i, s[1], function() self:addSection(s) end, ix, cy, iw, 200 + i)
+        cy = self:palBtn("sec:" .. i, BB.text(s[1]), function() self:addSection(s) end, ix, cy, iw, 200 + i)
     end
 end
 
@@ -294,10 +294,14 @@ function ZeD_MMDescEdit:bodyH(b, i, w)
     return BB.drawBlock(nil, b, 0, 0, w)
 end
 
-local KIND_LABEL = { h1 = "HEADING", h2 = "HEADING", h3 = "HEADING", text = "TEXT", list = "LIST", olist = "NUMBERED LIST", img = "PICTURE",
-                     quote = "QUOTE", code = "CODE", table = "TABLE", divider = "DIVIDER", url = "LINK", spoiler = "SPOILER" }
-local HOW = { list = "One point per line", olist = "One step per line", table = "One row per line, cells split by \" | \"; the first row is the header",
-              url = "The address on the first line, the words to show on the second", img = "The picture's address (Steam shows pictures from the web)" }
+-- (translation keys; ZeD.tr turns one into the player's language where it draws)
+local KIND_LABEL = { h1 = "UI_ZeD_DescEdit_KindHeading", h2 = "UI_ZeD_DescEdit_KindHeading", h3 = "UI_ZeD_DescEdit_KindHeading",
+                     text = "UI_ZeD_DescEdit_KindText", list = "UI_ZeD_DescEdit_KindList", olist = "UI_ZeD_DescEdit_KindNumbered",
+                     img = "UI_ZeD_DescEdit_KindPicture", quote = "UI_ZeD_DescEdit_KindQuote", code = "UI_ZeD_DescEdit_KindCode",
+                     table = "UI_ZeD_DescEdit_KindTable", divider = "UI_ZeD_DescEdit_KindDivider", url = "UI_ZeD_DescEdit_KindLink",
+                     spoiler = "UI_ZeD_DescEdit_KindSpoiler" }
+local HOW = { list = "UI_ZeD_DescEdit_HowList", olist = "UI_ZeD_DescEdit_HowNumbered", table = "UI_ZeD_DescEdit_HowTable",
+              url = "UI_ZeD_DescEdit_HowLink", img = "UI_ZeD_DescEdit_HowPicture" }
 local INLINE = { text = true, list = true, olist = true, quote = true, table = true, spoiler = true }
 
 function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
@@ -338,13 +342,13 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
         if gp and self.focusId == "card:" .. i then self:drawRect(cx, cy, cw, hh, 0.22, ac.r, ac.g, ac.b) end
         -- the head: what it is, then its buttons from the right
         local hy = cy + pad
-        local lab = KIND_LABEL[b.kind] or string.upper(b.kind)
+        local lab = KIND_LABEL[b.kind] and ZeD.tr(KIND_LABEL[b.kind]) or string.upper(b.kind)
         self:drawText(lab, cx + pad, hy + math.floor((T.px(ICON_BTN) - MM.fontH(f1)) / 2), ac.r, ac.g, ac.b, ac.a or 1, f1)
         local bx = cx + cw - pad
         local row = 1000 + i * 2
-        bx = self:headBtn("del:" .. i, bx, hy, { icon = ICON .. "cross-small.png", hint = "Remove this block", fn = function() self:remove(i) end, row = row, col = 9, variant = "danger" })
-        bx = self:headBtn("dn:" .. i, bx, hy, { icon = ICON .. "arrow-down.png", hint = "Move down", fn = function() self:move(i, 1) end, row = row, col = 8, disabled = i == #self.blocks })
-        bx = self:headBtn("up:" .. i, bx, hy, { icon = ICON .. "arrow-up.png", hint = "Move up", fn = function() self:move(i, -1) end, row = row, col = 7, disabled = i == 1 })
+        bx = self:headBtn("del:" .. i, bx, hy, { icon = ICON .. "cross-small.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintRemove"), fn = function() self:remove(i) end, row = row, col = 9, variant = "danger" })
+        bx = self:headBtn("dn:" .. i, bx, hy, { icon = ICON .. "arrow-down.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintMoveDown"), fn = function() self:move(i, 1) end, row = row, col = 8, disabled = i == #self.blocks })
+        bx = self:headBtn("up:" .. i, bx, hy, { icon = ICON .. "arrow-up.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintMoveUp"), fn = function() self:move(i, -1) end, row = row, col = 7, disabled = i == 1 })
         if isSel and (b.kind == "h1" or b.kind == "h2" or b.kind == "h3") then
             bx = bx - T.px(6)
             for lv = 3, 1, -1 do
@@ -353,8 +357,8 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
             end
         elseif isSel and INLINE[b.kind] then
             bx = bx - T.px(6)
-            local marks = { { "LINK", "[url=https://]", "[/url]", "Link: put the address after the =" }, { "S", "[strike]", "[/strike]", "Strike through" },
-                            { "U", "[u]", "[/u]", "Underline" }, { "I", "[i]", "[/i]", "Italic" }, { "B", "[b]", "[/b]", "Bold" } }
+            local marks = { { ZeD.tr("UI_ZeD_DescEdit_MarkLink"), "[url=https://]", "[/url]", ZeD.tr("UI_ZeD_DescEdit_HintLink") }, { ZeD.tr("UI_ZeD_DescEdit_MarkStrike"), "[strike]", "[/strike]", ZeD.tr("UI_ZeD_DescEdit_HintStrike") },
+                            { ZeD.tr("UI_ZeD_DescEdit_MarkUnderline"), "[u]", "[/u]", ZeD.tr("UI_ZeD_DescEdit_HintUnderline") }, { ZeD.tr("UI_ZeD_DescEdit_MarkItalic"), "[i]", "[/i]", ZeD.tr("UI_ZeD_DescEdit_HintItalic") }, { ZeD.tr("UI_ZeD_DescEdit_MarkBold"), "[b]", "[/b]", ZeD.tr("UI_ZeD_DescEdit_HintBold") } }
             for mi, mk in ipairs(marks) do
                 bx = self:headBtn("mk:" .. i .. ":" .. mi, bx, hy, { text = mk[1], hint = mk[4], fn = function() self:wrapAtCursor(mk[2], mk[3]) end, row = row, col = 7 - mi })
             end
@@ -369,7 +373,7 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
                 UI.styleEntry(self.edit, cx + pad, by, bodyW, eh)
                 editShown = true
             end
-            if HOW[b.kind] then self:drawText(HOW[b.kind], cx + pad, by + eh + T.px(4), dim.r, dim.g, dim.b, dim.a or 1, f3) end
+            if HOW[b.kind] then self:drawText(ZeD.tr(HOW[b.kind]), cx + pad, by + eh + T.px(4), dim.r, dim.g, dim.b, dim.a or 1, f3) end
         elseif by + bodyH > y and by < y + h then
             BB.drawBlock(self, b, cx + pad, by, bodyW)
         end
@@ -386,7 +390,7 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
         cy = cy + hh + T.px(CARD_GAP)
     end
     if #self.blocks == 0 then
-        self:drawText("Empty. Add a block from the left.", cx, y + T.px(12), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2)
+        self:drawText(ZeD.tr("UI_ZeD_DescEdit_Empty"), cx, y + T.px(12), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2)
     end
     self:clearStencilRect()
     if self.edit:isVisible() ~= editShown then self.edit:setVisible(editShown) end
@@ -400,7 +404,7 @@ function ZeD_MMDescEdit:drawPreview(x, y, w, h)
     local tH = T.tabH + T.px(6)
     self:drawRect(x, y, w, tH, 1, s2.r, s2.g, s2.b)
     local tx = x + T.px(8)
-    for _, t in ipairs({ { "steam", "As Steam shows it" }, { "codes", "Steam codes" } }) do
+    for _, t in ipairs({ { "steam", ZeD.tr("UI_ZeD_DescEdit_TabSteam") }, { "codes", ZeD.tr("UI_ZeD_DescEdit_TabCodes") } }) do
         local hid = "wsd:tab:" .. t[1]
         local tw = ZeD.Molecules.drawTab(self, tx, y + tH - T.tabH, t[2], self.view == t[1], MM.ctx.hot == hid, false)
         self._hits[#self._hits + 1] = { id = hid, x = ax + tx, y = ay + y + tH - T.tabH, w = tw, h = T.tabH, fn = function()
@@ -444,19 +448,19 @@ function ZeD_MMDescEdit:buildStrip(stripY, stripH, w)
     local ask
     self._askX = nil
     if self.confirm == "leave" then
-        ask = "Keep the changes to the description?"
+        ask = ZeD.tr("UI_ZeD_DescEdit_AskKeep")
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "DISCARD", function() self:finish(false) end },
-            { "confirm:yes", "KEEP", function() self:finish(true) end, "primary" } })
+            { "confirm:no", ZeD.tr("UI_ZeD_DescEdit_Discard"), function() self:finish(false) end },
+            { "confirm:yes", getText("ContextMenu_Keep"), function() self:finish(true) end, "primary" } })
     else
         local n = #self:text()
         local over = n > BB.LIMIT
         local askX = UI.stripSpecs(self, stripY, w, row,
-            { { "undo", "UNDO", function() self:restore(self.undo, self.redo) end, "default", #self.undo == 0 },
-              { "redo", "REDO", function() self:restore(self.redo, self.undo) end, "default", #self.redo == 0 } },
-            { { "cancel", "CANCEL", function() self:back() end },
-              { "use", "USE THIS DESCRIPTION", function() self:finish(true) end, "primary", over } })
-        ask = BB.count(n) .. " of " .. BB.count(BB.LIMIT) .. " characters" .. (over and ": too long for Steam" or "")
+            { { "undo", ZeD.tr("UI_ZeD_DescEdit_Undo"), function() self:restore(self.undo, self.redo) end, "default", #self.undo == 0 },
+              { "redo", ZeD.tr("UI_ZeD_DescEdit_Redo"), function() self:restore(self.redo, self.undo) end, "default", #self.redo == 0 } },
+            { { "cancel", getText("UI_btn_cancel"), function() self:back() end },
+              { "use", ZeD.tr("UI_ZeD_DescEdit_UseThis"), function() self:finish(true) end, "primary", over } })
+        ask = ZeD.tr(over and "UI_ZeD_DescEdit_CountOver" or "UI_ZeD_DescEdit_Count", BB.count(n), BB.count(BB.LIMIT))
         self._askX = askX + T.px(8)
         self._askBad = over
     end

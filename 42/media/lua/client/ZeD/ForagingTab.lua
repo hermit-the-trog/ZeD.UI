@@ -69,10 +69,26 @@ local ZONE_FRIENDLY_NAMES = {
     OrganicForest = "Organic Forest",
 }
 
+-- (translation keys: the game's own season names, ZeD's for Summer, which the game splits in two)
 local SEASON_MAP = {
-    [0] = "Winter", "Winter", "Spring", "Spring", "Spring",
-    "Summer", "Summer", "Summer", "Autumn", "Autumn", "Autumn", "Winter",
+    [0] = "IGUI_Season_Winter", "IGUI_Season_Winter", "IGUI_Season_Spring", "IGUI_Season_Spring", "IGUI_Season_Spring",
+    "UI_ZeD_Forage_SeasonSummer", "UI_ZeD_Forage_SeasonSummer", "UI_ZeD_Forage_SeasonSummer",
+    "IGUI_Season_Autumn", "IGUI_Season_Autumn", "IGUI_Season_Autumn", "IGUI_Season_Winter",
 }
+
+-- The words the hero chips and rows show for the ids the getters below answer with
+-- (the ids are compared in code; only these keys are translated, at the point of use).
+ZeD.ForagingTab.WORDS = {
+    Good = "UI_ZeD_Forage_CondGood", Fair = "UI_ZeD_Forage_CondFair", Poor = "UI_ZeD_Forage_CondPoor",
+    Walking = "UI_ZeD_Forage_StanceWalking", Aiming = "UI_ZeD_Forage_StanceAiming",
+    Sneaking = "UI_ZeD_Forage_StanceSneaking", Searching = "UI_ZeD_Forage_StanceSearching",
+    Fog = "UI_ZeD_Forage_WxFog", Storm = "UI_ZeD_Forage_WxStorm", Rain = "UI_ZeD_Forage_WxRain",
+    Snow = "UI_ZeD_Forage_WxSnow", Overcast = "UI_ZeD_Forage_WxOvercast", Cloudy = "UI_ZeD_Forage_WxCloudy",
+    Clear = "UI_ZeD_Forage_WxClear",
+}
+function ZeD.ForagingTab.word(id)
+    return ZeD.tr(ZeD.ForagingTab.WORDS[id] or "UI_ZeD_Forage_Unknown")
+end
 
 local TRAIT_FRIENDLY = {
     EagleEyed   = "Eagle Eyed",   Formerscout   = "Former Scout",
@@ -83,7 +99,11 @@ local TRAIT_FRIENDLY = {
 }
 
 -- 8-compass bearing from angle (radians) -----------------------------------
-local COMPASS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }
+-- (translation keys: the letters differ between languages; translated where the find is drawn)
+local COMPASS = {
+    "UI_ZeD_Forage_CompassN", "UI_ZeD_Forage_CompassNE", "UI_ZeD_Forage_CompassE", "UI_ZeD_Forage_CompassSE",
+    "UI_ZeD_Forage_CompassS", "UI_ZeD_Forage_CompassSW", "UI_ZeD_Forage_CompassW", "UI_ZeD_Forage_CompassNW",
+}
 -- ============================================================================
 -- S109b — GAMEPAD FOCUS CUE HELPERS (mirror of AnimalsTab pattern).
 -- Paint gate reads live focused element from FocusManager; matcher closure
@@ -116,10 +136,11 @@ end
 -- Zone name (friendly) -----------------------------------------------------
 local function getZoneName(win)
     local p = win._playerObj
-    if not p then return "Unknown" end
+    if not p then return ZeD.tr("UI_ZeD_Forage_Unknown") end
     local zoneDef = forageSystem.getDefinedZoneAt(p:getX(), p:getY())
-    if not zoneDef then return "Unknown" end
-    return ZONE_FRIENDLY_NAMES[zoneDef.name] or zoneDef.name
+    if not zoneDef then return ZeD.tr("UI_ZeD_Forage_Unknown") end
+    -- the game's own name for the zone, else ZeD's English one (a zone a mod adds)
+    return getTextOrNull("IGUI_SearchMode_Zone_Names_" .. zoneDef.name) or ZONE_FRIENDLY_NAMES[zoneDef.name] or zoneDef.name
 end
 
 -- Raw zone key (for category filtering) ------------------------------------
@@ -133,8 +154,8 @@ end
 -- Season -------------------------------------------------------------------
 local function getSeason()
     local gt = GameTime.getInstance()
-    if not gt then return "Unknown" end
-    return SEASON_MAP[gt:getMonth()] or "Unknown"
+    if not gt then return ZeD.tr("UI_ZeD_Forage_Unknown") end
+    return ZeD.tr(SEASON_MAP[gt:getMonth()] or "UI_ZeD_Forage_Unknown")
 end
 
 -- Weather ------------------------------------------------------------------
@@ -227,15 +248,15 @@ local function getCategories(win, zoneKey)
     -- Assign status labels
     for _, c in ipairs(cats) do
         if c.locked then
-            c.value = "L" .. c.reqLevel;  c.dot = "dim";      c.glow = false
+            c.value = ZeD.tr("UI_ZeD_Forage_CatLocked", c.reqLevel);  c.dot = "dim";      c.glow = false
         elseif c.weight >= maxWeight and maxWeight > 0 then
-            c.value = "Peak";             c.dot = "accent";    c.glow = true
+            c.value = ZeD.tr("UI_ZeD_Forage_CatPeak");    c.dot = "accent";    c.glow = true
         elseif c.weight >= 20 then
-            c.value = "In";               c.dot = "positive";  c.glow = false
+            c.value = ZeD.tr("UI_ZeD_Forage_CatIn");      c.dot = "positive";  c.glow = false
         elseif c.weight >= 5 then
-            c.value = "Common";           c.dot = "dim";       c.glow = false
+            c.value = ZeD.tr("UI_ZeD_Forage_CatCommon");  c.dot = "dim";       c.glow = false
         else
-            c.value = "Rare";             c.dot = "info";      c.glow = false
+            c.value = ZeD.tr("UI_ZeD_Forage_CatRare");    c.dot = "info";      c.glow = false
         end
     end
 
@@ -262,7 +283,9 @@ local function getModifiers(win)
         if traitDef.visionBonus and traitDef.visionBonus ~= 0 then
             local ct = CharacterTrait.get(ResourceLocation.of(traitKey))
             if ct and p:hasTrait(ct) then
-                local label = TRAIT_FRIENDLY[traitKey] or traitKey
+                -- the game's own trait name; ZeD's short English one only if the game has none
+                local tdef = CharacterTraitDefinition.getCharacterTraitDefinition(ct)
+                local label = (tdef and tdef:getLabel()) or TRAIT_FRIENDLY[traitKey] or traitKey
                 local v = traitDef.visionBonus
                 local sign = v > 0 and "+" or ""
                 mods[#mods + 1] = {
@@ -290,13 +313,13 @@ local function getModifiers(win)
 
     -- Multiplicative penalties (only show when not at baseline)
     local penaltyMap = {
-        { key = "panicPenalty",      label = "Panic"    },
-        { key = "bodyPenalty",       label = "Health"   },
-        { key = "exhaustionPenalty", label = "Fatigue"  },
-        { key = "clothingPenalty",   label = "Clothing" },
-        { key = "weatherPenalty",    label = "Weather"  },
-        { key = "movementPenalty",   label = "Moving"   },
-        { key = "lightPenalty",      label = "Darkness" },
+        { key = "panicPenalty",      label = ZeD.tr("UI_ZeD_Forage_ModPanic")    },
+        { key = "bodyPenalty",       label = ZeD.tr("UI_ZeD_Forage_ModHealth")   },
+        { key = "exhaustionPenalty", label = ZeD.tr("UI_ZeD_Forage_ModFatigue")  },
+        { key = "clothingPenalty",   label = ZeD.tr("UI_ZeD_Forage_ModClothing") },
+        { key = "weatherPenalty",    label = ZeD.tr("UI_ZeD_Forage_ModWeather")  },
+        { key = "movementPenalty",   label = ZeD.tr("UI_ZeD_Forage_ModMoving")   },
+        { key = "lightPenalty",      label = ZeD.tr("UI_ZeD_Forage_ModDarkness") },
     }
     for _, pm in ipairs(penaltyMap) do
         local v = m[pm.key] or 1
@@ -310,11 +333,11 @@ local function getModifiers(win)
     -- Aim/sneak bonuses (only when active)
     if (m.aimBonus or 1) > 1.01 then
         local pct = math.floor(((m.aimBonus or 1) - 1) * 100 + 0.5)
-        mods[#mods + 1] = { label = "Aiming", value = "+" .. pct .. "%", dot = "positive" }
+        mods[#mods + 1] = { label = ZeD.tr("UI_ZeD_Forage_StanceAiming"), value = "+" .. pct .. "%", dot = "positive" }
     end
     if (m.sneakBonus or 1) > 1.01 then
         local pct = math.floor(((m.sneakBonus or 1) - 1) * 100 + 0.5)
-        mods[#mods + 1] = { label = "Sneaking", value = "+" .. pct .. "%", dot = "positive" }
+        mods[#mods + 1] = { label = ZeD.tr("UI_ZeD_Forage_StanceSneaking"), value = "+" .. pct .. "%", dot = "positive" }
     end
 
     return mods
@@ -323,7 +346,7 @@ end
 -- Focus dropdown options (unlocked categories) ------------------------------
 local function getFocusOptions(win)
     local p = win._playerObj
-    local opts = { { id = "none", label = "All categories" } }
+    local opts = { { id = "none", label = ZeD.tr("UI_ZeD_Forage_FocusAll") } }
     if not p then return opts end
     local mgr = ISSearchManager.players[p]
     local perkLevel = mgr and mgr.perkLevel or p:getPerkLevel(Perks.PlantScavenging)
@@ -422,13 +445,20 @@ end
 -- CHIP DRAW HELPER
 -- ============================================================================
 
-local function drawChip(panel, x, y, text, style, T)
+-- The width a chip takes for its text (the chip sizes to its words).
+local function chipWidth(text, T)
+    return ZeD.TM:MeasureStringX(T.fontF1, text) + T.px(6) * 2
+end
+
+-- maxW (optional): the widest the chip may be; longer text ends in "..."
+local function drawChip(panel, x, y, text, style, T, maxW)
     local tm = ZeD.TM
     local font = T.fontF1
-    local tw = tm:MeasureStringX(font, text)
     local th = tm:getFontHeight(font)
     local padX = T.px(6)
     local padY = T.px(2)
+    if maxW then text = ZeD.Atoms.truncateText(text, font, maxW - padX * 2) end
+    local tw = tm:MeasureStringX(font, text)
     local cw = tw + padX * 2
     local ch = th + padY * 2
 
@@ -566,7 +596,7 @@ local function drawSkyArc(panel, x, y, w, h)
     A.drawStatusDot(panel, glowX, glowY, ZeD.colorAlpha(dotColor, 0.12), glowSz)
 
     -- Phase label below horizon (centered) — no clock time (watch exploit)
-    local phaseStr = isDay and "DAY" or "NIGHT"
+    local phaseStr = isDay and ZeD.tr("UI_ZeD_Forage_Day") or ZeD.tr("UI_ZeD_Forage_Night")
     local phaseFont = T.fontF1
     local phaseW = tm:MeasureStringX(phaseFont, phaseStr)
 
@@ -624,7 +654,7 @@ local function drawHero(panel, win, x, y, w)
     panel:drawText(radStr, radTextX, radTextY, radC.r, radC.g, radC.b, radC.a or 1, bigFont)
 
     -- "TILES" label
-    local tilesLabel = "TILES"
+    local tilesLabel = ZeD.tr("UI_ZeD_Forage_Tiles")
     local tilesW = tm:MeasureStringX(T.fontF1, tilesLabel)
     local tilesX = radCenterX - math.floor(tilesW / 2)
     local tilesY = radTextY + radH + T.px(2)
@@ -642,7 +672,7 @@ local function drawHero(panel, win, x, y, w)
     panel:drawText(netStr, netX, netY, netColor.r, netColor.g, netColor.b, netColor.a or 1, T.fontF3)
 
     -- "NET" label
-    local netLabel = "NET"
+    local netLabel = ZeD.tr("UI_ZeD_Forage_Net")
     local netLW = tm:MeasureStringX(T.fontF1, netLabel)
     local netLX = radCenterX - math.floor(netLW / 2)
     local netLY = netY + tm:getFontHeight(T.fontF3) + T.px(2)
@@ -653,24 +683,69 @@ local function drawHero(panel, win, x, y, w)
     local infoX = x + sceneW + T.px(1) + T.px(HERO_PAD)
 
     -- Zone name (Chicago heading font)
-    local zoneName = win._frameZone or "Unknown"
+    local zoneName = win._frameZone or ZeD.tr("UI_ZeD_Forage_Unknown")
     local zoneY = y + T.px(HERO_PAD)
     local zoneColor = T.textHead
-    panel:drawText(zoneName, infoX, zoneY, zoneColor.r, zoneColor.g, zoneColor.b, zoneColor.a or 1, T.fontF4)
+    -- The info cell ends before the radius cell; nothing is drawn past this edge
+    local infoRight = radX - T.px(HERO_PAD)
+    local infoRoom = infoRight - infoX
+    panel:drawText(A.truncateText(zoneName, T.fontF4, infoRoom), infoX, zoneY, zoneColor.r, zoneColor.g, zoneColor.b, zoneColor.a or 1, T.fontF4)
 
-    -- Chip row — bottom of info cell
-    local chipY = y + h - T.px(HERO_PAD) - (tm:getFontHeight(T.fontF1) + T.px(4))
-    local chipX = infoX
+    -- Chip rows — bottom of info cell. Chips that do not fit beside the others wrap to a
+    -- row above (as many rows as fit under the zone name); chips past the last row drop
+    -- and a "+N" chip says how many.
+    local chipH = tm:getFontHeight(T.fontF1) + T.px(4)
+    local chipY = y + h - T.px(HERO_PAD) - chipH
     local chipGap = T.px(4)
     -- Dynamic chip styles based on live data
     local cond = win._frameCondition or "Fair"
     local condStyle = cond == "Good" and "on" or (cond == "Fair" and "pos" or "warn")
     local wx = win._frameWeather or "Clear"
     local wxStyle = (wx == "Clear" or wx == "Cloudy") and "neutral" or "warn"
-    chipX = chipX + drawChip(panel, chipX, chipY, cond, condStyle, T) + chipGap
-    chipX = chipX + drawChip(panel, chipX, chipY, win._frameStance or "Walking", "neutral", T) + chipGap
-    chipX = chipX + drawChip(panel, chipX, chipY, win._frameSeason or "Unknown", "pos", T) + chipGap
-    chipX = chipX + drawChip(panel, chipX, chipY, wx, wxStyle, T) + chipGap
+    local chips = {
+        { text = ZeD.ForagingTab.word(cond), style = condStyle },
+        { text = ZeD.ForagingTab.word(win._frameStance or "Walking"), style = "neutral" },
+        { text = win._frameSeason or ZeD.tr("UI_ZeD_Forage_Unknown"), style = "pos" },
+        { text = ZeD.ForagingTab.word(wx), style = wxStyle },
+    }
+    local zoneBottom = zoneY + tm:getFontHeight(T.fontF4)
+    local maxRows = math.floor((chipY + chipH - zoneBottom - T.px(4)) / (chipH + chipGap))
+    if maxRows < 1 then maxRows = 1 end
+
+    -- lay the chips out in rows (row index, x offset, width)
+    local rowOf, xOf, wOf = {}, {}, {}
+    local row, cx, shown = 1, 0, 0
+    for i = 1, #chips do
+        local cw = chipWidth(chips[i].text, T)
+        if cw > infoRoom then cw = infoRoom end
+        if cx > 0 and cx + cw > infoRoom then
+            row = row + 1
+            cx = 0
+        end
+        if row > maxRows then break end
+        rowOf[i], xOf[i], wOf[i] = row, cx, cw
+        cx = cx + cw + chipGap
+        shown = i
+    end
+    local moreText = nil
+    if shown < #chips then
+        -- the "+N" chip follows the last shown chip; chips are given up until it fits
+        while shown > 1 do
+            local mw = chipWidth("+" .. tostring(#chips - shown), T)
+            if xOf[shown] + wOf[shown] + chipGap + mw <= infoRoom then break end
+            shown = shown - 1
+        end
+        moreText = "+" .. tostring(#chips - shown)
+    end
+    local usedRows = rowOf[shown] or 1
+    local firstRowY = chipY - (usedRows - 1) * (chipH + chipGap)
+    for i = 1, shown do
+        drawChip(panel, infoX + xOf[i], firstRowY + (rowOf[i] - 1) * (chipH + chipGap), chips[i].text, chips[i].style, T, wOf[i])
+    end
+    if moreText then
+        local mx = infoX + xOf[shown] + wOf[shown] + chipGap
+        drawChip(panel, mx, firstRowY + (rowOf[shown] - 1) * (chipH + chipGap), moreText, "neutral", T)
+    end
 
     -- Bottom divider (strong)
     A.drawDividerH(panel, x, y + h - T.px(1), w, true)
@@ -683,9 +758,9 @@ end
 -- ============================================================================
 
 local STANCES = {
-    { id = "searching", label = "Searching" },
-    { id = "crouch",    label = "Crouch"    },
-    { id = "aim",       label = "Aim"       },
+    { id = "searching", key = "UI_ZeD_Forage_StanceSearching" },
+    { id = "crouch",    key = "UI_ZeD_Forage_StanceCrouch"    },
+    { id = "aim",       key = "UI_ZeD_Forage_StanceAim"       },
 }
 
 local function drawStanceRow(panel, win, x, y, w)
@@ -725,11 +800,12 @@ local function drawStanceRow(panel, win, x, y, w)
 
         -- Label
         local tc = isActive and T.toneNorm or T.toneLo
-        local tw = tm:MeasureStringX(T.fontF1, stance.label)
+        local stanceLabel = ZeD.tr(stance.key)
+        local tw = tm:MeasureStringX(T.fontF1, stanceLabel)
         local th = tm:getFontHeight(T.fontF1)
         local tx = bx + math.floor((bw - tw) / 2)
         local ty = y + math.floor((h - th) / 2)
-        panel:drawText(stance.label, tx, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
+        panel:drawText(stanceLabel, tx, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
 
         -- Only SEARCHING gets a click zone (toggles search mode)
         if stance.id == "searching" then
@@ -761,7 +837,7 @@ local function drawFocusRow(panel, win, x, y, w)
     local h = T.px(FOCUS_ROW_H)
 
     -- Lazy-create dropdown (with live options)
-    local liveOpts = win._frameFocusOptions or { { id = "none", label = "All categories" } }
+    local liveOpts = win._frameFocusOptions or { { id = "none", label = ZeD.tr("UI_ZeD_Forage_FocusAll") } }
     if not win._forageDropdown then
         local ddW = w - T.px(FOCUS_PAD_X) * 2 - T.px(FINDS_WT_W) - T.px(FOCUS_GAP)
         local dd = ZeD_Dropdown:new(x + T.px(FOCUS_PAD_X), y + math.floor((h - T.inputH) / 2), ddW, liveOpts, "none")
@@ -846,7 +922,7 @@ local function drawDisclosure(panel, win, x, y, w)
     end
 
     -- Label
-    local label = "MORE DETAIL"
+    local label = ZeD.tr("UI_ZeD_Forage_MoreDetail")
     local labelColor = T.toneNorm
     local labelX = discX + discSz + T.px(6)
     local labelY = y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2)
@@ -890,7 +966,10 @@ local function drawStatGrid(panel, x, y, w, items)
         local labelX = cx + T.px(GRID_PAD_X) + T.px(GRID_DOT_SZ) + T.px(GRID_DOT_GAP)
         local labelY = cy + math.floor((rowH - tm:getFontHeight(T.fontF1)) / 2)
         local lc = ZeD.colorAlpha(T.toneNorm, alpha)
-        panel:drawText(item.label, labelX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+        -- (a long label, a translator's or the game's own trait name, ends in "..." before the value)
+        local valW = tm:MeasureStringX(T.fontF3, item.value)
+        local labelRoom = (cx + colW - T.px(GRID_PAD_X)) - valW - T.px(6) - labelX
+        panel:drawText(ZeD.Atoms.truncateText(item.label, T.fontF1, labelRoom), labelX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 
         -- Value: semantic color for modifier deltas, neutral for category rarity labels
         local valStr = item.value
@@ -901,7 +980,6 @@ local function drawStatGrid(panel, x, y, w, items)
         else
             vc = ZeD.colorAlpha(T.toneNorm, alpha)
         end
-        local valW = tm:MeasureStringX(T.fontF3, valStr)
         local valX = cx + colW - T.px(GRID_PAD_X) - valW
         local valY = cy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2)
         panel:drawText(valStr, valX, valY, vc.r, vc.g, vc.b, vc.a or 1, T.fontF3)
@@ -965,15 +1043,15 @@ local function drawMoreBody(panel, win, x, y, w)
     for _, cat in ipairs(categories) do
         if cat.locked then lockedCount = lockedCount + 1 end
     end
-    local catCountStr = tostring(#categories) .. " / " .. tostring(lockedCount) .. " LOCKED"
-    curY = curY + drawSubHeader(panel, x, y, w, "CATEGORIES IN RANGE", catCountStr)
+    local catCountStr = ZeD.tr("UI_ZeD_Forage_CatsLocked", #categories, lockedCount)
+    curY = curY + drawSubHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Forage_CatsInRange"), catCountStr)
 
     -- Categories grid
     curY = curY + drawStatGrid(panel, x, curY, w, categories)
 
     -- Modifiers sub-header
-    local netStr = (netMod >= 0 and "+" or "") .. tostring(netMod) .. "% NET"
-    curY = curY + drawSubHeader(panel, x, curY, w, "MODIFIERS", netStr)
+    local netStr = ZeD.tr("UI_ZeD_Forage_NetValue", (netMod >= 0 and "+" or "") .. tostring(netMod) .. "%")
+    curY = curY + drawSubHeader(panel, x, curY, w, ZeD.tr("UI_ZeD_Forage_Modifiers"), netStr)
 
     -- Modifiers grid
     curY = curY + drawStatGrid(panel, x, curY, w, modifiers)
@@ -1003,14 +1081,18 @@ local function drawFindsHeader(panel, x, y, w)
 
     -- Column headers (Lekton, uppercase)
     local colX = x + T.px(FINDS_PAD_X) + T.px(FINDS_ICON_SZ) + T.px(FINDS_ICON_GAP)
-    panel:drawText("DIST", colX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    local distLabel = ZeD.tr("UI_ZeD_Forage_HeadDist")
+    panel:drawText(distLabel, colX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 
-    local nameX = colX + T.px(FINDS_DIST_W) + T.px(6)
-    panel:drawText("NAME", nameX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    -- NAME starts at its column, or after DIST's measured width plus a gap if that is further
+    local nameX = math.max(colX + T.px(FINDS_DIST_W) + T.px(6),
+        colX + tm:MeasureStringX(T.fontF1, distLabel) + T.px(8))
 
-    local wtLabel = "WT"
+    local wtLabel = ZeD.tr("UI_ZeD_Forage_HeadWeight")
     local wtW = tm:MeasureStringX(T.fontF1, wtLabel)
     local wtX = x + w - T.px(FINDS_PAD_X) - wtW
+    local nameLabel = ZeD.Atoms.truncateText(ZeD.tr("UI_ZeD_Forage_HeadName"), T.fontF1, wtX - nameX - T.px(8))
+    panel:drawText(nameLabel, nameX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
     panel:drawText(wtLabel, wtX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 
     return h
@@ -1025,7 +1107,7 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
 
     if #finds == 0 then
         -- Empty state
-        local emptyText = "RECENT FINDS WILL APPEAR HERE"
+        local emptyText = ZeD.tr("UI_ZeD_Forage_FindsEmpty")
         local emptyFont = T.fontF1
         local ew = tm:MeasureStringX(emptyFont, emptyText)
         local eh = tm:getFontHeight(emptyFont)
@@ -1062,7 +1144,7 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
         colX = colX + T.px(FINDS_ICON_SZ) + T.px(FINDS_ICON_GAP)
 
         -- Distance + bearing
-        local distStr = tostring(find.dist or 0) .. "T " .. (find.bearing or "?")
+        local distStr = ZeD.tr("UI_ZeD_Forage_FindDist", find.dist or 0, find.bearing and ZeD.tr(find.bearing) or "?")
         local distY = ry + math.floor((h - tm:getFontHeight(T.fontF3)) / 2)
         local dnc = T.toneNorm
         panel:drawText(distStr, colX, distY, dnc.r, dnc.g, dnc.b, dnc.a or 1, T.fontF3)
@@ -1299,7 +1381,7 @@ local function installForageHook()
         local bearing = angleToBearing(math.atan2(dy, dx))
 
         -- Item display name + weight from script manager (safe — always available)
-        local name = _icon.itemType or "Unknown"
+        local name = _icon.itemType or ZeD.tr("UI_ZeD_Forage_Unknown")
         local weight = 0.1
         if _icon.itemType then
             local scriptItem = ScriptManager.instance:FindItem(_icon.itemType)

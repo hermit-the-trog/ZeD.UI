@@ -68,6 +68,16 @@ local function _hasDeviceData(obj)
     return dd ~= nil, dd
 end
 
+-- The slot a radio sits in, in the player's language. The tags themselves ("Primary",
+-- "Secondary", "Back", "Floor") are ids: they key the wave cache and stay English.
+function ZeD.RadioTab.locationName(tag)
+    if tag == "Primary" then return ZeD.tr("UI_ZeD_Radio_LocPrimary") end
+    if tag == "Secondary" then return ZeD.tr("UI_ZeD_Radio_LocSecondary") end
+    if tag == "Back" then return ZeD.tr("UI_ZeD_Radio_LocBack") end
+    if tag == "Floor" then return getText("ContextMenu_Floor") end
+    return tag or ""
+end
+
 --- Scan the player's equipped slots for radios.
 -- Mirrors vanilla ISRadioWindow.lua:139-180 — hand items + back-clothing slot.
 -- Returns array of entries each shaped:
@@ -402,7 +412,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     end
     cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "AM",     amShow,     chipOnC, chipOffC, font) + T.px(12)
     cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "FM",     fmShow,     chipOnC, chipOffC, font) + T.px(12)
-    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, "STEREO", stereoShow, chipOnC, chipOffC, font) + T.px(12)
+    cursor = cursor + ZeD.Molecules.drawStatusChip(panel, cursor, row1Y, ZeD.tr("UI_ZeD_Radio_Stereo"), stereoShow, chipOnC, chipOffC, font) + T.px(12)
 
     cy = row1Y + fontHrow1 + T.px(10)
 
@@ -412,8 +422,9 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     local barH   = T.px(12)
 
     -- BATT label + 4 segments
-    _silk(panel, cx, cy + math.floor((barH - labelH) / 2), "BATT", fgDim, labelFont)
-    local battLabelW = TM:MeasureStringX(labelFont, "BATT")
+    local battLabel = ZeD.tr("UI_ZeD_Radio_Batt")
+    _silk(panel, cx, cy + math.floor((barH - labelH) / 2), battLabel, fgDim, labelFont)
+    local battLabelW = TM:MeasureStringX(labelFont, battLabel)
     local battSegX = cx + battLabelW + T.px(6)
     local battSegW = T.px(80)
     -- battery is 0..1; gate on (power AND hasBattery) so an absent or removed
@@ -432,8 +443,9 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
 
     -- VOL label + 8 segments (positioned after BATT bar with breathing room)
     local volLabelX = battSegX + battSegW + T.px(18)
-    _silk(panel, volLabelX, cy + math.floor((barH - labelH) / 2), "VOL", fgDim, labelFont)
-    local volLabelW = TM:MeasureStringX(labelFont, "VOL")
+    local volLabel = ZeD.tr("UI_ZeD_Radio_Vol")
+    _silk(panel, volLabelX, cy + math.floor((barH - labelH) / 2), volLabel, fgDim, labelFont)
+    local volLabelW = TM:MeasureStringX(labelFont, volLabel)
     local volSegX = volLabelX + volLabelW + T.px(6)
     local volSegW = math.max(0, maxX - volSegX)
     local volK = power and math.floor(volF * 8 + 0.5) or 0
@@ -499,7 +511,7 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- (past the data column on the right). Allows long station names like
     -- "Automated Emergency Broadcast System" without colliding with SIG/RANGE.
     if power then
-        local channelName = "Unknown Frequency"
+        local channelName = ZeD.tr("UI_ZeD_Radio_UnknownFreq")
         local zr = (getZomboidRadio ~= nil) and getZomboidRadio() or nil
         if zr ~= nil and zr.getChannelName ~= nil
            and type(channel) == "number" and channel > 0 then
@@ -531,8 +543,8 @@ function radioMainDisplay(panel, x, y, w, h, brand, dd)
     -- aligned value. (2-WAY removed — this is the AM/FM chassis only;
     -- shortwave/walkie-talkie chassis surfaces 2-WAY in its own design.)
     local dataLabels = {
-        { label = "RANGE", value = string.format("%d-%d MHz", math.floor(minHz / 1000), math.floor(maxHz / 1000)) },
-        { label = "SIG",   value = (power and hasSignal) and "GOOD" or (power and "WEAK" or "-") },
+        { label = ZeD.tr("UI_ZeD_Radio_RangeLabel"), value = string.format("%d-%d MHz", math.floor(minHz / 1000), math.floor(maxHz / 1000)) },
+        { label = ZeD.tr("UI_ZeD_Radio_Sig"),   value = (power and hasSignal) and ZeD.tr("UI_ZeD_Radio_SigGood") or (power and ZeD.tr("UI_ZeD_Radio_SigWeak") or "-") },
     }
     local dataFont = T.fontF2
     local dataLineH = TM:getFontHeight(dataFont) + T.px(6)
@@ -601,7 +613,7 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     -- Single button (not separate icon + button). Status dot painted inside
     -- the button, left edge, with the label centered after.
     local power = _safeGet(dd, "getIsTurnedOn", false)
-    local pwrLabel = power and "ON" or "OFF"
+    local pwrLabel = power and ZeD.tr("UI_ZeD_Radio_On") or ZeD.tr("UI_ZeD_Radio_Off")
     local pwrBtnW  = T.px(60)
     if win then
         win._radioPwrZone = { x = cx, y = pwrBtnY, w = pwrBtnW, h = pwrBtnH }
@@ -683,8 +695,8 @@ function radioControlStrip(panel, x, y, w, h, brand, dd, win)
     -- Split remaining horizontal space evenly between SEEK and VOL.
     local groupsAvail = maxX - cx - T.px(16)  -- 16px gap between groups
     local groupW = math.floor(groupsAvail / 2)
-    local seekEnd = drawGroup("SEEK", cx, groupW, "seek")
-    drawGroup("VOL", seekEnd + T.px(16), groupW, "vol")
+    local seekEnd = drawGroup(ZeD.tr("UI_ZeD_Radio_Seek"), cx, groupW, "seek")
+    drawGroup(ZeD.tr("UI_ZeD_Radio_Vol"), seekEnd + T.px(16), groupW, "vol")
 end
 
 ----------------------------------------------------------------------
@@ -809,7 +821,7 @@ function radioSignalWave(panel, x, y, w, h, win, cacheKey, power)
     -- Corner labels (SIG / + / −) — silkscreen-style on the chassis behind the wave.
     local font = T.fontF1
     local labelColor = T.radio.vfd.dim
-    panel:drawText("SIG", x + T.px(4), y + T.px(2), labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1.0, font)
+    panel:drawText(ZeD.tr("UI_ZeD_Radio_Sig"), x + T.px(4), y + T.px(2), labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1.0, font)
     panel:drawText("+", x + T.px(4), y + T.px(4), labelColor.r, labelColor.g, labelColor.b, 0.7, font)
     panel:drawText("-", x + T.px(4), y + h - ZeD.TM:getFontHeight(font) - T.px(2), labelColor.r, labelColor.g, labelColor.b, 0.7, font)
 end
@@ -850,11 +862,11 @@ function cdPlayerModule(panel, x, y, w, h, dd, win)
     local cdFont = T.fontF3
     local mediaText
     if hasMedia and type(mediaIdx) == "number" and mediaIdx >= 0 then
-        mediaText = string.format("TRK %02d   %s", mediaIdx + 1, playing and "PLAY" or "STOP")
+        mediaText = ZeD.tr("UI_ZeD_Radio_CdTrack", string.format("%02d", mediaIdx + 1), playing and ZeD.tr("UI_ZeD_Radio_CdPlay") or ZeD.tr("UI_ZeD_Radio_CdStop"))
     elseif hasMedia then
-        mediaText = "DISC LOADED"
+        mediaText = ZeD.tr("UI_ZeD_Radio_CdLoaded")
     else
-        mediaText = "NO DISC"
+        mediaText = ZeD.tr("UI_ZeD_Radio_CdNone")
     end
     local txtColor = hasMedia and cd.bright or cd.dim
     panel:drawText(mediaText, cx + T.px(4), cy + math.floor((vfdH - ZeD.TM:getFontHeight(cdFont)) / 2),
@@ -898,7 +910,7 @@ function brandBar(panel, x, y, w, h, brand, dd)
         panel:drawRect(x, y, w, T.px(1), 0.55, 0, 0, 0)
         panel:drawText("PREMIUM TECHNOLOGIES", x + T.px(10), ty,
             pt.btnText.r, pt.btnText.g, pt.btnText.b, pt.btnText.a or 1.0, font)
-        local rightText = "* AM/FM TUNER + CD"
+        local rightText = ZeD.tr("UI_ZeD_Radio_TagPremium")
         local rw = TM:MeasureStringX(font, rightText)
         panel:drawText(rightText, x + w - T.px(10) - rw, ty,
             pt.btnText.r, pt.btnText.g, pt.btnText.b, 0.78, font)
@@ -909,7 +921,7 @@ function brandBar(panel, x, y, w, h, brand, dd)
         panel:drawRect(x, y, w, T.px(1), 0.55, 0, 0, 0)
         panel:drawText("VALUTECH", x + T.px(10), ty,
             vt.btnText.r, vt.btnText.g, vt.btnText.b, vt.btnText.a or 1.0, font)
-        local rightText = "* AM/FM PORTABLE"
+        local rightText = ZeD.tr("UI_ZeD_Radio_TagValu")
         local rw = TM:MeasureStringX(font, rightText)
         panel:drawText(rightText, x + w - T.px(10) - rw, ty,
             vt.silkScreen.r, vt.silkScreen.g, vt.silkScreen.b, vt.silkScreen.a or 1.0, font)
@@ -1101,7 +1113,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         -- next time a radio is equipped (the gate only writes on nil).
         win._gpFocusedRadioCtl = nil
         local font = T.fontF2 or T.fontF1
-        local txt = "No radio in range"
+        local txt = ZeD.tr("UI_ZeD_Radio_None")
         local tw = ZeD.TM:MeasureStringX(font, txt)
         local th = ZeD.TM:getFontHeight(font)
         local cc = T.textSec or T.text or { r = 0.6, g = 0.6, b = 0.6, a = 1.0 }
@@ -1118,9 +1130,9 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     win._radioIdx = idx
 
     local current = radios[idx]
-    local subtitle = "Radio"
+    local subtitle = getText("IGUI_ItemType_Radio")
     if current and current.deviceData then
-        local n = _safeGet(current.deviceData, "getDeviceName", "Radio")
+        local n = _safeGet(current.deviceData, "getDeviceName", "")
         if type(n) == "string" and n ~= "" then
             -- Strip mod prefix; preserve engine title-case (it's an item name,
             -- not branding — uppercasing it makes it look like a tier label).
@@ -1135,7 +1147,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- Header molecule returns the prev/next browse-button rects so onClick
     -- can hit-test them; stash on win like the other radio click zones.
     local prevZone, nextZone = ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w,
-        { idx = idx, total = #radios }, subtitle, current and current.locationTag or "")
+        { idx = idx, total = #radios }, subtitle, current and ZeD.RadioTab.locationName(current.locationTag) or "")
     win._radioBrowsePrevZone = prevZone
     win._radioBrowseNextZone = nextZone
 

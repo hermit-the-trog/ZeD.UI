@@ -89,7 +89,7 @@ local function buildBuildCatalog(playerObj)
 
             local categoryDisplay
             if category and category ~= "" then
-                categoryDisplay = string.upper(string.sub(category, 1, 1)) .. string.sub(category, 2)
+                categoryDisplay = ZeD.upper(string.sub(category, 1, 1)) .. string.sub(category, 2)
             else
                 category = "miscellaneous"
                 categoryDisplay = "Miscellaneous"
@@ -364,7 +364,7 @@ local buildConfig = {
     prefix      = "build",
     pinKey      = "ZeD_BuildPins",
     countKey    = "ZeD_BuildCounts",
-    buildLabel  = "BUILD",
+    buildLabel  = "UI_ZeD_Craft_ActBuild",   -- a key (CraftingCore translates it where it draws)
     startAction = function(win, state)
         ZeD.BuildingTab.startBuild(win, state)
     end,

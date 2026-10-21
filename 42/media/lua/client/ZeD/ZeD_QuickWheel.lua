@@ -25,6 +25,7 @@
 
 require "ISUI/ISDPadWheels"
 require "ISUI/ISInventoryPaneContextMenu"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.QuickWheel = ZeD.QuickWheel or {}
@@ -215,14 +216,14 @@ end
 -- the groups
 -- ---------------------------------------------------------------------------
 local GROUPS = {
-    { id = "eat", label = "Eat", test = isFood, act = eat,
+    { id = "eat", label = "ContextMenu_Eat", test = isFood, act = eat,
       better = function(a, b) return spoilRank(a) < spoilRank(b) end, order = function(x, y) return spoilRank(x.item) < spoilRank(y.item) end,
       off = function(p) return _safe(function() return p:getMoodles():getMoodleLevel(MoodleType.FOOD_EATEN) >= 3 end, false) end },
-    { id = "drink", label = "Drink", test = function(it) return isWater(it) or isBeverage(it) or isFoodDrink(it) end, act = drink,
+    { id = "drink", label = "ContextMenu_Drink", test = function(it) return isWater(it) or isBeverage(it) or isFoodDrink(it) end, act = drink,
       order = function(x, y) return (isWater(x.item) and 0 or 1) < (isWater(y.item) and 0 or 1) end },
-    { id = "smoke", label = "Smoke", test = isSmokable, act = smoke, usable = canLight },
-    { id = "pills", label = "Take pills", test = isPills, act = pills },
-    { id = "read", label = "Read", test = isReadable, act = read,
+    { id = "smoke", label = "ContextMenu_Smoke", test = isSmokable, act = smoke, usable = canLight },
+    { id = "pills", label = "ContextMenu_Take_pills", test = isPills, act = pills },
+    { id = "read", label = "ContextMenu_Read", test = isReadable, act = read,
       off = function(p) return _safe(function() return p:tooDarkToRead() end, false) end },
 }
 
@@ -272,13 +273,13 @@ function Q.addGroups(menu, playerObj)
     for _, g in ipairs(GROUPS) do
         local kinds = Q.collect(playerObj, g)
         if #kinds > 0 then
-            menu:addSlice(g.label, _safe(function() return kinds[1].item:getTex() end, nil), Q.openGroup, playerObj, g.id)
+            menu:addSlice(ZeD.tr(g.label), _safe(function() return kinds[1].item:getTex() end, nil), Q.openGroup, playerObj, g.id)
             local s = menu.slices and menu.slices[#menu.slices]
             if s then s._zedSub = true end   -- (the wheel marks it as opening more)
         end
     end
     if hurt(playerObj) then
-        menu:addSlice("Treat wounds", getTexture("media/ui/Heart2_On.png"), treat, playerObj)
+        menu:addSlice(ZeD.tr("UI_ZeD_Wheel_TreatWounds"), getTexture("media/ui/Heart2_On.png"), treat, playerObj)
     end
 end
 

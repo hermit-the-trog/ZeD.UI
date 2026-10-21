@@ -126,7 +126,7 @@ local function onRenameClick(_, button, playerObj, item)
 end
 
 local function onRename(item, pn)
-    local box = ISTextBox:new(0, 0, 280, 180, "Name this item", item:getName(), nil, onRenameClick, pn, getSpecificPlayer(pn), item)
+    local box = ISTextBox:new(0, 0, 280, 180, ZeD.tr("UI_ZeD_ItemMenu_NameThis"), item:getName(), nil, onRenameClick, pn, getSpecificPlayer(pn), item)
     box:initialise()
     box:addToUIManager()
     if JoypadState.players[pn + 1] then setJoypadFocus(pn, box) end
@@ -157,7 +157,7 @@ local function onFillInventory(pn, context, rawItems)
     end
 
     if #items == 1 and not vanillaNames(items[1]) then
-        context:addOption("Rename", items[1], onRename, pn)
+        context:addOption(getText("ContextMenu_RenameBag"), items[1], onRename, pn)
     end
 end
 
@@ -188,7 +188,7 @@ local function onFillWorld(pn, context, worldobjects, test)
         end
     end
     if #found == 0 then return end
-    local label = "Take all"
+    local label = getText("IGUI_invpage_Loot_all")
     if #found == 1 then
         context:addOption(label, playerObj, CT.takeAll, found[1], playerObj:getInventory())
         return

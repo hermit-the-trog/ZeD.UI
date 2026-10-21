@@ -311,33 +311,34 @@ end
 -- callback automatically gain a prompt; stale prompts are impossible.
 -- ============================================================================
 local PROMPT_LABELS = {
-    ["invrow"]          = { a = "Card",   hold = "Use", x = "Menu" },
-    ["tab"]             = { a = "Open" },
-    ["jsub"]            = { a = "Switch" },
-    ["animals:submode"] = { a = "Switch" },
-    ["container"]       = { a = "Open" },
-    ["cnt"]             = { a = "Open" },
-    ["map:canvas"]      = { a = "Place",  x = "Edit" },
-    ["map:fold"]        = { a = "Fold" },
-    ["map:popout"]      = { a = "Unfold" },
-    ["map:tool"]        = { a = "Tool" },
-    ["map:gridtool"]    = { a = "Tool",   x = "Pin" },
-    ["map:color"]       = { a = "Color" },
-    ["craft:row"]       = { a = "Recipe" },
-    ["jrecipe:row"]     = { a = "Recipe" },
-    ["build:row"]       = { a = "Recipe" },
-    ["exercise"]        = { a = "Start" },
-    ["skill:"]          = { a = "Pin" },
-    ["equipslot"]       = { a = "Card" },
-    ["equippart"]       = { a = "Card" },
-    ["cancel_band"]     = { a = "Cancel" },
-    ["forage:stance"]   = { a = "Search" },
+    -- (the values are translation keys, read through ZeD.tr when the legend is built)
+    ["invrow"]          = { a = "UI_ZeD_Prompt_Card",   hold = "UI_ZeD_Prompt_Use", x = "UI_ZeD_Prompt_Menu" },
+    ["tab"]             = { a = "IGUI_Open" },
+    ["jsub"]            = { a = "UI_ZeD_Prompt_Switch" },
+    ["animals:submode"] = { a = "UI_ZeD_Prompt_Switch" },
+    ["container"]       = { a = "IGUI_Open" },
+    ["cnt"]             = { a = "IGUI_Open" },
+    ["map:canvas"]      = { a = "IGUI_Place",  x = "UI_ZeD_Prompt_Edit" },
+    ["map:fold"]        = { a = "UI_ZeD_Prompt_Fold" },
+    ["map:popout"]      = { a = "UI_ZeD_Prompt_Unfold" },
+    ["map:tool"]        = { a = "UI_ZeD_Prompt_Tool" },
+    ["map:gridtool"]    = { a = "UI_ZeD_Prompt_Tool",   x = "UI_ZeD_Prompt_Pin" },
+    ["map:color"]       = { a = "IGUI_Color" },
+    ["craft:row"]       = { a = "UI_ZeD_Prompt_Recipe" },
+    ["jrecipe:row"]     = { a = "UI_ZeD_Prompt_Recipe" },
+    ["build:row"]       = { a = "UI_ZeD_Prompt_Recipe" },
+    ["exercise"]        = { a = "UI_ZeD_Prompt_Start" },
+    ["skill:"]          = { a = "UI_ZeD_Prompt_Pin" },
+    ["equipslot"]       = { a = "UI_ZeD_Prompt_Card" },
+    ["equippart"]       = { a = "UI_ZeD_Prompt_Card" },
+    ["cancel_band"]     = { a = "UI_Cancel" },
+    ["forage:stance"]   = { a = "UI_ZeD_Prompt_Search" },
 }
 
 local function _promptsFor(el)
     local out = {}
     if not el then
-        out[#out + 1] = { glyph = "Y", label = "Windows" }
+        out[#out + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Prompt_Windows") }
         return out
     end
     local id = tostring(el.id or "")
@@ -346,14 +347,14 @@ local function _promptsFor(el)
         if id:sub(1, #prefix) == prefix and #prefix > bestLen then labels = def; bestLen = #prefix end
     end
     labels = labels or {}
-    if el.onActivate     then out[#out + 1] = { glyph = "A", label = el.promptA or labels.a or "Select" } end
-    if el.onHoldActivate then out[#out + 1] = { glyph = "A", label = (el.promptHold or labels.hold or "Use") .. " (hold)" } end
-    if el.onContextMenu  then out[#out + 1] = { glyph = "X", label = el.promptX or labels.x or "Menu" }
-    elseif el.onReset    then out[#out + 1] = { glyph = "X", label = "Reset" } end
-    if el.onCancel       then out[#out + 1] = { glyph = "B", label = el.promptB or labels.b or "Back" } end
+    if el.onActivate     then out[#out + 1] = { glyph = "A", label = el.promptA or ZeD.tr(labels.a or "UI_ZeD_Prompt_Select") } end
+    if el.onHoldActivate then out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Hold", el.promptHold or ZeD.tr(labels.hold or "UI_ZeD_Prompt_Use")) } end
+    if el.onContextMenu  then out[#out + 1] = { glyph = "X", label = el.promptX or ZeD.tr(labels.x or "UI_ZeD_Prompt_Menu") }
+    elseif el.onReset    then out[#out + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Prompt_Reset") } end
+    if el.onCancel       then out[#out + 1] = { glyph = "B", label = el.promptB or ZeD.tr(labels.b or "UI_ZeD_Prompt_Back") } end
     -- controls the element answers to beyond the face buttons (the map: the triggers zoom, the stick moves)
     if el.extraPrompts then for _, p in ipairs(el.extraPrompts) do out[#out + 1] = p end end
-    out[#out + 1] = { glyph = "Y", label = "Windows" }
+    out[#out + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Prompt_Windows") }
     return out
 end
 
@@ -1516,8 +1517,8 @@ function ZeD_Modal.show(message, confirmText, cancelText, onConfirm, onCancel, f
     local screenH = getCore():getScreenHeight()
     local overlay = ZeD_Modal:new(0, 0, screenW, screenH)
     overlay.message     = message
-    overlay.confirmText = confirmText or "OK"
-    overlay.cancelText  = cancelText or "Cancel"
+    overlay.confirmText = confirmText or ZeD.tr("UI_ZeD_Status_OK")
+    overlay.cancelText  = cancelText or ZeD.tr("UI_Cancel")
     overlay.onConfirm   = onConfirm
     overlay.onCancel    = onCancel
     overlay.flavor      = flavor
@@ -1535,8 +1536,8 @@ function ZeD_Modal:new(x, y, width, height)
     o.backgroundColor = {r = 0, g = 0, b = 0, a = 0}
     o.borderColor     = {r = 0, g = 0, b = 0, a = 0}
     o.message     = ""
-    o.confirmText = "OK"
-    o.cancelText  = "Cancel"
+    o.confirmText = ZeD.tr("UI_ZeD_Status_OK")
+    o.cancelText  = ZeD.tr("UI_Cancel")
     o.onConfirm   = nil
     o.onCancel    = nil
     o.flavor      = "confirm"
@@ -1562,13 +1563,13 @@ function ZeD_Modal:prerender()
     ZeD.Molecules.drawBodyBg(self, mx, my, self.modalW, tbH, "surf2")
     self:drawRect(mx, my + tbH - T.px(1), self.modalW, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
 
-    local titleText = "Confirm"
+    local titleText = ZeD.tr("UI_ZeD_Modal_Confirm")
     local titleColor = T.textHead
     if self.flavor == "warning" then
-        titleText = "Warning"
+        titleText = ZeD.tr("UI_ZeD_Modal_Warning")
         titleColor = T.warning
     elseif self.flavor == "danger" then
-        titleText = "Warning"
+        titleText = ZeD.tr("UI_ZeD_Modal_Warning")
         titleColor = T.danger
     end
     local titleY = my + math.floor((tbH - ZeD.TM:getFontHeight(T.fontF4)) / 2)

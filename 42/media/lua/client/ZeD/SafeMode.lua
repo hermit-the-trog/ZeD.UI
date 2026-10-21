@@ -40,6 +40,7 @@
 -- ============================================================================
 
 require "ZeD/Tokens"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.Safe = ZeD.Safe or {}
@@ -139,14 +140,25 @@ end
 -- vanilla's ISModalDialog:new as _zedOrigNew; its hook goes vanilla anyway
 -- once safe mode holds)
 -- ----------------------------------------------------------------------------
+-- a word longer than a line (Chinese and Japanese run without spaces) breaks into pieces
+local function pieces(word, width)
+    if #word <= width then return { word } end
+    local cut = (word:byte(1) or 0) >= 0x2E80 and math.floor(width / 2) or width
+    local out = {}
+    for i = 1, #word, cut do out[#out + 1] = word:sub(i, i + cut - 1) end
+    return out
+end
+
 local function wrap(text, width)
     local out = {}
     for para in (text .. "\n"):gmatch("(.-)\n") do
         local line = ""
         for word in para:gmatch("%S+") do
-            if line == "" then line = word
-            elseif #line + 1 + #word <= width then line = line .. " " .. word
-            else out[#out + 1] = line; line = word end
+            for _, p in ipairs(pieces(word, width)) do
+                if line == "" then line = p
+                elseif #line + 1 + #p <= width then line = line .. " " .. p
+                else out[#out + 1] = line; line = p end
+            end
         end
         out[#out + 1] = line
     end
@@ -195,7 +207,7 @@ function S.trip(where, err)
     sync()
     if not st.noted then
         st.noted = true
-        showNote("ZeD-GUI stepped aside.\n\nIt hit an error that kept repeating (" .. where .. "), so the game's own interface is back for this session. To keep it that way, turn on Safe mode under Options > Mods > ZeD-GUI. The error is in console.txt.")
+        showNote(ZeD.tr("UI_ZeD_Safe_SteppedAside") .. "\n\n" .. ZeD.tr("UI_ZeD_Safe_TrippedBody", where))
     end
 end
 
@@ -310,7 +322,7 @@ local function lastTimeNote()
         wait = wait + 1
         if wait < 60 then return end
         ev.Remove(later)
-        showNote("ZeD-GUI stepped aside last time (" .. where .. "). It is on again now. If it happens again, turn on Safe mode under Options > Mods > ZeD-GUI.")
+        showNote(ZeD.tr("UI_ZeD_Safe_LastTime", where))
     end
     ev.Add(later)
 end

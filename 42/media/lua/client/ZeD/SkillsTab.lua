@@ -11,6 +11,7 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.SkillsTab = {}
@@ -106,10 +107,10 @@ local function drawBoostPill(panel, x, y, rowH, boost, font)
     if boost == 2 then pctStr = "100%"
     elseif boost >= 3 then pctStr = "125%"
     end
-    local boostStr = "+" .. pctStr .. " XP"
+    local boostStr = ZeD.tr("UI_ZeD_Skills_Boost", pctStr)
     -- Pre-measure badge width for right-alignment
     local tm = ZeD.TM
-    local tw = tm:MeasureStringX(T.fontF5, string.upper(boostStr))
+    local tw = tm:MeasureStringX(T.fontF5, ZeD.upper(boostStr))
     local badgeW = tw + T.sp.badgePadX * 2
     local badgeH = tm:getFontHeight(T.fontF5) + T.sp.badgePadY * 2
     local pillX = x - badgeW - T.sp.xs
@@ -176,7 +177,7 @@ function ZeD.SkillsTab.gatherData(playerObj)
             if not groupMap[parentType] then
                 local parentPerk = PerkFactory.getPerk(parentType)
                 groupMap[parentType] = {
-                    name     = string.upper(parentPerk:getName()),
+                    name     = ZeD.upper(parentPerk:getName()),
                     isPassive = parentPerk:isPassiv(),
                     skills   = {},
                 }
@@ -301,7 +302,7 @@ local function buildTMCatalog()
             end
             if stripped and stripped ~= "" then
                 -- Capitalize first letter
-                entry.shortTitle = stripped:sub(1, 1):upper() .. stripped:sub(2)
+                entry.shortTitle = ZeD.upper(stripped:sub(1, 1)) .. stripped:sub(2)
             else
                 entry.shortTitle = clean
             end
@@ -311,6 +312,16 @@ local function buildTMCatalog()
     table.sort(list, function(a, b) return a.label < b.label end)
     _tmCatalog = list
     return _tmCatalog
+end
+
+-- a skill id from the skill-book catalog ("Cooking") as the game names it in the
+-- player's language; the id itself when the game has no perk for it
+function ZeD.SkillsTab.perkName(skillId)
+    local ok, name = pcall(function()
+        return PerkFactory.getPerk(SkillBook[skillId].perk):getName()
+    end)
+    if ok and name and name ~= "" then return name end
+    return skillId
 end
 
 function ZeD.SkillsTab.gatherTrainingData(playerObj)
@@ -352,7 +363,8 @@ function ZeD.SkillsTab.gatherTrainingData(playerObj)
             }
         end
         groups[#groups + 1] = {
-            label = catGroup.label,
+            label = catGroup.label,                                   -- the skill id: expand keys, sorting
+            disp  = ZeD.SkillsTab.perkName(catGroup.label),           -- what the row shows
             items = books,
         }
     end
@@ -385,10 +397,10 @@ end
 -- Status → token mapping (resolved at render time from ZeD.T)
 -- Dot colors come from theme tokens; badge uses A.drawBadge variants.
 local TM_STATUS_MAP = {
-    read      = { token = "positive", variant = "positive", label = "READ" },
-    reading   = { token = "warning",  variant = "warning",  label = "READING" },
-    collected = { token = "danger",   variant = "danger",   label = "COLLECTED" },
-    missing   = { token = "textDim",  variant = "neutral",  label = "NOT FOUND", ghost = true },
+    read      = { token = "positive", variant = "positive", key = "UI_ZeD_Skills_StatusRead" },
+    reading   = { token = "warning",  variant = "warning",  key = "UI_ZeD_Skills_StatusReading" },
+    collected = { token = "danger",   variant = "danger",   key = "UI_ZeD_Skills_StatusCollected" },
+    missing   = { token = "textDim",  variant = "neutral",  key = "UI_ZeD_Skills_StatusMissing", ghost = true },
 }
 
 local TM_DOT_GAP   = 4
@@ -465,7 +477,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
     local tm = ZeD.TM
     local headingH = tm:getFontHeight(T.fontF4)
     local hnc = T.toneNorm
-    panel:drawText("Training Materials", x, cy, hnc.r, hnc.g, hnc.b, hnc.a or 1, T.fontF4)
+    panel:drawText(ZeD.tr("UI_ZeD_Skills_TrainingMaterials"), x, cy, hnc.r, hnc.g, hnc.b, hnc.a or 1, T.fontF4)
     cy = cy + headingH + T.sp.headGap
 
     A.drawGroove(panel, x, cy, w)
@@ -487,9 +499,10 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
         A.drawLegendSwatch(panel, legX, legDotY, dotColor, def.ghost)
         legX = legX + T.px(A.SWATCH_W) + T.sp.xs
         local lc = T.toneLo
-        panel:drawText(def.label, legX, cy + math.floor((legRowH - secH) / 2),
+        local defLabel = ZeD.tr(def.key)
+        panel:drawText(defLabel, legX, cy + math.floor((legRowH - secH) / 2),
             lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
-        legX = legX + tm:MeasureStringX(T.fontF1, def.label) + T.px(TM_DOT_GAP) + T.sp.sm
+        legX = legX + tm:MeasureStringX(T.fontF1, defLabel) + T.px(TM_DOT_GAP) + T.sp.sm
     end
 
     cy = cy + legRowH + T.px(2)
@@ -529,7 +542,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             -- Skill label (truncated to ~35% of column width)
             local labelX = startX + T.px(8) + chevSz + T.px(8)
             local labelMaxW = math.floor(colWidth * 0.35)
-            local labelStr = truncText(skillGroup.label, font, labelMaxW)
+            local labelStr = truncText(skillGroup.disp or skillGroup.label, font, labelMaxW)
             local labelC = T.toneNorm
             panel:drawText(labelStr, labelX, dy + math.floor((collapsedRowH - secH) / 2),
                 labelC.r, labelC.g, labelC.b, labelC.a or 1, font)
@@ -578,7 +591,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
                     local titleMaxW = (startX + colWidth - T.px(8)) - titleX
                     local displayStr = bookItem.title
                     if bookItem.volume then
-                        displayStr = displayStr .. " Vol. " .. bookItem.volume
+                        displayStr = ZeD.tr("UI_ZeD_Skills_Volume", displayStr, bookItem.volume)
                     end
                     local titleStr = truncText(displayStr, font, titleMaxW)
                     local titleC = T.toneNorm
@@ -938,7 +951,7 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
 
     -- Pinned tab header — drawn on top of scroll content
     -- (_skillsGridZone is stamped at the TOP of render now, not here)
-    M.drawTabHeader(panel, x, y, w, "Skills", gridExpanded)
+    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Skills"), gridExpanded)
 
     -- Draw scrollbar on top (outside stencil)
     if needsScroll then

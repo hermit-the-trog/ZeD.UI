@@ -15,31 +15,33 @@ ZeD.AnimalsDisorderCatalog = ZeD.AnimalsDisorderCatalog or {}
 -- Key = engine disorder string (lowercase, from animal:getGeneticDisorder())
 -- ---------------------------------------------------------------------------
 
+-- label / desc are TEXT KEYS (UI_ZeD_Animals_Dis_<Name>_Label / _Desc); the reader
+-- translates them where they are shown (ZeD.AnimalsData.getVisibleDisorders).
 local CATALOG = {
     -- Positive traits
-    fertile       = { sev = "positive", label = "Fertile",       desc = "Always breeds successfully" },
-    strong        = { sev = "positive", label = "Strong",        desc = "Higher damage when attacking" },
+    fertile       = { sev = "positive", label = "UI_ZeD_Animals_Dis_Fertile_Label",       desc = "UI_ZeD_Animals_Dis_Fertile_Desc" },
+    strong        = { sev = "positive", label = "UI_ZeD_Animals_Dis_Strong_Label",        desc = "UI_ZeD_Animals_Dis_Strong_Desc" },
 
     -- Severe (revealed at Husbandry 7)
-    sterile       = { sev = "severe",   label = "Sterile",       desc = "Cannot breed" },
-    noeggs        = { sev = "severe",   label = "No Eggs",       desc = "Never lays eggs" },
-    nomilk        = { sev = "severe",   label = "No Milk",       desc = "Never produces milk" },
-    nowool        = { sev = "severe",   label = "No Wool",       desc = "Never grows wool" },
-    dieatbirth    = { sev = "severe",   label = "Weak Birth",    desc = "Offspring may die at birth" },
+    sterile       = { sev = "severe",   label = "UI_ZeD_Animals_Dis_Sterile_Label",       desc = "UI_ZeD_Animals_Dis_Sterile_Desc" },
+    noeggs        = { sev = "severe",   label = "UI_ZeD_Animals_Dis_NoEggs_Label",        desc = "UI_ZeD_Animals_Dis_NoEggs_Desc" },
+    nomilk        = { sev = "severe",   label = "UI_ZeD_Animals_Dis_NoMilk_Label",        desc = "UI_ZeD_Animals_Dis_NoMilk_Desc" },
+    nowool        = { sev = "severe",   label = "UI_ZeD_Animals_Dis_NoWool_Label",        desc = "UI_ZeD_Animals_Dis_NoWool_Desc" },
+    dieatbirth    = { sev = "severe",   label = "UI_ZeD_Animals_Dis_WeakBirth_Label",     desc = "UI_ZeD_Animals_Dis_WeakBirth_Desc" },
 
     -- Minor (revealed at Husbandry 9)
-    poorfertility = { sev = "minor",    label = "Low Fertility",  desc = "Rarely breeds successfully" },
-    poormilk      = { sev = "minor",    label = "Low Milk",       desc = "~80% less milk generation" },
-    poorwool      = { sev = "minor",    label = "Low Wool",       desc = "~80% less wool generation" },
-    smalleggs     = { sev = "minor",    label = "Small Eggs",     desc = "Negligible hunger value" },
-    dwarf         = { sev = "minor",    label = "Dwarfism",       desc = "Smaller size, shorter life" },
-    poorlife      = { sev = "minor",    label = "Fragile",        desc = "Shorter lifespan" },
-    skinny        = { sev = "minor",    label = "Skinny",         desc = "Reduced weight" },
-    gluttonous    = { sev = "minor",    label = "Gluttonous",     desc = "Eats more than average" },
-    highthirst    = { sev = "minor",    label = "Thirsty",        desc = "Drinks more than average" },
-    highstress    = { sev = "minor",    label = "Anxious",        desc = "Stresses easily" },
-    fidget        = { sev = "minor",    label = "Restless",       desc = "Wanders farther than average" },
-    craven        = { sev = "minor",    label = "Craven",         desc = "Flees almost any threat" },
+    poorfertility = { sev = "minor",    label = "UI_ZeD_Animals_Dis_LowFertility_Label",  desc = "UI_ZeD_Animals_Dis_LowFertility_Desc" },
+    poormilk      = { sev = "minor",    label = "UI_ZeD_Animals_Dis_LowMilk_Label",       desc = "UI_ZeD_Animals_Dis_LowMilk_Desc" },
+    poorwool      = { sev = "minor",    label = "UI_ZeD_Animals_Dis_LowWool_Label",       desc = "UI_ZeD_Animals_Dis_LowWool_Desc" },
+    smalleggs     = { sev = "minor",    label = "UI_ZeD_Animals_Dis_SmallEggs_Label",     desc = "UI_ZeD_Animals_Dis_SmallEggs_Desc" },
+    dwarf         = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Dwarfism_Label",      desc = "UI_ZeD_Animals_Dis_Dwarfism_Desc" },
+    poorlife      = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Fragile_Label",       desc = "UI_ZeD_Animals_Dis_Fragile_Desc" },
+    skinny        = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Skinny_Label",        desc = "UI_ZeD_Animals_Dis_Skinny_Desc" },
+    gluttonous    = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Gluttonous_Label",    desc = "UI_ZeD_Animals_Dis_Gluttonous_Desc" },
+    highthirst    = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Thirsty_Label",       desc = "UI_ZeD_Animals_Dis_Thirsty_Desc" },
+    highstress    = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Anxious_Label",       desc = "UI_ZeD_Animals_Dis_Anxious_Desc" },
+    fidget        = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Restless_Label",      desc = "UI_ZeD_Animals_Dis_Restless_Desc" },
+    craven        = { sev = "minor",    label = "UI_ZeD_Animals_Dis_Craven_Label",        desc = "UI_ZeD_Animals_Dis_Craven_Desc" },
 }
 
 ZeD.AnimalsDisorderCatalog.CATALOG = CATALOG

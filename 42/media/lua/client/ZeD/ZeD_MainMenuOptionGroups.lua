@@ -10,7 +10,7 @@
 -- this file only re-files the rows it finds into groups and sections, by each
 -- option's own name (GameOption.name), and marks:
 --   * moot: does nothing with ZeD active (greyed, inert, the reason under it)
---   * only: still works, but only somewhere ("Only outside ZeD's windows")
+--   * only: still works, with a note on where or how ("Multiplayer only", "Item and ZeD tooltips")
 -- and builds ZeD setup: ZeD's own options and the game settings ZeD's look
 -- depends on, the same controls (one value, two places to reach it).
 --
@@ -36,61 +36,75 @@ local function pageId(raw)
 end
 G.pageId = pageId
 
+-- The words in the tables below are translation keys, turned into the player's language where
+-- they show (G.text): ZeD's own (UI_ZeD_...) through ZeD.tr, the game's own words (UI_optionscreen_audio,
+-- UI_DisplayOptions_Camera...) through getText, all-caps ones in sentence case. Anything else, such as
+-- words a window has already put into the player's language, passes through as it is.
+function G.text(s)
+    if type(s) ~= "string" or s == "" then return s end
+    if s:sub(1, 7) == "UI_ZeD_" then return ZeD.tr(s) end
+    if not s:find(" ", 1, true) and s:find("^%a+_%w[%w_]*$") then
+        local t = getTextOrNull(s)
+        if t then return ZeD.btnCase(t) end
+    end
+    return s
+end
+
 -- the groups, in order; each section lists vanilla option names, or takes a
 -- whole page's rows (from = "keys" | "controller" | "mods")
 G.GROUPS = {
-    { id = "zed", title = "ZeD setup", setup = true },
-    { id = "display", title = "Display", sections = {
-        { "Screen", { "displayMode", "fullscreen", "borderless", "resolution", "framerate", "vsync", "focusloss", "lockCursorToWindow" } },
+    { id = "zed", title = "UI_ZeD_Options_GroupZed", setup = true },
+    { id = "display", title = "UI_ZeD_Options_GroupDisplay", sections = {
+        { "UI_ZeD_Options_SecScreen", { "displayMode", "fullscreen", "borderless", "resolution", "framerate", "vsync", "focusloss", "lockCursorToWindow" } },
     } },
-    { id = "graphics", title = "Graphics", sections = {
-        { "Textures", { "texcompress", "maxTextureSize", "maxVehicleTextureSize", "simpleClothingTex", "simpleWeaponTex",
+    { id = "graphics", title = "UI_ZeD_Options_GroupGraphics", sections = {
+        { "UI_DisplayOptions_Textures", { "texcompress", "maxTextureSize", "maxVehicleTextureSize", "simpleClothingTex", "simpleWeaponTex",
                         "highResPlacedItems", "perf_3Ditems" } },
-        { "World", { "lightingFPS", "fogQuality", "waterQuality", "perf_puddles", "puddlesQuality", "precipOption",
+        { "Sandbox_WorldOptions", { "lightingFPS", "fogQuality", "waterQuality", "perf_puddles", "puddlesQuality", "precipOption",
                      "precipitationSpeedMultiplier", "perf_reflections", "perf_skybox", "bloodDecals", "corpseShadows" } },
-        { "Effects", { "screenFilter", "doVideoEffects", "doWindSpriteEffects", "doDoorSpriteEffects", "viewConeOpacity",
+        { "UI_ZeD_Options_SecEffects", { "screenFilter", "doVideoEffects", "doWindSpriteEffects", "doDoorSpriteEffects", "viewConeOpacity",
                        "searchModeOverlayEffect", "usePhysicsHitReaction", "maxActiveRagdolls", "zombieUpdateOpt" } },
     } },
-    { id = "audio", title = "Audio", sections = {
-        { "Volume", { "soundVolume", "musicVolume", "jumpscareVolume", "vehicleEngineVolume" } },
-        { "Music", { "musicLibrary", "__audioButton", "musicActionStyle" } },   -- (__audioButton: the library's Reload)
-        { "Voice chat", { "voiceEnable", "voiceRecordDevice", "voiceMode", "voiceVADMode", "voiceAGCMode", "voiceVolumeMic",
+    { id = "audio", title = "UI_optionscreen_binding_Audio", sections = {
+        { "IGUI_RadioVolume", { "soundVolume", "musicVolume", "jumpscareVolume", "vehicleEngineVolume" } },
+        { "GameSound_Category_Music", { "musicLibrary", "__audioButton", "musicActionStyle" } },   -- (__audioButton: the library's Reload)
+        { "UI_ZeD_Options_SecVoice", { "voiceEnable", "voiceRecordDevice", "voiceMode", "voiceVADMode", "voiceAGCMode", "voiceVolumeMic",
                           "voiceVolumePlayers" } },
-        { "Streaming", { "streamerMode" } },
+        { "UI_ZeD_Options_SecStreaming", { "streamerMode" } },
     } },
-    { id = "controls", title = "Controls", sections = {
-        { "Movement", { "toggleToRun", "dblTapRunToSprint", "toggleToSprint", "toggleToAim", "autoProneAtk" } },
-        { "Menus", { "radialMenuKeyToggle", "reloadRadialInstant", "enableLeftJoystickRadialMenu", "singleContextMenu",
+    { id = "controls", title = "UI_ZeD_Options_GroupControls", sections = {
+        { "SurvivalGuide_movement_title", { "toggleToRun", "dblTapRunToSprint", "toggleToSprint", "toggleToAim", "autoProneAtk" } },
+        { "UI_ZeD_Options_SecMenus", { "radialMenuKeyToggle", "reloadRadialInstant", "enableLeftJoystickRadialMenu", "singleContextMenu",
                      "cycleContainerKey", "shoulderButtonContainerSwitch" } },
-        { "Mouse", { "ignoreMouseWheelAcceleration", "mapHorizontalMouseWheelToVertical" } },
-        { "Controller", from = "controller" },
-        { "Key bindings", from = "keys" },
+        { "UI_ZeD_Options_SecMouse", { "ignoreMouseWheelAcceleration", "mapHorizontalMouseWheelToVertical" } },
+        { "UI_optionscreen_controller", from = "controller" },
+        { "UI_optionscreen_keybinding", from = "keys" },
     } },
-    { id = "gameplay", title = "Gameplay", sections = {
-        { "Camera", { "zoom", "zoomLevels", "autoZoom", "panCameraWhileAiming", "panCameraWhileDriving" } },
-        { "Aiming", { "reticleMode", "showAimTexture", "aimTexture", "showReticleTexture", "reticleTexture",
+    { id = "gameplay", title = "UI_optionscreen_game", sections = {
+        { "UI_DisplayOptions_Camera", { "zoom", "zoomLevels", "autoZoom", "panCameraWhileAiming", "panCameraWhileDriving" } },
+        { "IGUI_perks_Aiming", { "reticleMode", "showAimTexture", "aimTexture", "showReticleTexture", "reticleTexture",
                       "showValidTargetReticleTexture", "validTargetReticleTexture", "targetColor", "noTargetColor",
                       "crosshairTexture", "maxCrosshairOffset", "reticleCameraZoom" } },
-        { "Cursor", { "iso_cursor", "showCursorWhileAiming", "meleeOutline" } },
-        { "On its own", { "autoDrink", "keyInIgnition", "autoWalkContainer", "timedActionGameSpeedReset", "mapViewPause",
+        { "UI_DisplayOptions_Cursor", { "iso_cursor", "showCursorWhileAiming", "meleeOutline" } },
+        { "UI_ZeD_Options_SecOnItsOwn", { "autoDrink", "keyInIgnition", "autoWalkContainer", "timedActionGameSpeedReset", "mapViewPause",
                           "dropItemsOnSquareCenter", "autoRevealPrintMediaMapLocations" } },
-        { "Multiplayer", { "showUsername", "mpTextColor", "populateServerListOnStart" } },
+        { "IGUI_Gametime_Multiplayer", { "showUsername", "mpTextColor", "populateServerListOnStart" } },
     } },
-    { id = "interface", title = "Interface", sections = {
-        { "Text", { "fontSize", "contextMenuFont", "inventoryFont", "tooltipFont" } },
-        { "HUD", { "moodleSize", "sidebarSize", "inventoryContainerSize", "actionProgressBarSize" } },
-        { "Clock", { "clockFormat", "clockSize", "clock24hour", "temperatureDisplay" } },
-        { "Highlights", { "doContainerOutline", "objHighColor", "worldItemHighlightColor" } },
-        { "Help", { "showCraftingXP", "showItemModInfo", "showSurvivalGuide" } },
-        { "Rendering", { "UIFBO", "UIRenderFPS" } },
-        { "Language", { "language", "comlang" } },
+    { id = "interface", title = "UI_ZeD_Options_GroupInterface", sections = {
+        { "UI_ZeD_Options_SecText", { "fontSize", "contextMenuFont", "inventoryFont", "tooltipFont" } },
+        { "UI_ZeD_Options_SecHud", { "moodleSize", "sidebarSize", "inventoryContainerSize", "actionProgressBarSize" } },
+        { "UI_DisplayOptions_Clock", { "clockFormat", "clockSize", "clock24hour", "temperatureDisplay" } },
+        { "UI_ZeD_Options_SecHighlights", { "doContainerOutline", "objHighColor", "worldItemHighlightColor" } },
+        { "UI_btn_help", { "showCraftingXP", "showItemModInfo", "showSurvivalGuide" } },
+        { "UI_ZeD_Options_SecRendering", { "UIFBO", "UIRenderFPS" } },
+        { "UI_DisplayOptions_Language", { "language", "comlang" } },
     } },
-    { id = "access", title = "Accessibility", sections = {
-        { "Colors", { "goodHighColor", "badHighColor", "colorblindPatterns" } },
-        { "Reading", { "enableDyslexicFont" } },
-        { "Weather", { "disableLightningDuringStorms" } },
+    { id = "access", title = "UI_optionscreen_accessibility", sections = {
+        { "UI_ZeD_Options_SecColors", { "goodHighColor", "badHighColor", "colorblindPatterns" } },
+        { "UI_ZeD_Options_SecReading", { "enableDyslexicFont" } },
+        { "SurvivalGuide_weather_title", { "disableLightningDuringStorms" } },
     } },
-    { id = "mods", title = "Mods", sections = { { nil, from = "mods" } } },
+    { id = "mods", title = "UI_mainscreen_mods", sections = { { nil, from = "mods" } } },
 }
 
 -- where an option the table doesn't name goes: its old page's group
@@ -101,30 +115,33 @@ local FALLBACK = { display = "graphics", ui = "interface", audio = "audio", keys
 -- row and the help band. From the code: ZeD replaces the surface and never
 -- reads the option (a search for every getOption* call, Oct 19 2026).
 G.MOOT = {
-    inventoryFont = "ZeD's lists draw in ZeD's text: use Text size in ZeD setup.",
-    contextMenuFont = "ZeD draws every context menu in ZeD's text: use Text size in ZeD setup.",
-    inventoryContainerSize = "ZeD's windows have their own container column.",
-    clockSize = "The watch shows the time; the game's clock is put away.",
-    clockFormat = "The watch shows the day of the month only.",
-    showCraftingXP = "ZeD's Craft tab replaces the game's crafting window.",
-    shoulderButtonContainerSwitch = "LB and RB open ZeD's Character and World windows.",
-    cycleContainerKey = "ZeD's container column doesn't cycle containers by key and wheel.",
+    inventoryFont = "UI_ZeD_Options_MootInventoryFont",
+    contextMenuFont = "UI_ZeD_Options_MootContextMenuFont",
+    inventoryContainerSize = "UI_ZeD_Options_MootContainerSize",
+    clockSize = "UI_ZeD_Options_MootClockSize",
+    clockFormat = "UI_ZeD_Options_MootClockFormat",
+    showCraftingXP = "UI_ZeD_Options_MootCraftingXP",
+    shoulderButtonContainerSwitch = "UI_ZeD_Options_MootShoulderButtons",
+    cycleContainerKey = "UI_ZeD_Options_MootCycleContainer",
 }
 -- Still working, but only somewhere: { the line under its name, the help band's words }
+-- (Oct 20 2026: the Dyslexic font replaces ZeD's text fonts with the game's own dyslexic ones, and
+-- the Tooltip font sizes ZeD's tooltips as well as the item tooltip's facts)
 G.ONLY = {
-    enableDyslexicFont = { "Outside ZeD's windows only", "ZeD's windows keep their own text; the game's remaining screens switch." },
-    sidebarSize = { "Multiplayer only", "ZeD hides these buttons in single player; in multiplayer they stay." },
-    tooltipFont = { "Item tooltip only", "The item tooltip's facts follow it; ZeD's tooltip frame uses ZeD's text." },
+    enableDyslexicFont = { "UI_ZeD_Options_OnlyDyslexic", "UI_ZeD_Options_OnlyDyslexicHelp" },
+    sidebarSize = { "UI_ZeD_Options_OnlySidebar", "UI_ZeD_Options_OnlySidebarHelp" },
+    tooltipFont = { "UI_ZeD_Options_OnlyTooltip", "UI_ZeD_Options_OnlyTooltipHelp" },
 }
 
--- ZeD setup: the game settings ZeD's look depends on: { name, where it lives, why ZeD uses it }
+-- ZeD setup: the game settings ZeD's look depends on: { name, its group, its section, why ZeD uses it }
+-- (the group and section are translation keys, shown as "Also in <group> | <section>")
 G.SETUP_GAME = {
-    { "fontSize", "Interface | Text", "ZeD's windows grow with the game's font size." },
-    { "tooltipFont", "Interface | Text", "The item tooltip's facts are drawn in it." },
-    { "moodleSize", "Interface | HUD", "ZeD places the moodles and sizes its moodle row from it." },
-    { "clock24hour", "Interface | Clock", "The watch reads it." },
-    { "temperatureDisplay", "Interface | Clock", "The watch reads it." },
-    { "doVideoEffects", "Graphics | Effects", "The New wallpaper plays only with it on." },
+    { "fontSize", "UI_ZeD_Options_GroupInterface", "UI_ZeD_Options_SecText", "UI_ZeD_Options_WhyFontSize" },
+    { "tooltipFont", "UI_ZeD_Options_GroupInterface", "UI_ZeD_Options_SecText", "UI_ZeD_Options_WhyTooltipFont" },
+    { "moodleSize", "UI_ZeD_Options_GroupInterface", "UI_ZeD_Options_SecHud", "UI_ZeD_Options_WhyMoodleSize" },
+    { "clock24hour", "UI_ZeD_Options_GroupInterface", "UI_DisplayOptions_Clock", "UI_ZeD_Options_WhyWatch" },
+    { "temperatureDisplay", "UI_ZeD_Options_GroupInterface", "UI_DisplayOptions_Clock", "UI_ZeD_Options_WhyWatch" },
+    { "doVideoEffects", "UI_ZeD_Options_GroupGraphics", "UI_ZeD_Options_SecEffects", "UI_ZeD_Options_WhyVideoEffects" },
 }
 
 -- a shallow copy carrying a note under its name (ZeD setup's copies; the
@@ -170,7 +187,7 @@ function G.build(pages, rowsOf)
                     -- the key list, without the toggles (filed under Movement)
                     local skip = false
                     for _, r in ipairs(src) do
-                        if r.kind == "header" and r.text == "Toggles" then skip = true
+                        if r.kind == "header" and r.id == "toggles" then skip = true
                         elseif r.kind == "header" then skip = false end
                         if not skip and r.kind ~= "tick" then list[#list + 1] = r; used[r] = true end
                     end
@@ -184,7 +201,7 @@ function G.build(pages, rowsOf)
                 end
             end
             if #list > 0 then
-                if title then rows[#rows + 1] = { kind = "header", text = title } end
+                if title then rows[#rows + 1] = { kind = "header", text = G.text(title) } end
                 for _, r in ipairs(list) do rows[#rows + 1] = r end
             end
         end
@@ -206,7 +223,7 @@ function G.build(pages, rowsOf)
     for gid, rows in pairs(other) do
         local t = out[gid]
         if t then
-            t[#t + 1] = { kind = "header", text = "Other" }
+            t[#t + 1] = { kind = "header", text = getText("UI_ServerSettingGroup_Other") }
             for _, r in ipairs(rows) do t[#t + 1] = r end
         end
     end
@@ -218,20 +235,26 @@ function G.build(pages, rowsOf)
     local zrows = {}
     for _, opt in ipairs(zo and zo.data or {}) do
         if opt.element then
-            for _, r in ipairs(mods) do if r.control == opt.element then zrows[#zrows + 1] = copyRow(r, nil) end end
+            for _, r in ipairs(mods) do
+                if r.control == opt.element then
+                    -- the name is drawn through ZeD.tr each frame (ZeD_MainMenuOptions), so the test language reaches it
+                    r.labelKey = opt.zedNameKey
+                    zrows[#zrows + 1] = copyRow(r, nil)
+                end
+            end
         end
     end
     if #zrows > 0 then
-        setup[#setup + 1] = { kind = "header", text = "ZeD's look" }
+        setup[#setup + 1] = { kind = "header", text = ZeD.tr("UI_ZeD_Options_HeadLook") }
         for _, r in ipairs(zrows) do setup[#setup + 1] = r end
     end
     local grows = {}
     for _, e in ipairs(G.SETUP_GAME) do
         local r = byName[e[1]]
-        if r then grows[#grows + 1] = copyRow(r, "Also in " .. e[2], e[3]) end
+        if r then grows[#grows + 1] = copyRow(r, ZeD.tr("UI_ZeD_Options_AlsoIn", G.text(e[2]), G.text(e[3])), e[4]) end
     end
     if #grows > 0 then
-        setup[#setup + 1] = { kind = "header", text = "Game settings ZeD uses" }
+        setup[#setup + 1] = { kind = "header", text = ZeD.tr("UI_ZeD_Options_HeadGameSettings") }
         for _, r in ipairs(grows) do setup[#setup + 1] = r end
     end
     out.zed = setup

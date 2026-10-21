@@ -55,7 +55,9 @@ local function note()
     for i = 0, ui:size() - 1 do
         local el = ui:get(i)
         local t = el:getTable()
-        if t and t.Type == "ISModalDialog" and el:isVisible() and tostring(t.text or ""):find("stepped aside", 1, true) then return t end
+        -- the note SafeMode kept (S._note), not its words: with the test language On (a saved
+        -- option) every ZeD phrase is stretched and bracketed, so "stepped aside" is not in it
+        if t and t.Type == "ISModalDialog" and el:isVisible() and (t == S._note or tostring(t.text or ""):find("stepped aside", 1, true)) then return t end
     end
     return nil
 end

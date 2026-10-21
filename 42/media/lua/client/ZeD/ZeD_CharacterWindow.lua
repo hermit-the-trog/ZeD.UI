@@ -530,21 +530,29 @@ local function getActiveScroll(win)
 end
 
 local CHAR_TABS = {
-    { id = "loot",     label = "Loot",       group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
-    { id = "equip",    label = "Equipment",  group = 1, glyph = "E", iconName = "equipment-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/equipment-tab-white.png") },
-    { id = "health",   label = "Health",     group = 1, glyph = "H", iconName = "health-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/health-tab-white.png") },
-    { id = "thermal",  label = "Thermal",    group = 1, glyph = "T", iconName = "thermal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/thermal-tab-white.png") },
-    { id = "identity", label = "Identity",   group = 2, glyph = "I", iconName = "identy-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/identy-tab-white.png") },
-    { id = "journal",  label = "Journal",    group = 2, glyph = "J", iconName = "journal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/journal-tab-white.png") },
-    { id = "skills",   label = "Skills",     group = 2, glyph = "S", iconName = "skills-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/skills-tab-white.png") },
+    -- key = ZeD's word for the tab, vkey = vanilla's own where it has the same word;
+    -- the tab's name is read where it is shown (CHAR_TABS.labelOf), so the language applies.
+    { id = "loot",     key = "UI_ZeD_Char_TabLoot",      group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
+    { id = "equip",    key = "UI_ZeD_Char_TabEquipment", group = 1, glyph = "E", iconName = "equipment-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/equipment-tab-white.png") },
+    { id = "health",   vkey = "IGUI_XP_Health",          group = 1, glyph = "H", iconName = "health-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/health-tab-white.png") },
+    { id = "thermal",  key = "UI_ZeD_Char_TabThermal",   group = 1, glyph = "T", iconName = "thermal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/thermal-tab-white.png") },
+    { id = "identity", key = "UI_ZeD_Char_TabIdentity",  group = 2, glyph = "I", iconName = "identy-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/identy-tab-white.png") },
+    { id = "journal",  key = "UI_ZeD_Char_TabJournal",   group = 2, glyph = "J", iconName = "journal-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/journal-tab-white.png") },
+    { id = "skills",   vkey = "IGUI_XP_Skills",          group = 2, glyph = "S", iconName = "skills-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/skills-tab-white.png") },
     -- S115: Radio (contextual). Visible only when an equipped/portable radio
     -- is present on the player. Mirrors World's contextual-tab predicate model.
-    { id = "radio",    label = "Radio",      group = 2, glyph = "R",
+    { id = "radio",    key = "UI_ZeD_Char_TabRadio",     group = 2, glyph = "R",
       iconName = "radio-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
 }
+
+-- a tab's name in the player's language
+function ZeD_CharacterWindow.tabLabel(tab)
+    if tab.vkey then return getText(tab.vkey) end
+    return ZeD.tr(tab.key)
+end
 
 -- S115: contextual-tab visibility dispatch — mirror of ZeD_WorldWindow's
 -- isTabVisible. A nil tab.visible means "always show" (default for the
@@ -3066,7 +3074,8 @@ local function drawContainerStrip(self, win, content)
     local f5Font    = T.fontF5
     local f5H       = ZeD.TM:getFontHeight(f5Font)
     local isActive  = sortMode ~= "dist"
-    local sortLabel = string.upper(sortMode)
+    -- sortMode stays "dist" / "wt" / "type" (it is the saved choice and the cycle's key); the label is its word
+    local sortLabel = ZeD.tr((sortMode == "wt" and "UI_ZeD_Char_SortWt") or (sortMode == "type" and "UI_ZeD_Char_SortType") or "UI_ZeD_Char_SortDist")
     local labelW    = ZeD.TM:MeasureStringX(f5Font, sortLabel)
     local isSortHover = (mx >= 0 and mx < w and my >= sortRowY and my < sortRowY + sortRowH)
 
@@ -3399,7 +3408,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local win = ZeD_Window:new(
         math.floor(screenW / 2) - winW - T.px(5), 0,
         winW, winH,
-        "Character"
+        ZeD.tr("UI_ZeD_Char_Window")
     )
     win:initialise()
     win:addToUIManager()
@@ -3882,14 +3891,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
 
     -- Journal entry input (ZeD_TextEntry — real keyboard handling)
     local T = ZeD.T
-    local journalInput = ZeD_TextEntry:new(0, 0, T.px(200), T.px(48), "Write something...")
+    local journalInput = ZeD_TextEntry:new(0, 0, T.px(200), T.px(48), ZeD.tr("UI_ZeD_Char_JournalWrite"))
     journalInput:initialise()
     journalInput:setVisible(false)
     drawer:addChild(journalInput)
     win._journalInput = journalInput
 
     -- Journal save button
-    local saveBtn = ZeD.Molecules.Button(0, 0, nil, "SAVE", nil, function()
+    local saveBtn = ZeD.Molecules.Button(0, 0, nil, getText("UI_btn_save"), nil, function()
         local text = journalInput:getText()
         if not text or text == "" then return end
         -- Into a notebook: the character writes it there first; the log keeps it after
@@ -3916,7 +3925,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._journalSaveBtn = saveBtn
 
     -- Journal sub-tab search fields (ISPanel children of drawer, like craft/build search)
-    local journalSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search entries...")
+    local journalSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("UI_ZeD_Char_JournalSearchEntries"))
     journalSearch:initialise()
     journalSearch:setVisible(false)
     journalSearch.onFilter = function(self, text)
@@ -3928,7 +3937,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     win._journalSearch = journalSearch
     win._journalSearchText = ""
 
-    local recipeSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search recipes...")
+    local recipeSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("UI_ZeD_Char_JournalSearchRecipes"))
     recipeSearch:initialise()
     recipeSearch:setVisible(false)
     recipeSearch.onFilter = function(self, text)
@@ -3941,7 +3950,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer:addChild(recipeSearch)
     win._jrecipeSearch = recipeSearch
 
-    local flyerSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search...")
+    local flyerSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("UI_ZeD_Search"))
     flyerSearch:initialise()
     flyerSearch:setVisible(false)
     flyerSearch.onFilter = function(self, text)
@@ -4378,7 +4387,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     local label = win._activeTab
                     for _, tab in ipairs(CHAR_TABS) do
                         if tab.id == win._activeTab then
-                            label = tab.label
+                            label = ZeD_CharacterWindow.tabLabel(tab)
                             break
                         end
                     end
@@ -5326,10 +5335,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if pd then
                 local pinText, pinColor
                 if pd.level >= 10 then
-                    pinText = pd.name .. " - Lv.10"
+                    pinText = ZeD.tr("UI_ZeD_Char_PinMax", pd.name)
                     pinColor = ZeD.colorAlpha(T.warning, 1.0)
                 else
-                    pinText = pd.name .. " - Lv." .. pd.level .. " - " .. pd.xpInLevel .. "/" .. pd.xpForLevel
+                    pinText = ZeD.tr("UI_ZeD_Char_PinLevel", pd.name, pd.level, pd.xpInLevel .. "/" .. pd.xpForLevel)
                     if pd.xpPct >= 0.75 then     pinColor = T.danger
                     elseif pd.xpPct >= 0.40 then pinColor = T.warning
                     elseif pd.level > 0 then     pinColor = T.positive
@@ -5371,7 +5380,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
             self._barH = 0
             self._activeCol = math.min(self._activeCol or #colSel, #colSel)
 
-            win.title = #colSel .. " containers"
+            win.title = (#colSel == 1) and ZeD.tr("UI_ZeD_Char_ContainersOne", #colSel) or ZeD.tr("UI_ZeD_Char_ContainersMany", #colSel)
             self._ccEntry = nil
 
             r.renderMultiColumnContent(self)
@@ -5395,8 +5404,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 self._containerInfo = {
                     name    = cnt.name,
                     texture = cnt.texture,
-                    stats   = string.format("%.1f/%.0fkg", cWeight, cMax),
-                    count   = cItems .. " items",
+                    stats   = ZeD.tr("UI_ZeD_Char_WeightOfMax", string.format("%.1f", cWeight), string.format("%.0f", cMax)),
+                    count   = (cItems == 1) and ZeD.tr("UI_ZeD_Char_ItemsOne", cItems) or ZeD.tr("UI_ZeD_Char_ItemsMany", cItems),
                 }
                 self._inventory = cInv
             end
@@ -5661,7 +5670,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if win._drawerOpen and win._drawerMode == "tab" and win._activeTab then
             for _, tab in ipairs(CHAR_TABS) do
                 if tab.id == win._activeTab then
-                    win.title = win.title .. "  +  " .. tab.label
+                    win.title = win.title .. "  +  " .. ZeD_CharacterWindow.tabLabel(tab)
                     break
                 end
             end
@@ -5699,7 +5708,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         chip = function()
             local inv = content._inventory
             local e = win._containers and win._containers[win._activeContainer]
-            local name = (e and not e.isMain and e.name) or "Inventory"
+            local name = (e and not e.isMain and e.name) or getText("IGUI_InventoryTooltip")
             return name, inv and inv:getItems():size() or 0
         end,
         dropInv = function() return content._inventory end,

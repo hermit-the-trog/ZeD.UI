@@ -67,7 +67,7 @@ local function buildRows(multi, masked)
     appendAll(r4, chars("zxcvbnm,./", "ZXCVBNM<>?"))
     append(r4, fn("shift", getText("IGUI_Keyboard_Shift"), "LT"))
     local r5 = {}
-    if masked then r5[#r5 + 1] = fn("show", "SHOW", nil) end
+    if masked then r5[#r5 + 1] = fn("show", ZeD.tr("UI_ZeD_Keyboard_Show"), nil) end
     append(r5, fn("space", getText("IGUI_Keyboard_Space"), "Y", { wide = true }), fn("left", "<", "LB"), fn("right", ">", "RB"),
         fn("cancel", getText("IGUI_Keyboard_Cancel"), "B"))
     return { r1, r2, r3, r4, r5 }
@@ -234,7 +234,7 @@ local function keyWidth(k)
     local T = ZeD.T
     if k.lo then return T.px(U.KEY_W) end
     local f = T.fontF3
-    local w = ZeD.TM:MeasureStringX(f, string.upper(k.label or "")) + T.px(U.FN_PAD) * 2
+    local w = ZeD.TM:MeasureStringX(f, ZeD.upper(k.label or "")) + T.px(U.FN_PAD) * 2
     if k.glyph then w = w + math.max(T.px(12), ZeD.TM:MeasureStringX(T.fontF5, k.glyph) + T.px(4)) + T.px(5) end
     if k.wide then w = math.max(w, T.px(U.KEY_W) * 6) end
     return math.max(w, T.px(U.KEY_W))
@@ -375,7 +375,7 @@ function ZeD_Keyboard:prerender()
                 M.drawButton(self, r.x, r.y, r.w, r.h, "", variant, down, colors)
                 -- the button's glyph, then its name
                 local f3, f5 = T.fontF3, T.fontF5
-                local label = string.upper(k.label or "")
+                local label = ZeD.upper(k.label or "")
                 local lw = ZeD.TM:MeasureStringX(f3, label)
                 local gw = k.glyph and math.max(T.px(12), ZeD.TM:MeasureStringX(f5, k.glyph) + T.px(4)) or 0
                 local total = lw + (k.glyph and (gw + T.px(5)) or 0)

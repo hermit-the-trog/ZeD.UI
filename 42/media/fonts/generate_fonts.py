@@ -21,11 +21,19 @@ Reserved slots (4 — speech, TV/radio, HOW YOU DIED, TBD):
   rsv2       — Chicago                      24px  (Cred2)
   rsv3       — Lekton Bold                  16px  (MainMenu1)
   rsv4       — Lekton Bold                  20px  (MainMenu2)
+
+Character set: see zed_charset.py (Basic Latin, Latin-1, Latin Extended-A, a chosen part of
+Latin Extended-B, Greek, Cyrillic, typographic punctuation, currency). Only code points the
+TTF really draws are written; the rest are listed as missing. Glyphs that do not fit one atlas
+page spill onto further pages (page 0 keeps ASCII and Latin-1), which the .fnt format allows.
 """
 
 import os
 import sys
 from PIL import Image, ImageFont, ImageDraw
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from zed_charset import CHAR_IDS, is_core, read_cmap  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Config
@@ -96,8 +104,17 @@ FONTS = {
     "rsv4":    (_LEKT, "Lekton",  1, 0, None),
 }
 
-# Character set — ASCII + extended Latin + smart quotes/dashes/currency
-CHAR_IDS = list(range(32, 127)) + list(range(160, 256)) + [8211, 8212, 8216, 8217, 8220, 8221, 8226, 8230, 8364]
+# Character set: shared with the distance-field baker, see zed_charset.py (CHAR_IDS).
+# The code points each TTF lacks, per font file, are collected here and printed at the end.
+MISSING = {}
+_CMAPS = {}
+
+
+def _cmap_for(ttf_path):
+    """Cached set of code points a TTF draws."""
+    if ttf_path not in _CMAPS:
+        _CMAPS[ttf_path] = read_cmap(ttf_path)
+    return _CMAPS[ttf_path]
 
 SCALES = {
     "1x": (1, "."),           # base directory
@@ -106,29 +123,77 @@ SCALES = {
     "4x": (4, "EN/4x"),
 }
 
-ATLAS_MAX_W = 512  # initial; doubled if needed
+ATLAS_MAX_W = 512  # page width at 1x; page width is this times the scale (512, 1024, 2048, 2048)
+ATLAS_MAX_PAGE = 2048  # largest page edge; more glyphs than fit spill onto another page
 SPACING = 1        # 1px between glyphs (matching existing)
+
+
+def _next_pow2(v):
+    p = 1
+    while p < v:
+        p *= 2
+    return p
+
+
+def _pack_pages(glyphs, page_w, page_max):
+    """Shelf-pack inked glyphs onto pages that are page_w wide and at most page_max tall.
+
+    Order: the core set (ASCII, Latin-1, the old punctuation) first so it lands together on page
+    0, then everything else; within each group tallest first, which keeps the shelves tight.
+    Pixel (0, 0) of page 0 stays empty because invisible characters point at it.
+    Returns a list of page heights (each rounded up to a power of two).
+    """
+    inked = [g for g in glyphs if g["img"] is not None]
+    inked.sort(key=lambda g: (0 if is_core(g["id"]) else 1, -g["h"], -g["w"], g["id"]))
+    heights = []
+    page, cur_x, cur_y, row_h = 0, SPACING, SPACING, 0
+    for g in inked:
+        gw = g["w"] + SPACING
+        if gw + SPACING > page_w or g["h"] + 2 * SPACING > page_max:
+            raise RuntimeError(f"glyph U+{g['id']:04X} ({g['w']}x{g['h']}) does not fit a {page_w}x{page_max} page")
+        if cur_x + gw > page_w:
+            cur_y += row_h + SPACING
+            cur_x = SPACING
+            row_h = 0
+        if cur_y + g["h"] + SPACING > page_max:
+            heights.append(_next_pow2(cur_y + row_h + SPACING))
+            page += 1
+            cur_x, cur_y, row_h = SPACING, SPACING, 0
+        g["page"] = page
+        g["px"], g["py"] = cur_x, cur_y
+        row_h = max(row_h, g["h"])
+        cur_x += gw
+    heights.append(_next_pow2(cur_y + row_h + SPACING))
+    return heights
 
 
 def generate_font(name, ttf_path, face_name, bold, italic, base_size, scale, out_dir,
                    uppercase_only=False, tracking=0, var_axes=None, yoff_adjust=0):
-    """Generate one .fnt + .png pair."""
+    """Generate one .fnt plus its atlas page(s). Returns (glyph count, page width, page heights)."""
     px_size = base_size * scale
     font = ImageFont.truetype(ttf_path, px_size)
     if var_axes is not None:
         font.set_variation_by_axes(var_axes)
+    cmap = _cmap_for(ttf_path)
 
     # --- Measure all glyphs ---
     glyphs = []
     for cid in CHAR_IDS:
         ch = chr(cid)
-        # Uppercase-only: lowercase slots render uppercase glyphs
+        # Uppercase-only: lowercase slots render uppercase glyphs (a single letter, or the
+        # two-letter form of the German sharp s)
         if uppercase_only and ch.islower():
-            ch = ch.upper()
-        try:
-            bbox = font.getbbox(ch)
-        except Exception:
+            up = ch.upper()
+            if len(up) == 1 or cid == 0xDF:
+                ch = up
+        # A no-break space the TTF lacks is drawn as an ordinary space (Lekton has no U+00A0)
+        if cid == 0x00A0 and cid not in cmap and 0x20 in cmap:
+            ch = " "
+        # Skip anything the TTF does not draw, so the font's missing-glyph box never ships
+        if not all(ord(c) in cmap for c in ch):
+            MISSING.setdefault(os.path.basename(ttf_path), set()).add(cid)
             continue
+        bbox = font.getbbox(ch)
         if bbox is None:
             # Invisible char (space, NBSP, soft hyphen)
             adv = font.getlength(ch)
@@ -162,7 +227,7 @@ def generate_font(name, ttf_path, face_name, bold, italic, base_size, scale, out
     natural_height = ascent + descent
     line_height = px_size
 
-    # Natural baseline — glyphs sit where the font designer placed them.
+    # Natural baseline: glyphs sit where the font designer placed them.
     # yoff_adjust shifts all yoffsets down (+) or up (-) to fix cross-font alignment.
     base_line = ascent
     yoff_shift = -yoff_adjust  # positive adjust = glyphs move down = subtract from shift
@@ -194,66 +259,40 @@ def generate_font(name, ttf_path, face_name, bold, italic, base_size, scale, out
         g["w"] = cropped.width
         g["h"] = cropped.height
 
-    # --- Pack glyphs into atlas ---
-    # Simple row packing
-    atlas_w = ATLAS_MAX_W * scale
-    atlas_w = max(atlas_w, 512)
+    # --- Pack glyphs onto one or more pages ---
+    page_w = min(_next_pow2(max(ATLAS_MAX_W * scale, 512)), ATLAS_MAX_PAGE)
+    page_max = page_w   # square at most; the last page is trimmed to the height it needs
+    heights = _pack_pages(glyphs, page_w, page_max)
+    n_pages = len(heights)
 
-    # Calculate needed height
-    cur_x = SPACING
-    cur_y = SPACING
-    row_h = 0
-    positions = {}
-
-    for g in glyphs:
-        if g["img"] is None:
-            positions[g["id"]] = (0, 0)
-            continue
-        gw = g["w"] + SPACING
-        gh = g["h"] + SPACING
-        if cur_x + gw > atlas_w:
-            cur_y += row_h + SPACING
-            cur_x = SPACING
-            row_h = 0
-        positions[g["id"]] = (cur_x, cur_y)
-        row_h = max(row_h, g["h"])
-        cur_x += gw
-
-    atlas_h = cur_y + row_h + SPACING
-    # Round up to power of 2
-    def next_pow2(v):
-        p = 1
-        while p < v:
-            p *= 2
-        return p
-    atlas_h = next_pow2(atlas_h)
-    atlas_w_final = next_pow2(atlas_w)
-
-    # --- Create atlas image (RGBA: white RGB, alpha = glyph) ---
-    atlas = Image.new("RGBA", (atlas_w_final, atlas_h), (255, 255, 255, 0))
-
+    # --- Create atlas images (RGBA: white RGB, alpha = glyph) ---
+    atlases = [Image.new("RGBA", (page_w, h), (255, 255, 255, 0)) for h in heights]
     for g in glyphs:
         if g["img"] is None:
             continue
-        px, py = positions[g["id"]]
         # Convert L image to RGBA (white + alpha)
         alpha = g["img"]
         rgba = Image.new("RGBA", alpha.size, (255, 255, 255, 0))
         rgba.putalpha(alpha)
-        atlas.paste(rgba, (px, py))
+        atlases[g["page"]].paste(rgba, (g["px"], g["py"]))
 
-    # --- Write .png ---
+    # --- Write .png (page i is <name>_<i>.png; stale higher pages from older bakes are removed) ---
     os.makedirs(out_dir, exist_ok=True)
-    png_name = f"{name}_0.png"
-    png_path = os.path.join(out_dir, png_name)
-    atlas.save(png_path)
+    png_names = [f"{name}_{i}.png" for i in range(n_pages)]
+    for i, atlas in enumerate(atlases):
+        atlas.save(os.path.join(out_dir, png_names[i]), optimize=True)
+    stale = n_pages
+    while os.path.isfile(os.path.join(out_dir, f"{name}_{stale}.png")):
+        os.remove(os.path.join(out_dir, f"{name}_{stale}.png"))
+        stale += 1
 
     # --- Write .fnt ---
     fnt_path = os.path.join(out_dir, f"{name}.fnt")
     with open(fnt_path, "w") as f:
         f.write(f'info face="{face_name}" size={px_size} bold={bold} italic={italic} charset="" unicode=1 stretchH=100 smooth=1 aa=2 padding=0,0,0,0 spacing={SPACING},{SPACING} outline=0\n')
-        f.write(f'common lineHeight={line_height} base={base_line} scaleW={atlas_w_final} scaleH={atlas_h} pages=1 packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4\n')
-        f.write(f'page id=0 file="{png_name}"\n')
+        f.write(f'common lineHeight={line_height} base={base_line} scaleW={page_w} scaleH={max(heights)} pages={n_pages} packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4\n')
+        for i, png_name in enumerate(png_names):
+            f.write(f'page id={i} file="{png_name}"\n')
         f.write(f'chars count={len(glyphs)}\n')
 
         # Tracking: extra pixels per glyph, scaled with font scale
@@ -266,12 +305,19 @@ def generate_font(name, ttf_path, face_name, bold, italic, base_size, scale, out
                 # Invisible character
                 f.write(f'char id={cid:<5} x=0     y=0     width=1     height=1     xoffset=0     yoffset={line_height - 1:<6}xadvance={adv:<7}page=0  chnl=15\n')
             else:
-                px, py = positions[cid]
                 xoff = g.get("render_xoff", 0)
                 yoff = g.get("render_yoff", 0) - yoff_shift
-                f.write(f'char id={cid:<5} x={px:<6} y={py:<6} width={g["w"]:<6} height={g["h"]:<6} xoffset={xoff:<6}yoffset={yoff:<6}xadvance={adv:<7}page=0  chnl=15\n')
+                f.write(f'char id={cid:<5} x={g["px"]:<6} y={g["py"]:<6} width={g["w"]:<6} height={g["h"]:<6} xoffset={xoff:<6}yoffset={yoff:<6}xadvance={adv:<7}page={g["page"]:<3} chnl=15\n')
 
-    return len(glyphs), atlas_w_final, atlas_h
+    return len(glyphs), page_w, heights
+
+
+def print_missing():
+    """List, per TTF, the wanted code points it does not draw."""
+    for ttf_name, cps in sorted(MISSING.items()):
+        cps = sorted(cps)
+        print(f"  {ttf_name} lacks {len(cps)} wanted code points: "
+              + " ".join(f"{cp:04X}" for cp in cps))
 
 
 def main():
@@ -304,16 +350,18 @@ def main():
         for scale_name, (scale, sub_dir) in SCALES.items():
             out_dir = os.path.join(script_dir, sub_dir) if sub_dir != "." else script_dir
             base_size = FONT_SIZES.get(font_name, 14)
-            count, aw, ah = generate_font(
+            count, aw, ahs = generate_font(
                 font_name, ttf_path, face_name, bold, italic,
                 base_size, scale, out_dir, uppercase_only=uc_only,
                 tracking=track, var_axes=var_axes,
                 yoff_adjust=ya
             )
-            print(f"  {font_name} {scale_name}: {count} chars, {aw}x{ah} atlas -> {out_dir}")
+            sizes = " + ".join(f"{aw}x{h}" for h in ahs)
+            print(f"  {font_name} {scale_name}: {count} chars, {len(ahs)} page(s) {sizes} -> {out_dir}")
             total += 1
 
     print(f"\nDone: {total} font files generated.")
+    print_missing()
 
 
 if __name__ == "__main__":

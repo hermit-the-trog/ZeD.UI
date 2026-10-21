@@ -17,11 +17,25 @@
 -- elapsed time).
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/Tokens"
 
 ZeD = ZeD or {}
 ZeD.RadioOps = ZeD.RadioOps or {}
 local O = ZeD.RadioOps
+
+-- The words a radio's glass spells (SCAN, MUTE...) are keys in Translate/<LANG>/UI.json, read through ZeD.tr at the
+-- moment they draw. The hardware's own marks stay as printed: FM, CD, MHz, CH, TX, P1..P6.
+local WORDS = { scan = "UI_ZeD_Radio_Scan", mute = "UI_ZeD_Radio_Mute", micOff = "UI_ZeD_Radio_MicOff", txOk = "UI_ZeD_Radio_TxOk",
+                disc = "UI_ZeD_Radio_CompactDisc", mic = "UI_ZeD_Radio_Mic" }
+ZeD.trDefaults({
+    UI_ZeD_Radio_Scan = "SCAN", UI_ZeD_Radio_Mute = "MUTE", UI_ZeD_Radio_MicOff = "MIC OFF", UI_ZeD_Radio_TxOk = "TX OK",
+    UI_ZeD_Radio_CompactDisc = "COMPACT DISC", UI_ZeD_Radio_Mic = "MIC", UI_ZeD_Radio_Empty = "EMPTY",
+    UI_ZeD_Radio_Store = "STORE %1", UI_ZeD_Radio_ChStored = "CH %1 STORED", UI_ZeD_Radio_MemFull = "MEMORY FULL",
+    UI_ZeD_Radio_ChCleared = "CH %1 CLEARED", UI_ZeD_Radio_Range = "RANGE %1 KM",
+})
+-- the word for a glass: O.word("scan"), "mute", "micOff", "txOk", "disc", "mic"
+function O.word(w) return ZeD.tr(WORDS[w]) end
 
 O.HOLD_MS = 600          -- a press held this long stores (presets) or names (MEM)
 O.STEP = 200             -- one tuning step, in kHz (vanilla's channels sit on 200 kHz steps)
@@ -77,10 +91,11 @@ end
 -- ---------------------------------------------------------------------------
 O._flash, O._scan, O._cd, O._lastVol = O._flash or {}, O._scan or {}, O._cd or {}, O._lastVol or {}
 
-function O.flash(part, text, ms) O._flash[keyOf(part)] = { text = text, untilMs = now() + (ms or 1400) } end
+-- short = what a small glass shows in place of the text ("P3" for "STORE 3"); nil = the text itself
+function O.flash(part, text, ms, short) O._flash[keyOf(part)] = { text = text, short = short, untilMs = now() + (ms or 1400) } end
 local function flashOf(key)
     local f = O._flash[key]
-    if f and now() < f.untilMs then return f.text end
+    if f and now() < f.untilMs then return f.text, f.short or f.text end
     O._flash[key] = nil
     return nil
 end
@@ -143,7 +158,7 @@ function O.read(part)
     else
         O._cd[st.key] = nil
     end
-    st.flash = flashOf(st.key)
+    st.flash, st.flashShort = flashOf(st.key)
     st.scanning = O._scan[st.key] ~= nil
     return st
 end
@@ -309,7 +324,7 @@ function O.store(chr, part, i)
     end
     pcall(function() dd:transmitPresets() end)
     pcall(function() getSoundManager():playUISound("VehicleRadioButton") end)
-    O.flash(part, "STORE " .. idx, 1400)
+    O.flash(part, ZeD.tr("UI_ZeD_Radio_Store", idx), 1400, "P" .. idx)
     return idx
 end
 
@@ -332,12 +347,12 @@ function O.memAdd(chr, part)
     local dd, pc, l = presetsOf(part)
     if not l then return nil end
     local hz = _safe(function() return dd:getChannel() end, nil); if not hz then return nil end
-    for i = 0, l:size() - 1 do if l:get(i):getFrequency() == hz then O.flash(part, "CH " .. string.format("%02d", i + 1) .. " STORED", 1400); return i + 1 end end
-    if l:size() >= _safe(function() return pc:getMaxPresets() end, 10) then O.flash(part, "MEMORY FULL", 1600); return nil end
+    for i = 0, l:size() - 1 do if l:get(i):getFrequency() == hz then O.flash(part, ZeD.tr("UI_ZeD_Radio_ChStored", string.format("%02d", i + 1)), 1400); return i + 1 end end
+    if l:size() >= _safe(function() return pc:getMaxPresets() end, 10) then O.flash(part, ZeD.tr("UI_ZeD_Radio_MemFull"), 1600); return nil end
     l:add(PresetEntry.new(storedName(hz, true), hz))
     pcall(function() dd:transmitPresets() end)
     pcall(function() getSoundManager():playUISound("VehicleRadioButton") end)
-    O.flash(part, "CH " .. string.format("%02d", l:size()) .. " STORED", 1400)
+    O.flash(part, ZeD.tr("UI_ZeD_Radio_ChStored", string.format("%02d", l:size())), 1400)
     return l:size()
 end
 
@@ -348,7 +363,7 @@ function O.rename(chr, part, idx, name)
     name = tostring(name or ""):gsub("^%s+", ""):gsub("%s+$", "")
     if name == "" then
         l:remove(l:get(idx - 1))   -- by the entry, as vanilla does (an index would be read as an Object)
-        O.flash(part, "CH " .. string.format("%02d", idx) .. " CLEARED", 1400)
+        O.flash(part, ZeD.tr("UI_ZeD_Radio_ChCleared", string.format("%02d", idx)), 1400)
     else
         l:get(idx - 1):setName(name)
     end
@@ -514,7 +529,7 @@ local function drawFM(p, kind, x, y, w, h, u, st, full)
         local sig = st.signal and "||||" or ""
         local l1 = "FM" .. string.rep(" ", math.max(1, 6 - #freq)) .. freq .. "MHz"
         l1 = l1 .. string.rep(" ", math.max(1, n - #l1 - #sig)) .. sig
-        local l2 = st.flash or (st.scanning and "SCAN") or (st.muted and "MUTE") or (st.name and st.name:upper()) or ""
+        local l2 = st.flash or (st.scanning and O.word("scan")) or (st.muted and O.word("mute")) or (st.name and ZeD.upper(st.name)) or ""
         local top = full and 5 or 3
         T(l1:sub(1, n), 4, top, px, "l", sp)
         T(marquee(l2, n), 4, top + px + (full and 3 or 2), px, "l", sp)
@@ -524,25 +539,25 @@ local function drawFM(p, kind, x, y, w, h, u, st, full)
         if full then
             if not (st.flash and not blinkOn(250)) then T(freq, 120, 4, 24, "r", 1) end
             T("FM", 142, 8, 9, "r")
-            local tag = st.flash and st.flash:gsub("STORE ", "P") or (st.scanning and "SCAN") or (st.muted and "MUTE") or (st.presetIdx and st.presetIdx <= 6 and ("P" .. st.presetIdx)) or nil
+            local tag = st.flash and st.flashShort or (st.scanning and O.word("scan")) or (st.muted and O.word("mute")) or (st.presetIdx and st.presetIdx <= 6 and ("P" .. st.presetIdx)) or nil
             if tag and (not st.flash or blinkOn(250)) then T(tag, 8, 8, 9, "l") end
         else
             local big = math.min(16, math.floor(h / u * 0.62))
             T(freq, w / u - 30, (h / u - big) / 2, big, "r", 1)
             T("FM", w / u - 6, (h / u - 7) / 2, 7, "r")
-            local tag = st.flash and st.flash:gsub("STORE ", "P") or (st.muted and "MUTE") or (st.presetIdx and st.presetIdx <= 6 and ("P" .. st.presetIdx)) or nil
+            local tag = st.flash and st.flashShort or (st.muted and O.word("mute")) or (st.presetIdx and st.presetIdx <= 6 and ("P" .. st.presetIdx)) or nil
             if tag then T(tag, 6, (h / u - 7) / 2, 7, "l") end
         end
         return
     end
     -- premium
     if full then
-        local tag2 = st.flash or (st.scanning and "SCAN") or (st.muted and "MUTE") or nil
+        local tag2 = st.flash or (st.scanning and O.word("scan")) or (st.muted and O.word("mute")) or nil
         if cd then
             T("CD", 10, 8, 9, "l", 1)
             triangle(p, x + 36 * u, y + 9 * u, math.floor(16 * u), c, 1)
             T(elapsed(st.cdMs), 140, 6, 28, "r", 2)
-            T(marquee((st.mediaTitle or "COMPACT DISC"):upper(), charsFit(B, 11 * u, 2 * u, 270 * u)), 10, 38, 11, "l", 2)
+            T(marquee(ZeD.upper(st.mediaTitle or O.word("disc")), charsFit(B, 11 * u, 2 * u, 270 * u)), 10, 38, 11, "l", 2)
         else
             T("FM", 10, 8, 9, "l", 1)
             T(freq, 140, 6, 28, "r", 2)
@@ -550,7 +565,7 @@ local function drawFM(p, kind, x, y, w, h, u, st, full)
             if st.presetIdx and st.presetIdx <= 6 then T("P" .. st.presetIdx, 148, 8, 9, "l", 1) end
             if st.hasMedia then T("CD", 222, 8, 9, "r", 1) end
             bars(p, x + 252 * u, y + 28 * u, u, st.signal and 4 or 0, c)
-            local nm = (st.name or ""):upper()
+            local nm = ZeD.upper(st.name or "")
             T(marquee(nm, charsFit(B, 11 * u, 2 * u, 270 * u)), 10, 38, 11, "l", 2)
         end
         if tag2 and (not (st.flash or st.scanning) or blinkOn(300)) then T(tag2, 222, 20, 9, "r", 1) end
@@ -567,12 +582,12 @@ local function drawFM(p, kind, x, y, w, h, u, st, full)
             T(freq, 92, top, big, "r", 1)
             T("MHz", 95, top + big - 7, 6, "l")
         end
-        local tag = st.flash and st.flash:gsub("STORE ", "P") or (st.scanning and "SCAN") or (st.muted and "MUTE") or nil
+        local tag = st.flash and st.flashShort or (st.scanning and O.word("scan")) or (st.muted and O.word("mute")) or nil
         if tag then T(tag, w / u - 5, top + 1, 7, "r")
         elseif not cd then bars(p, x + (w / u - 34) * u, y + (top + big) * u, u * 0.62, st.signal and 4 or 0, c) end
         if two then
-            local line = cd and (st.mediaTitle or "COMPACT DISC") or (st.name or "")
-            T(marquee(line:upper(), charsFit(B, 7 * u, 1 * u, w - 10 * u)), 5, hU - 10, 7, "l", 1)
+            local line = cd and (st.mediaTitle or O.word("disc")) or (st.name or "")
+            T(marquee(ZeD.upper(line), charsFit(B, 7 * u, 1 * u, w - 10 * u)), 5, hU - 10, 7, "l", 1)
         end
     end
 end
@@ -586,8 +601,8 @@ local function drawHam(p, kind, x, y, w, h, u, st, full)
     local function T(str, ux, uy, upx, align, usp, f) return dtext(p, f or B, str, x + ux * u, y + uy * u, upx * u, c, 1, align, (usp or 0) * u, glow) end
     local freq = O.freqText(st.channel, true)
     local ch = st.presetIdx and string.format("%02d", st.presetIdx) or "--"
-    local tx = st.micMuted and "MIC OFF" or "TX OK"
-    local nameLine = st.flash or (st.muted and "MUTE") or (st.name and st.name:upper()) or (st.presetIdx and st.presets[st.presetIdx] and st.presets[st.presetIdx].name:upper()) or ""
+    local tx = st.micMuted and O.word("micOff") or O.word("txOk")
+    local nameLine = st.flash or (st.muted and O.word("mute")) or (st.name and ZeD.upper(st.name)) or (st.presetIdx and st.presets[st.presetIdx] and ZeD.upper(st.presets[st.presetIdx].name)) or ""
     if dk == "char" then
         local px = full and 13 or math.min(9, (h / u - 6) / 2)
         local sp = full and 1.5 or 0.5
@@ -618,7 +633,7 @@ local function drawHam(p, kind, x, y, w, h, u, st, full)
         local top = two and 3 or (hU - big) / 2
         T("CH" .. ch, 5, top + 1, 7, "l")
         T(freq, 112, top, big, "r", 0.5)
-        T(st.micMuted and "MIC OFF" or "TX", w / u - 5, top + 1, 6, "r")
+        T(st.micMuted and O.word("micOff") or "TX", w / u - 5, top + 1, 6, "r")
         if two then T(marquee(nameLine, charsFit(B, 7 * u, 1 * u, w - 10 * u)), 5, hU - 10, 7, "l", 1) end
     end
 end
@@ -646,36 +661,36 @@ function O.displayReading(st, t)
         local freq = O.freqText(st.channel, true)
         local ch = st.presetIdx and string.format("%02d", st.presetIdx) or "--"
         local preset = st.presetIdx and st.presets and st.presets[st.presetIdx]
-        local nameLine = st.flash or (st.muted and "MUTE") or (st.name and st.name:upper())
-            or (preset and preset.name and preset.name:upper()) or ""
+        local nameLine = st.flash or (st.muted and O.word("mute")) or (st.name and ZeD.upper(st.name))
+            or (preset and preset.name and ZeD.upper(preset.name)) or ""
         if kind == "hammake" then
             return { l1 = "CH" .. ch .. " " .. freq .. " MHz", l2 = nameLine }
         end
-        return { chLabel = "CH", ch = ch, big = freq, unit = "MHz", tx = st.micMuted and "MIC OFF" or "TX OK", line = nameLine }
+        return { chLabel = "CH", ch = ch, big = freq, unit = "MHz", tx = st.micMuted and O.word("micOff") or O.word("txOk"), line = nameLine }
     end
     local freq = O.freqText(st.channel, false)
     if kind == "makeshift" then
         local sig = st.signal and "||||" or ""
         local l1 = "FM" .. string.rep(" ", math.max(1, 6 - #freq)) .. freq .. "MHz"
         l1 = l1 .. string.rep(" ", math.max(1, 17 - #l1 - #sig)) .. sig
-        return { l1 = l1, l2 = st.flash or (st.scanning and "SCAN") or (st.muted and "MUTE") or (st.name and st.name:upper()) or "" }
+        return { l1 = l1, l2 = st.flash or (st.scanning and O.word("scan")) or (st.muted and O.word("mute")) or (st.name and ZeD.upper(st.name)) or "" }
     end
     if kind == "valutech" then
         local off = st.flash and not blink(250)                -- a STORE flash blinks the whole readout
-        local tag = (st.flash and (st.flash:gsub("STORE ", "P"))) or (st.scanning and "SCAN") or (st.muted and "MUTE")
+        local tag = (st.flash and st.flashShort) or (st.scanning and O.word("scan")) or (st.muted and O.word("mute"))
             or (st.presetIdx and st.presetIdx <= 6 and ("P" .. st.presetIdx)) or ""
         return { big = off and "" or freq, band = "FM", tag = off and "" or tag }
     end
     -- the Premium Technologies CD receiver
     local cd = st.playing
-    local tag = st.flash or (st.scanning and "SCAN") or (st.muted and "MUTE") or ""
+    local tag = st.flash or (st.scanning and O.word("scan")) or (st.muted and O.word("mute")) or ""
     if (st.flash or st.scanning) and not blink(300) then tag = "" end    -- a flash and SCAN blink, MUTE holds
     if cd then
         return { band = "CD", cd = true, big = elapsed(st.cdMs), unit = "", preset = "", cdTag = "", tag = tag, bars = 0,
-                 line = (st.mediaTitle or "COMPACT DISC"):upper() }
+                 line = ZeD.upper(st.mediaTitle or O.word("disc")) }
     end
     return { band = "FM", big = freq, unit = "MHz", preset = (st.presetIdx and st.presetIdx <= 6) and ("P" .. st.presetIdx) or "",
-             cdTag = st.hasMedia and "CD" or "", tag = tag, bars = st.signal and 4 or 0, line = (st.name or ""):upper() }
+             cdTag = st.hasMedia and "CD" or "", tag = tag, bars = st.signal and 4 or 0, line = ZeD.upper(st.name or "") }
 end
 
 -- the whole glass: unlit when off (an LCD's backlight out), else the kind's readout
@@ -702,7 +717,7 @@ function O.tapeName(name)
         s = words[1] or ""
     end
     s = s:gsub(" MHz$", "")
-    return (s:sub(1, 1):upper() .. s:sub(2):lower()):sub(1, 9)
+    return (ZeD.upper(s:sub(1, 1)) .. s:sub(2):lower()):sub(1, 9)
 end
 
 return O

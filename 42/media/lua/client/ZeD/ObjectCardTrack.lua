@@ -19,7 +19,9 @@ local DOT = OC.DOT
 local function txt(k, fb) local s = getTextOrNull and getTextOrNull(k) return s or fb or k end
 local function col(c) return c.r, c.g, c.b end
 
-local DIR_NAME = { N = "North", NE = "North-east", E = "East", SE = "South-east", S = "South", SW = "South-west", W = "West", NW = "North-west" }
+-- (vanilla's names of the eight points, as translation keys; the compass letters are ZeD's own)
+local DIR_NAME = { N = "AEBS_zone_name_n", NE = "AEBS_zone_name_ne", E = "AEBS_zone_name_e", SE = "AEBS_zone_name_se",
+                   S = "AEBS_zone_name_s", SW = "AEBS_zone_name_sw", W = "AEBS_zone_name_w", NW = "AEBS_zone_name_nw" }
 local DIR_DEG = { N = 0, NE = 45, E = 90, SE = 135, S = 180, SW = 225, W = 270, NW = 315 }
 local ORDER = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" }
 
@@ -73,7 +75,7 @@ function def.icon(t) return t.tex end
 function def.pill(t)
     local T = ZeD.T
     if not (t.d and t.d.fresh ~= "") then return nil end
-    return string.upper(t.d.fresh), T.positive
+    return ZeD.upper(t.d.fresh), T.positive
 end
 
 -- a map compass: the eight points round a ring, the way it went lit
@@ -91,8 +93,9 @@ local function compass(card, cx, cy, r, dir)
         local c = on and ac or T.textDim
         local lx = cx + math.cos(a) * (r - T.px(8))
         local ly = cy + math.sin(a) * (r - T.px(8))
-        local lw = tm:MeasureStringX(f, k)
-        card:drawText(k, math.floor(lx - lw / 2), math.floor(ly - tm:getFontHeight(f) / 2), c.r, c.g, c.b, c.a or 1, f)
+        local kt = ZeD.tr("UI_ZeD_Track_Compass" .. k)
+        local lw = tm:MeasureStringX(f, kt)
+        card:drawText(kt, math.floor(lx - lw / 2), math.floor(ly - tm:getFontHeight(f) / 2), c.r, c.g, c.b, c.a or 1, f)
     end
     if dir and DIR_DEG[dir] then
         UI.run(card, cx, cy, DIR_DEG[dir], 0, r - T.px(19), ac, T.px(3))
@@ -137,10 +140,12 @@ function def.body(card, x, y, w, t, player)
         end
         fy = fy + h
     end
-    fact("TYPE", d.type)
-    fact("SPECIES", d.species, nil, DOT .. " TRACKING " .. tostring(d.level))
-    fact("FRESHNESS", d.fresh)
-    if d.dir then fact("DIRECTION", DIR_NAME[d.dir] or d.dir) end
+    -- (vanilla's labels end in a colon; capitals as the other card labels)
+    local function lab(k) return ZeD.upper((string.gsub(getText(k), ":%s*$", ""))) end
+    fact(lab("IGUI_AnimalTracks_Type"), d.type)
+    fact(lab("IGUI_AnimalTracks_Animal"), d.species, nil, ZeD.tr("UI_ZeD_Track_TrackingLevel", d.level))
+    fact(lab("IGUI_AnimalTracks_Freshness"), d.fresh)
+    if d.dir then fact(lab("IGUI_AnimalTracks_Direction"), DIR_NAME[d.dir] and getText(DIR_NAME[d.dir]) or d.dir) end
     return math.max(leftH, fy - y) + T.px(4)
 end
 

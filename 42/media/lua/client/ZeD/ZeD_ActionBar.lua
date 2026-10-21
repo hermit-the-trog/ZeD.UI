@@ -32,6 +32,7 @@
 -- scale as a whole multiple x vanilla's size option), so every pixel stays square.
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/ZeD_Panel"
 require "ZeD/ZeD_PixelParts"
 require "ZeD/SafeMode"
@@ -156,6 +157,16 @@ AB.LABELS = {
     ISToggleStoveAction = "SWITCHING", ISUnlockVehicleDoor = "UNLOCKING", ISWakeOtherPlayer = "WAKING",
     IsCampfireInfoAction = "CHECKING",
 }
+-- The table above is the English; the words the player sees are the keys UI_ZeD_Act_<ActionType> in
+-- Translate/<LANG>/UI.json (each at most 14 letters: the 5 x 7 pixel face). AB.label reads them through ZeD.tr;
+-- these register the English for them, so a language file that lacks one still shows words.
+for actType, english in pairs(AB.LABELS) do ZeD.trDefault("UI_ZeD_Act_" .. actType, english) end
+ZeD.trDefaults({
+    UI_ZeD_ActionBar_Working = "WORKING",
+    UI_ZeD_ActionBar_Stopped = "STOPPED",
+    UI_ZeD_ActionBar_Done = "DONE",
+    UI_ZeD_ActionBar_Then = "THEN %1",
+})
 
 -- any mod's action, from its class name when the name starts with a verb: ISRepairGunAction -> REPAIRING GUN;
 -- anything else (a name that starts with a noun) reads WORKING
@@ -193,36 +204,34 @@ function AB.autoLabel(typeName)
     if nxt and not SMALL[nxt] and #out + 1 + #nxt <= 14 then out = out .. " " .. nxt end
     return out
 end
+-- the key of an action type's label (built once per type, not every frame)
+AB._actKeys = AB._actKeys or {}
 function AB.label(action)
-    if not action then return "WORKING" end
+    if not action then return ZeD.tr("UI_ZeD_ActionBar_Working") end
     local t = action.Type
-    return AB.LABELS[t] or AB.autoLabel(t)
+    if AB.LABELS[t] then
+        local key = AB._actKeys[t]
+        if not key then key = "UI_ZeD_Act_" .. tostring(t); AB._actKeys[t] = key end
+        return ZeD.tr(key)
+    end
+    -- a mod's action: the automatic English label by design; only the bare "no verb" fallback is a translated word
+    local auto = AB.autoLabel(t)
+    if auto == "WORKING" then return ZeD.tr("UI_ZeD_ActionBar_Working") end
+    return auto
 end
 
 -- the item: what the action works with, in the 3 x 5 face's letters
 local ITEM_FIELDS = { "item", "book", "food", "clothing", "weapon", "gun", "bandage", "bottle", "fluidContainer", "fuel",
                       "magazine", "seed", "part", "itemToRepair", "repairItem" }
-local _allowed35 = nil
--- accented letters to their plain capitals (the pixel faces have A-Z only)
-local PLAIN = { {"[àáâãäåÀÁÂÃÄÅ]", "A"}, {"[çÇ]", "C"}, {"[èéêëÈÉÊË]", "E"}, {"[ìíîïÌÍÎÏ]", "I"}, {"[ñÑ]", "N"},
-                {"[òóôõöøÒÓÔÕÖØ]", "O"}, {"[ùúûüÙÚÛÜ]", "U"}, {"[ýÿÝ]", "Y"}, {"ß", "SS"}, {"[’‘]", "'"} }
+-- The 3 x 5 face spells accented Latin and Cyrillic capitals itself; a word it cannot spell is drawn in
+-- the regular face by ZeD.Px.text. So nothing is stripped or turned into plain letters here.
 function AB.clean(s)
     s = tostring(s or "")
     -- vanilla's "Book: Far From Home": the title, not the category (seen in game Oct 19 2026)
     local after = s:match("^[^:]+:%s+(.+)$")
     if after and after ~= "" then s = after end
-    for _, p in ipairs(PLAIN) do s = s:gsub(p[1], p[2]) end
-    if not _allowed35 then
-        _allowed35 = {}
-        for k, _ in pairs((ZeD.PixelFonts and ZeD.PixelFonts["35"]) or {}) do _allowed35[k] = true end
-    end
-    s = string.upper(tostring(s or ""))
-    local out = {}
-    for i = 1, #s do
-        local ch = s:sub(i, i)
-        if _allowed35[ch] then out[#out + 1] = ch end
-    end
-    s = table.concat(out):gsub("%s+", " "):gsub("^ ", ""):gsub(" $", "")
+    s = ZeD.upper(s)
+    s = s:gsub("%s+", " "):gsub("^ ", ""):gsub(" $", "")
     if #s > 16 then s = s:sub(1, 15):gsub(" $", "") .. ".." end
     return s
 end
@@ -335,7 +344,7 @@ function AB.state(chr, pn)
         -- a job already running (looting container after container) keeps its count through the walk
         local job = AB._jobs[pn]
         if job then job.walkFor = cur end
-        return { phase = "walk", label = "WALKING", next = nextA and AB.label(nextA) or nil, item = "", noend = true,
+        return { phase = "walk", label = AB.label(cur), next = nextA and AB.label(nextA) or nil, item = "", noend = true,
                  frac = 0, qi = 0, qn = 1, el = 0 }
     end
     if not shows(cur) or not cur.action then return nil end
@@ -420,11 +429,11 @@ local function R(cv, x, y, w, h, c, a) P.rect(cv, x, y, w, h, c, (c.a or 1) * (a
 -- sizes, so the element can be placed before it draws
 function AB.sizeSimple() return 53, 9 end
 function AB.verboseText(st)
-    local L1 = st.phase == "stopped" and "STOPPED" or st.phase == "done" and "DONE" or st.label
+    local L1 = st.phase == "stopped" and ZeD.tr("UI_ZeD_ActionBar_Stopped") or st.phase == "done" and ZeD.tr("UI_ZeD_ActionBar_Done") or st.label
     local R1 = ""
     if st.qn > 1 and st.phase ~= "walk" then R1 = tostring(st.phase == "done" and st.qn or st.qi + 1) .. "/" .. tostring(st.qn) end
     local L2, R2 = "", ""
-    if st.phase == "walk" then L2 = st.next and ("THEN " .. st.next) or "" else L2 = st.item or "" end
+    if st.phase == "walk" then L2 = st.next and ZeD.tr("UI_ZeD_ActionBar_Then", st.next) or "" else L2 = st.item or "" end
     if st.phase == "work" or st.phase == "stopped" then
         if st.noend then R2 = string.format("%d:%02d", math.floor((st.el or 0) / 60), math.floor((st.el or 0) % 60))
         else R2 = tostring(math.floor((st.frac or 0) * 100)) .. "%" end

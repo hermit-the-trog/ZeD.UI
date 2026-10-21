@@ -8,6 +8,7 @@
 -- accessor confirmed in PZ 42.16. Placeholder comment left in.
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/AnimalsData"
 require "ZeD/AnimalsDisorderCatalog"
 
@@ -64,13 +65,13 @@ function SI.inferSources(animal, player)
     -- Hunger
     local hunger = AD.getHunger(animal)
     if hunger > 80 then
-        table.insert(sources, "hunger")
+        table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressHunger"))
     end
 
     -- Thirst
     local thirst = AD.getThirst(animal)
     if thirst > 80 then
-        table.insert(sources, "thirst")
+        table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressThirst"))
     end
 
     -- Environment: rain without shelter
@@ -80,7 +81,7 @@ function SI.inferSources(animal, player)
         if not roofed then
             local climate = getClimateManager()
             if climate and climate:getPrecipitationIntensity() > 0 then
-                table.insert(sources, "rain")
+                table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressRain"))
             end
         end
     end
@@ -89,9 +90,9 @@ function SI.inferSources(animal, player)
     local zombieCount = countZombiesInRadius(animal, 15)
     if zombieCount > 0 then
         if zombieCount == 1 then
-            table.insert(sources, "zombie nearby")
+            table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressZombie"))
         else
-            table.insert(sources, zombieCount .. " zombies nearby")
+            table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressZombies", zombieCount))
         end
     end
 
@@ -100,13 +101,13 @@ function SI.inferSources(animal, player)
     if vehicle then
         local ok, speed = pcall(vehicle.getCurrentSpeedKmHour, vehicle)
         if ok and speed and speed > 5 then
-            table.insert(sources, "moving vehicle")
+            table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressVehicle"))
         end
     end
 
     -- Genetic amplifier: anxious trait
     if DC.hasDisorder(animal, "highstress") then
-        table.insert(sources, "anxious trait")
+        table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressAnxious"))
     end
 
     -- Male-on-male aggression (uses engine flag, not manual counting)
@@ -123,7 +124,7 @@ function SI.inferSources(animal, player)
                        and AD.getAnimalType(other) == myType
                        and not AD.isFemale(other)
                        and not AD.isBaby(other) then
-                        table.insert(sources, "male-on-male tension")
+                        table.insert(sources, ZeD.tr("UI_ZeD_Animals_StressMales"))
                         break
                     end
                 end
@@ -139,7 +140,7 @@ function SI.inferSources(animal, player)
     -- Cap at 3 to avoid UI overflow
     if #sources > 3 then
         local extra = #sources - 2
-        sources = { sources[1], sources[2], "+" .. extra .. " more" }
+        sources = { sources[1], sources[2], ZeD.tr("UI_ZeD_Animals_StressMore", extra) }
     end
 
     return sources

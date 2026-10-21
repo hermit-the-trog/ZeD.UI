@@ -142,7 +142,7 @@ function ZeD_MMCredits:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     self.lines = self.lines or creditLines()
-    self.title = "Project Zomboid  +  Credits"
+    self.title = ZeD.tr("UI_ZeD_Credits_Title")
     self.titleStats = {}
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
@@ -186,7 +186,7 @@ function ZeD_MMCredits:prerender()
                     self:drawTextureScaledAspect(tex, cx - math.floor(lw / 2), ly, lw, l.h, 1, tc.r, tc.g, tc.b)
                 end
             elseif l.kind == "role" then
-                local text = string.upper(l.text)
+                local text = ZeD.upper(l.text)
                 self:drawText(text, cx - math.floor(MM.textW(f1, text) / 2), ly, ac.r, ac.g, ac.b, ac.a or 1, f1)
             else
                 local c = T.text
@@ -208,9 +208,9 @@ function ZeD_MMCredits:prerender()
 
     -- the transport
     UI.stripSpecs(self, stripY, w, 1000,
-        { { "back", "BACK", function() self:back() end } },
+        { { "back", getText("UI_btn_back"), function() self:back() end } },
         { { "rewind", "<<", function() self:setMode("rewind") end, (self.mode == "rewind") and "primary" or "default" },
-          { "play", (self.mode == "pause") and "PLAY" or "PAUSE", function() self:togglePause() end },
+          { "play", getText((self.mode == "pause") and "IGUI_media_play" or "UI_Pause"), function() self:togglePause() end },
           { "fast", ">>", function() self:setMode("fast") end, (self.mode == "fast") and "primary" or "default" } })
     self._stripY, self._stripH = stripY, stripH
 end
@@ -235,8 +235,8 @@ end
 
 function ZeD_MMCredits:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    return { { glyph = "A", label = (self.mode == "pause") and "Play" or "Pause" }, { glyph = "X", label = "Fast" },
-             { glyph = "Y", label = "Rewind" }, { glyph = "B", label = "Back" } }
+    return { { glyph = "A", label = getText((self.mode == "pause") and "IGUI_media_play" or "UI_Pause") }, { glyph = "X", label = ZeD.tr("UI_ZeD_Credits_PromptFast") },
+             { glyph = "Y", label = ZeD.tr("UI_ZeD_Credits_PromptRewind") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } }
 end
 
 function ZeD_MMCredits:keyEscape() self:back(); return true end

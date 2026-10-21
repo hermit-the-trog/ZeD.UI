@@ -85,7 +85,11 @@ local HEAD_H = 37
 local MOD_ROW_H = 28   -- (the pause window's Mods page)
 local WIN_TOP, WIN_TOP_FIRST = 20, 86   -- below the menu bar: with Continue / without
 
-local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+-- (the month names' translation keys; ZeD.tr turns one into the player's language where it shows)
+local MONTHS = { "UI_ZeD_MainMenu_MonthJan", "UI_ZeD_MainMenu_MonthFeb", "UI_ZeD_MainMenu_MonthMar",
+    "UI_ZeD_MainMenu_MonthApr", "UI_ZeD_MainMenu_MonthMay", "UI_ZeD_MainMenu_MonthJun",
+    "UI_ZeD_MainMenu_MonthJul", "UI_ZeD_MainMenu_MonthAug", "UI_ZeD_MainMenu_MonthSep",
+    "UI_ZeD_MainMenu_MonthOct", "UI_ZeD_MainMenu_MonthNov", "UI_ZeD_MainMenu_MonthDec" }
 local DOT = " | "   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 -- ---------------------------------------------------------------------------
@@ -544,7 +548,7 @@ function MM.saveTitle(name, mode)
     name = tostring(name or "")
     local _, mo, d, rest = name:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)_%d%d%-%d%d%-%d%d(.*)$")
     if mo and MONTHS[tonumber(mo)] then
-        local t = MM.modeName(mode) .. ", " .. MONTHS[tonumber(mo)] .. " " .. tonumber(d)
+        local t = ZeD.tr("UI_ZeD_MainMenu_SaveDate", MM.modeName(mode), ZeD.tr(MONTHS[tonumber(mo)]), tonumber(d))
         local tag = rest and rest:match("^_(.+)$")
         if tag then t = t .. " (" .. tag:gsub("_", " ") .. ")" elseif rest and rest ~= "" then t = t .. rest end
         return t
@@ -556,14 +560,14 @@ end
 -- Knox Country (vanilla's own name for it); a single map reads as itself.
 function MM.mapText(mapName)
     local list = tostring(mapName or "Muldraugh, KY")
-    if list:find(";") and list:find("Muldraugh, KY", 1, true) then return "Knox Country" end
+    if list:find(";") and list:find("Muldraugh, KY", 1, true) then return ZeD.tr("UI_ZeD_MainMenu_KnoxCountry") end
     return list:match("^[^;]+") or list
 end
 
 local function clock12(h, m)
     local h12 = h % 12
     if h12 == 0 then h12 = 12 end
-    return string.format("%d:%02d %s", h12, m, h >= 12 and "PM" or "AM")
+    return string.format("%d:%02d %s", h12, m, ZeD.tr(h >= 12 and "UI_ZeD_MainMenu_PM" or "UI_ZeD_MainMenu_AM"))
 end
 
 -- getLastPlayedDate's text -> "Oct 14 2026, 7:52 PM" (unknown shapes pass through)
@@ -574,7 +578,7 @@ function MM.playedText(raw)
         d, mo, y, h, mi = raw:match("(%d%d?)[%-/%.](%d%d?)[%-/%.](%d%d%d%d)[ T_](%d%d?)[:%-](%d%d)")
     end
     if y and MONTHS[tonumber(mo)] then
-        return MONTHS[tonumber(mo)] .. " " .. tonumber(d) .. " " .. y .. ", " .. clock12(tonumber(h), tonumber(mi))
+        return ZeD.tr("UI_ZeD_MainMenu_PlayedDate", ZeD.tr(MONTHS[tonumber(mo)]), tonumber(d), y, clock12(tonumber(h), tonumber(mi)))
     end
     return raw
 end
@@ -597,7 +601,7 @@ function MM.refresh()
     c.dead = info.playerAlive == false
     c.where = MM.modeName(info.gameMode or mode) .. DOT .. MM.mapText(info.mapName)
     local okP, played = pcall(getLastPlayedDate, key)
-    c.played = okP and played and ("Last played " .. MM.playedText(played)) or nil
+    c.played = okP and played and ZeD.tr("UI_ZeD_MainMenu_LastPlayed", MM.playedText(played)) or nil
     local okT, thumb = pcall(getTextureFromSaveDir, "thumb.png", key)
     c.thumb = okT and thumb or nil
     MM._cont = c
@@ -630,11 +634,11 @@ function MM.pauseMods()
         local id = list:get(i)
         local info = getModInfoByID(id)
         local e = { id = id, name = id }
-        if not info then e.status, e.bad = "Not found", true
+        if not info then e.status, e.bad = ZeD.tr("UI_ZeD_MainMenu_ModNotFound"), true
         else
             e.name = info:getName()
-            if not info:isAvailable() then e.status, e.bad = "Not available", true
-            elseif PauseBuggedModList and PauseBuggedModList[e.name] then e.status, e.bad = "Errors this session", true end
+            if not info:isAvailable() then e.status, e.bad = ZeD.tr("UI_ZeD_MainMenu_ModNotAvailable"), true
+            elseif PauseBuggedModList and PauseBuggedModList[e.name] then e.status, e.bad = ZeD.tr("UI_ZeD_MainMenu_ModErrors"), true end
         end
         t[#t + 1] = e
     end
@@ -667,7 +671,7 @@ end
 -- in game: the character, the save, the day and time
 function MM.pauseInfo()
     local p = getSpecificPlayer(0)
-    local name = "Paused"
+    local name = getText("EC_CraftLogicTooltip_Paused")
     if p then
         local ok, n = pcall(function() local d = p:getDescriptor(); return d:getForename() .. " " .. d:getSurname() end)
         if ok and n then name = n end
@@ -685,7 +689,7 @@ function MM.pauseInfo()
     local hour, min = gt:getHour(), gt:getMinutes()
     local ok24, v24 = pcall(function() return getCore():getOptionClock24Hour() end)
     local tstr = (ok24 and v24 == false) and clock12(hour, min) or string.format("%02d:%02d", hour, min)
-    return { name = name, save = save, when = "Day " .. day .. DOT .. tstr }
+    return { name = name, save = save, when = ZeD.tr("UI_ZeD_MainMenu_DayTime", day, tstr) }
 end
 
 -- ---------------------------------------------------------------------------
@@ -768,9 +772,9 @@ MM.act = {
 function MM.menus()
     local t = {
         { key = "zed", logo = true },
-        { key = "file", title = "File" },
-        { key = "mp", title = "Multiplayer" },
-        { key = "settings", title = "Settings" },
+        { key = "file", title = ZeD.tr("UI_ZeD_MainMenu_MenuFile") },
+        { key = "mp", title = getText("IGUI_Gametime_Multiplayer") },
+        { key = "settings", title = ZeD.tr("UI_ZeD_MainMenu_MenuSettings") },
     }
     if getDebug() then t[#t + 1] = { key = "debug", title = "Debug" } end
     return t
@@ -780,25 +784,25 @@ function MM.menuItems(key)
     local A, m = MM.act, ms()
     if key == "zed" then
         return { { about = true }, "-",
-                 { text = "Credits", fn = A.credits },
-                 { text = "Terms of service", fn = A.tos },
-                 { text = "Report a bug", fn = A.reportBug } }
+                 { text = ZeD.btnCase(getText("UI_mainscreen_credits")), fn = A.credits },
+                 { text = ZeD.tr("UI_ZeD_MainMenu_TermsOfService"), fn = A.tos },
+                 { text = ZeD.tr("UI_ZeD_MainMenu_ReportBug"), fn = A.reportBug } }
     elseif key == "file" then
-        return { { text = "Continue", fn = A.continue, disabled = not MM.continueInfo() },
-                 { text = "New game", fn = A.newGame },
-                 { text = "Load game", fn = A.load, disabled = not MM.hasSaves() },
-                 { text = "Tutorial", fn = A.tutorial },
+        return { { text = ZeD.btnCase(getText("UI_mainscreen_continue")), fn = A.continue, disabled = not MM.continueInfo() },
+                 { text = ZeD.btnCase(getText("UI_NewGameScreen_title")), fn = A.newGame },
+                 { text = ZeD.tr("UI_ZeD_MainMenu_LoadGame"), fn = A.load, disabled = not MM.hasSaves() },
+                 { text = getText("IGUI_Gametime_Tutorial"), fn = A.tutorial },
                  "-",
-                 { text = "Quit", fn = A.askQuit } }
+                 { text = getText("IGUI_Exit"), fn = A.askQuit } }
     elseif key == "mp" then
-        return { { text = "Join a server", fn = A.join }, { text = "Host a game", fn = A.host } }
+        return { { text = ZeD.tr("UI_ZeD_MainMenu_JoinServer"), fn = A.join }, { text = ZeD.tr("UI_ZeD_MainMenu_HostGame"), fn = A.host } }
     elseif key == "settings" then
-        local t = { { text = "Options", fn = A.options }, { text = "Mods (" .. MM.modCount() .. " on)", fn = A.mods } }
-        if m and m.workshopOption then t[#t + 1] = { text = "Workshop", fn = A.workshop } end
+        local t = { { text = ZeD.btnCase(getText("UI_mainscreen_option")), fn = A.options }, { text = ZeD.tr("UI_ZeD_MainMenu_ModsOn", MM.modCount()), fn = A.mods } }
+        if m and m.workshopOption then t[#t + 1] = { text = ZeD.btnCase(getText("UI_mainscreen_workshop")), fn = A.workshop } end
         local wall = MM.wallpaper()
         t[#t + 1] = "-"
-        t[#t + 1] = { text = "Original wallpaper", check = wall == "original", fn = function() MM.ctx.open = nil; MM.setWallpaper("original") end }
-        t[#t + 1] = { text = "New wallpaper", check = wall == "new", fn = function() MM.ctx.open = nil; MM.setWallpaper("new") end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_MainMenu_WallpaperOriginal"), check = wall == "original", fn = function() MM.ctx.open = nil; MM.setWallpaper("original") end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_MainMenu_WallpaperNew"), check = wall == "new", fn = function() MM.ctx.open = nil; MM.setWallpaper("new") end }
         return t
     elseif key == "debug" then
         local t = { { text = "Reset Lua", fn = A.resetLua } }
@@ -1103,34 +1107,28 @@ local ABOUT_W = 340   -- design units: the block's text width
 -- The owner's words, typed by the owner (director, Oct 15 2026: their own draft, then "Dont
 -- use LLM patterns. It should sound disorganized"). Kept rough on purpose: the spelling,
 -- the missing apostrophes, the run-on, the asides. Do not tidy it.
-local ABOUT_PARAS = {
-    "Zero Day OS is a homemade SECURE kernal of Ynix made by some hard working freedom loving good "
-        .. "guys (mostly me). FBI and you government slime, if you are reading this you must have got "
-        .. "me--but I got you. This thing has state of the art anti phone tap programming in the BIOS "
-        .. "AND we just upgraded from 8 to 16bit encryption that my cousins elementary school friends "
-        .. "girlfriends uncle got out of MIT. dont ask. Suck on it commies!! You cant crack ZeD-OS. "
-        .. "also it runs off the truck battery if it comes to that. LONG LIVE FREEDOM",
-}
+-- (the draft lives in Translate/EN/UI.json as UI_ZeD_MainMenu_AboutPara; a translator keeps it rough too)
+local ABOUT_PARAS = { "UI_ZeD_MainMenu_AboutPara" }
 local function aboutRows()
     local T = ZeD.T
     local f2, f3 = T.fontF2, T.fontF3
     local hf = ZeD.Font.sdf.head
     local z = 22 * (T.scale or 1) / (hf.face or 64)
     local rows = { { "title", "Zero Day OS", nil, math.floor(ZeD.Text.height(hf, z)) + T.px(2), z } }
-    rows[#rows + 1] = { "sub", "secure Ynix kernal -- DO NOT UNPLUG", nil, fontH(f3) + T.px(8) }
+    rows[#rows + 1] = { "sub", ZeD.tr("UI_ZeD_MainMenu_AboutSub"), nil, fontH(f3) + T.px(8) }
     for i, p in ipairs(ABOUT_PARAS) do
         if i > 1 then rows[#rows + 1] = { "gap", nil, nil, T.px(6) } end
         local kind = "para"
-        for _, l in ipairs(ZeD.Atoms.wrapText(p, f2, T.px(ABOUT_W))) do rows[#rows + 1] = { kind, l, nil, fontH(f2) + T.px(2) } end
+        for _, l in ipairs(ZeD.Atoms.wrapText(ZeD.tr(p), f2, T.px(ABOUT_W))) do rows[#rows + 1] = { kind, l, nil, fontH(f2) + T.px(2) } end
     end
     rows[#rows + 1] = { "gap", nil, nil, T.px(8) }
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
     local up = math.floor((now() - (MM._bootMs or now())) / 60000)
-    rows[#rows + 1] = { "kv", "ENCRYPTION", "16-bit (was 8)", T.px(18) }
-    rows[#rows + 1] = { "kv", "PHONE TAPS", "None found", T.px(18) }
-    rows[#rows + 1] = { "kv", "UPTIME", (up >= 60) and string.format("%d h %02d min", math.floor(up / 60), up % 60) or (up .. " min"), T.px(18) }
-    rows[#rows + 1] = { "kv", "DISPLAY", sw .. " x " .. sh .. DOT .. string.format("%.2fx", T.scale or 1), T.px(18) }
-    rows[#rows + 1] = { "kv", "GAME", "Build " .. MM.version(), T.px(18) }
+    rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutEncryption"), ZeD.tr("UI_ZeD_MainMenu_AboutEncryptionValue"), T.px(18) }
+    rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutPhoneTaps"), ZeD.tr("UI_ZeD_MainMenu_AboutPhoneTapsValue"), T.px(18) }
+    rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutUptime"), (up >= 60) and ZeD.tr("UI_ZeD_MainMenu_UptimeHours", math.floor(up / 60), string.format("%02d", up % 60)) or ZeD.tr("UI_ZeD_MainMenu_UptimeMinutes", up), T.px(18) }
+    rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutDisplay"), sw .. " x " .. sh .. DOT .. string.format("%.2fx", T.scale or 1), T.px(18) }
+    rows[#rows + 1] = { "kv", ZeD.tr("UI_ZeD_MainMenu_AboutGame"), ZeD.tr("UI_ZeD_MainMenu_BuildVersion", MM.version()), T.px(18) }
     return rows
 end
 local function aboutHeight(rows)
@@ -1418,7 +1416,7 @@ function ZeD_MMGlass:prerender()
         local T = ZeD.T
         local px, py, pw = nat(L, POWER)
         local f = T.fontF3
-        local label = "Quit"
+        local label = getText("IGUI_Exit")
         local bw, bh = textW(f, label) + T.px(16), fontH(f) + T.px(8)
         local bx, by = math.floor(px + pw / 2 - bw / 2), py - T.px(6) - bh
         local s1, bs, c = T.surf1, T.borderS, T.text
@@ -1492,19 +1490,19 @@ function ZeD_MMWindow:build()
         if cont then
             local cardH = T.px(THUMB) + T.px(CARD_PAD) * 2
             self._card = { x = pad, y = y, w = w - pad * 2, h = cardH, info = cont }
-            local bw = textW(f3, "CONTINUE") + T.px(BIG_PAD_X) * 2
+            local bw = textW(f3, getText("UI_mainscreen_continue")) + T.px(BIG_PAD_X) * 2
             row = row + 1
-            add({ id = "continue", text = "CONTINUE", variant = "primary", fn = A.continue, row = row, col = 1,
+            add({ id = "continue", text = getText("UI_mainscreen_continue"), variant = "primary", fn = A.continue, row = row, col = 1,
                   x = pad + T.px(CARD_PAD) + T.px(THUMB) + T.px(CARD_GAP), y = y + T.px(CARD_PAD) + T.px(THUMB) - T.px(WIDE_H),
                   w = bw, h = T.px(WIDE_H) })
             y = y + cardH + gap
         end
         local list = {
-            { "newgame",  "NEW GAME",      A.newGame },
-            { "load",     "LOAD GAME",     A.load, not MM.hasSaves() },
-            { "join",     "JOIN A SERVER", A.join },
-            { "host",     "HOST A GAME",   A.host },
-            { "tutorial", "TUTORIAL",      A.tutorial },
+            { "newgame",  getText("UI_NewGameScreen_title"),   A.newGame },
+            { "load",     ZeD.tr("UI_ZeD_MainMenu_LoadGame"),   A.load, not MM.hasSaves() },
+            { "join",     ZeD.tr("UI_ZeD_MainMenu_JoinServer"), A.join },
+            { "host",     ZeD.tr("UI_ZeD_MainMenu_HostGame"),   A.host },
+            { "tutorial", getText("UI_mainscreen_tutorial"),   A.tutorial },
         }
         for i, r in ipairs(list) do
             row = row + 1
@@ -1515,14 +1513,14 @@ function ZeD_MMWindow:build()
         y = y - gap + pad
     else
         local info = MM.pauseInfo()
-        self.title = info.name .. "  +  Paused"
+        self.title = ZeD.tr("UI_ZeD_MainMenu_PausedTitle", info.name)
         self.titleStats = { { text = info.save, color = T.positive } }
         self._head = { y = y, h = T.px(HEAD_H), when = info.when }
         y = y + T.px(HEAD_H) + pad
         self._mods = nil
         if self.page == "mods" then
             -- the game's mods, each with vanilla's word on it (ISPauseModListUI's checks)
-            self._head.label = "Mods"
+            self._head.label = getText("UI_NewGame_Mods")
             local rh = T.px(MOD_ROW_H)
             local items = MM.pauseMods()
             local room = math.floor((getCore():getScreenHeight() * 0.8 - y - T.px(120)) / rh)
@@ -1530,10 +1528,10 @@ function ZeD_MMWindow:build()
             self._mods = { y = y, rh = rh, items = items, shown = shown }
             y = y + shown * rh + ((#items > shown) and rh or 0) + pad
         else
-            local list = { { "resume", "RESUME", A.resume, "primary" }, { "options", "OPTIONS", A.options },
-                           { "mods", "MODS (" .. MM.modCount() .. ")", A.modList } }
-            if m and m.scoreOption then list[#list + 1] = { "players", "PLAYERS", A.players } end
-            if m and m.inviteOption then list[#list + 1] = { "invite", "INVITE FRIENDS", A.invite } end
+            local list = { { "resume", getText("UI_mainscreen_return"), A.resume, "primary" }, { "options", getText("UI_mainscreen_option"), A.options },
+                           { "mods", ZeD.tr("UI_ZeD_MainMenu_ModsCount", MM.modCount()), A.modList } }
+            if m and m.scoreOption then list[#list + 1] = { "players", getText("UI_mainscreen_scoreboard"), A.players } end
+            if m and m.inviteOption then list[#list + 1] = { "invite", getText("UI_mainscreen_invite"), A.invite } end
             for _, r in ipairs(list) do
                 row = row + 1
                 add({ id = r[1], text = r[2], variant = r[4] or "default", fn = r[3], row = row, col = 1,
@@ -1562,23 +1560,23 @@ function ZeD_MMWindow:build()
     self._sx = T.px(STRIP_PAD_X)
     local rights = {}
     if self.confirm then
-        self._ask = (self.kind == "main") and "Quit Project Zomboid?" or "Quit to desktop?"
-        rights = { { "confirm:no", "CANCEL", function() self:setConfirm(false) end, "default" },
-                   { "confirm:yes", "QUIT", A.quit, "danger" } }
+        self._ask = ZeD.tr((self.kind == "main") and "UI_ZeD_MainMenu_AskQuitGame" or "UI_ZeD_MainMenu_AskQuitDesktop")
+        rights = { { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end, "default" },
+                   { "confirm:yes", getText("UI_mainscreen_exit"), A.quit, "danger" } }
     else
         self._ask = nil
         local cooling = isQuitCooldown and isQuitCooldown()
         if self.kind == "main" then
-            left("options", "OPTIONS", A.options)
-            left("mods", "MODS (" .. MM.modCount() .. ")", A.mods)
-            if m and m.workshopOption then left("workshop", "WORKSHOP", A.workshop) end
-            left("credits", "CREDITS", A.credits)
-            rights = { { "quit", "QUIT", A.askQuit, "default", cooling } }
+            left("options", getText("UI_mainscreen_option"), A.options)
+            left("mods", ZeD.tr("UI_ZeD_MainMenu_ModsCount", MM.modCount()), A.mods)
+            if m and m.workshopOption then left("workshop", getText("UI_mainscreen_workshop"), A.workshop) end
+            left("credits", getText("UI_mainscreen_credits"), A.credits)
+            rights = { { "quit", getText("UI_mainscreen_exit"), A.askQuit, "default", cooling } }
         elseif self.page == "mods" then
-            left("back", "BACK", function() self.page = nil; self.focusId = nil; clickSound() end)
+            left("back", getText("UI_btn_back"), function() self.page = nil; self.focusId = nil; clickSound() end)
         else
-            left("quitDesktop", "QUIT TO DESKTOP", function() self:setConfirm(true) end, "default", cooling)
-            rights = { { "saveQuit", "SAVE AND QUIT", A.saveQuit, "default", cooling } }
+            left("quitDesktop", getText("IGUI_PostDeath_Quit"), function() self:setConfirm(true) end, "default", cooling)
+            rights = { { "saveQuit", ZeD.tr("UI_ZeD_MainMenu_SaveAndQuit"), A.saveQuit, "default", cooling } }
         end
     end
     -- right-aligned buttons, in order
@@ -1601,7 +1599,7 @@ function ZeD_MMWindow:build()
         x = L.tx + math.floor((L.tw - w) / 2)
         wy = L.ty + barH + T.px(MM.continueInfo() and WIN_TOP or WIN_TOP_FIRST)
         if wy + h > L.ty + L.th then wy = math.max(L.ty + barH, L.ty + L.th - h) end
-        self.title = "Project Zomboid  +  Main menu"
+        self.title = ZeD.tr("UI_ZeD_MainMenu_MainTitle")
         self.titleStats = nil   -- the build lives in the ZeD menu's About block only (director, Oct 15 2026)
     else
         x = math.floor((getCore():getScreenWidth() - w) / 2)
@@ -1745,10 +1743,10 @@ end
 
 function ZeD_MMWindow:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Quit" }, { glyph = "B", label = "Cancel" } } end
-    if self.page then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } } end
-    if self.kind == "pause" then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Resume" } } end
-    return { { glyph = "A", label = "Select" }, { glyph = "Y", label = "Legal" } }
+    if self.confirm then return { { glyph = "A", label = getText("IGUI_Exit") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    if self.page then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } } end
+    if self.kind == "pause" then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Resume") } } end
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "Y", label = ZeD.tr("UI_ZeD_MainMenu_PromptLegal") } }
 end
 
 function ZeD_MMWindow:prerender()
@@ -1763,7 +1761,7 @@ function ZeD_MMWindow:prerender()
     if self._head then
         local hd = self._head
         self:drawRect(T.px(1), hd.y, w - T.px(2), hd.h, 1, s2.r, s2.g, s2.b)
-        ZeD.Molecules.drawTabHeader(self, 0, hd.y, w, hd.label or "Paused", true, false)
+        ZeD.Molecules.drawTabHeader(self, 0, hd.y, w, hd.label or getText("EC_CraftLogicTooltip_Paused"), true, false)
         local f3, d = T.fontF3, T.textDim
         self:drawText(hd.when, w - T.px(10) - textW(f3, hd.when), hd.y + math.floor((hd.h - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
     end
@@ -1792,7 +1790,7 @@ function ZeD_MMWindow:prerender()
             y = y + md.rh
         end
         if #md.items > md.shown then
-            local more = "and " .. (#md.items - md.shown) .. " more"
+            local more = ZeD.tr("UI_ZeD_MainMenu_AndMore", #md.items - md.shown)
             self:drawText(more, pad, y + math.floor((md.rh - fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
         end
     end
