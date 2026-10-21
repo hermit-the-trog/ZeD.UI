@@ -22,6 +22,7 @@
 -- Every layout number is a DESIGN UNIT and goes through T.px at use (S124).
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
@@ -84,7 +85,7 @@ local function round(n, dp)
     local m = 10 ^ (dp or 0)
     return math.floor(n * m + 0.5) / m
 end
-local function upper(s) return string.upper(tostring(s or "")) end
+local function upper(s) return ZeD.upper(tostring(s or "")) end
 local function now() return (getTimestampMs and getTimestampMs()) or 0 end
 local function hit(z, x, y) return z ~= nil and x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 local function statusColor(T, pct)
@@ -256,28 +257,28 @@ local function partInfo(part, chr, v)
     if isMissing(part) then return "" end
     local id, item = part:getId(), part:getInventoryItem()
     if id == "Battery" and item and item.getCurrentUsesFloat then
-        return tostring(math.floor(item:getCurrentUsesFloat() * 100)) .. "% charge"
+        return ZeD.tr("UI_ZeD_Veh_Charge", math.floor(item:getCurrentUsesFloat() * 100) .. "%")
     end
     if part:isContainer() and part:getContainerContentType() then
         local ct, amt, cap = part:getContainerContentType(), part:getContainerContentAmount(), part:getContainerCapacity()
-        if ct == "Air" then return tostring(math.floor(amt + 0.5)) .. " / " .. tostring(math.floor(cap)) .. " psi" end
+        if ct == "Air" then return ZeD.tr("UI_ZeD_Veh_PsiOf", math.floor(amt + 0.5), math.floor(cap)) end
         return tostring(round(amt, 1)) .. " / " .. tostring(math.floor(cap))
     end
     local door = part:getDoor()
     if door then
-        if door:isOpen() then return "Open" end
-        if door:isLockBroken() then return "Lock broken" end
-        if door:isLocked() then return "Locked" end
-        return "Closed"
+        if door:isOpen() then return ZeD.tr("UI_ZeD_Veh_StOpen") end
+        if door:isLockBroken() then return ZeD.tr("UI_ZeD_Veh_StLockBroken") end
+        if door:isLocked() then return getText("EC_Locked") end
+        return ZeD.tr("UI_ZeD_Veh_StClosed")
     end
     local w = part:getWindow()
     if w then
-        if not w:isDestroyed() and w:isOpenable() and w:isOpen() then return "Open" end
+        if not w:isDestroyed() and w:isOpenable() and w:isOpen() then return ZeD.tr("UI_ZeD_Veh_StOpen") end
         return ""
     end
     if part:getItemContainer() then
         local seat = part:getContainerSeatNumber()
-        if seat and seat > -1 and v:isSeatOccupied(seat) then return "Occupied" end
+        if seat and seat > -1 and v:isSeatOccupied(seat) then return ZeD.tr("UI_ZeD_Veh_StOccupied") end
         local ok, s = pcall(function()
             return tostring(round(part:getItemContainer():getCapacityWeight(), 1)) .. " / " .. tostring(part:getContainerCapacity(chr))
         end)
@@ -361,10 +362,10 @@ end
 local function keyState(v, chr)
     local eng = v:getPartById("Engine")
     local ok, have = pcall(function() return chr:getInventory():haveThisKeyId(v:getKeyId()) end)
-    if ok and have then return "On you", "pos" end
-    if v:isHotwired() then return "Hotwired", "pos" end
-    if eng and VehicleUtils.RequiredKeyNotFound(eng, chr) then return "Not found", "warn" end
-    return "Not needed", "pos"
+    if ok and have then return ZeD.tr("UI_ZeD_Veh_KeyOnYou"), "pos" end
+    if v:isHotwired() then return ZeD.tr("UI_ZeD_Veh_KeyHotwired"), "pos" end
+    if eng and VehicleUtils.RequiredKeyNotFound(eng, chr) then return ZeD.tr("UI_ZeD_Veh_NotFound"), "warn" end
+    return ZeD.tr("UI_ZeD_Veh_KeyNotNeeded"), "pos"
 end
 
 -- ----------------------------------------------------------------------------
@@ -383,8 +384,8 @@ end
 local function locOf(item, chr)
     local c = item:getContainer()
     if not c then return "" end
-    if c == chr:getInventory() then return "INVENTORY" end
-    if c:getType() == "floor" then return "FLOOR" end
+    if c == chr:getInventory() then return upper(getText("IGUI_Controller_Inventory")) end
+    if c:getType() == "floor" then return upper(getText("ContextMenu_Floor")) end
     local ci = c:getContainingItem()
     if ci then return upper(ci:getName()) end
     local ok, vp = pcall(function() return c:getVehiclePart() end)
@@ -395,12 +396,14 @@ end
 -- ----------------------------------------------------------------------------
 -- Verbs (mirror ISVehicleMechanics:doPartContextMenu)
 -- ----------------------------------------------------------------------------
+-- text keys (vanilla's where it has the word); vlabel() gives the capitals shown
 local VERB_LABEL = {
-    install = "INSTALL", uninstall = "UNINSTALL", fix = "REPAIR", inflate = "INFLATE",
-    deflate = "DEFLATE", openWindow = "OPEN WINDOW", closeWindow = "CLOSE WINDOW",
-    smash = "SMASH", repairEngine = "REPAIR ENGINE", takeParts = "TAKE PARTS",
-    repairLightbar = "REPAIR",
+    install = "IGUI_Install", uninstall = "IGUI_Uninstall", fix = "IGUI_Repair", inflate = "UI_ZeD_Veh_VInflate",
+    deflate = "UI_ZeD_Veh_VDeflate", openWindow = "ContextMenu_Open_window", closeWindow = "ContextMenu_Close_window",
+    smash = "UI_ZeD_Veh_VSmash", repairEngine = "UI_ZeD_Veh_VRepairEngine", takeParts = "UI_ZeD_Veh_VTakeParts",
+    repairLightbar = "IGUI_Repair",
 }
+local function vlabel(id) return upper(ZeD.tr(VERB_LABEL[id] or tostring(id))) end
 local DANGER = { smash = true, takeParts = true }
 -- Which available verb is the call to action (accent fill), in this order
 local PRIMARY_ORDER = { "install", "fix", "repairEngine", "repairLightbar", "inflate", "uninstall",
@@ -437,7 +440,7 @@ local function tableNeeds(rows, part, chr, v, key, items)
     local kv = part:getTable(key)
     if not kv then return nil end
     if VehicleUtils.RequiredKeyNotFound(part, chr) then
-        rows[#rows + 1] = { ok = false, label = "Key", value = "Not found" }
+        rows[#rows + 1] = { ok = false, label = getText("IGUI_ItemType_Key"), value = ZeD.tr("UI_ZeD_Veh_NotFound") }
     end
     if kv.items then
         for _, itemTable in ipairs(VehicleUtils.getItemScripts(kv.items)) do
@@ -452,22 +455,22 @@ local function tableNeeds(rows, part, chr, v, key, items)
                 elseif thing.unknownTag then names[#names + 1] = tostring(thing.unknownTag) end
             end
             local label = names[1] or "?"
-            if #names == 2 then label = names[1] .. " or " .. names[2]
-            elseif #names > 2 then label = names[1] .. " or " .. tostring(#names - 1) .. " more" end
+            if #names == 2 then label = ZeD.tr("UI_ZeD_Veh_OrOne", names[1], names[2])
+            elseif #names > 2 then label = ZeD.tr("UI_ZeD_Veh_OrMore", names[1], #names - 1) end
             rows[#rows + 1] = { ok = have, label = label, value = have and "1/1" or "0/1", kicker = where }
         end
     end
     if kv.recipes and kv.recipes ~= "" then
         for _, r in ipairs(kv.recipes:split(";")) do
             local known = chr:isRecipeActuallyKnown(r)
-            rows[#rows + 1] = { ok = known, label = getRecipeDisplayName(r), value = known and "Known" or "Unknown", kicker = "RECIPE" }
+            rows[#rows + 1] = { ok = known, label = getRecipeDisplayName(r), value = known and ZeD.tr("UI_ZeD_Veh_Known") or getText("IGUI_ItemCat_Unknown"), kicker = ZeD.tr("UI_ZeD_Veh_KRecipe") }
         end
     end
     if kv.requireUninstalled then
         local o = v:getPartById(kv.requireUninstalled)
         if o then
             local on = o:getInventoryItem() ~= nil
-            rows[#rows + 1] = { ok = not on, label = partName(o:getId()), value = on and "Installed" or "Removed", kicker = "MUST BE OFF" }
+            rows[#rows + 1] = { ok = not on, label = partName(o:getId()), value = on and getText("UI_WorkshopServerItemState_Installed") or ZeD.tr("UI_ZeD_Veh_Removed"), kicker = ZeD.tr("UI_ZeD_Veh_KMustBeOff") }
         end
     end
     if kv.requireEmpty then
@@ -476,15 +479,15 @@ local function tableNeeds(rows, part, chr, v, key, items)
         local hasContent = round(part:getContainerContentAmount(), 3) > 0
         local cont = part:getItemContainer()
         local notEmpty = occupied or hasContent or (cont ~= nil and not cont:isEmpty())
-        rows[#rows + 1] = { ok = not notEmpty, label = partName(part:getId()) .. " empty",
-                            value = notEmpty and (hasContent and tostring(round(part:getContainerContentAmount(), 1)) .. " left" or "Not empty") or "Empty",
-                            kicker = "MUST BE EMPTY" }
+        rows[#rows + 1] = { ok = not notEmpty, label = ZeD.tr("UI_ZeD_Veh_PartEmpty", partName(part:getId())),
+                            value = notEmpty and (hasContent and ZeD.tr("UI_ZeD_Veh_AmountLeft", round(part:getContainerContentAmount(), 1)) or ZeD.tr("UI_ZeD_Veh_NotEmpty")) or getText("Fluid_Empty"),
+                            kicker = ZeD.tr("UI_ZeD_Veh_KMustBeEmpty") }
     end
     if key == "install" and kv.requireInstalled then
         for _, id in ipairs(kv.requireInstalled:split(";")) do
             local o = v:getPartById(id)
             local on = o ~= nil and o:getInventoryItem() ~= nil
-            rows[#rows + 1] = { ok = on, label = partName(id), value = on and "Installed" or "Missing", kicker = "MUST BE ON" }
+            rows[#rows + 1] = { ok = on, label = partName(id), value = on and getText("UI_WorkshopServerItemState_Installed") or getText("IGUI_Missing"), kicker = ZeD.tr("UI_ZeD_Veh_KMustBeOn") }
         end
     end
     local perks = kv.skills
@@ -494,7 +497,7 @@ local function tableNeeds(rows, part, chr, v, key, items)
             local need = tonumber(level) or 0
             local have = chr:getPerkLevel(Perks.FromString(name))
             rows[#rows + 1] = { ok = have >= need, soft = true, label = txt("IGUI_perks_" .. name, name),
-                                value = tostring(have) .. " / " .. tostring(need), kicker = have >= need and nil or "RECOMMENDED" }
+                                value = tostring(have) .. " / " .. tostring(need), kicker = have >= need and nil or ZeD.tr("UI_ZeD_Veh_KRecommended") }
         end
     end
     local success, failure = VehicleUtils.calculateInstallationSuccess(perks, chr)
@@ -554,7 +557,7 @@ local function fixRows(part, chr)
             local full = fixing:getModule():getName() .. "." .. fixer:getFixerName()
             local nm = getItem(full) and getItemName(full) or fixer:getFixerName()
             local n = fixer:getNumberOfUse()
-            local label = (n > 1 and (tostring(n) .. " " .. nm) or nm) .. (globalName and (" + " .. globalName) or "")
+            local label = (n > 1 and ZeD.tr("UI_ZeD_Veh_CountName", n, nm) or nm) .. (globalName and (" + " .. globalName) or "")
             local have = fixing:haveThisFixer(chr, fixer, item) ~= nil and fixing:countUses(chr, fixer, item) >= n
             local skillsOk, skillParts = true, {}
             local skills = fixer:getFixerSkills()
@@ -570,11 +573,11 @@ local function fixRows(part, chr)
             local repaired = math.ceil(FixingManager.getCondRepaired(item, chr, fixing, fixer))
             local success = math.ceil(100 - FixingManager.getChanceOfFail(item, chr, fixing, fixer))
             local meta = table.concat(skillParts, " " .. DOT .. " ")
-            meta = (meta ~= "" and (meta .. " " .. DOT .. " ") or "") .. "+" .. tostring(repaired) .. "% " .. DOT .. " " .. tostring(success) .. "% success"
+            meta = (meta ~= "" and (meta .. " " .. DOT .. " ") or "") .. ZeD.tr("UI_ZeD_Veh_FixOutcome", tostring(repaired) .. "%", tostring(success) .. "%")
             local why = nil
-            if not have then why = "missing " .. nm
-            elseif not globalOk then why = "missing " .. tostring(globalName)
-            elseif not skillsOk then why = "skill too low" end
+            if not have then why = ZeD.tr("UI_ZeD_Veh_FixMissing", nm)
+            elseif not globalOk then why = ZeD.tr("UI_ZeD_Veh_FixMissing", tostring(globalName))
+            elseif not skillsOk then why = ZeD.tr("UI_ZeD_Veh_FixSkillLow") end
             rows[#rows + 1] = { fixingNum = fi, fixerNum = xi, label = label, meta = meta,
                                 ok = have and globalOk and skillsOk, why = why }
         end
@@ -618,7 +621,7 @@ needsCompute = function(s, part, verb, chr, v)
             if pick and not pick.none then
                 rows[#rows + 1] = { ok = true, label = pick.name, value = tostring(pick.cond) .. "%", kicker = pick.loc }
             else
-                rows[#rows + 1] = { ok = false, label = "A part to install", value = "None", kicker = "WITHIN REACH" }
+                rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Veh_NeedPart"), value = ZeD.tr("UI_ZeD_Veh_None"), kicker = ZeD.tr("UI_ZeD_Veh_KWithinReach") }
                 ok = false
             end
         end
@@ -635,21 +638,21 @@ needsCompute = function(s, part, verb, chr, v)
         toolRow(rows, getItemName("Base.TirePump") or "Tire Pump", pump, chr)
         local amt, cap = part:getContainerContentAmount(), part:getContainerCapacity()
         local roomy = amt < cap + 5
-        rows[#rows + 1] = { ok = roomy, label = "Below " .. tostring(cap + 5) .. " psi", value = tostring(math.floor(amt + 0.5)) .. " psi" }
+        rows[#rows + 1] = { ok = roomy, label = ZeD.tr("UI_ZeD_Veh_BelowPsi", cap + 5), value = ZeD.tr("UI_ZeD_Veh_Psi", math.floor(amt + 0.5)) }
         ok = pump ~= nil and roomy
     elseif verb == "deflate" then
         local amt = part:getContainerContentAmount()
-        rows[#rows + 1] = { ok = amt > 0, label = "Air in the tire", value = tostring(math.floor(amt + 0.5)) .. " psi" }
+        rows[#rows + 1] = { ok = amt > 0, label = ZeD.tr("UI_ZeD_Veh_AirInTire"), value = ZeD.tr("UI_ZeD_Veh_Psi", math.floor(amt + 0.5)) }
         ok = amt > 0
     elseif verb == "repairEngine" or verb == "takeParts" then
         local wrench = ISVehicleMechanics:getWrench(chr)
         local lvl = mechLevel(chr)
         if verb == "repairEngine" then
-            rows[#rows + 1] = { ok = part:getCondition() < 100, label = "Engine below 100%", value = tostring(part:getCondition()) .. "%" }
+            rows[#rows + 1] = { ok = part:getCondition() < 100, label = ZeD.tr("UI_ZeD_Veh_EngineBelow", "100%"), value = tostring(part:getCondition()) .. "%" }
         else
-            rows[#rows + 1] = { ok = part:getCondition() > 10, label = "Engine above 10%", value = tostring(part:getCondition()) .. "%" }
+            rows[#rows + 1] = { ok = part:getCondition() > 10, label = ZeD.tr("UI_ZeD_Veh_EngineAbove", "10%"), value = tostring(part:getCondition()) .. "%" }
         end
-        rows[#rows + 1] = { ok = lvl >= engLevel, label = txt("IGUI_perks_Mechanics", "Mechanics"), value = tostring(lvl) .. " / " .. tostring(engLevel), kicker = "REQUIRED" }
+        rows[#rows + 1] = { ok = lvl >= engLevel, label = txt("IGUI_perks_Mechanics", "Mechanics"), value = tostring(lvl) .. " / " .. tostring(engLevel), kicker = ZeD.tr("UI_ZeD_Veh_KRequired") }
         toolRow(rows, getItemName("Base.Wrench") or "Wrench", wrench, chr)
         local partsOk = true
         if verb == "repairEngine" then
@@ -659,16 +662,16 @@ needsCompute = function(s, part, verb, chr, v)
         end
         local keyMissing = VehicleUtils.RequiredKeyNotFound(part, chr)
         local ks = keyState(v, chr)
-        rows[#rows + 1] = { ok = not keyMissing, label = "Key", value = keyMissing and "Not found" or ks }
+        rows[#rows + 1] = { ok = not keyMissing, label = getText("IGUI_ItemType_Key"), value = keyMissing and ZeD.tr("UI_ZeD_Veh_NotFound") or ks }
         for _, r in ipairs(rows) do if not r.ok and not r.soft then ok = false end end
-        if verb == "takeParts" then rows[#rows + 1] = { ok = false, soft = true, label = "Lowers the engine's condition", value = "" } end
+        if verb == "takeParts" then rows[#rows + 1] = { ok = false, soft = true, label = ZeD.tr("UI_ZeD_Veh_LowersEngine"), value = "" } end
     elseif verb == "repairLightbar" then
         local lvl = mechLevel(chr)
         local sd = ISVehicleMechanics:getScrewdriver(chr)
         local hasBar = false
         pcall(function() hasBar = chr:getInventory():containsTag(ItemTag.LIGHTBAR) end)
-        rows[#rows + 1] = { ok = part:getCondition() < 100, label = "Below 100%", value = tostring(part:getCondition()) .. "%" }
-        rows[#rows + 1] = { ok = lvl >= engLevel, label = txt("IGUI_perks_Mechanics", "Mechanics"), value = tostring(lvl) .. " / " .. tostring(engLevel), kicker = "REQUIRED" }
+        rows[#rows + 1] = { ok = part:getCondition() < 100, label = ZeD.tr("UI_ZeD_Veh_Below", "100%"), value = tostring(part:getCondition()) .. "%" }
+        rows[#rows + 1] = { ok = lvl >= engLevel, label = txt("IGUI_perks_Mechanics", "Mechanics"), value = tostring(lvl) .. " / " .. tostring(engLevel), kicker = ZeD.tr("UI_ZeD_Veh_KRequired") }
         toolRow(rows, getItemName("Base.Screwdriver") or "Screwdriver", sd, chr)
         rows[#rows + 1] = { ok = hasBar, label = partName("lightbar"), value = hasBar and "1/1" or "0/1" }
         for _, r in ipairs(rows) do if not r.ok and not r.soft then ok = false end end
@@ -677,9 +680,9 @@ needsCompute = function(s, part, verb, chr, v)
         local any = false
         for _, r in ipairs(fr) do if r.ok then any = true end end
         ok = any
-        if not any then rows[#rows + 1] = { ok = false, label = "no recipe has its materials", value = "" } end
+        if not any then rows[#rows + 1] = { ok = false, label = ZeD.tr("UI_ZeD_Veh_NoRecipeMaterials"), value = "" } end
     else
-        rows[#rows + 1] = { ok = true, label = "Nothing needed", value = "" }
+        rows[#rows + 1] = { ok = true, label = ZeD.tr("UI_ZeD_Veh_NothingNeeded"), value = "" }
     end
     local blocker = nil
     for _, r in ipairs(rows) do if not r.ok and not r.soft then blocker = r; break end end
@@ -927,7 +930,7 @@ local function drawBand(panel, win, s, x, y, w, v, chr)
     s.working = nil
     local f = s.flash
     if f and now() < f.untilMs then
-        return ZeD.Atoms.drawProgressBand(panel, x, y, w, f.ok and "active" or "danger", f.ok and "DONE" or "FAILED", 1, nil, nil, false)
+        return ZeD.Atoms.drawProgressBand(panel, x, y, w, f.ok and "active" or "danger", f.ok and getText("UI_mods_Done") or ZeD.tr("UI_ZeD_Veh_Failed"), 1, nil, nil, false)
     end
     return 0
 end
@@ -960,29 +963,29 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
         local dc = T.textDim
         panel:drawText(catLabel(p.cat), sx, yy, dc.r, dc.g, dc.b, dc.a or 1, T.fontF1)
         yy = yy + T.fontF1H + T.px(10)
-        yy = yy + drawLabelValue(panel, sx, yy, sw, "Condition", (p.missing or p.smashed) and "-" or (tostring(p.cond) .. "%")) + T.px(4)
+        yy = yy + drawLabelValue(panel, sx, yy, sw, getText("IGUI_invpanel_Condition"), (p.missing or p.smashed) and "-" or (tostring(p.cond) .. "%")) + T.px(4)
         A.drawFillBar(panel, sx, yy, sw, (p.missing or p.smashed) and 0 or p.cond / 100, true)
         yy = yy + T.fillBarH + T.px(10)
         local item = p.part:getInventoryItem()
         if p.missing then
-            yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Item", "Missing", T.danger)
+            yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_Item"), getText("IGUI_Missing"), T.danger)
         elseif p.smashed then
-            yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Item", "Smashed", T.danger)
+            yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_Item"), ZeD.tr("UI_ZeD_Veh_Smashed"), T.danger)
         elseif item then
-            yy = yy + M.drawStatRow(panel, sx, yy, sw, "Item", item:getDisplayName())
+            yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_Item"), item:getDisplayName())
         end
-        if p.info and p.info ~= "" then yy = yy + M.drawStatRow(panel, sx, yy, sw, "State", p.info) end
+        if p.info and p.info ~= "" then yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_State"), p.info) end
         if p.id == "Engine" then
-            yy = yy + M.drawStatRow(panel, sx, yy, sw, "Quality", tostring(v:getEngineQuality()))
-            yy = yy + M.drawStatRow(panel, sx, yy, sw, "Power", tostring(round(v:getEnginePower() / 10, 0)) .. " hp")
+            yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("Attributes_Type_Quality"), tostring(v:getEngineQuality()))
+            yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Power"), ZeD.tr("UI_ZeD_Veh_Hp", round(v:getEnginePower() / 10, 0)))
         end
         if p.part:getWheelFriction() > 0 and item then
-            yy = yy + M.drawStatRow(panel, sx, yy, sw, "Friction", tostring(round(p.part:getWheelFriction(), 2)))
+            yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Friction"), tostring(round(p.part:getWheelFriction(), 2)))
         end
         return
     end
     local ov = overallCond(v)
-    yy = yy + drawLabelValue(panel, sx, yy, sw, "Overall", tostring(ov) .. "%") + T.px(4)
+    yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), tostring(ov) .. "%") + T.px(4)
     A.drawFillBar(panel, sx, yy, sw, ov / 100, true)
     yy = yy + T.fillBarH + T.px(8)
     local miss, worn = 0, 0
@@ -990,34 +993,34 @@ local function drawSummary(panel, s, sx, sy, sw, v, chr, parts, hl)
         if q.missing or q.smashed then miss = miss + 1 elseif q.cond <= 60 then worn = worn + 1 end
     end
     local dc = (miss > 0 and T.danger) or (worn > 0 and T.warning) or T.positive
-    local line = (miss == 0 and worn == 0) and "Nothing needs work"
-                 or (tostring(miss) .. " missing  " .. DOT .. "  " .. tostring(worn) .. " worn")
+    local line = (miss == 0 and worn == 0) and ZeD.tr("UI_ZeD_Veh_NothingNeedsWork")
+                 or ZeD.tr("UI_ZeD_Veh_MissingWorn", miss, worn)
     yy = yy + dotLine(panel, sx, yy, dc, line) + T.px(8)
     A.drawDividerH(panel, sx, yy, sw, false)
     yy = yy + T.px(6)
     local eng = v:getPartById("Engine")
     if eng then
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, "Engine", tostring(round(v:getEnginePower() / 10, 0)) .. " hp")
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, "Quality", tostring(v:getEngineQuality()))
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, "Loudness", tostring(v:getEngineLoudness()))
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_VehiclePartEngine"), ZeD.tr("UI_ZeD_Veh_Hp", round(v:getEnginePower() / 10, 0)))
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("Attributes_Type_Quality"), tostring(v:getEngineQuality()))
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Loudness"), tostring(v:getEngineLoudness()))
     end
-    yy = yy + M.drawStatRow(panel, sx, yy, sw, "Weight", thousands(v:getMass()))
+    yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_char_Weight"), thousands(v:getMass()))
     local gas = v:getPartById("GasTank")
     if gas and gas:getInventoryItem() then
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, "Fuel",
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_GlobalObject_Fuel"),
             tostring(round(gas:getContainerContentAmount(), 1)) .. " / " .. tostring(math.floor(gas:getContainerCapacity())))
     end
     local bat = v:getPartById("Battery")
     if bat then
         local bi = bat:getInventoryItem()
         if bi and bi.getCurrentUsesFloat then
-            yy = yy + M.drawStatRow(panel, sx, yy, sw, "Battery", tostring(math.floor(bi:getCurrentUsesFloat() * 100)) .. "% charge")
+            yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_VehiclePartBattery"), ZeD.tr("UI_ZeD_Veh_Charge", math.floor(bi:getCurrentUsesFloat() * 100) .. "%"))
         else
-            yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Battery", "Missing", T.danger)
+            yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_VehiclePartBattery"), getText("IGUI_Missing"), T.danger)
         end
     end
     local ks, kc = keyState(v, chr)
-    yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Key", ks, kc == "pos" and T.positive or T.warning)
+    yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
     yy = yy + ZeD.MechTrailer.drawTowRow(panel, s, sx, yy, sw, v)
 end
 
@@ -1032,7 +1035,7 @@ local function groupedParts(s, parts)
             if ca == cb then return a.order < b.order end
             return ca < cb
         end)
-        groups[1] = { cat = "_worst", label = "WORST FIRST", parts = all }
+        groups[1] = { cat = "_worst", label = ZeD.tr("UI_ZeD_Veh_WorstFirst"), parts = all }
         return groups
     end
     for _, p in ipairs(parts) do
@@ -1131,17 +1134,17 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
         drawSummary(panel, s, sx, cy + pad, sw, v, chr, parts, hl)
     else
         local yy = cy + pad
-        yy = yy + drawLabelValue(panel, sx, yy, sw, "Overall", "?") + T.px(4)
+        yy = yy + drawLabelValue(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Overall"), "?") + T.px(4)
         A.drawFillBar(panel, sx, yy, sw, 0, true)
         yy = yy + T.fillBarH + T.px(8)
         local dc = T.textDim
-        yy = yy + dotLine(panel, sx, yy, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, "Not inspected") + T.px(8)
+        yy = yy + dotLine(panel, sx, yy, { r = dc.r, g = dc.g, b = dc.b, a = 0.6 }, ZeD.tr("UI_ZeD_Veh_NotInspected")) + T.px(8)
         A.drawDividerH(panel, sx, yy, sw, false)
         yy = yy + T.px(6)
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, "Type", mechType(v))
-        yy = yy + M.drawStatRow(panel, sx, yy, sw, "Distance", tostring(math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5)) .. " tiles")
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, getText("IGUI_PlayerStats_Type"), mechType(v))
+        yy = yy + M.drawStatRow(panel, sx, yy, sw, ZeD.tr("UI_ZeD_Veh_Distance"), ZeD.tr(math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5) == 1 and "UI_ZeD_Veh_TilesOne" or "UI_ZeD_Veh_Tiles", math.floor((currentEntry(s) and currentEntry(s).dist or 0) + 0.5)))
         local ks, kc = keyState(v, chr)
-        yy = yy + M.drawStatRowDot(panel, sx, yy, sw, "Key", ks, kc == "pos" and T.positive or T.warning)
+        yy = yy + M.drawStatRowDot(panel, sx, yy, sw, getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
         yy = yy + TR.drawTowRow(panel, s, sx, yy, sw, v)
     end
     cy = math.max(cy + figH + pad * 2, sumBottom + pad)
@@ -1172,9 +1175,10 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
             stamp(s, "mech:sort:" .. key, px0 - T.px(4), cy, lw + T.px(8), hh, function() s.sort = key; s.scrollY = 0 end,
                   { clip = { x = x, y = top, w = w, h = bodyH } })
         end
-        sortLabel("PART", "area", x + pad, false)
-        panel:drawText("INFO", infoRight - TM:MeasureStringX(f1, "INFO"), ty, ac.r, ac.g, ac.b, ac.a or 1, f1)
-        sortLabel("COND", "cond", condRight, true)
+        local infoHdr = ZeD.tr("UI_ZeD_Veh_HdrInfo")
+        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrPart"), "area", x + pad, false)
+        panel:drawText(infoHdr, infoRight - TM:MeasureStringX(f1, infoHdr), ty, ac.r, ac.g, ac.b, ac.a or 1, f1)
+        sortLabel(ZeD.tr("UI_ZeD_Veh_HdrCond"), "cond", condRight, true)
         cy = cy + hh
 
         local clip = { x = x, y = top, w = w, h = bodyH }
@@ -1215,7 +1219,7 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
                         A.drawTextRight(panel, p.info, infoRight, cy + math.floor((rh - T.fontF3H) / 2), T.fontF3, T.textDim)
                     end
                     if p.missing or p.smashed then
-                        local label = p.missing and "MISSING" or "SMASHED"
+                        local label = upper(p.missing and getText("IGUI_Missing") or ZeD.tr("UI_ZeD_Veh_Smashed"))
                         local bw = TM:MeasureStringX(T.fontF1, label) + T.sp.badgePadX * 2
                         A.drawBadge(panel, label, condRight - bw, cy + math.floor((rh - (T.fontF1H + T.sp.badgePadY * 2)) / 2), "danger", false, T.fontF1)
                     else
@@ -1238,13 +1242,13 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
         panel:drawRect(x, cy, cw, ch, s2.a, s2.r, s2.g, s2.b)
         local tl = T.toneLo or T.accent
         local ty = cy + math.floor((ch - T.fontF1H) / 2)
-        panel:drawText("> PARTS (" .. tostring(#parts) .. ")", x + pad, ty, tl.r, tl.g, tl.b, tl.a or 1, T.fontF1)
-        A.drawTextRight(panel, "INSPECT TO READ", x + cw - pad, ty, T.fontF1, T.textDim)
+        panel:drawText(ZeD.tr("UI_ZeD_Veh_PartsClosed", #parts), x + pad, ty, tl.r, tl.g, tl.b, tl.a or 1, T.fontF1)
+        A.drawTextRight(panel, ZeD.tr("UI_ZeD_Veh_InspectToRead"), x + cw - pad, ty, T.fontF1, T.textDim)
         A.drawDividerH(panel, x, cy + ch - T.px(1), cw, false)
         cy = cy + ch + T.px(8)
     else
         -- empty state below the figure
-        local t1 = "Inspect the " .. vehicleName(v) .. " to read its parts"
+        local t1 = ZeD.tr("UI_ZeD_Veh_InspectThe", vehicleName(v))
         local ty = cy + T.px(14)
         local ac = T.accent
         panel:drawText(t1, x + math.floor((cw - TM:MeasureStringX(T.fontF4, t1)) / 2), ty, ac.r, ac.g, ac.b, ac.a or 1, T.fontF4)
@@ -1284,13 +1288,13 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
     local by = fy + math.floor((footerH - T.px(FOOTER_BTN_H)) / 2)
     local bx = x + T.px(8)
     if not inspected then
-        footerButton(panel, s, bx, by, "INSPECT", "primary", "mech:inspect", function()
+        footerButton(panel, s, bx, by, upper(getText("ContextMenu_Inspect")), "primary", "mech:inspect", function()
             ISVehicleMenu.onMechanic(chr, v)
         end)
     else
         local hood = v:getPartById("EngineDoor")
         if hood and hood:getDoor() and hood:getInventoryItem() and hood:getDoor():isOpen() then
-            footerButton(panel, s, bx, by, "CLOSE HOOD", "default", "mech:closehood", function()
+            footerButton(panel, s, bx, by, upper(getText("IGUI_CloseHood")), "default", "mech:closehood", function()
                 ISTimedActionQueue.add(ISPathFindAction:pathToVehicleArea(chr, v, hood:getArea()))
                 ISTimedActionQueue.add(ISCloseVehicleDoor:new(chr, v, hood))
                 local e = INSP[v:getId()]
@@ -1308,45 +1312,45 @@ local function cardStats(p, v, chr)
     local part, item = p.part, p.part:getInventoryItem()
     local rows = {}
     local function add(label, value, dot) rows[#rows + 1] = { label = label, value = value, dotColor = dot } end
-    if p.missing then add("Condition", "Missing", T.danger)
-    elseif p.smashed then add("Condition", "Smashed", T.danger)
-    else add("Condition", tostring(p.cond) .. "%", statusColor(T, p.cond)) end
-    if item then add("Item", item:getDisplayName()) end
+    if p.missing then add(getText("IGUI_invpanel_Condition"), getText("IGUI_Missing"), T.danger)
+    elseif p.smashed then add(getText("IGUI_invpanel_Condition"), ZeD.tr("UI_ZeD_Veh_Smashed"), T.danger)
+    else add(getText("IGUI_invpanel_Condition"), tostring(p.cond) .. "%", statusColor(T, p.cond)) end
+    if item then add(getText("IGUI_Item"), item:getDisplayName()) end
     if part:getId() == "Engine" then
-        add("Quality", tostring(v:getEngineQuality()))
-        add("Loudness", tostring(v:getEngineLoudness()))
-        add("Power", tostring(round(v:getEnginePower() / 10, 0)) .. " hp")
+        add(getText("Attributes_Type_Quality"), tostring(v:getEngineQuality()))
+        add(ZeD.tr("UI_ZeD_Veh_Loudness"), tostring(v:getEngineLoudness()))
+        add(ZeD.tr("UI_ZeD_Veh_Power"), ZeD.tr("UI_ZeD_Veh_Hp", round(v:getEnginePower() / 10, 0)))
         local ks, kc = keyState(v, chr)
-        add("Key", ks, kc == "pos" and T.positive or T.warning)
+        add(getText("IGUI_ItemType_Key"), ks, kc == "pos" and T.positive or T.warning)
     end
-    if item and part:getTable("install") then add("Weight", tostring(round(item:getWeight(), 0))) end
-    if item and instanceof(item, "DrainableComboItem") then add("Remaining", tostring(round(item:getCurrentUsesFloat() * 100, 0)) .. "%") end
+    if item and part:getTable("install") then add(getText("IGUI_char_Weight"), tostring(round(item:getWeight(), 0))) end
+    if item and instanceof(item, "DrainableComboItem") then add(getText("IGUI_invpanel_Remaining"), tostring(round(item:getCurrentUsesFloat() * 100, 0)) .. "%") end
     if item and part:isContainer() and part:getContainerContentType() then
         local ct, amt, cap = part:getContainerContentType(), part:getContainerContentAmount(), part:getContainerCapacity()
         if ct == "Air" then
             local c = (amt < cap * 0.6 and T.danger) or (amt < cap * 0.9 and T.warning) or T.positive
-            add("Pressure", tostring(math.floor(amt + 0.5)) .. " / " .. tostring(math.floor(cap)) .. " psi", c)
+            add(ZeD.tr("UI_ZeD_Veh_Pressure"), ZeD.tr("UI_ZeD_Veh_PsiOf", math.floor(amt + 0.5), math.floor(cap)), c)
         else
-            add(ct == "Gasoline" and "Fuel" or ct, tostring(round(amt, 1)) .. " / " .. tostring(math.floor(cap)))
+            add(ct == "Gasoline" and getText("IGUI_GlobalObject_Fuel") or ct, tostring(round(amt, 1)) .. " / " .. tostring(math.floor(cap)))
         end
     elseif item and part:getItemContainer() then
         local seat = part:getContainerSeatNumber()
-        if seat > -1 and v:isSeatOccupied(seat) then add("Seat", "Occupied")
-        else add("Capacity", tostring(round(part:getItemContainer():getCapacityWeight(), 2)) .. " / " .. tostring(part:getContainerCapacity(chr))) end
+        if seat > -1 and v:isSeatOccupied(seat) then add(ZeD.tr("UI_ZeD_Veh_Seat"), ZeD.tr("UI_ZeD_Veh_StOccupied"))
+        else add(getText("Fluid_Capacity"), tostring(round(part:getItemContainer():getCapacityWeight(), 2)) .. " / " .. tostring(part:getContainerCapacity(chr))) end
     end
-    if item and item:getBrakeForce() > 0 then add("Braking", tostring(round(v:getBrakingForce(), 1))) end
-    if item and item:getEngineLoudness() > 0 then add("Loudness", "x" .. tostring(round(1 + (100 - part:getEngineLoudness()) / 100, 2))) end
+    if item and item:getBrakeForce() > 0 then add(ZeD.tr("UI_ZeD_Veh_Braking"), tostring(round(v:getBrakingForce(), 1))) end
+    if item and item:getEngineLoudness() > 0 then add(ZeD.tr("UI_ZeD_Veh_Loudness"), "x" .. tostring(round(1 + (100 - part:getEngineLoudness()) / 100, 2))) end
     local door = part:getDoor()
     if door then
-        add("Open", door:isOpen() and "Yes" or "No")
-        add("Locked", door:isLocked() and "Yes" or "No")
-        if door:isLockBroken() then add("Lock", "Broken", T.danger) end
+        add(ZeD.tr("UI_ZeD_Veh_StOpen"), door:isOpen() and getText("UI_Yes") or getText("UI_No"))
+        add(getText("EC_Locked"), door:isLocked() and getText("UI_Yes") or getText("UI_No"))
+        if door:isLockBroken() then add(ZeD.tr("UI_ZeD_Veh_Lock"), getText("Tooltip_broken"), T.danger) end
     end
     local w = part:getWindow()
-    if w and w:isOpenable() and not w:isDestroyed() then add("Open", w:isOpen() and "Yes" or "No") end
-    if part:getModData().temperature then add("Temp", tostring(round(part:getModData().temperature, 1))) end
-    if part:getWheelFriction() > 0 and item then add("Friction", tostring(round(part:getWheelFriction(), 2))) end
-    if part:getItemType() and not part:getItemType():isEmpty() then add("Type", mechType(v)) end
+    if w and w:isOpenable() and not w:isDestroyed() then add(ZeD.tr("UI_ZeD_Veh_StOpen"), w:isOpen() and getText("UI_Yes") or getText("UI_No")) end
+    if part:getModData().temperature then add(ZeD.tr("UI_ZeD_Veh_Temp"), tostring(round(part:getModData().temperature, 1))) end
+    if part:getWheelFriction() > 0 and item then add(ZeD.tr("UI_ZeD_Veh_Friction"), tostring(round(part:getWheelFriction(), 2))) end
+    if part:getItemType() and not part:getItemType():isEmpty() then add(getText("IGUI_PlayerStats_Type"), mechType(v)) end
     return rows
 end
 
@@ -1394,7 +1398,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     -- header: back + name + verbs (mouse hover on a verb switches NEEDS)
     local defs = {}
     for i, vb in ipairs(verbs) do
-        defs[i] = { label = VERB_LABEL[vb] or upper(vb), primary = (vb == primary), disabled = not needs[vb].ok, danger = DANGER[vb] }
+        defs[i] = { label = vlabel(vb), primary = (vb == primary), disabled = not needs[vb].ok, danger = DANGER[vb] }
     end
     local rects = {}
     local headerH = M.drawCardBackBar(panel, x, y, w, p.name, defs, busy, false, rects)
@@ -1447,7 +1451,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         local owned = 0
         for _, pk in ipairs(picks) do if not pk.none then owned = owned + 1 end end
         if s.pick > owned then s.pick = math.max(1, owned) end
-        section("FROM YOUR BAGS AND NEARBY", nil)
+        section(ZeD.tr("UI_ZeD_Veh_FromBags"), nil)
         for i, pk in ipairs(picks) do
             local rh = T.px(PICK_H)
             local sel = (not pk.none) and (i == s.pick)
@@ -1468,7 +1472,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
             panel:drawText(pk.name, rx + rr + T.px(8), cy + math.floor((rh - T.fontF2H) / 2), rc.r, rc.g, rc.b, rc.a or 1, T.fontF2)
             local right = x + cw - pad - T.px(4)
             if pk.none then
-                A.drawTextRight(panel, "NONE NEARBY", right, cy + math.floor((rh - T.fontF1H) / 2), T.fontF1, T.textDim)
+                A.drawTextRight(panel, ZeD.tr("UI_ZeD_Veh_NoneNearby"), right, cy + math.floor((rh - T.fontF1H) / 2), T.fontF1, T.textDim)
             else
                 A.drawTextRight(panel, pk.loc, right, cy + math.floor((rh - T.fontF1H) / 2), T.fontF1, T.textDim)
                 local locW = TM:MeasureStringX(T.fontF1, pk.loc)
@@ -1491,7 +1495,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
         if not (fr[s.fixPick] and fr[s.fixPick].ok) then
             for i, r in ipairs(fr) do if r.ok then s.fixPick = i; break end end
         end
-        section("REPAIR WITH", nil)
+        section(ZeD.tr("UI_ZeD_Veh_RepairWith"), nil)
         for i, r in ipairs(fr) do
             local rh = T.px(FIX_H)
             local sel = (i == s.fixPick) and r.ok
@@ -1529,7 +1533,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     -- NEEDS for the highlighted verb
     local n = s.verb and needs[s.verb]
     if n and s.verb ~= "fix" then
-        section("NEEDS " .. DOT .. " " .. (VERB_LABEL[s.verb] or upper(s.verb)), nil)
+        section(ZeD.tr("UI_ZeD_Veh_NeedsFor", vlabel(s.verb)), nil)
         for _, r in ipairs(n.rows) do
             local rh = T.px(NEED_H)
             local dcol = r.ok and T.positive or (r.soft and T.warning or T.danger)
@@ -1559,8 +1563,8 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
             local bs = T.borderS
             panel:drawRectBorder(x + pad, cy, bw, bh, bs.a or 1, bs.r, bs.g, bs.b)
             cy = cy + bh + T.px(3)
-            panel:drawText("SUCCESS " .. tostring(sc) .. "%", x + pad, cy, pc.r, pc.g, pc.b, 1, T.fontF1)
-            A.drawTextRight(panel, "FAILURE " .. tostring(fc) .. "%", x + pad + bw, cy, T.fontF1, dg)
+            panel:drawText(ZeD.tr("UI_ZeD_Veh_SuccessPct", tostring(sc) .. "%"), x + pad, cy, pc.r, pc.g, pc.b, 1, T.fontF1)
+            A.drawTextRight(panel, ZeD.tr("UI_ZeD_Veh_FailurePct", tostring(fc) .. "%"), x + pad + bw, cy, T.fontF1, dg)
             cy = cy + T.fontF1H
         end
         cy = cy + T.px(10)
@@ -1570,7 +1574,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     local about = txt("IGUI_Vehicle_CondInfo" .. p.id, nil)
     if about then
         about = string.gsub(about, "<LINE>", " ")
-        section("ABOUT", nil)
+        section(ZeD.tr("UI_ZeD_Veh_About"), nil)
         local dc = T.textDim
         for _, ln in ipairs(A.wrapText(about, T.fontF2, cw - pad * 2)) do
             panel:drawText(ln, x + pad, cy, dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
@@ -1606,33 +1610,32 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     local msgY = fy + math.floor((footerH - T.fontF2H) / 2)
     if s.confirm then
         local verb = s.confirm
-        bx = bx + footerButton(panel, s, bx, by, "YES", "danger", "mech:confirm:yes", function()
+        bx = bx + footerButton(panel, s, bx, by, upper(getText("UI_Yes")), "danger", "mech:confirm:yes", function()
             s.confirm = nil
             runVerb(s, verb, part, chr)
         end) + T.px(6)
-        bx = bx + footerButton(panel, s, bx, by, "NO", "default", "mech:confirm:no", function() s.confirm = nil end) + T.px(10)
-        local q = (verb == "takeParts") and "Take engine parts? The engine loses condition."
-                  or ("Smash the " .. string.lower(p.name) .. "? The glass is lost.")
+        bx = bx + footerButton(panel, s, bx, by, upper(getText("UI_No")), "default", "mech:confirm:no", function() s.confirm = nil end) + T.px(10)
+        local q = (verb == "takeParts") and ZeD.tr("UI_ZeD_Veh_ConfirmTakeParts")
+                  or ZeD.tr("UI_ZeD_Veh_ConfirmSmash", string.lower(p.name))
         dotLine(panel, bx, msgY, T.danger, q)
     else
         local msg, col
-        if busy then msg, col = "Working on the " .. string.lower(p.name), T.accent
-        elseif not s.verb then msg, col = "Nothing to do here", T.textDim
+        if busy then msg, col = ZeD.tr("UI_ZeD_Veh_WorkingOn", string.lower(p.name)), T.accent
+        elseif not s.verb then msg, col = ZeD.tr("UI_ZeD_Veh_NothingToDo"), T.textDim
         elseif n and n.ok then
-            local what = (VERB_LABEL[s.verb] or s.verb)
             if s.verb == "fix" then
                 local r = cachedFixRows(s, part, chr)[s.fixPick]
-                msg = "Ready to repair" .. (r and (" with " .. r.label) or "")
+                msg = r and ZeD.tr("UI_ZeD_Veh_ReadyRepairWith", r.label) or ZeD.tr("UI_ZeD_Veh_ReadyRepair")
             elseif s.verb == "install" then
                 local pk = installPicks(part, chr, itemsFor(s, chr))[s.pick]
-                msg = "Ready to install" .. ((pk and not pk.none) and (" " .. pk.name) or "")
+                msg = (pk and not pk.none) and ZeD.tr("UI_ZeD_Veh_ReadyInstallItem", pk.name) or ZeD.tr("UI_ZeD_Veh_ReadyInstall")
             else
-                msg = "Ready to " .. string.lower(what)
+                msg = ZeD.tr("UI_ZeD_Veh_ReadyTo", string.lower(vlabel(s.verb)))
             end
             col = T.positive
         else
             local b = n and n.blocker
-            msg = "Can't " .. string.lower(VERB_LABEL[s.verb] or s.verb) .. (b and (": " .. b.label .. " " .. tostring(b.value or "")) or "")
+            msg = ZeD.tr("UI_ZeD_Veh_CantDo", string.lower(vlabel(s.verb))) .. (b and (": " .. b.label .. " " .. tostring(b.value or "")) or "")
             col = T.danger
         end
         dotLine(panel, bx, msgY, col, msg)
@@ -1663,7 +1666,7 @@ function MT.render(panel, win, x, y, w, h)
     if s.view ~= "animal" then TR.hideAvatar(s) end
     if not chr or not e or not e.vehicle or not e.vehicle:getSquare() then
         TR.hideAvatar(s)
-        local txtS = "No vehicle within reach"
+        local txtS = ZeD.tr("UI_ZeD_Veh_NoVehicle")
         local f = T.fontF2
         local dc = T.textDim
         panel:drawText(txtS, x + math.floor((w - ZeD.TM:MeasureStringX(f, txtS)) / 2),

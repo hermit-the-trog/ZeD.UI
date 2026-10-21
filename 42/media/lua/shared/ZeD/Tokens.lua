@@ -315,6 +315,9 @@ F.rsv4       = { font = UIFont.MainMenu2, px = 20 }  -- Lekton Bold 20px
 -- native face at zoom 1 and its edge smoothing is a fixed band tuned for drawing a face at ~0.4x, so the
 -- face is baked at 64 px: body 13 px x root 2 = 26 px lands at 0.4x (crisp), 1080p at 0.2x (hard-edged).
 -- (rsv3 / rsv4 Lekton are unmapped while MainMenu1/2 carry these; nothing used them.)
+-- When the game's fonts replace these atlases (Chinese, Japanese, Korean, Thai, Dyslexic font),
+-- ZeD.Text.checkRoleFonts repoints .font / .face at the game's stand-in and keeps ZeD's own
+-- values in .slot / .zedFace, so callers that read .font and .face follow without changes.
 F.sdf = {
     sec   = { font = UIFont.MainMenu2, px = 11, face = 64, lineH = 77, sdf = true },  -- F1 Chrome: Fira Mono Bold
     body  = { font = UIFont.MainMenu1, px = 13, face = 64, lineH = 77, sdf = true },  -- F2 Body: Fira Sans Medium
@@ -779,11 +782,20 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     local roleEntries = { SD.sec, SD.body, SD.stat, SD.head, SD.title }
     local rolePx      = { size.fontF1.px, size.fontF2.px, size.fontF3.px, size.fontF4.px, size.fontF5.px }
     T.fontPx, T.fontFace = {}, {}
+    -- When the game's own fonts have replaced ZeD's atlases in those slots (a Chinese, Japanese,
+    -- Korean or Thai font set, or the Dyslexic font option; ZeD.Text.checkRoleFonts in Scale.lua),
+    -- each role draws in the nearest of the game's Small / Medium / Large at its native size and
+    -- nothing is registered for zooming.
+    T.fontFallback = (ZeD.Text and ZeD.Text.checkRoleFonts and ZeD.Text.checkRoleFonts()) and true or false
     for i = 1, 5 do
         local e = roleEntries[i]
-        T["fontF" .. i] = e.font
-        T.fontPx[e.font]   = rolePx[i]
-        T.fontFace[e.font] = e.face or 64
+        if T.fontFallback then
+            T["fontF" .. i] = ZeD.Text.roleFallbackFont(rolePx[i])
+        else
+            T["fontF" .. i] = e.font
+            T.fontPx[e.font]   = rolePx[i]
+            T.fontFace[e.font] = e.face or 64
+        end
     end
     -- S124: T.scale = root scale (1080p = 1.0, from ZeD.Scale) x the text-size preset. Every px token
     -- below is pre-scaled; literals in layout code go through T.px(units).
@@ -944,7 +956,7 @@ local function toSentenceCase(s)
             -- "2X", "4WD", the F of "°F": as written
         else
             w = w:lower()
-            if first then w = w:sub(1, 1):upper() .. w:sub(2) end
+            if first then w = (ZeD.upper or string.upper)(w:sub(1, 1)) .. w:sub(2) end
         end
         first = false
         parts[#parts + 1] = w

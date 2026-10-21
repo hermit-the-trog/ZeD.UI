@@ -12,6 +12,7 @@ require "ISUI/ISPanel"
 
 -- Make sure atoms are loaded
 require "ZeD/Atoms"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.Molecules = ZeD.Molecules or {}
@@ -461,7 +462,7 @@ function ZeD_SearchField:new(x, y, w, placeholder)
     setmetatable(o, self)
     self.__index = self
 
-    o.placeholder = placeholder or getText("UI_ZeD_Search")
+    o.placeholder = placeholder or ZeD.tr("UI_ZeD_Search")
     o.iconAreaW = 24   -- reserved width for the search icon (S124 scale: design units, wrapped with T.px where used)
     o.onFilter = nil   -- callback: function(self, text) — fires on each keystroke
     o.onSubmit = nil   -- callback: function(self, text) — fires on Enter
@@ -1435,7 +1436,7 @@ function ZeD.Molecules.drawStatRow(panel, x, y, w, label, value, valueColor, lab
 
     -- Label: uppercase, secondary color (chrome voice)
     local lc = T.textSec
-    local upperLabel = string.upper(label)
+    local upperLabel = ZeD.upper(label)
     local labelW = ZeD.TM:MeasureStringX(lblFont, upperLabel)
     panel:drawText(upperLabel, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
@@ -2062,7 +2063,7 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
 
         -- Dirty (brown) — flag only, no button
         if soiled and soiled.dirt then
-            local lbl    = "DIRTY"
+            local lbl    = ZeD.tr("UI_ZeD_Dock_Dirty")
             local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
             local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)
             rx = rx - flagW
@@ -2242,7 +2243,7 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
     local rowY   = y + math.floor((h - T.px(18)) / 2)  -- chip atom is 18 tall
 
     -- "MARKED" label (left, dim)
-    local lblText  = "MARKED"
+    local lblText  = ZeD.tr("UI_ZeD_Card_Marked")
     local labelTY  = y + math.floor((h - labelH) / 2)
     local labelC   = T.textDim
     panel:drawText(lblText, x + padX, labelTY,
@@ -2254,19 +2255,19 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
 
     if outRects then outRects.fav = outRects.fav or {} end
     local cw = A.drawFlagChip(panel, cursorX, rowY, "fav",
-        marks and marks.fav or false, "*", "Fav",
+        marks and marks.fav or false, "*", ZeD.tr("UI_ZeD_Card_ChipFav"),
         outRects and outRects.fav or nil, compact)
     cursorX = cursorX + cw + gap
 
     if outRects then outRects.nocraft = outRects.nocraft or {} end
     cw = A.drawFlagChip(panel, cursorX, rowY, "nocraft",
-        marks and marks.nocraft or false, "o", "No-craft",
+        marks and marks.nocraft or false, "o", ZeD.tr("UI_ZeD_Card_ChipNoCraft"),
         outRects and outRects.nocraft or nil, compact)
     cursorX = cursorX + cw + gap
 
     if outRects then outRects.dispose = outRects.dispose or {} end
     A.drawFlagChip(panel, cursorX, rowY, "dispose",
-        marks and marks.dispose or false, "x", "Dispose",
+        marks and marks.dispose or false, "x", ZeD.tr("UI_ZeD_Card_ChipDispose"),
         outRects and outRects.dispose or nil, compact)
 
     return h
@@ -2417,7 +2418,7 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     local valueY = y + math.floor((rowH - valueH) / 2)
 
     -- Label: F1 mono bold, full T.accent (not toneLo)
-    local lblText = string.upper(label or "")
+    local lblText = ZeD.upper(label or "")
     local lc      = T.accent
     panel:drawText(lblText, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
@@ -2600,7 +2601,14 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
+    -- The value is measured first: the label gets the room left of it (minus a gap),
+    -- and ends in "..." when it does not fit
+    local vStr = value or ""
+    local vw   = ZeD.TM:MeasureStringX(valueFont, vStr)
     local labelStr = label or ""
+    local labelRoom = w - indent - vw - T.px(8)
+    if needsProbe then labelRoom = labelRoom - T.px(10) end   -- the "*" badge after the label
+    labelStr = ZeD.Atoms.truncateText(labelStr, labelFont, labelRoom)
     panel:drawText(labelStr, x + indent, labelY,
         labelC.r, labelC.g, labelC.b, labelC.a or 1, labelFont)
 
@@ -2618,8 +2626,6 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     end
 
     local vc   = _resolveStatValColor(valueClass, T)
-    local vStr = value or ""
-    local vw   = ZeD.TM:MeasureStringX(valueFont, vStr)
     panel:drawText(vStr, x + w - vw, valueY,
         vc.r, vc.g, vc.b, vc.a or 1, valueFont)
 
@@ -2715,36 +2721,50 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
     A.drawDividerH(panel, x, y + h - T.px(1), w, true)
 
     -- "SORT" label
-    local sortLabel = "SORT"
+    local sortLabel = ZeD.tr("UI_ZeD_Strip_Sort")
     local sc = T.textSec
     local labelW = tm:MeasureStringX(font, sortLabel)
     local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
     panel:drawText(sortLabel, x + T.px(6), textY, sc.r, sc.g, sc.b, sc.a, font)
 
-    -- Mode tabs with underline
+    -- The toggle's width is reserved first, so the tabs never run under it
+    local togLabel, togW = nil, 0
+    if rightToggle then
+        togLabel = rightToggle.label or ZeD.tr("UI_All")
+        togW = tm:MeasureStringX(font, togLabel) + T.px(14)  -- dot + gap + text
+    end
+    local tabLimit = x + w - T.px(6)
+    if rightToggle then tabLimit = x + w - togW - T.px(6) - T.px(8) end
+
+    -- Mode tabs with underline; a tab that does not fit ends in "...", the ones after it drop
     local tabX = x + T.px(6) + labelW + T.px(8)
     local zones = {}
     for _, mode in ipairs(modes) do
-        local tw = tm:MeasureStringX(font, mode.label)
+        local label = mode.label
+        local tw = tm:MeasureStringX(font, label)
+        local room = tabLimit - tabX
+        if tw > room then
+            if room < T.px(24) then break end
+            label = A.truncateText(label, font, room)
+            tw = tm:MeasureStringX(font, label)
+        end
         local isActive = (mode.id == activeMode)
         local isHover = (hoverZone == mode.id)
         local tc = isActive and T.accent or (isHover and T.accentBright or T.textSec)
 
-        panel:drawText(mode.label, tabX, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
+        panel:drawText(label, tabX, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
 
         -- Underline for active mode
         if isActive then
             panel:drawRect(tabX, y + h - T.px(2), tw, T.px(1), T.accent.a, T.accent.r, T.accent.g, T.accent.b)
         end
 
-        zones[#zones + 1] = { id = mode.id, x = tabX, y = y, w = tw + T.px(8), h = h, type = "sort" }
+        zones[#zones + 1] = { id = mode.id, x = tabX, y = y, w = math.min(tw + T.px(8), math.max(tw, tabLimit - tabX)), h = h, type = "sort" }
         tabX = tabX + tw + T.px(12)
     end
 
     -- Right-aligned toggle (status dot style)
     if rightToggle then
-        local togLabel = rightToggle.label or "All"
-        local togW = tm:MeasureStringX(font, togLabel) + T.px(14)  -- dot + gap + text
         local togX = x + w - togW - T.px(6)
         local dotSz = T.px(6)
         local dotColor = rightToggle.active and T.accent or T.textDim
@@ -2786,7 +2806,7 @@ function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, to
     local zones = {}
 
     -- Left: back affordance "< Recipes"
-    local backLabel = "Recipes"
+    local backLabel = ZeD.tr("EC_Recipes")
     local arrowSz = T.px(6)
     local arrowY = y + math.floor((h - arrowSz) / 2)
     A.drawTriangleLeft(panel, x + T.px(6), arrowY, arrowSz, T.accent)
@@ -2798,14 +2818,14 @@ function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, to
     zones[#zones + 1] = { id = "back", x = x, y = y, w = backX + backW + T.px(4) - x, h = h, type = "back" }
 
     -- Center: "N/total owned" stat
-    local statStr = tostring(ownedCount) .. "/" .. tostring(totalCount) .. " owned"
+    local statStr = ZeD.tr("UI_ZeD_Strip_OwnedCount", ownedCount, totalCount)
     local statW = tm:MeasureStringX(font, statStr)
     local statX = x + math.floor((w - statW) / 2)
     local nc = T.textSec
     panel:drawText(statStr, statX, textY, nc.r, nc.g, nc.b, nc.a, font)
 
     -- Right: "Owned only" toggle
-    local togLabel = "Owned only"
+    local togLabel = ZeD.tr("UI_ZeD_Strip_OwnedOnly")
     local dotSz = T.px(6)
     local togW = tm:MeasureStringX(font, togLabel) + dotSz + T.px(4)
     local togX = x + w - togW - T.px(6)
@@ -3124,7 +3144,7 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
         tagColor = T.warning
         nameMaxW = nameMaxW - tagW - T.px(6)
         if data.tag == "FUEL" then
-            extraTag = data.tag
+            extraTag = ZeD.tr("UI_ZeD_Recipe_Fuel")
             extraW = tm:MeasureStringX(T.fontF1, extraTag) + T.px(10)
             nameMaxW = nameMaxW - extraW - T.px(6)
         end
@@ -3320,7 +3340,7 @@ function ZeD.Molecules.drawCraftActionStrip(panel, x, y, w, qty, maxQty, canCraf
     local btnW = x + w - T.px(6) - btnX
     local btnH = innerH
     local btnY = innerY
-    local label = ZeD.btnCase(buildLabel or "CRAFT")   -- sentence case, never all caps
+    local label = ZeD.btnCase(buildLabel or ZeD.tr("IGUI_CraftingWindow_Craft"))   -- sentence case, never all caps
 
     if canCraft then
         -- Accent fill + border — readable label
@@ -3418,7 +3438,7 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
         -- pair designed for readable text on the accent background).
         local name = def.name or "?"
         local clean = tostring(name):gsub("[^%w]+", "")
-        local letters = clean:sub(1, 2):upper()
+        local letters = ZeD.upper(clean:sub(1, 2))
         if letters == "" then letters = "?" end
         local font = T.fontF1 or T.fontF3
         local tm = ZeD.TM

@@ -53,9 +53,9 @@ local function keyOf(server) return server and (s(server:getIp()) .. ":" .. s(se
 
 -- the vanilla "show" filters, in order (MultiplayerUI fields)
 local FILTERS = {
-    { "filterVersion", "Same version" }, { "filterEmptyServer", "Empty" }, { "filterFullServer", "Full" },
-    { "filterPwdProtected", "Password" }, { "filterWhitelistServer", "Whitelist" }, { "filterModdedServer", "Modded" },
-}
+    { "filterVersion", "UI_ZeD_Join_FilterVersion" }, { "filterEmptyServer", "UI_ZeD_Join_FilterEmpty" }, { "filterFullServer", "UI_ZeD_Join_FilterFull" },
+    { "filterPwdProtected", "UI_ZeD_Join_Password" }, { "filterWhitelistServer", "UI_ZeD_Join_Whitelist" }, { "filterModdedServer", "UI_ZeD_Join_Modded" },
+}   -- (the labels are translation keys: ZeD.tr turns one into the player's language where it draws)
 
 -- ============================================================================
 -- JOIN
@@ -380,9 +380,9 @@ end
 function ZeD_MMJoin:serverProblems()
     local p = {}
     local name, addr, port = self.fName:getText() or "", self.fAddr:getText() or "", self.fPort:getText() or ""
-    if name:len() < 1 then p.name = "Give the server a name." elseif detectBadWords(name) then p.name = "That name is not allowed." end
-    if addr:len() < 7 then p.addr = "An address is at least 7 characters." elseif detectBadWords(addr) then p.addr = "That address is not allowed." end
-    if port:len() < 1 then p.port = "Give the port (16261 by default)." elseif not tonumber(port) then p.port = "The port is a number." end
+    if name:len() < 1 then p.name = ZeD.tr("UI_ZeD_Join_ErrNoName") elseif detectBadWords(name) then p.name = ZeD.tr("UI_ZeD_Join_ErrBadName") end
+    if addr:len() < 7 then p.addr = ZeD.tr("UI_ZeD_Join_ErrShortAddress") elseif detectBadWords(addr) then p.addr = ZeD.tr("UI_ZeD_Join_ErrBadAddress") end
+    if port:len() < 1 then p.port = ZeD.tr("UI_ZeD_Join_ErrNoPort") elseif not tonumber(port) then p.port = ZeD.tr("UI_ZeD_Join_ErrPortNumber") end
     return p
 end
 
@@ -401,7 +401,7 @@ function ZeD_MMJoin:accountProblems()
             end
         end
     end
-    if f and not f.account and (self.fPwd:getText() or "") == "" then p.pwd = "Give the account's password." end
+    if f and not f.account and (self.fPwd:getText() or "") == "" then p.pwd = ZeD.tr("UI_ZeD_Join_ErrNoPassword") end
     return p
 end
 
@@ -475,10 +475,10 @@ function ZeD_MMJoin:prerender()
     local w, h = UI.placeOnTube(self)
     local m = mp()
     if m and m.created then pcall(function() m:updateListSort() end) end
-    self.title = "Project Zomboid  +  " .. ((self.page == "server") and (self.form and self.form.server and "Edit server" or "Add server")
-        or ((self.page == "account") and (self.form and self.form.account and "Edit account" or "Add account") or "Join a server"))
+    self.title = ZeD.tr((self.page == "server") and (self.form and self.form.server and "UI_ZeD_Join_TitleEditServer" or "UI_ZeD_Join_TitleAddServer")
+        or ((self.page == "account") and (self.form and self.form.account and "UI_ZeD_Join_TitleEditAccount" or "UI_ZeD_Join_TitleAddAccount") or "UI_ZeD_Join_Title"))
     local nSaved = m and #getServerList() or 0
-    self.titleStats = { { text = nSaved .. (nSaved == 1 and " saved server" or " saved servers"), color = { r = 0, g = 0, b = 0, a = 0 } } }
+    self.titleStats = { { text = ZeD.tr(nSaved == 1 and "UI_ZeD_Join_SavedOne" or "UI_ZeD_Join_SavedMany", nSaved), color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
@@ -541,7 +541,7 @@ function ZeD_MMJoin:drawList(x, y, w, h)
     self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), tH, 1, s2.r, s2.g, s2.b)
     local tx = x + T.px(8)
     local tY = y + tH - T.tabH
-    for _, t in ipairs({ { "saved", "Saved" }, { "public", "Public" } }) do
+    for _, t in ipairs({ { "saved", ZeD.tr("UI_ZeD_Join_TabSaved") }, { "public", ZeD.tr("UI_ZeD_Join_TabPublic") } }) do
         local hid = "join:tab:" .. t[1]
         local tw = ZeD.Molecules.drawTab(self, tx, tY, t[2], self.tab == t[1], MM.ctx.hot == hid, false)
         self._hits[#self._hits + 1] = { id = hid, x = ax + tx, y = ay + tY, w = tw, h = T.tabH, fn = function() self:setTab(t[1]) end }
@@ -564,8 +564,9 @@ function ZeD_MMJoin:drawList(x, y, w, h)
         local fH = T.px(FIND_H)
         self:drawRect(x + T.px(1), cy, w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
         local f2, c = T.fontF2, T.text
-        self:drawText("Find:", x + T.px(8), cy + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-        local ex = x + T.px(8) + MM.textW(f2, "Find:") + T.px(8)
+        local findLabel = ZeD.tr("UI_ZeD_Join_Find")
+        self:drawText(findLabel, x + T.px(8), cy + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+        local ex = x + T.px(8) + MM.textW(f2, findLabel) + T.px(8)
         self:place(self.find, ex, cy + math.floor((fH - T.px(24)) / 2), x + w - T.px(8) - ex, T.px(24))
         cy = cy + fH
         -- the "show" filters, wrapped onto as many lines as the pane needs
@@ -573,7 +574,7 @@ function ZeD_MMJoin:drawList(x, y, w, h)
         local gap = T.px(14)
         local lines, lineW = 1, T.px(8)
         for _, fdef in ipairs(FILTERS) do
-            local tw = T.checkboxSz + T.px(6) + MM.textW(T.fontF2, fdef[2])
+            local tw = T.checkboxSz + T.px(6) + MM.textW(T.fontF2, ZeD.tr(fdef[2]))
             if lineW + tw > w - T.px(8) and lineW > T.px(8) then lines = lines + 1; lineW = T.px(8) end
             lineW = lineW + tw + gap
         end
@@ -582,10 +583,10 @@ function ZeD_MMJoin:drawList(x, y, w, h)
         for _, fdef in ipairs(FILTERS) do
             local tb = m and m[fdef[1]]
             if tb then
-                local tw = T.checkboxSz + T.px(6) + MM.textW(T.fontF2, fdef[2])
+                local tw = T.checkboxSz + T.px(6) + MM.textW(T.fontF2, ZeD.tr(fdef[2]))
                 if fx + tw > x + w - T.px(8) and fx > x + T.px(8) then fx = x + T.px(8); fy = fy + ffH end
                 local on = tb.selected[1] == true
-                self:tick("flt:" .. fdef[1], fx, fy + math.floor((ffH - T.checkboxSz) / 2), fdef[2], on, function()
+                self:tick("flt:" .. fdef[1], fx, fy + math.floor((ffH - T.checkboxSz) / 2), ZeD.tr(fdef[2]), on, function()
                     tb.selected[1] = not on
                     m:onChangeFilter()
                     m.listChanged = true
@@ -637,7 +638,7 @@ function ZeD_MMJoin:drawList(x, y, w, h)
     if #rows == 0 then
         local d = T.textDim
         local msg = (self.tab == "public") and ((self:refreshWait() > 0) and getText("UI_servers_Connecting") or "") or ""
-        if self.tab == "public" then msg = "No servers to show." end
+        if self.tab == "public" then msg = ZeD.tr("UI_ZeD_Join_NoServers") end
         self:drawText(msg, x + T.px(12), vy + T.px(12), d.r, d.g, d.b, d.a or 1, T.fontF2)
     end
     if over then
@@ -667,7 +668,7 @@ function ZeD_MMJoin:drawColumnHeads(x, y, w)
     self:drawRect(x, y + hH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f1, la = T.fontF1, T.accent
     local cols = self:columnX(x, w)
-    for _, c in ipairs({ { "name", "NAME", cols.name }, { "player", "PLAYERS", cols.players }, { "ping", "PING", cols.ping } }) do
+    for _, c in ipairs({ { "name", ZeD.tr("UI_ZeD_Join_ColName"), cols.name }, { "player", ZeD.tr("UI_ZeD_Join_ColPlayers"), cols.players }, { "ping", ZeD.tr("UI_ZeD_Join_ColPing"), cols.ping } }) do
         local cx = c[3]
         self:drawText(c[2], cx, y + math.floor((hH - MM.fontH(f1)) / 2), la.r, la.g, la.b, la.a or 1, f1)
         local tw = MM.textW(f1, c[2])
@@ -718,9 +719,9 @@ function ZeD_MMJoin:drawRow(r, x, y, w, h)
         if sv:getVersion() and sv:getVersion() ~= "" then bits[#bits + 1] = "v" .. s(sv:getVersion()) end
         -- what it asks, once the server has answered (a saved server that has not reads as open)
         if r.kind == "public" or sv:isResponded() then
-            if sv:isPasswordProtected() then bits[#bits + 1] = "Password" end
-            if not sv:isOpen() then bits[#bits + 1] = "Whitelist" end
-            if sv:getMods() and sv:getMods() ~= "" then bits[#bits + 1] = "Modded" end
+            if sv:isPasswordProtected() then bits[#bits + 1] = ZeD.tr("UI_ZeD_Join_Password") end
+            if not sv:isOpen() then bits[#bits + 1] = ZeD.tr("UI_ZeD_Join_Whitelist") end
+            if sv:getMods() and sv:getMods() ~= "" then bits[#bits + 1] = ZeD.tr("UI_ZeD_Join_Modded") end
         end
         self:drawText(ZeD.Atoms.truncateText(table.concat(bits, MM.DOT), f3, maxW), nx, y + h - T.px(6) - MM.fontH(f3), d.r, d.g, d.b, d.a or 1, f3)
     elseif r.kind == "account" then
@@ -729,8 +730,8 @@ function ZeD_MMJoin:drawRow(r, x, y, w, h)
         local name = s(acc:getUserName())
         if acc:getPlayerFirstAndLastName() then name = name .. "  (" .. s(acc:getPlayerFirstAndLastName()) .. ")" end
         self:drawText(ZeD.Atoms.truncateText(name, f2, w - T.px(46)), nx, y + T.px(5), tc.r, tc.g, tc.b, tc.a or 1, f2)
-        local played = acc:getTimePlayed() and (s(acc:getTimePlayed()) .. " min played") or "Not played yet"
-        local last = acc:getLastLogon() and (MM.DOT .. "last on " .. s(acc:getLastLogon())) or ""
+        local played = acc:getTimePlayed() and ZeD.tr("UI_ZeD_Join_MinPlayed", s(acc:getTimePlayed())) or ZeD.tr("UI_ZeD_Join_NotPlayed")
+        local last = acc:getLastLogon() and (MM.DOT .. ZeD.tr("UI_ZeD_Join_LastOn", s(acc:getLastLogon()))) or ""
         self:drawText(ZeD.Atoms.truncateText(played .. last, f3, w - T.px(46)), nx, y + h - T.px(5) - MM.fontH(f3), d.r, d.g, d.b, d.a or 1, f3)
         -- the tree line from the server
         local bc = T.border
@@ -780,19 +781,19 @@ function ZeD_MMJoin:drawDetails(x, y, w, h)
         self:drawText(ZeD.Atoms.truncateText(value, f2, ix + iw - vx), vx, cy + math.floor((kvH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
         cy = cy + kvH
     end
-    kv("ADDRESS", (sv:getDisplayIp() and sv:getDisplayIp() ~= "") and s(sv:getDisplayIp()) or "-")
-    kv("PORT", s(sv:getDisplayPort() or "-"))
-    kv("PLAYERS", (sv:getPlayers() and sv:getMaxPlayers()) and (s(sv:getPlayers()) .. " of " .. s(sv:getMaxPlayers())) or "-")
-    kv("PING", (sv:getPing() and tonumber(sv:getPing()) and tonumber(sv:getPing()) > -1) and (s(sv:getPing()) .. " ms") or "-")
-    kv("MAP", (sv:getMapName() and sv:getMapName() ~= "") and s(sv:getMapName()) or "-")
-    kv("VERSION", (sv:getVersion() and sv:getVersion() ~= "") and s(sv:getVersion()) or "-")
+    kv(ZeD.tr("UI_ZeD_Join_KvAddress"), (sv:getDisplayIp() and sv:getDisplayIp() ~= "") and s(sv:getDisplayIp()) or "-")
+    kv(ZeD.tr("UI_ZeD_Join_KvPort"), s(sv:getDisplayPort() or "-"))
+    kv(ZeD.tr("UI_ZeD_Join_ColPlayers"), (sv:getPlayers() and sv:getMaxPlayers()) and ZeD.tr("UI_ZeD_Join_PlayersOf", s(sv:getPlayers()), s(sv:getMaxPlayers())) or "-")
+    kv(ZeD.tr("UI_ZeD_Join_ColPing"), (sv:getPing() and tonumber(sv:getPing()) and tonumber(sv:getPing()) > -1) and ZeD.tr("UI_ZeD_Join_PingMs", s(sv:getPing())) or "-")
+    kv(ZeD.tr("UI_ZeD_Join_KvMap"), (sv:getMapName() and sv:getMapName() ~= "") and s(sv:getMapName()) or "-")
+    kv(ZeD.tr("UI_ZeD_Join_KvVersion"), (sv:getVersion() and sv:getVersion() ~= "") and s(sv:getVersion()) or "-")
     local known = sv:isResponded()
-    kv("PASSWORD", known and (sv:isPasswordProtected() and "Yes" or "No") or "-")
-    kv("WHITELIST", known and (sv:isOpen() and "No" or "Yes") or "-")
+    kv(ZeD.tr("UI_ZeD_Join_KvPassword"), known and getText(sv:isPasswordProtected() and "UI_Yes" or "UI_No") or "-")
+    kv(ZeD.tr("UI_ZeD_Join_KvWhitelist"), known and getText(sv:isOpen() and "UI_No" or "UI_Yes") or "-")
     local wipe = sv:getLastWipe() or 0
     if wipe and wipe > 0 then
         local days = math.floor((getTimestamp() - wipe) / 86400)
-        kv("LAST WIPE", ((days <= 0) and getText("UI_servers_wipe_today") or getText("UI_servers_wipe_days_ago", days)))
+        kv(ZeD.tr("UI_ZeD_Join_KvLastWipe"), ((days <= 0) and getText("UI_servers_wipe_today") or getText("UI_servers_wipe_days_ago", days)))
     end
     cy = cy + T.px(8)
     -- the description and the mods (plain), as far as the box allows
@@ -805,7 +806,7 @@ function ZeD_MMJoin:drawDetails(x, y, w, h)
     local mods = s(sv:getMods())
     if mods ~= "" then
         lines[#lines + 1] = { "", f2, T.text }
-        lines[#lines + 1] = { "MODS", f1, T.accent }
+        lines[#lines + 1] = { ZeD.tr("UI_ZeD_Join_KvMods"), f1, T.accent }
         local list = mods:gsub(";", ","):gsub(",%s*", ", ")
         for _, l in ipairs(ZeD.Atoms.wrapText(list, f3, iw)) do lines[#lines + 1] = { l, f3, T.textDim } end
     end
@@ -843,19 +844,19 @@ function ZeD_MMJoin:drawForm(x, y, w, h)
     end
     if self.page == "server" then
         local p = self:serverProblems()
-        field(string.upper(getText("UI_servers_server_name")):gsub(":%s*$", ""), self.fName, p.name)
-        field(string.upper(getText("UI_servers_ip_domain")):gsub(":%s*$", ""), self.fAddr, p.addr)
-        field(string.upper(getText("UI_servers_port")):gsub(":%s*$", ""), self.fPort, p.port)
-        field(string.upper(getText("UI_servers_server_password")):gsub(":%s*$", ""), self.fSrvPwd, nil)
+        field(ZeD.upper(getText("UI_servers_server_name")):gsub(":%s*$", ""), self.fName, p.name)
+        field(ZeD.upper(getText("UI_servers_ip_domain")):gsub(":%s*$", ""), self.fAddr, p.addr)
+        field(ZeD.upper(getText("UI_servers_port")):gsub(":%s*$", ""), self.fPort, p.port)
+        field(ZeD.upper(getText("UI_servers_server_password")):gsub(":%s*$", ""), self.fSrvPwd, nil)
     else
         local p = self:accountProblems()
         local f = self.form
-        field(string.upper(getText("UI_servers_login")):gsub(":%s*$", ""), self.fUser, p.user)
-        local pwdLabel = string.upper(getText("UI_servers_password")):gsub(":%s*$", "")
+        field(ZeD.upper(getText("UI_servers_login")):gsub(":%s*$", ""), self.fUser, p.user)
+        local pwdLabel = ZeD.upper(getText("UI_servers_password")):gsub(":%s*$", "")
         field(pwdLabel, self.fPwd, p.pwd)
         if f.account and f.account:isSavePwd() then
             local d = T.textDim
-            self:drawText("Leave it empty to keep the saved one.", ix, cy - T.px(NOTE_H) - T.px(4), d.r, d.g, d.b, d.a or 1, T.fontF3)
+            self:drawText(ZeD.tr("UI_ZeD_Join_KeepPassword"), ix, cy - T.px(NOTE_H) - T.px(4), d.r, d.g, d.b, d.a or 1, T.fontF3)
         end
         self:tick("remember", ix, cy, getText("UI_servers_remember_password"), f.remember, function() f.remember = not f.remember end)
         cy = cy + T.checkboxSz + T.px(12)
@@ -892,66 +893,66 @@ function ZeD_MMJoin:buildStrip(stripY, stripH, w)
         self._shown[self.field] = true
     end
     if self.confirm == "pwd" then
-        ask = "Password for " .. s(self._pwdFor and self._pwdFor.account:getUserName()) .. ":"
+        ask = ZeD.tr("UI_ZeD_Join_AskPassword", s(self._pwdFor and self._pwdFor.account:getUserName()))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "CONNECT", function() self:answerPassword() end, "primary", (self.field:getText() or "") == "" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_servers_connect"), function() self:answerPassword() end, "primary", (self.field:getText() or "") == "" } })
         fieldIn(ask)
     elseif self.confirm == "srvpwd" then
-        ask = "Server password:"
+        ask = getText("UI_servers_server_password")
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "OK", function() self:answerPassword() end, "primary", (self.field:getText() or "") == "" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_MainMenu_Ok"), function() self:answerPassword() end, "primary", (self.field:getText() or "") == "" } })
         fieldIn(ask)
     elseif self.confirm == "delServer" or self.confirm == "forget" then
         local sv = r and r.server
-        ask = "Remove " .. s(sv and sv:getName()) .. " from your saved servers?"
+        ask = ZeD.tr("UI_ZeD_Join_AskRemoveServer", s(sv and sv:getName()))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "REMOVE", function() self:forgetServer(sv) end, "danger" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_remove"), function() self:forgetServer(sv) end, "danger" } })
     elseif self.confirm == "delAccount" then
         local acc = r and r.account
-        ask = "Delete the account " .. s(acc and acc:getUserName()) .. "?"
+        ask = ZeD.tr("UI_ZeD_Join_AskDeleteAccount", s(acc and acc:getUserName()))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "DELETE", function() self:deleteAccount(acc) end, "danger" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deleteAccount(acc) end, "danger" } })
     elseif self.page == "server" then
         UI.stripSpecs(self, stripY, w, row,
-            { { "cancel", "CANCEL", function() self:back() end } },
-            { { "save", "SAVE", function() self:saveServerForm() end, "primary", any(self:serverProblems()) } })
+            { { "cancel", getText("UI_btn_cancel"), function() self:back() end } },
+            { { "save", getText("UI_btn_save"), function() self:saveServerForm() end, "primary", any(self:serverProblems()) } })
     elseif self.page == "account" then
         local f = self.form
         UI.stripSpecs(self, stripY, w, row,
-            { { "cancel", "CANCEL", function() self:back() end } },
-            { { "save", (f and f.connectAfter) and "CONNECT" or "SAVE", function() self:saveAccountForm() end, "primary", any(self:accountProblems()) } })
+            { { "cancel", getText("UI_btn_cancel"), function() self:back() end } },
+            { { "save", getText((f and f.connectAfter) and "UI_servers_connect" or "UI_btn_save"), function() self:saveAccountForm() end, "primary", any(self:accountProblems()) } })
     elseif self.tab == "public" then
         local wait = self:refreshWait()
         local fav = r and m and m:getServerFeatured(r.server)
         local rights = {
-            { "refresh", (wait > 0) and ("REFRESH (" .. wait .. ")") or "REFRESH", function() self:refresh() end, "default", wait > 0 },
+            { "refresh", (wait > 0) and ZeD.tr("UI_ZeD_Join_RefreshWait", wait) or getText("UI_servers_refresh"), function() self:refresh() end, "default", wait > 0 },
         }
         if r and r.server then
-            if fav then rights[#rights + 1] = { "fav", "FORGET", function() self:setConfirm("forget") end }
-            else rights[#rights + 1] = { "fav", "SAVE SERVER", function() self:saveServer(r.server) end } end
+            if fav then rights[#rights + 1] = { "fav", ZeD.tr("UI_ZeD_Join_Forget"), function() self:setConfirm("forget") end }
+            else rights[#rights + 1] = { "fav", ZeD.tr("UI_ZeD_Join_SaveServer"), function() self:saveServer(r.server) end } end
         end
-        rights[#rights + 1] = { "connect", "CONNECT", function() self:connect() end, "primary", not (r and r.server) }
-        UI.stripSpecs(self, stripY, w, row, { { "back", "BACK", function() self:back() end } }, rights)
+        rights[#rights + 1] = { "connect", getText("UI_servers_connect"), function() self:connect() end, "primary", not (r and r.server) }
+        UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end } }, rights)
     else
         local rights = {}
         if r and r.kind == "server" then
-            rights[#rights + 1] = { "edit", "EDIT", function() self:openServerForm(r.server) end }
-            rights[#rights + 1] = { "del", "REMOVE", function() self:setConfirm("delServer") end }
-            rights[#rights + 1] = { "addAcc", "ADD ACCOUNT...", function() self:openAccountForm(r.server, nil, false) end }
+            rights[#rights + 1] = { "edit", getText("UI_servers_button_edit"), function() self:openServerForm(r.server) end }
+            rights[#rights + 1] = { "del", getText("UI_btn_remove"), function() self:setConfirm("delServer") end }
+            rights[#rights + 1] = { "addAcc", ZeD.tr("UI_ZeD_Join_AddAccount"), function() self:openAccountForm(r.server, nil, false) end }
         elseif r and r.kind == "account" then
-            rights[#rights + 1] = { "edit", "EDIT", function() self:openAccountForm(r.server, r.account, false) end }
-            rights[#rights + 1] = { "del", "DELETE", function() self:setConfirm("delAccount") end }
+            rights[#rights + 1] = { "edit", getText("UI_servers_button_edit"), function() self:openAccountForm(r.server, r.account, false) end }
+            rights[#rights + 1] = { "del", getText("UI_btn_delete"), function() self:setConfirm("delAccount") end }
         end
         if not (r and (r.kind == "server" or r.kind == "account")) then
-            rights[#rights + 1] = { "addSrv", "ADD SERVER...", function() self:openServerForm(nil) end }
+            rights[#rights + 1] = { "addSrv", ZeD.tr("UI_ZeD_Join_AddServer"), function() self:openServerForm(nil) end }
         end
         local canConnect = r and (r.kind == "account" or (r.kind == "server" and r.server:getAccounts():size() == 1))
-        rights[#rights + 1] = { "connect", "CONNECT", function() self:connect() end, "primary", not canConnect }
-        UI.stripSpecs(self, stripY, w, row, { { "back", "BACK", function() self:back() end } }, rights)
+        rights[#rights + 1] = { "connect", getText("UI_servers_connect"), function() self:connect() end, "primary", not canConnect }
+        UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end } }, rights)
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -977,8 +978,8 @@ function ZeD_MMJoin:joyY() if self.page == "list" and not self.confirm and self.
 
 function ZeD_MMJoin:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
-    return { { glyph = "A", label = "Select" }, { glyph = "LB", label = "" }, { glyph = "RB", label = "Saved / Public" }, { glyph = "B", label = "Back" } }
+    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "LB", label = "" }, { glyph = "RB", label = ZeD.tr("UI_ZeD_Join_PromptTabs") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } }
 end
 
 function ZeD_MMJoin:keyEscape()
@@ -1054,7 +1055,7 @@ function ZeD_MMConnect:prerender()
     local c = cts()
     local wantH = T.px(330)
     local w, h = UI.placeOnTube(self, wantH)
-    self.title = "Project Zomboid  +  " .. (c and c.title and c.title:getName() or "Connecting")
+    self.title = ZeD.tr("UI_ZeD_Join_TitleConnect", c and c.title and c.title:getName() or ZeD.tr("UI_ZeD_Join_Connecting"))
     self.titleStats = {}
     ZeD_Window.prerender(self)
     if not c then return end
@@ -1076,7 +1077,7 @@ function ZeD_MMConnect:prerender()
     end
     local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
     local d = T.textDim
-    self:drawText("as " .. s(c.userName:getName()), ix, cy, d.r, d.g, d.b, d.a or 1, f2)
+    self:drawText(ZeD.tr("UI_ZeD_Join_AsUser", s(c.userName:getName())), ix, cy, d.r, d.g, d.b, d.a or 1, f2)
     cy = cy + MM.fontH(f2) + T.px(18)
     -- the status: a dot (blinking while it tries, red when it failed) and vanilla's words
     local dsz = T.px(9)
@@ -1098,7 +1099,7 @@ function ZeD_MMConnect:prerender()
     local codeOn = c.googleAuthPopup and c.googleAuthPopup:isVisible()
     if codeOn then
         local la = T.accent
-        self:drawText(string.upper(UI.plain(getText("UI_ConnectToServer_GoogleAuth_Request"))), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+        self:drawText(ZeD.upper(UI.plain(getText("UI_ConnectToServer_GoogleAuth_Request"))), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
         cy = cy + T.px(18)
         UI.styleEntry(self.code, ix, cy, T.px(160), T.px(24))
         if not self.code:isVisible() then self.code:setVisible(true); self.code:focus() end
@@ -1116,8 +1117,8 @@ function ZeD_MMConnect:prerender()
         cy = cy + MM.fontH(f3) + T.px(2)
     end
     local rights = {}
-    if codeOn then rights[#rights + 1] = { "send", string.upper(UI.plain(getText("UI_ConnectToServer_GoogleAuth_Send"))), function() self:sendCode() end, "primary" } end
-    UI.stripSpecs(self, stripY, w, 1000, { { "back", c.connecting and "ABORT" or "BACK", function() self:back() end } }, rights)
+    if codeOn then rights[#rights + 1] = { "send", ZeD.upper(UI.plain(getText("UI_ConnectToServer_GoogleAuth_Send"))), function() self:sendCode() end, "primary" } end
+    UI.stripSpecs(self, stripY, w, 1000, { { "back", c.connecting and getText("UI_coopscreen_btn_abort") or getText("UI_btn_back"), function() self:back() end } }, rights)
     self._stripY, self._stripH = stripY, stripH
 end
 
@@ -1136,7 +1137,7 @@ function ZeD_MMConnect:close() self:back() end
 function ZeD_MMConnect:getFooterPrompts()
     if not MM.gamepad() then return nil end
     local c = cts()
-    return { { glyph = "B", label = (c and c.connecting) and "Abort" or "Back" } }
+    return { { glyph = "B", label = (c and c.connecting) and ZeD.btnCase(getText("UI_coopscreen_btn_abort")) or ZeD.btnCase(getText("UI_btn_back")) } }
 end
 
 -- ============================================================================

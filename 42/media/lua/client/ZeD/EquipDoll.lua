@@ -29,6 +29,7 @@
 
 require "ZeD/Tokens"
 require "ZeD/Atoms"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 ZeD.EquipDoll = ZeD.EquipDoll or {}
@@ -56,36 +57,36 @@ local function set(t) local s = {} for _, v in ipairs(t) do s[v] = true end retu
 -- y to y, in the doll's units: the photo's centre is x 260) and the body
 -- locations each one gathers. Vanilla's locations, lower case, no underscores.
 D.SLOTS = {
-    { id = "head",  label = "HEAD",  side = "L", row = 0, av = { 262, 40, 92 },
+    { id = "head",  key = "UI_ZeD_Doll_Head",  side = "L", row = 0, av = { 262, 40, 92 },
       locs = set{ "hat", "fullhat", "fullsuithead", "fullsuitheadscba",
                   "mask", "maskeyes", "maskfull", "ears", "eartop", "nose" } },
-    { id = "eyes",  label = "EYES",  side = "L", row = 1, av = { 258, 80, 80 },
+    { id = "eyes",  key = "UI_ZeD_Doll_Eyes",  side = "L", row = 1, av = { 258, 80, 80 },
       locs = set{ "eyes", "lefteye", "righteye" } },
-    { id = "neck",  label = "NECK",  side = "L", row = 2, av = { 262, 116, 116 },
+    { id = "neck",  key = "UI_ZeD_Doll_Neck",  side = "L", row = 2, av = { 262, 116, 116 },
       locs = set{ "scarf", "necktexture", "necklace", "necklacelong", "neck" } },
-    { id = "torso", label = "TORSO", side = "L", row = 3, av = { 256, 186, 186 },
+    { id = "torso", key = "UI_ZeD_Doll_Torso", side = "L", row = 3, av = { 256, 186, 186 },
       locs = set{ "tshirt", "tanktop", "shirt", "shortsleeveshirt", "torso1", "torso1legs1", "torsoextra",
                   "underwear", "underweartop", "underwearextra1", "underwearextra2" } },
-    { id = "outer", label = "OUTER", side = "L", row = 4, av = { 212, 230, 230 },
+    { id = "outer", key = "UI_ZeD_Doll_Outer", side = "L", row = 4, av = { 212, 230, 230 },
       locs = set{ "jacket", "jacketdown", "jacketbulky", "jacketsuit", "boilersuit", "fullsuit", "fulltop", "bathrobe",
                   "fullrobe", "bodycostume", "sweater", "jersey", "torsoextravest", "torsoextravestbullet", "cuirass",
                   "sweaterhat", "jackethat", "jackethatbulky",   -- hooded tops: a jacket, with its hood
                   "gorget", "vesttexture", "shoulderholster" } },
-    { id = "hands", label = "HANDS", side = "L", row = 5, av = { 200, 320, 320 },
+    { id = "hands", key = "UI_ZeD_Doll_Hands", side = "L", row = 5, av = { 200, 320, 320 },
       locs = set{ "hands", "handsleft", "handsright", "leftmiddlefinger", "rightmiddlefinger", "leftringfinger",
                   "rightringfinger" } },
-    { id = "back",  label = "BACK",  side = "R", row = 0, av = { 312, 150, 150 },
+    { id = "back",  key = "UI_ZeD_Doll_Back",  side = "R", row = 0, av = { 312, 150, 150 },
       locs = set{ "back", "satchel" } },
-    { id = "belt",  label = "BELT",  side = "R", row = 2, av = { 292, 236, 236 },
+    { id = "belt",  key = "UI_ZeD_Doll_Belt",  side = "R", row = 2, av = { 292, 236, 236 },
       locs = set{ "belt", "beltextra", "fannypackfront", "fannypackback", "webbing", "ankleholster", "ammostrap" } },
-    { id = "arms",  label = "ARMS",  side = "R", row = 3, av = { 322, 280, 300 },
+    { id = "arms",  key = "UI_ZeD_Doll_Arms",  side = "R", row = 3, av = { 322, 280, 300 },
       locs = set{ "leftwrist", "rightwrist", "leftarm", "rightarm", "forearmleft", "forearmright", "elbowleft",
                   "elbowright", "shoulderpadleft", "shoulderpadright", "sportshoulderpad", "sportshoulderpaddontop" } },
-    { id = "legs",  label = "LEGS",  side = "R", row = 4, av = { 300, 260, 460 },
+    { id = "legs",  key = "UI_ZeD_Doll_Legs",  side = "R", row = 4, av = { 300, 260, 460 },
       locs = set{ "pants", "pantsskinny", "pantsextra", "shortpants", "shortsshort", "legs1", "skirt", "longskirt",
                   "dress", "longdress", "underwearbottom", "codpiece", "kneeleft", "kneeright", "thighleft", "thighright",
                   "calfleft", "calfright", "calflefttexture", "calfrighttexture", "gaiterleft", "gaiterright" } },
-    { id = "feet",  label = "FEET",  side = "R", row = 5, av = { 300, 492, 492 },
+    { id = "feet",  key = "UI_ZeD_Doll_Feet",  side = "R", row = 5, av = { 300, 492, 492 },
       locs = set{ "socks", "shoes" } },
 }
 local LOC_TO_SLOT = {}
@@ -332,7 +333,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     local p = win._playerObj
     local desc = p and call(p, "getDescriptor")
     local nm = desc and ((call(desc, "getForename") or "") .. " " .. (call(desc, "getSurname") or "")) or ""
-    nm = string.upper(nm)
+    nm = ZeD.upper(nm)
     if nm ~= " " then
         local f1 = T.fontF1
         local dc = T.textDim
@@ -351,12 +352,12 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local items = data.slots[def.id].items
         local item = items[1]
         local key = "doll:" .. def.id
-        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, def.label, mx, my)
+        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.tr(def.key), mx, my)
         if item then
             zones[#zones + 1] = { x = bx, y = by, w = b, h = b, type = key, item = item }
             if over then
                 local t = call(item, "getDisplayName") or "?"
-                if #items > 1 then t = t .. " (+" .. (#items - 1) .. " under)" end
+                if #items > 1 then t = ZeD.tr("UI_ZeD_Doll_Under", t, #items - 1) end
                 hint = { key = key, text = t, x = bx, y = by, w = b }
             end
         else
@@ -401,15 +402,15 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
             beltZones[#beltZones + 1] = { x = bx, y = by, w = b, h = b, i = beltSlot.i, item = nil, action = "attach",
                                           btn = { x = bx, y = by, w = b, h = b }, fid = fid }
             win._equipSlotYMap[fid] = by
-            if over then hint = { key = fid, text = "Empty: " .. ((ZeD.Belt and ZeD.Belt.slotName(beltSlot.slot)) or label), x = bx, y = by, w = b } end
+            if over then hint = { key = fid, text = ZeD.tr("UI_ZeD_Doll_EmptyHint", (ZeD.Belt and ZeD.Belt.slotName(beltSlot.slot)) or label), x = bx, y = by, w = b } end
         end
     end
-    below("doll:main", "MAIN", data.main, 30, BELOW_Y)
-    below("doll:off", "OFF", data.off, 110, BELOW_Y)
+    below("doll:main", ZeD.tr("UI_ZeD_Doll_Main"), data.main, 30, BELOW_Y)
+    below("doll:off", ZeD.tr("UI_ZeD_Doll_Off"), data.off, 110, BELOW_Y)
     for n, bs in ipairs(data.belt) do
         local r, c = math.floor((n - 1) / 3), (n - 1) % 3
         local key = bs.item and ("doll:belt" .. tostring(bs.i)) or nil
-        local label = "BELT " .. tostring(bs.key or bs.i)
+        local label = ZeD.tr("UI_ZeD_Doll_BeltSlot", tostring(bs.key or bs.i))
         below(key or ("belt:" .. tostring(bs.i)), label, bs.item, BELT_X0 + c * BELOW_STEP, BELOW_Y + r * ROW_STEP,
               bs.key and tostring(bs.key) or nil, bs)
     end
@@ -579,7 +580,7 @@ function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
         elseif not on and mx >= zx and mx < zx + bw and my >= by and my < by + bh then
             panel:drawRect(zx, by, bw, bh, 0.22, ac.r, ac.g, ac.b)
         end
-        local text = (v == "list") and "List" or "Doll"
+        local text = (v == "list") and ZeD.tr("UI_ZeD_Doll_ViewList") or ZeD.tr("UI_ZeD_Doll_ViewDoll")
         zones[#zones + 1] = { x = zx, y = by, w = bw, h = bh, view = v, key = key, hint = text }
         if mx >= zx and mx < zx + bw and my >= by and my < by + bh then
             hint = { key = key, text = text, x = zx, y = by, w = bw }
@@ -602,8 +603,8 @@ function D.drawLayerStrip(panel, win, x, y, w, idx, n, mx, my)
     panel:drawRect(x, y, w, h, s2.a or 1, s2.r, s2.g, s2.b)
     panel:drawRect(x, y, w, T.px(1), bs.a or 1, bs.r, bs.g, bs.b)
     local f1 = T.fontF1
-    local where = (idx == 1) and "OUTERMOST" or ((idx == n) and "INNERMOST" or "UNDER " .. (idx - 1))
-    local lbl = "LAYER " .. idx .. " OF " .. n .. " | " .. where
+    local where = (idx == 1) and ZeD.tr("UI_ZeD_Doll_Outermost") or ((idx == n) and ZeD.tr("UI_ZeD_Doll_Innermost") or ZeD.tr("UI_ZeD_Doll_UnderN", idx - 1))
+    local lbl = ZeD.tr("UI_ZeD_Doll_LayerStrip", idx, n, where)
     local lc = T.toneLo or T.textDim
     panel:drawText(lbl, x + T.px(10), y + math.floor((h - (T.fontF1H or tm:getFontHeight(f1))) / 2), lc.r, lc.g, lc.b, lc.a or 1, f1)
     local UI = ZeD.ObjectCards and ZeD.ObjectCards.ui
@@ -611,7 +612,7 @@ function D.drawLayerStrip(panel, win, x, y, w, idx, n, mx, my)
     local bh = T.px(22)
     local by = y + math.floor((h - bh) / 2)
     local rx = x + w - T.px(10)
-    for _, b in ipairs({ { dir = 1, label = "Inner" }, { dir = -1, label = "Outer" } }) do
+    for _, b in ipairs({ { dir = 1, label = ZeD.tr("UI_ZeD_Doll_StepInner") }, { dir = -1, label = ZeD.tr("UI_ZeD_Doll_StepOuter") } }) do
         local bw = UI and UI.buttonW(b.label) or T.px(60)
         rx = rx - bw
         local enabled = (b.dir > 0 and idx < n) or (b.dir < 0 and idx > 1)

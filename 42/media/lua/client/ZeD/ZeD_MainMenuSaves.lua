@@ -405,14 +405,14 @@ end
 function ZeD_MMLoad:moreItems()
     local s = self:selected()
     local t = {
-        { text = "Rename file...", fn = function() self:startRename() end },
-        { text = "New player", fn = function() self:newPlayer() end, disabled = (s == nil) or s.mode == "A Really CD DA" },
-        { text = "Choose mods...", fn = function() self:chooseMods() end },
+        { text = ZeD.tr("UI_ZeD_Saves_RenameFile"), fn = function() self:startRename() end },
+        { text = ZeD.btnCase(getText("UI_LoadGameScreen_ButtonNewPlayer")), fn = function() self:newPlayer() end, disabled = (s == nil) or s.mode == "A Really CD DA" },
+        { text = ZeD.tr("UI_ZeD_Saves_ChooseMods"), fn = function() self:chooseMods() end },
     }
     local okD, desk = pcall(isDesktopOpenSupported)
     if okD and desk then
         t[#t + 1] = "-"
-        t[#t + 1] = { text = "Open file location", fn = function() self:openFolder() end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_Saves_OpenFileLocation"), fn = function() self:openFolder() end }
     end
     return t
 end
@@ -473,9 +473,9 @@ function ZeD_MMLoad:prerender()
     local T = ZeD.T
     self._specs, self._hits = {}, {}
     local w, h = placeOnTube(self)
-    self.title = "Project Zomboid  +  Load game"
+    self.title = ZeD.tr("UI_ZeD_Saves_Title")
     local n = #self.saves
-    self.titleStats = { { text = n .. (n == 1 and " save" or " saves"), color = { r = 0, g = 0, b = 0, a = 0 } } }
+    self.titleStats = { { text = ZeD.tr(n == 1 and "UI_ZeD_Saves_CountOne" or "UI_ZeD_Saves_CountMany", n), color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
 
     local tb = T.titleBarH
@@ -495,16 +495,16 @@ function ZeD_MMLoad:prerender()
     local row = 1000
     local ask = nil
     if self.confirm == "delete" then
-        ask = "Delete " .. (s and s.title or "") .. "? It cannot be undone."
+        ask = ZeD.tr("UI_ZeD_Saves_AskDelete", s and s.title or "")
         stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "DELETE", function() self:delete() end, "danger" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_delete"), function() self:delete() end, "danger" } })
     elseif self.confirm == "rename" then
-        ask = "Rename to:"
+        ask = ZeD.tr("UI_ZeD_Saves_AskRename")
         local valid = self:renameValid(self.renameEntry:getText())
         stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "RENAME", function() self:rename() end, "primary", not valid } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_rename"), function() self:rename() end, "primary", not valid } })
         -- the field fills the strip between the label and the buttons
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
@@ -514,10 +514,10 @@ function ZeD_MMLoad:prerender()
         styleEntry(self.renameEntry, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     else
         stripSpecs(self, stripY, w, row,
-            { { "back", "BACK", function() self:back() end } },
-            { { "delete", "DELETE", function() self:askDelete() end, "default", s == nil },
-              { "more", "MORE", function() self:openMore() end, "default", s == nil },
-              { "play", "PLAY", function() self:play() end, "primary", why ~= nil } })
+            { { "back", getText("UI_btn_back"), function() self:back() end } },
+            { { "delete", getText("UI_btn_delete"), function() self:askDelete() end, "default", s == nil },
+              { "more", ZeD.tr("UI_ZeD_Saves_More"), function() self:openMore() end, "default", s == nil },
+              { "play", getText("UI_btn_play"), function() self:play() end, "primary", why ~= nil } })
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -537,7 +537,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
     self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
-    local label = "Find:"
+    local label = ZeD.tr("UI_ZeD_Saves_Find")
     self:drawText(label, x + T.px(8), y + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
     local ex = x + T.px(8) + MM.textW(f2, label) + T.px(8)
     local eh = T.px(24)
@@ -565,7 +565,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
         if r.head then
             if visible then
                 local hid = "load:head:" .. r.mode
-                ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), string.upper(MM.modeName(r.mode)), r.count,
+                ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), ZeD.upper(MM.modeName(r.mode)), r.count,
                     not self.collapsed[r.mode], MM.ctx.hot == hid, T.fontF1, true, T.px(8), rh)
                 local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
                 self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + cy, w = rw, h = ch,
@@ -606,7 +606,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
                     ZeD.Atoms.drawStatusDot(self, lx, l1y + math.floor((MM.fontH(f2b) - dsz) / 2), T.danger, dsz)
                     lx = lx + dsz + T.px(5)
                 end
-                self:drawText(ZeD.Atoms.truncateText(name .. (s.dead and ", dead" or ""), f2b, maxW - (lx - ix)), lx, l1y, nameC.r, nameC.g, nameC.b, nameC.a or 1, f2b)
+                self:drawText(ZeD.Atoms.truncateText(s.dead and ZeD.tr("UI_ZeD_Saves_NameDead", name) or name, f2b, maxW - (lx - ix)), lx, l1y, nameC.r, nameC.g, nameC.b, nameC.a or 1, f2b)
                 local sub = (s.who and (s.title .. MM.DOT) or "") .. MM.mapText(s.mapName)
                 self:drawText(ZeD.Atoms.truncateText(sub, f3, maxW), ix, ry + rh - T.px(7) - MM.fontH(f3), d.r, d.g, d.b, d.a or 1, f3)
                 local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
@@ -681,7 +681,7 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         ZeD.Atoms.drawStatusDot(self, lx, cy + math.floor((bigH - dsz) / 2), T.danger, dsz)
         lx = lx + dsz + T.px(6)
     end
-    local big = (s.who or s.title) .. ((s.who and s.dead) and ", dead" or "")
+    local big = (s.who and s.dead) and ZeD.tr("UI_ZeD_Saves_NameDead", s.who) or (s.who or s.title)
     if ZeD.Text.width(hf, big, z) > iw - (lx - ix) then
         while #big > 1 and ZeD.Text.width(hf, big .. "...", z) > iw - (lx - ix) do big = big:sub(1, #big - 1) end
         big = big .. "..."
@@ -709,9 +709,9 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         end
         cy = cy + kvH
     end
-    kv("MODE", MM.modeName(s.mode))
-    kv("MAP", MM.mapText(s.mapName))
-    kv("PLAYED", s.played)
+    kv(ZeD.tr("UI_ZeD_Saves_KvMode"), MM.modeName(s.mode))
+    kv(ZeD.tr("UI_ZeD_Saves_KvMap"), MM.mapText(s.mapName))
+    kv(ZeD.tr("UI_ZeD_Saves_KvPlayed"), s.played)
     -- mods: names, and any the game cannot find
     local names, missing = {}, {}
     local okM = pcall(function()
@@ -725,14 +725,14 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
             end
         end
     end)
-    local modsText = (#names > 0) and table.concat(names, ", ") or ((#missing > 0) and (#missing .. " not found") or "None")
-    kv("MODS", modsText)
-    kv("VERSION", tostring(s.info.worldVersion or "?"))
+    local modsText = (#names > 0) and table.concat(names, ", ") or ((#missing > 0) and ZeD.tr("UI_ZeD_Saves_ModsMissing", #missing) or ZeD.tr("UI_ZeD_Saves_ModsNone"))
+    kv(ZeD.tr("UI_ZeD_Saves_KvMods"), modsText)
+    kv(ZeD.tr("UI_ZeD_Saves_KvVersion"), tostring(s.info.worldVersion or "?"))
     -- PLAYING AS: a list box when the save has more than one character to play
     local opts = self:playerOptions(s)
     if #opts > 1 then
         local la = T.accent
-        self:drawText("PLAYING AS", ix, cy + math.floor((T.px(26) - MM.fontH(f1)) / 2), la.r, la.g, la.b, la.a or 1, f1)
+        self:drawText(ZeD.tr("UI_ZeD_Saves_KvPlayingAs"), ix, cy + math.floor((T.px(26) - MM.fontH(f1)) / 2), la.r, la.g, la.b, la.a or 1, f1)
         local cw = math.min(vw, math.max(T.px(160), MM.textW(f2, s.who or "") + T.px(40)))
         local cx0, cyy, ch = vx, cy + math.floor((T.px(26) - T.px(24)) / 2), T.px(24)
         local hid = "load:players"
@@ -751,7 +751,7 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
     local notes = {}
     local why = self:whyNot(s)
     if why then notes[#notes + 1] = getText("UI_worldscreen_SaveCannotBeLoaded") .. " " .. why end
-    if #missing > 0 then notes[#notes + 1] = "Mods not found: " .. table.concat(missing, ", ") end
+    if #missing > 0 then notes[#notes + 1] = ZeD.tr("UI_ZeD_Saves_NoteModsMissing", table.concat(missing, ", ")) end
     cy = cy + T.px(6)
     for _, n in ipairs(notes) do
         local dsz = T.px(7)
@@ -790,13 +790,14 @@ function ZeD_MMLoad:joyY() if not self.confirm and self:selected() then self:ope
 
 function ZeD_MMLoad:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm == "delete" then return { { glyph = "A", label = "Delete" }, { glyph = "B", label = "Cancel" } } end
-    if self.confirm == "rename" then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
+    local back = ZeD.btnCase(getText("UI_btn_back"))
+    if self.confirm == "delete" then return { { glyph = "A", label = ZeD.btnCase(getText("UI_btn_delete")) }, { glyph = "B", label = getText("UI_Cancel") } } end
+    if self.confirm == "rename" then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
     local f = self.focusId or ""
     if f:sub(1, 5) == "save:" then
-        return { { glyph = "A", label = "Play" }, { glyph = "X", label = "Delete" }, { glyph = "Y", label = "More" }, { glyph = "B", label = "Back" } }
+        return { { glyph = "A", label = getText("IGUI_media_play") }, { glyph = "X", label = ZeD.btnCase(getText("UI_btn_delete")) }, { glyph = "Y", label = ZeD.tr("UI_ZeD_Saves_More") }, { glyph = "B", label = back } }
     end
-    return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = back } }
 end
 
 -- Escape: leave a field, then a question, then Load Game
@@ -990,7 +991,7 @@ function ZeD_MMNewGame:prerender()
     local maxH = L.th - T.px(U.BAR_H) - T.px(TOP_GAP) * 2
     if h > maxH then h = maxH end
     placeOnTube(self, h)
-    self.title = "Project Zomboid  +  " .. (self.challenges and "Challenges" or "New game")
+    self.title = ZeD.tr(self.challenges and "UI_ZeD_NewGame_TitleChallenges" or "UI_ZeD_NewGame_Title")
     self.titleStats = {}
     ZeD_Window.prerender(self)
 
@@ -1053,9 +1054,9 @@ function ZeD_MMNewGame:prerender()
     -- the action strip
     local stripY = self.height - self:footerHeight() - stripH
     stripSpecs(self, stripY, self.width, 1000,
-        { { "back", "BACK", function() self:back() end } },
-        { { "mods", "CHOOSE MODS...", function() self:chooseMods() end },
-          { "next", "NEXT", function() self:next() end, "primary", d == nil } })
+        { { "back", getText("UI_btn_back"), function() self:back() end } },
+        { { "mods", getText("UI_NewGame_ChooseMods"), function() self:chooseMods() end },
+          { "next", getText("UI_btn_next"), function() self:next() end, "primary", d == nil } })
     self._stripY, self._stripH = stripY, stripH
 end
 
@@ -1078,9 +1079,9 @@ function ZeD_MMNewGame:getFooterPrompts()
     if not MM.gamepad() then return nil end
     local f = self.focusId or ""
     if f:sub(1, 5) == "icon:" then
-        return { { glyph = "A", label = "Next" }, { glyph = "Y", label = "Choose mods" }, { glyph = "B", label = "Back" } }
+        return { { glyph = "A", label = ZeD.btnCase(getText("UI_btn_next")) }, { glyph = "Y", label = ZeD.tr("UI_ZeD_NewGame_PromptChooseMods") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } }
     end
-    return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } }
 end
 
 function ZeD_MMNewGame:keyEscape() self:back(); return true end

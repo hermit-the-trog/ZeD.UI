@@ -405,7 +405,7 @@ function ZeD.Atoms.drawBadge(panel, text, x, y, variant, disabled, font, noUpper
     local bdFont = font or T.fontF3
 
     -- Uppercase the text (unless caller opts out)
-    if not noUpper then text = string.upper(text) end
+    if not noUpper then text = ZeD.upper(text) end
 
     -- Measure text width
     local tw = ZeD.TM:MeasureStringX(bdFont, text)
@@ -967,9 +967,10 @@ end
 -- Toggle definitions: key, texture name, theme color key, tooltip text
 -- Item toggle definitions (favorite, protect, unwanted)
 ZeD.ActionStrip.TOGGLE_DEFS = {
-    {key="fav",      tex="essential-collection-128-like", colorKey="accent", tip_on="Unfavorite",         tip_off="Favorite"},
-    {key="protect",  tex="text-editor-052-save",          colorKey="info",   tip_on="Allow crafting use", tip_off="Protect from crafting"},
-    {key="unwanted", tex="alerts-050-bin",                colorKey="danger", tip_on="Unmark unwanted",    tip_off="Mark as unwanted"},
+    -- (tip_on / tip_off are vanilla translation keys: read them through ZeD.tr when a tooltip is drawn)
+    {key="fav",      tex="essential-collection-128-like", colorKey="accent", tip_on="ContextMenu_Unfavorite",     tip_off="IGUI_CraftUI_Favorite"},
+    {key="protect",  tex="text-editor-052-save",          colorKey="info",   tip_on="ContextMenu_UnsetNoRecipes", tip_off="ContextMenu_SetNoRecipes"},
+    {key="unwanted", tex="alerts-050-bin",                colorKey="danger", tip_on="ContextMenu_Wanted",         tip_off="ContextMenu_Unwanted"},
 }
 
 local _safeGet = ZeD.Atoms.safeGet  -- reuse public helper (line 18)

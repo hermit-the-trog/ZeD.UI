@@ -45,20 +45,21 @@ local function nameOf(item)
 end
 
 local function containerLabel(c, player)
-    if c == player:getInventory() then return "INVENTORY" end
+    if c == player:getInventory() then return ZeD.upper(getText("IGUI_InventoryTooltip")) end
     local it = call(c, "getContainingItem")
     local n = it and call(it, "getDisplayName")
-    return n and string.upper(n) or "BAG"
+    return n and ZeD.upper(n) or ZeD.upper(getText("IGUI_ItemCat_Bag"))
 end
 
--- Game seconds as "ABOUT 1 DAY" / "ABOUT 5 HOURS" / "ABOUT 20 MINUTES".
+-- Game seconds as "ABOUT 1 DAY" / "ABOUT 5 HOURS" / "ABOUT 20 MINUTES" (a whole phrase per count).
 local function aboutTime(sec)
     sec = math.max(0, sec or 0)
-    if sec >= 86400 * 1.5 then return "ABOUT " .. tostring(math.floor(sec / 86400 + 0.5)) .. " DAYS" end
-    if sec >= 86400 * 0.75 then return "ABOUT 1 DAY" end
-    if sec >= 5400 then return "ABOUT " .. tostring(math.floor(sec / 3600 + 0.5)) .. " HOURS" end
-    if sec >= 3000 then return "ABOUT 1 HOUR" end
-    return "ABOUT " .. tostring(math.max(1, math.floor(sec / 60 + 0.5))) .. " MINUTES"
+    if sec >= 86400 * 1.5 then return ZeD.tr("UI_ZeD_Machine_AboutDays", math.floor(sec / 86400 + 0.5)) end
+    if sec >= 86400 * 0.75 then return ZeD.tr("UI_ZeD_Machine_AboutDayOne") end
+    if sec >= 5400 then return ZeD.tr("UI_ZeD_Machine_AboutHours", math.floor(sec / 3600 + 0.5)) end
+    if sec >= 3000 then return ZeD.tr("UI_ZeD_Machine_AboutHourOne") end
+    local m = math.max(1, math.floor(sec / 60 + 0.5))
+    return ZeD.tr(m == 1 and "UI_ZeD_Machine_AboutMinuteOne" or "UI_ZeD_Machine_AboutMinutes", m)
 end
 SM.aboutTime = aboutTime
 
@@ -66,13 +67,13 @@ local function durationText(sec)
     sec = math.max(0, sec or 0)
     if sec >= 86400 then
         local d = math.floor(sec / 86400 + 0.5)
-        return d == 1 and "1 DAY EACH" or (tostring(d) .. " DAYS EACH")
+        return d == 1 and ZeD.tr("UI_ZeD_Machine_DayEachOne") or ZeD.tr("UI_ZeD_Machine_DaysEach", d)
     end
     if sec >= 3600 then
         local h = math.floor(sec / 3600 + 0.5)
-        return h == 1 and "1 HOUR EACH" or (tostring(h) .. " HOURS EACH")
+        return h == 1 and ZeD.tr("UI_ZeD_Machine_HourEachOne") or ZeD.tr("UI_ZeD_Machine_HoursEach", h)
     end
-    return tostring(math.max(1, math.floor(sec / 60 + 0.5))) .. " MIN EACH"
+    return ZeD.tr("UI_ZeD_Machine_MinEach", math.max(1, math.floor(sec / 60 + 0.5)))
 end
 
 local function uiLogic(st, player)
@@ -373,8 +374,8 @@ function SM.render(panel, win, x, y, w, h, state, st)
     local cy = viewY + pad - off
 
     -- RECIPE line
-    local lw = label(panel, "RECIPE", lx, cy, rowH)
-    local rname = d.recipe and (call(d.recipe, "getTranslationName") or call(d.recipe, "getName")) or "None"
+    local lw = label(panel, ZeD.tr("UI_ZeD_Machine_Recipe"), lx, cy, rowH)
+    local rname = d.recipe and (call(d.recipe, "getTranslationName") or call(d.recipe, "getName")) or getText("UI_None")
     local nf = T.fontF2
     local tc = d.recipe and T.text or T.textDim
     local dur = d.time and durationText(d.time) or ""
@@ -385,7 +386,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     cy = cy + rowH + gap
 
     -- INPUT grid: drying first (with progress), then waiting, then empty
-    lw = label(panel, "INPUT", lx, cy, rowH)
+    lw = label(panel, ZeD.tr("UI_ZeD_Machine_Input"), lx, cy, rowH)
     label(panel, tostring(#d.drying + #d.waiting) .. " / " .. tostring(d.cap), lx + lw + T.px(8), cy, rowH, T.textDim)
     cy = cy + rowH
     local cellW = math.floor((iw - (COLS - 1) * cg) / COLS)
@@ -412,7 +413,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     -- START / STOP + progress
     local bw, bh = T.px(70), T.px(22)
     local by = cy + math.floor((rowH - bh) / 2)
-    local btnLabel = d.running and "Stop" or "Start"
+    local btnLabel = ZeD.tr(d.running and "UI_ZeD_Machine_Stop" or "UI_ZeD_Machine_Start")
     local enabled = d.running or d.canStart
     if enabled then
         M.drawButton(panel, lx, by, bw, bh, btnLabel, d.running and "default" or "primary")
@@ -431,7 +432,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     local ptxt = ""
     if d.running then
         ptxt = tostring(math.floor(d.progress * 100 + 0.5)) .. "%"
-        if d.left then ptxt = ptxt .. "  " .. ST.DOT .. "  " .. aboutTime(d.left) .. " LEFT" end
+        if d.left then ptxt = ptxt .. "  " .. ST.DOT .. "  " .. ZeD.tr("UI_ZeD_Machine_Left", aboutTime(d.left)) end
     end
     local ptw = tm:MeasureStringX(T.fontF3, ptxt)
     local px0 = lx + bw + T.px(8)
@@ -451,12 +452,12 @@ function SM.render(panel, win, x, y, w, h, state, st)
     cy = cy + rowH + gap
 
     -- OUTPUT grid + TAKE ALL
-    lw = label(panel, "OUTPUT", lx, cy, rowH)
+    lw = label(panel, ZeD.tr("UI_ZeD_Machine_Output"), lx, cy, rowH)
     label(panel, tostring(#d.outputs), lx + lw + T.px(8), cy, rowH, T.textDim)
     if #d.outputs > 0 then
         local tw = T.px(80)
         local ty = cy + math.floor((rowH - bh) / 2)
-        M.drawButton(panel, rx - tw, ty, tw, bh, "TAKE ALL", "primary")
+        M.drawButton(panel, rx - tw, ty, tw, bh, ZeD.tr("UI_ZeD_Machine_TakeAll"), "primary")
         if fid == "craft:m:takeAll" then
             local ac = T.accent
             panel:drawRect(rx - tw, ty, tw, bh, 0.55, ac.r, ac.g, ac.b)
@@ -475,10 +476,10 @@ function SM.render(panel, win, x, y, w, h, state, st)
     cy = cy + outRows * cellH + (outRows - 1) * cg + gap
 
     -- FROM YOUR BAGS
-    lw = label(panel, "FROM YOUR BAGS", lx, cy, rowH)
+    lw = label(panel, ZeD.tr("UI_ZeD_Machine_FromBags"), lx, cy, rowH)
     cy = cy + rowH
     if #d.bag == 0 then
-        panel:drawText("Nothing you carry fits this rack.", lx, cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
+        panel:drawText(ZeD.tr("UI_ZeD_Machine_NothingFits"), lx, cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
             T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2)
     end
     for _, g in ipairs(d.bag) do
@@ -494,7 +495,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
             T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
         A.drawTextRight(panel, where, rx - addW - T.px(8), cy + math.floor((rowH - tm:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
         local ay = cy + math.floor((rowH - T.px(20)) / 2)
-        M.drawButton(panel, rx - addW, ay, addW, T.px(20), "ADD", "default")
+        M.drawButton(panel, rx - addW, ay, addW, T.px(20), ZeD.tr("UI_ZeD_Machine_Add"), "default")
         if fid == id then
             local ac = T.accent
             panel:drawRect(rx - addW, ay, addW, T.px(20), 0.55, ac.r, ac.g, ac.b)

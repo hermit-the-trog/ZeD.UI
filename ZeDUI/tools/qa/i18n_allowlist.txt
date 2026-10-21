@@ -1,0 +1,170 @@
+# i18n guard allowlist. One entry per line: file base name | the exact string as written in the Lua.
+# Everything below is English ON PURPOSE (debug, QA, ids compared in code, art data, proper nouns).
+# Blank lines and lines starting with # are ignored. Not line numbers, so edits do not break it.
+# Also left English by design (not caught by the patterns, listed so the decision is on record):
+#   Action bar labels for mods' unknown actions (AB.autoLabel); the no-verb WORKING word is a key.
+#   Hardware marks on the radio glass: FM, AM, CD, MHz, CH, TX, P1 to P6, PREMIUM TECHNOLOGIES, VALUTECH.
+#   Dash badge maker and model names in DashPx.lua; words painted into plate art (watch, radio, dash).
+#   Radio preset names saved into the device ("Preset N", "98.4 MHz"): game data.
+#   Fleet detection in ZeD_Dashboard (SERVICES, TAXI / FIRE) compares English liveries.
+#   _zedLabel and ZeD.Safe.register names: internal ids. Watch PM mark P and units C / F: symbols.
+#   Print-media word parser patterns ([image], (continued, See page): match the pieces' own vanilla text.
+#   Skill-book title stripping only matches English titles; other languages show the full title.
+#   Roman numerals for book volumes. Disorder / zone auto-names saved into the game keep their creation language.
+#   Developer-only text: "Tab content placeholder" in the character window, F9 overlays, QA labels.
+
+# Genome cheat buttons: drawn only while vanilla's AnimalContextMenu.cheat is on (debug only).
+AnimalsTab.lua|Dominant
+AnimalsTab.lua|Switch
+AnimalsTab.lua|Disorder
+
+# Category record: id "all" is matched by code; CC.categoryLabel("All") translates what is drawn.
+BuildingTab.lua|All
+
+# Category record: id "all" is matched by code; CC.categoryLabel("All") translates what is drawn.
+CraftingTab.lua|All
+
+# Action ids (label= is only the id the click handler compares); the drawn word is the next value, a ZeD.tr key.
+EquipmentTab.lua|putback
+EquipmentTab.lua|detach
+EquipmentTab.lua|attach
+
+# Mode ids ("danger", "active") for the progress strip; the drawn word is the ZeD.tr label beside them.
+ItemActionHooks.lua|danger
+ItemActionHooks.lua|active
+
+# Old stat, alert and nutrition builders: only counted to size the card body (their rows are never drawn here; the live card draws through ItemCardOrganism and ItemFactsPanel, which use keys and vanilla words). Safe to delete later.
+ItemCard.lua|Broken
+ItemCard.lua|Wet
+ItemCard.lua|Rotten
+ItemCard.lua|Burnt
+ItemCard.lua|Frozen
+ItemCard.lua|Tainted
+ItemCard.lua|Equipped
+ItemCard.lua|Fav
+ItemCard.lua|Bloody
+ItemCard.lua|Dirty
+ItemCard.lua|Raw!
+ItemCard.lua|Damage
+ItemCard.lua|Speed
+ItemCard.lua|Range
+ItemCard.lua|Crit
+ItemCard.lua|Knockback
+ItemCard.lua|Tree dmg
+ItemCard.lua|Ammo
+ItemCard.lua|Ammo type
+ItemCard.lua|Hunger
+ItemCard.lua|Thirst
+ItemCard.lua|Boredom
+ItemCard.lua|Alcohol
+ItemCard.lua|Poison
+ItemCard.lua|Temp
+ItemCard.lua|Note
+ItemCard.lua|Status
+ItemCard.lua|Bite def.
+ItemCard.lua|Scratch
+ItemCard.lua|Move pen.
+ItemCard.lua|Fabric
+ItemCard.lua|Wetness
+ItemCard.lua|Contents
+ItemCard.lua|Amount
+ItemCard.lua|Calories
+ItemCard.lua|Proteins
+ItemCard.lua|Carbs
+ItemCard.lua|Fat
+ItemCard.lua|Quality
+ItemCard.lua|Capacity
+ItemCard.lua|Max weight
+ItemCard.lua|Skill
+ItemCard.lua|Level
+ItemCard.lua|Max level
+ItemCard.lua|Pages
+ItemCard.lua|Uses
+ItemCard.lua|Key ID
+ItemCard.lua|Brightness
+ItemCard.lua|Freshness
+ItemCard.lua|Fill
+ItemCard.lua|Read
+ItemCard.lua|Condition
+ItemCard.lua|Serving Size
+ItemCard.lua|Total Fat
+ItemCard.lua|  Sat. Fat
+ItemCard.lua|  Trans Fat
+ItemCard.lua|Cholesterol
+ItemCard.lua|Sodium
+ItemCard.lua|Total Carb
+ItemCard.lua|  Fiber
+ItemCard.lua|  Sugars
+ItemCard.lua|Protein
+ItemCard.lua|hverb_
+
+# Category record: shared with CraftingCore, which uses the id and label; the drawn name goes through CC.categoryLabel.
+JournalTab.lua|All
+
+# Map icon and colour names: never drawn (only the first letter shows when a texture is missing).
+MapsTab.lua|House
+MapsTab.lua|Target
+MapsTab.lua|Skull
+MapsTab.lua|Star
+MapsTab.lua|Cross
+MapsTab.lua|Heart
+MapsTab.lua|Alert
+MapsTab.lua|Question
+MapsTab.lua|Fire
+MapsTab.lua|Gun
+MapsTab.lua|Food
+MapsTab.lua|Axe
+MapsTab.lua|Gears
+MapsTab.lua|Check
+MapsTab.lua|Pencil
+MapsTab.lua|Black
+MapsTab.lua|Blue
+MapsTab.lua|Red
+MapsTab.lua|Green
+
+# Busy-state id compared by code ("walking"); the drawn words are the UI_ZeD_Lock_Busy keys.
+ObjectCardLock.lua|walking
+
+# Plate catalogue titles: generated art data, never drawn.
+PhysPx.lua|Green range, 1956
+PhysPx.lua|Red range, 1962
+PhysPx.lua|Grey range, 1985
+PhysPx.lua|Modern range, 1992
+PhysPx.lua|Industrial range, 1980
+PhysPx.lua|Large modern oven
+PhysPx.lua|Fryers Club fryer
+PhysPx.lua|White touchpad microwave, 1990
+PhysPx.lua|Chrome microwave, 1979
+PhysPx.lua|Red generator, 1988
+PhysPx.lua|Yellow contractor's generator
+PhysPx.lua|Blue compact generator, 1991
+PhysPx.lua|Old military generator, 1960s
+PhysPx.lua|Propane grill (Jorge Foreguy), 1993
+PhysPx.lua|Premium Technologies CD receiver
+PhysPx.lua|ValuTech radio
+PhysPx.lua|makeshift radio
+PhysPx.lua|Premium Technologies two-way
+PhysPx.lua|US Army two-way
+PhysPx.lua|makeshift two-way
+PhysPx.lua|siren controller
+PhysPx.lua|no-watch speed keys
+PhysPx.lua|CaZio digital, black
+PhysPx.lua|CaZio digital, gold
+PhysPx.lua|Timez Triathlon, red
+PhysPx.lua|Timez Triathlon, steel
+PhysPx.lua|CaZio classic, black
+PhysPx.lua|CaZio classic, gold
+PhysPx.lua|Timez Easy Reader
+PhysPx.lua|Timez Camper
+PhysPx.lua|Rollex
+
+# Debug menu, only when getDebug() is on.
+ZeD_MainMenu.lua|Debug
+ZeD_MainMenu.lua|Reset Lua
+ZeD_MainMenu.lua|Scenarios
+
+# The game's own name on the desktop icon: a proper noun, as on the box.
+ZeD_MainMenuDesktop.lua|Project Zomboid
+
+# F9 cone-nav debug overlay (debug only).
+FocusManager.lua|[F9] cone-nav debug - focus: 

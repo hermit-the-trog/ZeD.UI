@@ -51,6 +51,16 @@ OC.call = call
 
 function OC.register(def) OC.kinds[def.id] = def end
 
+-- The game's own display name for an item type ("Base.Lighter" or "Lighter"), else fb.
+function OC.itemName(fullType, fb)
+    local ft = tostring(fullType)
+    if not ft:find(".", 1, true) then ft = "Base." .. ft end
+    local si = getScriptManager():FindItem(ft)
+    local n = si and call(si, "getDisplayName")
+    if n and n ~= "" then return n end
+    return fb or tostring(fullType)
+end
+
 function OC.keyOf(sq, tag)
     if not sq then return tostring(tag) end
     return tostring(sq:getX()) .. "," .. tostring(sq:getY()) .. "," .. tostring(sq:getZ()) .. ":" .. tostring(tag)
@@ -88,18 +98,18 @@ end
 function OC.hm(minutes)
     minutes = math.max(0, math.floor((minutes or 0) + 0.5))
     local h, m = math.floor(minutes / 60), minutes % 60
-    if h > 0 and m > 0 then return tostring(h) .. " h " .. tostring(m) .. " m" end
-    if h > 0 then return tostring(h) .. " h" end
-    return tostring(m) .. " m"
+    if h > 0 and m > 0 then return ZeD.tr("UI_ZeD_ObjCard_HoursMinutes", h, m) end
+    if h > 0 then return ZeD.tr("UI_ZeD_ObjCard_Hours", h) end
+    return ZeD.tr("UI_ZeD_ObjCard_Minutes", m)
 end
 
 -- Where an item sits, for list rows: INVENTORY or the bag's name.
 function OC.whereOf(item, player)
     local c = item and call(item, "getContainer")
-    if not c or c == player:getInventory() then return "INVENTORY" end
+    if not c or c == player:getInventory() then return ZeD.tr("UI_ZeD_ObjCard_WhereInventory") end
     local bag = call(c, "getContainingItem")
     local n = bag and call(bag, "getDisplayName")
-    return n and string.upper(n) or "NEARBY"
+    return n and ZeD.upper(n) or ZeD.tr("UI_ZeD_ObjCard_WhereNearby")
 end
 
 -- Open the card on an object (World window opens if needed).
@@ -376,7 +386,7 @@ function UI.pick(card, x, y, w, opts)
     local h = T.px(26)
     local isz = T.px(16)
     if opts.tex then card:drawTextureScaledAspect(opts.tex, x + T.px(2), y + math.floor((h - isz) / 2), isz, isz, 1, 1, 1, 1) end
-    local bw = UI.buttonW(opts.button or "ADD")
+    local bw = UI.buttonW(opts.button or getText("UI_btn_add"))
     local bx = x + w - bw - T.px(2)
     local by = y + math.floor((h - T.px(20)) / 2)
     local rx = bx - T.px(8)
@@ -403,7 +413,7 @@ function UI.pick(card, x, y, w, opts)
     local nc = (opts.enabled == false) and T.textDim or T.text
     card:drawText(nstr, nx, y + math.floor((h - tm:getFontHeight(T.fontF2)) / 2), nc.r, nc.g, nc.b, nc.a or 1, T.fontF2)
     local focused = card._fid == opts.fid
-    UI.button(card, bx, by, opts.button or "ADD", { h = T.px(20), disabled = opts.enabled == false, focused = focused })
+    UI.button(card, bx, by, opts.button or getText("UI_btn_add"), { h = T.px(20), disabled = opts.enabled == false, focused = focused })
     card:drawRect(x, y + h - T.px(1), w, T.px(1), T.border.a, col(T.border))
     if opts.fid then
         card:zone({ fid = opts.fid, x = bx, y = by, w = bw, h = T.px(20), body = true,
@@ -469,18 +479,18 @@ function UI.cookRows(card, x, y, w, container, on)
                 local toCook = call(it, "getMinutesToCook") or 0
                 local toBurn = call(it, "getMinutesToBurn") or 0
                 if call(it, "isBurnt") then
-                    tag, mode, p = "BURNT", "dng", 1
+                    tag, mode, p = ZeD.tr("UI_ZeD_ObjCard_TagBurnt"), "dng", 1
                 elseif call(it, "isCooked") or (toCook > 0 and ct >= toCook) then
                     if on then
-                        tag, mode = "BURNING", "dng"
+                        tag, mode = ZeD.tr("UI_ZeD_ObjCard_TagBurning"), "dng"
                         p = math.max(0, math.min(1, (ct - toCook) / math.max(1, toBurn - toCook)))
                         left = math.max(0, math.ceil(toBurn - ct))
                     else
-                        tag, mode = "COOKED", "pos"
+                        tag, mode = ZeD.tr("UI_ZeD_ObjCard_TagCooked"), "pos"
                     end
                 else
                     p = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
-                    tag, mode = on and "COOKING" or "RAW", on and "acc" or "dim"
+                    tag, mode = on and ZeD.tr("UI_ZeD_ObjCard_TagCooking") or ZeD.tr("UI_ZeD_ObjCard_TagRaw"), on and "acc" or "dim"
                     left = on and math.max(0, math.ceil(toCook - ct)) or nil
                 end
             end
@@ -501,7 +511,7 @@ function UI.cookRows(card, x, y, w, container, on)
                 card:drawRect(bx, by, barW, bh, T.surf2.a, col(T.surf2))
                 card:drawRectBorder(bx, by, barW, bh, T.borderS.a, col(T.borderS))
                 card:drawRect(bx + T.px(1), by + T.px(1), math.floor((barW - T.px(2)) * p), bh - T.px(2), 1, col(mc))
-                local ptxt = left and (tostring(left) .. "m") or (mode == "pos" and "DONE" or (tostring(math.floor(p * 100 + 0.5)) .. "%"))
+                local ptxt = left and ZeD.tr("UI_ZeD_ObjCard_MinLeft", left) or (mode == "pos" and ZeD.tr("UI_ZeD_ObjCard_Done") or (tostring(math.floor(p * 100 + 0.5)) .. "%"))
                 ZeD.Atoms.drawTextRight(card, ptxt, rx, y + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, mode == "dng" and T.danger or T.text)
             end
             card:drawRect(x, y + rowH - T.px(1), w, T.px(1), T.border.a, col(T.border))
@@ -582,8 +592,8 @@ function UI.needle(card, cx, cy, r, frac, label, lowZone)
     if lowZone then for d = -56, -42, 2 do UI.run(card, cx, cy, d, r - T.px(4), r - T.px(1), HW.red, T.px(2)) end end
     for _, d in ipairs({ -60, -30, 0, 30, 60 }) do UI.run(card, cx, cy, d, r - T.px(7), r - T.px(3), HW.tick, T.px(1)) end
     local f5 = T.fontF5
-    card:drawText("E", cx - r - T.px(2), cy - ZeD.TM:getFontHeight(f5) + T.px(2), HW.tick.r, HW.tick.g, HW.tick.b, 1, f5)
-    ZeD.Atoms.drawTextRight(card, "F", cx + r + T.px(2), cy - ZeD.TM:getFontHeight(f5) + T.px(2), f5, HW.tick)
+    card:drawText(ZeD.tr("UI_ZeD_ObjCard_GaugeE"), cx - r - T.px(2), cy - ZeD.TM:getFontHeight(f5) + T.px(2), HW.tick.r, HW.tick.g, HW.tick.b, 1, f5)
+    ZeD.Atoms.drawTextRight(card, ZeD.tr("UI_ZeD_ObjCard_GaugeF"), cx + r + T.px(2), cy - ZeD.TM:getFontHeight(f5) + T.px(2), f5, HW.tick)
     UI.run(card, cx, cy, -60 + 120 * math.max(0, math.min(1, frac or 0)), 0, r - T.px(4), HW.needle, T.px(2))
     UI.disc(card, cx, cy, T.px(4), HW.ledRim)
     if label then
@@ -874,7 +884,7 @@ function ZeD_ObjectCard:prerender()
     -- the confirm footer grows to fit its question (two lines at most)
     local footH, footLines = 0, nil
     if self._confirm then
-        local textW = w - UI.buttonW(self._confirm.yes) - UI.buttonW("CANCEL") - T.px(8 + 6 + 10 + 22)
+        local textW = w - UI.buttonW(self._confirm.yes) - UI.buttonW(getText("UI_Cancel")) - T.px(8 + 6 + 10 + 22)
         footLines = ZeD.Atoms.wrapText(self._confirm.text, T.fontF2, textW) or { self._confirm.text }
         if #footLines > 2 then
             footLines = { footLines[1], ZeD.CraftingCore.truncText(table.concat(footLines, " ", 2), T.fontF2, textW) }
@@ -944,11 +954,11 @@ function ZeD_ObjectCard:prerender()
         self:drawRect(0, fy, w, footH, 0.12, dg.r, dg.g, dg.b)
         self:drawRect(0, fy, w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
         local yesW = UI.buttonW(self._confirm.yes)
-        local noW = UI.buttonW("CANCEL")
+        local noW = UI.buttonW(getText("UI_Cancel"))
         local btnY = fy + math.floor((footH - T.px(22)) / 2)
         local yesX = w - T.px(8) - yesW
         local noX = yesX - T.px(6) - noW
-        UI.button(self, noX, btnY, "CANCEL", { focused = self._fid == "oc:confirm:no" })
+        UI.button(self, noX, btnY, getText("UI_Cancel"), { focused = self._fid == "oc:confirm:no" })
         UI.button(self, yesX, btnY, self._confirm.yes, { primary = true, focused = self._fid == "oc:confirm:yes" })
         local cf = self._confirm
         self:zone({ fid = "oc:confirm:no", x = noX, y = btnY, w = noW, h = T.px(22), run = function() self._confirm = nil end, foot = true })
@@ -1131,7 +1141,7 @@ function ZeD_ObjectCard:buildFocusables(win)
                     if zz.dpad(dir) then return nil end
                     return false
                 end or nil,
-                promptB = confirming and "Cancel" or "Close card",
+                promptB = confirming and getText("UI_Cancel") or ZeD.tr("UI_ZeD_ObjCard_CloseCard"),
             }
         end
     end

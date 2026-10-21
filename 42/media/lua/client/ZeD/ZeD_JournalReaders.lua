@@ -43,10 +43,10 @@ local RULE    = { r = 0.725, g = 0.776, b = 0.839 }
 local MARGIN  = { r = 0.827, g = 0.604, b = 0.573 }
 
 local FILTERS = {
-    { id = "all",   label = "All" },
-    { id = "news",  label = "News" },
-    { id = "flyer", label = "Flyers" },
-    { id = "map",   label = "On map" },
+    { id = "all",   key = "UI_All" },                  -- (the game's own "All")
+    { id = "news",  key = "UI_ZeD_Papers_FilterNews" },
+    { id = "flyer", key = "UI_ZeD_Papers_FilterFlyers" },
+    { id = "map",   key = "UI_ZeD_Papers_FilterOnMap" },
 }
 
 local function fh(f) return ZeD.TM:getFontHeight(f) end
@@ -229,9 +229,9 @@ local function thumb(panel, e, x, y, w, h, a)
 end
 
 local function subLine(e)
-    local s = e.kind
+    local s = P.kindName(e.kind)
     if e.date then s = s .. " | " .. e.date end
-    if e.read and e.places > 0 then s = s .. " | " .. (e.places == 1 and "1 place" or (e.places .. " places")) end
+    if e.read and e.places > 0 then s = s .. " | " .. (e.places == 1 and ZeD.tr("UI_ZeD_Papers_PlaceOne") or ZeD.tr("UI_ZeD_Papers_PlaceMany", e.places)) end
     return s
 end
 
@@ -271,8 +271,9 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
             if e.read then nRead = nRead + 1 end
             if e.read and e.places > 0 then nMap = nMap + 1 end
         end
-        local count = nRead .. " read of " .. #carried.papers .. " carried"
-        if nMap > 0 then count = count .. " | " .. nMap .. " with places" end
+        local count
+        if nMap > 0 then count = ZeD.tr("UI_ZeD_Papers_CountWithPlaces", nRead, #carried.papers, nMap)
+        else count = ZeD.tr("UI_ZeD_Papers_Count", nRead, #carried.papers) end
         local dc = T.textDim
         panel:drawText(count, lx, cy, dc.r, dc.g, dc.b, dc.a or 1, f3)
         cy = cy + fh(f3) + T.sp.sm
@@ -280,9 +281,10 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
         local ph = fh(f1) + T.px(8)
         local fx = lx
         for _, f in ipairs(FILTERS) do
-            local pw = tw(f1, ZeD.btnCase(f.label)) + T.sp.sm * 2
+            local flabel = ZeD.tr(f.key)
+            local pw = tw(f1, ZeD.btnCase(flabel)) + T.sp.sm * 2
             -- (the chosen one in accent; the others plain, so the choice reads at a glance)
-            ZeD.Atoms.drawPillButton(panel, fx, cy, pw, ph, f.label, s.filter == f.id, false, f1)
+            ZeD.Atoms.drawPillButton(panel, fx, cy, pw, ph, flabel, s.filter == f.id, false, f1)
             local zid = "filter:" .. f.id
             if J._fid == "jr:" .. zid then
                 local ac = T.accent
@@ -296,7 +298,7 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
         cy = cy + T.px(1)
         local list = filtered(win, carried.papers)
         if #list == 0 then
-            local msg = (#carried.papers == 0) and "Nothing to read on you" or "None of these on you"
+            local msg = (#carried.papers == 0) and ZeD.tr("UI_ZeD_Papers_NoneCarried") or ZeD.tr("UI_ZeD_Papers_NoneMatch")
             ZeD.Atoms.drawSecondary(panel, msg, lx, cy + T.sp.md, T.textDim)
             return cy + T.sp.md + fh(f1)
         end
@@ -313,7 +315,7 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
             local a = e.read and 1 or 0.45
             thumb(panel, e, lx, cy + T.px(6), thW, thH, a)
             -- the read state, right: a dot and plain words
-            local state = e.read and "Read" or "Not read yet"
+            local state = e.read and ZeD.tr("UI_ZeD_Papers_StateRead") or ZeD.tr("UI_ZeD_Papers_StateUnread")
             local sw = tw(f3, state)
             local dsz = T.px(6)
             local sx = lx + lw - sw
@@ -368,7 +370,7 @@ local function drawWords(panel, blocks, x, y, w)
             end
             y = y + T.px(4)
         elseif b.kind == "pic" then
-            local lines = A.wrapText("Picture: " .. b.text, f3, w - T.px(16))
+            local lines = A.wrapText(ZeD.tr("UI_ZeD_Reader_Picture", b.text), f3, w - T.px(16))
             local bh = #lines * (fh(f3) + T.px(2)) + T.px(12)
             local bs = T.borderS
             panel:drawRectBorder(x, y, w, bh, bs.a, bs.r, bs.g, bs.b)
@@ -408,10 +410,10 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
         local cy = top + T.sp.sm
         local lx, lw = x + pad, dw - pad * 2
         -- the bar: Back, the name, Open full (a piece read already)
-        local bw = button(panel, win, "back", lx, cy, "Back", back, "default", { cancel = back })
+        local bw = button(panel, win, "back", lx, cy, getText("UI_btn_back"), back, "default", { cancel = back })
         local ofw = 0
         if e.read then
-            local label = "Open full"
+            local label = ZeD.tr("UI_ZeD_Papers_OpenFull")
             ofw = tw(f3, ZeD.btnCase(label)) + T.sp.md * 2
             button(panel, win, "full", lx + lw - ofw, cy, label, function()
                 ZeD.Reader.openPrint(p, e.item)
@@ -430,7 +432,7 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
         panel:drawRectBorder(lx, cy, thW, thH, bd.a * 0.5, bd.r, bd.g, bd.b)
         local rx = lx + thW + T.sp.md
         local rw = lx + lw - rx
-        local ry = section(panel, "THIS PIECE", rx, cy, rw)
+        local ry = section(panel, ZeD.tr("UI_ZeD_Reader_HeadPiece"), rx, cy, rw)
         local ac, tc = T.accent, T.text
         local function kv(k, v, dot)
             panel:drawText(k, rx, ry + T.px(2), ac.r, ac.g, ac.b, ac.a or 1, f1)
@@ -443,25 +445,25 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
             panel:drawText(trunc(v, f2, rx + rw - vx), vx, ry, tc.r, tc.g, tc.b, tc.a or 1, f2)
             ry = ry + fh(f2) + T.px(5)
         end
-        kv("KIND", e.kind)
-        if e.date then kv("DATE", e.date) end
-        kv("READ", e.read and "Yes" or "Not yet", e.read and T.positive or T.textDim)
+        kv(ZeD.tr("UI_ZeD_Reader_LabelKind"), P.kindName(e.kind))
+        if e.date then kv(ZeD.tr("UI_ZeD_Reader_LabelDate"), e.date) end
+        kv(ZeD.tr("UI_ZeD_Reader_LabelRead"), e.read and getText("UI_Yes") or ZeD.tr("UI_ZeD_Reader_NotYet"), e.read and T.positive or T.textDim)
         ry = ry + T.sp.sm
         if not e.read then
             -- reading is vanilla's action: light, time, then the words and the places
             local dark = p:tooDarkToRead()
-            button(panel, win, "read", rx, ry, "Read", function() readPiece(win, e) end, "primary", { disabled = dark, cancel = back })
+            button(panel, win, "read", rx, ry, getText("ContextMenu_Read"), function() readPiece(win, e) end, "primary", { disabled = dark, cancel = back })
             ry = ry + T.buttonH + T.px(4)
             if dark then
                 local dc = T.textDim
-                panel:drawText("Too dark to read", rx, ry, dc.r, dc.g, dc.b, dc.a or 1, f3)
+                panel:drawText(ZeD.tr("UI_ZeD_Papers_TooDark"), rx, ry, dc.r, dc.g, dc.b, dc.a or 1, f3)
                 ry = ry + fh(f3)
             end
         elseif e.places > 0 then
-            ry = section(panel, "PLACES", rx, ry + T.sp.sm, rw)
+            ry = section(panel, ZeD.tr("UI_ZeD_Reader_HeadPlaces"), rx, ry + T.sp.sm, rw)
             local places = P.places(e.m)
             for i, loc in ipairs(places) do
-                local label = (#places == 1) and "Show on map" or ("Show place " .. i)
+                local label = (#places == 1) and ZeD.tr("UI_ZeD_Reader_ShowOnMap") or ZeD.tr("UI_ZeD_Papers_ShowPlaceN", i)
                 button(panel, win, "place:" .. i, rx, ry, label, function()
                     P.showOnMap(p, loc)
                 end, "primary", { cancel = back })
@@ -474,8 +476,8 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
         local blocks = P.words(e.m)
         if #blocks == 0 then return cy end
         local heads = P.headlines(pg)
-        local label = "THE WORDS"
-        if #heads > 1 then label = "ON THIS PAGE: " .. #heads .. " STORIES" end
+        local label = ZeD.tr("UI_ZeD_Papers_HeadWords")
+        if #heads > 1 then label = ZeD.tr("UI_ZeD_Papers_HeadStories", #heads) end
         cy = section(panel, label, lx, cy, lw)
         local wordsTop = cy
         cy = drawWords(panel, blocks, lx, cy, lw)
@@ -565,7 +567,7 @@ function J.writeNote(win)
     local why = N.why(p, b)
     if why then s.msg = why; return end
     local page = pageOf(win, b)
-    if not N.fits(N.append(N.page(b, page), text)) then s.msg = "No room left on this page"; return end
+    if not N.fits(N.append(N.page(b, page), text)) then s.msg = ZeD.tr("UI_ZeD_Notebook_NoRoomPage"); return end
     s.msg = nil
     sound("UIActivateButton")
     s.pending = N.write(p, b, page, text, function()
@@ -577,9 +579,9 @@ end
 local function bookSub(p, b)
     local kind = N.kind(b)
     local n, all = N.pagesWritten(b), b:getPageToWrite()
-    if N.otherLock(p, b) then return "Locked | " .. n .. (n == 1 and " page" or " pages") end
-    if n == 0 then return kind .. " | blank | " .. all .. " pages" end
-    return kind .. " | " .. n .. " of " .. all .. " pages"
+    if N.otherLock(p, b) then return n == 1 and ZeD.tr("UI_ZeD_Notebook_SubLockedOne") or ZeD.tr("UI_ZeD_Notebook_SubLockedMany", n) end
+    if n == 0 then return ZeD.tr("UI_ZeD_Notebook_SubBlank", kind, all) end
+    return ZeD.tr("UI_ZeD_Notebook_SubWritten", kind, n, all)
 end
 
 -- the page small: ruled paper with its margin, the writing in ink; as tall as its
@@ -624,7 +626,7 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         local cy = top + T.sp.sm
         local lx, lw = x + pad, dw - pad * 2
         if #list == 0 then
-            local msg = (#carried.books == 0) and "No notebook on you" or "None of your notebooks has that"
+            local msg = (#carried.books == 0) and ZeD.tr("UI_ZeD_Notebook_NoneCarried") or ZeD.tr("UI_ZeD_Notebook_NoneMatch")
             ZeD.Atoms.drawSecondary(panel, msg, lx, cy + T.sp.md, T.textDim)
             return cy + T.sp.md + fh(f1)
         end
@@ -661,14 +663,14 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         local all = b:getPageToWrite()
         local bx = px
         bx = bx + button(panel, win, "prev", bx, py, "<", function() s.nbPage[b:getID()] = page - 1; s.msg = nil end, "default", { disabled = page <= 1 }) + T.px(6)
-        local pl = "Page " .. page .. " of " .. all
+        local pl = ZeD.tr("UI_ZeD_Reader_PageOf", page, all)
         panel:drawText(pl, bx, py + math.floor((T.buttonH - fh(f3)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f3)
         bx = bx + tw(f3, pl) + T.px(6)
         button(panel, win, "next", bx, py, ">", function() s.nbPage[b:getID()] = page + 1; s.msg = nil end, "default", { disabled = page >= all })
         local other = N.otherLock(p, b)
         local editable = N.hasWritingTool(p) and not other
         local canOpen = editable or not b:isEmptyPages()
-        local fl = "Open full"
+        local fl = ZeD.tr("UI_ZeD_Papers_OpenFull")
         local fw = tw(f3, ZeD.btnCase(fl)) + T.sp.md * 2
         button(panel, win, "full", px + pw - fw, py, fl, function()
             ISInventoryPaneContextMenu.onWriteSomething(b, editable, p:getPlayerNum())
@@ -677,11 +679,11 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         py = py + miniPage(panel, b, page, px, py, pw) + T.sp.sm
         -- the quick note: a line onto this page
         local why = N.why(p, b)
-        local wl = "Write"
+        local wl = ZeD.tr("UI_ZeD_Notebook_Write")
         local ww = tw(f3, ZeD.btnCase(wl)) + T.sp.md * 2
         local fh2 = T.px(40)
         local fr = { x = px, y = py, w = pw - ww - T.sp.sm, h = fh2 }
-        field.placeholder = "Add a line to page " .. page .. "..."
+        field.placeholder = ZeD.tr("UI_ZeD_Notebook_AddLine", page)
         if fr.x ~= field.x or fr.y ~= field.y then field:setX(fr.x); field:setY(fr.y) end
         if fr.w ~= field.width or fr.h ~= field.height then field:setWidth(fr.w); field:setHeight(fr.h) end
         local bs = T.borderS
@@ -694,12 +696,12 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         py = py + fh2 + T.px(6)
         -- the line under it: why not, or what is left
         local status
-        if writing then status = "Writing..."
+        if writing then status = ZeD.tr("UI_ZeD_Notebook_Writing")
         elseif s.msg then status = s.msg
         elseif why then status = why
         else
             local left = N.LINES - N.linesOf(N.page(b, page))
-            status = "Pencil or pen at hand | light enough | " .. left .. (left == 1 and " line" or " lines") .. " left on this page"
+            status = (left == 1) and ZeD.tr("UI_ZeD_Notebook_ReadyOne") or ZeD.tr("UI_ZeD_Notebook_ReadyMany", left)
         end
         panel:drawText(trunc(status, f3, pw), px, py, dc.r, dc.g, dc.b, dc.a or 1, f3)
         py = py + fh(f3)
@@ -719,8 +721,8 @@ end
 
 -- the search box's words for the sub-tab
 function J.searchHint(sub)
-    if sub == 2 then return "Find in your notes..." end
-    return "Find a paper..."
+    if sub == 2 then return ZeD.tr("UI_ZeD_Notebook_Find") end
+    return ZeD.tr("UI_ZeD_Papers_Find")
 end
 
 -- the search box shows on the lists, not in a quick look
@@ -750,7 +752,7 @@ function J.drawLogInto(panel, win, x, y, maxW, h)
     local books = gather(win).books
     if #books == 0 then s.logInto = nil; return 0 end
     local b = logBook(win)
-    local label = "Into: " .. (b and b:getName() or "the log only")
+    local label = ZeD.tr("UI_ZeD_Notebook_Into", b and b:getName() or ZeD.tr("UI_ZeD_Notebook_LogOnly"))
     local f1 = T.fontF1
     local pw = math.min(maxW, tw(f1, label) + T.sp.sm * 2)
     ZeD.Atoms.drawPillButton(panel, x, y, pw, h, trunc(label, f1, pw - T.sp.sm * 2), b ~= nil, true, f1)
@@ -769,7 +771,7 @@ function J.drawLogInto(panel, win, x, y, maxW, h)
     end })
     -- why the last Save did not write, or that it is writing
     local note = nil
-    if s.logPending and ISTimedActionQueue.hasAction(s.logPending) then note = "Writing..."
+    if s.logPending and ISTimedActionQueue.hasAction(s.logPending) then note = ZeD.tr("UI_ZeD_Notebook_Writing")
     else s.logPending = nil; note = s.logMsg end
     if note then
         local dc = T.textDim
@@ -810,7 +812,7 @@ function J.saveLog(win, text)
     local why = N.why(p, b)
     if why then s.logMsg = why; return true end
     local page = N.pageFor(b, text)
-    if not page then s.logMsg = "No room in " .. b:getName(); return true end
+    if not page then s.logMsg = ZeD.tr("UI_ZeD_Notebook_NoRoomIn", b:getName()); return true end
     s.logMsg = nil
     local name = b:getName()
     s.logPending = N.write(p, b, page, text, function(pg)

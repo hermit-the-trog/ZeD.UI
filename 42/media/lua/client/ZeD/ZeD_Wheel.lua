@@ -22,6 +22,7 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
+require "ZeD/ContextMenuRegistry"
 
 ZeD = ZeD or {}
 ZeD.Wheel = ZeD.Wheel or {}
@@ -61,9 +62,11 @@ local function zicon(name)
 end
 
 -- the slice's words first (several vanilla slices share one picture)
+-- ({ English words, icon, vanilla key that says the same in the player's language })
 local TEXT_ICONS = {
-    { "survival guide", "info-guide" }, { "mini-map", "map-marker" }, { "mini map", "map-marker" },
-    { "shout", "bullhorn" },
+    { "survival guide", "info-guide", "UI_optionscreen_binding_Toggle Survival Guide" },
+    { "mini-map", "map-marker", "IGUI_MiniMap_Toggle" }, { "mini map", "map-marker", "IGUI_MiniMap_Focus" },
+    { "shout", "bullhorn", "IGUI_Emote_Shout" },
 }
 -- vanilla's pictures that stay
 local KEEP = { "emotes/", "firearmradial", "zoomin", "zoomout", "speedcontrols", "lightsourceradial",
@@ -86,8 +89,8 @@ local TEX_ICONS = {
 }
 -- the item and the words vanilla adds with no action carry no name of their own
 local OFF_NAMES = {
-    { "vehicle_ignition", "Engine" }, { "vehicle_sleep", "Sleep" }, { "vehicle_repair", "Vehicle Mechanics" },
-    { "item_petrol", "Gasoline" },
+    { "vehicle_ignition", "IGUI_VehiclePartEngine" }, { "vehicle_sleep", "ContextMenu_Sleep" }, { "vehicle_repair", "ContextMenu_VehicleMechanics" },
+    { "item_petrol", "Fluid_Name_Petrol" },
 }
 
 local function texName(tex)
@@ -101,7 +104,10 @@ end
 function W.picture(slice)
     local text = lower(slice.text)
     for _, m in ipairs(TEXT_ICONS) do
-        if text:find(m[1], 1, true) then local t = zicon(m[2]); if t then return t, true end end
+        local own = m[3] and getTextOrNull and getTextOrNull(m[3])
+        if text:find(m[1], 1, true) or (own and own ~= "" and text:find(lower(own), 1, true)) then
+            local t = zicon(m[2]); if t then return t, true end
+        end
     end
     local name = texName(slice.texture)
     for _, k in ipairs(KEEP) do
@@ -111,6 +117,12 @@ function W.picture(slice)
         if name:find(m[1], 1, true) then local t = zicon(m[2]); if t then return t, true end end
     end
     local first = tostring(slice.text or ""):match("^[^\n]*")
+    -- by the registry, so the name in the player's language finds its icon (not only the English text)
+    local R = ZeD.ContextMenu and ZeD.ContextMenu.Registry
+    if R and R.resolveIconForName and first and first ~= "" then
+        local ok, t = pcall(R.resolveIconForName, first)
+        if ok and t then return t, true end
+    end
     local ci = ZeD.ContextIcons and first and ZeD.ContextIcons[first]
     if ci then local t = zicon(ci); if t then return t, true end end
     return slice.texture, false
@@ -139,7 +151,7 @@ end
 
 local function offName(slice)
     local name = texName(slice.texture)
-    for _, m in ipairs(OFF_NAMES) do if name:find(m[1], 1, true) then return m[2] end end
+    for _, m in ipairs(OFF_NAMES) do if name:find(m[1], 1, true) then return ZeD.tr(m[2]) end end
     return nil
 end
 

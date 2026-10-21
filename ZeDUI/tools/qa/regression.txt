@@ -97,6 +97,8 @@ zedqa_dash19.lua | dash | timeout=480            # every dashboard design on a s
 zedqa_dashpx.lua | dpx | timeout=720             # the pixel-art v6 dashboards (24 cars)
 
 # ---- last: the long one
+zedqa_testlang.lua | tlang | timeout=600       # every screen with the stretched test language (screenshots zqa_tl_*)
+zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
 zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)
 
 # ---- left out: in-game but not self-cleaning, or not safe unattended

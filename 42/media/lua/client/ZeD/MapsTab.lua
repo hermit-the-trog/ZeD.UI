@@ -7,6 +7,7 @@
 -- ============================================================================
 
 require "ZeD/FlyerMap"
+require "ZeD/Tr"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
@@ -491,7 +492,7 @@ local function _placeAnnotationAt(mp, uiX, uiY)
     if not md.ZeD_MapAnnotations then md.ZeD_MapAnnotations = {} end
 
     if toolId == "text" then
-        local noteText = "Note"
+        local noteText = ZeD.tr("UI_ZeD_Map_NoteDefault")
         if win._mapTextEntry then
             local t = win._mapTextEntry:getText()
             if t and t ~= "" then noteText = t end
@@ -545,7 +546,7 @@ local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
     local ink = _mapInk(mp.playerObj, true)
     local canEdit, editWhy = _editAllowed(ink)
 
-    local optDel = ctx:addOption("Delete", mp, function(self2)
+    local optDel = ctx:addOption(getText("ContextMenu_Delete"), mp, function(self2)
         if not _mapInk(self2.playerObj, true).erase then _inkSay(self2.playerObj, "Tooltip_Map_CantErase"); return end
         local md2 = self2.playerObj:getModData()
         if md2.ZeD_MapAnnotations then
@@ -555,7 +556,7 @@ local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
     end)
     if not ink.erase then _optionNeeds(optDel, "Tooltip_Map_CantErase") end
 
-    local optCol = ctx:addOption("Change Color", mp, function(self2)
+    local optCol = ctx:addOption(ZeD.tr("UI_ZeD_Map_ChangeColor"), mp, function(self2)
         local ink2 = _mapInk(self2.playerObj, true)
         local ok2, why2 = _editAllowed(ink2)
         if not ok2 then _inkSay(self2.playerObj, why2); return end
@@ -568,7 +569,7 @@ local function _openAnnotContextMenu(mp, absX, absY, hitIdx)
     end)
     if not canEdit then _optionNeeds(optCol, editWhy) end
 
-    local optEdit = ctx:addOption("Edit Note", mp, function(self2)
+    local optEdit = ctx:addOption(getText("IGUI_Map_EditNote"), mp, function(self2)
         local pwin = self2._parentWin
         if not pwin then return end
         local ok2, why2 = _editAllowed(_mapInk(self2.playerObj, true))
@@ -848,7 +849,7 @@ function ZeD_WorldMap:renderToolCursor()
         self:drawRect(dotX + T.px(1), dotY,     dotSz - T.px(2), T.px(1),        0.4, c.r, c.g, c.b)
         self:drawRect(dotX,     dotY + T.px(1), dotSz,     dotSz - T.px(2), 0.4, c.r, c.g, c.b)
         self:drawRect(dotX + T.px(1), dotY + dotSz - T.px(1), dotSz - T.px(2), T.px(1), 0.4, c.r, c.g, c.b)
-        local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or "Note"
+        local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
         if previewText ~= "" then
             self:drawText(previewText, mx + T.px(6), my - T.px(10), c.r, c.g, c.b, 0.4, T.fontF1)
         end
@@ -908,7 +909,7 @@ function ZeD_WorldMap:renderGamepadCursor()
         local c = colorDef
 
         if win._mapActiveTool == "text" then
-            local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or "Note"
+            local previewText = (win._mapTextEntry and win._mapTextEntry:getText()) or ZeD.tr("UI_ZeD_Map_NoteDefault")
             if previewText ~= "" then
                 self:drawText(previewText, cx + T.px(8), cy - T.px(10), c.r, c.g, c.b, 0.5, T.fontF1)
             end
@@ -1128,7 +1129,7 @@ local function renderMapToolbar(panel, win, x, y, w)
         local f1 = T.fontF1
         local mp = win._worldMapPanel
         local cur = mp and mp.style or "survey"
-        local pills = { { id = "survey", text = "Survey" }, { id = "color", text = "Color" }, { id = "paper", text = "Paper" } }
+        local pills = { { id = "survey", text = ZeD.tr("UI_ZeD_Map_StyleSurvey") }, { id = "color", text = ZeD.tr("UI_ZeD_Map_StyleColor") }, { id = "paper", text = ZeD.tr("UI_ZeD_Map_StylePaper") } }
         local pad = T.px(6)
         local total = 0
         for _, p in ipairs(pills) do p.w = tm:MeasureStringX(f1, p.text) + pad * 2; total = total + p.w end
@@ -1267,14 +1268,14 @@ local _light = { t = -1 }
 local function _mapBlocked(panel, win, x, y, w, h)
     local msg = nil
     if not ZeD.MapsTab.isAllowed() then
-        msg = "MAP UNAVAILABLE"
+        msg = ZeD.tr("UI_ZeD_Map_Unavailable")
     else
         local now = getTimestampMs()
         if _light.who ~= win._playerObj or now - _light.t >= 500 then
             _light.who, _light.t = win._playerObj, now
             _light.dark = ZeD.MapsTab.tooDark(win._playerObj)
         end
-        if _light.dark then msg = "TOO DARK TO READ" end
+        if _light.dark then msg = ZeD.tr("UI_ZeD_Map_TooDark") end
     end
     win._mapBlocked = msg ~= nil
     if not msg then return false end
@@ -1304,8 +1305,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         local s1 = T.surf1
         panel:drawRect(x, y, w, h, s1.a, s1.r, s1.g, s1.b)
         local tm = ZeD.TM
-        local msg1 = "MAP UNFOLDED"
-        local msg2 = "A or click here to fold it back"
+        local msg1 = ZeD.tr("UI_ZeD_Map_Unfolded")
+        local msg2 = ZeD.tr("UI_ZeD_Map_FoldBack")
         local w1 = tm:MeasureStringX(T.fontF1, msg1)
         local w2 = tm:MeasureStringX(T.fontF1, msg2)
         local fh = tm:getFontHeight(T.fontF1)
@@ -1328,7 +1329,7 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
 
     -- Lazy-create inline text entry for map annotations
     if not win._mapTextEntry then
-        local te = ISTextEntryBox:new("Note", 0, 0, T.px(100), T.px(MAP_TEXT_INPUT_H) - T.px(4))
+        local te = ISTextEntryBox:new(ZeD.tr("UI_ZeD_Map_NoteDefault"), 0, 0, T.px(100), T.px(MAP_TEXT_INPUT_H) - T.px(4))
         te:initialise()
         te.zedEntry = true   -- typed text follows the UI scale (ZeD.Text.fitEntry)
         te:setVisible(false)
@@ -1371,7 +1372,7 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         local secH = ZeD.TM:getFontHeight(T.fontF1)
         local centerX = x + math.floor(w / 2)
         local centerY = mapY + math.floor(mapH / 2) - secH
-        local label = "MAP UNAVAILABLE"
+        local label = ZeD.tr("UI_ZeD_Map_Unavailable")
         local labelW = ZeD.TM:MeasureStringX(T.fontF1, label)
         ZeD.Atoms.drawSecondary(panel, label, centerX - math.floor(labelW / 2), centerY, T.textDim)
     end
@@ -1620,7 +1621,7 @@ function ZeD.MapsTab.buildFocusables(win)
             id = "map:canvas:cursor",
             isCanvasCursor = true,
             mapWin = win,      -- the window that owns the map (the pop-out's copies keep it)
-            extraPrompts = { { glyph = "RT LT", label = "Zoom" }, { glyph = "L-STICK", label = "Move" } },
+            extraPrompts = { { glyph = "RT LT", label = getText("UI_Zoom") }, { glyph = "L-STICK", label = ZeD.tr("UI_ZeD_Map_PadMove") } },
             onFocus = function(w, _el)
                 -- Seed cursor on first landing so the crosshair appears
                 -- immediately (not after first D-pad press).
@@ -1919,7 +1920,7 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
         if el.onFocus        then e.onFocus        = function(_, ee)      return el.onFocus(win, ee) end end
         if el.onDpadDir      then e.onDpadDir      = function(_, ee, dir) return el.onDpadDir(win, ee, dir) end end
         e.onCancel = function(_, _ee) ZeD.MapsTab.closePopout(win) end
-        e.promptB  = "Fold"
+        e.promptB  = ZeD.tr("UI_ZeD_Map_PadFold")
         wrapped[#wrapped + 1] = e
     end
 
@@ -1946,7 +1947,7 @@ function ZeD.MapsTab.openPopout(win)
     local sh = getCore():getScreenHeight()
     local pw = math.max(T.px(600), math.floor(sw * 0.72))
     local ph = math.max(T.px(400), math.floor(sh * 0.78))
-    local pop = ZeD_Window:new(math.floor((sw - pw) / 2), math.floor((sh - ph) / 2), pw, ph, "Map")
+    local pop = ZeD_Window:new(math.floor((sw - pw) / 2), math.floor((sh - ph) / 2), pw, ph, getText("IGUI_ItemType_Map"))
     pop:initialise()
     pop:addToUIManager()
     pop._zedLabel     = "MapPopout"

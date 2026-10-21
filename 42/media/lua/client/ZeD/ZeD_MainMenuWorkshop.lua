@@ -29,8 +29,10 @@ local BB = ZeD.BB
 local LIST_SHARE, ROW_H, LABEL_W, PAD, THUMB = 0.32, 44, 128, 12, 96
 
 -- vanilla's visibility numbers (setVisibilityInteger), in the order the screen offers them
-local VIS = { { 0, "Public" }, { 1, "Friends" }, { 3, "Unlisted" }, { 2, "Private" } }
-local VIS_WORD = { [0] = "everyone", [1] = "your Steam friends", [2] = "only you", [3] = "anyone with the link" }
+-- (translation keys: the button names, the "Seen by ..." line under them, and the upload question)
+local VIS = { { 0, "UI_ZeD_Workshop_VisPublic" }, { 1, "UI_ZeD_Workshop_VisFriends" }, { 3, "UI_ZeD_Workshop_VisUnlisted" }, { 2, "UI_ZeD_Workshop_VisPrivate" } }
+local VIS_SEEN = { [0] = "UI_ZeD_Workshop_SeenEveryone", [1] = "UI_ZeD_Workshop_SeenFriends", [2] = "UI_ZeD_Workshop_SeenOnlyYou", [3] = "UI_ZeD_Workshop_SeenLink" }
+local VIS_ASK = { [0] = "UI_ZeD_Workshop_AskEveryone", [1] = "UI_ZeD_Workshop_AskFriends", [2] = "UI_ZeD_Workshop_AskOnlyYou", [3] = "UI_ZeD_Workshop_AskLink" }
 
 local function jlist(l)
     local t = {}
@@ -137,8 +139,8 @@ function ZeD_MMWorkshop:save()
     pcall(function() ok = it:writeWorkshopTxt() end)
     if ok then
         self.unsaved[it:getFolderName()] = nil
-        self:say("Saved to Workshop/" .. it:getFolderName() .. "/workshop.txt")
-    else self:say("Could not write workshop.txt", true) end
+        self:say(ZeD.tr("UI_ZeD_Workshop_Saved", it:getFolderName()))
+    else self:say(ZeD.tr("UI_ZeD_Workshop_SaveFailed"), true) end
     MM.clickSound()
 end
 
@@ -153,9 +155,9 @@ end
 
 -- what keeps it from going up (nil = nothing)
 function ZeD_MMWorkshop:blocker()
-    if BB.trim(self.titleE:getText()) == "" then return "It needs a title" end
-    if BB.trim(self.desc) == "" then return "It needs a description" end
-    if #self.desc > BB.LIMIT then return "The description is over Steam's " .. BB.LIMIT .. " characters" end
+    if BB.trim(self.titleE:getText()) == "" then return ZeD.tr("UI_ZeD_Workshop_NeedTitle") end
+    if BB.trim(self.desc) == "" then return ZeD.tr("UI_ZeD_Workshop_NeedDescription") end
+    if #self.desc > BB.LIMIT then return ZeD.tr("UI_ZeD_Workshop_DescriptionTooLong", BB.LIMIT) end
     if self.contents then return tostring(self.contents) end
     return nil
 end
@@ -200,7 +202,7 @@ function ZeD_MMWorkshop:upload()
         local ok = false
         pcall(function() ok = it:create() end)
         if ok then self.busy = { stage = "create", t0 = MM.now() }
-        else self:say("Steam would not start a new item. Is Steam running and signed in?", true) end
+        else self:say(ZeD.tr("UI_ZeD_Workshop_CreateFailed"), true) end
     end
 end
 
@@ -209,7 +211,7 @@ function ZeD_MMWorkshop:send()
     local ok = false
     pcall(function() ok = it:submitUpdate() end)
     if ok then self.busy = { stage = "send", t0 = MM.now() }
-    else self.busy = nil; self:say("Steam would not take the upload. Is Steam running and signed in?", true) end
+    else self.busy = nil; self:say(ZeD.tr("UI_ZeD_Workshop_SendFailed"), true) end
 end
 
 function ZeD_MMWorkshop:onCreated(itemID, legal)
@@ -223,21 +225,20 @@ end
 function ZeD_MMWorkshop:onNotCreated(result)
     if not self.busy then return end
     self.busy = nil
-    self:say("Steam did not create the item (its answer: " .. tostring(result) .. ")", true)
+    self:say(ZeD.tr("UI_ZeD_Workshop_NotCreated", tostring(result)), true)
 end
 function ZeD_MMWorkshop:onUpdated(legal)
     if not self.busy then return end
     self.busy = nil
     local it = self:item()
-    local msg = "Uploaded. It is item " .. tostring(it and it:getID() or "") .. " on the Workshop."
-    if legal or self.legal then msg = msg .. " Steam asks you to accept the Workshop agreement on its page before others can see it." end
+    local msg = ZeD.tr((legal or self.legal) and "UI_ZeD_Workshop_UploadedLegal" or "UI_ZeD_Workshop_Uploaded", tostring(it and it:getID() or ""))
     self:say(msg)
     self.legal = nil
 end
 function ZeD_MMWorkshop:onNotUpdated(result)
     if not self.busy then return end
     self.busy = nil
-    self:say("The upload did not go through (Steam's answer: " .. tostring(result) .. ")", true)
+    self:say(ZeD.tr("UI_ZeD_Workshop_NotUpdated", tostring(result)), true)
 end
 
 -- (vanilla registers these events only with Steam on; the window listens alongside)
@@ -263,9 +264,9 @@ function ZeD_MMWorkshop:prerender()
     local T = ZeD.T
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
-    self.title = "Project Zomboid  +  Workshop"
+    self.title = ZeD.tr("UI_ZeD_Workshop_Title")
     self.titleStats = {}
-    if not (getSteamModeActive and getSteamModeActive()) then self.titleStats = { { text = "Steam is not running", color = T.danger } } end
+    if not (getSteamModeActive and getSteamModeActive()) then self.titleStats = { { text = ZeD.tr("UI_ZeD_Workshop_NoSteam"), color = T.danger } } end
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
@@ -292,13 +293,13 @@ function ZeD_MMWorkshop:drawFolders(x, y, w, h)
     local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
     UI.insetBox(self, x, y, w, h)
     local la, dim = T.accent, T.textDim
-    self:drawText("YOUR MODS", x + T.px(10), y + T.px(8), la.r, la.g, la.b, la.a or 1, f1)
+    self:drawText(ZeD.tr("UI_ZeD_Workshop_YourMods"), x + T.px(10), y + T.px(8), la.r, la.g, la.b, la.a or 1, f1)
     local vy = y + T.px(8) + MM.fontH(f1) + T.px(8)
     local rh = T.px(ROW_H)
     local ac = T.accent
     local gp = MM.gamepad()
     if #self.items == 0 then
-        self:paneText("No folders in Zomboid/Workshop yet. Copy ModTemplate there, rename it and put your mod in its Contents/mods folder; it shows here.", x + T.px(10), vy, w - T.px(20), f2, dim)
+        self:paneText(ZeD.tr("UI_ZeD_Workshop_NoFolders"), x + T.px(10), vy, w - T.px(20), f2, dim)
     end
     for i, it in ipairs(self.items) do
         local ry = vy + (i - 1) * rh
@@ -315,8 +316,8 @@ function ZeD_MMWorkshop:drawFolders(x, y, w, h)
         local tc = T.textHead
         self:drawText(ZeD.Atoms.truncateText(title, f2, w - T.px(20)), tx, ry + T.px(6), tc.r, tc.g, tc.b, tc.a or 1, f2)
         local id = it:getID()
-        local sub = id and ("On the Workshop | " .. tostring(id)) or "Not on the Workshop yet"
-        if self.unsaved[it:getFolderName()] then sub = sub .. " | not saved" end
+        local sub = id and ZeD.tr("UI_ZeD_Workshop_OnWorkshop", tostring(id)) or ZeD.tr("UI_ZeD_Workshop_NotOnWorkshop")
+        if self.unsaved[it:getFolderName()] then sub = sub .. MM.DOT .. ZeD.tr("UI_ZeD_Workshop_NotSaved") end
         self:drawText(ZeD.Atoms.truncateText(sub, f3, w - T.px(20)), tx, ry + rh - T.px(6) - MM.fontH(f3), dim.r, dim.g, dim.b, dim.a or 1, f3)
         self._hits[#self._hits + 1] = { id = "ws:row:" .. i, x = ax + x, y = ay + ry, w = w, h = rh, fn = function() self:pick(i); self.focusId = rid end }
     end
@@ -412,19 +413,19 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     local bh = T.px(U.STRIP_BTN_H)
     local f2, f3, dim = T.fontF2, T.fontF3, T.textDim
     -- TITLE
-    label(self, "TITLE", ix, cy, T.px(24))
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelTitle"), ix, cy, T.px(24))
     cy = cy + self:formEntry(self.titleE, "f:title", vx, cy, vw) + T.px(10)
     -- WHO CAN SEE IT
-    label(self, "WHO CAN SEE IT", ix, cy, bh)
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelWho"), ix, cy, bh)
     local bx = vx
     for i, v in ipairs(VIS) do
-        bx = self:formBtn("vis:" .. v[1], v[2], function() self.vis = v[1]; self:formChanged(); MM.clickSound() end, bx, cy,
+        bx = self:formBtn("vis:" .. v[1], ZeD.tr(v[2]), function() self.vis = v[1]; self:formChanged(); MM.clickSound() end, bx, cy,
             (self.vis == v[1]) and "primary" or "default", 300, i) + T.px(6)
     end
     cy = cy + bh + T.px(4)
-    cy = self:paneText("Seen by " .. (VIS_WORD[self.vis] or "everyone") .. ".", vx, cy, vw, f3, dim) + T.px(8)
+    cy = self:paneText(ZeD.tr(VIS_SEEN[self.vis] or VIS_SEEN[0]), vx, cy, vw, f3, dim) + T.px(8)
     -- TAGS
-    label(self, "TAGS", ix, cy, bh)
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelTags"), ix, cy, bh)
     bx = vx
     local tags = {}
     pcall(function() tags = jlist(SteamWorkshopItem.getAllowedTags()) end)
@@ -438,7 +439,7 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     end
     cy = cy + bh + T.px(12)
     -- PREVIEW PICTURE
-    label(self, "PREVIEW PICTURE", ix, cy, T.px(20))
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelPreview"), ix, cy, T.px(20))
     local path = tostring(it:getPreviewImage() or "")
     local tex = (path ~= "") and getTexture(path) or nil
     local tsz = T.px(THUMB)
@@ -451,12 +452,12 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     local yy = self:paneText(name, px, cy, pw, f2, T.text)
     -- (the game's own rule, checked again when it uploads: a 256 x 256 PNG of 1000 KB at most)
     local check, good
-    if not tex then check, good = "No picture: the folder needs a preview.png, 256 x 256.", false
+    if not tex then check, good = ZeD.tr("UI_ZeD_Workshop_NoPicture"), false
     else
         local tw2, th2 = tex:getWidthOrig(), tex:getHeightOrig()
         good = tw2 == 256 and th2 == 256
-        check = good and "256 x 256: the size the game asks for. It must stay under 1000 KB."
-            or ("This one is " .. tw2 .. " x " .. th2 .. "; the game takes only 256 x 256.")
+        check = good and ZeD.tr("UI_ZeD_Workshop_PictureOk")
+            or ZeD.tr("UI_ZeD_Workshop_PictureWrongSize", tw2, th2)
     end
     local dsz = T.px(7)
     ZeD.Atoms.drawStatusDot(self, px, yy + T.px(2) + math.floor((MM.fontH(f3) - dsz) / 2), good and T.positive or T.danger, dsz)
@@ -472,9 +473,9 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
     local bh = T.px(U.STRIP_BTN_H)
     local f2, f3, dim, txt = T.fontF2, T.fontF3, T.textDim, T.text
     -- DESCRIPTION
-    label(self, "DESCRIPTION", ix, cy, T.px(20))
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelDescription"), ix, cy, T.px(20))
     local plain = BB.plain(self.desc)
-    if plain == "" then cy = self:paneText("None yet.", vx, cy + T.px(2), vw, f2, dim)
+    if plain == "" then cy = self:paneText(ZeD.tr("UI_ZeD_Workshop_NoneYet"), vx, cy + T.px(2), vw, f2, dim)
     else
         local ls = ZeD.Atoms.wrapText(plain, f2, vw)
         for i = 1, math.min(3, #ls) do
@@ -485,32 +486,32 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
         end
     end
     local n = #self.desc
-    cy = self:paneText(BB.count(n) .. " of " .. BB.count(BB.LIMIT) .. " characters", vx, cy + T.px(2), vw, f3, (n > BB.LIMIT) and T.danger or dim) + T.px(6)
-    local bx = self:formBtn("desc:edit", "EDIT DESCRIPTION...", function() self:openEditor() end, vx, cy, "default", 400, 1) + T.px(6)
-    self:formBtn("desc:copy", "COPY STEAM CODES", function() Clipboard.setClipboard(self.desc); self:say("The description's Steam codes are on the clipboard"); MM.clickSound() end,
+    cy = self:paneText(ZeD.tr("UI_ZeD_DescEdit_Count", BB.count(n), BB.count(BB.LIMIT)), vx, cy + T.px(2), vw, f3, (n > BB.LIMIT) and T.danger or dim) + T.px(6)
+    local bx = self:formBtn("desc:edit", ZeD.tr("UI_ZeD_Workshop_EditDescription"), function() self:openEditor() end, vx, cy, "default", 400, 1) + T.px(6)
+    self:formBtn("desc:copy", ZeD.tr("UI_ZeD_Workshop_CopyCodes"), function() Clipboard.setClipboard(self.desc); self:say(ZeD.tr("UI_ZeD_Workshop_CodesCopied")); MM.clickSound() end,
         bx, cy, "default", 400, 2, self.desc == "")
     cy = cy + bh + T.px(12)
     -- CHANGE NOTE
-    label(self, "CHANGE NOTE", ix, cy, T.px(24))
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelChangeNote"), ix, cy, T.px(24))
     cy = cy + self:formEntry(self.noteE, "f:note", vx, cy, vw) + T.px(4)
-    cy = self:paneText(it:getID() and "What changed, for the item's change notes page." or "Shown on the change notes page from the first upload on.", vx, cy, vw, f3, dim) + T.px(10)
+    cy = self:paneText(ZeD.tr(it:getID() and "UI_ZeD_Workshop_NoteHelpUpdate" or "UI_ZeD_Workshop_NoteHelpNew"), vx, cy, vw, f3, dim) + T.px(10)
     -- WHAT GOES UP
-    label(self, "WHAT GOES UP", ix, cy, T.px(20))
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelWhatGoesUp"), ix, cy, T.px(20))
     local dsz = T.px(7)
     local ok = not self.contents
     ZeD.Atoms.drawStatusDot(self, vx, cy + T.px(2) + math.floor((MM.fontH(f2) - dsz) / 2), ok and T.positive or T.danger, dsz)
-    cy = self:paneText(ok and "The folder has what Steam needs." or tostring(self.contents), vx + dsz + T.px(7), cy + T.px(2), vw - dsz - T.px(7), f2, txt)
+    cy = self:paneText(ok and ZeD.tr("UI_ZeD_Workshop_ContentsOk") or tostring(self.contents), vx + dsz + T.px(7), cy + T.px(2), vw - dsz - T.px(7), f2, txt)
     cy = self:paneText(tostring(it:getContentFolder() or ""), vx + dsz + T.px(7), cy, vw - dsz - T.px(7), f3, dim) + T.px(10)
     -- WORKSHOP ITEM
-    label(self, "WORKSHOP ITEM", ix, cy, bh)
+    label(self, ZeD.tr("UI_ZeD_Workshop_LabelItem"), ix, cy, bh)
     local id = it:getID()
     if id then
         local tw = MM.textW(f2, tostring(id))
         self:drawText(tostring(id), vx, cy + math.floor((bh - MM.fontH(f2)) / 2), txt.r, txt.g, txt.b, txt.a or 1, f2)
-        self:formBtn("ws:open", "Open in Steam", function() ZeD.ModScan.openInSteam(id) end, vx + tw + T.px(12), cy, "default", 500, 1)
+        self:formBtn("ws:open", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() ZeD.ModScan.openInSteam(id) end, vx + tw + T.px(12), cy, "default", 500, 1)
         cy = cy + bh
     else
-        cy = self:paneText("New: Steam gives it a number on the first upload.", vx, cy + T.px(3), vw, f2, txt)
+        cy = self:paneText(ZeD.tr("UI_ZeD_Workshop_ItemNew"), vx, cy + T.px(3), vw, f2, txt)
     end
     return cy
 end
@@ -529,32 +530,32 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
     self._askX = nil
     local it = self:item()
     if self.busy then
-        UI.stripSpecs(self, stripY, w, row, { { "back", "BACK", function() end, "default", true } }, {})
+        UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() end, "default", true } }, {})
         self._stripY, self._stripH, self._ask = stripY, stripH, nil
         return
     end
     if self.confirm == "upload" then
-        ask = "Upload \"" .. BB.trim(self.titleE:getText()) .. "\" for " .. (VIS_WORD[self.vis] or "everyone") .. " to see?"
+        ask = ZeD.tr(VIS_ASK[self.vis] or VIS_ASK[0], BB.trim(self.titleE:getText()))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "UPLOAD", function() self:upload() end, "primary" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Workshop_Upload"), function() self:upload() end, "primary" } })
     elseif self.confirm == "leave" then
-        ask = "Save your changes to workshop.txt?"
+        ask = ZeD.tr("UI_ZeD_Workshop_AskSave")
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "DISCARD", function()
+            { "confirm:no", ZeD.tr("UI_ZeD_DescEdit_Discard"), function()
                 for _, x in ipairs(self.items) do pcall(function() x:readWorkshopTxt() end) end
                 self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end },
-            { "confirm:yes", "SAVE", function()
+            { "confirm:yes", getText("UI_btn_save"), function()
                 for _, x in ipairs(self.items) do if self.unsaved[x:getFolderName()] then pcall(function() x:writeWorkshopTxt() end) end end
                 self:apply(); local cur = self:item(); if cur then pcall(function() cur:writeWorkshopTxt() end) end
                 self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "primary" } })
     else
-        local block = it and self:blocker() or "Nothing to upload"
+        local block = it and self:blocker() or ZeD.tr("UI_ZeD_Workshop_NothingToUpload")
         local rights = {
-            { "save", "SAVE", function() self:save() end, "default", not self:isUnsaved() },
-            { "upload", (it and it:getID()) and "UPLOAD UPDATE" or "UPLOAD", function() self:setConfirm("upload") end, "primary", block ~= nil },
+            { "save", getText("UI_btn_save"), function() self:save() end, "default", not self:isUnsaved() },
+            { "upload", ZeD.tr((it and it:getID()) and "UI_ZeD_Workshop_UploadUpdate" or "UI_ZeD_Workshop_Upload"), function() self:setConfirm("upload") end, "primary", block ~= nil },
         }
-        local askX = UI.stripSpecs(self, stripY, w, row, { { "back", "BACK", function() self:back() end } }, rights)
+        local askX = UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end } }, rights)
         if block and it then
             local firstBtn = w
             for _, b in ipairs(self._specs) do if b.row == row and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
@@ -571,8 +572,8 @@ function ZeD_MMWorkshop:drawProgress()
     local it = self:item()
     local f2, txt = T.fontF2, T.text
     local y, h = self._stripY, self._stripH
-    local x0 = T.px(U.STRIP_PAD_X) + MM.textW(T.fontF3, "Back") + T.px(U.STRIP_BTN_PAD) * 2 + T.px(16)
-    local text, frac = "Asking Steam for a new item...", nil
+    local x0 = T.px(U.STRIP_PAD_X) + MM.textW(T.fontF3, ZeD.btnCase(getText("UI_btn_back"))) + T.px(U.STRIP_BTN_PAD) * 2 + T.px(16)
+    local text, frac = ZeD.tr("UI_ZeD_Workshop_Asking"), nil
     if self.busy.stage == "send" then
         local pr = { processed = 0, total = 0 }
         pcall(function() it:getUpdateProgress(pr) end)
@@ -580,8 +581,8 @@ function ZeD_MMWorkshop:drawProgress()
         local done = tonumber(pr.processed) or 0
         if total > 0 then
             frac = math.max(0, math.min(1, done / total))
-            text = "Uploading to the Workshop " .. math.floor(frac * 100) .. "% | " .. ZeD.ModScan.size(done) .. " of " .. ZeD.ModScan.size(total)
-        else text = "Uploading to the Workshop..." end
+            text = ZeD.tr("UI_ZeD_Workshop_Uploading", math.floor(frac * 100) .. "%", ZeD.ModScan.size(done), ZeD.ModScan.size(total))
+        else text = ZeD.tr("UI_ZeD_Workshop_UploadingNoTotal") end
     end
     self:drawText(text, x0, y + math.floor((h - MM.fontH(f2)) / 2), txt.r, txt.g, txt.b, txt.a or 1, f2)
     local bx = x0 + MM.textW(f2, text) + T.px(16)

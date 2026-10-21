@@ -21,6 +21,7 @@
 -- ============================================================================
 
 require "ZeD/Tokens"
+require "ZeD/Tr"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/ObjectCards"
@@ -35,11 +36,12 @@ FT.state = FT.state or { mode = "pickup" }
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
 
 local MODES = {
-    { id = "pickup", key = "IGUI_Pickup", fb = "Pick up",     ready = "Ready to pick up",    no = "Cannot pick up" },
-    { id = "place",  key = "IGUI_Place",  fb = "Place",       ready = "Fits here",           no = "Does not fit here" },
-    { id = "rotate", key = "IGUI_Rotate", fb = "Rotate",      ready = "Turns in place",      no = "Cannot turn" },
-    { id = "scrap",  key = "IGUI_Scrap",  fb = "Disassemble", ready = "Ready to take apart", no = "Cannot take apart" },
-    { id = "repair", key = "IGUI_Repair", fb = "Repair",      ready = "Ready to repair",     no = "Cannot repair" },
+    -- ready / no are keys, translated where they are drawn
+    { id = "pickup", key = "IGUI_Pickup", fb = "Pick up",     ready = "UI_ZeD_Furn_PickupReady", no = "UI_ZeD_Furn_PickupNo" },
+    { id = "place",  key = "IGUI_Place",  fb = "Place",       ready = "UI_ZeD_Furn_PlaceReady",  no = "UI_ZeD_Furn_PlaceNo" },
+    { id = "rotate", key = "IGUI_Rotate", fb = "Rotate",      ready = "UI_ZeD_Furn_RotateReady", no = "UI_ZeD_Furn_RotateNo" },
+    { id = "scrap",  key = "IGUI_Scrap",  fb = "Disassemble", ready = "UI_ZeD_Furn_ScrapReady",  no = "UI_ZeD_Furn_ScrapNo" },
+    { id = "repair", key = "IGUI_Repair", fb = "Repair",      ready = "UI_ZeD_Furn_RepairReady", no = "UI_ZeD_Furn_RepairNo" },
 }
 local MODE_BY_ID = {}
 for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
@@ -66,7 +68,7 @@ FT.cursorOf = cursorOf
 
 local function modeLabel(id)
     local m = MODE_BY_ID[id]
-    return m and string.upper(txt(m.key, m.fb)) or string.upper(tostring(id))
+    return m and ZeD.upper(txt(m.key, m.fb)) or ZeD.upper(tostring(id))
 end
 
 -- ---------------------------------------------------------------------------
@@ -124,7 +126,7 @@ local function readLines(c)
                     if st == "ok" then prev.state = "ok" end
                     if st == "ok" and prev.firstState ~= "ok" then prev.value, prev.firstState = ln.b.txt, "ok" end
                 else
-                    out.facts[#out.facts + 1] = { label = string.upper(label), value = ln.b.txt, state = st, firstState = st }
+                    out.facts[#out.facts + 1] = { label = ZeD.upper(label), value = ln.b.txt, state = st, firstState = st }
                 end
             end
         elseif ln.a and ln.a.txt ~= "" then
@@ -367,9 +369,9 @@ local function drawTarget(panel, s, x, y, w, c, mode, info)
     local m = MODE_BY_ID[mode] or MODES[1]
     if not (c and c.mp) then
         -- vanilla repairs only what has health: things built or crafted (doors, walls, fences, stations)
-        local msg = (mode == "place") and "Nothing to place"
-            or (mode == "repair") and "Point at something built or crafted"
-            or "Point at furniture"
+        local msg = (mode == "place") and ZeD.tr("UI_ZeD_Furn_NothingToPlace")
+            or (mode == "repair") and ZeD.tr("UI_ZeD_Furn_PointBuilt")
+            or ZeD.tr("UI_ZeD_Furn_PointFurniture")
         panel:drawText(msg, tx, cy, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f4)
         return ph
     end
@@ -378,7 +380,7 @@ local function drawTarget(panel, s, x, y, w, c, mode, info)
     cy = cy + tm:getFontHeight(f4) + T.px(2)
     local sc = ok and T.positive or T.danger
     ZeD.Atoms.drawStatusDot(panel, tx, cy + math.floor((tm:getFontHeight(f1) - T.px(6)) / 2), sc, T.px(6))
-    panel:drawText(ok and m.ready or m.no, tx + T.px(11), cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
+    panel:drawText(ZeD.tr(ok and m.ready or m.no), tx + T.px(11), cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
     cy = cy + tm:getFontHeight(f1) + T.px(6)
     -- facts: LABEL  value (with a dot for ok / bad)
     local lw = 0
@@ -397,7 +399,7 @@ local function drawTarget(panel, s, x, y, w, c, mode, info)
         local value = f.value
         if f.more and f.more > 0 then
             -- "Claw Hammer  + 3 more" (any one of them will do, as in vanilla)
-            local tail = "  + " .. tostring(f.more) .. " more"
+            local tail = "  " .. ZeD.tr("UI_ZeD_Furn_More", f.more)
             local tailW = tm:MeasureStringX(f3, tail)
             value = ZeD.CraftingCore.truncText(value, f3, tx + tw - vx - tailW)
             panel:drawText(value, vx, cy + math.floor((fh - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f3)
@@ -491,8 +493,9 @@ local function drawFacing(panel, s, x, y, w, cur, mode, fi)
     local h = T.px(24)
     local f1 = T.fontF1
     local ac = T.accent
-    panel:drawText("FACING", x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
-    local bx = x + tm:MeasureStringX(f1, "FACING") + T.px(12)
+    local facingTxt = ZeD.tr("UI_ZeD_Furn_Facing")
+    panel:drawText(facingTxt, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local bx = x + tm:MeasureStringX(f1, facingTxt) + T.px(12)
     local bw = T.px(42)
     for _, fc in ipairs(FACES) do
         local id = "fur:face:" .. fc[1]
@@ -538,7 +541,7 @@ local function drawYield(panel, x, y, w, r)
     panel:drawText(ZeD.CraftingCore.truncText(name, f2, w - T.px(170)), x + T.px(2) + isz + T.px(8), y + math.floor((rh - tm:getFontHeight(f2)) / 2),
         T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
     local ty = y + math.floor((rh - tm:getFontHeight(f3)) / 2)
-    ZeD.Atoms.drawTextRight(panel, r.static and "ALWAYS" or (tostring(r.chance or 0) .. "%"), x + w - T.px(2), ty, f3, T.textDim)
+    ZeD.Atoms.drawTextRight(panel, r.static and ZeD.tr("UI_ZeD_Furn_Always") or (tostring(r.chance or 0) .. "%"), x + w - T.px(2), ty, f3, T.textDim)
     ZeD.Atoms.drawTextRight(panel, tostring(r.max or 0), x + w - T.px(80), ty, f3, T.text)
     panel:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
     return rh
@@ -582,7 +585,7 @@ function FT.render(panel, win, x, y, w, h)
     panel:drawRect(x, y, w, hh, s2.a or 1, col(s2))
     panel:drawRect(x, y + hh - T.px(1), w, T.px(1), T.borderS.a or 1, col(T.borderS))
     local f4 = T.fontF4
-    local title = "Furniture"
+    local title = getText("IGUI_CraftingCategories_Furniture")
     panel:drawText(title, x + T.px(PAD), y + math.floor((hh - tm:getFontHeight(f4)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f4)
     local pillC = (c and c.mp) and (c.canCreate and T.positive or T.danger) or T.textDim
     UI.tag(panel, x + T.px(PAD) + tm:MeasureStringX(f4, title) + T.px(8), y + math.floor((hh - T.px(16)) / 2), modeLabel(mode), pillC, true)
@@ -597,7 +600,7 @@ function FT.render(panel, win, x, y, w, h)
     for _, m in ipairs(MODES) do
         local id = "fur:mode:" .. m.id
         local mid = m.id
-        UI.button(panel, bx, sy + math.floor((sh - T.px(BTN_H)) / 2), string.upper(txt(m.key, m.fb)),
+        UI.button(panel, bx, sy + math.floor((sh - T.px(BTN_H)) / 2), ZeD.upper(txt(m.key, m.fb)),
             { h = T.px(BTN_H), w = bw, primary = mode == mid, focused = s.gpId == id })
         stamp(s, id, bx, sy + math.floor((sh - T.px(BTN_H)) / 2), bw, T.px(BTN_H), function() FT.setMode(pn, mid) end)
         bx = bx + bw + gap
@@ -640,7 +643,7 @@ function FT.render(panel, win, x, y, w, h)
     if mode == "scrap" and c and c.mp then
         local ys = yieldsOf(c.mp)
         if #ys > 0 then
-            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, "MAY YIELD", "UP TO " .. DOT .. " ROLL CHANCE") end
+            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_MayYield"), ZeD.tr("UI_ZeD_Furn_UpTo") .. " " .. DOT .. " " .. ZeD.tr("UI_ZeD_Furn_RollChance")) end
             cy = cy + T.px(SEC_H)
             for _, r in ipairs(ys) do
                 if vis(cy, T.px(24)) then drawYield(panel, bx0, cy, bw0, r) end
@@ -654,7 +657,7 @@ function FT.render(panel, win, x, y, w, h)
         if mode == "place" then
             local list = cur.objectListCache
             if not list then local ok, l = pcall(function() return cur:getInventoryObjectList() end); list = ok and l or {} end
-            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, "YOUR FURNITURE", tostring(#list)) end
+            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_YourFurniture"), tostring(#list)) end
             cy = cy + T.px(SEC_H)
             for i, e in ipairs(list) do
                 local it = e.object
@@ -664,26 +667,26 @@ function FT.render(panel, win, x, y, w, h)
                 if vis(cy, T.px(ROW_H)) then
                     drawRow(panel, s, bx0, cy, bw0, "fur:inv:" .. i, it and call(it, "getTex"), it and it:getDisplayName() or "?",
                         (ZeD.ObjectCards.whereOf(it, getSpecificPlayer(pn)) or "") .. " " .. DOT .. " " .. string.format("%.1f", it and it:getActualWeight() or 0),
-                        selected and "ON CURSOR" or string.upper(txt("IGUI_Place", "Place")), selected,
+                        selected and ZeD.tr("UI_ZeD_Furn_OnCursor") or ZeD.upper(txt("IGUI_Place", "Place")), selected,
                         function() cur.objectIndex = idx; cur.cacheInvObjectSprite = nil; cur.cursorFacing = nil; cur.joypadFacing = nil end)
                 end
                 cy = cy + T.px(ROW_H)
             end
             if #list == 0 then
-                if vis(cy, T.px(22)) then panel:drawText("You carry no furniture.", bx0 + T.px(2), cy + T.px(4), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2) end
+                if vis(cy, T.px(22)) then panel:drawText(ZeD.tr("UI_ZeD_Furn_CarryNone"), bx0 + T.px(2), cy + T.px(4), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2) end
                 cy = cy + T.px(22)
             end
         elseif mode ~= "rotate" then
             local list = cur.objectListCache
             if type(list) == "table" and #list > 0 then
-                if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, "ON THIS TILE", tostring(#list)) end
+                if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_OnThisTile"), tostring(#list)) end
                 cy = cy + T.px(SEC_H)
                 for i, e in ipairs(list) do
                     local selected = (cur.objectIndex == i)
                     local idx = i
                     if vis(cy, T.px(ROW_H)) then
                         drawRow(panel, s, bx0, cy, bw0, "fur:obj:" .. i, iconOfSprite(e.moveProps and e.moveProps.spriteName), displayName(e.moveProps),
-                            nil, "TARGET", selected, function() cur.objectIndex = idx; pickOn(cur, idx) end)
+                            nil, ZeD.tr("UI_ZeD_Furn_Target"), selected, function() cur.objectIndex = idx; pickOn(cur, idx) end)
                     end
                     cy = cy + T.px(ROW_H)
                 end
@@ -757,7 +760,7 @@ function FT.buildFocusables(win)
                 if Focus and Focus.releaseFocus then Focus.releaseFocus() end
                 return true
             end,
-            promptB = "To the cursor" }
+            promptB = ZeD.tr("UI_ZeD_Furn_ToCursor") }
     end
     return els
 end
@@ -805,7 +808,7 @@ function ZeD_FurnitureChip:prerender()
         end
         if line == modeLabel(c.mode) then
             local m = MODE_BY_ID[c.mode]
-            line = m and m.no or line
+            line = m and ZeD.tr(m.no) or line
         end
     end
     self._name, self._line, self._ok = info.name or "?", line, ok

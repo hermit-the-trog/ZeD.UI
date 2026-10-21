@@ -123,7 +123,7 @@ end
 function ZeD_MMHost:problem()
     local c = coop()
     if not c then return nil end
-    if not getSteamModeActive() and not isValidUserName(s(c.accountNameEntry:getText())) then return "That account name will not do." end
+    if not getSteamModeActive() and not isValidUserName(s(c.accountNameEntry:getText())) then return ZeD.tr("UI_ZeD_Host_BadAccount") end
     local err = checkServerName(s(CoopConnection.servername))
     if err then return UI.plain(err) end
     if c.richText and c.richText:isVisible() and c.richText.text then return UI.plain(c.richText.text) end
@@ -153,7 +153,7 @@ function ZeD_MMHost:prerender()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local c = coop()
-    self.title = "Project Zomboid  +  Host a game"
+    self.title = ZeD.tr("UI_ZeD_Host_Title")
     self.titleStats = {}
     ZeD_Window.prerender(self)
     if not c then return end
@@ -202,7 +202,7 @@ function ZeD_MMHost:prerender()
 
     if idle then
         -- the account (its own name outside Steam; Steam hosts as the Steam user)
-        label("ACCOUNT", cy)
+        label(ZeD.tr("UI_ZeD_Host_LabelAccount"), cy)
         if getSteamModeActive() then
             local tc = T.text
             self:drawText(s(getCurrentUserProfileName()), vx, cy + math.floor((rowH - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
@@ -213,23 +213,23 @@ function ZeD_MMHost:prerender()
             self._hits[#self._hits + 1] = { id = "host:account", x = ax + vx, y = ay + self.account.y, w = boxW, h = T.px(24), fn = function() self.account:focus() end }
         end
         cy = cy + rowH
-        label("SERVER SETTINGS", cy)
+        label(ZeD.tr("UI_ZeD_Host_LabelSettings"), cy)
         box("settings", cy, c.settingsComboBox)
         cy = cy + rowH
-        button("edit", string.upper(UI.plain(getText("UI_coopscreen_edit_settings"))), cy, function() self:editSettings() end)
+        button("edit", ZeD.upper(UI.plain(getText("UI_coopscreen_edit_settings"))), cy, function() self:editSettings() end)
         cy = cy + rowH
-        label("MEMORY", cy)
+        label(ZeD.tr("UI_ZeD_Host_LabelMemory"), cy)
         box("memory", cy, c.memoryComboBox)
         cy = cy + rowH + T.px(10)
         -- the world's upkeep
         self:drawRect(ix, cy, bx + bw - T.px(24) - ix, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
         cy = cy + T.px(12)
-        label("THE WORLD", cy)
+        label(ZeD.tr("UI_ZeD_Host_LabelWorld"), cy)
         local wx = vx
         for _, a in ipairs({
-            { "reset", string.upper(UI.plain(getText("UI_coopscreen_softreset"))), function() self:setConfirm("reset") end, not c.softResetButton.enable },
-            { "delWorld", string.upper(UI.plain(getText("UI_coopscreen_delete_world"))), function() self:setConfirm("deleteWorld") end, not c.deleteWorldButton.enable },
-            { "delPlayer", string.upper(UI.plain(getText("UI_coopscreen_delete_player"))), function() self:setConfirm("deletePlayer") end, not c.deletePlayerButton.enable } }) do
+            { "reset", ZeD.upper(UI.plain(getText("UI_coopscreen_softreset"))), function() self:setConfirm("reset") end, not c.softResetButton.enable },
+            { "delWorld", ZeD.upper(UI.plain(getText("UI_coopscreen_delete_world"))), function() self:setConfirm("deleteWorld") end, not c.deleteWorldButton.enable },
+            { "delPlayer", ZeD.upper(UI.plain(getText("UI_coopscreen_delete_player"))), function() self:setConfirm("deletePlayer") end, not c.deletePlayerButton.enable } }) do
             local bh2 = T.px(U.STRIP_BTN_H)
             local bw2 = MM.textW(T.fontF3, a[2]) + T.px(U.STRIP_BTN_PAD) * 2
             if wx + bw2 > bx + bw - T.px(24) then wx = vx; cy = cy + bh2 + T.px(8) end
@@ -296,7 +296,7 @@ function ZeD_MMHost:prerender()
         cy = cy + T.px(28)
         if c.softresetProgress then
             local la = T.accent
-            self:drawText("RESETTING", ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+            self:drawText(ZeD.tr("UI_ZeD_Host_Resetting"), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
             cy = cy + T.px(18)
             ZeD.Atoms.drawSegBar(self, ix, cy, barW, T.px(14), n, math.floor(c.softresetProgress * n + 0.5), T.accent, T.surf3, T.px(2))
         end
@@ -314,20 +314,20 @@ function ZeD_MMHost:buildStrip(stripY, stripH, w)
     local row = 1000
     local ask = nil
     if self.confirm == "reset" then
-        ask = "Soft-reset the server?"
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", "CANCEL", function() self:answer(false) end }, { "confirm:yes", "RESET", function() self:answer(true) end, "danger" } })
+        ask = ZeD.tr("UI_ZeD_Host_AskReset")
+        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", getText("UI_btn_cancel"), function() self:answer(false) end }, { "confirm:yes", ZeD.tr("UI_ZeD_Host_Reset"), function() self:answer(true) end, "danger" } })
     elseif self.confirm == "deleteWorld" then
-        ask = "Delete the world? It cannot be undone."
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", "CANCEL", function() self:answer(false) end }, { "confirm:yes", "DELETE", function() self:answer(true) end, "danger" } })
+        ask = ZeD.tr("UI_ZeD_Host_AskDeleteWorld")
+        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", getText("UI_btn_cancel"), function() self:answer(false) end }, { "confirm:yes", getText("UI_btn_delete"), function() self:answer(true) end, "danger" } })
     elseif self.confirm == "deletePlayer" then
-        ask = "Delete this character from the server?"
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", "CANCEL", function() self:answer(false) end }, { "confirm:yes", "DELETE", function() self:answer(true) end, "danger" } })
+        ask = ZeD.tr("UI_ZeD_Host_AskDeletePlayer")
+        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", getText("UI_btn_cancel"), function() self:answer(false) end }, { "confirm:yes", getText("UI_btn_delete"), function() self:answer(true) end, "danger" } })
     else
         local idle = self:idle()
         local rights = {}
-        if not idle then rights[#rights + 1] = { "abort", "ABORT", function() self:abort() end, "danger", not (c and c.abortButton.enable) } end
-        rights[#rights + 1] = { "start", string.upper(UI.plain(getText("UI_coopscreen_btn_start"))), function() self:start() end, "primary", (not idle) or self:problem() ~= nil }
-        UI.stripSpecs(self, stripY, w, row, { { "back", "BACK", function() self:back() end, "default", not idle } }, rights)
+        if not idle then rights[#rights + 1] = { "abort", getText("UI_coopscreen_btn_abort"), function() self:abort() end, "danger", not (c and c.abortButton.enable) } end
+        rights[#rights + 1] = { "start", ZeD.upper(UI.plain(getText("UI_coopscreen_btn_start"))), function() self:start() end, "primary", (not idle) or self:problem() ~= nil }
+        UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end, "default", not idle } }, rights)
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -339,8 +339,8 @@ function ZeD_MMHost:joyB()
 end
 function ZeD_MMHost:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
-    return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Back" } }
+    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) } }
 end
 function ZeD_MMHost:keyEscape()
     if self.confirm then self:answer(false); return true end

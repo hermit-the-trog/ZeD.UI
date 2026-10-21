@@ -17,6 +17,7 @@
 -- ============================================================================
 
 require "ZeD/PixelFonts"
+require "ZeD/PixelFontsExt"
 
 ZeD = ZeD or {}
 ZeD.Px = ZeD.Px or {}
@@ -258,7 +259,52 @@ end
 -- ---------------------------------------------------------------------------
 -- the pixel fonts
 -- ---------------------------------------------------------------------------
-local _glyphs = {}     -- font -> char -> { w = cols, runs = { {dx, dy, w}, ... } }
+-- The faces hold capitals, digits, signs, the accented Latin capitals and the Cyrillic capitals
+-- (ZeD/PixelFonts.lua and PixelFontsExt.lua). Text is laid out word by word: a word whose letters
+-- are all in the face is drawn in the face; a word with a letter the face lacks (Chinese, say) is
+-- drawn whole in the regular F1 face, sized so its capitals match the face's height. A layout is
+-- worked out once per string and kept (oldest dropped first), so a frame only walks cells.
+
+-- lowercase to capital for the letters the faces carry. Kahlua's string.upper already does this
+-- through Java, but the table keeps the pixel text from depending on that.
+local UP = {}
+do
+    local function pair(lo, hi) UP[string.char(lo)] = string.char(hi) end
+    for c = 224, 254 do if c ~= 247 then pair(c, c - 32) end end   -- the Latin-1 letters
+    pair(255, 376)                                                  -- y with dieresis
+    for c = 1072, 1103 do pair(c, c - 32) end                       -- Russian a-ya
+    for c = 1104, 1119 do pair(c, c - 80) end                       -- yo and the rest of that block
+    pair(1169, 1168)                                                -- Ukrainian ghe with upturn
+end
+
+-- typographic signs the faces draw as their plain cousins (a string means "write these characters")
+local NORM = {}
+do
+    local function put(codes, rep) for i = 1, #codes do NORM[string.char(codes[i])] = rep end end
+    put({ 8216, 8217, 8218, 8219, 700 }, "'")
+    put({ 8220, 8221, 8222, 171, 187 }, '"')
+    put({ 8208, 8209, 8210, 8211, 8212, 8722 }, "-")
+    put({ 160, 8194, 8195, 8201, 8202, 8239 }, " ")
+    put({ 8230 }, "...")
+    put({ 215 }, "x")
+end
+
+-- Turkish writes the capital of i with a dot
+local function turkic()
+    local ok, name = pcall(function() return Translator.getLanguage():name() end)
+    return ok and (name == "TR" or name == "AZ")
+end
+
+-- the face's key for a character, or nil when the face has no glyph for it
+local function faceKey(F, ch, tr)
+    if tr and ch == "i" and F[string.char(304)] then return string.char(304) end
+    if F[ch] then return ch end
+    local u = UP[ch] or string.upper(ch)
+    if #u == 1 and F[u] then return u end
+    return nil
+end
+
+local _glyphs = {}     -- font -> key -> { w = cols, runs = { {dx, dy, w}, ... } }
 local function glyph(font, ch)
     local F = ZeD.PixelFonts and ZeD.PixelFonts[font]
     if not F then return nil end
@@ -266,7 +312,7 @@ local function glyph(font, ch)
     if not cache then cache = {}; _glyphs[font] = cache end
     local g = cache[ch]
     if g then return g end
-    local rows = F[ch] or F[string.upper(ch)] or F[" "]
+    local rows = F[ch] or F[" "]
     g = { w = #rows[1], h = #rows, runs = {} }
     for ry = 1, #rows do
         local row = rows[ry]
@@ -281,15 +327,107 @@ local function glyph(font, ch)
     return g
 end
 
+-- the regular F1 face, for words the pixel faces cannot spell
+local FB_CAP = 0.57        -- the F1 face's capital height over its line height
+local function fbFont()
+    local T = ZeD.T
+    return T and T.fontF1 or nil
+end
+-- a word's width and the face's line height at zoom 1, or nil when the text manager is not ready
+local function fbMeasure(word)
+    local X, f = ZeD.Text, fbFont()
+    if not (X and X.realTM and f) then return nil end
+    local ok, w, lh = pcall(function() local tm = X.realTM(); return tm:MeasureStringX(f, word), tm:getFontHeight(f) end)
+    if not ok or type(w) ~= "number" or type(lh) ~= "number" or lh <= 0 then return nil end
+    return w, lh
+end
+
+-- layouts: font -> string -> { cells = {...}, w = width in art pixels at scale 1 }, oldest dropped first
+local LAY_CAP = 256
+local _lay, _layKeys, _layHead, _layN, _layFont = {}, {}, 0, 0, nil
+local function layStore(font, str, lay)
+    local bucket = _lay[font]
+    if not bucket then bucket = {}; _lay[font] = bucket end
+    if _layN < LAY_CAP then
+        _layN = _layN + 1
+        _layKeys[_layN] = { font, str }
+    else
+        _layHead = _layHead % LAY_CAP + 1
+        local old = _layKeys[_layHead]
+        if _lay[old[1]] then _lay[old[1]][old[2]] = nil end
+        _layKeys[_layHead] = { font, str }
+    end
+    bucket[str] = lay
+end
+
+local function layoutBuild(str, font)
+    local F = ZeD.PixelFonts and ZeD.PixelFonts[font]
+    if not F then return nil end
+    local h = (font == "57") and 7 or 5
+    local tr = turkic()
+    local chars = {}
+    for i = 1, #str do
+        local ch = str:sub(i, i)
+        local rep = NORM[ch]
+        if rep then
+            for j = 1, #rep do chars[#chars + 1] = rep:sub(j, j) end
+        else
+            chars[#chars + 1] = ch
+        end
+    end
+    local cells, n, i, complete = {}, #chars, 1, true
+    while i <= n do
+        if chars[i]:find("%s") then
+            cells[#cells + 1] = glyph(font, " ")
+            i = i + 1
+        else
+            local j = i
+            while j <= n and not chars[j]:find("%s") do j = j + 1 end
+            local keys, ok = {}, true
+            for k = i, j - 1 do
+                local key = faceKey(F, chars[k], tr)
+                if key then keys[#keys + 1] = key else ok = false; break end
+            end
+            if ok then
+                for k = 1, #keys do cells[#cells + 1] = glyph(font, keys[k]) end
+            else
+                local word = ZeD.upper(table.concat(chars, "", i, j - 1))
+                local raw, lh = fbMeasure(word)
+                if raw then
+                    cells[#cells + 1] = { fb = true, text = word, raw = math.max(1, raw), lh = lh, w = math.max(1, math.floor(raw * h / FB_CAP / lh + 0.5)) }
+                else
+                    complete = false                      -- the text manager is not up yet: spaces now, ask again next time
+                    for _ = i, j - 1 do cells[#cells + 1] = glyph(font, " ") end
+                end
+            end
+            i = j
+        end
+    end
+    local w = 0
+    for k = 1, #cells do w = w + cells[k].w + 1 end
+    return { cells = cells, w = math.max(0, w - 1) }, complete
+end
+
+local function layoutOf(str, font)
+    local f1 = fbFont()
+    if f1 ~= _layFont then                 -- another F1 face: the measured widths are stale
+        _lay, _layKeys, _layHead, _layN, _layFont = {}, {}, 0, 0, f1
+    end
+    local bucket = _lay[font]
+    local lay = bucket and bucket[str]
+    if lay then return lay end
+    local complete
+    lay, complete = layoutBuild(str, font)
+    if lay and complete then layStore(font, str, lay) end
+    return lay
+end
+
 function P.textWidth(str, font, scale)
     str = tostring(str or ""); font = font or "35"; scale = scale or 1
     if str == "" then return 0 end
-    local w = 0
-    for i = 1, #str do
-        local g = glyph(font, str:sub(i, i))
-        w = w + (g and g.w or 2) + 1
-    end
-    return (w - 1) * scale
+    local lay = layoutOf(str, font)
+    if not lay then return (#str * 3 - 1) * scale end
+    return lay.w * scale
 end
 
 function P.fontHeight(font) return (font == "57") and 7 or 5 end
@@ -320,18 +458,33 @@ function P.text(cv, str, x, y, c, font, scale, align, style, shadow)
     font = font or "35"; scale = scale or 1
     local w = P.textWidth(str, font, scale)
     if align == "c" then x = x - math.floor(w / 2) elseif align == "r" then x = x - w end
+    local lay = layoutOf(str, font)
+    if not lay then return w end
+    local cells = lay.cells
+    local faceH = P.fontHeight(font) * scale
     local function pass(dx, dy, colr, rowTones)
         local cx = x
-        for i = 1, #str do
-            local g = glyph(font, str:sub(i, i))
-            if g then
+        for i = 1, #cells do
+            local g = cells[i]
+            if g.fb then
+                -- a word the face cannot spell: the regular F1 face, its capitals as tall as the face's,
+                -- the line centred on the face's rows
+                local f1 = fbFont()
+                local cc = colr or P.color(CHROME[6])
+                if f1 then
+                    local k = cv.k
+                    local zoom = g.w * scale * k / g.raw
+                    local top = cv.oy + (y + dy) * k + (faceH * k - g.lh * zoom) / 2
+                    cv.el:drawTextZoomed(g.text, math.floor(cv.ox + (cx + dx) * k), math.floor(top), zoom, cc.r, cc.g, cc.b, cv.el._zedAlpha or 1, f1)
+                end
+            else
                 for _, r in ipairs(g.runs) do
                     local cc = colr
                     if rowTones then cc = P.color(CHROME[rowTones[r[2] + 1] or 6]) end
                     P.rect(cv, cx + r[1] * scale + dx, y + r[2] * scale + dy, r[3] * scale, scale, cc)
                 end
-                cx = cx + (g.w + 1) * scale
             end
+            cx = cx + (g.w + 1) * scale
         end
     end
     if shadow then pass(1, 1, P.color(shadow)) end

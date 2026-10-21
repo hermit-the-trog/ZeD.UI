@@ -10,6 +10,11 @@
 --
 -- Measuring goes through ZeD.TM (shared/ZeD/Scale.lua), which applies the same
 -- zoom to MeasureStringX / MeasureStringY / getFontHeight.
+--
+-- When the game's own fonts hold those slots (Chinese, Japanese, Korean, Thai,
+-- or the Dyslexic font option; ZeD.Text.checkRoleFonts) the roles are the
+-- game's Small / Medium / Large with no zoom registered, so zoomOf is 1 and
+-- every draw below takes the original path at native size.
 -- ============================================================================
 
 require "ZeD/Scale"

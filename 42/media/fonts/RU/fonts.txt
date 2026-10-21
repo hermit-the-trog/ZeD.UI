@@ -1,0 +1,109 @@
+VERSION = 1,
+
+font Small
+{
+    fnt = body.fnt,
+    img = body_0.png,
+}
+
+font NewSmall
+{
+    fnt = secLg.fnt,
+    img = secLg_0.png,
+}
+
+font Medium
+{
+    fnt = stat.fnt,
+    img = stat_0.png,
+}
+
+font NewMedium
+{
+    fnt = sec.fnt,
+    img = sec_0.png,
+}
+
+font Large
+{
+    fnt = bodyLg.fnt,
+    img = bodyLg_0.png,
+}
+
+font NewLarge
+{
+    fnt = head.fnt,
+    img = head_0.png,
+}
+
+font Code
+{
+    fnt = title.fnt,
+    img = title_0.png,
+}
+
+font CodeSmall
+{
+    fnt = titleLg.fnt,
+    img = titleLg_0.png,
+}
+
+font CodeMedium
+{
+    fnt = statLg.fnt,
+    img = statLg_0.png,
+}
+
+font CodeLarge
+{
+    fnt = headLg.fnt,
+    img = headLg_0.png,
+}
+
+font Cred1
+{
+    fnt = rsv1.fnt,
+    img = rsv1_0.png,
+}
+
+font MainMenu1
+{
+    fnt = sdf/body.fnt,
+    type = sdf,
+}
+
+font MainMenu2
+{
+    fnt = sdf/sec.fnt,
+    type = sdf,
+}
+
+font Title
+{
+    fnt = sdf/stat.fnt,
+    type = sdf,
+}
+
+font Massive
+{
+    fnt = sdf/head.fnt,
+    type = sdf,
+}
+
+font Cred2
+{
+    fnt = sdf/title.fnt,
+    type = sdf,
+}
+
+font Dialogue
+{
+    fnt = entry18.fnt,
+    img = entry18_0.png,
+}
+
+font Intro
+{
+    fnt = entry26.fnt,
+    img = entry26_0.png,
+}

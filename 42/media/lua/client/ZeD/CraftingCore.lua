@@ -9,6 +9,7 @@
 -- ============================================================================
 
 require "ZeD/Tokens"
+require "ZeD/Tr"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
@@ -604,12 +605,24 @@ function CC.resolveCategory(recipe, skillName)
     end
 
     if category and category ~= "" then
-        category = string.upper(string.sub(category, 1, 1)) .. string.sub(category, 2)
+        category = ZeD.upper(string.sub(category, 1, 1)) .. string.sub(category, 2)
     else
         category = "Miscellaneous"
     end
 
     return category
+end
+
+-- An ingredient row's tag as shown: the internal TOOL / KEEP / FUEL ids become the player's
+-- words. An alternatives row that carries FUEL keeps the id: the row painter compares it
+-- (and draws its own Fuel chip).
+function CC.tagText(tag, altCount)
+    if tag == nil then return nil end
+    if tag == "FUEL" and (altCount or 0) > 0 then return tag end
+    if tag == "TOOL" then return ZeD.tr("UI_ZeD_Craft_TagTool") end
+    if tag == "KEEP" then return ZeD.tr("UI_ZeD_Craft_TagKeep") end
+    if tag == "FUEL" then return ZeD.tr("UI_ZeD_Craft_TagFuel") end
+    return tag
 end
 
 -- A category's name as the player reads it: vanilla's translated label when
@@ -621,7 +634,7 @@ function CC.categoryLabel(raw)
     raw = tostring(raw)
     local hit = _catLabelCache[raw]
     if hit then return hit end
-    local cap = string.upper(string.sub(raw, 1, 1)) .. string.sub(raw, 2)
+    local cap = ZeD.upper(string.sub(raw, 1, 1)) .. string.sub(raw, 2)
     local label = getTextOrNull and getTextOrNull("IGUI_CraftingCategories_" .. cap)
     _catLabelCache[raw] = label or cap
     return label or cap
@@ -643,7 +656,7 @@ end
 
 -- SHOW: "ready" | "known" | "all" (older state kept only showAll: on = all, off = known;
 -- the Journal's read-only list has no Ready)
-local SHOW_LABEL = { ready = "Ready", known = "Known", all = "All" }
+local SHOW_LABEL = { ready = "UI_ZeD_Craft_ShowReady", known = "UI_ZeD_Craft_Known", all = "UI_ZeD_Craft_ShowAll" }   -- keys
 function CC.showMode(state, config)
     if state.show then return state.show end
     if state.showAll then return "all" end
@@ -1139,7 +1152,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         local mx, my = panel:getMouseX(), panel:getMouseY()
         local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
             and mx >= stX and mx < stX + selW and my >= rowY and my < rowY + ddH
-        ST.drawSelect(panel, stX, rowY, selW, ddH, "STATION", cur and cur.name or "Hand",
+        ST.drawSelect(panel, stX, rowY, selW, ddH, ZeD.tr("UI_ZeD_Station_SelectLabel"), cur and cur.name or ZeD.tr("UI_ZeD_Station_Hand"),
             cur ~= nil, state._gpFocusedId == (pfx .. ":stDrop"), hov)
         zones[#zones + 1] = { type = "stationDropdown", x = stX, y = rowY, w = selW, h = ddH }
         state._stGeo = { x = stX, y = rowY + ddH, w = selW }
@@ -1161,7 +1174,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         searchField:setWidth(searchW)
         searchField:setHeight(ddH)
         -- Update placeholder based on mode
-        searchField.placeholder = state.altSlotName and "Filter alternatives..." or "Search recipes..."
+        searchField.placeholder = state.altSlotName and ZeD.tr("UI_ZeD_Craft_FilterAlts") or getText("IGUI_CraftingWindow_SearchRecipes")
         -- The field is a child panel and paints after the tab: with a dropdown
         -- open over the search row, hide it for the frame (the window's
         -- prerender shows it again).
@@ -1176,7 +1189,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         local ac = T.accent
         panel:drawRect(ddX, ddY, ddW, ddH, 0.08, ac.r, ac.g, ac.b)
         panel:drawRectBorder(ddX, ddY, ddW, ddH, ac.a * 0.3, ac.r, ac.g, ac.b)
-        local frozenLabel = "Compatible"
+        local frozenLabel = ZeD.tr("UI_ZeD_Craft_Compatible")
         panel:drawText(frozenLabel, ddX + T.px(6), ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2),
             ac.r, ac.g, ac.b, 0.8, T.fontF2)
     else
@@ -1185,7 +1198,7 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
             local mx, my = panel:getMouseX(), panel:getMouseY()
             local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
                 and mx >= ddX and mx < ddX + ddW and my >= ddY and my < ddY + ddH
-            ST.drawSelect(panel, ddX, ddY, ddW, ddH, "CATEGORY", activeCatLabel, false,
+            ST.drawSelect(panel, ddX, ddY, ddW, ddH, ZeD.tr("UI_ZeD_Craft_CategoryLabel"), activeCatLabel, false,
                 state._gpFocusedId == (pfx .. ":catDrop"), hov)
         else
             -- Normal dropdown: show active category with arrow
@@ -1266,21 +1279,21 @@ function CC.renderStrip(panel, x, y, w, state, config)
         local modes
         if config.readOnly then
             modes = {
-                { id = "craftable", label = "Craftable" },
-                { id = "known",     label = "Known" },
-                { id = "name",      label = "Name" },
+                { id = "craftable", label = ZeD.tr("UI_ZeD_Craft_SortCraftable") },
+                { id = "known",     label = ZeD.tr("UI_ZeD_Craft_Known") },
+                { id = "name",      label = ZeD.tr("UI_ZeD_Craft_SortName") },
             }
         else
             modes = {
-                { id = "craftable", label = "Craftable" },
-                { id = "known",     label = "Known" },
-                { id = "name",      label = "Name" },
-                { id = "freq",      label = "Freq" },
-                { id = "recent",    label = "Recent" },
+                { id = "craftable", label = ZeD.tr("UI_ZeD_Craft_SortCraftable") },
+                { id = "known",     label = ZeD.tr("UI_ZeD_Craft_Known") },
+                { id = "name",      label = ZeD.tr("UI_ZeD_Craft_SortName") },
+                { id = "freq",      label = ZeD.tr("UI_ZeD_Craft_SortFreq") },
+                { id = "recent",    label = ZeD.tr("UI_ZeD_Craft_SortRecent") },
             }
         end
         local show = CC.showMode(state, config)
-        local toggle = { label = "Show: " .. SHOW_LABEL[show], active = show ~= "known" }
+        local toggle = { label = ZeD.tr("UI_ZeD_Craft_ShowToggle", ZeD.tr(SHOW_LABEL[show])), active = show ~= "known" }
         local h, stripZones = M.drawSortStrip(panel, x, y, w,
             modes, state.sort, toggle, hoverZone)
         -- S105 gamepad: inline cue paint for focused sort/showAll button.
@@ -1356,7 +1369,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
             end
             if #pinnedItems > 0 then
                 sections[#sections + 1] = {
-                    id = "pinned", label = "Pinned", color = T.accent,
+                    id = "pinned", label = "UI_ZeD_Craft_Pinned", color = T.accent,
                     items = pinnedItems, collapsed = state.pinnedCollapsed,
                 }
             end
@@ -1374,7 +1387,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
             end
             if #freqItems > 0 then
                 sections[#sections + 1] = {
-                    id = "freq", label = "Frequently Used", color = T.warning,
+                    id = "freq", label = "UI_ZeD_Craft_FreqUsed", color = T.warning,
                     items = freqItems, collapsed = state.freqCollapsed,
                 }
             end
@@ -1388,7 +1401,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                 allItems[#allItems + 1] = rd
             end
         end
-        local allLabel = (#(state.search or "") > 0) and "Results" or "All Recipes"
+        local allLabel = (#(state.search or "") > 0) and "UI_ZeD_Craft_Results" or "UI_ZeD_Craft_AllRecipes"   -- keys, translated where drawn
         sections[#sections + 1] = {
             id = "all", label = allLabel, color = nil,
             items = allItems, collapsed = state.allCollapsed,
@@ -1468,7 +1481,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         local hdrVisible = curY + catHdrH > visTop and curY < visBot
         if hdrVisible then
             local headerHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-            M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), sec.label,
+            M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.tr(sec.label),
                 #sec.items, not sec.collapsed, headerHover, T.fontF1, true, T.px(6), catHdrH)
             -- S105 gamepad: inline cue paint — accent overlay when focused.
             local pfx = (config and config.prefix) or "jrecipe"
@@ -1861,7 +1874,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
 
     -- Owned section
     if #owned > 0 then
-        local headerStr = "OWNED"
+        local headerStr = ZeD.tr("UI_ZeD_Craft_AltOwned")
         M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), headerStr, #owned, true, false, T.fontF1, true, T.px(6), catHdrH)
         curY = curY + catHdrH
 
@@ -1875,7 +1888,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
 
     -- Other section
     if #other > 0 then
-        local headerStr = "OTHER COMPATIBLE"
+        local headerStr = ZeD.tr("UI_ZeD_Craft_AltOther")
         M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), headerStr, #other, true, false, T.fontF1, true, T.px(6), catHdrH)
         curY = curY + catHdrH
 
@@ -1888,7 +1901,7 @@ function CC.renderAltList(panel, x, y, w, h, state)
 
     -- Empty state
     if #owned == 0 and #other == 0 then
-        local msg = "No alternatives found"
+        local msg = ZeD.tr("UI_ZeD_Craft_NoAlts")
         local msgW = tm:MeasureStringX(T.fontF1, msg)
         local dc = T.textDim
         panel:drawText(msg, x + math.floor((contentW - msgW) / 2), curY + T.px(6),
@@ -2001,7 +2014,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local chipX = x + T.px(6)
     -- In readOnly (Journal), show accessibility: learned AND has skill
     local isAccessible = rd.learned and (rd.hasSkill ~= false)
-    local learnedStr = isAccessible and "KNOWN" or "UNKNOWN"
+    local learnedStr = ZeD.tr(isAccessible and "UI_ZeD_Craft_BadgeKnown" or "UI_ZeD_Craft_BadgeUnknown")
     local learnedV = isAccessible and "positive" or "danger"
     local bw = A.drawBadge(panel, learnedStr, chipX, curY, learnedV)
     chipX = chipX + bw + T.px(4)
@@ -2009,7 +2022,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- Surface requirement (pre-baked during catalog build)
     local needsSurface = entry.needSurface or false
     if needsSurface then
-        bw = A.drawBadge(panel, "SURFACE", chipX, curY, "warning")
+        bw = A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeSurface"), chipX, curY, "warning")
         chipX = chipX + bw + T.px(4)
     end
 
@@ -2018,9 +2031,9 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         local t = rd.craftTime
         local timeStr
         if t >= 60 then
-            timeStr = string.format("%dm%ds", math.floor(t / 60), math.floor(t % 60))
+            timeStr = ZeD.tr("UI_ZeD_Craft_TimeMinSec", math.floor(t / 60), math.floor(t % 60))
         else
-            timeStr = string.format("%ds", math.floor(t))
+            timeStr = ZeD.tr("UI_ZeD_Craft_TimeSec", math.floor(t))
         end
         bw = A.drawBadge(panel, timeStr, chipX, curY, "accent", nil, nil, true)
         chipX = chipX + bw + T.px(4)
@@ -2028,7 +2041,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     -- Station chip: what this recipe needs (Hand mode) or where it is made
     if stNeed then
-        A.drawBadge(panel, "NEEDS " .. (stNeed.short or "STATION"), chipX, curY, "danger")
+        A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeNeeds", stNeed.short or ZeD.tr("UI_ZeD_Station_ShortFallback")), chipX, curY, "danger")
     elseif rd.boundShort then
         A.drawBadge(panel, rd.boundShort, chipX, curY, nil)
     end
@@ -2042,18 +2055,18 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         panel:drawRect(bx, curY, bw2, bh, 0.12, ac.r, ac.g, ac.b)
         panel:drawRectBorder(bx, curY, bw2, bh, ac.a or 1, ac.r, ac.g, ac.b)
         local ty = curY + T.px(8)
-        local line1 = "Needs " .. ZeD.Stations.withArticle(stNeed.label) .. "."
+        local line1 = ZeD.Stations.needsText(stNeed.label)
         panel:drawText(CC.truncText(line1, T.fontF2, bw2 - T.px(16)), bx + T.px(8), ty,
             T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
         ty = ty + T.fontF2H + T.px(2)
-        local line2 = stNear and ("The nearest is " .. string.lower(ZeD.Stations.tilesText(stNear.dist)) .. " away.")
-            or ("None within " .. tostring(ZeD.Stations.REACH) .. " tiles.")
+        local line2 = stNear and ZeD.Stations.nearestText(stNear.dist)
+            or ZeD.tr("UI_ZeD_Craft_NoneWithin", ZeD.Stations.REACH)
         panel:drawText(CC.truncText(line2, T.fontF2, bw2 - T.px(16)), bx + T.px(8), ty,
             T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF2)
         ty = ty + T.fontF2H
         if stNear then
             ty = ty + T.px(6)
-            local label = "Use " .. string.lower(stNear.name or "station")   -- a button: sentence case
+            local label = ZeD.tr("UI_ZeD_Craft_UseStation", string.lower(stNear.name or ZeD.tr("UI_ZeD_Station_Fallback")))   -- a button: sentence case
             local btnH = T.px(22)
             local btnW = math.min(bw2 - T.px(16), ZeD.TM:MeasureStringX(T.fontF3, label) + T.px(24))
             M.drawButton(panel, bx + T.px(8), ty, btnW, btnH, label, "primary")
@@ -2072,7 +2085,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
     -- Learn info section (readOnly + not accessible — renders ABOVE required)
     if showLearnSection then
-        local learnLabel = "HOW TO LEARN"
+        local learnLabel = ZeD.tr("UI_ZeD_Craft_HowToLearn")
         local learnHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
         M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), learnLabel,
             nil, true, learnHdrHover, T.fontF1, false, T.px(6), catHdrH)
@@ -2084,7 +2097,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
                 local skColor = sk.met and T.positive or T.danger
                 local dotSz = T.px(6)
                 A.drawStatusDot(panel, x + T.px(6), curY + math.floor((ROW_H - dotSz) / 2), skColor, dotSz)
-                local skStr = sk.name .. " Level " .. tostring(sk.required)
+                local skStr = ZeD.tr("UI_ZeD_Craft_SkillLevel", sk.name, sk.required)
                 panel:drawText(skStr, x + T.px(6) + dotSz + T.px(4),
                     curY + math.floor((ROW_H - tm:getFontHeight(T.fontF2)) / 2),
                     T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
@@ -2100,7 +2113,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
 
         -- needToBeLearn hint
         if entry.needLearn then
-            local hintStr = "Find recipe magazine or schematic"
+            local hintStr = ZeD.tr("UI_ZeD_Craft_FindRecipe")
             panel:drawText(hintStr, x + T.px(6),
                 curY + math.floor((ROW_H - tm:getFontHeight(T.fontF5)) / 2),
                 T.textSec.r, T.textSec.g, T.textSec.b, 0.7, T.fontF5)
@@ -2113,7 +2126,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- Required Items section (collapsible disclosure, matches inventory catHdrH)
     local reqCount = #(rd.ingredients or {})
     local haveCount = reqCount - (rd.missingCount or 0)
-    local secLabel = "REQUIRED"
+    local secLabel = ZeD.tr("UI_ZeD_Craft_Required")
     local reqHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
     M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), secLabel,
         haveCount .. "/" .. reqCount, not state.reqCollapsed, reqHdrHover, T.fontF1, true, T.px(6), catHdrH)
@@ -2142,7 +2155,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
                 have = ing.have,
                 need = ing.need,
                 altCount = ing.altCount,
-                tag = ing.tag,
+                tag = CC.tagText(ing.tag, ing.altCount),
                 isTool = ing.isTool,
                 isKeep = ing.isKeep,
             }
@@ -2170,7 +2183,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local outCount = #(entry.outputDefs or {})
     if outCount > 0 then
         local outHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), "OUTPUTS",
+        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.tr("UI_ZeD_Craft_Outputs"),
             outCount, not state.outCollapsed, outHdrHover, T.fontF1, true, T.px(6), catHdrH)
         -- S105 gamepad: inline cue paint for focused card section header (OUTPUTS).
         do
@@ -2220,7 +2233,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         if state.qty > maxQty and maxQty > 0 then state.qty = maxQty end
         if state.qty < 1 then state.qty = 1 end
         local canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0
-        local label = config.buildLabel or "CRAFT"
+        local label = ZeD.tr(config.buildLabel or "UI_ZeD_Craft_ActCraft")
         local _, actionZones = M.drawCraftActionStrip(panel, x, actionY, w,
             state.qty, maxQty, canCraft, nil, label)
         for _, z in ipairs(actionZones) do

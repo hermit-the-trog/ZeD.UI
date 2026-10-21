@@ -48,6 +48,7 @@
 --   speed0..speed3  the no-watch tape deck keys
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/ZeD_Panel"
 require "ZeD/SafeMode"
 require "ZeD/ZeD_PixelParts"
@@ -115,7 +116,33 @@ end
 -- ---------------------------------------------------------------------------
 -- What the watch reads
 -- ---------------------------------------------------------------------------
-local DAYS = { "SU", "MO", "TU", "WE", "TH", "FR", "SA" }
+-- the weekday on the LCD, two letters: the keys UI_ZeD_Watch_Day<Su..Sa>, read when the day draws
+local DAYS = { "UI_ZeD_Watch_DaySu", "UI_ZeD_Watch_DayMo", "UI_ZeD_Watch_DayTu", "UI_ZeD_Watch_DayWe", "UI_ZeD_Watch_DayTh",
+               "UI_ZeD_Watch_DayFr", "UI_ZeD_Watch_DaySa" }
+ZeD.trDefaults({
+    UI_ZeD_Watch_DaySu = "SU", UI_ZeD_Watch_DayMo = "MO", UI_ZeD_Watch_DayTu = "TU", UI_ZeD_Watch_DayWe = "WE",
+    UI_ZeD_Watch_DayTh = "TH", UI_ZeD_Watch_DayFr = "FR", UI_ZeD_Watch_DaySa = "SA",
+    UI_ZeD_Watch_Alarm = "ALARM", UI_ZeD_Watch_AlarmOff = "ALARM OFF", UI_ZeD_Watch_SetHint = "-1H  +1H",
+    UI_ZeD_Watch_SetText = "AL %1", UI_ZeD_Watch_SetTextOff = "AL OFF", UI_ZeD_Watch_Pause = "PAUSE", UI_ZeD_Watch_Alm = "ALM",
+})
+-- The words the LCD draws (day, ALM, PAUSE, the alarm's setting) sit in fixed cells in a pixel
+-- face: never stretched by the test language, and a translation with a letter the face cannot
+-- draw gives way to the English (1993 LCD watches printed English day names anyway).
+local LCD_FACE = "35"
+local function _lcdCan(s)
+    local F = ZeD.PixelFonts and ZeD.PixelFonts[LCD_FACE]
+    if not F then return true end
+    for i = 1, #s do
+        local c = s:sub(i, i)
+        if c ~= " " and not F[c] and not F[string.upper(c)] then return false end
+    end
+    return true
+end
+local function _lcd(key, a1)
+    local s = ZeD.trPlain(key, a1)
+    if _lcdCan(s) then return s end
+    return ZeD.trEnglish(key, a1)
+end
 local function _dayOfWeek(y, m, d)   -- Zeller's rule, 1 = Sunday
     if m < 3 then m = m + 12; y = y - 1 end
     local k, j = y % 100, math.floor(y / 100)
@@ -159,10 +186,10 @@ local function _reading(rd, player, item, speed, setOpen, armed, alarmHour)
     local day = (gt:getDay() or 0) + 1
     rd.dateWin = tostring(day)                         -- the date window is its own wheel: it stays while setting
     if setOpen then
-        rd.setTitle = armed and "ALARM" or "ALARM OFF"
+        rd.setTitle = armed and _lcd("UI_ZeD_Watch_Alarm") or _lcd("UI_ZeD_Watch_AlarmOff")
         rd.setVal = armed and string.format("%02d", alarmHour) or ""
-        rd.setHint = "-1H  +1H"
-        rd.setText = armed and string.format("AL %02d", alarmHour) or "AL OFF"
+        rd.setHint = _lcd("UI_ZeD_Watch_SetHint")
+        rd.setText = armed and _lcd("UI_ZeD_Watch_SetText", string.format("%02d", alarmHour)) or _lcd("UI_ZeD_Watch_SetTextOff")
         return rd
     end
     local hour, min = gt:getHour(), gt:getMinutes()
@@ -179,13 +206,14 @@ local function _reading(rd, player, item, speed, setOpen, armed, alarmHour)
     rd.sec = string.format("%02d", math.floor(tod * 3600) % 60)
     local month = (gt:getMonth() or 0) + 1
     local year = gt:getYear() or 1993
-    rd.day = DAYS[_dayOfWeek(year, month, day)] or ""
+    local dayKey = DAYS[_dayOfWeek(year, month, day)]
+    rd.day = dayKey and _lcd(dayKey) or ""
     rd.date = tostring(day)
     local t, unit = _thermo(player)
     if t then rd.temp = t; rd.tempUnit = string.char(176) .. unit end   -- the degree sign (Kahlua: one character)
-    if speed == 0 then rd.pause = "PAUSE" else rd.speed = speed end
+    if speed == 0 then rd.pause = _lcd("UI_ZeD_Watch_Pause") else rd.speed = speed end
     if armed then
-        rd.alm = "ALM"
+        rd.alm = _lcd("UI_ZeD_Watch_Alm")
         rd.almTime = string.format("%d:00", alarmHour)
     end
     return rd

@@ -11,6 +11,7 @@
 -- ============================================================================
 
 require "ZeD/ContextIcons"   -- provides ZeD.ContextIcons
+require "ZeD/Tr"              -- ZeD.tr
 
 ZeD = ZeD or {}
 ZeD.ContextMenu = ZeD.ContextMenu or {}
@@ -104,9 +105,179 @@ Registry.CATEGORY_KEYWORDS = {
 Registry.DEBUG_LOG_UNKNOWN_CATEGORIES = false
 Registry._loggedUnknowns = {}
 
+-- ----------------------------------------------------------------------------
+-- TRANSLATED KEYS
+-- The keyword list above and the icon table are written in English. For other
+-- languages the same words come from vanilla's own translation keys
+-- (ZeD.ContextIconKeys and ZeD.ContextCategoryKeys, generated into
+-- ContextIcons.lua by tools/i18n/rekey_icons.py). Each key is read through
+-- getText once, the first time a menu needs it; the English words stay as the
+-- fallback for options that mods add without keys.
+-- ----------------------------------------------------------------------------
+
+-- Stand-ins passed as getText arguments, so a key with %1..%4 in it comes back
+-- with these marks where the values go. That is how a label with a changing
+-- part ("Empty %1") becomes a pattern instead of one fixed word.
+local SENTINELS = { string.char(1), string.char(2), string.char(3), string.char(4) }
+
+-- A key is a translation key ("ContextMenu_Walk_to") or an item type
+-- ("Base.Sausage"); anything with spaces is an English display name.
+local function looksLikeKey(name)
+    if type(name) ~= "string" then return false end
+    return name:find("^%a[%w]*_[%w_]+$") ~= nil or name:find("^%a+%.[%w_]+$") ~= nil
+end
+
+local function isItemType(key)
+    return key:find("^%a+%.[%w_]+$") ~= nil
+end
+
+-- Returns the key's text in the player's language and whether it holds
+-- placeholders, or nil when the game has no text for it.
+local function translateKey(key)
+    local ok, text
+    if isItemType(key) then
+        if not getItemNameFromFullType then return nil end
+        ok, text = pcall(getItemNameFromFullType, key)
+        if ok and type(text) == "string" and text ~= "" and text ~= key then return text, false end
+        return nil
+    end
+    ok, text = pcall(getText, key, SENTINELS[1], SENTINELS[2], SENTINELS[3], SENTINELS[4])
+    if not ok or type(text) ~= "string" or text == "" or text == key then return nil end
+    for i = 1, #SENTINELS do
+        if text:find(SENTINELS[i], 1, true) then return text, true end
+    end
+    return text, false
+end
+
+local _localizedCategories = nil   -- { {lowercase word, category}, ... } in the player's language
+
+local function firstWordOf(s)
+    local sp = s:find(" ", 1, true)
+    if sp then return s:sub(1, sp - 1) end
+    return s
+end
+
+-- True when the text holds a Chinese, Japanese or Korean character (code 0x2E80
+-- and up), where one character is already a whole word.
+local function hasWideChar(s)
+    for i = 1, #s do
+        if string.byte(s, i) >= 0x2E80 then return true end
+    end
+    return false
+end
+
+-- A group word has to be long enough not to turn up inside unrelated labels:
+-- three letters, or a single character in Chinese, Japanese or Korean.
+local function wordLongEnough(low)
+    return #low >= 3 or (#low >= 1 and hasWideChar(low))
+end
+
+local function buildLocalizedCategories()
+    _localizedCategories = {}
+    local rows = ZeD.ContextCategoryKeys
+    if not rows then return end
+    local byKeyword = {}
+    for _, row in ipairs(rows) do
+        local list = byKeyword[row[1]]
+        if not list then list = {}; byKeyword[row[1]] = list end
+        list[#list + 1] = row
+    end
+    local seen = {}
+    -- Words taken whole from a key go first. Words that are only the first word
+    -- of a longer key ("first" rows) come second, so a common opening word such
+    -- as "Take" never claims a label a whole-word key already owns. Within each
+    -- round the English list order is kept, which is the category order.
+    for round = 1, 2 do
+        local wantFirstWord = (round == 2)
+        for _, pair in ipairs(Registry.CATEGORY_KEYWORDS) do
+            local english = string.lower(pair[1])
+            for _, row in ipairs(byKeyword[pair[1]] or {}) do
+                local firstOnly = row[#row] == "first"
+                if firstOnly == wantFirstWord then
+                    local last = #row
+                    if firstOnly then last = last - 1 end
+                    for i = 2, last do
+                        local text, hasPlaceholder = translateKey(row[i])
+                        if text and not hasPlaceholder then
+                            if firstOnly then text = firstWordOf(text) end
+                            local low = string.lower(text)
+                            if wordLongEnough(low) and low ~= english and not seen[low] then
+                                seen[low] = true
+                                _localizedCategories[#_localizedCategories + 1] = { low, pair[2] }
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- The group the English keyword list gives a name, or nil when no keyword is in it.
+function Registry.englishCategory(name)
+    local lower = string.lower(tostring(name or ""))
+    for _, pair in ipairs(Registry.CATEGORY_KEYWORDS) do
+        if string.find(lower, string.lower(pair[1]), 1, true) then return pair[2] end
+    end
+    return nil
+end
+
+-- Whole labels in the player's language with a known group: { lowercase label = group }.
+-- A label that is exactly a known option ("Equip Primary" in Russian opens with the word for
+-- "take") keeps that option's group, ahead of any group word found inside it.
+function Registry.exactCategories()
+    if Registry._exactCategories then return Registry._exactCategories end
+    local exact = {}
+    Registry._exactCategories = exact
+    local function add(key, cat)
+        if not (key and cat) then return end
+        local text, hasPlaceholder = translateKey(key)
+        if text and not hasPlaceholder then
+            local low = string.lower(text)
+            -- a label the English keyword list already places elsewhere keeps that group
+            -- (English "Open and Drink" stays with Drink, not Open)
+            local eng = Registry.englishCategory(text)
+            if exact[low] == nil and (eng == nil or eng == cat) then exact[low] = cat end
+        end
+    end
+    local groupOf = {}
+    for _, pair in ipairs(Registry.CATEGORY_KEYWORDS) do groupOf[pair[1]] = pair[2] end
+    -- the group rows: the whole-text rows first, then the first-word rows' whole text
+    for round = 1, 2 do
+        for _, row in ipairs(ZeD.ContextCategoryKeys or {}) do
+            local last = #row
+            local firstOnly = row[last] == "first"
+            if firstOnly then last = last - 1 end
+            if firstOnly == (round == 2) then
+                for i = 2, last do add(row[i], groupOf[row[1]]) end
+            end
+        end
+    end
+    -- the icon rows: each key's text takes the group its English name has
+    for _, rows in ipairs({ ZeD.ContextIconKeys or {}, ZeD.ContextIconVerbKeys or {} }) do
+        for _, row in ipairs(rows) do
+            local cat = Registry.englishCategory(row[1])
+            if cat then
+                for i = 2, #row do add(row[i], cat) end
+            end
+        end
+    end
+    return exact
+end
+
 function Registry.categorize(optionName)
     if not optionName or optionName == "" then return "ACTION" end
     local lower = string.lower(optionName)
+    -- a label that is exactly a known option keeps that option's group
+    local whole = Registry.exactCategories()[lower]
+    if whole then return whole end
+    -- the player's language first, then the English words
+    if not _localizedCategories then buildLocalizedCategories() end
+    for _, pair in ipairs(_localizedCategories) do
+        if string.find(lower, pair[1], 1, true) then
+            return pair[2]
+        end
+    end
     for _, pair in ipairs(Registry.CATEGORY_KEYWORDS) do
         if string.find(lower, string.lower(pair[1]), 1, true) then
             return pair[2]
@@ -157,27 +328,104 @@ local function _firstWord(s)
     return s
 end
 
+-- Labels with a changing part ("Empty %1"): { Lua pattern, codepoint } pairs.
+local _patternList = nil
+
+-- A Lua pattern for a label that holds placeholders: the fixed words must match,
+-- each placeholder matches any text. Returns nil when too little is fixed (a
+-- label that is nearly all placeholder would match everything). Spaces and
+-- punctuation do not count as fixed: "%2 (%1)" says nothing about the label.
+local function patternForPlaceholderText(text)
+    local fixed = text
+    for i = 1, #SENTINELS do fixed = fixed:gsub(SENTINELS[i], "") end
+    fixed = fixed:gsub("[%s%p]", "")
+    if #fixed < 3 and not (#fixed >= 2 and hasWideChar(fixed)) then return nil end
+    local p = text:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+    for i = 1, #SENTINELS do p = p:gsub(SENTINELS[i], ".-") end
+    return "^" .. p .. "$"
+end
+
+-- English names whose keys are put in the cache before everything else, so they keep
+-- their icon when another option's translation reads exactly the same.
+Registry.PRIORITY_NAMES = { ["Walk to"] = true }
+
 local function buildTranslatedCache()
     _translatedNameCache = {}
     _firstWordCache = {}
-    if not ZeD.ContextIcons then return end
+    _patternList = {}
+    local icons = ZeD.ContextIcons
+    if not icons then return end
 
-    -- Pass 1: index direct entries (display name + optional translation key).
-    for key, cp in pairs(ZeD.ContextIcons) do
-        _translatedNameCache[key] = cp   -- direct display-name entries
-        -- Also resolve translation keys to their localized display strings,
-        -- which is what vanilla option.name will contain for translated mods.
-        if key:sub(1, 12) == "ContextMenu_" or key:sub(1, 5) == "IGUI_" or key:sub(1, 6) == "Fluid_" then
-            -- S123: a few keys (Fluid_HoldingOneType etc.) are Java format
-            -- strings; calling getText without args makes Translator log a
-            -- MissingFormatArgumentException WARN. Extra args are ignored by
-            -- keys that have no specifiers, so pad with three blanks.
-            local ok, translated = pcall(getText, key, "", "", "")
-            if ok and translated then
-                _translatedNameCache[translated] = cp
+    -- A name already in the cache keeps its first icon, so the order below is
+    -- the order of authority: keyed entries, then keys found for the English
+    -- names, then the English names themselves.
+    local function put(name, cp)
+        if name and cp and _translatedNameCache[name] == nil then
+            _translatedNameCache[name] = cp
+        end
+    end
+    local function putKey(key, cp)
+        local text, hasPlaceholder = translateKey(key)
+        if not text then return end
+        if hasPlaceholder then
+            local pat = patternForPlaceholderText(text)
+            if pat then _patternList[#_patternList + 1] = { pat, cp } end
+        else
+            put(text, cp)
+        end
+    end
+
+    -- Pass 1a and 1b run twice. The first round takes the vanilla context-menu
+    -- keys ("ContextMenu_...") only, the second everything else (interface and
+    -- fluid wording, item names), so when two words read alike the option the
+    -- player actually right-clicks wins over a label from another screen.
+    -- Within a round, keyed entries come before the keys found for the English
+    -- names, and the keyed entries are sorted so the result never changes
+    -- between runs.
+    local keyed = {}
+    for name in pairs(icons) do
+        if looksLikeKey(name) then keyed[#keyed + 1] = name end
+    end
+    table.sort(keyed)
+    -- Rows are { English name, key, key, ... }; the icon is the English name's.
+    -- ZeD.ContextIconKeys holds the keys that read exactly as the name;
+    -- ZeD.ContextIconVerbKeys holds the keys that only start with a one-word
+    -- name ("Open Door" under "Open"), so they come after.
+    local rowSets = { ZeD.ContextIconKeys or {}, ZeD.ContextIconVerbKeys or {} }
+    for round = 1, 2 do
+        local contextOnly = (round == 1)
+        -- Pass 0: the names that win when a language gives two options the same words
+        -- (Chinese reads "Walk to" and "Move To" alike; Walk to keeps its icon).
+        for _, rows in ipairs(rowSets) do
+            for _, row in ipairs(rows) do
+                local cp = icons[row[1]]
+                if cp and Registry.PRIORITY_NAMES[row[1]] then
+                    for i = 2, #row do
+                        if (row[i]:sub(1, 12) == "ContextMenu_") == contextOnly then putKey(row[i], cp) end
+                    end
+                end
+            end
+        end
+        -- Pass 1a: entries keyed by a translation key.
+        for _, key in ipairs(keyed) do
+            if (key:sub(1, 12) == "ContextMenu_") == contextOnly then putKey(key, icons[key]) end
+        end
+        -- Pass 1b: the keys found for the English names.
+        for _, rows in ipairs(rowSets) do
+            for _, row in ipairs(rows) do
+                local cp = icons[row[1]]
+                if cp then
+                    for i = 2, #row do
+                        if (row[i]:sub(1, 12) == "ContextMenu_") == contextOnly then putKey(row[i], cp) end
+                    end
+                end
             end
         end
     end
+
+    -- Pass 1c: the display names as written (English, and any a mod adds
+    -- without a key).
+    for name, cp in pairs(icons) do put(name, cp) end
 
     -- Pass 2: build first-word index from the materialized exact-match cache.
     -- Two-pass so translation-key resolutions (which only populate _translated-
@@ -224,6 +472,11 @@ local function resolveIconForName(optionName)
     local cp = _translatedNameCache[optionName]
     if cp then return getIconTexture(cp) end
 
+    -- Labels with a changing part ("Empty %1" in the player's language).
+    for _, entry in ipairs(_patternList) do
+        if string.find(optionName, entry[1]) then return getIconTexture(entry[2]) end
+    end
+
     -- Prefix-word fallback for dynamic labels. "Read Doctor Magazine" ?
     -- first word "Read" ? use the Read icon. Preserves the action's
     -- semantic while tolerating vanilla's `verb + " " + target` composition.
@@ -245,6 +498,44 @@ local function resolveIconForName(optionName)
 end
 
 Registry.resolveIconForName = resolveIconForName
+
+-- Forget what was read from the translations, so the next menu reads it again.
+-- Call after a mod adds entries to ZeD.ContextIcons once menus are already open.
+function Registry.resetTranslatedCaches()
+    _translatedNameCache = nil
+    _firstWordCache = nil
+    _patternList = nil
+    _localizedCategories = nil
+    Registry._exactCategories = nil
+end
+
+-- For checking another language in the game console: how much of the map the
+-- current language filled in, and what a given label resolves to.
+--   ZeD.ContextMenu.Registry.debugTranslated("Marcher vers")
+function Registry.debugTranslated(label)
+    if not _translatedNameCache then buildTranslatedCache() end
+    if not _localizedCategories then buildLocalizedCategories() end
+    local names, patterns, words = 0, #_patternList, #_localizedCategories
+    for _ in pairs(_translatedNameCache) do names = names + 1 end
+    print("[ZeD.ContextMenu] language map: " .. names .. " names, " .. patterns
+          .. " patterns, " .. words .. " group words")
+    if label then
+        local cp = _translatedNameCache[label]
+        local how = cp and "exact" or nil
+        if not cp then
+            for _, entry in ipairs(_patternList) do
+                if string.find(label, entry[1]) then cp = entry[2]; how = "pattern"; break end
+            end
+        end
+        if not cp then
+            local fw = _firstWord(label)
+            cp = fw ~= label and _firstWordCache[fw] or nil
+            if cp then how = "first word" end
+        end
+        print("[ZeD.ContextMenu] '" .. tostring(label) .. "' icon: " .. tostring(cp)
+              .. " (" .. tostring(how) .. "), group: " .. Registry.categorize(label))
+    end
+end
 
 -- ============================================================================
 -- ACTIONDEF CONSTRUCTION
@@ -554,8 +845,8 @@ local function formatFluidMeta(item)
         fluidPart = safeCall(primary, "getTranslatedFluidName") or ""
     end
     if capacity > 0 then
-        local txt = string.format("%.1f / %.1f L", amount, capacity)
-        if fluidPart ~= "" then txt = txt .. " ? " .. fluidPart end
+        local txt = ZeD.tr("UI_ZeD_Meta_FluidAmount", string.format("%.1f", amount), string.format("%.1f", capacity))
+        if fluidPart ~= "" then txt = txt .. " | " .. fluidPart end
         return txt
     end
     return fluidPart ~= "" and fluidPart or nil
@@ -568,45 +859,45 @@ local function formatFoodMeta(item)
     if count and count > 1 then parts[#parts + 1] = "x" .. tostring(count) end
     local hunger = safeCall(item, "getHungerChange")
     if hunger then
-        parts[#parts + 1] = string.format("%+d hunger", math.floor(hunger * 100 + 0.5))
+        parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Hunger", string.format("%+d", math.floor(hunger * 100 + 0.5)))
     end
     local age = safeCall(item, "getAge")
     local offAge = safeCall(item, "getOffAge")
     if age and offAge and offAge > 0 then
         local freshPct = math.floor((1 - age / offAge) * 100 + 0.5)
-        if freshPct < 50 then parts[#parts + 1] = "stale"
-        elseif freshPct < 85 then parts[#parts + 1] = "ripe"
-        else parts[#parts + 1] = "fresh" end
+        if freshPct < 50 then parts[#parts + 1] = ZeD.tr("Tooltip_food_Stale")
+        elseif freshPct < 85 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Ripe")
+        else parts[#parts + 1] = ZeD.tr("Tooltip_food_Fresh") end
     end
     if #parts == 0 then return nil end
-    return table.concat(parts, " ? ")
+    return table.concat(parts, " | ")
 end
 
 local function formatWeaponMeta(item)
     local cond = safeCall(item, "getConditionPercent")
     local parts = {}
-    if cond then parts[#parts + 1] = "cond " .. tostring(cond) .. "%" end
+    if cond then parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Condition", tostring(cond)) end
     local current = safeCall(item, "getCurrentAmmoCount")
     local max = safeCall(item, "getMaxAmmo")
     if current and max and max > 0 then
         parts[#parts + 1] = string.format("%d / %d", current, max)
     end
     if #parts == 0 then return nil end
-    return table.concat(parts, " ? ")
+    return table.concat(parts, " | ")
 end
 
 local function formatClothingMeta(item)
     local parts = {}
     local wet = safeCall(item, "getWetness")
     if wet and wet > 0 then
-        parts[#parts + 1] = string.format("wet %d%%", math.floor(wet))
+        parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Wet", math.floor(wet))
     end
     local bite = safeCall(item, "getBiteDefense")
     if bite and bite > 0 then
-        parts[#parts + 1] = string.format("bite %d", math.floor(bite))
+        parts[#parts + 1] = ZeD.tr("UI_ZeD_Meta_Bite", math.floor(bite))
     end
     if #parts == 0 then return nil end
-    return table.concat(parts, " ? ")
+    return table.concat(parts, " | ")
 end
 
 local function formatLiteratureMeta(item)
@@ -614,9 +905,9 @@ local function formatLiteratureMeta(item)
     local read = safeCall(item, "getAlreadyReadPages")
     if pages and pages > 0 then
         if read and read > 0 then
-            return string.format("%d / %d pages", read, pages)
+            return ZeD.tr("UI_ZeD_Meta_PagesRead", read, pages)
         end
-        return string.format("%d pages", pages)
+        return ZeD.tr("UI_ZeD_Meta_Pages", pages)
     end
     return nil
 end
@@ -684,7 +975,7 @@ local function pickWorldObject(list)
             return obj, (safeCall(obj, "getFullName")
                          or safeCall(obj, "getDisplayName")
                          or safeCall(obj, "getName")
-                         or "Survivor")
+                         or ZeD.tr("UI_ZeD_Target_Survivor"))
         end
     end
     -- Pass 2: named objects
@@ -704,7 +995,7 @@ local function pickWorldObject(list)
             local cls = safeCall(obj, "getClass")
             local clsName = cls and safeCall(cls, "getName") or ""
             if clsName:find("IsoDeadBody") then
-                return obj, "Corpse"
+                return obj, ZeD.tr("IGUI_ItemCat_Corpse")
             end
         end
     end
@@ -724,7 +1015,7 @@ function Registry.getTargetDisplay(target)
             local tex = safeCall(obj, "getTexture") or safeCall(obj, "getSprite")
             return name, tex
         end
-        return "Ground", nil
+        return ZeD.tr("IGUI_ContainerTitle_floor"), nil
     end
 
     -- Inventory RMB (Lua table)
@@ -732,11 +1023,11 @@ function Registry.getTargetDisplay(target)
         local item = firstInventoryItem(target)
         if item then
             local name = safeCall(item, "getDisplayName")
-                         or safeCall(item, "getName") or "Item"
+                         or safeCall(item, "getName") or ZeD.tr("IGUI_Item")
             local tex = safeCall(item, "getTexture")
             return name, tex
         end
-        return "Selection", nil
+        return ZeD.tr("UI_ZeD_Target_Selection"), nil
     end
 
     -- Single userdata object (rare path ? direct IsoObject)

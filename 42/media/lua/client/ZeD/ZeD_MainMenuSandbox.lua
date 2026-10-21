@@ -64,7 +64,7 @@ function ZeD_MMSandbox:new()
     o.confirm = false     -- false | "load" | "save" | "delete"
     o.snap = {}
     o.diff, o.nDiff = {}, 0
-    o.changedNote = "Differs from the preset."
+    o.changedNote = "UI_ZeD_Sandbox_ChangedNote"   -- (a translation key; the Options window's help band turns it into words)
     o.ctx = { hot = nil, press = nil, wasDown = false }
     return o
 end
@@ -324,7 +324,7 @@ function ZeD_MMSandbox:openAdv(r, anchor)
         items[#items + 1] = { text = t, fn = function() self:setAdv(r, i) end }
     end
     items[#items + 1] = "-"
-    items[#items + 1] = { text = "Custom number...", fn = function() self:startCell(r) end }
+    items[#items + 1] = { text = ZeD.tr("UI_ZeD_Sandbox_CustomNumber"), fn = function() self:startCell(r) end }
     MM.openPopup("combo", items, anchor, false)
     MM.ctx.dropFocus = math.max(1, math.min(c.combo.selected or 1, #vals + 1))
 end
@@ -428,9 +428,9 @@ function ZeD_MMSandbox:prerender()
     local page = pages[self.pageIdx]
     local q = string.lower(tostring(self.find:getInternalText() or ""))
     local _, pname = self:preset()
-    self.title = "Project Zomboid  +  Sandbox options"
+    self.title = ZeD.tr("UI_ZeD_Sandbox_Title")
     local stat = pname
-    if self.nDiff > 0 then stat = stat .. ", " .. self.nDiff .. " changed" end
+    if self.nDiff > 0 then stat = ZeD.tr("UI_ZeD_Sandbox_StatChanged", pname, self.nDiff) end
     self.titleStats = { { text = stat, color = { r = 0, g = 0, b = 0, a = 0 } } }
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
@@ -480,10 +480,10 @@ function ZeD_MMSandbox:presetItems()
         t[#t + 1] = { text = name, fn = function() self:pickPreset(i) end }
     end
     t[#t + 1] = "-"
-    t[#t + 1] = { text = "Save as preset...", fn = function() self:setConfirm("save") end }
+    t[#t + 1] = { text = ZeD.tr("UI_ZeD_Sandbox_SavePreset"), fn = function() self:setConfirm("save") end }
     local p = self:preset()
     if p and p.userDefined then
-        t[#t + 1] = { text = "Delete " .. tostring(p.name) .. "...", fn = function() self:setConfirm("delete") end }
+        t[#t + 1] = { text = ZeD.tr("UI_ZeD_Sandbox_DeletePreset", tostring(p.name)), fn = function() self:setConfirm("delete") end }
     end
     return t
 end
@@ -568,7 +568,7 @@ function ZeD_MMSandbox:setConfirm(mode)
     MM.ctx.open = nil
     if mode == "save" then
         local p = self:preset()
-        self.field:setText((p and p.userDefined) and tostring(p.name) or "New")
+        self.field:setText((p and p.userDefined) and tostring(p.name) or ZeD.tr("UI_ZeD_Sandbox_NewPresetName"))
         self.field:setVisible(true)
         self.field:focus()
     else
@@ -586,22 +586,22 @@ function ZeD_MMSandbox:buildStrip(stripY, stripH, w)
     if self.confirm == "load" then
         local s = sand()
         local name = s and comboText(s.presetList, self._pending or 1) or ""
-        ask = "Load " .. name .. "? Your changes will be lost."
+        ask = ZeD.tr("UI_ZeD_Sandbox_AskLoad", name)
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "LOAD", function() self:loadPreset(self._pending or 1) end, "primary" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_mainscreen_load"), function() self:loadPreset(self._pending or 1) end, "primary" } })
     elseif self.confirm == "delete" then
         local p = self:preset()
-        ask = "Delete the preset " .. tostring(p and p.name or "") .. "?"
+        ask = ZeD.tr("UI_ZeD_Sandbox_AskDelete", tostring(p and p.name or ""))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "DELETE", function() self:deletePreset() end, "danger" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deletePreset() end, "danger" } })
     elseif self.confirm == "save" then
-        ask = "Preset name:"
+        ask = ZeD.tr("UI_ZeD_Sandbox_AskName")
         local valid = SandboxOptions.isValidPresetName(self.field:getText() or "")
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "SAVE", function() self:savePreset() end, "primary", not valid } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_save"), function() self:savePreset() end, "primary", not valid } })
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
         local firstBtn = w
@@ -610,9 +610,9 @@ function ZeD_MMSandbox:buildStrip(stripY, stripH, w)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     else
         UI.stripSpecs(self, stripY, w, row,
-            { { "back", "BACK", function() self:back() end } },
-            { { "presets", "PRESETS...", function() self:openPresets() end },
-              { "next", "NEXT", function() self:next() end, "primary" } })
+            { { "back", getText("UI_btn_back"), function() self:back() end } },
+            { { "presets", ZeD.tr("UI_ZeD_Sandbox_Presets"), function() self:openPresets() end },
+              { "next", getText("UI_btn_next"), function() self:next() end, "primary" } })
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -672,17 +672,17 @@ function ZeD_MMSandbox:joyY() if not self.confirm then self:openPresets() end en
 
 function ZeD_MMSandbox:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
+    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
     local r = self:focusedRow()
     local t = {}
     if r then
-        if r.kind == "combo" or r.kind == "adv" then t[#t + 1] = { glyph = "<>", label = "Change" } end
-        t[#t + 1] = { glyph = "A", label = (r.kind == "tick") and "Toggle" or ((r.kind == "entry") and "Edit" or "Select") }
+        if r.kind == "combo" or r.kind == "adv" then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
+        t[#t + 1] = { glyph = "A", label = ZeD.tr((r.kind == "tick") and "UI_ZeD_Options_PromptToggle" or ((r.kind == "entry") and "UI_ZeD_Sandbox_PromptEdit" or "UI_ZeD_MainMenu_PromptSelect")) }
     end
     t[#t + 1] = { glyph = "LB", label = "" }
-    t[#t + 1] = { glyph = "RB", label = "Page" }
-    t[#t + 1] = { glyph = "Y", label = "Presets" }
-    t[#t + 1] = { glyph = "B", label = "Back" }
+    t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Options_PromptPage") }
+    t[#t + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Sandbox_PromptPresets") }
+    t[#t + 1] = { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) }
     return t
 end
 

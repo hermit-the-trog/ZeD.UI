@@ -21,26 +21,55 @@ ZeD.ThermalTab = {}
 -- ============================================================================
 
 local VIEWS = {
-    { id = "skinTemp",  label = "Skin temp",        getter = "getSkinCelcius",    format = "temp" },
-    { id = "response",  label = "Body response",     getter = "getBodyResponse",   format = "pct"  },
-    { id = "vessels",   label = "Blood vessels",     getter = "getPrimaryDelta",   format = "pct"  },
-    { id = "shiver",    label = "Shiver / sweat",   getter = "getSecondaryDelta", format = "pct"  },
-    { id = "insul",     label = "Insulation",        getter = "getInsulation",     format = "pct"  },
-    { id = "wind",      label = "Wind resistance",   getter = "getWindresist",     format = "pct"  },
-    { id = "wetness",   label = "Wetness",           getter = "getBodyWetness",    format = "pct"  },
+    { id = "skinTemp",  key = "UI_ZeD_Thermal_ViewSkinTemp",   getter = "getSkinCelcius",    format = "temp" },
+    { id = "response",  key = "UI_ZeD_Thermal_ViewResponse",   getter = "getBodyResponse",   format = "pct"  },
+    { id = "vessels",   key = "UI_ZeD_Thermal_ViewVessels",    getter = "getPrimaryDelta",   format = "pct"  },
+    { id = "shiver",    key = "UI_ZeD_Thermal_ViewShiver",     getter = "getSecondaryDelta", format = "pct"  },
+    { id = "insul",     vkey = "IGUI_Temp_Insulation",         getter = "getInsulation",     format = "pct"  },
+    { id = "wind",      key = "UI_ZeD_Thermal_ViewWind",       getter = "getWindresist",     format = "pct"  },
+    { id = "wetness",   key = "UI_ZeD_Thermal_ViewWetness",    getter = "getBodyWetness",    format = "pct"  },
 }
 
 -- Detail view: all metrics shown when hovering a body part
 local DETAIL_ROWS = {
-    { getter = "getSkinCelcius",    getterUI = "getSkinCelciusUI",    label = "Skin Temperature" },
-    { getter = "getBodyResponse",   getterUI = "getBodyResponseUI",   label = "Body Response" },
-    { getter = "getPrimaryDelta",   getterUI = "getPrimaryDeltaUI",   label = "Blood Vessels" },
-    { getter = "getSecondaryDelta", getterUI = "getSecondaryDeltaUI", label = "Shiver / Sweat" },
-    { getter = "getInsulation",     getterUI = "getInsulationUI",     label = "Insulation" },
-    { getter = "getWindresist",     getterUI = "getWindresistUI",     label = "Wind Resistance" },
-    { getter = "getBodyWetness",    getterUI = "getBodyWetnessUI",    label = "Body Wetness" },
-    { getter = "getClothingWetness",getterUI = "getClothingWetnessUI",label = "Clothing Wetness" },
+    { getter = "getSkinCelcius",    getterUI = "getSkinCelciusUI",    vkey = "IGUI_Temp_SkinTemperature" },
+    { getter = "getBodyResponse",   getterUI = "getBodyResponseUI",   vkey = "IGUI_Temp_BodyResponse" },
+    { getter = "getPrimaryDelta",   getterUI = "getPrimaryDeltaUI",   vkey = "IGUI_Temp_BloodVessels" },
+    { getter = "getSecondaryDelta", getterUI = "getSecondaryDeltaUI", key = "UI_ZeD_Thermal_RowShiver" },
+    { getter = "getInsulation",     getterUI = "getInsulationUI",     vkey = "IGUI_Temp_Insulation" },
+    { getter = "getWindresist",     getterUI = "getWindresistUI",     vkey = "IGUI_Temp_WindResistance" },
+    { getter = "getBodyWetness",    getterUI = "getBodyWetnessUI",    vkey = "IGUI_Temp_BodyWetness" },
+    { getter = "getClothingWetness",getterUI = "getClothingWetnessUI",vkey = "IGUI_Temp_ClothingWetness" },
 }
+
+-- The words for a view or a detail row: vanilla's own text when it has the same
+-- words (vkey), else ZeD's (key). Looked up where drawn, so the language applies.
+function ZeD.ThermalTab.labelOf(def)
+    if def.vkey then return getText(def.vkey) end
+    return ZeD.tr(def.key)
+end
+
+-- true when the player's temperature unit is Celsius: the game's own option
+-- (Options > Display), the one the oven reads too
+function ZeD.ThermalTab.useCelsius()
+    local core = getCore()
+    if not core then return true end
+    local ok, v = pcall(core.getOptionDisplayAsCelsius, core)
+    if ok and v ~= nil then return v and true or false end
+    ok, v = pcall(core.isCelsius, core)
+    if ok and v ~= nil then return v and true or false end
+    return true
+end
+
+-- a temperature the thermoregulator reports in degrees C, as the player's unit
+-- shows it: one decimal, the unit after it ("37.0 C", "98.6 F")
+function ZeD.ThermalTab.tempText(c)
+    c = c or 0
+    if ZeD.ThermalTab.useCelsius() then
+        return ZeD.tr("UI_ZeD_Thermal_TempC", string.format("%.1f", c))
+    end
+    return ZeD.tr("UI_ZeD_Thermal_TempF", string.format("%.1f", c * 9 / 5 + 32))
+end
 
 -- BodyPartType → display name mapping (used by getNodeForType)
 -- BodyPartType enum names verified against vanilla ISHealthPanel.lua
@@ -309,7 +338,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     end
 
     -- Pinned header — drawn on top of scroll content
-    M.drawTabHeader(panel, x, y, w, "Thermal", figureExpanded)
+    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Char_TabThermal"), figureExpanded)
     win._thermalFigureZone = { x = x, y = y, w = w, h = headerH }
 
     -- Scrollbar (outside stencil)
@@ -363,7 +392,7 @@ function ZeD.ThermalTab._renderViewGrid(panel, win, rx, ry, rw)
         local isActive = (i == activeIdx)
 
         _paintPillFocusCue(i, rx, by, rw, btnH)
-        A.drawPillButton(panel, rx, by, rw, btnH, view.label, isActive, true, font)
+        A.drawPillButton(panel, rx, by, rw, btnH, ZeD.ThermalTab.labelOf(view), isActive, true, font)
 
         win._thermalPillZones[i] = { x = rx, y = by, w = rw, h = btnH }
     end
@@ -436,22 +465,26 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
 
     -- CORE / AIR / WIND on one line
     local curX = listX
-    local coreStr = string.format("%.1f", data.coreTemp)
-    local airStr  = string.format("%.1f", data.airTemp)
-    local windStr = string.format("%.1f", data.windTemp)
+    -- the readings are degrees C from the thermoregulator; shown in the player's unit
+    local coreStr = ZeD.ThermalTab.tempText(data.coreTemp)
+    local airStr  = ZeD.ThermalTab.tempText(data.airTemp)
+    local windStr = ZeD.ThermalTab.tempText(data.windTemp)
+    local coreLbl = ZeD.tr("UI_ZeD_Thermal_Core")
+    local airLbl  = ZeD.tr("UI_ZeD_Thermal_Air")
+    local windLbl = ZeD.tr("UI_ZeD_Thermal_Wind")
 
-    A.drawSecondary(panel, "CORE", curX, drawY)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, "CORE") + T.sp.sm
+    A.drawSecondary(panel, coreLbl, curX, drawY)
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, coreLbl) + T.sp.sm
     panel:drawText(coreStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
     curX = curX + ZeD.TM:MeasureStringX(T.fontF3, coreStr) + T.sp.lg
 
-    A.drawSecondary(panel, "AIR", curX, drawY)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, "AIR") + T.sp.sm
+    A.drawSecondary(panel, airLbl, curX, drawY)
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, airLbl) + T.sp.sm
     panel:drawText(airStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
     curX = curX + ZeD.TM:MeasureStringX(T.fontF3, airStr) + T.sp.lg
 
-    A.drawSecondary(panel, "WIND", curX, drawY)
-    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, "WIND") + T.sp.sm
+    A.drawSecondary(panel, windLbl, curX, drawY)
+    curX = curX + ZeD.TM:MeasureStringX(T.fontF1, windLbl) + T.sp.sm
     panel:drawText(windStr, curX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
 
     drawY = drawY + secH + T.sp.sm
@@ -461,7 +494,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     drawY = drawY + T.px(6) + T.sp.md
 
     -- Section heading
-    panel:drawText(view.label .. " by region", listX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
+    panel:drawText(ZeD.tr("UI_ZeD_Thermal_ByRegion", ZeD.ThermalTab.labelOf(view)), listX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
     drawY = drawY + headH + T.sp.xs
 
     A.drawDividerH(panel, listX, drawY, listW, false)
@@ -490,12 +523,12 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
         -- Format value based on view type
         local valStr
         if view.format == "temp" then
-            valStr = string.format("%.1f", rawVal)
+            valStr = ZeD.ThermalTab.tempText(rawVal)
         else
             valStr = string.format("%.2f", uiVal)
         end
 
-        local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, partName, fillPct, fc, T.toneNorm)
+        local rowH = M.drawStatBarRow(panel, cx, cy, colW, valStr, ZeD.partLabel(partName), fillPct, fc, T.toneNorm)
 
         if isLeft then leftY = cy + rowH + rowGap
         else rightY = cy + rowH + rowGap end
@@ -533,12 +566,12 @@ function ZeD.ThermalTab._renderDetailView(panel, win, data, partName, rx, ry, rw
         -- Format: skin temp shows raw celsius, others show UI value
         local valStr
         if row.getter == "getSkinCelcius" then
-            valStr = string.format("%.1f", rawVal)
+            valStr = ZeD.ThermalTab.tempText(rawVal)
         else
             valStr = string.format("%.2f", uiVal)
         end
 
-        local rowH = M.drawStatBarRow(panel, rx, curY, rw, valStr, row.label, fillPct, fc)
+        local rowH = M.drawStatBarRow(panel, rx, curY, rw, valStr, ZeD.ThermalTab.labelOf(row), fillPct, fc)
         curY = curY + rowH + rowGap
     end
 end

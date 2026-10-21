@@ -239,7 +239,7 @@ function ZeD_ContextList:prerender()
                 self:drawTextureScaledAspect(tex, tx, cy + math.floor((T.px(HEAD_H) - isz) / 2), isz, isz, 1, 1, 1, 1)
                 tx = tx + isz + T.px(6)
             end
-            self:drawText(ZeD.Atoms.truncateText(string.upper(tostring(name or "")), f1, x + w - padX - tx),
+            self:drawText(ZeD.Atoms.truncateText(ZeD.upper(tostring(name or "")), f1, x + w - padX - tx),
                 tx, cy + math.floor((T.px(HEAD_H) - (T.fontF1H or tm:getFontHeight(f1))) / 2), d.r, d.g, d.b, d.a or 1, f1)
             cy = cy + T.px(HEAD_H)
             self:drawRect(x, cy - T.px(1), w, T.px(1), bs.a, bs.r, bs.g, bs.b)

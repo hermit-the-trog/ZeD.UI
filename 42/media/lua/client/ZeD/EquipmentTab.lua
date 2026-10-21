@@ -25,40 +25,49 @@ ZeD.EquipmentTab = {}
 -- ============================================================================
 
 local EQUIP_GROUPS = {
-    { id = "head", label = "HEAD + FACE", slots = {
-        { type = "HAT", label = "Hat",     locs = {"hat", "fullhat", "sweaterhat", "jackethat", "jackethatbulky", "fullsuithead", "fullsuitheadscba"} },
-        { type = "EYE", label = "Eyewear", locs = {"eyes", "lefteye", "righteye"} },
-        { type = "MSK", label = "Mask",    locs = {"mask", "maskeyes", "maskfull"} },
-        { type = "EAR", label = "Ears",    locs = {"ears", "eartop"} },
-        { type = "SCF", label = "Scarf",   locs = {"scarf", "necktexture"} },
+    { id = "head", key = "UI_ZeD_Equip_GroupHead", slots = {
+        { type = "HAT", vkey = "UI_ClothingType_Hat",   locs = {"hat", "fullhat", "sweaterhat", "jackethat", "jackethatbulky", "fullsuithead", "fullsuitheadscba"} },
+        { type = "EYE", key = "UI_ZeD_Equip_Eyewear",   locs = {"eyes", "lefteye", "righteye"} },
+        { type = "MSK", vkey = "UI_ClothingType_Mask",  locs = {"mask", "maskeyes", "maskfull"} },
+        { type = "EAR", vkey = "UI_ClothingType_Ears",  locs = {"ears", "eartop"} },
+        { type = "SCF", vkey = "UI_ClothingType_Scarf", locs = {"scarf", "necktexture"} },
     }},
-    { id = "torso", label = "TORSO", slots = {
-        { type = "OUT", label = "Outer",     locs = {"jacket", "jacketdown", "jacketbulky", "jacketsuit", "boilersuit", "fullsuit", "fulltop", "bathrobe", "fullrobe", "bodycostume", "sweater", "jersey"} },
-        { type = "INR", label = "Inner",     locs = {"tshirt", "tanktop", "shirt", "shortsleeveshirt", "torso1", "torso1legs1", "torsoextra"} },
-        { type = "VST", label = "Vest",      locs = {"torsoextravest", "torsoextravestbullet", "cuirass", "gorget", "vesttexture", "shoulderholster"} },
-        { type = "UND", label = "Underwear",  locs = {"underwear", "underweartop", "underwearbottom", "underwearextra1", "underwearextra2"} },
-        { type = "NKL", label = "Neck",      locs = {"necklace", "necklacelong", "neck"} },
+    { id = "torso", key = "UI_ZeD_Equip_GroupTorso", slots = {
+        { type = "OUT", key = "UI_ZeD_Equip_Outer",         locs = {"jacket", "jacketdown", "jacketbulky", "jacketsuit", "boilersuit", "fullsuit", "fulltop", "bathrobe", "fullrobe", "bodycostume", "sweater", "jersey"} },
+        { type = "INR", key = "UI_ZeD_Equip_Inner",         locs = {"tshirt", "tanktop", "shirt", "shortsleeveshirt", "torso1", "torso1legs1", "torsoextra"} },
+        { type = "VST", vkey = "UI_ClothingType_Vest",      locs = {"torsoextravest", "torsoextravestbullet", "cuirass", "gorget", "vesttexture", "shoulderholster"} },
+        { type = "UND", vkey = "UI_ClothingType_Underwear", locs = {"underwear", "underweartop", "underwearbottom", "underwearextra1", "underwearextra2"} },
+        { type = "NKL", vkey = "UI_ClothingType_Neck",      locs = {"necklace", "necklacelong", "neck"} },
     }},
-    { id = "arms", label = "ARMS + HANDS", slots = {
-        { type = "GLV", label = "Gloves",   locs = {"hands", "handsleft", "handsright"} },
-        { type = "WCH", label = "Wrist",    locs = {"leftwrist", "rightwrist"} },
-        { type = "RNG", label = "Ring",     locs = {"leftmiddlefinger", "rightmiddlefinger", "leftringfinger", "rightringfinger"} },
-        { type = "ARM", label = "Arms",     locs = {"leftarm", "rightarm", "forearmleft", "forearmright", "elbowleft", "elbowright"} },
-        { type = "SHD", label = "Shoulder", locs = {"shoulderpadleft", "shoulderpadright", "sportshoulderpad", "sportshoulderpaddontop"} },
+    { id = "arms", key = "UI_ZeD_Equip_GroupArms", slots = {
+        { type = "GLV", vkey = "UI_ClothingType_Hands", locs = {"hands", "handsleft", "handsright"} },
+        { type = "WCH", key = "UI_ZeD_Equip_Wrist",     locs = {"leftwrist", "rightwrist"} },
+        { type = "RNG", key = "UI_ZeD_Equip_Ring",      locs = {"leftmiddlefinger", "rightmiddlefinger", "leftringfinger", "rightringfinger"} },
+        { type = "ARM", key = "UI_ZeD_Equip_Arms",      locs = {"leftarm", "rightarm", "forearmleft", "forearmright", "elbowleft", "elbowright"} },
+        { type = "SHD", key = "UI_ZeD_Equip_Shoulder",  locs = {"shoulderpadleft", "shoulderpadright", "sportshoulderpad", "sportshoulderpaddontop"} },
     }},
-    { id = "legs", label = "LEGS + FEET", slots = {
-        { type = "PNT", label = "Pants",   locs = {"pants", "pantsskinny", "pantsextra", "shortpants", "shortsshort", "legs1", "skirt", "longskirt", "dress", "longdress"} },
-        { type = "SOC", label = "Socks",   locs = {"socks"} },
-        { type = "BOT", label = "Shoes",   locs = {"shoes"} },
-        { type = "KNE", label = "Knee/Leg",locs = {"kneeleft", "kneeright", "calfleft", "calfright", "calflefttexture", "calfrighttexture", "thighleft", "thighright", "gaiterleft", "gaiterright"} },
+    { id = "legs", key = "UI_ZeD_Equip_GroupLegs", slots = {
+        { type = "PNT", vkey = "UI_ClothingType_Pants", locs = {"pants", "pantsskinny", "pantsextra", "shortpants", "shortsshort", "legs1", "skirt", "longskirt", "dress", "longdress"} },
+        { type = "SOC", vkey = "UI_ClothingType_Socks", locs = {"socks"} },
+        { type = "BOT", vkey = "UI_ClothingType_Shoes", locs = {"shoes"} },
+        { type = "KNE", key = "UI_ZeD_Equip_KneeLeg",   locs = {"kneeleft", "kneeright", "calfleft", "calfright", "calflefttexture", "calfrighttexture", "thighleft", "thighright", "gaiterleft", "gaiterright"} },
     }},
-    { id = "held", label = "HELD + BELT", slots = {
-        { type = "PRI", label = "Primary",  locs = {"__primary"} },
-        { type = "SEC", label = "Secondary", locs = {"__secondary"} },
-        { type = "BAG", label = "Back/Bag", locs = {"back", "satchel"} },
-        { type = "BLT", label = "Belt",     locs = {"belt", "beltextra", "fannypackfront", "fannypackback", "webbing", "ankleholster", "ammostrap"} },
+    { id = "held", key = "UI_ZeD_Equip_GroupHeld", slots = {
+        { type = "PRI", vkey = "IGUI_PrimaryTooltip",   locs = {"__primary"} },
+        { type = "SEC", vkey = "IGUI_SecondaryTooltip", locs = {"__secondary"} },
+        { type = "BAG", key = "UI_ZeD_Equip_BackBag",   locs = {"back", "satchel"} },
+        { type = "BLT", vkey = "UI_ClothingType_Belt",  locs = {"belt", "beltextra", "fannypackfront", "fannypackback", "webbing", "ankleholster", "ammostrap"} },
     }},
 }
+
+-- The words for a group or a slot: vanilla's own text where it has the same words
+-- (vkey), else ZeD's (key). Looked up where drawn and measured, so the language applies.
+function ZeD.EquipmentTab.wordsOf(def)
+    if not def then return "" end
+    if def.vkey then return getText(def.vkey) end
+    if def.key then return ZeD.tr(def.key) end
+    return def.type or def.id or ""
+end
 
 -- Build reverse lookup: PZ body location string → {groupIdx, slotIdx}
 -- All keys stored lowercase for case-insensitive matching.
@@ -85,7 +94,9 @@ local PROT_COL_W = 32  -- protection stat column width
 local _labelColW = nil
 local _labelColWScale = nil  -- S124 scale: re-measure when T.scale (root x text size) changes
 local function getLabelColW()
-    if _labelColW and _labelColWScale == ZeD.T.scale then return _labelColW end
+    -- re-measured when the scale changes, or the test language is switched
+    local sig = tostring(ZeD.T.scale) .. (ZeD.trTestOn() and "t" or "")
+    if _labelColW and _labelColWScale == sig then return _labelColW end
     local tm = ZeD.TM
     local T = ZeD.T
     local maxW = 0
@@ -93,12 +104,12 @@ local function getLabelColW()
         for _, slot in ipairs(group.slots) do
             -- measured in F1, the font the SLOT column draws in (it was measured
             -- in the narrower F5, so every label cut to "I..." even at Small)
-            local w = tm:MeasureStringX(T.fontF1, slot.label or slot.type)
+            local w = tm:MeasureStringX(T.fontF1, ZeD.EquipmentTab.wordsOf(slot))
             if w > maxW then maxW = w end
         end
     end
     _labelColW = math.ceil(maxW + T.sp.sm * 2)   -- the row draws it inset by padX either side
-    _labelColWScale = T.scale
+    _labelColWScale = sig
     return _labelColW
 end
 
@@ -214,11 +225,12 @@ function ZeD.EquipmentTab.gatherData(playerObj)
     -- Build empty slot grid from definitions
     local groups = {}
     for gi, gDef in ipairs(EQUIP_GROUPS) do
-        local g = { id = gDef.id, label = gDef.label, slots = {} }
+        local g = { id = gDef.id, key = gDef.key, vkey = gDef.vkey, slots = {} }
         for si, sDef in ipairs(gDef.slots) do
             g.slots[si] = {
                 type   = sDef.type,
-                label  = sDef.label,
+                key    = sDef.key,
+                vkey   = sDef.vkey,
                 item   = nil,
                 cond   = 0,
                 tex    = nil,
@@ -358,9 +370,9 @@ local function _drawDefenseDetailView(panel, win, protData, partName, rx, ry, rw
     -- Defense stat rows with fill bars
     local rowGap = T.sp.sm
     local rows = {
-        { label = "Bite",    val = ps.bite },
-        { label = "Scratch", val = ps.scratch },
-        { label = "Bullet",  val = ps.bullet },
+        { label = getText("IGUI_health_Bite"),    val = ps.bite },
+        { label = getText("IGUI_health_Scratch"), val = ps.scratch },
+        { label = getText("IGUI_health_Bullet"),  val = ps.bullet },
     }
 
     for _, row in ipairs(rows) do
@@ -374,7 +386,7 @@ local function _drawDefenseDetailView(panel, win, protData, partName, rx, ry, rw
 
     -- Layers count
     curY = curY + T.sp.sm
-    local layerStr = ps.layers .. (ps.layers == 1 and " layer" or " layers")
+    local layerStr = (ps.layers == 1) and ZeD.tr("UI_ZeD_Equip_LayerOne", ps.layers) or ZeD.tr("UI_ZeD_Equip_LayerMany", ps.layers)
     A.drawSecondary(panel, layerStr, rx, curY)
 end
 
@@ -387,7 +399,7 @@ local function _drawStackedStatDot(panel, x, y, label, value, dotColor, dotSz, d
     local labelValueGap = T.sp.xs
     local afterGap      = T.sp.sm
 
-    panel:drawText(string.upper(label), x, y, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
+    panel:drawText(ZeD.upper(label), x, y, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
     local valY = y + secH + labelValueGap
     A.drawStatusDot(panel, x, valY + math.floor((bodyH - dotSz) / 2), dotColor, dotSz)
     A.drawBody(panel, value, x + dotSz + dotGap, valY)
@@ -409,7 +421,7 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
 
     local pad = ZeD.Molecules.getTabPad()
     if not bodyOnly then
-        M.drawSectionHeader(panel, x, y, w, "Defense", nil, true, false, T.fontF4, nil, pad, headerH)
+        M.drawSectionHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Defense"), nil, true, false, T.fontF4, nil, pad, headerH)
     end
 
     -- (was: gated on expanded; defense body is always rendered now)
@@ -452,12 +464,15 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         panel:drawText(protData.grade, gx, gy, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
 
         local lblX = boxX + boxW + T.sp.sm
-        panel:drawText("OVERALL GRADE", lblX, boxY + T.px(4), T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
-        local avgStr = protData.avgBiteDef .. "% avg bite defense"
+        local lblRoom = rightX + rightW - lblX
+        panel:drawText(A.truncateText(ZeD.tr("UI_ZeD_Equip_OverallGrade"), T.fontF1, lblRoom), lblX, boxY + T.px(4), T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
+        local avgStr = ZeD.tr("UI_ZeD_Equip_AvgBite", protData.avgBiteDef .. "%")
         local avgY = boxY + T.px(4) + secH + T.sp.xs
         local dotSz = T.px(6)
         local dotGap = T.px(4)
         A.drawStatusDot(panel, lblX, avgY + math.floor((secH - dotSz) / 2), tierColor(protData.avgBiteDef), dotSz)
+        -- the box has no room for a second line, so a long line ends in "..." at the column edge
+        avgStr = A.truncateText(avgStr, T.fontF3, lblRoom - dotSz - dotGap)
         panel:drawText(avgStr, lblX + dotSz + dotGap, avgY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF3)
 
         statY = statY + boxH + T.sp.sm
@@ -471,20 +486,20 @@ local function _drawDefenseDashboard(panel, win, protData, x, y, w, bodyOnly)
         local dotGap = T.px(4)
         local worstValue
         if protData.worstPart.biteDef < 0 then
-            worstValue = protData.worstPart.name .. " (uncovered)"
+            worstValue = ZeD.tr("UI_ZeD_Equip_ZoneUncovered", ZeD.partLabel(protData.worstPart.name))
         else
-            worstValue = protData.worstPart.name .. " (" .. protData.worstPart.biteDef .. "%)"
+            worstValue = ZeD.tr("UI_ZeD_Equip_ZonePct", ZeD.partLabel(protData.worstPart.name), protData.worstPart.biteDef .. "%")
         end
-        local h1 = _drawStackedStatDot(panel, rightX, statY, "Worst Zone", worstValue, T.danger, dotSz, dotGap)
+        local h1 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_WorstZone"), worstValue, T.danger, dotSz, dotGap)
         statY = statY + h1
 
         if protData.bestPart.biteDef >= 0 then
-            local bestStr = protData.bestPart.name .. " (" .. protData.bestPart.biteDef .. "%)"
-            local h2 = _drawStackedStatDot(panel, rightX, statY, "Best Zone", bestStr, tierColor(protData.bestPart.biteDef), dotSz, dotGap)
+            local bestStr = ZeD.tr("UI_ZeD_Equip_ZonePct", ZeD.partLabel(protData.bestPart.name), protData.bestPart.biteDef .. "%")
+            local h2 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_BestZone"), bestStr, tierColor(protData.bestPart.biteDef), dotSz, dotGap)
             statY = statY + h2
         end
 
-        local h3 = _drawStackedStatDot(panel, rightX, statY, "Garments", protData.totalGarments .. " equipped", T.positive, dotSz, dotGap)
+        local h3 = _drawStackedStatDot(panel, rightX, statY, ZeD.tr("UI_ZeD_Equip_Garments"), ZeD.tr("UI_ZeD_Equip_GarmentsEquipped", protData.totalGarments), T.positive, dotSz, dotGap)
         statY = statY + h3
     end
 
@@ -534,7 +549,7 @@ local function _drawGroupHeader(panel, win, group, expanded, x, y, w)
     -- Text: "v CATEGORY (count)" — single draw, inventory dialect
     local labelY = y + math.floor((h - secFH) / 2)
     local tri = expanded and "v " or "> "
-    local label = tri .. group.label .. " (" .. count .. ")"
+    local label = tri .. ZeD.EquipmentTab.wordsOf(group) .. " (" .. count .. ")"
     panel:drawText(label, x + padX + T.px(2), labelY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
 
     -- Weak divider (not strong — matches inventory)
@@ -604,7 +619,7 @@ local function _drawSlotRow(panel, slot, selected, x, y, w, rowIdx, win)
     end
 
     -- Slot label (truncated to fit column)
-    local typeStr = slot.label or slot.type
+    local typeStr = ZeD.EquipmentTab.wordsOf(slot)
     local typeColor = selected and T.textOnAccent or T.toneHi
     typeStr = A.truncateText(typeStr, T.fontF1, c.slotColW - c.padX * 2)
     panel:drawText(typeStr, x + c.slotX + c.padX, secTextY,
@@ -712,8 +727,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
     panel:drawRect(x, y, w, hh, s2.a or 1, s2.r, s2.g, s2.b)
     local lo = T.toneLo
     local hy = y + math.floor((hh - f1h) / 2)
-    panel:drawText("THE BELT" .. DOT .. "KEYS", x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
-    local cap = "SLOT" .. DOT .. "WHAT GIVES IT"
+    panel:drawText(ZeD.tr("UI_ZeD_Equip_BeltHeadLeft"), x + c.padX + T.px(2), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
+    local cap = ZeD.tr("UI_ZeD_Equip_BeltHeadRight")
     panel:drawText(cap, x + w - c.padX - tm:MeasureStringX(f1, cap), hy, lo.r, lo.g, lo.b, lo.a or 1, f1)
     A.drawDividerH(panel, x, y + hh - T.px(1), w, false)
     y = y + hh
@@ -758,15 +773,16 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         end
         -- the verb at the right edge, IN HAND before it
         local action, label
-        if s.item and s.inHand then action, label = "putback", "PUT BACK"
-        elseif s.item then action, label = "detach", "DETACH"
-        else action, label = "attach", "ATTACH" end
+        if s.item and s.inHand then action, label = "putback", ZeD.tr("UI_ZeD_Equip_PutBack")
+        elseif s.item then action, label = "detach", ZeD.tr("UI_ZeD_Equip_Detach")
+        else action, label = "attach", ZeD.tr("UI_ZeD_Equip_Attach") end
+        local inHandTxt = ZeD.tr("UI_ZeD_Equip_InHand")
         local bh = math.min(rowH - T.px(6), T.buttonH or T.px(20))
         local bw = tm:MeasureStringX(T.fontF3, label) + T.px(16)
         local bx = x + w - c.padX - bw
         local by = y + math.floor((rowH - bh) / 2)
         local rightEdge = bx
-        if s.inHand then rightEdge = bx - T.px(6) - (tm:MeasureStringX(f1, "IN HAND") + T.px(8)) end
+        if s.inHand then rightEdge = bx - T.px(6) - (tm:MeasureStringX(f1, inHandTxt) + T.px(8)) end
         -- the item over the slot and what gives it: the name stops at the
         -- COND column (its bar sits beside it), the slot line runs under both
         local tx = iconX + c.iconW + c.iconGap
@@ -778,11 +794,11 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
             panel:drawText(A.truncateText(safeGet(s.item, "getDisplayName") or "?", f2, textW), tx, ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
         else
             local dc = T.textDim
-            panel:drawText("Empty", tx, ty, dc.r, dc.g, dc.b, dc.a or 1, f2)
+            panel:drawText(ZeD.tr("UI_ZeD_Equip_Empty"), tx, ty, dc.r, dc.g, dc.b, dc.a or 1, f2)
         end
         local prov = B.provider(player, s.slot.slotType)
-        local from = prov and ("FROM THE " .. string.upper(safeGet(prov, "getDisplayName") or "")) or "ALWAYS THERE"
-        local sub = string.upper(B.slotName(s.slot)) .. DOT .. from
+        local from = prov and ZeD.tr("UI_ZeD_Equip_BeltFrom", ZeD.upper(safeGet(prov, "getDisplayName") or "")) or ZeD.tr("UI_ZeD_Equip_BeltAlways")
+        local sub = ZeD.upper(B.slotName(s.slot)) .. DOT .. from
         local th = T.toneHi
         panel:drawText(A.truncateText(sub, f1, subW), tx, ty + f2h + T.px(2), th.r, th.g, th.b, th.a or 0.9, f1)
         -- condition, in the COND column level with the name
@@ -799,8 +815,8 @@ local function _drawBeltRows(panel, win, slots, x, y, w, zones)
         end
         ZeD.Molecules.drawButton(panel, bx, by, bw, bh, label, action == "attach" and "primary" or "default")
         if s.inHand then
-            local tagW = tm:MeasureStringX(f1, "IN HAND") + T.px(8)
-            _beltTag(panel, "IN HAND", bx - T.px(6) - tagW, y + math.floor((rowH - f1h - T.px(2)) / 2))
+            local tagW = tm:MeasureStringX(f1, inHandTxt) + T.px(8)
+            _beltTag(panel, inHandTxt, bx - T.px(6) - tagW, y + math.floor((rowH - f1h - T.px(2)) / 2))
         end
         zones[#zones + 1] = { x = x, y = y, w = w, h = rowH, i = s.i, item = s.item, action = action,
                               btn = { x = bx, y = by, w = bw, h = bh }, fid = fid }
@@ -851,13 +867,13 @@ local function _drawEquipHeader(panel, x, y, w, win)
     end
 
     -- Column order: NAME SLOT COND BITE SCR BUL WT
-    panel:drawText("NAME", x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
-    drawCentered("SLOT", cl.slotX, cl.slotColW)
-    drawCentered("COND", cl.condX, cl.condColW)
-    drawCentered("BITE", cl.biteX, cl.protColW)
-    drawCentered("SCR",  cl.scrX,  cl.protColW)
-    drawCentered("BUL",  cl.bulX,  cl.protColW)
-    A.drawTextRight(panel, "WT", x + cl.wtX + cl.wtColW - cl.padX, textY, T.fontF5, c)
+    panel:drawText(ZeD.tr("UI_ZeD_Equip_ColName"), x + cl.nameX, textY, c.r, c.g, c.b, c.a or 0.92, T.fontF5)
+    drawCentered(ZeD.tr("UI_ZeD_Equip_ColSlot"), cl.slotX, cl.slotColW)
+    drawCentered(ZeD.tr("UI_ZeD_Equip_ColCond"), cl.condX, cl.condColW)
+    drawCentered(ZeD.tr("UI_ZeD_Equip_ColBite"), cl.biteX, cl.protColW)
+    drawCentered(ZeD.tr("UI_ZeD_Equip_ColScratch"), cl.scrX,  cl.protColW)
+    drawCentered(ZeD.tr("UI_ZeD_Equip_ColBullet"), cl.bulX,  cl.protColW)
+    A.drawTextRight(panel, ZeD.tr("UI_ZeD_Equip_ColWeight"), x + cl.wtX + cl.wtColW - cl.padX, textY, T.fontF5, c)
 
     -- Divider hit zones for column resize (6px wide, centered on column edge)
     local divZones = {}
@@ -1239,7 +1255,7 @@ function ZeD.EquipmentTab.render(panel, win, x, y, w, h)
 
     -- Pinned header — labeled "Equipped" since it now toggles the inventory
     -- list visibility. Defense body is always shown at the bottom of the tab.
-    ZeD.Molecules.drawTabHeader(panel, x, y, w, "Equipped", listExpanded)
+    ZeD.Molecules.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Equip_Equipped"), listExpanded)
     -- List | Doll, at the heading's right edge
     Doll.drawToggle(panel, win, x, y, w, headerH, panel:getMouseX(), panel:getMouseY())
     -- Zone field name kept (_equipDefenseZone) for backward compat with the

@@ -16,8 +16,38 @@
 -- before ItemFactsPanel.lua (whose registry we query at runtime, not load time).
 -- ============================================================================
 
+require "ZeD/Tr"
 ZeD = ZeD or {}
 ZeD.ItemCard = ZeD.ItemCard or {}
+
+-- The words on the card's verb buttons. A verb keeps its English id (the card
+-- dispatches on it); the button shows the id's translation. Vanilla's own words where
+-- vanilla has them.
+ZeD.ItemCard.VERB_KEYS = {
+    EQUIP = "UI_ZeD_Card_VerbEquip", UNEQUIP = "ContextMenu_Unequip", DROP = "ContextMenu_Drop",
+    TAKE = "ContextMenu_Take", EAT = "ContextMenu_Eat", READ = "ContextMenu_Read",
+    USE = "UI_ZeD_Card_VerbUse", DRINK = "ContextMenu_Drink", WEAR = "ContextMenu_Wear",
+    ["OFF HAND"] = "UI_ZeD_Card_VerbOffHand", MORE = "ContextMenu_More",
+    WASH = "ContextMenu_Wash", REPAIR = "ContextMenu_Repair",
+    PAD = "UI_ZeD_Card_VerbPad", SHARPEN = "UI_ZeD_Card_VerbSharpen",
+}
+function ZeD.ItemCard.verbText(id)
+    local k = ZeD.ItemCard.VERB_KEYS[id]
+    if k then return ZeD.tr(k) end
+    return id
+end
+
+-- The widest of the short zone words (Left, Right, Upper, Lower) in the player's
+-- language, so the name column of a zone row fits them.
+function ZeD.ItemCard.sideW(font)
+    local tm = ZeD.TM
+    local w = 0
+    for _, k in ipairs({ "UI_ZeD_Card_ZoneLeft", "UI_ZeD_Card_ZoneRight", "UI_ZeD_Card_ZoneUpper", "UI_ZeD_Card_ZoneLower" }) do
+        local m = tm:MeasureStringX(font, ZeD.tr(k))
+        if m > w then w = m end
+    end
+    return w
+end
 
 -- ---------------------------------------------------------------------------
 -- Internal helpers (module-scope; not exported)
@@ -63,42 +93,32 @@ end
 -- short within-group child name. v15 mockup groups consecutive same-group
 -- zones under an orange-mono section header (TORSO, UPPER ARM, ...) with the
 -- child name reduced to "Upper"/"Lower"/"Left"/"Right".
+-- Both entries are translation keys (the group heading, the child word); the group key
+-- is also the identity that tells where one group ends and the next begins.
 local ZONE_GROUP_MAP = {
-    ["Upper Torso"]     = {"TORSO",     "Upper"},
-    ["Lower Torso"]     = {"TORSO",     "Lower"},
-    ["Back"]            = {"TORSO",     "Back"},
-    ["Head"]            = {"HEAD",      "Head"},
-    ["Neck"]            = {"HEAD",      "Neck"},
-    ["Groin"]           = {"GROIN",     "Groin"},
-    ["Left Upper Arm"]  = {"UPPER ARM", "Left"},
-    ["Right Upper Arm"] = {"UPPER ARM", "Right"},
-    ["Left Forearm"]    = {"LOWER ARM", "Left"},
-    ["Right Forearm"]   = {"LOWER ARM", "Right"},
-    ["Left Thigh"]      = {"THIGH",     "Left"},
-    ["Right Thigh"]     = {"THIGH",     "Right"},
-    ["Left Shin"]       = {"SHIN",      "Left"},
-    ["Right Shin"]      = {"SHIN",      "Right"},
-    ["Left Foot"]       = {"FOOT",      "Left"},
-    ["Right Foot"]      = {"FOOT",      "Right"},
-    ["Left Hand"]       = {"HAND",      "Left"},
-    ["Right Hand"]      = {"HAND",      "Right"},
+    ["Upper Torso"]     = {"UI_ZeD_Card_ZoneTorso",    "UI_ZeD_Card_ZoneUpper"},
+    ["Lower Torso"]     = {"UI_ZeD_Card_ZoneTorso",    "UI_ZeD_Card_ZoneLower"},
+    ["Back"]            = {"UI_ZeD_Card_ZoneTorso",    "IGUI_health_Back"},
+    ["Head"]            = {"UI_ZeD_Card_ZoneHead",     "IGUI_health_Head"},
+    ["Neck"]            = {"UI_ZeD_Card_ZoneHead",     "IGUI_health_Neck"},
+    ["Groin"]           = {"UI_ZeD_Card_ZoneGroin",    "IGUI_health_Groin"},
+    ["Left Upper Arm"]  = {"UI_ZeD_Card_ZoneUpperArm", "UI_ZeD_Card_ZoneLeft"},
+    ["Right Upper Arm"] = {"UI_ZeD_Card_ZoneUpperArm", "UI_ZeD_Card_ZoneRight"},
+    ["Left Forearm"]    = {"UI_ZeD_Card_ZoneLowerArm", "UI_ZeD_Card_ZoneLeft"},
+    ["Right Forearm"]   = {"UI_ZeD_Card_ZoneLowerArm", "UI_ZeD_Card_ZoneRight"},
+    ["Left Thigh"]      = {"UI_ZeD_Card_ZoneThigh",    "UI_ZeD_Card_ZoneLeft"},
+    ["Right Thigh"]     = {"UI_ZeD_Card_ZoneThigh",    "UI_ZeD_Card_ZoneRight"},
+    ["Left Shin"]       = {"UI_ZeD_Card_ZoneShin",     "UI_ZeD_Card_ZoneLeft"},
+    ["Right Shin"]      = {"UI_ZeD_Card_ZoneShin",     "UI_ZeD_Card_ZoneRight"},
+    ["Left Foot"]       = {"UI_ZeD_Card_ZoneFoot",     "UI_ZeD_Card_ZoneLeft"},
+    ["Right Foot"]      = {"UI_ZeD_Card_ZoneFoot",     "UI_ZeD_Card_ZoneRight"},
+    ["Left Hand"]       = {"UI_ZeD_Card_ZoneHand",     "UI_ZeD_Card_ZoneLeft"},
+    ["Right Hand"]      = {"UI_ZeD_Card_ZoneHand",     "UI_ZeD_Card_ZoneRight"},
 }
 
--- v15 220w short labels for Facts rows. Long labels overflow the narrow card.
--- Substituted at compact widths only - 480w keeps the full labels per spec.
-local SHORT_FACTS_LABEL_220 = {
-    ["Bite Defense"]      = "Bite",
-    ["Scratch Defense"]   = "Scratch",
-    ["Bullet Defense"]    = "Bullet",
-    ["Wind Resistance"]   = "Wind",
-    ["Water Resistance"]  = "Water Res.",
-    ["Neck Protection"]   = "Neck Prot.",
-    ["Cond Loss / Hit"]   = "Cond / Hit",
-    ["1-in-N degrade"]    = "1-in-N",
-    ["Wind Resistance Modifier"] = "Wind",
-    ["Knockback Modifier"] = "Knockback",
-    ["Critical Chance"]    = "Critical %",
-}
+-- v15 220w short labels for Facts rows: a row may carry a `short` label (translated by
+-- ItemFactsPanel). Long labels overflow the narrow card, so the short one is used at
+-- compact widths only - 480w keeps the full labels per spec.
 
 -- Resolve a zone's seg-bar segment color per v15 spec - patch material
 -- overrides condition for the visual; otherwise color ramps with condition.
@@ -138,7 +158,7 @@ local function _drawZoneRow220(panel, x, y, w, zCfg)
 
     -- Column widths derived from text metrics - name fits widest typical
     -- short label ("Right"); pct fits "100%"; dock is square dockH.
-    local nameW = math.max(tm:MeasureStringX(font, "Right") + T.px(6), T.px(40))
+    local nameW = math.max(ZeD.ItemCard.sideW(font) + T.px(6), T.px(40))
     local pctW  = math.max(tm:MeasureStringX(font, "100%") + T.px(4), T.px(28))
     local dockW = dockH + T.px(4)
     local gap   = T.px(6)
@@ -231,10 +251,10 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     local dockH = math.max(fontH + T.px(6), T.px(20))
     local barH  = math.max(math.floor(fontH * 0.5), T.px(6))
 
-    local nameW  = math.max(tm:MeasureStringX(font, "Right") + T.px(12), T.px(60))
+    local nameW  = math.max(ZeD.ItemCard.sideW(font) + T.px(12), T.px(60))
     local pctW   = math.max(tm:MeasureStringX(font, "100%") + T.px(4), T.px(36))
     local flagW  = flagWOverride
-                  or math.max(tm:MeasureStringX(font, "LEATHER") + T.px(8), T.px(76))
+                  or math.max(tm:MeasureStringX(font, ZeD.tr("UI_ZeD_Card_FlagLeather")) + T.px(8), T.px(76))
     local dockW  = dockH + T.px(4)
     local gap    = T.px(8)
 
@@ -280,12 +300,12 @@ local function _drawZoneRow480(panel, x, y, w, zCfg, flagWOverride)
     local flagC    = T.textDim
     if zCfg.dock and zCfg.dock.flag then
         flagStr = zCfg.dock.flag
-        if     flagStr == "TORN"          then flagC = T.danger
-        elseif flagStr == "WORN"          then flagC = T.warning
-        elseif flagStr == "Leather"       then flagStr, flagC = "LEATHER", T.matLeather or T.warning
-        elseif flagStr == "Denim"         then flagStr, flagC = "DENIM",   T.matDenim   or T.info
+        if     flagStr == "TORN"          then flagStr, flagC = ZeD.tr("UI_ZeD_Card_FlagTorn"), T.danger
+        elseif flagStr == "WORN"          then flagStr, flagC = ZeD.tr("UI_ZeD_Card_FlagWorn"), T.warning
+        elseif flagStr == "Leather"       then flagStr, flagC = ZeD.tr("UI_ZeD_Card_FlagLeather"), T.matLeather or T.warning
+        elseif flagStr == "Denim"         then flagStr, flagC = ZeD.tr("UI_ZeD_Card_FlagDenim"),   T.matDenim   or T.info
         elseif flagStr == "Fabric"
-            or flagStr == "Ripped Sheets" then flagStr, flagC = "FABRIC",  T.matFabric  or T.text
+            or flagStr == "Ripped Sheets" then flagStr, flagC = ZeD.tr("UI_ZeD_Card_FlagFabric"),  T.matFabric  or T.text
         end
     end
     local flagTW = tm:MeasureStringX(font, flagStr)
@@ -409,41 +429,42 @@ local function headerVerbsForContext(ctx, item)
     -- in the player's chosen look, at the button: everything the card has no
     -- room for (drop, put in, off hand, rename, vanilla's and mods' options)
     -- is one press away on every card, mouse or controller.
-    local more = {label = "MORE", primary = false, isMore = true}
+    local VT = ZeD.ItemCard.verbText
+    local more = {id = "MORE", label = VT("MORE"), primary = false, isMore = true}
     if ctx == "equipped" then
         return {
-            {label = "UNEQUIP", primary = true},
-            {label = "DROP",    primary = false},
+            {id = "UNEQUIP", label = VT("UNEQUIP"), primary = true},
+            {id = "DROP",    label = VT("DROP"),    primary = false},
             more,
         }
     end
 
     if ctx == "ground" then
-        return {{label = "TAKE", primary = true}, more}
+        return {{id = "TAKE", label = VT("TAKE"), primary = true}, more}
     end
 
     -- inventory + container share the same primary verb logic, modulo TAKE
     -- being needed when source is a non-player container.
     local primary
     if cat == "Clothing" then
-        primary = {label = "EQUIP", primary = true}
+        primary = {id = "EQUIP", label = VT("EQUIP"), primary = true}
     elseif cat == "Weapon" or cat == "Firearm" then
-        primary = {label = "EQUIP", primary = true}
+        primary = {id = "EQUIP", label = VT("EQUIP"), primary = true}
     elseif cat == "Food" then
-        primary = {label = "EAT", primary = true}
+        primary = {id = "EAT", label = VT("EAT"), primary = true}
     elseif cat == "Literature" then
-        primary = {label = "READ", primary = true}
+        primary = {id = "READ", label = VT("READ"), primary = true}
     elseif cat == "Drainable" then
-        primary = {label = "USE", primary = true}
+        primary = {id = "USE", label = VT("USE"), primary = true}
     elseif cat == "Fluid" then
         -- DRINK (Oct 19 2026): bottles and canteens had no card verb
         local fc = safeGet(item, "getFluidContainer")
         local empty = fc and safeGet(fc, "isEmpty")
-        if fc and not empty and not safeGet(item, "isSealed") then primary = {label = "DRINK", primary = true} end
+        if fc and not empty and not safeGet(item, "isSealed") then primary = {id = "DRINK", label = VT("DRINK"), primary = true} end
     elseif cat == "Container" then
         -- WEAR (Oct 19 2026): a backpack couldn't be put on from its card
         local loc = safeGet(item, "canBeEquipped")
-        if (loc and loc ~= "") or safeGet(item, "getBodyLocation") then primary = {label = "WEAR", primary = true} end
+        if (loc and loc ~= "") or safeGet(item, "getBodyLocation") then primary = {id = "WEAR", label = VT("WEAR"), primary = true} end
     else
         primary = nil
     end
@@ -451,11 +472,11 @@ local function headerVerbsForContext(ctx, item)
     local verbs = {}
     if primary then verbs[#verbs + 1] = primary end
     -- OFF HAND (Oct 19 2026): only the context menu equipped the second hand
-    if cat == "Weapon" or cat == "Firearm" then verbs[#verbs + 1] = {label = "OFF HAND", primary = false} end
+    if cat == "Weapon" or cat == "Firearm" then verbs[#verbs + 1] = {id = "OFF HAND", label = VT("OFF HAND"), primary = false} end
     if ctx == "container" then
-        table.insert(verbs, 1, {label = "TAKE", primary = (primary == nil)})
+        table.insert(verbs, 1, {id = "TAKE", label = VT("TAKE"), primary = (primary == nil)})
     elseif ctx == "inventory" then
-        verbs[#verbs + 1] = {label = "DROP", primary = false}
+        verbs[#verbs + 1] = {id = "DROP", label = VT("DROP"), primary = false}
     end
     verbs[#verbs + 1] = more
     return verbs
@@ -479,18 +500,19 @@ local function maintenanceVerbsForItem(item)
     if cat == "Clothing" then
         local verbs = {}
         local dirty = (safeGet(item, "getDirtiness") or 0) > 0 or (safeGet(item, "getBloodLevel") or 0) > 0
-        if dirty then verbs[#verbs + 1] = {label = "WASH", glyph = "~", key = "wash"} end
-        verbs[#verbs + 1] = {label = "REPAIR", glyph = "+", key = "repair_all"}
-        verbs[#verbs + 1] = {label = "PAD",    glyph = "#", key = "pad_all"}
+        local VT = ZeD.ItemCard.verbText
+        if dirty then verbs[#verbs + 1] = {label = VT("WASH"), glyph = "~", key = "wash"} end
+        verbs[#verbs + 1] = {label = VT("REPAIR"), glyph = "+", key = "repair_all"}
+        verbs[#verbs + 1] = {label = VT("PAD"),    glyph = "#", key = "pad_all"}
         return verbs
     elseif cat == "Weapon" then
-        local verbs = {{label = "REPAIR", glyph = "+", key = "repair"}}
+        local verbs = {{label = ZeD.ItemCard.verbText("REPAIR"), glyph = "+", key = "repair"}}
         if safeGet(item, "hasSharpness") and (safeGet(item, "getSharpness") or 1) < 1 then
-            verbs[#verbs + 1] = {label = "SHARPEN", glyph = "/", key = "sharpen"}
+            verbs[#verbs + 1] = {label = ZeD.ItemCard.verbText("SHARPEN"), glyph = "/", key = "sharpen"}
         end
         return verbs
     elseif cat == "Firearm" then
-        return {{label = "REPAIR", glyph = "+", key = "repair"}}
+        return {{label = ZeD.ItemCard.verbText("REPAIR"), glyph = "+", key = "repair"}}
     end
     -- Food, Literature, Container, Drainable, Key, Light, Fluid → no maintenance verbs
     return {}
@@ -511,85 +533,85 @@ local function topStatsForItem(item)
     do
         local subtype = safeGet(item, "getDisplayCategory")
         if not subtype or subtype == "" then subtype = cat end
-        rows[#rows + 1] = {label = "KIND",   value = tostring(subtype)}
+        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Kind"),   value = tostring(subtype)}
         local wt = safeGet(item, "getActualWeight") or safeGet(item, "getWeight") or 0
-        rows[#rows + 1] = {label = "WEIGHT", value = string.format("%.1f kg", wt)}
+        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Weight"), value = string.format("%.1f kg", wt)}
     end
 
     if cat == "Clothing" then
         local fab = safeGet(item, "getFabricType")
-        if not fab or fab == "" then fab = "Cotton" end
+        if not fab or fab == "" then fab = ZeD.tr("UI_ZeD_Card_Cotton") end
         local condMax = safeGet(item, "getConditionMax") or 1
         local cond    = safeGet(item, "getCondition")    or condMax
         local r       = math.max(0, math.min(1, cond / math.max(1, condMax)))
         local pctStr  = string.format("%d%%", math.floor(r * 100 + 0.5))
         local combat  = safeGet(item, "getCombatSpeedModifier")
         local run     = safeGet(item, "getRunSpeedModifier")
-        rows[#rows + 1] = {label = "FABRIC", value = tostring(fab)}
-        rows[#rows + 1] = {label = "CONDITION", value = pctStr,
+        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Fabric"), value = tostring(fab)}
+        rows[#rows + 1] = {label = getText("IGUI_invpanel_Condition"), value = pctStr,
             valueClass = ratioClass(r), dotColor = ratioColor(r),
             mirrorKey = "condition"}
         if combat and combat ~= 1.0 then
             local pc = math.floor((combat - 1) * 100 + 0.5)
             local cls = pc < 0 and "warn" or (pc > 0 and "good" or nil)
-            rows[#rows + 1] = {label = "COMBAT",
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Combat"),
                 value = string.format("%+d%%", pc), valueClass = cls}
         end
         if run and run ~= 1.0 then
             local pr = math.floor((run - 1) * 100 + 0.5)
             local cls = pr < 0 and "warn" or (pr > 0 and "good" or nil)
-            rows[#rows + 1] = {label = "RUN",
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Run"),
                 value = string.format("%+d%%", pr), valueClass = cls}
         end
     elseif cat == "Food" then
         local hung = safeGet(item, "getHungerChange")
         local thst = safeGet(item, "getThirstChange")
         if hung then
-            rows[#rows + 1] = {label = "HUNGER",
+            rows[#rows + 1] = {label = getText("Tooltip_food_Hunger"),
                 value = string.format("%+d", math.floor(-hung * 100 + 0.5))}
         end
         if thst then
-            rows[#rows + 1] = {label = "THIRST",
+            rows[#rows + 1] = {label = getText("Tooltip_food_Thirst"),
                 value = string.format("%+d", math.floor(-thst * 100 + 0.5))}
         end
         local cooked = safeGet(item, "isCooked")
         local burnt  = safeGet(item, "isBurnt")
         local raw    = safeGet(item, "isbDangerousUncooked")
         local cookedStr, cookedClass
-        if burnt          then cookedStr, cookedClass = "Burnt",  "bad"
-        elseif cooked     then cookedStr, cookedClass = "Cooked", "good"
-        elseif raw        then cookedStr, cookedClass = "Raw",    "bad"
+        if burnt          then cookedStr, cookedClass = getText("Tooltip_food_Burnt"),  "bad"
+        elseif cooked     then cookedStr, cookedClass = getText("Tooltip_food_Cooked"), "good"
+        elseif raw        then cookedStr, cookedClass = ZeD.tr("UI_ZeD_Card_Raw"),    "bad"
         else                   cookedStr, cookedClass = "-",      "dim" end
-        rows[#rows + 1] = {label = "COOKED", value = cookedStr,
+        rows[#rows + 1] = {label = getText("Tooltip_food_Cooked"), value = cookedStr,
             valueClass = cookedClass, mirrorKey = "cooked"}
         local rotten = safeGet(item, "isRotten")
         local fresh  = safeGet(item, "isFresh")
         if rotten then
-            rows[#rows + 1] = {label = "FRESH", value = "Rotten", valueClass = "bad"}
+            rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Rotten"), valueClass = "bad"}
         elseif fresh then
-            rows[#rows + 1] = {label = "FRESH", value = "Fresh", valueClass = "good"}
+            rows[#rows + 1] = {label = getText("Tooltip_food_Fresh"), value = getText("Tooltip_food_Fresh"), valueClass = "good"}
         end
     elseif cat == "Weapon" or cat == "Firearm" then
         local condMax = safeGet(item, "getConditionMax") or 1
         local cond    = safeGet(item, "getCondition")    or condMax
         local r       = math.max(0, math.min(1, cond / math.max(1, condMax)))
-        rows[#rows + 1] = {label = "CONDITION",
+        rows[#rows + 1] = {label = getText("IGUI_invpanel_Condition"),
             value = string.format("%d%%", math.floor(r * 100 + 0.5)),
             valueClass = ratioClass(r), dotColor = ratioColor(r),
             mirrorKey = "condition"}
         local mn, mx = safeGet(item, "getMinDamage"), safeGet(item, "getMaxDamage")
         if mn and mx then
-            rows[#rows + 1] = {label = "DAMAGE",
+            rows[#rows + 1] = {label = getText("Tooltip_weapon_Damage"),
                 value = string.format("%.1f-%.1f", mn, mx)}
         end
         local reach = safeGet(item, "getMaxRange") or safeGet(item, "getMinRange")
         if reach then
-            rows[#rows + 1] = {label = "REACH", value = string.format("%.1f", reach)}
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Reach"), value = string.format("%.1f", reach)}
         end
         if cat == "Firearm" then
             local ammo = safeGet(item, "getCurrentAmmoCount") or 0
             local cap  = safeGet(item, "getMaxAmmo") or 0
-            rows[#rows + 1] = {label = "AMMO",
+            rows[#rows + 1] = {label = getText("Tooltip_weapon_Ammo"),
                 value = string.format("%d/%d", ammo, cap)}
         end
     elseif cat == "Literature" then
@@ -597,40 +619,40 @@ local function topStatsForItem(item)
         local already = safeGet(item, "getAlreadyReadPages") or 0
         if pages > 0 then
             local r = math.max(0, math.min(1, already / pages))
-            rows[#rows + 1] = {label = "PROGRESS",
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Progress"),
                 value = string.format("%d / %d", already, pages),
                 valueClass = ratioClass(r), mirrorKey = "progress"}
         end
         local skill = safeGet(item, "getSkillTrained")
         if skill and skill ~= "" then
-            rows[#rows + 1] = {label = "SKILL", value = tostring(skill)}
+            rows[#rows + 1] = {label = getText("IGUI_Skill"), value = tostring(skill)}
         end
         local lvlMin = safeGet(item, "getLvlSkillTrained") or 0
         local lvlMax = safeGet(item, "getMaxLevelTrained") or lvlMin
         if lvlMin > 0 or lvlMax > 0 then
-            rows[#rows + 1] = {label = "LEVEL",
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Level"),
                 value = string.format("%d - %d", lvlMin, lvlMax)}
         end
     elseif cat == "Container" then
         local cap = safeGet(item, "getItemCapacity") or 0
-        rows[#rows + 1] = {label = "CAPACITY",
+        rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Capacity"),
             value = string.format("%d", math.floor(cap + 0.5))}
         local inner = safeGet(item, "getInventory")
         if inner then
             local count = safeGet(inner, "getItems")
             local n = (count and count.size) and count:size() or 0
-            rows[#rows + 1] = {label = "ITEMS", value = tostring(n)}
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_Items"), value = tostring(n)}
         end
         local reduc = safeGet(item, "getWeightReduction")
         if reduc and reduc > 0 then
-            rows[#rows + 1] = {label = "WEIGHT REDUCE",
+            rows[#rows + 1] = {label = ZeD.tr("UI_ZeD_Card_WeightReduce"),
                 value = string.format("%d%%", math.floor(reduc + 0.5))}
         end
     elseif cat == "Drainable" then
         local used = safeGet(item, "getUsedDelta")
         if used then
             local r = math.max(0, math.min(1, used))
-            rows[#rows + 1] = {label = "REMAINING",
+            rows[#rows + 1] = {label = getText("IGUI_invpanel_Remaining"),
                 value = string.format("%d%%", math.floor(r * 100 + 0.5)),
                 valueClass = ratioClass(r), dotColor = ratioColor(r)}
         end
@@ -797,9 +819,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             local labelC = T.accent
             card:drawText(chev, x, textY,
                 chevC.r, chevC.g, chevC.b, chevC.a or 1, font)
-            card:drawText("ZONES", x + T.px(14), textY,
+            local zonesTxt = ZeD.tr("UI_ZeD_Card_Zones")
+            card:drawText(zonesTxt, x + T.px(14), textY,
                 labelC.r, labelC.g, labelC.b, labelC.a or 1, font)
-            local labelEndX = x + T.px(14) + tm:MeasureStringX(font, "ZONES") + T.px(8)
+            local labelEndX = x + T.px(14) + tm:MeasureStringX(font, zonesTxt) + T.px(8)
 
             if compact then
                 -- Right-aligned overall % only
@@ -814,10 +837,10 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 local chipGap   = T.px(6)
                 local chips = {}
                 if soil and soil.dirt then
-                    chips[#chips + 1] = {label = "DIRTY", color = T.soiledDirt or T.warning}
+                    chips[#chips + 1] = {label = ZeD.tr("UI_ZeD_Card_Dirty"), color = T.soiledDirt or T.warning}
                 end
                 if soil and soil.wet then
-                    chips[#chips + 1] = {label = "WET " .. tostring(soil.wet) .. "%",
+                    chips[#chips + 1] = {label = ZeD.tr("UI_ZeD_Card_WetPct", tostring(soil.wet) .. "%"),
                                          color = T.soiledWet or T.info}
                 end
 
@@ -907,10 +930,12 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                     local flagStr = "-"
                     if zCfg.dock and zCfg.dock.flag then
                         flagStr = zCfg.dock.flag
-                        if flagStr == "Leather"       then flagStr = "LEATHER"
-                        elseif flagStr == "Denim"     then flagStr = "DENIM"
+                        if flagStr == "TORN"          then flagStr = ZeD.tr("UI_ZeD_Card_FlagTorn")
+                        elseif flagStr == "WORN"      then flagStr = ZeD.tr("UI_ZeD_Card_FlagWorn")
+                        elseif flagStr == "Leather"   then flagStr = ZeD.tr("UI_ZeD_Card_FlagLeather")
+                        elseif flagStr == "Denim"     then flagStr = ZeD.tr("UI_ZeD_Card_FlagDenim")
                         elseif flagStr == "Fabric"
-                            or flagStr == "Ripped Sheets" then flagStr = "FABRIC"
+                            or flagStr == "Ripped Sheets" then flagStr = ZeD.tr("UI_ZeD_Card_FlagFabric")
                         end
                     end
                     local fW = tm:MeasureStringX(probeFont, flagStr) + T.px(4)
@@ -921,14 +946,14 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             local prevGroup = nil
             for i, zCfg in ipairs(zones) do
                 local gMap      = ZONE_GROUP_MAP[zCfg.name or ""]
-                local groupName = gMap and gMap[1] or "OTHER"
-                local shortName = gMap and gMap[2] or zCfg.name
+                local groupName = gMap and gMap[1] or "UI_ZeD_Card_ZoneOther"
+                local shortName = gMap and ZeD.tr(gMap[2]) or zCfg.name
 
                 if groupName ~= prevGroup then
                     if prevGroup ~= nil then cy = cy + groupPadAbove end
                     local hdrTY = cy + math.floor((groupHdrH - fontH) / 2)
                     local hdrC  = T.accent
-                    card:drawText(groupName, x, hdrTY,
+                    card:drawText(ZeD.tr(groupName), x, hdrTY,
                         hdrC.r, hdrC.g, hdrC.b, hdrC.a or 1, font)
                     cy = cy + groupHdrH
                     prevGroup = groupName
@@ -978,7 +1003,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             local chev = expanded and "v" or ">"
             local textY = cy + math.floor((hdrH - labelH) / 2)
             card:drawText(chev, x, textY, T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF1)
-            card:drawText(panel.title or "Facts", x + T.px(12), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
+            card:drawText(panel.title or ZeD.tr("UI_ZeD_Card_Facts"), x + T.px(12), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
             -- Absolute coords for fold hit (update() compares vs absolute mouse)
             local ax, ay = card:getAbsoluteX(), card:getAbsoluteY()
             card._foldHitRects[#card._foldHitRects + 1] = {
@@ -990,7 +1015,7 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
             -- Skip drawFactsTitle when the disclosure header already shows
             -- the panel title (avoids duplicate "Defense Facts" at 220w).
             if not hasDisc then
-                cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or "Facts", compact) or 0)
+                cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or ZeD.tr("UI_ZeD_Card_Facts"), compact) or 0)
             end
             cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + T.px(2)
             for gi, group in ipairs(panel.groups or {}) do
@@ -999,8 +1024,8 @@ local function renderClothingBody(card, item, x, y, w, compact, scrollOff, conte
                 end
                 for _, row in ipairs(group.rows or {}) do
                     local lbl = row.label
-                    if compact and lbl and SHORT_FACTS_LABEL_220[lbl] then
-                        lbl = SHORT_FACTS_LABEL_220[lbl]
+                    if compact and lbl and row.short then
+                        lbl = row.short
                     end
                     cy = cy + (M.drawFactsRow and
                         M.drawFactsRow(card, x, cy, w,
@@ -1040,7 +1065,7 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
     -- Facts panel via registry
     local panel = ZeD.ItemFactsPanel and ZeD.ItemFactsPanel.factsFor(item)
     if panel then
-        cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or "Facts", compact) or 0)
+        cy = cy + (M.drawFactsTitle and M.drawFactsTitle(card, x, cy, w, panel.title or ZeD.tr("UI_ZeD_Card_Facts"), compact) or 0)
         cy = cy + (M.drawFactsRuleThick and M.drawFactsRuleThick(card, x, cy, w) or 0) + T.px(2)
         for gi, group in ipairs(panel.groups or {}) do
             if gi > 1 then
@@ -1048,8 +1073,8 @@ local function renderGenericBody(card, item, x, y, w, compact, scrollOff, conten
             end
             for _, row in ipairs(group.rows or {}) do
                 local lbl = row.label
-                if compact and lbl and SHORT_FACTS_LABEL_220[lbl] then
-                    lbl = SHORT_FACTS_LABEL_220[lbl]
+                if compact and lbl and row.short then
+                    lbl = row.short
                 end
                 cy = cy + (M.drawFactsRow and
                     M.drawFactsRow(card, x, cy, w,

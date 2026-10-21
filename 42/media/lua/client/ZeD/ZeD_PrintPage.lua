@@ -67,6 +67,15 @@ function P.kind(item)
     return "Paper"
 end
 
+-- what P.kind answered, in the player's language (the answer itself is an id, compared in code)
+function P.kindName(kind)
+    if kind == "Newspaper" then return getText("IGUI_NewUI_Newspaper") end
+    if kind == "Brochure" then return getText("IGUI_NewUI_Brochure") end
+    if kind == "Flyer" then return ZeD.tr("UI_ZeD_Print_Flyer") end
+    if kind == "Magazine" then return getText("ContextMenu_Magazine") end
+    return ZeD.tr("UI_ZeD_Print_Paper")
+end
+
 -- ---------------------------------------------------------------------------
 -- the layout string (vanilla's own format, PrintMedia.lua)
 -- ---------------------------------------------------------------------------
@@ -352,7 +361,7 @@ local function properCase(line, pg)
         end
     end
     local s = line:lower()
-    return (s:gsub("^%l", string.upper))
+    return ZeD.upper(s:sub(1, 1)) .. s:sub(2)
 end
 
 -- blocks: { kind = "head" | "kicker" | "pic" | "para" | "cont", text }

@@ -42,13 +42,27 @@ local SLICE = 60                  -- units of work per frame (a folder listing, 
 local WS_POLL_MS, WS_POLL_OPEN_MS = 30000, 10000
 
 -- the script kinds that are read, with the word the screen uses for each
+-- ([2] and [3] are the ids the scan keys its counts by; one / many / thing / same are the translation
+-- keys of "1 item", "3 items", an `item "Base.Axe"` line, and the "Same 3 items as ..." title)
 local SCRIPT_KINDS = {
-    { "getAllItems", "item", "items" },
-    { "getAllCraftRecipes", "recipe", "recipes" },
-    { "getAllVehicleScripts", "vehicle", "vehicles" },
-    { "getAllGameEntities", "building", "buildings" },
-    { "getAllModelScripts", "model", "models" },
+    { "getAllItems", "item", "items", one = "UI_ZeD_ModScan_CountItem", many = "UI_ZeD_ModScan_CountItems", thing = "UI_ZeD_ModScan_ThingItem", same = "UI_ZeD_ModScan_SameItems", sameOne = "UI_ZeD_ModScan_SameItem" },
+    { "getAllCraftRecipes", "recipe", "recipes", one = "UI_ZeD_ModScan_CountRecipe", many = "UI_ZeD_ModScan_CountRecipes", thing = "UI_ZeD_ModScan_ThingRecipe", same = "UI_ZeD_ModScan_SameRecipes", sameOne = "UI_ZeD_ModScan_SameRecipe" },
+    { "getAllVehicleScripts", "vehicle", "vehicles", one = "UI_ZeD_ModScan_CountVehicle", many = "UI_ZeD_ModScan_CountVehicles", thing = "UI_ZeD_ModScan_ThingVehicle", same = "UI_ZeD_ModScan_SameVehicles", sameOne = "UI_ZeD_ModScan_SameVehicle" },
+    { "getAllGameEntities", "building", "buildings", one = "UI_ZeD_ModScan_CountBuilding", many = "UI_ZeD_ModScan_CountBuildings", thing = "UI_ZeD_ModScan_ThingBuilding", same = "UI_ZeD_ModScan_SameBuildings", sameOne = "UI_ZeD_ModScan_SameBuilding" },
+    { "getAllModelScripts", "model", "models", one = "UI_ZeD_ModScan_CountModel", many = "UI_ZeD_ModScan_CountModels", thing = "UI_ZeD_ModScan_ThingModel", same = "UI_ZeD_ModScan_SameModels", sameOne = "UI_ZeD_ModScan_SameModel" },
 }
+
+-- a conflict's thing as words: a Lua file's path as it is, a script object as `item "Base.Axe"`
+-- (MS.kindOf: the SCRIPT_KINDS row of a noun id such as "item")
+function MS.kindOf(noun)
+    for _, k in ipairs(SCRIPT_KINDS) do if k[2] == noun then return k end end
+    return nil
+end
+function MS.thingText(t)
+    if type(t) ~= "table" then return tostring(t or "") end
+    local k = MS.kindOf(t.kind)
+    return k and ZeD.tr(k.thing, t.name) or tostring(t.name)
+end
 
 local function nowMs() return getTimestampMs() end
 local function norm(p) return string.lower((tostring(p or ""):gsub("\\", "/"))) end
@@ -191,7 +205,7 @@ local function scanBody(res)
                     if #mods >= 2 then
                         local name = tostring(o:getScriptObjectFullType())
                         local w = mods[#mods]
-                        for j = 1, #mods - 1 do addConflict(res, "script", mods[j], w, k[2] .. " \"" .. name .. "\"", k[2]) end
+                        for j = 1, #mods - 1 do addConflict(res, "script", mods[j], w, { kind = k[2], name = name }, k[2]) end
                     end
                     if vanilla then
                         for _, mid in ipairs(mods) do
@@ -279,8 +293,13 @@ function MS.wsState(st)
     return "none"
 end
 
-MS.WS_TEXT = { downloading = "Downloading", queued = "Download queued", update = "Update waiting",
-               ok = "Up to date", missing = "Not installed", none = "Not subscribed" }
+-- (translation keys by state; MS.wsText gives the player's words)
+MS.WS_TEXT = { downloading = "UI_ZeD_ModScan_WsDownloading", queued = "UI_ZeD_ModScan_WsQueued", update = "UI_ZeD_ModScan_WsUpdate",
+               ok = "UI_ZeD_ModScan_WsOk", missing = "UI_ZeD_ModScan_WsMissing", none = "UI_ZeD_ModScan_WsNone" }
+function MS.wsText(state)
+    local k = MS.WS_TEXT[state]
+    return k and ZeD.tr(k) or nil
+end
 
 local function onDetails(target, status, info)
     local ws = MS.ws
@@ -348,16 +367,20 @@ function MS.updatedLoaded()
 end
 
 -- "2 h ago", "3 days ago", "Sep 30"
-local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+-- (the month names are the main menu's keys, translated where they show)
+local MONTHS = { "UI_ZeD_MainMenu_MonthJan", "UI_ZeD_MainMenu_MonthFeb", "UI_ZeD_MainMenu_MonthMar",
+    "UI_ZeD_MainMenu_MonthApr", "UI_ZeD_MainMenu_MonthMay", "UI_ZeD_MainMenu_MonthJun",
+    "UI_ZeD_MainMenu_MonthJul", "UI_ZeD_MainMenu_MonthAug", "UI_ZeD_MainMenu_MonthSep",
+    "UI_ZeD_MainMenu_MonthOct", "UI_ZeD_MainMenu_MonthNov", "UI_ZeD_MainMenu_MonthDec" }
 function MS.ago(secs)
     if not secs or secs <= 0 then return "" end
     local d = getTimestamp() - secs
-    if d < 3600 then return "within the hour" end
-    if d < 86400 then return math.floor(d / 3600) .. " h ago" end
-    if d < 86400 * 2 then return "yesterday" end
-    if d < 86400 * 14 then return math.floor(d / 86400) .. " days ago" end
-    local ok, s = pcall(function() local t = os.date("*t", secs); return MONTHS[t.month] .. " " .. t.day .. ", " .. t.year end)
-    return ok and s or (math.floor(d / 86400) .. " days ago")
+    if d < 3600 then return ZeD.tr("UI_ZeD_ModScan_AgoHour") end
+    if d < 86400 then return ZeD.tr("UI_ZeD_ModScan_AgoHours", math.floor(d / 3600)) end
+    if d < 86400 * 2 then return ZeD.tr("UI_ZeD_ModScan_AgoYesterday") end
+    if d < 86400 * 14 then return ZeD.tr("UI_ZeD_ModScan_AgoDays", math.floor(d / 86400)) end
+    local ok, s = pcall(function() local t = os.date("*t", secs); return ZeD.tr("UI_ZeD_ModScan_AgoDate", ZeD.tr(MONTHS[t.month]), t.day, t.year) end)
+    return ok and s or ZeD.tr("UI_ZeD_ModScan_AgoDays", math.floor(d / 86400))
 end
 
 function MS.size(bytes)
@@ -411,12 +434,12 @@ function MS.overrideText(id)
     local parts = {}
     for _, k in ipairs(SCRIPT_KINDS) do
         local n = o.kinds[k[3]]
-        if n then parts[#parts + 1] = n .. " " .. (n == 1 and k[2] or k[3]) end
+        if n then parts[#parts + 1] = ZeD.tr(n == 1 and k.one or k.many, n) end
     end
     local list = parts[1]
-    if #parts == 2 then list = parts[1] .. " and " .. parts[2]
-    elseif #parts > 2 then list = table.concat(parts, ", ", 1, #parts - 1) .. " and " .. parts[#parts] end
-    return "the game's " .. list
+    if #parts == 2 then list = ZeD.tr("UI_ZeD_ModScan_ListAnd", parts[1], parts[2])
+    elseif #parts > 2 then list = ZeD.tr("UI_ZeD_ModScan_ListAnd", table.concat(parts, ", ", 1, #parts - 1), parts[#parts]) end
+    return ZeD.tr("UI_ZeD_ModScan_TheGames", list)
 end
 
 -- the hidden conflicts that name a mod, and showing them again

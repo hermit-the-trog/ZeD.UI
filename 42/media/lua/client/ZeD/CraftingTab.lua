@@ -383,7 +383,7 @@ local craftConfig = {
     prefix      = "craft",
     pinKey      = "ZeD_CraftPins",
     countKey    = "ZeD_CraftCounts",
-    buildLabel  = "CRAFT",
+    buildLabel  = "UI_ZeD_Craft_ActCraft",   -- a key (CraftingCore translates it where it draws)
     startAction = function(win, state)
         ZeD.CraftingTab.startCraft(win, state)
     end,

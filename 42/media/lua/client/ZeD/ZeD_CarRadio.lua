@@ -28,6 +28,7 @@
 -- seat puts it away too. Every change is vanilla's radio code (ZeD_RadioOps).
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/Molecules"
@@ -60,11 +61,24 @@ local function sound(name) pcall(function() getSoundManager():playUISound(name) 
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
 -- what a button does on a press, and on X / a hold (nil = nothing)
+-- (each value is a translation key, read through ZeD.tr when the prompt draws; Power and Microphone are vanilla's words)
 local LABEL_A = {
-    vol = "Power", tune = "Tune", eject = "Eject", scan = "Scan", seek = "Seek", mute = "Mute", play = "Play / Stop",
-    slot = "Insert a CD", pwr = "Power", chup = "Channel up", chdn = "Channel down", mem = "Store channel", mic = "Microphone",
+    vol = "IGUI_RadioPower", tune = "UI_ZeD_RadioPrompt_Tune", eject = "UI_ZeD_RadioPrompt_Eject", scan = "UI_ZeD_RadioPrompt_Scan",
+    seek = "UI_ZeD_RadioPrompt_Seek", mute = "UI_ZeD_RadioPrompt_Mute", play = "UI_ZeD_RadioPrompt_PlayStop",
+    slot = "UI_ZeD_RadioPrompt_InsertCd", pwr = "IGUI_RadioPower", chup = "UI_ZeD_RadioPrompt_ChannelUp",
+    chdn = "UI_ZeD_RadioPrompt_ChannelDown", mem = "UI_ZeD_RadioPrompt_StoreChannel", mic = "IGUI_RadioMicrophone",
 }
-for i = 1, 6 do LABEL_A["p" .. i] = "Listen" end
+for i = 1, 6 do LABEL_A["p" .. i] = "UI_ZeD_RadioPrompt_Listen" end
+ZeD.trDefaults({
+    UI_ZeD_RadioPrompt_Tune = "Tune", UI_ZeD_RadioPrompt_Eject = "Eject", UI_ZeD_RadioPrompt_Scan = "Scan",
+    UI_ZeD_RadioPrompt_Seek = "Seek", UI_ZeD_RadioPrompt_Mute = "Mute", UI_ZeD_RadioPrompt_PlayStop = "Play / Stop",
+    UI_ZeD_RadioPrompt_InsertCd = "Insert a CD", UI_ZeD_RadioPrompt_ChannelUp = "Channel up",
+    UI_ZeD_RadioPrompt_ChannelDown = "Channel down", UI_ZeD_RadioPrompt_StoreChannel = "Store channel",
+    UI_ZeD_RadioPrompt_Listen = "Listen", UI_ZeD_RadioPrompt_Press = "Press", UI_ZeD_RadioPrompt_Store = "Store",
+    UI_ZeD_RadioPrompt_NameChannel = "Name channel", UI_ZeD_RadioPrompt_SeekBack = "Seek back",
+    UI_ZeD_RadioPrompt_Dpad = "D-PAD Move / Turn", UI_ZeD_Hud_PutAway = "Put away",
+    UI_ZeD_Radio_NameChannel = "Name channel %1 (empty forgets it)", UI_ZeD_Radio_NoCds = "No CDs on you",
+})
 
 -- ---------------------------------------------------------------------------
 -- ZeD_CarRadio
@@ -184,7 +198,7 @@ end
 local function rangeText(m)
     if not (m and m > 0) then return nil end
     local km = m / 1000
-    return "RANGE " .. ((km == math.floor(km)) and tostring(math.floor(km)) or string.format("%.1f", km)) .. " KM"
+    return ZeD.tr("UI_ZeD_Radio_Range", (km == math.floor(km)) and tostring(math.floor(km)) or string.format("%.1f", km))
 end
 
 -- what the face's live parts read
@@ -247,12 +261,12 @@ function ZeD_CarRadio:prerender()
         local s2, bs = T.surf2, T.borderS
         self:drawRect(0, y, self.width, self._stripH, 1, s2.r, s2.g, s2.b)
         self:drawRectBorder(0, y, self.width, self._stripH, bs.a or 1, bs.r, bs.g, bs.b)
-        local items = { "D-PAD Move / Turn" }
+        local items = { ZeD.tr("UI_ZeD_RadioPrompt_Dpad") }
         local la = self:labelA()
         if la then items[#items + 1] = { glyph = "A", label = la } end
         local lx = self:labelX()
         if lx then items[#items + 1] = { glyph = "X", label = lx } end
-        items[#items + 1] = { glyph = "B", label = "Put away" }
+        items[#items + 1] = { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") }
         ZeD.Molecules.drawGlyphPrompts(self, T.sp.sm, y, self._stripH, items)
     end
 end
@@ -260,14 +274,14 @@ end
 function ZeD_CarRadio:labelA()
     local id = self.focusId or "vol"
     if id == "tune" or (id == "vol" and (self.kind == "makeshift" or self.kind == "hammake")) then return nil end   -- a knob only turns
-    if id == "slot" and self.st and self.st.hasMedia then return "Eject" end
-    return LABEL_A[id] or "Press"
+    if id == "slot" and self.st and self.st.hasMedia then return ZeD.tr("UI_ZeD_RadioPrompt_Eject") end
+    return ZeD.tr(LABEL_A[id] or "UI_ZeD_RadioPrompt_Press")
 end
 function ZeD_CarRadio:labelX()
     local id = self.focusId or ""
-    if id:match("^p%d$") then return "Store" end
-    if id == "mem" then return "Name channel" end
-    if id == "seek" then return "Seek back" end
+    if id:match("^p%d$") then return ZeD.tr("UI_ZeD_RadioPrompt_Store") end
+    if id == "mem" then return ZeD.tr("UI_ZeD_RadioPrompt_NameChannel") end
+    if id == "seek" then return ZeD.tr("UI_ZeD_RadioPrompt_SeekBack") end
     return nil
 end
 
@@ -293,7 +307,7 @@ function ZeD_CarRadio:press(id, x)
     elseif id == "pwr" then O.power(chr, part)
     elseif id:match("^p%d$") then
         local i = tonumber(id:sub(2))
-        if st.on and not O.recall(chr, part, i) then O.flash(part, "EMPTY", 900) end
+        if st.on and not O.recall(chr, part, i) then O.flash(part, ZeD.tr("UI_ZeD_Radio_Empty"), 900) end
     elseif id == "seek" then if st.on then O.seek(chr, part, 1) end
     elseif id == "scan" then if st.on then O.scanToggle(chr, part) end
     elseif id == "mute" then O.mute(chr, part)
@@ -331,7 +345,7 @@ function ZeD_CarRadio:nameChannel()
         st = O.read(part)                                   -- the new channel's stored name
     end
     local cur = (st and st.presets[idx] and st.presets[idx].name) or ""
-    local box = ISTextBox:new(0, 0, 280, 180, "Name channel " .. string.format("%02d", idx) .. " (empty forgets it)", cur, self, ZeD_CarRadio.onNamed, self.playerNum, idx)
+    local box = ISTextBox:new(0, 0, 280, 180, ZeD.tr("UI_ZeD_Radio_NameChannel", string.format("%02d", idx)), cur, self, ZeD_CarRadio.onNamed, self.playerNum, idx)
     box:initialise()
     box:addToUIManager()
     box.prevFocus = self
@@ -363,7 +377,7 @@ function ZeD_CarRadio:cdList()
         opt.itemForTexture = item
     end
     if #cds == 0 then
-        local o = context:addOption("No CDs on you")
+        local o = context:addOption(ZeD.tr("UI_ZeD_Radio_NoCds"))
         o.notAvailable = true
     end
     self:yieldTop(function()

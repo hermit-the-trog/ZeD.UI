@@ -17,6 +17,8 @@
 -- case is an action goes unrecognized and the Band stays idle.
 -- ============================================================================
 
+require "ZeD/Tr"
+
 local function _safeNotify(item, event, action)
     if not item or not (ZeD and ZeD.ItemActionManager and ZeD.ItemActionManager.notify) then return end
     pcall(ZeD.ItemActionManager.notify, item, event, action)
@@ -45,21 +47,21 @@ local function _classifyAction(self)
     end
     if t and t ~= "" then
         local lower = string.lower(t)
-        if lower:find("cook")    then return "cooking",   "COOKING"   end
-        if lower:find("read")    then return "reading",   "READING"   end
+        if lower:find("cook")    then return "cooking",   ZeD.tr("UI_ZeD_ItemAct_Cooking")   end
+        if lower:find("read")    then return "reading",   ZeD.tr("UI_ZeD_ItemAct_Reading")   end
         if lower:find("repair")
-           or lower:find("fix")  then return "repairing", "REPAIRING" end
+           or lower:find("fix")  then return "repairing", ZeD.tr("UI_ZeD_ItemAct_Repairing") end
     end
 
     -- Strategy 3: field shape
-    if self.book then return "reading", "READING" end
+    if self.book then return "reading", ZeD.tr("UI_ZeD_ItemAct_Reading") end
     if self.clothing and (self.fabric or self.thread or self.needle) then
-        return "repairing", "REPAIRING"
+        return "repairing", ZeD.tr("UI_ZeD_ItemAct_Repairing")
     end
 
     -- Strategy 4: item is Literature → reading
     if self.item and instanceof and instanceof(self.item, "Literature") then
-        return "reading", "READING"
+        return "reading", ZeD.tr("UI_ZeD_ItemAct_Reading")
     end
 
     return nil, nil
@@ -264,13 +266,13 @@ local function _pollReadingFallback(p)
         if prev ~= book then
             if prev then _safeNotify(prev, "complete", nil) end
             _safeNotify(book, "start", {
-                kind = "reading", label = "READING",
+                kind = "reading", label = ZeD.tr("UI_ZeD_ItemAct_Reading"),
                 percent = percent, _action = nil,
             })
             _readActiveItem[pn] = book
         else
             _safeNotify(book, "tick", {
-                kind = "reading", label = "READING",
+                kind = "reading", label = ZeD.tr("UI_ZeD_ItemAct_Reading"),
                 percent = percent, _action = nil,
             })
         end
@@ -331,12 +333,12 @@ local function _pollCooking()
                     if danger then
                         local span = math.max(1, toBurn - toCook)
                         percent = math.max(0, math.min(1, (ct - toCook) / span))
-                        timeStr = string.format("%dm", math.max(0, math.ceil(toBurn - ct)))
-                        mode, label = "danger", "BURNING"
+                        timeStr = ZeD.tr("UI_ZeD_ItemAct_MinutesShort", math.max(0, math.ceil(toBurn - ct)))
+                        mode, label = "danger", ZeD.tr("UI_ZeD_ItemAct_Burning")
                     else
                         percent = toCook > 0 and math.max(0, math.min(1, ct / toCook)) or 0
-                        timeStr = string.format("%dm", math.max(0, math.ceil(toCook - ct)))
-                        mode, label = "active", "COOKING"
+                        timeStr = ZeD.tr("UI_ZeD_ItemAct_MinutesShort", math.max(0, math.ceil(toCook - ct)))
+                        mode, label = "active", ZeD.tr("UI_ZeD_ItemAct_Cooking")
                     end
                     local desc = { kind = "cooking", label = label, mode = mode, percent = percent, timeStr = timeStr, _action = nil }
                     if not _cookTracked[item] then

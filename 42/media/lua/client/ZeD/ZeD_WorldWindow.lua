@@ -14,6 +14,7 @@ require "ISUI/ISMouseDrag"
 require "ISUI/ISInventoryPage"
 require "ZeD/WindowCurtain"
 require "ZeD/Tokens"
+require "ZeD/Tr"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
@@ -79,31 +80,39 @@ end
 
 -- Action tab definitions — group 2 reserved for contextual tabs
 local WORLD_TABS = {
-    { id = "loot",   label = "Loot",     group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
-    { id = "craft",  label = "Crafting", group = 1, glyph = "C", iconName = "craft-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/craft-tab-white.png") },
-    { id = "build",  label = "Building", group = 1, glyph = "B", iconName = "build-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/build-tab-white.png") },
+    -- key = ZeD's word for the tab, vkey = vanilla's own where it has the same word; the
+    -- tab's name is read where it is shown (ZeD_WorldWindow.tabLabel), so the language applies
+    { id = "loot",   key = "UI_ZeD_World_TabLoot", group = 1, glyph = "L", iconName = "loot-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/loot-tab-white.png") },
+    { id = "craft",  vkey = "IGUI_CraftingWindow_Title", group = 1, glyph = "C", iconName = "craft-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/craft-tab-white.png") },
+    { id = "build",  key = "UI_ZeD_World_TabBuilding", group = 1, glyph = "B", iconName = "build-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/build-tab-white.png") },
     -- S124: Furniture — vanilla's moveables mode (pick up, place, rotate,
     -- disassemble, repair); opening the tab starts the furniture cursor (ZeD.FurnitureTab)
-    { id = "furniture", label = "Furniture", group = 1, glyph = "U", iconName = "move-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/move-tab-white.png") },
-    { id = "maps",   label = "Maps",     group = 2, glyph = "M", iconName = "map-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/map-tab-white.png") },
-    { id = "forage", label = "Foraging", group = 2, glyph = "F", iconName = "forage-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/forage-tab-white.png"),
+    { id = "furniture", vkey = "IGUI_CraftingCategories_Furniture", group = 1, glyph = "U", iconName = "move-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/move-tab-white.png") },
+    { id = "maps",   key = "UI_ZeD_World_TabMaps", group = 2, glyph = "M", iconName = "map-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/map-tab-white.png") },
+    { id = "forage", vkey = "IGUI_ScavengeUI_Title", group = 2, glyph = "F", iconName = "forage-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/forage-tab-white.png"),
       visible = function(win) return true end },  -- always visible (informational surface)
-    { id = "animals", label = "Animals", group = 2, glyph = "A", iconName = "farm-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/farm-tab-white.png") },
+    { id = "animals", key = "UI_ZeD_World_TabAnimals", group = 2, glyph = "A", iconName = "farm-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/farm-tab-white.png") },
     -- S115: Radio (contextual) — visible when at least one IsoWaveSignal radio
     -- is reachable in the player's 3x3 grid. Same predicate model as Foraging.
-    { id = "radio",  label = "Radio",    group = 2, glyph = "R",
+    { id = "radio",  vkey = "IGUI_ItemType_Radio", group = 2, glyph = "R",
       iconName = "radio-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/radio-tab-white.png"),
       visible = function(win)
           return win and win._radios and #win._radios > 0
       end },
     -- S124: Vehicle (contextual) — vehicle mechanics. Visible while a vehicle is
     -- within reach or an inspected one is within six tiles (ZeD.MechanicsTab).
-    { id = "vehicle", label = "Vehicle", group = 2, glyph = "V",
+    { id = "vehicle", key = "UI_ZeD_World_TabVehicle", group = 2, glyph = "V",
       iconName = "vehicle-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/vehicle-tab-white.png"),
       visible = function(win)
           return ZeD.MechanicsTab and ZeD.MechanicsTab.isVisible(win)
       end },
 }
+
+-- a tab's name in the player's language
+function ZeD_WorldWindow.tabLabel(tab)
+    if tab.vkey then return getText(tab.vkey) end
+    return ZeD.tr(tab.key)
+end
 
 -- Check if a tab is visible (tabs without a visible predicate are always shown)
 local function isTabVisible(tab, win)
@@ -1738,7 +1747,7 @@ local function renderPlaceholder(panel, tabDef, x, y, w, h)
     -- Heading
     local font = T.fontF4
     local tc   = T.textHead
-    panel:drawText(tabDef.label, x + pad, y + pad,
+    panel:drawText(ZeD_WorldWindow.tabLabel(tabDef), x + pad, y + pad,
         tc.r, tc.g, tc.b, tc.a, font)
 
     local headH = ZeD.TM:getFontHeight(font)
@@ -1752,7 +1761,7 @@ local function renderPlaceholder(panel, tabDef, x, y, w, h)
     local descY = grooveY + T.px(1) + T.sp.afterGroove
     local secFont = T.fontF1
     local dim = T.textDim
-    panel:drawText("Coming soon", x + pad, descY,
+    panel:drawText(ZeD.tr("UI_ZeD_World_ComingSoon"), x + pad, descY,
         dim.r, dim.g, dim.b, dim.a, secFont)
 end
 
@@ -2270,7 +2279,11 @@ local function buildWorldContainers(playerObj)
                             -- Skip animal bodies
                             local isAnimal = instanceof(so, "IsoDeadBody") and so:isAnimal()
                             if not isAnimal then
-                                local title = getText("IGUI_Dead_Person")
+                                local corpseType = "inventorymale"
+                                local desc = instanceof(so, "IsoDeadBody") and so:getDescription() or nil
+                                if desc and desc.isFemale and pcall(function() if desc:isFemale() then corpseType = "inventoryfemale" end end) then end
+                                -- a nameless body is titled by vanilla's own word for it ("Corpse")
+                                local title = getText("IGUI_ContainerTitle_" .. corpseType)
                                 if instanceof(so, "IsoDeadBody") then
                                     -- S123: the player's own corpse (and some B42 bodies) hand
                                     -- back a description without getForename/getSurname — this
@@ -2278,13 +2291,11 @@ local function buildWorldContainers(playerObj)
                                     pcall(function()
                                         local desc = so:getDescription()
                                         if desc and desc.getForename and desc.getSurname then
-                                            title = desc:getForename() .. " " .. desc:getSurname()
+                                            local fore, sur = desc:getForename(), desc:getSurname()
+                                            if fore and sur then title = fore .. " " .. sur end
                                         end
                                     end)
                                 end
-                                local corpseType = "inventorymale"
-                                local desc = instanceof(so, "IsoDeadBody") and so:getDescription() or nil
-                                if desc and desc.isFemale and pcall(function() if desc:isFemale() then corpseType = "inventoryfemale" end end) then end
                                 containers[#containers + 1] = {
                                     inventory = so:getContainer(),
                                     name = title,
@@ -2606,7 +2617,7 @@ local function drawWorldContainerStrip(self, win, content)
     local f5Font      = T.fontF5
     local f5H         = ZeD.TM:getFontHeight(f5Font)
     local isActive    = sortMode ~= "dist"
-    local sortLabel   = string.upper(sortMode)
+    local sortLabel   = ZeD.tr(sortMode == "wt" and "UI_ZeD_World_SortWt" or sortMode == "type" and "UI_ZeD_World_SortType" or "UI_ZeD_World_SortDist")
     local labelW      = ZeD.TM:MeasureStringX(f5Font, sortLabel)
     local isSortHover = (mx >= 0 and mx < w and my >= sortRowY and my < sortRowY + sortRowH)
 
@@ -2883,7 +2894,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     local winH = math.min(T.px(420), screenH - T.px(80))
 
     -- Position: right page of two-page spread, left edge 5px right of center
-    local win = ZeD_Window:new(math.floor(screenW / 2) + T.px(5), 0, winW, winH, "World")
+    local win = ZeD_Window:new(math.floor(screenW / 2) + T.px(5), 0, winW, winH, ZeD.tr("UI_ZeD_World_Title"))
     win:initialise()
     win:addToUIManager()
     win.minimumHeight = T.px(220)
@@ -3315,7 +3326,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._drawerPanel = drawer
 
     -- Crafting tab search field (ISPanel child of drawer)
-    local craftSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search recipes...")
+    local craftSearch = ZeD_SearchField:new(0, 0, T.px(200), getText("IGUI_CraftingWindow_SearchRecipes"))
     craftSearch:initialise()
     craftSearch:setVisible(false)
     craftSearch.onFilter = function(self, text)
@@ -3334,7 +3345,7 @@ function ZeD_WorldWindow.toggle(playerNum)
     win._craftSearch = craftSearch
 
     -- Building tab search field
-    local buildSearch = ZeD_SearchField:new(0, 0, T.px(200), "Search structures...")
+    local buildSearch = ZeD_SearchField:new(0, 0, T.px(200), ZeD.tr("UI_ZeD_World_SearchStructures"))
     buildSearch:initialise()
     buildSearch:setVisible(false)
     buildSearch.onFilter = function(self, text)
@@ -4013,7 +4024,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             self._containers = win._containers
             self._barH = 0
             self._activeCol = math.min(self._activeCol or #colSel, #colSel)
-            win.title = #colSel .. " containers"
+            win.title = ZeD.tr(#colSel == 1 and "UI_ZeD_World_ContainersOne" or "UI_ZeD_World_ContainersMany", #colSel)
             self._ccEntry = nil
             win.titleStats = {}
             r.renderMultiColumnContent(self)
@@ -4027,7 +4038,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
             local cnt = win._containers[viewIdx]
             if cnt then
-                win.title = "World"
+                win.title = ZeD.tr("UI_ZeD_World_Title")
                 local cInv = cnt.inventory
                 local cItems = cInv and cInv:getItems() and cInv:getItems():size() or 0
                 local cWeight = cInv and round(cInv:getCapacityWeight(), 1) or 0
@@ -4037,7 +4048,7 @@ function ZeD_WorldWindow.toggle(playerNum)
                     name    = cnt.name,
                     texture = not cnt.isFloor and cnt.texture or nil,
                     stats   = cnt.isFloor and "" or string.format("%.1f/%.0fkg", cWeight, cMax),
-                    count   = cItems .. " items",
+                    count   = ZeD.tr(cItems == 1 and "UI_ZeD_Inv_ItemsOne" or "UI_ZeD_Inv_ItemsMany", cItems),
                 }
 
                 win.title = cnt.name .. "  " .. cItems
@@ -4463,7 +4474,7 @@ function ZeD_WorldWindow.toggle(playerNum)
             for _, tab in ipairs(WORLD_TABS) do
                 if tab.id == win._activeTab then
                     win.titleStats = {
-                        {text = tab.label, color = T.textSec},
+                        {text = ZeD_WorldWindow.tabLabel(tab), color = T.textSec},
                     }
                     break
                 end
@@ -4502,15 +4513,15 @@ function ZeD_WorldWindow.toggle(playerNum)
         chip = function()
             local e = win._containers and win._containers[win._activeContainer]
             local inv = e and e.inventory
-            return e and e.name or "World", inv and inv:getItems():size() or 0
+            return e and e.name or ZeD.tr("UI_ZeD_World_Title"), inv and inv:getItems():size() or 0
         end,
         dropInv = function()
             local e = win._containers and win._containers[win._activeContainer]
             return e and e.inventory
         end,
         title = function()
-            for _, tab in ipairs(WORLD_TABS) do if tab.id == win._activeTab then return tab.label end end
-            return "World"
+            for _, tab in ipairs(WORLD_TABS) do if tab.id == win._activeTab then return ZeD_WorldWindow.tabLabel(tab) end end
+            return ZeD.tr("UI_ZeD_World_Title")
         end,
         onChange = function(rolled)
             if not rolled and _syncWorldRingZones then _syncWorldRingZones(win, content) end

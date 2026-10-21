@@ -14,6 +14,7 @@
 
 require "PZAPI/ModOptions"
 require "ZeD/Tokens"
+require "ZeD/Tr"
 
 ZeD = ZeD or {}
 
@@ -23,20 +24,24 @@ ZeD = ZeD or {}
 -- grows at the END: an item inserted or moved earlier would change what every
 -- player's saved choice means.
 -- ---------------------------------------------------------------------------
+-- (every label below is a translation key: ZeD.tr turns it into the player's language where the
+-- item is added; the order of the items is what a saved choice means, so it never changes)
 local baseKeys   = {"dark", "light", "hicon"}
-local baseLabels = {"Dark", "Light", "High contrast"}
+local baseLabels = {"UI_ZeD_Settings_Dark", "UI_ZeD_Settings_Light", "UI_ZeD_Settings_HighContrast"}
 
 local accentKeys   = {"red", "orange", "yellow", "green", "blue", "teal", "purple", "pink", "mono"}
-local accentLabels = {"Red", "Orange", "Yellow", "Green", "Blue", "PZ Teal", "Purple", "Pink", "None"}
+local accentLabels = {"UI_ZeD_Accent_Red", "UI_ZeD_Accent_Orange", "UI_ZeD_Accent_Yellow", "UI_ZeD_Accent_Green", "UI_ZeD_Accent_Blue",
+                      "UI_ZeD_Accent_Teal", "UI_ZeD_Accent_Purple", "UI_ZeD_Accent_Pink", "UI_ZeD_Accent_None"}
 
 local sizeKeys   = {"small", "large"}
-local sizeLabels = {"Small", "Large"}
+local sizeLabels = {"UI_ZeD_Settings_Small", "UI_ZeD_Settings_Large"}
 
 -- UI scale (Oct 13 2026, director): Auto fits the screen (1x at 1080p, 2x at 4K,
 -- nudged by the engine font-size option); the fixed steps override it.
 local scaleKeys   = {"auto", 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0}
--- (no "%" in labels: ModOptions runs every label through getText, which chokes on it)
-local scaleLabels = {"Auto (fits the screen)", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"}
+-- (no "%" in labels: ModOptions runs every label through getText, which chokes on it; the steps are
+-- numbers, not words, so only Auto is a key)
+local scaleLabels = {"UI_ZeD_Settings_ScaleAuto", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"}
 
 -- Gamepad glyph display — controls which button-prompt glyph set is rendered.
 -- "Auto" follows InputModeDetector.getControllerType(); explicit choices
@@ -44,13 +49,13 @@ local scaleLabels = {"Auto (fits the screen)", "0.5x", "0.75x", "1x", "1.25x", "
 -- suppresses button prompts entirely. Phase 1 stores the setting but UI
 -- doesn't honor it yet — GlyphManager (Phase 4) consumes this.
 local glyphKeys   = {"auto", "xbox", "ps", "nintendo", "kbm", "off"}
-local glyphLabels = {"Auto", "Xbox", "PlayStation", "Nintendo", "Keyboard/Mouse", "Off"}
+local glyphLabels = {"UI_ZeD_Settings_Auto", "UI_optionscreen_ControllerButtonStyle1", "UI_optionscreen_ControllerButtonStyle2", "Nintendo", "UI_ZeD_Settings_KeyboardMouse", "UI_Off"}   -- (Nintendo: a name, as is)
 
 -- Input-mode lock — overrides InputModeDetector's auto detection.
 -- "Auto" lets the detector decide from live input; "KBM" and "Gamepad" lock
 -- the mode regardless of what's happening with sticks/keys.
 local inputLockKeys   = {"auto", "kbm", "gamepad"}
-local inputLockLabels = {"Auto", "Keyboard/Mouse", "Gamepad"}
+local inputLockLabels = {"UI_ZeD_Settings_Auto", "UI_ZeD_Settings_KeyboardMouse", "UI_ZeD_Settings_Gamepad"}
 
 local function keyToIndex(keys, key)
     for i, k in ipairs(keys) do
@@ -123,31 +128,31 @@ end
 local opts = PZAPI.ModOptions:create("ZeD_UI", "ZeD-GUI")
 
 -- ----- BASE THEME -----
-baseTheme = opts:addComboBox("baseTheme", "Base theme",
-    "Controls surface colors, text contrast, and border weight.")
+baseTheme = opts:addComboBox("baseTheme", ZeD.tr("UI_ZeD_Settings_BaseTheme"),
+    ZeD.tr("UI_ZeD_Settings_BaseThemeTip"))
 for i, label in ipairs(baseLabels) do
-    baseTheme:addItem(label, baseKeys[i] == "dark")  -- default: dark
+    baseTheme:addItem(ZeD.tr(label), baseKeys[i] == "dark")  -- default: dark
 end
 
 -- ----- ACCENT COLOR -----
-accentColor = opts:addComboBox("accentColor", "Accent color",
-    "Controls selection, hover, and active element colors.")
+accentColor = opts:addComboBox("accentColor", ZeD.tr("UI_ZeD_Settings_AccentColor"),
+    ZeD.tr("UI_ZeD_Settings_AccentColorTip"))
 for i, label in ipairs(accentLabels) do
-    accentColor:addItem(label, accentKeys[i] == "orange")  -- default: orange
+    accentColor:addItem(ZeD.tr(label), accentKeys[i] == "orange")  -- default: orange
 end
 
 -- ----- TEXT SIZE -----
-textSize = opts:addComboBox("textSize", "Text size",
-    "Controls font sizes and component dimensions.")
+textSize = opts:addComboBox("textSize", ZeD.tr("UI_ZeD_Settings_TextSize"),
+    ZeD.tr("UI_ZeD_Settings_TextSizeTip"))
 for i, label in ipairs(sizeLabels) do
-    textSize:addItem(label, sizeKeys[i] == "small")  -- default: small
+    textSize:addItem(ZeD.tr(label), sizeKeys[i] == "small")  -- default: small
 end
 
 -- ----- UI SCALE -----
-local uiScale = opts:addComboBox("uiScale", "UI scale",
-    "Auto sizes the whole ZeD UI to your screen: 1x at 1080p, 2x at 4K. Pick a fixed size to override it (1x is the 1080p size).")
+local uiScale = opts:addComboBox("uiScale", ZeD.tr("UI_ZeD_Settings_UiScale"),
+    ZeD.tr("UI_ZeD_Settings_UiScaleTip"))
 for i, label in ipairs(scaleLabels) do
-    uiScale:addItem(label, i == 1)  -- default: Auto
+    uiScale:addItem((i == 1) and ZeD.tr(label) or label, i == 1)  -- default: Auto (the other steps are numbers)
 end
 -- idx: the item just picked (vanilla hands the new index to onChange; the stored
 -- value is only updated at Apply). Without it, the stored value is used.
@@ -169,11 +174,11 @@ ZeD.Settings.uiScaleOption = uiScale   -- QA bridge drives it like the options s
 -- Where vanilla's moodles sit; they are drawn as vanilla draws them in all
 -- three (ZeD_Moodles.lua reads this option every frame, so a change applies
 -- at once). A display preference: lives in the mod options, not in the save.
-local moodleLabels = {"Right, under the watch", "Left edge", "Bottom, above the belt"}
-local moodlePlace = opts:addComboBox("moodlePlace", "Moodles",
-    "Where the moodles sit. Right: under the watch, where vanilla puts them. Left: down the left edge, below the windows. Bottom: a row above the belt (above the dashboard in a car).")
+local moodleLabels = {"UI_ZeD_Settings_MoodlesRight", "UI_ZeD_Settings_MoodlesLeft", "UI_ZeD_Settings_MoodlesBottom"}
+local moodlePlace = opts:addComboBox("moodlePlace", ZeD.tr("UI_ZeD_Settings_Moodles"),
+    ZeD.tr("UI_ZeD_Settings_MoodlesTip"))
 for i, label in ipairs(moodleLabels) do
-    moodlePlace:addItem(label, i == 1)  -- default: right, under the watch
+    moodlePlace:addItem(ZeD.tr(label), i == 1)  -- default: right, under the watch
 end
 ZeD.Settings.moodlePlaceOption = moodlePlace
 
@@ -181,80 +186,80 @@ ZeD.Settings.moodlePlaceOption = moodlePlace
 -- are the two we want") -----
 -- The Equip tab's two views; the toggle in its Equipped heading sets this
 -- too, so the choice is remembered across saves (EquipDoll.lua reads it).
-local equipView = opts:addComboBox("equipView", "Equipped items",
-    "How the Equip tab shows what you wear: a list, or your character with each slot beside the place it is worn.")
-equipView:addItem("List", true)  -- default: the list
-equipView:addItem("Doll", false)
+local equipView = opts:addComboBox("equipView", ZeD.tr("UI_ZeD_Settings_EquipView"),
+    ZeD.tr("UI_ZeD_Settings_EquipViewTip"))
+equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)  -- default: the list
+equipView:addItem(ZeD.tr("UI_ZeD_Settings_ViewDoll"), false)
 ZeD.Settings.equipViewOption = equipView
 
 -- ----- THE OTHER VIEW CHOICES (Oct 19 2026, director: "people can have all lists
 -- or all grids options for the most used menus") -----
 -- The inventory's view for every container that hasn't one of its own (each
 -- column's List | Grid toggle still sets one container; InventoryRenderer).
-local invView = opts:addComboBox("inventoryView", "Inventory",
-    "How containers show their items unless you set one with its List | Grid toggle: a list with columns, or a grid of icons.")
-invView:addItem("List", true)   -- default: the list
-invView:addItem("Grid", false)
+local invView = opts:addComboBox("inventoryView", ZeD.tr("UI_ZeD_Settings_Inventory"),
+    ZeD.tr("UI_ZeD_Settings_InventoryTip"))
+invView:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), true)   -- default: the list
+invView:addItem(ZeD.tr("UI_ZeD_Settings_ViewGrid"), false)
 ZeD.Settings.inventoryViewOption = invView
 -- The right-click menu: the strip of icons, or a list of words (ZeD_ContextList).
-local ctxStyle = opts:addComboBox("contextStyle", "Context menu",
-    "The right-click menu: a strip of icons with the target and what the action needs, or a list, one action to a row, as the game's own.")
-ctxStyle:addItem("Icon strip", true)   -- default: the strip
-ctxStyle:addItem("List", false)
+local ctxStyle = opts:addComboBox("contextStyle", ZeD.tr("UI_ZeD_Settings_ContextMenu"),
+    ZeD.tr("UI_ZeD_Settings_ContextMenuTip"))
+ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ContextStrip"), true)   -- default: the strip
+ctxStyle:addItem(ZeD.tr("UI_ZeD_Settings_ViewList"), false)
 ZeD.Settings.contextStyleOption = ctxStyle
 -- The watch you wear: a small one on the belt, outside the hand of its wrist
 -- (WatchMini.lua; its face pops the full watch up), or the full watch in the
 -- top right corner as before. No watch worn: the tape deck keys stay in the corner.
-local watchPlace = opts:addComboBox("watchPlace", "Watch",
-    "Where the watch you wear shows: small on the belt beside the hand of its wrist (press its face for the full watch, which you can drag anywhere), or the full watch in the top right corner.")
-watchPlace:addItem("On the belt", true)   -- default (director, Oct 19 2026)
-watchPlace:addItem("Corner", false)
+local watchPlace = opts:addComboBox("watchPlace", ZeD.tr("UI_ZeD_Settings_Watch"),
+    ZeD.tr("UI_ZeD_Settings_WatchTip"))
+watchPlace:addItem(ZeD.tr("UI_ZeD_Settings_WatchBelt"), true)   -- default (director, Oct 19 2026)
+watchPlace:addItem(ZeD.tr("UI_ZeD_Settings_WatchCorner"), false)
 ZeD.Settings.watchPlaceOption = watchPlace
 
 -- ----- ACTION BAR (Oct 19 2026, mockup ZeDUI/mockups/zed_action_bar_v2.html; director: "ship it") -----
 -- The bar over the character's head while an action runs (ZeD_ActionBar.lua reads this
 -- every frame, so a change applies at once). Verbose is the default.
-local actionBar = opts:addComboBox("actionBar", "Action bar",
-    "The bar over your character's head while it works. Verbose: what it is doing, with what, how far, and what comes next. Simple: ten segments, no words.")
-actionBar:addItem("Verbose", true)   -- default
-actionBar:addItem("Simple", false)
+local actionBar = opts:addComboBox("actionBar", ZeD.tr("UI_ZeD_Settings_ActionBar"),
+    ZeD.tr("UI_ZeD_Settings_ActionBarTip"))
+actionBar:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarVerbose"), true)   -- default
+actionBar:addItem(ZeD.tr("UI_ZeD_Settings_ActionBarSimple"), false)
 ZeD.Settings.actionBarOption = actionBar
 
 -- ----- CHARACTER WINDOW ACCENT -----
 -- Default: the same as the Accent color above (the last item, so saved indices keep their meaning).
-local charAccent = opts:addComboBox("charAccent", "Character window accent",
-    "An accent of its own for the Character window, or the same as Accent color. Cycled via footer button.")
+local charAccent = opts:addComboBox("charAccent", ZeD.tr("UI_ZeD_Settings_CharAccent"),
+    ZeD.tr("UI_ZeD_Settings_CharAccentTip"))
 for i, label in ipairs(accentLabels) do
-    charAccent:addItem(label, false)
+    charAccent:addItem(ZeD.tr(label), false)
 end
-charAccent:addItem("Same as Accent color", true)
+charAccent:addItem(ZeD.tr("UI_ZeD_Settings_SameAsAccent"), true)
 
 -- ----- WORLD WINDOW ACCENT -----
-local worldAccent = opts:addComboBox("worldAccent", "World window accent",
-    "An accent of its own for the World window, or the same as Accent color. Cycled via footer button.")
+local worldAccent = opts:addComboBox("worldAccent", ZeD.tr("UI_ZeD_Settings_WorldAccent"),
+    ZeD.tr("UI_ZeD_Settings_WorldAccentTip"))
 for i, label in ipairs(accentLabels) do
-    worldAccent:addItem(label, false)
+    worldAccent:addItem(ZeD.tr(label), false)
 end
-worldAccent:addItem("Same as Accent color", true)
+worldAccent:addItem(ZeD.tr("UI_ZeD_Settings_SameAsAccent"), true)
 
 -- ----- GLYPH DISPLAY (S91 Gamepad Phase 1) -----
 -- Sets which button-prompt artwork is used in footer prompt strips.
 -- Auto follows the connected controller; explicit choices override.
 -- Phase 1 stores the preference; GlyphManager (Phase 4) renders from it.
-glyphDisplay = opts:addComboBox("glyphDisplay", "Gamepad glyph display",
-    "Which button icons to show in gamepad prompts. Auto follows the connected controller.")
+glyphDisplay = opts:addComboBox("glyphDisplay", ZeD.tr("UI_ZeD_Settings_Glyphs"),
+    ZeD.tr("UI_ZeD_Settings_GlyphsTip"))
 for i, label in ipairs(glyphLabels) do
-    glyphDisplay:addItem(label, glyphKeys[i] == "auto")  -- default: auto
+    glyphDisplay:addItem(ZeD.tr(label), glyphKeys[i] == "auto")  -- default: auto
 end
 
 -- ----- INPUT MODE LOCK (S91 Gamepad Phase 1) -----
 -- Overrides InputModeDetector's auto-detection. Useful when the detector
 -- is misbehaving on a weird controller or when the player wants to pin
 -- the UI to one mode. Wired directly to ZeD.Input.Detector.setLockedMode.
-inputModeLock = opts:addComboBox("inputModeLock", "Input mode lock",
-    "Force a specific input mode. Auto lets the mod detect your active device.")
+inputModeLock = opts:addComboBox("inputModeLock", ZeD.tr("UI_ZeD_Settings_InputLock"),
+    ZeD.tr("UI_ZeD_Settings_InputLockTip"))
 for i, label in ipairs(inputLockLabels) do
-    inputModeLock:addItem(label, inputLockKeys[i] == "auto")  -- default: auto
+    inputModeLock:addItem(ZeD.tr(label), inputLockKeys[i] == "auto")  -- default: auto
 end
 
 -- ----- SAFE MODE (Oct 19 2026, director: if ZeD ever fails to open, a bad day
@@ -262,11 +267,45 @@ end
 -- On hands the game back to its own interface (SafeMode.lua reads this at most
 -- every half second, so a change applies at once); ZeD also steps aside by itself
 -- for a session when it hits an error that keeps repeating.
-local safeMode = opts:addComboBox("safeMode", "Safe mode",
-    "On: ZeD UI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD UI ever fails to open. ZeD UI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.")
-safeMode:addItem("Off", true)   -- default
-safeMode:addItem("On: the game's own interface", false)
+local safeMode = opts:addComboBox("safeMode", ZeD.tr("UI_ZeD_Settings_SafeMode"),
+    ZeD.tr("UI_ZeD_Settings_SafeModeTip"))
+safeMode:addItem(getText("UI_Off"), true)   -- default
+safeMode:addItem(ZeD.tr("UI_ZeD_Settings_SafeModeOn"), false)
 ZeD.Settings.safeModeOption = safeMode
+
+-- ----- TEST LANGUAGE (translation groundwork, Oct 20 2026) -----
+-- For checking layouts: ZeD.tr (shared/ZeD/Tr.lua) returns every ZeD phrase about 40%
+-- longer, accented and in brackets, so clipped or overlapping text shows without a real
+-- translation. Tr.lua reads this at most every half second. Last in the list: a combo is
+-- saved as its item's position, so new options only ever go at the end.
+local testLanguage = opts:addComboBox("testLanguage", ZeD.tr("UI_ZeD_Settings_TestLanguage"),
+    "UI_ZeD_Settings_TestLanguageTip")   -- the key: the options screen reads it through getText (its text has a % sign, which a second getText of the translated words would choke on)
+testLanguage:addItem(getText("UI_Off"), true)   -- default
+testLanguage:addItem(getText("UI_On"), false)
+ZeD.Settings.testLanguageOption = testLanguage
+
+-- ----- THE KEYS OF THE OPTION NAMES -----
+-- ModOptions keeps each name as the text the option was made with, which is read once, here at
+-- file load, so the test language could never stretch it. Each option also keeps the key of its
+-- name (zedNameKey), and ZeD's own Options window (ZeD_MainMenuOptionGroups / ZeD_MainMenuOptions)
+-- draws that row's name through ZeD.tr every frame instead. (The items inside a combo are
+-- still read once.)
+do
+    local nameKeys = {
+        baseTheme = "UI_ZeD_Settings_BaseTheme", accentColor = "UI_ZeD_Settings_AccentColor",
+        textSize = "UI_ZeD_Settings_TextSize", uiScale = "UI_ZeD_Settings_UiScale",
+        moodlePlace = "UI_ZeD_Settings_Moodles", equipView = "UI_ZeD_Settings_EquipView",
+        inventoryView = "UI_ZeD_Settings_Inventory", contextStyle = "UI_ZeD_Settings_ContextMenu",
+        watchPlace = "UI_ZeD_Settings_Watch", actionBar = "UI_ZeD_Settings_ActionBar",
+        charAccent = "UI_ZeD_Settings_CharAccent", worldAccent = "UI_ZeD_Settings_WorldAccent",
+        glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",
+        safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
+    }
+    for id, key in pairs(nameKeys) do
+        local o = opts.dict and opts.dict[id]
+        if o then o.zedNameKey = key end
+    end
+end
 
 -- ----- APPLY FUNCTION -----
 -- The index the player has picked in a combo. While the options screen is open

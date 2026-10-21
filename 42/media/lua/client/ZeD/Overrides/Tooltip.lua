@@ -45,14 +45,38 @@ local function applyTooltipOverrides()
     -- fonts (F2 title / description, F1 footnote) and T.px for every offset, so
     -- the frame fits the zoomed text at any root scale.
     -- ========================================================================
+    -- The game's Tooltip Font option (Small / Medium / Large) sizes the tooltip text: ZeD's body
+    -- role at its own size, one step up (x1.15) or two (x1.3). The description is a rich-text
+    -- panel drawn in GetFont's font and the title shares it, so layout and drawing run with the
+    -- body role's px raised for the option and put back after. While the game's fonts stand in
+    -- for ZeD's (Chinese, Japanese, Korean, Thai, Dyslexic font: ZeD.Text.fallback) the
+    -- description takes the game's own pick, as vanilla does.
+    local TIP_MUL = { Small = 1.0, Medium = 1.15, Large = 1.3 }
+    local function tipMul()
+        local ok, v = pcall(function() return getCore():getOptionTooltipFont() end)
+        return (ok and TIP_MUL[v]) or 1.0
+    end
+    local function withTipSize(fn, self)
+        local T = ZeD.T
+        local f = T and T.fontF2
+        local base = f and T.fontPx and T.fontPx[f]
+        local m = tipMul()
+        if not base or m == 1.0 then return fn(self) end
+        T.fontPx[f] = base * m
+        local ok, err = pcall(fn, self)
+        T.fontPx[f] = base
+        if not ok then error(err) end
+    end
+
     function ISToolTip.GetFont()
         if Safe.on() then return _vanilla_getFont() end
+        if ZeD.Text and ZeD.Text.fallback then return _vanilla_getFont() end
         local T = ZeD.T
         if T and T.fontF2 then return T.fontF2 end
         return _vanilla_getFont()
     end
 
-    function ISToolTip:doLayout()
+    local function zedDoLayout(self)
         if Safe.on() then return _vanilla_doLayout(self) end
         local T = ZeD.T
         if not T or not T.px then return _vanilla_doLayout(self) end
@@ -87,6 +111,10 @@ local function applyTooltipOverrides()
         end
         self:setWidth(myWidth + T.px(20))
         self:setHeight(myHeight)
+    end
+    function ISToolTip:doLayout()
+        if Safe.on() then return _vanilla_doLayout(self) end
+        return withTipSize(zedDoLayout, self)
     end
 
     function ISToolTip:renderContents()
@@ -134,7 +162,7 @@ local function applyTooltipOverrides()
     -- ========================================================================
     -- ISToolTip:render()
     -- ========================================================================
-    function ISToolTip:render()
+    local function zedRender(self)
         local T = ZeD.T
         if not T or not T.base or Safe.on() then
             return _vanilla_render(self)
@@ -201,6 +229,10 @@ local function applyTooltipOverrides()
             self:drawTextCentre(self.footNote, self:getWidth() / 2,
                 self:getHeight() - fontHgt - T.px(4), fc.r, fc.g, fc.b, fc.a, T.fontF1)
         end
+    end
+    function ISToolTip:render()
+        if Safe.on() then return _vanilla_render(self) end
+        return withTipSize(zedRender, self)
     end
 
     -- ========================================================================

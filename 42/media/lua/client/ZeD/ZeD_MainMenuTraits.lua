@@ -157,8 +157,8 @@ function ZeD_MMTraits:buildItems()
         t[#t + 1] = { text = text, fn = function() self:loadBuild(i) end }
     end
     if #t > 0 then t[#t + 1] = "-" end
-    t[#t + 1] = { text = "Save build...", fn = function() self:setConfirm("save") end }
-    if cur then t[#t + 1] = { text = "Delete " .. tostring(cur) .. "...", fn = function() self:setConfirm("delete") end } end
+    t[#t + 1] = { text = ZeD.tr("UI_ZeD_Traits_SaveBuild"), fn = function() self:setConfirm("save") end }
+    if cur then t[#t + 1] = { text = ZeD.tr("UI_ZeD_Traits_DeleteBuild", tostring(cur)), fn = function() self:setConfirm("delete") end } end
     return t
 end
 
@@ -249,20 +249,20 @@ function ZeD_MMTraits:columns()
             cols[2][#cols[2] + 1] = { h = T.px(TRAIT_H), kind = "trait", trait = tr, fn = function() self:takeTrait(tr) end, help = tr:getDescription(), focusable = true }
         end
     end
-    traitRows(p.listboxTrait.items, "Positive")
-    traitRows(p.listboxBadTrait.items, "Negative")
+    traitRows(p.listboxTrait.items, ZeD.tr("UI_ZeD_Traits_HeadPositive"))
+    traitRows(p.listboxBadTrait.items, ZeD.tr("UI_ZeD_Traits_HeadNegative"))
     -- chosen, then the starting skills
     local chosen = p.listboxTraitSelected.items
-    cols[3][#cols[3] + 1] = { head = "Chosen", count = #chosen }
+    cols[3][#cols[3] + 1] = { head = ZeD.tr("UI_ZeD_Traits_HeadChosen"), count = #chosen }
     for i, it in ipairs(chosen) do
         local tr = it.item
         local free = tr:isFree()
         cols[3][#cols[3] + 1] = { h = T.px(TRAIT_H), kind = "chosen", trait = tr, free = free,
             fn = (not free) and function() self:giveBack(i) end or nil,
-            help = free and (tostring(tr:getDescription() or "") .. "\nFrom the occupation.") or tr:getDescription(), focusable = not free }
+            help = free and (tostring(tr:getDescription() or "") .. "\n" .. ZeD.tr("UI_ZeD_Traits_FromOccupation")) or tr:getDescription(), focusable = not free }
     end
     if #chosen == 0 then cols[3][#cols[3] + 1] = { h = T.px(TRAIT_H), kind = "empty" } end
-    cols[3][#cols[3] + 1] = { head = "Starting Skills" }
+    cols[3][#cols[3] + 1] = { head = ZeD.tr("UI_ZeD_Traits_HeadSkills") }
     for _, it in ipairs(p.listboxXpBoost.items) do
         cols[3][#cols[3] + 1] = { h = T.px(SKILL_H), kind = "skill", name = it.text, perk = it.item.perk, level = it.item.level }
     end
@@ -275,11 +275,11 @@ function ZeD_MMTraits:prerender()
     local w, h = UI.placeOnTube(self)
     local p = prof()
     local pts = p and p:PointToSpend() or 0
-    self.title = "Project Zomboid  +  Occupation and traits"
-    self.titleStats = { { text = pts .. (math.abs(pts) == 1 and " point" or " points"), color = (pts >= 0) and T.positive or T.danger } }
+    self.title = ZeD.tr("UI_ZeD_Traits_Title")
+    self.titleStats = { { text = ZeD.tr(math.abs(pts) == 1 and "UI_ZeD_Traits_PointsOne" or "UI_ZeD_Traits_PointsMany", pts), color = (pts >= 0) and T.positive or T.danger } }
     if p and getSandboxOptions():getOptionByName("NegativeTraitsPenalty"):getValue() ~= 1 then
         local off = p:negativeTraitOffset()
-        if off > 0 then table.insert(self.titleStats, 1, { text = "Negative trait penalty " .. off, color = { r = 0, g = 0, b = 0, a = 0 } }) end
+        if off > 0 then table.insert(self.titleStats, 1, { text = ZeD.tr("UI_ZeD_Traits_Penalty", off), color = { r = 0, g = 0, b = 0, a = 0 } }) end
     end
     ZeD_Window.prerender(self)
 
@@ -343,7 +343,7 @@ function ZeD_MMTraits:drawColumn(c, x, y, w, h, rows)
         local visible = ry + rh > vy and ry < vy + vh
         if r.head then
             if visible then
-                ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), string.upper(r.text or r.head), r.count, true, false, T.fontF1, false, T.px(8), rh, true)
+                ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), r.text or r.head, r.count, true, false, T.fontF1, false, T.px(8), rh, true)
             end
         else
             local focusable = r.focusable
@@ -406,7 +406,7 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h)
         local isz = T.px(TRAIT_ICON)
         if tex then self:drawTextureScaledAspect(tex, x + T.px(8), midY - math.floor(isz / 2), isz, isz, 1, 1, 1, 1) end
         -- the cost: points it takes (-) or gives (+); a status dot says which kind of trait
-        local right = r.free and "Free" or tostring(tr:getRightLabel() or signed(-tr:getCost()))
+        local right = r.free and getText("IGUI_GameStats_Free") or tostring(tr:getRightLabel() or signed(-tr:getCost()))
         local rw = MM.textW(f2, right)
         local rx = x + w - T.px(10) - rw
         self:drawText(right, rx, midY - math.floor(MM.fontH(f2) / 2), d.r, d.g, d.b, d.a or 1, f2)
@@ -417,7 +417,7 @@ function ZeD_MMTraits:drawRow(r, x, y, w, h)
         local nx = x + T.px(8) + isz + T.px(8)
         self:drawText(ZeD.Atoms.truncateText(tostring(tr:getLabel()), f2, rx - T.px(20) - dsz - nx), nx, midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     elseif r.kind == "empty" then
-        self:drawText("None yet", x + T.px(10), midY - math.floor(MM.fontH(f2) / 2), d.r, d.g, d.b, d.a or 1, f2)
+        self:drawText(ZeD.tr("UI_ZeD_Traits_NoneYet"), x + T.px(10), midY - math.floor(MM.fontH(f2) / 2), d.r, d.g, d.b, d.a or 1, f2)
     elseif r.kind == "skill" then
         local name = tostring(r.name)
         local lvl = math.max(0, math.min(10, r.level or 0))
@@ -467,12 +467,12 @@ function ZeD_MMTraits:buildStrip(stripY, stripH, w, pts)
     local row = 1000
     local ask = nil
     if self.confirm == "save" then
-        ask = "Build name:"
+        ask = ZeD.tr("UI_ZeD_Traits_AskName")
         local p = prof()
         local valid = p and p:saveBuildValidate(self.field:getText() or "") or false
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "SAVE", function() self:saveBuild() end, "primary", not valid } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_save"), function() self:saveBuild() end, "primary", not valid } })
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
         local firstBtn = w
@@ -481,17 +481,17 @@ function ZeD_MMTraits:buildStrip(stripY, stripH, w, pts)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     elseif self.confirm == "delete" then
         local p = prof()
-        ask = "Delete the build " .. tostring(p and p.savedBuilds.options[p.savedBuilds.selected] or "") .. "?"
+        ask = ZeD.tr("UI_ZeD_Traits_AskDelete", tostring(p and p.savedBuilds.options[p.savedBuilds.selected] or ""))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", "CANCEL", function() self:setConfirm(false) end },
-            { "confirm:yes", "DELETE", function() self:deleteBuild() end, "danger" } })
+            { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deleteBuild() end, "danger" } })
     else
         UI.stripSpecs(self, stripY, w, row,
-            { { "back", "BACK", function() self:back() end } },
-            { { "builds", "BUILDS...", function() self:openBuilds() end },
-              { "random", "RANDOM", function() self:random() end },
-              { "clear", "CLEAR TRAITS", function() self:clearTraits() end },
-              { "next", "NEXT", function() self:next() end, "primary", pts < 0 } })
+            { { "back", getText("UI_btn_back"), function() self:back() end } },
+            { { "builds", ZeD.tr("UI_ZeD_Traits_Builds"), function() self:openBuilds() end },
+              { "random", getText("UI_characreation_random"), function() self:random() end },
+              { "clear", ZeD.tr("UI_ZeD_Traits_ClearTraits"), function() self:clearTraits() end },
+              { "next", getText("UI_btn_next"), function() self:next() end, "primary", pts < 0 } })
     end
     self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
@@ -558,17 +558,17 @@ function ZeD_MMTraits:joyY() if not self.confirm then self:openBuilds() end end
 
 function ZeD_MMTraits:getFooterPrompts()
     if not MM.gamepad() then return nil end
-    if self.confirm then return { { glyph = "A", label = "Select" }, { glyph = "B", label = "Cancel" } } end
+    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
     local t = {}
     if not self:inStrip() then
-        local label = (self.jcol == 1) and "Choose" or ((self.jcol == 2) and "Take" or "Give back")
+        local label = (self.jcol == 1) and ZeD.tr("UI_ZeD_Traits_PromptChoose") or ((self.jcol == 2) and getText("ContextMenu_Take") or ZeD.tr("UI_ZeD_Traits_PromptGiveBack"))
         t[#t + 1] = { glyph = "A", label = label }
     else
-        t[#t + 1] = { glyph = "A", label = "Select" }
+        t[#t + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }
     end
-    t[#t + 1] = { glyph = "X", label = "Random" }
-    t[#t + 1] = { glyph = "Y", label = "Builds" }
-    t[#t + 1] = { glyph = "B", label = "Back" }
+    t[#t + 1] = { glyph = "X", label = getText("UI_mapspawn_random") }
+    t[#t + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Traits_PromptBuilds") }
+    t[#t + 1] = { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) }
     return t
 end
 

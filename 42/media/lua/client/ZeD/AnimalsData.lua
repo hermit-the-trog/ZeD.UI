@@ -8,6 +8,7 @@
 -- NOT on getData(). Thirst has a direct shortcut animal:getThirst().
 -- ============================================================================
 
+require "ZeD/Tr"
 require "ZeD/AnimalsDisorderCatalog"
 
 ZeD = ZeD or {}
@@ -161,7 +162,7 @@ function AD.getAnimalType(animal)
 end
 
 function AD.getDisplayName(animal)
-    if not animal then return "Unknown" end
+    if not animal then return getText("IGUI_ItemCat_Unknown") end
     -- Custom name first
     local custom = animal.getCustomName and animal:getCustomName()
     if custom and custom ~= "" then return custom end
@@ -450,8 +451,8 @@ function AD.getVisibleDisorders(animal, player)
                 table.insert(result, {
                     key   = key,
                     sev   = entry.sev,
-                    label = entry.label,
-                    desc  = entry.desc,
+                    label = ZeD.tr(entry.label),   -- the catalog holds text keys
+                    desc  = ZeD.tr(entry.desc),
                 })
             end
         end
@@ -466,25 +467,25 @@ end
 function AD.getConditionTags(animal, player)
     local tags = {}
     if AD.isUdderUrgent(animal) then
-        table.insert(tags, { id = "udder_urgent", label = "Udder URGENT", sev = "danger" })
+        table.insert(tags, { id = "udder_urgent", label = ZeD.tr("UI_ZeD_Animals_TagUdderUrgent"), sev = "danger" })
     end
     if AD.canBeMilked(animal) then
-        table.insert(tags, { id = "milkable", label = "Milkable", sev = "good" })
+        table.insert(tags, { id = "milkable", label = ZeD.tr("UI_ZeD_Animals_TagMilkable"), sev = "good" })
     end
     if AD.canBeSheared(animal) then
-        table.insert(tags, { id = "shearable", label = "Wool ready", sev = "good" })
+        table.insert(tags, { id = "shearable", label = ZeD.tr("UI_ZeD_Animals_TagWoolReady"), sev = "good" })
     end
     if AD.isLaying(animal) then
-        table.insert(tags, { id = "laying", label = "Laying", sev = "good" })
+        table.insert(tags, { id = "laying", label = ZeD.tr("UI_ZeD_Animals_TagLaying"), sev = "good" })
     end
     if AD.isPregnant(animal) then
-        table.insert(tags, { id = "pregnant", label = "Pregnant", sev = "info" })
+        table.insert(tags, { id = "pregnant", label = getText("IGUI_Animal_Pregnant"), sev = "info" })
     end
     if AD.needsMother(animal) then
-        table.insert(tags, { id = "orphan", label = "Orphan", sev = "danger" })
+        table.insert(tags, { id = "orphan", label = ZeD.tr("UI_ZeD_Animals_AlertOrphan"), sev = "danger" })
     end
     if AD.isInHutch(animal) then
-        table.insert(tags, { id = "hutch", label = "In hutch", sev = "neutral" })
+        table.insert(tags, { id = "hutch", label = getText("IGUI_DesignationZone_InHutch"), sev = "neutral" })
     end
     return tags
 end
