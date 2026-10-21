@@ -1064,7 +1064,7 @@ function ZeD_MMBar:prerender()
         if open then self:drawRect(x, 0, iw, h - T.px(1), 1, T.accent.r, T.accent.g, T.accent.b) end
         local tx = x + T.px(BAR_ITEM_PAD)
         if m.logo then
-            local c = open and T.textOnAccent or T.accent
+            local c = open and T.textOnAccent or T.accentText
             drawMark(self, tx, math.floor((h - markSz) / 2), markSz, c)
             self:drawText("ZeD", tx + markSz + T.px(6), math.floor((h - fontH(logoFont)) / 2), c.r, c.g, c.b, c.a or 1, logoFont)
         else

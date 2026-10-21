@@ -413,19 +413,20 @@ function ZeD.Atoms.drawBadge(panel, text, x, y, variant, disabled, font, noUpper
     local totalH = ZeD.TM:MeasureStringY(bdFont, text) + padY * 2
 
     -- Pick colors based on variant
-    local fgColor
+    -- (the fill and border keep the plain colour; the words use its text variant)
+    local fgColor, txColor
     if variant == "danger" then
-        fgColor = T.danger
+        fgColor, txColor = T.danger, T.dangerText
     elseif variant == "warning" then
-        fgColor = T.warning
+        fgColor, txColor = T.warning, T.warningText
     elseif variant == "positive" then
-        fgColor = T.positive
+        fgColor, txColor = T.positive, T.positiveText
     elseif variant == "info" then
-        fgColor = T.info
+        fgColor, txColor = T.info, T.infoText
     elseif variant == "accent" then
-        fgColor = T.accent
+        fgColor, txColor = T.accent, T.accentText
     else  -- neutral
-        fgColor = T.borderS
+        fgColor, txColor = T.borderS, T.textDim
     end
 
     -- Background (tinted fill using badgeBgA token)
@@ -438,7 +439,7 @@ function ZeD.Atoms.drawBadge(panel, text, x, y, variant, disabled, font, noUpper
 
     -- Text
     panel:drawText(text, x + padX, y + padY,
-        fgColor.r, fgColor.g, fgColor.b, fgColor.a * alpha, bdFont)
+        txColor.r, txColor.g, txColor.b, txColor.a * alpha, bdFont)
 
     return totalW
 end
@@ -574,6 +575,63 @@ end
 -- Register the tooltip class so it's available globally
 ZeD.Atoms.Tooltip = ZeD_Tooltip
 
+-- ----------------------------------------------------------------------------
+-- Hover hint layer: the icon-only hint (surf2, the strong border, F2, shown
+-- after HINT_MS of rest) for controls that sit at a window's edge, where their
+-- own panel is too narrow or sits under later siblings. The window keeps a
+-- click-through layer as its LAST child; each frame the control's draw code
+-- stamps win[field] = { key, text, x, y, w, h, side = "r"|"l" } (window space,
+-- the control's rect) while the pointer rests on it, and the layer draws the
+-- box beside the control. Nothing stamped = no hint (the stamp is consumed).
+-- ----------------------------------------------------------------------------
+ZeD.Atoms.HINT_MS = 450
+
+function ZeD.Atoms.newHintLayer(win, field)
+    local layer = ISPanel:new(0, 0, 10, 10)
+    layer:initialise()
+    layer:instantiate()
+    layer.background = false
+    layer.javaObject:setConsumeMouseEvents(false)
+    layer.prerender = function(self) end
+    layer.onMouseDown = function() return false end
+    layer.onMouseUp = function() return false end
+    layer.onMouseWheel = function() return false end
+    layer.render = function(self)
+        local c = win[field]
+        win[field] = nil
+        local kf, sf = field .. "Key", field .. "Since"
+        if not c then win[kf] = nil; return end
+        local now = getTimestampMs()
+        if win[kf] ~= c.key then win[kf], win[sf] = c.key, now; return end
+        if now - (win[sf] or now) < ZeD.Atoms.HINT_MS then return end
+        local T = ZeD.T
+        local f2 = T.fontF2
+        local padX, padY = T.px(10), T.px(4)
+        local w = ZeD.TM:MeasureStringX(f2, c.text) + padX * 2
+        local h = ZeD.TM:getFontHeight(f2) + padY * 2
+        local ww, wh = win:getWidth(), win:getHeight()
+        local x = (c.side == "l") and (c.x - w - T.px(4)) or (c.x + c.w + T.px(4))
+        x = math.max(T.px(2), math.min(x, ww - w - T.px(2)))
+        local y = c.y + math.floor((c.h - h) / 2)
+        y = math.max(T.px(2), math.min(y, wh - h - T.px(2)))
+        local s2, bs, tc = T.surf2, T.borderS, T.text
+        self:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
+        self:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
+        self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+        self:drawText(c.text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
+    end
+    return layer
+end
+
+-- Keeps the layer the size of its window (call from the window's per-frame code,
+-- or the strip draw that stamps the hint).
+function ZeD.Atoms.syncHintLayer(win, layer)
+    if layer and (layer:getWidth() ~= win:getWidth() or layer:getHeight() ~= win:getHeight()) then
+        layer:setWidth(win:getWidth())
+        layer:setHeight(win:getHeight())
+    end
+end
+
 -- ============================================================================
 -- 08-10. SCROLLBAR (draw helpers for track, thumb, arrow)
 -- These are draw helpers that a scrollbar molecule will compose.
@@ -681,13 +739,14 @@ function ZeD.Atoms.drawFocusRing(panel, x, y, w, h)
 
     if T.borderW >= 2 then
         -- High Contrast: solid 2px border
-        panel:drawRectBorder(fx, fy, fw, fh, T.accent.a, T.accent.r, T.accent.g, T.accent.b)
-        do local i = (panel.zedScaled and T.px(1)) or 1; panel:drawRectBorder(fx + i, fy + i, fw - 2 * i, fh - 2 * i, T.accent.a, T.accent.r, T.accent.g, T.accent.b) end  -- HC: inset by the border's own thickness
+        local rc = T.accentText   -- the ring is a mark: the accent moved only as far as it needs to read
+        panel:drawRectBorder(fx, fy, fw, fh, rc.a, rc.r, rc.g, rc.b)
+        do local i = (panel.zedScaled and T.px(1)) or 1; panel:drawRectBorder(fx + i, fy + i, fw - 2 * i, fh - 2 * i, rc.a, rc.r, rc.g, rc.b) end  -- HC: inset by the border's own thickness
     else
         -- Standard: dashed border using small rect segments
         local dashLen = T.px(4)
         local gapLen = T.px(3)
-        local ac = T.accent
+        local ac = T.accentText
 
         -- Top edge
         local cx = fx
@@ -882,7 +941,10 @@ function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, co
     local bgC, fgC, brC
     if on then
         bgC = onBg
-        fgC = T.textOnAccent
+        -- ink or paper, whichever reads on this fill (the status fills are not the accent)
+        if     onBg == T.warning then fgC = T.textOnWarning
+        elseif onBg == T.danger  then fgC = T.textOnDanger
+        else                          fgC = T.textOnAccent end
         brC = ZeD.colorBlend(onBg, T.base, 0.55)  -- hue-matched darker border
     else
         bgC = T.surf2

@@ -730,7 +730,7 @@ local function drawExerciseInfo(panel, x, y, w, lay, info)
             end
         elseif it.kind == "warn" then
             -- status dot + default text (warning colour lives on the dot only)
-            A.drawStatusDot(panel, x, iy + math.floor((it.fh - it.dotSz) / 2), T.warning, it.dotSz)
+            A.drawStatusDot(panel, x, iy + math.floor((it.fh - it.dotSz) / 2), T.warningText, it.dotSz)
             for i, line in ipairs(it.lines) do
                 A.drawBody(panel, line, x + it.dotSz + it.dotGap, iy + (i - 1) * (it.fh + it.lg))
             end

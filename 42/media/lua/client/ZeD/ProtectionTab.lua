@@ -112,7 +112,7 @@ local PART_ABBREV = {
 local function tierColor(biteDef)
     local T = ZeD.T
     if biteDef < 5  then return T.danger   end
-    if biteDef < 20 then return T.warning  end
+    if biteDef < 20 then return T.warningText end
     if biteDef < 50 then return T.info     end
     return T.positive
 end

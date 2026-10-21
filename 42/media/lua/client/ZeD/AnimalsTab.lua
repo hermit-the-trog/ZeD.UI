@@ -1188,7 +1188,8 @@ local function drawAlertRow(panel, x, y, w, alert)
     local animal = alert.animal
 
     -- Row background (subtle hover surface)
-    panel:drawRect(x, y, w, T.px(ALERT_ROW_H), 0.04, 1, 1, 1)
+    local rowC = T.stripe
+    panel:drawRect(x, y, w, T.px(ALERT_ROW_H), rowC.a, rowC.r, rowC.g, rowC.b)
 
     -- Portrait icon
     local portraitPath = ad.resolvePortrait(animal)

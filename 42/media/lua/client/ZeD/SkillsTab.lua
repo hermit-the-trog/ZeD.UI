@@ -935,7 +935,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         local tSepTop = trainingStartY + tmHeaderH
         local tSepBot = trainingStartY + trainingH
         if tSepBot > tSepTop then
-            panel:drawRect(tmSepX, tSepTop, T.px(1), tSepBot - tSepTop, 0.04, 1.0, 1.0, 1.0)
+            local sepC = T.stripe
+            panel:drawRect(tmSepX, tSepTop, T.px(1), tSepBot - tSepTop, sepC.a, sepC.r, sepC.g, sepC.b)
         end
     end
 

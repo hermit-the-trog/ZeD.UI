@@ -1659,10 +1659,10 @@ local function drawWorldTabStrip(self, win)
                 self:drawRect(T.px(1),     curY, w - T.px(1), T.px(ACTION_TAB_BTN_SZ), 0.55, ac.r, ac.g, ac.b)
             end
 
-            -- Icon tint: active uses textOnAccent (contrasts with accent
-            -- fill background); inactive keeps the accent-tinted ghost.
-            local ic = isActive and T.textOnAccent or T.toneLo
-            local iconAlpha = isActive and 1.0 or 0.7
+            -- Icon tint: a tab on the 0.55 accent wash (active, hover, pad focus) takes textOnFocus;
+            -- inactive keeps the accent-tinted ghost (toneLo) at full alpha (already the faintest that reads).
+            local ic = (isActive or isHover or isGpFocused) and T.textOnFocus or T.toneLo
+            local iconAlpha = 1.0
             local iconSz = T.px(16)  -- icon size: 16 design units (16px source textures at 1080p)
             if tab.icon then
                 local ix = math.floor((w - iconSz) / 2)
@@ -1690,6 +1690,12 @@ local function drawWorldTabStrip(self, win)
             -- Hit zone
             if curY + T.px(ACTION_TAB_BTN_SZ) > 0 and curY < tabAreaH then
                 self:addHitZone("tab:" .. tab.id, 0, curY, w, T.px(ACTION_TAB_BTN_SZ))
+                -- hover hint: the tab's name beside the icon after the pause (mouse only)
+                if isHover and my < tabAreaH and (not self.isMouseOver or self:isMouseOver()) then
+                    win._tabHintCand = { key = "tab:" .. tab.id, text = ZeD_WorldWindow.tabLabel(tab),
+                                         x = self:getX(), y = self:getY() + curY, w = w, h = T.px(ACTION_TAB_BTN_SZ), side = "l" }
+                    ZeD.Atoms.syncHintLayer(win, win._tabHintLayer)
+                end
             end
 
             curY = curY + T.px(ACTION_TAB_BTN_SZ)
@@ -3784,6 +3790,12 @@ function ZeD_WorldWindow.toggle(playerNum)
     actionTabStrip:initialise()
     win:addChild(actionTabStrip)
     win._actionTabStrip = actionTabStrip
+
+    -- The tab hover hint: a click-through layer above everything (ZeD.Atoms.newHintLayer)
+    win._tabHintLayer = ZeD.Atoms.newHintLayer(win, "_tabHintCand")
+    win._tabHintLayer:setWidth(win:getWidth())
+    win._tabHintLayer:setHeight(win:getHeight())
+    win:addChild(win._tabHintLayer)
 
     actionTabStrip._onPrerender = function(self)
         drawWorldTabStrip(self, win)

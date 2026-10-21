@@ -367,7 +367,7 @@ function ZeD_Keyboard:prerender()
             local on = (k.id == "caps" and self.capsLock) or (k.id == "shift" and self.shiftDown and not self.capsLock)
             local variant = (k.primary or on) and "primary" or "default"
             local colors = nil
-            if focused then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = tc }
+            if focused then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.textOnFocus }
             elseif hover then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } } end
             if k.lo then
                 M.drawButton(self, r.x, r.y, r.w, r.h, up and k.up or k.lo, variant, down, colors)

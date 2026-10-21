@@ -947,7 +947,7 @@ local function drawAnswer(p, r, label, variant, state, off)
     local ac = T.accent
     local colors = nil
     if state == "focus" then
-        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.text }
+        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.textOnFocus }
     elseif state == "hover" then
         colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } }
     end

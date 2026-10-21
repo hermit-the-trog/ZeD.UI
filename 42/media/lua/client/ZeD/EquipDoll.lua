@@ -211,7 +211,7 @@ end
 -- Drawing
 -- ----------------------------------------------------------------------------
 local function condColor(T, f)
-    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warning end
+    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warningText end
     return T.danger
 end
 
@@ -253,7 +253,8 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
     local T, tm = ZeD.T, ZeD.TM
     local ac = T.accent
     if item then
-        panel:drawRect(bx, by, b, b, 0.04, 1, 1, 1)
+        local st = T.stripe
+        panel:drawRect(bx, by, b, b, st.a, st.r, st.g, st.b)
         if ZeD.EquipmentTab and ZeD.EquipmentTab.draggedItem(win) == item then
             -- being dragged: dimmed, as the inventory lists dim the rows they carry
             local s1 = T.surf1
@@ -269,7 +270,8 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         local f = condOf(item)
         if f then
             local cx, cy, cw, ch = bx + T.px(4), by + b - T.px(6), b - T.px(8), T.px(3)
-            panel:drawRect(cx, cy, cw, ch, 1, 0.047, 0.047, 0.047)
+            local tr = T.surf3
+            panel:drawRect(cx, cy, cw, ch, tr.a, tr.r, tr.g, tr.b)
             local fw = math.floor(cw * f)
             if fw > 0 then local cc = condColor(T, f); panel:drawRect(cx, cy, fw, ch, cc.a or 1, cc.r, cc.g, cc.b) end
         end
@@ -332,7 +334,8 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
 
     -- the photo frame (the model draws over it, from CharacterWindow)
     local fx, fy, fw, fh = ox + P(PHOTO.x), y + P(PHOTO.y), P(PHOTO.w), P(PHOTO.h)
-    panel:drawRect(fx, fy, fw, fh, 1, 0.086, 0.094, 0.102)
+    local frame = T.surf2
+    panel:drawRect(fx, fy, fw, fh, frame.a, frame.r, frame.g, frame.b)
     local bc = T.border
     panel:drawRectBorder(fx, fy, fw, fh, bc.a or 1, bc.r, bc.g, bc.b)
     local p = win._playerObj
@@ -343,7 +346,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local f1 = T.fontF1
         local dc = T.textDim
         panel:drawText(ZeD.Atoms.truncateText(nm, f1, fw - T.px(16)), fx + T.px(8), fy + fh - T.px(6) - (T.fontF1H or tm:getFontHeight(f1)),
-            dc.r, dc.g, dc.b, 0.6, f1)
+            dc.r, dc.g, dc.b, dc.a or 1, f1)
     end
     win._equipDollPhoto = { x = fx + T.px(1), y = fy + T.px(1), w = fw - T.px(2), h = fh - T.px(2) }
 

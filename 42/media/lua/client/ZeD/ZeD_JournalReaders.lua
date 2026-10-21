@@ -94,7 +94,7 @@ local function button(panel, win, id, x, y, text, fn, variant, opts)
         colors = { text = T.textDim }
         variant = "default"
     elseif J._fid == "jr:" .. id then
-        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.text }
+        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.textOnFocus }
     elseif inRect(r, panel:getMouseX(), panel:getMouseY()) then
         colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } }
     end

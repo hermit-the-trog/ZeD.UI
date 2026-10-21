@@ -792,7 +792,7 @@ function ZeD_BeltHUD:_drawBuckle()
 end
 
 local function wearColor(T, f)
-    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warning end
+    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warningText end
     return T.danger
 end
 
@@ -844,7 +844,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
     if o.inHand or o.ghost then
         local tag = o.inHand and ZeD.tr("UI_ZeD_Belt_InHand") or ZeD.tr("UI_ZeD_Belt_Both")
         local tw = tm:MeasureStringX(f5, tag)
-        local ac = T.accent
+        local ac = T.accentText
         local up = round and T.px(4) or 0                -- inside the circle's curve
         self:drawText(tag, b.x + math.floor((b.w - tw) / 2), b.y + b.h - tm:getFontHeight(f5) - p1 - up, ac.r, ac.g, ac.b, 1, f5)
     elseif o.item then
@@ -878,7 +878,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
             local rad = b.w / 2
             lx = b.x + math.floor(rad + rad * 0.62 - d / 2) - T.px(2); ly = b.y + math.floor(rad - rad * 0.62 - d / 2) + T.px(2)
         end
-        ZeD.Atoms.drawStatusDot(self, lx, ly, T.warning, d)
+        ZeD.Atoms.drawStatusDot(self, lx, ly, T.warningText, d)
     end
     if o.state == "no" then fill(0.6, T.base) end
     if o.focus then
@@ -898,7 +898,7 @@ function ZeD_BeltHUD:_chip(b, text)
     local y = b.y - h - T.px(6)
     self:drawRect(x, y, w, h, 0.95, col(T.surf1))
     self:drawRectBorder(x, y, w, h, 1, col(T.borderS))
-    local ac = T.accent
+    local ac = T.accentText
     self:drawText(text, x + T.px(6), y + T.px(3), ac.r, ac.g, ac.b, 1, f1)
 end
 
@@ -1305,24 +1305,25 @@ function ZeD_BeltHUD:_drawPadList()
     self:drawRectBorder(x, y, lw, total, 1, col(T.borderS))
     self:drawRect(x, y, lw, hh, 1, col(T.surf2))
     local f1, f2 = T.fontF1, T.fontF2
-    local ac = T.accent
+    local ac = T.accentText
     self:drawText(ZeD.tr("UI_ZeD_Belt_InBags"), x + T.px(8), y + math.floor((hh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     if #rows == 0 then return end
     for n, e in ipairs(rows) do
         local ry = y + hh + (n - 1) * rh
-        if g.inList and g.row == n then self:drawRect(x, ry, lw, rh, 0.55, col(T.accent)) end
+        local focused = g.inList and g.row == n
+        if focused then self:drawRect(x, ry, lw, rh, 0.55, col(T.accent)) end
         local tex = call(e.item, "getTex")
         local isz = T.px(18)
         if tex then self:drawTextureScaledAspect(tex, x + T.px(8), ry + math.floor((rh - isz) / 2), isz, isz, 1, 1, 1, 1) end
         local name = e.kind == "light" and ZeD.tr("UI_ZeD_Belt_BestLight", e.item:getDisplayName()) or e.item:getDisplayName()
-        local tc = T.text
+        local tc = focused and T.textOnFocus or T.text
         self:drawText(name, x + T.px(34), ry + math.floor((rh - tm:getFontHeight(f2)) / 2), tc.r, tc.g, tc.b, 1, f2)
         local where = ZeD.upper(getText("IGUI_InventoryTooltip"))
         local c = e.item:getContainer()
         local bag = c and c:getContainingItem()
         if bag then where = ZeD.upper(bag:getName()) end
         if e.item:getAttachedSlot() > 0 then where = B.tagFor(e.item:getAttachedSlot()) end
-        ZeD.Atoms.drawTextRight(self, where, x + lw - T.px(8), ry + math.floor((rh - tm:getFontHeight(f1)) / 2), f1, T.textDim)
+        ZeD.Atoms.drawTextRight(self, where, x + lw - T.px(8), ry + math.floor((rh - tm:getFontHeight(f1)) / 2), f1, focused and T.textOnFocus or T.textDim)
         self:drawRect(x, ry + rh - T.px(1), lw, T.px(1), 1, col(T.border))
     end
 end

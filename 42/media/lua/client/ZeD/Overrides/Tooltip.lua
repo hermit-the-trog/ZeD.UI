@@ -136,6 +136,23 @@ local function applyTooltipOverrides()
     end
 
     -- ========================================================================
+    -- Tooltip skin. The engine draws the description (ISRichTextPanel) and the item
+    -- tooltip (Java DoTooltip) in white, so on the light theme the tooltip is a dark
+    -- plate (white on the light grey was 1.6 : 1); the other themes use their own base.
+    -- Returns: fill colour, fill alpha, title colour, footnote colour, description wash.
+    -- ========================================================================
+    local TIP_DARK = { r = 0.09, g = 0.09, b = 0.09 }
+    local TIP_FOOT = { r = 0.72, g = 0.72, b = 0.72, a = 1 }
+    local function tipSkin(T)
+        if ZeD.currentBase == "light" then
+            local set = ZeD.AccentColors[ZeD.currentAccent]
+            local title = set and set.dark and set.dark.bright or T.accentText
+            return TIP_DARK, 0.95, title, TIP_FOOT, TIP_DARK
+        end
+        return T.base, T.surf2.a, T.accentText, T.textSec, T.surf1
+    end
+
+    -- ========================================================================
     -- ISToolTip:prerender()
     -- ========================================================================
     function ISToolTip:prerender()
@@ -155,8 +172,9 @@ local function applyTooltipOverrides()
         local ok, err = pcall(self.doLayout, self)
         if not ok then return end
 
-        local bg = T.surf1
-        self:drawRect(0, 0, self.width, self.height, T.surf2.a, bg.r, bg.g, bg.b)
+        local bg, bgA = tipSkin(T)
+        if bg == T.base then bg = T.surf1 end
+        self:drawRect(0, 0, self.width, self.height, bgA, bg.r, bg.g, bg.b)
     end
 
     -- ========================================================================
@@ -200,9 +218,9 @@ local function applyTooltipOverrides()
             self:adjustPositionToAvoidOverlap(ownerRect)
         end
 
-        -- Background + border with ZeD tokens
-        local bg = T.base
-        self:drawRect(0, 0, self.width, self.height, T.surf2.a, bg.r, bg.g, bg.b)
+        -- Background + border with ZeD tokens (the light theme's dark plate: tipSkin)
+        local bg, bgA, titleC, footC = tipSkin(T)
+        self:drawRect(0, 0, self.width, self.height, bgA, bg.r, bg.g, bg.b)
         local bc = T.borderS
         self:drawRectBorder(0, 0, self.width, self.height, bc.a, bc.r, bc.g, bc.b)
 
@@ -215,7 +233,7 @@ local function applyTooltipOverrides()
 
         -- Title: accent color, body font
         if self.name then
-            local ac = T.accent
+            local ac = titleC
             self:drawText(self.name, T.px(8), T.px(5), ac.r, ac.g, ac.b, ac.a, T.fontF2)
         end
 
@@ -225,7 +243,7 @@ local function applyTooltipOverrides()
         -- Footer
         if self.footNote then
             local fontHgt = ZeD.TM:getFontHeight(T.fontF1)
-            local fc = T.textSec
+            local fc = footC
             self:drawTextCentre(self.footNote, self:getWidth() / 2,
                 self:getHeight() - fontHgt - T.px(4), fc.r, fc.g, fc.b, fc.a, T.fontF1)
         end
@@ -319,9 +337,9 @@ local function applyTooltipOverrides()
             self:adjustPositionToAvoidOverlap({ x = mx - 48, y = my - 48, width = 48, height = 48 })
         end
 
-        -- Background + border with ZeD tokens
-        local bg = T.base
-        self:drawRect(0, 0, self.width, self.height, T.surf2.a, bg.r, bg.g, bg.b)
+        -- Background + border with ZeD tokens (the light theme's dark plate: tipSkin)
+        local bg, bgA = tipSkin(T)
+        self:drawRect(0, 0, self.width, self.height, bgA, bg.r, bg.g, bg.b)
         local bc = T.borderS
         self:drawRectBorder(0, 0, self.width, self.height, bc.a, bc.r, bc.g, bc.b)
 
@@ -338,10 +356,11 @@ local function applyTooltipOverrides()
         if Safe.on() then return o end
         local T = ZeD.T
         if T and T.base and T.borderS then
-            o.backgroundColor = { r = T.base.r, g = T.base.g, b = T.base.b, a = T.surf2.a }
+            local sbg, sbgA, _, _, sdesc = tipSkin(T)
+            o.backgroundColor = { r = sbg.r, g = sbg.g, b = sbg.b, a = sbgA }
             o.borderColor     = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = T.borderS.a }
             if o.descriptionPanel then
-                o.descriptionPanel.backgroundColor = { r = T.surf1.r, g = T.surf1.g, b = T.surf1.b, a = 0.4 }
+                o.descriptionPanel.backgroundColor = { r = sdesc.r, g = sdesc.g, b = sdesc.b, a = 0.4 }
                 o.descriptionPanel.borderColor     = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = 0.15 }
             end
         end
@@ -356,7 +375,8 @@ local function applyTooltipOverrides()
         if Safe.on() then return o end
         local T = ZeD.T
         if T and T.base and T.borderS then
-            o.backgroundColor = { r = T.base.r, g = T.base.g, b = T.base.b, a = T.surf2.a }
+            local sbg, sbgA = tipSkin(T)
+            o.backgroundColor = { r = sbg.r, g = sbg.g, b = sbg.b, a = sbgA }
             o.borderColor     = { r = T.borderS.r, g = T.borderS.g, b = T.borderS.b, a = T.borderS.a }
         end
         return o
