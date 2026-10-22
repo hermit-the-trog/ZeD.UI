@@ -1541,6 +1541,352 @@
      "side": "bottom"
     }
    ]
+  },
+  {
+   "id": "options_menu",
+   "kind": "feature",
+   "src": "mm4_01_options_zed.png",
+   "title": "Options",
+   "caption": "ZeD setup comes first. The game's own pages follow, and say which settings ZeD replaces.",
+   "layout": {
+    "fill": 0.74,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      996,
+      304,
+      2824,
+      2000
+     ],
+     "tag": "ZED SETUP"
+    },
+    {
+     "src": "mm4_02_options_interface.png",
+     "box": [
+      1406,
+      370,
+      2824,
+      1860
+     ],
+     "tag": "INTERFACE"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Theme, accent, text size and scale.",
+     "anchor": [
+      1440,
+      456
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      40,
+      280
+     ]
+    },
+    {
+     "text": "Every setting is explained down here.",
+     "anchor": [
+      1430,
+      1880
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      40,
+      800
+     ]
+    },
+    {
+     "text": "Game settings ZeD replaces say so.",
+     "anchor": [
+      2528,
+      512
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 200,
+     "at": [
+      1652,
+      300
+     ]
+    }
+   ]
+  },
+  {
+   "id": "mod_manager",
+   "kind": "feature",
+   "src": "mm4_03_mods_conflict.png",
+   "title": "Mods",
+   "caption": "Mods: what is missing, what conflicts and which copy the game uses, before you start a game.",
+   "layout": {
+    "fill": 0.7,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1000,
+      304,
+      1874,
+      1240
+     ],
+     "tag": "MODS"
+    },
+    {
+     "box": [
+      1894,
+      304,
+      2830,
+      1340
+     ],
+     "tag": "DETAIL"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Tabs for problems, conflicts and the Workshop.",
+     "anchor": [
+      1032,
+      400
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      30,
+      180
+     ]
+    },
+    {
+     "text": "A missing mod or the wrong game version shows red.",
+     "anchor": [
+      1138,
+      610
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      30,
+      415
+     ]
+    },
+    {
+     "text": "Two mods ship the same file: which copy runs, and why.",
+     "anchor": [
+      2808,
+      896
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 230,
+     "at": [
+      1615,
+      470
+     ]
+    },
+    {
+     "text": "The same item in both: which version wins.",
+     "anchor": [
+      2808,
+      1142
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 230,
+     "at": [
+      1615,
+      700
+     ]
+    }
+   ]
+  },
+  {
+   "id": "load_order",
+   "kind": "feature",
+   "src": "mm4_08_profiles.png",
+   "title": "Profiles and load order",
+   "caption": "A profile keeps a mod list with its load order. The load order turns red when a mod loads before what it needs.",
+   "layout": {
+    "fill": 0.8,
+    "gap": 48,
+    "direction": "column"
+   },
+   "crops": [
+    {
+     "box": [
+      1000,
+      304,
+      2834,
+      890
+     ],
+     "tag": "PROFILES"
+    },
+    {
+     "src": "mm4_09_load_order.png",
+     "box": [
+      1000,
+      304,
+      2834,
+      830
+     ],
+     "tag": "LOAD ORDER"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Loading a profile says what it turns off.",
+     "anchor": [
+      2000,
+      540
+     ],
+     "crop": 0,
+     "side": "right",
+     "maxw": 260,
+     "at": [
+      1570,
+      250
+     ]
+    },
+    {
+     "text": "Each profile keeps its own load order.",
+     "anchor": [
+      2132,
+      866
+     ],
+     "crop": 0,
+     "side": "right",
+     "maxw": 260,
+     "at": [
+      1570,
+      440
+     ]
+    },
+    {
+     "text": "Crafting Pack loads before the Crafting Core it needs.",
+     "anchor": [
+      1020,
+      622
+     ],
+     "crop": 1,
+     "side": "left",
+     "maxw": 260,
+     "at": [
+      40,
+      760
+     ]
+    }
+   ]
+  },
+  {
+   "id": "uploader",
+   "kind": "feature",
+   "src": "mm4_15_upload_ready.png",
+   "title": "Uploading",
+   "caption": "Upload to the Workshop from one window. The description editor shows the page the way Steam will.",
+   "layout": {
+    "fill": 0.76,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1610,
+      370,
+      2824,
+      1600
+     ],
+     "tag": "UPLOAD"
+    },
+    {
+     "src": "mm4_12_editor.png",
+     "box": [
+      1010,
+      304,
+      2824,
+      2104
+     ],
+     "tag": "DESCRIPTION"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Who can see it, tags and the picture, each checked.",
+     "anchor": [
+      1614,
+      476
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      20,
+      230
+     ]
+    },
+    {
+     "text": "The folder is checked too.",
+     "anchor": [
+      1614,
+      1466
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      20,
+      700
+     ]
+    },
+    {
+     "text": "Build it from blocks and whole sections.",
+     "anchor": [
+      1094,
+      1214
+     ],
+     "crop": 1,
+     "side": "bottom",
+     "maxw": 520,
+     "at": [
+      560,
+      895
+     ]
+    },
+    {
+     "text": "The page as Steam will show it.",
+     "anchor": [
+      2815,
+      470
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 210,
+     "at": [
+      1665,
+      190
+     ]
+    },
+    {
+     "text": "Counted against Steam's 8,000 characters.",
+     "anchor": [
+      1212,
+      2038
+     ],
+     "crop": 1,
+     "side": "bottom",
+     "maxw": 520,
+     "at": [
+      1160,
+      895
+     ]
+    }
+   ]
   }
  ]
 }
