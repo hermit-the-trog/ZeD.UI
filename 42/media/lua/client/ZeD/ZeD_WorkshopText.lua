@@ -218,10 +218,12 @@ local function runs(text)
     while pos <= #s do
         local a, b, close, tag = s:find("%[(/?)(%a+)[^%]]*%]", pos)
         local chunk = s:sub(pos, (a or (#s + 1)) - 1)
+        -- a chunk that starts with a space puts it after the word BEFORE the chunk (Oct 22 2026: this
+        -- ran after the chunk's own words, so "[b]1.0[/b] First" drew as "1.0First")
+        if chunk:match("^%s") and #out > 0 then out[#out].sp = true end
         for word, space in chunk:gmatch("(%S+)(%s*)") do
             out[#out + 1] = { w = word, b = st.b > 0, i = st.i > 0, u = st.u > 0, s = st.s > 0, link = st.url > 0, sp = space ~= "", nl = space:find("\n", 1, true) ~= nil }
         end
-        if chunk:match("^%s") and #out > 0 then out[#out].sp = true end
         if not a then break end
         tag = string.lower(tag)
         local d = (close == "/") and -1 or 1
