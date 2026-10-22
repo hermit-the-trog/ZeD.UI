@@ -63,118 +63,54 @@
   {
    "id": "old_job",
    "kind": "feature",
-   "src": "story_00a_identity_tall.png",
+   "src": "story_00a_identity.png",
    "title": "Old job",
-   "caption": "Glen pumped gas at the Fossoil. Six days in, Mechanics is at 7 and Welding at 6; Cooking is still 2.",
+   "caption": "Glen Finnegan pumped gas at the Fossoil in West Point. In the game he is a mechanic, with Strong, Dextrous, Speed Demon, Fast Reader and Smoker.",
    "layout": {
-    "fill": 0.96,
-    "gap": 56
+    "fill": 0.8
    },
    "crops": [
     {
      "box": [
-      716,
+      296,
       0,
-      1618,
-      1280
-     ],
-     "tag": "IDENTITY"
-    },
-    {
-     "src": "story_00b_skills_tall.png",
-     "box": [
-      716,
-      0,
-      1618,
-      1280
-     ],
-     "tag": "SKILLS"
+      1913,
+      735
+     ]
     }
    ],
    "balloons": [
     {
-     "text": "A mechanic, six days in, 23 zombies killed.",
+     "text": "The Identity tab shows the character's driver's license.",
      "anchor": [
-      1072,
-      554
+      380,
+      300
      ],
-     "side": "left",
-     "crop": 0,
-     "at": [
-      24,
-      430
-     ],
-     "maxw": 290
+     "side": "left"
     },
     {
-     "text": "Good traits in green.",
+     "text": "The profession on the license: Mechanic.",
      "anchor": [
-      798,
-      895
+      1025,
+      351
      ],
-     "side": "left",
-     "crop": 0,
-     "at": [
-      24,
-      650
-     ],
-     "maxw": 290
+     "side": "bottom"
     },
     {
-     "text": "Bad ones in red.",
+     "text": "Time survived, favorite weapon and zombies killed.",
      "anchor": [
-      798,
-      1109
+      675,
+      590
      ],
-     "side": "left",
-     "crop": 0,
-     "at": [
-      24,
-      800
-     ],
-     "maxw": 290
+     "side": "bottom"
     },
     {
-     "text": "Mechanics up to 7, Welding to 6.",
+     "text": "The inventory column stays beside every tab.",
      "anchor": [
-      1186,
-      742
+      1266,
+      76
      ],
-     "side": "right",
-     "crop": 1,
-     "at": [
-      1556,
-      572
-     ],
-     "maxw": 290
-    },
-    {
-     "text": "Others still at 1 to 3.",
-     "anchor": [
-      1571,
-      872
-     ],
-     "side": "right",
-     "crop": 1,
-     "at": [
-      1556,
-      705
-     ],
-     "maxw": 290
-    },
-    {
-     "text": "XP boosts beside the level.",
-     "anchor": [
-      1586,
-      1072
-     ],
-     "side": "right",
-     "crop": 1,
-     "at": [
-      1556,
-      845
-     ],
-     "maxw": 290
+     "side": "top"
     }
    ]
   },
@@ -253,7 +189,7 @@
    "kind": "feature",
    "src": "story_03_route_map.png",
    "title": "The route",
-   "caption": "World window, Maps tab.",
+   "caption": "World window, Maps tab. On a controller, hold one bumper and tap the other to zoom the camera: LB then RB zooms out, RB then LB zooms in.",
    "crops": [
     {
      "box": [
@@ -288,6 +224,14 @@
       74
      ],
      "side": "top"
+    },
+    {
+     "text": "On a controller, RT and LT zoom the map.",
+     "anchor": [
+      2700,
+      640
+     ],
+     "side": "left"
     }
    ]
   },
@@ -509,28 +453,6 @@
    ]
   },
   {
-   "id": "cleaning_up",
-   "kind": "ingame",
-   "src": "story_06_clean_blood_bar.png",
-   "box": [
-    960,
-    540,
-    2880,
-    1620
-   ],
-   "caption": "Cleaning the floor with bleach and a dish towel.",
-   "balloons": [
-    {
-     "text": "The action bar over the character: cleaning, 40 percent.",
-     "anchor": [
-      1980,
-      960
-     ],
-     "side": "right"
-    }
-   ]
-  },
-  {
    "id": "stocking_shelves",
    "kind": "feature",
    "src": "story_07b_drag_to_shelf.png",
@@ -748,6 +670,14 @@
    ],
    "balloons": [
     {
+     "text": "Three zombies in line at the counter. They are set to passive for this picture.",
+     "anchor": [
+      2120,
+      1180
+     ],
+     "side": "right"
+    },
+    {
      "text": "The buckle shows the profession. This one is for mechanics.",
      "anchor": [
       1917,
@@ -762,6 +692,14 @@
       2083
      ],
      "side": "top"
+    },
+    {
+     "text": "On a controller, aiming with the right stick hides both windows. Y shows them again.",
+     "anchor": [
+      600,
+      1700
+     ],
+     "side": "right"
     }
    ]
   },
@@ -853,6 +791,63 @@
      ],
      "side": "top",
      "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "keeping_count",
+   "kind": "feature",
+   "src": "journal_kills_1.png",
+   "title": "Keeping count",
+   "caption": "Character window, Journal tab.",
+   "crops": [
+    {
+     "box": [
+      1172,
+      352,
+      2084,
+      1260
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Journal tab. Zombies killed, with the total on the right.",
+     "anchor": [
+      2062,
+      497
+     ],
+     "side": "right"
+    },
+    {
+     "text": "Click the heading to show or hide the list.",
+     "anchor": [
+      1244,
+      497
+     ],
+     "side": "left"
+    },
+    {
+     "text": "Fire, vehicle and explosion kills are counted too.",
+     "anchor": [
+      1256,
+      578
+     ],
+     "side": "left",
+     "target": [
+      1265,
+      515,
+      2045,
+      1000
+     ]
+    },
+    {
+     "text": "The count by weapon type.",
+     "anchor": [
+      2062,
+      817
+     ],
+     "side": "right"
     }
    ]
   },
@@ -1539,352 +1534,6 @@
       1045
      ],
      "side": "bottom"
-    }
-   ]
-  },
-  {
-   "id": "options_menu",
-   "kind": "feature",
-   "src": "mm4_01_options_zed.png",
-   "title": "Options",
-   "caption": "ZeD setup comes first. The game's own pages follow, and say which settings ZeD replaces.",
-   "layout": {
-    "fill": 0.74,
-    "gap": 56
-   },
-   "crops": [
-    {
-     "box": [
-      996,
-      304,
-      2824,
-      2000
-     ],
-     "tag": "ZED SETUP"
-    },
-    {
-     "src": "mm4_02_options_interface.png",
-     "box": [
-      1406,
-      370,
-      2824,
-      1860
-     ],
-     "tag": "INTERFACE"
-    }
-   ],
-   "balloons": [
-    {
-     "text": "Theme, accent, text size and scale.",
-     "anchor": [
-      1440,
-      456
-     ],
-     "crop": 0,
-     "side": "left",
-     "maxw": 210,
-     "at": [
-      40,
-      280
-     ]
-    },
-    {
-     "text": "Every setting is explained down here.",
-     "anchor": [
-      1430,
-      1880
-     ],
-     "crop": 0,
-     "side": "left",
-     "maxw": 210,
-     "at": [
-      40,
-      800
-     ]
-    },
-    {
-     "text": "Game settings ZeD replaces say so.",
-     "anchor": [
-      2528,
-      512
-     ],
-     "crop": 1,
-     "side": "right",
-     "maxw": 200,
-     "at": [
-      1652,
-      300
-     ]
-    }
-   ]
-  },
-  {
-   "id": "mod_manager",
-   "kind": "feature",
-   "src": "mm4_03_mods_conflict.png",
-   "title": "Mods",
-   "caption": "Mods: what is missing, what conflicts and which copy the game uses, before you start a game.",
-   "layout": {
-    "fill": 0.7,
-    "gap": 56
-   },
-   "crops": [
-    {
-     "box": [
-      1000,
-      304,
-      1874,
-      1240
-     ],
-     "tag": "MODS"
-    },
-    {
-     "box": [
-      1894,
-      304,
-      2830,
-      1340
-     ],
-     "tag": "DETAIL"
-    }
-   ],
-   "balloons": [
-    {
-     "text": "Tabs for problems, conflicts and the Workshop.",
-     "anchor": [
-      1032,
-      400
-     ],
-     "crop": 0,
-     "side": "left",
-     "maxw": 210,
-     "at": [
-      30,
-      180
-     ]
-    },
-    {
-     "text": "A missing mod or the wrong game version shows red.",
-     "anchor": [
-      1138,
-      610
-     ],
-     "crop": 0,
-     "side": "left",
-     "maxw": 210,
-     "at": [
-      30,
-      415
-     ]
-    },
-    {
-     "text": "Two mods ship the same file: which copy runs, and why.",
-     "anchor": [
-      2808,
-      896
-     ],
-     "crop": 1,
-     "side": "right",
-     "maxw": 230,
-     "at": [
-      1615,
-      470
-     ]
-    },
-    {
-     "text": "The same item in both: which version wins.",
-     "anchor": [
-      2808,
-      1142
-     ],
-     "crop": 1,
-     "side": "right",
-     "maxw": 230,
-     "at": [
-      1615,
-      700
-     ]
-    }
-   ]
-  },
-  {
-   "id": "load_order",
-   "kind": "feature",
-   "src": "mm4_08_profiles.png",
-   "title": "Profiles and load order",
-   "caption": "A profile keeps a mod list with its load order. The load order turns red when a mod loads before what it needs.",
-   "layout": {
-    "fill": 0.8,
-    "gap": 48,
-    "direction": "column"
-   },
-   "crops": [
-    {
-     "box": [
-      1000,
-      304,
-      2834,
-      890
-     ],
-     "tag": "PROFILES"
-    },
-    {
-     "src": "mm4_09_load_order.png",
-     "box": [
-      1000,
-      304,
-      2834,
-      830
-     ],
-     "tag": "LOAD ORDER"
-    }
-   ],
-   "balloons": [
-    {
-     "text": "Loading a profile says what it turns off.",
-     "anchor": [
-      2000,
-      540
-     ],
-     "crop": 0,
-     "side": "right",
-     "maxw": 260,
-     "at": [
-      1570,
-      250
-     ]
-    },
-    {
-     "text": "Each profile keeps its own load order.",
-     "anchor": [
-      2132,
-      866
-     ],
-     "crop": 0,
-     "side": "right",
-     "maxw": 260,
-     "at": [
-      1570,
-      440
-     ]
-    },
-    {
-     "text": "Crafting Pack loads before the Crafting Core it needs.",
-     "anchor": [
-      1020,
-      622
-     ],
-     "crop": 1,
-     "side": "left",
-     "maxw": 260,
-     "at": [
-      40,
-      760
-     ]
-    }
-   ]
-  },
-  {
-   "id": "uploader",
-   "kind": "feature",
-   "src": "mm4_15_upload_ready.png",
-   "title": "Uploading",
-   "caption": "Upload to the Workshop from one window. The description editor shows the page the way Steam will.",
-   "layout": {
-    "fill": 0.76,
-    "gap": 56
-   },
-   "crops": [
-    {
-     "box": [
-      1610,
-      370,
-      2824,
-      1600
-     ],
-     "tag": "UPLOAD"
-    },
-    {
-     "src": "mm4_12_editor.png",
-     "box": [
-      1010,
-      304,
-      2824,
-      2104
-     ],
-     "tag": "DESCRIPTION"
-    }
-   ],
-   "balloons": [
-    {
-     "text": "Who can see it, tags and the picture, each checked.",
-     "anchor": [
-      1614,
-      476
-     ],
-     "crop": 0,
-     "side": "left",
-     "maxw": 210,
-     "at": [
-      20,
-      230
-     ]
-    },
-    {
-     "text": "The folder is checked too.",
-     "anchor": [
-      1614,
-      1466
-     ],
-     "crop": 0,
-     "side": "left",
-     "maxw": 210,
-     "at": [
-      20,
-      700
-     ]
-    },
-    {
-     "text": "Build it from blocks and whole sections.",
-     "anchor": [
-      1094,
-      1214
-     ],
-     "crop": 1,
-     "side": "bottom",
-     "maxw": 520,
-     "at": [
-      560,
-      895
-     ]
-    },
-    {
-     "text": "The page as Steam will show it.",
-     "anchor": [
-      2815,
-      470
-     ],
-     "crop": 1,
-     "side": "right",
-     "maxw": 210,
-     "at": [
-      1665,
-      190
-     ]
-    },
-    {
-     "text": "Counted against Steam's 8,000 characters.",
-     "anchor": [
-      1212,
-      2038
-     ],
-     "crop": 1,
-     "side": "bottom",
-     "maxw": 520,
-     "at": [
-      1160,
-      895
-     ]
     }
    ]
   }
