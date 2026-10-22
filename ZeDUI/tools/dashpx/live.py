@@ -130,7 +130,7 @@ def shade(color, f):
     c = hx(color); return tuple(max(0, min(255, int(v * f))) for v in c)
 
 
-def draw_text(cv, t, x, y, color, font="35", scale=1, align="l", style="flat", shadow=None):
+def draw_text(cv, t, x, y, color, font="35", scale=1, align="l", style="flat", shadow=None, mul=None):
     f = FONTS[font]
     w = (sum(len(f.get(c, f.get(c.upper(), f[" "]))[0]) + 1 for c in t) - 1) * scale    # the glyphs drawn (lower case as upper)
     if align == "c": x -= w // 2
@@ -157,7 +157,9 @@ def draw_text(cv, t, x, y, color, font="35", scale=1, align="l", style="flat", s
         tones = {5: [7, 6, 5, 5, 4], 7: [7, 7, 6, 5, 5, 4, 3]}.get(H) or [7 if i < H * 0.2 else (6 if i < H * 0.4 else (5 if i < H * 0.65 else 4)) for i in range(H)]
         for (px, py), ry in pix.items():
             by_tone.setdefault(tones[min(ry, len(tones) - 1)], []).append((px, py))
-        for tone, pp in by_tone.items(): cv.runs(pixels_to_runs(pp), ramp[tone])
+        for tone, pp in by_tone.items():
+            c = ramp[tone] if mul is None else tuple(max(0, min(255, int(v * f))) for v, f in zip(ramp[tone], mul))
+            cv.runs(pixels_to_runs(pp), c)
     elif style == "emboss":
         cv.runs(pixels_to_runs(list(pix)), color)
     else:
@@ -225,9 +227,55 @@ def fmt_value(p, st):
     return str(v)
 
 
-def render_live(plate, design, st, k=1, sprites=None, heads=None):
+class Night:
+    """the game's night rule (ZeD_Plate.lua, PL.light*): nightness n in eighths, the light map's level under a part,
+    the colour multiplier for that level (warm where the bulbs reach); n = 0 is the day, untouched"""
+    def __init__(s, n, lit, levels, night_img=None, dark_img=None, glass=None, cell=4):
+        import night as NT
+        s.NT = NT
+        s.n8 = int(math.floor(n * 8 + 0.5)); s.n = s.n8 / 8.0
+        s.lit = lit; s.lv = levels; s.cell = cell
+        s.night_img, s.dark_img, s.glass = night_img, dark_img, glass or []
+        s.amb = NT.amb_level()
+
+    def level(s, x, y):
+        if not s.lit: return s.amb
+        r = int(min(s.lv.shape[0] - 1, max(0, math.floor(y / s.cell))))
+        c = int(min(s.lv.shape[1] - 1, max(0, math.floor(x / s.cell))))
+        return int(s.lv[r, c])
+
+    def mul(s, level): return s.NT.level_mul(level, s.n, s.lit)
+
+    def dim(s, color, x, y):
+        c = hx(color) if isinstance(color, str) else color
+        m = s.mul(s.level(x, y))
+        return tuple(max(0, min(255, int(v * f))) for v, f in zip(c, m))
+
+    def tint_img(s, im, x, y):
+        m = s.mul(s.level(x + im.width / 2.0, y + im.height / 2.0))
+        a = np.array(im.convert("RGBA")).astype(np.float32)
+        a[..., :3] *= np.array(m, np.float32)
+        return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+
+
+def _dimruns(cv, runs, color, nt, dx=0, dy=0, alpha=1.0):
+    """runs in a colour that follows the light: each run takes the level at its own middle"""
+    if nt is None or nt.n8 == 0: cv.runs(runs, color, alpha, dx, dy); return
+    for x, y, w in runs: cv.rect(x + dx, y + dy, w, 1, nt.dim(color, x + dx + w / 2.0, y + dy), alpha)
+
+
+def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
     st = derive(st)
+    nt = night if (night is not None and night.n8 > 0) else None
+    if nt is not None:
+        over = nt.night_img if nt.lit else nt.dark_img
+        base = plate.convert("RGBA").copy()
+        if over is not None: base = Image.blend(base, over.convert("RGBA"), nt.n)
+        plate = base
     cv = Canvas(plate, k)
+    if nt is not None and st.get("power"):
+        for g in nt.glass: cv.runs(g["runs"], g["color"], nt.n)        # the LCD glass, lit from behind
+    D = (lambda c, x, y: nt.dim(c, x, y)) if nt is not None else (lambda c, x, y: c)
     for p in design["parts"]:
         t = p["t"]
         if t == "needle":
@@ -240,19 +288,22 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None):
             allp = body | edge
             sh = [(x + 1, y + 2) for (x, y) in allp]
             cv.runs(pixels_to_runs(sh), (0, 0, 0), 0.45)
-            cv.runs(pixels_to_runs(edge), shade(col, 0.55))
-            cv.runs(pixels_to_runs(body), col)
+            _dimruns(cv, pixels_to_runs(edge), shade(col, 0.55), nt)
+            _dimruns(cv, pixels_to_runs(body), col, nt)
         elif t == "ribbon":
             v = max(0.0, min(1.0, st.get(p["src"], 0) / float(p["max"])))
             xx = int(round(p["x0"] + (p["x1"] - p["x0"]) * v))
             if p.get("mode") == "fill":
-                if xx > p["x0"]:
-                    cv.rect(p["x0"], p["y"], xx - p["x0"], p["h"], p["color"])
-                    cv.rect(p["x0"], p["y"], xx - p["x0"], 1, shade(p["color"], 1.25))
-                    cv.rect(p["x0"], p["y"] + p["h"] - 1, xx - p["x0"], 1, shade(p["color"], 0.6))
+                # a cell's width at a time, so the strip takes the light along its length
+                for x0 in range(p["x0"], xx, 4):
+                    w_ = min(4, xx - x0); cy_ = p["y"] + p["h"] / 2.0
+                    cv.rect(x0, p["y"], w_, p["h"], D(p["color"], x0 + w_ / 2.0, cy_))
+                    cv.rect(x0, p["y"], w_, 1, D(shade(p["color"], 1.25), x0 + w_ / 2.0, cy_))
+                    cv.rect(x0, p["y"] + p["h"] - 1, w_, 1, D(shade(p["color"], 0.6), x0 + w_ / 2.0, cy_))
             else:
+                cy_ = p["y"] + p["h"] / 2.0
                 cv.rect(xx + 1, p["y"] + 2, 2, p["h"], (0, 0, 0), 0.45)
-                cv.rect(xx - 1, p["y"], 1, p["h"], p["color"]); cv.rect(xx, p["y"], 1, p["h"], shade(p["color"], 0.6))
+                cv.rect(xx - 1, p["y"], 1, p["h"], D(p["color"], xx, cy_)); cv.rect(xx, p["y"], 1, p["h"], D(shade(p["color"], 0.6), xx, cy_))
         elif t == "lamp":
             if st.get(p["src"]):
                 if p.get("halo"): cv.runs(p["halo"], p["color"], 0.30)
@@ -288,16 +339,19 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None):
                 v = max(0.0, min(1.0, st.get(p["src"], 0)))
                 a = p["a0"] + (p["a1"] - p["a0"]) * v
             body, edge = needle_pixels(p["cx"], p["cy"], a, p["r0"], p["r1"], p.get("w", 1))
-            cv.runs(pixels_to_runs(body | edge), p["color"])
+            cv.runs(pixels_to_runs(body | edge), D(p["color"], p["cx"], p["cy"]))
         elif t == "tab":
             v = max(0.0, min(1.0, st.get(p["src"], 0)))
             x = int(round(p["x0"] + (p["x1"] - p["x0"]) * v))
-            if sprites and p["sprite"] in sprites: cv.sprite(sprites[p["sprite"]], x, p["y"])
+            if sprites and p["sprite"] in sprites:
+                im = sprites[p["sprite"]]
+                cv.sprite(nt.tint_img(im, x, p["y"]) if nt else im, x, p["y"])
         elif t == "sprite":
             val = st.get(p["src"])
             key = p.get("when", True)
             if bool(val) == bool(key) and sprites and p["sprite"] in sprites:
-                cv.sprite(sprites[p["sprite"]], p["x"], p["y"])
+                im = sprites[p["sprite"]]
+                cv.sprite(nt.tint_img(im, p["x"], p["y"]) if nt else im, p["x"], p["y"])
         elif t == "badge":
             label = st.get("badge_" + p.get("role", "label"), "")
             if not label: continue
@@ -305,15 +359,17 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None):
             x = p["x"] + (p["w"] // 2 if p.get("align", "c") == "c" else 0)
             y = p["y"] + (p["h"] - len(FONTS[font]["A"]) * scale) // 2
             col = p.get("color", "#d8dade")
+            bx_, by_ = p["x"] + p["w"] / 2.0, p["y"] + p["h"] / 2.0
             if p.get("style") == "emboss":
-                draw_text(cv, label, x + 1, y + 1, "#f0f0ec", font, scale, p.get("align", "c"))
-            draw_text(cv, label, x, y, col, font, scale, p.get("align", "c"), p.get("style", "flat"), p.get("shadow"))
+                draw_text(cv, label, x + 1, y + 1, D("#f0f0ec", bx_, by_), font, scale, p.get("align", "c"))
+            draw_text(cv, label, x, y, D(col, bx_, by_), font, scale, p.get("align", "c"), p.get("style", "flat"),
+                      D(p["shadow"], bx_, by_) if p.get("shadow") else None, mul=(nt.mul(nt.level(bx_, by_)) if nt else None))
         elif t == "clock":
             hr, mn = st.get("hour", 10), st.get("minute", 8)
             am = mn * 6 - 90; ah = (hr % 12) * 30 + mn * 0.5 - 90
             for a, rr, w in ((ah, p["rh"], 2), (am, p["rm"], 1)):
                 body, edge = needle_pixels(p["cx"], p["cy"], a, 0, rr, w, hub=1.5)
-                cv.runs(pixels_to_runs(body | edge), p["color"])
+                cv.runs(pixels_to_runs(body | edge), D(p["color"], p["cx"], p["cy"]))
         elif t == "sticker":
             if p.get("match", "") in str(st.get("script", "")).lower():
                 cv.rect(p["x"], p["y"], p["w"], p["h"], "#f4f2ea")
@@ -324,17 +380,19 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None):
             kind = st.get("radio", None)
             if heads and kind in heads:
                 img, hparts = heads[kind]
-                cv.sprite(img, p["x"], p["y"])
+                head_face(cv, img, p["x"], p["y"], nt)
                 for hp in hparts:
                     if hp["t"] == "display" and st.get("radioOn") and st.get("power"):
+                        if nt is not None and hp.get("glass"):      # a liquid-crystal glass glows from behind
+                            cv.rect(p["x"] + hp["x"], p["y"] + hp["y"], hp["w"], hp["h"], hp["glass"], nt.n)
                         draw_radio_display(cv, hp, p["x"], p["y"], st)
                     elif hp["t"] == "knob":
                         v = st.get("radioVol", 0.6) if hp["id"] == "vol" else (st.get("radioTune", 0.3))
                         a = 135 + 270 * v
                         body, edge = needle_pixels(p["x"] + hp["cx"], p["y"] + hp["cy"], a, 3, hp["r"] - 2, 1)
-                        cv.runs(pixels_to_runs(body | edge), hp["ptr"])
+                        cv.runs(pixels_to_runs(body | edge), D(hp["ptr"], p["x"] + hp["cx"], p["y"] + hp["cy"]))
             elif sprites and "hu_blank" in sprites:
-                cv.sprite(sprites["hu_blank"], p["x"], p["y"])
+                head_face(cv, sprites["hu_blank"], p["x"], p["y"], nt)
         elif t == "climate":
             if not st.get("power"): continue
             col = p.get("color", "#1c2418")
@@ -348,6 +406,47 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None):
             if not st.get("power"): continue
             draw_digits(cv, p.get("demo", "3.40"), p["x"], p["y"], p.get("cw", 6), p.get("ch", 9), p.get("pitch", 9), 1, p["color"], p.get("off"), "r", 5)
     return cv.image()
+
+
+def head_face(cv, img, x, y, nt):
+    """the radio's face: as it is by day; at night tinted to the light of its brightest cell row, and every row under
+    that darkened to its own (the lamp above lights the top of the radio, its lower edge falls away)"""
+    if nt is None: cv.sprite(img, x, y); return
+    rows = head_rows(nt, x, y, img.width, img.height)
+    top = max(lv for _, _, lv in rows)
+    m = nt.mul(top)
+    a = np.array(img.convert("RGBA")).astype(np.float32); a[..., :3] *= np.array(m, np.float32)
+    cv.sprite(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA"), x, y)
+    for (ry, rh, lv) in rows:
+        al = head_shade(nt, lv, top)
+        if al > 0: cv.rect(x, ry, img.width, rh, (0, 0, 0), al)
+
+
+def head_rows(nt, x, y, w, h):
+    """(y, height, level) per light-map cell row across a rect: the row's level is its cells' mean, rounded"""
+    out = []
+    c = nt.cell
+    r0, r1 = int(math.floor(y / c)), int(math.floor((y + h - 1) / c))
+    c0, c1 = int(math.floor(x / c)), int(math.floor((x + w - 1) / c))
+    for r in range(r0, r1 + 1):
+        if nt.lit:
+            rr = min(nt.lv.shape[0] - 1, max(0, r))
+            vals = [int(nt.lv[rr, min(nt.lv.shape[1] - 1, max(0, cc))]) for cc in range(c0, c1 + 1)]
+            lv = int(math.floor(sum(vals) / float(len(vals)) + 0.5))
+        else:
+            lv = nt.amb
+        yy0 = max(y, r * c); yy1 = min(y + h, (r + 1) * c)
+        out.append((yy0, yy1 - yy0, lv))
+    return out
+
+
+def head_shade(nt, lv, top):
+    """the black over a row: what its light lacks against the face's tint (in eighths, like the game)"""
+    m, mt = nt.mul(lv), nt.mul(top)
+    lum = 0.3 * m[0] + 0.59 * m[1] + 0.11 * m[2]
+    lt = 0.3 * mt[0] + 0.59 * mt[1] + 0.11 * mt[2]
+    if lt <= 0: return 0.0
+    return math.floor((1 - lum / lt) * 8 + 0.5) / 8.0
 
 
 def draw_radio_display(cv, hp, ox, oy, st):

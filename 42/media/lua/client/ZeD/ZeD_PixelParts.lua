@@ -115,6 +115,25 @@ function P.image(cv, tex, x, y, w, h, a)
     cv.el:drawTextureScaled(tex, cv.ox + x * k, cv.oy + y * k, w * k, h * k, a or 1, 1, 1, 1)
 end
 
+-- the same, its colours multiplied by m = { r, g, b } (a part in the dark: ZeD_Plate's night light)
+function P.imageTint(cv, tex, x, y, w, h, m, a)
+    if not tex then return end
+    local k = cv.k
+    cv.el:drawTextureScaled(tex, cv.ox + x * k, cv.oy + y * k, w * k, h * k, a or 1, m.r, m.g, m.b)
+end
+
+-- a colour times a multiplier, kept per (multiplier, colour) so a frame allocates nothing once warm. Both
+-- are long-lived tables (P.color's cache, the night light's multipliers), so the cache stays small.
+local _mulc = {}
+function P.mulColor(c, m)
+    if not m then return c end
+    local byM = _mulc[m]
+    if not byM then byM = {}; _mulc[m] = byM end
+    local o = byM[c]
+    if not o then o = { r = c.r * m.r, g = c.g * m.g, b = c.b * m.b }; byM[c] = o end
+    return o
+end
+
 -- ---------------------------------------------------------------------------
 -- pixel sets -> runs
 -- ---------------------------------------------------------------------------
@@ -178,10 +197,29 @@ function P.needleRuns(cx, cy, deg, r0, r1, w, hub)
     return runsOf(body), runsOf(edge), runsOf(all)
 end
 
-function P.needle(cv, cx, cy, deg, r0, r1, w, hub, c, noShadow)
+-- runs whose colour follows a light: L.dim(L, c, x, y) gives the colour at each run's middle (ZeD_Plate's night)
+local function drawRunsLit(cv, runs, c, L)
+    local el, k = cv.el, cv.k
+    local ox, oy = cv.ox, cv.oy
+    for i = 1, #runs do
+        local r = runs[i]
+        local cc = L.dim(L, c, r[1] + r[3] * 0.5, r[2])
+        el:drawRect(ox + r[1] * k, oy + r[2] * k, r[3] * k, k, 1, cc.r, cc.g, cc.b)
+    end
+end
+
+-- L (optional): a light the needle follows run by run (in the dark only the stretch in a bulb's pool reads)
+function P.needle(cv, cx, cy, deg, r0, r1, w, hub, c, noShadow, L)
     local body, edge, all = P.needleRuns(cx, cy, deg, r0, r1, w, hub)
     if not noShadow then drawRuns(cv, all, P.BLACK, 0.45, 1, 2) end
-    if #edge > 0 then drawRuns(cv, edge, { r = c.r * 0.55, g = c.g * 0.55, b = c.b * 0.55 }) end
+    local ec = c._edge                 -- the shaded side, kept on the colour (one table, not one a frame)
+    if not ec then ec = { r = c.r * 0.55, g = c.g * 0.55, b = c.b * 0.55 }; c._edge = ec end
+    if L then
+        if #edge > 0 then drawRunsLit(cv, edge, ec, L) end
+        drawRunsLit(cv, body, c, L)
+        return
+    end
+    if #edge > 0 then drawRuns(cv, edge, ec) end
     drawRuns(cv, body, c)
 end
 
@@ -464,8 +502,9 @@ end
 local CHROME = { "#15171b", "#24272d", "#3a3e46", "#5a5f69", "#848a94", "#b3b9c2", "#dde2e8", "#ffffff" }
 local CHROME_ROWS = { [5] = { 8, 7, 6, 6, 5 }, [7] = { 8, 8, 7, 6, 6, 5, 4 } }
 
--- text at (x, y) (its top), align "l" | "c" | "r"; style "chrome" shades each row like the plate's chrome letters
-function P.text(cv, str, x, y, c, font, scale, align, style, shadow)
+-- text at (x, y) (its top), align "l" | "c" | "r"; style "chrome" shades each row like the plate's chrome letters;
+-- mul (optional { r, g, b }) dims the chrome rows too (a badge in the dark; flat colours come in already dimmed)
+function P.text(cv, str, x, y, c, font, scale, align, style, shadow, mul)
     str = tostring(str or "")
     if str == "" then return 0 end
     font = font or "35"; scale = scale or 1
@@ -483,7 +522,7 @@ function P.text(cv, str, x, y, c, font, scale, align, style, shadow)
                 -- a word the face cannot spell: the regular F1 face, its capitals as tall as the face's,
                 -- the line centred on the face's rows
                 local f1 = fbFont()
-                local cc = colr or P.color(CHROME[6])
+                local cc = colr or P.mulColor(P.color(CHROME[6]), mul)
                 if f1 then
                     local k = cv.k
                     local zoom = g.w * scale * k / g.raw
@@ -493,7 +532,7 @@ function P.text(cv, str, x, y, c, font, scale, align, style, shadow)
             else
                 for _, r in ipairs(g.runs) do
                     local cc = colr
-                    if rowTones then cc = P.color(CHROME[rowTones[r[2] + 1] or 6]) end
+                    if rowTones then cc = P.mulColor(P.color(CHROME[rowTones[r[2] + 1] or 6]), mul) end
                     P.rect(cv, cx + r[1] * scale + dx, y + r[2] * scale + dy, r[3] * scale, scale, cc)
                 end
             end

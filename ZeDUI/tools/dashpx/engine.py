@@ -12,7 +12,10 @@ Native resolution: one pixel per screen pixel at 1080p (the belt's density), who
 import math
 import colorsys
 import numpy as np
-from scipy import ndimage as ndi
+try:
+    from scipy import ndimage as ndi
+except ImportError:          # no scipy here: the same calls in plain numpy (ndi_np.py)
+    import ndi_np as ndi
 from PIL import Image, ImageDraw
 
 SS = 4
@@ -413,4 +416,6 @@ class Dash:
             ring = nb & ~sol
             img[ring, :3] = OUTLINE; img[ring, 3] = 255
         s.idx = idx; s.shadowmask = sh > 0.5
+        # what the night pass (night.py) relights from: the surface's normals and hollows, the day's shade before its ramp
+        s.lit_terms = {"n": n, "cav": cav, "hh": hh, "shade": shade, "env_chrome": cm}
         return Image.fromarray(img, "RGBA")

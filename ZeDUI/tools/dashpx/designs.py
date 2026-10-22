@@ -668,3 +668,47 @@ DESIGNS = {
     "race":       ("Race car", "v_race", 31, race, None, None, None),
 }
 ORDER = list(DESIGNS)
+
+
+# =================================================================================== at night (night.py, director Oct 21 2026)
+# No gauge is backlit. Behind the plate, in front of each gauge, a small incandescent bulb sits on ONE side of the
+# opening, just out of sight (never drawn): its light washes across the face from that side, bright at the near edge
+# and dying toward the far one. The plate round the openings stays dark but for a faint spill on the rim. A lamp under
+# the dash's brow aims down at the controls (the radio, the climate, the switches) and dies away downward.
+#   wash:  side = where the hidden bulbs sit, in screen degrees (0 right, 90 down, 180 left, 270 up), each gauge
+#          a little off it (jitter) and its own strength (an old bulb, a dusty lens); power scales them all.
+#          The openings are found from the gauges' own parts (a needle's pivot, the clock, the ribbon's window);
+#          a VFD cluster lights itself and gets none.
+#   lamps: (x0, x1, y, z, power[, reach])     a row of points under a hood, aimed down
+CONSOLE_LAMP = (512, 776, 24, Z_FACE + 12.0, 1.0)        # under the console's top lip, over the radio and the climate
+LOWER_LAMP = (34, 466, 115, Z_FACE + 10.0, 0.5)         # under the cluster's sill, over the lower row of switches
+CURVY_LAMPS = lambda top: [(514, 774, top, Z_FACE + 12.0, 1.0), (34, 470, 120, Z_FACE + 8.0, 0.5)]
+LEFT, UPPER_LEFT, TOP, UPPER_RIGHT = 180.0, 215.0, 270.0, 320.0
+
+NIGHT = {
+    # wood and chrome: the bulbs sit behind the walnut fascia on the gauges' left
+    "wagon":      dict(wash=dict(side=LEFT, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "luxury":     dict(wash=dict(side=LEFT, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),    # the clock (the VFD lights itself)
+    "horizon":    dict(wash=dict(side=UPPER_LEFT, power=1.0), lamps=[(512, 776, 22, Z_FACE + 12.0, 1.0), LOWER_LAMP]),
+    # vinyl and chrome: the same bulbs behind a black (steel, aluminium, painted) fascia, from the top edge
+    "nyala":      dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "dart":       dict(wash=dict(side=UPPER_LEFT, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "d6":         dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "van":        dict(wash=dict(side=TOP, power=0.9), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "bulldriver": dict(wash=dict(side=UPPER_RIGHT, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "rancher":    dict(wash=dict(side=LEFT, power=0.95), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    # fleet: the same, plain
+    "police":     dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "taxi":       dict(wash=dict(side=TOP, power=0.95), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "ambulance":  dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "fire":       dict(wash=dict(side=TOP, power=1.0), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "ranger":     dict(wash=dict(side=TOP, power=0.95), lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    # early 90s curves: from under the arched brow
+    "dashelite":  dict(wash=dict(side=UPPER_LEFT, power=1.0), lamps=CURVY_LAMPS(30)),
+    "primani":    dict(wash=dict(side=UPPER_RIGHT, power=1.0), lamps=CURVY_LAMPS(34)),
+    "suv":        dict(wash=dict(side=TOP, power=1.0), lamps=CURVY_LAMPS(28)),
+    # RPM first: the Cossette's digital pod lights itself (no gauge bulbs); the race car's dials are lit from the left,
+    # the switch panel by a lamp under the cage bar
+    "cossette":   dict(lamps=[CONSOLE_LAMP, LOWER_LAMP]),
+    "race":       dict(wash=dict(side=LEFT, power=1.05), lamps=[(512, 772, 32, Z_FACE + 10.0, 0.9)]),
+}
