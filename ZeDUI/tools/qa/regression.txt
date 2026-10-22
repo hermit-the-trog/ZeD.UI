@@ -34,6 +34,7 @@ zedqa_card_pad.lua | cp                          # pad into the item card and ba
 zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
 zedqa_onepath.lua | op                           # single-path fixes: Move To, Rename, double-click, Take all, card verbs
 zedqa_grid.lua | grid                            # inventory grid, cell card, pad walk, List | Grid toggle
+zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows
 zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
 zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
 zedqa_curtain.lua | cu                           # World window curtain roll / unroll, controller stop
