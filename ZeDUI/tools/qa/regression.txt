@@ -49,7 +49,7 @@ zedqa_tabs_lit.lua | tl                          # lit window tabs, then put bac
 zedqa_win.lua | win                              # the pair at the natural root and at a forced 1.0
 zedqa_rootchange.lua | rc                        # a root change re-derives the geometry
 zedqa_scalewalk.lua | sw                         # main tabs of both windows at natural and 1.0
-zedqa_uiscale.lua | scale                        # UI scale steps, back to Auto (the current setting)
+zedqa_uiscale.lua | scale                        # UI scale steps, Auto, then back to the run's own step
 
 # ---- maps, journal, print
 zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
