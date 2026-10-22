@@ -261,12 +261,21 @@ local function buckleTexture(id)
     end
     return t or nil
 end
+-- (the id kept per profession object: asked every frame)
+local _profObj, _profId = nil, nil
 local function professionId(p)
+    local prof = nil
+    pcall(function() prof = p:getDescriptor():getCharacterProfession() end)
+    if prof == nil then return nil end
+    if prof == _profObj then return _profId end
     local id = nil
-    pcall(function() id = p:getDescriptor():getCharacterProfession():getName() end)
-    if id == nil then return nil end
-    id = string.lower(tostring(id))
-    return id:match("([^:]+)$")   -- "base:farmer" -> "farmer"
+    pcall(function() id = prof:getName() end)
+    if id ~= nil then
+        id = string.lower(tostring(id))
+        id = id:match("([^:]+)$")   -- "base:farmer" -> "farmer"
+    end
+    _profObj, _profId = prof, id
+    return id
 end
 
 local function call(o, m, ...)
@@ -284,13 +293,21 @@ end
 function B.hotbar(playerNum) return getPlayerHotbar and getPlayerHotbar(playerNum or 0) or nil end
 
 -- The bound key's name for slot i ("1"), nil past the eighth (vanilla binds 1-8)
+-- (the binding is read every time; a key code's name never changes, so it is kept per code)
+local HOTBAR_KEY = {}
+for i = 1, 8 do HOTBAR_KEY[i] = "Hotbar " .. tostring(i) end
+local _keyName = {}
 function B.keyLabel(i)
     if i < 1 or i > 8 then return nil end
-    local code = getCore():getKey("Hotbar " .. tostring(i))
+    local code = getCore():getKey(HOTBAR_KEY[i])
     if not code or code == 0 then return nil end
-    local name = Keyboard.getKeyName(code)
-    if not name or name == "" then return nil end
-    return name
+    local name = _keyName[code]
+    if name == nil then
+        name = Keyboard.getKeyName(code)
+        if not name or name == "" then name = false end
+        _keyName[code] = name
+    end
+    return name or nil
 end
 
 -- slot type -> the key of its short name on the box (Back is vanilla's own word, below)
@@ -311,19 +328,50 @@ ZeD.trDefaults({
     UI_ZeD_Belt_WatchFull = "%1 | FULL WATCH", UI_ZeD_Belt_Replace = "REPLACE %1",
     UI_ZeD_Belt_InBags = "IN YOUR BAGS", UI_ZeD_Belt_BestLight = "Best light: %1",
 })
+-- The names are asked for every frame: kept per slot kind until the language or the test language changes
+-- (Oct 22 2026, the drawing-cost work)
+local _nm = { gen = -1, test = nil, short = {}, hand = {}, slot = {} }
+local function names()
+    local st = ZeD._trState
+    local on = (st and st.on) and true or false
+    if _nm.gen ~= ZeD._trGen or _nm.test ~= on then
+        _nm.gen, _nm.test, _nm.short, _nm.hand, _nm.slot = ZeD._trGen, on, {}, {}, {}
+    end
+    return _nm
+end
 function B.shortName(slotType)
-    if slotType == "Back" then return ZeD.upper(getText("IGUI_HotbarAttachment_Back")) end
-    local key = SHORT[slotType]
-    if key then return ZeD.tr(key) end
-    return string.upper(tostring(slotType or ""))
+    local c = names().short
+    local k = slotType or ""
+    local s = c[k]
+    if s then return s end
+    if slotType == "Back" then s = ZeD.upper(getText("IGUI_HotbarAttachment_Back"))
+    else
+        local key = SHORT[slotType]
+        if key then s = ZeD.tr(key) else s = string.upper(tostring(slotType or "")) end
+    end
+    c[k] = s
+    return s
 end
 -- "PRIMARY" / "SECONDARY" (vanilla's words for the two hands)
 function B.handName(which)
-    return ZeD.upper(getText(which == "p" and "IGUI_PrimaryTooltip" or "IGUI_SecondaryTooltip"))
+    local c = names().hand
+    local k = (which == "p") and "p" or "s"
+    local s = c[k]
+    if s then return s end
+    s = ZeD.upper(getText(k == "p" and "IGUI_PrimaryTooltip" or "IGUI_SecondaryTooltip"))
+    c[k] = s
+    return s
 end
 function B.slotName(slot)
     if not slot then return "" end
-    return getTextOrNull("IGUI_HotbarAttachment_" .. tostring(slot.slotType)) or tostring(slot.name or slot.slotType)
+    local c = names().slot
+    local k = tostring(slot.slotType)
+    local s = c[k]
+    if s == nil then
+        s = getTextOrNull("IGUI_HotbarAttachment_" .. k) or false
+        c[k] = s
+    end
+    return s or tostring(slot.name or slot.slotType)
 end
 -- "BELT 3" in the inventory lists (the key that draws it)
 function B.tagFor(i) return ZeD.tr("UI_ZeD_Belt_Tag", tostring(B.keyLabel(i) or i)) end
@@ -534,8 +582,45 @@ function ZeD_BeltHUD:wanted()
     return B.hotbar(self.playerNum) ~= nil
 end
 
+-- The layout, kept while nothing it is built from changes (Oct 22 2026, the drawing-cost work): the token table
+-- (theme, accent, text size, UI scale and art zoom all make a new one), the character, the slots and their kinds,
+-- the worn watch and its plate and wrist; the slots' materials are looked up again every second, as before. Only
+-- the boxes' slot records are refreshed every frame (what is in them, the key that draws them). Returns the size.
+function ZeD_BeltHUD:_layoutCached(slots)
+    local T = ZeD.T
+    local p = self:player()
+    local wItem, wPlate, wWrist = nil, nil, nil
+    if ZeD.Watch and ZeD.Watch.beltWatch then wItem, wPlate, wWrist = ZeD.Watch.beltWatch(p) end
+    local L = self._lk
+    local n = #slots
+    local now = getTimestampMs and getTimestampMs() or 0
+    local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
+        or L.wWrist ~= wWrist or not self._provAt or now - self._provAt > 1000
+    if not dirty then
+        local types = L.types
+        for i = 1, n do
+            local s = slots[i]
+            if types[i] ~= (s and s.slot and s.slot.slotType) then dirty = true; break end
+        end
+    end
+    if dirty then
+        local w, h = self:_layout(slots, wItem, wPlate, wWrist)
+        local types = {}
+        for i = 1, n do
+            local s = slots[i]
+            types[i] = s and s.slot and s.slot.slotType
+        end
+        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, types = types, w = w, h = h }
+        return w, h
+    end
+    for _, b in ipairs(self._boxes) do
+        if b.kind == "slot" then b.s = slots[b.i] end
+    end
+    return L.w, L.h
+end
+
 -- Layout: boxes keyed for hit testing; returns the panel size
-function ZeD_BeltHUD:_layout(slots)
+function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist)
     local T = ZeD.T
     local px = T.px
     local n = #slots
@@ -545,8 +630,7 @@ function ZeD_BeltHUD:_layout(slots)
     local x = 0
     -- the worn watch (the "Watch" option): right wrist left of the main hand,
     -- left wrist right of the off hand (the main hand is the game's right hand)
-    local wItem, wPlate, wWrist = nil, nil, nil
-    if ZeD.Watch and ZeD.Watch.beltWatch then wItem, wPlate, wWrist = ZeD.Watch.beltWatch(self:player()) end
+    -- (wItem, wPlate, wWrist: ZeD.Watch.beltWatch, asked by _layoutCached)
     -- the box is the mini watch as drawn: its art at the whole zoom T.art (Oct 21 2026); where that is
     -- taller than the hands (1.5: 92 px art, 78 px hands) the belt grows to it and the rest centre on it
     local mw, mh = 44 * T.art, 46 * T.art
@@ -689,36 +773,102 @@ local function dashedBorder(p, x, y, w, h, c, t)
     end
 end
 
--- A filled circle in the box (x, y, s x s), built from one-pixel screen rows like ZeD.Atoms.drawStatusDot so its edge
--- is crisp at every scale; the hands are round (director, Oct 16 2026: "make primary and secondary circles not square")
-local function disc(p, x, y, s, a, c)
-    local rad = s / 2
-    for row = 0, s - 1 do
-        local dy = math.abs(row - rad + 0.5)
-        local hw = math.floor(math.sqrt(math.max(0, rad * rad - dy * dy)) + 0.5)
-        if hw > 0 then p:drawRect(x + math.floor(rad) - hw, y + row, hw * 2, 1, a, c.r, c.g, c.b) end
-    end
+-- A filled circle in the box (x, y, s x s), made of one-pixel screen rows like ZeD.Atoms.drawStatusDot so its edge
+-- is crisp at every scale; the hands are round (director, Oct 16 2026: "make primary and secondary circles not square").
+-- Its outline (ring), t screen pixels thick. The rows are worked out once per size (roundShape) and drawn as one
+-- ready-made picture of exactly those pixels (ZeDUI/tools/physpx/d_rounds.py, media/textures/ZeD/belt/round/),
+-- tinted: one draw instead of a rectangle per row (Oct 22 2026, the drawing-cost work). A size with no picture
+-- draws the rows, runs of equal rows merged into one rectangle.
+local ROUND_DIR = "media/textures/ZeD/belt/round/"
+local _round, _roundN = {}, 0
+-- is there a picture for this size (the ranges d_rounds.py makes)
+local function roundBaked(s, t)
+    if not t then return s >= 36 and s <= 136 end
+    if (t == 2 or t == 3) and s >= 36 and s <= 80 then return true end
+    return (t == 4 or t == 6) and s >= 76 and s <= 122
 end
--- its outline, t screen pixels thick
-local function ring(p, x, y, s, t, a, c)
+local function roundShape(s, t)
+    local key = t and (s * 64 + t) or -s
+    local e = _round[key]
+    if e then return e end
+    -- the rows: { y, x0, w } per run of pixels, exactly as the row-by-row drawing had them
+    local rows = {}
     local rad = s / 2
-    local inner = math.max(0, rad - t)
+    local inner = t and math.max(0, rad - t) or 0
     for row = 0, s - 1 do
         local dy = math.abs(row - rad + 0.5)
         local hw = math.floor(math.sqrt(math.max(0, rad * rad - dy * dy)) + 0.5)
         if hw > 0 then
-            local iw = (dy < inner) and math.floor(math.sqrt(inner * inner - dy * dy) + 0.5) or 0
-            local cx = x + math.floor(rad)
+            local cx = math.floor(rad)
+            local iw = (t and dy < inner) and math.floor(math.sqrt(inner * inner - dy * dy) + 0.5) or 0
             if iw <= 0 then
-                p:drawRect(cx - hw, y + row, hw * 2, 1, a, c.r, c.g, c.b)
+                rows[#rows + 1] = { row, cx - hw, hw * 2 }
             else
-                p:drawRect(cx - hw, y + row, hw - iw, 1, a, c.r, c.g, c.b)
-                p:drawRect(cx + iw, y + row, hw - iw, 1, a, c.r, c.g, c.b)
+                rows[#rows + 1] = { row, cx - hw, hw - iw }
+                rows[#rows + 1] = { row, cx + iw, hw - iw }
             end
         end
     end
+    -- the picture's box (what the rows cover) and the rows merged: a run under an identical run grows down
+    local x0, x1, y0, y1 = nil, 0, 0, 0
+    local rx, ry, rw, rh, n = {}, {}, {}, {}, 0
+    local prevRow, prev, cur = -1, {}, {}     -- a run's key (x0, w) -> the rect it extends, on the row above / this row
+    for _, r in ipairs(rows) do
+        if r[3] > 0 then
+            if x0 == nil then x0, x1, y0, y1 = r[2], r[2] + r[3], r[1], r[1] + 1 end
+            if r[2] < x0 then x0 = r[2] end
+            if r[2] + r[3] > x1 then x1 = r[2] + r[3] end
+            if r[1] < y0 then y0 = r[1] end
+            if r[1] + 1 > y1 then y1 = r[1] + 1 end
+            if r[1] ~= prevRow then prev, cur, prevRow = cur, {}, r[1] end
+            local k = (r[2] + 1024) * 4096 + r[3]
+            local j = prev[k]
+            if j and ry[j] + rh[j] == r[1] then
+                rh[j] = rh[j] + 1
+            else
+                n = n + 1
+                rx[n], ry[n], rw[n], rh[n] = r[2], r[1], r[3], 1
+                j = n
+            end
+            cur[k] = j
+        end
+    end
+    x0 = x0 or 0
+    e = { ox = x0, oy = y0, bw = x1 - x0, bh = y1 - y0, n = n, x = rx, y = ry, w = rw, h = rh, tex = nil,
+          path = roundBaked(s, t) and (ROUND_DIR .. (t and ("r" .. s .. "_" .. t) or ("d" .. s)) .. ".png") or nil }
+    -- (a handful of sizes in use; a long scale walk starts the table over)
+    _roundN = _roundN + 1
+    if _roundN > 64 then _round, _roundN = {}, 1 end
+    _round[key] = e
+    return e
 end
-B._disc, B._ring = disc, ring
+-- the picture, once it has loaded and matches the rows' box; false when there is none
+local function roundTexture(e)
+    if e.tex ~= nil then return e.tex end
+    if not e.path then e.tex = false; return false end
+    local tex = Texture.getSharedTexture(e.path, 3)    -- 3 = nearest filtering (drawn 1:1 either way)
+    if not tex then e.tex = false; return false end
+    if not tex:isReady() then return nil end           -- still loading: rows this frame
+    if tex:getWidth() ~= e.bw or tex:getHeight() ~= e.bh then
+        print("[ZeD] Belt: " .. e.path .. " is " .. tex:getWidth() .. "x" .. tex:getHeight() .. ", the rows need " .. e.bw .. "x" .. e.bh .. "; drawing rows")
+        e.tex = false
+        return false
+    end
+    e.tex = tex
+    return tex
+end
+local function roundDraw(p, x, y, e, a, c)
+    local tex = roundTexture(e)
+    if tex then
+        p:drawTextureScaledAspect(tex, x + e.ox, y + e.oy, e.bw, e.bh, a, c.r, c.g, c.b)
+        return
+    end
+    local rx, ry, rw, rh = e.x, e.y, e.w, e.h
+    for i = 1, e.n do p:drawRect(x + rx[i], y + ry[i], rw[i], rh[i], a, c.r, c.g, c.b) end
+end
+local function disc(p, x, y, s, a, c) roundDraw(p, x, y, roundShape(s, nil), a, c) end
+local function ring(p, x, y, s, t, a, c) roundDraw(p, x, y, roundShape(s, t), a, c) end
+B._disc, B._ring, B._roundShape = disc, ring, roundShape
 
 function ZeD_BeltHUD:_drawStrap()
     local T = ZeD.T
@@ -922,8 +1072,9 @@ function ZeD_BeltHUD:_prerender()
     if not T then return end
     local p = self:player()
     if not self:wanted() then self._drawn = false; return end
+    if ZeD.trTestOn then ZeD.trTestOn() end   -- keeps the test-language state fresh for the kept names
     local slots = B.slots(self.playerNum)
-    local w, h = self:_layout(slots)
+    local w, h = self:_layoutCached(slots)
     -- the buckle on the screen's centre (director, Oct 19 2026: the belt may sit off centre;
     -- the buckle is where the eye goes)
     local b = self._buckle

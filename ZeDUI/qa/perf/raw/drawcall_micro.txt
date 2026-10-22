@@ -1,0 +1,9 @@
+MIC|rect wrapper|1.56 us per call
+MIC|rect java|0.60 us per call
+MIC|rect java cached|0.44 us per call
+MIC|text wrapper|3.12 us per call
+MIC|text java|1.02 us per call
+MIC|tex aspect wrapper|3.40 us per call
+MIC|tex aspect java|0.48 us per call
+MIC|measure TM|1.81 us per call
+MIC|empty loop|0.02 us per call

@@ -89,9 +89,57 @@ function P.rect(cv, x, y, w, h, c, a)
     cv.el:drawRect(cv.ox + x * k, cv.oy + y * k, w * k, h * k, a or 1, c.r, c.g, c.b)
 end
 
+-- ---------------------------------------------------------------------------
+-- Fewer rects, the same pixels (Oct 22 2026, the drawing-cost work): a set of rects of one colour that never
+-- overlap can be drawn as fewer, taller rects where a rect sits right under one of the same x and width. Every
+-- pixel is still covered exactly once, in the same colour and alpha, so the picture is the same.
+-- ---------------------------------------------------------------------------
+-- flat {x, y, w, h, ...} -> the same pixels as fewer rects (flat), or the list itself when its rects overlap
+local function mergeFlat(list)
+    local n = #list
+    if n < 8 then return list end
+    local seen = {}
+    for i = 1, n, 4 do
+        local x, y, w, h = list[i], list[i + 1], list[i + 2], list[i + 3]
+        for yy = y, y + h - 1 do
+            for xx = x, x + w - 1 do
+                local key = yy * 65536 + xx
+                if seen[key] then return list end
+                seen[key] = true
+            end
+        end
+    end
+    local out, open = {}, {}
+    for i = 1, n, 4 do
+        local x, y, w, h = list[i], list[i + 1], list[i + 2], list[i + 3]
+        local key = x * 65536 + w
+        local j = open[key]
+        if j and out[j + 1] + out[j + 3] == y then
+            out[j + 3] = out[j + 3] + h
+        else
+            j = #out + 1
+            out[j], out[j + 1], out[j + 2], out[j + 3] = x, y, w, h
+            open[key] = j
+        end
+    end
+    return out
+end
+local _merged, _mergedN = {}, 0
+local function mergedOf(list)
+    local m = _merged[list]
+    if m then return m end
+    m = mergeFlat(list)
+    _mergedN = _mergedN + 1
+    if _mergedN > 512 then _merged, _mergedN = {}, 1 end    -- (the lists are the plates' data: a handful)
+    _merged[list] = m
+    return m
+end
+P._mergeFlat = mergeFlat
+
 -- a flat rect list {x, y, w, h, x, y, w, h, ...}, offset by (dx, dy)
 function P.rects(cv, list, c, a, dx, dy)
     if not list then return end
+    list = mergedOf(list)
     local el, k, ox, oy = cv.el, cv.k, cv.ox + (dx or 0) * cv.k, cv.oy + (dy or 0) * cv.k
     local al = a or 1
     for i = 1, #list, 4 do
@@ -99,14 +147,31 @@ function P.rects(cv, list, c, a, dx, dy)
     end
 end
 
--- horizontal runs {x, y, w} as built by the rasterisers below
+-- horizontal runs {x, y, w} as built by the rasterisers below; a merged run carries its height (r[4])
 local function drawRuns(cv, runs, c, a, dx, dy)
     local el, k = cv.el, cv.k
     local ox, oy = cv.ox + (dx or 0) * k, cv.oy + (dy or 0) * k
     for i = 1, #runs do
         local r = runs[i]
-        el:drawRect(ox + r[1] * k, oy + r[2] * k, r[3] * k, k, a or 1, c.r, c.g, c.b)
+        el:drawRect(ox + r[1] * k, oy + r[2] * k, r[3] * k, (r[4] or 1) * k, a or 1, c.r, c.g, c.b)
     end
+end
+-- runs {x, y, w} (one pixel tall, never overlapping, rows in order) merged down into {x, y, w, h}
+local function mergeRuns(runs)
+    local out, open = {}, {}
+    for i = 1, #runs do
+        local r = runs[i]
+        local key = r[1] * 65536 + r[3]
+        local m = open[key]
+        if m and m[2] + m[4] == r[2] then
+            m[4] = m[4] + 1
+        else
+            m = { r[1], r[2], r[3], 1 }
+            out[#out + 1] = m
+            open[key] = m
+        end
+    end
+    return out
 end
 
 function P.image(cv, tex, x, y, w, h, a)
@@ -197,36 +262,118 @@ function P.needleRuns(cx, cy, deg, r0, r1, w, hub)
     return runsOf(body), runsOf(edge), runsOf(all)
 end
 
--- runs whose colour follows a light: L.dim(L, c, x, y) gives the colour at each run's middle (ZeD_Plate's night)
-local function drawRunsLit(cv, runs, c, L)
+
+-- The rasterised needle, kept per needle and angle (Oct 22 2026, the drawing-cost work: a needle at rest is
+-- rasterised once, not every frame), with each set also merged down for the drawing that has one colour:
+-- { body, edge, all, bodyM, edgeM, allM }. A needle's angles past NR_MAX start its list over.
+local NR_MAX = 64
+local _nr = {}
+-- the needle's samples as P.needleRuns takes them (the same steps, the same arithmetic): each sample's pixel
+-- key, doubled, plus one when it falls on the shaded side; in order
+local function needleSamples(cx, cy, deg, r0, r1, w, hub)
+    local a = deg * math.pi / 180
+    local ca, sa = math.cos(a), math.sin(a)
+    local px, py = -sa, ca
+    local lit = ((px * LX + py * LY) > 0) and 1 or -1
+    local steps = math.floor(math.abs(r1 - r0) * 2) + 1
+    local horiz = math.abs(ca) >= math.abs(sa)
+    local out, n = {}, 0
+    for i = 0, steps do
+        local r = r0 + (r1 - r0) * i / steps
+        if math.abs(r) >= hub then
+            local x, y = cx + ca * r, cy + sa * r
+            for j = 0, w - 1 do
+                local off = j - (w - 1) / 2
+                local X, Y
+                if horiz then X, Y = math.floor(x), math.floor(y + off) else X, Y = math.floor(x + off), math.floor(y) end
+                local side = (X + 0.5 - x) * px + (Y + 0.5 - y) * py
+                n = n + 1
+                out[n] = pkey(X, Y) * 2 + ((w == 1 or side * lit >= 0) and 0 or 1)
+            end
+        end
+    end
+    return out
+end
+local function needleSets(cx, cy, deg, r0, r1, w, hub)
+    w, hub = w or 2, hub or 0
+    local key = tostring(cx) .. "|" .. tostring(cy) .. "|" .. tostring(r0) .. "|" .. tostring(r1) .. "|" .. tostring(w) .. "|" .. tostring(hub)
+    local byDeg = _nr[key]
+    if not byDeg then byDeg = { n = 0, d = {} }; _nr[key] = byDeg end
+    local s = byDeg.d[deg]
+    if s then return s end
+    -- a moving needle (a reading settling) comes at a new angle every frame, but its pixels change only
+    -- now and then: when every sample lands on the same pixel, on the same side, as at the angle before,
+    -- the pixels are the same and so is everything made from them
+    local smp = needleSamples(cx, cy, deg, r0, r1, w, hub)
+    local last = byDeg.last
+    if last and #last.smp == #smp then
+        local same = true
+        for i = 1, #smp do if smp[i] ~= last.smp[i] then same = false; break end end
+        if same then
+            s = last.set
+            byDeg.d[deg] = s
+            byDeg.n = byDeg.n + 1
+            if byDeg.n >= NR_MAX then byDeg.d, byDeg.n = {}, 0 end
+            return s
+        end
+    end
+    local body, edge, all = P.needleRuns(cx, cy, deg, r0, r1, w, hub)
+    s = { body, edge, all }          -- [4..6]: the merged sets, made when first drawn (merged)
+    byDeg.last = { smp = smp, set = s }
+    if byDeg.n >= NR_MAX then byDeg.d, byDeg.n = {}, 0 end
+    byDeg.d[deg] = s
+    byDeg.n = byDeg.n + 1
+    return s
+end
+local function mergedSet(s, i)
+    local m = s[i + 3]
+    if not m then m = mergeRuns(s[i]); s[i + 3] = m end
+    return m
+end
+-- a lit needle's colours, run by run (L.dim(L, c, x, y) at each run's middle: ZeD_Plate's night light), kept on the needle's set while the
+-- light and the colour stay: { edge colours, body colours }
+local function litColours(s, c, ec, L)
+    local lc = s.lit
+    if lc and lc.c == c and lc.dim == L.dim and lc.map == L.map and lc.n8 == L.n8 and lc.lit == L.lit and lc.amb == L.amb
+       and lc.levels == L.levels and lc.tint == L.tint and lc.cell == L.cell and lc.cols == L.cols and lc.rows == L.rows then
+        return lc
+    end
+    lc = { c = c, dim = L.dim, map = L.map, n8 = L.n8, lit = L.lit, amb = L.amb, levels = L.levels, tint = L.tint, cell = L.cell,
+           cols = L.cols, rows = L.rows, e = {}, b = {} }
+    for i, r in ipairs(s[2]) do lc.e[i] = L.dim(L, ec, r[1] + r[3] * 0.5, r[2]) end
+    for i, r in ipairs(s[1]) do lc.b[i] = L.dim(L, c, r[1] + r[3] * 0.5, r[2]) end
+    s.lit = lc
+    return lc
+end
+local function drawRunsCols(cv, runs, cols)
     local el, k = cv.el, cv.k
     local ox, oy = cv.ox, cv.oy
     for i = 1, #runs do
-        local r = runs[i]
-        local cc = L.dim(L, c, r[1] + r[3] * 0.5, r[2])
+        local r, cc = runs[i], cols[i]
         el:drawRect(ox + r[1] * k, oy + r[2] * k, r[3] * k, k, 1, cc.r, cc.g, cc.b)
     end
 end
 
 -- L (optional): a light the needle follows run by run (in the dark only the stretch in a bulb's pool reads)
 function P.needle(cv, cx, cy, deg, r0, r1, w, hub, c, noShadow, L)
-    local body, edge, all = P.needleRuns(cx, cy, deg, r0, r1, w, hub)
-    if not noShadow then drawRuns(cv, all, P.BLACK, 0.45, 1, 2) end
+    local s = needleSets(cx, cy, deg, r0, r1, w, hub)
+    if not noShadow then drawRuns(cv, mergedSet(s, 3), P.BLACK, 0.45, 1, 2) end
     local ec = c._edge                 -- the shaded side, kept on the colour (one table, not one a frame)
     if not ec then ec = { r = c.r * 0.55, g = c.g * 0.55, b = c.b * 0.55 }; c._edge = ec end
     if L then
-        if #edge > 0 then drawRunsLit(cv, edge, ec, L) end
-        drawRunsLit(cv, body, c, L)
+        local lc = litColours(s, c, ec, L)
+        if #s[2] > 0 then drawRunsCols(cv, s[2], lc.e) end
+        drawRunsCols(cv, s[1], lc.b)
         return
     end
-    if #edge > 0 then drawRuns(cv, edge, ec) end
-    drawRuns(cv, body, c)
+    if #s[2] > 0 then drawRuns(cv, mergedSet(s, 2), ec) end
+    drawRuns(cv, mergedSet(s, 1), c)
 end
 
 -- a plain pointer line (knob pointers, clock hands): no shading, no shadow
 function P.pointer(cv, cx, cy, deg, r0, r1, w, c, hub)
-    local _, _, all = P.needleRuns(cx, cy, deg, r0, r1, w or 1, hub or 0)
-    drawRuns(cv, all, c)
+    local s = needleSets(cx, cy, deg, r0, r1, w or 1, hub or 0)
+    drawRuns(cv, mergedSet(s, 3), c)
 end
 
 -- ---------------------------------------------------------------------------
@@ -502,12 +649,95 @@ end
 local CHROME = { "#15171b", "#24272d", "#3a3e46", "#5a5f69", "#848a94", "#b3b9c2", "#dde2e8", "#ffffff" }
 local CHROME_ROWS = { [5] = { 8, 7, 6, 6, 5 }, [7] = { 8, 8, 7, 6, 6, 5, 4 } }
 
+-- A text in the pixel faces kept as its rects (Oct 22 2026, the drawing-cost work): the badges, legends and
+-- readouts are the same text frame after frame, so their rects are worked out once, merged down where a run sits
+-- under one of the same colour, x and width (each pass covers its pixels exactly once, so the picture is the same),
+-- and a frame only draws them. Kept per text, face, scale, style and colours; past TC_MAX texts (a marquee walks
+-- through many) and on a language change (the Turkish dotted I) the store starts over. A text with a word in the
+-- regular F1 face takes the full path below.
+local TC_MAX = 768
+local _tc, _tcN, _tcGen = {}, 0, nil
+local function textRects(str, font, scale, style, c, shadow, mul)
+    if _tcGen ~= ZeD._trGen or _tcN >= TC_MAX then _tc, _tcN, _tcGen = {}, 0, ZeD._trGen end
+    local k1 = str .. "\1" .. font .. "\1" .. tostring(scale) .. "\1" .. tostring(style or "")
+    local a = _tc[k1]
+    if not a then a = {}; _tc[k1] = a end
+    local ck = c or false
+    local b = a[ck]
+    if not b then b = {}; a[ck] = b end
+    local sk = shadow or false
+    local d = b[sk]
+    if not d then d = {}; b[sk] = d end
+    local mk = mul or false
+    local e = d[mk]
+    if e ~= nil then return e end
+    -- build: the layout must be all pixel glyphs
+    local lay = layoutOf(str, font)
+    e = false
+    if lay then
+        local pure = true
+        for i = 1, #lay.cells do if lay.cells[i].fb then pure = false; break end end
+        if pure then
+            local out = {}
+            local cells = lay.cells
+            local function addPass(dx, dy, colr, rowTones)
+                local open = {}
+                local cx = 0
+                for i = 1, #cells do
+                    local g = cells[i]
+                    local runs = g.runs
+                    for j = 1, #runs do
+                        local r = runs[j]
+                        local cc = colr
+                        if rowTones then cc = P.mulColor(P.color(CHROME[rowTones[r[2] + 1] or 6]), mul) end
+                        local rx, ry, rw = cx + r[1] * scale + dx, r[2] * scale + dy, r[3] * scale
+                        local byC = open[cc]
+                        if not byC then byC = {}; open[cc] = byC end
+                        local okey = (rx + 32768) * 65536 + rw
+                        local o = byC[okey]
+                        if o and out[o + 1] + out[o + 3] == ry then
+                            out[o + 3] = out[o + 3] + scale
+                        else
+                            o = #out + 1
+                            out[o], out[o + 1], out[o + 2], out[o + 3], out[o + 4] = rx, ry, rw, scale, cc
+                            byC[okey] = o
+                        end
+                    end
+                    cx = cx + (g.w + 1) * scale
+                end
+            end
+            if shadow then addPass(1, 1, P.color(shadow)) end
+            if style == "chrome" then
+                addPass(0, 0, nil, CHROME_ROWS[P.fontHeight(font) * scale] or CHROME_ROWS[5])
+            else
+                addPass(0, 0, c)
+            end
+            e = { w = lay.w * scale, r = out }
+        end
+    end
+    d[mk] = e
+    _tcN = _tcN + 1
+    return e
+end
+
 -- text at (x, y) (its top), align "l" | "c" | "r"; style "chrome" shades each row like the plate's chrome letters;
 -- mul (optional { r, g, b }) dims the chrome rows too (a badge in the dark; flat colours come in already dimmed)
 function P.text(cv, str, x, y, c, font, scale, align, style, shadow, mul)
     str = tostring(str or "")
     if str == "" then return 0 end
     font = font or "35"; scale = scale or 1
+    local e = textRects(str, font, scale, style, c, shadow, mul)
+    if e then
+        local w = e.w
+        if align == "c" then x = x - math.floor(w / 2) elseif align == "r" then x = x - w end
+        local list = e.r
+        local el, k, ox, oy = cv.el, cv.k, cv.ox, cv.oy
+        for i = 1, #list, 5 do
+            local cc = list[i + 4]
+            el:drawRect(ox + (x + list[i]) * k, oy + (y + list[i + 1]) * k, list[i + 2] * k, list[i + 3] * k, 1, cc.r, cc.g, cc.b)
+        end
+        return w
+    end
     local w = P.textWidth(str, font, scale)
     if align == "c" then x = x - math.floor(w / 2) elseif align == "r" then x = x - w end
     local lay = layoutOf(str, font)

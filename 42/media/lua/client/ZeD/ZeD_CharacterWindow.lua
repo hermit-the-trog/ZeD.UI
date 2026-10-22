@@ -63,6 +63,14 @@ local function getR()
     return R
 end
 
+-- the title stats' icons, looked up once (they were looked up every frame; Oct 22 2026, the drawing-cost work)
+local _statIcons = {}
+local function statIcon(path)
+    local t = _statIcons[path]
+    if t == nil then t = getTexture(path) or false; _statIcons[path] = t end
+    return t or nil
+end
+
 -- ============================================================================
 -- TAB STRIP CONSTANTS
 -- S124 scale: every constant below is a DESIGN UNIT (1 px at 1080p). Each use
@@ -5378,12 +5386,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- HP (middle)
         win.titleStats[#win.titleStats + 1] = {
             text = hp .. "%", color = hpColor,
-            icon = getTexture("media/textures/ZeD/icons/quit-smoking-036-heart.png"),
+            icon = statIcon("media/textures/ZeD/icons/quit-smoking-036-heart.png"),
         }
         -- Weight (rightmost)
         win.titleStats[#win.titleStats + 1] = {
             text = weight .. " / " .. maxWt,
-            icon = getTexture("media/textures/ZeD/icons/removals-018-packing.png"),
+            icon = statIcon("media/textures/ZeD/icons/removals-018-packing.png"),
         }
 
         local mcSel = win._mcSelected or {}

@@ -1,0 +1,48 @@
+pc_100_card.png                    identical
+pc_100_dashd.png                        113 px differ, max delta 227, 2 region(s)
+      region 0: x 1600-1604 y 2024-2041 (4x17) 44 px
+      region 1: x 1940-1947 y 2024-2046 (7x22) 69 px
+pc_100_dashn.png                        108 px differ, max delta 167, 2 region(s)
+      region 0: x 1600-1604 y 2024-2040 (4x16) 46 px
+      region 1: x 1941-1947 y 2024-2044 (6x20) 62 px
+pc_100_hud.png                     identical
+pc_100_map.png                          140 px differ, max delta 222, 3 region(s)
+      region 0: x 2569-2703 y 456-655 (134x199) 90 px
+      region 1: x 2360-2441 y 576-706 (81x130) 44 px
+      region 2: x 2172-2175 y 2116-2123 (3x7) 6 px
+pc_100_pair.png                    identical
+pc_175_card.png                          24 px differ, max delta 222, 1 region(s)
+      region 0: x 2376-2382 y 2082-2096 (6x14) 24 px
+pc_175_dashd.png                        584 px differ, max delta 227, 2 region(s)
+      region 0: x 1278-1290 y 1888-1932 (12x44) 312 px
+      region 1: x 1938-1974 y 1888-1934 (36x46) 272 px
+pc_175_dashn.png                        460 px differ, max delta 181, 2 region(s)
+      region 0: x 1280-1290 y 1888-1924 (10x36) 188 px
+      region 1: x 1946-1974 y 1888-1934 (28x46) 272 px
+pc_175_hud.png                     identical
+pc_175_map.png                           24 px differ, max delta 222, 1 region(s)
+      region 0: x 2378-2384 y 2082-2096 (6x14) 24 px
+pc_175_pair.png                          24 px differ, max delta 222, 1 region(s)
+      region 0: x 2376-2382 y 2082-2096 (6x14) 24 px
+pc_175_theme_dark_orange.png             16 px differ, max delta 222, 1 region(s)
+      region 0: x 2376-2384 y 2090-2094 (8x4) 16 px
+pc_175_theme_hicon_teal.png              16 px differ, max delta 222, 1 region(s)
+      region 0: x 2376-2384 y 2090-2094 (8x4) 16 px
+pc_175_theme_light_blue.png        identical
+pc_200_card.png                          32 px differ, max delta 222, 1 region(s)
+      region 0: x 2424-2432 y 2074-2086 (8x12) 32 px
+pc_200_dashd.png                        456 px differ, max delta 223, 2 region(s)
+      region 0: x 1280-1290 y 1888-1924 (10x36) 184 px
+      region 1: x 1950-1974 y 1888-1932 (24x44) 272 px
+pc_200_dashn.png                        448 px differ, max delta 169, 2 region(s)
+      region 0: x 1280-1288 y 1888-1922 (8x34) 176 px
+      region 1: x 1956-1974 y 1888-1932 (18x44) 272 px
+pc_200_hud.png                           24 px differ, max delta 222, 1 region(s)
+      region 0: x 2424-2430 y 2072-2086 (6x14) 24 px
+pc_200_map.png                          854 px differ, max delta 222, 3 region(s)
+      region 0: x 3164-3491 y 514-939 (327x425) 402 px
+      region 1: x 2746-3071 y 641-1019 (325x378) 412 px
+      region 2: x 2424-2432 y 2074-2086 (8x12) 40 px
+pc_200_pair.png                           8 px differ, max delta 222, 1 region(s)
+      region 0: x 2424-2426 y 2080-2084 (2x4) 8 px
+total differing pixels: 3331

@@ -464,17 +464,28 @@ local function inLight(p, st)
 end
 
 -- a moving strip in the dark: a cell's width at a time, each in the light it lies in
+-- (neighbouring cells in the same light are drawn as one stretch: the same pixels in the same colours, fewer rects;
+-- Oct 22 2026, the drawing-cost work)
 local function ribbonLit(cv, p, xx, L)
     local c0, c1, c2 = P.color(p.color), P.shade(p.color, 1.25), P.shade(p.color, 0.6)
     local cy = p.y + p.h / 2
     local step = L.cell or 4
     local x0 = p.x0
-    while x0 < xx do
-        local w = math.min(step, xx - x0)
-        local m = lightMul(L, x0 + w / 2, cy)
-        P.rect(cv, x0, p.y, w, p.h, P.mulColor(c0, m))
-        P.rect(cv, x0, p.y, w, 1, P.mulColor(c1, m))
-        P.rect(cv, x0, p.y + p.h - 1, w, 1, P.mulColor(c2, m))
+    local sx, sw, sm = nil, 0, nil          -- the stretch so far: its start, width and light
+    while true do
+        local w, m = 0, nil
+        if x0 < xx then
+            w = math.min(step, xx - x0)
+            m = lightMul(L, x0 + w / 2, cy)
+        end
+        if sx and (m ~= sm or w == 0) then
+            P.rect(cv, sx, p.y, sw, p.h, P.mulColor(c0, sm))
+            P.rect(cv, sx, p.y, sw, 1, P.mulColor(c1, sm))
+            P.rect(cv, sx, p.y + p.h - 1, sw, 1, P.mulColor(c2, sm))
+            sx = nil
+        end
+        if w == 0 then break end
+        if sx then sw = sw + w else sx, sw, sm = x0, w, m end
         x0 = x0 + step
     end
 end

@@ -592,11 +592,16 @@ local function refresh(content)
     local cc = content._cc
     cc.tick = (cc.tick or 0) + 1
     local other = otherInventory(content)
-    local sig = tostring(content._inventory) .. "|" .. sizeOf(content._inventory) .. "|" .. tostring(other) .. "|" .. sizeOf(other)
-    if cc.sig == sig and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
-    if cc.sig ~= sig and cc.invSeen ~= content._inventory then cc.ask = nil; cc.sx = {} end   -- another container: no pending question, the ribbons from their start
-    cc.invSeen = content._inventory
-    cc.sig, cc.frame = sig, cc.tick
+    -- (the containers and their sizes compared as they are: a string of them built every frame cost two
+    -- Java toString calls; Oct 22 2026, the drawing-cost work)
+    local inv = content._inventory
+    local n1, n2 = sizeOf(inv), sizeOf(other)
+    local same = cc.sigSet and cc.sigInv == inv and cc.sigN1 == n1 and cc.sigOther == other and cc.sigN2 == n2
+    if same and cc.tick - cc.frame < CT.REFRESH and cc.moves then return end
+    if not same and cc.invSeen ~= inv then cc.ask = nil; cc.sx = {} end   -- another container: no pending question, the ribbons from their start
+    cc.invSeen = inv
+    cc.sigSet, cc.sigInv, cc.sigN1, cc.sigOther, cc.sigN2 = true, inv, n1, other, n2
+    cc.frame = cc.tick
     local ok, moves, objs
     if content._ccSide == "char" then ok, moves, objs = pcall(buildChar, content)
     else ok, moves, objs = pcall(buildWorld, content) end

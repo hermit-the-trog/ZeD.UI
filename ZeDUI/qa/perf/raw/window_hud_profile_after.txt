@@ -1,0 +1,100 @@
+ZEDQA pdp DPROF|frames=900
+ZEDQA pdp DPROF|3.003 ms/frame|1.00 calls/frame|dash prerender (all)
+ZEDQA pdp DPROF|2.533 ms/frame|1.00 calls/frame|Plate.draw (plate + parts)
+ZEDQA pdp DPROF|2.500 ms/frame|1.00 calls/frame|Plate.drawParts
+ZEDQA pdp DPROF|1.019 ms/frame|2.00 calls/frame|Px.needle
+ZEDQA pdp DPROF|0.853 ms/frame|6.00 calls/frame|Px.text
+ZEDQA pdp DPROF|0.118 ms/frame|1.00 calls/frame|RadioOps.read
+ZEDQA pdp DPROF|0.063 ms/frame|2.00 calls/frame|Px.rects
+ZEDQA pdp DPROF|0.047 ms/frame|3.00 calls/frame|Px.pointer
+ZEDQA pdp DPROF|0.026 ms/frame|1.00 calls/frame|Dashboard.derive
+ZEDQA pdp DPROF|0.022 ms/frame|3.00 calls/frame|Focus.setZoneFocusable
+ZEDQA pdp DPROF|0.022 ms/frame|3.00 calls/frame|Focus.setRingZoneElements
+ZEDQA pdp DPROF|0.020 ms/frame|5.00 calls/frame|Px.imageTint
+ZEDQA pdp DPROF|0.019 ms/frame|2.00 calls/frame|Px.image
+PROF|pair_loot|frames=1345|frameMs=8.92|sumPreRender=4.19
+PROF|pair_loot|2.366 ms/frame|1.97 calls/frame|ZeD_Panel prerender 651x664 d1
+PROF|pair_loot|0.929 ms/frame|3.94 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|pair_loot|0.416 ms/frame|1.97 calls/frame|ZeD_Window render 777x735 d0
+PROF|pair_loot|0.271 ms/frame|1.97 calls/frame|ZeD_Window prerender 777x735 d0
+PROF|pair_loot|0.181 ms/frame|3.94 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|pair_loot|0.016 ms/frame|3.94 calls/frame|ZeD_Panel render 63x664 d1
+PROF|pair_loot|0.005 ms/frame|3.94 calls/frame|ZeD_Panel render 0x664 d1
+PROF|pair_loot|0.004 ms/frame|1.97 calls/frame|ZeD_Panel render 651x664 d1
+PROF|pair_loot|0.004 ms/frame|1.97 calls/frame|ISPanel render 777x735 d1
+PROF|pair_loot|0.004 ms/frame|0.43 calls/frame|ZeD_SearchField update 350x46 d2
+PROF|pair_loot|0.003 ms/frame|1.97 calls/frame|ISPanel prerender 777x735 d1
+PROF|pair_loot|0.001 ms/frame|0.17 calls/frame|ZeD_Window update 777x735 d0
+PROF|pair_multicolumn|frames=1185|frameMs=10.14|sumPreRender=5.51
+PROF|pair_multicolumn|1.815 ms/frame|1.00 calls/frame|ZeD_Panel prerender 1267x664 d1
+PROF|pair_multicolumn|1.677 ms/frame|1.00 calls/frame|ZeD_Panel prerender 826x664 d1
+PROF|pair_multicolumn|1.046 ms/frame|4.00 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|pair_multicolumn|0.224 ms/frame|1.00 calls/frame|ZeD_Window render 1393x735 d0
+PROF|pair_multicolumn|0.223 ms/frame|1.00 calls/frame|ZeD_Window render 952x735 d0
+PROF|pair_multicolumn|0.223 ms/frame|4.00 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|pair_multicolumn|0.166 ms/frame|1.00 calls/frame|ZeD_Window prerender 952x735 d0
+PROF|pair_multicolumn|0.118 ms/frame|1.00 calls/frame|ZeD_Window prerender 1393x735 d0
+PROF|pair_multicolumn|0.007 ms/frame|4.00 calls/frame|ZeD_Panel render 63x664 d1
+PROF|pair_multicolumn|0.005 ms/frame|2.00 calls/frame|ISPanel render 777x735 d1
+PROF|pair_multicolumn|0.005 ms/frame|4.00 calls/frame|ZeD_Panel render 0x664 d1
+PROF|pair_multicolumn|0.003 ms/frame|2.00 calls/frame|ISPanel prerender 777x735 d1
+PROF|world_maps|frames=1266|frameMs=9.49|sumPreRender=4.78
+PROF|world_maps|2.391 ms/frame|2.00 calls/frame|ZeD_Panel prerender 651x664 d1
+PROF|world_maps|0.951 ms/frame|4.00 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|world_maps|0.429 ms/frame|1.00 calls/frame|ZeD_Panel prerender 840x664 d1
+PROF|world_maps|0.267 ms/frame|1.00 calls/frame|ZeD_Window render 1617x735 d0
+PROF|world_maps|0.220 ms/frame|1.00 calls/frame|ZeD_Window render 777x735 d0
+PROF|world_maps|0.163 ms/frame|1.00 calls/frame|ZeD_Window prerender 777x735 d0
+PROF|world_maps|0.138 ms/frame|3.00 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|world_maps|0.132 ms/frame|1.00 calls/frame|ZeD_Window prerender 1617x735 d0
+PROF|world_maps|0.070 ms/frame|1.00 calls/frame|ZeD_WorldMap render 840x599 d2
+PROF|world_maps|0.006 ms/frame|4.00 calls/frame|ZeD_Panel render 63x664 d1
+PROF|world_maps|0.005 ms/frame|2.00 calls/frame|ZeD_Panel render 651x664 d1
+PROF|world_maps|0.005 ms/frame|2.00 calls/frame|ISPanel render 777x735 d1
+PROF|world_craft|frames=1163|frameMs=10.33|sumPreRender=5.51
+PROF|world_craft|2.454 ms/frame|2.00 calls/frame|ZeD_Panel prerender 651x664 d1
+PROF|world_craft|1.059 ms/frame|1.00 calls/frame|ZeD_Panel prerender 840x664 d1
+PROF|world_craft|0.945 ms/frame|4.00 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|world_craft|0.277 ms/frame|1.00 calls/frame|ZeD_Window render 1617x735 d0
+PROF|world_craft|0.211 ms/frame|1.00 calls/frame|ZeD_Window render 777x735 d0
+PROF|world_craft|0.154 ms/frame|1.00 calls/frame|ZeD_Window prerender 1617x735 d0
+PROF|world_craft|0.147 ms/frame|1.00 calls/frame|ZeD_Window prerender 777x735 d0
+PROF|world_craft|0.144 ms/frame|3.00 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|world_craft|0.049 ms/frame|1.00 calls/frame|ISTextEntryBox prerender 776x46 d3
+PROF|world_craft|0.028 ms/frame|1.00 calls/frame|ZeD_SearchField prerender 818x46 d2
+PROF|world_craft|0.017 ms/frame|1.00 calls/frame|ZeD_SearchField render 818x46 d2
+PROF|world_craft|0.007 ms/frame|4.00 calls/frame|ZeD_Panel render 63x664 d1
+UIE|hud|frames=1437|frameMs=8.36|top-level=18 elements=712|sum=1.31 ms/frame
+UIE|hud|0.720 ms/frame|1.00 calls/frame|ZeD_BeltHUD prerender 970x92 d0 vis=true Belt
+UIE|hud|0.103 ms/frame|1.00 calls/frame|WaterMarkUI render 226x22 d0 vis=true
+UIE|hud|0.091 ms/frame|1.00 calls/frame|ISEquippedItem prerender 53x621 d0 vis=true
+UIE|hud|0.065 ms/frame|1.00 calls/frame|ZeD_Watch prerender 0x0 d0 vis=true Watch
+UIE|hud|0.033 ms/frame|0.08 calls/frame|ISInventoryPage update 1280x720 d0 vis=false Trunk
+UIE|hud|0.029 ms/frame|1.00 calls/frame|ISButton render 226x23 d1 vis=true 42.21.0 4a0e9546ec pzBul
+UIE|hud|0.029 ms/frame|1.00 calls/frame|ISEquippedItem render 53x621 d0 vis=true
+UIE|hud|0.025 ms/frame|1.99 calls/frame|ISButton render 48x36 d1 vis=true
+UIE|hud|0.022 ms/frame|1.00 calls/frame|ZeD_ActionBarLayer prerender 1x1 d0 vis=true Action bar
+UIE|hud|0.019 ms/frame|1.00 calls/frame|ISButton prerender 226x23 d1 vis=true 42.21.0 4a0e9546ec pzBul
+UIE|hud|0.019 ms/frame|0.08 calls/frame|ISInventoryPage update 1280x720 d0 vis=false Inventory
+UIE|hud|0.017 ms/frame|1.00 calls/frame|WaterMarkUI prerender 226x22 d0 vis=true
+UIE|hud|0.010 ms/frame|1.00 calls/frame|ISButtonPrompt prerender 1x1 d0 vis=true
+UIE|hud|0.008 ms/frame|1.99 calls/frame|ISButton prerender 48x36 d1 vis=true
+UIE|hud|0.008 ms/frame|0.08 calls/frame|ISHotbar update 318x82 d0 vis=true
+UIE|hud|0.008 ms/frame|1.00 calls/frame|ZeD_MoodleLayer prerender 48x2160 d0 vis=true Moodles
+UIE|bare|frames=1437|frameMs=8.36|top-level=18 elements=712|sum=1.29 ms/frame
+UIE|bare|0.716 ms/frame|1.00 calls/frame|ZeD_BeltHUD prerender 970x92 d0 vis=true Belt
+UIE|bare|0.106 ms/frame|1.00 calls/frame|WaterMarkUI render 226x22 d0 vis=true
+UIE|bare|0.094 ms/frame|1.00 calls/frame|ISEquippedItem prerender 53x621 d0 vis=true
+UIE|bare|0.077 ms/frame|1.00 calls/frame|ZeD_Watch prerender 0x0 d0 vis=true Watch
+UIE|bare|0.035 ms/frame|1.99 calls/frame|ISButton render 48x36 d1 vis=true
+UIE|bare|0.031 ms/frame|0.08 calls/frame|ISInventoryPage update 1280x720 d0 vis=false Trunk
+UIE|bare|0.029 ms/frame|1.00 calls/frame|ISButton render 226x23 d1 vis=true 42.21.0 4a0e9546ec pzBul
+UIE|bare|0.022 ms/frame|0.08 calls/frame|ISInventoryPage update 1280x720 d0 vis=false Inventory
+UIE|bare|0.020 ms/frame|1.00 calls/frame|ISEquippedItem render 53x621 d0 vis=true
+UIE|bare|0.019 ms/frame|1.00 calls/frame|ZeD_ActionBarLayer prerender 1x1 d0 vis=true Action bar
+UIE|bare|0.018 ms/frame|1.00 calls/frame|WaterMarkUI prerender 226x22 d0 vis=true
+UIE|bare|0.015 ms/frame|1.00 calls/frame|ISButton prerender 226x23 d1 vis=true 42.21.0 4a0e9546ec pzBul
+UIE|bare|0.010 ms/frame|1.99 calls/frame|ISButton prerender 48x36 d1 vis=true
+UIE|bare|0.009 ms/frame|0.08 calls/frame|ISHotbar update 318x82 d0 vis=true
+UIE|bare|0.006 ms/frame|5.13 calls/frame|ISComboBox update 195x23 d4 vis=true
+UIE|bare|0.006 ms/frame|1.00 calls/frame|ISButtonPrompt prerender 1x1 d0 vis=true

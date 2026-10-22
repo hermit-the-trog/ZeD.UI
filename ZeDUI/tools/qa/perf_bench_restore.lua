@@ -20,4 +20,13 @@ pcall(function() t.l = getPerformance():getFramerate() end)
 pcall(function() t.i = getCore():getOptionUIRenderFPS() end)
 say(string.format("limits: vsync=%s uncapped=%s lock=%s uiRender=%s", tostring(t.v), tostring(t.u), tostring(t.l), tostring(t.i)))
 pcall(function() UIManager.setVisibleAllUI(true) end)
-say("DONE")
+-- (DONE a few frames later: the runner counts a script's lines only after the bridge has said it ran it;
+-- said at once, the run timed out here; Oct 22 2026)
+local waitN = 0
+local function later()
+    waitN = waitN + 1
+    if waitN < 30 then return end
+    Events.OnRenderTick.Remove(later)
+    say("DONE")
+end
+Events.OnRenderTick.Add(later)

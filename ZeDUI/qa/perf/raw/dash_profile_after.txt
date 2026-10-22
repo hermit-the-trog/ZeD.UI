@@ -1,0 +1,14 @@
+DPROF|frames=900
+DPROF|2.158 ms/frame|1.00 calls/frame|dash prerender (all)
+DPROF|1.651 ms/frame|1.00 calls/frame|Plate.draw (plate + parts)
+DPROF|1.613 ms/frame|1.00 calls/frame|Plate.drawParts
+DPROF|0.659 ms/frame|2.00 calls/frame|Px.text
+DPROF|0.550 ms/frame|2.00 calls/frame|Px.needle
+DPROF|0.123 ms/frame|1.00 calls/frame|RadioOps.read
+DPROF|0.061 ms/frame|3.00 calls/frame|Px.pointer
+DPROF|0.043 ms/frame|2.00 calls/frame|Px.rects
+DPROF|0.039 ms/frame|5.00 calls/frame|Px.imageTint
+DPROF|0.029 ms/frame|1.00 calls/frame|Dashboard.derive
+DPROF|0.017 ms/frame|3.00 calls/frame|Focus.setRingZoneElements
+DPROF|0.014 ms/frame|2.00 calls/frame|Px.image
+DPROF|0.009 ms/frame|3.00 calls/frame|Focus.setZoneFocusable
