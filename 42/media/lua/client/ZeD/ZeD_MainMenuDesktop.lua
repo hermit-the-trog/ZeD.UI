@@ -16,9 +16,10 @@
 -- second click opens it; Return or A opens the selected one, the arrows or the
 -- D-pad move between them. They sit under the windows, as icons do.
 --
--- The Trash opens a small window holding one file, system32.dll. EMPTY TRASH
--- deletes it, and with it the computer: the window asks the game's own "Quit
--- Project Zomboid?" (director, Oct 16 2026: "What if deleting system32.dll
+-- The Trash opens a small window holding one file: the Computer itself (Oct 21
+-- 2026, was system32.dll; the old desktop joke of dragging the computer to the
+-- trash). EMPTY TRASH throws the computer away: the window asks the game's own
+-- "Quit Project Zomboid?" (director, Oct 16 2026: "What if deleting system32.dll
 -- queues the are quit game dialog?"). CANCEL keeps everything.
 -- ============================================================================
 
@@ -63,7 +64,7 @@ local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() 
 -- icon pictures are loose textures the engine streams in after boot: they are asked for
 -- now, the menu's wake-up waits for them with the desk's own pictures, and a cell draws
 -- its name only once its picture is in, so the two always arrive together
-local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "trash", "dll" }
+local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "trash", "computer" }
 pcall(function() for _, n in ipairs(ICON_IDS) do Texture.getSharedTexture(ICON_DIR .. n .. ".png", NEAREST) end end)
 local function iconReady(t)
     if not t then return true end
@@ -216,7 +217,7 @@ end
 ZeD_MMTrash = ZeD_MMWindow:derive("ZeD_MMTrash")
 
 local TRASH_W = 440
-local FILE = { name = "system32.dll", size = "1,402 K", kind = "UI_ZeD_Desktop_FileKind" }   -- (kind: a translation key)
+local FILE = { name = "UI_ZeD_Desktop_FileName", size = "40 MB", kind = "UI_ZeD_Desktop_FileKind" }   -- (name, kind: translation keys)
 
 function ZeD_MMTrash:new()
     local o = ZeD_MMWindow.new(self, "trash")
@@ -242,7 +243,7 @@ function ZeD_MMTrash:close()
 end
 function ZeD_MMTrash:back() self:close() end
 
--- emptying it takes system32.dll, and the computer with it
+-- emptying it throws the computer away
 function ZeD_MMTrash:empty() self:setConfirm(true) end
 
 function ZeD_MMTrash:prerender()
@@ -270,11 +271,11 @@ function ZeD_MMTrash:prerender()
     local bx, by, bw = pad, tb + pad, w - pad * 2
     UI.insetBox(self, bx, by, bw, rowH + T.px(2))
     local ry = by + T.px(1)
-    local tex = icon("dll")
+    local tex = icon("computer")
     if tex then self:drawTextureScaledAspect(tex, bx + T.px(10), ry + math.floor((rowH - isz) / 2), isz, isz, 1, 1, 1, 1) end
     local tc, td = T.text, T.textDim
     local nx = bx + T.px(20) + isz
-    self:drawText(FILE.name, nx, ry + math.floor(rowH / 2) - MM.fontH(f2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+    self:drawText(ZeD.tr(FILE.name), nx,ry + math.floor(rowH / 2) - MM.fontH(f2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     self:drawText(ZeD.tr(FILE.kind), nx, ry + math.floor(rowH / 2), td.r, td.g, td.b, td.a or 1, f2)
     self:drawText(FILE.size, bx + bw - T.px(12) - MM.textW(f3, FILE.size), ry + math.floor((rowH - MM.fontH(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
 
