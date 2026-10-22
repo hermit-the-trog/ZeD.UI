@@ -30,13 +30,17 @@ local function rgb(h)
 end
 
 -- per plate: the case kind and the live parts' colours (d_miniwatch.py has the art's)
+-- bulb: a CaZio's bulb (Oct 21 2026; its _bulb / _bulb_night pictures); bulbInk: on a negative display the
+-- figures carry the light, { texel x edge, colour } steps from the left, by day and at night
 M.SPEC = {
-    digital_black = { kind = "digital", fg = rgb("#e8e8e8"), off = rgb("#161616"), nightFg = rgb("#8c8c8c") },
-    digital_gold  = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#b4b89c"), nightFg = rgb("#1a1e14") },
+    digital_black = { kind = "digital", fg = rgb("#e8e8e8"), off = rgb("#161616"), nightFg = rgb("#8c8c8c"), bulb = true,
+                      bulbInk = { day = { { 14, rgb("#ebe4cc") } },
+                                  night = { { 15, rgb("#878068") }, { 21, rgb("#767264") }, { 27, rgb("#67675f") } } } },
+    digital_gold  = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#b4b89c"), nightFg = rgb("#1a1e14"), bulb = true },
     timez_red     = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#b8c0a0"), nightFg = rgb("#1a1e14"), light = true },
     timez_steel   = { kind = "digital", fg = rgb("#1e2416"), off = rgb("#b8c0a0"), nightFg = rgb("#1a1e14"), light = true },
-    classic_black = { kind = "analog", ink = rgb("#e8e8e8"), nightInk = rgb("#7a7a7a") },
-    classic_gold  = { kind = "analog", ink = rgb("#1e2022"), nightInk = rgb("#0e1011") },
+    classic_black = { kind = "analog", ink = rgb("#e8e8e8"), nightInk = rgb("#7a7a7a"), bulb = true },
+    classic_gold  = { kind = "analog", ink = rgb("#1e2022"), nightInk = rgb("#0e1011"), bulb = true },
     timez_easy    = { kind = "analog", ink = rgb("#1e2022"), nightInk = rgb("#0e1011"), light = true },
     timez_camper  = { kind = "analog", ink = rgb("#f0f0f0"), nightInk = rgb("#8a8a8a"), light = true },
     expensive     = { kind = "analog", ink = rgb("#2a2a2a"), nightInk = rgb("#7ef08a"), glow = true },   -- Rollex: hands glow in the dark
@@ -84,11 +88,20 @@ local function px(p, X, Y, ck, tx, ty, tw, th, cl, a)
     p:drawRect(X + tx * ck, Y + ty * ck, tw * ck, th * ck, a or 1, cl.r, cl.g, cl.b)
 end
 
+-- the figures' colour at texel x: a bulb's step left of its edge, else the figures' own (zones may be nil)
+local _zones = nil
+local function zink(cl, tx)
+    local zs = _zones
+    if not zs then return cl end
+    for i = 1, #zs do if tx < zs[i][1] then return zs[i][2] end end
+    return cl
+end
+
 local function digits(p, X, Y, ck, s, x, y, cl)
     for i = 1, #s do
         local ch = s:sub(i, i)
         if ch == ":" then
-            px(p, X, Y, ck, x, y + 2, 1, 1, cl); px(p, X, Y, ck, x, y + 4, 1, 1, cl)
+            px(p, X, Y, ck, x, y + 2, 1, 1, zink(cl, x)); px(p, X, Y, ck, x, y + 4, 1, 1, zink(cl, x))
             x = x + 2
         elseif ch == " " then
             x = x + 5
@@ -96,7 +109,7 @@ local function digits(p, X, Y, ck, s, x, y, cl)
             local segs = SEG[ch] or ""
             for j = 1, #segs do
                 local r = SEGR[segs:sub(j, j)]
-                px(p, X, Y, ck, x + r[1], y + r[2], r[3], r[4], cl)
+                px(p, X, Y, ck, x + r[1], y + r[2], r[3], r[4], zink(cl, x + r[1]))
             end
             x = x + 5
         end
@@ -126,18 +139,24 @@ local function hand(p, X, Y, ck, ang, len, w, cl)
     end
 end
 
--- st: hour, minute (24 h), fmt24, speed (0 = paused), armed, dark, lit
+-- st: hour, minute (24 h), fmt24, speed (0 = paused), armed, dark, lit, night (the sun is down, lit or not)
 function M.draw(p, x, y, plate, st)
     local spec = M.SPEC[plate]
     if not spec then return end
     local ck, ox, oy = fit()
     local X, Y = x + ox, y + oy
+    -- a Timez's light replaces the dark; a CaZio's bulb keeps it and warms the glass a little by the bulb
+    local bulb = st.lit and spec.bulb
+    local dark = st.dark or (bulb and st.night) or false
     local variant = plate
-    if st.lit and spec.light then variant = plate .. "_lit" elseif st.dark then variant = plate .. "_night" end
+    if st.lit and spec.light then variant = plate .. "_lit"
+    elseif bulb then variant = plate .. (dark and "_bulb_night" or "_bulb")
+    elseif dark then variant = plate .. "_night" end
+    _zones = (bulb and spec.bulbInk) and (dark and spec.bulbInk.night or spec.bulbInk.day) or nil
     local t = tex(variant) or tex(plate)
     if t then p:drawTextureScaledAspect(t, X, Y, M.W * ck, M.H * ck, 1, 1, 1, 1) end
     if spec.kind == "digital" then
-        local fg = (st.lit and spec.light) and LIT_INK or (st.dark and spec.nightFg or spec.fg)
+        local fg = (st.lit and spec.light) and LIT_INK or (dark and spec.nightFg or spec.fg)
         local h = st.hour
         if not st.fmt24 then h = h % 12; if h == 0 then h = 12 end end
         local s = string.format("%2d:%02d", h, st.minute)
@@ -145,12 +164,12 @@ function M.draw(p, x, y, plate, st)
         if st.armed then px(p, X, Y, ck, 10, 20, 1, 1, RED) end
         for i = 0, 2 do
             local mx = 17 + i * 4
-            if st.speed == 0 then px(p, X, Y, ck, mx, 30, 1, 1, fg)
-            else px(p, X, Y, ck, mx, 30, 2, 1, (i < st.speed) and fg or spec.off) end
+            if st.speed == 0 then px(p, X, Y, ck, mx, 30, 1, 1, zink(fg, mx))
+            else px(p, X, Y, ck, mx, 30, 2, 1, (i < st.speed) and zink(fg, mx) or spec.off) end
         end
-        if st.speed > 0 then px(p, X, Y, ck, 5, 30, 1, 1, st.dark and GREEN_DIM or GREEN) end
+        if st.speed > 0 then px(p, X, Y, ck, 5, 30, 1, 1, dark and GREEN_DIM or GREEN) end
     else
-        local ink = (st.lit and spec.light) and LIT_INK or (st.dark and spec.nightInk or spec.ink)
+        local ink = (st.lit and spec.light) and LIT_INK or (dark and spec.nightInk or spec.ink)
         hand(p, X, Y, ck, ((st.hour % 12) + st.minute / 60) * 30, 7, 2, ink)
         hand(p, X, Y, ck, st.minute * 6, 11, 1, ink)
         px(p, X, Y, ck, 21, 23, 1, 1, RED)

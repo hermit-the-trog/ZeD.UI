@@ -1262,7 +1262,8 @@ function ZeD_BeltHUD:onJoypadDown(button)
     if not b then return end
     if b.kind == "watch" then
         if button == Joypad.AButton then ZeD.Watch.act("start")
-        elseif button == Joypad.XButton then ZeD.Watch.act("speed") end
+        elseif button == Joypad.XButton then ZeD.Watch.act("speed")
+        elseif button == Joypad.YButton and ZeD.Watch.hasLight(b.plate) then ZeD.Watch.act("light") end   -- Timez glow, CaZio bulb
         return
     end
     if button == Joypad.AButton then

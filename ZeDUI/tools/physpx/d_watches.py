@@ -86,6 +86,78 @@ def strap(p, x, w, y0, y1, mat="strap", ridge=4, kind="resin"):
     return m
 
 
+# ------------------------------------------------------------------ the CaZio light (director, Oct 21 2026)
+# "the cazio watches would have a little bulb too in one of the sides. they didnt have glow but did have a crappy
+# little yellow glowing bulb": a tiny incandescent bulb at the display's left edge, beside the LIGHT pusher at the
+# top of the case's left side (the director's reference: a 1990s digital, LIGHT top left with its printed arrow).
+# Pressed, the glass turns only a little warmer and lighter, a soft yellowish grey a touch stronger by the bulb and
+# fading across; the figures stay dark; nothing glows. In the dark it just lets you read the time.
+# Three steps of the glass warmed toward the bulb's colour, ordered-dithered between steps (hard pixels).
+BULB_LIGHT = (255, 200, 90)                           # what the bulb adds to the glass at night (weak warm yellow)
+BULB_DOT = ("#e2c25e", "#bf9a3e")                     # the lit bulb, tiny and dim: its hot corner, the rest of it
+BULB_STEPS = {                                        # per glass: (day mix toward the day tint, night light added)
+    "lcdneg": ((0.02, 0.04, 0.06), (0.03, 0.05, 0.08)),
+    "lcdpos": ((0.04, 0.07, 0.11), (0.06, 0.11, 0.17)),
+    "lcdgrey": ((0.04, 0.07, 0.11), (0.06, 0.11, 0.17)),
+}
+BULB_DAY_TINT = (236, 214, 130)
+BAYER4 = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
+# a negative display's figures (light on dark glass) carry the light themselves: by x from the display's left edge,
+# the figures within each step take its colour (ZeD_Plate.lua's radioDisplay, fields "bulbDay" / "bulbNight"); a
+# little warmer and lighter than the night's grey, never bright
+BULB_INK_NEG = {"bulbDay": [{"x": 14, "c": "#ebe4cc"}],
+                "bulbNight": [{"x": 16, "c": "#878068"}, {"x": 34, "c": "#767264"}, {"x": 54, "c": "#67675f"}]}
+
+
+def _rgb(c): return hx(c) if isinstance(c, str) else tuple(c)
+
+
+def _hex(c): return "#%02x%02x%02x" % tuple(int(max(0, min(255, round(v)))) for v in c)
+
+
+def bulb_ramp(glass, night, i):
+    """the pool's step i (1 faintest .. 3) for a glass, day or night: the glass's own ramp, every shade warmed the same
+    way (so the glass keeps its shading under the light), registered once as a material"""
+    name = f"bulb_{glass}_{'n' if night else 'd'}{i}"
+    if name not in RAMPS:
+        day_t, night_t = BULB_STEPS[glass]
+        src = RAMPS[nt(glass, night)]
+        if night:
+            t = night_t[i - 1]
+            RAMPS[name] = [tuple(int(min(255, round(c + l * t))) for c, l in zip(sh, BULB_LIGHT)) for sh in src]
+        else:
+            t = day_t[i - 1]
+            RAMPS[name] = [tuple(int(round(c + (dc - c) * t)) for c, dc in zip(sh, BULB_DAY_TINT)) for sh in src]
+    return name
+
+
+def bulb(p, glass_mask, bx, by, glass, night=False, lit=False, reach=34.0, seed=0):
+    """the bulb, a 1 x 2 speck at (bx, by) on the glass's left edge, and, lit, its light over the glass: a little
+    stronger by the bulb and fading across, three steps of the glass warmed, ordered-dithered on a 4 x 4 Bayer grid"""
+    d = p.d
+    cx, cy = bx + 0.5, by + 1.0
+    if lit:
+        R = reach if night else reach * 0.6
+        top = 3.4 if night else 2.6                      # by day the steps fade sooner
+        yy, xx = np.mgrid[0:p.H, 0:p.W]
+        dx, dy = xx + 0.5 - cx, (yy + 0.5 - cy) * 1.2
+        th = np.arctan2(dy, dx)
+        r = np.hypot(dx, dy) / (1.0 + 0.16 * np.sin(2.0 * th + 0.6 + seed) + 0.08 * np.cos(5.0 * th + 1.3 + seed))
+        inten = top * np.clip(1.0 - r / R, 0, 1) ** 1.3
+        thr = np.array(BAYER4, float)[yy % 4, xx % 4] / 16.0
+        lev = np.clip(np.floor(inten + thr), 0, 3).astype(int)
+        for i in (1, 2, 3):
+            m = glass_mask & (lev == i)
+            if m.any(): d.paint(m, bulb_ramp(glass, night, i))
+        d.glow(rbox(d, bx, by, 1, 1), BULB_DOT[0]); d.glow(rbox(d, bx, by + 1, 1, 1), BULB_DOT[1])
+    else:
+        # the dead bulb: a dull speck at the glass's edge
+        g = _rgb(RAMPS[nt(glass, night)][4])
+        off = _hex([v * 0.55 + w * 0.45 for v, w in zip(g, (58, 52, 38) if glass != "lcdneg" else (70, 66, 56))])
+        d.glow(rbox(d, bx, by, 1, 2), off)
+    p.meta["light"] = "bulb"
+
+
 def flat_key(p, pid, x, y, w, h, mat, label=None, lab_mat="paint_k", z=1.4, r=2):
     d = p.d
     m = soft_poly(p.W, p.H, octagon(x, y, x + w, y + h, 2), 1.0)
@@ -105,9 +177,10 @@ DIGITAL = {
     "digital_gold":  ("gold",      "face_gold", "paint_k", "key_salmon", "key_orange", "gold",      "paint_k", "lcdpos",  "#1a1c16", "#b2b796", ("gold", "links"),       "paint_k", "paint_k"),
 }
 LCD = (20, 49, 84, 38)
+ARROW_INK = {"face_gold": "paint_k"}                     # the printed tab beside LIGHT: gold ink, dark on a gold face
 
 
-def digital(name="digital_black", worn=True, night=False):
+def digital(name="digital_black", worn=True, night=False, bulb_on=False):
     case_m, face_m, ring_m, kl, kr, metal, ink, glass, lcd_ink, lcd_ghost, (strap_m, strap_k), brand_ink, key_ink = DIGITAL[name]
     W, H = 124, 176
     p = Plate(name, W, H, seed=sum(map(ord, name)) % 997, title=name.replace("_", " "))
@@ -115,6 +188,9 @@ def digital(name="digital_black", worn=True, night=False):
     # the strap: under the case at both ends
     strap(p, 34, 56, 0, 34, strap_m, kind=strap_k)
     strap(p, 34, 56, 144, H, strap_m, kind=strap_k)
+    # the LIGHT pusher high on the case's left side (the case covers its root)
+    d.slab(Mask(W, H).rrect(3, 43, 8, 7, 2).get(), Z_FACE - 0.2, metal, bevel=1.0, polish=0.9)
+    p.hit("light", 0, 38, 14, 16)
     # the case: an octagon with dulled corners, its rim bevelled down to the strap
     case = soft_poly(W, H, octagon(8, 24, 116, 152, 17), 3.0)
     d.slab(case, Z_FACE + 1.0, case_m, bevel=3.0, polish=0.6)
@@ -128,12 +204,19 @@ def digital(name="digital_black", worn=True, night=False):
     wr = soft_poly(W, H, octagon(78, 35, 94, 42, 2), 0.8)
     d.paint(wr, "paint_b", flatlight=True)
     d.text("WR", 86, 36, "paint_w", align="c", flatlight=True)
-    d.text("ALARM THERMOMETER", 62, 44, ink, align="c", flatlight=True)
+    # the second row: LIGHT at the left with its printed tab pointing at the pusher, the model's features at the right
+    tab = ARROW_INK.get(face_m, "print_gold")
+    d.paint(rbox(d, 19, 44, 3, 3) | rbox(d, 18, 45, 1, 1), tab, flatlight=True)   # a small tab, its point to the side
+    d.text("LIGHT", 24, 43, ink, flatlight=True)
+    d.text("ALARM-THERMO", 105, 43, ink, align="r", flatlight=True)
     # the display
     x, y, w, h = LCD
-    window(d, x - 1, y - 1, w + 2, h + 2, 1.0, face=nt(glass, night), bezel="blackp", r=1, bezel_t=1, on=Z_FACE + 0.4, lens=False)
+    gl = window(d, x - 1, y - 1, w + 2, h + 2, 1.0, face=nt(glass, night), bezel="blackp", r=1, bezel_t=1, on=Z_FACE + 0.4, lens=False)
+    # the bulb on the display's left edge, level with the day, near its pusher (clear of every field)
+    bulb(p, gl, x, y + 4, glass, night=night, lit=bulb_on, reach=60.0)
+    extra = BULB_INK_NEG if glass == "lcdneg" else {}
     p.part("radioDisplay", kind="watch", style="lcd", x=x, y=y, w=w, h=h, color=lcd_ink, ghost=lcd_ghost, fields=DIGITAL_FIELDS,
-           night=lcd_night(glass))
+           night=lcd_night(glass), **extra)
     set_areas(p, x, y, w, h)
     # a rule under the display, then the two coloured keys on the face with their words over them
     d.paint(rbox(d, 20, 92, 84, 1), ink, flatlight=True)
@@ -211,7 +294,7 @@ CLASSIC = {
 }
 
 
-def classic(name="classic_black", worn=True, night=False):
+def classic(name="classic_black", worn=True, night=False, bulb_on=False):
     case_m, bezel_m, dial_m, idx_m, (strap_m, strap_k), ink, brand_ink, hands_c, glass = CLASSIC[name]
     W, H = 150, 176
     p = Plate(name, W, H, seed=sum(map(ord, name)) % 997, title=name.replace("_", " "))
@@ -232,6 +315,9 @@ def classic(name="classic_black", worn=True, night=False):
     for k in range(3):
         d.seam(rbox(d, 124 + k * 2, 83, 1, 10), 0.3)
     p.hit("crown", 125, 80, 12, 16)
+    # the LIGHT pusher at nine, on the display's side (the crown's opposite)
+    d.slab(Mask(W, H).rrect(18, 84, 10, 8, 2).get(), Z_FACE - 0.2, "gold" if case_m == "gold" else "steel", bevel=1.0, polish=0.9)
+    p.hit("light", 12, 80, 14, 16)
     body = disc(d, cx, cy, 50)
     d.slab(body, Z_FACE + 1.2, case_m, bevel=3.0, polish=0.55)
     # the bezel ring and the dial under the glass
@@ -247,11 +333,12 @@ def classic(name="classic_black", worn=True, night=False):
     d.text("CaZio", cx, 62, nt(brand_ink, night), align="c", flatlight=True)
     d.text("QUARTZ", cx, 69, nt(ink, night), align="c", flatlight=True)
     # the pushers' words, printed beside them on the case's flank (v5's places)
-    for (x, y, t) in ((28, 46, "SET"), (122, 46, "ALARM"), (28, 125, "SPEED"), (122, 125, "START")):
+    for (x, y, t) in ((28, 46, "SET"), (122, 46, "ALARM"), (28, 125, "SPEED"), (122, 125, "START"), (13, 76, "LIGHT")):
         nameplate(d, t, x, y, on=Z_FACE - 1.0, mat="paint_w", font="35", z=0.4, align="c")
-    # the display window in the dial's lower half
+    # the display window in the dial's lower half, its bulb on the left edge
     x, y, w, h = 53, 98, 44, 14
-    window(d, x - 1, y - 1, w + 2, h + 2, 0.6, face=nt(glass, night), bezel=bezel_m, r=0, bezel_t=1, on=Z_FACE + 1.0, lens=False)
+    gl = window(d, x - 1, y - 1, w + 2, h + 2, 0.6, face=nt(glass, night), bezel=bezel_m, r=0, bezel_t=1, on=Z_FACE + 1.0, lens=False)
+    bulb(p, gl, x, y + 6, glass, night=night, lit=bulb_on, reach=36.0, seed=1.1)
     p.part("radioDisplay", kind="watch", style="lcd", x=x, y=y, w=w, h=h, color="#1a1a1a", ghost="#a8ad90", fields=CLASSIC_FIELDS,
            night=lcd_night("lcdgrey"))
     set_areas(p, 41, 94, 68, 24)
@@ -366,7 +453,9 @@ def reading(hour=10, minute=58, sec=50, day="MO", date=26, speed=1, alarm=False,
 def state(**kw):
     dig = kw.pop("digital_", True)
     dark, lit = kw.pop("dark", False), kw.pop("lit", False)
+    bulb_on = kw.pop("bulb", False)          # a CaZio's bulb (ZeD_Watch.lua: the night stays, the pool goes over it)
     s = {"display": reading(digital_=dig, **kw), "hour": kw.get("hour", 10), "minute": kw.get("minute", 58),
          "running": kw.get("speed", 1) > 0, "alarmOn": kw.get("alarm", False), "dark": dark and not lit, "lit": lit,
-         "setOpen": kw.get("set_open", False)}
+         "setOpen": kw.get("set_open", False), "bulb": bulb_on, "bulbDay": bulb_on and not dark,
+         "bulbNight": bulb_on and dark}
     return s

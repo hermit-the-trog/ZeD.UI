@@ -9,6 +9,11 @@
 --          START metal keys below; the thermometer is its perk.
 --          classic (black, gold): hands + a small display; SET, ALARM, SPEED,
 --          START pushers, the crown opens the alarm's setting.
+--          LIGHT (Oct 21 2026, director: "a crappy little yellow glowing bulb"):
+--          a pusher high on the left (the digital) or at nine (the classic)
+--          lights a tiny bulb at the display's left edge for W.LIGHT_MS; the
+--          glass goes a little warmer and lighter by it, fading across; the
+--          night stays (the plate's "bulb" pictures, st.bulb; plate data light = "bulb").
 --   Timez  digital (red, steel): SET, ALARM, SPEED, START pushers in the case's
 --          cut corners and the big INDIGLOW key under the screen.
 --          analogue (Easy Reader, Camper): the main crown is the light, the small
@@ -43,7 +48,7 @@
 -- The controls every plate may carry (click area ids):
 --   speed  steps the game speed 1x 2x 3x 4x    start  pauses / runs
 --   alarm  arms or disarms the alarm         set, crown  open / close the alarm's setting
---   light  lights the watch (Timez)          setdn, setup  the alarm hour -1 / +1 while setting
+--   light  lights the watch (Timez, CaZio)   setdn, setup  the alarm hour -1 / +1 while setting
 --                                             (one hour past 23 or before 0 is OFF)
 --   speed0..speed3  the no-watch tape deck keys
 -- ============================================================================
@@ -60,7 +65,7 @@ ZeD = ZeD or {}
 ZeD.Watch = ZeD.Watch or {}
 local W = ZeD.Watch
 W.scale = W.scale or 1.0
-W.LIGHT_MS = 3000                  -- how long a Timez stays lit after a press (a real one: about three seconds)
+W.LIGHT_MS = 3000                  -- how long a Timez or a CaZio's bulb stays lit after a press (a real one: about three seconds)
 W.watches = W.watches or {}        -- full item type -> its registration
 W.fallback = W.fallback or { digital = "digital_black", analog = "classic_black" }
 
@@ -111,6 +116,20 @@ local function _plateOf(def)
         def._ctx = { tex = function(name) return ZeD.Px.tex(dir .. name .. ".png") end }
     end
     return des, def._ctx
+end
+
+-- whether a registration's plate (or a plate id) has a light: a Timez's glow or a CaZio's bulb (its
+-- "light" control); asked once per registration
+function W.hasLight(def)
+    if type(def) == "string" then def = { plate = def } end
+    if type(def) ~= "table" then return false end
+    if def._hasLight == nil then
+        local des = _plateOf(def)
+        local has = false
+        for _, h in ipairs((des and des.hits) or {}) do if h.id == "light" then has = true end end
+        def._hasLight = has
+    end
+    return def._hasLight
 end
 
 -- ---------------------------------------------------------------------------
@@ -307,7 +326,8 @@ function W.miniState(player, item)
     _mini.armed = _safe(function() return item:isAlarmSet() end, false) and true or false
     local inst = W._instance
     _mini.lit = inst ~= nil and getTimestampMs() < (inst._litUntil or 0)
-    _mini.dark = (not _mini.lit) and _isDark(gt:getTimeOfDay() or _mini.hour) or false
+    _mini.night = _isDark(gt:getTimeOfDay() or _mini.hour) and true or false   -- a CaZio's bulb keeps the night under it
+    _mini.dark = (not _mini.lit) and _mini.night
     return _mini
 end
 
@@ -464,8 +484,15 @@ function ZeD_Watch:prerender()
     st.running = speed > 0
     st.alarmOn = armed
     st.setOpen = self._setOpen
-    st.lit = getTimestampMs() < (self._litUntil or 0)
+    -- the light: a Timez glows (its lit picture replaces the dark one); a CaZio's bulb (des.light == "bulb")
+    -- only warms the glass a little, so the dark stays and the bulb's picture goes over it
+    local on = getTimestampMs() < (self._litUntil or 0)
+    local isBulb = des.light == "bulb"
+    st.lit = on and not isBulb
+    st.bulb = on and isBulb
     st.dark = (not st.lit) and _isDark(gt:getTimeOfDay() or st.hour) or false
+    st.bulbDay = st.bulb and not st.dark
+    st.bulbNight = st.bulb and st.dark
     _reading(st.display, player, item, speed, self._setOpen, armed, alarmHour)
     -- (an add-on face with bad data logs once and is not drawn, rather than throwing every
     -- frame on an always-visible prop; code audit Oct 17 2026)
@@ -481,7 +508,10 @@ function ZeD_Watch:_act(id)
     if id == "speed" then _actSpeed(); return end
     if id == "start" then _actStart(); return end
     if not item then return end
-    if id == "light" then self._litUntil = getTimestampMs() + W.LIGHT_MS; return end
+    if id == "light" then
+        if W.hasLight(self._def) then self._litUntil = getTimestampMs() + W.LIGHT_MS end   -- a watch without one: nothing
+        return
+    end
     if id == "alarm" then
         if self._setOpen then self._setOpen = false; return end
         pcall(function() item:setAlarmSet(not item:isAlarmSet()) end); return

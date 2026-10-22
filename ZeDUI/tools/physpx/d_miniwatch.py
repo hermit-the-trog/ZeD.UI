@@ -113,6 +113,51 @@ def analog(p, lit=False):
             im.putpixel((X, Y), c(p["tick"]) if not lit else c("#2a7a72"))
     return im
 
+# --- a CaZio's bulb (Oct 21 2026): a 1 x 2 speck at the display's (or the dial's) left edge; pressed, the glass goes a
+# little warmer and lighter by it, fading across in three dithered steps (the full watch's look, d_watches.bulb)
+BAYER4 = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
+BULB_LIGHT = (255, 200, 90)
+BULB_DAY_TINT = (236, 214, 130)
+BULB_DOT = ("#e2c25e", "#bf9a3e")
+BULB_AT = {"digital": (9, 24, 22.0), "analog": (9, 25, 16.0)}     # the speck's top texel and the light's reach
+
+def bulb_pool(im, kind, inside, night_, neg):
+    """warm the texels for which inside(x, y) holds, by the bulb; im is the day or the night picture"""
+    bx, by, reach = BULB_AT[kind]
+    cx, cy = bx + 0.5, by + 1.0
+    R = reach if night_ else reach * 0.6
+    top = 3.4 if night_ else 2.6
+    steps = ((0.03, 0.05, 0.08) if neg else (0.06, 0.11, 0.17)) if night_ else ((0.02, 0.04, 0.06) if neg else (0.04, 0.07, 0.11))
+    px = im.load()
+    for y in range(H):
+        for x in range(W):
+            if not inside(x, y): continue
+            dx, dy = x + 0.5 - cx, (y + 0.5 - cy) * 1.2
+            th = math.atan2(dy, dx)
+            r = math.hypot(dx, dy) / (1.0 + 0.16 * math.sin(2.0 * th + 0.6) + 0.08 * math.cos(5.0 * th + 1.3))
+            inten = top * max(0.0, 1.0 - r / R) ** 1.3
+            lev = min(3, int(math.floor(inten + BAYER4[y % 4][x % 4] / 16.0)))
+            if lev <= 0: continue
+            t = steps[lev - 1]
+            r0, g0, b0, a = px[x, y]
+            if night_: col = [min(255, round(v + l * t)) for v, l in zip((r0, g0, b0), BULB_LIGHT)]
+            else: col = [round(v + (d - v) * t) for v, d in zip((r0, g0, b0), BULB_DAY_TINT)]
+            px[x, y] = (col[0], col[1], col[2], a)
+    px[bx, by] = c(BULB_DOT[0]); px[bx, by + 1] = c(BULB_DOT[1])
+    return im
+
+def bulb_off(im, kind, neg):
+    bx, by, _ = BULB_AT[kind]
+    px = im.load()
+    for y in (by, by + 1):
+        r0, g0, b0, a = px[bx, y]
+        w = (70, 66, 56) if neg else (58, 52, 38)
+        px[bx, y] = (round(r0 * 0.55 + w[0] * 0.45), round(g0 * 0.55 + w[1] * 0.45), round(b0 * 0.55 + w[2] * 0.45), a)
+
+def glass_inside(p):
+    if p["kind"] == "digital": return lambda x, y: 9 <= x <= 34 and 19 <= y <= 32
+    return lambda x, y: math.hypot(x + 0.5 - 21.5, y + 0.5 - 23) <= 17.5 - 4
+
 # --- night: the whole picture darker and a little blue (the plates' night look)
 def night(im):
     out = im.copy(); px = out.load()
@@ -127,9 +172,11 @@ GOLD_LINK = ["#c9a33a", "#a8842a", "#6a5216", "#6a5216"]
 STEEL_LINK = ["#a4a8ae", "#80848a", "#4a4e54", "#4a4e54"]
 PLATES = {
     "digital_black": dict(kind="digital", case="#141414", caseHi="#3c3c3c", caseLo="#050505", line="#c9a640",
-                          brand="CAZIO", brandCol="#c9a640", lcd="#0a0a0a", lcdEdge="#2a2a2a", band="rubber", bandCols=RUBBER_BLACK),
+                          brand="CAZIO", brandCol="#c9a640", lcd="#0a0a0a", lcdEdge="#2a2a2a", band="rubber", bandCols=RUBBER_BLACK,
+                          bulb=True, neg=True),
     "digital_gold": dict(kind="digital", case="#c9a33a", caseHi="#ecd27a", caseLo="#6a5216", line="#8a6a1e", face="#b8922e",
-                         brand="CAZIO", brandCol="#4a3a10", lcd="#c8ccae", lcdEdge="#6a5216", band="bracelet", bandCols=GOLD_LINK),
+                         brand="CAZIO", brandCol="#4a3a10", lcd="#c8ccae", lcdEdge="#6a5216", band="bracelet", bandCols=GOLD_LINK,
+                         bulb=True),
     "timez_red": dict(kind="digital", case="#b0242a", caseHi="#d85a5a", caseLo="#5a0c10", line="#101010", face="#141414",
                       brand="TIMEZ", brandCol="#f0f0f0", lcd="#c8d0b0", lcdEdge="#3a3a3a", band="rubber",
                       bandCols=["#a02028", "#7a1820", "#4a0c10"], screws=True, light=True),
@@ -137,9 +184,11 @@ PLATES = {
                         brand="TIMEZ", brandCol="#f0f0f0", lcd="#c8d0b0", lcdEdge="#3a3a3a", band="bracelet", bandCols=STEEL_LINK,
                         screws=True, light=True),
     "classic_black": dict(kind="analog", ring="#2a2a2a", ringHi="#5a5a5a", ringLo="#101010", edge="#050505", inner="#3a3a3a",
-                          dial="#161616", ink="#e8e8e8", tick="#8a8a8a", push="#8e9298", band="rubber", bandCols=RUBBER_BLACK),
+                          dial="#161616", ink="#e8e8e8", tick="#8a8a8a", push="#8e9298", band="rubber", bandCols=RUBBER_BLACK,
+                          bulb=True),
     "classic_gold": dict(kind="analog", ring="#c9a33a", ringHi="#ecd27a", ringLo="#6a5216", edge="#3a2c0a", inner="#b0902c",
-                         dial="#e6dfc6", ink="#1e2022", tick="#8a8270", push="#c9a33a", band="bracelet", bandCols=GOLD_LINK),
+                         dial="#e6dfc6", ink="#1e2022", tick="#8a8270", push="#c9a33a", band="bracelet", bandCols=GOLD_LINK,
+                         bulb=True),
     "timez_easy": dict(kind="analog", ring="#7c8086", ringHi="#c9ccd0", ringLo="#4a4c50", edge="#2c2e31", inner="#cdbc8b",
                        dial="#e6dfc6", ink="#1e2022", tick="#8a8270", push="#8e9298", band="leather",
                        bandCols=["#5a3a1e", "#5a3a1e", "#a8865a", "#3a2512"], light=True),
@@ -153,15 +202,21 @@ PLATES = {
 for name, p in PLATES.items():
     make = digital if p["kind"] == "digital" else analog
     day = make(p)
+    if p.get("bulb"): bulb_off(day, p["kind"], p.get("neg"))
     day.save(os.path.join(OUT, name + ".png"))
     night(day).save(os.path.join(OUT, name + "_night.png"))
     if p.get("light"): make(p, lit=True).save(os.path.join(OUT, name + "_lit.png"))
+    if p.get("bulb"):
+        lit = make(p)
+        bulb_pool(lit, p["kind"], glass_inside(p), False, p.get("neg")).save(os.path.join(OUT, name + "_bulb.png"))
+        bulb_pool(night(make(p)), p["kind"], glass_inside(p), True, p.get("neg")).save(os.path.join(OUT, name + "_bulb_night.png"))
 
 # a contact sheet for checking (not shipped)
 names = list(PLATES)
-sheet = Image.new("RGBA", (len(names) * 50, 3 * 52), (46, 52, 40, 255))
+SUF = ("", "_night", "_lit", "_bulb", "_bulb_night")
+sheet = Image.new("RGBA", (len(names) * 50, len(SUF) * 52), (46, 52, 40, 255))
 for i, n in enumerate(names):
-    for j, suf in enumerate(("", "_night", "_lit")):
+    for j, suf in enumerate(SUF):
         f = os.path.join(OUT, n + suf + ".png")
         if os.path.exists(f):
             s = Image.open(f); sheet.paste(s, (i * 50 + 3, j * 52 + 3), s)
