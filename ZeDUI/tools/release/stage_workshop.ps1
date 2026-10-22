@@ -32,7 +32,8 @@
     Upload would create a second item.
 
     Refuses to run while the repo has a merge, rebase or cherry-pick in
-    progress or conflicted files, or when 42/ (or 42/mod.info) is missing.
+    progress or conflicted files, when 42/ (or 42/mod.info) is missing, or
+    when any .java, .class or .jar sits in 42/ or common/ (ZeD is Lua only).
     Warns, but stages anyway, when 42/ or common/ have uncommitted changes:
     the working tree is what goes up.
 
@@ -102,6 +103,9 @@ $DevOnlyLua = @(
 )
 # The Workshop's own refusal list (SteamWorkshopItem.validateFileTypes), checked on the result.
 $WorkshopRefused = @('.exe', '.dll', '.bat', '.app', '.dylib', '.sh', '.so', '.zip')
+# ZeD is Lua only. Java anywhere in the version folders or common/, shipped or
+# left out, stops the run: the Workshop page promises no Java (Oct 21 2026).
+$JavaExts = @('.java', '.class', '.jar')
 
 function Get-ExcludeReason([string]$rel, [string[]]$topFiles) {
     $segs = $rel.Split('/')
@@ -175,6 +179,9 @@ foreach ($d in $rootDirs) {
     }
 }
 $copy = @($copy | Sort-Object Rel)
+
+$java = @(@($copy) + @($excl) | Where-Object { $JavaExts -contains [IO.Path]::GetExtension($_.Rel).ToLowerInvariant() })
+if ($java.Count -gt 0) { Fail ("ZeD ships Lua only; Java files found in the mod: " + ($java.Rel -join ', ')) }
 
 $bad = @($copy | Where-Object { $WorkshopRefused -contains [IO.Path]::GetExtension($_.Rel).ToLowerInvariant() -and $_.Rel -notlike '*pyramid.zip' })
 if ($bad.Count -gt 0) { Fail ("the Workshop refuses these file types: " + ($bad.Rel -join ', ')) }
