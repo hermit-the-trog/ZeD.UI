@@ -643,6 +643,8 @@ ZeD.PhysPx = {
       plate = "digital_black",
       title = "CaZio digital, black",
       parts = {
+        { t = "sprite", src = "bulbDay", when = true, sprite = "digital_black_bulb", x = 20, y = 49, w = 37, h = 31 },
+        { t = "sprite", src = "bulbNight", when = true, sprite = "digital_black_bulb_night", x = 20, y = 49, w = 61, h = 38 },
         {
           t = "radioDisplay",
           kind = "watch",
@@ -670,10 +672,19 @@ ZeD.PhysPx = {
             { t = "text", src = "setHint", x = 42, y = 31, font = "35", align = "c" },
           },
           night = { color = "#55585a", ghost = false },
+          bulbDay = {
+            { x = 14, c = "#ebe4cc" },
+          },
+          bulbNight = {
+            { x = 16, c = "#878068" },
+            { x = 34, c = "#767264" },
+            { x = 54, c = "#67675f" },
+          },
         },
         { t = "lamp", src = "running", color = "#44ee44", r = {24,130,2,2} },
       },
       hits = {
+        { id = "light", x = 0, y = 38, w = 14, h = 16, kind = "press" },
         { id = "setdn", x = 20, y = 49, w = 42, h = 38, needs = "setOpen", kind = "press" },
         { id = "setup", x = 62, y = 49, w = 42, h = 38, needs = "setOpen", kind = "press" },
         { id = "alarm", x = 22, y = 103, w = 36, h = 9, kind = "press" },
@@ -681,6 +692,7 @@ ZeD.PhysPx = {
         { id = "speed", x = 16, y = 121, w = 44, h = 20, kind = "press" },
         { id = "start", x = 64, y = 121, w = 44, h = 20, kind = "press" },
       },
+      light = "bulb",
     },
     digital_gold = {
       w = 124,
@@ -689,6 +701,8 @@ ZeD.PhysPx = {
       title = "CaZio digital, gold",
       parts = {
         { t = "sprite", src = "dark", when = true, sprite = "digital_gold_night", x = 20, y = 49, w = 84, h = 38 },
+        { t = "sprite", src = "bulbDay", when = true, sprite = "digital_gold_bulb", x = 20, y = 49, w = 37, h = 31 },
+        { t = "sprite", src = "bulbNight", when = true, sprite = "digital_gold_bulb_night", x = 20, y = 49, w = 84, h = 38 },
         {
           t = "radioDisplay",
           kind = "watch",
@@ -720,6 +734,7 @@ ZeD.PhysPx = {
         { t = "lamp", src = "running", color = "#44ee44", r = {24,130,2,2} },
       },
       hits = {
+        { id = "light", x = 0, y = 38, w = 14, h = 16, kind = "press" },
         { id = "setdn", x = 20, y = 49, w = 42, h = 38, needs = "setOpen", kind = "press" },
         { id = "setup", x = 62, y = 49, w = 42, h = 38, needs = "setOpen", kind = "press" },
         { id = "alarm", x = 22, y = 103, w = 36, h = 9, kind = "press" },
@@ -727,6 +742,7 @@ ZeD.PhysPx = {
         { id = "speed", x = 16, y = 121, w = 44, h = 20, kind = "press" },
         { id = "start", x = 64, y = 121, w = 44, h = 20, kind = "press" },
       },
+      light = "bulb",
     },
     timez_red = {
       w = 124,
@@ -827,6 +843,8 @@ ZeD.PhysPx = {
       title = "CaZio classic, black",
       parts = {
         { t = "sprite", src = "dark", when = true, sprite = "classic_black_night", x = 37, y = 50, w = 76, h = 76 },
+        { t = "sprite", src = "bulbDay", when = true, sprite = "classic_black_bulb", x = 53, y = 98, w = 24, h = 14 },
+        { t = "sprite", src = "bulbNight", when = true, sprite = "classic_black_bulb_night", x = 37, y = 50, w = 76, h = 76 },
         {
           t = "radioDisplay",
           kind = "watch",
@@ -865,9 +883,11 @@ ZeD.PhysPx = {
         { id = "speed", x = 21, y = 107, w = 14, h = 15, kind = "press" },
         { id = "start", x = 115, y = 107, w = 14, h = 15, kind = "press" },
         { id = "crown", x = 125, y = 80, w = 12, h = 16, kind = "press" },
+        { id = "light", x = 12, y = 80, w = 14, h = 16, kind = "press" },
         { id = "setdn", x = 41, y = 94, w = 34, h = 24, needs = "setOpen", kind = "press" },
         { id = "setup", x = 75, y = 94, w = 34, h = 24, needs = "setOpen", kind = "press" },
       },
+      light = "bulb",
     },
     classic_gold = {
       w = 150,
@@ -876,6 +896,8 @@ ZeD.PhysPx = {
       title = "CaZio classic, gold",
       parts = {
         { t = "sprite", src = "dark", when = true, sprite = "classic_gold_night", x = 36, y = 49, w = 78, h = 78 },
+        { t = "sprite", src = "bulbDay", when = true, sprite = "classic_gold_bulb", x = 53, y = 98, w = 24, h = 14 },
+        { t = "sprite", src = "bulbNight", when = true, sprite = "classic_gold_bulb_night", x = 36, y = 49, w = 78, h = 78 },
         {
           t = "radioDisplay",
           kind = "watch",
@@ -914,9 +936,11 @@ ZeD.PhysPx = {
         { id = "speed", x = 21, y = 107, w = 14, h = 15, kind = "press" },
         { id = "start", x = 115, y = 107, w = 14, h = 15, kind = "press" },
         { id = "crown", x = 125, y = 80, w = 12, h = 16, kind = "press" },
+        { id = "light", x = 12, y = 80, w = 14, h = 16, kind = "press" },
         { id = "setdn", x = 41, y = 94, w = 34, h = 24, needs = "setOpen", kind = "press" },
         { id = "setup", x = 75, y = 94, w = 34, h = 24, needs = "setOpen", kind = "press" },
       },
+      light = "bulb",
     },
     timez_easy = {
       w = 150,

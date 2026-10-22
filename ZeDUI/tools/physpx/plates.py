@@ -106,6 +106,9 @@ def _watch_states(name):
            TZ.DW.state(digital_=dig, alarm=False, set_open=True, **t)]
     if name.startswith("timez_"):
         sts.append(TZ.DW.state(digital_=dig, alarm=True, dark=True, lit=True, hour=4, minute=12, **t))
+    if name.startswith("digital_") or name.startswith("classic_"):
+        sts.append(TZ.DW.state(digital_=dig, bulb=True, **t))
+        sts.append(TZ.DW.state(digital_=dig, alarm=True, dark=True, bulb=True, hour=4, minute=12, **t))
     return sts
 
 

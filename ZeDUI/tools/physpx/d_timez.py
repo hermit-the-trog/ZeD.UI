@@ -228,6 +228,10 @@ def variants(name):
         v.append(("night", "dark", True, {"night": True}))
     if name.startswith("timez_"):
         v.append(("lit", "lit", True, {"lit": True}))
+    if name.startswith("digital_") or name.startswith("classic_"):
+        # a CaZio's bulb (Oct 21 2026): its pool by day and over the night picture
+        v.append(("bulb", "bulbDay", True, {"bulb_on": True}))
+        v.append(("bulb_night", "bulbNight", True, {"bulb_on": True, "night": True}))
     return v
 
 

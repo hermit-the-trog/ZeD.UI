@@ -65,11 +65,34 @@ def text_w(t, font="57"):
     return sum(len(f.get(c, f.get(c.upper(), f[" "]))[0]) + 1 for c in t) - 1
 
 
-def radio_display(cv, p, rd, now_ms=0):
+class ZoneCanvas:
+    """a watch's bulb on a negative display: the figure colour's rects take each step's colour left of its edge (x from
+    the display's left edge), split where a rect crosses an edge; other colours (the ghost) pass untouched"""
+    def __init__(s, cv, x0, zones, col):
+        s.cv, s.x0, s.zones, s.col = cv, x0, zones, col
+
+    def rect(s, x, y, w, h, color, alpha=1.0):
+        if color != s.col or w <= 0: return s.cv.rect(x, y, w, h, color, alpha)
+        cx, right = x, x + w
+        for z in s.zones:
+            edge = s.x0 + z["x"]
+            if cx >= right: return
+            if cx < edge:
+                e = min(edge, right)
+                s.cv.rect(cx, y, e - cx, h, z["c"], alpha)
+                cx = e
+        if cx < right: s.cv.rect(cx, y, right - cx, h, color, alpha)
+
+    def runs(s, runs, color, alpha=1.0, dx=0, dy=0):
+        for x, y, w in runs: s.rect(x + dx, y + dy, w, 1, color, alpha)
+
+
+def radio_display(cv, p, rd, now_ms=0, zones=None):
     """ZeD.Plate's radioDisplay: the radio's readout in pixel figures, field by field (seven-segment numbers, the
     5 x 7 letters, character cells, signal bars, the CD's triangle)"""
     ox, oy = p["x"], p["y"]
     col, ghost = p["color"], p.get("ghost")
+    if zones: cv = ZoneCanvas(cv, ox, zones, col)
     for f in p["fields"]:
         if f.get("when") and not rd.get(f["when"]): continue
         t = f["t"]
@@ -157,7 +180,8 @@ def render_state(base, parts, sprites, st, k=1, now_ms=0):
             for runs in p["bars"][:n]: cv.runs(runs, p["color"])
         elif t == "radioDisplay":
             rd = st.get("display") or None
-            if rd: radio_display(cv, p, rd, now_ms)
+            zones = (p.get("bulbNight") if st.get("dark") else p.get("bulbDay")) if st.get("bulb") else None
+            if rd: radio_display(cv, p, rd, now_ms, zones)
             elif p.get("style") in ("char", "lcd"): cv.rect(p["x"], p["y"], p["w"], p["h"], (0, 0, 0), 0.45)   # the backlight out
         elif t == "rangeText":
             if st.get("range"): _text57(cv, st["range"], p["x"], p["y"], p["color"], "35", "c")

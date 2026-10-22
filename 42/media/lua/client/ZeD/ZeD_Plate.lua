@@ -207,6 +207,45 @@ end
 --   bars   signal bars rising left to right
 --   tri    the CD's play triangle
 -- ---------------------------------------------------------------------------
+-- a CaZio's bulb on a negative display (light figures on dark glass): the figures carry the light, so the
+-- figure colour's rects take each step's colour left of its edge (p.bulbDay / p.bulbNight: { x, c } from the
+-- display's left edge), split where a rect crosses an edge; the ghost and everything else pass untouched.
+-- A stand-in canvas element (kept on the part) forwards to the real one.
+local ZONE_EL = {}
+ZONE_EL.__index = ZONE_EL
+function ZONE_EL:drawRect(x, y, w, h, a, r, g, b)
+    local real = self.real
+    if w <= 0 or r ~= self.cr or g ~= self.cg or b ~= self.cb then real:drawRect(x, y, w, h, a, r, g, b); return end
+    local zs, k, x0 = self.zones, self.k, self.x0
+    local cx, right = x, x + w
+    for i = 1, #zs do
+        if cx >= right then return end
+        local edge = x0 + zs[i].x * k
+        if cx < edge then
+            local e = math.min(edge, right)
+            local c = P.color(zs[i].c)
+            real:drawRect(cx, y, e - cx, h, a, c.r, c.g, c.b)
+            cx = e
+        end
+    end
+    if cx < right then real:drawRect(cx, y, right - cx, h, a, r, g, b) end
+end
+function ZONE_EL:drawTextZoomed(...) return self.real:drawTextZoomed(...) end
+
+local function zoneCanvas(cv, p, zones, col)
+    local z = p._zoneCv
+    if not z then
+        z = { el = setmetatable({}, ZONE_EL), ox = 0, oy = 0, k = 1 }
+        p._zoneCv = z
+    end
+    local el = z.el
+    el.real, el.zones, el.k, el.x0 = cv.el, zones, cv.k, cv.ox + p.x * cv.k
+    el.cr, el.cg, el.cb = col.r, col.g, col.b
+    el._zedAlpha = cv.el._zedAlpha
+    z.ox, z.oy, z.k = cv.ox, cv.oy, cv.k
+    return z
+end
+
 local function radioDisplay(cv, p, st, ctx)
     local rd = st.display
     if not rd then
@@ -216,6 +255,8 @@ local function radioDisplay(cv, p, st, ctx)
     end
     local ox, oy = p.x, p.y
     local col = P.color(p.color)
+    local zones = st.bulb and (st.dark and p.bulbNight or p.bulbDay) or nil
+    if zones then cv = zoneCanvas(cv, p, zones, col) end
     local ghost = p.ghost and P.color(p.ghost) or nil
     local now = ctx and ctx.now or 0
     for _, f in ipairs(p.fields or {}) do

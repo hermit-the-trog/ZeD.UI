@@ -107,7 +107,7 @@ def plate(pid):
     return _PLATES[pid]
 
 
-def expected(pid, k, hour=10, minute=58, sec=50, armed=False, alarm_hour=6, speed=1, set_open=False, lit=False):
+def expected(pid, k, hour=10, minute=58, sec=50, armed=False, alarm_hour=6, speed=1, set_open=False, lit=False, bulb=False):
     """the preview's picture for the reading the watch should show"""
     data, base, sprites = plate(pid)
     day = 26
@@ -125,7 +125,7 @@ def expected(pid, k, hour=10, minute=58, sec=50, armed=False, alarm_hour=6, spee
     tod = hour + minute / 60 + sec / 3600
     dark = (tod < 6 or tod >= 21) and not lit
     st = {"display": rd, "hour": hour, "minute": minute, "running": speed > 0, "alarmOn": armed, "setOpen": set_open,
-          "lit": lit, "dark": dark}
+          "lit": lit, "dark": dark, "bulb": bulb, "bulbDay": bulb and not dark, "bulbNight": bulb and dark}
     spr = {f"{n}": im for n, im in sprites.items()}
     return PV.render_state(base, preview_parts(data), spr, st, k=k)
 
@@ -208,6 +208,18 @@ def run(scale):
             o.ms(3100)
             compare(f"{scale}x {pid} dark again after 3 s", frame(o, w), expected(pid, k, hour=2, minute=15))
             o.g.HOUR, o.g.MINUTE = 10, 58
+        elif pid.startswith("digital_") or pid.startswith("classic_"):
+            # a CaZio's bulb (Oct 21 2026): the night stays, the bulb's picture goes over it, by day a faint tint
+            check(f"{scale}x {pid} has the light", "light" in ids(w), ids(w))
+            o.g.HOUR, o.g.MINUTE = 2, 15
+            frame(o, w); click(o, w, "light")
+            compare(f"{scale}x {pid} bulb at night", frame(o, w), expected(pid, k, hour=2, minute=15, bulb=True))
+            o.ms(3100)
+            compare(f"{scale}x {pid} dark again after 3 s", frame(o, w), expected(pid, k, hour=2, minute=15))
+            o.g.HOUR, o.g.MINUTE = 10, 58
+            frame(o, w); click(o, w, "light")
+            compare(f"{scale}x {pid} bulb by day", frame(o, w), expected(pid, k, bulb=True))
+            o.ms(3100)
         else:
             check(f"{scale}x {pid} has no light", "light" not in ids(w), ids(w))
     # the controls on a CaZio digital
