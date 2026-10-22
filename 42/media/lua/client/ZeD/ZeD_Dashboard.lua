@@ -162,6 +162,9 @@ local function _state(vehicle, chr)
     st.engineCond = _safe(function() return vehicle:getPartById("Engine"):getCondition() end, 100)
     st.engWarn  = st.engineCond < 40
     st.lights   = _safe(function() return vehicle:getHeadlightsOn() end, false)
+    -- the dash lights burn on the headlight switch while the lamps can actually light (vanilla's own test, its
+    -- dashboard's lights icon: switched on and getHeadlightCanEmmitLight)
+    st.dashLit  = st.lights and _safe(function() return vehicle:getHeadlightCanEmmitLight() end, false) or false
     st.allLocked = _safe(function() return vehicle:areAllDoorsLocked() end, false)
     st.anyLocked = _safe(function() return vehicle:isAnyDoorLocked() end, false)
     st.hasTrunk  = _safe(function() return vehicle:getPartById("TruckBed") ~= nil end, false)
@@ -245,6 +248,73 @@ function D.derive(st, mem, dtMs)
     local g = tostring(st.gear or "")
     st.gearSel = (not st.running) and "P" or ((g == "R") and "R" or "D")
     return st
+end
+
+-- ---------------------------------------------------------------------------
+-- Night (director, Oct 21 2026): no gauge is backlit; small incandescent bulbs
+-- in the cluster panel's corners and a lamp under the brow light what they can
+-- (ZeDUI/tools/dashpx/night.py bakes it; ZeD_Plate.lua draws it). How dark the
+-- dash is follows the game's own light at the car (IsoGridSquare:getLightLevel,
+-- the light vanilla's foraging reads): at DAY_L and above it is the day plate,
+-- exactly as before; at NIGHT_L and below, the night; dusk, a garage by day or
+-- a tunnel fall in between. The car's square and its four neighbours are read
+-- and the darkest kept, so the car's own headlamps (which light the road ahead)
+-- do not count; the reading settles over LUX_TAU_MS, like an eye.
+-- ---------------------------------------------------------------------------
+local DAY_L, NIGHT_L = 0.62, 0.22
+local LUX_SAMPLE_MS, LUX_TAU_MS = 250, 1200
+local NB_DX, NB_DY = { 1, -1, 0, 0 }, { 0, 0, 1, -1 }
+-- QA only (ZeDUI/tools/qa): D.qaNight = 0..1 and D.qaLit = true/false stand in for the reading and the switch
+local function _luxAt(vehicle, chr)
+    local sq = vehicle:getSquare() or chr:getCurrentSquare()
+    if not sq then return nil end
+    local pn = chr:getPlayerNum()
+    local best = sq:getLightLevel(pn)
+    local cell = getCell()
+    local x, y, z = sq:getX(), sq:getY(), sq:getZ()
+    for i = 1, 4 do
+        local nb = cell and cell:getGridSquare(x + NB_DX[i], y + NB_DY[i], z)
+        if nb then
+            local v = nb:getLightLevel(pn)
+            if v < best then best = v end
+        end
+    end
+    return best
+end
+D._luxAt = _luxAt   -- exposed for QA probes
+
+-- the night light this frame (ZeD_Plate's ctx.light), one table kept per dash
+local function _nightLight(self, vehicle, chr, st, des, dt)
+    local L = self._light
+    if not L then L = {}; self._light = L end
+    local now = getTimestampMs()
+    if (not self._luxMs) or now - self._luxMs >= LUX_SAMPLE_MS then
+        self._luxMs = now
+        local ok, v = pcall(_luxAt, vehicle, chr)
+        if ok and type(v) == "number" then self._luxRaw = v end
+    end
+    local raw = self._luxRaw or 1
+    if self._lux == nil then self._lux = raw
+    elseif dt > 0 then self._lux = self._lux + (raw - self._lux) * (dt / (LUX_TAU_MS + dt)) end
+    local n = (DAY_L - self._lux) / (DAY_L - NIGHT_L)
+    if D.qaNight ~= nil then n = D.qaNight end
+    if n < 0 then n = 0 elseif n > 1 then n = 1 end
+    L.n8 = math.floor(n * 8 + 0.5)
+    local lit = st.dashLit and true or false
+    if D.qaLit ~= nil then lit = D.qaLit and true or false end
+    L.lit = lit
+    local nd = des.night
+    local G = DP.night
+    if nd then
+        L.map, L.cols, L.rows, L.cell, L.glass = nd.map, nd.cols, nd.rows, nd.cell, nd.glass
+        L.over = lit and nd.plate or nd.dark
+    else
+        L.map, L.over, L.glass, L.n8 = nil, nil, nil, 0
+    end
+    L.amb = G and G.amb or 1
+    L.levels = G and G.levels or 15
+    L.tint = G and G.tint or nil
+    return L
 end
 
 -- ---------------------------------------------------------------------------
@@ -475,6 +545,7 @@ function ZeD_Dashboard:_ctx(des, pending)
     ctx.heads     = DP.heads
     ctx.pending   = pending
     ctx.now       = getTimestampMs()
+    ctx.light     = self._light
     return ctx
 end
 
@@ -519,6 +590,7 @@ function ZeD_Dashboard:prerender()
     self._focEl = (gamepad and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
     self._hit = {}; self._elements = {}
     self._consoleRect = des.console   -- the radio and siren props up close line up on the console (plate pixels; _s = k)
+    _nightLight(self, vehicle, chr, st, des, dt)
 
     local cv = P.canvas(self, 0, 0, k)
     self._cv = cv

@@ -46,8 +46,9 @@
 --
 -- ctx — what the organism lends the parts: tex(name) -> texture (its own
 -- folder), sprites (the tab sprites' sizes), badge, scriptLow, sticker, heads
--- (the dash's radio faces), pending (the head unit adds its controls here) and
--- now (ms, for the marquees).
+-- (the dash's radio faces), pending (the head unit adds its controls here),
+-- now (ms, for the marquees) and light (the night light, below; only the
+-- dashboards lend one).
 --
 -- Click areas (des.hits): { id, x, y, w, h, kind, needs } in plate pixels.
 -- kind "press" (a key or a switch: A presses it), "turn" (a knob: the wheel
@@ -77,6 +78,103 @@ local function frac(st, p)
     return (v or 0) / (p.max or 1)
 end
 PL.frac = frac
+
+-- ---------------------------------------------------------------------------
+-- the night light (the dashboards; director, Oct 21 2026: no gauge is
+-- backlit, a few small incandescent bulbs in the panel's corners and a lamp
+-- under the brow light what they can). The art is baked (ZeDUI/tools/dashpx/
+-- night.py); ctx.light carries what the frame needs:
+--   n8      how dark it is at the car, in eighths (0 = day: nothing changes)
+--   lit     the dash lights are on (vanilla's headlight switch, with power)
+--   over    the plate picture laid over the day one at n8 / 8 (the night
+--           plate with the bulbs on, the dark one without)
+--   map     the light map, one hex digit (0..levels) per cell x cell plate
+--           pixels, cols a row; amb the level everywhere when the bulbs are
+--           off; tint the bulb's colour { r, g, b } (a list)
+--   glass   the backlit LCD glass: { color, r = rects } redrawn while st.power
+-- A part that makes no light (needles, pointers, tabs, the key, badges, the
+-- clock's hands, the radio's face) takes its colour times the multiplier of
+-- the map's level under it; lamps, LEDs and displays keep their own.
+-- ---------------------------------------------------------------------------
+local _mul = {}          -- [0 or 1][n8][level] -> { r, g, b }, made once
+local function mulFor(L, level)
+    local li = L.lit and 1 or 0
+    local byLit = _mul[li]
+    if not byLit then byLit = {}; _mul[li] = byLit end
+    local byN = byLit[L.n8]
+    if not byN then byN = {}; byLit[L.n8] = byN end
+    local m = byN[level]
+    if not m then
+        local n = L.n8 / 8
+        local f = level / (L.levels or 15)
+        local t = L.lit and L.tint or nil
+        m = { r = (1 - n) + n * f * (t and t[1] or 1), g = (1 - n) + n * f * (t and t[2] or 1), b = (1 - n) + n * f * (t and t[3] or 1) }
+        byN[level] = m
+    end
+    return m
+end
+
+-- the map's level at a plate point, bulbs on
+local function levelRaw(L, x, y)
+    if not L.map then return L.amb or 1 end
+    local cell = L.cell or 4
+    local c = math.floor(x / cell)
+    local r = math.floor(y / cell)
+    if c < 0 then c = 0 elseif c >= L.cols then c = L.cols - 1 end
+    if r < 0 then r = 0 elseif r >= L.rows then r = L.rows - 1 end
+    local b = string.byte(L.map, r * L.cols + c + 1) or 48
+    if b >= 97 then return b - 87 end
+    return b - 48
+end
+-- the level a part gets: the map's while the bulbs are on, the ambient level while they are off
+local function levelAt(L, x, y)
+    if not L.lit then return L.amb or 1 end
+    return levelRaw(L, x, y)
+end
+local function lightMul(L, x, y) return mulFor(L, levelAt(L, x, y)) end
+local function dim(L, c, x, y) return P.mulColor(c, mulFor(L, levelAt(L, x, y))) end
+PL.lightLevel, PL.lightMul, PL.dim = levelAt, lightMul, dim
+
+-- the radio's face in the dark: tinted to the light of its brightest cell row, every row below that darkened to
+-- its own (the lamp above lights the top of the set, the lower edge falls away); the rows are worked out once
+local function headRows(L, hu, w, h)
+    local rows = hu._lightRows
+    if rows and hu._lightMap == L.map then return rows end
+    rows = {}
+    local cell = L.cell or 4
+    local r0, r1 = math.floor(hu.y / cell), math.floor((hu.y + h - 1) / cell)
+    local c0, c1 = math.floor(hu.x / cell), math.floor((hu.x + w - 1) / cell)
+    for r = r0, r1 do
+        local sum, n = 0, 0
+        for c = c0, c1 do sum = sum + levelRaw(L, c * cell, r * cell); n = n + 1 end
+        local y0 = math.max(hu.y, r * cell)
+        local y1 = math.min(hu.y + h, (r + 1) * cell)
+        rows[#rows + 1] = { y0, y1 - y0, math.floor(sum / math.max(1, n) + 0.5) }
+    end
+    hu._lightRows, hu._lightMap = rows, L.map
+    return rows
+end
+local function lum(m) return 0.3 * m.r + 0.59 * m.g + 0.11 * m.b end
+local function headFace(cv, tex, hu, w, h, L)
+    if not tex then return end
+    local rows = headRows(L, hu, w, h)
+    local top = 0
+    for i = 1, #rows do
+        local lv = L.lit and rows[i][3] or (L.amb or 1)
+        if lv > top then top = lv end
+    end
+    local mt = mulFor(L, top)
+    P.imageTint(cv, tex, hu.x, hu.y, w, h, mt)
+    local lt = lum(mt)
+    if lt <= 0 then return end
+    for i = 1, #rows do
+        local lv = L.lit and rows[i][3] or (L.amb or 1)
+        if lv < top then
+            local a = math.floor((1 - lum(mulFor(L, lv)) / lt) * 8 + 0.5) / 8
+            if a > 0 then P.rect(cv, hu.x, rows[i][1], w, rows[i][2], P.BLACK, a) end
+        end
+    end
+end
 
 local LOW = "#ff4a3a"                                -- a needle's colour while its warning reads
 local MISSING = { r = 0.1, g = 0.1, b = 0.1 }       -- the plate's stand-in when its picture is missing
@@ -151,23 +249,29 @@ local function headDisplay(cv, hp, ox, oy, r)
     end
 end
 
-local function headUnit(cv, st, hu, ctx)
+-- L: the night light (nil by day): the face follows the lamp above it, a lit liquid-crystal glass glows from behind
+local function headUnit(cv, st, hu, ctx, L)
     local RO = ZeD.RadioOps
     local pending = ctx.pending or {}
     local r = st.radio
     local H = r and ctx.heads and ctx.heads[r.kind]
     if not H then
-        P.image(cv, ctx.tex("hu_blank"), hu.x, hu.y, hu.w, hu.h)
+        if L then headFace(cv, ctx.tex("hu_blank"), hu, hu.w, hu.h, L)
+        else P.image(cv, ctx.tex("hu_blank"), hu.x, hu.y, hu.w, hu.h) end
         return
     end
-    P.image(cv, ctx.tex(H.tex), hu.x, hu.y, H.w, H.h)
+    if L then headFace(cv, ctx.tex(H.tex), hu, H.w, H.h, L)
+    else P.image(cv, ctx.tex(H.tex), hu.x, hu.y, H.w, H.h) end
     for _, hp in ipairs(H.parts) do
         if hp.t == "display" then
+            if L and hp.glass and r.on then P.rect(cv, hu.x + hp.x, hu.y + hp.y, hp.w, hp.h, P.color(hp.glass), L.n8 / 8) end
             headDisplay(cv, hp, hu.x, hu.y, r)
             pending[#pending + 1] = { "radio", hu.x + hp.x - 2, hu.y + hp.y - 2, hp.w + 4, hp.h + 4, true }
         elseif hp.t == "knob" then
             local deg = (hp.id == "vol") and (135 + 270 * clamp01(r.volume)) or ((((r.channel or 0) / RO.STEP) * 12) % 360)
-            P.pointer(cv, hu.x + hp.cx, hu.y + hp.cy, deg, 3, hp.r - 2, 1, P.color(hp.ptr))
+            local pc = P.color(hp.ptr)
+            if L then pc = dim(L, pc, hu.x + hp.cx, hu.y + hp.cy) end
+            P.pointer(cv, hu.x + hp.cx, hu.y + hp.cy, deg, 3, hp.r - 2, 1, pc)
             pending[#pending + 1] = { hp.id, hu.x + hp.cx - hp.r, hu.y + hp.cy - hp.r, hp.r * 2, hp.r * 2, true }
         elseif hp.t == "button" then
             pending[#pending + 1] = { hp.id, hu.x + hp.x, hu.y + hp.y, hp.w, hp.h, true }
@@ -176,7 +280,10 @@ local function headUnit(cv, st, hu, ctx)
             -- place, set while the microphone is live whether or not the set is on
             local v
             if hp.src == "micLive" then v = not r.micMuted else v = r[hp.src] end
-            if (v and true or false) == (hp.when ~= false) then P.image(cv, ctx.tex(hp.tex), hu.x + hp.x, hu.y + hp.y, hp.w, hp.h) end
+            if (v and true or false) == (hp.when ~= false) then
+                if L then P.imageTint(cv, ctx.tex(hp.tex), hu.x + hp.x, hu.y + hp.y, hp.w, hp.h, lightMul(L, hu.x + hp.x + hp.w / 2, hu.y + hp.y + hp.h / 2))
+                else P.image(cv, ctx.tex(hp.tex), hu.x + hp.x, hu.y + hp.y, hp.w, hp.h) end
+            end
         elseif hp.t == "lamp" then
             if r.on and r[hp.src] then
                 local c = P.color(hp.color)
@@ -186,6 +293,7 @@ local function headUnit(cv, st, hu, ctx)
         elseif hp.t == "tape" then
             -- the ValuTech's preset names in ballpoint on the masking tape under the keys
             local ink = P.color(hp.color)
+            if L then ink = dim(L, ink, hu.x + hu.w / 2, hu.y + hp.y) end
             for i = 1, hp.n do
                 local pr = r.presets and r.presets[i]
                 local nm = pr and pr.name and ZeD.upper(RO.tapeName(pr.name)) or ""     -- the slot's small letters are capitals
@@ -355,8 +463,27 @@ local function inLight(p, st)
     return p
 end
 
+-- a moving strip in the dark: a cell's width at a time, each in the light it lies in
+local function ribbonLit(cv, p, xx, L)
+    local c0, c1, c2 = P.color(p.color), P.shade(p.color, 1.25), P.shade(p.color, 0.6)
+    local cy = p.y + p.h / 2
+    local step = L.cell or 4
+    local x0 = p.x0
+    while x0 < xx do
+        local w = math.min(step, xx - x0)
+        local m = lightMul(L, x0 + w / 2, cy)
+        P.rect(cv, x0, p.y, w, p.h, P.mulColor(c0, m))
+        P.rect(cv, x0, p.y, w, 1, P.mulColor(c1, m))
+        P.rect(cv, x0, p.y + p.h - 1, w, 1, P.mulColor(c2, m))
+        x0 = x0 + step
+    end
+end
+
 function PL.drawParts(cv, parts, st, ctx)
     ctx = ctx or {}
+    local L = ctx.light
+    if L and (L.n8 or 0) <= 0 then L = nil end             -- the day: every part exactly as it was
+    if L then L.dim = dim end                               -- (what ZeD.Px's lit needle asks for each run)
     for _, p0 in ipairs(parts) do
         local p = inLight(p0, st)
         local t = p.t
@@ -364,19 +491,24 @@ function PL.drawParts(cv, parts, st, ctx)
             local f = math.max(0, math.min(p.peg and 1.02 or 1, frac(st, p)))
             local a = p.a0 + (p.a1 - p.a0) * f
             local c = P.color((p.low_src and st[p.low_src]) and LOW or p.color)
-            P.needle(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 2, p.hub or 0, c)
+            P.needle(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 2, p.hub or 0, c, nil, L)
         elseif t == "ribbon" then
             local f = clamp01(frac(st, p))
             local xx = math.floor(p.x0 + (p.x1 - p.x0) * f + 0.5)
             if p.mode == "fill" then
                 if xx > p.x0 then
-                    P.rect(cv, p.x0, p.y, xx - p.x0, p.h, P.color(p.color))
-                    P.rect(cv, p.x0, p.y, xx - p.x0, 1, P.shade(p.color, 1.25))
-                    P.rect(cv, p.x0, p.y + p.h - 1, xx - p.x0, 1, P.shade(p.color, 0.6))
+                    if L then ribbonLit(cv, p, xx, L)
+                    else
+                        P.rect(cv, p.x0, p.y, xx - p.x0, p.h, P.color(p.color))
+                        P.rect(cv, p.x0, p.y, xx - p.x0, 1, P.shade(p.color, 1.25))
+                        P.rect(cv, p.x0, p.y + p.h - 1, xx - p.x0, 1, P.shade(p.color, 0.6))
+                    end
                 end
             else
+                local c0, c1 = P.color(p.color), P.shade(p.color, 0.6)
+                if L then local m = lightMul(L, xx, p.y + p.h / 2); c0, c1 = P.mulColor(c0, m), P.mulColor(c1, m) end
                 P.rect(cv, xx + 1, p.y + 2, 2, p.h, P.BLACK, 0.45)
-                P.rect(cv, xx - 1, p.y, 1, p.h, P.color(p.color)); P.rect(cv, xx, p.y, 1, p.h, P.shade(p.color, 0.6))
+                P.rect(cv, xx - 1, p.y, 1, p.h, c0); P.rect(cv, xx, p.y, 1, p.h, c1)
             end
         elseif t == "lamp" then
             if st[p.src] then
@@ -420,31 +552,40 @@ function PL.drawParts(cv, parts, st, ctx)
             else
                 a = p.a0 + (p.a1 - p.a0) * clamp01(st[p.src] or 0)
             end
-            P.pointer(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 1, P.color(p.color))
+            local c = P.color(p.color)
+            if L then c = dim(L, c, p.cx, p.cy) end
+            P.pointer(cv, p.cx, p.cy, a, p.r0, p.r1, p.w or 1, c)
         elseif t == "tab" then
             local spr = ctx.tex(p.sprite)
             local sz = ctx.sprites and ctx.sprites[p.sprite]
             if spr and sz then
                 local x = math.floor(p.x0 + (p.x1 - p.x0) * clamp01(st[p.src] or 0) + 0.5)
-                P.image(cv, spr, x, p.y, sz[1], sz[2])
+                if L then P.imageTint(cv, spr, x, p.y, sz[1], sz[2], lightMul(L, x + sz[1] / 2, p.y + sz[2] / 2))
+                else P.image(cv, spr, x, p.y, sz[1], sz[2]) end
             end
         elseif t == "sprite" then
             local on = st[p.src] and true or false
-            if on == (p.when ~= false) then P.image(cv, ctx.tex(p.sprite), p.x, p.y, p.w, p.h) end
+            if on == (p.when ~= false) then
+                if L then P.imageTint(cv, ctx.tex(p.sprite), p.x, p.y, p.w, p.h, lightMul(L, p.x + p.w / 2, p.y + p.h / 2))
+                else P.image(cv, ctx.tex(p.sprite), p.x, p.y, p.w, p.h) end
+            end
         elseif t == "badge" then
             local label = ctx.badge and ctx.badge[p.role] or ""
             if label ~= "" then
                 local s, font, scale = P.fit(label, p.font or "35", p.scale or 1, p.w)
                 local x = p.x + ((p.align or "c") == "c" and math.floor(p.w / 2) or 0)
                 local y = p.y + math.floor((p.h - P.fontHeight(font) * scale) / 2)
-                if p.style == "emboss" then P.text(cv, s, x + 1, y + 1, P.color("#f0f0ec"), font, scale, p.align or "c") end
-                P.text(cv, s, x, y, P.color(p.color or "#d8dade"), font, scale, p.align or "c", p.style, p.shadow)
+                local m = L and lightMul(L, p.x + p.w / 2, p.y + p.h / 2) or nil
+                if p.style == "emboss" then P.text(cv, s, x + 1, y + 1, P.mulColor(P.color("#f0f0ec"), m), font, scale, p.align or "c") end
+                P.text(cv, s, x, y, P.mulColor(P.color(p.color or "#d8dade"), m), font, scale, p.align or "c", p.style,
+                    (m and p.shadow) and P.mulColor(P.color(p.shadow), m) or p.shadow, m)
             end
         elseif t == "clock" then
             local h, m = st.hour or 10, st.minute or 0
             local am = m * 6 - 90
             local ah = (h % 12) * 30 + m * 0.5 - 90
             local c = P.color(p.color)
+            if L then c = dim(L, c, p.cx, p.cy) end
             P.pointer(cv, p.cx, p.cy, ah, 0, p.rh, 2, c, 1.5)
             P.pointer(cv, p.cx, p.cy, am, 0, p.rm, 1, c, 1.5)
         elseif t == "sticker" then
@@ -454,13 +595,15 @@ function PL.drawParts(cv, parts, st, ctx)
                 if stx then
                     local bx = p.x + math.floor((p.w - (S.w + 2 * S.pad)) / 2)
                     local by = p.y + math.floor((p.h - (S.h + 2 * S.pad)) / 2)
-                    P.rects(cv, S.backing, P.color(S.rim), 1, bx + 1, by + 1)
-                    P.rects(cv, S.backing, P.color(S.color), 1, bx, by)
-                    P.image(cv, stx, bx + S.pad, by + S.pad, S.w, S.h)
+                    local m = L and lightMul(L, p.x + p.w / 2, p.y + p.h / 2) or nil
+                    P.rects(cv, S.backing, P.mulColor(P.color(S.rim), m), 1, bx + 1, by + 1)
+                    P.rects(cv, S.backing, P.mulColor(P.color(S.color), m), 1, bx, by)
+                    if m then P.imageTint(cv, stx, bx + S.pad, by + S.pad, S.w, S.h, m)
+                    else P.image(cv, stx, bx + S.pad, by + S.pad, S.w, S.h) end
                 end
             end
         elseif t == "headunit" then
-            headUnit(cv, st, p, ctx)
+            headUnit(cv, st, p, ctx, L)
         elseif t == "climate" then
             if st.power then
                 local c = P.color(p.color or "#1c2418")
@@ -493,6 +636,17 @@ function PL.draw(cv, des, st, ctx, w, h)
     local plate = ctx.tex(des.plate)
     if plate then P.image(cv, plate, 0, 0, w, h)
     else P.rect(cv, 0, 0, w, h, MISSING) end         -- the art missing: never let the machine vanish
+    -- at night: the plate in the dark (its bulbs on or off) over the day one, then the LCD glass lit from behind
+    local L = ctx.light
+    if L and (L.n8 or 0) > 0 then
+        L.dim = dim
+        local a = L.n8 / 8
+        local over = L.over and ctx.tex(L.over)
+        if over then P.image(cv, over, 0, 0, w, h, a) end
+        if st.power and L.glass then
+            for i = 1, #L.glass do local g = L.glass[i]; P.rects(cv, g.r, P.color(g.color), a) end
+        end
+    end
     PL.drawParts(cv, des.parts, st, ctx)
 end
 

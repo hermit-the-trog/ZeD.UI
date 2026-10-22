@@ -81,11 +81,11 @@ def build_one(did, verbose=True):
     return b, base, sprites, doc, time.time() - t0
 
 
-def preview(did, base, sprites, doc, heads=None, state="drive", k=1, extra=None):
+def preview(did, base, sprites, doc, heads=None, state="drive", k=1, extra=None, night=None):
     st = dict(STATES[state]); st.update(badge_names(did))
     if state in ("off", "keyon"): st["radioOn"] = False
     if extra: st.update(extra)
-    return render_live(base, doc, st, k=k, sprites=sprites, heads=heads)
+    return render_live(base, doc, st, k=k, sprites=sprites, heads=heads, night=night)
 
 
 if __name__ == "__main__":

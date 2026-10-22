@@ -11,7 +11,10 @@ and checks that what it places sits on one flat surface (labels never cross a be
 """
 import math
 import numpy as np
-from scipy import ndimage as ndi
+try:
+    from scipy import ndimage as ndi
+except ImportError:          # no scipy here: the same calls in plain numpy (ndi_np.py)
+    import ndi_np as ndi
 from engine import Dash, Mask, RAMPS, hx, text_w, edt, add_ramp, F35, F57, FONTS
 from widgets import (gauge, window, glare, chrome_frame, knob, button, rocker, toggle, vent_rect, vent_round,
                      nameplate, dymo, rivet, icon_mask, icon_size, line_mask, ICONS)

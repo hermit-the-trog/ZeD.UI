@@ -24,7 +24,17 @@ python luatest.py hints          every gamepad hint line (each control focused, 
 python luatest.py badges         the badge roles against the game's own car names (liveries, wrecks, fleet cars)
 ```
 
-The export is deterministic: the same sources give the same 70 files on every run.
+```
+python nightsheet.py <out.png> [k] [design ...]   day | dusk | night, lights on | night, lights off, at zoom k (2)
+```
+
+The export is deterministic: the same sources give the same files on every run, and a PNG whose pixels have not changed is left alone. Without scipy the engine uses `ndi_np.py` (the same calls in plain numpy, pixel for pixel the same plates).
+
+## At night
+
+Director, Oct 21 2026: the gauges have no backlight. Behind the dash plate, in front of each gauge, a small incandescent bulb sits on one side of the opening, just out of sight (never drawn): its warm light washes across the face from that side, so the figures and the needle near the lit edge read and the far side stays dim; the plate round the openings (wood, vinyl, steel, aluminium) stays dark but for a faint spill on the rim. A lamp under the dash's brow shines down on the radio, the climate controls and the switches. `designs.NIGHT` gives each design the side its gauge bulbs sit on (each gauge a little off it and its own strength) and its lamp rows; the openings themselves are found from the gauges' parts (a needle's pivot, the clock, the ribbon's window). The VFD clusters (the Lang 4000, the Cossette) light themselves and get no gauge bulbs. `night.py` relights the same height field: every pixel on its own material's ramp warmed to a 2700 K bulb (two darker steps under each ramp for the night), the falloff stepped with an ordered 4 x 4 dither. The export adds per design `dash_<id>_night.png` (bulbs on) and `dash_<id>_dark.png` (bulbs off), and in `DashPx.lua` a `night` table: the light map (one hex digit per 4 x 4 plate pixels: the light a flat live part gets, as a share of the day's) and the backlit LCD glass.
+
+The game (`ZeD_Dashboard.lua`, `ZeD_Plate.lua`): how dark the dash is follows `IsoGridSquare:getLightLevel` at the car (the darkest of its square and the four round it, settled over a second): day plate at 0.62 and above, night at 0.22 and below, in eighths between. The bulbs burn on vanilla's headlight switch while the lamps can light (`getHeadlightCanEmmitLight`). The night (or dark) plate goes over the day one; needles, pointers, tabs, the key, badges, the clock's hands and the radio's face take the light map's level under them; lamps, LEDs, VFD and LED figures and the radio's readout keep their colours, and LCD glass lights from behind while there is power. At n = 0 nothing differs from the day.
 
 `live.py` is the game's side in Python (the previews). `luatest.py` is the game's side in Lua (the real files). The two should agree; when they don't, the Lua is what ships.
 
