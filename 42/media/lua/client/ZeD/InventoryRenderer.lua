@@ -22,8 +22,8 @@ ZeD = ZeD or {}
 -- ============================================================================
 -- SORT COMPARATORS
 -- Each returns a comparator function for table.sort.
--- "name" is the default — items grouped by category, sorted by name within.
--- Other columns sort flat (no grouping).
+-- "name" is the default - one flat A-Z list (Z-A reversed), no category headers.
+-- Only "cat" groups under category headers (name within each); cond / wt sort flat.
 -- ============================================================================
 
 local SORT_COLS = {"name", "cat", "cond", "wt"}
@@ -60,9 +60,9 @@ end
 local function makeSorter(col, asc)
     if col == "name" then
         if asc then
-            return function(a, b) return (a:getName() or "") < (b:getName() or "") end
+            return function(a, b) return string.lower(a:getName() or "") < string.lower(b:getName() or "") end
         else
-            return function(a, b) return (a:getName() or "") > (b:getName() or "") end
+            return function(a, b) return string.lower(a:getName() or "") > string.lower(b:getName() or "") end
         end
     elseif col == "cat" then
         if asc then
@@ -777,7 +777,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     end
 
     local sorter    = makeSorter(sortCol, sortAsc)
-    local useGroups = (sortCol == "name" or sortCol == "cat")
+    local useGroups = (sortCol == "cat")   -- only Sort by Category has category headers; the rest is one flat list
     local stacks = {}          -- rep item → stack info
     local childParent = {}     -- child item → stack info
 

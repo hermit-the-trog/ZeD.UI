@@ -15,15 +15,23 @@ local news, flier
 -- (a real piece carries the registry's lower-case id and the proper-case text keys)
 local function media(id) return { id = string.lower(id), title = "Print_Media_" .. id .. "_title", info = "Print_Media_" .. id .. "_info", text = "Print_Text_" .. id .. "_info" } end
 local function win() return ZeD.Reader.get(pn) end
-at(2, function()
+-- (the QA save is often at night and vanilla will not read in the dark: the run sets 10:00 first and
+-- queues the first Read once the light has reached the player; the steps count from that moment)
+local gt = getGameTime()
+local tod0 = gt:getTimeOfDay()
+local waited, started = 0, false
+local function setup()
     local ui = UIManager.getUI()
     for i = 0, ui:size() - 1 do local e = ui:get(i); if e:getClass():getSimpleName() == "UIDebugConsole" then e:setVisible(false) end end
     local w = ZeD_CharacterWindow.getWindow(); if w and w:isVisible() then ZeD_CharacterWindow.toggleBothPaired(pn) end
     p:setGodMod(true)
     p:setTimedActionInstantCheat(true)
+    gt:setTimeOfDay(10)
     local inv = p:getInventory()
     news = inv:AddItem("Base.Newspaper"); news:getModData().printMedia = media("KnoxKnews_July1"); news:setName(getText("Print_Media_KnoxKnews_July1_title"))
     flier = inv:AddItem("Base.Flier"); flier:getModData().printMedia = media("UStoreItMuldraugh"); flier:setName(getText("Print_Media_UStoreItMuldraugh_title"))
+end
+at(2, function()
     ISTimedActionQueue.add(ISReadABook:new(p, news))
 end)
 at(40, function() say("open " .. tostring(win() and win():isVisible()) .. " view " .. tostring(win() and win().view) .. " body " .. tostring(win() and win().page and win().page.body)); shot("01_paper") end)
@@ -42,9 +50,19 @@ at(305, function()
     p:setTimedActionInstantCheat(false)
     local inv = p:getInventory()
     for _, it in ipairs({ news, flier }) do if it then inv:Remove(it) end end
+    gt:setTimeOfDay(tod0)
     say("DONE")
 end)
 local function onTick()
+    if not started then
+        waited = waited + 1
+        if waited == 1 then setup() end
+        if waited >= 3 and (not p:tooDarkToRead() or waited >= 400) then
+            started = true
+            say("light after " .. waited .. " ticks: tooDark " .. tostring(p:tooDarkToRead()))
+        end
+        return
+    end
     tick = tick + 1
     for _, s in ipairs(steps) do if s.n == tick then local ok, e = pcall(s.fn); if not ok then say("ERR " .. s.n .. " " .. tostring(e)) end end end
     if tick > 310 then Events.OnTick.Remove(onTick) end
