@@ -115,6 +115,26 @@ function Z.mc(on)
     end
     return done
 end
+-- the list sort (f8ca84c1: category headers only under Sort by Category): Character by
+-- Category, World by Name for the multi-column shots; the first values are kept to put back
+function Z.sort(win, key, asc)
+    local c = win and win._mainContent
+    if not c then return end
+    Z.sortWas = Z.sortWas or {}
+    if not Z.sortWas[win] then Z.sortWas[win] = { c._sortCol, c._sortAsc } end
+    c._sortCol, c._sortAsc = key, asc
+    for _, cs in ipairs(c._colStates or {}) do cs.sortCol, cs.sortAsc = key, asc end
+end
+function Z.sortBack()
+    for win, v in pairs(Z.sortWas or {}) do
+        local c = win._mainContent
+        if c and v[1] then
+            c._sortCol, c._sortAsc = v[1], v[2]
+            for _, cs in ipairs(c._colStates or {}) do cs.sortCol, cs.sortAsc = v[1], v[2] end
+        end
+    end
+end
+function Z.sortSplit() Z.sort(Z.CW(), "cat", true); Z.sort(Z.WW(), "name", true) end
 function Z.selectItem(item)
     local w = Z.CW()
     local c = w and w._mainContent
@@ -198,7 +218,7 @@ S.step(2, function()
     Opt.watchPlaceOption:setValue(1)
     Opt.contextStyleOption:setValue(1)
     Opt.actionBarOption:setValue(1)
-    G.tp(G.spot.px + 0.5, G.spot.py + 0.5, 0)
+    G.stand()
     Z.openPair()
 end)
 S.step(40, function() Z.charTab("loot"); Z.worldTab("loot"); Z.place() end)
@@ -206,7 +226,9 @@ S.step(40, function() Z.charTab("loot"); Z.worldTab("loot"); Z.place() end)
 -- ---- hero --------------------------------------------------------------------
 if want("hero") then
     S.poll(10, 600, function() return Z.mc(true) end, function() say("note: the columns did not all come on") end)
+    S.step(10, function() Z.sortSplit() end)
     S.step(40, function()
+        Z.sortSplit()
         local c, w = Z.CW(), Z.WW()
         say(string.format("columns: char %d world %d | char %dx%d at %d,%d | world %dx%d at %d,%d",
             #(c._mcSelected or {}), #(w._mcSelected or {}), c:getWidth(), c:getHeight(), c:getX(), c:getY(),
@@ -382,7 +404,7 @@ if want("car") then
         if v then pcall(function() v:exit(p) end); pcall(function() triggerEvent("OnExitVehicle", p) end) end
         Z.entered = false
     end)
-    S.step(40, function() G.tp(G.spot.px + 0.5, G.spot.py + 0.5, 0); G.openTrunk(G.car); G.faceFront() end)
+    S.step(40, function() G.stand(); G.openTrunk(G.car); G.faceFront() end)
     S.step(30, function() end)
 end
 
@@ -435,7 +457,7 @@ if want("themes") then
     S.step(2, function() Z.openPair() end)
     S.zoomTo(1.0)
     S.poll(10, 600, function() return Z.mc(true) end)
-    S.step(30, function() Z.place() end)
+    S.step(30, function() Z.sortSplit(); Z.place() end)
     for _, base in ipairs({ "dark", "light", "hicon" }) do
         for _, acc in ipairs({ "orange", "teal", "blue", "green", "purple", "red" }) do
             S.step(2, function() Z.theme(base, acc) end)
@@ -449,6 +471,7 @@ end
 -- ---- back ---------------------------------------------------------------------
 S.step(10, function()
     Z.mc(false)
+    pcall(Z.sortBack)
     pcall(ZeD.Settings.reapplyFromOptions)
     Opt.contextStyleOption:setValue(Z.was.ctx)
     Opt.watchPlaceOption:setValue(Z.was.watch)

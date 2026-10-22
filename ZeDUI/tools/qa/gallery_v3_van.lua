@@ -94,7 +94,7 @@ S.step(2, function()
     if getGameSpeed() <= 0 then setGameSpeed(1) end
     G.cleanLook()
     G.day()
-    G.tp(G.spot.px + 0.5, G.spot.py + 0.5, 0)
+    G.stand()
     G.openTrunk(G.car)
     say(string.format("vanilla: font size %s, inventory font %s, context font %s, tooltip font %s, moodles %s, sidebar %s",
         tostring(getCore():getOptionFontSize()), tostring(getCore():getOptionInventoryFont()), tostring(getCore():getOptionContextMenuFont()),
@@ -210,7 +210,7 @@ if want("car") then
         local v = p:getVehicle()
         if v then pcall(function() v:exit(p) end); pcall(function() triggerEvent("OnExitVehicle", p) end) end
     end)
-    S.step(40, function() G.tp(G.spot.px + 0.5, G.spot.py + 0.5, 0); G.openTrunk(G.car); G.faceFront() end)
+    S.step(40, function() G.stand(); G.openTrunk(G.car); G.faceFront() end)
 end
 
 S.step(10, function() V.tip(nil); V.info(nil); V.pages(false) end)

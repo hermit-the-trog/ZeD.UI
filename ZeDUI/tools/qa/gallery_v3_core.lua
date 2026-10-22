@@ -245,7 +245,12 @@ function G.dayAgain()
     end
     G.gt:setTimeOfDay(10.0)
 end
-function G.faceFront() pcall(function() if not p:getVehicle() then p:setDir(IsoDirections.SE) end end) end
+-- the character on its spot: the exact point stage chose (fx, fy) or the square's centre
+function G.stand()
+    local s = G.spot
+    G.tp(s.fx or (s.px + 0.5), s.fy or (s.py + 0.5), 0)
+end
+function G.faceFront()pcall(function() if not p:getVehicle() then p:setDir(IsoDirections.SE) end end) end
 
 -- ===========================================================================
 -- THE SEARCH
