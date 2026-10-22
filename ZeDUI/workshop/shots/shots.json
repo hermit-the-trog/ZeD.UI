@@ -65,7 +65,7 @@
       "kind": "feature",
       "src": "zed_01_hero_mid.png",
       "title": "Inventory and loot",
-      "caption": "Vanilla: loot, crafting and the map each open in their own window. ZeD: they are tabs in the World window.",
+      "caption": "In ZeD, open containers sit side by side as columns. Drag an item to another column to move it.",
       "layout": {
         "direction": "column",
         "zoom": 0.45,
@@ -94,7 +94,7 @@
       ],
       "balloons": [
         {
-          "text": "Vanilla: the inventory window and the loot window are two separate windows.",
+          "text": "Vanilla: inventory and loot.",
           "anchor": [
             3195,
             300
@@ -103,16 +103,7 @@
           "side": "right"
         },
         {
-          "text": "Vanilla: the loot window shows one container at a time. These buttons pick it.",
-          "anchor": [
-            3185,
-            110
-          ],
-          "crop": 0,
-          "side": "right"
-        },
-        {
-          "text": "ZeD: the Character window on the left, the World window on the right.",
+          "text": "ZeD: the Character window holds what you carry. The World window holds the containers around you.",
           "anchor": [
             3315,
             420
@@ -121,7 +112,7 @@
           "side": "right"
         },
         {
-          "text": "ZeD: each container has its own column. Here: the trunk, a duffel bag and the ground.",
+          "text": "Click a container's button to open it as a column. Here: the trunk, a duffel bag and the ground.",
           "anchor": [
             3315,
             620
@@ -432,7 +423,7 @@
       ],
       "balloons": [
         {
-          "text": "Vanilla: a list of actions. Less common actions are under More.",
+          "text": "Vanilla: the right-click menu.",
           "anchor": [
             1180,
             472
@@ -557,7 +548,7 @@
       ],
       "balloons": [
         {
-          "text": "Vanilla: health is a tab in the character info window, with a list of body parts.",
+          "text": "Vanilla: the Health tab.",
           "anchor": [
             2412,
             1030
@@ -566,7 +557,7 @@
           "side": "left"
         },
         {
-          "text": "ZeD: the body figure. Injuries show on the figure where they are.",
+          "text": "ZeD: injuries are drawn on the body figure. Hover a body part to see its injuries.",
           "anchor": [
             374,
             384
@@ -641,7 +632,7 @@
       ],
       "balloons": [
         {
-          "text": "Vanilla: skills are a tab in the character info window.",
+          "text": "Vanilla: the Skills tab.",
           "anchor": [
             2412,
             910
@@ -674,7 +665,7 @@
       "kind": "feature",
       "src": "zed_13_crafting.png",
       "title": "Crafting",
-      "caption": "Vanilla: crafting opens in its own window. ZeD: crafting is a tab in the World window.",
+      "caption": "In ZeD, crafting is a tab in the World window.",
       "layout": {
         "fill": 0.96,
         "gap": 50
@@ -886,7 +877,7 @@
       ],
       "balloons": [
         {
-          "text": "Vanilla: hotbar slots in a row at the bottom.",
+          "text": "Vanilla: the hotbar.",
           "anchor": [
             2100,
             2110
@@ -895,7 +886,7 @@
           "side": "right"
         },
         {
-          "text": "ZeD: the same slots on a strap, with your hands at its ends.",
+          "text": "ZeD: the hotbar slots sit on a strap, with your hands at its ends.",
           "anchor": [
             1450,
             2085
@@ -976,7 +967,7 @@
       ],
       "balloons": [
         {
-          "text": "Vanilla: a progress bar over the character.",
+          "text": "Vanilla: the progress bar.",
           "anchor": [
             1901,
             932
