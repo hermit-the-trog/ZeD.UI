@@ -423,10 +423,29 @@ local function gpFocusedToggle(id)
     return focEl ~= nil and focEl.isViewToggle and focEl.id == id
 end
 
+-- a container's key, kept per container object (asked by every column every frame; a container's
+-- key never changes: its owner, bag, vehicle part or square stay its own)
+local _ckey, _ckeyN = {}, 0
+local function containerKeyOf(inv, playerObj)
+    if not inv then return nil end
+    if not playerObj then return containerKey(inv, playerObj) end
+    local k = _ckey[inv]
+    if k == nil then
+        k = containerKey(inv, playerObj)
+        -- (a vehicle part's key carries the car's database id, which a new car only gets once it is
+        -- saved, and a container of no known kind may yet find one: those are asked every time)
+        if not k or k:sub(1, 4) == "veh:" or k:sub(1, 5) == "type:" then return k end
+        _ckeyN = _ckeyN + 1
+        if _ckeyN > 96 then _ckey, _ckeyN = {}, 1 end
+        _ckey[inv] = k
+    end
+    return k
+end
+
 -- The grid's state for one column (renderItemList keeps it in one table GV)
 local function gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
     local T = ZeD.T
-    local GV = { key = containerKey(inv, playerObj), toggles = {}, child = childParent }
+    local GV = { key = containerKeyOf(inv, playerObj), toggles = {}, child = childParent }
     GV.on   = ZeD.InventoryRenderer.isGridKey(GV.key)
     GV.cell = T.px(GRID_CELL)
     GV.gap  = T.px(GRID_GAP)
@@ -761,12 +780,14 @@ end
 
 local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     local groups, catOrder, flatItems = {}, {}, {}
+    local catOf = {}   -- item -> its category key (the rows draw it every frame)
     local items = inv and inv:getItems()
     if items then
         for i = 0, items:size() - 1 do
             local item = items:get(i)
             if item and not item:isHidden() and not (isPlayerInv and heldByPlayer(playerObj, item)) then
                 local cat = ZeD.InventoryRenderer.catKey(item)
+                catOf[item] = cat
                 if not groups[cat] then
                     groups[cat] = {}
                     catOrder[#catOrder + 1] = cat
@@ -854,7 +875,7 @@ local function buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, col
     return {
         groups = groups, catOrder = catOrder, flatItems = flatItems, useGroups = useGroups,
         stacks = stacks, childParent = childParent, stackedGroups = stackedGroups,
-        catRowCount = catRowCount,
+        catRowCount = catRowCount, catOf = catOf,
     }
 end
 
@@ -1045,6 +1066,7 @@ local function renderItemList(self)
     self._catOrder       = catOrder
     self._stacks         = stacks
     self._childParent    = childParent
+    self._catOf          = M.catOf
 
     -- GRID: this container's view, and the cells' layout (a stack is one cell;
     -- its children are never shown apart, as the card covers the stack)
@@ -1382,7 +1404,7 @@ local function renderItemList(self)
 
         -- On the belt: a BELT n tag after the name (n = the key that draws it),
         -- where vanilla puts its small hotbar icon
-        local okAS, aslot = pcall(function() return item:getAttachedSlot() end)
+        local okAS, aslot = pcall(item.getAttachedSlot, item)
         if okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.tagFor then
             local tag = ZeD.Belt.tagFor(aslot)
             local tf = T.fontF1
@@ -1400,7 +1422,7 @@ local function renderItemList(self)
         local secTextY = y + math.floor((rowH - secFH) / 2)
 
         if showCat then
-            local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
+            local catLabel = truncateText(ZeD.InventoryRenderer.catLabel(self._catOf[item] or ZeD.InventoryRenderer.catKey(item)), T.fontF1, catColW - padX * 2)
             local cc = focusTxt or T.toneHi
             dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
         end

@@ -85,6 +85,96 @@ if not ISUIElement._zedBorderPatched then
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- Lean draw calls for the ZeD classes (Oct 22 2026, the drawing-cost work). A draw
+-- through ISUIElement costs three to seven times the Java call it makes (measured in
+-- game, -debug: a rect 1.56 us against 0.60, a text 3.12 against 1.02, a texture fitted
+-- 3.40 against 0.48): the method is found five classes up, the texture goes through
+-- ISUITextureGetter's type test, the text asks the zoom the long way. ZeD's panels draw
+-- hundreds a frame, so the ZeD classes get their own copies of drawRect, drawRectBorder,
+-- drawText, drawTextureScaled and drawTextureScaledAspect that make exactly the same Java
+-- calls with exactly the same values (the vanilla rules and the zoom rules above, line
+-- for line), only shorter. A class that has its own (ZeD_ActionBar's fade) keeps it.
+-- ---------------------------------------------------------------------------
+local getterCheck = function(t) return ISUITextureGetter.checkGetTexture(t) end
+local LEAN = {}
+function LEAN.drawRect(self, x, y, w, h, a, r, g, b)
+    local jo = self.javaObject
+    if jo ~= nil then
+        if self.isCollapsed then return end
+        jo:DrawTextureScaledColor(nil, x, y, w, h, r, g, b, a)
+    end
+end
+function LEAN.drawRectBorder(self, x, y, w, h, a, r, g, b)
+    local T = ZeD.T
+    local t = (self.zedScaled and T and T.px) and T.px(1) or 1
+    local jo = self.javaObject
+    if t <= 1 then
+        -- the engine's one-pixel border (ISUIElement:drawRectBorder)
+        if jo ~= nil then
+            jo:DrawTextureScaledColor(nil, x, y, 1, h, r, g, b, a)
+            jo:DrawTextureScaledColor(nil, x + 1, y, w - 2, 1, r, g, b, a)
+            jo:DrawTextureScaledColor(nil, x + w - 1, y, 1, h, r, g, b, a)
+            jo:DrawTextureScaledColor(nil, x + 1, y + h - 1, w - 2, 1, r, g, b, a)
+        end
+        return
+    end
+    if w <= 0 or h <= 0 then return end
+    local dr = self.drawRect
+    if dr ~= LEAN.drawRect then
+        -- a class with its own drawRect (ZeD_ActionBarLayer's fade): through it, as before
+        if w <= 2 * t or h <= 2 * t then return dr(self, x, y, w, h, a, r, g, b) end
+        dr(self, x, y, w, t, a, r, g, b)
+        dr(self, x, y + h - t, w, t, a, r, g, b)
+        dr(self, x, y + t, t, h - 2 * t, a, r, g, b)
+        dr(self, x + w - t, y + t, t, h - 2 * t, a, r, g, b)
+        return
+    end
+    if jo == nil or self.isCollapsed then return end
+    if w <= 2 * t or h <= 2 * t then jo:DrawTextureScaledColor(nil, x, y, w, h, r, g, b, a); return end
+    jo:DrawTextureScaledColor(nil, x, y, w, t, r, g, b, a)                 -- top
+    jo:DrawTextureScaledColor(nil, x, y + h - t, w, t, r, g, b, a)         -- bottom
+    jo:DrawTextureScaledColor(nil, x, y + t, t, h - 2 * t, r, g, b, a)     -- left
+    jo:DrawTextureScaledColor(nil, x + w - t, y + t, t, h - 2 * t, r, g, b, a)  -- right
+end
+local Sc = ZeD.Scale
+function LEAN.drawText(self, str, x, y, r, g, b, a, font)
+    -- the zoom kept per font (X.zoomOf's own table, read inline while it is current)
+    local z = nil
+    local Zc = X._zoom
+    if font ~= nil and Zc and Zc.T == ZeD.T and Zc.root == Sc._root then z = Zc.z[font] end
+    if z == nil then z = X.zoomOf(font) end
+    local jo = self.javaObject
+    if z == 1 then
+        -- ISUIElement:drawText as the engine has it
+        if jo ~= nil then
+            if self.isCollapsed then return end
+            if font ~= nil then jo:DrawText(font, str, x, y, r, g, b, a)
+            else jo:DrawText(UIFont.Small, str, x, y, r, g, b, a) end
+        end
+        return
+    end
+    if jo ~= nil then jo:DrawText(font, tostring(str), x, y, z, r, g, b, a) end
+end
+function LEAN.drawTextureScaled(self, texture, x, y, w, h, a, r, g, b)
+    local jo = self.javaObject
+    if jo ~= nil then
+        if type(texture) == "table" then texture = getterCheck(texture) end   -- (anything else passes through unchanged)
+        if r == nil then jo:DrawTextureScaled(texture, x, y, w, h, a)
+        else jo:DrawTextureScaledColor(texture, x, y, w, h, r, g, b, a) end
+    end
+end
+function LEAN.drawTextureScaledAspect(self, texture, x, y, w, h, a, r, g, b)
+    local jo = self.javaObject
+    if jo ~= nil then
+        if type(texture) == "table" then texture = getterCheck(texture) end
+        if r == nil then jo:DrawTextureScaledAspect(texture, x, y, w, h, 1, 1, 1, a)
+        else jo:DrawTextureScaledAspect(texture, x, y, w, h, r, g, b, a) end
+    end
+end
+ZeD.LeanDraw = LEAN
+local LEAN_NAMES = { "drawRect", "drawRectBorder", "drawText", "drawTextureScaled", "drawTextureScaledAspect" }
+
 local ZED_CLASSES = { "ZeD_Panel", "ZeD_Window", "ZeD_Button", "ZeD_TextInput", "ZeD_TextEntry", "ZeD_SearchField",
     "ZeD_Tooltip", "ZeD_ScrollList", "ZeD_ScrollPanel", "ZeD_ZoneList", "ZeD_Dropdown", "ZeD_Modal", "ZeD_TabPanel",
     "ZeD_ItemGrid", "ZeD_ItemCard", "ZeD_BodyFigure", "ZeD_ContextMenu", "ZeD_ContextList", "ZeD_Dashboard", "ZeD_Watch",
@@ -92,12 +182,38 @@ local ZED_CLASSES = { "ZeD_Panel", "ZeD_Window", "ZeD_Button", "ZeD_TextInput", 
     -- missed and kept hairline borders at 4K. The pixel-art panels (the desk, the CRT glass and
     -- wake, the car radio, the siren controller) stay off this list: their thin lines are art.)
     "ZeD_ObjectCard", "ZeD_FurnitureChip", "ZeD_MMBar", "ZeD_MMDrop", "ZeD_MMIcons" }
+-- The lean calls go on every ZeD class (any global "ZeD_*" class table), not only the listed ones:
+-- they make the same calls ISUIElement's do for any element. A class keeps a method of its own; the
+-- game's Lua keeps a copy of an inherited method on the class table itself, so a raw value equal to
+-- ISUIElement's is a copy, not an override, and is replaced too.
+local function leanInstall(c)
+    local n = 0
+    for _, m in ipairs(LEAN_NAMES) do
+        local own = rawget(c, m)
+        if own == nil or own == ISUIElement[m] then c[m] = LEAN[m]; n = n + 1 end
+    end
+    return n
+end
 local function flagZedClasses()
     local n = 0
-    for _, name in ipairs(ZED_CLASSES) do local c = _G[name]; if type(c) == "table" then c.zedScaled = true; n = n + 1 end end
-    print("[ZeD] Overrides/TextScale: " .. n .. " ZeD classes draw scaled borders")
+    for _, name in ipairs(ZED_CLASSES) do
+        local c = _G[name]
+        if type(c) == "table" then
+            c.zedScaled = true
+            n = n + 1
+        end
+    end
+    local nc, nm = 0, 0
+    for k, v in pairs(_G) do
+        if type(v) == "table" and type(k) == "string" and k:sub(1, 4) == "ZeD_" and rawget(v, "Type") == k then
+            local got = leanInstall(v)
+            if got > 0 then nc, nm = nc + 1, nm + got end
+        end
+    end
+    print("[ZeD] Overrides/TextScale: " .. n .. " ZeD classes draw scaled borders; lean draw calls on " .. nc .. " classes (" .. nm .. ")")
 end
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(flagZedClasses) end
+if Events and Events.OnGameStart then Events.OnGameStart.Add(flagZedClasses) end   -- (again in game: classes defined late)
 flagZedClasses()
 
 -- Text entries: the Java text box under ISTextEntryBox draws its font at the

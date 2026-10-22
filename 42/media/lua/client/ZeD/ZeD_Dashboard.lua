@@ -142,33 +142,42 @@ end
 -- Vehicle state (per frame, every read guarded)
 -- ---------------------------------------------------------------------------
 local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
+-- the same for one method call with no arguments, without making a closure each time (these are read every frame;
+-- Oct 22 2026, the drawing-cost work): o:m(), its value or the default when it fails or gives nil
+local function _inv(o, m) return o[m](o) end
+local function _get(o, m, default)
+    if o == nil then return default end
+    local ok, v = pcall(_inv, o, m)
+    if ok and v ~= nil then return v end
+    return default
+end
 
 local function _state(vehicle, chr)
     local st = {}
-    st.running  = _safe(function() return vehicle:isEngineRunning() end, false)
-    st.started  = _safe(function() return vehicle:isEngineStarted() end, false)
-    st.keysIn   = _safe(function() return vehicle:isKeysInIgnition() end, false)
-    st.hotwired = _safe(function() return vehicle:isHotwired() end, false)
+    st.running  = _get(vehicle, "isEngineRunning", false)
+    st.started  = _get(vehicle, "isEngineStarted", false)
+    st.keysIn   = _get(vehicle, "isKeysInIgnition", false)
+    st.hotwired = _get(vehicle, "isHotwired", false)
     st.hasKey   = _safe(function() return chr:getInventory():haveThisKeyId(vehicle:getKeyId()) ~= nil end, false)
-    st.speed    = math.abs(_safe(function() return vehicle:getCurrentSpeedKmHour() end, 0))
-    st.rpmRaw   = st.running and _safe(function() return vehicle:getEngineSpeed() end, 0) or 0
+    st.speed    = math.abs(_get(vehicle, "getCurrentSpeedKmHour", 0))
+    st.rpmRaw   = st.running and _get(vehicle, "getEngineSpeed", 0) or 0
     st.gear     = _safe(function() return tostring(vehicle:getTransmissionNumberLetter()) end, "D")
     local tank = _safe(function() return vehicle:getPartById("GasTank") end, nil)
     st.fuelRaw = 0
-    if tank and _safe(function() return tank:isContainer() end, false) then
+    if tank and _get(tank, "isContainer", false) then
         st.fuelRaw = _safe(function() return tank:getContainerContentAmount() / math.max(1, tank:getContainerCapacity()) end, 0)
     end
-    st.battRaw  = _safe(function() return vehicle:getBatteryCharge() end, 0)
+    st.battRaw  = _get(vehicle, "getBatteryCharge", 0)
     st.engineCond = _safe(function() return vehicle:getPartById("Engine"):getCondition() end, 100)
     st.engWarn  = st.engineCond < 40
-    st.lights   = _safe(function() return vehicle:getHeadlightsOn() end, false)
+    st.lights   = _get(vehicle, "getHeadlightsOn", false)
     -- the dash lights burn on the headlight switch while the lamps can actually light (vanilla's own test, its
     -- dashboard's lights icon: switched on and getHeadlightCanEmmitLight)
-    st.dashLit  = st.lights and _safe(function() return vehicle:getHeadlightCanEmmitLight() end, false) or false
-    st.allLocked = _safe(function() return vehicle:areAllDoorsLocked() end, false)
-    st.anyLocked = _safe(function() return vehicle:isAnyDoorLocked() end, false)
+    st.dashLit  = st.lights and _get(vehicle, "getHeadlightCanEmmitLight", false) or false
+    st.allLocked = _get(vehicle, "areAllDoorsLocked", false)
+    st.anyLocked = _get(vehicle, "isAnyDoorLocked", false)
     st.hasTrunk  = _safe(function() return vehicle:getPartById("TruckBed") ~= nil end, false)
-    st.trunkLocked = _safe(function() return vehicle:isTrunkLocked() end, false)
+    st.trunkLocked = _get(vehicle, "isTrunkLocked", false)
     local heater = _safe(function() return vehicle:getPartById("Heater") end, nil)
     st.hasHeater = heater ~= nil
     st.heaterOn  = heater and _safe(function() return heater:getModData().active == true end, false) or false
@@ -183,14 +192,14 @@ local function _state(vehicle, chr)
     st.radio     = radio and RO.read(radio) or nil
     st.radioOn   = st.radio ~= nil and st.radio.on
     st.radioSwitch = st.radio ~= nil and st.radio.switchOn
-    st.cruise    = _safe(function() return vehicle:isRegulator() end, false)
-    st.cruiseSpeed = _safe(function() return vehicle:getRegulatorSpeed() end, 0)
-    st.hasLightbar  = _safe(function() return vehicle:hasLightbar() end, false)
-    st.lightbarMode = st.hasLightbar and _safe(function() return vehicle:getLightbarLightsMode() end, 0) or 0
-    st.sirenMode    = st.hasLightbar and _safe(function() return vehicle:getLightbarSirenMode() end, 0) or 0
+    st.cruise    = _get(vehicle, "isRegulator", false)
+    st.cruiseSpeed = _get(vehicle, "getRegulatorSpeed", 0)
+    st.hasLightbar  = _get(vehicle, "hasLightbar", false)
+    st.lightbarMode = st.hasLightbar and _get(vehicle, "getLightbarLightsMode", 0) or 0
+    st.sirenMode    = st.hasLightbar and _get(vehicle, "getLightbarSirenMode", 0) or 0
     local gt = getGameTime and getGameTime()
-    st.hour   = gt and _safe(function() return gt:getHour() end, 10) or 10
-    st.minute = gt and _safe(function() return gt:getMinutes() end, 8) or 8
+    st.hour   = gt and _get(gt, "getHour", 10) or 10
+    st.minute = gt and _get(gt, "getMinutes", 8) or 8
     return st
 end
 
@@ -520,7 +529,7 @@ end
 -- the trip meter and the fare (session distance, per vehicle)
 -- ---------------------------------------------------------------------------
 function ZeD_Dashboard:_trip(vehicle, st, dtMs)
-    local id = _safe(function() return vehicle:getId() end, 0)
+    local id = _get(vehicle, "getId", 0)
     local t = self._trips[id]
     if not t then t = { miles = 0, fareMiles = 0 }; self._trips[id] = t end
     local miles = (st.speed_mph or 0) * dtMs / 3600000
@@ -579,9 +588,21 @@ function ZeD_Dashboard:prerender()
     self._driver = _safe(function() return vehicle:isDriver(chr) end, false)
     local scriptName = _safe(function() return tostring(vehicle:getScriptName() or "") end, "")
     self._scriptLow = scriptName:lower()
-    local des, designId, ownFamily = _designFor(scriptName)
+    -- the design and the badge lines, worked out again only for another car or language (Oct 22 2026, the
+    -- drawing-cost work: they were read every frame)
+    local bk = self._badgeKey
+    if ZeD.trTestOn then ZeD.trTestOn() end   -- (keeps the test-language state fresh)
+    local trs = ZeD._trState
+    local trOn = (trs and trs.on) and true or false
+    local des, designId, ownFamily
+    if bk and bk.v == vehicle and bk.s == scriptName and bk.gen == ZeD._trGen and bk.on == trOn then
+        des, designId, ownFamily = bk.des, bk.id, bk.own
+    else
+        des, designId, ownFamily = _designFor(scriptName)
+        self._badge = _badges(des, vehicle, scriptName, ownFamily)
+        self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily }
+    end
     self._designId = designId
-    self._badge = _badges(des, vehicle, scriptName, ownFamily)
     local Focus = ZeD.Input and ZeD.Input.Focus
     local DetM = ZeD.Input and ZeD.Input.Detector
     local gamepad = DetM and DetM.getMode and DetM.getMode() == "gamepad"

@@ -401,12 +401,23 @@ end
 -- Zoom for a font value (phase 2): the five ZeD role fonts are registered by
 -- ZeD.applyTheme in ZeD.T.fontPx / fontFace; everything else (vanilla fonts) is 1.
 -- ---------------------------------------------------------------------------
+-- (kept per font while the token table and the root scale stay: every text draw and measure asks;
+-- Oct 22 2026, the drawing-cost work)
+local _zoom = { T = false, root = false, z = {} }
+X._zoom = _zoom   -- (the lean text draw reads it inline: Overrides/TextScale.lua)
 function X.zoomOf(font)
     if font == nil then return 1 end
     local T = ZeD.T
-    local px = T and T.fontPx and T.fontPx[font]
-    if not px then return 1 end
-    return px * S.root() / ((T.fontFace and T.fontFace[font]) or 64)
+    local root = S.root()
+    if _zoom.T ~= T or _zoom.root ~= root then _zoom.T, _zoom.root, _zoom.z = T, root, {} end
+    local z = _zoom.z[font]
+    if z == nil then
+        local px = T and T.fontPx and T.fontPx[font]
+        if not px then z = 1
+        else z = px * root / ((T.fontFace and T.fontFace[font]) or 64) end
+        _zoom.z[font] = z
+    end
+    return z
 end
 
 -- ---------------------------------------------------------------------------
@@ -417,14 +428,83 @@ end
 -- ---------------------------------------------------------------------------
 ZeD.TM = ZeD.TM or {}
 local TM = ZeD.TM
+-- Widths and heights are kept (Oct 22 2026, the drawing-cost work: every panel measures the same
+-- strings every frame, each measure three Java calls). A kept value is exactly what the engine
+-- answered for that font and string; the store starts over whenever an answer could differ: a
+-- new token table (theme, accent, text size, UI scale, the role fonts moving to the game's own),
+-- another root scale, another language, the game's font-size option, a resolution change. Nothing
+-- is kept until the fonts have loaded. Two generations of MC_MAX strings: past that the older
+-- half drops (a string still in use is carried over on its next measure).
+local MC = { T = false, root = false, gen = false, fs = false, x = {}, xOld = {}, h = {}, n = 0 }
+local MC_MAX = 3000
+X._measureCache = MC
+MC.epoch = 0
+local function mcReset() MC.x, MC.xOld, MC.h, MC.n = {}, {}, {}, 0; MC.epoch = MC.epoch + 1 end
+-- the font-size option, read once a frame (OnPreUIDraw) rather than on every measure
+MC.fsNow = false
+local function mcFrame()
+    local ok, v = pcall(function() return getCore():getOptionFontSize() end)
+    MC.fsNow = ok and v or false
+end
+local function mcOn()
+    if not X._fontsSettled then return false end
+    local T = ZeD.T
+    if MC.T ~= T or MC.root ~= S._root or MC.gen ~= ZeD._trGen or MC.fs ~= MC.fsNow then
+        MC.T, MC.root, MC.gen, MC.fs = T, S._root, ZeD._trGen, MC.fsNow
+        mcReset()
+    end
+    return true
+end
+-- For caches built on measures (ZeD.Atoms.truncateText): a number that changes whenever the kept
+-- measures start over, or nil while measures are not kept (the fonts still loading)
+function X.measureEpoch()
+    if not mcOn() then return nil end
+    return MC.epoch
+end
+if Events then
+    if Events.OnPreUIDraw then Events.OnPreUIDraw.Add(mcFrame) end
+    if Events.OnResolutionChange then Events.OnResolutionChange.Add(function() mcReset(); MC.T = false end) end
+end
 function TM:MeasureStringX(font, str)
-    return X.realTM():MeasureStringX(font, tostring(str)) * X.zoomOf(font)
+    if type(str) ~= "string" then str = tostring(str) end
+    -- (mcOn's test inline: this runs a few hundred times a frame)
+    if font == nil or not ((X._fontsSettled and MC.T == ZeD.T and MC.root == S._root and MC.gen == ZeD._trGen
+                            and MC.fs == MC.fsNow) or mcOn()) then
+        return X.realTM():MeasureStringX(font, str) * X.zoomOf(font)
+    end
+    local byF = MC.x[font]
+    if byF then
+        local v = byF[str]
+        if v then return v end
+    else
+        byF = {}
+        MC.x[font] = byF
+    end
+    local old = MC.xOld[font]
+    local v = old and old[str]
+    if not v then v = X.realTM():MeasureStringX(font, str) * X.zoomOf(font) end
+    if MC.n >= MC_MAX then
+        MC.xOld, MC.x, MC.n = MC.x, {}, 0
+        byF = {}
+        MC.x[font] = byF
+    end
+    byF[str] = v
+    MC.n = MC.n + 1
+    return v
 end
 function TM:MeasureStringY(font, str)
     return X.realTM():MeasureStringY(font, tostring(str)) * X.zoomOf(font)
 end
 function TM:getFontHeight(font)
-    return X.realTM():getFontHeight(font) * X.zoomOf(font)
+    if font == nil or not mcOn() then
+        return X.realTM():getFontHeight(font) * X.zoomOf(font)
+    end
+    local v = MC.h[font]
+    if not v then
+        v = X.realTM():getFontHeight(font) * X.zoomOf(font)
+        MC.h[font] = v
+    end
+    return v
 end
 -- getFontFromEnum(font):getLineHeight() is how vanilla panels (ISRichTextPanel) size their lines:
 -- for a zoomed font hand back a thin proxy whose getLineHeight is zoomed, everything else passes through.

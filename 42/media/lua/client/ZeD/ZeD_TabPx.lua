@@ -41,11 +41,26 @@ local function mix(out, a, b, t) out.r, out.g, out.b = a.r + (b.r - a.r) * t, a.
 local WHITE = { r = 1.0, g = 250 / 255, b = 240 / 255 }
 
 -- the five tones for an icon: on the strip (lit from the top left) or pressed into the active panel
-local _tone = { w = {}, l = {}, m = {}, d = {}, k = {} }
+-- (Oct 22 2026, the drawing-cost work: a strip asks for the same tones once per tab, every frame; each set, pressed
+-- in and on the strip, is worked out again only when the colours it comes from change. A window with its own accent
+-- swaps those colours in while it draws, so the colours themselves are compared, not the token table.)
+local _toneSet = { a = { w = {}, l = {}, m = {}, d = {}, k = {} }, i = { w = {}, l = {}, m = {}, d = {}, k = {} } }
+local _toneKey = { a = {}, i = {} }
 local _tmp = {}
 local ENGRAVE = { w = 0.45, l = 0.55, m = 0.68, d = 0.80, k = 0.92 }   -- how far each tone leans to textOnAccent
+local function tonesFresh(k, acc, bright, on)
+    if k.ar == acc.r and k.ag == acc.g and k.ab == acc.b and k.br == bright.r and k.bg == bright.g and k.bb == bright.b
+       and k.onr == on.r and k.ong == on.g and k.onb == on.b then
+        return true
+    end
+    k.ar, k.ag, k.ab, k.br, k.bg, k.bb, k.onr, k.ong, k.onb = acc.r, acc.g, acc.b, bright.r, bright.g, bright.b, on.r, on.g, on.b
+    return false
+end
 local function tones(T, active)
+    local set = active and "a" or "i"
     local acc, bright = T.accent, T.accentBright or T.accent
+    local _tone = _toneSet[set]
+    if tonesFresh(_toneKey[set], acc, bright, T.textOnAccent) then return _tone end
     if active then
         -- pressed in: tones toward textOnAccent; the brightest tone is always the shine, whichever way that leans
         local on = T.textOnAccent
@@ -97,19 +112,31 @@ function TP.drawTab(el, x, y, w, h, id, isActive, isWashed, line)
     TP.drawIcon(el, id, x + math.floor(w / 2), y + math.floor(h / 2), isActive)
 end
 
+-- an icon's six pictures (the shadow, then the five tones), looked up once
+local _icons = {}
+local function iconTex(id)
+    local t = _icons[id]
+    if t then return t end
+    local P = ZeD.Px
+    t = { sh = P.tex(TP.DIR .. id .. "_sh.png") or false }
+    for i, tone in ipairs(TONES) do t[i] = P.tex(TP.DIR .. id .. "_" .. tone .. ".png") or false end
+    _icons[id] = t
+    return t
+end
+
 -- the icon centred on (cx, cy)
 function TP.drawIcon(el, id, cx, cy, isActive)
     if not TP.ICONS[id] then return false end
-    local P = ZeD.Px
     local k = TP.k()
     local sz = 16 * k
     local ix, iy = cx - math.floor(sz / 2), cy - math.floor(sz / 2)
-    local sh = P.tex(TP.DIR .. id .. "_sh.png")
+    local it = iconTex(id)
+    local sh = it.sh
     if sh then el:drawTextureScaled(sh, ix + k, iy + k, sz, sz, isActive and 0.25 or 0.55, 0, 0, 0) end
     local tn = tones(ZeD.T, isActive)
-    for _, t in ipairs(TONES) do
-        local tex = P.tex(TP.DIR .. id .. "_" .. t .. ".png")
-        local c = tn[t]
+    for i = 1, #TONES do
+        local tex = it[i]
+        local c = tn[TONES[i]]
         if tex then el:drawTextureScaled(tex, ix, iy, sz, sz, 1, c.r, c.g, c.b) end
     end
     return true

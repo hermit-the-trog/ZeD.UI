@@ -380,6 +380,13 @@ local function fill(s, a1, a2, a3, a4)
     return out
 end
 
+-- The phrases asked for with up to two text arguments are kept (Oct 22 2026, the drawing-cost
+-- work: the windows ask for the same column heads, counts and tags every frame), until the
+-- language or the test language changes, or TRM_MAX are kept. A missing key is never kept (its
+-- English default may be registered later).
+local TRM_MAX = 4000
+local SEP, NILA = string.char(1), string.char(2)
+local trm, trmN, trmGen, trmOn = {}, 0, nil, nil
 function ZeD.tr(key, ...)
     if key == nil then return "" end
     key = tostring(key)
@@ -387,11 +394,24 @@ function ZeD.tr(key, ...)
     a1, a2, a3, a4 = argText(a1), argText(a2), argText(a3), argText(a4)
 
     local on = testOn()
+    if trmGen ~= ZeD._trGen or trmOn ~= on or trmN >= TRM_MAX then trm, trmN, trmGen, trmOn = {}, 0, ZeD._trGen, on end
+    local mk = nil
+    if a3 == nil and a4 == nil and (a1 == nil or type(a1) == "string") and (a2 == nil or type(a2) == "string") then
+        if a1 == nil and a2 == nil then mk = key
+        else mk = key .. SEP .. (a1 or NILA) .. SEP .. (a2 or NILA) end
+        local hit = trm[mk]
+        if hit then return hit end
+    end
     local raw = lookup(key)
     if raw == nil then raw = defaults[key] end
     if raw == nil then return key end   -- a missing key stays visibly raw
     if on then raw = stretch(raw) end
-    return fill(raw, a1, a2, a3, a4)
+    local out = fill(raw, a1, a2, a3, a4)
+    if mk then
+        trm[mk] = out
+        trmN = trmN + 1
+    end
+    return out
 end
 
 -- ZeD.trBare(key, a, b, c, d): ZeD.tr, minus the punctuation the game hangs on a label or a

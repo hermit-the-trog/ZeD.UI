@@ -49,16 +49,25 @@ O.KIND_BY_ITEM = {
 O.HAM = { ham = true, army = true, hammake = true }
 
 local function _safe(fn, default) local ok, v = pcall(fn); if ok and v ~= nil then return v end; return default end
+-- the same for one method call with no arguments, without making a closure each time (these are read every frame;
+-- Oct 22 2026, the drawing-cost work): o:m(), its value or the default when it fails or gives nil
+local function _inv(o, m) return o[m](o) end
+local function _get(o, m, default)
+    if o == nil then return default end
+    local ok, v = pcall(_inv, o, m)
+    if ok and v ~= nil then return v end
+    return default
+end
 local function now() return getTimestampMs() end
 local function clamp(v, lo, hi) if v < lo then return lo end; if v > hi then return hi end; return v end
 
 -- the face for a fitted radio item; modded radios borrow the nearest face
 function O.kindOf(item, dd)
     if not item then return nil end
-    local ft = _safe(function() return item:getFullType() end, "")
+    local ft = _get(item, "getFullType", "")
     if O.KIND_BY_ITEM[ft] then return O.KIND_BY_ITEM[ft] end
-    if dd and _safe(function() return dd:getIsTwoWay() end, false) then return "ham" end
-    if dd and _safe(function() return dd:getMediaType() end, -1) >= 0 then return "premium" end
+    if dd and _get(dd, "getIsTwoWay", false) then return "ham" end
+    if dd and _get(dd, "getMediaType", -1) >= 0 then return "premium" end
     return "valutech"
 end
 
@@ -105,48 +114,48 @@ end
 -- ---------------------------------------------------------------------------
 function O.presetList(dd)
     local out = {}
-    local pc = _safe(function() return dd:getDevicePresets() end, nil)
-    local l = pc and _safe(function() return pc:getPresets() end, nil)
+    local pc = _get(dd, "getDevicePresets", nil)
+    local l = pc and _get(pc, "getPresets", nil)
     if l then
         for i = 0, l:size() - 1 do
             local p = l:get(i)
-            out[#out + 1] = { name = tostring(_safe(function() return p:getName() end, "")), freq = _safe(function() return p:getFrequency() end, 0) }
+            out[#out + 1] = { name = tostring(_get(p, "getName", "")), freq = _get(p, "getFrequency", 0) }
         end
     end
-    return out, (pc and _safe(function() return pc:getMaxPresets() end, 10)) or 10
+    return out, (pc and _get(pc, "getMaxPresets", 10)) or 10
 end
 
 function O.read(part)
     if not part then return nil end
-    local item = _safe(function() return part:getInventoryItem() end, nil)
-    local dd = item and _safe(function() return part:getDeviceData() end, nil)
+    local item = _get(part, "getInventoryItem", nil)
+    local dd = item and _get(part, "getDeviceData", nil)
     if not dd then return nil end
     local st = { part = part, dd = dd, item = item, key = keyOf(part) }
     st.kind = O.kindOf(item, dd)
     st.ham = O.HAM[st.kind] == true
-    st.switchOn = _safe(function() return dd:getIsTurnedOn() end, false)
-    local batt = _safe(function() return dd:getIsBatteryPowered() end, false)
-    st.powered = (batt and _safe(function() return dd:getPower() end, 0) > 0) or _safe(function() return dd:canBePoweredHere() end, false)
+    st.switchOn = _get(dd, "getIsTurnedOn", false)
+    local batt = _get(dd, "getIsBatteryPowered", false)
+    st.powered = (batt and _get(dd, "getPower", 0) > 0) or _get(dd, "canBePoweredHere", false)
     st.on = st.switchOn and st.powered
-    st.channel = _safe(function() return dd:getChannel() end, 0)
-    st.volume = _safe(function() return dd:getDeviceVolume() end, 0.5)
+    st.channel = _get(dd, "getChannel", 0)
+    st.volume = _get(dd, "getDeviceVolume", 0.5)
     st.muted = st.volume <= 0.001
-    st.min = _safe(function() return dd:getMinChannelRange() end, 88000)
-    st.max = _safe(function() return dd:getMaxChannelRange() end, 108000)
+    st.min = _get(dd, "getMinChannelRange", 88000)
+    st.max = _get(dd, "getMaxChannelRange", 108000)
     st.presets, st.maxPresets = O.presetList(dd)
     for i, p in ipairs(st.presets) do if p.freq == st.channel then st.presetIdx = i; break end end
     st.name = O.chanName(st.channel)
-    st.signal = _safe(function() return dd:isReceivingSignal() end, false)
-    st.twoWay = _safe(function() return dd:getIsTwoWay() end, false)
-    st.micMuted = _safe(function() return dd:getMicIsMuted() end, false)
-    st.range = _safe(function() return dd:getTransmitRange() end, 0)
-    st.mediaType = _safe(function() return dd:getMediaType() end, -1)
-    st.hasMedia = st.mediaType >= 0 and _safe(function() return dd:hasMedia() end, false)
-    st.playing = st.hasMedia and _safe(function() return dd:isPlayingMedia() end, false)
+    st.signal = _get(dd, "isReceivingSignal", false)
+    st.twoWay = _get(dd, "getIsTwoWay", false)
+    st.micMuted = _get(dd, "getMicIsMuted", false)
+    st.range = _get(dd, "getTransmitRange", 0)
+    st.mediaType = _get(dd, "getMediaType", -1)
+    st.hasMedia = st.mediaType >= 0 and _get(dd, "hasMedia", false)
+    st.playing = st.hasMedia and _get(dd, "isPlayingMedia", false)
     if st.hasMedia then
-        local md = _safe(function() return dd:getMediaData() end, nil)
+        local md = _get(dd, "getMediaData", nil)
         if md then
-            local t, sub = _safe(function() return md:getTitleEN() end, nil), _safe(function() return md:getSubtitleEN() end, nil)
+            local t, sub = _get(md, "getTitleEN", nil), _get(md, "getSubtitleEN", nil)
             st.mediaTitle = t and (tostring(t) .. (sub and (" - " .. tostring(sub)) or "")) or (sub and tostring(sub)) or nil
         end
     end
@@ -170,7 +179,7 @@ function O.reachable(chr)
     local seat = _safe(function() return v:getSeat(chr) end, 9)
     if seat > 1 then return nil end
     local part = _safe(function() return v:getPartById("Radio") end, nil)
-    if part and _safe(function() return part:getInventoryItem() end, nil) and _safe(function() return part:getDeviceData() end, nil) then return part end
+    if part and _get(part, "getInventoryItem", nil) and _get(part, "getDeviceData", nil) then return part end
     return nil
 end
 
@@ -205,7 +214,7 @@ function O.power(chr, part) stopScan(part); return run("ToggleOnOff", chr, part)
 function O.volStep(chr, part, dir, wrap)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
-    local cur = _safe(function() return dd:getDeviceVolume() end, 0.5)
+    local cur = _get(dd, "getDeviceVolume", 0.5)
     local nv = math.floor((cur + 0.1 * dir) * 10 + 0.5) / 10
     if wrap then if nv > 1.001 then nv = 0 elseif nv < 0 then nv = 1 end else nv = clamp(nv, 0, 1) end
     return run("SetVolume", chr, part, nv)
@@ -214,7 +223,7 @@ end
 function O.mute(chr, part)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
-    local cur = _safe(function() return dd:getDeviceVolume() end, 0.5)
+    local cur = _get(dd, "getDeviceVolume", 0.5)
     if cur > 0.001 then
         O._lastVol[keyOf(part)] = cur
         return run("MuteVolume", chr, part)
@@ -230,8 +239,8 @@ function O.tuneStep(chr, part, dir, mult)
     if not part then return false end
     stopScan(part)
     local dd = part:getDeviceData(); if not dd then return false end
-    local lo, hi = _safe(function() return dd:getMinChannelRange() end, 88000), _safe(function() return dd:getMaxChannelRange() end, 108000)
-    local cur = _safe(function() return dd:getChannel() end, lo)
+    local lo, hi = _get(dd, "getMinChannelRange", 88000), _get(dd, "getMaxChannelRange", 108000)
+    local cur = _get(dd, "getChannel", lo)
     local nv = math.floor((cur + dir * O.STEP * (mult or 1)) / O.STEP + 0.5) * O.STEP
     if nv > hi then nv = lo elseif nv < lo then nv = hi end
     return setChannel(chr, part, nv)
@@ -239,8 +248,8 @@ end
 
 -- the next frequency vanilla has a station on (FM sets)
 function O.nextStation(dd, dir)
-    local lo, hi = _safe(function() return dd:getMinChannelRange() end, 88000), _safe(function() return dd:getMaxChannelRange() end, 108000)
-    local cur = _safe(function() return dd:getChannel() end, lo)
+    local lo, hi = _get(dd, "getMinChannelRange", 88000), _get(dd, "getMaxChannelRange", 108000)
+    local cur = _get(dd, "getChannel", lo)
     local n = math.floor((hi - lo) / O.STEP) + 1
     for _ = 1, math.min(n, 6000) do
         cur = cur + dir * O.STEP
@@ -274,7 +283,7 @@ local function scanTick()
     for k, sc in pairs(O._scan) do
         t = t or now()
         local dd = _safe(function() return sc.part:getDeviceData() end, nil)
-        local alive = dd and sc.chr and sc.chr:getVehicle() and _safe(function() return dd:getIsTurnedOn() end, false)
+        local alive = dd and sc.chr and sc.chr:getVehicle() and _get(dd, "getIsTurnedOn", false)
         if not alive then O._scan[k] = nil
         elseif t >= sc.nextMs then
             local hz = O.nextStation(dd, 1)
@@ -289,8 +298,8 @@ if Events and Events.OnTick then Events.OnTick.Add(scanTick) end
 local function presetsOf(part)
     if not part then return nil, nil, nil end   -- the vehicle is gone
     local dd = part:getDeviceData()
-    local pc = dd and _safe(function() return dd:getDevicePresets() end, nil)
-    local l = pc and _safe(function() return pc:getPresets() end, nil)
+    local pc = dd and _get(dd, "getDevicePresets", nil)
+    local l = pc and _get(pc, "getPresets", nil)
     return dd, pc, l
 end
 
@@ -311,15 +320,15 @@ function O.store(chr, part, i)
     stopScan(part)
     local dd, pc, l = presetsOf(part)
     if not l then return nil end
-    local hz = _safe(function() return dd:getChannel() end, nil); if not hz then return nil end
+    local hz = _get(dd, "getChannel", nil); if not hz then return nil end
     local n = l:size()
     local idx = math.min(i, n + 1)
-    local name = storedName(hz, _safe(function() return dd:getIsTwoWay() end, false))
+    local name = storedName(hz, _get(dd, "getIsTwoWay", false))
     if idx <= n then
         local p = l:get(idx - 1)
         p:setName(name); p:setFrequency(hz)
     else
-        if n >= _safe(function() return pc:getMaxPresets() end, 10) then return nil end
+        if n >= _get(pc, "getMaxPresets", 10) then return nil end
         l:add(PresetEntry.new(name, hz))
     end
     pcall(function() dd:transmitPresets() end)
@@ -334,7 +343,7 @@ function O.chStep(chr, part, dir)
     local dd, _, l = presetsOf(part)
     if not l or l:size() == 0 then return false end
     local n = l:size()
-    local cur = _safe(function() return dd:getChannel() end, 0)
+    local cur = _get(dd, "getChannel", 0)
     local at = nil
     for i = 0, n - 1 do if l:get(i):getFrequency() == cur then at = i + 1; break end end
     local nxt
@@ -346,9 +355,9 @@ end
 function O.memAdd(chr, part)
     local dd, pc, l = presetsOf(part)
     if not l then return nil end
-    local hz = _safe(function() return dd:getChannel() end, nil); if not hz then return nil end
+    local hz = _get(dd, "getChannel", nil); if not hz then return nil end
     for i = 0, l:size() - 1 do if l:get(i):getFrequency() == hz then O.flash(part, ZeD.tr("UI_ZeD_Radio_ChStored", string.format("%02d", i + 1)), 1400); return i + 1 end end
-    if l:size() >= _safe(function() return pc:getMaxPresets() end, 10) then O.flash(part, ZeD.tr("UI_ZeD_Radio_MemFull"), 1600); return nil end
+    if l:size() >= _get(pc, "getMaxPresets", 10) then O.flash(part, ZeD.tr("UI_ZeD_Radio_MemFull"), 1600); return nil end
     l:add(PresetEntry.new(storedName(hz, true), hz))
     pcall(function() dd:transmitPresets() end)
     pcall(function() getSoundManager():playUISound("VehicleRadioButton") end)
@@ -374,7 +383,7 @@ end
 function O.mic(chr, part)
     if not part then return false end
     local dd = part:getDeviceData(); if not dd then return false end
-    return run("MuteMicrophone", chr, part, not _safe(function() return dd:getMicIsMuted() end, false))
+    return run("MuteMicrophone", chr, part, not _get(dd, "getMicIsMuted", false))
 end
 
 function O.playStop(chr, part) stopScan(part); return run("TogglePlayMedia", chr, part) end
@@ -382,19 +391,19 @@ function O.playStop(chr, part) stopScan(part); return run("TogglePlayMedia", chr
 -- the CDs the character carries (and in the bags they wear) that this radio plays
 function O.cds(chr, part)
     local dd = part and part:getDeviceData()
-    local mt = dd and _safe(function() return dd:getMediaType() end, -1) or -1
+    local mt = dd and _get(dd, "getMediaType", -1) or -1
     local out = {}
     if mt < 0 or not chr then return out end
     local seen = {}
     local function scan(container, depth)
-        local items = container and _safe(function() return container:getItems() end, nil)
+        local items = container and _get(container, "getItems", nil)
         if not items then return end
         for i = 0, items:size() - 1 do
             local it = items:get(i)
             if _safe(function() return it:isRecordedMedia() and it:getMediaType() == mt end, false) and not seen[it] then
                 seen[it] = true; out[#out + 1] = it
             end
-            if depth < 2 and instanceof(it, "InventoryContainer") then scan(_safe(function() return it:getInventory() end, nil), depth + 1) end
+            if depth < 2 and instanceof(it, "InventoryContainer") then scan(_get(it, "getInventory", nil), depth + 1) end
         end
     end
     scan(chr:getInventory(), 0)
@@ -420,7 +429,7 @@ end
 function O.eject(chr, part)
     if not part then return false end
     local dd = part:getDeviceData()
-    if not (dd and _safe(function() return dd:hasMedia() end, false)) then return false end
+    if not (dd and _get(dd, "hasMedia", false)) then return false end
     return mediaAction(chr, part, true, nil)
 end
 

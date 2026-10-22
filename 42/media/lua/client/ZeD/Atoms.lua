@@ -1102,7 +1102,31 @@ end
 
 --- Truncate text with ellipsis ("...") to fit within maxW pixels.
 --- Uses binary search for efficiency.
+-- The answers are kept per font, width and text while the measures behind them are
+-- (ZeD.Text.measureEpoch; Oct 22 2026, the drawing-cost work: every list cuts the same
+-- names to the same widths every frame). Past TT_MAX answers the store starts over.
+local truncateRaw
+local TT_MAX = 4000
+local _tt, _ttN, _ttEpoch = {}, 0, nil
 function ZeD.Atoms.truncateText(text, font, maxW)
+    if maxW <= 0 then return "" end
+    local X = ZeD.Text
+    local epoch = X and X.measureEpoch and X.measureEpoch() or nil
+    if epoch == nil or font == nil or type(text) ~= "string" then return truncateRaw(text, font, maxW) end
+    if epoch ~= _ttEpoch or _ttN >= TT_MAX then _tt, _ttN, _ttEpoch = {}, 0, epoch end
+    local byF = _tt[font]
+    if not byF then byF = {}; _tt[font] = byF end
+    local byW = byF[maxW]
+    if not byW then byW = {}; byF[maxW] = byW end
+    local s = byW[text]
+    if s == nil then
+        s = truncateRaw(text, font, maxW)
+        byW[text] = s
+        _ttN = _ttN + 1
+    end
+    return s
+end
+truncateRaw = function(text, font, maxW)
     if maxW <= 0 then return "" end
     local tm = ZeD.TM
     if tm:MeasureStringX(font, text) <= maxW then return text end
