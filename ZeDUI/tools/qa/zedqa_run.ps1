@@ -34,6 +34,16 @@
       SKIP     not run (the run stopped before it)
     "(expect ...)" prints are shown in the report, not checked.
 
+    Before every script the windows go back to their default spread, as the
+    footer's R does (ZeD_Window.resetLayout), so no script inherits another's
+    window places or sizes (director, Oct 22 2026).
+
+    ZeD's UI scale is set for the run in Zomboid/Lua/ModOptions.ini: 1.75x in
+    fullscreen4k (director, Oct 22 2026: "for 4k, set scale to 1.75"), Auto in the
+    1080p window. The director's own ModOptions.ini is copied aside first and put
+    back once the game has closed (kept beside the report as <report>.modoptions.ini
+    if it could not be put back).
+
     Exit codes: 0 no FAIL / TIMEOUT / SKIP, 1 otherwise, 2 refused to start.
 
 .PARAMETER Manifest
@@ -42,10 +52,11 @@
         <script> | <tag> | timeout=<s> | end=<regex> | expect=<regex>   # comment
 
 .PARAMETER Mode
-    windowed (default): pzlaunchwin.ps1, a 1920x1080 window; the fullscreen
-    options are put back with pzrestorewin.ps1 once the game has closed.
-    fullscreen4k: pzrestorewin.ps1 first, then the director's own options
-    (3840x2160 fullscreen), the start click at the screen centre.
+    fullscreen4k (default since Oct 22 2026, "test it at real play scale"):
+    pzrestorewin.ps1 first, then the director's own options (3840x2160
+    fullscreen), the start click at the screen centre.
+    windowed: pzlaunchwin.ps1, a 1920x1080 window; the fullscreen options are
+    put back with pzrestorewin.ps1 once the game has closed.
 
 .PARAMETER TimeoutSec
     Seconds per script (default 180); a manifest line's timeout= wins.
@@ -70,7 +81,7 @@
 [CmdletBinding()]
 param(
     [string]$Manifest = "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/regression.txt",
-    [ValidateSet("windowed", "fullscreen4k")][string]$Mode = "windowed",
+    [ValidateSet("windowed", "fullscreen4k")][string]$Mode = "fullscreen4k",   # (director, Oct 22 2026: test at real play scale)
     [ValidateRange(5, 86400)][int]$TimeoutSec = 180,
     [string]$Report = "",
     [switch]$KeepOpen,
@@ -91,6 +102,8 @@ $ConsoleFile = Join-Path $ZomboidDir "console.txt"
 $ShotDir     = Join-Path $ZomboidDir "Screenshots"
 $LatestSave  = Join-Path $ZomboidDir "latestSave.ini"
 $OptionsIni  = Join-Path $ZomboidDir "options.ini"
+$ModOptions  = Join-Path $LuaDir "ModOptions.ini"
+$ResetPrefix = 'pcall(function() if ZeD_Window and ZeD_Window.resetLayout then ZeD_Window.resetLayout(); print("[ZeD.QA] windows reset (R)") end end); '
 $VersionTxt  = Join-Path $ZomboidDir "version.txt"
 $QaDir       = "C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\tools\qa"
 $ReportDir   = "C:\Users\danie\Zomboid\mods\ZeD-UI\ZeDUI\qa\regression"
@@ -156,6 +169,28 @@ function Get-LockState {
     $t = Read-Text $LockFile
     if ($null -eq $t) { return "" }
     return $t.Trim().ToLowerInvariant()
+}
+
+# ZeD's settings to their defaults for the run; the director's own file is kept to put back
+$script:ModOptionsSaved = $null
+function Reset-ZeDSettings([string]$RunMode, [string]$Keep) {
+    $t = Read-Text $ModOptions
+    if ($null -eq $t) { $t = "" }
+    $script:ModOptionsSaved = $t
+    Write-Text $Keep $t
+    # only the UI scale is set: 1.75x at 4K, ZeD's default (Auto) in the 1080p window; the rest stay the director's
+    $lines = @(($t -split "\r?\n") | Where-Object { $_ -ne "" -and $_ -notmatch '\|ZeD_UI\|uiScale\|' })
+    $set = "UI scale Auto (1080p window)"
+    if ($RunMode -eq "fullscreen4k") { $lines += "combobox|ZeD_UI|uiScale|7"; $set = "UI scale 1.75x (4K)" }
+    Write-Text $ModOptions (($lines -join "`r`n") + "`r`n")
+    Add-Note "ZeD settings: $set (the director's ModOptions.ini kept aside)"
+}
+function Restore-ZeDSettings([string]$Keep) {
+    if ($null -eq $script:ModOptionsSaved) { return }
+    if (Test-GameRunning) { Add-Note "ZeD settings NOT put back (the game is still running): copy $Keep over $ModOptions once it has closed"; return }
+    Write-Text $ModOptions $script:ModOptionsSaved
+    Remove-Item -LiteralPath $Keep -ErrorAction SilentlyContinue
+    Add-Note "ZeD settings: the director's ModOptions.ini put back"
 }
 
 function Set-Lock([string]$State) {
@@ -638,8 +673,15 @@ function Get-Shots($Prefixes, [datetime]$Since) {
 }
 
 function Invoke-QaScript($Item, $Res) {
-    try { Copy-Item -LiteralPath $Item.Path -Destination $BridgeLua -Force -ErrorAction Stop }
-    catch { Start-Sleep -Seconds 1; Copy-Item -LiteralPath $Item.Path -Destination $BridgeLua -Force -ErrorAction Stop }
+    # every script starts from the windows' default spread: the footer's R (ZeD_Window.resetLayout)
+    # is pressed first (director, Oct 22 2026: "reset the window location ... they keep jumping
+    # around or are opening at too large of scale"). It goes on the script's own first line,
+    # before whatever is there ("-- header" becomes a comment after it), so line numbers in
+    # errors still match the file.
+    $body = [System.IO.File]::ReadAllText($Item.Path)
+    $body = $ResetPrefix + $body
+    try { Write-Text $BridgeLua $body }
+    catch { Start-Sleep -Seconds 1; Write-Text $BridgeLua $body }
     $from = Update-Log
     $t0 = Get-Date
     $Res.Started = $t0
@@ -919,6 +961,7 @@ foreach ($it in $items) {
 Write-Host "zedqa_run: $($items.Count) scripts, $Mode; report $Report"
 try {
     Set-Lock "busy"   # (inside the try: the finally below always writes "free")
+    Reset-ZeDSettings $Mode ($Report + ".modoptions.ini")
     if ($Mode -eq "windowed") { Start-GameWindowed } else { Start-Game4K }
     $opt = Read-Text $OptionsIni
     if ($opt) { $info.Display = ((([regex]::Matches($opt, '(?m)^(fullScreen|width|height)=\S+')) | ForEach-Object { $_.Value }) -join " ") }
@@ -961,6 +1004,8 @@ finally {
                 Add-Note "pzrestorewin.ps1: $($out -replace '\s*\r?\n\s*', ' / ')"
             }
         }
+        if (-not $KeepOpen) { Restore-ZeDSettings ($Report + ".modoptions.ini") }
+        else { Add-Note "-KeepOpen: ZeD settings are still the test's; the director's file is $Report.modoptions.ini" }
         $info.Finished = Get-Date
         Write-Report $results $Report $info
     }
