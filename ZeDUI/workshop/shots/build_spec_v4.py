@@ -1,3 +1,6 @@
+raise SystemExit("build_spec_v4.py is retired (Oct 22 2026): it rebuilt shots.json from an Oct 21 scratch "
+                 "file and dropped the cards added since (Old job tall, Options, Mods, Profiles and load order, "
+                 "Uploading). Edit ZeDUI/workshop/shots/shots.json directly.")
 import json
 SP = "C:/Users/danie/AppData/Local/Temp/claude/C--Users-danie-Zomboid/bc20a731-3edf-404d-99ca-934f503e9abc/scratchpad/"
 keep = {}

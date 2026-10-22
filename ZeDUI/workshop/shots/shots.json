@@ -1,5 +1,5 @@
 {
- "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors).",
+ "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards).",
  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_v3",
  "out": "out",
  "patches": [
@@ -63,54 +63,118 @@
   {
    "id": "old_job",
    "kind": "feature",
-   "src": "story_00a_identity.png",
+   "src": "story_00a_identity_tall.png",
    "title": "Old job",
-   "caption": "Glen Finnegan pumped gas at the Fossoil in West Point. In the game he is a mechanic, with Strong, Dextrous, Speed Demon, Fast Reader and Smoker.",
+   "caption": "Glen pumped gas at the Fossoil. Six days in, Mechanics is at 7 and Welding at 6; Cooking is still 2.",
    "layout": {
-    "fill": 0.8
+    "fill": 0.96,
+    "gap": 56
    },
    "crops": [
     {
      "box": [
-      296,
+      716,
       0,
-      1913,
-      735
-     ]
+      1618,
+      1280
+     ],
+     "tag": "IDENTITY"
+    },
+    {
+     "src": "story_00b_skills_tall.png",
+     "box": [
+      716,
+      0,
+      1618,
+      1280
+     ],
+     "tag": "SKILLS"
     }
    ],
    "balloons": [
     {
-     "text": "The Identity tab shows the character's driver's license.",
+     "text": "A mechanic, six days in, 23 zombies killed.",
      "anchor": [
-      380,
-      300
+      1072,
+      554
      ],
-     "side": "left"
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      430
+     ],
+     "maxw": 290
     },
     {
-     "text": "The profession on the license: Mechanic.",
+     "text": "Good traits in green.",
      "anchor": [
-      1025,
-      351
+      798,
+      895
      ],
-     "side": "bottom"
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      650
+     ],
+     "maxw": 290
     },
     {
-     "text": "Time survived, favorite weapon and zombies killed.",
+     "text": "Bad ones in red.",
      "anchor": [
-      675,
-      590
+      798,
+      1109
      ],
-     "side": "bottom"
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      800
+     ],
+     "maxw": 290
     },
     {
-     "text": "The inventory column stays beside every tab.",
+     "text": "Mechanics up to 7, Welding to 6.",
      "anchor": [
-      1266,
-      76
+      1186,
+      742
      ],
-     "side": "top"
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      572
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "Others still at 1 to 3.",
+     "anchor": [
+      1571,
+      872
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      705
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "XP boosts beside the level.",
+     "anchor": [
+      1586,
+      1072
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      845
+     ],
+     "maxw": 290
     }
    ]
   },
@@ -189,7 +253,7 @@
    "kind": "feature",
    "src": "story_03_route_map.png",
    "title": "The route",
-   "caption": "World window, Maps tab. On a controller, hold one bumper and tap the other to zoom the camera: LB then RB zooms out, RB then LB zooms in.",
+   "caption": "World window, Maps tab.",
    "crops": [
     {
      "box": [
@@ -224,14 +288,6 @@
       74
      ],
      "side": "top"
-    },
-    {
-     "text": "On a controller, RT and LT zoom the map.",
-     "anchor": [
-      2700,
-      640
-     ],
-     "side": "left"
     }
    ]
   },
@@ -670,14 +726,6 @@
    ],
    "balloons": [
     {
-     "text": "Three zombies in line at the counter. They are set to passive for this picture.",
-     "anchor": [
-      2120,
-      1180
-     ],
-     "side": "right"
-    },
-    {
      "text": "The buckle shows the profession. This one is for mechanics.",
      "anchor": [
       1917,
@@ -692,14 +740,6 @@
       2083
      ],
      "side": "top"
-    },
-    {
-     "text": "On a controller, aiming with the right stick hides both windows. Y shows them again.",
-     "anchor": [
-      600,
-      1700
-     ],
-     "side": "right"
     }
    ]
   },
@@ -941,6 +981,61 @@
    ]
   },
   {
+   "id": "car_radio",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/ws_27_car_radio_up_close.png",
+   "title": "The car radio",
+   "caption": "Each car's radio opens up close: tune it and store your stations.",
+   "layout": {
+    "zoom": 1.5
+   },
+   "crops": [
+    {
+     "box": [
+      1815,
+      1535,
+      2720,
+      1800
+     ],
+     "resample": "nearest"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The display shows the band and the frequency.",
+     "anchor": [
+      2280,
+      1570
+     ],
+     "side": "top"
+    },
+    {
+     "text": "The left knob sets the volume and switches the radio on and off.",
+     "anchor": [
+      1912,
+      1740
+     ],
+     "side": "bottom"
+    },
+    {
+     "text": "The six preset buttons carry the station names. Hold a button to store the tuned station.",
+     "anchor": [
+      2280,
+      1745
+     ],
+     "side": "bottom"
+    },
+    {
+     "text": "The right knob tunes the frequency.",
+     "anchor": [
+      2628,
+      1738
+     ],
+     "side": "bottom"
+    }
+   ]
+  },
+  {
    "id": "inventory_compare",
    "kind": "feature",
    "src": "zed_01_hero_mid.png",
@@ -1098,6 +1193,149 @@
    ]
   },
   {
+   "id": "equip_doll",
+   "kind": "feature",
+   "src": "zed_10_equip_doll_oct22.png",
+   "title": "Equipment tab",
+   "caption": "Drag a worn item to a bag or the ground to take it off.",
+   "crops": [
+    {
+     "box": [
+      300,
+      0,
+      1192,
+      740
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "This is the equip doll. Each line runs from a slot to the part of the body it covers.",
+     "anchor": [
+      831,
+      295
+     ],
+     "target": [
+      669,
+      143,
+      864,
+      687
+     ],
+     "side": "right"
+    },
+    {
+     "text": "A worn item. The bar under it is its condition.",
+     "anchor": [
+      482,
+      164
+     ],
+     "side": "left"
+    },
+    {
+     "text": "An empty slot.",
+     "anchor": [
+      482,
+      364
+     ],
+     "side": "left"
+    },
+    {
+     "text": "The number is how many items are worn in that slot.",
+     "anchor": [
+      1051,
+      150
+     ],
+     "side": "right"
+    },
+    {
+     "text": "This button switches between the list and the doll.",
+     "anchor": [
+      1180,
+      77
+     ],
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "health_compare",
+   "kind": "feature",
+   "src": "zed_11_health_exercise_oct22.png",
+   "title": "Health tab",
+   "layout": {
+    "fill": 0.72,
+    "gap": 70
+   },
+   "crops": [
+    {
+     "src": "van_11_health.png",
+     "box": [
+      2405,
+      800,
+      2990,
+      1810
+     ],
+     "tag": "VANILLA"
+    },
+    {
+     "box": [
+      300,
+      0,
+      1192,
+      740
+     ],
+     "tag": "ZeD-GUI"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Vanilla: the Health tab.",
+     "anchor": [
+      2412,
+      1030
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "The body figure. Hover a part to see its health and conditions.",
+     "anchor": [
+      575,
+      600
+     ],
+     "crop": 1,
+     "side": "bottom"
+    },
+    {
+     "text": "Overall health, as a bar and a percentage.",
+     "anchor": [
+      1159,
+      174
+     ],
+     "crop": 1,
+     "side": "right"
+    },
+    {
+     "text": "Pick an exercise, then set the minutes.",
+     "anchor": [
+      1159,
+      300
+     ],
+     "crop": 1,
+     "side": "right"
+    },
+    {
+     "text": "This text says what the exercise trains.",
+     "anchor": [
+      1161,
+      646
+     ],
+     "crop": 1,
+     "side": "right"
+    }
+   ]
+  },
+  {
    "id": "context_menus",
    "kind": "feature",
    "src": "zed_20_ctx_strip.png",
@@ -1165,6 +1403,125 @@
      ],
      "crop": 2,
      "side": "bottom"
+    }
+   ]
+  },
+  {
+   "id": "action_bar_compare",
+   "kind": "feature",
+   "src": "zed_32_action_bar_reading.png",
+   "title": "Action bar",
+   "caption": "Options, ZeD setup, Action bar: Verbose (words) or Simple (ten segments).",
+   "layout": {
+    "zoom": 2,
+    "gap": 80
+   },
+   "crops": [
+    {
+     "src": "van_32_action_bar_reading.png",
+     "box": [
+      1735,
+      860,
+      2095,
+      1120
+     ],
+     "resample": "nearest",
+     "tag": "VANILLA"
+    },
+    {
+     "box": [
+      1750,
+      860,
+      2110,
+      1120
+     ],
+     "resample": "nearest",
+     "tag": "ZeD-GUI"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Vanilla: the progress bar.",
+     "anchor": [
+      1901,
+      932
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "ZeD: the action and the item in words, over the character.",
+     "anchor": [
+      2002,
+      918
+     ],
+     "crop": 1,
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "controller",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/ws_20_wheel_emotes.png",
+   "title": "On a controller",
+   "caption": "The wheels are drawn with the context strip's cells. Point with the mouse or the right stick.",
+   "layout": {
+    "zoom": 1.5,
+    "gap": 120
+   },
+   "crops": [
+    {
+     "box": [
+      1750,
+      915,
+      2090,
+      1235
+     ],
+     "resample": "nearest",
+     "label": "EMOTES"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/ws_26_wheel_vehicle.png",
+     "box": [
+      1745,
+      915,
+      2085,
+      1235
+     ],
+     "resample": "nearest",
+     "label": "IN THE CAR"
+    }
+   ],
+   "balloons": [
+    {
+     "head": "Emote wheel",
+     "text": "The choices sit on a ring around the character.",
+     "anchor": [
+      1846,
+      1065
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "A corner triangle marks a cell that opens another wheel.",
+     "anchor": [
+      1920,
+      1003
+     ],
+     "crop": 0,
+     "side": "top"
+    },
+    {
+     "text": "Exit, seats, engine, lights, horn and radio are cells on the ring.",
+     "anchor": [
+      2003,
+      985
+     ],
+     "crop": 1,
+     "side": "right",
+     "head": "Vehicle wheel"
     }
    ]
   },
@@ -1534,6 +1891,352 @@
       1045
      ],
      "side": "bottom"
+    }
+   ]
+  },
+  {
+   "id": "options_menu",
+   "kind": "feature",
+   "src": "mm4_01_options_zed.png",
+   "title": "Options",
+   "caption": "ZeD setup comes first. The game's own pages follow, and say which settings ZeD replaces.",
+   "layout": {
+    "fill": 0.74,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      996,
+      304,
+      2824,
+      2000
+     ],
+     "tag": "ZED SETUP"
+    },
+    {
+     "src": "mm4_02_options_interface.png",
+     "box": [
+      1406,
+      370,
+      2824,
+      1860
+     ],
+     "tag": "INTERFACE"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Theme, accent, text size and scale.",
+     "anchor": [
+      1440,
+      456
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      40,
+      280
+     ]
+    },
+    {
+     "text": "Every setting is explained down here.",
+     "anchor": [
+      1430,
+      1880
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      40,
+      800
+     ]
+    },
+    {
+     "text": "Game settings ZeD replaces say so.",
+     "anchor": [
+      2528,
+      512
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 200,
+     "at": [
+      1652,
+      300
+     ]
+    }
+   ]
+  },
+  {
+   "id": "mod_manager",
+   "kind": "feature",
+   "src": "mm4_03_mods_conflict.png",
+   "title": "Mods",
+   "caption": "Mods: what is missing, what conflicts and which copy the game uses, before you start a game.",
+   "layout": {
+    "fill": 0.7,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1000,
+      304,
+      1874,
+      1240
+     ],
+     "tag": "MODS"
+    },
+    {
+     "box": [
+      1894,
+      304,
+      2830,
+      1340
+     ],
+     "tag": "DETAIL"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Tabs for problems, conflicts and the Workshop.",
+     "anchor": [
+      1032,
+      400
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      30,
+      180
+     ]
+    },
+    {
+     "text": "A missing mod or the wrong game version shows red.",
+     "anchor": [
+      1138,
+      610
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      30,
+      415
+     ]
+    },
+    {
+     "text": "Two mods ship the same file: which copy runs, and why.",
+     "anchor": [
+      2808,
+      896
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 230,
+     "at": [
+      1615,
+      470
+     ]
+    },
+    {
+     "text": "The same item in both: which version wins.",
+     "anchor": [
+      2808,
+      1142
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 230,
+     "at": [
+      1615,
+      700
+     ]
+    }
+   ]
+  },
+  {
+   "id": "load_order",
+   "kind": "feature",
+   "src": "mm4_08_profiles.png",
+   "title": "Profiles and load order",
+   "caption": "A profile keeps a mod list with its load order. The load order turns red when a mod loads before what it needs.",
+   "layout": {
+    "fill": 0.8,
+    "gap": 48,
+    "direction": "column"
+   },
+   "crops": [
+    {
+     "box": [
+      1000,
+      304,
+      2834,
+      890
+     ],
+     "tag": "PROFILES"
+    },
+    {
+     "src": "mm4_09_load_order.png",
+     "box": [
+      1000,
+      304,
+      2834,
+      830
+     ],
+     "tag": "LOAD ORDER"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Loading a profile says what it turns off.",
+     "anchor": [
+      2000,
+      540
+     ],
+     "crop": 0,
+     "side": "right",
+     "maxw": 260,
+     "at": [
+      1570,
+      250
+     ]
+    },
+    {
+     "text": "Each profile keeps its own load order.",
+     "anchor": [
+      2132,
+      866
+     ],
+     "crop": 0,
+     "side": "right",
+     "maxw": 260,
+     "at": [
+      1570,
+      440
+     ]
+    },
+    {
+     "text": "Crafting Pack loads before the Crafting Core it needs.",
+     "anchor": [
+      1020,
+      622
+     ],
+     "crop": 1,
+     "side": "left",
+     "maxw": 260,
+     "at": [
+      40,
+      760
+     ]
+    }
+   ]
+  },
+  {
+   "id": "uploader",
+   "kind": "feature",
+   "src": "mm4_15_upload_ready.png",
+   "title": "Uploading",
+   "caption": "Upload to the Workshop from one window. The description editor shows the page the way Steam will.",
+   "layout": {
+    "fill": 0.76,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1610,
+      370,
+      2824,
+      1600
+     ],
+     "tag": "UPLOAD"
+    },
+    {
+     "src": "mm4_12_editor.png",
+     "box": [
+      1010,
+      304,
+      2824,
+      2104
+     ],
+     "tag": "DESCRIPTION"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Who can see it, tags and the picture, each checked.",
+     "anchor": [
+      1614,
+      476
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      20,
+      230
+     ]
+    },
+    {
+     "text": "The folder is checked too.",
+     "anchor": [
+      1614,
+      1466
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      20,
+      700
+     ]
+    },
+    {
+     "text": "Build it from blocks and whole sections.",
+     "anchor": [
+      1094,
+      1214
+     ],
+     "crop": 1,
+     "side": "bottom",
+     "maxw": 520,
+     "at": [
+      560,
+      895
+     ]
+    },
+    {
+     "text": "The page as Steam will show it.",
+     "anchor": [
+      2815,
+      470
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 210,
+     "at": [
+      1665,
+      190
+     ]
+    },
+    {
+     "text": "Counted against Steam's 8,000 characters.",
+     "anchor": [
+      1212,
+      2038
+     ],
+     "crop": 1,
+     "side": "bottom",
+     "maxw": 520,
+     "at": [
+      1160,
+      895
+     ]
     }
    ]
   }
