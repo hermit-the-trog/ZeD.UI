@@ -1,57 +1,71 @@
 [h1]ZeD-GUI [B42] | tester build 0.2.0-t1[/h1]
-[b]This is a test build.[/b] It's unlisted, so you're here because someone sent you the link. Thank you for playing it. Problems go in the pinned [b]Bug reports[/b] discussion, one post per problem.
+[b]This is a test build.[/b] It is unlisted. Report problems in the pinned [b]Bug reports[/b] discussion, one post per problem.
 
-Every window, the HUD and the menus, rebuilt from scratch for Build 42. The look is a 1993 Mac. It plays with a controller as well as with a mouse and keys.
+ZeD-GUI replaces the inventory, the character and loot windows, the HUD and the menus for Build 42. The style is based on a 1993 Mac. It works with a controller and with a mouse and keyboard.
 
 [h2]Before you subscribe[/h2]
 [list]
-[*][b]Build 42 only.[/b] Built and tested on 42.21. It won't run on Build 41.
-[*][b]Play a new game or a copy of a save.[/b] It's a test build. Keep your real saves safe.
-[*][b]Single player is where it's been tested.[/b] Multiplayer hasn't been. If you try it on a server, tell us how it went.
-[*][b]It replaces vanilla's windows.[/b] Mods that add their own buttons to vanilla's inventory or character window won't show those buttons, because those windows are hidden. Mods that use the game's own systems (context menu options, container buttons, items, recipes) work.
-[*][b]It adds one item:[/b] a steel digital watch in the loot. Take ZeD off mid-save and those watches go with it. Everything else is interface, and safe to add or remove.
-[*][b]English for now, ready for other languages.[/b] Wherever the game already has the words, ZeD uses the game's own translation. The rest of ZeD's text sits in one file for translators.
+[*][b]Build 42 only.[/b] Tested on 42.21. It does not run on Build 41.
+[*][b]Use a new game or a copy of a save.[/b] This is a test build.
+[*][b]Tested in single player.[/b] It has not been tested in multiplayer. If you try it on a server, report what happened.
+[*][b]It replaces the game's inventory and character windows.[/b] Buttons that other mods add to those windows do not show while ZeD-GUI is on. Mods that use the game's own systems (context menu options, container buttons, items, recipes) work.
+[*][b]It adds one item:[/b] a steel digital watch in the loot. If you remove ZeD-GUI from a save, those watches are removed too. Everything else is interface and can be added or removed at any time.
+[*][b]Text is in English.[/b] Where the game already has a word or phrase, ZeD-GUI uses the game's translation. ZeD-GUI's own text is in one file for translators.
 [/list]
 
-[h2]What you get[/h2]
-[b]Your window and the world's window.[/b] Your stuff on one side: loot, what you wear, health, temperature, who you are, your journal, skills, the radio you carry. The world on the other: loot, crafting (at any bench or station near you), building, maps, foraging, animals, the radio nearby, the vehicle you're next to, furniture. Roll either side up into its title bar when you only need the other.
+[h2]Windows[/h2]
+[b]Character window.[/b] Tabs for loot, equipment, health, temperature, ID, journal, skills and the radio you carry.
 
-[b]Cards for everything.[/b] Click an item, a generator, a campfire, a farm plot, a trough, a padlock, a liquid: you get one card with what it is, what you can do and why you can't yet.
+[b]World window.[/b] Tabs for loot, crafting (at a bench or station near you), building, furniture, maps, foraging, animals, radios nearby and the vehicle you are next to.
 
-[b]The HUD.[/b] Your hands and hotbar on a belt. A watch you actually use. A dashboard when you drive. Moodles where you want them. A bar over your head that says what you're doing and how long the queue is (or just ten little lights, if you'd rather).
+Open containers show as columns side by side. Either window's side panel can be rolled up into its title bar.
 
-[b]Maps.[/b] Survey, color or the old paper road map, with the flyers you've read pinned on it. Your notes are the game's own map notes, so they show on every map.
+[b]Cards.[/b] Click an item, a generator, a campfire, a farm plot, a trough, a padlock or a liquid to open its card. The card lists what it is, the actions you can take and the reason an action is not available.
 
-[b]The menus.[/b] The main menu is a desk with a CRT on it. Load, new game, mods, options, sandbox, character creation, server settings: all ZeD windows on that screen, with the game's own logic underneath.
+[h2]HUD[/h2]
+[list]
+[*][b]Belt:[/b] your hands, and the attachment slots of the gear you wear, on a strap drawn in the gear's material.
+[*][b]Watch:[/b] a worn watch shows on the belt. Click it for the full watch: time, date, temperature, alarm and stopwatch.
+[*][b]Dashboard:[/b] shows when you drive. The radio in the dashboard opens up close.
+[*][b]Moodles:[/b] placed right, left or above the belt.
+[*][b]Action bar:[/b] shows the current action and the queue in words, or as ten segments.
+[/list]
 
-[b]Controller.[/b] Everything you can do with a mouse, you can do with a pad. D-pad moves between things, A and B are left and right click, X and Y open things.
+[h2]Maps[/h2]
+Three styles: survey, color and a paper road map. Flyers you have read are pinned on the map. Notes use the game's map notes, so they also show on the game's map.
 
-[b]Your colours.[/b] Dark, light or high contrast, nine accents, two text sizes, a UI scale for big screens.
+[h2]Menus[/h2]
+The main menu is a desk with a monitor. Load, new game, mods, options, sandbox, character creation and server settings open as windows on the monitor. They use the game's own menu functions.
+
+[h2]Controller[/h2]
+The D-pad moves between controls. A is left click, B is right click. X and Y open menus.
+
+[h2]Options[/h2]
+Dark, light or high contrast theme, nine accent colors, two text sizes, and a UI scale setting. Auto picks the scale from the screen height.
 
 [h2]Getting started[/h2]
 [olist]
 [*]Subscribe.
 [*]Main menu, Mods: turn on [b]ZeD-GUI[/b]. Put it after other interface mods in the load order.
-[*]Start a new game, or play a copy of a save.
-[*]Options, Mods, ZeD-GUI: pick your theme, accent, text size, scale, where the moodles sit and how much the action bar says.
-[*]Your inventory key opens your window. Your loot key opens the world's. On a controller, the same buttons as vanilla.
+[*]Start a new game, or load a copy of a save.
+[*]Options, Mods, ZeD-GUI: set the theme, accent, text size, scale, moodle position and action bar.
+[*]The inventory key opens the Character window. The loot key opens the World window. Controller buttons are the same as in the game.
 [/olist]
-Big screen (1440p, 4K)? Leave UI scale on Auto, or set it yourself in the same place.
 
-[h2]Something broke[/h2]
-Post in the pinned [b]Bug reports[/b] discussion, not the comments. Comments scroll away, discussions don't. Tell us:
+[h2]Reporting a problem[/h2]
+Post in the pinned [b]Bug reports[/b] discussion. Include:
 [list]
-[*]The version: 0.2.0-t1 (it's also in Mods, and in the desk's ZeD menu under About).
+[*]The version: 0.2.0-t1. It is shown in Mods, and in the desk's ZeD menu under About.
 [*]Your game version and your mod list.
-[*]What you did, what you expected, what happened. A screenshot helps more than words.
-[*]Your console.txt: [i]C:\Users\(you)\Zomboid\console.txt[/i] on Windows, [i]~/Zomboid/console.txt[/i] on Linux and macOS. The game replaces it every time it starts, so copy it before you restart. Put it on a paste site and post the link.
+[*]What you did, what you expected, and what happened. Add a screenshot if you can.
+[*]Your console.txt: [i]C:\Users\(you)\Zomboid\console.txt[/i] on Windows, [i]~/Zomboid/console.txt[/i] on Linux and macOS. The game replaces this file each time it starts, so copy it before you restart. Upload it to a paste site and post the link.
 [/list]
-[b]If ZeD stops you from playing:[/b] turn on Options, Mods, ZeD-GUI, [b]Safe mode[/b]. The game's own screens come back and you can keep playing. Say so in your report.
-Play without the [i]-debug[/i] launch option unless we ask for it. With it, the game stops on every Lua error, other mods' too.
+[b]Safe mode:[/b] if ZeD-GUI stops you from playing, turn on Options, Mods, ZeD-GUI, Safe mode. The game's own screens return. Mention it in your report.
+Play without the [i]-debug[/i] launch option unless asked. With it, the game stops on every Lua error, including errors from other mods.
 
-[h2]For server admins[/h2]
+[h2]Server admins[/h2]
 Mod ID: ZeD_UI
-Every player needs it, since it adds an item.
+Every player needs it, because it adds an item.
 
 [h2]Credits[/h2]
 Design: Hermit. Fonts: Fira Sans and Fira Mono (SIL Open Font License). Icons: sources and licences are listed in the credits file.
