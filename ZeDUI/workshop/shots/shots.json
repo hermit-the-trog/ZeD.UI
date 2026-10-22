@@ -63,54 +63,118 @@
   {
    "id": "old_job",
    "kind": "feature",
-   "src": "story_00a_identity.png",
+   "src": "story_00a_identity_tall.png",
    "title": "Old job",
-   "caption": "Glen Finnegan pumped gas at the Fossoil in West Point. In the game he is a mechanic, with Strong, Dextrous, Speed Demon, Fast Reader and Smoker.",
+   "caption": "Glen pumped gas at the Fossoil. Six days in, Mechanics is at 7 and Welding at 6; Cooking is still 2.",
    "layout": {
-    "fill": 0.8
+    "fill": 0.96,
+    "gap": 56
    },
    "crops": [
     {
      "box": [
-      296,
+      716,
       0,
-      1913,
-      735
-     ]
+      1618,
+      1280
+     ],
+     "tag": "IDENTITY"
+    },
+    {
+     "src": "story_00b_skills_tall.png",
+     "box": [
+      716,
+      0,
+      1618,
+      1280
+     ],
+     "tag": "SKILLS"
     }
    ],
    "balloons": [
     {
-     "text": "The Identity tab shows the character's driver's license.",
+     "text": "A mechanic, six days in, 23 zombies killed.",
      "anchor": [
-      380,
-      300
+      1072,
+      554
      ],
-     "side": "left"
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      430
+     ],
+     "maxw": 290
     },
     {
-     "text": "The profession on the license: Mechanic.",
+     "text": "Good traits in green.",
      "anchor": [
-      1025,
-      351
+      798,
+      895
      ],
-     "side": "bottom"
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      650
+     ],
+     "maxw": 290
     },
     {
-     "text": "Time survived, favorite weapon and zombies killed.",
+     "text": "Bad ones in red.",
      "anchor": [
-      675,
-      590
+      798,
+      1109
      ],
-     "side": "bottom"
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      800
+     ],
+     "maxw": 290
     },
     {
-     "text": "The inventory column stays beside every tab.",
+     "text": "Mechanics up to 7, Welding to 6.",
      "anchor": [
-      1266,
-      76
+      1186,
+      742
      ],
-     "side": "top"
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      572
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "Others still at 1 to 3.",
+     "anchor": [
+      1571,
+      872
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      705
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "XP boosts beside the level.",
+     "anchor": [
+      1586,
+      1072
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      845
+     ],
+     "maxw": 290
     }
    ]
   },
