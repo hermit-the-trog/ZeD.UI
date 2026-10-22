@@ -1,0 +1,63 @@
+HDL|hud|frames=1435|frameMs=8.37|allHandlers=0.52 ms/frame
+HDL|hud|event OnTick|0.190 ms/frame
+HDL|hud|event OnPreUIDraw|0.130 ms/frame
+HDL|hud|event OnRenderTick|0.113 ms/frame
+HDL|hud|event EveryOneMinute|0.050 ms/frame
+HDL|hud|event RenderOpaqueObjectsInWorld|0.015 ms/frame
+HDL|hud|event OnPlayerUpdate|0.013 ms/frame
+HDL|hud|#290 OnPreUIDraw|0.130 ms/frame|1.00 calls/frame|closure 0x278368054
+HDL|hud|#22 OnRenderTick|0.084 ms/frame|1.00 calls/frame|closure 0x1333238727
+HDL|hud|#410 EveryOneMinute|0.050 ms/frame|0.00 calls/frame|closure 0x750096100
+HDL|hud|#221 OnTick|0.039 ms/frame|1.00 calls/frame|closure 0x1907677846
+HDL|hud|#6 OnTick|0.038 ms/frame|1.00 calls/frame|closure 0x412450051
+HDL|hud|#193 OnTick|0.022 ms/frame|1.00 calls/frame|closure 0x392569573
+HDL|hud|#142 OnTick|0.021 ms/frame|1.00 calls/frame|closure 0x2066967407
+HDL|hud|#417 OnRenderTick|0.018 ms/frame|1.00 calls/frame|closure 0x647674754
+HDL|hud|#229 OnTick|0.015 ms/frame|1.00 calls/frame|closure 0x324636412
+HDL|hud|#238 OnTick|0.015 ms/frame|1.00 calls/frame|closure 0x153697793
+HDL|hud|#310 RenderOpaqueObjectsInWorld|0.015 ms/frame|1.00 calls/frame|closure 0x984881594
+HDL|hud|#213 OnTick|0.013 ms/frame|1.00 calls/frame|closure 0x1756675832
+HDL|hud|#211 OnPlayerUpdate|0.013 ms/frame|1.00 calls/frame|closure 0x1499453162
+HDL|hud|#423 OnRenderTick|0.008 ms/frame|1.00 calls/frame|closure 0x1774456178
+HDL|bare|frames=1436|frameMs=8.37|allHandlers=0.46 ms/frame
+HDL|bare|event OnTick|0.180 ms/frame
+HDL|bare|event OnRenderTick|0.106 ms/frame
+HDL|bare|event OnPreUIDraw|0.089 ms/frame
+HDL|bare|event EveryOneMinute|0.047 ms/frame
+HDL|bare|event RenderOpaqueObjectsInWorld|0.019 ms/frame
+HDL|bare|event OnPlayerUpdate|0.008 ms/frame
+HDL|bare|#290 OnPreUIDraw|0.089 ms/frame|1.00 calls/frame|closure 0x278368054
+HDL|bare|#22 OnRenderTick|0.080 ms/frame|1.00 calls/frame|closure 0x1333238727
+HDL|bare|#410 EveryOneMinute|0.047 ms/frame|0.00 calls/frame|closure 0x750096100
+HDL|bare|#221 OnTick|0.038 ms/frame|1.00 calls/frame|closure 0x1907677846
+HDL|bare|#229 OnTick|0.026 ms/frame|1.00 calls/frame|closure 0x324636412
+HDL|bare|#6 OnTick|0.024 ms/frame|1.00 calls/frame|closure 0x412450051
+HDL|bare|#193 OnTick|0.022 ms/frame|1.00 calls/frame|closure 0x392569573
+HDL|bare|#142 OnTick|0.019 ms/frame|1.00 calls/frame|closure 0x2066967407
+HDL|bare|#310 RenderOpaqueObjectsInWorld|0.019 ms/frame|1.00 calls/frame|closure 0x984881594
+HDL|bare|#238 OnTick|0.017 ms/frame|1.00 calls/frame|closure 0x153697793
+HDL|bare|#417 OnRenderTick|0.012 ms/frame|1.00 calls/frame|closure 0x647674754
+HDL|bare|#213 OnTick|0.011 ms/frame|1.00 calls/frame|closure 0x1756675832
+HDL|bare|#211 OnPlayerUpdate|0.008 ms/frame|1.00 calls/frame|closure 0x1499453162
+HDL|bare|#233 OnTick|0.008 ms/frame|1.00 calls/frame|closure 0x1104431708
+HDL|pair|frames=1014|frameMs=11.85|allHandlers=0.54 ms/frame
+HDL|pair|event OnTick|0.209 ms/frame
+HDL|pair|event OnRenderTick|0.123 ms/frame
+HDL|pair|event OnPreUIDraw|0.115 ms/frame
+HDL|pair|event EveryOneMinute|0.069 ms/frame
+HDL|pair|event OnPlayerUpdate|0.016 ms/frame
+HDL|pair|event RenderOpaqueObjectsInWorld|0.004 ms/frame
+HDL|pair|#290 OnPreUIDraw|0.115 ms/frame|1.00 calls/frame|closure 0x278368054
+HDL|pair|#22 OnRenderTick|0.091 ms/frame|1.00 calls/frame|closure 0x1333238727
+HDL|pair|#410 EveryOneMinute|0.069 ms/frame|0.00 calls/frame|closure 0x750096100
+HDL|pair|#221 OnTick|0.050 ms/frame|1.00 calls/frame|closure 0x1907677846
+HDL|pair|#6 OnTick|0.046 ms/frame|1.00 calls/frame|closure 0x412450051
+HDL|pair|#238 OnTick|0.021 ms/frame|1.00 calls/frame|closure 0x153697793
+HDL|pair|#417 OnRenderTick|0.019 ms/frame|1.00 calls/frame|closure 0x647674754
+HDL|pair|#229 OnTick|0.018 ms/frame|1.00 calls/frame|closure 0x324636412
+HDL|pair|#193 OnTick|0.018 ms/frame|1.00 calls/frame|closure 0x392569573
+HDL|pair|#142 OnTick|0.016 ms/frame|1.00 calls/frame|closure 0x2066967407
+HDL|pair|#211 OnPlayerUpdate|0.016 ms/frame|1.00 calls/frame|closure 0x1499453162
+HDL|pair|#213 OnTick|0.010 ms/frame|1.00 calls/frame|closure 0x1756675832
+HDL|pair|#233 OnTick|0.010 ms/frame|1.00 calls/frame|closure 0x1104431708
+HDL|pair|#423 OnRenderTick|0.006 ms/frame|1.00 calls/frame|closure 0x1774456178

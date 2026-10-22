@@ -1,0 +1,8 @@
+# perf bench, ZeD run (fullscreen 4K, -debug)
+zedqa_prelude.lua | pre | timeout=120
+gallery_v3_core.lua | g3c | timeout=300
+gallery_v3_reveal.lua | g3r | timeout=300
+gallery_v3_stage.lua | g3s | timeout=300
+perf_bench_zed.lua | pbz | timeout=3300
+perf_bench_restore.lua | pbr | timeout=60
+gallery_v3_teardown.lua | g3t | timeout=240

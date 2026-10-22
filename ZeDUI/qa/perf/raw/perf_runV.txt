@@ -1,0 +1,8 @@
+# perf bench, vanilla run: ZeD_UI swapped for ZeDQAShim in Saves/Sandbox/ZeD-QA/mods.txt, UI-size lines removed from options.ini
+gallery_v3_core.lua | g3c | timeout=300
+perf_bench_clean.lua | pbc | timeout=300
+gallery_v3_reveal.lua | g3r | timeout=300
+gallery_v3_stage.lua | g3s | timeout=300
+perf_bench_van.lua | pbv | timeout=3300
+perf_bench_restore.lua | pbr | timeout=120
+gallery_v3_teardown.lua | g3t | timeout=240
