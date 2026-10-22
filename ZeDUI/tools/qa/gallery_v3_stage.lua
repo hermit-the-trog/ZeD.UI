@@ -317,17 +317,27 @@ S.step(40, function()
         local vec = nil
         pcall(function() vec = v:getAreaCenter(part:getArea()) end)
         if vec then
-            G.spot.px, G.spot.py = math.floor(vec:getX()), math.floor(vec:getY())
-            say(string.format("trunk area centre %.1f,%.1f: the character goes to %d,%d", vec:getX(), vec:getY(), G.spot.px, G.spot.py))
+            -- the area's centre nudged toward the camera (+y), so the car body does not hide the character
+            G.spot.ax, G.spot.ay = vec:getX(), vec:getY()
+            G.spot.fx, G.spot.fy = vec:getX(), vec:getY() + 0.45
+            G.spot.px, G.spot.py = math.floor(G.spot.fx), math.floor(G.spot.fy)
+            say(string.format("trunk area centre %.1f,%.1f: the character goes to %.2f,%.2f", vec:getX(), vec:getY(), G.spot.fx, G.spot.fy))
         end
     else
         S.err("car", "no TruckBed part")
     end
-    G.tp(G.spot.px + 0.5, G.spot.py + 0.5, 0)
+    G.stand()
 end)
 S.step(30, function()
     local v, part = G.car, G.trunkPart
     local inA, acc = false, false
+    pcall(function() inA = v:isInArea(part:getArea(), p) end)
+    if not inA and G.spot.ax then
+        G.spot.fx, G.spot.fy = G.spot.ax, G.spot.ay
+        G.spot.px, G.spot.py = math.floor(G.spot.fx), math.floor(G.spot.fy)
+        G.stand()
+        say("note: the nudged point is outside the trunk area; back on its centre")
+    end
     pcall(function() inA = v:isInArea(part:getArea(), p) end)
     pcall(function() acc = v:canAccessContainer(part:getIndex(), p) end)
     say(string.format("at %d,%d: in the trunk area %s, trunk reachable %s", math.floor(p:getX()), math.floor(p:getY()), tostring(inA), tostring(acc)))

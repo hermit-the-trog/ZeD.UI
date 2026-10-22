@@ -1,709 +1,390 @@
 {
-  "note": "The Workshop gallery, in story order, from the ws_*.png captures (3840 x 2160, Oct 20 2026). Boxes and anchors are in source pixels, read off the captures. Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (add --debug to see anchors and keep-clear boxes). Oct 21 2026: the hero cropped closer; the desk (ws_35, main menu at 4K), before and after (ws_33/34) and the three themes (ws_30-32) added, from ZeDUI/tools/qa/zedqa_gallery_more.lua and zedqa_desk_ws.lua.",
-  "screens": "C:/Users/danie/Zomboid/Screenshots/workshop_src",
+  "note": "Workshop gallery v3 (Oct 21 2026), from Screenshots/gallery_v3 (see INVENTORY.md there). High contrast + PZ Teal unless a picture says otherwise. Boxes and anchors in source pixels. Copy is manual style: say what each thing is and does. The Oct 20-21 set is in out/_v2_oct21. Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors and keep-clear boxes).",
+  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_v3",
   "out": "out",
   "patches": [
     [
-      3480,
-      2078,
+      3320,
+      2030,
       3840,
       2160,
       0,
-      -82
+      -130
     ]
   ],
   "shots": [
     {
       "id": "hero",
       "kind": "ingame",
-      "src": "ws_24_looting_container.png",
+      "src": "zed_01_hero_mid.png",
       "avoid": [
         [
-          1025,
+          961,
           0,
-          2835,
-          845
-        ]
-      ],
-      "balloons": [
-        {
-          "head": "Your window",
-          "text": "What you carry, wear and know, all in one place",
-          "anchor": [
-            1300,
-            842
-          ],
-          "side": "bottom"
-        },
-        {
-          "head": "The world's window",
-          "text": "The crate, the floor, the car beside you: every container in reach",
-          "anchor": [
-            2600,
-            842
-          ],
-          "side": "bottom"
-        },
-        {
-          "text": "The bar over your head counts the job down: moving 1 of 8",
-          "anchor": [
-            1994,
-            978
-          ],
-          "target": [
-            1880,
-            1000,
-            1960,
-            1140
-          ],
-          "side": "right"
-        }
-      ],
-      "box": [
-        800,
-        0,
-        3040,
-        1260
-      ]
-    },
-    {
-      "id": "desk",
-      "kind": "ingame",
-      "src": "ws_35_desk.png",
-      "avoid": [
+          3320,
+          735
+        ],
         [
-          1260,
-          330,
-          2580,
-          1264
+          1436,
+          2036,
+          2410,
+          2130
         ]
       ],
       "balloons": [
         {
-          "head": "The desk",
-          "text": "The main menu is a 1993 computer. Every menu screen opens as a window on its monitor",
+          "head": "Character window",
+          "text": "For you: what you carry and wear, health, temperature, ID, journal, skills and the radio you carry.",
           "anchor": [
-            1266,
-            262
+            1437,
+            733
           ],
-          "side": "top"
+          "side": "bottom"
         },
         {
-          "head": "Continue",
-          "text": "Your last save, one click away",
+          "head": "World window",
+          "text": "For the world around you: containers, crafting, building, furniture, maps, foraging, animals, radios and vehicles.",
           "anchor": [
-            1682,
-            644
+            2620,
+            733
+          ],
+          "side": "bottom"
+        },
+        {
+          "text": "The belt: your hands, and the attachment slots of the gear you wear.",
+          "anchor": [
+            1440,
+            2085
           ],
           "side": "left"
-        },
-        {
-          "text": "Mods: load order, clashes between mods, and what needs a restart",
-          "anchor": [
-            1534,
-            1188
-          ],
-          "side": "bottom"
-        },
-        {
-          "text": "The case's power button quits",
-          "anchor": [
-            1040,
-            1976
-          ],
-          "side": "top"
         }
       ]
     },
     {
-      "id": "before_after",
+      "id": "inventory_compare",
       "kind": "feature",
-      "src": "ws_33_compare_zed.png",
-      "title": "Before and after",
-      "caption": "The same crate and the same pockets on a 4K screen: the game's own windows, then ZeD-GUI's.",
+      "src": "zed_01_hero_mid.png",
+      "title": "Inventory and loot",
+      "caption": "Vanilla: loot, crafting and the map each open in their own window. ZeD: they are tabs in the World window.",
       "layout": {
-        "fill": 0.96,
-        "gap": 40
+        "direction": "column",
+        "zoom": 0.45,
+        "gap": 30
       },
       "crops": [
         {
-          "src": "ws_34_compare_vanilla.png",
+          "src": "van_01_hero_mid.png",
           "box": [
-            760,
+            640,
             0,
-            3040,
-            1282
+            3200,
+            720
           ],
-          "label": "VANILLA"
+          "tag": "VANILLA"
         },
         {
-          "src": "ws_33_compare_zed.png",
           "box": [
-            760,
+            961,
             0,
-            3040,
-            1282
+            3320,
+            735
           ],
-          "label": "ZeD-GUI"
+          "tag": "ZeD-GUI"
         }
       ],
       "balloons": [
         {
-          "text": "The game's own lists, at 4K",
+          "text": "Vanilla: the inventory window and the loot window are two separate windows.",
           "anchor": [
-            1200,
-            180
-          ],
-          "crop": 0,
-          "side": "bottom"
-        },
-        {
-          "text": "Grouped by kind, sized for your screen",
-          "anchor": [
-            2000,
-            260
-          ],
-          "crop": 1,
-          "side": "bottom"
-        }
-      ]
-    },
-    {
-      "id": "your_window",
-      "kind": "feature",
-      "src": "ws_01_windows_street.png",
-      "title": "Your window",
-      "caption": "Loot, wear, health, warmth, ID, journal and skills: one window, seven tabs.",
-      "layout": {
-        "fill": 0.68,
-        "gap": 56
-      },
-      "crops": [
-        {
-          "box": [
-            1025,
-            0,
-            1925,
-            840
-          ]
-        },
-        {
-          "src": "ws_07_skills.png",
-          "box": [
-            65,
-            0,
-            1115,
-            840
-          ]
-        }
-      ],
-      "balloons": [
-        {
-          "head": "Seven tabs",
-          "text": "Everything about you, one click away",
-          "anchor": [
-            1032,
+            3195,
             300
           ],
           "crop": 0,
-          "side": "left"
+          "side": "right"
         },
         {
-          "text": "Your bags as a list, or as a grid of icons",
+          "text": "Vanilla: the loot window shows one container at a time. These buttons pick it.",
           "anchor": [
-            1700,
-            88
+            3185,
+            110
           ],
           "crop": 0,
-          "side": "top"
+          "side": "right"
         },
         {
-          "text": "Move everything, or everything of one kind, in one press",
+          "text": "ZeD: the Character window on the left, the World window on the right.",
           "anchor": [
-            1119,
-            785
-          ],
-          "crop": 0,
-          "side": "left"
-        },
-        {
-          "head": "Skills",
-          "text": "Every skill and its level, grouped by kind",
-          "anchor": [
-            1054,
-            273
+            3315,
+            420
           ],
           "crop": 1,
           "side": "right"
         },
         {
-          "text": "Health and carry weight stay in the title bar",
+          "text": "ZeD: each container has its own column. Here: the trunk, a duffel bag and the ground.",
           "anchor": [
-            1840,
-            24
+            3315,
+            620
           ],
-          "crop": 0,
-          "side": "top"
+          "crop": 1,
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "character_window",
+      "kind": "feature",
+      "src": "zed_01_hero_mid.png",
+      "title": "Character window",
+      "caption": "This window is for you: what you carry and wear, health, temperature, ID, journal, skills and the radio you carry.",
+      "crops": [
+        {
+          "box": [
+            961,
+            0,
+            1913,
+            735
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "text": "These tabs switch between loot, equipment, health, temperature, ID, journal and skills.",
+          "anchor": [
+            966,
+            300
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Each open bag has its own column. This one is the backpack.",
+          "anchor": [
+            1028,
+            62
+          ],
+          "side": "left"
+        },
+        {
+          "text": "This is the sort header. Click a column name to sort by it.",
+          "anchor": [
+            1114,
+            112
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Items are grouped by category. Click a group name to fold it.",
+          "anchor": [
+            1471,
+            315
+          ],
+          "side": "right"
+        },
+        {
+          "text": "The title bar shows health and carry weight.",
+          "anchor": [
+            1843,
+            21
+          ],
+          "side": "right"
+        },
+        {
+          "text": "These buttons switch between the list and a grid of icons.",
+          "anchor": [
+            1825,
+            77
+          ],
+          "side": "right"
         }
       ]
     },
     {
       "id": "world_window",
       "kind": "feature",
-      "src": "ws_01_windows_street.png",
-      "title": "The world's window",
-      "caption": "Loot, crafting, building, maps, foraging, animals, the radio and the car next to you.",
+      "src": "zed_01_hero_mid.png",
+      "title": "World window",
+      "caption": "This window is for the world around you: containers, crafting, building, furniture, maps, foraging, animals, radios and vehicles.",
       "crops": [
         {
           "box": [
-            1935,
+            1927,
             0,
-            2860,
-            840
+            3320,
+            735
           ]
         }
       ],
       "balloons": [
         {
-          "head": "Every container",
-          "text": "One button for each container in reach",
+          "text": "These tabs switch between loot, crafting, building, furniture, maps, foraging, animals and the vehicle.",
           "anchor": [
-            1940,
-            202
-          ],
-          "side": "left"
-        },
-        {
-          "text": "Sort by name, category, condition or weight",
-          "anchor": [
-            2108,
-            144
-          ],
-          "side": "left"
-        },
-        {
-          "text": "How full it is, at a glance",
-          "anchor": [
-            2686,
-            75
+            3316,
+            300
           ],
           "side": "right"
         },
         {
-          "head": "Tabs",
-          "text": "Craft, build, maps, foraging, animals and the car",
+          "text": "One button for each container in reach.",
           "anchor": [
-            2829,
-            330
-          ],
-          "side": "right"
-        },
-        {
-          "text": "Take all, take the same kind, or drop it on the floor",
-          "anchor": [
-            2045,
-            783
+            1932,
+            300
           ],
           "side": "left"
+        },
+        {
+          "text": "This column is the trunk.",
+          "anchor": [
+            2110,
+            62
+          ],
+          "side": "top"
+        },
+        {
+          "text": "This column is the duffel bag on the ground.",
+          "anchor": [
+            2590,
+            62
+          ],
+          "side": "top"
+        },
+        {
+          "text": "This column is the ground.",
+          "anchor": [
+            3030,
+            62
+          ],
+          "side": "top"
         }
       ]
     },
     {
-      "id": "roll_up",
-      "kind": "feature",
-      "src": "ws_21_window_curtain_rolled.png",
-      "title": "Roll it up",
-      "caption": "Keep the map open and roll the loot away, like a window shade.",
-      "layout": {
-        "fill": 0.96
-      },
-      "crops": [
-        {
-          "box": [
-            1080,
-            0,
-            3800,
-            850
-          ]
-        }
+      "id": "close",
+      "kind": "ingame",
+      "src": "zed_02_hero_close.png",
+      "avoid": [
+        [
+          961,
+          0,
+          3320,
+          735
+        ],
+        [
+          1436,
+          2036,
+          2410,
+          2130
+        ]
       ],
       "balloons": [
         {
-          "head": "Rolled up",
-          "text": "The loot rolls up under its title; drop items on the tab to put them in",
+          "text": "This duffel bag is on the ground. It has its own column in the World window.",
           "anchor": [
-            2130,
-            30
+            1745,
+            1153
           ],
-          "side": "bottom"
+          "side": "left"
         },
         {
-          "text": "The map stays open, full size",
+          "text": "The trunk is open. Its items are in the Trunk column.",
           "anchor": [
-            3300,
-            845
+            2120,
+            1110
           ],
-          "side": "bottom"
+          "side": "right"
         }
       ]
     },
     {
       "id": "item_cards",
       "kind": "feature",
-      "src": "ws_02_card_food.png",
+      "src": "zed_18_card_food.png",
       "title": "Item cards",
-      "caption": "Click an item, a generator, a campfire, a farm plot or a padlock: one card says it all.",
+      "caption": "Cards also open for generators, campfires, farm plots, troughs, padlocks and liquids.",
       "layout": {
-        "fill": 0.56,
-        "gap": 80
+        "fill": 0.5,
+        "gap": 90
       },
       "crops": [
         {
           "box": [
-            585,
+            752,
             0,
-            1110,
-            830
+            1210,
+            735
           ]
         },
         {
-          "src": "ws_03_card_weapon.png",
+          "src": "zed_19_card_weapon.png",
           "box": [
-            585,
+            752,
             0,
-            1110,
-            830
+            1210,
+            735
           ]
         }
       ],
       "balloons": [
         {
-          "head": "One card for everything",
-          "text": "What it is, its numbers, and what you can do with it: eat, equip, read",
+          "text": "Click an item to open its card. The card opens beside your inventory.",
           "anchor": [
-            657,
-            152
+            812,
+            134
           ],
           "crop": 0,
           "side": "left"
         },
         {
-          "text": "Hunger, thirst and freshness in plain numbers",
+          "text": "Hunger, thirst and freshness.",
           "anchor": [
-            657,
-            420
+            812,
+            325
           ],
           "crop": 0,
           "side": "left"
         },
         {
-          "head": "Nutrition facts",
-          "text": "Calories, protein and fat, like the label on the can",
+          "text": "Nutrition facts for food: calories, proteins, fat.",
           "anchor": [
-            657,
-            567
+            812,
+            503
           ],
           "crop": 0,
           "side": "left"
         },
         {
-          "text": "Condition as a dot and a plain number",
+          "text": "The main action is the button at the top: Eat for food, Equip for a weapon.",
           "anchor": [
-            1046,
-            370
+            1035,
+            60
           ],
           "crop": 1,
           "side": "right"
         },
         {
-          "head": "Combat facts",
-          "text": "Damage, range, swing time and knockback",
+          "text": "Condition, with a status dot.",
           "anchor": [
-            1046,
-            527
+            1152,
+            326
           ],
           "crop": 1,
           "side": "right"
         },
         {
-          "text": "Repairs and the rest wait at the bottom",
+          "text": "Combat facts: damage, range, swing time and knockback.",
           "anchor": [
-            1083,
-            769
+            1150,
+            465
           ],
           "crop": 1,
           "side": "right"
-        }
-      ]
-    },
-    {
-      "id": "health",
-      "kind": "feature",
-      "src": "ws_05_health_exercise.png",
-      "title": "Health",
-      "caption": "Your body on one tab, and exercise right beside it.",
-      "crops": [
-        {
-          "box": [
-            65,
-            0,
-            1115,
-            840
-          ]
-        }
-      ],
-      "balloons": [
-        {
-          "head": "Body figure",
-          "text": "Every wound shows where it is, and heals as you watch",
-          "anchor": [
-            298,
-            420
-          ],
-          "target": [
-            296,
-            154,
-            454,
-            646
-          ],
-          "side": "left"
         },
         {
-          "text": "Overall health, then every injury in plain words",
+          "text": "Repair is at the bottom of the card.",
           "anchor": [
-            1054,
-            200
-          ],
-          "side": "right"
-        },
-        {
-          "head": "Exercise",
-          "text": "Squats, push-ups, curls and presses on one panel",
-          "anchor": [
-            1054,
-            296
-          ],
-          "side": "right"
-        },
-        {
-          "text": "Set the minutes, then go",
-          "anchor": [
-            1054,
-            598
-          ],
-          "side": "right"
-        },
-        {
-          "text": "What each exercise trains, and where you'll feel it",
-          "anchor": [
-            1033,
-            712
-          ],
-          "side": "right"
-        }
-      ]
-    },
-    {
-      "id": "equip_doll",
-      "kind": "feature",
-      "src": "ws_06_equip_doll.png",
-      "title": "What you wear",
-      "caption": "A list when you want the numbers, a doll when you want to see it.",
-      "crops": [
-        {
-          "box": [
-            65,
-            0,
-            1115,
-            840
-          ]
-        }
-      ],
-      "balloons": [
-        {
-          "head": "Equip doll",
-          "text": "Each slot is wired to the part of the body it covers",
-          "anchor": [
-            690,
-            380
-          ],
-          "target": [
-            500,
-            162,
-            708,
-            779
-          ],
-          "side": "right"
-        },
-        {
-          "text": "Worn items show their condition under the icon",
-          "anchor": [
-            281,
-            222
-          ],
-          "side": "left"
-        },
-        {
-          "text": "Empty slots show what could go there",
-          "anchor": [
-            281,
-            303
-          ],
-          "side": "left"
-        },
-        {
-          "text": "Drag clothes onto a slot to put them on",
-          "anchor": [
-            931,
-            418
-          ],
-          "side": "right"
-        },
-        {
-          "text": "Switch between the list and the doll",
-          "anchor": [
-            1079,
-            90
-          ],
-          "side": "right"
-        }
-      ]
-    },
-    {
-      "id": "maps",
-      "kind": "feature",
-      "src": "ws_11_flyer_pins_hover.png",
-      "title": "Maps",
-      "caption": "Read the map beside your loot, in three styles, with the flyers you've read pinned on it.",
-      "layout": {
-        "fill": 0.96,
-        "gap": 40
-      },
-      "crops": [
-        {
-          "box": [
-            2755,
-            55,
-            3720,
-            815
-          ]
-        },
-        {
-          "src": "ws_09_maps_color.png",
-          "box": [
-            2755,
-            55,
-            3720,
-            815
-          ]
-        },
-        {
-          "src": "ws_10_maps_paper.png",
-          "box": [
-            2755,
-            55,
-            3720,
-            815
-          ]
-        }
-      ],
-      "balloons": [
-        {
-          "text": "Survey: clean lines for planning a route",
-          "anchor": [
-            3417,
-            86
-          ],
-          "crop": 0,
-          "side": "top"
-        },
-        {
-          "head": "Flyer pins",
-          "text": "Flyers you've read drop a pin; hover for what they said",
-          "anchor": [
-            3195,
-            378
-          ],
-          "crop": 0,
-          "side": "bottom"
-        },
-        {
-          "text": "Color: woods, water and towns at a glance",
-          "anchor": [
-            3530,
-            87
+            1184,
+            672
           ],
           "crop": 1,
-          "side": "top"
-        },
-        {
-          "text": "Paper: the old road map from the glovebox",
-          "anchor": [
-            3600,
-            87
-          ],
-          "crop": 2,
-          "side": "top"
-        }
-      ]
-    },
-    {
-      "id": "crafting",
-      "kind": "feature",
-      "src": "ws_12_crafting_recipe.png",
-      "title": "Crafting",
-      "caption": "Kilns, forges, ovens, drying racks: Build 42's crafting, right at the station.",
-      "crops": [
-        {
-          "box": [
-            2755,
-            55,
-            3720,
-            815
-          ]
-        }
-      ],
-      "balloons": [
-        {
-          "head": "Any bench, any station",
-          "text": "Recipes for your hands and every station within reach",
-          "anchor": [
-            2765,
-            88
-          ],
-          "side": "left"
-        },
-        {
-          "text": "Search and sort every recipe you know",
-          "anchor": [
-            2765,
-            152
-          ],
-          "side": "left"
-        },
-        {
-          "text": "Show only what you can make right now",
-          "anchor": [
-            3692,
-            209
-          ],
-          "side": "right"
-        },
-        {
-          "head": "Recipe card",
-          "text": "What it needs, what you have, what's still missing",
-          "anchor": [
-            3700,
-            457
-          ],
-          "side": "right"
-        },
-        {
-          "text": "Craft one, or set how many",
-          "anchor": [
-            3700,
-            768
-          ],
           "side": "right"
         }
       ]
@@ -711,449 +392,68 @@
     {
       "id": "context_menus",
       "kind": "feature",
-      "src": "ws_13_context_menu_strip.png",
-      "title": "Right-click menus",
-      "caption": "Pick the icon strip or the list in Options.",
-      "crops": [
-        {
-          "box": [
-            1650,
-            920,
-            2200,
-            1110
-          ],
-          "resample": "nearest",
-          "place": [
-            110,
-            390,
-            900
-          ]
-        },
-        {
-          "src": "ws_14_context_menu_list.png",
-          "box": [
-            1910,
-            1060,
-            2420,
-            1650
-          ],
-          "place": [
-            1200,
-            170,
-            560
-          ]
-        }
-      ],
-      "balloons": [
-        {
-          "text": "The action's name sits over the strip",
-          "anchor": [
-            1920,
-            962
-          ],
-          "crop": 0,
-          "side": "top"
-        },
-        {
-          "head": "Icon strip",
-          "text": "Every action as an icon, in one row",
-          "anchor": [
-            1880,
-            1090
-          ],
-          "crop": 0,
-          "side": "bottom"
-        },
-        {
-          "head": "Or a list",
-          "text": "One action to a row, like the game's own menu",
-          "anchor": [
-            1915,
-            1300
-          ],
-          "crop": 1,
-          "side": "left"
-        }
-      ]
-    },
-    {
-      "id": "controller",
-      "kind": "feature",
-      "src": "ws_20_wheel_emotes.png",
-      "title": "On a controller",
-      "caption": "Everything you can do with a mouse, you can do with a pad.",
-      "layout": {
-        "zoom": 1.5,
-        "gap": 120
-      },
-      "crops": [
-        {
-          "box": [
-            1750,
-            915,
-            2090,
-            1235
-          ],
-          "resample": "nearest",
-          "label": "EMOTES"
-        },
-        {
-          "src": "ws_26_wheel_vehicle.png",
-          "box": [
-            1745,
-            915,
-            2085,
-            1235
-          ],
-          "resample": "nearest",
-          "label": "IN THE CAR"
-        }
-      ],
-      "balloons": [
-        {
-          "head": "Wheels",
-          "text": "Quick choices on a wheel around your character",
-          "anchor": [
-            1846,
-            1065
-          ],
-          "crop": 0,
-          "side": "left"
-        },
-        {
-          "text": "Wave, point, thumbs up or down",
-          "anchor": [
-            1920,
-            1003
-          ],
-          "crop": 0,
-          "side": "top"
-        },
-        {
-          "text": "Seats, engine, lights, horn and radio, one press away",
-          "anchor": [
-            2003,
-            985
-          ],
-          "crop": 1,
-          "side": "right"
-        }
-      ]
-    },
-    {
-      "id": "belt_watch",
-      "kind": "feature",
-      "src": "ws_16_watch_popped.png",
-      "title": "The belt and the watch",
-      "caption": "The watch is a real item in the loot. Wear it and it rides on your belt.",
-      "layout": {
-        "zoom": 1.25
-      },
-      "crops": [
-        {
-          "box": [
-            1440,
-            1690,
-            2420,
-            2150
-          ]
-        }
-      ],
-      "balloons": [
-        {
-          "head": "A watch you use",
-          "text": "Time, date, temperature, alarm and a stopwatch",
-          "anchor": [
-            2301,
-            1803
-          ],
-          "target": [
-            2080,
-            1700,
-            2330,
-            1990
-          ],
-          "side": "right"
-        },
-        {
-          "text": "The buttons work: set the alarm, run the stopwatch",
-          "anchor": [
-            2143,
-            1876
-          ],
-          "side": "left"
-        },
-        {
-          "text": "Tucked away, it's a small watch on your belt",
-          "anchor": [
-            2335,
-            2079
-          ],
-          "side": "right"
-        },
-        {
-          "head": "The belt",
-          "text": "Your hands at the ends, the hotbar in key order between",
-          "anchor": [
-            1497,
-            2077
-          ],
-          "side": "left"
-        },
-        {
-          "text": "Each item's condition under its box",
-          "anchor": [
-            2050,
-            2112
-          ],
-          "side": "bottom"
-        }
-      ]
-    },
-    {
-      "id": "action_bar",
-      "kind": "feature",
-      "src": "ws_17_action_bar_reading.png",
-      "title": "The action bar",
-      "caption": "Rather not read? Options turns it into ten little lights.",
-      "layout": {
-        "zoom": 3
-      },
-      "crops": [
-        {
-          "box": [
-            1760,
-            920,
-            2080,
-            1140
-          ],
-          "resample": "nearest"
-        }
-      ],
-      "balloons": [
-        {
-          "head": "What you're doing",
-          "text": "In words, over your head: reading, cooking, moving 3 of 6",
-          "anchor": [
-            1842,
-            970
-          ],
-          "side": "left"
-        },
-        {
-          "text": "What you're working on, and how far along",
-          "anchor": [
-            1998,
-            985
-          ],
-          "side": "right"
-        },
-        {
-          "text": "One bar for the whole job",
-          "anchor": [
-            1842,
-            997
-          ],
-          "side": "left"
-        }
-      ]
-    },
-    {
-      "id": "dash",
-      "kind": "feature",
-      "src": "ws_18_car_day_dash_radio.png",
-      "title": "Driving",
-      "caption": "Every car gets a dashboard drawn for it, and the radio that came with it.",
-      "layout": {
-        "direction": "column",
-        "fill": 0.62,
-        "gap": 28
-      },
-      "crops": [
-        {
-          "box": [
-            1150,
-            1800,
-            2710,
-            2158
-          ],
-          "label": "DAY"
-        },
-        {
-          "src": "ws_19_car_night_dash_lit.png",
-          "box": [
-            1150,
-            1800,
-            2710,
-            2158
-          ],
-          "label": "NIGHT"
-        }
-      ],
-      "balloons": [
-        {
-          "head": "Pixel dashboard",
-          "text": "Speed, fuel and engine heat, the way your car shows them",
-          "anchor": [
-            1305,
-            1915
-          ],
-          "crop": 0,
-          "side": "left"
-        },
-        {
-          "text": "Turn the key to start",
-          "anchor": [
-            1262,
-            2085
-          ],
-          "crop": 0,
-          "side": "left"
-        },
-        {
-          "head": "Car radio",
-          "text": "Click it to open it up close",
-          "anchor": [
-            2595,
-            1965
-          ],
-          "crop": 0,
-          "side": "right"
-        },
-        {
-          "head": "At night",
-          "text": "The gauges light up like a real panel",
-          "anchor": [
-            1520,
-            1930
-          ],
-          "crop": 1,
-          "side": "left"
-        },
-        {
-          "text": "Heat, fan and air on real controls",
-          "anchor": [
-            2645,
-            2085
-          ],
-          "crop": 1,
-          "side": "right"
-        }
-      ]
-    },
-    {
-      "id": "car_radio",
-      "kind": "feature",
-      "src": "ws_27_car_radio_up_close.png",
-      "title": "The car radio",
-      "caption": "Each car's radio opens up close: tune it and store your stations.",
-      "layout": {
-        "zoom": 1.5
-      },
-      "crops": [
-        {
-          "box": [
-            1815,
-            1535,
-            2720,
-            1800
-          ],
-          "resample": "nearest"
-        }
-      ],
-      "balloons": [
-        {
-          "head": "Up close",
-          "text": "Band, frequency and the clock on a glowing display",
-          "anchor": [
-            2280,
-            1570
-          ],
-          "side": "top"
-        },
-        {
-          "text": "Volume and power on one knob",
-          "anchor": [
-            1912,
-            1740
-          ],
-          "side": "bottom"
-        },
-        {
-          "text": "Six presets with the stations' names; hold one to store",
-          "anchor": [
-            2280,
-            1745
-          ],
-          "side": "bottom"
-        },
-        {
-          "text": "Tune and seek like the real thing",
-          "anchor": [
-            2628,
-            1738
-          ],
-          "side": "bottom"
-        }
-      ]
-    },
-    {
-      "id": "themes",
-      "kind": "feature",
-      "src": "ws_30_theme_dark.png",
-      "title": "Three themes",
-      "caption": "Dark, light or high contrast, with nine accent colors. Each window can take its own accent.",
+      "src": "zed_20_ctx_strip.png",
+      "title": "Context menus",
+      "caption": "Choose the strip or the list in Options, ZeD setup.",
       "layout": {
         "fill": 0.96,
-        "gap": 36
+        "gap": 44
       },
       "crops": [
         {
-          "src": "ws_30_theme_dark.png",
+          "src": "van_20_ctx_menu.png",
           "box": [
-            1500,
-            0,
-            2520,
-            860
+            1170,
+            215,
+            1620,
+            505
           ],
-          "label": "DARK"
+          "tag": "VANILLA"
         },
         {
-          "src": "ws_31_theme_light.png",
           "box": [
-            1500,
-            0,
-            2520,
-            860
+            1690,
+            940,
+            2160,
+            1140
           ],
-          "label": "LIGHT"
+          "tag": "ZeD-GUI | STRIP"
         },
         {
-          "src": "ws_32_theme_hicon.png",
+          "src": "zed_21_ctx_list.png",
           "box": [
-            1500,
-            0,
-            2520,
-            860
+            1910,
+            1160,
+            2350,
+            1600
           ],
-          "label": "HIGH CONTRAST"
+          "tag": "ZeD-GUI | LIST"
         }
       ],
       "balloons": [
         {
-          "text": "The accent marks what's picked: tabs, toggles, the open container",
+          "text": "Vanilla: a list of actions. Less common actions are under More.",
           "anchor": [
-            2190,
-            84
+            1180,
+            472
           ],
           "crop": 0,
+          "side": "bottom"
+        },
+        {
+          "text": "Strip: each action is an icon. The name of the selected action is above the strip.",
+          "anchor": [
+            1920,
+            972
+          ],
+          "crop": 1,
           "side": "top"
         },
         {
-          "text": "High contrast: stronger edges and brighter text",
+          "text": "List: one action to a row, with its icon.",
           "anchor": [
-            2000,
-            300
+            1922,
+            1300
           ],
           "crop": 2,
           "side": "bottom"
@@ -1161,64 +461,887 @@
       ]
     },
     {
-      "id": "settings",
+      "id": "equip_doll",
       "kind": "feature",
-      "src": "ws_22_options_zed_settings.png",
-      "title": "Your settings",
-      "caption": "Everything about ZeD's look lives on one page in Options.",
-      "layout": {
-        "zoom": 0.72
-      },
+      "src": "zed_10_equip_doll.png",
+      "title": "Equipment tab",
+      "caption": "Drag a worn item to a bag or the ground to take it off.",
       "crops": [
         {
           "box": [
-            1380,
-            460,
-            2660,
-            1480
+            300,
+            0,
+            1192,
+            740
           ]
         }
       ],
       "balloons": [
         {
-          "head": "Your colors",
-          "text": "Light, dark or high contrast, with nine accent colors",
+          "text": "This is the equip doll. Each line runs from a slot to the part of the body it covers.",
           "anchor": [
-            2621,
-            555
+            831,
+            295
+          ],
+          "target": [
+            669,
+            143,
+            864,
+            687
           ],
           "side": "right"
         },
         {
-          "text": "The UI scale fits a 4K screen by itself",
+          "text": "A worn item. The bar under it is its condition.",
           "anchor": [
-            2621,
-            744
+            482,
+            164
+          ],
+          "side": "left"
+        },
+        {
+          "text": "An empty slot.",
+          "anchor": [
+            482,
+            364
+          ],
+          "side": "left"
+        },
+        {
+          "text": "The number is how many items are worn in that slot.",
+          "anchor": [
+            1051,
+            150
           ],
           "side": "right"
         },
         {
-          "text": "Moodles on the right, the left, or above the belt",
+          "text": "This button switches between the list and the doll.",
           "anchor": [
-            1398,
-            808
+            1180,
+            77
+          ],
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "health_compare",
+      "kind": "feature",
+      "src": "zed_11_health_exercise.png",
+      "title": "Health tab",
+      "layout": {
+        "fill": 0.72,
+        "gap": 70
+      },
+      "crops": [
+        {
+          "src": "van_11_health.png",
+          "box": [
+            2405,
+            800,
+            2990,
+            1810
+          ],
+          "tag": "VANILLA"
+        },
+        {
+          "box": [
+            300,
+            0,
+            1192,
+            740
+          ],
+          "tag": "ZeD-GUI"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "Vanilla: health is a tab in the character info window, with a list of body parts.",
+          "anchor": [
+            2412,
+            1030
+          ],
+          "crop": 0,
+          "side": "left"
+        },
+        {
+          "text": "ZeD: the body figure. Injuries show on the figure where they are.",
+          "anchor": [
+            374,
+            384
+          ],
+          "target": [
+            515,
+            138,
+            680,
+            630
+          ],
+          "crop": 1,
+          "side": "bottom"
+        },
+        {
+          "text": "Overall health.",
+          "anchor": [
+            1159,
+            174
+          ],
+          "crop": 1,
+          "side": "right"
+        },
+        {
+          "text": "Exercises are on the same tab. Pick one and set the minutes.",
+          "anchor": [
+            1159,
+            300
+          ],
+          "crop": 1,
+          "side": "right"
+        },
+        {
+          "text": "This text says what the exercise trains.",
+          "anchor": [
+            1161,
+            646
+          ],
+          "crop": 1,
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "skills_compare",
+      "kind": "feature",
+      "src": "zed_12_skills.png",
+      "title": "Skills tab",
+      "layout": {
+        "fill": 0.72,
+        "gap": 70
+      },
+      "crops": [
+        {
+          "src": "van_12_skills.png",
+          "box": [
+            2405,
+            800,
+            2990,
+            1690
+          ],
+          "tag": "VANILLA"
+        },
+        {
+          "box": [
+            300,
+            0,
+            1197,
+            740
+          ],
+          "tag": "ZeD-GUI"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "Vanilla: skills are a tab in the character info window.",
+          "anchor": [
+            2412,
+            910
+          ],
+          "crop": 0,
+          "side": "left"
+        },
+        {
+          "text": "ZeD: skills are grouped by kind. The number is the level.",
+          "anchor": [
+            367,
+            189
+          ],
+          "crop": 1,
+          "side": "bottom"
+        },
+        {
+          "text": "Skills is the last tab of the Character window.",
+          "anchor": [
+            302,
+            460
+          ],
+          "crop": 1,
+          "side": "bottom"
+        }
+      ]
+    },
+    {
+      "id": "crafting_compare",
+      "kind": "feature",
+      "src": "zed_13_crafting.png",
+      "title": "Crafting",
+      "caption": "Vanilla: crafting opens in its own window. ZeD: crafting is a tab in the World window.",
+      "layout": {
+        "fill": 0.96,
+        "gap": 50
+      },
+      "crops": [
+        {
+          "src": "van_13_crafting.png",
+          "box": [
+            0,
+            0,
+            1820,
+            820
+          ],
+          "tag": "VANILLA"
+        },
+        {
+          "box": [
+            2600,
+            0,
+            3560,
+            740
+          ],
+          "tag": "ZeD-GUI"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "Vanilla: the crafting window.",
+          "anchor": [
+            900,
+            818
+          ],
+          "crop": 0,
+          "side": "bottom"
+        },
+        {
+          "text": "The Crafting tab of the World window.",
+          "anchor": [
+            3540,
+            140
+          ],
+          "crop": 1,
+          "side": "right"
+        },
+        {
+          "text": "Station: craft by hand, or at a bench or station near you.",
+          "anchor": [
+            2790,
+            78
+          ],
+          "crop": 1,
+          "side": "top"
+        },
+        {
+          "text": "Search and sort recipes. Show: Ready lists only what you can make now.",
+          "anchor": [
+            2650,
+            187
+          ],
+          "crop": 1,
+          "side": "bottom"
+        },
+        {
+          "text": "The recipe card lists what the recipe needs and what you have.",
+          "anchor": [
+            3475,
+            423
+          ],
+          "crop": 1,
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "maps",
+      "kind": "feature",
+      "src": "zed_14_maps_survey.png",
+      "title": "Maps tab",
+      "caption": "The map opens in the World window, beside the loot. Three styles: survey, color and paper.",
+      "layout": {
+        "fill": 0.96,
+        "gap": 36
+      },
+      "crops": [
+        {
+          "box": [
+            2640,
+            40,
+            3490,
+            710
+          ],
+          "tag": "SURVEY"
+        },
+        {
+          "src": "zed_15_maps_color.png",
+          "box": [
+            2640,
+            40,
+            3490,
+            710
+          ],
+          "tag": "COLOR"
+        },
+        {
+          "src": "zed_16_maps_paper.png",
+          "box": [
+            2640,
+            40,
+            3490,
+            710
+          ],
+          "tag": "PAPER"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "These buttons pick the map style.",
+          "anchor": [
+            3212,
+            76
+          ],
+          "crop": 0,
+          "side": "bottom"
+        },
+        {
+          "text": "The toolbar adds symbols and notes to the map.",
+          "anchor": [
+            2688,
+            76
+          ],
+          "crop": 1,
+          "side": "bottom"
+        }
+      ]
+    },
+    {
+      "id": "rolled_up",
+      "kind": "feature",
+      "src": "zed_17_curtain_rolled.png",
+      "title": "Rolled-up loot",
+      "caption": "World window with its loot side rolled up and the map open.",
+      "layout": {
+        "fill": 0.96
+      },
+      "crops": [
+        {
+          "box": [
+            1100,
+            0,
+            3560,
+            760
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "text": "This tab is the rolled-up loot side. Click it to roll the loot back down.",
+          "anchor": [
+            2011,
+            22
+          ],
+          "side": "bottom"
+        },
+        {
+          "text": "The map stays open while the loot is rolled up.",
+          "anchor": [
+            3060,
+            709
+          ],
+          "side": "bottom"
+        }
+      ]
+    },
+    {
+      "id": "belt_compare",
+      "kind": "feature",
+      "src": "zed_31_hud_watch_popped.png",
+      "title": "Hotbar and belt",
+      "crops": [
+        {
+          "src": "van_30_hud_hotbar.png",
+          "box": [
+            1700,
+            2050,
+            2140,
+            2160
+          ],
+          "tag": "VANILLA",
+          "place": [
+            90,
+            200,
+            550
+          ]
+        },
+        {
+          "box": [
+            1420,
+            1720,
+            2420,
+            2150
+          ],
+          "tag": "ZeD-GUI",
+          "place": [
+            90,
+            420,
+            1250
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "text": "Vanilla: hotbar slots in a row at the bottom.",
+          "anchor": [
+            2100,
+            2110
+          ],
+          "crop": 0,
+          "side": "right"
+        },
+        {
+          "text": "ZeD: the same slots on a strap, with your hands at its ends.",
+          "anchor": [
+            1450,
+            2085
+          ],
+          "crop": 1,
+          "side": "top"
+        },
+        {
+          "text": "Slots for the attachments on the gear you wear: belt, holster, back.",
+          "anchor": [
+            1607,
+            2042
+          ],
+          "crop": 1,
+          "side": "top"
+        },
+        {
+          "text": "The strap shows the material the slots sit on.",
+          "anchor": [
+            1850,
+            2108
+          ],
+          "crop": 1,
+          "side": "bottom"
+        },
+        {
+          "text": "The watch you wear.",
+          "anchor": [
+            2405,
+            2088
+          ],
+          "crop": 1,
+          "side": "right"
+        },
+        {
+          "text": "The full watch: time, date, temperature, alarm and stopwatch.",
+          "anchor": [
+            2395,
+            1870
+          ],
+          "crop": 1,
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "action_bar_compare",
+      "kind": "feature",
+      "src": "zed_32_action_bar_reading.png",
+      "title": "Action bar",
+      "caption": "Options, ZeD setup, Action bar: Verbose (words) or Simple (ten segments).",
+      "layout": {
+        "zoom": 2,
+        "gap": 80
+      },
+      "crops": [
+        {
+          "src": "van_32_action_bar_reading.png",
+          "box": [
+            1735,
+            860,
+            2095,
+            1120
+          ],
+          "resample": "nearest",
+          "tag": "VANILLA"
+        },
+        {
+          "box": [
+            1750,
+            860,
+            2110,
+            1120
+          ],
+          "resample": "nearest",
+          "tag": "ZeD-GUI"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "Vanilla: a progress bar over the character.",
+          "anchor": [
+            1901,
+            932
+          ],
+          "crop": 0,
+          "side": "left"
+        },
+        {
+          "text": "ZeD: the action and the item in words, over the character.",
+          "anchor": [
+            2002,
+            918
+          ],
+          "crop": 1,
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "dashboard",
+      "kind": "feature",
+      "src": "zed_40_dash_day.png",
+      "title": "Dashboard",
+      "caption": "The dashboard and the radio are drawn to match the car.",
+      "layout": {
+        "direction": "column",
+        "fill": 0.6,
+        "gap": 24
+      },
+      "crops": [
+        {
+          "box": [
+            1125,
+            1800,
+            2720,
+            2160
+          ],
+          "tag": "DAY"
+        },
+        {
+          "src": "zed_41_dash_night.png",
+          "box": [
+            1125,
+            1800,
+            2720,
+            2160
+          ],
+          "tag": "NIGHT"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "Gauges: fuel, speed and engine temperature.",
+          "anchor": [
+            1200,
+            1897
+          ],
+          "crop": 0,
+          "side": "left"
+        },
+        {
+          "text": "The ignition: off, on, start.",
+          "anchor": [
+            1250,
+            2077
+          ],
+          "crop": 0,
+          "side": "left"
+        },
+        {
+          "text": "The car radio. Click it to open it up close.",
+          "anchor": [
+            2713,
+            1940
+          ],
+          "crop": 0,
+          "side": "right"
+        },
+        {
+          "text": "At night the gauges are lit.",
+          "anchor": [
+            1200,
+            1897
+          ],
+          "crop": 1,
+          "side": "left"
+        },
+        {
+          "text": "Heater, fan and air controls.",
+          "anchor": [
+            2713,
+            2077
+          ],
+          "crop": 1,
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "kind": "feature",
+      "src": "zed_45_settings_zed.png",
+      "title": "Options",
+      "caption": "Left: the ZeD setup page. Right: the Interface page.",
+      "layout": {
+        "fill": 0.96,
+        "gap": 40
+      },
+      "crops": [
+        {
+          "box": [
+            1470,
+            560,
+            2800,
+            1400
+          ]
+        },
+        {
+          "src": "zed_46_settings_interface.png",
+          "box": [
+            1470,
+            560,
+            2800,
+            1500
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "text": "Base theme: dark, light or high contrast.",
+          "anchor": [
+            2410,
+            620
+          ],
+          "crop": 0,
+          "side": "top"
+        },
+        {
+          "text": "UI scale, for large screens.",
+          "anchor": [
+            2590,
+            788
+          ],
+          "crop": 0,
+          "side": "top"
+        },
+        {
+          "text": "Where the moodles and the watch go, and how the action bar reads.",
+          "anchor": [
+            1475,
+            1255
+          ],
+          "crop": 0,
+          "side": "left"
+        },
+        {
+          "text": "Rows marked \"Does nothing with ZeD active\" are game settings that ZeD replaces.",
+          "anchor": [
+            2290,
+            705
+          ],
+          "crop": 1,
+          "side": "top"
+        },
+        {
+          "text": "This band explains the selected row.",
+          "anchor": [
+            2100,
+            1495
+          ],
+          "crop": 1,
+          "side": "bottom"
+        }
+      ]
+    },
+    {
+      "id": "themes",
+      "kind": "feature",
+      "src": "theme_hicon_teal.png",
+      "title": "Themes and accents",
+      "caption": "Three base themes and nine accent colors, shown on the Character window. Each window can also have its own accent.",
+      "crops": [
+        {
+          "src": "theme_dark_orange.png",
+          "box": [
+            961,
+            0,
+            1913,
+            735
+          ],
+          "tag": "DARK | ORANGE",
+          "place": [
+            110,
+            180,
+            524
+          ]
+        },
+        {
+          "src": "theme_dark_green.png",
+          "box": [
+            961,
+            0,
+            1913,
+            735
+          ],
+          "tag": "DARK | GREEN",
+          "place": [
+            320,
+            242,
+            524
+          ]
+        },
+        {
+          "src": "theme_light_blue.png",
+          "box": [
+            961,
+            0,
+            1913,
+            735
+          ],
+          "tag": "LIGHT | BLUE",
+          "place": [
+            530,
+            304,
+            524
+          ]
+        },
+        {
+          "src": "theme_light_red.png",
+          "box": [
+            961,
+            0,
+            1913,
+            735
+          ],
+          "tag": "LIGHT | RED",
+          "place": [
+            740,
+            366,
+            524
+          ]
+        },
+        {
+          "src": "theme_hicon_purple.png",
+          "box": [
+            961,
+            0,
+            1913,
+            735
+          ],
+          "tag": "HIGH CONTRAST | PURPLE",
+          "place": [
+            950,
+            428,
+            524
+          ]
+        },
+        {
+          "box": [
+            961,
+            0,
+            1913,
+            735
+          ],
+          "tag": "HIGH CONTRAST | TEAL",
+          "place": [
+            1160,
+            490,
+            524
+          ]
+        }
+      ],
+      "balloons": [
+        {
+          "text": "The accent color marks the open tab and the buttons that are on.",
+          "anchor": [
+            1329,
+            90
+          ],
+          "crop": 5,
+          "side": "right"
+        },
+        {
+          "text": "Pick the base theme and the accent in Options, ZeD setup.",
+          "anchor": [
+            1913,
+            400
+          ],
+          "crop": 5,
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "desk",
+      "kind": "ingame",
+      "src": "zed_50_desk.png",
+      "patches": [],
+      "avoid": [
+        [
+          1340,
+          300,
+          2500,
+          1130
+        ]
+      ],
+      "balloons": [
+        {
+          "text": "The main menu is a desk with a monitor. Each screen opens in a window on the monitor.",
+          "anchor": [
+            990,
+            1300
           ],
           "side": "left"
         },
         {
-          "text": "The action bar in words, or ten little lights",
+          "text": "The save card: the last character you played and its save.",
           "anchor": [
-            1398,
-            1128
+            1367,
+            450
           ],
           "side": "left"
         },
         {
-          "head": "Safe mode",
-          "text": "If ZeD ever fails to open, the game's own screens come back",
+          "text": "The menu bar: ZeD, File, Multiplayer, Settings.",
           "anchor": [
-            2621,
-            1447
+            985,
+            257
+          ],
+          "side": "left"
+        },
+        {
+          "text": "Desktop icons open the same screens as the menu.",
+          "anchor": [
+            2790,
+            533
+          ],
+          "side": "right"
+        }
+      ]
+    },
+    {
+      "id": "wide",
+      "kind": "ingame",
+      "src": "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/shots/fixed/zed_03_hero_wide_roof.png",
+      "avoid": [
+        [
+          961,
+          0,
+          3320,
+          735
+        ],
+        [
+          1436,
+          2036,
+          2410,
+          2130
+        ]
+      ],
+      "balloons": [
+        {
+          "text": "Zoomed out, the windows and the belt stay at the UI scale set in Options.",
+          "anchor": [
+            3318,
+            400
           ],
           "side": "right"
         }

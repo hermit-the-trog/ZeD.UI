@@ -33,6 +33,7 @@ Shot list (see ZeDUI/workshop/shots/shots.json):
       "crops": [ {"box": [x0,y0,x1,y1],   source px
                   "src": "other.png",       optional: a crop from another screenshot
                   "label": "SURVEY",        optional caps label under the crop
+                  "tag": "VANILLA",         optional name tab on the crop's top edge
                   "place": [x,y,w],         optional: put it here (output px), no auto layout
                   "resample": "nearest",    optional: pixel art zoomed x1.5 / x2 stays crisp
                   "box_todo": true} ],      the box is a guess until the real capture
@@ -523,6 +524,20 @@ def scaled(src, box, w, h, resample="auto"):
     return c.resize((w, h), Image.LANCZOS)
 
 
+TAG_H = 38
+
+
+def draw_tag(d, text, x, y_bottom):
+    """A name tab sitting on a crop's top edge, left-aligned: white, black outline,
+    Fira Mono Bold caps (VANILLA, ZeD-GUI, DARK | ORANGE)."""
+    tw = F_LABEL.getlength(text)
+    a, de = F_LABEL.getmetrics()
+    x1 = x + tw + 28
+    d.rectangle([x, y_bottom - TAG_H, x1, y_bottom], fill=INK)
+    d.rectangle([x + 2, y_bottom - TAG_H + 2, x1 - 2, y_bottom], fill=PAPER)
+    d.text((x + 14, y_bottom - TAG_H + (TAG_H - (a + de)) / 2 + 1), text, font=F_LABEL, fill=INK)
+
+
 def framed(im, tile, x, y):
     """Paste a crop as a System 7 window: 2 px black frame and a hard black shadow."""
     d = ImageDraw.Draw(im)
@@ -609,6 +624,8 @@ def render(shot, screens, n, stub, debug, patches=()):
         fill = lay.get("fill", 0.52)
         gapx = lay.get("gap", 64)
         label_h = 40 if any(c.get("label") for c in crops) else 0
+        tag_h = TAG_H + 6 if any(c.get("tag") for c in crops) else 0
+        top += tag_h
         avail_h = bot - top - label_h
         # auto size: all crops share one height; together they take fill * the content width
         ratios = [(c["box"][2] - c["box"][0]) / (c["box"][3] - c["box"][1]) for c in crops]
@@ -642,8 +659,9 @@ def render(shot, screens, n, stub, debug, patches=()):
             widths = []
             for c, h_ in zip(crops, hs):
                 places.append([c, round(x), round(y), round(ww), h_])
-                soft.append((x - 2, y - 2, x + ww + 10, y + h_ + 10 + (label_h if c.get("label") else 0)))
-                y += h_ + gapy + label_h
+                soft.append((x - 2, y - 2 - (tag_h if c.get("tag") else 0), x + ww + 10,
+                             y + h_ + 10 + (label_h if c.get("label") else 0)))
+                y += h_ + gapy + label_h + tag_h
             crops = []
         for c, cw_ in zip(crops, widths):
             if c.get("place"):
@@ -653,7 +671,8 @@ def render(shot, screens, n, stub, debug, patches=()):
                 px, py, pw, ph = round(x), round(y), cw_, round(hh)
                 x += cw_ + gapx
             places.append([c, px, py, pw, ph])
-            soft.append((px - 2, py - 2, px + pw + 10, py + ph + 10 + (label_h if c.get("label") else 0)))
+            soft.append((px - 2, py - 2 - (tag_h if c.get("tag") else 0), px + pw + 10,
+                         py + ph + 10 + (label_h if c.get("label") else 0)))
 
         def to_out(p, hint=None):
             if hint is None:
@@ -708,6 +727,8 @@ def render(shot, screens, n, stub, debug, patches=()):
             tile = scaled(get(c["src"]) if c.get("src") else src, tuple(c["box"]), pw, ph,
                           c.get("resample", "auto"))
             framed(canvas, tile, px, py)
+            if c.get("tag"):
+                draw_tag(d, c["tag"], px - 3, py - 3)
             if c.get("label"):
                 lw_ = F_LABEL.getlength(c["label"])
                 d.text((px + (pw - lw_) / 2, py + ph + 14), c["label"], font=F_LABEL, fill=SUB_TX)
@@ -779,7 +800,7 @@ def main():
         if only and shot["id"] not in only:
             continue
         name = "%02d_%s" % (n, shot["id"])
-        img = render(shot, screens, n, a.stub, a.debug, spec.get("patches", ()))
+        img = render(shot, screens, n, a.stub, a.debug, shot.get("patches", spec.get("patches", ())))
         if img is None:
             continue
         png = os.path.join(out, name + ".png")
