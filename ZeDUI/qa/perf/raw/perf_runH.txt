@@ -1,0 +1,6 @@
+# ZeD handler profile (needs ZeDPerfProbe before ZeD_UI in mods.txt)
+gallery_v3_core.lua | g3c | timeout=300
+perf_bench_clean.lua | pbc | timeout=300
+gallery_v3_stage.lua | g3s | timeout=300
+perf_bench_hdl.lua | pbh | timeout=600
+gallery_v3_teardown.lua | g3t | timeout=240

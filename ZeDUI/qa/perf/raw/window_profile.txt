@@ -1,0 +1,52 @@
+PROF|pair_loot|frames=981|frameMs=12.25|sumPreRender=5.03
+PROF|pair_loot|2.805 ms/frame|2.00 calls/frame|ZeD_Panel prerender 651x664 d1
+PROF|pair_loot|1.212 ms/frame|4.00 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|pair_loot|0.463 ms/frame|2.00 calls/frame|ZeD_Window render 777x735 d0
+PROF|pair_loot|0.297 ms/frame|2.00 calls/frame|ZeD_Window prerender 777x735 d0
+PROF|pair_loot|0.234 ms/frame|4.00 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|pair_loot|0.009 ms/frame|4.00 calls/frame|ZeD_Panel render 63x664 d1
+PROF|pair_loot|0.007 ms/frame|2.00 calls/frame|ISPanel render 777x735 d1
+PROF|pair_loot|0.004 ms/frame|0.23 calls/frame|ZeD_Window update 777x735 d0
+PROF|pair_loot|0.002 ms/frame|2.00 calls/frame|ZeD_Panel render 651x664 d1
+PROF|pair_loot|0.001 ms/frame|4.00 calls/frame|ZeD_Panel render 0x664 d1
+PROF|pair_loot|0.001 ms/frame|0.46 calls/frame|ZeD_Panel update 63x664 d1
+PROF|pair_loot|0.001 ms/frame|0.23 calls/frame|ZeD_ItemCard update 385x664 d2
+PROF|pair_multicolumn|frames=891|frameMs=13.48|sumPreRender=6.45
+PROF|pair_multicolumn|2.126 ms/frame|1.00 calls/frame|ZeD_Panel prerender 826x664 d1
+PROF|pair_multicolumn|2.071 ms/frame|1.00 calls/frame|ZeD_Panel prerender 1267x664 d1
+PROF|pair_multicolumn|1.287 ms/frame|4.00 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|pair_multicolumn|0.224 ms/frame|1.00 calls/frame|ZeD_Window render 1393x735 d0
+PROF|pair_multicolumn|0.215 ms/frame|4.00 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|pair_multicolumn|0.209 ms/frame|1.00 calls/frame|ZeD_Window render 952x735 d0
+PROF|pair_multicolumn|0.164 ms/frame|1.00 calls/frame|ZeD_Window prerender 952x735 d0
+PROF|pair_multicolumn|0.131 ms/frame|1.00 calls/frame|ZeD_Window prerender 1393x735 d0
+PROF|pair_multicolumn|0.010 ms/frame|2.00 calls/frame|ISPanel render 777x735 d1
+PROF|pair_multicolumn|0.008 ms/frame|4.00 calls/frame|ZeD_Panel render 63x664 d1
+PROF|pair_multicolumn|0.004 ms/frame|2.00 calls/frame|ISPanel prerender 777x735 d1
+PROF|pair_multicolumn|0.003 ms/frame|4.00 calls/frame|ZeD_Panel render 0x664 d1
+PROF|world_maps|frames=946|frameMs=12.70|sumPreRender=5.68
+PROF|world_maps|2.857 ms/frame|2.00 calls/frame|ZeD_Panel prerender 651x664 d1
+PROF|world_maps|1.256 ms/frame|4.00 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|world_maps|0.470 ms/frame|1.00 calls/frame|ZeD_Panel prerender 840x664 d1
+PROF|world_maps|0.279 ms/frame|1.00 calls/frame|ZeD_Window render 1617x735 d0
+PROF|world_maps|0.212 ms/frame|1.00 calls/frame|ZeD_Window render 777x735 d0
+PROF|world_maps|0.178 ms/frame|1.00 calls/frame|ZeD_Window prerender 777x735 d0
+PROF|world_maps|0.151 ms/frame|3.00 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|world_maps|0.137 ms/frame|1.00 calls/frame|ZeD_Window prerender 1617x735 d0
+PROF|world_maps|0.115 ms/frame|1.00 calls/frame|ZeD_WorldMap render 840x599 d2
+PROF|world_maps|0.007 ms/frame|4.00 calls/frame|ZeD_Panel render 63x664 d1
+PROF|world_maps|0.006 ms/frame|2.00 calls/frame|ISPanel render 777x735 d1
+PROF|world_maps|0.005 ms/frame|1.00 calls/frame|ZeD_WorldMap prerender 840x599 d2
+PROF|world_craft|frames=921|frameMs=13.05|sumPreRender=6.23
+PROF|world_craft|2.845 ms/frame|2.00 calls/frame|ZeD_Panel prerender 651x664 d1
+PROF|world_craft|1.212 ms/frame|4.00 calls/frame|ZeD_Panel prerender 63x664 d1
+PROF|world_craft|1.085 ms/frame|1.00 calls/frame|ZeD_Panel prerender 840x664 d1
+PROF|world_craft|0.273 ms/frame|1.00 calls/frame|ZeD_Window render 1617x735 d0
+PROF|world_craft|0.231 ms/frame|1.00 calls/frame|ZeD_Window render 777x735 d0
+PROF|world_craft|0.168 ms/frame|1.00 calls/frame|ZeD_Window prerender 777x735 d0
+PROF|world_craft|0.152 ms/frame|1.00 calls/frame|ZeD_Window prerender 1617x735 d0
+PROF|world_craft|0.140 ms/frame|3.00 calls/frame|ZeD_Panel prerender 0x664 d1
+PROF|world_craft|0.048 ms/frame|1.00 calls/frame|ISTextEntryBox prerender 776x46 d3
+PROF|world_craft|0.034 ms/frame|1.00 calls/frame|ZeD_SearchField prerender 818x46 d2
+PROF|world_craft|0.012 ms/frame|2.00 calls/frame|ISPanel render 777x735 d1
+PROF|world_craft|0.009 ms/frame|1.00 calls/frame|ZeD_SearchField render 818x46 d2

@@ -1,0 +1,28 @@
+capped|1|hud|3600|8.335|8.0|11.0|12.0|22|120.0|119|3.19|7.83|0.00|5.50|1|0|inventory false loot false
+capped|1|inv|3596|8.343|8.0|11.0|12.0|16|119.9|119|6.35|7.85|0.00|4.84|0|0|inventory true loot true
+capped|1|card|3596|8.343|8.0|11.0|12.0|15|119.9|119|6.43|7.85|0.00|4.97|0|0|inventory true loot true tooltip true
+capped|1|map|3459|8.675|8.0|12.0|14.0|24|115.3|120|7.04|8.16|0.62|0.05|2|0|speed 0
+capped|1|car|3557|8.436|8.0|10.0|14.0|36|118.5|119|6.26|8.04|2.65|0.00|25|3|engine=true lights=true
+capped|1|idle|3601|8.333|8.0|11.0|12.0|16|120.0|120|3.06|7.94|0.00|0.03|0|0|inventory false loot false
+capped|1|bare|3600|8.334|8.0|11.0|12.0|14|120.0|119|3.04|7.84|0.00|5.67|0|0|all UI hidden
+capped|2|hud|3601|8.333|8.0|11.0|12.0|14|120.0|120|3.03|7.84|0.00|5.62|0|0|inventory false loot false
+capped|2|inv|3600|8.334|8.0|11.0|12.0|15|120.0|120|5.90|7.83|0.00|5.00|0|0|inventory true loot true
+capped|2|card|3599|8.335|8.0|11.0|12.0|18|120.0|120|5.97|7.86|0.00|4.84|1|0|inventory true loot true tooltip true
+capped|2|map|3587|8.364|8.0|11.0|12.0|16|119.6|120|6.13|7.85|0.22|0.10|0|0|speed 0
+capped|2|car|3581|8.380|8.0|10.0|12.0|34|119.3|120|7.83|7.99|4.38|0.00|10|1|engine=true lights=true
+capped|2|idle|3600|8.334|8.0|10.0|11.0|12|120.0|120|7.00|7.94|3.50|0.00|0|0|inventory false loot false
+capped|2|bare|3600|8.333|8.0|11.0|12.0|15|120.0|119|2.97|7.84|0.00|5.59|0|0|all UI hidden
+uncapped|1|hud|11705|2.563|2.0|4.0|5.0|9|390.1|338|2.08|2.05|0.00|0.20|0|0|inventory false loot false
+uncapped|1|inv|6360|4.718|5.0|8.0|10.0|13|212.0|327|4.22|3.10|0.00|2.97|0|0|inventory true loot true
+uncapped|1|card|6346|4.728|5.0|8.0|9.0|15|211.5|265|4.26|3.06|0.00|3.12|0|0|inventory true loot true tooltip true
+uncapped|1|map|4714|6.366|7.0|9.0|11.0|16|157.1|1028|5.85|5.90|1.21|0.23|0|0|speed 0
+uncapped|1|car|12418|2.416|2.0|4.0|5.0|25|413.9|455|1.90|1.87|0.01|0.32|5|0|engine=true lights=true
+uncapped|1|idle|11109|2.700|3.0|4.0|6.0|14|370.3|360|2.23|2.20|0.00|0.22|0|0|inventory false loot false
+uncapped|1|bare|11484|2.612|3.0|4.0|5.0|11|382.8|382|2.14|2.13|0.00|0.18|0|0|all UI hidden
+uncapped|2|hud|11607|2.585|3.0|4.0|5.0|10|386.9|422|2.12|2.10|0.00|0.18|0|0|inventory false loot false
+uncapped|2|inv|6509|4.610|5.0|8.0|9.0|12|216.9|226|4.11|2.88|0.00|2.91|0|0|inventory true loot true
+uncapped|2|card|6254|4.797|5.0|8.0|10.0|15|208.5|180|4.33|3.22|0.00|3.08|0|0|inventory true loot true tooltip true
+uncapped|2|map|4594|6.530|7.0|10.0|12.0|16|153.1|174|6.02|6.08|1.25|0.16|0|0|speed 0
+uncapped|2|car|13158|2.280|2.0|4.0|5.0|30|438.6|439|1.74|1.71|0.01|0.23|4|0|engine=true lights=true
+uncapped|2|idle|11657|2.573|2.0|4.0|5.0|11|388.6|408|2.11|2.07|0.00|0.20|0|0|inventory false loot false
+uncapped|2|bare|11814|2.539|2.0|4.0|5.0|8|393.8|392|2.07|2.05|0.00|0.15|0|0|all UI hidden

@@ -1,0 +1,6 @@
+# ZeD window profile
+gallery_v3_core.lua | g3c | timeout=300
+perf_bench_clean.lua | pbc | timeout=300
+gallery_v3_stage.lua | g3s | timeout=300
+perf_bench_prof.lua | pbp | timeout=600
+gallery_v3_teardown.lua | g3t | timeout=240
