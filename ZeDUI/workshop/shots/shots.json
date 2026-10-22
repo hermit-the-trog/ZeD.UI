@@ -253,7 +253,7 @@
    "kind": "feature",
    "src": "story_03_route_map.png",
    "title": "The route",
-   "caption": "World window, Maps tab. On a controller, hold one bumper and tap the other to zoom the camera: LB then RB zooms out, RB then LB zooms in.",
+   "caption": "World window, Maps tab.",
    "crops": [
     {
      "box": [
@@ -288,14 +288,6 @@
       74
      ],
      "side": "top"
-    },
-    {
-     "text": "On a controller, RT and LT zoom the map.",
-     "anchor": [
-      2700,
-      640
-     ],
-     "side": "left"
     }
    ]
   },
@@ -770,14 +762,6 @@
       2083
      ],
      "side": "top"
-    },
-    {
-     "text": "On a controller, aiming with the right stick hides both windows. Y shows them again.",
-     "anchor": [
-      600,
-      1700
-     ],
-     "side": "right"
     }
    ]
   },
