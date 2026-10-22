@@ -105,10 +105,10 @@ function M.DefenseFacts(item)
     panel.groups[#panel.groups + 1] = {
         rows = {
             {label = getText("Tooltip_item_Insulation"), value = insulation and string.format("%d / 100", insulation * 100) or "-",
-             valueClass = insulation and nil or "dim", needsProbe = insulation == nil},
+             valueClass = (not insulation) and "dim" or nil, needsProbe = insulation == nil},
             {label = getText("IGUI_Temp_WindResistance"), short = ZeD.tr("UI_ZeD_Card_ShortWind"),
              value = windRes and string.format("%d / 100", windRes * 100) or "-",
-             valueClass = windRes and nil or "dim", needsProbe = windRes == nil},
+             valueClass = (not windRes) and "dim" or nil, needsProbe = windRes == nil},
             {label = getText("Tooltip_item_Waterresist"), short = ZeD.tr("UI_ZeD_Card_ShortWaterRes"),
              value = waterRes and string.format("%d / 100", waterRes * 100) or "-",
              valueClass = "dim"},

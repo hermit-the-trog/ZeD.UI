@@ -497,7 +497,7 @@ local function tableNeeds(rows, part, chr, v, key, items)
             local need = tonumber(level) or 0
             local have = chr:getPerkLevel(Perks.FromString(name))
             rows[#rows + 1] = { ok = have >= need, soft = true, label = txt("IGUI_perks_" .. name, name),
-                                value = tostring(have) .. " / " .. tostring(need), kicker = have >= need and nil or ZeD.upper(ZeD.tr("UI_optionscreen_recommended")) }
+                                value = tostring(have) .. " / " .. tostring(need), kicker = (have < need) and ZeD.upper(ZeD.tr("UI_optionscreen_recommended")) or nil }
         end
     end
     local success, failure = VehicleUtils.calculateInstallationSuccess(perks, chr)
