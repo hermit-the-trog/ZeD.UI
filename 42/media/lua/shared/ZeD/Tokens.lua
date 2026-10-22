@@ -933,6 +933,24 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.scale = sc
     T.root  = root
     T.px    = function(units) return math.floor(units * sc + 0.5) end
+    -- Even at every step (Oct 21 2026; ZeD.Scale.artZoom / hair / line / snapRect explain the rules):
+    --   T.hair      a 1-unit line in whole px (= T.px(1), >= 1)
+    --   T.line(n)   an n-unit line: n hairlines (T.px(n) would mix 3 px two-unit lines with 2 px one-unit ones at 1.5)
+    --   T.rect(...) a design-unit rect with snapped edges, its size taken from the edges
+    --   T.art       the whole zoom pixel art in the windows draws at (the nearest whole number to T.scale)
+    local hair = math.floor(sc + 0.5)
+    if hair < 1 then hair = 1 end
+    T.hair  = hair
+    T.line  = function(units)
+        local v = math.floor((units or 1) * hair + 0.5)
+        if v < 1 then v = 1 end
+        return v
+    end
+    T.rect  = function(x, y, w, h)
+        local x0, y0 = math.floor(x * sc + 0.5), math.floor(y * sc + 0.5)
+        return x0, y0, math.floor((x + w) * sc + 0.5) - x0, math.floor((y + h) * sc + 0.5) - y0
+    end
+    T.art   = (ZeD.Scale and ZeD.Scale.artZoom) and ZeD.Scale.artZoom(sc) or math.max(1, math.floor(sc + 0.5 + 1e-6))
     -- Oct 19 2026 (Large text audit): a preset value Large sizes for itself (row 34 vs 30, button
     -- 30 vs 26 ...) takes the root scale only; multiplying it by Large's 1.15 as well grew rows 30%
     -- for 15% more text (39 px rows) and pushed four rows in twenty off a full bag. Values both
@@ -987,6 +1005,12 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     -- Spacing is always available (doesn't change with theme)
     T.sp = {}   -- scaled copy (S124); the static table stays the design-unit source
     for k, v in pairs(ZeD.Spacing) do T.sp[k] = (type(v) == "number") and T.px(v) or v end
+    -- the body figure is pixel art (ZeD_BodyFigure.lua): its box is the canvas at the whole zoom it draws at,
+    -- so the Health, Thermal and Equip layouts make room for the size it really is (Oct 21 2026)
+    T.sp.figureW = ZeD.Spacing.figureW * T.art
+    T.sp.figureH = ZeD.Spacing.figureH * T.art
+    -- the System 7 groove: a dark and a light hairline (ZeD.Atoms.drawGroove)
+    T.grooveH = 2 * T.hair
     -- Context-menu tokens — static, not theme-dependent (see ZeD.Ctx definition above)
     T.ctx = {}  -- scaled copy (S124); counts and milliseconds stay as they are
     local CTX_NOT_PX = { maxVisible = true, animMs = true, settleDelayMs = true }

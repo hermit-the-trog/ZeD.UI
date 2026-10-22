@@ -342,11 +342,11 @@ function ZeD_Reader:drawSide(s)
             local id = "story:" .. i
             local on = (self.view == "words" and self.storyIx == i)
             local hot = self._hot == id
-            if on then self:drawRect(x - T.px(4), y, w + T.px(8), rh, 0.22, ac.r, ac.g, ac.b)
-            elseif hot then self:drawRect(x - T.px(4), y, w + T.px(8), rh, 0.12, ac.r, ac.g, ac.b) end
+            if on then self:drawRect(x - T.px(4), y, w + 2 * T.px(4), rh, 0.22, ac.r, ac.g, ac.b)
+            elseif hot then self:drawRect(x - T.px(4), y, w + 2 * T.px(4), rh, 0.12, ac.r, ac.g, ac.b) end
             local ly = y + T.px(U.ROW_PAD)
             for _, l in ipairs(lines) do self:drawText(l, x + T.px(2), ly, tc.r, tc.g, tc.b, tc.a or 1, f2); ly = ly + fh(f2) + T.px(2) end
-            self:drawRect(x - T.px(4), y + rh - 1, w + T.px(8), 1, T.border.a, T.border.r, T.border.g, T.border.b)
+            self:drawRect(x - T.px(4), y + rh - 1, w + 2 * T.px(4), 1, T.border.a, T.border.r, T.border.g, T.border.b)
             self._hits[#self._hits + 1] = { id = id, x = x - T.px(4), y = y, w = w + T.px(8), h = rh, fn = function() self:jumpTo(i) end }
             y = y + rh
         end

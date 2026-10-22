@@ -488,7 +488,7 @@ function ZeD_MMSpawn:drawDetails(x, y, w, h)
     -- a field's label; the controller's focus fills the label and field together
     local function label(text, ry, fid)
         local focused = gp and self.focusId == fid
-        if focused then self:drawRect(x + T.px(1), ry - T.px(3), w - T.px(2), lh + fh + T.px(6), 0.55, ac.r, ac.g, ac.b) end
+        if focused then self:drawRect(x + T.px(1), ry - T.px(3), w - 2 * T.px(1), lh + fh + 2 * T.px(3), 0.55, ac.r, ac.g, ac.b) end
         local la = focused and T.textOnAccent or T.accent
         self:drawText(text, ix, ry + math.floor((lh - MM.fontH(f1)) / 2) - T.px(1), la.r, la.g, la.b, la.a or 1, f1)
     end

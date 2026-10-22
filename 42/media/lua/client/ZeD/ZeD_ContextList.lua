@@ -257,7 +257,7 @@ function ZeD_ContextList:prerender()
                 local openParent = self._levels[li + 1] and self._levels[li + 1].parentRow == ri
                 if isSel or openParent then
                     -- System 7 selects a menu row whole: the accent fill (the controller's 0.55)
-                    self:drawRect(x + T.px(1), cy, w - T.px(2), rowH, (isSel and not off) and 0.55 or 0.3, ac.r, ac.g, ac.b)
+                    self:drawRect(x + T.px(1), cy, w - 2 * T.px(1), rowH, (isSel and not off) and 0.55 or 0.3, ac.r, ac.g, ac.b)
                 end
                 local a = off and 0.38 or 1
                 -- on the controller's 0.55 fill the label is the focus ink (red or plain text would vanish into it)

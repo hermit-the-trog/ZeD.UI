@@ -332,8 +332,8 @@ function ZeD_Keyboard:prerender()
         local b, bs = T.base, T.borderS
         self:drawRect(r.x, r.y, r.w, r.h, 1, b.r, b.g, b.b)
         self:drawRectBorder(r.x, r.y, r.w, r.h, bs.a or 1, bs.r, bs.g, bs.b)
-        self:drawRect(r.x + T.px(1), r.y + T.px(1), r.w - T.px(2), T.px(1), 0.45, 0, 0, 0)
-        self:drawRect(r.x + T.px(1), r.y + T.px(1), T.px(1), r.h - T.px(2), 0.45, 0, 0, 0)
+        self:drawRect(r.x + T.px(1), r.y + T.px(1), r.w - 2 * T.px(1), T.px(1), 0.45, 0, 0, 0)
+        self:drawRect(r.x + T.px(1), r.y + T.px(1), T.px(1), r.h - 2 * T.px(1), 0.45, 0, 0, 0)
         local text = e:getInternalText() or ""
         if self._masked and not self._showPlain then text = string.rep("*", #text) end
         local cur = clamp(e:getCursorPos() or #text, 0, #text)

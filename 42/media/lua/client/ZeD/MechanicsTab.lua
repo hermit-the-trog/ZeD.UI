@@ -1467,7 +1467,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
             panel:drawRectBorder(rx, ry, rr, rr, bc.a or 1, bc.r, bc.g, bc.b)
             if sel then
                 local ac = T.accent
-                panel:drawRect(rx + T.px(3), ry + T.px(3), rr - T.px(6), rr - T.px(6), ac.a or 1, ac.r, ac.g, ac.b)
+                panel:drawRect(rx + T.px(3), ry + T.px(3), rr - 2 * T.px(3), rr - 2 * T.px(3), ac.a or 1, ac.r, ac.g, ac.b)
             end
             panel:drawText(pk.name, rx + rr + T.px(8), cy + math.floor((rh - T.fontF2H) / 2), rc.r, rc.g, rc.b, rc.a or 1, T.fontF2)
             local right = x + cw - pad - T.px(4)
@@ -1510,7 +1510,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
             panel:drawRectBorder(rx, ry, rr, rr, bc.a or 1, bc.r, bc.g, bc.b)
             if sel then
                 local ac = T.accent
-                panel:drawRect(rx + T.px(3), ry + T.px(3), rr - T.px(6), rr - T.px(6), ac.a or 1, ac.r, ac.g, ac.b)
+                panel:drawRect(rx + T.px(3), ry + T.px(3), rr - 2 * T.px(3), rr - 2 * T.px(3), ac.a or 1, ac.r, ac.g, ac.b)
             end
             local tc = r.ok and T.text or T.textDim
             local textX = rx + rr + T.px(8)

@@ -1027,8 +1027,7 @@ end
 -- ZONE A HEIGHT MEASUREMENT (for scroll math)
 -- ============================================================================
 
-local FIGURE_W   = ZeD.Spacing.figureW
-local FIGURE_H   = ZeD.Spacing.figureH
+-- (the figure's box is T.sp.figureW / figureH: the canvas at the whole zoom it draws at)
 
 function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
@@ -1049,7 +1048,7 @@ function ZeD.HealthTab._measureZoneA(data, rw, win)
     rightH = rightH + btnH + gap  -- session time row
     rightH = rightH + ZeD.HealthTab._measureExerciseInfo(win, rw)  -- exercise info block
 
-    return math.max(T.px(FIGURE_H), rightH)
+    return math.max(T.sp.figureH, rightH)   -- the figure at the whole zoom it draws at (Oct 21 2026)
 end
 
 -- ============================================================================
@@ -1202,10 +1201,10 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- (_healthFigureZone is stamped at the TOP of render now, not here)
 
     if figureExpanded then
-        local layout = M.layoutZoneA(x, curY, contentW, T.px(FIGURE_W), T.px(FIGURE_H))
+        local layout = M.layoutZoneA(x, curY, contentW, T.sp.figureW, T.sp.figureH)
 
         ZeD.HealthTab._drawBodyFigure(panel, win, data,
-            layout.figX, layout.figY, T.px(FIGURE_W), T.px(FIGURE_H))
+            layout.figX, layout.figY, T.sp.figureW, T.sp.figureH)
 
         -- S103: detail-view now reads _healthActivePart (gp focus overrides
         -- mouse hover); previously only _healthHoveredPart drove the swap.

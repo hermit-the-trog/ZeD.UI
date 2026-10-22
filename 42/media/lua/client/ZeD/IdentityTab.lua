@@ -312,7 +312,7 @@ local function measureZoneBH(data)
     local T = ZeD.T
     local headH = ZeD.TM:getFontHeight(T.fontF4)
     local pad   = T.sp.sm
-    local h = pad + T.sp.beforeHead + headH + T.sp.headGap + T.px(2) + T.sp.afterGroove  -- heading + groove
+    local h = pad + T.sp.beforeHead + headH + T.sp.headGap + T.grooveH + T.sp.afterGroove  -- heading + groove
 
     -- Positive traits
     if #data.posTraits > 0 then
@@ -535,7 +535,7 @@ local function renderZoneB(panel, win, data, x, drawY, w)
 
     -- Groove divider
     A.drawGroove(panel, x + pad, curY, contentW)
-    curY = curY + T.px(2) + T.sp.afterGroove
+    curY = curY + T.grooveH + T.sp.afterGroove
 
     local totalCount = #data.posTraits + #data.negTraits
 

@@ -81,14 +81,14 @@ end
 -- @param strong If true, uses borderS (stronger). Default uses border.
 function ZeD.Atoms.drawDividerH(panel, x, y, w, strong)
     local c = strong and ZeD.T.borderS or ZeD.T.border
-    local h = ZeD.T.px(ZeD.T.borderW)  -- 1px normally, 2px in High Contrast (S124 scale: T.borderW is design units)
+    local h = ZeD.T.line(ZeD.T.borderW)  -- one hairline, two in High Contrast (T.borderW is design units; T.line keeps 2 = two hairlines at 1.25 / 1.5)
     panel:drawRect(x, y, w, h, c.a, c.r, c.g, c.b)
 end
 
 --- Draw a vertical divider line
 function ZeD.Atoms.drawDividerV(panel, x, y, h, strong)
     local c = strong and ZeD.T.borderS or ZeD.T.border
-    local w = ZeD.T.px(ZeD.T.borderW)
+    local w = ZeD.T.line(ZeD.T.borderW)
     panel:drawRect(x, y, w, h, c.a, c.r, c.g, c.b)
 end
 
@@ -107,7 +107,7 @@ end
 function ZeD.Atoms.drawBorder(panel, x, y, w, h, edges, strong)
     local T = ZeD.T
     local c = strong ~= false and T.borderS or T.border
-    local bw = T.px(T.borderW)  -- S124 scale: T.borderW is design units (1, HC 2); the HC test below reads the raw token
+    local bw = T.line(T.borderW)  -- T.borderW is design units (1, HC 2): that many hairlines; the HC test below reads the raw token
 
     -- Default: all edges drawn
     if not edges then
@@ -197,7 +197,7 @@ end
 function ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor)
     local T = ZeD.T
     local h = T.fillBarH
-    local bw = T.px(T.borderW)  -- S124 scale: T.borderW is design units (1, HC 2); the HC test below reads the raw token
+    local bw = T.line(T.borderW)  -- T.borderW is design units (1, HC 2): that many hairlines; the HC test below reads the raw token
 
     -- Clamp percent
     percent = math.max(0.0, math.min(1.0, percent))

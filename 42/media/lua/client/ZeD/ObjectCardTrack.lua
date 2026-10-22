@@ -113,7 +113,7 @@ function def.body(card, x, y, w, t, player)
     -- the track itself
     local ih = T.px(96)
     card:drawRect(x, y, lw, ih, 1, col(T.surf2))
-    if t.tex then card:drawTextureScaledAspect(t.tex, x + T.px(4), y + T.px(4), lw - T.px(8), ih - T.px(8), 1, 1, 1, 1) end
+    if t.tex then card:drawTextureScaledAspect(t.tex, x + T.px(4), y + T.px(4), lw - 2 * T.px(4), ih - 2 * T.px(4), 1, 1, 1, 1) end
     card:drawRectBorder(x, y, lw, ih, T.borderS.a or 1, col(T.borderS))
     -- compass under it
     local r = T.px(60)

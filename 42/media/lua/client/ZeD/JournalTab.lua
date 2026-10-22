@@ -670,7 +670,7 @@ local function renderJournal(panel, win, x, y, w, h)
         local killRows = 3 + #data.weaponCats
         zoneAEstH = zoneAEstH + killRows * (statRowEstH + T.sp.rowGap)
     end
-    zoneAEstH = zoneAEstH + T.sp.xs + T.px(2) + T.sp.afterGroove
+    zoneAEstH = zoneAEstH + T.sp.xs + T.grooveH + T.sp.afterGroove
         + T.px(ENTRY_INPUT_H) + T.sp.xs + T.buttonH + T.sp.sm + T.px(1) + T.sp.afterLine
 
     local entryGroups = journalGroups(win, data.journalEntries, win._journalSearchText or "")
@@ -796,7 +796,7 @@ local function renderJournal(panel, win, x, y, w, h)
 
     curY = curY + T.sp.xs
     A.drawGroove(panel, x, curY, drawW)
-    curY = curY + T.px(2) + T.sp.afterGroove
+    curY = curY + T.grooveH + T.sp.afterGroove
 
     -- Text entry + save button (positioned on the drawer panel — they are drawer children)
     local entryBox = win._journalInput

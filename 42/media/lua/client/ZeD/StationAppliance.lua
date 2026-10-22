@@ -494,7 +494,8 @@ function SA.render(panel, win, x, y, w, h, state, st)
     local rows = contents(st)
     local des, pid = SA.plateFor(st)
     local Sc = ZeD.Scale
-    local k = P.k((Sc and Sc.root and Sc.root()) or 1)
+    -- whole zoom, inside the column even with the scrollbar showing (so k never flips with the scrollbar)
+    local k = des and P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w - T.sp.scrollbarW) or 1
     local plH = des and des.h * k or 0
 
     -- Body: the plate, its line, the contents; one scrolling unit
@@ -549,7 +550,7 @@ function SA.render(panel, win, x, y, w, h, state, st)
     cyy = cyy + lineH + T.px(10)
 
     -- Contents
-    ZeD.Molecules.drawSectionHeader(panel, x + T.px(10), cyy, cw - T.px(20),
+    ZeD.Molecules.drawSectionHeader(panel, x + T.px(10), cyy, cw - 2 * T.px(10),
         ZeD.tr(mw and "UI_ZeD_Appliance_InMicrowave" or "UI_ZeD_Appliance_InOven"), #rows, true, false, T.fontF1, true, T.px(6), secH, true)
     cyy = cyy + secH
     if #rows == 0 then
@@ -585,7 +586,7 @@ function SA.render(panel, win, x, y, w, h, state, st)
             panel:drawRect(bx, byy, barW, bh, s2.a, s2.r, s2.g, s2.b)
             panel:drawRectBorder(bx, byy, barW, bh, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
             local fc = (rw.mode == "danger") and T.danger or ((rw.mode == "pos") and T.positive or T.accent)
-            panel:drawRect(bx + T.px(1), byy + T.px(1), math.floor((barW - T.px(2)) * rw.p), bh - T.px(2), 1, fc.r, fc.g, fc.b)
+            panel:drawRect(bx + T.px(1), byy + T.px(1), math.floor((barW - 2 * T.px(1)) * rw.p), bh - 2 * T.px(1), 1, fc.r, fc.g, fc.b)
             local ptxt = rw.left and (rw.mode == "danger" or rw.mode == "warn") and ZeD.tr("UI_ZeD_Appliance_MinShort", rw.left) or (tostring(math.floor(rw.p * 100 + 0.5)) .. "%")
             A.drawTextRight(panel, ptxt, rx, cyy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3,
                 rw.mode == "danger" and T.danger or T.text)

@@ -250,8 +250,8 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
             self:drawRectBorder(x, y, s, s, bs.a, bs.r, bs.g, bs.b)
             if i == r.cur or MM.ctx.hot == self.kind .. ":" .. id then
                 local tc = T.text
-                self:drawRectBorder(x - T.px(2), y - T.px(2), s + T.px(4), s + T.px(4), 1, tc.r, tc.g, tc.b)
-                if i == r.cur then self:drawRectBorder(x - T.px(3), y - T.px(3), s + T.px(6), s + T.px(6), 1, tc.r, tc.g, tc.b) end
+                self:drawRectBorder(x - T.px(2), y - T.px(2), s + 2 * T.px(2), s + 2 * T.px(2), 1, tc.r, tc.g, tc.b)
+                if i == r.cur then self:drawRectBorder(x - T.px(3), y - T.px(3), s + 2 * T.px(3), s + 2 * T.px(3), 1, tc.r, tc.g, tc.b) end
             end
             local top, bot = math.max(y, clip.y), math.min(y + s, clip.y + clip.h)
             if bot > top then
@@ -280,7 +280,7 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
             local id = rowId .. ":tint"
             if MM.ctx.hot == self.kind .. ":" .. id then
                 local ac = T.accent
-                self:drawRectBorder(x - T.px(2), by - T.px(2), sw + T.px(4), bh + T.px(4), 1, ac.r, ac.g, ac.b)
+                self:drawRectBorder(x - T.px(2), by - T.px(2), sw + 2 * T.px(2), bh + 2 * T.px(2), 1, ac.r, ac.g, ac.b)
             end
             local top, bot = math.max(by, clip.y), math.min(by + bh, clip.y + clip.h)
             local loc, btn = r.loc, r.tint

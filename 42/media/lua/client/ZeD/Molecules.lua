@@ -308,7 +308,7 @@ function ZeD.Molecules.drawTab(panel, x, y, text, active, hovered, disabled)
 
     -- Borders: top, left, right always. Bottom only if inactive.
     local bc = T.borderS
-    local bw = T.px(T.borderW)  -- S124 scale: T.borderW is design units (1, HC 2)
+    local bw = T.line(T.borderW)  -- T.borderW is design units (1, HC 2): that many hairlines
     -- Top
     panel:drawRect(x, y, w, bw, bc.a * alpha, bc.r, bc.g, bc.b)
     -- Left
@@ -1387,8 +1387,6 @@ end
 -- @param figW   Body figure width
 -- @param figH   Body figure height
 -- @return table { figX, figY, rightX, rightY, rightW, leftW }
-local ZONE_A_FIG_W = 220  -- fixed figure column width (S124 scale: design units; figW / figH / w arrive in screen px)
-
 function ZeD.Molecules.layoutZoneA(x, y, w, figW, figH)
     local T = ZeD.T
     -- Pass contentW (post-scroll) as w so rightW is correct with or without scrollbar.
@@ -1396,7 +1394,7 @@ function ZeD.Molecules.layoutZoneA(x, y, w, figW, figH)
     -- With scroll (w=466):    rightW = 466-238-8 = 220
     -- Without scroll (w=480): rightW = 480-238-8 = 234
     local leftX  = x + T.px(TAB_HEADER_PAD)          -- 8px outer left pad
-    local leftW  = T.px(ZONE_A_FIG_W)                -- 220px figure column
+    local leftW  = T.sp.figureW                      -- the figure column: the figure at its whole zoom (Oct 21 2026)
     local rightX = leftX + leftW + T.px(TAB_COL_GAP) -- +10px column gap
     local rightW = w - T.px(TAB_HEADER_PAD) - rightX + x  -- fills to 8px from right edge
     return {
@@ -1666,7 +1664,7 @@ function ZeD.Molecules.drawWindowTitleBar(panel, x, y, w, title, stats)
         local statX = x + w - T.sp.sm
         local statFH = ZeD.TM:getFontHeight(T.fontF3)
         local statY = y + math.floor((tbH - statFH) / 2)
-        local dotSz = T.px(5)
+        local dotSz = 5 * T.hair   -- 5 x 5 cells of pixel art on the hairline grid (Oct 21 2026)
         local dotGap = T.px(4)
         local tc = T.text
         -- Left boundary: don't overlap title text (reuses titleFont from above)
@@ -1686,7 +1684,8 @@ function ZeD.Molecules.drawWindowTitleBar(panel, x, y, w, title, stats)
             local dotY = y + math.floor((tbH - dotSz) / 2)
             -- 5x5 pixel-art circle: rows 0,4 = 3px centered; rows 1-3 = 5px
             local da = dc.a or 1
-            local p1, p4 = T.px(1), T.px(4)   -- S124 scale: design-unit pixel art, row r spans [T.px(r), T.px(r + 1)); dotSz = T.px(5)
+            local p1 = T.hair   -- each cell T.hair square, so the rows are 1, 3, 1 cells at every scale
+            local p4 = 4 * p1
             panel:drawRect(statX + p1, dotY,      p4 - p1, p1,         da, dc.r, dc.g, dc.b)
             panel:drawRect(statX,      dotY + p1, dotSz,   p4 - p1,    da, dc.r, dc.g, dc.b)
             panel:drawRect(statX + p1, dotY + p4, p4 - p1, dotSz - p4, da, dc.r, dc.g, dc.b)
@@ -2575,8 +2574,9 @@ function ZeD.Molecules.drawFactsRuleThick(panel, x, y, w)
     local c = T.text
     -- mockup margin:4px 0 (480w) or 2px 0 (220w) — caller manages outer spacing;
     -- molecule renders just the rule itself
-    panel:drawRect(x, y, w, T.px(2), c.a, c.r, c.g, c.b)
-    return T.px(2)
+    local t = T.line(2)   -- two hairlines (Oct 21 2026: T.px(2) was 3 px beside 2 px hairlines at 1.5)
+    panel:drawRect(x, y, w, t, c.a, c.r, c.g, c.b)
+    return t
 end
 
 --- 1px thin border-color rule (between facts sub-blocks).

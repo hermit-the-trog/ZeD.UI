@@ -6398,3 +6398,21 @@ Events.OnGameStart.Add(_armHideVanilla)
 Events.OnCreatePlayer.Add(function(playerNum)
     if playerNum == 0 then _armHideVanilla() end
 end)
+
+-- ----------------------------------------------------------------------------
+-- A container's column in the Loot tab's multi-column view, by its ItemContainer,
+-- as a click on its icon in the container strip does (Oct 21 2026: the Workshop
+-- gallery shows several bags open side by side; the QA scripts drive it from here).
+-- Returns true when the container was found. Loot tab only, like the click.
+-- ----------------------------------------------------------------------------
+function ZeD_CharacterWindow.toggleColumn(inv)
+    local win = _charWin
+    if not (win and inv and win._mainContent) then return false end
+    for i, c in ipairs(win._containers or {}) do
+        if c.inventory == inv then
+            mcToggleContainer(win, win._mainContent, i)
+            return true
+        end
+    end
+    return false
+end

@@ -589,7 +589,7 @@ local function drawSpaceBar(panel, x, y, w, ms, cap, used, colors)
             panel:drawRect(hx, y, math.min(sw, x + w - hx), h, 0.9, dg.r, dg.g, dg.b)
             hx = hx + step
         end
-        panel:drawRect(capX, y - T.px(2), T.px(1), h + T.px(4), 1, dg.r, dg.g, dg.b)
+        panel:drawRect(capX, y - T.px(2), T.px(1), h + 2 * T.px(2), 1, dg.r, dg.g, dg.b)
     end
     panel:drawRectBorder(x, y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
     return h

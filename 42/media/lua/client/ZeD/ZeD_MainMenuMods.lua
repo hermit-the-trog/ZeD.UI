@@ -1075,7 +1075,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     self._tabOrder = {}
     for _, t in ipairs(tabs) do self._tabOrder[#self._tabOrder + 1] = t[1] end
     local tH = T.px(TABS_H)
-    self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), tH, 1, s2.r, s2.g, s2.b)
+    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), tH, 1, s2.r, s2.g, s2.b)
     local tx = x + T.px(8)
     local tY = y + tH - T.tabH
     for _, t in ipairs(tabs) do
@@ -1088,7 +1088,7 @@ function ZeD_MMMods:drawList(x, y, w, h)
     self:drawRect(x, y + tH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local fY = y + tH + T.px(1)
     local fH = T.px(FIND_H)
-    self:drawRect(x + T.px(1), fY, w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
+    self:drawRect(x + T.px(1), fY, w - 2 * T.px(1), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, fY + fH - T.px(1), w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
     local findLabel = ZeD.tr("UI_ZeD_Options_Find")
@@ -1322,8 +1322,8 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
         local lines = ZeD.Atoms.wrapText(self.note.text, f2, iw - T.px(14))
         local nh = #lines * (MM.fontH(f2) + T.px(2)) + T.px(12)
         local s2 = T.surf2
-        self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), nh, 1, s2.r, s2.g, s2.b)
-        self:drawRect(x + T.px(1), y + nh, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
+        self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), nh, 1, s2.r, s2.g, s2.b)
+        self:drawRect(x + T.px(1), y + nh, w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
         local dsz = T.px(7)
         ZeD.Atoms.drawStatusDot(self, ix, y + T.px(6) + math.floor((MM.fontH(f2) - dsz) / 2), T.accent, dsz)
         local ly = y + T.px(6)
@@ -1665,15 +1665,15 @@ function ZeD_MMMods:drawOrder(x, y, w, h)
     self._list = { x = x, y = vy, w = listW, h = vh }
     local gp = MM.gamepad()
     local ac = T.accent
-    self:setStencilRect(x + T.px(1), vy, listW - T.px(2), vh)
+    self:setStencilRect(x + T.px(1), vy, listW - 2 * T.px(1), vh)
     for i, id in ipairs(self.order) do
         local ry = vy + (i - 1) * rh - self.scroll
         local rid = "orow:" .. i
         self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, index = i, ry = (i - 1) * rh, rh = rh }
         if ry + rh > vy and ry < vy + vh then
-            if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, listW - T.px(2), rh, 0.55, ac.r, ac.g, ac.b)
-            elseif i == self.oSel then self:drawRect(x + T.px(1), ry, listW - T.px(2), rh, 0.22, ac.r, ac.g, ac.b) end
-            self:drawRect(x + T.px(1), ry + rh - T.px(1), listW - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+            if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, listW - 2 * T.px(1), rh, 0.55, ac.r, ac.g, ac.b)
+            elseif i == self.oSel then self:drawRect(x + T.px(1), ry, listW - 2 * T.px(1), rh, 0.22, ac.r, ac.g, ac.b) end
+            self:drawRect(x + T.px(1), ry + rh - T.px(1), listW - 2 * T.px(1), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
             local d3 = T.textDim
             self:drawText(tostring(i), x + T.px(10), ry + math.floor((rh - MM.fontH(f3)) / 2), d3.r, d3.g, d3.b, d3.a or 1, f3)
             local nx = x + T.px(44)
@@ -1776,16 +1776,16 @@ function ZeD_MMMods:drawProfiles(x, y, w, h)
     local ac = T.accent
     local selP = list[1]
     for _, p in ipairs(list) do if p.name == self.psel then selP = p end end
-    self:setStencilRect(x + T.px(1), vy, listW - T.px(2), vh)
+    self:setStencilRect(x + T.px(1), vy, listW - 2 * T.px(1), vh)
     for i, p in ipairs(list) do
         local ry = vy + (i - 1) * rh - self.scroll
         local rid = "prow:" .. i
         self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, pname = p.name or false, ry = (i - 1) * rh, rh = rh,
                                           fn = function() self:loadProfile(p) end }
         if ry + rh > vy and ry < vy + vh then
-            if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, listW - T.px(2), rh, 0.55, ac.r, ac.g, ac.b)
-            elseif p == selP then self:drawRect(x + T.px(1), ry, listW - T.px(2), rh, 0.22, ac.r, ac.g, ac.b) end
-            self:drawRect(x + T.px(1), ry + rh - T.px(1), listW - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+            if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, listW - 2 * T.px(1), rh, 0.55, ac.r, ac.g, ac.b)
+            elseif p == selP then self:drawRect(x + T.px(1), ry, listW - 2 * T.px(1), rh, 0.22, ac.r, ac.g, ac.b) end
+            self:drawRect(x + T.px(1), ry + rh - T.px(1), listW - 2 * T.px(1), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
             local diff = self:profileDiff(p)
             -- status dot: the accent for the profile in use, red when mods are missing
             local dsz = T.px(7)

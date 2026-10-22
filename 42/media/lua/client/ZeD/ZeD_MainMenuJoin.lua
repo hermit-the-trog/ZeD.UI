@@ -538,7 +538,7 @@ function ZeD_MMJoin:drawList(x, y, w, h)
     UI.insetBox(self, x, y, w, h)
     -- the tabs, and streamer mode at the right (vanilla's tick: addresses masked)
     local tH = T.px(TABS_H)
-    self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), tH, 1, s2.r, s2.g, s2.b)
+    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), tH, 1, s2.r, s2.g, s2.b)
     local tx = x + T.px(8)
     local tY = y + tH - T.tabH
     for _, t in ipairs({ { "saved", ZeD.tr("UI_ZeD_Join_TabSaved") }, { "public", ZeD.tr("UI_ZeD_Join_TabPublic") } }) do
@@ -562,7 +562,7 @@ function ZeD_MMJoin:drawList(x, y, w, h)
     if self.tab == "public" then
         -- Find, then the filters, then the column heads
         local fH = T.px(FIND_H)
-        self:drawRect(x + T.px(1), cy, w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
+        self:drawRect(x + T.px(1), cy, w - 2 * T.px(1), fH - T.px(1), 1, s2.r, s2.g, s2.b)
         local f2, c = T.fontF2, T.text
         local findLabel = ZeD.tr("UI_ZeD_Join_Find")
         self:drawText(findLabel, x + T.px(8), cy + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
@@ -578,7 +578,7 @@ function ZeD_MMJoin:drawList(x, y, w, h)
             if lineW + tw > w - T.px(8) and lineW > T.px(8) then lines = lines + 1; lineW = T.px(8) end
             lineW = lineW + tw + gap
         end
-        self:drawRect(x + T.px(1), cy, w - T.px(2), ffH * lines, 1, s2.r, s2.g, s2.b)
+        self:drawRect(x + T.px(1), cy, w - 2 * T.px(1), ffH * lines, 1, s2.r, s2.g, s2.b)
         local fx, fy = x + T.px(8), cy
         for _, fdef in ipairs(FILTERS) do
             local tb = m and m[fdef[1]]
@@ -664,7 +664,7 @@ function ZeD_MMJoin:drawColumnHeads(x, y, w)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local hH = T.px(COLS_H)
     local s3, bs = T.surf3, T.borderS
-    self:drawRect(x + T.px(1), y, w - T.px(2), hH, 1, s3.r, s3.g, s3.b)
+    self:drawRect(x + T.px(1), y, w - 2 * T.px(1), hH, 1, s3.r, s3.g, s3.b)
     self:drawRect(x, y + hH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f1, la = T.fontF1, T.accent
     local cols = self:columnX(x, w)

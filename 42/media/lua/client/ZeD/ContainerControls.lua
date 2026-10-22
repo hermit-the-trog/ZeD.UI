@@ -739,7 +739,7 @@ local function drawStrip(content, strip, name, top, h, xOff)
     cc.strips[name] = strip
     if strip.divX then
         local bs = T.borderS
-        content:drawRect(shift + strip.divX, top + T.px(5), T.px(1), h - T.px(10), bs.a, bs.r, bs.g, bs.b)
+        content:drawRect(shift + strip.divX, top + T.px(5), T.px(1), h - 2 * T.px(5), bs.a, bs.r, bs.g, bs.b)
     end
     local isz = T.px(CT.ICON_SZ)
     for _, r in ipairs(strip.rects) do

@@ -354,7 +354,7 @@ local function drawPlantTag(card, x, y, w, d, title, sub)
     card:drawRect(x, y, ps, ps, 1, s2.r, s2.g, s2.b)
     card:drawRect(x, y, ps, ps, 0.16, tint.r, tint.g, tint.b)
     card:drawRectBorder(x, y, ps, ps, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-    if d.tex then card:drawTextureScaledAspect(d.tex, x + T.px(4), y + T.px(4), ps - T.px(8), ps - T.px(8), 1, 1, 1, 1) end
+    if d.tex then card:drawTextureScaledAspect(d.tex, x + T.px(4), y + T.px(4), ps - 2 * T.px(4), ps - 2 * T.px(4), 1, 1, 1, 1) end
     local tx = x + ps + T.px(10)
     local nameY = y + T.px(2)
     UI.big(card, ZeD.CraftingCore.truncText(title, T.fontF4, w - ps - T.px(10)), tx, nameY, 17, T.text)
@@ -407,7 +407,7 @@ local function drawPhaseStrip(card, x, y, w, d)
     if locked then
         local tw = UI.tagW(lockTag(2))
         local s1 = T.surf1
-        card:drawRect(x + w - tw - T.px(6), y + T.px(1), tw + T.px(6), ch - T.px(2), 1, s1.r, s1.g, s1.b)
+        card:drawRect(x + w - tw - T.px(6), y + T.px(1), tw + T.px(6), ch - 2 * T.px(1), 1, s1.r, s1.g, s1.b)
         UI.tag(card, x + w - tw - T.px(2), y + math.floor((ch - T.px(16)) / 2), lockTag(2), T.textDim)
     end
     return ch
@@ -475,7 +475,7 @@ local function drawGarden(card, x, y, w, t, e)
             end
         else
             card:drawRectBorder(cx, cy, cw, ch, bc.a or 1, bc.r, bc.g, bc.b)
-            if cur then card:drawRectBorder(cx + T.px(1), cy + T.px(1), cw - T.px(2), ch - T.px(2), 1, bc.r, bc.g, bc.b) end
+            if cur then card:drawRectBorder(cx + T.px(1), cy + T.px(1), cw - 2 * T.px(1), ch - 2 * T.px(1), 1, bc.r, bc.g, bc.b) end
         end
         local label, dotC = "?", nil
         if plant then

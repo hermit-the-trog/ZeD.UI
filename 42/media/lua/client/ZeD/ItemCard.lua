@@ -1020,7 +1020,7 @@ function ZeD_ItemCard:_calcBodyH()
         if #nutrition > 0 then
             h = h + T.rowH  -- section header
             if self._foldStates.food_nutrition then
-                local thickRule = T.px(2); local thinRule = T.px(1)
+                local thickRule = T.line(2); local thinRule = T.hair   -- as drawFactsRuleThick / Thin draw them
                 h = h + sp.cardBeforeHead + headH + sp.cardAfterHead + thickRule + sp.cardAfterHead
                 for i = 1, #nutrition do
                     h = h + statRowH
@@ -1050,7 +1050,7 @@ function ZeD_ItemCard:_calcBodyH()
         end
     end
 
-    h = h + self.pad + T.px(T.borderW)  -- bottom padding (S124: borderW is design units)
+    h = h + self.pad + T.line(T.borderW)  -- bottom padding (borderW is design units: that many hairlines)
     return h
 end
 
@@ -1573,11 +1573,13 @@ function ZeD_ItemCard:_drawGpFocusOutline()
     local lx = r.x - ax
     local ly = r.y - ay
     local c  = T.accent
-    -- 2px outline inset 1px outside the button  -- S124 TODO scale? drawRectBorder lines stay 1 px, so at root > 1 the two rings separate
-    local ox, oy = lx - T.px(1), ly - T.px(1)
-    local ow, oh = r.w + T.px(2), r.h + T.px(2)
+    -- a two-hairline outline just outside the button: each ring one hairline (T.hair) out from the one inside it,
+    -- the same on every side (T.px(2) is not 2 x T.px(1) at 1.25 / 1.5)
+    local u = T.hair
+    local ox, oy = lx - u, ly - u
+    local ow, oh = r.w + 2 * u, r.h + 2 * u
     self:drawRectBorder(ox, oy, ow, oh, c.a or 1, c.r, c.g, c.b)
-    self:drawRectBorder(ox - T.px(1), oy - T.px(1), ow + T.px(2), oh + T.px(2), (c.a or 1) * 0.5, c.r, c.g, c.b)
+    self:drawRectBorder(ox - u, oy - u, ow + 2 * u, oh + 2 * u, (c.a or 1) * 0.5, c.r, c.g, c.b)
 end
 
 -- Return disclosure-header content-Y positions (section header top edges),

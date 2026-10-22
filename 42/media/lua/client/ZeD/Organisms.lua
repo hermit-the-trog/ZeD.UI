@@ -371,7 +371,7 @@ function ZeD_Window:_drawFooter()
         A.drawGroove(self, T.px(1), fY, w - T.px(1) * 2)
 
         -- Action strip — left-aligned, vertically centered below groove
-        local grooveH = T.px(2)  -- groove = 1px dark + 1px light
+        local grooveH = T.grooveH  -- groove = a dark and a light hairline
         local stripX = sp.sm
         local stripY = fY + grooveH + sp.sm
         self.footerToggleRects = M.drawActionStrip(
@@ -411,8 +411,10 @@ function ZeD_Window:_drawFooter()
         local bg1 = hoverIdx == 1 and T.surf4 or s2
         self:drawRect(btnX, fY, rh, rh, bg1.a, bg1.r, bg1.g, bg1.b)
         self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        -- 5px filled circle centered (S124 scale: design-unit pixel art, row r spans [T.px(r), T.px(r + 1)))
-        local p1, p4, p5 = T.px(1), T.px(4), T.px(5)
+        -- 5px filled circle centered: pixel art on the hairline grid, each of its 5 x 5 cells T.hair square
+        -- (Oct 21 2026: rows on T.px(r) edges came out 2, 5, 2 px tall at 1.75)
+        local p1 = T.hair
+        local p4, p5 = 4 * p1, 5 * p1
         local cx, cy = btnX + math.floor((rh - p5) / 2), fY + math.floor((rh - p5) / 2)
         self:drawRect(cx + p1, cy,      p4 - p1, p1,      1, nextC.r, nextC.g, nextC.b)
         self:drawRect(cx,      cy + p1, p5,      p4 - p1, 1, nextC.r, nextC.g, nextC.b)

@@ -444,7 +444,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     panel:drawRectBorder(px0, pby, pbw, pbh, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
     if d.running then
         local ac = T.accent
-        panel:drawRect(px0 + T.px(1), pby + T.px(1), math.floor((pbw - T.px(2)) * d.progress), pbh - T.px(2), 1, ac.r, ac.g, ac.b)
+        panel:drawRect(px0 + T.px(1), pby + T.px(1), math.floor((pbw - 2 * T.px(1)) * d.progress), pbh - 2 * T.px(1), 1, ac.r, ac.g, ac.b)
     end
     if ptw > 0 then
         A.drawTextRight(panel, ptxt, rx, cy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, T.text)

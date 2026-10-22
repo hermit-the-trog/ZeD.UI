@@ -360,7 +360,7 @@ function ZeD_MMSandbox:drawControl(r, cx, ry, cw, rh, rowId, clip)
                     self._cellDrawn = true
                     if not self:cellValid() then
                         local d = T.danger
-                        self:drawRectBorder(cx - T.px(2), by - T.px(2), bw + T.px(4), bh + T.px(4), 1, d.r, d.g, d.b)
+                        self:drawRectBorder(cx - T.px(2), by - T.px(2), bw + 2 * T.px(2), bh + 2 * T.px(2), 1, d.r, d.g, d.b)
                     end
                 end
                 return
@@ -378,7 +378,7 @@ function ZeD_MMSandbox:drawControl(r, cx, ry, cw, rh, rowId, clip)
                     self._cellDrawn = true
                     if not self:cellValid() then
                         local d = T.danger
-                        self:drawRectBorder(cx - T.px(2), by - T.px(2), bw + T.px(4), bh + T.px(4), 1, d.r, d.g, d.b)
+                        self:drawRectBorder(cx - T.px(2), by - T.px(2), bw + 2 * T.px(2), bh + 2 * T.px(2), 1, d.r, d.g, d.b)
                     end
                 end
                 return
