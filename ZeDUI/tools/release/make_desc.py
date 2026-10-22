@@ -8,8 +8,8 @@ made at twice that (1272 px) and stays sharp on high-density screens:
   * a title plate in place of the [h1], and a section plate in place of each [h2],
     drawn as the gallery cards' System 7 title bar (make_shots.py: same palette, the
     racing stripes, the close box, Chicago for the title)
-  * seven gallery cards, reduced to 1272 x 716, each placed where the text describes
-    it and wrapped in a link to the full card
+  * eight gallery cards, reduced to 1272 x 716, each placed where the text describes it
+    (--links wraps each in a link to the full card; off by default, to stay under 8,000)
 The words are the description's own (workshop_description_draft.bbcode): nothing is
 reworded, only the headings become plates and the pictures go between paragraphs.
 
@@ -24,6 +24,7 @@ Options: --fonts DIR (where ChicagoFLF.ttf and the Fira fonts are; default: the 
 and system font folders, as make_shots.py)   --root DIR (the repo root)
 """
 import argparse
+import json
 import os
 import re
 
@@ -45,18 +46,21 @@ PLATE_H = 104                   # a section plate (52 px as Steam shows it)
 TITLE_H = 230                   # the title plate
 
 # ---- where the pictures go -----------------------------------------------------------
+# Cards are named by their id in shots.json (the file is NN_id.jpg, NN its place in the
+# gallery), so a reordered gallery still finds them. Oct 22: the v4 gallery, the Fossoil story.
 # a card after the paragraph that starts with these words ...
 AFTER_PARA = [
-    ("ZeD-GUI replaces", "01_hero"),
-    ("Open containers show as columns", "02_inventory_compare"),
-    ("[b]Cards.[/b]", "06_item_cards"),
+    ("ZeD-GUI replaces", "hero"),
+    ("Open containers show as columns", "stocking_shelves"),
+    ("[b]Cards.[/b]", "item_cards"),
 ]
 # ... or at the end of a section, before the next heading
 END_OF_SECTION = {
-    "HUD": "14_belt_compare",
-    "Maps": "12_maps",
-    "Menus": "19_desk",
-    "Options": "18_themes",
+    "HUD": "smoke_break",
+    "Maps": "the_route",
+    "Menus": "desk",
+    "Controller": "customers",
+    "Options": "themes",
 }
 
 
@@ -137,6 +141,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".")
     ap.add_argument("--fonts", default=None)
+    ap.add_argument("--links", action="store_true",
+                    help="wrap each card in a link to the full card (costs about 70 characters a card once hosted)")
     a = ap.parse_args()
     ws = os.path.join(a.root, "ZeDUI", "workshop")
     out = os.path.join(ws, "desc")
@@ -148,6 +154,8 @@ def main():
     f_sub = find_font(fd, "FiraMono-Bold.ttf", 30)
 
     src = open(os.path.join(ws, "workshop_description_draft.bbcode"), encoding="utf-8").read().replace("\r\n", "\n")
+    shots = json.load(open(os.path.join(ws, "shots", "shots.json"), encoding="utf-8"))["shots"]
+    card_file = {s["id"]: "%02d_%s.jpg" % (i + 1, s["id"]) for i, s in enumerate(shots)}
     lines = src.split("\n")
     made = []
 
@@ -156,11 +164,13 @@ def main():
         return "[url=IMG_BASE/%s]%s[/url]" % (link, t) if link else t
 
     def put_card(key):
-        name = key + ".jpg"
-        card(os.path.join(ws, "shots", "out", key + ".jpg"), os.path.join(out, name))
+        if key not in card_file:
+            raise SystemExit("no shot %r in shots.json" % key)
+        name = key + ".jpg"        # (the hosted name keeps no gallery number: a reorder renames nothing)
+        card(os.path.join(ws, "shots", "out", card_file[key]), os.path.join(out, name))
         made.append(name)
-        # the link opens the gallery card at full size (also hosted, under full/)
-        return img(name, "full/" + key + ".jpg")
+        # with --links, the card opens the gallery card at full size (also hosted, under full/)
+        return img(name, "full/" + card_file[key]) if a.links else img(name)
 
     res = []
     section = None

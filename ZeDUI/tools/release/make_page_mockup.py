@@ -184,8 +184,8 @@ h2.sec { font-family:var(--cond); font-weight:600; font-size:18px; color:var(--h
 <div class="wrap">
 <div class="banner">ZeD-GUI · Steam Workshop · the item page, laid out · v3</div>
 <h1 class="t">Workshop page, with the real gallery</h1>
-<p class="lede">The page as a subscriber will see it, in an approximation of Steam's frame. <b>Gallery:</b> the 19 cards Code built, in the
-order of shots.json. <b>Description:</b> the current text with a title plate, a plate for each section and seven of the cards placed where the
+<p class="lede">The page as a subscriber will see it, in an approximation of Steam's frame. <b>Gallery:</b> the cards Code built, in the
+order of shots.json (v4: the Fossoil story). <b>Description:</b> the current text with a title plate, a plate for each section and eight of the cards placed where the
 text describes them (Steam shows description pictures at most 636 px wide; they are made at twice that). Switch below to the text-only draft or
 the tester build's text. Click any picture to see it full size.</p>
 <div class="switch" id="sw">
@@ -245,7 +245,8 @@ the tester build's text. Click any picture to see it full size.</p>
       <code>workshop_description_layout.bbcode</code> with that address. The repo's raw files work if the repo is public; Steam artwork
       uploads work too, but each picture then has its own long address.</li>
     <li><b>Length.</b> Steam allows 8,000 characters. The count under the description estimates it with a typical address in place of
-      <code>IMG_BASE</code>. If the real addresses are long, drop the links around the seven cards first: they only open the full card.</li>
+      <code>IMG_BASE</code>. The cards carry no links by default; <code>make_desc.py --links</code> adds a link to each full card if the
+      addresses are short enough to afford them.</li>
     <li><b>Rebuild.</b> After the gallery or the text changes: <code>py -I ZeDUI/tools/release/make_desc.py</code>, then
       <code>py -I ZeDUI/tools/release/make_page_mockup.py</code>.</li>
   </ol>
