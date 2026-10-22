@@ -1992,7 +1992,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     panel:drawRect(iconX, iconY, iconSz, iconSz, s3.a, s3.r, s3.g, s3.b)
     panel:drawRectBorder(iconX, iconY, iconSz, iconSz, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
     if entry.iconTex then
-        panel:drawTextureScaledAspect(entry.iconTex, iconX + T.px(2), iconY + T.px(2), iconSz - T.px(4), iconSz - T.px(4), 1, 1, 1, 1)
+        panel:drawTextureScaledAspect(entry.iconTex, iconX + T.px(2), iconY + T.px(2), iconSz - 2 * T.px(2), iconSz - 2 * T.px(2), 1, 1, 1, 1)
     end
 
     -- Name (F2 13px, accent)

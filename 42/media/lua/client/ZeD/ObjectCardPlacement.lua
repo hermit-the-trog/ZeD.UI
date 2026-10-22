@@ -169,7 +169,7 @@ local function axisRow(card, x, y, w, t, section, ax)
     local thW, thH = T.px(12), T.px(18)
     local thX = sx0 + math.floor(sw * math.max(0, math.min(1, frac))) - math.floor(thW / 2)
     local thY = y + math.floor((h - thH) / 2)
-    if focused then card:drawRect(thX - T.px(3), thY - T.px(3), thW + T.px(6), thH + T.px(6), 0.55, col(ac)) end
+    if focused then card:drawRect(thX - T.px(3), thY - T.px(3), thW + 2 * T.px(3), thH + 2 * T.px(3), 0.55, col(ac)) end
     local tb = focused and T.accentBright or T.surf3
     card:drawRect(thX, thY, thW, thH, tb.a or 1, col(tb))
     card:drawRect(thX, thY, thW, T.px(1), T.surf4.a or 1, col(T.surf4))

@@ -72,6 +72,46 @@ function S.refresh() S._root = S.compute(); return S._root end
 -- Design units -> screen pixels (rounded).
 function S.px(v) return math.floor(v * S.root() + 0.5) end
 
+-- ---------------------------------------------------------------------------
+-- Even at every step (director, Oct 21 2026: keep the in-between scales and make
+-- the UI crisp at any of them). Text and layout keep the exact scale; three
+-- things snap to whole pixels:
+--   * pixel art draws at a whole zoom, the nearest whole number to the scale
+--     (1.75 -> 2, 1.25 -> 1, exactly .5 rounds up), and the layout around a
+--     prop uses the size it is drawn at;
+--   * hairlines: a 1-unit line is the same whole number of pixels everywhere
+--     (S.hair), and an n-unit line is n of them (S.line), never px(n) (at 1.5,
+--     px(2) = 3 would sit beside 2 px one-unit lines);
+--   * rectangles: snap the edges, then take the size from them (S.snapRect),
+--     so neighbours share edges and repeated rows never drift.
+-- At exactly 1x and 2x every helper returns what T.px / S.px did.
+-- ---------------------------------------------------------------------------
+-- The whole zoom pixel art draws at for scale s (default: the root scale), never below 1.
+function S.artZoom(s)
+    local k = math.floor((s or S.root()) + 0.5 + 1e-6)
+    if k < 1 then k = 1 end
+    return k
+end
+-- One design unit of line, in whole screen px (>= 1).
+function S.hair(s)
+    local v = math.floor((s or S.root()) + 0.5)
+    if v < 1 then v = 1 end
+    return v
+end
+-- A line `units` design units thick (default 1): a whole multiple of the hairline, >= 1 px.
+function S.line(units, s)
+    local v = math.floor((units or 1) * S.hair(s) + 0.5)
+    if v < 1 then v = 1 end
+    return v
+end
+-- A rectangle in design units -> screen px with snapped edges: x0 = px(x), x1 = px(x + w),
+-- size = x1 - x0 (and the same down). Returns x, y, w, h.
+function S.snapRect(x, y, w, h, s)
+    s = s or S.root()
+    local x0, y0 = math.floor(x * s + 0.5), math.floor(y * s + 0.5)
+    return x0, y0, math.floor((x + w) * s + 0.5) - x0, math.floor((y + h) * s + 0.5) - y0
+end
+
 if Events then
     if Events.OnTick then
         Events.OnTick.Add(function()

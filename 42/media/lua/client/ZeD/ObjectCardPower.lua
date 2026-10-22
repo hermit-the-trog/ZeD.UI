@@ -250,7 +250,7 @@ local function drawPlate(card, x, y, w, t)
     local des = plateFor(d)
     if not des then return 0 end
     local Sc = ZeD.Scale
-    local k = P.k((Sc and Sc.root and Sc.root()) or 1)
+    local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w)   -- whole zoom, inside the card
     local px0 = x + PL.centre(w, des.w, k)
     local cv = P.canvas(card, px0, y, k)
     local st = plateState(d)

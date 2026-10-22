@@ -201,8 +201,8 @@ function ZeD_MMCredits:prerender()
     for i = 0, steps - 1 do
         local a = 1 - (i / steps)
         local sh = math.ceil(fh / steps)
-        self:drawRect(bx + T.px(1), vy + i * sh, bw - T.px(2), sh, a, b.r, b.g, b.b)
-        self:drawRect(bx + T.px(1), vy + vh - (i + 1) * sh, bw - T.px(2), sh, a, b.r, b.g, b.b)
+        self:drawRect(bx + T.px(1), vy + i * sh, bw - 2 * T.px(1), sh, a, b.r, b.g, b.b)
+        self:drawRect(bx + T.px(1), vy + vh - (i + 1) * sh, bw - 2 * T.px(1), sh, a, b.r, b.g, b.b)
     end
     self:clearStencilRect()
 

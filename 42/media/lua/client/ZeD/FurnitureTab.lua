@@ -355,7 +355,7 @@ local function drawTarget(panel, s, x, y, w, c, mode, info)
         local s1 = T.surf1
         panel:drawRect(x, y, pw, ph, 1, col(s1))
         local tex = c.tex and getTexture(c.tex)
-        if tex then panel:drawTextureScaledAspect(tex, x + T.px(4), y + T.px(4), pw - T.px(8), ph - T.px(8), 1, 1, 1, 1) end
+        if tex then panel:drawTextureScaledAspect(tex, x + T.px(4), y + T.px(4), pw - 2 * T.px(4), ph - 2 * T.px(4), 1, 1, 1, 1) end
         local bc = ok and T.borderS or T.danger
         panel:drawRectBorder(x, y, pw, ph, bc.a or 1, col(bc))
     else

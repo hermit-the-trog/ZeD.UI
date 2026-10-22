@@ -1,5 +1,5 @@
 {
-  "note": "The Workshop gallery, in story order, from the ws_*.png captures (3840 x 2160, Oct 20 2026). Boxes and anchors are in source pixels, read off the captures. Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (add --debug to see anchors and keep-clear boxes).",
+  "note": "The Workshop gallery, in story order, from the ws_*.png captures (3840 x 2160, Oct 20 2026). Boxes and anchors are in source pixels, read off the captures. Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (add --debug to see anchors and keep-clear boxes). Oct 21 2026: the hero cropped closer; the desk (ws_35, main menu at 4K), before and after (ws_33/34) and the three themes (ws_30-32) added, from ZeDUI/tools/qa/zedqa_gallery_more.lua and zedqa_desk_ws.lua.",
   "screens": "C:/Users/danie/Zomboid/Screenshots/workshop_src",
   "out": "out",
   "patches": [
@@ -23,12 +23,6 @@
           0,
           2835,
           845
-        ],
-        [
-          1480,
-          2020,
-          2345,
-          2130
         ]
       ],
       "balloons": [
@@ -63,14 +57,114 @@
             1140
           ],
           "side": "right"
+        }
+      ],
+      "box": [
+        800,
+        0,
+        3040,
+        1260
+      ]
+    },
+    {
+      "id": "desk",
+      "kind": "ingame",
+      "src": "ws_35_desk.png",
+      "avoid": [
+        [
+          1260,
+          330,
+          2580,
+          1264
+        ]
+      ],
+      "balloons": [
+        {
+          "head": "The desk",
+          "text": "The main menu is a 1993 computer. Every menu screen opens as a window on its monitor",
+          "anchor": [
+            1266,
+            262
+          ],
+          "side": "top"
         },
         {
-          "text": "Your hands, hotbar and watch ride on a belt",
+          "head": "Continue",
+          "text": "Your last save, one click away",
           "anchor": [
-            1488,
-            2075
+            1682,
+            644
           ],
           "side": "left"
+        },
+        {
+          "text": "Mods: load order, clashes between mods, and what needs a restart",
+          "anchor": [
+            1534,
+            1188
+          ],
+          "side": "bottom"
+        },
+        {
+          "text": "The case's power button quits",
+          "anchor": [
+            1040,
+            1976
+          ],
+          "side": "top"
+        }
+      ]
+    },
+    {
+      "id": "before_after",
+      "kind": "feature",
+      "src": "ws_33_compare_zed.png",
+      "title": "Before and after",
+      "caption": "The same crate and the same pockets on a 4K screen: the game's own windows, then ZeD-GUI's.",
+      "layout": {
+        "fill": 0.96,
+        "gap": 40
+      },
+      "crops": [
+        {
+          "src": "ws_34_compare_vanilla.png",
+          "box": [
+            760,
+            0,
+            3040,
+            1282
+          ],
+          "label": "VANILLA"
+        },
+        {
+          "src": "ws_33_compare_zed.png",
+          "box": [
+            760,
+            0,
+            3040,
+            1282
+          ],
+          "label": "ZeD-GUI"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "The game's own lists, at 4K",
+          "anchor": [
+            1200,
+            180
+          ],
+          "crop": 0,
+          "side": "bottom"
+        },
+        {
+          "text": "Grouped by kind, sized for your screen",
+          "anchor": [
+            2000,
+            260
+          ],
+          "crop": 1,
+          "side": "bottom"
         }
       ]
     },
@@ -1004,6 +1098,69 @@
       ]
     },
     {
+      "id": "themes",
+      "kind": "feature",
+      "src": "ws_30_theme_dark.png",
+      "title": "Three themes",
+      "caption": "Dark, light or high contrast, with nine accent colors. Each window can take its own accent.",
+      "layout": {
+        "fill": 0.96,
+        "gap": 36
+      },
+      "crops": [
+        {
+          "src": "ws_30_theme_dark.png",
+          "box": [
+            1500,
+            0,
+            2520,
+            860
+          ],
+          "label": "DARK"
+        },
+        {
+          "src": "ws_31_theme_light.png",
+          "box": [
+            1500,
+            0,
+            2520,
+            860
+          ],
+          "label": "LIGHT"
+        },
+        {
+          "src": "ws_32_theme_hicon.png",
+          "box": [
+            1500,
+            0,
+            2520,
+            860
+          ],
+          "label": "HIGH CONTRAST"
+        }
+      ],
+      "balloons": [
+        {
+          "text": "The accent marks what's picked: tabs, toggles, the open container",
+          "anchor": [
+            2190,
+            84
+          ],
+          "crop": 0,
+          "side": "top"
+        },
+        {
+          "text": "High contrast: stronger edges and brighter text",
+          "anchor": [
+            2000,
+            300
+          ],
+          "crop": 2,
+          "side": "bottom"
+        }
+      ]
+    },
+    {
       "id": "settings",
       "kind": "feature",
       "src": "ws_22_options_zed_settings.png",
@@ -1024,8 +1181,8 @@
       ],
       "balloons": [
         {
-          "head": "Your colours",
-          "text": "Light, dark or high contrast, with nine accent colours",
+          "head": "Your colors",
+          "text": "Light, dark or high contrast, with nine accent colors",
           "anchor": [
             2621,
             555

@@ -56,11 +56,20 @@ end
 
 function M.has(plate) return M.SPEC[plate] ~= nil and tex(plate) ~= nil end
 
--- the whole multiple the texels draw at, and the art's offset in a px(44) x px(46) box
-local function fit()
+-- the whole multiple the texels draw at: T.art, the nearest whole number to the scale (Oct 21 2026; it
+-- was the scale rounded down, so 1.75 drew the 2x watch's art at 1x in a 1.75x box: "too mini")
+function M.zoom()
     local T = ZeD.T
-    local ck = math.max(1, math.floor(T.scale or 1))
-    return ck, math.floor((T.px(M.W) - M.W * ck) / 2), math.floor((T.px(M.H) - M.H * ck) / 2)
+    return (T and T.art) or 1
+end
+-- the drawn size in screen px; ZeD_Belt makes the watch box exactly this
+function M.size()
+    local ck = M.zoom()
+    return M.W * ck, M.H * ck
+end
+-- the multiple and the art's offset in its box (the box is the art's own size)
+local function fit()
+    return M.zoom(), 0, 0
 end
 
 -- ---------------------------------------------------------------------------

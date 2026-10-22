@@ -1140,7 +1140,7 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
 
         -- Icon placeholder (small accent-colored dot)
         local iconY = ry + math.floor((h - T.px(FINDS_ICON_SZ)) / 2)
-        A.drawStatusDot(panel, colX + T.px(2), iconY + T.px(2), T.accent, T.px(FINDS_ICON_SZ) - T.px(4))
+        A.drawStatusDot(panel, colX + T.px(2), iconY + T.px(2), T.accent, T.px(FINDS_ICON_SZ) - 2 * T.px(2))
         colX = colX + T.px(FINDS_ICON_SZ) + T.px(FINDS_ICON_GAP)
 
         -- Distance + bearing

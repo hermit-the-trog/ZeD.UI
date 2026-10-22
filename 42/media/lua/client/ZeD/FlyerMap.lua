@@ -81,9 +81,9 @@ end
 -- ---------------------------------------------------------------------------
 -- The pins on a map panel (mp: ZeD_WorldMap; its mapAPI and playerObj)
 -- ---------------------------------------------------------------------------
-local function fit()
+local function fit()   -- the pins' whole zoom: the nearest whole number to the scale (T.art; Oct 21 2026)
     local T = ZeD.T
-    return math.max(1, math.floor(T.scale or 1))
+    return T.art or math.max(1, math.floor((T.scale or 1) + 0.5))
 end
 
 -- this frame's pins: { id, j, k, x, y, w, h (panel px), cx, cy (world), done }

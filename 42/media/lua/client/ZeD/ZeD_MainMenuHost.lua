@@ -183,7 +183,7 @@ function ZeD_MMHost:prerender()
         local hid = "host:" .. id
         local sf = (MM.ctx.hot == hid) and T.surf3 or T.surf2
         local bs, tc = T.borderS, T.text
-        if gp and self.focusId == id then self:drawRect(vx - T.px(4), yy - T.px(4), boxW + T.px(8), bh2 + T.px(8), 0.55, ac.r, ac.g, ac.b) end
+        if gp and self.focusId == id then self:drawRect(vx - T.px(4), yy - T.px(4), boxW + 2 * T.px(4), bh2 + 2 * T.px(4), 0.55, ac.r, ac.g, ac.b) end
         self:drawRect(vx, yy, boxW, bh2, 1, sf.r, sf.g, sf.b)
         self:drawRectBorder(vx, yy, boxW, bh2, bs.a, bs.r, bs.g, bs.b)
         self:drawText(ZeD.Atoms.truncateText(comboText(combo, combo.selected), f2, boxW - T.px(28)), vx + T.px(8), yy + math.floor((bh2 - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)

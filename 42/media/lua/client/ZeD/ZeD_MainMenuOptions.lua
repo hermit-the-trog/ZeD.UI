@@ -802,7 +802,7 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     local fH = T.px(FIND_H)
-    self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
+    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
     local findLabel = ZeD.tr("UI_ZeD_Options_Find")
@@ -819,8 +819,8 @@ function ZeD_MMOptions:drawPages(x, y, w, h, pages, finding)
     for i, p in ipairs(pages) do
         local isSel = (i == self.pageIdx) and not finding
         local hid = kind .. ":page:" .. i
-        if isSel then self:drawRect(x + T.px(1), ry, w - T.px(2), rh, 0.22, ac.r, ac.g, ac.b)
-        elseif self:pctx().hot == hid then self:drawRect(x + T.px(1), ry, w - T.px(2), rh, 0.10, ac.r, ac.g, ac.b) end
+        if isSel then self:drawRect(x + T.px(1), ry, w - 2 * T.px(1), rh, 0.22, ac.r, ac.g, ac.b)
+        elseif self:pctx().hot == hid then self:drawRect(x + T.px(1), ry, w - 2 * T.px(1), rh, 0.10, ac.r, ac.g, ac.b) end
         local tc = isSel and T.textHead or T.text
         self:drawText(ZeD.Atoms.truncateText(p.title, f2, w - T.px(20)), x + T.px(10), ry + math.floor((rh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + ry, w = w, h = rh, fn = function()
@@ -934,7 +934,7 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
             if not on then
                 -- the System 7 lit edge on the buttons not picked
                 local hi = T.chromeHi or T.surf4
-                self:drawRect(x0 + T.px(1), by + T.px(1), bw - T.px(2), T.px(1), hi.a or 1, hi.r, hi.g, hi.b)
+                self:drawRect(x0 + T.px(1), by + T.px(1), bw - 2 * T.px(1), T.px(1), hi.a or 1, hi.r, hi.g, hi.b)
             end
             if i > 1 then self:drawRect(x0, by, T.px(1), bh, bs.a, bs.r, bs.g, bs.b) end
             local tc = on and T.textOnAccent or T.text
@@ -952,8 +952,8 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
         local th = T.textHead
         local x0 = cx
         local function frame(x, y, w, h)
-            self:drawRectBorder(x - T.px(3), y - T.px(3), w + T.px(6), h + T.px(6), th.a or 1, th.r, th.g, th.b)
-            self:drawRectBorder(x - T.px(2), y - T.px(2), w + T.px(4), h + T.px(4), th.a or 1, th.r, th.g, th.b)
+            self:drawRectBorder(x - T.px(3), y - T.px(3), w + 2 * T.px(3), h + 2 * T.px(3), th.a or 1, th.r, th.g, th.b)
+            self:drawRectBorder(x - T.px(2), y - T.px(2), w + 2 * T.px(2), h + 2 * T.px(2), th.a or 1, th.r, th.g, th.b)
         end
         for i, key in ipairs(keys) do
             local col = accentColor(key)
@@ -961,7 +961,7 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
             if col then self:drawRect(x0, sy, sz, sz, dim, col.r, col.g, col.b) end
             self:drawRectBorder(x0, sy, sz, sz, 0.45, 0, 0, 0)
             if i == sel then frame(x0, sy, sz, sz)
-            elseif isHot(id) then self:drawRectBorder(x0 - T.px(2), sy - T.px(2), sz + T.px(4), sz + T.px(4), 0.6, th.r, th.g, th.b) end
+            elseif isHot(id) then self:drawRectBorder(x0 - T.px(2), sy - T.px(2), sz + 2 * T.px(2), sz + 2 * T.px(2), 0.6, th.r, th.g, th.b) end
             hit(id, x0, sy, sz, sz, pick(i), { disabled = c.disabled })
             x0 = x0 + sz + gap
         end
@@ -974,11 +974,11 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
             local id = rowId .. ":same"
             local ac, s1 = T.accent, T.surf1
             self:drawRect(x0, sy, sz, sz, dim, ac.r, ac.g, ac.b)
-            self:drawRect(x0 + T.px(5), sy + T.px(5), sz - T.px(10), sz - T.px(10), 1, s1.r, s1.g, s1.b)
-            self:drawRect(x0 + T.px(8), sy + T.px(8), sz - T.px(16), sz - T.px(16), dim, ac.r, ac.g, ac.b)
+            self:drawRect(x0 + T.px(5), sy + T.px(5), sz - 2 * T.px(5), sz - 2 * T.px(5), 1, s1.r, s1.g, s1.b)
+            self:drawRect(x0 + T.px(8), sy + T.px(8), sz - 2 * T.px(8), sz - 2 * T.px(8), dim, ac.r, ac.g, ac.b)
             self:drawRectBorder(x0, sy, sz, sz, 0.45, 0, 0, 0)
             if sel == follow then frame(x0, sy, sz, sz)
-            elseif isHot(id) then self:drawRectBorder(x0 - T.px(2), sy - T.px(2), sz + T.px(4), sz + T.px(4), 0.6, th.r, th.g, th.b) end
+            elseif isHot(id) then self:drawRectBorder(x0 - T.px(2), sy - T.px(2), sz + 2 * T.px(2), sz + 2 * T.px(2), 0.6, th.r, th.g, th.b) end
             hit(id, x0, sy, sz, sz, pick(follow), { disabled = c.disabled })
             x0 = x0 + sz
         elseif n >= follow then
@@ -1070,7 +1070,7 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
         local kw = T.px(SW_KNOB)
         local kx = on and (cx + tw - T.px(2) - kw) or (cx + T.px(2))
         local kc = on and T.textOnAccent or T.text
-        self:drawRect(kx, ty + T.px(2), kw, th - T.px(4), 1, kc.r, kc.g, kc.b)
+        self:drawRect(kx, ty + T.px(2), kw, th - 2 * T.px(2), 1, kc.r, kc.g, kc.b)
         local st = ZeD.upper(getText(on and "UI_On" or "UI_Off"))
         local tc = (on and r.zedDanger) and T.danger or T.text
         self:drawText(st, cx + tw + T.px(10), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
@@ -1188,7 +1188,7 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local b = c.backgroundColor or { r = 1, g = 1, b = 1 }
         self:drawRect(cx, sy, sw, sh, 1, b.r or 1, b.g or 1, b.b or 1)
         self:drawRectBorder(cx, sy, sw, sh, bs.a, bs.r, bs.g, bs.b)
-        if hot == kind .. ":" .. rowId .. ":sw" then self:drawRectBorder(cx - T.px(2), sy - T.px(2), sw + T.px(4), sh + T.px(4), 1, T.accent.r, T.accent.g, T.accent.b) end
+        if hot == kind .. ":" .. rowId .. ":sw" then self:drawRectBorder(cx - T.px(2), sy - T.px(2), sw + 2 * T.px(2), sh + 2 * T.px(2), 1, T.accent.r, T.accent.g, T.accent.b) end
         hit(rowId .. ":sw", cx, sy, sw, sh, function() self:openPalette(r, { x = ax + cx, y = ay + sy, w = sw, h = sh }) end)
     elseif r.kind == "key" then
         local text = keyLabel(r.entry)
@@ -1359,7 +1359,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                     if r.kind == "combo" then dw = math.min(T.px(COMBO_W), cw)
                     elseif r.kind == "volume" or r.kind == "slider" then dw = math.min(T.px(COMBO_W) + T.px(50), cw) end
                     local s1 = T.surf1
-                    self:drawRect(cx0 - T.px(2), ry + T.px(2), dw + T.px(4), crh - T.px(4), 0.6, s1.r, s1.g, s1.b)
+                    self:drawRect(cx0 - T.px(2), ry + T.px(2), dw + 2 * T.px(2), crh - 2 * T.px(2), 0.6, s1.r, s1.g, s1.b)
                 end
             end
         end
@@ -1384,8 +1384,8 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     if helpH == 0 then return end
     local hy = y + h - helpH
     local s2 = T.surf2
-    self:drawRect(x + T.px(1), hy, w - T.px(2), helpH - T.px(1), 1, s2.r, s2.g, s2.b)
-    self:drawRect(x + T.px(1), hy, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
+    self:drawRect(x + T.px(1), hy, w - 2 * T.px(1), helpH - T.px(1), 1, s2.r, s2.g, s2.b)
+    self:drawRect(x + T.px(1), hy, w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
     local hr = self._cellRow or focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)   -- (_cellRow: a row edited in place)
     local htext = hr and help(hr) or nil
     if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
@@ -1396,7 +1396,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
         dcol = math.min(T.px(240), MM.textW(f2, dt) + T.px(26))
         local dx = x + w - T.px(1) - dcol
         local bd, d = T.border, T.textDim
-        self:drawRect(dx, hy + T.px(7), T.px(1), helpH - T.px(14), bd.a or 1, bd.r, bd.g, bd.b)
+        self:drawRect(dx, hy + T.px(7), T.px(1), helpH - 2 * T.px(7), bd.a or 1, bd.r, bd.g, bd.b)
         self:drawText(ZeD.Atoms.truncateText(dt, f2, dcol - T.px(24)), dx + T.px(12), hy + T.px(8), d.r, d.g, d.b, d.a or 1, f2)
     end
     if htext then
@@ -1469,7 +1469,7 @@ function ZeD_MMOptions:render()
         local col = paletteColor(code)
         local cx = px + T.px(4) + ((i - 1) % cols) * cell
         local cy = py + T.px(4) + math.floor((i - 1) / cols) * cell
-        self:drawRect(cx + T.px(1), cy + T.px(1), cell - T.px(2), cell - T.px(2), 1, col.r, col.g, col.b)
+        self:drawRect(cx + T.px(1), cy + T.px(1), cell - 2 * T.px(1), cell - 2 * T.px(1), 1, col.r, col.g, col.b)
         local isCur = math.abs((cur.r or -1) - col.r) < 0.02 and math.abs((cur.g or -1) - col.g) < 0.02 and math.abs((cur.b or -1) - col.b) < 0.02
         if isCur or self:pctx().hot == self.kind .. ":pal:" .. i then
             self:drawRectBorder(cx, cy, cell, cell, 1, T.text.r, T.text.g, T.text.b)

@@ -413,7 +413,7 @@ function ZeD_Watch:prerender()
     end
 
     local PLT = ZeD.Plate
-    local k = ZeD.Px.k(self:_scale())            -- whole art pixels only (k = the root scale rounded down)
+    local k = ZeD.Px.k(self:_scale())            -- whole art pixels only (k = the root scale to the nearest whole number)
     local speed = _speed()
     local item = _wornWatch(player)
     if item ~= self._item then self._setOpen = false; self._litUntil = 0 end   -- a different watch: nothing carries over
@@ -514,6 +514,7 @@ function ZeD_Watch:_placePopped(w, h)
     end
     local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
     x = math.max(0, math.min(x, sw - w)); y = math.max(0, math.min(y, sh - h))
+    x, y = math.floor(x + 0.5), math.floor(y + 0.5)   -- a whole-pixel origin (a saved spot x a fractional scale lands between pixels)
     if self:getX() ~= x then self:setX(x) end
     if self:getY() ~= y then self:setY(y) end
 end

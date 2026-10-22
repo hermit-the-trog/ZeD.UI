@@ -542,28 +542,34 @@ function ZeD_BeltHUD:_layout(slots)
     local k = B.closureAfter(slots)       -- the buckle / knot / clip goes between Belt L and Belt R
     local boxes = {}
     local hand, box = px(HAND), px(BOX)
-    local h = hand
     local x = 0
     -- the worn watch (the "Watch" option): right wrist left of the main hand,
     -- left wrist right of the off hand (the main hand is the game's right hand)
     local wItem, wPlate, wWrist = nil, nil, nil
     if ZeD.Watch and ZeD.Watch.beltWatch then wItem, wPlate, wWrist = ZeD.Watch.beltWatch(self:player()) end
-    local mw, mh = px(ZeD.WatchMini and ZeD.WatchMini.W or 44), px(ZeD.WatchMini and ZeD.WatchMini.H or 46)
+    -- the box is the mini watch as drawn: its art at the whole zoom T.art (Oct 21 2026); where that is
+    -- taller than the hands (1.5: 92 px art, 78 px hands) the belt grows to it and the rest centre on it
+    local mw, mh = 44 * T.art, 46 * T.art
+    if ZeD.WatchMini and ZeD.WatchMini.size then mw, mh = ZeD.WatchMini.size() end
+    local h = (wItem and mh > hand) and mh or hand
+    local handY = math.floor((h - hand) / 2)
     local watchBox = wItem and { kind = "watch", item = wItem, plate = wPlate, wrist = wWrist, y = math.floor((h - mh) / 2), w = mw, h = mh } or nil
     if watchBox and wWrist == "right" then
         watchBox.x = x
         boxes[#boxes + 1] = watchBox
         x = x + mw + px(WRIST)
     end
-    boxes[#boxes + 1] = { kind = "hand", which = "p", x = x, y = 0, w = hand, h = hand }
+    boxes[#boxes + 1] = { kind = "hand", which = "p", x = x, y = handY, w = hand, h = hand }
     x = x + hand + px(END_GAP)
     local strapX = x
     x = x + px(PAD)
     local by = math.floor((h - box) / 2)
+    -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art; Oct 21 2026)
+    local buckW, buckH = BUCKLE_W * T.art, BUCKLE_H * T.art
     for i = 1, n do
         if i == k + 1 then
-            if k == 0 then x = x + px(BUCKLE_W) + px(SIDE_GAP)        -- the closure opens the strap
-            else x = x + px(SIDE_GAP) + px(BUCKLE_W) + px(SIDE_GAP) - px(GAP) end
+            if k == 0 then x = x + buckW + px(SIDE_GAP)        -- the closure opens the strap
+            else x = x + px(SIDE_GAP) + buckW + px(SIDE_GAP) - px(GAP) end
         end
         boxes[#boxes + 1] = { kind = "slot", i = i, s = slots[i], x = x, y = by, w = box, h = box }
         x = x + box + px(GAP)
@@ -573,7 +579,7 @@ function ZeD_BeltHUD:_layout(slots)
     if k == n then
         -- every slot on the left (one or none): the buckle closes the strap
         buckleX = x + px(SIDE_GAP)
-        x = buckleX + px(BUCKLE_W)
+        x = buckleX + buckW
     elseif k == 0 then
         buckleX = strapX + px(PAD)
     else
@@ -582,7 +588,7 @@ function ZeD_BeltHUD:_layout(slots)
     x = x + px(PAD)
     local strapW = x - strapX
     x = x + px(END_GAP)
-    boxes[#boxes + 1] = { kind = "hand", which = "s", x = x, y = 0, w = hand, h = hand }
+    boxes[#boxes + 1] = { kind = "hand", which = "s", x = x, y = handY, w = hand, h = hand }
     x = x + hand
     if watchBox and wWrist ~= "right" then
         x = x + px(WRIST)
@@ -591,7 +597,8 @@ function ZeD_BeltHUD:_layout(slots)
         x = x + mw
     end
     self._boxes = boxes
-    self._strap = { x = strapX, y = math.floor((h - px(STRAP_H)) / 2), w = strapW, h = px(STRAP_H) }
+    local strapH = STRAP_H * T.art   -- the strap art's height at its whole zoom (STRAP_TEX_H texels)
+    self._strap = { x = strapX, y = math.floor((h - strapH) / 2), w = strapW, h = strapH }
     -- each slot's material, the waist belt's under the buckle: providers looked up once a second, and at once when
     -- the slots change (clothes put on or off)
     local now = getTimestampMs and getTimestampMs() or 0
@@ -613,17 +620,17 @@ function ZeD_BeltHUD:_layout(slots)
     end
     local waist = (prov.SmallBeltLeft or prov.SmallBeltRight) and
         B.materialFor(prov.SmallBeltLeft and "SmallBeltLeft" or "SmallBeltRight", prov) or "leather"
-    self._buckle = { x = buckleX, y = math.floor((h - px(BUCKLE_H)) / 2), w = px(BUCKLE_W), h = px(BUCKLE_H) }
-    -- the closure's art: 58 x 40 at the whole multiple ck, centred in the buckle's place
-    local ck = math.max(1, math.floor(T.scale or 1))
-    local cx = buckleX + math.floor((px(BUCKLE_W) - BUCKLE_W * ck) / 2)
+    self._buckle = { x = buckleX, y = math.floor((h - buckH) / 2), w = buckW, h = buckH }
+    -- the closure's art: 58 x 40 at the whole multiple ck (T.art, the nearest whole zoom), filling the buckle's place
+    local ck = T.art
+    local cx = buckleX + math.floor((buckW - BUCKLE_W * ck) / 2)
     local kind = B.CLOSURE[waist]
     local hole = nil
     if kind == "knot" and closureTexture("knot") then hole = { cx + B.KNOT_CUT[1] * ck, cx + B.KNOT_CUT[2] * ck } end
     self._runs = B.strapRuns(strapX, strapW, slotBoxes, mats, waist, k, px(GAP), hole)
     self._waist = waist
     local chh = (kind and B.CLOSURE_H[kind]) or BUCKLE_H
-    self._closure = { kind = kind, x = cx, y = self._buckle.y + math.floor((px(BUCKLE_H) - chh * ck) / 2), k = ck, h = chh }
+    self._closure = { kind = kind, x = cx, y = self._buckle.y + math.floor((buckH - chh * ck) / 2), k = ck, h = chh }
     return x, h
 end
 
@@ -720,7 +727,7 @@ function ZeD_BeltHUD:_drawStrap()
     if strapTexture("mid") then
         -- the pixel-art straps: whole multiple k, centred on the strap's row; each run its own piece (its two
         -- cut ends and its middle repeated and clipped)
-        local k = math.max(1, math.floor(T.scale or 1))
+        local k = T.art   -- the nearest whole zoom (Oct 21 2026; was the scale rounded down)
         local th, ew, tw = STRAP_TEX_H * k, STRAP_END * k, STRAP_TILE * k
         local y = s.y + math.floor((s.h - th) / 2)
         for _, r in ipairs(runs) do
@@ -768,12 +775,12 @@ function ZeD_BeltHUD:_drawBuckle()
         if tex then self:drawTextureScaled(tex, c.x, c.y, BUCKLE_W * c.k, (c.h or BUCKLE_H) * c.k, 1, 1, 1, 1) end
         return
     end
-    -- the profession's buckle, the largest whole multiple of 58 x 40 that fits, centred
+    -- the profession's buckle, 58 x 40 at the whole zoom T.art (its place is that size), centred
     local p = self:player()
     local id = p and professionId(p)
     local tex = (id and buckleTexture(id)) or buckleTexture("unemployed")
     if tex then
-        local k = math.max(1, math.floor(T.scale or 1))
+        local k = T.art
         local w, h = 58 * k, 40 * k
         self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - w) / 2), b.y + math.floor((b.h - h) / 2), w, h, 1, 1, 1, 1)
         return
@@ -883,8 +890,9 @@ function ZeD_BeltHUD:_drawBox(b, o)
     if o.state == "no" then fill(0.6, T.base) end
     if o.focus then
         local ac = T.accent
-        if round then disc(self, b.x - T.px(3), b.y - T.px(3), b.w + T.px(6), 0.55, ac)
-        else self:drawRect(b.x - T.px(3), b.y - T.px(3), b.w + T.px(6), b.h + T.px(6), 0.55, ac.r, ac.g, ac.b) end
+        local o3 = T.px(3)   -- the same 3 units on both sides (T.px(6) is not 2 x T.px(3) at 1.25 / 1.75)
+        if round then disc(self, b.x - o3, b.y - o3, b.w + 2 * o3, 0.55, ac)
+        else self:drawRect(b.x - o3, b.y - o3, b.w + 2 * o3, b.h + 2 * o3, 0.55, ac.r, ac.g, ac.b) end
     end
 end
 

@@ -481,7 +481,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
     cy = cy + headingH + T.sp.headGap
 
     A.drawGroove(panel, x, cy, w)
-    cy = cy + T.px(2) + T.sp.afterGroove
+    cy = cy + T.grooveH + T.sp.afterGroove
 
     -- Legend row (left-aligned below heading)
     local legendDefs = {

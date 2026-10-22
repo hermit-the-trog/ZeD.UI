@@ -108,8 +108,8 @@ local function insetBox(p, x, y, w, h)
     local b, bs = T.base, T.borderS
     p:drawRect(x, y, w, h, 1, b.r, b.g, b.b)
     p:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    p:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), T.px(1), 0.45, 0, 0, 0)
-    p:drawRect(x + T.px(1), y + T.px(1), T.px(1), h - T.px(2), 0.45, 0, 0, 0)
+    p:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), T.px(1), 0.45, 0, 0, 0)
+    p:drawRect(x + T.px(1), y + T.px(1), T.px(1), h - 2 * T.px(1), 0.45, 0, 0, 0)
 end
 
 -- a ZeD-styled text entry: role face, theme colours (ZeD.Text.fitEntry), inset look
@@ -534,7 +534,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
     -- the box and the Find row
     insetBox(self, x, y, w, h)
     local fH = T.px(FIND_H)
-    self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
+    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
     local label = ZeD.tr("UI_ZeD_Saves_Find")
@@ -1024,7 +1024,7 @@ function ZeD_MMNewGame:prerender()
             local lx, ly = cx + math.floor((cellW - tw) / 2), iy + iconH + T.px(8)
             local tc = T.text
             if isSel then
-                self:drawRect(lx - T.px(7), ly - T.px(1), tw + T.px(14), labelH, 1, ac.r, ac.g, ac.b)
+                self:drawRect(lx - T.px(7), ly - T.px(1), tw + 2 * T.px(7), labelH, 1, ac.r, ac.g, ac.b)
                 tc = T.textOnAccent
             end
             self:drawText(title, lx, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)

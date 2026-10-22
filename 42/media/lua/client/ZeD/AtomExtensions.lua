@@ -14,16 +14,19 @@ ZeD.Atoms = ZeD.Atoms or {}
 -- System 7 corner: 2 inset rows per corner.
 -- Row 0: 2px inset, Row 1: 1px inset, then full width.
 -- ---------------------------------------------------------------------------
-local ROUND_RADIUS = {2, 1}  -- S124 scale: design units; row r spans [T.px(r), T.px(r + 1)) so rows tile at fractional roots
+-- Design units; the corner is pixel art on the hairline grid: row r spans [r * T.hair, (r + 1) * T.hair), so every
+-- step is the same size at any scale (Oct 21 2026: on T.px(r) edges the two rows came out 2 and 1 px tall at 1.5)
+local ROUND_RADIUS = {2, 1}
 
 --- Draw a filled rounded rectangle
 function ZeD.Atoms.fillRounded(panel, x, y, w, h, r, g, b, a)
-    local T = ZeD.T
+    local u = ZeD.T.hair
     for i, inset in ipairs(ROUND_RADIUS) do
-        panel:drawRect(x + T.px(inset), y + T.px(i - 1), w - T.px(inset) * 2, T.px(i) - T.px(i - 1), a, r, g, b)
-        panel:drawRect(x + T.px(inset), y + h - T.px(i), w - T.px(inset) * 2, T.px(i) - T.px(i - 1), a, r, g, b)
+        local ix = inset * u
+        panel:drawRect(x + ix, y + (i - 1) * u, w - ix * 2, u, a, r, g, b)
+        panel:drawRect(x + ix, y + h - i * u, w - ix * 2, u, a, r, g, b)
     end
-    local midTop = T.px(#ROUND_RADIUS)
+    local midTop = #ROUND_RADIUS * u
     local midH   = h - midTop * 2
     if midH > 0 then
         panel:drawRect(x, y + midTop, w, midH, a, r, g, b)
@@ -32,17 +35,18 @@ end
 
 --- Draw a 1px rounded border outline
 function ZeD.Atoms.borderRounded(panel, x, y, w, h, r, g, b, a)
-    local T = ZeD.T
+    local u = ZeD.T.hair
     for i, inset in ipairs(ROUND_RADIUS) do
         local row = i - 1
-        panel:drawRect(x + T.px(inset),   y + T.px(row),         w - T.px(inset) * 2, T.px(row + 1) - T.px(row), a, r, g, b)
-        panel:drawRect(x + T.px(inset),   y + h - T.px(row + 1), w - T.px(inset) * 2, T.px(row + 1) - T.px(row), a, r, g, b)
+        local ix = inset * u
+        panel:drawRect(x + ix, y + row * u,           w - ix * 2, u, a, r, g, b)
+        panel:drawRect(x + ix, y + h - (row + 1) * u, w - ix * 2, u, a, r, g, b)
     end
-    local midTop = T.px(#ROUND_RADIUS)
+    local midTop = #ROUND_RADIUS * u
     local midH   = h - midTop * 2
     if midH > 0 then
-        panel:drawRect(x,               y + midTop, T.px(1), midH, a, r, g, b)
-        panel:drawRect(x + w - T.px(1), y + midTop, T.px(1), midH, a, r, g, b)
+        panel:drawRect(x,         y + midTop, u, midH, a, r, g, b)
+        panel:drawRect(x + w - u, y + midTop, u, midH, a, r, g, b)
     end
 end
 
@@ -50,9 +54,9 @@ end
 -- ROUND_RADIUS {2,1} means outer top rows at y+0..y+1, sides start at y+2.
 -- Inner offset: x+2 keeps 1px side gap; y+3 keeps 1px gap after outer's y+1 row.
 function ZeD.Atoms.borderDoubleRounded(panel, x, y, w, h, r, g, b, a)
-    local T = ZeD.T
+    local u = ZeD.T.hair   -- on the same hairline grid as the corners
     ZeD.Atoms.borderRounded(panel, x, y, w, h, r, g, b, a)
-    ZeD.Atoms.borderRounded(panel, x + T.px(2), y + T.px(3), w - T.px(2) * 2, h - T.px(3) * 2, r, g, b, a)
+    ZeD.Atoms.borderRounded(panel, x + 2 * u, y + 3 * u, w - 4 * u, h - 6 * u, r, g, b, a)
 end
 
 -- ---------------------------------------------------------------------------
@@ -192,8 +196,11 @@ function ZeD.Atoms.drawGroove(panel, x, y, width)
     local T = ZeD.T
     local dk = T.grooveDark
     local lt = T.grooveLight
-    panel:drawRect(x, y, width, T.px(1), dk.a, dk.r, dk.g, dk.b)
-    panel:drawRect(x, y + T.px(1), width, T.px(2) - T.px(1), lt.a, lt.r, lt.g, lt.b)  -- S124 scale: the pair totals T.px(2)
+    -- two hairlines of the same thickness (Oct 21 2026): T.px(2) - T.px(1) made the light line 2 px under a 1 px
+    -- dark one at 1.25 and 1 px under 2 px at 1.5. The pair totals T.grooveH (= T.px(2) at 1x and 2x).
+    local u = T.hair
+    panel:drawRect(x, y, width, u, dk.a, dk.r, dk.g, dk.b)
+    panel:drawRect(x, y + u, width, u, lt.a, lt.r, lt.g, lt.b)
 end
 
 -- ---------------------------------------------------------------------------
@@ -422,8 +429,9 @@ end
 function ZeD.Atoms.drawCornerTri3x3(panel, x, y, color)
     local T = ZeD.T
     local a = color.a or 1
-    -- S124 scale: design-unit pixel art; row/col r spans [T.px(r), T.px(r + 1)) so it tiles at fractional roots
-    local p1, p2, p3 = T.px(1), T.px(2), T.px(3)
+    -- design-unit pixel art on the hairline grid: each cell T.hair square at every scale (Oct 21 2026)
+    local p1 = T.hair
+    local p2, p3 = 2 * p1, 3 * p1
     panel:drawRect(x + p2, y,      p3 - p2, p1,      a, color.r, color.g, color.b)
     panel:drawRect(x + p1, y + p1, p3 - p1, p2 - p1, a, color.r, color.g, color.b)
     panel:drawRect(x,      y + p2, p3,      p3 - p2, a, color.r, color.g, color.b)
@@ -436,7 +444,7 @@ end
 function ZeD.Atoms.drawCornerSq3x3(panel, x, y, color)
     local T = ZeD.T
     local a = color.a or 1
-    panel:drawRect(x, y, T.px(3), T.px(3), a, color.r, color.g, color.b)
+    panel:drawRect(x, y, 3 * T.hair, 3 * T.hair, a, color.r, color.g, color.b)   -- 3 x 3 hairline cells
 end
 
 -- ---------------------------------------------------------------------------
@@ -454,8 +462,9 @@ end
 function ZeD.Atoms.drawContextPointerDown(panel, x, y, inkColor, paperColor)
     local T = ZeD.T
     local ia, pa = inkColor.a or 1, paperColor.a or 1
-    -- S124 scale: design-unit pixel art; rows span [T.px(r), T.px(r + 1)), half-widths mirror around x
-    local p1, p2, p3 = T.px(1), T.px(2), T.px(3)
+    -- design-unit pixel art on the hairline grid (each cell T.hair square), half-widths mirror around x
+    local p1 = T.hair
+    local p2, p3 = 2 * p1, 3 * p1
     -- Ink outer (6 -> 4 -> 2 triangle)
     panel:drawRect(x - p3, y,      p3 * 2, p1,      ia, inkColor.r, inkColor.g, inkColor.b)
     panel:drawRect(x - p2, y + p1, p2 * 2, p2 - p1, ia, inkColor.r, inkColor.g, inkColor.b)
@@ -473,8 +482,9 @@ end
 function ZeD.Atoms.drawContextPointerUp(panel, x, y, inkColor, paperColor)
     local T = ZeD.T
     local ia, pa = inkColor.a or 1, paperColor.a or 1
-    -- S124 scale: same raster rule as drawContextPointerDown
-    local p1, p2, p3 = T.px(1), T.px(2), T.px(3)
+    -- the same raster rule as drawContextPointerDown
+    local p1 = T.hair
+    local p2, p3 = 2 * p1, 3 * p1
     -- Ink outer (2 -> 4 -> 6 inverted triangle)
     panel:drawRect(x - p1, y,      p1 * 2, p1,      ia, inkColor.r, inkColor.g, inkColor.b)
     panel:drawRect(x - p2, y + p1, p2 * 2, p2 - p1, ia, inkColor.r, inkColor.g, inkColor.b)

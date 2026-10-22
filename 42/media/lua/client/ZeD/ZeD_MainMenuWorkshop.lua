@@ -307,8 +307,8 @@ function ZeD_MMWorkshop:drawFolders(x, y, w, h)
         local rid = "frow:" .. i
         self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, x = x + T.px(1), y = ry, w = w - T.px(2), h = rh,
                                           chosen = (i == self.sel), fn = function() self:pick(i) end }
-        if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, w - T.px(2), rh, 0.55, ac.r, ac.g, ac.b)
-        elseif i == self.sel then self:drawRect(x + T.px(1), ry, w - T.px(2), rh, 0.22, ac.r, ac.g, ac.b) end
+        if gp and self.focusId == rid then self:drawRect(x + T.px(1), ry, w - 2 * T.px(1), rh, 0.55, ac.r, ac.g, ac.b)
+        elseif i == self.sel then self:drawRect(x + T.px(1), ry, w - 2 * T.px(1), rh, 0.22, ac.r, ac.g, ac.b) end
         self:drawRect(x + T.px(1), ry + rh - T.px(1), w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
         local title = (i == self.sel) and BB.trim(self.titleE:getText()) or BB.trim(tostring(it:getTitle() or ""))
         if title == "" then title = tostring(it:getFolderName()) end
@@ -355,7 +355,7 @@ function ZeD_MMWorkshop:formEntry(e, id, x, y, w)
         UI.styleEntry(e, x, y, w, eh)
         if self.focusId == id and MM.gamepad() then
             local ac = T.accent
-            self:drawRectBorder(x - T.px(2), y - T.px(2), w + T.px(4), eh + T.px(4), 1, ac.r, ac.g, ac.b)
+            self:drawRectBorder(x - T.px(2), y - T.px(2), w + 2 * T.px(2), eh + 2 * T.px(2), 1, ac.r, ac.g, ac.b)
         end
     end
     -- (the controller lands on the field as on a button: A types in it)
@@ -377,8 +377,8 @@ function ZeD_MMWorkshop:drawForm(x, y, w, h)
         local lines = ZeD.Atoms.wrapText(self.note.text, f2, iw - T.px(14))
         local nh = #lines * (MM.fontH(f2) + T.px(2)) + T.px(12)
         local s2 = T.surf2
-        self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), nh, 1, s2.r, s2.g, s2.b)
-        self:drawRect(x + T.px(1), y + nh, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
+        self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), nh, 1, s2.r, s2.g, s2.b)
+        self:drawRect(x + T.px(1), y + nh, w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
         local dsz = T.px(7)
         ZeD.Atoms.drawStatusDot(self, ix, y + T.px(6) + math.floor((MM.fontH(f2) - dsz) / 2), self.note.bad and T.danger or T.accent, dsz)
         self:paneText(self.note.text, ix + dsz + T.px(7), y + T.px(6), iw - T.px(14), f2, T.text)
@@ -593,8 +593,8 @@ function ZeD_MMWorkshop:drawProgress()
         local bs, ac = T.borderS, T.accent
         self:drawRectBorder(bx, by, bw, bh, bs.a, bs.r, bs.g, bs.b)
         local k = frac or ((MM.now() - self.busy.t0) % 1600) / 1600   -- (no total yet: a sweep)
-        if frac then self:drawRect(bx + T.px(1), by + T.px(1), math.floor((bw - T.px(2)) * k), bh - T.px(2), 1, ac.r, ac.g, ac.b)
-        else self:drawRect(bx + T.px(1) + math.floor((bw - T.px(40)) * k), by + T.px(1), T.px(38), bh - T.px(2), 1, ac.r, ac.g, ac.b) end
+        if frac then self:drawRect(bx + T.px(1), by + T.px(1), math.floor((bw - 2 * T.px(1)) * k), bh - 2 * T.px(1), 1, ac.r, ac.g, ac.b)
+        else self:drawRect(bx + T.px(1) + math.floor((bw - T.px(40)) * k), by + T.px(1), T.px(38), bh - 2 * T.px(1), 1, ac.r, ac.g, ac.b) end
     end
 end
 

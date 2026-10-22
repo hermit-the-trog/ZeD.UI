@@ -62,8 +62,21 @@ function P.tex(path)
     return t or nil
 end
 
--- the whole multiple for a UI scale (1080p = 1.0): never below 1, never fractional
-function P.k(scale) return math.max(1, math.floor((scale or 1) + 0.05)) end
+-- the whole multiple for a UI scale (1080p = 1.0): never below 1, never fractional. The nearest whole
+-- number (Oct 21 2026, director: crisp at every scale step; 1.75 draws at 2, 1.25 at 1, .5 rounds up);
+-- it was the scale rounded down, which left every prop at 1x up to 1.95.
+function P.k(scale)
+    local Sc = ZeD.Scale
+    if Sc and Sc.artZoom then return Sc.artZoom(scale or 1) end
+    return math.max(1, math.floor((scale or 1) + 0.5 + 1e-6))
+end
+-- the same, for art `artW` texels wide inside a column `availW` screen px wide (a plate in a card): a whole
+-- step smaller while it would not fit, never below 1. The caller lays out with the k it gets.
+function P.kFit(scale, artW, availW)
+    local k = P.k(scale)
+    while k > 1 and artW * k > availW do k = k - 1 end
+    return k
+end
 
 -- ---------------------------------------------------------------------------
 -- the canvas and its primitives (art pixels)

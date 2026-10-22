@@ -412,7 +412,7 @@ function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     local fH = T.px(34)
-    self:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), fH - T.px(1), 1, s2.r, s2.g, s2.b)
+    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), fH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
     local f2, c = T.fontF2, T.text
     local findLabel = ZeD.tr("UI_ZeD_Options_Find")

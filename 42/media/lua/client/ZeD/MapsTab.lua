@@ -1008,7 +1008,7 @@ local function _drawIconBtn(panel, win, icon, bx, by, btnSz, isActive, isPinned,
     if tex then
         local tc = isActive and T.accent or T.text
         local alpha = isActive and 0.9 or 0.6
-        panel:drawTextureScaledAspect(tex, bx + T.px(2), by + T.px(2), btnSz - T.px(4), btnSz - T.px(4),
+        panel:drawTextureScaledAspect(tex, bx + T.px(2), by + T.px(2), btnSz - 2 * T.px(2), btnSz - 2 * T.px(2),
             alpha, tc.r, tc.g, tc.b)
     else
         local lbl = string.sub(icon.label, 1, 1)
@@ -1136,7 +1136,7 @@ local function renderMapToolbar(panel, win, x, y, w)
 
         if isFocCol then
             local ac = T.accent
-            panel:drawRect(curX - T.px(2), colY - T.px(2), colSz + T.px(4), colSz + T.px(4),
+            panel:drawRect(curX - T.px(2), colY - T.px(2), colSz + 2 * T.px(2), colSz + 2 * T.px(2),
                 0.55, ac.r, ac.g, ac.b)
         end
 
@@ -1148,7 +1148,7 @@ local function renderMapToolbar(panel, win, x, y, w)
             _dimBtn(panel, curX, colY, colSz, colSz)   -- no pen of this colour at hand
         elseif isActiveCol then
             local bd = T.text
-            panel:drawRectBorder(curX - T.px(1), colY - T.px(1), colSz + T.px(2), colSz + T.px(2),
+            panel:drawRectBorder(curX - T.px(1), colY - T.px(1), colSz + 2 * T.px(1), colSz + 2 * T.px(1),
                 bd.a, bd.r, bd.g, bd.b)
         end
 
@@ -1212,7 +1212,7 @@ local function renderMapToolbar(panel, win, x, y, w)
         local tex = isOpen and win._mapFoldTex or win._mapPopoutTex
         local tc = T.text
         if tex then
-            panel:drawTextureScaledAspect(tex, bx + T.px(3), btnY + T.px(3), btnSz - T.px(6), btnSz - T.px(6), 0.75, tc.r, tc.g, tc.b)
+            panel:drawTextureScaledAspect(tex, bx + T.px(3), btnY + T.px(3), btnSz - 2 * T.px(3), btnSz - 2 * T.px(3), 0.75, tc.r, tc.g, tc.b)
         else
             panel:drawText(isOpen and "x" or "+", bx + T.px(6), btnY + T.px(2), tc.r, tc.g, tc.b, 0.7, T.fontF1)
         end

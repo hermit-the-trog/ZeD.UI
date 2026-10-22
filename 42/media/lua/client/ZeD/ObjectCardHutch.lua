@@ -293,13 +293,13 @@ local function closedPlate(card, x, y, w, label)
     local step = T.px(4)
     local hy = y + step
     while hy < y + h do
-        card:drawRect(x + T.px(1), hy, w - T.px(2), T.px(1), 0.5, col(T.surf1))
+        card:drawRect(x + T.px(1), hy, w - 2 * T.px(1), T.px(1), 0.5, col(T.surf1))
         hy = hy + step
     end
     card:drawRectBorder(x, y, w, h, T.borderS.a or 1, col(T.borderS))
     local f1 = T.fontF1
     local lw = tm:MeasureStringX(f1, label)
-    card:drawRect(x + math.floor((w - lw) / 2) - T.px(8), y + math.floor((h - T.px(18)) / 2), lw + T.px(16), T.px(18), 1, col(T.surf1))
+    card:drawRect(x + math.floor((w - lw) / 2) - T.px(8), y + math.floor((h - T.px(18)) / 2), lw + 2 * T.px(8), T.px(18), 1, col(T.surf1))
     card:drawText(label, x + math.floor((w - lw) / 2), y + math.floor((h - tm:getFontHeight(f1)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f1)
     return h
 end

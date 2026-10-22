@@ -432,7 +432,7 @@ local function propaneBody(card, x, y, w, t, player)
     local des = X and X.plates[X.fallback.propane]
     if des then
         local Sc = ZeD.Scale
-        local k = P.k((Sc and Sc.root and Sc.root()) or 1)
+        local k = P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w)   -- whole zoom, inside the card
         local px0 = x + PL.centre(w, des.w, k)
         local cv = P.canvas(card, px0, y, k)
         local st = grillState(t, d)

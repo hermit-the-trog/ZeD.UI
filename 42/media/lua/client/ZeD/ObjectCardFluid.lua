@@ -435,7 +435,7 @@ local function drawTank(card, x, y, w, h, cap, layers, after, incoming)
     if after then
         local ay = y + h - ph(after)
         local tc = T.text
-        card:drawRect(x - T.px(1), math.max(y, ay - T.px(1)), w + T.px(2), T.px(2), tc.a or 1, col(tc))
+        card:drawRect(x - T.px(1), math.max(y, ay - T.px(1)), w + 2 * T.px(1), T.px(2), tc.a or 1, col(tc))
     end
     card:drawRectBorder(x, y, w, h, bs.a or 1, col(bs))
 end
@@ -561,7 +561,7 @@ local function drawAmount(card, x, y, w, t)
     local thX = sx0 + math.floor(sw * (t.frac or 0)) - math.floor(thW / 2)
     local thY = y + math.floor((h - thH) / 2)
     local focused = card._fid == "fl:slider"
-    if focused then card:drawRect(thX - T.px(3), thY - T.px(3), thW + T.px(6), thH + T.px(6), 0.55, col(ac)) end
+    if focused then card:drawRect(thX - T.px(3), thY - T.px(3), thW + 2 * T.px(3), thH + 2 * T.px(3), 0.55, col(ac)) end
     local tb = focused and T.accentBright or T.surf3
     card:drawRect(thX, thY, thW, thH, tb.a or 1, col(tb))
     card:drawRect(thX, thY, thW, T.px(1), T.surf4.a or 1, col(T.surf4))
@@ -761,7 +761,7 @@ function def.body(card, x, y, w, t, player)
     local hInto = drawVessel(card, x + w - vw, y, vw, ZeD.upper(txt("Fluid_Target", "Pouring To")), d.intoName, ifc,
         layersOf(d.intoLiquids), intoAfter, incoming, hint)
     local th = math.max(hFrom, hInto)
-    drawFlow(card, x + vw + T.px(10), y, w - vw * 2 - T.px(20), th, d, (ffc and ifc) and (amount or 0) or nil, ffc ~= nil and ifc ~= nil)
+    drawFlow(card, x + vw + T.px(10), y, w - vw * 2 - 2 * T.px(10), th, d, (ffc and ifc) and (amount or 0) or nil, ffc ~= nil and ifc ~= nil)
     y = y + th + gap
 
     -- amount / pouring / reason

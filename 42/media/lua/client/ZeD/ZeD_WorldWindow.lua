@@ -5252,3 +5252,22 @@ end
 Events.OnPostSave.Add(function()
     if _worldWin then saveWorldState(_worldWin) end
 end)
+
+-- ----------------------------------------------------------------------------
+-- A container's column in the Loot tab's multi-column view, by its ItemContainer,
+-- as a click on its icon in the container strip does (Oct 21 2026: the Workshop
+-- gallery shows several containers open side by side; the QA scripts drive it
+-- from here). The container list only holds what is in reach and rebuilds every
+-- 30 frames, so a fresh one may need a moment. Returns true when it was found.
+-- ----------------------------------------------------------------------------
+function ZeD_WorldWindow.toggleColumn(inv)
+    local win = _worldWin
+    if not (win and inv and win._mainContent) then return false end
+    for i, c in ipairs(win._containers or {}) do
+        if c.inventory == inv then
+            mcToggleWorldContainer(win, win._mainContent, i)
+            return true
+        end
+    end
+    return false
+end

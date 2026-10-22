@@ -510,7 +510,7 @@ function UI.cookRows(card, x, y, w, container, on)
                 local by = y + math.floor((rowH - bh) / 2)
                 card:drawRect(bx, by, barW, bh, T.surf2.a, col(T.surf2))
                 card:drawRectBorder(bx, by, barW, bh, T.borderS.a, col(T.borderS))
-                card:drawRect(bx + T.px(1), by + T.px(1), math.floor((barW - T.px(2)) * p), bh - T.px(2), 1, col(mc))
+                card:drawRect(bx + T.px(1), by + T.px(1), math.floor((barW - 2 * T.px(1)) * p), bh - 2 * T.px(1), 1, col(mc))
                 local ptxt = left and ZeD.tr("UI_ZeD_ObjCard_MinLeft", left) or (mode == "pos" and ZeD.tr("UI_ZeD_ObjCard_Done") or (tostring(math.floor(p * 100 + 0.5)) .. "%"))
                 ZeD.Atoms.drawTextRight(card, ptxt, rx, y + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, mode == "dng" and T.danger or T.text)
             end
@@ -636,7 +636,7 @@ end
 -- I / O rocker switch. Returns nothing; caller stamps the zone.
 function UI.rocker(card, x, y, w, h, on, focused, label)
     local T, HW, tm = ZeD.T, UI.HW, ZeD.TM
-    card:drawRect(x - T.px(2), y - T.px(2), w + T.px(4), h + T.px(4), 1, 0.07, 0.07, 0.07)
+    card:drawRect(x - T.px(2), y - T.px(2), w + 2 * T.px(2), h + 2 * T.px(2), 1, 0.07, 0.07, 0.07)
     local half = math.floor(h / 2)
     local topC = on and HW.rockerLit or HW.rockerDark
     local botC = on and HW.rockerDark or HW.rockerLit
@@ -652,7 +652,7 @@ function UI.rocker(card, x, y, w, h, on, focused, label)
     glyph("O", y + half, not on)
     if focused then
         local ac = T.accent
-        card:drawRect(x - T.px(2), y - T.px(2), w + T.px(4), h + T.px(4), 0.55, ac.r, ac.g, ac.b)
+        card:drawRect(x - T.px(2), y - T.px(2), w + 2 * T.px(2), h + 2 * T.px(2), 0.55, ac.r, ac.g, ac.b)
     end
     if label then
         local lw = tm:MeasureStringX(f1, label)
@@ -816,7 +816,7 @@ function ZeD_ObjectCard:prerender()
     self:drawRect(cx, by, isz, isz, s1.a, s1.r, s1.g, s1.b)
     self:drawRectBorder(cx, by, isz, isz, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
     local icon = try(def.icon, t)
-    if icon then self:drawTextureScaledAspect(icon, cx + T.px(2), by + T.px(2), isz - T.px(4), isz - T.px(4), 1, 1, 1, 1) end
+    if icon then self:drawTextureScaledAspect(icon, cx + T.px(2), by + T.px(2), isz - 2 * T.px(2), isz - 2 * T.px(2), 1, 1, 1, 1) end
     cx = cx + isz + T.px(8)
     -- browse (right)
     local rightX = w - T.px(8)

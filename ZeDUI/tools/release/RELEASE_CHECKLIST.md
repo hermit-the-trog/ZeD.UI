@@ -20,7 +20,7 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
    Check the summary: about 2,480 files and 35 MB (the fonts carry extended Latin, Greek and Cyrillic since Oct 20 2026), the version, the preview passing, and the Workshop item id once there is one.
    
    Never delete `Zomboid/Workshop/ZeD-UI/workshop.txt`. After the first upload it holds the item's id. Without it, the next Upload creates a second item.
-5. **New preview picture (optional).** `py -I ZeDUI/tools/release/make_preview.py` (see `--help` to swap the art), then stage again.
+5. **The preview picture** is the ZNIX USER cover (Oct 21 2026), already in place as `ZeDUI/tools/release/preview.png`. To change it, edit and run `py -I ZeDUI/workshop/thumbnail/pixel_znix.py`, copy its `znix_256.png` over `ZeDUI/tools/release/preview.png`, then stage again. Don't run `make_preview.py`: it draws the old desk-crop picture and would overwrite the cover.
 
 ## The upload
 

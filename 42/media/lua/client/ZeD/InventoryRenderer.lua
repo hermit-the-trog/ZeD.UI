@@ -1740,7 +1740,7 @@ local function renderContainerBar(self)
     end
 
     -- Groove divider below bar
-    A.drawGroove(self, 0, T.px(CONTAINER_BAR_H) - T.px(2), w)
+    A.drawGroove(self, 0, T.px(CONTAINER_BAR_H) - T.grooveH, w)
 end
 
 -- ============================================================================

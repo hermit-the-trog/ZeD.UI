@@ -769,7 +769,7 @@ function ZeD_Prompt:layout()
         local fieldH = boxH(self.entry, lines)
         g.field = { x = padL, y = y, w = w - padL - padR, h = fieldH }
         g.boxes = { g.field }
-        g.rowFocus = { field = { x = padL - T.px(6), y = g.label.y - T.px(6), w = w - padL - padR + T.px(12), h = 0 } }
+        g.rowFocus = { field = { x = padL - T.px(6), y = g.label.y - T.px(6), w = w - padL - padR + 2 * T.px(6), h = 0 } }
         placeEntry(self.entry, g.field)
         y = y + fieldH
         if self._colorPicker then
@@ -811,7 +811,7 @@ function ZeD_Prompt:layout()
             g.steppers[#g.steppers + 1] = { id = row.id, label = row.label, ly = y + math.floor((rh - fh(T.fontF1)) / 2), minus = minus, plus = plus, val = val }
             g.hits[#g.hits + 1] = { id = row.id .. "-", x = minus.x, y = minus.y, w = minus.w, h = minus.h }
             g.hits[#g.hits + 1] = { id = row.id .. "+", x = plus.x, y = plus.y, w = plus.w, h = plus.h }
-            g.rowFocus[row.id] = { x = padL - T.px(6), y = y, w = w - padL - padR + T.px(12), h = rh }
+            g.rowFocus[row.id] = { x = padL - T.px(6), y = y, w = w - padL - padR + 2 * T.px(6), h = rh }
             placeEntry(row.entry, val)
             y = y + rh
         end
@@ -819,7 +819,7 @@ function ZeD_Prompt:layout()
         local cb = T.checkboxSz
         g.tick = { x = padL, y = y + math.floor((th - cb) / 2), sz = cb, label = getText("UI_Alarm"), ly = y + math.floor((th - fh(T.fontF2)) / 2) }
         g.hits[#g.hits + 1] = { id = "tick", x = padL, y = y, w = w - padL - padR, h = th }
-        g.rowFocus.tick = { x = padL - T.px(6), y = y, w = w - padL - padR + T.px(12), h = th }
+        g.rowFocus.tick = { x = padL - T.px(6), y = y, w = w - padL - padR + 2 * T.px(6), h = th }
         y = y + th
         bodyH = y - tbH + padB
     elseif K == "timer" then
@@ -849,7 +849,7 @@ function ZeD_Prompt:layout()
                 x = x + T.px(U.TVAL_W) + T.px(U.SM_GAP)
             end
         end
-        g.rowFocus = { value = { x = padL - T.px(6), y = y, w = w - padL - padR + T.px(12), h = rh } }
+        g.rowFocus = { value = { x = padL - T.px(6), y = y, w = w - padL - padR + 2 * T.px(6), h = rh } }
         y = y + rh
         bodyH = y - tbH + padB
     end
@@ -960,8 +960,8 @@ local function insetBox(p, r)
     local b, bs = T.base, T.borderS
     p:drawRect(r.x, r.y, r.w, r.h, 1, b.r, b.g, b.b)
     p:drawRectBorder(r.x, r.y, r.w, r.h, bs.a or 1, bs.r, bs.g, bs.b)
-    p:drawRect(r.x + T.px(1), r.y + T.px(1), r.w - T.px(2), T.px(1), 0.45, 0, 0, 0)
-    p:drawRect(r.x + T.px(1), r.y + T.px(1), T.px(1), r.h - T.px(2), 0.45, 0, 0, 0)
+    p:drawRect(r.x + T.px(1), r.y + T.px(1), r.w - 2 * T.px(1), T.px(1), 0.45, 0, 0, 0)
+    p:drawRect(r.x + T.px(1), r.y + T.px(1), T.px(1), r.h - 2 * T.px(1), 0.45, 0, 0, 0)
 end
 
 function ZeD_Prompt:stateOf(id)
@@ -1014,7 +1014,7 @@ function ZeD_Prompt:prerender()
         for i, r in ipairs(g.swatches) do
             local c = r.c
             local st = self:stateOf("sw" .. i)
-            if st == "focus" then self:drawRect(r.x - T.px(3), r.y - T.px(3), r.w + T.px(6), r.h + T.px(6), 0.55, ac.r, ac.g, ac.b) end
+            if st == "focus" then self:drawRect(r.x - T.px(3), r.y - T.px(3), r.w + 2 * T.px(3), r.h + 2 * T.px(3), 0.55, ac.r, ac.g, ac.b) end
             self:drawRect(r.x, r.y, r.w, r.h, 1, c.r, c.g, c.b)
             local cur = self.currentColor
             local sel = cur and math.abs(cur:getR() - c.r) < 0.01 and math.abs(cur:getG() - c.g) < 0.01 and math.abs(cur:getB() - c.b) < 0.01
