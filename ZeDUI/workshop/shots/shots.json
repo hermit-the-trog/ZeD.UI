@@ -1317,35 +1317,6 @@
           "side": "right"
         }
       ]
-    },
-    {
-      "id": "wide",
-      "kind": "ingame",
-      "src": "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/shots/fixed/zed_03_hero_wide_roof.png",
-      "avoid": [
-        [
-          961,
-          0,
-          3320,
-          735
-        ],
-        [
-          1436,
-          2036,
-          2410,
-          2130
-        ]
-      ],
-      "balloons": [
-        {
-          "text": "Zoomed out, the windows and the belt stay at the UI scale set in Options.",
-          "anchor": [
-            3318,
-            400
-          ],
-          "side": "right"
-        }
-      ]
     }
   ]
 }
