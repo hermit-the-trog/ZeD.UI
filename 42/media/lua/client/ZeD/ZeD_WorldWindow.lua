@@ -63,8 +63,8 @@ local ACTION_TAB_BTN_SZ    = 36
 -- Tab strip separator (matches CharacterWindow). Moved up from line ~207 in
 -- S94 because _buildWorldTabBarElements references these — forward-local refs
 -- capture nil in Kahlua (common mistake #16).
-local TAB_SEP_H            = 1
-local TAB_SEP_MAR          = 2
+local TAB_SEP_H            = 0   -- separator off (director, Oct 22 2026: the tab borders already divide them)
+local TAB_SEP_MAR          = 0
 
 -- S124 object cards: drop the object card from the drawer. Hoisted above all
 -- consumers (tab switches, MC entry, item selection, the public close).
@@ -1946,6 +1946,8 @@ _switchWorldTabForNav = function(win, content, tabId)
     dropObjectCard(win)
 
     if tabId == "loot" then
+        -- (a rolled side comes down first: the snap below measures the whole window)
+        if win._rolled then ZeD.Curtain.finishUnroll(win) end
         win._activeTab  = "loot"
         win._drawerMode = nil
         win._drawerOpen = false
@@ -3837,7 +3839,10 @@ function ZeD_WorldWindow.toggle(playerNum)
             end
 
             if tabId == "loot" then
-                -- LOOT: snap to inventory-only state (no cross-animation)
+                -- LOOT: snap to inventory-only state (no cross-animation).
+                -- A rolled side comes down first: the snap below measures the
+                -- whole window (the side was added on top of it afterwards).
+                if win._rolled then ZeD.Curtain.finishUnroll(win) end
                 win._activeTab  = "loot"
                 win._drawerMode = nil
                 win._drawerOpen = false

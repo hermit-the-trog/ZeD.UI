@@ -37,7 +37,7 @@ zedqa_grid.lua | grid                            # inventory grid, cell card, pa
 zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows
 zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
 zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
-zedqa_curtain.lua | cu                           # World window curtain roll / unroll, controller stop
+zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close while rolled, tabs while rolled
 zedqa_curtain2.lua | cv                          # Character window curtain, tab switches while rolled
 zedqa_navevents.lua | ev                         # where pad focus lands after cards, strips, tabs, LB / RB, the map
 zedqa_navmap.lua | nav                           # cone-nav audit of every tab: traps, islands, stuck
