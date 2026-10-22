@@ -95,7 +95,9 @@ function ZeD_MMWorkshop:load()
     self._preview = nil
     if it then
         local ok, err = pcall(function() return it:validateContents() end)
-        self.contents = ok and (err or false) or tostring(err)
+        -- (Oct 22 2026: was `ok and (err or false) or tostring(err)`, which turns a clean folder's
+        -- false into the text "nil": every valid folder read "nil" under WHAT GOES UP and could not upload)
+        if ok then self.contents = err or false else self.contents = tostring(err) end
         if self.contents and ok then   -- vanilla's own words for the code (UI_WorkshopError_*)
             local extra = ""
             pcall(function() extra = tostring(it:getExtendedErrorInfo(err) or "") end)
@@ -550,7 +552,10 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
                 self:apply(); local cur = self:item(); if cur then pcall(function() cur:writeWorkshopTxt() end) end
                 self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "primary" } })
     else
-        local block = it and self:blocker() or ZeD.tr("UI_ZeD_Workshop_NothingToUpload")
+        -- (Oct 22 2026: was `it and self:blocker() or ...`, which read "Nothing to upload" whenever
+        -- nothing blocked the folder, so Upload never lit)
+        local block
+        if it then block = self:blocker() else block = ZeD.tr("UI_ZeD_Workshop_NothingToUpload") end
         local rights = {
             { "save", getText("UI_btn_save"), function() self:save() end, "default", not self:isUnsaved() },
             { "upload", ZeD.tr((it and it:getID()) and "UI_ZeD_Workshop_UploadUpdate" or "UI_ZeD_Workshop_Upload"), function() self:setConfirm("upload") end, "primary", block ~= nil },
