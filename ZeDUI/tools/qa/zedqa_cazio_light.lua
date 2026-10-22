@@ -5,9 +5,9 @@
 --   belt mode: the mini watch lit at night through the belt's controller path (Y on the watch box);
 --   the Rollex has no light (a stray press does nothing).
 -- Puts back the player's own watch, the time of day and the watch option. Screenshots zqa_cl_*.png.
--- grep "ZEDQA cl".
+-- grep "ZEDQA czl".
 local p = getPlayer(); local W = ZeD.Watch; local gt = getGameTime()
-local function say(s) print("ZEDQA cl " .. tostring(s)) end
+local function say(s) print("ZEDQA czl " .. tostring(s)) end   -- (Oct 22 2026: was "cl", which is the context-list script's tag, so the runner never saw this DONE)
 local steps = {}; local function at(n, f) steps[#steps + 1] = { n = n, f = f } end
 local function shot(name) pcall(function() getCore():TakeFullScreenshot("zqa_cl_" .. name .. ".png") end) end
 local inv = p:getInventory()
@@ -143,7 +143,8 @@ at(n, function()
     gt:setTimeOfDay(tod0)
     if placeOpt and placeWas then placeOpt:setValue(placeWas) end
     if tOut then Events.OnRenderTick.Remove(tOut) end
-    say("restored own watch " .. tostring(own and own:getFullType()) .. "; DONE")
+    say("restored own watch " .. tostring(own and own:getFullType()))
+    say("DONE")
 end)
 
 local k, i = 0, 1
