@@ -12,7 +12,7 @@ Writes 42/media/textures/ZeD/mainmenu/icons/<name>.png:
   load      Load Game (a floppy disk)           join      Join a Server (two computers on a cable)
   options   Options (the control panel)         mods      Mods (a folder with a gear)
   trash     the Trash (full: there is a file in it)
-  dll       system32.dll (a system file, inside the Trash)
+  computer  the Computer (inside the Trash: the old joke of throwing the computer away)
 
 Usage:  py ZeDUI/tools/mainmenu/bake_desktop_icons.py [--sheet out.png]
 """
@@ -216,27 +216,26 @@ def icon_trash():
     return ic
 
 
-def icon_dll():
+def icon_computer():
+    """the whole computer, an all-in-one of the time (Oct 21 2026: it sits in the Trash, the
+    old joke of dragging the computer to the trash)"""
     ic = Icon()
-    document(ic, fill=W)
-    # a cog on the page (a system file), and four little panes (another company's system)
-    cx, cy = 15, 15
-    for y in range(32):
-        for x in range(32):
-            dx, dy = x - cx, y - cy
-            if dx * dx + dy * dy <= 10:
-                ic.p(x, y, M)
-    for tx, ty in ((cx, cy - 4), (cx, cy + 4), (cx - 4, cy), (cx + 4, cy)):
-        ic.p(tx, ty, M)
-    ic.p(cx, cy, W)
-    ic.rect(10, 21, 12, 23, R); ic.rect(13, 21, 15, 23, G)
-    ic.rect(10, 24, 12, 26, B); ic.rect(13, 24, 15, 26, Y)
-    ic.hline(17, 22, 22, M); ic.hline(17, 21, 25, M)
+    ic.box(6, 2, 25, 24, L)                       # the case
+    ic.hline(7, 24, 3, W); ic.vline(7, 3, 23, W)  # its lit edges
+    ic.hline(7, 24, 23, M); ic.vline(24, 4, 23, M)
+    ic.box(9, 5, 22, 15, D)                       # the bezel
+    ic.box(10, 6, 21, 14, BL)                     # the screen
+    ic.hline(12, 16, 8, B); ic.hline(12, 19, 10, B); ic.hline(12, 14, 12, B)   # a few lines of text
+    ic.rect(15, 12, 15, 12, K)                    # the cursor
+    ic.hline(15, 22, 19, K); ic.hline(16, 21, 20, D)   # the floppy slot
+    ic.rect(9, 19, 10, 20, G)                     # the power light
+    ic.box(8, 25, 23, 28, L)                      # the foot
+    ic.hline(9, 22, 27, M)
     return ic
 
 
 ICONS = {"pz": icon_pz, "newgame": icon_newgame, "load": icon_load, "join": icon_join,
-         "options": icon_options, "mods": icon_mods, "trash": icon_trash, "dll": icon_dll}
+         "options": icon_options, "mods": icon_mods, "trash": icon_trash, "computer": icon_computer}
 
 
 def main():

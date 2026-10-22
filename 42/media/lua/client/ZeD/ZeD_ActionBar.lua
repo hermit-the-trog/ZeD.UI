@@ -235,16 +235,23 @@ function AB.clean(s)
     if #s > 16 then s = s:sub(1, 15):gsub(" $", "") .. ".." end
     return s
 end
+-- The item's name, looked up once per action and kept on it. Only inventory
+-- items are asked: a field can hold a VehiclePart (refuelling) or another Java
+-- object without getDisplayName, and asking it every frame logged an exception
+-- per frame under -debug even inside pcall.
 function AB.itemName(action)
     if not action then return "" end
+    if action._zedItemName ~= nil then return action._zedItemName end
+    local out = ""
     for _, f in ipairs(ITEM_FIELDS) do
         local v = action[f]
-        if v ~= nil and type(v) ~= "string" and type(v) ~= "number" and type(v) ~= "boolean" and type(v) ~= "function" then
+        if v ~= nil and instanceof(v, "InventoryItem") then
             local ok, name = pcall(function() return v:getDisplayName() end)
-            if ok and name and name ~= "" then return AB.clean(name) end
+            if ok and name and name ~= "" then out = AB.clean(name); break end
         end
     end
-    return ""
+    action._zedItemName = out
+    return out
 end
 
 -- ---------------------------------------------------------------------------
