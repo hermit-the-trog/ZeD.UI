@@ -53,12 +53,16 @@ AFTER_PARA = [
     ("ZeD-GUI replaces", "hero"),
     ("Open containers show as columns", "stocking_shelves"),
     ("[b]Cards.[/b]", "item_cards"),
+    ("The main menu is a desk", "desk"),
+    ("[b]Mods.[/b]", "mod_manager"),          # (two cards after one paragraph: listed in order)
+    ("[b]Mods.[/b]", "load_order"),
+    ("[b]Workshop.[/b]", "uploader"),
+    ("ZeD setup is the first page", "options_menu"),
 ]
 # ... or at the end of a section, before the next heading
 END_OF_SECTION = {
     "HUD": "smoke_break",
     "Maps": "the_route",
-    "Menus": "desk",
     "Controller": "customers",
     "Options": "themes",
 }
