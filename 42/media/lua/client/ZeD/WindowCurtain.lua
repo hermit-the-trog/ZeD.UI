@@ -95,7 +95,8 @@ end
 
 function ZeD_CurtainRod:prerender()
     local win = self.win
-    if not (win and win:isVisible() and win._rolled) then self:setVisible(false); return end
+    -- (a rod its window no longer holds: C.drop took it away with a closed window)
+    if not (win and win._rod == self and win:isVisible() and win._rolled) then self:setVisible(false); return end
     local T = ZeD.T
     local tbH = T.titleBarH
     -- the roll: the fabric's height runs to its target at the drawers' speed
@@ -203,6 +204,15 @@ function C.attach(win, spec)
         baseRender(self)
         C.drawRollButton(self)
     end
+    -- Every way a window closes ends in its removeFromUIManager (its close box,
+    -- the rod's close box, the inventory key, the controller's Y hold, death,
+    -- safe mode): the rod is a top-level panel of its own and stayed on screen,
+    -- tied to the closed window. It goes with the window.
+    local baseRemove = win.removeFromUIManager
+    win.removeFromUIManager = function(self)
+        C.drop(self)
+        return baseRemove(self)
+    end
 end
 
 -- the ▴ after the title plate, while the side can roll
@@ -281,9 +291,8 @@ function C.unroll(win)
     end
 end
 
--- at once: back to the full window (also when the drawer closes under a rolled side)
-function C.finishUnroll(win)
-    if not win._rolled then return end
+-- the window back at its full geometry, the rod gone from the screen (no onChange)
+local function restore(win)
     local w = win._rollW or 0
     local snap = win._curtainSnap
     win._rolled = false
@@ -304,10 +313,35 @@ function C.finishUnroll(win)
     x = math.max(0, math.min(x, getCore():getScreenWidth() - fullW))
     win:setWidth(fullW)
     win:setX(x)
+    -- A window anchored on its right edge (the Character window: the drawer grows
+    -- leftwards) reads that edge in the same frame (a Loot click snaps the width
+    -- against it), so it is the unrolled edge from here on, not the rolled one
+    if win._anchorRightEdge then win._anchorRightEdge = win:getX() + win:getWidth() end
+    if win._lastSetX then win._lastSetX = win:getX() end
     win._closeOnRod = nil
     local rod = win._rod
     if rod then rod:setVisible(false); rod:removeFromUIManager() end
+end
+
+-- at once: back to the full window (also when the drawer closes under a rolled
+-- side, and before a layout snap that measures the unrolled window: Loot)
+function C.finishUnroll(win)
+    if not win._rolled then return end
+    restore(win)
     if win._curtain and win._curtain.onChange then win._curtain.onChange(false) end
+end
+
+-- The window closes (its removeFromUIManager, hooked in C.attach): the side
+-- comes back without a sound or a ring rebuild and the rod leaves the UI
+-- manager for good. Both windows are built afresh on every open from their
+-- saved layout, which already counts a rolled side as down (saveCharState /
+-- saveWorldState), and a roll is never saved: a reopened window opens unrolled,
+-- at its pre-roll geometry, on its tab, like its other remembered state.
+function C.drop(win)
+    if win._rolled then restore(win) end
+    local rod = win._rod
+    win._rod = nil
+    if rod then rod:setVisible(false); rod:removeFromUIManager() end
 end
 
 -- every frame from the window's layout: the rod follows the window; the side

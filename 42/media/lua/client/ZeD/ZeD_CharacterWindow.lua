@@ -71,8 +71,11 @@ end
 
 local TAB_STRIP_W  = 36
 local TAB_BTN_SZ   = 36
-local TAB_SEP_H    = 1
-local TAB_SEP_MAR  = 2
+-- Group separator in the tab strip: off (director, Oct 22 2026: the tabs already
+-- have borders between them, so the line was noise). Zero height and margin keep
+-- layout, hit zones and drawing in step.
+local TAB_SEP_H    = 0
+local TAB_SEP_MAR  = 0
 local DRAWER_W          = 260
 local ITEM_CARD_W       = 220
 local SKILLS_DRAWER_W   = 480
@@ -789,6 +792,8 @@ local function _switchTabForNav(win, content, tabId)
 
     if tabId == "loot" then
         -- Loot is the "drawer-closed" special state: snap back to inventory-only
+        -- (a rolled side comes down first: the snap measures the whole window)
+        if win._rolled then ZeD.Curtain.finishUnroll(win) end
         win._activeTab  = "loot"
         win._drawerItem = nil
         win._drawerMode = nil
@@ -3778,7 +3783,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             local mcActive = #mcSel > 0
 
             if tabId == "loot" then
-                -- LOOT: snap to inventory-only state (no cross-animation)
+                -- LOOT: snap to inventory-only state (no cross-animation).
+                -- A rolled side comes down first: the snap below measures the
+                -- whole window (the side was added on top of it afterwards).
+                if win._rolled then ZeD.Curtain.finishUnroll(win) end
                 win._activeTab  = "loot"
                 win._drawerItem = nil
                 win._drawerMode = nil

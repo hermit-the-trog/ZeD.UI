@@ -16,9 +16,19 @@
 --    it is moved 200 px by its own title bar (it must unroll at its new x / y
 --    with its old size), and a plain cycle from there. Any difference above
 --    0 px is a FAIL line.
--- 3. Leaves both windows rolled with their whole geometry printed ("at quit"),
---    so the next launch's step 0 shows whether the save kept the unrolled
---    geometry (compare "loaded" with the previous run's "at quit").
+-- 4. (Oct 22 2026) Each window closed while rolled, by every close path the
+--    script can drive (the inventory key, the World rod's close box, the
+--    Character close box's close(), the controller Y hold's close of both):
+--    no ZeD_CurtainRod may stay in the engine's UI list or visible, and the
+--    reopened windows are unrolled, to the pixel where the same close and
+--    reopen put them without a roll (measured first, each case).
+-- 5. (Oct 22 2026) Tab presses while rolled, in the engine's press order, on
+--    both windows: every other tab (the rolled geometry kept, the unroll exact),
+--    a tab and back, Loot (the side comes down at Loot's own geometry, never
+--    wider) and the base tab pressed again.
+-- 3. Last of all: leaves both windows rolled with their whole geometry printed
+--    ("at quit"), so the next launch's step 0 shows whether the save kept the
+--    unrolled geometry (compare "loaded" with the previous run's "at quit").
 -- Screenshots zqa_cu_*.png. grep "ZEDQA cu".
 local function say(s) print("ZEDQA cu " .. tostring(s)) end
 local steps, tick = {}, 0
@@ -278,6 +288,238 @@ phase("Character", "char", cw, ww, function()
     local c = cw()
     if not (c._drawerOpen and c._drawerMode == "tab") then say("character health tab " .. tostring(clickTab(c, "health"))) end
 end)
+
+-- ---------------------------------------------------------------------------
+-- 4. Closed while rolled (Oct 22 2026): the rod leaves the UI with its window,
+--    and the window reopens unrolled at its pre-roll geometry
+-- ---------------------------------------------------------------------------
+local function check(label, ok, detail)
+    checks = checks + 1
+    if ok then say("ok " .. label .. (detail and (" (" .. detail .. ")") or ""))
+    else fails = fails + 1; say("FAIL " .. label .. (detail and (": " .. detail) or "")) end
+end
+-- every ZeD_CurtainRod in the engine's UI list (a removed one leaves it by the next frame)
+local function rodsInUI()
+    local n, ui = 0, UIManager.getUI()
+    for i = 0, ui:size() - 1 do
+        local ok, t = pcall(function() return ui:get(i):getTable() end)
+        if ok and t and t.Type == "ZeD_CurtainRod" then n = n + 1 end
+    end
+    return n
+end
+local function bothOpen() return ZeD_CharacterWindow.isOpen() and ZeD_WorldWindow.isOpen() end
+local function invKey() ZeD_CharacterWindow._onKeyPressed(getCore():getKey("Toggle Inventory")) end
+local function hasTab(win, id)
+    for _, ch in pairs(win:getChildren() or {}) do
+        for _, z in ipairs(ch._hitZones or {}) do if z.id == "tab:" .. id then return true end end
+    end
+    return false
+end
+-- a tab press in the engine's order (inside the window's update, then onResize)
+local function clickTabNow(w, id) viaUpdate(w, function(self) clickTab(self, id) end) end
+-- each window on its tab drawer: World on Maps, Character on Health
+local function openBase(who)
+    if who == "World" then
+        if not ZeD_WorldWindow.isTabShowing("maps") then ZeD_WorldWindow.openTab(0, "maps") end
+    else
+        local c = cw()
+        if not (c._drawerOpen and c._drawerMode == "tab" and c._activeTab == "health") then clickTab(c, "health") end
+    end
+end
+local function closeBy(how, w)
+    if how == "inventory key" then invKey()
+    elseif how == "rod close box" then
+        local rod = w._rod
+        local r = rod and rod._closeRect
+        if not r then return false end
+        viaUpdate(rod, function(self) self:onMouseDown(r.x + 2, r.y + 2); self:onMouseUp(r.x + 2, r.y + 2) end)
+    elseif how == "close box" then
+        w:close()   -- (the box polls the real mouse in ZeD_Window:update; this is what it calls)
+    else
+        -- the controller's Y hold: every registered window's close (FocusManager _closeAllWindows)
+        local c, x = cw(), ww()
+        if c then c:close() end
+        if x then x:close() end
+    end
+    return true
+end
+
+local CLOSES = {
+    { who = "World", how = "inventory key" },
+    { who = "World", how = "rod close box" },
+    { who = "World", how = "controller Y hold" },
+    { who = "Character", how = "inventory key" },
+    { who = "Character", how = "close box" },
+    { who = "Character", how = "controller Y hold" },
+}
+for _, cs in ipairs(CLOSES) do
+    local who = cs.who
+    local get = (who == "World") and ww or cw
+    local other = (who == "World") and cw or ww
+    local oname = (who == "World") and "Character" or "World"
+    local label = "closed rolled (" .. cs.how .. ")"
+    local S, O, R, RO, rod
+    local function reopen() if cs.how == "inventory key" then invKey() else ZeD_CharacterWindow.toggleBothPaired(0) end end
+    after(5, function() if not bothOpen() then ZeD_CharacterWindow.toggleBothPaired(0) end end)
+    after(10, function() openBase(who) end)
+    -- the reference: the same close and reopen unrolled (the World window
+    -- reopens on Loot whatever tab it closed on; the roll must change nothing)
+    after(90, function()
+        S, O = geo(get()), geo(other())
+        if cs.how == "rod close box" then get():close() else closeBy(cs.how, get()) end
+    end)
+    after(15, function() reopen() end)
+    after(90, function()
+        R, RO = geo(get()), geo(other())
+        both(label .. " " .. who .. " reference, closed and reopened unrolled")
+        openBase(who)
+    end)
+    after(90, function()
+        cmp(label .. " reference back on its tab", who, geo(get()), S)
+        both(label .. " " .. who .. " before roll")
+        if not rollNow(get()) then check(label .. " " .. who .. " roll button", false, "none") end
+    end)
+    after(40, function()
+        local w = get()
+        rod = w._rod
+        check(label .. " " .. who .. " rolled", w._rolled and rod ~= nil and rod:isVisible(), "rods in UI " .. rodsInUI())
+        if not closeBy(cs.how, w) then check(label .. " " .. who .. " close box on the rod", false, "none") end
+    end)
+    after(15, function()
+        check(label .. " " .. who .. " window closed", get() == nil)
+        check(label .. " " .. who .. " rod gone", rod ~= nil and not rod:isVisible() and rodsInUI() == 0,
+            "rod visible " .. tostring(rod and rod:isVisible()) .. ", rods in UI " .. rodsInUI())
+        reopen()   -- the player's way: the key again, or the pair's open for one window
+    end)
+    after(90, function()
+        local w = get()
+        if not w then check(label .. " " .. who .. " reopened", false, "still closed"); return end
+        both(label .. " " .. who .. " reopened")
+        check(label .. " " .. who .. " reopened unrolled", not w._rolled and w._rod == nil and rodsInUI() == 0,
+            "rolled " .. tostring(w._rolled) .. ", rods in UI " .. rodsInUI())
+        cmp(label .. " reopened as unrolled", who, geo(w), R)
+        cmp(label .. " reopened: other", oname, geo(other()), RO)
+    end)
+end
+
+-- ---------------------------------------------------------------------------
+-- 5. Tab presses while rolled (Oct 22 2026). Every other tab: roll on the base
+--    tab, press the tab (still rolled, the rolled geometry kept), roll down
+--    (exactly the pre-roll geometry). Then a tab and back while rolled; Loot
+--    (no drawer: the side comes down with the press, at the geometry Loot has
+--    when pressed unrolled); the base tab pressed again (its drawer closes, the
+--    side comes down, the same Loot geometry).
+-- ---------------------------------------------------------------------------
+local function tabPhase(who, get, other, base, tabs)
+    local oname = (who == "World") and "Character" or "World"
+    local S, O, GL
+    after(5, function() if not bothOpen() then ZeD_CharacterWindow.toggleBothPaired(0) end end)
+    after(10, function() openBase(who) end)
+    after(90, function()
+        S, O = geo(get()), geo(other())
+        say(who .. " tabs: on " .. base .. " " .. gstr(S) .. " (other " .. gstr(O) .. ")")
+    end)
+    local function rolledGeo(w)
+        local rw = w._rollW or 0
+        return { x = (w._curtain.side == "right") and S.x or (S.x + rw), y = S.y, w = S.w - rw, h = S.h }
+    end
+    for _, id in ipairs(tabs) do
+        local shown
+        after(2, function()
+            shown = hasTab(get(), id)
+            if not shown then say("tab " .. id .. " " .. who .. ": not shown here, skipped"); return end
+            if not rollNow(get()) then check("tab " .. id .. " " .. who .. " roll button", false, "none") end
+        end)
+        after(40, function()
+            if not shown then return end
+            local w = get()
+            check("tab " .. id .. " " .. who .. " rolled before the press", w._rolled == true)
+            clickTabNow(w, id)
+        end)
+        after(60, function()
+            if not shown then return end
+            local w = get()
+            check("tab " .. id .. " " .. who .. " still rolled on the tab", w._rolled == true and w._activeTab == id, "tab " .. tostring(w._activeTab))
+            cmp("tab " .. id .. " rolled", who, geo(w), rolledGeo(w))
+            unrollNow(w)
+        end)
+        after(90, function()
+            if not shown then return end
+            local w = get()
+            check("tab " .. id .. " " .. who .. " unrolled", not w._rolled and rodsInUI() == 0, "rods in UI " .. rodsInUI())
+            cmp("tab " .. id .. " unrolled", who, geo(w), S)
+            cmp("tab " .. id .. " unrolled: other", oname, geo(other()), O)
+            clickTab(w, base)
+        end)
+        after(60, function()
+            if shown then cmp("tab " .. id .. " back on " .. base, who, geo(get()), S) end
+        end)
+    end
+    -- a tab and back while rolled
+    local there = tabs[1]
+    after(2, function() rollNow(get()) end)
+    after(40, function() clickTabNow(get(), there) end)
+    after(40, function() clickTabNow(get(), base) end)
+    after(40, function()
+        local w = get()
+        check(there .. " and back " .. who .. " still rolled", w._rolled == true and w._activeTab == base, "tab " .. tostring(w._activeTab))
+        cmp(there .. " and back rolled", who, geo(w), rolledGeo(w))
+        unrollNow(w)
+    end)
+    after(90, function()
+        cmp(there .. " and back, unrolled", who, geo(get()), S)
+    end)
+    -- Loot: its geometry pressed unrolled first, then pressed while rolled
+    after(2, function() clickTabNow(get(), "loot") end)
+    after(40, function()
+        GL = geo(get())
+        say(who .. " Loot (unrolled) " .. gstr(GL))
+        clickTab(get(), base)
+    end)
+    after(80, function()
+        cmp("Loot reference, back on " .. base, who, geo(get()), S)
+        rollNow(get())
+    end)
+    local rod
+    after(40, function()
+        local w = get()
+        rod = w._rod
+        check("Loot " .. who .. " rolled before the press", w._rolled == true)
+        clickTabNow(w, "loot")
+    end)
+    after(10, function()
+        local w = get()
+        check("Loot " .. who .. " side down with the press", not w._rolled and w._activeTab == "loot" and not (rod and rod:isVisible()) and rodsInUI() == 0,
+            "rolled " .. tostring(w._rolled) .. " tab " .. tostring(w._activeTab) .. " rods in UI " .. rodsInUI())
+    end)
+    after(30, function()
+        local w = get()
+        cmp("Loot while rolled", who, geo(w), GL)
+        cmp("Loot while rolled: other", oname, geo(other()), O)
+        clickTab(w, base)
+    end)
+    after(80, function()
+        cmp("Loot while rolled, back on " .. base, who, geo(get()), S)
+        rollNow(get())
+    end)
+    -- the base tab pressed again while rolled: its drawer closes and the side comes down
+    after(40, function()
+        check(base .. " again " .. who .. " rolled before the press", get()._rolled == true)
+        clickTabNow(get(), base)
+    end)
+    after(80, function()
+        local w = get()
+        check(base .. " again " .. who .. " side down", not w._rolled and rodsInUI() == 0, "rolled " .. tostring(w._rolled))
+        cmp(base .. " pressed again while rolled", who, geo(w), GL)
+        clickTab(w, base)
+    end)
+    after(80, function()
+        cmp(base .. " again, back on " .. base, who, geo(get()), S)
+    end)
+end
+tabPhase("World", ww, cw, "maps", { "forage", "craft", "build", "furniture", "animals", "radio", "vehicle" })
+tabPhase("Character", cw, ww, "health", { "skills", "equip", "thermal", "identity", "journal", "radio" })
+
 after(5, function()
     say("geometry checks " .. checks .. ", differences " .. fails)
     shot(5)
