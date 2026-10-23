@@ -1,0 +1,14 @@
+TITLE: Bug reports
+
+[b]One post per problem.[/b] Include:
+[list]
+[*][b]Versions:[/b] the ZeD-GUI version and the game version. Both are in the desk's ZeD menu, under About.
+[*][b]Single player or a server.[/b]
+[*][b]Other mods:[/b] your mod list, or a link to your Workshop collection.
+[*][b]What you did, what you expected, and what happened.[/b]
+[*][b]console.txt:[/b] C:\Users\(you)\Zomboid\console.txt on Windows, ~/Zomboid/console.txt on Linux and macOS. The game replaces this file each time it starts, so copy it before you restart. Upload it to a paste site and post the link.
+[*][b]A screenshot[/b], if the problem is something you can see.
+[/list]
+[b]Safe mode:[/b] if ZeD-GUI stops you from playing, turn on Options, ZeD setup, Safe mode. The game's own screens return. Say so in your report.
+
+Play without the -debug launch option unless asked. With it, the game stops on every Lua error, including errors from other mods.

@@ -1,0 +1,13 @@
+TITLE: Add-on makers
+
+This thread is for people who make mods that work with ZeD-GUI.
+
+[b]The rules[/b]
+[list]
+[*]Build on what is documented. Today that is the watch registration (ZeD.Watch) and the translation files. Anything else in ZeD.* can change in any update.
+[*]Do not overwrite ZeD-GUI's files from another mod. Register instead.
+[*]If you need a way in that does not exist, ask here.
+[/list]
+
+[b]Watches[/b]
+A watch add-on is a separate mod that requires ZeD_UI and adds watches on the same controls. One watch needs: the item script (both wrists), the wrist clothing XML with its own GUID, the ground model, a 32 x 32 inventory icon, the item name in ItemName.json, a loot table entry, the face picture (the plate) and one registration call. Ask here for the full guide.

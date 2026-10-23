@@ -1,0 +1,7 @@
+TITLE: Requests
+
+Post one request per reply. Describe what you want to do in the game, and where in the interface you expected to do it.
+
+Bugs go in the Bug reports thread.
+
+Every request is read. There is no promise that a request will be built.

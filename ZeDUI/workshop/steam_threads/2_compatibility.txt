@@ -1,0 +1,22 @@
+TITLE: Compatibility with other mods
+
+This thread keeps the list of mods tested with ZeD-GUI.
+
+[b]How ZeD-GUI works with other mods[/b]
+[list]
+[*]Mods that use the game's own systems work: context menu options, container buttons, items and recipes.
+[*]Buttons that other mods add to the game's inventory and character windows do not show while ZeD-GUI is on, because those windows are replaced.
+[*]Other mods that replace the whole interface do not work together with ZeD-GUI.
+[*]The desk's Mods screen lists conflicts between your mods (two mods with the same file, item or recipe) and which copy the game uses.
+[/list]
+
+[b]To add a mod to the list[/b], reply with the mod's name, its Workshop link, and what happened: it works, it works with a problem (say which), or it does not work.
+
+[b]Works[/b]
+(none tested yet)
+
+[b]Works with a problem[/b]
+(none yet)
+
+[b]Does not work[/b]
+(none yet)

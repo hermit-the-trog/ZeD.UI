@@ -1,0 +1,28 @@
+TITLE: Translations
+
+ZeD-GUI's own text is in two files, so it can be translated without touching any code or fonts. Where the game already has a word or phrase, ZeD-GUI uses the game's translation, so item names, body parts, skills, traits, moodles and recipes are already translated.
+
+[b]The files[/b]
+After you subscribe, they are in your Steam folder under steamapps/workshop/content/108600/3824968485/mods/ZeD-UI/42/media/lua/shared/Translate/EN/:
+[list]
+[*]UI.json: every phrase ZeD-GUI draws, about 2,400.
+[*]ItemName.json: the name of the Timez watch, two lines.
+[/list]
+
+[b]How to translate[/b]
+[olist]
+[*]Copy the files into a folder for your language next to EN, with the game's language code: FR, DE, RU, PL, PTBR, and so on.
+[*]Save as UTF-8. Change only the text on the right of each line. Do not change the key on the left, the quotes or the commas.
+[*]Keep the %1, %2, %3 and %4 markers. The game puts a number or a name there. You can move them to suit your grammar.
+[*]A quote mark inside a phrase is written \". A new line is \n. A percent sign is written %%.
+[*]A phrase you leave untranslated shows in English, so a partial file works.
+[/olist]
+
+[b]Space limits[/b]
+Some phrases have a fixed space. The action bar labels (the keys that start with UI_ZeD_Act_) fit 14 capital letters. Ask in this thread for the full list of phrases with their limits.
+
+[b]Checking your work[/b]
+Switch the game to your language and open the screens. Options, ZeD setup, "Test language (stretched text)" makes every phrase longer, which shows where space is tight.
+
+[b]Sending a translation[/b]
+Post here with a link to your files. Translations sent here are included in ZeD-GUI, and translators are credited on this page. You can also publish your own mod with the Translate folder and require ZeD_UI.
