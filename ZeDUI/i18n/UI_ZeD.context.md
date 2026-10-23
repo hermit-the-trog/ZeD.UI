@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Phrases that are all capitals in English (READING, IN HAND) are meant to be capitals in your language too.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head is drawn in capitals by ZeD whatever case the game text has.
 
-Total keys: 2197.
+Total keys: 2199.
 
 ## Areas
 
@@ -28,7 +28,7 @@ Total keys: 2197.
 - [Dash](#dash) (53)
 - [Death](#death) (12)
 - [DescEdit](#descedit) (71)
-- [Desktop](#desktop) (5)
+- [Desktop](#desktop) (6)
 - [Doll](#doll) (19)
 - [Equip](#equip) (39)
 - [Farm](#farm) (29)
@@ -61,7 +61,7 @@ Total keys: 2197.
 - [NewGame](#newgame) (3)
 - [Notebook](#notebook) (21)
 - [ObjCard](#objcard) (10)
-- [Options](#options) (88)
+- [Options](#options) (89)
 - [Papers](#papers) (17)
 - [PartAbbr](#partabbr) (14)
 - [Place](#place) (3)
@@ -1442,14 +1442,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Looks_AskDeleteOutfit` | `Delete the outfit %1?` | Character looks screen (new game): question in the action strip. %1 is the outfit's name | - |
-| `UI_ZeD_Looks_AskOutfitName` | `Outfit name:` | Character looks screen (new game): label before the name field in the action strip | - |
+| `UI_ZeD_Looks_AskDeleteOutfit` | `Delete the preset %1?` | Character looks screen (new game): question in the action strip. %1 is the outfit's name | - |
+| `UI_ZeD_Looks_AskOutfitName` | `Preset name:` | Character looks screen (new game): label before the name field in the action strip | - |
 | `UI_ZeD_Looks_DeleteOutfit` | `Delete %1...` | Character looks screen (new game): row of the Outfits pop-up that deletes the picked saved outfit. %1 is its name | - |
-| `UI_ZeD_Looks_Outfits` | `Outfits...` | Character looks screen (new game): strip button that opens the saved outfits pop-up | 14 |
+| `UI_ZeD_Looks_Outfits` | `Presets...` | Character looks screen (new game): strip button that opens the saved outfits pop-up | 14 |
 | `UI_ZeD_Looks_PresetName` | `Preset` | Character looks screen (new game): the name suggested for a saved outfit when the character has no name | - |
-| `UI_ZeD_Looks_PromptOutfits` | `Outfits` | Character looks screen (new game): controller prompt (Y button) that opens the saved outfits | 10 |
+| `UI_ZeD_Looks_PromptOutfits` | `Presets` | Character looks screen (new game): controller prompt (Y button) that opens the saved outfits | 10 |
 | `UI_ZeD_Looks_PromptTurn` | `Turn` | Character looks screen (new game): controller prompt for the bumpers, which turn the figure | 10 |
-| `UI_ZeD_Looks_SaveOutfit` | `Save outfit...` | Character looks screen (new game): row of the Outfits pop-up that saves the current look | - |
+| `UI_ZeD_Looks_SaveOutfit` | `Save preset...` | Character looks screen (new game): row of the Outfits pop-up that saves the current look | - |
 | `UI_ZeD_Looks_Title` | `Project Zomboid  +  Character` | Character looks screen (new game): title bar. The + is the ZeD title separator | - |
 
 ## Machine
@@ -1483,10 +1483,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MainMenu_AboutEncryption` | `ENCRYPTION` | About block: left label of a fact row (about 12 letters of room) | 12 |
 | `UI_ZeD_MainMenu_AboutEncryptionValue` | `16-bit (was 8)` | About block: value of the Encryption row | - |
 | `UI_ZeD_MainMenu_AboutGame` | `GAME` | About block: left label of the game version row | 12 |
-| `UI_ZeD_MainMenu_AboutPara` | `Zero Day OS is a homemade SECURE kernal of ZNIX made by some hard working freedom loving good guys (mostly me). FBI and you government slime, if you are reading this you must have got me--but I got you. This thing has state of the art anti phone tap programming in the BIOS AND we just upgraded from 8 to 16bit encryption that my cousins elementary school friends girlfriends uncle got out of MIT. dont ask. Suck on it commies!! You cant crack ZeD-OS. also it runs off the truck battery if it comes to that. LONG LIVE FREEDOM` | Main menu bar, ZeD menu, About block: the owner's own words (a fictional character's rough draft; keep the misspellings and the run-on, do not tidy) | - |
+| `UI_ZeD_MainMenu_AboutPara` | `Zero Day OS is a homemade SECURE kernal of Ynix made by some hard working freedom loving good guys (mostly me). FBI and you government slime, if you are reading this you must have got me--but I got you. This thing has state of the art anti phone tap programming in the BIOS AND we just upgraded from 8 to 16bit encryption that my cousins elementary school friends girlfriends uncle got out of MIT. dont ask. Suck on it commies!! You cant crack ZeD-OS. also it runs off the truck battery if it comes to that. LONG LIVE FREEDOM` | Main menu bar, ZeD menu, About block: the owner's own words (a fictional character's rough draft; keep the misspellings and the run-on, do not tidy) | - |
 | `UI_ZeD_MainMenu_AboutPhoneTaps` | `PHONE TAPS` | About block: left label of a fact row (about 12 letters of room) | 12 |
 | `UI_ZeD_MainMenu_AboutPhoneTapsValue` | `None found` | About block: value of the Phone taps row | - |
-| `UI_ZeD_MainMenu_AboutSub` | `secure ZNIX kernal -- DO NOT UNPLUG` | Main menu bar, ZeD menu, About block: the line under the title | - |
+| `UI_ZeD_MainMenu_AboutSub` | `secure Ynix kernal -- DO NOT UNPLUG` | Main menu bar, ZeD menu, About block: the line under the title | - |
 | `UI_ZeD_MainMenu_AboutUptime` | `UPTIME` | About block: left label of the row showing how long the game has run | 12 |
 | `UI_ZeD_MainMenu_AM` | `AM` | Clock in the main menu dates (12-hour) | 3 |
 | `UI_ZeD_MainMenu_AndMore` | `and %1 more` | Pause window, Mods page: last line when the list is cut. %1 is how many more mods there are | - |
@@ -1856,8 +1856,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_Changed` | `Changed` | Options screen: status word in the title bar while any setting is changed and not applied | 12 |
 | `UI_ZeD_Options_ChangedNote` | `Changed: Apply to keep it.` | Options screen: help band for a changed setting that has no help of its own | - |
 | `UI_ZeD_Options_ControllerTest` | `Controller test` | Options screen: name of the row that opens the controller test (Controls group) | - |
-| `UI_ZeD_Options_DefaultIs` | `Default: %1` | Options screen, ZeD setup: right-hand column of the help band for one of ZeD's own settings. %1 is the choice it starts on | 24 |
-| `UI_ZeD_Options_Defaults` | `Defaults` | Options screen, ZeD setup: strip button that puts every ZeD setting back on its default (waits for Apply) | 12 |
+| `UI_ZeD_Options_DefaultIs` | `Default: %1` | (existing) | - |
+| `UI_ZeD_Options_Defaults` | `Defaults` | (existing) | - |
 | `UI_ZeD_Options_Discard` | `Discard` | Options screen: strip button, footer prompt: throw the changes away | 12 |
 | `UI_ZeD_Options_Find` | `Find:` | Options screen: label of the search box over the page list | 10 |
 | `UI_ZeD_Options_FirstRunNote` | `First time with ZeD: these set the game up for ZeD's look. Change what you like, then Apply. They stay here, and each game setting is in its own group too.` | Options screen: note on top of ZeD setup the first time the game starts with ZeD | - |
@@ -1868,14 +1868,15 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_GroupInterface` | `Interface` | Options screen (groups): page list entry | 22 |
 | `UI_ZeD_Options_GroupZed` | `ZeD setup` | Options screen (groups): page list entry: ZeD's own settings and the game settings its look depends on | 22 |
 | `UI_ZeD_Options_HeadGameSettings` | `Game settings ZeD uses` | Options screen (groups): section heading in ZeD setup over the game's settings that ZeD depends on (shown in caps) | - |
+| `UI_ZeD_Options_HeadLook` | `ZeD's look` | Options screen (groups): section heading in ZeD setup over ZeD's own settings (shown in caps) | - |
 | `UI_ZeD_Options_HelpDeadzone` | `How far a stick must move before the game counts it, for the controller picked under Test Controller.` | Options screen: help band for the deadzone row | - |
 | `UI_ZeD_Options_HelpKey` | `Click the key, then press the new one (or a mouse button).` | Options screen: help band under the list while a key binding row is under the pointer | - |
 | `UI_ZeD_Options_HelpSpecial` | `The button map editor and the controller test open on vanilla's controller page.` | Options screen: help band for the controller setup row | - |
 | `UI_ZeD_Options_KeepEditing` | `Keep editing` | Options screen: strip button that stays in Options | 16 |
 | `UI_ZeD_Options_KeyDefault` | `Default` | Options screen: strip button that gives the action its default key | 12 |
-| `UI_ZeD_Options_MoodlesBottom` | `Above the belt` | Options screen, ZeD setup: short choice on the Moodles switch (a row above the belt) | 16 |
-| `UI_ZeD_Options_MoodlesLeft` | `Left` | Options screen, ZeD setup: short choice on the Moodles switch (down the left edge) | 10 |
-| `UI_ZeD_Options_MoodlesRight` | `Right` | Options screen, ZeD setup: short choice on the Moodles switch (under the watch, where the game puts them) | 10 |
+| `UI_ZeD_Options_MoodlesBottom` | `Above the belt` | (existing) | - |
+| `UI_ZeD_Options_MoodlesLeft` | `Left` | (existing) | - |
+| `UI_ZeD_Options_MoodlesRight` | `Right` | (existing) | - |
 | `UI_ZeD_Options_MootClockFormat` | `The watch shows the day of the month only.` | Options screen (groups): reason for the Clock format setting | - |
 | `UI_ZeD_Options_MootClockSize` | `The watch shows the time; the game's clock is put away.` | Options screen (groups): reason for the Clock size setting | - |
 | `UI_ZeD_Options_MootContainerSize` | `ZeD's windows have their own container column.` | Options screen (groups): reason for the Inventory container size setting | - |
@@ -1900,8 +1901,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_PromptChange` | `Change` | Controller prompt in the footer of the Options, Sandbox and Character screens: left/right changes the value | 10 |
 | `UI_ZeD_Options_PromptPage` | `Page` | Controller prompt for the bumpers, which switch pages | 10 |
 | `UI_ZeD_Options_PromptToggle` | `Toggle` | Controller prompt (A button) on a tick box row | 10 |
-| `UI_ZeD_Options_SameAsAccent` | `Same as Accent` | Options screen, ZeD setup: button after the nine accent swatches of the Character / World window accent; the window uses the Accent color | 16 |
-| `UI_ZeD_Options_ScaleAutoNow` | `Auto (%1 here)` | Options screen, ZeD setup: beside the UI scale slider when Auto is picked. %1 is the size Auto picks on this screen, such as 2x | 18 |
+| `UI_ZeD_Options_SameAsAccent` | `Same as Accent` | (existing) | - |
+| `UI_ZeD_Options_ScaleAutoNow` | `Auto (%1 here)` | (existing) | - |
 | `UI_ZeD_Options_SecColors` | `Colors` | Options screen (groups): section heading inside a page (shown in caps) | - |
 | `UI_ZeD_Options_SecEffects` | `Effects` | Options screen (groups): section heading inside a page (shown in caps) | - |
 | `UI_ZeD_Options_SecHighlights` | `Highlights` | Options screen (groups): section heading inside a page (shown in caps) | - |
@@ -1919,17 +1920,17 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_TakeIt` | `Take it` | Options screen: strip button that takes the key from the other action | 12 |
 | `UI_ZeD_Options_Title` | `Project Zomboid  +  Options` | Options screen: title bar. The + is the ZeD title separator | - |
 | `UI_ZeD_Options_Toggles` | `Toggles` | Options screen: section heading over the key binding toggles (shown in caps) | - |
-| `UI_ZeD_Options_UnderSafeMode` | `The game's own interface` | Options screen, ZeD setup: small line under the Safe mode switch | 30 |
+| `UI_ZeD_Options_UnderSafeMode` | `The game's own interface` | (existing) | - |
 | `UI_ZeD_Options_WhyFontSize` | `ZeD's windows grow with the game's font size.` | Options screen (groups): help band for the copy of the Font size setting in ZeD setup | - |
 | `UI_ZeD_Options_WhyMoodleSize` | `ZeD places the moodles and sizes its moodle row from it.` | Options screen (groups): help band for the copy of the Moodle size setting in ZeD setup | - |
 | `UI_ZeD_Options_WhyTooltipFont` | `ZeD's tooltips and the item tooltip's facts are sized by it.` | Options screen (groups): help band for the copy of the Tooltip font setting in ZeD setup | - |
 | `UI_ZeD_Options_WhyVideoEffects` | `The New wallpaper plays only with it on.` | Options screen (groups): help band for the copy of the Video effects setting in ZeD setup | - |
 | `UI_ZeD_Options_WhyWatch` | `The watch reads it.` | Options screen (groups): help band for the copies of the clock and temperature settings in ZeD setup | - |
-| `UI_ZeD_Options_ZedControls` | `Controls` | Options screen, ZeD setup: section heading over the context menu, button prompt and input mode settings (shown in caps) | - |
-| `UI_ZeD_Options_ZedHud` | `HUD` | Options screen, ZeD setup: section heading over the moodles, watch and action bar settings (shown in caps) | - |
-| `UI_ZeD_Options_ZedLook` | `Look` | Options screen, ZeD setup: section heading over theme, accent, text size and UI scale (shown in caps) | - |
-| `UI_ZeD_Options_ZedTrouble` | `Troubleshooting` | Options screen, ZeD setup: section heading over Safe mode and the test language (shown in caps) | - |
-| `UI_ZeD_Options_ZedWindows` | `Windows` | Options screen, ZeD setup: section heading over the inventory and equipment views and the window accents (shown in caps) | - |
+| `UI_ZeD_Options_ZedControls` | `Controls` | (existing) | - |
+| `UI_ZeD_Options_ZedHud` | `HUD` | (existing) | - |
+| `UI_ZeD_Options_ZedLook` | `Look` | (existing) | - |
+| `UI_ZeD_Options_ZedTrouble` | `Troubleshooting` | (existing) | - |
+| `UI_ZeD_Options_ZedWindows` | `Windows` | (existing) | - |
 
 ## Papers
 
@@ -2292,7 +2293,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_MoodlesTip` | `Where the moodles sit. Right: under the watch, where vanilla puts them. Left: down the left edge, below the windows. Bottom: a row above the belt (above the dashboard in a car).` | Options > Mods > ZeD-GUI: hover help of the moodle placement setting | - |
 | `UI_ZeD_Settings_SafeMode` | `Safe mode` | Options > Mods > ZeD-GUI: name of the safe mode setting | - |
 | `UI_ZeD_Settings_SafeModeOn` | `On: the game's own interface` | Options > Mods > ZeD-GUI: second choice of the Safe mode setting | - |
-| `UI_ZeD_Settings_SafeModeTip` | `On: ZeD-GUI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD-GUI ever fails to open. ZeD-GUI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_SafeModeTip` | `On: ZeD UI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD UI ever fails to open. ZeD UI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_SameAsAccent` | `Same as Accent color` | Options > Mods > ZeD-GUI: last choice of the two window accent settings | - |
 | `UI_ZeD_Settings_ScaleAuto` | `Auto (fits the screen)` | Options > Mods > ZeD-GUI: first choice of the UI scale setting (the other choices are numbers like 1.5x). Do not use a % sign | - |
 | `UI_ZeD_Settings_TestLanguage` | `Test language (stretched text)` | Options > Mods > ZeD-GUI: name of the test language setting | - |
@@ -2300,7 +2301,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_TextSize` | `Text size` | Options > Mods > ZeD-GUI: name of the text size setting | - |
 | `UI_ZeD_Settings_TextSizeTip` | `Controls font sizes and component dimensions.` | Options > Mods > ZeD-GUI: hover help of the text size setting | - |
 | `UI_ZeD_Settings_UiScale` | `UI scale` | Options > Mods > ZeD-GUI: name of the UI scale setting | - |
-| `UI_ZeD_Settings_UiScaleTip` | `Auto sizes all of ZeD-GUI to your screen: 1x at 1080p, 2x at 4K. Pick a fixed size to override it (1x is the 1080p size).` | Options > Mods > ZeD-GUI: hover help of the UI scale setting | - |
+| `UI_ZeD_Settings_UiScaleTip` | `Auto sizes the whole ZeD UI to your screen: 1x at 1080p, 2x at 4K. Pick a fixed size to override it (1x is the 1080p size).` | Options > Mods > ZeD-GUI: hover help of the UI scale setting | - |
 | `UI_ZeD_Settings_ViewDoll` | `Doll` | Options > Mods > ZeD-GUI: choice of the Equipped items setting: the character figure | - |
 | `UI_ZeD_Settings_ViewGrid` | `Grid` | Options > Mods > ZeD-GUI: choice of the Inventory setting: a grid of icons | - |
 | `UI_ZeD_Settings_ViewList` | `List` | Options > Mods > ZeD-GUI: choice of the Equipped items, Inventory and Context menu settings | - |
