@@ -59,7 +59,7 @@ I send the Workshop link by direct message.
 Thanks for testing ZeD-GUI. The test build is here: https://steamcommunity.com/sharedfiles/filedetails/?id=3824968485
 
 1. Open the link while signed in to Steam and press Subscribe.
-2. Start Project Zomboid (Build 42). Main menu, Mods: turn on ZeD-GUI.
+2. Start Project Zomboid (Build 42). Main menu, Mods: turn on ZeD-GUI. Then quit the game and start it again: ZeD-GUI loads its fonts when the game starts.
 3. Start a new game, or play a copy of a save.
 4. Report problems in the pinned Bug reports discussion on the Workshop page. Include the version (0.2.0-t1), your mod list, what you did, what you expected and what happened, and your console.txt (C:\Users\(you)\Zomboid\console.txt on Windows). The game replaces console.txt each time it starts, so copy it before you restart.
 5. If ZeD-GUI stops you from playing, turn on Options, ZeD setup, Safe mode, and say so in your report.
