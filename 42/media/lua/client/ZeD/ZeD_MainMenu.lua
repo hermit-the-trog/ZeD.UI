@@ -1397,13 +1397,18 @@ end
 local function isEntry(c)
     return c.javaObject ~= nil and c.getInternalText ~= nil and c.setMultipleLine ~= nil
 end
+-- (only a field that is drawn: visible all the way up, inside its window, and inside every
+-- parent it sits in; a field parked off a scrolled pane or under a hidden parent never answers)
 local function entryAt(p, mx, my)
     if not (p and p.children) then return nil end
     for _, c in pairs(p.children) do
         if c and c.javaObject and c:isVisible() then
             local cx, cy = c:getAbsoluteX(), c:getAbsoluteY()
             if mx >= cx and mx < cx + c.width and my >= cy and my < cy + c.height then
-                if isEntry(c) then return c end
+                if isEntry(c) then
+                    if c:isReallyVisible() then return c end
+                    return nil
+                end
                 local inner = entryAt(c, mx, my)
                 if inner then return inner end
             end

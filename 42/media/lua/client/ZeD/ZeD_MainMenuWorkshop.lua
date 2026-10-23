@@ -65,7 +65,9 @@ end
 
 function ZeD_MMWorkshop:onShow()
     self.confirm = false
-    if self._fromEditor then self._fromEditor = nil; self.focusId = nil; return end   -- (back from the description editor: the form stays as it was)
+    if self._fromEditor then   -- (back from the description editor: the form stays as it was; only the folder is read again)
+        self._fromEditor = nil; self.focusId = nil; self:checkContents(); return
+    end
     self.busy = nil
     self.note = nil
     self.scroll, self.fscroll = 0, 0
@@ -91,20 +93,64 @@ function ZeD_MMWorkshop:load()
     self.tags = {}
     if it then for _, t in ipairs(jlist(it:getTags())) do self.tags[tostring(t)] = true end end
     self.desc = it and tostring(it:getDescription() or "") or ""
-    self.contents = nil
-    self._preview = nil
-    if it then
-        local ok, err = pcall(function() return it:validateContents() end)
-        -- (Oct 22 2026: was `ok and (err or false) or tostring(err)`, which turns a clean folder's
-        -- false into the text "nil": every valid folder read "nil" under WHAT GOES UP and could not upload)
-        if ok then self.contents = err or false else self.contents = tostring(err) end
-        if self.contents and ok then   -- vanilla's own words for the code (UI_WorkshopError_*)
-            local extra = ""
-            pcall(function() extra = tostring(it:getExtendedErrorInfo(err) or "") end)
-            local words = getTextOrNull("UI_WorkshopError_" .. tostring(err), extra)
-            if words then self.contents = (words:gsub("\\n", " ")) end
+    self:checkContents()
+end
+
+-- The preview picture's texture, looked up again with each folder check instead of every frame.
+-- The game remembers a texture name that was not there, under that exact spelling, for the rest of
+-- the session (QA, Oct 23 2026: a preview.png added while the window was open stayed "no picture"),
+-- so a picture that is still missing is asked for under a fresh spelling of the same path
+-- (a "\.\" in it), a new name each time, up to PV_TRIES.
+local PV_TRIES = 120
+function ZeD_MMWorkshop:checkPreview(it)
+    self._pvTex = nil
+    local path = it and tostring(it:getPreviewImage() or "") or ""
+    if path == "" then return end
+    local tex = getTexture(path)
+    if not tex and self._pvAlias and self._pvFor == path then tex = getTexture(self._pvAlias) end   -- (the spelling that found it)
+    if not tex and (self._pvN or 0) < PV_TRIES then
+        self._pvN = (self._pvN or 0) + 1
+        local dir, file = path:match("^(.*[/\\])([^/\\]*)$")
+        if dir then
+            local alias = dir .. string.rep(".\\", self._pvN) .. file
+            tex = getTexture(alias)
+            if tex then self._pvAlias, self._pvFor = alias, path end
         end
     end
+    self._pvTex = tex
+end
+
+-- What goes up, read from the folder on disk (vanilla's validateContents). Touches nothing in the
+-- form: it runs on a pick and again whenever the folder may have changed (Oct 23 2026: a Contents
+-- folder made while the window was open kept reading "no Contents folder" until the item was
+-- picked again, and picking again reloads the form from the item and drops unsaved edits).
+function ZeD_MMWorkshop:checkContents()
+    local it = self:item()
+    self:checkPreview(it)
+    self.contents = nil
+    local t0 = MM.now()
+    self._checkAt = t0
+    if not it then return end
+    local ok, err = pcall(function() return it:validateContents() end)
+    self._checkCost = MM.now() - t0   -- (a big Contents folder takes longer to walk: the timer backs off)
+    -- (Oct 22 2026: was `ok and (err or false) or tostring(err)`, which turns a clean folder's
+    -- false into the text "nil": every valid folder read "nil" under WHAT GOES UP and could not upload)
+    if ok then self.contents = err or false else self.contents = tostring(err) end
+    if self.contents and ok then   -- vanilla's own words for the code (UI_WorkshopError_*)
+        local extra = ""
+        pcall(function() extra = tostring(it:getExtendedErrorInfo(err) or "") end)
+        local words = getTextOrNull("UI_WorkshopError_" .. tostring(err), extra)
+        if words then self.contents = (words:gsub("\\n", " ")) end
+    end
+end
+
+-- every couple of seconds while the window shows (it only updates while visible), and not
+-- during an upload: the folder is read, nothing else
+local RECHECK_MS = 2000
+function ZeD_MMWorkshop:update()
+    ZeD_MMWindow.update(self)
+    if self.busy or not self:isVisible() then return end
+    if MM.now() - (self._checkAt or 0) >= math.max(RECHECK_MS, (self._checkCost or 0) * 100) then self:checkContents() end
 end
 
 -- the form onto the item (in memory; SAVE writes it)
@@ -143,7 +189,17 @@ function ZeD_MMWorkshop:save()
         self.unsaved[it:getFolderName()] = nil
         self:say(ZeD.tr("UI_ZeD_Workshop_Saved", it:getFolderName()))
     else self:say(ZeD.tr("UI_ZeD_Workshop_SaveFailed"), true) end
+    self:checkContents()
     MM.clickSound()
+end
+
+-- the folder read again right before the question and before the send; a block is shown as a
+-- note and nothing goes up (the form is not touched)
+function ZeD_MMWorkshop:freshOk()
+    self:checkContents()
+    local block = self:blocker()
+    if block then self:say(block, true); return false end
+    return true
 end
 
 function ZeD_MMWorkshop:pick(i)
@@ -194,6 +250,7 @@ function ZeD_MMWorkshop:upload()
     local it = self:item()
     if not it or self.busy then return end
     self.confirm = false
+    if not self:freshOk() then return end
     self:apply()
     pcall(function() it:writeWorkshopTxt() end)
     self.unsaved[it:getFolderName()] = nil
@@ -443,7 +500,7 @@ function ZeD_MMWorkshop:formTop(it, ix, iw, cy)
     -- PREVIEW PICTURE
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelPreview"), ix, cy, T.px(20))
     local path = tostring(it:getPreviewImage() or "")
-    local tex = (path ~= "") and getTexture(path) or nil
+    local tex = (path ~= "") and self._pvTex or nil   -- (looked up with each folder check)
     local tsz = T.px(THUMB)
     local bs = T.borderS
     if tex then self:drawTextureScaledAspect(tex, vx, cy, tsz, tsz, 1, 1, 1, 1) end
@@ -558,7 +615,7 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
         if it then block = self:blocker() else block = ZeD.tr("UI_ZeD_Workshop_NothingToUpload") end
         local rights = {
             { "save", getText("UI_btn_save"), function() self:save() end, "default", not self:isUnsaved() },
-            { "upload", ZeD.tr((it and it:getID()) and "UI_ZeD_Workshop_UploadUpdate" or "UI_ZeD_Workshop_Upload"), function() self:setConfirm("upload") end, "primary", block ~= nil },
+            { "upload", ZeD.tr((it and it:getID()) and "UI_ZeD_Workshop_UploadUpdate" or "UI_ZeD_Workshop_Upload"), function() if self:freshOk() then self:setConfirm("upload") end end, "primary", block ~= nil },
         }
         local askX = UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end } }, rights)
         if block and it then
