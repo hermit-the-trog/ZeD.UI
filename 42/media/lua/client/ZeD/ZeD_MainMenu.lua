@@ -1387,6 +1387,63 @@ function ZeD_MMGlass:new()
     return o
 end
 
+-- A press on a text field goes through the glass to the field itself (Oct 22 2026). The glass
+-- sits over every window and took every press, so a field took the keys only where its window
+-- had laid a hit box that focuses it; the description editor and the Workshop form had none, and
+-- typing went nowhere. Now the field answers the press the way the game's own fields do: it takes
+-- the keys, puts the caret where it was pressed and selects with a drag. Everything else stays on
+-- the glass for ZeD's hit boxes, and so does a press on a field that some other box covers (a
+-- pop-up drawn over it, an open menu).
+local function isEntry(c)
+    return c.javaObject ~= nil and c.getInternalText ~= nil and c.setMultipleLine ~= nil
+end
+local function entryAt(p, mx, my)
+    if not (p and p.children) then return nil end
+    for _, c in pairs(p.children) do
+        if c and c.javaObject and c:isVisible() then
+            local cx, cy = c:getAbsoluteX(), c:getAbsoluteY()
+            if mx >= cx and mx < cx + c.width and my >= cy and my < cy + c.height then
+                if isEntry(c) then return c end
+                local inner = entryAt(c, mx, my)
+                if inner then return inner end
+            end
+        end
+    end
+    return nil
+end
+function MM.entryUnder(mx, my)
+    if MM.ctx.open or MM.waking or MM.powerOff or MM.poweringOn() or blocked() then return nil end
+    local w = MM.activeWindow()
+    if not (w and w:isVisible()) then return nil end
+    local e = entryAt(w, mx, my)
+    if not e then return nil end
+    local h = hitAt({ w }, mx, my)
+    if h then   -- (a box of the field's own, one that focuses it, lets the press through)
+        local ex, ey = e:getAbsoluteX(), e:getAbsoluteY()
+        if h.x < ex - 1 or h.y < ey - 1 or h.x + h.w > ex + e.width + 1 or h.y + h.h > ey + e.height + 1 then return nil end
+    end
+    return e
+end
+function ZeD_MMGlass:onMouseDown(x, y)
+    if MM.entryUnder(self:getAbsoluteX() + x, self:getAbsoluteY() + y) then return false end
+    return true
+end
+
+-- Leaving a window lets go of its fields: a field stays focused while hidden, and the next window's
+-- keys would type into it (the Workshop's title behind the description editor).
+function MM.unfocusEntries(p)
+    if not (p and p.children) then return end
+    for _, c in pairs(p.children) do
+        if c and c.javaObject then
+            if isEntry(c) then
+                if c:isFocused() then c:unfocus() end
+            else
+                MM.unfocusEntries(c)
+            end
+        end
+    end
+end
+
 -- QA (the click audit, Oct 15 2026): MM.debugHits = true outlines every click area of the
 -- desk, the menu bar, the pull-down and the view's window (magenta; disabled ones grey)
 -- and each window's close box (cyan), so a screenshot shows what answers where.
@@ -1980,9 +2037,11 @@ end
 function MM.showView(view, joypadData)
     local m = ms()
     if not m then return end
+    local was = MM.activeWindow()
     MM.view = view
     MM.ctx.open, MM.ctx.hot, MM.ctx.press = nil, nil, nil
     local w = MM.activeWindow()
+    if was and was ~= w then MM.unfocusEntries(was) end
     if w and w.onShow then w:onShow() end
     if not m.bottomPanel:isVisible() then m.bottomPanel:setVisible(true) end
     local jd = joypadData or (JoypadState and JoypadState.getMainMenuJoypad and JoypadState.getMainMenuJoypad())

@@ -377,15 +377,16 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
         elseif by + bodyH > y and by < y + h then
             BB.drawBlock(self, b, cx + pad, by, bodyW)
         end
-        -- the card answers a click and the controller (A types in it)
+        -- the card answers a click and the controller (A types in it); a click on a card also
+        -- puts the keys in its field, so typing goes straight into the block that was picked
         local cid = "card:" .. i
         self._specs[#self._specs + 1] = { id = cid, listRow = true, x = cx, y = cy, w = cw, h = T.px(HEAD_H) + pad, clipTop = self._cv.y, clipBot = self._cv.y + self._cv.h,
                                           fn = function() self:select(i); self.edit:focus() end, chosen = isSel }
         local vy0, vy1 = math.max(cy, y), math.min(cy + hh, y + h)
         if vy1 > vy0 and not (isSel and editShown) then
-            self._hits[#self._hits + 1] = { id = "wsd:card:" .. i, x = ax + cx, y = ay + vy0, w = cw, h = vy1 - vy0, fn = function() self:select(i); self.focusId = cid end }
-        elseif vy1 > vy0 then   -- (the picked card: its head only; the entry takes its own clicks)
-            self._hits[#self._hits + 1] = { id = "wsd:card:" .. i, x = ax + cx, y = ay + vy0, w = cw, h = math.max(0, math.min(by, vy1) - vy0), fn = function() self.focusId = cid end }
+            self._hits[#self._hits + 1] = { id = "wsd:card:" .. i, x = ax + cx, y = ay + vy0, w = cw, h = vy1 - vy0, fn = function() self:select(i); self.focusId = cid; self.edit:focus() end }
+        elseif vy1 > vy0 then   -- (the picked card: its head only; the press on the field goes through the glass to it, MM.entryUnder)
+            self._hits[#self._hits + 1] = { id = "wsd:card:" .. i, x = ax + cx, y = ay + vy0, w = cw, h = math.max(0, math.min(by, vy1) - vy0), fn = function() self.focusId = cid; self.edit:focus() end }
         end
         cy = cy + hh + T.px(CARD_GAP)
     end
