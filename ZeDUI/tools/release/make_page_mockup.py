@@ -182,7 +182,7 @@ h2.sec { font-family:var(--cond); font-weight:600; font-size:18px; color:var(--h
 </head>
 <body>
 <div class="wrap">
-<div class="banner">ZeD-GUI · Steam Workshop · the item page, laid out · v3</div>
+<div class="banner">ZeD-GUI | Steam Workshop | the item page, laid out | v3</div>
 <h1 class="t">Workshop page, with the real gallery</h1>
 <p class="lede">The page as a subscriber will see it, in an approximation of Steam's frame. <b>Gallery:</b> the cards Code built, in the
 order of shots.json (v4: the Fossoil story). <b>Description:</b> the current text with a title plate, a plate for each section and eight of the cards placed where the
@@ -216,7 +216,7 @@ the tester build's text. Click any picture to see it full size.</p>
         <div><span class="k">File size</span><span class="v">(after upload)</span></div>
         <div><span class="k">Posted</span><span class="v">(first upload)</span></div>
         <div><span class="k">Updated</span><span class="v">(each upload, with a change note)</span></div>
-        <div><span class="k">Tags</span><span class="v" style="color:#66c0f4">Build 42 · Interface</span></div>
+        <div><span class="k">Tags</span><span class="v" style="color:#66c0f4">Build 42 | Interface</span></div>
         <div><span class="k">Created by</span><span class="v">Hermit</span></div>
       </div>
       <div class="side">
