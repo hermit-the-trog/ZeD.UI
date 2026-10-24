@@ -345,6 +345,67 @@ function ZeD.InventoryRenderer.setGridKey(key, on)
     if s then s[key] = on and true or false end   -- (false: this one a list, whatever the option says)
 end
 
+-- ---------------------------------------------------------------------------
+-- The controller's L3 / R3 in a window (Oct 23 2026, GAMEPAD_SPEC; Hard Rule
+-- #11 as amended: view-only, only while a window holds the pad). The list the
+-- pad is on (a multi-container column, else the window's list), else the
+-- window's list on show.
+-- ---------------------------------------------------------------------------
+local function padList(win)
+    local cnt = win and win._mainContent
+    if not cnt then return nil end
+    local F = ZeD.Input and ZeD.Input.Focus
+    local el = F and F.getFocusedElement and F.getFocusedElement(win)
+    local colIdx = el and el.colIdx
+    local cs = colIdx and cnt._colStates and cnt._colStates[colIdx] or nil
+    return cnt, cs
+end
+
+-- L3: the next sort column (Name, Category, Condition, Weight, round again), A-Z first
+function ZeD.InventoryRenderer.padSort(win)
+    local cnt, cs = padList(win)
+    if not cnt then return false end
+    local cur = (cs and cs.sortCol) or cnt._sortCol or "name"
+    local i = 1
+    for k, c in ipairs(SORT_COLS) do if c == cur then i = k end end
+    local nxt = SORT_COLS[i % #SORT_COLS + 1]
+    if cs then
+        cs.sortCol, cs.sortAsc = nxt, true
+        if cs.scroll then cs.scroll:setScrollPos(0) end
+    else
+        cnt._sortCol, cnt._sortAsc = nxt, true
+        if cnt._scroll then cnt._scroll:setScrollPos(0) end
+    end
+    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    return true
+end
+
+-- R3: the container on show between List and Grid (its own List | Grid toggle's choice)
+function ZeD.InventoryRenderer.padView(win)
+    local cnt, cs = padList(win)
+    if not cnt then return false end
+    local idx = (cs and cs.containerIdx) or win._viewedContainer or win._activeContainer
+    local c = idx and win._containers and win._containers[idx]
+    local playerObj = win._playerObj or getSpecificPlayer(0)
+    local key = c and c.inventory and containerKey(c.inventory, playerObj)
+    if not key then return false end
+    ZeD.InventoryRenderer.setGridKey(key, not ZeD.InventoryRenderer.isGridKey(key))
+    pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+    return true
+end
+
+-- the footer's words for the two, where the pad is in a list: L3 sorts, R3 shows what it switches to
+function ZeD.InventoryRenderer.padPrompts(win)
+    local cnt, cs = padList(win)
+    if not cnt then return nil end
+    local idx = (cs and cs.containerIdx) or win._viewedContainer or win._activeContainer
+    local c = idx and win._containers and win._containers[idx]
+    local key = c and c.inventory and containerKey(c.inventory, win._playerObj or getSpecificPlayer(0))
+    local grid = key and ZeD.InventoryRenderer.isGridKey(key)
+    return { { glyph = "L3", label = ZeD.tr("UI_ZeD_Prompt_Sort") },
+             { glyph = "R3", label = ZeD.tr(grid and "UI_ZeD_Settings_ViewList" or "UI_ZeD_Settings_ViewGrid") } }
+end
+
 -- a toggle zone was clicked: "view:list:<key>" / "view:grid:<key>"
 function ZeD.InventoryRenderer.onViewZone(zid)
     local view, key = tostring(zid):match("^view:(%a+):(.*)$")

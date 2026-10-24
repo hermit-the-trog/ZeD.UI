@@ -17,7 +17,8 @@
 | LB · RB | Character · World | — | Absolute, not toggle. Both windows always open as a pair on gamepad. With no window focused, LB+RB chord = combat zoom (hold one, tap the other). |
 | Back / View | Layout mode | — | Modal toggle on the focused window. |
 | Right stick | Aim | mouse look | Magnitude past threshold hides the pair and returns to gameplay. |
-| L3 · R3 | **never bound** | — | Hard Rule #11. |
+| L3 | Sort (in a window) | the column headers | Only while a ZeD window has the pad: steps the focused list's sort (name, category, condition, weight). Never bound in the world. Hard Rule #11 as amended Oct 23 2026: view-only toggles inside windows. |
+| R3 | List / Grid (in a window) | the column's List \| Grid toggle | Only while a ZeD window has the pad: flips the focused container's view. Never bound in the world (aiming already hides the windows). Hard Rule #11 as amended. |
 
 ## Focus rules
 
@@ -32,6 +33,10 @@
 ## Chords
 
 Allowed where the result is predictable and both halves already mean something on their own. Shipped: LB+RB zoom (no window focused); X-hold + D-pad drag. Candidates: none locked — propose in a brainstorm session, not in code.
+
+## D-pad wheels
+
+With no window holding the pad (in the world), each D-pad direction holds open a wheel: Left Character, Right World, Up Social, Down Here and now; Select holds open the ZeD wheel (theme, accent, text size, UI scale, moodles, action bar, reset windows, ZeD setup, safe mode). Point with the right stick, let go to take; inner wheels open in place, A takes, B backs out. With a window holding the pad the D-pad stays the window's (nothing above changes). Paused: only Here and now and ZeD open. The whole design is DPAD_WHEELS_SPEC.md; the code is `ZeD_DpadWheels.lua`; QA `zedqa_dpad_wheels.lua`.
 
 ## What "parity" means for QA
 

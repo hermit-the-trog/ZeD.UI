@@ -2039,6 +2039,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Prompt_Reset` | `Reset` | Controller button legend, X prompt on a control that resets | 12 |
 | `UI_ZeD_Prompt_Search` | `Search` | Controller button legend, A prompt on the forage stance control | 12 |
 | `UI_ZeD_Prompt_Select` | `Select` | Controller button legend, A prompt on a control with no more specific word | 12 |
+| `UI_ZeD_Prompt_Sort` | `Sort` | Window footer prompt beside L3: step the sort of the list the controller is on | 10 |
 | `UI_ZeD_Prompt_Start` | `Start` | Controller button legend, A prompt on an exercise | 12 |
 | `UI_ZeD_Prompt_Switch` | `Switch` | Controller button legend, A prompt on a sub-tab switch | 12 |
 | `UI_ZeD_Prompt_Tool` | `Tool` | Controller button legend, A prompt on a map tool | 12 |
@@ -2628,6 +2629,109 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
+| `UI_ZeD_Wheel_Animal` | `Animal` | D-pad wheels: World wheel slice: the animal wheel | 12 |
+| `UI_ZeD_Wheel_AutoWalk` | `Auto-walk` | D-pad wheels: Here and now slice: auto-walk on / off | 12 |
+| `UI_ZeD_Wheel_AutoZoom` | `Auto zoom is on in Options.` | D-pad wheels: Reason on the zoom slices | 32 |
+| `UI_ZeD_Wheel_BeltSlot` | `Belt, slot %1` | D-pad wheels: Second line of a weapon slice: on the belt; %1 = slot number | 20 |
+| `UI_ZeD_Wheel_Character` | `Character` | D-pad wheels: Name of the D-pad Left wheel (breadcrumb under the ring) | 16 |
+| `UI_ZeD_Wheel_CharacterWindow` | `Character window` | D-pad wheels: Second line of the Character wheel's Tabs slice | 24 |
+| `UI_ZeD_Wheel_Chat` | `Chat` | D-pad wheels: Social wheel slice: type in the server chat | 12 |
+| `UI_ZeD_Wheel_ChatDetail` | `Type with a keyboard` | D-pad wheels: Second line of Chat | 24 |
+| `UI_ZeD_Wheel_Clothing` | `Clothing` | D-pad wheels: Character wheel slice: hood, mask, glasses and the like | 16 |
+| `UI_ZeD_Wheel_ComingLater` | `Coming later.` | D-pad wheels: Reason on a wheel slice that is not built yet | 30 |
+| `UI_ZeD_Wheel_ControllerMap` | `Controller map` | D-pad wheels: Help slice: what every button does (not built yet) | 20 |
+| `UI_ZeD_Wheel_CraftBuild` | `Craft and build` | D-pad wheels: World wheel slice: crafting, building, furniture | 20 |
+| `UI_ZeD_Wheel_Crouch` | `Crouch` | D-pad wheels: Here and now slice: crouch on / off | 12 |
+| `UI_ZeD_Wheel_EveryRadio` | `Every radio you carry` | D-pad wheels: Second line of the Radio tab slice | 24 |
+| `UI_ZeD_Wheel_EveryWound` | `Every wound` | D-pad wheels: Second line of the Health tab slice in Medicine and first aid | 20 |
+| `UI_ZeD_Wheel_EverythingYouWear` | `Everything you wear` | D-pad wheels: Second line of the Equipment tab slice in Clothing | 24 |
+| `UI_ZeD_Wheel_FireCard` | `Choose how on the fire's card` | D-pad wheels: Second line of Light fire: it opens the fire's card | 32 |
+| `UI_ZeD_Wheel_FireLit` | `Burning` | D-pad wheels: Second line of Put out fire | 16 |
+| `UI_ZeD_Wheel_GameSpeed` | `Game speed` | D-pad wheels: Here and now slice: pause, play, fast forward | 16 |
+| `UI_ZeD_Wheel_GetUp` | `Get up` | D-pad wheels: Sit wheel slice while sitting | 12 |
+| `UI_ZeD_Wheel_GlyphSelect` | `SELECT` | D-pad wheels: The Select (View / Share) button's name in a button prompt box | 8 |
+| `UI_ZeD_Wheel_HandsAlreadyFree` | `Your hands are already free.` | D-pad wheels: Reason: nothing in either hand | 34 |
+| `UI_ZeD_Wheel_HandsFree` | `Hands free` | D-pad wheels: Weapons wheel slice: put away what both hands hold | 16 |
+| `UI_ZeD_Wheel_HandsFreeDetail` | `Put both hands' things away` | D-pad wheels: Second line of Hands free | 30 |
+| `UI_ZeD_Wheel_Help` | `Help` | D-pad wheels: Here and now slice: survival guide, controller map | 12 |
+| `UI_ZeD_Wheel_HereNow` | `Here and now` | D-pad wheels: Name of the D-pad Down wheel (breadcrumb) | 20 |
+| `UI_ZeD_Wheel_HideInterface` | `Hide the interface` | D-pad wheels: View slice: hide every window and HUD piece | 24 |
+| `UI_ZeD_Wheel_HideInterfaceDetail` | `Until you take this again` | D-pad wheels: Second line of Hide the interface | 28 |
+| `UI_ZeD_Wheel_InUse` | `In use` | D-pad wheels: Second line of a wheel slice: the choice in use now | 16 |
+| `UI_ZeD_Wheel_InVehicle` | `In a vehicle.` | D-pad wheels: Reason on Sit, Crouch and Auto-walk while seated in a vehicle | 24 |
+| `UI_ZeD_Wheel_InYourHands` | `In your hands` | D-pad wheels: Second line of a weapon slice: already held | 20 |
+| `UI_ZeD_Wheel_Light` | `Light` | D-pad wheels: Here and now slice when you carry no light | 12 |
+| `UI_ZeD_Wheel_LightsPower` | `Lights and power` | D-pad wheels: World wheel slice: room lights, generator, fire | 20 |
+| `UI_ZeD_Wheel_Map` | `Map` | D-pad wheels: World wheel slice: world map and mini-map | 12 |
+| `UI_ZeD_Wheel_Medicine` | `Medicine and first aid` | D-pad wheels: Character wheel slice: pills and wound treatments | 24 |
+| `UI_ZeD_Wheel_NextStation` | `Next station` | D-pad wheels: Radio wheel slice: tune to the next station | 16 |
+| `UI_ZeD_Wheel_NoAnimal` | `No tame animal in reach.` | D-pad wheels: Reason on the Animal slice | 30 |
+| `UI_ZeD_Wheel_NoFire` | `No fire nearby.` | D-pad wheels: Reason on the fire slice | 24 |
+| `UI_ZeD_Wheel_NoGenerator` | `No generator nearby.` | D-pad wheels: Reason on the Generator slice | 30 |
+| `UI_ZeD_Wheel_NoLight` | `No light on you.` | D-pad wheels: Reason on the Light slice | 24 |
+| `UI_ZeD_Wheel_NoLights` | `No lights or power in reach.` | D-pad wheels: Reason on the Lights and power slice | 34 |
+| `UI_ZeD_Wheel_NoMiniMap` | `The mini-map is off in this game.` | D-pad wheels: Reason: the sandbox turns the mini-map off | 40 |
+| `UI_ZeD_Wheel_NoRadioInReach` | `No radio in reach.` | D-pad wheels: Reason on the World window's Radio tab slice | 30 |
+| `UI_ZeD_Wheel_NoRadioOnYou` | `No radio in your hands or on your back.` | D-pad wheels: Reason on the Radio slice and tab | 44 |
+| `UI_ZeD_Wheel_NoSafetyHere` | `This server has no safety system.` | D-pad wheels: Reason on Safety | 40 |
+| `UI_ZeD_Wheel_NoSeat` | `No seat in reach.` | D-pad wheels: Reason on Sit on a seat | 24 |
+| `UI_ZeD_Wheel_NoSleepHere` | `This server does not allow sleeping.` | D-pad wheels: Reason on the Sleep slice on a server without sleep | 40 |
+| `UI_ZeD_Wheel_NoSwitch` | `No light switch in reach.` | D-pad wheels: Reason on Room lights | 30 |
+| `UI_ZeD_Wheel_NoVehicle` | `No vehicle in reach.` | D-pad wheels: Reason on the Vehicle slice | 30 |
+| `UI_ZeD_Wheel_NoWatch` | `No watch on your wrist.` | D-pad wheels: Reason on the Watch slice | 30 |
+| `UI_ZeD_Wheel_NoWeapon` | `No weapon on you.` | D-pad wheels: Reason: no weapon to equip | 30 |
+| `UI_ZeD_Wheel_NoWorldMap` | `The world map is off in this game.` | D-pad wheels: Reason: the sandbox turns the world map off | 40 |
+| `UI_ZeD_Wheel_NotNow` | `Not now.` | D-pad wheels: Reason on a wheel slice that cannot be used right now | 30 |
+| `UI_ZeD_Wheel_NothingFound` | `Nothing found yet.` | D-pad wheels: Reason on Pick up: search mode has found nothing | 30 |
+| `UI_ZeD_Wheel_NothingToChange` | `Nothing you wear can change.` | D-pad wheels: Reason on the Clothing slice | 34 |
+| `UI_ZeD_Wheel_NothingToDrink` | `Nothing to drink on you.` | D-pad wheels: Reason on the Drink slice | 30 |
+| `UI_ZeD_Wheel_NothingToEat` | `Nothing to eat on you.` | D-pad wheels: Reason on the Eat slice | 30 |
+| `UI_ZeD_Wheel_NothingToRead` | `Nothing to read on you.` | D-pad wheels: Reason on the Read slice | 30 |
+| `UI_ZeD_Wheel_NothingToSmoke` | `Nothing to smoke, or nothing to light it.` | D-pad wheels: Reason on the Smoke slice | 44 |
+| `UI_ZeD_Wheel_NothingToTreat` | `Nothing to treat, no medicine on you.` | D-pad wheels: Reason on the Medicine and first aid slice | 40 |
+| `UI_ZeD_Wheel_OnTheBelt` | `On the belt` | D-pad wheels: Second line of a weapon slice: on the belt, slot unknown | 20 |
+| `UI_ZeD_Wheel_OpenWatch` | `Open the watch` | D-pad wheels: Watch wheel slice: show the full watch | 20 |
+| `UI_ZeD_Wheel_Players` | `Players` | D-pad wheels: Social wheel slice: who is on the server | 12 |
+| `UI_ZeD_Wheel_PlayersDetail` | `Who is on the server` | D-pad wheels: Second line of Players | 24 |
+| `UI_ZeD_Wheel_PromptClose` | `Close` | D-pad wheels: Prompt under a wheel: B closes it | 12 |
+| `UI_ZeD_Wheel_PromptHold` | `Hold` | D-pad wheels: Prompt under a wheel: hold the D-pad direction | 12 |
+| `UI_ZeD_Wheel_PromptLetGo` | `Let go: take` | D-pad wheels: Prompt under a wheel: let go of the D-pad to take the pointed slice | 20 |
+| `UI_ZeD_Wheel_PromptPoint` | `Point` | D-pad wheels: Prompt under a wheel: point with the right stick | 12 |
+| `UI_ZeD_Wheel_PromptTake` | `Take` | D-pad wheels: Prompt under an inner wheel: A takes the pointed slice | 12 |
+| `UI_ZeD_Wheel_RadioIsOff` | `The radio is off.` | D-pad wheels: Reason on Next station | 24 |
+| `UI_ZeD_Wheel_ResetWindows` | `Reset windows` | D-pad wheels: Slice: both windows back to their default places (the footer's R) | 20 |
+| `UI_ZeD_Wheel_ResetWindowsDetail` | `Both windows, as the footer's R` | D-pad wheels: Second line of Reset windows | 32 |
+| `UI_ZeD_Wheel_RoomLights` | `Room lights` | D-pad wheels: Lights and power slice: the room's light switch | 16 |
+| `UI_ZeD_Wheel_SafeModeAsk` | `Turn on safe mode? ZeD-GUI steps aside and the game's own interface comes back. To turn it off again: Options, ZeD setup, Safe mode.` | D-pad wheels: Prompt before the ZeD wheel turns safe mode on | 160 |
+| `UI_ZeD_Wheel_SafeModeDetail` | `The game's own interface` | D-pad wheels: Second line of the Safe mode slice | 28 |
+| `UI_ZeD_Wheel_Safety` | `Safety` | D-pad wheels: Social wheel slice: the safety against other players | 12 |
+| `UI_ZeD_Wheel_SafetyWait` | `Wait: safety can't change yet.` | D-pad wheels: Reason on Safety during its countdown | 34 |
+| `UI_ZeD_Wheel_Search` | `Search` | D-pad wheels: World wheel slice: search mode, investigate, pick up | 12 |
+| `UI_ZeD_Wheel_ServerOnly` | `On a server only.` | D-pad wheels: Reason on a Social wheel slice in single player | 30 |
+| `UI_ZeD_Wheel_ServerTime` | `On a server the server sets the time.` | D-pad wheels: Reason on Game speed on a server | 40 |
+| `UI_ZeD_Wheel_ShowInterface` | `Show the interface` | D-pad wheels: View slice while the interface is hidden | 24 |
+| `UI_ZeD_Wheel_Sit` | `Sit` | D-pad wheels: Here and now slice: sit on the ground or a seat | 12 |
+| `UI_ZeD_Wheel_SitOn` | `Sit on: %1` | D-pad wheels: Sit wheel slice: the nearest seat; %1 = the seat's name | 30 |
+| `UI_ZeD_Wheel_SitOnSeat` | `Sit on a seat` | D-pad wheels: Sit wheel slice when no seat is near | 20 |
+| `UI_ZeD_Wheel_SleepInCar` | `In the car` | D-pad wheels: Second line of the Sleep slice when seated in a car | 20 |
+| `UI_ZeD_Wheel_Social` | `Social` | D-pad wheels: Name of the D-pad Up wheel (breadcrumb) | 16 |
+| `UI_ZeD_Wheel_Tabs` | `Tabs` | D-pad wheels: Wheel slice that opens a wheel of the window's tabs | 16 |
+| `UI_ZeD_Wheel_Use` | `Use` | D-pad wheels: Character wheel slice: smoke, read, watch, radio | 12 |
+| `UI_ZeD_Wheel_UseDetail` | `Smoke \| Read \| Watch \| Radio` | D-pad wheels: Second line of the Use slice (what is inside) | 32 |
+| `UI_ZeD_Wheel_Vehicle` | `Vehicle` | D-pad wheels: World wheel slice: the vehicle wheel | 12 |
+| `UI_ZeD_Wheel_View` | `View` | D-pad wheels: Here and now slice: interface and windows | 12 |
+| `UI_ZeD_Wheel_ViewDetail` | `Interface and windows` | D-pad wheels: Second line of View | 24 |
+| `UI_ZeD_Wheel_Watch` | `Watch` | D-pad wheels: Use wheel slice: the watch you wear | 12 |
+| `UI_ZeD_Wheel_WatchAlarm` | `Alarm` | D-pad wheels: Watch wheel slice: the alarm on / off | 12 |
+| `UI_ZeD_Wheel_WatchAlwaysOpen` | `The watch is always open (Options: Watch, Corner).` | D-pad wheels: Reason on Open the watch when the watch is set to the corner | 52 |
+| `UI_ZeD_Wheel_WatchLight` | `Light` | D-pad wheels: Watch wheel slice: light the watch | 12 |
+| `UI_ZeD_Wheel_WatchNoLight` | `This watch has no light.` | D-pad wheels: Reason on the watch's Light slice | 30 |
+| `UI_ZeD_Wheel_Weapons` | `Weapons` | D-pad wheels: Character wheel slice: the weapons you carry | 16 |
+| `UI_ZeD_Wheel_World` | `World` | D-pad wheels: Name of the D-pad Right wheel (breadcrumb) | 16 |
+| `UI_ZeD_Wheel_WorldWindow` | `World window` | D-pad wheels: Second line of the World wheel's Tabs slice | 20 |
+| `UI_ZeD_Wheel_ZeD` | `ZeD` | D-pad wheels: Name of the Select button's wheel (breadcrumb) | 12 |
+| `UI_ZeD_Wheel_ZeDSetupDetail` | `Options, on ZeD's page` | D-pad wheels: Second line of the ZeD setup / Options slice | 28 |
+| `UI_ZeD_Wheel_Zoom` | `Zoom` | D-pad wheels: Here and now slice: zoom in and out | 12 |
 | `UI_ZeD_Wheel_TreatWounds` | `Treat wounds` | Controller D-pad Right wheel, the slice that opens the Health tab when a wound needs care | 24 |
 
 ## Workshop

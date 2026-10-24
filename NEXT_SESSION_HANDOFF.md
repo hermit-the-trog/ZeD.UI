@@ -41,16 +41,21 @@ Read this first. Read `STATE.md` only for feature detail. Its header and "Next s
 - Last runs: the controller suites plus the pad map, 11/11 (`ZeDUI/qa/regression/2026-10-23_1847_fullscreen4k.md`); the setup plus the pad map, 3/3 (`..._1855_...`).
 - Recipe for the pad map: manifest `zedqa_prelude.lua | pre`, `zedqa_deep_run.lua | deep | timeout=180`, `zedqa_padmap.lua | pm | timeout=1500`, then `py ZeDUI/tools/qa/padmap.py`. Run it without `zedqa_world_pad_take.lua` before it, or the moodles are gone (that test heals its wounds on the way out).
 
+## Done late on Oct 23: the controller's wheels
+
+- **The D-pad's four wheels and the Select ZeD wheel** (`DPAD_WHEELS_SPEC.md`, `ZeD_DpadWheels.lua`): Character (Left), World (Right), Social (Up), Here and now (Down), ZeD on Select (theme, accent, text size, UI scale, moodles, action bar, reset windows, ZeD setup, safe mode behind a prompt). They open only with no window holding the pad; hold, point with the right stick, let go; inner wheels in place with A / B and Back last; off slices give the reason. The belt no longer takes D-pad Left; ZeD_QuickWheel no longer adds to D-pad Right (its lists feed Character). The spec's section 6 lists what the build settled (no rooms editor, no stopwatch, no lie-down; Designated zones is World 8).
+- **L3 / R3 in a window** (Hard Rule #11 amended by the director): L3 steps the list's sort, R3 flips List / Grid; footer prompts while the pad is on a list. Never bound in the world.
+- The wheel bubble fits its words (`state.snug`, wheels only).
+- QA: `zedqa_dpad_wheels.lua` (in `regression.txt`): every wheel on foot / in the car / by an animal, inner wheels, Back, takes, paused, the window guard, L3 / R3, every theme at both sizes; 4K and the 1080p window both pass. The test's steps run before their wait (`step(n, fn)` = n ticks after the last); a pause and its Play stay in one step (OnTick stops while paused). With no physical pad the game's usable animal is none; the test stands a spawned tame cow in for it.
+- Full 4K regression with the wheels: 69/71, the two warnings were test state (an open stack from an earlier test, a curtain timing check) and pass on rerun; pad map 0 of 27,228.
+- The gallery's Controller card was redrawn by the design session (commit 67587e74).
+
 ## Open items, in order
 
-1. Tester build **0.2.0-t2**. Steps are in `ZeDUI/tools/release/RELEASE_CHECKLIST.md`.
-   - Run the full 4K regression first.
-   - Stage with `stage_workshop.ps1 -Version 0.2.0-t2`.
-   - Save, re-pick the folder, then Upload. **The director presses Upload.**
-   - Remove the staged Contents afterwards.
-   - The t2 change note: Presets, the gamepad pass, centered moodles, hold A brings a thing over, the restart step.
-2. The director adds the restart line on the live Steam page (their step).
-3. Triage tester reports from the Steam threads (an offer stands: a daily thread check).
+1. **Tester build 0.2.0-t2** with the wheels: staged after this commit; **the director presses Upload** (description and change note: `ZeDUI/workshop/tester_description_0.2.0-t2.bbcode`, `tester_changenote_0.2.0-t2.txt`). Remove the staged Contents afterwards.
+2. Ask the director: in the driver's seat the dashboard takes the D-pad on the way in (B lets go, then the wheels open). Keep, or have the wheels open at once?
+3. The controller map screen (Help, Controller map) is "Coming later." in the wheel.
+4. Triage tester reports from the Steam threads (an offer stands: a daily thread check).
 
 ## How to work (lessons from Oct 23)
 

@@ -1,5 +1,14 @@
 0.2.0-t2: changes since 0.2.0-t1.
 
+Controller wheels (new)
+- With no window open, each D-pad direction holds open a wheel: Character (Left), World (Right), Social (Up), Here and now (Down). Point with the right stick and let go of the D-pad to take. A slice with more opens in place: A takes, B goes back.
+- Character: tabs, weapons, eat, drink, medicine and first aid, sleep, clothing, and smoke / read / watch / radio. World: tabs, map, vehicle, animal, craft and build, search, lights and power, designated zones. Social: the gestures, shout, and on a server chat, safety and players. Here and now: sit, crouch, auto-walk, game speed, zoom, view, help, your light.
+- A slice that can't be used right now stays in its place and says why.
+- Hold Select for the ZeD wheel: theme, accent color, text size, UI scale, moodles, action bar, reset windows, ZeD setup, safe mode.
+- These take the place of the game's D-pad and Select wheels. Everything those offered is on the new wheels.
+- While the game is paused, only Here and now and the ZeD wheel open.
+- In a window, click the left stick to sort the list and the right stick to switch it between List and Grid.
+
 Controller
 - After an action, focus goes back to where you were.
 - The D-pad reaches containers in the direction they sit on the screen.

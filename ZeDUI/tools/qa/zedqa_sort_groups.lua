@@ -459,7 +459,18 @@ step(60, function()
     say("columns at start: char " .. tostring(#(cwin()._mcSelected or {})) .. " world " .. tostring(#(wwin()._mcSelected or {})))
 end)
 -- single column: list then grid
-step(10, function() say("mode single: " .. ensureMode("single")); setView(false) end)
+step(10, function()
+    say("mode single: " .. ensureMode("single")); setView(false)
+    -- every stack closed before the counts (Oct 23 2026: a stack an earlier
+    -- test opened with A made the unfolded count three rows too many)
+    for _, k in ipairs({ "char", "world" }) do
+        local c = contentOf(k)
+        if c then
+            c._expandedStacks = {}
+            for _, cs in pairs(c._colStates or {}) do if type(cs) == "table" then cs.expandedStacks = {} end end
+        end
+    end
+end)
 step(30, function() end)
 stateSteps("single", "list", { char = 1, world = 1 })
 foldSteps()

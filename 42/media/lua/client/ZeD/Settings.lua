@@ -91,6 +91,13 @@ ZeD.Settings.accentKeys    = accentKeys
 ZeD.Settings.sizeKeys      = sizeKeys
 ZeD.Settings.glyphKeys     = glyphKeys
 ZeD.Settings.inputLockKeys = inputLockKeys
+-- (the labels too, for the controller's ZeD wheel on Select: ZeD_DpadWheels.lua)
+ZeD.Settings.baseLabels    = baseLabels
+ZeD.Settings.accentLabels  = accentLabels
+ZeD.Settings.sizeLabels    = sizeLabels
+ZeD.Settings.scaleKeys     = scaleKeys
+ZeD.Settings.scaleLabels   = scaleLabels
+ZeD.Settings.save          = function() saveModOptions() end
 
 -- Forward-declare combo box locals so syncToModOptions() can capture them
 -- (Lua locals are only visible after their declaration line — Q16)
@@ -181,6 +188,7 @@ for i, label in ipairs(moodleLabels) do
     moodlePlace:addItem(ZeD.tr(label), i == 1)  -- default: right, under the watch
 end
 ZeD.Settings.moodlePlaceOption = moodlePlace
+ZeD.Settings.moodleLabels = moodleLabels
 
 -- ----- EQUIPPED VIEW (Oct 19 2026, director: "avatar view ... and list view
 -- are the two we want") -----

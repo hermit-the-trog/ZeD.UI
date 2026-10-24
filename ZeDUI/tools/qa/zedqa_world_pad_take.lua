@@ -518,19 +518,24 @@ step(30, function()
     ISDPadWheels.onDisplayLeft({ player = 0, id = 0 })
     check(hud._gp == nil and fw() == w, "8 a stray Left with a window open stays in the window (no way into the belt)")
     Focus.releaseFocus()
+    -- (Oct 23 2026: D-pad Left is the Character wheel now, DPAD_WHEELS_SPEC; the
+    -- belt is entered through its own call below, its ways out are the same)
     ISDPadWheels.onDisplayLeft({ player = 0, id = 0 })
-    check(hud._gp ~= nil, "8 with the windows put away, Left takes the belt")
+    local DW = ZeD.DpadWheels
+    check(hud._gp == nil and DW and DW.state[0] ~= nil and DW.state[0].dir == "left", "8 with the windows put away, Left opens the Character wheel (not the belt)")
+    if DW and DW.state[0] then DW.close(0) end
+    B.focus(0)
     if hud._gp then
         hud:onJoypadDown(Joypad.BButton)
         check(hud._gp == nil, "8 B leaves the belt in one press")
     end
-    ISDPadWheels.onDisplayLeft({ player = 0, id = 0 })
+    B.focus(0)
     if hud._gp then
         hud._gp.idx = #hud._boxes
         hud:onJoypadDirRight()
         check(hud._gp == nil, "8 Right past the belt's last box leaves it")
     end
-    ISDPadWheels.onDisplayLeft({ player = 0, id = 0 })
+    B.focus(0)
     if hud._gp then
         hud:onJoypadDirDown()
         check(hud._gp == nil, "8 Down (the screen's edge) leaves the belt")

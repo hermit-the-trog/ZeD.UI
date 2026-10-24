@@ -174,29 +174,9 @@ end
 
 local function apply()
     if not ZeD.Safe.on() then parkHotbar() end
-    if ISDPadWheels and not ISDPadWheels._zedBelt then
-        ISDPadWheels._zedBelt = true
-        local origLeft = ISDPadWheels.onDisplayLeft
-        function ISDPadWheels.onDisplayLeft(joypadData)
-            local isPaused = UIManager.getSpeedControls() and UIManager.getSpeedControls():getCurrentGameSpeed() == 0
-            if not isPaused and joypadData and joypadData.player == 0 and not ZeD.Safe.on() then
-                -- Oct 23 2026 (director: the belt "is too easy to get stuck in"):
-                -- with a ZeD window open and holding the pad's focus, a Left that
-                -- reached the game (a menu or prompt let the focus go) is the
-                -- window's Left, never a way into the belt
-                local F = ZeD.Input and ZeD.Input.Focus
-                local fw = F and F.getFocusedWindow and F.getFocusedWindow()
-                if fw and fw:isVisible() and not fw.windowShaded then
-                    F.reclaimEngineFocus()
-                    pcall(F.dispatchJoypadDir, fw, "left", joypadData)
-                    return
-                end
-                local ok, took = pcall(B.focus, 0)
-                if ok and took then return end
-            end
-            return origLeft(joypadData)
-        end
-    end
+    -- (D-pad Left was the belt's way in until Oct 23 2026; it is the Character
+    -- wheel now, ZeD_DpadWheels.lua, whose Weapons slice covers the belt's
+    -- weapons. That file also keeps a stray Left with a window open in the window.)
     if ISEquippedItem and not ISEquippedItem._zedBelt then
         ISEquippedItem._zedBelt = true
         local origRender = ISEquippedItem.render
