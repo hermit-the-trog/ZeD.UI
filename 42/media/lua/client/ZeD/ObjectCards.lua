@@ -851,13 +851,24 @@ function ZeD_ObjectCard:prerender()
         local vh = T.px(32)
         self:drawRect(0, y + vh - T.px(1), w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
         local vx = T.px(8)
+        -- (Oct 23 2026: the card's main verb, where a D-pad move into the card
+        -- lands: the primary one, else the first that can run)
+        local mainFid
+        for i, v in ipairs(verbs) do
+            if v.primary and v.enabled ~= false then mainFid = "oc:verb:" .. tostring(v.id or i); break end
+        end
+        if not mainFid then
+            for i, v in ipairs(verbs) do
+                if v.enabled ~= false then mainFid = "oc:verb:" .. tostring(v.id or i); break end
+            end
+        end
         for i, v in ipairs(verbs) do
             local fid = "oc:verb:" .. tostring(v.id or i)
             local vw = UI.button(self, vx, y + math.floor((vh - T.px(22)) / 2), v.label,
                 { primary = v.primary and v.enabled ~= false, disabled = v.enabled == false, danger = v.danger, focused = self._fid == fid })
             local vv = v
             self:zone({ fid = fid, x = vx, y = y + math.floor((vh - T.px(22)) / 2), w = vw, h = T.px(22),
-                run = function() self:press(vv) end, verb = true, primary = (v.primary and v.enabled ~= false) or nil })
+                run = function() self:press(vv) end, verb = true, primary = (fid == mainFid) or nil })
             vx = vx + vw + T.px(4)
         end
         y = y + vh

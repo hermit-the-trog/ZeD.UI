@@ -26,34 +26,31 @@ Read this first. Read `STATE.md` only for feature detail. Its header and "Next s
   - Mismatches dropped from 30/4652 to 6/4244.
   - The rules are in `GAMEPAD_SPEC.md`.
 
-## In flight when this was written (uncommitted)
+## Done in the evening session (Oct 23)
 
-1. **Moodles centered on the screen edge** (`ZeD_Moodles.lua`, `UI.json`, the context file).
-   - The Right and Left placements center the column vertically. It stays clamped under the watch and above the belt.
-   - Option text: "Right edge", plus a new tip.
-   - KCheck and i18n_guard pass. **Not yet seen in game.**
-   - To do: capture moodles in the right, left and bottom placements on the deep-run character, then commit.
-2. **Deep-run fixture** `ZeDUI/tools/qa/zedqa_deep_run.lua` (untracked, mid-rework).
-   - The first run killed the character: it was overweight, and wounds were applied without god mode.
-   - Required: god mode and invisible first; strength 10 and the carry traits (Strong, Organized); weight under the max, with no Heavy Load; extra stock in the nearby containers; mild wounds that stick; a radio, TV and car within reach; a padlocked door; liquids; map notes.
-   - Fix `zedqa_padmap.lua` so it opens every world and object card.
-   - Rebuild the QA save first with `zedqa_new_qa_save.lua`.
-   - Then rerun the pad map on the full state and compare it with the 6/4244 baseline.
-   - An agent may still be running this. Check `Zomboid/Lua/zedqa.lock` and whether ProjectZomboid64 is running before you start anything.
+- **Pad map on the stocked character: 0 wrong moves of 8,332** (47 screens, both sizes, every object card except animal tracks). Overlays and the table: `ZeDUI/qa/padmap/`. The director has seen the overlays.
+  - Most of the earlier 41 were captures taken while a window was still widening. `zedqa_padmap.lua` now waits until both windows are still (`whenStill`) before each capture. The director: "Windows need time to expand when you are taking screens."
+  - **The Craft and Build "cut-off" was the same timing**, not a layout bug. On a still window the whole drawer shows.
+  - One real move: Large text, Health, Left from the second bag row skipped Push-ups. `SpatialNav.cost` counted a 2 px overlap as 1.99 (fractional scaling); lined up is now an overlap of 1.5 px or more (`padmap.py` matches).
+- **Hold A on a row now does what a double-click does** (`InventoryRenderer.quickUse`). A thing in a crate or a bag comes to the main inventory; a thing already there gets its basic action. Before, hold A ran only the basic action, which does nothing for a thing in a crate.
+- **Moodles centred**, seen in game at right, left and bottom (`ZeDUI/qa/padmap/moodles_left_right_bottom.png`).
+- **The stocked character (`zedqa_deep_run.lua`)** is built in the QA save. It adds a hutch and a butcher hook, restores full health before the wounds go on (they wore health down between runs), and puts the axe and torch back in hand each run. Its DONE prints a tick later, because the runner ignores a DONE that comes before the bridge's "run #" line.
+- **The QA save's mod list was empty** (director: "You have to activate the mod"). The world loaded without ZeD, so the bridge never armed in game. `Saves/Sandbox/ZeD-QA/mods.txt` now lists ZeD_UI, and `zedqa_new_qa_save.lua` copies the active mods into a new save.
+- **The runner clicks "click to start" only when the game is the front window** (`zedqa_run.ps1`).
+- `zedqa_world_pad_take.lua` uses an eraser for its Take item (scissors count as a weapon, so their card rightly leads with Equip): 97/97.
+- Last runs: the controller suites plus the pad map, 11/11 (`ZeDUI/qa/regression/2026-10-23_1847_fullscreen4k.md`); the setup plus the pad map, 3/3 (`..._1855_...`).
+- Recipe for the pad map: manifest `zedqa_prelude.lua | pre`, `zedqa_deep_run.lua | deep | timeout=180`, `zedqa_padmap.lua | pm | timeout=1500`, then `py ZeDUI/tools/qa/padmap.py`. Run it without `zedqa_world_pad_take.lua` before it, or the moodles are gone (that test heals its wounds on the way out).
 
 ## Open items, in order
 
-1. Finish item 2 above, then fix the nav mismatches the full-state pad map finds. Show the director the padmap overlays (a numbered stop on a real screenshot; red marks a mismatch).
-2. **The Craft and Build drawers are cut off** at the tab strip in the World window (window 1060 wide, drawer laid out to about 1540). Some controls end up off-screen. Not investigated.
-3. Commit the moodle change once it's seen in game.
-4. Tester build **0.2.0-t2**. Steps are in `ZeDUI/tools/release/RELEASE_CHECKLIST.md`.
+1. Tester build **0.2.0-t2**. Steps are in `ZeDUI/tools/release/RELEASE_CHECKLIST.md`.
    - Run the full 4K regression first.
    - Stage with `stage_workshop.ps1 -Version 0.2.0-t2`.
    - Save, re-pick the folder, then Upload. **The director presses Upload.**
    - Remove the staged Contents afterwards.
-   - The t2 change note: Presets, the gamepad pass, centered moodles, the restart step.
-5. The director adds the restart line on the live Steam page (their step).
-6. Triage tester reports from the Steam threads (an offer stands: a daily thread check).
+   - The t2 change note: Presets, the gamepad pass, centered moodles, hold A brings a thing over, the restart step.
+2. The director adds the restart line on the live Steam page (their step).
+3. Triage tester reports from the Steam threads (an offer stands: a daily thread check).
 
 ## How to work (lessons from Oct 23)
 
@@ -61,4 +58,6 @@ Read this first. Read `STATE.md` only for feature detail. Its header and "Next s
 - **One complete brief per agent and per game run.** Collect new director feedback for the next run instead of messaging a running agent, unless the run is actively going wrong. Use a fresh agent per task. Tiers: Haiku for lookups, Sonnet for mechanical work, Opus for hard bugs.
 - **Never kill a process the session did not start** (PID only). `pzfront.ps1` no longer stops TextInputHost.
 - **Shared game:** check the lock, never launch while PZ runs, close the game when done.
+- **Captures:** wait until the windows are still before a screenshot; a "cut off" in a capture is a timing suspect first.
+- **"The bridge never armed in game":** check `Saves/Sandbox/ZeD-QA/mods.txt` lists ZeD_UI first.
 - **Gamepad rules** (director): focus returns to its origin; directions match the screen; land on the primary action; common actions cost the fewest presses; the belt is never a trap.

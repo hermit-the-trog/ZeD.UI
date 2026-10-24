@@ -2289,8 +2289,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_Moodles` | `Moodles` | Options > Mods > ZeD-GUI: name of the moodle placement setting (use the game's own word for moodles) | - |
 | `UI_ZeD_Settings_MoodlesBottom` | `Bottom, above the belt` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
 | `UI_ZeD_Settings_MoodlesLeft` | `Left edge` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
-| `UI_ZeD_Settings_MoodlesRight` | `Right, under the watch` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
-| `UI_ZeD_Settings_MoodlesTip` | `Where the moodles sit. Right: under the watch, where vanilla puts them. Left: down the left edge, below the windows. Bottom: a row above the belt (above the dashboard in a car).` | Options > Mods > ZeD-GUI: hover help of the moodle placement setting | - |
+| `UI_ZeD_Settings_MoodlesRight` | `Right edge` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
+| `UI_ZeD_Settings_MoodlesTip` | `Where the moodles sit. Right edge or Left edge: a column centered on the middle of the screen. Bottom: a row above the belt (above the dashboard in a car).` | Options > Mods > ZeD-GUI: hover help of the moodle placement setting | - |
 | `UI_ZeD_Settings_SafeMode` | `Safe mode` | Options > Mods > ZeD-GUI: name of the safe mode setting | - |
 | `UI_ZeD_Settings_SafeModeOn` | `On: the game's own interface` | Options > Mods > ZeD-GUI: second choice of the Safe mode setting | - |
 | `UI_ZeD_Settings_SafeModeTip` | `On: ZeD UI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD UI ever fails to open. ZeD UI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.` | Options > Mods > ZeD-GUI: hover help | - |

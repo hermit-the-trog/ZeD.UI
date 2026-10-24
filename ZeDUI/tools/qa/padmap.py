@@ -51,7 +51,7 @@ def cost(f, t, d):
         apart = max(t["x"] - (f["x"] + f["w"]), f["x"] - (t["x"] + t["w"]))
         cross = abs((t["x"] + t["w"] / 2) - (f["x"] + f["w"] / 2))
         if (t["x"] + t["w"] / 2) < (f["x"] + f["w"] / 2): cross *= 0.5   # between equals, the left one (reading order)
-    tier = 0 if apart <= -2 else 1
+    tier = 0 if apart <= -1.5 else 1   # (as SpatialNav.cost: a 2 px overlap, with room for fractional scaling)
     return tier, max(0, gap) + max(0, apart) * 2 + cross * 0.05
 
 def panel(zone):
@@ -135,6 +135,11 @@ def run():
     rows, total_mis, total_moves = [], 0, 0
     blank = []
     for old in glob.glob(os.path.join(OUT, "*.png")): os.remove(old)   # (a capture left out this time leaves no stale picture)
+    # the moodle column at each placement, full screen (zedqa_padmap.lua's moodle step)
+    for place in ("right", "left", "bottom"):
+        src = os.path.join(SHOTS, "zqa_pm_moodles_" + place + ".png")
+        if os.path.exists(src):
+            Image.open(src).convert("RGB").save(os.path.join(OUT, "moodles_" + place + ".png"))
     detail = []
     for jp in sorted(glob.glob(os.path.join(LUA, "zqa_pm_*.json"))):
         name = os.path.basename(jp)[7:-5]

@@ -5,10 +5,9 @@
 -- Director: "moodles are the one thing we really aren't touching other than
 -- moving them around" and "we do our own hover text". The placement is a
 -- ZeD-UI option (Settings.lua, "Moodles"), each good for different players:
---   right   (default) vanilla's own MoodlesUI column, moved down under the
---           watch (the watch covered the top of it)
---   left    vanilla's own column on the left edge, starting below where the
---           Character and World windows open
+--   right   (default) vanilla's own MoodlesUI column on the right edge,
+--           centred on the screen's middle, kept under the watch
+--   left    vanilla's own column on the left edge, centred the same way
 --   bottom  a row above the belt (above the dashboard in a car). Vanilla's
 --           column only stacks downward, so ZeD draws a faithful copy of it:
 --           vanilla's textures for the Moodle size option, the backing tinted
@@ -235,16 +234,26 @@ function ZeD_MoodleLayer:_place()
         if self:getHeight() ~= size then self:setHeight(size) end
         return
     end
-    -- right / left: move vanilla's own column, then lie exactly over it
+    -- right / left: move vanilla's own column, then lie exactly over it.
+    -- The stack is centred on the screen's middle (director), so it grows up
+    -- and down as moodles come and go; it stays under the watch (right) and
+    -- above the belt.
     local size = mui:getWidth()
     self._size = size
-    local x, y
+    self._list = M.active(p)
+    local n = #self._list
+    local stackH = n > 0 and (n * size + (n - 1) * GAP) or 0
+    local top = getPlayerScreenTop(pn)
+    local y = top + math.floor((getPlayerScreenHeight(pn) - stackH) / 2)
+    local minY = place == "left" and top + T.px(10) or self:_rightY()
+    local maxY = self:_rowY(0) - stackH
+    if y > maxY then y = maxY end
+    if y < minY then y = minY end
+    local x
     if place == "left" then
         x = getPlayerScreenLeft(pn) + EDGE
-        y = getPlayerScreenTop(pn) + T.px(280)
     else
         x = getPlayerScreenLeft(pn) + getPlayerScreenWidth(pn) - EDGE - size
-        y = self:_rightY()
     end
     if mui:getX() ~= x then mui:setX(x) end
     if mui:getY() ~= y then mui:setY(y) end
@@ -253,7 +262,6 @@ function ZeD_MoodleLayer:_place()
     if self:getY() ~= y then self:setY(y) end
     if self:getWidth() ~= size then self:setWidth(size) end
     if self:getHeight() ~= h then self:setHeight(h) end
-    self._list = M.active(p)
 end
 
 -- The moodle under the pointer (index into self._list), or nil

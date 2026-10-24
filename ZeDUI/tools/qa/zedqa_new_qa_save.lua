@@ -38,6 +38,10 @@ if not getPlayer() then
     selectedDebugScenario.setSandbox()
     getWorld():setGameMode("Sandbox")
     getWorld():setMap("Muldraugh, KY")
+    -- the save's mod list: vanilla's New Game copies the active mods into it
+    -- (MainScreen "SOLO"); this path skips that, and on Oct 23 the save came
+    -- out with no mods, so ZeD (and the bridge) never loaded in it
+    pcall(function() ActiveMods.getById("currentGame"):copyFrom(ActiveMods.getById("default")) end)
     createWorld("ZeD-QA")
     GameWindow.doRenderEvent(false)
     Events.OnNewGame.Add(DebugScenarios.ongamestart)

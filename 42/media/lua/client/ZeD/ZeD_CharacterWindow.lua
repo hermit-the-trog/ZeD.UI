@@ -1305,9 +1305,9 @@ _buildInvRowFocusables = function(win)
             -- S113: A tap = LMB = SELECT item (opens card drawer for it,
             -- mouse-click parity). On a stack rep (count > 1), A toggles
             -- the stack expand/collapse instead (= LMB on the chevron).
-            -- A hold = double-LMB = use item (eat/wear/equip via vanilla
-            -- ISInventoryPane:doContextualDblClick, which only reads
-            -- self.player — safe to call on a stub). X = RMB = open vanilla
+            -- A hold = double-LMB (InventoryRenderer.quickUse: a thing in a
+            -- bag to the main inventory, else eat/wear/equip via vanilla
+            -- ISInventoryPane:doContextualDblClick). X = RMB = open vanilla
             -- context menu (Drop, Grab, Move-To, etc.); for stack reps the
             -- menu receives ALL stack items so "Grab one / half / all"
             -- variants surface.
@@ -1342,11 +1342,9 @@ _buildInvRowFocusables = function(win)
                 end
             end,
             onHoldActivate = function(w, el)
+                -- (as a double-click: a thing in a bag comes to the main inventory)
                 if not el.item then return end
-                if ISInventoryPane and ISInventoryPane.doContextualDblClick then
-                    pcall(ISInventoryPane.doContextualDblClick,
-                          { player = ZeD.playerNumOf(w) }, el.item)
-                end
+                pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
             onContextMenu = function(w, el)
                 if not el.item then return end
@@ -1476,11 +1474,9 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                 end
             end,
             onHoldActivate = function(w, el)
+                -- (as a double-click: a thing in a bag comes to the main inventory)
                 if not el.item then return end
-                if ISInventoryPane and ISInventoryPane.doContextualDblClick then
-                    pcall(ISInventoryPane.doContextualDblClick,
-                          { player = ZeD.playerNumOf(w) }, el.item)
-                end
+                pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
             onContextMenu = function(w, el)
                 if not el.item then return end
