@@ -320,7 +320,7 @@ end
 
 -- a strip on the theme's surface, centred on cx: the breadcrumb (which wheel,
 -- and where in it), then the controller's prompts for this wheel
-local NOP = { drawRectBorder = function() end, drawText = function() end }
+local NOP = { drawRectBorder = function() end, drawText = function() end, drawRect = function() end }
 local BACKING_A = 0.92   -- the strips sit over the world: the surface nearly opaque
 function W.drawUnder(menu, cx, y)
     local T, tm, A, M = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.Molecules

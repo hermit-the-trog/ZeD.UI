@@ -2279,7 +2279,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_EquipViewTip` | `How the Equip tab shows what you wear: a list, or your character with each slot beside the place it is worn.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_Gamepad` | `Gamepad` | Options > Mods > ZeD-GUI: choice of the Input mode lock setting | - |
 | `UI_ZeD_Settings_Glyphs` | `Gamepad glyph display` | Options > Mods > ZeD-GUI: name of the gamepad glyph setting | - |
-| `UI_ZeD_Settings_GlyphsTip` | `Which button icons to show in gamepad prompts. Auto follows the connected controller.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_GlyphsTip` | `Which controller's button pictures to show. Auto follows the game's controller button style. Keyboard/mouse and Off show the buttons as lettered boxes.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_HighContrast` | `High contrast` | Options > Mods > ZeD-GUI: base theme choice | - |
 | `UI_ZeD_Settings_InputLock` | `Input mode lock` | Options > Mods > ZeD-GUI: name of the input mode setting | - |
 | `UI_ZeD_Settings_InputLockTip` | `Force a specific input mode. Auto lets the mod detect your active device.` | Options > Mods > ZeD-GUI: hover help | - |

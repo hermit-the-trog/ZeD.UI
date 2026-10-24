@@ -230,12 +230,25 @@ end
 -- ---------------------------------------------------------------------------
 -- LAYOUT
 -- ---------------------------------------------------------------------------
+-- a key's controller button as ZeD's pixel picture (ZeD_PadGlyphs), or nil for the boxed name
+local function padRoles(k)
+    local PG = ZeD.PadGlyphs
+    if not (PG and PG.set()) then return PG, nil end
+    return PG, PG.roles(k.glyph)
+end
+local function glyphW(k)
+    local T = ZeD.T
+    local PG, roles = padRoles(k)
+    if roles then return PG.width(roles, PG.k(T.px(12))) end
+    return math.max(T.px(12), ZeD.TM:MeasureStringX(T.fontF5, k.glyph) + T.px(4))
+end
+
 local function keyWidth(k)
     local T = ZeD.T
     if k.lo then return T.px(U.KEY_W) end
     local f = T.fontF3
     local w = ZeD.TM:MeasureStringX(f, ZeD.upper(k.label or "")) + T.px(U.FN_PAD) * 2
-    if k.glyph then w = w + math.max(T.px(12), ZeD.TM:MeasureStringX(T.fontF5, k.glyph) + T.px(4)) + T.px(5) end
+    if k.glyph then w = w + glyphW(k) + T.px(5) end
     if k.wide then w = math.max(w, T.px(U.KEY_W) * 6) end
     return math.max(w, T.px(U.KEY_W))
 end
@@ -377,17 +390,22 @@ function ZeD_Keyboard:prerender()
                 local f3, f5 = T.fontF3, T.fontF5
                 local label = ZeD.upper(k.label or "")
                 local lw = ZeD.TM:MeasureStringX(f3, label)
-                local gw = k.glyph and math.max(T.px(12), ZeD.TM:MeasureStringX(f5, k.glyph) + T.px(4)) or 0
+                local gw = k.glyph and glyphW(k) or 0
                 local total = lw + (k.glyph and (gw + T.px(5)) or 0)
                 local x = r.x + math.floor((r.w - total) / 2)
                 local lc = focused and tc or ((variant == "primary") and ac or tc)
                 if k.glyph then
                     local gh = T.px(12)
                     local gy = r.y + math.floor((r.h - gh) / 2)
-                    local bs = T.borderS
-                    self:drawRectBorder(x, gy, gw, gh, bs.a or 1, bs.r, bs.g, bs.b)
-                    local gfw = ZeD.TM:MeasureStringX(f5, k.glyph)
-                    self:drawText(k.glyph, x + math.floor((gw - gfw) / 2), gy + math.floor((gh - ZeD.TM:getFontHeight(f5)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f5)
+                    local PG, roles = padRoles(k)
+                    if roles then
+                        PG.draw(self, roles, x, r.y, r.h, PG.k(gh))
+                    else
+                        local bs = T.borderS
+                        self:drawRectBorder(x, gy, gw, gh, bs.a or 1, bs.r, bs.g, bs.b)
+                        local gfw = ZeD.TM:MeasureStringX(f5, k.glyph)
+                        self:drawText(k.glyph, x + math.floor((gw - gfw) / 2), gy + math.floor((gh - ZeD.TM:getFontHeight(f5)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f5)
+                    end
                     x = x + gw + T.px(5)
                 end
                 self:drawText(label, x, r.y + math.floor((r.h - ZeD.TM:getFontHeight(f3)) / 2), lc.r, lc.g, lc.b, lc.a or 1, f3)

@@ -405,9 +405,14 @@ function ZeD_SeatChooser:drawDoor(r, shift, glyph)
         -- the controller's X sits on the focused seat's door
         local gs = T.px(12)
         local gx, gy = r.x + r.w - math.floor(gs / 2), r.y + r.w - math.floor(gs / 2)
-        self:drawRect(gx, gy, gs, gs, 1, 0.24, 0.48, 0.85)
-        local f = T.fontF5
-        self:drawText("X", gx + math.floor((gs - tw(f, "X")) / 2), gy + math.floor((gs - fh(f)) / 2), 0.05, 0.05, 0.05, 1, f)
+        local PG = ZeD.PadGlyphs
+        if PG and PG.set() then   -- (ZeD's pixel picture of the button, ZeD_PadGlyphs)
+            PG.draw(self, { "X" }, gx, gy, gs, PG.k(gs))
+        else
+            self:drawRect(gx, gy, gs, gs, 1, 0.24, 0.48, 0.85)
+            local f = T.fontF5
+            self:drawText("X", gx + math.floor((gs - tw(f, "X")) / 2), gy + math.floor((gs - fh(f)) / 2), 0.05, 0.05, 0.05, 1, f)
+        end
     end
 end
 

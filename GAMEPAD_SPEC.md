@@ -32,7 +32,16 @@
 
 ## Chords
 
-Allowed where the result is predictable and both halves already mean something on their own. Shipped: LB+RB zoom (no window focused); X-hold + D-pad drag. Candidates: none locked — propose in a brainstorm session, not in code.
+Allowed where the result is predictable and both halves already mean something on their own. Shipped: LB+RB zoom (no window focused); X-hold + D-pad drag. Coming (director, Oct 24 2026, design in QUICK_CHORDS_SPEC.md, not built): **quick actions**, a bumper held with A, B, X, Y, L3 or R3 in the world, twelve chords the player assigns; the exception to "both halves mean something", asked for by the director. Other candidates: propose in a brainstorm session, not in code.
+
+## Button pictures
+
+(Director, Oct 24 2026: "are we going to use graphic icons for gamepad buttons. I think we should to help with quick glance identifying". Mockup `ZeDUI/mockups/zed_quick_chords_v1.html`, approved Oct 24 2026. Built Oct 24 2026: `ZeD_PadGlyphs.lua`, drawn by the prompt strip (`ZeD.Molecules.drawGlyphPrompts`), the window footers (Organisms), the on-screen keyboard, the seat chooser's X and the dash's hint (five-pixel pictures in its lettering); QA `zedqa_pad_glyphs.lua`.)
+
+- **ZeD's own pixel set**, drawn like the dashboard and the belt (whole-pixel multiples, nearest filtering), so it stays sharp at every UI scale. Not the game's 32 px outline pictures.
+- **Three sets: Xbox, PlayStation, Steam Deck,** plus Nintendo because ZeD's setting already offers it. The setting is ZeD's own, ZeD setup › Controls › "Gamepad glyph display" (`glyphDisplay`, Settings.lua: Auto, Xbox, PlayStation, Nintendo, Keyboard/mouse, Off; stored since S91, never drawn: these pictures are its Phase 4). Steam Deck is added to its choices. **Auto** follows the game's controller button style option (`getCore():getOptionControllerButtonStyle()`), which the game switches to PlayStation by itself when it sees a PlayStation pad. Names follow the set too: LB / L1 / L, LT / L2 / ZL, A / cross / B. Nintendo pictures name the button in that place on the pad (B at the bottom, where Xbox has A).
+- **Face buttons in the pad's own colours:** PlayStation green triangle, red circle, blue cross, pink square; Xbox green A, red B, blue X, yellow Y; Steam Deck in ink (its buttons have no colours). Bumpers, triggers, sticks, the D-pad and Select / Start in the theme's ink. The shape or letter alone tells every button apart (colourblind players).
+- **Everywhere ZeD shows a button:** window footers, the wheels' prompts, the dash hint, cards, prompts, the Quick actions chords (`[LB] + [X]`).
 
 ## D-pad wheels
 

@@ -93,9 +93,10 @@ end
 local function prompts(st)
     local d = D.DIRS[st.dir]
     local g = d.arrow or ZeD.tr(d.glyph)
+    local gp = (not d.arrow) and { "SEL" } or nil   -- (the Select button's picture; its name is translated)
     if #st.path <= 1 and st.held then
-        return { { glyph = g, label = ZeD.tr("UI_ZeD_Wheel_PromptHold") }, { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptPoint") },
-                 { glyph = g, label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Wheel_PromptClose") } }
+        return { { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptHold") }, { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptPoint") },
+                 { glyph = g, pad = gp, label = ZeD.tr("UI_ZeD_Wheel_PromptLetGo") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Wheel_PromptClose") } }
     end
     return { { glyph = "RS", label = ZeD.tr("UI_ZeD_Wheel_PromptPoint") }, { glyph = "A", label = ZeD.tr("UI_ZeD_Wheel_PromptTake") },
              { glyph = "B", label = ZeD.tr(#st.path > 1 and "UI_ZeD_Prompt_Back" or "UI_ZeD_Wheel_PromptClose") } }
