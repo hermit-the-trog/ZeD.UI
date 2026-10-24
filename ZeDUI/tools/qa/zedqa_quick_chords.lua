@@ -23,6 +23,8 @@ local function check(ok, what) if ok then say("PASS " .. what) else fails = fail
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_qc_" .. n .. ".png") end) end
 local Q = {}
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
+-- waits up to max frames for cond, then runs fn(met)
+local function waitFor(max, cond, fn) Q[#Q + 1] = { n = 1, max = max, cond = cond, fn = fn } end
 
 if not (Qc and D) then say("ERR ZeD.QuickChords is not loaded"); say("DONE"); return end
 
@@ -127,7 +129,7 @@ step(10, function()
     say("LB + X queued: " .. table.concat(queueNames(), ", "))
     check(promptsSaw == 0, "LB + X: the game's prompts never saw X")
 end)
-step(240, function()
+waitFor(1800, function() return light and (p:getPrimaryHandItem() == light or p:getSecondaryHandItem() == light) and light:isActivated() end, function()
     if not check(light ~= nil, "a torch for LB + X") then return end
     local inHand = p:getPrimaryHandItem() == light or p:getSecondaryHandItem() == light
     check(inHand, "LB + X: the torch is in a hand")
@@ -276,10 +278,19 @@ step(20, function()
 end)
 
 -- (stepped on each drawn frame: the pause screen stops the game's tick)
-local qi, wait = 1, nil
+local qi, wait, waited = 1, nil, 0
 local function tick()
     local s = Q[qi]
     if not s then Events.OnPreUIDraw.Remove(tick); return end
+    if s.cond then
+        waited = waited + 1
+        local ok, met = pcall(s.cond)
+        if not (ok and met) and waited < s.max then return end
+        qi = qi + 1; waited = 0
+        local ok2, err = pcall(s.fn, ok and met and true or false)
+        if not ok2 then fails = fails + 1; say("ERR step " .. (qi - 1) .. ": " .. tostring(err)) end
+        return
+    end
     wait = (wait or s.n) - 1
     if wait > 0 then return end
     wait = nil
