@@ -36,7 +36,7 @@ Allowed where the result is predictable and both halves already mean something o
 
 ## D-pad wheels
 
-With no window holding the pad (in the world), each D-pad direction holds open a wheel: Left Character, Right World, Up Social, Down Here and now; Select holds open the ZeD wheel (theme, accent, text size, UI scale, moodles, action bar, reset windows, ZeD setup, safe mode). Point with the right stick, let go to take; inner wheels open in place, A takes, B backs out. With a window holding the pad the D-pad stays the window's (nothing above changes). Paused: only Here and now and ZeD open. The whole design is DPAD_WHEELS_SPEC.md; the code is `ZeD_DpadWheels.lua`; QA `zedqa_dpad_wheels.lua`.
+With no window holding the pad (in the world), each D-pad direction holds open a wheel: Left Character, Right World, Up Social, Down Here and now; Select holds open the ZeD wheel (theme, accent, text size, UI scale, moodles, action bar, reset windows, ZeD setup, safe mode). Point with the right stick, let go to take; inner wheels open in place, A takes, B backs out. With a window holding the pad the D-pad stays the window's (nothing above changes). The driver's seat changes nothing either: the dashboard takes the pad only from World > Vehicle > Dashboard, and B gives it back (director, Oct 24 2026). Paused: only Here and now and ZeD open. The whole design is DPAD_WHEELS_SPEC.md; the code is `ZeD_DpadWheels.lua`; QA `zedqa_dpad_wheels.lua`.
 
 ## What "parity" means for QA
 
