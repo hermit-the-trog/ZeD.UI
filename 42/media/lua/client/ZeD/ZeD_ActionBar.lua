@@ -204,11 +204,35 @@ function AB.autoLabel(typeName)
     if nxt and not SMALL[nxt] and #out + 1 + #nxt <= 14 then out = out .. " " .. nxt end
     return out
 end
+-- A food item with a verb of its own (the game's CustomContextMenu: a cigarette is smoked, a juice
+-- box drunk, gum chewed) still goes through the game's eat action; the bar says the item's verb, as
+-- the game's own progress bar does (director, Oct 24 2026: "Seems weird the character would be eating a cig").
+local FOOD_VERBS = { Smoke = "UI_ZeD_Act_FoodSmoke", Drink = "UI_ZeD_Act_FoodDrink", Take = "UI_ZeD_Act_FoodTake",
+                     Sniff = "UI_ZeD_Act_FoodSniff", Chew = "UI_ZeD_Act_FoodChew" }
+local function foodVerbKey(action)
+    if action._zedVerbKey ~= nil then return action._zedVerbKey or nil end
+    local it = action.item
+    local ok, v = pcall(function() return it and it:getCustomMenuOption() end)
+    local key = false
+    if ok and v then
+        v = tostring(v)
+        for raw, k in pairs(FOOD_VERBS) do
+            if v == raw or v == getText("ContextMenu_" .. raw) then key = k; break end
+        end
+    end
+    action._zedVerbKey = key   -- (once per action: its item's verb does not change)
+    return key or nil
+end
+
 -- the key of an action type's label (built once per type, not every frame)
 AB._actKeys = AB._actKeys or {}
 function AB.label(action)
     if not action then return ZeD.tr("UI_ZeD_ActionBar_Working") end
     local t = action.Type
+    if t == "ISEatFoodAction" then
+        local vk = foodVerbKey(action)
+        if vk then return ZeD.tr(vk) end
+    end
     if AB.LABELS[t] then
         local key = AB._actKeys[t]
         if not key then key = "UI_ZeD_Act_" .. tostring(t); AB._actKeys[t] = key end

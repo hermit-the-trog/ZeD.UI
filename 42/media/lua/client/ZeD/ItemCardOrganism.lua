@@ -451,7 +451,11 @@ local function headerVerbsForContext(ctx, item)
     elseif cat == "Weapon" or cat == "Firearm" then
         primary = {id = "EQUIP", label = VT("EQUIP"), primary = true}
     elseif cat == "Food" then
-        primary = {id = "EAT", label = VT("EAT"), primary = true}
+        -- a food item with a verb of its own (the game's CustomContextMenu: Smoke, Drink, Chew ...)
+        -- shows that verb, the game's own words; the button still runs the game's eat, which smokes,
+        -- drinks or chews it (director, Oct 24 2026: "Seems weird the character would be eating a cig")
+        local own = safeGet(item, "getCustomMenuOption")
+        primary = {id = "EAT", label = (own and own ~= "") and tostring(own) or VT("EAT"), primary = true}
     elseif cat == "Literature" then
         primary = {id = "READ", label = VT("READ"), primary = true}
     elseif cat == "Drainable" then
