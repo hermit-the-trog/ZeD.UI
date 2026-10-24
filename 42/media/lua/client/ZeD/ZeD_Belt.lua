@@ -1365,31 +1365,40 @@ function ZeD_BeltHUD:_firstSlotIdx()
     return math.min(2, #self._boxes)
 end
 
+-- Leaving the belt: back to the game, or to the ZeD window that held the pad
+-- (Oct 23 2026: control returns to the spot it came from)
 function ZeD_BeltHUD:_leavePad()
     self._gp = nil
     setJoypadFocus(self.playerNum, nil)
+    local F = ZeD.Input and ZeD.Input.Focus
+    local fw = F and F.getFocusedWindow and F.getFocusedWindow()
+    if fw and fw:isVisible() and not fw.windowShaded then F.reclaimEngineFocus() end
 end
 
+-- Oct 23 2026 (director: the belt "is too easy to get stuck in"; no press
+-- does nothing): a direction with nowhere to go on the belt leaves it, as B
+-- does. Past either end, Down (the screen's edge), and Up with no list above.
 function ZeD_BeltHUD:onJoypadDirLeft()
     local g = self._gp
     if not g or g.inList then return end
-    if g.idx > 1 then g.idx = g.idx - 1 end
+    if g.idx > 1 then g.idx = g.idx - 1 else self:_leavePad() end
 end
 function ZeD_BeltHUD:onJoypadDirRight()
     local g = self._gp
     if not g or g.inList then return end
-    if g.idx < #self._boxes then g.idx = g.idx + 1 end
+    if g.idx < #self._boxes then g.idx = g.idx + 1 else self:_leavePad() end
 end
 function ZeD_BeltHUD:onJoypadDirUp()
     local g = self._gp
     if not g then return end
     if not g.inList then
-        if #g.list > 0 then g.inList, g.row = true, #g.list end
+        if #g.list > 0 then g.inList, g.row = true, #g.list else self:_leavePad() end
     elseif g.row > 1 then g.row = g.row - 1 end
 end
 function ZeD_BeltHUD:onJoypadDirDown()
     local g = self._gp
-    if not (g and g.inList) then return end
+    if not g then return end
+    if not g.inList then self:_leavePad(); return end
     if g.row < #g.list then g.row = g.row + 1 else g.inList = false end
 end
 

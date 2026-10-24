@@ -19,7 +19,6 @@ public class PZF {
 "@
 # Hide the "Windows Input Experience" window if it is around (it steals the foreground).
 $wie = [PZF]::FindWindow($null, "Windows Input Experience"); if ($wie -ne [IntPtr]::Zero) { [void][PZF]::ShowWindow($wie, 0) }
-Get-Process TextInputHost -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 $p = Get-Process ProjectZomboid64 | Select-Object -First 1; $h = $p.MainWindowHandle
 $fg = [PZF]::GetForegroundWindow(); $fgpid = [uint32]0; $fgt = [PZF]::GetWindowThreadProcessId($fg, [ref]$fgpid)
 $me = [PZF]::GetCurrentThreadId()

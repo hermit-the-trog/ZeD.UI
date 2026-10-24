@@ -41,6 +41,7 @@ zedqa_curtain.lua | cu | timeout=400             # curtain roll / unroll, close 
 zedqa_curtain2.lua | cv                          # Character window curtain, tab switches while rolled
 zedqa_navevents.lua | ev                         # where pad focus lands after cards, strips, tabs, LB / RB, the map
 zedqa_navmap.lua | nav                           # cone-nav audit of every tab: traps, islands, stuck
+zedqa_world_pad_take.lua | wpt | timeout=900     # pad: into the World window lit, containers by Down, card on its primary, Take, B, object card, Char parity, focus back after menu / transfer, belt in and out, every tab's bottom (both sizes); crate and wounds taken away
 zedqa_furniture.lua | fu | end=ZEDQA fu after leaving tab   # Furniture tab cursor and modes (prints no DONE)
 zedqa_tabicons.lua | ti                          # both tab strips with Skills / Forage active
 zedqa_tabs_lit.lua | tl                          # lit window tabs, then put back (after tabicons: the pair is open)
@@ -131,6 +132,8 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 # zedqa_visual_audit.lua            a few hundred screenshots; run by hand: manifest "zedqa_prelude.lua | pre", then (optional,
 #                                   a targeted run) "zedqa_va_only.lua | vao", then "zedqa_visual_audit.lua | va | timeout=900"
 # zedqa_va_only.lua                 sets ZEDQA_VA_ONLY / ZEDQA_VA_BASES for the audit above (only the sections named)
+# zedqa_padmap.lua                  the pad map: ~40 full screenshots + stop dumps; run by hand ("zedqa_prelude.lua | pre",
+#                                   then "zedqa_padmap.lua | pm | timeout=900"), then py padmap.py -> ZeDUI/qa/padmap/
 #
 # ---- left out: main menu (need a -MainMenu launch)
 # zedqa_button_case_menu.lua, zedqa_header_fit.lua, zedqa_mod_conflicts.lua, zedqa_power_on.lua,

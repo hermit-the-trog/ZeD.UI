@@ -716,6 +716,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local col2H = measureColumnHeight(columns[2], rowH, headerH, groupGap, rowGap)
     local xpGridH = math.max(col1H, col2H)
     local trainingH = measureTrainingHeight(training, headH, secH, bodyH, rowH, rowGap, headerH, groupGap, win._trainingExpanded)
+    -- Oct 23 2026 (the pad audit: the tab's last rows sat past the end of the
+    -- scroll): the range covers what the last frame really drew too
+    trainingH = math.max(trainingH, (#(training or {}) > 0) and (win._skillsTrainDrawnH or 0) or 0)
     local gridExpanded = win._skillsGridExpanded
     local totalContentH = padTop + (gridExpanded and xpGridH or 0) + trainingH
 
@@ -911,6 +914,8 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
         headerH, groupGap, font
     )
     win._trainingGroupZones = tmZones
+    -- (plus the gap under the last row, as the measure leaves)
+    win._skillsTrainDrawnH = (tmActualH or 0) + pad
 
     -- S103 gamepad focus cue for training chevron rows. Painted after the
     -- section draw so it overlays the row background but under the stencil

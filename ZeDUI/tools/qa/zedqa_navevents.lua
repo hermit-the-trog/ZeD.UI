@@ -42,12 +42,12 @@ at(2, function()
     nail = p:getInventory():AddItem("Base.Screwdriver")
 end)
 at(20, function() stripTab(cw(), cw()._tabStripPanel, "loot"); stripTab(ww(), ww()._actionTabStrip, "loot"); Focus.claimFocus(cw()) end)
--- 1. a card: A on a row, Left into the card, B
+-- 1. a card: A on a row puts focus on the card's primary action (Oct 23 2026), B
 at(40, function()
     local e = focusEl(cw(), "charMainInv", function(e) return e.item == hammer end)
     where("1 on the hammer row"); if e then e.onActivate(cw(), e) end
 end)
-at(60, function() dir("left"); where("1 Left (expect the card)") end)
+at(60, function() where("1 after A (expect the card's primary action)") end)
 at(70, function() B(); end)
 at(80, function() where("1 after B (expect back on the hammer row)") end)
 -- 2. Right to the strip, A on the other container, then Left
