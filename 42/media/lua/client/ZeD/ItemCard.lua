@@ -1415,9 +1415,13 @@ function ZeD_ItemCard:getActionStripElements()
 
     -- Header verbs (Eat / Wear / Drop ...): the card's main actions. Back-bar
     -- rects are card-local (update() adds the origin), so lift them here.
+    -- Oct 23 2026: they are the card's action strip (isStrip); the card's
+    -- main button (the CTA: Eat, Take, Wear...) is isPrimary, where the
+    -- controller lands when the card opens (else the first of them).
     local hb = self._backBarRects
     if hb and hb.verbs and self._lastHeaderVerbs then
         local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+        local firstStrip, anyPrimary = nil, false
         for i, r in ipairs(hb.verbs) do
             local v = self._lastHeaderVerbs[i]
             if r and r.x and v and v.label then
@@ -1425,11 +1429,16 @@ function ZeD_ItemCard:getActionStripElements()
                 els[#els + 1] = {
                     x = ax + r.x, y = ay + r.y, w = r.w, h = r.h,
                     id = eid,
+                    isStrip = true,
+                    isPrimary = v.primary and true or nil,
                     onFocus    = function() card._gpFocusedBtnId = eid end,
                     onActivate = function() card:_dispatchHeaderVerb(label) end,
                 }
+                firstStrip = firstStrip or els[#els]
+                if v.primary then anyPrimary = true end
             end
         end
+        if firstStrip and not anyPrimary then firstStrip.isPrimary = true end
     end
 
     -- The name row: A renames through the prompt (the controller keyboard
@@ -1483,6 +1492,34 @@ function ZeD_ItemCard:getActionStripElements()
     end
 
     return els
+end
+
+-- Oct 23 2026 (director: "it is difficult navigate up to the strip"): the
+-- card's D-pad, shared by both windows' card zones (zoneName). Up from any
+-- control in the card goes straight to the action strip, onto its primary
+-- button; on the strip, Up scrolls the card back up by a section. Down goes
+-- to the next control below in the card; past the last one it scrolls the
+-- card on by a section, so the whole card can be read. Left / Right return
+-- false: the window's spatial move (along a row; off the card at its edge).
+function ZeD_ItemCard:gpDpad(w, e, dir, zoneName)
+    if dir == "left" or dir == "right" then return false end
+    local F = ZeD.Input and ZeD.Input.Focus
+    if dir == "up" then
+        if e and not e.isStrip and F and F.focusWhere then
+            if F.focusWhere(w, zoneName, function(x) return x.isPrimary end) then return true end
+        end
+        self:scrollToPrevDisclosure()
+        return true
+    end
+    local z = F and F.getFocusedZone and F.getFocusedZone(w)
+    local N = ZeD.SpatialNav
+    if e and z and z.elements and N then
+        for _, x in ipairs(z.elements) do
+            if x ~= e and N.cost(e, x, "down") then return false end
+        end
+    end
+    self:scrollToNextDisclosure()
+    return true
 end
 
 -- Return focusable elements for the clothing detail zone's structural docks.

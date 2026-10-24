@@ -857,7 +857,7 @@ function ZeD_ObjectCard:prerender()
                 { primary = v.primary and v.enabled ~= false, disabled = v.enabled == false, danger = v.danger, focused = self._fid == fid })
             local vv = v
             self:zone({ fid = fid, x = vx, y = y + math.floor((vh - T.px(22)) / 2), w = vw, h = T.px(22),
-                run = function() self:press(vv) end, verb = true })
+                run = function() self:press(vv) end, verb = true, primary = (v.primary and v.enabled ~= false) or nil })
             vx = vx + vw + T.px(4)
         end
         y = y + vh
@@ -1132,6 +1132,7 @@ function ZeD_ObjectCard:buildFocusables(win)
             -- the card top to bottom; scroll-follow brings the focused one in
             out[#out + 1] = {
                 x = z.x, y = z.body and (z.y + off) or z.y, w = z.w, h = z.h, id = z.fid, zone = z,
+                isPrimary = z.primary,   -- (Oct 23 2026: where a move into the card lands)
                 onFocus = function(w, el) end,
                 onActivate = function(w, el) if zz.run then zz.run(card, card:player()) end end,
                 onCancel = function(w, el)

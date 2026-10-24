@@ -174,6 +174,10 @@ local _debugFocusBox   = nil  -- focused element's translated bounds (cached for
 -- HELPERS (declared up-front so forward refs resolve — common mistake #16)
 -- ---------------------------------------------------------------------------
 
+-- (a zone's source panel; assigned in the FLAT-NAV section below, read by
+-- setZoneFocusable above it: Kahlua closures capture a name at creation)
+local _zonePanel
+
 -- Stable-label helper: prefer _zedLabel (set once by window) over .title
 -- (which mutates mid-session to show player name / container name).
 local function _label(w)
@@ -302,6 +306,12 @@ function Focus.claimFocus(w)
     local old = _focusedWindow
     _focusedWindow = w
     print("[ZeD.Input] Focus: claim: " .. _label(old) .. " -> " .. _label(w))
+    -- Oct 23 2026: land on something lit (the last focused element, else the
+    -- list's first row); see Focus.ensureEntry
+    if Focus.ensureEntry then
+        local ok, err = pcall(Focus.ensureEntry, w)
+        if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
+    end
 
     _pushEngineFocus(w)
     _maybeIgnoreAim()
@@ -403,6 +413,23 @@ function Focus.setRingZoneElements(w, zoneRef, elements, preserveIdx)
     end
 end
 
+-- Oct 23 2026: the same, keeping the focus on the element with the same id
+-- when it is still there (a card's controls rebuilt each frame: a button
+-- appearing before the focused one must not move the focus).
+function Focus.setRingZoneElementsKeepId(w, zoneRef, elements)
+    local idx = _resolveZoneIdx(w, zoneRef)
+    if not idx or not elements then return end
+    local zone = w._focusRing[idx]
+    local old = zone.elements and zone.elements[zone.focusedElementIdx or 1]
+    local keep
+    if old and old.id then
+        for i, e in ipairs(elements) do
+            if e.id == old.id then keep = i; break end
+        end
+    end
+    Focus.setRingZoneElements(w, zoneRef, elements, keep)
+end
+
 -- Toggle focusable flag on a zone (e.g. drawer open=true / closed=false).
 -- If toggling OFF the currently-focused zone, advance _focusIdx to the next
 -- focusable zone so the user doesn't end up stranded in a dead zone.
@@ -412,6 +439,26 @@ function Focus.setZoneFocusable(w, zoneRef, flag)
     w._focusRing[idx].focusable = flag and true or false
 
     if (not flag) and w._focusIdx == idx then
+        -- Oct 23 2026: the window's list emptied under the focus (another
+        -- container picked, the last item taken): focus goes back to the list
+        -- as soon as it has rows again (Focus.ensureEntry, on the tick)
+        if w._focusEntryZone and w._focusRing[idx].zone == w._focusEntryZone then
+            w._focusPendingEntry = true
+        end
+        -- Oct 23 2026 (director: focus goes back to where you started, or its
+        -- nearest neighbour in the same panel, "never to another panel or
+        -- nowhere"): first a zone in the same panel that still has stops
+        -- (the list's container buttons under it), only then the ring order
+        local panel = _zonePanel(w, w._focusRing[idx].zone)
+        if panel then
+            for i, z in ipairs(w._focusRing) do
+                if i ~= idx and z.focusable and z.elements and #z.elements > 0 and _zonePanel(w, z.zone) == panel then
+                    w._focusIdx = i
+                    z.focusedElementIdx = _clampIdx(z.focusedElementIdx, z.elements)
+                    return
+                end
+            end
+        end
         local n = #w._focusRing
         for step = 1, n do
             local probe = ((w._focusIdx - 1 + step) % n) + 1
@@ -434,6 +481,97 @@ end
 function Focus.reclaimEngineFocus()
     if _focusedWindow and setJoypadFocus then
         pcall(setJoypadFocus, 0, _focusedWindow)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- WHERE FOCUS LANDS (Oct 23 2026, the director's first hands-on pad test:
+-- "missing the selection in cone nav when first navigating to the world
+-- window"; "the info cards do not land on the action strip")
+--
+--   Focus.focusWhere(w, zone, pred)  put focus on the first element of the
+--                                    zone that pred(el, i) accepts (nil pred
+--                                    = the first), now; fires its onFocus
+--   Focus.ensureEntry(w)             a window being entered (LB / RB, the
+--                                    D-pad from the other window, Y) keeps
+--                                    its last focused element while it still
+--                                    exists; a fresh window, or one whose
+--                                    focus is gone, lands on its entry zone
+--                                    (w._focusEntryZone: the item list) on
+--                                    its first row; with no rows, on the
+--                                    first zone that has something
+-- A window sets w._focusEntryZone and w._focusPendingEntry = true when it is
+-- built; the pending flag clears on the first landing (a D-pad move, a
+-- focusWhere), and comes back when the list empties under the focus.
+-- ---------------------------------------------------------------------------
+
+function Focus.focusWhere(w, zoneName, pred)
+    if not (w and w._focusRing) then return nil end
+    for zi, z in ipairs(w._focusRing) do
+        if z.zone == zoneName and z.focusable then
+            for ei, e in ipairs(z.elements or {}) do
+                if (not pred) or pred(e, ei) then
+                    w._focusIdx = zi
+                    z.focusedElementIdx = ei
+                    w._navLast = nil
+                    w._focusPendingEntry = nil
+                    if e.onFocus then _fireCb("element.onFocus", e.onFocus, w, e) end
+                    return e
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- A zone.landOn for cards (FocusManager's landing rule): a move into the
+-- card lands on its primary action, the button the player most likely wants.
+function Focus.landOnPrimary(w, z)
+    for i, e in ipairs(z and z.elements or {}) do
+        if e.isPrimary then return i end
+    end
+    return nil
+end
+
+local function _focusLive(w)
+    local z = w._focusRing and w._focusRing[w._focusIdx or 1]
+    if z and z.covered and z.covered(w) then return false end
+    return z ~= nil and z.focusable and z.elements ~= nil and z.elements[z.focusedElementIdx or 1] ~= nil
+end
+
+function Focus.ensureEntry(w)
+    if not (w and w._focusRing) then return end
+    local live = _focusLive(w)
+    if live and not w._focusPendingEntry then return end
+    local zi = w._focusEntryZone and _resolveZoneIdx(w, w._focusEntryZone)
+    local zone = zi and w._focusRing[zi]
+    if zone and zone.focusable and zone.elements and #zone.elements > 0 then
+        -- the remembered row when focus was last here, else the first row
+        -- (rows carry .item; the List | Grid toggle and placeholders do not)
+        local ei = zone.focusedElementIdx or 1
+        local el = zone.elements[ei]
+        if not (el and el.item) or w._focusPendingEntry then
+            for i, e in ipairs(zone.elements) do
+                if e.item then ei = i; break end
+            end
+        end
+        w._focusIdx = zi
+        zone.focusedElementIdx = _clampIdx(ei, zone.elements)
+        w._navLast = nil
+        w._focusPendingEntry = nil
+        el = zone.elements[zone.focusedElementIdx]
+        if el and el.onFocus then _fireCb("element.onFocus", el.onFocus, w, el) end
+        return
+    end
+    if live then return end   -- (the list has no rows yet: keep what is lit)
+    for i, z in ipairs(w._focusRing) do
+        if z.focusable and not (z.covered and z.covered(w)) and z.elements and #z.elements > 0 then
+            w._focusIdx = i
+            z.focusedElementIdx = _clampIdx(z.focusedElementIdx, z.elements)
+            local e = z.elements[z.focusedElementIdx]
+            if e and e.onFocus then _fireCb("element.onFocus", e.onFocus, w, e) end
+            return
+        end
     end
 end
 
@@ -473,7 +611,7 @@ local _zonePanelField = {
 
 -- Resolve the source panel for a zone. charMC<N> and worldMC<N> are
 -- handled via prefix match since they're dynamically named.
-local function _zonePanel(w, zoneName)
+_zonePanel = function(w, zoneName)
     if not w or not zoneName then return nil end
     local field = _zonePanelField[zoneName]
     if not field then
@@ -508,7 +646,10 @@ local function _collectFlat(w)
     if not w or not w._focusRing then return elements, locator end
     for zi = 1, #w._focusRing do
         local zone = w._focusRing[zi]
-        if zone.focusable and zone.elements and #zone.elements > 0 then
+        -- (Oct 23 2026: zone.covered(w) = drawn over just now, e.g. a tab's
+        -- controls under an item card that overlays the drawer: no stops)
+        local covered = zone.covered and zone.covered(w)
+        if zone.focusable and not covered and zone.elements and #zone.elements > 0 then
             local ox, oy = _zoneOffset(w, zone.zone)
             for ei = 1, #zone.elements do
                 local el = zone.elements[ei]
@@ -561,6 +702,7 @@ local function _applyFlatLanding(w, locator, oldFlatIdx, newFlatIdx)
 
     newZone.focusedElementIdx = newLoc.elementIdx
     w._focusIdx               = newZoneIdx
+    w._focusPendingEntry      = nil   -- the player put focus somewhere: no entry seed after this
 
     local newEl = newZone.elements[newLoc.elementIdx]
     if newEl and newEl.onFocus then
@@ -832,6 +974,26 @@ local function _handleBContextual()
     -- Return value ignored — no fall-through path exists post-S113.
 end
 
+-- The registered window lying `dir` of w on screen (visible, not rolled up),
+-- nearest first by the same rectangle rule as the controls; nil when none.
+local function _windowThatWay(w, dir)
+    local N = ZeD.SpatialNav
+    if not (N and w and w.getX and w._focusEntryZone) then return nil end
+    local from = { x = w:getX(), y = w:getY(), w = w:getWidth(), h = w:getHeight() }
+    local best, bestTier, bestCost
+    for i = 1, #_windowRegistry do
+        local o = _windowRegistry[i]
+        -- (the window pair only: windows with an entry zone, not the dash or the map's pop-out)
+        if o ~= w and o._focusEntryZone and o.isVisible and o:isVisible() and not o.windowShaded and o._focusRing then
+            local tier, c = N.cost(from, { x = o:getX(), y = o:getY(), w = o:getWidth(), h = o:getHeight() }, dir)
+            if tier and (bestTier == nil or tier < bestTier or (tier == bestTier and c < bestCost)) then
+                best, bestTier, bestCost = o, tier, c
+            end
+        end
+    end
+    return best
+end
+
 -- D-pad: pseudo-focusable onDpadDir intercept first (cursor movement, grid
 -- scroll), else flat cone-nav across all focusable zones.
 local function _handleSpatialNav(w, dir)
@@ -925,12 +1087,50 @@ local function _handleSpatialNav(w, dir)
 
     local newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
     if not newPickIdx and searchEls ~= elements then
+        -- Oct 23 2026 (the pad map): then the rest of the same panel before
+        -- any other (Down from a list's last row reaches the container
+        -- buttons under it, not a control in the drawer beside it)
+        local fromLoc = locator[_findCurrentFlatIdx(w, locator) or 1]
+        local fp = fromLoc and _zonePanel(w, w._focusRing[fromLoc.zoneIdx].zone)
+        if fp then
+            local pEls, pLoc, pFrom = {}, {}, 1
+            for i, loc in ipairs(locator) do
+                if _zonePanel(w, w._focusRing[loc.zoneIdx].zone) == fp then
+                    pEls[#pEls + 1] = elements[i]
+                    pLoc[#pLoc + 1] = loc
+                    if loc == fromLoc then pFrom = #pEls end
+                end
+            end
+            local pk, ps = _pickBestWithFallback(pEls, pFrom, dir)
+            if pk then
+                searchEls, searchLoc, newPickIdx, pass = pEls, pLoc, pk, ps
+            end
+        end
+    end
+    if not newPickIdx and searchEls ~= elements then
         -- nothing more that way in this panel: the nearest one beyond it
         searchEls, searchLoc = elements, locator
         fromIdx = _findCurrentFlatIdx(w, locator) or 1
         newPickIdx, pass = _pickBestWithFallback(searchEls, fromIdx, dir)
     end
-    if not newPickIdx then return end  -- nothing that way at all — silent
+    if not newPickIdx then
+        -- Oct 23 2026: nothing more that way in this window: Left / Right go
+        -- on to the other window when it sits that way on screen (the pair
+        -- side by side), landing where Focus.ensureEntry puts it
+        if dir == "left" or dir == "right" then
+            local other = _windowThatWay(w, dir)
+            if other then
+                if _preview then
+                    _preview.zone, _preview.id, _preview.pass = "window", _label(other), "window"
+                    return
+                end
+                print("[ZeD.Input] Focus: spatial " .. dir .. " -> window " .. _label(other))
+                Focus.claimFocus(other)
+                pcall(function() getSoundManager():playUISound("UISelectListItem") end)
+            end
+        end
+        return
+    end
 
     -- Translate filtered-list pick back to the original flat list so
     -- _applyFlatLanding writes the correct (zoneIdx, elementIdx).
@@ -1045,6 +1245,33 @@ local function _handleSpatialNav(w, dir)
                             end
                         end
                         break
+                    end
+                end
+            end
+        end
+    end
+
+    -- Oct 23 2026: the same rule for any zone that names its landing
+    -- (zone.landOn(w, zone, dir) -> an element index, or nil for the spatial
+    -- pick): a container column lands on the container on show (like a tab
+    -- column on its active tab), a card on its primary action, an item list
+    -- on the row focus last had when entered from the side, so going over and
+    -- coming back is predictable whatever height the move started from. The
+    -- list's own rule says nil for Up / Down (up from the buttons under the
+    -- list reaches its last row).
+    do
+        local newLoc = locator[newFlatIdx]
+        local oldLoc = locator[logFromIdx]
+        if newLoc and oldLoc and newLoc.zoneIdx ~= oldLoc.zoneIdx then
+            local newZone = w._focusRing[newLoc.zoneIdx]
+            if newZone and newZone.landOn then
+                local okL, ei = pcall(newZone.landOn, w, newZone, dir)
+                if okL and type(ei) == "number" and newZone.elements and newZone.elements[ei] then
+                    for fi, loc in ipairs(locator) do
+                        if loc.zoneIdx == newLoc.zoneIdx and loc.elementIdx == ei then
+                            newFlatIdx, pass = fi, "land"
+                            break
+                        end
                     end
                 end
             end
@@ -1251,29 +1478,41 @@ end
 -- should land; the element appears a frame or two later). Tries for ~1 s.
 local _focusSoon = {}
 function Focus.focusByIdSoon(w, zoneName, id)
-    _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, id = id, tries = 60 }
+    _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, pred = function(e) return e.id == id end, tries = 60 }
+end
+-- Oct 23 2026: the same for any test (pred(el, i)), after `delay` ticks (a
+-- view that has to draw once first, like a card swapping to another item)
+function Focus.focusSoon(w, zoneName, pred, delay)
+    _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, pred = pred, tries = 60, delay = delay or 0 }
+end
+-- A card just opened (A on a row): focus goes to its primary action (the
+-- element marked isPrimary, else its first), so A again does it.
+function Focus.focusPrimarySoon(w, zoneName, delay)
+    _focusSoon[#_focusSoon + 1] = { w = w, zone = zoneName, primary = true, tries = 60, delay = delay or 0 }
 end
 local function _focusSoonTick()
     if #_focusSoon == 0 then return end
     for i = #_focusSoon, 1, -1 do
         local f = _focusSoon[i]
         local done = false
-        for zi, z in ipairs(f.w and f.w._focusRing or {}) do
-            if z.zone == f.zone and z.focusable then
-                for ei, e in ipairs(z.elements or {}) do
-                    if e.id == f.id then
-                        f.w._focusIdx = zi
-                        z.focusedElementIdx = ei
-                        f.w._navLast = nil
-                        if e.onFocus then pcall(e.onFocus, f.w, e) end
-                        done = true
-                        break
+        if f.delay and f.delay > 0 then
+            f.delay = f.delay - 1
+        else
+            local pred = f.pred
+            if f.primary then
+                pred = nil
+                for _, z in ipairs(f.w and f.w._focusRing or {}) do
+                    if z.zone == f.zone and z.focusable and z.elements and #z.elements > 0 then
+                        pred = function(e, ei) return ei == 1 end
+                        for _, e in ipairs(z.elements) do
+                            if e.isPrimary then pred = function(e2) return e2.isPrimary end; break end
+                        end
                     end
                 end
             end
-            if done then break end
+            if pred then done = Focus.focusWhere(f.w, f.zone, pred) ~= nil end
+            f.tries = f.tries - 1
         end
-        f.tries = f.tries - 1
         if done or f.tries <= 0 then table.remove(_focusSoon, i) end
     end
 end
@@ -1290,6 +1529,21 @@ function Focus.previewMove(w, dir)
     _preview = nil
     if not ok then r.err = true end
     return r
+end
+
+-- Oct 23 2026 (the pad map, ZeDUI/tools/qa/zedqa_padmap.lua): every stop of
+-- the window as the D-pad sees it, window-local: { zone, zi, ei, id, x, y,
+-- w, h, el } in flat order.
+function Focus.flatElements(w)
+    local elements, locator = _collectFlat(w)
+    local out = {}
+    for i, t in ipairs(elements) do
+        local loc = locator[i]
+        local z = w._focusRing[loc.zoneIdx]
+        out[i] = { zone = z.zone, zi = loc.zoneIdx, ei = loc.elementIdx, id = t.id,
+                   x = t.x, y = t.y, w = t.w, h = t.h, el = t._origRef }
+    end
+    return out
 end
 
 function Focus.dispatchJoypadDir(w, dir, joypadData)
@@ -1339,6 +1593,23 @@ local function _onTick()
         if _aHeld                 then _aHeld = false; _aConsumed = false; _aWindow = nil end
         if _xHeld                 then _xHeld = false; _xConsumed = false; _xWindow = nil; _xElement = nil end
         return
+    end
+
+    -- Oct 23 2026: never focus with nothing lit. A fresh window lands on its
+    -- list's first row once the rows exist; focus left on a zone that went
+    -- away (a card closed, a tab emptied) moves to the list (Focus.ensureEntry)
+    if _focusedWindow and (_focusedWindow._focusPendingEntry or not _focusLive(_focusedWindow)) then
+        local ok, err = pcall(Focus.ensureEntry, _focusedWindow)
+        if not ok then print("[ZeD.Input] Focus: ensureEntry failed: " .. tostring(err)) end
+    end
+    -- Oct 23 2026 (director: "it's not properly releasing control and
+    -- returning control back to the spot"): a prompt or menu that closed and
+    -- left the pad with no focus at all (it goes to the game then: Left was
+    -- the belt) hands it back to the focused window, on the element it had
+    if _focusedWindow and JoypadState and JoypadState.players and JoypadState.players[1]
+       and getJoypadFocus and getJoypadFocus(0) == nil
+       and _focusedWindow:isVisible() and not _focusedWindow.windowShaded then
+        _pushEngineFocus(_focusedWindow)
     end
 
     local jd = getJoypadData and getJoypadData(0)

@@ -917,13 +917,24 @@ local function _gpReorderCharContainer(win, containerIdx, dir)
     end
 end
 
+-- Oct 23 2026: A on a container goes on to its first item once its rows have
+-- drawn (World window parity); an empty one keeps the focus on the button.
+local function _focusFirstRowSoon(w, inv)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if not (inv and Fo and Fo.focusSoon) then return end
+    Fo.focusSoon(w, "charMainInv", function(e) return e.item ~= nil and e.item:getContainer() == inv end, 1)
+end
+
 _buildLootFocusables = function(win)
     if not win or not win._containers then return {} end
     local n = #win._containers
     if n == 0 then return {} end
     local T = ZeD.T
-    local stripX = win:getWidth() - T.px(CONTAINER_STRIP_W)
-    local stripY = win:getBodyY()
+    -- Oct 23 2026: panel-local (the focus manager adds the strip panel's
+    -- offset; window-local put every stop a strip-width right and a
+    -- body-height low), from the places the strip drew last (win._stripLay)
+    local stripX = 0
+    local stripY = 0
     -- S106: match the visual layout of drawContainerStrip exactly. Zone 1
     -- (main) at y=stripY. Zone 2 (sort row) at y=stripY+CONTAINER_BTN_SZ+1,
     -- height 20. Zone 3 (non-main buttons) starts at stripY + CONTAINER_BTN_SZ
@@ -931,7 +942,9 @@ _buildLootFocusables = function(win)
     -- focusable y-coords mismatch the actual drawn buttons after containers
     -- were reordered by sort or active-pin.
     local colHdrH = T.px(20)
-    local zone3Y = stripY + T.px(CONTAINER_BTN_SZ) + T.px(1) + colHdrH
+    local L = win._stripLay
+    local zone3Y = (L and L.listY) or (stripY + T.px(CONTAINER_BTN_SZ) + T.px(1) + colHdrH)
+    zone3Y = zone3Y - ((L and L.scroll) or 0)
 
     local elements = {}
     -- Element 1: main (always pinned at Zone 1 top)
@@ -948,6 +961,7 @@ _buildLootFocusables = function(win)
             x = stripX, y = stripY, w = T.px(CONTAINER_STRIP_W), h = T.px(CONTAINER_BTN_SZ),
             id = "container:1",
             containerIdx = 1,
+            inventory = mainCnt.inventory,
             onFocus = function(w, el) end,
             -- S107 QA: tap = switch active container (no tab swap, no MC).
             -- On Loot, exits MC if active and shows this container as the
@@ -968,6 +982,7 @@ _buildLootFocusables = function(win)
                 w._activeContainer = el.containerIdx
                 w._viewedContainer = el.containerIdx
                 w._mainVisible     = (el.containerIdx == 1)
+                _focusFirstRowSoon(w, el.inventory)
             end,
             onHoldActivate = function(w, el)
                 local c = w._mainContent
@@ -991,7 +1006,9 @@ _buildLootFocusables = function(win)
         for i = 1, n do order[i] = i end
     end
     local sortMode = win._containerSortMode or "dist"
-    if sortMode == "wt" or sortMode == "type" then
+    if L and L.entries then
+        order = L.entries   -- (the order the strip drew, main left out)
+    elseif sortMode == "wt" or sortMode == "type" then
         -- Use a shallow copy for the visual sort so we don't mutate the
         -- stored order (drawContainerStrip mutates a shared array too, but
         -- the builder shouldn't fight with it).
@@ -1018,13 +1035,14 @@ _buildLootFocusables = function(win)
 
     local displayPos = 0
     for _, ci in ipairs(order) do
-        if ci ~= 1 then
+        if ci ~= 1 and win._containers[ci] then
             displayPos = displayPos + 1
             local cy = zone3Y + (displayPos - 1) * T.px(CONTAINER_BTN_SZ)
             elements[#elements + 1] = {
                 x = stripX, y = cy, w = T.px(CONTAINER_STRIP_W), h = T.px(CONTAINER_BTN_SZ),
                 id = "container:" .. tostring(ci),
                 containerIdx = ci,
+                inventory = win._containers[ci].inventory,
                 onFocus = function(w, el) end,
                 -- S107 QA: same tap-vs-hold model as the main container.
                 -- Tap = switch active (no tab swap). Hold = MC toggle, with
@@ -1041,6 +1059,7 @@ _buildLootFocusables = function(win)
                     w._activeContainer = el.containerIdx
                     w._viewedContainer = el.containerIdx
                     w._mainVisible     = false
+                    _focusFirstRowSoon(w, el.inventory)
                 end,
                 onHoldActivate = function(w, el)
                     local c = w._mainContent
@@ -1070,6 +1089,55 @@ _buildLootFocusables = function(win)
         end
     end
     return elements
+end
+
+-- Oct 23 2026 (director's pad test, World window parity): the strip's stops
+-- were built at open and on a tab switch only, so a bag put on afterwards had
+-- no stop. Rebuilt whenever the bag list, its order or its scroll changes;
+-- the focus stays on the same bag (by inventory).
+local function _refreshCharStripFocus(win, Focus)
+    local L = win._stripLay
+    local cnts = win._containers
+    if not (L and cnts and win._focusRing) then return end
+    local sum = 0
+    for i, ci in ipairs(L.entries or {}) do sum = sum + i * ci end
+    local sig = win._stripFocusSig
+    if sig and sig.cnts == cnts and sig.scroll == L.scroll and sig.listY == L.listY
+       and sig.sum == sum and sig.n == #cnts then return end
+    win._stripFocusSig = { cnts = cnts, scroll = L.scroll, listY = L.listY, sum = sum, n = #cnts }
+    local zone
+    for _, z in ipairs(win._focusRing) do if z.zone == "charContainerStrip" then zone = z; break end end
+    if not zone then return end
+    local old = zone.elements and zone.elements[zone.focusedElementIdx or 1]
+    local oldInv = old and old.inventory
+    local els = _buildLootFocusables(win) or {}
+    local keep = 1
+    local want = win._viewedContainer or win._activeContainer
+    for i, e in ipairs(els) do
+        if (oldInv and e.inventory == oldInv) or (not oldInv and e.containerIdx == want) then keep = i; break end
+    end
+    Focus.setRingZoneElements(win, "charContainerStrip", els, keep)
+    Focus.setZoneFocusable(win, "charContainerStrip", #els > 0)
+end
+
+-- The strip's landing (FocusManager zone.landOn): the bag on show.
+local function _charStripLandOn(w, z)
+    local want = w._viewedContainer or w._activeContainer
+    for i, e in ipairs(z.elements or {}) do
+        if e.containerIdx == want then return i end
+    end
+    return nil
+end
+
+-- The list's landing from the side: the row focus last had, while it is a row
+-- in view (else the spatial pick).
+local function _charInvListLandOn(w, z, dir)
+    if dir == "up" or dir == "down" then return nil end
+    local e = z.elements and z.elements[z.focusedElementIdx or 1]
+    local c = w._mainContent
+    if not (e and e.item and c) then return nil end
+    if e.y < 0 or e.y + e.h > c:getHeight() then return nil end
+    return z.focusedElementIdx or 1
 end
 
 -- S95 — Build Skills-tab focusables from the win._skillRowZones table that
@@ -1268,6 +1336,9 @@ _buildInvRowFocusables = function(win)
                         cnt._lastClickedItem = nil
                     end
                     w._updateDrawer(cnt)
+                    -- Oct 23 2026: the card opened (or swapped to this item):
+                    -- focus onto its primary action, so A again does it
+                    if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "charItemCard", 2) end
                 end
             end,
             onHoldActivate = function(w, el)
@@ -1400,6 +1471,8 @@ _buildCharacterMCColumnFocusables = function(win, slot)
                         cnt._lastClickedItem = nil
                     end
                     w._updateDrawer(cnt)
+                    -- Oct 23 2026: the card opened: focus onto its primary action
+                    if w._drawerItem == el.item then ZeD.Input.Focus.focusPrimarySoon(w, "charItemCard", 2) end
                 end
             end,
             onHoldActivate = function(w, el)
@@ -1551,13 +1624,14 @@ _buildCardActionFocusables = function(win)
         local el = els[i]
         el.x = el.x - panelAbsX
         el.y = el.y - panelAbsY
+        -- Oct 23 2026: Up = to the action strip, Down = next control, then
+        -- read on (ZeD_ItemCard:gpDpad, shared with the World window);
+        -- L/R fall through to the spatial move
         el.onDpadDir = function(w, e, dir)
-            if dir == "up" and w._itemCard and w._itemCard.scrollToPrevDisclosure then
-                w._itemCard:scrollToPrevDisclosure(); return
-            elseif dir == "down" and w._itemCard and w._itemCard.scrollToNextDisclosure then
-                w._itemCard:scrollToNextDisclosure(); return
+            if w._itemCard and w._itemCard.gpDpad then
+                return w._itemCard:gpDpad(w, e, dir, "charItemCard")
             end
-            return false  -- L/R falls through to cone-nav between buttons
+            return false
         end
         el.onCancel = function(w, e)
             -- Close drawer (mirrors mouse-click on a non-card area / ESC).
@@ -3157,6 +3231,13 @@ local function drawContainerStrip(self, win, content)
         win._stripScrollOffset = 0
         scrollOff = 0
     end
+    -- Oct 23 2026: where the buttons sit (panel-local), for the controller's
+    -- stops (_buildLootFocusables)
+    do
+        local L = win._stripLay or {}
+        win._stripLay = L
+        L.listY, L.listH, L.scroll, L.entries = listStartY, listAreaH, scrollOff, listEntries
+    end
 
     -- Store button Y positions for drag insertion
     win._stripBtnMidpoints = {}
@@ -3585,11 +3666,14 @@ function ZeD_CharacterWindow.toggle(playerNum)
               focusable = #tabContentEls > 0,
               elements = tabContentEls,
               focusedElementIdx = 1,
+              -- (Oct 23 2026: an item card over the drawer hides the tab's controls)
+              covered = function(w) return w._drawerItem ~= nil end,
               uiRange = _drawerRange },
             { zone = "charMainInv",
               focusable = #mainInvEls > 0,
               elements = mainInvEls,
               focusedElementIdx = 1,
+              landOn = _charInvListLandOn,
               uiRange = _invRange },
             -- S108 v2: per-column MC zones (charMC1..charMCN) inserted here
             -- by _rebuildCharMCRingZones() called below. Old single
@@ -3601,6 +3685,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
               focusable = false,
               elements = {},
               focusedElementIdx = 1,
+              landOn = Focus.landOnPrimary,   -- (Oct 23 2026: into a card, onto its primary action)
               uiRange = _drawerRange },
             { zone = "charContainerStrip",
               focusable = #containerEls > 0,
@@ -3615,6 +3700,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                   end
                   return 1
               end)(),
+              landOn = _charStripLandOn,
               uiRange = function(w)
                   local T = ZeD.T
                   return w:getWidth() - T.px(CONTAINER_STRIP_W), T.px(CONTAINER_STRIP_W)
@@ -3623,6 +3709,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- S108 v2: build per-column MC zones (no-op if MC inactive at toggle).
         _rebuildCharMCRingZones(win)
         win._focusIdx = 3  -- start on charMainInv (invrows)
+        -- Oct 23 2026: entering the window lands on the list's first row once
+        -- it has rows (Focus.ensureEntry; World window parity)
+        win._focusEntryZone    = "charMainInv"
+        win._focusPendingEntry = true
 
         Focus.claimFocus(win)
     end
@@ -4901,6 +4991,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
     local function updateDrawer(contentPanel)
         local T = ZeD.T
         local prevMode = win._drawerMode
+        local prevItem = win._drawerItem   -- Oct 23 2026: card-visibility snapshot (World parity)
         local sel = contentPanel._selectedItems
         local count = 0
         local singleItem = nil
@@ -4967,7 +5058,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- setZoneFocusable(false) in the per-frame refresh would auto-rotate
         -- _focusIdx FORWARD to charContainerStrip — not what the user expects
         -- after closing the card from inventory.
-        if prevMode == "item" and win._drawerMode ~= "item" and win._focusRing then
+        -- Oct 23 2026: also when a card over a tab closes (its mode stays
+        -- "tab"): B on the card goes back to the row (World window parity)
+        if ((prevMode == "item" and win._drawerMode ~= "item")
+            or (prevItem ~= nil and win._drawerItem == nil)) and win._focusRing then
             local cardIdx, invIdx
             for i, z in ipairs(win._focusRing) do
                 if z.zone == "charItemCard" then cardIdx = i
@@ -5461,6 +5555,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- --------------------------------------------------------
         local Focus = ZeD.Input and ZeD.Input.Focus
         if Focus and win._focusRing then
+            _refreshCharStripFocus(win, Focus)   -- (the container strip's stops)
 
             -- Guard: container source inventory still valid?
             if not self._inventory then
@@ -5547,7 +5642,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                                             end
                                         end
                                     end
-                                    preserveIdx = math.min(oldIdx, #newEls)
+                                    -- (Oct 23 2026: the neighbouring ROW: the List | Grid
+                                    -- toggles come after the rows, never a stand-in for one)
+                                    local nRows = 0
+                                    for _, ne in ipairs(newEls) do if ne.item then nRows = nRows + 1 end end
+                                    preserveIdx = math.min(oldIdx, math.max(1, nRows))
                                 end
                             end
                             if keepId then
@@ -5611,6 +5710,10 @@ function ZeD_CharacterWindow.toggle(playerNum)
             if not dirty and newN > 0 and snap then
                 dirty = (snap.firstId ~= newEls[1].id)
                      or (snap.lastId  ~= newEls[newN].id)
+                     -- Oct 23 2026 (the pad audit): the stops move when the tab
+                     -- scrolls (Skills' training rows stayed where the tab first
+                     -- drew them, so the pad's sums and scroll-follow used old places)
+                     or (snap.lastY ~= newEls[newN].y) or (snap.lastH ~= newEls[newN].h)
             end
             -- S107 QA: journal Recipes sub-tab routes through CC.buildFocusables;
             -- recipeRow zones shift screen-y on every scroll. Always rebuild
@@ -5673,6 +5776,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                     n       = newN,
                     firstId = newEls[1] and newEls[1].id or nil,
                     lastId  = newEls[newN] and newEls[newN].id or nil,
+                    lastY   = newEls[newN] and newEls[newN].y or nil,
+                    lastH   = newEls[newN] and newEls[newN].h or nil,
                 }
                 -- a builder may name where focus lands (the Equip card opening / closing)
                 Focus.setRingZoneElements(win, "charTabContent", newEls, newEls._focusIdx or preserveIdx)
@@ -5696,7 +5801,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
         if Focus and win._focusRing then
             local cardVisible = (win._drawerItem ~= nil)
             local cardEls = cardVisible and _buildCardActionFocusables(win) or {}
-            Focus.setRingZoneElements(win, "charItemCard", cardEls)
+            Focus.setRingZoneElementsKeepId(win, "charItemCard", cardEls)
             Focus.setZoneFocusable   (win, "charItemCard", cardVisible and #cardEls > 0)
         end
 

@@ -1136,7 +1136,10 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         end
     end
 
-    local totalContentH = padTop + zoneABodyH + zoneBH
+    -- Oct 23 2026 (director: "cannot see the bottom of the health tab"): the
+    -- scroll range covers what the last frame really drew too (the right
+    -- column's detail view and wrapped badge rows can run past the measure)
+    local totalContentH = math.max(padTop + zoneABodyH + zoneBH, win._healthDrawnH or 0)
     local scrollY = y + headerH
     local scrollH = h - headerH
     local needsScroll = totalContentH > scrollH
@@ -1163,26 +1166,43 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- so a KBM mousewheel past the focused row could snap back on any
     -- frame that briefly reported "gamepad". Delta gate fires exactly once
     -- per focus change regardless of mode.
+    -- Oct 23 2026: the same for every stop in the tab (exercise pills, the
+    -- time buttons, body parts, injuries), keyed on the element's id. The
+    -- lowest stop scrolls as far down as it can while staying in view, so the
+    -- text under it (the exercise info, the last injury) can be read on the
+    -- pad; the header's disclosure scrolls back to the top.
     if needsScroll then
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
         local el = Focus and Focus.getFocusedWindow and Focus.getFocusedElement
                    and Focus.getFocusedWindow() == win
                    and Focus.getFocusedElement(win) or nil
-        local injKey = el and el.injuryKey or nil
-        if injKey and injKey ~= win._lastPinnedInjuryKey then
-            local focAbsY = lastInjuryYMap[injKey]
-            if focAbsY then
-                local rowEstH = bodyH + T.px(2) + badgeH + T.sp.xs + T.px(1) + T.sp.afterGroove
-                local span    = math.max(1, totalContentH - scrollH)
-                local oldOff  = math.floor(scroll.scrollPos * span)
-                local logicalY = focAbsY - scrollY + oldOff
-                if logicalY < oldOff then
-                    scroll:setScrollPos(logicalY / span)
-                elseif logicalY + rowEstH > oldOff + scrollH then
-                    scroll:setScrollPos((logicalY + rowEstH - scrollH) / span)
+        local focKey = el and (el.injuryKey or el.exerciseId or el.partName or el.isDisclosure) and el.id or nil
+        if focKey and focKey ~= win._lastPinnedInjuryKey then
+            local span    = math.max(1, totalContentH - scrollH)
+            local oldOff  = math.floor(scroll.scrollPos * span)
+            local elY, elH = el.y, el.h
+            if el.injuryKey and lastInjuryYMap[el.injuryKey] then elY = lastInjuryYMap[el.injuryKey] end
+            local target = oldOff
+            if el.isDisclosure then
+                target = 0
+            elseif type(elY) == "number" and type(elH) == "number" then
+                local logicalY = elY - scrollY + oldOff
+                local lowest = true
+                local z = Focus.getFocusedZone(win)
+                for _, o in ipairs(z and z.elements or {}) do
+                    if o ~= el and type(o.y) == "number" and o.y + (o.h or 0) > elY + elH + 1 then lowest = false; break end
+                end
+                if lowest then
+                    target = math.min(span, logicalY)
+                elseif logicalY < oldOff then
+                    target = logicalY
+                elseif logicalY + elH > oldOff + scrollH then
+                    target = logicalY + elH - scrollH
                 end
             end
-            win._lastPinnedInjuryKey = injKey
+            target = math.max(0, math.min(span, target))
+            if target ~= oldOff then scroll:setScrollPos(target / span) end
+            win._lastPinnedInjuryKey = focKey
         end
     end
 
@@ -1209,15 +1229,18 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         -- S103: detail-view now reads _healthActivePart (gp focus overrides
         -- mouse hover); previously only _healthHoveredPart drove the swap.
         local activePart = win._healthActivePart
+        local rightBottom
         if activePart and data.partHealth[activePart] then
-            ZeD.HealthTab._renderDetailView(panel, win, data, activePart,
+            rightBottom = ZeD.HealthTab._renderDetailView(panel, win, data, activePart,
                 layout.rightX, layout.rightY, layout.rightW)
         else
-            ZeD.HealthTab._renderHeader(panel, win, data,
+            rightBottom = ZeD.HealthTab._renderHeader(panel, win, data,
                 layout.rightX, layout.rightY, layout.rightW)
         end
 
-        curY = curY + zoneABodyH
+        -- (Oct 23 2026: a right column taller than the measure pushes the
+        -- injury list down instead of running under it)
+        curY = math.max(curY + zoneABodyH, (rightBottom or 0) + padTop + pad)
     end
 
     -- ================================================================
@@ -1289,6 +1312,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
             }
         end
     end
+    -- what this frame drew, top to bottom (next frame's scroll range covers it)
+    win._healthDrawnH = curY - (scrollY - scrollOff)
 
     panel:clearStencilRect()
 
