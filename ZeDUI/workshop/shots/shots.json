@@ -1463,24 +1463,25 @@
   {
    "id": "controller_map",
    "kind": "feature",
-   "src": "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad.png",
+   "src": "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png",
    "title": "Controller",
    "patches": [],
    "caption": "Every mouse action has a button: A is left click, X is right click, B backs out.",
    "crops": [
     {
      "box": [
-      1240,
-      500,
-      2600,
-      1560
+      80,
+      120,
+      1552,
+      1008
      ],
      "place": [
-      580,
-      240,
-      760
+      592,
+      400,
+      736
      ],
-     "frame": false
+     "frame": false,
+     "resample": "nearest"
     }
    ],
    "balloons": [
@@ -1488,8 +1489,8 @@
      "head": "LT · RT",
      "text": "The game's own: aim and attack. On the map, zoom.",
      "anchor": [
-      1395,
-      560
+      348,
+      100
      ],
      "side": "auto",
      "crop": 0,
@@ -1497,125 +1498,80 @@
       24,
       104
      ],
-     "maxw": 430
+     "maxw": 400
     },
     {
      "head": "LB",
      "text": "Character window. No window open: hold LB, tap RB to zoom out.",
      "anchor": [
-      1400,
-      640
+      532,
+      156
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      24,
-      262
+      438,
+      104
      ],
-     "maxw": 430
-    },
-    {
-     "head": "D-pad",
-     "text": "Move from control to control. No window open: the game's wheels.",
-     "anchor": [
-      1432,
-      860
-     ],
-     "side": "auto",
-     "crop": 0,
-     "at": [
-      24,
-      452
-     ],
-     "maxw": 430
-    },
-    {
-     "head": "Left stick",
-     "text": "Walk. The game's own.",
-     "anchor": [
-      1638,
-      1080
-     ],
-     "side": "auto",
-     "crop": 0,
-     "at": [
-      24,
-      650
-     ],
-     "maxw": 430
+     "maxw": 300
     },
     {
      "head": "View",
-     "text": "Layout: move and size the window.",
+     "text": "In a window: layout. No window open: hold for the ZeD wheel.",
      "anchor": [
-      1772,
-      802
+      636,
+      540
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      540,
+      780,
       104
      ],
-     "maxw": 300
-    },
-    {
-     "head": "X (Square)",
-     "text": "Right click: the context menu.",
-     "anchor": [
-      2236,
-      820
-     ],
-     "side": "auto",
-     "crop": 0,
-     "at": [
-      1010,
-      104
-     ],
-     "maxw": 300
+     "maxw": 260
     },
     {
      "head": "Menu",
      "text": "The game's pause menu.",
      "anchor": [
-      2040,
-      812
+      892,
+      540
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      640,
-      868
+      1080,
+      104
      ],
-     "maxw": 330
+     "maxw": 260
     },
     {
      "head": "RB",
      "text": "World window. No window open: hold RB, tap LB to zoom in.",
      "anchor": [
-      2440,
-      640
+      1076,
+      156
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      1350,
+      1380,
       104
      ],
-     "maxw": 430
+     "maxw": 480
     },
     {
      "head": "Y (Triangle)",
      "text": "Tap: open, hide or show both windows. Hold: close both.",
      "anchor": [
-      2360,
-      776
+      1252,
+      476
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      1350,
-      280
+      1460,
+      316
      ],
      "maxw": 430
     },
@@ -1623,14 +1579,14 @@
      "head": "B (Circle)",
      "text": "Back: close or back out.",
      "anchor": [
-      2444,
-      860
+      1348,
+      572
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      1350,
-      450
+      1460,
+      480
      ],
      "maxw": 430
     },
@@ -1638,31 +1594,76 @@
      "head": "A (Cross)",
      "text": "Left click: open, take, press.",
      "anchor": [
-      2360,
-      944
+      1252,
+      668
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      1350,
-      590
+      1460,
+      614
+     ],
+     "maxw": 430
+    },
+    {
+     "head": "D-pad",
+     "text": "In a window: move from control to control. No window open: hold for a wheel (Character, World, Social, Here and now).",
+     "anchor": [
+      300,
+      572
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      24,
+      420
+     ],
+     "maxw": 430
+    },
+    {
+     "head": "Left stick",
+     "text": "Walk. Click it in a window to sort the list.",
+     "anchor": [
+      604,
+      788
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      24,
+      700
      ],
      "maxw": 430
     },
     {
      "head": "Right stick",
-     "text": "Aim. Hides both windows; Y brings them back.",
+     "text": "Aim; both windows hide. Click it in a window: List or Grid. In a wheel: point.",
      "anchor": [
-      2202,
-      1080
+      932,
+      820
      ],
      "side": "auto",
      "crop": 0,
      "at": [
-      1350,
-      740
+      440,
+      846
      ],
-     "maxw": 430
+     "maxw": 560
+    },
+    {
+     "head": "X (Square)",
+     "text": "Right click: the context menu.",
+     "anchor": [
+      1108,
+      620
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      1060,
+      846
+     ],
+     "maxw": 420
     }
    ]
   },

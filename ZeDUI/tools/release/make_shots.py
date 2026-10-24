@@ -732,7 +732,8 @@ def render(shot, screens, n, stub, debug, patches=()):
                 spath = c.get("src") or shot["src"]
                 if not os.path.isabs(spath):
                     spath = os.path.join(screens, spath)
-                t = Image.open(spath).convert("RGBA").crop(tuple(c["box"])).resize((pw, ph), Image.LANCZOS)
+                rs = Image.NEAREST if c.get("resample") == "nearest" else Image.LANCZOS   # pixel art stays crisp
+                t = Image.open(spath).convert("RGBA").crop(tuple(c["box"])).resize((pw, ph), rs)
                 canvas.paste(t, (px, py), t)
             else:
                 tile = scaled(get(c["src"]) if c.get("src") else src, tuple(c["box"]), pw, ph,
