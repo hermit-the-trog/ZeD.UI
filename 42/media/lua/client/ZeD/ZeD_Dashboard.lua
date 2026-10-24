@@ -18,9 +18,11 @@
 -- verb (ISVehicleMenu / ISVehiclePartMenu / vehicle client commands / radio
 -- device data), so behaviour and MP commands stay identical to vanilla.
 --
--- Gamepad: registers as a FocusManager window when the driver is seated and no
--- ZeD window owns focus. D-pad cone-nav across the controls, A fires, X = the
--- secondary (remove key, tune down, volume, store preset), B releases.
+-- Gamepad: the D-pad stays with the wheels in the driver's seat (director, Oct
+-- 24 2026); the World wheel's Vehicle > Dashboard hands the pad to the dash
+-- (D.takePad: a FocusManager window only while it holds the pad). D-pad
+-- cone-nav across the controls, A fires, X = the secondary (remove key, tune
+-- down, volume, store preset), B lets go.
 -- Passengers see the dash read-only. HOOK_MAP.md #2 / #4.
 --
 -- The radio slot shows the radio that is actually fitted: its small pixel face,
@@ -452,7 +454,7 @@ ZeD.trDefaults({
     UI_ZeD_Dash_PromptDefrost = "Defrost", UI_ZeD_Dash_PromptClimateOff = "Climate off", UI_ZeD_Dash_PromptPress = "Press",
     UI_ZeD_Dash_PromptRemoveKey = "Remove key", UI_ZeD_Dash_PromptTuneMinus = "Tune -", UI_ZeD_Dash_PromptSeekBack = "Seek back",
     UI_ZeD_Dash_PromptStore = "Store", UI_ZeD_Dash_PromptDrive = "Drive", UI_ZeD_Dash_Passenger = "PASSENGER",
-    UI_ZeD_Dash_HintAxb = "A %1  X %2  B %3", UI_ZeD_Dash_HintAb = "A %1  B %2", UI_ZeD_Dash_HintReenter = "Dash: re-enter the seat to focus",
+    UI_ZeD_Dash_HintAxb = "A %1  X %2  B %3", UI_ZeD_Dash_HintAb = "A %1  B %2", UI_ZeD_Dash_HintWheel = "D-pad Right: Vehicle / Dashboard",
     UI_ZeD_Dash_UnitCab = "%1 - CAB %2", UI_ZeD_Dash_UnitEngine = "%1 - ENGINE %2", UI_ZeD_Dash_UnitUnit = "%1 - UNIT %2",
 })
 
@@ -520,7 +522,7 @@ function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
             promptB = self._pad and ZeD.tr("UI_ZeD_Dash_PromptDrive") or nil,
             onActivate = function(win, el) win:_fire(id, false) end,
             onContextMenu = function(win, el) if secondary then win:_fire(id, true) end end,
-            onCancel = function(win, el) win:_release() end,
+            onCancel = function(win, el) win:_release(); win:_unregister() end,
         }
     end
 end
@@ -609,6 +611,9 @@ function ZeD_Dashboard:prerender()
     self._pad = gamepad and true or false      -- the controller prompts' words are looked up only while a pad plays
     -- the focus cue is a gamepad affordance: the dash still holds focus for the ring under mouse play, but paints nothing
     self._focEl = (gamepad and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) and Focus.getFocusedElement(self) or nil
+    -- (the pad went to a window (LB / RB): the dash leaves the window list, so closing
+    -- that window never hands the D-pad back to the dash)
+    if self._reg and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() ~= self then self:_unregister() end
     self._hit = {}; self._elements = {}
     self._consoleRect = des.console   -- the radio and siren props up close line up on the console (plate pixels; _s = k)
     _nightLight(self, vehicle, chr, st, des, dt)
@@ -640,7 +645,7 @@ function ZeD_Dashboard:prerender()
             local pa, pb = self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress"), ZeD.tr("UI_ZeD_Dash_PromptDrive")
             hint = self._focEl.promptX and ZeD.tr("UI_ZeD_Dash_HintAxb", pa, self._focEl.promptX, pb) or ZeD.tr("UI_ZeD_Dash_HintAb", pa, pb)
         else
-            hint = ZeD.tr("UI_ZeD_Dash_HintReenter")
+            hint = ZeD.tr("UI_ZeD_Dash_HintWheel")
         end
         -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight)
         if des.hintInk then P.text(cv, ZeD.upper(hint), DP.hintRight, 2, P.color(des.hintInk), "35", 1, "r")
@@ -702,13 +707,15 @@ end
 function ZeD_Dashboard:_claim()
     local Focus = ZeD.Input and ZeD.Input.Focus; if not Focus then return end
     Focus.registerWindow(self)
-    if not Focus.getFocusedWindow() then Focus.claimFocus(self) end
+    self._reg = true
+    Focus.claimFocus(self)
 end
 function ZeD_Dashboard:_release()
     local Focus = ZeD.Input and ZeD.Input.Focus; if not Focus then return end
     if Focus.getFocusedWindow() == self then Focus.releaseFocus() end
 end
 function ZeD_Dashboard:_unregister()
+    self._reg = nil
     local Focus = ZeD.Input and ZeD.Input.Focus
     if Focus then pcall(Focus.unregisterWindow, self) end
 end
@@ -737,11 +744,26 @@ function D.show(character)
     if vehicle then
         inst.vehicle = vehicle
         inst:setVisible(true)
-        if vehicle:isDriver(character) then inst:_claim() else inst:_release(); inst:_unregister() end
+        -- (the driver's seat leaves the D-pad with the wheels: Vehicle > Dashboard hands it over)
+        if not vehicle:isDriver(character) then inst:_release(); inst:_unregister() end
     else
         inst:setVisible(false); inst:_release(); inst:_unregister()
     end
 end
+-- the driver's dash, shown (the World wheel's Vehicle > Dashboard asks)
+function D.canTakePad(character)
+    local inst = D._instance
+    local vehicle = character and character:getVehicle()
+    if not (inst and inst:isVisible() and vehicle) or inst.playerNum ~= character:getPlayerNum() then return false end
+    return _safe(function() return vehicle:isDriver(character) end, false)
+end
+-- the controller on the dash's controls, until B (or LB / RB to a window)
+function D.takePad(character)
+    if not D.canTakePad(character) then return false end
+    D._instance:_claim()
+    return true
+end
+
 function D.hide(character)
     local inst = D._instance; if not inst then return end
     if not (character and instanceof(character, "IsoPlayer") and character:isLocalPlayer()) then return end

@@ -50,12 +50,15 @@ Read this first. Read `STATE.md` only for feature detail. Its header and "Next s
 - Full 4K regression with the wheels: 69/71, the two warnings were test state (an open stack from an earlier test, a curtain timing check) and pass on rerun; pad map 0 of 27,228.
 - The gallery's Controller card was redrawn by the design session (commit 67587e74).
 
+## Done on Oct 24
+
+- **Tester build 0.2.0-t2 is up** (uploaded by the director; staged Contents removed after). The Workshop window now opens on the folder picked last with the description and change note already in (commit f4fb1c4f): Claude writes the build's `tester_description` bbcode into `workshop.txt` and its change note into `Zomboid/Lua/ZeD_workshop.txt`, and the director only presses Upload twice (`RELEASE_CHECKLIST.md` steps 12-14).
+- **Driver's seat** (director: "the D-pad opens the wheels straight away; the dashboard's controls go on World > Vehicle"): sitting down no longer gives the dash the pad. World > Vehicle has **Dashboard** after the game's slices, before Back: it puts the pad on the dash's controls, B lets go (the dash also leaves the window list when LB / RB take the pad to a window). The dash's top-edge hint without the pad reads "D-pad Right: Vehicle / Dashboard". `zedqa_dpad_wheels.lua` checks all of it in the car scene.
+
 ## Open items, in order
 
-1. **Tester build 0.2.0-t2** with the wheels: staged after this commit; **the director presses Upload** (description and change note: `ZeDUI/workshop/tester_description_0.2.0-t2.bbcode`, `tester_changenote_0.2.0-t2.txt`). Remove the staged Contents afterwards.
-2. Ask the director: in the driver's seat the dashboard takes the D-pad on the way in (B lets go, then the wheels open). Keep, or have the wheels open at once?
-3. The controller map screen (Help, Controller map) is "Coming later." in the wheel.
-4. Triage tester reports from the Steam threads (an offer stands: a daily thread check).
+1. The controller map screen (Help, Controller map) is "Coming later." in the wheel.
+2. Triage tester reports from the Steam threads (an offer stands: a daily thread check).
 
 ## How to work (lessons from Oct 23)
 

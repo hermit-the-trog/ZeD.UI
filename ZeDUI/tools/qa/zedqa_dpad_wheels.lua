@@ -286,20 +286,60 @@ step(20, function()
     pcall(function() car:enter(0, p) end)
     pcall(function() triggerEvent("OnEnterVehicle", p) end)
 end)
+-- the driver's seat leaves the D-pad with the wheels (director, Oct 24 2026);
+-- World > Vehicle > Dashboard hands it to the dash, B lets go
+local dashAt
 step(60, function()
     if not (car and p:getVehicle()) then return end
-    -- the driver's dashboard takes the pad on the way in (ZeD_Dashboard: B lets
-    -- go): the wheels open once it has let go
     local F = ZeD.Input.Focus
+    local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance()
     local fw = F.getFocusedWindow()
     say("in the car the pad is on: " .. tostring(fw and (fw._zedLabel or fw.Type) or "nothing"))
+    check(dash and fw ~= dash, "in the driver's seat the dashboard does not take the D-pad")
     if fw then pcall(F.releaseFocus) end
     for _, dir in ipairs(DIRS) do closeAll(); open(dir); list("car " .. dir) end
-    local w = entry(ZeD.tr("UI_ZeD_Wheel_Vehicle"))
     closeAll(); open("right")
-    w = entry(ZeD.tr("UI_ZeD_Wheel_Vehicle"))
+    local w = entry(ZeD.tr("UI_ZeD_Wheel_Vehicle"))
     check(w and not w.off, "in the car: World > Vehicle is live")
-    if w and not w.off then D.enter(pn, w); list("car vehicle wheel"); local m = D.state[pn] and D.state[pn].menu; local last = m and m.slices[#m.slices]; check(last and W.isBack(last), "the vehicle wheel ends with Back") end
+    if not (w and not w.off) then return end
+    D.enter(pn, w)
+    local m = list("car vehicle wheel")
+    local last = m and m.slices[#m.slices]
+    check(last and W.isBack(last), "the vehicle wheel ends with Back")
+    local name = getText("IGUI_VehiclePartCatdashboard")
+    for i, s in ipairs(m and m.slices or {}) do if tostring(s.text):find(name, 1, true) == 1 then dashAt = i end end
+    check(dashAt and not W.isOff(m.slices[dashAt]), "the vehicle wheel has Dashboard (driver's seat)")
+    check(dashAt == #m.slices - 1, "Dashboard is the last slice before Back")
+    W.qaPoint = dashAt
+end)
+step(25, function() if dashAt then shot("car_vehicle_dashboard") end end)
+step(5, function()
+    W.qaPoint = nil
+    local m = D.state[pn] and D.state[pn].menu
+    local cmd = dashAt and m and m:getSliceCommand(dashAt)
+    if not (cmd and cmd[1]) then closeAll(); return end
+    -- as A takes it (ZeD_DpadWheels: the wheel goes, then the slice's command)
+    closeAll()
+    cmd[1](cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7])
+end)
+step(10, function()
+    if not dashAt then return end
+    local F = ZeD.Input.Focus
+    local dash = ZeD.Dashboard.getInstance()
+    check(F.getFocusedWindow() == dash, "Dashboard puts the pad on the dash's controls")
+    local el = F.getFocusedElement(dash)
+    check(el ~= nil, "a dash control has the focus: " .. tostring(el and el.id))
+    -- B, as the focus manager sends it: the focused control's onCancel
+    if el and el.onCancel then el.onCancel(dash, el) end
+end)
+step(5, function()
+    if not dashAt then return end
+    local F = ZeD.Input.Focus
+    check(F.getFocusedWindow() == nil, "B lets go of the dash")
+    check(not ZeD.Dashboard.getInstance()._reg, "the dash leaves the window list on B")
+    closeAll(); open("right")
+    local m = list("car after B")
+    check(D.state[pn] and m and #m.slices >= 8, "after B the D-pad opens the World wheel again")
     closeAll()
 end)
 step(30, function()

@@ -828,7 +828,7 @@ D.B.world = function(p, pn)
     return {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "craft-tab-white", detail = tr("UI_ZeD_Wheel_WorldWindow"), sub = Wd.tabs },
         { name = tr("UI_ZeD_Wheel_Map"), icon = "crafting-game-037-map", sub = Wd.map },
-        { name = tr("UI_ZeD_Wheel_Vehicle"), icon = "car-mechanic", fill = function(pl) ISVehicleMenu.showRadialMenu(pl) end,
+        { name = tr("UI_ZeD_Wheel_Vehicle"), icon = "car-mechanic", fill = function(pl, n) ISVehicleMenu.showRadialMenu(pl); H.dashSlice(pl, n) end,
           off = (not vehicle) and tr("UI_ZeD_Wheel_NoVehicle") or nil },
         { name = tr("UI_ZeD_Wheel_Animal"), icon = "cow", fill = function(pl) AnimalContextMenu.showRadialMenu(pl) end,
           off = (not animal) and tr("UI_ZeD_Wheel_NoAnimal") or nil },
@@ -1291,6 +1291,17 @@ local function nextFrame(fn, frames)
         pcall(fn)
     end
     Events.OnPreUIDraw.Add(f)
+end
+
+-- In the driver's seat, after the game's vehicle slices: Dashboard, the pad on the dash's
+-- controls until B (director, Oct 24 2026: the dash no longer takes the D-pad when you sit
+-- down). Its claim waits a frame, so the wheel's own close does not take the pad back.
+function H.dashSlice(p, pn)
+    local Dash = ZeD.Dashboard
+    if not (Dash and Dash.canTakePad and Dash.canTakePad(p)) then return end
+    addEntry(getPlayerRadialMenu(pn), pn, {
+        name = getText("IGUI_VehiclePartCatdashboard"), icon = "fuel-gauge", detail = tr("UI_ZeD_Wheel_DashboardDetail"),
+        run = function(pl) nextFrame(function() Dash.takePad(pl) end) end })
 end
 
 -- Options, on ZeD setup: the pause screen first (Options live in it), then ZeD's Options on its first page

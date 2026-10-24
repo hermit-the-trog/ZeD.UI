@@ -755,7 +755,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Dash_ClimateOff` | `OFF` | Dashboard climate readout (pixel face): climate off | 5 |
 | `UI_ZeD_Dash_HintAb` | `A %1  B %2` | Dashboard top edge (pixel face, controller only): A and B actions of the focused control; %1 = A action, %2 = B action | 46 |
 | `UI_ZeD_Dash_HintAxb` | `A %1  X %2  B %3` | Dashboard top edge (pixel face, controller only): A, X and B actions of the focused control; %1 = A action, %2 = X action, %3 = B action | 46 |
-| `UI_ZeD_Dash_HintReenter` | `Dash: re-enter the seat to focus` | Dashboard top edge (pixel face, controller only): shown when no control has focus | 46 |
+| `UI_ZeD_Dash_HintWheel` | `D-pad Right: Vehicle / Dashboard` | Dashboard top edge (pixel face, controller only), driver's seat, while the dash does not have the controller: where to give it the controller (the World wheel, its Vehicle slice, then Dashboard). The pixel face has only A-Z, 0-9 and . ' - / + % : (no comma) | 46 |
 | `UI_ZeD_Dash_Passenger` | `PASSENGER` | Dashboard top edge (pixel face) when the player is not the driver | 12 |
 | `UI_ZeD_Dash_PromptAc` | `A/C` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face) | 16 |
 | `UI_ZeD_Dash_PromptAcOff` | `A/C off` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face) | 16 |
@@ -2642,6 +2642,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Wheel_ControllerMap` | `Controller map` | D-pad wheels: Help slice: what every button does (not built yet) | 20 |
 | `UI_ZeD_Wheel_CraftBuild` | `Craft and build` | D-pad wheels: World wheel slice: crafting, building, furniture | 20 |
 | `UI_ZeD_Wheel_Crouch` | `Crouch` | D-pad wheels: Here and now slice: crouch on / off | 12 |
+| `UI_ZeD_Wheel_DashboardDetail` | `The D-pad on its controls. B lets go.` | D-pad wheels: second line of the Dashboard slice in World > Vehicle (driver's seat): the controller moves to the dashboard's controls until B | 40 |
 | `UI_ZeD_Wheel_EveryRadio` | `Every radio you carry` | D-pad wheels: Second line of the Radio tab slice | 24 |
 | `UI_ZeD_Wheel_EveryWound` | `Every wound` | D-pad wheels: Second line of the Health tab slice in Medicine and first aid | 20 |
 | `UI_ZeD_Wheel_EverythingYouWear` | `Everything you wear` | D-pad wheels: Second line of the Equipment tab slice in Clothing | 24 |
