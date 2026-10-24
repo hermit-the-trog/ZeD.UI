@@ -1015,7 +1015,7 @@ end
 --
 -- Element id pattern "mcrow:slot:i" lets the per-zone refresh dedup. Each
 -- element shares the World invrow callback shape: A = ZeD context menu, hold
--- A = vanilla doContextualDblClick, X = take (floor pre-transfer per Q94).
+-- A = the double-click's quick use, X = take (floor pre-transfer per Q94).
 _buildWorldMCColumnFocusables = function(win, slot)
     if not win or win._activeTab ~= "loot" then return {} end
     if not slot then return {} end
@@ -1096,11 +1096,9 @@ _buildWorldMCColumnFocusables = function(win, slot)
                 end
             end,
             onHoldActivate = function(w, el)
+                -- (as a double-click: a thing in a container comes to the main inventory)
                 if not el.item then return end
-                if ISInventoryPane and ISInventoryPane.doContextualDblClick then
-                    pcall(ISInventoryPane.doContextualDblClick,
-                          { player = ZeD.playerNumOf(w) }, el.item)
-                end
+                pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
             onContextMenu = function(w, el)
                 if not el.item then return end
@@ -1396,8 +1394,8 @@ _buildWorldInvRowFocusables = function(win)
             end,
             -- S113: A tap = LMB = SELECT item (opens card drawer for it).
             -- On a stack rep (count > 1), A toggles stack expand/collapse
-            -- (= LMB on chevron). A hold = double-LMB = use item (vanilla
-            -- doContextualDblClick). X = RMB = open vanilla context menu —
+            -- (= LMB on chevron). A hold = double-LMB (InventoryRenderer
+            -- quickUse: to the main inventory). X = RMB = open vanilla context menu —
             -- the menu's "Take" / "Move To" entries handle floor items via
             -- their own paths (Q44/Q94 floor-routing happens inside
             -- ContextMenuRegistry.makeActionDef.onFire pre-transfer).
@@ -1430,11 +1428,9 @@ _buildWorldInvRowFocusables = function(win)
                 end
             end,
             onHoldActivate = function(w, el)
+                -- (as a double-click: a thing in a container comes to the main inventory)
                 if not el.item then return end
-                if ISInventoryPane and ISInventoryPane.doContextualDblClick then
-                    pcall(ISInventoryPane.doContextualDblClick,
-                          { player = ZeD.playerNumOf(w) }, el.item)
-                end
+                pcall(ZeD.InventoryRenderer.quickUse, el.item, ZeD.playerNumOf(w))
             end,
             onContextMenu = function(w, el)
                 if not el.item then return end

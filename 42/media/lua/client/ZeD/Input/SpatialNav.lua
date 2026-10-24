@@ -50,7 +50,10 @@ function N.cost(f, t, dir)
     end
     if gap < 0 then gap = 0 end          -- overlapping along the move: as near as can be
     local side = math.max(0, apart)
-    local tier = (apart <= -2) and 0 or 1   -- lined up = a real overlap (touching edges are not)
+    -- lined up = a real overlap of 2 px (touching edges are not); compared at
+    -- 1.5 so fractional scaling cannot read 2 px as 1.99 (Oct 23 2026, Large
+    -- text: Left from a bag row skipped the button beside it for the far body)
+    local tier = (apart <= -1.5) and 0 or 1
     return tier, gap + side * SIDE_WEIGHT + cross * CROSS_WEIGHT
 end
 

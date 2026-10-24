@@ -364,9 +364,17 @@ function ZeD.InventoryRenderer.doubleClick(win, item, playerNum)
     win._zedLastClick = { item = item, t = now }
     if not (last and last.item == item and now - last.t <= DBL_MS) then return false end
     win._zedLastClick = nil
+    ZeD.InventoryRenderer.quickUse(item, playerNum)
+    return true
+end
+
+-- The quick use itself, for the double-click and the controller's hold A on a
+-- row (Oct 23 2026: hold A called only vanilla's basic action, which does
+-- nothing for a thing in a crate; vanilla's double-click brings it over first)
+function ZeD.InventoryRenderer.quickUse(item, playerNum)
     local playerObj = getSpecificPlayer(playerNum)
-    local src = item:getContainer()
-    if not (playerObj and src) then return true end
+    local src = item and item:getContainer()
+    if not (playerObj and src) then return end
     local mainInv = playerObj:getInventory()
     if src == mainInv then
         ISInventoryPane.doContextualDblClick({ player = playerNum }, item)
@@ -378,7 +386,6 @@ function ZeD.InventoryRenderer.doubleClick(win, item, playerNum)
             ZeD.ContainerControls.moveItems(playerObj, { item }, mainInv)
         end
     end
-    return true
 end
 
 -- The toggle's controller elements for a column (each builder appends them):

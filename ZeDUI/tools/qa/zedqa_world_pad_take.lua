@@ -87,7 +87,13 @@ local function findInfo(full)
         if parent and tostring(parent:getScriptObjectFullType()) == full then return info end
     end
 end
-local MINE = { ["Base.Nails"] = true, ["Base.Bandage"] = true, ["Base.Hammer"] = true, ["Base.Apple"] = true, ["Base.TinnedBeans"] = true }
+local MINE = { ["Base.Nails"] = true, ["Base.Bandage"] = true, ["Base.Hammer"] = true, ["Base.Apple"] = true, ["Base.TinnedBeans"] = true,
+    ["Base.Eraser"] = true, ["Base.Tweezers"] = true, ["Base.Corkscrew"] = true }
+-- (the test's own things: kinds the deep-run fixture never stocks, so each is
+-- one row of its own, never a stack: an eraser stands for the nails (plain, so
+-- its card leads with Take; scissors count as a weapon and lead with Equip), tweezers for
+-- the bandage, a corkscrew for the hammer in the messages below)
+local walk2 = 0
 local function onlyMine(c)
     local items = c:getItems()
     for i = 0, items:size() - 1 do if not MINE[items:get(i):getFullType()] then return false end end
@@ -132,6 +138,8 @@ local function buildCrate()
     return nil
 end
 local crateSq
+local deepCrate = false   -- (the deep-run fixture's crate: only what this run adds is taken back)
+local added = {}
 local takenNails, padlock
 local wounds = { "Hand_L", "ForeArm_R", "UpperLeg_L", "Foot_R", "Torso_Upper", "Head" }
 local origSize = ZeD.currentSize
@@ -165,15 +173,30 @@ step(20, function()
     sweepOldCrates()
 end)
 step(75, function()   -- (the World window's list looks for containers every 30 frames)
-    crateSq = buildCrate()
-    local objs = crateSq and crateSq:getObjects()
-    for i = 0, (objs and objs:size() or 0) - 1 do
-        local o = objs:get(i)
-        if instanceof(o, "IsoThumpable") and o:getContainer() then crate = o end
+    -- the deep-run scene's crate when the save has one (zedqa_deep_run.lua),
+    -- else one built for the run
+    local px0, py0 = math.floor(p:getX()), math.floor(p:getY())
+    for dy = -1, 1 do for dx = -1, 1 do
+        local sq = getCell():getGridSquare(px0 + dx, py0 + dy, 0)
+        local objs = sq and sq:getObjects()
+        for i = 0, (objs and objs:size() or 0) - 1 do
+            local o = objs:get(i)
+            local t
+            pcall(function() t = o:getModData().ZeDDeepRun end)
+            if t == "near_crate" then crate, crateSq, deepCrate = o, sq, true end
+        end
+    end end
+    if not crate then
+        crateSq = buildCrate()
+        local objs = crateSq and crateSq:getObjects()
+        for i = 0, (objs and objs:size() or 0) - 1 do
+            local o = objs:get(i)
+            if instanceof(o, "IsoThumpable") and o:getContainer() then crate = o end
+        end
     end
     crateInv = crate and crate:getContainer()
-    if not check(crateInv ~= nil, "a crate was built beside the character") then return end
-    for _, t in ipairs({ "Base.Nails", "Base.Bandage", "Base.Hammer", "Base.Apple" }) do crateInv:AddItem(t) end
+    if not check(crateInv ~= nil, deepCrate and "the deep run's crate is beside the character" or "a crate was built beside the character") then return end
+    for _, t in ipairs({ "Base.Eraser", "Base.Tweezers", "Base.Corkscrew", "Base.Apple" }) do added[#added + 1] = crateInv:AddItem(t) end
     stripTab(cw(), cw()._tabStripPanel, "loot"); stripTab(ww(), ww()._actionTabStrip, "loot")
 end)
 -- the ground on show in the World window (so the crate is the next container down)
@@ -232,11 +255,19 @@ step(5, function()
     local _, z2, e2 = cur(); where("2 strip")
     local c = e2 and w._containers[e2.containerIdx]
     check(z2 and z2.zone == "worldContainerStrip" and c and c.isFloor, "on the strip, focus is on the container on show (the ground)")
-    dir("down")
+    -- Down walks the containers under the ground, one per press, to the crate
+    -- (with the deep-run scene there are several before it)
+    local presses = 0
+    for _ = 1, 10 do
+        local _, z3, e3 = cur()
+        if z3 and z3.zone == "worldContainerStrip" and e3 and e3.inventory == crateInv then break end
+        dir("down"); presses = presses + 1
+    end
+    walk2 = presses
 end)
 step(5, function()
-    local _, z, e = cur(); where("2 Down")
-    check(z and z.zone == "worldContainerStrip" and e and e.inventory == crateInv, "Down from the ground reaches the crate")
+    local _, z, e = cur(); where("2 Down x" .. tostring(walk2))
+    check(z and z.zone == "worldContainerStrip" and e and e.inventory == crateInv, "Down from the ground reaches the crate (" .. tostring(walk2) .. " presses)")
     A()
 end)
 step(30, function()
@@ -251,7 +282,7 @@ step(30, function()
     local _, z3, e3 = cur(); where("2 Right")
     check(z3 and z3.zone == "worldMainInv" and e3 and e3.id == first, "Right goes back to the same row")
     -- a row further down: Left still lands on the container on show
-    local row = rowOf(w, "worldMainInv", "Base.Apple") or rowOf(w, "worldMainInv", "Base.Hammer")
+    local row = rowOf(w, "worldMainInv", "Base.Apple") or rowOf(w, "worldMainInv", "Base.Corkscrew")
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
     dir("left")
     local _, z4, e4 = cur(); where("2 Left from a lower row")
@@ -274,7 +305,7 @@ local function cardPrimaryCheck(w, zoneName, tag)
 end
 step(5, function()
     local w = ww()
-    local row = rowOf(w, "worldMainInv", "Base.Bandage")
+    local row = rowOf(w, "worldMainInv", "Base.Tweezers")
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
     A()
 end)
@@ -292,14 +323,14 @@ step(20, function()
 end)
 step(10, function()
     local w, z, e = cur(); where("3 after B")
-    check(z and z.zone == "worldMainInv" and e and e.item and e.item:getFullType() == "Base.Bandage" and w._drawerItem == nil and lit(w),
+    check(z and z.zone == "worldMainInv" and e and e.item and e.item:getFullType() == "Base.Tweezers" and w._drawerItem == nil and lit(w),
         "B closes the card and focus is back on the bandage row, lit")
 end)
 
 -- ---------------------------------------------------------------- 4. Take
 step(5, function()
     local w = ww()
-    local row = rowOf(w, "worldMainInv", "Base.Nails")
+    local row = rowOf(w, "worldMainInv", "Base.Eraser")
     takenNails = row and row.item
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
     A()
@@ -376,7 +407,7 @@ step(5, function() btn(Joypad.LBumper) end)
 step(10, function()
     local w = fw(); where("6 LB")
     check(w == cw() and lit(w), "LB lands in the Character window on a lit element")
-    local row = rowOf(w, "charMainInv", "Base.Nails")
+    local row = rowOf(w, "charMainInv", "Base.Eraser")
     Focus.focusWhere(w, "charMainInv", function(x) return x == row end)
     dir("right")
     local _, z, e = cur(); where("6 Right")
@@ -413,7 +444,11 @@ step(10, function()
 end)
 step(10, function()
     local w = cw()
-    local row = elIn(w, "charMainInv", function(e) return e.item ~= nil end)
+    -- a single thing, not a stack (A on a stack opens the stack, not a card)
+    local row = elIn(w, "charMainInv", function(e)
+        local s = w._mainContent and w._mainContent._stacks and w._mainContent._stacks[e.item]
+        return e.item ~= nil and not (s and s.count > 1)
+    end)
     Focus.focusWhere(w, "charMainInv", function(x) return x == row end)
     A()
 end)
@@ -431,7 +466,7 @@ local walk = {}
 step(10, function()
     local w = ww()
     Focus.claimFocus(w)
-    local row = rowOf(w, "worldMainInv", "Base.Hammer")
+    local row = rowOf(w, "worldMainInv", "Base.Corkscrew")
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
     walk.ctxRow = row and row.item
     if row and row.onContextMenu then row.onContextMenu(w, row) end
@@ -449,7 +484,7 @@ end)
 -- hold A (vanilla's double-click: the hammer to the bag): focus stays in the list, on a neighbour
 step(5, function()
     local w = ww()
-    local row = rowOf(w, "worldMainInv", "Base.Hammer")
+    local row = rowOf(w, "worldMainInv", "Base.Corkscrew")
     walk.moved = row and row.item
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
     if row and row.onHoldActivate then row.onHoldActivate(w, row) end
@@ -625,7 +660,15 @@ step(10, function()
         if c then pcall(function() c:Remove(takenNails) end) end
     end
     if padlock then p:getInventory():Remove(padlock) end
-    if crate and crate:getSquare() then
+    if deepCrate then
+        -- the fixture's crate stays: only what this run put in comes out (wherever it went)
+        for _, it in ipairs(added) do
+            local c = it and it:getContainer()
+            if c then pcall(function() c:Remove(it) end) end
+            local wio = it and it.getWorldItem and it:getWorldItem()
+            if wio and wio:getSquare() then pcall(function() wio:getSquare():transmitRemoveItemFromSquare(wio) end) end
+        end
+    elseif crate and crate:getSquare() then
         crate:getContainer():removeAllItems()
         crate:getSquare():transmitRemoveItemFromSquare(crate)
     end
@@ -636,7 +679,7 @@ step(10, function()
     local still = false
     local objs = crateSq and crateSq:getObjects()
     for i = 0, (objs and objs:size() or 0) - 1 do if objs:get(i) == crate then still = true end end
-    say("cleanup: crate gone " .. tostring(not still) .. ", size " .. tostring(ZeD.currentSize))
+    say("cleanup: " .. (deepCrate and "the deep run's crate kept, this run's things out" or ("crate gone " .. tostring(not still))) .. ", size " .. tostring(ZeD.currentSize))
     Det.setLockedMode(Det.MODE_KBM); Det.setLockedMode(nil)
     say(nPass .. " passed, " .. nFail .. " failed")
     say("DONE")

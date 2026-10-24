@@ -132,8 +132,12 @@ zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at th
 # zedqa_visual_audit.lua            a few hundred screenshots; run by hand: manifest "zedqa_prelude.lua | pre", then (optional,
 #                                   a targeted run) "zedqa_va_only.lua | vao", then "zedqa_visual_audit.lua | va | timeout=900"
 # zedqa_va_only.lua                 sets ZEDQA_VA_ONLY / ZEDQA_VA_BASES for the audit above (only the sections named)
-# zedqa_padmap.lua                  the pad map: ~40 full screenshots + stop dumps; run by hand ("zedqa_prelude.lua | pre",
-#                                   then "zedqa_padmap.lua | pm | timeout=900"), then py padmap.py -> ZeDUI/qa/padmap/
+# zedqa_deep_run.lua                the deep-run fixture: stocks the QA save on purpose (traits, skills, recipes, gear, containers
+#                                   in reach, an object for every card, mild wounds; idempotent, re-applies the wounds each run);
+#                                   by hand, right before the pad map: "zedqa_deep_run.lua | deep | timeout=180"
+# zedqa_padmap.lua                  the pad map: ~45 full screenshots + stop dumps; run by hand ("zedqa_prelude.lua | pre",
+#                                   "zedqa_deep_run.lua | deep | timeout=180", then "zedqa_padmap.lua | pm | timeout=900"),
+#                                   then py padmap.py -> ZeDUI/qa/padmap/
 #
 # ---- left out: main menu (need a -MainMenu launch)
 # zedqa_button_case_menu.lua, zedqa_header_fit.lua, zedqa_mod_conflicts.lua, zedqa_power_on.lua,

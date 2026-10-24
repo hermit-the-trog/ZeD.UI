@@ -408,6 +408,8 @@ public static class ZedQaRunnerInput {
   [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, UIntPtr e);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 }
 "@
     }
@@ -422,6 +424,11 @@ function Invoke-StartClick {
     if (-not $proc -or $proc.MainWindowHandle -eq [IntPtr]::Zero) { return "no click (no game window)" }
     Initialize-Input
     try { & $FrontWin | Out-Null } catch { }
+    # (Oct 23: clicks went in while another window held the front; a click at
+    # the centre would land on the director's own window) only on the game
+    $fgPid = [uint32]0
+    [void][ZedQaRunnerInput]::GetWindowThreadProcessId([ZedQaRunnerInput]::GetForegroundWindow(), [ref]$fgPid)
+    if ($fgPid -ne [uint32]$proc.Id) { return "no click (the game is not the front window; process $fgPid is)" }
     $x = 1920; $y = 1080
     if ($Mode -eq "windowed") {
         $h = $proc.MainWindowHandle

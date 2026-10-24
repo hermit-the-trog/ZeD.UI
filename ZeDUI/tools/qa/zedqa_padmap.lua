@@ -20,6 +20,38 @@ local DIRS = { "up", "down", "left", "right" }
 local Q, qi, waitT = {}, 0, 0
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
 local function insertNext(n, fn) table.insert(Q, qi + 1, { n = n, fn = fn }) end
+-- director: windows need time to expand before a screenshot (a fixed wait
+-- caught the World window mid-widen on Craft and Build). Before each capture
+-- both windows wait until still: place, size and drawer width the same for
+-- STILL ticks in a row (at most STILL_MAX, then the capture goes ahead and
+-- says so)
+local STILL, STILL_MAX = 30, 900
+local function shape()
+    local t = {}
+    for _, w in ipairs({ ZeD_CharacterWindow.getWindow(), ZeD_WorldWindow.getWindow() }) do
+        if w and w:isVisible() then
+            local dp = w._drawerPanel
+            t[#t + 1] = string.format("%d,%d,%d,%d,%d,%d", w:getX(), w:getY(), w:getWidth(), w:getHeight(),
+                math.floor(w._drawerEffW or 0), dp and dp:getWidth() or 0)
+        end
+    end
+    return table.concat(t, ";")
+end
+local function whenStill(fn)
+    local last, same, waited = nil, 0, 0
+    local function poll()
+        local s = shape()
+        if s == last then same = same + 1 else same, last = 0, s end
+        waited = waited + 1
+        if same >= STILL or waited >= STILL_MAX then
+            if same < STILL then print("ZEDQA pm WARN the windows were still moving after " .. waited .. " ticks: captured anyway") end
+            fn()
+        else
+            insertNext(0, poll)
+        end
+    end
+    insertNext(0, poll)
+end
 local function stripTab(w, strip, id)
     for _, z in ipairs(strip and strip._hitZones or {}) do
         if z.id == "tab:" .. id then if w._activeTab ~= id then strip:onMouseDown(z.x + 2, z.y + 2) end; return true end
@@ -59,8 +91,21 @@ local function modals(close)
     return n
 end
 local count = 0
+local stopped = false
+-- the character must be alive and well for a capture (director: never a dead
+-- or dying character); a failed check stops the whole run
+local function fit()
+    local h = p:getBodyDamage():getOverallBodyHealth()
+    if p:isDead() or h <= 50 then
+        if not stopped then say("STOP the character is " .. (p:isDead() and "dead" or ("at health " .. math.floor(h))) .. ": no more captures") end
+        stopped = true
+        return false
+    end
+    return true
+end
 -- one capture: the screenshot now, the stops of window w and their moves
 local function capture(name, w, other, note)
+    if stopped or not fit() then return end
     count = count + 1
     local open = modals(false)
     pcall(function() getCore():TakeFullScreenshot("zqa_pm_" .. name .. ".png") end)
@@ -175,7 +220,7 @@ local function tabCaptures()
     local w = it.w
     local strip = (w == cw()) and w._tabStripPanel or w._actionTabStrip
     stripTab(w, strip, it.id)
-    insertNext(90, function()   -- (the drawer's open animation done)
+    insertNext(10, function() whenStill(function()
         Focus.claimFocus(w)
         local base = string.format("%s_%s_%s", (si == 1) and "run" or "large", (w == cw()) and "char" or "world", it.id)
         capture(base .. "_top", w, (w == cw()) and ww() or cw(), "top of the tab")
@@ -188,15 +233,15 @@ local function tabCaptures()
         if dp and dp:isVisible() and low > dp:getHeight() + 1 then
             paged[#paged + 1] = base
             for _ = 1, 80 do pcall(dp.onMouseWheel, dp, 1) end
-            insertNext(25, function()
+            insertNext(25, function() whenStill(function()
                 capture(base .. "_bottom", w, (w == cw()) and ww() or cw(), "the tab scrolled to its bottom")
                 for _ = 1, 80 do pcall(dp.onMouseWheel, dp, -1) end
                 insertNext(5, tabCaptures)
-            end)
+            end) end)
         else
             insertNext(5, tabCaptures)
         end
-    end)
+    end) end)
 end
 
 -- the scene: no zombie anywhere near (the QA save's cell has strays), the
@@ -237,35 +282,57 @@ local function openSpot()
     end
     return nil
 end
+-- The scene is the deep-run fixture's (zedqa_deep_run.lua, run before this):
+-- the character stocked on the QA save's field with containers in reach and
+-- an object for every card. Without it, a crate is built for the run.
+local deep = p:getModData().ZeDDeepRun
 local function stage()
     local nz = clearZombies()
-    p:setGodMod(true); p:setInvisible(true)
-    pcall(function() p:getBodyDamage():RestoreToFullHealth() end)
-    local x, y = openSpot()
-    if x then p:teleportTo(x + 0.5, y + 0.5, 0) end
-    say(string.format("scene: %d zombies removed, health %d, save %s, open ground %s", nz,
-        math.floor(p:getBodyDamage():getOverallBodyHealth()), tostring(getWorld():getWorld()), x and (x .. "," .. y) or "not found (stayed)"))
+    p:setInvisible(true)
+    if not deep then
+        p:setGodMod(true)
+        local x, y = openSpot()
+        if x then p:teleportTo(x + 0.5, y + 0.5, 0) end
+    end
+    say(string.format("scene: %s; %d zombies removed, health %d, save %s, at %d,%d, weight %.1f of %.1f", deep and "the deep run's" or "a crate for the run",
+        nz, math.floor(p:getBodyDamage():getOverallBodyHealth()), tostring(getWorld():getWorld()), math.floor(p:getX()), math.floor(p:getY()),
+        p:getInventoryWeight(), p:getMaxWeight()))
 end
 step(30, function()
     Det.setLockedMode(Det.MODE_GAMEPAD)
     if not (cw() and cw():isVisible()) then ZeD_CharacterWindow.toggleBothPaired(pn) end
     modals(true)
     stage()
+    fit()
 end)
 step(90, function()   -- (the World window's list looks for containers every 30 frames)
-    local sq0 = p:getCurrentSquare()
-    for _, t in ipairs({ "Base.Plank", "Base.WaterBottle", "Base.Saw" }) do
-        local ok, it = pcall(function() return sq0:AddWorldInventoryItem(t, 0.3 + #ground * 0.15, 0.4, 0) end)
-        if ok and it then ground[#ground + 1] = it end
+    if not deep then
+        local sq0 = p:getCurrentSquare()
+        for _, t in ipairs({ "Base.Plank", "Base.WaterBottle", "Base.Saw" }) do
+            local ok, it = pcall(function() return sq0:AddWorldInventoryItem(t, 0.3 + #ground * 0.15, 0.4, 0) end)
+            if ok and it then ground[#ground + 1] = it end
+        end
+        local sq = buildCrate()
+        local objs = sq and sq:getObjects()
+        for i = 0, (objs and objs:size() or 0) - 1 do
+            local o = objs:get(i)
+            if instanceof(o, "IsoThumpable") and o:getContainer() then crate = o end
+        end
+        crateInv = crate and crate:getContainer()
+        if crateInv then for _, t in ipairs({ "Base.Nails", "Base.Bandage", "Base.Hammer", "Base.Apple" }) do crateInv:AddItem(t) end end
+    else
+        -- the deep run's crate (tagged near_crate)
+        for dy = -1, 1 do for dx = -1, 1 do
+            local sq = getCell():getGridSquare(math.floor(p:getX()) + dx, math.floor(p:getY()) + dy, 0)
+            local objs = sq and sq:getObjects()
+            for i = 0, (objs and objs:size() or 0) - 1 do
+                local o = objs:get(i)
+                local t
+                pcall(function() t = o:getModData().ZeDDeepRun end)
+                if t == "near_crate" then crateInv = o:getContainer() end
+            end
+        end end
     end
-    local sq = buildCrate()
-    local objs = sq and sq:getObjects()
-    for i = 0, (objs and objs:size() or 0) - 1 do
-        local o = objs:get(i)
-        if instanceof(o, "IsoThumpable") and o:getContainer() then crate = o end
-    end
-    crateInv = crate and crate:getContainer()
-    if crateInv then for _, t in ipairs({ "Base.Nails", "Base.Bandage", "Base.Hammer", "Base.Apple" }) do crateInv:AddItem(t) end end
     say("crate " .. tostring(crateInv ~= nil))
     tall(cw()); tall(ww())
     say(string.format("windows tall: Character %d, World %d px high (screen %d)", cw():getHeight(), ww():getHeight(), getCore():getScreenHeight()))
@@ -289,13 +356,14 @@ step(30, function()
     local w = ww()
     Focus.claimFocus(w)
     for _, c in ipairs(Focus.flatElements(w)) do
-        if c.zone == "worldMainInv" and c.el and c.el.item and c.el.item:getFullType() == "Base.Nails" then
+        if c.zone == "worldMainInv" and c.el and c.el.item then
             Focus.focusWhere(w, "worldMainInv", function(e) return e == c.el end)
             c.el.onActivate(w, c.el)
+            break
         end
     end
 end)
-step(30, function() capture("run_world_card", ww(), cw(), "an item card (the nails in the crate)") end)
+step(30, function() whenStill(function() capture("run_world_card", ww(), cw(), "an item card (the crate's first row)") end) end)
 step(10, function()
     local w = ww(); local cnt = w._mainContent
     if cnt then cnt._selectedItems = {}; cnt._lastClickedItem = nil; w._updateDrawer() end
@@ -310,17 +378,84 @@ step(10, function()
         end
     end
 end)
-step(30, function() capture("run_char_card", cw(), ww(), "an item card (the first row of the bag)") end)
+step(30, function() whenStill(function() capture("run_char_card", cw(), ww(), "an item card (the first row of the bag)") end) end)
 step(10, function()
     local c = cw(); local cnt = c._mainContent
     if cnt then cnt._selectedItems = {}; cnt._lastClickedItem = nil; c._updateDrawer(cnt) end
     padlock = p:getInventory():AddItem("Base.CombinationPadlock")
     Focus.claimFocus(ww())
-    if crate then ZeD.ObjectCardLock.openFor(p, crate, false) end
 end)
-step(40, function() capture("run_world_objcard", ww(), cw(), "an object card (the crate's padlock card)") end)
+-- every object card with something of its kind nearby: the kind's own
+-- nearby list; the padlock card on the deep run's door (else a crate); the
+-- liquid card on a world object holding liquid
+local OC = ZeD.ObjectCards
+local cardTargets = {}
+do
+    local kinds = {}
+    for k, _ in pairs(OC.kinds) do kinds[#kinds + 1] = k end
+    table.sort(kinds)
+    for _, k in ipairs(kinds) do cardTargets[#cardTargets + 1] = k end
+end
+local cardsShown, cardsNone = {}, {}
+local function findNear(pred)
+    local px, py = math.floor(p:getX()), math.floor(p:getY())
+    for r = 0, 8 do for dy = -r, r do for dx = -r, r do
+        if math.max(math.abs(dx), math.abs(dy)) == r then
+            local sq = getCell():getGridSquare(px + dx, py + dy, 0)
+            local objs = sq and sq:getObjects()
+            for i = 0, (objs and objs:size() or 0) - 1 do
+                local o = objs:get(i)
+                if pred(o) then return o end
+            end
+        end
+    end end end
+end
+local function openCard(kind)
+    local def = OC.kinds[kind]
+    local t
+    if def.nearby then
+        local ok, list = pcall(def.nearby, p)
+        t = ok and list and list[1] or nil
+    elseif kind == "lock" then
+        local o = findNear(function(o)
+            local tg
+            pcall(function() tg = o:getModData().ZeDDeepRun end)
+            return tg == "door" or tg == "padlock" or (crate and o == crate)
+        end)
+        t = o and def.resolve(p, o)
+    elseif kind == "fluid" then
+        local o = findNear(function(o) local fc; pcall(function() fc = o:getFluidContainer() end); return fc ~= nil end)
+        -- (the card takes vanilla's ISFluidContainer wrapper, as the trough card passes it)
+        local ok, c = pcall(function() return o and ISFluidContainer:new(o:getFluidContainer()) end)
+        t = ok and c and def.resolve(p, { container = c, into = true }) or nil
+    elseif kind == "place3d" then
+        -- (the placement card: a thing lying on the ground, the deep run's pile at the character's feet)
+        local px, py = math.floor(p:getX()), math.floor(p:getY())
+        for r = 0, 2 do for dy = -r, r do for dx = -r, r do
+            local sq = (not t) and math.max(math.abs(dx), math.abs(dy)) == r and getCell():getGridSquare(px + dx, py + dy, 0)
+            local wos = sq and sq:getWorldObjects()
+            if wos and wos:size() > 0 then t = def.resolve(p, wos:get(0)) end
+        end end end
+    end
+    if not t then return false end
+    return ZeD_WorldWindow.openObjectCard(pn, { def = def, t = t })
+end
+for _, kind in ipairs(cardTargets) do
+    step(5, function()
+        modals(true)
+        if not openCard(kind) then cardsNone[#cardsNone + 1] = kind end
+    end)
+    step(20, function() whenStill(function()
+        local w = ww()
+        if w._drawerObject and w._drawerObject.def and w._drawerObject.def.id == kind then
+            cardsShown[#cardsShown + 1] = kind
+            capture("run_world_objcard_" .. kind, w, cw(), "the " .. kind .. " card")
+        end
+        if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
+    end) end)
+end
 step(10, function()
-    if ZeD_WorldWindow.closeObjectCard then ZeD_WorldWindow.closeObjectCard() end
+    say("object cards shown: " .. table.concat(cardsShown, ", ") .. " | nothing of the kind nearby: " .. table.concat(cardsNone, ", "))
     if padlock then p:getInventory():Remove(padlock); padlock = nil end
     -- the belt: its boxes and where each D-pad press takes it
     local B = ZeD.Belt
@@ -358,6 +493,28 @@ step(20, function()
     say("run_belt: " .. #hud._boxes .. " boxes")
     Focus.claimFocus(cw())
 end)
+-- the moodles at each placement (right, left, bottom), full screen; the
+-- column's y and height against the screen's centre; back to right
+local mopt = ZeD.Settings and ZeD.Settings.moodlePlaceOption
+for i, place in ipairs({ "right", "left", "bottom" }) do
+    step(5, function()
+        if mopt then pcall(function() mopt:setValue(i) end) end
+    end)
+    step(30, function()
+        if not fit() then return end
+        pcall(function() getCore():TakeFullScreenshot("zqa_pm_moodles_" .. place .. ".png") end)
+        local L = ZeD.Moodles and ZeD.Moodles.getLayer and ZeD.Moodles.getLayer(pn)
+        local act = ZeD.Moodles and ZeD.Moodles.active and ZeD.Moodles.active(p)
+        say(string.format("moodles %s: placement %s, %d on, column x %s y %s w %s h %s, screen centre y %d", place,
+            tostring(ZeD.Moodles and ZeD.Moodles.place()), act and #act or -1,
+            tostring(L and L:getX()), tostring(L and L:getY()), tostring(L and L:getWidth()), tostring(L and L:getHeight()),
+            math.floor(getCore():getScreenHeight() / 2)))
+    end)
+end
+step(10, function()
+    if mopt then pcall(function() mopt:setValue(1) end) end
+    say("moodles back to " .. tostring(ZeD.Moodles and ZeD.Moodles.place()))
+end)
 step(10, tabCaptures)
 step(10, function()
     ZeD.applyTheme(nil, nil, origSize)
@@ -372,7 +529,7 @@ step(10, function()
         local c = it:getContainer()
         if c then pcall(function() c:Remove(it) end) end
     end
-    p:setInvisible(false)
+    if not deep then p:setInvisible(false) end   -- (the deep run keeps the character invisible)
 end)
 step(20, function()
     untall()
