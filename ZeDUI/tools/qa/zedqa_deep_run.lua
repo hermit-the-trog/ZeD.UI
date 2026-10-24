@@ -733,7 +733,9 @@ part("health", function()
     if not okR then say("MISS RestoreToFullHealth: health carries over from the last run") end
     local function bp(n) return bd:getBodyPart(BodyPartType.FromString(n)) end
     local ok1 = pcall(function() local b = bp("Hand_L"); b:setScratched(true, true); b:setScratchTime(12); b:setBandaged(true, 4, false, "Base.Bandage") end)
-    local ok2 = pcall(function() local b = bp("LowerLeg_L"); b:setFractureTime(20); b:setSplint(true, 0.8) end)
+    -- (the splint's item named too: vanilla's Remove Splint builds its picture from it,
+    -- and a splint with none fails in the game's own health menu, Oct 23 2026)
+    local ok2 = pcall(function() local b = bp("LowerLeg_L"); b:setFractureTime(20); b:setSplint(true, 0.8); b:setSplintItem("Base.Splint") end)
     local ok3 = pcall(function() local b = bp("UpperArm_R"); b:setScratched(true, true); b:setScratchTime(10) end)
     for k = 0, BodyPartType.ToIndex(BodyPartType.MAX) - 1 do
         pcall(function()

@@ -90,6 +90,26 @@ Emote pictures stay vanilla's (they are the gestures).
 | 7 | Help ▸ | always | Survival guide (`ISDPadWheels.showSurvGuide`), Controller map (see section 6) |
 | 8 | Light | a light you carry ("No light on you.") | the brightest light you carry, on / off: vanilla `onDisplayLeft`'s best-light rule (an equipped or attached one first), `ISDPadWheels.onToggleLight`. Settled (director: "light toggle"). |
 
+### Select: ZeD (director, Oct 23 2026: "Can select become the zed manager, like theme, accent, text size, reset")
+
+The Select (Back) button's wheel becomes ZeD's own wheel. Hold Select, point with the right stick, let go to take, as the D-pad wheels do. Everything the game's Select wheel offered is on the D-pad wheels already (Player info: Character, Tabs; Crafting, Building, Move furniture: World, Craft and build; Search mode, Pick up, Investigate: World, Search; Zoom, Game speed: Here and now). The Last Stand mode's button moves to Here and now, added only in Last Stand. It opens while paused, as the game's Select wheel does.
+
+Nine slices (director chose Safe mode as the ninth):
+
+| # | Slice | Inside, or what it does |
+|---|---|---|
+| 1 | Theme ▸ | Dark, Light, High contrast; the current one marked |
+| 2 | Accent ▸ | the nine accent colors, each slice its swatch; the current one marked |
+| 3 | Text size ▸ | Small, Large |
+| 4 | UI scale ▸ | Auto and the scale steps |
+| 5 | Moodles ▸ | Right edge, Left edge, Bottom |
+| 6 | Action bar ▸ | the action bar's styles |
+| 7 | Reset windows | `ZeD_Window.resetLayout` (the footer's R) |
+| 8 | ZeD setup | Options on the ZeD setup page |
+| 9 | Safe mode | behind a ZeD prompt that says what it does and how to turn it off again (Options, ZeD setup, Safe mode); while it is on, Select is the game's wheel again |
+
+Here and now's View keeps Reset windows and Text size too (director: keep both places).
+
 ## 4. What replaces what (hooks)
 
 | Today | Becomes |
@@ -99,7 +119,7 @@ Emote pictures stay vanilla's (they are the gestures).
 | `ISDPadWheels.onDisplayUp` (vehicle, else animal) | **Social**. Vehicle and Animal move to World 3 and 4. |
 | `ISDPadWheels.onDisplayDown` (emotes) | **Here and now**. Emotes move to Social. |
 | Stick-click wheel (Toggle Crouch, Sit, Auto-Walk) | Down 1 to 3 (still never bound to a stick click) |
-| Back button wheel | **unchanged**. Its game speed and zoom are also on Down; crafting, building, furniture and search are also on World. |
+| Back button wheel | **the ZeD wheel** (the Select section above, Oct 23 2026). Its game speed and zoom are on Down; crafting, building, furniture and search are on World; Player info is Character, Tabs; Last Stand moves to Down. |
 
 Wrap the four `onDisplay*` functions in one new file (`ZeD_DpadWheels.lua`, HOOK_MAP row 29) with the guard-flag pattern the overrides use (`ISDPadWheels._zedDpad`). Fill the shared `getPlayerRadialMenu(playerIndex)` (ZeD_Wheel already draws it), so mods that add slices to these wheels see vanilla's object API unchanged. Where the game fills a wheel itself (vehicle, animal, emote groups), call vanilla's filler for the inner wheel and add ZeD's Back slice last.
 
@@ -110,6 +130,18 @@ Wrap the four `onDisplay*` functions in one new file (`ZeD_DpadWheels.lua`, HOOK
 - The bubble's second line carries the useful detail: "Belt, slot 3", "Fresh · eat first", "0.6 L · water", "1 tile away", "Workbench, 2 tiles".
 
 ## 6. Open, small
+
+Built Oct 23 2026 (`ZeD_DpadWheels.lua`). What the build found and settled:
+
+- **Controller map** (Help 2): left off as "Coming later." in v1.
+- **Rooms editor** (World 8): the game has no way in on 42.21 (vanilla's slice is `if false`, its function is defined nowhere, the editor is a Java debug tool). World's eighth slice is **Designated zones** itself.
+- **Stopwatch** (Use, Watch): ZeD's watch has none (light, alarm, speed, start only). Watch offers Open the watch, Light, Alarm. The watch is player one's only.
+- **Lie down** (Sit): the game has no lie-down verb outside sleeping. Sit offers Sit on the ground (Get up while sitting) and Sit on: the nearest seat (vanilla's Rest).
+- **Medicine and first aid**: the treatments are exactly what the Health panel would offer for each part that wants care (its own menu builder, recorded), the part on the second line.
+- **Sleep**: the game's rules in its order (the vehicle wheel's), its own reasons.
+- **Lights and power**: Light fire opens the fire's card (lighting needs a method; the card lists them); Put out fire is direct.
+- **Chat, Safety, Players**: the game's own calls (chat focus, the safety toggle, the pause screen's Players), not tried on a server.
+- Driving with X held keeps D-pad Up and Down for cruise control, as the game does.
 
 - **Controller map** (Help 2): there is no screen for it yet. Either a simple ZeD window listing GAMEPAD_SPEC's button table, or leave the slice off ("Coming later.") for v1. Code's call; tell the director which.
 - Inner wheels past 11 kinds: best 11 for v1 (section 2.8).

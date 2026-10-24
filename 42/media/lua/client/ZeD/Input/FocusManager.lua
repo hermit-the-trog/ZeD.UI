@@ -1467,6 +1467,13 @@ function Focus.dispatchJoypadDown(w, button, joypadData)
                 _yConsumed  = false
             end
             return
+        elseif aid == "list_sort" or aid == "list_view" then
+            -- L3 / R3 (Oct 23 2026, Hard Rule #11 as amended): only here, with a
+            -- window holding the pad; a view change of its list, nothing else
+            local R = ZeD.InventoryRenderer
+            local fn = R and ((aid == "list_sort") and R.padSort or R.padView)
+            if fn then pcall(fn, w) end
+            return
         end
         -- Other action IDs (layout_mode, strip_*, inspect) not dispatched
         -- here. Strip menus fire when NO window has focus (OnTick path, TBD).

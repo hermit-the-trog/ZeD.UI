@@ -233,6 +233,11 @@ local function drawCell(menu, x, y, cell, icon, slice, active)
     ctx.cellW, ctx.cellH, ctx.iconPx, ctx.submenuTriSz = cw, ch, ip, ts
     if not ok then ZeD.logOnce("Wheel: cell", err) end
     if not active then menu:drawRectBorder(x, y, cell, cell, 1, INK.r, INK.g, INK.b) end
+    -- a colour to pick (the ZeD wheel's accents): its swatch in the cell
+    if slice._zedSwatch then
+        local sw = math.floor(icon * 0.75)
+        A.drawStatusDot(menu, x + math.floor((cell - sw) / 2), y + math.floor((cell - sw) / 2), slice._zedSwatch, sw)
+    end
 end
 
 function W.draw(menu)
@@ -296,6 +301,7 @@ function W.draw(menu)
     if state then
         local apexY = cy - r - math.floor(cellOn / 2) - T.px(6)
         state.pointerDir = "down"
+        state.snug = true   -- (as wide as the words: a short second line keeps the bubble small)
         -- no room above (a wheel near the screen's top): under the ring instead
         if menu:getAbsoluteY() + apexY - T.px(80) < 0 then
             state.pointerDir = "up"
@@ -303,6 +309,42 @@ function W.draw(menu)
         end
         local ok, err = pcall(ZeD.Molecules.drawContextBalloon, menu, cx, apexY, state, T)
         if not ok then ZeD.logOnce("Wheel: balloon", err) end
+    end
+    -- the D-pad wheels (ZeD_DpadWheels.lua): the breadcrumb and the button
+    -- prompts under the ring (mockup zed_dpad_wheels_v2)
+    if menu._zedCrumb or menu._zedPrompts then
+        local ok, err = pcall(W.drawUnder, menu, cx, cy + r + math.ceil(cellOn / 2) + T.px(12))
+        if not ok then ZeD.logOnce("Wheel: crumb", err) end
+    end
+end
+
+-- a strip on the theme's surface, centred on cx: the breadcrumb (which wheel,
+-- and where in it), then the controller's prompts for this wheel
+local NOP = { drawRectBorder = function() end, drawText = function() end }
+local BACKING_A = 0.92   -- the strips sit over the world: the surface nearly opaque
+function W.drawUnder(menu, cx, y)
+    local T, tm, A, M = ZeD.T, ZeD.TM, ZeD.Atoms, ZeD.Molecules
+    local font = T.fontF5
+    if menu._zedCrumb then
+        -- the breadcrumb: a neutral badge (its own words, upper case) on the surface
+        local s = ZeD.upper(menu._zedCrumb)
+        local w = tm:MeasureStringX(font, s) + T.sp.badgePadX * 2
+        local h = tm:MeasureStringY(font, s) + T.sp.badgePadY * 2
+        local x = math.floor(cx - w / 2)
+        M.drawBodyBg(menu, x, y, w, h, "surf1", BACKING_A)
+        A.drawBadge(menu, s, x, y, "neutral", false, font, true)
+        y = y + h + T.px(8)
+    end
+    if menu._zedPrompts then
+        -- the prompts: the footers' glyph legend on the surface, in a border
+        local padX = T.px(7)
+        local h = T.px(24)
+        local inner = M.drawGlyphPrompts(NOP, 0, 0, h, menu._zedPrompts) - T.sp.sm * 2
+        local w = inner + padX * 2
+        local x = math.floor(cx - w / 2)
+        M.drawBodyBg(menu, x, y, w, h, "surf1", BACKING_A)
+        A.drawBorder(menu, x, y, w, h)
+        M.drawGlyphPrompts(menu, x + padX, y, h, menu._zedPrompts)
     end
 end
 
@@ -331,4 +373,5 @@ function W.onClear(menu)
         menu._zedTitle = nil
     end
     menu._zedPoint = -1
+    menu._zedCrumb, menu._zedPrompts, menu._zedDpad = nil, nil, nil   -- (a D-pad wheel sets them again after its clear)
 end

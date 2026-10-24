@@ -124,6 +124,14 @@ ZeD.Input.Actions = {
     strip_contextual = { kbm = nil, gamepad = "DPadLeft"  },  -- Vehicle OR Animal
     strip_favorites  = { kbm = nil, gamepad = "DPadRight" },  -- content TBD
 
+    -- ----- LIST SORT / VIEW (Oct 23 2026, director: view-only toggles while a
+    -- window holds the pad; GAMEPAD_SPEC L3 / R3, Hard Rule #11 as amended) --
+    -- Dispatched by FocusManager only for the focused window; never in the
+    -- world. L3 steps the sort of the list the pad is on, R3 flips its
+    -- container between List and Grid (InventoryRenderer.padSort / padView).
+    list_sort = { kbm = nil, gamepad = "LStick" },
+    list_view = { kbm = nil, gamepad = "RStick" },
+
     -- ----- INSPECT (KBM only) ------------------------------------------------
     -- Gamepad reaches Inspect via context_menu (X -> strip -> Inspect cell),
     -- so the gamepad binding is intentionally nil. Keeping the action in the
@@ -147,6 +155,8 @@ ZeD.Input.Actions = {
 --   * LS / RS click  — Hard Rule #11 (no L3/R3 for state-changing ops). Stick
 --                      clicks fire too readily under combat tension and the
 --                      cost of a phantom press in a zombie crowd is death.
+--                      Amended Oct 23 2026: list_sort / list_view above, the
+--                      view of a list while a window holds the pad, and nothing else.
 --   * next_window /
 --     prev_window    — Window ring killed S89. Paired-window semantics now
 --                      live in `window_control` (Y) above.

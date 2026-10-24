@@ -21,6 +21,9 @@
 -- emote wheel opens its groups. Every pick runs vanilla's own context-menu
 -- verb (ISInventoryPaneContextMenu: eat / drink / take pill / read), with its
 -- rules: items come out of bags first, masks come off, lighters are found.
+-- Since Oct 23 2026 these lists feed the Character wheel on D-pad Left
+-- (ZeD_DpadWheels.lua, DPAD_WHEELS_SPEC.md); this file no longer adds to the
+-- game's D-pad Right wheel, which is the World wheel now.
 -- ============================================================================
 
 require "ISUI/ISDPadWheels"
@@ -283,24 +286,13 @@ function Q.addGroups(menu, playerObj)
     end
 end
 
-local function apply()
-    if not ISDPadWheels or ISDPadWheels._zedQuick then return end
-    ISDPadWheels._zedQuick = true
-    local orig = ISDPadWheels.onDisplayRight
-    function ISDPadWheels.onDisplayRight(joypadData)
-        orig(joypadData)
-        -- safe mode: vanilla's D-pad Right wheel, untouched
-        if ZeD.Safe and ZeD.Safe.on() then return end
-        local isPaused = UIManager.getSpeedControls() and UIManager.getSpeedControls():getCurrentGameSpeed() == 0
-        if isPaused or not joypadData then return end
-        local playerObj = getSpecificPlayer(joypadData.player)
-        if not playerObj then return end
-        local menu = getPlayerRadialMenu(joypadData.player)
-        local ok, err = pcall(Q.addGroups, menu, playerObj)
-        if not ok then print("[ZeD] QuickWheel: " .. tostring(err)) end
-        centre(menu, joypadData.player)
-    end
+-- a group by id ("eat", "drink", "smoke", "pills", "read") and the
+-- wound test, for the D-pad wheels (ZeD_DpadWheels.lua). Oct 23 2026: the
+-- Character wheel (D-pad Left) takes these lists over; this file no longer
+-- adds to the game's D-pad Right wheel (DPAD_WHEELS_SPEC section 4).
+function Q.group(id)
+    for _, g in ipairs(GROUPS) do if g.id == id then return g end end
+    return nil
 end
-
-if Events and Events.OnGameBoot then Events.OnGameBoot.Add(apply) end
-apply()
+Q.hurt = hurt
+Q.isWater = isWater

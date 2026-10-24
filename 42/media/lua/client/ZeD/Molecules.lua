@@ -3846,7 +3846,14 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
     -- when body/state need wrapping room.
     local needsWideContent = hasBody or hasState
     local balW
-    if needsWideContent then
+    if needsWideContent and state.snug then
+        -- (state.snug, the wheels: as wide as the words, up to maxW; the
+        -- strip's descriptions keep the full width)
+        local w = labelW
+        if hasBody then w = math.max(w, tm:MeasureStringX(bodyFont, rawBody)) end
+        if hasState then w = math.max(w, tm:MeasureStringX(stateFont, rawState) + T.px(12)) end
+        balW = math.max(minW, math.min(maxW, w + padH * 2))
+    elseif needsWideContent then
         balW = maxW
     else
         balW = math.max(minW, math.min(maxW, labelW + padH * 2))

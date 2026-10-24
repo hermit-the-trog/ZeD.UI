@@ -119,6 +119,9 @@ local function isTabVisible(tab, win)
     if not tab.visible then return true end
     return tab.visible(win)
 end
+-- the tabs and the test, for the D-pad wheels' Tabs slice (ZeD_DpadWheels.lua)
+ZeD_WorldWindow.TABS = WORLD_TABS
+ZeD_WorldWindow.isTabVisible = isTabVisible
 
 -- ============================================================================
 -- S94 B-NAV — GAMEPAD FOCUS SUPPORT (World Window)

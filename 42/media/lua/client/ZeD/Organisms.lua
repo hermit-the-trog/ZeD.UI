@@ -325,6 +325,17 @@ local PROMPT_LABELS = {
     ["forage:stance"]   = { a = "UI_ZeD_Prompt_Search" },
 }
 
+-- L3 / R3 (Oct 23 2026) lead the prompts while the pad is on an item list: the
+-- leftmost go first when the footer is narrow, so A, X and Y outlast them
+local function _addListPrompts(win, prompts)
+    local z = win._focusRing and win._focusIdx and win._focusRing[win._focusIdx]
+    local zn = z and tostring(z.zone) or ""
+    if not (zn:find("MainInv$") or zn:find("MC%d+$")) then return end
+    local R = ZeD.InventoryRenderer
+    local extra = R and R.padPrompts and R.padPrompts(win)
+    for i = #(extra or {}), 1, -1 do table.insert(prompts, 1, extra[i]) end
+end
+
 local function _promptsFor(el)
     local out = {}
     if not el then
@@ -486,6 +497,7 @@ function ZeD_Window:_drawFooter()
             if not prompts and gpMode and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self then
                 local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
                 prompts = _promptsFor(el)
+                pcall(_addListPrompts, self, prompts)
             end
             if prompts then
                 local tm   = ZeD.TM
