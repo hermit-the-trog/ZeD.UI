@@ -1,0 +1,25 @@
+0.2.0-t3: changes since 0.2.0-t2.
+
+Quick actions on the bumpers (new)
+- In the world, hold LB or RB and press A, B, X, Y, L3 or R3: twelve quick actions, each one any action from the D-pad wheels.
+- A list on the wheel (Eat, Drink, Weapons, Smoke, Read, Medicine) does its best pick at once: the food going off soonest, clean water first, your best weapon. A wheel of places (Map, Tabs, View) opens.
+- Set them in Options, ZeD setup, Quick actions: A chooses the action, X clears it, Defaults puts the starting set back. Or from a wheel: point at a slice, hold a bumper and press the button.
+- A slice with a chord shows it in its bubble.
+- The button you press with a bumper does only the chord. A bumper on its own still does nothing in the world, and LB + RB is still the zoom. No chords while a window has the controller or the game is paused.
+- Starting set: LB + A eat, LB + B drink, LB + X light, LB + Y smoke, LB + L3 sit, LB + R3 shout; RB + A medicine and first aid, RB + B weapon, RB + X read, RB + Y world map, RB + L3 auto-walk, RB + R3 crouch.
+
+Put things back (new, off until you turn it on)
+- Options, ZeD setup, Put things back after an action. What an action takes out of a bag or a container in reach goes back there when it finishes, and your hands go back as they were. Example: the jack and the wrench go back into your bag after a tire comes off.
+- It uses the game's own moves, so it takes the same time as doing it by hand. Nothing is put back after an interruption.
+- The game already puts food and lighters back after eating and smoking. ZeD leaves those to the game.
+
+Button pictures (new)
+- Every controller button ZeD shows is now a picture: window footers, the wheels, dialogs, the car radio, the seat chooser, the on-screen keyboard and the dashboard.
+- Sets for Xbox, PlayStation, Steam Deck and Nintendo, with the face buttons in the pad's own colours. Options, ZeD setup, Gamepad glyph display picks the set; Auto follows the game's controller setting.
+
+Driving
+- In the driver's seat the D-pad opens the wheels straight away. World wheel, Vehicle, Dashboard gives the dashboard the controller; B gives it back.
+
+Fixes
+- A cigarette is smoked, not eaten: the item card and the action bar use the item's own verb (Smoke, Drink, Chew).
+- Drink on the wheel no longer logs an error.

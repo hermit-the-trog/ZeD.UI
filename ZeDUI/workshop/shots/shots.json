@@ -1486,7 +1486,7 @@
    ],
    "balloons": [
     {
-     "head": "LT · RT",
+     "head": "LT | RT",
      "text": "The game's own: aim and attack. On the map, zoom.",
      "anchor": [
       348,
@@ -1502,7 +1502,7 @@
     },
     {
      "head": "LB",
-     "text": "Character window. No window open: hold LB, tap RB to zoom out.",
+     "text": "Character window. No window open: LB + RB zooms out. Quick actions: LB + a button.",
      "anchor": [
       532,
       156
@@ -1547,7 +1547,7 @@
     },
     {
      "head": "RB",
-     "text": "World window. No window open: hold RB, tap LB to zoom in.",
+     "text": "World window. No window open: RB + LB zooms in. Quick actions: RB + a button.",
      "anchor": [
       1076,
       156
@@ -1558,7 +1558,7 @@
       1380,
       104
      ],
-     "maxw": 480
+     "maxw": 400
     },
     {
      "head": "Y (Triangle)",
@@ -1670,65 +1670,192 @@
   {
    "id": "controller",
    "kind": "feature",
-   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/ws_20_wheel_emotes.png",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_wheel_character_eat.png",
    "title": "On a controller",
-   "caption": "The wheels are drawn with the context strip's cells. Point with the mouse or the right stick.",
+   "caption": "Hold a D-pad direction for a wheel: Character, World, Social, Here and now. Point with the right stick, let go to take.",
    "layout": {
-    "zoom": 1.5,
-    "gap": 120
+    "zoom": 1.2,
+    "gap": 56
    },
    "crops": [
     {
      "box": [
-      1750,
-      915,
-      2090,
-      1235
+      1690,
+      905,
+      2150,
+      1300
      ],
      "resample": "nearest",
-     "label": "EMOTES"
+     "label": "CHARACTER"
     },
     {
-     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/ws_26_wheel_vehicle.png",
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_wheel_use_smoke.png",
      "box": [
-      1745,
-      915,
-      2085,
-      1235
+      1690,
+      895,
+      2150,
+      1290
      ],
      "resample": "nearest",
-     "label": "IN THE CAR"
+     "label": "CHARACTER > USE"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_car_vehicle_dashboard.png",
+     "box": [
+      1690,
+      800,
+      2160,
+      1345
+     ],
+     "resample": "nearest",
+     "label": "IN THE DRIVER'S SEAT"
     }
    ],
    "balloons": [
     {
-     "head": "Emote wheel",
-     "text": "The choices sit on a ring around the character.",
-     "anchor": [
-      1846,
-      1065
-     ],
-     "crop": 0,
-     "side": "left"
-    },
-    {
-     "text": "A corner triangle marks a cell that opens another wheel.",
+     "text": "A slice on a quick action chord shows it. LB + A eats without opening the wheel.",
      "anchor": [
       1920,
-      1003
+      920
      ],
+     "side": "top",
      "crop": 0,
-     "side": "top"
+     "target": [
+      1835,
+      915,
+      2005,
+      963
+     ],
+     "maxw": 540
     },
     {
-     "text": "Exit, seats, engine, lights, horn and radio are cells on the ring.",
+     "text": "The buttons are drawn for your controller.",
      "anchor": [
-      2003,
-      985
+      2069,
+      1291
      ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "A slice that can't be done now says why.",
+     "anchor": [
+      1800,
+      909
+     ],
+     "side": "top",
      "crop": 1,
+     "target": [
+      1765,
+      905,
+      2080,
+      988
+     ]
+    },
+    {
+     "text": "Vehicle, then Dashboard: the D-pad works the dashboard until B.",
+     "anchor": [
+      1918,
+      839
+     ],
+     "side": "top",
+     "crop": 2,
+     "target": [
+      1720,
+      836,
+      2122,
+      916
+     ]
+    }
+   ]
+  },
+  {
+   "id": "quick_actions",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_setup_putback.png",
+   "title": "Quick actions",
+   "caption": "Hold LB or RB and press A, B, X, Y, L3 or R3: twelve actions from the wheels, set in ZeD setup or from a wheel.",
+   "layout": {
+    "fill": 0.9,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1450,
+      553,
+      2780,
+      1395
+     ],
+     "tag": "ZED SETUP"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_setup_list.png",
+     "box": [
+      1920,
+      1170,
+      2705,
+      2150
+     ],
+     "tag": "THE LIST"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Twelve chords: a bumper with a face button or a stick click.",
+     "anchor": [
+      1612,
+      940
+     ],
      "side": "right",
-     "head": "Vehicle wheel"
+     "crop": 0,
+     "target": [
+      1495,
+      605,
+      1600,
+      1275
+     ],
+     "maxw": 260
+    },
+    {
+     "text": "A chooses the action. X clears it.",
+     "anchor": [
+      2376,
+      744
+     ],
+     "side": "top",
+     "crop": 0
+    },
+    {
+     "text": "Put things back after an action. Off until you turn it on.",
+     "anchor": [
+      2083,
+      1379
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "target": [
+      2040,
+      1338,
+      2185,
+      1384
+     ]
+    },
+    {
+     "text": "Every action on the wheels, under each wheel's name. The one on this chord is marked «.",
+     "anchor": [
+      2092,
+      2114
+     ],
+     "side": "top",
+     "crop": 1,
+     "target": [
+      1925,
+      1175,
+      2290,
+      2150
+     ],
+     "maxw": 300
     }
    ]
   },
