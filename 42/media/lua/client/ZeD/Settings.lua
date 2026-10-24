@@ -43,13 +43,15 @@ local scaleKeys   = {"auto", 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0}
 -- numbers, not words, so only Auto is a key)
 local scaleLabels = {"UI_ZeD_Settings_ScaleAuto", "0.5x", "0.75x", "1x", "1.25x", "1.5x", "1.75x", "2x"}
 
--- Gamepad glyph display — controls which button-prompt glyph set is rendered.
--- "Auto" follows InputModeDetector.getControllerType(); explicit choices
--- force a specific glyph family regardless of the connected controller; "Off"
--- suppresses button prompts entirely. Phase 1 stores the setting but UI
--- doesn't honor it yet — GlyphManager (Phase 4) consumes this.
-local glyphKeys   = {"auto", "xbox", "ps", "nintendo", "kbm", "off"}
-local glyphLabels = {"UI_ZeD_Settings_Auto", "UI_optionscreen_ControllerButtonStyle1", "UI_optionscreen_ControllerButtonStyle2", "Nintendo", "UI_ZeD_Settings_KeyboardMouse", "UI_Off"}   -- (Nintendo: a name, as is)
+-- Gamepad glyph display — which set of button pictures ZeD draws
+-- (ZeD_PadGlyphs.lua; director, Oct 24 2026). "Auto" follows the game's
+-- controller button style (the game switches it to PlayStation by itself on
+-- a PlayStation pad); an explicit set forces that one; "Keyboard/mouse" and
+-- "Off" draw the buttons as lettered boxes, as before the pictures.
+-- (Steam Deck added Oct 24 2026, after PlayStation: nothing read this setting
+-- before, so a stored index that moved changes nothing a player saw.)
+local glyphKeys   = {"auto", "xbox", "ps", "deck", "nintendo", "kbm", "off"}
+local glyphLabels = {"UI_ZeD_Settings_Auto", "UI_optionscreen_ControllerButtonStyle1", "UI_optionscreen_ControllerButtonStyle2", "UI_optionscreen_ControllerButtonStyle3", "Nintendo", "UI_ZeD_Settings_KeyboardMouse", "UI_Off"}   -- (Nintendo: a name, as is)
 
 -- Input-mode lock — overrides InputModeDetector's auto detection.
 -- "Auto" lets the detector decide from live input; "KBM" and "Gamepad" lock
@@ -258,6 +260,12 @@ glyphDisplay = opts:addComboBox("glyphDisplay", ZeD.tr("UI_ZeD_Settings_Glyphs")
     ZeD.tr("UI_ZeD_Settings_GlyphsTip"))
 for i, label in ipairs(glyphLabels) do
     glyphDisplay:addItem(ZeD.tr(label), glyphKeys[i] == "auto")  -- default: auto
+end
+-- the picked set's key, live while the options screen is open (ZeD_PadGlyphs reads it every draw)
+ZeD.Settings.glyphOption = glyphDisplay
+ZeD.Settings.glyphKey = function()
+    local el = glyphDisplay.element
+    return glyphKeys[(el and el.selected) or glyphDisplay:getValue() or 1] or "auto"
 end
 
 -- ----- INPUT MODE LOCK (S91 Gamepad Phase 1) -----

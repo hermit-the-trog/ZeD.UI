@@ -507,16 +507,26 @@ function ZeD_Window:_drawFooter()
                 local px   = w - rh - btnGap - sp.sm
                 local minX = btnX + rh + btnGap * 3
                 local textY = fY + math.floor((rh - fh) / 2)
+                -- (the buttons as ZeD's pixel pictures, ZeD_PadGlyphs; boxed names with the glyph setting on Keyboard/mouse or Off)
+                local PG = ZeD.PadGlyphs
+                local set = PG and PG.set()
+                local gk = PG and PG.k(box) or 1
                 for i = #prompts, 1, -1 do
                     local p  = prompts[i]
                     local lw = tm:MeasureStringX(font, p.label)
-                    local gw = tm:MeasureStringX(font, p.glyph)
-                    local total = box + T.px(3) + lw
+                    local roles = set and (p.pad or PG.roles(p.glyph)) or nil
+                    local bw = roles and PG.width(roles, gk, set) or box
+                    local total = bw + T.px(3) + lw
                     if px - total < minX then break end
                     local x0 = px - total
-                    self:drawRectBorder(x0, fY + T.px(2), box, box, bs.a, bs.r, bs.g, bs.b)
-                    self:drawText(p.glyph, x0 + math.floor((box - gw) / 2), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
-                    self:drawText(p.label, x0 + box + T.px(3), textY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a, font)
+                    if roles then
+                        PG.draw(self, roles, x0, fY, rh, gk, set)
+                    else
+                        local gw = tm:MeasureStringX(font, p.glyph)
+                        self:drawRectBorder(x0, fY + T.px(2), box, box, bs.a, bs.r, bs.g, bs.b)
+                        self:drawText(p.glyph, x0 + math.floor((box - gw) / 2), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
+                    end
+                    self:drawText(p.label, x0 + bw + T.px(3), textY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a, font)
                     px = x0 - sp.sm * 2
                 end
             end

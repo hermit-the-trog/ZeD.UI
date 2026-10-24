@@ -4129,6 +4129,9 @@ end
 -- prompts = { "D-PAD Move", { glyph = "A", label = "Press" }, ... }: a plain
 -- string is a dim note. Draws left to right from x, centred in a strip of
 -- height h at y. Returns the right edge.
+-- A button is drawn as ZeD's pixel picture of it (ZeD_PadGlyphs; director,
+-- Oct 24 2026) when the glyph names one (or `pad` gives its roles), and as
+-- the boxed name when the glyph setting is Keyboard/mouse or Off.
 -- ============================================================================
 function ZeD.Molecules.drawGlyphPrompts(panel, x, y, h, prompts)
     local T = ZeD.T
@@ -4138,10 +4141,19 @@ function ZeD.Molecules.drawGlyphPrompts(panel, x, y, h, prompts)
     local box = h - T.px(4)
     local textY = y + math.floor((h - fh) / 2)
     local bs, tc, td = T.borderS, T.text, T.textDim
+    local PG = ZeD.PadGlyphs
+    local set = PG and PG.set()
+    local k = PG and PG.k(box) or 1
     for _, p in ipairs(prompts or {}) do
+        local roles = (type(p) == "table" and set) and (p.pad or PG.roles(p.glyph)) or nil
         if type(p) == "string" then
             panel:drawText(p, x, textY, td.r, td.g, td.b, td.a or 1, font)
             x = x + tm:MeasureStringX(font, p) + T.sp.sm * 2
+        elseif roles then
+            local gw = PG.width(roles, k, set)
+            if panel.drawRect then PG.draw(panel, roles, x, y, h, k, set) end
+            panel:drawText(p.label, x + gw + T.px(3), textY, td.r, td.g, td.b, td.a or 1, font)
+            x = x + gw + T.px(3) + tm:MeasureStringX(font, p.label) + T.sp.sm * 2
         else
             local gw = tm:MeasureStringX(font, p.glyph)
             local bw = math.max(box, gw + T.px(4))

@@ -641,15 +641,34 @@ function ZeD_Dashboard:prerender()
     local Det = ZeD.Input and ZeD.Input.Detector
     if Det and Det.getMode and Det.getMode() == "gamepad" and self._driver then
         local hint
-        if self._focEl then
-            local pa, pb = self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress"), ZeD.tr("UI_ZeD_Dash_PromptDrive")
-            hint = self._focEl.promptX and ZeD.tr("UI_ZeD_Dash_HintAxb", pa, self._focEl.promptX, pb) or ZeD.tr("UI_ZeD_Dash_HintAb", pa, pb)
+        local PG = ZeD.PadGlyphs
+        local set = PG and PG.set()
+        local ink, shadow = P.color(des.hintInk or "#ece8dc"), (not des.hintInk) and "#101010" or nil
+        if self._focEl and set then
+            -- the buttons as their small pictures, each before its word, right-aligned at DashPx.hintRight
+            -- (ZeD_PadGlyphs; director, Oct 24 2026)
+            local segs = { { "A", self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress") } }
+            if self._focEl.promptX then segs[#segs + 1] = { "X", self._focEl.promptX } end
+            segs[#segs + 1] = { "B", ZeD.tr("UI_ZeD_Dash_PromptDrive") }
+            local x = DP.hintRight
+            for i = #segs, 1, -1 do
+                local word = ZeD.upper(segs[i][2])
+                x = x - P.textWidth(word, "35", 1)
+                P.text(cv, word, x, 2, ink, "35", 1, "l", nil, shadow)
+                x = x - 3 - PG.miniWidth(segs[i][1], set)
+                PG.drawMini(cv, segs[i][1], x, 2, ink, shadow, set)
+                x = x - 5
+            end
         else
-            hint = ZeD.tr("UI_ZeD_Dash_HintWheel")
+            if self._focEl then
+                local pa, pb = self._focEl.promptA or ZeD.tr("UI_ZeD_Dash_PromptPress"), ZeD.tr("UI_ZeD_Dash_PromptDrive")
+                hint = self._focEl.promptX and ZeD.tr("UI_ZeD_Dash_HintAxb", pa, self._focEl.promptX, pb) or ZeD.tr("UI_ZeD_Dash_HintAb", pa, pb)
+            else
+                hint = ZeD.tr("UI_ZeD_Dash_HintWheel")
+            end
+            -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight)
+            P.text(cv, ZeD.upper(hint), DP.hintRight, 2, ink, "35", 1, "r", nil, shadow)
         end
-        -- right-aligned in the room every plate leaves plain at the top edge's right end (DashPx.hintRight)
-        if des.hintInk then P.text(cv, ZeD.upper(hint), DP.hintRight, 2, P.color(des.hintInk), "35", 1, "r")
-        else P.text(cv, ZeD.upper(hint), DP.hintRight, 2, P.color("#ece8dc"), "35", 1, "r", nil, "#101010") end
     end
     if Focus and Focus.setRingZoneElements then
         local zone = self._focusRing[1]

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Quick actions and button pictures v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | quick actions on bumper chords, putting things back, and ZeD's own
+   button pictures. Mockup v1 (Oct 24 2026). Built by build.ps1 from
+   template.html (the icons are the game's ZeD icons, embedded).
+   The director: "settings for gamepad chords for quick actions. Bumpers + A,
+   B, X, Y, L3, R3 -- 12 quick action assignments possible" ... "an option to
+   automatically putting things back in the container they were in" ... "are
+   we going to use graphic icons for gamepad buttons. I think we should to help
+   with quick glance identifying".
+   Every number is a design unit (1 px at 1080p). Button pictures are pixel
+   art: each design pixel is drawn as a k x k block (the dash's rule). Fira
+   only, no emoji, no middle dots.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.swatches { display:flex; gap:4px; }
+.swatches button { width:20px; height:20px; border:1px solid #3a3832; cursor:pointer; }
+.swatches button.on { outline:2px solid #f0ece0; outline-offset:1px; }
+.scene-title { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; margin:26px 0 4px; }
+.scene-note { font-size:12.5px; line-height:1.5; color:#a9a497; max-width:1100px; margin-bottom:10px; }
+.stage { position:relative; border:1px solid #2a2824; background:#3b4a2c; overflow:hidden; transform-origin:0 0; }
+.stage.grass { background: radial-gradient(ellipse at 30% 40%, #56693a 0%, #3f5229 45%, #2e3d1f 100%); }
+.stage.plain { background:#1a1916; }
+canvas.gl { display:inline-block; vertical-align:middle; image-rendering:pixelated; }
+
+/* --- the ZeD theme (filled by JS from the game's Tokens.lua) -------------- */
+.z { --base:#0C0C0C; --surf1:#141414; --surf2:#1C1C1C; --surf3:#242424; --surf4:#2C2C2C;
+     --border:#202020; --borderS:#383838; --text:rgba(218,218,218,.90); --dim:rgba(161,161,161,.65); --head:rgba(230,230,230,.92);
+     --accent:#47A18C; --accentHover:rgba(71,161,140,.22); --onAccent:#0C0C0C; --bw:1px; font-family:var(--sans); color:var(--text); }
+
+/* window chrome */
+.win { position:absolute; background:color-mix(in srgb, var(--surf1) 96%, transparent); border:var(--bw) solid var(--borderS); }
+.tb { height:20px; position:relative; border-bottom:var(--bw) solid var(--borderS); background:var(--surf2);
+      background-image:repeating-linear-gradient(to bottom, var(--surf2) 0 2px, var(--surf3) 2px 4px); }
+.tb .close { position:absolute; left:7px; top:5px; width:10px; height:10px; border:1px solid var(--borderS); background:var(--surf1); }
+.tb .t { position:absolute; left:50%; top:3px; transform:translateX(-50%); background:var(--surf2); padding:0 8px; font-family:var(--mono); font-size:11px; line-height:14px; color:var(--accent); white-space:nowrap; }
+.side { position:absolute; left:8px; top:28px; bottom:44px; width:152px; border:var(--bw) solid var(--borderS); background:var(--base); }
+.find { margin:6px; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--text); }
+.find i { flex:1; height:16px; border:1px solid var(--borderS); background:var(--surf1); display:block; }
+.side .it { font-family:var(--mono); font-size:10.5px; padding:4px 7px; color:var(--text); }
+.side .it.sel { background:var(--surf3); }
+.pane { position:absolute; left:168px; right:8px; top:28px; bottom:44px; border:var(--bw) solid var(--borderS); background:var(--base); overflow:hidden; }
+.pane .scroll { position:absolute; right:0; top:0; bottom:58px; width:9px; border-left:1px solid var(--borderS); background:var(--surf1); }
+.pane .thumb { position:absolute; right:1px; width:6px; background:var(--surf4); border:1px solid var(--borderS); }
+.sec { font-family:var(--mono); font-size:10px; letter-spacing:.5px; color:var(--head); padding:6px 8px 4px; border-bottom:1px solid var(--borderS); background:var(--surf2); text-transform:uppercase; }
+.row { display:flex; align-items:center; height:26px; padding:0 14px 0 18px; font-size:11.5px; color:var(--text); }
+.row .lab { width:214px; display:flex; align-items:center; gap:5px; }
+.row .plus { font-family:var(--mono); font-size:11px; color:var(--dim); }
+.field { width:252px; height:20px; border:1px solid var(--borderS); background:var(--surf3); display:flex; align-items:center; gap:6px; padding:0 6px; cursor:pointer; position:relative; }
+.field .ic { width:13px; height:13px; background:var(--text); -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center; flex:none; }
+.field .nm { font-size:11.5px; color:var(--text); white-space:nowrap; }
+.field .wh { margin-left:auto; font-family:var(--mono); font-size:9.5px; color:var(--dim); white-space:nowrap; }
+.field .tri { width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--text); margin-left:6px; flex:none; }
+.field.none .nm { color:var(--dim); }
+.field.foc::after { content:""; position:absolute; inset:0; background:var(--accent); opacity:.55; pointer-events:none; }
+.segz { display:flex; }
+.segz b { font-weight:400; font-size:11px; padding:2px 8px; border:1px solid var(--borderS); background:var(--surf3); color:var(--text); cursor:pointer; margin-right:-1px; position:relative; }
+.segz b.on { background:var(--accent); color:var(--onAccent); border-color:var(--accent); }
+.segz b.foc::after { content:""; position:absolute; inset:-3px; border:2px solid var(--accent); pointer-events:none; }
+.desc { position:absolute; left:0; right:0; bottom:0; height:58px; border-top:1px solid var(--borderS); background:var(--surf1); display:flex; }
+.desc .d1 { flex:1; padding:6px 8px; font-size:11px; line-height:1.4; color:var(--text); }
+.desc .d2 { width:178px; border-left:1px solid var(--borderS); padding:6px 8px; font-size:11px; color:var(--dim); }
+.foot { position:absolute; left:0; right:0; bottom:0; height:38px; border-top:var(--bw) solid var(--borderS); background:var(--surf2); }
+.btn { position:absolute; top:9px; height:20px; padding:0 9px; font-family:var(--mono); font-size:10.5px; line-height:18px; border:1px solid var(--borderS); background:var(--surf3); color:var(--text); white-space:nowrap; }
+.btn.pri { border-color:var(--accent); color:var(--accent); }
+.prompts { position:absolute; display:flex; align-items:center; gap:2px; background:color-mix(in srgb, var(--surf1) 92%, transparent); border:1px solid var(--borderS); padding:3px 5px; }
+.prompts .p { display:flex; align-items:center; gap:4px; padding:0 6px 0 2px; font-size:11px; color:var(--text); white-space:nowrap; }
+.prompts .sep { width:1px; height:14px; background:var(--borderS); }
+
+/* the picker */
+.dlg { position:absolute; background:var(--surf1); border:var(--bw) solid var(--borderS); }
+.dlg .cols { position:absolute; left:8px; right:8px; top:52px; bottom:44px; display:flex; gap:8px; }
+.dlg .wl { width:130px; border:1px solid var(--borderS); background:var(--base); }
+.dlg .wl .w { font-family:var(--mono); font-size:10.5px; padding:5px 8px; color:var(--text); cursor:pointer; position:relative; }
+.dlg .wl .w.sel { background:var(--surf3); }
+.dlg .al { flex:1; border:1px solid var(--borderS); background:var(--base); overflow:hidden; }
+.dlg .a { display:flex; align-items:center; gap:7px; height:30px; padding:0 8px; cursor:pointer; position:relative; border-bottom:1px solid var(--border); }
+.dlg .a .ic { width:14px; height:14px; background:var(--text); -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; flex:none; }
+.dlg .a .tx { display:flex; flex-direction:column; min-width:0; }
+.dlg .a .n1 { font-size:11.5px; color:var(--text); white-space:nowrap; }
+.dlg .a .n2 { font-size:10px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dlg .a .on { margin-left:auto; display:flex; align-items:center; gap:2px; font-family:var(--mono); font-size:9.5px; color:var(--dim); }
+.dlg .a.inner .ic { margin-left:14px; }
+.dlg .a.foc::after { content:""; position:absolute; inset:0; background:var(--accent); opacity:.55; pointer-events:none; }
+.dlg .ask { position:absolute; left:10px; top:28px; font-size:11.5px; color:var(--text); display:flex; align-items:center; gap:4px; }
+.dlg .findd { position:absolute; right:10px; top:26px; display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; }
+.dlg .findd input { width:150px; height:18px; border:1px solid var(--borderS); background:var(--base); color:var(--text); font-family:var(--sans); font-size:11px; padding:0 4px; outline:none; }
+.dlg .findd input:focus { border-color:var(--accent); }
+
+/* the wheel */
+.cell { position:absolute; width:26px; height:26px; background:#F2F2F2; border:1px solid #141414; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.cell .ic { width:16px; height:16px; background:#141414; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center; }
+.cell.pt { background:var(--accent); }
+.cell.pt .ic { background:var(--onAccent); }
+.cell .sub { position:absolute; right:1px; bottom:1px; width:0; height:0; border-left:5px solid transparent; border-bottom:5px solid #141414; }
+.cell.pt .sub { border-bottom-color:var(--onAccent); }
+.cell .chord { position:absolute; left:50%; top:28px; transform:translateX(-50%); display:flex; gap:1px; align-items:center; }
+.bubble { position:absolute; background:#F2F2F2; border:1px solid #141414; padding:4px 10px 5px; color:#141414; text-align:center; white-space:nowrap; }
+.bubble .b1 { font-family:var(--mono); font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; gap:8px; }
+.bubble .b2 { font-size:11.5px; margin-top:1px; }
+.bubble .b3 { font-size:10.5px; margin-top:2px; color:#141414; display:flex; align-items:center; justify-content:center; gap:3px; }
+.bubble .dot { width:6px; height:6px; border-radius:50%; background:#c44040; display:inline-block; margin-right:4px; }
+.bubble::after { content:""; position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid #141414; }
+.crumb { position:absolute; font-family:var(--mono); font-size:10px; letter-spacing:.5px; color:var(--text); background:var(--surf2); border:1px solid var(--borderS); padding:2px 8px; white-space:nowrap; transform:translateX(-50%); }
+.halo { position:absolute; font-family:var(--sans); font-weight:600; font-size:12px; color:#f0f0f0; text-shadow:1px 1px 0 #000, -1px 1px 0 #000; white-space:nowrap; transform:translateX(-50%); }
+
+/* the sheet */
+.sheet { display:flex; gap:12px; flex-wrap:wrap; }
+.set { border:1px solid var(--borderS); background:var(--surf1); padding:8px 10px 10px; position:relative; }
+.set.act { border-color:var(--accent); }
+.set h3 { font-family:var(--mono); font-weight:500; font-size:10px; letter-spacing:1px; color:var(--head); text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between; gap:12px; }
+.set h3 em { font-style:normal; color:var(--accent); }
+.gl-grid { display:grid; grid-template-columns:repeat(6, 62px); gap:8px 6px; }
+.gcell { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.gcell .nm { font-family:var(--mono); font-size:9px; color:var(--dim); text-align:center; line-height:1.2; }
+.ctx-row { display:flex; gap:18px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+.notes { font-size:12.5px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.notes li { margin:3px 0 3px 18px; }
+.notes b { color:#e6e0cc; font-weight:600; }
+kbd { font-family:var(--mono); font-size:10.5px; border:1px solid #4a4740; padding:0 4px; background:#1c1b18; color:#e0dccf; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | mockup | quick actions, putting things back, button pictures | v1 | Oct 24 2026</div>
+<h1>Quick actions on the bumpers, and ZeD's own button pictures</h1>
+<p class="lede">In the world, hold <b>LB</b> or <b>RB</b> and press A, B, X, Y, L3 or R3: twelve quick actions, each one any action from the four D-pad wheels. A slice that opens a list (Eat, Drink, Smoke) does its best pick at once on a chord. You set them on the ZeD setup page, or from a wheel: point at a slice, hold a bumper and press the button. The same page has the switch for putting things back after an action (off for a new player). Every button is drawn as ZeD's own pixel picture, in the pad's own colours, for the controller you play with.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Controller</span><div class="seg" id="c-set"></div></div>
+  <div class="ctl"><span>Theme</span><div class="seg" id="c-theme"></div></div>
+  <div class="ctl"><span>Accent</span><div class="swatches" id="c-accent"></div></div>
+  <div class="ctl"><span>Size</span><div class="seg" id="c-zoom"></div></div>
+  <div class="ctl"><span>Keys on the setup page</span><div style="font-size:11.5px;color:#a9a497;line-height:1.5"><kbd>Up</kbd> <kbd>Down</kbd> move, <kbd>Enter</kbd> = A change, <kbd>X</kbd> clear, <kbd>Esc</kbd> = B back. Or click.</div></div>
+</div>
+
+<div class="scene-title">1. The button pictures</div>
+<div class="scene-note">One set per controller. ZeD already has a setting for this, ZeD setup, Controls, "Gamepad glyph display" (Auto, Xbox, PlayStation, Nintendo, Keyboard/mouse, Off): it was saved but never drawn. These pictures are what it will show. Auto follows the game's controller button style, which the game switches to PlayStation by itself when it sees one; Steam Deck is added to the choices. Face buttons in the pad's colours (Steam Deck and Nintendo pads have none); the shape or letter alone still tells them apart. Nintendo pictures name the button in that place on the pad: B at the bottom. Each picture at 1080p (left) and three times that (right).</div>
+<div class="stage plain z" id="sheet-stage" style="padding:12px"><div class="sheet" id="sheet"></div>
+  <div class="ctx-row" id="ctx-row"></div></div>
+
+<div class="scene-title">2. ZeD setup: Quick actions and Put things back</div>
+<div class="scene-note">Two new sections at the end of the ZeD setup page. Each chord is a row: A opens the list of the wheels' actions, X clears it. The band at the bottom says what the focused chord does right now. The defaults are a proposal: change any of them, or tell me your old Steam layout and I'll start from that.</div>
+<div class="stage grass z" id="setup-stage" style="width:1000px;height:680px"></div>
+
+<div class="scene-title">3. Assigning from a wheel</div>
+<div class="scene-note">Point at a slice (click a cell), then press a chord below as if you held the bumper and pressed the button: the slice is assigned and the bubble says so; a chord that held something else says what it replaced. A slice that has a chord shows it in its bubble.</div>
+<div class="controls" style="margin:6px 0 8px">
+  <div class="ctl"><span>Wheel</span><div class="seg" id="c-wheel"></div></div>
+  <div class="ctl"><span>Hold</span><div class="seg" id="c-bump"></div></div>
+  <div class="ctl"><span>And press</span><div class="seg" id="c-face"></div></div>
+</div>
+<div class="stage grass z" id="wheel-stage" style="width:1000px;height:430px"></div>
+
+<div class="scene-title">What happens in play</div>
+<ul class="notes">
+  <li><b>LB + X with a flashlight in your bag:</b> the game takes it out, puts it in a free hand and turns it on (its own timed actions, the same time as by hand). Press it again: off.</li>
+  <li><b>LB + Y (Smoke):</b> the first cigarette you carry and a flame to light it; the game finds the lighter. With Put things back on, the lighter and the pack go back to the bag they came from.</li>
+  <li><b>A chord that can't run</b> does nothing and your character says why over their head, with the wheel's reason: "Nothing to drink on you.", "In a vehicle."</li>
+  <li><b>The button pressed with a bumper does only the chord:</b> A doesn't interact, Y doesn't open the windows. A bumper alone still does nothing in the world, and LB + RB is still zoom. No chords while a window has the pad or the game is paused.</li>
+  <li><b>Put things back (off for a new player):</b> after changing a tire, the jack and the wrench go back into the trunk and your weapon back into your hands. Not after an interruption: you never stand there tidying while a zombie closes in.</li>
+</ul>
+
+<script>
+const ICONS = /*ICONS*/{};
+
+// ---------------------------------------------------------------------------
+// the game's themes and accents (Tokens.lua)
+// ---------------------------------------------------------------------------
+const THEMES = {
+  dark:  { name:'Dark', base:'#0C0C0C', surf1:'#141414', surf2:'#1C1C1C', surf3:'#242424', surf4:'#2C2C2C', border:'#202020', borderS:'#383838', text:'rgba(218,218,218,.90)', dim:'rgba(161,161,161,.65)', head:'rgba(230,230,230,.92)', ink:'#DADADA', bw:'1px', dark:true },
+  light: { name:'Light', base:'#C6C6C6', surf1:'#BEBEBE', surf2:'#B6B6B6', surf3:'#AEAEAE', surf4:'#A6A6A6', border:'#969696', borderS:'#767676', text:'rgba(12,12,12,.95)', dim:'rgba(12,12,12,.72)', head:'rgba(5,5,5,1)', ink:'#0C0C0C', bw:'1px', dark:false },
+  hicon: { name:'High contrast', base:'#050505', surf1:'#111111', surf2:'#191919', surf3:'#202020', surf4:'#292929', border:'#353535', borderS:'#555555', text:'rgba(255,255,255,.95)', dim:'rgba(199,199,199,.75)', head:'rgba(255,255,255,.98)', ink:'#FFFFFF', bw:'2px', dark:true },
+};
+const ACCENTS = [
+  ['Red','#CC4444','#7A1A1A'], ['Orange','#D4922A','#7A5010'], ['Yellow','#CCAA22','#6B5F0A'], ['Green','#44AA44','#125518'],
+  ['Blue','#4488CC','#1A4477'], ['PZ Teal','#47A18C','#1A6655'], ['Purple','#8855BB','#441888'], ['Pink','#DD5588','#882244'], ['Mono','#888888','#3A3A3A'],
+];
+
+// ---------------------------------------------------------------------------
+// the wheels' actions (ZeD_DpadWheels.lua names); best = a list slice that
+// does its best pick at once on a chord
+// ---------------------------------------------------------------------------
+const WHEELS = [
+  { id:'character', name:'Character', dir:'D-pad Left' },
+  { id:'world', name:'World', dir:'D-pad Right' },
+  { id:'social', name:'Social', dir:'D-pad Up' },
+  { id:'now', name:'Here and now', dir:'D-pad Down' },
+];
+const ACTIONS = [
+  { id:'eat', w:'character', n:'Eat', icon:'apple-whole', list:true, d:'The food going off soonest that is safe to eat now. Rotten food last.' },
+  { id:'eat.corn', w:'character', n:'Eat', inner:'Canned Corn', icon:'apple-whole', d:'Canned Corn, when you carry one (the game opens the can with your opener).' },
+  { id:'drink', w:'character', n:'Drink', icon:'water-045-drink', list:true, d:'Clean water first, then the drinks with no downside. The game drinks as much as you need.' },
+  { id:'med', w:'character', n:'Medicine and first aid', icon:'bandage-wound', list:true, d:'The worst wound first, with the game\'s own treatment for it.' },
+  { id:'weapon', w:'character', n:'Weapons', icon:'knife', list:true, d:'Your best weapon by condition, into your hands.' },
+  { id:'handsfree', w:'character', n:'Weapons', inner:'Hands free', icon:'backpack', d:'Puts both hands\' things away.' },
+  { id:'sleep', w:'character', n:'Sleep', icon:'bed', d:'Sleep, by the game\'s own rules ("Not tired enough to sleep.").' },
+  { id:'smoke', w:'character', n:'Use', inner:'Smoke', icon:'smoking', list:true, d:'The first cigarette you carry and a flame to light it. The game finds the lighter.' },
+  { id:'read', w:'character', n:'Use', inner:'Read', icon:'book-open-reader', list:true, d:'What you were reading, else the first book or magazine you carry. Not when it is too dark.' },
+  { id:'watch', w:'character', n:'Use', inner:'Watch', icon:'clock', d:'Opens the watch.' },
+  { id:'map', w:'world', n:'Map', inner:'World map', icon:'crafting-game-037-map', d:'Opens the world map.' },
+  { id:'minimap', w:'world', n:'Map', inner:'Mini-map', icon:'fi-br-map-point', d:'Shows or hides the mini-map.' },
+  { id:'vehicle', w:'world', n:'Vehicle', icon:'car-mechanic', wheel:true, d:'Opens the vehicle wheel (the game fills it), with Dashboard in the driver\'s seat.' },
+  { id:'animal', w:'world', n:'Animal', icon:'cow', wheel:true, d:'Opens the animal wheel for the tame animal in reach.' },
+  { id:'craft', w:'world', n:'Craft and build', inner:'Crafting', icon:'carpentry-015-toolbox', d:'The pair open on Crafting, at the nearest station in reach.' },
+  { id:'search', w:'world', n:'Search', inner:'Search mode', icon:'fi-br-magnifying-glass-wave', d:'Turns search mode on or off.' },
+  { id:'lights', w:'world', n:'Lights and power', inner:'Room lights', icon:'lightbulb-on', d:'The light switch in reach.' },
+  { id:'shout', w:'social', n:'Shout', icon:'bullhorn', d:'Shouts (draws zombies, as the game\'s shout).' },
+  { id:'wave', w:'social', n:'Friendly', inner:'Wave', icon:'smile', d:'The wave gesture.' },
+  { id:'follow', w:'social', n:'Group', inner:'Follow me', icon:'smile', d:'The follow me gesture.' },
+  { id:'sit', w:'now', n:'Sit', inner:'Sit on the ground', icon:'sitting-ground', d:'Sits on the ground; again: gets up.' },
+  { id:'crouch', w:'now', n:'Crouch', icon:'eye', d:'Crouch on or off.' },
+  { id:'autowalk', w:'now', n:'Auto-walk', icon:'fi-br-person-walking-arrow-right', d:'Auto-walk on or off.' },
+  { id:'speed', w:'now', n:'Game speed', inner:'Fast forward', icon:'clock', d:'Fast forward; again: back to normal speed.' },
+  { id:'zoomin', w:'now', n:'Zoom', inner:'In', icon:'eye', d:'One zoom step in.' },
+  { id:'hideui', w:'now', n:'View', inner:'Hide the interface', icon:'eye', d:'Hides the interface until you take it again.' },
+  { id:'light', w:'now', n:'Flashlight', icon:'lightbulb-on', list:true, d:'The brightest light you carry, into a free hand and on. Again: off.' },
+];
+const A = Object.fromEntries(ACTIONS.map(a => [a.id, a]));
+const CHORDS = [];
+for (const bump of ['LB','RB']) for (const face of ['A','B','X','Y','L3','R3']) CHORDS.push(bump + '+' + face);
+const DEFAULTS = { 'LB+A':'eat', 'LB+B':'drink', 'LB+X':'light', 'LB+Y':'smoke', 'LB+L3':'sit', 'LB+R3':'shout',
+                   'RB+A':'med', 'RB+B':'weapon', 'RB+X':'read', 'RB+Y':'map', 'RB+L3':'autowalk', 'RB+R3':'crouch' };
+
+// ZeD's existing "Gamepad glyph display" setting (Settings.lua glyphKeys), with Steam Deck added; Auto follows the game's
+// controller button style, which the game switches to PlayStation by itself on a PlayStation pad (the director's)
+const GLYPH_SETTINGS = [['auto','Auto'], ['xbox','Xbox'], ['ps','PlayStation'], ['deck','Steam Deck'], ['nin','Nintendo'], ['kbm','Keyboard/mouse'], ['off','Off']];
+function syncSet() { S.set = ({ auto:'ps', xbox:'xbox', ps:'ps', deck:'deck', nin:'nin' })[S.glyph] || 'ps'; }
+const S = { glyph:'auto', set:'ps', theme:'dark', accent:5, zoom:1, assign:Object.assign({}, DEFAULTS), putBack:false,
+            focus:2, picker:null, pickW:0, pickI:0, find:'',
+            wheel:'now', point:7, bump:'LB', flash:null };
+
+// ---------------------------------------------------------------------------
+// pixel button pictures. Each picture is a list of design pixels; render(k)
+// paints each as a k x k block (ZeD_PixelParts' rule: whole multiples only).
+// ---------------------------------------------------------------------------
+const F35 = { A:['010','101','111','101','101'], B:['110','101','110','101','110'], L:['100','100','100','100','111'], R:['110','101','110','101','101'],
+  S:['011','100','010','001','110'], T:['111','010','010','010','010'], Z:['111','001','010','100','111'],
+  1:['010','110','010','010','111'], 2:['111','001','111','100','111'], 3:['111','001','011','001','111'],
+  '+':['000','010','111','010','000'], '-':['000','000','111','000','000'] };
+const F57 = { A:['01110','10001','10001','11111','10001','10001','10001'], B:['11110','10001','11110','10001','10001','10001','11110'],
+  X:['10001','10001','01010','00100','01010','10001','10001'], Y:['10001','10001','01010','00100','00100','00100','00100'],
+  L:['10000','10000','10000','10000','10000','10000','11111'], R:['11110','10001','10001','11110','10010','10001','10001'] };
+const RING = ['....XXXXX....','..XX.....XX..','.X.........X.','.X.........X.','X...........X','X...........X','X...........X','X...........X','X...........X','.X.........X.','.X.........X.','..XX.....XX..','....XXXXX....'];
+const BUMP = ['..XXXXXXXXXXXXXXX..','.X...............X.','X.................X','X.................X','X.................X','X.................X','X.................X','X.................X','X.................X','X.................X','XXXXXXXXXXXXXXXXXXX'];
+const TRIG = ['...XXXXXXXXX...','.XX.........XX.','X.............X','X.............X','X.............X','X.............X','X.............X','X.............X','X.............X','X.............X','X.............X','X.............X','XXXXXXXXXXXXXXX'];
+const DPAD = ['....XXXXX....','....X...X....','....X...X....','....X...X....','XXXXX...XXXXX','X...........X','X...........X','X...........X','XXXXX...XXXXX','....X...X....','....X...X....','....X...X....','....XXXXX....'];
+const PILL = ['.XXXXXXX.','X.......X','X.......X','X.......X','X.......X','X.......X','X.......X','X.......X','X.......X','X.......X','.XXXXXXX.'];
+const SYM = {
+  tri:   ['...X...','..X.X..','..X.X..','.X...X.','.X...X.','XXXXXXX'],
+  circ:  ['..XXX..','.X...X.','X.....X','X.....X','X.....X','.X...X.','..XXX..'],
+  cross: ['XX...XX','.XX.XX.','..XXX..','...X...','..XXX..','.XX.XX.','XX...XX'],
+  sq:    ['XXXXXXX','X.....X','X.....X','X.....X','X.....X','X.....X','XXXXXXX'],
+};
+// the pads' own colours
+const PADC = {
+  xbox: { A:['#57B03A','#101010'], B:['#D7423A','#F4F2EC'], X:['#3C78D8','#F4F2EC'], Y:['#E4B320','#101010'] },
+  ps:   { A:['cross','#7C9BF2'], B:['circ','#F0505E'], X:['sq','#EE8FD0'], Y:['tri','#2FBF8F'] },
+};
+const NAMES = {
+  xbox: { A:'A', B:'B', X:'X', Y:'Y', LB:'LB', RB:'RB', LT:'LT', RT:'RT', LS:'LS', RS:'RS', L3:'LS click', R3:'RS click', SEL:'View', START:'Menu' },
+  ps:   { A:'Cross', B:'Circle', X:'Square', Y:'Triangle', LB:'L1', RB:'R1', LT:'L2', RT:'R2', LS:'L stick', RS:'R stick', L3:'L3', R3:'R3', SEL:'Create', START:'Options' },
+  deck: { A:'A', B:'B', X:'X', Y:'Y', LB:'L1', RB:'R1', LT:'L2', RT:'R2', LS:'L stick', RS:'R stick', L3:'L3', R3:'R3', SEL:'View', START:'Menu' },
+  // (Nintendo prints B where Xbox prints A: the pictures name the button in that place on the pad)
+  nin:  { A:'B', B:'A', X:'Y', Y:'X', LB:'L', RB:'R', LT:'ZL', RT:'ZR', LS:'L stick', RS:'R stick', L3:'L press', R3:'R press', SEL:'Minus', START:'Plus' },
+};
+
+function T() { return THEMES[S.theme]; }
+function stamp(px, rows, x0, y0, col) { rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === 'X' || r[x] === '1') px.push([x0 + x, y0 + y, col]); }); }
+function fillInside(px, rows, col) {   // between the outline's first and last pixel on each row (inner rows only)
+  rows.forEach((r, y) => { const a = r.indexOf('X'), b = r.lastIndexOf('X'); if (y === 0 || y === rows.length - 1 || a < 0) return;
+    for (let x = a + 1; x < b; x++) if (r[x] !== 'X') px.push([x, y, col]); });
+}
+function text(px, font, str, x0, y0, col) { let x = x0; for (const ch of str) { const g = font[ch]; if (!g) continue; stamp(px, g, x, y0, col); x += g[0].length + 1; } }
+function textW(font, str) { let w = 0; for (const ch of str) { const g = font[ch]; if (g) w += g[0].length + 1; } return Math.max(0, w - 1); }
+
+// a picture by role (A B X Y LB RB LT RT LS RS L3 R3 DPAD DU DR DD DL SEL START) for the set in use
+function glyph(role, set) {
+  set = set || S.set;
+  const th = T(), ink = th.ink, paper = th.surf3;
+  const rim = th.dark ? '#6A6A6A' : '#101010';
+  const px = [];
+  let w = 13, h = 13;
+  if ('ABXY'.includes(role) && role.length === 1) {
+    if (set === 'xbox') { const [c, l] = PADC.xbox[role]; fillInside(px, RING, c); stamp(px, RING, 0, 0, c); text(px, F57, role, 4, 3, l); }
+    else if (set === 'ps') { const [s, c] = PADC.ps[role]; fillInside(px, RING, '#1C1C1C'); stamp(px, RING, 0, 0, rim); const g = SYM[s]; stamp(px, g, 3, g.length === 6 ? 3 : 3, c); }
+    else { fillInside(px, RING, '#262626'); stamp(px, RING, 0, 0, rim); text(px, F57, set === 'nin' ? NAMES.nin[role] : role, 4, 3, '#ECECEC'); }
+  } else if (role === 'LB' || role === 'RB') {
+    w = 19; h = 11; fillInside(px, BUMP, paper); stamp(px, BUMP, 0, 0, ink);
+    const s = set === 'xbox' ? role : set === 'nin' ? role[0] : role[0] + '1'; text(px, F35, s, Math.floor((w - textW(F35, s)) / 2), 3, ink);
+  } else if (role === 'LT' || role === 'RT') {
+    w = 15; h = 13; fillInside(px, TRIG, paper); stamp(px, TRIG, 0, 0, ink);
+    const s = set === 'xbox' ? role : set === 'nin' ? 'Z' + role[0] : role[0] + '2'; text(px, F35, s, Math.floor((w - textW(F35, s)) / 2), 5, ink);
+  } else if (role === 'LS' || role === 'RS') {
+    stamp(px, RING, 0, 0, ink); text(px, F57, role[0], 4, 3, ink);
+    px.push([6, 1, ink], [6, 11, ink], [1, 6, ink], [11, 6, ink]);   // the four ways it moves
+  } else if (role === 'L3' || role === 'R3') {
+    fillInside(px, RING, ink); stamp(px, RING, 0, 0, ink);
+    const bg = th.dark ? '#141414' : '#E6E6E6';
+    if (set === 'xbox' || set === 'nin') text(px, F57, role[0], 4, 3, bg); else text(px, F35, role, 3, 4, bg);
+  } else if (role.startsWith('D')) {
+    fillInside(px, DPAD, paper); stamp(px, DPAD, 0, 0, ink);
+    const arm = { DU:[[5,1],[7,4]], DD:[[5,8],[7,11]], DL:[[1,5],[4,7]], DR:[[8,5],[11,7]] }[role];
+    if (arm) for (let y = arm[0][1]; y <= arm[1][1]; y++) for (let x = arm[0][0]; x <= arm[1][0]; x++) px.push([x, y, ink]);
+  } else if (role === 'SEL' || role === 'START') {
+    if (set === 'ps') {
+      w = 9; h = 11; fillInside(px, PILL, paper); stamp(px, PILL, 0, 0, ink);
+      if (role === 'SEL') { for (const x of [3, 5]) for (let y = 3; y <= 7; y++) px.push([x, y, ink]); }
+      else { for (const y of [3, 5, 7]) for (let x = 2; x <= 6; x++) px.push([x, y, ink]); }
+    } else if (set === 'nin') {
+      fillInside(px, RING, paper); stamp(px, RING, 0, 0, ink); text(px, F35, role === 'SEL' ? '-' : '+', 5, 4, ink);
+    } else {
+      fillInside(px, RING, paper); stamp(px, RING, 0, 0, ink);
+      if (role === 'SEL') { stamp(px, ['XXXX..', 'X..X..', 'X.XXXX', 'XXX..X', '..X..X', '..XXXX'], 4, 4, ink); }   // two windows, one over the other
+      else { for (const y of [4, 6, 8]) for (let x = 4; x <= 8; x++) px.push([x, y, ink]); }
+    }
+  }
+  return { w, h, px };
+}
+function gl(role, k, set) {
+  const g = glyph(role, set);
+  const c = document.createElement('canvas');
+  c.width = g.w * k; c.height = g.h * k; c.className = 'gl';
+  const x = c.getContext('2d');
+  for (const [px, py, col] of g.px) { x.fillStyle = col; x.fillRect(px * k, py * k, k, k); }
+  return c;
+}
+// a chord as two pictures: [LB] + [X]
+function chordEls(chord, k) {
+  const [b, f] = chord.split('+');
+  const wrap = document.createElement('span');
+  wrap.style.cssText = 'display:inline-flex;align-items:center;gap:' + (2 * k) + 'px';
+  wrap.append(gl(b, k));
+  const plus = document.createElement('span'); plus.className = 'plus'; plus.textContent = '+'; plus.style.fontSize = (10 * k) + 'px';
+  wrap.append(plus, gl(f, k));
+  return wrap;
+}
+function chordWords(chord) { const [b, f] = chord.split('+'); const N = NAMES[S.set]; return N[b] + ' + ' + N[f]; }
+
+// ---------------------------------------------------------------------------
+// shared bits
+// ---------------------------------------------------------------------------
+function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function icon(name, cls) { const i = el('i', cls || 'ic'); const d = ICONS[name]; if (d) { i.style.webkitMaskImage = i.style.maskImage = 'url(data:image/png;base64,' + d + ')'; } return i; }
+function applyTheme(root) {
+  const th = T(), ac = ACCENTS[S.accent];
+  const accent = th.dark ? ac[1] : ac[2];
+  const v = { '--base':th.base, '--surf1':th.surf1, '--surf2':th.surf2, '--surf3':th.surf3, '--surf4':th.surf4, '--border':th.border, '--borderS':th.borderS,
+              '--text':th.text, '--dim':th.dim, '--head':th.head, '--accent':accent, '--onAccent':th.dark ? '#0C0C0C' : '#F2F0EC', '--bw':th.bw };
+  for (const [k, val] of Object.entries(v)) root.style.setProperty(k, val);
+}
+function actionLabel(a) { return a ? (a.inner ? a.inner : a.n) : 'None'; }
+function actionWhere(a) { if (!a) return ''; const w = WHEELS.find(x => x.id === a.w); return w.name + ' › ' + a.n + (a.inner ? ' › ' + a.inner : ''); }
+function whoHas(id) { return CHORDS.filter(c => S.assign[c] === id); }
+
+// ---------------------------------------------------------------------------
+// controls
+// ---------------------------------------------------------------------------
+function segCtl(id, items, cur, onPick) {
+  const box = document.getElementById(id); box.innerHTML = '';
+  for (const [val, label] of items) { const b = el('button', val === cur ? 'on' : '', label); b.onclick = () => onPick(val); box.append(b); }
+}
+function renderControls() {
+  segCtl('c-set', [['auto','Auto (your PlayStation pad)'],['xbox','Xbox'],['ps','PlayStation'],['deck','Steam Deck'],['nin','Nintendo']], S.glyph, v => { S.glyph = v; syncSet(); render(); });
+  segCtl('c-theme', [['dark','Dark'],['light','Light'],['hicon','High contrast']], S.theme, v => { S.theme = v; render(); });
+  segCtl('c-zoom', [[1,'1080p'],[2,'4K (2x)']], S.zoom, v => { S.zoom = v; render(); });
+  const sw = document.getElementById('c-accent'); sw.innerHTML = '';
+  ACCENTS.forEach((a, i) => { const b = el('button', i === S.accent ? 'on' : ''); b.style.background = a[1]; b.title = a[0]; b.onclick = () => { S.accent = i; render(); }; sw.append(b); });
+  segCtl('c-wheel', [['character','Character'],['now','Here and now']], S.wheel, v => { S.wheel = v; S.point = v === 'now' ? 7 : 2; S.flash = null; render(); });
+  segCtl('c-bump', [['LB', NAMES[S.set].LB],['RB', NAMES[S.set].RB]], S.bump, v => { S.bump = v; render(); });
+  const fb = document.getElementById('c-face'); fb.innerHTML = '';
+  for (const f of ['A','B','X','Y','L3','R3']) { const b = el('button'); b.style.cssText = 'display:flex;align-items:center;gap:5px';
+    b.append(gl(f, 1), el('span', '', NAMES[S.set][f])); b.onclick = () => assignFromWheel(S.bump + '+' + f); fb.append(b); }
+}
+
+// ---------------------------------------------------------------------------
+// 1. the sheet
+// ---------------------------------------------------------------------------
+const ROLES = [['A'],['B'],['X'],['Y'],['LB'],['RB'],['LT'],['RT'],['LS'],['RS'],['L3'],['R3'],['DPAD'],['DU'],['DR'],['DD'],['DL'],['SEL'],['START']];
+function renderSheet() {
+  const st = document.getElementById('sheet-stage'); applyTheme(st); st.style.background = T().base;
+  const sh = document.getElementById('sheet'); sh.innerHTML = '';
+  for (const [set, title] of [['xbox','Xbox'],['ps','PlayStation'],['deck','Steam Deck'],['nin','Nintendo']]) {
+    const box = el('div', 'set' + (set === S.set ? ' act' : ''));
+    const h = el('h3'); h.append(el('span', '', title)); if (set === S.set) h.append(el('em', '', 'in use'));
+    box.append(h);
+    const grid = el('div', 'gl-grid'); grid.style.gridTemplateColumns = 'repeat(5, 70px)';
+    for (const [r] of ROLES) {
+      const c = el('div', 'gcell');
+      const pics = el('div'); pics.style.cssText = 'display:flex;align-items:flex-end;gap:6px;height:46px';
+      pics.append(gl(r, 1, set), gl(r, 3, set));
+      const nm = { DPAD:'D-pad', DU:'Up', DR:'Right', DD:'Down', DL:'Left' }[r] || NAMES[set][r];
+      c.append(pics, el('div', 'nm', nm));
+      grid.append(c);
+    }
+    box.append(grid); sh.append(box);
+  }
+  // in context: a footer's prompts and the wheel's prompts, with pictures
+  const cr = document.getElementById('ctx-row'); cr.innerHTML = '';
+  const mk = (items) => { const p = el('div', 'prompts'); p.style.position = 'static';
+    items.forEach((it, i) => { if (i) p.append(el('span', 'sep')); const q = el('span', 'p'); for (const r of it[0]) q.append(gl(r, 1)); q.append(el('span', '', it[1])); p.append(q); }); return p; };
+  const lab = (t) => { const s = el('span', '', t); s.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px'; return s; };
+  cr.append(lab('A window footer'), mk([[['A'],'Card'],[['X'],'Menu'],[['B'],'Back'],[['L3'],'Sort'],[['R3'],'List / Grid']]));
+  cr.append(lab('A wheel'), mk([[['RS'],'Point'],[['A'],'Take'],[['B'],'Back']]));
+}
+
+// ---------------------------------------------------------------------------
+// 2. ZeD setup
+// ---------------------------------------------------------------------------
+const ROWS = () => [...CHORDS.map(c => ({ kind:'chord', chord:c })), { kind:'putback' }];
+function rowDesc(r) {
+  if (r.kind === 'putback') return ['When on, whatever an action takes out of a bag, a container in reach or off the floor goes back where it came from once the action finishes, leftovers too, and your hands as they were. The game\'s own move action, so it takes the same game time. Not after an interruption.', 'Default: Off'];
+  const a = A[S.assign[r.chord]];
+  const [b, f] = r.chord.split('+'); const N = NAMES[S.set];
+  const head = 'Hold ' + N[b] + ' and press ' + N[f] + ' in the world: ';
+  const def = A[DEFAULTS[r.chord]];
+  return [a ? head + a.d : head + 'nothing.', 'Default: ' + (def ? actionLabel(def) : 'None')];
+}
+function renderSetup() {
+  const st = document.getElementById('setup-stage'); applyTheme(st); st.innerHTML = '';
+  st.style.width = (1000 * S.zoom) + 'px'; st.style.height = (680 * S.zoom) + 'px';
+  const inner = el('div'); inner.style.cssText = 'position:absolute;left:0;top:0;width:1000px;height:680px;transform-origin:0 0;transform:scale(' + S.zoom + ')';
+  st.append(inner);
+  const win = el('div', 'win'); win.style.cssText = 'left:110px;top:24px;width:780px;height:632px'; inner.append(win);
+  const tb = el('div', 'tb'); tb.append(el('i', 'close'), el('span', 't', 'Options')); win.append(tb);
+  const side = el('div', 'side'); const fi = el('div', 'find'); fi.append(el('span', '', 'Find:'), el('i')); side.append(fi);
+  for (const [n, sel] of [['ZeD setup',1],['Display'],['Graphics'],['Audio'],['Controls'],['Gameplay'],['Interface'],['Accessibility'],['Mods']]) side.append(el('div', 'it' + (sel ? ' sel' : ''), n));
+  win.append(side);
+  const pane = el('div', 'pane'); win.append(pane);
+  const body = el('div'); body.style.cssText = 'position:absolute;left:0;right:9px;top:0;bottom:58px;overflow:hidden';
+  pane.append(body);
+  // (scrolled down the ZeD setup page: Look, Windows and HUD sit above; Controls as it is today, then the two new sections)
+  body.append(el('div', 'sec', 'Controls'));
+  const r0 = el('div', 'row'); r0.append(el('span', 'lab', 'Context menu'));
+  const sg0 = el('span', 'segz'); sg0.append(el('b', 'on', 'Icon strip'), el('b', '', 'List')); r0.append(sg0); body.append(r0);
+  const r1 = el('div', 'row'); r1.append(el('span', 'lab', 'Gamepad glyph display'));
+  const gf = el('span', 'field'); gf.style.width = '180px'; gf.append(el('span', 'nm', GLYPH_SETTINGS.find(g => g[0] === S.glyph)[1]), el('span', 'tri'));
+  gf.onclick = () => { const i = GLYPH_SETTINGS.findIndex(g => g[0] === S.glyph); S.glyph = GLYPH_SETTINGS[(i + 1) % GLYPH_SETTINGS.length][0]; syncSet(); render(); };
+  gf.title = 'Click to step through the choices'; r1.append(gf); body.append(r1);
+  const r2 = el('div', 'row'); r2.append(el('span', 'lab', 'Input mode lock'));
+  const lf = el('span', 'field'); lf.style.width = '180px'; lf.append(el('span', 'nm', 'Auto'), el('span', 'tri')); r2.append(lf); body.append(r2);
+  const sec = el('div', 'sec'); sec.append(el('span', '', 'Quick actions (controller)')); body.append(sec);
+  const rows = ROWS();
+  rows.forEach((r, i) => {
+    if (r.kind === 'putback') { body.append(el('div', 'sec', 'Put things back')); }
+    if (r.kind === 'chord' && r.chord === 'RB+A') { const g = el('div'); g.style.cssText = 'height:1px;background:var(--border);margin:2px 14px 2px 18px'; body.append(g); }
+    const row = el('div', 'row');
+    const lab = el('span', 'lab');
+    if (r.kind === 'chord') lab.append(chordEls(r.chord, 1)); else lab.textContent = 'Put things back after an action';
+    row.append(lab);
+    if (r.kind === 'chord') {
+      const a = A[S.assign[r.chord]];
+      const f = el('span', 'field' + (a ? '' : ' none') + (S.focus === i && !S.picker ? ' foc' : ''));
+      if (a) f.append(icon(a.icon));
+      f.append(el('span', 'nm', actionLabel(a)));
+      if (a) f.append(el('span', 'wh', WHEELS.find(x => x.id === a.w).name + (a.inner ? ' › ' + a.n : '')));
+      f.append(el('span', 'tri'));
+      f.onclick = () => { S.focus = i; openPicker(r.chord); };
+      row.append(f);
+    } else {
+      const sg = el('span', 'segz');
+      const off = el('b', (S.putBack ? '' : 'on') + (S.focus === i ? ' foc' : ''), 'Off'), on = el('b', S.putBack ? 'on' : '', 'On');
+      off.onclick = () => { S.focus = i; S.putBack = false; render(); }; on.onclick = () => { S.focus = i; S.putBack = true; render(); };
+      sg.append(off, on); row.append(sg);
+    }
+    row.onmouseenter = () => { if (!S.picker && S.focus !== i) { S.focus = i; renderSetup(); } };
+    body.append(row);
+  });
+  const sc = el('div', 'scroll'); const th = el('div', 'thumb'); th.style.cssText = 'top:300px;height:190px'; sc.append(th); pane.append(sc);
+  const [d1, d2] = rowDesc(rows[S.focus]);
+  const desc = el('div', 'desc'); desc.append(el('div', 'd1', d1), el('div', 'd2', d2)); pane.append(desc);
+  const foot = el('div', 'foot'); win.append(foot);
+  const bt = (t, x, pri, right) => { const b = el('span', 'btn' + (pri ? ' pri' : ''), t); b.style[right ? 'right' : 'left'] = x + 'px'; foot.append(b); };
+  bt('Back', 8); bt('Defaults', 62); bt('Apply', 8, false, true); bt('Discard', 62, false, true);
+  // the controller's prompts for the focused row
+  const pr = el('div', 'prompts'); pr.style.cssText = 'left:270px;top:8px;position:absolute';
+  const items = rows[S.focus].kind === 'chord' ? [[['A'],'Change'],[['X'],'Clear'],[['B'],'Back']] : [[['DL','DR'],'Off / On'],[['B'],'Back']];
+  items.forEach((it, i) => { if (i) pr.append(el('span', 'sep')); const q = el('span', 'p'); for (const r of it[0]) q.append(gl(r, 1)); q.append(el('span', '', it[1])); pr.append(q); });
+  foot.append(pr);
+  if (S.picker) renderPicker(inner);
+}
+
+// the action list for a chord
+function pickList() {
+  const q = S.find.trim().toLowerCase();
+  let list = ACTIONS;
+  if (q) list = ACTIONS.filter(a => (a.n + ' ' + (a.inner || '') + ' ' + a.d).toLowerCase().includes(q));
+  else if (S.pickW < WHEELS.length) list = ACTIONS.filter(a => a.w === WHEELS[S.pickW].id);
+  else list = [];
+  return list;
+}
+function openPicker(chord) {
+  const cur = A[S.assign[chord]];
+  S.picker = chord; S.find = '';
+  S.pickW = cur ? WHEELS.findIndex(w => w.id === cur.w) : 0;
+  const l = pickList(); S.pickI = Math.max(0, cur ? l.findIndex(a => a.id === cur.id) : 0);
+  render();
+}
+function choose(id) {
+  const chord = S.picker; S.picker = null;
+  if (id !== undefined) S.assign[chord] = id;
+  render();
+}
+function renderPicker(inner) {
+  const chord = S.picker;
+  const d = el('div', 'dlg'); d.style.cssText = 'left:250px;top:70px;width:500px;height:400px'; inner.append(d);
+  const tb = el('div', 'tb'); tb.append(el('i', 'close'), el('span', 't', 'Quick action')); d.append(tb);
+  const ask = el('div', 'ask'); ask.append(chordEls(chord, 1), el('span', '', 'does:')); d.append(ask);
+  const fd = el('div', 'findd'); fd.append(el('span', '', 'Find:'));
+  const inp = el('input'); inp.value = S.find; inp.oninput = () => { S.find = inp.value; S.pickI = 0; render(); const n = document.querySelector('.dlg input'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } };
+  fd.append(inp); d.append(fd);
+  const cols = el('div', 'cols'); d.append(cols);
+  const wl = el('div', 'wl');
+  [...WHEELS, { id:'none', name:'None' }].forEach((w, i) => {
+    const r = el('div', 'w' + (i === S.pickW && !S.find ? ' sel' : ''), w.name);
+    r.onclick = () => { if (w.id === 'none') { choose(null); return; } S.pickW = i; S.pickI = 0; S.find = ''; render(); };
+    wl.append(r);
+  });
+  cols.append(wl);
+  const al = el('div', 'al');
+  const list = pickList();
+  list.forEach((a, i) => {
+    const r = el('div', 'a' + (a.inner ? ' inner' : '') + (i === S.pickI ? ' foc' : ''));
+    r.append(icon(a.icon));
+    const tx = el('div', 'tx');
+    tx.append(el('span', 'n1', a.inner ? a.n + ' › ' + a.inner : a.n + (a.list ? ': best pick' : a.wheel ? ': opens its wheel' : '')));
+    tx.append(el('span', 'n2', a.d));
+    r.append(tx);
+    const has = whoHas(a.id);
+    if (has.length) { const o = el('span', 'on'); o.append(chordEls(has[0], 1)); r.append(o); }
+    r.onclick = () => choose(a.id);
+    r.onmouseenter = () => { if (S.pickI !== i) { S.pickI = i; render(); } };
+    al.append(r);
+  });
+  cols.append(al);
+  const foot = el('div', 'foot'); d.append(foot);
+  const b1 = el('span', 'btn', 'Cancel'); b1.style.right = '74px'; b1.onclick = () => choose(undefined);
+  const b2 = el('span', 'btn pri', 'Choose'); b2.style.right = '8px'; b2.onclick = () => { const a = list[S.pickI]; choose(a ? a.id : undefined); };
+  foot.append(b1, b2);
+  const pr = el('div', 'prompts'); pr.style.cssText = 'left:8px;top:8px;position:absolute';
+  [[['DU','DD'],'Move'],[['DL','DR'],'Wheel'],[['A'],'Choose'],[['B'],'Cancel']].forEach((it, i) => { if (i) pr.append(el('span', 'sep')); const q = el('span', 'p'); for (const r of it[0]) q.append(gl(r, 1)); q.append(el('span', '', it[1])); pr.append(q); });
+  foot.append(pr);
+}
+
+// ---------------------------------------------------------------------------
+// 3. the wheel
+// ---------------------------------------------------------------------------
+const WHEEL_SLICES = {
+  now: [ ['Sit', null, 'sitting-ground', true, 'sit'], ['Crouch', null, 'eye', false, 'crouch'], ['Auto-walk', null, 'fi-br-person-walking-arrow-right', false, 'autowalk'],
+         ['Game speed', null, 'clock', true, 'speed'], ['Zoom', null, 'eye', true, 'zoomin'], ['View', 'Interface and windows', 'eye', true, 'hideui'],
+         ['Help', null, 'info-guide', true, null], ['Flashlight', 'Turn on', 'lightbulb-on', false, 'light'] ],
+  character: [ ['Tabs', 'Character window', 'backpack', true, null], ['Weapons', null, 'knife', true, 'weapon'], ['Eat', null, 'apple-whole', true, 'eat'],
+         ['Drink', null, 'water-045-drink', true, 'drink'], ['Medicine and first aid', null, 'bandage-wound', true, 'med'], ['Sleep', null, 'bed', false, 'sleep'],
+         ['Clothing', null, 'fi-br-shirt-long-sleeve', true, null], ['Use', 'Smoke | Read | Watch | Radio', 'backpack', true, null] ],
+};
+function assignFromWheel(chord) {
+  const sl = WHEEL_SLICES[S.wheel][S.point];
+  const id = sl[4];
+  if (!id) { S.flash = { kind:'cant', chord }; render(); return; }
+  const was = A[S.assign[chord]];
+  S.assign[chord] = id;
+  S.flash = { kind:'set', chord, was: (was && was.id !== id) ? was : null };
+  render();
+}
+function renderWheel() {
+  const st = document.getElementById('wheel-stage'); applyTheme(st); st.innerHTML = '';
+  st.style.width = (1000 * S.zoom) + 'px'; st.style.height = (430 * S.zoom) + 'px';
+  const inner = el('div'); inner.style.cssText = 'position:absolute;left:0;top:0;width:1000px;height:430px;transform-origin:0 0;transform:scale(' + S.zoom + ')';
+  st.append(inner);
+  const cx = 500, cy = 225, R = 82;
+  const slices = WHEEL_SLICES[S.wheel];
+  slices.forEach((s, i) => {
+    const ang = (-90 + i * 360 / slices.length) * Math.PI / 180;
+    const x = cx + R * Math.cos(ang) - 13, y = cy + R * Math.sin(ang) - 13;
+    const c = el('div', 'cell' + (i === S.point ? ' pt' : '')); c.style.left = x + 'px'; c.style.top = y + 'px';
+    c.append(icon(s[2]));
+    if (s[3]) c.append(el('i', 'sub'));
+    c.onclick = () => { S.point = i; S.flash = null; render(); };
+    inner.append(c);
+  });
+  // the bubble over the ring
+  const s = slices[S.point];
+  const b = el('div', 'bubble');
+  const b1 = el('div', 'b1'); b1.append(el('span', '', s[0]));
+  const has = s[4] ? whoHas(s[4]) : [];
+  if (has.length && !(S.flash && S.flash.kind === 'set')) b1.append(chordEls(has[0], 1));
+  b.append(b1);
+  if (S.flash && S.flash.kind === 'set') {
+    const l = el('div', 'b3'); l.append(el('span', '', 'Now on'), chordEls(S.flash.chord, 1)); b.append(l);
+    if (S.flash.was) b.append(el('div', 'b2', 'It replaces ' + actionLabel(S.flash.was) + '.'));
+  } else if (S.flash && S.flash.kind === 'cant') {
+    const l = el('div', 'b2'); l.append(el('span', 'dot'), document.createTextNode('This slice only opens its wheel: point at one inside.')); b.append(l);
+  } else if (s[1]) b.append(el('div', 'b2', s[1]));
+  inner.append(b);
+  b.style.left = (cx - b.offsetWidth / 2) + 'px'; b.style.top = (cy - R - 13 - 10 - b.offsetHeight) + 'px';
+  // breadcrumb and prompts
+  const cr = el('div', 'crumb', (S.wheel === 'now' ? 'HERE AND NOW' : 'CHARACTER')); cr.style.left = cx + 'px'; cr.style.top = (cy + R + 30) + 'px'; inner.append(cr);
+  const pr = el('div', 'prompts');
+  const dirRole = S.wheel === 'now' ? 'DD' : 'DL';
+  const items = [[[dirRole],'Hold'],[['RS'],'Point'],[[dirRole],'Let go: take'],[['LB'],'or'],[['RB'],'+ a button: assign'],[['B'],'Close']];
+  items.forEach((it, i) => { if (i && i !== 4) pr.append(el('span', 'sep')); const q = el('span', 'p'); for (const r of it[0]) q.append(gl(r, 1)); q.append(el('span', '', it[1])); pr.append(q); });
+  inner.append(pr);
+  pr.style.left = (cx - pr.offsetWidth / 2) + 'px'; pr.style.top = (cy + R + 54) + 'px';
+  // the character, and what they say when a chord can't run
+  const man = el('div'); man.style.cssText = 'position:absolute;left:840px;top:250px;width:10px;height:30px;background:#2b2b2b;border:1px solid #111';
+  const hd = el('div'); hd.style.cssText = 'position:absolute;left:841px;top:238px;width:9px;height:9px;border-radius:50%;background:#c8a07a;border:1px solid #111';
+  const halo = el('div', 'halo', 'Nothing to drink on you.'); halo.style.left = '845px'; halo.style.top = '214px';
+  const hl = el('div', 'halo', ''); hl.style.cssText += ';left:845px;top:290px;font-weight:400;font-size:10px;color:#e8e4d8';
+  hl.append(chordEls('LB+B', 1)); const tx = el('span', '', ' with nothing to drink'); tx.style.marginLeft = '4px'; hl.append(tx);
+  inner.append(man, hd, halo, hl);
+}
+
+// ---------------------------------------------------------------------------
+function render() { renderControls(); renderSheet(); renderSetup(); renderWheel(); }
+document.addEventListener('keydown', (e) => {
+  if (e.target && e.target.tagName === 'INPUT' && !['ArrowUp','ArrowDown','Enter','Escape'].includes(e.key)) return;
+  const rows = ROWS();
+  if (S.picker) {
+    const list = pickList();
+    if (e.key === 'ArrowDown') { S.pickI = Math.min(list.length - 1, S.pickI + 1); }
+    else if (e.key === 'ArrowUp') { S.pickI = Math.max(0, S.pickI - 1); }
+    else if (e.key === 'ArrowRight') { S.pickW = Math.min(WHEELS.length - 1, S.pickW + 1); S.pickI = 0; S.find = ''; }
+    else if (e.key === 'ArrowLeft') { S.pickW = Math.max(0, S.pickW - 1); S.pickI = 0; S.find = ''; }
+    else if (e.key === 'Enter') { const a = list[S.pickI]; choose(a ? a.id : undefined); e.preventDefault(); return; }
+    else if (e.key === 'Escape') { choose(undefined); return; }
+    else return;
+    e.preventDefault(); render(); return;
+  }
+  if (e.key === 'ArrowDown') S.focus = Math.min(rows.length - 1, S.focus + 1);
+  else if (e.key === 'ArrowUp') S.focus = Math.max(0, S.focus - 1);
+  else if (e.key === 'Enter') { const r = rows[S.focus]; if (r.kind === 'chord') { openPicker(r.chord); return; } S.putBack = !S.putBack; }
+  else if (e.key === 'x' || e.key === 'X') { const r = rows[S.focus]; if (r.kind === 'chord') S.assign[r.chord] = null; }
+  else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && rows[S.focus].kind === 'putback') S.putBack = e.key === 'ArrowRight';
+  else return;
+  e.preventDefault(); render();
+});
+render();
+</script>
+</body>
+</html>
