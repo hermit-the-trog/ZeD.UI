@@ -87,7 +87,9 @@ end)
 at(60, function()
     local m = mp()
     say("map bound to the world map item: " .. tostring(m and m._zedNotesBound))
-    m.mapAPI:centerOn(p:getX(), p:getY()); m:_zoomTo(18)
+    -- (centred 60 tiles off the character: the deep-run fixture's own marks lie
+    -- within 45 tiles, and Delete at the cursor took one of them on Oct 23)
+    m.mapAPI:centerOn(p:getX() - 60, p:getY() - 60); m:_zoomTo(18)
     c0 = N.count()
     local all
     v0, all = vanillaCount()
@@ -155,6 +157,20 @@ end)
 at(130, function()
     local hit = ZeD.MapsTab.gpFindAnnotAtCursor(ww())
     say("cursor finds the note: " .. tostring(hit ~= nil and N.textOf(hit.sym) == TEXT))
+    -- (what it found instead, and where the note sits against the cursor)
+    do
+        local m = mp()
+        local function where(s)
+            if not s then return "nil" end
+            local wx, wy = s:getWorldX(), s:getWorldY()
+            return string.format("%s at world %.1f,%.1f ui %d,%d", s:isText() and ("note '" .. tostring(N.textOf(s)) .. "'") or ("mark " .. tostring(s:getSymbolID())),
+                wx, wy, math.floor(m.mapAPI:worldToUIX(wx, wy)), math.floor(m.mapAPI:worldToUIY(wx, wy)))
+        end
+        local api = N.panelAPI(m)
+        local idx = api and api:hitTest(m._gpCursorX, m._gpCursorY)
+        say(string.format("cursor ui %d,%d | engine hit %s | found %s | the note %s", m._gpCursorX, m._gpCursorY,
+            (idx and idx >= 0) and where(api:getSymbolByIndex(idx)) or "none", where(hit and hit.sym), where(N.findByText(TEXT))))
+    end
     ZeD.MapsTab.gpContextMenuAtCursor(ww())
     local ctx = getPlayerContextMenu(0)
     local del = ctx and ctx:getOptionFromName(getText("ContextMenu_Delete"))

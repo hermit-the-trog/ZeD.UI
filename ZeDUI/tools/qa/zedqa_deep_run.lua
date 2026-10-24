@@ -46,9 +46,15 @@ local missing = {}
 local function miss(what) missing[#missing + 1] = what; say("MISS " .. what) end
 -- DONE a tick later: the runner counts a DONE only after the bridge's own
 -- "run #" line, which comes once this chunk has returned (Oct 23: a DONE
--- printed here and now read as a 180 s timeout)
+-- printed here and now read as a 180 s timeout); and only once the parts that
+-- finish on a later tick (the map marks) are done, so the next script starts
+-- on the whole scene
+local pending = 0
 local function done()
-    local function later() Events.OnTick.Remove(later); say("DONE") end
+    local function later()
+        if pending > 0 then return end
+        Events.OnTick.Remove(later); say("DONE")
+    end
     Events.OnTick.Add(later)
 end
 
@@ -69,12 +75,13 @@ pcall(function() p:setInvincible(true) end)
 local nz = clearZombies()
 
 -- the scene's home: where the character stood the first time (the QA save's
--- open field). Each run puts them back there when they are near it (never a
--- long teleport: a far square may not have loaded), so the 3 x 3 stays at hand.
+-- open field). Each run puts them back there, so the 3 x 3 stays at hand; from
+-- far off (Oct 23: the full regression left them 140 tiles away) the parts
+-- wait below until home's squares have loaded.
 local home = md.ZeDDeepRun.home or { x = math.floor(p:getX()), y = math.floor(p:getY()) }
 md.ZeDDeepRun.home = home
 local dHome = math.max(math.abs(p:getX() - (home.x + 0.5)), math.abs(p:getY() - (home.y + 0.5)))
-if dHome > 0.6 and dHome < 60 then pcall(function() p:teleportTo(home.x + 0.5, home.y + 0.5, 0) end) end
+if dHome > 0.6 then pcall(function() p:teleportTo(home.x + 0.5, home.y + 0.5, 0) end) end
 local px, py = home.x, home.y
 local function at(dx, dy) return getCell():getGridSquare(px + dx, py + dy, 0) end
 
@@ -480,27 +487,44 @@ part("hutch2", function()
     return false, "no hutch fits within 6 squares"
 end)
 part("notes", function()
-    -- the map's store needs the World window's map once: opened here, the notes go in a moment later
+    -- the map's store needs the World window's map once: opened here, the
+    -- marks go in a moment later. Every run puts back any that went missing
+    -- (Oct 23: the map notes test's Delete at the map's centre took one)
     pcall(function() ZeD_WorldWindow.openTab(pn, "maps") end)
     local n = 0
     local function later()
         n = n + 1
         if n < 90 then return end
         Events.OnTick.Remove(later)
+        local ok, err = pcall(function()
         local N = ZeD.MapNotes
+        local api = N.api()
+        local function hasSym(id, wx, wy)
+            for i = 0, (api and api:getSymbolCount() or 0) - 1 do
+                local s = api:getSymbolByIndex(i)
+                if s:isUserDefined() and s:isTexture() and s:getSymbolID() == id
+                   and math.abs(s:getWorldX() - wx) < 0.5 and math.abs(s:getWorldY() - wy) < 0.5 then return true end
+            end
+            return false
+        end
         local made = 0
         for i, t in ipairs({ { "house on the corner: cleared", 12, -8 }, { "gas station: empty", -30, 20 }, { "zeds on the bridge", 45, 40 },
             { "water tower, fill bottles", -18, -25 }, { "car with keys??", 25, -15 } }) do
-            if pcall(function() N.addNote(t[1], px + t[2], py + t[3], (i % 4) + 1) end) then made = made + 1 end
+            if not N.findByText(t[1]) and pcall(function() N.addNote(t[1], px + t[2], py + t[3], (i % 4) + 1) end) then made = made + 1 end
         end
-        pcall(function() N.addSymbol("Star", px + 5, py + 5, 1) end)
-        pcall(function() N.addSymbol("Skull", px + 40, py + 38, 2) end)
-        say("made notes: " .. made .. " map notes and 2 marks")
+        for _, s in ipairs({ { "Star", 5, 5, 1 }, { "Skull", 40, 38, 2 } }) do
+            if not hasSym(s[1], px + s[2], py + s[3]) and pcall(function() N.addSymbol(s[1], px + s[2], py + s[3], s[4]) end) then made = made + 1 end
+        end
+        say("notes: " .. made .. " put in (of 5 notes and 2 marks)")
+        end)
+        if not ok then say("MISS notes: " .. tostring(err)) end
         pcall(function() ZeD_WorldWindow.openTab(pn, "loot") end)
+        pending = pending - 1   -- (whatever happened: DONE waits on this)
     end
+    pending = pending + 1
     Events.OnTick.Add(later)
     return true, "map notes (in a moment)"
-end)
+end, true)
 
 -- ---------------------------------------------------------------- worn, and the long inventory where it fits
 local function wornBags()
@@ -648,6 +672,29 @@ part("hands", function()
     local a, b = p:getPrimaryHandItem(), p:getSecondaryHandItem()
     return a ~= nil and b ~= nil, tostring(a and a:getName()) .. " and " .. tostring(b and b:getName()) .. " in hand"
 end, true)
+part("quiet", function()
+    -- every watch the character has, alarm off (director, Oct 23: a very high
+    -- chirp during test runs; vanilla gives a spawned digital watch an alarm at
+    -- a random hour, and the tests run the clock fast)
+    local n = 0
+    local function off(it)
+        if it and (instanceof(it, "AlarmClock") or instanceof(it, "AlarmClockClothing")) then
+            pcall(function() it:stopRinging() end)
+            pcall(function() it:setAlarmSet(false) end)
+            n = n + 1
+        end
+    end
+    local function walk(inv)
+        local items = inv:getItems()
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            off(it)
+            if it:IsInventoryContainer() then walk(it:getInventory()) end
+        end
+    end
+    walk(p:getInventory())
+    return true, n .. " watch alarm(s) off"
+end, true)
 part("weight", function()
     -- under the carry limit, no Heavy Load: the heaviest loose things leave the
     -- main inventory for the crate (or the ground) until it is
@@ -705,24 +752,41 @@ part("health", function()
 end, true)
 
 -- ---------------------------------------------------------------- run
-say("start: save " .. tostring(getWorld():getWorld()) .. " at " .. math.floor(p:getX()) .. "," .. math.floor(p:getY()) .. ", home " .. px .. "," .. py)
-local made, skipped = 0, 0
-for _, pt in ipairs(parts) do
-    if DONE[pt.name] and not pt.always then
-        skipped = skipped + 1
-    else
-        local ok, good, what = pcall(pt.fn)
-        -- a part that ran is never run again (what it made stays; a second
-        -- run must change nothing), whether or not all of it took
-        if ok then DONE[pt.name] = true end
-        if ok and good then
-            made = made + 1
-            say("made " .. pt.name .. ": " .. tostring(what))
+local function runParts()
+    say("start: save " .. tostring(getWorld():getWorld()) .. " at " .. math.floor(p:getX()) .. "," .. math.floor(p:getY()) .. ", home " .. px .. "," .. py)
+    local made, skipped = 0, 0
+    for _, pt in ipairs(parts) do
+        if DONE[pt.name] and not pt.always then
+            skipped = skipped + 1
         else
-            miss(pt.name .. ": " .. tostring(ok and what or good))
+            local ok, good, what = pcall(pt.fn)
+            -- a part that ran is never run again (what it made stays; a second
+            -- run must change nothing), whether or not all of it took
+            if ok then DONE[pt.name] = true end
+            if ok and good then
+                made = made + 1
+                say("made " .. pt.name .. ": " .. tostring(what))
+            else
+                miss(pt.name .. ": " .. tostring(ok and what or good))
+            end
         end
     end
+    say(string.format("%d zombies removed; %d parts made or set now, %d already there, %d missing; dead %s, health %d",
+        nz, made, skipped, #missing, tostring(p:isDead()), math.floor(p:getBodyDamage():getOverallBodyHealth())))
+    done()
 end
-say(string.format("%d zombies removed; %d parts made or set now, %d already there, %d missing; dead %s, health %d",
-    nz, made, skipped, #missing, tostring(p:isDead()), math.floor(p:getBodyDamage():getOverallBodyHealth())))
-done()
+if at(0, 0) and at(-12, -12) and at(12, 12) then
+    runParts()
+else
+    -- home's squares still loading after a long move: wait for them (15 s at most)
+    say("back home from " .. math.floor(dHome) .. " tiles off: waiting for the squares to load")
+    local waited = 0
+    local function wait()
+        waited = waited + 1
+        local ready = at(0, 0) and at(-12, -12) and at(12, 12)
+        if not ready and waited < 900 then return end
+        Events.OnTick.Remove(wait)
+        if ready then runParts() else miss("home's squares never loaded"); done() end
+    end
+    Events.OnTick.Add(wait)
+end
