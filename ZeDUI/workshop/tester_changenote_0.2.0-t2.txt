@@ -1,0 +1,23 @@
+0.2.0-t2: changes since 0.2.0-t1.
+
+Controller
+- After an action, focus goes back to where you were.
+- The D-pad reaches containers in the direction they sit on the screen.
+- A on an item opens its card with focus on its main action (Take, for an item in a container). Press A again to do it. B goes back to the list.
+- Hold A on an item in a container to move it to your inventory, as a double-click does. On an item you carry, hold A does its basic action (eat, wear, equip).
+- An object card (generator, padlock, trough and the rest) opens with focus on its main action.
+- The belt no longer holds on to the controller. B, or a direction with nothing further that way, leaves it.
+- The bottoms of the Health and Skills tabs can be reached.
+- Fixes to where the D-pad goes at the Large text size.
+
+Moodles
+- Right edge and Left edge: the column is centered on the middle of the screen. It stays under the watch and above the belt.
+
+Character
+- Looks: "Presets" in place of "Outfits", the game's own word for saved looks.
+
+Workshop window
+- The upload folder and the preview are checked again while the window is open, so a folder made after you opened it is found.
+
+First start
+- After you turn on ZeD-GUI in Mods, quit the game and start it again. ZeD-GUI loads its fonts when the game starts.

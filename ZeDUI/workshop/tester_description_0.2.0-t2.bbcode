@@ -1,0 +1,87 @@
+[h1]ZeD-GUI [B42] | tester build 0.2.0-t2[/h1]
+[b]This is a test build.[/b] It is unlisted. Report problems in the pinned [b]Bug reports[/b] discussion, one post per problem.
+
+ZeD-GUI replaces the inventory, the character and loot windows, the HUD and the menus for Build 42. The style is based on a 1993 Mac. It works with a controller and with a mouse and keyboard.
+
+[h2]Before you subscribe[/h2]
+[list]
+[*][b]Build 42 only.[/b] Tested on 42.21. It does not run on Build 41.
+[*][b]Use a new game or a copy of a save.[/b] This is a test build.
+[*][b]Tested in single player.[/b] It has not been tested in multiplayer. If you try it on a server, report what happened.
+[*][b]It replaces the game's inventory and character windows.[/b] Buttons that other mods add to those windows do not show while ZeD-GUI is on. Mods that use the game's own systems (context menu options, container buttons, items, recipes) work.
+[*][b]It adds one item:[/b] a steel digital watch in the loot. If you remove ZeD-GUI from a save, those watches are removed too. Everything else is interface and can be added or removed at any time.
+[*][b]Text is in English.[/b] Where the game already has a word or phrase, ZeD-GUI uses the game's translation. ZeD-GUI's own text is in one file for translators.
+[/list]
+
+[h2]Windows[/h2]
+[b]Character window.[/b] Tabs for loot, equipment, health, temperature, ID, journal, skills and the radio you carry.
+
+[b]World window.[/b] Tabs for loot, crafting (at a bench or station near you), building, furniture, maps, foraging, animals, radios nearby and the vehicle you are next to.
+
+Open containers show as columns side by side. Either window's side panel can be rolled up into its title bar.
+
+[b]Cards.[/b] Click an item, a generator, a campfire, a farm plot, a trough, a padlock or a liquid to open its card. The card lists what it is, the actions you can take and the reason an action is not available.
+
+[h2]HUD[/h2]
+[list]
+[*][b]Belt:[/b] your hands, and the attachment slots of the gear you wear, on a strap drawn in the gear's material.
+[*][b]Watch:[/b] a worn watch shows on the belt. Click it for the full watch: time, date, temperature, alarm and stopwatch.
+[*][b]Dashboard:[/b] shows when you drive. The radio in the dashboard opens up close.
+[*][b]Moodles:[/b] placed right, left or above the belt.
+[*][b]Action bar:[/b] shows the current action and the queue in words, or as ten segments.
+[/list]
+
+[h2]Maps[/h2]
+Three styles: survey, color and a paper road map. Flyers you have read are pinned on the map. Notes use the game's map notes, so they also show on the game's map.
+
+[h2]Menus[/h2]
+The main menu is a desk with a monitor. Load, new game, mods, options, sandbox, character creation and server settings open as windows on the monitor. They use the game's own menu functions.
+
+[b]Mods.[/b] The list shows a mod that is missing a mod it needs or was made for another game version, and conflicts between mods (two mods with the same file, item or recipe): which copy the game uses, and why. Profiles save a mod list with its load order. The load order marks a mod that loads before a mod it needs.
+
+[b]Workshop.[/b] Upload your own mods from one window. Who can see it, the tags, the preview picture and the folder are checked before you upload. The description editor builds a description from blocks and shows it the way Steam will, counted against Steam's 8,000 characters.
+
+[h2]Controller[/h2]
+The controller scheme was designed by a player who plays on a controller.
+[list]
+[*]The D-pad moves between controls. A is left click, B is right click. X and Y open menus.
+[*]Aiming with the right stick hides both windows at once and returns control to the game. Press Y to show them again.
+[*]Camera zoom is a bumper chord: hold one bumper and tap the other. Hold LB and tap RB to zoom out. Hold RB and tap LB to zoom in. Each tap is one step.
+[*]Map: RT zooms in, LT zooms out. The left stick moves the cursor, and pushing it to an edge pans the map.
+[*]If your Steam Input layout binds the bumpers to zoom, remove those bindings. ZeD-GUI handles the zoom itself.
+[/list]
+
+[h2]Options[/h2]
+ZeD setup is the first page: dark, light or high contrast theme, nine accent colors, two text sizes, and a UI scale setting. Auto picks the scale from the screen height. The game's own pages follow, and mark the settings ZeD-GUI replaces.
+
+[h2]Getting started[/h2]
+[olist]
+[*]Subscribe.
+[*]Main menu, Mods: turn on [b]ZeD-GUI[/b]. Put it after other interface mods in the load order.
+[*]Quit the game and start it again. ZeD-GUI loads its fonts when the game starts.
+[*]Start a new game, or load a copy of a save.
+[*]Options, ZeD setup: set the theme, accent, text size, scale, moodle position and action bar.
+[*]The inventory key opens the Character window. The loot key opens the World window. Controller buttons are the same as in the game.
+[/olist]
+
+[h2]Reporting a problem[/h2]
+Post in the pinned [b]Bug reports[/b] discussion. Include:
+[list]
+[*]The version: 0.2.0-t2. It is shown in Mods, and in the desk's ZeD menu under About.
+[*]Your game version and your mod list.
+[*]What you did, what you expected, and what happened. Add a screenshot if you can.
+[*]Your console.txt: [i]C:\Users\(you)\Zomboid\console.txt[/i] on Windows, [i]~/Zomboid/console.txt[/i] on Linux and macOS. The game replaces this file each time it starts, so copy it before you restart. Upload it to a paste site and post the link.
+[/list]
+[b]Safe mode:[/b] if ZeD-GUI stops you from playing, turn on Options, ZeD setup, Safe mode. The game's own screens return. Mention it in your report.
+Play without the [i]-debug[/i] launch option unless asked. With it, the game stops on every Lua error, including errors from other mods.
+
+[h2]Server admins[/h2]
+Mod ID: ZeD_UI
+Every player needs it, because it adds an item.
+
+[h2]Credits[/h2]
+Made by Hermit. ZeD-GUI has been in development since Build 41 went stable. Every system, design and piece of logic was built to Hermit's vision. AI was used as a tool: Claude made it possible for one person to build a project that used to be out of scope for a solo modder. AI is the tool. Hermit is the maker.
+
+Fonts: Fira Sans and Fira Mono (SIL Open Font License). Icons: sources and licenses are listed in the credits file.
+
+Project Zomboid is made by The Indie Stone. ZeD-GUI is a fan-made mod built on the game's own systems, and is not affiliated with The Indie Stone or Apple.
