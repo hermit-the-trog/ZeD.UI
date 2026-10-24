@@ -1,4 +1,4 @@
-"""Builds ZeDUI/mockups/zed_dpad_wheels_v1.html (Oct 24 2026).
+"""Builds ZeDUI/mockups/zed_dpad_wheels_v2.html (v1 Oct 24, v2 Oct 23 2026: right stick points, Light on Down, Vehicle a World slice).
 
 The director: radial menus for the gamepad, one per D-pad direction, replacing the
 game's D-pad wheels. Left = Character, Right = World, Up = Social, Down = quick
@@ -18,7 +18,7 @@ from PIL import Image
 
 ROOT = os.path.expanduser("~/mnt/ZeD-UI")
 V1 = os.path.join(ROOT, "ZeDUI/mockups/zed_wheels_v1.html")
-OUT = os.path.join(ROOT, "ZeDUI/mockups/zed_dpad_wheels_v1.html")
+OUT = os.path.join(ROOT, "ZeDUI/mockups/zed_dpad_wheels_v2.html")
 ICONS = os.path.join(ROOT, "42/media/textures/ZeD/icons")
 TABS = os.path.join(ROOT, "42/media/textures/ZeD/TabIcons")
 
@@ -80,7 +80,7 @@ HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZeD-UI — D-pad wheels v1</title>
+<title>ZeD-UI — D-pad wheels v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -178,9 +178,9 @@ table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; c
 </style>
 </head>
 <body>
-<div class="banner">ZeD-UI · in game · the controller's D-pad wheels · mockup v1</div>
+<div class="banner">ZeD-UI · in game · the controller's D-pad wheels · mockup v2</div>
 <h1>D-pad wheels</h1>
-<p class="lede">Four wheels, one per D-pad direction, in place of the game's D-pad wheels. <b style="color:#efe6c4">Left</b> is you (the Character window's things), <b style="color:#efe6c4">Right</b> is the world around you (the World window's things), <b style="color:#efe6c4">Up</b> is social, <b style="color:#efe6c4">Down</b> is here and now. They open the way the game's do: hold the direction, point with the left stick, let go to take. A slice that opens more (the corner triangle) swaps the ring in place, with Back as its last slice, as the game's emote wheel does. Every slice keeps its place; one that can't be done right now is stippled and the bubble says why. Point with the mouse to try it; click to take or to open. The arrow keys switch wheels; Escape backs out.</p>
+<p class="lede">Four wheels, one per D-pad direction, in place of the game's D-pad wheels. <b style="color:#efe6c4">Left</b> is you (the Character window's things), <b style="color:#efe6c4">Right</b> is the world around you (the World window's things), <b style="color:#efe6c4">Up</b> is social, <b style="color:#efe6c4">Down</b> is here and now. Hold the direction with your left thumb, point with the right stick, let go of the D-pad to take. (The D-pad and the left stick both sit under the left thumb on PlayStation and Xbox pads, so the right stick points.) A slice that opens more (the corner triangle) swaps the ring in place, with Back as its last slice, as the game's emote wheel does. Every slice keeps its place; one that can't be done right now is stippled and the bubble says why. Point with the mouse to try it; click to take or to open. The arrow keys switch wheels; Escape backs out.</p>
 
 <div class="controls">
   <div class="ctl"><span>Wheel (arrow keys)</span><div class="seg" id="ctlWheel"></div></div>
@@ -204,31 +204,22 @@ table.parity th { font-family:var(--mono); font-size:10px; letter-spacing:1px; c
       <li><span class="rec">RECOMMEND</span><b>Places never move.</b> The game's wheels add a slice only when it applies, so Drink sits somewhere else every time. Here every slice keeps its place and reads as off when there's nothing to do ("Nothing to drink on you."). Muscle memory beats a shorter wheel.</li>
       <li><span class="rec">RECOMMEND</span><b>Things you carry are picked in the second wheel,</b> one slice per kind, the best first, "x4" when there are more, as the quick-use wheel does today (food spoiling soonest first, water before drinks with a downside). The pick runs the game's own action, with its rules.</li>
       <li><span class="rec">RECOMMEND</span><b>Letting go on a slice with a triangle opens its wheel and keeps it open</b> until you pick, or B backs out one level. Letting go anywhere else takes the slice. One rule for all four.</li>
-      <li><span class="alt">YOUR CALL</span><b>In a car.</b> The game puts the vehicle wheel on Up, which is now Social. Shown here: <b>Vehicle</b> is a slice on the World wheel, live in and next to a car. The other way: while you sit in a car, Right opens the vehicle wheel itself (seat, engine, lights, horn, radio), and the World wheel comes back when you get out.</li>
-      <li><span class="alt">YOUR CALL</span><b>Down has one open place.</b> Down gathers what has no home today: the stick-click wheel (crouch, sit, auto-walk) can't be reached because ZeD never binds the stick clicks; the Back button's game speed and zoom; the help. Seven slices are solid. Candidates for the eighth, below.</li>
+      <li><span class="rec">SETTLED</span><b>Point with the right stick.</b> The left thumb holds the D-pad, so the right thumb points (director, Oct 23). While a wheel is open the right stick doesn't aim and doesn't hide the windows; aiming comes back once the stick is centred.</li>
+      <li><span class="rec">SETTLED</span><b>In a car, Vehicle is a World slice</b> (director, Oct 23), live in and next to a car. The game put the vehicle wheel on Up, which is now Social.</li>
+      <li><span class="rec">SETTLED</span><b>Down's eighth slice is Light</b> (director, Oct 23): the brightest light you carry, on or off, without opening a wheel inside. The game had it on D-pad Left; it leaves Weapons. Down gathers what has no home today: the stick-click wheel (crouch, sit, auto-walk) can't be reached because ZeD never binds the stick clicks, the Back button's game speed and zoom, and the help.</li>
       <li><b>When the wheels open.</b> Only when no window has focus, as the game does. With a window focused, the D-pad keeps moving focus (GAMEPAD_SPEC); nothing changes there. The Back button's wheel stays as it is.</li>
     </ol>
-  </div>
-  <div>
-    <h2>Down: what could fill the open place</h2>
-    <ul>
-      <li><b>Light</b>: the light you carry on or off without opening Weapons (the game had it on D-pad Left). Fast in the dark.</li>
-      <li><b>Walk or run</b>: a toggle for players who don't want to hold the stick all the way.</li>
-      <li><b>Look around</b>: a short free look with the left stick while standing still, the way a mouse player glances.</li>
-      <li><b>Last stand</b>: only in that mode; elsewhere the place stays off.</li>
-      <li><b>Quiet</b>: music off or on, for streams and late nights.</li>
-    </ul>
   </div>
   <div>
     <h2>Every slice the game's D-pad wheels have, and where it goes</h2>
     <table class="parity">
       <tr><th style="width:22%">The game's wheel</th><th style="width:38%">Slices</th><th>In ZeD</th></tr>
-      <tr><td><b>D-pad Left</b></td><td>Each weapon you carry; the best light (toggle)</td><td>Left, Weapons (the light is its last slice)</td></tr>
+      <tr><td><b>D-pad Left</b></td><td>Each weapon you carry; the best light (toggle)</td><td>Left, Weapons; the light on Down, Light</td></tr>
       <tr><td><b>D-pad Up</b></td><td>The vehicle wheel in or next to a car; else the animal wheel next to a tame animal</td><td>Right, Vehicle and Animal (live only when they apply)</td></tr>
       <tr><td><b>D-pad Down</b></td><td>Emotes: Friendly, Hostile, Group, Signal, Shout</td><td>Up, Social, the same groups and gestures</td></tr>
       <tr><td><b>D-pad Right</b></td><td>World map; mini-map show and focus; designated zones; rooms editor; survival guide</td><td>Right, Map and Zones; the survival guide on Down, Help</td></tr>
       <tr><td><b>ZeD's quick use</b> (on D-pad Right today)</td><td>Eat, Drink, Smoke, Take pills, Read, Treat wounds</td><td>Left, each its own slice (or in Use)</td></tr>
-      <tr><td><b>Stick-click wheel</b></td><td>Crouch, Sit, Auto-walk (unreachable: ZeD never binds the stick clicks)</td><td>Down: Crouch, Sit, Auto-walk</td></tr>
+      <tr><td><b>Stick-click wheel</b></td><td>Crouch, Sit, Auto-walk (unreachable: ZeD never binds the stick clicks)</td><td>Down: Sit, Crouch, Auto-walk</td></tr>
       <tr><td><b>Back button wheel</b></td><td>Player info, crafting, building, zoom, game speed, move furniture, search mode, investigate</td><td>Stays. Its game speed and zoom are also on Down; crafting, building, furniture, search on Right.</td></tr>
     </table>
   </div>
@@ -274,8 +265,7 @@ const WEAPONS = { title:"Weapons", slices:[
   { t:"Baseball Bat x3", s:"The best of three", z:"hammer", do:"Equips the Baseball Bat in the best condition." },
   { t:"M9 Pistol", s:"Belt, slot 2 · 15 rounds", z:"gun", do:"Equips the M9 Pistol." },
   { t:"JS-2000 Shotgun", s:"On your back · empty", z:"gun", do:"Equips the JS-2000 Shotgun." },
-  { t:"Flashlight", s:"Turn on", z:"lightbulb-on", do:"Turns the flashlight on." },
-  { t:"Hands free", s:"Put weapons away", z:"hand", do:"Unequips both hands." } ] };
+  { t:"Hands free", s:"Put weapons away", z:"backpack", do:"Unequips both hands." } ] };
 const EAT = { title:"Eat", slices:[
   { t:"Apple x4", s:"Fresh · eat first", z:"apple", do:"Eats an apple (the one spoiling soonest)." },
   { t:"Bread", s:"Fresh", z:"bread", do:"Eats the bread." },
@@ -433,7 +423,7 @@ const WHEELS = {
           { t:"Game speed", z:"clock", v:"pause", sub:SPEED, need:"!mp", why:"On a server the server sets the time." },
           { t:"Zoom", z:"magnifying-glass-eye", v:"zoomin", sub:ZOOM },
           { t:"View", s:"Interface and windows", z:"eye", sub:VIEW }, { t:"Help", z:"info-guide", sub:HELP },
-          { t:"Open place", s:"Your call", z:"question", open:true, off:true, why:"Open place: what goes here? Candidates are below the picture." } ] },
+          { t:"Light", s:"Flashlight: turn on", z:"lightbulb-on", do:"Turns the flashlight on (the brightest light you carry)." } ] },
 };
 const ORDER = ["char", "world", "social", "now"];
 const DIRGLYPH = { left:"◀", right:"▶", up:"▲", down:"▼" };
@@ -499,7 +489,7 @@ function render() {
   h += `<div class="crumb" style="left:${CX}px;top:${CY + r + CELL / 2 + 12}px">${crumbs.join("  ›  ").toUpperCase()}</div>`;
   h += padSVG(WHEELS[S.wheel].dir);
   const deep = S.path.length > 0;
-  h += `<div class="prompts" style="left:${CX}px;top:${CY + r + CELL / 2 + 36}px"><span><span class="g">${DIRGLYPH[WHEELS[S.wheel].dir]}</span>hold</span><span><span class="g">LS</span>point</span><span><span class="g">${deep ? "A" : "↑"}</span>${deep ? "take" : "let go: take"}</span><span><span class="g">B</span>${deep ? "back" : "close"}</span></div>`;
+  h += `<div class="prompts" style="left:${CX}px;top:${CY + r + CELL / 2 + 36}px">${deep ? "" : `<span><span class="g">${DIRGLYPH[WHEELS[S.wheel].dir]}</span>hold</span>`}<span><span class="g">RS</span>point</span><span><span class="g">${deep ? "A" : "↑"}</span>${deep ? "take" : "let go of " + DIRGLYPH[WHEELS[S.wheel].dir] + ": take"}</span><span><span class="g">B</span>${deep ? "back" : "close"}</span></div>`;
   if (S.toast && Date.now() - S.toastT < 2600) h += `<div class="toast">${S.toast}</div>`;
   st.innerHTML = h;
   const b = $("bub");
@@ -514,7 +504,7 @@ function caption() {
     char: "Left: you. Everything the Character window holds, one flick from the world. Eat, Drink and the rest fill a second wheel with what you carry, the best first.",
     world: "Right: the world around you. The World window's tabs, the map, and what's in reach: a vehicle, a tame animal, a station, the lights.",
     social: "Up: social. The game's emote groups and gestures, Shout, and on a server the chat, safety and the player list.",
-    now: "Down: here and now. Stance and movement (sit, crouch, auto-walk), time and view, help. One place is open.",
+    now: "Down: here and now. Stance and movement (sit, crouch, auto-walk), time and view, help, and the light you carry.",
   };
   $("caption").innerHTML = `<b>${DIRGLYPH[w.dir]} ${w.label}</b> · ${SCENES[S.scene].label} · ${wheel.slices.length} slices, ${live_n} live. ${S.path.length ? "Inside " + wheel.title + ": Back is the last slice, as the game's emote wheel puts it." : notes[S.wheel]}`;
 }
