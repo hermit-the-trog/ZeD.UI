@@ -295,6 +295,8 @@ function W.draw(menu)
             state = { labelText = ls[1] or "", bodyText = table.concat(ls, " ", 2) }
         end
         if menu._zedTitle then state.parentChain = { menu._zedTitle } end
+        if p._zedChord then state.labelPads = p._zedChord end   -- (its quick action chord: ZeD_DpadWheels / ZeD_QuickChords)
+        if p._zedNote then state.bodyText, state.stateText, state.stateKind = p._zedNote, nil, nil end   -- (what assigning it did)
     elseif menu._zedTitle then
         state = { labelText = menu._zedTitle }
     end

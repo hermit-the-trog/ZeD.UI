@@ -163,6 +163,9 @@ G.ZED_GROUPS = {
     { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "seg" }, { "equipView", "seg" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" } } },
     { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "seg", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "seg" }, { "actionBar", "seg" } } },
     { "UI_ZeD_Options_ZedControls", { { "contextStyle", "seg" }, { "glyphDisplay" }, { "inputModeLock" } } },
+    -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
+    { "UI_ZeD_Options_ZedChords", {}, chords = true },
+    { "UI_ZeD_Options_ZedPutBack", { { "putBack", "onoff" } } },
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", danger = true, under = "UI_ZeD_Options_UnderSafeMode" },
                                      { "testLanguage", "onoff" } } },
 }
@@ -276,6 +279,10 @@ function G.build(pages, rowsOf)
     local placed = {}
     for _, grp in ipairs(G.ZED_GROUPS) do
         local list = {}
+        if grp.chords then
+            -- the quick action chords: a row each (ZeD_MainMenuOptions draws a "chord" row)
+            for _, c in ipairs(ZeD.QuickChords and ZeD.QuickChords.CHORDS or {}) do list[#list + 1] = { kind = "chord", chord = c, label = "" } end
+        end
         for _, e in ipairs(grp[2]) do
             local c = zrow[e[1]]
             if c and not placed[e[1]] then

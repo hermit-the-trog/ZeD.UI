@@ -1626,7 +1626,9 @@ local function _onTick()
     -- (B) Global Y rising-edge (only when no ZeD window is focused).
     if not _focusedWindow then
         local yNow = JoypadButton.Y:isDown(jid)
-        if yNow and (not _prevYPressedUnfocused) and (not _yHeld) then
+        -- (Oct 24 2026: with a bumper held, Y is a quick action chord, ZeD_QuickChords.lua, never the windows)
+        local bumper = JoypadButton.LeftBump:isDown(jid) or JoypadButton.RightBump:isDown(jid)
+        if yNow and (not _prevYPressedUnfocused) and (not _yHeld) and not bumper then
             _yHeld      = true
             _yStartMs   = getTimestampMs()
             _yConsumed  = false

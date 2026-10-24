@@ -3836,8 +3836,23 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
     local bodyH  = tm:getFontHeight(bodyFont)
     local stateH = tm:getFontHeight(stateFont)
 
+    -- (state.labelPads, the wheels: a quick action chord's two buttons after
+    -- the name, as ZeD's pictures, ZeD_PadGlyphs; as words "LB + X" when the
+    -- glyph setting draws no pictures)
+    local pads = state.labelPads
+    local PG = ZeD.PadGlyphs
+    local padSet = pads and PG and PG.set()
+    local padK = padSet and PG.k(tm:getFontHeight(labelFont)) or 1
+    local plusW = tm:MeasureStringX(labelFont, "+")
+    local padW = 0
+    if pads and padSet then
+        padW = T.px(8) + PG.width({ pads[1] }, padK, padSet) + T.px(3) + plusW + T.px(3) + PG.width({ pads[2] }, padK, padSet)
+    elseif pads then
+        segments[#segments + 1] = { text = "  " .. pads[1] .. " + " .. pads[2], color = muted }
+    end
+
     -- Total label width across all segments
-    local labelW = 0
+    local labelW = padW
     for _, seg in ipairs(segments) do
         labelW = labelW + tm:MeasureStringX(labelFont, seg.text)
     end
@@ -3914,6 +3929,13 @@ function ZeD.Molecules.drawContextBalloon(panel, centerX, apexY, state, T)
         panel:drawText(seg.text, cursorX, y,
             seg.color.r, seg.color.g, seg.color.b, 1, labelFont)
         cursorX = cursorX + tm:MeasureStringX(labelFont, seg.text)
+    end
+    if padW > 0 then
+        cursorX = cursorX + T.px(8)
+        cursorX = cursorX + PG.draw(panel, { pads[1] }, cursorX, y, labelH, padK, padSet) + T.px(3)
+        panel:drawText("+", cursorX, y, muted.r, muted.g, muted.b, 1, labelFont)
+        cursorX = cursorX + plusW + T.px(3)
+        PG.draw(panel, { pads[2] }, cursorX, y, labelH, padK, padSet)
     end
     y = y + labelH
 

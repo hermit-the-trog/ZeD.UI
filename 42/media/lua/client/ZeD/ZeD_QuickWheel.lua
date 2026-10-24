@@ -164,7 +164,13 @@ local function drink(playerObj, it)
         local amount = _safe(function() return it:getFluidContainer():getAmount() end, 1)
         local units = math.min(thirst * 2, amount)
         local percent = amount > 0 and math.max(0.05, units / amount) or 1
-        ISInventoryPaneContextMenu.onDrinkForThirst(it, playerObj, percent)
+        -- vanilla's onDrinkForThirst, line for line, without its last line: on 42.21 that one hands
+        -- ReturnItemToOriginalContainer an `item` the function never had, an error every time
+        -- (QA Oct 24 2026); putting the bottle back is ZeD_PutBack's when the player wants it
+        ISInventoryPaneContextMenu.transferIfNeeded(playerObj, it)
+        local mask = ISInventoryPaneContextMenu.getEatingMask(playerObj, true)
+        ISTimedActionQueue.add(ISDrinkFromBottle:new(playerObj, it, percent))
+        if mask then ISTimedActionQueue.add(ISWearClothing:new(playerObj, mask, 50)) end
     elseif isBeverage(it) then
         ISInventoryPaneContextMenu.onDrinkFluid(it, 1, playerObj)
     else

@@ -300,6 +300,16 @@ testLanguage:addItem(getText("UI_Off"), true)   -- default
 testLanguage:addItem(getText("UI_On"), false)
 ZeD.Settings.testLanguageOption = testLanguage
 
+-- ----- PUT THINGS BACK (director, Oct 24 2026; QUICK_CHORDS_SPEC.md; ZeD_PutBack.lua) -----
+-- After an action, what it took out of a bag, a container in reach or off the floor
+-- goes back there, and the hands as they were, by the game's own moves. Off for a
+-- new player ("Should putting things back be on or off for a new player?" "Off").
+local putBack = opts:addComboBox("putBack", ZeD.tr("UI_ZeD_Settings_PutBack"), ZeD.tr("UI_ZeD_Settings_PutBackTip"))
+putBack:addItem(getText("UI_Off"), true)   -- default
+putBack:addItem(getText("UI_On"), false)
+ZeD.Settings.putBackOption = putBack
+ZeD.Settings.putBackOn = function() return (putBack:getValue() or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -316,6 +326,7 @@ do
         charAccent = "UI_ZeD_Settings_CharAccent", worldAccent = "UI_ZeD_Settings_WorldAccent",
         glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
+        putBack = "UI_ZeD_Settings_PutBack",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

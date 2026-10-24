@@ -672,6 +672,18 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Char_TabThermal` | `Thermal` | Character window: tab name - appended to the window title while the tab's drawer is open ('Name  +  Tab'); also the pinned heading of the Thermal drawer | 14 |
 | `UI_ZeD_Char_WeightOfMax` | `%1/%2kg` | Character window, Loot tab: column header, weight carried over capacity, small text above the item count; %1 is the weight (one decimal), %2 the capacity | 16 |
 | `UI_ZeD_Char_Window` | `Character` | Character window: the title the window is created with, before it shows the character's name (barely seen) | 20 |
+| `UI_ZeD_Chord_BestPick` | `best pick` | ZeD setup, Quick actions: in the list of actions, after a slice that opens a list ("Eat: best pick"): the chord does the list's first pick at once | 20 |
+| `UI_ZeD_Chord_Gone` | `No %1 on you.` | Quick action chords (a bumper held with A, B, X, Y, L3 or R3): over the character's head when the chord's thing is not carried any more; %1 = its name ("Canned Corn") | - |
+| `UI_ZeD_Chord_Help` | `Hold %1 and press %2 in the world: %3.` | ZeD setup, Quick actions: the help band for a chord; %1 = the bumper's name on this pad ("L1"), %2 = the button's ("Square"), %3 = the action and where it lives ("Character > Eat") | - |
+| `UI_ZeD_Chord_HelpNone` | `Hold %1 and press %2 in the world: nothing. A chooses an action.` | ZeD setup, Quick actions: the help band for a chord with no action; %1 = the bumper, %2 = the button | - |
+| `UI_ZeD_Chord_LoadGame` | `Load a game to choose from the wheels.` | ZeD setup at the main menu, Quick actions: in the list of actions (the wheels need a character) | 50 |
+| `UI_ZeD_Chord_None` | `None` | ZeD setup, Quick actions: a chord with no action, and the list's first item (clears it) | 16 |
+| `UI_ZeD_Chord_NotHere` | `This wheel is the game's: put the slice that opens it on a chord.` | D-pad wheels: the bubble, after holding a bumper and pressing a button on a slice of a wheel the game fills (Vehicle, Animal, a gesture group) | 70 |
+| `UI_ZeD_Chord_NotOnZeD` | `The ZeD wheel's settings stay on Select.` | The ZeD wheel (Select): the bubble, after holding a bumper and pressing a button on one of its slices (they can't go on a quick action chord) | 50 |
+| `UI_ZeD_Chord_NowOn` | `Now on %1.` | D-pad wheels: the bubble, after a slice was put on a quick action chord; %1 = the chord in the pad's names ("L1 + Square") | 40 |
+| `UI_ZeD_Chord_OpensWheel` | `opens its wheel` | ZeD setup, Quick actions: in the list of actions, after a slice the game fills (Vehicle, Animal, a gesture group): the chord opens that wheel | 24 |
+| `UI_ZeD_Chord_PromptClear` | `Clear` | ZeD setup, Quick actions: the controller prompt for X on a chord row | 12 |
+| `UI_ZeD_Chord_Replaces` | `It replaces %1.` | D-pad wheels: after UI_ZeD_Chord_NowOn, when that chord held another action; %1 = that action's name | 40 |
 
 ## Controls
 
@@ -1926,9 +1938,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_WhyTooltipFont` | `ZeD's tooltips and the item tooltip's facts are sized by it.` | Options screen (groups): help band for the copy of the Tooltip font setting in ZeD setup | - |
 | `UI_ZeD_Options_WhyVideoEffects` | `The New wallpaper plays only with it on.` | Options screen (groups): help band for the copy of the Video effects setting in ZeD setup | - |
 | `UI_ZeD_Options_WhyWatch` | `The watch reads it.` | Options screen (groups): help band for the copies of the clock and temperature settings in ZeD setup | - |
+| `UI_ZeD_Options_ZedChords` | `Quick actions (controller)` | ZeD setup: section header over the twelve bumper chords | 30 |
 | `UI_ZeD_Options_ZedControls` | `Controls` | (existing) | - |
 | `UI_ZeD_Options_ZedHud` | `HUD` | (existing) | - |
 | `UI_ZeD_Options_ZedLook` | `Look` | (existing) | - |
+| `UI_ZeD_Options_ZedPutBack` | `Put things back` | ZeD setup: section header over the Put things back switch | 30 |
 | `UI_ZeD_Options_ZedTrouble` | `Troubleshooting` | (existing) | - |
 | `UI_ZeD_Options_ZedWindows` | `Windows` | (existing) | - |
 
@@ -2292,6 +2306,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_MoodlesLeft` | `Left edge` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
 | `UI_ZeD_Settings_MoodlesRight` | `Right edge` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
 | `UI_ZeD_Settings_MoodlesTip` | `Where the moodles sit. Right edge or Left edge: a column centered on the middle of the screen. Bottom: a row above the belt (above the dashboard in a car).` | Options > Mods > ZeD-GUI: hover help of the moodle placement setting | - |
+| `UI_ZeD_Settings_PutBack` | `Put things back after an action` | ZeD setup / Options > Mods > ZeD-GUI: the switch's name | 40 |
+| `UI_ZeD_Settings_PutBackTip` | `When on, whatever an action takes out of a bag, a container in reach or off the floor goes back where it came from once the action finishes, leftovers too, and your hands as they were. The game's own move action, so it takes the same game time. Not after an interruption.` | ZeD setup: the help band for Put things back | - |
 | `UI_ZeD_Settings_SafeMode` | `Safe mode` | Options > Mods > ZeD-GUI: name of the safe mode setting | - |
 | `UI_ZeD_Settings_SafeModeOn` | `On: the game's own interface` | Options > Mods > ZeD-GUI: second choice of the Safe mode setting | - |
 | `UI_ZeD_Settings_SafeModeTip` | `On: ZeD UI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD UI ever fails to open. ZeD UI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.` | Options > Mods > ZeD-GUI: hover help | - |
