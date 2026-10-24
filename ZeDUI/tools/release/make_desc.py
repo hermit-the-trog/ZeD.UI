@@ -63,7 +63,7 @@ AFTER_PARA = [
 END_OF_SECTION = {
     "HUD": "smoke_break",
     "Maps": "the_route",
-    "Controller": "customers",
+    "Controller": "controller_map",
     "Options": "themes",
 }
 
