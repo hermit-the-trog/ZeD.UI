@@ -23,12 +23,12 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 
 7. Start Steam, then start the game normally (no `-debug`) and wait for the main menu. The Workshop item only appears while Steam is running.
 8. Open **WORKSHOP** in the action strip (or **Settings > Workshop** in the menu bar).
-9. Pick the **ZeD-UI** folder on the left. The checks on the right must all pass, including what goes up and the preview.
+9. The window opens on the folder picked last (ZeD-UI). The checks on the right must all pass, including what goes up and the preview.
 10. **Who can see it:** **Unlisted** (anyone with the link; the director chose it for the tester builds). Never Public until the director says so.
 11. **Tags:** Build 42, Interface, QoL, WIP.
-12. **Description:** paste ZeDUI/workshop/tester_description_0.2.0-t1.bbcode into ZeD's description editor (later builds: copy it and change the version line). It says it is a test build, which version, and where to report.
-13. **Change note:** ZeDUI/workshop/tester_changenote_0.2.0-t1.txt for the first build; after that, what changed since the last tester build.
-14. **Save**, then **Upload**, and confirm in the strip. Wait for the result. The first time, Steam may ask you to accept the Workshop agreement on the item's page before anyone else can see it.
+12. **Description:** Claude fills it in before the upload (director, Oct 24 2026: "set it up so I can just press upload"): the `description=` lines of `Zomboid/Workshop/ZeD-UI/workshop.txt` become the build's `ZeDUI/workshop/tester_description_<version>.bbcode`, one line each, with `version=`, `id=`, `title=`, `tags=` and `visibility=` kept. It says it is a test build, which version, and where to report.
+13. **Change note:** Claude fills it in too, from `ZeDUI/workshop/tester_changenote_<version>.txt` (what changed since the last tester build): `Zomboid/Lua/ZeD_workshop.txt` holds `picked=ZeD-UI`, then `note ZeD-UI`, then each line of the note after a `|`. The window shows it in the change note box, and clears it once Steam says the upload went through.
+14. **Upload**, then **Upload** again to confirm in the strip. Wait for the result. The first time, Steam may ask you to accept the Workshop agreement on the item's page before anyone else can see it.
 15. Open the item in Steam and check that it is still hidden and the size is about 35 MB. Don't subscribe on this computer: the copy in `Zomboid/mods` is already there, and two copies of the same mod clash.
 16. Remove `Zomboid/Workshop/ZeD-UI/Contents` after the upload and the check in step 15 (`workshop.txt` and `preview.png` stay). The staged copy has the same mod id as the dev mod, and the game loads the Workshop folder first, so it would shadow the dev mod with a copy that has no QA bridge. Stage again right before the next upload.
 

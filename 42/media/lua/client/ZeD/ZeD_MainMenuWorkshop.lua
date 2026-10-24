@@ -14,6 +14,10 @@
 -- creates the item when it is new (create) and sends it (submitUpdate) with
 -- the progress in the strip. Steam's answers come as vanilla's events.
 -- Vanilla's workshopSubmit:setVisible(true) is redirected here.
+-- The folder picked last, and each folder's change note until it goes up, are
+-- kept in Zomboid/Lua/ZeD_workshop.txt (workshop.txt has no change note, so
+-- vanilla's is lost when the game closes; director, Oct 24 2026: "set it up so
+-- I can just press upload").
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -40,6 +44,55 @@ local function jlist(l)
     return t
 end
 
+-- the change note: a box of several lines, as vanilla's (Page6, 512 lines); it grows with its
+-- text from NOTE_MIN to NOTE_MAX lines, then keeps the cursor in view
+local NOTE_LINES, NOTE_MIN, NOTE_MAX = 512, 3, 8
+
+-- ZeD_workshop.txt: "picked=<folder>", then for each folder "note <folder>" and the note's
+-- lines, each after a "|" (a note line may start with anything, BBCode brackets included)
+local KEEP_FILE = "ZeD_workshop.txt"
+local Keep = { picked = nil, notes = {} }
+
+local function keepLoad()
+    Keep.picked, Keep.notes = nil, {}
+    local r = getFileReader(KEEP_FILE, false)
+    if not r then return end
+    local lines, cur = {}, nil
+    local line = r:readLine()
+    while line do
+        local body = line:match("^|(.*)$")
+        if body then
+            if cur then cur[#cur + 1] = body end
+        elseif line:sub(1, 7) == "picked=" then Keep.picked = line:sub(8); cur = nil
+        elseif line:sub(1, 5) == "note " then cur = {}; lines[line:sub(6)] = cur end
+        line = r:readLine()
+    end
+    r:close()
+    for name, ls in pairs(lines) do Keep.notes[name] = table.concat(ls, "\n") end
+end
+
+local function keepSave()
+    local w = getFileWriter(KEEP_FILE, true, false)
+    if not w then return end
+    w:write("ZeD-UI Workshop window: the folder picked last, and the change notes not uploaded yet\n")
+    if Keep.picked then w:write("picked=" .. Keep.picked .. "\n") end
+    local names = {}
+    for n in pairs(Keep.notes) do names[#names + 1] = n end
+    table.sort(names)
+    for _, n in ipairs(names) do
+        w:write("note " .. n .. "\n")
+        local text = (Keep.notes[n]:gsub("\r", ""))
+        for l in (text .. "\n"):gmatch("(.-)\n") do w:write("|" .. l .. "\n") end
+    end
+    w:close()
+end
+
+-- the item's change note as it stands (an empty one is dropped)
+local function keepNote(it)
+    local text = tostring(it:getChangeNote() or "")
+    Keep.notes[tostring(it:getFolderName())] = (BB.trim(text) ~= "") and text or nil
+end
+
 -- ============================================================================
 ZeD_MMWorkshop = ZeD_MMWindow:derive("ZeD_MMWorkshop")
 
@@ -60,6 +113,8 @@ function ZeD_MMWorkshop:createChildren()
     self.titleE = UI.newEntry(self)
     self.titleE.onTextChange = function() self:formChanged() end
     self.noteE = UI.newEntry(self)
+    self.noteE:setMultipleLine(true)
+    self.noteE:setMaxLines(NOTE_LINES)
     self.noteE.onTextChange = function() self:formChanged() end
 end
 
@@ -75,6 +130,11 @@ function ZeD_MMWorkshop:onShow()
     self.items = {}
     pcall(function() self.items = jlist(getSteamWorkshopStagedItems()) end)
     self.unsaved = {}
+    keepLoad()
+    if not self._pickedLast then   -- (the first time this session: the folder picked last)
+        self._pickedLast = true
+        for i, x in ipairs(self.items) do if tostring(x:getFolderName()) == Keep.picked then self.sel = i end end
+    end
     self.sel = math.max(1, math.min(self.sel or 1, #self.items))
     self:load()
     MM.wsEditor = nil
@@ -87,7 +147,9 @@ function ZeD_MMWorkshop:load()
     local it = self:item()
     self._loading = true
     self.titleE:setText(it and tostring(it:getTitle() or "") or "")
-    self.noteE:setText(it and tostring(it:getChangeNote() or "") or "")
+    local note = it and tostring(it:getChangeNote() or "") or ""
+    if note == "" and it then note = Keep.notes[tostring(it:getFolderName())] or "" end
+    self.noteE:setText(note)
     self._loading = false
     self.vis = it and it:getVisibilityInteger() or 0
     self.tags = {}
@@ -179,12 +241,20 @@ end
 
 function ZeD_MMWorkshop:say(text, bad) self.note = { text = text, bad = bad, untilMs = MM.now() + 8000 } end
 
+-- a folder's workshop.txt, and its change note into ZeD_workshop.txt (keepSave writes that file)
+local function writeItem(it)
+    local ok = false
+    pcall(function() ok = it:writeWorkshopTxt() end)
+    keepNote(it)
+    return ok
+end
+
 function ZeD_MMWorkshop:save()
     local it = self:item()
     if not it then return end
     self:apply()
-    local ok = false
-    pcall(function() ok = it:writeWorkshopTxt() end)
+    local ok = writeItem(it)
+    keepSave()
     if ok then
         self.unsaved[it:getFolderName()] = nil
         self:say(ZeD.tr("UI_ZeD_Workshop_Saved", it:getFolderName()))
@@ -208,6 +278,8 @@ function ZeD_MMWorkshop:pick(i)
     self.sel = i
     self.fscroll = 0
     self:load()
+    local it = self:item()
+    if it then Keep.picked = tostring(it:getFolderName()); keepSave() end
     MM.hoverSound()
 end
 
@@ -252,7 +324,8 @@ function ZeD_MMWorkshop:upload()
     self.confirm = false
     if not self:freshOk() then return end
     self:apply()
-    pcall(function() it:writeWorkshopTxt() end)
+    writeItem(it)                     -- (the note stays kept until Steam says it went up)
+    keepSave()
     self.unsaved[it:getFolderName()] = nil
     vanillaPage7(it)
     MM.clickSound()
@@ -290,6 +363,12 @@ function ZeD_MMWorkshop:onUpdated(legal)
     if not self.busy then return end
     self.busy = nil
     local it = self:item()
+    if it then   -- (the note went up with this update: the next one starts empty)
+        pcall(function() it:setChangeNote("") end)
+        Keep.notes[tostring(it:getFolderName())] = nil
+        keepSave()
+        self._loading = true; self.noteE:setText(""); self._loading = false
+    end
     local msg = ZeD.tr((legal or self.legal) and "UI_ZeD_Workshop_UploadedLegal" or "UI_ZeD_Workshop_Uploaded", tostring(it and it:getID() or ""))
     self:say(msg)
     self.legal = nil
@@ -403,10 +482,10 @@ function ZeD_MMWorkshop:formBtn(id, text, fn, x, y, variant, row, col, disabled,
     return x + bw
 end
 
--- an entry in the form: shown only while it is wholly in view
-function ZeD_MMWorkshop:formEntry(e, id, x, y, w)
+-- an entry in the form: shown only while it is wholly in view (one line unless h is given)
+function ZeD_MMWorkshop:formEntry(e, id, x, y, w, h)
     local T = ZeD.T
-    local eh = T.px(24)
+    local eh = h or T.px(24)
     local fv = self._fv
     local inView = y >= fv.y and y + eh <= fv.y + fv.h
     if e:isVisible() ~= inView then e:setVisible(inView) end
@@ -552,7 +631,7 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
     cy = cy + bh + T.px(12)
     -- CHANGE NOTE
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelChangeNote"), ix, cy, T.px(24))
-    cy = cy + self:formEntry(self.noteE, "f:note", vx, cy, vw) + T.px(4)
+    cy = cy + self:formEntry(self.noteE, "f:note", vx, cy, vw, self:noteH(vw)) + T.px(4)
     cy = self:paneText(ZeD.tr(it:getID() and "UI_ZeD_Workshop_NoteHelpUpdate" or "UI_ZeD_Workshop_NoteHelpNew"), vx, cy, vw, f3, dim) + T.px(10)
     -- WHAT GOES UP
     label(self, ZeD.tr("UI_ZeD_Workshop_LabelWhatGoesUp"), ix, cy, T.px(20))
@@ -573,6 +652,22 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
         cy = self:paneText(ZeD.tr("UI_ZeD_Workshop_ItemNew"), vx, cy + T.px(3), vw, f2, txt)
     end
     return cy
+end
+
+-- the change note box's height: its lines as wrapped, plus one to type on (counted again only
+-- when the text or the width changes)
+function ZeD_MMWorkshop:noteH(w)
+    local T = ZeD.T
+    local text = self.noteE:getText() or ""
+    local c = self._noteHC
+    if not (c and c.text == text and c.w == w and c.px == T.px(100)) then
+        local n = 0
+        for l in (text:gsub("\r", "") .. "\n"):gmatch("(.-)\n") do n = n + math.max(1, #ZeD.Atoms.wrapText(l, T.fontF2, w - T.px(12))) end
+        local lh = MM.fontH(T.fontF2) + T.px(2)
+        c = { text = text, w = w, px = T.px(100), h = math.max(NOTE_MIN, math.min(NOTE_MAX, n + 1)) * lh + T.px(8) }
+        self._noteHC = c
+    end
+    return c.h
 end
 
 function ZeD_MMWorkshop:openEditor()
@@ -605,8 +700,9 @@ function ZeD_MMWorkshop:buildStrip(stripY, stripH, w)
                 for _, x in ipairs(self.items) do pcall(function() x:readWorkshopTxt() end) end
                 self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end },
             { "confirm:yes", getText("UI_btn_save"), function()
-                for _, x in ipairs(self.items) do if self.unsaved[x:getFolderName()] then pcall(function() x:writeWorkshopTxt() end) end end
-                self:apply(); local cur = self:item(); if cur then pcall(function() cur:writeWorkshopTxt() end) end
+                self:apply()
+                for _, x in ipairs(self.items) do if self.unsaved[x:getFolderName()] or x == self:item() then writeItem(x) end end
+                keepSave()
                 self.unsaved = {}; self.confirm = false; MM.clickSound(); MM.showView("main") end, "primary" } })
     else
         -- (Oct 22 2026: was `it and self:blocker() or ...`, which read "Nothing to upload" whenever
