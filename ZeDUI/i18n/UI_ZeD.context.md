@@ -112,6 +112,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Act_AIAttachLureAction` | `ATTACHING LURE` | Action bar over the character's head, first line (pixel face), while the action AIAttachLureAction runs | 14 |
 | `UI_ZeD_Act_AIRemoveLureAction` | `REMOVING LURE` | Action bar over the character's head, first line (pixel face), while the action AIRemoveLureAction runs | 14 |
 | `UI_ZeD_Act_CreateChumFromGroundSandAction` | `MAKING CHUM` | Action bar over the character's head, first line (pixel face), while the action CreateChumFromGroundSandAction runs | 14 |
+| `UI_ZeD_Act_FoodChew` | `CHEWING` | Action bar (pixel face, capitals): the game's eat action on a food item whose own verb is Chew (gum) | 14 |
+| `UI_ZeD_Act_FoodDrink` | `DRINKING` | Action bar (pixel face, capitals): the game's eat action on a food item whose own verb is Drink (a juice box, a can of pop) | 14 |
+| `UI_ZeD_Act_FoodSmoke` | `SMOKING` | Action bar (pixel face, capitals): the game's eat action on a food item whose own verb is Smoke (a cigarette, a cigar) | 14 |
+| `UI_ZeD_Act_FoodSniff` | `SNIFFING` | Action bar (pixel face, capitals): the game's eat action on a food item whose own verb is Sniff | 14 |
+| `UI_ZeD_Act_FoodTake` | `TAKING` | Action bar (pixel face, capitals): the game's eat action on a food item whose own verb is Take | 14 |
 | `UI_ZeD_Act_HealthPanelAction` | `TREATING` | Action bar over the character's head, first line (pixel face), while the action HealthPanelAction runs | 14 |
 | `UI_ZeD_Act_ISActivateCarBatteryChargerAction` | `SWITCHING ON` | Action bar over the character's head, first line (pixel face), while the action ISActivateCarBatteryChargerAction runs | 14 |
 | `UI_ZeD_Act_ISActivateGenerator` | `SWITCHING` | Action bar over the character's head, first line (pixel face), while the action ISActivateGenerator runs | 14 |

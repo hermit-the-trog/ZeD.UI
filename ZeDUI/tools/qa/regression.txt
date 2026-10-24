@@ -92,6 +92,7 @@ zedqa_dpad_wheels.lua | dw | timeout=600       # the D-pad wheels and the Select
 zedqa_pad_glyphs.lua | pg | timeout=400         # the button pictures: footer and wheel prompts in every set (PlayStation, Xbox, Steam Deck, Nintendo), boxed names on Keyboard/mouse, light and high contrast, the dash hint
 zedqa_quick_chords.lua | qc | timeout=300       # quick action chords: the defaults resolve, LB + X torch from a bag on and off, eat / drink / smoke queued, a gone thing's reason, the press swallowed, assigning from a wheel, ZeD setup's rows and list
 zedqa_put_back.lua | pb | timeout=900 | expect=ISDrinkFromBottle.lua:82   # putting things back: apple, lighter, bottle back into the bag; a tire's jack and wrench back into the trunk; not after a stop; not with the switch off
+zedqa_food_verbs.lua | fv | timeout=120         # a food with its own verb: the card says Smoke / Drink, the action bar SMOKING; an apple still Eat / EATING
 
 # ---- vehicles (spawned beside the character and removed; the QA save's own cars are put back)
 zedqa_seat_lightbar_vanilla.lua | sl             # seat chooser and lightbar from vanilla's entry points
