@@ -35,6 +35,8 @@ Shot list (see ZeDUI/workshop/shots/shots.json):
                   "label": "SURVEY",        optional caps label under the crop
                   "tag": "VANILLA",         optional name tab on the crop's top edge
                   "place": [x,y,w],         optional: put it here (output px), no auto layout
+                  "frame": false,           optional: no window frame; the source's alpha is kept
+                                            (a drawing on a transparent ground)
                   "resample": "nearest",    optional: pixel art zoomed x1.5 / x2 stays crisp
                   "box_todo": true} ],      the box is a guess until the real capture
       "layout": {"fill": 0.52,              share of the width the crops take together
@@ -724,9 +726,18 @@ def render(shot, screens, n, stub, debug, patches=()):
             caption_band(canvas, shot["caption"])
         d = ImageDraw.Draw(canvas)
         for c, px, py, pw, ph in places:
-            tile = scaled(get(c["src"]) if c.get("src") else src, tuple(c["box"]), pw, ph,
-                          c.get("resample", "auto"))
-            framed(canvas, tile, px, py)
+            if c.get("frame") is False:
+                # a drawing on a transparent ground (the controller map's pad): no window frame,
+                # pasted with its own alpha onto the card's body
+                spath = c.get("src") or shot["src"]
+                if not os.path.isabs(spath):
+                    spath = os.path.join(screens, spath)
+                t = Image.open(spath).convert("RGBA").crop(tuple(c["box"])).resize((pw, ph), Image.LANCZOS)
+                canvas.paste(t, (px, py), t)
+            else:
+                tile = scaled(get(c["src"]) if c.get("src") else src, tuple(c["box"]), pw, ph,
+                              c.get("resample", "auto"))
+                framed(canvas, tile, px, py)
             if c.get("tag"):
                 draw_tag(d, c["tag"], px - 3, py - 3)
             if c.get("label"):
