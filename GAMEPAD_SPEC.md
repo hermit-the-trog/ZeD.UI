@@ -32,7 +32,7 @@
 
 ## Chords
 
-Allowed where the result is predictable and both halves already mean something on their own. Shipped: LB+RB zoom (no window focused); X-hold + D-pad drag. Coming (director, Oct 24 2026, design in QUICK_CHORDS_SPEC.md, not built): **quick actions**, a bumper held with A, B, X, Y, L3 or R3 in the world, twelve chords the player assigns; the exception to "both halves mean something", asked for by the director. Other candidates: propose in a brainstorm session, not in code.
+Allowed where the result is predictable and both halves already mean something on their own. Shipped: LB+RB zoom (no window focused); X-hold + D-pad drag. Built Oct 24 2026 (director, QUICK_CHORDS_SPEC.md; `ZeD_QuickChords.lua`): **quick actions**, a bumper held with A, B, X, Y, L3 or R3 in the world, twelve chords the player assigns on ZeD setup or from a wheel; the exception to "both halves mean something", asked for by the director. Other candidates: propose in a brainstorm session, not in code.
 
 ## Button pictures
 

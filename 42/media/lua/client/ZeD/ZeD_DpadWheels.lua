@@ -119,7 +119,75 @@ local function present(menu, pn, st)
     if p then p:setJoypadIgnoreAimUntilCentered(true) end
 end
 
-local function addEntry(menu, pn, e)
+-- ---------------------------------------------------------------------------
+-- quick action chords (ZeD_QuickChords.lua; QUICK_CHORDS_SPEC.md): a slice's
+-- path, its words, and assigning a chord from the open wheel
+-- ---------------------------------------------------------------------------
+-- "character:8:1" for the slice i of the level on show (nil: the ZeD wheel, or a wheel the game fills)
+function D.pathOf(st, i, e)
+    local d = st and D.DIRS[st.dir]
+    if not d or st.dir == "select" then return nil end
+    local parts = { d.build }
+    for k = 2, #st.path do
+        local lv = st.path[k]
+        local id = lv.key or lv.at
+        if lv.fill or id == nil then return nil end
+        parts[#parts + 1] = tostring(id)
+    end
+    parts[#parts + 1] = tostring((e and e.key) or i)
+    return table.concat(parts, ":")
+end
+
+-- the wheel's words for it: the wheel, each level, the slice
+function D.wordsOf(st, e)
+    local Qc = ZeD.QuickChords
+    local w = { ZeD.tr(D.DIRS[st.dir].title) }
+    for k = 2, #st.path do w[#w + 1] = Qc.cleanName(st.path[k].title) end
+    w[#w + 1] = Qc.cleanName(e and e.name)
+    return w
+end
+
+local function chordPads(chord)
+    if not chord then return nil end
+    local b, f = chord:match("^(%a+)%+(%w+)$")
+    return b and { b, f } or nil
+end
+local function chordWords(chord)
+    local PG = ZeD.PadGlyphs
+    local b, f = chord:match("^(%a+)%+(%w+)$")
+    if PG and PG.set() then return PG.name(b) .. " + " .. PG.name(f) end
+    return b .. " + " .. f
+end
+
+-- a bumper held and a button pressed on the open wheel: the pointed slice goes on that chord
+function D.assign(pn, menu, chord)
+    local Qc = ZeD.QuickChords
+    local st = D.state[pn]
+    if not (Qc and st and menu) then return end
+    local i = menu._zedPoint or W.sliceFromJoypad(menu, menu.joyfocus and menu.joyfocus.id)
+    local s = i and i > 0 and menu.slices and menu.slices[i]
+    if not s or W.isPlace(s) or W.isBack(s) then return end
+    local lv = st.path[#st.path]
+    local e = (not lv.fill) and lv.entries and lv.entries[i] or nil
+    local path = e and D.pathOf(st, i, e)
+    if not path then
+        s._zedNote = ZeD.tr(st.dir == "select" and "UI_ZeD_Chord_NotOnZeD" or "UI_ZeD_Chord_NotHere")
+        return
+    end
+    local was, wasWords = Qc.get(chord)
+    Qc.set(chord, path, D.wordsOf(st, e))
+    local note = ZeD.tr("UI_ZeD_Chord_NowOn", chordWords(chord))
+    if was and was ~= path and wasWords and #wasWords > 0 then note = note .. " " .. ZeD.tr("UI_ZeD_Chord_Replaces", wasWords[#wasWords]) end
+    -- (the slice that had this chord before shows none now; this one shows it, and says so)
+    for _, x in ipairs(menu.slices or {}) do
+        if x._zedChord and x._zedChord[1] .. "+" .. x._zedChord[2] == chord then x._zedChord = nil end
+    end
+    s._zedChord = chordPads(chord)
+    s._zedNote = note   -- (the bubble's second line while this wheel is open: ZeD_Wheel)
+    pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+end
+
+local function addEntry(menu, pn, e, st, n)
     local tex, tint = pictureOf(e)
     local text = e.name or "?"
     if e.off then
@@ -137,6 +205,8 @@ local function addEntry(menu, pn, e)
         if tex then s._zedTex, s._zedTint = tex, tint end   -- (the wheel's own picture lookup is skipped)
         if e.swatch then s._zedSwatch = e.swatch; if not tex then s._zedTex = false end end
         if (e.sub or e.fill) and not e.off then s._zedSub = true end
+        local Qc = ZeD.QuickChords
+        if Qc and st and n then s._zedChord = chordPads(Qc.chordFor(D.pathOf(st, n, e))) end   -- (its chord, in the bubble)
     end
 end
 
@@ -149,7 +219,7 @@ local function showLevel(pn, st)
     for _, e in ipairs(lv.entries or {}) do
         n = n + 1
         if #st.path > 1 and n > MAX_INNER then break end
-        addEntry(menu, pn, e)
+        addEntry(menu, pn, e, st, n)
     end
     if #st.path > 1 then
         menu:addSlice(getText("IGUI_Emote_Back"), texOf(BACK_TEX), D.back, pn)
@@ -203,7 +273,11 @@ function D.enter(pn, e)
     local st = D.state[pn]
     if not st then return end
     local p = getSpecificPlayer(pn)
-    local lv = { title = e.crumb or e.name, fill = e.fill }
+    -- (where it sits in the level above, for a quick action chord assigned from the wheel: ZeD_QuickChords)
+    local above = st.path[#st.path]
+    local at = nil
+    for i, x in ipairs(above and above.entries or {}) do if x == e then at = i; break end end
+    local lv = { title = e.crumb or e.name, fill = e.fill, at = at, key = e.key }
     if e.sub then
         local entries = safe(e.sub, p, pn) or {}
         lv.entries = entries
@@ -326,6 +400,14 @@ local function apply()
             local st = self._zedDpad
             if st and self._zed then
                 local pn = self.playerNum or (joypadData and joypadData.player) or 0
+                -- a bumper held: the button puts the pointed slice on that quick action chord (ZeD_QuickChords)
+                local face = ({ [Joypad.AButton] = "A", [Joypad.BButton] = "B", [Joypad.XButton] = "X", [Joypad.YButton] = "Y",
+                                [Joypad.LStickButton] = "L3", [Joypad.RStickButton] = "R3" })[button]
+                local jid = joypadData and joypadData.id
+                if face and jid then
+                    local lb, rb = JoypadButton.LeftBump:isDown(jid), JoypadButton.RightBump:isDown(jid)
+                    if lb ~= rb then D.assign(pn, self, (lb and "LB" or "RB") .. "+" .. face); return end
+                end
                 if button == Joypad.AButton then
                     local id = self.joyfocus and self.joyfocus.id or (joypadData and joypadData.id)
                     local i = W.sliceFromJoypad(self, id)
@@ -564,7 +646,7 @@ function H.quick(p, gid)
         if k.n > 1 then name = name .. "  x" .. k.n end
         local item = k.item
         out[#out + 1] = { name = name, tex = safe(function() return item:getTex() end), detail = H.itemDetail(p, item, gid),
-            run = function(pl) g.act(pl, item) end }
+            key = safe(function() return item:getFullType() end), run = function(pl) g.act(pl, item) end }
     end
     return out
 end
@@ -615,7 +697,7 @@ function H.weapons(p)
             local slot = safe(function() return it:getAttachedSlot() end)
             where = slot and slot >= 0 and tr("UI_ZeD_Wheel_BeltSlot", slot + 1) or tr("UI_ZeD_Wheel_OnTheBelt")
         end
-        out[#out + 1] = { name = name, tex = it:getTex(), detail = where, run = function(pl) ISDPadWheels.onEquipPrimary(pl, it) end }
+        out[#out + 1] = { name = name, tex = it:getTex(), detail = where, key = it:getFullType(), run = function(pl) ISDPadWheels.onEquipPrimary(pl, it) end }
     end
     return out
 end
@@ -664,7 +746,7 @@ function C.tabs(p, pn)
     local win = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
     for _, tab in ipairs(ZeD_CharacterWindow and ZeD_CharacterWindow.TABS or {}) do
         local name = ZeD_CharacterWindow.tabLabel(tab)
-        local e = { name = name, tab = tab.iconName, run = function(pl, n) H.charTab(pl, n, tab.id) end }
+        local e = { name = name, tab = tab.iconName, key = tab.id, run = function(pl, n) H.charTab(pl, n, tab.id) end }
         if tab.id == "radio" then
             -- (the window's own list is stale while it is shut: the Radio tab's rule asked directly)
             if not H.hasRadio(p) then e.off = tr("UI_ZeD_Wheel_NoRadioOnYou") end
@@ -679,7 +761,7 @@ end
 function C.weapons(p, pn)
     local out = H.weapons(p)
     while #out > 10 do out[#out] = nil end   -- (Hands free and Back after them)
-    out[#out + 1] = { name = tr("UI_ZeD_Wheel_HandsFree"), icon = "backpack", detail = tr("UI_ZeD_Wheel_HandsFreeDetail"), run = H.handsFree,
+    out[#out + 1] = { name = tr("UI_ZeD_Wheel_HandsFree"), icon = "backpack", detail = tr("UI_ZeD_Wheel_HandsFreeDetail"), key = "handsfree", run = H.handsFree,
         off = (not p:getPrimaryHandItem() and not p:getSecondaryHandItem()) and tr("UI_ZeD_Wheel_HandsAlreadyFree") or nil }
     return out
 end
@@ -688,15 +770,23 @@ function C.medicine(p, pn)
     local out = H.quick(p, "pills")
     for _, e in ipairs(ask("treatments", p, pn) or {}) do out[#out + 1] = e end
     while #out > 10 do out[#out] = nil end   -- (the Health tab and Back after them)
-    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[3]), tab = "health-tab-white", detail = tr("UI_ZeD_Wheel_EveryWound"),
+    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[3]), tab = "health-tab-white", detail = tr("UI_ZeD_Wheel_EveryWound"), key = "health",
         run = function(pl, n) H.charTab(pl, n, "health") end }
     return out
+end
+
+-- a quick action chord's pick (ZeD_QuickChords): the worst wound's treatment first, as the list puts
+-- them in the wound's order, then the first medicine
+function C.medicinePick(p, pn)
+    for _, e in ipairs(ask("treatments", p, pn) or {}) do if e.run and not e.off then return e end end
+    for _, e in ipairs(H.quick(p, "pills")) do if e.run and not e.off then return e end end
+    return nil
 end
 
 function C.clothing(p, pn)
     local out = ask("clothing", p, pn) or {}
     while #out > 10 do out[#out] = nil end
-    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[2]), tab = "equipment-tab-white", detail = tr("UI_ZeD_Wheel_EverythingYouWear"),
+    out[#out + 1] = { name = ZeD_CharacterWindow.tabLabel(ZeD_CharacterWindow.TABS[2]), tab = "equipment-tab-white", detail = tr("UI_ZeD_Wheel_EverythingYouWear"), key = "equip",
         run = function(pl, n) H.charTab(pl, n, "equip") end }
     return out
 end
@@ -709,9 +799,9 @@ function C.use(p, pn)
         readOff = safe(function() return p:tooDarkToRead() end) and getText("ContextMenu_TooDark") or tr("UI_ZeD_Wheel_NothingToRead")
     end
     return {
-        { name = getText("ContextMenu_Smoke"), icon = "smoking", sub = function() return H.quick(p, "smoke") end,
+        { name = getText("ContextMenu_Smoke"), icon = "smoking", best = true, sub = function() return H.quick(p, "smoke") end,
           off = (#smoke == 0) and tr("UI_ZeD_Wheel_NothingToSmoke") or nil },
-        { name = getText("ContextMenu_Read"), icon = "book-open-reader", sub = function() return H.quick(p, "read") end, off = readOff },
+        { name = getText("ContextMenu_Read"), icon = "book-open-reader", best = true, sub = function() return H.quick(p, "read") end, off = readOff },
         { name = tr("UI_ZeD_Wheel_Watch"), icon = "clock", sub = function() return ask("watch", p, pn) or {} end,
           off = not (watch and #watch > 0) and tr("UI_ZeD_Wheel_NoWatch") or nil },
         { name = getText("IGUI_ItemType_Radio"), icon = "survival-077-radio", sub = function() return ask("radio", p, pn) or {} end,
@@ -728,12 +818,12 @@ D.B.character = function(p, pn)
     local hurt = ZeD.QuickWheel and ZeD.QuickWheel.hurt and ZeD.QuickWheel.hurt(p)
     return {
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "loot-tab-white", detail = tr("UI_ZeD_Wheel_CharacterWindow"), sub = C.tabs },
-        { name = tr("UI_ZeD_Wheel_Weapons"), icon = "knife", sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
-        { name = getText("ContextMenu_Eat"), icon = "apple-whole", sub = function() return H.quick(p, "eat") end,
+        { name = tr("UI_ZeD_Wheel_Weapons"), icon = "knife", best = true, sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
+        { name = getText("ContextMenu_Eat"), icon = "apple-whole", best = true, sub = function() return H.quick(p, "eat") end,
           off = (#eat == 0) and tr("UI_ZeD_Wheel_NothingToEat") or nil },
-        { name = getText("ContextMenu_Drink"), icon = "water-045-drink", sub = function() return H.quick(p, "drink") end,
+        { name = getText("ContextMenu_Drink"), icon = "water-045-drink", best = true, sub = function() return H.quick(p, "drink") end,
           off = (#drink == 0) and tr("UI_ZeD_Wheel_NothingToDrink") or nil },
-        { name = tr("UI_ZeD_Wheel_Medicine"), icon = "bandage-wound", sub = C.medicine,
+        { name = tr("UI_ZeD_Wheel_Medicine"), icon = "bandage-wound", sub = C.medicine, pick = C.medicinePick,
           off = (#pills == 0 and #treat == 0 and not hurt) and tr("UI_ZeD_Wheel_NothingToTreat") or nil },
         { name = getText("ContextMenu_Sleep"), icon = "bed", detail = sleep.detail, off = sleep.off, run = sleep.run },
         { name = tr("UI_ZeD_Wheel_Clothing"), icon = "fi-br-shirt-long-sleeve", sub = C.clothing,
@@ -752,7 +842,7 @@ function Wd.tabs(p, pn)
     local out = {}
     local win = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
     for _, tab in ipairs(ZeD_WorldWindow and ZeD_WorldWindow.TABS or {}) do
-        local e = { name = ZeD_WorldWindow.tabLabel(tab), tab = tab.iconName, run = function(pl, n) H.worldTab(pl, n, tab.id) end }
+        local e = { name = ZeD_WorldWindow.tabLabel(tab), tab = tab.iconName, key = tab.id, run = function(pl, n) H.worldTab(pl, n, tab.id) end }
         -- (the contextual tabs asked by their own rules: the window's lists are stale while it is shut)
         if tab.id == "radio" then
             local list = ZeD.RadioTab and ZeD.RadioTab.buildWorldRadios and safe(ZeD.RadioTab.buildWorldRadios, p)

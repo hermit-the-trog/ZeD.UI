@@ -317,6 +317,15 @@ local function help(r)
         end
     end)
     if r.zedTipKey then t = ZeD.tr(r.zedTipKey) end   -- ZeD's own options (ZeD_MainMenuOptionGroups)
+    if r.kind == "chord" then
+        -- what the chord does, in the pad's own names (ZeD_PadGlyphs)
+        local PG = ZeD.PadGlyphs
+        local b, f = r.chord:match("^(%a+)%+(%w+)$")
+        local nb, nf = PG and PG.name(b) or b, PG and PG.name(f) or f
+        local path, words = ZeD.QuickChords.get(r.chord)
+        if not path then return ZeD.tr("UI_ZeD_Chord_HelpNone", nb, nf) end
+        return ZeD.tr("UI_ZeD_Chord_Help", nb, nf, table.concat(words or {}, " \226\128\186 "))
+    end
     if r.kind == "key" then t = ZeD.tr("UI_ZeD_Options_HelpKey") end
     if r.kind == "special" then t = ZeD.tr("UI_ZeD_Options_HelpSpecial") end
     if r.kind == "stepper" then t = ZeD.tr("UI_ZeD_Options_HelpDeadzone") end
@@ -386,6 +395,20 @@ end
 -- ZeD_MMOptions
 -- ============================================================================
 ZeD_MMOptions = ZeD_MMWindow:derive("ZeD_MMOptions")
+
+-- quick action chords (ZeD_QuickChords): the chord's two buttons, and its action's
+-- name with where it lives on the wheels (the drawing and the drop list below use them)
+local CHEV = " \226\128\186 "   -- (U+203A, the wheels' crumb)
+local function chordParts(chord) return chord:match("^(%a+)%+(%w+)$") end
+local function chordAction(chord)
+    local Qc = ZeD.QuickChords
+    local path, words = Qc.get(chord)
+    if not path then return nil, nil end
+    local w = words or {}
+    local where = {}
+    for i = 1, #w - 1 do where[#where + 1] = w[i] end
+    return w[#w] or "?", table.concat(where, CHEV)
+end
 
 function ZeD_MMOptions:new(inGame)
     local o = ZeD_MMWindow.new(self, inGame and "options_ig" or "options")
@@ -1104,6 +1127,35 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         self:drawZedControl(r, cx, ry, cw, rowId, hit)
         return
     end
+    if r.kind == "chord" then
+        -- the chord's action in a drop-down box: its name, where it lives on the wheels (dim), the triangle
+        local bw = math.min(math.floor(T.px(COMBO_W) * 1.6), cw)
+        local bh = T.px(24)
+        local by = midY - math.floor(bh / 2)
+        local id = rowId .. ":box"
+        local s = (hot == kind .. ":" .. id) and T.surf3 or T.surf2
+        self:drawRect(cx, by, bw, bh, 1, s.r, s.g, s.b)
+        self:drawRectBorder(cx, by, bw, bh, bs.a, bs.r, bs.g, bs.b)
+        local name, where = chordAction(r.chord)
+        local ty = by + math.floor((bh - MM.fontH(f2)) / 2)
+        local tc, d = T.text, T.textDim
+        local room = bw - T.px(30)
+        if name then
+            local nt = ZeD.Atoms.truncateText(name, f2, room)
+            self:drawText(nt, cx + T.px(8), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
+            local nw = MM.textW(f2, nt) + T.px(12)
+            if where and where ~= "" and nw < room then
+                local f3 = T.fontF3
+                local wt = ZeD.Atoms.truncateText(where, f3, room - nw)
+                self:drawText(wt, cx + bw - T.px(22) - MM.textW(f3, wt), by + math.floor((bh - MM.fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
+            end
+        else
+            self:drawText(ZeD.tr("UI_ZeD_Chord_None"), cx + T.px(8), ty, d.r, d.g, d.b, d.a or 1, f2)
+        end
+        ZeD.Atoms.drawTriangleDown(self, cx + bw - T.px(16), by + math.floor((bh - T.px(5)) / 2), T.px(8), T.textDim)
+        hit(id, cx, by, bw, bh, function() self:openChord(r, { x = ax + cx, y = ay + by, w = bw, h = bh }) end)
+        return
+    end
     if r.kind == "combo" then
         local bw = math.min(T.px(COMBO_W), cw)
         local bh = T.px(24)
@@ -1340,6 +1392,18 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 if r.moot then tc = T.textDim end
                 local label = r.label ~= "" and r.label or ""
                 if r.labelKey then label = ZeD.tr(r.labelKey) end   -- ZeD's own options: read at draw time (test language)
+                local PG = ZeD.PadGlyphs
+                if r.kind == "chord" and PG and PG.set() then
+                    -- a quick action chord's name is its two buttons, as ZeD's pictures (ZeD_PadGlyphs)
+                    local b, f = chordParts(r.chord)
+                    local k = PG.k(MM.fontH(f2))
+                    local gx = lx + PG.draw(self, { b }, lx, ry, T.px(ROW_H), k) + T.px(4)
+                    self:drawText("+", gx, ry + math.floor((T.px(ROW_H) - MM.fontH(f2)) / 2), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f2)
+                    PG.draw(self, { f }, gx + MM.textW(f2, "+") + T.px(4), ry, T.px(ROW_H), k)
+                    label = ""
+                elseif r.kind == "chord" then
+                    label = r.chord:gsub("%+", " + ")
+                end
                 self:drawText(ZeD.Atoms.truncateText(label, f2, lw - T.px(26)), lx, ry + math.floor((T.px(ROW_H) - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
                 -- the line under the name (Does nothing with ZeD active / Only ... / Game: where it lives)
                 local ul = underLine(r)
@@ -1391,8 +1455,9 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
     -- ZeD's own options: their default in a column at the right of the band (mockup zed_settings_v2)
     local dcol = 0
-    if hr and hr.zedDefault and hr.control then
-        local dt = ZeD.tr("UI_ZeD_Options_DefaultIs", comboText(hr.control, hr.zedDefault))
+    local chordDefault = hr and hr.kind == "chord" and ZeD.QuickChords.defaultName(hr.chord) or nil
+    if (hr and hr.zedDefault and hr.control) or chordDefault then
+        local dt = ZeD.tr("UI_ZeD_Options_DefaultIs", chordDefault or comboText(hr.control, hr.zedDefault))
         dcol = math.min(T.px(240), MM.textW(f2, dt) + T.px(26))
         local dx = x + w - T.px(1) - dcol
         local bd, d = T.border, T.textDim
@@ -1424,6 +1489,37 @@ function ZeD_MMOptions:openCombo(r, anchor)
     MM.ctx.dropFocus = c.selected or 1
     -- a long list opens with its current value in view
     MM.ctx.dropScroll = math.max(0, ((c.selected or 1) - 4) * ZeD.T.px(26))
+end
+
+-- QUICK ACTION CHORDS (ZeD_QuickChords; mockup zed_quick_chords_v1): a row per
+-- chord; A opens the wheels' actions as a drop list, X clears it.
+-- The wheels' actions, a drop list item each, under its wheel's name; None first
+function ZeD_MMOptions:openChord(r, anchor)
+    local Qc = ZeD.QuickChords
+    local p = getSpecificPlayer(0)
+    local items = { { text = ZeD.tr("UI_ZeD_Chord_None"), fn = function() Qc.clear(r.chord); MM.clickSound() end } }
+    local cur = Qc.get(r.chord)
+    local focus = 1
+    if not p then
+        items[#items + 1] = "-"
+        items[#items + 1] = { text = ZeD.tr("UI_ZeD_Chord_LoadGame"), disabled = true }
+    else
+        for _, wheel in ipairs(Qc.catalog(p, 0)) do
+            items[#items + 1] = "-"
+            items[#items + 1] = { text = ZeD.upper(wheel.title), disabled = true }
+            for _, a in ipairs(wheel.actions) do
+                local t = a.text
+                if a.path == cur then t = t .. "  " .. string.char(171); focus = #items + 1 end
+                items[#items + 1] = { text = t, fn = function() Qc.set(r.chord, a.path, a.words); MM.clickSound() end }
+            end
+        end
+    end
+    MM.openPopup("combo", items, anchor, false)
+    -- (the live rows the controller walks: None and the actions; the one in use in view)
+    local live = 0
+    for i = 1, focus do local it = items[i]; if type(it) == "table" and not it.disabled then live = live + 1 end end
+    MM.ctx.dropFocus = math.max(1, live)
+    MM.ctx.dropScroll = math.max(0, (focus - 5) * ZeD.T.px(26))
 end
 
 -- vanilla's palette as a pop-up of swatches (a ZeD drop with colour rows would not read)
@@ -1499,6 +1595,8 @@ function ZeD_MMOptions:activateRow(r)
     elseif r.kind == "color" then self:openPalette(r, { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 3, w = 10, h = 10 })
     elseif r.kind == "text" then self:editText(r)
     elseif r.kind == "special" then self:openVanillaController(self:pages()[self.pageIdx])
+    elseif r.kind == "chord" then
+        self:openChord(r, { x = self:getAbsoluteX() + self.width / 2, y = self:getAbsoluteY() + self.height / 4, w = math.floor(ZeD.T.px(COMBO_W) * 1.6), h = ZeD.T.px(24) })
     end
 end
 
@@ -1538,6 +1636,7 @@ end
 function ZeD_MMOptions:zedOffDefault()
     for _, r in ipairs(self:zedSetupRows()) do
         if r.zedDefault and r.control and r.control.selected ~= r.zedDefault then return true end
+        if r.kind == "chord" and not ZeD.QuickChords.isDefault(r.chord) then return true end
     end
     return false
 end
@@ -1545,6 +1644,7 @@ function ZeD_MMOptions:zedDefaults()
     for _, r in ipairs(self:zedSetupRows()) do
         local c = r.control
         if r.zedDefault and c and not c.disabled and c.selected ~= r.zedDefault then setCombo(c, r.zedDefault) end
+        if r.kind == "chord" then ZeD.QuickChords.reset(r.chord) end   -- (the chords keep no Apply: back to their start at once)
     end
 end
 
@@ -1664,7 +1764,12 @@ function ZeD_MMOptions:joyB()
     if self.confirm and self.confirm ~= "monitor" then self:setConfirm(false); return end
     self:back()
 end
-function ZeD_MMOptions:joyX() if not self.confirm and self:anyChanged() then self:setConfirm("discard") end end
+-- X: on a quick action chord, clears it (ZeD_QuickChords); else Discard, when there is something to discard
+function ZeD_MMOptions:joyX()
+    local r = (not self.confirm) and self:focusedRow()
+    if r and r.kind == "chord" then ZeD.QuickChords.clear(r.chord); MM.clickSound(); return end
+    if not self.confirm and self:anyChanged() then self:setConfirm("discard") end
+end
 function ZeD_MMOptions:joyY() if not self.confirm and self:anyChanged() then self:apply(false) end end
 function ZeD_MMOptions:joyBumper(dir)
     if self.confirm then return end
@@ -1686,12 +1791,17 @@ function ZeD_MMOptions:getFooterPrompts()
     if r then
         if r.kind == "combo" or r.kind == "volume" or r.kind == "slider" or r.kind == "stepper" then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
         local toggles = (r.kind == "tick") or (r.zedStyle == "onoff")
-        t[#t + 1] = { glyph = "A", label = ZeD.tr(toggles and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") }
+        if r.kind == "chord" then
+            t[#t + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Options_PromptChange") }
+            t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Chord_PromptClear") }
+        else
+            t[#t + 1] = { glyph = "A", label = ZeD.tr(toggles and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") }
+        end
     end
     t[#t + 1] = { glyph = "LB", label = "" }
     t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Options_PromptPage") }
     if self:anyChanged() then
-        t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Options_Discard") }
+        if not (r and r.kind == "chord") then t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Options_Discard") } end
         t[#t + 1] = { glyph = "Y", label = ZeD.btnCase(getText("UI_btn_apply")) }
     end
     t[#t + 1] = { glyph = "B", label = ZeD.btnCase(getText("UI_btn_back")) }
