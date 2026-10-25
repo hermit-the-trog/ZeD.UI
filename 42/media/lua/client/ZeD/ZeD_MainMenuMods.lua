@@ -113,6 +113,7 @@ function ZeD_MMMods:onShow()
     -- the info pane's settings read afresh; ZeD picks' copies rebuilt from the mods as they are now
     -- (a picked mod Steam updated: its copy changes, and the next reload runs it)
     ZeD.ModSettings.reset()
+    ZeD.ModSafety.reset()
     ZeD.ModPicks.reset()
     self._optSeen, self._optKept, self._palette = {}, {}, nil
     local wrote = 0
@@ -289,6 +290,8 @@ function ZeD_MMMods:toggle(d, confirmed)
     if not (m and d) then return end
     local turnOn = not d.isActive
     if turnOn and self:problem(d) then MM.hoverSound(); return end
+    -- a save's own list: turning off a mod its world may hold asks first (ZeD_ModSafety)
+    if not turnOn and not confirmed and self.askTurnOff and self:askTurnOff(d) then return end
     if turnOn and d.modId == "ModTemplate" and not confirmed then self._templateFor = d; self:setConfirm("template"); return end
     local before = activeSet(m)
     m:forceActivateMods(d.modInfo, turnOn)
@@ -995,6 +998,8 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
             { "confirm:yes", ZeD.tr("ContextMenu_Turn_On"), function() local d = self._templateFor; self:setConfirm(false); self:toggle(d, true) end, "primary" } })
+    elseif self.confirm == "turnoff" then
+        ask = self:turnOffStrip(stripY, w, row)
     elseif self.confirm == "delete" then
         ask = ZeD.tr("UI_ZeD_Mods_AskDelete", tostring(self.psel))
         UI.stripSpecs(self, stripY, w, row, {}, {
@@ -1532,6 +1537,8 @@ function ZeD_MMMods:drawAbout(d, ix, iw, cy, vy, vh, prob, wid)
             cy = cy + MM.fontH(f2) + T.px(4)
         end
     end
+    -- what turning it off does to a save (ZeD_MainMenuModsPanes / ZeD_ModSafety)
+    if self.drawTurnOff then cy = self:drawTurnOff(d, ix, iw, cy, vy, vh) end
     idList(ZeD.tr("UI_ZeD_Mods_ListNeeds"), jlist(info:getRequire()), true)
     local inc = {}
     for id in pairs(d.incompatibleWith or {}) do inc[#inc + 1] = id end

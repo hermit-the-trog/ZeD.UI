@@ -121,7 +121,8 @@ end
 -- MS.res.byMod[id] = { entry, ... }; an entry is shared by the two mods it names:
 --   { kind = "file" | "script", loser = id, winner = id, things = { text, ... }, nouns = { word = n }, key }
 -- MS.res.overrides[id] = { total, kinds = { items = n, ... } }: the game's own scripts the mod replaces
-MS.res = MS.res or { byMod = {}, overrides = {}, done = false }
+-- MS.res.adds[id] = { item = n, recipe = n, vehicle = n, building = n, model = n }: what it adds of its own
+MS.res = MS.res or { byMod = {}, overrides = {}, adds = {}, done = false }
 local job = nil
 
 local function addConflict(res, kind, loser, winner, thing, noun)
@@ -233,7 +234,18 @@ local function scanBody(res)
         if ok and list then
             for i = 0, list:size() - 1 do
                 local o = list:get(i)
-                if o:getLoadedScriptBodyCount() > 2 then
+                -- what each mod adds of its own (the first definition is a mod's, not the game's):
+                -- the Mods screen's "if you turn it off" (ZeD_ModSafety)
+                local n = o:getLoadedScriptBodyCount()
+                if n >= 2 then
+                    local first = tostring(o:getLoadedScriptBodies():get(0))
+                    if first ~= VANILLA then
+                        local a = res.adds[first] or {}
+                        a[k[2]] = (a[k[2]] or 0) + 1
+                        res.adds[first] = a
+                    end
+                end
+                if n > 2 then
                     local bodies = o:getLoadedScriptBodies()
                     local mods, seen, vanilla = {}, {}, false
                     for b = 0, bodies:size() - 1, 2 do
@@ -265,7 +277,7 @@ end
 
 -- start (or restart) the scan of the mods loaded now
 function MS.start()
-    local res = { byMod = {}, overrides = {}, index = {}, done = false, startedAt = nowMs() }
+    local res = { byMod = {}, overrides = {}, adds = {}, index = {}, done = false, startedAt = nowMs() }
     MS.res = res
     job = coroutine.create(function() scanBody(res) end)
 end

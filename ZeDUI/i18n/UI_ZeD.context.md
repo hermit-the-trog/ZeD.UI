@@ -1816,6 +1816,38 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_PickStripNone` | `Choose a copy for any file. The rest stay with load order.` | Picker: the strip before anything is picked | - |
 | `UI_ZeD_Mods_PromptOtherCopy` | `Other copy` | Picker, controller prompt for A on a file: switch to the other mod's copy | - |
 | `UI_ZeD_Mods_PendingPicks` | `Picked files changed. A reload puts them in place, no restart.` | Mod manager, the strip: the picked copies were rewritten and a reload puts them in place | - |
+| `UI_ZeD_Mods_OffHead` | `If you turn it off` | Mod manager: Mod manager, About tab: section heading (capitals): what turning the mod off does to a save | - |
+| `UI_ZeD_Mods_OffForSave` | `For the save %1:` | Mod manager: About tab, the list is a save's own (Load game, More, Choose mods). %1 the save's folder name | - |
+| `UI_ZeD_Mods_OffForMain` | `Saves keep their own mod lists, so this list changes new games only. In a save's own list (Load game, More, Choose mods), turning it off would mean:` | Mod manager: About tab, the main mod list | - |
+| `UI_ZeD_Mods_OffSafe` | `Safe to turn off` | Mod manager: About tab: grade (green dot) | - |
+| `UI_ZeD_Mods_OffCareful` | `Careful: the save loses things` | Mod manager: About tab: grade (yellow dot) | - |
+| `UI_ZeD_Mods_OffUnchecked` | `Not checked: it is not running now` | Mod manager: About tab: grade (yellow dot); the mod's scripts are not loaded, so its items cannot be counted | - |
+| `UI_ZeD_Mods_OffUnsafe` | `Not safe for a game in progress` | Mod manager: About tab: grade (red dot) | - |
+| `UI_ZeD_Mods_OffMapOne` | `It adds a map (%1 folder). Its places are part of the world: without it they are empty, and a character standing in them can load into nothing.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffMapMany` | `It adds a map (%1 folders). Its places are part of the world: without it they are empty, and a character standing in them can load into nothing.` | Mod manager: About tab. %1 how many map folders | - |
+| `UI_ZeD_Mods_OffTilesOne` | `It adds %1 set of tiles. Anything built or placed from them goes missing from the world.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffTilesMany` | `It adds %1 sets of tiles. Anything built or placed from them goes missing from the world.` | Mod manager: About tab. %1 how many | - |
+| `UI_ZeD_Mods_OffItemsOne` | `It adds %1 item of its own. In the save it disappears: from you, your bags, containers and the ground.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffItemsMany` | `It adds %1 items of its own. In the save they disappear: from you, your bags, containers and the ground.` | Mod manager: About tab. %1 how many | - |
+| `UI_ZeD_Mods_OffVehiclesOne` | `It adds %1 vehicle. In the save it is removed, with what is in it.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffVehiclesMany` | `It adds %1 vehicles. In the save they are removed, with what is in them.` | Mod manager: About tab. %1 how many | - |
+| `UI_ZeD_Mods_OffBuildingsOne` | `It adds %1 thing you can build or place. One already in the world goes missing.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffBuildingsMany` | `It adds %1 things you can build or place. Ones already in the world go missing.` | Mod manager: About tab. %1 how many | - |
+| `UI_ZeD_Mods_OffRecipesOne` | `Its %1 recipe goes away; what you already made stays, unless it is one of its own items.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffRecipesMany` | `Its %1 recipes go away; what you already made stays, unless it is one of its own items.` | Mod manager: About tab. %1 how many | - |
+| `UI_ZeD_Mods_OffOverridesOne` | `It changes %1 of the game's own items or recipes: it goes back to the game's version.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffOverridesMany` | `It changes %1 of the game's own items or recipes: they go back to the game's version.` | Mod manager: About tab. %1 how many | - |
+| `UI_ZeD_Mods_OffNotChecked` | `It is not running now (it is off in the main list), so its items and vehicles cannot be counted. Its map and tiles are checked.` | Mod manager: About tab | - |
+| `UI_ZeD_Mods_OffRegistries` | `It adds its own game lists (such as traits or tags). A character who has one of its traits may lose it.` | Mod manager: About tab | - |
+| `UI_ZeD_Mods_OffSandboxOne` | `Its %1 sandbox setting stays in the save, unused, until the mod is back.` | Mod manager: About tab. %1 is 1 | - |
+| `UI_ZeD_Mods_OffSandboxMany` | `Its %1 sandbox settings stay in the save, unused, until the mod is back.` | Mod manager: About tab. %1 how many | - |
+| `UI_ZeD_Mods_OffCodeOnly` | `It adds no items, vehicles, map or tiles: nothing in a save is made of it. Its options and saved data wait for it.` | Mod manager: About tab: why a mod is safe to turn off | - |
+| `UI_ZeD_Mods_OffAlsoOff` | `It also turns off %1 (they need it):` | Mod manager: About tab. %1 a list of the mods that need this one | - |
+| `UI_ZeD_Mods_OffDepGrade` | `%1: %2` | Mod manager: About tab: a mod that turns off with it and its grade. %1 the mod, %2 the grade | - |
+| `UI_ZeD_Mods_AskOffUnsafe` | `Not safe for %2: %1 has a map or tiles in that world. Turn it off?` | Mod manager: The strip's question when turning a mod off in a save's own list. %1 the mod, %2 the save | - |
+| `UI_ZeD_Mods_AskOffCareful` | `%2 loses what %1 added (items, vehicles). Turn it off?` | Mod manager: The strip's question. %1 the mod, %2 the save | - |
+| `UI_ZeD_Mods_AskOffUnchecked` | `%1 is not running now, so it was not checked. %2 may lose what it added. Turn it off?` | Mod manager: The strip's question. %1 the mod, %2 the save | - |
+| `UI_ZeD_Mods_BtnKeepOn` | `Keep it on` | Mod manager: The strip's button that answers the question: the mod stays on | - |
 | `UI_ZeD_Mods_WhyFixed` | `%1 loads after it once you reload.` | Mod manager: added to the explanation. %1 is the losing mod | - |
 | `UI_ZeD_Mods_WhyMissing` | `You subscribe to it, but Steam has not downloaded it yet. Steam fetches Workshop items on its own (the game cannot start a download); it shows up here once it lands.` | Mod manager: note in the Workshop item's pane | - |
 | `UI_ZeD_Mods_WhyNeeds` | `%1 needs %2, so this looks deliberate.` | Mod manager: added to the explanation. %1 the winning mod, %2 the losing mod | - |
