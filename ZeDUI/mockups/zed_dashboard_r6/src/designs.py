@@ -13,7 +13,7 @@ import numpy as np
 from dashlib import *
 from engine import text_w
 import v6
-from v6 import (lower_boxy6, lower_curvy6, console_vents, ash_tray, no_smoking, sticker6, taxi_meter6, meter_flag_variants,
+from v6 import (lower_boxy6, lower_curvy6, console_vents, ash_tray, no_smoking, taxi_meter6, meter_flag_variants,
                 vent_louvered, vent_eyeball, ASH_W, ASH_H)
 from widgets import (gauge, window, glare, chrome_frame, knob, button, rocker, toggle, vent_rect, vent_round, nameplate, dymo,
                      rivet, icon_mask, icon_size, line_mask)
@@ -280,7 +280,7 @@ def con_fleet(b, top="siren", badge_role="unit", chrome=False):
         vent_eyeball(b, 764, 44, 14, bezel="blackp")
         v6.hula(b, 684, 0)
     headunit_slot(b, 518, 76, frame="bezel")
-    if top == "meter": ash_tray(b, 706, 76, chrome=False, butts=10, seed=11)
+    if top == "meter": ash_tray(b, 706, 76, chrome=False, levels=(3,), seed=11)   # a cab's: always the full one
     else: no_smoking(b, 706, 76)
     # three pixels higher than the sedans' so the AIR legends (a clear pixel under the tab) stay on the console
     climate_levers(b, 540, 135, chrome=chrome, fan_knob=(752, 146))
@@ -398,7 +398,7 @@ def van(b):
     badge(b, 604, 26, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
     badge(b, 608, 40, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
     headunit_slot(b, 518, 64, frame="bezel")
-    sticker6(b, 710, 56, 68, 68)      # switched sides (Oct 24): the radio went left, the sticker comes right
+    v6.van_right(b, 706, 66)          # switched sides (Oct 24): the radio went left; logo sticker, NO SMOKING or ash tray
     climate_levers(b, 548, 134, chrome=False, fan_knob=(752, 144))
 
 

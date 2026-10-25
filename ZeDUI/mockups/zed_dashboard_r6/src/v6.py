@@ -252,15 +252,13 @@ def console_vents(b, y, x0=512, w=88, h=30, chrome=True, round_=False, xr=782):
 ASH_W, ASH_H = 74, 46
 
 
-def ash_tray(b, x, y, chrome=True, lighter=True, butts=6, seed=3):
-    """the ash tray to the radio's right: a drawer with a pull along its top, the lighter beside it. Open (a
-    sprite, src ashOpen): the drawer slid out toward the driver, the steel tray showing over it, ash and butts in it."""
-    d = b.d; M = d.M
+def _ash_closed(d, x, y, cabin, chrome=True, lighter=True):
+    """the shut ash tray: a drawer with a pull along its top, the lighter beside it. Returns the drawer's width."""
+    M = d.M
     met = "chrome" if chrome else "blackp"
-    b.check_flat(x - 1, y - 1, ASH_W + 2, ASH_H + 2, "ash tray")
     dw = ASH_W - (20 if lighter else 0)
     face = box(x + 1, y + 1, dw - 2, ASH_H - 2)
-    d.flat(face, Z_FACE + 0.4, b.cabin, polish=0.2); DL._pebble(d, face, 0.04, seed=8)
+    d.flat(face, Z_FACE + 0.4, cabin, polish=0.2); DL._pebble(d, face, 0.04, seed=8)
     if chrome: chrome_frame(d, x, y, dw, ASH_H, Z_FACE, t=1, r=1, z=1.6)
     else: d.seam(box(x, y, dw, ASH_H) & ~box(x + 1, y + 1, dw - 2, ASH_H - 2), 0.5)
     pull = M().rrect(x + dw // 2 - 12, y + 4, 24, 4, 1).get()
@@ -268,79 +266,92 @@ def ash_tray(b, x, y, chrome=True, lighter=True, butts=6, seed=3):
     d.seam(box(x + dw // 2 - 10, y + 8, 20, 1), 0.4)
     if lighter:
         lx, ly = x + dw + 10, y + ASH_H // 2
-        b.check_flat(lx - 8, ly - 8, 17, 17, "lighter")
         d.torus(lx, ly, 5, 7.5, 1.8, met, polish=1.0, on=Z_FACE)
         lt = np.hypot(d.XX + 0.5 - lx, d.YY + 0.5 - ly) < 5
         d.h[lt] = Z_FACE + 1.2; d.mat[lt] = d.mid("blackp"); d.tex[lt] = 0
         d.tex[lt & (((d.XX + d.YY) % 2) == 0)] += 0.1
-        d.paint(icon_mask(d, "cig", lx - 3, ly + 9) if "cig" in DL.ICONS else box(lx - 3, ly + 10, 7, 1), "paint_w", flatlight=True)
+        d.paint(box(lx - 3, ly + 10, 7, 1), "paint_w", flatlight=True)
+    return dw
 
-    def opened(d2, x=x, y=y, dw=dw):
-        """slid out toward the driver: the bin's dark lip, a heap of grey ash, butts at their real size against the
-        tray (director's photos, Oct 24: a butt is about a quarter of the tray wide and a tenth of it thick)"""
-        rng = np.random.default_rng(seed)
-        bowl_h = 28
-        hole = box(x, y, dw, 3)                               # the dark slot it slid out of
-        d2.h[hole] = Z_FACE - 3.0; d2.mat[hole] = d2.mid("blackp"); d2.solid |= hole; d2.tex[hole] = 0
-        d2.dark[hole] = np.maximum(d2.dark[hole], 0.6)
-        bowl = box(x, y + 2, dw, bowl_h)
-        d2.slab(bowl, 4.0, "blackp", bevel=1.2, polish=0.6, on=Z_FACE + 0.4)       # the bin, black plastic
-        inner = box(x + 2, y + 4, dw - 4, bowl_h - 4)
-        d2.flat(inner, Z_FACE + 1.0, "steel", polish=0.2)
-        d2.dark[inner] = np.maximum(d2.dark[inner], 0.25)
-        # the ash: a lumpy heap, higher toward the back, grey with white paper flecks and dark char
-        Y, X = d2.YY, d2.XX
-        n1 = rng.random((H, W)); n2 = rng.random((H, W))
-        lump = np.zeros((H, W), np.float32)
-        for _ in range(12):
-            cx_, cy_ = x + 3 + rng.random() * (dw - 6), y + 6 + rng.random() * (bowl_h - 10)
-            r_ = 4 + rng.random() * 6
-            lump += np.clip(1 - np.hypot(X + 0.5 - cx_, (Y + 0.5 - cy_) * 1.4) / r_, 0, 1) * (0.8 + rng.random())
-        ashm = inner & (lump > 0.12)
-        d2.h[ashm] = Z_FACE + 1.4 + np.clip(lump[ashm], 0, 2.2) * 1.3 + n1[ashm] * 0.5
-        d2.mat[ashm] = d2.mid("ash"); d2.polish[ashm] = 0.05; d2.tex[ashm] = 0
-        d2.tex[ashm & (n2 > 0.86)] += 0.16; d2.tex[ashm & (n2 < 0.10)] -= 0.16
-        fl = ashm & (n1 > 0.93); d2.mat[fl] = d2.mid("paper")
-        # the butts: a round bar with a cork filter and a burnt paper end, laid at their angle, half sunk in the ash
-        BR, BL, FL = 2.2, 13.0, 8.0
-        def butt(cx_, cy_, ang, sink=0.6):
-            a_ = np.radians(ang); ux, uy = np.cos(a_), np.sin(a_)
-            px_, py_ = X + 0.5 - cx_, Y + 0.5 - cy_
-            along = px_ * ux + py_ * uy; perp = -px_ * uy + py_ * ux
-            m = (np.abs(perp) <= BR) & (along >= -BL / 2) & (along <= BL / 2) & inner
-            if not m.any(): return
-            prof = np.sqrt(np.clip(1 - (perp[m] / BR) ** 2, 0, 1))
-            hh = Z_FACE + 2.2 + sink + prof * 2.6
-            keep = hh > d2.h[m]
-            sel = np.zeros((H, W), bool); sel[m] = keep
-            d2.h[sel] = hh[keep]; d2.solid |= sel; d2.polish[sel] = 0.35; d2.tex[sel] = 0
-            t = along + BL / 2
-            cork = sel & (t < FL); paper = sel & (t >= FL) & (t < BL - 1.2); char = sel & (t >= BL - 1.2)
-            d2.mat[cork] = d2.mid("cork"); d2.mat[paper] = d2.mid("paper"); d2.mat[char] = d2.mid("ash")
-            d2.dark[char] = np.maximum(d2.dark[char], 0.35)
-            d2.tex[cork & (n2 > 0.8)] += 0.08                  # the filter paper's speckle
-            ring = sel & (t >= FL - 0.6) & (t < FL + 0.4); d2.tex[ring] -= 0.06
-        n = butts
-        for i in range(n):
-            cx_ = x + 8 + rng.random() * (dw - 16); cy_ = y + 9 + rng.random() * (bowl_h - 15)
-            butt(cx_, cy_, rng.uniform(-35, 35) + (180 if rng.random() < 0.5 else 0), sink=rng.uniform(0.0, 1.2))
-        # the bin's front lip and the drawer front, out and lower, its pull
-        lip = box(x - 1, y + bowl_h, dw + 2, 2)
-        d2.slab(lip, 5.4, "blackp", bevel=0.8, polish=0.8, on=Z_FACE + 0.4)
-        fr = box(x - 1, y + bowl_h + 2, dw + 2, ASH_H - bowl_h - 1)
-        d2.slab(fr, 5.0, b.cabin, bevel=1.0, polish=0.2, on=Z_FACE + 0.4)
-        if chrome: chrome_frame(d2, x - 1, y + bowl_h + 2, dw + 2, ASH_H - bowl_h - 1, Z_FACE + 5.0, t=1, r=1, z=1.2)
-        pull2 = M().rrect(x + dw // 2 - 10, y + bowl_h + 6, 20, 3, 1).get()
-        d2.slab(pull2, 2.4, met, bevel=1.0, polish=1.0, on=Z_FACE + 5.4)
-    b.variant(f"ash_{b.id}", "ashOpen", opened, True)
+
+def _ash_open(d2, x, y, dw, cabin, level, chrome=True, seed=3):
+    """slid out toward the driver: the bin's dark lip, grey ash, butts at their real size against the tray (director's
+    photos, Oct 24). level 1, 2, 3 = two, four or six butts ("2 to 6, make em bigger, a reasonable amount of ash")"""
+    M = d2.M
+    met = "chrome" if chrome else "blackp"
+    rng = np.random.default_rng(seed + level * 7)
+    bowl_h = 28
+    hole = box(x, y, dw, 3)                                   # the dark slot it slid out of
+    d2.h[hole] = Z_FACE - 3.0; d2.mat[hole] = d2.mid("blackp"); d2.solid |= hole; d2.tex[hole] = 0
+    d2.dark[hole] = np.maximum(d2.dark[hole], 0.6)
+    bowl = box(x, y + 2, dw, bowl_h)
+    d2.slab(bowl, 4.0, "blackp", bevel=1.2, polish=0.6, on=Z_FACE + 0.4)       # the bin, black plastic
+    inner = box(x + 2, y + 4, dw - 4, bowl_h - 4)
+    d2.flat(inner, Z_FACE + 1.0, "steel", polish=0.2)
+    d2.dark[inner] = np.maximum(d2.dark[inner], 0.25)
+    # the ash: a few lumpy drifts, more of it the fuller the tray, grey with white paper flecks
+    Y, X = d2.YY, d2.XX
+    n1 = rng.random((H, W)); n2 = rng.random((H, W))
+    lump = np.zeros((H, W), np.float32)
+    for _ in range(3 + 2 * level):
+        cx_, cy_ = x + 3 + rng.random() * (dw - 6), y + 6 + rng.random() * (bowl_h - 10)
+        r_ = 4 + rng.random() * 5
+        lump += np.clip(1 - np.hypot(X + 0.5 - cx_, (Y + 0.5 - cy_) * 1.4) / r_, 0, 1) * (0.8 + rng.random())
+    ashm = inner & (lump > 0.22)
+    d2.h[ashm] = Z_FACE + 1.4 + np.clip(lump[ashm], 0, 2.2) * 1.3 + n1[ashm] * 0.5
+    d2.mat[ashm] = d2.mid("ash"); d2.polish[ashm] = 0.05; d2.tex[ashm] = 0
+    d2.tex[ashm & (n2 > 0.86)] += 0.16; d2.tex[ashm & (n2 < 0.10)] -= 0.16
+    fl = ashm & (n1 > 0.93); d2.mat[fl] = d2.mid("paper")
+    # the butts: round bars, a cork filter and a burnt paper end, laid at their angle, half sunk in the ash
+    BR, BL, FL = 2.8, 17.0, 10.5
+
+    def butt(cx_, cy_, ang, sink=0.6):
+        a_ = np.radians(ang); ux, uy = np.cos(a_), np.sin(a_)
+        px_, py_ = X + 0.5 - cx_, Y + 0.5 - cy_
+        along = px_ * ux + py_ * uy; perp = -px_ * uy + py_ * ux
+        m = (np.abs(perp) <= BR) & (along >= -BL / 2) & (along <= BL / 2) & inner
+        if not m.any(): return
+        prof = np.sqrt(np.clip(1 - (perp[m] / BR) ** 2, 0, 1))
+        hh = Z_FACE + 2.2 + sink + prof * 3.0
+        keep = hh > d2.h[m]
+        sel = np.zeros((H, W), bool); sel[m] = keep
+        d2.h[sel] = hh[keep]; d2.solid |= sel; d2.polish[sel] = 0.35; d2.tex[sel] = 0
+        t = along + BL / 2
+        cork = sel & (t < FL); paper = sel & (t >= FL) & (t < BL - 1.5); char = sel & (t >= BL - 1.5)
+        d2.mat[cork] = d2.mid("cork"); d2.mat[paper] = d2.mid("paper"); d2.mat[char] = d2.mid("ash")
+        d2.dark[char] = np.maximum(d2.dark[char], 0.4)
+        d2.tex[cork & (n2 > 0.8)] += 0.08                      # the filter paper's speckle
+        ring = sel & (t >= FL - 0.6) & (t < FL + 0.4); d2.tex[ring] -= 0.06
+    placed = []
+    for i in range(2 * level):
+        for _try in range(60):
+            cx_ = x + 10 + rng.random() * (dw - 20); cy_ = y + 9 + rng.random() * (bowl_h - 15)
+            if all(math.hypot(cx_ - px2, cy_ - py2) > 9 for px2, py2 in placed): break
+        placed.append((cx_, cy_))
+        butt(cx_, cy_, rng.uniform(-28, 28) + (180 if rng.random() < 0.5 else 0), sink=rng.uniform(0.0, 1.0))
+    # the bin's front lip, the drawer front out and lower, its pull
+    lip = box(x - 1, y + bowl_h, dw + 2, 2)
+    d2.slab(lip, 5.4, "blackp", bevel=0.8, polish=0.8, on=Z_FACE + 0.4)
+    fr = box(x - 1, y + bowl_h + 2, dw + 2, ASH_H - bowl_h - 1)
+    d2.slab(fr, 5.0, cabin, bevel=1.0, polish=0.2, on=Z_FACE + 0.4)
+    if chrome: chrome_frame(d2, x - 1, y + bowl_h + 2, dw + 2, ASH_H - bowl_h - 1, Z_FACE + 5.0, t=1, r=1, z=1.2)
+    pull2 = M().rrect(x + dw // 2 - 10, y + bowl_h + 6, 20, 3, 1).get()
+    d2.slab(pull2, 2.4, met, bevel=1.0, polish=1.0, on=Z_FACE + 5.4)
+
+
+def ash_tray(b, x, y, chrome=True, lighter=True, levels=(1, 2, 3), seed=3):
+    """the ash tray to the radio's right, shut on the plate; open as sprites (src ashOpen = 1, 2, 3: two, four or six
+    butts; the game picks per car, 0 = shut; a click opens or shuts it)"""
+    b.check_flat(x - 1, y - 1, ASH_W + 2, ASH_H + 2, "ash tray")
+    dw = _ash_closed(b.d, x, y, b.cabin, chrome, lighter)
+    for lv in levels:
+        b.variant(f"ash{lv}_{b.id}", "ashOpen", lambda d2, lv=lv: _ash_open(d2, x, y, dw, b.cabin, lv, chrome, seed), lv)
     b.hit("ash", x, y, dw, ASH_H)
     b.meta["ash"] = (x, y, dw, ASH_H)
 
 
-def no_smoking(b, x, y, w=ASH_W, h=ASH_H):
-    """the emergency vehicles: a NO SMOKING plate riveted where the ash tray would be"""
-    d = b.d; M = d.M
-    b.check_flat(x - 1, y - 1, w + 2, h + 2, "no smoking plate")
+def _no_smoking(d, x, y, w=ASH_W, h=ASH_H):
+    M = d.M
     pl = M().rrect(x, y, w, h, 2).get()
     base = Z_FACE
     d.slab(pl, 1.0, "paint_w", bevel=0.8, polish=0.4, on=base)
@@ -357,16 +368,39 @@ def no_smoking(b, x, y, w=ASH_W, h=ASH_H):
     slash = line_mask(d, cx - 8, cy - 8, cx + 8, cy + 8, 2.2) & (rr <= r)
     d.paint(ringm | slash, "paint_r", flatlight=True)
     d.text("NO SMOKING", cx, y + h - 11, "paint_k", align="c", flatlight=True)
+
+
+def no_smoking(b, x, y, w=ASH_W, h=ASH_H):
+    """the emergency vehicles: a NO SMOKING plate riveted where the ash tray would be"""
+    b.check_flat(x - 1, y - 1, w + 2, h + 2, "no smoking plate")
+    _no_smoking(b.d, x, y, w, h)
     b.ink_rect(x, y, w, h, "no smoking plate")
 
 
 # ====================================================================== the van's sticker, the taxi's meter and hula girl
-def sticker6(b, x, y, w=68, h=68):
-    """the van's sticker, right of the radio: the Spiffo's van its Spiffo, a work van its trade, any other van an
-    owner's bumper sticker (all live; the plate is plain vinyl under it)"""
-    b.check_flat(x - 1, y - 1, w + 2, h + 2, "sticker slot")
-    b.part("sticker", x=x, y=y, w=w, h=h, match="van")
-    b.meta["sticker"] = (x, y, w, h)
+VAN_LOGOS = {   # the vans whose business has a logo in the game (media/textures/shirtdecals): they wear it
+    "VanSpiffo": "Buisness_SpiffosDECAL", "VanFossoil": "Buisness_FossoilDECAL",
+    "VanMccoy": "Buisness_McCoysDECAL", "VanJohnMcCoy": "Buisness_McCoysDECAL",
+}
+
+
+def van_right(b, x, y):
+    """the van, right of the radio (director, Oct 24): a business with a logo in the game wears it as a sticker (live,
+    the sticker part); any other company's van has a NO SMOKING plate; a private van an ash tray. The plate is plain
+    vinyl there; the game shows one (src vanRight = "ash" shut, "nosmoke", or nothing under a sticker; ashOpen as any
+    car's)."""
+    sx, sy = x + 3, y - 10
+    b.check_flat(sx - 1, sy - 1, 70, 70, "sticker slot")
+    b.part("sticker", x=sx, y=sy, w=68, h=68, match="logo")
+    b.meta["sticker"] = (sx, sy, 68, 68)
+    b.variant(f"vtray_{b.id}", "vanRight", lambda d2: _ash_closed(d2, x, y, b.cabin, False, True), "ash")
+    b.variant(f"vsign_{b.id}", "vanRight", lambda d2: _no_smoking(d2, x, y), "nosmoke")
+    dw = ASH_W - 20
+    for lv in (1, 2, 3):
+        b.variant(f"ash{lv}_{b.id}", "ashOpen",
+                  lambda d2, lv=lv: (_ash_closed(d2, x, y, b.cabin, False, True), _ash_open(d2, x, y, dw, b.cabin, lv, False, 5)), lv)
+    b.hit("ash", x, y, dw, ASH_H, needs="vanTray")
+    b.meta["ash"] = (x, y, dw, ASH_H)
 
 
 def taxi_meter6(b, x, y, on=Z_FACE):
