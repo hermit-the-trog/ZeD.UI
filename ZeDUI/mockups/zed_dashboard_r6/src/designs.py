@@ -249,8 +249,8 @@ def cl_cossette(b):
 
 
 # =================================================================================== consoles
-HU6 = (518, 64)          # round 6 (Oct 24): the radio against the console's left edge ...
-ASH6 = (706, 64)         # ... and the ash tray (with the lighter) to its right
+HU6 = (516, 67)          # round 6 (Oct 24): the radio against the console's left edge ...
+ASH6 = (704, 67)         # ... and the ash tray (with the lighter) to its right
 
 
 def con_sedan(b, chrome=True, vents="rect", climate="levers", inset_mat=None, badge_spec=None, hu=HU6, tab=None, fan_mat=None,
@@ -259,7 +259,7 @@ def con_sedan(b, chrome=True, vents="rect", climate="levers", inset_mat=None, ba
     if vents == "rect": console_vents(b, 26, chrome=chrome, w=88, h=30)
     elif vents == "round": console_vents(b, 26, chrome=chrome, h=28, round_=True)
     if badge_spec: badge(b, **badge_spec)
-    hy = hu[1] + (2 if vents == "round" else 0)      # the eyeballs' rings reach a little lower
+    hy = hu[1]                     # balance pass: 7 px over the radio and 7 under it, for every vent
     headunit_slot(b, hu[0], hy, frame="chrome" if chrome else "bezel")
     if ash: ash_tray(b, ASH6[0], hy, chrome=chrome)
     if climate == "levers": climate_levers(b, 548, 128, chrome=chrome, fan_knob=(752, 140), tab=tab, fan_mat=fan_mat)
@@ -279,9 +279,9 @@ def con_fleet(b, top="siren", badge_role="unit", chrome=False):
         badge(b, 650, 33, 92, 12, style="stencil", role=badge_role, font="35", color="#e8e8e0", plate="stencil")
         vent_eyeball(b, 764, 44, 14, bezel="blackp")
         v6.hula(b, 684, 0)
-    headunit_slot(b, 518, 76, frame="bezel")
-    if top == "meter": ash_tray(b, 706, 76, chrome=False, levels=(3,), seed=11)   # a cab's: always the full one
-    else: no_smoking(b, 706, 76)
+    headunit_slot(b, 516, 76, frame="bezel")
+    if top == "meter": ash_tray(b, 704, 76, chrome=False, levels=(3,), seed=11)   # a cab's: always the full one
+    else: no_smoking(b, 704, 76)
     # three pixels higher than the sedans' so the AIR legends (a clear pixel under the tab) stay on the console
     climate_levers(b, 540, 135, chrome=chrome, fan_knob=(752, 146))
 
@@ -299,7 +299,7 @@ def wagon(b):
     lower_boxy6(b, y0=118, chrome=True, trunk_label="GATE", trunk_sub="TAILGATE")
     inset(b, 504, 26, 282, 136, "walnut", "chrome", seed=7)
     console_vents(b, 28, chrome=True, w=88, h=30)
-    badge(b, 604, 39, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
+    badge(b, 602, 39, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
     headunit_slot(b, *HU6, frame="chrome")
     ash_tray(b, *ASH6, chrome=True)
     climate_levers(b, 548, 128, chrome=True, fan_knob=(752, 140))
@@ -332,7 +332,7 @@ def luxury(b):
     lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub="RELEASE")
     inset(b, 504, 26, 282, 136, "walnut", "chrome", seed=13)
     console_vents(b, 28, chrome=True, w=88, h=30)
-    badge(b, 604, 37, 86, 12, style="chrome", role="model", font="57", shadow="#140904")
+    badge(b, 602, 37, 86, 12, style="chrome", role="model", font="57", shadow="#140904")
     headunit_slot(b, *HU6, frame="chrome")
     ash_tray(b, *ASH6, chrome=True)
     climate_vfd(b, 516, 124)
@@ -352,12 +352,12 @@ def horizon(b):
     lamp_col(b, 34, 24, 30, [L_LT, L_BELTS, L_TEMP, L_RT])
     badge(b, 30, 90, 76, 9, style="chrome", role="model", font="57", shadow="#140904")
     lower_boxy6(b, y0=118, chrome=True, cruise=False)
-    inset(b, 504, 120, 282, 42, "walnut", "chrome", seed=23)
+    inset(b, 504, 122, 282, 40, "walnut", "chrome", seed=23)
     console_vents(b, 27, chrome=True, h=28, round_=True)
-    badge(b, 604, 38, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
-    headunit_slot(b, 518, 66, frame="chrome")
-    ash_tray(b, 706, 66, chrome=True)
-    climate_levers(b, 548, 128, chrome=True, fan_knob=(752, 138))
+    badge(b, 602, 38, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
+    headunit_slot(b, *HU6, frame="chrome")
+    ash_tray(b, *ASH6, chrome=True)
+    climate_levers(b, 548, 128, chrome=True, fan_knob=(752, 141))
 
 
 # =================================================================================== vinyl and chrome, speed first
@@ -367,7 +367,7 @@ def nyala(b):
     cl_nyala(b, bz="chrome", nd="#f07a28")
     lower_boxy6(b, y0=118, chrome=True)
     con_sedan(b, chrome=True, vents="rect", climate="levers",
-              badge_spec=dict(x=608, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
+              badge_spec=dict(x=605, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
 
 
 def dart(b):
@@ -376,7 +376,7 @@ def dart(b):
     cl_dart(b)
     lower_boxy6(b, y0=118, chrome=False, cruise=False)
     con_sedan(b, chrome=False, vents="round", climate="knobs",
-              badge_spec=dict(x=608, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
+              badge_spec=dict(x=605, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
 
 
 def d6(b):
@@ -385,8 +385,8 @@ def d6(b):
     cl_d6(b, bz="chrome", nd="#ff6a1a")
     lower_boxy6(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
     con_sedan(b, chrome=True, vents="round", climate="levers", tab="tab_black", fan_mat="chrome",
-              badge_spec=dict(x=600, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
-    badge(b, 604, 44, 84, 7, style="emboss", role="sub", font="35", color="#2a2c30", check=False)
+              badge_spec=dict(x=599, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
+    badge(b, 603, 44, 84, 7, style="emboss", role="sub", font="35", color="#2a2c30", check=False)
 
 
 def van(b):
@@ -395,10 +395,10 @@ def van(b):
     cl_van(b, bz="blackp", nd="#ff7a2a")
     lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS")
     console_vents(b, 24, chrome=False, w=88, h=28)
-    badge(b, 604, 26, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
-    badge(b, 608, 40, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
-    headunit_slot(b, 518, 64, frame="bezel")
-    v6.van_right(b, 706, 66)          # switched sides (Oct 24): the radio went left; logo sticker, NO SMOKING or ash tray
+    badge(b, 602, 26, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
+    badge(b, 604, 40, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+    headunit_slot(b, *HU6, frame="bezel")
+    v6.van_right(b, 704, 67)          # switched sides (Oct 24): the radio went left; logo sticker, NO SMOKING or ash tray
     climate_levers(b, 548, 134, chrome=False, fan_knob=(752, 144))
 
 
@@ -408,8 +408,8 @@ def bulldriver(b):
     cl_bull(b, nd="#e8402a")
     lower_boxy6(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
     con_sedan(b, chrome=True, vents="round", climate="levers",
-              badge_spec=dict(x=600, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
-    badge(b, 604, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+              badge_spec=dict(x=599, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
+    badge(b, 603, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
 
 
 def rancher(b):
@@ -420,10 +420,10 @@ def rancher(b):
     inset(b, 504, 26, 282, 136, "steel", "seam")
     for (x, y) in ((508, 30), (781, 30), (508, 157), (781, 157)): screw(b, x, y)
     console_vents(b, 29, chrome=False, h=24, round_=True, x0=516, xr=778)
-    badge(b, 604, 30, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
-    badge(b, 606, 44, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
-    headunit_slot(b, 518, 64, frame="bezel")
-    ash_tray(b, 706, 64, chrome=False)
+    badge(b, 602, 30, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
+    badge(b, 604, 44, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+    headunit_slot(b, 516, 64, frame="bezel")
+    ash_tray(b, 704, 64, chrome=False)
     climate_knobs(b, 540, 136, pitch=46, r=11, mat="blackp")
 
 
@@ -452,10 +452,10 @@ def dashelite(b):
     b.check_flat(506, 32, 282, 132, "console face")
     d.slab(cf, 1.0, "blackp", bevel=3.0, polish=0.2, on=Z_FACE - 1.0)
     d.grain_pebble(cf, 0.035, seed=9)
-    vent_louvered(b, 514, 38, 100, 26, bezel="blackp", on=Z_FACE, wheel="left")
-    vent_louvered(b, 680, 38, 100, 26, bezel="blackp", on=Z_FACE, wheel="right")
-    headunit_slot(b, 516, 70, frame="bezel")
-    ash_tray(b, 704, 70, chrome=False)
+    vent_louvered(b, 514, 38, 100, 24, bezel="blackp", on=Z_FACE, wheel="left")
+    vent_louvered(b, 680, 38, 100, 24, bezel="blackp", on=Z_FACE, wheel="right")
+    headunit_slot(b, 518, 69, frame="bezel")
+    ash_tray(b, 706, 69, chrome=False)
     climate_buttons(b, 576, 124, lcd=True)
     b.label("AUTOMATIC CLIMATE CONTROL", 646, 154, "paint_c", align="c")
     badge(b, 560, 25, 172, 7, style="flat", role="full", font="35", color="#d8d6cc", check=False)
@@ -505,7 +505,7 @@ def primani(b):
     vent_louvered(b, 516, 42, 100, 20, bezel="blackp", on=Z_FACE, wheel="left")
     vent_louvered(b, 680, 42, 100, 20, bezel="blackp", on=Z_FACE, wheel="right")
     headunit_slot(b, 520, 68, frame="bezel")
-    ash_tray(b, 706, 68, chrome=False)
+    ash_tray(b, 705, 68, chrome=False)
     climate_sliders(b, 532, 130, w=126)
     badge(b, 560, 31, 172, 7, style="flat", role="full", font="35", color="#3a3226", check=False)
 
@@ -530,7 +530,7 @@ def suv(b):
     vent_louvered(b, 516, 36, 96, 22, bezel="blackp", on=Z_FACE, wheel="left")
     vent_louvered(b, 684, 36, 96, 22, bezel="blackp", on=Z_FACE, wheel="right")
     headunit_slot(b, 520, 64, frame="bezel")
-    ash_tray(b, 706, 64, chrome=False)
+    ash_tray(b, 705, 64, chrome=False)
     climate_knobs(b, 556, 136, pitch=50, r=10, mat="rubber")
     badge(b, 622, 41, 48, 9, style="flat", role="sub", font="57", color="#d84a2a", check=True)
 
@@ -543,10 +543,10 @@ def cossette(b):
     lower_boxy6(b, y0=120, chrome=False)
     inset(b, 504, 26, 282, 136, "blackp", "seam")
     console_vents(b, 28, chrome=False, w=88, h=28)
-    badge(b, 606, 31, 86, 10, style="script", role="model", font="57", color="#e8e8e8", shadow="#3a0a08")
-    badge(b, 606, 44, 86, 7, style="flat", role="sub", font="35", color="#ff3a20", check=False)
-    headunit_slot(b, 518, 62, frame="bezel")
-    ash_tray(b, 706, 62, chrome=False)
+    badge(b, 602, 31, 86, 10, style="script", role="model", font="57", color="#e8e8e8", shadow="#3a0a08")
+    badge(b, 602, 44, 86, 7, style="flat", role="sub", font="35", color="#ff3a20", check=False)
+    headunit_slot(b, 516, 64, frame="bezel")
+    ash_tray(b, 704, 64, chrome=False)
     climate_sliders(b, 532, 130, w=126)
 
 
@@ -636,11 +636,11 @@ def ambulance(b):
     """Ambulance: a Valuline made plain, medic grey; the emergency switches on the lower dash"""
     shell_boxy(b, trim="rubber")
     cl_van(b, bz="blackp", nd="#ff7a2a")
-    lower_boxy6(b, y0=118, chrome=False, cruise=False, vent=False, trunk_label="REAR", trunk_sub="DOORS")
-    rocker_panel(b, 56, 122, [("LIGHT", "lbarLamp", "lbar"), ("SIREN", "sirenLamp", "siren"), ("FLOOD", None, None),
+    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, vent=False, trunk_label="REAR", trunk_sub="DOORS", left_panel=158)
+    rocker_panel(b, px_, 122, [("LIGHT", "lbarLamp", "lbar"), ("SIREN", "sirenLamp", "siren"), ("FLOOD", None, None),
                               ("SCENE", None, None), ("DOME", None, None)])
     console_vents(b, 26, chrome=False, w=88, h=30)
-    badge(b, 604, 35, 86, 12, style="stencil", role="unit", font="35", color="#e8e8e0", plate="stencil")
+    badge(b, 602, 35, 86, 12, style="stencil", role="unit", font="35", color="#e8e8e0", plate="stencil")
     headunit_slot(b, *HU6, frame="bezel")
     no_smoking(b, *ASH6)
     climate_levers(b, 548, 128, chrome=False, fan_knob=(752, 140))

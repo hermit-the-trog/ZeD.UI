@@ -135,61 +135,89 @@ def ignition(b, cx, cy, met="chrome", labels=("OFF", "ON", "START"), style=None)
 
 
 # ====================================================================== lower rows
-def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cruise=True, lock=True, vent=True, key_style=None):
-    """lights at the left, the driver's vent under the outer gauges, the column clear, the key right of it, then
-    the lock, trunk and cruise buttons"""
+LEFT_SPAN = (14, COLUMN_X - 28)       # the lower row left of the column, and right of it (balance pass, Oct 24:
+RIGHT_SPAN = (COLUMN_X + 28, 486)     #   every group spread with equal gaps, the column's 56 px kept clear)
+
+
+def spread(x0, x1, widths):
+    """left edges for blocks of these widths laid in x0..x1 with equal gaps before, between and after"""
+    g = (x1 - x0 - sum(widths)) / (len(widths) + 1)
+    out, x = [], x0 + g
+    for w in widths:
+        out.append(int(round(x))); x += w + g
+    return out
+
+
+def _lights_boxy(b, cx, y0, met, chrome):
+    d = b.d
+    b.check_flat(cx - 10, y0 + 12, 22, 22, "lights knob")
+    knob(d, cx, y0 + 22, 8, mat=met, on=Z_FACE, z=4.5, knurl=not chrome)
+    ins = np.hypot(d.XX + 0.5 - cx, d.YY + 0.5 - (y0 + 22)) <= 5.2
+    d.paint(ins, "blackp", flatlight=True)
+    d.paint(icon_mask(d, "headlamp", cx - 3, y0 + 20), "paint_w", flatlight=True)
+    b.label("LIGHTS", cx, y0 + 33, align="c")
+    DL.pull_variant(b, cx, y0 + 22, 8, met)
+    b.hit("lights", cx - 10, y0 + 12, 21, 21)
+
+
+def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cruise=True, lock=True, vent=True, key_style=None,
+                left_panel=None):
+    """left of the column the lights and the driver's vent (or a left_panel width the caller fills: the ambulance's
+    switches), right of it the key, the lock, the trunk and cruise buttons; each side spread with equal gaps.
+    Returns the left panel's x when one is asked for."""
     d = b.d
     met = "chrome" if chrome else "blackp"
-    b.check_flat(24, y0 + 12, 22, 22, "lights knob")
-    knob(d, 34, y0 + 22, 8, mat=met, on=Z_FACE, z=4.5, knurl=not chrome)
-    ins = np.hypot(d.XX + 0.5 - 34, d.YY + 0.5 - (y0 + 22)) <= 5.2
-    d.paint(ins, "blackp", flatlight=True)
-    d.paint(icon_mask(d, "headlamp", 31, y0 + 20), "paint_w", flatlight=True)
-    b.label("LIGHTS", 34, y0 + 33, align="c")
-    DL.pull_variant(b, 34, y0 + 22, 8, met)
-    b.hit("lights", 24, y0 + 12, 21, 21)
-    if vent:
-        vent_louvered(b, 58, y0 + 6, 118, 36, bezel=met, wheel="left")
-    kx = COLUMN_X + KEY_DX
-    ignition(b, kx, y0 + 22, met=met, style=key_style)
-    lx = kx + 44
-    if lock:
-        b.check_flat(lx - 2, y0 + 12, 22, 17, "lock button")
-        button(d, lx, y0 + 14, 18, 13, None, mat="blackp", on=Z_FACE, z=2.0, frame="chrome" if chrome else None)
-        d.paint(icon_mask(d, "lock", lx + 7, y0 + 18), "paint_w", flatlight=True)
-        b.label("LOCK", lx + 9, y0 + 31, align="c")
-        b.led(lx + 13, y0 + 16, 3, 2, "anyLocked", "#44ee44")
-        b.hit("lock", lx, y0 + 14, 18, 13)
-        lx += 28
+    lw = 24                                                  # the lights block: the knob and its LIGHTS legend
+    left = [lw] + ([118] if vent else ([left_panel] if left_panel else []))
+    lx_ = spread(*LEFT_SPAN, left)
+    _lights_boxy(b, lx_[0] + lw // 2, y0, met, chrome)
+    panel_x = None
+    if vent: vent_louvered(b, lx_[1], y0 + 6, 118, 36, bezel=met, wheel="left")
+    elif left_panel: panel_x = lx_[1]
     tw = max(30, text_w(trunk_label) + 8)
-    b.check_flat(lx - 2, y0 + 12, tw + 4, 17, "trunk button")
-    button(d, lx, y0 + 14, tw, 13, trunk_label, mat="blackp", on=Z_FACE, frame="chrome" if chrome else None)
-    if trunk_sub: b.label(trunk_sub, lx + tw // 2, y0 + 31, align="c")
-    b.hit("trunk", lx, y0 + 14, tw, 13, needs="hasTrunk")
-    cx_ = lx + tw + 10
-    if cruise:
-        b.check_flat(cx_ - 2, y0 + 12, 38, 17, "cruise button")
-        button(d, cx_, y0 + 14, 34, 13, "CRUISE", mat="blackp", on=Z_FACE, frame="chrome" if chrome else None)
-        b.label("ON  SET", cx_ + 17, y0 + 31, align="c")
-        b.led(cx_ + 28, y0 + 16, 3, 2, "cruiseLamp", "#ffb02e")
-        b.hit("cruise", cx_, y0 + 14, 34, 13, needs="running")
-        cx_ += 44
-    return cx_
+    blocks = [("key", 44), ("lock", 18)] if lock else [("key", 44)]
+    blocks.append(("trunk", max(tw, text_w(trunk_sub) if trunk_sub else 0)))
+    if cruise: blocks.append(("cruise", 34))
+    xs = spread(*RIGHT_SPAN, [w for _, w in blocks])
+    for (kind, bw), x in zip(blocks, xs):
+        if kind == "key":
+            ignition(b, x + 12, y0 + 22, met=met, style=key_style)
+        elif kind == "lock":
+            b.check_flat(x - 2, y0 + 12, 22, 17, "lock button")
+            button(d, x, y0 + 14, 18, 13, None, mat="blackp", on=Z_FACE, z=2.0, frame="chrome" if chrome else None)
+            d.paint(icon_mask(d, "lock", x + 7, y0 + 18), "paint_w", flatlight=True)
+            b.label("LOCK", x + 9, y0 + 31, align="c")
+            b.led(x + 13, y0 + 16, 3, 2, "anyLocked", "#44ee44")
+            b.hit("lock", x, y0 + 14, 18, 13)
+        elif kind == "trunk":
+            bx = x + (bw - tw) // 2
+            b.check_flat(bx - 2, y0 + 12, tw + 4, 17, "trunk button")
+            button(d, bx, y0 + 14, tw, 13, trunk_label, mat="blackp", on=Z_FACE, frame="chrome" if chrome else None)
+            if trunk_sub: b.label(trunk_sub, bx + tw // 2, y0 + 31, align="c")
+            b.hit("trunk", bx, y0 + 14, tw, 13, needs="hasTrunk")
+        else:
+            b.check_flat(x - 2, y0 + 12, 38, 17, "cruise button")
+            button(d, x, y0 + 14, 34, 13, "CRUISE", mat="blackp", on=Z_FACE, frame="chrome" if chrome else None)
+            b.label("ON  SET", x + 17, y0 + 31, align="c")
+            b.led(x + 28, y0 + 16, 3, 2, "cruiseLamp", "#ffb02e")
+            b.hit("cruise", x, y0 + 14, 34, 13, needs="running")
+    return panel_x
 
 
 def lower_curvy6(b, y0=122):
-    """early 90s: the lights rotary, the vent low on the left, the column clear, the key right of it, then rockers
-    and the buttons"""
+    """early 90s: left of the column the lights rotary and the vent, right of it the key, the rockers and the buttons,
+    each side spread with equal gaps"""
     d = b.d; M = d.M
-    b.check_flat(26, y0 + 6, 25, 25, "lights knob")
-    knob(d, 38, y0 + 18, 10, mat="blackp", on=Z_FACE, z=3.0, knurl=True)
-    d.paint(icon_mask(d, "headlamp", 35, y0 + 31), "paint_w", flatlight=True)
-    b.label("OFF", 22, y0 + 2, align="c")
-    d.paint(icon_mask(d, "beam", 50, y0 + 1), "paint_w", flatlight=True)
-    b.part("ptr", src="lights", cx=38, cy=y0 + 18, r0=2, r1=8, angles=[225, 315], color="#e8e8e8", w=1)
-    b.hit("lights", 28, y0 + 8, 21, 21)
-    # the vent, a rounded slot with the 90s' fine louvers and a wheel
-    vx, vw = 62, 120
+    lx_ = spread(*LEFT_SPAN, [40, 120])
+    cx = lx_[0] + 16                                         # the knob; its OFF legend and beam icon reach either side
+    b.check_flat(cx - 12, y0 + 6, 25, 25, "lights knob")
+    knob(d, cx, y0 + 18, 10, mat="blackp", on=Z_FACE, z=3.0, knurl=True)
+    d.paint(icon_mask(d, "headlamp", cx - 3, y0 + 31), "paint_w", flatlight=True)
+    b.label("OFF", cx - 16, y0 + 2, align="c")
+    d.paint(icon_mask(d, "beam", cx + 12, y0 + 1), "paint_w", flatlight=True)
+    b.part("ptr", src="lights", cx=cx, cy=y0 + 18, r0=2, r1=8, angles=[225, 315], color="#e8e8e8", w=1)
+    b.hit("lights", cx - 10, y0 + 8, 21, 21)
+    vx, vw = lx_[1], 120
     b.check_flat(vx - 2, y0 + 2, vw + 4, 32, "driver vent")
     v = M().rrect(vx, y0 + 4, vw, 28, 10).get()
     d.slab(v & ~M().rrect(vx + 3, y0 + 7, vw - 6, 22, 8).get(), 1.4, "blackp", bevel=1.4, polish=0.3, on=Z_FACE)
@@ -206,8 +234,8 @@ def lower_curvy6(b, y0=122):
     wm = vi & (d.XX >= vx + vw - 14) & (d.XX < vx + vw - 7) & (d.YY >= y0 + 9) & (d.YY < y0 + 27)
     d.cyl(vx + vw - 14, y0 + 9, 7, 18, 3.2, "blackp", axis="v", polish=0.5, on=Z_FACE - 3.6, mask=wm)
     d.tex[wm & (((d.YY - y0) % 2) == 0)] += 0.11
-    # the key, right of the column
-    kx = COLUMN_X + KEY_DX
+    xs = spread(*RIGHT_SPAN, [36, 56, 22, 34, 40])
+    kx = xs[0] + 12
     b.check_flat(kx - 12, y0 + 6, 25, 25, "ignition")
     d.torus(kx, y0 + 18, 7, 9.5, 1.6, "blackp", polish=0.6, on=Z_FACE)
     ig = np.hypot(d.XX + 0.5 - kx, d.YY + 0.5 - (y0 + 18)) < 7
@@ -217,26 +245,26 @@ def lower_curvy6(b, y0=122):
         DL.ring_label(b, kx + 0.5, y0 + 18.5, 10.5, a, t, gap=2)
     key_turn_variants(b, kx, y0 + 18, "black")
     b.hit("ignition", kx - 10, y0 + 8, 21, 21)
-    x = kx + 28
+    x = xs[1]
     for i, ic in enumerate(("hazard", "defrost", "wiper")):
         b.check_flat(x + i * 20 - 2, y0 + 6, 20, 26, f"rocker {ic}")
         DL.rocker(d, x + i * 20, y0 + 8, 16, 22, on=Z_FACE, up=(i != 1), icon=ic, icon_mat="paint_r" if ic == "hazard" else "paint_w")
-    x += 62
+    x = xs[2]
     b.check_flat(x - 2, y0 + 9, 26, 18, "lock button")
     button(d, x, y0 + 11, 22, 14, None, mat="blackp", on=Z_FACE, r=3)
     d.paint(icon_mask(d, "lock", x + 9, y0 + 15), "paint_w", flatlight=True)
     b.led(x + 16, y0 + 13, 3, 2, "anyLocked", "#44ee44"); b.hit("lock", x, y0 + 11, 22, 14)
-    x += 26
+    x = xs[3]
     b.check_flat(x - 2, y0 + 9, 38, 18, "trunk button")
     button(d, x, y0 + 11, 34, 14, "TRUNK", mat="blackp", on=Z_FACE, r=3); b.hit("trunk", x, y0 + 11, 34, 14, needs="hasTrunk")
-    x += 38
+    x = xs[4]
     b.check_flat(x - 2, y0 + 9, 44, 18, "cruise button")
     button(d, x, y0 + 11, 40, 14, "CRUISE", mat="blackp", on=Z_FACE, r=3)
     b.led(x + 34, y0 + 13, 3, 2, "cruiseLamp", "#7aff6a"); b.hit("cruise", x, y0 + 11, 40, 14, needs="running")
 
 
 # ====================================================================== the console
-def console_vents(b, y, x0=512, w=88, h=30, chrome=True, round_=False, xr=782):
+def console_vents(b, y, x0=510, w=88, h=30, chrome=True, round_=False, xr=780):
     """the two centre vents, larger: rectangles with louvers, tab and wheel, or round eyeballs (x0 .. xr)"""
     bz = "chrome" if chrome else "blackp"
     x1 = xr - w
