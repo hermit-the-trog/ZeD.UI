@@ -132,5 +132,6 @@ S.step(10, function()
     say(string.format("back at %d,%d (was %d,%d) | carried %d | zombies in the cell %d", math.floor(p:getX()), math.floor(p:getY()),
         math.floor(R.x), math.floor(R.y), inv:getItems():size(), getCell():getZombieList():size()))
     GAL = nil
+    GAL_ONLY = nil   -- (gallery_v3_only.lua's section list, for a later full run)
 end)
 S.start()

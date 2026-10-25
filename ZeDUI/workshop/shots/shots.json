@@ -25,10 +25,10 @@
      735
     ],
     [
-     1436,
-     2036,
-     2410,
-     2130
+     1330,
+     2030,
+     2310,
+     2140
     ]
    ],
    "balloons": [
@@ -53,7 +53,7 @@
     {
      "text": "The belt: your hands, and the attachment slots of the gear you wear, on a strap in the gear's material.",
      "anchor": [
-      1440,
+      1338,
       2085
      ],
      "side": "left"
@@ -718,10 +718,10 @@
    "src": "story_10_customers_queue.png",
    "avoid": [
     [
-     1436,
-     2036,
-     2410,
-     2130
+     1330,
+     2030,
+     2395,
+     2140
     ]
    ],
    "balloons": [
@@ -736,7 +736,7 @@
     {
      "text": "The watch you wear, at the end of the belt.",
      "anchor": [
-      2362,
+      1370,
       2083
      ],
      "side": "top"
@@ -751,24 +751,24 @@
    "crops": [
     {
      "box": [
-      1690,
+      1300,
       840,
-      2410,
+      2025,
       2140
      ],
      "place": [
       180,
       160,
-      443
+      446
      ]
     },
     {
      "src": "story_11_smoke_break.png",
      "box": [
-      3300,
+      3260,
       985,
       3840,
-      1225
+      1175
      ],
      "place": [
       900,
@@ -779,10 +779,10 @@
    ],
    "balloons": [
     {
-     "text": "The action bar names the action and the item: the cigarette, 26 percent.",
+     "text": "The action bar names the action and the item: the cigarette, 27 percent.",
      "anchor": [
       2012,
-      882
+      884
      ],
      "side": "right",
      "crop": 0
@@ -790,7 +790,7 @@
     {
      "text": "Press the face of the small watch to open the full watch. Drag it anywhere.",
      "anchor": [
-      2388,
+      1575,
       1790
      ],
      "side": "right",
@@ -799,8 +799,8 @@
     {
      "text": "The small watch on the belt.",
      "anchor": [
-      2364,
-      2112
+      1381,
+      2122
      ],
      "side": "bottom",
      "crop": 0
@@ -814,17 +814,17 @@
      "side": "top",
      "crop": 1,
      "target": [
-      3783,
+      3782,
       1000,
       3830,
-      1165
+      1158
      ]
     },
     {
-     "text": "ZeD draws the box beside the moodle, level with it.",
+     "text": "The thought bubble trails to its moodle. It also shows by itself when a moodle changes.",
      "anchor": [
-      3540,
-      1205
+      3500,
+      1128
      ],
      "side": "bottom",
      "crop": 1
@@ -925,16 +925,16 @@
     {
      "src": "story_12c_watch_light.png",
      "box": [
-      2150,
+      1316,
       1660,
-      2420,
+      1606,
       2140
      ],
      "resample": "nearest",
      "place": [
       1360,
       160,
-      405
+      435
      ]
     }
    ],
@@ -960,8 +960,8 @@
     {
      "text": "LIGHT lights the watch's display.",
      "anchor": [
-      2185,
-      1757
+      1372,
+      1763
      ],
      "side": "left",
      "crop": 2
@@ -969,10 +969,10 @@
     {
      "text": "The full watch tucks back onto the belt after a few seconds.",
      "anchor": [
-      2400,
-      1900
+      1340,
+      1960
      ],
-     "side": "right",
+     "side": "left",
      "crop": 2
     }
    ]
@@ -2097,7 +2097,7 @@
   {
    "id": "watches",
    "kind": "feature",
-   "src": "C:/Users/danie/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_gbw_DigitalTimez.png",
    "title": "Watches",
    "caption": "The small watch on the belt shows the watch worn on the wrist.",
    "layout": {
@@ -2106,44 +2106,44 @@
    },
    "crops": [
     {
-     "src": "zed_30_hud_belt_watch.png",
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_gbw_DigitalBlack.png",
      "box": [
-      2300,
+      1316,
       2025,
-      2420,
+      1436,
       2140
      ],
      "resample": "nearest",
      "tag": "CAZIO"
     },
     {
-     "src": "C:/Users/danie/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_gbw_DigitalTimez.png",
      "box": [
-      2300,
+      1316,
       2025,
-      2420,
+      1436,
       2140
      ],
      "resample": "nearest",
      "tag": "TIMEZ"
     },
     {
-     "src": "C:/Users/danie/Zomboid/Screenshots/zed_79_belt_watch_ClassicGold.png",
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_gbw_ClassicGold.png",
      "box": [
-      2300,
+      1316,
       2025,
-      2420,
+      1436,
       2140
      ],
      "resample": "nearest",
      "tag": "CAZIO CLASSIC"
     },
     {
-     "src": "C:/Users/danie/Zomboid/Screenshots/zed_80_belt_watch_DigitalRed.png",
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_gbw_DigitalRed.png",
      "box": [
-      2300,
+      1316,
       2025,
-      2420,
+      1436,
       2140
      ],
      "resample": "nearest",
@@ -2154,8 +2154,8 @@
     {
      "text": "LIGHT lights a CaZio's display with a small bulb.",
      "anchor": [
-      2360,
-      2135
+      1380,
+      2132
      ],
      "side": "bottom",
      "crop": 0
@@ -2163,8 +2163,8 @@
     {
      "text": "Each watch is drawn to match the one you wear.",
      "anchor": [
-      2360,
-      2135
+      1380,
+      2132
      ],
      "side": "bottom",
      "crop": 1
@@ -2172,8 +2172,8 @@
     {
      "text": "Press the face to open the full watch.",
      "anchor": [
-      2360,
-      2135
+      1380,
+      2132
      ],
      "side": "bottom",
      "crop": 3

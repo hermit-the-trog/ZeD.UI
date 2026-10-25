@@ -35,7 +35,7 @@ G.KIT = {
         { "Base.HolsterSimple_Black", "Base.HolsterSimple" },
         { "Base.Kneepad_Left_Tactical" }, { "Base.Kneepad_Right_Tactical" },
         { "Base.WristWatch_Left_DigitalBlack" },
-        { "Base.Glasses_Aviators" },
+        { "Base.Glasses_Prescription_Aviators", "Base.Glasses_Aviators" },   -- the QA character is short-sighted: without them the game blurs the scene (Oct 25 2026)
         { "Base.Bag_ALICEpack_Army", "Base.Bag_ALICEpack" },
         { "Base.Bag_ChestRig" },
         { "Base.Bag_FannyPackBack" },

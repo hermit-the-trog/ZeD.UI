@@ -2,7 +2,7 @@
 -- Retakes of single story beats: run before gallery_story_stage.lua in a manifest so
 -- gallery_story_shots.lua takes only these beats (its STORY_ONLY). Edit the list for the
 -- beats wanted; gallery_story_teardown.lua clears it at its end. grep "ZEDQA sto".
-STORY_ONLY = { ["11"] = true }
+STORY_ONLY = { ["11"] = true }   -- Oct 25 2026: the moodle note as a thought bubble
 local keys = {}
 for k in pairs(STORY_ONLY) do keys[#keys + 1] = k end
 table.sort(keys)
