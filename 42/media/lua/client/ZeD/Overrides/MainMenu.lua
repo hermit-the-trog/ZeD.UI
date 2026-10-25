@@ -126,6 +126,7 @@ local function handBack()
     -- the pause window, ZeD's Options over the world and its pull-down
     if MM.pause and MM.pause:isVisible() then MM.pause:setVisible(false) end
     if MM.pauseOpts and MM.pauseOpts:isVisible() then MM.pauseOpts:setVisible(false) end
+    if MM.pauseSandbox and MM.pauseSandbox:isVisible() then MM.pauseSandbox:setVisible(false) end
     if MM.igDrop and MM.igDrop:isVisible() then MM.igDrop:setVisible(false) end
     MM.pauseView = "pause"
     local m = MainScreen.instance

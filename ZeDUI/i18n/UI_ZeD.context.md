@@ -75,6 +75,7 @@ Total keys: 2199.
 - [Safe](#safe) (3)
 - [Sandbox](#sandbox) (13)
 - [Saves](#saves) (14)
+- [Sbx](#sbx) (189)
 - [Seat](#seat) (5)
 - [Server](#server) (55)
 - [Settings](#settings) (52)
@@ -1980,6 +1981,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_ZedPutBack` | `Put things back` | ZeD setup: section header over the Put things back switch | 30 |
 | `UI_ZeD_Options_ZedTrouble` | `Troubleshooting` | (existing) | - |
 | `UI_ZeD_Options_ZedWindows` | `Windows` | (existing) | - |
+| `UI_ZeD_Options_ZedSandbox` | `Sandbox` | Options, ZeD setup: group heading (capitals) | 24 |
+| `UI_ZeD_Options_UnderSandboxIG` | `A line in the pause window` | Options, ZeD setup: the line under the Sandbox switch's name | - |
 
 ## Papers
 
@@ -2235,6 +2238,200 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Saves_RenameFile` | `Rename file...` | Load game screen: row of the More pop-up | - |
 | `UI_ZeD_Saves_Title` | `Project Zomboid  +  Load game` | Load game screen: title bar. The + is the ZeD title separator | - |
 
+## Sbx
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_SbxSave_Alarm` | `Each building gets its alarm, or none, from this setting when the map data is first made. Buildings already stored in the save should keep their alarm state.` | Sandbox options in game: help band, On this save, for House Alarms Frequency (World page) | - |
+| `UI_ZeD_SbxSave_AlarmDecay` | `Each building gets its alarm battery time from this setting when the map data is first made. Buildings already stored in the save should keep theirs.` | Sandbox options in game: help band, On this save, for Alarm Battery Decay (World page) | - |
+| `UI_ZeD_SbxSave_AnimalEggHatch` | `Read when an egg is made. Eggs already laid keep their hatch time.` | Sandbox options in game: help band, On this save, for Egg Hatch Time (Livestock page) | - |
+| `UI_ZeD_SbxSave_AnimalPathChance` | `Read when an area is first set up. Areas you have already seen keep their paths.` | Sandbox options in game: help band, On this save, for Animal Paths Chance (Livestock page) | - |
+| `UI_ZeD_SbxSave_AnimalRanchChance` | `Read when a farm is first set up. Farms you have already seen keep their animals.` | Sandbox options in game: help band, On this save, for Animal Spawn Chance (Livestock page) | - |
+| `UI_ZeD_SbxSave_AnimalTrackChance` | `Read when the game places animal tracks. Tracks already placed stay.` | Sandbox options in game: help band, On this save, for Animal Tracks Chance (Livestock page) | - |
+| `UI_ZeD_SbxSave_AnnotatedMapChance` | `Read when a map is made. Maps you already hold keep their notes, or lack of them.` | Sandbox options in game: help band, On this save, for Annotated Map Chance (Meta page) | - |
+| `UI_ZeD_SbxSave_Basement_SpawnFrequency` | `No code in the game reads this setting in this build, so changing it does nothing.` | Sandbox options in game: help band, On this save, for Basement Spawn Frequency (World page) | - |
+| `UI_ZeD_SbxSave_BloodSplatLifespanDays` | `Old blood splats are removed as map chunks load, so setting it can clear them for good. 0 keeps them forever.` | Sandbox options in game: help band, On this save, for Blood Splat Lifespan Days (Meta page) | - |
+| `UI_ZeD_SbxSave_CarAlarm` | `Read when a car is first made. Cars already in the world keep their alarm state.` | Sandbox options in game: help band, On this save, for Vehicle Alarms Frequency (Vehicles page) | - |
+| `UI_ZeD_SbxSave_CarGeneralCondition` | `Read when a car is first made. Cars already in the world keep their condition.` | Sandbox options in game: help band, On this save, for General Condition (Vehicles page) | - |
+| `UI_ZeD_SbxSave_CarSpawnRate` | `Only affects areas the game fills for the first time. Cars already in the world stay where they are.` | Sandbox options in game: help band, On this save, for Vehicle Spawn Rate (Vehicles page) | - |
+| `UI_ZeD_SbxSave_ChanceHasGas` | `Read when a car is first made. Cars already in the world keep their fuel.` | Sandbox options in game: help band, On this save, for Chance Has Gas (Vehicles page) | - |
+| `UI_ZeD_SbxSave_ClayLakeChance` | `Read when ground is generated for the first time. Ground you have already seen keeps its tiles.` | Sandbox options in game: help band, On this save, for Clay chance - Lake (Nature page) | - |
+| `UI_ZeD_SbxSave_ClayRiverChance` | `Read when ground is generated for the first time. Ground you have already seen keeps its tiles.` | Sandbox options in game: help band, On this save, for Clay chance - River (Nature page) | - |
+| `UI_ZeD_SbxSave_ConstructionBonusPoints` | `Read when something finishes building. Applies to what you build from now on. Things already built keep their strength.` | Sandbox options in game: help band, On this save, for Player-built Construction Strength (Character page) | - |
+| `UI_ZeD_SbxSave_ConstructionPreventsLootRespawn` | `With it off and Hours for Loot Respawn above 0, buildings you have built in or barricaded can refill with loot too, and so can your own storage there.` | Sandbox options in game: help band, On this save, for Construction Prevents Loot Respawn (Loot page) | - |
+| `UI_ZeD_SbxSave_DayLength` | `Days get longer or shorter in real time from now on. The clock and the date do not move. Needs, healing, food spoiling and crop growth run on game time, so they follow the new day length.` | Sandbox options in game: help band, On this save, for Day Length (in real time) (Time page) | - |
+| `UI_ZeD_SbxSave_DaysForRottenFoodRemoval` | `Food that has been rotten for more than this many days is deleted the next time the game updates it. This can include food in containers. Compost bins are skipped. Deleted food does not come back.` | Sandbox options in game: help band, On this save, for Rotten Food Removal (World page) | - |
+| `UI_ZeD_SbxSave_DaysUntilMaximumDiminishedLoot` | `Read each time a container is filled, so it applies to containers filled from now on.` | Sandbox options in game: help band, On this save, for Days Until Maximum Diminished Loot (Loot page) | - |
+| `UI_ZeD_SbxSave_DaysUntilMaximumLooted` | `Read when the game decides whether a building was looted before you came. Buildings you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Days Until Max Looted Building Chance (Loot page) | - |
+| `UI_ZeD_SbxSave_DaysUntilMaximumRatIndex` | `Read when the game fills an area for the first time. Areas you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Days Until Maximum Vermin Index (Nature page) | - |
+| `UI_ZeD_SbxSave_Distribution` | `The game reads this when the save loads. It shapes where zombies are placed in areas that are not filled yet. Zombies already placed may stay where they are.` | Sandbox options in game: help band, On this save, for Zombie Distribution (Zombie page) | - |
+| `UI_ZeD_SbxSave_ElecShut` | `The shutoff day was picked from this range when the world was made. Changing the range does not pick a day again, so it is locked.` | Sandbox options in game: help band, On this save, for Electricity Shutoff (range) (World page) | - |
+| `UI_ZeD_SbxSave_ElecShutModifier` | `Checked all the time against the world's age in days. Set a day in the past and the grid goes off now: lights stop, and fridges and freezers warm so food spoils. Set a day in the future and it comes back. Generators keep working.` | Sandbox options in game: help band, On this save, for Electricity Shutoff (day) (World page) | - |
+| `UI_ZeD_SbxSave_EnableVehicles` | `Only affects areas the game fills for the first time. Cars already in the world stay where they are.` | Sandbox options in game: help band, On this save, for Vehicles (Vehicles page) | - |
+| `UI_ZeD_SbxSave_ErosionDays` | `Read every ten game minutes. Above 0, growth is worked out from a counter that does not start where your world's growth is, so growth can drop back or jump ahead. -1 stops growth and clears it. Setting 0 again does not bring it back.` | Sandbox options in game: help band, On this save, for Erosion Days (Nature page) | - |
+| `UI_ZeD_SbxSave_ErosionSpeed` | `The growth speed is stored in the save's erosion file when the world is made. Changing it afterwards does nothing, so it is locked.` | Sandbox options in game: help band, On this save, for Erosion Speed (Nature page) | - |
+| `UI_ZeD_SbxSave_FarmingAmountNew` | `Read when you harvest. In this build the farming code works out the result but does not appear to use it, so it may have no effect.` | Sandbox options in game: help band, On this save, for Farming Abundance (Nature page) | - |
+| `UI_ZeD_SbxSave_FarmingSpeedNew` | `Read each time a plant is scheduled for its next growth stage. A stage already scheduled keeps its time.` | Sandbox options in game: help band, On this save, for Farming Speed (Nature page) | - |
+| `UI_ZeD_SbxSave_FirearmNoiseMultiplier` | `In this game only weapon reloading reads this number. No other use was found.` | Sandbox options in game: help band, On this save, for Firearm Noise Multiplier (Character page) | - |
+| `UI_ZeD_SbxSave_FoodRotSpeed` | `Changes how fast all food spoils from now on, including food in your fridge and bags.` | Sandbox options in game: help band, On this save, for Food Spoilage (World page) | - |
+| `UI_ZeD_SbxSave_FuelStationGasEmptyChance` | `A pump gets its starting fuel the first time the game checks it. Pumps already checked should keep their amount.` | Sandbox options in game: help band, On this save, for Initial Gas Pump Empty Chance (World page) | - |
+| `UI_ZeD_SbxSave_FuelStationGasMax` | `A pump gets its starting fuel the first time the game checks it. Pumps already checked should keep their amount.` | Sandbox options in game: help band, On this save, for Initial Maximum Gas Pump Amount (World page) | - |
+| `UI_ZeD_SbxSave_FuelStationGasMin` | `A pump gets its starting fuel the first time the game checks it. Pumps already checked should keep their amount.` | Sandbox options in game: help band, On this save, for Initial Minimum Gas Pump Amount (World page) | - |
+| `UI_ZeD_SbxSave_GeneratorTileRange` | `A generator takes its range when it is placed or when the save loads. Generators already running keep their range until you reload.` | Sandbox options in game: help band, On this save, for Generator tile range (World page) | - |
+| `UI_ZeD_SbxSave_GeneratorVerticalPowerRange` | `A generator takes its range when it is placed or when the save loads. Generators already running keep their range until you reload.` | Sandbox options in game: help band, On this save, for Generator vertical range (World page) | - |
+| `UI_ZeD_SbxSave_Helicopter` | `Read when the game plans each flyover. A flyover already planned still happens if you set Never. Moving from Never or Once to Sometimes or Often plans a new one.` | Sandbox options in game: help band, On this save, for Helicopter (Meta page) | - |
+| `UI_ZeD_SbxSave_HoursForCorpseRemoval` | `Zombie corpses older than this many hours are removed, and so is what they carry. Lowering it can clear corpses you have left lying around. 0 or less turns removal off.` | Sandbox options in game: help band, On this save, for Time Before Corpse Removal (Meta page) | - |
+| `UI_ZeD_SbxSave_HoursForLootRespawn` | `Turning it on lets containers in towns and trailer parks refill with loot, including ones you have emptied. The game checks areas as they load and as time passes. A container holding fewer than Max Items For Loot Respawn items refills, and the new loot is added to what is there.` | Sandbox options in game: help band, On this save, for Hours for Loot Respawn (Loot page) | - |
+| `UI_ZeD_SbxSave_HoursForWorldItemRemoval` | `Lowering it deletes listed items sooner, including ones already lying there. The check runs when that part of the map loads. 0 stops the removal.` | Sandbox options in game: help band, On this save, for Hours for Removal List (World page) | - |
+| `UI_ZeD_SbxSave_InitialGas` | `Read when a car is first made. Cars already in the world keep their fuel.` | Sandbox options in game: help band, On this save, for Initial Gas (Vehicles page) | - |
+| `UI_ZeD_SbxSave_ItemRemovalListBlacklistToggle` | `Turns the list around: every loose item that is NOT on World Item Removal List is deleted after Hours for Removal List, when its part of the map loads. On a lived-in save that can clear the floors and surfaces of your base.` | Sandbox options in game: help band, On this save, for Removal List as Whitelist (World page) | - |
+| `UI_ZeD_SbxSave_KillInsideCrops` | `Turning it on drains health from crops growing indoors, until they die. Greenhouse rooms and house plants are exempt.` | Sandbox options in game: help band, On this save, for Kill Crops Grown Inside (Nature page) | - |
+| `UI_ZeD_SbxSave_LockedCar` | `Read when a car is first made. Cars already in the world keep their locks.` | Sandbox options in game: help band, On this save, for Locked Vehicle Frequency (Vehicles page) | - |
+| `UI_ZeD_SbxSave_LockedHouses` | `Read when a door or window is first made. Doors and windows you have seen keep their state.` | Sandbox options in game: help band, On this save, for Locked Houses Frequency (World page) | - |
+| `UI_ZeD_SbxSave_Map_MapAllKnown` | `Read the first time the game uses the map after the save loads. If it is on then, the whole world map is marked as known and saved that way. Turning it off later does not forget the map.` | Sandbox options in game: help band, On this save, for All Known On Start (Meta page) | - |
+| `UI_ZeD_SbxSave_MaximumDiminishedLoot` | `Read each time a container is filled, so it applies to containers filled from now on.` | Sandbox options in game: help band, On this save, for Maximum Diminished Loot Percentage (Loot page) | - |
+| `UI_ZeD_SbxSave_MaximumFireFuelHours` | `Read when you add fuel. Fuel already in a fire or stove is not changed.` | Sandbox options in game: help band, On this save, for Maximum Fire Fuel Hours (World page) | - |
+| `UI_ZeD_SbxSave_MaximumLooted` | `Read when the game decides whether a building was looted before you came. Buildings you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Maximum Looted Building Chance (Loot page) | - |
+| `UI_ZeD_SbxSave_MaximumLootedBuildingRooms` | `Read when a building is first set up. Buildings you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Maximum Looted Building Rooms (Loot page) | - |
+| `UI_ZeD_SbxSave_MaximumRatIndex` | `Read when the game fills an area for the first time. Areas you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Maximum Vermin Index (Nature page) | - |
+| `UI_ZeD_SbxSave_MinutesPerPage` | `Read when you start reading a book. A book you are already reading keeps its pace.` | Sandbox options in game: help band, On this save, for Minutes Per Skill Book Page (Character page) | - |
+| `UI_ZeD_SbxSave_NoBlackClothes` | `Read when a random clothing colour is picked, for example for a zombie that spawns. Clothes already made keep their colour.` | Sandbox options in game: help band, On this save, for No Black Clothes (Character page) | - |
+| `UI_ZeD_SbxSave_PlantGrowingSeasons` | `Turning it on makes crops outdoors suffer in bad months and in winter. Crops already planted out of season lose health quickly and can die.` | Sandbox options in game: help band, On this save, for Plant Growing Seasons (Nature page) | - |
+| `UI_ZeD_SbxSave_Rain` | `Applies to weather the game plans from now on. A front already under way may run its course.` | Sandbox options in game: help band, On this save, for Rain (Nature page) | - |
+| `UI_ZeD_SbxSave_RecentlySurvivorVehicles` | `Read when a car is first made. Cars already in the world keep their state.` | Sandbox options in game: help band, On this save, for Recent Survivor Vehicles (Vehicles page) | - |
+| `UI_ZeD_SbxSave_RuralLooted` | `Read when the game decides whether a building was looted before you came. Buildings you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Rural Building Looted Chance Multiplier (Loot page) | - |
+| `UI_ZeD_SbxSave_StarterKit` | `Only a character made after this gets the kit.` | Sandbox options in game: help band, On this save, for Starter Kit (Character page) | - |
+| `UI_ZeD_SbxSave_SurvivorHouseChance` | `Read when a building is first set up. Buildings you have already seen keep what they have.` | Sandbox options in game: help band, On this save, for Randomized Building Chance (Meta page) | - |
+| `UI_ZeD_SbxSave_Temperature` | `The game code reads this only when the save loads, to set the plant growth seasons. No other use was found, so it may not change the weather temperature.` | Sandbox options in game: help band, On this save, for Temperature (Nature page) | - |
+| `UI_ZeD_SbxSave_TimeSinceApo` | `Each month adds 30 days to the world's age. Raising it ages the world at once: water and power go off if the new age is past their shutoff days, and areas you have not seen yet are made older (more looted buildings, corpses, flat car batteries).` | Sandbox options in game: help band, On this save, for Months since the Apocalypse (Time page) | - |
+| `UI_ZeD_SbxSave_TrafficJam` | `Only affects areas the game fills for the first time. Wrecks already on the road stay where they are.` | Sandbox options in game: help band, On this save, for Car Wreck Congestion (Vehicles page) | - |
+| `UI_ZeD_SbxSave_VehicleEasyUse` | `Read when you start a car and when cars are made. Off: a car needs its key or a hotwire. Cars made while it was on carry their key in the glove box.` | Sandbox options in game: help band, On this save, for Easy Use (Vehicles page) | - |
+| `UI_ZeD_SbxSave_VehicleStoryChance` | `Read when a road story is first set up. Stories already placed stay.` | Sandbox options in game: help band, On this save, for Randomized Road Stories Chance (Meta page) | - |
+| `UI_ZeD_SbxSave_WaterShut` | `The shutoff day was picked from this range when the world was made. Changing the range does not pick a day again, so it is locked.` | Sandbox options in game: help band, On this save, for Water Shutoff (range) (World page) | - |
+| `UI_ZeD_SbxSave_WaterShutModifier` | `Checked all the time against the world's age in days. Set a day in the past and the taps stop now. Set a day in the future and they run again. Water already in pots, bottles and barrels is not touched.` | Sandbox options in game: help band, On this save, for Water Shutoff (day) (World page) | - |
+| `UI_ZeD_SbxSave_WorldItemRemovalList` | `Items of these types lying loose in the world, on the ground or on a surface, are deleted once they have been there longer than Hours for Removal List, when that part of the map loads. Items you dropped yourself count. Deleted items do not come back.` | Sandbox options in game: help band, On this save, for World Item Removal List (World page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_FollowSoundDistance` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Follow Sound Distance (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_PopulationMultiplier` | `This is the number behind Zombie Count. The game sends it to its zombie population manager when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Population Multiplier (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_PopulationPeakDay` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Population Peak Day (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_PopulationPeakMultiplier` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Population Peak Multiplier (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_PopulationStartMultiplier` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Population Start Multiplier (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_RallyGroupSizeVariance` | `Read when a zombie group forms, so it applies to groups formed from now on.` | Sandbox options in game: help band, On this save, for Rally Group Size Variance (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_RedistributeHours` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load. 0 turns migration off.` | Sandbox options in game: help band, On this save, for Redistribute Hours (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_RespawnHours` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load. Above 0, zombies can return to areas you have cleared.` | Sandbox options in game: help band, On this save, for Respawn Hours (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_RespawnMultiplier` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Respawn Multiplier (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_RespawnUnseenHours` | `The game sends this to its zombie population manager when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Respawn Unseen Hours (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieConfig_ZombiesCountBeforeDelete` | `Only a multiplayer server uses this number. A single-player game ignores it.` | Sandbox options in game: help band, On this save, for Zombie count before deletion (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ActiveOnly` | `Read every game update, so it applies at once.` | Sandbox options in game: help band, On this save, for Day/Night Zombie Speed Effect (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ChanceOfAttachedWeapon` | `The game reads this once after the save loads, when it makes the first zombie, so a change shows after the next load. It then applies to zombies made from that point.` | Sandbox options in game: help band, On this save, for Chance Of Attached Weapon (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_DisableFakeDead` | `Read when corpses and downed zombies are set up or updated. Corpses already lying around may keep the state they have.` | Sandbox options in game: help band, On this save, for Fake Dead Zombie Reanimation (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_Mortality` | `Read as infection runs, so a character who is already infected may follow the new timing.` | Sandbox options in game: help band, On this save, for Infection Mortality (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_PlayerSpawnZombieRemoval` | `Applies when a new character spawns in this world, for example after a death. It clears zombies near where that character appears. Your current character has already spawned.` | Sandbox options in game: help band, On this save, for Player Spawn Area (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_Reanimate` | `Applies to corpses of the infected from now on.` | Sandbox options in game: help band, On this save, for Reanimate Time (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_SpottedLogic` | `Read every time a zombie checks for you, so it applies at once.` | Sandbox options in game: help band, On this save, for New Stealth System (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_Strength` | `Takes effect at once for bites and hits on you and for zombies hitting doors. Zombies already out there also pick it up when they next load.` | Sandbox options in game: help band, On this save, for Strength (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ThumpNoChasing` | `Read when a zombie bumps into something, so it applies at once.` | Sandbox options in game: help band, On this save, for Environmental Attacks (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ThumpOnConstruction` | `Read when a zombie hits something you built, so it applies at once.` | Sandbox options in game: help band, On this save, for Damage Construction (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_Toughness` | `Applies to zombies made after the change, such as new spawns and risen corpses. Zombies already out there keep their toughness.` | Sandbox options in game: help band, On this save, for Toughness (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_Transmission` | `Applies to bites, scratches and deaths from now on.` | Sandbox options in game: help band, On this save, for Transmission (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_TriggerHouseAlarm` | `Read when a window or door is broken or opened, so it applies at once.` | Sandbox options in game: help band, On this save, for Zombie House Alarm Triggering (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ZombiesArmorFactor` | `Read on every hit, so it applies at once.` | Sandbox options in game: help band, On this save, for Zombie Armor Factor (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ZombiesCrawlersDragDown` | `Read each time a zombie attacks, so it applies at once.` | Sandbox options in game: help band, On this save, for Crawlers Drag Down (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ZombiesDragDown` | `Read each time a zombie attacks, so it applies at once.` | Sandbox options in game: help band, On this save, for Drag Down (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ZombiesFallDamage` | `Read when a zombie lands from a height, so it applies at once.` | Sandbox options in game: help band, On this save, for Zombie Fall Damage Multiplier (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ZombiesFenceLunge` | `Read when a zombie climbs a fence or window, so it applies at once.` | Sandbox options in game: help band, On this save, for Zombie Lunge (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieLore_ZombiesMaxDefense` | `Read on every hit, so it applies at once.` | Sandbox options in game: help band, On this save, for Maximum Zombie Armor Defense (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieMigrate` | `This is a shortcut for Redistribute Hours in Advanced Zombie Options. The game reads that number when the save loads, so a change starts after the next load.` | Sandbox options in game: help band, On this save, for Zombie Migration (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieRespawn` | `This is a shortcut for the three Respawn numbers in Advanced Zombie Options. The game reads those when the save loads, so respawning starts or stops after the next load.` | Sandbox options in game: help band, On this save, for Zombie Respawn (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZombieVoronoiNoise` | `The game reads this while it loads the map data, so a change shows after the next load.` | Sandbox options in game: help band, On this save, for Voronoi Noise (Zombie page) | - |
+| `UI_ZeD_SbxSave_Zombies` | `The game hands this count to its zombie population manager when the save loads, so a change shows after the next load. Rooms and stories you open use the new count at once.` | Sandbox options in game: help band, On this save, for Zombie Count (Zombie page) | - |
+| `UI_ZeD_SbxSave_ZoneStoryChance` | `Read when a zone story is first set up. Stories already placed stay.` | Sandbox options in game: help band, On this save, for Randomized Zone Stories Chance (Meta page) | - |
+| `UI_ZeD_SbxSecSave_LootRarity` | `Applies to containers filled from now on. Containers already filled keep their loot.` | Sandbox options in game: help band, On this save, for every setting under the section LootRarity | - |
+| `UI_ZeD_SbxSecSave_XPMultipliers` | `XP earned from now on uses the new rate. Levels already earned stay.` | Sandbox options in game: help band, On this save, for every setting under the section XPMultipliers | - |
+| `UI_ZeD_SbxSecSave_ZombieLore` | `Most of these are set on each zombie as it is made or loads in. Zombies already out there may keep their old ways until you leave the area and come back.` | Sandbox options in game: help band, On this save, for every setting under the section ZombieLore | - |
+| `UI_ZeD_SbxSecTip_LootRarity` | `Raising it makes new places richer. Places you have already looted stay looted unless loot respawn is on (Hours for Loot Respawn, top of the Loot page).` | Sandbox options in game: help band, Tip, for every setting under the section LootRarity | - |
+| `UI_ZeD_SbxSecTip_XPMultipliers` | `The skill rows only count while Use Global Multiplier is off.` | Sandbox options in game: help band, Tip, for every setting under the section XPMultipliers | - |
+| `UI_ZeD_SbxTip_DaysForRottenFoodRemoval` | `-1 never removes it. Leave it at -1 if you keep rotten food in containers for compost.` | Sandbox options in game: help band, Tip, for Rotten Food Removal (World page) | - |
+| `UI_ZeD_SbxTip_DaysUntilMaximumDiminishedLoot` | `The effect grows with the world's age, which includes Months since the Apocalypse.` | Sandbox options in game: help band, Tip, for Days Until Maximum Diminished Loot (Loot page) | - |
+| `UI_ZeD_SbxTip_DaysUntilMaximumLooted` | `The chance rises with the world's age, which includes Months since the Apocalypse.` | Sandbox options in game: help band, Tip, for Days Until Max Looted Building Chance (Loot page) | - |
+| `UI_ZeD_SbxTip_DaysUntilMaximumRatIndex` | `The index rises with the world's age, which includes Months since the Apocalypse.` | Sandbox options in game: help band, Tip, for Days Until Maximum Vermin Index (Nature page) | - |
+| `UI_ZeD_SbxTip_ElecShut` | `To move the day, change Electricity Shutoff (day).` | Sandbox options in game: help band, Tip, for Electricity Shutoff (range) (World page) | - |
+| `UI_ZeD_SbxTip_ElecShutModifier` | `-1 means off from the start. 2147483647 keeps the power on for good. The world's day count is at the top of this page.` | Sandbox options in game: help band, Tip, for Electricity Shutoff (day) (World page) | - |
+| `UI_ZeD_SbxTip_ErosionDays` | `Leave this at 0 on a world that already has growth you want to keep.` | Sandbox options in game: help band, Tip, for Erosion Days (Nature page) | - |
+| `UI_ZeD_SbxTip_ErosionSpeed` | `Erosion Days still works, but it can reset growth. Read its note first.` | Sandbox options in game: help band, Tip, for Erosion Speed (Nature page) | - |
+| `UI_ZeD_SbxTip_FoodRotSpeed` | `Slower spoiling does not make rotten food fresh again.` | Sandbox options in game: help band, Tip, for Food Spoilage (World page) | - |
+| `UI_ZeD_SbxTip_HoursForLootRespawn` | `Construction Prevents Loot Respawn keeps buildings you have built in or barricaded from refilling. 0 turns respawn off.` | Sandbox options in game: help band, Tip, for Hours for Loot Respawn (Loot page) | - |
+| `UI_ZeD_SbxTip_ItemRemovalListBlacklistToggle` | `Leave it off unless you mean to clear the world.` | Sandbox options in game: help band, Tip, for Removal List as Whitelist (World page) | - |
+| `UI_ZeD_SbxTip_LootItemRemovalList` | `Write item types as Module.Name, for example Base.Hat, with commas between.` | Sandbox options in game: help band, Tip, for Loot Item Removal List (Loot page) | - |
+| `UI_ZeD_SbxTip_MaxItemsForLootRespawn` | `Only has an effect while Hours for Loot Respawn is above 0.` | Sandbox options in game: help band, Tip, for Max Items For Loot Respawn (Loot page) | - |
+| `UI_ZeD_SbxTip_MultiplierConfig_Global` | `Only counts while Use Global Multiplier is on.` | Sandbox options in game: help band, Tip, for Global Multiplier (Character page) | - |
+| `UI_ZeD_SbxTip_MultiplierConfig_GlobalToggle` | `On: every skill uses Global Multiplier. Off: each skill uses its own row.` | Sandbox options in game: help band, Tip, for Use Global Multiplier (Character page) | - |
+| `UI_ZeD_SbxTip_PlantGrowingSeasons` | `The season rules only apply to crops outdoors.` | Sandbox options in game: help band, Tip, for Plant Growing Seasons (Nature page) | - |
+| `UI_ZeD_SbxTip_RollsMultiplier` | `The game text advises leaving this at 1.` | Sandbox options in game: help band, Tip, for Rolls Multiplier [!] (Loot page) | - |
+| `UI_ZeD_SbxTip_SeenHoursPreventLootRespawn` | `Only has an effect while Hours for Loot Respawn is above 0.` | Sandbox options in game: help band, Tip, for Loot Seen Prevent Hours (Loot page) | - |
+| `UI_ZeD_SbxTip_TimeSinceApo` | `To move only the water or power shutoff, change Water Shutoff (day) or Electricity Shutoff (day) on the World page. Lowering this gives the days back.` | Sandbox options in game: help band, Tip, for Months since the Apocalypse (Time page) | - |
+| `UI_ZeD_SbxTip_VehicleEasyUse` | `Turning it off can leave you in a car whose key you do not hold.` | Sandbox options in game: help band, Tip, for Easy Use (Vehicles page) | - |
+| `UI_ZeD_SbxTip_WaterShut` | `To move the day, change Water Shutoff (day).` | Sandbox options in game: help band, Tip, for Water Shutoff (range) (World page) | - |
+| `UI_ZeD_SbxTip_WaterShutModifier` | `-1 means off from the start. 2147483647 keeps the water on for good. The world's day count is at the top of this page.` | Sandbox options in game: help band, Tip, for Water Shutoff (day) (World page) | - |
+| `UI_ZeD_SbxTip_WorldItemRemovalList` | `Items inside containers and bags are not touched. Pick up anything you want to keep before adding its type here.` | Sandbox options in game: help band, Tip, for World Item Removal List (World page) | - |
+| `UI_ZeD_SbxTip_ZombieConfig_PopulationMultiplier` | `To see the new count outdoors, save and load the game again.` | Sandbox options in game: help band, Tip, for Population Multiplier (Zombie page) | - |
+| `UI_ZeD_SbxTip_ZombieRespawn` | `None keeps cleared areas clear. Above None, zombies can return to areas you have cleared, including around your base.` | Sandbox options in game: help band, Tip, for Zombie Respawn (Zombie page) | - |
+| `UI_ZeD_SbxTip_Zombies` | `To see the new count outdoors, save and load the game again.` | Sandbox options in game: help band, Tip, for Zombie Count (Zombie page) | - |
+| `UI_ZeD_SbxWhen_chr` | `Only for a character made after this, for example after a death in this world. Your current character keeps what it had.` | Sandbox options in game: help band, On this save, for a setting tagged New characters without words of its own | - |
+| `UI_ZeD_SbxWhen_fix` | `Used once, when this world was made. Changing it now would do nothing, so it is locked.` | Sandbox options in game: help band, On this save, for a setting tagged Fixed without words of its own | - |
+| `UI_ZeD_SbxWhen_load` | `The game reads this only when the save loads. Apply, save, quit to the main menu and continue to see it.` | Sandbox options in game: help band, On this save, for a setting tagged Next load without words of its own | - |
+| `UI_ZeD_SbxWhen_new` | `Only for places you have not been to yet: rooms, containers, cars and areas are filled the first time you see them. What you already found stays as it is.` | Sandbox options in game: help band, On this save, for a setting tagged New places without words of its own | - |
+| `UI_ZeD_SbxWhen_now` | `Takes effect as soon as you apply.` | Sandbox options in game: help band, On this save, for a setting tagged Now without words of its own | - |
+| `UI_ZeD_Sbx_AfterApply` | `(after Apply)` | Sandbox options in game: added to the World page's first line while the shut-off days are changed but not applied | - |
+| `UI_ZeD_Sbx_AfterApplyIs` | `after Apply: %1` | Sandbox options in game: help band, after This save while changed; %1 = the value after Apply | - |
+| `UI_ZeD_Sbx_Any` | `any` | Sandbox options in game: the Range's largest number when there is no real limit | 8 |
+| `UI_ZeD_Sbx_Applied` | `Applied %1. The game keeps them when it next saves.` | Sandbox options in game: action strip after Apply; %1 = "1 change" / "3 changes" (Count1 / CountN) | - |
+| `UI_ZeD_Sbx_AskApply` | `Apply %1 to this save?` | Sandbox options in game: action strip question before Apply; %1 = "1 change" / "3 changes" | - |
+| `UI_ZeD_Sbx_AskCareN` | `Needs care: %1.` | Sandbox options in game: added to the Apply question; %1 = how many of the changes need care | - |
+| `UI_ZeD_Sbx_AskClose` | `%1 not applied.` | Sandbox options in game: action strip question when closing with changes; %1 = "1 change" / "3 changes" | - |
+| `UI_ZeD_Sbx_AskUndo` | `Undo %1?` | Sandbox options in game: action strip question before undoing every change (controller X); %1 = "1 change" / "3 changes" | - |
+| `UI_ZeD_Sbx_AskUndoN` | `Can't be undone: %1.` | Sandbox options in game: added to the Apply question; %1 = how many of the changes can't be undone | - |
+| `UI_ZeD_Sbx_ChangedNone` | `No changes yet. Settings you change are listed here until you apply them.` | Sandbox options in game: the Changed page when nothing is changed | - |
+| `UI_ZeD_Sbx_Count1` | `1 change` | Sandbox options in game: one change, inside the strip's questions and History's headings | - |
+| `UI_ZeD_Sbx_CountN` | `%1 changes` | Sandbox options in game: %1 = how many changes, inside the strip's questions and History's headings | - |
+| `UI_ZeD_Sbx_Empty` | `(empty)` | Sandbox options in game: a text setting with nothing in it (the removal lists) | - |
+| `UI_ZeD_Sbx_HeadSave` | `On this save \| %1` | Sandbox options in game: help band, second heading (capitals); %1 = the row's when tag (Now, New places ...) | - |
+| `UI_ZeD_Sbx_HeadTip` | `Tip` | Sandbox options in game: help band, third heading (capitals) | 12 |
+| `UI_ZeD_Sbx_HeadWhat` | `What it does` | Sandbox options in game: help band, first heading (capitals): the game's own description | 20 |
+| `UI_ZeD_Sbx_HelpNone` | `Point at a setting to read what it does, what changing it does to this save, and a tip.` | Sandbox options in game: help band before the pointer has been on a setting | - |
+| `UI_ZeD_Sbx_HistNone` | `Nothing applied yet. Every change you apply is listed here with the in-game date, and stays in the save.` | Sandbox options in game: the History page before anything was applied | - |
+| `UI_ZeD_Sbx_HistWhen` | `%1, %2` | Sandbox options in game: History page, an apply's heading; %1 = the in-game date, %2 the in-game time | - |
+| `UI_ZeD_Sbx_LabelPowerDay` | `Electricity Shutoff (day)` | Sandbox options in game: the name of the row for the power shut-off day | - |
+| `UI_ZeD_Sbx_LabelPowerRange` | `Electricity Shutoff (range)` | Sandbox options in game: the name of the row for the range the power shut-off day was picked from | - |
+| `UI_ZeD_Sbx_LabelWaterDay` | `Water Shutoff (day)` | Sandbox options in game: the name of the row for the water shut-off day (vanilla calls it Water Shutoff, like the range) | - |
+| `UI_ZeD_Sbx_LabelWaterRange` | `Water Shutoff (range)` | Sandbox options in game: the name of the row for the range the water shut-off day was picked from | - |
+| `UI_ZeD_Sbx_PageChanged` | `Changed` | Sandbox options in game: page list, the page of settings changed but not applied | 20 |
+| `UI_ZeD_Sbx_PageChangedN` | `Changed (%1)` | Sandbox options in game: the same page while there are changes; %1 = how many | 20 |
+| `UI_ZeD_Sbx_PageHistory` | `History` | Sandbox options in game: page list, the page of every applied change | 20 |
+| `UI_ZeD_Sbx_PowerOff` | `Power: off since day %1` | Sandbox options in game: World page first line; %1 = the day the power went off | - |
+| `UI_ZeD_Sbx_PowerOnGood` | `Power: on for good` | Sandbox options in game: World page first line, power never shuts off | - |
+| `UI_ZeD_Sbx_PowerOnUntil` | `Power: on until day %1` | Sandbox options in game: World page first line; %1 = the day the power goes off | - |
+| `UI_ZeD_Sbx_PutBack` | `Put back` | Sandbox options in game: History page, the button beside each applied change; also the help band's heading for it | 14 |
+| `UI_ZeD_Sbx_PutBackHelp` | `Sets %1 back to %2. It waits on the Changed page until you apply it.` | Sandbox options in game: help band for a Put back button; %1 = the setting, %2 = the value it goes back to | - |
+| `UI_ZeD_Sbx_Range` | `Range: %1 to %2` | Sandbox options in game: help band, under What it does; %1 = the smallest number, %2 the largest | - |
+| `UI_ZeD_Sbx_StatChanged` | `This save, %1 changed` | Sandbox options in game: title bar, right side, while settings are changed; %1 = how many | - |
+| `UI_ZeD_Sbx_StatSave` | `This save` | Sandbox options in game: title bar, right side | - |
+| `UI_ZeD_Sbx_TagCare` | `Careful` | Sandbox options in game: tag (capitals): the change can make the save harder or stranger | 14 |
+| `UI_ZeD_Sbx_TagChr` | `New characters` | Sandbox options in game: tag (capitals): only a character made after the change | 16 |
+| `UI_ZeD_Sbx_TagFix` | `Fixed` | Sandbox options in game: tag (capitals): only used when the world was made; the row is locked | 14 |
+| `UI_ZeD_Sbx_TagLoad` | `Next load` | Sandbox options in game: tag (capitals): the game reads it only when the save loads | 14 |
+| `UI_ZeD_Sbx_TagNew` | `New places` | Sandbox options in game: tag (capitals): only places, containers and cars not seen yet | 14 |
+| `UI_ZeD_Sbx_TagNow` | `Now` | Sandbox options in game: tag at the right of a row (drawn in capitals): the change takes effect at once | 14 |
+| `UI_ZeD_Sbx_TagUndo` | `Can't undo` | Sandbox options in game: tag (capitals): the change deletes or changes something for good | 14 |
+| `UI_ZeD_Sbx_ThisSave` | `This save: %1` | Sandbox options in game: help band, under On this save; %1 = the value this save has | - |
+| `UI_ZeD_Sbx_UndoChanges` | `Undo changes` | Sandbox options in game: action strip button, puts every changed setting back as the save has it | 18 |
+| `UI_ZeD_Sbx_WarnCare` | `Careful: you can change it back.` | Sandbox options in game: help band, On this save, first line (yellow) for a setting tagged Careful | - |
+| `UI_ZeD_Sbx_WarnUndo` | `Can't be undone.` | Sandbox options in game: help band, On this save, first line (red) for a setting tagged Can't undo | - |
+| `UI_ZeD_Sbx_Was` | `was %1` | Sandbox options in game: under a changed setting's name; %1 = its value before the change | - |
+| `UI_ZeD_Sbx_WaterOff` | `Water: off since day %1` | Sandbox options in game: World page first line; %1 = the day the water stopped | - |
+| `UI_ZeD_Sbx_WaterOnGood` | `Water: on for good` | Sandbox options in game: World page first line, water never shuts off | - |
+| `UI_ZeD_Sbx_WaterOnUntil` | `Water: on until day %1` | Sandbox options in game: World page first line; %1 = the day the water stops | - |
+| `UI_ZeD_Sbx_WorldDay` | `This world is on day %1 of the count the shut-offs use. %2. %3.` | Sandbox options in game: the first line of the World page. %1 = the world's day number, %2 the water line, %3 the power line (below) | - |
+
 ## Seat
 
 | Key | English | Where it shows | Max |
@@ -2367,6 +2564,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_WatchTip` | `Where the watch you wear shows: small on the belt beside the hand of its wrist (press its face for the full watch, which you can drag anywhere), or the full watch in the top right corner.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_WorldAccent` | `World window accent` | Options > Mods > ZeD-GUI: name of the World window accent setting | - |
 | `UI_ZeD_Settings_WorldAccentTip` | `An accent of its own for the World window, or the same as Accent color. Cycled via footer button.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_SandboxIG` | `Sandbox options in game` | Options, ZeD setup, Sandbox: the switch's name | - |
+| `UI_ZeD_Settings_SandboxIGTip` | `Adds a Sandbox options line to the pause window, for changing this save's sandbox settings without starting a new game. Single player only.` | Options, ZeD setup: help band for the switch | - |
 
 ## Siren
 

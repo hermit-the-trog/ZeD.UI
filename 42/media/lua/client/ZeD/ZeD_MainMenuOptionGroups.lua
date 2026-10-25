@@ -168,6 +168,8 @@ G.ZED_GROUPS = {
     { "UI_ZeD_Options_ZedPutBack", { { "putBack", "onoff" } } },
     -- (Oct 24 2026, mockup zed_messages_v1: other mods' notes kept in Messages, ZeD_Messages)
     { "UI_ZeD_Options_ZedMessages", { { "messagesCatch", "onoff" }, { "messagesToast", "onoff" } } },
+    -- (Oct 24 2026, mockup zed_sandbox_ingame_v1: this save's sandbox settings from the pause window, ZeD_SandboxInGame)
+    { "UI_ZeD_Options_ZedSandbox", { { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" } } },
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", danger = true, under = "UI_ZeD_Options_UnderSafeMode" },
                                      { "testLanguage", "onoff" } } },
 }

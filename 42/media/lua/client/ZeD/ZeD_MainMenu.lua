@@ -1612,6 +1612,10 @@ function ZeD_MMWindow:build()
         else
             local list = { { "resume", getText("UI_mainscreen_return"), A.resume, "primary" }, { "options", getText("UI_mainscreen_option"), A.options },
                            { "mods", ZeD.tr("UI_ZeD_MainMenu_ModsCount", MM.modCount()), A.modList } }
+            -- this save's sandbox settings, under Options (ZeD_SandboxInGame.lua: the switch on, single player)
+            if MM.sandboxIGShown and MM.sandboxIGShown() then
+                table.insert(list, 3, { "sandbox", ZeD.btnCase(getText("UI_optionscreen_SandboxOptions")), function() MM.openSandboxIG() end })
+            end
             if m and m.scoreOption then list[#list + 1] = { "players", getText("UI_mainscreen_scoreboard"), A.players } end
             if m and m.inviteOption then list[#list + 1] = { "invite", getText("UI_mainscreen_invite"), A.invite } end
             for _, r in ipairs(list) do
@@ -2013,6 +2017,14 @@ function MM.attach(m)
         m:addChild(ow)
         ow:setVisible(false)
         MM.pauseOpts = ow
+        -- Sandbox options in game, the same kind of window (ZeD_SandboxInGame.lua)
+        if ZeD_MMSandboxIG then
+            local sw = ZeD_MMSandboxIG:new()
+            sw:initialise()
+            m:addChild(sw)
+            sw:setVisible(false)
+            MM.pauseSandbox = sw
+        end
         local dr = ZeD_MMDrop:new()
         dr:initialise()
         m:addChild(dr)
@@ -2153,7 +2165,9 @@ function MM.afterPrerender(m)
         if w and w:isVisible() ~= (up and pv == "pause") then w:setVisible(up and pv == "pause") end
         local ow = MM.pauseOpts
         if ow and ow:isVisible() ~= (up and pv == "options") then ow:setVisible(up and pv == "options") end
-        if MM.igDrop and not (up and pv == "options") and MM.igDrop:isVisible() then MM.igDrop:setVisible(false); MM.ctx.open = nil end
+        local sb = MM.pauseSandbox
+        if sb and sb:isVisible() ~= (up and pv == "sandbox") then sb:setVisible(up and pv == "sandbox") end
+        if MM.igDrop and not (up and (pv == "options" or pv == "sandbox")) and MM.igDrop:isVisible() then MM.igDrop:setVisible(false); MM.ctx.open = nil end
     else
         local root = MM.root
         local show = up or MM.powerOff ~= nil   -- (a game starting: the desk stays while the monitor switches off)
@@ -2180,6 +2194,7 @@ end
 function MM.window(m)
     if m.inGame then
         if MM.pauseView == "options" and MM.pauseOpts then return MM.pauseOpts end
+        if MM.pauseView == "sandbox" and MM.pauseSandbox then return MM.pauseSandbox end
         return MM.pause
     end
     return MM.activeWindow()

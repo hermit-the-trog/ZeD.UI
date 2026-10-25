@@ -4,6 +4,7 @@ TITLE: Mods ZeD-GUI does the job of: credit and support their makers
 ZeD-GUI does not take donations. If ZeD-GUI does the job of a mod you used, and you want to give something back, give it to the person who made that mod. They worked these problems out first, and some of them do this to put food on the table.
 
 [list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2894296454]Change Sandbox Options[/url] by [url=https://steamcommunity.com/id/strelka]star[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3461263912]Clean HotBar[/url] by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3437629766]CleanUI[/url] by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2950902979]Equipment UI - Paper Doll Equipment Interface[/url] by [url=https://steamcommunity.com/id/NotNotloc]Notloc[/url] | support: [url=https://ko-fi.com/notloc]ko-fi.com/notloc[/url]
