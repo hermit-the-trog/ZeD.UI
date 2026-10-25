@@ -48,9 +48,16 @@ python sheet.py ../../../42/media/textures/ZeD/buckles                # rebuild 
   - Brass: police, unemployed, fire, repairman, veteran.
   - Gold: burglar.
   - Gold plate: doctor, burger flipper.
-  - Silver plate: security, chef, tailor, rancher.
-  - Steel: construction, fitness, engineer, metalworker.
+  - Silver plate: security, chef, tailor, rancher, fitness (a thin frame round a black enamel sign).
+  - Steel: construction, engineer, metalworker.
   - Bronze: angler.
   - Copper: carpenter, electrician.
   - Black iron with brass ribbons: lumberjack, mechanic, smither.
+- **Round 2 (Oct 25 2026), five redrawn:**
+  - **Veteran:** the heraldic eagle of the game's veteran seal. The wings are raised and built feather by feather, the head is white, and the breast shield has a blue chief and red and white pales. There's an olive branch and arrows.
+  - **Fitness:** the Body Chisel Gym & Fitness sign: BODY over CHISEL in heavy cream letters (`BOLD`), a red line through each word, the chisel stroke into the B, GYM&FITNESS under it. The spaces are dropped because the full line is 48 px and the field is 49.
+  - **Carpenter:** a bench plane: an iron body, a steel frog, a brass depth wheel, and the knob and tote in the plate's copper.
+  - **Tailor:** an old black sewing machine with gold trim, drawn at 86% (`tailor(k)`) so it reads at 1x.
+  - **Doctor:** a winged caduceus between serif M and D (`SERIF_M`, `SERIF_D`), with no ribbon.
+  - **New enamels in `engine.py`:** `blue` and `white`, and an `&` in the 3x5 font.
 - **Legibility:** blind-read twice with the words cropped. Everything that failed was redrawn.

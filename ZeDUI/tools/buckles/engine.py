@@ -46,12 +46,15 @@ RAMPS = {
     # enamels: vanilla's medal ribbon red; turquoise for the stone
     "red":    ["#3a1212", "#5e1e1e", "#832f2f", "#a53d3d", "#c84848", "#e06464", "#f69090", "#ffc0b8"],
     "turq":   ["#103236", "#1b4e52", "#2a7275", "#3c9592", "#5bb5ab", "#8ad3c6", "#c4ece2", "#f0fffa"],
+    # enamels for the veteran's shield and the gym sign: navy blue, white enamel (warm, so it sits with the metals)
+    "blue":   ["#0c1430", "#14204a", "#1d2e66", "#283f84", "#3652a2", "#4d6bbd", "#7590d4", "#b4c6ee"],
+    "white":  ["#4a4740", "#6b675d", "#8d897d", "#aeaa9c", "#cbc7b8", "#e0dccd", "#efebdf", "#fbf9f2"],
     "black":  ["#121110", "#1b1a18", "#252321", "#302e2b", "#3c3a36", "#4a4743", "#5c5954", "#7a7670"],
 }
 RAMPS = {k: [hx(c) for c in v] for k, v in RAMPS.items()}
 MATS = list(RAMPS)
 OUTLINE = (27, 23, 20)
-MAT_OFFSET = {"red": -0.20, "black": -0.05, "turq": 0.02}     # enamel sits darker and flatter than metal
+MAT_OFFSET = {"red": -0.20, "black": -0.05, "turq": 0.02, "blue": -0.12, "white": 0.10}     # enamel sits darker and flatter than metal
 RAISED_BOOST = {"iron": 0.16}                                   # blackened metal: the worn high points shine
 
 # ------------------------------------------------------------------ 3x5 pixel font, variable width
@@ -73,7 +76,7 @@ FONT = {
     "4": ["101", "101", "111", "001", "001"], "5": ["111", "100", "111", "001", "110"],
     "6": ["011", "100", "111", "101", "111"], "7": ["111", "001", "010", "010", "010"],
     "8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "110"],
-    ".": ["0", "0", "0", "0", "1"], "'": ["1", "1", "0", "0", "0"], " ": ["00", "00", "00", "00", "00"],
+    ".": ["0", "0", "0", "0", "1"], "&": ["010", "101", "010", "101", "011"], "'": ["1", "1", "0", "0", "0"], " ": ["00", "00", "00", "00", "00"],
 }
 
 

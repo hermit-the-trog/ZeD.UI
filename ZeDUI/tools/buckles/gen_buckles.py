@@ -46,6 +46,15 @@ def rect_plate(metal, corner="chamfer", **kw):
 
 
 
+# ------------------------------------------------------------------ pixel masks and small type
+def rows_mask(rows, ox, oy, ch="#"):
+    m = np.zeros((H, W), bool)
+    for r, row in enumerate(rows):
+        for c, k in enumerate(row):
+            if k in ch and 0 <= ox + c < W and 0 <= oy + r < H: m[oy + r, ox + c] = True
+    return m
+
+
 # ------------------------------------------------------------------ metal and plate shape per profession
 PLATES = {
     "farmer":             ("pewter",    lambda: shape_rect("chamfer", 4), {}),
@@ -64,7 +73,7 @@ PLATES = {
     "veteran":            ("brass",     lambda: shape_rect("chamfer", 4), {}),
     "nurse":              ("pewter",    shape_cushion, {}),
     "lumberjack":         ("iron",      shape_concave, {}),
-    "fitnessinstructor":  ("steel",     shape_cushion, {}),
+    "fitnessinstructor":  ("silver",    lambda: shape_rect("round", 4), {"rim": 2, "beads": False, "stipple": 0}),
     "burgerflipper":      ("goldplate", lambda: shape_rect("round", 5), {}),
     "electrician":        ("copper",    shape_octagon, {}),
     "engineer":           ("steel",     lambda: shape_rect("square"), {}),
@@ -230,30 +239,33 @@ def securityguard():
 
 def carpenter():
     b = make_plate("carpenter")
-    # hand saw at the right: tall at the heel, back sloping down to the toe, teeth along the bottom, pistol-grip handle
-    blade = M().poly([(21, 16.5), (40, 10.5), (40, 23.5), (21, 21)])
-    b.relief(blade, height=1.0, bevel=1.0, polish=1.0)
-    for x in range(22, 40, 2):
-        yb = 21 + (x - 21) * 2.5 / 19
-        b.cut(pix((x, int(yb + 0.6))), 0.55)
-    b.cut(M().line([(23, 17.5), (38, 13.2)], 0.8).get(0.6), 0.15, patina=False)                      # the bright back edge
-    grip = M().poly([(38.5, 9.5), (44, 7.5), (50, 9.2), (47.6, 12), (50.2, 24.5), (45.5, 26.5), (39.5, 24)]).get()
-    hole = M().poly([(42.4, 12.4), (46, 11.6), (47.2, 21.6), (43.4, 22.4)]).get()
-    b.relief(grip & ~hole, height=1.7, bevel=1.2, on=FIELD_H + 0.2, polish=0.8)
-    b.dome(41.5, 13.5, 0.9, 0.9, height=0.4, on="current"); b.dome(41.5, 20.5, 0.9, 0.9, height=0.4, on="current")
-    # claw hammer standing at the left, leaning a touch: face to the left, claw curling down on the right
-    hb = FIELD_H + 0.6
-    bot, top = (11.5, 26.5), (14.5, 9.5)
-    u = (top[0] - bot[0], top[1] - bot[1])
-    b.relief(tube([bot, top], [3.2, 2.6]), height=1.5, bevel=1.3, on=hb, polish=0.7)
-    head = M().poly(local(top, u, [(-2.4, -6.6), (2.4, -6.6), (2.6, -4.8), (2.0, -3.8), (2.4, 1.6), (-2.4, 1.6), (-2.0, -3.8), (-2.6, -4.8)]))
-    b.relief(head, height=2.1, bevel=1.2, on=hb + 0.4, polish=1.0)
-    claw = tube(local(top, u, [(0.4, 1.2), (0.2, 3.8), (-1.2, 6.0), (-3.6, 7.2)]), [4.2, 3.4, 2.4, 1.1]).get()
-    b.relief(claw, height=1.8, bevel=1.1, on=hb + 0.4, polish=1.0)
-    b.cut(M().line(local(top, u, [(0.2, 2.8), (-0.5, 4.8), (-2.4, 6.2)]), 0.7).get(0.4) & claw, 0.45)
-    b.cut(M().line(local(top, u, [(-2.4, -4.3), (2.4, -4.3)]), 0.7).get(0.4), 0.3)
+    pb = FIELD_H + 0.2
+    # the cast body: sole along the bottom, the cheek rising in a long low curve, nose and heel rounded off
+    body = M().poly([(7.5, 25), (49.5, 25), (49.5, 22.2), (47.0, 20.2), (40, 19.0), (16, 19.0), (10.0, 20.2), (7.5, 22.2)])
+    b.relief(body, height=1.6, bevel=1.2, on=pb, mat="iron", polish=0.9)
+    b.cut(M().rect(9, 23, 40, 1).get(), 0.25, patina=False)                                               # the sole's edge
+    # the knob up front: a turned mushroom on a short neck
+    b.relief(M().rect(12, 16, 4, 4), height=1.3, bevel=1.0, on=pb + 0.6)
+    b.dome(14, 13.2, 3.4, 3.6, height=2.0, on=pb + 0.6, polish=0.9)
+    b.cut(M().rect(11, 16, 6, 1).get(), 0.25)
+    # the frog: lever cap and iron bedded at 45 degrees, leaning back toward the tote
+    u = (1.0, -1.25)
+    cap = M().poly(local((24.5, 19.5), u, [(0, -2.6), (14.0, -2.4), (14.0, 2.4), (0, 2.6)]))
+    b.relief(cap, height=1.7, bevel=1.1, on=pb + 0.4, mat="steel", polish=1.0)
+    iron = M().poly(local((24.5, 19.5), u, [(13.0, -1.8), (16.5, -1.8), (16.5, 1.4), (13.0, 1.4)]))
+    b.relief(iron, height=1.3, bevel=1.0, on=pb + 0.4, mat="steel", polish=0.8)
+    b.cut(M().line(local((24.5, 19.5), u, [(7.5, -1.2), (7.5, 1.2)]), 0.8).get(0.45), 0.35)             # the cap's lever
+    b.dome(*local((24.5, 19.5), u, [(4.5, 0)])[0], 1.0, 1.0, height=0.6, on="current", polish=1.0)    # the cap screw
+    # depth adjuster wheel behind the frog
+    b.dome(33.5, 17.6, 1.7, 1.7, height=1.2, on=pb + 1.0, mat="brass", polish=1.0)
+    # the tote: a pistol grip raked back, the front edge hollowed for the fingers, a horn curling forward on top
+    tote = M().poly([(38.0, 20.5), (45.8, 20.5), (47.2, 16.0), (48.6, 11.0), (49.6, 8.0), (48.8, 6.0), (46.6, 5.4),
+                     (44.2, 6.0), (43.0, 7.4), (44.4, 8.8), (43.8, 11.2), (42.4, 13.8), (41.4, 16.4), (40.6, 18.6)]).get()
+    b.relief(tote, height=1.9, bevel=1.4, on=pb + 0.6, polish=0.85)
+    b.dome(43.6, 18.6, 0.9, 0.9, height=0.4, on="current", polish=1.0)                                    # the tote bolt
     b.ribbon("CARPENTER", pad=2)
     return b
+
 
 def chef():
     b = make_plate("chef")
@@ -341,45 +353,123 @@ def fisherman():
     b.ribbon("ANGLER")
     return b
 
+SERIF_M = [
+    "####.....####",
+    ".###.....###.",
+    ".####...####.",
+    ".##.##.##.##.",
+    ".##.##.##.##.",
+    ".##..###..##.",
+    ".##..###..##.",
+    ".##...#...##.",
+    ".##.......##.",
+    ".##.......##.",
+    ".##.......##.",
+    "####.....####",
+]
+SERIF_D = [
+    "########...",
+    ".##....##..",
+    ".##.....##.",
+    ".##.....##.",
+    ".##.....###",
+    ".##.....###",
+    ".##.....###",
+    ".##.....###",
+    ".##.....##.",
+    ".##.....##.",
+    ".##....##..",
+    "########...",
+]
+
+
 def doctor():
     b = make_plate("doctor")
-    tb = FIELD_H + 0.2
-    left = [(18.5, 7.5), (19, 10), (21, 14), (24.5, 17), (C, 18.5)]
-    st = tube(left, [2.6, 2.6, 2.6, 2.6, 3.0]).get() | tube(mirror(left), [2.6, 2.6, 2.6, 2.6, 3.0]).get()
-    hose = tube([(C, 18.5), (C, 21.5), (30, 24.5), (34, 25.8), (38.5, 25.2), (41.5, 22.5)], [3.2, 3.2, 3.2, 3.2, 3.2, 3.0]).get()
-    b.relief(st | hose, height=1.6, bevel=1.2, on=tb, polish=1.0)
-    for x in (18.5, 38.5): b.dome(x, 6.8, 2.0, 1.7, height=1.8, on=tb, polish=1.0)                    # ear tips
-    b.cylinder(26, 16.5, 5, 3, height=2.0, on=tb)                                                      # Y joint
-    b.dome(44, 18.5, 4.6, 4.6, height=1.9, on=tb + 0.2, polish=1.0)                                    # chest piece
-    b.cut(M().ellipse(44, 18.5, 2.8, 2.8).get() & ~M().ellipse(44, 18.5, 1.8, 1.8).get(), 0.35)
-    b.relief(M().rect(41, 21, 2, 2), height=1.3, bevel=1, on=tb)
-    b.ribbon("M.D.")
+    eb = FIELD_H + 0.2
+    # the staff, its ball finial and the wings spread from just under the ball
+    b.relief(M().rect(28, 7, 1, 25), height=1.2, bevel=1, on=eb, polish=1.0)
+    b.dome(C, 6.0, 1.6, 1.6, height=1.4, on=eb, polish=1.0)
+    lw = [(27.6, 9.0), (24, 7.6), (20, 6.4), (15.5, 5.6), (13.0, 6.0), (15.0, 7.2), (13.4, 8.0), (16.4, 8.8),
+          (15.4, 9.8), (19.0, 10.2), (18.6, 11.2), (22.6, 11.2), (27.6, 12.4)]
+    wings = M().poly(lw).poly(mirror(lw))
+    b.relief(wings, height=1.3, bevel=1.2, on=eb, polish=0.95)
+    wm = wings.get()
+    for sgn in (-1, 1):
+        for (x1, y1) in ((15.8, 7.4), (16.4, 9.2), (19.4, 10.6)):
+            x0, y0 = 25.0, 9.6
+            xs = lambda x: C + sgn * (C - x)
+            b.cut(M().line([(xs(x0 + (x1 - x0) * 0.4), y0 + (y1 - y0) * 0.4), (xs(x1), y1)], 0.55).get(0.45) & wm, 0.3)
+    # two snakes twining up the staff, crossing at every turn, heads facing each other under the wings
+    sn = M()
+    for sgn in (-1, 1):
+        pts = [(C + sgn * 2.6 * math.sin((y - 13.5) / 3.6 * math.pi) * (1.0 - (y - 13) / 40), y) for y in np.linspace(14.5, 29.5, 40)]
+        sn = tube(pts, [1.25] * len(pts), sn)
+        sn = tube([(C + sgn * 2.0, 14.6), (C + sgn * 2.6, 13.2), (C + sgn * 1.4, 12.6)], [1.6, 1.8, 1.2], sn)
+    b.relief(sn, height=1.0, bevel=1.0, on=eb + 0.4, polish=1.0)
+    # the letters, raised and buffed
+    m = rows_mask(SERIF_M, 9, 15)
+    d = rows_mask(SERIF_D, 37, 15)
+    b.relief(m | d, height=1.6, bevel=1.0, on=eb, polish=1.0)
     return b
+
 
 def veteran():
     b = make_plate("veteran")
     eb = FIELD_H + 0.2
-    # wings displayed: straight trailing edge, primaries fanned only at the tips
-    lw = [(25, 12), (21, 8.5), (16, 6), (11.5, 4.6), (9.5, 3.6), (9.2, 5.6), (7.4, 5.4), (8.0, 7.4), (6.4, 7.8), (7.8, 9.6),
-          (6.8, 10.8), (9.6, 11.6), (14, 14.4), (19.5, 17), (25.5, 18.5)]
-    wings = M().poly(lw).poly(mirror(lw))
-    b.relief(wings, height=1.6, bevel=1.6, on=eb, polish=0.95)
-    wm = wings.get()
-    for (x0, y0, x1, y1) in ((23, 15.2, 12.5, 9.8),):                                                 # one row of coverts
-        b.cut(M().line([(x0, y0), (x1, y1)], 0.7).get(0.4) & wm, 0.3)
-        b.cut(M().line([(57 - x0, y0), (57 - x1, y1)], 0.7).get(0.4) & wm, 0.3)
-    b.relief(M().ellipse(C, 17, 4.4, 6.6), height=2.2, bevel=2.0, on=eb)                              # body
-    tail = M().poly([(25.5, 22), (31.5, 22), (33.5, 26.5), (23.5, 26.5)])
-    b.relief(tail, height=1.6, bevel=1.0, on=eb)
-    for x in (26.5, 30.5): b.cut(M().line([(x + 0.5, 23.2), (x + (x - C) * 0.4 + 0.5, 26)], 0.6).get(0.4), 0.3)
-    head = M().ellipse(27.5, 9, 3.1, 3.0).poly([(25.4, 7.8), (22, 9.6), (24.2, 11)])                  # white head, hooked beak
-    b.relief(head, height=2.4, bevel=1.5, on=eb + 0.7, polish=1.0)
-    b.cut(pix((26, 8)), 0.4)
-    shield = M().poly([(26, 13.5), (31, 13.5), (31, 18), (28.5, 20.5), (26, 18)])
-    b.relief(shield, height=0.55, bevel=1, on="current", flat=True, polish=1.0)
-    for x in (27, 29): b.cut(M().rect(x, 15.5, 1, 4).get() & shield.get(), 0.25)
+    # wings displayed and raised, built feather by feather: each a tapered quill from the shoulder out to its tip,
+    # laid lowest first so every feather above overlaps the one below and the overlaps read as clean steps
+    tips = [(15.0, 19.8), (11.0, 17.6), (8.2, 14.6), (7.0, 11.0), (8.0, 7.6), (10.6, 4.6)]
+    roots = [(23.6, 19.0), (23.0, 17.6), (22.6, 16.2), (22.6, 14.8), (23.0, 13.6), (24.4, 12.6)]
+    wm = np.zeros((H, W), bool)
+    owner = np.full((H, W), -1, np.int16)
+    for i, (tp, rt) in enumerate(zip(tips, roots)):
+        for sgn in (1, -1):
+            pts = [rt, tp] if sgn > 0 else mirror([rt, tp])
+            f = tube(pts, [3.4, 2.2]).get()
+            b.relief(f, height=1.25, bevel=1.0, on=eb + 0.12 * i, polish=1.0)
+            wm |= f; owner[f] = i
+    # a dark seam where each feather tucks under the next one up
+    up = np.full((H, W), -1, np.int16)
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        up = np.maximum(up, np.roll(np.roll(owner, dy, 0), dx, 1))
+    b.cut((owner >= 0) & (up > owner), 0.45)
+    # the coverts: a smooth shoulder over the quill roots, its lower edge scalloped
+    for sgn in (1, -1):
+        cov = [(25.6, 12.4), (22.0, 11.4), (18.6, 11.0), (16.6, 12.6), (16.4, 14.6), (17.8, 16.6), (20.4, 18.0), (25.6, 18.6)]
+        b.relief(M().poly(cov if sgn > 0 else mirror(cov)), height=1.45, bevel=1.4, on=eb + 0.5, polish=1.0)
+    # the tail fanned under the shield
+    tail = M().poly([(26.0, 22.0), (31.0, 22.0), (33.4, 26.6), (23.6, 26.6)])
+    b.relief(tail, height=1.4, bevel=1.0, on=eb, polish=0.9)
+    for x in (26.6, 30.4): b.cut(M().line([(x, 23.4), (C + (x - C) * 2.0, 26.0)], 0.5).get(0.5), 0.3)
+    # olive branch in the right talon (viewer's left), arrows in the left
+    b.relief(tube([(24.0, 21.8), (21.0, 23.4), (17.6, 24.0)], [1, 1, 1]), height=0.8, bevel=1, on=eb)
+    for (x, y, a) in ((20.0, 22.4, -2.6), (17.8, 22.9, -2.9), (19.4, 25.0, 2.6)):
+        b.relief(M().poly(leaf(x, y, a, L=1.5, Wd=0.85)), height=0.9, bevel=1, on=eb + 0.1, polish=0.9)
+    for dy in (0.0, 1.6):
+        b.relief(M().line([(33.0, 21.6 + dy * 0.3), (39.6, 22.8 + dy)], 0.7).get(0.5), height=0.7, bevel=1, on=eb, flat=True, polish=1.0)
+    b.relief(pix((39, 21), (40, 22), (39, 25), (40, 25)), height=0.6, bevel=1, on=eb, flat=True)        # arrowheads
+    # the white head turned to its right (viewer's left), hooked brass beak, a gap above it for the plate to show
+    neck = M().poly([(25.6, 14.0), (31.4, 14.0), (31.0, 11.0), (26.0, 11.0)]).get()
+    b.relief(neck, height=1.8, bevel=1.2, on=eb + 0.5, polish=0.9)
+    head = M().ellipse(C, 9.2, 3.0, 2.8).get() | neck & (np.mgrid[0:H, 0:W][0] < 12)
+    b.relief(head, height=2.0, bevel=1.3, on=eb + 0.8, polish=1.0)
+    b.paint(head, "white")
+    beak = M().poly([(26.0, 8.6), (23.2, 9.4), (23.4, 10.8), (24.4, 10.4), (26.0, 10.8)]).get() & ~head
+    b.relief(beak, height=2.2, bevel=1.0, on=eb + 0.8, mat="goldplate", polish=1.0)
+    b.cut(pix((27, 8)), 0.5)
+    # the shield on the breast: blue chief with three stars, red and white pales, pointed foot
+    shield = M().poly([(24, 13.5), (33, 13.5), (33, 19), (28.5, 22.6), (24, 19)])
+    sm = shield.get()
+    b.relief(sm, height=1.3, bevel=1.0, on=eb + 0.6, polish=1.0, flat=True)
+    yy, xx = np.mgrid[0:H, 0:W]
+    b.paint(sm, "white")
+    chief = sm & (yy < 16)
+    b.paint(chief, "blue")
+    b.paint(sm & ~chief & (xx % 2 == 0), "red")
+    b.paint(pix((26, 14), (28, 14), (30, 14)), "white")
     b.ribbon("VETERAN")
     return b
+
 
 def leaf(cx, cy, ang, L=2.6, Wd=1.3):
     return [(cx + L * math.cos(t) * math.cos(ang) - Wd * math.sin(t) * math.sin(ang),
@@ -427,16 +517,61 @@ def lumberjack():
     return b
 
 
+BOLD = {
+    "B": ["#####.", "##..##", "##..##", "#####.", "##..##", "##..##", "##..##", "#####."],
+    "O": [".####.", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", ".####."],
+    "D": ["#####.", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", "#####."],
+    "Y": ["##..##", "##..##", "##..##", ".####.", "..##..", "..##..", "..##..", "..##.."],
+    "C": [".#####", "##....", "##....", "##....", "##....", "##....", "##....", ".#####"],
+    "H": ["##..##", "##..##", "##..##", "######", "##..##", "##..##", "##..##", "##..##"],
+    "I": ["##", "##", "##", "##", "##", "##", "##", "##"],
+    "S": [".#####", "##....", "##....", ".####.", "....##", "....##", "....##", "#####."],
+    "E": ["#####", "##...", "##...", "####.", "##...", "##...", "##...", "#####"],
+    "L": ["##...", "##...", "##...", "##...", "##...", "##...", "##...", "#####"],
+}
+
+
+def bold_w(t): return sum(len(BOLD[c][0]) + 1 for c in t) - 1
+
+
+def bold_mask(t, x, y):
+    m = np.zeros((H, W), bool); cx = x
+    for c in t:
+        m |= rows_mask(BOLD[c], cx, y); cx += len(BOLD[c][0]) + 1
+    return m
+
+
+def small_text(t, x, y, space=1):
+    m = np.zeros((H, W), bool); cx = x
+    for c in t:
+        if c == " ": cx += space; continue
+        m |= text_mask(c, cx, y); cx += len(FONT[c][0]) + 1
+    return m
+
+
+def small_w(t, space=1): return sum(space if c == " " else len(FONT[c][0]) + 1 for c in t) - 1
+
+
 def fitnessinstructor():
     b = make_plate("fitnessinstructor")
-    bb = FIELD_H + 0.3
-    b.cylinder(6, 15, 45, 3, height=1.1, axis="h", on=bb)                                              # the bar
-    for x0, w, y0, hgt in ((13, 3, 6, 20), (41, 3, 6, 20), (10, 3, 8, 16), (44, 3, 8, 16)):          # plates
-        pl = M(); pl.d.rounded_rectangle([x0 * SS, y0 * SS, (x0 + w) * SS - 1, (y0 + hgt) * SS - 1], radius=1.2 * SS, fill=255)
-        b.relief(pl, height=2.0, bevel=1.2, on=bb, polish=0.8)
-    for x0 in (16, 39): b.relief(M().rect(x0, 13, 2, 7), height=1.7, bevel=1.0, on=bb)               # collars
-    b.cut(M().rect(17, 16, 22, 1).get(), 0.12, patina=False)                                            # knurling hint
-    b.ribbon("STRONG")
+    field = b.field.copy()
+    b.paint(field, "black")                                                                            # black enamel sign
+    lh = FIELD_H + 0.2
+    top = bold_mask("BODY", 29 - bold_w("BODY") // 2 - 1, 6)
+    mid = bold_mask("CHISEL", 29 - bold_w("CHISEL") // 2 - 1, 15)
+    letters = top | mid
+    b.relief(letters, height=1.1, bevel=0.8, on=lh, mat="white", polish=1.0, flat=True)
+    yy, xx = np.mgrid[0:H, 0:W]
+    def span(m): c = np.nonzero(m.any(0))[0]; return (xx >= c.min()) & (xx <= c.max())
+    stripe = (((yy == 10) & span(top)) | ((yy == 19) & span(mid))) & field
+    b.paint(stripe & letters, "red")
+    b.relief(stripe & ~letters, height=0.25, bevel=1, on=FIELD_H, mat="red", polish=0.6, flat=True)
+    # the chisel stroke cutting in at the top left
+    bx = np.nonzero(top.any(0))[0].min()
+    b.relief(M().line([(bx - 4.2, 4.2), (bx - 0.6, 7.2)], 0.9).get(0.45) & field, height=1.1, bevel=1, on=lh, mat="white", flat=True)
+    tag = "GYM & FITNESS"
+    tw = small_w(tag, space=0)                       # 46 px: the sign's field is 49, so the spaces go
+    b.relief(small_text(tag, 28 - tw // 2, 26, space=0), height=0.6, bevel=1, on=FIELD_H, mat="silver", flat=True, polish=1.0)
     return b
 
 
@@ -620,29 +755,41 @@ def smither():
     return b
 
 
-def tailor():
+def tailor(k=0.86):
+    """drawn at full size, then scaled by k about the base's bottom centre so the machine sits smaller on the plate"""
     b = make_plate("tailor")
-    sh = FIELD_H + 0.2
-    piv = (20.5, 15.5)
-    for sgn in (-1, 1):
-        tip = (20.5 + sgn * 10, 5.5); ringc = (20.5 - sgn * 5.5, 22.5)
-        blade = M().poly([tip, (piv[0] + sgn * 2.2, piv[1] + 0.8), (piv[0] - sgn * 1.6, piv[1] + 0.4)])
-        lift = 0.5 if sgn > 0 else 0
-        b.relief(blade, height=1.4, bevel=1.0, on=sh + lift, polish=1.0)
-        b.relief(tube([piv, ringc], [2.2, 2.2]), height=1.2, bevel=1, on=sh + lift)
-        rg = M().ellipse(ringc[0], ringc[1] + 1, 3.4, 3.0).get() & ~M().ellipse(ringc[0], ringc[1] + 1, 1.8, 1.4).get()
-        b.relief(rg, height=1.5, bevel=1, on=sh + lift, polish=0.9)
-    b.dome(piv[0], piv[1], 1.4, 1.4, height=1.0, on="current", polish=1.0)
-    # a big spool of thread with a needle through it
-    b.relief(M().ellipse(41.5, 6.5, 7, 2).rect(34.5, 5, 14, 3), height=1.5, bevel=1, on=sh, polish=1.0)     # top flange
-    b.relief(M().ellipse(41.5, 24.5, 7, 2).rect(34.5, 23, 14, 3), height=1.5, bevel=1, on=sh, polish=1.0)   # bottom flange
-    b.cylinder(36, 8, 11, 15, height=2.0, on=sh)                                                                # thread
-    for y in range(9, 23, 2): b.cut(M().line([(36.5, y + 1.2), (46.5, y)], 0.7).get(0.45), 0.25)
-    b.relief(M().line([(39.5, 9.5), (45.5, 2.5)], 0.9).get(0.4), height=0.8, bevel=1, on=FIELD_H + 2.4, flat=True, polish=1.0)   # needle
-    b.cut(pix((45, 3)), 0.3)
-    b.relief(M().line([(36, 21), (33, 24.5), (30, 25.5)], 0.8).get(0.4), height=0.5, bevel=1, flat=True)                      # loose end
+    mb = FIELD_H + 0.2
+    ox, oy = C, 26.0
+    def P(pts): return [(ox + (x - ox) * k, oy + (y - oy) * k) for x, y in pts]
+    def R(x, y, w, h): return M().poly(P([(x, y), (x + w, y), (x + w, y + h), (x, y + h)]))
+    def E(cx, cy, rx, ry): (px, py), = P([(cx, cy)]); return M().ellipse(px, py, rx * k, ry * k)
+    # the wooden-look base and the bed plate
+    b.relief(R(7, 23, 43, 3), height=1.4, bevel=1.0, on=mb, polish=0.5)
+    bed = R(9, 20, 39, 3).get()
+    b.relief(bed, height=1.5, bevel=1.0, on=mb + 0.4, mat="black", polish=1.0)
+    # the arm: a flared pillar at the right, the arm arching over (higher at the pillar), the head dropping at the left
+    arm = M().poly(P([(35.0, 20), (45.0, 20), (44.0, 15), (44.0, 10.4), (42.4, 7.0), (38.4, 5.6), (30, 5.6), (22, 6.2),
+                      (17.0, 6.8), (12.6, 7.4), (12.4, 16.8), (17.8, 16.8), (18.4, 11.6), (24, 10.2), (31, 10.0),
+                      (35.6, 11.2), (37.6, 13.6), (37.2, 17.0)])).get()
+    b.relief(arm, height=2.0, bevel=1.6, on=mb + 0.4, mat="black", polish=1.0)
+    # gold decal lines along the arm, like a Singer's
+    b.paint(M().line(P([(21, 8.4), (36, 8.2), (40, 9.6)]), 0.7).get(0.45) & arm, "goldplate")
+    b.paint(M().line(P([(40.5, 14), (41.5, 15.2), (40.5, 16.4)]), 0.7).get(0.45) & arm, "goldplate")
+    # needle bar and presser foot under the head
+    b.relief(R(14, 17, 2, 3), height=1.0, bevel=1.0, on=mb + 0.6, mat="silver", polish=1.0)
+    b.relief(R(12.6, 19.2, 4.4, 1.0).get(0.3), height=0.8, bevel=1, on=mb + 0.9, mat="silver", flat=True)
+    # the handwheel at the right end, and the spool on its pin on top of the arm
+    wheel = E(46.0, 12.5, 4.4, 4.8).get()
+    b.relief(wheel, height=1.8, bevel=1.4, on=mb + 0.8, mat="silver", polish=1.0)
+    (wx, wy), = P([(46.0, 12.5)])
+    b.cut(M().ellipse(wx, wy, 2.6, 2.8).get() & ~M().ellipse(wx, wy, 1.6, 1.8).get(), 0.35)              # the rim's groove
+    b.dome(wx, wy, 1.0, 1.0, height=0.6, on="current", mat="silver", polish=1.0)
+    (sx, sy), = P([(31.5, 5.6)])
+    b.relief(M().rect(round(sx) - 1, round(sy) - 2, 1, 2), height=1.0, bevel=1, on=mb + 0.6, mat="silver", flat=True)
+    b.cylinder(round(sx) - 3, round(sy) - 3, 5, 2, height=1.2, on=mb + 1.4, mat="red", polish=0.7)              # the spool
     b.ribbon("TAILOR")
     return b
+
 
 def rancher():
     b = make_plate("rancher")
