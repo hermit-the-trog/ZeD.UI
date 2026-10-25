@@ -798,6 +798,10 @@ end
 -- Child panels can't eat these clicks because we check raw screen position.
 -- (WHAT_CODE_DID.md quirk #1)
 -- ---------------------------------------------------------------------------
+-- No window above this one holds the pointer: the engine's own picking, as for a click.
+-- (The main menu's windows answer for themselves: the desk's glass lies over them, ZeD_MMWindow)
+function ZeD_Window:pointerOn() return self:isMouseOver() end
+
 function ZeD_Window:update()
     ISPanel.update(self)
 
@@ -805,8 +809,8 @@ function ZeD_Window:update()
     -- it from a button that was already down when the pointer arrived (a drag released
     -- over the close box, a held button crossing the grow box) and from a press that
     -- landed on another window drawn above this one. `fresh` is the frame the button
-    -- went down; the squares and boxes arm on that frame only, while isMouseOver says
-    -- no window above holds the pointer (the engine's own picking, as for a click).
+    -- went down; the squares and boxes arm on that frame only, while pointerOn says
+    -- no window above holds the pointer.
     local down = isMouseButtonDown(0)
     local fresh = down and not self._uiPrevDown
     self._uiPrevDown = down
@@ -817,7 +821,7 @@ function ZeD_Window:update()
         local mx = getMouseX() - self:getAbsoluteX()
         local my = getMouseY() - self:getAbsoluteY()
         local inside = mx >= cb.x and mx <= cb.x + cb.w and my >= cb.y and my <= cb.y + cb.h
-        if inside and not self:isMouseOver() then inside = false end
+        if inside and not self:pointerOn() then inside = false end
         self._closeHover = inside
 
         if down then
@@ -850,7 +854,7 @@ function ZeD_Window:update()
                 break
             end
         end
-        if newHover and not self:isMouseOver() then newHover = nil end   -- another window is over it
+        if newHover and not self:pointerOn() then newHover = nil end   -- another window is over it
         self._themeControlHover = newHover
 
         if down then
@@ -914,7 +918,7 @@ function ZeD_Window:update()
         self._growBoxWasDown = false
         return
     end
-    if not fresh or not self:isMouseOver() then return end
+    if not fresh or not self:pointerOn() then return end
 
     local mx = getMouseX() - self:getAbsoluteX()
     local my = getMouseY() - self:getAbsoluteY()
