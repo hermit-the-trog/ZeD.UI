@@ -13,6 +13,27 @@ Sandbox options in game (new, off by default)
 - Every setting says when a change takes effect (now, only in places you have not been, only for a new character, after the next load, or fixed when the world was made) and warns when it needs care or can't be undone. The help at the bottom says what it does, what changing it does to this save, and gives a tip.
 - Nothing changes until Apply, which asks first. History lists every change with the in-game date, and Put back returns a setting to what it was.
 
+Mods screen
+- A mod's info pane has tabs: About, Options, Sandbox and Conflicts. Options shows the mod's own options and changes them in place. Sandbox lists the settings the mod adds to each new game, also while the mod is off.
+- About says what turning the mod off does to a save: safe, careful or not safe, with the reasons (a map, or items and vehicles the mod adds, are lost from a save that has them). In a save's own mod list, turning off a careful or not-safe mod asks first.
+- Two mods with the same code file: pick whose copy the game uses, file by file. The picked copies go into a small helper mod, ZeD picks, which ZeD turns on and keeps last in the load order. Reload puts them in place without a restart. Single player only.
+- Two copies of a file with the same text are no longer called a conflict.
+
+Speech and thought bubbles (new)
+- What your character says shows in a balloon over the head, in the theme's colours.
+- With the action bar on Verbose, the action shows in a thought bubble over the head.
+
+Dashboards
+- The key turns OFF, ON and START while the engine cranks.
+- Ash trays open and shut with a click. The ambulance, police, fire and ranger cars have a NO SMOKING plate instead.
+- The taxi's meter runs: click the flag to start it, and again to stop it. The fares are ZeD sandbox settings.
+- The hula girl sways in the turns.
+- The Spiffo's, Fossoil and McCoy's vans carry the game's own logo on the right side.
+
+Belt and windows
+- The hand circles show the item's condition as a ring.
+- Options, ZeD setup, Windows: a switch hides the theme, accent and text-size squares at the bottom of every window (shown by default).
+
 Quick actions
 - LB + X takes a light out of a bag and switches it on in one press; before, it took two. A light in a hand or on the belt switches on and off.
 - Eat on a stuffed character says "Too full to eat more." instead of "Nothing to eat on you."
@@ -22,3 +43,6 @@ Working with other mods (tested with 128 popular mods)
 - A mod that swaps in its own hotbar drawing after ZeD (Reorder The Hotbar) no longer replaces the belt's: the belt takes it back.
 - Another mod's broken setting or main-screen step (Change Sandbox Options on 42.21) no longer breaks the options screen or the pause menu.
 - The grades for every mod tested are in the Compatibility discussion.
+
+Fixes
+- The theme, accent and text-size squares and the close box on the main menu's windows work with the mouse.

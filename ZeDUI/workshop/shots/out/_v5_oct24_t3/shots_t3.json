@@ -1,0 +1,2578 @@
+{
+ "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards).",
+ "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_v3",
+ "out": "out",
+ "patches": [
+  [
+   3320,
+   2030,
+   3840,
+   2160,
+   0,
+   -130
+  ]
+ ],
+ "shots": [
+  {
+   "id": "hero",
+   "kind": "ingame",
+   "src": "zed_01_hero_mid.png",
+   "avoid": [
+    [
+     961,
+     0,
+     3320,
+     735
+    ],
+    [
+     1436,
+     2036,
+     2410,
+     2130
+    ]
+   ],
+   "balloons": [
+    {
+     "head": "Character window",
+     "text": "For you: what you carry and wear, health, temperature, ID, journal, skills and the radio you carry.",
+     "anchor": [
+      1437,
+      733
+     ],
+     "side": "bottom"
+    },
+    {
+     "head": "World window",
+     "text": "For the world around you: containers, crafting, building, furniture, maps, foraging, animals, radios and vehicles.",
+     "anchor": [
+      2620,
+      733
+     ],
+     "side": "bottom"
+    },
+    {
+     "text": "The belt: your hands, and the attachment slots of the gear you wear, on a strap in the gear's material.",
+     "anchor": [
+      1440,
+      2085
+     ],
+     "side": "left"
+    }
+   ]
+  },
+  {
+   "id": "old_job",
+   "kind": "feature",
+   "src": "story_00a_identity_tall.png",
+   "title": "Old job",
+   "caption": "Glen pumped gas at the Fossoil. Six days in, Mechanics is at 7 and Welding at 6; Cooking is still 2.",
+   "layout": {
+    "fill": 0.96,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      716,
+      0,
+      1618,
+      1280
+     ],
+     "tag": "IDENTITY"
+    },
+    {
+     "src": "story_00b_skills_tall.png",
+     "box": [
+      716,
+      0,
+      1618,
+      1280
+     ],
+     "tag": "SKILLS"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "A mechanic, six days in, 23 zombies killed.",
+     "anchor": [
+      1072,
+      554
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      430
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "Good traits in green.",
+     "anchor": [
+      798,
+      895
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      650
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "Bad ones in red.",
+     "anchor": [
+      798,
+      1109
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      24,
+      800
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "Mechanics up to 7, Welding to 6.",
+     "anchor": [
+      1186,
+      742
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      572
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "Others still at 1 to 3.",
+     "anchor": [
+      1571,
+      872
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      705
+     ],
+     "maxw": 290
+    },
+    {
+     "text": "XP boosts beside the level.",
+     "anchor": [
+      1586,
+      1072
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1556,
+      845
+     ],
+     "maxw": 290
+    }
+   ]
+  },
+  {
+   "id": "the_plan",
+   "kind": "feature",
+   "src": "story_02a_journal_entry.png",
+   "title": "The plan",
+   "caption": "A flyer for the old station, and a note in the journal.",
+   "layout": {
+    "fill": 0.96,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      296,
+      0,
+      1210,
+      735
+     ],
+     "tag": "JOURNAL"
+    },
+    {
+     "src": "story_01a_flyer_reader.png",
+     "box": [
+      887,
+      222,
+      2952,
+      1937
+     ],
+     "tag": "READER"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The Journal tab. Type an entry and press Save to add it to the log.",
+     "anchor": [
+      1113,
+      310
+     ],
+     "side": "top",
+     "crop": 0
+    },
+    {
+     "text": "The entry, with the day and time it was written.",
+     "anchor": [
+      372,
+      471
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "Flyers and papers open in the reader. Paper shows the page; Words shows the text.",
+     "anchor": [
+      1053,
+      1899
+     ],
+     "side": "bottom",
+     "crop": 1
+    },
+    {
+     "text": "The places a flyer names. Show on map marks the place on the map.",
+     "anchor": [
+      2575,
+      557
+     ],
+     "side": "right",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "the_route",
+   "kind": "feature",
+   "src": "story_03_route_map.png",
+   "title": "The route",
+   "caption": "World window, Maps tab.",
+   "crops": [
+    {
+     "box": [
+      2620,
+      0,
+      3560,
+      735
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Flyers you have read put a pin on the map at the place they name.",
+     "anchor": [
+      3061,
+      424
+     ],
+     "side": "left"
+    },
+    {
+     "text": "Hover a pin to see the flyer. Click it to read the flyer again.",
+     "anchor": [
+      3436,
+      480
+     ],
+     "side": "right"
+    },
+    {
+     "text": "These buttons pick the map style: survey, color or paper.",
+     "anchor": [
+      3300,
+      74
+     ],
+     "side": "top"
+    }
+   ]
+  },
+  {
+   "id": "driving_in",
+   "kind": "feature",
+   "src": "story_04a_seat_chooser.png",
+   "title": "Driving in",
+   "caption": "Seat chooser and dashboard.",
+   "crops": [
+    {
+     "box": [
+      1631,
+      626,
+      2209,
+      1534
+     ],
+     "place": [
+      130,
+      190,
+      440
+     ]
+    },
+    {
+     "src": "story_04a_dash_low_fuel.png",
+     "box": [
+      1125,
+      1800,
+      2720,
+      2160
+     ],
+     "place": [
+      700,
+      560,
+      1120
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Entering a car opens the seat chooser. Pick a seat; seat 1 is the driver's.",
+     "anchor": [
+      1878,
+      1047
+     ],
+     "side": "right",
+     "crop": 0
+    },
+    {
+     "text": "The fuel gauge. The needle is near E.",
+     "anchor": [
+      1255,
+      1895
+     ],
+     "side": "top",
+     "crop": 1
+    },
+    {
+     "text": "The dashboard is drawn to match the car. This is the station wagon's.",
+     "anchor": [
+      1987,
+      1975
+     ],
+     "side": "bottom",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "fixing_the_car",
+   "kind": "feature",
+   "src": "story_04b_vehicle_tab_tire.png",
+   "title": "Fixing the car",
+   "caption": "World window, Vehicle tab.",
+   "crops": [
+    {
+     "box": [
+      2600,
+      0,
+      3560,
+      735
+     ],
+     "place": [
+      300,
+      170,
+      860
+     ]
+    },
+    {
+     "src": "story_04b_tire_install_bar.png",
+     "box": [
+      1800,
+      940,
+      2040,
+      1020
+     ],
+     "resample": "nearest",
+     "place": [
+      1300,
+      700,
+      480
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The Vehicle tab opens when you are next to a car.",
+     "anchor": [
+      3512,
+      525
+     ],
+     "side": "right",
+     "crop": 0
+    },
+    {
+     "text": "The part card. This tire is missing.",
+     "anchor": [
+      3040,
+      143
+     ],
+     "side": "top",
+     "crop": 0
+    },
+    {
+     "text": "Parts you can install, from your bags and nearby.",
+     "anchor": [
+      2663,
+      308
+     ],
+     "side": "left",
+     "crop": 0
+    },
+    {
+     "text": "What the install needs, and where each thing is.",
+     "anchor": [
+      2663,
+      503
+     ],
+     "side": "left",
+     "crop": 0
+    },
+    {
+     "text": "Install starts the job.",
+     "anchor": [
+      3420,
+      73
+     ],
+     "side": "right",
+     "crop": 0
+    },
+    {
+     "text": "The action bar over the character: installing the tire, 35 percent.",
+     "anchor": [
+      2007,
+      980
+     ],
+     "side": "top",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "barricading",
+   "kind": "feature",
+   "src": "story_05a_barricade_menu.png",
+   "title": "Barricading",
+   "caption": "Context menu on the front window, and the action bar.",
+   "layout": {
+    "fill": 0.96,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1640,
+      900,
+      2240,
+      1200
+     ]
+    },
+    {
+     "src": "story_05b_barricade_bar.png",
+     "box": [
+      1720,
+      890,
+      2120,
+      1190
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The label above the strip names the action under the pointer: Window, Barricade (Planks).",
+     "anchor": [
+      1922,
+      980
+     ],
+     "side": "top",
+     "crop": 0
+    },
+    {
+     "text": "This is a submenu. The < button goes back.",
+     "anchor": [
+      1878,
+      1047
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "The action bar shows the action, the step and the percent: 2 of 3, 40 percent.",
+     "anchor": [
+      2010,
+      950
+     ],
+     "side": "top",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "stocking_shelves",
+   "kind": "feature",
+   "src": "story_07b_drag_to_shelf.png",
+   "title": "Stocking shelves",
+   "caption": "Character window on the left, World window on the right, with three shelves and the ground.",
+   "layout": {
+    "fill": 0.96
+   },
+   "crops": [
+    {
+     "box": [
+      961,
+      0,
+      3719,
+      735
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Drag an item from one column to another to move it.",
+     "anchor": [
+      2255,
+      300
+     ],
+     "side": "bottom"
+    },
+    {
+     "text": "The backpack column holds the stock.",
+     "anchor": [
+      1183,
+      62
+     ],
+     "side": "top"
+    },
+    {
+     "text": "Each shelf in reach has its own column.",
+     "anchor": [
+      2514,
+      62
+     ],
+     "side": "top"
+    },
+    {
+     "text": "These buttons list the containers in reach.",
+     "anchor": [
+      1962,
+      238
+     ],
+     "side": "bottom"
+    }
+   ]
+  },
+  {
+   "id": "open_for_business",
+   "kind": "feature",
+   "src": "story_08a_footer_before.png",
+   "title": "Open for business",
+   "caption": "The Fossoil's colors: light theme and blue accent, set from the buttons at the bottom of the window.",
+   "layout": {
+    "fill": 0.9,
+    "gap": 120
+   },
+   "crops": [
+    {
+     "box": [
+      1136,
+      0,
+      1913,
+      735
+     ],
+     "tag": "HIGH CONTRAST | TEAL"
+    },
+    {
+     "src": "story_08d_open_light_blue.png",
+     "box": [
+      1136,
+      0,
+      1913,
+      735
+     ],
+     "tag": "LIGHT | BLUE"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The theme button. Each press switches to the next base theme.",
+     "anchor": [
+      1146,
+      722
+     ],
+     "side": "left",
+     "crop": 0
+    },
+    {
+     "text": "The accent button. Each press gives this window the next accent color.",
+     "anchor": [
+      1180,
+      722
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "A switches the text size.",
+     "anchor": [
+      1210,
+      722
+     ],
+     "side": "bottom",
+     "crop": 1
+    },
+    {
+     "text": "R puts both windows back in their default places.",
+     "anchor": [
+      1242,
+      722
+     ],
+     "side": "right",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "pumping_gas",
+   "kind": "feature",
+   "src": "story_09b_gas_can_card.png",
+   "title": "Pumping gas",
+   "caption": "Filling a gas can at the pump, and the wagon's tank after refueling.",
+   "crops": [
+    {
+     "box": [
+      751,
+      0,
+      1200,
+      735
+     ],
+     "place": [
+      110,
+      170,
+      440
+     ]
+    },
+    {
+     "src": "story_09b_gas_can_card.png",
+     "box": [
+      1500,
+      820,
+      2300,
+      1200
+     ],
+     "place": [
+      700,
+      170,
+      760
+     ]
+    },
+    {
+     "src": "story_09c_dash_fuel_full.png",
+     "box": [
+      1125,
+      1800,
+      1600,
+      2000
+     ],
+     "resample": "nearest",
+     "place": [
+      700,
+      640,
+      712
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The card of the item in your hands. Unequip puts it away.",
+     "anchor": [
+      1065,
+      71
+     ],
+     "side": "right",
+     "crop": 0
+    },
+    {
+     "text": "The action bar: taking fuel into the gas can, 35 percent.",
+     "anchor": [
+      1985,
+      950
+     ],
+     "side": "right",
+     "crop": 1
+    },
+    {
+     "text": "The fuel gauge after refueling. The needle is near F.",
+     "anchor": [
+      1300,
+      1895
+     ],
+     "side": "right",
+     "crop": 2
+    }
+   ]
+  },
+  {
+   "id": "customers",
+   "kind": "ingame",
+   "src": "story_10_customers_queue.png",
+   "avoid": [
+    [
+     1436,
+     2036,
+     2410,
+     2130
+    ]
+   ],
+   "balloons": [
+    {
+     "text": "The buckle shows the profession. This one is for mechanics.",
+     "anchor": [
+      1917,
+      2083
+     ],
+     "side": "top"
+    },
+    {
+     "text": "The watch you wear, at the end of the belt.",
+     "anchor": [
+      2362,
+      2083
+     ],
+     "side": "top"
+    }
+   ]
+  },
+  {
+   "id": "smoke_break",
+   "kind": "feature",
+   "src": "story_11_smoke_break.png",
+   "title": "Smoke break",
+   "patches": [
+    [
+     3600,
+     2050,
+     3762,
+     2090,
+     -130,
+     0
+    ],
+    [
+     3682,
+     2094,
+     3762,
+     2130,
+     0,
+     -44
+    ]
+   ],
+   "crops": [
+    {
+     "box": [
+      1700,
+      860,
+      2500,
+      2140
+     ],
+     "place": [
+      180,
+      160,
+      500
+     ]
+    },
+    {
+     "src": "story_11_smoke_break.png",
+     "box": [
+      3320,
+      2035,
+      3766,
+      2133
+     ],
+     "place": [
+      900,
+      560,
+      892
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The action bar names the action and the item: the cigarette, 26 percent.",
+     "anchor": [
+      1982,
+      915
+     ],
+     "side": "right",
+     "crop": 0
+    },
+    {
+     "text": "Press the face of the small watch to open the full watch. Drag it anywhere.",
+     "anchor": [
+      2393,
+      1800
+     ],
+     "side": "right",
+     "crop": 0
+    },
+    {
+     "text": "The small watch on the belt.",
+     "anchor": [
+      2400,
+      2088
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "The moodles are the game's own. ZeD draws the moodle's name and description in this box.",
+     "anchor": [
+      3600,
+      2045
+     ],
+     "side": "top",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "keeping_count",
+   "kind": "feature",
+   "src": "journal_kills_1.png",
+   "title": "Keeping count",
+   "caption": "Character window, Journal tab.",
+   "crops": [
+    {
+     "box": [
+      1172,
+      352,
+      2084,
+      1260
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Journal tab. Zombies killed, with the total on the right.",
+     "anchor": [
+      2062,
+      497
+     ],
+     "side": "right"
+    },
+    {
+     "text": "Click the heading to show or hide the list.",
+     "anchor": [
+      1244,
+      497
+     ],
+     "side": "left"
+    },
+    {
+     "text": "Fire, vehicle and explosion kills are counted too.",
+     "anchor": [
+      1256,
+      578
+     ],
+     "side": "left",
+     "target": [
+      1265,
+      515,
+      2045,
+      1000
+     ]
+    },
+    {
+     "text": "The count by weapon type.",
+     "anchor": [
+      2062,
+      817
+     ],
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "night_shift",
+   "kind": "feature",
+   "src": "story_12d_windows_night.png",
+   "title": "Night shift",
+   "caption": "Dark theme with the blue accent, the dashboard at night, and the watch light.",
+   "crops": [
+    {
+     "box": [
+      1136,
+      0,
+      2704,
+      735
+     ],
+     "place": [
+      90,
+      160,
+      1100
+     ]
+    },
+    {
+     "src": "story_12b_dash_night.png",
+     "box": [
+      1125,
+      1800,
+      2720,
+      2160
+     ],
+     "place": [
+      90,
+      750,
+      1100
+     ]
+    },
+    {
+     "src": "story_12c_watch_light.png",
+     "box": [
+      2150,
+      1660,
+      2420,
+      2140
+     ],
+     "resample": "nearest",
+     "place": [
+      1360,
+      160,
+      405
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Dark theme, blue accent. The theme button at the bottom left switches it.",
+     "anchor": [
+      1146,
+      722
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "At night the gauges are lit.",
+     "anchor": [
+      1255,
+      1895
+     ],
+     "side": "right",
+     "crop": 1
+    },
+    {
+     "text": "LIGHT lights the watch's display.",
+     "anchor": [
+      2185,
+      1757
+     ],
+     "side": "left",
+     "crop": 2
+    },
+    {
+     "text": "The full watch tucks back onto the belt after a few seconds.",
+     "anchor": [
+      2400,
+      1900
+     ],
+     "side": "right",
+     "crop": 2
+    }
+   ]
+  },
+  {
+   "id": "car_radio",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/ws_27_car_radio_up_close.png",
+   "title": "The car radio",
+   "caption": "Each car's radio opens up close: tune it and store your stations.",
+   "layout": {
+    "zoom": 1.5
+   },
+   "crops": [
+    {
+     "box": [
+      1815,
+      1535,
+      2720,
+      1800
+     ],
+     "resample": "nearest"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The display shows the band and the frequency.",
+     "anchor": [
+      2280,
+      1570
+     ],
+     "side": "top"
+    },
+    {
+     "text": "The left knob sets the volume and switches the radio on and off.",
+     "anchor": [
+      1912,
+      1740
+     ],
+     "side": "bottom"
+    },
+    {
+     "text": "The six preset buttons carry the station names. Hold a button to store the tuned station.",
+     "anchor": [
+      2280,
+      1745
+     ],
+     "side": "bottom"
+    },
+    {
+     "text": "The right knob tunes the frequency.",
+     "anchor": [
+      2628,
+      1738
+     ],
+     "side": "bottom"
+    }
+   ]
+  },
+  {
+   "id": "inventory_compare",
+   "kind": "feature",
+   "src": "zed_01_hero_mid.png",
+   "title": "Inventory and loot",
+   "caption": "In ZeD, open containers sit side by side as columns. Drag an item to another column to move it.",
+   "layout": {
+    "direction": "column",
+    "zoom": 0.45,
+    "gap": 30
+   },
+   "crops": [
+    {
+     "src": "van_01_hero_mid.png",
+     "box": [
+      640,
+      0,
+      3200,
+      720
+     ],
+     "tag": "VANILLA"
+    },
+    {
+     "box": [
+      961,
+      0,
+      3320,
+      735
+     ],
+     "tag": "ZeD-GUI"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Vanilla: the inventory window and the loot window. The buttons on the right edge pick a container.",
+     "anchor": [
+      3185,
+      110
+     ],
+     "side": "right",
+     "crop": 0
+    },
+    {
+     "text": "ZeD: the Character window on the left, the World window on the right.",
+     "anchor": [
+      3315,
+      420
+     ],
+     "side": "right",
+     "crop": 1
+    },
+    {
+     "text": "ZeD: each container in reach has its own column. Here: the trunk, a duffel bag and the ground.",
+     "anchor": [
+      3315,
+      620
+     ],
+     "side": "right",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "item_cards",
+   "kind": "feature",
+   "src": "zed_18_card_food.png",
+   "title": "Item cards",
+   "caption": "Cards also open for generators, campfires, farm plots, troughs, padlocks and liquids.",
+   "layout": {
+    "fill": 0.5,
+    "gap": 90
+   },
+   "crops": [
+    {
+     "box": [
+      752,
+      0,
+      1210,
+      735
+     ]
+    },
+    {
+     "src": "zed_19_card_weapon.png",
+     "box": [
+      752,
+      0,
+      1210,
+      735
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Click an item to open its card. The card opens beside your inventory.",
+     "anchor": [
+      812,
+      134
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "Hunger, thirst and freshness.",
+     "anchor": [
+      812,
+      325
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "Nutrition facts for food: calories, proteins, fat.",
+     "anchor": [
+      812,
+      503
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "The main action is the button at the top: Eat for food, Equip for a weapon.",
+     "anchor": [
+      1035,
+      60
+     ],
+     "crop": 1,
+     "side": "right"
+    },
+    {
+     "text": "Condition, with a status dot.",
+     "anchor": [
+      1152,
+      326
+     ],
+     "crop": 1,
+     "side": "right"
+    },
+    {
+     "text": "Combat facts: damage, range, swing time and knockback.",
+     "anchor": [
+      1150,
+      465
+     ],
+     "crop": 1,
+     "side": "right"
+    },
+    {
+     "text": "Repair is at the bottom of the card.",
+     "anchor": [
+      1184,
+      672
+     ],
+     "crop": 1,
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "equip_doll",
+   "kind": "feature",
+   "src": "zed_10_equip_doll_oct22.png",
+   "title": "Equipment tab",
+   "caption": "Drag a worn item to a bag or the ground to take it off.",
+   "crops": [
+    {
+     "box": [
+      300,
+      0,
+      1192,
+      740
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "This is the equip doll. Each line runs from a slot to the part of the body it covers.",
+     "anchor": [
+      831,
+      295
+     ],
+     "target": [
+      669,
+      143,
+      864,
+      687
+     ],
+     "side": "right"
+    },
+    {
+     "text": "A worn item. The bar under it is its condition.",
+     "anchor": [
+      482,
+      164
+     ],
+     "side": "left"
+    },
+    {
+     "text": "An empty slot.",
+     "anchor": [
+      482,
+      364
+     ],
+     "side": "left"
+    },
+    {
+     "text": "The number is how many items are worn in that slot.",
+     "anchor": [
+      1051,
+      150
+     ],
+     "side": "right"
+    },
+    {
+     "text": "This button switches between the list and the doll.",
+     "anchor": [
+      1180,
+      77
+     ],
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "health_compare",
+   "kind": "feature",
+   "src": "zed_11_health_exercise_oct22.png",
+   "title": "Health tab",
+   "layout": {
+    "fill": 0.72,
+    "gap": 70
+   },
+   "crops": [
+    {
+     "src": "van_11_health.png",
+     "box": [
+      2405,
+      800,
+      2990,
+      1810
+     ],
+     "tag": "VANILLA"
+    },
+    {
+     "box": [
+      300,
+      0,
+      1192,
+      740
+     ],
+     "tag": "ZeD-GUI"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Vanilla: the Health tab.",
+     "anchor": [
+      2412,
+      1030
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "The body figure. Hover a part to see its health and conditions.",
+     "anchor": [
+      575,
+      600
+     ],
+     "crop": 1,
+     "side": "bottom"
+    },
+    {
+     "text": "Overall health, as a bar and a percentage.",
+     "anchor": [
+      1159,
+      174
+     ],
+     "crop": 1,
+     "side": "right"
+    },
+    {
+     "text": "Pick an exercise, then set the minutes.",
+     "anchor": [
+      1159,
+      300
+     ],
+     "crop": 1,
+     "side": "right"
+    },
+    {
+     "text": "This text says what the exercise trains.",
+     "anchor": [
+      1161,
+      646
+     ],
+     "crop": 1,
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "context_menus",
+   "kind": "feature",
+   "src": "zed_20_ctx_strip.png",
+   "title": "Context menus",
+   "caption": "Choose the strip or the list in Options, ZeD setup.",
+   "layout": {
+    "fill": 0.96,
+    "gap": 44
+   },
+   "crops": [
+    {
+     "src": "van_20_ctx_menu.png",
+     "box": [
+      1170,
+      215,
+      1620,
+      505
+     ],
+     "tag": "VANILLA"
+    },
+    {
+     "box": [
+      1690,
+      940,
+      2160,
+      1140
+     ],
+     "tag": "ZeD-GUI | STRIP"
+    },
+    {
+     "src": "zed_21_ctx_list.png",
+     "box": [
+      1910,
+      1160,
+      2350,
+      1600
+     ],
+     "tag": "ZeD-GUI | LIST"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Vanilla: the right-click menu.",
+     "anchor": [
+      1180,
+      472
+     ],
+     "crop": 0,
+     "side": "bottom"
+    },
+    {
+     "text": "Strip: each action is an icon. The name of the selected action is above the strip.",
+     "anchor": [
+      1920,
+      972
+     ],
+     "crop": 1,
+     "side": "top"
+    },
+    {
+     "text": "List: one action to a row, with its icon.",
+     "anchor": [
+      1922,
+      1300
+     ],
+     "crop": 2,
+     "side": "bottom"
+    }
+   ]
+  },
+  {
+   "id": "action_bar_compare",
+   "kind": "feature",
+   "src": "zed_32_action_bar_reading.png",
+   "title": "Action bar",
+   "caption": "Options, ZeD setup, Action bar: Verbose (words) or Simple (ten segments).",
+   "layout": {
+    "zoom": 2,
+    "gap": 80
+   },
+   "crops": [
+    {
+     "src": "van_32_action_bar_reading.png",
+     "box": [
+      1735,
+      860,
+      2095,
+      1120
+     ],
+     "resample": "nearest",
+     "tag": "VANILLA"
+    },
+    {
+     "box": [
+      1750,
+      860,
+      2110,
+      1120
+     ],
+     "resample": "nearest",
+     "tag": "ZeD-GUI"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Vanilla: the progress bar.",
+     "anchor": [
+      1901,
+      932
+     ],
+     "crop": 0,
+     "side": "left"
+    },
+    {
+     "text": "ZeD: the action and the item in words, over the character.",
+     "anchor": [
+      2002,
+      918
+     ],
+     "crop": 1,
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "controller_map",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/workshop/controller_map/controller_pad_px.png",
+   "title": "Controller",
+   "patches": [],
+   "caption": "Every mouse action has a button: A is left click, X is right click, B backs out.",
+   "crops": [
+    {
+     "box": [
+      80,
+      120,
+      1552,
+      1008
+     ],
+     "place": [
+      592,
+      400,
+      736
+     ],
+     "frame": false,
+     "resample": "nearest"
+    }
+   ],
+   "balloons": [
+    {
+     "head": "LT | RT",
+     "text": "The game's own: aim and attack. On the map, zoom.",
+     "anchor": [
+      348,
+      100
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      24,
+      104
+     ],
+     "maxw": 400
+    },
+    {
+     "head": "LB",
+     "text": "Character window. No window open: LB + RB zooms out. Quick actions: LB + a button.",
+     "anchor": [
+      532,
+      156
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      438,
+      104
+     ],
+     "maxw": 300
+    },
+    {
+     "head": "View",
+     "text": "In a window: layout. No window open: hold for the ZeD wheel.",
+     "anchor": [
+      636,
+      540
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      780,
+      104
+     ],
+     "maxw": 260
+    },
+    {
+     "head": "Menu",
+     "text": "The game's pause menu.",
+     "anchor": [
+      892,
+      540
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      1080,
+      104
+     ],
+     "maxw": 260
+    },
+    {
+     "head": "RB",
+     "text": "World window. No window open: RB + LB zooms in. Quick actions: RB + a button.",
+     "anchor": [
+      1076,
+      156
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      1380,
+      104
+     ],
+     "maxw": 400
+    },
+    {
+     "head": "Y (Triangle)",
+     "text": "Tap: open, hide or show both windows. Hold: close both.",
+     "anchor": [
+      1252,
+      476
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      1460,
+      316
+     ],
+     "maxw": 430
+    },
+    {
+     "head": "B (Circle)",
+     "text": "Back: close or back out.",
+     "anchor": [
+      1348,
+      572
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      1460,
+      480
+     ],
+     "maxw": 430
+    },
+    {
+     "head": "A (Cross)",
+     "text": "Left click: open, take, press.",
+     "anchor": [
+      1252,
+      668
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      1460,
+      614
+     ],
+     "maxw": 430
+    },
+    {
+     "head": "D-pad",
+     "text": "In a window: move from control to control. No window open: hold for a wheel (Character, World, Social, Here and now).",
+     "anchor": [
+      300,
+      572
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      24,
+      420
+     ],
+     "maxw": 430
+    },
+    {
+     "head": "Left stick",
+     "text": "Walk. Click it in a window to sort the list.",
+     "anchor": [
+      604,
+      788
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      24,
+      700
+     ],
+     "maxw": 430
+    },
+    {
+     "head": "Right stick",
+     "text": "Aim; both windows hide. Click it in a window: List or Grid. In a wheel: point.",
+     "anchor": [
+      932,
+      820
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      440,
+      846
+     ],
+     "maxw": 560
+    },
+    {
+     "head": "X (Square)",
+     "text": "Right click: the context menu.",
+     "anchor": [
+      1108,
+      620
+     ],
+     "side": "auto",
+     "crop": 0,
+     "at": [
+      1060,
+      846
+     ],
+     "maxw": 420
+    }
+   ]
+  },
+  {
+   "id": "controller",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_wheel_character_eat.png",
+   "title": "On a controller",
+   "caption": "Hold a D-pad direction for a wheel: Character, World, Social, Here and now. Point with the right stick, let go to take.",
+   "layout": {
+    "zoom": 1.2,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1690,
+      905,
+      2150,
+      1300
+     ],
+     "resample": "nearest",
+     "label": "CHARACTER"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_wheel_use_smoke.png",
+     "box": [
+      1690,
+      895,
+      2150,
+      1290
+     ],
+     "resample": "nearest",
+     "label": "CHARACTER > USE"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_car_vehicle_dashboard.png",
+     "box": [
+      1690,
+      800,
+      2160,
+      1345
+     ],
+     "resample": "nearest",
+     "label": "IN THE DRIVER'S SEAT"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "A slice on a quick action chord shows it. LB + A eats without opening the wheel.",
+     "anchor": [
+      1920,
+      920
+     ],
+     "side": "top",
+     "crop": 0,
+     "target": [
+      1835,
+      915,
+      2005,
+      963
+     ],
+     "maxw": 540
+    },
+    {
+     "text": "The buttons are drawn for your controller.",
+     "anchor": [
+      2069,
+      1291
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "A slice that can't be done now says why.",
+     "anchor": [
+      1800,
+      909
+     ],
+     "side": "top",
+     "crop": 1,
+     "target": [
+      1765,
+      905,
+      2080,
+      988
+     ]
+    },
+    {
+     "text": "Vehicle, then Dashboard: the D-pad works the dashboard until B.",
+     "anchor": [
+      1918,
+      839
+     ],
+     "side": "top",
+     "crop": 2,
+     "target": [
+      1720,
+      836,
+      2122,
+      916
+     ]
+    }
+   ]
+  },
+  {
+   "id": "quick_actions",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_setup_putback.png",
+   "title": "Quick actions",
+   "caption": "Hold LB or RB and press A, B, X, Y, L3 or R3: twelve actions from the wheels, set in ZeD setup or from a wheel.",
+   "layout": {
+    "fill": 0.9,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1450,
+      553,
+      2780,
+      1395
+     ],
+     "tag": "ZED SETUP"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g3_setup_list.png",
+     "box": [
+      1920,
+      1170,
+      2705,
+      2150
+     ],
+     "tag": "THE LIST"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Twelve chords: a bumper with a face button or a stick click.",
+     "anchor": [
+      1612,
+      940
+     ],
+     "side": "right",
+     "crop": 0,
+     "target": [
+      1495,
+      605,
+      1600,
+      1275
+     ],
+     "maxw": 260
+    },
+    {
+     "text": "A chooses the action. X clears it.",
+     "anchor": [
+      2376,
+      744
+     ],
+     "side": "top",
+     "crop": 0
+    },
+    {
+     "text": "Put things back after an action. Off until you turn it on.",
+     "anchor": [
+      2083,
+      1379
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "target": [
+      2040,
+      1338,
+      2185,
+      1384
+     ]
+    },
+    {
+     "text": "Every action on the wheels, under each wheel's name. The one on this chord is marked «.",
+     "anchor": [
+      2092,
+      2114
+     ],
+     "side": "top",
+     "crop": 1,
+     "target": [
+      1925,
+      1175,
+      2290,
+      2150
+     ],
+     "maxw": 300
+    }
+   ]
+  },
+  {
+   "id": "thermal",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/zed_66_thermal_skin.png",
+   "title": "Thermal tab",
+   "caption": "Character window, Thermal tab.",
+   "layout": {
+    "fill": 0.96,
+    "gap": 40
+   },
+   "crops": [
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/zed_66_thermal_skin.png",
+     "box": [
+      296,
+      0,
+      1205,
+      735
+     ],
+     "tag": "SKIN TEMPERATURE"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/zed_70_thermal_insulation.png",
+     "box": [
+      296,
+      0,
+      1205,
+      735
+     ],
+     "tag": "INSULATION"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/zed_72_thermal_wetness.png",
+     "box": [
+      296,
+      0,
+      1205,
+      735
+     ],
+     "tag": "WETNESS"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The figure shows the body part by part.",
+     "anchor": [
+      540,
+      300
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "These buttons pick what the figure shows.",
+     "anchor": [
+      1157,
+      360
+     ],
+     "side": "bottom",
+     "crop": 1
+    },
+    {
+     "text": "Core, air and wind temperatures.",
+     "anchor": [
+      373,
+      688
+     ],
+     "side": "bottom",
+     "crop": 2
+    }
+   ]
+  },
+  {
+   "id": "watches",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
+   "title": "Watches",
+   "caption": "The small watch on the belt shows the watch worn on the wrist.",
+   "layout": {
+    "zoom": 3,
+    "gap": 70
+   },
+   "crops": [
+    {
+     "src": "zed_30_hud_belt_watch.png",
+     "box": [
+      2300,
+      2025,
+      2420,
+      2140
+     ],
+     "resample": "nearest",
+     "tag": "CAZIO"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/zed_78_belt_watch_DigitalTimez.png",
+     "box": [
+      2300,
+      2025,
+      2420,
+      2140
+     ],
+     "resample": "nearest",
+     "tag": "TIMEZ"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/zed_79_belt_watch_ClassicGold.png",
+     "box": [
+      2300,
+      2025,
+      2420,
+      2140
+     ],
+     "resample": "nearest",
+     "tag": "CAZIO CLASSIC"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/zed_80_belt_watch_DigitalRed.png",
+     "box": [
+      2300,
+      2025,
+      2420,
+      2140
+     ],
+     "resample": "nearest",
+     "tag": "TIMEZ RED"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "LIGHT lights a CaZio's display with a small bulb.",
+     "anchor": [
+      2360,
+      2135
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "Each watch is drawn to match the one you wear.",
+     "anchor": [
+      2360,
+      2135
+     ],
+     "side": "bottom",
+     "crop": 1
+    },
+    {
+     "text": "Press the face to open the full watch.",
+     "anchor": [
+      2360,
+      2135
+     ],
+     "side": "bottom",
+     "crop": 3
+    }
+   ]
+  },
+  {
+   "id": "themes",
+   "kind": "feature",
+   "src": "theme_hicon_teal.png",
+   "title": "Themes and accents",
+   "caption": "Three base themes and nine accent colors, shown on the Character window. Each window can also have its own accent.",
+   "crops": [
+    {
+     "src": "theme_dark_orange.png",
+     "box": [
+      961,
+      0,
+      1913,
+      735
+     ],
+     "tag": "DARK | ORANGE",
+     "place": [
+      110,
+      180,
+      524
+     ]
+    },
+    {
+     "src": "theme_dark_green.png",
+     "box": [
+      961,
+      0,
+      1913,
+      735
+     ],
+     "tag": "DARK | GREEN",
+     "place": [
+      320,
+      242,
+      524
+     ]
+    },
+    {
+     "src": "theme_light_blue.png",
+     "box": [
+      961,
+      0,
+      1913,
+      735
+     ],
+     "tag": "LIGHT | BLUE",
+     "place": [
+      530,
+      304,
+      524
+     ]
+    },
+    {
+     "src": "theme_light_red.png",
+     "box": [
+      961,
+      0,
+      1913,
+      735
+     ],
+     "tag": "LIGHT | RED",
+     "place": [
+      740,
+      366,
+      524
+     ]
+    },
+    {
+     "src": "theme_hicon_purple.png",
+     "box": [
+      961,
+      0,
+      1913,
+      735
+     ],
+     "tag": "HIGH CONTRAST | PURPLE",
+     "place": [
+      950,
+      428,
+      524
+     ]
+    },
+    {
+     "box": [
+      961,
+      0,
+      1913,
+      735
+     ],
+     "tag": "HIGH CONTRAST | TEAL",
+     "place": [
+      1160,
+      490,
+      524
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The accent color marks the open tab and the buttons that are on.",
+     "anchor": [
+      1329,
+      90
+     ],
+     "crop": 5,
+     "side": "right"
+    },
+    {
+     "text": "Pick the base theme and the accent in Options, ZeD setup.",
+     "anchor": [
+      1913,
+      400
+     ],
+     "crop": 5,
+     "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "wallpapers",
+   "kind": "feature",
+   "src": "desk_02_painting_wallpaper_setting.png",
+   "title": "Wallpapers",
+   "patches": [],
+   "caption": "Desk, Settings menu: the picture on the monitor.",
+   "layout": {
+    "fill": 0.96,
+    "gap": 40
+   },
+   "crops": [
+    {
+     "box": [
+      880,
+      160,
+      2960,
+      1760
+     ],
+     "tag": "ORIGINAL WALLPAPER"
+    },
+    {
+     "src": "desk_04_video_wallpaper_setting.png",
+     "box": [
+      880,
+      160,
+      2960,
+      1760
+     ],
+     "tag": "NEW WALLPAPER"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Original wallpaper: the game's old title painting.",
+     "anchor": [
+      1313,
+      448
+     ],
+     "side": "bottom",
+     "crop": 0
+    },
+    {
+     "text": "New wallpaper: the Build 42 title video plays on the monitor.",
+     "anchor": [
+      1313,
+      495
+     ],
+     "side": "bottom",
+     "crop": 1
+    }
+   ]
+  },
+  {
+   "id": "desk",
+   "kind": "ingame",
+   "src": "desk_05_trash_computer.png",
+   "patches": [],
+   "avoid": [
+    [
+     1536,
+     839,
+     2282,
+     1120
+    ]
+   ],
+   "balloons": [
+    {
+     "text": "The main menu is a desk with a monitor. Each screen opens in a window on the monitor.",
+     "anchor": [
+      990,
+      1300
+     ],
+     "side": "left"
+    },
+    {
+     "text": "Desktop icons open the same screens as the menu.",
+     "anchor": [
+      2790,
+      533
+     ],
+     "side": "right"
+    },
+    {
+     "text": "There are a few things to find on the desk. Be careful emptying the trash.",
+     "anchor": [
+      2275,
+      1045
+     ],
+     "side": "bottom"
+    }
+   ]
+  },
+  {
+   "id": "options_menu",
+   "kind": "feature",
+   "src": "mm4_01_options_zed.png",
+   "title": "Options",
+   "caption": "ZeD setup comes first. The game's own pages follow, and say which settings ZeD replaces.",
+   "layout": {
+    "fill": 0.74,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      996,
+      304,
+      2824,
+      2000
+     ],
+     "tag": "ZED SETUP"
+    },
+    {
+     "src": "mm4_02_options_interface.png",
+     "box": [
+      1406,
+      370,
+      2824,
+      1860
+     ],
+     "tag": "INTERFACE"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Theme, accent, text size and scale.",
+     "anchor": [
+      1440,
+      456
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      40,
+      280
+     ]
+    },
+    {
+     "text": "Every setting is explained down here.",
+     "anchor": [
+      1430,
+      1880
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      40,
+      800
+     ]
+    },
+    {
+     "text": "Game settings ZeD replaces say so.",
+     "anchor": [
+      2528,
+      512
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 200,
+     "at": [
+      1652,
+      300
+     ]
+    }
+   ]
+  },
+  {
+   "id": "mod_manager",
+   "kind": "feature",
+   "src": "mm4_03_mods_conflict.png",
+   "title": "Mods",
+   "caption": "Mods: what is missing, what conflicts and which copy the game uses, before you start a game.",
+   "layout": {
+    "fill": 0.7,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1000,
+      304,
+      1874,
+      1240
+     ],
+     "tag": "MODS"
+    },
+    {
+     "box": [
+      1894,
+      304,
+      2830,
+      1340
+     ],
+     "tag": "DETAIL"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Tabs for problems, conflicts and the Workshop.",
+     "anchor": [
+      1032,
+      400
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      30,
+      180
+     ]
+    },
+    {
+     "text": "A missing mod or the wrong game version shows red.",
+     "anchor": [
+      1138,
+      610
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      30,
+      415
+     ]
+    },
+    {
+     "text": "Two mods ship the same file: which copy runs, and why.",
+     "anchor": [
+      2808,
+      896
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 230,
+     "at": [
+      1615,
+      470
+     ]
+    },
+    {
+     "text": "The same item in both: which version wins.",
+     "anchor": [
+      2808,
+      1142
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 230,
+     "at": [
+      1615,
+      700
+     ]
+    }
+   ]
+  },
+  {
+   "id": "load_order",
+   "kind": "feature",
+   "src": "mm4_08_profiles.png",
+   "title": "Profiles and load order",
+   "caption": "A profile keeps a mod list with its load order. The load order turns red when a mod loads before what it needs.",
+   "layout": {
+    "fill": 0.8,
+    "gap": 48,
+    "direction": "column"
+   },
+   "crops": [
+    {
+     "box": [
+      1000,
+      304,
+      2834,
+      890
+     ],
+     "tag": "PROFILES"
+    },
+    {
+     "src": "mm4_09_load_order.png",
+     "box": [
+      1000,
+      304,
+      2834,
+      830
+     ],
+     "tag": "LOAD ORDER"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Loading a profile says what it turns off.",
+     "anchor": [
+      2000,
+      540
+     ],
+     "crop": 0,
+     "side": "right",
+     "maxw": 260,
+     "at": [
+      1570,
+      250
+     ]
+    },
+    {
+     "text": "Each profile keeps its own load order.",
+     "anchor": [
+      2132,
+      866
+     ],
+     "crop": 0,
+     "side": "right",
+     "maxw": 260,
+     "at": [
+      1570,
+      440
+     ]
+    },
+    {
+     "text": "Crafting Pack loads before the Crafting Core it needs.",
+     "anchor": [
+      1020,
+      622
+     ],
+     "crop": 1,
+     "side": "left",
+     "maxw": 260,
+     "at": [
+      40,
+      760
+     ]
+    }
+   ]
+  },
+  {
+   "id": "uploader",
+   "kind": "feature",
+   "src": "mm4_15_upload_ready.png",
+   "title": "Uploading",
+   "caption": "Upload to the Workshop from one window. The description editor shows the page the way Steam will.",
+   "layout": {
+    "fill": 0.76,
+    "gap": 56
+   },
+   "crops": [
+    {
+     "box": [
+      1610,
+      370,
+      2824,
+      1600
+     ],
+     "tag": "UPLOAD"
+    },
+    {
+     "src": "mm4_12_editor.png",
+     "box": [
+      1010,
+      304,
+      2824,
+      2104
+     ],
+     "tag": "DESCRIPTION"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Who can see it, tags and the picture, each checked.",
+     "anchor": [
+      1614,
+      476
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      20,
+      230
+     ]
+    },
+    {
+     "text": "The folder is checked too.",
+     "anchor": [
+      1614,
+      1466
+     ],
+     "crop": 0,
+     "side": "left",
+     "maxw": 210,
+     "at": [
+      20,
+      700
+     ]
+    },
+    {
+     "text": "Build it from blocks and whole sections.",
+     "anchor": [
+      1094,
+      1214
+     ],
+     "crop": 1,
+     "side": "bottom",
+     "maxw": 520,
+     "at": [
+      560,
+      895
+     ]
+    },
+    {
+     "text": "The page as Steam will show it.",
+     "anchor": [
+      2815,
+      470
+     ],
+     "crop": 1,
+     "side": "right",
+     "maxw": 210,
+     "at": [
+      1665,
+      190
+     ]
+    },
+    {
+     "text": "Counted against Steam's 8,000 characters.",
+     "anchor": [
+      1212,
+      2038
+     ],
+     "crop": 1,
+     "side": "bottom",
+     "maxw": 520,
+     "at": [
+      1160,
+      895
+     ]
+    }
+   ]
+  }
+ ]
+}

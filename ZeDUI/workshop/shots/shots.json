@@ -1,5 +1,5 @@
 {
- "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards).",
+ "note": "Workshop gallery v4 (Oct 21 2026): the Fossoil story, from Screenshots/gallery_v3 (INVENTORY.md, STORY and Desk sections) and the batch-2 captures in Screenshots (zed_6x-8x). Older sets: out/_v1_oct20, out/_v2_oct21, out/_v3_oct21 (with shots_v3.json). Build: py -I ZeDUI/tools/release/make_shots.py ZeDUI/workshop/shots/shots.json (--debug shows anchors). Oct 22: shots.json is edited directly now (build_spec_v4.py is retired: it rebuilt the list from an Oct 21 scratch file and dropped later cards). Oct 25: seven cards for 0.2.0-t4 (dashboards, bubbles, messages, sandbox_ingame, mod_settings, file_picks, turn_off) from Screenshots/workshop_src/g4_*; the t3 set is in out/_v5_oct24_t3.",
  "screens": "C:/Users/danie/Zomboid/Screenshots/gallery_v3",
  "out": "out",
  "patches": [
@@ -1036,6 +1036,86 @@
    ]
   },
   {
+   "id": "dashboards",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_r6p_taxi_hula2.png",
+   "title": "Dashboards",
+   "caption": "The key turns as the engine starts, the ash tray opens with a click, and the taxi's meter runs.",
+   "layout": {
+    "zoom": 1.1
+   },
+   "crops": [
+    {
+     "box": [
+      1125,
+      1775,
+      2715,
+      2160
+     ],
+     "resample": "nearest",
+     "tag": "TAXI"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The taxi's meter: click the flag to start it, and again to stop it.",
+     "anchor": [
+      2368,
+      1908
+     ],
+     "side": "top",
+     "crop": 0,
+     "at": [
+      860,
+      150
+     ],
+     "maxw": 470
+    },
+    {
+     "text": "The hula girl sways in the turns.",
+     "anchor": [
+      2490,
+      1800
+     ],
+     "side": "top",
+     "crop": 0,
+     "at": [
+      1430,
+      180
+     ],
+     "maxw": 420
+    },
+    {
+     "text": "The key turns OFF, ON and START while the engine cranks.",
+     "anchor": [
+      1933,
+      2082
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "at": [
+      640,
+      830
+     ],
+     "maxw": 470
+    },
+    {
+     "text": "Ash trays open and shut with a click.",
+     "anchor": [
+      2575,
+      1985
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "at": [
+      1340,
+      840
+     ],
+     "maxw": 470
+    }
+   ]
+  },
+  {
    "id": "inventory_compare",
    "kind": "feature",
    "src": "zed_01_hero_mid.png",
@@ -1457,6 +1537,78 @@
      ],
      "crop": 1,
      "side": "right"
+    }
+   ]
+  },
+  {
+   "id": "bubbles",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_bub_both_dark.png",
+   "title": "Speech, thoughts and hands",
+   "caption": "What your character says, and the action under way, over the head. The hands show condition as a ring.",
+   "layout": {
+    "gap": 70,
+    "direction": "column"
+   },
+   "crops": [
+    {
+     "box": [
+      1750,
+      880,
+      2280,
+      1160
+     ],
+     "resample": "nearest",
+     "tag": "OVER THE HEAD"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_rs_belt_70_45.png",
+     "box": [
+      1430,
+      2030,
+      2220,
+      2150
+     ],
+     "tag": "THE BELT"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "What your character says shows in a balloon, in the theme's colours.",
+     "anchor": [
+      2205,
+      975
+     ],
+     "side": "right",
+     "crop": 0,
+     "at": [
+      1470,
+      300
+     ],
+     "maxw": 400
+    },
+    {
+     "text": "With the action bar on Verbose, the action shows in a thought bubble.",
+     "anchor": [
+      1863,
+      952
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      60,
+      250
+     ],
+     "maxw": 400
+    },
+    {
+     "text": "Each hand shows the condition of what it holds as a ring.",
+     "anchor": [
+      2165,
+      2045
+     ],
+     "side": "right",
+     "crop": 1
     }
    ]
   },
@@ -2018,6 +2170,132 @@
    ]
   },
   {
+   "id": "messages",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_g4_window_radio.png",
+   "title": "Messages",
+   "caption": "Notes from other mods go into one window instead of covering the game. Questions still ask at once.",
+   "crops": [
+    {
+     "box": [
+      1252,
+      636,
+      2594,
+      1534
+     ],
+     "place": [
+      330,
+      150,
+      930
+     ],
+     "tag": "MESSAGES"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_g4_belt_toast.png",
+     "box": [
+      3100,
+      250,
+      3725,
+      395
+     ],
+     "place": [
+      1300,
+      180,
+      580
+     ],
+     "tag": "THE TOAST"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_g4_belt_toast.png",
+     "box": [
+      1985,
+      2025,
+      2320,
+      2145
+     ],
+     "place": [
+      1300,
+      560,
+      460
+     ],
+     "resample": "nearest",
+     "tag": "THE BELT"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Each mod that sent something, with a count.",
+     "anchor": [
+      1262,
+      813
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      30,
+      210
+     ],
+     "maxw": 260
+    },
+    {
+     "text": "The mod's own OK button works here.",
+     "anchor": [
+      2486,
+      1131
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "at": [
+      700,
+      830
+     ],
+     "maxw": 440
+    },
+    {
+     "text": "A mod's notes can be shown as pop-ups again.",
+     "anchor": [
+      1286,
+      1461
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "at": [
+      40,
+      830
+     ],
+     "maxw": 420
+    },
+    {
+     "text": "A strip names the mod for a few seconds. Click it to read.",
+     "anchor": [
+      3125,
+      290
+     ],
+     "side": "bottom",
+     "crop": 1,
+     "at": [
+      1300,
+      350
+     ],
+     "maxw": 560
+    },
+    {
+     "text": "The envelope on the belt opens Messages, with the count of new notes.",
+     "anchor": [
+      2257,
+      2068
+     ],
+     "side": "bottom",
+     "crop": 2,
+     "at": [
+      1300,
+      790
+     ],
+     "maxw": 560
+    }
+   ]
+  },
+  {
    "id": "themes",
    "kind": "feature",
    "src": "theme_hicon_teal.png",
@@ -2305,6 +2583,102 @@
    ]
   },
   {
+   "id": "sandbox_ingame",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_sbx_world_help.png",
+   "title": "Sandbox options in game",
+   "caption": "Change this save's sandbox settings from the pause window. Off until you turn it on in ZeD setup.",
+   "crops": [
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_sbx_pause_line.png",
+     "box": [
+      1600,
+      805,
+      2240,
+      1352
+     ],
+     "place": [
+      60,
+      170,
+      420
+     ],
+     "tag": "PAUSED"
+    },
+    {
+     "box": [
+      990,
+      340,
+      2855,
+      1852
+     ],
+     "place": [
+      620,
+      140,
+      980
+     ],
+     "tag": "SANDBOX OPTIONS"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "With the switch on, the pause window has a Sandbox options line.",
+     "anchor": [
+      1920,
+      1135
+     ],
+     "side": "bottom",
+     "crop": 0,
+     "at": [
+      40,
+      580
+     ],
+     "maxw": 500
+    },
+    {
+     "text": "What it does, what changing it does to this save, and a tip.",
+     "anchor": [
+      995,
+      1420
+     ],
+     "side": "left",
+     "crop": 1,
+     "at": [
+      40,
+      800
+     ],
+     "maxw": 500
+    },
+    {
+     "text": "Each setting says when a change takes effect: now, in new places only, or fixed.",
+     "anchor": [
+      2840,
+      714
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1612,
+      170
+     ],
+     "maxw": 250
+    },
+    {
+     "text": "Nothing changes until Apply, which asks first.",
+     "anchor": [
+      2800,
+      1786
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1612,
+      700
+     ],
+     "maxw": 250
+    }
+   ]
+  },
+  {
    "id": "mod_manager",
    "kind": "feature",
    "src": "mm4_03_mods_conflict.png",
@@ -2390,6 +2764,251 @@
       1615,
       700
      ]
+    }
+   ]
+  },
+  {
+   "id": "mod_settings",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_mp_1_cvo_options.png",
+   "title": "A mod's settings",
+   "caption": "A mod's own options, changed in place, and the sandbox settings it adds to each game.",
+   "crops": [
+    {
+     "box": [
+      1960,
+      370,
+      2832,
+      1440
+     ],
+     "place": [
+      440,
+      130,
+      640
+     ],
+     "tag": "OPTIONS"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_mp_3_cvo_sandbox.png",
+     "box": [
+      1960,
+      370,
+      2832,
+      1260
+     ],
+     "place": [
+      1150,
+      130,
+      640
+     ],
+     "tag": "SANDBOX"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The info pane's tabs: About, Options, Sandbox and Conflicts.",
+     "anchor": [
+      1975,
+      655
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      30,
+      170
+     ],
+     "maxw": 380
+    },
+    {
+     "text": "The mod's own options, changed in place and kept at once.",
+     "anchor": [
+      1990,
+      830
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      30,
+      520
+     ],
+     "maxw": 380
+    },
+    {
+     "text": "The settings it adds to each new game, read from its files, also while it is off.",
+     "anchor": [
+      2190,
+      1190
+     ],
+     "side": "bottom",
+     "crop": 1,
+     "at": [
+      1150,
+      820
+     ],
+     "maxw": 640
+    }
+   ]
+  },
+  {
+   "id": "file_picks",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_mp_8_picker_picked.png",
+   "title": "Picking files",
+   "caption": "Two mods with the same code file: pick whose copy the game runs, file by file. Single player only.",
+   "crops": [
+    {
+     "box": [
+      1005,
+      300,
+      2835,
+      1662
+     ],
+     "place": [
+      880,
+      140,
+      1000
+     ],
+     "tag": "PICK FILES"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "Every file both mods have, with the mod whose copy runs.",
+     "anchor": [
+      1460,
+      660
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      40,
+      150
+     ],
+     "maxw": 560
+    },
+    {
+     "text": "Choose whose copy runs. Reload puts it in place, no restart.",
+     "anchor": [
+      1735,
+      520
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      40,
+      350
+     ],
+     "maxw": 560
+    },
+    {
+     "text": "Both copies, with the lines that differ marked.",
+     "anchor": [
+      2400,
+      900
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      40,
+      560
+     ],
+     "maxw": 560
+    },
+    {
+     "text": "The picks go into the helper mod ZeD picks. Undo puts everything back.",
+     "anchor": [
+      1745,
+      1462
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      40,
+      740
+     ],
+     "maxw": 560
+    }
+   ]
+  },
+  {
+   "id": "turn_off",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_mp_11_turnoff_map.png",
+   "title": "Turning a mod off",
+   "caption": "What turning a mod off does to a save: safe, careful or not safe, and why.",
+   "crops": [
+    {
+     "box": [
+      1940,
+      360,
+      2832,
+      1340
+     ],
+     "place": [
+      656,
+      130,
+      607
+     ],
+     "tag": "ABOUT"
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g4_mp_14_ask_off.png",
+     "box": [
+      1005,
+      1556,
+      2832,
+      1632
+     ],
+     "place": [
+      135,
+      880,
+      1650
+     ],
+     "tag": "IN A SAVE'S OWN LIST"
+    }
+   ],
+   "balloons": [
+    {
+     "text": "A map or tiles: not safe for a game in progress, with the reasons.",
+     "anchor": [
+      1975,
+      1003
+     ],
+     "side": "left",
+     "crop": 0,
+     "at": [
+      60,
+      380
+     ],
+     "maxw": 500
+    },
+    {
+     "text": "Saves keep their own mod lists, so the main list changes new games only.",
+     "anchor": [
+      2780,
+      900
+     ],
+     "side": "right",
+     "crop": 0,
+     "at": [
+      1320,
+      260
+     ],
+     "maxw": 520
+    },
+    {
+     "text": "In a save's own list, turning off a mod that is not safe asks first.",
+     "anchor": [
+      2700,
+      1620
+     ],
+     "side": "top",
+     "crop": 1,
+     "at": [
+      1320,
+      640
+     ],
+     "maxw": 520
     }
    ]
   },
