@@ -22,11 +22,17 @@ This thread keeps the list of mods tested with ZeD-GUI, graded by how well they 
 [/list]
 No mod tested so far is D or F.
 
-[h2]Found and fixed, in the next test build (0.2.0-t4)[/h2]
+[h2]Found and fixed in 0.2.0-t4[/h2]
 [list]
 [*]Notes that mods open at game start (Horse Mod, Bandits, Companion Dogs) go into ZeD-GUI's new Messages window instead of covering the game, and a mod that pauses the game for its note no longer leaves it paused.
 [*]Another mod's error while the main screen builds (Change Sandbox Options has two on 42.21) left the game without the options screen or ZeD-GUI's pause window. ZeD-GUI now sets such a key binding to none, catches a mod's options page that fails, and builds its menu even when another mod's step fails.
 [*]A watch worn in a mod's own watch slot (Pack Mule) did not show on the belt. The belt now finds the watch wherever it is worn.
+[/list]
+
+[h2]New in 0.2.0-t4 for long mod lists[/h2]
+[list]
+[*]In Mods, a mod's About tab says what turning it off does to a save (safe, careful or not safe, and why). In a save's own mod list, turning off a mod that is not safe asks first.
+[*]When two mods ship the same code file, the Conflicts tab can pick whose copy the game runs, file by file (single player). For example, GaelGunStore-Firearms and Modern Firearms System share 13 files.
 [/list]
 
 [h2]Broken on 42.21 by themselves (X)[/h2]
