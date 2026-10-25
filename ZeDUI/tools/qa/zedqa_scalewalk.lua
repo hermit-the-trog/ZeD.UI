@@ -19,7 +19,25 @@ for _, pass in ipairs({ { nil, "200" }, { 1.0, "100" } }) do
         end); t = t + 5
         for k = 1, 8 do
             at(t, function() local win = getWin(); local tb = win and win._zedqaTabs and win._zedqaTabs[k]; if tb then getStrip(win):onMouseDown(tb.x, tb.y) end end)
-            at(t + 25, function() local win = getWin(); local tb = win and win._zedqaTabs and win._zedqaTabs[k]; if tb then pcall(function() getCore():TakeFullScreenshot("zedqa_sw_" .. tag .. "_" .. label .. "_" .. tb.id .. ".png") end); print("ZEDQA sw shot " .. tag .. " " .. label .. " " .. tb.id .. " active=" .. tostring(win._activeTab) .. " win=" .. tostring(win:getX()) .. "," .. tostring(win:getY()) .. " " .. tostring(win:getWidth()) .. "x" .. tostring(win:getHeight())) end end)
+            at(t + 25, function() local win = getWin(); local tb = win and win._zedqaTabs and win._zedqaTabs[k]; if tb then pcall(function() getCore():TakeFullScreenshot("zedqa_sw_" .. tag .. "_" .. label .. "_" .. tb.id .. ".png") end); print("ZEDQA sw shot " .. tag .. " " .. label .. " " .. tb.id .. " active=" .. tostring(win._activeTab) .. " win=" .. tostring(win:getX()) .. "," .. tostring(win:getY()) .. " " .. tostring(win:getWidth()) .. "x" .. tostring(win:getHeight()))
+                -- (Oct 25 2026) the tab drawer sits between the tab strip and the inventory at every
+                -- scale: it starts where the strip ends and ends where the inventory starts
+                local d, c, s = win._drawerPanel, win._mainContent, getStrip(win)
+                if label == "char" and d and c and s and d:getWidth() > 0 and c:isVisible() then
+                    local okL = math.abs(d:getX() - s:getWidth()) <= 1
+                    local okR = math.abs(d:getX() + d:getWidth() - c:getX()) <= 1
+                    print("ZEDQA sw " .. ((okL and okR) and "fit " or "ERR drawer out of place ") .. tag .. " " .. tb.id .. ": strip ends " .. s:getWidth() .. ", drawer " .. d:getX() .. "-" .. (d:getX() + d:getWidth()) .. ", inventory starts " .. c:getX())
+                end
+                -- the World window, mirrored: container strip | list | drawer | tab strip, edge to edge
+                if label == "world" and d and c and s then
+                    local cs = nil
+                    for _, ch in pairs(win:getChildren()) do if ch._zedLabel == "world container strip" then cs = ch end end
+                    local okC = (not cs) or (not cs:isVisible()) or math.abs(cs:getWidth() - c:getX()) <= 1
+                    local okD = math.abs(d:getX() + d:getWidth() - s:getX()) <= 1
+                    local okS = math.abs(s:getX() + s:getWidth() - win:getWidth()) <= 1
+                    print("ZEDQA sw " .. ((okC and okD and okS) and "fit " or "ERR world parts out of place ") .. tag .. " " .. tb.id .. ": container strip ends " .. tostring(cs and cs:getWidth()) .. ", list starts " .. c:getX() .. ", drawer " .. d:getX() .. "-" .. (d:getX() + d:getWidth()) .. ", tab strip " .. s:getX() .. "-" .. (s:getX() + s:getWidth()) .. ", window " .. win:getWidth())
+                end
+            end end)
             t = t + 35
         end
         at(t, function() local win = getWin(); local tb = win and win._zedqaTabs and win._zedqaTabs[1]; if tb then getStrip(win):onMouseDown(tb.x, tb.y) end end); t = t + 10

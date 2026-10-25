@@ -4217,6 +4217,12 @@ function ZeD_CharacterWindow.toggle(playerNum)
         end
 
         local effectiveW = math.floor(effW)
+        -- its left edge too, every frame like its neighbours: a text size or scale change
+        -- with the window open moves the tab strip's edge, and a left edge kept from the
+        -- build put the drawer's right side under the inventory (director, Oct 25 2026:
+        -- "the smallest font seems to break parts of the window ui")
+        local dx = T.px(TAB_STRIP_W)
+        if self:getX() ~= dx then self:setX(dx) end
         self:setWidth(effectiveW)
 
         -- Clear saved width when drawer finishes closing
@@ -4341,12 +4347,21 @@ function ZeD_CharacterWindow.toggle(playerNum)
         containerStrip:setX(T.px(TAB_STRIP_W) + effectiveW + invW)
         containerStrip:setVisible(not win._rolled)
 
-        -- Sync all child heights to current window body
+        -- Sync all child heights to current window body (and the tops and the two
+        -- strips' widths: a scale or text size change moves the title bar and the strips)
         local bodyH = win:getBodyHeight()
+        local bodyY = win:getBodyY()
         strip:setHeight(bodyH)
         self:setHeight(bodyH)
         content:setHeight(bodyH)
         containerStrip:setHeight(bodyH)
+        if strip:getY() ~= bodyY then strip:setY(bodyY) end
+        if self:getY() ~= bodyY then self:setY(bodyY) end
+        if content:getY() ~= bodyY then content:setY(bodyY) end
+        if containerStrip:getY() ~= bodyY then containerStrip:setY(bodyY) end
+        if itemDrawer:getY() ~= bodyY then itemDrawer:setY(bodyY) end
+        if strip:getWidth() ~= T.px(TAB_STRIP_W) then strip:setWidth(T.px(TAB_STRIP_W)) end
+        if containerStrip:getWidth() ~= T.px(CONTAINER_STRIP_W) then containerStrip:setWidth(T.px(CONTAINER_STRIP_W)) end
 
         -- Store divider position for top-Z drawing in itemDrawer
         win._dividerX = (effectiveW > 0 and invW > 0) and (T.px(TAB_STRIP_W) + effectiveW) or nil

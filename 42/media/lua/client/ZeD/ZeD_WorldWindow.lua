@@ -3707,6 +3707,18 @@ function ZeD_WorldWindow.toggle(playerNum)
         self:setHeight(bh)
         actionTabStrip:setX(stripW + invW + effectiveW)
         actionTabStrip:setHeight(bh)
+        -- the two strips' widths and every panel's top follow the scale too: a text size or
+        -- scale change with the window open left the strips at the width they were built
+        -- with, the container strip over the list and the tab strip past the window's edge
+        -- (director, Oct 25 2026: "World window didnt get the fix when smallest font is active")
+        local csW, tsW, bodyY = T.px(CONTAINER_STRIP_W), T.px(ACTION_TAB_STRIP_W), win:getBodyY()
+        if containerStrip:getWidth() ~= csW then containerStrip:setWidth(csW) end
+        if actionTabStrip:getWidth() ~= tsW then actionTabStrip:setWidth(tsW) end
+        if containerStrip:getY() ~= bodyY then containerStrip:setY(bodyY) end
+        if content:getY() ~= bodyY then content:setY(bodyY) end
+        if self:getY() ~= bodyY then self:setY(bodyY) end
+        if actionTabStrip:getY() ~= bodyY then actionTabStrip:setY(bodyY) end
+        if itemDrawer:getY() ~= bodyY then itemDrawer:setY(bodyY) end
 
         -- Store divider position for top-Z drawing in win.render
         win._dividerX = (effectiveW > 0 and invW > 0) and (stripW + invW) or nil
