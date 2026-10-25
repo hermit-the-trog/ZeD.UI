@@ -40,6 +40,8 @@ New-Item -ItemType Directory -Force $Keep | Out-Null
 Copy-Item $DefaultMods (Join-Path $Keep "default.txt") -Force
 if (Test-Path $ModOptions) { Copy-Item $ModOptions (Join-Path $Keep "ModOptions.ini") -Force }
 $hadPicks = Test-Path $PicksList
+$SaveMods = Join-Path $Zomboid "Saves\Sandbox\ZeD-QA\mods.txt"
+Copy-Item $SaveMods (Join-Path $Keep "save_mods.txt") -Force
 if ($hadPicks) { Copy-Item $PicksList (Join-Path $Keep "ZeD_picks.txt") -Force }
 
 $fails = 0
@@ -68,7 +70,7 @@ function Wait-Log($pattern, $seconds) {
 $Prelude = @'
 local MM = ZeD.MainMenu
 local R = MM.root
-local MS, S, P, OW = ZeD.ModScan, ZeD.ModSettings, ZeD.ModPicks, ZeD.ModOptionsOwners
+local MS, S, P, OW, SF = ZeD.ModScan, ZeD.ModSettings, ZeD.ModPicks, ZeD.ModOptionsOwners, ZeD.ModSafety
 local G = "__GO__"
 local function say(s) print("ZEDQA mp " .. G .. " " .. tostring(s)) end
 local function w() return R.modsWin end
@@ -260,6 +262,64 @@ local n = 0
 for _ in pairs(P.picks()) do n = n + 1 end
 say("LOADED " .. table.concat(hits, ";") .. " picksKept=" .. n)
 '@
+    safety = @'
+local t = {}
+for _, id in ipairs({ "ConeVisionOutline", "GaelGunStore_B42", "ModernFirearmsSystem", "Constown42", "newhartburg", "SmartRadialMenu", "ZeD_UI" }) do
+    local a = SF.assess(id)
+    local first = a.lines[1] and a.lines[1].text or ""
+    t[#t + 1] = id .. "=" .. a.grade .. "(" .. #a.lines .. ":" .. first:sub(1, 40) .. ")"
+end
+sel("Constown42", "about")
+later(1000, function() say("SAFETY " .. table.concat(t, " ; ")) end)
+'@
+    saveList = @'
+local inst = ModSelector.instance
+inst.model.isNewGame = false
+inst.model.isServerSettingsMods = false
+inst:setExistingSavefile("Sandbox/ZeD-QA")
+inst:setVisible(true)
+inst:reloadMods()
+later(2500, function()
+    local mm = m()
+    local d = mm.mods["Constown42"]
+    if not d.isActive then mm:forceActivateMods(d.modInfo, true) end
+    sel("Constown42", "about")
+    later(800, function()
+        say("SAVELIST view=" .. tostring(MM.view) .. " folder=" .. tostring(mm.loadGameFolder) .. " save=" .. tostring(w():saveName()) .. " on=" .. tostring(mm.mods["Constown42"].isActive))
+    end)
+end)
+'@
+    askOff = @'
+local d = m().mods["Constown42"]
+w():toggle(d)
+later(800, function()
+    say("ASK confirm=" .. tostring(w().confirm) .. " focus=" .. tostring(w().focusId) .. " stillOn=" .. tostring(d.isActive) .. " ask=" .. tostring(w()._ask))
+end)
+'@
+    keepOn = @'
+local d = m().mods["Constown42"]
+local fn
+for _, b in ipairs(w()._specs) do if b.id == "confirm:keep" then fn = b.fn end end
+if fn then fn() end
+later(600, function()
+    w():toggle(d)
+    later(600, function()
+        local off
+        for _, b in ipairs(w()._specs) do if b.id == "confirm:off" then off = b.fn end end
+        if off then off() end
+        later(600, function()
+            local safeD = m().mods["ZeD_UI"]
+            say("KEEPON keptOn=" .. tostring(fn ~= nil) .. " offNow=" .. tostring(not d.isActive) .. " confirm=" .. tostring(w().confirm))
+            MM.showView("main")
+            MM.openMods()
+        end)
+    end)
+end)
+'@
+    sel = @'
+sel("__MOD__", "__TAB__")
+later(900, function() say("SEL __MOD__ __TAB__") end)
+'@
     shot = @'
 later(500, function() getCore():TakeFullScreenshot("__NAME__"); say("SHOT __NAME__ RECT " .. rect()) end)
 '@
@@ -380,6 +440,26 @@ try {
     Check ($l -match 'count=0') "it is not counted as a conflict"
     Check ($l -match 'chips=SAME TEXT') "the row says SAME TEXT"
     Shot "10_same_text"
+    $l = Run-Job "safety"
+    Check ($l -match 'ConeVisionOutline=safe') "turning off Cone Vision Outline: safe (code only)"
+    Check ($l -match 'GaelGunStore_B42=careful') "GaelGunStore-Firearms: careful (its own items)"
+    Check ($l -match 'Constown42=unsafe') "Constown B42: not safe (a map)"
+    Check ($l -match 'newhartburg=unsafe') "New Hartburg: not safe (a map)"
+    Check ($l -match 'SmartRadialMenu=unchecked') "Smart Radial Menu (not running): not checked"
+    Check ($l -match 'ZeD_UI=careful\(2:It adds 2 items') "ZeD itself: careful (its 2 Timez watches would vanish)"
+    Shot "11_turnoff_map"
+    [void](Run-Job "sel" @{ MOD = "GaelGunStore_B42"; TAB = "about" })
+    Shot "12_turnoff_items"
+    $l = Run-Job "saveList"
+    Check ($l -match 'folder=Sandbox/ZeD-QA' -and $l -match 'save=ZeD-QA') "the Mods screen opens on the QA save's own list"
+    Shot "13_save_list"
+    $l = Run-Job "askOff"
+    Check ($l -match 'confirm=turnoff' -and $l -match 'stillOn=true') "turning off a map mod in a save's list asks first; nothing changes yet"
+    Check ($l -match 'focus=confirm:keep') "Keep it on is the controller's default"
+    Check ($l -match 'ask=Not safe for ZeD-QA') "the strip says why"
+    Shot "14_ask_off"
+    $l = Run-Job "keepOn"
+    Check ($l -match 'offNow=true') "Turn off turns it off after the question"
     [void](Run-Job "back")
 } finally {
     if ($p -and -not $p.HasExited) {
@@ -390,6 +470,7 @@ try {
         if ($p.HasExited) { "the game closed" } else { "the game is still running (process $($p.Id)); left open" }
     }
     Copy-Item (Join-Path $Keep "default.txt") $DefaultMods -Force
+    Copy-Item (Join-Path $Keep "save_mods.txt") $SaveMods -Force
     if (Test-Path (Join-Path $Keep "ModOptions.ini")) { Copy-Item (Join-Path $Keep "ModOptions.ini") $ModOptions -Force }
     if ($hadPicks) { Copy-Item (Join-Path $Keep "ZeD_picks.txt") $PicksList -Force } else { Remove-Item $PicksList -ErrorAction SilentlyContinue }
     $media = Join-Path $Helper "common\media"

@@ -21,12 +21,14 @@
 require "ZeD/ZeD_MainMenuMods"
 require "ZeD/ZeD_ModSettings"
 require "ZeD/ZeD_ModPicks"
+require "ZeD/ZeD_ModSafety"
 local MM = ZeD.MainMenu
 local U  = MM.U
 local UI = MM.ui
 local MS = ZeD.ModScan
 local S  = ZeD.ModSettings
 local P  = ZeD.ModPicks
+local SF = ZeD.ModSafety
 
 -- design units
 local TAB_GAP_Y = 8
@@ -740,4 +742,79 @@ function ZeD_MMMods:pickStrip(stripY, w, row)
     local room = firstBtn - T.px(12) - (askX + T.px(4))
     if room > T.px(60) then return ZeD.Atoms.truncateText(ask, T.fontF2, room), askX + T.px(4) end
     return nil, nil
+end
+
+-- ----------------------------------------------------------------------------
+-- IF YOU TURN IT OFF (ZeD_ModSafety): what the save loses, in the About tab
+-- ----------------------------------------------------------------------------
+local GRADE_COLOR = { safe = "positive", careful = "warningText", unchecked = "warningText", unsafe = "danger" }
+local function gradeColor(g) local T = ZeD.T; return T[GRADE_COLOR[g] or "textDim"] or T.textDim end
+
+-- the save the list is for, by its folder's last part (nil: the main list)
+function ZeD_MMMods:saveName()
+    local m = model()
+    local f = m and m.loadGameFolder
+    if not f then return nil end
+    return tostring(f):match("([^/\\]+)$") or tostring(f)
+end
+
+function ZeD_MMMods:drawTurnOff(d, ix, iw, cy, vy, vh)
+    local m = model()
+    if not (m and d.isActive) or m.isNewGame or m.isServerSettingsMods then return cy end
+    local T = ZeD.T
+    local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
+    local la, dim = T.accent, T.textDim
+    cy = cy + T.px(8)
+    self:drawText(ZeD.upper(ZeD.tr("UI_ZeD_Mods_OffHead")), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    cy = cy + MM.fontH(f1) + T.px(3)
+    self:drawRect(ix, cy, iw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+    cy = cy + T.px(5)
+    local save = self:saveName()
+    cy = self:paneText(save and ZeD.tr("UI_ZeD_Mods_OffForSave", save) or ZeD.tr("UI_ZeD_Mods_OffForMain"), ix, cy, iw, f3, dim) + T.px(4)
+    local a = SF.forTurnOff(m, d)
+    local dsz = T.px(9)
+    ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), gradeColor(a.grade), dsz)
+    cy = self:paneText(SF.headline(a.grade), ix + dsz + T.px(7), cy, iw - dsz - T.px(7), f2, T.textHead) + T.px(3)
+    local sd = T.px(6)
+    local tx, tw = ix + dsz + T.px(7), iw - dsz - T.px(7)
+    for _, l in ipairs(a.main.lines) do
+        ZeD.Atoms.drawStatusDot(self, tx, cy + math.floor((MM.fontH(f2) - sd) / 2), gradeColor(l.grade), sd)
+        cy = self:paneText(l.text, tx + sd + T.px(6), cy, tw - sd - T.px(6), f2, T.text) + T.px(2)
+    end
+    if #a.deps > 0 then
+        local names = {}
+        for _, dep in ipairs(a.deps) do names[#names + 1] = dep.name end
+        cy = self:paneText(ZeD.tr("UI_ZeD_Mods_OffAlsoOff", table.concat(names, ", ")), tx, cy + T.px(4), tw, f2, T.text) + T.px(2)
+        for _, dep in ipairs(a.deps) do
+            ZeD.Atoms.drawStatusDot(self, tx, cy + math.floor((MM.fontH(f2) - sd) / 2), gradeColor(dep.assess.grade), sd)
+            cy = self:paneText(ZeD.tr("UI_ZeD_Mods_OffDepGrade", dep.name, SF.headline(dep.assess.grade)), tx + sd + T.px(6), cy, tw - sd - T.px(6), f2, T.text) + T.px(2)
+        end
+    end
+    return cy + T.px(6)
+end
+
+-- in a save's own list, turning off a mod that is not safe asks first (the strip)
+function ZeD_MMMods:askTurnOff(d)
+    local m = model()
+    if not (m and m.loadGameFolder and d and d.isActive) then return false end
+    local a = SF.forTurnOff(m, d)
+    if a.grade == "safe" then return false end
+    self._offFor, self._offGrade = d, a.grade
+    self:setConfirm("turnoff")
+    self.focusId = "confirm:keep"
+    return true
+end
+
+function ZeD_MMMods:turnOffStrip(stripY, w, row)
+    local d = self._offFor
+    local key = (self._offGrade == "unsafe") and "UI_ZeD_Mods_AskOffUnsafe" or ((self._offGrade == "unchecked") and "UI_ZeD_Mods_AskOffUnchecked" or "UI_ZeD_Mods_AskOffCareful")
+    UI.stripSpecs(self, stripY, w, row, {}, {
+        { "confirm:keep", ZeD.tr("UI_ZeD_Mods_BtnKeepOn"), function() self:setConfirm(false) end, "primary" },
+        { "confirm:off", ZeD.tr("ContextMenu_Turn_Off"), function() self:setConfirm(false); self:toggle(d, true) end, "danger" } })
+    local T = ZeD.T
+    local ask = ZeD.tr(key, d and d.name or "", self:saveName() or "")
+    local firstBtn = w
+    for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
+    local room = firstBtn - T.px(12) - (T.px(U.STRIP_PAD_X) + T.px(4))
+    return ZeD.Atoms.truncateText(ask, T.fontF2, math.max(T.px(60), room))
 end
