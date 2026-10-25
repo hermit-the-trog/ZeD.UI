@@ -1,15 +1,15 @@
-"""ZeD dashboards, round 6 (director, Oct 24 2026): the parts the round adds or replaces.
+"""ZeD dashboards, round 6 (director, Oct 24 2026): the parts the round adds or replaces. Handoff:
+ZeDUI/HANDOFF_dashboards_r6_20261024.md.
 
-  1. The key sits to the right of the steering column (the column comes up under the middle of the cluster,
-     COLUMN_X) and turns: OFF, ON, START, three key sprites the game steps through while it cranks.
-     The fake vent at the right of the lower dash is gone; the driver's own vent sits low on the left,
-     under the outer end of the gauges.
-  2. The console: the radio against the console's left edge, the ash tray (and the lighter) to its right.
-     Some ash trays hang open with butts in them (a sprite, per car); the emergency vehicles carry a
-     NO SMOKING plate there instead; the vans carry their sticker there. The taxi gets a fare meter that
-     runs (a flag you pull) and a hula girl on the dash top. The vents are larger and built like vents:
-     a bezel, the horizontal louvers in front with the centre tab you push them by, the vertical vanes
-     behind, a thumbwheel to shut them.
+  The lower row: left of the steering column (COLUMN_X) the lights, lock and trunk; right of it the wiper, cruise
+  and the key, the key right-most; each side spread with equal gaps; no vent down here. The key turns OFF, ON,
+  START (three sprites, src keyPos).
+  The console: larger vents built like vents (louvers, the tab, vanes behind, a thumbwheel; eyeballs for the round
+  ones); the radio against the left edge, the ash tray and lighter right of it (open as sprites, src ashOpen = 1,
+  2, 3: two, four, six butts); the hazard switch under the ash tray where there is room; NO SMOKING plates on the
+  emergency vehicles. The van: the game's logo for a business that has one, NO SMOKING for any other company's van,
+  an ash tray for a private van (src vanRight). The taxi: a fare meter that runs while its flag is down (src
+  meterOn), the cab's TAXI LICENSE card, a hula girl on the console top who rises above the plate (src hula).
 """
 import math
 import numpy as np
@@ -590,20 +590,6 @@ def taxi_license(b, x, y, w=92, h=30):
     b.part("badge", role="unit", x=x + 24, y=y + 13, w=w - 28, h=5, style="flat", font="35", scale=1, color="#1a1a1a", align="l",
            shadow=None)
     b.meta["license"] = (x, y, w, h)
-
-
-TRADES = {   # the work vans' trades: the game's van scripts by name, and the sticker each wears (see the handoff)
-    "mechanic": ("VanMechanic", "VanMobileMechanics", "VanMooreMechanics", "VanPlattAuto", "StepVan_Mechanic"),
-    "wood": ("VanCarpenter", "VanRosewoodworking", "VanOldMill", "PickUpVanLightsCarpenter", "PickUpVanYingsWood"),
-    "green": ("VanGardener", "VanGardenGods", "VanLouisvilleLandscaping", "VanGreenes", "PickUpVanCallowayLandscaping"),
-    "metal": ("VanMetalworker", "VanMeltingPointMetal", "VanSchwabSheetMetal", "VanJonesFabrication", "VanRiversideFabrication",
-              "VanMetalheads", "PickUpVanHeltonMetalWorking", "PickUpVanWeldingbyCamille"),
-    "electric": ("VanPluggedInElectrics",),
-    "build": ("VanBuilder", "VanKerrHomes", "PickUpVanBuilder", "PickUpVanKimbleKonstruction", "PickUpVanMarchRidgeConstruction",
-              "PickUpVanBrickingIt"),
-    "farm": ("VanOvoFarm", "VanDeerValley", "VanPennSHam"),
-    "radio": ("VanRadio", "VanRadio_3N", "VanKnoxCom"),
-}
 
 
 def hula(b, x, y):
