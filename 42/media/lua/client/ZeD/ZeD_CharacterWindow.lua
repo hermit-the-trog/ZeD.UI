@@ -541,7 +541,7 @@ local function getActiveScroll(win)
     end
     if win._activeTab == "identity" then return win._identityScroll end
     if win._activeTab == "equip"    then return win._equipScroll end
-    return nil
+    return ZeD_CharacterWindow.extScroll(win)
 end
 
 local CHAR_TABS = {
@@ -565,8 +565,54 @@ local CHAR_TABS = {
 
 -- a tab's name in the player's language
 function ZeD_CharacterWindow.tabLabel(tab)
+    if tab.label then return tab.label() end
     if tab.vkey then return getText(tab.vkey) end
     return ZeD.tr(tab.key)
+end
+
+-- A tab that ZeD's support for another mod adds (ZeD/ModSupport/<mod id>.lua, loaded only
+-- when that mod is on). def: id, label(), group, iconName, icon, after (a tab id), visible(win),
+-- render(panel, win, x, y, w, h) as the other tabs, and optionally scroll(win) (its
+-- ZeD_ScrollbarState), onClick(win, x, y), buildFocusables(win), onWindowFrame(win, drawerW)
+-- (every frame, any tab: place or hide window-parented children such as 3D figures).
+ZeD_CharacterWindow._extTabs = {}
+function ZeD_CharacterWindow.addTab(def)
+    if ZeD_CharacterWindow._extTabs[def.id] then return end
+    ZeD_CharacterWindow._extTabs[def.id] = def
+    TAB_RENDERERS[def.id] = def.render
+    TAB_DRAWER_WIDTHS[def.id] = def.drawerW or SKILLS_DRAWER_W
+    local at = #CHAR_TABS + 1
+    for i, t in ipairs(CHAR_TABS) do
+        if t.id == def.after then at = i + 1 end
+    end
+    table.insert(CHAR_TABS, at, def)
+end
+-- (called from the window's own functions, which are near Kahlua's limit of locals)
+function ZeD_CharacterWindow.extScroll(win)
+    local ext = ZeD_CharacterWindow._extTabs[win._activeTab]
+    return ext and ext.scroll and ext.scroll(win) or nil
+end
+function ZeD_CharacterWindow.extFocusables(win, tabId)
+    local ext = ZeD_CharacterWindow._extTabs[tabId]
+    return ext and ext.buildFocusables and ext.buildFocusables(win) or {}
+end
+function ZeD_CharacterWindow.extClick(win, x, y)
+    local ext = ZeD_CharacterWindow._extTabs[win._activeTab]
+    if not (ext and ext.onClick) then return false end
+    ext.onClick(win, x, y)
+    return true
+end
+function ZeD_CharacterWindow.extScrollKey(win)
+    local ext = ZeD_CharacterWindow._extTabs[win._activeTab]
+    return ext and ext.scrollKey and ext.scrollKey(win) or nil
+end
+function ZeD_CharacterWindow.extFrame(win, drawerW)
+    for _, ext in pairs(ZeD_CharacterWindow._extTabs) do
+        if ext.onWindowFrame then
+            local ok, err = pcall(ext.onWindowFrame, win, drawerW)
+            if not ok then ZeD.logOnce("tab frame " .. tostring(ext.id), err) end
+        end
+    end
 end
 
 -- S115: contextual-tab visibility dispatch — mirror of ZeD_WorldWindow's
@@ -2597,7 +2643,7 @@ _buildPanelFocusables = function(win, content, tabId)
         end
         return {}
     end
-    return {}
+    return ZeD_CharacterWindow.extFocusables(win, tabId)
 end
 
 -- S98 — Find the index of the currently-active tab in a freshly-built tabEls
@@ -4385,6 +4431,9 @@ function ZeD_CharacterWindow.toggle(playerNum)
         -- if win._worldMapPanel then ... end
         -- if win._mapTextEntry and not showMaps then ... end
 
+        -- other mods' tabs place or hide their own window-parented children
+        ZeD_CharacterWindow.extFrame(win, effectiveW)
+
         -- ── Identity avatar positioning (window-parented, Q52) ──────────
         do
             local model = win._identityModel
@@ -4632,6 +4681,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 ZeD.RadioTab.onClick(win, x, y)
                 return true
             end
+            if ZeD_CharacterWindow.extClick(win, x, y) then return true end
             -- Equipment tab click routing
             if win._activeTab == "equip" then
                 -- The List | Doll toggle, and a doll card's layer strip (EquipDoll.lua)
@@ -5697,6 +5747,7 @@ function ZeD_CharacterWindow.toggle(playerNum)
                  win._activeTab == "skills" or
                  win._activeTab == "identity" or
                  win._activeTab == "journal" or
+                 ZeD_CharacterWindow._extTabs[win._activeTab] ~= nil or
                  win._activeTab == "radio"  -- S117: contextual drawer chassis
                                             -- stamps its rect zones during render,
                                             -- so the tab-switch sync reads zero
@@ -5762,6 +5813,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(ZeD.EquipDoll and ZeD.EquipDoll.view())
                     .. ":" .. tostring(dp and dp:getWidth()) .. ":" .. tostring(dp and dp:getHeight())
                     .. ":" .. tostring(win._equipSelected) .. ":" .. tostring(win._equipLayer)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            -- another mod's tab names what moves its stops (its scroll, its view)
+            if ZeD_CharacterWindow.extScrollKey(win) then
+                scrollKey = ZeD_CharacterWindow.extScrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             local alwaysRebuild = false

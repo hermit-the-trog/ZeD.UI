@@ -150,7 +150,10 @@ function ZeD_MMLooks:rowsNow()
     head(label("UI_characreation_body"))
     rows[#rows + 1] = { kind = "swatch", label = label("UI_SkinColor"), colors = v.skinColors or {}, cur = v.skinColor, key = "skin",
         pick = function(i) v.colorPickerSkin.index = i; v:onSkinColorPicked(v.skinColors[i], true) end }
-    if male then rows[#rows + 1] = { kind = "tick", label = label("UI_ChestHair"), control = v.chestHairTickBox } end
+    -- another mod's rows (ZeD/ModSupport): Spongie's Character Customisation adds its own
+    local spn = ZeD.ModSupport and ZeD.ModSupport.SPNCC
+    if male or (spn and spn.bodyHairForAll) then rows[#rows + 1] = { kind = "tick", label = label("UI_ChestHair"), control = v.chestHairTickBox } end
+    if spn then spn.looksRows(v, rows, head) end
     head(label("UI_characreation_hair"))
     rows[#rows + 1] = { kind = "combo", label = label("UI_characreation_hairtype"), control = v.hairTypeCombo }
     local hc = hairColors()

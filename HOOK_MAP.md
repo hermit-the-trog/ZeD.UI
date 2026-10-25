@@ -43,6 +43,14 @@ Legend — **Owned**: ZeD replaces it today · **Pass-through**: vanilla by deci
 | Foraging | `ISSearchManager`, `ISSearchWindow`, `ISZoneDisplay` | `ForagingTab.lua` |
 | Animals | `ISAnimalContextMenu`, `ISOpenAnimalInfo` | `AnimalsTab.lua` |
 
+## Other mods' screens (ZeD/ModSupport)
+
+Working well with another mod (director, Oct 25 2026: "our first test on making another mod work well with ZeD"). One file per mod, `42/media/lua/client/ZeD/ModSupport/<mod id>.lua`, which returns at once unless that mod is on (`getActivatedMods`), so ZeD runs the same without it. It builds the mod's surfaces from ZeD's parts and drives the mod's own functions and data, never its panels. A Character window tab comes in through `ZeD_CharacterWindow.addTab` (render, scroll, clicks, controller stops, window-parented 3D figures); the tab names the mod under its header. Each mod also gets a line in the Compatibility post (`ZeDUI/workshop/steam_threads/2_compatibility_b_notes.txt`) and a test (`ZeDUI/tools/qa/zedqa_<mod>.lua`, run by `zedqa_mods_run.ps1` with a mod list).
+
+| Mod | Its entry point | ZeD hook |
+|---|---|---|
+| Spongie's Character Customisation (SPNCC, Workshop 3414634809) | `FaceManager_Shared.OpenCharacterCustomisationWindow(player, hideCancel)` (an old save at game start, via `FaceManager_Server.OnPlayerJoin` or the server's `OpenCharacterCustomisationWindow` command; its Change button on the game's `ISCharacterScreen`, which ZeD replaces); its Change Appearance button on `CharacterCreationMain` (hidden under ZeD's Looks screen) | `ModSupport/SPNCC.lua`: the Character window's **Appearance** tab (after Identity; mockup `zed_spongie_appearance_v1.html`, approved Oct 25 2026): the mod's faces and details as picture tiles (a 3D figure each, the mod's camera per option) or a list, a 3D preview, stubble and body hair with the mod's Shave actions, Muscle / Body Hair Growth when the server leaves them to the player, Cancel / Save through `FaceManager_Server.SetCustomisation` (single player) or the `SetCustomisation` client command; the server's rules as the mod's `CharacterScreen.lua` (Allow changes, the Appearance Changing Spiffo, the Appearance Unlocking Bear, admins). The game-start window opens the tab instead, paused, Save only (closing the window un-pauses; the mod asks again next load). Looks screen: FACE and DETAILS rows driving `CharacterCreationMain.characterCustomisationPanel` (+ Muscle, Body Hair Growth; body hair for women too). Safe mode keeps the mod's own window. QA `ZeDUI/tools/qa/zedqa_spncc.lua` + `spncc_manifest.txt` / `spncc_mods.txt` |
+
 ## Gaps — ordered by how often a long session hits them
 
 | # | Surface | Vanilla entry point (file : function) | Trigger in play | Design target |
