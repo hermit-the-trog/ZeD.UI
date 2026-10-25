@@ -915,6 +915,7 @@ function ST.seed(say)
     local id = string.lower(ST.site.flyer)
     R.flyerWasRead = p:isPrintMediaRead(id)
     if not R.flyerWasRead then p:addReadPrintMedia(id) end
+    if ZeD_CharacterWindow and not ZeD_CharacterWindow.isOpen() then pcall(function() ZeD_CharacterWindow.toggleBothPaired(ST.pn) end) end
     local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow()
     -- (Oct 25 2026) the story's character is six days in with only this entry: the QA
     -- character's own entries (the deep run's) and hours survived are kept aside and
