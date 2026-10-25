@@ -1,0 +1,4 @@
+name=ZeD QA probe (test only)
+id=ZeDQA_Probe
+description=Stand-in for ZeD-UI's QA bridge while ZeD-UI is switched off. Test rig only; never shipped.
+versionMin=42.17.0

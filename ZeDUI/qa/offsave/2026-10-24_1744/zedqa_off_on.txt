@@ -1,0 +1,42 @@
+M ZeD_FlyerSeen
+M ZeD_GridViews
+M ZeD_Journal
+M ZeD_Kills
+M ZeD_MapNotesMoved
+M ZeD_MapPinnedIcons
+M ZeD_MapStyle
+M ZeD_PinnedContextIds
+M ZeD_Theme
+M ZeD_WinState
+T Base.Apple 4
+T Base.Axe 1
+T Base.Bag_FannyPackFront 1
+T Base.Bag_Schoolbag 1
+T Base.BaseballBat 1
+T Base.Belt2 2
+T Base.Book 1
+T Base.Comb 1
+T Base.Disc_Retail 4
+T Base.Glasses_Normal 1
+T Base.Gloves_LeatherGloves 1
+T Base.HandTorch 1
+T Base.HolsterSimple 1
+T Base.IDcard 1
+T Base.KeyRing 1
+T Base.Lipstick 1
+T Base.Money 12
+T Base.Purse 1
+T Base.Shoes_ArmyBoots 1
+T Base.Socks_Ankle 2
+T Base.Trousers_Denim 1
+T Base.Tshirt_DefaultTEXTURE 1
+T Base.Vest_DefaultTEXTURE_TINT 1
+T Base.WristWatch_Left_DigitalBlack 1
+W base:belt Base.Belt2
+W base:beltextra Base.HolsterSimple
+W base:hands Base.Gloves_LeatherGloves
+W base:pants Base.Trousers_Denim
+W base:shoes Base.Shoes_ArmyBoots
+W base:socks Base.Socks_Ankle
+W base:tanktop Base.Vest_DefaultTEXTURE_TINT
+W base:tshirt Base.Tshirt_DefaultTEXTURE
