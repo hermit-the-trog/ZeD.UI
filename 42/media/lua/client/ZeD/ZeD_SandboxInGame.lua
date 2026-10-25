@@ -36,7 +36,7 @@ local UI = MM.ui
 local N  = ZeD.SandboxNotes
 
 -- design units
-local WIN_W, WIN_H = 1060, 800
+local WIN_W, WIN_H = 1060, 860
 local PAGES_W, FIND_H, PAGE_ROW_H = 210, 34, 30   -- (the Options window's)
 local STRING_W = 420
 local HIST_MAX = 60          -- applies kept in History (the oldest go first)
@@ -662,10 +662,11 @@ function ZeD_MMSandboxIG:drawControl(r, cx, ry, cw, rh, rowId, clip)
     ZeD_MMSandbox.drawControl(self, r, cx, ry, cw, rh, rowId, clip)
 end
 
--- THE HELP BAND: what it does | on this save | tip
+-- THE HELP BAND: what it does | on this save | tip (ten lines: the longest "on this save",
+-- 280 characters in a third of the band, with its warning line above it)
 function ZeD_MMSandboxIG:helpBandH()
     local T = ZeD.T
-    return T.px(16) + MM.fontH(T.fontF1) + 8 * (MM.fontH(T.fontF2) + T.px(3))
+    return T.px(16) + MM.fontH(T.fontF1) + 10 * (MM.fontH(T.fontF2) + T.px(3))
 end
 
 function ZeD_MMSandboxIG:drawHelpCol(x, y, w, h, head, body, foot, warn)
