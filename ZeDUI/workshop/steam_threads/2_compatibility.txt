@@ -1,6 +1,5 @@
 TITLE: Compatibility with other mods
 
-[h1]Compatibility with other mods[/h1]
 This thread keeps the list of mods tested with ZeD-GUI, graded by how well they work together.
 
 [h2]How the mods were tested[/h2]
