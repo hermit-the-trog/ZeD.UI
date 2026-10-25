@@ -3,6 +3,10 @@ the item card (220 wide), the three tabletop ham sets at the drawer's full width
 own model: the walkies to their model textures (media/textures/weapons/1handed/WalkieTalkie_*.png) and world tiles
 (appliances_com_01_16..48), the ManPack to its icon, the ham sets to their placed tiles (appliances_com_01_0/8/56).
 
+Faces only (director, Oct 25): no antenna, no microphone, nothing standing off the front: the knobs and the push-to-talk
+key are on the face. In the tab the face sits in its panel; full view shows the same plate on its own, no window frame,
+like the watch.
+
 Controls follow the car's two-way faces (d_props.ham / army), so the radio's workings are the same set:
   vol (turn: power and volume)   tune (turn: the frequency)   chup / chdn (step the memory channels)
   mem (store; hold to name)      mic (push to talk: the mic latched live or muted)   mute
@@ -92,37 +96,6 @@ def body_shape(p, x, y, w, h, mat, r=12, grain="pebble", seed=1):
     return m
 
 
-def top_knob(p, pid, cx, top, w, h, mat="blackp", label=None):
-    """a knob on the radio's top, seen from the front: a knurled cylinder standing on the top edge; its setting shows
-    on the display (CH for the channel knob, the VOL bars for the volume)"""
-    d = p.d
-    x0 = int(cx - w // 2)
-    d.cyl(x0, top, w, h, 3.6, mat, axis="v", polish=0.6, on=Z_FACE - 1.0)
-    for x in range(x0 + 1, x0 + w - 1, 2):
-        d.dark[top + 2:top + h, x] += 0.18
-    d.cyl(x0 + 1, top - 2, w - 2, 3, 2.6, mat, axis="h", polish=0.9, on=Z_FACE + 0.6)      # the cap's rim
-    p.hit(pid, x0 - 2, top - 3, w + 4, h + 4, kind="turn")
-
-
-def antenna(p, cx, top, base_y, w=8, mat="rubber"):
-    d = p.d
-    d.cyl(int(cx - w // 2), top + 3, w, base_y - top - 3, 3.2, mat, axis="v", polish=0.35, on=Z_FACE - 1.0)
-    d.dome(cx, top + 4, w / 2, 3.5, 3.2, mat, polish=0.35, on=Z_FACE - 1.0)
-    for y in range(top + 10, base_y - 4, 6):
-        d.dark[y, int(cx - w // 2) + 1:int(cx + w // 2) - 1] += 0.2
-    d.cyl(int(cx - w // 2 - 2), base_y - 5, w + 4, 6, 3.4, "chrome", axis="v", polish=1.0, on=Z_FACE - 0.6)
-
-
-def side_ptt(p, x, y, w, h, mat="wt_red", ridges=True):
-    """the push-to-talk bar on the left side: MIC (click latches the mic live, again to mute)"""
-    d = p.d
-    m = Mask(p.W, p.H).rrect(x, y, w, h, 2).get()
-    d.slab(m, 3.0, mat, bevel=1.4, polish=0.55, on=Z_FACE - 1.4)
-    if ridges:
-        for yy in range(y + 4, y + h - 3, 3): d.dark[yy, x + 1:x + w - 1] += 0.22
-    p.hit("mic", x - 2, y, w + 4, h)
-
-
 def tx_led(p, cx, cy, on=Z_FACE):
     d = p.d
     d.dome(cx, cy, 2.6, 2.6, 1.1, "jewel_red_off", polish=0.9, on=on)
@@ -177,269 +150,6 @@ def worn(p, mat, seed, grime=0.24, scuffs=0.10):
     WR.scuffs(d, WR.mat_mask(d, mat), 0.0012, seed=seed + 1, amount=scuffs)
 
 
-WALKIE_W, WALKIE_H = 220, 330
-
-
-# =================================================================================== the walkies
-def toy(worn_=True):
-    """Toys-R-Mine Walkie Talkie (Base.WalkieTalkie1): the toy. Dark grey shell, a big slotted grille, a red talk bar,
-    no screen: the frequency turns on a drum behind a slot. No memory channels."""
-    p = Plate("walkie_toy", WALKIE_W, WALKIE_H, seed=201, title="Toys-R-Mine Walkie Talkie")
-    d = p.d
-    bx, by, bw, bh = 46, 66, 128, 248
-    antenna(p, 146, 4, by + 2, w=10)
-    top_knob(p, "vol", 78, by - 14, 22, 16)
-    top_knob(p, "tune", 108, by - 12, 16, 14)
-    body_shape(p, bx, by, bw, bh, "wt_char", r=16, seed=202)
-    side_ptt(p, bx - 7, by + 70, 9, 64)
-    p.label("TALK", bx + 4, by + 140, "paint_w", font="35", auto_ink=False)
-    # the tuning slot and its drum
-    display(p, "toy", "drum", bx + 24, by + 22, 80, 17, lay_drum(80), bezel="blackp")
-    p.label("TUNE", bx + 64, by + 44, "paint_c", align="c", auto_ink=False)
-    tx_led(p, bx + 112, by + 14)
-    slot_grille(p, bx + 64, by + 108, 38, 46, vertical=True)
-    # the sticker: the brand in toy colours
-    st = Mask(p.W, p.H).rrect(bx + 14, by + 172, bw - 28, 36, 4).get()
-    d.slab(st, 0.3, "enamel_white", bevel=0.6, polish=0.6, on=Z_FACE)
-    for i, (ch, col) in enumerate(zip("TOYS-R-MINE", ("paint_r", "paint_b", "paint_y", "paint_g", "paint_k", "paint_r", "paint_k",
-                                                      "paint_b", "paint_y", "paint_g", "paint_r"))):
-        d.text(ch, bx + 22 + i * 8, by + 178, col, font="57", flatlight=True)
-    d.text("2-WAY", bx + 64, by + 192, "paint_k", align="c", font="57", flatlight=True)
-    p.label("AGES 8 AND UP", bx + 64, by + 222, "paint_c", align="c", auto_ink=False)
-    for (x, y) in ((bx + 10, by + bh - 12), (bx + bw - 11, by + bh - 12)): screw(p, x, y, on=Z_FACE, mat="steel")
-    if worn_: worn(p, "wt_char", 203)
-    return p
-
-
-def value_body(p, surround, brand, sub, seed):
-    """ValuTech and Premium Tech. share a shell (the game's two textures differ only in the display's surround)"""
-    d = p.d
-    bx, by, bw, bh = 40, 64, 140, 256
-    antenna(p, 152, 2, by + 2, w=10)
-    top_knob(p, "vol", 74, by - 14, 22, 16)
-    top_knob(p, "tune", 104, by - 14, 22, 16)
-    body_shape(p, bx, by, bw, bh, "wt_char", r=14, seed=seed)
-    side_ptt(p, bx - 7, by + 76, 9, 70)
-    p.label("PTT", bx + 4, by + 150, "paint_w", font="35", auto_ink=False)
-    tx_led(p, bx + 122, by + 12)
-    p.label(brand, bx + 8, by + 9, "paint_w", font="57", auto_ink=False)
-    # the coloured surround: the LCD, then the channel keys and MEM
-    sur = Mask(p.W, p.H).rrect(bx + 10, by + 22, bw - 20, 92, 6).get()
-    d.slab(sur, 1.6, surround, bevel=1.4, polish=0.7, on=Z_FACE)
-    display(p, "walkie", "lcd_light", bx + 18, by + 30, bw - 36, 44, lay_walkie(bw - 36), bezel="blackp")
-    zs = Z_FACE + 1.6
-    round_key(p, "chdn", bx + 34, by + 94, 7, on=zs, icon="down")
-    round_key(p, "mem", bx + 70, by + 94, 5, on=zs, icon="M")
-    round_key(p, "chup", bx + 106, by + 94, 7, on=zs, icon="up")
-    slot_grille(p, bx + 70, by + 160, 44, 26, vertical=False)
-    p.label(sub, bx + 70, by + 200, "paint_c", align="c", auto_ink=False)
-    p.label("HOLD M TO NAME", bx + 70, by + 214, "paint_c", align="c", auto_ink=False)
-    for (x, y) in ((bx + 10, by + bh - 12), (bx + bw - 11, by + bh - 12)): screw(p, x, y, on=Z_FACE, mat="steel")
-    return p
-
-
-def valutech(worn_=True):
-    p = Plate("walkie_valutech", WALKIE_W, WALKIE_H, seed=211, title="ValuTech Walkie Talkie")
-    value_body(p, "wt_yellow", "VALUTECH", "2-WAY  -  50-200 MHz", 212)
-    if worn_: worn(p, "wt_char", 213)
-    return p
-
-
-def premium(worn_=True):
-    p = Plate("walkie_premium", WALKIE_W, WALKIE_H, seed=221, title="Premium Tech. Walkie Talkie")
-    value_body(p, "wt_red", "PREMIUM TECH.", "2-WAY  -  25-300 MHz", 222)
-    if worn_: worn(p, "wt_char", 223, grime=0.16, scuffs=0.06)
-    return p
-
-
-def tactical(worn_=True):
-    """Tactical Walkie Talkie (Base.WalkieTalkie4): rubberised green-black, an oval grille over an amber LCD, six keys"""
-    p = Plate("walkie_tactical", WALKIE_W, WALKIE_H, seed=231, title="Tactical Walkie Talkie")
-    d = p.d
-    bx, by, bw, bh = 38, 60, 144, 262
-    antenna(p, 156, 0, by + 2, w=10)
-    top_knob(p, "vol", 70, by - 16, 24, 18)
-    top_knob(p, "tune", 102, by - 14, 20, 16)
-    body_shape(p, bx, by, bw, bh, "wt_tac", r=12, seed=232)
-    side_ptt(p, bx - 7, by + 84, 9, 74, mat="wt_ptt_grey")
-    tx_led(p, bx + 126, by + 12)
-    slot_grille(p, bx + 72, by + 34, 52, 16, vertical=False)
-    display(p, "walkie", "lcd_amber", bx + 16, by + 62, bw - 32, 44, lay_walkie(bw - 32), bezel="blackp")
-    keypad(p, bx + 17, by + 120, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None),
-                                  ("scan", "SCAN", None), ("mute", "MUTE", None), ("lamp", "LAMP", None)],
-           kw=32, kh=16, gx=7, gy=7, mark="paint_r")
-    p.label("TACTICAL", bx + 72, by + 176, "paint_c", align="c", font="57", auto_ink=False)
-    p.label("PTT  -  HOLD MEM TO NAME", bx + 72, by + 190, "paint_c", align="c", auto_ink=False)
-    for k in range(3):
-        d.well(Mask(p.W, p.H).rrect(bx + 20, by + 206 + k * 12, bw - 40, 4, 2).get(), 1.0, None, bevel=0.6)    # grip ribs
-    if worn_: worn(p, "wt_tac", 233, grime=0.28, scuffs=0.12)
-    return p
-
-
-def army(worn_=True):
-    """US Army Walkie Talkie (Base.WalkieTalkie5): olive green, grooves down the left, a slatted grille, a yellow-green
-    LCD, six keys, the red talk lamp low on the face"""
-    p = Plate("walkie_army", WALKIE_W, WALKIE_H, seed=241, title="US Army Walkie Talkie")
-    d = p.d
-    bx, by, bw, bh = 36, 58, 148, 266
-    antenna(p, 160, 0, by + 2, w=11, mat="blackp")
-    top_knob(p, "vol", 70, by - 16, 26, 18)
-    top_knob(p, "tune", 104, by - 14, 20, 16)
-    body_shape(p, bx, by, bw, bh, "wt_army", r=10, seed=242)
-    side_ptt(p, bx - 7, by + 84, 9, 76, mat="blackp")
-    for k in range(3):
-        d.well(Mask(p.W, p.H).rrect(bx + 10 + k * 7, by + 18, 3, 50, 1).get(), 1.2, None, bevel=0.6)          # the grooves
-    slot_grille(p, bx + 42 + (bw - 60) / 2, by + 34, (bw - 56) / 2, 19, vertical=False, pitch=5, slot=3)           # the grille
-    p.label("US ARMY", bx + 42 + (bw - 60) // 2, by + 60, "paint_c", align="c", font="57", auto_ink=False)
-    display(p, "walkie", "lcd_yg", bx + 16, by + 76, bw - 32, 44, lay_walkie(bw - 32), bezel="blackp")
-    keypad(p, bx + 18, by + 134, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None),
-                                  ("scan", "SCAN", None), ("mute", "MUTE", None), ("lamp", "LAMP", None)],
-           kw=32, kh=16, gx=8, gy=7, mat="blackp")
-    p.label("HOLD MEM TO NAME", bx + bw // 2, by + 182, "paint_c", align="c", auto_ink=False)
-    tx_led(p, bx + bw // 2, by + 200)
-    p.label("TX", bx + bw // 2 + 6, by + 198, "paint_c", auto_ink=False)
-    dp = data_plate(p, bx + 22, by + 214, bw - 44, 34, ["RADIO SET  -  TWO-WAY", "200 KHZ - 1000 MHZ", "RANGE 16 KM"], on=Z_FACE,
-                    mat="blackp", ink="paint_c", rivets=True)
-    if worn_:
-        ol = WR.mat_mask(d, "wt_army")
-        WR.grime(d, d.solid, amount=0.30, seed=243)
-        WR.chips(d, WR.face(d, Z_FACE, ol), 0.004, seed=244, near=2.0, mat="steel")
-        WR.scuffs(d, ol, 0.0015, seed=245, amount=0.12)
-    return p
-
-
-def makeshift(worn_=True):
-    """Makeshift Walkie Talkie (Base.WalkieTalkieMakeShift): the game gives it the toy's shell, so it is a gutted toy:
-    the slot and sticker gone under duct tape, a two-line character LCD and three tact switches on a scrap of board,
-    the talk bar a microswitch lever taped to the side"""
-    p = Plate("walkie_makeshift", WALKIE_W, WALKIE_H, seed=251, title="Makeshift Walkie Talkie")
-    d = p.d
-    bx, by, bw, bh = 46, 66, 128, 248
-    antenna(p, 146, 4, by + 2, w=10)
-    # a pot standing in for the volume knob, a trimmer for the tuning
-    top_knob(p, "vol", 78, by - 14, 22, 16)
-    top_knob(p, "tune", 108, by - 12, 16, 14, mat="steel")
-    body_shape(p, bx, by, bw, bh, "wt_char", r=16, seed=252)
-    slot_grille(p, bx + 64, by + 160, 38, 40, vertical=True)
-    # the board, taped on
-    brd = Mask(p.W, p.H).rrect(bx + 10, by + 18, bw - 20, 92, 2).get()
-    d.slab(brd, 1.4, "pcb", bevel=0.8, polish=0.5, on=Z_FACE)
-    d.grain_pebble(brd, 0.03, seed=253)
-    zb = Z_FACE + 1.4
-    display(p, "walkiechar", "char", bx + 20, by + 26, 11 * 8 + 4, 26, lay_char(11), bezel="blackp")
-    for i, (pid, lab) in enumerate((("chdn", "CH-"), ("mem", "MEM"), ("chup", "CH+"))):
-        x = bx + 22 + i * 30
-        PR.tact(p, pid, x, by + 66, 12, 12, None)
-        d.text(lab, x + 6, by + 82, "paint_w", align="c", flatlight=True)
-    PR.resistor(p, bx + 84, by + 98); PR.solder(p, bx + 22, by + 99); PR.solder(p, bx + 30, by + 99)
-    PR.trace(p, ((bx + 22, by + 99), (bx + 30, by + 99), (bx + 30, by + 92), (bx + 78, by + 92)))
-    tx_led(p, bx + 104, by + 99, on=zb)
-    # duct tape: two strips over the board's ends, one over the old slot, one holding the lever
-    for (x, y, w, h) in ((bx + 4, by + 14, 20, 100), (bx + bw - 24, by + 14, 20, 100), (bx - 10, by + 96, 26, 22)):
-        t = Mask(p.W, p.H).rect(x, y, w, h).get()
-        d.slab(t, 0.5, "duct", bevel=0.4, polish=0.5, on="cur")
-        for yy in range(y + 3, y + h, 9): d.dark[yy, x + 1:x + w - 1] += 0.04
-    lev = Mask(p.W, p.H).poly([(bx - 8, by + 70), (bx - 3, by + 70), (bx - 1, by + 150), (bx - 7, by + 150)]).get()
-    d.slab(lev, 2.4, "steel", bevel=1.0, polish=0.9, on=Z_FACE - 1.4)
-    p.hit("mic", bx - 10, by + 70, 12, 80)
-    # marker on the tape
-    d.text("PTT", bx - 3, by + 103, "paint_k", align="c", flatlight=True)
-    lbl = Mask(p.W, p.H).rect(bx + 30, by + 210, 68, 14).get()
-    d.slab(lbl, 0.5, "tape", bevel=0.4, polish=0.4, on=Z_FACE)
-    d.text("HOLD MEM", bx + 64, by + 213, "paint_b", align="c", flatlight=True)
-    for (x, y) in ((bx + 10, by + bh - 12), (bx + bw - 11, by + bh - 12)): screw(p, x, y, on=Z_FACE, mat="steel")
-    if worn_: worn(p, "wt_char", 254, grime=0.30, scuffs=0.14)
-    return p
-
-
-def manpack(worn_=True):
-    """US ARMY COMM. Manpack Radio (Base.ManPackRadio): the control face of the backpack set: whip antenna and audio
-    sockets on top, the big knobs, the cyan LCD (as the game's icon), four keys, and the handset on its curly cord;
-    the handset's bar is the talk switch"""
-    p = Plate("walkie_manpack", WALKIE_W, WALKIE_H, seed=261, title="US ARMY COMM. Manpack Radio")
-    d = p.d
-    bx, by, bw, bh = 10, 56, 160, 264
-    # whip antenna on its base, top left
-    d.cyl(26, 0, 6, by - 4, 3.0, "blackp", axis="v", polish=0.4, on=Z_FACE - 1.0)
-    d.cyl(20, by - 14, 18, 14, 4.0, "steel", axis="v", polish=0.9, on=Z_FACE - 0.8)
-    body = Mask(p.W, p.H).rrect(bx, by, bw, bh, 6).get()
-    d.slab(body, Z_FACE, "mp_olive", bevel=2.4, polish=0.35)
-    d.grain_pebble(body, 0.04, seed=262)
-    chrome_frame(d, bx + 4, by + 4, bw - 8, bh - 8, Z_FACE - 0.4, t=1, mat="mp_olive", z=0.8)
-    for (x, y) in ((bx + 9, by + 9), (bx + bw - 10, by + 9), (bx + 9, by + bh - 10), (bx + bw - 10, by + bh - 10)):
-        screw(p, x, y, on=Z_FACE, mat="mp_olive")
-    p.label("US ARMY COMM.", bx + 18, by + 16, "paint_c", font="57", auto_ink=False)
-    p.label("MANPACK RADIO SET", bx + 18, by + 27, "paint_c", auto_ink=False)
-    # the two audio sockets
-    for i, x in enumerate((bx + 118, bx + 142)):
-        d.torus(x, by + 20, 4.0, 8.0, 2.4, "steel", polish=0.9, on=Z_FACE)
-        d.dome(x, by + 20, 4.0, 4.0, -1.5, "hole", polish=0.2, on=Z_FACE)
-    p.label("AUDIO", bx + 130, by + 32, "paint_c", align="c", auto_ink=False)
-    display(p, "walkie", "lcd_cyan", bx + 18, by + 46, bw - 36, 44, lay_walkie(bw - 36), bezel="blackp")
-    PR.radio_knob(p, bx + 40, by + 132, 22, mat="blackp", pid="vol", label="VOL - PWR", label_y=by + 160)
-    PR.radio_knob(p, bx + 118, by + 132, 22, mat="blackp", ridges=36, pid="tune", label="FREQ", label_y=by + 160)
-    keypad(p, bx + 18, by + 178, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None), ("mute", "MUTE", None)],
-           kw=56, kh=16, gx=12, gy=7, cols=2, mat="blackp")
-    tx_led(p, bx + 30, by + 230)
-    p.label("TX", bx + 36, by + 228, "paint_c", auto_ink=False)
-    p.label("RANGE 20 KM", bx + bw - 18, by + 228, "paint_c", align="r", auto_ink=False)
-    # the handset hanging on the right, on its curly cord from the near socket
-    hs_x, hs_y = 182, 120
-    for k in range(12):
-        d.torus(196 + (k % 2), 70 + k * 4, 2.0, 4.0, 1.4, "cord", polish=0.5, on=Z_FACE)
-    hs = Mask(p.W, p.H).rrect(hs_x, hs_y, 28, 150, 10).get()
-    d.slab(hs, 4.6, "blackp", bevel=2.6, polish=0.5, on=0.0)
-    d.dome(hs_x + 14, hs_y + 14, 13, 13, 5.4, "blackp", polish=0.5, on=0.0)
-    d.dome(hs_x + 14, hs_y + 136, 13, 13, 5.4, "blackp", polish=0.5, on=0.0)
-    for k in range(4):
-        d.well(disc(d, hs_x + 10 + (k % 2) * 8, hs_y + 10 + (k // 2) * 8, 1.6), 1.0, "hole", bevel=0.5)
-    bar = Mask(p.W, p.H).rrect(hs_x - 4, hs_y + 56, 8, 36, 2).get()
-    d.slab(bar, 5.4, "rubber", bevel=1.2, polish=0.5, on=0.0)
-    p.hit("mic", hs_x - 6, hs_y + 50, 14, 48)
-    d.text("PTT", hs_x + 14, hs_y + 98, "paint_c", align="c", flatlight=True)
-    if worn_:
-        ol = WR.mat_mask(d, "mp_olive")
-        WR.grime(d, d.solid, amount=0.32, seed=263)
-        WR.chips(d, WR.face(d, Z_FACE, ol), 0.006, seed=264, near=2.0, mat="steel")
-        WR.scuffs(d, ol, 0.0015, seed=265, amount=0.12)
-    return p
-
-
-# =================================================================================== the tabletop ham sets
-HAM_W, HAM_H = 400, 172
-
-
-def desk_mic(p, x, base_mat="blackp", lamp=True, ptt=True):
-    """the desk microphone beside the set (the tiles put it there): capsule, stem, base; the bar on the stem is the
-    talk switch (MIC), the lamp in the base lights while the mic is live"""
-    d = p.d
-    cx = x + 30
-    d.slab(Mask(p.W, p.H).ellipse(cx, HAM_H - 14, 30, 10).get(), 3.6, base_mat, bevel=3.0, polish=0.6, on=0.0)
-    d.cyl(cx - 4, 64, 8, HAM_H - 80, 3.0, "chrome", axis="v", polish=1.0, on=0.4)
-    cap = Mask(p.W, p.H).rrect(cx - 15, 12, 30, 52, 12).get()
-    d.slab(cap, 5.0, "chrome", bevel=4.0, polish=1.0, on=0.0)
-    for y in range(20, 58, 4): d.well(rbox(d, cx - 11, y, 22, 2) & cap, 1.2, "mesh", bevel=0.5)
-    if ptt:
-        bar = Mask(p.W, p.H).rrect(cx - 7, 96, 14, 30, 3).get()
-        d.slab(bar, 4.2, "blackp", bevel=1.6, polish=0.5, on=0.8)
-        p.hit("mic", cx - 9, 94, 18, 34)
-        d.text("PTT", cx, 128, "paint_w", align="c", flatlight=True)
-    if lamp:
-        d.dome(cx + 16, HAM_H - 16, 2.6, 2.2, 1.0, "jewel_red_off", polish=0.9, on=3.6)
-        p.lamp(disc(d, cx + 16, HAM_H - 16, 2.2), "micLive", "#ff3a2e")
-    return cx
-
-
-def mic_cord(p, x0, y0, x1, y1, n=None):
-    """the curly cord, a tight coil drooping between the jack and the mic's base"""
-    d = p.d
-    n = n or int(math.hypot(x1 - x0, y1 - y0) / 2.4)
-    for k in range(n + 1):
-        t = k / n
-        x = x0 + (x1 - x0) * t; y = y0 + (y1 - y0) * t + math.sin(t * math.pi) * 8
-        d.torus(x, y, 0.8, 2.6, 1.2, "cord", polish=0.5, on=Z_FACE - 2.0 if k else Z_FACE)
-
-
 def arc_dial(p, cx, cy, r_in, r_out, a0=-205, a1=25, labels=("10", "100", "250", "500"), ink="paint_g"):
     """the green tuning arc over the dial (the tiles show it): ticks and a few figures; the game draws the red marker
     along it for the frequency's place in the band (part ptr, src bandF)"""
@@ -475,38 +185,275 @@ def toggle_key(p, pid, x, y, w, h, label, mat="paint_g", ink="paint_k"):
     p.label(label, x + w // 2, y + h + 4, ink, align="c", auto_ink=False)
 
 
+def face_knob(p, pid, cx, cy, r, label, ink="paint_w", mat="blackp", ridges=30, label_y=None):
+    """a knob on the face: VOL - PWR (press: power, turn: volume) or TUNE; its pointer is drawn live"""
+    return PR.radio_knob(p, cx, cy, r, mat=mat, ridges=ridges, pid=pid, label=label, label_y=label_y or int(cy + r + 5), lab_mat=ink)
+
+
+def ptt_key(p, x, y, w, h, mat="wt_red", label="PUSH TO TALK", ink="paint_w", ridges=True):
+    """the push-to-talk key, on the face: MIC (a click latches the mic live, again mutes it)"""
+    d = p.d
+    p.check_flat(x - 1, y - 1, w + 2, h + 2, "push to talk")
+    m = Mask(p.W, p.H).rrect(x, y, w, h, 4).get()
+    d.slab(m, 2.6, mat, bevel=1.8, polish=0.55, on=Z_FACE)
+    if ridges:
+        for xx in range(x + 6, x + w - 5, 4): d.dark[y + 3:y + 7, xx] += 0.2; d.dark[y + h - 7:y + h - 3, xx] += 0.2
+    if label: d.text(label, x + w // 2, y + (h - 5) // 2, ink, align="c", flatlight=True)
+    p.hit("mic", x, y, w, h)
+
+
+def face_body(p, mat, r=18, seed=1, frame=True):
+    d = p.d
+    m = Mask(p.W, p.H).rrect(0, 0, p.W, p.H, r).get()
+    d.slab(m, Z_FACE, mat, bevel=3.0, polish=0.4)
+    d.grain_pebble(m, 0.04, seed=seed)
+    return m
+
+
+def corner_screws(p, inset=12, mat="steel", on=Z_FACE):
+    for (x, y) in ((inset, inset), (p.W - inset - 1, inset), (inset, p.H - inset - 1), (p.W - inset - 1, p.H - inset - 1)):
+        screw(p, x, y, on=on, mat=mat)
+
+
+WALKIE_W, WALKIE_H = 200, 360          # the face; it sits in the 220-wide panel with 10 px either side
+
+
+# =================================================================================== the walkies
+def toy(worn_=True):
+    """Toys-R-Mine Walkie Talkie (Base.WalkieTalkie1): the toy. Dark grey shell, a big slotted grille, no screen: the
+    frequency turns on a drum behind a slot. A big round red TALK button. No memory channels."""
+    p = Plate("walkie_toy", WALKIE_W, WALKIE_H, seed=201, title="Toys-R-Mine Walkie Talkie")
+    d = p.d
+    face_body(p, "wt_char", r=22, seed=202)
+    tx_led(p, 184, 16)
+    face_knob(p, "vol", 40, 46, 15, "VOL - ON")
+    face_knob(p, "tune", 160, 46, 15, "TUNE")
+    display(p, "toy", "drum", 40, 90, 120, 17, lay_drum(120), bezel="blackp")
+    slot_grille(p, 100, 172, 62, 46, vertical=True)
+    d.dome(100, 252, 22, 22, 3.4, "wt_red", polish=0.7, on=Z_FACE)                  # TALK
+    d.torus(100, 252, 22, 25, 1.2, "blackp", polish=0.5, on=Z_FACE)
+    d.text("TALK", 100, 250, "paint_w", align="c", font="57", flatlight=True)
+    p.hit("mic", 76, 228, 48, 48)
+    st = Mask(p.W, p.H).rrect(22, 288, 156, 50, 5).get()
+    d.slab(st, 0.3, "enamel_white", bevel=0.6, polish=0.6, on=Z_FACE)
+    cols = ("paint_r", "paint_b", "paint_y", "paint_g", "paint_k", "paint_r", "paint_k", "paint_b", "paint_y", "paint_g", "paint_r")
+    for i, (ch, col) in enumerate(zip("TOYS-R-MINE", cols)):
+        d.text(ch, 56 + i * 8, 296, col, font="57", flatlight=True)
+    d.text("2-WAY", 100, 310, "paint_k", align="c", font="57", flatlight=True)
+    d.text("AGES 8 AND UP", 100, 326, "paint_k", align="c", flatlight=True)
+    for (x, y) in ((14, 348), (185, 348)): screw(p, x, y, on=Z_FACE, mat="steel")
+    if worn_: worn(p, "wt_char", 203)
+    return p
+
+
+def value_face(p, surround, brand, sub, seed):
+    """ValuTech and Premium Tech. share a shell (the game's two textures differ only in the display's surround)"""
+    d = p.d
+    face_body(p, "wt_char", r=18, seed=seed)
+    tx_led(p, 184, 14)
+    p.label(brand, 100, 10, "paint_w", align="c", font="57", auto_ink=False)
+    face_knob(p, "vol", 40, 46, 15, "VOL - PWR")
+    face_knob(p, "tune", 160, 46, 15, "TUNE")
+    sur = Mask(p.W, p.H).rrect(14, 84, 172, 98, 8).get()
+    d.slab(sur, 1.6, surround, bevel=1.4, polish=0.7, on=Z_FACE)
+    display(p, "walkie", "lcd_light", 24, 93, 152, 44, lay_walkie(152), bezel="blackp")
+    zs = Z_FACE + 1.6
+    round_key(p, "chdn", 56, 162, 8, on=zs, icon="down")
+    round_key(p, "mem", 100, 162, 6, on=zs, icon="M")
+    round_key(p, "chup", 144, 162, 8, on=zs, icon="up")
+    slot_grille(p, 100, 228, 74, 30, vertical=False)
+    ptt_key(p, 30, 270, 140, 26, mat="wt_red")
+    p.label(sub, 100, 308, "paint_c", align="c", auto_ink=False)
+    p.label("HOLD M TO NAME", 100, 320, "paint_c", align="c", auto_ink=False)
+    for (x, y) in ((14, 346), (185, 346)): screw(p, x, y, on=Z_FACE, mat="steel")
+    return p
+
+
+def valutech(worn_=True):
+    p = Plate("walkie_valutech", WALKIE_W, WALKIE_H, seed=211, title="ValuTech Walkie Talkie")
+    value_face(p, "wt_yellow", "VALUTECH", "2-WAY  -  50-200 MHZ", 212)
+    if worn_: worn(p, "wt_char", 213)
+    return p
+
+
+def premium(worn_=True):
+    p = Plate("walkie_premium", WALKIE_W, WALKIE_H, seed=221, title="Premium Tech. Walkie Talkie")
+    value_face(p, "wt_red", "PREMIUM TECH.", "2-WAY  -  25-300 MHZ", 222)
+    if worn_: worn(p, "wt_char", 223, grime=0.16, scuffs=0.06)
+    return p
+
+
+def tactical(worn_=True):
+    """Tactical Walkie Talkie (Base.WalkieTalkie4): rubberised green-black, an oval grille over an amber LCD, six keys"""
+    p = Plate("walkie_tactical", WALKIE_W, WALKIE_H, seed=231, title="Tactical Walkie Talkie")
+    d = p.d
+    face_body(p, "wt_tac", r=14, seed=232)
+    tx_led(p, 100, 14)
+    face_knob(p, "vol", 40, 46, 16, "VOL - PWR")
+    face_knob(p, "tune", 160, 46, 14, "TUNE", ridges=24)
+    slot_grille(p, 100, 104, 78, 18, vertical=False)
+    display(p, "walkie", "lcd_amber", 22, 134, 156, 44, lay_walkie(156), bezel="blackp")
+    keypad(p, 22, 192, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None),
+                        ("scan", "SCAN", None), ("mute", "MUTE", None), ("lamp", "LAMP", None)],
+           kw=48, kh=16, gx=6, gy=6, mark="paint_r")
+    ptt_key(p, 22, 242, 156, 26, mat="wt_ptt_grey")
+    p.label("TACTICAL", 100, 278, "paint_c", align="c", font="57", auto_ink=False)
+    p.label("HOLD MEM TO NAME", 100, 292, "paint_c", align="c", auto_ink=False)
+    for k in range(3):
+        d.well(Mask(p.W, p.H).rrect(26, 306 + k * 12, 148, 4, 2).get(), 1.0, None, bevel=0.6)    # grip ribs
+    if worn_: worn(p, "wt_tac", 233, grime=0.28, scuffs=0.12)
+    return p
+
+
+def army(worn_=True):
+    """US Army Walkie Talkie (Base.WalkieTalkie5): olive green, grooves down the left, a slatted grille, a yellow-green
+    LCD, six keys, the red talk lamp"""
+    p = Plate("walkie_army", WALKIE_W, WALKIE_H, seed=241, title="US Army Walkie Talkie")
+    d = p.d
+    face_body(p, "wt_army", r=12, seed=242)
+    face_knob(p, "vol", 40, 46, 16, "VOL - PWR")
+    face_knob(p, "tune", 160, 46, 14, "TUNE", ridges=24)
+    p.label("US ARMY", 100, 40, "paint_c", align="c", font="57", auto_ink=False)
+    for k in range(3):
+        d.well(Mask(p.W, p.H).rrect(14 + k * 7, 84, 3, 46, 1).get(), 1.2, None, bevel=0.6)              # the grooves
+    slot_grille(p, 112, 107, 68, 24, vertical=False, pitch=5, slot=3)
+    display(p, "walkie", "lcd_yg", 20, 146, 160, 44, lay_walkie(160), bezel="blackp")
+    keypad(p, 20, 204, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None),
+                        ("scan", "SCAN", None), ("mute", "MUTE", None), ("lamp", "LAMP", None)],
+           kw=48, kh=16, gx=8, gy=6, mat="blackp")
+    ptt_key(p, 20, 252, 160, 24, mat="blackp")
+    tx_led(p, 92, 288)
+    p.label("TX", 98, 286, "paint_c", auto_ink=False)
+    data_plate(p, 24, 300, 152, 36, ["RADIO SET  -  TWO-WAY", "200 KHZ - 1000 MHZ", "RANGE 16 KM  -  HOLD MEM TO NAME"],
+               on=Z_FACE, mat="blackp", ink="paint_c", rivets=True)
+    if worn_:
+        ol = WR.mat_mask(d, "wt_army")
+        WR.grime(d, d.solid, amount=0.30, seed=243)
+        WR.chips(d, WR.face(d, Z_FACE, ol), 0.004, seed=244, near=2.0, mat="steel")
+        WR.scuffs(d, ol, 0.0015, seed=245, amount=0.12)
+    return p
+
+
+def makeshift(worn_=True):
+    """Makeshift Walkie Talkie (Base.WalkieTalkieMakeShift): the game gives it the toy's shell, so it is a gutted toy:
+    pots for knobs, a scrap of board with a two-line character LCD and three tact switches under duct tape, and a
+    big microswitch taped on as the talk key"""
+    p = Plate("walkie_makeshift", WALKIE_W, WALKIE_H, seed=251, title="Makeshift Walkie Talkie")
+    d = p.d
+    face_body(p, "wt_char", r=22, seed=252)
+    PR.pot(p, "vol", 40, 46, 11)
+    PR.pot(p, "tune", 160, 46, 11)
+    d.text("VOL", 40, 64, "paint_w", align="c", flatlight=True)
+    d.text("TUNE", 160, 64, "paint_w", align="c", flatlight=True)
+    brd = Mask(p.W, p.H).rrect(16, 80, 168, 98, 2).get()
+    d.slab(brd, 1.4, "pcb", bevel=0.8, polish=0.5, on=Z_FACE)
+    d.grain_pebble(brd, 0.03, seed=253)
+    zb = Z_FACE + 1.4
+    display(p, "walkiechar", "char", 46, 90, 13 * 8 + 4, 26, lay_char(13), bezel="blackp")
+    for i, (pid, lab) in enumerate((("chdn", "CH-"), ("mem", "MEM"), ("chup", "CH+"))):
+        x = 54 + i * 40
+        PR.tact(p, pid, x, 128, 12, 12, None)
+        d.text(lab, x + 6, 144, "paint_w", align="c", flatlight=True)
+    PR.resistor(p, 120, 166); PR.solder(p, 54, 166); PR.solder(p, 62, 166)
+    PR.trace(p, ((54, 166), (62, 166), (62, 160), (112, 160)))
+    tx_led(p, 150, 166, on=zb)
+    for (x, y, w, h) in ((18, 76, 22, 106), (160, 76, 22, 106)):
+        t = Mask(p.W, p.H).rect(x, y, w, h).get()
+        d.slab(t, 0.5, "duct", bevel=0.4, polish=0.5, on="cur")
+        for yy in range(y + 3, y + h, 9): d.dark[yy, x + 1:x + w - 1] += 0.04
+    slot_grille(p, 100, 226, 58, 34, vertical=True)
+    # the talk key: a big microswitch, taped down
+    sw = Mask(p.W, p.H).rrect(56, 272, 88, 30, 2).get()
+    d.slab(sw, 2.0, "steel", bevel=0.8, polish=0.8, on=Z_FACE)
+    d.dome(100, 287, 16, 9, 2.4, "blackp", polish=0.6, on=Z_FACE + 2.0)
+    for x in (44, 140):
+        t = Mask(p.W, p.H).rect(x, 280, 16, 14).get()
+        d.slab(t, 0.5, "duct", bevel=0.4, polish=0.5, on="cur")
+    d.text("PTT", 100, 285, "paint_w", align="c", flatlight=True)
+    p.hit("mic", 56, 272, 88, 30)
+    lbl = Mask(p.W, p.H).rect(66, 314, 68, 14).get()
+    d.slab(lbl, 0.5, "tape", bevel=0.4, polish=0.4, on=Z_FACE)
+    d.text("HOLD MEM", 100, 317, "paint_b", align="c", flatlight=True)
+    for (x, y) in ((14, 348), (185, 348)): screw(p, x, y, on=Z_FACE, mat="steel")
+    if worn_: worn(p, "wt_char", 254, grime=0.30, scuffs=0.14)
+    return p
+
+
+MANPACK_W, MANPACK_H = 200, 280
+
+
+def manpack(worn_=True):
+    """US ARMY COMM. Manpack Radio (Base.ManPackRadio): the backpack set's control face: audio sockets, the cyan LCD (as
+    the game's icon), VOL and FREQ knobs, four keys, the talk key"""
+    p = Plate("walkie_manpack", MANPACK_W, MANPACK_H, seed=261, title="US ARMY COMM. Manpack Radio")
+    d = p.d
+    body = Mask(p.W, p.H).rrect(0, 0, p.W, p.H, 6).get()
+    d.slab(body, Z_FACE, "mp_olive", bevel=2.4, polish=0.35)
+    d.grain_pebble(body, 0.04, seed=262)
+    chrome_frame(d, 4, 4, p.W - 8, p.H - 8, Z_FACE - 0.4, t=1, mat="mp_olive", z=0.8)
+    corner_screws(p, inset=9, mat="mp_olive")
+    p.label("US ARMY COMM.", 18, 14, "paint_c", font="57", auto_ink=False)
+    p.label("MANPACK RADIO SET", 18, 25, "paint_c", auto_ink=False)
+    for x in (150, 174):
+        d.torus(x, 20, 4.0, 8.0, 2.4, "steel", polish=0.9, on=Z_FACE)
+        d.dome(x, 20, 4.0, 4.0, -1.5, "hole", polish=0.2, on=Z_FACE)
+    p.label("AUDIO", 162, 32, "paint_c", align="c", auto_ink=False)
+    display(p, "walkie", "lcd_cyan", 20, 46, 160, 44, lay_walkie(160), bezel="blackp")
+    face_knob(p, "vol", 52, 124, 22, "VOL - PWR", ink="paint_c")
+    face_knob(p, "tune", 148, 124, 22, "FREQ", ink="paint_c", ridges=36)
+    keypad(p, 20, 166, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None), ("mute", "MUTE", None)],
+           kw=74, kh=16, gx=12, gy=6, cols=2, mat="blackp")
+    ptt_key(p, 20, 212, 160, 26, mat="rubber")
+    tx_led(p, 30, 254)
+    p.label("TX", 36, 252, "paint_c", auto_ink=False)
+    p.label("RANGE 20 KM", 180, 252, "paint_c", align="r", auto_ink=False)
+    if worn_:
+        ol = WR.mat_mask(d, "mp_olive")
+        WR.grime(d, d.solid, amount=0.32, seed=263)
+        WR.chips(d, WR.face(d, Z_FACE, ol), 0.006, seed=264, near=2.0, mat="steel")
+        WR.scuffs(d, ol, 0.0015, seed=265, amount=0.12)
+    return p
+
+
+# =================================================================================== the tabletop ham sets
+HAM_W, HAM_H = 400, 172
+
+
+def mic_jack(p, cx, cy, mat="chrome", tip="paint_r", label="MIC", ink="paint_k"):
+    d = p.d
+    d.torus(cx, cy, 2.5, 5.5, 2.2, mat, polish=1.0, on=Z_FACE)
+    d.dome(cx, cy, 2.5, 2.5, 1.6, tip, polish=0.8, on=Z_FACE)
+    if label: d.text(label, cx, cy + 8, ink, align="c", flatlight=True)
+
+
 def ham_civ(worn_=True):
     """Premium Technologies Ham Radio (Base.HamRadio1, tiles appliances_com_01_0/1): a brushed silver box; the big
-    black dial under its green arc, the red lamp, the round dotted speaker, two green switches; a compact LCD sits
+    black dial under its green arc, the red lamp, the round dotted speaker, green switches; a compact LCD sits
     between dial and speaker (the tile's set has none: it shows the channel, frequency and station)"""
     p = Plate("ham_civilian", HAM_W, HAM_H, seed=301, title="Premium Technologies Ham Radio")
     d = p.d
-    fw = 318
-    face = Mask(p.W, p.H).rrect(0, 4, fw, HAM_H - 8, 3).get()
+    face = Mask(p.W, p.H).rrect(0, 0, p.W, p.H, 3).get()
     d.slab(face, Z_FACE, "ham_silver", bevel=2.4, polish=0.7)
     d.grain_brushed(face, 0.04, seed=302)
-    chrome_frame(d, 3, 7, fw - 6, HAM_H - 14, Z_FACE - 0.4, t=1, mat="ham_silver", z=0.7)
-    p.label("PREMIUM TECHNOLOGIES", 12, 14, "paint_k", font="57", auto_ink=False)
-    p.label("TWO-WAY  -  10-500 MHZ", 12, 25, "paint_k", auto_ink=False)
-    arc_dial(p, 62, 96, 34, 40)
-    PR.radio_knob(p, 62, 96, 26, mat="blackp", skirt=1.4, ridges=40, pid="tune", label="DIAL", label_y=136, lab_mat="paint_k")
-    d.dome(116, 46, 3.2, 3.2, 1.2, "jewel_red_off", polish=0.9, on=Z_FACE)
-    p.lamp(disc(d, 116, 46, 3.0), "radioOn", "#ff3a2e")
-    p.label("PWR", 116, 52, "paint_k", align="c", auto_ink=False)
-    PR.radio_knob(p, 116, 82, 12, mat="blackp", pid="vol", label="VOL", label_y=98, lab_mat="paint_k")
-    display(p, "walkie", "lcdgrey", 140, 34, 108, 44, lay_walkie(108), bezel="blackp")
-    keypad(p, 140, 90, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None)], kw=32, kh=15, gx=6, mat="hamgrey")
-    p.label("HOLD MEM TO NAME", 140, 110, "paint_k", auto_ink=False)
-    dot_grille(p, 284, 62, 26)
-    toggle_key(p, "mute", 140, 128, 30, 13, "MUTE")
-    toggle_key(p, "scan", 178, 128, 30, 13, "SCAN")
-    # the mic jack and its curly cord to the desk mic
-    d.torus(232, 136, 2.5, 5.5, 2.2, "chrome", polish=1.0, on=Z_FACE)
-    d.dome(232, 136, 2.5, 2.5, 1.6, "paint_r", polish=0.8, on=Z_FACE)
-    for (x, y) in ((9, 13), (fw - 10, 13), (9, HAM_H - 14), (fw - 10, HAM_H - 14)): screw(p, x, y, on=Z_FACE, mat="steel")
-    PR.range_strip(p, 284, 106, w=56, mat="blackp", ink="#ecead8")
-    mic_cord(p, 232, 136, 350, HAM_H - 22)
-    desk_mic(p, 330)
+    chrome_frame(d, 3, 3, p.W - 6, p.H - 6, Z_FACE - 0.4, t=1, mat="ham_silver", z=0.7)
+    corner_screws(p, inset=9)
+    p.label("PREMIUM TECHNOLOGIES", 16, 12, "paint_k", font="57", auto_ink=False)
+    p.label("TWO-WAY  -  10-500 MHZ", 16, 23, "paint_k", auto_ink=False)
+    arc_dial(p, 68, 100, 34, 40)
+    PR.radio_knob(p, 68, 100, 26, mat="blackp", skirt=1.4, ridges=40, pid="tune", label="DIAL", label_y=142, lab_mat="paint_k")
+    d.dome(130, 42, 3.2, 3.2, 1.2, "jewel_red_off", polish=0.9, on=Z_FACE)
+    p.lamp(disc(d, 130, 42, 3.0), "radioOn", "#ff3a2e")
+    p.label("PWR", 130, 48, "paint_k", align="c", auto_ink=False)
+    PR.radio_knob(p, 130, 84, 13, mat="blackp", pid="vol", label="VOL", label_y=101, lab_mat="paint_k")
+    display(p, "walkie", "lcdgrey", 160, 30, 122, 44, lay_walkie(122), bezel="blackp")
+    keypad(p, 160, 86, [("chup", "CH", "up"), ("chdn", "CH", "down"), ("mem", "MEM", None)], kw=38, kh=15, gx=4, mat="hamgrey")
+    p.label("HOLD MEM TO NAME", 160, 106, "paint_k", auto_ink=False)
+    toggle_key(p, "mic", 160, 124, 38, 13, "MIC")
+    toggle_key(p, "mute", 202, 124, 38, 13, "MUTE")
+    toggle_key(p, "scan", 244, 124, 38, 13, "SCAN")
+    dot_grille(p, 342, 70, 32)
+    PR.range_strip(p, 342, 122, w=66, mat="blackp", ink="#ecead8")
+    mic_jack(p, 342, 144)
     if worn_:
         WR.grime(d, face, amount=0.18, seed=303)
         WR.scuffs(d, WR.mat_mask(d, "ham_silver"), 0.001, seed=304, amount=0.08)
@@ -515,42 +462,38 @@ def ham_civ(worn_=True):
 
 def ham_army(worn_=True):
     """US ARMY COMM. Ham Radio (Base.HamRadio2, tiles appliances_com_01_8/9): an olive case round a grey panel; three
-    small keys and the red lamp top left, the dial under its green arc, six memory keys, the black display window,
-    two green switches and the red mic jack"""
+    small keys and the red lamp top left, the dial under its green arc, six memory keys, the dark display window,
+    green switches, the red mic jack, a louvred speaker"""
     p = Plate("ham_army", HAM_W, HAM_H, seed=311, title="US ARMY COMM. Ham Radio")
     d = p.d
-    fw = 318
-    case = Mask(p.W, p.H).rrect(0, 4, fw, HAM_H - 8, 4).get()
+    case = Mask(p.W, p.H).rrect(0, 0, p.W, p.H, 4).get()
     d.slab(case, Z_FACE + 1.0, "ham_olive", bevel=2.6, polish=0.4)
     d.grain_pebble(case, 0.04, seed=312)
-    inset = Mask(p.W, p.H).rrect(10, 14, fw - 20, HAM_H - 28, 2).get()
+    inset = Mask(p.W, p.H).rrect(10, 10, p.W - 20, p.H - 20, 2).get()
     d.slab(inset, Z_FACE, "ham_inset", bevel=0.8, polish=0.4, on=0.0)
-    p.label("US ARMY COMM.", 20, 22, "paint_c", font="57", auto_ink=False)
+    p.label("US ARMY COMM.", 20, 18, "paint_c", font="57", auto_ink=False)
     for i, (pid, ic) in enumerate((("chup", "up"), ("chdn", "down"), ("mem", None))):
-        x = 22 + i * 22
-        PR.radio_key(p, pid, x, 34, 18, 12, None if ic else "M", mat="blackp", icon=ic, z=1.8)
-    d.dome(98, 40, 3.0, 3.0, 1.2, "jewel_red_off", polish=0.9, on=Z_FACE)
-    p.lamp(disc(d, 98, 40, 2.8), "micLive", "#ff3a2e")
-    p.label("TX", 104, 38, "paint_c", auto_ink=False)
-    arc_dial(p, 62, 104, 30, 36, labels=("0.2", "250", "500", "1000"))
-    PR.radio_knob(p, 62, 104, 22, mat="blackp", ridges=40, pid="tune", label="FREQ", label_y=136)
-    # six memory keys, straight to a channel
+        PR.radio_key(p, pid, 22 + i * 22, 32, 18, 12, None if ic else "M", mat="blackp", icon=ic, z=1.8)
+    d.dome(98, 38, 3.0, 3.0, 1.2, "jewel_red_off", polish=0.9, on=Z_FACE)
+    p.lamp(disc(d, 98, 38, 2.8), "micLive", "#ff3a2e")
+    p.label("TX", 104, 36, "paint_c", auto_ink=False)
+    arc_dial(p, 64, 106, 30, 36, labels=("0.2", "250", "500", "1000"))
+    PR.radio_knob(p, 64, 106, 22, mat="blackp", ridges=40, pid="tune", label="FREQ", label_y=140)
     for i in range(6):
-        x = 124 + (i % 3) * 18; y = 70 + (i // 3) * 18
-        PR.radio_key(p, f"p{i + 1}", x, y, 14, 13, str(i + 1), mat="blackp", z=1.6)
-    p.label("MEM", 151, 108, "paint_c", align="c", auto_ink=False)
-    PR.radio_knob(p, 151, 136, 11, mat="blackp", pid="vol", label=None)
-    p.label("VOL", 168, 134, "paint_c", auto_ink=False)
-    display(p, "walkie", "led", 192, 30, 110, 44, lay_walkie(110), bezel="blackp", lens=True)
-    p.label("HOLD MEM TO NAME", 192, 82, "paint_c", auto_ink=False)
-    toggle_key(p, "mute", 194, 100, 28, 13, "MUTE", ink="paint_c")
-    toggle_key(p, "scan", 230, 100, 28, 13, "SCAN", ink="paint_c")
-    d.torus(284, 108, 2.5, 5.5, 2.2, "steel", polish=1.0, on=Z_FACE)
-    d.dome(284, 108, 2.5, 2.5, 1.6, "paint_r", polish=0.8, on=Z_FACE)
-    PR.range_strip(p, 248, 136, w=108, mat="blackp", ink="#ecead8")
-    for (x, y) in ((6, 9), (fw - 7, 9), (6, HAM_H - 10), (fw - 7, HAM_H - 10)): screw(p, x, y, on=Z_FACE + 1.0, mat="ham_olive")
-    mic_cord(p, 284, 108, 350, HAM_H - 22)
-    desk_mic(p, 330, base_mat="ham_olive")
+        PR.radio_key(p, f"p{i + 1}", 128 + (i % 3) * 18, 62 + (i // 3) * 18, 14, 13, str(i + 1), mat="blackp", z=1.6)
+    p.label("MEM", 155, 100, "paint_c", align="c", auto_ink=False)
+    PR.radio_knob(p, 146, 132, 12, mat="blackp", pid="vol", label=None)
+    p.label("VOL", 164, 130, "paint_c", auto_ink=False)
+    display(p, "walkie", "led", 196, 26, 124, 44, lay_walkie(124), bezel="blackp", lens=True)
+    p.label("HOLD MEM TO NAME", 196, 78, "paint_c", auto_ink=False)
+    toggle_key(p, "mic", 196, 94, 38, 13, "MIC", ink="paint_c")
+    toggle_key(p, "mute", 239, 94, 38, 13, "MUTE", ink="paint_c")
+    toggle_key(p, "scan", 282, 94, 38, 13, "SCAN", ink="paint_c")
+    PR.range_strip(p, 258, 138, w=124, mat="blackp", ink="#ecead8")
+    for k in range(9):
+        d.well(Mask(p.W, p.H).rrect(338, 24 + k * 9, 44, 4, 2).get(), 1.6, "mesh", bevel=0.6)              # the speaker
+    mic_jack(p, 360, 128, mat="steel", ink="paint_c")
+    for (x, y) in ((5, 5), (p.W - 6, 5), (5, p.H - 6), (p.W - 6, p.H - 6)): screw(p, x, y, on=Z_FACE + 1.0, mat="ham_olive")
     if worn_:
         ol = WR.mat_mask(d, "ham_olive")
         WR.grime(d, d.solid, amount=0.30, seed=313)
@@ -560,47 +503,38 @@ def ham_army(worn_=True):
 
 
 def ham_make(worn_=True, mic_live=False):
-    """Makeshift Ham Radio (Base.HamRadioMakeShift, tiles appliances_com_01_56/57): built into a wooden crate; the
-    front board carries the black display slot, the red lamp, a small knob and the big ringed speaker; antenna rods
-    and wires stand up out of the open top"""
+    """Makeshift Ham Radio (Base.HamRadioMakeShift, tiles appliances_com_01_56/57): the front of the wooden crate it is
+    built into; the board carries the black display slot, the red lamp, the knobs and the big ringed speaker"""
     p = Plate("ham_makeshift", HAM_W, HAM_H, seed=321, title="Makeshift Ham Radio")
     d = p.d
-    fw = 318
-    # what stands out of the crate's open top: two rods, a loop of wire
-    for (x, h) in ((70, 34), (226, 26)):
-        d.cyl(x, 2, 4, h, 2.6, "steel", axis="v", polish=0.9, on=0.0)
-    wire = Mask(p.W, p.H).line([(110, 26), (126, 8), (150, 6), (172, 14), (186, 26)], 2.0).get(0.45)
-    d.slab(wire, 2.0, "paint_b", bevel=1.0, polish=0.6, on=0.0)
-    crate = Mask(p.W, p.H).rect(0, 24, fw, HAM_H - 28).get()
+    crate = Mask(p.W, p.H).rect(0, 0, p.W, p.H).get()
     d.slab(crate, Z_FACE + 1.4, "crate", bevel=1.4, polish=0.25)
     d.grain_wood(crate, 1.0, seed=322)
-    board = Mask(p.W, p.H).rect(12, 36, fw - 24, HAM_H - 52).get()
+    board = Mask(p.W, p.H).rect(12, 12, p.W - 24, p.H - 24).get()
     d.slab(board, Z_FACE, "crate_face", bevel=0.8, polish=0.3, on=0.0)
     d.grain_wood(board, 0.6, seed=323)
-    for (x, y) in ((6, 30), (fw - 7, 30), (6, HAM_H - 10), (fw - 7, HAM_H - 10)): screw(p, x, y, on=Z_FACE + 1.4, mat="steel")
-    display(p, "hamchar", "char", 24, 48, 16 * 8 + 4, 26, lay_char(16), bezel="blackp")
-    d.dome(170, 54, 3.0, 3.0, 1.2, "jewel_red_off", polish=0.9, on=Z_FACE)
-    p.lamp(disc(d, 170, 54, 2.8), "radioOn", "#ff3a2e")
-    PR.pot(p, "vol", 184, 92, 9)
-    PR.pot(p, "tune", 152, 92, 9)
-    d.text("TUNE", 152, 106, "paint_k", align="c", flatlight=True)
-    d.text("VOL", 184, 106, "paint_k", align="c", flatlight=True)
+    for (x, y) in ((6, 6), (p.W - 7, 6), (6, p.H - 7), (p.W - 7, p.H - 7)): screw(p, x, y, on=Z_FACE + 1.4, mat="steel")
+    display(p, "hamchar", "char", 26, 26, 16 * 8 + 4, 26, lay_char(16), bezel="blackp")
+    d.dome(176, 32, 3.0, 3.0, 1.2, "jewel_red_off", polish=0.9, on=Z_FACE)
+    p.lamp(disc(d, 176, 32, 2.8), "radioOn", "#ff3a2e")
     for i, (pid, lab) in enumerate((("chdn", "CH-"), ("mem", "MEM"), ("chup", "CH+"))):
-        x = 28 + i * 34
-        PR.tact(p, pid, x, 88, 12, 12, None)
-        d.text(lab, x + 6, 104, "paint_k", align="c", flatlight=True)
-    bat_toggle(p, 44, 132, mic_live, on=Z_FACE)          # up = TALK: a variant (micLive) flips it
-    p.hit("mic", 36, 120, 16, 22)
-    d.text("TALK", 64, 124, "paint_k", flatlight=True)
-    d.text("LISTEN", 64, 136, "paint_k", flatlight=True)
-    toggle_key(p, "mute", 108, 126, 28, 13, "MUTE", mat="blackp")
-    dot_grille(p, 258, 92, 34, ring_mat="grille_ring")
-    tp = Mask(p.W, p.H).rect(160, 124, 70, 13).get()
+        x = 32 + i * 40
+        PR.tact(p, pid, x, 70, 12, 12, None)
+        d.text(lab, x + 6, 86, "paint_k", align="c", flatlight=True)
+    PR.pot(p, "tune", 168, 76, 10)
+    PR.pot(p, "vol", 204, 76, 10)
+    d.text("TUNE", 168, 92, "paint_k", align="c", flatlight=True)
+    d.text("VOL", 204, 92, "paint_k", align="c", flatlight=True)
+    bat_toggle(p, 46, 126, mic_live, on=Z_FACE)          # up = TALK: a variant (micLive) flips it
+    p.hit("mic", 38, 114, 16, 24)
+    d.text("TALK", 62, 118, "paint_k", flatlight=True)
+    d.text("LISTEN", 62, 130, "paint_k", flatlight=True)
+    toggle_key(p, "mute", 112, 120, 30, 13, "MUTE", mat="blackp")
+    tp = Mask(p.W, p.H).rect(156, 118, 70, 13).get()
     d.slab(tp, 0.5, "tape", bevel=0.4, polish=0.4, on=Z_FACE)
-    d.text("HOLD MEM", 195, 128, "paint_b", align="c", flatlight=True)
-    d.torus(210, 150, 2.5, 5.0, 2.0, "steel", polish=1.0, on=Z_FACE)
-    mic_cord(p, 210, 150, 350, HAM_H - 22)
-    desk_mic(p, 330, ptt=False, lamp=False)
+    d.text("HOLD MEM", 191, 122, "paint_b", align="c", flatlight=True)
+    mic_jack(p, 236, 76, mat="steel", tip="blackp")
+    dot_grille(p, 316, 86, 46, ring_mat="grille_ring")
     if worn_:
         WR.grime(d, d.solid, amount=0.26, seed=324)
     return p
