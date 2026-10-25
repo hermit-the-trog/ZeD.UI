@@ -1059,6 +1059,10 @@ end
 -- ---------------------------------------------------------------------------
 -- THE TAB
 -- ---------------------------------------------------------------------------
+-- its lit pixel-art icon, as every other tab's (ZeDUI/tools/tabpx/icons.py "appearance", drawn by ZeD_TabPx.lua)
+require "ZeD/ZeD_TabPx"
+if ZeD.TabPx and ZeD.TabPx.ICONS then ZeD.TabPx.ICONS[TAB_ID] = true end
+
 ZeD_CharacterWindow.addTab({
     id = TAB_ID, after = "identity", group = 2, glyph = "A",
     iconName = "appearance-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/appearance-tab-white.png"),

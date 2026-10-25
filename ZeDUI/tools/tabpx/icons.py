@@ -279,6 +279,24 @@ ICONS = {
     ".kk..........kk.",
     "................",
     "................"],
+# Appearance (Spongie's Character Customisation support, Oct 25 2026): a hand mirror, the glass lit, on its handle
+"appearance": [
+    "................",
+    ".....wllllld....",
+    "....wlmmmmmdd...",
+    "...wlwwmmmmmdd..",
+    "...llwmmmmmmmd..",
+    "...lwmmmmmmmmd..",
+    "...lmmmmmmmmmd..",
+    "...lmmmmmmmmdd..",
+    "....lmmmmmmddk..",
+    ".....dddddddk...",
+    ".......lmd......",
+    ".......lmd......",
+    ".......lmd......",
+    ".......lmd......",
+    ".......ddk......",
+    "................"],
 }
 
 TONES = "wlmdk"
