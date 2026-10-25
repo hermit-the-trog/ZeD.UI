@@ -13,7 +13,7 @@
 
 ## 2. The window
 
-The in-game Options window's layout (pages, Find, rows, the action strip), 1060 x 800 design units, centred over the paused game.
+The in-game Options window's layout (pages, Find, rows, the action strip), 1060 x 860 design units, centred over the paused game.
 
 - **Pages:** vanilla's (`ServerSettingsScreen.getSandboxSettingsTable()`, the table its admin editor uses; other mods' settings arrive on their own pages), then **Changed (n)** and **History**. A dot beside a page with changes. Find searches every page's names and help.
 - **Rows:** vanilla's labels and controls (list, tick box, a number or text edited in its row). A changed row has the accent dot and "was X" under its name. Two pairs vanilla labels alike are renamed: Water Shutoff (day) / (range), Electricity Shutoff (day) / (range).
