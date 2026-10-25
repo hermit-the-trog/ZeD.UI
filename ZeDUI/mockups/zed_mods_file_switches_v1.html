@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Mods: turning files off v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | the Mods screen: turning a mod's files off one by one. Mockup v1
+   (Oct 25 2026). Director: "can we add a setting to turn off individual files
+   in a mod? Similar to the conflict manager, but this one helps either turn off
+   something that doesn't have a setting, or help troubleshoot errors."
+   Built on the Mods screen as it is (info pane tabs About / Options / Sandbox /
+   Conflicts, the file picker and the ZeD picks helper mod: mockup
+   zed_mods_settings_picks_v1, approved and built). Catalog parts: M02 list
+   rows, M03 tabs, A07 switch. Every file name, size and error here is real:
+   Bandits Week One 42.20 as subscribed, its scheduler error from the 128-mod
+   test. Design units: 1 px at 1080p.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --desk:#040506; --body:#0d100f; --panel:#121514; --surf2:#161918; --surf3:#1e2120; --title:#1b1d1d;
+  --border:#383b3a; --borderHi:#4a4e4c; --text:#d6d7d5; --dim:#868887; --faint:#5d605f;
+  --acc:#3f8f7d; --accB:#5fbca4; --a22:rgba(63,143,125,.22); --a55:rgba(63,143,125,.55);
+  --danger:#d9533c; --warn:#d2a23c; --ok:#86b94e; --info:#4f93d4;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1000px; height:720px; background:var(--desk); border:1px solid #2a2924; overflow:hidden; transform-origin:0 0; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+
+/* ---- the ZeD OS window ----------------------------------------------------- */
+.win { position:absolute; left:10px; top:10px; width:980px; height:700px; background:var(--body); border:1px solid var(--border); display:flex; flex-direction:column; }
+.tb { height:26px; flex:none; display:flex; align-items:center; gap:10px; padding:0 8px; background:var(--title);
+      background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); border-bottom:1px solid var(--border);
+      font-family:var(--mono); font-size:12px; color:#b9bab8; }
+.tb .cb { width:13px; height:13px; border:1px solid #6b6d6c; }
+.tb .t { background:var(--title); padding:0 6px; }
+.tb .st { margin-left:auto; display:flex; gap:12px; align-items:center; font-size:11px; color:var(--dim); }
+.tb .st i { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:1px; }
+.main { flex:1; display:flex; min-height:0; gap:10px; padding:10px; }
+.col { display:flex; flex-direction:column; min-height:0; border:1px solid var(--border); background:var(--panel); }
+.strip { flex:none; height:40px; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-top:1px solid var(--border); }
+.strip .sp { flex:1; }
+.strip .msg { font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:0; }
+.strip .msg i { width:7px; height:7px; border-radius:50%; flex:none; }
+.foot { flex:none; height:14px; display:flex; align-items:center; gap:4px; padding:0 4px; border-top:1px solid var(--border); background:var(--surf2); }
+.foot span { width:10px; height:10px; border:1px solid #555; }
+.b { height:24px; display:inline-flex; align-items:center; justify-content:center; padding:0 10px; font-family:var(--mono); font-size:11px; color:var(--text);
+     background:transparent; border:1px solid var(--borderHi); border-radius:2px; box-shadow:inset 0 0 0 1px #000; white-space:nowrap; flex:none; }
+.b.pri { border-color:var(--acc); color:var(--accB); box-shadow:inset 0 0 0 1px #000, 0 0 0 1px rgba(63,143,125,.35); }
+.b.bad { border-color:rgba(217,83,60,.7); color:#e98a76; }
+.b.off { opacity:.4; }
+.b.sm { height:20px; padding:0 8px; font-size:10px; }
+.tabs { display:flex; gap:4px; padding:8px 8px 0; flex-wrap:wrap; }
+.tab { height:24px; padding:0 10px; display:flex; align-items:center; font-size:12px; color:var(--dim); border:1px solid var(--border); background:var(--surf2); }
+.tab.on { color:var(--accB); border-color:var(--acc); background:var(--surf3); }
+.tab em { font-style:normal; font-family:var(--mono); font-size:10px; color:var(--faint); margin-left:6px; }
+.tab.on em { color:var(--accB); }
+.tab.new { outline:1px dashed rgba(216,192,112,.6); outline-offset:1px; }
+.find { margin:8px; height:26px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border); background:var(--body); font-family:var(--mono); font-size:11px; color:var(--dim); }
+.rows { flex:1; overflow:hidden; border-top:1px solid var(--border); }
+.row { position:relative; height:42px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #191c1b; }
+.row.sel { background:#16302a; }
+.row .ck { width:13px; height:13px; border:1px solid #6b6d6c; flex:none; display:flex; align-items:center; justify-content:center; }
+.row .ck.on { background:var(--acc); border-color:var(--accB); }
+.row .ck.on::after { content:""; width:6px; height:6px; background:#0b1210; }
+.row .nm { display:flex; flex-direction:column; min-width:0; }
+.row .nm b { font-weight:500; font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+.row .nm span { font-family:var(--mono); font-size:10px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+.row .chips { margin-left:auto; display:flex; gap:5px; align-items:center; }
+.chip { height:16px; padding:0 5px; display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:.3px; border:1px solid; white-space:nowrap; }
+.chip i { width:5px; height:5px; border-radius:50%; background:currentColor; }
+.c-warn { color:var(--warn); border-color:rgba(210,162,60,.6); }
+.c-bad { color:var(--danger); border-color:rgba(217,83,60,.6); }
+.c-info { color:var(--info); border-color:rgba(79,147,212,.6); }
+.c-ok { color:var(--ok); border-color:rgba(134,185,78,.5); }
+.c-dim { color:var(--dim); border-color:var(--border); }
+
+/* ---- the info pane ----------------------------------------------------------- */
+.dcol { flex:1; min-width:0; }
+.dhead { flex:none; display:flex; gap:12px; padding:10px 14px 8px; }
+.poster { width:56px; height:56px; flex:none; border:1px solid var(--borderHi); background:linear-gradient(135deg,#3a2a1c,#1c1410); display:flex; align-items:center; justify-content:center; font-family:var(--cond); font-weight:700; font-size:11px; color:#d9b27a; text-align:center; line-height:1.05; }
+.dhead h2 { font-family:var(--cond); font-weight:700; font-size:20px; color:var(--text); line-height:1.15; }
+.dhead .by { font-size:12px; color:var(--dim); margin:2px 0 8px; }
+.btns { display:flex; gap:6px; flex-wrap:wrap; }
+.dtabs { flex:none; display:flex; gap:4px; padding:0 14px; border-bottom:1px solid var(--border); }
+.dtabs .tab { border-bottom:0; height:25px; margin-bottom:-1px; }
+.dtabs .tab.on { background:var(--panel); border-bottom:1px solid var(--panel); }
+.dbody { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+.sum { flex:none; display:flex; align-items:center; gap:10px; padding:7px 14px; font-family:var(--mono); font-size:10.5px; color:var(--dim); border-bottom:1px solid var(--border); }
+.sum b { color:var(--text); font-weight:500; }
+.sum .sp { flex:1; }
+.ffind { flex:none; margin:7px 14px 6px; height:24px; display:flex; align-items:center; padding:0 8px; border:1px solid var(--border); background:var(--body); font-family:var(--mono); font-size:11px; color:var(--dim); }
+.flist { flex:1; min-height:0; overflow:hidden; border-top:1px solid var(--border); }
+.fgrp { height:22px; display:flex; align-items:center; gap:8px; padding:0 14px; background:var(--surf2); border-bottom:1px solid #1c1f1e; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.6px; color:var(--acc); }
+.fgrp span { color:var(--faint); font-weight:400; }
+.frow { height:27px; display:flex; align-items:center; gap:9px; padding:0 14px 0 22px; border-bottom:1px solid #181b1a; font-size:12px; color:var(--text); position:relative; }
+.frow.sel { background:#16302a; }
+.frow.off .fn, .frow.off .fsz { color:var(--faint); text-decoration:line-through; text-decoration-color:rgba(255,255,255,.18); }
+.frow .fn { font-family:var(--mono); font-size:11px; min-width:0; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.frow .fsz { font-family:var(--mono); font-size:10px; color:var(--dim); width:52px; text-align:right; flex:none; }
+.frow .dot { position:absolute; left:9px; top:11px; width:5px; height:5px; border-radius:50%; background:var(--accB); }
+.frow .chips { display:flex; gap:4px; flex:none; }
+/* A07 switch */
+.sw { width:28px; height:14px; border:1px solid var(--borderHi); background:var(--body); position:relative; flex:none; }
+.sw::after { content:""; position:absolute; top:2px; left:2px; width:10px; height:8px; background:#5d605f; }
+.sw.on { border-color:var(--acc); background:#14261f; }
+.sw.on::after { left:auto; right:2px; background:var(--accB); }
+/* the band at the bottom: the selected file */
+.band { flex:none; border-top:1px solid var(--border); background:var(--surf2); padding:8px 14px 9px; display:flex; flex-direction:column; gap:6px; min-height:0; }
+.band .bh { display:flex; align-items:baseline; gap:10px; }
+.band .bh b { font-family:var(--mono); font-size:12px; color:var(--text); font-weight:500; }
+.band .bh span { font-family:var(--mono); font-size:10px; color:var(--dim); }
+.band p { font-size:11.8px; line-height:1.45; color:var(--text); }
+.band p em { font-style:normal; font-family:var(--mono); font-size:10.5px; color:#cfd3c9; }
+.band .first { font-family:var(--mono); font-size:10px; color:#8d918f; background:#0a0c0b; border:1px solid #232726; padding:4px 8px; line-height:1.5; white-space:pre; overflow:hidden; }
+.band .acts { display:flex; gap:6px; }
+.band .warnline { display:flex; gap:8px; }
+.band .warnline i { width:7px; height:7px; border-radius:50%; flex:none; margin-top:5px; }
+/* troubleshooting */
+.tsh { flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; padding:12px 14px; overflow:hidden; }
+.tsh h3 { font-family:var(--cond); font-weight:600; font-size:17px; color:var(--text); }
+.tsh .lead { font-size:12px; line-height:1.5; color:#b9bab8; }
+.rounds { display:flex; gap:6px; align-items:center; font-family:var(--mono); font-size:10.5px; color:var(--dim); flex-wrap:wrap; }
+.rounds span { border:1px solid var(--border); padding:2px 7px; }
+.rounds span.done { color:var(--text); border-color:var(--borderHi); }
+.rounds span.now { color:#111; background:#d8c070; border-color:#d8c070; }
+.step { border:1px solid var(--border); background:var(--surf2); padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+.step .sh { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.8px; color:var(--acc); }
+.step p { font-size:12px; line-height:1.5; color:var(--text); }
+.step .acts { display:flex; gap:6px; flex-wrap:wrap; }
+.mini { display:grid; grid-template-columns:repeat(2, 1fr); gap:2px 14px; font-family:var(--mono); font-size:10.5px; color:var(--dim); max-height:120px; overflow:hidden; }
+.mini .o { color:var(--faint); text-decoration:line-through; text-decoration-color:rgba(255,255,255,.18); }
+.note { border:1px solid var(--border); background:var(--surf2); padding:8px 10px; font-size:11.8px; line-height:1.45; color:#b9bab8; display:flex; gap:9px; }
+.note > i { width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; }
+.note b { color:var(--text); font-weight:600; }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | main menu | Mods | turning files off | mockup v1</div>
+<h1>Mods: turning a mod's files off</h1>
+<p class="lede">A new <b>Files</b> tab in a mod's info pane lists the mod's code files, each with an on/off switch. Turn off a part of a mod that has no setting of its own, or find which file is behind an error or a problem. It works the way file picks do: ZeD puts an empty copy of the file into its <b>ZeD picks</b> helper mod, which loads last, so the empty copy is the one the game runs. A reload puts it in place, no restart. Single player only. The mod, its files and its error are real (Bandits Week One, as subscribed).</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>A Files tab beside Conflicts</b>, for every mod that has code files. Files are grouped by folder (client, server, shared) with their size; Find narrows them by name. A switch per file. A dot marks what you changed since the screen opened.</li>
+      <li><span class="rec">RECOMMEND</span><b>Say what turning a file off will touch, before it happens.</b> ZeD reads the mod's other files for the file's name (its table name, a require of it). <i>Used by 0</i>: safe to turn off on its own. <i>Used by 4</i>: those 4 will likely error, and the band names them and offers <i>Turn off anyway</i>. This is found by reading text, so it can miss a use; the band says so.</li>
+      <li><span class="rec">RECOMMEND</span><b>Errors sit on the file they come from.</b> The game's error names the file and line (BWOScheduler.lua, line 42), so the Files tab marks that file with its count and links to the error in Messages. When the error's file is used by many others, the band says turning the mod off for this save is likely the better fix.</li>
+      <li><span class="rec">RECOMMEND</span><b>Find the file behind a problem</b>, for a problem with no error to point at: ZeD turns half the files off, you reload and check, and say whether it still happens; each answer halves what is left. About 7 rounds for 108 files. <i>Stop and put all back</i> at any round. It says up front that this can break the mod in other ways and to use a copy of the save.</li>
+      <li><span class="rec">RECOMMEND</span><b>Kept until you turn it back on.</b> The list shows <i>1 file off</i> on the mod's row; ZeD picks shows in the list as always. <i>Turn all back on</i> on the Files tab undoes it for that mod. When Steam updates the mod, files that are off stay off by path; a file the update removed shows as gone.</li>
+      <li><span class="lim">LIMIT</span><b>Code files only (Lua).</b> The game lets a mod write text files, not pictures or sounds, so textures, models, sounds and maps cannot be switched. Script files (items, recipes, vehicles) are text, but the game reads scripts across all mods by file name, and whether an empty copy would remove a mod's items is not tested; not offered in v1. Translation files are not offered either.</li>
+      <li><span class="lim">LIMIT</span><b>Single player only.</b> A server checks that each player's code files match its own, so a turned-off file would keep you out of a server, as file picks would.</li>
+      <li><span class="lim">LIMIT</span><b>A file that is turned off still loads, empty.</b> Anything that requires it gets an empty result instead of an error at that line, and the error moves to the first place that uses what the file defined. That is what <i>Used by</i> warns about.</li>
+      <li><span class="alt">YOUR CALL</span><b>Where troubleshooting starts.</b> Shown here as a button on the Files tab. It could also start from an error in Messages (<i>Find the cause</i>), for errors that point at the game's own code rather than at a mod's file.</li>
+      <li><b>Controller:</b> the file list is a column of stops; A flips the switch, X opens the band's actions, LB / RB walk the info pane's tabs as today.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const STRIPS = '<div class="foot"><span></span><span></span><span></span></div>';
+
+// ---- the mod list (as the built screen) -----------------------------------------
+const MODS = [
+  { k: "bandits", n: "Bandits", id: "Bandits2", on: 1, chips: [] },
+  { k: "bwo", n: "Bandits Week One", id: "BanditsWeekOne", on: 1, chips: [["c-bad", "17 errors"]] },
+  { k: "horse", n: "Horse Mod", id: "Horse", on: 1, chips: [] },
+  { k: "ladders", n: "Ladders!? (v0.0.13)", id: "Ladders", on: 1, chips: [["c-bad", "1 error"]] },
+  { k: "cdogs", n: "Companion Dogs [ALPHA]", id: "CompanionDogs", on: 1, chips: [] },
+  { k: "zed", n: "ZeD-GUI", id: "ZeD_UI", on: 1, chips: [] },
+  { k: "picks", n: "ZeD picks", id: "ZeD_Picks | always last | made by ZeD", on: 1, chips: [] },
+];
+function listCol(sel, o = {}) {
+  const rows = MODS.map(m => {
+    let c = m.chips;
+    if (m.k === "bwo" && o.off) c = [...c, ["c-dim", `${o.off} file${o.off > 1 ? "s" : ""} off`]];
+    if (m.k === "picks" && o.off) c = [["c-ok", `${o.off} file${o.off > 1 ? "s" : ""}`]];
+    return { ...m, chips: c };
+  });
+  const tabs = [["All 7", 1], ["On 7"], ["Maps 0"], ["Conflicts 0"], ["Workshop 747"]];
+  return `<div class="col" style="width:300px">
+    <div class="tabs">${tabs.map(([t, on]) => `<span class="tab ${on ? "on" : ""}">${t}</span>`).join("")}</div>
+    <div class="find">Find:</div>
+    <div class="rows">${rows.map(r => `<div class="row ${r.k === sel ? "sel" : ""}"><span class="ck ${r.on ? "on" : ""}"></span><div class="nm"><b>${r.n}</b><span>${r.id}</span></div><div class="chips">${r.chips.map(([c, t]) => `<span class="chip ${c}"><i></i>${t}</span>`).join("")}</div></div>`).join("")}</div>
+  </div>`;
+}
+function win(title, status, main, strip) {
+  return `<div class="win"><div class="tb"><span class="cb"></span><span class="t">${title}</span><div class="st">${status}</div></div>
+    <div class="main">${main}</div><div class="strip">${strip}</div>${STRIPS}</div>`;
+}
+const STATUS = `<span><i style="background:var(--ok)"></i>7 of 7 on</span>`;
+const STRIP_NORMAL = `<span class="b">Back</span><span class="sp"></span><span class="b">Profiles</span><span class="b">Load order</span><span class="b pri">Accept</span>`;
+const STRIP_RELOAD = n => `<span class="msg"><i style="background:var(--acc)"></i>${n} in Bandits Week One. A reload puts it in place, no restart.</span><span class="sp"></span><span class="b">Discard</span><span class="b pri">Reload</span>`;
+
+// ---- Bandits Week One's files (42.20, as subscribed) --------------------------
+// [folder, name, size bytes, used by, errors]
+const FILES = [
+  ["client", "BWOAmbience.lua", 4296, 2], ["client", "BWOChat.lua", 77815, 1], ["client", "BWOClimate.lua", 2081, 0],
+  ["client", "BWOEffects.lua", 4128, 0], ["client", "BWOEffects2.lua", 7818, 0], ["client", "BWOEmitter.lua", 2400, 0],
+  ["client", "BWOFakeVehicle.lua", 19892, 0], ["client", "BWOFlyingObject.lua", 7571, 1], ["client", "BWOIntro.lua", 1916, 0],
+  ["client", "BWOJetEngine.lua", 5939, 1], ["client", "BWOLights.lua", 1460, 0], ["client", "BWOMenu.lua", 31381, 0],
+  ["client", "BWOMusic.lua", 2981, 4], ["client", "BWOOptions.lua", 1091, 0], ["client", "BWOPlayer.lua", 38450, 0],
+  ["client", "BWOPopControl.lua", 28907, 6], ["client", "BWORadio.lua", 4634, 3], ["client", "BWOScheduler.lua", 24489, 11, 17],
+  ["client", "BWOSpriteFix.lua", 4400, 0], ["client", "BWOSquareLoader.lua", 29912, 4], ["client", "BWOTex.lua", 1616, 2],
+  ["client", "BWOVehicles.lua", 25537, 8], ["client", "BWOVehiclesOld.lua", 25488, 0], ["client", "ISUI/BWOChatWindow.lua", 4230, 0],
+  ["client", "ISUI/ISEmoteRadialMenuPatch.lua", 213, 0],
+];
+const kb = n => n >= 1024 ? (n / 1024).toFixed(1) + " KB" : n + " B";
+function fileRows(o = {}) {
+  const off = o.off || [], sel = o.sel, dots = o.dots || [];
+  // (the list scrolled so the selected file is in view)
+  const at = Math.max(0, FILES.findIndex(x => x[1] === sel) - 3);
+  const rows = FILES.slice(at).map(([dir, f, size, used, errs]) => {
+    const isOff = off.includes(f);
+    const chips = [];
+    if (errs) chips.push(`<span class="chip c-bad"><i></i>${errs} errors</span>`);
+    if (used) chips.push(`<span class="chip c-dim">used by ${used}</span>`);
+    return `<div class="frow ${isOff ? "off" : ""} ${f === sel ? "sel" : ""}">${dots.includes(f) ? '<span class="dot"></span>' : ""}<span class="sw ${isOff ? "" : "on"}"></span><span class="fn">${f}</span><span class="chips">${chips.join("")}</span><span class="fsz">${kb(size)}</span></div>`;
+  }).join("");
+  return `<div class="fgrp">CLIENT<span>37 files</span></div>${rows}`;
+}
+function detail(o) {
+  const tabs = [["About", ""], ["Options", 2], ["Sandbox", 24], ["Conflicts", 0], ["Files", 108, true]];
+  return `<div class="col dcol">
+    <div class="dhead"><div class="poster">BANDITS<br>WEEK<br>ONE</div>
+      <div style="min-width:0"><h2>Bandits Week One</h2><div class="by">by Slayer | Workshop 3403180543 | needs Bandits</div>
+      <div class="btns"><span class="b">Turn off</span><span class="b">Favourite</span><span class="b">Open in Steam</span></div></div></div>
+    <div class="dtabs">${tabs.map(([t, n, on]) => `<span class="tab ${on ? "on new" : ""}">${t}${n !== "" ? `<em>${n}</em>` : ""}</span>`).join("")}</div>
+    <div class="dbody">${o.body}</div>
+  </div>`;
+}
+function filesBody(o) {
+  const offN = (o.off || []).length;
+  return `<div class="sum"><b>108</b> code files | ${offN ? `<b style="color:var(--warn)">${offN} off</b>` : "all on"}<span class="sp"></span><span class="b sm">Find the file behind a problem...</span>${offN ? '<span class="b sm">Turn all back on</span>' : ""}</div>
+    <div class="ffind">Find a file:</div>
+    <div class="flist">${fileRows(o)}</div>
+    ${o.band}`;
+}
+const BAND_INTRO = `<div class="band">
+  <div class="bh"><b>BWOIntro.lua</b><span>client | 1.9 KB | used by no other file in this mod</span></div>
+  <div class="first">require "BWOMusic"
+BWOIntro = {}
+local function onGameBoot()
+    local options = PZAPI.ModOptions:getOptions("BanditsWeekOne")</div>
+  <p>No other file uses it, so turning it off stops this file only. ZeD cannot tell what a file does; its first lines are shown. This one starts the intro music when the game boots.</p>
+  <div class="acts"><span class="b pri">Turn off</span></div></div>`;
+const BAND_INTRO_OFF = `<div class="band">
+  <div class="bh"><b>BWOIntro.lua</b><span>client | 1.9 KB | off after the reload</span></div>
+  <p>ZeD put an empty copy of this file into ZeD picks. After the reload, the empty copy is the one the game runs; Bandits Week One's own copy stays as it is, untouched.</p>
+  <div class="acts"><span class="b">Turn back on</span></div></div>`;
+const BAND_MUSIC = `<div class="band">
+  <div class="bh"><b>BWOMusic.lua</b><span>client | 2.9 KB</span></div>
+  <div class="warnline"><i style="background:var(--warn)"></i><p><b>Used by 4 other files in this mod:</b> <em>BWOIntro.lua, BWOMenu.lua, OptionScreens/MainOptionsPatch.lua, shared/BWOEvents.lua</em>. With it off, they will likely error where they use it. Found by reading the mod's files for its name; a use written another way can be missed.</p></div>
+  <div class="acts"><span class="b">Turn off anyway</span><span class="b">Turn off with the 4</span></div></div>`;
+const BAND_SCHED = `<div class="band">
+  <div class="bh"><b>BWOScheduler.lua</b><span>client | 23.9 KB | used by 11 other files</span></div>
+  <div class="warnline"><i style="background:var(--danger)"></i><p><b>17 errors come from this file</b>, all at line 42 in <em>generateSchedule</em>: "attempted index: schedule of non-table: null". 11 other files use it, so turning it off would move the errors, not end them. Bandits Week One errors this way in a save that was not started with it: turning the mod off for this save is the cleaner fix.</p></div>
+  <div class="acts"><span class="b pri">Show the errors in Messages</span><span class="b">Turn off anyway</span></div></div>`;
+
+// ---- troubleshooting ----------------------------------------------------------
+function troubleshoot(round) {
+  const off = round === 1 ? 54 : 27;
+  const names = FILES.map(f => f[1]);
+  const mini = names.slice(0, 16).map((n, i) => `<span class="${(round === 1 ? i < 8 : i >= 8 && i < 12) ? "o" : ""}">${n}</span>`).join("");
+  return `<div class="col dcol">
+    <div class="dhead"><div class="poster">BANDITS<br>WEEK<br>ONE</div>
+      <div style="min-width:0"><h2>Bandits Week One</h2><div class="by">Find the file behind a problem</div></div></div>
+    <div class="tsh">
+      <h3>Round ${round} of about 7</h3>
+      <div class="rounds"><span class="${round === 1 ? "now" : "done"}">108 files</span><span class="${round === 2 ? "now" : round > 2 ? "done" : ""}">54</span><span>27</span><span>14</span><span>7</span><span>4</span><span>2</span><span>1</span></div>
+      <p class="lead">${round === 1 ? "Half of the mod's files are off now (54 of 108). Reload, play until the problem would show, then come back here and say what happened." : "The problem was still there with the first half off, so it is in the other half. Now 27 of those are off."}</p>
+      <div class="step"><span class="sh">THE PROBLEM</span><p>"Jet engine sounds every few minutes and nothing to see" (your words, kept with the search so you know what you were checking).</p></div>
+      <div class="step"><span class="sh">THIS ROUND | ${off} OFF, STRUCK THROUGH</span><div class="mini">${mini}</div><span style="font-family:var(--mono);font-size:10px;color:var(--faint)">and ${off - (round === 1 ? 8 : 4)} more</span></div>
+      <div class="step"><span class="sh">AFTER THE RELOAD</span><div class="acts"><span class="b">It still happens</span><span class="b">It is gone</span><span class="b">Stop and put all back</span></div></div>
+      <div class="note"><i style="background:var(--warn)"></i><div><b>Turning files off can break the mod in other ways</b>, with errors of its own: the change in the problem is the clue, not the errors. Use a copy of your save. Nothing is kept when you stop.</div></div>
+    </div>
+  </div>`;
+}
+
+const SCENES = [
+  { id: "f1", label: "The Files tab", cap: "Bandits Week One selected. The new Files tab (dashed outline) lists its 108 code files by folder with their size, a switch each. BWOIntro.lua is selected: no other file uses it, so the band offers to turn it off on its own, and shows its first lines.",
+    html: () => win("Project Zomboid  +  Mods", STATUS, listCol("bwo") + detail({ body: filesBody({ sel: "BWOIntro.lua", band: BAND_INTRO }) }), STRIP_NORMAL) },
+  { id: "f2", label: "One file off", cap: "BWOIntro.lua switched off (struck through, a dot for changed). The strip says a reload puts it in place, no restart. The mod's own copy is never changed: ZeD writes an empty copy into ZeD picks.",
+    html: () => win("Project Zomboid  +  Mods", STATUS, listCol("bwo") + detail({ body: filesBody({ sel: "BWOIntro.lua", off: ["BWOIntro.lua"], dots: ["BWOIntro.lua"], band: BAND_INTRO_OFF }) }), STRIP_RELOAD("1 file off")) },
+  { id: "f3", label: "A file others use", cap: "BWOMusic.lua is used by 4 other files in the mod. The band names them and says what turning it off would do. Turn off anyway, or turn the 4 off with it.",
+    html: () => win("Project Zomboid  +  Mods", STATUS, listCol("bwo") + detail({ body: filesBody({ sel: "BWOMusic.lua", band: BAND_MUSIC }) }), STRIP_NORMAL) },
+  { id: "f4", label: "The file behind an error", cap: "BWOScheduler.lua carries the mod's 17 errors (the real one from the 128-mod test, line 42). It is used by 11 files, so the band points to the cleaner fix and links to the errors in Messages.",
+    html: () => win("Project Zomboid  +  Mods", STATUS, listCol("bwo") + detail({ body: filesBody({ sel: "BWOScheduler.lua", band: BAND_SCHED }) }), STRIP_NORMAL) },
+  { id: "t1", label: "Troubleshoot: round 1", cap: "Find the file behind a problem with no error to point at. You write what you are looking for; ZeD turns half the files off; you reload and check.",
+    html: () => win("Project Zomboid  +  Mods  +  Bandits Week One: find the file", STATUS, listCol("bwo") + troubleshoot(1), `<span class="b">Back</span><span class="sp"></span><span class="msg"><i style="background:var(--acc)"></i>54 files off for this round. A reload puts it in place.</span><span class="b pri">Reload</span>`) },
+  { id: "t2", label: "Troubleshoot: round 2", cap: "Still there with the first half off, so the cause is in the other half: 27 of those are off now. Each answer halves what is left; about 7 rounds for 108 files. Stop and put all back at any time.",
+    html: () => win("Project Zomboid  +  Mods  +  Bandits Week One: find the file", STATUS, listCol("bwo") + troubleshoot(2), `<span class="b">Back</span><span class="sp"></span><span class="msg"><i style="background:var(--acc)"></i>27 files off for this round. A reload puts it in place.</span><span class="b pri">Reload</span>`) },
+  { id: "k1", label: "Kept", cap: "After the reload. The mod's row says 1 file off; ZeD picks holds the empty copy (always last). Turn all back on undoes it for this mod.",
+    html: () => win("Project Zomboid  +  Mods", STATUS, listCol("bwo", { off: 1 }) + detail({ body: filesBody({ sel: "BWOIntro.lua", off: ["BWOIntro.lua"], band: BAND_INTRO_OFF }) }), STRIP_NORMAL) },
+];
+
+let cur = SCENES[0], zoom = 1;
+function seg(id, items, get, set) {
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = get() === v ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function render() {
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), () => cur.id, v => { cur = SCENES.find(s => s.id === v); });
+  seg("#ctlZoom", [[1, "100%"], [1.25, "125%"], [0.8, "80%"]], () => zoom, v => { zoom = v; });
+  const st = $("#stage");
+  st.innerHTML = cur.html();
+  st.style.transform = zoom === 1 ? "" : `scale(${zoom})`;
+  $("#wrap").style.height = (720 * zoom + 4) + "px";
+  $("#wrap").style.width = (1000 * zoom + 4) + "px";
+  $("#caption").textContent = cur.cap;
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
