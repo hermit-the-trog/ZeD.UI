@@ -122,26 +122,18 @@ def thought(cv, st, hx_, hy_, th, gap=3):
     sh = th["shadow"]
 
     def cloud(ox, oy, fill, ink, shadow=False):
-        # a rounded body with a few broad lobes (director, Oct 24: "less ripples"): about one every 22 units along
-        # the top and bottom, one on each end, each bulging 2 units past the body; the ink round the union
+        # director, Oct 24: "rounded thought bubble": no lobes, a smooth round-ended body (corner radius 10, the
+        # ends nearly half round), the ink round it; the trail of bubbles is what makes it a thought
         import numpy as np
-        P = 6
-        m = np.zeros((h + 2 * P, w + 2 * P), bool)
-        Y, X = np.mgrid[0:h + 2 * P, 0:w + 2 * P]
-        c0 = P
-        R = 6.2
-        m |= (X >= c0 + 1) & (X < c0 + w - 1) & (Y >= c0 + 1) & (Y < c0 + h - 1)
-        m &= ~(((X < c0 + 3) | (X >= c0 + w - 3)) & ((Y < c0 + 3) | (Y >= c0 + h - 3)))   # the body's corners eased
-        n = max(3, int(round((w - 12) / 22.0)) + 1)
-        for i in range(n):
-            bx = c0 + 6 + (w - 13) * i / (n - 1)
-            for by in (c0 + R - 2, c0 + h - R + 1):
-                m |= (X + 0.5 - bx) ** 2 + (Y + 0.5 - by) ** 2 <= R ** 2
-        for bx in (c0 + R - 2, c0 + w - R + 1):
-            m |= (X + 0.5 - bx) ** 2 + (Y + 0.5 - (c0 + h / 2)) ** 2 <= R ** 2
+        R = 10.5
+        Y, X = np.mgrid[0:h, 0:w]
+        cxl, cxr, cyt, cyb = R, w - R, R, h - R
+        qx = np.clip(X + 0.5, cxl, cxr); qy = np.clip(Y + 0.5, cyt, cyb)
+        m = np.hypot(X + 0.5 - qx, Y + 0.5 - qy) <= R
         edge = m & ~(np.roll(m, 1, 0) & np.roll(m, -1, 0) & np.roll(m, 1, 1) & np.roll(m, -1, 1))
+        edge[0, :] |= m[0, :]; edge[-1, :] |= m[-1, :]; edge[:, 0] |= m[:, 0]; edge[:, -1] |= m[:, -1]
         for (yy, xx) in zip(*np.nonzero(m)):
-            cv.rect(ox + xx - c0, oy + yy - c0, 1, 1, ink if (edge[yy, xx] or shadow) else fill)
+            cv.rect(ox + xx, oy + yy, 1, 1, ink if (edge[yy, xx] or shadow) else fill)
 
     cloud(x + 2, y + 2, sh, sh, shadow=True)
     # the trail of bubbles toward the head, the smallest nearest it
