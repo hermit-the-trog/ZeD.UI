@@ -84,12 +84,12 @@ def build_one(did, verbose=True):
 
 
 DECALS = os.environ.get("ZED_DECALS", "/mnt/user-data/uploads/Project Zomboid/SteamApps/common/ProjectZomboid/media/textures/shirtdecals")
-ASH_OPEN = {"taxi", "d6", "bulldriver", "horizon", "rancher", "cossette", "dart"}   # the previews' used ash trays
+ASH_OPEN = {"taxi": 3, "d6": 2, "bulldriver": 3, "horizon": 1, "rancher": 2, "cossette": 1, "dart": 2}   # the previews' used trays
 
 
 def preview(did, base, sprites, doc, heads=None, state="drive", k=1, extra=None, night=None):
     st = dict(STATES[state]); st.update(badge_names(did))
-    if state == "drive": st["ashOpen"] = did in ASH_OPEN
+    if state == "drive": st["ashOpen"] = ASH_OPEN.get(did, 0)
     if did == "van" and state != "off":        # the previews' van is the Spiffo's
         p_ = os.path.join(DECALS, "Buisness_SpiffosDECAL.png")
         if os.path.exists(p_): st["sticker_im"] = Image.open(p_).convert("RGBA")
