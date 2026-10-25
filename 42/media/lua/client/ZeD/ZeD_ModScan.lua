@@ -37,6 +37,7 @@ ZeD.ModScan = ZeD.ModScan or {}
 local MS = ZeD.ModScan
 
 local VANILLA = "pz-vanilla"
+local PICKS = "ZeD_Picks"         -- ZeD's helper mod for file picks (ZeD_ModPicks)
 local HIDE_FILE = "ZeD_modconflicts_hidden.txt"
 local SLICE = 60                  -- units of work per frame (a folder listing, or 40 script objects)
 local WS_POLL_MS, WS_POLL_OPEN_MS = 30000, 10000
@@ -158,7 +159,9 @@ local function scanBody(res)
         local p = string.lower(raw)
         local at = p:find("/media/", 1, true)
         local id = at and roots[p:sub(1, at - 1)]
-        if id then
+        -- (only media/lua/: the game runs every mod's media/registries.lua, read from its code, so
+        -- the same registries file in two mods is no conflict)
+        if id and p:sub(at + 1, at + 10) == "media/lua/" then
             local rel = p:sub(at + 1)
             winner[rel] = id
             shown[rel] = raw:sub(at + 1)
@@ -168,23 +171,59 @@ local function scanBody(res)
         work = work + 1
         if work % 400 == 0 then coroutine.yield() end
     end
-    -- every loaded mod's copy of those folders: a .lua there that another mod's copy beat
+    -- every loaded mod's copy of those folders: a .lua there that another mod's copy beat.
+    -- ZeD picks (ZeD_ModPicks) is not a side: a file it holds is still the two mods'
+    -- conflict, with the winner load order would choose (the last one that ships it)
     work = 0
+    local holders = {}
     for _, id in ipairs(loaded) do
-        for _, dir in ipairs(dirList) do
-            local files = listFilesInModDirectory(id, dir)
-            if files then
-                for k = 0, files:size() - 1 do
-                    local f = string.lower(tostring(files:get(k)))
-                    if f:sub(-4) == ".lua" then
-                        local rel = dir .. "/" .. f
-                        local w = winner[rel]
-                        if w and w ~= id then addConflict(res, "file", id, w, shown[rel] or rel) end
+        if id ~= PICKS then
+            for _, dir in ipairs(dirList) do
+                local files = listFilesInModDirectory(id, dir)
+                if files then
+                    for k = 0, files:size() - 1 do
+                        local f = string.lower(tostring(files:get(k)))
+                        if f:sub(-4) == ".lua" then
+                            local rel = dir .. "/" .. f
+                            if winner[rel] then
+                                local h = holders[rel]
+                                if not h then h = {}; holders[rel] = h end
+                                h[#h + 1] = id
+                            end
+                        end
                     end
                 end
+                work = work + 1
+                if work % SLICE == 0 then coroutine.yield() end
             end
-            work = work + 1
-            if work % SLICE == 0 then coroutine.yield() end
+        end
+    end
+    local rels = {}
+    for rel in pairs(holders) do rels[#rels + 1] = rel end
+    table.sort(rels)
+    for _, rel in ipairs(rels) do
+        local h = holders[rel]
+        if #h >= 2 then
+            local w = winner[rel]
+            if w == PICKS then w = h[#h] end
+            for _, id in ipairs(h) do
+                if id ~= w then addConflict(res, "file", id, w, shown[rel] or rel) end
+            end
+        end
+    end
+    -- copies that are the same, word for word, are no conflict (a grey note)
+    work = 0
+    for _, list in pairs(res.byMod) do
+        for _, e in ipairs(list) do
+            if e.kind == "file" and e.same == nil then
+                e.same = 0
+                for _, path in ipairs(e.things) do
+                    if ZeD.ModPicks and ZeD.ModPicks.same(e.loser, e.winner, path) then e.same = e.same + 1 end
+                    work = work + 1
+                    if work % 8 == 0 then coroutine.yield() end
+                end
+                e.sameAll = e.same == #e.things
+            end
         end
     end
     -- 2. the scripts: an object defined by more than one mod
@@ -262,19 +301,33 @@ function MS.forMod(id)
     return out
 end
 
--- per mod, how many shown conflicts (kept until the scan or a hide changes it)
-function MS.count(id)
+-- a file conflict settled by file picks (ZeD_ModPicks): some of its files picked
+function MS.isPicked(e)
+    if e.kind ~= "file" or not ZeD.ModPicks then return false end
+    return (ZeD.ModPicks.countIn(e.things)) > 0
+end
+
+-- per mod, how many shown conflicts (kept until the scan, a hide or a pick changes it):
+-- copies that are the same word for word, and conflicts settled by picks, are not counted
+-- (c.same / c.picked: how many of each, for the row's grey and green tags)
+function MS.counts()
     local c = MS.res.counts
     if not c or c.done ~= MS.res.done then
-        c = { done = MS.res.done }
+        c = { done = MS.res.done, n = {}, same = {}, picked = {} }
         for mid in pairs(MS.res.byMod) do
-            local k = #MS.forMod(mid)
-            if k > 0 then c[mid] = k end
+            for _, e in ipairs(MS.forMod(mid)) do
+                local t = (e.sameAll and c.same) or (MS.isPicked(e) and c.picked) or c.n
+                t[mid] = (t[mid] or 0) + 1
+            end
         end
         MS.res.counts = c
     end
-    return c[id] or 0
+    return c
 end
+function MS.count(id) return MS.counts().n[id] or 0 end
+function MS.sameFor(id) return MS.counts().same[id] or 0 end
+function MS.pickedFor(id) return MS.counts().picked[id] or 0 end
+function MS.dirtyCounts() MS.res.counts = nil end
 
 -- ----------------------------------------------------------------------------
 -- THE WORKSHOP
