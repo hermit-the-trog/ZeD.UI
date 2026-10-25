@@ -410,6 +410,10 @@ function ZeD_Window:_drawFooter()
         local btnX = 0
         local btnGap = T.px(4)
 
+        -- 1-3 shown unless ZeD setup hides them (director, Oct 24 2026: "add option in ZeD
+        -- settings to hide theme/accent/text buttons on windows"); R stays, in their place
+        local squares = not (ZeD.Settings and ZeD.Settings.windowSquaresOn) or ZeD.Settings.windowSquaresOn()
+        if squares then
         -- 1. Theme dot: next theme's preview color
         local nextC
         if ZeD.currentBase == "dark" then
@@ -456,6 +460,7 @@ function ZeD_Window:_drawFooter()
         self:drawText("A", aX, aY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF5)
         self._themeControlRects[3] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
         btnX = btnX + rh + btnGap
+        end
 
         -- 4. Reset window position: "R" label
         if not self.noResetControl then
@@ -847,8 +852,9 @@ function ZeD_Window:update()
     if self._themeControlRects and not self.windowShaded then
         local amx, amy = getMouseX(), getMouseY()
         local newHover = nil
-        for i, rect in ipairs(self._themeControlRects) do
-            if amx >= rect.x and amx <= rect.x + rect.w
+        for i = 1, 4 do   -- (not ipairs: with 1-3 hidden only R, at 4, is there)
+            local rect = self._themeControlRects[i]
+            if rect and amx >= rect.x and amx <= rect.x + rect.w
             and amy >= rect.y and amy <= rect.y + rect.h then
                 newHover = i
                 break

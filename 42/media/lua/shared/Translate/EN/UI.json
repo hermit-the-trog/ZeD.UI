@@ -2000,6 +2000,8 @@
     "UI_ZeD_Settings_WorldAccentTip": "An accent of its own for the World window, or the same as Accent color. Cycled via footer button.",
     "UI_ZeD_Siren_Dpad": "D-PAD Left / Right: switch   Up / Down: turn",
     "UI_ZeD_Siren_Step": "Step",
+    "UI_ZeD_Settings_WindowSquares": "Theme, accent and text buttons on windows",
+    "UI_ZeD_Settings_WindowSquaresTip": "The three squares at the bottom left of every ZeD window that switch the theme, the accent and the text size. Off hides them; the same settings stay here in ZeD setup.",
     "UI_ZeD_Skills_Boost": "+%1 XP",
     "UI_ZeD_Skills_StatusCollected": "COLLECTED",
     "UI_ZeD_Skills_StatusMissing": "NOT FOUND",
