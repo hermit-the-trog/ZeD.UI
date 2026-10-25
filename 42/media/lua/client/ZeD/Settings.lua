@@ -324,6 +324,16 @@ msgToast:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/of
 ZeD.Settings.messagesToastOption = msgToast
 ZeD.Settings.messagesToastOn = function() return (msgToast:getValue() or 2) == 2 end
 
+-- ----- SANDBOX OPTIONS IN GAME (director, Oct 24 2026; mockup zed_sandbox_ingame_v1;
+-- ZeD_SandboxInGame.lua) -----
+-- A "Sandbox options" line in the pause window: this save's sandbox settings, changed
+-- without starting over. Off for a new player ("default off"). Single player only.
+local sandboxIG = opts:addComboBox("sandboxInGame", ZeD.tr("UI_ZeD_Settings_SandboxIG"), ZeD.tr("UI_ZeD_Settings_SandboxIGTip"))
+sandboxIG:addItem(getText("UI_Off"), true)   -- default
+sandboxIG:addItem(getText("UI_On"), false)
+ZeD.Settings.sandboxInGameOption = sandboxIG
+ZeD.Settings.sandboxInGameOn = function() return (sandboxIG:getValue() or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -342,6 +352,7 @@ do
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
         putBack = "UI_ZeD_Settings_PutBack",
         messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast",
+        sandboxInGame = "UI_ZeD_Settings_SandboxIG",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

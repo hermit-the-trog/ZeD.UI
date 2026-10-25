@@ -1332,13 +1332,15 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     -- the help band: three lines of the body font (Oct 21 2026: two cut the longer ZeD tips short)
-    local helpH = self.noHelpBand and 0 or math.max(T.px(HELP_H), T.px(14) + 3 * (MM.fontH(T.fontF2) + T.px(3)))   -- (a window without help text has no band)
+    -- (a window without help text has no band; one with its own band says how tall: Sandbox in game)
+    local helpH = self.noHelpBand and 0 or (self.helpBandH and self:helpBandH()) or math.max(T.px(HELP_H), T.px(14) + 3 * (MM.fontH(T.fontF2) + T.px(3)))
     local vy, vh = y + T.px(1), h - helpH - T.px(2)
     local sbW = T.sp.scrollbarW
     local inner = w - T.px(2) - sbW
     local lw = math.floor(inner * LABEL_SHARE)
     local cx0 = x + T.px(1) + lw + T.px(12)
-    local cw = x + inner - T.px(10) - cx0
+    local tagsW = self.tagsW and self:tagsW() or 0   -- (room at the right for a row's tags: Sandbox in game)
+    local cw = x + inner - T.px(10) - cx0 - tagsW
     -- layout pass
     local total = 0
     for _, r in ipairs(rows) do r._h = self:rowHeight(r, (r.kind == "note" or r.kind == "desc") and (inner - T.px(24)) or cw); total = total + r._h end
@@ -1417,6 +1419,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 self._inert = r.moot and true or false
                 self:drawControl(r, cx0, ry, cw, crh, rowId, clip)
                 self._inert = false
+                if self.drawRowTags then self:drawRowTags(r, x + inner - T.px(10), ry, crh) end
                 if r.moot then
                     -- dim just the control (a drop-down's box, a bar and its number, else the row's control area)
                     local dw = cw
@@ -1451,6 +1454,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     self:drawRect(x + T.px(1), hy, w - 2 * T.px(1), helpH - T.px(1), 1, s2.r, s2.g, s2.b)
     self:drawRect(x + T.px(1), hy, w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
     local hr = self._cellRow or focusRow or ((not MM.ctx.open and not self._palette) and hovered or nil)   -- (_cellRow: a row edited in place)
+    if self.drawHelp then self:drawHelp(x, hy, w, helpH, hr); return end   -- (a window with its own band: Sandbox in game)
     local htext = hr and help(hr) or nil
     if hr and not htext and self:isChanged(hr) then htext = self.changedNote and MM.optionGroups.text(self.changedNote) or ZeD.tr("UI_ZeD_Options_ChangedNote") end
     -- ZeD's own options: their default in a column at the right of the band (mockup zed_settings_v2)

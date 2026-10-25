@@ -31,7 +31,7 @@ No mod tested so far is D or F.
 
 [h2]Broken on 42.21 by themselves (X)[/h2]
 [list]
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2894296454]Change Sandbox Options[/url] by star: Two errors of its own on 42.21: a key binding with no key (it stopped the game's options screen), and a main-screen step that looks for a quit button the game no longer makes (it stopped ZeD's pause window). ZeD-GUI 0.2.0-t4 works around both.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2894296454]Change Sandbox Options[/url] by star: Two errors of its own on 42.21: a key binding with no key (it stopped the game's options screen), and a main-screen step that looks for a quit button the game no longer makes (it stopped ZeD's pause window). ZeD-GUI 0.2.0-t4 works around both. ZeD-GUI 0.2.0-t4 also has its own Sandbox options in the pause window (Options, ZeD setup, Sandbox; off by default): use one.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2875848298]Common Sense[/url] by Braven: Stops the world from loading on 42.21: its recipes ask for a fluid, Alcohol, that the game no longer has. Not ZeD.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2737665235]Ladders!?[/url] by co`: Its ladder code errors as the world loads (setLadderClimbingFlags). Not ZeD.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403180543]Week One NPC[/url] by Slayer: Its scheduler errors once a game minute in an existing save (generateSchedule). ZeD is not in the error.
