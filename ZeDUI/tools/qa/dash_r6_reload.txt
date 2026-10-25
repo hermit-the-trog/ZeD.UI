@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/dash_r6_reload.txt  (Oct 24 2026)
+# The second half of dash_r6.txt: after the game was quit (saved) and loaded again, the two kept Nyalas' trays read as before.
+zedqa_prelude.lua | pre
+zedqa_dash_r6_persist.lua | r6r | timeout=300 | expect=FBORenderCell
+zedqa_dash_r6_parts.lua | r6p | timeout=900 | expect=FBORenderCell   # (again, after the reload check: it keeps no cars this time)
