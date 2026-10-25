@@ -565,7 +565,7 @@ def hula_frames():
 
 
 def taxi_license(b, x, y, w=92, h=30):
-    """the cab's hack license, a framed card riveted to the console under the hula girl: the driver's photo, HACK
+    """the cab's taxi license (Oct 24: "Taxi license"), a framed card riveted to the console under the hula girl: the driver's photo, TAXI
     LICENSE, the cab's unit (live: the badge's unit role, TAXI - CAB 26) and a licence number"""
     d = b.d; M = d.M
     b.check_flat(x - 1, y - 1, w + 2, h + 2, "taxi license")
@@ -584,7 +584,7 @@ def taxi_license(b, x, y, w=92, h=30):
     d.glow(box(px_ + 4, py_ + 3, 8, 2) & ~head | (box(px_ + 4, py_ + 3, 8, 2) & (d.YY < py_ + 5)), "#3a2a20")
     d.glow(box(px_ + 2, py_ + 14, 12, 5), "#4a5a7a")
     d.glow(box(px_ + 6, py_ + 13, 4, 2), "#b88262")
-    d.text("HACK LICENSE", x + 24, y + 5, "paint_r", flatlight=True)
+    d.text("TAXI LICENSE", x + 24, y + 5, "paint_r", flatlight=True)
     d.text("NO 4417", x + 24, y + 21, "paint_k", flatlight=True)
     b.ink_rect(x + 24, y + 5, w - 26, 21, "taxi license")
     b.part("badge", role="unit", x=x + 24, y=y + 13, w=w - 28, h=5, style="flat", font="35", scale=1, color="#1a1a1a", align="l",
