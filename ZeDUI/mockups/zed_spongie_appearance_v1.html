@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZeD Appearance v1</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ZeD-UI: support for Spongie's Character Customisation, v1 (Oct 25 2026).
+   Character window chrome as built (title bar, 36px tab strip, 480px wide drawer, tab header,
+   section subheads like Identity's POSITIVE (15)), Catalog v2.0 window frame and buttons,
+   focus = 0.55 alpha accent fill, status dots with default text. */
+:root{--b:#0C0C0C;--s1:#131313;--s2:#1A1A1A;--s3:#222222;--s4:#2A2A2A;--bd:#2A2A2A;--bs:#3A3A3A;
+--ac:#47A18C;--acb:#5CC4AA;--acf:rgba(71,161,140,0.55);--hov:rgba(71,161,140,0.22);--toa:#0C0C0C;
+--tx:rgba(200,200,200,0.86);--ts:rgba(150,150,150,0.62);--th:rgba(212,200,180,0.92);
+--dng:#C45A2A;--wrn:#C49A2A;--pos:#7A9A34;--inf:#5A8A9A;
+--m:'Fira Mono',monospace;--s:'Fira Sans',sans-serif;--c:'Fira Sans Condensed','Fira Sans',sans-serif;
+--f1:11px;--f2:13px;--f4:15px;--f5:10px}
+body.lg{--f1:13px;--f2:15px;--f4:17px;--f5:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--b);color:var(--tx);font-family:var(--s);font-size:13px;min-height:100vh}
+.wrap{max-width:1240px;margin:0 auto;padding:16px}
+h1{font-family:var(--m);font-size:15px;letter-spacing:3px;color:var(--th)}
+.sub{font-family:var(--m);font-size:11px;color:var(--ts);margin:4px 0 12px;line-height:1.5}
+.ctl{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:12px;align-items:center}
+.grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.grp b{font-family:var(--m);font-size:10px;color:var(--ts);letter-spacing:.08em;margin-right:2px;font-weight:500}
+.btn{font-family:var(--m);font-size:11px;padding:4px 10px;border:1px solid var(--bs);background:var(--s2);color:var(--tx);cursor:pointer;border-radius:3px;user-select:none;white-space:nowrap}
+.btn:hover{background:var(--hov)}
+.btn.on{background:var(--ac);color:var(--toa);border-color:var(--ac)}
+.sw{width:18px;height:18px;border:1px solid var(--bs);cursor:pointer}
+.sw.on{outline:2px solid var(--tx);outline-offset:1px}
+/* game screen */
+.scene{position:relative;height:720px;border:1px solid var(--bs);overflow:hidden;
+ background:radial-gradient(ellipse at 70% 40%,#2c3320 0%,#1c2216 45%,#0f120c 100%)}
+.scene::after{content:'';position:absolute;inset:0;pointer-events:none;
+ background:repeating-linear-gradient(135deg,rgba(255,255,255,0.015) 0 2px,transparent 2px 22px)}
+.scene.paused::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.35);z-index:1}
+.scene.desk{background:#0a0d10}
+/* ZeD window */
+.win{position:absolute;background:rgba(19,19,19,0.96);border:1px solid var(--bs);z-index:4;display:flex;flex-direction:column}
+.tb{height:24px;background:var(--s2);border-bottom:1px solid var(--bs);display:flex;align-items:center;position:relative;flex-shrink:0}
+.tb::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.05) 2px,rgba(255,255,255,0.05) 4px)}
+.cb{width:12px;height:12px;border:1px solid var(--bs);margin:0 8px 0 6px;flex-shrink:0;position:relative;z-index:1;background:var(--s2)}
+.tt{font-family:var(--m);font-size:var(--f2);color:var(--th);position:relative;z-index:1;background:var(--s2);padding:0 8px;letter-spacing:.04em}
+.tt.c{margin:0 auto}
+.tstats{margin-left:auto;font-family:var(--m);font-size:var(--f1);color:var(--tx);position:relative;z-index:1;background:var(--s2);padding:0 8px;display:flex;gap:12px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:5px}
+.dot.pos{background:var(--pos)} .dot.wrn{background:var(--wrn)} .dot.off{border:1px solid var(--bs)} .dot.ac{background:var(--ac)} .dot.dim{background:#666}
+.wbody{flex:1;display:flex;min-height:0}
+/* tab strip */
+.strip{width:36px;border-right:1px solid var(--bs);background:var(--s1);display:flex;flex-direction:column;flex-shrink:0}
+.tab{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--bd);position:relative;cursor:pointer}
+.tab img{width:22px;height:22px;opacity:.82}
+.tab.act{background:var(--acf)} .tab.act::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acb)}
+.tab.act img{opacity:1}
+.tab.new::after{content:'';position:absolute;right:3px;top:3px;width:6px;height:6px;border-radius:50%;background:var(--ac)}
+.tab:hover{background:var(--hov)}
+.tab .tip{display:none;position:absolute;left:40px;top:8px;background:var(--s2);border:1px solid var(--bs);font-family:var(--m);font-size:10px;padding:2px 6px;white-space:nowrap;z-index:9;color:var(--tx)}
+.tab:hover .tip{display:block}
+/* drawer */
+.drawer{width:480px;border-right:1px solid var(--bs);display:flex;flex-direction:column;min-height:0;flex-shrink:0;position:relative}
+.dh{height:37px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--bd);flex-shrink:0;gap:8px}
+.dh .nm{font-family:var(--c);font-weight:600;font-size:calc(var(--f4) + 3px);color:var(--th)}
+.dh .nm::before{content:'> ';color:var(--ts)}
+.vsw{margin-left:auto;display:flex;border:1px solid var(--bs)}
+.vsw span{width:26px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx)}
+.vsw span.on{background:var(--ac);color:var(--toa)}
+.vsw svg{width:14px;height:14px}
+.dscroll{flex:1;overflow:auto;padding:10px 10px 14px;min-height:0}
+.dscroll::-webkit-scrollbar{width:8px} .dscroll::-webkit-scrollbar-thumb{background:var(--s4)}
+.credit{font-family:var(--m);font-size:var(--f5);color:var(--ts);margin:-2px 0 10px}
+.banner{border:1px solid var(--wrn);border-left:4px solid var(--wrn);background:rgba(196,154,42,0.08);padding:8px 10px;margin-bottom:12px}
+.banner h3{font-family:var(--m);font-size:var(--f1);color:var(--wrn);letter-spacing:.06em;margin-bottom:3px}
+.banner p{font-size:var(--f2);line-height:1.45}
+.za{display:flex;gap:12px;align-items:flex-start}
+.figcol{width:150px;flex-shrink:0;position:sticky;top:0}
+.figbox{width:150px;height:300px;border:1px solid var(--bs);background:linear-gradient(#2a2f33,#1c2024);position:relative;overflow:hidden;cursor:grab}
+.figbox svg{width:100%;height:100%;display:block}
+.figcap{font-family:var(--m);font-size:var(--f5);color:var(--ts);text-align:center;margin-top:4px;min-height:14px}
+.figbtns{display:flex;gap:4px;margin-top:6px;justify-content:center}
+.ib{width:28px;height:22px;border:1px solid var(--bs);background:var(--s2);display:flex;align-items:center;justify-content:center;font-family:var(--m);font-size:12px;cursor:pointer;color:var(--tx);border-radius:2px}
+.ib:hover{background:var(--hov)}
+.ib.dis{opacity:.35;pointer-events:none}
+.right{flex:1;min-width:0}
+.subh{font-family:var(--m);font-size:var(--f1);color:var(--ts);letter-spacing:.08em;margin:2px 0 6px;display:flex;align-items:baseline;gap:6px;text-transform:uppercase}
+.subh .n{color:var(--ts)}
+.groove{height:0;border-top:1px solid var(--bd);border-bottom:1px solid #000;margin:12px 0}
+.tiles{display:grid;grid-template-columns:repeat(4,68px);gap:8px}
+.tile{width:68px;border:1px solid var(--bs);background:var(--s1);cursor:pointer;position:relative}
+.tile .pic{height:72px;background:linear-gradient(#323a40,#20262b);position:relative;overflow:hidden}
+.tile .pic svg{width:100%;height:100%;display:block}
+.tile .lab{font-family:var(--c);font-size:var(--f5);text-align:center;padding:2px 2px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tx);border-top:1px solid var(--bd)}
+.tile.sel{border:2px solid var(--acb);margin:-1px}
+.tile.sel .lab{background:var(--ac);color:var(--toa);font-weight:600}
+.tile .chk{position:absolute;right:2px;top:2px;width:14px;height:14px;background:var(--acb);color:var(--toa);font-family:var(--m);font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;z-index:2}
+.tile.sel .chk{display:flex}
+.tile .bdg{position:absolute;left:2px;top:2px;display:flex;gap:2px;z-index:2}
+.tile .bdg i{width:14px;height:14px;background:rgba(12,12,12,0.8);border:1px solid var(--bs);display:flex;align-items:center;justify-content:center;font-style:normal}
+.tile .bdg svg{width:10px;height:10px}
+.tile:hover .pic{outline:1px solid var(--tx);outline-offset:-1px}
+.tile.ro{cursor:default}
+.tile.ro:hover .pic{outline:none}
+.foc{box-shadow:0 0 0 2px var(--acb)!important}
+.tile.foc .lab{background:var(--acf);color:var(--toa)}
+.tile.foc.sel .lab{background:var(--acb)}
+.list{border:1px solid var(--bd)}
+.lrow{display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-bottom:1px solid var(--bd);cursor:pointer;font-size:var(--f2)}
+.lrow:last-child{border-bottom:0}
+.lrow:nth-child(even){background:rgba(255,255,255,0.02)}
+.lrow:hover{background:var(--hov)}
+.lrow.foc{background:var(--acf);color:var(--toa);box-shadow:none!important}
+.lrow .rad{width:12px;height:12px;border:1px solid var(--bs);border-radius:50%;background:var(--s1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lrow.sel .rad::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--acb)}
+.lrow .box{width:12px;height:12px;border:1px solid var(--bs);background:var(--s1);display:flex;align-items:center;justify-content:center;font-family:var(--m);font-size:10px;color:var(--acb);flex-shrink:0}
+.lrow .nm{flex:1}
+.lrow .ics{display:flex;gap:4px;color:var(--ts)}
+.lrow .ics svg{width:12px;height:12px}
+.ro-note{font-family:var(--m);font-size:var(--f5);color:var(--ts);margin-top:6px;line-height:1.5}
+.empty{font-family:var(--m);font-size:var(--f5);color:var(--ts);padding:8px 0}
+/* body rows */
+.brow{display:flex;align-items:center;height:30px;border-bottom:1px solid var(--bd);gap:8px;font-size:var(--f2)}
+.brow .k{width:118px;color:var(--ts);font-family:var(--m);font-size:var(--f1)}
+.brow .v{flex:1}
+.brow .sbtn{font-family:var(--m);font-size:var(--f1);padding:3px 10px;border:1px solid var(--bs);background:var(--s2);cursor:pointer;border-radius:3px}
+.brow .sbtn:hover{background:var(--hov)}
+.brow .sbtn.dis{opacity:.35;cursor:default;background:var(--s2)}
+.brow .why{font-family:var(--m);font-size:var(--f5);color:var(--ts)}
+.chks{display:flex;gap:18px;margin-top:10px;flex-wrap:wrap}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:var(--f2);cursor:pointer}
+.chk i{width:13px;height:13px;border:1px solid var(--bs);background:var(--s1);display:inline-flex;align-items:center;justify-content:center;font-style:normal;color:var(--acb);font-family:var(--m);font-size:11px}
+.chk.foc{background:var(--acf);color:var(--toa);box-shadow:none!important;outline:2px solid var(--acf)}
+.prog{height:4px;background:var(--s4);margin-top:2px;width:80px}
+.prog i{display:block;height:100%;background:var(--ac)}
+/* action strip */
+.astrip{height:38px;border-top:1px solid var(--bs);background:var(--s2);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0;font-family:var(--m);font-size:var(--f1)}
+.astrip .grow{flex:1}
+.pbtn{font-family:var(--m);font-size:var(--f1);padding:5px 14px;border:1px solid var(--bs);background:var(--s3);color:var(--tx);cursor:pointer;border-radius:3px}
+.pbtn:hover{background:var(--hov)}
+.pbtn.pri{border:3px double var(--ac);color:var(--acb);padding:3px 14px}
+.pbtn.dis{opacity:.35;cursor:default}
+.pbtn.foc{background:var(--acf);color:var(--toa);box-shadow:none!important}
+/* inventory (context only) */
+.inv{flex:1;display:flex;flex-direction:column;min-width:0}
+.ih{height:37px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--bd);gap:8px}
+.ih .nm{font-family:var(--c);font-weight:600;font-size:calc(var(--f4) + 3px);color:var(--th)}
+.ih .wt{margin-left:auto;font-family:var(--m);font-size:var(--f1);color:var(--acb);text-align:right;line-height:1.3}
+.ih .wt span{display:block;color:var(--ts);font-family:var(--s);font-size:var(--f5)}
+.icol{display:flex;font-family:var(--m);font-size:var(--f5);color:var(--ts);padding:5px 10px;border-bottom:1px solid var(--bd)}
+.irow{display:flex;align-items:center;height:30px;padding:0 10px;font-size:var(--f2);border-bottom:1px solid rgba(255,255,255,0.03)}
+.irow:nth-child(odd){background:rgba(255,255,255,0.025)}
+.irow .n{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.irow .c{width:86px;color:var(--ac);font-family:var(--m);font-size:var(--f1)}
+.irow .w{width:34px;text-align:right;font-family:var(--m);font-size:var(--f1);color:var(--ts)}
+.irow.hl{background:var(--hov)}
+.cstrip{width:36px;border-left:1px solid var(--bs);background:var(--s1);flex-shrink:0}
+.padbar{height:20px;border-top:1px solid var(--bs);background:var(--s1);display:flex;align-items:center;gap:14px;padding:0 10px;font-family:var(--m);font-size:10px;color:var(--ts);flex-shrink:0}
+.padbar .g{display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:13px;border:1px solid var(--ts);color:var(--tx);font-size:9px;margin-right:4px;padding:0 2px}
+/* Looks window */
+.lkbody{flex:1;display:flex;min-height:0}
+.lkfig{width:34%;padding:12px;border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center}
+.lkfig .figbox{width:200px;height:400px}
+.lkrows{flex:1;overflow:auto;padding:8px 14px 14px;min-height:0}
+.lkh{font-family:var(--m);font-size:var(--f1);color:var(--ac);letter-spacing:.08em;font-weight:700;margin:14px 0 4px;display:flex;align-items:baseline;gap:8px;text-transform:uppercase}
+.lkh small{font-weight:400;color:var(--ts);letter-spacing:0;text-transform:none;font-size:var(--f5)}
+.lkr{display:flex;align-items:center;min-height:32px;border-bottom:1px solid var(--bd);gap:10px;font-size:var(--f2)}
+.lkr .k{width:140px;color:var(--tx)}
+.lkr .ent{border:1px solid var(--bs);background:var(--s1);padding:3px 8px;width:220px;font-size:var(--f2)}
+.lkr .cmb{border:1px solid var(--bs);background:var(--s2);padding:3px 8px;width:220px;display:flex;justify-content:space-between;font-size:var(--f2)}
+.lkr .sws{display:flex;gap:6px}
+.lkr .sws i{width:22px;height:22px;border:1px solid var(--bs);display:block}
+.lkr .sws i.on{outline:1px solid var(--tx);outline-offset:2px}
+.lkr .new{font-family:var(--m);font-size:9px;color:var(--toa);background:var(--ac);padding:0 4px;margin-left:6px}
+.lkblock{padding:6px 0 4px}
+.lkblock .tiles{grid-template-columns:repeat(auto-fill,68px)}
+.tile.ro.sel{border:1px solid var(--bs);margin:0}
+.tile.ro.sel .lab{background:transparent;color:var(--tx);font-weight:400}
+.tile.ro .chk{display:none!important}
+.lstrip{height:44px;border-top:1px solid var(--bs);background:var(--s2);display:flex;align-items:center;gap:8px;padding:0 12px;flex-shrink:0}
+.lstrip .grow{flex:1}
+.notes{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px}
+.note{border:1px solid var(--bd);background:var(--s1);padding:10px}
+.note h2{font-family:var(--m);font-size:11px;color:var(--ac);letter-spacing:.08em;margin-bottom:6px;text-transform:uppercase}
+.note p,.note li{font-size:12px;line-height:1.5;color:var(--tx)}
+.note ul{padding-left:16px}
+.note li+li{margin-top:3px}
+@media (max-width:900px){.scene{height:auto;min-height:720px}.win{position:relative!important;left:auto!important;top:auto!important;margin:12px;width:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>SPONGIE'S CHARACTER CUSTOMISATION | ZED SUPPORT V1</h1>
+<div class="sub">Spongie's faces and details become an Appearance tab in the Character window, and rows on the Looks screen for a new character.
+The mod's own lists, rules and saving run underneath; ZeD draws them. Click tiles, rows, Save, Shave, the arrows under the figure.
+With "Controller" on, the arrow keys move the focus and Enter is A.</div>
+<div class="ctl">
+ <div class="grp"><b>SCENE</b>
+  <span class="btn" data-scene="tab">In game, changes allowed</span>
+  <span class="btn" data-scene="locked">In game, the mod's default</span>
+  <span class="btn" data-scene="first">First time in an old save</span>
+  <span class="btn" data-scene="looks">New character: Looks</span>
+ </div>
+ <div class="grp"><b>CHARACTER</b><span class="btn" data-sex="m">Male</span><span class="btn" data-sex="f">Female</span></div>
+ <div class="grp"><b>VIEW</b><span class="btn" data-view="pics">Pictures</span><span class="btn" data-view="list">List</span></div>
+ <div class="grp"><b>TEXT</b><span class="btn" data-lg="0">Small</span><span class="btn" data-lg="1">Large</span></div>
+ <div class="grp"><b>ACCENT</b><span class="sw" data-ac="teal" style="background:#47A18C"></span><span class="sw" data-ac="orange" style="background:#D4922A"></span><span class="sw" data-ac="blue" style="background:#4488CC"></span><span class="sw" data-ac="pink" style="background:#DD5588"></span></div>
+ <div class="grp"><b>INPUT</b><span class="btn" data-pad="0">Mouse</span><span class="btn" data-pad="1">Controller</span></div>
+ <div class="grp"><b>CARRYING</b><span class="btn" data-razor="1">Razor</span><span class="btn" data-spiffo="1">Appearance Changing Spiffo</span></div>
+</div>
+
+<div class="scene" id="scene"></div>
+
+<div class="notes">
+ <div class="note"><h2>Where it opens</h2><ul>
+  <li><b>Character window, Appearance tab</b>, after Identity (a mirror). It is there only while Spongie's Character Customisation is on; without the mod ZeD runs exactly as now.</li>
+  <li><b>First time in an old save</b>, the mod asks for a look: ZeD opens the Character window on this tab instead of the mod's window. The game is paused, as the mod does it, and only Save is offered. Closing the window un-pauses; the mod asks again next time the save loads.</li>
+  <li><b>New character</b>: FACE and DETAILS rows on ZeD's Looks screen (the mod's Change Appearance button sits on the game's screen, which ZeD hides). Body hair shows for women too, as the mod has it. Random rolls a face and details, as the mod does.</li>
+  <li>The D-pad wheel's Tabs slice lists the tab like any other.</li>
+ </ul></div>
+ <div class="note"><h2>What stays the mod's</h2><ul>
+  <li>Which faces and details there are: the mod's own list plus every add-on pack (Spongie's Character Retexture add-on brings six faces for each sex). The picture under each tile is the mod's camera for that option.</li>
+  <li>The server's rules: what may change in game (the mod's default is nothing), the Appearance Changing Spiffo and the Appearance Unlocking Bear (a padlock marks options it unlocks), the eye mark on options that change vision.</li>
+  <li>Saving to the character, stubble and body hair growing back, the shave actions (they need a razor and take a hat, top or trousers off first), multiplayer.</li>
+  <li>Its words: Face, Details, Shave, "Changing faces is unavailable", "Requires a Razor".</li>
+ </ul></div>
+ <div class="note"><h2>Mouse and controller</h2><ul>
+  <li>Click a face to wear it, a detail to add or take it off. The figure shows the picks; Save puts them on the character, Cancel goes back.</li>
+  <li>Hovering or focusing a tile turns the figure's camera to it (a body scar shows the torso). Drag the figure or use the arrows to turn it; + and - zoom.</li>
+  <li>Controller: the D-pad moves between tiles, rows and buttons, A picks, B goes back to the tab strip. The picks wait until you Save or Cancel; leaving the tab keeps them.</li>
+  <li>Pictures or List: the switch in the tab's header, like the inventory's list and grid. List is quicker with many packs on.</li>
+ </ul></div>
+ <div class="note"><h2>For the next mod</h2><ul>
+  <li>Each supported mod gets one ZeD file, loaded only when that mod is on. The tab names the mod under its header, as here.</li>
+  <li>A line in the Compatibility post: "ZeD-GUI shows its faces and details in the Character window's Appearance tab and on the Looks screen."</li>
+ </ul></div>
+</div>
+</div>
+
+<script>
+
+const ICONS={loot:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACQUlEQVR42u2YP28TQRDFf3s+JwFTuHGXkAZavgJCUIUiPRT86aktwZeIRE9CQ0soSAVCfAVaqgCdU6TAIbbPfjTvxLLcJUjYjpE80ujOu3Oed2/ndmcmSOIMCcxGap3mFWOZdXzWg/8oAWgAE+uviYShhoGUcgVoTpEtASPge53PPHIWPHEdeADcAa4Cq1NmZwB8Ad4De8Bnr4gAISlIyiQh6ZmkvuYnffvEGEKQVFK2Czz0WxQVwVfGVizFX8ZmGishsdsDHgENjK5rxANJE0njObAztq+Bf3clESRdAz4BK9FaZsBX4C3QM4O3gJu+bwA/gOfASfTGAi4DT4BLke1H4IPvO8BdYMOsBV+HwA0k7RhhETGzL6lt9lIWh74eOf5INHgutu0mNm1JryOmCt/vZMBWFCsB+AbcA479ya95rVsVe0nHc01r7rF0i2h5bs12x8B9+4rZ3cqATQ/K130vQ9N7RmGdVARvUaNUBHU5N/J/nwBvEt+bmWMnlqPIiBkeHcHxGctKVrOtzxJMCuqPc2uhZAloCWgJaAloCeh/BKQZ1mPnnpmZM7VYOnMAVYLpJOPDDDiMAAjYdho6ipKuvIbNvEarXjyPkrmRfWwnvg8z4CDJ2taBV0DbD546sepXLG0vSrrKZK5XsRR9z53arm0f60m2erCQSf7ClUFlofjCxdpFFIq7wOOyUIxL6aeLUErHDEyiZsNtVySzaja8A16mzYbz2jEtB3uYYmI/TL7Y33yGig7aQjWsLryl9xMQUWDOPVZBnAAAAABJRU5ErkJggg==',equipment:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAD5klEQVR42s2YO4heRRTHf3O/a3ZZzQPxgZWPJUFIoykEUdReUAsL01gJQgpXF5NokkIwTZpUNoJ9GhUjCDaiEo2okMIiGmXNhiBKIFFWXZLd77t/m//ocTLfY00+cOAwd86cO/e8z5mLJAI0nhckLUu64nmh2J8axEXP817Vx96CbiqQJAEkQMBtwDlgxusG6Lx/BbgTuBDoy9EY8HsdGxxNMe8EZgMzeU/G7yzoy7M6oG/oKnQJaAPjEVogtSbM0v5arCnWl4bsJzMwDzxp3HFgqdCmzGxtdMDfJssSJuAk8ACwFqTeBHwJPORDoyl6wAB4zExsMX7FzH1i6ft2ideA7f5WZPYM8HotwnZIOl049Gnja5HWGE6Z9rJBxvUktab5UKPHyaihKO0c8DhwF7AMfACshv1oKgFbTbfFuGyeFeBu4DfT/GRtEeiiW8zUwn4c9Kaooc+zhrKv7AKeBx4Bbg8a+QU4AbwJnAr0UauPAu8XPvQE8GnFh3YUGv6XD2WJD0jqj5Ggb7pSU8nzPZIWDfPF3oYy9T5/cCBp3bAWIOMGpnu1wlStrJS4FMxXQispJUm7gK+KhJcqeSKrdmAz3Qd8U5iv8V6m23CmboF9RfQk2/O4y8UM8JTtrkDzAvBcUV4SsB58q1ZimhECd0i6IKmzf3SSvpW0rVD1NuM7m66T9H0wWfSTOQMTmPCq/Ra4JUiSgHecN2YdGa3X7wIHAt3NwGbvJWfzI8DTlvhtYL8zfiwP8y7SKr57DlhqK+pbN64f6k4qDs64WNmPAAthPz+/aGbXbOI37AbluAy8XKvaaUhxTSN88SZgt/0wwm7gRjMzBxw2M/3QnnSmnQWONvzPRjPE29MEWovjD+CYIyvCMeBPm2wVOOTILXuink222FYY2GRcG1JD3/irw/Qfwfb7uXTqFPzyLeDjIU69DPx4LWF/Zlph/xHwTJD8Xjdj741JjCfsjFmDOepWQ2LsClN34xJjknQ/8PUGSkc+dCqlg+LqM6gU2fUCL0mvTKu4xkMPFR8vR2by4DTbjyQpm+cG4GeXhDLy8voScEcooJpGg5YluFXSRWujK7ST1xdNF9+7rk1+G7QwmNDtBpX72FY3813IV51xm0OT/7Ajd1iT/+C1lo58w/0dOOvntXCnO+u91vNnTiMzZjzCDPBFex3KT7LWFisXxZdCruqAZ0dcFL8DDmenlp35hwmcervnVCRKTXCVnqiFrSW/USYaZbol4GjlB0TUZm9IwmyAQVthcNRHR5m4m+B3zNifDbFUrADnxzRo502XRhwaf8f8p35IoWXd48ig+IWC8XtCIRVTGH8B8LM7QjKP55cAAAAASUVORK5CYII=',health:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADlUlEQVR42r2YPYgVVxTHfzPznutXtNgIi7sSTJ21CKmSJpgiFkENqGhsYqGFRSohIZbRIhCzqdMEQmADKQJJChFRxFgoK+KKIVm/Ci0MmgiCie7OzN/mXD1cZt68ee/pgcubd9895/zv+Z6XSKKBkuh7I8Mw/J0eQlJ7LqLfMvssewgfmD+psFBWIWSNKXkYCclqFPq9FHjF+B426erUHFgJfAh8AEwD6wzQfWAe+AX4Gfg/EhqeVxn/VuMfN0D3gSvAb8b/yACXzx0qhZXa525JC2qmvyTtNJ7MVhv+65I+inSDpMQJO+YYcluFpNJW4fYDfeUuNeP2l2wtRivsB/raXSrBgfnSCSr6uGHhBH8h6UjEXzTwxvxIykJQvw8cB5YsrpIWaV1GGZW5vRw4ZXGXAJuAd4GunUnsTBfYDJxGUlfSvLkk12DkLRI+z0ja5NwZ1rSks+5sbrrnJGVI2hYJGobChc5JGnOx0bEVwmOFpIuOJ+jekgJ7LCXbVmAqKnBqqfwx8MRcUZhbcnvuWrk46NwW9O9B0i1DVw5pnRCg35kVOhXuikvMXMS7kALra3rOoHSyD1mpnbkQ7U+mwLIRAQmZ9nefIRAqt6flITVHSWWLKWBFtJenwL0Bx4phQQt4I9r/JwUu24/lSwITsmod8HbkwvnUOm8ywqBuosyU77WxJndB/iuSJiT96xqohqjWkrTZFcQ43RNL+dWSbrvuUEp6IGkiBe4CPxrC4iVYpwQOA1MulhJgFrgbUL8u6bEbNV6EhcL3t6wQ5q4HPpa0UVKSGuqbwDfmy+IFBvJq4Ac3UYSpYAa4BWTer6skXRui0dZZKHFt5KeKhrogaaVhSFLnw0fAPlcCRlWXOpZJR4EdLquCjn3Af8+s6HwcbvGZIV8cgYW69vxJ1ESD7E/jRhynZfhhNhIwCKAwD+2PZqUgc7ZqKqirE2OSfm8JKgB6z40XBxyY0skKA1xqOmsB+VllXNKVFqBiCx2qAXNV0qvx608vQP7gpKQ/+wQVatg7kj6vAXNN0lQdmF6AfNpOSfqjBagbkcWWXHq/1qOtNALyjBNu3Fxs4b5wdt5ZJuulswmQF7BW0gl367wHmNxZ5ozFYyOYfgF5f3ckfVsx3C9VvCJL0vcu/dN+dPULiCg9t1vq1tF5SbsqLtS4kj7+QYubZOKmy2ngTWCDfb8DXLIpNAz+rd752gKK5xo1nGk9OTwFVMAIgIptTvsAAAAASUVORK5CYII=',thermal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAEhUlEQVR42p2Yz29VVRDHP/f9SCUIUsRN0caUpOKPjdFgTdMQY2GhGxc1lrBojG5Y1T/ArXvduKkxQfwBJGULgguNTYWFGo0mmGgJjWjA0ErVKry+93Xh98TJ6ftxXyc5ufecMzN3zsyc+XGRRJtRDe/PSfpQ0pKkdY8lrz3fgQZJFT8njN+U1NJmaHnvR0nPdBNmv6Sz6g1njRtpC4+6pG+N1+zCIwl6lQ6nOihpNTDakNTIxkb4yKppEo/C7zskrRn/Thse+dgkTCFpVNItf6hh6TupupUYmWbUPCpBW2+pPMwVkjBUAAGfARPABlDjf7gIXPL7U8BY2Eu4nwMHgcK8EkwDo2Fe+BlxfgBO5X5z2JJuBGdbkzTVxtemvJecdcO0hzs4eamRXmp+nghmSP7xQsCJA+8lP0vmPZHx7GsUkpJ6K8D3wH6gAdSBBZuvbrMoqLxmvAVgPNBcBh4FWsF008BDdIfLwOnoIzuAPRnSQuYPCb/ptcJ+Mx5o9gB3A2vGeROYpRxMRoGq1lKEf8KHZS1FxxTwd0ZTsaYAdgIvW3utNvxzeLXWA6EIt+geYMbz49ZAxImgcKBrwMMlNfRLrSTiduA8cMDzo8CzwJ8dBEpwB3gFeBu4v4uGBCwDs70ESgyetDANzw947dMeZqgAXwCPA4NBo0UmTAHcJAt83Uw2YB+oet7yGj00lG5vC1gtYYl6rY02ejGOUb2XZsloUijYnV0WgBWgUQunXO/inPQQNof1THNJmDH70wOZ0AKuAq/VvNEEXvRNappZNFE3qIaTN81jCnjPeylm1YF3u9y4e4GTSfIRS14N5qgA10sIdD2jqZrXSDiUgLuAvb4Yt/3Mx1DKIR+FpJpy2FeSBl1OHAo5K+0f8t6gcWPtJEmnQ5ItW4rMFZIeAb62SpM//AY84aCWyo2LmYOOhXJkL/AlcF/mzI+5rKgG2rwU2VR+vBG0k0434xPVJW2XdCaUI6ncOOO9unFnAp9UtL3eb+ZH0qVQHUrSsqSBUM7Ohw8pe58P1eaAaeVyVZIuZKVxuzImjaqkAkkrmUDvB+LxbC9CWhsP+B947bafS0GDRRkNVXxNI1wJMWSiRyyScVIsu5JF753Og6Wh0iVdUKJcKBPh1a9Av2dr+wKTxTYFe54UF8N8Xxa9bwF/9SMQkhazduZnSdtCs/dxcNRG6LHkvYS3TdK1zKnPtXHqnj50PpQETceUoz5lDTgCnHOcqnnUvXbEc5lmKKQeXJ6UNf1//iJpFPjG5URS9U3XO8shH00CT4ce7ULYG3Zg3B14N523fsoqhZ4mQ9LxcJVTavhO0kgJNY8YN7ZDMXxU++3LCknDkv4IkTgJdUPSMUm72hDv8t6NLM+l5nI4tNV99WVJ7S8BJzMfSLb/1WZa8nzE+W0oK8JkM04Dp4JJ+7plMdfMZpG4maWMHDYyM8k8tty5kuUYJE2HdKIOv2LiL5kEK6bdsjC5QNEBH5Q0Z1/oBWuS3jHNln8yRB9qV5Imu4+6HJ10z59amVX34p8A865l2JLPZPAvHRKC2Te+AqsAAAAASUVORK5CYII=',identy:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADbUlEQVR42s2Yv49VVRDHP+fet4v8MNkCbPwBxRqIJLTaUGFsLLQhBApBqCiQEoINtdULfwCgCb+0EBMl0WhlQ00Fzy0ISAMmUuyu7r5335fme8Pk5L5fy1t2TzI5990z78zcmfnOmTlJEkNGYn3GQKGthneFqRr2x1ccCSiBvunlQmah0orUYwcwM0VrCegCi4NktoKw5IX3gePAx8B7wJYpW2cFeAT8AVwF/rJHBAhJSVIhCUlfS1rS6xtLlol1SElSbbIrwAl/RW9U8E0hhqKHrgJfAiXW7pw1XpHUl1S9ButUlrXi3+ckkSTNA/eA2eDLAngM/AI8naKlEvAW8CnwrhGWPK8CB5DUtoa9YJnbkuZsvfWgOUk/Bkv1/NxOkjrAvLUsgCfAXmDZkFeD7zVmjDTBPhn624AHwNtB9kIB7DZTzXw7KNN1gFchh3T9XHktp8iXU702Yxk/ZbJ3txw7cfwTmOKXVf4qvNmgUTmhzoY9kmNkMbPUs+y/s8UAc8eNCifHNtAxtf2uCO5JhvElJ7sOsGDq+N0l80SrZE59ObqeLzrwWpJKP7cbYNv2WmleJB0bA+7HQnBfzGSrGBGYFbAdOOrnSEftwip86XxwaR4/yxlP4yimlHHrfHILeG5FZzLa5rVbw+S2RpzMJbAE3ADOZus3vFYGKz0APgQ+B7Zm/P8ZwR0r2J9UIUJ+OG/Bh/3+B78rwsZ1kHaAb0ZYVWuxUBTyP3DGlLt83GOl1VSQTapQCht8Ahzw8z3gtxA7CvNe4DO7LFrt5jiFXmtEwPeAPcB3wMFs/U/gC+Ch96mszF1grmG/jxyH5VpR1nfG/dnK5DA+6GpgR3DvESsTYb/i+QTwZpYmJlKoB5wC9lu5HMZ94APz1AXdgucI+y2enzgW1+yyBNx3XbS1Qfm+oXw/FOvf2zWHQ3Mg4G/gtC1VTIoyhTblV2Af8EZ29kT0LYdDFeAr4EJ2uP6bgaQYBP+WT+F44u8MApMFLk+QV8qszYnh0c/+syvjWR2nQFtLF5qG8I0s0O5krngHuG60dMegpiJtGF/Xe1+zrKjonU1Z5G+6Nqg+rS+7WduIRvEKcLJuFGMrfUHS4ka30jks553mD7kjWa/Lht+Bb/PLhlHXMdsd7GmKF1WrLuwaZaaGG7RNdWG14Vd6LwA7mVU8uX64BgAAAABJRU5ErkJggg==',journal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADoElEQVR42s2YTYhcRRDHf+/N23UzMbCJRhEJCgbEXAx4UA85eBME9SIJQnITD0GvGnP3oCAiQkBNzCkYFfwARRA8BARR8JBcdBPjx540ElaiY2bf7Pw9+G9Sdt7OvN3ZjCko+lV3VXW9qurqDyQRsJRUSXpLUl/SeUl7JBWSOpJuk3TKY6dMdzy+x/x9y1fWR4aF++ckvSnpL+PrkmYiY8ftPv0LtdvTQfER9112eyT8yJlMbl+mN5/nFfMNdQVerrgCpdtdwBCQ8U7gLuB3YLfHCre7ga3AzcAdQWZoPR3rXbHuwt9dYL/5Egg4WGUdK0FJmngz8LXpLR6btcx9wDn3bTZ/YbpjfQVXw6Ywj4LcphhTJL0gaUnSSubKtcDQ8n9IOhxCWhiRtE3SxYaQ/SemxxoU18ZlY92A+Vj+I0fDPGUbg5D0nOl++MNJIHm4b/qQ56nGGVRI2gmcdl6kmJbAIvAJ8Jv7xkEB3AI8AuzIkn8A3AP8aN5tzr2tIYecydKrNm4QPPOhpPmGGtIG5yV9EDyVysCLgWdkyBbcOXD7i6Sux2bXaEzi70paDHk4lPRNG4Mq148iuO5joOcQLgN3A495qZIt4xTKv4GPgO8t1zN9MOjd4bJxaZVSAEAVakqCCxYY2JivgPkWOXQIeAA4a/kL2fhsw1xXQblKcqZqu9fG9IB6BPbMtzdU+YJ1QDVm/Jzb7hi+mYx/3VCNmeSkw/CE6aa/lr30HvCu+eprYVDa254FDjv+CiEl0MvAny29PlHICvNcaqGrE3b1a2ZQCseWkCcFcDFU9OStiY1ZbZXl3nkNWDCeda35FngwbA9ig2CUh2rgSeCZhrGbgKPAva5XG2bUuJDtdNsLIUuJfDswN67ybmTISi/7JdehGeOs2+M2pjOtkHWcL/cDj9sbKbcWgHfC8YJpGKQw+UtMCdos+3KV0A7+D4NwSIbT8lDJdQbliNyZBNZdl0pvjBG2T2hUMmZ71r8M9NsY9HO2iz/qulO73lRrwHT06FpP1LsYTgQaZdCnwRvy2feET4C1V1NbrC13wnoUvPZ55sVm97a4l/26hnDdOuJetgs4b74bgR98j4vpUU/75hqv01+aL90HVySdiXf7t4PCgbFeBybZBMeyN4R0nT4Q3pMS/1P568fzfv3YCFiyvvj6QUa/H/hPSioKSYT3maHvYk8DD/uxaq5lCRBwGfgJ+Ax4A/gu5KUakvoG4AvTDwH9fwDWE83a1y7rAgAAAABJRU5ErkJggg==',skills:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAEN0lEQVR42r2YS4hcRRSGv3tvT2amjROdGSUbRfGRhSJBcRFxbVAQXBjcKK7cZCOoELMQxhAEBcOAoBERfCwGDRgigiAiBHwgkYCiETQQNfgYTI/GQIzdt/t34V/hcL39HJiCoorqevznP/85t6qRNCPpZUnnJHX1/9KR9KekVzw3l1RIQtIdkk5KuiDpN0mfSVqWdLfn4lqE/sCKpIPqX6oAD3hhQ9KUpC893qtZe0LSXkmLXpNLykYBVLp2XNPmpdtjkj53f1XSJV48Z1Y7ktphfVkB+LOkR8Kh+TBAdaXt9qUw+X2PbwljL/RZ3wlGpvKWpEuHgcLWtGzFEwHMq5407fZ5j8dNc0kPSnpW0oqkryvAEludwPaVg0AlhvaGwYclven+Jrc7JP1lcV/usTo95JJutdbOVlyfDD1uo2o1lQC94YHZ8GMCc5ukNc/7XdJ8AJRZ4I2aSLpO0uE+oA6H4KgVtSQ9WWPxLQah4Nr5AQxltjwetBR0FUE9WpcSkoZSeD9ny7ZKesBRFTdrSVoYAKjqvgTsqbBPzyScl3RDMOIioHYIfTnJna0IM9VVSc0RAaU5U+6vVPaTpA+qLOEMPGpZHjfzhmick/Rj8EgCtSvumcL6gKTTks6E2nI9I+kng5kOYmaMmgy4N7DUNbhTZj2XlMVFTetj3m3sN8cEUFeTno7UuG5PmpNJyoApoM3gsgnoAGKyknvt9cBX3g8gA/4AbgTW0qQ20AQWgHm3sd/0nEnBAPQM6nvgYADY9Tm7AWWSZoBngF3ArBHHIuA88A6wJzCpdbB0BfAdMBeA/grctBFR1k9LT4fclPLg7kxS2wizGnYi3QAt4Fozlq3ThduAY8DmwNIXuQVdVEBVa+45Dbt1kpL22gIcAo4C0x4r3G5vTLDxpKwUQAk8Dtxfs6eATs7GlWTI7Y6sTpBDaS8camwgoK7brcFFKfJy4CPgsY1iKB2+2YASM7KW7gN2psQ46eaTCDol3OTCDHgbOJLmNezLUcO+BP6eAPgU8A+w3f2uzwRYtQsBlAOvjxD2heuKc1AxJNryEDkymCawFNblJuO4Af5ntF+Y8frR8h16rc/1Y9iDL/624NvnzvC264Wv/IfVF0gmXTR0FpipoVzAhRFdldvSHcCLwFV20VxwfWZGGsCdwCdmvJsYykb8NhUjMJNeId/WPMnLyh1oqe672AhXgCww07NlM8C5kDeKISIWcJlDu1dhOq7dbz0VIT+RGKLm3X2PrfwlWDLO17wV9NIL/aOS7hr0co0aSpbMASeBxYD7NeCHED2DGLoGeCgwnXv9sm+K1DKTNgmAkiCvBk6FzQjtuKW0eG8GvnFf/cBUD0oATgPveXHSVjlmlXNMA3gXOGFNloPA1GkoRcqipE+1/vKxc1E+6tNpUGJrStrnv+zaQaDDattr9oU/L0Z+x/0LwwqoqZm04WEAAAAASUVORK5CYII=','mirror-user':'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFQElEQVR42t2bW2yURRTHf629gG3VLhpRLFIIiIk3jGmjUYzxmuDlwZSEeC0SKaCiTwoxRGMkajSKokZ5qRckanjDF28PJaCiiQGkFdTSNqg0IDHa2u5WOT7sfKE2M9355rLdepLvYc838z8z/z0zc2bmfGUi0glsBd4Duih9uQFoARYCM5TuENABfAh8kgpNTshxEflcRG4VkTIRocSeBSKySwrLVyJyiS0uBpCvReS6Eur8ShHJir0Mi0ibDwGJbBGR6RPc+XXiLmt9CRAROSIiiyao863iL8t9CUjmh6eKPDc0i0guAAFZEWky2SkTEUkxZ74L3AfkIs/0U4FvgfMC4XUBlwLDY1+UpwS6E3gfqIxMwJqAnQc4H3hM9yKtBySyRZFxPELnzwYOADWBcQeBucCvPh6QyBLgiYj/fk0E3BqFHcQDAERFZFsDNnIa0AecHIncQWAmcMzXAwDKgE1AQ8AG3h+w858avGBZiCGQSD3QrsgIIfcEwnlNeeeA5t29pr2AjywJtO6HkO9EpFphbjSUuSyxWx6I8WfU2u0jtwdohwArgKz6vamQrVAEzAQe8sS4OUA72oHto37vBn7QlFsUegiIiBwWkamO7t8YwP6QiMzQYK83lG8IOQQAzgSWOta9KoD914GfNfpuQ/mFIYdAIo86hslXBljfn9Xoq0whMHBFDAIaVJSYVpo97W4E+jX61cCc8QjwiQTH23ldkGKfUKnW6ypHewPAbODIGH1GTYAZQ70sUBvaA5Kd1y0pys/36DzAS5rOo1w/M069amBeDAIAHkxJmKsMAS9r9BmgzcZ2LAKuBS60LDvLw87bhn9/NVBnYzsWAaiIzEbO9Yj6Nmj0tcAqW9sxCbgLONWi3DmO+NvQX+SsUNtqq1UrJgG1QKtFuTMc8Z/X6CpSzj+nxyQAYKVFrFHvgPsN+auwsdKS8nwiE5uAucCNhRrhgPuiQf9wSpzoBNgsiWm30b+QvwTVhdNNKbGmFIOAmxj/iDvt3uFVYESjf8ShbVXFIKCsQFCSJgocAt40xBK3ObStuhgEQP426ZQAOO8ARw2Bz0kugMUioA64w/Aul9L9dditju3KVlA8uUYdWugImGJRvx/Yo9EvAD4eozsNuN4CM1dMAkwybDk8TNv2Dk1McJZaLQraLi8BAo5FwDwM/GVR7rf/KwEC9NjYLgUCjkbC7Z4sHnBoAgnoi0HAMhX8jH0WG8r3WuJOV66tey7WlD9ogdlbPkHMj5aeADbnOLajpxQI6Axgs9GxHZ2hCRhxGNP78U+6ajQMgfGO/LPAj6EJ6AX+cSDt+whDYBD9ZUkiXcDfoQn4ybHeFxE8oNBEuDPGZqjbsd4OT7uzDH3pLmQzNAEHHett97RbzYnUeVsCOkrJA3oCrAazNbq9hrJ7ksk6NAF7Pepu87R9UYo56aMYByKH0Kej2IpvvuHVGt3SgrYCpsisDZAp1uVhP5ekvainTkT+0JTbN9pmKA84gPmsPo285VG3Enhh1O9V6C9I2/+7cfaXfhGZH+gbgYyIDATwxGki8rvm3Z8iUu/ywYRJdqgMr5AfSrwS4E/Zb9Bv8P1gYkQdN+0ENquZO3SKTax0+QFgHmPS5U0e0DLBH0o9KeFlnc5WKZwI6WQ9sC8gXhfwnO5FqRKQVWt4iG+TcsDdaL4XKmUCAHYBywPgPEA+n4DJRkCyZj/uUX8N5ozxSUEAwNPkM02yKYdQG/k0fiY7AZC/U2wGvrQ8XGkC3rABrmDyyG7gcvI5iIvJZ3sn+UB96kzhA+CzNKD/AmFVbBEIwCtBAAAAAElFTkSuQmCC','comb-hair':'data:image/png;base64,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','mirror':'data:image/png;base64,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',};
+const ACC={teal:['#47A18C','#5CC4AA'],orange:['#D4922A','#E8A830'],blue:['#4488CC','#66AAEE'],pink:['#DD5588','#FF77AA']};
+const SKIN=['#f1d3bc','#e3b897','#c98f66','#8d5a3b','#5c3a24'];
+const FACES={
+ m:[{n:'DefaultFace',d:'Bob',jaw:18,brow:1.6,nose:.5,eye:9.5,age:0,def:true},
+    {n:'Chris',d:'Chris',jaw:16,brow:1.3,nose:.3,eye:10,age:0},
+    {n:'Chuck',d:'Chuck',jaw:22,brow:2.4,nose:.7,eye:9,age:1},
+    {n:'Frank',d:'Frank',jaw:20,brow:2,nose:.9,eye:10.5,age:1},
+    {n:'Hank',d:'Hank',jaw:23,brow:2.6,nose:.6,eye:9.5,age:1},
+    {n:'James',d:'James',jaw:17,brow:1.4,nose:.4,eye:11,age:0},
+    {n:'Victor',d:'Victor',jaw:19,brow:2.2,nose:1,eye:9,age:0}],
+ f:[{n:'DefaultFace',d:'Kate',jaw:14,brow:1,nose:.3,eye:10,age:0,def:true},
+    {n:'Alexandra',d:'Alexandra',jaw:13,brow:.9,nose:.2,eye:10.5,age:0},
+    {n:'CaseyJo',d:'Casey-Jo',jaw:15,brow:1.2,nose:.4,eye:9.5,age:0},
+    {n:'Janine',d:'Janine',jaw:16,brow:1.1,nose:.5,eye:10,age:1},
+    {n:'Lilith',d:'Lilith',jaw:12,brow:.8,nose:.2,eye:11,age:0},
+    {n:'Maryanne',d:'Maryanne',jaw:15,brow:1,nose:.6,eye:9.5,age:1},
+    {n:'Vicky',d:'Vicky',jaw:14,brow:1.3,nose:.3,eye:10,age:0}]};
+// the mod's detail names, sorted by their names in the player's language
+const DETAILS=[{n:'BurnBody',d:'Body Burns',cam:'torso'},{n:'FrecklesBody',d:'Body Freckles',cam:'torso'},{n:'ScarBody',d:'Body Scars',cam:'torso'},
+ {n:'BurnFace',d:'Face Burns',cam:'face'},{n:'FrecklesFace',d:'Face Freckles',cam:'face'},{n:'MolesFace',d:'Face Moles',cam:'face'},
+ {n:'ScarFace',d:'Face Scars',cam:'face'},{n:'MissingEye',d:'Missing Eye',cam:'face',vision:true}];
+const CAMS={full:[-5,10,210,420],face:[70,14,60,120],torso:[45,80,110,220]};
+const CAMTILE={face:[64,26,72,80],torso:[38,104,124,138]};
+const DIRS=['S','SW','W','NW','N','NE','E','SE'];
+const S={scene:'tab',sex:'m',view:'pics',lg:false,ac:'teal',pad:false,razor:true,spiffo:false,
+ saved:{m:{face:'Frank',det:['FrecklesFace']},f:{face:'CaseyJo',det:['FrecklesFace']}},
+ pick:null,muscle:true,growth:true,first:false,hover:null,zoom:0,dir:0,
+ groom:{beard:'grown',head:'none',body:'grown'},shaving:null,focus:0,skin:1,lkSkin:1};
+function resetPicks(){S.pick={m:{face:S.saved.m.face,det:[...S.saved.m.det]},f:{face:S.saved.f.face,det:[...S.saved.f.det]}};}
+resetPicks();
+const P=()=>S.pick[S.sex];
+const SV=()=>S.saved[S.sex];
+function dirty(){const a=P(),b=SV();return a.face!==b.face||a.det.slice().sort().join()!==b.det.slice().sort().join();}
+function faceOf(n){return FACES[S.sex].find(f=>f.n===n)||FACES[S.sex][0];}
+function canFace(){return S.scene!=='locked'||S.spiffo;}
+function canDet(){return S.scene!=='locked'||S.spiffo;}
+
+// ---------------------------------------------------------------- the figure
+function figure(o){
+ // o: {sex, face, det:Set, muscle, bodyHair, beard, dir, skin}
+ const sk=SKIN[o.skin],hair=o.sex==='m'?'#7a2b22':'#3b2418',f=o.face,jw=f.jaw;
+ const back=o.dir>=3&&o.dir<=5, side=(o.dir===2||o.dir===6)?(o.dir===2?-1:1):((o.dir===1||o.dir===3)?-.5:((o.dir===7||o.dir===5)?.5:0));
+ const sx=side*6;let g='';
+ const male=o.sex==='m', sw=male?(o.muscle?44:40):35;
+ // legs and feet
+ g+=`<path d="M${100-sw+10} 232 L${100-sw+14} 410 L${96} 410 L${99} 250 L${101} 250 L${104} 410 L${100+sw-14} 410 L${100+sw-10} 232 Z" fill="${sk}"/>`;
+ g+=`<rect x="${100-sw+10}" y="404" width="${sw-12}" height="10" fill="#3a3530"/><rect x="${102}" y="404" width="${sw-12}" height="10" fill="#3a3530"/>`;
+ // arms
+ g+=`<path d="M${100-sw} 114 Q${100-sw-12} 150 ${100-sw-10} 238 L${100-sw+2} 238 Q${100-sw+2} 160 ${100-sw+8} 132 Z" fill="${sk}"/>`;
+ g+=`<path d="M${100+sw} 114 Q${100+sw+12} 150 ${100+sw+10} 238 L${100+sw-2} 238 Q${100+sw-2} 160 ${100+sw-8} 132 Z" fill="${sk}"/>`;
+ // torso
+ g+=`<path d="M${100-sw} 114 Q100 104 ${100+sw} 114 L${100+sw-8} 204 L${100-sw+8} 204 Z" fill="${sk}"/>`;
+ // muscle shading
+ if(o.muscle&&!back){g+=`<path d="M${100-sw+8} 136 Q90 146 100 142 Q110 146 ${100+sw-8} 136" stroke="rgba(0,0,0,.18)" stroke-width="1.5" fill="none"/>`;
+  if(male)for(let i=0;i<3;i++)g+=`<line x1="92" y1="${160+i*12}" x2="108" y2="${160+i*12}" stroke="rgba(0,0,0,.13)" stroke-width="1.2"/>`;
+  g+=`<line x1="100" y1="150" x2="100" y2="196" stroke="rgba(0,0,0,.12)" stroke-width="1"/>`;}
+ if(o.bodyHair&&male&&!back){for(let i=0;i<26;i++){const x=88+((i*37)%25),y=128+((i*53)%60);g+=`<line x1="${x}" y1="${y}" x2="${x+1}" y2="${y+2}" stroke="#3b2418" stroke-width=".8" opacity=".5"/>`;}}
+ // body details
+ if(o.det.has('FrecklesBody')){for(let i=0;i<34;i++){const x=100-sw+6+((i*29)%(2*sw-12)),y=114+((i*41)%40);g+=`<circle cx="${x}" cy="${y}" r=".9" fill="#8a5a3a" opacity=".75"/>`;}}
+ if(o.det.has('ScarBody'))g+=`<path d="M${100-sw+10} 150 L${100+sw-14} 186" stroke="#d99a9a" stroke-width="2.2" stroke-linecap="round"/><path d="M${100-sw+10} 150 L${100+sw-14} 186" stroke="#f0c0c0" stroke-width=".8" stroke-linecap="round"/>`;
+ if(o.det.has('BurnBody'))g+=`<path d="M${100+sw-20} 120 q10 6 8 22 q-4 14 -14 10 q-8 -4 -4 -16 q2 -12 10 -16 Z" fill="#a34a3a" opacity=".7"/>`;
+ // underwear
+ g+=`<path d="M${100-sw+8} 202 L${100+sw-8} 202 L${100+sw-9} 236 L102 236 L100 222 L98 236 L${100-sw+9} 236 Z" fill="#2e3440"/>`;
+ if(!male)g+=`<path d="M${100-sw+4} 126 L${100+sw-4} 126 L${100+sw-6} 146 L${100-sw+6} 146 Z" fill="#2e3440"/>`;
+ // neck
+ g+=`<rect x="91" y="92" width="18" height="18" fill="${sk}"/><rect x="91" y="104" width="18" height="6" fill="rgba(0,0,0,.08)"/>`;
+ // head
+ g+=`<path d="M74 60 C74 32 126 32 126 60 L126 70 C126 84 ${100+jw} 94 100 99 C${100-jw} 94 74 84 74 70 Z" fill="${sk}"/>`;
+ g+=`<ellipse cx="${73+sx*.3}" cy="66" rx="3.5" ry="6" fill="${sk}"/><ellipse cx="${127+sx*.3}" cy="66" rx="3.5" ry="6" fill="${sk}"/>`;
+ if(!back){
+  const ex=f.eye,ey=64,c=100+sx;
+  if(o.beard&&male)g+=`<path d="M78 74 C80 88 ${100-jw*.6} 95 100 99 C${100+jw*.6} 95 120 88 122 74 C114 84 86 84 78 74 Z" fill="#3b2418" opacity=".28"/>`;
+  // eyes
+  const L=c-ex,R=c+ex;
+  if(o.det.has('MissingEye'))g+=`<path d="M${L-4} ${ey} Q${L} ${ey+1.5} ${L+4} ${ey}" stroke="#5a2a22" stroke-width="1.4" fill="none"/><path d="M${L-3} ${ey-6} L${L+2} ${ey+7}" stroke="#b07070" stroke-width="1.1"/>`;
+  else g+=`<ellipse cx="${L}" cy="${ey}" rx="3.4" ry="2" fill="#f2efe8"/><circle cx="${L+side}" cy="${ey}" r="1.4" fill="#2a2a2a"/>`;
+  g+=`<ellipse cx="${R}" cy="${ey}" rx="3.4" ry="2" fill="#f2efe8"/><circle cx="${R+side}" cy="${ey}" r="1.4" fill="#2a2a2a"/>`;
+  g+=`<line x1="${L-4.5}" y1="57" x2="${L+4}" y2="${56.5-f.brow*.4}" stroke="${hair}" stroke-width="${f.brow}" stroke-linecap="round"/><line x1="${R-4}" y1="${56.5-f.brow*.4}" x2="${R+4.5}" y2="57" stroke="${hair}" stroke-width="${f.brow}" stroke-linecap="round"/>`;
+  g+=`<path d="M${c} 64 L${c-2.5-f.nose} ${74+f.nose*3} L${c+1} ${75+f.nose*3}" stroke="rgba(0,0,0,.28)" stroke-width="1.1" fill="none"/>`;
+  g+=male?`<line x1="${c-6}" y1="85" x2="${c+6}" y2="85" stroke="#7a4a3a" stroke-width="1.4" stroke-linecap="round"/>`:`<path d="M${c-6} 84.5 Q${c} 82 ${c+6} 84.5 Q${c} 88.5 ${c-6} 84.5 Z" fill="#b25a5a"/>`;
+  if(f.age)g+=`<path d="M${L-4} 68 q4 2 8 0 M${R-4} 68 q4 2 8 0 M88 48 q12 -3 24 0" stroke="rgba(0,0,0,.14)" stroke-width=".8" fill="none"/>`;
+  if(o.det.has('FrecklesFace'))for(let i=0;i<16;i++){const s=i<8?-1:1,k=i%8;g+=`<circle cx="${c+s*(8+(k*3)%9)}" cy="${68+((k*5)%7)}" r=".75" fill="#8a5a3a" opacity=".8"/>`;}
+  if(o.det.has('MolesFace'))g+=`<circle cx="${c+8}" cy="82" r="1.2" fill="#4a2a1a"/><circle cx="${c-13}" cy="72" r="1" fill="#4a2a1a"/>`;
+  if(o.det.has('ScarFace'))g+=`<path d="M${c+14} 58 L${c+8} 80" stroke="#d99a9a" stroke-width="1.8" stroke-linecap="round"/>`;
+  if(o.det.has('BurnFace'))g+=`<path d="M${c-22} 70 q4 -6 10 -2 q6 6 2 14 q-6 6 -10 0 q-4 -5 -2 -12 Z" fill="#a34a3a" opacity=".65"/>`;
+ }
+ // hair
+ if(male)g+=back?`<path d="M72 64 C70 26 130 26 128 64 L128 92 C118 100 82 100 72 92 Z" fill="${hair}"/>`
+  :`<path d="M72 66 C68 26 132 26 128 66 L126 84 L122 60 C116 50 100 46 84 52 C80 56 78 60 76 70 L74 84 Z" fill="${hair}"/>`;
+ else g+=back?`<path d="M70 62 C68 24 132 24 130 62 L134 128 C118 136 82 136 66 128 Z" fill="${hair}"/>`
+  :`<path d="M70 64 C66 24 134 24 130 64 L134 124 L124 122 L124 62 C116 48 92 44 80 54 C77 58 76 62 76 66 L76 122 L66 124 Z" fill="${hair}"/>`;
+ return g;
+}
+function figSVG(o,vb){return `<svg viewBox="${vb.join(' ')}" preserveAspectRatio="xMidYMid slice">${figure(o)}</svg>`;}
+function baseO(extra){const p=P();return Object.assign({sex:S.sex,face:faceOf(p.face),det:new Set(p.det),muscle:S.muscle,bodyHair:S.groom.body==='grown',beard:S.groom.beard==='grown',dir:0,skin:S.skin},extra||{});}
+
+// ---------------------------------------------------------------- icons
+const I={eye:'<svg viewBox="0 0 12 12"><path d="M1 6 Q6 1 11 6 Q6 11 1 6 Z" fill="none" stroke="#c8c8c8" stroke-width="1.2"/><circle cx="6" cy="6" r="1.6" fill="#c8c8c8"/></svg>',
+ lock:'<svg viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="5.5" fill="#c8c8c8"/><path d="M3.8 5.5 V4 a2.2 2.2 0 0 1 4.4 0 V5.5" fill="none" stroke="#c8c8c8" stroke-width="1.2"/></svg>',
+ grid:'<svg viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" fill="currentColor"/><rect x="8" y="1" width="5" height="5" fill="currentColor"/><rect x="1" y="8" width="5" height="5" fill="currentColor"/><rect x="8" y="8" width="5" height="5" fill="currentColor"/></svg>',
+ list:'<svg viewBox="0 0 14 14"><rect x="1" y="2" width="2" height="2" fill="currentColor"/><rect x="5" y="2" width="8" height="2" fill="currentColor"/><rect x="1" y="6" width="2" height="2" fill="currentColor"/><rect x="5" y="6" width="8" height="2" fill="currentColor"/><rect x="1" y="10" width="2" height="2" fill="currentColor"/><rect x="5" y="10" width="8" height="2" fill="currentColor"/></svg>'};
+
+// ---------------------------------------------------------------- pieces
+function tileHTML(kind,opt,sel,ro,id){
+ const o=kind==='face'?baseO({face:opt,det:new Set(P().det.filter(n=>DETAILS.find(d=>d.n===n).cam==='face'))}):baseO({det:new Set([opt.n]),face:faceOf(P().face)});
+ const vb=kind==='face'?CAMTILE.face:CAMTILE[opt.cam];
+ const bd=opt.vision?`<span class="bdg"><i title="Changes how well you see">${I.eye}</i></span>`:'';
+ return `<div class="tile${sel?' sel':''}${ro?' ro':''}" data-fid="${id}" data-kind="${kind}" data-n="${opt.n}"><div class="pic">${figSVG(o,vb)}</div>${bd}<span class="chk">${kind==='face'?'':'+'}</span><div class="lab">${opt.d}</div></div>`;
+}
+function listRow(kind,opt,sel,ro,id){
+ const ic=(opt.vision?I.eye:'');
+ return `<div class="lrow${sel?' sel':''}" data-fid="${id}" data-kind="${kind}" data-n="${opt.n}">${kind==='face'?'<span class="rad"></span>':`<span class="box">${sel?'X':''}</span>`}<span class="nm">${opt.d}</span><span class="ics">${ic}</span></div>`;
+}
+let FID=0;
+function faceBlock(){
+ const p=P(),list=FACES[S.sex];
+ let h=`<div class="subh">${'Face'}</div>`;
+ if(!canFace()){
+  const f=faceOf(p.face);
+  h+=`<div class="tiles">${tileHTML('face',f,true,true,'ro')}</div><div class="ro-note">Changing faces is unavailable</div>`;
+  return h;
+ }
+ if(S.view==='pics')h+=`<div class="tiles">${list.map(f=>tileHTML('face',f,p.face===f.n,false,FID++)).join('')}</div>`;
+ else h+=`<div class="list">${list.map(f=>listRow('face',f,p.face===f.n,false,FID++)).join('')}</div>`;
+ return h;
+}
+function detBlock(){
+ const p=P();
+ let h=`<div class="subh">Details <span class="n">(${p.det.length})</span></div>`;
+ if(!canDet()){
+  const chosen=DETAILS.filter(d=>p.det.includes(d.n));
+  h+=chosen.length?`<div class="tiles">${chosen.map(d=>tileHTML('det',d,true,true,'ro')).join('')}</div>`:'<div class="empty">None</div>';
+  h+=`<div class="ro-note">Changing details is unavailable</div>`;
+  return h;
+ }
+ if(S.view==='pics')h+=`<div class="tiles">${DETAILS.map(d=>tileHTML('det',d,p.det.includes(d.n),false,FID++)).join('')}</div>`;
+ else h+=`<div class="list">${DETAILS.map(d=>listRow('det',d,p.det.includes(d.n),false,FID++)).join('')}</div>`;
+ return h;
+}
+function groomRow(key,label){
+ const st=S.groom[key],busy=S.shaving===key;
+ const v=busy?`<span class="dot ac"></span>Shaving<div class="prog"><i style="width:${S.shavePct||0}%"></i></div>`:(st==='grown'?'<span class="dot pos"></span>Grown':'<span class="dot off"></span>None');
+ const can=st==='grown'&&!S.shaving;
+ const b=st==='grown'||busy?`<span class="sbtn${(!S.razor||!can)?' dis':''}" data-fid="${can&&S.razor?FID++:'x'}" data-shave="${key}">Shave</span>`:'';
+ const why=st==='grown'&&!S.razor?'<span class="why">Requires a Razor</span>':'';
+ return `<div class="brow"><span class="k">${label}</span><span class="v">${v}</span>${why}${b}</div>`;
+}
+function bodyBlock(){
+ let h=`<div class="subh">Body</div>`;
+ if(S.sex==='m')h+=groomRow('beard','Beard stubble');
+ h+=groomRow('head','Head stubble');
+ h+=groomRow('body','Body hair');
+ const choice=S.scene!=='locked';
+ if(choice)h+=`<div class="chks"><span class="chk" data-fid="${FID++}" data-tog="muscle"><i>${S.muscle?'X':''}</i>Muscle</span><span class="chk" data-fid="${FID++}" data-tog="growth"><i>${S.growth?'X':''}</i>Body hair growth</span></div>`;
+ else h+=`<div class="brow"><span class="k">Muscle</span><span class="v"><span class="dot pos"></span>Shows from Strength 6</span></div>`;
+ return h;
+}
+function figCol(big){
+ const cam=S.hover?S.hover:'full';
+ const base=CAMS[cam],z=1-S.zoom*0.14,vb=[base[0]+base[2]*(1-z)/2,base[1]+base[3]*(1-z)*0.25,base[2]*z,base[3]*z];
+ const o=baseO({dir:S.dir});
+ const cap=S.hover?(S.hover==='face'?'Face':'Torso'):'Facing '+DIRS[S.dir];
+ return `<div class="figcol"><div class="figbox" id="figbox">${figSVG(o,vb)}</div><div class="figcap">${cap}</div>
+ <div class="figbtns"><span class="ib" data-act="turnL" title="Turn">&#9664;</span><span class="ib" data-act="turnR" title="Turn">&#9654;</span><span class="ib${S.zoom<=0?' dis':''}" data-act="zoomOut">-</span><span class="ib${S.zoom>=4?' dis':''}" data-act="zoomIn">+</span></div></div>`;
+}
+function tabStrip(){
+ const tabs=[['loot','Loot'],['equipment','Equipment'],['health','Health'],['thermal','Thermal'],['identy','Identity'],['mirror-user','Appearance'],['journal','Journal'],['skills','Skills']];
+ return `<div class="strip">${tabs.map(t=>`<div class="tab${t[0]==='mirror-user'?' act':''}"><img src="${ICONS[t[0]]}" alt=""><span class="tip">${t[1]}</span></div>`).join('')}</div>`;
+}
+function invCol(){
+ const rows=[['Angel Cross\'s Key Ring','Container','0.1'],['> Apple (Fresh) x2','Food','0.2'],['Baseball Bat','Sports ...','2.0'],['Belt','Accessory','0.2'],['Digital Watch','Accessory','0.1'],['Fanny Pack','Bag','1.7']];
+ if(S.razor)rows.splice(3,0,['Razor','Tool','0.2']);
+ if(S.spiffo)rows.splice(3,0,['Appearance Changing Spiffo','Appearance','0.1']);
+ return `<div class="inv"><div class="ih"><span class="nm">Inventory</span><span class="wt">0.0/20kg<span>${rows.length+19} items</span></span></div>
+ <div class="icol"><span style="flex:1">NAME</span><span style="width:86px">CAT</span><span style="width:34px;text-align:right">WT</span></div>
+ ${rows.map(r=>`<div class="irow${/Razor|Spiffo/.test(r[0])?' hl':''}"><span class="n">${r[0]}</span><span class="c">${r[1]}</span><span class="w">${r[2]}</span></div>`).join('')}</div><div class="cstrip"></div>`;
+}
+function actionStrip(){
+ if(S.scene==='locked'&&!S.spiffo)return '';
+ const d=dirty(),first=S.scene==='first';
+ const st=first?'<span class="dot wrn"></span>Not saved yet':(d?'<span class="dot wrn"></span>Not saved':'<span class="dot off"></span>Saved');
+ const can=d||first;
+ return `<div class="astrip">${st}<span class="grow"></span>${first?'':`<span class="pbtn${d?'':' dis'}" data-fid="${d?FID++:'x'}" data-act="cancel">Cancel</span>`}<span class="pbtn pri${can?'':' dis'}" data-fid="${can?FID++:'x'}" data-act="save">Save</span></div>`;
+}
+function charWindow(){
+ FID=0;
+ const first=S.scene==='first';
+ let body=`<div class="dh"><span class="nm">Appearance</span><span class="vsw" title="Pictures or List">${(canFace()||canDet())?`<span data-view="pics" class="${S.view==='pics'?'on':''}">${I.grid}</span><span data-view="list" class="${S.view==='list'?'on':''}">${I.list}</span>`:''}</span></div>`;
+ body+=`<div class="dscroll" id="dscroll"><div class="credit">Spongie's Character Customisation by spongie</div>`;
+ if(first)body+=`<div class="banner"><h3>NEW TO THIS SAVE</h3><p>Spongie's Character Customisation is new to this save. Pick a face and details, then Save. The game waits, paused, until you save or close this window.</p></div>`;
+ if(S.scene==='locked'&&S.spiffo)body+=`<div class="banner" style="border-color:var(--ac);background:var(--hov)"><h3 style="color:var(--acb)">APPEARANCE CHANGING SPIFFO</h3><p>While you carry it, the face and details can change.</p></div>`;
+ body+=`<div class="za">${figCol()}<div class="right">${faceBlock()}<div class="groove"></div>${detBlock()}</div></div><div class="groove"></div>${bodyBlock()}</div>`;
+ body+=actionStrip();
+ const pad=S.pad?`<div class="padbar"><span><span class="g">+</span>Move</span><span><span class="g">A</span>Pick</span><span><span class="g">B</span>Tabs</span><span><span class="g">Y</span>Windows</span></div>`:'';
+ return `<div class="win" id="cw" style="left:28px;top:20px;width:924px;height:${S.pad?676:656}px">
+ <div class="tb"><span class="cb"></span><span class="tt">Angel Cross&nbsp;&nbsp;+&nbsp;&nbsp;Appearance &#9650;</span><span class="tstats"><span><span class="dot pos"></span>99%</span><span><span class="dot dim"></span>0 / 20</span></span></div>
+ <div class="wbody">${tabStrip()}<div class="drawer">${body}</div>${invCol()}</div>${pad}</div>`;
+}
+function looksWindow(){
+ FID=0;
+ const p=P(),fig=figCol();
+ const sk=SKIN.map((c,i)=>`<i style="background:${c}" class="${i===S.skin?'on':''}" data-skin="${i}"></i>`).join('');
+ const faces=S.view==='pics'?`<div class="tiles">${FACES[S.sex].map(f=>tileHTML('face',f,p.face===f.n,false,FID++)).join('')}</div>`:`<div class="list">${FACES[S.sex].map(f=>listRow('face',f,p.face===f.n,false,FID++)).join('')}</div>`;
+ const dets=S.view==='pics'?`<div class="tiles">${DETAILS.map(d=>tileHTML('det',d,p.det.includes(d.n),false,FID++)).join('')}</div>`:`<div class="list">${DETAILS.map(d=>listRow('det',d,p.det.includes(d.n),false,FID++)).join('')}</div>`;
+ return `<div class="win" style="left:50%;transform:translateX(-50%);top:18px;width:1080px;height:680px">
+ <div class="tb"><span class="cb"></span><span class="tt c">Project Zomboid&nbsp;&nbsp;+&nbsp;&nbsp;Character</span></div>
+ <div class="lkbody"><div class="lkfig">${fig.replace('class="figcol"','class="figcol" style="width:200px"')}
+  <div class="figbtns" style="margin-top:8px"><span class="pbtn">Idle</span><span class="pbtn">Walk</span><span class="pbtn">Run</span></div></div>
+ <div class="lkrows" id="dscroll">
+  <div class="lkh">Name</div>
+  <div class="lkr"><span class="k">Forename</span><span class="ent">Angel</span></div>
+  <div class="lkr"><span class="k">Surname</span><span class="ent">Cross</span></div>
+  <div class="lkr"><span class="k">Sex</span><span class="cmb">${S.sex==='m'?'Male':'Female'}<span>&#9662;</span></span></div>
+  <div class="lkh">Body</div>
+  <div class="lkr"><span class="k">Skin colour</span><span class="sws">${sk}</span></div>
+  <div class="lkr"><span class="k">Body hair</span><span class="chk" data-fid="${FID++}" data-tog="lkhair"><i>${S.groom.body==='grown'?'X':''}</i></span>${S.sex==='f'?'<span class="new">WITH SPONGIE</span>':''}</div>
+  <div class="lkr"><span class="k">Muscle</span><span class="chk" data-fid="${FID++}" data-tog="muscle"><i>${S.muscle?'X':''}</i></span></div>
+  <div class="lkr"><span class="k">Body hair growth</span><span class="chk" data-fid="${FID++}" data-tog="growth"><i>${S.growth?'X':''}</i></span></div>
+  <div class="lkh">Face <small>Spongie's Character Customisation</small></div>
+  <div class="lkblock">${faces}</div>
+  <div class="lkh">Details <small>(${p.det.length})</small></div>
+  <div class="lkblock">${dets}</div>
+  <div class="lkh">Hair</div>
+  <div class="lkr"><span class="k">Hairstyle</span><span class="cmb">${S.sex==='m'?'Grungey':'Long'}<span>&#9662;</span></span></div>
+  <div class="lkr"><span class="k">Colour</span><span class="sws"><i style="background:#7a2b22" class="on"></i><i style="background:#3b2418"></i><i style="background:#1d1a18"></i><i style="background:#b48a52"></i><i style="background:#d8c08a"></i></span></div>
+  <div class="lkr"><span class="k">Stubble</span><span class="chk"><i></i></span></div>
+  <div class="lkh">Voice</div><div class="lkr"><span class="k">Voice type</span><span class="cmb">${S.sex==='m'?'Male 2':'Female 1'}<span>&#9662;</span></span></div>
+  <div class="lkh">Clothing</div><div class="lkr"><span class="k">Outfit</span><span class="cmb">Generic<span>&#9662;</span></span></div>
+ </div></div>
+ <div class="lstrip"><span class="pbtn">Back</span><span class="pbtn">Presets...</span><span class="grow"></span><span class="pbtn" data-act="random">Random</span><span class="pbtn pri" data-fid="${FID++}">Play</span></div></div>`;
+}
+
+// ---------------------------------------------------------------- render + events
+function render(){
+ const r=document.documentElement.style,a=ACC[S.ac];
+ r.setProperty('--ac',a[0]);r.setProperty('--acb',a[1]);
+ const hx=a[0].slice(1),R=parseInt(hx.slice(0,2),16),G=parseInt(hx.slice(2,4),16),B=parseInt(hx.slice(4,6),16);
+ r.setProperty('--acf',`rgba(${R},${G},${B},0.55)`);r.setProperty('--hov',`rgba(${R},${G},${B},0.22)`);
+ document.body.classList.toggle('lg',S.lg);
+ document.querySelectorAll('[data-scene]').forEach(e=>e.classList.toggle('on',e.dataset.scene===S.scene));
+ document.querySelectorAll('.ctl [data-sex]').forEach(e=>e.classList.toggle('on',e.dataset.sex===S.sex));
+ document.querySelectorAll('.ctl [data-view]').forEach(e=>e.classList.toggle('on',e.dataset.view===S.view));
+ document.querySelectorAll('[data-lg]').forEach(e=>e.classList.toggle('on',(e.dataset.lg==='1')===S.lg));
+ document.querySelectorAll('[data-pad]').forEach(e=>e.classList.toggle('on',(e.dataset.pad==='1')===S.pad));
+ document.querySelectorAll('[data-ac]').forEach(e=>e.classList.toggle('on',e.dataset.ac===S.ac));
+ document.querySelector('[data-razor]').classList.toggle('on',S.razor);
+ const sp=document.querySelector('[data-spiffo]');sp.classList.toggle('on',S.spiffo);sp.style.display=S.scene==='locked'?'':'none';
+ const sc=document.getElementById('scene'),keep=document.getElementById('dscroll');const top=keep?keep.scrollTop:0;
+ sc.className='scene'+(S.scene==='first'?' paused':'')+(S.scene==='looks'?' desk':'');
+ sc.innerHTML=S.scene==='looks'?looksWindow():charWindow();
+ const ds=document.getElementById('dscroll');if(ds)ds.scrollTop=top;
+ if(S.pad){const els=[...sc.querySelectorAll('[data-fid]')].filter(e=>e.dataset.fid!=='x'&&e.dataset.fid!=='ro');S.focus=Math.min(S.focus,els.length-1);const f=els[S.focus];if(f){f.classList.add('foc');camFor(f,true);}}
+ bindFig();
+}
+function camFor(el,quiet){
+ const n=el&&el.dataset.n,k=el&&el.dataset.kind;let c=null;
+ if(k==='face')c='face';else if(k==='det'){c=DETAILS.find(d=>d.n===n).cam;}
+ if(S.hover!==c){S.hover=c;if(!quiet)render();else{const fb=document.getElementById('figbox');if(fb){const base=CAMS[c||'full'],z=1-S.zoom*0.14;fb.innerHTML=figSVG(baseO({dir:S.dir}),[base[0]+base[2]*(1-z)/2,base[1]+base[3]*(1-z)*0.25,base[2]*z,base[3]*z]);fb.nextElementSibling.textContent=c?(c==='face'?'Face':'Torso'):'Facing '+DIRS[S.dir];}}}
+}
+function pick(el){
+ const k=el.dataset.kind,n=el.dataset.n,p=P();
+ if(k==='face'){p.face=n;}
+ else if(k==='det'){const i=p.det.indexOf(n);if(i>=0)p.det.splice(i,1);else p.det.push(n);}
+ if(S.scene==='looks'){S.saved[S.sex]={face:p.face,det:[...p.det]};}
+ render();
+}
+function shave(key){
+ if(!S.razor||S.shaving||S.groom[key]!=='grown')return;
+ S.shaving=key;S.shavePct=0;render();
+ const t=setInterval(()=>{S.shavePct+=10;if(S.shavePct>=100){clearInterval(t);S.groom[key]='none';S.shaving=null;}render();},180);
+}
+function bindFig(){
+ const fb=document.getElementById('figbox');if(!fb)return;let sx=null;
+ fb.onmousedown=e=>{sx=e.clientX;};
+ window.onmouseup=()=>{sx=null;};
+ fb.onmousemove=e=>{if(sx===null)return;const d=e.clientX-sx;if(Math.abs(d)>24){S.dir=(S.dir+(d>0?7:1))%8;sx=e.clientX;render();}};
+}
+document.addEventListener('click',e=>{
+ const t=e.target.closest('[data-scene],[data-sex],[data-view],[data-lg],[data-pad],[data-ac],[data-razor],[data-spiffo],[data-kind],[data-act],[data-tog],[data-shave],[data-skin]');
+ if(!t)return;const d=t.dataset;
+ if(d.scene){S.scene=d.scene;S.hover=null;S.focus=0;if(d.scene==='first'){S.saved={m:{face:'DefaultFace',det:[]},f:{face:'DefaultFace',det:[]}};resetPicks();}else if(S.saved.m.face==='DefaultFace'&&!S.saved.m.det.length){S.saved={m:{face:'Frank',det:['FrecklesFace']},f:{face:'CaseyJo',det:['FrecklesFace']}};resetPicks();}}
+ else if(d.sex)S.sex=d.sex;
+ else if(d.view)S.view=d.view;
+ else if(d.lg)S.lg=d.lg==='1';
+ else if(d.pad)S.pad=d.pad==='1';
+ else if(d.ac)S.ac=d.ac;
+ else if(d.razor)S.razor=!S.razor;
+ else if(d.spiffo)S.spiffo=!S.spiffo;
+ else if(d.skin){S.skin=+d.skin;}
+ else if(d.kind){if(t.classList.contains('ro'))return;pick(t);return;}
+ else if(d.shave){shave(d.shave);return;}
+ else if(d.tog){if(d.tog==='muscle')S.muscle=!S.muscle;else if(d.tog==='growth')S.growth=!S.growth;else if(d.tog==='lkhair')S.groom.body=S.groom.body==='grown'?'none':'grown';}
+ else if(d.act){const a=d.act;
+  if(a==='turnL')S.dir=(S.dir+1)%8;else if(a==='turnR')S.dir=(S.dir+7)%8;
+  else if(a==='zoomIn')S.zoom=Math.min(4,S.zoom+1);else if(a==='zoomOut')S.zoom=Math.max(0,S.zoom-1);
+  else if(a==='save'){if(!dirty()&&S.scene!=='first')return;S.saved[S.sex]={face:P().face,det:[...P().det]};if(S.scene==='first'){S.scene='tab';}}
+  else if(a==='cancel'){resetPicks();}
+  else if(a==='random'){const fl=FACES[S.sex];P().face=fl[1+Math.floor(Math.random()*(fl.length-1))].n;P().det=DETAILS.filter(()=>Math.random()<.22).map(x=>x.n);}
+ }
+ render();
+});
+document.addEventListener('mouseover',e=>{if(S.pad)return;const t=e.target.closest('[data-kind]');if(t)camFor(t,true);else if(e.target.closest('.right,.lkrows')===null&&S.hover){S.hover=null;camFor(null,true);}});
+document.addEventListener('keydown',e=>{
+ if(!S.pad)return;const sc=document.getElementById('scene');
+ const els=[...sc.querySelectorAll('[data-fid]')].filter(x=>x.dataset.fid!=='x'&&x.dataset.fid!=='ro');if(!els.length)return;
+ const cur=els[S.focus]||els[0],cr=cur.getBoundingClientRect(),cx=cr.left+cr.width/2,cy=cr.top+cr.height/2;
+ const dirs={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+ if(dirs[e.key]){e.preventDefault();const [dx,dy]=dirs[e.key];let best=-1,bs=1e9;
+  els.forEach((x,i)=>{if(x===cur)return;const r=x.getBoundingClientRect(),ex=r.left+r.width/2-cx,ey=r.top+r.height/2-cy;const along=ex*dx+ey*dy;if(along<=4)return;const off=Math.abs(ex*dy)+Math.abs(ey*dx);if(off>along*1.8)return;const s=along+off*2.2;if(s<bs){bs=s;best=i;}});
+  if(best>=0){S.focus=best;render();const f=sc.querySelector('.foc');if(f)f.scrollIntoView({block:'nearest'});}}
+ else if(e.key==='Enter'){e.preventDefault();cur.click();}
+});
+render();
+</script>
+</body>
+</html>

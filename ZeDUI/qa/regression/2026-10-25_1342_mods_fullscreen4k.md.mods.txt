@@ -1,0 +1,12 @@
+VERSION = 1,
+
+mods
+{
+    mod = SPNCC,
+    mod = SPNRetextureCustom,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

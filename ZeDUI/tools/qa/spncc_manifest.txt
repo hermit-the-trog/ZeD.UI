@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/spncc_manifest.txt  (Oct 25 2026)
+# Spongie's Character Customisation support: zedqa_mods_run.ps1 -ModList spncc_mods.txt -Mode fullscreen4k -Manifest .../spncc_manifest.txt
+zedqa_spncc.lua | spn | timeout=400                       # first-time look, picks, Save, list, default rules, Spiffo, Shave, pad, Large, light
+zedqa_spncc_figs.lua | spf | timeout=120                  # the 3D figures over 10 s, left alone

@@ -27,6 +27,6 @@
 [*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3508537032]NeatUI Framework[/url] by Rocco: A library: needed only by CleanUI and the Neat mods. [i](expected)[/i]
 [*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3056481712]On the Door[/url] by PePePePePeil: Its alert at game start shows raw text keys on 42.21: its translations are in the old .txt format. Not ZeD.
 [*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3540903327]Pack Mule[/url] by Balance: Moves watches to its own watch slot, which hid the watch from ZeD's belt. ZeD-GUI 0.2.0-t4 finds it there.
-[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3414634809]Spongie's Character Customisation[/url] by spongie: In an existing save it opens its customisation window at game start, with the game paused while it is open. A window of its own: Messages does not keep it.
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3414634809]Spongie's Character Customisation[/url] by spongie: Works with ZeD from ZeD-GUI 0.2.0-t5: its faces and details are the Character window's Appearance tab (after Identity) and rows on the Looks screen for a new character, and its window at game start (an existing save) opens that tab, paused, as the mod does. The mod's rules and saving are its own.
 [*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470659758]The Shortcut[/url] by Rocco: Its shortcut bar sits just above ZeD's belt.
 [/list]
