@@ -107,13 +107,14 @@ function B.roundBox(cv, x, y, w, h, fill, ink, a)
     boxRows(cv, x + 1, y + 1, w - 2, h - 2, fill, a)
 end
 
--- the thought bubble's body: corner radius 10.5 (the ends nearly half round), its ink the cells on its edge
+-- the thought bubble's body: corner radius 10.5 (the ends nearly half round), its ink the cells on its edge;
+-- a taller cloud (the moodles' notes) passes its own radius
 B._clouds = B._clouds or {}
-local function cloudLists(w, h)
-    local key = w * 1000 + h
+local function cloudLists(w, h, r)
+    local Rr = r or 10.5
+    local key = (w * 1000 + h) * 100 + math.floor(Rr * 2)
     local c = B._clouds[key]
     if c then return c end
-    local Rr = 10.5
     local m = {}
     for Y = 0, h - 1 do
         local row = {}
@@ -141,25 +142,36 @@ local function cloudLists(w, h)
     return c
 end
 
--- the trail: hand-set bubbles (# ink, o fill), their top-left from the trail's origin
+-- the trail: hand-set bubbles (# ink, o fill), biggest first, each at its top-left from the trail's
+-- origin: down to the head (the action bar's), or in a row to the right or left (the moodles' notes,
+-- Oct 25 2026), the biggest next to the cloud. B.TRAIL_LEN units from the origin to the far end.
 local TRAIL = {
-    { { ".###.", "#ooo#", "#ooo#", "#ooo#", ".###." }, 3, 0 },
-    { { ".##.", "#oo#", "#oo#", ".##." }, 1, 6 },
-    { { "##", "##" }, -1, 11 },
+    { ".###.", "#ooo#", "#ooo#", "#ooo#", ".###." },
+    { ".##.", "#oo#", "#oo#", ".##." },
+    { "##", "##" },
 }
-local TRAIL_LISTS = {}
-for t = 1, #TRAIL do
-    local pat, bx, by = TRAIL[t][1], TRAIL[t][2], TRAIL[t][3]
-    local L = { sh = {}, ink = {}, fill = {} }
-    for j = 1, #pat do
-        for i = 1, #pat[j] do
-            local ch = pat[j]:sub(i, i)
-            if ch ~= "." then addCell(L.sh, bx + i, by + j) end
-            if ch == "#" then addCell(L.ink, bx + i - 1, by + j - 1) elseif ch == "o" then addCell(L.fill, bx + i - 1, by + j - 1) end
+B.TRAIL_LEN = 13
+local function trailAt(pos)
+    local out = {}
+    for t = 1, #TRAIL do
+        local pat, bx, by = TRAIL[t], pos[t][1], pos[t][2]
+        local L = { sh = {}, ink = {}, fill = {} }
+        for j = 1, #pat do
+            for i = 1, #pat[j] do
+                local ch = pat[j]:sub(i, i)
+                if ch ~= "." then addCell(L.sh, bx + i, by + j) end
+                if ch == "#" then addCell(L.ink, bx + i - 1, by + j - 1) elseif ch == "o" then addCell(L.fill, bx + i - 1, by + j - 1) end
+            end
         end
+        out[t] = L
     end
-    TRAIL_LISTS[t] = L
+    return out
 end
+local TRAILS = {
+    down = trailAt({ { 3, 0 }, { 1, 6 }, { -1, 11 } }),
+    right = trailAt({ { 0, -2 }, { 6, -2 }, { 11, -1 } }),
+    left = trailAt({ { -5, -2 }, { -10, -2 }, { -13, -1 } }),
+}
 
 -- ---------------------------------------------------------------------------
 -- the tail: bubbles.py wedge_mask, a triangle on the unit grid. Rasterised the way the mockup's
@@ -381,21 +393,34 @@ function B.syncColours(T)
     B._shadow.a = B.SHADOW_A
 end
 
--- the thought bubble's frame and trail (the layout inside is ZeD.ActionBar's)
-function B.drawThought(cv, T, L, a)
-    local x, y, w, h = L.tx, L.ty, L.tw, L.th
+-- A thought bubble anywhere, in three passes so the trail tucks under the cloud: the cloud's shadow,
+-- the trail (it may be on its own canvas, at another zoom), the cloud. x, y, w, h in units on cv;
+-- r the corner radius (10.5 when nil); the trail from (ox, oy) running dir ("down" | "right" | "left").
+function B.cloudShadow(cv, x, y, w, h, a, r)
+    rectsA(cv, cloudLists(w, h, r).all, B._shadow, a, x + 2, y + 2)
+end
+function B.drawTrail(cv, T, dir, ox, oy, a)
     local sh = B._shadow
-    local cl = cloudLists(w, h)
-    rectsA(cv, cl.all, sh, a, x + 2, y + 2)
-    local ox, oy = x + math.floor(w / 2) - 6, y + h + 2
-    for t = 1, #TRAIL_LISTS do
-        local TL = TRAIL_LISTS[t]
+    local trail = TRAILS[dir] or TRAILS.down
+    for t = 1, #trail do
+        local TL = trail[t]
         rectsA(cv, TL.sh, sh, a, ox, oy)
         rectsA(cv, TL.ink, T.borderS, a, ox, oy)
         rectsA(cv, TL.fill, T.surf1, a, ox, oy)
     end
+end
+function B.cloudBody(cv, T, x, y, w, h, a, r)
+    local cl = cloudLists(w, h, r)
     rectsA(cv, cl.ink, T.borderS, a, x, y)
     rectsA(cv, cl.fill, T.surf1, a, x, y)
+end
+
+-- the thought bubble's frame and trail (the layout inside is ZeD.ActionBar's)
+function B.drawThought(cv, T, L, a)
+    local x, y, w, h = L.tx, L.ty, L.tw, L.th
+    B.cloudShadow(cv, x, y, w, h, a)
+    B.drawTrail(cv, T, "down", x + math.floor(w / 2) - 6, y + h + 2, a)
+    B.cloudBody(cv, T, x, y, w, h, a)
 end
 
 -- the speech balloon: shadow, tail shadow, body, tail (opening into the body), the lines centred

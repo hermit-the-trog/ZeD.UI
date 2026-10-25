@@ -14,7 +14,8 @@
 --           grey -> the Good / Bad highlight colour by level / 4, the outline
 --           ring, vanilla's order, the wiggle when a level changes
 -- Hover text: a ZeD chip (status dot, vanilla's name for the level, vanilla's
--- description). A ZeD layer lies exactly over vanilla's column; UIManager
+-- description) in a thought bubble whose trail runs to its moodle; it also shows by itself for a few
+-- seconds when a moodle comes on or changes level. A ZeD layer lies exactly over vanilla's column; UIManager
 -- hands a mouse move to the topmost element under the pointer only, so the
 -- column never sees the pointer and never draws its own text, while it keeps
 -- drawing the moodles. Clicks pass through, as they do on vanilla's column.
@@ -31,6 +32,7 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/ZeD_Panel"
 require "ZeD/SafeMode"
+require "ZeD/ZeD_Bubbles"
 
 ZeD = ZeD or {}
 ZeD.Moodles = ZeD.Moodles or {}
@@ -283,13 +285,26 @@ function ZeD_MoodleLayer:_hoverIndex()
     return i + 1
 end
 
+-- One moodle as vanilla draws it: backing tinted by level, outline ring, icon
+function ZeD_MoodleLayer:_drawMoodle(m, x, y)
+    local size = self._size
+    local bg, ring = tex(size, "_Moodles_BGsolid"), tex(size, "_Moodles_BGoutline")
+    local r, g, b = M.backing(m)
+    if bg then self:drawTexture(bg, x, y, 1, r, g, b) end
+    if ring then self:drawTexture(ring, x, y, 1, 1, 1, 1) end
+    local icon = tex(size, m.art)
+    if icon then
+        local off = math.ceil((size - icon:getWidth()) / 2)
+        self:drawTexture(icon, x + off, y + off, 1, 1, 1, 1)
+    end
+end
+
 -- The copy, as vanilla draws it: backing, outline, icon; wiggle on a change
 function ZeD_MoodleLayer:_drawRow()
     local size = self._size
     local list = self._list
     local frac = (UIManager.getMillisSinceLastRender and UIManager.getMillisSinceLastRender() or 33.3) / 33.3
     self._step = self._step + 0.8 * frac
-    local bg, ring = tex(size, "_Moodles_BGsolid"), tex(size, "_Moodles_BGoutline")
     local seen = {}
     for i, m in ipairs(list) do
         seen[m.key] = true
@@ -297,72 +312,130 @@ function ZeD_MoodleLayer:_drawRow()
         if not w then w = { level = m.level, osc = 0 }; self._wig[m.key] = w end
         if w.level ~= m.level then w.level = m.level; w.osc = 1 end
         if w.osc > 0.01 then w.osc = w.osc - w.osc * 0.04 * frac else w.osc = 0 end
-        local x = (i - 1) * (size + GAP) + math.floor(math.sin(self._step) * 15.6 * w.osc)
-        local r, g, b = M.backing(m)
-        if bg then self:drawTexture(bg, x, 0, 1, r, g, b) end
-        if ring then self:drawTexture(ring, x, 0, 1, 1, 1, 1) end
-        local icon = tex(size, m.art)
-        if icon then
-            local off = math.ceil((size - icon:getWidth()) / 2)
-            self:drawTexture(icon, x + off, off, 1, 1, 1, 1)
-        end
+        self:_drawMoodle(m, (i - 1) * (size + GAP) + math.floor(math.sin(self._step) * 15.6 * w.osc), 0)
     end
     -- a moodle that went away and comes back wiggles like a new one (vanilla)
     for k in pairs(self._wig) do if not seen[k] then self._wig[k] = nil end end
 end
 
--- The ZeD chip: status dot, vanilla's name for the level, vanilla's description
+-- The ZeD note: status dot, vanilla's name for the level, vanilla's description, in a thought
+-- bubble (ZeD.Bubbles' cloud, the one over the head) whose trail of three small bubbles runs to the
+-- moodle it is about (director, Oct 25 2026: "moodle notice needs an extension to show which moodle
+-- it is coming from", then "Can they be thought style bubbles?"). Right / left: the cloud beside the
+-- column, level with its moodle, the trail across; bottom: above the row, the trail down.
 function ZeD_MoodleLayer:_drawChip(m, idx)
     local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
     local p = self:player()
     local md = p and p:getMoodles()
     if not md then return end
+    local Bb, P = ZeD.Bubbles, ZeD.Px
+    if not (Bb and Bb.cloudBody and P) then return end
     local name = safe(md.getMoodleDisplayString, md, m.type) or ""
     local desc = safe(md.getMoodleDescriptionString, md, m.type) or ""
-    local pad, padY = T.px(9), T.px(7)
+    -- the over-head bubble's pixel art at the screen's whole zoom k; this cloud is taller than the one over
+    -- the head, so its corners round in proportion (a third of its height) and its trail is drawn at 2k
+    local k = P.k((ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root()) or 1)
+    local tk = 2 * k
+    local padX, padY = 9 * k, math.max(T.px(7), 7 * k)     -- inside the cloud, clear of its round corners
     local cw = T.px(252)
     local f4, f2 = T.fontF4, T.fontF2
-    local lines = A.wrapText(desc, f2, cw - pad * 2)
+    local lines = A.wrapText(desc, f2, cw - padX * 2)
     local nh, lh = tm:getFontHeight(f4), tm:getFontHeight(f2)
-    local ch = padY * 2 + nh + T.px(3) + #lines * lh
+    local wu = math.ceil(cw / k)
+    local hu = math.ceil((padY * 2 + nh + T.px(3) + #lines * lh) / k)
+    local W, H = wu * k, hu * k
+    local rad = math.max(10.5, math.floor(hu / 3) + 0.5)
     local size = self._size
-    local cx, cy
+    local len = Bb.TRAIL_LEN * tk
+    local my = (idx - 1) * (size + GAP)
+    local cx, cy, dir, tox, toy        -- the cloud and the trail's origin, in the layer (px); the trail's way
     if self._mode == "bottom" then
-        cx = (idx - 1) * (size + GAP) + math.floor(size / 2) - math.floor(cw / 2)
-        cy = -ch - T.px(8)
-        -- keep it on the player's screen
+        local mcx = (idx - 1) * (size + GAP) + math.floor(size / 2)
+        toy = -len - 2 * k                                 -- the trail's end two units above the moodle
+        cx, cy = mcx - math.floor(W / 2) + 3 * k, toy - k - H
+        -- keep it on the player's screen (the trail stays on its moodle)
         local absL = self:getAbsoluteX() + cx
         local minL = getPlayerScreenLeft(self.playerNum) + T.px(8)
-        local maxL = getPlayerScreenLeft(self.playerNum) + getPlayerScreenWidth(self.playerNum) - T.px(8) - cw
+        local maxL = getPlayerScreenLeft(self.playerNum) + getPlayerScreenWidth(self.playerNum) - T.px(8) - W
         if absL < minL then cx = cx + (minL - absL) elseif absL > maxL then cx = cx - (absL - maxL) end
+        dir, tox = "down", mcx
     elseif self._mode == "left" then
-        cx = size + T.px(10)
-        cy = (idx - 1) * (size + GAP)
+        toy = my + math.floor(size / 2)
+        tox = size + len + 2 * k
+        cx, cy = tox + k, toy - math.floor(H / 2)
+        dir = "left"
     else
-        cx = -cw - T.px(10)
-        cy = (idx - 1) * (size + GAP)
+        toy = my + math.floor(size / 2)
+        tox = -len - 2 * k
+        cx, cy = tox - k - W, toy - math.floor(H / 2)
+        dir = "right"
     end
-    local s1, bs = T.surf1, T.borderS
-    self:drawRect(cx, cy, cw, ch, 0.96, s1.r, s1.g, s1.b)
-    self:drawRectBorder(cx, cy, cw, ch, bs.a or 1, bs.r, bs.g, bs.b)
+    Bb.syncColours(T)
+    local cv = P.canvas(self, cx, cy, k)
+    Bb.cloudShadow(cv, 0, 0, wu, hu, 1, rad)
+    Bb.drawTrail(P.canvas(self, tox, toy, tk), T, dir, 0, 0, 1)
+    Bb.cloudBody(cv, T, 0, 0, wu, hu, 1, rad)
+    self._chip = { idx = idx, key = m.key, x = cx, y = cy, w = W, h = H, k = k, tk = tk, dir = dir, tox = tox, toy = toy }   -- (for QA)
     local dot = (m.gbn == 1 and T.positive) or (m.gbn == 2 and (m.level >= 3 and T.danger or T.warning)) or T.textDim
     local ds = T.px(7)
-    A.drawStatusDot(self, cx + pad, cy + padY + math.floor((nh - ds) / 2), dot, ds)
+    A.drawStatusDot(self, cx + padX, cy + padY + math.floor((nh - ds) / 2), dot, ds)
     local tc = T.text
-    self:drawText(name, cx + pad + ds + T.px(7), cy + padY, tc.r, tc.g, tc.b, tc.a or 1, f4)
+    self:drawText(name, cx + padX + ds + T.px(7), cy + padY, tc.r, tc.g, tc.b, tc.a or 1, f4)
     local dc = T.textDim
-    local ty = cy + padY + nh + T.px(3)
+    local ly = cy + padY + nh + T.px(3)
     for _, ln in ipairs(lines) do
-        self:drawText(ln, cx + pad, ty, dc.r, dc.g, dc.b, dc.a or 1, f2)
-        ty = ty + lh
+        self:drawText(ln, cx + padX, ly, dc.r, dc.g, dc.b, dc.a or 1, f2)
+        ly = ly + lh
+    end
+end
+
+-- A moodle that comes on or changes level shows its chip by itself for NOTICE_MS (director, Oct 25
+-- 2026: "On every change"). Several at once take turns; the queue keeps the one showing and the
+-- newest NOTICE_MAX - 1 waiting (the oldest waiting goes). The moodles already on when the layer
+-- first sees the player stay quiet. The pointer's moodle wins while it is on one.
+local NOTICE_MS, NOTICE_MAX = 4000, 3
+function ZeD_MoodleLayer:_noticeTick()
+    local now = getTimestampMs()
+    local p = self:player()
+    local list = self._list or {}
+    if not self._levels or self._levelsFor ~= p then
+        self._levels, self._levelsFor, self._notices, self._noticeAt = {}, p, {}, nil
+        for _, m in ipairs(list) do self._levels[m.key] = m.level end
+        return
+    end
+    local q, seen, cur = self._notices, self._levels, {}
+    for _, m in ipairs(list) do
+        cur[m.key] = m.level
+        if seen[m.key] ~= m.level then
+            if q[1] == m.key then
+                self._noticeAt = now                       -- the one showing changed again: its time starts over
+            else
+                for i = #q, 2, -1 do if q[i] == m.key then table.remove(q, i) end end
+                q[#q + 1] = m.key
+                while #q > NOTICE_MAX do table.remove(q, 2) end
+            end
+        end
+    end
+    self._levels = cur
+    for i = #q, 1, -1 do                                   -- a moodle that went away is not shown
+        if not cur[q[i]] then table.remove(q, i); if i == 1 then self._noticeAt = nil end end
+    end
+    if q[1] then
+        if not self._noticeAt then self._noticeAt = now
+        elseif now - self._noticeAt >= NOTICE_MS then table.remove(q, 1); self._noticeAt = q[1] and now or nil end
     end
 end
 
 function ZeD_MoodleLayer:prerender()
     if not ZeD.T or not self._mode then return end
+    self:_noticeTick()
+    self._chip = nil
     if not self._show then return end
     if self._mode == "bottom" then self:_drawRow() end
     local i = self:_hoverIndex()
+    if not i and self._notices[1] then
+        for k, m in ipairs(self._list or {}) do if m.key == self._notices[1] then i = k end end
+    end
     if i then self:_drawChip(self._list[i], i) end
 end
 function ZeD_MoodleLayer:render() end
