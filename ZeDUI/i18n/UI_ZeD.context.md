@@ -547,6 +547,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Appliance_MinLeft` | `%1 MIN LEFT` | Craft tab, oven state line: minutes remaining | 14 |
 | `UI_ZeD_Appliance_MinShort` | `%1m` | Craft tab, oven or microwave food row: minutes left, after the bar (short) | 6 |
 | `UI_ZeD_Appliance_NoPower` | `NO POWER` | Craft tab, oven or microwave: line under the plate when unpowered | 12 |
+| `UI_ZeD_Appliance_PopIn` | `Bring it back` | Craft tab, oven or microwave in its own window: button that puts it back in the tab | 18 |
+| `UI_ZeD_Appliance_PopOut` | `Open in its own window` | Craft tab, oven or microwave: hover hint of the icon button that opens it in a window of its own | 28 |
+| `UI_ZeD_Appliance_PoppedOut` | `In its own window.` | Craft tab, oven or microwave: line shown in the tab while it is in its own window | 28 |
 | `UI_ZeD_Appliance_PowerHi` | `HI` | Craft tab, microwave state line: power level 5 of 5 | 8 |
 | `UI_ZeD_Appliance_PowerLo` | `LO` | Craft tab, microwave state line: power level 1 of 5 | 8 |
 | `UI_ZeD_Appliance_PowerMed` | `MED` | Craft tab, microwave state line: power level 3 of 5 | 8 |

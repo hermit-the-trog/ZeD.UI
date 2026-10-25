@@ -125,6 +125,20 @@ function SA.plateFor(st)
     return X.plates[id], id
 end
 
+-- The Craft tab's width (screen px) that shows this appliance's plate at the screen's own whole
+-- zoom, or nil when the tab is not on an appliance. The tab's standard width fits a 456 px
+-- plate at 2x only at a 2.0 scale; at 1.75 it fell back to 1x, half size (director, Oct 25 2026:
+-- "check that various appliance faces ... are the correct scale in the window").
+function SA.wantW(player)
+    local st = player and ST.current(player)
+    if not (st and (st.kind == "oven" or st.kind == "micro")) then return nil end
+    local des = SA.plateFor(st)
+    if not des then return nil end
+    local Sc = ZeD.Scale
+    local k = P.k((Sc and Sc.root and Sc.root()) or 1)
+    return des.w * k + ZeD.T.sp.scrollbarW + ZeD.T.px(2)
+end
+
 -- ----------------------------------------------------------------------------
 -- READOUTS
 -- ----------------------------------------------------------------------------
@@ -478,24 +492,47 @@ local function plateTex(name)
     return P.tex((X and X.texdir or "media/textures/ZeD/physpx/") .. name .. ".png")
 end
 
-function SA.render(panel, win, x, y, w, h, state, st)
+-- the pop-out window (StationPopout.lua): which station each player has in its own window
+SA.popped = SA.popped or {}
+function SA.isPopped(player, st)
+    local cur = player and SA.popped[player:getPlayerNum()]
+    return cur ~= nil and st ~= nil and cur.obj == st.obj
+end
+local POP_ICON = "media/textures/ZeD/icons/arrow-up-right-from-square.png"
+
+-- opts: the pop-out window's draw { noHeader = true, k = whole zoom, fid = focused id }; nil in the tab
+function SA.render(panel, win, x, y, w, h, state, st, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
     local player = win._playerObj
     state._lastZones = state.zones
     state.zones = {}
-    state._gpFocusedId = ST.focusedId(win)
+    if opts then state._gpFocusedId = opts.fid else state._gpFocusedId = ST.focusedId(win) end
     local fid = state._gpFocusedId
     local zones = state.zones
     local mw = st.kind == "micro"
 
-    local headH = ST.renderViewHeader(panel, win, x, y, w, state, st)
+    local headH = (opts and opts.noHeader) and 0 or ST.renderViewHeader(panel, win, x, y, w, state, st)
+    -- in its own window: the tab says so and offers it back
+    if not opts and SA.isPopped(player, st) then
+        local line = ZeD.tr("UI_ZeD_Appliance_PoppedOut")
+        local ty = y + headH + T.px(16)
+        panel:drawText(line, x + math.floor((w - tm:MeasureStringX(T.fontF2, line)) / 2), ty, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2)
+        local bl = ZeD.btnCase(ZeD.tr("UI_ZeD_Appliance_PopIn"))
+        local bw, bh = tm:MeasureStringX(T.fontF2, bl) + T.px(24), T.px(24)
+        local bx, by = x + math.floor((w - bw) / 2), ty + tm:getFontHeight(T.fontF2) + T.px(10)
+        ZeD.Molecules.drawButton(panel, bx, by, bw, bh, bl, "default")
+        if fid == "craft:a:popin" then panel:drawRect(bx, by, bw, bh, 0.55, T.accent.r, T.accent.g, T.accent.b) end
+        zones[#zones + 1] = { type = "popin", fid = "craft:a:popin", x = bx, y = by, w = bw, h = bh }
+        ST.drawDropdownFor(panel, state, player, fid, "craft")
+        return
+    end
     local rows = contents(st)
     local des, pid = SA.plateFor(st)
     local Sc = ZeD.Scale
     -- whole zoom, inside the column even with the scrollbar showing (so k never flips with the scrollbar)
-    local k = des and P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w - T.sp.scrollbarW) or 1
+    local k = (opts and opts.k) or (des and P.kFit((Sc and Sc.root and Sc.root()) or 1, des.w, w - T.sp.scrollbarW)) or 1
     local plH = des and des.h * k or 0
 
     -- Body: the plate, its line, the contents; one scrolling unit
@@ -541,6 +578,30 @@ function SA.render(panel, win, x, y, w, h, state, st)
             end
         end
         cyy = cyy + plH + T.px(6)
+        -- in the tab: open it in its own window (an icon-only button at the plate's top right, its hint on hover)
+        if not opts then
+            local bs = T.px(22)
+            local bx, by = x + cw - bs - T.px(6), viewY + T.px(8) - off
+            local hov = panel:getMouseX() >= bx and panel:getMouseX() < bx + bs and panel:getMouseY() >= by and panel:getMouseY() < by + bs
+            local s2 = T.surf2
+            panel:drawRect(bx, by, bs, bs, 0.92, s2.r, s2.g, s2.b)
+            if hov or fid == "craft:a:popout" then panel:drawRect(bx, by, bs, bs, hov and 0.22 or 0.55, T.accent.r, T.accent.g, T.accent.b) end
+            panel:drawRectBorder(bx, by, bs, bs, 1, T.borderS.r, T.borderS.g, T.borderS.b)
+            local tex = getTexture(POP_ICON)
+            if tex then
+                local isz = T.px(14)
+                panel:drawTextureScaledAspect(tex, bx + math.floor((bs - isz) / 2), by + math.floor((bs - isz) / 2), isz, isz, 1, T.text.r, T.text.g, T.text.b)
+            end
+            if hov then
+                local hint = ZeD.tr("UI_ZeD_Appliance_PopOut")
+                local hw = tm:MeasureStringX(T.fontF1, hint) + T.px(12)
+                local hh = tm:getFontHeight(T.fontF1) + T.px(6)
+                panel:drawRect(bx + bs - hw, by + bs + T.px(4), hw, hh, 0.95, T.surf1.r, T.surf1.g, T.surf1.b)
+                panel:drawRectBorder(bx + bs - hw, by + bs + T.px(4), hw, hh, 1, T.borderS.r, T.borderS.g, T.borderS.b)
+                panel:drawText(hint, bx + bs - hw + T.px(6), by + bs + T.px(7), T.text.r, T.text.g, T.text.b, 1, T.fontF1)
+            end
+            zones[#zones + 1] = { type = "popout", fid = "craft:a:popout", x = bx, y = by, w = bs, h = bs }
+        end
     end
     -- the line under the plate
     local line = stateLine(st, r)
@@ -597,7 +658,8 @@ function SA.render(panel, win, x, y, w, h, state, st)
 
     panel:clearStencilRect()
     if needsScroll then scroll:draw(panel) end
-    ST.drawDropdownFor(panel, state, player, fid, "craft")
+    if not opts then ST.drawDropdownFor(panel, state, player, fid, "craft") end
+    return totalH
 end
 
 -- ----------------------------------------------------------------------------
@@ -605,16 +667,21 @@ end
 -- ----------------------------------------------------------------------------
 local function hit(z, x, y) return x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h end
 
--- a click on a control: a knob turns toward the half clicked, a key presses
+-- a click on a control: a knob turns toward the half clicked, a key presses; the tab's pop-out
+-- button opens the station in its own window, its "bring it back" closes that window
 local function act(player, st, z, dir)
+    if z.type == "popout" then if ZeD.StationPopout then ZeD.StationPopout.open(player, st) end; return end
+    if z.type == "popin" then if ZeD.StationPopout then ZeD.StationPopout.close(player) end; return end
     if z.kind == "turn" then SA.turn(player, st, z.pid, z.id, dir or 1)
     else SA.press(player, st, z.pid, z.id) end
 end
+SA.act = act
 
 function SA.onClick(win, state, st, x, y)
     local player = win._playerObj
     if ST.viewHeaderClick(state, player, x, y) then return true end
     for _, z in ipairs(state.zones or {}) do
+        if (z.type == "popout" or z.type == "popin") and hit(z, x, y) then act(player, st, z); return true end
         if z.type == "plate" and hit(z, x, y) then
             act(player, st, z, (x < z.x + z.w / 2) and -1 or 1)   -- knobs: left half down, right half up
             return true

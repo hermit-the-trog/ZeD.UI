@@ -20,6 +20,8 @@ local R, A = ST.R, ST.A
 
 S.step(2, function()
     if getGameSpeed() <= 0 then setGameSpeed(1) end
+    -- (a run of single beats can end with the windows shut; the steps below put their state back)
+    if not ZeD_CharacterWindow.isOpen() then pcall(function() ZeD_CharacterWindow.toggleBothPaired(pn) end) end
     ST.clearActions()
     pcall(function() local m = getPlayerContextMenu(pn); if m then if m._zedMenu then m._zedMenu:close() end; m:hideAndChildren() end end)
     pcall(function() local r = ZeD.Reader.get(pn); if r and r:isVisible() then r:close() end end)
@@ -261,5 +263,6 @@ S.step(10, function()
     say(string.format("back at %d,%d (was %d,%d) | carried %d | zombies in the cell %d", math.floor(p:getX()), math.floor(p:getY()),
         math.floor(R.x), math.floor(R.y), inv:getItems():size(), getCell():getZombieList():size()))
     STORY = nil
+    STORY_ONLY = nil   -- (gallery_story_only.lua's beat list, for a later full run)
 end)
 S.start()

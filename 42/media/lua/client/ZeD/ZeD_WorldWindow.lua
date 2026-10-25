@@ -1820,6 +1820,11 @@ local function getWorldTargetDrawerW(win)
         if win._drawerMode == "item" then base = T.px(ITEM_CARD_W)
         elseif win._drawerMode == "tab" then
             base = T.px(getWorldTabDrawerW(win._activeTab))
+            -- an oven or a microwave: wide enough for its control panel at the screen's whole zoom
+            if win._activeTab == "craft" and ZeD.StationAppliance and ZeD.StationAppliance.wantW then
+                local want = ZeD.StationAppliance.wantW(win._playerObj)
+                if want and want > base then base = want end
+            end
             -- The window is capped at half the screen, so on a small screen or a
             -- large text size a wide tab would squeeze the inventory beside it
             -- below its 200-unit minimum. Give the tab only the room left after
