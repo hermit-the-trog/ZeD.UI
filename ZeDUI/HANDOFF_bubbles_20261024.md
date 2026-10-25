@@ -34,8 +34,8 @@ Both are drawn with `ZeD.Px` on whole multiples. Use the same `k` as the action 
 - **Padding and text.** Padding is 5. The text is the 5×7 face in CAPITALS, lines 9 apart, each line centred. Wrap at 120 units.
 - **Shadow.** The same box, offset +2, +2, filled with the shadow colour, drawn first.
 - **Tail.**
-  - Its base is 10 wide on the body's bottom line, a third of the way along from the side nearer the head.
-  - Its point is on the head top: `AB.headScreen`, the same anchor the action bar uses.
+  - Its base is 10 wide on the body's bottom line, a third of the way along. The body's left edge is at `hx − w/3`, so the base sits straight over the head.
+  - Its point is 1 unit above the head top: `AB.headScreen`, the same anchor the action bar uses.
   - The body sits 3 units above the head plus a 9-unit tail.
   - Draw the tail as a filled polygon outlined in ink, after the body, so it opens into it.
   - It casts the same shadow.
@@ -47,14 +47,13 @@ Both are drawn with `ZeD.Px` on whole multiples. Use the same `k` as the action 
   - 1-unit ink line, shadow +2, +2.
   - Inner padding 7; the content is 24 units tall; the body is 30 tall.
   - Width: the verbose content width (minimum 60) + 14.
-- **Trail.** Hand-set bubbles; `#` is ink, `o` is fill:
-  - The largest sits 2 units under the body, 3 right of its centre:
-    `.###. / #ooo# / #ooo# / #ooo# / .###.`
-  - The middle one is 6 below that, 1 right of centre:
-    `.##. / #oo# / #oo# / .##.`
-  - The smallest is 11 below, 1 left of centre: `## / ##`.
+- **Trail.** Hand-set bubbles; `#` is ink, `o` is fill. Positions are each bubble's top-left corner, measured from the head top (`hx`, `hy`), with the body's bottom edge at `hy − 18`:
+  - The largest at (`hx + 3`, `hy − 16`): `.###. / #ooo# / #ooo# / #ooo# / .###.`
+  - The middle one at (`hx + 1`, `hy − 10`): `.##. / #oo# / #oo# / .##.`
+  - The smallest at (`hx − 1`, `hy − 5`): `## / ##`
   - Each has the same shadow, offset +1, +1.
-- **Placement.** The body sits 3 above the head plus a 15-unit trail, centred on the head and offset 6 right.
+  - So they step down and a little left toward the head, and the smallest stops 3 units above it.
+- **Placement.** The body's left edge is at `hx − w/2 + 6`, so it sits 6 units right of centre over the head. Its bottom edge is at `hy − 18`: a 15-unit trail plus a 3-unit gap.
 
 ### Both at once
 When the character speaks while a thought bubble is up:
