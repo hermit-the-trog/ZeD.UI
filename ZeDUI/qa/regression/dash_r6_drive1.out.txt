@@ -1,0 +1,2 @@
+pzdrive_keys: waiting for 'ZEDQA r6p taxi KEYS'
+pzdrive_keys: not driving: the PC was in use 0 s ago
