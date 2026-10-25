@@ -131,8 +131,10 @@ try {
     $secs = [int]((Get-Date) - $t0).TotalSeconds
     if ($armed) {
         $outcome = "LOADED in game after $secs s"
-        Start-Sleep -Seconds 8
-        Write-Text $BridgeLua ("getCore():TakeFullScreenshot(`"zqa_modload_$ZeD.png`")`nprint(`"ZEDQA modload in game, ZeD_UI active `" .. tostring(getActivatedMods():contains(`"ZeD_UI`")) .. `", mods `" .. tostring(getActivatedMods():size()))`n")
+        Start-Sleep -Seconds 25   # (mods open their notes a little after the game starts)
+        Write-Text $BridgeLua ("getCore():TakeFullScreenshot(`"zqa_modload_$ZeD.png`")`nprint(`"ZEDQA modload in game, ZeD_UI active `" .. tostring(getActivatedMods():contains(`"ZeD_UI`")) .. `", mods `" .. tostring(getActivatedMods():size()) .. `", game speed `" .. tostring(getGameSpeed()))`n" +
+            "if ZeD and ZeD.Messages then for n, s in pairs(ZeD.Messages.sources) do print(`"ZEDQA modload Messages: `" .. tostring(n) .. `" (`" .. s.kind .. `", `" .. #s.items .. `" kept)`") end end`n" +
+            "local ui = UIManager.getUI(); local sh = getCore():getScreenHeight(); for i = 0, ui:size() - 1 do local e = ui:get(i); if e:isVisible() then local t = e:getTable(); print(`"ZEDQA modload ui: `" .. tostring(t and t.Type or e:getClass():getSimpleName()) .. `" at `" .. math.floor(e:getX()) .. `",`" .. math.floor(e:getY()) .. `" `" .. math.floor(e:getWidth()) .. `"x`" .. math.floor(e:getHeight())) end end`n")
         $null = Invoke-Bump
         Start-Sleep -Seconds 6
     } elseif ($stuck) {

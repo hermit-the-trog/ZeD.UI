@@ -1,0 +1,19 @@
+0.2.0-t4: changes since 0.2.0-t3.
+
+Messages (new)
+- A note another mod opens (one OK button) no longer covers the game. It goes into the Messages window, and a strip at the right of the screen names the mod for a few seconds. Click the strip, or the envelope that appears on the belt, to read it. The mod's own OK button works there.
+- A mod that pauses the game to show its note no longer leaves it paused.
+- Questions from other mods still ask at once. A copy of the question and your answer goes into Messages.
+- Lua errors are counted per mod in Messages, with Copy for a bug report.
+- Options, ZeD setup, Messages: Keep other mods' notes in Messages (on), Show a toast when one comes (on). In the window, a mod's notes can be shown as pop-ups again.
+- Controller: the ZeD wheel's Messages slice opens it; D-pad, A and B work in the window.
+
+Quick actions
+- LB + X takes a light out of a bag and switches it on in one press; before, it took two. A light in a hand or on the belt switches on and off.
+- Eat on a stuffed character says "Too full to eat more." instead of "Nothing to eat on you."
+
+Working with other mods (tested with 128 popular mods)
+- A watch worn in a mod's own watch slot (Pack Mule) shows on the belt.
+- A mod that swaps in its own hotbar drawing after ZeD (Reorder The Hotbar) no longer replaces the belt's: the belt takes it back.
+- Another mod's broken setting or main-screen step (Change Sandbox Options on 42.21) no longer breaks the options screen or the pause menu.
+- The grades for every mod tested are in the Compatibility discussion.

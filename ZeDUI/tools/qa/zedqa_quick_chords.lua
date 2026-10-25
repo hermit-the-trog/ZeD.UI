@@ -154,7 +154,7 @@ step(60, function()
     stopAll()
 end)
 -- LB + X with the light in a carried bag: out of the bag, into a hand, on
-local tmpBag
+local tmpBag, bagSkip
 step(10, function()
     if not chk then return end
     if p:getPrimaryHandItem() == chk then p:setPrimaryHandItem(nil) end
@@ -163,11 +163,25 @@ step(10, function()
     tmpBag = p:getInventory():AddItem("Base.Bag_Schoolbag")
     if chk:getContainer() then chk:getContainer():Remove(chk) end
     tmpBag:getInventory():AddItem(chk)
+    -- (a light already in a hand or on the belt comes first, the game's rule: another mod's belt light, say)
+    local pick = D.H.bestLight(p)
+    if pick ~= chk then
+        bagSkip = true
+        say("LB + X from a bag: skipped, LB + X picks " .. tostring(pick and pick:getFullType()) .. " in a hand or on the belt first")
+        return
+    end
     press("LB", Joypad.XButton)
     say("LB + X from a bag queued: " .. table.concat(queueNames(), ", "))
 end)
-waitFor(1800, function() return chk and (p:getPrimaryHandItem() == chk or p:getSecondaryHandItem() == chk) and chk:isActivated() end, function()
+waitFor(1800, function() return bagSkip or (chk and (p:getPrimaryHandItem() == chk or p:getSecondaryHandItem() == chk) and chk:isActivated()) end, function()
     if not chk then return end
+    if bagSkip then
+        if tmpBag then
+            if chk:getContainer() == tmpBag:getInventory() then tmpBag:getInventory():Remove(chk); p:getInventory():AddItem(chk) end
+            if tmpBag:getContainer() then tmpBag:getContainer():Remove(tmpBag) end
+        end
+        return
+    end
     check(chk:getContainer() == p:getInventory(), "LB + X from a bag: the light is out of the bag")
     check(p:getPrimaryHandItem() == chk or p:getSecondaryHandItem() == chk, "LB + X from a bag: the light is in a hand")
     check(chk:isActivated(), "LB + X from a bag: the light is on")

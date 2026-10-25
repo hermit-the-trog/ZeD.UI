@@ -310,6 +310,20 @@ putBack:addItem(getText("UI_On"), false)
 ZeD.Settings.putBackOption = putBack
 ZeD.Settings.putBackOn = function() return (putBack:getValue() or 1) == 2 end
 
+-- ----- MESSAGES (director, Oct 24 2026; MESSAGES_SPEC.md; ZeD_Messages.lua) -----
+-- Another mod's note (one OK) is kept in the Messages window instead of covering the game,
+-- and a toast says it came. Both on for a new player (the approved mockup's defaults).
+local msgCatch = opts:addComboBox("messagesCatch", ZeD.tr("UI_ZeD_Settings_MsgCatch"), ZeD.tr("UI_ZeD_Settings_MsgCatchTip"))
+msgCatch:addItem(getText("UI_Off"), false)
+msgCatch:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch reads item 1 Off, item 2 On)
+ZeD.Settings.messagesCatchOption = msgCatch
+ZeD.Settings.messagesCatchOn = function() return (msgCatch:getValue() or 2) == 2 end
+local msgToast = opts:addComboBox("messagesToast", ZeD.tr("UI_ZeD_Settings_MsgToast"), ZeD.tr("UI_ZeD_Settings_MsgToastTip"))
+msgToast:addItem(getText("UI_Off"), false)
+msgToast:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch reads item 1 Off, item 2 On)
+ZeD.Settings.messagesToastOption = msgToast
+ZeD.Settings.messagesToastOn = function() return (msgToast:getValue() or 2) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -327,6 +341,7 @@ do
         glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
         putBack = "UI_ZeD_Settings_PutBack",
+        messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

@@ -244,15 +244,18 @@ end
 local function _wornWatch(player)
     local worn = _safe(function() return player:getWornItems() end, nil)
     if not worn then return nil end
+    local other, otherLoc
     for i = 0, worn:size() - 1 do               -- a Java list: 0-based, :get / :size
         local wi = worn:get(i)
         local item = wi and wi:getItem()
         if item and instanceof(item, "AlarmClockClothing") then
             local loc = tostring(wi:getLocation() or ""):lower()
-            if loc:find("wrist") or loc == "" then return item, loc end
+            -- the game's wrists, or a mod's own watch slot (Pack Mule moves watches to mule:left_watch)
+            if loc:find("wrist") or loc:find("watch") or loc == "" then return item, loc end
+            if not other then other, otherLoc = item, loc end   -- (worn anywhere else: still the watch)
         end
     end
-    return nil
+    return other, otherLoc
 end
 
 -- ---------------------------------------------------------------------------

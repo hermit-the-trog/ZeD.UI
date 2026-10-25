@@ -166,6 +166,8 @@ G.ZED_GROUPS = {
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
     { "UI_ZeD_Options_ZedPutBack", { { "putBack", "onoff" } } },
+    -- (Oct 24 2026, mockup zed_messages_v1: other mods' notes kept in Messages, ZeD_Messages)
+    { "UI_ZeD_Options_ZedMessages", { { "messagesCatch", "onoff" }, { "messagesToast", "onoff" } } },
     { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", danger = true, under = "UI_ZeD_Options_UnderSafeMode" },
                                      { "testLanguage", "onoff" } } },
 }

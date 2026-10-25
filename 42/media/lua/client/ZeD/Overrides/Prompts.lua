@@ -24,6 +24,7 @@
 
 require "ISUI/ISModalDialog"
 require "ISUI/ISModalRichText"
+require "ISUI/ISCollapsableModalRichText"
 require "ISUI/ISTextBox"
 require "ISUI/ISAlarmClockDialog"
 require "ISUI/ISBombTimerDialog"
@@ -37,16 +38,25 @@ local function ready()
     return ZeD and ZeD.T and ZeD.T.px and ZeD.Prompt and ZeD_Prompt ~= nil and not ZeD.Safe.on()
 end
 
--- cls:new(...) -> the ZeD prompt when called on the class itself
-local function hookNew(cls, name, build)
+-- cls:new(...) -> the ZeD prompt when called on the class itself. The prompt keeps the name
+-- of the other mod that opened it (ZeD.Messages.caller: nil for the game and ZeD), so its
+-- note can be kept in Messages and its answer copied there (ZeD_Messages.lua). onlyKept:
+-- a class built as a ZeD prompt only when its note is about to be kept (else vanilla's).
+local function hookNew(cls, name, build, onlyKept)
     if type(cls) ~= "table" or cls._zedPromptHooked then return end
     cls._zedPromptHooked = true
     local orig = cls.new
     cls._zedOrigNew = orig
     cls.new = function(self, ...)
         if self == cls and ready() then
+            local src = nil
+            if ZeD.Messages and ZeD.Messages.caller then
+                local okS, s = pcall(ZeD.Messages.caller)
+                if okS then src = s end
+            end
+            if onlyKept and not (src and onlyKept(src, ...)) then return orig(self, ...) end
             local ok, o = pcall(build, ...)
-            if ok and o then return o end
+            if ok and o then o._zedSource = src; return o end
             if not ok then print("[ZeD] Prompts: " .. name .. " kept vanilla's: " .. tostring(o)) end
         end
         return orig(self, ...)
@@ -142,6 +152,13 @@ local function apply()
     local P = ZeD.Prompt
     hookNew(ISModalDialog, "question", P.question)
     hookNew(ISModalRichText, "rich text", P.rich)
+    -- vanilla's collapsible rich-text note (Horse Mod's warning): a ZeD prompt only when it is
+    -- another mod's note that Messages keeps; every other use stays vanilla's window
+    if ISCollapsableModalRichText then
+        hookNew(ISCollapsableModalRichText, "collapsible rich text", P.rich, function(src, x, y, w, h, text, yesno)
+            return not yesno and ZeD.Messages.wouldKeep(src)
+        end)
+    end
     hookNew(ISTextBox, "text box", P.textBox)
     hookNew(ISAlarmClockDialog, "alarm", P.alarm)
     hookNew(ISBombTimerDialog, "timer", P.timer)

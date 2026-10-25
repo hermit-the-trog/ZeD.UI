@@ -42,6 +42,7 @@ local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
+local LAMP = 38            -- the Messages envelope (MESSAGES_SPEC.md), right of the off hand, while Messages keeps anything
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
@@ -593,9 +594,10 @@ function ZeD_BeltHUD:_layoutCached(slots)
     if ZeD.Watch and ZeD.Watch.beltWatch then wItem, wPlate, wWrist = ZeD.Watch.beltWatch(p) end
     local L = self._lk
     local n = #slots
+    local lamp = ZeD.Messages and ZeD.Messages.count() > 0 or false
     local now = getTimestampMs and getTimestampMs() or 0
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
-        or L.wWrist ~= wWrist or not self._provAt or now - self._provAt > 1000
+        or L.wWrist ~= wWrist or L.lamp ~= lamp or not self._provAt or now - self._provAt > 1000
     if not dirty then
         local types = L.types
         for i = 1, n do
@@ -604,13 +606,13 @@ function ZeD_BeltHUD:_layoutCached(slots)
         end
     end
     if dirty then
-        local w, h = self:_layout(slots, wItem, wPlate, wWrist)
+        local w, h = self:_layout(slots, wItem, wPlate, wWrist, lamp)
         local types = {}
         for i = 1, n do
             local s = slots[i]
             types[i] = s and s.slot and s.slot.slotType
         end
-        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, types = types, w = w, h = h }
+        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, types = types, w = w, h = h }
         return w, h
     end
     for _, b in ipairs(self._boxes) do
@@ -620,7 +622,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
 end
 
 -- Layout: boxes keyed for hit testing; returns the panel size
-function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist)
+function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp)
     local T = ZeD.T
     local px = T.px
     local n = #slots
@@ -679,6 +681,13 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist)
         watchBox.x = x
         boxes[#boxes + 1] = watchBox
         x = x + mw
+    end
+    -- the Messages envelope, last on the right (only while Messages keeps anything)
+    if lamp then
+        x = x + px(WRIST)
+        local lw = px(LAMP)
+        boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
+        x = x + lw
     end
     self._boxes = boxes
     local strapH = STRAP_H * T.art   -- the strap art's height at its whole zoom (STRAP_TEX_H texels)
@@ -742,7 +751,7 @@ end
 -- What a box would do with the current drag: "fit" / "no" / nil
 function ZeD_BeltHUD:_dropState(b, items)
     if not items then return nil end
-    if b.kind == "watch" then return "no" end
+    if b.kind == "watch" or b.kind == "lamp" then return "no" end
     if b.kind == "hand" then
         for _, it in ipairs(items) do if B.handTakes(it) then return "fit", it end end
         return "no"
@@ -1046,6 +1055,38 @@ function ZeD_BeltHUD:_drawBox(b, o)
     end
 end
 
+-- the Messages envelope (MESSAGES_SPEC.md): a box with the inbox icon and the count of what is
+-- new (Visual Catalog A12: the danger red when an error is new, the accent for a note)
+local lampTex = nil
+function ZeD_BeltHUD:_drawLamp(b, focus, hover)
+    local T = ZeD.T
+    local s1, bd, tc, ac = T.surf1, T.borderS, T.text, T.accent
+    self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
+    if hover then self:drawRect(b.x, b.y, b.w, b.h, 0.22, ac.r, ac.g, ac.b) end
+    self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
+    if lampTex == nil then lampTex = getTexture("media/textures/ZeD/icons/inbox-in.png") or false end
+    if lampTex then
+        local isz = math.floor(b.w * 0.6)
+        self:drawTextureScaledAspect(lampTex, b.x + math.floor((b.w - isz) / 2), b.y + math.floor((b.h - isz) / 2), isz, isz, 1, tc.r, tc.g, tc.b)
+    end
+    local un, err = ZeD.Messages.unread()
+    if un > 0 then
+        local t = tostring(un > 99 and "99" or un)
+        local f = T.fontF1
+        local tw, th = ZeD.TM:MeasureStringX(f, t), ZeD.TM:getFontHeight(f)
+        local pw, ph = tw + T.px(6), th + T.px(2)
+        local bx, by = b.x + b.w - pw + T.px(4), b.y - T.px(4)
+        local c = err and T.danger or ac
+        local ink = T.base or { r = 0.05, g = 0.05, b = 0.05 }
+        self:drawRect(bx, by, pw, ph, 1, c.r, c.g, c.b)
+        self:drawText(t, bx + T.px(3), by + T.px(1), ink.r, ink.g, ink.b, 1, f)
+    end
+    if focus then
+        local o3 = T.px(3)
+        self:drawRect(b.x - o3, b.y - o3, b.w + 2 * o3, b.h + 2 * o3, 0.55, ac.r, ac.g, ac.b)
+    end
+end
+
 -- a small ZeD label chip above a box (the slot's name and key on hover)
 function ZeD_BeltHUD:_chip(b, text)
     local T, tm = ZeD.T, ZeD.TM
@@ -1100,7 +1141,10 @@ function ZeD_BeltHUD:_prerender()
 
     for _, b in ipairs(self._boxes) do
         local o = {}
-        if b.kind == "watch" then
+        if b.kind == "lamp" then
+            self:_drawLamp(b, gpTarget == b, b == over and not dragging)
+            if b == over and not dragging then self._hover = { b = b } end
+        elseif b.kind == "watch" then
             ZeD.WatchMini.draw(self, b.x, b.y, b.plate, ZeD.Watch.miniState(p, b.item))
             if gpTarget == b then self:drawRect(b.x, b.y, b.w, b.h, 0.55, col(T.accent)) end
             if b == over and not dragging then self._hover = { b = b } end
@@ -1115,7 +1159,7 @@ function ZeD_BeltHUD:_prerender()
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
             o.lit = s.item and not instanceof(s.item, "HandWeapon") and call(s.item, "canBeActivated") and call(s.item, "isActivated")
         end
-        if b.kind ~= "watch" then
+        if b.kind ~= "watch" and b.kind ~= "lamp" then
             -- a drag in progress lights the boxes that take it (and dims the rest)
             if dragging then
                 local st = self:_dropState(b, dragging)
@@ -1137,6 +1181,9 @@ function ZeD_BeltHUD:_prerender()
         self:_chip(hv.b, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", ZeD.upper(s.name), s.key) or ZeD.upper(s.name))
     elseif hv and hv.b.kind == "hand" then
         self:_chip(hv.b, B.handName(hv.b.which))
+    elseif hv and hv.b.kind == "lamp" then
+        local un = ZeD.Messages.unread()
+        self:_chip(hv.b, ZeD.upper(ZeD.tr(un > 0 and "UI_ZeD_Msg_LampNew" or "UI_ZeD_Msg_Title", un)))
     elseif hv and hv.b.kind == "watch" then
         local id = ZeD.WatchMini.hit(hv.b.plate, mx - hv.b.x, my - hv.b.y)
         local name = ZeD.upper(call(hv.b.item, "getDisplayName") or ZeD.tr("UI_ZeD_Belt_Watch"))
@@ -1206,6 +1253,11 @@ function ZeD_BeltHUD:onMouseDown(x, y)
     if not self._drawn then return false end
     local b = self:boxAt(x, y)
     if not b then return false end
+    if b.kind == "lamp" then
+        pcall(function() getSoundManager():playUISound("UIActivateButton") end)
+        ZeD.Messages.open()
+        return true
+    end
     if b.kind == "watch" then
         local id = ZeD.WatchMini.hit(b.plate, x - b.x, y - b.y)
         if id then
@@ -1283,7 +1335,7 @@ function ZeD_BeltHUD:onRightMouseUp(x, y)
     if not self._drawn then return false end
     local b = self:boxAt(x, y)
     if not b then return false end
-    if b.kind == "watch" then return true end
+    if b.kind == "watch" or b.kind == "lamp" then return true end
     local p = self:player()
     if b.kind == "slot" then
         B.rightMenu(self.playerNum, b.i)
@@ -1303,7 +1355,7 @@ function B.takeDrop(playerNum, items)
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
     local b = hud:boxAt(mx, my)
-    if not b or b.kind == "watch" then return true end   -- over the strap or the watch: no drop to the floor either
+    if not b or b.kind == "watch" or b.kind == "lamp" then return true end   -- over the strap, the watch or the envelope: no drop to the floor either
     local st, it = hud:_dropState(b, items)
     if st ~= "fit" then return true end
     if b.kind == "hand" then
@@ -1420,6 +1472,10 @@ function ZeD_BeltHUD:onJoypadDown(button)
     end
     local b = self:_gpBox()
     if not b then return end
+    if b.kind == "lamp" then
+        if button == Joypad.AButton then ZeD.Messages.open() end
+        return
+    end
     if b.kind == "watch" then
         if button == Joypad.AButton then ZeD.Watch.act("start")
         elseif button == Joypad.XButton then ZeD.Watch.act("speed")

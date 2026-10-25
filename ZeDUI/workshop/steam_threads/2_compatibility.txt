@@ -1,22 +1,40 @@
 TITLE: Compatibility with other mods
 
-This thread keeps the list of mods tested with ZeD-GUI.
+[h1]Compatibility with other mods[/h1]
+This thread keeps the list of mods tested with ZeD-GUI, graded by how well they work together.
 
-[b]How ZeD-GUI works with other mods[/b]
+[h2]How the mods were tested[/h2]
 [list]
-[*]Mods that use the game's own systems work: context menu options, container buttons, items and recipes.
-[*]Buttons that other mods add to the game's inventory and character windows do not show while ZeD-GUI is on, because those windows are replaced.
-[*]Other mods that replace the whole interface do not work together with ZeD-GUI.
-[*]The desk's Mods screen lists conflicts between your mods (two mods with the same file, item or recipe) and which copy the game uses.
+[*]Oct 24 2026, ZeD-GUI 0.2.0-t3 and the fixes below (0.2.0-t4), Project Zomboid 42.21, single player, a 1920x1080 window.
+[*]124 Workshop items (128 mods) on at once, ZeD-GUI loaded after them: a save loaded with all of them, then ZeD-GUI's own tests ran (66 of 73 before the game ran out of memory). 62 of those 66 passed as they do without other mods.
+[*]Every error in the game's log was checked for the mod that made it.
+[*]Each mod's own features were [b]not[/b] tried one by one. A note marked [i](expected)[/i] comes from how the mod works, not from a test.
 [/list]
 
-[b]To add a mod to the list[/b], reply with the mod's name, its Workshop link, and what happened: it works, it works with a problem (say which), or it does not work.
+[h2]Grades[/h2]
+[list]
+[*][b]A[/b] | Works. Loads with ZeD-GUI, no errors of its own, ZeD-GUI's tests pass with it on.
+[*][b]B[/b] | Works, part of it does not show: it adds to a game screen that ZeD-GUI replaces.
+[*][b]C[/b] | Does the same job as ZeD-GUI. Keep one of the two.
+[*][b]D[/b] | Clashes: with both on, something happens twice or one undoes the other.
+[*][b]F[/b] | Does not work with ZeD-GUI.
+[*][b]X[/b] | Broken on 42.21 by itself, with or without ZeD-GUI.
+[/list]
+No mod tested so far is D or F.
 
-[b]Works[/b]
-(none tested yet)
+[h2]Found and fixed, in the next test build (0.2.0-t4)[/h2]
+[list]
+[*]Notes that mods open at game start (Horse Mod, Bandits, Companion Dogs) go into ZeD-GUI's new Messages window instead of covering the game, and a mod that pauses the game for its note no longer leaves it paused.
+[*]Another mod's error while the main screen builds (Change Sandbox Options has two on 42.21) left the game without the options screen or ZeD-GUI's pause window. ZeD-GUI now sets such a key binding to none, catches a mod's options page that fails, and builds its menu even when another mod's step fails.
+[*]A watch worn in a mod's own watch slot (Pack Mule) did not show on the belt. The belt now finds the watch wherever it is worn.
+[/list]
 
-[b]Works with a problem[/b]
-(none yet)
+[h2]Broken on 42.21 by themselves (X)[/h2]
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2894296454]Change Sandbox Options[/url] by star: Two errors of its own on 42.21: a key binding with no key (it stopped the game's options screen), and a main-screen step that looks for a quit button the game no longer makes (it stopped ZeD's pause window). ZeD-GUI 0.2.0-t4 works around both.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2875848298]Common Sense[/url] by Braven: Stops the world from loading on 42.21: its recipes ask for a fluid, Alcohol, that the game no longer has. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2737665235]Ladders!?[/url] by co`: Its ladder code errors as the world loads (setLadderClimbingFlags). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403180543]Week One NPC[/url] by Slayer: Its scheduler errors once a game minute in an existing save (generateSchedule). ZeD is not in the error.
+[/list]
 
-[b]Does not work[/b]
-(none yet)
+[b]To add a mod to the list[/b], reply with the mod's name, its Workshop link, and what happened. The grades are in the next posts; mods ZeD-GUI does the job of, and their makers, are in the last one.

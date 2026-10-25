@@ -1810,6 +1810,35 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
+| `UI_ZeD_Msg_Answered` | `answered %1` | Messages: a card's head once its button was pressed; %1 = the button ("OK") | 24 |
+| `UI_ZeD_Msg_AtStart` | `at game start` | Messages: a card's head, after the time, for a note that came in the first minute of play | 20 |
+| `UI_ZeD_Msg_Choose` | `Choose` | Messages: the strip, the A button's word | 12 |
+| `UI_ZeD_Msg_Clear` | `Clear` | Messages: footer button, removes the chosen mod's messages | 12 |
+| `UI_ZeD_Msg_Copied` | `Copied` | Messages: the Copy for a bug report button after it was pressed | 18 |
+| `UI_ZeD_Msg_Copy` | `Copy for a bug report` | Messages: an error card's button, puts that mod's errors on the clipboard | 26 |
+| `UI_ZeD_Msg_CountStat` | `%1 kept` | Messages: the title bar's count, and the ZeD wheel's Messages slice; %1 = how many messages | 14 |
+| `UI_ZeD_Msg_DpadMove` | `D-PAD Move` | Messages: the strip on a controller | 14 |
+| `UI_ZeD_Msg_ErrorCount` | `%1 errors from %2` | Messages: an error card's first line; %1 = how many, %2 = the mod's name | - |
+| `UI_ZeD_Msg_Errors` | `Errors` | Messages: the list's second heading (mods whose code made Lua errors) | 14 |
+| `UI_ZeD_Msg_FromMods` | `From mods` | Messages: the list's first heading (mods that opened a note) | 14 |
+| `UI_ZeD_Msg_Help` | `A mod's notes and errors land here instead of on top of the game. Questions still ask at once.` | Messages: the help line above the footer | - |
+| `UI_ZeD_Msg_KindAnswered` | `Answered` | Messages: a card's tag, a question you already answered (a copy) | 10 |
+| `UI_ZeD_Msg_KindError` | `Error` | Messages: a card's tag, a mod's Lua errors | 10 |
+| `UI_ZeD_Msg_KindNote` | `Note` | Messages: a card's tag, a mod's note (one OK button) | 10 |
+| `UI_ZeD_Msg_LampNew` | `Messages | %1 new` | The belt's envelope: its name chip on hover; %1 = how many are new | 22 |
+| `UI_ZeD_Msg_MarkAllRead` | `Mark all read` | Messages: footer button (the main one) | 16 |
+| `UI_ZeD_Msg_New` | `%1 new` | The ZeD wheel's Messages slice, its second line; %1 = how many are new | 10 |
+| `UI_ZeD_Msg_None` | `No messages.` | Messages: an empty list; the ZeD wheel's Messages slice when nothing is kept | - |
+| `UI_ZeD_Msg_NoneHelp` | `Notes and errors from other mods land here.` | Messages: the empty right side | - |
+| `UI_ZeD_Msg_ShowPopups` | `Show this mod's notes as pop-ups` | Messages: footer tick box for the chosen mod (its notes then open on top of the game, as before) | - |
+| `UI_ZeD_Msg_TheGame` | `Project Zomboid` | Messages: the source name for an error no mod is named in | - |
+| `UI_ZeD_Msg_Title` | `Messages` | The Messages window's title; the ZeD wheel slice; the belt envelope's chip when nothing is new | 14 |
+| `UI_ZeD_Msg_ToastError` | `Error` | A toast's tag (upper case on screen) when a mod's error comes | 8 |
+| `UI_ZeD_Msg_ToastErrors` | `%1 errors` | An error toast's text; %1 = how many so far | 12 |
+| `UI_ZeD_Msg_ToastMod` | `Mod` | A toast's tag (upper case on screen) when a mod's note comes | 8 |
+| `UI_ZeD_Msg_ToastNote` | `a note` | A note toast's text, after the mod's name | 12 |
+| `UI_ZeD_Msg_When` | `Day %1, %2` | Messages: a card's time; %1 = the day of play, %2 = the time ("7:42") | - |
+| `UI_ZeD_Msg_YouAnswered` | `You answered %1.` | Messages: under a copied question; %1 = the button you pressed | - |
 | `UI_ZeD_NewGame_PromptChooseMods` | `Choose mods` | New game screen: controller prompt (Y button) | 14 |
 | `UI_ZeD_NewGame_Title` | `Project Zomboid  +  New game` | New game screen: title bar. The + is the ZeD title separator | - |
 | `UI_ZeD_NewGame_TitleChallenges` | `Project Zomboid  +  Challenges` | New game screen: title bar while the challenges are shown | - |
@@ -1947,6 +1976,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_ZedControls` | `Controls` | (existing) | - |
 | `UI_ZeD_Options_ZedHud` | `HUD` | (existing) | - |
 | `UI_ZeD_Options_ZedLook` | `Look` | (existing) | - |
+| `UI_ZeD_Options_ZedMessages` | `Messages` | ZeD setup: the section heading for the Messages settings | 20 |
 | `UI_ZeD_Options_ZedPutBack` | `Put things back` | ZeD setup: section header over the Put things back switch | 30 |
 | `UI_ZeD_Options_ZedTrouble` | `Troubleshooting` | (existing) | - |
 | `UI_ZeD_Options_ZedWindows` | `Windows` | (existing) | - |
@@ -2311,6 +2341,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_MoodlesLeft` | `Left edge` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
 | `UI_ZeD_Settings_MoodlesRight` | `Right edge` | Options > Mods > ZeD-GUI: choice of the moodle placement setting | - |
 | `UI_ZeD_Settings_MoodlesTip` | `Where the moodles sit. Right edge or Left edge: a column centered on the middle of the screen. Bottom: a row above the belt (above the dashboard in a car).` | Options > Mods > ZeD-GUI: hover help of the moodle placement setting | - |
+| `UI_ZeD_Settings_MsgCatch` | `Keep other mods' notes in Messages` | ZeD setup, Messages: the switch | - |
+| `UI_ZeD_Settings_MsgCatchTip` | `A note another mod opens (one OK button) goes into the Messages window instead of covering the game. Questions still ask at once. Off: every note opens as before.` | ZeD setup, Messages: the help for the switch | - |
+| `UI_ZeD_Settings_MsgToast` | `Show a toast when one comes` | ZeD setup, Messages: the switch | - |
+| `UI_ZeD_Settings_MsgToastTip` | `A small strip at the right of the screen for six seconds names the mod. Click it to open Messages.` | ZeD setup, Messages: the help for the switch | - |
 | `UI_ZeD_Settings_PutBack` | `Put things back after an action` | ZeD setup / Options > Mods > ZeD-GUI: the switch's name | 40 |
 | `UI_ZeD_Settings_PutBackTip` | `When on, whatever an action takes out of a bag, a container in reach or off the floor goes back where it came from once the action finishes, leftovers too, and your hands as they were. The game's own move action, so it takes the same game time. Not after an interruption.` | ZeD setup: the help band for Put things back | - |
 | `UI_ZeD_Settings_SafeMode` | `Safe mode` | Options > Mods > ZeD-GUI: name of the safe mode setting | - |
