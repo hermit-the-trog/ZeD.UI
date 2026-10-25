@@ -1,13 +1,14 @@
 # Handoff to Code: the two-way radios' faces in the radio tab (Oct 25 2026)
 
-Approved by the director on Oct 25. He asked for the faces with "mock up the walkie talkie faces, to replace the ones in the radio tab. it will be a panel the size of the info card, not full width" and "Need to match the face to the model in game. And we need to mock up the large table top radio controls". He then picked the full drawer width for the ham sets and asked for the ManPack with the walkies. His last change was "squircle the speaker grills", and he signed off with "OK. Put together the handoff".
+Approved by the director on Oct 25. He asked for the faces with "mock up the walkie talkie faces, to replace the ones in the radio tab. it will be a panel the size of the info card, not full width" and "Need to match the face to the model in game. And we need to mock up the large table top radio controls". He then picked the full drawer width for the ham sets and asked for the ManPack with the walkies. Then he asked for "squircle the speaker grills". After the first handoff he revised it: "faces only, no antenna or mic. clicking full view will show without. full view is like the watch, no window frame". He chose to move the knobs and push-to-talk onto the face, and for full view to open both ways (a button and a click on the face).
 
 ## Where things are
 - **Mockup:** `ZeDUI/mockups/zed_twoway_v1/`.
 - **Review sheets:**
   - `walkies_vs_game_2x.png` and `hams_vs_game_2x.png` show each face beside the game's own art.
   - `walkies_2x.png` and `hams_2x.png` are the faces alone.
-  - `radio_tab_comp_4k.png` shows a ValuTech walkie and the Premium Technologies ham dropped into the World window's radio tab at 4K.
+  - `radio_tab_comp_4k.png` shows a ValuTech walkie and the Premium Technologies ham dropped into the World window's radio tab at 4K, with the full view button.
+  - `full_walkie_4k.jpg` and `full_ham_4k.jpg` show full view: a face on its own over the world, no window frame.
 - **Source** (`src/`):
   - `d_walkie.py` holds the ten designs, written for `ZeDUI/tools/physpx`.
   - `walkie_sheet.py` builds the preview states and sheets.
@@ -18,8 +19,10 @@ Approved by the director on Oct 25. He asked for the faces with "mock up the wal
 ## 1. What changes
 In the Character and World windows' radio tab, a radio that is two-way (`deviceData:getIsTwoWay()`) is drawn as its own face, a physpx plate like the car radios'. The AM/FM radios (Premium Technologies, ValuTech, makeshift) keep today's chassis.
 
-- **Walkies:** each one, the ManPack included, is a **220 x 330** panel. That is the item card's compact width.
+- **Faces only.** No antenna, no microphone, and nothing standing off the front. The knobs and the push-to-talk key are on the face.
+- **Walkies:** each face is **200 x 360** (the ManPack's box is **200 x 280**). It sits centred in a panel the item card's compact width, 220.
 - **Ham sets:** the three tabletop sets are **400 x 172** and fill the drawer's width.
+- **Full view:** the same face on its own, with no window frame, like the watch. See section 3a.
 
 ## 2. Which radio gets which face
 
@@ -43,7 +46,7 @@ The ham faces follow the placed tiles: silver, olive, and the wooden crate. They
 
 ## 3. Placement in the tab
 - **Header:** the item's display name, as today. The browse buttons and the slot tag are unchanged.
-- **Walkie panels:** drawn at whole multiples `k` (the same `k` as the plates), at the content area's left edge, just under the header. The rest of the drawer stays empty, as drawn in the composite.
+- **Walkie panels:** a 220-wide panel at the content area's left edge, just under the header. The face is centred in it, 10 px either side (at k, whole multiples, the same `k` as the plates). The rest of the drawer stays empty, as drawn in the composite.
 - **Ham panels:** centred across the drawer.
   - The drawer measured 402 design px wide in the 4K capture, so 400 fits.
   - Check the narrowest the World and Character windows let the drawer get. If it can go under 400, tell me and I'll make a narrower ham layout. Don't scale the plate.
@@ -51,6 +54,16 @@ The ham faces follow the placed tiles: silver, olive, and the wooden crate. They
   - `* 2-WAY PORTABLE` for the walkies and the ManPack;
   - `* 2-WAY BASE SET` for the hams.
   - Both are new keys: `UI_ZeD_Radio_TwoWayPortable` and `UI_ZeD_Radio_TwoWayBase`.
+
+## 3a. Full view
+- **Opening it:** either way opens it:
+  - a **full view button** at the header's right end, beside the radio's name, with the map's pop-out button's size and look. Pressed again, it closes full view.
+  - a click on **any part of the face that isn't a control**, as the belt watch's small face pops the full watch.
+- **What it is:** the same plate, drawn on its own over the world at the plate scale, with **no window frame**, like the watch popped from the belt (`ZeD_Watch.lua`: frameless, drag it by any part that isn't a control, the place kept per character).
+  - Every control works there as in the tab. It reads the same radio the tab is showing.
+  - It sits where the player last dragged it. The first time, it goes centre right of the play area, clear of the belt.
+- **Closing it:** the header button again, B or Esc, or the radio going out of reach (dropped, picked up by someone else, walked away from). It doesn't tuck itself away on a timer like the watch: a radio is listened to.
+- **Gamepad:** the full view takes focus while open. The plate's hits use the same order as in the tab, and B closes it.
 
 ## 4. Pipeline
 1. **Copy** `src/d_walkie.py` to `ZeDUI/tools/physpx/`.
@@ -104,20 +117,20 @@ They are the car two-way's verbs, so `ZeD.RadioOps` should drive them.
 
 | Hit | Does | On |
 |---|---|---|
-| `vol` (turn) | power and volume, the way the car two-way's VOL - PWR knob works today (press: power, turn: volume) | all |
-| `tune` (turn) | the frequency, in the radio's step | all |
+| `vol` (turn) | power and volume, the way the car two-way's VOL - PWR knob works today (press: power, turn: volume). Its pointer follows `volF` | all |
+| `tune` (turn) | the frequency, in the radio's step. Its pointer follows `tuneF` | all |
 | `chup` / `chdn` | step through the memory channels (the radio's presets) | all but the toy |
 | `mem` | store the frequency in the current memory; held (`O.HOLD_MS`) opens the naming, as on the car | all but the toy |
-| `mic` | push to talk: latches the mic live, again to mute (`setMicIsMuted`) | all |
+| `mic` | push to talk: latches the mic live, again to mute (`setMicIsMuted`). It's the PUSH TO TALK key on the walkies and the ManPack, the toy's round red TALK button, the makeshift walkie's taped microswitch, the green MIC switch on the civilian and army hams, and the makeshift ham's TALK / LISTEN toggle | all |
 | `mute` | the car's MUTE | Tactical, US Army, ManPack, the three hams |
 | `scan` | the car's SCAN | Tactical, US Army, the civilian and army hams |
 | `p1`..`p6` | straight to memory 1..6 (as the car premium's presets) | army ham |
 | `lamp` | **new**: the backlight for 5 s. While it's lit, the display draws at full brightness in the dark, the way the CaZio watches' LIGHT does (0817d2d2). It needs a state field (e.g. `lampLit`) that the display's night pass reads | Tactical, US Army |
 
 Notes:
-- **The walkies' two top knobs** (`vol`, `tune`) have no pointer. Their settings show on the screen (VOL bars, the frequency).
-- **The side bar** is `mic` on every walkie. On the ManPack it's the handset's bar.
-- **The hams' desk mic** stem bar is `mic` on the civilian and army sets. The makeshift ham's mic is wired to its TALK / LISTEN toggle, which is the `mic` hit.
+- **Knobs:** on every face, VOL - PWR at the top left and TUNE (FREQ, DIAL) at the top right or beside it, each with a live pointer. The makeshift sets use pots.
+- **The MIC jack** on the hams is only a socket on the face. No microphone is drawn.
+- **The face click:** a click that lands on no hit opens full view (3a).
 - **Gamepad focus order:** reading order, top to bottom and left to right, with the turn hits taking the D-pad as the car's do.
 
 ### RadioOps on item and world radios
@@ -132,10 +145,17 @@ Notes:
    - The army ham's 1 to 6 keys jump straight to a memory.
    - The toy has none.
 4. **Talk:**
-   - The side bar, handset or desk mic toggles the mic.
+   - The push-to-talk key (or switch) toggles the mic.
    - The TX lamp and the readout's TX / MIC OFF agree with vanilla's radio window.
    - The makeshift ham's toggle flips.
 5. **Battery and grid:** a walkie's BAT bars drain. A placed ham on a generator shows AC.
 6. **Hams:** the arc marker moves with the frequency, and RANGE matches TransmitRange.
 7. **LAMP:** the screen lights for 5 s in the dark.
 8. **Width:** the narrowest drawer still fits a ham. If not, tell me.
+9. **Full view:**
+   - It opens from the header button and from a click on the face away from the controls.
+   - It shows no frame.
+   - It drags by the face, and the place is kept after a reload.
+   - Every control works in it.
+   - The button, B or Esc closes it, and so does the radio going out of reach.
+   - With a gamepad, it takes focus and B closes it.

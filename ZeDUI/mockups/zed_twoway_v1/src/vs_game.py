@@ -31,7 +31,7 @@ def walkies(k=2, pad=16):
             "walkie_tactical": [tile(40), tex("Tactical")], "walkie_army": [tile(48), tex("USArmy")], "walkie_makeshift": [tex("Makeshift")],
             "walkie_manpack": [icon("ManPack")]}
     ims = [(e[0], WS.build(e)[2]) for e in WS.MODELS]
-    colw = 220 * k + pad; H = pad + 170 + 330 * k + pad + 20
+    colw = 220 * k + pad; H = pad + 170 + 360 * k + pad + 20
     s = Image.new("RGBA", (pad + colw * len(ims), H), (30, 30, 32, 255)); d = ImageDraw.Draw(s)
     for i, (nm, on) in enumerate(ims):
         x = pad + i * colw; rx = x
