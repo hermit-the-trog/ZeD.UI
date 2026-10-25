@@ -276,9 +276,9 @@ def con_fleet(b, top="siren", badge_role="unit", chrome=False):
     elif top == "meter":
         px_, py_ = taxi_meter6(b, 512, 26)
         meter_flag_variants(b, px_, py_)
-        badge(b, 650, 30, 92, 12, style="stencil", role=badge_role, font="35", color="#e8e8e0", plate="stencil")
+        badge(b, 650, 33, 92, 12, style="stencil", role=badge_role, font="35", color="#e8e8e0", plate="stencil")
         vent_eyeball(b, 764, 44, 14, bezel="blackp")
-        v6.hula(b, 690, 0)
+        v6.hula(b, 684, 0)
     headunit_slot(b, 518, 76, frame="bezel")
     if top == "meter": ash_tray(b, 706, 76, chrome=False, butts=10, seed=11)
     else: no_smoking(b, 706, 76)
