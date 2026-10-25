@@ -219,7 +219,8 @@ def valutech(worn=True):
     p.label("FM STEREO", 14, 22, "paint_c", auto_ink=False)
     display(p, "valutech", 150, 12, 150, 38)
     radio_key(p, "mute", 310, 22, 40, 17, "MUTE")
-    radio_key(p, "seek", 310, 44, 40, 17, "SEEK", wear=0.12 if worn else 0)
+    # SEEK left of the display, level with MUTE (director, Oct 25 2026: under MUTE it crowded the presets)
+    radio_key(p, "seek", 100, 22, 40, 17, "SEEK", wear=0.12 if worn else 0)
     used = {1: 0.2, 2: 0.15, 4: 0.1}
     for i in range(6):
         radio_key(p, f"p{i + 1}", 92 + i * 46, 62, 40, 17, str(i + 1), wear=used.get(i + 1, 0.0) if worn else 0)

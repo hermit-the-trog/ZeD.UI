@@ -10,7 +10,7 @@
 -- (ZeD_MessagesWindow.lua) presses its buttons, which still run the mod's
 -- callback. A question still asks at once; its answer is copied here. The game's
 -- own error list is read every two seconds and filed per mod. A toast says
--- what came (ZeD_MessagesWindow.lua draws it); the belt shows an envelope with
+-- what came (ZeD_MessagesWindow.lua draws it); the belt shows a paper note with
 -- the count while anything is kept (ZeD_Belt.lua).
 --
 -- Who opened a pop-up: the nearest Lua file on the call stack that belongs to
@@ -280,7 +280,8 @@ local lastErr = nil
 -- exception "java.lang.RuntimeException: ...", its stack dumps): the exception counts and
 -- opens a record, the others are added to the record before them
 local function fileError(s)
-    local name = s:match("%(%(MOD:([^%)]+)%)%)") or ZeD.tr("UI_ZeD_Msg_TheGame")
+    -- (up to the closing "))": a mod name may hold a bracket of its own, "Ladders!? (v0.0.13)")
+    local name = s:match("%(%(MOD:(.-%)*)%)%)") or ZeD.tr("UI_ZeD_Msg_TheGame")
     local src = M.sources[name]
     local item = src and src.kind == "err" and src.items[1]
     if not item then
@@ -370,7 +371,7 @@ Events.OnGameStart.Add(function()
 end)
 Events.OnRenderTick.Add(frame)
 
--- open the window (the belt's envelope, a toast, the ZeD wheel)
+-- open the window (the belt's note, a toast, the ZeD wheel)
 function M.open(name)
     if ZeD.MessagesWindow and ZeD.MessagesWindow.open then ZeD.MessagesWindow.open(0, name) end
 end
