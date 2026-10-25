@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZeD Messages v1</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ZeD-UI Messages v1 (Oct 24 2026). Reuses Visual Catalog v2.0: A12 notification badge,
+   A14 part status dot, O05 modal dialog, O12 toast alerts, window frame (title bar stripes). */
+:root{--b:#0C0C0C;--s1:#131313;--s2:#1A1A1A;--s3:#222222;--s4:#2A2A2A;--bd:#2A2A2A;--bs:#3A3A3A;--ac:#D4922A;--acb:#E8A830;
+--hov:rgba(212,146,42,0.22);--tx:rgba(200,200,200,0.86);--ts:rgba(150,150,150,0.62);--th:rgba(212,200,180,0.92);--toa:#0C0C0C;
+--dng:#C45A2A;--wrn:#C49A2A;--pos:#7A9A34;--inf:#5A8A9A;--m:'Fira Mono',monospace;--s:'Fira Sans',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--b);color:var(--tx);font-family:var(--s);font-size:13px;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+h1{font-family:var(--m);font-size:15px;letter-spacing:3px;color:var(--th)}
+.sub{font-family:var(--m);font-size:11px;color:var(--ts);margin:4px 0 12px}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.btn{font-family:var(--m);font-size:11px;padding:4px 10px;border:1px solid var(--bs);background:var(--s2);color:var(--tx);cursor:pointer;border-radius:3px}
+.btn:hover{background:var(--hov)}
+.btn.primary{border:3px double var(--ac);color:var(--acb)}
+.btn.on{background:var(--ac);color:var(--toa);border-color:var(--ac)}
+/* the game screen */
+.scene{position:relative;height:620px;border:1px solid var(--bs);overflow:hidden;
+ background:radial-gradient(ellipse at 45% 40%,#2c3320 0%,#1c2216 45%,#0f120c 100%)}
+.scene::after{content:'';position:absolute;inset:0;pointer-events:none;
+ background:repeating-linear-gradient(135deg,rgba(255,255,255,0.015) 0 2px,transparent 2px 22px)}
+.char{position:absolute;left:47%;top:44%;width:14px;height:34px;background:#d8d2c4;border-radius:5px 5px 2px 2px;box-shadow:0 30px 0 -8px #3a3f55}
+/* moodles (right) */
+.moodles{position:absolute;right:14px;top:120px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.moodle{width:30px;height:30px;border:1px solid var(--bs);background:var(--s2);font-family:var(--m);font-size:10px;display:flex;align-items:center;justify-content:center;color:var(--th)}
+/* the Messages lamp: on the belt, left of the buckle */
+.belt{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:6px 10px;background:linear-gradient(#3b2a1b,#2a1d12);border:1px solid #4a3522;z-index:2}
+.slot{width:46px;height:40px;border:1px solid var(--bs);background:var(--s1);font-family:var(--m);font-size:8px;color:var(--ts);display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;position:relative}
+.slot .k{position:absolute;left:0;top:0;background:#3c6e6e;color:#dff;font-size:9px;padding:0 3px}
+.buckle{width:64px;height:36px;border:2px solid #a08640;background:linear-gradient(#cdb26a,#8d7434);color:#3a2e12;font-family:var(--m);font-size:7px;font-weight:700;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px}
+.hand{width:44px;height:44px;border-radius:50%;border:1px solid var(--bs);background:var(--s1)}
+.lamp{position:relative;width:34px;height:40px;border:1px solid var(--bs);background:var(--s1);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lamp svg{width:22px;height:16px}
+.lamp .badge{position:absolute;top:-6px;right:-6px;background:var(--dng);color:var(--toa);font-family:var(--m);font-size:9px;font-weight:700;padding:1px 4px}
+.lamp.warn .badge{background:var(--wrn)}
+.lamp .none{display:none}
+.lamp:hover{background:var(--hov)}
+/* O12 toasts, under the moodles */
+.toasts{position:absolute;right:54px;top:120px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;z-index:3}
+.toast{padding:6px 10px;border:1px solid;font-size:12px;display:flex;align-items:center;gap:8px;max-width:330px;background:rgba(12,12,12,0.92);cursor:pointer;animation:in .25s ease-out}
+.toast .t-t{font-size:10px;font-family:var(--m);font-weight:700}
+.toast.info{border-color:var(--inf);color:var(--inf)} .toast.warn{border-color:var(--wrn);color:var(--wrn)} .toast.crit{border-color:var(--dng);color:var(--dng)}
+.toast .t-b{color:var(--tx);font-family:var(--s)}
+@keyframes in{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+/* window frame (catalog) */
+.win{position:absolute;left:50%;top:40px;transform:translateX(-50%);width:760px;max-width:calc(100% - 24px);background:rgba(19,19,19,0.96);border:1px solid var(--bs);z-index:4;display:none}
+.win.open{display:block}
+.win-tb{height:24px;background:var(--s2);border-bottom:1px solid var(--bs);display:flex;align-items:center;position:relative;overflow:hidden}
+.win-tb::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.05) 2px,rgba(255,255,255,0.05) 4px)}
+.win-cb{width:12px;height:12px;border:1px solid var(--bs);margin-left:6px;flex-shrink:0;position:relative;z-index:1;background:var(--s2);cursor:pointer}
+.win-cb:hover{background:var(--dng)}
+.win-tt{font-size:12px;color:var(--th);font-family:var(--m);font-weight:700;position:relative;z-index:1;background:var(--s2);padding:0 10px;margin:0 auto}
+.win-body{display:flex;height:400px}
+.srcs{width:250px;border-right:1px solid var(--bd);overflow:auto}
+.sec-h{font-family:var(--m);font-size:10px;letter-spacing:.08em;color:var(--ac);font-weight:700;padding:8px 10px 4px;text-transform:uppercase}
+.src{display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;border-left:3px solid transparent}
+.src:hover{background:var(--hov)}
+.src.sel{background:rgba(212,146,42,0.55);color:var(--toa);border-left-color:var(--acb)}
+.src.sel .n,.src.sel .cat{color:var(--toa)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.unread{background:var(--ac)} .dot.read{background:transparent;border:1px solid var(--bs)} .dot.err{background:var(--dng)}
+.src .nm{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src .n{font-family:var(--m);font-size:10px;color:var(--ts)}
+.msgs{flex:1;overflow:auto;padding:10px 14px}
+.msg{border:1px solid var(--bd);background:var(--s1);margin-bottom:10px}
+.msg-h{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--bd);font-family:var(--m);font-size:10px;color:var(--ts)}
+.msg-h .kind{padding:1px 5px;border:1px solid;font-weight:700}
+.kind.note{color:var(--inf);border-color:var(--inf)} .kind.ask{color:var(--wrn);border-color:var(--wrn)} .kind.err{color:var(--dng);border-color:var(--dng)} .kind.news{color:var(--pos);border-color:var(--pos)}
+.msg-b{padding:10px;line-height:1.5}
+.msg-b h3{font-family:var(--m);font-size:12px;color:var(--th);margin-bottom:4px}
+.msg-b .red{color:#d97a5a}
+.msg-b pre{font-family:var(--m);font-size:11px;color:var(--ts);white-space:pre-wrap;background:var(--b);border:1px solid var(--bd);padding:6px;margin-top:6px}
+.msg-a{display:flex;gap:6px;justify-content:flex-end;padding:0 10px 10px}
+.foot{display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid var(--bs);background:var(--s2)}
+.foot .grow{flex:1}
+.chk{display:inline-flex;align-items:center;gap:6px;font-family:var(--m);font-size:11px;color:var(--tx);cursor:pointer}
+.chk i{width:12px;height:12px;border:1px solid var(--bs);background:var(--s1);display:inline-flex;align-items:center;justify-content:center;font-style:normal;color:var(--ac);font-size:10px}
+.help{font-family:var(--m);font-size:11px;color:var(--ts);padding:6px 10px;border-top:1px solid var(--bd)}
+/* O05: a question still asks at once */
+.modal{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:340px;background:var(--s1);border:1px solid var(--bs);z-index:5;display:none}
+.modal.open{display:block}
+.notes{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.note{border:1px solid var(--bd);background:var(--s1);padding:10px}
+.note h2{font-family:var(--m);font-size:11px;color:var(--ac);letter-spacing:.08em;margin-bottom:6px;text-transform:uppercase}
+.note p,.note li{font-size:12px;line-height:1.5;color:var(--tx)}
+.note ul{padding-left:16px}
+@media (max-width:760px){.win-body{flex-direction:column;height:auto}.srcs{width:auto;border-right:0;border-bottom:1px solid var(--bd);max-height:180px}.scene{height:760px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>MESSAGES | V1 MOCKUP</h1>
+<div class="sub">Pop-ups from other mods, caught and kept in one window. Click the toasts, the envelope on the belt, a source, the buttons.</div>
+<div class="ctl">
+ <span class="btn" onclick="arrive()">A mod opens a note</span>
+ <span class="btn" onclick="ask()">A mod asks a question</span>
+ <span class="btn" onclick="err()">A mod's Lua error</span>
+ <span class="btn" onclick="reset()">Start again</span>
+</div>
+
+<div class="scene" id="scene">
+ <div class="char"></div>
+ <div class="moodles"><div class="moodle">ZZ</div><div class="moodle">!</div></div>
+ <div class="toasts" id="toasts"></div>
+
+ <div class="belt">
+  <div class="hand"></div>
+  <div class="slot"><span class="k">1</span>BACK</div>
+  <div class="slot"><span class="k">2</span>HOLSTER</div>
+  <div class="lamp" id="lamp" title="Messages" onclick="openWin()">
+   <svg viewBox="0 0 22 16"><rect x="1" y="1" width="20" height="14" fill="none" stroke="#c8c8c8" stroke-width="1.5"/><path d="M1 1 L11 9 L21 1" fill="none" stroke="#c8c8c8" stroke-width="1.5"/></svg>
+   <span class="badge" id="badge">0</span>
+  </div>
+  <div class="buckle">KENTUCKY</div>
+  <div class="slot"><span class="k">3</span>BELT L</div>
+  <div class="slot"><span class="k">4</span>BELT R</div>
+  <div class="hand"></div>
+ </div>
+
+ <div class="win" id="win">
+  <div class="win-tb"><div class="win-cb" onclick="closeWin()" title="Close"></div><span class="win-tt">Messages</span></div>
+  <div class="win-body">
+   <div class="srcs" id="srcs"></div>
+   <div class="msgs" id="msgs"></div>
+  </div>
+  <div class="help" id="help">A mod's notes, news and errors land here instead of on top of the game. Questions still ask at once.</div>
+  <div class="foot">
+   <span class="chk" id="popchk" onclick="togglePop()"><i id="popx"></i>Show this mod's notes as pop-ups</span>
+   <span class="grow"></span>
+   <span class="btn" onclick="copyErr()" id="copybtn">Copy for a bug report</span>
+   <span class="btn" onclick="clearSel()">Clear</span>
+   <span class="btn primary" onclick="markAll()">Mark all read</span>
+  </div>
+ </div>
+
+ <div class="modal" id="modal">
+  <div class="win-tb"><div class="win-cb"></div><span class="win-tt">Survivor Briefing</span></div>
+  <div style="padding:12px"><div style="margin-bottom:12px;line-height:1.5">Show the briefing for this character now? You can read it later in Messages.</div>
+  <div style="display:flex;gap:6px;justify-content:flex-end"><span class="btn" onclick="answer(false)">Later</span><span class="btn primary" onclick="answer(true)">Show it</span></div></div>
+ </div>
+</div>
+
+<div class="notes">
+ <div class="note"><h2>What is caught</h2><ul>
+  <li><b>Notes</b> (one OK button) made with the game's dialog classes: ZeD already redraws these as its prompts, so it can keep them instead.</li>
+  <li><b>Mod windows</b> that are notes in all but name (Horse Mod's warning): caught by the "Send to Messages" button ZeD adds to their title bar, then caught every time.</li>
+  <li><b>News</b> that mods show at the main menu (changelog windows).</li>
+  <li><b>Lua errors</b>, counted per mod from the game's own error list, with the first lines for a bug report.</li>
+ </ul></div>
+ <div class="note"><h2>What is not</h2><ul>
+  <li><b>Questions</b> (Yes / No, a text box) still ask at once, as ZeD prompts; they are copied into Messages after the answer.</li>
+  <li>ZeD's own prompts, the game's tutorial and death screens.</li>
+  <li>Floating text over the character (halo text) stays where it is.</li>
+ </ul></div>
+ <div class="note"><h2>Where it opens</h2><ul>
+  <li>In game: the envelope on the belt (a count when something is new), the ZeD wheel's Messages slice on a controller.</li>
+  <li>At the desk: ZeD menu, Messages.</li>
+  <li>Options, ZeD setup, Messages: catch notes (on), show a toast (on), per mod "show as pop-ups".</li>
+ </ul></div>
+</div>
+</div>
+
+<script>
+const S = { srcs: [], sel: 0, pop: {} };
+function src(name, kind) { let s = S.srcs.find(x => x.name === name); if (!s) { s = { name, kind, items: [] }; S.srcs.push(s); } return s; }
+function add(name, kind, item) { const s = src(name, kind); s.items.unshift(Object.assign({ read: false, when: "Day 1, 7:0" + (S.srcs.length + s.items.length) + " AM" }, item)); render(); }
+function toast(cls, tag, body) {
+  const t = document.createElement("div"); t.className = "toast " + cls; t.onclick = () => { openWin(); t.remove(); };
+  t.innerHTML = '<span class="t-t">' + tag + '</span><span class="t-b">' + body + '</span>';
+  document.getElementById("toasts").appendChild(t); setTimeout(() => t.remove(), 6000);
+}
+function unread() { return S.srcs.reduce((n, s) => n + s.items.filter(i => !i.read).length, 0); }
+function render() {
+  const n = unread(), b = document.getElementById("badge"), lamp = document.getElementById("lamp");
+  b.textContent = n; b.className = "badge" + (n ? "" : " none");
+  lamp.className = "lamp" + (S.srcs.some(s => s.kind === "err" && s.items.some(i => !i.read)) ? "" : " warn");
+  const L = document.getElementById("srcs"); L.innerHTML = "";
+  const groups = [["mods", "From mods"], ["err", "Errors"]];
+  groups.forEach(([k, h]) => {
+    const list = S.srcs.filter(s => (k === "err") === (s.kind === "err")); if (!list.length) return;
+    const hd = document.createElement("div"); hd.className = "sec-h"; hd.textContent = h; L.appendChild(hd);
+    list.forEach(s => {
+      const i = S.srcs.indexOf(s), u = s.items.filter(x => !x.read).length;
+      const r = document.createElement("div"); r.className = "src" + (i === S.sel ? " sel" : ""); r.onclick = () => { S.sel = i; s.items.forEach(x => x.read = true); render(); };
+      r.innerHTML = '<span class="dot ' + (s.kind === "err" ? "err" : (u ? "unread" : "read")) + '"></span><span class="nm">' + s.name + '</span><span class="n">' + s.items.length + '</span>';
+      L.appendChild(r);
+    });
+  });
+  const M = document.getElementById("msgs"); M.innerHTML = "";
+  const s = S.srcs[S.sel];
+  if (!s) { M.innerHTML = '<div style="color:var(--ts);font-family:var(--m);font-size:11px">No messages.</div>'; }
+  else s.items.forEach(it => {
+    const d = document.createElement("div"); d.className = "msg";
+    d.innerHTML = '<div class="msg-h"><span class="kind ' + it.k + '">' + ({ note: "NOTE", ask: "ANSWERED", err: "ERROR", news: "NEWS" })[it.k] + '</span><span>' + s.name + ' | ' + it.when + (it.at ? ' | ' + it.at : '') + '</span></div><div class="msg-b">' + it.body + '</div>' +
+      (it.acts ? '<div class="msg-a">' + it.acts.map((a, j) => '<span class="btn' + (j === it.acts.length - 1 ? ' primary' : '') + '">' + a + '</span>').join("") + '</div>' : '');
+    M.appendChild(d);
+  });
+  const isErr = s && s.kind === "err";
+  document.getElementById("copybtn").style.display = isErr ? "" : "none";
+  document.getElementById("popchk").style.display = s && !isErr ? "" : "none";
+  document.getElementById("popx").textContent = s && S.pop[s.name] ? "x" : "";
+}
+function openWin() { document.getElementById("toasts").innerHTML = ""; document.getElementById("win").classList.add("open"); const s = S.srcs[S.sel]; if (s) s.items.forEach(x => x.read = true); render(); }
+function closeWin() { document.getElementById("win").classList.remove("open"); }
+function togglePop() { const s = S.srcs[S.sel]; if (s) { S.pop[s.name] = !S.pop[s.name]; render(); } }
+function markAll() { S.srcs.forEach(s => s.items.forEach(i => i.read = true)); render(); }
+function clearSel() { S.srcs.splice(S.sel, 1); S.sel = 0; render(); }
+function copyErr() { const b = document.getElementById("copybtn"); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy for a bug report", 1500); }
+function arrive() {
+  add("Horse Mod", "mods", { k: "note", at: "at game start", acts: ["Open Mods", "OK"],
+    body: '<h3>Horse Mod</h3><span class="red">The Horse mod was not properly loaded and horses will not work.</span> Go to the main menu, then Mods, and turn on the Horse Mod. Restart the game.' });
+  toast("warn", "MOD", "Horse Mod | a note. Open Messages");
+}
+function ask() { document.getElementById("modal").classList.add("open"); }
+function answer(yes) {
+  document.getElementById("modal").classList.remove("open");
+  add("Survivor Briefing", "mods", { k: "ask", at: "answered " + (yes ? "Show it" : "Later"), acts: ["Show the briefing"],
+    body: '<h3>Survivor Briefing</h3>Show the briefing for this character now? You can read it later in Messages.' });
+}
+function err() {
+  add("Common Sense", "err", { k: "err", at: "3 times",
+    body: '<h3>3 errors from Common Sense</h3>The same error each time. ZeD is not in the trace.<pre>Fluid not found: Alcohol. line: fluid 0.1 [Alcohol]\nat CS_recipes.txt (Common Sense, 42.0 files)</pre>' });
+  toast("crit", "ERROR", "Common Sense | 3 errors");
+}
+function reset() {
+  S.srcs = []; S.sel = 0; S.pop = {}; document.getElementById("toasts").innerHTML = "";
+  add("Companion Dogs", "mods", { k: "note", at: "at game start", acts: ["OK"],
+    body: '<h3>Companion Dogs</h3>Companion Dogs was turned on in a save that already existed. Stray dogs are placed as you travel, so they show up in areas you have already explored and in new ones.' });
+  add("Mod Update and Alert System", "mods", { k: "news", at: "at the main menu", acts: ["Hide news from this mod", "OK"],
+    body: '<h3>News | Skill Recovery Journal</h3>A new version: fixes for reading speed and the journal\'s page count. Shown by the mod at the main menu and in the pause menu.' });
+  S.srcs.forEach(s => s.items.forEach(i => i.read = false)); render();
+}
+reset();
+setTimeout(arrive, 900);
+</script>
+</body>
+</html>

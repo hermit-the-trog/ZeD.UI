@@ -1,0 +1,20 @@
+TITLE: Mods ZeD-GUI does the job of: credit and support their makers
+
+[h1]Mods ZeD-GUI does the job of, and the people who made them[/h1]
+ZeD-GUI does not take donations. If ZeD-GUI does the job of a mod you used, and you want to give something back, give it to the person who made that mod. They worked these problems out first, and some of them do this to put food on the table.
+
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3461263912]Clean HotBar[/url] by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3437629766]CleanUI[/url] by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2950902979]Equipment UI - Paper Doll Equipment Interface[/url] by [url=https://steamcommunity.com/id/NotNotloc]Notloc[/url] | support: [url=https://ko-fi.com/notloc]ko-fi.com/notloc[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2852309899]Item Condition[/url] by [url=https://steamcommunity.com/id/qudix]Qudix[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3641048285]Item Condition Overlay[/url] by [url=https://steamcommunity.com/profiles/76561197991569575]King EJ[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2553809727]KillCount[/url] by [url=https://steamcommunity.com/profiles/76561198329871201]Tchernobill[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3642084851]Minimal Sidebar[/url] by [url=https://steamcommunity.com/id/devilzcore]devilzcore[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3536052310]Neat Building[/url] by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3502080466]Neat Crafting[/url] by [url=https://steamcommunity.com/profiles/76561199485575276]Rocco[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3635591071]Realistic Dashboard & Gauges[/url] by [url=https://steamcommunity.com/profiles/76561198816356470]LonelyDesperate[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2903771337]Reorder The Hotbar[/url] by [url=https://steamcommunity.com/id/NotNotloc]Notloc[/url] | support: [url=https://ko-fi.com/notloc]ko-fi.com/notloc[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2769706949]Tidy Up Meister[/url] by [url=https://steamcommunity.com/profiles/76561199151439614]PePePePePeil[/url] | support: [url=https://ko-fi.com/pepepepepeil]ko-fi.com/pepepepepeil[/url]
+[/list]
+Where no support link is listed, the maker's Steam page is linked; many keep theirs there.

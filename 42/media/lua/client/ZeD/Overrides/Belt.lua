@@ -152,10 +152,22 @@ end
 
 -- vanilla's three methods are kept (ZeD.Safe._originals.ISHotbar) the first time
 local function parkHotbar()
-    if not ISHotbar or ISHotbar._zedBelt then return end
+    if not ISHotbar then return end
     local O = ZeD.Safe._originals
-    O.ISHotbar = O.ISHotbar or { render = ISHotbar.render, prerender = ISHotbar.prerender, setSizeAndPosition = ISHotbar.setSizeAndPosition }
-    ISHotbar._zedBelt = true
+    if ISHotbar._zedBelt then
+        -- another mod set its own hotbar drawing after ours (Reorder The Hotbar does, on OnLoad, on
+        -- purpose; Oct 24 2026; the hotbar stayed off screen, but its drawing ran): its methods
+        -- become the ones safe mode gives back, and the belt parks the hotbar again
+        local moved = false
+        for _, k in ipairs({ "render", "prerender", "setSizeAndPosition" }) do
+            if ISHotbar[k] ~= ZED_HOTBAR[k] then O.ISHotbar[k] = ISHotbar[k]; moved = true end
+        end
+        if not moved then return end
+        print("[ZeD] Belt: another mod set the hotbar's drawing again; the belt parks it (safe mode gives that mod's back)")
+    else
+        O.ISHotbar = O.ISHotbar or { render = ISHotbar.render, prerender = ISHotbar.prerender, setSizeAndPosition = ISHotbar.setSizeAndPosition }
+        ISHotbar._zedBelt = true
+    end
     ISHotbar.render = ZED_HOTBAR.render
     ISHotbar.prerender = ZED_HOTBAR.prerender
     ISHotbar.setSizeAndPosition = ZED_HOTBAR.setSizeAndPosition
@@ -272,5 +284,17 @@ ZeD.Safe.register("belt", {
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(apply) end
 -- vanilla registers the hotbar's key handlers in OnGameStart (earlier files
 -- first), so the swap runs in ours
-Events.OnGameStart.Add(function() apply(); swapKeyHandlers() end)
+Events.OnGameStart.Add(function()
+    apply(); swapKeyHandlers()
+    -- once more a moment later: a mod may set the hotbar's drawing in its own OnLoad or
+    -- OnGameStart, after ours (parkHotbar then parks it again)
+    local n = 0
+    local function again()
+        n = n + 1
+        if n < 60 then return end
+        Events.OnTick.Remove(again)
+        apply()
+    end
+    Events.OnTick.Add(again)
+end)
 apply()

@@ -462,6 +462,9 @@ function ZeD_Prompt:destroy()
     hideKeyboard(self)
     releaseFields(self)
     self._dead = true
+    -- a note kept in Messages (ZeD_Messages.lua) was never on screen: no paused message,
+    -- game speed or controller focus to give back (the Messages window keeps the pad)
+    if self._zedCaught then untrack(self); return end
     local K = self.kind
     if K == "question" or K == "note" then
         local ms = MainScreen and MainScreen.instance
@@ -503,6 +506,8 @@ end
 -- the button callback, as each vanilla class runs it
 function ZeD_Prompt:onClick(button)
     if self._dead then return end   -- answered already: one answer per prompt
+    -- another mod's question: a copy of it and its answer in Messages (ZeD_Messages.lua)
+    if self._zedSource and not self._zedCaught and ZeD.Messages then pcall(ZeD.Messages.answered, self, button) end
     local K = self.kind
     if K == "question" or K == "note" then
         self:destroy()
@@ -590,6 +595,15 @@ end
 -- the list of prompts on screen (Escape and Enter go to the one on top)
 -- ---------------------------------------------------------------------------
 function ZeD_Prompt:addToUIManager()
+    -- another mod's note (one OK) in game: kept in Messages instead of shown (ZeD_Messages.lua)
+    if self._zedSource and not self._zedCaught and ZeD.Messages and ZeD.Messages.wantsNote(self) then
+        if not (self.ok or self.yes) then pcall(self.initialise, self) end
+        self._zedCaught = true
+        self._dead = false
+        ZeD.Messages.catchNote(self)
+        return
+    end
+    if self._zedCaught then return end   -- (a kept note the mod adds again stays kept)
     ISUIElement.addToUIManager(self)
     self:setAlwaysOnTop(true)
     untrack(self)

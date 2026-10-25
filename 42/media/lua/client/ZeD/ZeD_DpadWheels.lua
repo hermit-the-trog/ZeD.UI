@@ -566,6 +566,14 @@ D.B.zed = function(p, pn)
         { name = tr("UI_ZeD_Settings_Moodles"), icon = "smile", detail = current(S.moodlePlaceOption, S.moodleLabels or {}), sub = Z.moodleWheel },
         { name = tr("UI_ZeD_Settings_ActionBar"), icon = "clock",
           detail = current(S.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }), sub = Z.actionBarWheel },
+        -- Messages (MESSAGES_SPEC.md): other mods' notes and errors; off while nothing is kept
+        (function()
+            local MS = ZeD.Messages
+            local n, un = MS and MS.count() or 0, MS and MS.unread() or 0
+            return { name = tr("UI_ZeD_Msg_Title"), icon = "inbox-in",
+                     detail = (n > 0) and tr(un > 0 and "UI_ZeD_Msg_New" or "UI_ZeD_Msg_CountStat", un > 0 and un or n) or nil,
+                     run = (n > 0) and function(pl, pn2) MS.open() end or nil, off = (n == 0) and tr("UI_ZeD_Msg_None") or nil }
+        end)(),
         { name = tr("UI_ZeD_Wheel_ResetWindows"), icon = "rotate-left", detail = tr("UI_ZeD_Wheel_ResetWindowsDetail"), run = Z.resetWindows },
         { name = tr("UI_ZeD_Options_GroupZed"), icon = "gears", detail = tr("UI_ZeD_Wheel_ZeDSetupDetail"), run = function(pl, n) D.H.openSetup(pl, n) end },
         { name = tr("UI_ZeD_Settings_SafeMode"), icon = "bolt-slash", detail = tr("UI_ZeD_Wheel_SafeModeDetail"), run = Z.safeMode },

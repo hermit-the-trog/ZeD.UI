@@ -37,6 +37,35 @@ require "ZeD/ZeD_MainMenuJoin"
 require "ZeD/ZeD_MainMenuHost"
 require "ZeD/ZeD_MainMenuServer"
 require "ZeD/SafeMode"
+require "OptionScreens/MainOptions"
+
+-- Another mod's broken setting must not stop the game's options screen from building:
+-- vanilla builds it inside MainScreen:instantiate, so one error there also leaves the
+-- main screen half built and the pause menu dead (Oct 24 2026: Change Sandbox Options
+-- (by Star) adds a key binding with no key; vanilla's getKeyName(nil) threw in
+-- addModOptionsPanel, on the stack under Project A-Life's addPanels).
+-- A key binding without a usable key becomes "no key" (named in the log), and an error
+-- left on that page is caught there, so the rest of the screens still build.
+do
+    local inner = MainOptions and MainOptions.addModOptionsPanel
+    if inner and not MainOptions._zedGuarded then
+        MainOptions._zedGuarded = true
+        MainOptions.addModOptionsPanel = function(self, ...)
+            pcall(function()
+                for _, mod in ipairs(PZAPI and PZAPI.ModOptions and PZAPI.ModOptions.Data or {}) do
+                    for _, o in ipairs(mod.data or {}) do
+                        if o.type == "keybind" and tonumber(o.key) == nil then
+                            print("[ZeD] Mod options: " .. tostring(mod.name) .. " | " .. tostring(o.name) .. " has no key; shown as no key")
+                            o.key = 0
+                        end
+                    end
+                end
+            end)
+            local ok, err = pcall(inner, self, ...)
+            if not ok then print("[ZeD] Mod options: the game's Mods page stopped on another mod's setting (" .. tostring(err) .. "); the other screens still build") end
+        end
+    end
+end
 
 local MM = ZeD.MainMenu
 local Safe = ZeD.Safe
@@ -144,7 +173,11 @@ end
 Safe.register("main menu", { leave = handBack, enter = takeOver })
 
 function MainScreen:instantiate()
-    O.instantiate(self)
+    -- another mod's step in this chain may fail after vanilla's built the screen (Oct 24 2026:
+    -- Change Sandbox Options (by Star) reads a quitToDesktop button 42.21 no longer makes); its
+    -- error must not leave the screen without ZeD's desk or pause window
+    local ok, err = pcall(O.instantiate, self)
+    if not ok then print("[ZeD] Main menu: another mod's part of the main screen failed (" .. tostring(err) .. "); ZeD's menu is built anyway") end
     self._zedBottomX = self.bottomPanel and self.bottomPanel:getX()
     -- vanilla's options screen was just built, and with it the saved options read: Safe mode now
     Safe.reread()
