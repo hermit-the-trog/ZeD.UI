@@ -116,45 +116,48 @@ def thought(cv, st, hx_, hy_, th, gap=3):
     pad = 7
     w = iw + pad * 2; h = 24 + 6
     trail = [(0, 1.0), (3, 1.6), (7, 2.4)]
-    trail_h = 12
+    trail_h = 15
     x = hx_ - w // 2 + 6
     y = hy_ - gap - trail_h - h
     sh = th["shadow"]
 
     def cloud(ox, oy, fill, ink, shadow=False):
-        # a rounded body, then bumps along every edge (radius 3, pitch 8), the ink round the union
+        # a rounded body with a few broad lobes (director, Oct 24: "less ripples"): about one every 22 units along
+        # the top and bottom, one on each end, each bulging 2 units past the body; the ink round the union
         import numpy as np
-        m = np.zeros((h + 8, w + 8), bool)
-        Y, X = np.mgrid[0:h + 8, 0:w + 8]
-        cx0, cy0 = 4, 4
-        body = (X >= cx0 + 2) & (X < cx0 + w - 2) & (Y >= cy0 + 2) & (Y < cy0 + h - 2)
-        m |= body
-        for bx in range(cx0 + 5, cx0 + w - 4, 8):
-            for by in (cy0 + 3, cy0 + h - 4):
-                m |= (X + 0.5 - bx) ** 2 + (Y + 0.5 - by) ** 2 <= 3.6 ** 2
-        for by in range(cy0 + 7, cy0 + h - 6, 8):
-            for bx in (cx0 + 3, cx0 + w - 4):
-                m |= (X + 0.5 - bx) ** 2 + (Y + 0.5 - by) ** 2 <= 3.6 ** 2
-        for (bx, by) in ((cx0 + 4, cy0 + 4), (cx0 + w - 5, cy0 + 4), (cx0 + 4, cy0 + h - 5), (cx0 + w - 5, cy0 + h - 5)):
-            m |= (X + 0.5 - bx) ** 2 + (Y + 0.5 - by) ** 2 <= 3.6 ** 2
+        P = 6
+        m = np.zeros((h + 2 * P, w + 2 * P), bool)
+        Y, X = np.mgrid[0:h + 2 * P, 0:w + 2 * P]
+        c0 = P
+        R = 6.2
+        m |= (X >= c0 + 1) & (X < c0 + w - 1) & (Y >= c0 + 1) & (Y < c0 + h - 1)
+        m &= ~(((X < c0 + 3) | (X >= c0 + w - 3)) & ((Y < c0 + 3) | (Y >= c0 + h - 3)))   # the body's corners eased
+        n = max(3, int(round((w - 12) / 22.0)) + 1)
+        for i in range(n):
+            bx = c0 + 6 + (w - 13) * i / (n - 1)
+            for by in (c0 + R - 2, c0 + h - R + 1):
+                m |= (X + 0.5 - bx) ** 2 + (Y + 0.5 - by) ** 2 <= R ** 2
+        for bx in (c0 + R - 2, c0 + w - R + 1):
+            m |= (X + 0.5 - bx) ** 2 + (Y + 0.5 - (c0 + h / 2)) ** 2 <= R ** 2
         edge = m & ~(np.roll(m, 1, 0) & np.roll(m, -1, 0) & np.roll(m, 1, 1) & np.roll(m, -1, 1))
         for (yy, xx) in zip(*np.nonzero(m)):
-            cv.rect(ox + xx - cx0, oy + yy - cy0, 1, 1, ink if (edge[yy, xx] or shadow) else fill)
+            cv.rect(ox + xx - c0, oy + yy - c0, 1, 1, ink if (edge[yy, xx] or shadow) else fill)
 
     cloud(x + 2, y + 2, sh, sh, shadow=True)
     # the trail of bubbles toward the head, the smallest nearest it
     tx0, ty0 = x + w // 2 - 6, y + h + 2
-    pts = [(tx0 + 1, ty0 + 2, 2.4), (tx0 + 4, ty0 + 7, 1.6), (hx_ - 1, hy_ - gap - 1, 1.0)]
-    for (bx, by, r) in pts:
-        rr = int(r + 1)
-        for j in range(-rr, rr + 1):
-            for i in range(-rr, rr + 1):
-                dd = (i ** 2 + j ** 2) ** 0.5
-                if dd <= r + 0.3: cv.rect(bx + i + 1, by + j + 1, 1, 1, sh)
-        for j in range(-rr, rr + 1):
-            for i in range(-rr, rr + 1):
-                dd = (i ** 2 + j ** 2) ** 0.5
-                if dd <= r + 0.3: cv.rect(bx + i, by + j, 1, 1, th["ink"] if dd > r - 0.75 else th["fill"])
+    # hand-set bubbles (# ink, o paper), largest under the cloud, smallest by the head
+    BUBS = [([".###.", "#ooo#", "#ooo#", "#ooo#", ".###."], tx0 + 3, ty0),
+            ([".##.", "#oo#", "#oo#", ".##."], tx0 + 1, ty0 + 6),
+            (["##", "##"], tx0 - 1, ty0 + 11)]
+    for pat, bx, by in BUBS:
+        for j, row in enumerate(pat):
+            for i, c in enumerate(row):
+                if c != ".": cv.rect(bx + i + 1, by + j + 1, 1, 1, sh)
+        for j, row in enumerate(pat):
+            for i, c in enumerate(row):
+                if c == "#": cv.rect(bx + i, by + j, 1, 1, th["ink"])
+                elif c == "o": cv.rect(bx + i, by + j, 1, 1, th["fill"])
     cloud(x, y, th["fill"], th["ink"])
     # the verbose layout, as the action bar draws it today
     px_, py_ = x + pad, y + 5
