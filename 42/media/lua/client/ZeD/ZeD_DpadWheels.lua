@@ -709,20 +709,55 @@ function H.handsFree(p)
     if b and b ~= a then ISTimedActionQueue.add(ISUnequipAction:new(p, b, 50)) end
 end
 
--- the brightest light you carry (vanilla's onDisplayLeft rule: an equipped or attached one first)
+-- the brightest light you carry (vanilla's onDisplayLeft rule: an equipped or attached one first),
+-- the bags you carry included (Oct 24 2026: a torch in the backpack is the one LB + X pulls out)
 function H.bestLight(p)
     local best, bestEq
-    local items = p:getInventory():getItems()
-    for i = 0, items:size() - 1 do
-        local it = items:get(i)
-        if safe(function() return it:canEmitLight() end) then
-            if not best or best:getLightStrength() < it:getLightStrength() then best = it end
-            if p:isEquipped(it) or safe(function() return p:isAttachedItem(it) end) then
-                if not bestEq or bestEq:getLightStrength() < it:getLightStrength() then bestEq = it end
+    local function look(items, inBag)
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            if safe(function() return it:canEmitLight() end) then
+                if not best or best:getLightStrength() < it:getLightStrength() then best = it end
+                if not inBag and (p:isEquipped(it) or safe(function() return p:isAttachedItem(it) end)) then
+                    if not bestEq or bestEq:getLightStrength() < it:getLightStrength() then bestEq = it end
+                end
+            elseif not inBag and instanceof(it, "InventoryContainer") then
+                look(it:getInventory():getItems(), true)
             end
         end
     end
+    look(p:getInventory():getItems(), false)
     return bestEq or best
+end
+
+-- the light in a hand and on in one go (director, Oct 24 2026: "pulling out a flashlight and
+-- turning it on LB+X and it was on"). In a hand or on the belt: vanilla's toggle. Else vanilla's
+-- equip (its time; out of a bag first, vanilla's move), and the light switched on once it is in
+-- the hand; vanilla's toggle only equips, a second press switched it on.
+function H.lightOn(p, l)
+    -- (vanilla's own rule; its isEquippedOrAttached is local to ISDPadWheels.lua)
+    if p:isEquipped(l) or p:isAttachedItem(l) then ISDPadWheels.onToggleLight(p, l); return end
+    if l:getContainer() ~= p:getInventory() then ISInventoryPaneContextMenu.transferIfNeeded(p, l) end
+    local a = ISEquipWeaponAction:new(p, l, 50, false)
+    local perform = a.perform
+    a.perform = function(self, ...)
+        local r = perform(self, ...)
+        local n = 0
+        local function on()
+            n = n + 1
+            local held = p:isEquipped(l)
+            if not held and n <= 30 then return end   -- (the hand is set when the action completes)
+            Events.OnTick.Remove(on)
+            if held and not l:isActivated() then
+                l:setActivated(true)
+                syncItemActivated(p, l)
+                l:playActivateDeactivateSound()
+            end
+        end
+        Events.OnTick.Add(on)
+        return r
+    end
+    ISTimedActionQueue.add(a)
 end
 
 -- the game's speed controls, as the game's Select wheel works them
@@ -820,7 +855,8 @@ D.B.character = function(p, pn)
         { name = tr("UI_ZeD_Wheel_Tabs"), tab = "loot-tab-white", detail = tr("UI_ZeD_Wheel_CharacterWindow"), sub = C.tabs },
         { name = tr("UI_ZeD_Wheel_Weapons"), icon = "knife", best = true, sub = C.weapons, off = (#weapons == 0) and tr("UI_ZeD_Wheel_NoWeapon") or nil },
         { name = getText("ContextMenu_Eat"), icon = "apple-whole", best = true, sub = function() return H.quick(p, "eat") end,
-          off = (#eat == 0) and tr("UI_ZeD_Wheel_NothingToEat") or nil },
+          off = (#eat == 0) and ((ZeD.QuickWheel.tooFull and ZeD.QuickWheel.tooFull(p)) and getText("Tooltip_CantEatMore")
+              or tr("UI_ZeD_Wheel_NothingToEat")) or nil },
         { name = getText("ContextMenu_Drink"), icon = "water-045-drink", best = true, sub = function() return H.quick(p, "drink") end,
           off = (#drink == 0) and tr("UI_ZeD_Wheel_NothingToDrink") or nil },
         { name = tr("UI_ZeD_Wheel_Medicine"), icon = "bandage-wound", sub = C.medicine, pick = C.medicinePick,
@@ -1056,7 +1092,7 @@ D.B.now = function(p, pn)
         { name = tr("UI_ZeD_Wheel_View"), icon = "eye", detail = tr("UI_ZeD_Wheel_ViewDetail"), sub = N.view },
         { name = tr("UI_ZeD_Wheel_Help"), icon = "info-guide", sub = N.help },
         { name = light and light:getDisplayName() or tr("UI_ZeD_Wheel_Light"), icon = "lightbulb-on", detail = lightDetail,
-          run = function(pl) local l = H.bestLight(pl); if l then ISDPadWheels.onToggleLight(pl, l) end end,
+          run = function(pl) local l = H.bestLight(pl); if l then H.lightOn(pl, l) end end,
           off = (not light) and tr("UI_ZeD_Wheel_NoLight") or nil },
     }
     -- the Last Stand mode's own button (the game's Select wheel had it)

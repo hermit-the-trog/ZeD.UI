@@ -224,10 +224,12 @@ end
 -- ---------------------------------------------------------------------------
 -- the groups
 -- ---------------------------------------------------------------------------
+-- Stuffed: the game lets nothing more be eaten (its tooltip: Tooltip_CantEatMore)
+function Q.tooFull(p) return _safe(function() return p:getMoodles():getMoodleLevel(MoodleType.FOOD_EATEN) >= 3 end, false) end
 local GROUPS = {
     { id = "eat", label = "ContextMenu_Eat", test = isFood, act = eat,
       better = function(a, b) return spoilRank(a) < spoilRank(b) end, order = function(x, y) return spoilRank(x.item) < spoilRank(y.item) end,
-      off = function(p) return _safe(function() return p:getMoodles():getMoodleLevel(MoodleType.FOOD_EATEN) >= 3 end, false) end },
+      off = function(p) return Q.tooFull(p) end },
     { id = "drink", label = "ContextMenu_Drink", test = function(it) return isWater(it) or isBeverage(it) or isFoodDrink(it) end, act = drink,
       order = function(x, y) return (isWater(x.item) and 0 or 1) < (isWater(y.item) and 0 or 1) end },
     { id = "smoke", label = "ContextMenu_Smoke", test = isSmokable, act = smoke, usable = canLight },
