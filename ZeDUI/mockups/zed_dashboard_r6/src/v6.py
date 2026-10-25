@@ -18,7 +18,7 @@ from widgets import window, chrome_frame, knob, button, icon_mask, line_mask, ri
 import dashlib as DL
 from dashlib import W, H, Z_FACE, box
 
-add_ramp("ash", "#77736c")
+add_ramp("ash", "#a29e96")
 add_ramp("cork", "#c8874a")
 add_ramp("paper", "#e6e2d6")
 add_ramp("skin", "#c8875a")
@@ -276,47 +276,62 @@ def ash_tray(b, x, y, chrome=True, lighter=True, butts=6, seed=3):
         d.paint(icon_mask(d, "cig", lx - 3, ly + 9) if "cig" in DL.ICONS else box(lx - 3, ly + 10, 7, 1), "paint_w", flatlight=True)
 
     def opened(d2, x=x, y=y, dw=dw):
-        """slid out toward the driver: the steel bowl showing over the drawer front, grey ash, butts"""
+        """slid out toward the driver: the bin's dark lip, a heap of grey ash, butts at their real size against the
+        tray (director's photos, Oct 24: a butt is about a quarter of the tray wide and a tenth of it thick)"""
         rng = np.random.default_rng(seed)
-        bowl_h = 27
+        bowl_h = 28
         hole = box(x, y, dw, 3)                               # the dark slot it slid out of
         d2.h[hole] = Z_FACE - 3.0; d2.mat[hole] = d2.mid("blackp"); d2.solid |= hole; d2.tex[hole] = 0
         d2.dark[hole] = np.maximum(d2.dark[hole], 0.6)
         bowl = box(x, y + 2, dw, bowl_h)
-        d2.slab(bowl, 4.0, "steel", bevel=1.2, polish=0.7, on=Z_FACE + 0.4)
-        ashm = box(x + 3, y + 5, dw - 6, bowl_h - 6)
-        d2.flat(ashm, Z_FACE + 2.4, "ash", polish=0.05)
-        n = rng.random((H, W))
-        d2.tex[ashm & (n > 0.78)] += 0.10; d2.tex[ashm & (n < 0.14)] -= 0.10
-        lay = []
-        for i in range(butts):
-            bx = int(x + 5 + rng.random() * (dw - 16)); by = int(y + 9 + rng.random() * (bowl_h - 12))
-            lay.append((by, bx, int(rng.choice(4, p=[0.35, 0.25, 0.25, 0.15]))))
-        for i in range(max(0, butts - 7)):        # a full one: butts standing at the back, poking over the rim
-            lay.append((y + 8, int(x + 8 + rng.random() * (dw - 18)), 0))
-        lay.sort()
-        for by, bx, kind in lay:
-            if kind == 0:      # standing in the ash, the cork up
-                pm = box(bx, by - 5, 2, 5); cm = box(bx, by - 7, 2, 2); sh_ = box(bx + 2, by - 4, 1, 4)
-            elif kind == 1:    # lying, leaning right
-                pm = line_mask(d2, bx, by, bx + 5, by - 3, 1.8); cm = line_mask(d2, bx + 5.5, by - 3.3, bx + 7, by - 4.2, 1.8)
-                sh_ = line_mask(d2, bx + 1, by + 1.4, bx + 6, by - 1.6, 1.0)
-            elif kind == 2:    # lying, leaning left
-                pm = line_mask(d2, bx + 7, by, bx + 2, by - 3, 1.8); cm = line_mask(d2, bx + 1.5, by - 3.3, bx, by - 4.2, 1.8)
-                sh_ = line_mask(d2, bx + 7, by + 1.4, bx + 2, by - 1.6, 1.0)
-            else:              # crushed flat
-                pm = box(bx, by, 5, 2); cm = box(bx + 5, by, 2, 2); sh_ = box(bx, by + 2, 7, 1)
-            sh_ &= ashm & ~pm & ~cm
-            d2.dark[sh_] = np.maximum(d2.dark[sh_], 0.45)
-            d2.h[pm] = Z_FACE + 3.4; d2.mat[pm] = d2.mid("paper"); d2.solid |= pm; d2.polish[pm] = 0.3; d2.tex[pm] = 0
-            d2.flatlight |= pm
-            d2.h[cm] = Z_FACE + 3.6; d2.mat[cm] = d2.mid("cork"); d2.solid |= cm; d2.polish[cm] = 0.3; d2.tex[cm] = 0
-            d2.flatlight |= cm
-        fr = box(x - 1, y + bowl_h, dw + 2, ASH_H - bowl_h + 1)
+        d2.slab(bowl, 4.0, "blackp", bevel=1.2, polish=0.6, on=Z_FACE + 0.4)       # the bin, black plastic
+        inner = box(x + 2, y + 4, dw - 4, bowl_h - 4)
+        d2.flat(inner, Z_FACE + 1.0, "steel", polish=0.2)
+        d2.dark[inner] = np.maximum(d2.dark[inner], 0.25)
+        # the ash: a lumpy heap, higher toward the back, grey with white paper flecks and dark char
+        Y, X = d2.YY, d2.XX
+        n1 = rng.random((H, W)); n2 = rng.random((H, W))
+        lump = np.zeros((H, W), np.float32)
+        for _ in range(12):
+            cx_, cy_ = x + 3 + rng.random() * (dw - 6), y + 6 + rng.random() * (bowl_h - 10)
+            r_ = 4 + rng.random() * 6
+            lump += np.clip(1 - np.hypot(X + 0.5 - cx_, (Y + 0.5 - cy_) * 1.4) / r_, 0, 1) * (0.8 + rng.random())
+        ashm = inner & (lump > 0.12)
+        d2.h[ashm] = Z_FACE + 1.4 + np.clip(lump[ashm], 0, 2.2) * 1.3 + n1[ashm] * 0.5
+        d2.mat[ashm] = d2.mid("ash"); d2.polish[ashm] = 0.05; d2.tex[ashm] = 0
+        d2.tex[ashm & (n2 > 0.86)] += 0.16; d2.tex[ashm & (n2 < 0.10)] -= 0.16
+        fl = ashm & (n1 > 0.93); d2.mat[fl] = d2.mid("paper")
+        # the butts: a round bar with a cork filter and a burnt paper end, laid at their angle, half sunk in the ash
+        BR, BL, FL = 2.2, 13.0, 8.0
+        def butt(cx_, cy_, ang, sink=0.6):
+            a_ = np.radians(ang); ux, uy = np.cos(a_), np.sin(a_)
+            px_, py_ = X + 0.5 - cx_, Y + 0.5 - cy_
+            along = px_ * ux + py_ * uy; perp = -px_ * uy + py_ * ux
+            m = (np.abs(perp) <= BR) & (along >= -BL / 2) & (along <= BL / 2) & inner
+            if not m.any(): return
+            prof = np.sqrt(np.clip(1 - (perp[m] / BR) ** 2, 0, 1))
+            hh = Z_FACE + 2.2 + sink + prof * 2.6
+            keep = hh > d2.h[m]
+            sel = np.zeros((H, W), bool); sel[m] = keep
+            d2.h[sel] = hh[keep]; d2.solid |= sel; d2.polish[sel] = 0.35; d2.tex[sel] = 0
+            t = along + BL / 2
+            cork = sel & (t < FL); paper = sel & (t >= FL) & (t < BL - 1.2); char = sel & (t >= BL - 1.2)
+            d2.mat[cork] = d2.mid("cork"); d2.mat[paper] = d2.mid("paper"); d2.mat[char] = d2.mid("ash")
+            d2.dark[char] = np.maximum(d2.dark[char], 0.35)
+            d2.tex[cork & (n2 > 0.8)] += 0.08                  # the filter paper's speckle
+            ring = sel & (t >= FL - 0.6) & (t < FL + 0.4); d2.tex[ring] -= 0.06
+        n = butts
+        for i in range(n):
+            cx_ = x + 8 + rng.random() * (dw - 16); cy_ = y + 9 + rng.random() * (bowl_h - 15)
+            butt(cx_, cy_, rng.uniform(-35, 35) + (180 if rng.random() < 0.5 else 0), sink=rng.uniform(0.0, 1.2))
+        # the bin's front lip and the drawer front, out and lower, its pull
+        lip = box(x - 1, y + bowl_h, dw + 2, 2)
+        d2.slab(lip, 5.4, "blackp", bevel=0.8, polish=0.8, on=Z_FACE + 0.4)
+        fr = box(x - 1, y + bowl_h + 2, dw + 2, ASH_H - bowl_h - 1)
         d2.slab(fr, 5.0, b.cabin, bevel=1.0, polish=0.2, on=Z_FACE + 0.4)
-        if chrome: chrome_frame(d2, x - 1, y + bowl_h, dw + 2, ASH_H - bowl_h + 1, Z_FACE + 5.0, t=1, r=1, z=1.2)
-        pull2 = M().rrect(x + dw // 2 - 12, y + bowl_h + 4, 24, 4, 1).get()
-        d2.slab(pull2, 2.6, met, bevel=1.0, polish=1.0, on=Z_FACE + 5.4)
+        if chrome: chrome_frame(d2, x - 1, y + bowl_h + 2, dw + 2, ASH_H - bowl_h - 1, Z_FACE + 5.0, t=1, r=1, z=1.2)
+        pull2 = M().rrect(x + dw // 2 - 10, y + bowl_h + 6, 20, 3, 1).get()
+        d2.slab(pull2, 2.4, met, bevel=1.0, polish=1.0, on=Z_FACE + 5.4)
     b.variant(f"ash_{b.id}", "ashOpen", opened, True)
     b.hit("ash", x, y, dw, ASH_H)
     b.meta["ash"] = (x, y, dw, ASH_H)

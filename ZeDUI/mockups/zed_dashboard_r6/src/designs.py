@@ -280,7 +280,7 @@ def con_fleet(b, top="siren", badge_role="unit", chrome=False):
         vent_eyeball(b, 764, 44, 14, bezel="blackp")
         v6.hula(b, 690, 0)
     headunit_slot(b, 518, 76, frame="bezel")
-    if top == "meter": ash_tray(b, 706, 76, chrome=False, butts=12, seed=11)
+    if top == "meter": ash_tray(b, 706, 76, chrome=False, butts=10, seed=11)
     else: no_smoking(b, 706, 76)
     # three pixels higher than the sedans' so the AIR legends (a clear pixel under the tab) stay on the console
     climate_levers(b, 540, 135, chrome=chrome, fan_knob=(752, 146))
