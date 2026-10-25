@@ -1513,6 +1513,26 @@ function ZeD_MMWindow:new(kind)
     return o
 end
 
+-- On the monitor the desk's glass lies over every window and holds the pointer, so the
+-- engine never reports it over a window and the frame's theme, accent and text-size
+-- squares and its close box never answered (director, Oct 24 2026: "theme, accent, font
+-- button on the main menu windows doesn't do anything"). A window on the desk says for
+-- itself: it is the one in view, the pointer is inside it, and no pull-down lies over it.
+-- In game (no glass) the engine's test stands.
+function ZeD_MMWindow:pointerOn()
+    local desk = self.parent
+    if not (desk and desk.glass and desk.glass:isVisible()) then return self:isMouseOver() end
+    if MM.activeWindow() ~= self then return false end
+    local mx, my = getMouseX(), getMouseY()
+    local function inside(p)
+        local ax, ay = p:getAbsoluteX(), p:getAbsoluteY()
+        return mx >= ax and my >= ay and mx < ax + p.width and my < ay + p.height
+    end
+    local drop = desk.drop
+    if drop and drop:isVisible() and inside(drop) then return false end
+    return inside(self)
+end
+
 -- the pointer context this window reads hover from
 function ZeD_MMWindow:pctx() if self.kind == "pause" then return self.ctx end; return MM.ctx end   -- the desk's windows share the menu bar's pointer
 
