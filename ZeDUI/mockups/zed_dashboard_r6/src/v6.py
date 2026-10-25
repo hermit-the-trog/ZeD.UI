@@ -418,51 +418,65 @@ def meter_flag_variants(b, px_, py_):
     b.variant(f"flagdn_{b.id}", "meterOn", lambda dd: flag(dd, False), True)
 
 
-HULA = [   # 15 x 28, one frame; '.' clear. k hair, s skin, l lei, g/G grass skirt, b base, c spring
-    "......kkk......",
-    ".....kkkkk.....",
-    ".....ksssk.....",
-    ".....ksssk.....",
-    "......sss......",
-    ".......s.......",
-    "..s..lllll..s..",
-    "...s.lslsl.s...",
-    "....sssssss....",
-    ".....sssss.....",
-    ".....sssss.....",
-    "......sss......",
-    ".....gGgGg.....",
-    "....gGgGgGg....",
-    "....GgGgGgG....",
-    "...gGgGgGgGg...",
-    "...GgGgGgGgG...",
-    "....s.....s....",
-    "....s.....s....",
-    "....s.....s....",
-    "...ss.....ss...",
-    "......ccc......",
-    "......ccc......",
-    ".....bbbbb.....",
-    "...bbbbbbbbb...",
-    "...bbbbbbbbb...",
+# The hula girl, after the director's photo (Oct 24): the round grass base, short legs, the wide green grass skirt
+# with its fringe, the red fuzzy waistband, a maroon top under a yellow lei, a yellow flower crown, long black hair
+# down her back, one arm raised to her crown, a flower at her hip. 19 x 27, set by runs: (column, pixels) per row.
+HULA_W = 19
+HULA_RUNS = [
+    [(7, "yyyyy")],
+    [(1, "mm"), (5, "yyYyYyYyy")],
+    [(1, "mms"), (5, "kkkkkkkkk")],
+    [(2, "ss"), (5, "kksssssskk")],
+    [(3, "s"), (5, "kk"), (7, "sesses"), (13, "kk")],
+    [(4, "s"), (5, "kk"), (7, "ssssss"), (13, "kkk")],
+    [(4, "s"), (5, "kk"), (7, "SsrrsS"), (13, "kkk")],
+    [(5, "s"), (6, "kk"), (8, "SssS"), (12, "kkk")],
+    [(5, "s"), (6, "kyy"), (9, "S"), (10, "yy"), (12, "kkkk")],
+    [(5, "ss"), (7, "yY"), (9, "s"), (10, "Yy"), (12, "ss"), (14, "kk")],
+    [(6, "s"), (7, "y"), (8, "mmm"), (11, "y"), (12, "ss"), (14, "kk")],
+    [(6, "s"), (7, "yyYyy"), (12, "ss"), (14, "k")],
+    [(7, "ssssss"), (13, "s"), (14, "m")],
+    [(7, "SssssS"), (13, "smY")],
+    [(6, "rrrrrrrr"), (14, "m")],
+    [(5, "RrRrRrRrRr")],
+    [(4, "gGgGgGgGgGg")],
+    [(3, "gGgGgGgGgGgGg")],
+    [(2, "gGgGgGgGgGgGgGg")],
+    [(2, "GgGgGgGgGgGgGgG")],
+    [(2, "gdgdgdgdgdgdgdg")],
+    [(1, "g.g.g.g.g.g.g.g.g")],
+    [(7, "ss"), (10, "ss")],
+    [(6, "SSs"), (10, "sSS")],
+    [(3, "bBbBbBbBbBbBb")],
+    [(2, "bbbbbbbbbbbbbbb")],
+    [(3, "BbBbyYyBbBbBb")],
 ]
-HULA_PAL = {"k": "#1a1410", "s": "#c8875a", "l": "#e8508a", "g": "#5a8a2e", "G": "#a8b84a", "b": "#5a3a22", "c": "#9aa0a6"}
+HULA_PAL = {"k": "#16100c", "s": "#b8744a", "S": "#8c5030", "e": "#120c08", "y": "#e2b848", "Y": "#f6e4a4", "m": "#7a2432",
+            "r": "#d8402a", "R": "#a82a1e", "g": "#5aa07e", "G": "#8ecab0", "d": "#3a7a5c", "b": "#3c5a30", "B": "#5e7c46",
+            "w": "#d8d4c8"}
 
 
 def hula_frames():
-    """the hula girl, three frames: still, swayed left, swayed right (the game picks one by the car's turning and
-    bumps). Hand-set pixels with a dark outline, like the plate's parts."""
+    """the hula girl, three frames: still, hips swung left, hips swung right (the game picks one by the car's turning
+    and bumps). The skirt and waistband swing; the head and lei lag the other way a pixel; the legs and base stay."""
     from PIL import Image
+    rows = []
+    for runs in HULA_RUNS:
+        r = ["."] * HULA_W
+        for c0, px_ in runs:
+            for i, ch in enumerate(px_):
+                if ch != "." and 0 <= c0 + i < HULA_W: r[c0 + i] = ch
+        rows.append(r)
     fr = []
     for sway in (0, -1, 1):
-        rows = [list(r) for r in HULA]
-        out = [["."] * (len(rows[0]) + 2) for _ in rows]
+        Hh, Ww = len(rows), HULA_W + 4
+        out = [["."] * Ww for _ in range(Hh)]
         for yy, r in enumerate(rows):
-            # the upper body leans with the sway, the skirt swings the other way, the legs and base stay
-            dx = sway * (2 if yy < 6 else 1) if yy < 12 else (-sway if yy < 17 else 0)
+            if yy <= 13: dx = -sway if yy <= 7 else 0          # the head lags, the shoulders hold
+            elif yy <= 21: dx = sway * (1 if yy < 17 else 2)    # the waist swings, the fringe swings furthest
+            else: dx = 0
             for xx, c in enumerate(r):
-                if c != ".": out[yy][xx + 1 + dx] = c
-        Hh, Ww = len(out), len(out[0])
+                if c != ".": out[yy][xx + 2 + dx] = c
         im = Image.new("RGBA", (Ww + 2, Hh + 2), (0, 0, 0, 0))
         px = im.load()
         filled = {(xx + 1, yy + 1) for yy in range(Hh) for xx in range(Ww) if out[yy][xx] != "."}

@@ -21,6 +21,14 @@ def comp(base, doc, spr, st, box):
         if ok and p["sprite"] in spr: im.alpha_composite(spr[p["sprite"]], (p["x"], p["y"]))
     bg = Image.new("RGBA", im.size, (52, 60, 40, 255)); bg.alpha_composite(im)
     c = bg.crop(box); return c.resize((c.width * K, c.height * K), Image.NEAREST)
+def hula_tile():
+    import v6
+    fr = v6.hula_frames(); w, h = fr[0].size; z = 6
+    t = Image.new("RGBA", (3 * w * z + 2 * 10 + 20, h * z + 20), (52, 60, 40, 255))
+    for i, f in enumerate(fr): t.alpha_composite(f.resize((w * z, h * z), Image.NEAREST), (10 + i * (w * z + 10), 10))
+    return t
+
+
 sections = []
 base, doc, spr = load("nyala")
 sections.append(("1  The key, right of the column, turns: OFF, ON, START (the game shows START while it cranks, then ON)",
@@ -32,7 +40,8 @@ sections.append(("2  Right of the radio: the ash tray and lighter, open on used 
     ("open, a cab's (taxi)", comp(b3, d3, s3, {"ashOpen": True}, abox(d3["meta"]["ash"]))), ("ambulance, police, fire, ranger", comp(b4, d4, s4, {}, (700, 58, 790, 118)))]))
 sections.append(("3  Taxi: the fare meter runs while the flag is down (fare and extras), a hula girl on the dash top", [
     ("flag up: FOR HIRE", comp(b3, d3, s3, {"meterOn": False, "hula": 0}, (506, 0, 800, 70))),
-    ("flag down: meter running, the hula girl swaying", comp(b3, d3, s3, {"meterOn": True, "hula": 1}, (506, 0, 800, 70)))]))
+    ("flag down: meter running, the hula girl swaying", comp(b3, d3, s3, {"meterOn": True, "hula": 1}, (506, 0, 800, 70))),
+    ("her three frames: still, swung left, swung right", hula_tile())]))
 st_ims = stickers.build()
 def deco(name):
     """a game decal on its die-cut vinyl: the art's outline grown 2 px in white, a dark cut line round that"""
