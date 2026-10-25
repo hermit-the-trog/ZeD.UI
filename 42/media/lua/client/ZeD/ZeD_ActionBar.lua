@@ -30,11 +30,18 @@
 --
 -- Pixel art: drawn in design units on whole multiples (ZeD.Px canvas, k = the root
 -- scale as a whole multiple x vanilla's size option), so every pixel stays square.
+--
+-- Oct 24 2026 (mockup ZeDUI/mockups/zed_bubbles_v1, "Bubbles are good. Themed yes."):
+-- VERBOSE is drawn inside a rounded thought bubble with a trail of three small
+-- bubbles down to the head, and what the character says over their head is drawn
+-- by the same layer as a speech balloon (ZeD/ZeD_Bubbles.lua: the shapes and the
+-- speech hook). Speaking while the bar is up puts the balloon beside it.
 -- ============================================================================
 
 require "ZeD/Tr"
 require "ZeD/ZeD_Panel"
 require "ZeD/ZeD_PixelParts"
+require "ZeD/ZeD_Bubbles"
 require "ZeD/SafeMode"
 require "TimedActions/ISBaseTimedAction"
 
@@ -508,11 +515,25 @@ function AB.drawSimple(cv, T, st, a, ms)
     end
 end
 
-function AB.drawVerbose(cv, T, st, a, ms)
+-- the verbose layout's width inside the thought bubble: the wider line, at least 60
+function AB.verboseWidth(st)
     local L1, R1, L2, R2 = AB.verboseText(st)
+    local w1 = P.textWidth(L1, "57", 1) + (R1 ~= "" and 6 + P.textWidth(R1, "57", 1) or 0)
+    local w2 = P.textWidth(L2, "35", 1) + (R2 ~= "" and 6 + P.textWidth(R2, "35", 1) or 0)
+    return math.max(60, math.max(w1, w2))
+end
+
+-- the plain box (before the thought bubble; kept for the outside-the-game test)
+function AB.drawVerbose(cv, T, st, a, ms)
     local W, H = AB.sizeVerbose(st)
-    local pad = 4
     R(cv, 0, 0, W, H, T.borderS, a); R(cv, 1, 1, W - 2, H - 2, T.surf1, a)
+    AB.drawVerboseBody(cv, T, st, a, ms, 4, 3, W - 8)
+end
+
+-- the verbose layout with its top-left at (px, py), bw wide: L1 / R1 in the 5 x 7 face, L2 / R2 in the
+-- 3 x 5 face 9 below, the 2-unit bar 16 below
+function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
+    local L1, R1, L2, R2 = AB.verboseText(st)
     local c1 = st.phase == "done" and T.positive or ((st.phase == "stopped" or st.phase == "walk") and AB._dim or T.accent)
     local rc = st.phase == "stopped" and AB._dim or T.text
     local lc = st.phase == "stopped" and AB._dim or AB._legend
@@ -524,11 +545,11 @@ function AB.drawVerbose(cv, T, st, a, ms)
         P.text(cv, s, x, y, c, font, 1, align, nil, nil)
         cv.el._zedAlpha = 1
     end
-    txt(L1, pad, 3, c1, "57")
-    txt(R1, W - pad, 3, rc, "57", "r")
-    txt(L2, pad, 12, lc, "35")
-    txt(R2, W - pad, 12, lc, "35", "r")
-    local bx, by, bw = pad, 19, W - pad * 2
+    txt(L1, px, py, c1, "57")
+    txt(R1, px + bw, py, rc, "57", "r")
+    txt(L2, px, py + 9, lc, "35")
+    txt(R2, px + bw, py + 9, lc, "35", "r")
+    local bx, by = px, py + 16
     R(cv, bx, by, bw, 2, T.surf3, a)
     if st.noend and st.phase ~= "stopped" then
         local seg = 12
@@ -602,7 +623,7 @@ function ZeD_ActionBarLayer:prerender()
     local T = ZeD.T
     local pn = self.playerNum
     local chr = getSpecificPlayer(pn)
-    self._drawSt = nil
+    self._drawSt, self._drawSp = nil, nil
     if not T or not chr or chr:isDead() or chr:isAsleep() then return end
     local ms = nowMs()
     local ok, st = pcall(AB.state, chr, pn)
@@ -618,33 +639,63 @@ function ZeD_ActionBarLayer:prerender()
             if a then st = e.st else AB._ends[pn] = nil end
         end
     end
-    if not st or not a or a <= 0 then return end
+    if not a or a <= 0 then st = nil end
+    -- what the character says over their head (ZeD_Bubbles: read from the engine, drawn here)
+    local Bb = ZeD.Bubbles
+    pcall(Bb.poll, pn, chr)
+    local sp, spA = Bb.current(pn, chr, ms)
+    if not st and not sp then return end
     -- colours that are not tokens of their own, synced in place (no allocation per frame)
     AB._dim = AB._dim or {}; ZeD.colorSync(AB._dim, T.text, (T.text.a or 1) * 0.55)
     AB._legend = AB._legend or {}; ZeD.colorSync(AB._legend, T.text, (T.text.a or 1) * 0.70)
+    Bb.syncColours(T)
     local mode = AB.mode()
-    local W, H
-    if mode == "simple" then W, H = AB.sizeSimple() else W, H = AB.sizeVerbose(st) end
     local k = AB.k()
     local hx, hy = AB.headScreen(pn, chr)
     if not hx then return end
-    local px = math.floor(hx - W * k / 2 + 0.5)
-    local py = math.floor(hy - (AB.GAP + H) * k + 0.5)
-    if self:getX() ~= px then self:setX(px) end
-    if self:getY() ~= py then self:setY(py) end
-    if self:getWidth() ~= W * k then self:setWidth(W * k) end
-    if self:getHeight() ~= H * k then self:setHeight(H * k) end
+    local HX, HY = math.floor(hx + 0.5), math.floor(hy + 0.5)
+    local screenR = nil
+    pcall(function() screenR = getPlayerScreenLeft(pn) + getPlayerScreenWidth(pn) end)
+    screenR = screenR or getCore():getScreenWidth()
+    -- the parts in head-relative units (ZeD_Bubbles.layout), the simple bar in screen pixels as before
+    local L = self._lay or {}
+    self._lay = L
+    local W, H = AB.sizeSimple()
+    local bar = st and (mode == "simple" and "simple" or "thought") or nil
+    Bb.layout(L, bar, st and bar == "thought" and AB.verboseWidth(st) or 0, sp, math.floor((screenR - HX) / k), W, H, AB.GAP)
+    local x0, y0, x1, y1 = HX + L.x0 * k, HY + L.y0 * k, HX + L.x1 * k, HY + L.y1 * k
+    if bar == "simple" then
+        L.px = math.floor(hx - W * k / 2 + 0.5)
+        L.py = math.floor(hy - (AB.GAP + H) * k + 0.5)
+        if not sp then x0, y0, x1, y1 = L.px, L.py, L.px + W * k, L.py + H * k end
+        x0, y0 = math.min(x0, L.px), math.min(y0, L.py)
+        x1, y1 = math.max(x1, L.px + W * k), math.max(y1, L.py + H * k)
+    end
+    if self:getX() ~= x0 then self:setX(x0) end
+    if self:getY() ~= y0 then self:setY(y0) end
+    if self:getWidth() ~= x1 - x0 then self:setWidth(x1 - x0) end
+    if self:getHeight() ~= y1 - y0 then self:setHeight(y1 - y0) end
+    L.ox, L.oy = HX - x0, HY - y0
     self._drawSt, self._drawA, self._drawMode, self._k, self._ms = st, a, mode, k, ms
+    self._drawSp, self._drawSpA = sp, spA
 end
 
 function ZeD_ActionBarLayer:render()
-    local st = self._drawSt
-    if not st then return end
+    local st, sp = self._drawSt, self._drawSp
+    if not st and not sp then return end
     local T = ZeD.T
-    local cv = P.canvas(self, 0, 0, self._k)
+    local L, k = self._lay, self._k
+    local cv = P.canvas(self, L.ox, L.oy, k)
     self._zedAlpha = 1
-    if self._drawMode == "simple" then AB.drawSimple(cv, T, st, self._drawA, self._ms)
-    else AB.drawVerbose(cv, T, st, self._drawA, self._ms) end
+    if st then
+        if L.bar == "simple" then
+            AB.drawSimple(P.canvas(self, L.px - self:getX(), L.py - self:getY(), k), T, st, self._drawA, self._ms)
+        else
+            ZeD.Bubbles.drawThought(cv, T, L, self._drawA)
+            AB.drawVerboseBody(cv, T, st, self._drawA, self._ms, L.tx + ZeD.Bubbles.THOUGHT_PAD, L.ty + 5, L.iw)
+        end
+    end
+    if sp then ZeD.Bubbles.drawSpeech(cv, T, L, self._drawSpA) end
     self._zedAlpha = 1
 end
 
