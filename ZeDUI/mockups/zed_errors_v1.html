@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Messages: errors v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | Messages: the errors, read in the game. Mockup v1 (Oct 25 2026).
+   Director: "Make a error manager that lives in the notification center. That
+   way users can see what the problem is without exiting and checking logs. And
+   can output text to populate a bug report?"
+   Built on Messages as built (MESSAGES_SPEC.md, gallery card 29): the list at
+   the left (From mods, Errors), cards at the right, the footer. Catalog parts:
+   A12 badge, A14 status dot, M02 list rows, the window frame. The errors are
+   real, from the 128-mod test (Oct 24 2026): Bandits Week One's scheduler and
+   Ladders!? on 42.21. In-game dark theme, orange accent (the gallery's).
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
+  --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --sel:rgba(212,146,42,.55);
+  --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.7); --tf:rgba(120,120,120,.6); --th:rgba(222,210,190,.95);
+  --dng:#d0603a; --wrn:#c49a2a; --pos:#7a9a34; --inf:#5a8a9a;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1000px; height:720px; border:1px solid #2a2924; overflow:hidden; transform-origin:0 0;
+  background:radial-gradient(ellipse at 45% 40%, #2c3320 0%, #1c2216 45%, #0f120c 100%); }
+.stage::after { content:""; position:absolute; inset:0; pointer-events:none; background:rgba(0,0,0,.35); }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+
+/* ---- the window ---------------------------------------------------------------- */
+.win { position:absolute; left:40px; top:24px; width:920px; height:672px; background:rgba(19,19,19,.97); border:1px solid var(--bs); z-index:2; display:flex; flex-direction:column; }
+.tb { height:24px; flex:none; background:var(--s2); border-bottom:1px solid var(--bs); display:flex; align-items:center; position:relative; overflow:hidden; }
+.tb::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.05) 2px, rgba(255,255,255,.05) 4px); }
+.tb .cb { width:12px; height:12px; border:1px solid var(--bs); margin-left:6px; position:relative; z-index:1; background:var(--s2); }
+.tb .tt { font-family:var(--mono); font-size:12px; color:var(--th); position:relative; z-index:1; background:var(--s2); padding:0 10px; margin-left:8px; }
+.tb .st { margin-left:auto; margin-right:8px; position:relative; z-index:1; background:var(--s2); padding:0 6px; font-family:var(--mono); font-size:11px; color:var(--ts); display:flex; gap:6px; align-items:center; }
+.tb .st i { width:6px; height:6px; border-radius:50%; background:var(--dng); display:inline-block; }
+.body { flex:1; min-height:0; display:flex; }
+.list { width:230px; flex:none; border-right:1px solid var(--bd); background:var(--s1); display:flex; flex-direction:column; }
+.lh { height:26px; display:flex; align-items:center; padding:0 10px; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.8px; color:var(--ac); border-bottom:1px solid var(--bd); }
+.lh.err { color:var(--dng); }
+.li { height:30px; display:flex; align-items:center; gap:8px; padding:0 10px; font-size:12.5px; color:var(--tx); border-bottom:1px solid #181818; }
+.li.sel { background:var(--sel); color:#fff; }
+.li i { width:7px; height:7px; flex:none; border:1px solid var(--ts); }
+.li i.e { background:var(--dng); border-color:var(--dng); border-radius:50%; }
+.li i.r { border-radius:50%; }
+.li .n { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--ts); }
+.li.sel .n { color:#fff; }
+.li .nm { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cards { flex:1; min-width:0; display:flex; flex-direction:column; }
+.chead { flex:none; padding:10px 14px 8px; border-bottom:1px solid var(--bd); display:flex; align-items:baseline; gap:12px; }
+.chead h2 { font-family:var(--cond); font-weight:700; font-size:19px; color:var(--th); }
+.chead span { font-family:var(--mono); font-size:10.5px; color:var(--ts); }
+.cscroll { flex:1; min-height:0; overflow:hidden; padding:10px 14px; display:flex; flex-direction:column; gap:10px; }
+.card { border:1px solid var(--bs); background:var(--s2); }
+.card .top { display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--bd); font-family:var(--mono); font-size:10.5px; color:var(--ts); }
+.tag { font-family:var(--mono); font-size:9.5px; font-weight:700; letter-spacing:.5px; border:1px solid var(--dng); color:var(--dng); padding:0 4px; height:15px; display:inline-flex; align-items:center; }
+.card .top b { color:var(--tx); font-weight:500; }
+.card .top .cnt { margin-left:auto; color:var(--tx); }
+.card .in { padding:9px 10px 10px; display:flex; flex-direction:column; gap:8px; }
+.place { font-family:var(--mono); font-size:12px; color:var(--th); }
+.place span { color:var(--ts); }
+.when { font-family:var(--mono); font-size:10.5px; color:var(--ts); }
+.msg { font-family:var(--mono); font-size:11px; color:#e7b49e; background:#0d0d0d; border:1px solid #262626; padding:6px 8px; line-height:1.45; }
+.plain { font-size:12.5px; line-height:1.5; color:var(--tx); }
+.plain b { font-weight:600; color:#fff; }
+.sk { font-family:var(--mono); font-size:10.5px; color:var(--ts); line-height:1.6; }
+.sk b { color:var(--tx); font-weight:500; }
+.lbl { font-family:var(--mono); font-size:9.5px; font-weight:700; letter-spacing:.8px; color:var(--ac); margin-bottom:2px; }
+.know { border-left:2px solid var(--ac); padding:4px 0 4px 10px; font-size:12.5px; line-height:1.5; color:var(--tx); }
+.know .src { display:block; font-family:var(--mono); font-size:10px; color:var(--ts); margin-top:3px; }
+.acts { display:flex; gap:6px; flex-wrap:wrap; }
+.b { height:24px; display:inline-flex; align-items:center; padding:0 10px; font-family:var(--mono); font-size:11px; color:var(--tx); border:1px solid var(--bs); background:var(--s2); border-radius:3px; white-space:nowrap; }
+.b.pri { border:3px double var(--ac); color:var(--acb); padding:0 8px; }
+.b.foc { background:var(--sel); color:#fff; }
+.help { flex:none; padding:5px 12px; font-family:var(--mono); font-size:10.5px; color:var(--ts); border-top:1px solid var(--bd); }
+.foot { flex:none; height:38px; display:flex; align-items:center; gap:8px; padding:0 10px; border-top:1px solid var(--bs); background:var(--s2); }
+.foot .sp { flex:1; }
+.foot .ck { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--tx); }
+.foot .ck i { width:12px; height:12px; border:1px solid var(--bs); }
+.squares { flex:none; height:14px; display:flex; gap:4px; padding:0 4px; align-items:center; border-top:1px solid var(--bd); background:var(--s2); }
+.squares span { width:10px; height:10px; border:1px solid #555; }
+/* the bug report sheet */
+.rep { flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; padding:10px 14px; }
+.rep textarea { flex:1; min-height:0; resize:none; background:#0b0b0b; color:#c9c9c4; border:1px solid var(--bs); font-family:var(--mono); font-size:10.5px; line-height:1.5; padding:8px 10px; outline:none; }
+.rep .row { display:flex; gap:8px; align-items:center; font-size:12px; color:var(--tx); }
+.rep .row .tick { width:12px; height:12px; border:1px solid var(--ac); background:var(--ac); }
+.rep .row .tick.no { background:transparent; border-color:var(--bs); }
+.rep .warn { border:1px solid var(--bd); background:var(--s2); padding:7px 10px; font-size:12px; line-height:1.45; color:var(--tx); display:flex; gap:8px; }
+.rep .warn i { width:7px; height:7px; border-radius:50%; background:var(--wrn); flex:none; margin-top:6px; }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+.fix { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9cc49a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | in game | Messages | errors | mockup v1</div>
+<h1>Messages: errors you can read in the game</h1>
+<p class="lede">Messages already counts Lua errors per mod and copies them for a bug report. This turns that into an <b>error manager</b>: each error grouped by mod and by the place it comes from (file and line), how often and when, the message and the call chain in readable form, what it usually means where that can be known, and a <b>Bug report</b> button that builds the whole text for a post. No quitting to read console.txt. The errors are real, from the 128-mod test on 42.21.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>One card per place, not per error.</b> A mod's errors are grouped by where they come from: the file and line the game names (BWOScheduler.lua, line 42, in generateSchedule). A repeat counts up on the same card with the first and last time (game time), so a mod that errors every minute is one card that says "17 times, about once a game minute", not 17 cards.</li>
+      <li><span class="rec">RECOMMEND</span><b>The message as the game wrote it, then in plain words.</b> The game's text stays (it is what the mod's maker needs). Under it, a plain reading of the common kinds, only where the wording is certain: <i>attempted index: X of non-table: null</i> means the code looked up X in something that is not there; <i>Object tried to call nil in F</i> means it called a function that does not exist, often a game function this version no longer has. Kinds ZeD does not know get no reading.</li>
+      <li><span class="rec">RECOMMEND</span><b>"What this usually means" only from what ZeD knows:</b> the results of ZeD's own compatibility tests (the list in the Workshop's Compatibility thread, shipped with ZeD), and the mod's own game version range from its mod.info. Nothing guessed. A mod not in the list gets the plain reading only.</li>
+      <li><span class="rec">RECOMMEND</span><b>Bug report builds the text for a post:</b> ZeD-GUI's version, the game's version, the mods that are on in load order (name, id, Workshop id), files turned off or picked, and the error with its count, times, message and full call chain. Copy puts it on the clipboard; Save writes it to Zomboid/Lua/ZeD_bugreport_&lt;date&gt;.txt. Open its page takes you to the mod's Workshop page in the Steam overlay.</li>
+      <li><span class="rec">RECOMMEND</span><b>Open in Mods</b> goes to the Files tab at the file the error names (the file switches mockup). From a game it opens the pause window's Mods; changes to a mod's files take effect the next time the save loads.</li>
+      <li><span class="lim">LIMIT</span><b>console.txt cannot be read by a mod</b> (the game lets mods read files in Zomboid/Lua only). The report says where it is and asks to attach it: C:\Users\(you)\Zomboid\console.txt, copied before restarting.</li>
+      <li><span class="lim">LIMIT</span><b>Lua errors only.</b> The game's own Java errors (a broken map cell, a missing model bone) go to console.txt but not to the list mods can read. The game keeps the last 40 error lines; Messages reads them every 2 seconds, so it keeps up; every error is counted, and the last 12 of each place are kept in full (as Messages keeps 12 per mod today).</li>
+      <li><span class="alt">YOUR CALL</span><b>Errors from before the game started</b> (while mods and the world load, like Ladders!? here) are left to console.txt today. Recommend: show them too, marked "while loading".</li>
+      <li><span class="alt">YOUR CALL</span><b>Messages at the main menu.</b> Today it lives in the game. Errors at the main menu (a mod's options page, the desk) could show in a Messages window on the desk as well.</li>
+      <li><span class="fix">FOUND</span><b>A mod name with brackets is cut short today:</b> "Ladders!? (v0.0.13)" is filed as "Ladders!? (v0.0.13" because the name is read up to the first closing bracket. The error manager reads it to the double bracket that ends it.</li>
+      <li><b>Controller:</b> as Messages today: the list, the cards and the footer are zones; A presses a card's buttons; in the report, A on Copy, B back.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const LIST = (sel) => `<div class="list">
+  <div class="lh">FROM MODS</div>
+  <div class="li"><i class="r"></i><span class="nm">Horse Mod</span><span class="n">1</span></div>
+  <div class="li"><i class="r"></i><span class="nm">Bandits</span><span class="n">1</span></div>
+  <div class="lh err">ERRORS</div>
+  <div class="li ${sel === "bwo" ? "sel" : ""}"><i class="e"></i><span class="nm">Bandits Week One</span><span class="n">17</span></div>
+  <div class="li ${sel === "lad" ? "sel" : ""}"><i class="e"></i><span class="nm">Ladders!? (v0.0.13)</span><span class="n">1</span></div>
+</div>`;
+function win(title, status, inner, foot) {
+  return `<div class="win"><div class="tb"><span class="cb"></span><span class="tt">${title}</span><span class="st">${status}</span></div>
+    <div class="body">${inner}</div>${foot}<div class="squares"><span></span><span></span><span></span></div></div>`;
+}
+const STATUS = `<i></i>18 errors | 2 notes kept`;
+const FOOT = `<div class="help">A mod's notes and errors land here instead of on top of the game. Questions still ask at once.</div>
+  <div class="foot"><span class="ck"><i></i>Show this mod's notes as pop-ups</span><span class="sp"></span><span class="b">Clear</span><span class="b pri">Mark all read</span></div>`;
+
+const BWO = `<div class="cards">
+  <div class="chead"><h2>Bandits Week One</h2><span>17 errors | 1 place | Workshop 3403180543</span></div>
+  <div class="cscroll">
+    <div class="card">
+      <div class="top"><span class="tag">ERROR</span><b>BWOScheduler.lua, line 42</b><span>in generateSchedule</span><span class="cnt">17 times</span></div>
+      <div class="in">
+        <div class="when">First Day 3, 7:01 AM | last Day 3, 7:17 AM | about once a game minute</div>
+        <div class="msg">attempted index: schedule of non-table: null</div>
+        <div class="plain"><b>In plain words:</b> the code looked up "schedule" in something that is not there.</div>
+        <div class="sk"><b>Called from</b> MasterControl (BWOScheduler.lua, line 303)</div>
+        <div><div class="lbl">WHAT THIS USUALLY MEANS</div>
+          <div class="know">In a save that was not started with Bandits Week One, its scheduler errors once a game minute: the save has no Week One story chosen. Start a new game with it, or turn it off for this save.<span class="src">From ZeD-GUI's compatibility tests, Oct 24 2026 (42.21)</span></div></div>
+        <div class="acts"><span class="b pri">Bug report...</span><span class="b">Copy</span><span class="b">Open in Mods</span><span class="b">Open its page</span></div>
+      </div>
+    </div>
+  </div></div>`;
+const LAD = `<div class="cards">
+  <div class="chead"><h2>Ladders!? (v0.0.13)</h2><span>1 error | 1 place | Workshop 2737665235</span></div>
+  <div class="cscroll">
+    <div class="card">
+      <div class="top"><span class="tag">ERROR</span><b>Ladders.lua, line 257</b><span>in setLadderClimbingFlags</span><span class="cnt">1 time</span></div>
+      <div class="in">
+        <div class="when">While the world loaded | before Day 1</div>
+        <div class="msg">Object tried to call nil in setLadderClimbingFlags</div>
+        <div class="plain"><b>In plain words:</b> the code called a function that does not exist. Often a game function the mod was written for that this game version no longer has.</div>
+        <div class="sk"><b>Called from</b> the game, when the tile definitions loaded (OnLoadedTileDefinitions)<br><b>The mod's game versions:</b> none given in its mod.info | this game: 42.21.0</div>
+        <div><div class="lbl">WHAT THIS USUALLY MEANS</div>
+          <div class="know">Its ladder code errors as the world loads on 42.21, with or without ZeD-GUI. Ladders may not be climbable. Not ZeD.<span class="src">From ZeD-GUI's compatibility tests, Oct 24 2026 (42.21)</span></div></div>
+        <div class="acts"><span class="b pri">Bug report...</span><span class="b">Copy</span><span class="b">Open in Mods</span><span class="b">Open its page</span></div>
+      </div>
+    </div>
+  </div></div>`;
+
+const REPORT_TEXT = `Bug report | made by ZeD-GUI Messages | Oct 25 2026 21:31
+
+Bandits Week One: 17 errors, 1 place
+BWOScheduler.lua, line 42, in generateSchedule
+17 times, Day 3 7:01 AM to Day 3 7:17 AM (game time)
+
+java.lang.RuntimeException: attempted index: schedule of non-table: null
+  at KahluaThread.tableget(KahluaThread.java:1430)
+  Lua((MOD:Bandits Week One)).generateSchedule(BWOScheduler.lua:42)
+  Lua((MOD:Bandits Week One)).MasterControl(BWOScheduler.lua:303)
+
+Game: Project Zomboid 42.21.0 (4a0e9546ec), single player
+ZeD-GUI: 0.2.0-t4
+
+Mods on, in load order (7):
+ 1. Bandits | Bandits2 | 3268487204
+ 2. Bandits Week One | BanditsWeekOne | 3403180543
+ 3. Horse Mod | Horse | 3661336777
+ 4. Ladders!? (v0.0.13) | Ladders | 2737665235
+ 5. Companion Dogs [ALPHA] | CompanionDogs | 3740052292
+ 6. ZeD-GUI | ZeD_UI | 3824968485
+ 7. ZeD picks | ZeD_Picks | (made by ZeD-GUI)
+
+Files turned off or picked: none
+
+console.txt: not included (a mod cannot read it).
+Please attach it: C:\\Users\\(you)\\Zomboid\\console.txt`;
+const REPORT = `<div class="cards">
+  <div class="chead"><h2>Bug report</h2><span>Bandits Week One | BWOScheduler.lua, line 42</span></div>
+  <div class="rep">
+    <div class="row"><span class="tick"></span>The error, its count and times, and the full call chain</div>
+    <div class="row"><span class="tick"></span>The game's and ZeD-GUI's versions</div>
+    <div class="row"><span class="tick"></span>The mods that are on, in load order</div>
+    <div class="row"><span class="tick no"></span>Bandits Week One's other notes in Messages (none)</div>
+    <textarea readonly>${REPORT_TEXT}</textarea>
+    <div class="warn"><i></i><div>ZeD cannot read console.txt. Copy it from <b>C:\\Users\\(you)\\Zomboid\\console.txt</b> before you restart the game (it is replaced at every start) and attach it to the post.</div></div>
+  </div></div>`;
+const FOOT_REPORT = `<div class="help">Post it where the mod's maker asks for reports: Open its page goes to Bandits Week One's Workshop page.</div>
+  <div class="foot"><span class="b">Back</span><span class="sp"></span><span class="b">Open its page</span><span class="b">Save to a file</span><span class="b pri foc">Copy</span></div>`;
+
+const SCENES = [
+  { id: "e1", label: "An error, read", cap: "Bandits Week One selected under Errors. One card for the one place its 17 errors come from: the file and line, how often and when, the game's message, the same in plain words, what called it, and what ZeD's own compatibility tests know about it.",
+    html: () => win("Messages", STATUS, LIST("bwo") + BWO, FOOT) },
+  { id: "e2", label: "A load error", cap: "Ladders!? errored once while the world loaded. The plain reading of 'tried to call nil', the mod's game version range (none given), and ZeD's test note. Its full name, brackets and all, is kept (today it is cut short).",
+    html: () => win("Messages", STATUS, LIST("lad") + LAD, FOOT) },
+  { id: "e3", label: "Bug report", cap: "Bug report builds the text for a post: the error with its call chain, the versions, the mods in load order. Copy (focused here, as on a controller), Save to a file, or Open its page. console.txt is the one thing ZeD cannot add; it says where to find it.",
+    html: () => win("Messages", STATUS, LIST("bwo") + REPORT, FOOT_REPORT) },
+];
+let cur = SCENES[0], zoom = 1;
+function seg(id, items, get, set) {
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = get() === v ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function render() {
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), () => cur.id, v => { cur = SCENES.find(s => s.id === v); });
+  seg("#ctlZoom", [[1, "100%"], [1.25, "125%"], [0.8, "80%"]], () => zoom, v => { zoom = v; });
+  const st = $("#stage");
+  st.innerHTML = cur.html();
+  st.style.transform = zoom === 1 ? "" : `scale(${zoom})`;
+  $("#wrap").style.height = (720 * zoom + 4) + "px";
+  $("#wrap").style.width = (1000 * zoom + 4) + "px";
+  $("#caption").textContent = cur.cap;
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
