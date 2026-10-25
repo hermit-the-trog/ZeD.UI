@@ -202,7 +202,9 @@ end
 function ZeD_MoodleLayer:_rightY()
     local pn = self.playerNum
     local w = pn == 0 and ZeD.Watch and ZeD.Watch.getInstance and ZeD.Watch.getInstance() or nil
-    if w and w:getIsVisible() and w:getHeight() > 0 then
+    -- only the corner watch: a belt watch popped open sits wherever it was dragged (Oct 25
+    -- 2026: popped at the bottom, it pushed the moodles into the bottom-right corner)
+    if w and w:getIsVisible() and w:getHeight() > 0 and not w._belt then
         return w:getY() + w:getHeight() + ZeD.T.px(10)
     end
     return getPlayerScreenTop(pn) + 120

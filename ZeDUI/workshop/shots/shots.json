@@ -748,49 +748,31 @@
    "kind": "feature",
    "src": "story_11_smoke_break.png",
    "title": "Smoke break",
-   "patches": [
-    [
-     3600,
-     2050,
-     3762,
-     2090,
-     -130,
-     0
-    ],
-    [
-     3682,
-     2094,
-     3762,
-     2130,
-     0,
-     -44
-    ]
-   ],
    "crops": [
     {
      "box": [
-      1700,
-      860,
-      2500,
+      1690,
+      840,
+      2410,
       2140
      ],
      "place": [
       180,
       160,
-      500
+      443
      ]
     },
     {
      "src": "story_11_smoke_break.png",
      "box": [
-      3320,
-      2035,
-      3766,
-      2133
+      3300,
+      985,
+      3840,
+      1225
      ],
      "place": [
       900,
-      560,
+      300,
       892
      ]
     }
@@ -799,8 +781,8 @@
     {
      "text": "The action bar names the action and the item: the cigarette, 26 percent.",
      "anchor": [
-      1982,
-      915
+      2012,
+      882
      ],
      "side": "right",
      "crop": 0
@@ -808,8 +790,8 @@
     {
      "text": "Press the face of the small watch to open the full watch. Drag it anywhere.",
      "anchor": [
-      2393,
-      1800
+      2388,
+      1790
      ],
      "side": "right",
      "crop": 0
@@ -817,19 +799,34 @@
     {
      "text": "The small watch on the belt.",
      "anchor": [
-      2400,
-      2088
+      2364,
+      2112
      ],
      "side": "bottom",
      "crop": 0
     },
     {
-     "text": "The moodles are the game's own. ZeD draws the moodle's name and description in this box.",
+     "text": "The moodles are the game's own. Point at one for its name and description.",
      "anchor": [
-      3600,
-      2045
+      3806,
+      1000
      ],
      "side": "top",
+     "crop": 1,
+     "target": [
+      3783,
+      1000,
+      3830,
+      1165
+     ]
+    },
+    {
+     "text": "ZeD draws the box beside the moodle, level with it.",
+     "anchor": [
+      3540,
+      1205
+     ],
+     "side": "bottom",
      "crop": 1
     }
    ]
@@ -983,7 +980,7 @@
   {
    "id": "car_radio",
    "kind": "feature",
-   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/ws_27_car_radio_up_close.png",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_car_radio_valutech.png",
    "title": "The car radio",
    "caption": "Each car's radio opens up close: tune it and store your stations.",
    "layout": {
@@ -1008,6 +1005,20 @@
       1570
      ],
      "side": "top"
+    },
+    {
+     "text": "SEEK finds the next station. MUTE cuts the sound.",
+     "anchor": [
+      2068,
+      1578
+     ],
+     "side": "top",
+     "target": [
+      2025,
+      1585,
+      2115,
+      1610
+     ]
     },
     {
      "text": "The left knob sets the volume and switches the radio on and off.",
@@ -2280,10 +2291,10 @@
      "maxw": 560
     },
     {
-     "text": "The envelope on the belt opens Messages, with the count of new notes.",
+     "text": "The paper note on the belt opens Messages, with the count of new notes.",
      "anchor": [
-      2257,
-      2068
+      2266,
+      2116
      ],
      "side": "bottom",
      "crop": 2,

@@ -762,8 +762,14 @@ if want("11") then
         ST.tpSq(P.smoke)
         ST.face("SE")
         Z.lightBlue()
-        -- god mode clears stress every tick: held at Stressed while the beat lasts
-        M11.hold = function() pcall(function() p:getStats():set(CharacterStat.STRESS, 0.55) end) end
+        -- god mode clears the stats every tick: held while the beat lasts, so the right edge
+        -- shows a few moodles (stressed, peckish, thirsty, bored) and the hover is on one of them
+        -- (director, Oct 25 2026: "show the moodles, so it looks like you are hovering over one")
+        M11.hold = function() pcall(function()
+            local s = p:getStats()
+            s:set(CharacterStat.STRESS, 0.55); s:set(CharacterStat.HUNGER, 0.3)
+            s:set(CharacterStat.THIRST, 0.3); s:set(CharacterStat.BOREDOM, 0.5)
+        end) end
         Events.OnTick.Add(M11.hold)
         ZeD.Watch.togglePop(true)
     end)

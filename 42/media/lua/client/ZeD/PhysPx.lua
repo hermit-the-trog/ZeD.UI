@@ -423,7 +423,7 @@ ZeD.PhysPx = {
       },
       hits = {
         { id = "mute", x = 310, y = 22, w = 40, h = 17, kind = "press" },
-        { id = "seek", x = 310, y = 44, w = 40, h = 17, kind = "press" },
+        { id = "seek", x = 100, y = 22, w = 40, h = 17, kind = "press" },
         { id = "p1", x = 92, y = 62, w = 40, h = 17, kind = "press" },
         { id = "p2", x = 138, y = 62, w = 40, h = 17, kind = "press" },
         { id = "p3", x = 184, y = 62, w = 40, h = 17, kind = "press" },

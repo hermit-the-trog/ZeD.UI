@@ -42,7 +42,7 @@ local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
-local LAMP = 38            -- the Messages envelope (MESSAGES_SPEC.md), right of the off hand, while Messages keeps anything
+local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), right of the off hand, while Messages keeps anything
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
@@ -682,7 +682,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp)
         boxes[#boxes + 1] = watchBox
         x = x + mw
     end
-    -- the Messages envelope, last on the right (only while Messages keeps anything)
+    -- the Messages note, last on the right (only while Messages keeps anything)
     if lamp then
         x = x + px(WRIST)
         local lw = px(LAMP)
@@ -1110,19 +1110,21 @@ function ZeD_BeltHUD:_drawBox(b, o)
     end
 end
 
--- the Messages envelope (MESSAGES_SPEC.md): a box with the inbox icon and the count of what is
+-- the Messages note (MESSAGES_SPEC.md): a box with a paper note (the map flyer's, no pin) and the count of what is
 -- new (Visual Catalog A12: the danger red when an error is new, the accent for a note)
 local lampTex = nil
 function ZeD_BeltHUD:_drawLamp(b, focus, hover)
     local T = ZeD.T
-    local s1, bd, tc, ac = T.surf1, T.borderS, T.text, T.accent
+    local s1, bd, ac = T.surf1, T.borderS, T.accent
     self:drawRect(b.x, b.y, b.w, b.h, 0.92, s1.r, s1.g, s1.b)
     if hover then self:drawRect(b.x, b.y, b.w, b.h, 0.22, ac.r, ac.g, ac.b) end
     self:drawRectBorder(b.x, b.y, b.w, b.h, 1, bd.r, bd.g, bd.b)
-    if lampTex == nil then lampTex = getTexture("media/textures/ZeD/icons/inbox-in.png") or false end
+    -- the map's flyer note without its pin (director, Oct 25 2026), pixel art at a whole zoom
+    if lampTex == nil then lampTex = getTexture("media/textures/ZeD/icons/msg_note.png") or false end
     if lampTex then
-        local isz = math.floor(b.w * 0.6)
-        self:drawTextureScaledAspect(lampTex, b.x + math.floor((b.w - isz) / 2), b.y + math.floor((b.h - isz) / 2), isz, isz, 1, tc.r, tc.g, tc.b)
+        local k = math.max(1, math.floor(b.h * 0.75 / 14))
+        local iw, ih = 13 * k, 14 * k
+        self:drawTextureScaledAspect(lampTex, b.x + math.floor((b.w - iw) / 2), b.y + math.floor((b.h - ih) / 2), iw, ih, 1, 1, 1, 1)
     end
     local un, err = ZeD.Messages.unread()
     if un > 0 then
@@ -1410,7 +1412,7 @@ function B.takeDrop(playerNum, items)
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
     local b = hud:boxAt(mx, my)
-    if not b or b.kind == "watch" or b.kind == "lamp" then return true end   -- over the strap, the watch or the envelope: no drop to the floor either
+    if not b or b.kind == "watch" or b.kind == "lamp" then return true end   -- over the strap, the watch or the Messages note: no drop to the floor either
     local st, it = hud:_dropState(b, items)
     if st ~= "fit" then return true end
     if b.kind == "hand" then
