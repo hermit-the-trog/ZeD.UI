@@ -28,7 +28,7 @@ $log = "C:\Users\danie\Zomboid\console.txt"
 Start-Sleep -Seconds 10
 $want = $(if ($MainMenu) { "bridge armed \(main menu" } else { "game loading took" })
 $loaded = $false
-for ($i = 0; $i -lt 150; $i++) {
+for ($i = 0; $i -lt 300; $i++) {   # (up to 10 minutes: a long mod list loads slowly)
   Start-Sleep -Seconds 2
   $c = ((Get-Content $log -Raw -ErrorAction SilentlyContinue) -replace "`0", "")
   if ($c -match $want) { $loaded = $true; break }

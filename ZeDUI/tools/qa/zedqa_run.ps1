@@ -470,7 +470,7 @@ function Start-Game4K {
     Add-Note "started ProjectZomboid64.exe -debug (fullscreen, the director's options.ini)"
     Start-Sleep -Seconds 10   # the game moves the old console.txt to Logs/ as it starts
     $loaded = $false
-    for ($i = 0; $i -lt 150; $i++) {
+    for ($i = 0; $i -lt 300; $i++) {   # (up to 10 minutes: a long mod list loads slowly)
         Start-Sleep -Seconds 2
         if (-not (Test-GameAlive)) { throw "the game closed (or never started) while loading" }
         $c = Read-Text $ConsoleFile
