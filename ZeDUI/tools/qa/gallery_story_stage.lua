@@ -952,8 +952,10 @@ function ST.snapZeD()
         end
     end)
     pcall(function() R.zed.mapStyle = p:getModData().ZeD_MapStyle end)
-    pcall(function() R.zed.cAcc = ZeD_CharacterWindow.getWindow()._accentKey end)
-    pcall(function() R.zed.wAcc = ZeD_WorldWindow.getWindow()._accentKey end)
+    -- (a window not built yet has no accent of its own to keep: a nil index here is a logged exception under -debug)
+    local cw, ww = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow(), ZeD_WorldWindow and ZeD_WorldWindow.getWindow()
+    if cw then R.zed.cAcc = cw._accentKey end
+    if ww then R.zed.wAcc = ww._accentKey end
 end
 
 -- ===========================================================================
