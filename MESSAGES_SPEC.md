@@ -23,7 +23,7 @@
 - Title **Messages**, the ZeD window frame. Left: the sources, grouped **From mods** and **Errors**, a dot (unread accent / read hollow / error red) and a count. Right: the source's messages, newest first; each a card: kind tag (NOTE, ANSWERED, ERROR), the source, the game time it came, its text (rich text as the mod wrote it), and **the mod's own buttons**, which still run the mod's callbacks.
 - Help line: "A mod's notes and errors land here instead of on top of the game. Questions still ask at once."
 - Footer: "Show this mod's notes as pop-ups" (per mod, remembered), "Copy for a bug report" (errors), "Clear", "Mark all read" (primary).
-- Opens from: **the paper note on the belt** (the map flyer's note without its pin, Oct 25 2026) (left of the buckle; a count when something is new, red when an error is new), the ZeD wheel's **Messages** slice on a controller, the desk's ZeD menu.
+- Opens from: **the paper note on the belt** (the map flyer's note without its pin, Oct 25 2026) (at the belt's right end; a count when something is new, red when an error is new), the ZeD wheel's **Messages** slice on a controller, the desk's ZeD menu.
 - Controller: the window takes the pad like every ZeD window; D-pad between the source list, the cards' buttons and the footer; B closes.
 
 ## 4. Arrival
@@ -44,7 +44,7 @@
 - **Kept:** `ISModalDialog` and `ISModalRichText` notes (they were already ZeD prompts, row 28) and `ISCollapsableModalRichText` notes (built as a ZeD prompt only when Messages keeps them; every other use stays vanilla's window). Each prompt carries `_zedSource`, the calling mod's name; `ZeD_Prompt:addToUIManager` files a kept note instead of showing it. A kept note's OK closes it quietly (no paused message, speed or pad focus to give back) and runs the mod's callback.
 - **The pause:** a mod that pauses the game right after opening its note (Horse Mod calls `setGameSpeed(0)`) is undone three frames later, unless the pause menu is up.
 - **Errors:** one error is several entries in `getLuaDebuggerErrors` (a separator, "dumping Lua stack trace", the exception, the stack dumps); the entry naming an Exception counts, the others go into its record. Named by the first `(MOD:...)` in it; none named: "Project Zomboid". Errors from before the game started stay in the game's log.
-- **The note** (differs from the mockup, which showed it always): it is on the belt, right of the off hand (and of a left-wrist watch), only while Messages keeps anything, so a game with nothing kept looks as before. The count is the new ones; red when an error is new.
+- **The note** (differs from the mockup, which showed it always): it is on the belt, last on the right, after the main hand (and a right-wrist watch; the hands swapped ends Oct 25 2026), only while Messages keeps anything, so a game with nothing kept looks as before. The count is the new ones; red when an error is new.
 - **The toasts:** at the right of the screen, 150 units down, three at most, six seconds; one per mod (an error toast counts up while it shows).
 - **The ZeD wheel:** a Messages slice after Action bar; "No messages." while nothing is kept.
 - **Not in this build:** notes at the main menu (still shown), the desk's ZeD menu entry, mod windows (Send to Messages) and news windows (phase 2).

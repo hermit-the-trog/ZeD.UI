@@ -6,7 +6,9 @@
 -- (ISEquippedItem) and what hangs on you as a bar of numbered squares at the
 -- bottom (ISHotbar). Both become one HUD piece at the bottom centre, to the
 -- director's sketch:
---     [Main Hand] ==[1]=[2]={buckle}=[3]=[4]== [Secondary hand]
+--     [Secondary hand] ==[1]=[2]={buckle}=[3]=[4]== [Main Hand]
+-- (the sketch had the main hand on the left; since Oct 25 2026 the belt reads as seen from behind,
+-- the left hand on the left, as the director asked)
 -- a decorative leather strap with a buckle in the middle (decoration,
 -- theme-neutral: since Oct 15 2026 the character's profession buckle, 25
 -- designs, the plain KENTUCKY plate for any other), the hotbar slots as ZeD boxes on the strap (a little taller
@@ -42,7 +44,7 @@ local STRAP_H = 30
 local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
-local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), right of the off hand, while Messages keeps anything
+local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
@@ -630,8 +632,12 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp)
     local boxes = {}
     local hand, box = px(HAND), px(BOX)
     local x = 0
-    -- the worn watch (the "Watch" option): right wrist left of the main hand,
-    -- left wrist right of the off hand (the main hand is the game's right hand)
+    -- seen from behind, as the camera sees the character (director, Oct 25 2026: "Belt Left is on the
+    -- side of the Primary hand slot"): the off hand (the game's left) at the left end, the main hand
+    -- (the right) at the right end, the slots between in key order. Boxes go in left to right (the
+    -- controller walks them in this order).
+    -- the worn watch (the "Watch" option) outside its own hand: left wrist left of the off hand,
+    -- right wrist right of the main hand
     -- (wItem, wPlate, wWrist: ZeD.Watch.beltWatch, asked by _layoutCached)
     -- the box is the mini watch as drawn: its art at the whole zoom T.art (Oct 21 2026); where that is
     -- taller than the hands (1.5: 92 px art, 78 px hands) the belt grows to it and the rest centre on it
@@ -640,12 +646,12 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp)
     local h = (wItem and mh > hand) and mh or hand
     local handY = math.floor((h - hand) / 2)
     local watchBox = wItem and { kind = "watch", item = wItem, plate = wPlate, wrist = wWrist, y = math.floor((h - mh) / 2), w = mw, h = mh } or nil
-    if watchBox and wWrist == "right" then
+    if watchBox and wWrist ~= "right" then
         watchBox.x = x
         boxes[#boxes + 1] = watchBox
         x = x + mw + px(WRIST)
     end
-    boxes[#boxes + 1] = { kind = "hand", which = "p", x = x, y = handY, w = hand, h = hand }
+    boxes[#boxes + 1] = { kind = "hand", which = "s", x = x, y = handY, w = hand, h = hand }
     x = x + hand + px(END_GAP)
     local strapX = x
     x = x + px(PAD)
@@ -674,9 +680,9 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp)
     x = x + px(PAD)
     local strapW = x - strapX
     x = x + px(END_GAP)
-    boxes[#boxes + 1] = { kind = "hand", which = "s", x = x, y = handY, w = hand, h = hand }
+    boxes[#boxes + 1] = { kind = "hand", which = "p", x = x, y = handY, w = hand, h = hand }
     x = x + hand
-    if watchBox and wWrist ~= "right" then
+    if watchBox and wWrist == "right" then
         x = x + px(WRIST)
         watchBox.x = x
         boxes[#boxes + 1] = watchBox
@@ -1424,14 +1430,14 @@ function B.takeDrop(playerNum, items)
     return true
 end
 
--- Where the small watch sits on screen: x, y, w and the side ("left" of the
--- main hand for a right-wrist watch, else "right"), or nil
+-- Where the small watch sits on screen: x, y, w and the end of the belt it is on
+-- ("right" for a right-wrist watch, beside the main hand, else "left"), or nil
 function B.watchScreen()
     local hud = B._hud
     if not (hud and hud._drawn) then return nil end
     for _, b in ipairs(hud._boxes) do
         if b.kind == "watch" then
-            return hud:getAbsoluteX() + b.x, hud:getAbsoluteY() + b.y, b.w, (b.wrist == "right") and "left" or "right"
+            return hud:getAbsoluteX() + b.x, hud:getAbsoluteY() + b.y, b.w, (b.wrist == "right") and "right" or "left"
         end
     end
     return nil
@@ -1462,7 +1468,7 @@ function B.focus(playerNum)
     local hud = B._hud
     if not (hud and hud:wanted() and hud._drawn) then return false end
     local p = hud:player()
-    -- start on the first slot (after the main hand, and the watch when it sits there)
+    -- start on the first slot (after the off hand, and a left-wrist watch)
     hud._gp = { idx = hud:_firstSlotIdx(), inList = false, row = 1, list = B.otherWeapons(p) }
     setJoypadFocus(playerNum, hud)
     p:setJoypadIgnoreAimUntilCentered(true)
