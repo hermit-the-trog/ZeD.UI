@@ -46,3 +46,4 @@ Working with other mods (tested with 128 popular mods)
 
 Fixes
 - The theme, accent and text-size squares and the close box on the main menu's windows work with the mouse.
+- Changing the text size or the UI scale with the windows open no longer leaves the Character window's tabs under the inventory, or the World window's side strips over its list and past its edge.

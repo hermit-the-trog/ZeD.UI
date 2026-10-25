@@ -198,6 +198,12 @@ S.step(5, function()
         for i = #e, 1, -1 do if e[i].text == ST.JOURNAL then table.remove(e, i); nj = nj + 1 end end
         ZeD_CharacterWindow.getWindow()._journalCache = nil
     end)
+    -- the character's own entries and hours survived (the stage kept them aside)
+    pcall(function()
+        if R.journalWas then p:getModData().ZeD_Journal.entries = R.journalWas; R.journalWas = nil end
+        if R.hoursWas then p:setHoursSurvived(R.hoursWas); R.hoursWas = nil end
+        ZeD_CharacterWindow.getWindow()._journalCache = nil
+    end)
     local nm = 0
     pcall(function() if R.note and ZeD.MapNotes.remove(R.note) then nm = nm + 1 end end)
     pcall(function() if R.star and ZeD.MapNotes.remove(R.star) then nm = nm + 1 end end)
