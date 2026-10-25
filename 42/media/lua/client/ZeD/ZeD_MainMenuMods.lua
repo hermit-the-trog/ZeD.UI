@@ -79,6 +79,7 @@ function ZeD_MMMods:new()
     o.preset = nil           -- the profile last loaded or saved
     o.psel = nil             -- the Profiles page's picked profile (nil: "No mods")
     o.note = nil             -- { text, untilMs }: what a toggle or a preset did
+    o.dtab = "about"         -- the info pane's tab: "about" | "options" | "sandbox" | "conflicts" (ZeD_MainMenuModsPanes)
     return o
 end
 
@@ -109,6 +110,14 @@ function ZeD_MMMods:onShow()
     self.wsSel = nil
     self.psel = nil
     self.focusId = nil
+    -- the info pane's settings read afresh; ZeD picks' copies rebuilt from the mods as they are now
+    -- (a picked mod Steam updated: its copy changes, and the next reload runs it)
+    ZeD.ModSettings.reset()
+    ZeD.ModPicks.reset()
+    self._optSeen, self._optKept, self._palette = {}, {}, nil
+    local wrote = 0
+    pcall(function() wrote = ZeD.ModPicks.sync(jlist(getActivatedMods())) end)
+    self._picksRefreshed = wrote > 0
 end
 
 -- the mods the list shows: vanilla's sorted records, through the tab and Find (plain text)
@@ -173,6 +182,13 @@ function ZeD_MMMods:rowChips(d)
     local out = {}
     local n = MS.count(d.modId)
     if n > 0 then out[#out + 1] = { ZeD.tr(n == 1 and "UI_ZeD_Mods_ChipConflictOne" or "UI_ZeD_Mods_ChipConflictMany", n), "warning" } end
+    if MS.pickedFor(d.modId) > 0 then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipPicked"), "positive" } end
+    if n == 0 and MS.pickedFor(d.modId) == 0 and MS.sameFor(d.modId) > 0 then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipSameText"), "neutral" } end
+    if d.modId == ZeD.ModPicks.HELPER then
+        local k = 0
+        for _ in pairs(ZeD.ModPicks.picks()) do k = k + 1 end
+        if k > 0 then out[#out + 1] = { ZeD.tr(k == 1 and "UI_ZeD_Mods_ChipFilesOne" or "UI_ZeD_Mods_ChipFilesMany", k), "positive" } end
+    end
     local it = MS.wsFor(d.modInfo)
     if it then
         if MS.ws.updatedNow[it.id] and MS.isLoaded(d.modId) then out[#out + 1] = { ZeD.tr("UI_ZeD_Mods_ChipUpdated"), "accent" }
@@ -197,7 +213,10 @@ function ZeD_MMMods:pending()
     local reorder = false
     pcall(function() reorder = ActiveMods.requiresResetLua(m:getActiveMods()) end)
     local updated = MS.updatedLoaded()
-    if turnedOn == 0 and turnedOff == 0 and not reorder and #updated == 0 then return nil end
+    if turnedOn == 0 and turnedOff == 0 and not reorder and #updated == 0 then
+        if self._picksRefreshed then return ZeD.tr("UI_ZeD_Mods_PendingPicks"), false end
+        return nil
+    end
     local parts = {}
     if turnedOn > 0 then parts[#parts + 1] = ZeD.tr(turnedOn == 1 and "UI_ZeD_Mods_TurnedOnOne" or "UI_ZeD_Mods_TurnedOnMany", turnedOn) end
     if turnedOff > 0 then
@@ -317,6 +336,13 @@ function ZeD_MMMods:accept()
         pcall(function() needed = ActiveMods.requiresResetLua(m:getActiveMods()) end)
         force = not needed
     end
+    -- ZeD picks' copies changed (ZeD_ModPicks) with no other change: the reload vanilla would not run
+    if not (server or m.isNewGame or m.loadGameFolder) and self._picksRefreshed and not force then
+        local needed = true
+        pcall(function() needed = ActiveMods.requiresResetLua(m:getActiveMods()) end)
+        force = not needed
+    end
+    if self.helperLast then self:helperLast() end
     m:acceptChanges()        -- Load / New Game land back on the monitor through the redirects
     if force then
         ms().bottomPanel:setVisible(false)
@@ -385,6 +411,7 @@ function ZeD_MMMods:loadAfter(id, afterId)
 end
 
 function ZeD_MMMods:back()
+    if self.page == "picks" then self:leavePicks(); return end
     if self.page ~= "list" then self:leaveOrder(false); return end
     if self:changed() then self:setConfirm("back") else self:accept() end
 end
@@ -904,6 +931,7 @@ end
 function ZeD_MMMods:prerender()
     local T = ZeD.T
     if self.page == "list" then MS.step(); MS.wsPoll(true) end
+    self:paletteWatch()
     self._specs, self._hits = {}, {}
     local w, h = UI.placeOnTube(self)
     local all, on = self:counts()
@@ -913,6 +941,7 @@ function ZeD_MMMods:prerender()
     if self.page == "order" then section = server and "UI_ZeD_Mods_TitleServerOrder" or "UI_ZeD_Mods_TitleOrder"
     elseif self.page == "maps" then section = server and "UI_ZeD_Mods_TitleServerMaps" or "UI_ZeD_Mods_TitleMaps"
     elseif self.page == "profiles" then section = server and "UI_ZeD_Mods_TitleServerProfiles" or "UI_ZeD_Mods_TitleProfiles"
+    elseif self.page == "picks" then section = "UI_ZeD_Mods_TitlePicks"
     else section = server and "UI_ZeD_Mods_TitleServer" or "UI_ZeD_Mods_Title" end
     self.title = ZeD.tr("UI_ZeD_Mods_TitleFmt", ZeD.tr(section))
     self.titleStats = { { text = ZeD.tr("UI_ZeD_Mods_StatOn", on, all), color = (on > 0) and T.positive or T.textDim } }
@@ -934,6 +963,9 @@ function ZeD_MMMods:prerender()
     elseif self.page == "profiles" then
         self.find:setVisible(false)
         self:drawProfiles(pad, bodyY, w - pad * 2, bodyH)
+    elseif self.page == "picks" then
+        self.find:setVisible(false)
+        self:drawPicker(pad, bodyY, w - pad * 2, bodyH)
     else
         self.find:setVisible(false)
         self:drawOrder(pad, bodyY, w - pad * 2, bodyH)
@@ -943,6 +975,7 @@ end
 
 function ZeD_MMMods:render()
     UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask, self._askX)
+    self:drawPalette()
     ZeD_Window.render(self)
 end
 
@@ -1001,6 +1034,8 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
               { "update", ZeD.tr("UI_ZeD_Mods_BtnUpdate"), function() self:setConfirm("update") end, "default", not isUser or inUse },
               { "more", ZeD.tr("UI_ZeD_Saves_More"), function() self:openMore() end },
               { "load", getText("UI_mainscreen_load"), function() self:loadProfile({ name = self.psel }) end, "primary", loadOff } })
+    elseif self.page == "picks" then
+        ask, self._askX = self:pickStrip(stripY, w, row)
     elseif self.page ~= "list" then
         local _, firstBad = self:orderStates()
         UI.stripSpecs(self, stripY, w, row,
@@ -1339,9 +1374,12 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
         if self.filter == "ws" and self.wsSel and MS.ws.items[self.wsSel] then self:drawWsDetail(x, top, w, y + h - top) end
         return
     end
-    local m = model()
     local info = d.modInfo
     local vy, vh = top, y + h - top
+    -- Options and Sandbox keep a help band at the pane's foot (the row under the pointer)
+    local helpH = (self.dtab == "options" or self.dtab == "sandbox") and self:helpBandH() or 0
+    vh = vh - helpH
+    self._helpEntry = nil
     self._detail = { x = x, y = vy, w = w, h = vh }
     self:setStencilRect(x + T.px(1), vy + T.px(1), w - T.px(2), vh - T.px(2))
     local cy = vy + pad - self.dscroll
@@ -1394,6 +1432,27 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     if wid and wid ~= "" then verb("workshop", ZeD.tr("UI_ZeD_Workshop_OpenInSteam"), function() MS.openInSteam(wid) end) end
     if url ~= "" then verb("homepage", ZeD.tr("Homepage"), function() openUrl(url) end) end
     cy = math.max(cy + (ptex and psz or 0), by + bh) + T.px(12)
+    -- the tabs: About, Options, Sandbox, Conflicts (ZeD_MainMenuModsPanes)
+    cy = self:drawDetailTabs(d, x, w, cy, vy, vh)
+    local tab = self.dtab or "about"
+    if tab == "options" then cy = self:drawOptionsTab(d, ix, iw, cy, vy, vh)
+    elseif tab == "sandbox" then cy = self:drawSandboxTab(d, ix, iw, cy, vy, vh)
+    elseif tab == "conflicts" then cy = self:drawConflicts(d, ix, iw, cy, vy, vh)
+    else cy = self:drawAbout(d, ix, iw, cy, vy, vh, prob, wid) end
+    self:clearStencilRect()
+    -- the pane scrolls as one unit when it runs long
+    local contentH = cy + self.dscroll - vy + pad
+    self._detail.contentH = contentH
+    self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - vh)))
+    if helpH > 0 then self:drawHelpBand(x, vy + vh, w, helpH) end
+end
+
+-- the About tab: what is wrong, the facts, what it needs and cannot run with, the description
+function ZeD_MMMods:drawAbout(d, ix, iw, cy, vy, vh, prob, wid)
+    local T = ZeD.T
+    local m = model()
+    local info = d.modInfo
+    local f2, f1 = T.fontF2, T.fontF1
     -- what is wrong, as vanilla knows it
     if prob then
         local dsz = T.px(7)
@@ -1478,7 +1537,6 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
     for id in pairs(d.incompatibleWith or {}) do inc[#inc + 1] = id end
     table.sort(inc)
     idList(ZeD.tr("UI_ZeD_Mods_ListCannotWith"), inc, false)
-    cy = self:drawConflicts(d, ix, iw, cy, vy, vh)
     -- the description
     local desc = ""
     pcall(function() desc = MM.ui.plain(info:getDescription() or "") end)
@@ -1490,11 +1548,7 @@ function ZeD_MMMods:drawDetail(x, y, w, h)
             cy = cy + MM.fontH(f2) + T.px(3)
         end
     end
-    self:clearStencilRect()
-    -- the pane scrolls as one unit when it runs long
-    local contentH = cy + self.dscroll - vy + pad
-    self._detail.contentH = contentH
-    self.dscroll = math.max(0, math.min(self.dscroll, math.max(0, contentH - vh)))
+    return cy
 end
 
 -- wrapped text in the detail pane; returns the y under it
@@ -1555,43 +1609,51 @@ function ZeD_MMMods:drawConflicts(d, ix, iw, cy, vy, vh)
     local dsz = T.px(7)
     local tx, tw = ix + dsz + T.px(7), iw - dsz - T.px(7)
     for i, e in ipairs(list) do
-        local mine = e.loser == d.modId
-        local other = mine and e.winner or e.loser
-        local win, lose = MS.modName(e.winner), MS.modName(e.loser)
-        local many = #e.things > 1
-        local title
-        if e.kind == "file" then title = many and ZeD.tr("UI_ZeD_Mods_SameFiles", #e.things, MS.modName(other)) or ZeD.tr("UI_ZeD_Mods_SameFile", MS.modName(other))
+        -- the same text in both copies, or files picked one by one (ZeD_MainMenuModsPanes): their own card
+        local extra = self.drawConflictExtra and self:drawConflictExtra(e, i, d, ix, iw, cy, vy, vh)
+        if extra then cy = extra
         else
-            local kinds = {}
-            for noun in pairs(e.nouns) do kinds[#kinds + 1] = noun end
-            table.sort(kinds)
-            local k1 = MS.kindOf(kinds[1])
-            if not many then title = ZeD.tr(k1 and k1.sameOne or "UI_ZeD_Mods_SameDefinition", MS.modName(other))
-            elseif #kinds == 1 and k1 then title = ZeD.tr(k1.same, #e.things, MS.modName(other))
-            else title = ZeD.tr("UI_ZeD_Mods_SameDefinitions", #e.things, MS.modName(other)) end
+            local mine = e.loser == d.modId
+            local other = mine and e.winner or e.loser
+            local win, lose = MS.modName(e.winner), MS.modName(e.loser)
+            local many = #e.things > 1
+            local title
+            if e.kind == "file" then title = many and ZeD.tr("UI_ZeD_Mods_SameFiles", #e.things, MS.modName(other)) or ZeD.tr("UI_ZeD_Mods_SameFile", MS.modName(other))
+            else
+                local kinds = {}
+                for noun in pairs(e.nouns) do kinds[#kinds + 1] = noun end
+                table.sort(kinds)
+                local k1 = MS.kindOf(kinds[1])
+                if not many then title = ZeD.tr(k1 and k1.sameOne or "UI_ZeD_Mods_SameDefinition", MS.modName(other))
+                elseif #kinds == 1 and k1 then title = ZeD.tr(k1.same, #e.things, MS.modName(other))
+                else title = ZeD.tr("UI_ZeD_Mods_SameDefinitions", #e.things, MS.modName(other)) end
+            end
+            ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.warningText, dsz)
+            cy = self:paneText(title, tx, cy, tw, f2, head)
+            cy = self:paneText(many and ZeD.tr("UI_ZeD_Mods_AndMore", MS.thingText(e.things[1]), #e.things - 1) or MS.thingText(e.things[1]), tx, cy, tw, f3, dim) + T.px(2)
+            -- who wins, and whether that is on purpose (the winner needs the other: a patch for it)
+            local needs = false
+            local winInfo = getModInfoByID(e.winner)
+            for _, r in ipairs(jlist(winInfo and winInfo:getRequire())) do if r == e.loser then needs = true end end
+            -- (scripts are read in file-name order across every mod, not in load order: tested on
+            -- 42.21.0, so moving a mod cannot change who wins an item or a recipe)
+            local why
+            if e.kind == "file" then why = ZeD.tr("UI_ZeD_Mods_WhyFile", win, lose)
+            else why = ZeD.tr(many and "UI_ZeD_Mods_WhyScriptMany" or "UI_ZeD_Mods_WhyScriptOne", win) end
+            local fixed = e.kind == "file" and order[e.loser] and order[e.winner] and order[e.loser] > order[e.winner]
+            if needs then why = why .. " " .. ZeD.tr("UI_ZeD_Mods_WhyNeeds", win, lose)
+            elseif fixed then why = why .. " " .. ZeD.tr("UI_ZeD_Mods_WhyFixed", lose) end
+            cy = self:paneText(why, tx, cy, tw, f2, txt) + T.px(6)
+            local verbs = {}
+            if e.kind == "file" and mine and not needs and not fixed and d.isActive then
+                verbs[#verbs + 1] = { "cf:after:" .. i, ZeD.tr("UI_ZeD_Mods_VerbLoadAfter", shortName(lose)), function() self:loadAfter(e.loser, e.winner) end }
+            end
+            if self.canPick and self:canPick(e) then
+                verbs[#verbs + 1] = { "cf:pick:" .. i, ZeD.tr("UI_ZeD_Mods_VerbPickFiles"), function() self:enterPicks(e) end, "primary" }
+            end
+            verbs[#verbs + 1] = { "cf:hide:" .. i, ZeD.tr("UI_ZeD_Mods_VerbHide"), function() MS.hide(e); self:dirty(); MM.clickSound() end }
+            cy = self:paneVerbs(verbs, tx, cy, tw, vy, vh, 600 + i) + T.px(10)
         end
-        ZeD.Atoms.drawStatusDot(self, ix, cy + math.floor((MM.fontH(f2) - dsz) / 2), T.warningText, dsz)
-        cy = self:paneText(title, tx, cy, tw, f2, head)
-        cy = self:paneText(many and ZeD.tr("UI_ZeD_Mods_AndMore", MS.thingText(e.things[1]), #e.things - 1) or MS.thingText(e.things[1]), tx, cy, tw, f3, dim) + T.px(2)
-        -- who wins, and whether that is on purpose (the winner needs the other: a patch for it)
-        local needs = false
-        local winInfo = getModInfoByID(e.winner)
-        for _, r in ipairs(jlist(winInfo and winInfo:getRequire())) do if r == e.loser then needs = true end end
-        -- (scripts are read in file-name order across every mod, not in load order: tested on
-        -- 42.21.0, so moving a mod cannot change who wins an item or a recipe)
-        local why
-        if e.kind == "file" then why = ZeD.tr("UI_ZeD_Mods_WhyFile", win, lose)
-        else why = ZeD.tr(many and "UI_ZeD_Mods_WhyScriptMany" or "UI_ZeD_Mods_WhyScriptOne", win) end
-        local fixed = e.kind == "file" and order[e.loser] and order[e.winner] and order[e.loser] > order[e.winner]
-        if needs then why = why .. " " .. ZeD.tr("UI_ZeD_Mods_WhyNeeds", win, lose)
-        elseif fixed then why = why .. " " .. ZeD.tr("UI_ZeD_Mods_WhyFixed", lose) end
-        cy = self:paneText(why, tx, cy, tw, f2, txt) + T.px(6)
-        local verbs = {}
-        if e.kind == "file" and mine and not needs and not fixed and d.isActive then
-            verbs[#verbs + 1] = { "cf:after:" .. i, ZeD.tr("UI_ZeD_Mods_VerbLoadAfter", shortName(lose)), function() self:loadAfter(e.loser, e.winner) end }
-        end
-        verbs[#verbs + 1] = { "cf:hide:" .. i, ZeD.tr("UI_ZeD_Mods_VerbHide"), function() MS.hide(e); self:dirty(); MM.clickSound() end }
-        cy = self:paneVerbs(verbs, tx, cy, tw, vy, vh, 600 + i) + T.px(10)
     end
     local hid = MS.hiddenFor(d.modId)
     if hid > 0 then
@@ -1941,9 +2003,30 @@ function ZeD_MMMods:joyDir(dir)
         if dir == "left" or dir == "right" then ZeD_MMWindow.joyDir(self, dir) end
         return
     end
+    -- left / right on an option row change its value in place, as in the Options window
+    if dir == "left" or dir == "right" then
+        for _, b in ipairs(self._specs) do
+            if b.id == self.focusId and b.optEntry and b.optEntry.r then
+                if ZeD_MMOptions.nudge(self, b.optEntry.r, dir == "left" and -1 or 1) then return end
+            end
+        end
+    end
     ZeD_MMWindow.joyDir(self, dir)
     for _, b in ipairs(self._specs) do
-        if b.id == self.focusId and b.listRow then
+        -- a stop in the info pane (its tabs, option rows): the pane scrolls to show it
+        -- (the picker's two choice cards are stops too: nothing scrolls for them)
+        if b.id == self.focusId and b.paneStop then
+            local dd = self.page == "list" and self._detail or nil
+            if dd and b.y and b.h then
+                if b.y < dd.y then self.dscroll = math.max(0, self.dscroll - (dd.y - b.y) - ZeD.T.px(8))
+                elseif b.y + b.h > dd.y + dd.h then self.dscroll = self.dscroll + (b.y + b.h - dd.y - dd.h) + ZeD.T.px(8) end
+            end
+        elseif b.id == self.focusId and b.pickRow then
+            self.pickSel = b.pickRow
+            local vh = self._list and self._list.h or 0
+            if b.ry < self.scroll then self.scroll = b.ry
+            elseif b.ry + b.rh > self.scroll + vh then self.scroll = b.ry + b.rh - vh end
+        elseif b.id == self.focusId and b.listRow then
             if self.page == "list" then
                 if b.wsid and self.wsSel ~= b.wsid then self.dscroll = 0 end
                 if b.wsid then self.wsSel = b.wsid; self.sel = b.key
@@ -1964,7 +2047,9 @@ function ZeD_MMMods:joyA()
     ZeD_MMWindow.joyA(self)
 end
 function ZeD_MMMods:joyB()
+    if self._palette then self._palette = nil; return end
     if self.confirm then self:setConfirm(false)
+    elseif self.page == "picks" then self:leavePicks()
     elseif self.page == "profiles" then self:leaveProfiles(); MM.clickSound()
     else self:back() end
 end
@@ -2004,6 +2089,20 @@ function ZeD_MMMods:getFooterPrompts()
         end
         return { { glyph = "A", label = sel }, { glyph = "B", label = back } }
     end
+    if self.page == "picks" then
+        if f:sub(1, 6) == "pfile:" then return { { glyph = "A", label = ZeD.tr("UI_ZeD_Mods_PromptOtherCopy") }, { glyph = "B", label = getText("UI_Cancel") } } end
+        return { { glyph = "A", label = sel }, { glyph = "B", label = getText("UI_Cancel") } }
+    end
+    if f:sub(1, 5) == "mopt:" then
+        local t = {}
+        for _, b in ipairs(self._specs or {}) do
+            local r = b.id == f and b.optEntry and b.optEntry.r
+            if r and (r.kind == "combo" or r.kind == "slider") then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
+            if r then t[#t + 1] = { glyph = "A", label = ZeD.tr(r.kind == "tick" and "UI_ZeD_Options_PromptToggle" or "UI_ZeD_MainMenu_PromptSelect") } end
+        end
+        t[#t + 1] = { glyph = "B", label = back }
+        return t
+    end
     if self.page ~= "list" then
         return { { glyph = "Y", label = ZeD.tr("UI_ServerSettings_ButtonMoveUp") }, { glyph = "X", label = ZeD.tr("UI_ServerSettings_ButtonMoveDown") }, { glyph = "B", label = back } }
     end
@@ -2017,7 +2116,9 @@ function ZeD_MMMods:getFooterPrompts()
 end
 
 function ZeD_MMMods:keyEscape()
+    if self._palette then self._palette = nil; return true end
     if self.confirm then self:setConfirm(false); return true end
+    if self.page == "picks" then self:leavePicks(); return true end
     if self.find:isFocused() then self.find:unfocus(); return true end
     if self.page == "profiles" then self:leaveProfiles(); MM.clickSound(); return true end
     self:back()
@@ -2036,7 +2137,8 @@ function ZeD_MMMods:keyOther(key)
     end
     if self.confirm then return false end
     if key == Keyboard.KEY_RETURN then
-        if self.page == "list" then self:accept()
+        if self.page == "picks" then if self:picksChanged() then self:usePicks() end
+        elseif self.page == "list" then self:accept()
         elseif self.page == "profiles" then self:loadProfile({ name = self.psel })
         else self:leaveOrder(true) end
         return true
@@ -2046,6 +2148,7 @@ function ZeD_MMMods:keyOther(key)
     if key == Keyboard.KEY_UP or key == Keyboard.KEY_DOWN then
         if self.page == "list" and self.filter == "ws" then self.focusId = self.wsSel and ("wrow:" .. self.wsSel) or nil
         elseif self.page == "list" then self.focusId = self.sel and ("mrow:" .. self.sel) or nil
+        elseif self.page == "picks" then self.focusId = "pfile:" .. (self.pickSel or 1)
         elseif self.page == "profiles" then
             for i, p in ipairs(self:profiles()) do if p.name == self.psel then self.focusId = "prow:" .. i end end
         else self.focusId = "orow:" .. (self.oSel or 1) end

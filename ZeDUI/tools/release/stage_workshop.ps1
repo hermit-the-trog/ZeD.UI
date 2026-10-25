@@ -12,6 +12,9 @@
             Contents/mods/ZeD-UI/
                 42/...                  (the version folder, game files only)
                 common/                 (shared folder; B42 layout)
+            Contents/mods/ZeD_Picks/    (ZeD picks: the empty helper mod the Mods screen
+                                         writes picked files into; from ZeDUI/picks_mod/,
+                                         copied as it is; Oct 24 2026)
 
     Only the mod goes up. At the root of the mod folder that is the version
     folders (names like 42 or 42.13) and common/; everything else there
@@ -75,6 +78,8 @@ $Item      = Join-Path $WsRoot $ItemName
 $Contents  = Join-Path $Item 'Contents'
 $Stage     = Join-Path $Contents (Join-Path 'mods' $ModFolder)
 $Preview   = Join-Path $PSScriptRoot 'preview.png'
+$PicksSrc  = Join-Path $ModRoot 'ZeDUI/picks_mod/ZeD_Picks'                       # ZeD picks (ZeD_ModPicks.lua)
+$PicksStage = Join-Path $Contents 'mods/ZeD_Picks'
 
 function Fail([string]$msg) { Write-Host "REFUSED: $msg" -ForegroundColor Red; exit 1 }
 function Warn([string]$msg) { Write-Host "WARNING: $msg" -ForegroundColor Yellow }
@@ -278,6 +283,15 @@ if (-not $DryRun) {
         }
     }
 
+    # ZeD picks, the helper mod for file picks: its two files as they are
+    if (Test-Path -LiteralPath (Join-Path $PicksSrc '42/mod.info')) {
+        foreach ($f in Get-ChildItem -LiteralPath $PicksSrc -Recurse -File -Force) {
+            $dest = Join-Path $PicksStage ([IO.Path]::GetRelativePath($PicksSrc, $f.FullName))
+            [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($dest))
+            [IO.File]::Copy($f.FullName, $dest, $true)
+        }
+    } else { Warn "ZeD picks not found at $PicksSrc; the Mods screen's file picks will be off for players" }
+
     if ($previewProblem) { Warn "preview.png $previewProblem; not copied (the Workshop will not take the item without it)" }
     else { Copy-Item -LiteralPath $Preview -Destination (Join-Path $Item 'preview.png') -Force }
 }
@@ -301,6 +315,7 @@ Write-Host '== SUMMARY ==' -ForegroundColor Cyan
 "  total:       {0} ({1:N0} bytes)" -f (Mb $total), $total
 "  modversion:  {0}{1}" -f $upVer, $(if ($Version) { " (stamped in the staged copy; the repo keeps $srcVer)" } else { ' (as in the repo)' })
 "  mod.info:    {0}" -f ($modInfos -join ', ')
+"  ZeD picks:   {0}" -f $(if (Test-Path -LiteralPath (Join-Path $PicksSrc '42/mod.info')) { $(if ($DryRun) { 'would stage' } else { 'staged' }) + ' mods/ZeD_Picks (the helper mod for file picks)' } else { 'MISSING (ZeDUI/picks_mod/ZeD_Picks)' })
 "  dev tools:   {0}" -f $(if ($KeepDevTools) { 'shipped (-KeepDevTools)' } else { 'left out' })
 "  preview.png: {0}" -f $(if ($previewProblem) { $previewProblem } else { '256 x 256 PNG, ok' + $(if ($DryRun) { '' } else { ' (copied into the item folder)' }) })
 "  workshop.txt: {0}" -f $(if ($wsId) { "kept; item id $wsId (Upload updates that item)" } elseif (Test-Path -LiteralPath $wsTxt) { 'kept; no id yet (the first Upload creates the item)' } else { 'none yet (ZeD''s upload window writes it on Save)' })

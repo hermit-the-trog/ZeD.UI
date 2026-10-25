@@ -1752,6 +1752,66 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_WhyCollection` | `A collection: its items show in this list on their own as Steam fetches them.` | Mod manager: note in the Workshop item's pane | - |
 | `UI_ZeD_Mods_WhyFetching` | `Steam is fetching it on its own. This screen notices when it lands.` | Mod manager: note in the Workshop item's pane | - |
 | `UI_ZeD_Mods_WhyFile` | `%1 loads later, so its copy is the one the game uses; %2's copy never runs.` | Mod manager: explains a Lua file conflict. %1 the winning mod, %2 the losing mod | - |
+| `UI_ZeD_Mods_DTabAbout` | `About` | Mod manager, a mod's info pane: folder tab with what the pane always showed | - |
+| `UI_ZeD_Mods_DTabOptions` | `Options` | Mod manager, info pane: folder tab with the mod's own options | - |
+| `UI_ZeD_Mods_DTabSandbox` | `Sandbox` | Mod manager, info pane: folder tab with the sandbox settings the mod adds to each game | - |
+| `UI_ZeD_Mods_DTabConflicts` | `Conflicts` | Mod manager, info pane: folder tab with the mod's conflicts | - |
+| `UI_ZeD_Mods_DTabCount` | `%1 %2` | Mod manager, info pane: a tab with its count. %1 the tab's name, %2 how many | - |
+| `UI_ZeD_Mods_OptHead` | `Options` | Mod manager, Options tab: section heading (shown in capitals) | - |
+| `UI_ZeD_Mods_OptHeadNote` | `yours, for every game | kept as you change them` | Mod manager, Options tab: small note at the heading's right; the options are the player's, kept for every game, saved as soon as they change | - |
+| `UI_ZeD_Mods_OptInOptions` | `set in Options` | Mod manager, Options tab: in place of a control (a key or a typed value) that is changed in the Options window | - |
+| `UI_ZeD_Mods_OptNone` | `This mod has no options of its own.` | Mod manager, Options tab: the mod has no options | - |
+| `UI_ZeD_Mods_OptTurnOn` | `Turn it on to see its options. A mod's options are made by its own code, and that code only runs while the mod is on. After Turn on and the reload, they show here.` | Mod manager, Options tab, a mod that is off | - |
+| `UI_ZeD_Mods_OptAfterReload` | `Its options show after the reload: its code has not run yet.` | Mod manager, Options tab: a mod just turned on (its code runs after the reload) | - |
+| `UI_ZeD_Mods_OptSandboxStillOne` | `Its %1 sandbox setting can be read now, in the Sandbox tab.` | Mod manager, Options tab of a mod that is off: its sandbox setting can still be read. %1 is 1 | - |
+| `UI_ZeD_Mods_OptSandboxStill` | `Its %1 sandbox settings can be read now, in the Sandbox tab.` | Mod manager, Options tab of a mod that is off: its sandbox settings can still be read. %1 how many | - |
+| `UI_ZeD_Mods_OptZeDOwn` | `ZeD's own options are in Options, ZeD setup.` | Mod manager, Options tab of ZeD itself | - |
+| `UI_ZeD_Mods_VerbOpenOptions` | `Open in Options` | Mod manager, Options tab: button that opens the Options window on its Mods page | - |
+| `UI_ZeD_Mods_ValueOn` | `On` | Mod manager: a tick box option's value, in the help band's default | - |
+| `UI_ZeD_Mods_ValueOff` | `Off` | Mod manager: a tick box option's value, in the help band's default | - |
+| `UI_ZeD_Mods_SayDefaults` | `%1: options back to their defaults.` | Mod manager: note after Defaults. %1 the mod's name | - |
+| `UI_ZeD_Mods_HelpTitled` | `%1. %2` | Mod manager, help band: a setting's name, then its help text. %1 name, %2 help | - |
+| `UI_ZeD_Mods_SbHead` | `Sandbox settings` | Mod manager, Sandbox tab: section heading (shown in capitals) | - |
+| `UI_ZeD_Mods_SbHeadNote` | `for each game | defaults shown` | Mod manager, Sandbox tab: small note at the heading's right | - |
+| `UI_ZeD_Mods_SbHeadNoteOff` | `readable while it is off | defaults shown` | Mod manager, Sandbox tab of a mod that is off: small note at the heading's right | - |
+| `UI_ZeD_Mods_SbNone` | `This mod adds no sandbox settings.` | Mod manager, Sandbox tab: the mod adds none | - |
+| `UI_ZeD_Mods_SbWhere` | `Chosen when you start a game: New game, Sandbox, page %1. Read from the mod's own files.` | Mod manager, Sandbox tab: where the settings are chosen. %1 the page names in the sandbox screen | - |
+| `UI_ZeD_Mods_SbWhereNoPage` | `Chosen when you start a game: New game, Sandbox. Read from the mod's own files.` | Mod manager, Sandbox tab: where the settings are chosen (no page named) | - |
+| `UI_ZeD_Mods_SbRange` | `Range: %1 to %2` | Mod manager, help band: a number setting's range. %1 lowest, %2 highest | - |
+| `UI_ZeD_Mods_ChipSameText` | `SAME TEXT` | Mod manager: tag on a mod's row: it shares a file with another mod, word for word the same (no conflict). Capitals | - |
+| `UI_ZeD_Mods_ChipPicked` | `PICKED` | Mod manager: tag on a mod's row: its conflict is settled by files picked one by one. Capitals | - |
+| `UI_ZeD_Mods_ChipFilesOne` | `%1 FILE` | Mod manager: tag on the ZeD picks row: how many files it holds. %1 is 1. Capitals | - |
+| `UI_ZeD_Mods_ChipFilesMany` | `%1 FILES` | Mod manager: tag on the ZeD picks row: how many files it holds. %1 how many. Capitals | - |
+| `UI_ZeD_Mods_SameTextOne` | `Same file as %1, same text` | Mod manager, Conflicts tab: card title. %1 the other mod | - |
+| `UI_ZeD_Mods_SameTextMany` | `Same %1 files as %2, same text` | Mod manager, Conflicts tab: card title. %1 how many files, %2 the other mod | - |
+| `UI_ZeD_Mods_SameTextWhy` | `Both copies are the same, word for word: whichever one loads, nothing changes.` | Mod manager, Conflicts tab: why same-text copies are no conflict | - |
+| `UI_ZeD_Mods_PickedOne` | `%1 file picked from %2` | Mod manager, Conflicts tab: card title. %1 is 1, %2 the mod the file was picked from | - |
+| `UI_ZeD_Mods_PickedMany` | `%1 files picked from %2` | Mod manager, Conflicts tab: card title. %1 how many files, %2 the mod they were picked from | - |
+| `UI_ZeD_Mods_PickedMore` | `and %1 more` | Mod manager, Conflicts tab: under the first picked files listed. %1 how many more | - |
+| `UI_ZeD_Mods_PickedKeepsOne` | `%1 keeps the other %2 shared file. The picked copies sit in ZeD picks, which loads last.` | Mod manager, Conflicts tab. %1 the other mod, %2 is 1. ZeD picks is the helper mod's name | - |
+| `UI_ZeD_Mods_PickedKeeps` | `%1 keeps the other %2 shared files. The picked copies sit in ZeD picks, which loads last.` | Mod manager, Conflicts tab. %1 the other mod, %2 how many files. ZeD picks is the helper mod's name | - |
+| `UI_ZeD_Mods_VerbPickFiles` | `Pick file by file...` | Mod manager, Conflicts tab: button that opens the picker (choose a copy per file) | - |
+| `UI_ZeD_Mods_VerbChangePicks` | `Change picks...` | Mod manager, Conflicts tab: button that opens the picker again | - |
+| `UI_ZeD_Mods_VerbUndoPicks` | `Undo picks` | Mod manager, Conflicts tab: button that removes the picks (load order decides again) | - |
+| `UI_ZeD_Mods_SayPicksUndone` | `Picks undone. Reload to put load order back in charge.` | Mod manager: note after Undo picks | - |
+| `UI_ZeD_Mods_SayPicksKept` | `Picks kept (%1 files). Reload to put them to work.` | Mod manager: note after Use these picks. %1 how many files | - |
+| `UI_ZeD_Mods_TitlePicks` | `Pick files` | Mod manager: window title of the picker | - |
+| `UI_ZeD_Mods_PickShared` | `Shared %1 | picked %2` | Picker: list heading (capitals). %1 shared files, %2 picked | - |
+| `UI_ZeD_Mods_PickChipPicked` | `%1 (picked)` | Picker: tag on a file whose copy is picked. %1 the mod | - |
+| `UI_ZeD_Mods_PickDiffOne` | `%1 line differs` | Picker: how many lines differ between the two copies. %1 is 1 | - |
+| `UI_ZeD_Mods_PickDiffMany` | `%1 lines differ` | Picker: how many lines differ between the two copies. %1 how many | - |
+| `UI_ZeD_Mods_PickChoose` | `In both mods. Choose whose copy the game runs.` | Picker: under the file's path | - |
+| `UI_ZeD_Mods_PickRunsNow` | `%1 lines | loads later: runs now` | Picker: under a mod's name on its choice card. %1 the copy's line count | - |
+| `UI_ZeD_Mods_PickLoadsLater` | `%1 lines | loads later` | Picker: under the later mod's name while the other copy is picked. %1 lines | - |
+| `UI_ZeD_Mods_PickNeverRuns` | `%1 lines | loads earlier: never runs` | Picker: under the earlier mod's name. %1 lines | - |
+| `UI_ZeD_Mods_PickPickedSub` | `%1 lines | picked: runs after a reload` | Picker: under the picked mod's name. %1 lines | - |
+| `UI_ZeD_Mods_PickWarn` | `Mixing copies can break a mod whose other files expect its own copy. Any error shows in Messages, and Undo picks puts everything back. Single player only.` | Picker: the warning at the foot | - |
+| `UI_ZeD_Mods_BtnUsePicks` | `Use these picks` | Picker: the strip's button that keeps the picks | - |
+| `UI_ZeD_Mods_PickStripOne` | `%1 file from %2. %3 keeps the other %4.` | Picker: the strip. %1 is 1, %2 the picked mod, %3 the other mod, %4 the files it keeps | - |
+| `UI_ZeD_Mods_PickStripMany` | `%1 files from %2. %3 keeps the other %4.` | Picker: the strip. %1 files picked, %2 the picked mod, %3 the other mod, %4 the files it keeps | - |
+| `UI_ZeD_Mods_PickStripNone` | `Choose a copy for any file. The rest stay with load order.` | Picker: the strip before anything is picked | - |
+| `UI_ZeD_Mods_PromptOtherCopy` | `Other copy` | Picker, controller prompt for A on a file: switch to the other mod's copy | - |
+| `UI_ZeD_Mods_PendingPicks` | `Picked files changed. A reload puts them in place, no restart.` | Mod manager, the strip: the picked copies were rewritten and a reload puts them in place | - |
 | `UI_ZeD_Mods_WhyFixed` | `%1 loads after it once you reload.` | Mod manager: added to the explanation. %1 is the losing mod | - |
 | `UI_ZeD_Mods_WhyMissing` | `You subscribe to it, but Steam has not downloaded it yet. Steam fetches Workshop items on its own (the game cannot start a download); it shows up here once it lands.` | Mod manager: note in the Workshop item's pane | - |
 | `UI_ZeD_Mods_WhyNeeds` | `%1 needs %2, so this looks deliberate.` | Mod manager: added to the explanation. %1 the winning mod, %2 the losing mod | - |
