@@ -12,6 +12,9 @@ import math
 import numpy as np
 from dashlib import *
 from engine import text_w
+import v6
+from v6 import (hazard_under_ash, lower_boxy6, lower_curvy6, console_vents, ash_tray, no_smoking, taxi_meter6, meter_flag_variants,
+                vent_louvered, vent_eyeball, ASH_W, ASH_H)
 from widgets import (gauge, window, glare, chrome_frame, knob, button, rocker, toggle, vent_rect, vent_round, nameplate, dymo,
                      rivet, icon_mask, icon_size, line_mask)
 
@@ -81,16 +84,16 @@ def clock(b, cx, cy, r, bezel="chrome", nd="#f4f4f0"):
     b.part("clock", cx=cx, cy=cy, rh=r * 0.5, rm=r - 3, color=nd)
 
 
-def rocker_panel(b, x, y, items, title="EMERGENCY"):
+def rocker_panel(b, x, y, items, title="EMERGENCY", pitch=24):
     """a black switch plate: rockers that show the lightbar and siren state, the rest the crew's own"""
     d = b.d
-    w = len(items) * 30 + 8
+    w = len(items) * pitch + 8
     b.check_flat(x - 1, y - 1, w + 2, 42, "switch panel")
     d.slab(box(x, y, w, 40), 2.0, "blackp", bevel=1.0, polish=0.3, on=Z_FACE)
     zt = Z_FACE + 2.0
     d.text(title, x + w // 2, y + 3, "paint_c", align="c")
     for i, (lab, src, hid) in enumerate(items):
-        rx = x + 7 + i * 30
+        rx = x + 4 + (pitch - 16) // 2 + i * pitch
         rocker(d, rx, y + 11, 16, 20, on=zt, up=False)
         d.text(lab, rx + 8, y + 33, "paint_w", align="c")
         if src:
@@ -246,29 +249,40 @@ def cl_cossette(b):
 
 
 # =================================================================================== consoles
-def con_sedan(b, chrome=True, vents="rect", climate="levers", inset_mat=None, badge_spec=None, hu=(556, 60), tab=None, fan_mat=None,
-              knob_mat="blackp"):
+HU6 = (516, 67)          # round 6 (Oct 24): the radio against the console's left edge ...
+ASH6 = (704, 67)         # ... and the ash tray (with the lighter) to its right
+
+
+def con_sedan(b, chrome=True, vents="rect", climate="levers", inset_mat=None, badge_spec=None, hu=HU6, tab=None, fan_mat=None,
+              knob_mat="blackp", ash=True):
     if inset_mat: inset(b, 504, 26, 282, 136, inset_mat, "chrome" if chrome and inset_mat == "walnut" else "seam", seed=17)
-    if vents == "rect": vents_pair(b, 31, chrome=chrome, x0=512, x1=696, w=82, h=20)
-    elif vents == "round": vents_pair(b, 29, round_=True, chrome=chrome, x0=508, x1=694, w=84, h=22)
+    if vents == "rect": console_vents(b, 26, chrome=chrome, w=88, h=30)
+    elif vents == "round": console_vents(b, 26, chrome=chrome, h=28, round_=True)
     if badge_spec: badge(b, **badge_spec)
-    headunit_slot(b, hu[0], hu[1], frame="chrome" if chrome else "bezel")
+    hy = hu[1]                     # balance pass: 7 px over the radio and 7 under it, for every vent
+    headunit_slot(b, hu[0], hy, frame="chrome" if chrome else "bezel")
+    if ash: ash_tray(b, ASH6[0], hy, chrome=chrome)
     if climate == "levers": climate_levers(b, 548, 128, chrome=chrome, fan_knob=(752, 140), tab=tab, fan_mat=fan_mat)
-    elif climate == "knobs": climate_knobs(b, 540, 136, pitch=46, r=11, mat=knob_mat, ring="chrome" if chrome else None)
+    elif climate == "knobs": climate_knobs(b, 540, hy + 72, pitch=46, r=11, mat=knob_mat, ring="chrome" if chrome else None)
+    if ash and climate in ("knobs", "sliders"): hazard_under_ash(b)      # Oct 24: the hazard switch under the ash tray
     elif climate == "sliders": climate_sliders(b, 532, 130, w=126)
 
 
 def con_fleet(b, top="siren", badge_role="unit", chrome=False):
-    """fleet: the siren controller (or the fare meter) up top, the fitted radio, plain levers"""
+    """fleet: the siren controller (or the fare meter) up top, the fitted radio against the left edge; the emergency
+    vehicles a NO SMOKING plate to its right, the taxi an ash tray that has seen a lot of fares"""
     if top == "siren":
         siren_box(b, 510, 28, w=150)
         badge(b, 670, 34, 112, 12, style="stencil", role=badge_role, font="35", color="#e8e8e0", plate="stencil")
     elif top == "meter":
-        taxi_meter(b, 510, 28)
-        badge(b, 612, 34, 104, 12, style="stencil", role=badge_role, font="35", color="#e8e8e0", plate="stencil")
-        b.check_flat(732, 26, 40, 36, "vent")
-        vent_round(b.d, 752, 44, 13, on=Z_FACE, bezel="blackp")
-    headunit_slot(b, 556, 76, frame="bezel")
+        px_, py_ = taxi_meter6(b, 512, 26)
+        meter_flag_variants(b, px_, py_)
+        v6.taxi_license(b, 650, 30)            # Oct 24: "under hula needs a taxi license plaque"
+        vent_eyeball(b, 764, 44, 14, bezel="blackp")
+        v6.hula(b, 650 + 46 - 15, 28 - 37)      # her base on the console's top lip, over the licence; she rises above the plate
+    headunit_slot(b, 516, 76, frame="bezel")
+    if top == "meter": ash_tray(b, 704, 76, chrome=False, levels=(3,), seed=11)   # a cab's: always the full one
+    else: no_smoking(b, 704, 76)
     # three pixels higher than the sedans' so the AIR legends (a clear pixel under the tab) stay on the console
     climate_levers(b, 540, 135, chrome=chrome, fan_knob=(752, 146))
 
@@ -283,12 +297,13 @@ def wagon(b):
     sq_dial(b, 426, 28, "temp", "C", "H", "temp", w=72, h=42, red_right=True)
     lamp_text_row(b, 130, 78, [L_OIL, L_GEN, L_TEMP, L_BRAKE, L_BELTS, L_LT, L_HI, L_RT])
     badge(b, 392, 84, 82, 9, style="chrome", role="model", font="57", shadow="#140904")
-    lower_boxy(b, y0=118, chrome=True, trunk_label="GATE", trunk_sub="TAILGATE")
+    lower_boxy6(b, y0=118, chrome=True, trunk_label="GATE", trunk_sub="TAILGATE")
     inset(b, 504, 26, 282, 136, "walnut", "chrome", seed=7)
-    vents_pair(b, 32, chrome=True, x0=512, x1=696, w=82, h=20)
-    badge(b, 600, 37, 92, 9, style="chrome", role="make", font="35", shadow="#140904")
-    headunit_slot(b, 556, 60, frame="chrome")
-    climate_levers(b, 548, 126, chrome=True, fan_knob=(752, 140))
+    console_vents(b, 28, chrome=True, w=88, h=30)
+    badge(b, 602, 39, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
+    headunit_slot(b, *HU6, frame="chrome")
+    ash_tray(b, *ASH6, chrome=True)
+    climate_levers(b, 548, 128, chrome=True, fan_knob=(752, 140))
 
 
 def luxury(b):
@@ -315,12 +330,14 @@ def luxury(b):
     lamp_icon_strip(b, 324, 91, [("beam", "hiBeam", BLU), ("engine", "engLamp", AMB)], gap=6, check=False)
     d.text("ELECTRONIC INSTRUMENT CLUSTER", 250, 92, "paint_c", align="c")
     clock(b, 456, 60, 17, bezel="chrome", nd="#e8e2d0")
-    lower_boxy(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub="RELEASE")
+    lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub="RELEASE")
     inset(b, 504, 26, 282, 136, "walnut", "chrome", seed=13)
-    vents_pair(b, 32, chrome=True, x0=512, x1=698, w=80, h=20)
-    badge(b, 598, 34, 96, 12, style="chrome", role="model", font="57", shadow="#140904")
-    headunit_slot(b, 556, 60, frame="chrome")
-    climate_vfd(b, 516, 120)
+    console_vents(b, 28, chrome=True, w=88, h=30)
+    badge(b, 602, 37, 86, 12, style="chrome", role="model", font="57", shadow="#140904")
+    headunit_slot(b, *HU6, frame="chrome")
+    ash_tray(b, *ASH6, chrome=True)
+    climate_vfd(b, 516, 124)
+    hazard_under_ash(b)
 
 
 def horizon(b):
@@ -336,12 +353,13 @@ def horizon(b):
     lamp_text_row(b, 334, 84, [L_OIL, L_GEN, L_BRAKE, L_HI])
     lamp_col(b, 34, 24, 30, [L_LT, L_BELTS, L_TEMP, L_RT])
     badge(b, 30, 90, 76, 9, style="chrome", role="model", font="57", shadow="#140904")
-    lower_boxy(b, y0=118, chrome=True, cruise=False)
-    inset(b, 504, 108, 282, 54, "walnut", "chrome", seed=23)
-    vents_pair(b, 29, round_=True, chrome=True, x0=508, x1=690, w=92, h=22)
-    badge(b, 598, 36, 92, 9, style="chrome", role="make", font="35", shadow="#140904")
-    headunit_slot(b, 556, 52, frame="chrome")
-    climate_levers(b, 548, 124, chrome=True, fan_knob=(752, 136))
+    lower_boxy6(b, y0=118, chrome=True, cruise=False)
+    inset(b, 504, 122, 282, 40, "walnut", "chrome", seed=23)
+    console_vents(b, 27, chrome=True, h=28, round_=True)
+    badge(b, 602, 38, 86, 9, style="chrome", role="make", font="35", shadow="#140904")
+    headunit_slot(b, *HU6, frame="chrome")
+    ash_tray(b, *ASH6, chrome=True)
+    climate_levers(b, 548, 128, chrome=True, fan_knob=(752, 141))
 
 
 # =================================================================================== vinyl and chrome, speed first
@@ -349,65 +367,67 @@ def nyala(b):
     """Chevalier Nyala: slate vinyl, chrome lips, a big speedometer between fuel and temp"""
     shell_boxy(b, trim="chrome")
     cl_nyala(b, bz="chrome", nd="#f07a28")
-    lower_boxy(b, y0=118, chrome=True)
+    lower_boxy6(b, y0=118, chrome=True)
     con_sedan(b, chrome=True, vents="rect", climate="levers",
-              badge_spec=dict(x=606, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
+              badge_spec=dict(x=605, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
 
 
 def dart(b):
     """Chevalier Dart: navy, a small cluster in a plain face, silver trim, rotary climate knobs, no cruise"""
     shell_boxy(b, open_rect=(70, 18, 360, 94), trim="silver")
     cl_dart(b)
-    lower_boxy(b, y0=118, chrome=False, lighter=False, cruise=False)
+    lower_boxy6(b, y0=118, chrome=False, cruise=False)
     con_sedan(b, chrome=False, vents="round", climate="knobs",
-              badge_spec=dict(x=606, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
+              badge_spec=dict(x=605, y=33, w=80, h=16, style="chrome", role="make", font="35", plate="oval"))
 
 
 def d6(b):
     """Chevalier D6: cocoa, a dark steel face, a fan speedometer, square gauges, round chrome vents"""
     shell_boxy(b, trim="chrome", face_mat="steel")
     cl_d6(b, bz="chrome", nd="#ff6a1a")
-    lower_boxy(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
+    lower_boxy6(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
     con_sedan(b, chrome=True, vents="round", climate="levers", tab="tab_black", fan_mat="chrome",
-              badge_spec=dict(x=600, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
-    badge(b, 604, 44, 84, 7, style="emboss", role="sub", font="35", color="#2a2c30", check=False)
+              badge_spec=dict(x=599, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
+    badge(b, 603, 44, 84, 7, style="emboss", role="sub", font="35", color="#2a2c30", check=False)
 
 
 def van(b):
     """Franklin Valuline: fleet grey, plain black gauges, a sticker blank by the radio (the Spiffo's van wears the game's own Spiffo)"""
     shell_boxy(b, trim="rubber")
     cl_van(b, bz="blackp", nd="#ff7a2a")
-    lower_boxy(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS")
-    vents_pair(b, 31, chrome=False, x0=512, x1=696, w=82, h=20)
-    badge(b, 600, 30, 92, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
-    badge(b, 604, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
-    sticker_slot(b, 512, 55, 68, 68)
-    headunit_slot(b, 602, 60, frame="bezel")
-    climate_levers(b, 548, 128, chrome=False, fan_knob=(752, 140))
+    lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS")
+    console_vents(b, 24, chrome=False, w=88, h=28)
+    badge(b, 602, 26, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
+    badge(b, 604, 40, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+    headunit_slot(b, *HU6, frame="bezel")
+    v6.van_right(b, 704, 67)          # switched sides (Oct 24): the radio went left; logo sticker, NO SMOKING or ash tray
+    climate_levers(b, 548, 134, chrome=False, fan_knob=(752, 144))
 
 
 def bulldriver(b):
     """Dash Bulldriver: tan, a brushed aluminium face, speedometer and tach in chrome, a four-gauge block"""
     shell_boxy(b, trim="chrome", face_mat="alu", wood_seed=5)
     cl_bull(b, nd="#e8402a")
-    lower_boxy(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
+    lower_boxy6(b, y0=118, chrome=True, trunk_label="BED", trunk_sub="LOCK")
     con_sedan(b, chrome=True, vents="round", climate="levers",
-              badge_spec=dict(x=600, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
-    badge(b, 604, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+              badge_spec=dict(x=599, y=30, w=92, h=22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped"))
+    badge(b, 603, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
 
 
 def rancher(b):
     """Dash Rancher: khaki, a painted sand steel face with its screws, black-rimmed gauges, knobs for the heater"""
     shell_boxy(b, trim=None, face_mat="v_sand", wood_seed=9)
     cl_rancher(b)
-    lower_boxy(b, y0=118, chrome=False, ashtray=False, cruise=False)
+    lower_boxy6(b, y0=118, chrome=False, cruise=False)
     inset(b, 504, 26, 282, 136, "steel", "seam")
     for (x, y) in ((508, 30), (781, 30), (508, 157), (781, 157)): screw(b, x, y)
-    vents_pair(b, 31, round_=True, chrome=False, x0=514, x1=690, w=80, h=20)
-    badge(b, 600, 30, 92, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
-    badge(b, 604, 44, 84, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
-    headunit_slot(b, 556, 62, frame="bezel")
+    console_vents(b, 29, chrome=False, h=24, round_=True, x0=516, xr=778)
+    badge(b, 602, 30, 86, 22, style="emboss", role="make", font="57", color="#2a2c30", plate="stamped")
+    badge(b, 604, 44, 82, 7, style="emboss", role="model", font="35", color="#2a2c30", check=False)
+    headunit_slot(b, 516, 64, frame="bezel")
+    ash_tray(b, 704, 64, chrome=False)
     climate_knobs(b, 540, 136, pitch=46, r=11, mat="blackp")
+    hazard_under_ash(b)
 
 
 # =================================================================================== early 90s curves
@@ -430,19 +450,18 @@ def dashelite(b):
     prndl(b, 376, 100, pitch=8, color="#ff8a3a")
     window(d, 226, 92, 38, 12, 0.6, bezel=None, face="lcd", r=1, on=Z_CL, lens=False)
     seg_readout(b, 230, 94, 4, 5, 8, 8, 1, "odo", "#1c2418", ghost="segoff", always=False)
-    lower_curvy(b, y0=122)
+    lower_curvy6(b, y0=122)
     cf = Mask(W, H).rrect(508, 34, 278, 128, 10).get()
     b.check_flat(506, 32, 282, 132, "console face")
     d.slab(cf, 1.0, "blackp", bevel=3.0, polish=0.2, on=Z_FACE - 1.0)
     d.grain_pebble(cf, 0.035, seed=9)
-    for vx in (516, 690):
-        v = Mask(W, H).rrect(vx, 40, 86, 18, 8).get()
-        d.well(v, 2.5, "blackp", bevel=1.5)
-        for k in range(44, 56, 3):
-            d.cyl(vx + 6, k, 74, 2, 1.2, "blackp", axis="h", polish=0.3, on=Z_FACE - 2.5, mask=v)
-    headunit_slot(b, 558, 64, frame="bezel")
-    climate_buttons(b, 576, 120, lcd=True)
-    b.label("AUTOMATIC CLIMATE CONTROL", 646, 152, "paint_c", align="c")
+    vent_louvered(b, 514, 38, 100, 24, bezel="blackp", on=Z_FACE, wheel="left")
+    vent_louvered(b, 680, 38, 100, 24, bezel="blackp", on=Z_FACE, wheel="right")
+    headunit_slot(b, 518, 69, frame="bezel")
+    ash_tray(b, 706, 69, chrome=False)
+    hazard_under_ash(b)
+    climate_buttons(b, 576, 124, lcd=True)
+    b.label("AUTOMATIC CLIMATE CONTROL", 646, 154, "paint_c", align="c")
     badge(b, 560, 25, 172, 7, style="flat", role="full", font="35", color="#d8d6cc", check=False)
 
 
@@ -485,14 +504,13 @@ def primani(b):
     lamp_icon_strip(b, 404, 72, [("beam", "hiBeam", BLU), ("fuel", "fuelLamp", AMB)], gap=4)
     lamp_icon_strip(b, 404, 86, [("arrow_l", "turnL", GRN), ("arrow_r", "turnR", GRN)], gap=6)
     prndl(b, 410, 100, pitch=7, color="#ff8a3a")
-    lower_curvy(b, y0=122)
+    lower_curvy6(b, y0=122)
     inset(b, 512, 40, 272, 122, "blackp", "seam")
-    for vx in (518, 682):
-        v = Mask(W, H).rrect(vx, 43, 94, 16, 7).get()
-        d.well(v, 2.5, "blackp", bevel=1.5)
-        for k in range(46, 57, 3):
-            d.cyl(vx + 6, k, 82, 2, 1.2, "blackp", axis="h", polish=0.3, on=Z_FACE - 2.5, mask=v)
-    headunit_slot(b, 558, 66, frame="bezel")
+    vent_louvered(b, 516, 42, 100, 20, bezel="blackp", on=Z_FACE, wheel="left")
+    vent_louvered(b, 680, 42, 100, 20, bezel="blackp", on=Z_FACE, wheel="right")
+    headunit_slot(b, 520, 68, frame="bezel")
+    ash_tray(b, 705, 68, chrome=False)
+    hazard_under_ash(b)
     climate_sliders(b, 532, 130, w=126)
     badge(b, 560, 31, 172, 7, style="flat", role="full", font="35", color="#3a3226", check=False)
 
@@ -512,10 +530,13 @@ def suv(b):
     small_dial(b, 410, 47, 18, "temp", "C", "H", icon="temp", bezel="blackp", red_right=True, needle=nd)
     small_dial(b, 410, 88, 16, "fuel", "E", "F", label="FUEL", bezel="blackp", red_left=True, needle=nd, low_src="fuelLamp")
     prndl(b, 222, 104, pitch=7, color="#ff8a3a", window_=False) if False else None
-    lower_curvy(b, y0=122)
+    lower_curvy6(b, y0=122)
     inset(b, 512, 34, 272, 128, "blackp", "seam")
-    vents_pair(b, 37, chrome=False, x0=520, x1=690, w=86, h=18)
-    headunit_slot(b, 558, 62, frame="bezel")
+    vent_louvered(b, 516, 36, 96, 22, bezel="blackp", on=Z_FACE, wheel="left")
+    vent_louvered(b, 684, 36, 96, 22, bezel="blackp", on=Z_FACE, wheel="right")
+    headunit_slot(b, 520, 64, frame="bezel")
+    ash_tray(b, 705, 64, chrome=False)
+    hazard_under_ash(b)
     climate_knobs(b, 556, 136, pitch=50, r=10, mat="rubber")
     badge(b, 622, 41, 48, 9, style="flat", role="sub", font="57", color="#d84a2a", check=True)
 
@@ -525,13 +546,15 @@ def cossette(b):
     """Chevalier Cossette: red, a digital cluster in a proud pod, the tach the arc and speed the figures inside it"""
     shell_boxy(b, pod=(56, 444), open_rect=(66, 22, 368, 94), trim="rubber", grille=False, top_y=4)
     cl_cossette(b)
-    lower_boxy(b, y0=120, chrome=False, ashtray=False)
+    lower_boxy6(b, y0=120, chrome=False)
     inset(b, 504, 26, 282, 136, "blackp", "seam")
-    vents_pair(b, 31, chrome=False, x0=512, x1=696, w=82, h=18)
-    badge(b, 604, 32, 84, 10, style="script", role="model", font="57", color="#e8e8e8", shadow="#3a0a08")
-    badge(b, 604, 44, 84, 7, style="flat", role="sub", font="35", color="#ff3a20", check=False)
-    headunit_slot(b, 556, 60, frame="bezel")
+    console_vents(b, 28, chrome=False, w=88, h=28)
+    badge(b, 602, 31, 86, 10, style="script", role="model", font="57", color="#e8e8e8", shadow="#3a0a08")
+    badge(b, 602, 44, 86, 7, style="flat", role="sub", font="35", color="#ff3a20", check=False)
+    headunit_slot(b, 516, 64, frame="bezel")
+    ash_tray(b, 704, 64, chrome=False)
     climate_sliders(b, 532, 130, w=126)
+    hazard_under_ash(b)
 
 
 def race(b):
@@ -604,7 +627,7 @@ def police(b):
     """Police: patrol navy, a certified speedometer, four gauges and a clock; the siren controller on the console"""
     shell_boxy(b, trim="silver")
     cl_cert(b)
-    lower_boxy(b, y0=118, chrome=False, cruise=False)
+    lower_boxy6(b, y0=118, chrome=False, cruise=False)
     con_fleet(b, top="siren")
 
 
@@ -612,7 +635,7 @@ def taxi(b):
     """Taxi: a Nyala made plain, black vinyl, the fare meter on the console (no siren controller)"""
     shell_boxy(b, trim="silver")
     cl_nyala(b, bz="blackp", nd="#ffb02e")
-    lower_boxy(b, y0=118, chrome=False, cruise=False)
+    lower_boxy6(b, y0=118, chrome=False, cruise=False)
     con_fleet(b, top="meter")
 
 
@@ -620,12 +643,13 @@ def ambulance(b):
     """Ambulance: a Valuline made plain, medic grey; the emergency switches on the lower dash"""
     shell_boxy(b, trim="rubber")
     cl_van(b, bz="blackp", nd="#ff7a2a")
-    lower_boxy(b, y0=118, chrome=False, cruise=False, vent=False, trunk_label="REAR", trunk_sub="DOORS")
-    rocker_panel(b, 322, 122, [("LIGHT", "lbarLamp", "lbar"), ("SIREN", "sirenLamp", "siren"), ("FLOOD", None, None),
-                               ("SCENE", None, None), ("DOME", None, None)])
-    vents_pair(b, 31, chrome=False, x0=512, x1=696, w=82, h=20)
-    badge(b, 598, 36, 96, 12, style="stencil", role="unit", font="35", color="#e8e8e0", plate="stencil")
-    headunit_slot(b, 556, 62, frame="bezel")
+    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS", right_panel=128)
+    rocker_panel(b, px_, 122, [("LIGHT", "lbarLamp", "lbar"), ("SIREN", "sirenLamp", "siren"), ("FLOOD", None, None),
+                              ("SCENE", None, None), ("DOME", None, None)])
+    console_vents(b, 26, chrome=False, w=88, h=30)
+    badge(b, 602, 35, 86, 12, style="stencil", role="unit", font="35", color="#e8e8e0", plate="stencil")
+    headunit_slot(b, *HU6, frame="bezel")
+    no_smoking(b, *ASH6)
     climate_levers(b, 548, 128, chrome=False, fan_knob=(752, 140))
 
 
@@ -633,7 +657,7 @@ def fire(b):
     """Fire department pickup: a D6 made plain on fire-red vinyl, the siren controller on the console"""
     shell_boxy(b, trim="rubber", face_mat="steel")
     cl_d6(b, bz="blackp", nd="#ffd040")
-    lower_boxy(b, y0=118, chrome=False, cruise=False, trunk_label="BED", trunk_sub="LOCK")
+    lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="BED", trunk_sub="LOCK")
     con_fleet(b, top="siren")
 
 
@@ -641,7 +665,7 @@ def ranger(b):
     """Park ranger: a Nyala made plain on forest-green vinyl, the lightbar controller on the console"""
     shell_boxy(b, trim="silver")
     cl_nyala(b, bz="blackp", nd="#f0ece0")
-    lower_boxy(b, y0=118, chrome=False, cruise=False)
+    lower_boxy6(b, y0=118, chrome=False, cruise=False)
     con_fleet(b, top="siren")
 
 

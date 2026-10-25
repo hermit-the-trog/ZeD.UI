@@ -24,6 +24,10 @@ python luatest.py hints          every gamepad hint line (each control focused, 
 python luatest.py badges         the badge roles against the game's own car names (liveries, wrecks, fleet cars)
 ```
 
+`luatest.py` runs the Lua inside Python through `lupa`. Where `lupa` is not installed it runs the same through a LuaJIT
+executable instead (`luacli.py`: `$LUAJIT`, or the LuaJIT the VS Code Lua debugger ships), the draw calls read back over
+stdout. The van previews read the game's decals from `$ZED_DECALS` (its `media/textures/shirtdecals`).
+
 ```
 python nightsheet.py <out.png> [k] [design ...]   day | dusk | night, lights on | night, lights off, at zoom k (2)
 ```
@@ -46,6 +50,22 @@ Per design, `DashPx.lua` lists parts by type: `needle`, `ribbon`, `lamp` (rect l
 
 `ZeD_PixelParts.lua` (`ZeD.Px`) is the shelf atom that draws them: nearest-filtered textures at a whole multiple k, rect lists, needles rasterised on the art grid, seven-segment figures, the two pixel fonts.
 
-## The sticker
+## The van's right side (round 6)
 
-The Spiffo's van carries the game's own decal, `media/textures/shirtdecals/Buisness_SpiffosDECAL.png`, read at runtime, one texel per plate pixel, on a die-cut backing. The art is not copied into the mod. Any other van shows the plain vinyl.
+A business van whose logo the game ships wears it there: `v6.VAN_LOGOS` maps the van's script to the game's own decal in
+`media/textures/shirtdecals/` (Spiffo's, Fossoil, McCoy's), read at runtime, one texel per plate pixel, on a die-cut
+backing the export bakes per decal (`DashPx.stickers`, `DashPx.vanLogos`). The art is not copied into the mod. Any other
+company's van shows a NO SMOKING plate, a private van (plain Van, VanSeats and its paint jobs, a plain StepVan) an ash
+tray (`ZeD_Dashboard.lua`, `_vanRight`).
+
+## Round 6 in the game (Oct 24 2026)
+
+- **Sprites with a value:** a sprite part shows while `st[src]` equals `when` when `when` is a string or a number (the
+  key's `keyPos` "off" / "on" / "start", `ashOpen` 1..3, `hula` 0..2, `vanRight`), or as a flag otherwise.
+- **The key:** OFF with the key in, START while the starter turns (the engine's state reads Starting or
+  RetryingStarting), ON while it runs; it rests 120 ms on ON between the ends.
+- **Ash trays:** shut on 6 cars in 10, the rest open at one of the design's levels, from the car's key number; a click
+  opens or shuts it (`modData.ZeD_ash`).
+- **The taxi's meter:** the fares are ZeD sandbox options (`SandboxVars.ZeD.TaxiFlagDrop`, `TaxiPerFifthMile`,
+  `TaxiPerMinuteWaiting`, `TaxiPerExtraPassenger`; `42/media/sandbox-options.txt`). The `meter` parts fill `digits` cells.
+- **The hula girl** sits at y = -9: the dash draws her above its own top edge.

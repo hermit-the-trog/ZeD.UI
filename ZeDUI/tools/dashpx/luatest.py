@@ -6,7 +6,10 @@ import os
 import sys
 import numpy as np
 from PIL import Image
-import lupa.luajit21 as lj
+try:
+    import lupa.luajit21 as lj
+except ImportError:          # no lupa here: luacli.py runs the same through a LuaJIT executable
+    lj = None
 
 import designs as DZ
 
@@ -21,14 +24,54 @@ else:
     MOD = os.path.join(HERE, "out", "mod", "ZeD-UI", "42")
     LUA_SRC = os.path.join(HERE, "lua")
     RADIOOPS = os.path.join(HERE, "..", "physpx", "lua", "ZeD_RadioOps.lua") if os.path.exists(os.path.join(HERE, "..", "physpx", "lua", "ZeD_RadioOps.lua")) else "/mnt/user-data/uploads/ZeD-UI/42/media/lua/client/ZeD/ZeD_RadioOps.lua"
-GAME_MEDIA = "/mnt/user-data/uploads/Project Zomboid/SteamApps/common/ProjectZomboid/"
+TR_LUA = os.path.join(MOD, "media", "lua", "shared", "ZeD", "Tr.lua")
+GAME_MEDIA = next((p for p in ("/mnt/user-data/uploads/Project Zomboid/SteamApps/common/ProjectZomboid/",
+                               "E:/Project Zomboid/steamapps/common/ProjectZomboid/") if os.path.isdir(p)),
+                  "/mnt/user-data/uploads/Project Zomboid/SteamApps/common/ProjectZomboid/")
 SCRIPTS = {"luxury": "Base.CarLuxury", "nyala": "Base.CarNormal", "cossette": "Base.SportsCar", "police": "Base.CarLightsPolice",
            "d6": "Base.PickUpTruck", "dashelite": "Base.ModernCar", "primani": "Base.ModernCar02", "dart": "Base.SmallCar",
            "horizon": "Base.SmallCar02", "wagon": "Base.CarStationWagon", "suv": "Base.SUV", "van": "Base.VanSpiffo",
            "bulldriver": "Base.PickUpVan", "rancher": "Base.OffRoad", "taxi": "Base.CarTaxi", "ambulance": "Base.VanAmbulance",
            "fire": "Base.PickUpTruckLightsFire", "ranger": "Base.CarLightsRanger", "race": "Base.RaceCar12"}
 
+def load_texts():
+    """the English the game would hand getTextOrNull for the keys the dash's Lua names: vanilla's (ContextMenu_..., IGUI_...)
+    and ZeD's own UI.json (else ZeD.tr falls back to its defaults); none when the game's files are not here"""
+    import json, re
+    keys = set()
+    for f in ("ZeD_Dashboard.lua", "ZeD_Plate.lua", "ZeD_RadioOps.lua"):
+        fp = os.path.join(LUA_SRC, f) if f != "ZeD_RadioOps.lua" else RADIOOPS
+        if os.path.exists(fp): keys |= set(re.findall(r'"([A-Za-z]+_[A-Za-z0-9_]+)"', open(fp, encoding="utf-8").read()))
+    out = {}
+    srcs = [os.path.join(GAME_MEDIA, "media", "lua", "shared", "Translate", "EN", n) for n in ("ContextMenu.json", "IG_UI.json", "UI.json", "Tooltip.json")]
+    srcs.append(os.path.join(MOD, "media", "lua", "shared", "Translate", "EN", "UI.json"))
+    for fp in srcs:
+        if not os.path.exists(fp): continue
+        try: d = json.load(open(fp, encoding="utf-8"))
+        except ValueError: continue
+        for k_, v in d.items():
+            if k_ in keys and isinstance(v, str): out[k_] = v
+    return out
+
+
 PRELUDE = r'''
+-- Kahlua's strings are Java's (16-bit characters): string.char takes a code above 255 there. LuaJIT's does not, so the
+-- harness writes those as UTF-8 (the faces' accented and Cyrillic capitals, ZeD_PixelParts)
+local char0 = string.char
+string.char = function(...)
+    local n = select("#", ...)
+    local big = false
+    for i = 1, n do if select(i, ...) > 255 then big = true end end
+    if not big then return char0(...) end
+    local out = {}
+    for i = 1, n do
+        local c = select(i, ...)
+        if c < 128 then out[#out + 1] = char0(c)
+        elseif c < 2048 then out[#out + 1] = char0(192 + math.floor(c / 64), 128 + c % 64)
+        else out[#out + 1] = char0(224 + math.floor(c / 4096), 128 + math.floor(c / 64) % 64, 128 + c % 64) end
+    end
+    return table.concat(out)
+end
 Events = setmetatable({}, { __index = function(t, k) local e = { Add = function() end, Remove = function() end }; rawset(t, k, e); return e end })
 Texture = { getSharedTexture = function(path, flags) return { path = path, flags = flags } end }
 getTimestampMs = function() return py_now() end
@@ -50,6 +93,8 @@ ISVehicleMenu = setmetatable({}, { __index = function(t, k) return function(...)
 ISVehiclePartMenu = setmetatable({}, { __index = function(t, k) return function(...) py_log("ISVehiclePartMenu." .. k) end end })
 require = function() end
 ZeD = { Scale = { root = function() return py_scale() end }, T = { accent = { r = 0.95, g = 0.62, b = 0.2 }, sp = { scrollbarW = 8 }, px = function(v) return v end } }
+ZeD.Safe = { register = function() end, on = function() return false end }
+ZeD.logOnce = function(what, err) print("logOnce", what, err) end
 ZeD_Panel = {}
 ZeD_Panel.__index = ZeD_Panel
 function ZeD_Panel:derive(name) local cls = {}; cls.__index = cls; cls.Type = name; setmetatable(cls, { __index = self }); return cls end
@@ -87,7 +132,11 @@ function make_vehicle(S)
     function v:isEngineStarted() return S.running end
     function v:isKeysInIgnition() return S.keysIn end
     function v:isHotwired() return false end
-    function v:getKeyId() return 1 end
+    function v:getKeyId() return S.keyId or 1 end
+    local md = { ZeD_ash = S.ash }
+    function v:getModData() return md end
+    function v:getMaxPassengers() return 4 end
+    function v:getCharacter(i) if i >= 1 and i <= (S.riders or 0) then return {} end return nil end
     function v:getCurrentSpeedKmHour() return S.speed_kmh end
     function v:getEngineSpeed() return S.rpm end
     function v:getTransmissionNumberLetter() return S.gear or "3" end
@@ -170,14 +219,17 @@ def run(did, state, k=1, frames=40, dt=120, log=None, lua_after=None):
     clock = {"t": 1_000_000}
     g.py_now = lambda: clock["t"]
     titles = {SCRIPTS[d].replace("Base.", ""): DZ.DESIGNS[d][0] for d in DZ.ORDER}
-    g.py_text = lambda key: titles.get(str(key).replace("IGUI_VehicleName", ""), None)
-    if state.get("vname"): g.py_text = lambda key: state["vname"]   # the game's own name for the car under test
+    texts = load_texts()
+    g.py_text = lambda key: titles.get(str(key).replace("IGUI_VehicleName", ""), None) if str(key).startswith("IGUI_VehicleName") else texts.get(str(key))
+    if state.get("vname"):   # the game's own name for the car under test
+        g.py_text = lambda key: state["vname"] if str(key).startswith("IGUI_VehicleName") else texts.get(str(key))
     g.py_screen = lambda: L.table(1920 * k, 1080 * k)
     g.py_scale = lambda: float(k)
     g.py_rect = rec.rect
     g.py_tex = rec.tex
     g.py_log = (lambda *a: log.append(" ".join(str(x) for x in a))) if log is not None else (lambda *a: None)
     L.execute(PRELUDE)
+    L.execute(open(TR_LUA, encoding="utf-8").read())          # ZeD.tr and its defaults (the translation layer)
     for f in ("PixelFonts.lua", "DashPx.lua"):
         L.execute(open(os.path.join(MOD, "media", "lua", "client", "ZeD", f)).read())
     L.execute(open(os.path.join(LUA_SRC, "ZeD_PixelParts.lua")).read())
@@ -204,6 +256,7 @@ def run(did, state, k=1, frames=40, dt=120, log=None, lua_after=None):
     ply = g.make_player(veh)
     g.getSpecificPlayer = lambda n: ply
     dash = g.ZeD_Dashboard.new(g.ZeD_Dashboard, 0)
+    if state.get("meterOn"): dash._meterFlag(dash, veh, True)      # the taxi's flag down
     for i in range(frames):
         clock["t"] += dt
         rec.a[:] = 0
@@ -295,6 +348,12 @@ def hint_check(hint_w):
 
 
 if __name__ == "__main__":
+    if lj is None:
+        import luacli
+        run_ = lambda did, st, k, log: luacli.run(did, st, k=k)[:2] + (None,)
+        badge_check, hint_check = luacli.badge_check, luacli.hint_check
+    else:
+        run_ = lambda did, st, k, log: run(did, st, k=k, log=log)
     if len(sys.argv) > 1 and sys.argv[1] == "badges":
         bad = badge_check()
         for b_ in bad: print("  WRONG:", b_)
@@ -310,7 +369,8 @@ if __name__ == "__main__":
     for did in DZ.ORDER:
         st = dict(STATE_DRIVE); st["radio"] = DZ.DESIGNS[did][6]
         st["hasLightbar"] = did in ("police", "fire", "ranger", "ambulance")
+        st["ash"], st["meterOn"], st["riders"] = True, True, 2       # round 6: the tray open, the taxi's flag down, two riders
         log = []
-        rec, hits, dash = run(did, st, k=k, log=log)
+        rec, hits, dash = run_(did, st, k, log)
         rec.image().save(os.path.join(out, f"{did}_{k}x.png"))
         print(f"{did:10s} calls={rec.calls:5d} hits={len(hits):2d} missing={sorted(rec.missing)}")

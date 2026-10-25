@@ -15,7 +15,9 @@
 --
 -- Live parts (p.t) and what they read (st[p.src] unless noted):
 --   sprite       a state picture (a key held down, a cord plugged in), drawn
---                while st[src] equals p.when (true unless p.when is false)
+--                while st[src] reads p.when: a flag (true unless p.when is
+--                false), or one value of several when p.when is a string or a
+--                number (the key's "off" / "on" / "start", a frame number)
 --   needle       a gauge needle (lit side, shaded side, its shadow) at
 --                a0 + (a1 - a0) * st[src] / max; st[low_src] turns it red
 --   ptr          a knob's pointer line: angles[st[src] + 1] for a switch with
@@ -32,11 +34,13 @@
 --   tab          a lever's tab sprite sliding along x0 .. x1
 --   clock        an analog clock's hands (st.hour, st.minute)
 --   badge        a maker's badge line: ctx.badge[p.role], fitted to p.w
---   sticker      the game's own Spiffo's decal on a die-cut backing
---                (ctx.sticker), when the car's script matches p.match
+--   sticker      a business van's logo, the game's own decal on a die-cut
+--                backing (ctx.logo, the one the organism picked; none: blank)
 --   headunit     the radio fitted in a dash's slot (st.radio, ctx.heads)
 --   climate      a dash's climate readout (st.heaterTemp, heaterOn, ac, fan)
---   meter        the taxi's fare (st.fare)
+--   meter        the taxi's fare meter: st[src] as dollars and cents in p.digits
+--                cells while the flag is down (st.meterOn); the flag up leaves
+--                the plate's dark figures
 --   radioDisplay a radio's readout, field by field, from st.display (the
 --                reading ZeD.RadioOps.displayReading hands over; nil = off)
 --   rangeText    a two-way set's RANGE line (st.range)
@@ -45,7 +49,7 @@
 --                in the game's handwriting font
 --
 -- ctx — what the organism lends the parts: tex(name) -> texture (its own
--- folder), sprites (the tab sprites' sizes), badge, scriptLow, sticker, heads
+-- folder), sprites (the tab sprites' sizes), badge, scriptLow, logo, heads
 -- (the dash's radio faces), pending (the head unit adds its controls here),
 -- now (ms, for the marquees) and light (the night light, below; only the
 -- dashboards lend one).
@@ -575,8 +579,11 @@ function PL.drawParts(cv, parts, st, ctx)
                 else P.image(cv, spr, x, p.y, sz[1], sz[2]) end
             end
         elseif t == "sprite" then
-            local on = st[p.src] and true or false
-            if on == (p.when ~= false) then
+            local w, on = p.when, nil
+            local tw = type(w)
+            if tw == "string" or tw == "number" then on = (st[p.src] == w)
+            else on = ((st[p.src] and true or false) == (w ~= false)) end
+            if on then
                 if L then P.imageTint(cv, ctx.tex(p.sprite), p.x, p.y, p.w, p.h, lightMul(L, p.x + p.w / 2, p.y + p.h / 2))
                 else P.image(cv, ctx.tex(p.sprite), p.x, p.y, p.w, p.h) end
             end
@@ -600,8 +607,8 @@ function PL.drawParts(cv, parts, st, ctx)
             P.pointer(cv, p.cx, p.cy, ah, 0, p.rh, 2, c, 1.5)
             P.pointer(cv, p.cx, p.cy, am, 0, p.rm, 1, c, 1.5)
         elseif t == "sticker" then
-            local S = ctx.sticker
-            if S and ctx.scriptLow and ctx.scriptLow:find(p.match or "spiffo", 1, true) then
+            local S = ctx.logo
+            if S then
                 local stx = P.tex(S.tex)
                 if stx then
                     local bx = p.x + math.floor((p.w - (S.w + 2 * S.pad)) / 2)
@@ -625,9 +632,10 @@ function PL.drawParts(cv, parts, st, ctx)
                 P.text(cv, ZeD.tr("UI_ZeD_Dash_ClimateFan", tostring(st.fan or 0)), p.x + 21, p.y + 6, c)
             end
         elseif t == "meter" then
-            if st.power then
-                local f = st.fare or 0
-                P.digits(cv, string.format("%.2f", math.min(99.99, f)), p.x, p.y, p.cw or 6, p.ch or 9, p.pitch or 9, 1, P.color(p.color), nil, "r", 4)
+            if st.power and st.meterOn then
+                local n = p.digits or 5
+                local f = math.max(0, math.min(10 ^ (n - 2) - 0.01, tonumber(st[p.src or "fare"]) or 0))
+                P.digits(cv, string.format("%.2f", f), p.x, p.y, p.cw or 6, p.ch or 9, p.pitch or 9, 1, P.color(p.color), nil, "r", n)
             end
         elseif t == "radioDisplay" then
             radioDisplay(cv, p, st, ctx)

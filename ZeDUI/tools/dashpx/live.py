@@ -82,6 +82,9 @@ class Canvas:
         a = np.array(im)
         h, w = a.shape[:2]
         y0, x0 = int(y * k), int(x * k)
+        if y0 < 0: a = a[-y0:]; h += y0; y0 = 0          # a sprite may rise above the plate (the hula girl): clip it
+        if x0 < 0: a = a[:, -x0:]; w += x0; x0 = 0
+        if h <= 0 or w <= 0: return
         sub = s.a[y0:y0 + h, x0:x0 + w]
         m = a[:sub.shape[0], :sub.shape[1], 3] > 0
         sub[m] = a[:sub.shape[0], :sub.shape[1]][m]
@@ -349,7 +352,10 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
         elif t == "sprite":
             val = st.get(p["src"])
             key = p.get("when", True)
-            if bool(val) == bool(key) and sprites and p["sprite"] in sprites:
+            # a sprite shows while its state reads `when`: a flag (true / false) or one value of several
+            # (the key's position "off" / "on" / "start", a frame number)
+            hit_ = (val == key) if isinstance(key, (str, int)) and not isinstance(key, bool) else (bool(val) == bool(key))
+            if hit_ and sprites and p["sprite"] in sprites:
                 im = sprites[p["sprite"]]
                 cv.sprite(nt.tint_img(im, p["x"], p["y"]) if nt else im, p["x"], p["y"])
         elif t == "badge":
@@ -371,7 +377,16 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
                 body, edge = needle_pixels(p["cx"], p["cy"], a, 0, rr, w, hub=1.5)
                 cv.runs(pixels_to_runs(body | edge), D(p["color"], p["cx"], p["cy"]))
         elif t == "sticker":
-            if p.get("match", "") in str(st.get("script", "")).lower():
+            if st.get("sticker_im") is not None:     # round 6: the van's sticker, a decal or a trade sticker, its name live
+                im = st["sticker_im"]
+                sx, sy = p["x"] + (p["w"] - im.width) // 2, p["y"] + (p["h"] - im.height) // 2
+                cv.sprite(nt.tint_img(im, sx, sy) if nt else im, sx, sy)
+                nm = st.get("sticker_name")
+                if nm:
+                    lines = nm.upper().split("|")
+                    for i, ln in enumerate(lines[:2]):
+                        draw_text(cv, ln, sx + 32, sy + 47 + i * 6 - (3 if len(lines) == 1 else 0) + 2, "#3a3226", "35", 1, "c")
+            elif p.get("match", "") in str(st.get("script", "")).lower():
                 cv.rect(p["x"], p["y"], p["w"], p["h"], "#f4f2ea")
                 cv.rect(p["x"], p["y"], p["w"], 1, "#ffffff"); cv.rect(p["x"], p["y"] + p["h"] - 1, p["w"], 1, "#b8b4a8")
                 draw_text(cv, "STICKER", p["x"] + p["w"] // 2, p["y"] + p["h"] // 2 - 6, "#8a8678", "35", 1, "c")
@@ -379,7 +394,7 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
         elif t == "headunit":
             kind = st.get("radio", None)
             if heads and kind in heads:
-                img, hparts = heads[kind]
+                img, hparts = heads[kind][:2]
                 head_face(cv, img, p["x"], p["y"], nt)
                 for hp in hparts:
                     if hp["t"] == "display" and st.get("radioOn") and st.get("power"):
@@ -404,7 +419,10 @@ def render_live(plate, design, st, k=1, sprites=None, heads=None, night=None):
             draw_text(cv, "FAN" + str(st.get("fan", 0)), p["x"] + 21, p["y"] + 6, col)
         elif t == "meter":
             if not st.get("power"): continue
-            draw_digits(cv, p.get("demo", "3.40"), p["x"], p["y"], p.get("cw", 6), p.get("ch", 9), p.get("pitch", 9), 1, p["color"], p.get("off"), "r", 5)
+            txt = st.get(p.get("src", "fare"))
+            txt = ("%.2f" % txt) if isinstance(txt, (int, float)) else p.get("demo", "3.40")
+            draw_digits(cv, txt, p["x"], p["y"], p.get("cw", 6), p.get("ch", 9), p.get("pitch", 9), 1, p["color"], p.get("off"), "r",
+                        p.get("digits", 5))
     return cv.image()
 
 

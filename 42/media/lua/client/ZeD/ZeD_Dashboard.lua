@@ -154,10 +154,18 @@ local function _get(o, m, default)
     return default
 end
 
+local CRANKING = { Starting = true, RetryingStarting = true, StartingSuccess = true, StartingFailed = true }
 local function _state(vehicle, chr)
     local st = {}
     st.running  = _get(vehicle, "isEngineRunning", false)
     st.started  = _get(vehicle, "isEngineStarted", false)
+    -- the starter turning: the engine's own state (BaseVehicle.engineStateTypes). tryStartEngine sets Starting for a
+    -- moment, then the whole crank reads StartingSuccess until it runs (Running), or StartingFailed (RetryingStarting
+    -- on another try) until it gives up (Idle); the vanilla dashboard's isStarting() where the state cannot be read
+    local es = _get(vehicle, "getEngineState", nil)
+    st.engState = es and tostring(es) or nil
+    if st.engState then st.cranking = CRANKING[st.engState] == true and not st.running
+    else st.cranking = _get(vehicle, "isStarting", false) and not st.running end
     st.keysIn   = _get(vehicle, "isKeysInIgnition", false)
     st.hotwired = _get(vehicle, "isHotwired", false)
     st.hasKey   = _safe(function() return chr:getInventory():haveThisKeyId(vehicle:getKeyId()) ~= nil end, false)
@@ -344,6 +352,10 @@ ACT.ignition = function(chr, v, st, secondary)
     if st.hasKey then v:setKeysInIgnition(true); return end
 end
 ACT.lights = function(chr, v) ISVehicleMenu.onToggleHeadlights(chr) end
+-- the ash tray: open or shut, kept in the car's modData (a car the dash has not touched shows its own default)
+ACT.ash    = function(chr, v, st) v:getModData().ZeD_ash = not st.ashIsOpen end
+-- the taxi's meter: the flag down starts it from the flag drop, up stops it (the dash keeps it, per car)
+ACT.meter  = function(chr, v, st, secondary, dash) if st.power then dash:_meterFlag(v, not st.meterOn) end end
 ACT.lock   = function(chr, v) ISVehiclePartMenu.onLockDoors(chr, v, not v:isAnyDoorLocked()) end
 ACT.trunk  = function(chr, v) ISVehicleMenu.onToggleTrunkLocked(chr) end
 ACT.cruise = function(chr, v)
@@ -406,6 +418,8 @@ local function _promptKey(id, st)
     if id == "lock" then return st.anyLocked and "UI_ZeD_Dash_PromptUnlock" or "UI_ZeD_Dash_PromptLock" end
     if id == "trunk" then return st.trunkLocked and "IGUI_UnlockTrunk" or "IGUI_LockTrunk" end
     if id == "cruise" then return st.cruise and "UI_ZeD_Dash_PromptCruiseOff" or "UI_ZeD_Dash_PromptCruiseSet" end
+    if id == "ash" then return st.ashIsOpen and "UI_ZeD_Dash_AshClose" or "UI_ZeD_Dash_AshOpen" end
+    if id == "meter" then return st.meterOn and "UI_ZeD_Dash_MeterOff" or "UI_ZeD_Dash_MeterOn" end
     if id == "heat" then return st.heaterOn and "UI_ZeD_Dash_PromptHeaterOff" or "UI_ZeD_Dash_PromptHeaterOn" end
     if id == "ac" then return st.ac and "UI_ZeD_Dash_PromptAcOff" or "UI_ZeD_Dash_PromptAc" end
     if id == "vol" and st.radio and ROCKER[st.radio.kind] then return "UI_ZeD_Dash_PromptVolumePlus" end
@@ -456,6 +470,8 @@ ZeD.trDefaults({
     UI_ZeD_Dash_PromptStore = "Store", UI_ZeD_Dash_PromptDrive = "Drive", UI_ZeD_Dash_Passenger = "PASSENGER",
     UI_ZeD_Dash_HintAxb = "A %1  X %2  B %3", UI_ZeD_Dash_HintAb = "A %1  B %2", UI_ZeD_Dash_HintWheel = "D-pad Right: Vehicle / Dashboard",
     UI_ZeD_Dash_UnitCab = "%1 - CAB %2", UI_ZeD_Dash_UnitEngine = "%1 - ENGINE %2", UI_ZeD_Dash_UnitUnit = "%1 - UNIT %2",
+    UI_ZeD_Dash_AshOpen = "Open ash tray", UI_ZeD_Dash_AshClose = "Close ash tray",
+    UI_ZeD_Dash_MeterOn = "Meter on", UI_ZeD_Dash_MeterOff = "Meter off",
 })
 
 -- ---------------------------------------------------------------------------
@@ -528,22 +544,247 @@ function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
 end
 
 -- ---------------------------------------------------------------------------
--- the trip meter and the fare (session distance, per vehicle)
+-- the trip meter and the taxi's fare meter (session distance, per vehicle)
+--
+-- The meter (director, Oct 24 2026: "working meter"; the fares are ZeD's
+-- sandbox options, so a server's rates reach every player): the flag pulled
+-- down starts it at the flag drop; each fifth of a mile driven and each minute
+-- waiting (under 5 km/h, the engine running) adds its rate. The extras are the
+-- riders past the first (the seats taken but the driver's). The key coming out
+-- puts the flag up and clears it.
 -- ---------------------------------------------------------------------------
-function ZeD_Dashboard:_trip(vehicle, st, dtMs)
+local FARE = { TaxiFlagDrop = 1.50, TaxiPerFifthMile = 0.25, TaxiPerMinuteWaiting = 0.25, TaxiPerExtraPassenger = 0.50 }
+local function _fare(name)
+    local S = SandboxVars and SandboxVars.ZeD
+    local v = S and tonumber(S[name])
+    return v or FARE[name]
+end
+D._fare = _fare   -- exposed for QA probes
+local WAIT_KMH = 5
+
+-- the seats taken but the driver's (QA: D.qaRiders stands in)
+local function _riders(vehicle)
+    if D.qaRiders then return D.qaRiders end
+    local n = 0
+    local seats = _get(vehicle, "getMaxPassengers", 0)
+    for i = 1, seats - 1 do
+        local ok, c = pcall(vehicle.getCharacter, vehicle, i)
+        if ok and c then n = n + 1 end
+    end
+    return n
+end
+
+function ZeD_Dashboard:_tripOf(vehicle)
     local id = _get(vehicle, "getId", 0)
     local t = self._trips[id]
-    if not t then t = { miles = 0, fareMiles = 0 }; self._trips[id] = t end
-    local miles = (st.speed_mph or 0) * dtMs / 3600000
-    if st.running then t.miles = t.miles + miles; t.fareMiles = t.fareMiles + miles end
-    if not (st.keysIn or st.running or st.hotwired) then t.fareMiles = 0 end   -- the key out clears the meter
+    if not t then t = { miles = 0, fareMiles = 0, waitMs = 0, meterOn = false }; self._trips[id] = t end
+    return t, id
+end
+
+function ZeD_Dashboard:_meterFlag(vehicle, down)
+    local t = self:_tripOf(vehicle)
+    t.meterOn = down and true or false
+    t.fareMiles, t.waitMs = 0, 0
+end
+
+function ZeD_Dashboard:_trip(vehicle, st, dtMs)
+    local t, id = self:_tripOf(vehicle)
+    local moving = getGameSpeed() > 0
+    local miles = moving and (st.speed or 0) * 0.6214 * dtMs / 3600000 or 0
+    if st.running then t.miles = t.miles + miles end
+    if not (st.keysIn or st.running or st.hotwired) then t.meterOn, t.fareMiles, t.waitMs = false, 0, 0 end
+    if t.meterOn and st.running and moving then
+        t.fareMiles = t.fareMiles + miles
+        if (st.speed or 0) < WAIT_KMH then t.waitMs = t.waitMs + dtMs end
+    end
     st.odo = (1000 + (id * 37) % 8000 + math.floor(t.miles)) % 10000
-    st.fare = 2.5 + 1.6 * t.fareMiles
+    st.meterOn = t.meterOn
+    if t.meterOn then
+        st.fare = _fare("TaxiFlagDrop") + _fare("TaxiPerFifthMile") * math.floor(t.fareMiles * 5)
+                + _fare("TaxiPerMinuteWaiting") * math.floor(t.waitMs / 60000)
+        st.fareExtra = _fare("TaxiPerExtraPassenger") * math.max(0, _riders(vehicle) - 1)
+    else
+        st.fare, st.fareExtra = 0, 0
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- the key in the lock (director, Oct 24 2026: "key needs turning animation
+-- when starting"): OFF with the key in, START while the starter turns, ON while
+-- the engine runs. It travels OFF - ON - START and rests a step on ON between
+-- the ends: a start shows ON, then START; a start that does not catch steps back
+-- through ON to OFF; shutting off holds ON a step, then OFF. From the click
+-- the hand holds the key at START until the engine answers (KEY_REACH_MS).
+-- Hotwired, there is no key to draw.
+-- ---------------------------------------------------------------------------
+local KEY_STEP_MS, KEY_REACH_MS = 120, 600
+local KEY_ORDER = { off = 1, on = 2, start = 3 }
+local KEY_AT = { "off", "on", "start" }
+function ZeD_Dashboard:_keyPos(st, now)
+    if st.cranking or st.running then self._keyTurn = nil end
+    local want = nil
+    if st.keysIn and not st.hotwired then
+        if st.cranking then want = "start"
+        elseif st.running then want = "on"
+        elseif self._keyTurn and now - self._keyTurn < KEY_REACH_MS then want = "start"
+        else want = "off" end
+    end
+    local cur = self._keyShown
+    if want == nil or cur == nil then
+        self._keyShown, self._keyWant, self._keyHold = want, want, 0
+        return want
+    end
+    if want ~= self._keyWant then
+        self._keyWant = want
+        if cur == "on" then self._keyHold = now + KEY_STEP_MS end
+    end
+    if cur ~= want and now >= (self._keyHold or 0) then
+        local i, j = KEY_ORDER[cur], KEY_ORDER[want]
+        cur = KEY_AT[i + ((j > i) and 1 or -1)]
+        if cur ~= want then self._keyHold = now + KEY_STEP_MS end
+        self._keyShown = cur
+    end
+    return cur
+end
+
+-- ---------------------------------------------------------------------------
+-- the ash tray and the van's right side (director, Oct 24 2026)
+--
+-- Every car with a tray (a design with an "ash" hit) has its own: shut on 6
+-- cars in 10, the others open at one of the design's levels (two, four or six
+-- butts; the taxi has only the full one), picked from the car's key number so
+-- a car always looks the same. A click opens or shuts it (modData ZeD_ash);
+-- open again, it is the car's own level.
+--
+-- The van's right side: a business with a logo in the game wears it as a
+-- sticker (DashPx.vanLogos), any other company's van has a NO SMOKING plate,
+-- a private van (plain Van, VanSeats and its paint jobs, a plain StepVan, the
+-- burnt ones) an ash tray.
+-- ---------------------------------------------------------------------------
+local function _carHash(vehicle)
+    local key = _get(vehicle, "getKeyId", nil)
+    if key == nil then key = _get(vehicle, "getId", 0) end
+    local s, h = tostring(key), 7
+    for i = 1, #s do h = (h * 31 + s:byte(i)) % 1000003 end
+    return h
+end
+
+-- per design, the tray's levels its sprites draw (none: no tray)
+local function _ashLevels(des)
+    local lv = des._ashLevels
+    if lv then return lv end
+    lv = {}
+    for _, p in ipairs(des.parts) do
+        if p.t == "sprite" and p.src == "ashOpen" and type(p.when) == "number" then lv[#lv + 1] = p.when end
+    end
+    table.sort(lv)
+    des._ashLevels = lv
+    return lv
+end
+
+local function _vanRight(base)
+    if DP.vanLogos and DP.vanLogos[base] then return nil, DP.stickers and DP.stickers[DP.vanLogos[base]] end
+    if base:find("Burnt", 1, true) then return "ash" end
+    local b = base:gsub("Smashed%a*$", "")
+    if b == "Van" or b == "VanSeats" or b == "StepVan" or b:sub(1, 9) == "VanSeats_" then return "ash" end
+    return "nosmoke"
+end
+D._vanRight = _vanRight   -- exposed for QA probes
+
+function ZeD_Dashboard:_tray(vehicle, des, designId, st, scriptName)
+    local ck = self._trayKey
+    if not (ck and ck.v == vehicle and ck.s == scriptName) then
+        local base = scriptName:gsub("^Base%.", "")
+        local vr, logo = nil, nil
+        if designId == "van" then vr, logo = _vanRight(base) end
+        ck = { v = vehicle, s = scriptName, h = _carHash(vehicle), vr = vr, logo = logo }
+        self._trayKey = ck
+    end
+    st.vanRight = ck.vr
+    st.vanTray = (ck.vr == "ash")
+    self._logo = ck.logo
+    local lv = _ashLevels(des)
+    st.ashIsOpen, st.ashOpen = false, 0
+    if #lv == 0 or (designId == "van" and not st.vanTray) then return end
+    local md = _get(vehicle, "getModData", nil)
+    local open = md and md.ZeD_ash
+    if open == nil then open = (ck.h % 10) >= 6 end
+    st.ashIsOpen = open and true or false
+    if st.ashIsOpen then st.ashOpen = lv[1 + math.floor(ck.h / 10) % #lv] end
+end
+
+-- ---------------------------------------------------------------------------
+-- the taxi's hula girl (director, Oct 24 2026): frame 0 at rest; above 5 km/h
+-- in a turn she leans out of it (1 or 2 by the way the car turns); a hard
+-- change of speed or a bump flicks her once, 1 then 2. Each frame holds at
+-- least HULA_HOLD_MS, so she sways rather than flickers. The turn is read from
+-- the way the car travels (its position frame to frame: the engine's heading
+-- is not exposed to Lua, and getAngleY is an Euler angle that flips past 90).
+-- ---------------------------------------------------------------------------
+local HULA_HOLD_MS = 150
+local HULA_TURN = 0.25       -- radians a second of heading change: a turn
+local HULA_JOLT = 30         -- km/h a second: hard braking or a hard launch
+local HULA_BUMP = 1.5        -- degrees of pitch or roll in a frame: a bump
+local HULA_STEP = 0.02       -- squares the car must travel before its heading is read again
+local function _wrapPi(a)
+    while a > math.pi do a = a - 2 * math.pi end
+    while a < -math.pi do a = a + 2 * math.pi end
+    return a
+end
+function ZeD_Dashboard:_hula(vehicle, st, now, dt)
+    local H = self._hulaS
+    if not H then H = { f = 0, hold = 0, yaw = 0 }; self._hulaS = H end
+    local x, y = _get(vehicle, "getX", 0), _get(vehicle, "getY", 0)
+    local pitch, roll = _get(vehicle, "getAngleX", 0), _get(vehicle, "getAngleZ", 0)
+    local jolt = false
+    if dt > 0 and getGameSpeed() > 0 then
+        -- the heading of travel, read once the car has gone HULA_STEP; its change a second is the turn
+        H.ms = (H.ms or 0) + dt
+        if H.x then
+            local dx, dy = x - H.x, y - H.y
+            if dx * dx + dy * dy >= HULA_STEP * HULA_STEP then
+                local ang = math.atan2(dy, dx)
+                if H.ang and st.speed > WAIT_KMH then
+                    local rate = _wrapPi(ang - H.ang) * 1000 / H.ms
+                    H.yaw = H.yaw + (rate - H.yaw) * (H.ms / (120 + H.ms))
+                else
+                    H.yaw = 0
+                end
+                H.ang, H.x, H.y, H.ms = ang, x, y, 0
+            elseif H.ms > 400 then
+                H.yaw, H.ang, H.x, H.y, H.ms = 0, nil, x, y, 0      -- standing (nearly) still: no turn
+            end
+        else
+            H.x, H.y, H.ms = x, y, 0
+        end
+        -- the change of speed, settled over ~150 ms (a frame's reading jitters)
+        if H.speed then
+            local acc = (st.speed - H.speed) * 1000 / dt
+            H.acc = (H.acc or 0) + (acc - (H.acc or 0)) * (dt / (150 + dt))
+            if math.abs(H.acc) > HULA_JOLT then jolt = true end
+        end
+        if H.pitch and (math.abs(_wrapPi(math.rad(pitch - H.pitch))) > math.rad(HULA_BUMP)
+            or math.abs(_wrapPi(math.rad(roll - H.roll))) > math.rad(HULA_BUMP)) then jolt = true end
+    end
+    H.speed, H.pitch, H.roll = st.speed, pitch, roll
+    if jolt and not H.flick and st.speed > WAIT_KMH then H.flick = { 1, 2 } end
+    if D.qaHula then H.yaw = D.qaHula end
+    if now >= H.hold then
+        local f = 0
+        if H.flick then
+            f = table.remove(H.flick, 1)
+            if #H.flick == 0 then H.flick = nil end
+        elseif st.speed > WAIT_KMH and math.abs(H.yaw) > HULA_TURN then
+            f = (H.yaw > 0) and 1 or 2
+        end
+        if f ~= H.f then H.f, H.hold = f, now + HULA_HOLD_MS end
+    end
+    st.hula = H.f
 end
 
 -- ---------------------------------------------------------------------------
 -- the plate and its live parts: the template draws them (ZeD_Plate.lua); the
--- dash lends it its textures, the badge lines, the sticker, the radio faces,
+-- dash lends it its textures, the badge lines, the van's logo, the radio faces,
 -- and the list the head unit adds its controls to
 -- ---------------------------------------------------------------------------
 function ZeD_Dashboard:_ctx(des, pending)
@@ -552,7 +793,7 @@ function ZeD_Dashboard:_ctx(des, pending)
     ctx.sprites   = des.sprites
     ctx.badge     = self._badge
     ctx.scriptLow = self._scriptLow
-    ctx.sticker   = DP.sticker
+    ctx.logo      = self._logo
     ctx.heads     = DP.heads
     ctx.pending   = pending
     ctx.now       = getTimestampMs()
@@ -573,7 +814,10 @@ function ZeD_Dashboard:prerender()
         return
     end
     if ISUIHandler and ISUIHandler.allUIVisible == false then self:setVisible(false); return end
-    if self.vehicle ~= vehicle then self._mem = {} end        -- a new car: its needles start from rest
+    if self.vehicle ~= vehicle then                            -- a new car: its needles start from rest
+        self._mem = {}
+        self._keyShown, self._keyWant, self._keyTurn, self._hulaS = nil, nil, nil, nil
+    end
     self.vehicle = vehicle
     local vd = getPlayerVehicleDashboard and getPlayerVehicleDashboard(self.playerNum)
     if vd and vd.isVisible and vd:isVisible() then pcall(vd.setVisible, vd, false) end
@@ -601,10 +845,17 @@ function ZeD_Dashboard:prerender()
         des, designId, ownFamily = bk.des, bk.id, bk.own
     else
         des, designId, ownFamily = _designFor(scriptName)
+        -- every state picture of the design asked for now, as the dash first shows the car: the game loads a picture
+        -- in the background the first time it is asked for, and one first wanted mid-drive was missing for a frame
+        -- (the hula girl's first sway, QA Oct 25 2026)
+        for name in pairs(des.sprites or {}) do tex(name) end
         self._badge = _badges(des, vehicle, scriptName, ownFamily)
         self._badgeKey = { v = vehicle, s = scriptName, gen = ZeD._trGen, on = trOn, des = des, id = designId, own = ownFamily }
     end
     self._designId = designId
+    st.keyPos = self:_keyPos(st, now)
+    self:_tray(vehicle, des, designId, st, scriptName)
+    if designId == "taxi" then self:_hula(vehicle, st, now, dt) else st.hula = 0 end
     local Focus = ZeD.Input and ZeD.Input.Focus
     local DetM = ZeD.Input and ZeD.Input.Detector
     local gamepad = DetM and DetM.getMode and DetM.getMode() == "gamepad"
@@ -628,6 +879,7 @@ function ZeD_Dashboard:prerender()
         local en = true
         if hz.needs then en = st[hz.needs] and true or false end
         if hz.id == "ignition" then en = st.hasKey or st.keysIn or st.hotwired or st.running end
+        if hz.id == "meter" then en = st.power end
         self:_control(hz.id, hz.x, hz.y, hz.w, hz.h, st, en)
     end
     for _, c in ipairs(pending) do self:_control(c[1], c[2], c[3], c[4], c[5], st, c[6]) end
@@ -690,7 +942,9 @@ function ZeD_Dashboard:_fire(id, secondary)
     if getGameSpeed() > 1 then setGameSpeed(1) end
     local fn = ACT[id]; if not fn then return end
     local st = self._st or _state(v, chr)
-    local ok, err = pcall(fn, chr, v, st, secondary)
+    -- the key turned to start: the dash shows it on its way (ZeD_Dashboard:_keyPos)
+    if id == "ignition" and not secondary and st.keysIn and not st.running then self._keyTurn = getTimestampMs() end
+    local ok, err = pcall(fn, chr, v, st, secondary, self)
     if not ok then print("[ZeD] Dashboard: action " .. tostring(id) .. " failed: " .. tostring(err)) end
 end
 
