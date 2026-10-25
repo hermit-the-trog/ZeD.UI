@@ -1,0 +1,4 @@
+# ZeDUI/tools/qa/bubbles_manifest.txt  (Oct 24 2026)
+# The overhead bubbles (HANDOFF_bubbles_20261024.md): zedqa_run.ps1 -Mode fullscreen4k -Manifest .../bubbles_manifest.txt
+zedqa_prelude.lua | pre                                  # unpauses, god mode
+zedqa_bubbles.lua | bub | timeout=300                    # speech, long line, thought, both, flip, three themes, k = 1
