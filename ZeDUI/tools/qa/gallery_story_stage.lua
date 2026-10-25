@@ -193,8 +193,30 @@ function ST.climSet(vals)
         end
     end
 end
+-- search mode off (Oct 25 2026): its overlay blurs everything outside a ring round the
+-- character, and the Oct 25 reshoot came out soft with it on; checked at every beat's light
+function ST.noSearch()
+    local sm = ISSearchManager and ISSearchManager.getManager and ISSearchManager.getManager(p)
+    if sm and sm.isSearchMode then
+        pcall(function() sm:toggleSearchMode(false) end)
+        print("ZEDQA sts search mode was on: turned off")
+    end
+    -- the overlay itself (the engine's SearchMode): it stayed on with the manager off on Oct 25
+    local ok, eng = pcall(getSearchMode)
+    if ok and eng then
+        local pn = p:getPlayerNum()
+        local en, ov = eng:isEnabled(pn), eng:isOverride(pn)
+        if en or ov or (sm and sm.isEffectOverlay) then
+            pcall(function() if sm then sm.isEffectOverlay = false end end)
+            pcall(function() eng:setOverride(pn, false) end)
+            pcall(function() eng:setEnabled(pn, false) end)
+            print(string.format("ZEDQA sts search overlay was on (enabled %s, override %s): turned off", tostring(en), tostring(ov)))
+        end
+    end
+end
 -- daylight at an hour (10:00-16:00 for the day beats), clear sky
 function ST.day(h)
+    ST.noSearch()
     for _, c in ipairs(ST.R.clim) do
         local n = tostring(c.v:getName())
         if n == "NIGHT_STRENGTH" or n == "DAYLIGHT_STRENGTH" or n == "GLOBAL_LIGHT_INTENSITY" or n == "AMBIENT" then
@@ -205,6 +227,7 @@ function ST.day(h)
     ST.climSet({ _clear = true })
 end
 function ST.night()
+    ST.noSearch()
     ST.gt:setTimeOfDay(22.0)
     ST.climSet({ _clear = true, NIGHT_STRENGTH = 1.0, DAYLIGHT_STRENGTH = 0.0, GLOBAL_LIGHT_INTENSITY = 0.0, AMBIENT = 0.12 })
 end
@@ -461,7 +484,9 @@ ST.KIT = {
         { "Base.HolsterSimple_Black", "Base.HolsterSimple" },
         { "Base.Kneepad_Left_Tactical" }, { "Base.Kneepad_Right_Tactical" },
         { "Base.WristWatch_Left_DigitalBlack" },
-        { "Base.Glasses_Aviators" },
+        -- prescription aviators (the same look): the QA character is short-sighted, and
+        -- without glasses the game blurs everything past arm's length (Oct 25 2026 reshoot)
+        { "Base.Glasses_Prescription_Aviators", "Base.Glasses_Aviators" },
         { "Base.Bag_ALICEpack_Army", "Base.Bag_ALICEpack" },
         { "Base.Bag_ChestRig" },
         { "Base.Bag_FannyPackBack" },
@@ -891,6 +916,15 @@ function ST.seed(say)
     R.flyerWasRead = p:isPrintMediaRead(id)
     if not R.flyerWasRead then p:addReadPrintMedia(id) end
     local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow()
+    -- (Oct 25 2026) the story's character is six days in with only this entry: the QA
+    -- character's own entries (the deep run's) and hours survived are kept aside and
+    -- put back by the teardown
+    local md = p:getModData()
+    R.journalWas = md.ZeD_Journal and md.ZeD_Journal.entries or nil
+    md.ZeD_Journal = md.ZeD_Journal or {}
+    md.ZeD_Journal.entries = {}
+    R.hoursWas = p:getHoursSurvived()
+    p:setHoursSurvived(6 * 24 + 16)
     if cw and ZeD.JournalReaders and ZeD.JournalReaders.addLogEntry then
         ZeD.JournalReaders.addLogEntry(cw, ST.JOURNAL, nil)
         R.journal = true

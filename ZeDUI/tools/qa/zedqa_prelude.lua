@@ -29,6 +29,17 @@ local function onFrame()
     say("char " .. tostring(cw and cw:isVisible()) .. " world " .. tostring(ww and ww:isVisible())
         .. " speed " .. tostring(getGameSpeed and getGameSpeed()) .. " ticks " .. ticks .. " frames " .. frames)
     if ticks == 0 then say("ERR OnTick never ran: the game is paused") end
+    -- (Oct 25 2026) search mode off: its overlay blurs everything outside a ring round the
+    -- character, and the gallery's reshoot came out soft with it on
+    local sm = p and ISSearchManager and ISSearchManager.getManager and ISSearchManager.getManager(p)
+    if sm and sm.isSearchMode then pcall(function() sm:toggleSearchMode(false) end); say("search mode was on: turned off") end
+    local okE, eng = pcall(getSearchMode)
+    if okE and eng and p then
+        local pn = p:getPlayerNum()
+        local en, ov = eng:isEnabled(pn), eng:isOverride(pn)
+        say(string.format("search overlay: enabled %s, override %s, manager %s", tostring(en), tostring(ov), tostring(sm and sm.isSearchMode)))
+        if en or ov then pcall(function() eng:setOverride(pn, false); eng:setEnabled(pn, false) end); say("search overlay turned off") end
+    end
     say("DONE")
 end
 Events.OnTick.Add(onTick)
