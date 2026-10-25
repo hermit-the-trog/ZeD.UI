@@ -77,13 +77,16 @@ local function queueNames()
 end
 local function stopAll() pcall(function() p:StopAllActionQueue() end); pcall(function() ISTimedActionQueue.clear(p) end) end
 
--- the torch the character holds goes into a worn bag, with water, a cigarette and a lighter
+-- the torch the character holds goes into a worn bag, with water, a cigarette, a lighter and an apple
 -- (taken away again at the end; the torch back in the hand it was in)
 local light, bag, added, lightHand = nil, nil, {}, nil
+local chk, other = nil, nil   -- the light LB + X picks (the brightest carried), and how it was if not the torch
 step(20, function()
     if ZeD_CharacterWindow.isOpen() and ZeD_CharacterWindow.toggleBothPaired then ZeD_CharacterWindow.toggleBothPaired(pn) end
     pcall(ZeD.Input.Focus.releaseFocus)
     stopAll()
+    -- earlier runs eat, and a stuffed character may eat nothing (the game's rule): the well-fed timer from 0
+    pcall(function() p:getBodyDamage():setHealthFromFoodTimer(0) end)
     local wi = p:getWornItems()
     for i = 0, wi:size() - 1 do
         local it = wi:get(i):getItem()
@@ -103,15 +106,24 @@ step(20, function()
         light = inv:AddItem("Base.HandTorch")
         added[#added + 1] = light
     end
-    for _, ft in ipairs({ "Base.WaterBottle", "Base.CigaretteSingle", "Base.Lighter" }) do
+    for _, ft in ipairs({ "Base.WaterBottle", "Base.CigaretteSingle", "Base.Lighter", "Base.Apple" }) do   -- (an apple: earlier runs eat the character's own food)
         local it = inv:AddItem(ft)
         if it then
             added[#added + 1] = it
             if ft == "Base.WaterBottle" then local fc = it:getFluidContainer(); if fc then fc:Empty(); fc:addFluid(FluidType.Water, fc:getCapacity() * 0.8) end end
         end
     end
-    say("the torch (" .. tostring(lightHand or "added") .. ") and water, a cigarette, a lighter in " .. tostring(bag and bag:getDisplayName() or "the main inventory")
+    say("the torch (" .. tostring(lightHand or "added") .. ") and water, a cigarette, a lighter, an apple in " .. tostring(bag and bag:getDisplayName() or "the main inventory")
         .. "; hands: " .. tostring(p:getPrimaryHandItem()) .. " / " .. tostring(p:getSecondaryHandItem()))
+    -- LB + X takes the brightest light carried, bags included: that one is checked, off and out of the hands
+    chk = D.H.bestLight(p) or light
+    if chk ~= light then
+        other = { it = chk, on = chk:isActivated(), c = chk:getContainer(),
+                  hand = (p:getPrimaryHandItem() == chk and "primary") or (p:getSecondaryHandItem() == chk and "secondary") or nil }
+        pcall(function() chk:setActivated(false) end)
+        if other.hand == "primary" then p:setPrimaryHandItem(nil) elseif other.hand == "secondary" then p:setSecondaryHandItem(nil) end
+        say("LB + X picks " .. chk:getFullType() .. " in " .. tostring(other.c and other.c:getType()) .. " (brighter than the torch): that light is checked")
+    end
     -- every default chord names a slice
     for _, c in ipairs(Qc.CHORDS) do
         local path, words = Qc.get(c)
@@ -129,19 +141,54 @@ step(10, function()
     say("LB + X queued: " .. table.concat(queueNames(), ", "))
     check(promptsSaw == 0, "LB + X: the game's prompts never saw X")
 end)
-waitFor(1800, function() return light and (p:getPrimaryHandItem() == light or p:getSecondaryHandItem() == light) and light:isActivated() end, function()
-    if not check(light ~= nil, "a torch for LB + X") then return end
-    local inHand = p:getPrimaryHandItem() == light or p:getSecondaryHandItem() == light
-    check(inHand, "LB + X: the torch is in a hand")
-    check(light:isActivated(), "LB + X: the torch is on")
+waitFor(1800, function() return chk and (p:getPrimaryHandItem() == chk or p:getSecondaryHandItem() == chk) and chk:isActivated() end, function()
+    if not check(chk ~= nil, "a light for LB + X") then return end
+    local inHand = p:getPrimaryHandItem() == chk or p:getSecondaryHandItem() == chk
+    check(inHand, "LB + X: the light is in a hand")
+    check(chk:isActivated(), "LB + X: the light is on")
     shot("light_on")
 end)
-step(10, function() if light then press("LB", Joypad.XButton) end end)
+step(10, function() if chk then press("LB", Joypad.XButton) end end)
 step(60, function()
-    if light then check(not light:isActivated(), "LB + X again: the torch is off") end
+    if chk then check(not chk:isActivated(), "LB + X again: the light is off") end
     stopAll()
 end)
+-- LB + X with the light in a carried bag: out of the bag, into a hand, on
+local tmpBag
+step(10, function()
+    if not chk then return end
+    if p:getPrimaryHandItem() == chk then p:setPrimaryHandItem(nil) end
+    if p:getSecondaryHandItem() == chk then p:setSecondaryHandItem(nil) end
+    pcall(function() chk:setActivated(false) end)
+    tmpBag = p:getInventory():AddItem("Base.Bag_Schoolbag")
+    if chk:getContainer() then chk:getContainer():Remove(chk) end
+    tmpBag:getInventory():AddItem(chk)
+    press("LB", Joypad.XButton)
+    say("LB + X from a bag queued: " .. table.concat(queueNames(), ", "))
+end)
+waitFor(1800, function() return chk and (p:getPrimaryHandItem() == chk or p:getSecondaryHandItem() == chk) and chk:isActivated() end, function()
+    if not chk then return end
+    check(chk:getContainer() == p:getInventory(), "LB + X from a bag: the light is out of the bag")
+    check(p:getPrimaryHandItem() == chk or p:getSecondaryHandItem() == chk, "LB + X from a bag: the light is in a hand")
+    check(chk:isActivated(), "LB + X from a bag: the light is on")
+    stopAll()
+    pcall(function() chk:setActivated(false) end)
+    if p:getPrimaryHandItem() == chk then p:setPrimaryHandItem(nil) end
+    if p:getSecondaryHandItem() == chk then p:setSecondaryHandItem(nil) end
+    if tmpBag then
+        if chk:getContainer() == tmpBag:getInventory() then tmpBag:getInventory():Remove(chk); p:getInventory():AddItem(chk) end
+        if tmpBag:getContainer() then tmpBag:getContainer():Remove(tmpBag) end
+    end
+end)
 
+-- stuffed: Eat is off with the game's own reason, not "nothing to eat"
+step(5, function() pcall(function() p:getBodyDamage():setHealthFromFoodTimer(8000) end) end)
+waitFor(600, function() return ZeD.QuickWheel.tooFull(p) end, function()
+    local e = Qc.resolve(p, pn, "character:3")
+    check(ZeD.QuickWheel.tooFull(p) and e and e.off == getText("Tooltip_CantEatMore"), "stuffed: Eat says " .. tostring(e and e.off))
+    pcall(function() p:getBodyDamage():setHealthFromFoodTimer(0) end)
+end)
+waitFor(600, function() return not ZeD.QuickWheel.tooFull(p) end, function() end)
 -- LB + A, LB + B, LB + Y: the game queues its action
 for _, t in ipairs({ { Joypad.AButton, "LB + A (eat)" }, { Joypad.BButton, "LB + B (drink)" }, { Joypad.YButton, "LB + Y (smoke)" } }) do
     step(10, function()
@@ -260,6 +307,18 @@ step(20, function()
             if p:getSecondaryHandItem() == light then p:setSecondaryHandItem(nil) end
         end
         if it:getContainer() then it:getContainer():Remove(it) end
+    end
+    -- the light LB + X picked, if not the torch: back where it was, on or off as it was
+    if other then
+        local it = other.it
+        if p:getPrimaryHandItem() == it then p:setPrimaryHandItem(nil) end
+        if p:getSecondaryHandItem() == it then p:setSecondaryHandItem(nil) end
+        if other.c and it:getContainer() ~= other.c then
+            if it:getContainer() then it:getContainer():Remove(it) end
+            other.c:AddItem(it)
+        end
+        if it:isActivated() ~= other.on then it:setActivated(other.on) end
+        if other.hand == "primary" then p:setPrimaryHandItem(it) elseif other.hand == "secondary" then p:setSecondaryHandItem(it) end
     end
     -- the character's own torch back in the hand it was in
     if lightHand and light then

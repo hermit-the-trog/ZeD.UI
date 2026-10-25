@@ -155,6 +155,14 @@ end
 local function rowOf(w, zoneName, fullType)
     return elIn(w, zoneName, function(e) return e.item ~= nil and e.item:getFullType() == fullType end)
 end
+-- the focus ring in a line (when a row is not found): each zone, focusable or not, its count
+local function ringSay(w)
+    local out = {}
+    for _, z in ipairs(w and w._focusRing or {}) do
+        out[#out + 1] = tostring(z.zone) .. (z.focusable and "" or "(off)") .. "=" .. #(z.elements or {})
+    end
+    return table.concat(out, " ") .. "; card " .. tostring(w and (w._drawerItem ~= nil or w._drawerObject ~= nil))
+end
 
 -- ---------------------------------------------------------------- setup
 step(20, function()
@@ -356,11 +364,17 @@ step(10, waitTake)
 -- ---------------------------------------------------------------- 5. an object card
 step(5, function()
     local w = ww()
-    -- close an item card still showing, then the padlock card on the crate
+    -- close an item card still showing (the list takes its room back on the next frames:
+    -- at 1080p the card hides it), then a row, then the padlock card on the crate
     local cnt = w._mainContent
     if cnt and w._drawerItem then cnt._selectedItems = {}; cnt._lastClickedItem = nil; w._updateDrawer() end
+end)
+step(10, function()
+    local w = ww()
     local row = elIn(w, "worldMainInv", function(e) return e.item ~= nil end)
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
+    if not row then say("5 no row in the World window's list: " .. ringSay(w)) end
+    where("5 before the padlock card")
     padlock = p:getInventory():AddItem("Base.CombinationPadlock")
     ZeD.ObjectCardLock.openFor(p, crate, false)
 end)
@@ -468,6 +482,7 @@ step(10, function()
     Focus.claimFocus(w)
     local row = rowOf(w, "worldMainInv", "Base.Corkscrew")
     Focus.focusWhere(w, "worldMainInv", function(x) return x == row end)
+    if not row then say("8 no corkscrew row in the World window's list: " .. ringSay(w)) end
     walk.ctxRow = row and row.item
     if row and row.onContextMenu then row.onContextMenu(w, row) end
 end)
