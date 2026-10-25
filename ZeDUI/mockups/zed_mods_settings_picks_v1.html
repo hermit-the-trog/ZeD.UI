@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Mods: settings and file picks v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | the Mods screen: a mod's settings in its info pane, and file-by-file
+   picks. Mockup v1 (Oct 24 2026). Director: "can the mod manager also show a
+   mods individual settings in that mods info when selected from the list of
+   mods?" and "is there a way to override file conflicts when load order alone
+   won't solve it". Built on the approved Mods screen (zed_mod_manager_v1.html,
+   Oct 16 2026) and the screen as built (gallery card 31). Catalog parts:
+   M02 list rows, M03 tabs, M16 slider; tick boxes, swatches and the help band
+   as the Options window draws them. Every mod, setting, help text and file
+   here is real: from the director's own subscriptions. Design units: 1 px at
+   1080p.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --desk:#040506; --body:#0d100f; --panel:#121514; --surf2:#161918; --surf3:#1e2120; --title:#1b1d1d;
+  --border:#383b3a; --borderHi:#4a4e4c; --text:#d6d7d5; --dim:#868887; --faint:#5d605f;
+  --acc:#3f8f7d; --accB:#5fbca4; --a22:rgba(63,143,125,.22); --a55:rgba(63,143,125,.55);
+  --danger:#d9533c; --warn:#d2a23c; --ok:#86b94e; --info:#4f93d4;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1000px; height:720px; background:var(--desk); border:1px solid #2a2924; overflow:hidden; transform-origin:0 0; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+
+/* ---- the ZeD OS window (as v1) ----------------------------------------- */
+.win { position:absolute; left:10px; top:10px; width:980px; height:700px; background:var(--body); border:1px solid var(--border); display:flex; flex-direction:column; }
+.tb { height:26px; flex:none; display:flex; align-items:center; gap:10px; padding:0 8px; background:var(--title);
+      background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px); border-bottom:1px solid var(--border);
+      font-family:var(--mono); font-size:12px; color:#b9bab8; }
+.tb .cb { width:13px; height:13px; border:1px solid #6b6d6c; }
+.tb .t { background:var(--title); padding:0 6px; }
+.tb .st { margin-left:auto; display:flex; gap:12px; align-items:center; font-size:11px; color:var(--dim); }
+.tb .st i { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:1px; }
+.main { flex:1; display:flex; min-height:0; gap:10px; padding:10px; }
+.col { display:flex; flex-direction:column; min-height:0; border:1px solid var(--border); background:var(--panel); }
+.strip { flex:none; height:40px; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--surf2); border-top:1px solid var(--border); }
+.strip .sp { flex:1; }
+.strip .msg { font-family:var(--sans); font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:8px; min-width:0; }
+.strip .msg i { width:7px; height:7px; border-radius:50%; flex:none; }
+.foot { flex:none; height:14px; display:flex; align-items:center; gap:4px; padding:0 4px; border-top:1px solid var(--border); background:var(--surf2); }
+.foot span { width:10px; height:10px; border:1px solid #555; }
+
+.b { height:24px; display:inline-flex; align-items:center; justify-content:center; padding:0 10px; font-family:var(--mono); font-size:11px; color:var(--text);
+     background:transparent; border:1px solid var(--borderHi); border-radius:2px; box-shadow:inset 0 0 0 1px #000; white-space:nowrap; flex:none; }
+.b.pri { border-color:var(--acc); color:var(--accB); box-shadow:inset 0 0 0 1px #000, 0 0 0 1px rgba(63,143,125,.35); }
+.b.off { opacity:.4; }
+.b.sm { height:20px; padding:0 8px; font-size:10px; }
+.tabs { display:flex; gap:4px; padding:8px 8px 0; flex-wrap:wrap; }
+.tab { height:24px; padding:0 10px; display:flex; align-items:center; font-family:var(--sans); font-size:12px; color:var(--dim); border:1px solid var(--border); background:var(--surf2); }
+.tab.on { color:var(--accB); border-color:var(--acc); background:var(--surf3); }
+.tab em { font-style:normal; font-family:var(--mono); font-size:10px; color:var(--faint); margin-left:6px; }
+.tab.on em { color:var(--accB); }
+.find { margin:8px; height:26px; display:flex; align-items:center; gap:8px; padding:0 8px; border:1px solid var(--border); background:var(--body); font-family:var(--mono); font-size:11px; color:var(--dim); }
+.rows { flex:1; overflow:hidden; border-top:1px solid var(--border); }
+.row { position:relative; height:42px; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid #191c1b; }
+.row.sel { background:#16302a; }
+.row .ck { width:13px; height:13px; border:1px solid #6b6d6c; flex:none; display:flex; align-items:center; justify-content:center; }
+.row .ck.on { background:var(--acc); border-color:var(--accB); }
+.row .ck.on::after { content:""; width:6px; height:6px; background:#0b1210; }
+.row .nm { display:flex; flex-direction:column; min-width:0; }
+.row .nm b { font-family:var(--sans); font-weight:500; font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:250px; }
+.row .nm span { font-family:var(--mono); font-size:10px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:250px; }
+.row .chips { margin-left:auto; display:flex; gap:5px; align-items:center; }
+.chip { height:16px; padding:0 5px; display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:.3px; border:1px solid; white-space:nowrap; }
+.chip i { width:5px; height:5px; border-radius:50%; background:currentColor; }
+.c-warn { color:var(--warn); border-color:rgba(210,162,60,.6); }
+.c-bad { color:var(--danger); border-color:rgba(217,83,60,.6); }
+.c-info { color:var(--info); border-color:rgba(79,147,212,.6); }
+.c-ok { color:var(--ok); border-color:rgba(134,185,78,.5); }
+.c-dim { color:var(--dim); border-color:var(--border); }
+
+/* ---- the detail pane ---------------------------------------------------- */
+.dcol { flex:1; }
+.dhead { flex:none; display:flex; gap:14px; padding:12px 14px 10px; }
+.poster { width:96px; height:96px; flex:none; border:1px solid var(--borderHi); background:#0a0c0b center/cover no-repeat; }
+.dhead h2 { font-family:var(--cond); font-weight:700; font-size:20px; color:var(--text); line-height:1.15; }
+.dhead .by { font-size:12px; color:var(--dim); margin:2px 0 8px; }
+.btns { display:flex; gap:6px; flex-wrap:wrap; }
+.dtabs { flex:none; display:flex; gap:4px; padding:0 14px; border-bottom:1px solid var(--border); }
+.dtabs .tab { border-bottom:0; height:25px; margin-bottom:-1px; }
+.dtabs .tab.on { background:var(--panel); border-bottom:1px solid var(--panel); }
+.dtabs .tab.none { opacity:.35; }
+.dbody { flex:1; min-height:0; overflow:hidden; padding:10px 14px; display:flex; flex-direction:column; gap:9px; }
+.kv { display:grid; grid-template-columns:96px 1fr; gap:3px 10px; font-size:12px; }
+.kv .k { font-family:var(--mono); font-size:10px; font-weight:700; color:var(--acc); letter-spacing:.5px; padding-top:2px; }
+.kv .v { color:var(--text); }
+.sec { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:1px; color:var(--acc); border-bottom:1px solid var(--border); padding-bottom:3px; display:flex; justify-content:space-between; gap:10px; }
+.sec span { color:var(--dim); font-weight:400; letter-spacing:.3px; }
+.desc { font-size:12px; line-height:1.5; color:#a9aaa8; }
+.cf { display:flex; gap:9px; font-size:12.5px; line-height:1.45; color:var(--text); }
+.cf > i { width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; }
+.cf .path { font-family:var(--mono); font-size:10.5px; color:var(--dim); display:block; margin:2px 0; }
+.cf .acts { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+.cf .new { outline:1px dashed rgba(216,192,112,.55); outline-offset:2px; }
+
+/* option rows, as the Options window draws them */
+.opts { display:flex; flex-direction:column; }
+.opt { height:29px; display:flex; align-items:center; gap:10px; padding:0 8px 0 16px; border-bottom:1px solid #1a1d1c; position:relative; font-size:12px; color:var(--text); }
+.opt .lb { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.opt.hov { background:var(--a22); }
+.opt .dot { position:absolute; left:5px; top:12px; width:5px; height:5px; border-radius:50%; background:var(--accB); }
+.opt .ctrl { width:190px; flex:none; display:flex; align-items:center; gap:8px; }
+.tick { width:13px; height:13px; border:1px solid #6b6d6c; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; line-height:1; color:#0b1210; }
+.tick.on { background:var(--acc); border-color:var(--accB); }
+.tick.on::after { content:"x"; font-weight:700; margin-top:-2px; }
+.tick.ro { opacity:.5; }
+.sw { width:36px; height:15px; border:1px solid var(--borderHi); }
+.sl-wrap { flex:1; display:flex; align-items:center; gap:6px; }
+.sl-track { flex:1; height:6px; border:1px solid var(--borderHi); background:var(--body); position:relative; }
+.sl-fill { height:100%; background:var(--acc); position:absolute; left:0; top:0; }
+.sl-thumb { width:10px; height:12px; border:1px solid var(--accB); background:var(--surf3); position:absolute; top:-4px; transform:translateX(-50%); }
+.sl-val { font-family:var(--mono); font-size:10.5px; color:var(--text); min-width:30px; text-align:right; }
+.val { font-family:var(--mono); font-size:11px; color:var(--dim); }
+.val b { color:var(--text); font-weight:500; }
+.badge { font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:.4px; color:var(--info); border:1px solid rgba(79,147,212,.55); padding:0 4px; height:14px; display:inline-flex; align-items:center; margin-left:8px; vertical-align:1px; }
+.note { border:1px solid var(--border); background:var(--surf2); padding:8px 10px; font-size:12px; line-height:1.5; color:#b9bab8; display:flex; gap:9px; }
+.note > i { width:7px; height:7px; border-radius:50%; flex:none; margin-top:6px; }
+.note b { color:var(--text); font-weight:600; }
+.help { flex:none; display:flex; gap:12px; border-top:1px solid var(--border); background:var(--surf2); padding:7px 14px 8px; min-height:58px; }
+.help p { flex:1; font-size:11.5px; line-height:1.45; color:var(--text); }
+.help p b { font-weight:600; }
+.help .df { width:130px; flex:none; font-family:var(--mono); font-size:10px; color:var(--dim); border-left:1px solid var(--border); padding-left:10px; line-height:1.5; }
+.paneacts { display:flex; gap:6px; margin-top:2px; }
+
+/* the picker */
+.files .row { height:38px; }
+.files .row .nm b { font-family:var(--mono); font-size:11.5px; font-weight:400; max-width:250px; }
+.pick2 { display:flex; gap:8px; min-width:0; }
+.pc { flex:1; min-width:0; border:1px solid var(--border); background:var(--surf2); padding:8px 10px; display:flex; gap:9px; align-items:flex-start; }
+.pc.on { border-color:var(--acc); background:#14261f; }
+.pc .rd { width:13px; height:13px; border-radius:50%; border:1px solid #6b6d6c; flex:none; margin-top:2px; display:flex; align-items:center; justify-content:center; }
+.pc.on .rd { border-color:var(--accB); }
+.pc.on .rd::after { content:""; width:7px; height:7px; border-radius:50%; background:var(--accB); }
+.pc b { display:block; font-size:12.5px; font-weight:500; color:var(--text); }
+.pc span { font-family:var(--mono); font-size:10px; color:var(--dim); }
+.diff { display:flex; gap:8px; flex:1; min-height:0; }
+.code { flex:1; min-width:0; border:1px solid var(--border); background:#0a0c0b; font-family:var(--mono); font-size:10px; line-height:1.55; color:#9fa3a1; padding:6px 0; overflow:hidden; white-space:pre; }
+.code .h { font-family:var(--mono); font-size:9.5px; font-weight:700; letter-spacing:.6px; color:var(--acc); padding:0 8px 4px; border-bottom:1px solid #1e2221; margin-bottom:4px; display:block; }
+.code .ln { display:block; padding:0 8px; }
+.code .ln u { text-decoration:none; color:#4a4e4c; display:inline-block; width:24px; }
+.code .ch { background:rgba(210,162,60,.13); color:#e3cf9a; }
+.code .gap { color:#4a4e4c; padding:0 8px; display:block; }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | main menu | the Mods screen | settings and file picks | mockup v1</div>
+<h1>Mods: a mod's settings, and picking files one by one</h1>
+<p class="lede">Two additions to the Mods screen you already have. <b>The info pane gets tabs</b>: About (what it shows today), <b>Options</b> (the mod's own settings, changed right there with the same rows the Options window draws) and <b>Sandbox</b> (the settings it adds to each new game). And when two mods ship the same file, a conflict can be settled <b>file by file</b> instead of only by load order. Every mod, setting, help text and file shown here is real, from your own subscriptions.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Screen</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>A mod's settings</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>Tabs in the info pane: About, Options, Sandbox, Conflicts.</b> Each shows its count, and a tab the mod has nothing for is greyed out. Stacking everything in one long pane does not hold up: AAA Modern Firearms System adds 303 sandbox settings.</li>
+      <li><span class="rec">RECOMMEND</span><b>Options change right there and are kept</b>, exactly as in the Options window (the same rows, the same saving). The option under the pointer is explained in the band at the bottom, in the mod's own words, with its default. A dot marks what you changed since the screen opened. Defaults puts back this mod's options only. Open in Options jumps to the same rows there.</li>
+      <li><span class="lim">LIMIT</span><b>A mod's options exist only while it is on.</b> Its own code makes them, and that code only runs for mods that are on. For a mod that is off, the tab says so and offers Turn on. A few mods build their own settings window instead of using the game's list; ZeD cannot show those.</li>
+      <li><span class="rec">RECOMMEND</span><b>Sandbox settings are read from the mod's own files</b>, so they show even for mods that are off: each setting, its default and the mod's help text, and the page it appears on when you start a game. They are chosen for each game, so here they are read only. In a game, they are in the Sandbox settings window (the mockup waiting for your approval).</li>
+      <li><b>How ZeD knows which settings belong to which mod.</b> Of your 747 subscribed mods, 114 have options and 213 add sandbox settings. Sandbox settings are easy: they sit in the mod's folder. Options are not: only 47 of the 114 name them after the mod. ZeD would note which mod's file sets each one up as the mods load, the way Messages knows which mod opened a note. That needs ZeD to start watching before the other mods load; to be tested.</li>
+    </ol>
+  </div>
+  <div>
+    <h2>Picking files one by one</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>Pick file by file, on the conflict itself.</b> The picker lists every file the two mods share, which copy runs now, and for the selected file both copies side by side with the lines that differ marked. You choose a copy per file. Load order still decides everything you do not pick.</li>
+      <li><b>How it works:</b> ZeD comes with a small empty helper mod, <b>ZeD picks</b>, that always loads last. For each file you pick, ZeD writes that mod's copy into the helper; being last, the helper's copy is the one the game runs. For items and recipes, the helper carries the picked version in a file named so the game reads it last. ZeD rebuilds the copies at the main menu each start, so a mod's update reaches its picked files and a ZeD update cannot lose your picks.</li>
+      <li><span class="lim">LIMIT</span><b>Code and script files only.</b> The game lets a mod write text files, not pictures, models or sounds, so those clashes stay load order only.</li>
+      <li><span class="lim">LIMIT</span><b>Single player only.</b> A server checks that everyone's code files match its own, so a personal pick would keep you from joining. A host could share the helper with every player; not planned.</li>
+      <li><span class="lim">LIMIT</span><b>Mixing can break a mod</b> when its other files expect its own copy. The picker says so before you confirm; any error lands in Messages, and Undo picks puts it back in one press. Still to test: whether a reload is enough for new copies or a restart is needed.</li>
+      <li><span class="rec">RECOMMEND</span><b>Same file, same text: not a conflict.</b> ZeD compares the copies. Constown B42 and New Hartburg both ship WorldFiller_pineville.lua, word for word the same; today that shows as a conflict. It would get a grey note instead of a warning.</li>
+      <li><span class="alt">YOUR CALL</span><b>Where picks are listed.</b> Shown here in each mod's Conflicts tab and as the ZeD picks row in the list. A Picks tab beside Conflicts would put them all in one place.</li>
+      <li><b>Controller:</b> the info pane's tabs are stops like the list's tabs; in Options, left and right change a value in place, as in the Options window; in the picker, A chooses the copy for the selected file.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const $ = s => document.querySelector(s);
+const STRIPS = '<div class="foot"><span></span><span></span><span></span></div>';
+const POSTER = { cvo: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUHBgYHCQ8KCQgICRMNDgsPFhMXFxYTFRUYGyMeGBohGhUVHikfISQlJygnGB0rLismLiMmJyb/2wBDAQYHBwkICRIKChImGRUZJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJib/wAARCACAAIADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD52srswx+SfuswY8V0JKzafMFxgxnt7VzUwQ3DFRxnit3RnDQuhPY0GiObFw6DjH5U+C+O8Bx+lRTLgcc02aBogjFs7lyDt4+lZsrY6e1mjkjBGKsqB1/pXL2s00ahugras7vzAqnrXPKJ2wkmjZYYjQ8Y+lO85RyxGBUyR77YYHQVmXZSInefwqEaNF+PWIUXAXI+lbOk+KVto8RR7jn0rhzcMNzx25KLyTWtoV9ay3SW7KVdug8oufwAOTWi9DPmPVtM8aW5ZAYHUnrkA8118OvQzxIVRefYV5S0FnGilnV4+hlt926I/wC2jAH8RmtK0MmEhSVZSCGSSMkj8R7is5VZR2N4wTVz0cXzEgqVI/3RVtrorbtIcYVSxG0dqw7FHMYLCpNbnNvod5KTz5RUfU8D+daRnJrUiSs7I84ub3Mz3MgDPK5Y8eppdI8S6RM0lrsdppj5bOwAC89hRcRxJZoxI3oQQB1rldejtp/Eol0hTtcIXwMfP/FUIps4YBmUNW7oMbGOR+wU/wAqwIpcptHaul0Ce3jgZZZVUsCOTXazykc2vJ/GvQPCHh3T7uz828hEpPZulcHHE0kuxOxxkV7L8KtB89Be3TvIkbARozHGfWsJs7KMO55t460WHRNfksIUIUIsgBOSoYZxWVppIuFHat7x9qEereLtUvYiGhM3lxkdCqDaD+lY1gFW5BbgCpvoDXvHf6SYBp7vJtG0ZJNXdM8KWnieNnjvfsb9FLRbgfc81xf2ua5Kwxg+QpyVH8Ve0eDoUh0iKZE2s4G1TxWNnc642aPJ9Z0DU/DeqvpepfI2AVkT5o5UPRh7VJ4f022s7z7VDMyyHjKHBAPoe1dX481EazrK+WRJFaRiBH/vYOSfpk1mWNqFIYgDHNDlbREqEb6noukGJtKS2jiTy+uCM5PcnPU1U3wf2oIokUbeuB3rEtLy9x5MTlUI7VvaFp5iInnPzHkA1Kbeho421Os06BfILNjp0Ncr8RLwR2dtZxsB5sm5sdwv/wBc106XCrEFDV5Z4x1AXuuyFH3RQDy1/Dr+tbydlYxOZ8RzX8ksVvaodkg+Zx/KtXTNPg0rYzKGkdRvNQ/bYhmMrIHXGDtyDTjdGdgxHA4AqYx5nYTlyq7PIYWKPknNXQ3HWs8DJFWYs5ArraPMibehW73FyiKDljjNe5RsfDfw6v7ojZJFbts553t8o/U15l8NhajV7SO62jzW2qCO9d78dbhbHwxpumRNg3lx5jDPVUX+WWH5Vyu8p2PThaNO54lg4wOas2du8rlVBz04qO1jaVwEXr3NelfD7w0bq4FxMn7lCCSR1pt2ISuyHwj4ckM8M1zD+5DfMDxx613PiC9+x6c9rZ4EmzB2/wAK4/ma2L6bT9Nij+0OsSudqgd64W8kRpnlEu/cxOc1nc3Ssc1HcBnBBx61qWsm8AA1h3URiu5DHyu7NW7WcjGKm2pR2+iQKZVYsOMkgiugOccHj2ritFvT5gVmHHPNdJc6hFbWjXM/yqo4Hr7Chu2iJd3qM8Sav/ZumkI4+0yjbGPT1P4V58ASpbOT71LqF5LqF29zMeT91eyj0FRscRmhIhsIcENXK3+tXWn6zJEpDQ8HYRXT25wjH3rhPFgI1zPZowa3o/EYVn7p2p0XScAjT4B2P7rmhNJ0sdLC3JBxwmKvqVdQ4b5sdD1Bpj5WMyBskHGBXie0n3ZybEKW9tC6SRIsckDZiOMFO/GKfq11NqzxHU3a9eJcIbk52juB6dqiwG3bnY4IODSIW3YLAZweKanLuQ6knpciht7aOXi0RCmMMnBHuK2YNUvrWApa380QJOAhKrn1rNLrnBzj0HU0KhLgrIUUHPSjnl3BTkWrq5ur24jkvJWuWUbVZ5CxA9qhcldzM0g2nO0HFSjOMDpnngf0qORljLuz7N2O3GeOaFKTdrlTnJLcicSE5MYZu4DdR70ioFk2+Yo3KCFxyDz/AJ/CjziJJCrbS7Aex4zWN4j1E2Nu0MbK1xMMKwOXQdCf6CtYqUpKKe5kpzelzfUyRjKs6c4yDg9OtVdT1ho2tra4+03ctwcQJnjO4KBz3J4ridN12+ssAyedCONkhJAHseorooNSt9RjikaFFVFlYNcAEQuoUqynv8xXIHXIBrqhh5Rqe/qjS809zcCqBk7oyVVgjjBGRnBHY+tNCs2Qe3BAqaa4+03ktxLIXeR97ORgnPOakHk4bEnO7p0rglJqTsxJyfUreWQSoVxkdDVWawsrmYPcWqSuBwSM4FaPmg7juUk+n+NVgxDK+ehzz0/Okpy7ik33L0phKp9nkWZSPvKcqff2z6GoMbhgYB7gDP51C6ybjLt/esADnov5cVLFMrZRSjFeGI/hPvRKzd0Wk7WYxklDMwCyA9CKjEkQYpuXK4yM4x7VZ/euBEhwS4JCjJI9hUsdtHI5MoRt3ACnqc+nX/8AXQlczlG2xRWQNgY2yD7yHr9atgny1AK4HTJpI1iYqCn77OCCf6ev+FPCklc7WU9ecUpK25UEDE8DIXvnFNIO0ZwV9etOPyn5Uz+tPghmuZVhggaR26BQST6VJoZurstvbSXLOoWNSeR19APc15xe3Ut7cvcTuWY+vOB/T0re8aai018+mxMDFbORIV5DOOD+XT865rPTkcdDnj8/b3r2cLR5I80t2SkkBJyDnHpk/wAj7VPBdXNurRwzOgbkqB/T+oq5aWEew/aD+9eFplXdgqgGQxGMMT6enpVKC2muFzGi7M7dzsFXPXGSRgmu0ZoWGv39rK8jSC4Rjl1kGQfp3X+VdNYa9Z3p2iT7PK/8Ehxk+zd64WRHjkKOCrqcEN1BHXn9Oab0yMYPpj+nQ1zVMNCprsyXFM9Gmvo4GIUiVlH02/59+PeqE1zLORubAA4UDHH09PzHvXKWmo3FvtXd5kY6KxJx9D1FbFpqFrcYQN5bnna+Bk+x6H9DRTw8KeqWpSSR1RnkBRSAykk74wCGUD7vLA4I/XpS2x8yEMVMSn5sY24OeBjvSlpWY7G2oOCCpqRcktvy2eSQOteXOonG1kjOMLO9zWj1axsr6QW9i/2YqJ9jIFZJATkBiRkFCQBnqaoytbTRIDaiOTCuXQhdh28gY4I6H1zmoVZRuC5UHrk9KdawTXEyxQxSSv02AZOKXtXayRXKJGqKcuS+7PzH/PWp4IpriQRwxNI56KoyTXS6X4SkYiS/mMSjjy4+WP49q7CxtLWyjWO2gSPHcDk+5NVGhOesi0jk9K8HSuVm1CbYuQTEvJx6H0qt8R9dtPCHh8afpCJDqN4hSIqMvEnRpPXPYe/0rvZZDHFJIqNKyISEX7zkdhnua+X/ABpd6vf+I7u7122mtLuQ5EEykCNBwoXPYdMjjqa76NGMXoMyIeZYySD845zkdfXqKSYfvpAODuI9O/5GnWqGS6iXcqncMF2wOO2e9Jdx+XcSxZDEsc7eevI4/nXaSdBd3dwLeefyomtJbJbdAqAlMbWwwHQ5Y89/wqpo6RzJbzzTbBasVQAj5m3BvwyNw5HUCobnVhcWksJgESlVVBGflHIJPqMkcfWorG/+xgEQBpRKJBJuwTjt6EdfzoAr3spmvJpSCu5jwcZAHAz2OAPzqE9McY9PT/D1p0zB5JHWMIGYsUHIHOcY9qZx94jI7HP9f8aAF9+ue5PP4H396QcnB+p4/p3o5z3yfzP9DRxjHGB27D8O2KAPXYIl2IxLsp/h+7j8xzTIbaWaQRwK00rNgIoy34jtXV6T4TuGCyahM0MeOIY+p9c11Fhp1pYRCK1hSNQOSByfrXixo8yV9CUpXu2clpHhOV8Sam/lr18pTksPc9q6yxsrWyQLbQLH2JAyT9TVnB4OelOArphTjDYsAB6UoBxkjGfWnAYGT/k0juixl3ZQoHJY4FaDAYOCCDnjIOa1LrQtH8Q6LDZ61p0N9GE+QyL86deVYcr+BrhdX8VaZpfmx2qrPIBljHwgx1/yK8v1j4o69q26yeY2mn8qI7X5GZf9rn5vwIoj77ai9gTRL8RvAugaHfrHoHiFbou2HspB5jQ/8DXhvp96uU/se38kL5j7uz54z6Af4HPtWhDJBOheF1df4iO31B6f8C/OpPXg5xzn0/w/MV1K6VmBzN1YXNt87LvjH/LRO319PoaqDjPb2x/T/CuxAyQRnpxj+n/1siqV3ptrcDIXy3PRkHB/Dp+XNVcVjm/T0+vH59qU9c85PfoT/Q1au7Ge2DO37xM4Min9D7n0NVR1I6dzx/T/AApgJjAPT8BwPwpBzj/Hp+NKT0J/Dngfj2xRjnocn8z/AENAj68LK3zKRjaP5VV1C7isbOa7nDGOJC2FGWY9lA7k9AKTDhgwB5A7e1LM9vs826UIY1bDk4C5GMj0NcZRh+B9Tm1WyvbqaG5i/wBJO1bhwxUEA4GOgHTFdH8oG5iAO5zgAV458LfEp07TtQt7qFp5VmH2dmOCFIIKt+Q/OtbU9W1PUd3nSnyx/wAs04Wsq9WNOTiiIt8uu51eqeLdPtJDDag3koPOwgID9a4nVdZ1LU5NtxMdm7iFeFH+NZ5jbKjbtIGQRwaAu7aAqsBnmuCdWU9zNybG7hnJATPbNei2Xw28L+LPBum3FxA1jqLQHN5agAsdx++vRv0PvXnZBBG5N3c5Fe2+ALgjwppqEYIhxj/gRrXDtpuxVPc+fvGXw28TeEZluFK6hakny7m0J38dcp94fqPeuatNYIwlzHvH95AAc+u3ofqMGvcvipqOsWviGHckq2CxgwFl+Qvj5yp9emR7U7SvBfhT4h+HPtDWk2n6rbMYpr2BRl3+8Cy9HGCOTg8da9GNfpI6HBpXR5NYK+pSCKxQ3UjnHlxruOfcf4j8a7jRPAM8uJ9Zm8hOpt4jl2Hox5A+nzfhXbeFfAEHgfQyrTC91C6uW826VCv7sD5UGecdz7n2FdL4eBGu2QCA/vMgMMjODioq1XzKMeoJaXZ5143+GviPUfDMH/COafBaacj5aCQ7ZbpudpDN94DBwDgZNeE6np9/pd29lqVnNZXEfWKdCpHvzzj3HFfZGgz311YXlzf3k13cyG1LvID8pxJ0z/Sq/iXTdF1PR5f+EpsIbqyt1LmSWM7417sCOR+FUqns/dZHxao+NeQQe/QZPX8e9A54Hftj+lem3/wvn1EJceE50uhMrOtnJICcAE7Qxxk8dwPrXnuqaZqGk3b2Wp2U9lcR/einjKke4z+hHFdKkpbCasf/2Q==", srm: "data:image/jpeg;base64,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", gael: "data:image/jpeg;base64,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", mfs: "data:image/jpeg;base64,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" };
+
+// ---- the list (the director's own subscriptions) --------------------------------
+const MODS = [
+  { k: "mfs", n: "AAA_ModernFirearmsSystem(42.19)(SP/MP)", id: "ModernFirearmsSystem", on: 1, chips: [["c-warn", "1 conflict"]] },
+  { k: "cvo", n: "Cone Vision Outline", id: "ConeVisionOutline", on: 1, chips: [] },
+  { k: "con", n: "Constown B42", id: "Constown42", on: 1, chips: [["c-dim", "Same file, same text"]] },
+  { k: "eq", n: "Equipment UI", id: "EQUIPMENT_UI", on: 0, chips: [] },
+  { k: "gael", n: "GaelGunStore-Firearms", id: "GaelGunStore_B42", on: 1, chips: [["c-warn", "1 conflict"]] },
+  { k: "horse", n: "Horse Mod", id: "Horse", on: 1, chips: [] },
+  { k: "nh", n: "New Hartburg", id: "newhartburg", on: 1, chips: [["c-dim", "Same file, same text"]] },
+  { k: "srm", n: "Smart Radial Menu", id: "SmartRadialMenu", on: 0, chips: [] },
+  { k: "zed", n: "ZeD-GUI", id: "ZeD_UI", on: 1, chips: [] },
+];
+function listCol(sel, opts = {}) {
+  const mods = opts.picks ? [...MODS, { k: "picks", n: "ZeD picks", id: "ZeD_Picks | always last | made by ZeD", on: 1, chips: [["c-ok", "2 files"]] }] : MODS;
+  const m = opts.picks ? MODS.map(x => x.k === "gael" || x.k === "mfs" ? { ...x, chips: [["c-ok", "Picked"]] } : x) : mods;
+  const rows = (opts.picks ? [...m, mods[mods.length - 1]] : m);
+  const on = rows.filter(r => r.on).length;
+  const tabs = [[`All ${rows.length}`, 1], [`On ${on}`], ["Maps 2"], [`Conflicts ${opts.picks ? 0 : 2}`], ["Workshop 747"]];
+  return `<div class="col" style="width:420px">
+    <div class="tabs">${tabs.map(([t, o]) => `<span class="tab ${o ? "on" : ""}">${t}</span>`).join("")}</div>
+    <div class="find">Find:</div>
+    <div class="rows">${rows.map(r => modRow(r, r.k === sel)).join("")}</div>
+  </div>`;
+}
+function modRow(m, sel) {
+  const chips = m.chips.map(([c, t]) => `<span class="chip ${c}"><i></i>${t}</span>`).join("");
+  return `<div class="row ${sel ? "sel" : ""}"><span class="ck ${m.on ? "on" : ""}"></span><div class="nm"><b>${m.n}</b><span>${m.id}</span></div><div class="chips">${chips}</div></div>`;
+}
+function win(title, status, main, strip) {
+  return `<div class="win"><div class="tb"><span class="cb"></span><span class="t">${title}</span><div class="st">${status}</div></div>
+    <div class="main">${main}</div><div class="strip">${strip}</div>${STRIPS}</div>`;
+}
+const ST = (n, t) => `<span><i style="background:var(--ok)"></i>${n} of ${t} on</span>`;
+const STRIP_NORMAL = `<span class="b">Back</span><span class="sp"></span><span class="b">Profiles</span><span class="b">Load order</span><span class="b pri">Accept</span>`;
+
+// ---- the info pane ---------------------------------------------------------------
+function detail(o) {
+  const tabs = o.tabs.map(([t, n, on]) => `<span class="tab ${on ? "on" : ""} ${n === 0 ? "none" : ""}">${t}${n !== undefined && n !== "" ? `<em>${n}</em>` : ""}</span>`).join("");
+  return `<div class="col dcol">
+    <div class="dhead"><div class="poster" style="background-image:url(${POSTER[o.poster]})"></div>
+      <div style="min-width:0"><h2>${o.name}</h2><div class="by">${o.by}</div><div class="btns">${o.btns}</div></div></div>
+    <div class="dtabs">${tabs}</div>
+    <div class="dbody">${o.body}</div>
+    ${o.help || ""}
+  </div>`;
+}
+function optRow(label, ctrl, o = {}) {
+  return `<div class="opt ${o.hov ? "hov" : ""}">${o.dot ? '<span class="dot"></span>' : ""}<span class="lb">${label}${o.badge ? `<span class="badge">${o.badge}</span>` : ""}</span><span class="ctrl">${ctrl}</span></div>`;
+}
+const tick = (on, ro) => `<span class="tick ${on ? "on" : ""} ${ro ? "ro" : ""}"></span>`;
+const slider = v => `<span class="sl-wrap"><span class="sl-track"><span class="sl-fill" style="width:${v * 100}%"></span><span class="sl-thumb" style="left:${v * 100}%"></span></span><span class="sl-val">${v.toFixed(2)}</span></span>`;
+const helpBand = (title, text, df) => `<div class="help"><p><b>${title}.</b> ${text}</p><div class="df">${df}</div></div>`;
+
+const CVO_TABS = sel => [["About", "", sel === "about"], ["Options", 8, sel === "opt"], ["Sandbox", 8, sel === "sb"], ["Conflicts", 0, false]];
+const CVO_HEAD = { name: "Cone Vision Outline", by: "Workshop 3659137034 | version 1.5", poster: "cvo",
+  btns: `<span class="b">Turn off</span><span class="b">Favourite</span><span class="b">Open in Steam</span>` };
+
+function cvoOptions() {
+  return detail({ ...CVO_HEAD, tabs: CVO_TABS("opt"),
+    body: `<div class="sec">OPTIONS<span>yours, for every game | saved as you change them</span></div>
+      <div class="opts">
+        ${optRow("Cone outline color", `<span class="sw" style="background:#ffffff"></span><span class="val">White</span>`)}
+        ${optRow("Cone outline intensity", slider(0.45), { dot: 1 })}
+        ${optRow("Legacy outline mode", tick(0))}
+        ${optRow("Scale outline by light level", tick(1), { dot: 1, hov: 1 })}
+        ${optRow("Scale outline by fog", tick(0))}
+        ${optRow("Outlines always on", tick(0))}
+        ${optRow("Vehicle: outlines always on", tick(0))}
+        ${optRow("Outline animals", tick(1))}
+      </div>
+      <div class="paneacts"><span class="b sm">Defaults</span><span class="b sm">Open in Options</span></div>`,
+    help: helpBand("Scale outline by light level", "Off by default. When on, the outline fades as the light on the target drops (darker = fainter, full dark = no outline). It reads the same light the game uses to draw the zombie itself, so your flashlight, lamps and fire all count, not just the ambient sky.", "Default: off<br>You: on") });
+}
+function cvoSandbox() {
+  const rows = [
+    ["Enforce these settings for all players", tick(0, 1), "Off", { badge: "MULTIPLAYER", hov: 1 }],
+    ["Cone outline intensity", `<span class="val"><b>0.3</b></span>`, "0.3"],
+    ["Legacy outline mode", tick(0, 1), "Off"],
+    ["Scale outline by light level", tick(0, 1), "Off"],
+    ["Scale outline by fog", tick(0, 1), "Off"],
+    ["Outlines always on", tick(0, 1), "Off"],
+    ["Vehicle: outlines always on", tick(0, 1), "Off"],
+    ["Outline animals", tick(1, 1), "On"],
+  ];
+  return detail({ ...CVO_HEAD, tabs: CVO_TABS("sb"),
+    body: `<div class="sec">SANDBOX SETTINGS<span>for each game | defaults shown</span></div>
+      <div class="note"><i style="background:var(--info)"></i><div>Chosen when you start a game: <b>New game, Sandbox, page "Cone Vision Outline"</b>. In a game they are in Sandbox settings. Read from the mod's own files.</div></div>
+      <div class="opts">${rows.map(([l, c, d, o]) => optRow(l, c, o || {})).join("")}</div>`,
+    help: helpBand("Enforce these settings for all players", "Multiplayer only. Off by default: every player uses their own Cone Vision Outline options (Settings -> Mods). When on, the settings below replace each player's own, and changing them in the mod options has no effect. The outline colour stays the player's choice. Has no effect in singleplayer.", "Default: off<br>Page: Cone Vision<br>Outline") });
+}
+function srmOff() {
+  return detail({ name: "Smart Radial Menu", by: "by phoenix | Workshop 3494108029 | version 2.3", poster: "srm",
+    btns: `<span class="b pri">Turn on</span><span class="b">Favourite</span><span class="b">Open in Steam</span>`,
+    tabs: [["About", ""], ["Options", "", true], ["Sandbox", 4], ["Conflicts", 0]],
+    body: `<div class="sec">OPTIONS<span>made by the mod's own code</span></div>
+      <div class="note"><i style="background:var(--dim)"></i><div><b>Turn it on to see its options.</b> A mod's options are made by its own code, and that code only runs while the mod is on. After Turn on and the reload, they show here.</div></div>
+      <div class="paneacts"><span class="b sm pri">Turn on</span></div>
+      <div class="sec" style="margin-top:6px">SANDBOX SETTINGS<span>readable while it is off | 4 | defaults shown</span></div>
+      <div class="opts">
+        ${optRow("Add a slice to rip all clothing", tick(0, 1))}
+        ${optRow("Add a slice to wring out all wet clothes", tick(0, 1))}
+        ${optRow("Add a slice to reload/unload all magazines", tick(0, 1), { hov: 1 })}
+        ${optRow("Add a slice to stop all ringing alarms", tick(0, 1))}
+      </div>`,
+    help: helpBand("Add a slice to reload/unload all magazines", "Add a slice in the weapons submenu to queue reloading/unloading all magazines.", "Default: off<br>Page: Smart Radial<br>Menu") });
+}
+
+// ---- conflicts and the picker ------------------------------------------------------
+const SHARED = [
+  ["client/PartAbility/Canon/", "Silencer_SetFunction.lua", "282 / 41 lines"],
+  ["client/PartAbility/LaserAndLight/", "BatterySet.lua", "145 / 82 lines"],
+  ["client/PartAbility/Magazine/", "ShowMagazine.lua", "145 / 94 lines"],
+  ["client/TimeActions/", "ISGunAddBatteryAction.lua", "41 / 45 lines", 1],
+  ["client/TimeActions/", "ISGunRemoveBatteryAction.lua", "45 / 49 lines", 1],
+  ["client/UI/", "risky_inspect_3DRender.lua", "167 / 167 lines"],
+  ["client/UI/", "risky_inspect_button.lua", "785 / 729 lines"],
+  ["client/UI/", "risky_inspect_core.lua", "1336 / 909 lines"],
+  ["client/UI/", "risky_inspect_selectAttachmentPane.lua", "422 / 308 lines"],
+  ["client/UI/", "risky_inspect_set.lua", "91 / 76 lines"],
+  ["client/UI/", "risky_inspect_slider.lua", "75 / 156 lines"],
+  ["client/UI/", "risky_inspect_variable.lua", "181 / 170 lines"],
+  ["client/WeaponAbility/", "ChangeMagazineType.lua", "568 / 94 lines"],
+];
+const GAEL_HEAD = { name: "GaelGunStore-Firearms", by: "by Pen-Pen Pirulin | Workshop 3616176188 | version 1.6", poster: "gael",
+  btns: `<span class="b">Turn off</span><span class="b">Favourite</span><span class="b">Open in Steam</span>` };
+const GAEL_ABOUT = `<div class="kv"><span class="k">GAME</span><span class="v">42.17 to any</span><span class="k">MODID</span><span class="v">GaelGunStore_B42</span><span class="k">LOAD ORDER</span><span class="v">4 of 7, before AAA_ModernFirearmsSystem (5 of 7)</span></div>`;
+function gaelConflict() {
+  return detail({ ...GAEL_HEAD, tabs: [["About", ""], ["Options", 7], ["Sandbox", 55], ["Conflicts", 1, true]],
+    body: `${GAEL_ABOUT}
+      <div class="sec">CONFLICTS<span>1</span></div>
+      <div class="cf"><i style="background:var(--warn)"></i><div><b>Same 13 files as AAA_ModernFirearmsSystem</b>
+        <span class="path">media/lua/client/UI/risky_inspect_core.lua and 12 more | all 13 differ</span>
+        AAA_ModernFirearmsSystem loads later, so its 13 copies are the ones the game runs; GaelGunStore-Firearms's copies never load.
+        <div class="acts"><span class="b sm">Load GaelGunStore-Firearms after it</span><span class="b sm pri new">Pick file by file...</span><span class="b sm">Fine, hide this</span></div></div></div>
+      `,
+  });
+}
+function picker(picked) {
+  const files = `<div class="col files" style="width:300px">
+    <div class="tabs"><span class="tab on">Shared 13</span><span class="tab">Picked ${picked ? 2 : 0}</span></div>
+    <div class="find">13 files, all different in the two mods</div>
+    <div class="rows">${SHARED.map(([dir, f, lines, p], i) => {
+      const mine = picked && p;
+      const chip = mine ? `<span class="chip c-ok"><i></i>Gael (picked)</span>` : `<span class="chip c-dim"><i></i>Modern Firearms</span>`;
+      return `<div class="row ${i === 3 ? "sel" : ""}"><div class="nm"><b>${f}</b><span>${dir}</span></div><div class="chips">${chip}</div></div>`;
+    }).join("")}</div></div>`;
+  const ga = n => `<span class="ln"><u>${n[0]}</u>${n[1]}</span>`, ch = n => `<span class="ln ch"><u>${n[0]}</u>${n[1]}</span>`;
+  const right = `<div class="col" style="flex:1;min-width:0;padding:12px 14px;gap:10px;display:flex;flex-direction:column">
+    <div><div class="sec" style="margin-bottom:4px">ISGUNADDBATTERYACTION.LUA<span>6 lines differ</span></div><div class="cf"><span class="path" style="margin:0">media/lua/client/TimeActions/ISGunAddBatteryAction.lua</span></div>
+      <div class="desc">In both mods. Choose whose copy the game runs.</div></div>
+    <div class="pick2">
+      <div class="pc ${picked ? "on" : ""}"><span class="rd"></span><div><b>GaelGunStore-Firearms</b><span>41 lines | ${picked ? "picked: runs after a reload" : "loads earlier: never runs"}</span></div></div>
+      <div class="pc ${picked ? "" : "on"}"><span class="rd"></span><div><b>AAA_ModernFirearmsSystem</b><span>45 lines | ${picked ? "loads later" : "loads later: runs now"}</span></div></div>
+    </div>
+    <div class="diff">
+      <div class="code"><span class="h">GAELGUNSTORE-FIREARMS</span>${[ga([12, "function ISGunAddBatteryAction:start()"]), ga([13, ""]), ga([14, "    self:setOverrideHandModels(nil, nil)"]), '<span class="gap">  ...</span>', ga([30, ""]), ga([31, "function ISGunAddBatteryAction:new(character,"]), ga(["", "        time, Weapon, PartType, BatteryItem)"]), ch([32, "    local o = ISBaseTimedAction.new(self, character)"]), ga([33, "    o.Weapon = Weapon"]), ga([34, "    o.PartType = PartType"])].join("")}</div>
+      <div class="code"><span class="h">AAA_MODERNFIREARMSSYSTEM</span>${[ga([12, "function ISGunAddBatteryAction:start()"]), ga([13, ""]), ch([14, "    -- self:setActionAnim(\"RemoveGrass\")"]), ga([15, "    self:setOverrideHandModels(nil, nil)"]), '<span class="gap">  ...</span>', ga([31, ""]), ga([32, "function ISGunAddBatteryAction:new(character,"]), ga(["", "        time, Weapon, PartType, BatteryItem)"]), ch([33, "    local o = {}"]), ch([34, "    setmetatable(o, self)"]), ch([35, "    self.__index = self"]), ch([36, "    o.character = character;"]), ga([37, "    o.Weapon = Weapon"])].join("")}</div>
+    </div>
+    <div class="note"><i style="background:var(--warn)"></i><div><b>Mixing copies can break a mod</b> whose other files expect its own copy. Any error shows in Messages, and Undo picks puts everything back. Single player only.</div></div>
+  </div>`;
+  const strip = picked
+    ? `<span class="b">Cancel</span><span class="sp"></span><span class="msg"><i style="background:var(--acc)"></i>2 files from GaelGunStore-Firearms. AAA_ModernFirearmsSystem keeps the other 11.</span><span class="b pri">Use these picks</span>`
+    : `<span class="b">Cancel</span><span class="sp"></span><span class="msg" style="color:var(--dim)">Choose a copy for any file. The rest stay with load order.</span><span class="b off">Use these picks</span>`;
+  return win("Project Zomboid  +  Mods  +  Pick files: GaelGunStore-Firearms and AAA_ModernFirearmsSystem", "", files + right, strip);
+}
+function gaelPicked() {
+  return detail({ ...GAEL_HEAD, tabs: [["About", ""], ["Options", 7], ["Sandbox", 55], ["Conflicts", 1, true]],
+    body: `${GAEL_ABOUT}
+      <div class="sec">CONFLICTS<span>1 | settled by picks</span></div>
+      <div class="cf"><i style="background:var(--ok)"></i><div><b>2 files picked from GaelGunStore-Firearms</b>
+        <span class="path">media/lua/client/TimeActions/ISGunAddBatteryAction.lua</span><span class="path">media/lua/client/TimeActions/ISGunRemoveBatteryAction.lua</span>
+        AAA_ModernFirearmsSystem keeps the other 11 shared files. The picked copies sit in ZeD picks, which loads last.
+        <div class="acts"><span class="b sm">Change picks...</span><span class="b sm">Undo picks</span></div></div></div>
+      <div class="cf"><i style="background:var(--info)"></i><div><b>GaelGunStore-Firearms was updated by Steam.</b><br>
+        Its 2 picked copies were refreshed from the new version when the game started.</div></div>`,
+  });
+}
+
+const SCENES = [
+  { id: "s1", label: "Settings: Options tab", cap: "Cone Vision Outline selected. Its 8 options are drawn with the same rows as the Options window and change in place. The dots mark the two changed since the screen opened; the band explains the option under the pointer in the mod's own words, with its default.",
+    html: () => win("Project Zomboid  +  Mods", ST(7, 9), listCol("cvo") + cvoOptions(), STRIP_NORMAL) },
+  { id: "s2", label: "Settings: Sandbox tab", cap: "The same mod's Sandbox tab: the 8 settings it adds to each new game, with their defaults, read from its files. Read only here: they are chosen per game. The mod's own help explains that these copies only matter when a multiplayer server enforces them.",
+    html: () => win("Project Zomboid  +  Mods", ST(7, 9), listCol("cvo") + cvoSandbox(), STRIP_NORMAL) },
+  { id: "s3", label: "Settings: a mod that is off", cap: "Smart Radial Menu is off: its options do not exist until its code runs, so the tab says so and offers Turn on. Its 4 sandbox settings are still readable from its files.",
+    html: () => win("Project Zomboid  +  Mods", ST(7, 9), listCol("srm") + srmOff(), STRIP_NORMAL) },
+  { id: "p1", label: "Picks: the conflict", cap: "GaelGunStore-Firearms and AAA_ModernFirearmsSystem share 13 code files, all different. Load order gives all 13 to one mod. The new action (dashed outline): Pick file by file. Constown B42 and New Hartburg share a file that is the same in both: a grey note in the list, no warning.",
+    html: () => win("Project Zomboid  +  Mods", ST(7, 9), listCol("gael") + gaelConflict(), STRIP_NORMAL) },
+  { id: "p2", label: "Picks: choosing", cap: "The picker: every shared file and whose copy runs now. For the selected file, both copies side by side with the lines that differ marked (real lines: Gael's copy makes the action with ISBaseTimedAction.new, Modern Firearms' copy builds it by hand). Choose a copy per file.",
+    html: () => picker(false) },
+  { id: "p3", label: "Picks: 2 files picked", cap: "Gael's copy picked for the two battery actions. Modern Firearms keeps the other 11. Use these picks writes the two copies into ZeD picks.",
+    html: () => picker(true) },
+  { id: "p4", label: "Picks: kept", cap: "Back on the Mods screen. The conflict now says what was picked, with Change picks and Undo picks; ZeD picks shows in the list, always last. When Steam updates a mod you picked from, its copies are refreshed at the next start. The strip says a reload puts the picks in place.",
+    html: () => win("Project Zomboid  +  Mods", ST(8, 10), listCol("gael", { picks: 1 }) + gaelPicked(),
+      `<span class="msg"><i style="background:var(--acc)"></i>Your picks are ready. A reload puts them in place, no restart.</span><span class="sp"></span><span class="b">Discard</span><span class="b pri">Reload</span>`) },
+];
+
+let cur = SCENES[0], zoom = 1;
+function seg(id, items, get, set) {
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = get() === v ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function render() {
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), () => cur.id, v => { cur = SCENES.find(s => s.id === v); });
+  seg("#ctlZoom", [[1, "100%"], [1.25, "125%"], [0.8, "80%"]], () => zoom, v => { zoom = v; });
+  const st = $("#stage");
+  st.innerHTML = cur.html();
+  st.style.transform = zoom === 1 ? "" : `scale(${zoom})`;
+  $("#wrap").style.height = (720 * zoom + 4) + "px";
+  $("#wrap").style.width = (1000 * zoom + 4) + "px";
+  $("#caption").textContent = cur.cap;
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
