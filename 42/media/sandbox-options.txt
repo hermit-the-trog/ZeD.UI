@@ -1,0 +1,25 @@
+VERSION = 1,
+
+option ZeD.TaxiFlagDrop
+{
+	type = double, min = 0.0, max = 50.0, default = 1.5,
+	page = ZeD, translation = ZeD_TaxiFlagDrop,
+}
+
+option ZeD.TaxiPerFifthMile
+{
+	type = double, min = 0.0, max = 50.0, default = 0.25,
+	page = ZeD, translation = ZeD_TaxiPerFifthMile,
+}
+
+option ZeD.TaxiPerMinuteWaiting
+{
+	type = double, min = 0.0, max = 50.0, default = 0.25,
+	page = ZeD, translation = ZeD_TaxiPerMinuteWaiting,
+}
+
+option ZeD.TaxiPerExtraPassenger
+{
+	type = double, min = 0.0, max = 50.0, default = 0.5,
+	page = ZeD, translation = ZeD_TaxiPerExtraPassenger,
+}

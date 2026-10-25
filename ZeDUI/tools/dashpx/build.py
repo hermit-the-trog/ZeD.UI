@@ -17,11 +17,11 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 os.makedirs(OUT, exist_ok=True)
 
 STATES = {
-    "off": dict(keysIn=False, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.6, battery=0.8, heaterOn=False, heaterTemp=0, fan=0,
+    "off": dict(keysIn=False, keyPos=None, ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.6, battery=0.8, heaterOn=False, heaterTemp=0, fan=0,
                 gear="P", hour=10, minute=8),
-    "keyon": dict(keysIn=True, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.62, battery=0.9, heaterOn=False, heaterTemp=0,
+    "keyon": dict(keysIn=True, keyPos="off", ashOpen=False, meterOn=False, hula=0, running=False, lights=False, speed_kmh=0, rpm=0, fuel=0.62, battery=0.9, heaterOn=False, heaterTemp=0,
                   fan=0, radio=None, radioOn=False, gear="P", anyLocked=False, hour=10, minute=8),
-    "drive": dict(keysIn=True, running=True, lights=True, speed_kmh=72, rpm=2600, fuel=0.62, battery=0.9, heaterOn=True, heaterTemp=17,
+    "drive": dict(keysIn=True, keyPos="on", meterOn=True, hula=1, fare=12.80, fareExtra=0.5, running=True, lights=True, speed_kmh=72, rpm=2600, fuel=0.62, battery=0.9, heaterOn=True, heaterTemp=17,
                   fan=2, ac=False, radio="valutech", radioOn=True, radioFreq="98.4", gear="D", anyLocked=True, cruise=True,
                   lightbar=2, siren=1, hour=10, minute=8),
 }
@@ -61,6 +61,8 @@ def build_one(did, verbose=True):
         if spr is None: b.warn(f"variant {name} changed nothing"); continue
         sprites[name] = spr
         b.part("sprite", src=src, when=when, sprite=name, x=at[0], y=at[1], w=spr.width, h=spr.height)
+    for name, im in getattr(b, "extra", {}).items():     # hand-set sprites (round 6: the taxi's hula girl)
+        sprites[name] = im
     for k in TAB_SPRITES:
         if any(p.get("sprite") == k for p in b.parts): sprites[k] = tab_sprite(k)
     # a lever tab or slider knob sweeps its whole travel: no printed legend or mark may lie under it anywhere
@@ -81,8 +83,16 @@ def build_one(did, verbose=True):
     return b, base, sprites, doc, time.time() - t0
 
 
+DECALS = os.environ.get("ZED_DECALS", "/mnt/user-data/uploads/Project Zomboid/SteamApps/common/ProjectZomboid/media/textures/shirtdecals")
+ASH_OPEN = {"taxi": 3, "d6": 2, "bulldriver": 3, "horizon": 1, "rancher": 2, "cossette": 1, "dart": 2}   # the previews' used trays
+
+
 def preview(did, base, sprites, doc, heads=None, state="drive", k=1, extra=None, night=None):
     st = dict(STATES[state]); st.update(badge_names(did))
+    if state == "drive": st["ashOpen"] = ASH_OPEN.get(did, 0)
+    if did == "van" and state != "off":        # the previews' van is the Spiffo's
+        p_ = os.path.join(DECALS, "Buisness_SpiffosDECAL.png")
+        if os.path.exists(p_): st["sticker_im"] = Image.open(p_).convert("RGBA")
     if state in ("off", "keyon"): st["radioOn"] = False
     if extra: st.update(extra)
     return render_live(base, doc, st, k=k, sprites=sprites, heads=heads, night=night)

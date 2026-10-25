@@ -1,0 +1,11 @@
+{
+    "Sandbox_ZeD": "ZeD-GUI",
+    "Sandbox_ZeD_TaxiFlagDrop": "Taxi Meter: Flag Drop",
+    "Sandbox_ZeD_TaxiFlagDrop_tooltip": "Dollars the taxi's fare meter shows when the driver pulls the flag down.",
+    "Sandbox_ZeD_TaxiPerFifthMile": "Taxi Meter: Per 1/5 Mile",
+    "Sandbox_ZeD_TaxiPerFifthMile_tooltip": "Dollars the meter adds for each fifth of a mile driven with the flag down.",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting": "Taxi Meter: Per Minute Waiting",
+    "Sandbox_ZeD_TaxiPerMinuteWaiting_tooltip": "Dollars the meter adds for each minute of real time the cab waits (under 5 km/h, engine running) with the flag down.",
+    "Sandbox_ZeD_TaxiPerExtraPassenger": "Taxi Meter: Per Extra Passenger",
+    "Sandbox_ZeD_TaxiPerExtraPassenger_tooltip": "Dollars shown under EXTRAS for each passenger after the first. The driver does not count."
+}

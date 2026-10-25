@@ -767,6 +767,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
+| `UI_ZeD_Dash_AshClose` | `Close ash tray` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face): the car's ash tray, open now | 16 |
+| `UI_ZeD_Dash_AshOpen` | `Open ash tray` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face): the car's ash tray, shut now | 16 |
 | `UI_ZeD_Dash_ClimateAc` | `A/C` | Dashboard climate readout (pixel face): air conditioning on | 5 |
 | `UI_ZeD_Dash_ClimateAuto` | `AUTO` | Dashboard climate readout (pixel face): heater on without A/C | 5 |
 | `UI_ZeD_Dash_ClimateFan` | `FAN%1` | Dashboard climate readout (pixel face): fan speed; %1 = the speed (0 to 4), no space | 6 |
@@ -774,6 +776,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Dash_HintAb` | `A %1  B %2` | Dashboard top edge (pixel face, controller only): A and B actions of the focused control; %1 = A action, %2 = B action | 46 |
 | `UI_ZeD_Dash_HintAxb` | `A %1  X %2  B %3` | Dashboard top edge (pixel face, controller only): A, X and B actions of the focused control; %1 = A action, %2 = X action, %3 = B action | 46 |
 | `UI_ZeD_Dash_HintWheel` | `D-pad Right: Vehicle / Dashboard` | Dashboard top edge (pixel face, controller only), driver's seat, while the dash does not have the controller: where to give it the controller (the World wheel, its Vehicle slice, then Dashboard). The pixel face has only A-Z, 0-9 and . ' - / + % : (no comma) | 46 |
+| `UI_ZeD_Dash_MeterOff` | `Meter off` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face): the taxi's fare meter, running now (puts its flag up) | 16 |
+| `UI_ZeD_Dash_MeterOn` | `Meter on` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face): the taxi's fare meter, stopped now (pulls its flag down) | 16 |
 | `UI_ZeD_Dash_Passenger` | `PASSENGER` | Dashboard top edge (pixel face) when the player is not the driver | 12 |
 | `UI_ZeD_Dash_PromptAc` | `A/C` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face) | 16 |
 | `UI_ZeD_Dash_PromptAcOff` | `A/C off` | Dashboard controller prompt: what the A or X button does on the focused control (also shown on the dash's top edge, pixel face) | 16 |
