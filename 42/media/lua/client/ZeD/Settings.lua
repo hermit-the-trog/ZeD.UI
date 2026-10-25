@@ -252,6 +252,17 @@ for i, label in ipairs(accentLabels) do
 end
 worldAccent:addItem(ZeD.tr("UI_ZeD_Settings_SameAsAccent"), true)
 
+-- ----- THE WINDOWS' THEME SQUARES -----
+-- The theme, accent and text-size squares in every ZeD window's footer, shown or hidden
+-- (director, Oct 24 2026: "add option in ZeD settings to hide theme/accent/text buttons on
+-- windows"). On by default; the same three settings stay here either way.
+local windowSquares = opts:addComboBox("windowSquares", ZeD.tr("UI_ZeD_Settings_WindowSquares"),
+    ZeD.tr("UI_ZeD_Settings_WindowSquaresTip"))
+windowSquares:addItem(getText("UI_Off"), false)
+windowSquares:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch)
+ZeD.Settings.windowSquaresOption = windowSquares
+ZeD.Settings.windowSquaresOn = function() return (windowSquares:getValue() or 2) == 2 end
+
 -- ----- GLYPH DISPLAY (S91 Gamepad Phase 1) -----
 -- Sets which button-prompt artwork is used in footer prompt strips.
 -- Auto follows the connected controller; explicit choices override.
@@ -350,7 +361,7 @@ do
         charAccent = "UI_ZeD_Settings_CharAccent", worldAccent = "UI_ZeD_Settings_WorldAccent",
         glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
-        putBack = "UI_ZeD_Settings_PutBack",
+        putBack = "UI_ZeD_Settings_PutBack", windowSquares = "UI_ZeD_Settings_WindowSquares",
         messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast",
         sandboxInGame = "UI_ZeD_Settings_SandboxIG",
     }

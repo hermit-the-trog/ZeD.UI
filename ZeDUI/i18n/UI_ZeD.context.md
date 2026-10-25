@@ -2626,6 +2626,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_WorldAccentTip` | `An accent of its own for the World window, or the same as Accent color. Cycled via footer button.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_SandboxIG` | `Sandbox options in game` | Options, ZeD setup, Sandbox: the switch's name | - |
 | `UI_ZeD_Settings_SandboxIGTip` | `Adds a Sandbox options line to the pause window, for changing this save's sandbox settings without starting a new game. Single player only.` | Options, ZeD setup: help band for the switch | - |
+| `UI_ZeD_Settings_WindowSquares` | `Theme, accent and text buttons on windows` | ZeD setup, Windows: the on/off switch's name (the three small squares in a window's footer) | 44 |
+| `UI_ZeD_Settings_WindowSquaresTip` | `The three squares at the bottom left of every ZeD window that switch the theme, the accent and the text size. Off hides them; the same settings stay here in ZeD setup.` | ZeD setup, Windows: the help for the switch | - |
 
 ## Siren
 

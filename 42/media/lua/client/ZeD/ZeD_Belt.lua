@@ -877,7 +877,55 @@ local function roundDraw(p, x, y, e, a, c)
 end
 local function disc(p, x, y, s, a, c) roundDraw(p, x, y, roundShape(s, nil), a, c) end
 local function ring(p, x, y, s, t, a, c) roundDraw(p, x, y, roundShape(s, t), a, c) end
-B._disc, B._ring, B._roundShape = disc, ring, roundShape
+-- the part of a round shape inside (rx, ry, rw, rh) of its box: the same picture, cut (or its rows, cut)
+local function roundDrawPart(p, x, y, e, a, c, rx, ry, rw, rh)
+    local x0, y0 = math.max(rx, e.ox), math.max(ry, e.oy)
+    local x1, y1 = math.min(rx + rw, e.ox + e.bw), math.min(ry + rh, e.oy + e.bh)
+    if x1 <= x0 or y1 <= y0 then return end
+    local tex = roundTexture(e)
+    if tex then
+        p:drawSubTexture(tex, x0 - e.ox, y0 - e.oy, x1 - x0, y1 - y0, x + x0, y + y0, x1 - x0, y1 - y0, a, c.r, c.g, c.b)
+        return
+    end
+    local ex, ey, ew, eh = e.x, e.y, e.w, e.h
+    for i = 1, e.n do
+        local ax, ay = math.max(x0, ex[i]), math.max(y0, ey[i])
+        local bx, by = math.min(x1, ex[i] + ew[i]), math.min(y1, ey[i] + eh[i])
+        if bx > ax and by > ay then p:drawRect(x + ax, y + ay, bx - ax, by - ay, a, c.r, c.g, c.b) end
+    end
+end
+-- A ring filled clockwise from twelve o'clock for f (0..1) of the way round: the hands' condition
+-- (director, Oct 24 2026: "can those be ring indicator, the bar looks odd in the circle. a ring
+-- slightly inset inside would be the better place for it"). Each quarter is the ring's picture cut
+-- to that quarter; the last quarter is cut again where the fill ends, across the ring: down the
+-- ring where it runs flat (near twelve, three, six, nine), along it where it runs upright, so a
+-- thin ring ends square. Five draws at most, like the outline itself.
+local function ringArc(p, x, y, s, t, f, a, c)
+    if f <= 0 then return end
+    local e = roundShape(s, t)
+    local cx = math.floor(s / 2)
+    local rad = s / 2 - t / 2                     -- the middle of the ring's thickness
+    -- the quarters clockwise from twelve: their boxes (x0, y0, x1, y1) within the s x s box
+    local Q = { { cx, 0, s, cx }, { cx, cx, s, s }, { 0, cx, cx, s }, { 0, 0, cx, cx } }
+    local turn = math.min(1, f) * 4
+    for q = 1, 4 do
+        local part = math.min(1, turn - (q - 1))
+        if part <= 0 then break end
+        local b = Q[q]
+        local x0, y0, x1, y1 = b[1], b[2], b[3], b[4]
+        if part < 1 then
+            local ang = part * math.pi / 2
+            local early = part < 0.5               -- the first half of a quarter: the ring runs across the cut
+            local d = math.floor(rad * (early and math.sin(ang) or math.cos(ang)) + 0.5)
+            if q == 1 then if early then x1 = cx + d else y1 = cx - d end
+            elseif q == 2 then if early then y1 = cx + d else x0 = cx + d end
+            elseif q == 3 then if early then x0 = cx - d else y0 = cx + d end
+            else if early then y0 = cx - d else x1 = cx - d end end
+        end
+        roundDrawPart(p, x, y, e, a, c, x0, y0, x1 - x0, y1 - y0)
+    end
+end
+B._disc, B._ring, B._roundShape, B._ringArc = disc, ring, roundShape, ringArc
 
 function ZeD_BeltHUD:_drawStrap()
     local T = ZeD.T
@@ -978,9 +1026,10 @@ function ZeD_BeltHUD:_drawBox(b, o)
     -- the item, or the slot's name when empty
     if o.item then
         local tex = call(o.item, "getTex")
-        local isz = b.kind == "hand" and T.px(40) or T.px(34)
+        -- (the hands' picture fits inside their condition ring, centred; the slots' sits above their bar)
+        local isz = T.px(34)
         if tex then
-            self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - isz) / 2), b.y + math.floor((b.h - isz) / 2) - T.px(2), isz, isz,
+            self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - isz) / 2), b.y + math.floor((b.h - isz) / 2) - (round and 0 or T.px(2)), isz, isz,
                 (o.ghost or o.inHand) and 0.25 or 1, 1, 1, 1)
         end
     elseif o.label then
@@ -1005,9 +1054,18 @@ function ZeD_BeltHUD:_drawBox(b, o)
     else
         self:drawRectBorder(b.x, b.y, b.w, b.h, T.borderS.a or 1, col(T.borderS))
     end
-    -- the foot: IN HAND / BOTH, or the condition bar
+    -- the foot: IN HAND / BOTH, or the condition (a ring inside the hands' outline, a bar on the slots)
     local f5 = T.fontF5
-    if o.inHand or o.ghost then
+    if round and o.item and not (o.inHand or o.ghost) then
+        local f = B.cond(o.item)
+        if f then
+            -- inset by the outline (two units) and a one-unit gap; three units thick, like the slots' bar
+            local ins, t = p1 * 3, p1 * 3
+            local s = b.w - ins * 2
+            ring(self, b.x + ins, b.y + ins, s, t, 1, T.surf3)
+            ringArc(self, b.x + ins, b.y + ins, s, t, f, 1, wearColor(T, f))
+        end
+    elseif o.inHand or o.ghost then
         local tag = o.inHand and ZeD.tr("UI_ZeD_Belt_InHand") or ZeD.tr("UI_ZeD_Belt_Both")
         local tw = tm:MeasureStringX(f5, tag)
         local ac = T.accentText
@@ -1017,9 +1075,6 @@ function ZeD_BeltHUD:_drawBox(b, o)
         local f = B.cond(o.item)
         if f then
             local bx, by, bw = b.x + T.px(3), b.y + b.h - T.px(5), b.w - T.px(6)
-            if round then                                   -- a chord low in the circle
-                bw = math.floor(b.w * 0.56); bx = b.x + math.floor((b.w - bw) / 2); by = b.y + b.h - T.px(10)
-            end
             self:drawRect(bx, by, bw, T.px(3), 1, col(T.surf3))
             local fw = math.floor(bw * f)
             if fw > 0 then self:drawRect(bx, by, fw, T.px(3), 1, col(wearColor(T, f))) end
