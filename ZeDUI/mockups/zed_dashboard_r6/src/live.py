@@ -82,6 +82,9 @@ class Canvas:
         a = np.array(im)
         h, w = a.shape[:2]
         y0, x0 = int(y * k), int(x * k)
+        if y0 < 0: a = a[-y0:]; h += y0; y0 = 0          # a sprite may rise above the plate (the hula girl): clip it
+        if x0 < 0: a = a[:, -x0:]; w += x0; x0 = 0
+        if h <= 0 or w <= 0: return
         sub = s.a[y0:y0 + h, x0:x0 + w]
         m = a[:sub.shape[0], :sub.shape[1], 3] > 0
         sub[m] = a[:sub.shape[0], :sub.shape[1]][m]

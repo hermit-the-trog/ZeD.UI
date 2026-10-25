@@ -13,7 +13,7 @@ import numpy as np
 from dashlib import *
 from engine import text_w
 import v6
-from v6 import (lower_boxy6, lower_curvy6, console_vents, ash_tray, no_smoking, taxi_meter6, meter_flag_variants,
+from v6 import (hazard_under_ash, lower_boxy6, lower_curvy6, console_vents, ash_tray, no_smoking, taxi_meter6, meter_flag_variants,
                 vent_louvered, vent_eyeball, ASH_W, ASH_H)
 from widgets import (gauge, window, glare, chrome_frame, knob, button, rocker, toggle, vent_rect, vent_round, nameplate, dymo,
                      rivet, icon_mask, icon_size, line_mask)
@@ -84,16 +84,16 @@ def clock(b, cx, cy, r, bezel="chrome", nd="#f4f4f0"):
     b.part("clock", cx=cx, cy=cy, rh=r * 0.5, rm=r - 3, color=nd)
 
 
-def rocker_panel(b, x, y, items, title="EMERGENCY"):
+def rocker_panel(b, x, y, items, title="EMERGENCY", pitch=24):
     """a black switch plate: rockers that show the lightbar and siren state, the rest the crew's own"""
     d = b.d
-    w = len(items) * 30 + 8
+    w = len(items) * pitch + 8
     b.check_flat(x - 1, y - 1, w + 2, 42, "switch panel")
     d.slab(box(x, y, w, 40), 2.0, "blackp", bevel=1.0, polish=0.3, on=Z_FACE)
     zt = Z_FACE + 2.0
     d.text(title, x + w // 2, y + 3, "paint_c", align="c")
     for i, (lab, src, hid) in enumerate(items):
-        rx = x + 7 + i * 30
+        rx = x + 4 + (pitch - 16) // 2 + i * pitch
         rocker(d, rx, y + 11, 16, 20, on=zt, up=False)
         d.text(lab, rx + 8, y + 33, "paint_w", align="c")
         if src:
@@ -264,6 +264,7 @@ def con_sedan(b, chrome=True, vents="rect", climate="levers", inset_mat=None, ba
     if ash: ash_tray(b, ASH6[0], hy, chrome=chrome)
     if climate == "levers": climate_levers(b, 548, 128, chrome=chrome, fan_knob=(752, 140), tab=tab, fan_mat=fan_mat)
     elif climate == "knobs": climate_knobs(b, 540, hy + 72, pitch=46, r=11, mat=knob_mat, ring="chrome" if chrome else None)
+    if ash and climate in ("knobs", "sliders"): hazard_under_ash(b)      # Oct 24: the hazard switch under the ash tray
     elif climate == "sliders": climate_sliders(b, 532, 130, w=126)
 
 
@@ -276,9 +277,9 @@ def con_fleet(b, top="siren", badge_role="unit", chrome=False):
     elif top == "meter":
         px_, py_ = taxi_meter6(b, 512, 26)
         meter_flag_variants(b, px_, py_)
-        badge(b, 650, 33, 92, 12, style="stencil", role=badge_role, font="35", color="#e8e8e0", plate="stencil")
+        v6.taxi_license(b, 650, 30)            # Oct 24: "under hula needs a taxi license plaque"
         vent_eyeball(b, 764, 44, 14, bezel="blackp")
-        v6.hula(b, 684, 0)
+        v6.hula(b, 650 + 46 - 15, 28 - 37)      # her base on the console's top lip, over the licence; she rises above the plate
     headunit_slot(b, 516, 76, frame="bezel")
     if top == "meter": ash_tray(b, 704, 76, chrome=False, levels=(3,), seed=11)   # a cab's: always the full one
     else: no_smoking(b, 704, 76)
@@ -336,6 +337,7 @@ def luxury(b):
     headunit_slot(b, *HU6, frame="chrome")
     ash_tray(b, *ASH6, chrome=True)
     climate_vfd(b, 516, 124)
+    hazard_under_ash(b)
 
 
 def horizon(b):
@@ -425,6 +427,7 @@ def rancher(b):
     headunit_slot(b, 516, 64, frame="bezel")
     ash_tray(b, 704, 64, chrome=False)
     climate_knobs(b, 540, 136, pitch=46, r=11, mat="blackp")
+    hazard_under_ash(b)
 
 
 # =================================================================================== early 90s curves
@@ -456,6 +459,7 @@ def dashelite(b):
     vent_louvered(b, 680, 38, 100, 24, bezel="blackp", on=Z_FACE, wheel="right")
     headunit_slot(b, 518, 69, frame="bezel")
     ash_tray(b, 706, 69, chrome=False)
+    hazard_under_ash(b)
     climate_buttons(b, 576, 124, lcd=True)
     b.label("AUTOMATIC CLIMATE CONTROL", 646, 154, "paint_c", align="c")
     badge(b, 560, 25, 172, 7, style="flat", role="full", font="35", color="#d8d6cc", check=False)
@@ -506,6 +510,7 @@ def primani(b):
     vent_louvered(b, 680, 42, 100, 20, bezel="blackp", on=Z_FACE, wheel="right")
     headunit_slot(b, 520, 68, frame="bezel")
     ash_tray(b, 705, 68, chrome=False)
+    hazard_under_ash(b)
     climate_sliders(b, 532, 130, w=126)
     badge(b, 560, 31, 172, 7, style="flat", role="full", font="35", color="#3a3226", check=False)
 
@@ -531,6 +536,7 @@ def suv(b):
     vent_louvered(b, 684, 36, 96, 22, bezel="blackp", on=Z_FACE, wheel="right")
     headunit_slot(b, 520, 64, frame="bezel")
     ash_tray(b, 705, 64, chrome=False)
+    hazard_under_ash(b)
     climate_knobs(b, 556, 136, pitch=50, r=10, mat="rubber")
     badge(b, 622, 41, 48, 9, style="flat", role="sub", font="57", color="#d84a2a", check=True)
 
@@ -548,6 +554,7 @@ def cossette(b):
     headunit_slot(b, 516, 64, frame="bezel")
     ash_tray(b, 704, 64, chrome=False)
     climate_sliders(b, 532, 130, w=126)
+    hazard_under_ash(b)
 
 
 def race(b):
@@ -636,7 +643,7 @@ def ambulance(b):
     """Ambulance: a Valuline made plain, medic grey; the emergency switches on the lower dash"""
     shell_boxy(b, trim="rubber")
     cl_van(b, bz="blackp", nd="#ff7a2a")
-    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, vent=False, trunk_label="REAR", trunk_sub="DOORS", left_panel=158)
+    px_ = lower_boxy6(b, y0=118, chrome=False, cruise=False, trunk_label="REAR", trunk_sub="DOORS", right_panel=128)
     rocker_panel(b, px_, 122, [("LIGHT", "lbarLamp", "lbar"), ("SIREN", "sirenLamp", "siren"), ("FLOOD", None, None),
                               ("SCENE", None, None), ("DOME", None, None)])
     console_vents(b, 26, chrome=False, w=88, h=30)

@@ -135,8 +135,8 @@ def ignition(b, cx, cy, met="chrome", labels=("OFF", "ON", "START"), style=None)
 
 
 # ====================================================================== lower rows
-LEFT_SPAN = (14, COLUMN_X - 28)       # the lower row left of the column, and right of it (balance pass, Oct 24:
-RIGHT_SPAN = (COLUMN_X + 28, 486)     #   every group spread with equal gaps, the column's 56 px kept clear)
+LEFT_SPAN = (14, COLUMN_X - 28)       # the lower row left of the column, and right of it, each spread with equal
+RIGHT_SPAN = (COLUMN_X + 28, 486)     #   gaps; the column's 56 px kept clear (balance pass, Oct 24)
 
 
 def spread(x0, x1, widths):
@@ -160,56 +160,66 @@ def _lights_boxy(b, cx, y0, met, chrome):
     b.hit("lights", cx - 10, y0 + 12, 21, 21)
 
 
-def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cruise=True, lock=True, vent=True, key_style=None,
-                left_panel=None):
-    """left of the column the lights and the driver's vent (or a left_panel width the caller fills: the ambulance's
-    switches), right of it the key, the lock, the trunk and cruise buttons; each side spread with equal gaps.
-    Returns the left panel's x when one is asked for."""
+def _rocker_lab(b, x, y, icon, label, up=True):
+    """a rocker with its icon, its name under it"""
+    b.check_flat(x - 2, y - 2, 20, 26, f"rocker {icon}")
+    DL.rocker(b.d, x, y, 16, 22, on=Z_FACE, up=up, icon=icon, icon_mat="paint_r" if icon == "hazard" else "paint_w")
+    if label: b.label(label, x + 8, y + 25, align="c")
+
+
+def lower_boxy6(b, y0=118, chrome=True, trunk_label="TRUNK", trunk_sub=None, cruise=True, lock=True, key_style=None,
+                right_panel=None, vent=None):
+    """director, Oct 24: left of the column the lights, the lock and the trunk; right of it the wiper, cruise (or a
+    right_panel width the caller fills: the ambulance's switches) and the key, the key right-most. No vent down here.
+    Each side spread with equal gaps. Returns the right panel's x when one is asked for."""
     d = b.d
     met = "chrome" if chrome else "blackp"
-    lw = 24                                                  # the lights block: the knob and its LIGHTS legend
-    left = [lw] + ([118] if vent else ([left_panel] if left_panel else []))
-    lx_ = spread(*LEFT_SPAN, left)
-    _lights_boxy(b, lx_[0] + lw // 2, y0, met, chrome)
-    panel_x = None
-    if vent: vent_louvered(b, lx_[1], y0 + 6, 118, 36, bezel=met, wheel="left")
-    elif left_panel: panel_x = lx_[1]
+    fr = "chrome" if chrome else None
     tw = max(30, text_w(trunk_label) + 8)
-    blocks = [("key", 44), ("lock", 18)] if lock else [("key", 44)]
-    blocks.append(("trunk", max(tw, text_w(trunk_sub) if trunk_sub else 0)))
-    if cruise: blocks.append(("cruise", 34))
-    xs = spread(*RIGHT_SPAN, [w for _, w in blocks])
-    for (kind, bw), x in zip(blocks, xs):
-        if kind == "key":
-            ignition(b, x + 12, y0 + 22, met=met, style=key_style)
+    left = [("lights", 24)] + ([("lock", 18)] if lock else []) + [("trunk", max(tw, text_w(trunk_sub) if trunk_sub else 0))]
+    for (kind, bw), x in zip(left, spread(*LEFT_SPAN, [w for _, w in left])):
+        if kind == "lights":
+            _lights_boxy(b, x + 12, y0, met, chrome)
         elif kind == "lock":
             b.check_flat(x - 2, y0 + 12, 22, 17, "lock button")
-            button(d, x, y0 + 14, 18, 13, None, mat="blackp", on=Z_FACE, z=2.0, frame="chrome" if chrome else None)
+            button(d, x, y0 + 14, 18, 13, None, mat="blackp", on=Z_FACE, z=2.0, frame=fr)
             d.paint(icon_mask(d, "lock", x + 7, y0 + 18), "paint_w", flatlight=True)
             b.label("LOCK", x + 9, y0 + 31, align="c")
             b.led(x + 13, y0 + 16, 3, 2, "anyLocked", "#44ee44")
             b.hit("lock", x, y0 + 14, 18, 13)
-        elif kind == "trunk":
+        else:
             bx = x + (bw - tw) // 2
             b.check_flat(bx - 2, y0 + 12, tw + 4, 17, "trunk button")
-            button(d, bx, y0 + 14, tw, 13, trunk_label, mat="blackp", on=Z_FACE, frame="chrome" if chrome else None)
+            button(d, bx, y0 + 14, tw, 13, trunk_label, mat="blackp", on=Z_FACE, frame=fr)
             if trunk_sub: b.label(trunk_sub, bx + tw // 2, y0 + 31, align="c")
             b.hit("trunk", bx, y0 + 14, tw, 13, needs="hasTrunk")
-        else:
+    right = [("wiper", 22)]
+    if right_panel: right.append(("panel", right_panel))
+    elif cruise: right.append(("cruise", 34))
+    right.append(("key", 44))
+    panel_x = None
+    for (kind, bw), x in zip(right, spread(*RIGHT_SPAN, [w for _, w in right])):
+        if kind == "wiper":
+            _rocker_lab(b, x + 3, y0 + 9, "wiper", "WIPER", up=False)
+        elif kind == "panel":
+            panel_x = x
+        elif kind == "cruise":
             b.check_flat(x - 2, y0 + 12, 38, 17, "cruise button")
-            button(d, x, y0 + 14, 34, 13, "CRUISE", mat="blackp", on=Z_FACE, frame="chrome" if chrome else None)
+            button(d, x, y0 + 14, 34, 13, "CRUISE", mat="blackp", on=Z_FACE, frame=fr)
             b.label("ON  SET", x + 17, y0 + 31, align="c")
             b.led(x + 28, y0 + 16, 3, 2, "cruiseLamp", "#ffb02e")
             b.hit("cruise", x, y0 + 14, 34, 13, needs="running")
+        else:
+            ignition(b, x + 12, y0 + 22, met=met, style=key_style)
     return panel_x
 
 
 def lower_curvy6(b, y0=122):
-    """early 90s: left of the column the lights rotary and the vent, right of it the key, the rockers and the buttons,
-    each side spread with equal gaps"""
+    """early 90s, the same order: the lights rotary, lock and trunk left of the column; wiper and defrost rockers,
+    cruise and the key right of it, the key right-most (the hazard switch moved under the ash tray)"""
     d = b.d; M = d.M
-    lx_ = spread(*LEFT_SPAN, [40, 120])
-    cx = lx_[0] + 16                                         # the knob; its OFF legend and beam icon reach either side
+    xs = spread(*LEFT_SPAN, [40, 22, 34])
+    cx = xs[0] + 16
     b.check_flat(cx - 12, y0 + 6, 25, 25, "lights knob")
     knob(d, cx, y0 + 18, 10, mat="blackp", on=Z_FACE, z=3.0, knurl=True)
     d.paint(icon_mask(d, "headlamp", cx - 3, y0 + 31), "paint_w", flatlight=True)
@@ -217,25 +227,23 @@ def lower_curvy6(b, y0=122):
     d.paint(icon_mask(d, "beam", cx + 12, y0 + 1), "paint_w", flatlight=True)
     b.part("ptr", src="lights", cx=cx, cy=y0 + 18, r0=2, r1=8, angles=[225, 315], color="#e8e8e8", w=1)
     b.hit("lights", cx - 10, y0 + 8, 21, 21)
-    vx, vw = lx_[1], 120
-    b.check_flat(vx - 2, y0 + 2, vw + 4, 32, "driver vent")
-    v = M().rrect(vx, y0 + 4, vw, 28, 10).get()
-    d.slab(v & ~M().rrect(vx + 3, y0 + 7, vw - 6, 22, 8).get(), 1.4, "blackp", bevel=1.4, polish=0.3, on=Z_FACE)
-    vi = M().rrect(vx + 3, y0 + 7, vw - 6, 22, 8).get()
-    d.flat(vi, Z_FACE - 4.0, "blackp", polish=0.1)
-    for vxx in range(vx + 8, vx + vw - 18, 4):
-        m = vi & (d.XX == vxx); d.h[m] = Z_FACE - 3.2; d.dark[m] = np.maximum(d.dark[m], 0.1)
-    rows = list(range(y0 + 9, y0 + 27, 3))
-    for k in rows:
-        lm = vi & (d.YY >= k) & (d.YY < k + 2) & (d.XX < vx + vw - 16)
-        d.cyl(vx + 3, k, vw - 6, 2, 2.4, "blackp", axis="h", polish=0.4, on=Z_FACE - 3.2, mask=lm)
-    tcx = vx + (vw - 16) // 2
-    tab = M().rrect(tcx - 3, rows[3] - 1, 7, 4, 1).get(); d.slab(tab, 3.8, "blackp", bevel=0.9, polish=0.7, on=Z_FACE - 3.2)
-    wm = vi & (d.XX >= vx + vw - 14) & (d.XX < vx + vw - 7) & (d.YY >= y0 + 9) & (d.YY < y0 + 27)
-    d.cyl(vx + vw - 14, y0 + 9, 7, 18, 3.2, "blackp", axis="v", polish=0.5, on=Z_FACE - 3.6, mask=wm)
-    d.tex[wm & (((d.YY - y0) % 2) == 0)] += 0.11
-    xs = spread(*RIGHT_SPAN, [36, 56, 22, 34, 40])
-    kx = xs[0] + 12
+    x = xs[1]
+    b.check_flat(x - 2, y0 + 9, 26, 18, "lock button")
+    button(d, x, y0 + 11, 22, 14, None, mat="blackp", on=Z_FACE, r=3)
+    d.paint(icon_mask(d, "lock", x + 9, y0 + 15), "paint_w", flatlight=True)
+    b.led(x + 16, y0 + 13, 3, 2, "anyLocked", "#44ee44"); b.hit("lock", x, y0 + 11, 22, 14)
+    x = xs[2]
+    b.check_flat(x - 2, y0 + 9, 38, 18, "trunk button")
+    button(d, x, y0 + 11, 34, 14, "TRUNK", mat="blackp", on=Z_FACE, r=3); b.hit("trunk", x, y0 + 11, 34, 14, needs="hasTrunk")
+    xs = spread(*RIGHT_SPAN, [36, 40, 36])
+    for i, (ic, up) in enumerate((("wiper", True), ("defrost", False))):
+        b.check_flat(xs[0] + i * 20 - 2, y0 + 6, 20, 26, f"rocker {ic}")
+        DL.rocker(d, xs[0] + i * 20, y0 + 8, 16, 22, on=Z_FACE, up=up, icon=ic, icon_mat="paint_w")
+    x = xs[1]
+    b.check_flat(x - 2, y0 + 9, 44, 18, "cruise button")
+    button(d, x, y0 + 11, 40, 14, "CRUISE", mat="blackp", on=Z_FACE, r=3)
+    b.led(x + 34, y0 + 13, 3, 2, "cruiseLamp", "#7aff6a"); b.hit("cruise", x, y0 + 11, 40, 14, needs="running")
+    kx = xs[2] + 12
     b.check_flat(kx - 12, y0 + 6, 25, 25, "ignition")
     d.torus(kx, y0 + 18, 7, 9.5, 1.6, "blackp", polish=0.6, on=Z_FACE)
     ig = np.hypot(d.XX + 0.5 - kx, d.YY + 0.5 - (y0 + 18)) < 7
@@ -245,22 +253,16 @@ def lower_curvy6(b, y0=122):
         DL.ring_label(b, kx + 0.5, y0 + 18.5, 10.5, a, t, gap=2)
     key_turn_variants(b, kx, y0 + 18, "black")
     b.hit("ignition", kx - 10, y0 + 8, 21, 21)
-    x = xs[1]
-    for i, ic in enumerate(("hazard", "defrost", "wiper")):
-        b.check_flat(x + i * 20 - 2, y0 + 6, 20, 26, f"rocker {ic}")
-        DL.rocker(d, x + i * 20, y0 + 8, 16, 22, on=Z_FACE, up=(i != 1), icon=ic, icon_mat="paint_r" if ic == "hazard" else "paint_w")
-    x = xs[2]
-    b.check_flat(x - 2, y0 + 9, 26, 18, "lock button")
-    button(d, x, y0 + 11, 22, 14, None, mat="blackp", on=Z_FACE, r=3)
-    d.paint(icon_mask(d, "lock", x + 9, y0 + 15), "paint_w", flatlight=True)
-    b.led(x + 16, y0 + 13, 3, 2, "anyLocked", "#44ee44"); b.hit("lock", x, y0 + 11, 22, 14)
-    x = xs[3]
-    b.check_flat(x - 2, y0 + 9, 38, 18, "trunk button")
-    button(d, x, y0 + 11, 34, 14, "TRUNK", mat="blackp", on=Z_FACE, r=3); b.hit("trunk", x, y0 + 11, 34, 14, needs="hasTrunk")
-    x = xs[4]
-    b.check_flat(x - 2, y0 + 9, 44, 18, "cruise button")
-    button(d, x, y0 + 11, 40, 14, "CRUISE", mat="blackp", on=Z_FACE, r=3)
-    b.led(x + 34, y0 + 13, 3, 2, "cruiseLamp", "#7aff6a"); b.hit("cruise", x, y0 + 11, 40, 14, needs="running")
+
+
+def hazard_under_ash(b):
+    """director, Oct 24: the hazard switch under the ash tray, where the console has room: a square red-triangle
+    push button centred under the drawer (decorative; the game has no hazard lamps)"""
+    ax, ay, aw, ah = b.meta["ash"]
+    bx, by = ax + aw // 2 - 11, ay + ah + 10
+    b.check_flat(bx - 2, by - 2, 26, 20, "hazard button")
+    button(b.d, bx, by, 22, 16, None, mat="blackp", on=Z_FACE, z=2.2, r=2)
+    b.d.paint(icon_mask(b.d, "hazard", bx + 7, by + 5), "paint_r", flatlight=True)
 
 
 # ====================================================================== the console
@@ -480,47 +482,57 @@ def meter_flag_variants(b, px_, py_):
     b.variant(f"flagdn_{b.id}", "meterOn", lambda dd: flag(dd, False), True)
 
 
-# The hula girl, after the director's photo (Oct 24): the round grass base, short legs, the wide green grass skirt
-# with its fringe, the red fuzzy waistband, a maroon top under a yellow lei, a yellow flower crown, long black hair
-# down her back, one arm raised to her crown, a flower at her hip. 19 x 27, set by runs: (column, pixels) per row.
-HULA_W = 19
+# The hula girl, after the director's photo (Oct 24), drawn larger ("too small"): the round grass base with its gold
+# script, short legs, the wide green grass skirt with strands and fringe, the red fuzzy waistband, a maroon top under a
+# yellow lei, the yellow flower crown, long black hair down her back, one arm raised holding a feathered gourd, a flower
+# at her hip. 25 x 35, set by runs: (column, pixels) per row. She stands on the console's top lip and rises above the
+# plate's top edge (the sprite's y is negative: the game draws her over the windscreen view, as a real one would sit).
+HULA_W = 25
 HULA_RUNS = [
-    [(7, "yyyyy")],
-    [(1, "mm"), (5, "yyYyYyYyy")],
-    [(1, "mms"), (5, "kkkkkkkkk")],
-    [(2, "ss"), (5, "kksssssskk")],
-    [(3, "s"), (5, "kk"), (7, "sesses"), (13, "kk")],
-    [(4, "s"), (5, "kk"), (7, "ssssss"), (13, "kkk")],
-    [(4, "s"), (5, "kk"), (7, "SsrrsS"), (13, "kkk")],
-    [(5, "s"), (6, "kk"), (8, "SssS"), (12, "kkk")],
-    [(5, "s"), (6, "kyy"), (9, "S"), (10, "yy"), (12, "kkkk")],
-    [(5, "ss"), (7, "yY"), (9, "s"), (10, "Yy"), (12, "ss"), (14, "kk")],
-    [(6, "s"), (7, "y"), (8, "mmm"), (11, "y"), (12, "ss"), (14, "kk")],
-    [(6, "s"), (7, "yyYyy"), (12, "ss"), (14, "k")],
-    [(7, "ssssss"), (13, "s"), (14, "m")],
-    [(7, "SssssS"), (13, "smY")],
-    [(6, "rrrrrrrr"), (14, "m")],
-    [(5, "RrRrRrRrRr")],
-    [(4, "gGgGgGgGgGg")],
-    [(3, "gGgGgGgGgGgGg")],
-    [(2, "gGgGgGgGgGgGgGg")],
-    [(2, "GgGgGgGgGgGgGgG")],
-    [(2, "gdgdgdgdgdgdgdg")],
-    [(1, "g.g.g.g.g.g.g.g.g")],
-    [(7, "ss"), (10, "ss")],
-    [(6, "SSs"), (10, "sSS")],
-    [(3, "bBbBbBbBbBbBb")],
-    [(2, "bbbbbbbbbbbbbbb")],
-    [(3, "BbBbyYyBbBbBb")],
+    [(1, "mmy"), (9, "yYyYyYy")],
+    [(0, "mmmyy"), (7, "yYyYyYyYyy")],
+    [(0, "mmyy"), (4, "s"), (7, "kkkkkkkkkk")],
+    [(1, "m"), (4, "ss"), (7, "kksssssskk")],
+    [(5, "s"), (7, "kksssssss"), (16, "kk")],
+    [(5, "s"), (7, "kks"), (10, "esses"), (15, "s"), (16, "kk")],
+    [(6, "s"), (7, "kk"), (9, "sssssss"), (16, "kkk")],
+    [(6, "s"), (7, "kk"), (9, "ssrrsss"), (16, "kkk")],
+    [(6, "s"), (7, "kk"), (9, "SsssssS"), (16, "kkk")],
+    [(7, "s"), (8, "kk"), (11, "sss"), (15, "kkkk")],
+    [(7, "s"), (8, "k"), (9, "yYy"), (12, "s"), (13, "yYy"), (16, "kkk")],
+    [(7, "ss"), (9, "yY"), (11, "sss"), (14, "Yy"), (16, "sss"), (19, "kk")],
+    [(8, "s"), (9, "y"), (10, "mmmmm"), (15, "y"), (16, "ss"), (19, "kk")],
+    [(8, "ss"), (10, "y"), (11, "mmm"), (14, "y"), (15, "s"), (17, "s"), (19, "kk")],
+    [(9, "ss"), (11, "yYy"), (14, "ss"), (17, "s"), (19, "k")],
+    [(9, "SsssssS"), (17, "s")],
+    [(9, "Sssssss"), (16, "smYm")],
+    [(8, "rRrRrRrRr"), (17, "mYm")],
+    [(7, "RrRrRrRrRrR")],
+    [(6, "gGgGgGgGgGgGg")],
+    [(5, "gGgGgGgGgGgGgGg")],
+    [(5, "GgGgGgGgGgGgGgG")],
+    [(4, "gGgGgGgGgGgGgGgGg")],
+    [(4, "GgdgGgdgGgdgGgdgG")],
+    [(3, "gGgGgGgGgGgGgGgGgGg")],
+    [(3, "GgdGgdGgdGgdGgdGgdG")],
+    [(3, "gdgdgdgdgdgdgdgdgdg")],
+    [(2, "g.g.g.g.g.g.g.g.g.g.g")],
+    [(10, "s"), (14, "s")],
+    [(10, "s"), (14, "s")],
+    [(9, "SSs"), (14, "sSS")],
+    [(5, "bBbBbBbBbBbBbBb")],
+    [(4, "bbbbbbbbbbbbbbbbb")],
+    [(4, "BbBbByYyYyYbBbBbB")],
+    [(5, "bbbbbbbbbbbbbbb")],
 ]
 HULA_PAL = {"k": "#16100c", "s": "#b8744a", "S": "#8c5030", "e": "#120c08", "y": "#e2b848", "Y": "#f6e4a4", "m": "#7a2432",
-            "r": "#d8402a", "R": "#a82a1e", "g": "#5aa07e", "G": "#8ecab0", "d": "#3a7a5c", "b": "#3c5a30", "B": "#5e7c46",
-            "w": "#d8d4c8"}
+            "r": "#d8402a", "R": "#a82a1e", "g": "#5aa07e", "G": "#8ecab0", "d": "#3a7a5c", "b": "#3c5a30", "B": "#5e7c46"}
+HULA_ROWS = dict(head=9, body=18, skirt=27)        # the last row of each part (the head lags, the skirt swings)
 
 
 def hula_frames():
-    """the hula girl, three frames: still, hips swung left, hips swung right (the game picks one by the car's turning
-    and bumps). The skirt and waistband swing; the head and lei lag the other way a pixel; the legs and base stay."""
+    """three frames: still, hips swung left, hips swung right (the game picks one by the car's turning and bumps).
+    The skirt and waistband swing, the fringe furthest; the head lags a pixel the other way; legs and base stay."""
     from PIL import Image
     rows = []
     for runs in HULA_RUNS:
@@ -534,8 +546,9 @@ def hula_frames():
         Hh, Ww = len(rows), HULA_W + 4
         out = [["."] * Ww for _ in range(Hh)]
         for yy, r in enumerate(rows):
-            if yy <= 13: dx = -sway if yy <= 7 else 0          # the head lags, the shoulders hold
-            elif yy <= 21: dx = sway * (1 if yy < 17 else 2)    # the waist swings, the fringe swings furthest
+            if yy <= HULA_ROWS["head"]: dx = -sway
+            elif yy <= HULA_ROWS["body"] - 2: dx = 0
+            elif yy <= HULA_ROWS["skirt"]: dx = sway * (1 if yy < 23 else 2)
             else: dx = 0
             for xx, c in enumerate(r):
                 if c != ".": out[yy][xx + 2 + dx] = c
@@ -549,6 +562,34 @@ def hula_frames():
             px[xx, yy] = hx(HULA_PAL[out[yy - 1][xx - 1]]) + (255,)
         fr.append(im)
     return fr
+
+
+def taxi_license(b, x, y, w=92, h=30):
+    """the cab's hack license, a framed card riveted to the console under the hula girl: the driver's photo, HACK
+    LICENSE, the cab's unit (live: the badge's unit role, TAXI - CAB 26) and a licence number"""
+    d = b.d; M = d.M
+    b.check_flat(x - 1, y - 1, w + 2, h + 2, "taxi license")
+    fr_ = M().rrect(x, y, w, h, 1).get()
+    d.slab(fr_, 1.6, "alu", bevel=0.8, polish=0.8, on=Z_FACE)
+    card = box(x + 2, y + 2, w - 4, h - 4)
+    d.flat(card, Z_FACE + 1.0, "paint_c", polish=0.1); d.flatlight |= card
+    for (rx_, ry_) in ((x + 2, y + 2), (x + w - 3, y + 2), (x + 2, y + h - 3), (x + w - 3, y + h - 3)):
+        rivet(d, rx_, ry_, on=Z_FACE + 1.6)
+    # the photo: a head and shoulders on pale blue
+    px_, py_ = x + 6, y + 5
+    d.paint(box(px_, py_, 16, 20), "paint_w", flatlight=True)
+    d.glow(box(px_ + 1, py_ + 1, 14, 18), "#b8c8d8")
+    head = (np.hypot(d.XX + 0.5 - (px_ + 8), (d.YY + 0.5 - (py_ + 8)) * 0.9) <= 4.2)
+    d.glow(head, "#b88262")
+    d.glow(box(px_ + 4, py_ + 3, 8, 2) & ~head | (box(px_ + 4, py_ + 3, 8, 2) & (d.YY < py_ + 5)), "#3a2a20")
+    d.glow(box(px_ + 2, py_ + 14, 12, 5), "#4a5a7a")
+    d.glow(box(px_ + 6, py_ + 13, 4, 2), "#b88262")
+    d.text("HACK LICENSE", x + 24, y + 5, "paint_r", flatlight=True)
+    d.text("NO 4417", x + 24, y + 21, "paint_k", flatlight=True)
+    b.ink_rect(x + 24, y + 5, w - 26, 21, "taxi license")
+    b.part("badge", role="unit", x=x + 24, y=y + 13, w=w - 28, h=5, style="flat", font="35", scale=1, color="#1a1a1a", align="l",
+           shadow=None)
+    b.meta["license"] = (x, y, w, h)
 
 
 TRADES = {   # the work vans' trades: the game's van scripts by name, and the sticker each wears (see the handoff)
