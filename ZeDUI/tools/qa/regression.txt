@@ -78,6 +78,7 @@ zedqa_straps.lua | straps                        # per-slot strap materials, fou
 zedqa_buckle.lua | bk                            # the buckle stays on the screen centre with a watch on either wrist
 zedqa_buckles.lua | bks                          # every profession's buckle; the profession goes back
 zedqa_beltwatch.lua | bw                         # the mini watch on the belt: pop, drag, tuck, Corner mode
+zedqa_belt_hands.lua | bh                       # the hands at the ends as seen from behind (off hand left, main hand right), a watch outside its own hand, the note last, the pad walks left to right
 zedqa_watches2.lua | watches                     # the nine watch plates by day and night; own watch and time back
 
 # ---- containers (these move the character to the pickup's truck bed)
@@ -94,7 +95,7 @@ zedqa_pad_glyphs.lua | pg | timeout=400         # the button pictures: footer an
 zedqa_quick_chords.lua | qc | timeout=300       # quick action chords: the defaults resolve, LB + X torch from a bag on and off, eat / drink / smoke queued, a gone thing's reason, the press swallowed, assigning from a wheel, ZeD setup's rows and list
 zedqa_put_back.lua | pb | timeout=900 | expect=ISDrinkFromBottle.lua:82   # putting things back: apple, lighter, bottle back into the bag; a tire's jack and wrench back into the trunk; not after a stop; not with the switch off
 zedqa_food_verbs.lua | fv | timeout=120         # a food with its own verb: the card says Smoke / Drink, the action bar SMOKING; an apple still Eat / EATING
-zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's envelope, the window's OK (mouse and pad), the per-mod pop-up switch, Clear
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear
 zedqa_moodles.lua | mood | timeout=200          # the moodles in each place (right edge, left edge, centred above the belt): on screen, where the place puts them, no second copy; four moodles turned on and put back
 zedqa_ring_squares.lua | rs | timeout=200       # the hands' condition ring at full / 70 / 50 / 20 per cent; ZeD setup's switch hides the windows' theme, accent and text squares, R stays and answers; hands and switch put back
 zedqa_sandbox_ig.lua | sbx | timeout=240         # Sandbox options in game: the pause line only with the switch on, pages and tags, a fixed setting locked, Zombie Count's link, Undo, Apply asks then sets the options / SandboxVars / day length / History, Put back; puts everything back
