@@ -10,7 +10,8 @@
 -- Each gun at 1.75x and at 1.0x (ZeD's UI scale), a picture of each and the belt's place on the screen
 -- (zqa_ba_<scale>_<gun>.png; "ZEDQA ba rect" lines for the close-up crops). Then the pad steps over the pouch, the
 -- hover gives the full count, and ZeD setup's "Ammo on the belt" switched off takes the pouch away (and back on).
--- Everything given is taken back; the hands, the scale and the switch are put back. grep "ZEDQA ba".
+-- Then the pouch in Light and High contrast (Oct 26 2026): spent rounds 3:1 off the pouch and hollow, the words readable
+-- (zqa_ba_175_<theme>_<gun>.png). Everything given is taken back; the hands, the scale and the switch are put back. grep "ZEDQA ba".
 local p = getPlayer()
 local B = ZeD.Belt
 local S = ZeD.Settings
@@ -21,7 +22,8 @@ local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_ba_" .
 if not (B and B.ammo and B.segLayout and S and S.ammoBoxOption) then say("ERR the new code is not loaded"); say("DONE"); return end
 local hud = B.getHUD()
 local inv = p:getInventory()
-local was = { p1 = p:getPrimaryHandItem(), p2 = p:getSecondaryHandItem(), scale = S.uiScaleOption:getValue() or 1, sw = S.ammoBoxOption:getValue() or 2 }
+local was = { p1 = p:getPrimaryHandItem(), p2 = p:getSecondaryHandItem(), scale = S.uiScaleOption:getValue() or 1, sw = S.ammoBoxOption:getValue() or 2,
+    base = ZeD.currentBase, accent = ZeD.currentAccent, size = ZeD.currentSize }
 local given = {}
 local function give(full, n)
     local out = {}
@@ -46,6 +48,7 @@ end
 local function colorIs(c, tok) return c and tok and math.abs(c.r - tok.r) < 0.01 and math.abs(c.g - tok.g) < 0.01 and math.abs(c.b - tok.b) < 0.01 end
 local function countColor(a)
     local T = ZeD.T
+    if B.ammoInk then return B.ammoInk(a).text end
     return (a.n == 0 and T.danger) or (a.f > 0.5 and T.text) or (a.f > 0.25 and T.warningText) or T.danger
 end
 local function rect(tag)
@@ -102,7 +105,7 @@ for _, sc in ipairs({ { 7, "175" }, { 4, "100" } }) do
             check(L ~= nil, sc[2] .. " " .. g[1] .. ": a segment for each round fits (" .. a.max .. ")")
             if g[1] == "rifle" then check(L and L.group == 5, sc[2] .. " rifle: 30 rounds in groups of five") end
             if g[1] == "empty" then
-                check(count == ZeD.tr("UI_ZeD_Belt_AmmoEmpty") and colorIs(countColor(a), ZeD.T.danger) and not a.chamber, sc[2] .. " empty: EMPTY in the danger colour, no chamber segment")
+                check(count == ZeD.tr("UI_ZeD_Belt_AmmoEmpty") and colorIs(countColor(a), ZeD.T.dangerText) and not a.chamber, sc[2] .. " empty: EMPTY in the danger colour, no chamber segment")
             end
             if g[1] == "pistol" then
                 check(count == "12+1" and s1 == ZeD.tr("UI_ZeD_Belt_AmmoMags", a.loaded) and a.loaded >= 2, sc[2] .. " pistol: 12+1, the magazines first (" .. s1 .. ")")
@@ -118,9 +121,55 @@ for _, sc in ipairs({ { 7, "175" }, { 4, "100" } }) do
         end)
     end
 end
+-- the pouch in the Light and High contrast themes (1.75x; Oct 26 2026: it was only looked at in Dark). The pouch's
+-- inks come from the live tokens (B.ammoInk): a spent round must stand 3:1 off the pouch, and a loaded round must
+-- not look like a spent one (a different shape where the colours cannot be 3:1 apart)
+local function flat(c, a, under) return { r = c.r * a + under.r * (1 - a), g = c.g * a + under.g * (1 - a), b = c.b * a + under.b * (1 - a) } end
+local function inks(a)
+    local T = ZeD.T
+    local k = B.ammoInk and B.ammoInk(a) or { fill = countColor(a), text = countColor(a), spent = T.borderS, spentA = 0.55, hollow = false }
+    local worst = 99
+    for _, w in ipairs({ 0, 1 }) do
+        local bg = flat(T.surf2, 0.95, { r = w, g = w, b = w })
+        local sp = flat(k.spent, k.spentA or 1, bg)
+        local ld = flat(k.fill, 1, bg)
+        local tx = flat(k.text, k.text.a or 1, bg)
+        worst = math.min(worst, ZeD.contrast(sp, bg))
+        k.ls = math.min(k.ls or 99, ZeD.contrast(ld, sp))
+        k.tb = math.min(k.tb or 99, ZeD.contrast(tx, bg))
+        k.dim = math.min(k.dim or 99, ZeD.contrast(flat(T.textDim, T.textDim.a or 1, bg), bg))
+    end
+    k.sb = worst
+    return k
+end
+for _, th in ipairs({ "light", "hicon" }) do
+    step(5, function()
+        S.uiScaleOption:setValue(7); S.applyScale()
+        ZeD.applyTheme(th, was.accent, was.size)
+    end)
+    for gi = 1, 4 do
+        step(20, function() hold(guns[gi]) end)
+        step(40, function()
+            local g = guns[gi]
+            local a = B.ammo(p)
+            if not check(a ~= nil and box("ammo") ~= nil, th .. " " .. g[1] .. ": the pouch is on the belt") then return end
+            local k = inks(a)
+            say(string.format("%s %s: spent vs pouch %.2f, loaded vs spent %.2f, count text %.2f, carried text %.2f, spent hollow %s",
+                th, g[1], k.sb, k.ls, k.tb, k.dim, tostring(k.hollow)))
+            if a.max > a.inGun then
+                check(k.sb >= 3, th .. " " .. g[1] .. ": spent rounds 3:1 off the pouch (" .. string.format("%.2f", k.sb) .. ")")
+                check(k.ls >= 3 or k.hollow, th .. " " .. g[1] .. ": loaded and spent apart at a glance (" .. string.format("%.2f", k.ls) .. (k.hollow and ", spent drawn hollow" or "") .. ")")
+            end
+            check(k.tb >= 4.5 and k.dim >= 4.5, th .. " " .. g[1] .. ": the count and carried words read (" .. string.format("%.2f / %.2f", k.tb, k.dim) .. ")")
+            rect("175_" .. th .. "_" .. g[1])
+            shot("175_" .. th .. "_" .. g[1])
+        end)
+    end
+end
+step(5, function() ZeD.applyTheme(was.base, was.accent, was.size); S.uiScaleOption:setValue(4); S.applyScale() end)
 -- the low counts' colours (1.0x)
 step(5, function() hold({ "low", guns[1][2], 3, false, false }) end)
-step(20, function() check(colorIs(countColor(B.ammo(p)), ZeD.T.danger), "pistol 3 of 15: the danger colour"); rect("100_low"); shot("100_low") end)
+step(20, function() check(colorIs(countColor(B.ammo(p)), ZeD.T.dangerText), "pistol 3 of 15: the danger colour"); rect("100_low"); shot("100_low") end)
 step(5, function() hold({ "amber", guns[1][2], 6, true, false }) end)
 step(20, function() check(colorIs(countColor(B.ammo(p)), ZeD.T.warningText), "pistol 6+1 of 15: amber") end)
 -- back to 1.75x: the hover and the pad
