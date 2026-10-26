@@ -1,24 +1,27 @@
 -- ZeDUI/tools/qa/zedqa_belt_ammo.lua  (Oct 26 2026)
--- The ammo box beside the main hand (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026):
---   pistol   an M9 with 12 in the magazine and 1 chambered; two M9 magazines (15, 9), 34 loose rounds and a box
---            carried: "12+1", "2 MAG", "34 RDS"; the box named in the hover text, not counted
---   shotgun  a JS-2000 in both hands (the off hand shows BOTH), 3 in it and 1 chambered, 17 shells and a box:
---            "3+1", "17 RDS", "+1 BOX"
---   empty    a revolver with nothing in it: "EMPTY" in the danger colour
---   worn     the pistol at 3 + 0 (a fifth full): the count in the danger colour; at 6 + 1: amber
--- Each: the box sits right after the main hand, the pad steps over it, the hover (the pointer stood in on the belt:
--- a script cannot move a fullscreen game's pointer) gives the full count above the box. Everything given is taken
--- back and the hands put back. Screenshots zqa_ba_*.png; grep "ZEDQA ba".
+-- The ammo pouch beside the main hand (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026; redrawn the
+-- same day to the director's "needs segments for each round"):
+--   pistol   an M9, 12 in the magazine and 1 chambered; two magazines (15, 9), 34 loose rounds, a box:
+--            "12+1", "2 MAG", "34 RDS"; 15 segments and the chamber's
+--   shotgun  a JS-2000 in both hands, 2 shells in the tube, none chambered, 17 shells and a box: "2", "+1 BOX"
+--   rifle    an M16, 22 in a 30-round magazine and 1 chambered: 30 segments in groups of five
+--   empty    a revolver with nothing in it: "EMPTY", the danger colour, no chamber segment
+--   low      the pistol at 3 (danger) and 6+1 (amber)
+-- Each gun at 1.75x and at 1.0x (ZeD's UI scale), a picture of each and the belt's place on the screen
+-- (zqa_ba_<scale>_<gun>.png; "ZEDQA ba rect" lines for the close-up crops). Then the pad steps over the pouch, the
+-- hover gives the full count, and ZeD setup's "Ammo on the belt" switched off takes the pouch away (and back on).
+-- Everything given is taken back; the hands, the scale and the switch are put back. grep "ZEDQA ba".
 local p = getPlayer()
 local B = ZeD.Belt
+local S = ZeD.Settings
 local function say(s) print("ZEDQA ba " .. tostring(s)) end
 local fails = 0
 local function check(ok, what) if ok then say("PASS " .. what) else fails = fails + 1; say("FAIL " .. what) end; return ok end
 local function shot(n) pcall(function() getCore():TakeFullScreenshot("zqa_ba_" .. n .. ".png") end) end
-if not (B and B.ammo and B.ammoWords) then say("ERR the new code is not loaded"); say("DONE"); return end
+if not (B and B.ammo and B.segLayout and S and S.ammoBoxOption) then say("ERR the new code is not loaded"); say("DONE"); return end
 local hud = B.getHUD()
 local inv = p:getInventory()
-local was = { p1 = p:getPrimaryHandItem(), p2 = p:getSecondaryHandItem() }
+local was = { p1 = p:getPrimaryHandItem(), p2 = p:getSecondaryHandItem(), scale = S.uiScaleOption:getValue() or 1, sw = S.ammoBoxOption:getValue() or 2 }
 local given = {}
 local function give(full, n)
     local out = {}
@@ -27,12 +30,10 @@ local function give(full, n)
 end
 local Q, qi, wait = {}, 1, 0
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
-
 local function box(kind, which)
     for i, b in ipairs(hud._boxes) do if b.kind == kind and (which == nil or b.which == which) then return b, i end end
     return nil
 end
--- the pointer stood in on the belt (its own getMouseX / getMouseY, this panel only)
 local function pointAt(b)
     if b then
         local x, y = b.x + math.floor(b.w / 2), b.y + math.floor(b.h / 2)
@@ -47,151 +48,114 @@ local function countColor(a)
     local T = ZeD.T
     return (a.n == 0 and T.danger) or (a.f > 0.5 and T.text) or (a.f > 0.25 and T.warningText) or T.danger
 end
-
--- the layout and the pad for one gun
-local function layout(tag)
-    local h, hi = box("hand", "p")
-    local a, ai = box("ammo")
-    check(a ~= nil, tag .. ": the ammo box is on the belt")
-    if not (a and h) then return end
-    check(ai == hi + 1 and a.x >= h.x + h.w, tag .. ": right after the main hand (hand " .. h.x .. "+" .. h.w .. ", box " .. a.x .. " w " .. a.w .. ")")
-    hud._gp = { idx = hi, inList = false, row = 1, list = {} }
-    local nx = hud:_padStep(hi, 1)
-    check(nx == nil or hud._boxes[nx].kind ~= "ammo", tag .. ": the pad steps over the ammo box (next " .. tostring(nx and hud._boxes[nx].kind) .. ")")
-    hud._gp = nil
+local function rect(tag)
+    say(string.format("rect %s %d %d %d %d", tag, hud:getAbsoluteX(), hud:getAbsoluteY(), hud:getWidth(), hud:getHeight()))
 end
 
-local pistol, shotgun, revolver
--- 1. the pistol
-step(5, function()
-    pistol = give("Base.Pistol")
+-- the guns
+local guns = {}
+local function setup()
+    local pistol = give("Base.Pistol")
     pcall(function() pistol:setContainsClip(true) end)
-    pistol:setCurrentAmmoCount(12)
-    pcall(function() pistol:setRoundChambered(true) end)
     local _, mags = give("Base.9mmClip", 2)
     mags[1]:setCurrentAmmoCount(15); mags[2]:setCurrentAmmoCount(9)
-    give("Base.Bullets9mm", 34)
-    give("Base.Bullets9mmBox", 1)
-    p:setPrimaryHandItem(pistol); p:setSecondaryHandItem(nil)
+    give("Base.Bullets9mm", 34); give("Base.Bullets9mmBox", 1)
+    local shotgun = give("Base.Shotgun")
+    give("Base.ShotgunShells", 17); give("Base.ShotgunShellsBox", 1)
+    local rifle = give("Base.AssaultRifle")
+    pcall(function() rifle:setContainsClip(true) end)
+    local _, rm = give("Base.556Clip", 1); rm[1]:setCurrentAmmoCount(30)
+    local revolver = give("Base.Revolver")
+    guns = {
+        { "pistol", pistol, 12, true, false }, { "shotgun", shotgun, 2, false, true },
+        { "rifle", rifle, 22, true, false }, { "empty", revolver, 0, false, false },
+    }
+end
+local function hold(g)
+    local gun = g[2]
+    gun:setCurrentAmmoCount(g[3])
+    pcall(function() gun:setRoundChambered(g[4]) end)
+    p:setPrimaryHandItem(gun); p:setSecondaryHandItem(g[5] and gun or nil)
+    hud._ammo = nil
+end
+
+step(5, function()
+    setup()
     local cw = ZeD_CharacterWindow.getWindow()
-    if cw and cw:isVisible() then ZeD_CharacterWindow.toggleBothPaired(p:getPlayerNum()) end   -- the belt in plain sight
+    if cw and cw:isVisible() then ZeD_CharacterWindow.toggleBothPaired(p:getPlayerNum()) end
 end)
-step(40, function()
-    local a = B.ammo(p)
-    if not check(a ~= nil, "pistol: read as a gun with ammo") then return end
-    local count, s1, s2 = B.ammoWords(a)
-    say(string.format("pistol: inGun %d chambered %s max %d mags {%s} loaded %d loose %d boxes %d words [%s] [%s] [%s]", a.inGun,
-        tostring(a.chambered), a.max, table.concat(a.mags, ","), a.loaded, a.loose, a.boxes, count, s1, tostring(s2)))
-    check(a.inGun == 12 and a.chambered, "pistol: 12 in the gun, 1 chambered")
-    check(count == "12+1", "pistol: the count reads 12+1 (" .. count .. ")")
-    check(a.loaded >= 2 and s1 == ZeD.tr("UI_ZeD_Belt_AmmoMags", a.loaded), "pistol: loaded magazines first (" .. s1 .. ")")
-    check(a.loose >= 34 and s2 == ZeD.tr("UI_ZeD_Belt_AmmoRounds", a.loose), "pistol: then the loose rounds (" .. tostring(s2) .. ")")
-    check(a.boxes >= 1, "pistol: the box is seen (" .. a.boxes .. ")")
-    check(a.icon ~= nil, "pistol: the magazine's picture")
-    check(colorIs(countColor(a), ZeD.T.text), "pistol: over half full, the count in the text colour")
-    layout("pistol")
-    shot("1_pistol")
-end)
-step(5, function() pointAt(box("ammo")) end)
+-- the gallery: each gun at 1.75x and 1.0x
+for _, sc in ipairs({ { 7, "175" }, { 4, "100" } }) do
+    step(5, function() S.uiScaleOption:setValue(sc[1]); S.applyScale() end)
+    for gi = 1, 4 do
+        step(20, function() hold(guns[gi]) end)
+        step(40, function()
+            local g = guns[gi]
+            local a = B.ammo(p)
+            local ab = box("ammo")
+            if not check(a ~= nil and ab ~= nil, sc[2] .. " " .. g[1] .. ": the pouch is on the belt") then return end
+            local count, s1, s2 = B.ammoWords(a)
+            local L = B.segLayout(a.max, a.chamber, math.floor((ab.w - 2 * ZeD.T.px(4)) / math.max(1, ZeD.T.art or 1)))
+            say(string.format("%s %s: in %d chambered %s max %d chamber %s loaded %d loose %d boxes %d words [%s] [%s] [%s] segs %s",
+                sc[2], g[1], a.inGun, tostring(a.chambered), a.max, tostring(a.chamber), a.loaded, a.loose, a.boxes, count, s1, tostring(s2),
+                L and string.format("sw %d gap %d group %d groupGap %d width %d art px", L.sw, L.gap, L.group, L.gg, L.w) or "bar"))
+            check(L ~= nil, sc[2] .. " " .. g[1] .. ": a segment for each round fits (" .. a.max .. ")")
+            if g[1] == "rifle" then check(L and L.group == 5, sc[2] .. " rifle: 30 rounds in groups of five") end
+            if g[1] == "empty" then
+                check(count == ZeD.tr("UI_ZeD_Belt_AmmoEmpty") and colorIs(countColor(a), ZeD.T.danger) and not a.chamber, sc[2] .. " empty: EMPTY in the danger colour, no chamber segment")
+            end
+            if g[1] == "pistol" then
+                check(count == "12+1" and s1 == ZeD.tr("UI_ZeD_Belt_AmmoMags", a.loaded) and a.loaded >= 2, sc[2] .. " pistol: 12+1, the magazines first (" .. s1 .. ")")
+            end
+            if g[1] == "shotgun" then
+                check(count == "2" and s2 == ZeD.tr("UI_ZeD_Belt_AmmoBoxes", a.boxes), sc[2] .. " shotgun: 2 in the tube, the box named (" .. tostring(s2) .. ")")
+            end
+            local h, hi = box("hand", "p")
+            local _, ai = box("ammo")
+            check(ai == hi + 1 and ab.x - (h.x + h.w) >= ZeD.T.px(10), sc[2] .. " " .. g[1] .. ": right after the main hand, its own gap (" .. (ab.x - h.x - h.w) .. " px)")
+            rect(sc[2] .. "_" .. g[1])
+            shot(sc[2] .. "_" .. g[1])
+        end)
+    end
+end
+-- the low counts' colours (1.0x)
+step(5, function() hold({ "low", guns[1][2], 3, false, false }) end)
+step(20, function() check(colorIs(countColor(B.ammo(p)), ZeD.T.danger), "pistol 3 of 15: the danger colour"); rect("100_low"); shot("100_low") end)
+step(5, function() hold({ "amber", guns[1][2], 6, true, false }) end)
+step(20, function() check(colorIs(countColor(B.ammo(p)), ZeD.T.warningText), "pistol 6+1 of 15: amber") end)
+-- back to 1.75x: the hover and the pad
+step(5, function() S.uiScaleOption:setValue(7); S.applyScale(); hold(guns[1]) end)
+step(30, function() pointAt(box("ammo")) end)
 step(30, function()
     local hv = hud._hover
-    check(hv and hv.b.kind == "ammo", "pistol: the pointer over the box is its hover (" .. tostring(hv and hv.b.kind) .. ")")
+    check(hv and hv.b.kind == "ammo", "the pointer over the pouch is its hover")
     local l1, l2 = B.ammoLines(B.ammo(p))
-    say("pistol hover: " .. l1 .. " || " .. l2)
-    check(l1:find("12", 1, true) ~= nil and l2:find("15, 9", 1, true) ~= nil, "pistol: the hover gives the full count")
-    shot("2_pistol_hover")
-end)
-step(5, function() pointAt(box("hand", "p")) end)
-step(30, function()
-    local hv = hud._hover
-    check(hv and hv.b.kind == "hand" and hv.b.which == "p", "pistol: the pointer over the main hand (" .. tostring(hv and hv.b.kind) .. ")")
-    shot("3_pistol_hand_hover")
+    say("hover: " .. l1 .. " || " .. l2)
+    check(l2:find("15, 9", 1, true) ~= nil, "the hover gives the full count")
+    rect("175_hover"); shot("175_hover")
     pointAt(nil)
+    local _, hi = box("hand", "p")
+    hud._gp = { idx = hi, inList = false, row = 1, list = {} }
+    local nx = hud:_padStep(hi, 1)
+    check(nx == nil or hud._boxes[nx].kind ~= "ammo", "the pad steps over the pouch")
+    hud._gp = nil
 end)
--- worn: a fifth full, then about half
-step(5, function() pcall(function() pistol:setRoundChambered(false) end); pistol:setCurrentAmmoCount(3) end)
+-- the switch
+step(5, function() S.ammoBoxOption:setValue(1) end)
 step(20, function()
-    hud._ammo = nil
-    local a = B.ammo(p)
-    check(colorIs(countColor(a), ZeD.T.danger), "pistol 3 of 15: the count in the danger colour")
-    shot("4_pistol_low")
+    check(box("ammo") == nil and hud:_ammoState(p) == nil, "Ammo on the belt off: no pouch, the belt as it was")
+    rect("175_off"); shot("175_off")
+    S.ammoBoxOption:setValue(2)
 end)
-step(5, function() pcall(function() pistol:setRoundChambered(true) end); pistol:setCurrentAmmoCount(6) end)
+step(20, function() check(box("ammo") ~= nil, "Ammo on the belt on again: the pouch is back") end)
+step(5, function()
+    S.ammoBoxOption:setValue(was.sw)
+    S.uiScaleOption:setValue(was.scale); S.applyScale()
+    p:setPrimaryHandItem(was.p1); p:setSecondaryHandItem(was.p2)
+    for _, it in ipairs(given) do local c = it:getContainer(); if c then c:Remove(it) end end
+    hud._ammo = nil
+end)
 step(20, function()
-    hud._ammo = nil
-    local a = B.ammo(p)
-    check(colorIs(countColor(a), ZeD.T.warningText), "pistol 6+1 of 15: the count amber")
-    shot("5_pistol_amber")
-end)
--- 2. the shotgun, in both hands
-step(5, function()
-    shotgun = give("Base.Shotgun")
-    shotgun:setCurrentAmmoCount(3)
-    pcall(function() shotgun:setRoundChambered(true) end)
-    give("Base.ShotgunShells", 17)
-    give("Base.ShotgunShellsBox", 1)
-    p:setPrimaryHandItem(shotgun); p:setSecondaryHandItem(shotgun)
-end)
-step(40, function()
-    local a = B.ammo(p)
-    if not check(a ~= nil, "shotgun: read as a gun with ammo") then return end
-    local count, s1, s2 = B.ammoWords(a)
-    say(string.format("shotgun: inGun %d chambered %s loose %d boxes %d words [%s] [%s] [%s]", a.inGun, tostring(a.chambered), a.loose, a.boxes, count, s1, tostring(s2)))
-    check(count == "3+1", "shotgun: 3+1 (" .. count .. ")")
-    check(a.loaded == 0 and s1 == ZeD.tr("UI_ZeD_Belt_AmmoRounds", a.loose), "shotgun: the loose shells (" .. s1 .. ")")
-    check(s2 == ZeD.tr("UI_ZeD_Belt_AmmoBoxes", a.boxes), "shotgun: the box named, not counted (" .. tostring(s2) .. ")")
-    layout("shotgun")
-    pointAt(box("ammo"))
-end)
-step(30, function()
-    local l1, l2 = B.ammoLines(B.ammo(p))
-    say("shotgun hover: " .. l1 .. " || " .. l2)
-    shot("6_shotgun")
-    pointAt(nil)
-end)
--- 3. the empty revolver (its .357 rounds carried are put aside for this case)
-local aside = {}
-step(5, function()
-    revolver = give("Base.Revolver")
-    revolver:setCurrentAmmoCount(0)
-    pcall(function() revolver:setRoundChambered(false) end)
-    p:setPrimaryHandItem(revolver); p:setSecondaryHandItem(nil)
-    local key = B.ammo(p) and B.ammo(p).key
-    local list = key and inv:getAllTypeRecurse(key)
-    for i = 0, (list and list:size() or 0) - 1 do
-        local it = list:get(i)
-        aside[#aside + 1] = { it = it, from = it:getContainer() }
-    end
-    for _, e in ipairs(aside) do e.from:Remove(e.it) end
-    say("set aside " .. #aside .. " .357 rounds")
-end)
-step(40, function()
-    local a = B.ammo(p)
-    if not check(a ~= nil, "empty: read as a gun with ammo") then return end
-    local count, s1 = B.ammoWords(a)
-    check(count == ZeD.tr("UI_ZeD_Belt_AmmoEmpty"), "empty: EMPTY (" .. count .. ")")
-    check(colorIs(countColor(a), ZeD.T.danger), "empty: the danger colour")
-    check(s1 == ZeD.upper(getText("IGUI_None")), "empty: nothing carried says so (" .. s1 .. ")")
-    local l1, l2 = B.ammoLines(a)
-    say("empty hover: " .. l1 .. " || " .. l2)
-    layout("empty")
-    pointAt(box("ammo"))
-end)
-step(30, function() shot("7_empty"); pointAt(nil) end)
--- 4. a melee weapon: no ammo box
-step(5, function() p:setPrimaryHandItem(was.p1); p:setSecondaryHandItem(was.p2) end)
-step(30, function()
-    local a = box("ammo")
-    local gun = B.ammo(p)
-    check((a == nil) == (gun == nil), "the hands put back: an ammo box only with a gun (" .. tostring(a ~= nil) .. ")")
-end)
-step(5, function()
-    for _, e in ipairs(aside) do e.from:AddItem(e.it) end
-    for _, it in ipairs(given) do
-        local c = it:getContainer()
-        if c then c:Remove(it) end
-    end
-    hud._ammo = nil
     say(fails == 0 and "all checks passed" or (fails .. " failed"))
     say("DONE")
 end)

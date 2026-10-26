@@ -635,7 +635,7 @@ local function drawGridCell(self, GV, item, cx, cy)
         local RM = ZeD.ReadMarks
         local kk = RM.k()
         RM.drawDot(self, ax + T.px(2), cy + cell - RM.DOT_W * kk - T.px(2), rs.st)
-        if rs.next then RM.drawUp(self, ax + T.px(2) + (GV._beltW > 0 and GV._beltW + T.px(2) or 0), cy + T.px(2)) end
+        if rs.next and RM.nextOn() then RM.drawUp(self, ax + T.px(2) + (GV._beltW > 0 and GV._beltW + T.px(2) or 0), cy + T.px(2)) end
     end
     -- condition, a line along the bottom (the list's colours)
     -- (a readable item shows its read mark instead, as the list's COND column does)
@@ -810,7 +810,7 @@ local function drawReadHint(self, GV, hc, xOff, colW, contentTop)
     local rs = hc.read
     local rows = { { hc.text, f1, T.toneHi or T.text } }
     for _, l in ipairs(rs.lines or {}) do rows[#rows + 1] = { l, f3, T.text } end
-    if rs.next then rows[#rows + 1] = { ZeD.tr("UI_ZeD_Read_NextFor", rs.next), f3, T.accentText or T.accent } end
+    if rs.next and ZeD.ReadMarks.nextOn() then rows[#rows + 1] = { ZeD.tr("UI_ZeD_Read_NextFor", rs.next), f3, T.accentText or T.accent } end
     local hpx, hpy, gap = T.px(8), T.px(4), T.px(1)
     local bw, bh = 0, hpy * 2
     for i, r in ipairs(rows) do
@@ -1107,7 +1107,8 @@ local function renderItemList(self)
     -- Column widths: user-resizable with scale-aware defaults
     -- Reset to defaults when text scale changes
     local colWData = self._colWidths
-    if not colWData or self._colWidthsScale ~= scale then
+    local readOn = ZeD.ReadMarks.on()   -- (the read marks' room in COND only while they are on)
+    if not colWData or self._colWidthsScale ~= scale or (colWData.readOn ~= nil and colWData.readOn ~= readOn) then
         -- measured, not guessed (Oct 19 2026, Large text audit): the longest
         -- common category ("Literature") and a weight in the columns' own
         -- fonts, so Large shows "Literature" whole, not "Liter..."
@@ -1115,7 +1116,8 @@ local function renderItemList(self)
             cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
             -- (Oct 26 2026, mockup zed_read_marks_v1: a book's read status takes the column, a dot and a word; room
             -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
-            cond = math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX),
+            cond = readOn and math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX) or math.floor(50 * scale),
+            readOn = readOn,
             wt   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),
         }
         colWData.wtC = colWData.wt   -- the compact (side-by-side) weight column, never resized
@@ -1536,7 +1538,7 @@ local function renderItemList(self)
         -- a cut name keeps its end: a stack's count survives ("> Apple (Fr... x6"; Large text audit)
         local avail = nameW - childIndent
         -- room kept for NEXT LEVEL (it never drops off a long name) and, with COND hidden, the read dot
-        local nextTag = rs and rs.next and ZeD.tr("UI_ZeD_Read_NextLevel") or nil
+        local nextTag = rs and rs.next and ZeD.ReadMarks.nextOn() and ZeD.tr("UI_ZeD_Read_NextLevel") or nil
         local nextW = nextTag and (ZeD.TM:MeasureStringX(T.fontF1, nextTag) + T.px(8)) or 0
         if nextTag then avail = avail - nextW - T.px(6) end
         local dotW = (rs and not showCond) and (ZeD.ReadMarks.DOT_W * ZeD.ReadMarks.k()) or 0

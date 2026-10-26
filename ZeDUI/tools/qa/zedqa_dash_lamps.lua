@@ -301,6 +301,23 @@ act(function()
     check(r2:find("52%", 1, true) ~= nil and r2:find("18%", 1, true) ~= nil, "worn: the battery's chip gives its condition and charge (" .. r2 .. ")")
     pointAt(nil)
 end)
+-- 2b. ZeD setup's "Dashboard warning lamps" off: the lamps as before (battery under 20% charge, engine under 40%,
+-- the heater's light plain) and no hover chips
+local lampsWas = ZeD.Settings.dashLampsOption:getValue() or 2
+act(function() ZeD.Settings.dashLampsOption:setValue(1) end)
+waitMs(400)
+act(function() pointAt("batt") end)
+waitMs(250)
+act(function()
+    local s = lamps("lamps off")
+    local d = dash()
+    check(s.genLamp == true and s.engLamp == true, "lamps off: the old rule (charge 18% under 20%, engine 34% under 40%: both on in their own colour)")
+    check(s.heatOn ~= D.LAMP_COLOR.dead and s.heatOn ~= D.LAMP_COLOR.poor, "lamps off: the heater's light plain (" .. tostring(s.heatOn) .. ")")
+    check(d and d._lampHov == nil, "lamps off: no hover chip")
+    shot("2b_lamps_off")
+    pointAt(nil)
+    ZeD.Settings.dashLampsOption:setValue(lampsWas)
+end)
 -- 3. key on, engine off: the bulb check
 act(function() click("ignition") end)
 waitFor(function() local s = st(); return s and not s.running end, 8000, function() err("the engine never stopped") end)
