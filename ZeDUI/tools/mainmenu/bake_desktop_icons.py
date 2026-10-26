@@ -13,6 +13,7 @@ Writes 42/media/textures/ZeD/mainmenu/icons/<name>.png:
   options   Options (the control panel)         mods      Mods (a folder with a gear)
   trash     the Trash (full: there is a file in it)
   computer  the Computer (inside the Trash: the old joke of throwing the computer away)
+  uploader  the Mod Uploader (the Workshop window: the Mods folder with an up arrow)
 
 Usage:  py ZeDUI/tools/mainmenu/bake_desktop_icons.py [--sheet out.png]
 """
@@ -234,8 +235,42 @@ def icon_computer():
     return ic
 
 
+GN = (90, 170, 90, 255)       # an arrow's lit green
+GND = (40, 100, 40, 255)      # its shade
+
+
+def up_arrow(ic, cx, top, h, half=4, shaft=2):
+    """a fat up arrow: a triangle head (half wide each side) over a shaft, a 1-px black outline"""
+    for i in range(half + 1):
+        ic.hline(cx - i, cx + i, top + i, K)
+        if i > 0:
+            ic.hline(cx - i + 1, cx + i - 1, top + i, GN)
+    yb = top + half + 1
+    ic.hline(cx - half, cx + half, yb, K)
+    ic.box(cx - shaft, yb, cx + shaft, top + h, GN)
+    ic.vline(cx + shaft - 1, yb + 1, top + h - 1, GND)
+
+
+def icon_uploader():
+    """the Mod Uploader (the Workshop window; Oct 25 2026, the director's pick of three: "C: Mods folder
+    sent up"): the Mods icon's lilac folder, an up arrow out of it and a modem's waves"""
+    import math
+    ic = Icon()
+    ic.box(3, 10, 11, 14, F)                      # the folder's tab, then its body
+    ic.box(3, 13, 25, 29, F)
+    ic.hline(4, 10, 11, W); ic.hline(4, 24, 14, W)
+    ic.rect(4, 26, 24, 28, FD)
+    for i, r in enumerate((3, 6, 9)):             # the waves, top right
+        for a in range(0, 91, 6):
+            ic.p(22 + int(round(r * math.cos(math.radians(a)))), 10 - int(round(r * math.sin(math.radians(a)))), K if i != 1 else D)
+    ic.rect(21, 9, 22, 10, K)
+    up_arrow(ic, 14, 1, 21, half=5, shaft=2)
+    return ic
+
+
 ICONS = {"pz": icon_pz, "newgame": icon_newgame, "load": icon_load, "join": icon_join,
-         "options": icon_options, "mods": icon_mods, "trash": icon_trash, "computer": icon_computer}
+         "options": icon_options, "mods": icon_mods, "trash": icon_trash, "computer": icon_computer,
+         "uploader": icon_uploader}
 
 
 def main():

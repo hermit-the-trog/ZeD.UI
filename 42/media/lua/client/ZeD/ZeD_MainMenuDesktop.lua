@@ -10,7 +10,8 @@
 -- The main window's close box now just closes it (Quit stays in File and on the
 -- case's power button) and leaves the bare desktop. Down the screen's right
 -- edge, the way a 1993 desktop kept them: Project Zomboid, New Game, Load Game,
--- Join a Server, Options, Mods; the Trash in the bottom corner. 32 x 32 pixel
+-- Join a Server, Options, Mods, Mod Uploader (the Workshop, where Steam offers it); the
+-- Trash in the bottom corner. 32 x 32 pixel
 -- icons (ZeDUI/tools/mainmenu/bake_desktop_icons.py) drawn at whole multiples.
 -- A click selects an icon (its name turns accent, the picture darkens), a
 -- second click opens it; Return or A opens the selected one, the arrows or the
@@ -56,6 +57,10 @@ local function items()
         { id = "join", label = ZeD.tr("UI_ZeD_MainMenu_JoinServer"), open = function() A.join() end },
         { id = "options", label = ZeD.btnCase(getText("UI_mainscreen_option")), open = function() A.options() end },
         { id = "mods", label = getText("UI_NewGame_Mods"), open = function() A.mods() end },
+        -- the Workshop window, where Steam offers it (director, Oct 25 2026: "an icon on the desktop...
+        -- Look like a FTP program... named, Mod Uploader"; the icon is the pick of three)
+        { id = "uploader", label = ZeD.tr("UI_ZeD_Desktop_ModUploader"), open = function() A.workshop() end,
+          hide = function() local m = MainScreen and MainScreen.instance; return not (m and m.workshopOption) end },
     }
 end
 local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() MM.showView("trash") end }   -- (label: a translation key, drawn through ZeD.tr)
@@ -64,7 +69,7 @@ local TRASH = { id = "trash", label = "UI_ZeD_Desktop_Trash", open = function() 
 -- icon pictures are loose textures the engine streams in after boot: they are asked for
 -- now, the menu's wake-up waits for them with the desk's own pictures, and a cell draws
 -- its name only once its picture is in, so the two always arrive together
-local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "trash", "computer" }
+local ICON_IDS = { "pz", "newgame", "load", "join", "options", "mods", "uploader", "trash", "computer" }
 pcall(function() for _, n in ipairs(ICON_IDS) do Texture.getSharedTexture(ICON_DIR .. n .. ".png", NEAREST) end end)
 local function iconReady(t)
     if not t then return true end
@@ -91,8 +96,16 @@ local function cells(L)
     local function place(it, cy)
         out[#out + 1] = { item = it, x = x, y = cy, w = cw, h = ch, ix = x + math.floor((cw - isz) / 2), iy = cy, isz = isz, ly = cy + isz + T.px(6), lh = labelH }
     end
-    for _, it in ipairs(items()) do place(it, y); y = y + ch + T.px(GAP) end
-    place(TRASH, L.ty + L.th - T.px(EDGE) - ch)
+    -- top down; a cell that would reach the Trash starts a column to the left (a short screen at a big scale)
+    local top, trashY = y, L.ty + L.th - T.px(EDGE) - ch
+    for _, it in ipairs(items()) do
+        if not (it.hide and it.hide()) then
+            if y > top and y + ch > trashY - T.px(GAP) then x = x - cw - T.px(GAP); y = top end
+            place(it, y); y = y + ch + T.px(GAP)
+        end
+    end
+    x = L.tx + L.tw - T.px(EDGE) - cw
+    place(TRASH, trashY)
     return out
 end
 
