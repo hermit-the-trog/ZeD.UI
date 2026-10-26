@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Maps: legend, drawing and shared marks v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | Maps tab: what the map mods drew, drawn on ZeD's own map. Mockup v1
+   (Oct 26 2026). From the compatibility survey, round 2: ZeD's map is its own
+   (ZeD_WorldMap in MapsTab.lua), not the game's ISWorldMap, so Map Legend UI,
+   Draw On The Map, Map Symbol Size Slider, Players On Map, Share Annotations
+   and Where Am I? show nothing in it, and ZeD has no map key at all, not even
+   the game's own. Built on the Maps tab as built: toolbar row (disclosure,
+   six pinned marks, Aa, the five inks of the pens at hand, Survey / Color /
+   Paper, unfold), the icon grid under the disclosure, the drawer and the
+   unfolded Map window. Key colours are the game's own (ISMapDefinitions.lua,
+   Key_*.png); words are the game's and the mods' own (IG_UI, UI_EN).
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
+  --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --sel:rgba(212,146,42,.55);
+  --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.7); --tf:rgba(120,120,120,.6); --th:rgba(222,210,190,.95);
+  --dng:#d0603a; --wrn:#c49a2a; --pos:#7a9a34; --inf:#5a8a9a;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1000px; height:720px; border:1px solid #2a2924; overflow:hidden; transform-origin:0 0;
+  background:radial-gradient(ellipse at 45% 40%, #2c3320 0%, #1c2216 45%, #0f120c 100%); }
+.stage.dim::after { content:""; position:absolute; inset:0; pointer-events:none; background:rgba(0,0,0,.35); z-index:1; }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+
+/* ---- windows ------------------------------------------------------------------ */
+.win { position:absolute; background:rgba(19,19,19,.97); border:1px solid var(--bs); z-index:2; display:flex; flex-direction:column; }
+.tb { height:24px; flex:none; background:var(--s2); border-bottom:1px solid var(--bs); display:flex; align-items:center; position:relative; }
+.tb::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.05) 2px, rgba(255,255,255,.05) 4px); }
+.tb .cb { width:12px; height:12px; border:1px solid var(--bs); margin-left:6px; position:relative; z-index:1; background:var(--s2); }
+.tb .tt { font-family:var(--mono); font-size:12px; color:var(--th); position:relative; z-index:1; background:var(--s2); padding:0 10px; }
+.tb .tt.c { margin:0 auto; }
+.tb .tt.l { margin-left:8px; }
+.wbody { flex:1; display:flex; min-height:0; }
+.strip { width:36px; border-left:1px solid var(--bs); background:var(--s1); display:flex; flex-direction:column; flex:none; }
+.tab { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--bd); position:relative; }
+.tab img { width:22px; height:22px; opacity:.8; }
+.tab.act { background:var(--sel); } .tab.act::before { content:""; position:absolute; right:0; top:0; bottom:0; width:3px; background:var(--acb); }
+.tab.gap { margin-top:10px; border-top:1px solid var(--bd); }
+.loot { width:250px; flex:none; display:flex; flex-direction:column; border-right:1px solid var(--bs); }
+.ih { height:37px; display:flex; align-items:center; padding:0 10px; border-bottom:1px solid var(--bd); gap:8px; }
+.ih .nm { font-family:var(--cond); font-weight:600; font-size:18px; color:var(--th); }
+.irow { display:flex; align-items:center; height:28px; padding:0 10px; font-size:12.5px; border-bottom:1px solid rgba(255,255,255,.03); color:var(--tx); }
+.irow:nth-child(odd) { background:rgba(255,255,255,.025); }
+.irow .n { flex:1; } .irow .c { color:var(--ac); font-family:var(--mono); font-size:10.5px; }
+.squares { flex:none; height:14px; display:flex; gap:4px; padding:0 4px; align-items:center; border-top:1px solid var(--bd); background:var(--s2); }
+.squares span { width:10px; height:10px; border:1px solid #555; }
+.mapcol { flex:1; min-width:0; display:flex; flex-direction:column; position:relative; }
+
+/* ---- the map toolbar (as built, plus the new pieces) ---------------------------- */
+.tbar { flex:none; background:var(--s1); border-bottom:1px solid rgba(42,42,42,.9); }
+.trow { height:37px; display:flex; align-items:center; gap:4px; padding:0 4px; }
+.chev { width:14px; height:37px; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--ts); cursor:pointer; }
+.ib { width:20px; height:20px; border:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; flex:none; }
+.ib.on { background:rgba(212,146,42,.2); border-color:rgba(212,146,42,.6); }
+.ib.pin::after { content:""; position:absolute; right:-1px; top:-1px; width:5px; height:5px; background:var(--ac); }
+.ib i { width:16px; height:16px; display:block; background:#c8c8c8; -webkit-mask-size:contain; mask-size:contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center; }
+.ib.on i { background:var(--acb); }
+.ib.txt { font-family:var(--sans); font-size:11px; color:var(--ts); width:22px; }
+.ib.txt.on { color:var(--acb); }
+.ib.dis { opacity:.35; }
+.tsep { width:1px; height:20px; background:rgba(255,255,255,.12); margin:0 6px; flex:none; }
+.ink { width:14px; height:14px; border:1px solid rgba(255,255,255,.12); cursor:pointer; flex:none; margin-right:2px; }
+.ink.on { outline:1px solid var(--tx); outline-offset:1px; }
+.ink.dis { opacity:.3; }
+.pills { margin-left:auto; display:flex; }
+.pill { height:20px; padding:0 6px; display:flex; align-items:center; font-family:var(--mono); font-size:11px; color:var(--ts); border:1px solid rgba(255,255,255,.08); cursor:pointer; }
+.pill.on { color:var(--acb); background:rgba(212,146,42,.2); border-color:rgba(212,146,42,.6); }
+.tbtn { height:20px; padding:0 7px; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; color:var(--tx); border:1px solid rgba(255,255,255,.12); cursor:pointer; flex:none; white-space:nowrap; }
+.tbtn.on { color:var(--acb); background:rgba(212,146,42,.2); border-color:rgba(212,146,42,.6); }
+.tbtn.dis { opacity:.35; }
+.tbtn .k { display:flex; gap:1px; } .tbtn .k b { width:4px; height:10px; display:block; }
+.tbtn svg { width:12px; height:12px; }
+.unf { width:20px; height:20px; border:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; margin-left:8px; cursor:pointer; flex:none; }
+.unf svg { width:13px; height:13px; }
+.new { outline:1px dashed rgba(216,192,112,.65); outline-offset:2px; }
+.trow2 { height:32px; display:flex; align-items:center; gap:6px; padding:0 8px 0 22px; border-top:1px solid rgba(255,255,255,.05); background:var(--s2); }
+.trow2 .lbl { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.8px; color:var(--ac); margin-right:4px; }
+.trow2 .sl { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10.5px; color:var(--ts); margin-left:8px; }
+.trow2 .sl b { color:var(--tx); font-weight:500; width:30px; }
+.grid { display:flex; flex-wrap:wrap; gap:4px; padding:4px 4px 6px 22px; background:var(--s1); border-top:1px solid rgba(255,255,255,.05); }
+input[type=range] { -webkit-appearance:none; appearance:none; height:14px; background:transparent; cursor:pointer; }
+input[type=range]::-webkit-slider-runnable-track { height:4px; background:var(--s4); border:1px solid var(--bs); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:8px; height:12px; background:var(--acb); margin-top:-5px; border:1px solid #000; }
+input[type=range]::-moz-range-track { height:4px; background:var(--s4); border:1px solid var(--bs); }
+input[type=range]::-moz-range-thumb { width:8px; height:12px; background:var(--acb); border:1px solid #000; border-radius:0; }
+.sizer { position:relative; display:flex; align-items:center; }
+.sizer .tick { position:absolute; top:12px; width:1px; height:4px; background:var(--ts); }
+.mini { height:20px; padding:0 7px; display:flex; align-items:center; font-family:var(--mono); font-size:10.5px; color:var(--tx); border:1px solid var(--bs); cursor:pointer; border-radius:2px; }
+
+/* ---- the map area -------------------------------------------------------------- */
+.marea { flex:1; min-height:0; display:flex; position:relative; }
+.mview { flex:1; min-width:0; position:relative; overflow:hidden; background:#d9d3bd; }
+.mview svg.map { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.where { position:absolute; top:8px; left:50%; transform:translateX(-50%); font-family:var(--cond); font-weight:600; font-size:15px; color:#f0ece0; background:rgba(19,19,19,.85); border:1px solid var(--bs); padding:2px 12px; white-space:nowrap; }
+/* the key: a small panel over the map's bottom-left corner */
+.keyp { position:absolute; left:8px; bottom:8px; width:226px; background:rgba(19,19,19,.94); border:1px solid var(--bs); }
+.keyp .kh { height:20px; display:flex; align-items:center; gap:6px; padding:0 6px; background:var(--s2); border-bottom:1px solid var(--bs); position:relative; }
+.keyp .kh::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.05) 2px, rgba(255,255,255,.05) 4px); }
+.keyp .kh .cb { width:10px; height:10px; border:1px solid var(--bs); position:relative; z-index:1; background:var(--s2); cursor:pointer; }
+.keyp .kh .t { font-family:var(--mono); font-size:11px; color:var(--th); position:relative; z-index:1; background:var(--s2); padding:0 6px; margin:0 auto; }
+.keyp .kb { padding:6px 8px 7px; display:grid; grid-template-columns:1fr; gap:3px; }
+.keyp .kr { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--tx); height:17px; }
+.keyp .kr i { width:16px; height:11px; border:1px solid rgba(0,0,0,.6); flex:none; }
+.keyp .kn { font-family:var(--mono); font-size:10px; color:var(--ts); padding:0 8px 7px; line-height:1.45; }
+/* the side list */
+.side { width:236px; flex:none; border-left:1px solid var(--bs); background:var(--s1); display:flex; flex-direction:column; min-height:0; }
+.side.over { position:absolute; right:0; top:0; bottom:0; z-index:3; box-shadow:none; }
+.side .sh { height:26px; display:flex; align-items:center; gap:6px; padding:0 8px; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.8px; color:var(--ac); border-bottom:1px solid var(--bd); flex:none; }
+.side .sh span { color:var(--ts); font-weight:400; margin-left:auto; letter-spacing:0; }
+.side .sb { flex:1; min-height:0; overflow:auto; }
+.prow { min-height:34px; display:flex; align-items:center; gap:8px; padding:4px 8px; border-bottom:1px solid #181818; }
+.prow .pd { width:8px; height:8px; background:#00ff00; border:1px solid #063; flex:none; }
+.prow .pd.dead { background:#777; border-color:#333; }
+.prow .pn { display:flex; flex-direction:column; min-width:0; }
+.prow .pn b { font-weight:500; font-size:12.5px; color:var(--tx); }
+.prow .pn span { font-family:var(--mono); font-size:10px; color:var(--ts); }
+.nrow { min-height:44px; display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border-bottom:1px solid #181818; cursor:default; }
+.nrow.sel { background:rgba(212,146,42,.12); }
+.nrow .ck { width:12px; height:12px; border:1px solid var(--bs); flex:none; margin-top:2px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--acb); cursor:pointer; line-height:1; }
+.nrow .nt { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.nrow .nt b { font-weight:500; font-size:12px; color:var(--tx); line-height:1.3; }
+.nrow .nt span { font-family:var(--mono); font-size:10px; color:var(--ts); }
+.nrow .nt em { font-style:normal; font-family:var(--mono); font-size:10px; color:var(--wrn); }
+.nrow .x { width:16px; height:16px; border:1px solid var(--bs); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:var(--ts); cursor:pointer; flex:none; }
+.nrow .x:hover { color:var(--dng); border-color:var(--dng); }
+.side .sf { flex:none; border-top:1px solid var(--bs); background:var(--s2); padding:7px 8px; display:flex; flex-direction:column; gap:6px; }
+.side .sf p { font-size:11.5px; line-height:1.4; color:var(--tx); }
+.side .sf .acts { display:flex; gap:6px; justify-content:flex-end; }
+.b { height:22px; display:inline-flex; align-items:center; padding:0 9px; font-family:var(--mono); font-size:11px; color:var(--tx); border:1px solid var(--bs); background:var(--s2); border-radius:3px; white-space:nowrap; cursor:pointer; }
+.b.pri { border:3px double var(--ac); color:var(--acb); padding:0 7px; }
+.b.bad { border-color:rgba(208,96,58,.7); color:#e98a76; }
+.empty { font-size:11.5px; color:var(--ts); padding:8px; line-height:1.45; }
+.help { flex:none; padding:5px 10px; font-family:var(--mono); font-size:10.5px; color:var(--ts); border-top:1px solid var(--bd); background:var(--s1); }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.notes table { border-collapse:collapse; font-size:12.5px; color:#c4bfb1; margin-top:4px; }
+.notes td, .notes th { border:1px solid #2e2c26; padding:5px 9px; text-align:left; vertical-align:top; }
+.notes th { font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#8f8a7c; font-weight:500; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+.fix { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9cc49a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | in game | World window | Maps | map mods | mockup v1</div>
+<h1>Maps: a key, drawing, mark size, other players and shared notes</h1>
+<p class="lede">ZeD's Maps tab is its own map, so the six map mods that draw on the game's map show nothing in it, and ZeD has <b>no map key</b>, not even the game's own. This puts each of them into the Maps tab: the <b>key</b> as a small panel over the map's corner, <b>drawing</b> and <b>mark size</b> on the toolbar, <b>other players</b> on the map and in a list at the side, <b>learned notes</b> from Share Annotations in the same list, and <b>the area's name</b> over the map. New pieces have a dashed outline. Click the toolbar, the key, the ticks and the x's; switch the map style on the toolbar or above.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Map style</span><div class="seg" id="ctlStyle"></div></div>
+  <div class="ctl"><span>Where</span><div class="seg" id="ctlWhere"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>The key is built into ZeD, mod or no mod.</b> A <i>Key</i> button on the toolbar opens a small panel over the map's bottom-left corner with the game's own eight entries, words and colours (Community, Hospitality, Industrial, Medical, Parks, Residential, Restaurants &amp; Entertainment, Retail &amp; Commercial). It is the game's key that ZeD lost; Map Legend UI shows the same eight, so with it on ZeD shows nothing extra. The key belongs to the Survey map, whose buildings are coloured by use; on Color and Paper the button stays and the panel says those maps show the ground as it looks, not by use.</li>
+      <li><span class="rec">RECOMMEND</span><b>Drawing only when Draw On The Map is on.</b> A pencil <i>Draw</i> button after the inks opens a second toolbar row with the mod's tools and words: Draw, Line, Erase, Thickness, Fill. The inks stay the ones in row one, so drawing needs a pen or pencil as every mark does, and Erase needs an eraser (the game's own "Requires an eraser."). Strokes are ordinary map marks, as the mod makes them, so they show on the game's map too. ZeD writes its own drawing tool for this (the mod's tools expect the game's map panel).</li>
+      <li><span class="rec">RECOMMEND</span><b>Symbol Size only when Map Symbol Size Slider is on</b>, under the toolbar's disclosure beside the full mark grid (where the mod puts it on the game's map). It moves the size of every mark and note and saves to the mod's own setting, so ZeD's map and the game's agree. A tick marks the game's size; Reset goes back to it.</li>
+      <li><span class="rec">RECOMMEND</span><b>Other players: the game's own dots always; names and the list only with Players On Map.</b> Without the mod ZeD's map shows other players the way the server's own setting allows. With it, ZeD draws the mod's green squares and names and follows its sandbox rules (names, own name, faction only, dead players, distance). A Players section in the side list gives each name and how far and which way; clicking a name centres the map on them.</li>
+      <li><span class="rec">RECOMMEND</span><b>Learned notes only when Share Annotations is on</b>, in the side list: one row per set with the mod's own name for it (By Rick Harlan, July 9th 1993 at 14:20), a tick to show or hide it and an x to delete it. Delete asks in the list's footer, as ZeD confirms elsewhere. ZeD also applies the sets the player hid before when its map opens; today a set hidden on the game's map stays hidden for good under ZeD.</li>
+      <li><span class="rec">RECOMMEND</span><b>The side list appears only when it has something in it</b> (multiplayer with Players On Map, or learned notes), docked at the right of the unfolded map and as a panel over the map's right edge in the drawer, opened by a list button. In the drawer the new toolbar buttons show as icons only, with a hover hint, so the Survey / Color / Paper switch still fits on the row. The area's name from Where Am I? sits over the top of the map, only with that mod.</li>
+      <li><span class="alt">YOUR CALL</span><b>Other players' colour.</b> Shown in the mod's own bright green with the name underneath, as players of the mod know it. The alternative is ZeD's accent, which matches the toolbar but can be confused with your own marks. Recommend the mod's green.</li>
+      <li><span class="alt">YOUR CALL</span><b>A key for Paper.</b> The paper road map has its own printed look (roads, towns, water). A small key for those three could come later; not drawn here.</li>
+      <li><span class="lim">LIMIT</span><b>Drawing is the big one</b> (several days): a drag tool, erase by area, and an undo for strokes that can be thousands of small marks. The key, the size slider, players, learned notes and the area name are a few hours each.</li>
+      <li><b>Controller:</b> the new toolbar buttons join the toolbar's row of stops; the side list is its own zone (A ticks a set, X deletes, A on a player centres the map); in Draw, A held draws along the stick.</li>
+    </ol>
+    <table>
+      <tr><th>PIECE</th><th>WHERE IT SITS</th><th>BUILT INTO ZED</th><th>ONLY WITH THE MOD ON</th></tr>
+      <tr><td>Map key</td><td>Toolbar button, panel over the map's bottom-left</td><td>Yes (the game's own key)</td><td>Map Legend UI adds nothing more</td></tr>
+      <tr><td>Drawing</td><td>Toolbar button, second toolbar row, strokes on the map</td><td>No</td><td>Draw On The Map</td></tr>
+      <tr><td>Symbol size</td><td>Under the toolbar's disclosure</td><td>No (the marks already follow a size the mod saved)</td><td>Map Symbol Size Slider</td></tr>
+      <tr><td>Other players</td><td>Dots and names on the map, Players in the side list</td><td>The game's own dots, as the server allows</td><td>Names, list, the mod's rules: Players On Map</td></tr>
+      <tr><td>Learned notes</td><td>Learned notes in the side list, marks on the map</td><td>No</td><td>Share Annotations</td></tr>
+      <tr><td>Area name</td><td>Over the top of the map</td><td>No</td><td>Where Am I?</td></tr>
+    </table>
+  </div>
+</section>
+
+<script>
+const ICONS={loot:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABcElEQVR42u2WMU4DMRBFnzebCtCyCjlAUqWioo2QQsl1OAacgT5XoKKnooGCIyRaVoEqyX6av5KzykqgJIiCkUay/e0/M/Z47CAJS2JdsZukQGUljcjrwRQ4BsIPiQV8RA4mQJUCHWANjIAb4BLIbSBEhmSlZVxAATwCd8AL0EESkq4lLbQ/WZiTIGkEPAFHUbiFPTq1pwLKel8dfhZh727nEccncIGkqa2uJL1JmkjqSRpKmhubSxpIyq2DBjb0mok5VsamSCokVdaxtwxJJ5Jmnjhz/zvYOOIr4lBL4NmHHoBuI0u60eG2YR1zlO5naSPN6owiyhi2ZFEbtjbHxuVqTtxVNjgSDiz/Bv6egbAHztCs3TFQ53G1xVhcQduwxBwhjqB07mbAuScIWDZIltGFasPW5sjqApkAD7ZYAffAFdAD+g2Pz1wtc7djrO81E3PUO/DwK+X64A/OIZ7MW+AV6AT/KpIo/L0++uHQ35YvO1jSOtg6oLIAAAAASUVORK5CYII=',equipment:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACCElEQVR42rWVPW4UQRCFv+4ds1ishMEQECMEtyByQAiCU5AhWQ4IHBAQwHIGCEhI4Ab8+BqGcB3gXbCMbC/emUfAG1PM4mXW4JKeqqZquqf71ZtuJCEp269L2jXWG7WIZPA3IKnjhxVN24prnTAoz4iLBnIGMj/tJlACY6N0DiDxyyqga1SN/KSBqggvbQAPgU4Y9MFeXkgF3AaeOf8AeO34OnDX4xNwCLwhUJAlrUr6ZKw61wmcL0oaBAq3JHUlnfGYpg0Lf630Kp4ALx0Pwk5yg47WVnj7i6bnHnDetR3gFfAY2PPW94H7DYrGjm+ZosLPRxT1JL3T8bYh6ZzpqlVz1mgl074nGtt/MSTpwP6RBxSSFsIEMS7Ch2sUSNqWVEqqJK1JumSsOVdK2vQEad4dJEmVG70DXDHPuC8DYAkYAjeAbeAO0J9HppVpGElaDpJc9u4kaShpyXLcmkemmVO2oqH1PcuWIM36Ty6A75Zpf4ZMpyg61SYj6an5Ku2/GpI0+R8y7Ul664kOQ4Pq+H340U4kU4DLwEegF3qQgG/AVeCzezBpcZpOHRXJEhx5xVWQbi3PE5+mOZz16Q8qS67pX2U6a4K61vY0/U2mdQ8uApvAhUYPRsA1+xRqXftx2x1MgIVj6pNGLoeJ40UU7/eje7pO7gLPfbNVRgm8cC32oT4cU5tL/wdiNeaIqTkSEgAAAABJRU5ErkJggg==',health:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACUklEQVR42qWVP2sUURTFfzOzBlMkpF1sFBtBRN1CgyAWfgO1UjsLrcRGwU5trG1iYxQ/gVUwsbAQ/0EIFmqjFgqKCkYTVIy7O3ssPG+5GWY3MR4Y7uPeO+e+mXfveZkkAgogA7rBl/uJvsy5PT8JDUBA2U8MBYoQyIExoA38qhBjkoRRYAT4Hor1ufJAWAL7gZvAS+AN8Aq4C5wIxIn8JDDrnNd+5xYwaa6/3JIKSUi6LKmnwZiTNCZpXNI9DccVcxZ4cdGBUlLHtmfbldR2/KGkR14nX0fSUiDv2J6XBJJ229ld4wu6Yd127lVJOyQ1JR2UNBuKtCXtRNLtGoJBKMPOz/rr45NJehA2egNJ7+3orbOAJC2YsOEzzCSN2HfYOT1J73Kg6fbLWBupDe+H/NKd1bHvBfDT62a+TuIqflRmgdDGZZynHPhSMzxroW5TabNbPaQAiznwxOQ9/g+ZeY6H9dMcmP6HMxiEpARbgFMmz4DpHJgB5kPSRlCY9Bowbt88MJNIL2zgHBI2uYNOA0ctkJk5y6hF1yujXocUu+R3Rm0POfbb8amoRZmLbPYADSsSC+Qm2SPpa4gtmKuQlOVBgleAI8BHXxzDzqPhrmsBc8CEfZ/MsdLnDTqSftVeSd8G6FPa5TlJu7zzJAvLkloVLqpi1bCdDC/H35X06rGkxeBflnSgwlFbICa0JH0I8lxWRDHZz5L21ZEPKhATt0t6NqSrnvs+qCWXtOrSrxue0pf6GeAYsM2xt8AdYMrKWQxqimEFkgREjZqwXRqSswp/AEISFbmtYCN+AAAAAElFTkSuQmCC',thermal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACkElEQVR42o2VP09UQRTFz3u7yxKBEPFPjIUtHYkFwc5WPoeNsSFBbSQhoTBEG8FoMGpnQqMhhEo/AI0mJMTY0ZrILqvBVRDY5WfhGb08dsVJTt6bc8+dO3fmzowAGbm/VeAOsA78MNbNVYM2BzJgDtgHDoBDo2XueXHwi8Aq3duqNfLg/cDeP/R/hDnQC6yZP/B314jcmrUpg1mgDmwBX42GuXkBZQea8AB7Tu82cMm4ZT7NdsI+ybcPGCigD1DKQMB7oO0BJsPeJEza1gbe2S/7nwAyUfMA34FzQCVsZgU4bxvAJjBo31n71r00DS9XDZhLAYZswMIz5nsMmatb03CAXldN15brd0N/W1nSrqRhSR+MYXPloC9L+inpgaSapLqkL0bD/Ucpg9Mhg21zU2EiU+a23d9y1sl/EDjbaQ/KYeYxi9QO1bkR9CVJ2/4/5f6R5cgk5ZIqHQbJuwSv2Ja5n0u6J+m6ucyTW0wpPnHqh0DT5TcdlmjaXDNs6kJYov5Q4sc2+Yqkm46YSZrxjFthxi1zM9a0Jd2QNGr7jqT7YbO3/D8vYDEEXArluRz45VCuS4F/Zq4UNnvIGEwH7VNwuGrhQ/dbBuZkTWofw52Udzj9ucIl1nTkqk9hO1y/bXNVa77ZpxZOdNYBR8pUoSqyQikWbepS3sdKPZf02f/9kkYk7Ut67XqOeGXbiKQB+2xKaoYJdTgx8DKs6Uq4HZ/6Utv0f59tK0G/ULi2j0HAqNc57cXdIKiGZ1K24fcC4HLhRewYQMB8eMFSWY4DF4xroWyT5nGhRLsGKLnG34YHJbX06FOwvbFPKTw6XQNk4XDNnfCI71nTE0pTJwUoCseAF8AGsGNsmBsLuhMHB/QL4Fn/x1PphP4AAAAASUVORK5CYII=',identy:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAB+klEQVR42r2Wv2pUURDGf+fuFYPZLFmt0mmXJp2lQXsrIb6AhS+gz5Ag6AsYhNSJrTYBwV6wsIiBgFYpjGRDNkLA3PvZfAdmD7vBmI0DA+fMuWfOzDf/bpKEqTKfcTmqgdZMHZRnYQ10gXRBxQJOgoEV0NZAB2iAReA5cB/o/+MDA+Aj8ArYATpIQtJDSUNNj4bWSZK0CHwCZoM1A1ukv7Q+mftB9gu4myRtAo8N03fgKfDF8VBwf5zCcr8EvAZuG/otJA0kteZlQ3YZXg76BklS69eP/PKJrWqAGa9PnRXRo3lbmb898n4O+OZzVUUW5IxqgEfOhB2v26BwFdgN57vAmu/VI5DaFUk6lHTTbt6QtB+yYt8yJM1JasZkTitpRlLPsEtSW10wzytD+AI4AH6af1h2Clw7z4N+CNaKpD3zimWdcD5rb3rFvb51SVJbn2PxW+CD14chmCWdAcchfiNUTdh3gXXgs3ndstwQV50pe66dtYlFWUB0S1Il6f2YIL7zWS/cydQYLpwoEyFq7OqCgxhpAbgODB3QJ7Y6AW9C/YyWfFFod4xn7YJRaAXHwG+vY6HlIqt81jVs84DKVnFv2q2iBrZDs9sIza7spio8SmMSJDe7XPXbV96u/8vAiSPzGfBgCiPzJfAV6CT/VeShz7SHfrrq35Y/t1TpyrsEG90AAAAASUVORK5CYII=',journal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACTElEQVR42p2Wv24TQRDGv7NNFJk/F2NCS4uUKKD0adwh6NPzEIiOwg3uojwA6ZB4ACQkCl4AekQiBVGBwXYc4eDCvh/Nd8rkuJNtRhrNzu7MfrMzc7snQEDNfABMgUPPbwPfzdueO7TNQfATULfcB0bAANgXkNho3QsAE6AFdLmkrucm1kf2yUES69+CzyAi7wK/gTkwcwQX1uceD7w2t+2ufRuWbeAMyGyDzI+B8+C8iPIgxsCTsM9tB4FBsgS4L+mjpOu6pDNJeJxYRn0j2P6R9FDSF0l3LFu2TwS8MeIMOAE6wF0gBW4WOPVaBzi2D8CRT7AJDMMJkIuVmffCcZslAM2wvudUZcCpa7lRBpCFrmjZsAf0gZ/O6cDjvtfqts03G4YgRlUAQ6dgfUGBM9ukoaCVAA1dpYaksaSepKcuaM0FyyxfSZoWmqKSigCZ5XNJXW+eSLrmzecOQAFwJYAymkk6D3rdQEtRrUJ/KelU0omkr9Zr3jzTKlToolsVRZ4DN8LFKHfRr0VFjifAuZ464r6kH5Y9SZNQ8P86wdBR5R9Saj0Nc/ntu/QJqopcD92S12a13Fd0URJaMClp3zLbpQESt1/deaZis/zjm5d0YWmbjr1ZKmnHjlkAKXJmmx374O/kIgR3BeC9o8okHUnqSNqU1Pa9HrnttY5tse8Hg679k0c/OJ8kNSsenLLcxwdnKumBpGMDfJZ0z2vjvPUehfZahUZ+bgWsWT4L6y/io78FvPadPwuPSeT8Le7bdqvwy1Lz+B3wFqj/BRlTViSzDPduAAAAAElFTkSuQmCC',skills:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACgUlEQVR42qWWv2pUURDGv3t3s4maRJOgRCRiCouAvoAoFmpjYeEfEhTESApLK8E8gabII2jjAyjYWRntrBQhASMpBAm62WiUNa67+7PY7+jJ9W42iwPDufecOTNz5vvO3CvgOvAJqNOSMH4DJgEBKTAPbNp2AZgFxr0ebJRVARv8lV8ePwCfgVWgCOwGavwra8AcMGiHhbwAwXDdz6+B/cBhZ3vAxnO2q+cEWgSO5wUR8BUYAyaAp3Ys4KpPNxRtGAGOATPAi0xJy17bUi4BVeB05mjnXa4vwL52xwduGKsQZBnY6wBJXKIKcAEYBa45aNNZDdtZYk2NSwh4wkF+2tfDOKFwgiDVTG0/An2R8+wJSh6v2D4Q4UwIImAKeOdsNzyWgffAxe0oaO3x+MjOm8Bbz6fBqAgMAP0eBzynHWhqHTUTAx4zgFJtlUTdS1NSKmlV0j1JBUlIuitpTyjRsjlesa51USJF4PcDKxGGtwT8oL10AjnWwKrZCIs3gaYNTwRtWCsZmm6HQwF4YILUAxZF1yvNqW3iNTpgkBqHo5KmPYf3L6X6fwnEGHOguqSapJeSJos2aGYYRJRF0sF5wc8HfZpE0hNJlyWpKGlTUl+brDYlVdsECaWp+f1ctLboPT3ZmxyoWjZ1O9F0CDgE3DEpQqs4GbeKcN2H3Y4H/dwbOU8iLXjuvj9K4YMVmt3jOKm8NlzaQXvYBXzPuTfPfao/7TqV1DBQiaRLklYkPZN0RNKwdcg64nHc+wJrXkm6LemspPWY3q2PQitAQ9KCpFMGqmqQ8wAumRgFSUuSJnLuj/m49ZpP0b2EP4/evNuunN+Om250tahlZLVmm+lOzfA30h2XKZ84wQAAAAAASUVORK5CYII=',craft:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACn0lEQVR42oWVz25VVRSHv3N62xSs1LZCJMQBCiYONA4MYcBARgzkJUh8AgaOGaozie+g7yAMTa1GR5oYYwQmFA3QAKXq7b33c+Dv1OXObd3Jym+tddbe6+z1b6Oivq1+qT5XZ/6zpsFv1FPqp+qf6ifZ0wdRu8L/h1DfUn/z6PV74R+oyzlgoRzeNU5R6YGbwClgDBiqawacBKbhx0APdNEJvBicRX+weuC98Ev52DUOemAHWAi/EhuBy8AWcD94Ofr+YLe6qT5WH4X2EopJ8Cv1ZfUjdTs56NRzxXYruKe+VsM1xGpNPRm8GeM/gh+WmK4U/nq+X4t8LfL1yCOVUS6yU0LShmgjukVgN6EcR67h6CMv1s2jcuAImCRhdb3QJHAW/Xbkz4APgHcib7cOLNUicKy5yUqxr1V2L7gMXCw294ptyfa/6/icG1AOHvBuKe1JcBz9XAc2DrrGQWv3IOXZFfv70R/p4Nj/3IAk8i9gM/I0uBn9Ym2iwxx0zY0slbIPXADORl4Ino1+/8C+GVad+lPqeT/4Y2NzRv28DMV5+EXsaB0sqXcbB79G36mvqL+UaTvJgQNNygT4WT3dVtFSqIZoOWETuAG8njj3CU1XaCE0Bs4DH3cqZXitpsxqs+0CrwJ7wB3gTGyflQbsmzythn8+aj48A34ALkXXRd4F1lNRw3R9F3hcRsdQAOvAd3GyUh+H4bE4p97K5Lytno9+Q32Y+D7Ko7Oqfq2ul3NWM51VZxz21MWwymvFwU50VyK/f5iDeaNieK2elMS1vdInFFeTg6vAWmijFIhDkuetruRB4KUMsmH4PQFO5AemwNOyb0hyf5SD9lYAt/PEzg4ZlPWmHfD9UTloC6BT31C/TTNNS/damm1owC31zb8BV55kGmsCwCgAAAAASUVORK5CYII=',build:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACYklEQVR42q2VvW/NYRTHP7/fvYQ0rdZgEDaDVL2tIiEMFoONv0KMFotJYhAdmAys4mWUiLeYTJpIhFkkRV+kVVTb+7GcJ44nV1X0JN+ce89zznnO23N+jUqiNngv+CbgO/9BxWEDdMJxDzgK3AdeAS+BC8CG0GuSfdMHv5PaqgT2q7ftT3dDtxO8SXYZTfZZhDvUa+piOOtVvMhPVM6G1ZGE4fpC1MPqhyrannpL3aveiP8r6pVwdFB9pH5SpxM+hnxXXNCivklR/lAfqIdSFOfifEn9pk6F3mr0PMrUkox76sXkeEDtqueTTqbFyCpjOeRz6pBKC7wDusAScBa4CewGFoBlYDHNxHdgOnQ3xhRmdEI+AXwBWtST6tcqui/qZXW7Oh6yFfVq6sHjKNeMOht8KuS/9YBo5p0+tZxLaaueqqZkQB1MGEhnbZmi/A6Oq8/+0Lgn6sZ4B2VEB/8A6gza6qLT6otI/b16PZrWBC7FiE7FeM4Enwr9e+oelabaRWVdFOE24Gs0rKyGQWAS2PyXNTQDHC0X1PulTXuJmDLj/1bgbfAeMJ8CAhgGVsLmWd2DtWAwSmGUZWfISk+OxVD01B/diGJLlMdVUm7ifLjv1vxl+zre0AjQbdRx4Exa3WtZ7UPpwrkqsDad01h1eb2plKhEMx8NaqrU2yrq3Fgr3U7OoJu+RJ+B0ahfcZTrPhGTMwscCP0mXVB+D0QfRgDbWGjlYDQp/ysVm9HwJbDcqE+BI1GaTkTWz3i1xtLnHXTKOxhTJ11/mlTHyuPZpz5UF9LHo1eh/qTWKHYL4Wufyk+4vFo3DxEaNQAAAABJRU5ErkJggg==',move:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACvklEQVR42qWVPYidVRCGn+/ul91ViWiCGxQLxbAbQwQLEUERG7USRKwt1RRiIyhWFvZZWwuLFKKVktKflAay/gURDZEYEURjNhs3YDa7e+9jkffI8HkTNA4cBmbmzN87Zw4q6qK6om6EL0Y+Cr/u05x87BXaDD8a+f8O0Km3AKeBnUAHCGwAdwJ/FFnHFZL/QCNgHTgB9MBM+FfAxegtQYzs35PapecfqT+nXUuR1xb16uz1YNDOjHrXwGCUQEvqt+op9b4pwa96RsAcsAz8BBwDTgJvArOlRU8D+4G9wAvXaFVXsPq7RW87nT4omT6lTtSxeizZdaXKPh1gON6oW+p2LjcnGwnyfAz3qBcjW1dvK21lgNONQwyuRtvqefVedZd6ougeL07uVl9UD6vfZVCeaQnUAJPwNfXXVKL6p3pOvZRqVd+IgyV1dUpyX7dWTQPqAvByAfEGYDcwX2weDt8H7AI2gXGOwD3AAjCZVsGFzPtB9Uf191SwVmx+U+fU21NZvd8qf7KCPCkGq+rulDif/t+qLqg/lIQeiM03wWszvtqAvNbewReZ3a2U3ZdWXAbOA2vAWWCl6B7JvZWsmB25OwesAp8CHepDAbJt07H6pfpEGcUdmfuXSgXvFaCP5n0cUp9NtahdG7VHg/yQDkbfdtCDRXfyGrtpJuPLUPFKAG24/BIc2qvdqZ5NgC31jsgX1MfU19Uj6pmA/z7q/gCyL8YH8lqHgPfhH5ZpOaJ+kqSmEnlUZlPOqzeVC+cyRW337M1WnZRxnEZj9bT6ag/sAbbDZ8tWZLAZO+CdbNVxJqfxS8Ap4HPgs/Dvgct9jPqMaf29GHyVNwP3x74DJknsuTg9M2UrzIySAZnjSQnY3sR2HK4ns5b5KI7fLc7blzvKnXH7DzbUt8o0LUe2PAB4UT0e3fG8gb7o/3H+AiTsZ9hMX9mnAAAAAElFTkSuQmCC',map:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACdUlEQVR42qWVu2uUURDFz7e7kWgMvoKaRrRRI2JhJVpELSMIieDbUv8BwcbKB4T4Aq0ExcLGRgJaWNoo2myjKCKIYsRCMD6jSdzs/mzOleHyGTd4Ybjfzp07M3fmnFkBClLxfhCoA5OWOnAos2lLypwP8/c1PIcgRQxQ9T5kRw3vU5aoG8ruzBokz/4B0LSjUWC1ZdS6JvCwzVfU0gsKK7qBD3b0A+gNxr3WYZtu6zvsqIhlAbqA58Dumv5vNUp0FUlNSX2STuU9mEuJOoCjwDFgYSwLsN3o+1PLJIN29KukyUm31/dOBHTdAzqtPwxMW19XyCZ9nw/Oyb4vBLvjDtoAJqzbkDL32pUyeQ2MhFKN2GDGAnAuK8Ni4BPQAj4DB4BXtm0BjxNMG6G+KwISTodMzoReFZYq8Mzn08E2+dufYDpj5x+BZVnTN1pSr4rsfDBjesv7d6AnBUjKcWBJyLBSMkbKRstO4BZwH/iZ+ZKAb+Fpa0LTq5bZGBvPVrrZ2OdSQBVJLyQhqSZpQFJhAjUtZaswodIuSVcldfl7TNKEpELAyYCYSVP8BjAQsquGUZAPuS5jn4C4HemegFXhafl6BGwr4coCYAtwF3hvkCT0XIpJpQsX3ezxkiANYF/gwGVgLIwUAsy/mB9F/D8onF0fsBzY6oBfw7ObwDXgdkkCTRMNl3h9ROFs83wt8DI4IavzOPDUJewB9lh/vaxERSBSBZhn/WbgTXCcGHvHMOzIknrr83UJxmoD4/OBfpcsTdT+bBLXvB8B3gGb2gmQj4crdv4kkLAoudMZf//rH61lIlUknZW0SNJNE7BiguYEnPKOJP0GKQy7e/cOUcMAAAAASUVORK5CYII=',forage:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACwElEQVR42oWVzW+NQRTGn/e9La2oJqISKRIfJaGaNEKs1EZuYiGxEmJhIWnSJRsrcffiD2CLSMSChAVdWEu0KakIjUh9JMRXqyi9tz8Lz8gxvWqSk3nfM895zsycjykAZaOUNO/vtZKOSDogaZukldZ/lPRY0m1JVyW9bGL7ewBRSs/tQA14y//HO2PbMw4Baka+CXjwD7IPlmZjxLZ/OcnJNwCTNvjp+T5wHNiYyXGvReykOf5wCij80waMBoNZYMjgtcBl4IXlCrDOa0PGJiej5iqBQkCLgTUDfliq1vcCX5pcyQzQZ0zVTn54rWZ9S7qiLmAaaBgwFI5507pZYM6YtNtbQCWcBK9Pm/NPDAazYCXyDuC9CevAPmCnnc07y5aHGI4EnkFApbO1KikVxEXPhaQ5Se8ltUp6Lumec71IWR5Eki4EfTXVQQUYD8frTffneStwGtgM7M8CesOY1hCvdM3jQEVAJ/DKys/p7pxdsU7assL7BGwzLm1mlfUAr4HOMlyHsuOmsURSi6RDklZLakialLTX7aKwLrcvJBWlpBlJU1Z2SOrKnM5LqkvqMVEh6ZKkR3Y+H7Bdklb4e0rSTGmjZ/ZckbTHBmWTJljx/DNrbCnwu41B0oSkeiIZDrs4kV1TIrkm6YnluvWxc2LbdPrh2E3XAF9DBhzNsiMFfJkl6hLmcMjEb0B3KrSUAedCH5oGdlm/1GTbnXrj/i68JmOnQvqej62iCFX71IC6U3YgVHUtpGgtVO+AUzOd/hmwIja72K57Q79vAN+Bg17rA55YUpM7aEwi/wjsyNt1ktS0+oE3NkjN7VhWdLKuYQy26c+4FjyZaaEHmMgek7PAer8DZ7K1CWBLTt7MQQx6NzCWEc1aom4sZUywXdRB3MVK4M4iD/5dYxbs/H8OYuArwEngYTjBI+BUIC3/xfMLThD+oKFIQuEAAAAASUVORK5CYII=',farm:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACjklEQVR42o2VPYtdVRSGn3PmGkeN48AE8mFaRc0YG0klBmLAPrFVkICFf8DGTsTaP6DFQAqbBMuAJGAjKSKCkvyBJH5kkHyMM97JuY/Nu83y5F4zGxbrnHe/Z62937X22Z3KHkcH9PECQ/CV+HvxS4Uz69n7aEEfxp8BLgE/xy4Fqxy7PeygreZZYB14FTgFfLCAvwF8B1wHfnlSgi5+GfgJeKnMzSLZdt6fKVgbv/f/E7grem4DFzO3C0wT6ALwWuxCsGkkAvgGtVofG+MvxJ9U76uD+pd6uHAOBxvUe+EyKavus0WA54GngPeBD4GDwB/ZyXKRZqdIsgNsRaop8APQT0bB14HPgBPAPuBAWcChBTLORu/teT+wOSm9fQz4HlgtQaZJtAU8Nyou5VtGxW08+tgAfJHg07zvJvh54BXgI+AT4M9yLu7Gt+fHOzAFOp7CDOq2+o66rp5Vl0YFvxnernpOPRg7F2xQb6nLKi34po/GQ3VlTnc9nWQb4f0dfzemuhO/ke+WUK8E3I3/St2nTmJdSdKpL6o3XDxuhNOpPepUnSX7WwnWzTkLFV9TP1evqb/Gfgy2VrnjBG8/IcG8uRV1dREH9fJIoq8XSLSoJg3bP28BqK+rd/ZQ5JZw3q/ky8j0aeH/m6AlqW16Oth7CToOOMnccfXdsrjN7P4/NWgBvi07mBXJzqtH1Y9jR4M1rqmj6sXWnnUHfYBjWcEsVgNslVVujeYa/zf15daeY4ka8GYCDCXJMKfXhxJ8UB+ob4z1V2k3Wr25bpeL3Pyr7gC3wjsCrOVn1pUL/0i53R5dk6NOWSpt23S9kq7qYqvl9DfO5Xz7WIeNE3TR8WoO3tW8j2+7eZxuXoJ/ACKfxEtAO+qmAAAAAElFTkSuQmCC',};
+const MAPI={house:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAAEEklEQVR42r1XeX+iMBBVW/HAI8hNEm6U6EpVvPj+X2wnkSq7lLK6v91X+ocm72XmzZBpO9+jO0Fo0u28jBGyCbHRqwpdZGE3jl179qIAst0wPR6XVOu/xJ9adHUoimLjY+VFfrwvAFfmWtPn+RPBFzjE9HmFiU5u/MuxKPbPK0wtEvzg/P0q2lyfVhD5Cz6UgPisjKH7vH/HlWurJNgKBRv1nuUfgI+Guvi0h4Za9J/jb4GDuuVniMbD+p8YMfrk7yNqAf+mCLU4MZ9as1YjegscCv6P6O781HZXJ+ioLRgxa32BbI8JfkCAX/nyxINaQlDfGwGHxScebkD0UTUsb3UsRDGwOmxp4AM/CQyr7usvIIs9V0h9YjRbOTRIBNt2kOti8Ks1yL711nUTNHZld2pAA/P0wate/XYhAbsWXL6hGH04hPMhfUNsqL9f/s1KCFB5r62/L7Ab74T9+vDrBMHKeHPiFrlOzcr+wvFT8eo28YWVxFvteFf6RO//tob91eX22k1u30gcY1mS5IH0iYkKaaan4gL3nDqq8hXss5I/lScIIc0wOWzHNOGpwMBexu85n1hoeM9OxS673vgOgBBCqed5ruf54nnApdApopyRS/RBydeJyL9glLp+GIZxkixZlm3XWfYhngfWjO1vF90hDbDyyQ/g3hK9nq4/8jw/F9/jsoq4DKMa5w903j5NgFg3rIoEzspDQsPlNiYqF5jj3/nHHRNYpskyWfoerYL4HyDgWJh6ZcEQSfg5ICywY0kU3HfDDzZ1rQILinAIHXlumHBBlQK8Kv6Gy7AkoIQ4hnYD0lRtLr1VG9oJD0XmWaNOn39fprBhPqaMj0FKsKEiedA8cUl8BveMsg9LEz0Xq3xh41nKvJlcxnu3/9FGpqlMHH9bHCKCOt9D4QIpCFTRk6TOu07TokiI2iKgwbZzTFBjcvrbqwJgb15sPVNqE2AQ6FcCMhfI/kJgbEOHfPiO/KqAZIJAHv4HgWVxaRKARmgVUKEPjtHXAu663YO+QRnEiecNS5lnjxuobccIgfYIINFNsQscuWWpET1NxGkOWpZei8Bd15ZaE6372yLwppdWt/jbjDJR6R8J/HUVak3a1m712y4hCtzXA1lgDHN6rqiKpinoE2UEw04dcxzmIKDywe4I2I5DsJjU5A4qEiXqe8OVlNwGexByeDCnwyRJ0jS5Y7k+8vnhyA0CLIz4YN/lHBnM6byoo+51OV8iEM/h91cc8/M5v2OXrdkyoka9DI8hDdszAZZtWZJEYRyHdwSeC5ZY0y9n1oVHt05huydA4QHfHHgeME1NQ6NOHTPHZ3w4u5SA/yYHlENXFTRDaCbfMXg0Yf0PTTgQmxqayGOJoy/BBP9z9BWIDobzc/8g/gR1NvDku13sBAAAAABJRU5ErkJggg==',target:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOnRSTlMAMHC/IGCvn1Ib31AQXJa5DyoVPiVNIwMLPNEfGQ042vzy8+Quw+bw4NX5BtzHrbLqRmmj78H/z49AyDlNdQAABFlJREFUeNrtl9l24jgQhrFsLd5ZAmEJdBLCYuN9kcrv/2IjASEQJ9BNzpyZi/4ugKNj/ZZUf1WJzl/+fbpa0/QefzB/UgC42v0KWlHGteeO7hZoIH7e+Ejr3Ilje1O+SX8iQC1eEWz88cR+T9vjSoGMYPmrZxhGv/N7PA1sG6MDpOIWRRIsGWpm5ya70cBGHk10SarrgvOXWJcQQhJAbNG9GXiGvGRqLUPO+Sbk74RVVS3jFIr86VbgqT9d8m9YixLl/avzmRdnctWROLKW65gKEWxDrnj+lRRv147PBj/j2dSncKTmXHgAtKyn1ovain7NFLsBSpZ843vg5s0eEJzrqGlsDB71hZWJEveubMClAc98z20exkcni/07d06vsV0ElNBiMu/0ja/D2bfBf3mOvY/sa6A+OdkZDYYMu5Nu5ynH7Mt9PGC5gW1ZnOZ3hyB4RU7H1jWN2a7TkRv12BdrGOfgv4Y1DLvXU0GtK0WTXXsBLo14pA7pQiBrCfQwEdTutzw4VCdQQz4/DRm43PKIfl6uKc2SFK1TGKmnf5XnPtFQuuEC8nHLrkkMze7zKPJf5Ynn3fMhnUuBph0uGlB31q5e3FLDFwLKBoMvDKfL2LRiIHhEbedsTD53iuIFbwW5tLRpGAajkdpvc4Z98JH8pSneDGOkHcBJfLazR41hCcl4DRd4ieCvPkiQosAYowOYCmiUq44p4BFS0lXI1+KdOpYfqjDsx2pdQSS+rkjLREAhfT0/GmCVVVuZrTeoJK9csdku1zUhFC+Ofot4m8yyIrHef1tZpdhaakgRZXu9FTTvORBZWyUe1fqJlFIKtTwD+U32lFQCCkrEWliWElA8MKC0JH62SQF9wGwVhYxgm+EDNmO2ClPOoK6BUpn4xzTKbRtjGoRSUjthOqqeWJSZpnHAMU1nrKJWJL+oa9v2KfHHjmMo1wi4SJy9gPLWJT1XJhPKHcf5lAtptk7RYH5LYN5A7cNQ9odWkgoelLh3Q+BRw2VA2UOnxaJIolBH+fgiv7blp3oycr1Vqp5q0c+hDgV1Hy6ysSJ4dFG3cuT7+6Nq08PlVkaSjc4LyuvF/eSxxyA5vqSN8vRL5H90PwOTip/n7VxzwRdlMdl921jiUHa/wWx3LrA4df4ce/XKKybd71rbpChXoSiROxgpiZlLrVNJc2YDhsqV77mL7pXbAS5FGKQUsebN7O7LegyNYxqaam3UFymwq7fGeS7XsN4EPoWCDZujgM0wAo+mQVAiaYCr9CcYSL3MgppQAAyCC5BzSRpPralP0cDs3GCusQKSOMoyS6xIvebrWkytbVD7xAM2eOrcxnwbIqCpENayqjh/DmKdlBQQll1/95v3PC1nCIAmhAjpZUAY2402mv3BnXtsLpqhjTHSQ5kMWs9wdndc9ftGD5PKUo34XoyDgPOfCmT7gnAvJqNWRe4XUD0nWP9EQN08iSo/d/OUY6zS5376hmH+z//a/gMGwbWud37tbAAAAABJRU5ErkJggg==',skull:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAAGLElEQVR42uXW124kORKF4cNg0GQZqXf3/V9x0SojmjDcqVKhJXVr3OVivtsEf4CJIDPx/y/ga8ScAhAD7sxF518NEKf4G6Lw/nwt93kR/IrxWSnEMYICIcb352q2OJz0TwKUdpwoUKDIFFPGuynSlp7+MBAOJTIxh8TMhM9ydtW4H/q7AaqlMlHlHeFmqjpgC3fMKUXab6K9ff0S665EyiVtgDULrubLATwCgWJkTLOlvY0vAvVYIud9go2hZsHXWmYAFDeBI1GIiTGny7zKz4HjllPdJ1xE1ZYbzFxFHXiIOUVORFQx1Nt1fA5sz4n3R/TedblOlaWOX/AuZiYu6DLb5eNLpB3n4yaXKT5Fh+BrekLeZdeyhRDDGW8igOeadgc5N9F+uU7H77Oui5bvgGD6IxAPeTv4ucnr9Wz4Usw1s74lQghWPYT2YwuFKfOpS3tZALYCtYaPSs0U4fXtLJzliF41kOMRSBSzdJunBYTjjuFeWwcetpqZiILGx1nooEgUeeIRCCHmubw7EJ43zsGVma8LN+lQmGIqkdqPsyDu/nmUl4VACcB+u42Dtg7m+4Zw2MWUywYgqRJuwpEprA8BdZsb4YZjfkqI5dwn/AQg57jfCm6GrvsqPmypzmUTdwSIWUcMqQLAMgA4fqtcE4AUKT/WN5UOYPvXLm1ryHifA0uJytKwOkKGSmAgrrlEABQK0gP79Tp0XMGHY07VuvbTewCcQjiqBFMNcalMA+bUroCnaDKltSbSX1APOy5Vprye8CGgOYJZ3DumrbBkjj5ULgvAiMt8qepsJ9TjlmrsotczPgYWcqCDWMCEdvO1zHSeBTd9jOlzjnPHdixp0yHtcv35OP9nq0849XYZ92gh9jHwGT1VTrWp9oviXcRNZOBgRkwCYMnsw/DZdqyplC7zfHH8EpjMWEdbIfEyfGE77nPa8qvOUwdA+10N+iGAxQHrSQmcEvnCJ7EeDpXzFl71bZP8vKs58/hwK48Wh+uzXjulTVWW4IEzUmRKmUe3ee0AsKspLQr4/h7AJeyXr/St9Wm8HIYHigjEqY6zab/cu6nE8mxXrK09AoUxznrAlTV/k6niH3bBFBO3F7M5zgs3+xwLM0QJb4HjxpBzW5KyxlemcjR9D8S+Xpcs+fFtPVaqe6DZCqxg4LBPvAir97JLSQMRg/GgMMFy773jTampbAFQi0/5uzNQuBz0ug7Uxkg7DjEKAh4W3FXFG4DHBZ7iVgEULFmHEwMhpA1qW0oXlxdQKhQiHmy5NDyEfckxcN3fd3LU70ZgvDnQCHtuDfAx8CXa8RZj4rrhbq4FgB9/Men5EgflZN7wpVTL/XbZMTBUlsGgprcAEQPAoV6GHOBVpjo+i1u6TxMfEjDaVMfCWt6v4HRgBNzwt35VKLuZiQz8UErhGCiVHcNfh4mru2KpN4BvF3HBm5p1NdHly2XJnHZfvkscKaVU7sunLR1dBQ/MVL8FPFBGsaEuFlHM3BSFmTiVysAYImoio+EdA67WE5bCFqdQ4w6wpqbmCw6iWEshePcmbjJeFR+Fp33KaxLgwKIQUmbOADBEdTko5w1YZ5nLRecY+IzPBIcuwBcsI+oMFGNKpRTADDECQLuaGQzEUMPdlgijISDsGcMAMyCjJo4hBEr/jvhgnHw5HH6/owGlzETQ6zngJ5QSl0T5LTBbjDkCMDM3X3O5YwGOGDj6lBfGZ2W7pWPZRUBmVw0UKcWQMm6mmS7DcjDXNE+r8M+/UTFy5LrB+5zqv4kUBkKkEJFAG27MwATEAAQg7RkKYAXORDFvOaJ1E1tmQywxR0RCAAjEQDwybkbXLueAdNwI6x4IMXEpNGUOc1drIgBAjJTAoAAOQNxtBYD9dy5tL4zbLPsCYCGmA+mrTHPX4U3wxicmAKQQagBtr1IOBAA+LovxY5ZnSGjDhrvbbAO/EGAACdlUdzU+tbaGMgDXBAAZeukKVZki+F3yfVeKWa81DAARzEs68X3cmkzppyaOP7CmBHIxGdO6RMxIrlSxXq5T+vk8Fv6Md1hwEesXRGCsxTGFU9PZXxR/yeww03FxBAC4ncgg0l47/jYGgPuJ9H4W/H3hceEz/FXxz/Q/VL3u6Ng1uVoAAAAASUVORK5CYII=',star:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAAEVUlEQVR42u1X61LyMBAFFItyMRR6zaVJm14iRREQyPu/2LehSBnmo3Xwrzt17DDN9pyTs7tp5y/a4nn40vvF8i7yw8Du358ABSyOsH03hr5L87WKgvG9CSYh/9BfkjoP963vzUi61+tl5D/fuQN+tNA7yROC7mUQr/WS0+xODpYDDA4ZxfGdHEahKPUHx0GUkGnr24bDx+vfpkTudEFdkJI6j83rx24YOlcwLY8pvRIEvWLBw2EzWJ8KTnyE0GQ4HD5BVAxWumDewPJaOcyIXJUJJYSEEB7EHAIYrARGz09HDpD5FU1eEYILjeD2kvScKq0/szRN4zjmURQxCgEM3qMw9D3PcIDABC4CFzG3QHpQyyUWBw2PU4gIIoZIi+32TcZxBCHy2EQKl4xT+DO3nDjWKcHAIVwd9FfOgrkLBILj61L9xqp8Qqqlen9f7TYbvdtoDf/3m00p8GvnO8MM82KrtznULkj4AoTBxltJ5nMPIiQioSZPqtTiY7PZaRP79MLifRuzpNRfimPb+raxYsGoB/mskUtTYvIQQMTjWKbl4eNd8XByUfooMEIcIMORGSi/hc3rnreJedYITQER0CMkLXjEsH1pr+6LEWJ9UALPBh3LpUpFwUvt6tPrek9DBK6RDHve9KrXgRBMfmrFyWwwARdJcu5lluEwrZ6yQyYFDRC47Tr6U5/Gar/gxEEkVdQfdSBqDmbFGHDmnLjj7v9rwsc8+1SC+DQTZ/vWHB4N/IxhZ3CzCdkhlWWZEP7GvNNTNQfLwE9oAORvxuPEJ6JYcCnI7KpcmOdgA9+fdJtL0wEtywrAFQcicoDf2p0ssESyFKQiWnPIqJQV/LboAt5YCpD6QhyHpEZc1Aj/UjEqBT0/3jXKqJQ4o59NRFP/xm5gl35lkIAmki9+2J17czMJxu5RMtsy8DHLBCVpQmY/auemjyNoEpgXHDwz9o/mc4iErbF+NBElM1gtG7McpDTwWWiPYNIKjNoT1E0YStxIyY5yPj550bKgbjsEVI+B7tH6BcCHDX1waLES4egHe5hVg6hSX2SqkrKDSLqTxGmDUPeOzniODfxKSpNArBa8DULvXPkW8s1a4lZSjjsDL1oAhBYZX06z2JqYmioi6G+VlD4CfxS6VUZUnQYGTkhFYYzUBylPrkTHYReidgn7U5fwbJmxk5W/XQlO2Od03pTgOMoBPRWLEl56KqZvV4IIMK38UfO5jDpgXbVaJnXtnl0JIqxNs24uAxBPHUpRN+ULV8YbraKGgjB7SHixhvWX7aR2pdIaZJw0SijLw7bg5LpzV1Kqg5mpsxscegiLlfqEMX/d+WspIcPNvtK3A1Zoc1SJqu2ro5aSL/X6xsm1Z+Mo32pttu+Wzn2oyMNWEnTDxOpL703rnfRuG5UX4K//OmFoTsbrnDe1XqCJae2v67M5y5emdw0av0HQfH5rtIFVItO7fvGF5XrQu34T/aeHvw/de+If5N+gCKn8gcsAAAAASUVORK5CYII=',cross:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAAAAYLlVAAACnUlEQVR42u2Zv2siQRSAAwc2IWhjcaRQkDQWsqVFkK3shCW1xbZ2859sl3YLaxHsrBa5YsvFwiYIayFXpFmJVeDgu+GxDERIZO/HDCH6MeXufL55M+85XnHllj9/9Ia2pkndjcB3hoSagBF39gWaDFFMmRETMaJuW6DHhBlP7MmZMqFnW8BDkQDwiwTFwJ0AZET4rgWGXNsXWHAAYEvMAx27Ai3GxOQAPLNE4dkVaBAQswEAUiJ8uwI1BiiWHE0WjKhbExA6hMzYA5ATE9CwK9DELAI7poS07QrU8IlIASiY/2+BGg1Niy6eHgONr5EsMALeG3q0NS0a506IcwW3hy8EmjEhSoYiEuQs0GOBOmFCqBkTMKRPh28VBUzBnRAJsTBnqUeiWWkytgDAE8kJcyHWRCjGeBUFTMGdy0QZG3JNwZGCV85/CiFnS8aSiAduKwmYglu88/oDhSi9APAicgUb1mRCLjxzAH5+lKQflhvzXV8pNDvWpGWAF2WAUwBS4jLkjydLtmDFD2LGtKoJdAmZSugzs6ZTeb2kGEpSbMKcAkhQJul8zYhA80BYpmvIPbVqAjfcM+GRuJwyFAL8cpN5tDUhRoABsu1kojoNzS1tPBHqc1N9F9TpExDI4x5dmbDxTk38i6bkTNXT1M7UxH8sUL0obzH10LbANUMiMkw9tCog+LgXIAXWPLoR6KNITBLWvmAEvDcRuLoIXAQuAhcBNwJLjqSuBDplU5ag8FwItF0LdJ0KmCQ8sHArYH6eu+kHVuyZGQEnTemGmICms7bcNGSOBDa2r+lO74kyswntJ+EXF3C/BCYJF64EmiKQm3PQtoDUwhk7pi4F5qTmbsCNgElBV0vgUqDJiEhj/39Dwx2+xqPuSsDwiQV+AwcPfda2jAtQAAAAAElFTkSuQmCC',heart:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAADPElEQVR42u1X25aiOhD10oCtiEHkkqRCEokIo2L30elu///HTlhnjssmgkzPmpdZU28W2btqV5VFGPy1P9PG0xlCU9se3zot23bRYvY8eoQe2V6ICQCO49D3nv5zOosgimMClCSBa3fBh/NVTBhfZxnnnAEJkTUYTPyIAuNcqPWaa+bguRX/jDDjIj+czueqOpQbwWjoehEwuSmr6vh2+meneArJwmnBJ5Cq3fH97XR6v2h7PxQCEsxk+aJ/vb1UVfVyrr5lmta6h5+EkBXn06HQqW42RQ362CuW5i8afSyV1LJkVhxfc0GX1l283O/UutZOAFKZH75fLq95cb5c9kqkQOK6kEzku/Ieg1PjtxwIDpHrIRRTxtXu41LbXmq07zq2M0MRYaKsGZoNXVCNT3HgTsc/WhdiJorvGv+aQXjtnuWtqGbgeNog8GHzLcXohnc8X1G+u1zOiiW3nbOWVBzXxGt2IC0zCIafnFagZX0UKZ5/dkcsz1k4bihY12ndKWwhKBoacg/6cFPBBozCDNyIMrPiTsjKhobRSrvoYmCYg1bI7HlQh0O3HjvmO0lmg56GQBVs1SCoeOz0JXDJurxHYPclmBkEv5yBbm0hifsTNVAQNFxSAepLsGKFaISbxDxnq554O061gqfmeGrfqB+BE/MNBOZs9G7DjEhz6hAooZ29LIDMnDoXp3lPDU6sj0bNng99UDzp1UhEpCSeORwJV+D3wI9DtmWhOXSjJWSNLdG2/bkg90ZmijnHjzUMEV2zyLqbGihInh8ReJitqd/yKM0gnHTj5wm7LlkzOZxKCKwu/CSq8fM2eT4VxkvH2LIp9lqfWyEYDAae+sOOCAGVggaTFv0az7HfqdGpY7RUch4xcX0pdqoUdxnchElDX0udJYSWOYCgjB61dlpHchr4EDJpZNbFEE4++0Aa+A6GZjRdv0x04c16qdvzOqc+8c2M3eH/eCP+I3PDmgF7Tz/wki4N/ON5UIwsZ08ar5SxA3swRJDlAkiAmdqmxh+wVyXTbam1p2ovCRp8wRBOt+fdpqiveT0FmAtGvV6veV9jYKrIrte8LzDME2CA0XDwZXODFZoO/34H/mb7F/3AZg7UImOYAAAAAElFTkSuQmCC',exclamation:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAAAAYLlVAAADqklEQVR42u2ZP4viXBSHhQGbRbSxWCwUZBoLSWkxiJWdEKxTpE2Xb5IubQrrQbCzErFIGaawWQSnWKawGdmthIXnDYdDLuJbelwWxl+lV7hP7j3/U6P2d1X7Avi3AJq0VH8F4JkZvmrCiAEtvlHD6Yk+XqkBjfsDfGNKQiZKSYgJ8ZkKSI+OnItHQCwrLzTvDdDCJ+PAsdQbBRsWZAoSMpdzCUhZy0rEC3ULgCM7lqU27DlyEJDye3UyO85cKMgI6NoALAmJiMnIBKQodRQdeOMMwKf8q2cHMGSMTyAgSWUZa04AwIGFLUCPOi26AjJR3whkFQByEqY0DAFuosOAkAXvAPzklQiPmj2A04iYDRcAChJmtB8J0GRGQgHAmRUxY2qWAAOu19q6BrBXF7w7QIe5bLIhvrlfj4hXfgKwJWFC/f4APUKWnLgFqDMhIUcNUNfvDtAXgE8BGF2viAvuq+ef8d0CwCNmzW+x8cmNB6z5pREwYkjNCmADDuDGAy7sSMUALQDknreVlzdxtiEhSO8/xOPJDqAAjmTM6VBTDYnENiB3AcgS4ORCkYuB1/ZveAUa6dxG7coCCmf/tifAlSMOCCUE/WKtv5oC5FWymWo5OpYL0BqIviWAp1vBgQyftuaHlDe5f6kCrQFWnCt367kE5RLwQ05A490IFwPWmoANAZy54YKRnsq7VIB9awCX85EtIzx1TcWxBXAGB/AHiXqCtGejF2DeG441H6IBOdASRTOgPUBfTG6Pq/xCls4n7AEaVTTUeCh+sdeoYAqg+l+AQmvAhwFsOQMfrK4Aao8BGBCQiuOtSZgTkpE5H7AHeMIjICkVM+eZF/xSU74/bkbkMRGN6cuApuXGNPYATV6ISNATkGf36NGwB3DbL8gpxAayakAz5dkeoK7bF/wB4CQTkS0rFmKOHk+mANoZ6vaaETfk7DmIRwR4pgCaeE+gnx9SAycs2PHBTvOhFYB2P7l7dtl+yoSQlJ2mpq4dQBc3AfpgSUwk3t/A05pIegU7gIF2xmj/M2dI+2psYQzg6sHfrK/6n57tCdxWxJ9uROPGFvY24DrgC1v1+7ZDEwCflgXAbT14YEVCxIwRnramhbEbukpA/SDnlYRYlFKQa01gB6CVwIofXHQYVbARFa4xNwTQSiBmwZY3jpy48FnqnYKVNuZ2AIrQZUpIQqqD+mWpBakWJw8pSBoMmOAzJ5RoGJbyGdF57Gu7Fh0GeAzplWp9vbj8AvjHAf4DLSHkhRX9mjwAAAAASUVORK5CYII=',question:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAq1BMVEX///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////9HdxPLAAAAOHRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PP5/LeevfYAAAPVSURBVHjandbpcus2DAXgA3CTbCdN3/8h28SWuWHpjZO5bW87sZUzg5/4RiLBISN+DS+RASfTCWDgTiJ+yboW+gCgwHu5tP448HSMIQRAg5oDfqsyvPXHgNMx5XwIbBpUHLiVcPZSN3sAiCWWpwKAGZzwmdZUOKQ3uQ8sP4CCn5kAxKksaBcmebsPRI4HQK4OiQIoAHNKQHx5s4Nd7gIBFIDL1eH0uYTQIADb0Xzt8w7ARBGQaQ1O6nABMBcGLaBF/PTHHSAGZkDM6oa/MwD6jdtp1ZTm10AgBGCoCt6TKAHSAfiWqJ5CXO4AzCEC5toBnFKiAMxzAzC3KBa1bHZvEglQF065xEhM7Aw0AF1iLzPEcQ8AxICXFALllMCyAVMB7UkW8CMAEQ4cOOTlelE+Hs9xvQBQGAUifAm460whGUIsXF+natxOScs7MNUdCF8DYj6dfpsIdh3DpPUT9TzSWvEeDcxfA2PEimdKUnsz6a0iZzk1YQCiZkTxawAXAgQwVRn9gs+ZuLWZu0TgDjDPNwA2+9kBQN3lc+kUACjoF8BNUAIwu+CWoe6B0kebR+Z7AOYr/hX1uX60iRnd/YX/Zv5sc4AopLELSDnSP4bEGYQdwFpypJD954g7c3wcKOsSKXBez2YKQM2EgEeBeFhiyKmInftsN8ABPAwsxxJiPtSLmMt2BsAH7ADKU/nRPrZmIjovQFlSjIEfBdIxpwNdhkvt3YB1SYk5ldgfBE5rWmibOsfZEUsukWJKsW0q8giQc1jDNnvdHE+FEnPKpY/NROrlESAypW32cwPWY0IIeb2+iZn2beIRgCiQ2rUBKDHnaPo61Zq28fg2uhsBQADHq5hLG3XPHDgnjQBy5DSHTOkVwMOASOiRlrWCQPFi9c2APUCfeTwPTfXjsvRp2AeglTBiWOoE3EERe4E+Yz/0sM6pNgPRbsB6Ec+aoOoOYDeAtoaeenpJEfgWICPPQ7ITcYzyHQBtCX0Fh1SofgvoI9Xj78yA4lsAakRbGYD794AWkrYTrI6p4zsA+uRNXadKlay6H5AzIHCbVAqsnXcDaJAAyZkZsOCX3QBaS0+HEEuGVz9x73sB8NOa8mEB4E6nZWxzJ7CUuD4xmvnIYYbEf9o+gCgcuNduMI6L1/L86rvfB3ruJrCoc10cctkFJCZS02t1LWXBMVvC7i8Qtd6Ba33hXnrYB0zTycypAvBWdPc2Dgn9Oc7yLIK0EHYDc+R+LULJDYF52Q2gJWzHUxcFKBSt7nsBAJclBHXAq2jf9gE3wRWAAzAZF9kLoOkxApD3mv97mv4Cz81UeySNbZYAAAAASUVORK5CYII=',firet:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAADzElEQVR42t2Wa3eiMBCGVytai1JAEQgJN7nWqnhpNf//j+0kwLb0JOWU/bJn55tH5zUzeead/PqnYzxX1flf5M9NByFnOTh/4eAgjslGGZ6/Lc+HwJ4Oy59ZOHmldLDAyPAiyB8u8OT6JYU4hkgdJKDj7ZVCXOKBAmtSUBbXLTYnwwRKyqMM0WJA/sRqBd4TvBr/XEBF4Z7WsQtcfTRAIL40Am+572rDBSCuGXH00Y8Fooq2cUqIu/wpyHZwoJ8VrB+OlLLhHLSxDz29P2miqqryQWJ6g8zbhbfiXvj9vqCYCKHNSp3xTxoKj9C/PI7TApg+QxF9QD57YRwSDBoagDO1/RdKX3zkYT8HhX0/kCucXo7lNiLYXS/5R+CYrJ9110/ODEhj1Ed/9gaHrso0IJY2go+cwqeRzie79GsgZ+pcQrbmBrsavV1EXB1K4HYyY94CVF0TDuSjhRxTEXv4Ckevza1lxIUmtnYCg1FCHzNiPbIfBZ5kwB83ODk35OS+n98gidvJxMTpHWQjrE/tYAcDbo4lPhzsW/6L4sod0ZnXF8SqAxgWQOgtD1zxjTwwE+hEWW8FpbaXM1iDBzPyJrUIfnX0fjy0g5TiVftFYw2c8J3sCMAvN7Gg6eZ5i/XPFnuJMfcZOIIuKSFjv/JsvD3x24AWdKa7TMs7hQCHmAt3AWviAeBxSP7G/ohYD/V0d4eTnmIh2M8ATL2LdBQUd1bqsrMm2uBgC0lKaS0wMb3wlRZkPf5zOOCicz1rAUg2Y/nOr06xcFR9tApwRtFrR4AX1w0Dchi9nsGg2pDOSplZHPRTlnKdvWDnzh2+TnfwVSOHV5MO6OBRJYFmSJY29IlNQlv4o4W7neYelREUyrY+GABfpm3hC4TULz6bQfctnIoEWg/jFtJ4rGFMvh4RxltnI9sW2m1BcGgqkO/LnGwW8DuhgIric1OBfGPDnoVKuMEJBKKq50GiY88c85m/pV0SW9x7BBYbU2FLb0+rCGnCWQaB73aYMgYVOGlttmIOipZReR3JOy15D4XXsK+vUR4GTtkwCmxVETRB8vqqIgapuAZoQre/It5gYGei1z139bIhSU7TEWAxZJZ4Bcacec8LtvQlfdJgizIntmbfvR8LdoCR9IVe0RIgkS7yJQr3Z3mfgcakumXE1eQHSN6Lb4pcOiTKTwmRPIhGOhygDD2AQKqwQUFeJWIc2VMjzyBf+e6BaLp+lAfCpynkJwlBPF8eY91GfkDcJxFD2wA72qT3larbtm3NBAIEuyYw3B/T6VTUA31tPI1//YfxGwdiv5rUpeu6AAAAAElFTkSuQmCC',gun:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOnRSTlMAMAYNKjxcYI9STWmtn6PPuZZQwdz/5sfk2vmvw/LVsurw7/y/3+Dz0S4fCxAgG0A+OCVwGUYjAxUPUHcwuwAABM5JREFUeNq1V+d64joQRWAs2VZzGXeMKSGbhNCEKO//YtdKwgLZDTH57p5fGMvnm3ZmRp3/GYcnZPU6P8dWewov19vm58vLD74/akWnnCjXQkut0fFuAuTxLK8EJbYihHj97r0BcEkyAYA0ZDwRCbOf7/u+2/doCjAGGFTVBMaF93Qfwc5mAkAUSQ0GI6nQfQ5oJQcQUeXLyBD88m3rcF8EaQZ5SLRDqMgBoiHBendHCl2SAAiOrY1WPIwA4pAqZ3NHBPkM6qHq9zrbPiZUDCDPJHHaVsMhYGICie8smoeepRUrU4BY+p7bzohX3BgQUQ991HTf9k0k6oQTx2pTUPOAPTxKog8nl1CgeDibTJpY2v1DO4JxodyzyyYSXAwgDpmnN/sWBGIiKPHOmetZrsfCGAZGHOtjiyyEcZpwdRH3Y98mw2wAkfS91eK7Ouh7RGaTzJzd/aa1HMXCFEbCEPeuzs+7nxmeHMXFqE6uzi60bWpiUg0JvojlHrnBavuHmrTnSzGpJMFng18sVzEZ5XHJPPe3aZZNmNK9P9xY24pGEEtjxP6cjsaIcjRIqHKsj3+XJKw4fu18xn6niQB4FIVv784B3mjsDytT2TY6fBCIcfGZ4PQGGtRS6bMNnUNjGi/jOPQ9vdubUv+SYO3RyDBkJvcXQXteYSKjUUKVjZDGhEbR31veQRMqaoC33OuLOPeQQ2gSZ9K3PcLDqJZE/7Xzb7RiMjMtTVClN1dvPDLMRiXjSZTPSv+rXrHtO4oK050FvW4HB+QoXkYPs0kUcmKjL6t6pxWfwZsbxLsql4XxvqpHQ4JddENfG0zTWJiuljDlou5lJIyHUel7+obEXzSRjyGhSf2uxH7v0sOVQ2iUUA/dlHaUUs/zZTaAVDLcP156uAl8AQlZfk3wbLOHigXoXYmDkpt8XmCtpiCIe7zRH4uxIMvu7k2JkAuu1p8Jwub9dwTvSizGMDEPlx76Ip/emntPXjH+8NFquCCWVwQW5rMZx9aNIafk41StjARWapqDIKei684Xr8ghYR7eCkFnh2kqiOkeG9v/BQOpVqe2FzjYI0OTo6fbi4ZIqeofti6RI4iYvTs1XsaKIokHggW3RoXRdCo41kjRFEbhSXaWzcRDbWLCzPpz24RyVHKv8RZA+Lb1Mb+VrAHyysyqb8YEwr6MBVMyNvNyvT8VaAZxMuXK2Xw3LXtrTGRz9n3jOJwLtHlU+PaMOfcfGQNAdU74DhfjGcdtV1lkEwEQD9Wqd1EeRgJtNx4zIeqSOIuTUZokYIq6HXaYZzCQvo0uVpAoD9sSbJzG3olg9rlxGVmMC2y1/J7IDCpu6uVCxPljy+Vz4ZBhBClVq3PEumZmpRTvWmVADWOAkLjbqzWuggejgVYEcmQInIue/oppCsIP5u3Wbr8cGc0ovXs5WzXKp6a3tcAe2b4AqCuqbL3ofhBMoWUSDMPao9kEIJNMOUtrPp8vliQxMXxtv/vzJAIYZENGcBAEDibiFMO29zdCq9z4EXLWoJAxCBbM26//SCs+rQYA+eyhQf1oCuOue9h2hRUrozSHN+Tj0hTGPehZK5swWtbj8Th9KAsfo86d6CIdYL9oQBnB9voHt+KXA3KwQeCi533nR1i8GhyOnX+D/wDm8Y73oIgYgwAAAABJRU5ErkJggg==',burger:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAAEsUlEQVR42u3Xy27jyhGA4b+rq3mRrEwCnPd/wyAzY0kU2XUJQMiy7MFJPLsgON+i0NDiF1sFLchf/gcUPpmFN+EWvxnQcWpPgXSDW7h/MTCOYxNR3jiR0InNsLT4L4FymlRUxrkAWALeEwsiEse9X+M/Bf4+q6oe9LK+fTdUkJRiZBBp5r2vfxaYvg3zYSyXbeuQiQNSQGCftWaPjN5vN57pI9D0MJ/Xzb130uiAFoqCUqSI1Dqk17GVBX4NvEwyzsvZYrPryt0GTTVv51pra02k6Nyp49l+CZRRhwM3325Xncer8eZ4lKx9dRYZW21hYxGR78Gbyu4063xcLr78GL9NTW4A+jIXexmOmb0DaevNomaZstTbpyeQ/QFW226MOvZh2PaoTFhc0gygHNUuWw5DzDHNy8dAqzK28y36jYie4cAwaGO8oLmuAKdjdfn5U0+HrXn7FBirNMy2K1zrEDcHPLJH9O/cDTquA9i1yVwHiQ+BUkrFMlawfw3uAH5DtisPnj0dWPvgUnV7Dsyz6JBAOQ2+3GD3eq0b7xZRWwC2OZHhQ2DU4cilpx2PmrIFepB1wZ0nt00tXkZWDxt8PD8HQCbMt+uxjl112xdQz+zuNYiN8TBQf6xaSm39KVABkuzma5rdF3AP7DUWAFQboR5WdX4OlKLgaVxk8CXwyODuXtsDmAlmNvtojUfgSf4EwG/FbQV4rJPdenXWla2l6LC9BzINatE/wCyBuEC0zi/rPJ8BekQplfeAE71JmYEMdlkiAtKBTo7N2XgT6VWeAqcJ4ECCR7Bz2U/JLjMSB8Bgs0gRHSyAAqdjG+YTu8fuu0QHjJ3jZAKQ4EErYfh6CQrT38bxNPFJrzY8FdOwBPAkDHZh62tXPQ76MrHa5kARZxfiFR4/yvsxSxZAlGoi8V0Pox7m/LF6JFBI7rKwCx6cB+1Imy9NdazDC+ele2yAYp8DlsDnY5kKU9baDioyit1sO1vnN6zwrW7NRDKMtfuydH7TYglIstMX5TeZR4JCMrZ4iTndu8TXbiLKViDCtI+9t5OEVTJCIsLSgH1AFjZ+MR2VTRVI3by/nqbJF8PcqweZCWS8BRyAdNgpUFtNFWlbpi4D+DSWF4huaj3d33eeKXsOkrsClHqIVa33ZSmUb3OttRxesBVAKliyj/d/VxHe1IKNJ/65hG/fQ8kfNmupA7wuAFIgEsjk/SrCQ4HkhLBe1kAhz8t4mAH3DlQAfwyzBGg8KExAgQVQAL8e2NkrRQE6wMaf+DvvlF1m9zpsysbKF6RXeL7bGuFUvkYqGXwMRHoHypcaqnVq3tOfAt2jo1VGvqAWKotFB1B2PXBas+kPjHCKdkjDnV81qYp5vz0FsOyvp6NlIwlAAjKIhFw1DbJYgjsyVG3ppD0Hbo1lGA8DnjhQEhwCyFEyIYsD0aFJk+sWnQ8B0f7zHy8AYffADTGghwTg+4wR0JnV+/VDgGWgnA8qIAPsBnbu1YEuAbkmMNZ1i61/DORPketaKRUDqkMtWEkUDAAHKg7XNS2NjwHilbEIBRIoyX4s+fYJBCD3aeuNXeGdTCooeBYpBgpZrFRIBwinyn3a+a+3vf8n/wahbA1RSs1GJwAAAABJRU5ErkJggg==',axe:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAAD6UlEQVR42u1X23KqShAlxkuMlwwqMsBcQEbJqGAgIM7//9jpdvsQE4K1eTp16qwXq4Re0726V49a/+NfjjEh056FGAyHg7+PJ5Qxb9G3nkdk7bpr8vS351MRK+nPZ47rcym5R6xfgBk+NyTA4qLa8TVER0mWJYKOrWb0IUNnSQBvk+H4dQJsg8mEEKbOZi94GKcftTHFJvglhRcHzuAMEfgu9XzXWa19nzEel6bc61N5Oe1TY95/SWHksDBJ9RaxCaWUoeSch5s43qUGUBepDkWcmyJmy14DwVsQHWvzB5+nLMtOqdb69FmW12/z3UbygPKkNgfpjqwmrba1aUD9mWWVMZr71LGJH57MR9SowtwPUzhIIw57rffpR5ZhSRsp35HAGT9bQ1doUIGvmnrgcHi24wgpOBcykhJF9b1gk5tUelN4y2ZxXu0aCSwb26UFXa1WrruCmfMpxbbOXylQV4otetbYCbjOpDdvIphiDYXiq15vOISZGk3G4z+DtWTQSC09YlMmd3mx8SdWcw1JhRIPrW949eTBVAl3GI91dQaq12bT4HtZQ496K64KUIFHOr8cVRhAMYiG93Y19Mj+YbcZlVidSk2pQ+Yvmi2NndwUIONPuz1fqzufzVGJwJn2W4y7N2XC14OG6jJjjI6YZ7dtlCWDWk+h/61LT4SiCOZzw5xp6zqZUpCxBu/f6TiyPa5ygwTBm9WK3hINgTre2TzA+HNpDFC/tBKgIQ4493T6JZ5B90yu4iNQM9JO0EcV4GVmD77EH9HNHJ6gjaAF7Sqg3bQI3u7ij4p7qM8BBW6HHUQwLlDs7BZ/rSlidA7JVSCw8yCFkcNVCcWCp27nX8wxgvZZU5z09HEKM0+oAjzlzaw+xl/Pd0D8HupTb5nz3E7wRDyhL2UM87jwQ6wf42/6JPURmR8w2EGoL5ArfCb1Lf4K3IiVwh63Y7BgoT4rAZngVGH87cGav1+gx81uvJ+9KC2UBDXzRLgQfwOB3IwOscePW5FWWYH99MhdbtHHZcuW/UcMM8pR/+tyePqa25rvKpgmYj1kcJjal0XMvq2nuSfTOsEheYQpZUJtJR3/2E2qOkjI6zHD0mPs59TMYB6rBNfeQzxNCSHf7H+bxzIRtIXhsV8vhRJ01pXBRoMWindmeLnedDkwgJJdgDedNsAgvHk3ht4Cl44pcEq7MeCkV7gnRUcGHAZ9MaAkMnQsAlelKTszjBwW58BQJKCk1QVjyhUylFvWcSRnFIwNDDu8ajqBXIXEq2ZiAToLefvF1VFIkGEv6LizLz2+fY/Zsms8XkFMCu/V6s4wX7guDlJ39IbD/9C/038Ab8+d6Vog9IoAAAAASUVORK5CYII=',gears:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAArlBMVEX////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////NiyPrAAAAOXRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc3+Dk5urv8PLz+fz6PI7YAAAFTElEQVR42r1XbXuyOgzWPb7Mia4MECgJLVAYneIL6mb//x87Lej27HjUuQ8nH7zUi9xNkzt3Quf/sUfbtQl5evi1vwcIAOFL/3f+Dw4kMssyFpHfAYwCNle73a5E9y6/P4M/7ZcxTWul7S0ORnf4Tzzfm3Y7o2fHo3xlAKQGaDAHg9vufRIgw5CQIAJkydoAFBj5Hun3bd+3+7fy9hKhqIo4oHGay2qtdtud2pScYfTiRXEc2d3rAE8hKzeqTjF5rd+326rM0kxW+1VV8gi4lHFIriM8R+nW3LpYf0iRphyBArLXWh0kTxaHWsShdRWAgHhXxjYFB0qpR8a2F8aZ3B1WJh87AfZVAIvyReMvkL5Y43HPlJUEEOsgGpM3ONHzQKwO6qPAYNr7YpQdxmKjTATZjQg6Voh8rhacTv/+t0tCLPZKZ4KFT9cBumSGss7A633/+zli5YeSHJxbrWmFbC7PuTv0Iv6qb+Y9dm6YA2L/X6nuezq/FafWDSYOPJTb9PhY19KC4rpk2MagS3yrio+O77NqecoUCQEBMfImxxKvJAaj60VkuoHeYn/QeASxkHlZcvT65hIzLDYZ6KCsS3QmlM+Xa5WDc0qHoc9hzqPnlqbZrkBACMklBYpfP5TSAO0DLpbK2KHAWb/ptFhWWSbFeZG+K5CJ4HSiMrZk/tDk1NZp3O1UnUbPFwCSdQtgH3/z+V5pWyd03KYx3X6dcG7DGTaMlzriU06bO1W6LKcTrnbUJECRzw9LFoyOVaWJXC7nCXp/mhN8tjQAl2WahAB8Xqcm4iN5kDEGLRE6gxZA15JcaiWLuFjsMnjpn5g1833feex8AmzKPLvKJgL5h2QROTVdfzAYPHxNmmWBAMGkc9mmNN3sSwzbU8/rnEaEjK7PM3zdbwoG541riNFU9LqRUGdqLzno+fTvYY2l7pPhLYCm2AeZQPgN4cHyIKkycG7Nthk25FGLHEPHGpwm7tNLAMniLQ7PE9gbP5OvBiWRmaittMcQ+i4Zjy1CvBCYWKgqazn1/WY0gpCcNhoXy4NqbfcmWIwRpRQAWSbrhtX+4GwN4amIA+u40XitCKj9sv7QH29lqk3kZbVs+mr1XfBbds23tQDHdT1IZBKFcVru14VgaSFXOpitsbkUrBGHjxycM4DK9BcgAl8YMQkilicIIUXkUvvUIk0ZQhvZ+9+dOBiOh92ph1IpLTSlzOXBNNrohQKdEWvqzrBo5ITS0HVMZGUp+Kcum4WD+nYzypTZpbbvWv6EjrA3JdOGLe4RwB8/PXR1ZIgI9JOhdhSzJAYsKj1M67cyS8V8xSGw/t4WkvW7Oon0iLiu61i9z7vHcrmWXGz0uXkaI1DgkoWT7xKVCJmck+8EoBm7qtW65EADl1hOlAj0eoMvpkxmFBAuzEMbEmkUTiYYOdPReGQOLDj1fG/yFYMZbo+XFuEoTqRWXJiRPgloQLoERIHI8Id75dD2o3QrcfbYIbpGcWiZ6VcU1WXJO1cYA+A2HVgLIEfRzO8ASNZmCBg6G4Bxu9v+fLkeakczy01DmStoPVzkpRTg/BSg2SYi27Q0DYjGyXNANGS6bW0dksoMsumwNx6P+nbI5gk1bLvjhUSZOlLftYk9i+LXstHMOzKgqbha5EmMAIBc7goMJj8GMK2iJOdltX6TeZ7L1dqsuLMfh0BA1DJp5G6hVCUFT6p2FfihWYZ+kWcEN9eOCBSzRZ3+HKBrGsAeNqpoVMOeBJCIu16wTAu2Q7uV65HXCPydZjpBHspmYAybEXO3OSBKHpHOr80KACOzk/wewXHJvf7/ANtZ1jBY7z0hAAAAAElFTkSuQmCC',x:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAApVBMVEX///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////9b9jwKAAAANnRSTlMAAwYLDQ8QFRkbHyAjJSouMDg8PkBGTVBSXGBpcI+Wn6Otr7K5v8HDx8/R1drc5Obq7/Dy+fy7AwdxAAAC8ElEQVR42u1X3XqiMBCtVqpYdSOKEvIvFEgBoSh5/0dbot3PrhXEXPSqc51zmJ8zZ/TpN34+Bov1GljmeAtAQpBjzDBZIRolHAHD9MEG86SqE7K+/WA4fbW7COaQiLRWVdRCYDnQ98C4He+RcK9UEVK4uPl9B7EdRe68BW83+ELVWUAgGNx6MIVMlokg3m2GiYuDBi859uY38U+v/q5UKg+JBwY38SLTeOTarSnS+LNEMPrWnxNeSd6lAQCJkLUqY+pfv7IcxBt8JrBj3RmzPKgqvv7OACAma413J91CcxCLK3XUmX59uYA0OXTjL1Kg0bnXX8Y52ZCoUkWo8fdiCOBp2lKQzT+GwQqLvapC4s16retZb/mFoSngXR1jCq8E0qFYkdWawbMvBUjua3n0Y9A7d1B5gLWkLF3AaYCj/lvvItYwnFQ/WiKe9mngtW5YUqlCS2pLZX2MLg3szaDHqSWFxP7UAAPvCzJ1lIJEai/wavS4+3pYyKOSUVFLup0YOKDtYt6UoVTK0dLMgh1fq1K9U8/wEowWkEilypAgMDAiWGoX+1BFQiEYGhAsfCpruZNVFRNocI2GK/xWZRzRuCoiZnDP5pCl1Rt2IQ3Lg2Ro+SDDeEPCg6RwARqG4pBQ5I4fUtISif1e4OVgoFWZV5Kjlf0AwRRSWUVkMzmbjMjPN6U/AUC7D13Ap0UQIQ9pQPpLyvZIUoZNAZ8NdRGLiyKkupU9RxgU7/TiAmMHknBfJrTnOG2PpUWAV1/92iMiqRLej6ERcRkSz/7fK7XL6GHcX+6ZR6Xk/vxKGfpo5JJix7rfgbAMvvuwnmeQSY7+3EsAsjSmnn3raGAuG3VYdxPIWnx05uIgZ9uX7jWGLG2WaNQmEEbc504fcUkkGVy0Hq6t263ouc9zjpxWC7Jenu+ucUhc8x/UAIlEn3LTGK5JIoxc+GJkkm3Hxnir6UCAdQcN42XLUganxnitQq51Yh6zjb/VIjaP8evL73/LH46/V2NjOx0u1rgAAAAASUVORK5CYII=',checkmark:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAAAAYLlVAAADQElEQVR42u2ZvWvqYBTGBcHlInbJIA63IF0cJKODFKdsgjg7uLr5n2TL6uAshW6ZSnDIGDp0KYHbQRyyXLGTUPhdOBwScj/ohei5wzWZ2uX95X3Oec6HNWr/9q1dAa4A/wfAF7oMGDGgS90awKGPx4wlPktmuNQtATp4LPBZEZIQEjCjawdwx5QlGyJSjsCBkCUDG4A6LmN8HnmleBJ8RgYAcvwMnw079DG9AT0+pDh+ZxYDqr3Plj0A8EHChsAoC/T4MD/+nVfWLJjY+ICDVzp+T8iaJR6OhRPW6bNgQ5ofv8Vnjkfbxop7EnwRxdf7onvTpha0GJeuP8JnqmFnAFDHZc6aN438FzYs6BtVQ839gC0nTTwNPSuALlM5/gBAKol3T9uqH2jisSQkAyCT4PNo2TUkPVH/FYAjWwKm3Nl1RG2J/ihXfyWpZ9iSuVL1d7n6S4Y07AAcJgTEWvM2+Op7VgBqvjvgKNYzFvXNABy83HxTUb9n25YP8uLzQSTX/8UQQO0noTCfvu1gMlD7KcKvVQ3Aoc+IEX2cv9J/jK/fH6PhVwWgrWOEzwKPHo3P/U/jfyeVz602Gza41zEikuucMcT5VIAnTkBMwASnGkCHKSteNKAiVnIPfxajlQuQ8aDfXwngljkPZKAlJWGTi9H8bfcr7Ye6/5QOtbPdgD6pijFn+Et0N7X7fedN0k/c/zwxEJOVIfQAh5/va00KJKL/jf6/ehYQEJYGyhOJIHjcUS9VgAe+k/FYnveq+oBLMVJTGq2kwaZVygB4Uf3PA6D2Km4gEHsKKUICkaIpSxdPMyCSgbtxPgD1Q4V4JOGYD9cxa+a4NDRgUw4igHvuJZVCiBgriin3xJZADEpTlmf5++sFADQxh8zkHmKFOLAVgxpoCMYiQP1ya7qGBqVPSJYbVMBMQvCdUAS48J6wg5sPHUXXH/AsJWhO98IAxdilWSG1TwASKcGOAYAunYrJN+WZg6ag0aq2Tk8RsjwnnsQDbQD0FooOEI2Anh1AuQeGb6yY4BgClFdQCnBjCVAs4WL2mgMta4AarlSJCN372gO0BGHNWizZHkAjYc4cD8ccQN8mt9zSvP5odQW4AlR/fwB3T5o0/TYsPQAAAABJRU5ErkJggg==',};
+const $ = s => document.querySelector(s);
+// the game's map key: words (IG_UI) and colours (Key_*.png, ISMapDefinitions building layers)
+const KEY = [
+  ["Community", "rgb(139,117,235)"], ["Hospitality", "rgb(127,206,225)"], ["Industrial", "rgb(56,54,53)"],
+  ["Medical", "rgb(229,128,151)"], ["Parks", "rgb(189,197,163)"], ["Residential", "rgb(225,176,126)"],
+  ["Restaurants & Entertainment", "rgb(245,225,60)"], ["Retail & Commercial", "rgb(184,205,84)"],
+];
+const BCOL = { res:"rgb(210,158,105)", com:"rgb(139,117,235)", hos:"rgb(127,206,225)", ind:"rgb(56,54,53)", med:"rgb(229,128,151)", rst:"rgb(245,225,60)", ret:"rgb(184,205,84)" };
+// the inks: the pens at hand (MapNotes.INKS)
+const INKS = [["Pencil","#333333"],["Pen","#212121"],["Blue Pen","#28307d"],["Red Pen","#a60e0e"],["Green Pen","#0f632b"]];
+const PINNED = ["house","target","skull","star","cross","checkmark"];
+const ALLI = ["house","target","skull","star","cross","heart","exclamation","question","firet","gun","burger","axe","gears","x","checkmark"];
+
+// ---- the town (a schematic Muldraugh, in map units 0..1000 x 0..700) ---------------
+const BUILD = [];
+(function () {
+  const blocks = [ // x, y, w, h, cat pattern
+    [395,120,105,50,"res"],[545,120,90,50,"rst"],[395,195,105,90,"res"],[545,195,95,40,"com"],[545,245,95,40,"ret"],
+    [395,315,105,90,"res"],[545,315,95,90,"res"],[395,435,105,90,"med"],[545,435,95,40,"hos"],[545,485,95,40,"ret"],
+    [395,555,105,60,"res"],[545,555,95,60,"res"],[290,195,75,90,"res"],[290,315,75,90,"res"],[290,435,75,90,"res"],[670,315,60,90,"res"],[670,195,60,90,"res"]
+  ];
+  blocks.forEach(([x,y,w,h,c]) => {
+    const n = Math.max(1, Math.round(w / 34));
+    for (let i = 0; i < n; i++) {
+      const bw = w / n - 8, bh = h > 60 ? h / 2 - 8 : h - 10;
+      const rows = h > 60 ? 2 : 1;
+      for (let r = 0; r < rows; r++) {
+        let cat = c;
+        if (c === "res" && (i + r) % 5 === 3) cat = "res";
+        BUILD.push([x + i * (w / n) + 4, y + r * (h / 2) + 4, bw, bh, cat]);
+      }
+    }
+  });
+  // warehouses by the railway, the motel, the gas station
+  BUILD.push([760,150,70,44,"ind"],[770,215,62,70,"ind"],[790,320,54,46,"ind"],[680,470,46,64,"hos"],[455,40,40,26,"ret"]);
+})();
+const PARK = "M300,560 L370,555 L372,640 L300,646 Z";
+const FOREST = ["M0,0 L240,0 L200,120 L130,260 L80,420 L60,700 L0,700 Z","M900,0 L1000,0 L1000,700 L930,700 L900,520 L940,300 Z","M240,640 L360,660 L380,700 L220,700 Z"];
+
+// marks already on the map (ZeD's own, in the game's store)
+const OWN = [{ i:"house", x:430, y:240, ink:2, note:"Safehouse" }, { i:"star", x:600, y:458, ink:3 }, { i:"checkmark", x:330, y:350, ink:1 }];
+// Share Annotations' learned sets: [name, marks]
+const SETS = [
+  { id:"rick", name:"By Rick Harlan, July 9th 1993 at 14:20", marks:[{ i:"skull", x:700, y:250, ink:3, note:"horde" },{ i:"exclamation", x:640, y:600, ink:3 },{ i:"skull", x:760, y:420, ink:3 }], places:12 },
+  { id:"anon", name:"By anonymous in Muldraugh, read on July 10th 1993 at 9:05", marks:[{ i:"burger", x:335, y:500, ink:0, note:"food in back" },{ i:"cross", x:470, y:380, ink:0 }], places:5 },
+  { id:"sue", name:"By Sue Kowalski, July 12th 1993 at 18:40", marks:[{ i:"gun", x:520, y:612, ink:1, note:"gun store" },{ i:"x", x:240, y:470, ink:1 }], places:3, hiddenBefore:true },
+];
+// Players On Map: other players (the mod's list from the server)
+const PLAYERS = [
+  { n:"Rook_85", x:560, y:200, d:"140 m north" }, { n:"mara.k", x:700, y:380, d:"190 m east" },
+  { n:"Deke", x:470, y:690, d:"1.2 km south" , dead:false },
+];
+const ME = { x:540, y:330 };
+
+let S = { scene:"today", style:"survey", where:"pop", zoom:1, key:false, draw:false, tool:"draw", ink:3, grid:false, size:0.666,
+  thick:3, fill:50, list:true, vis:{ rick:true, anon:true, sue:false }, del:null, deleted:[], icon:null };
+
+function inkFilter(i, c) { return `<filter id="ink${i}" x="0" y="0" width="1" height="1"><feFlood flood-color="${c}"/><feComposite in2="SourceAlpha" operator="in"/></filter>`; }
+function markSVG(m, scale) {
+  const s = 20 * (scale / 0.666) * 1.15;
+  let h = `<image href="${MAPI[m.i === "firet" ? "firet" : m.i]}" x="${m.x - s / 2}" y="${m.y - s / 2}" width="${s}" height="${s}" filter="url(#ink${m.ink})"/>`;
+  if (m.note) h += `<text x="${m.x + s / 2 + 3}" y="${m.y + 5}" font-family="Fira Sans Condensed" font-style="italic" font-size="${15 * (scale / 0.666)}" fill="${INKS[m.ink][1]}">${m.note}</text>`;
+  return h;
+}
+function jitter(pts, amp, seed) {
+  let s = seed; const r = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - .5; };
+  return pts.map(([x, y]) => [x + r() * amp, y + r() * amp]);
+}
+function mapSVG(o) {
+  const st = o.style;
+  let defs = INKS.map((k, i) => inkFilter(i, k[1])).join("");
+  defs += `<filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .12  0 0 0 0 .16  0 0 0 0 .08  0 0 0 .55 0"/><feComposite in2="SourceGraphic" operator="in"/></filter>`;
+  defs += `<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#e9c9a8"/><line x1="0" y1="0" x2="0" y2="6" stroke="#c0623e" stroke-width="1.4"/></pattern>`;
+  let g = "";
+  const road = (d, w, c) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="square"/>`;
+  const HWY = "M528,-10 C520,160 512,330 508,470 C505,580 500,640 498,710";
+  const CROSS = [180,300,420,540].map(y => `M270,${y} L770,${y}`);
+  const SIDE = ["M380,150 L380,620","M655,150 L655,620"];
+  const RAIL = "M745,-10 C760,200 800,420 860,710";
+  const WATER = "M150,-10 C170,150 120,300 150,420 C175,540 160,620 175,710";
+  if (st === "survey") {
+    g += `<rect x="-50" y="-50" width="1100" height="800" fill="rgb(219,214,190)"/>`;
+    FOREST.forEach(d => g += `<path d="${d}" fill="rgb(189,197,163)"/>`);
+    g += `<path d="${PARK}" fill="rgb(189,197,163)" stroke="rgb(160,170,130)"/>`;
+    g += road(WATER, 16, "rgb(59,141,149)");
+    g += road(RAIL, 5, "rgb(200,191,231)");
+    CROSS.forEach(d => g += road(d, 9, "rgb(171,158,143)")); SIDE.forEach(d => g += road(d, 8, "rgb(171,158,143)"));
+    g += road(HWY, 18, "rgb(134,125,113)");
+    BUILD.forEach(([x, y, w, h, c]) => g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${BCOL[c]}" stroke="rgba(0,0,0,.35)" stroke-width="1"/>`);
+    g += `<text x="585" y="96" font-family="Fira Sans" font-weight="600" font-size="22" fill="#3a3530" letter-spacing="1">Muldraugh</text>`;
+  } else if (st === "color") {
+    g += `<rect x="-50" y="-50" width="1100" height="800" fill="#6f7a4c"/>`;
+    g += `<rect x="-50" y="-50" width="1100" height="800" fill="#000" filter="url(#grain)" opacity=".9"/>`;
+    FOREST.forEach(d => g += `<path d="${d}" fill="#3d4a2a"/>`);
+    g += `<path d="${PARK}" fill="#5e7a3a"/>`;
+    g += road(WATER, 16, "#3f5f5a");
+    g += road(RAIL, 6, "#5a5148"); g += `<path d="${RAIL}" fill="none" stroke="#8a8478" stroke-width="2" stroke-dasharray="2 4"/>`;
+    CROSS.forEach(d => g += road(d, 10, "#6d6b64")); SIDE.forEach(d => g += road(d, 9, "#6d6b64"));
+    g += road(HWY, 20, "#55534e"); g += `<path d="${HWY}" fill="none" stroke="#c9b25a" stroke-width="1" stroke-dasharray="10 10"/>`;
+    const roofs = ["#7b6a5a","#8c8c86","#5d4f45","#9a8a78","#6b6f72","#86705c"];
+    BUILD.forEach(([x, y, w, h, c], i) => g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c === "ind" ? "#9aa0a2" : roofs[i % roofs.length]}" stroke="rgba(0,0,0,.45)"/><line x1="${x}" y1="${y + h / 2}" x2="${x + w}" y2="${y + h / 2}" stroke="rgba(0,0,0,.2)"/>`);
+  } else {
+    g += `<rect x="-50" y="-50" width="1100" height="800" fill="#ede0bf"/>`;
+    g += `<rect x="-50" y="-50" width="1100" height="800" fill="#000" filter="url(#grain)" opacity=".18"/>`;
+    FOREST.forEach(d => g += `<path d="${d}" fill="#cfd3a4" stroke="#9aa070" stroke-width="1"/>`);
+    g += `<path d="${WATER}" fill="none" stroke="#5a86b0" stroke-width="7"/><path d="${WATER}" fill="none" stroke="#a9c6dd" stroke-width="3"/>`;
+    g += `<path d="M300,140 L720,140 L720,630 L270,630 Z" fill="url(#hatch)" opacity=".75"/>`;
+    g += `<path d="${RAIL}" fill="none" stroke="#222" stroke-width="2"/><path d="${RAIL}" fill="none" stroke="#222" stroke-width="7" stroke-dasharray="1 9"/>`;
+    CROSS.forEach(d => g += road(d, 3, "#2a2a2a")); SIDE.forEach(d => g += road(d, 3, "#2a2a2a"));
+    g += road(HWY, 9, "#2a2a2a"); g += road(HWY, 6, "#c23a2a");
+    g += `<circle cx="490" cy="88" r="7" fill="#2a2a2a"/><text x="505" y="96" font-family="Fira Sans Condensed" font-weight="700" font-size="24" fill="#2a2a2a" letter-spacing="2">MULDRAUGH</text>`;
+    g += `<rect x="530" y="660" width="40" height="20" fill="#fff" stroke="#2a2a2a"/><text x="550" y="675" text-anchor="middle" font-family="Fira Sans" font-weight="700" font-size="13" fill="#2a2a2a">31W</text>`;
+  }
+  // ---- what is drawn over the map ----
+  // Draw On The Map strokes (ordinary marks: they follow the size too)
+  if (o.strokes) {
+    const loop = jitter([[735,120],[860,130],[880,250],[870,380],[780,400],[730,330],[728,200],[735,120]], 10, 7);
+    const t = S.thick * 1.6;
+    g += `<polyline points="${loop.map(p => p.join(",")).join(" ")}" fill="none" stroke="${INKS[3][1]}" stroke-width="${t}" stroke-linejoin="round" stroke-linecap="round" opacity=".92"/>`;
+    g += `<polyline points="430,252 430,300 508,300 508,480 680,480" fill="none" stroke="${INKS[2][1]}" stroke-width="${t}" stroke-dasharray="${t * 3} ${t * 2}" opacity=".92"/>`;
+    g += `<text x="790" y="430" font-family="Fira Sans Condensed" font-style="italic" font-size="${15 * (S.size / 0.666)}" fill="${INKS[3][1]}">keep out</text>`;
+  }
+  // own marks
+  OWN.forEach(m => g += markSVG(m, S.size));
+  // learned sets
+  if (o.sets) SETS.forEach(set => { if (S.vis[set.id] && !S.deleted.includes(set.id)) set.marks.forEach(m => g += markSVG(m, S.size)); });
+  // you
+  g += `<circle cx="${ME.x}" cy="${ME.y}" r="7" fill="#fff" stroke="#111" stroke-width="2.5"/><circle cx="${ME.x}" cy="${ME.y}" r="2.5" fill="#111"/>`;
+  // other players
+  if (o.players === "pom") {
+    PLAYERS.filter(p => p.y < 690).forEach(p => {
+      g += `<rect x="${p.x - 6}" y="${p.y - 6}" width="11" height="11" fill="#00ff00" stroke="#063" stroke-width="1.5"/>`;
+      const back = st === "color" ? `<rect x="${p.x - p.n.length * 4.4}" y="${p.y + 9}" width="${p.n.length * 8.8}" height="17" fill="rgba(235,230,215,.85)"/>` : "";
+      g += back + `<text x="${p.x}" y="${p.y + 22}" text-anchor="middle" font-family="Fira Sans" font-weight="600" font-size="14" fill="#000">${p.n}</text>`;
+    });
+  } else if (o.players === "game") {
+    PLAYERS.filter(p => p.y < 690).forEach(p => g += `<circle cx="${p.x}" cy="${p.y}" r="6" fill="#2a64c8" stroke="#fff" stroke-width="1.5"/>`);
+  }
+  return `<svg class="map" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"><defs>${defs}</defs>${g}</svg>`;
+}
+
+// ---- the scenes ------------------------------------------------------------------
+const SCENES = [
+  { id:"today", label:"Today", set:{ key:false, draw:false, grid:false }, mods:[], players:"none",
+    cap:"The Maps tab as built, unfolded: the toolbar (disclosure, six pinned marks, Aa, the five inks of the pens at hand, Survey / Color / Paper, fold), the map with ZeD's own marks. No key, nothing from the map mods." },
+  { id:"key", label:"Key (built in)", set:{ key:true, draw:false, grid:false }, mods:[], players:"none",
+    cap:"The Key button (new, built into ZeD) opens the game's own map key over the map's bottom-left corner: the eight uses of a building in the game's words and colours. Switch to Color or Paper: the key says those maps show the ground as it looks." },
+  { id:"draw", label:"Draw (Draw On The Map)", set:{ key:false, draw:true, grid:false }, mods:["draw"], players:"none",
+    cap:"With Draw On The Map on, a Draw button after the inks opens a second row: Draw, Line, Erase, Thickness, Fill (the mod's words). The red loop and the blue route are strokes; they are marks like any other, in the ink of the pen picked in row one. Erase is dim: no eraser on the character." },
+  { id:"size", label:"Symbol Size (Size Slider)", set:{ key:false, draw:false, grid:true }, mods:["size"], players:"none",
+    cap:"With Map Symbol Size Slider on, the toolbar's disclosure shows the full mark grid as today and under it the mod's Symbol Size slider. Move it: every mark and note on the map follows. The tick is the game's size; Reset goes back to it." },
+  { id:"players", label:"Players (Players On Map)", set:{ key:false, draw:false, grid:false }, mods:["pom"], players:"pom",
+    cap:"Multiplayer with Players On Map: the mod's green squares and names over ZeD's map, and a Players section in the side list (how far and which way). Deke is off the edge of the view; clicking a name centres the map on that player." },
+  { id:"notes", label:"Learned notes (Share Annotations)", set:{ key:false, draw:false, grid:false }, mods:["sa"], players:"none",
+    cap:"With Share Annotations on, the side list shows the sets of notes the character has learned, in the mod's own names. Tick to show or hide a set; the x asks in the list's footer before deleting. Sue Kowalski's set was hidden on the game's map before; today it can never be shown again under ZeD." },
+  { id:"all", label:"All six on", set:{ key:true, draw:true, grid:false }, mods:["draw","size","pom","sa","where"], players:"pom",
+    cap:"Every map mod on, multiplayer: the key, the drawing row, players and learned notes in the side list, and Where Am I?'s area name over the top of the map. Try Where: Drawer to see how it fits the World window's narrower Maps drawer." },
+];
+function cur() { return SCENES.find(s => s.id === S.scene); }
+function on(mod) { return cur().mods.includes(mod); }
+
+function toolbar() {
+  const iconBtn = (id, active, cls = "") => `<span class="ib ${active ? "on" : ""} ${cls}" data-icon="${id}"><i style="-webkit-mask-image:url(${MAPI[id]});mask-image:url(${MAPI[id]})"></i></span>`;
+  let r1 = `<span class="chev" data-act="grid">${S.grid ? "&#9660;" : "&#9654;"}</span>`;
+  r1 += PINNED.map(id => iconBtn(id, S.icon === id)).join("");
+  r1 += `<span class="ib txt ${S.icon === "text" ? "on" : ""}" data-icon="text">Aa</span><span class="tsep"></span>`;
+  r1 += INKS.map((k, i) => `<span class="ink ${S.ink === i ? "on" : ""} ${i === 0 ? "dis" : ""}" data-ink="${i}" title="${k[0]}" style="background:${k[1]}"></span>`).join("");
+  r1 += `<span class="tsep"></span>`;
+  if (S.scene !== "today") r1 += `<span class="tbtn new ${S.key ? "on" : ""}" data-act="key" title="Map key"><span class="k"><b style="background:rgb(225,176,126)"></b><b style="background:rgb(139,117,235)"></b><b style="background:rgb(184,205,84)"></b></span>${S.where === "drawer" ? "" : "Key"}</span>`;
+  if (on("draw")) r1 += `<span class="tbtn new ${S.draw ? "on" : ""}" data-act="draw" title="Draw"><svg viewBox="0 0 12 12"><path d="M2 10 L2.5 7.5 L8.5 1.5 L10.5 3.5 L4.5 9.5 Z" fill="none" stroke="currentColor"/></svg>${S.where === "drawer" ? "" : "Draw"}</span>`;
+  const hasList = on("pom") || on("sa");
+  if (hasList && S.where === "drawer") r1 += `<span class="tbtn new ${S.list ? "on" : ""}" data-act="list" title="Players and learned notes"><svg viewBox="0 0 12 12"><path d="M1 2.5 H11 M1 6 H11 M1 9.5 H11" stroke="currentColor"/></svg></span>`;
+  r1 += `<span class="pills">${[["survey","Survey"],["color","Color"],["paper","Paper"]].map(([v, t]) => `<span class="pill ${S.style === v ? "on" : ""}" data-style="${v}">${t}</span>`).join("")}</span>`;
+  r1 += `<span class="unf"><svg viewBox="0 0 13 13"><path d="${S.where === "pop" ? "M5 1 L1 1 L1 5 M8 12 L12 12 L12 8 M1 1 L5 5 M12 12 L8 8" : "M1 5 L5 5 L5 1 M12 8 L8 8 L8 12 M5 5 L1 1 M8 8 L12 12"}" fill="none" stroke="#c8c8c8"/></svg></span>`;
+  let h = `<div class="trow">${r1}</div>`;
+  if (S.grid) {
+    h += `<div class="grid">${ALLI.map(id => iconBtn(id, S.icon === id, PINNED.includes(id) ? "pin" : "")).join("")}</div>`;
+    if (on("size")) {
+      const pct = Math.round(S.size / 0.666 * 100);
+      const tickLeft = (0.666 - 0.066) / (2.266 - 0.066) * 150;
+      h += `<div class="trow2 new"><span class="lbl">SYMBOL SIZE</span><span class="sizer"><input type="range" id="size" min="0.066" max="2.266" step="0.1" value="${S.size}" style="width:150px"><span class="tick" style="left:${tickLeft + 2}px"></span></span><span class="sl"><b>${pct}%</b></span><span class="mini" data-act="sizereset">Reset</span></div>`;
+    }
+  }
+  if (S.draw && on("draw")) {
+    const t = (id, label, dis) => `<span class="tbtn ${S.tool === id ? "on" : ""} ${dis ? "dis" : ""}" data-tool="${id}" ${dis ? 'title="Requires an eraser."' : ""}>${label}</span>`;
+    h += `<div class="trow2 new"><span class="lbl">DRAW</span>${t("draw","Draw")}${t("line","Line")}${t("erase","Erase",true)}
+      <span class="sl">Thickness<input type="range" id="thick" min="1" max="8" step="1" value="${S.thick}" style="width:80px"><b>${S.thick}</b></span>
+      <span class="sl">Fill<input type="range" id="fill" min="0" max="100" step="10" value="${S.fill}" style="width:80px"><b>${S.fill}%</b></span>
+      ${S.where === "drawer" ? "" : `<span class="sl" style="margin-left:auto">ink: <b style="width:auto;color:var(--tx)">${INKS[S.ink][0]}</b></span>`}</div>`;
+  }
+  return `<div class="tbar">${h}</div>`;
+}
+function keyPanel() {
+  if (!S.key) return "";
+  const survey = S.style === "survey";
+  return `<div class="keyp new"><div class="kh"><span class="cb" data-act="key"></span><span class="t">Map key</span></div>
+    ${survey ? `<div class="kb">${KEY.map(([n, c]) => `<div class="kr"><i style="background:${c}"></i>${n}</div>`).join("")}</div>`
+      : `<div class="kn" style="padding-top:7px">${S.style === "color" ? "The Color map is the ground as it looks from above: roofs, roads and trees, not buildings by use." : "The Paper map is the road map as printed: roads, towns and water, not buildings by use."} The key's colours are on Survey.</div><div style="padding:0 8px 8px"><span class="mini" data-style="survey" style="display:inline-flex">Show Survey</span></div>`}
+  </div>`;
+}
+function sideList(over) {
+  const pom = on("pom"), sa = on("sa");
+  if (!pom && !sa) return "";
+  if (over && !S.list) return "";
+  let h = "";
+  if (pom) {
+    h += `<div class="sh">PLAYERS<span>3</span></div>${PLAYERS.map(p => `<div class="prow"><span class="pd"></span><span class="pn"><b>${p.n}</b><span>${p.d}</span></span></div>`).join("")}`;
+  }
+  if (sa) {
+    const sets = SETS.filter(s => !S.deleted.includes(s.id));
+    h += `<div class="sh">LEARNED NOTES<span>${sets.length}</span></div>`;
+    h += sets.length ? sets.map(s => `<div class="nrow ${S.del === s.id ? "sel" : ""}"><span class="ck" data-vis="${s.id}">${S.vis[s.id] ? "X" : ""}</span><span class="nt"><b>${s.name}</b><span>${s.places} places${S.vis[s.id] ? "" : " | hidden"}</span>${s.hiddenBefore && !S.vis[s.id] ? `<em>Hidden on the game's map before</em>` : ""}</span><span class="x" data-del="${s.id}" title="Delete">x</span></div>`).join("")
+      : `<div class="empty">No learned notes. Use Remember annotations on a paper with someone's notes to learn them.</div>`;
+  }
+  let foot = "";
+  if (S.del) {
+    const s = SETS.find(x => x.id === S.del);
+    foot = `<div class="sf"><p>Delete the notes <b>${s.name}</b>? Its ${s.places} places go from your map.</p><div class="acts"><span class="b" data-act="delno">Cancel</span><span class="b pri bad" data-act="delyes">Delete</span></div></div>`;
+  }
+  return `<div class="side new ${over ? "over" : ""}"><div class="sb">${h}</div>${foot}</div>`;
+}
+function mapArea() {
+  const sc = cur();
+  const o = { style:S.style, strokes:on("draw"), sets:on("sa"), players: sc.players === "pom" ? "pom" : (sc.players === "game" ? "game" : "none") };
+  const narrow = S.where === "drawer";
+  const where = on("where") ? `<div class="where new">Muldraugh, KY</div>` : "";
+  return `<div class="marea"><div class="mview">${mapSVG(o)}${where}${keyPanel()}${narrow ? sideList(true) : ""}</div>${narrow ? "" : sideList(false)}</div>`;
+}
+function popWindow() {
+  return `<div class="win" style="left:20px;top:14px;width:960px;height:692px"><div class="tb"><span class="cb"></span><span class="tt c">Map</span></div>
+    <div class="mapcol">${toolbar()}${mapArea()}</div><div class="squares"><span></span><span></span><span></span></div></div>`;
+}
+function drawerWindow() {
+  const tabs = ["loot","craft","build","move","map","forage","farm"];
+  const strip = `<div class="strip">${tabs.map((t, i) => `<div class="tab ${t === "map" ? "act" : ""} ${i === 4 ? "gap" : ""}"><img src="${ICONS[t]}" alt=""></div>`).join("")}</div>`;
+  const loot = `<div class="loot"><div class="ih"><span class="nm">Floor</span></div>${["Plank","Plank","Nails","Crowbar","Newspaper"].map(n => `<div class="irow"><span class="n">${n}</span></div>`).join("")}</div>`;
+  return `<div class="win" style="left:60px;top:14px;width:880px;height:692px"><div class="tb"><span class="cb"></span><span class="tt l">World&nbsp;&nbsp;+&nbsp;&nbsp;Maps &#9650;</span></div>
+    <div class="wbody">${loot}<div class="mapcol">${toolbar()}${mapArea()}</div>${strip}</div><div class="squares"><span></span><span></span><span></span></div></div>`;
+}
+
+function seg(id, items, get, set) {
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = get() === v ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function render() {
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), () => S.scene, v => { S.scene = v; Object.assign(S, cur().set); S.del = null; });
+  seg("#ctlStyle", [["survey","Survey"],["color","Color"],["paper","Paper"]], () => S.style, v => { S.style = v; });
+  seg("#ctlWhere", [["pop","Unfolded (Map window)"],["drawer","Drawer (World window)"]], () => S.where, v => { S.where = v; });
+  seg("#ctlZoom", [[1,"100%"],[1.25,"125%"],[0.8,"80%"]], () => S.zoom, v => { S.zoom = v; });
+  const st = $("#stage");
+  st.innerHTML = S.where === "pop" ? popWindow() : drawerWindow();
+  st.style.transform = S.zoom === 1 ? "" : `scale(${S.zoom})`;
+  $("#wrap").style.height = (720 * S.zoom + 4) + "px";
+  $("#wrap").style.width = (1000 * S.zoom + 4) + "px";
+  $("#caption").textContent = cur().cap;
+  // wiring
+  st.querySelectorAll("[data-style]").forEach(e => e.onclick = () => { S.style = e.dataset.style; render(); });
+  st.querySelectorAll("[data-ink]").forEach(e => e.onclick = () => { if (e.dataset.ink !== "0") { S.ink = +e.dataset.ink; render(); } });
+  st.querySelectorAll("[data-icon]").forEach(e => e.onclick = () => { S.icon = S.icon === e.dataset.icon ? null : e.dataset.icon; render(); });
+  st.querySelectorAll("[data-tool]").forEach(e => e.onclick = () => { if (e.dataset.tool !== "erase") { S.tool = e.dataset.tool; render(); } });
+  st.querySelectorAll("[data-vis]").forEach(e => e.onclick = () => { S.vis[e.dataset.vis] = !S.vis[e.dataset.vis]; render(); });
+  st.querySelectorAll("[data-del]").forEach(e => e.onclick = () => { S.del = e.dataset.del; render(); });
+  st.querySelectorAll("[data-act]").forEach(e => e.onclick = () => {
+    const a = e.dataset.act;
+    if (a === "key") S.key = !S.key;
+    else if (a === "draw") S.draw = !S.draw;
+    else if (a === "grid") S.grid = !S.grid;
+    else if (a === "list") S.list = !S.list;
+    else if (a === "sizereset") S.size = 0.666;
+    else if (a === "delno") S.del = null;
+    else if (a === "delyes") { S.deleted.push(S.del); S.del = null; }
+    render();
+  });
+  const sz = $("#size"); if (sz) { sz.oninput = () => { sz.parentNode.nextElementSibling.firstChild.textContent = Math.round(+sz.value / 0.666 * 100) + "%"; }; sz.onchange = () => { S.size = +sz.value; render(); }; }
+  const th = $("#thick"); if (th) { th.oninput = () => { th.nextElementSibling.textContent = th.value; }; th.onchange = () => { S.thick = +th.value; render(); }; }
+  const fl = $("#fill"); if (fl) { fl.oninput = () => { fl.nextElementSibling.textContent = fl.value + "%"; }; fl.onchange = () => { S.fill = +fl.value; render(); }; }
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
