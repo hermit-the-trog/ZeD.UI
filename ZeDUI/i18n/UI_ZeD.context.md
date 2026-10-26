@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Phrases that are all capitals in English (READING, IN HAND) are meant to be capitals in your language too.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head is drawn in capitals by ZeD whatever case the game text has.
 
-Total keys: 2333.
+Total keys: 2369.
 
 ## Areas
 
@@ -17,7 +17,7 @@ Total keys: 2333.
 - [ActionBar](#actionbar) (4)
 - [Animals](#animals) (128)
 - [Appliance](#appliance) (16)
-- [Belt](#belt) (22)
+- [Belt](#belt) (34)
 - [Card](#card) (66)
 - [Char](#char) (19)
 - [Controls](#controls) (13)
@@ -25,7 +25,7 @@ Total keys: 2333.
 - [Credits](#credits) (3)
 - [CtxMenu](#ctxmenu) (2)
 - [Curtain](#curtain) (1)
-- [Dash](#dash) (53)
+- [Dash](#dash) (57)
 - [Death](#death) (12)
 - [DescEdit](#descedit) (71)
 - [Desktop](#desktop) (7)
@@ -71,6 +71,7 @@ Total keys: 2333.
 - [Prompt](#prompt) (24)
 - [Radio](#radio) (38)
 - [RadioPrompt](#radioprompt) (17)
+- [Read](#read) (18)
 - [Reader](#reader) (26)
 - [Recipe](#recipe) (1)
 - [Safe](#safe) (3)
@@ -79,7 +80,7 @@ Total keys: 2333.
 - [Sbx](#sbx) (189)
 - [Seat](#seat) (5)
 - [Server](#server) (55)
-- [Settings](#settings) (52)
+- [Settings](#settings) (54)
 - [Siren](#siren) (2)
 - [Skills](#skills) (9)
 - [Spawn](#spawn) (9)
@@ -589,6 +590,18 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Belt_WatchSpeed` | `SPEED \| %1X` | Belt HUD, chip over the mini watch's speed button; %1 = the game speed multiplier (1, 2, 3) | 14 |
 | `UI_ZeD_Belt_WatchStart` | `START` | Belt HUD, chip over the mini watch's start / pause button while the game is paused | 10 |
 | `UI_ZeD_Belt_WatchTuck` | `%1 \| TUCK AWAY` | Belt HUD, chip over the mini watch's face when the full watch is open; %1 = watch name in capitals | 40 |
+| `UI_ZeD_Belt_AmmoEmpty` | `EMPTY` | Belt HUD, ammo box beside the main hand: the gun holds no rounds (large figures) | 6 |
+| `UI_ZeD_Belt_AmmoMags` | `%1 MAG` | Belt HUD, ammo box: loaded magazines carried; %1 = how many | 8 |
+| `UI_ZeD_Belt_AmmoRounds` | `%1 RDS` | Belt HUD, ammo box: loose rounds carried; %1 = how many | 8 |
+| `UI_ZeD_Belt_AmmoBoxes` | `+%1 BOX` | Belt HUD, ammo box: unopened ammo boxes carried (not counted as rounds); %1 = how many | 8 |
+| `UI_ZeD_Belt_AmmoGunEmpty` | `%1 | empty` | Belt HUD, the ammo chip's first line when the gun is empty; %1 = the gun's name | - |
+| `UI_ZeD_Belt_AmmoInMag` | `%1 | %2 in the magazine` | Belt HUD, the ammo chip's first line, a gun with a magazine; %1 = the gun's name, %2 = rounds | - |
+| `UI_ZeD_Belt_AmmoInCyl` | `%1 | %2 in the cylinder` | Belt HUD, the ammo chip's first line, a revolver; %1 = the gun's name, %2 = rounds | - |
+| `UI_ZeD_Belt_AmmoLoaded` | `%1 | %2 loaded` | Belt HUD, the ammo chip's first line, a shotgun or rifle loaded by hand; %1 = the gun's name, %2 = rounds | - |
+| `UI_ZeD_Belt_AmmoChambered` | `%1, 1 chambered` | Belt HUD, the ammo chip's first line with a round in the chamber; %1 = the line before it | - |
+| `UI_ZeD_Belt_AmmoCarried` | `Carried: %1` | Belt HUD, the ammo chip's second line; %1 = what is carried, joined by | | - |
+| `UI_ZeD_Belt_AmmoCarriedNone` | `Carried: no %1` | Belt HUD, the ammo chip's second line when nothing is carried; %1 = the rounds' name | - |
+| `UI_ZeD_Belt_AmmoCountOf` | `%1 %2` | Belt HUD, the ammo chip: a count and an item's name (2 M9 Magazine, 34 9mm Rounds); %1 = count, %2 = name | - |
 
 ## Card
 
@@ -830,6 +843,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Dash_UnitCab` | `%1 - CAB %2` | Dashboard badge: a taxi's unit line; %1 = the fleet name, %2 = the number | 22 |
 | `UI_ZeD_Dash_UnitEngine` | `%1 - ENGINE %2` | Dashboard badge: a fire engine's unit line; %1 = the fleet name, %2 = the number | 22 |
 | `UI_ZeD_Dash_UnitUnit` | `%1 - UNIT %2` | Dashboard badge: any other fleet car's unit line; %1 = the fleet name, %2 = the number | 22 |
+| `UI_ZeD_Dash_LampCond` | `condition %1` | Dashboard, the chip above a warning lamp: the part's condition; %1 = a percentage | - |
+| `UI_ZeD_Dash_LampCharge` | `charge %1` | Dashboard, the chip above the battery lamp: the battery's charge; %1 = a percentage | - |
+| `UI_ZeD_Dash_LampLeft` | `left %1` | Dashboard, the chip above the headlight lamp: the left headlight's condition; %1 = a percentage or Missing | - |
+| `UI_ZeD_Dash_LampRight` | `right %1` | Dashboard, the chip above the headlight lamp: the right headlight's condition; %1 = a percentage or Missing | - |
 
 ## Death
 
@@ -2385,6 +2402,29 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_RadioPrompt_StoreChannel` | `Store channel` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_Tune` | `Tune` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 
+## Read
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Read_Unread` | `Unread` | Item lists, COND column beside the read mark: nothing read yet | 12 |
+| `UI_ZeD_Read_Read` | `Read` | Item lists, COND column beside the read mark: read (or below your level) | 12 |
+| `UI_ZeD_Read_Known` | `Known` | Item lists, COND column beside the read mark: a recipe magazine whose recipes are all known | 12 |
+| `UI_ZeD_Read_Watched` | `Watched` | Item lists, COND column beside the read mark: a VHS tape seen to the end | 12 |
+| `UI_ZeD_Read_NotWatched` | `Not watched` | Item lists, COND column beside the read mark: a VHS tape not seen to the end | 12 |
+| `UI_ZeD_Read_Heard` | `Heard` | Item lists, COND column beside the read mark: a CD or cassette heard to the end | 12 |
+| `UI_ZeD_Read_NotHeard` | `Not heard` | Item lists, COND column beside the read mark: a CD or cassette not heard to the end | 12 |
+| `UI_ZeD_Read_Pages` | `%1 of %2` | Item lists, COND column and hover text: pages read of a book's pages; %1 = read, %2 = all | 12 |
+| `UI_ZeD_Read_SomeKnown` | `%1 of %2 known` | Item lists, COND column: a recipe magazine with some recipes known; %1 = known, %2 = all | 14 |
+| `UI_ZeD_Read_NextLevel` | `NEXT LEVEL` | Item lists, a tag after a skill book's name: the book suits your next level | 12 |
+| `UI_ZeD_Read_NextFor` | `Good for your next level: %1` | Item lists, hover text of a skill book; %1 = a skill and level (Mechanics 4) | - |
+| `UI_ZeD_Read_PastLevels` | `Your %1 is %2, past this book's levels (%3 to %4)` | Item lists, hover text of a skill book below your level; %1 = skill, %2 = your level, %3 to %4 = the book's levels | - |
+| `UI_ZeD_Read_ForLevels` | `for %1 %2 to %3 (you have %4)` | Item lists, hover text after the pages of a skill book above your next level; %1 = skill, %2 to %3 = the book's levels, %4 = your level | - |
+| `UI_ZeD_Read_KnownList` | `Known: %1` | Item lists, hover text of a recipe magazine; %1 = recipe names | - |
+| `UI_ZeD_Read_NotKnownList` | `Not known: %1` | Item lists, hover text of a recipe magazine; %1 = recipe names | - |
+| `UI_ZeD_Read_NotWatchedYet` | `Not watched yet.` | Item lists, hover text of a VHS tape not seen to the end | - |
+| `UI_ZeD_Read_NotHeardYet` | `Not heard yet.` | Item lists, hover text of a CD or cassette not heard to the end | - |
+| `UI_ZeD_Read_AlreadyHeard` | `Already heard.` | Item lists, hover text of a CD or cassette heard to the end | - |
+
 ## Reader
 
 | Key | English | Where it shows | Max |
@@ -2797,6 +2837,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_SandboxIGTip` | `Adds a Sandbox options line to the pause window, for changing this save's sandbox settings without starting a new game. Single player only.` | Options, ZeD setup: help band for the switch | - |
 | `UI_ZeD_Settings_WindowSquares` | `Theme, accent and text buttons on windows` | ZeD setup, Windows: the on/off switch's name (the three small squares in a window's footer) | 44 |
 | `UI_ZeD_Settings_WindowSquaresTip` | `The three squares at the bottom left of every ZeD window that switch the theme, the accent and the text size. Off hides them; the same settings stay here in ZeD setup.` | ZeD setup, Windows: the help for the switch | - |
+| `UI_ZeD_Settings_DimRead` | `Dim read items` | Options, ZeD setup, ZeD windows: the switch's name | - |
+| `UI_ZeD_Settings_DimReadTip` | `In the item lists, fades the books, magazines, maps and tapes you have already read, so the unread ones stand out.` | Options, ZeD setup: help band for the switch | - |
 
 ## Siren
 

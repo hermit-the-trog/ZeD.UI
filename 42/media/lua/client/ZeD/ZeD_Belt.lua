@@ -45,6 +45,8 @@ local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
 local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
+local AMMO_W = 74          -- the ammo box beside the main hand (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026)
+local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
 local LIST_ROW_H, LIST_W = 26, 290
 
 local DOT = "|"   -- the separator: ZeD OS's pipe (director, Oct 16 2026: no middle dots)
@@ -330,6 +332,12 @@ ZeD.trDefaults({
     UI_ZeD_Belt_WatchStart = "START", UI_ZeD_Belt_WatchLight = "LIGHT", UI_ZeD_Belt_WatchTuck = "%1 | TUCK AWAY",
     UI_ZeD_Belt_WatchFull = "%1 | FULL WATCH", UI_ZeD_Belt_Replace = "REPLACE %1",
     UI_ZeD_Belt_InBags = "IN YOUR BAGS", UI_ZeD_Belt_BestLight = "Best light: %1",
+    UI_ZeD_Belt_AmmoEmpty = "EMPTY", UI_ZeD_Belt_AmmoMags = "%1 MAG", UI_ZeD_Belt_AmmoRounds = "%1 RDS",
+    UI_ZeD_Belt_AmmoBoxes = "+%1 BOX", UI_ZeD_Belt_AmmoGunEmpty = "%1 | empty",
+    UI_ZeD_Belt_AmmoInMag = "%1 | %2 in the magazine", UI_ZeD_Belt_AmmoInCyl = "%1 | %2 in the cylinder",
+    UI_ZeD_Belt_AmmoLoaded = "%1 | %2 loaded", UI_ZeD_Belt_AmmoChambered = "%1, 1 chambered",
+    UI_ZeD_Belt_AmmoCarried = "Carried: %1", UI_ZeD_Belt_AmmoCarriedNone = "Carried: no %1",
+    UI_ZeD_Belt_AmmoCountOf = "%1 %2",
 })
 -- The names are asked for every frame: kept per slot kind until the language or the test language changes
 -- (Oct 22 2026, the drawing-cost work)
@@ -401,6 +409,106 @@ function B.cond(item)
     local mx = call(item, "getConditionMax")
     if not mx or mx <= 0 then return nil end
     return math.max(0, math.min(1, (call(item, "getCondition") or 0) / mx))
+end
+
+-- ----------------------------------------------------------------------------
+-- Ammo (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026): with a gun in the main hand, the rounds in it
+-- and what a reload can use. For a gun with magazines, the loaded magazines carried, then the loose rounds; for a
+-- shotgun or a revolver, the loose rounds. Unopened boxes are named ("+1 BOX") but not counted: the game will not
+-- reload from a box. Bags count as carried, as the game's own reload counts them (getItemCountRecurse).
+-- ----------------------------------------------------------------------------
+local _scriptName, _scriptTex = {}, {}
+local function scriptName(full)
+    local s = _scriptName[full]
+    if s == nil then
+        local si = full and getScriptManager():FindItem(full)
+        s = si and call(si, "getDisplayName") or tostring(full or "")
+        _scriptName[full] = s
+    end
+    return s
+end
+local function scriptTex(full)
+    local t = _scriptTex[full]
+    if t == nil then
+        local si = full and getScriptManager():FindItem(full)
+        t = (si and call(si, "getNormalTexture")) or false
+        _scriptTex[full] = t
+    end
+    return t or nil
+end
+
+-- the state of the gun in a player's main hand, or nil when it holds no gun that takes ammo:
+-- { gun, name, inGun, chambered, max, n (in it with the chamber), f (how full, 0..1), mag (magazine type or nil),
+--   mags (each magazine's rounds), loaded (magazines with rounds), loose, looseName, boxes, boxName, icon }
+function B.ammo(playerObj)
+    local gun = playerObj and playerObj:getPrimaryHandItem()
+    if not (gun and instanceof(gun, "HandWeapon") and call(gun, "isRanged")) then return nil end
+    local at = call(gun, "getAmmoType")
+    local key = at and call(at, "getItemKey")
+    if not key then return nil end
+    local inv = playerObj:getInventory()
+    local a = { gun = gun, name = gun:getDisplayName(), key = key }
+    a.inGun = call(gun, "getCurrentAmmoCount") or 0
+    a.chambered = call(gun, "isRoundChambered") == true
+    a.max = math.max(1, call(gun, "getMaxAmmo") or 1)
+    a.n = a.inGun + (a.chambered and 1 or 0)
+    a.f = math.min(1, a.n / a.max)
+    a.mag = call(gun, "getMagazineType")
+    a.chamber = call(gun, "haveChamber") ~= false
+    a.mags, a.loaded = {}, 0
+    if a.mag then
+        local list = inv:getAllTypeRecurse(a.mag)
+        for i = 0, (list and list:size() or 0) - 1 do
+            local c = call(list:get(i), "getCurrentAmmoCount") or 0
+            a.mags[#a.mags + 1] = c
+            if c > 0 then a.loaded = a.loaded + 1 end
+        end
+        table.sort(a.mags, function(x, y) return x > y end)
+    end
+    a.loose = inv:getItemCountRecurse(key) or 0
+    a.looseName = scriptName(key)
+    local box = call(gun, "getAmmoBox")
+    a.boxes = box and (inv:getCountTypeRecurse(box) or 0) or 0
+    a.boxName = box and scriptName(box) or ""
+    a.icon = (a.mag and scriptTex(a.mag)) or scriptTex(key)
+    return a
+end
+
+-- the hover's two lines: what is in the gun, and what is carried
+function B.ammoLines(a)
+    local l1
+    if a.n == 0 then l1 = ZeD.tr("UI_ZeD_Belt_AmmoGunEmpty", a.name)
+    else
+        local k = a.mag and "UI_ZeD_Belt_AmmoInMag" or ((not a.chamber) and "UI_ZeD_Belt_AmmoInCyl" or "UI_ZeD_Belt_AmmoLoaded")
+        l1 = ZeD.tr(k, a.name, a.inGun)
+        if a.chambered then l1 = ZeD.tr("UI_ZeD_Belt_AmmoChambered", l1) end
+    end
+    local parts = {}
+    if #a.mags > 0 then
+        local counts = {}
+        for i, c in ipairs(a.mags) do counts[i] = tostring(c) end
+        parts[#parts + 1] = ZeD.tr("UI_ZeD_Belt_AmmoCountOf", #a.mags, scriptName(a.mag)) .. " (" .. table.concat(counts, ", ") .. ")"
+    end
+    if a.loose > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Belt_AmmoCountOf", a.loose, a.looseName) end
+    if a.boxes > 0 then parts[#parts + 1] = ZeD.tr("UI_ZeD_Belt_AmmoCountOf", a.boxes, a.boxName) end
+    local l2 = (#parts > 0) and ZeD.tr("UI_ZeD_Belt_AmmoCarried", table.concat(parts, " " .. DOT .. " "))
+        or ZeD.tr("UI_ZeD_Belt_AmmoCarriedNone", a.looseName)
+    return l1, l2
+end
+
+-- the box's words: the count ("12+1", "EMPTY") and what is carried under it (two short lines)
+function B.ammoWords(a)
+    local count = (a.n == 0) and ZeD.tr("UI_ZeD_Belt_AmmoEmpty") or (a.chambered and (tostring(a.inGun) .. "+1") or tostring(a.inGun))
+    local s1, s2
+    if a.loaded > 0 then
+        s1, s2 = ZeD.tr("UI_ZeD_Belt_AmmoMags", a.loaded), ZeD.tr("UI_ZeD_Belt_AmmoRounds", a.loose)
+    elseif a.loose > 0 or a.boxes > 0 then
+        s1 = ZeD.tr("UI_ZeD_Belt_AmmoRounds", a.loose)
+        s2 = a.boxes > 0 and ZeD.tr("UI_ZeD_Belt_AmmoBoxes", a.boxes) or nil
+    else
+        s1 = ZeD.upper(getText("IGUI_None"))
+    end
+    return count, s1, s2
 end
 
 -- Every slot: { i, slot, item, key, short, name, inHand }
@@ -597,9 +705,10 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local L = self._lk
     local n = #slots
     local lamp = ZeD.Messages and ZeD.Messages.count() > 0 or false
+    local ammo = self:_ammoState(p) ~= nil
     local now = getTimestampMs and getTimestampMs() or 0
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
-        or L.wWrist ~= wWrist or L.lamp ~= lamp or not self._provAt or now - self._provAt > 1000
+        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or not self._provAt or now - self._provAt > 1000
     if not dirty then
         local types = L.types
         for i = 1, n do
@@ -608,13 +717,13 @@ function ZeD_BeltHUD:_layoutCached(slots)
         end
     end
     if dirty then
-        local w, h = self:_layout(slots, wItem, wPlate, wWrist, lamp)
+        local w, h = self:_layout(slots, wItem, wPlate, wWrist, lamp, ammo)
         local types = {}
         for i = 1, n do
             local s = slots[i]
             types[i] = s and s.slot and s.slot.slotType
         end
-        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, types = types, w = w, h = h }
+        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, ammo = ammo, types = types, w = w, h = h }
         return w, h
     end
     for _, b in ipairs(self._boxes) do
@@ -624,7 +733,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
 end
 
 -- Layout: boxes keyed for hit testing; returns the panel size
-function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp)
+function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo)
     local T = ZeD.T
     local px = T.px
     local n = #slots
@@ -682,6 +791,14 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp)
     x = x + px(END_GAP)
     boxes[#boxes + 1] = { kind = "hand", which = "p", x = x, y = handY, w = hand, h = hand }
     x = x + hand
+    -- the ammo box beside the main hand while it holds a gun (one more pouch on the belt; the watch on that wrist
+    -- goes outside it): wide enough for its words in this language
+    if ammo then
+        x = x + px(WRIST)
+        local aw = self:_ammoWidth()
+        boxes[#boxes + 1] = { kind = "ammo", x = x, y = by, w = aw, h = box }
+        x = x + aw
+    end
     if watchBox and wWrist == "right" then
         x = x + px(WRIST)
         watchBox.x = x
@@ -757,7 +874,7 @@ end
 -- What a box would do with the current drag: "fit" / "no" / nil
 function ZeD_BeltHUD:_dropState(b, items)
     if not items then return nil end
-    if b.kind == "watch" or b.kind == "lamp" then return "no" end
+    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" then return "no" end
     if b.kind == "hand" then
         for _, it in ipairs(items) do if B.handTakes(it) then return "fit", it end end
         return "no"
@@ -1150,6 +1267,83 @@ function ZeD_BeltHUD:_drawLamp(b, focus, hover)
     end
 end
 
+-- the gun's state (B.ammo), counted again every AMMO_MS and at once when the main hand changes
+function ZeD_BeltHUD:_ammoState(p)
+    local gun = p and p:getPrimaryHandItem()
+    local now = getTimestampMs and getTimestampMs() or 0
+    local c = self._ammo
+    if c and c.gun == gun and c.p == p and now - c.t < AMMO_MS then return c.a end
+    local a = nil
+    if gun and instanceof(gun, "HandWeapon") then a = B.ammo(p) end
+    self._ammo = { gun = gun, p = p, t = now, a = a }
+    return a
+end
+
+-- the box's width: AMMO_W, or more where this language's words need it (the count in F4, the rest in F5)
+function ZeD_BeltHUD:_ammoWidth()
+    local T, tm = ZeD.T, ZeD.TM
+    local wMax = math.max(tm:MeasureStringX(T.fontF4, "88+1"), tm:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Belt_AmmoEmpty")),
+        tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoMags", 8)), tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoRounds", 888)),
+        tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoBoxes", 8)))
+    return math.max(T.px(AMMO_W), T.px(34) + wMax + T.px(4))
+end
+
+-- the ammo box (style B): the ammo's own picture (the magazine for a gun that takes one, else the round), the
+-- rounds in the gun in large figures in the belt's wear colours (normal over half full, amber over a quarter, red
+-- under, EMPTY at nothing; "+1" for a chambered round), what is carried under it, and how full the gun is along the foot
+function ZeD_BeltHUD:_drawAmmo(b, a)
+    local T, tm = ZeD.T, ZeD.TM
+    local p1 = T.px(1)
+    local s2 = T.surf2
+    self:drawRect(b.x, b.y, b.w, b.h, 0.95, s2.r, s2.g, s2.b)
+    local c = (a.n == 0 and T.danger) or (a.f > 0.5 and T.text) or (a.f > 0.25 and T.warningText) or T.danger
+    if a.icon then
+        local isz = T.px(32)
+        self:drawTextureScaledAspect(a.icon, b.x + T.px(1), b.y + T.px(3), isz, isz, a.n == 0 and 0.45 or 1, 1, 1, 1)
+    end
+    local count, s1, s2w = B.ammoWords(a)
+    local tx = b.x + T.px(34)
+    local cf = (a.n == 0) and T.fontF1 or T.fontF4
+    self:drawText(count, tx, b.y + T.px(2), c.r, c.g, c.b, 1, cf)
+    local f5, dc = T.fontF5, T.textDim
+    local f5h = tm:getFontHeight(f5)
+    local y1 = b.y + T.px(19)
+    self:drawText(s1, tx, y1, dc.r, dc.g, dc.b, dc.a or 1, f5)
+    if s2w then self:drawText(s2w, tx, y1 + math.max(f5h, T.px(10)), dc.r, dc.g, dc.b, dc.a or 1, f5) end
+    local bs = T.borderS
+    self:drawRectBorder(b.x, b.y, b.w, b.h, bs.a or 1, bs.r, bs.g, bs.b)
+    if (T.borderW or 1) > 1 then self:drawRectBorder(b.x + p1, b.y + p1, b.w - 2 * p1, b.h - 2 * p1, bs.a or 1, bs.r, bs.g, bs.b) end
+    -- how full the gun is: a bar along the foot, like the slots' condition bar
+    local bx, by, bw = b.x + T.px(3), b.y + b.h - T.px(5), b.w - T.px(6)
+    local tr = T.surf3
+    self:drawRect(bx, by, bw, T.px(3), 1, tr.r, tr.g, tr.b)
+    local fw = math.floor(bw * a.f)
+    if fw > 0 then self:drawRect(bx, by, fw, T.px(3), 1, c.r, c.g, c.b) end
+end
+
+-- a ZeD chip of two lines above a box: the first in the accent text colour, the second in the text colour (the
+-- ammo's full count); kept on the screen at the belt's ends. Returns its height.
+function ZeD_BeltHUD:_chip2(b, l1, l2)
+    local T, tm = ZeD.T, ZeD.TM
+    local f1, f3 = T.fontF1, T.fontF3
+    local w = math.max(tm:MeasureStringX(f1, l1), tm:MeasureStringX(f3, l2)) + T.px(12)
+    local lh1, lh2 = tm:getFontHeight(f1), tm:getFontHeight(f3)
+    local h = lh1 + lh2 + T.px(8)
+    local x = b.x + math.floor((b.w - w) / 2)
+    local ax = self:getAbsoluteX()
+    local sw = getCore():getScreenWidth()
+    if ax + x + w > sw - T.px(4) then x = sw - T.px(4) - w - ax end
+    if ax + x < T.px(4) then x = T.px(4) - ax end
+    local y = b.y - h - T.px(6)
+    local s1, bs = T.surf1, T.borderS
+    self:drawRect(x, y, w, h, 0.95, s1.r, s1.g, s1.b)
+    self:drawRectBorder(x, y, w, h, 1, bs.r, bs.g, bs.b)
+    local ac, tc = T.accentText, T.text
+    self:drawText(l1, x + T.px(6), y + T.px(3), ac.r, ac.g, ac.b, 1, f1)
+    self:drawText(l2, x + T.px(6), y + T.px(5) + lh1, tc.r, tc.g, tc.b, tc.a or 1, f3)
+    return h
+end
+
 -- a small ZeD label chip above a box (the slot's name and key on hover)
 function ZeD_BeltHUD:_chip(b, text)
     local T, tm = ZeD.T, ZeD.TM
@@ -1207,6 +1401,10 @@ function ZeD_BeltHUD:_prerender()
         if b.kind == "lamp" then
             self:_drawLamp(b, gpTarget == b, b == over and not dragging)
             if b == over and not dragging then self._hover = { b = b } end
+        elseif b.kind == "ammo" then
+            local a = self:_ammoState(p)
+            if a then self:_drawAmmo(b, a) end
+            if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "watch" then
             ZeD.WatchMini.draw(self, b.x, b.y, b.plate, ZeD.Watch.miniState(p, b.item))
             if gpTarget == b then self:drawRect(b.x, b.y, b.w, b.h, 0.55, col(T.accent)) end
@@ -1222,7 +1420,7 @@ function ZeD_BeltHUD:_prerender()
             o.item, o.key, o.label, o.inHand = s.item, s.key, s.short, s.inHand
             o.lit = s.item and not instanceof(s.item, "HandWeapon") and call(s.item, "canBeActivated") and call(s.item, "isActivated")
         end
-        if b.kind ~= "watch" and b.kind ~= "lamp" then
+        if b.kind ~= "watch" and b.kind ~= "lamp" and b.kind ~= "ammo" then
             -- a drag in progress lights the boxes that take it (and dims the rest)
             if dragging then
                 local st = self:_dropState(b, dragging)
@@ -1239,7 +1437,17 @@ function ZeD_BeltHUD:_prerender()
     local ctx = getPlayerContextMenu(self.playerNum)
     if ctx and ctx:isAnyVisible() then self._hover = nil end
     local hv = self._hover
-    if hv and hv.b.kind == "slot" then
+    local tipUp = nil      -- the item tooltip stands above a two-line chip
+    -- (the pointer, or the controller's focus on the main hand: the ammo box is off the pad's path)
+    local ahb = (hv and hv.b) or (gpTarget and gpTarget.kind == "hand" and gpTarget.which == "p" and gpTarget) or nil
+    local am = (ahb and (ahb.kind == "ammo" or (ahb.kind == "hand" and ahb.which == "p"))) and self:_ammoState(p) or nil
+    if am then
+        -- the gun's full count (the ammo box, or the main hand holding the gun), above the ammo box
+        local ab = ahb
+        for _, bx in ipairs(self._boxes) do if bx.kind == "ammo" then ab = bx end end
+        local l1, l2 = B.ammoLines(am)
+        tipUp = self:_chip2(ab, l1, l2)
+    elseif hv and hv.b.kind == "slot" then
         local s = hv.b.s
         self:_chip(hv.b, s.key and ZeD.tr("UI_ZeD_Belt_SlotKey", ZeD.upper(s.name), s.key) or ZeD.upper(s.name))
     elseif hv and hv.b.kind == "hand" then
@@ -1263,7 +1471,7 @@ function ZeD_BeltHUD:_prerender()
         local cur = over.s.item
         if st == "fit" and cur then self:_chip(over, ZeD.tr("UI_ZeD_Belt_Replace", ZeD.upper(cur:getDisplayName()))) end
     end
-    self:_tooltip(hv and hv.item or nil, hv and hv.b or nil)
+    self:_tooltip(hv and hv.item or nil, hv and hv.b or nil, tipUp)
 
     -- dragging an item off the belt: its icon follows the pointer
     if self._out and self._out.active then
@@ -1281,7 +1489,7 @@ function ZeD_BeltHUD:render() end
 -- the vanilla item tooltip (ISToolTipInv, the same one the hotbar used),
 -- standing above the hovered box and its name chip rather than following
 -- the pointer over the belt
-function ZeD_BeltHUD:_tooltip(item, b)
+function ZeD_BeltHUD:_tooltip(item, b, chipH)
     local ctx = getPlayerContextMenu(self.playerNum)
     if item and b and not (ctx and ctx:isAnyVisible()) and not self._out then
         if not self._tip then
@@ -1300,7 +1508,7 @@ function ZeD_BeltHUD:_tooltip(item, b)
         end
         self._tipChr = self:player()
         local T = ZeD.T
-        local chipH = ZeD.TM:getFontHeight(T.fontF1) + T.px(6)
+        chipH = chipH or (ZeD.TM:getFontHeight(T.fontF1) + T.px(6))
         self._tip.followMouse = false
         self._tip.anchorBottomLeft = { x = self:getAbsoluteX() + b.x, y = self:getAbsoluteY() + b.y - chipH - T.px(12) }
         self._tip:setVisible(true)
@@ -1398,7 +1606,7 @@ function ZeD_BeltHUD:onRightMouseUp(x, y)
     if not self._drawn then return false end
     local b = self:boxAt(x, y)
     if not b then return false end
-    if b.kind == "watch" or b.kind == "lamp" then return true end
+    if b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" then return true end
     local p = self:player()
     if b.kind == "slot" then
         B.rightMenu(self.playerNum, b.i)
@@ -1418,7 +1626,7 @@ function B.takeDrop(playerNum, items)
     local mx, my = hud:getMouseX(), hud:getMouseY()
     if mx < 0 or my < 0 or mx >= hud:getWidth() or my >= hud:getHeight() then return false end
     local b = hud:boxAt(mx, my)
-    if not b or b.kind == "watch" or b.kind == "lamp" then return true end   -- over the strap, the watch or the Messages note: no drop to the floor either
+    if not b or b.kind == "watch" or b.kind == "lamp" or b.kind == "ammo" then return true end   -- over the strap, the watch, the ammo box or the Messages note: no drop to the floor either
     local st, it = hud:_dropState(b, items)
     if st ~= "fit" then return true end
     if b.kind == "hand" then
@@ -1493,15 +1701,23 @@ end
 -- Oct 23 2026 (director: the belt "is too easy to get stuck in"; no press
 -- does nothing): a direction with nowhere to go on the belt leaves it, as B
 -- does. Past either end, Down (the screen's edge), and Up with no list above.
+-- (the ammo box is read, not pressed: the pad steps over it; the main hand's focus shows its count)
+function ZeD_BeltHUD:_padStep(i, d)
+    i = i + d
+    while self._boxes[i] and self._boxes[i].kind == "ammo" do i = i + d end
+    return self._boxes[i] and i or nil
+end
 function ZeD_BeltHUD:onJoypadDirLeft()
     local g = self._gp
     if not g or g.inList then return end
-    if g.idx > 1 then g.idx = g.idx - 1 else self:_leavePad() end
+    local i = self:_padStep(g.idx, -1)
+    if i then g.idx = i else self:_leavePad() end
 end
 function ZeD_BeltHUD:onJoypadDirRight()
     local g = self._gp
     if not g or g.inList then return end
-    if g.idx < #self._boxes then g.idx = g.idx + 1 else self:_leavePad() end
+    local i = self:_padStep(g.idx, 1)
+    if i then g.idx = i else self:_leavePad() end
 end
 function ZeD_BeltHUD:onJoypadDirUp()
     local g = self._gp

@@ -345,6 +345,15 @@ sandboxIG:addItem(getText("UI_On"), false)
 ZeD.Settings.sandboxInGameOption = sandboxIG
 ZeD.Settings.sandboxInGameOn = function() return (sandboxIG:getValue() or 1) == 2 end
 
+-- ----- DIM READ ITEMS (Oct 26 2026, mockup zed_read_marks_v1; approved "as recommended") -----
+-- In the item lists, books, magazines, maps and tapes already read are faded so the unread ones stand out
+-- (ReadMarks.lua reads this every frame). Off for a new player: a dimmed row can look unavailable.
+local dimRead = opts:addComboBox("dimRead", ZeD.tr("UI_ZeD_Settings_DimRead"), ZeD.tr("UI_ZeD_Settings_DimReadTip"))
+dimRead:addItem(getText("UI_Off"), true)   -- default
+dimRead:addItem(getText("UI_On"), false)
+ZeD.Settings.dimReadOption = dimRead
+ZeD.Settings.dimReadOn = function() return (dimRead:getValue() or 1) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -363,7 +372,7 @@ do
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
         putBack = "UI_ZeD_Settings_PutBack", windowSquares = "UI_ZeD_Settings_WindowSquares",
         messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast",
-        sandboxInGame = "UI_ZeD_Settings_SandboxIG",
+        sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]
