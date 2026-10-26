@@ -5,6 +5,7 @@ drawn the dashboards' way (ZeDUI/tools/dashpx: a height field, a material per pi
 by the shared plate template `42/media/lua/client/ZeD/ZeD_Plate.lua` from the generated `PhysPx.lua`.
 
 - `d_*.py` — the designs (one module per family: `d_ovens`, `d_micro`, `d_gen`, `d_grill`, `d_props` radios and siren,
+  `d_walkie` the two-way radios in the radio tab (five walkies, the makeshift one, the ManPack, three ham sets),
   `d_makeshift` / `handwire` / `hw/` the hand-wired boards, `d_heads` the dash heads, `d_speedkeys`, `d_watches` CaZio
   and the expensive one, `d_timez` Timez plus the watch roster)
 - `plates.py` — the registry: every plate, its state pictures and preview states

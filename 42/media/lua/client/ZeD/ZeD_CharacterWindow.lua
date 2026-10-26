@@ -210,6 +210,11 @@ local function getTargetDrawerW(win)
         if win._drawerMode == "item" then return T.px(ITEM_CARD_W) end
         if win._drawerMode == "tab" then
             local want = T.px(getTabDrawerW(win._activeTab))
+            -- a two-way radio: a walkie's tab is only as wide as its face's panel; a ham set's is wide enough for it
+            if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
+                local rw = ZeD.RadioTab.wantW(win, want)
+                if rw then want = rw end
+            end
             -- The window is capped at half the screen, so on a small screen or a
             -- large text size a wide tab would squeeze the inventory beside it
             -- below its 200-unit minimum. Give the tab only the room left after
@@ -4658,6 +4663,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     -- Uses getActiveScroll() to dispatch to the correct tab's scroll state
     drawer.onMouseWheel = function(self, del)
         if win._drawerMode == "tab" then
+            -- a two-way radio's face: the wheel turns the knob under it (else its body scrolls)
+            if win._activeTab == "radio" and ZeD.RadioTab.onWheel(win, del, self:getMouseX(), self:getMouseY()) then return true end
             -- Journal Recipes sub-tab: delegate to CraftingCore scroll
             if win._activeTab == "journal" and (win._journalSubTab or 1) == 4 then
                 local mx = self:getMouseX()
@@ -5002,6 +5009,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
     drawer.onRightMouseDown = function(self, x, y)
         -- a right press calls off an Equip row's drag (as it does the lists')
         ZeD.EquipmentTab.dragCancel(win, self)
+        -- a two-way radio's control: its second meaning (MEM names, a knob turns down)
+        if win._drawerMode == "tab" and win._activeTab == "radio" then ZeD.RadioTab.onRightClick(win, x, y) end
         return true
     end
 

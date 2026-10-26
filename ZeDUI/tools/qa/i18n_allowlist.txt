@@ -152,6 +152,16 @@ PhysPx.lua|CaZio classic, gold
 PhysPx.lua|Timez Easy Reader
 PhysPx.lua|Timez Camper
 PhysPx.lua|Rollex
+PhysPx.lua|Toys-R-Mine Walkie Talkie
+PhysPx.lua|ValuTech Walkie Talkie
+PhysPx.lua|Premium Tech. Walkie Talkie
+PhysPx.lua|Tactical Walkie Talkie
+PhysPx.lua|US Army Walkie Talkie
+PhysPx.lua|Makeshift Walkie Talkie
+PhysPx.lua|US ARMY COMM. Manpack Radio
+PhysPx.lua|Premium Technologies Ham Radio
+PhysPx.lua|US ARMY COMM. Ham Radio
+PhysPx.lua|Makeshift Ham Radio
 
 # Debug menu, only when getDebug() is on.
 ZeD_MainMenu.lua|Debug

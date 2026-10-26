@@ -358,7 +358,7 @@ local function zoneCanvas(cv, p, zones, col)
     return z
 end
 
-local function radioDisplay(cv, p, st, ctx)
+local function radioReadout(cv, p, st, ctx)
     local rd = st.display
     if not rd then
         -- off: a liquid-crystal glass has lost its backlight
@@ -419,6 +419,15 @@ local function radioDisplay(cv, p, st, ctx)
             end
         end
     end
+end
+
+-- a two-way set with a LAMP key (p.lamp = its backlight's colour): while lit (st.lampLit) the glass glows under
+-- the figures; in the dark (st.dark) and unlit it can hardly be read
+local function radioDisplay(cv, p, st, ctx)
+    local lamp = p.lamp
+    if lamp and st.lampLit and st.display then P.rect(cv, p.x, p.y, p.w, p.h, P.color(lamp), 0.35) end
+    radioReadout(cv, p, st, ctx)
+    if lamp and st.dark and not st.lampLit then P.rect(cv, p.x, p.y, p.w, p.h, P.BLACK, 0.6) end
 end
 
 -- the presets' names on the masking tape, in the game's handwriting, each

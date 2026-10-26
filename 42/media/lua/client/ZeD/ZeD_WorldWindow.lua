@@ -1825,6 +1825,11 @@ local function getWorldTargetDrawerW(win)
                 local want = ZeD.StationAppliance.wantW(win._playerObj)
                 if want and want > base then base = want end
             end
+            -- a two-way radio: a walkie's tab is only as wide as its face's panel; a ham set's is wide enough for it
+            if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
+                local want = ZeD.RadioTab.wantW(win, base)
+                if want then base = want end
+            end
             -- The window is capped at half the screen, so on a small screen or a
             -- large text size a wide tab would squeeze the inventory beside it
             -- below its 200-unit minimum. Give the tab only the room left after
@@ -3795,6 +3800,10 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     -- Drawer mouse wheel → map zoom, tab scroll, or ItemCard scroll
     drawer.onMouseWheel = function(self, del)
+        -- a two-way radio's face: the wheel turns the knob under it (else its body scrolls)
+        if win._drawerMode == "tab" and win._activeTab == "radio" and ZeD.RadioTab.onWheel(win, del, self:getMouseX(), self:getMouseY()) then
+            return true
+        end
         if win._drawerMode == "tab" and win._activeTab == "maps" and win._worldMapPanel then
             win._worldMapPanel:onMouseWheel(del)
             return true
@@ -3863,6 +3872,11 @@ function ZeD_WorldWindow.toggle(playerNum)
 
     -- Drawer right-click → pin toggle (crafting/building tab)
     drawer.onRightMouseDown = function(self, x, y)
+        -- a two-way radio's control: its second meaning (MEM names, a knob turns down)
+        if win._drawerMode == "tab" and win._activeTab == "radio" then
+            ZeD.RadioTab.onRightClick(win, x, y)
+            return true
+        end
         if win._drawerMode == "tab" and win._activeTab == "craft" then
             ZeD.CraftingTab.onRightClick(win, x, y)
             return true  -- always consume in tab mode

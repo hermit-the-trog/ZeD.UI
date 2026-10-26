@@ -114,3 +114,29 @@ def _watch_states(name):
 
 for _w in TZ.ALL:
     reg(_w, TZ.design(_w), TZ.variants(_w), _watch_states(_w), _WATCH_TITLES[_w], _WATCH_USES[_w])
+import d_walkie as DW
+# the two-way radios in the radio tab (director, Oct 25 2026: faces only, full view like the watch): five walkies, the
+# makeshift walkie and the ManPack, the three tabletop ham sets; the makeshift ham's TALK / LISTEN toggle flips with the mic
+_TW_USES = {"walkie_toy": "Base.WalkieTalkie1", "walkie_valutech": "Base.WalkieTalkie2", "walkie_premium": "Base.WalkieTalkie3",
+            "walkie_tactical": "Base.WalkieTalkie4", "walkie_army": "Base.WalkieTalkie5", "walkie_makeshift": "Base.WalkieTalkieMakeShift",
+            "walkie_manpack": "Base.ManPackRadio", "ham_civilian": "Base.HamRadio1", "ham_army": "Base.HamRadio2",
+            "ham_makeshift": "Base.HamRadioMakeShift"}
+
+
+def _tw_states(pid):
+    fn, kind, kw = DW.MODELS[pid]
+    return [DW.state(kind, False), DW.state(kind, True, **kw)]
+
+
+_TW_TITLES = {"walkie_toy": "Toys-R-Mine Walkie Talkie", "walkie_valutech": "ValuTech Walkie Talkie",
+              "walkie_premium": "Premium Tech. Walkie Talkie", "walkie_tactical": "Tactical Walkie Talkie",
+              "walkie_army": "US Army Walkie Talkie", "walkie_makeshift": "Makeshift Walkie Talkie",
+              "walkie_manpack": "US ARMY COMM. Manpack Radio", "ham_civilian": "Premium Technologies Ham Radio",
+              "ham_army": "US ARMY COMM. Ham Radio", "ham_makeshift": "Makeshift Ham Radio"}
+for _pid, _uses in _TW_USES.items():
+    _fn = DW.MODELS[_pid][0]
+    if _pid == "ham_makeshift":
+        reg(_pid, _fn, [("mic_live", "micLive", True, {"mic_live": True})], _tw_states(_pid), _TW_TITLES[_pid], _uses,
+            base={"mic_live": False})
+    else:
+        reg(_pid, _fn, [], _tw_states(_pid), _TW_TITLES[_pid], _uses)
