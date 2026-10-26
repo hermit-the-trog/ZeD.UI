@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Phrases that are all capitals in English (READING, IN HAND) are meant to be capitals in your language too.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head is drawn in capitals by ZeD whatever case the game text has.
 
-Total keys: 2292.
+Total keys: 2333.
 
 ## Areas
 
@@ -54,7 +54,7 @@ Total keys: 2292.
 - [Looks](#looks) (9)
 - [Machine](#machine) (18)
 - [MainMenu](#mainmenu) (52)
-- [Map](#map) (10)
+- [Map](#map) (40)
 - [Meta](#meta) (8)
 - [Modal](#modal) (2)
 - [Mods](#mods) (176)
@@ -81,8 +81,9 @@ Total keys: 2292.
 - [Server](#server) (55)
 - [Settings](#settings) (52)
 - [Siren](#siren) (2)
-- [Skills](#skills) (7)
+- [Skills](#skills) (9)
 - [Spawn](#spawn) (9)
+- [SRJ](#srj) (9)
 - [Station](#station) (31)
 - [Status](#status) (3)
 - [Strip](#strip) (3)
@@ -1637,6 +1638,36 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Map_StyleSurvey` | `Survey` | Maps tab toolbar: map style pill | 10 |
 | `UI_ZeD_Map_Unavailable` | `MAP UNAVAILABLE` | Maps tab: centered message when the world map is turned off | 24 |
 | `UI_ZeD_Map_Unfolded` | `MAP UNFOLDED` | Maps tab: placeholder heading while the map is open in its own window | 24 |
+| `UI_ZeD_Map_SideList` | `Players and notes` | Maps tab toolbar (World window drawer): hover hint of the icon that shows or hides the side list | - |
+| `UI_ZeD_Map_KeyButton` | `Key` | Maps tab toolbar: button that opens the map key | 8 |
+| `UI_ZeD_Map_KeyColor` | `The Color map is the ground as it looks from above: roofs, roads and trees, not buildings by use. The key's colors are on Survey.` | Maps tab, map key panel on the Color map (Color and Survey are the map style buttons) | - |
+| `UI_ZeD_Map_KeyPaper` | `The Paper map is the road map as printed: roads, towns and water, not buildings by use. The key's colors are on Survey.` | Maps tab, map key panel on the Paper map (Paper and Survey are the map style buttons) | - |
+| `UI_ZeD_Map_ShowSurvey` | `Show Survey` | Maps tab, map key panel: button that switches the map to Survey | 18 |
+| `UI_ZeD_Map_DrawDraw` | `Draw` | Maps tab with Draw On The Map: the toolbar button and the free-hand tool (stands in for the mod's own word while the game cannot read it) | 10 |
+| `UI_ZeD_Map_DrawLine` | `Line` | Maps tab with Draw On The Map: the straight-line tool (the mod's word) | 10 |
+| `UI_ZeD_Map_DrawErase` | `Erase` | Maps tab with Draw On The Map: the eraser tool (the mod's word) | 10 |
+| `UI_ZeD_Map_DrawThickness` | `Thickness` | Maps tab with Draw On The Map: label before the stroke size slider (the mod's word) | 12 |
+| `UI_ZeD_Map_DrawFill` | `Fill` | Maps tab with Draw On The Map: label before the stroke density slider (the mod's word) | 8 |
+| `UI_ZeD_Map_DrawInk` | `Ink: %1` | Maps tab with Draw On The Map: drawing row, the pen the strokes are drawn in. %1 an item name (Red Pen) | - |
+| `UI_ZeD_Map_DirN` | `north` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_DirNE` | `north-east` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_DirE` | `east` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_DirSE` | `south-east` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_DirS` | `south` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_DirSW` | `south-west` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_DirW` | `west` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_DirNW` | `north-west` | Maps tab with Players On Map: which way another player is | - |
+| `UI_ZeD_Map_AwayM` | `%1 m %2` | Maps tab with Players On Map: how far and which way a player is. %1 meters, %2 a direction (north) | - |
+| `UI_ZeD_Map_AwayKm` | `%1 km %2` | Maps tab with Players On Map: how far and which way a player is. %1 kilometers (1.2), %2 a direction (north) | - |
+| `UI_ZeD_Map_LearnedNotes` | `Learned notes` | Maps tab with Share Annotations: side list heading over the sets of notes the character learned (drawn in capitals) | - |
+| `UI_ZeD_Map_SetPlace` | `1 place` | Maps tab with Share Annotations: a learned set's row when the set has one mark | - |
+| `UI_ZeD_Map_SetDeleteAskOne` | `Delete the notes %1? Its 1 place goes from your map.` | Maps tab with Share Annotations: the side list's question before deleting a set of one mark. %1 the set's name | - |
+| `UI_ZeD_Map_SetPlaces` | `%1 places` | Maps tab with Share Annotations: a learned set's row. %1 how many marks it has | - |
+| `UI_ZeD_Map_SetHidden` | `hidden` | Maps tab with Share Annotations: a learned set's row, after the places, when the set is hidden | - |
+| `UI_ZeD_Map_SetHiddenBefore` | `Hidden on the game's map before` | Maps tab with Share Annotations: a set hidden on the game's own map, which can be shown again here | - |
+| `UI_ZeD_Map_SetDeleteAsk` | `Delete the notes %1? Its %2 places go from your map.` | Maps tab with Share Annotations: the side list's question before deleting a set. %1 the set's name, %2 how many marks | - |
+| `UI_ZeD_Map_NotesEmpty` | `No learned notes. Use %1 on a paper with someone's notes to learn them.` | Maps tab with Share Annotations: side list when no notes are learned. %1 the mod's menu entry (Remember annotations) | - |
+| `UI_ZeD_Map_WhereOff` | `Kentucky, USA` | Maps tab with Where Am I?: over the map when the character is in none of the mod's areas (the mod's own words) | - |
 
 ## Meta
 
@@ -2785,6 +2816,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Skills_StatusReading` | `READING` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book partly read (capitals) | 12 |
 | `UI_ZeD_Skills_TrainingMaterials` | `Training Materials` | Skills tab (Character window): heading of the skill-book section under the skill grid | 24 |
 | `UI_ZeD_Skills_Volume` | `%1 Vol. %2` | Skills tab (Character window), Training Materials: a book row when a skill group is open; %1 is the book's title, %2 its volume number as a roman numeral (I, II, III...) | - |
+| `UI_ZeD_Skills_CardLevel` | `Level %1 \| %2 / %3 XP to level %4` | Skills tab: a skill row's hover card, under the skill's name. %1 level, %2 XP so far in it, %3 XP the level takes, %4 the next level | - |
+| `UI_ZeD_Skills_CardMax` | `Level %1` | Skills tab: a skill row's hover card, under the name of a skill at the top level. %1 the level | - |
 
 ## Spawn
 
@@ -2799,6 +2832,20 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Spawn_PromptNewSeed` | `New seed` | Spawn location screen (new game): controller prompt (Y button) | 12 |
 | `UI_ZeD_Spawn_RandomDesc` | `A town picked at random when you press "Next".` | Spawn location screen (new game): description of the Random entry (Next is the name of the Next button) | - |
 | `UI_ZeD_Spawn_Title` | `Project Zomboid  +  Spawn location` | Spawn location screen (new game): title bar. The + is the ZeD title separator | - |
+
+## SRJ
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_SRJ_NotWrittenTotal` | `%1 XP not yet written` | Skills tab with Skill Recovery Journal: the key line, right side. %1 XP of all skills not yet written into the journal | - |
+| `UI_ZeD_SRJ_JournalOn` | `%1 on you` | Skills tab with Skill Recovery Journal: the key line when a journal is carried. %1 the journal's name (Bound Journal) | - |
+| `UI_ZeD_SRJ_JournalNone` | `No %1 on you` | Skills tab with Skill Recovery Journal: the key line when no journal is carried. %1 the journal's name (Bound Journal) | - |
+| `UI_ZeD_SRJ_WrittenBy` | `written by %1` | Skills tab with Skill Recovery Journal: after the journal, who wrote it. %1 a character's name | - |
+| `UI_ZeD_SRJ_JournalIn` | `in %1` | Skills tab with Skill Recovery Journal: after the journal, where it is. %1 Inventory or a bag's name | - |
+| `UI_ZeD_SRJ_StaysRecorded` | `what you wrote stays recorded` | Skills tab with Skill Recovery Journal: after No Bound Journal on you (the record is kept with the character, not the book) | - |
+| `UI_ZeD_SRJ_NoteOn` | `%1 XP not yet written. Transcribe Into Journal on the Bound Journal keeps it.` | Skills tab with Skill Recovery Journal: a skill's hover card, last line, with a journal carried. %1 XP; Transcribe Into Journal is the mod's menu entry | - |
+| `UI_ZeD_SRJ_NoteNone` | `%1 XP not yet written. Carry the journal and use Transcribe Into Journal on it to keep it.` | Skills tab with Skill Recovery Journal: a skill's hover card, last line, no journal carried. %1 XP | - |
+| `UI_ZeD_SRJ_NoteAll` | `All of it is written down.` | Skills tab with Skill Recovery Journal: a skill's hover card, last line, when nothing is left to write | - |
 
 ## Station
 

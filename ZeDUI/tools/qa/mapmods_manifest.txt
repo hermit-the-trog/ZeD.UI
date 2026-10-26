@@ -1,0 +1,12 @@
+# ZeDUI/tools/qa/mapmods_manifest.txt  (Oct 26 2026)
+# The map mods and Skill Recovery Journal in ZeD's Maps and Skills tabs:
+# zedqa_mods_run.ps1 -ModList mapmods_mods.txt -Mode fullscreen4k -Manifest .../mapmods_manifest.txt
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode
+zedqa_srj.lua | srj | timeout=120                # Skills: strips, key line (no journal, main, bag), hover card on the pad, folded
+zedqa_mapkey.lua | mk | timeout=120              # the map key beside the mods' buttons: drawer + unfolded, three styles, mouse + pad
+zedqa_mapmods.lua | mm | timeout=200             # drawing, symbol size, players, learned notes, area name; drawer + unfolded; all taken back
+zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
+zedqa_mapstyles.lua | mst                        # Survey / Color / Paper at two zooms on Muldraugh
+zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's store; all taken back
+zedqa_flyermap.lua | fm                          # flyer pins, hover card, reader from a pin
+zedqa_navevents.lua | ev                         # where pad focus lands, the map included
