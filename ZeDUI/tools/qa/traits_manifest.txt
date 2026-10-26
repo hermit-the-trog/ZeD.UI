@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/traits_manifest.txt  (Oct 26 2026)
+# Traits As Skills support: zedqa_mods_run.ps1 -ModList traits_mods.txt -Mode fullscreen4k -Manifest .../traits_manifest.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_traits.lua | tas | timeout=300               # the tab, rows, details, steps, With a trait, fold, Find, pad path, NEW, Large, light
+zedqa_hairbeard.lua | hb | timeout=420            # Hair and beard with Spongie's Hairstyle Unlocker on (its tag)

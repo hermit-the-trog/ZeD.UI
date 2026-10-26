@@ -297,6 +297,25 @@ ICONS = {
     "....lmd.....lmd.",
     "....ddk.....ddk.",
     "................"],
+# Traits (Traits As Skills support, Oct 26 2026): a level ladder, the filled part lit, a marker over where you stand,
+# the range ticks under it (the mockup's slider, zed_traits_tab_v1)
+"traits": [
+    "................",
+    "................",
+    "......wllld.....",
+    ".......lmd......",
+    "........d.......",
+    "................",
+    "wllllllllllllllm",
+    "lwwwwwwwwlkkkkkd",
+    "lwlllllllmkkkkkd",
+    "lmmmmmmmmdkkkkkd",
+    "dddddddddddddddk",
+    "................",
+    ".l...l....l...l.",
+    ".d...d....d...d.",
+    "................",
+    "................"],
 }
 
 TONES = "wlmdk"

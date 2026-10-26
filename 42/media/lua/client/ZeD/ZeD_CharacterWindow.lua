@@ -2435,8 +2435,11 @@ end
 local function _buildIdentityFocusables(win)
     if not win then return {} end
     local elements = _buildIdentityDisclosureFocusable(win)
-    local gridScroll = _buildIdentityGridScrollFocusable(win)
-    for i = 1, #gridScroll do elements[#elements + 1] = gridScroll[i] end
+    -- Oct 26 2026: the Hair and beard rows and each trait are stops (ZeD.IdentityTab.focusables);
+    -- the tab scrolls to the focused one, so the grid-scroll surface is only the fallback
+    local more = (ZeD.IdentityTab and ZeD.IdentityTab.focusables) and ZeD.IdentityTab.focusables(win)
+        or _buildIdentityGridScrollFocusable(win)
+    for i = 1, #more do elements[#elements + 1] = more[i] end
     return elements
 end
 
@@ -4695,6 +4698,8 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 return true
             end
             if ZeD_CharacterWindow.extClick(win, x, y) then return true end
+            -- Identity: the Hair and beard section (ZeD_HairBeard.lua) and its strip
+            if win._activeTab == "identity" and ZeD.IdentityTab.onClick and ZeD.IdentityTab.onClick(win, x, y) then return true end
             -- Equipment tab click routing
             if win._activeTab == "equip" then
                 -- The List | Doll toggle, and a doll card's layer strip (EquipDoll.lua)
@@ -5828,6 +5833,11 @@ function ZeD_CharacterWindow.toggle(playerNum)
                 scrollKey = tostring(sc and sc.scrollPos or 0) .. ":" .. tostring(ZeD.EquipDoll and ZeD.EquipDoll.view())
                     .. ":" .. tostring(dp and dp:getWidth()) .. ":" .. tostring(dp and dp:getHeight())
                     .. ":" .. tostring(win._equipSelected) .. ":" .. tostring(win._equipLayer)
+                if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
+            end
+            -- Identity: its scroll and the Hair and beard rows (part, Out of reach open)
+            if win._activeTab == "identity" and ZeD.IdentityTab.scrollKey then
+                scrollKey = ZeD.IdentityTab.scrollKey(win)
                 if not dirty and snap and snap.scrollKey ~= scrollKey then dirty = true end
             end
             -- another mod's tab names what moves its stops (its scroll, its view)

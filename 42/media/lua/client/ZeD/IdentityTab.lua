@@ -14,6 +14,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Tr"
+require "ZeD/ZeD_HairBeard"
 
 ZeD = ZeD or {}
 ZeD.IdentityTab = {}
@@ -475,13 +476,32 @@ end
 -- RENDERER — ZONE B: Character Traits
 -- ============================================================================
 
-local function renderTraitRow(panel, trait, tx, ty, tw, color)
+-- the controller's focused element, when it is one of this window's
+local function focusedId(win)
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win and Focus.getFocusedElement) then return nil end
+    local el = Focus.getFocusedElement(win)
+    return el and el.id or nil
+end
+
+local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local T = ZeD.T
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
     -- Row background
     panel:drawRect(tx, ty, tw, T.px(TRAIT_ROW_H),
         0.30, color.r, color.g, color.b)
+
+    -- its description on hover and on controller focus (mockup zed_traits_tab_v1: the
+    -- no-mod scene's descriptions belong here); the zone is kept for both
+    local key = "identity:trait:" .. tostring(trait.name)
+    local zones = win._idTraitZones
+    zones[#zones + 1] = { x = tx, y = ty, w = tw, h = T.px(TRAIT_ROW_H), id = key, name = trait.name, desc = trait.desc }
+    local focused = focusedId(win) == key
+    if focused then
+        local ac = T.accent
+        panel:drawRect(tx, ty, tw, T.px(TRAIT_ROW_H), 0.55, ac.r, ac.g, ac.b)
+    end
 
     -- Icon
     if trait.texture then
@@ -492,11 +512,12 @@ local function renderTraitRow(panel, trait, tx, ty, tw, color)
     -- Name
     local nameX = tx + T.px(TRAIT_ICON_SZ) + T.px(12)
     local nameY = ty + math.floor((T.px(TRAIT_ROW_H) - bodyH) / 2)
+    local nc = focused and T.textOnFocus or T.toneNorm
     panel:drawText(trait.name, nameX, nameY,
-        T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF2)
+        nc.r, nc.g, nc.b, nc.a or 1, T.fontF2)
 end
 
-local function renderTraitGroup(panel, traits, label, x, curY, contentW, color)
+local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, color)
     local T    = ZeD.T
     local secH = ZeD.TM:getFontHeight(T.fontF1)
 
@@ -512,7 +533,7 @@ local function renderTraitGroup(panel, traits, label, x, curY, contentW, color)
         local row = math.floor((i - 1) / 2)
         local tx = x + col * (colW + gap)
         local ty = curY + row * (T.px(TRAIT_ROW_H) + T.px(2))
-        renderTraitRow(panel, trait, tx, ty, colW, color)
+        renderTraitRow(panel, win, trait, tx, ty, colW, color)
     end
 
     local rows = math.ceil(#traits / 2)
@@ -546,14 +567,14 @@ local function renderZoneB(panel, win, data, x, drawY, w)
 
     -- Positive traits
     if #data.posTraits > 0 then
-        curY = renderTraitGroup(panel, data.posTraits,
+        curY = renderTraitGroup(panel, win, data.posTraits,
             ZeD.tr("UI_ZeD_Identity_TraitsPositive", #data.posTraits),
             x + pad, curY, contentW, T.positive)
     end
 
     -- Negative traits
     if #data.negTraits > 0 then
-        curY = renderTraitGroup(panel, data.negTraits,
+        curY = renderTraitGroup(panel, win, data.negTraits,
             ZeD.tr("UI_ZeD_Identity_TraitsNegative", #data.negTraits),
             x + pad, curY, contentW, T.danger)
     end
@@ -592,12 +613,19 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local scroll  = win._identityScroll
     local scrollW = T.sp.scrollbarW
 
+    -- Hair and beard (ZeD_HairBeard.lua): a section under the license and its
+    -- action strip at the drawer's foot (mockup zed_hair_beard_v1)
+    local HB = ZeD.HairBeard
+    local stripH = HB and HB.stripH() or 0
+    local hbL = HB and HB.layout(win, w - T.sp.scrollbarW) or nil
+    local zoneHH = hbL and hbL.h or 0
+
     local zoneAH = measureZoneAH()
     local zoneBH = measureZoneBH(data)
-    local totalContentH = zoneAH + zoneBH
+    local totalContentH = zoneAH + zoneHH + zoneBH
 
     local scrollY = y + tabHeaderH
-    local scrollH = h - tabHeaderH
+    local scrollH = h - tabHeaderH - stripH
     local needsScroll = totalContentH > scrollH
     scroll.visible = needsScroll
     local contentW = w
@@ -622,6 +650,10 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     else
         win._identityGridScrollZone = nil
     end
+
+    -- the controller's focus stays in view (once per newly focused stop); the
+    -- disclosure takes the tab back to the top
+    if needsScroll then ZeD.IdentityTab.followFocus(win, scroll, scrollY, scrollH, totalContentH) end
 
     panel:setStencilRect(x, scrollY, contentW, scrollH)
 
@@ -656,11 +688,19 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     renderLicenseText(panel, win, data, x, drawY, contentW)
 
     -- ================================================================
+    -- ZONE H: Hair and beard
+    -- ================================================================
+    if hbL then HB.draw(panel, win, hbL, x, drawY + zoneAH, contentW, scrollY, scrollH) end
+
+    -- ================================================================
     -- ZONE B: Traits
     -- ================================================================
-    renderZoneB(panel, win, data, x, drawY + zoneAH, contentW)
+    win._idTraitZones = {}
+    renderZoneB(panel, win, data, x, drawY + zoneAH + zoneHH, contentW)
 
     panel:clearStencilRect()
+
+    if HB then HB.drawStrip(panel, win, x, y + h - stripH, w, stripH) end
 
     -- S104 — gamepad focus cue on the tab-header disclosure. 0.55α T.accent
     -- over the header rect, drawn BEFORE drawTabHeader so the chevron + text
@@ -688,6 +728,77 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     if needsScroll then
         scroll:draw(panel)
     end
+
+    -- hover balloons last, over everything in the drawer: a hair row's hint, a trait's description
+    local clip = { x = x, y = scrollY, w = w, h = scrollH }
+    if HB then HB.drawHints(panel, win, clip) end
+    ZeD.IdentityTab.drawTraitHint(panel, win, x, scrollY, contentW, scrollH, clip)
+end
+
+-- a trait's description: on hover (after a pause) and on controller focus (at once)
+function ZeD.IdentityTab.drawTraitHint(panel, win, vx, vy, vw, vh, clip)
+    local zones = win._idTraitZones
+    if not zones then return end
+    local fid = focusedId(win)
+    local mx, my = panel:getMouseX(), panel:getMouseY()
+    local over = mx >= vx and mx < vx + vw and my >= vy and my < vy + vh
+    local hit, focused = nil, false
+    for _, z in ipairs(zones) do
+        if fid == z.id then hit, focused = z, true; break end
+        if over and mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hit = z end
+    end
+    win._idTraitHint = win._idTraitHint or {}
+    local hs = win._idTraitHint
+    if not hit then hs.hintKey = nil; return end
+    if not focused then
+        local HB = ZeD.HairBeard
+        if not (HB and HB.hintDue(hs, hit.id, getTimestampMs())) then return end
+    end
+    if ZeD.HairBeard then
+        ZeD.HairBeard.balloon(panel, hit.name, (hit.desc and hit.desc ~= "") and hit.desc or nil, hit.x, hit.y, hit.w, hit.h, clip)
+    end
+end
+
+-- keep the focused stop in view: scroll by the least that shows it whole
+function ZeD.IdentityTab.followFocus(win, scroll, viewY, viewH, contentH)
+    local id = focusedId(win)
+    if not id or id == win._idLastPinned then return end
+    win._idLastPinned = id
+    local Focus = ZeD.Input.Focus
+    local el = Focus.getFocusedElement(win)
+    if not el then return end
+    local maxOff = math.max(1, contentH - viewH)
+    local off = math.floor((scroll.scrollPos or 0) * maxOff)
+    local newOff = off
+    if el.isDisclosure then newOff = 0
+    elseif el.y < viewY then newOff = off - (viewY - el.y) - ZeD.T.px(6)
+    elseif el.y + el.h > viewY + viewH then newOff = off + (el.y + el.h - viewY - viewH) + ZeD.T.px(6) end
+    newOff = math.max(0, math.min(maxOff, newOff))
+    if newOff ~= off then scroll:setScrollPos(newOff / maxOff) end
+end
+
+-- the controller's stops below the disclosure: Hair and beard's, then each trait
+function ZeD.IdentityTab.focusables(win)
+    local out = {}
+    if ZeD.HairBeard then
+        for _, e in ipairs(ZeD.HairBeard.focusables(win)) do out[#out + 1] = e end
+    end
+    for _, z in ipairs(win._idTraitZones or {}) do
+        out[#out + 1] = { x = z.x, y = z.y, w = z.w, h = z.h, id = z.id, onFocus = function() end }
+    end
+    return out
+end
+
+-- a click in the tab's content (the hair rows, the switch, Out of reach, the strip's button)
+function ZeD.IdentityTab.onClick(win, x, y)
+    return ZeD.HairBeard ~= nil and ZeD.HairBeard.onClick(win, x, y)
+end
+
+-- what moves the stops, for the window's rebuild check
+function ZeD.IdentityTab.scrollKey(win)
+    local sc = win._identityScroll
+    return tostring(sc and sc.scrollPos or 0) .. ":" .. (ZeD.HairBeard and ZeD.HairBeard.key(win) or "")
+        .. ":" .. tostring(#(win._idTraitZones or {}))
 end
 
 -- ============================================================================
