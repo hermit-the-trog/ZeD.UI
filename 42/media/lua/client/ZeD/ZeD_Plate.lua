@@ -535,13 +535,16 @@ function PL.drawParts(cv, parts, st, ctx)
                 P.rect(cv, xx - 1, p.y, 1, p.h, c0); P.rect(cv, xx, p.y, 1, p.h, c1)
             end
         elseif t == "lamp" then
-            if st[p.src] then
-                local c = P.color(p.color)
+            -- (a state that is a colour lights the lamp in it: the dash's lamps by condition, ZeD_Dashboard D.derive)
+            local on = st[p.src]
+            if on then
+                local c = P.color(type(on) == "string" and on or p.color)
                 if p.halo then P.rects(cv, p.halo, c, 0.30) end
                 P.rects(cv, p.r, c)
             end
         elseif t == "led" then
-            if st[p.src] then P.rect(cv, p.x, p.y, p.w, p.h, P.color(p.color)) end
+            local on = st[p.src]
+            if on then P.rect(cv, p.x, p.y, p.w, p.h, P.color(type(on) == "string" and on or p.color)) end
         elseif t == "gear" then
             if st.power then
                 local rr = p.letters[st.gearSel]

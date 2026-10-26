@@ -155,6 +155,14 @@ local function _get(o, m, default)
 end
 
 local CRANKING = { Starting = true, RetryingStarting = true, StartingSuccess = true, StartingFailed = true }
+-- a part's condition (0..100), or nil when the car has no such part or its item is not fitted
+local function _partCond(vehicle, id)
+    local ok, part = pcall(vehicle.getPartById, vehicle, id)
+    if not (ok and part) then return nil end
+    local it = _get(part, "getItemType", nil)
+    if it ~= nil and not _get(it, "isEmpty", true) and _get(part, "getInventoryItem", nil) == nil then return nil end
+    return _get(part, "getCondition", nil)
+end
 local function _state(vehicle, chr)
     local st = {}
     st.running  = _get(vehicle, "isEngineRunning", false)
@@ -179,7 +187,13 @@ local function _state(vehicle, chr)
     end
     st.battRaw  = _get(vehicle, "getBatteryCharge", 0)
     st.engineCond = _safe(function() return vehicle:getPartById("Engine"):getCondition() end, 100)
-    st.engWarn  = st.engineCond < 40
+    st.engWarn  = st.engineCond < 40     -- (the temperature needle's hot side; the engine lamp reads the condition steps, D.derive)
+    -- the parts the lamps and their hover text read (mockup zed_belt_ammo_dash_v1; approved Oct 26 2026): condition
+    -- 0..100, nil where the part or its item is missing
+    st.battCond = _partCond(vehicle, "Battery")
+    st.heaterCond = _partCond(vehicle, "Heater")
+    st.hlL = _partCond(vehicle, "HeadlightLeft")
+    st.hlR = _partCond(vehicle, "HeadlightRight")
     st.lights   = _get(vehicle, "getHeadlightsOn", false)
     -- the dash lights burn on the headlight switch while the lamps can actually light (vanilla's own test, its
     -- dashboard's lights icon: switched on and getHeadlightCanEmmitLight)
@@ -219,6 +233,34 @@ local SETTLE = { speed_mph = 140, speed_kmh = 140, rpm = 160, fuel = 900, batt =
                  tempF = 80, fanF = 80, modeF = 80 }
 local FROM_REST = { speed_mph = true, speed_kmh = true, rpm = true, fuel = true, batt = true, temp = true, oil = true, volts = true }
 
+-- The condition steps (mockup zed_belt_ammo_dash_v1; approved Oct 26 2026): f 0..1 -> "good" / "worn" (under 60%) /
+-- "poor" (under 30%) / "dead" (under 10%); nil stays nil (no such part)
+D.LAMP_COLOR = { worn = "#ffb02e", poor = "#ff3a20", dead = "#c41a10" }
+D.BLINK_MS = 500
+local TONE_RANK = { good = 0, worn = 1, poor = 2, dead = 3 }
+function D.tone(f)
+    if f == nil then return nil end
+    if f < 0.1 then return "dead" elseif f < 0.3 then return "poor" elseif f < 0.6 then return "worn" end
+    return "good"
+end
+-- a battery's charge: amber under 40%, red under 20%, blinking under 10%
+function D.chargeTone(c)
+    if c == nil then return nil end
+    if c < 0.1 then return "dead" elseif c < 0.2 then return "poor" elseif c < 0.4 then return "worn" end
+    return "good"
+end
+function D.worse(a, b)
+    if a == nil then return b end
+    if b == nil then return a end
+    return (TONE_RANK[a] >= TONE_RANK[b]) and a or b
+end
+-- the lamp for a tone: false (dark: fine, or the blink's dark half under 10%) or its colour
+function D.lampColor(t)
+    if t == nil or t == "good" then return false end
+    if t == "dead" and math.floor(getTimestampMs() / D.BLINK_MS) % 2 == 1 then return false end
+    return D.LAMP_COLOR[t]
+end
+
 -- The values the parts read (ZeDUI/tools/dashpx/live.py derives the same for the previews).
 function D.derive(st, mem, dtMs)
     local live = st.running or st.keysIn or st.hotwired
@@ -247,10 +289,18 @@ function D.derive(st, mem, dtMs)
     local check = st.power and not st.running         -- key on, engine off: the bulb check
     st.check      = check
     st.oilLamp    = check
-    st.genLamp    = check or (st.power and batt < 0.2)
+    -- the battery and engine lamps (mockup zed_belt_ammo_dash_v1, "Warning only"; approved Oct 26 2026): dark while
+    -- the part is fine, amber when worn (under 60%), red when poor (under 30%), red and blinking under 10%. The battery
+    -- follows the weaker of its condition and its charge (amber under 40%, red under 20%, blinking under 10%). The
+    -- bulb check (key on, engine off) still lights every lamp in its own colour. A lamp's state: true = its own
+    -- colour, a colour = that colour (ZeD_Plate draws either), false = dark.
+    st.battTone   = D.worse(D.tone(st.battCond and st.battCond / 100 or nil), D.chargeTone(st.power and batt or nil))
+    st.engTone    = D.tone(st.engineCond and st.engineCond / 100 or nil)
+    st.heaterTone = D.tone(st.heaterCond and st.heaterCond / 100 or nil)
+    st.genLamp    = check or (st.running and D.lampColor(st.battTone)) or false
     st.brakeLamp  = check
     st.beltLamp   = check
-    st.engLamp    = check or (st.running and st.engWarn) or false
+    st.engLamp    = check or (st.running and D.lampColor(st.engTone)) or false
     st.fuelLamp   = st.power and v.fuel < 0.15
     st.tempLamp   = st.power and v.temp > 0.8
     st.hiBeam     = st.power and st.lights or false
@@ -262,6 +312,9 @@ function D.derive(st, mem, dtMs)
     st.lbarLamp   = st.lightbar > 0
     st.sirenLamp  = st.siren > 0
     st.heatOn     = st.heaterOn and not st.ac
+    -- the heater's own light (the DASH ELITE's over AUTO) is an on light: its green while the heater is fine, the
+    -- condition's colour when it is worn, while the engine runs
+    if st.heatOn and st.running and st.heaterTone and st.heaterTone ~= "good" then st.heatOn = D.lampColor(st.heaterTone) end
     st.shiftLamp  = st.running and v.rpm >= 6500
     -- an automatic's selector: P with the engine off, R backing up, otherwise D (PZ counts gears internally)
     local g = tostring(st.gear or "")
@@ -472,6 +525,74 @@ ZeD.trDefaults({
     UI_ZeD_Dash_UnitCab = "%1 - CAB %2", UI_ZeD_Dash_UnitEngine = "%1 - ENGINE %2", UI_ZeD_Dash_UnitUnit = "%1 - UNIT %2",
     UI_ZeD_Dash_AshOpen = "Open ash tray", UI_ZeD_Dash_AshClose = "Close ash tray",
     UI_ZeD_Dash_MeterOn = "Meter on", UI_ZeD_Dash_MeterOff = "Meter off",
+})
+
+-- ---------------------------------------------------------------------------
+-- The lamps' hover text (mockup zed_belt_ammo_dash_v1, "Chip above the lamp"; approved Oct 26 2026): pointing at the
+-- battery, engine or headlight lamp, or the heater's light (its button where the plate has no light of its own), shows
+-- a ZeD chip above it, the belt's chip: the part, its condition, and the battery's charge, the heater's on / off, each
+-- headlight. The lamps stay off the controller's path (the Vehicle tab lists every part's condition for the pad).
+-- ---------------------------------------------------------------------------
+local LAMP_ZONE = { genLamp = "batt", engLamp = "eng", hiBeam = "head", heatOn = "heat" }
+local ZONE_MIN_W, ZONE_MIN_H = 13, 11   -- a small lamp's hover place at least this big round its middle (plate pixels)
+-- the design's hover places in plate pixels (worked out once, kept on the design)
+local function _lampZones(des)
+    if des._lampZones then return des._lampZones end
+    local z = {}
+    local heatHit = nil
+    for _, h in ipairs(des.hits or {}) do if h.id == "heat" then heatHit = h end end
+    if not heatHit then for _, h in ipairs(des.hits or {}) do if h.id == "temp" then heatHit = heatHit or h end end end
+    for _, p in ipairs(des.parts or {}) do
+        local id = LAMP_ZONE[p.src]
+        if id and (p.t == "lamp" or p.t == "led") and not (id == "heat" and des.hits and heatHit and heatHit.id == "heat") then
+            local x0, y0, x1, y1
+            if p.t == "led" then x0, y0, x1, y1 = p.x, p.y, p.x + p.w, p.y + p.h
+            else
+                x0, y0, x1, y1 = 9999, 9999, -9999, -9999
+                for _, list in ipairs({ p.r or {}, p.halo or {} }) do
+                    for i = 1, #list, 4 do
+                        x0, y0 = math.min(x0, list[i]), math.min(y0, list[i + 1])
+                        x1, y1 = math.max(x1, list[i] + list[i + 2]), math.max(y1, list[i + 1] + list[i + 3])
+                    end
+                end
+            end
+            if x1 > x0 then
+                local w, h = math.max(ZONE_MIN_W, x1 - x0), math.max(ZONE_MIN_H, y1 - y0)
+                z[#z + 1] = { id = id, x = math.floor((x0 + x1 - w) / 2), y = math.floor((y0 + y1 - h) / 2), w = w, h = h }
+            end
+        end
+    end
+    -- the heater: its button (the DASH ELITE's AUTO, with its light over it), or the temperature control
+    local hasHeat = false
+    for _, q in ipairs(z) do if q.id == "heat" then hasHeat = true end end
+    if heatHit and not hasHeat then z[#z + 1] = { id = "heat", x = heatHit.x, y = heatHit.y, w = heatHit.w, h = heatHit.h } end
+    des._lampZones = z
+    return z
+end
+D._lampZones = _lampZones   -- (QA probes)
+
+local function _pct(v) return tostring(math.floor((v or 0) + 0.5)) .. "%" end
+local function _condWord(v) return v and ZeD.tr("UI_ZeD_Dash_LampCond", _pct(v)) or getText("IGUI_Missing") end
+-- the chip's two parts: the part's name (the game's word) and what is known of it, joined by " | "
+function D.lampText(id, st)
+    if id == "batt" then
+        local rest = _condWord(st.battCond)
+        if st.battCond then rest = rest .. " | " .. ZeD.tr("UI_ZeD_Dash_LampCharge", _pct((st.battRaw or 0) * 100)) end
+        return getText("Tooltip_Dashboard_Battery"), rest
+    elseif id == "eng" then
+        return getText("IGUI_VehiclePartEngine"), _condWord(st.engineCond)
+    elseif id == "heat" then
+        return getText("Tooltip_Dashboard_Heater"), _condWord(st.heaterCond) .. " | " .. getText(st.heaterOn and "UI_On" or "UI_Off")
+    elseif id == "head" then
+        local l = st.hlL and ZeD.tr("UI_ZeD_Dash_LampLeft", _pct(st.hlL)) or ZeD.tr("UI_ZeD_Dash_LampLeft", getText("IGUI_Missing"))
+        local r = st.hlR and ZeD.tr("UI_ZeD_Dash_LampRight", _pct(st.hlR)) or ZeD.tr("UI_ZeD_Dash_LampRight", getText("IGUI_Missing"))
+        return getText("Tooltip_Dashboard_Headlights"), l .. " | " .. r
+    end
+    return nil
+end
+ZeD.trDefaults({
+    UI_ZeD_Dash_LampCond = "condition %1", UI_ZeD_Dash_LampCharge = "charge %1",
+    UI_ZeD_Dash_LampLeft = "left %1", UI_ZeD_Dash_LampRight = "right %1",
 })
 
 -- ---------------------------------------------------------------------------
@@ -922,6 +1043,7 @@ function ZeD_Dashboard:prerender()
             P.text(cv, ZeD.upper(hint), DP.hintRight, 2, ink, "35", 1, "r", nil, shadow)
         end
     end
+    self:_lampHover(des, st, k)
     if Focus and Focus.setRingZoneElements then
         local zone = self._focusRing[1]
         local oldEl = zone.elements[zone.focusedElementIdx or 1]
@@ -933,6 +1055,41 @@ function ZeD_Dashboard:prerender()
 end
 
 function ZeD_Dashboard:render() end
+
+-- the lamp under the pointer: its chip above it (ZeD tokens: surf1, the strong border, F1; the part's name in the
+-- text colour, the rest in the accent text colour), kept on the screen
+function ZeD_Dashboard:_lampHover(des, st, k)
+    self._lampHov = nil
+    if not self:isMouseOver() then return end
+    local mx, my = self:getMouseX() / k, self:getMouseY() / k
+    local hz = nil
+    for _, z in ipairs(_lampZones(des)) do
+        if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h and (z.id ~= "heat" or st.hasHeater) then hz = z end
+    end
+    if not hz then return end
+    local name, rest = D.lampText(hz.id, st)
+    if not name then return end
+    self._lampHov = hz.id
+    local T, tm = ZeD.T, ZeD.TM
+    local f1 = T.fontF1
+    local lead = name .. " | "
+    -- (a measure drops a trailing space: the lead is measured with a letter after it, less the letter)
+    local leadW = tm:MeasureStringX(f1, lead .. "x") - tm:MeasureStringX(f1, "x")
+    local w = leadW + tm:MeasureStringX(f1, rest) + T.px(12)
+    local h = tm:getFontHeight(f1) + T.px(6)
+    local x = math.floor((hz.x + hz.w / 2) * k - w / 2)
+    local y = hz.y * k - h - T.px(6)
+    local ax, sw = self:getAbsoluteX(), getCore():getScreenWidth()
+    if ax + x + w > sw - T.px(4) then x = sw - T.px(4) - w - ax end
+    if ax + x < T.px(4) then x = T.px(4) - ax end
+    if self:getAbsoluteY() + y < T.px(4) then y = (hz.y + hz.h) * k + T.px(6) end
+    local s1, bs, tc, ac = T.surf1, T.borderS, T.text, T.accentText
+    self:drawRect(x, y, w, h, 0.95, s1.r, s1.g, s1.b)
+    self:drawRectBorder(x, y, w, h, 1, bs.r, bs.g, bs.b)
+    if (T.borderW or 1) > 1 then self:drawRectBorder(x + T.px(1), y + T.px(1), w - 2 * T.px(1), h - 2 * T.px(1), 1, bs.r, bs.g, bs.b) end
+    self:drawText(lead, x + T.px(6), y + T.px(3), tc.r, tc.g, tc.b, tc.a or 1, f1)
+    self:drawText(rest, x + T.px(6) + leadW, y + T.px(3), ac.r, ac.g, ac.b, 1, f1)
+end
 
 function ZeD_Dashboard:_fire(id, secondary)
     local chr = getSpecificPlayer(self.playerNum)

@@ -1,0 +1,18 @@
+# ZeDUI/tools/qa/read_ammo_lamps.txt  (Oct 26 2026)
+# Ammo on the belt, the dash lamps by condition, and read marks in the item lists (mockups
+# zed_belt_ammo_dash_v1 and zed_read_marks_v1, approved Oct 26 2026), then the belt, dash and list
+# tests they touch. Run with:  zedqa_run.ps1 -Mode fullscreen4k -Manifest .../read_ammo_lamps.txt
+# expect=FBORenderCell: the engine's world drawing sometimes throws while cars are spawned and removed
+# beside the character (see dash_r6.txt); it is not the dash.
+zedqa_prelude.lua | pre                                   # opens both windows, unpauses, god mode
+zedqa_belt_ammo.lua | ba | timeout=240                    # pistol 12+1 with magazines, shotgun in both hands with a box, empty revolver; hover; pad
+zedqa_read_marks.lua | rm | timeout=300                   # read, part read, unread, below level, known recipes; NEXT LEVEL; hover; grid; dim; narrow
+zedqa_dash_lamps.lua | dl | timeout=600 | expect=FBORenderCell   # good / worn / key on, engine off; lamp colours, blink, hover chips; every design's hover places
+# ---- the belt, dash and list tests these touch (regression.txt)
+zedqa_belt_hands.lua | bh                                 # the hands at the ends, a watch outside its own hand, the pad left to right
+zedqa_ring_squares.lua | rs | timeout=200                 # the hands' condition ring; the windows' squares switch
+zedqa_grid.lua | grid                                     # inventory grid, cell card, pad walk, List | Grid toggle
+zedqa_sort_groups.lua | sg | timeout=420                  # category headers, sorts, list + grid, single + multi
+zedqa_large.lua | lg                                      # Large text size: Loot and Equip lists, column widths
+zedqa_dashpx.lua | dpx | timeout=720 | expect=FBORenderCell   # the pixel-art v6 dashboards (24 cars)
+zedqa_dash19.lua | dash | timeout=480 | expect=FBORenderCell  # every dashboard design on a spawned car (19 cars)

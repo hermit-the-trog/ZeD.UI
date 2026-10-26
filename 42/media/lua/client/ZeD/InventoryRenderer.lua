@@ -16,6 +16,7 @@ require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 require "ZeD/ZeD_Panel"
+require "ZeD/ReadMarks"
 
 ZeD = ZeD or {}
 
@@ -513,7 +514,7 @@ end
 -- The grid's state for one column (renderItemList keeps it in one table GV)
 local function gridState(self, inv, playerObj, colW, scrollW, padX, childParent)
     local T = ZeD.T
-    local GV = { key = containerKeyOf(inv, playerObj), toggles = {}, child = childParent }
+    local GV = { key = containerKeyOf(inv, playerObj), toggles = {}, child = childParent, player = playerObj or getSpecificPlayer(0) }
     GV.on   = ZeD.InventoryRenderer.isGridKey(GV.key)
     GV.cell = T.px(GRID_CELL)
     GV.gap  = T.px(GRID_GAP)
@@ -587,9 +588,12 @@ local function drawGridCell(self, GV, item, cx, cy)
     local count = (stackInfo and stackInfo.count) or 1
     local tex = item:getTex()
     local isz = math.floor(cell * 32 / 52)
+    -- the read mark (ReadMarks.lua): read items faded when "Dim read items" is on
+    local rs = ZeD.ReadMarks.state(GV.player, item)
     if tex then
         local tint = isSelected and 0.7 or 1
-        self:drawTextureScaledAspect(tex, ax + math.floor((cell - isz) / 2), cy + math.floor((cell - isz) / 2), isz, isz, 1, tint, tint, tint)
+        local ia = (rs and rs.st == "r" and ZeD.ReadMarks.dimOn()) and 0.5 or 1
+        self:drawTextureScaledAspect(tex, ax + math.floor((cell - isz) / 2), cy + math.floor((cell - isz) / 2), isz, isz, ia, tint, tint, tint)
     end
     -- the weight of the cell (the whole stack), top right
     local wt = 0
@@ -622,9 +626,20 @@ local function drawGridCell(self, GV, item, cx, cy)
         self:drawRect(ax, cy, kw, GV.f5FH, ac.a or 1, ac.r, ac.g, ac.b)
         local tc = T.textOnAccent
         self:drawText(k, ax + math.floor((kw - ZeD.TM:MeasureStringX(f5, k)) / 2), cy, tc.r, tc.g, tc.b, 1, f5)
+        GV._beltW = kw
+    else
+        GV._beltW = 0
+    end
+    -- read: the dot in the free corner, bottom left; a book for the next level: the small arrow top left (after a BELT key)
+    if rs then
+        local RM = ZeD.ReadMarks
+        local kk = RM.k()
+        RM.drawDot(self, ax + T.px(2), cy + cell - RM.DOT_W * kk - T.px(2), rs.st)
+        if rs.next then RM.drawUp(self, ax + T.px(2) + (GV._beltW > 0 and GV._beltW + T.px(2) or 0), cy + T.px(2)) end
     end
     -- condition, a line along the bottom (the list's colours)
-    local condMax = item:getConditionMax()
+    -- (a readable item shows its read mark instead, as the list's COND column does)
+    local condMax = (not rs) and item:getConditionMax() or nil
     if condMax and condMax > 0 then
         local f = math.max(0, math.min(1, item:getCondition() / condMax))
         local bx, by, bw2 = ax + T.px(3), cy + cell - T.px(3), cell - T.px(6)
@@ -645,7 +660,7 @@ local function drawGridCell(self, GV, item, cx, cy)
     if over then
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
-        self._gridHintCand = { key = item, text = nm, x = ax, y = cy }
+        self._gridHintCand = { key = item, text = nm, x = ax, y = cy, read = rs }
     end
     self:addHitZone(item, ax, cy, cell, cell)
 end
@@ -787,6 +802,58 @@ local function gridSortDefs(padX, colW)
     return defs
 end
 
+-- A readable item's hover text (mockup zed_read_marks_v1): its name, its read status in the game's own words, and
+-- the next level a skill book suits; below the row (a list) or above the cell (the grid), turned to stay in the column
+local function drawReadHint(self, GV, hc, xOff, colW, contentTop)
+    local T, tm = ZeD.T, ZeD.TM
+    local f1, f3 = T.fontF1, T.fontF3
+    local rs = hc.read
+    local rows = { { hc.text, f1, T.toneHi or T.text } }
+    for _, l in ipairs(rs.lines or {}) do rows[#rows + 1] = { l, f3, T.text } end
+    if rs.next then rows[#rows + 1] = { ZeD.tr("UI_ZeD_Read_NextFor", rs.next), f3, T.accentText or T.accent } end
+    local hpx, hpy, gap = T.px(8), T.px(4), T.px(1)
+    local bw, bh = 0, hpy * 2
+    for i, r in ipairs(rows) do
+        bw = math.max(bw, tm:MeasureStringX(r[2], r[1]))
+        bh = bh + tm:getFontHeight(r[2]) + (i > 1 and gap or 0)
+    end
+    bw = bw + hpx * 2
+    local hx = math.max(xOff + T.px(2), math.min(hc.x, xOff + colW - bw - T.px(2)))
+    local hy = hc.below and hc.y or (hc.y - bh - T.px(4))
+    if hc.below and hy + bh > self:getHeight() - T.px(2) then hy = (hc.above or hc.y) - bh - T.px(4) end
+    if not hc.below and hy < contentTop then hy = hc.y + GV.cell + T.px(4) end
+    local s1, bs = T.surf1, T.borderS
+    self._readHintAt = getTimestampMs()   -- (QA: when it last drew)
+    self:drawRect(hx + T.px(2), hy + T.px(2), bw, bh, 0.5, 0, 0, 0)
+    self:drawRect(hx, hy, bw, bh, 1, s1.r, s1.g, s1.b)
+    self:drawRectBorder(hx, hy, bw, bh, bs.a, bs.r, bs.g, bs.b)
+    local y = hy + hpy
+    for _, r in ipairs(rows) do
+        local c = r[3]
+        self:drawText(r[1], hx + hpx, y, c.r, c.g, c.b, c.a or 1, r[2])
+        y = y + tm:getFontHeight(r[2]) + gap
+    end
+end
+
+-- A list row's read mark (ReadMarks.lua): in the COND column a dot and a word, or (the column hidden) the dot alone
+-- at x; the dot's colour and shape carry the status. Returns nothing.
+local function drawReadCond(self, rs, x, y, rowH, colW, padX, focusTxt)
+    local T, tm = ZeD.T, ZeD.TM
+    local RM = ZeD.ReadMarks
+    local d = RM.DOT_W * RM.k()
+    RM.drawDot(self, x, y + math.floor((rowH - d) / 2), rs.st)
+    if not colW then return end
+    local f3 = T.fontF3
+    local tx = x + d + T.px(5)
+    local room = colW - (tx - x) - math.floor(padX / 2)
+    local word = rs.word
+    if rs.short and tm:MeasureStringX(f3, word) > room then word = rs.short end
+    if tm:MeasureStringX(f3, word) > room then return end   -- (no room for a word: the dot alone; the hover has it)
+    local c = focusTxt or T.text
+    self:drawText(word, tx, y + math.floor((rowH - tm:getFontHeight(f3)) / 2), c.r, c.g, c.b, c.a or 1, f3)
+end
+ZeD.InventoryRenderer._drawReadCond = drawReadCond
+
 -- A grid cell (its item's name) or the List | Grid toggle names itself after
 -- a pause, in the container buttons' hint look (drawn last, over the column)
 local function drawGridHint(self, GV, xOff, colW, contentTop)
@@ -802,6 +869,7 @@ local function drawGridHint(self, GV, xOff, colW, contentTop)
         return
     end
     if now - (self._gridHintSince or now) < GRID_HINT_MS then return end
+    if hc.read then return drawReadHint(self, GV, hc, xOff, colW, contentTop) end
     local f2 = T.fontF2
     local hpx, hpy = T.px(10), T.px(4)
     local tw = ZeD.TM:MeasureStringX(f2, hc.text)
@@ -1045,7 +1113,9 @@ local function renderItemList(self)
         -- fonts, so Large shows "Literature" whole, not "Liter..."
         colWData = {
             cat  = math.ceil(math.min(ZeD.TM:MeasureStringX(T.fontF1, ZeD.InventoryRenderer.catLabel("Literature")), T.px(96)) + padX * 2),
-            cond = math.floor(50 * scale),
+            -- (Oct 26 2026, mockup zed_read_marks_v1: a book's read status takes the column, a dot and a word; room
+            -- for the one-word statuses, so the column still shows in the default window; longer ones shorten)
+            cond = math.max(math.floor(50 * scale), ZeD.ReadMarks.wordRoom() + padX),
             wt   = math.ceil(ZeD.TM:MeasureStringX(T.fontF3, "88.8") + padX * 2),
         }
         colWData.wtC = colWData.wt   -- the compact (side-by-side) weight column, never resized
@@ -1439,12 +1509,16 @@ local function renderItemList(self)
         local isChild     = childParent ~= nil
         local childIndent = isChild and T.px(10) or 0
 
+        -- the read mark's status (ReadMarks.lua; mockup zed_read_marks_v1): read items faded with "Dim read items"
+        local rs = ZeD.ReadMarks.state(playerObj or getSpecificPlayer(0), item)
+        local dimA = (rs and rs.st == "r" and ZeD.ReadMarks.dimOn()) and 0.5 or 1
+
         -- Icon (children don't show icon; stack header shows icon of rep)
         if not isChild then
             local tex = item:getTex()
             if tex then
                 local iconY = y + math.floor((rowH - iconW) / 2)
-                dTS(tex, padX, iconY, iconW, iconW, 1, 1, 1, 1)
+                dTS(tex, padX, iconY, iconW, iconW, dimA, 1, 1, 1)
             end
         end
 
@@ -1461,6 +1535,12 @@ local function renderItemList(self)
         end
         -- a cut name keeps its end: a stack's count survives ("> Apple (Fr... x6"; Large text audit)
         local avail = nameW - childIndent
+        -- room kept for NEXT LEVEL (it never drops off a long name) and, with COND hidden, the read dot
+        local nextTag = rs and rs.next and ZeD.tr("UI_ZeD_Read_NextLevel") or nil
+        local nextW = nextTag and (ZeD.TM:MeasureStringX(T.fontF1, nextTag) + T.px(8)) or 0
+        if nextTag then avail = avail - nextW - T.px(6) end
+        local dotW = (rs and not showCond) and (ZeD.ReadMarks.DOT_W * ZeD.ReadMarks.k()) or 0
+        if dotW > 0 then avail = avail - dotW - T.px(6) end
         local displayName = prefix .. baseName .. suffix
         if suffix ~= "" and ZeD.TM:MeasureStringX(T.fontF2, displayName) > avail then
             displayName = truncateText(prefix .. baseName, T.fontF2, avail - ZeD.TM:MeasureStringX(T.fontF2, suffix)) .. suffix
@@ -1468,7 +1548,21 @@ local function renderItemList(self)
             displayName = truncateText(displayName, T.fontF2, avail)
         end
         dT(displayName, nameX + childIndent, textY,
-            nameColor.r, nameColor.g, nameColor.b, nameColor.a, T.fontF2)
+            nameColor.r, nameColor.g, nameColor.b, (nameColor.a or 1) * dimA, T.fontF2)
+        local afterName = nameX + childIndent + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
+        if nextTag then
+            local tf = T.fontF1
+            local th = ZeD.TM:getFontHeight(tf) + T.px(2)
+            local ac = focusTxt or T.accentText or T.accent
+            local ty = y + math.floor((rowH - th) / 2)
+            dRB(afterName, ty, nextW, th, ac.a or 1, ac.r, ac.g, ac.b)
+            dT(nextTag, afterName + T.px(4), ty + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
+            afterName = afterName + nextW + T.px(6)
+        end
+        if dotW > 0 then
+            drawReadCond(self, rs, xOff + afterName, y, rowH, nil, padX, focusTxt)
+            afterName = afterName + dotW + T.px(6)
+        end
 
         -- On the belt: a BELT n tag after the name (n = the key that draws it),
         -- where vanilla puts its small hotbar icon
@@ -1478,7 +1572,7 @@ local function renderItemList(self)
             local tf = T.fontF1
             local tw = ZeD.TM:MeasureStringX(tf, tag) + T.px(8)
             local th = ZeD.TM:getFontHeight(tf) + T.px(2)
-            local tx = nameX + childIndent + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
+            local tx = afterName
             if tx + tw <= nameX + nameW then
                 local ac = focusTxt or T.accentText or T.accent
                 local ty = y + math.floor((rowH - th) / 2)
@@ -1495,7 +1589,9 @@ local function renderItemList(self)
             dT(catLabel, catX + padX, secTextY, cc.r, cc.g, cc.b, cc.a, T.fontF1)
         end
 
-        if showCond then
+        if showCond and rs then
+            drawReadCond(self, rs, xOff + condX + T.px(6), y, rowH, condColW - T.px(6), padX, focusTxt)
+        elseif showCond then
             local condMax = item:getConditionMax()
             if condMax and condMax > 0 then
                 local condPct = math.max(0, math.min(1, item:getCondition() / condMax))
@@ -1535,6 +1631,10 @@ local function renderItemList(self)
             hZ("stack:" .. stackInfo.key, 0, y, nameX + T.px(16), rowH)
         end
         hZ(item, 0, y, scrollX, rowH)
+        -- a readable row names its status after a pause (drawReadHint), below the row (above it near the bottom)
+        if rs and mouseInCol and my >= y and my < y + rowH and my >= contentTop and my < contentTop + visibleH and localMx < scrollX then
+            self._gridHintCand = { key = item, text = baseName, x = xOff + nameX, y = y + rowH + T.px(4), above = y, below = true, read = rs }
+        end
 
         y      = y + rowH
         rowIdx = rowIdx + 1
