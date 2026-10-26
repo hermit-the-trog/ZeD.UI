@@ -1,0 +1,38 @@
+0.2.0-t5: changes since 0.2.0-t4.
+
+Two-way radios (new)
+- The radio tab draws each walkie talkie, the ManPack and the three ham sets as its own face, matched to the game's art. AM/FM radios keep the radio panel.
+- Every knob, key and push-to-talk on the face works: volume and power, tuning, channels, memory, scan, mute, the army set's 1 to 6, and LAMP, which lights the Tactical and US Army displays at night.
+- The display shows the channel, frequency, station, battery (or AC on grid power), volume and TX OK / MIC OFF. A ham's red marker follows the frequency, and RANGE is the set's transmit range.
+- Full view: the button at the right of the tab's header, or a click on the face away from its controls, shows the face on its own over the world, with no window frame. Drag it anywhere; it keeps its place. The button, B or Escape closes it, and so does the radio leaving your hands or reach.
+- A walkie's tab is only as wide as its face. A ham set fills the drawer, which widens for it.
+- On a small screen or at a large UI scale, where the drawer can't fit a full ham set, the tab shows the set's narrow face, with the same controls. Full view always shows the full set.
+
+Mods screen
+- A mod's Options tab has Reset settings: it puts the mod's options back to their defaults and empties the settings files the mod keeps in Zomboid/Lua. Copies are kept in Zomboid/Lua/ZeD_reset first. It asks first, then offers Reload.
+
+Moodles
+- A moodle's name and description show in a thought bubble, with a trail of small bubbles to the moodle it is about.
+- When a moodle comes on or changes level, its bubble shows by itself for a few seconds. Several take turns.
+
+Belt
+- The hands swapped ends, so the belt reads as seen from behind: the left hand (secondary) at the left end, the right hand (primary) at the right end. The slots and their keys stay where they were.
+- A worn watch sits next to its own hand: a left-wrist watch at the left end, a right-wrist watch at the right end. The full watch opens on that side.
+- The Messages note on the belt is a paper note (the map note without its pin), at the right end.
+
+Ovens and microwaves
+- The face draws full size in the Craft tab at every UI scale; before, at 1.75x it drew at half size.
+- The button at the face's top right opens it in its own window, centred and larger. Every control works there with the mouse or the controller. Bring it back, the close box, B or Escape puts it back in the tab.
+
+Main menu
+- The desk has a Mod Uploader icon after Mods: a double click opens the Workshop window for uploading your own mods.
+
+Working with other mods
+- Spongie's Character Customisation: its faces and details are the Character window's Appearance tab (after Identity), and rows on the Looks screen for a new character. Its window at game start (an existing save) opens that tab, paused, as the mod does.
+- A mod whose name has brackets of its own, like "Ladders!? (v0.0.13)", is no longer cut short in Messages.
+
+Fixes
+- Messages keeps counting errors after the game's own error list is full. Before, after a few errors in a session, new ones were no longer filed.
+- The ValuTech car radio's SEEK key is beside the display, level with MUTE. Under MUTE it crowded the presets.
+- A belt watch popped open and dragged to the bottom of the screen no longer pushes the moodles into the bottom-right corner.
+- The Mods screen no longer errors every frame with more than 1,000 mods installed, and its greyed buttons draw greyed.

@@ -3203,6 +3203,127 @@
      ]
     }
    ]
+  },
+  {
+   "id": "two_way_radios",
+   "kind": "feature",
+   "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_tw_1b_valutech_tab.png",
+   "title": "Two-way radios",
+   "caption": "Walkie talkies, the ManPack and the ham sets each have their own face in the radio tab.",
+   "crops": [
+    {
+     "box": [
+      660,
+      0,
+      1200,
+      960
+     ],
+     "label": "IN THE RADIO TAB",
+     "place": [
+      80,
+      180,
+      380
+     ]
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_tw_5_ham_civilian_tab.png",
+     "box": [
+      2660,
+      120,
+      3480,
+      480
+     ],
+     "label": "A HAM SET",
+     "place": [
+      560,
+      600,
+      720
+     ]
+    },
+    {
+     "src": "C:/Users/danie/Zomboid/Screenshots/workshop_src/g5_tw_3a_valutech_full_view.png",
+     "box": [
+      2672,
+      600,
+      3090,
+      1350
+     ],
+     "label": "FULL VIEW",
+     "place": [
+      1500,
+      180,
+      330
+     ]
+    }
+   ],
+   "balloons": [
+    {
+     "text": "The button at the right of the header opens full view. A click on the face does too.",
+     "anchor": [
+      1160,
+      40
+     ],
+     "side": "right",
+     "crop": 0,
+     "at": [
+      560,
+      170
+     ]
+    },
+    {
+     "text": "Every knob and key on the face works: volume, tuning, channels, memory and push to talk.",
+     "anchor": [
+      1125,
+      222
+     ],
+     "side": "right",
+     "crop": 0,
+     "at": [
+      560,
+      330
+     ]
+    },
+    {
+     "text": "The red marker follows the frequency.",
+     "anchor": [
+      2724,
+      310
+     ],
+     "side": "bottom",
+     "crop": 1,
+     "at": [
+      90,
+      925
+     ],
+     "maxw": 560
+    },
+    {
+     "text": "RANGE is the set's transmit range.",
+     "anchor": [
+      3375,
+      372
+     ],
+     "side": "right",
+     "crop": 1,
+     "at": [
+      1310,
+      820
+     ]
+    },
+    {
+     "text": "Full view: the face on its own, with no window frame. Drag it anywhere.",
+     "anchor": [
+      2676,
+      1000
+     ],
+     "side": "left",
+     "crop": 2,
+     "at": [
+      985,
+      486
+     ]
+    }
+   ]
   }
  ]
 }
