@@ -1079,18 +1079,23 @@ local function _twFocusId(win)
     return el and el.id or nil
 end
 
--- the drawer's width (screen px) for a two-way face, nil when the tab is not on one (base: the standard width).
+-- the drawer's width (screen px) for a two-way face, nil when the tab is not on one (base: the standard width; limit:
+-- the widest the window lets the drawer be, nil when it is not held in).
 -- A walkie's tab is only as wide as its panel, the face and its margins (director, Oct 25 2026: "a panel the size
 -- of the info card, not full width"; "only as wide as the graphic"); a ham set's is the standard drawer, widened when
--- that is narrower than the set at the plates' whole zoom (as the Craft tab does for an oven)
-function ZeD.RadioTab.wantW(win, base)
+-- that is narrower than the set at the plates' whole zoom (as the Craft tab does for an oven). Where even that is
+-- more than the window allows, the set's narrow face is drawn (render below) and the tab is a walkie's width.
+function ZeD.RadioTab.wantW(win, base, limit)
     local r = win and win._radios and win._radios[win._radioIdx or 1]
     local pid, des = ZeD.TwoWay.plateFor(r)
     if not des then return nil end
     local T, Sc = ZeD.T, ZeD.Scale
     local k = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
-    if des.w < ZeD.TwoWay.PANEL_W then return ZeD.TwoWay.PANEL_W * k + T.sp.scrollbarW end
-    return math.max(base or 0, des.w * k + T.sp.scrollbarW + T.px(2))
+    local panel = ZeD.TwoWay.PANEL_W * k + T.sp.scrollbarW
+    if des.w < ZeD.TwoWay.PANEL_W then return panel end
+    local wide = des.w * k + T.sp.scrollbarW + T.px(2)
+    if limit and wide > limit and ZeD.TwoWay.narrowOf(pid) then return panel end
+    return math.max(base or 0, wide)
 end
 
 -- the full view button at the header's right end (the map's pop-out button's size and look); returns its rect
@@ -1285,6 +1290,13 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- a two-way radio: its own face (renderTwoWay above), the full view button in the header
     local twPid, twDes = ZeD.TwoWay.plateFor(current)
     if not twDes then win._radioTw, win._radioFullZone = nil, nil end
+    -- a ham set the tab cannot hold at the plates' whole zoom: its narrow face (the drawer is then a walkie's width)
+    if twDes and twDes.w > ZeD.TwoWay.PANEL_W then
+        local Sc = ZeD.Scale
+        local k0 = ZeD.Px.k((Sc and Sc.root and Sc.root()) or 1)
+        local nPid, nDes = ZeD.TwoWay.narrowOf(twPid)
+        if nDes and twDes.w * k0 > w - T.sp.scrollbarW then twPid, twDes = nPid, nDes end
+    end
     -- a walkie's tab is only as wide as its face: its name shows when it fits whole (the face and the footer carry the
     -- brand), never cut to a few letters (the header molecule's own measures)
     if twDes and twDes.w < ZeD.TwoWay.PANEL_W then

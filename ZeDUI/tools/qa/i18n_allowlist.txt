@@ -162,6 +162,9 @@ PhysPx.lua|US ARMY COMM. Manpack Radio
 PhysPx.lua|Premium Technologies Ham Radio
 PhysPx.lua|US ARMY COMM. Ham Radio
 PhysPx.lua|Makeshift Ham Radio
+PhysPx.lua|Premium Technologies Ham Radio (narrow)
+PhysPx.lua|US ARMY COMM. Ham Radio (narrow)
+PhysPx.lua|Makeshift Ham Radio (narrow)
 
 # Debug menu, only when getDebug() is on.
 ZeD_MainMenu.lua|Debug
