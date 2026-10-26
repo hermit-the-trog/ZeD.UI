@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/twoway.txt  (Oct 25 2026)
+# The two-way radios' faces in the radio tab and in full view (HANDOFF_twoway_20261025.md), run with:
+#   zedqa_run.ps1 -Manifest .../twoway.txt -Mode fullscreen4k
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+zedqa_twoway.lua | tw | timeout=600                      # the ten faces, their controls, full view, the controller

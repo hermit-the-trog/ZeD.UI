@@ -4046,8 +4046,9 @@ end
 -- @param browseState { idx, total } — current instance index (1-based) + count
 -- @param subtitle    String — current instance display name
 -- @param locationTag String — "Floor" / "Primary" / "Back" / etc.
+-- @param rightReserve px kept clear at the strip's right end for the caller's own button (the subtitle stops short)
 -- ============================================================================
-function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, subtitle, locationTag)
+function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, subtitle, locationTag, rightReserve)
     local T = ZeD.T
     if not T then return end
     local TM = ZeD.TM
@@ -4122,7 +4123,7 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
     local subStr = subtitle or ""
     local subY = y + math.floor((stripH - TM:getFontHeight(fontHead)) / 2)
     local subColor = T.text or { r = 1, g = 1, b = 1, a = 1 }
-    local subMaxW = (x + w - pad) - cursor
+    local subMaxW = (x + w - pad - (rightReserve or 0)) - cursor
     if subMaxW > 0 and subStr ~= "" then
         local subW = TM:MeasureStringX(fontHead, subStr)
         if subW > subMaxW then

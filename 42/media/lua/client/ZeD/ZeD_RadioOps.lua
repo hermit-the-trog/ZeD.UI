@@ -71,11 +71,23 @@ function O.kindOf(item, dd)
     return "valutech"
 end
 
--- a part's key for the short-lived state below
+-- a radio's key for the short-lived state below. The radio is its owner, whatever holds the device data: a car's
+-- Radio part, a radio item in the hands (the two-way walkies), or a set placed in the world (IsoWaveSignal); the
+-- verbs below take any of them (ISRadioAction does: it asks the owner for getDeviceData).
 local function keyOf(part)
     -- no part (the vehicle is gone): a key that no radio holds
     if not part then return "none" end
-    return _safe(function() return tostring(part:getVehicle():getId()) .. ":" .. tostring(part:getId()) end, tostring(part))
+    if instanceof(part, "VehiclePart") then
+        return _safe(function() return tostring(part:getVehicle():getId()) .. ":" .. tostring(part:getId()) end, tostring(part))
+    end
+    if instanceof(part, "InventoryItem") then return "item:" .. tostring(_get(part, "getID", 0)) end
+    if instanceof(part, "IsoObject") then
+        -- (a set just taken away has no square: its place can no longer be read)
+        local sq = part:getSquare()
+        if not sq then return tostring(part) end
+        return string.format("w:%d,%d,%d", sq:getX(), sq:getY(), sq:getZ())
+    end
+    return tostring(part)
 end
 O.keyOf = keyOf
 
@@ -107,6 +119,19 @@ local function flashOf(key)
     if f and now() < f.untilMs then return f.text, f.short or f.text end
     O._flash[key] = nil
     return nil
+end
+O.flashOf = flashOf
+
+-- a two-way set's LAMP: the display's backlight for LAMP_MS after a press (per radio)
+O.LAMP_MS = 5000
+O._lamp = O._lamp or {}
+function O.lamp(part) O._lamp[keyOf(part)] = now() + O.LAMP_MS end
+function O.lampLit(part)
+    local k = keyOf(part)
+    local t = O._lamp[k]
+    if t and now() < t then return true end
+    O._lamp[k] = nil
+    return false
 end
 
 -- ---------------------------------------------------------------------------
@@ -274,7 +299,7 @@ function O.scanToggle(chr, part)
     if O._scan[k] then O._scan[k] = nil; return true end
     local hz = O.nextStation(part:getDeviceData(), 1)
     if not hz or not setChannel(chr, part, hz) then return false end
-    O._scan[k] = { chr = chr, part = part, nextMs = now() + O.SCAN_DWELL_MS }
+    O._scan[k] = { chr = chr, part = part, nextMs = now() + O.SCAN_DWELL_MS, veh = instanceof(part, "VehiclePart") }
     return true
 end
 
@@ -282,8 +307,9 @@ local function scanTick()
     local t = nil
     for k, sc in pairs(O._scan) do
         t = t or now()
-        local dd = _safe(function() return sc.part:getDeviceData() end, nil)
-        local alive = dd and sc.chr and sc.chr:getVehicle() and _get(dd, "getIsTurnedOn", false)
+        local dd = _get(sc.part, "getDeviceData", nil)
+        -- a car's radio scans while the character is in the car; a walkie or a placed set while it is on
+        local alive = dd and sc.chr and ((not sc.veh) or sc.chr:getVehicle()) and _get(dd, "getIsTurnedOn", false)
         if not alive then O._scan[k] = nil
         elseif t >= sc.nextMs then
             local hz = O.nextStation(dd, 1)

@@ -68,8 +68,8 @@ Total keys: 2199.
 - [Power](#power) (24)
 - [Print](#print) (2)
 - [Prompt](#prompt) (24)
-- [Radio](#radio) (31)
-- [RadioPrompt](#radioprompt) (16)
+- [Radio](#radio) (38)
+- [RadioPrompt](#radioprompt) (17)
 - [Reader](#reader) (26)
 - [Recipe](#recipe) (1)
 - [Safe](#safe) (3)
@@ -2228,14 +2228,19 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
+| `UI_ZeD_Radio_Ac` | `AC` | Two-way radio's display (radio tab, full view; pixel face): in place of BAT on a set running on the grid or a generator (its power bars stay dark) | 3 |
+| `UI_ZeD_Radio_Bat` | `BAT` | Two-way radio's display (radio tab, full view; pixel face): label before the battery bars | 3 |
 | `UI_ZeD_Radio_Batt` | `BATT` | Character / World window, Radio tab: silkscreen label on the display, before the battery bar | 5 |
 | `UI_ZeD_Radio_CdLoaded` | `DISC LOADED` | Character / World window, Radio tab, CD display: a disc is in but no track is chosen | 16 |
 | `UI_ZeD_Radio_CdNone` | `NO DISC` | Character / World window, Radio tab, CD display: no disc | 12 |
 | `UI_ZeD_Radio_CdTrack` | `TRK %1   %2` | Character / World window, Radio tab, CD display: track number and state (%1 = two-digit track, %2 = PLAY or STOP below) | 20 |
+| `UI_ZeD_Radio_Ch` | `CH` | Two-way radio's display (radio tab, full view; pixel face): small label over the memory channel's number | 3 |
 | `UI_ZeD_Radio_ChCleared` | `CH %1 CLEARED` | Two-way radio display flash after a channel is forgotten; %1 = the channel number, two digits | 16 |
 | `UI_ZeD_Radio_ChStored` | `CH %1 STORED` | Two-way radio display flash after MEM; %1 = the channel number, two digits | 16 |
+| `UI_ZeD_Radio_CloseFullView` | `Close full view` | Character / World window, Radio tab: hover hint of the full view button while the radio is in full view (pressing it closes full view) | 24 |
 | `UI_ZeD_Radio_CompactDisc` | `COMPACT DISC` | CD receiver display line when a disc has no title | 16 |
 | `UI_ZeD_Radio_Empty` | `EMPTY` | Radio display flash when a preset button has no station | 8 |
+| `UI_ZeD_Radio_FullView` | `Full view` | Character / World window, Radio tab: hover hint of the icon button at the header's right end that shows a two-way radio's face on its own, over the world | 24 |
 | `UI_ZeD_Radio_LocBack` | `Back` | Character / World window, Radio tab: header pill, radio carried on the back | 12 |
 | `UI_ZeD_Radio_LocPrimary` | `Primary` | Character / World window, Radio tab: header pill, radio held in the primary hand | 12 |
 | `UI_ZeD_Radio_LocSecondary` | `Secondary` | Character / World window, Radio tab: header pill, radio held in the secondary hand | 12 |
@@ -2256,9 +2261,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Radio_Store` | `STORE %1` | Radio display flash after holding a preset button; %1 = the preset number (1 to 6). Small faces show P%1 instead | 16 |
 | `UI_ZeD_Radio_TagPremium` | `* AM/FM TUNER + CD` | Character / World window, Radio tab: right end of the Premium Technologies brand bar (the brand name and model number stay English) | 24 |
 | `UI_ZeD_Radio_TagValu` | `* AM/FM PORTABLE` | Character / World window, Radio tab: right end of the ValuTech brand bar (the brand name stays English) | 24 |
+| `UI_ZeD_Radio_TwoWayBase` | `* 2-WAY BASE SET` | Character / World window, Radio tab: right end of a ham radio's brand bar (the brand name stays English) | 24 |
+| `UI_ZeD_Radio_TwoWayPortable` | `* 2-WAY PORTABLE` | Character / World window, Radio tab: right end of a walkie talkie's (or the Manpack's) brand bar (the brand name stays English) | 24 |
 | `UI_ZeD_Radio_TxOk` | `TX OK` | Two-way radio display: transmitting is possible | 6 |
 | `UI_ZeD_Radio_UnknownFreq` | `Unknown frequency` | Character / World window, Radio tab: display line when the game has no name for the tuned channel (after a '> ' arrow) | 28 |
-| `UI_ZeD_Radio_Vol` | `VOL` | Character / World window, Radio tab: silkscreen label before the volume bar and on the control strip | 5 |
+| `UI_ZeD_Radio_Vol` | `VOL` | Character / World window, Radio tab: silkscreen label before the volume bar and on the control strip; also a two-way radio's display (pixel face), before its volume bars, where only 3 fit | 3 |
 
 ## RadioPrompt
 
@@ -2269,6 +2276,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_RadioPrompt_Dpad` | `D-PAD Move / Turn` | Car radio up close, controller prompt strip: the D-pad's job | 30 |
 | `UI_ZeD_RadioPrompt_Eject` | `Eject` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_InsertCd` | `Insert a CD` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
+| `UI_ZeD_RadioPrompt_Lamp` | `Light` | Two-way radio in full view, controller prompt strip: what A does on the LAMP key (lights the display for 5 s) | 20 |
 | `UI_ZeD_RadioPrompt_Listen` | `Listen` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_Mute` | `Mute` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_NameChannel` | `Name channel` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |

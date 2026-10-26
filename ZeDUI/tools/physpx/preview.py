@@ -181,8 +181,12 @@ def render_state(base, parts, sprites, st, k=1, now_ms=0):
         elif t == "radioDisplay":
             rd = st.get("display") or None
             zones = (p.get("bulbNight") if st.get("dark") else p.get("bulbDay")) if st.get("bulb") else None
+            # a two-way set's LAMP (p.lamp, its backlight's colour): lit, the glass glows under the figures
+            if p.get("lamp") and st.get("lampLit") and rd: cv.rect(p["x"], p["y"], p["w"], p["h"], p["lamp"], 0.35)
             if rd: radio_display(cv, p, rd, now_ms, zones)
             elif p.get("style") in ("char", "lcd"): cv.rect(p["x"], p["y"], p["w"], p["h"], (0, 0, 0), 0.45)   # the backlight out
+            # ... and in the dark, unlit, the glass can hardly be read
+            if p.get("lamp") and st.get("dark") and not st.get("lampLit"): cv.rect(p["x"], p["y"], p["w"], p["h"], (0, 0, 0), 0.6)
         elif t == "rangeText":
             if st.get("range"): _text57(cv, st["range"], p["x"], p["y"], p["color"], "35", "c")
         elif t == "slotDisc":
