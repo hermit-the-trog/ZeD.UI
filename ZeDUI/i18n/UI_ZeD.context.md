@@ -28,7 +28,7 @@ Total keys: 2199.
 - [Dash](#dash) (53)
 - [Death](#death) (12)
 - [DescEdit](#descedit) (71)
-- [Desktop](#desktop) (6)
+- [Desktop](#desktop) (7)
 - [Doll](#doll) (19)
 - [Equip](#equip) (39)
 - [Farm](#farm) (29)
@@ -928,6 +928,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Desktop_EmptyTrash` | `Empty trash` | Trash window: button that empties the trash (asks to quit the game) | 16 |
 | `UI_ZeD_Desktop_FileKind` | `the whole system` | Trash window: the kind of the one file in it (the Computer), under its name | 20 |
 | `UI_ZeD_Desktop_FileName` | `Computer` | Trash window: the name of the one file in it, the computer itself (the old joke of throwing the computer in the trash) | 20 |
+| `UI_ZeD_Desktop_ModUploader` | `Mod Uploader` | Desktop: name under the Workshop icon (opens the Workshop window, where you upload your own mods); a program's name, so title case | 14 |
 | `UI_ZeD_Desktop_OneItem` | `1 item` | Trash window: count in the title bar | 10 |
 | `UI_ZeD_Desktop_PromptDpad` | `D-PAD Move` | Desktop: controller legend along the foot of the screen (the word D-PAD names the controller's cross) | - |
 | `UI_ZeD_Desktop_Trash` | `Trash` | Desktop: name under the trash icon; title of the trash window | 14 |
