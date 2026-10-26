@@ -1139,6 +1139,25 @@ function ZeD_BeltHUD:_drawBuckle()
     -- strap shows through the open frame
 end
 
+-- The frame of a belt slot and of the ammo pouch, one look for both (Oct 26 2026), from the live theme: the keyline in
+-- the frame grey (T.frameS; Light's stands 3:1 off the slots' fill, where the strong border stood 2.3:1), inside a light
+-- line where the theme has one (T.frameHi; Light's stands 3:1 off the leather strap), and the keyline doubled where the
+-- theme's borders are thick (High contrast). Dark and High contrast: the strong border, as before.
+local function frameBox(p, x, y, w, h, T)
+    local fs, fh = T.frameS or T.borderS, T.frameHi
+    local o = 0
+    if fh and (fh.a or 1) > 0 then
+        p:drawRectBorder(x, y, w, h, fh.a or 1, fh.r, fh.g, fh.b)
+        o = 1
+    end
+    p:drawRectBorder(x + o, y + o, w - 2 * o, h - 2 * o, fs.a or 1, fs.r, fs.g, fs.b)
+    if (T.borderW or 1) > 1 then
+        local i = o + T.px(1)
+        p:drawRectBorder(x + i, y + i, w - 2 * i, h - 2 * i, fs.a or 1, fs.r, fs.g, fs.b)
+    end
+end
+B.frameBox = frameBox
+
 local function wearColor(T, f)
     if f > 0.6 then return T.positive elseif f > 0.3 then return T.warningText end
     return T.danger
@@ -1177,7 +1196,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
         -- (two design units: director, Oct 19 2026, "primary and secondary circles need thicker outline")
         if o.state == "fit" then ring(self, b.x, b.y, b.w, p1 * 2, 1, T.accent)
         elseif o.state == "fitHover" then ring(self, b.x, b.y, b.w, p1 * 3, 1, T.accent)
-        else ring(self, b.x, b.y, b.w, p1 * 2, T.borderS.a or 1, T.borderS) end
+        else local fs = T.frameS or T.borderS; ring(self, b.x, b.y, b.w, p1 * 2, fs.a or 1, fs) end
     elseif o.inHand then
         dashedBorder(self, b.x, b.y, b.w, b.h, T.accent, p1)
     elseif o.state == "fit" then
@@ -1186,7 +1205,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
         self:drawRectBorder(b.x, b.y, b.w, b.h, 1, col(T.accent))
         self:drawRectBorder(b.x + p1, b.y + p1, b.w - p1 * 2, b.h - p1 * 2, 1, col(T.accent))
     else
-        self:drawRectBorder(b.x, b.y, b.w, b.h, T.borderS.a or 1, col(T.borderS))
+        frameBox(self, b.x, b.y, b.w, b.h, T)
     end
     -- the foot: IN HAND / BOTH, or the condition (a ring inside the hands' outline, a bar on the slots)
     local f5 = T.fontF5
@@ -1357,13 +1376,13 @@ local function hollowRect(self, x, y, w, h, k, c)
     end
 end
 
--- the ammo pouch (style B): framed as the slots are (surf2, the strong border, the foot's segments where the slots
+-- the ammo pouch (style B): framed as the slots are (surf2, frameBox, the foot's segments where the slots
 -- have their condition bar); the ammo's own picture (the magazine for a gun that takes one, else the round); the
 -- rounds in the gun in large figures in the belt's wear colours (normal over half full, amber over a quarter, red
 -- under, EMPTY at nothing; "+1" for a chambered round); what is carried, right-aligned; one segment per round
 function ZeD_BeltHUD:_drawAmmo(b, a)
     local T, tm = ZeD.T, ZeD.TM
-    local s2, s3, bs = T.surf2, T.surf3, T.borderS
+    local s2, s3 = T.surf2, T.surf3
     self:drawRect(b.x, b.y, b.w, b.h, 0.95, s2.r, s2.g, s2.b)
     local ink = B.ammoInk(a)
     local c, ct = ink.fill, ink.text
@@ -1389,9 +1408,8 @@ function ZeD_BeltHUD:_drawAmmo(b, a)
     local rx = b.x + b.w - T.px(5)
     ZeD.Atoms.drawTextRight(self, s1, rx, ly, f5, dc)
     if s2w then ZeD.Atoms.drawTextRight(self, s2w, rx, ly + f5h, f5, dc) end
-    -- the frame, as the slots'
-    self:drawRectBorder(b.x, b.y, b.w, b.h, bs.a or 1, bs.r, bs.g, bs.b)
-    if (T.borderW or 1) > 1 then self:drawRectBorder(b.x + T.px(1), b.y + T.px(1), b.w - 2 * T.px(1), b.h - 2 * T.px(1), bs.a or 1, bs.r, bs.g, bs.b) end
+    -- the frame, the slots' own
+    frameBox(self, b.x, b.y, b.w, b.h, T)
     -- the rounds
     local inner = b.w - 2 * T.px(4)
     local L = B.segLayout(a.max, a.chamber, math.floor(inner / k))

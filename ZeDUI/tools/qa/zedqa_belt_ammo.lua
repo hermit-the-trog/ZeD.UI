@@ -11,7 +11,9 @@
 -- (zqa_ba_<scale>_<gun>.png; "ZEDQA ba rect" lines for the close-up crops). Then the pad steps over the pouch, the
 -- hover gives the full count, and ZeD setup's "Ammo on the belt" switched off takes the pouch away (and back on).
 -- Then the pouch in Light and High contrast (Oct 26 2026): spent rounds 3:1 off the pouch and hollow, the words readable
--- (zqa_ba_175_<theme>_<gun>.png). Everything given is taken back; the hands, the scale and the switch are put back. grep "ZEDQA ba".
+-- (zqa_ba_175_<theme>_<gun>.png). Then the slots' and the pouch's frame in Dark, Light (and Light's old frame) and High
+-- contrast: 3:1 off the fill and the strap in Light, no worse elsewhere, the same lines on both (zqa_ba_frame_<theme>.png).
+-- Everything given is taken back; the hands, the scale and the switch are put back. grep "ZEDQA ba".
 local p = getPlayer()
 local B = ZeD.Belt
 local S = ZeD.Settings
@@ -165,6 +167,100 @@ for _, th in ipairs({ "light", "hicon" }) do
             shot("175_" .. th .. "_" .. g[1])
         end)
     end
+end
+-- The slots' and the pouch's frame (Oct 26 2026: the frame grey stood 2.3:1 off the fill in Light). From the live
+-- tokens: the keyline (T.frameS) 3:1 off the slots' fills (empty surf1, full surf2, at their 0.95 over black and
+-- white) in Light, and the outer line (T.frameHi) 3:1 off the leather strap (its art's darkest and lightest tones)
+-- and off the keyline; Dark and High contrast no worse than their strong border was. Then the frame actually drawn:
+-- the same lines, insets and colours on a slot as on the pouch. "before" is the old frame (the strong border alone)
+-- for the comparison picture. Pictures zqa_ba_frame_<theme>.png with the whole belt.
+local STRAP = { { r = 86 / 255, g = 57 / 255, b = 31 / 255 }, { r = 106 / 255, g = 76 / 255, b = 43 / 255 }, { r = 59 / 255, g = 42 / 255, b = 27 / 255 } }
+local function frameRatios()
+    local T = ZeD.T
+    local fs, fh = T.frameS or T.borderS, T.frameHi
+    local r = { fill = 99, old = 99, strap = 99, oldStrap = 99, inner = 99 }
+    for _, s in ipairs({ T.surf1, T.surf2 }) do
+        for _, w in ipairs({ 0, 1 }) do
+            local bg = flat(s, 0.95, { r = w, g = w, b = w })
+            r.fill = math.min(r.fill, ZeD.contrast(flat(fs, fs.a or 1, bg), bg))
+            r.old = math.min(r.old, ZeD.contrast(flat(T.borderS, T.borderS.a or 1, bg), bg))
+        end
+    end
+    local out = (fh and (fh.a or 1) > 0) and fh or fs
+    for _, c in ipairs(STRAP) do
+        r.strap = math.min(r.strap, ZeD.contrast(out, c))
+        r.oldStrap = math.min(r.oldStrap, ZeD.contrast(T.borderS, c))
+    end
+    if out ~= fs then r.inner = ZeD.contrast(out, fs) end
+    return r
+end
+-- the frame lines a box draws in a frame: {inset, colour} of each drawRectBorder inside the box
+local frameLog = nil
+local function hookFrames()
+    frameLog = {}
+    hud.drawRectBorder = function(self, x, y, w, h, a, r, g, b)
+        frameLog[#frameLog + 1] = { x = x, y = y, w = w, h = h, c = string.format("%.3f,%.3f,%.3f,%.2f", r or 0, g or 0, b or 0, a or 1) }
+        return ISUIElement.drawRectBorder(self, x, y, w, h, a, r, g, b)
+    end
+end
+local function linesOf(b)
+    local out, seen = {}, {}
+    for _, l in ipairs(frameLog or {}) do
+        if l.x >= b.x and l.y >= b.y and l.x + l.w <= b.x + b.w and l.y + l.h <= b.y + b.h then
+            local e = (l.x - b.x) .. "/" .. (l.y - b.y) .. "/" .. (b.x + b.w - l.x - l.w) .. "/" .. (b.y + b.h - l.y - l.h) .. " " .. l.c
+            if not seen[e] then seen[e] = true; out[#out + 1] = e end   -- (the log spans a few frames)
+        end
+    end
+    return table.concat(out, " | ")
+end
+local FRAMES = { { "dark", "dark" }, { "light_before", "light" }, { "light", "light" }, { "hc", "hicon" } }
+for _, fr in ipairs(FRAMES) do
+    step(5, function()
+        S.uiScaleOption:setValue(7); S.applyScale()
+        ZeD.applyTheme(fr[2], was.accent, was.size)
+        if fr[1] == "light_before" then ZeD.T.frameS = ZeD.T.borderS; ZeD.T.frameHi = nil end   -- the old frame, for the picture
+        hold(guns[1])
+    end)
+    step(30, function() hookFrames() end)
+    step(3, function()
+        hud.drawRectBorder = nil
+        local T = ZeD.T
+        local r = frameRatios()
+        say(string.format("frame %s: keyline vs fill %.2f (strong border %.2f), outer vs strap %.2f (strong border %.2f), outer vs keyline %s",
+            fr[1], r.fill, r.old, r.strap, r.oldStrap, r.inner < 99 and string.format("%.2f", r.inner) or "-"))
+        if fr[1] == "light" then
+            check(r.fill >= 3, "light: the frame 3:1 off the slots' fill (" .. string.format("%.2f", r.fill) .. ", was " .. string.format("%.2f", r.old) .. ")")
+            check(r.strap >= 3, "light: the frame 3:1 off the strap behind it (" .. string.format("%.2f", r.strap) .. ", was " .. string.format("%.2f", r.oldStrap) .. ")")
+            check(r.inner >= 3, "light: its outer line 3:1 off its keyline (" .. string.format("%.2f", r.inner) .. ")")
+            -- every accent tints the greys: the worst of them
+            local wf, ws, wk = 99, 99, 99
+            for key, _ in pairs(ZeD.AccentColors) do
+                ZeD.applyTheme("light", key, was.size)
+                local q = frameRatios()
+                wf, ws, wk = math.min(wf, q.fill), math.min(ws, q.strap), math.min(wk, q.inner)
+            end
+            ZeD.applyTheme("light", was.accent, was.size)
+            check(wf >= 3 and ws >= 3 and wk >= 3, string.format("light, every accent: worst keyline vs fill %.2f, outer vs strap %.2f, outer vs keyline %.2f", wf, ws, wk))
+        elseif fr[1] ~= "light_before" then
+            check(r.fill >= r.old - 0.005 and r.strap >= r.oldStrap - 0.005, fr[1] .. ": the frame no worse than the strong border was")
+        end
+        -- the drawn frame: the same on a slot as on the pouch
+        local ab = box("ammo")
+        local sl = nil
+        for _, b in ipairs(hud._boxes) do if b.kind == "slot" and linesOf(b) ~= "" then sl = b; break end end
+        if check(ab ~= nil and sl ~= nil, fr[1] .. ": a framed slot and the pouch drawn") then
+            local a1, s1 = linesOf(ab), linesOf(sl)
+            say(fr[1] .. " pouch frame: " .. a1)
+            say(fr[1] .. " slot frame:  " .. s1)
+            if fr[1] ~= "light_before" then check(a1 == s1, fr[1] .. ": the slot's frame and the pouch's are the same lines") end
+            local fs = T.frameS or T.borderS
+            if fr[1] ~= "light_before" then
+                check(a1:find(string.format("%.3f,%.3f,%.3f", fs.r, fs.g, fs.b), 1, true) ~= nil, fr[1] .. ": drawn in the live frame token")
+            end
+        end
+        rect("frame_" .. fr[1])
+        shot("frame_" .. fr[1])
+    end)
 end
 step(5, function() ZeD.applyTheme(was.base, was.accent, was.size); S.uiScaleOption:setValue(4); S.applyScale() end)
 -- the low counts' colours (1.0x)
