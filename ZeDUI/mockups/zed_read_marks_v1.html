@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Read marks v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | read and part-read marks in the item lists. Mockup v1 (Oct 26 2026).
+   From the compatibility round 2 survey: Has Been Read (4.1M subscribers)
+   draws marks on the game's inventory rows, which ZeD never draws. Built as a
+   native ZeD mark with the game's own read tracking, the same calls the mod
+   makes (P4HasBeenRead.lua 42.15, setTextures and isLiteratureRead):
+     skill books: player:getAlreadyReadPages(fullType) against
+       item:getNumberOfPages(); past the book's levels (getPerkLevel >=
+       getMaxLevelTrained) counts as read; next level when
+       getLvlSkillTrained <= level + 1 <= getMaxLevelTrained;
+     recipe magazines: player:getKnownRecipes():containsAll(getLearnedRecipes());
+     titled books: player:getReadLiterature():containsKey(literatureTitle);
+     fliers, brochures, print media: player:isPrintMediaRead(printMedia.id);
+     maps: player:hasReadMap(item);
+     tapes and discs: recordedMedia:hasListenedToAll(player, mediaData).
+   Rows as InventoryRenderer.lua draws them (icon, name, BELT n tag after the
+   name, CAT, COND, WT; grid cells: weight top right, count bottom right, the
+   condition line along the bottom). Every number is a DESIGN UNIT (1 px at
+   1080p). Item names, pages, weights and categories are 42.21's.
+   ============================================================================ */
+:root { --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1120px; height:660px; border:1px solid #2a2924; overflow:hidden; transform-origin:0 0;
+  background:radial-gradient(ellipse at 45% 40%, #2c3320 0%, #1c2216 45%, #0f120c 100%); }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+img.ic { image-rendering:pixelated; display:block; }
+svg.px { display:block; shape-rendering:crispEdges; }
+
+/* ---- the window (theme tokens set from JS) ---------------------------------- */
+.win { position:absolute; left:30px; top:20px; width:1060px; height:620px; background:var(--surf1); border:var(--bw) solid var(--borderS); display:flex; flex-direction:column; color:var(--text); }
+.tb { height:24px; flex:none; background:var(--surf2); border-bottom:1px solid var(--borderS); display:flex; align-items:center; position:relative; overflow:hidden; }
+.tb::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent, transparent 2px, var(--stripe) 2px, var(--stripe) 4px); }
+.tb .cb { width:12px; height:12px; border:1px solid var(--borderS); margin-left:6px; position:relative; z-index:1; background:var(--surf2); }
+.tb .tt { font-family:var(--mono); font-weight:700; font-size:11px; color:var(--textHead); position:relative; z-index:1; background:var(--surf2); padding:0 10px; margin:0 auto; }
+.cols { flex:1; min-height:0; display:flex; }
+.col { flex:1; min-width:0; display:flex; flex-direction:column; border-right:1px solid var(--borderS); position:relative; }
+.col:last-child { border-right:0; }
+.chd { height:30px; flex:none; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--border); background:var(--surf1); }
+.chd .nm { font-family:var(--cond); font-weight:600; font-size:13px; color:var(--textHead); }
+.chd .wt { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--accentText); }
+.tog { display:flex; }
+.tog span { width:20px; height:16px; border:1px solid var(--borderS); display:flex; align-items:center; justify-content:center; background:var(--surf2); }
+.tog span + span { border-left:0; }
+.tog span.on { background:var(--accent); }
+.tog i { display:block; width:9px; height:7px; }
+.tog .l i { background:linear-gradient(var(--ink) 0 1px, transparent 1px 3px, var(--ink) 3px 4px, transparent 4px 6px, var(--ink) 6px 7px); }
+.tog .g i { background:conic-gradient(from 0deg, var(--ink) 0 0) 0 0/4px 3px no-repeat, conic-gradient(var(--ink) 0 0) 5px 0/4px 3px no-repeat, conic-gradient(var(--ink) 0 0) 0 4px/4px 3px no-repeat, conic-gradient(var(--ink) 0 0) 5px 4px/4px 3px no-repeat; }
+.tog span { --ink:var(--textDim); } .tog span.on { --ink:var(--onAccent); }
+.hdr { height:20px; flex:none; display:flex; align-items:center; background:var(--surf2); border-bottom:1px solid var(--border); font-family:var(--mono); font-weight:700; font-size:11px; color:var(--textHead); }
+.hdr span { padding:0 8px; }
+.body { flex:1; min-height:0; overflow:hidden; }
+.cat { height:22px; display:flex; align-items:center; gap:6px; padding:0 8px; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accentText); border-bottom:1px solid var(--border); }
+.cat i { width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--arrow); }
+.cat b { margin-left:auto; font-weight:400; color:var(--textDim); }
+.row { height:26px; display:flex; align-items:center; position:relative; }
+.row:nth-child(even) { background:var(--stripe); }
+.row .ico { width:18px; height:18px; margin-left:8px; position:relative; flex:none; }
+.row .ico img { width:18px; height:18px; }
+.row .name { flex:1; min-width:0; padding-left:6px; font-family:var(--sans); font-weight:500; font-size:13px; color:var(--textHead); white-space:nowrap; display:flex; align-items:center; gap:6px; overflow:hidden; }
+.row .name span.t { overflow:hidden; text-overflow:ellipsis; }
+.row .c-cat { width:112px; flex:none; padding:0 8px; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--accentText); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row .c-cond { width:112px; flex:none; padding:0 6px; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; color:var(--text); white-space:nowrap; }
+.row .c-wt { width:44px; flex:none; padding-right:8px; text-align:right; font-family:var(--mono); font-size:11px; color:var(--accentText); }
+.row.hov::after, .cell.hov::after { content:""; position:absolute; inset:0; background:var(--accent); opacity:.22; pointer-events:none; }
+.dim .ico, .dim .name span.t { opacity:.5; }
+.tagn { flex:none; font-family:var(--mono); font-weight:700; font-size:10px; line-height:12px; padding:0 3px; border:1px solid var(--accentText); color:var(--accentText); }
+.bar { position:relative; height:3px; background:var(--surf3); flex:1; }
+.bar i { position:absolute; left:0; top:0; bottom:0; }
+.ico .mk { position:absolute; right:-4px; bottom:-3px; }
+.grid { display:flex; flex-wrap:wrap; gap:4px; padding:4px 8px; }
+.cell { width:52px; height:52px; position:relative; background:var(--stripe); border:1px solid var(--borderS); }
+.cell img { position:absolute; left:10px; top:10px; width:32px; height:32px; }
+.cell .w { position:absolute; right:1px; top:1px; font-family:'Fira Sans Condensed'; font-size:9px; letter-spacing:1px; line-height:11px; padding:0 2px; background:var(--surf1); color:var(--accentText); }
+.cell .mk { position:absolute; left:2px; bottom:2px; }
+.cell .ln { position:absolute; left:3px; right:3px; bottom:2px; height:2px; background:var(--surf3); }
+.cell .ln i { position:absolute; left:0; top:0; bottom:0; }
+.cell .nx { position:absolute; left:2px; top:2px; }
+.cell.dim img { opacity:.5; }
+.hint { position:absolute; z-index:9; pointer-events:none; background:var(--surf1); border:var(--bw) solid var(--borderS); padding:4px 8px; font-family:var(--mono); font-size:11px; line-height:15px; white-space:nowrap; }
+.hint .h1 { font-weight:700; color:var(--textHead); }
+.hint .h2 { color:var(--text); }
+.hint .h3 { color:var(--accentText); }
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+.fix { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9cc49a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | in game | item lists | read marks | mockup v1</div>
+<h1>Read marks on books, magazines, maps, fliers and tapes</h1>
+<p class="lede">The game already remembers what your character has read: pages read in each skill book, the maps, fliers and brochures read, the tapes watched and the recipes known. <b>Has Been Read</b> shows it as marks on the game's own inventory rows, which ZeD does not draw, so today a bag of books in ZeD gives no hint until each one is opened in the item card. This puts a <b>native ZeD mark</b> on every row and grid cell that can be read, from the same game records, with no mod needed. Three ways to show it; a character with Carpentry 4, Mechanics 3, Cooking 2, Fishing 3 and no First Aid, looting a bookcase.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Mark</span><div class="seg" id="ctlStyle"></div></div>
+  <div class="ctl"><span>Read items</span><div class="seg" id="ctlDim"></div></div>
+  <div class="ctl"><span>Theme</span><div class="seg" id="ctlTheme"></div></div>
+  <div class="ctl"><span>Accent</span><div class="seg" id="ctlAcc"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>The status in the COND column (B) in the list, a dot in the cell's corner in the grid.</b> Books, magazines, maps and tapes have no condition, so that column is empty for them today; it takes a dot and a word: Unread, 140 of 260, Read, Known, Watched. Words read at a glance on every theme and need no legend. Where the column is hidden (a narrow window), the dot moves to the end of the name. The corner mark (A) is the most compact and closest to Has Been Read; the page bar (C) shows progress best but cannot tell "not read" from "nothing to read" without the hover text.</li>
+      <li><span class="rec">RECOMMEND</span><b>Shape carries the meaning, colour backs it up:</b> a ring for unread, a half-filled dot for part read (or some recipes known), a full dot for read. Unread and part read take the accent (something left to do), read takes the green "good" colour. With the green accent the two greens sit close (try it); the shapes still tell them apart, so no colour rule is needed for that accent.</li>
+      <li><span class="rec">RECOMMEND</span><b>A NEXT LEVEL tag on skill books that fit your next level</b> (Has Been Read's "next target"), after the name where the BELT tag goes; in the grid, a small accent arrow in the corner. Mechanics II here suits Mechanics 4, First Aid I suits First Aid 1; Cooking III (levels 5 to 6) does not get it at Cooking 2.</li>
+      <li><span class="rec">RECOMMEND</span><b>A skill book below your level counts as read</b> (Fishing I at Fishing 3), as the game teaches nothing more from it and as Has Been Read does; the hover text says why.</li>
+      <li><span class="rec">RECOMMEND</span><b>Hover text in the game's own words:</b> "Unread.", "Already read.", "Already watched.", "Pages:", "Some recipes known from profession or traits.", then the recipes known and not known, and the next level a book is good for. The item card's existing page bar stays as it is.</li>
+      <li><span class="alt">YOUR CALL</span><b>Dim what is read?</b> Fading read items (the switch above) makes the unread ones jump out in a big bookcase, but a dimmed row can look unavailable. Recommend off, as an option in ZeD's settings.</li>
+      <li><span class="alt">YOUR CALL</span><b>Your own tick.</b> Has Been Read also lets you tick an item by hand from its menu (to mark "keep" or "already have"). Recommend leaving it out: it is a second meaning on the same mark. If wanted later, it would be a separate flag, not the read mark.</li>
+      <li><span class="lim">LIMIT</span><b>Tapes and discs are all or nothing:</b> the game only says whether every line has been heard, so a half-watched tape shows as not watched. Paperbacks, comics and newspapers are read or not read (no pages kept).</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const IMG = {
+"Book11": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAABxklEQVRYhcWXv0vDQBiG3xQ3S4LgEqTgqG2hdmihQydBBycHt0BtJ3dpB/8AF+nWwU0EcXFxbcGpg9AONlDEMRBKFqE04BwHuTZNk8v9SO27Jd9Hnofc5fgCSEbTVU/TVU/2OcLg18ucZz2fCUsoImAAeDzN4Ohkf6lWuO5j5rhcz2RupoFlJGIbWcGiEpFNImARiZUGXvAA58hlD7H9eSskMS+KggGEwlklFAJPGswqoWi66jXzaRxXMtAPdrnBtCVgkVA0XfXMdhVPDx+REj/Zm0hw8D6vhOJ//TQJGTBNYr4E+b0dZgnZ+CVS5OZ4MsWoZ8GoF/H2bsP5+l6bgNmuzr+6lL+wCYlUsPBfEqOeBQDYCiuOJ1OgBxj14t+eABLbEwRc69oAfAdRM59eaU5yYwbBADBzXGXpKF6HRBB8dVFFuVRAo9VZFkhaIgo8GJoAgPuX/qpAEhJx4HKpAABotDoAIuYBVglgsTlZweS64lqodW36QBInYdSLQmB/P3VYoEmQiILJUcw0E0ZJ1Lq2MJgk9CDyZ+a4yh0QKkEyGJrcYGaBOAlRMJcATUIUzC0QJSEKJuH+NQMWQ6wMWDob+ytOOr8p1YARShB8zwAAAABJRU5ErkJggg==",
+"Book2": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAABsUlEQVRYhc2XP0vDQBiHf6mOgkumVKRLRKPQqaXYCo5uXdx0EBz6BQoFP4CTX8BB6OBWFzfHDnVpXQIiYpci2umWQPa4eCFNe5e799Lqb0vuvTxP/h3vAYaxHTeyHTeizrdMwABQPr7AxqaN58cbsOlY+3raE9LgZCgSysUysIlEZqEqmCohLKKAKRJzBbrgs6M17Ht7uLp9JUnEg1QwgIVwVQmLw/MGq0pYtuNGRbeGxsk5vj4n2mDZK1CRsGzHjerNNiZvA6HEdetACE6f15Wwko9fJmEClknEr8Au7ipLmCYpUeAn2fc7woCh5DUweLrH1nZpaQL1Zjv+6wrJgb+QKKQHViURBgxA6gmsQiIMGMKAwe93ASQWoqJbmyvO88Pkd8zBAMCmY2tmKV6GRBp8ebqDaqWMVqc3K5C3hAg8HPkAgLuHj3mBPCSywNVKGQDQ6vQACPoBVQkAsYgqmB+/sEP4/a68IcmSKHkNEjhZL20WZBI8VDBfipV6QpGE3++SwTzrWQK/ExZK8AxHvjZYWSBLggrWEpBJUMHaAiIJKpiHtDfkXZQJ2Dimu+J/kx8J05NLuWeCNAAAAABJRU5ErkJggg==",
+"Book9": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAAByElEQVRYhc2XrU/DQBiHf20QGCoY2ZoGw5JlWRHLxCYIhiCmZyZQgJskhL8CgcQBCoHBglgwZGITZGaEkDCzNB0BczV1xXBN6dbrfZTBq9q79/o8d22vbwHFMEwrMEwrkB2vqYABYGNrF8srBp7vb0FcR/h6wgPi4GjISHAns8AqEqmJvGBZicQkGbCMxEyCKPi4WcOmXcHh2bWURNgpCwYwF84roVF41mBeCc0wrSBXLMPe3sHHdCoMZt0CHgnNMK2g0mzh/XWUKHFxtJcIjreLSmjR5WdJqIBZEuEtMMx1bgnViErotJG4E/geQb5kY/T4gLVC4dcEKs1W+Nbp0Y6/kNDjHYuS8D0CILYCi5DwPQLfIxj3ugAiG1GuWJ5JzvLBpDOmYAAgrqPp9ODz7WVmUBYrEZ3xuNdFp13D5el+2P9jU8hyJeIz7rRraNSr6A+GAIDzmycQ19Hmfg1VJNLAjXoVAHBwcgUgoR7glQAQivCC6fndZBXjXpddkKRJ5Eu2FDiazywWWBI0ZMF0K+aqCZMk6FMtA6axlCbwPWCuBI3+YCgM5hZIk5AFCwmwJGTBwgJJErJgGlL/hrSKUgErh+pf8b+JL59WmtSlYi14AAAAAElFTkSuQmCC",
+"Book8": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAABxklEQVRYhc2XP0vDQBiHfxdcBCFLCRlCF7tYWzu1gnQqCE6uFjrp6uAgiB9BBAcHVzdBv0FBcBKHdKqKk3UoBUvQ4SCQMS5eiElzuT+x+k7J3Xt5nnuTXC6AZjiWGTqWGaqOJzpgANhqLcNcWsTN3TMmHpW+nvSAJDgeKhLCyTywjkRuoihYVSIzSQWsIpFKkAWvb+9itbqCy5MjJYmoUxUMYCZcVIIweNFgUQniWGZYLZewubGGqedJg3m3QESCOJYZ7nRqeHqdZkrsHZ9mgpPtshIkXn6ehA6YJxHdgrJtCkvoRlzCYI3jKQX1A9QrNm4fHmFb1q8J7HRq0VtnxDv+QsJIdsxLgvoBgEQF5iFB/QDUD9B3RwBiC1G1XEolF/lgshkzMABMPEoMdvAy/kgNKqIS8Rn33RF63TbOz/aj/h+LQpGVSM64122j1WzAHQwBAFfX95h4lMz8GupI5IFbzQYA4ODwIl0BWQkAkYgomJ1/vr2j7474G5I8iXrFVgLH87mbBZ4EC1UwW4qF9oRZEuypVgGzWMgT+B4wU4KFOxhKg4UF8iRUwVICPAlVsLRAloQqmIXSvyHbRemAtUP3r/jfxBdZaKK8Ai0BEQAAAABJRU5ErkJggg==",
+"Book5": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAABsElEQVRYhc2XP0vDQBiHf6mO4pQlVKFQIlaFTi3FFjedugsi4gfoYKG7uDv4EYqIS1cnx1KXdgooil0KKl1uCtnj4oU07V3u3kvV35bce3me/DveAwzj2G7o2G5InW+ZgAHgoHyO9TUbD0/XmLKx9vW0JyTB8VAklItlYBOJ1EJVMFVCWEQBUyTmCnTBh8cr2N0p4ebymSQRDVLBABbCVSUsDs8arCphObYbFvM1HDVO8fE50QbLXoGKhOXYbtisd/A6GQglLq72hODkeV0JK/74ZRImYJlE9Ary9rayhGniEjl+8ou9wQ8YSoUGHgd32NwoLE2gWe9Ef10uPvAXErnkwG9J+AEDkHgCvyHhBwx+wND3ugBiC1ExX5srzvLD5HfMwQAwZWNrZilehkQSfHayhWqljFa7NyuQtYQIPBx5AIDb+/d5gSwk0sDVShkA0Gr3AAj6AVUJAJGIKpgfT1720fe68oYkTaJUaJDA8XppsyCT4KGC+VKs1BOKJPpelwzmWU0T+JmwUIJnOPK0wcoCaRJUsJaATIIK1hYQSVDBPKS9Ie+iTMDGMd0V/5t8A726k0GoReVVAAAAAElFTkSuQmCC",
+"Magazine_Survival1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAACrklEQVRYhcWXv08UQRiGnyNUmngIlQ0Uc2aPxjuSSyiwOSyu8aIGNSEUhquohIqOqOE/0P6IFQk/Eg0kdl5HYiCBIxq4yDZnQ2UoNJZrcc46OzczOyskvgnFzn473/O+MzvHwn9WzrdQCBGp12EYej/r0qBv84crT+PrzlkH1rkSIC8AqdbRIdXyBEEhIFgJeiBA9/wbgiSQL1RqgRAiGp8tERQCWkeH8Xi1PGGsV6F+tr4ba1QwrwSCQtA3psKoQLI2KARw1wwmIJIQXgmo628DsMmW1LvVDcIwzDkB1Pj1xvrEPkDymc5Zh4XJORaXlhlIe8gUv2yo7wn5pzfUtTA5R/v4BHDsASFEdKP4K43PuBdcEJ2zDtWRCs3mmnsJhBBR49U9ttZ347Hc7TuZo9frqyMVFpeW4zfBmIAQIgoe9dgez96Px7cPunzcfOsEckGdfN5k+Ob1xJgxAeke4P3rIwAePC/31W0fdIm+HicntEBBv3vwOAdkYwmijs1URqEy2gelpgQw/eSZ0T0YEpDxT5Wnne6zaGt9l9WFN33uwZLAVHk60fiyILfGr8Wvna4EjerepNMPPwD48qnlbDjzsp64LuVrRvdgSMDW3NUgTTb3wN+TUH31dI2dDzN2PkxtYtR436VSvhYfOk4AMLu/2DlNXKsQ+j2TXO5jAJt72aC9v0d7f884wcXOqRUkzX0MAH5rr4MM1YtOkDT3AAOutVcb2MaG6kVjXSlfS20Of94Cl3vT5NBzrN4z1aXFDzAYhmGu+YKo0ZjvjYx1ncRqzKa1H6oXKeVrXvGDchCp//enwbh2vwSwHTxWAFVZYHRJ9z7xWwEuA5PFPXj8HKsTNZtrSRgNJMvaS/3z951MRgXJ6h4yfpqpkk1kKo3GPG2yub9SCSEi/QvaR78Bp8xRQ9Cb4BQAAAAASUVORK5CYII=",
+"MagazineFood": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAACzElEQVRYhcVXTWgTQRh9K148NiBUaBIkeqg0VOKhOeRaMA2EBiv1FvAkRCil6UUvezGgJpRAc2urvdVDCQi1hx68REgOXQgp9lBFkogJCPZY6GU9JN90dnZmf1J/HizZnZ2Z9773fTOzAf4ztMtOEA4FTbGt3el6nvfqZQlfPxjHnZvX2fPnbz+xugvTqwhXAW6EqWILQB+5uIa5xNTwXd8Lt1oATyoSfqgdYXX3gsColtD79BapYguVegt7+ahncibALUoelboJo1rC5ss8KvWLYXv56NANf2AO8KR8lLm4xoj46OYSU6jUW4hlVpj9/Fxe68CWAorCqJYAALHMCotYFiFFztvvpw6kNUB55UERkygi539HgU1ALq6xqEURXsjy0VcAgLGlBlDWXdPAXoZDQZPqIFVsWQSQ9Sry8/kNy/Ozr78AAMfZpOumpNwH+OhlxBRpIRJQTj65vQ9kk44uSB1Q4Xx+g0XHQyaC+vWNBk7LutIJ151QtFcF40XC2vDo/UBYJIlMWVeOs6giF7bSbwCo7eVdWNhJKyePPa+x+0xiRurCFbGhMPFESmTpMxS2sJPGxK1pdol49/Qeu6/WGtKT0/dpSKKInAc9f//S9DyfzZJwKGiOLekYj82wtkIkYHPDyXrCSe8Mi+uHlrHi0rSlQISsDryQE0Thk9v7llTYBLQ7Xe20rKNvNCzkohA+9051IAMvwtUBHoVIwDF6Pvdkv2olkQhpEbY7XQ1l3XwMYOth0pVMxEnvzCZcTAXVgi8HVMtSRr64fqjswxei40EhWxHTa7O4feOaI3lz+UC5PftaBXxBEprLBzaLRXIZZOTACBsRI1mblbdzhORCJjFwULYVe/p2F1PhdPqJcPsm8PwPhkSoVoUo4jg76DfyB4kIL0vTD/HICIeC5t3Spml0frDr/scjMxwKmrLT7q+K+OfEoog/QfwbdvyN1at+v1UAAAAASUVORK5CYII=",
+"MagazineElectronics02": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAAC9klEQVRYhcWXv4vaYBjHPyelcPSyHBlc/LEc3FFyHW47IpLBdrrhhqOLlIJTO0vBSTJ5SLtcQWjBpbg5HNStUjIY/APM0uLi3S03iIt06dB0kDdN4hsTtaXfRd8Y8/k+P96HN/CftbPtA3LZjBu+dnN7l/i5D7YFNg6PONzf99bfZjNq4CY1EWsgDghQccYAtLWDpd82MuCHyoB+qFA5n6bijGlrB+sbSBKlkDWfYyiKt25rB1ScMZ3J/VrggIE4aMUZU86nMRSFzuSeDgtYOZ/Gms89I9Z8TsUZ0zg8StwH0hKI9JbzaTqTey9KQ1MC94moRdoNRVm6Z20Doo7+tIoo/XUXGdlWKdlFARQSWRBgIBJ+ZV5yZV6i1hvSGRGWV6NcNuOKPvBnAYjt7CvzUnrdKhVih9LKObAKHAX1y+gPsEqFlc0oNRAFjoO+3f8VWFdnKdR6A8xapInYSSiDOraNputSeO/nI84e/vCuVXUda8XzA65EH3x5/zHyD1apAMDF+RnT128AKO7tetDq7E9fC1PVWSqyH5Z2wbvnL7zvjm1jlQqorWYADHhwwIOHJcwU93Yx+gPprpBuQxGpMRpycX6GdXwaABv9wVKUUetVBpcM3Nze7UzNGo5tA9C97mEdn6LpeiDiTSXLQmQGjP4Aoz8INJtj2545oeosxWjwIfApJMtG2MSSgXAWBNgqFZiaNYzRMCbOhYp7uwGTUSYiMyAkegFArTekpfj0+FXgE5DuCpmJyAmVy2Zctd7w1uFSGKPhyr7wb0GZxLaMzYCm6x5clCIOHjbiL4cfDjGnYpEFTddRW0261z3EWia11QwYkzXhyUkxMJBiTyx+EzKJcnSve4HpGDbx7POQqVlbmoZrH8thkUK13mBq1gDospiQT56e8jV0rxjDIH9fSHR2D2chPJYBb2D55di2NOq1DchMqK0mgLQZBRji35LWejVL0g9JwRsZiDKxCXgr5bIZ96TdcV9+n7i5bMZNcvj8Jyb+Bvg3boWTb/+lw/QAAAAASUVORK5CYII=",
+"Map": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAAEPUlEQVRYhbWXX0hbVxzHP5GSl4E1D+FKjWtw1hmZGRjMQybp8mDdQ0Va1m5QOhRcXaV1e1uHstJh6cZehisrbj6UyaBoEYIvUx8c0soQlGqKWl1DxNh6CeyWwhDcIHtIz/Hcm5vclG5fCPzu7/z7nu/vd34nx4UDohFftlDb3Hza5TTeCYdK6dTcc423GxtNvuVEAriafVUSZaV0si6uEiukUDHlXppAMVhJRCO+bDTiy/7w4y8lkSgagmjEl23uuWbyZZ4+YH1llfIjB6rk+lzNCjun2B6XL10EbuWFSSXmmAOq/JmnD6T9/EnCRKL75oTTVHLhU59cobWpkd4L55wJNLn3pD2l+E8c9QK7APz+d2XeGMPQAaQKwg4EWxiemISmHHlHAmIigHB5BQDN4QZ0PSP9XaFaYM80bnd7U9o5EhAItuTNX5BANOLLXr50EY9HM/nXVu6haV4n3iWjqALpfw6TXkqQTKWkL/k4SWdbCE3zmlT4XwgkUyl6TrfLeEFOgdtTi3z+0XsAVFYfM40RIStEcGYp4UxAyG+NmZoPup5B07wyRKJt4fkzANZXVjmv5Epl9TFmFDWHJyYBsC2j0Ygv+91bAfnt7huQuxcQKrjcucQcm12wm4rk4yQ1b9QAUOP3H6gKxY+hWBRgf2jQ9C0wfn9D2v5QnbTXV1alfaT+dc6E6yRRoYBQLK8UC/mtZPaHBlkbGpG+zraQ3IlYPBYfJxYfpzoeN40fXVjF49FM4RLH1PYusDuvf53/mEBft4mEilh8HHffAO6+AbY7OvJITG09Mn1/f/MWc/Npl20I1GQTEIwFidi33zCzlKDG7+f4i8XVsSqJk8FaZoMNtsRNBAoVH4Ds/jPTsXpt9CeO20y4u73JiaNeprcybHd0AOBuP0VsaJB9oAtgdNmeAOTkt8oVLq+Qx07XMwT6unG/qOkiD6yJmrsrDiDahicmqfH74eEaYJMD1sUBfr43DxycfU3zYhg6Z2Nh0wL7Q4M2mhxAhKxVKWySQDTiy77Z/n7RCQQJl7sCj0djbHYBw9DlzwnJVIrWpkZTX1MI6gskihVqjqj2nx+cYa3/Bu9e/0L6XO4KDEPn/sYOVVVVgPmmLIPiuxdFZXrL/uJRa7vIj9/6b6DrGXQ9I8//zs4O79RVYRi6PIKSwMvsXkBNQFHXBaz1QsReLUYCZdGIL9vR/2XJC1tvv9amRnpOt+eRUCFib4dDAPHrX9k2WsMyvZXh02CL3JGKs7EwX4/cobMt5LgJE4HiD4u7trmh3mgCu9ubdLaFuD21SGdbSIYhMJIr64UUKullJFAfbLCtEypUEieDtdKvEu799Y60iz5M5ubTrkeTd02+1OKG6eothlKKU0nvOqcXjvX6htwflivdHzI2u0BXetnU9tnDNXkMX/l1ayVoJTP3h5GXL70Xzv23BAqRKQQ18f8F6Cbmlq+OTQcAAAAASUVORK5CYII=",
+"Flier": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAADzklEQVRYhb2XX2hbVRzHPzGbD6OVQu3SVG+Sh2STKAMVRAba1jCK68ZkyqUPtowWZgfby/ogFAxFZLAH8aHDaaG1jDK6giujWijFWPFFCltetjIWGWkz8mftmM6i0HXEh/ScnvsvuTeI36ecc+85v8/vT37nHh91KKRpZXW8lsv56tkHYE+9C+euxQHIZnOc+3QXyCuMZ/KQppVHLzbiW/JT7nhGJKLJZxWYv+TYDUxdAHPX4qxO5uWcGWR1Ms/GWAMj2gPDWjsgTwDCe2Esm83hW/LL5+FTbRYIobv+Tabb/rDAeAYQuXfSzcNPePH0JuFTbdw8/MT2HQGzlsv5nvNifPRiI4Ah/OZxa38XG2MNjsYBXnm2GxnXAACRiCaNZbM5adw/eFXOb+/5nsCtMQK3xmjt77LdZ0R7IFPgCiCkaeVL7zfJsX/wKr4lvzQu5lYn89w/8RUzK18CUD77oQXmrn/TsLfrCAgDwqCYM7+TfjwFICGEBIzIvZivWYQhTSuf/+Y7AGLBgCvYTKFE+vEUenxIgujxIc6cOGr5K7rqhLFggJ+ujLMGhI4cIxoMWMjvzM/J38+//hZ6fMgCZaeqERDeR3c8/71QYm3xh8qzI8dkRDKFElvpZfQeHYCZ6RkJIt6x894VwNc35kldGZdGo8GAASTRN8Cd+Tn0Hp3VHz+Xa8PdSQly6dvLjm3ZMQVq7t/rG5BGRRoSfQPSezs9fXQdvUeXEE6qWgMi9+wYNYMk+gZ4ofszAFbubxEfTvL00XXyv92We1TzHhxSILxXc+yUewEg1NrfRXz4Y6BSC3UDXL4xb/A+FgwYQNTcr1yYojixYAEZXByveSRXBajlvVr5gAVEbbmuAczhF3Ly3pzzcHcSgHc7O119kNgWoQj3VnpZ/pdjwQAxm8rf23wSuG1YX6vyVfnVgfC+ubGB4q8/05Ho5M3QSyzNzrKeucf+2EEAttvPsy91j382/6blnUM0HWjnz8wvADQdaOfMubOuvw0tERDeq1I73KtHj8v54sQCxYmFncpPuvZale1pqBZXKtrLw/V1+SxTKLHxxXHDWV+cWCAV7WXlwpSn8INShGrxZQolPjgYkYb3t7RI70XxCdVT+aoci1B40pHotF0o+n58OEnsk33sbT5JKtrr1q6UgVTceMxdcCu9DFRON5Ee9eBpe/s1AGYXt2t2vqoAZhAzTOmN08BuuxU9INxdOQMSH43+9zcjNSrV+j64bz6eAMwgAD35JsOnNXgvPiHXl1N182mNMlRuOSO5ly1fuv+rQppWNl/Xvehf0ZgVvQQU7XkAAAAASUVORK5CYII=",
+"Brochure": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAADWklEQVRYhcWXT0gUcRTHP0UIBRseJhcW0zYC14ProkiBKSqKXaL2JBIo7Snyz6EOnQqKhLxY5AoeSlDoMKdNgv6grLJmWGLlQAwe0hTbWFnBkCC8TIdxxpl1Znd2UHqX4feb37zf573vez9+A//ZjjhZ5BUExThOpdOOvnNix5xsXljdg6f4AgDb63OwMHhgQDk/9AqCcvrKC9v32+tzbC0MmubyAcqZgUx79TDIyOQ2kWYPI5PbxKbRs6Pb+DXFKYRjgHCDn0izB0B/xqZXLNeExp16zQGg6a85Nke+t7kRLl/LmQFP8QVTxLHpvXdWGycSibwAsupkVYDhBj/nCr4AIEmSPt/d3Q1AqKLicIow3OCn3SMyMHyXX4b5uuu3TSAaODjrBlsAryAovY8/EGn2EI1Gafd8AuBqy3leTny0dVhY3bM3MJwXdjBZM2BXWLduXAZgYPgVAMFgENivfyaMFcTRbACa02AwyFJ/iqX+FJvFF00gkiRRX18PgCiKPIgEeBAJUFt1NpdrwEENSJLExfhvfXzyyQzc8QKw/H0DOGlaPxWPUxYI0Bry0RoK6PO9C9b+LTPgFQTl6dCQLdRSf4roTiOvT7fte9fY1KSDTMXjACSTSVtfthnQ0mq0st3IozuNAJxXfkKG/loGNBCAR3197ooQ1P6OEgXg/fxfteB2XUmSpPe/KIq0takZSSaTevRGEFcAGoRmiUSC44tvLNdp0ft8Pnw+nxPX+wG8gqBExkYZ30xTOR+myN/CxsoEZy7NAKo0VvKAGm1m9Nn0B4uj2CsIyv3pKSrnw5YfLNbEdLATZfcANSuiKFJ06pSeAc16u7qynoi258BiTYwifwuA/tQ2B9hYmeDH2zrGN9O6/lYdkMssa2B1bY3SkhImhJsg3FQnd59GCA1M2zRf/S0BUun0kZGOTtOdLzI2SmlJiT5erIkBqCC7YJn6A5QFAuQyV7diI9Dq2hpLz5670h8ctmGmk5GOTqXW0Alu+j8vACsrLy8HQJZl1/q7AvAKgh69LMuW0YMz/V0BgBq9LMt8+1PJu687tIYK9kXvRH/XANrmALOfl5n9rM7XVp2lNVSQly9Xv1TGrjDdegy2tTB4eBkwOTbc++xgstmB/eWCOTNOr+b/AM8heKunibvmAAAAAElFTkSuQmCC",
+"Cassette3": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAACQElEQVRYhe1XPU8CQRB9XGxMKAiNhphIYiEJRjC0FNjrDzCx1MLwB/wN9ldZmZCcPcQWClriRzCRBBNIDEpDriCx4yyOWeeWXW7vvNJX7XG78968md09gH8kjHKp4JVLBc90/kaSxACQyxdRqdYA2N7T81sqbF3ohOjEPubuDO2WgzARsR3QERPSmSxy+SIArHUisoAwYo5KtYbJ6HXtHOMSmBBvby4Cz1/fFgCg2bC1pQgVYJrx9uYCw08X7ZYDALi8vDISoS1BFKsJ7ZYj5t/e2kIEAByfnAFwVvphRUAcYg7dGl1TCgF/JSY0GzYAvwTDTxfpTDYgTm7KFJFfXN9g+jHWBiScntfFuNftiICn5/VAE8rkckxyIVUuFTy/PsDewVFAhEzORdA7nWNbO7t4uL/TukkijM4BIuGCuBMyMaFSraHX7YgxgX4DAOvp+S1FW+e9/xgIwAOZgNZOP8bCSVrb63Ywd2cBcgCwaDDov2gDNxu2thxEzMlpzdydBURQohxiO+h6YV0TcrfkBiZymTiXL2Iyev1tQr5oXUOqslYRc/BdwsHPAWvlbQxwuwEoa03E8kloyRPCGlIFcg3ws1bVWncZJfJFlM5kRcbccl5rHVZKEMcFld0m5IDmOi6XCl4uX8T+wSEAdUPO3RkG/ReR8fKiMSYmKEuwDOCRABmq7qbnKORAyAeJvC3f+4/iwJIFRCUmGDfhw/2d9l1c8lABfmDH49ssKWIjAQR+T8SttQ5GQfhfraSI/0H4Aeg+WZwvJmELAAAAAElFTkSuQmCC",
+"Novel1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAACq0lEQVRYhe2XvU8TYRzHP1USBxIpbyovITW3QM/gUBmaGsCENB0MmhgWmRydTIA/wMWwFP4DYOpETHQjjYsmTLiYem0dGi+R1KXk6MCMQ/t7uHuudy2HxoVv0vSe63PP9/N7ued6cK3/rFiUi6ZnkudyXK2UI60h6otinlnMAdB0GgBXgrnUBW5zXU2nwfdvX9W4V5ieAdzmmTmDw6Na4NwwGCmfnOupBHrkiUQ4wMDgCEFlyizmSKeS5Le2z6uVcqwrgG6+upJtLTRnqHPdYFZevlLjilXy/B4KEFbzRMLwHNt2LRQEoF7/TW5pnp+1i3k3ejWXiAv7RQr7RWy7hm17DSU7QWqXg/cfPqpzN3sxX13Jcnrq8KvuqHNTE0McHtUolVufqYkh4vEhZk2D2/2ouePjYyr6J48fATB29w6V6g9GRkff+u6CoJrbdo1EwqCwX/TM73ZHCEDFKqn03zda2cxvbXt7oJO5pNlt4oYKU5i59IHqgaDIxVgizcwZylgasVPtdXNAmUOrD6qVcizWyVwarlNqBSR7cgzAWW5BwejlAUinkipid/TvNjdjALHpmeT5g4et5hgYHPEtIMqeHFMcnlTGus5yC/QffAagODwZai7RQ7sE629ek1uap+k01EeXLBokMRfdi9/ymQMec2hvRJZlISAyPvj0BfBnRUD0TLgBm06DdOqi6eQ7v7Xte0j1AZimqYxlbJpmKIguKVHTaXg6Pswc2j2wsb6mIHSQsIy4s+A2F3Uzh/bjWB6RUUGASOYKQBQGoo/dILq5qJu5D6AbiC4BiWoeCKCDvHj+jKfLy8pUb1rZVt17/F/9SyYge7s7HgjLsnz3+WXMewZwg+zt7ihj4ErmlwbQIUT69vpPAQRiY31NGcPVX1AiQbjfkK4VVX8ASi/Gb4bqYDIAAAAASUVORK5CYII=",
+"Pencil": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABnWAAAZ1gEY0crtAAABV0lEQVRYhe2Xv0rDUBSHP6XQTqIPoA6li1CyJOBdMjhp8RlcfQHfoUtnUUenbq6O4iJUpFbFoWpU6mBVUHTQ7ToF8S65f05w8TeFwLnn+85JIIE/zoT0galKdH59eHRceH5Funlci39uKHQRxKQkAEA9alKPmgDEtfjXREoFSFWi51sVvpb73AzOretEV5DneemU4WVG9W6u8DkQmUCqEr21fsvmqmLlcc+pVmwF7VGDnfEHAOrlDBt7EFhBbj8brTEa7NIeNRg+ZVQt68XfAhf7YADT3ieiEzjof9LtLVjbBwFI2AcBmPGx9waQsvcGMONr7wUgae8FYCbE3hlA2t4ZwEyovRNAGfZOAGYk7K0ByrK3BjAjZQ8W3wOpSvT2RguAhyy0nQeAmev7Rbq9sYg9OK7g6uKEzr5ccyeAMpqDxa9ZqhI9Mz3F69u7eHOwnEBZzf8D8A1fNbwI7QnHlwAAAABJRU5ErkJggg=="
+};
+const $ = s => document.querySelector(s);
+// ---------------------------------------------------------------- themes (ZeD Tokens.lua)
+const BASE = {
+  dark:  { name: "Dark", surf1: "#141414", surf2: "#1C1C1C", surf3: "#242424", border: "#202020", borderS: "#383838", text: "rgba(218,218,218,.90)",
+           textHead: "rgba(230,230,230,.92)", textDim: "rgba(161,161,161,.70)", stripe: "rgba(255,255,255,.04)", positive: "#7A9A34", out: "rgba(0,0,0,.7)", bw: 1, arrow: "rgba(230,230,230,.6)" },
+  light: { name: "Light", surf1: "#BEBEBE", surf2: "#B6B6B6", surf3: "#AEAEAE", border: "#969696", borderS: "#767676", text: "rgba(12,12,12,.95)",
+           textHead: "rgba(5,5,5,1)", textDim: "rgba(12,12,12,.72)", stripe: "rgba(0,0,0,.05)", positive: "#2A5511", out: "rgba(242,240,236,.85)", bw: 1, arrow: "rgba(5,5,5,.6)" },
+  hc:    { name: "High contrast", surf1: "#111111", surf2: "#191919", surf3: "#202020", border: "#353535", borderS: "#555555", text: "rgba(255,255,255,.95)",
+           textHead: "#FFFFFF", textDim: "rgba(200,200,200,.80)", stripe: "rgba(255,255,255,.06)", positive: "#44DD44", out: "rgba(0,0,0,.85)", bw: 2, arrow: "rgba(255,255,255,.6)" },
+};
+const ACC = {
+  orange: { name: "Orange", dark: "#D4922A", darkT: "#D4922A", light: "#7A5010", hcT: "#E8A830" },
+  green:  { name: "Green", dark: "#44AA44", darkT: "#55B455", light: "#125518", hcT: "#66CC66" },
+  blue:   { name: "Blue", dark: "#4488CC", darkT: "#5A96D2", light: "#1A4477", hcT: "#66AAEE" },
+};
+// ---------------------------------------------------------------- the items (42.21 names, pages, weights, categories)
+// st: u unread | p part | r read; word: the COND column's word; hov: the hover text's lines
+const BAG = [
+  { cat: "Skill Book", name: 'Mechanics II: "How Vehicle Engines Work"', icon: "Book11", wt: 1.0, st: "p", frac: 140 / 260, word: "140 of 260",
+    hov: ["Pages: 140 of 260"], next: "Mechanics 4" },
+  { cat: "Recipe Resource", name: "Magazine: Wilderness Survival", icon: "Magazine_Survival1", wt: 0.5, st: "r", frac: 1, word: "Known",
+    hov: ["Already read.", "Known recipes: all it teaches"] },
+  { cat: "Cartography", name: "Map: Muldraugh", icon: "Map", wt: 0.2, st: "r", frac: 1, word: "Read", hov: ["Already read."] },
+  { cat: "Entertainment", name: "VHS: The Cook Show E1", icon: "Cassette3", wt: 0.5, st: "r", frac: 1, word: "Watched", hov: ["Already watched."] },
+  { cat: "Household / Weapon", name: "Pencil", icon: "Pencil", wt: 0.1, cond: .8 },
+];
+const CASE = [
+  { cat: "Skill Book", name: 'Carpentry I: "A Guide to Nailing"', icon: "Book8", wt: 1.0, st: "r", frac: 1, word: "Read", hov: ["Already read.", "Pages: 220 of 220"] },
+  { cat: "Skill Book", name: 'Cooking III: "Flavorful Cuisine - 1993 Edition"', icon: "Book9", wt: 1.0, st: "u", frac: 0, word: "Unread",
+    hov: ["Unread.", "Pages: 0 of 300 | for Cooking 5 to 6 (you have 2)"] },
+  { cat: "Skill Book", name: 'First Aid I: "A Scouts Injury Guide"', icon: "Book2", wt: 1.0, st: "u", frac: 0, word: "Unread", hov: ["Unread.", "Pages: 0 of 220"], next: "First Aid 1" },
+  { cat: "Skill Book", name: 'Fishing I: "Dean\'s Good Fishing Guide"', icon: "Book5", wt: 1.0, st: "r", frac: 1, word: "Read",
+    hov: ["Already read.", "Your Fishing is 3, past this book's levels (1 to 2)"] },
+  { cat: "Recipe Resource", name: "Magazine: Good Cooking - June 1993", icon: "MagazineFood", wt: 0.5, st: "p", frac: .5, word: "1 of 2 known",
+    hov: ["Some recipes known from profession or traits.", "Known: Make Cake Batter | Not known: Prepare Pie Dough"] },
+  { cat: "Recipe Resource", name: "Magazine: How to Use Generators", icon: "MagazineElectronics02", wt: 0.5, st: "u", frac: 0, word: "Unread",
+    hov: ["Unread.", "Teaches: Generator"] },
+  { cat: "Cartography", name: "Map: West Point", icon: "Map", wt: 0.2, st: "u", frac: 0, word: "Unread", hov: ["Unread."] },
+  { cat: "Entertainment", name: "VHS: The Magical Woodland E3", icon: "Cassette3", wt: 0.5, st: "u", frac: 0, word: "Not watched", hov: ["Not watched yet."] },
+  { cat: "Junk", name: "Brochure", icon: "Brochure", wt: 0.1, st: "u", frac: 0, word: "Unread", hov: ["Unread."] },
+  { cat: "Junk", name: "Flier", icon: "Flier", wt: 0.1, st: "r", frac: 1, word: "Read", hov: ["Already read."] },
+  { cat: "Literature", name: "Paperback", icon: "Novel1", wt: 0.5, st: "r", frac: 1, word: "Read", hov: ["Already read.", '"The Dreaded Knock", by Roma Harwood'] },
+];
+const S = { scene: "list", style: "B", dim: "off", theme: "dark", acc: "orange", zoom: 1, hover: null };
+const SCENES = [
+  { id: "list", label: "List view", cap: "Both columns in the list view. Books, magazines, maps and tapes have no condition, so the COND column carries the read status. Point at a row for the hover text; Mechanics II and First Aid I carry NEXT LEVEL." },
+  { id: "grid", label: "Grid view", cap: "Both columns in the grid view: the mark in the cell's free corner (bottom left; the weight is top right, a stack's count bottom right). Point at a cell for its name and status." },
+  { id: "hover", label: "Hover: part read", cap: "Pointing at Good Cooking - June 1993: one of its two recipes is known, so it shows part read, and the hover text names which. Change the Mark and Theme above to see each way on each theme." },
+  { id: "mixed", label: "List and grid", cap: "The bag in the list view and the bookcase in the grid view (each column keeps its own List | Grid choice), to compare the two on one screen." },
+];
+
+// ---------------------------------------------------------------- pixel marks (one unit = one pixel at 1080p)
+function bitmap(rows, colors) {
+  const h = rows.length, w = rows[0].length; let r = "";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const c = colors[rows[y][x]]; if (c) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`; }
+  return `<svg class="px" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${r}</svg>`;
+}
+const BOX = { u: ["ooooooooo","oaaaaaaao","oakkkkkao","oakkkkkao","oakkkkkao","oakkkkkao","oakkkkkao","oaaaaaaao","ooooooooo"],
+              p: ["ooooooooo","oaaaaaaao","oaaakkkao","oaaakkkao","oaaakkkao","oaaakkkao","oaaakkkao","oaaaaaaao","ooooooooo"],
+              r: ["ooooooooo","oaaaaaaao","oaaaaaaao","oakaaakao","oaakakaao","oaaakaaao","oaaaaaaao","oaaaaaaao","ooooooooo"] };
+const DOT = { u: ["..aaa..",".a...a.","a.....a","a.....a","a.....a",".a...a.","..aaa.."],
+              p: ["..aaa..",".aaa.a.","aaaa..a","aaaa..a","aaaa..a",".aaa.a.","..aaa.."],
+              r: ["..aaa..",".aaaaa.","aaaaaaa","aaaaaaa","aaaaaaa",".aaaaa.","..aaa.."] };
+const UP = ["..o..", ".oao.", "oaaao", "ooooo"];
+function markColor(st, T) { return st === "r" ? T.positive : T.accentText; }
+function boxMark(st, T) { return bitmap(BOX[st], { o: T.out, a: markColor(st, T), k: T.surf1 }); }
+function dotMark(st, T, halo) { return bitmap(halo ? ["........."].concat(DOT[st].map(r => "." + r + "."), ["........."]) : DOT[st], { a: markColor(st, T) }); }
+function upMark(T) { return bitmap(UP, { o: T.out, a: T.accentText }); }
+
+// ---------------------------------------------------------------- columns
+function groups(items) {
+  const order = ["Cartography", "Entertainment", "Household / Weapon", "Junk", "Literature", "Recipe Resource", "Skill Book"], g = {};
+  for (const it of items) (g[it.cat] = g[it.cat] || []).push(it);
+  return order.filter(c => g[c]).map(c => [c, g[c].sort((a, b) => a.name.localeCompare(b.name))]);
+}
+function dimCls(it) { return S.dim === "on" && it.st === "r" ? " dim" : ""; }
+function listRow(it, T, id) {
+  let mk = "", cond = "";
+  if (it.st && S.style === "A") mk = `<span class="mk">${boxMark(it.st, T)}</span>`;
+  if (it.st && S.style === "B") cond = `${dotMark(it.st, T)}<span>${it.word}</span>`;
+  if (it.st && S.style === "C") cond = `<span class="bar"><i style="width:${Math.round(it.frac * 100)}%;background:${it.st === "r" ? T.positive : T.accentText}"></i></span>`;
+  if (it.cond != null) cond = `<span class="bar"><i style="width:${it.cond * 100}%;background:${T.positive}"></i></span>`;
+  const nx = it.next ? `<span class="tagn">NEXT LEVEL</span>` : "";
+  return `<div class="row${dimCls(it)}${S.hover === id ? " hov" : ""}" data-id="${id}"><div class="ico"><img class="ic" src="${IMG[it.icon]}">${mk}</div>
+    <div class="name"><span class="t">${it.name}</span>${nx}</div><div class="c-cat">${it.cat}</div><div class="c-cond">${cond}</div><div class="c-wt">${it.wt.toFixed(1)}</div></div>`;
+}
+function gridCell(it, T, id) {
+  let mk = "";
+  if (it.st && S.style === "A") mk = `<span class="mk">${boxMark(it.st, T)}</span>`;
+  if (it.st && S.style === "B") mk = `<span class="mk">${dotMark(it.st, T)}</span>`;
+  if (it.st && S.style === "C") mk = `<span class="ln"><i style="width:${Math.round(it.frac * 100)}%;background:${it.st === "r" ? T.positive : T.accentText}"></i></span>`;
+  if (it.cond != null) mk = `<span class="ln"><i style="width:${it.cond * 100}%;background:${T.positive}"></i></span>`;
+  const nx = it.next ? `<span class="nx">${upMark(T)}</span>` : "";
+  return `<div class="cell${dimCls(it)}${S.hover === id ? " hov" : ""}" data-id="${id}"><img class="ic" src="${IMG[it.icon]}"><span class="w">${it.wt.toFixed(1)}</span>${mk}${nx}</div>`;
+}
+function column(title, wt, items, view, T, key) {
+  const gs = groups(items);
+  let body = "";
+  for (const [cat, list] of gs) {
+    body += `<div class="cat"><i></i>${cat.toUpperCase()}<b>${list.length}</b></div>`;
+    body += view === "grid" ? `<div class="grid">${list.map((it, i) => gridCell(it, T, key + cat + i)).join("")}</div>`
+                            : list.map((it, i) => listRow(it, T, key + cat + i)).join("");
+  }
+  const hdr = view === "grid" ? `<div class="hdr"><span>NAME</span><span>CAT</span><span style="margin-left:auto">WT</span></div>`
+    : `<div class="hdr"><span style="flex:1;padding-left:32px">NAME</span><span style="width:112px">CAT</span><span style="width:112px;padding-left:6px">COND</span><span style="width:44px;text-align:right">WT</span></div>`;
+  return `<div class="col"><div class="chd"><span class="nm">${title}</span><span class="wt">${wt}</span>
+    <span class="tog"><span class="l ${view === "list" ? "on" : ""}"><i></i></span><span class="g ${view === "grid" ? "on" : ""}"><i></i></span></span></div>
+    ${hdr}<div class="body">${body}</div></div>`;
+}
+function itemById(id) {
+  for (const [key, items] of [["bag", BAG], ["case", CASE]]) for (const [cat, list] of groups(items)) list.forEach((it, i) => { if (key + cat + i === id) found = it; });
+  return found;
+}
+let found = null;
+
+// ---------------------------------------------------------------- page
+function seg(id, items, get, set) {
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = get() === v ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function tokens() {
+  const B = BASE[S.theme], A = ACC[S.acc];
+  const accent = S.theme === "light" ? A.light : A.dark;
+  const accentText = S.theme === "light" ? A.light : S.theme === "hc" ? A.hcT : A.darkT;
+  return Object.assign({}, B, { accent, accentText, onAccent: S.theme === "light" ? "#F2F0EC" : "#0C0C0C" });
+}
+function render() {
+  const sc = SCENES.find(s => s.id === S.scene);
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), () => S.scene, v => { S.scene = v; S.hover = null; });
+  seg("#ctlStyle", [["A", "A | Corner mark on the picture"], ["B", "B | Dot and word in COND"], ["C", "C | Page bar"]], () => S.style, v => S.style = v);
+  seg("#ctlDim", [["off", "Normal"], ["on", "Dimmed"]], () => S.dim, v => S.dim = v);
+  seg("#ctlTheme", Object.entries(BASE).map(([k, t]) => [k, t.name]), () => S.theme, v => S.theme = v);
+  seg("#ctlAcc", Object.entries(ACC).map(([k, t]) => [k, t.name]), () => S.acc, v => S.acc = v);
+  seg("#ctlZoom", [[1, "100%"], [1.5, "150%"], [2, "200%"]], () => S.zoom, v => S.zoom = v);
+  const T = tokens();
+  const forced = S.scene === "hover" ? "caseRecipe Resource0" : null;
+  const hv = S.hover || forced;
+  const keep = S.hover; S.hover = hv;
+  const vBag = S.scene === "grid" ? "grid" : "list", vCase = (S.scene === "grid" || S.scene === "mixed") ? "grid" : "list";
+  const win = `<div class="win" id="win"><div class="tb"><span class="cb"></span><span class="tt">Loot</span></div><div class="cols">
+    ${column("School Bag", "2.3 / 10", BAG, vBag, T, "bag")}${column("Bookcase", "6.4", CASE, vCase, T, "case")}</div></div>`;
+  S.hover = keep;
+  const st = $("#stage"); st.innerHTML = win;
+  const w = $("#win");
+  const vars = { surf1: T.surf1, surf2: T.surf2, surf3: T.surf3, border: T.border, borderS: T.borderS, text: T.text, textHead: T.textHead, textDim: T.textDim,
+                 stripe: T.stripe, accent: T.accent, accentText: T.accentText, onAccent: T.onAccent, bw: T.bw + "px", arrow: T.arrow };
+  for (const [k, v] of Object.entries(vars)) w.style.setProperty("--" + k, v);
+  // the hover text: the item's name, its read status in the game's words, the next level it suits
+  if (hv) {
+    found = null; const it = itemById(hv), el = st.querySelector(`[data-id="${CSS.escape(hv)}"]`);
+    if (it && el) {
+      const h = document.createElement("div"); h.className = "hint";
+      for (const [k, v] of Object.entries(vars)) h.style.setProperty("--" + k, v);
+      h.innerHTML = `<div class="h1">${it.name}</div>` + (it.hov || []).map(l => `<div class="h2">${l}</div>`).join("") + (it.next ? `<div class="h3">Good for your next level: ${it.next}</div>` : "");
+      st.appendChild(h);
+      const r = el.getBoundingClientRect(), s0 = st.getBoundingClientRect(), z = S.zoom;
+      let x = (r.left - s0.left) / z + (el.classList.contains("cell") ? 0 : 40), y = (r.bottom - s0.top) / z + 4;
+      x = Math.min(x, 1120 - h.offsetWidth - 10); if (y + h.offsetHeight > 650) y = (r.top - s0.top) / z - h.offsetHeight - 4;
+      h.style.left = x + "px"; h.style.top = y + "px";
+    }
+  }
+  st.onmousemove = e => { const el = e.target.closest("[data-id]"), id = el ? el.dataset.id : null; if (id !== S.hover) { S.hover = id; render(); } };
+  st.onmouseleave = () => { if (S.hover) { S.hover = null; render(); } };
+  st.style.transform = S.zoom === 1 ? "" : `scale(${S.zoom})`;
+  st.parentElement.style.height = (660 * S.zoom + 4) + "px";
+  $("#caption").textContent = sc.cap;
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
