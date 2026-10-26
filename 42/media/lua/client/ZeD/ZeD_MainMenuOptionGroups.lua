@@ -160,8 +160,8 @@ G.SETUP_GAME = {
 -- An option of ZeD's this table doesn't name (a new one) lands under Other, as a drop-down.
 G.ZED_GROUPS = {
     { "UI_ZeD_Options_ZedLook", { { "baseTheme", "seg" }, { "accentColor", "swatch" }, { "textSize", "seg" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "seg" }, { "equipView", "seg" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "windowSquares", "onoff" }, { "dimRead", "onoff" } } },
-    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "seg", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "seg" }, { "actionBar", "seg" } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "seg" }, { "equipView", "seg" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "windowSquares", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" } } },
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "seg", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "seg" }, { "actionBar", "seg" }, { "moodleNotices", "onoff" }, { "ammoBox", "onoff" }, { "dashLamps", "onoff" } } },
     { "UI_ZeD_Options_ZedControls", { { "contextStyle", "seg" }, { "glyphDisplay" }, { "inputModeLock" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },

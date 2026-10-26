@@ -45,7 +45,9 @@ local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
 local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
-local AMMO_W = 74          -- the ammo box beside the main hand (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026)
+local AMMO_W = 100         -- the ammo pouch beside the main hand (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026;
+                           -- redrawn Oct 26 2026 to the director's "needs segments for each round ... a bit more polish")
+local AMMO_ICON = 24       -- the ammo's picture in the pouch
 local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
 local LIST_ROW_H, LIST_W = 26, 290
 
@@ -705,7 +707,9 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local L = self._lk
     local n = #slots
     local lamp = ZeD.Messages and ZeD.Messages.count() > 0 or false
-    local ammo = self:_ammoState(p) ~= nil
+    -- (the gun's capacity too: the pouch is as wide as its rounds need)
+    local am = self:_ammoState(p)
+    local ammo = am and (tostring(am.max) .. (am.chamber and "c" or "")) or false
     local now = getTimestampMs and getTimestampMs() or 0
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
         or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or not self._provAt or now - self._provAt > 1000
@@ -793,11 +797,17 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo)
     x = x + hand
     -- the ammo box beside the main hand while it holds a gun (one more pouch on the belt; the watch on that wrist
     -- goes outside it): wide enough for its words in this language
+    -- the ammo pouch beside the main hand while it holds a gun: a short strap of its own, the hand's END_GAP off,
+    -- with the pouch on it as the slots sit on the belt (PAD in from the strap's end, the slots' height and frame);
+    -- wide enough for its words in this language
+    local pouch = nil
     if ammo then
-        x = x + px(WRIST)
-        local aw = self:_ammoWidth()
-        boxes[#boxes + 1] = { kind = "ammo", x = x, y = by, w = aw, h = box }
-        x = x + aw
+        x = x + px(END_GAP)
+        local am = self._ammo and self._ammo.a
+        local aw = self:_ammoWidth(am and am.max or 0, am and am.chamber)
+        pouch = { x = x, w = aw + 2 * px(PAD) }
+        boxes[#boxes + 1] = { kind = "ammo", x = x + px(PAD), y = by, w = aw, h = box }
+        x = x + pouch.w
     end
     if watchBox and wWrist == "right" then
         x = x + px(WRIST)
@@ -844,6 +854,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo)
     local hole = nil
     if kind == "knot" and closureTexture("knot") then hole = { cx + B.KNOT_CUT[1] * ck, cx + B.KNOT_CUT[2] * ck } end
     self._runs = B.strapRuns(strapX, strapW, slotBoxes, mats, waist, k, px(GAP), hole)
+    if pouch then self._runs[#self._runs + 1] = { pouch.x, pouch.x + pouch.w, waist } end   -- the pouch's own strap
     self._waist = waist
     local chh = (kind and B.CLOSURE_H[kind]) or BUCKLE_H
     self._closure = { kind = kind, x = cx, y = self._buckle.y + math.floor((buckH - chh * ck) / 2), k = ck, h = chh }
@@ -1272,53 +1283,119 @@ function ZeD_BeltHUD:_ammoState(p)
     local gun = p and p:getPrimaryHandItem()
     local now = getTimestampMs and getTimestampMs() or 0
     local c = self._ammo
-    if c and c.gun == gun and c.p == p and now - c.t < AMMO_MS then return c.a end
+    local S0 = ZeD.Settings
+    local on0 = not (S0 and S0.ammoBoxOn) or S0.ammoBoxOn()
+    if c and c.gun == gun and c.p == p and c.on == on0 and now - c.t < AMMO_MS then return c.a end
     local a = nil
-    if gun and instanceof(gun, "HandWeapon") then a = B.ammo(p) end
-    self._ammo = { gun = gun, p = p, t = now, a = a }
+    -- (ZeD setup's "Ammo on the belt", on by default: off, the belt is as it was)
+    local S = ZeD.Settings
+    local on = not (S and S.ammoBoxOn) or S.ammoBoxOn()
+    if on and gun and instanceof(gun, "HandWeapon") then a = B.ammo(p) end
+    self._ammo = { gun = gun, p = p, t = now, a = a, on = on0 }
     return a
 end
 
--- the box's width: AMMO_W, or more where this language's words need it (the count in F4, the rest in F5)
-function ZeD_BeltHUD:_ammoWidth()
+-- the pouch's width: AMMO_W, or more where this language's words need it: the picture, the count (F4) and what is
+-- carried (two F5 lines) side by side
+function ZeD_BeltHUD:_ammoWidth(n, chamber)
     local T, tm = ZeD.T, ZeD.TM
-    local wMax = math.max(tm:MeasureStringX(T.fontF4, "88+1"), tm:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Belt_AmmoEmpty")),
-        tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoMags", 8)), tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoRounds", 888)),
-        tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoBoxes", 8)))
-    return math.max(T.px(AMMO_W), T.px(34) + wMax + T.px(4))
+    local cw = math.max(tm:MeasureStringX(T.fontF4, "88+1"), tm:MeasureStringX(T.fontF1, ZeD.tr("UI_ZeD_Belt_AmmoEmpty")))
+    local sw = math.max(tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoMags", 8)), tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoRounds", 888)),
+        tm:MeasureStringX(T.fontF5, ZeD.tr("UI_ZeD_Belt_AmmoBoxes", 8)), tm:MeasureStringX(T.fontF5, ZeD.upper(getText("IGUI_None"))))
+    -- (and for a big magazine, room for its rounds two art pixels wide each: B.segLayout's grouping at sw 2)
+    local k = math.max(1, T.art or 1)
+    local segW = 0
+    if n and n > 0 then
+        local group = (n > 60 and 10) or (n > 15 and 5) or n
+        local groups = math.ceil(n / group)
+        segW = ((chamber and 6 or 0) + n * 2 + (n - groups) + (groups - 1) * ((group < n) and 3 or 1)) * k + 2 * T.px(4)
+    end
+    return math.max(T.px(AMMO_W), T.px(4 + AMMO_ICON + 6) + cw + T.px(8) + sw + T.px(5), segW)
 end
 
--- the ammo box (style B): the ammo's own picture (the magazine for a gun that takes one, else the round), the
+-- The rounds as segments (art pixels, a whole multiple k, like the strap and the buckle): one per round the gun
+-- holds, filled for a round in it, dark for one spent; the chamber's round first, set apart and a pixel taller.
+-- Up to 15 rounds stand one by one; more go in groups of five (over 60, of ten), a wider gap between the groups.
+-- Returns the segments' layout { sw, gap, groupGap, group, chW, w } in art pixels for a width of room art pixels.
+function B.segLayout(n, chamber, room)
+    local chW = chamber and 3 or 0
+    local lead = chamber and (chW + 3) or 0
+    local group = (n > 60 and 10) or (n > 15 and 5) or n
+    local gg = (group < n) and 3 or 1
+    for sw = 6, 1, -1 do
+        for gap = 1, 0, -1 do
+            local groups = math.ceil(n / group)
+            local w = lead + n * sw + (n - groups) * gap + (groups - 1) * gg
+            if w <= room and (gap == 1 or sw == 1) then return { sw = sw, gap = gap, gg = gg, group = group, chW = chW, lead = lead, w = w } end
+        end
+    end
+    return nil   -- (a drum of a hundred: no room for one pixel each)
+end
+
+-- the ammo pouch (style B): framed as the slots are (surf2, the strong border, the foot's segments where the slots
+-- have their condition bar); the ammo's own picture (the magazine for a gun that takes one, else the round); the
 -- rounds in the gun in large figures in the belt's wear colours (normal over half full, amber over a quarter, red
--- under, EMPTY at nothing; "+1" for a chambered round), what is carried under it, and how full the gun is along the foot
+-- under, EMPTY at nothing; "+1" for a chambered round); what is carried, right-aligned; one segment per round
 function ZeD_BeltHUD:_drawAmmo(b, a)
     local T, tm = ZeD.T, ZeD.TM
-    local p1 = T.px(1)
-    local s2 = T.surf2
+    local s2, s3, bs = T.surf2, T.surf3, T.borderS
     self:drawRect(b.x, b.y, b.w, b.h, 0.95, s2.r, s2.g, s2.b)
     local c = (a.n == 0 and T.danger) or (a.f > 0.5 and T.text) or (a.f > 0.25 and T.warningText) or T.danger
+    local k = math.max(1, T.art or 1)
+    -- the foot: the segments' row, the slots' bar height (3 art pixels), its top 5 design units over the bottom
+    local segH = 4 * k
+    local footY = b.y + b.h - T.px(4) - segH
+    local topH = footY - b.y - k                        -- the area over the foot
+    -- the picture, centred in the area over the foot
+    local isz = T.px(AMMO_ICON)
     if a.icon then
-        local isz = T.px(32)
-        self:drawTextureScaledAspect(a.icon, b.x + T.px(1), b.y + T.px(3), isz, isz, a.n == 0 and 0.45 or 1, 1, 1, 1)
+        self:drawTextureScaledAspect(a.icon, b.x + T.px(4), b.y + math.floor((topH - isz) / 2), isz, isz, a.n == 0 and 0.45 or 1, 1, 1, 1)
     end
+    -- the count beside it, on the area's middle; what is carried at the right, two lines on the same middle
     local count, s1, s2w = B.ammoWords(a)
-    local tx = b.x + T.px(34)
     local cf = (a.n == 0) and T.fontF1 or T.fontF4
-    self:drawText(count, tx, b.y + T.px(2), c.r, c.g, c.b, 1, cf)
+    local ch = tm:getFontHeight(cf)
+    self:drawText(count, b.x + T.px(4 + AMMO_ICON + 6), b.y + math.floor((topH - ch) / 2), c.r, c.g, c.b, 1, cf)
     local f5, dc = T.fontF5, T.textDim
     local f5h = tm:getFontHeight(f5)
-    local y1 = b.y + T.px(19)
-    self:drawText(s1, tx, y1, dc.r, dc.g, dc.b, dc.a or 1, f5)
-    if s2w then self:drawText(s2w, tx, y1 + math.max(f5h, T.px(10)), dc.r, dc.g, dc.b, dc.a or 1, f5) end
-    local bs = T.borderS
+    local lines = s2w and 2 or 1
+    local ly = b.y + math.floor((topH - f5h * lines) / 2)
+    local rx = b.x + b.w - T.px(5)
+    ZeD.Atoms.drawTextRight(self, s1, rx, ly, f5, dc)
+    if s2w then ZeD.Atoms.drawTextRight(self, s2w, rx, ly + f5h, f5, dc) end
+    -- the frame, as the slots'
     self:drawRectBorder(b.x, b.y, b.w, b.h, bs.a or 1, bs.r, bs.g, bs.b)
-    if (T.borderW or 1) > 1 then self:drawRectBorder(b.x + p1, b.y + p1, b.w - 2 * p1, b.h - 2 * p1, bs.a or 1, bs.r, bs.g, bs.b) end
-    -- how full the gun is: a bar along the foot, like the slots' condition bar
-    local bx, by, bw = b.x + T.px(3), b.y + b.h - T.px(5), b.w - T.px(6)
-    local tr = T.surf3
-    self:drawRect(bx, by, bw, T.px(3), 1, tr.r, tr.g, tr.b)
-    local fw = math.floor(bw * a.f)
-    if fw > 0 then self:drawRect(bx, by, fw, T.px(3), 1, c.r, c.g, c.b) end
+    if (T.borderW or 1) > 1 then self:drawRectBorder(b.x + T.px(1), b.y + T.px(1), b.w - 2 * T.px(1), b.h - 2 * T.px(1), bs.a or 1, bs.r, bs.g, bs.b) end
+    -- the rounds
+    local inner = b.w - 2 * T.px(4)
+    local L = B.segLayout(a.max, a.chamber, math.floor(inner / k))
+    local sp = bs                                       -- a spent round: the frame's grey, dimmed
+    local spA = 0.55
+    local x0 = b.x + T.px(4)
+    if not L then
+        -- too many for one pixel each: the slots' bar, ticked every ten
+        self:drawRect(x0, footY, inner, segH, 1, s3.r, s3.g, s3.b)
+        local fw = math.floor(inner * a.f)
+        if fw > 0 then self:drawRect(x0, footY, fw, segH, 1, c.r, c.g, c.b) end
+        for t = 10, a.max - 1, 10 do self:drawRect(x0 + math.floor(inner * t / a.max), footY, k, segH, 1, s2.r, s2.g, s2.b) end
+        return
+    end
+    local x = x0 + math.floor((inner - L.w * k) / 2)
+    if a.chamber then
+        -- the chamber's round: a cartridge standing a pixel above the rest, its tip a pixel narrower
+        local cc, ca = c, 1
+        if not a.chambered then cc, ca = sp, spA end
+        self:drawRect(x, footY - k, L.chW * k, segH + k, ca, cc.r, cc.g, cc.b)
+        self:drawRect(x + k, footY - 2 * k, (L.chW - 2) * k, k, ca, cc.r, cc.g, cc.b)
+        x = x + L.lead * k
+    end
+    for i = 1, a.max do
+        local cc, ca = c, 1
+        if i > a.inGun then cc, ca = sp, spA end
+        self:drawRect(x, footY, L.sw * k, segH, ca, cc.r, cc.g, cc.b)
+        x = x + L.sw * k
+        if i < a.max then x = x + ((i % L.group == 0) and L.gg or L.gap) * k end
+    end
 end
 
 -- a ZeD chip of two lines above a box: the first in the accent text colour, the second in the text colour (the

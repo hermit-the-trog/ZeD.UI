@@ -190,6 +190,7 @@ local _cache, _cacheAt, _cacheGen, _cacheP = {}, 0, nil, nil
 local NONE = {}
 function R.state(p, item)
     if not (p and item) then return nil end
+    if not R.on() then return nil end
     local now = getTimestampMs()
     if now - _cacheAt > CACHE_MS or _cacheGen ~= ZeD._trGen or _cacheP ~= p then
         _cache, _cacheAt, _cacheGen, _cacheP = {}, now, ZeD._trGen, p
@@ -204,6 +205,16 @@ function R.state(p, item)
     return s
 end
 function R.clear() _cache, _cacheAt = {}, 0 end
+
+-- ZeD setup's switches: "Read marks in item lists" (on), "NEXT LEVEL on skill books" (on); off, the lists are as before
+function R.on()
+    local S = ZeD.Settings
+    return not (S and S.readMarksOn) or S.readMarksOn()
+end
+function R.nextOn()
+    local S = ZeD.Settings
+    return not (S and S.readNextOn) or S.readNextOn()
+end
 
 -- "Dim read items" (ZeD setup, off by default)
 function R.dimOn()

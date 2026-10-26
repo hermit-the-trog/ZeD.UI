@@ -433,7 +433,10 @@ function ZeD_MoodleLayer:prerender()
     if not self._show then return end
     if self._mode == "bottom" then self:_drawRow() end
     local i = self:_hoverIndex()
-    if not i and self._notices[1] then
+    -- (ZeD setup's "Moodle notices", on by default: off, a chip shows only under the pointer)
+    local S = ZeD.Settings
+    local notices = not (S and S.moodleNoticesOn) or S.moodleNoticesOn()
+    if not i and notices and self._notices[1] then
         for k, m in ipairs(self._list or {}) do if m.key == self._notices[1] then i = k end end
     end
     if i then self:_drawChip(self._list[i], i) end

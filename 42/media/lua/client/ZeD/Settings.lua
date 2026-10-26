@@ -354,6 +354,31 @@ dimRead:addItem(getText("UI_On"), false)
 ZeD.Settings.dimReadOption = dimRead
 ZeD.Settings.dimReadOn = function() return (dimRead:getValue() or 1) == 2 end
 
+-- ----- WHAT VANILLA DOES NOT DO (director, Oct 26 2026: "Things the vanilla game doesn't do by default should be
+-- an option to turn on/off"). Each on for a new player; off puts that part back as it was. Read every frame by
+-- ZeD_Belt, ReadMarks / InventoryRenderer, ZeD_Dashboard and ZeD_Moodles, so a change applies at once.
+local function onSwitch(id, nameKey, tipKey)
+    local o = opts:addComboBox(id, ZeD.tr(nameKey), ZeD.tr(tipKey))
+    o:addItem(getText("UI_Off"), false)
+    o:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch)
+    return o
+end
+local ammoBox = onSwitch("ammoBox", "UI_ZeD_Settings_AmmoBox", "UI_ZeD_Settings_AmmoBoxTip")
+ZeD.Settings.ammoBoxOption = ammoBox
+ZeD.Settings.ammoBoxOn = function() return (ammoBox:getValue() or 2) == 2 end
+local readMarks = onSwitch("readMarks", "UI_ZeD_Settings_ReadMarks", "UI_ZeD_Settings_ReadMarksTip")
+ZeD.Settings.readMarksOption = readMarks
+ZeD.Settings.readMarksOn = function() return (readMarks:getValue() or 2) == 2 end
+local readNext = onSwitch("readNext", "UI_ZeD_Settings_ReadNext", "UI_ZeD_Settings_ReadNextTip")
+ZeD.Settings.readNextOption = readNext
+ZeD.Settings.readNextOn = function() return (readNext:getValue() or 2) == 2 end
+local dashLamps = onSwitch("dashLamps", "UI_ZeD_Settings_DashLamps", "UI_ZeD_Settings_DashLampsTip")
+ZeD.Settings.dashLampsOption = dashLamps
+ZeD.Settings.dashLampsOn = function() return (dashLamps:getValue() or 2) == 2 end
+local moodleNotices = onSwitch("moodleNotices", "UI_ZeD_Settings_MoodleNotices", "UI_ZeD_Settings_MoodleNoticesTip")
+ZeD.Settings.moodleNoticesOption = moodleNotices
+ZeD.Settings.moodleNoticesOn = function() return (moodleNotices:getValue() or 2) == 2 end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -373,6 +398,8 @@ do
         putBack = "UI_ZeD_Settings_PutBack", windowSquares = "UI_ZeD_Settings_WindowSquares",
         messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast",
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
+        ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
+        dashLamps = "UI_ZeD_Settings_DashLamps", moodleNotices = "UI_ZeD_Settings_MoodleNotices",
     }
     for id, key in pairs(nameKeys) do
         local o = opts.dict and opts.dict[id]

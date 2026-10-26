@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Phrases that are all capitals in English (READING, IN HAND) are meant to be capitals in your language too.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head is drawn in capitals by ZeD whatever case the game text has.
 
-Total keys: 2369.
+Total keys: 2379.
 
 ## Areas
 
@@ -80,7 +80,7 @@ Total keys: 2369.
 - [Sbx](#sbx) (189)
 - [Seat](#seat) (5)
 - [Server](#server) (55)
-- [Settings](#settings) (54)
+- [Settings](#settings) (64)
 - [Siren](#siren) (2)
 - [Skills](#skills) (9)
 - [Spawn](#spawn) (9)
@@ -2839,6 +2839,16 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_WindowSquaresTip` | `The three squares at the bottom left of every ZeD window that switch the theme, the accent and the text size. Off hides them; the same settings stay here in ZeD setup.` | ZeD setup, Windows: the help for the switch | - |
 | `UI_ZeD_Settings_DimRead` | `Dim read items` | Options, ZeD setup, ZeD windows: the switch's name | - |
 | `UI_ZeD_Settings_DimReadTip` | `In the item lists, fades the books, magazines, maps and tapes you have already read, so the unread ones stand out.` | Options, ZeD setup: help band for the switch | - |
+| `UI_ZeD_Settings_AmmoBox` | `Ammo on the belt` | Options, ZeD setup, HUD: the switch's name | - |
+| `UI_ZeD_Settings_AmmoBoxTip` | `With a gun in your main hand, a pouch beside it on the belt shows the rounds in the gun, one segment each, and what you carry for a reload. Off: the belt as the game has it.` | Options, ZeD setup: help band for the switch | - |
+| `UI_ZeD_Settings_ReadMarks` | `Read marks in item lists` | Options, ZeD setup, ZeD windows: the switch's name | - |
+| `UI_ZeD_Settings_ReadMarksTip` | `Books, magazines, maps and tapes show whether you have read them: a mark and a word in the lists, a mark in the grid, and the details when you point at them.` | Options, ZeD setup: help band for the switch | - |
+| `UI_ZeD_Settings_ReadNext` | `NEXT LEVEL on skill books` | Options, ZeD setup, ZeD windows: the switch's name | - |
+| `UI_ZeD_Settings_ReadNextTip` | `Marks the skill books that suit your next level in that skill.` | Options, ZeD setup: help band for the switch | - |
+| `UI_ZeD_Settings_DashLamps` | `Dashboard warning lamps` | Options, ZeD setup, HUD: the switch's name | - |
+| `UI_ZeD_Settings_DashLampsTip` | `The battery, engine and heater lamps light amber or red when the part is worn, and pointing at a lamp shows the part's condition. Off: the lamps as the game has them.` | Options, ZeD setup: help band for the switch | - |
+| `UI_ZeD_Settings_MoodleNotices` | `Moodle notices` | Options, ZeD setup, HUD: the switch's name | - |
+| `UI_ZeD_Settings_MoodleNoticesTip` | `A moodle that comes on or changes shows its thought bubble by itself for a few seconds. Off: the bubble shows only when you point at the moodle.` | Options, ZeD setup: help band for the switch | - |
 
 ## Siren
 

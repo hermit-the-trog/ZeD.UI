@@ -249,6 +249,10 @@ function D.chargeTone(c)
     if c < 0.1 then return "dead" elseif c < 0.2 then return "poor" elseif c < 0.4 then return "worn" end
     return "good"
 end
+function D.lampsOn()
+    local S = ZeD.Settings
+    return not (S and S.dashLampsOn) or S.dashLampsOn()
+end
 function D.worse(a, b)
     if a == nil then return b end
     if b == nil then return a end
@@ -297,10 +301,19 @@ function D.derive(st, mem, dtMs)
     st.battTone   = D.worse(D.tone(st.battCond and st.battCond / 100 or nil), D.chargeTone(st.power and batt or nil))
     st.engTone    = D.tone(st.engineCond and st.engineCond / 100 or nil)
     st.heaterTone = D.tone(st.heaterCond and st.heaterCond / 100 or nil)
-    st.genLamp    = check or (st.running and D.lampColor(st.battTone)) or false
+    -- (ZeD setup's "Dashboard warning lamps", on by default: off, the lamps as before: the battery under 20% charge,
+    -- the engine under 40%, the heater's light plain)
+    local lampsOn = D.lampsOn()
+    st.lampsOn    = lampsOn
+    if lampsOn then
+        st.genLamp = check or (st.running and D.lampColor(st.battTone)) or false
+        st.engLamp = check or (st.running and D.lampColor(st.engTone)) or false
+    else
+        st.genLamp = check or (st.power and batt < 0.2)
+        st.engLamp = check or (st.running and st.engWarn) or false
+    end
     st.brakeLamp  = check
     st.beltLamp   = check
-    st.engLamp    = check or (st.running and D.lampColor(st.engTone)) or false
     st.fuelLamp   = st.power and v.fuel < 0.15
     st.tempLamp   = st.power and v.temp > 0.8
     st.hiBeam     = st.power and st.lights or false
@@ -314,7 +327,7 @@ function D.derive(st, mem, dtMs)
     st.heatOn     = st.heaterOn and not st.ac
     -- the heater's own light (the DASH ELITE's over AUTO) is an on light: its green while the heater is fine, the
     -- condition's colour when it is worn, while the engine runs
-    if st.heatOn and st.running and st.heaterTone and st.heaterTone ~= "good" then st.heatOn = D.lampColor(st.heaterTone) end
+    if lampsOn and st.heatOn and st.running and st.heaterTone and st.heaterTone ~= "good" then st.heatOn = D.lampColor(st.heaterTone) end
     st.shiftLamp  = st.running and v.rpm >= 6500
     -- an automatic's selector: P with the engine off, R backing up, otherwise D (PZ counts gears internally)
     local g = tostring(st.gear or "")
@@ -1060,6 +1073,7 @@ function ZeD_Dashboard:render() end
 -- text colour, the rest in the accent text colour), kept on the screen
 function ZeD_Dashboard:_lampHover(des, st, k)
     self._lampHov = nil
+    if not st.lampsOn then return end
     if not self:isMouseOver() then return end
     local mx, my = self:getMouseX() / k, self:getMouseY() / k
     local hz = nil

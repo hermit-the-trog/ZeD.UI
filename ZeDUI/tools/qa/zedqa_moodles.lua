@@ -151,6 +151,21 @@ waitFor(5, 20000, function() local L = MO.getLayer(pn); setStats(); return L and
     check(ok, "with nothing changing the box goes by itself (" .. tostring(L and L._chip and L._chip.key) .. ")")
 end)
 
+-- ZeD setup's "Moodle notices" off (Oct 26 2026): a moodle that changes shows no box by itself; the pointer's still does
+local noticesWas = ZeD.Settings.moodleNoticesOption and ZeD.Settings.moodleNoticesOption:getValue() or 2
+step(5, function()
+    if ZeD.Settings.moodleNoticesOption then ZeD.Settings.moodleNoticesOption:setValue(1) end
+    WANT.STRESS = 0.9; WANT.HUNGER = 0.7; setStats()
+end)
+step(60, function()
+    setStats()
+    local L = MO.getLayer(pn)
+    say("notices off: box " .. tostring(L and L._chip and L._chip.key) .. " | waiting " .. #(L and L._notices or {}))
+    check(L and L._chip == nil, "Moodle notices off: a moodle that changes shows no box by itself")
+    shot("notices_off")
+end)
+step(5, function() if ZeD.Settings.moodleNoticesOption then ZeD.Settings.moodleNoticesOption:setValue(noticesWas) end end)
+
 step(10, function()
     opt:setValue(placeWas or 1)
     for k, v in pairs(kept) do pcall(function() st:set(CharacterStat[k], v) end) end

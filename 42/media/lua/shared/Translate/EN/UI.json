@@ -2872,5 +2872,15 @@
     "UI_ZeD_Read_NotHeardYet": "Not heard yet.",
     "UI_ZeD_Read_AlreadyHeard": "Already heard.",
     "UI_ZeD_Settings_DimRead": "Dim read items",
-    "UI_ZeD_Settings_DimReadTip": "In the item lists, fades the books, magazines, maps and tapes you have already read, so the unread ones stand out."
+    "UI_ZeD_Settings_DimReadTip": "In the item lists, fades the books, magazines, maps and tapes you have already read, so the unread ones stand out.",
+    "UI_ZeD_Settings_AmmoBox": "Ammo on the belt",
+    "UI_ZeD_Settings_AmmoBoxTip": "With a gun in your main hand, a pouch beside it on the belt shows the rounds in the gun, one segment each, and what you carry for a reload. Off: the belt as the game has it.",
+    "UI_ZeD_Settings_ReadMarks": "Read marks in item lists",
+    "UI_ZeD_Settings_ReadMarksTip": "Books, magazines, maps and tapes show whether you have read them: a mark and a word in the lists, a mark in the grid, and the details when you point at them.",
+    "UI_ZeD_Settings_ReadNext": "NEXT LEVEL on skill books",
+    "UI_ZeD_Settings_ReadNextTip": "Marks the skill books that suit your next level in that skill.",
+    "UI_ZeD_Settings_DashLamps": "Dashboard warning lamps",
+    "UI_ZeD_Settings_DashLampsTip": "The battery, engine and heater lamps light amber or red when the part is worn, and pointing at a lamp shows the part's condition. Off: the lamps as the game has them.",
+    "UI_ZeD_Settings_MoodleNotices": "Moodle notices",
+    "UI_ZeD_Settings_MoodleNoticesTip": "A moodle that comes on or changes shows its thought bubble by itself for a few seconds. Off: the bubble shows only when you point at the moodle."
 }
