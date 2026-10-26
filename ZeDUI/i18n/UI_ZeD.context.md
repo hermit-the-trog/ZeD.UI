@@ -3138,7 +3138,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Workshop_ContentsOk` | `The folder has what Steam needs.` | Workshop upload screen: the check of the folder's contents passed | - |
 | `UI_ZeD_Workshop_CopyCodes` | `Copy Steam codes` | Workshop upload screen: button that copies the description's formatting codes | 20 |
 | `UI_ZeD_Workshop_CreateFailed` | `Steam would not start a new item. Is Steam running and signed in?` | Workshop upload screen: red note | - |
-| `UI_ZeD_Workshop_DescriptionTooLong` | `The description is over Steam's %1 characters` | Workshop upload screen: in the strip, why Upload is off. %1 is the limit | - |
+| `UI_ZeD_Workshop_DescriptionTooLong` | `The description is too long: %1 characters at most` | Workshop upload screen: in the strip, why Upload is off. %1 is the room left: Steam's 8,000 less the lines the game adds (Workshop ID, Mod IDs) | - |
 | `UI_ZeD_Workshop_ItemNew` | `New: Steam gives it a number on the first upload.` | Workshop upload screen: value of the Workshop item row for a new item | - |
 | `UI_ZeD_Workshop_LabelChangeNote` | `CHANGE NOTE` | Workshop upload screen: caps label at the left of the change note field | 15 |
 | `UI_ZeD_Workshop_LabelItem` | `WORKSHOP ITEM` | Workshop upload screen: caps label at the left of the item number | 15 |

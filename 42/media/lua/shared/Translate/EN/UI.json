@@ -2435,7 +2435,7 @@
     "UI_ZeD_Workshop_ContentsOk": "The folder has what Steam needs.",
     "UI_ZeD_Workshop_CopyCodes": "Copy Steam codes",
     "UI_ZeD_Workshop_CreateFailed": "Steam would not start a new item. Is Steam running and signed in?",
-    "UI_ZeD_Workshop_DescriptionTooLong": "The description is over Steam's %1 characters",
+    "UI_ZeD_Workshop_DescriptionTooLong": "The description is too long: %1 characters at most",
     "UI_ZeD_Workshop_ItemNew": "New: Steam gives it a number on the first upload.",
     "UI_ZeD_Workshop_LabelChangeNote": "CHANGE NOTE",
     "UI_ZeD_Workshop_LabelItem": "WORKSHOP ITEM",

@@ -142,6 +142,26 @@ end
 
 function ZeD_MMWorkshop:item() return self.items[self.sel] end
 
+-- The room for our description: the game adds its own lines when it sends it
+-- (SteamWorkshopItem.getSubmitDescription: a blank line, "Workshop ID: <id>", a "Mod ID:"
+-- line per mod, a "Map Folder:" line per map), and Steam refuses the whole update past 8,000
+-- (Oct 25 2026: 7,976 + 58 went over, and Steam answered 8, an invalid field).
+function ZeD_MMWorkshop:descRoom()
+    local it = self:item()
+    local extra = 0
+    if it then
+        local okS, sub = pcall(function() return it:getSubmitDescription() end)
+        local okD, own = pcall(function() return it:getDescription() end)
+        if okS and okD and sub and own then
+            extra = #tostring(sub) - #tostring(own)
+            if tostring(own) == "" then extra = extra + 2 end      -- (its blank line comes only after a description)
+            local okI, id = pcall(function() return it:getID() end)
+            if not (okI and id) then extra = extra + 6 end         -- (a new item: "null" now, ten digits once Steam gives it an id)
+        end
+    end
+    return BB.LIMIT - extra
+end
+
 -- the picked folder's fields into the form
 function ZeD_MMWorkshop:load()
     local it = self:item()
@@ -287,7 +307,8 @@ end
 function ZeD_MMWorkshop:blocker()
     if BB.trim(self.titleE:getText()) == "" then return ZeD.tr("UI_ZeD_Workshop_NeedTitle") end
     if BB.trim(self.desc) == "" then return ZeD.tr("UI_ZeD_Workshop_NeedDescription") end
-    if #self.desc > BB.LIMIT then return ZeD.tr("UI_ZeD_Workshop_DescriptionTooLong", BB.LIMIT) end
+    local room = self:descRoom()
+    if #self.desc > room then return ZeD.tr("UI_ZeD_Workshop_DescriptionTooLong", room) end
     if self.contents then return tostring(self.contents) end
     return nil
 end
@@ -623,8 +644,8 @@ function ZeD_MMWorkshop:formBottom(it, ix, iw, cy)
             cy = cy + MM.fontH(f2) + T.px(2)
         end
     end
-    local n = #self.desc
-    cy = self:paneText(ZeD.tr("UI_ZeD_DescEdit_Count", BB.count(n), BB.count(BB.LIMIT)), vx, cy + T.px(2), vw, f3, (n > BB.LIMIT) and T.danger or dim) + T.px(6)
+    local n, room = #self.desc, self:descRoom()
+    cy = self:paneText(ZeD.tr("UI_ZeD_DescEdit_Count", BB.count(n), BB.count(room)), vx, cy + T.px(2), vw, f3, (n > room) and T.danger or dim) + T.px(6)
     local bx = self:formBtn("desc:edit", ZeD.tr("UI_WorkshopSubmit_EditDescription"), function() self:openEditor() end, vx, cy, "default", 400, 1) + T.px(6)
     self:formBtn("desc:copy", ZeD.tr("UI_ZeD_Workshop_CopyCodes"), function() Clipboard.setClipboard(self.desc); self:say(ZeD.tr("UI_ZeD_Workshop_CodesCopied")); MM.clickSound() end,
         bx, cy, "default", 400, 2, self.desc == "")
@@ -673,7 +694,7 @@ end
 function ZeD_MMWorkshop:openEditor()
     self:apply()
     MM.clickSound()
-    MM.wsEditor = { text = self.desc, title = BB.trim(self.titleE:getText()), done = function(text) self:setDescription(text) end }
+    MM.wsEditor = { text = self.desc, title = BB.trim(self.titleE:getText()), limit = self:descRoom(), done = function(text) self:setDescription(text) end }
     MM.showView("wsdesc")
 end
 
