@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Character: Traits tab v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | Character window, Traits tab (for Traits As Skills). Mockup v1 (Oct 26 2026).
+   Traits As Skills (id traitsAsSkills, Workshop 3784847437, by GersonRess) adds a
+   Traits tab to the game's Character window, which ZeD never shows. Survey:
+   ZeDUI/workshop/compat_round2_tab_survey.md, row 28.
+   Data is the mod's own: its 42 spectra and level ranges (shared/TAS/TASSpectrumVanilla.lua),
+   its XP table and level maths (TASSpectrum.lua), its Gain and Lose actions
+   (TASXPActions.lua) and its wording (Translate/EN/UI.json). Trait names and
+   descriptions are the game's (UI_trait_*). Rows drawn like ZeD's Skills tab.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
+  --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --acf:rgba(212,146,42,.55); --toa:#0c0c0c;
+  --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.72); --th:rgba(222,210,190,.95);
+  --dng:#d0603a; --wrn:#c49a2a; --pos:#7a9a34; --inf:#5a8a9a;
+  --f1:11px; --f2:13px; --f4:15px; --f5:10px;
+}
+body.lg { --f1:13px; --f2:15px; --f4:17px; --f5:12px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1000px; height:720px; border:1px solid #2a2924; overflow:hidden; transform-origin:0 0;
+  background:radial-gradient(ellipse at 45% 40%, #2c3320 0%, #1c2216 45%, #0f120c 100%); }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+
+/* ---- the Character window ---------------------------------------------------- */
+.win { position:absolute; left:40px; top:24px; width:920px; height:672px; background:rgba(19,19,19,.97); border:1px solid var(--bs); z-index:2; display:flex; flex-direction:column; }
+.tb { height:24px; flex:none; background:var(--s2); border-bottom:1px solid var(--bs); display:flex; align-items:center; position:relative; overflow:hidden; }
+.tb::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.05) 2px, rgba(255,255,255,.05) 4px); }
+.tb .cb { width:12px; height:12px; border:1px solid var(--bs); margin-left:6px; position:relative; z-index:1; background:var(--s2); }
+.tb .tt { font-family:var(--mono); font-size:var(--f2); color:var(--th); position:relative; z-index:1; background:var(--s2); padding:0 8px; margin-left:8px; }
+.tb .st { margin-left:auto; margin-right:8px; position:relative; z-index:1; background:var(--s2); padding:0 8px; font-family:var(--mono); font-size:var(--f1); color:var(--tx); display:flex; gap:12px; }
+.dot { display:inline-block; width:8px; height:8px; border-radius:50%; vertical-align:middle; margin-right:5px; flex:none; }
+.dot.pos { background:var(--pos); } .dot.neg { background:var(--dng); } .dot.off { border:1px solid var(--ts); } .dot.ac { background:var(--ac); } .dot.dim { background:#666; }
+.wbody { flex:1; min-height:0; display:flex; }
+.strip { width:36px; flex:none; border-right:1px solid var(--bs); background:var(--s1); display:flex; flex-direction:column; }
+.tab { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--bd); position:relative; }
+.tab img, .tab svg { width:22px; height:22px; opacity:.82; }
+.tab.act { background:var(--acf); } .tab.act::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--acb); }
+.tab.act img, .tab.act svg { opacity:1; }
+.tab.gone { opacity:.25; }
+.tab.gone::after { content:""; position:absolute; left:6px; right:6px; top:17px; height:1px; background:var(--tx); transform:rotate(-35deg); }
+.drawer { width:480px; flex:none; border-right:1px solid var(--bs); display:flex; flex-direction:column; min-height:0; }
+.dh { height:37px; flex:none; display:flex; align-items:center; padding:0 10px; border-bottom:1px solid var(--bd); gap:8px; }
+.dh .nm { font-family:var(--cond); font-weight:600; font-size:calc(var(--f4) + 3px); color:var(--th); }
+.dh .nm::before { content:"> "; color:var(--ts); }
+.find { margin-left:auto; display:flex; align-items:center; border:1px solid var(--bs); background:var(--s1); height:22px; width:150px; padding:0 6px; gap:5px; }
+.find input { background:none; border:0; outline:0; color:var(--tx); font-family:var(--mono); font-size:var(--f1); width:100%; }
+.find:focus-within, .find.foc { border-color:var(--ac); }
+.find svg { width:11px; height:11px; flex:none; }
+.find .x { cursor:pointer; color:var(--ts); font-family:var(--mono); font-size:11px; }
+.dscroll { flex:1; min-height:0; overflow:auto; padding:8px 10px 12px; }
+.dscroll::-webkit-scrollbar { width:8px; } .dscroll::-webkit-scrollbar-thumb { background:var(--s4); }
+.credit { font-family:var(--mono); font-size:var(--f5); color:var(--ts); margin-bottom:8px; display:flex; align-items:center; gap:10px; }
+.credit .r { margin-left:auto; display:flex; border:1px solid var(--bs); }
+.credit .r span { padding:2px 8px; cursor:pointer; color:var(--tx); border-right:1px solid var(--bs); }
+.credit .r span:last-child { border-right:0; }
+.credit .r span.on { background:var(--ac); color:var(--toa); }
+.credit .r span.foc { outline:2px solid var(--acb); outline-offset:-2px; }
+.sum { display:flex; gap:14px; font-family:var(--mono); font-size:var(--f1); color:var(--tx); margin-bottom:10px; }
+.cat { height:26px; display:flex; align-items:center; gap:6px; font-size:var(--f2); color:var(--ts); cursor:pointer; border-bottom:1px solid var(--bd); margin-top:6px; }
+.cat:hover { background:var(--hov); }
+.cat .n { font-family:var(--mono); font-size:var(--f1); }
+.cat .tw { font-family:var(--mono); width:10px; }
+.cat.foc { background:var(--acf); color:var(--toa); }
+.trow { position:relative; display:flex; align-items:center; gap:6px; height:26px; margin-top:2px; cursor:pointer; font-size:var(--f2); }
+.trow:nth-child(even) .bg0 { background:rgba(255,255,255,.025); }
+.trow .bg0 { position:absolute; inset:0; }
+.trow .fill { position:absolute; left:0; top:0; bottom:0; opacity:.32; }
+.trow > *:not(.bg0):not(.fill) { position:relative; }
+.trow:hover .bg0 { background:var(--hov); }
+.badge { width:20px; height:26px; display:flex; align-items:center; justify-content:center; background:rgba(34,34,34,.6); font-family:var(--mono); font-size:var(--f2); color:var(--tx); flex:none; }
+.badge.z { color:var(--ts); }
+.trow .nm { width:112px; flex:none; color:var(--tx); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.steps { display:flex; gap:2px; flex:none; }
+.steps i { width:12px; height:13px; border:1px solid var(--bs); border-bottom:3px solid var(--s4); display:block; position:relative; background:var(--s1); }
+.steps i.bp { border-bottom-color:var(--pos); } .steps i.bn { border-bottom-color:var(--dng); }
+.steps i.f { background:var(--tx); }
+.steps i.f { background:rgba(214,214,212,.8); }
+.steps i .pf { position:absolute; left:0; top:0; bottom:0; background:rgba(214,214,212,.45); }
+.steps i.cur { outline:1px solid var(--th); outline-offset:1px; }
+.chip { margin-left:auto; display:flex; align-items:center; font-size:var(--f2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px; padding-right:6px; }
+.chip.none { color:var(--ts); }
+.newb { font-family:var(--mono); font-size:9px; letter-spacing:.5px; border:1px solid var(--ac); color:var(--acb); padding:0 3px; margin-left:5px; }
+.trow.sel .bg0 { background:var(--ac) !important; }
+.trow.sel .nm, .trow.sel .chip, .trow.sel .badge { color:var(--toa); }
+.trow.sel .badge { background:rgba(0,0,0,.15); }
+.trow.sel .fill { display:none; }
+.trow.sel .newb { color:var(--toa); border-color:var(--toa); }
+.trow.foc { box-shadow:inset 0 0 0 2px var(--acb); }
+.trow.foc:not(.sel) .bg0 { background:var(--acf); }
+.empty { font-size:var(--f2); color:var(--ts); padding:12px 2px; }
+/* detail panel */
+.det { flex:none; border-top:1px solid var(--bs); background:var(--s2); padding:8px 10px 10px; height:218px; overflow:hidden; }
+.det .t { display:flex; align-items:baseline; gap:10px; }
+.det .t b { font-family:var(--cond); font-weight:600; font-size:calc(var(--f4) + 2px); color:var(--th); }
+.det .t span { font-family:var(--mono); font-size:var(--f1); color:var(--ts); }
+.det .t .r { margin-left:auto; }
+.lad { position:relative; height:44px; margin:8px 0 4px; }
+.lad .seg2 { position:absolute; top:0; height:14px; border:1px solid var(--bs); background:var(--s1); }
+.lad .seg2.bp { background:rgba(122,154,52,.30); border-color:rgba(122,154,52,.8); }
+.lad .seg2.bn { background:rgba(208,96,58,.28); border-color:rgba(208,96,58,.8); }
+.lad .seg2.in { box-shadow:inset 0 0 0 1px var(--th); }
+.lad .lb { position:absolute; top:17px; font-size:var(--f5); font-family:var(--mono); color:var(--ts); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lad .lb.in { color:var(--th); }
+.lad .mk { position:absolute; top:-6px; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--acb); }
+.lad .tk { position:absolute; top:31px; font-family:var(--mono); font-size:9px; color:var(--ts); transform:translateX(-50%); }
+.kv { display:flex; gap:8px; font-size:12px; line-height:1.45; color:var(--tx); margin-top:3px; }
+.kv .k { width:76px; flex:none; font-family:var(--mono); font-size:var(--f5); color:var(--ts); padding-top:2px; text-transform:uppercase; }
+.kv .v { flex:1; min-width:0; }
+.bar { height:5px; background:var(--s4); width:160px; display:inline-block; vertical-align:middle; margin-left:8px; }
+.bar i { display:block; height:100%; background:var(--ac); }
+/* no-mod list */
+.nrow { display:flex; gap:8px; padding:7px 0; border-bottom:1px solid var(--bd); cursor:pointer; }
+.nrow:hover { background:var(--hov); }
+.nrow.foc { background:var(--acf); }
+.nrow.foc .d, .nrow.foc .nm { color:var(--toa); }
+.ic { width:22px; height:22px; flex:none; border:1px solid var(--bs); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:9px; color:var(--toa); }
+.ic.p { background:var(--pos); } .ic.n { background:var(--dng); }
+.nrow .nm { font-size:var(--f2); color:var(--tx); }
+.nrow .tag { font-family:var(--mono); font-size:9px; border:1px solid var(--bs); color:var(--ts); padding:0 4px; margin-left:6px; text-transform:uppercase; }
+.nrow .d { font-size:12px; line-height:1.4; color:var(--ts); margin-top:2px; }
+.subh { font-family:var(--mono); font-size:var(--f1); color:var(--ts); letter-spacing:.08em; margin:10px 0 2px; text-transform:uppercase; }
+/* inventory (context) */
+.inv { flex:1; display:flex; flex-direction:column; min-width:0; }
+.ih { height:37px; display:flex; align-items:center; padding:0 10px; border-bottom:1px solid var(--bd); gap:8px; }
+.ih .nm { font-family:var(--cond); font-weight:600; font-size:calc(var(--f4) + 3px); color:var(--th); }
+.ih .wt { margin-left:auto; font-family:var(--mono); font-size:var(--f1); color:var(--acb); text-align:right; line-height:1.3; }
+.ih .wt span { display:block; color:var(--ts); font-family:var(--sans); font-size:var(--f5); }
+.icol { display:flex; font-family:var(--mono); font-size:var(--f5); color:var(--ts); padding:5px 10px; border-bottom:1px solid var(--bd); }
+.irow { display:flex; align-items:center; height:28px; padding:0 10px; font-size:var(--f2); border-bottom:1px solid rgba(255,255,255,.03); }
+.irow:nth-child(odd) { background:rgba(255,255,255,.025); }
+.irow .n { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.irow .c { width:86px; color:var(--ac); font-family:var(--mono); font-size:var(--f1); }
+.irow .w { width:34px; text-align:right; font-family:var(--mono); font-size:var(--f1); color:var(--ts); }
+.cstrip { width:36px; flex:none; border-left:1px solid var(--bs); background:var(--s1); }
+.padbar { height:20px; flex:none; border-top:1px solid var(--bs); background:var(--s1); display:flex; align-items:center; gap:14px; padding:0 10px; font-family:var(--mono); font-size:10px; color:var(--ts); }
+.padbar .g { display:inline-flex; align-items:center; justify-content:center; min-width:14px; height:13px; border:1px solid var(--ts); color:var(--tx); font-size:9px; margin-right:4px; padding:0 2px; }
+.tip { position:absolute; z-index:9; max-width:280px; background:#f2efe4; color:#151515; border:1px solid #000; padding:5px 8px; font-size:12px; line-height:1.4; pointer-events:none; display:none; }
+.tip b { font-weight:600; }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | in game | Character window | Traits | Traits As Skills | mockup v1</div>
+<h1>Traits: a tab beside Skills, for Traits As Skills</h1>
+<p class="lede"><b>Traits As Skills</b> (153,861 subscribers) turns traits into ladders that level up and down with play: read enough and Slow Reader becomes no trait, then Fast Reader; skip smoking long enough and Smoker goes. It adds a Traits tab to the game's Character window, which ZeD never shows, so with ZeD on the tab is <b>out of reach</b>. This is that tab, built from ZeD's parts and the mod's own data: each ladder drawn like a Skills row, the trait you have now at the right, and the details for the focused row at the bottom. The numbers are the mod's: its 42 ladders, ranges, XP table and Gain and Lose lists. Click rows, hover the small steps, try Find.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlPad"></div></div>
+  <div class="ctl"><span>Text</span><div class="seg" id="ctlLg"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>A Traits tab right after Skills, there only while Traits As Skills is on.</b> One row per ladder, drawn like a Skills row: the level in the square, the name, the progress to the next level as the row's fill. Then ten small steps showing the level and which ranges hold a trait (a green line under a step: a good trait there, red: a bad one), and at the right the trait you have now, or "No trait". A trait gained by levelling up carries NEW until the tab is opened. Categories as the mod has them (Skills, Physical, Mind, Social, Behavior), each folds.</li>
+      <li><span class="rec">RECOMMEND</span><b>The details at the bottom follow the focused row,</b> as the Skills tab's pins do: the whole ladder with each trait's range and where you stand, the XP to the next level (or the skill it follows, or the weight in kg), the mod's Gain and Lose lists in its own words ("Reading books or magazines +10 XP per 50 pages"), what the next level up or down changes, and the trait's description from the game.</li>
+      <li><span class="rec">RECOMMEND</span><b>Drop the mod's "See all traits" tick.</b> Its job (lighting up every trait's icon on every bar) is done by the steps, which always show the ranges, and hovering a step names its trait and level.</li>
+      <li><span class="rec">RECOMMEND</span><b>Find, and a switch between All and With a trait,</b> because there are 42 ladders before other mods add theirs. Traits As Skills is open to other mods: a ladder they register lands under its category (or Other) with no work on ZeD's side.</li>
+      <li><span class="rec">RECOMMEND</span><b>No Traits tab without the mod.</b> The Identity tab already lists the character's traits, good and bad; a second list would repeat it. What the no-mod scene shows (each trait with its description) belongs in Identity instead: the description on hover and on controller focus of each trait there.</li>
+      <li><span class="rec">RECOMMEND</span><b>Controller:</b> the tab sits in the D-pad wheel's Tabs slice like the others. Down from the tab strip lands on Find, then All and With a trait, then the first category. Up and Down walk categories and rows; the details change on focus alone, with no press. A on a category folds or opens it; A on a row does nothing (there is nothing to do with a trait). B goes back to the tab strip.</li>
+      <li><span class="alt">YOUR CALL</span><b>Keep the tab without the mod?</b> Recommended no (above). The scene "No mod, if the tab stayed" shows what it would hold: the same traits as Identity, each with its description.</li>
+      <li><span class="alt">YOUR CALL</span><b>Category order.</b> The mod puts Skills first: 26 ladders that follow skill levels (Repair follows Maintenance, Hunting follows Aiming), so they move only when the Skills tab does. Physical and Mind move on their own and are the ones a player watches. Recommend Mind, Physical, Behavior, Social, then Skills; or keep the mod's order.</li>
+      <li><span class="lim">LIMIT</span><b>In multiplayer the numbers come from the server</b> about once a second (the mod asks for them), so a level can show a moment late. The mod's own admin screen (Traits XP, under the game's player stats) stays the mod's.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const ICONS={loot:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACQUlEQVR42u2YP28TQRDFf3s+JwFTuHGXkAZavgJCUIUiPRT86aktwZeIRE9CQ0soSAVCfAVaqgCdU6TAIbbPfjTvxLLcJUjYjpE80ujOu3Oed2/ndmcmSOIMCcxGap3mFWOZdXzWg/8oAWgAE+uviYShhoGUcgVoTpEtASPge53PPHIWPHEdeADcAa4Cq1NmZwB8Ad4De8Bnr4gAISlIyiQh6ZmkvuYnffvEGEKQVFK2Czz0WxQVwVfGVizFX8ZmGishsdsDHgENjK5rxANJE0njObAztq+Bf3clESRdAz4BK9FaZsBX4C3QM4O3gJu+bwA/gOfASfTGAi4DT4BLke1H4IPvO8BdYMOsBV+HwA0k7RhhETGzL6lt9lIWh74eOf5INHgutu0mNm1JryOmCt/vZMBWFCsB+AbcA479ya95rVsVe0nHc01r7rF0i2h5bs12x8B9+4rZ3cqATQ/K130vQ9N7RmGdVARvUaNUBHU5N/J/nwBvEt+bmWMnlqPIiBkeHcHxGctKVrOtzxJMCuqPc2uhZAloCWgJaAloCeh/BKQZ1mPnnpmZM7VYOnMAVYLpJOPDDDiMAAjYdho6ipKuvIbNvEarXjyPkrmRfWwnvg8z4CDJ2taBV0DbD546sepXLG0vSrrKZK5XsRR9z53arm0f60m2erCQSf7ClUFlofjCxdpFFIq7wOOyUIxL6aeLUErHDEyiZsNtVySzaja8A16mzYbz2jEtB3uYYmI/TL7Y33yGig7aQjWsLryl9xMQUWDOPVZBnAAAAABJRU5ErkJggg==',equipment:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAD5klEQVR42s2YO4heRRTHf3O/a3ZZzQPxgZWPJUFIoykEUdReUAsL01gJQgpXF5NokkIwTZpUNoJ9GhUjCDaiEo2okMIiGmXNhiBKIFFWXZLd77t/m//ocTLfY00+cOAwd86cO/e8z5mLJAI0nhckLUu64nmh2J8axEXP817Vx96CbiqQJAEkQMBtwDlgxusG6Lx/BbgTuBDoy9EY8HsdGxxNMe8EZgMzeU/G7yzoy7M6oG/oKnQJaAPjEVogtSbM0v5arCnWl4bsJzMwDzxp3HFgqdCmzGxtdMDfJssSJuAk8ACwFqTeBHwJPORDoyl6wAB4zExsMX7FzH1i6ft2ideA7f5WZPYM8HotwnZIOl049Gnja5HWGE6Z9rJBxvUktab5UKPHyaihKO0c8DhwF7AMfACshv1oKgFbTbfFuGyeFeBu4DfT/GRtEeiiW8zUwn4c9Kaooc+zhrKv7AKeBx4Bbg8a+QU4AbwJnAr0UauPAu8XPvQE8GnFh3YUGv6XD2WJD0jqj5Ggb7pSU8nzPZIWDfPF3oYy9T5/cCBp3bAWIOMGpnu1wlStrJS4FMxXQispJUm7gK+KhJcqeSKrdmAz3Qd8U5iv8V6m23CmboF9RfQk2/O4y8UM8JTtrkDzAvBcUV4SsB58q1ZimhECd0i6IKmzf3SSvpW0rVD1NuM7m66T9H0wWfSTOQMTmPCq/Ra4JUiSgHecN2YdGa3X7wIHAt3NwGbvJWfzI8DTlvhtYL8zfiwP8y7SKr57DlhqK+pbN64f6k4qDs64WNmPAAthPz+/aGbXbOI37AbluAy8XKvaaUhxTSN88SZgt/0wwm7gRjMzBxw2M/3QnnSmnQWONvzPRjPE29MEWovjD+CYIyvCMeBPm2wVOOTILXuink222FYY2GRcG1JD3/irw/Qfwfb7uXTqFPzyLeDjIU69DPx4LWF/Zlph/xHwTJD8Xjdj741JjCfsjFmDOepWQ2LsClN34xJjknQ/8PUGSkc+dCqlg+LqM6gU2fUCL0mvTKu4xkMPFR8vR2by4DTbjyQpm+cG4GeXhDLy8voScEcooJpGg5YluFXSRWujK7ST1xdNF9+7rk1+G7QwmNDtBpX72FY3813IV51xm0OT/7Ajd1iT/+C1lo58w/0dOOvntXCnO+u91vNnTiMzZjzCDPBFex3KT7LWFisXxZdCruqAZ0dcFL8DDmenlp35hwmcervnVCRKTXCVnqiFrSW/USYaZbol4GjlB0TUZm9IwmyAQVthcNRHR5m4m+B3zNifDbFUrADnxzRo502XRhwaf8f8p35IoWXd48ig+IWC8XtCIRVTGH8B8LM7QjKP55cAAAAASUVORK5CYII=',health:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADlUlEQVR42r2YPYgVVxTHfzPznutXtNgIi7sSTJ21CKmSJpgiFkENqGhsYqGFRSohIZbRIhCzqdMEQmADKQJJChFRxFgoK+KKIVm/Ci0MmgiCie7OzN/mXD1cZt68ee/pgcubd9895/zv+Z6XSKKBkuh7I8Mw/J0eQlJ7LqLfMvssewgfmD+psFBWIWSNKXkYCclqFPq9FHjF+B426erUHFgJfAh8AEwD6wzQfWAe+AX4Gfg/EhqeVxn/VuMfN0D3gSvAb8b/yACXzx0qhZXa525JC2qmvyTtNJ7MVhv+65I+inSDpMQJO+YYcluFpNJW4fYDfeUuNeP2l2wtRivsB/raXSrBgfnSCSr6uGHhBH8h6UjEXzTwxvxIykJQvw8cB5YsrpIWaV1GGZW5vRw4ZXGXAJuAd4GunUnsTBfYDJxGUlfSvLkk12DkLRI+z0ja5NwZ1rSks+5sbrrnJGVI2hYJGobChc5JGnOx0bEVwmOFpIuOJ+jekgJ7LCXbVmAqKnBqqfwx8MRcUZhbcnvuWrk46NwW9O9B0i1DVw5pnRCg35kVOhXuikvMXMS7kALra3rOoHSyD1mpnbkQ7U+mwLIRAQmZ9nefIRAqt6flITVHSWWLKWBFtJenwL0Bx4phQQt4I9r/JwUu24/lSwITsmod8HbkwvnUOm8ywqBuosyU77WxJndB/iuSJiT96xqohqjWkrTZFcQ43RNL+dWSbrvuUEp6IGkiBe4CPxrC4iVYpwQOA1MulhJgFrgbUL8u6bEbNV6EhcL3t6wQ5q4HPpa0UVKSGuqbwDfmy+IFBvJq4Ac3UYSpYAa4BWTer6skXRui0dZZKHFt5KeKhrogaaVhSFLnw0fAPlcCRlWXOpZJR4EdLquCjn3Af8+s6HwcbvGZIV8cgYW69vxJ1ESD7E/jRhynZfhhNhIwCKAwD+2PZqUgc7ZqKqirE2OSfm8JKgB6z40XBxyY0skKA1xqOmsB+VllXNKVFqBiCx2qAXNV0qvx608vQP7gpKQ/+wQVatg7kj6vAXNN0lQdmF6AfNpOSfqjBagbkcWWXHq/1qOtNALyjBNu3Fxs4b5wdt5ZJuulswmQF7BW0gl367wHmNxZ5ozFYyOYfgF5f3ckfVsx3C9VvCJL0vcu/dN+dPULiCg9t1vq1tF5SbsqLtS4kj7+QYubZOKmy2ngTWCDfb8DXLIpNAz+rd752gKK5xo1nGk9OTwFVMAIgIptTvsAAAAASUVORK5CYII=',thermal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAEhUlEQVR42p2Yz29VVRDHP/f9SCUIUsRN0caUpOKPjdFgTdMQY2GhGxc1lrBojG5Y1T/ArXvduKkxQfwBJGULgguNTYWFGo0mmGgJjWjA0ErVKry+93Xh98TJ6ftxXyc5ufecMzN3zsyc+XGRRJtRDe/PSfpQ0pKkdY8lrz3fgQZJFT8njN+U1NJmaHnvR0nPdBNmv6Sz6g1njRtpC4+6pG+N1+zCIwl6lQ6nOihpNTDakNTIxkb4yKppEo/C7zskrRn/Thse+dgkTCFpVNItf6hh6TupupUYmWbUPCpBW2+pPMwVkjBUAAGfARPABlDjf7gIXPL7U8BY2Eu4nwMHgcK8EkwDo2Fe+BlxfgBO5X5z2JJuBGdbkzTVxtemvJecdcO0hzs4eamRXmp+nghmSP7xQsCJA+8lP0vmPZHx7GsUkpJ6K8D3wH6gAdSBBZuvbrMoqLxmvAVgPNBcBh4FWsF008BDdIfLwOnoIzuAPRnSQuYPCb/ptcJ+Mx5o9gB3A2vGeROYpRxMRoGq1lKEf8KHZS1FxxTwd0ZTsaYAdgIvW3utNvxzeLXWA6EIt+geYMbz49ZAxImgcKBrwMMlNfRLrSTiduA8cMDzo8CzwJ8dBEpwB3gFeBu4v4uGBCwDs70ESgyetDANzw947dMeZqgAXwCPA4NBo0UmTAHcJAt83Uw2YB+oet7yGj00lG5vC1gtYYl6rY02ejGOUb2XZsloUijYnV0WgBWgUQunXO/inPQQNof1THNJmDH70wOZ0AKuAq/VvNEEXvRNappZNFE3qIaTN81jCnjPeylm1YF3u9y4e4GTSfIRS14N5qgA10sIdD2jqZrXSDiUgLuAvb4Yt/3Mx1DKIR+FpJpy2FeSBl1OHAo5K+0f8t6gcWPtJEmnQ5ItW4rMFZIeAb62SpM//AY84aCWyo2LmYOOhXJkL/AlcF/mzI+5rKgG2rwU2VR+vBG0k0434xPVJW2XdCaUI6ncOOO9unFnAp9UtL3eb+ZH0qVQHUrSsqSBUM7Ohw8pe58P1eaAaeVyVZIuZKVxuzImjaqkAkkrmUDvB+LxbC9CWhsP+B947bafS0GDRRkNVXxNI1wJMWSiRyyScVIsu5JF753Og6Wh0iVdUKJcKBPh1a9Av2dr+wKTxTYFe54UF8N8Xxa9bwF/9SMQkhazduZnSdtCs/dxcNRG6LHkvYS3TdK1zKnPtXHqnj50PpQETceUoz5lDTgCnHOcqnnUvXbEc5lmKKQeXJ6UNf1//iJpFPjG5URS9U3XO8shH00CT4ce7ULYG3Zg3B14N523fsoqhZ4mQ9LxcJVTavhO0kgJNY8YN7ZDMXxU++3LCknDkv4IkTgJdUPSMUm72hDv8t6NLM+l5nI4tNV99WVJ7S8BJzMfSLb/1WZa8nzE+W0oK8JkM04Dp4JJ+7plMdfMZpG4maWMHDYyM8k8tty5kuUYJE2HdKIOv2LiL5kEK6bdsjC5QNEBH5Q0Z1/oBWuS3jHNln8yRB9qV5Imu4+6HJ10z59amVX34p8A865l2JLPZPAvHRKC2Te+AqsAAAAASUVORK5CYII=',identy:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADbUlEQVR42s2Yv49VVRDHP+fet4v8MNkCbPwBxRqIJLTaUGFsLLQhBApBqCiQEoINtdULfwCgCb+0EBMl0WhlQ00Fzy0ISAMmUuyu7r5335fme8Pk5L5fy1t2TzI5990z78zcmfnOmTlJEkNGYn3GQKGthneFqRr2x1ccCSiBvunlQmah0orUYwcwM0VrCegCi4NktoKw5IX3gePAx8B7wJYpW2cFeAT8AVwF/rJHBAhJSVIhCUlfS1rS6xtLlol1SElSbbIrwAl/RW9U8E0hhqKHrgJfAiXW7pw1XpHUl1S9ButUlrXi3+ckkSTNA/eA2eDLAngM/AI8naKlEvAW8CnwrhGWPK8CB5DUtoa9YJnbkuZsvfWgOUk/Bkv1/NxOkjrAvLUsgCfAXmDZkFeD7zVmjDTBPhn624AHwNtB9kIB7DZTzXw7KNN1gFchh3T9XHktp8iXU702Yxk/ZbJ3txw7cfwTmOKXVf4qvNmgUTmhzoY9kmNkMbPUs+y/s8UAc8eNCifHNtAxtf2uCO5JhvElJ7sOsGDq+N0l80SrZE59ObqeLzrwWpJKP7cbYNv2WmleJB0bA+7HQnBfzGSrGBGYFbAdOOrnSEftwip86XxwaR4/yxlP4yimlHHrfHILeG5FZzLa5rVbw+S2RpzMJbAE3ADOZus3vFYGKz0APgQ+B7Zm/P8ZwR0r2J9UIUJ+OG/Bh/3+B78rwsZ1kHaAb0ZYVWuxUBTyP3DGlLt83GOl1VSQTapQCht8Ahzw8z3gtxA7CvNe4DO7LFrt5jiFXmtEwPeAPcB3wMFs/U/gC+Ch96mszF1grmG/jxyH5VpR1nfG/dnK5DA+6GpgR3DvESsTYb/i+QTwZpYmJlKoB5wC9lu5HMZ94APz1AXdgucI+y2enzgW1+yyBNx3XbS1Qfm+oXw/FOvf2zWHQ3Mg4G/gtC1VTIoyhTblV2Af8EZ29kT0LYdDFeAr4EJ2uP6bgaQYBP+WT+F44u8MApMFLk+QV8qszYnh0c/+syvjWR2nQFtLF5qG8I0s0O5krngHuG60dMegpiJtGF/Xe1+zrKjonU1Z5G+6Nqg+rS+7WduIRvEKcLJuFGMrfUHS4ka30jks553mD7kjWa/Lht+Bb/PLhlHXMdsd7GmKF1WrLuwaZaaGG7RNdWG14Vd6LwA7mVU8uX64BgAAAABJRU5ErkJggg==',journal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADoElEQVR42s2YTYhcRRDHf+/N23UzMbCJRhEJCgbEXAx4UA85eBME9SIJQnITD0GvGnP3oCAiQkBNzCkYFfwARRA8BARR8JBcdBPjx540ElaiY2bf7Pw9+G9Sdt7OvN3ZjCko+lV3VXW9qurqDyQRsJRUSXpLUl/SeUl7JBWSOpJuk3TKY6dMdzy+x/x9y1fWR4aF++ckvSnpL+PrkmYiY8ftPv0LtdvTQfER9112eyT8yJlMbl+mN5/nFfMNdQVerrgCpdtdwBCQ8U7gLuB3YLfHCre7ga3AzcAdQWZoPR3rXbHuwt9dYL/5Egg4WGUdK0FJmngz8LXpLR6btcx9wDn3bTZ/YbpjfQVXw6Ywj4LcphhTJL0gaUnSSubKtcDQ8n9IOhxCWhiRtE3SxYaQ/SemxxoU18ZlY92A+Vj+I0fDPGUbg5D0nOl++MNJIHm4b/qQ56nGGVRI2gmcdl6kmJbAIvAJ8Jv7xkEB3AI8AuzIkn8A3AP8aN5tzr2tIYecydKrNm4QPPOhpPmGGtIG5yV9EDyVysCLgWdkyBbcOXD7i6Sux2bXaEzi70paDHk4lPRNG4Mq148iuO5joOcQLgN3A495qZIt4xTKv4GPgO8t1zN9MOjd4bJxaZVSAEAVakqCCxYY2JivgPkWOXQIeAA4a/kL2fhsw1xXQblKcqZqu9fG9IB6BPbMtzdU+YJ1QDVm/Jzb7hi+mYx/3VCNmeSkw/CE6aa/lr30HvCu+eprYVDa254FDjv+CiEl0MvAny29PlHICvNcaqGrE3b1a2ZQCseWkCcFcDFU9OStiY1ZbZXl3nkNWDCeda35FngwbA9ig2CUh2rgSeCZhrGbgKPAva5XG2bUuJDtdNsLIUuJfDswN67ybmTISi/7JdehGeOs2+M2pjOtkHWcL/cDj9sbKbcWgHfC8YJpGKQw+UtMCdos+3KV0A7+D4NwSIbT8lDJdQbliNyZBNZdl0pvjBG2T2hUMmZ71r8M9NsY9HO2iz/qulO73lRrwHT06FpP1LsYTgQaZdCnwRvy2feET4C1V1NbrC13wnoUvPZ55sVm97a4l/26hnDdOuJetgs4b74bgR98j4vpUU/75hqv01+aL90HVySdiXf7t4PCgbFeBybZBMeyN4R0nT4Q3pMS/1P568fzfv3YCFiyvvj6QUa/H/hPSioKSYT3maHvYk8DD/uxaq5lCRBwGfgJ+Ax4A/gu5KUakvoG4AvTDwH9fwDWE83a1y7rAgAAAABJRU5ErkJggg==',skills:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAEN0lEQVR42r2YS4hcRRSGv3tvT2amjROdGSUbRfGRhSJBcRFxbVAQXBjcKK7cZCOoELMQxhAEBcOAoBERfCwGDRgigiAiBHwgkYCiETQQNfgYTI/GQIzdt/t34V/hcL39HJiCoorqevznP/85t6qRNCPpZUnnJHX1/9KR9KekVzw3l1RIQtIdkk5KuiDpN0mfSVqWdLfn4lqE/sCKpIPqX6oAD3hhQ9KUpC893qtZe0LSXkmLXpNLykYBVLp2XNPmpdtjkj53f1XSJV48Z1Y7ktphfVkB+LOkR8Kh+TBAdaXt9qUw+X2PbwljL/RZ3wlGpvKWpEuHgcLWtGzFEwHMq5407fZ5j8dNc0kPSnpW0oqkryvAEludwPaVg0AlhvaGwYclven+Jrc7JP1lcV/usTo95JJutdbOVlyfDD1uo2o1lQC94YHZ8GMCc5ukNc/7XdJ8AJRZ4I2aSLpO0uE+oA6H4KgVtSQ9WWPxLQah4Nr5AQxltjwetBR0FUE9WpcSkoZSeD9ny7ZKesBRFTdrSVoYAKjqvgTsqbBPzyScl3RDMOIioHYIfTnJna0IM9VVSc0RAaU5U+6vVPaTpA+qLOEMPGpZHjfzhmick/Rj8EgCtSvumcL6gKTTks6E2nI9I+kng5kOYmaMmgy4N7DUNbhTZj2XlMVFTetj3m3sN8cEUFeTno7UuG5PmpNJyoApoM3gsgnoAGKyknvt9cBX3g8gA/4AbgTW0qQ20AQWgHm3sd/0nEnBAPQM6nvgYADY9Tm7AWWSZoBngF3ArBHHIuA88A6wJzCpdbB0BfAdMBeA/grctBFR1k9LT4fclPLg7kxS2wizGnYi3QAt4Fozlq3ThduAY8DmwNIXuQVdVEBVa+45Dbt1kpL22gIcAo4C0x4r3G5vTLDxpKwUQAk8Dtxfs6eATs7GlWTI7Y6sTpBDaS8camwgoK7brcFFKfJy4CPgsY1iKB2+2YASM7KW7gN2psQ46eaTCDol3OTCDHgbOJLmNezLUcO+BP6eAPgU8A+w3f2uzwRYtQsBlAOvjxD2heuKc1AxJNryEDkymCawFNblJuO4Af5ntF+Y8frR8h16rc/1Y9iDL/624NvnzvC264Wv/IfVF0gmXTR0FpipoVzAhRFdldvSHcCLwFV20VxwfWZGGsCdwCdmvJsYykb8NhUjMJNeId/WPMnLyh1oqe672AhXgCww07NlM8C5kDeKISIWcJlDu1dhOq7dbz0VIT+RGKLm3X2PrfwlWDLO17wV9NIL/aOS7hr0co0aSpbMASeBxYD7NeCHED2DGLoGeCgwnXv9sm+K1DKTNgmAkiCvBk6FzQjtuKW0eG8GvnFf/cBUD0oATgPveXHSVjlmlXNMA3gXOGFNloPA1GkoRcqipE+1/vKxc1E+6tNpUGJrStrnv+zaQaDDattr9oU/L0Z+x/0LwwqoqZm04WEAAAAASUVORK5CYII=','mirror-user':'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFQElEQVR42t2bW2yURRTHf629gG3VLhpRLFIIiIk3jGmjUYzxmuDlwZSEeC0SKaCiTwoxRGMkajSKokZ5qRckanjDF28PJaCiiQGkFdTSNqg0IDHa2u5WOT7sfKE2M9355rLdepLvYc838z8z/z0zc2bmfGUi0glsBd4Duih9uQFoARYCM5TuENABfAh8kgpNTshxEflcRG4VkTIRocSeBSKySwrLVyJyiS0uBpCvReS6Eur8ShHJir0Mi0ibDwGJbBGR6RPc+XXiLmt9CRAROSIiiyao863iL8t9CUjmh6eKPDc0i0guAAFZEWky2SkTEUkxZ74L3AfkIs/0U4FvgfMC4XUBlwLDY1+UpwS6E3gfqIxMwJqAnQc4H3hM9yKtBySyRZFxPELnzwYOADWBcQeBucCvPh6QyBLgiYj/fk0E3BqFHcQDAERFZFsDNnIa0AecHIncQWAmcMzXAwDKgE1AQ8AG3h+w858avGBZiCGQSD3QrsgIIfcEwnlNeeeA5t29pr2AjywJtO6HkO9EpFphbjSUuSyxWx6I8WfU2u0jtwdohwArgKz6vamQrVAEzAQe8sS4OUA72oHto37vBn7QlFsUegiIiBwWkamO7t8YwP6QiMzQYK83lG8IOQQAzgSWOta9KoD914GfNfpuQ/mFIYdAIo86hslXBljfn9Xoq0whMHBFDAIaVJSYVpo97W4E+jX61cCc8QjwiQTH23ldkGKfUKnW6ypHewPAbODIGH1GTYAZQ70sUBvaA5Kd1y0pys/36DzAS5rOo1w/M069amBeDAIAHkxJmKsMAS9r9BmgzcZ2LAKuBS60LDvLw87bhn9/NVBnYzsWAaiIzEbO9Yj6Nmj0tcAqW9sxCbgLONWi3DmO+NvQX+SsUNtqq1UrJgG1QKtFuTMc8Z/X6CpSzj+nxyQAYKVFrFHvgPsN+auwsdKS8nwiE5uAucCNhRrhgPuiQf9wSpzoBNgsiWm30b+QvwTVhdNNKbGmFIOAmxj/iDvt3uFVYESjf8ShbVXFIKCsQFCSJgocAt40xBK3ObStuhgEQP426ZQAOO8ARw2Bz0kugMUioA64w/Aul9L9dditju3KVlA8uUYdWugImGJRvx/Yo9EvAD4eozsNuN4CM1dMAkwybDk8TNv2Dk1McJZaLQraLi8BAo5FwDwM/GVR7rf/KwEC9NjYLgUCjkbC7Z4sHnBoAgnoi0HAMhX8jH0WG8r3WuJOV66tey7WlD9ogdlbPkHMj5aeADbnOLajpxQI6Axgs9GxHZ2hCRhxGNP78U+6ajQMgfGO/LPAj6EJ6AX+cSDt+whDYBD9ZUkiXcDfoQn4ybHeFxE8oNBEuDPGZqjbsd4OT7uzDH3pLmQzNAEHHett97RbzYnUeVsCOkrJA3oCrAazNbq9hrJ7ksk6NAF7Pepu87R9UYo56aMYByKH0Kej2IpvvuHVGt3SgrYCpsisDZAp1uVhP5ekvainTkT+0JTbN9pmKA84gPmsPo285VG3Enhh1O9V6C9I2/+7cfaXfhGZH+gbgYyIDATwxGki8rvm3Z8iUu/ywYRJdqgMr5AfSrwS4E/Zb9Bv8P1gYkQdN+0ENquZO3SKTax0+QFgHmPS5U0e0DLBH0o9KeFlnc5WKZwI6WQ9sC8gXhfwnO5FqRKQVWt4iG+TcsDdaL4XKmUCAHYBywPgPEA+n4DJRkCyZj/uUX8N5ozxSUEAwNPkM02yKYdQG/k0fiY7AZC/U2wGvrQ8XGkC3rABrmDyyG7gcvI5iIvJZ3sn+UB96kzhA+CzNKD/AmFVbBEIwCtBAAAAAElFTkSuQmCC','comb-hair':'data:image/png;base64,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','mirror':'data:image/png;base64,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',};
+const $ = s => document.querySelector(s);
+const TRAITS_ICON = `<svg viewBox="0 0 22 22"><rect x="2.5" y="9.5" width="17" height="5" fill="none" stroke="#fff" stroke-width="1.4"/><rect x="3" y="10" width="10" height="4" fill="#fff"/><path d="M13 3.5 l-3 3.5 h6 z" fill="#fff"/><path d="M5 17v2.5M9 17v2.5M13 17v2.5M17 17v2.5" stroke="#fff" stroke-width="1.2"/></svg>`;
+
+// ------------------------------------------------------------------ the game's traits (UI_trait_*), + good / - bad
+const T = {
+ ILLITERATE:["Illiterate","-","Cannot read any books or in-world text."], SLOW_READER:["Slow Reader","-","Takes longer to read books and other literature."],
+ FAST_READER:["Fast Reader","+","Takes less time to read books."], SLOW_LEARNER:["Slow Learner","-","Decreased XP gains."], FAST_LEARNER:["Fast Learner","+","Increased XP gains."],
+ NUTRITIONIST:["Nutritionist","+","Can see the nutritional values of any food."], INVENTIVE:["Inventive","+","Has lower skill level requirements to research recipes from items or auto learn recipes."],
+ SLOW_HEALER:["Slow Healer","-","Recovers slowly from injuries and illness."], FAST_HEALER:["Fast Healer","+","Recovers quickly from injuries and illness."],
+ DEAF:["Deaf","-","Can't hear sound."], HARD_OF_HEARING:["Hard of Hearing","-","Smaller perception radius. Smaller hearing range."], KEEN_HEARING:["Keen Hearing","+","Larger perception radius."],
+ SHORT_SIGHTED:["Short Sighted","-","Smaller view distance. Slower visibility fade. Weapon sights less effective."], EAGLE_EYED:["Eagle Eyed","+","Faster visibility fade. Higher visibility arc. Weapon sights more effective at long range."],
+ NIGHT_VISION:["Cat's Eyes","+","Better vision at night."], CLUMSY:["Clumsy","-","Makes more noise when moving."], GRACEFUL:["Graceful","+","Makes less noise when moving."],
+ ALL_THUMBS:["All Thumbs","-","Transfers inventory items slowly. Can't craft anything while walking. Slower rope climbing speed, and higher chance of falling. Slower weapon shouldering time."],
+ DEXTROUS:["Dextrous","+","Transfers inventory items quickly. Faster rope climbing speed, and less chance of falling. Faster weapon shouldering time."],
+ DISORGANIZED:["Disorganized","-","Decreased container inventory capacity. Affects world containers and bags, but not your main inventory."], ORGANIZED:["Organized","+","Increased container inventory capacity."],
+ CONSPICUOUS:["Conspicuous","-","More likely to be spotted by zombies."], INCONSPICUOUS:["Inconspicuous","+","Less likely to be spotted by zombies."],
+ SUNDAY_DRIVER:["Sunday Driver","-","Drives very slow."], SPEED_DEMON:["Speed Demon","+","Drives very fast."],
+ WEAK_STOMACH:["Weak Stomach","-","Higher chance to have food illness."], IRON_GUT:["Iron Gut","+","Less chance to have food illness."],
+ HIGH_THIRST:["High Thirst","-","Needs more water to survive."], LOW_THIRST:["Low Thirst","+","Needs less water to survive."],
+ HEARTY_APPETITE:["Hearty Appetite","-","Needs to eat more regularly."], LIGHT_EATER:["Light Eater","+","Needs to eat less regularly."],
+ PRONE_TO_ILLNESS:["Prone to Illness","-","More prone to disease. Faster rate of zombification."], RESILIENT:["Resilient","+","Less prone to disease. Slower rate of zombification."],
+ NEEDS_MORE_SLEEP:["Sleepyhead","-","Needs more sleep."], INSOMNIAC:["Restless Sleeper","-","Slow loss of tiredness while sleeping."], NEEDS_LESS_SLEEP:["Wakeful","+","Needs less sleep."],
+ NIGHT_OWL:["Night Owl","+","Requires little sleep. Stays extra alert even when sleeping."], COWARDLY:["Cowardly","-","Especially prone to becoming panicked."],
+ AGORAPHOBIC:["Agoraphobic","-","Gets panicked when outdoors."], CLAUSTROPHOBIC:["Claustrophobic","-","Gets panicked when in small indoor rooms."],
+ HEMOPHOBIC:["Fear of Blood","-","Panic when performing first aid on self. Cannot perform first aid on others. Gets stressed when bloody."],
+ ADRENALINE_JUNKIE:["Adrenaline Junkie","+","Moves faster when highly panicked."], BRAVE:["Brave","+","Less prone to becoming panicked."], DESENSITIZED:["Desensitized","+","Far less prone to panic. Ignore discomfort."],
+ UNFIT:["Unfit","-","Very low endurance and endurance regeneration."], OUT_OF_SHAPE:["Out of Shape","-","Low endurance, low endurance regeneration."], FIT:["Fit","+",""],
+ ATHLETIC:["Athletic","+","Faster running speed. Can run for longer without tiring."], WEAK:["Puny","-","Far less knockback from melee weapons. Extremely small carrying weight."],
+ FEEBLE:["Weak","-","Less knockback from melee weapons. Decreased carrying weight."], STOUT:["Stout","+","Extra knockback from melee weapons. Increased carrying weight."],
+ STRONG:["Strong","+","Extra knockback from melee weapons. Increased carrying weight."], EMACIATED:["Emaciated","-","Low strength, low endurance and prone to injury."],
+ VERY_UNDERWEIGHT:["Very Low Weight","-","Very low strength, very low endurance and prone to injury."], UNDERWEIGHT:["Low Weight","-","Low strength, low endurance and prone to injury."],
+ OVERWEIGHT:["High Weight","-","Reduced running speed, low endurance and prone to injury."], OBESE:["Very High Weight","-","Reduced running speed, very low endurance and prone to injury."],
+ BLACKSMITH:["Blacksmith Knowledge","+","Can use an anvil to create metal items."], HANDY:["Handy","+","Faster and stronger constructions."], COOK:["Keen Cook","+","Knows cooking recipes."],
+ TAILOR:["Sewer","+",""], WHITTLER:["Whittler","+","Can carve wood and bone items."], MASON:["Mason","+","Better at building stone and brick constructions."],
+ MECHANICS:["Vehicle Knowledge","+","Has knowledge of common and commercial vehicle models, and repairs."], FIRST_AID:["First Aider","+",""], ARTISAN:["Artisan","+","Better at pottery and glass crafts."],
+ TINKERER:["Tinkerer","+",""], FISHING:["Angler","+",""], GARDENER:["Gardener","+",""], HERBALIST:["Herbalist","+","Can find medicinal herbs and craft medicines and poultices from them."],
+ HIKER:["Hiker","+",""], SCOUT:["Former Scout","+","Start fires faster."], WILDERNESS_KNOWLEDGE:["Bushcrafter","+","Can find medicinal herbs and craft medicines and poultices from them, and make simple stone and bone tools. Start fires faster."],
+ TARGET_SHOOTER:["Target Shooter","+",""], HUNTER:["Hunter","+",""], MARKSMAN:["Marksman","+","Improved gun accuracy and damage. Quicker reload."],
+ BASEBALL_PLAYER:["Baseball Player","+",""], BRAWLER:["Brawler","+",""], AXEMAN:["Ax-pert","+","Better at chopping trees. Faster axe swing."],
+ JOGGER:["Runner","+",""], GYMNAST:["Gymnast","+",""], THIN_SKINNED:["Thin-skinned","-","Higher chance of being scratched or bitten by zombies."],
+ THICK_SKINNED:["Thick-skinned","+","Lower chance of being scratched or bitten."], ASTHMATIC:["Short of Breath","-","Faster endurance loss."],
+ SMOKER:["Smoker","-","Unhappiness rises when tobacco is not smoked. Stress and unhappiness decrease after smoking tobacco."],
+ OUTDOORSMAN:["Outdoorsy","+","Less affected by harsh weather conditions."], PACIFIST:["Reluctant Fighter","-","Decreased combat XP gains."],
+ BURGLAR:["Burglar","+","Can hotwire vehicles. Less chance of breaking window locks."]
+};
+// ------------------------------------------------------------------ the mod's ladders (TASSpectrumVanilla.lua): [id, name, category, bands [min,max,trait], neutral | skills]
+const SK = (perks) => ({ perks });
+const SPEC = [
+ ["Reading","Reading","inteligencia",[[0,1,"ILLITERATE"],[2,3,"SLOW_READER"],[4,6],[7,10,"FAST_READER"]],5],
+ ["Learning","Intelligence","inteligencia",[[0,2,"SLOW_LEARNER"],[3,4],[5,6,"FAST_LEARNER"],[7,8,"NUTRITIONIST"],[9,10,"INVENTIVE"]],3],
+ ["Healing","Healing","physical",[[0,3,"SLOW_HEALER"],[4,6],[7,10,"FAST_HEALER"]],5],
+ ["Hearing","Hearing","inteligencia",[[0,1,"DEAF"],[2,3,"HARD_OF_HEARING"],[4,6],[7,10,"KEEN_HEARING"]],5],
+ ["Vision","Vision","inteligencia",[[0,3,"SHORT_SIGHTED"],[4,6],[7,8,"EAGLE_EYED"],[9,10,"NIGHT_VISION"]],5],
+ ["Movement","Movement","skills",[[0,3,"CLUMSY"],[4,6],[7,10,"GRACEFUL"]],SK(["Sneaking","Lightfooted","Sprinting"])],
+ ["Hands","Hands","physical",[[0,3,"ALL_THUMBS"],[4,6],[7,10,"DEXTROUS"]],5],
+ ["Organization","Organization","inteligencia",[[0,3,"DISORGANIZED"],[4,6],[7,10,"ORGANIZED"]],5],
+ ["Detection","Detection","skills",[[0,3,"CONSPICUOUS"],[4,6],[7,10,"INCONSPICUOUS"]],SK(["Sneaking"])],
+ ["Driving","Driving","social",[[0,3,"SUNDAY_DRIVER"],[4,6],[7,7,"SPEED_DEMON"]],5],
+ ["Stomach","Stomach","physical",[[0,3,"WEAK_STOMACH"],[4,6],[7,10,"IRON_GUT"]],5],
+ ["Thirst","Thirst","physical",[[0,3,"HIGH_THIRST"],[4,6],[7,10,"LOW_THIRST"]],5],
+ ["Appetite","Appetite","physical",[[0,3,"HEARTY_APPETITE"],[4,6],[7,10,"LIGHT_EATER"]],5],
+ ["Health","Health","skills",[[0,3,"PRONE_TO_ILLNESS"],[4,6],[7,10,"RESILIENT"]],SK(["Fitness","Strength"])],
+ ["Sleep","Sleep","physical",[[0,1,"NEEDS_MORE_SLEEP"],[2,3,"INSOMNIAC"],[4,6],[7,8,"NEEDS_LESS_SLEEP"],[9,10,"NIGHT_OWL"]],5],
+ ["Courage","Courage","inteligencia",[[0,2,"COWARDLY"],[2,5,["AGORAPHOBIC","CLAUSTROPHOBIC"]],[3,4,"HEMOPHOBIC"],[5,6],[7,7,"ADRENALINE_JUNKIE"],[8,8,"BRAVE"],[9,10,"DESENSITIZED"]],5],
+ ["Fitness","Fitness","skills",[[0,1,"UNFIT"],[2,4,"OUT_OF_SHAPE"],[5,5],[6,8,"FIT"],[9,10,"ATHLETIC"]],SK(["Fitness"])],
+ ["Strength","Strength","skills",[[0,1,"WEAK"],[2,4,"FEEBLE"],[5,5],[6,8,"STOUT"],[9,10,"STRONG"]],SK(["Strength"])],
+ ["Weight","Weight","physical",[[0,0,"EMACIATED"],[1,1,"VERY_UNDERWEIGHT"],[2,3,"UNDERWEIGHT"],[4,7],[8,9,"OVERWEIGHT"],[10,10,"OBESE"]],"weight"],
+ ["Smithing","Smithing","skills",[[0,2],[3,10,"BLACKSMITH"]],SK(["Blacksmithing"])],
+ ["Building","Building","skills",[[0,3],[4,10,"HANDY"]],SK(["Carpentry"])],
+ ["Cooking","Cooking","skills",[[0,2],[3,10,"COOK"]],SK(["Cooking"])],
+ ["Sewing","Sewing","skills",[[0,2],[3,10,"TAILOR"]],SK(["Tailoring"])],
+ ["Carving","Carving","skills",[[0,2],[3,10,"WHITTLER"]],SK(["Carving"])],
+ ["Masonry","Masonry","skills",[[0,2],[3,10,"MASON"]],SK(["Masonry"])],
+ ["Mechanics","Mechanics","skills",[[0,2],[3,10,"MECHANICS"]],SK(["Mechanics"])],
+ ["Medic","First Aid","skills",[[0,2],[3,10,"FIRST_AID"]],SK(["First Aid"])],
+ ["Glasswork","Glasswork","skills",[[0,2],[3,10,"ARTISAN"]],SK(["Glassmaking"])],
+ ["Repair","Repair","skills",[[0,2],[3,10,"TINKERER"]],SK(["Maintenance"])],
+ ["Fishing","Fishing","skills",[[0,2],[3,10,"FISHING"]],SK(["Fishing"])],
+ ["Farming","Farming","skills",[[0,2],[3,10,"GARDENER"]],SK(["Agriculture"])],
+ ["Foraging","Foraging","skills",[[0,2],[3,5,"HERBALIST"],[6,7,"HIKER"],[8,8,"SCOUT"],[9,10,"WILDERNESS_KNOWLEDGE"]],SK(["Foraging"])],
+ ["Hunting","Hunting","skills",[[0,3],[4,6,"TARGET_SHOOTER"],[7,8,"HUNTER"],[9,10,"MARKSMAN"]],SK(["Aiming"])],
+ ["Blunt","Blunt Weapons","skills",[[0,3],[4,6,"BASEBALL_PLAYER"],[7,10,"BRAWLER"]],SK(["Long Blunt"])],
+ ["Axes","Axes","skills",[[0,3],[4,10,"AXEMAN"]],SK(["Axe"])],
+ ["Sprinting","Sprinting","skills",[[0,2],[3,10,"JOGGER"]],SK(["Sprinting"])],
+ ["Agility","Agility","skills",[[0,2],[3,10,"GYMNAST"]],SK(["Lightfooted"])],
+ ["Body","Body","skills",[[0,2,"THIN_SKINNED"],[3,7],[8,10,"THICK_SKINNED"]],SK(["Fitness","Strength"])],
+ ["Endurance","Endurance","skills",[[0,2,"ASTHMATIC"],[3,10]],SK(["Fitness","Strength"])],
+ ["Compulsion","Compulsion","behavior",[[0,4,"SMOKER"],[4,10]],5],
+ ["Weather","Weather","skills",[[0,5],[6,10,"OUTDOORSMAN"]],SK(["Fitness","Strength"])],
+ ["Belicosity","Aggression","behavior",[[0,4,"PACIFIST"],[3,10]],5],
+];
+const CAT = { skills:"Skills", physical:"Physical", inteligencia:"Mind", social:"Social", behavior:"Behavior", other:"Other" };
+const CAT_ORDER = ["skills","physical","inteligencia","social","trade","survival","combat","behavior"];
+// the mod's Gain / Lose lists (TASXPActions.lua), in its words
+const ACT = {
+ Appetite:{ g:["Eating food +6-12-18 XP","Keeping your weight 78-82 kg +400 XP/d"], l:["Being hungry -5-10-15 XP/h"] },
+ Healing:{ g:["Disinfecting wounds +6 XP","Bandaging wounds +4 XP","Removing bandages +2 XP","Suturing wounds +8 XP","Being at full health +15 XP/h"], l:["Getting hurt -4 XP","Having dirty bandages -8 XP/h"] },
+ Stomach:{ g:["Eating food +10 XP","Eating stale food +14 XP","Eating food that causes unhappiness or boredom +12 XP","Keeping your weight 78-82 kg +200 XP/d"], l:["Being hungry -8-12-18 XP/h"] },
+ Hands:{ g:["Performing any task +2 XP"], l:[] },
+ Thirst:{ g:["Not being thirsty +60 XP/h"], l:["Being thirsty -15 XP/h"] },
+ Sleep:{ g:["Sleeping +10 XP","Sleeping +20 XP/h","Resisting sleep +25-28-30 XP/h"], l:[] },
+ Learning:{ g:["Gaining XP in any skill +x0.25 XP"], l:[] },
+ Reading:{ g:["Earning XP from studying +x0.5 XP","Reading books or magazines +10 XP per 50 pages"], l:[] },
+ Organization:{ g:["Moving items between containers +2 XP"], l:[] },
+ Hearing:{ g:["Staying alive +15-20 XP/h"], l:["Wearing ear protection -x0.1 XP/h","Shooting -2-0.1 XP"] },
+ Courage:{ g:["Killing zombies +5 XP","Staying alive +5 XP/h"], l:[] },
+ Vision:{ g:["Killing zombies +5 XP","Shooting +10 XP"], l:[] },
+ Driving:{ g:["Driving +x0.25 XP"], l:[] },
+ Compulsion:{ g:["Not smoking +100 XP/d"], l:["Smoking -20 XP"] },
+ Belicosity:{ g:["Killing zombies +5 XP","Shooting +5 XP"], l:[] },
+};
+const XPT = [500, 800, 1000, 1600, 2500, 4000, 6000, 8000, 9000, 10000]; // Spectrum.DEFAULT_XP_TABLE
+
+// ------------------------------------------------------------------ the character: Angel Cross, Burglar
+const OWNED = ["FAST_READER","KEEN_HEARING","ORGANIZED","FAST_LEARNER","SHORT_SIGHTED","SMOKER","SLOW_HEALER","HEMOPHOBIC"];
+const PERK = { Fitness:5.4, Strength:5.2, Sneaking:4.5, Lightfooted:3.4, Sprinting:4.3, Blacksmithing:0, Carpentry:2.5, Cooking:1.2, Tailoring:0.3, Carving:0.5,
+  Masonry:0, Mechanics:0.8, "First Aid":1.4, Glassmaking:0, Maintenance:3.1, Fishing:0, Agriculture:0.6, Foraging:2.7, Aiming:1.3, "Long Blunt":3.4, Axe:1.0 };
+const NET = { Reading:2400, Learning:3100, Healing:1700, Hearing:1200, Vision:650, Organization:500, Hands:2900, Driving:300, Stomach:1200, Thirst:-900,
+  Appetite:400, Sleep:2000, Courage:600, Compulsion:150, Belicosity:1100 };
+const WEIGHT_KG = 80.4;
+const NEW = { Repair:true, Sprinting:true, Agility:true };   // gained by levelling up since the tab was last opened
+
+function bandTraits(b){ return b[2] ? (Array.isArray(b[2]) ? b[2] : [b[2]]) : []; }
+function xpFor(l){ return XPT[l - 1]; }
+function xpTo(from, to){ let t = 0; for (let i = from + 1; i <= to; i++) t += xpFor(i); return t; }
+// Spectrum.getLevel / getLevelInfo
+function levelInfo(base, net){
+  let level = base;
+  if (net > 0) { let rem = net; for (let i = base + 1; i <= 10; i++) { const c = xpFor(i); if (rem >= c) { rem -= c; level++; } else break; } }
+  else if (net < 0) { let rem = -net; level = base - 1; let i = base - 1; while (i >= 1) { const c = xpFor(i); if (rem >= c) { rem -= c; level--; i--; } else break; } }
+  level = Math.max(0, Math.min(10, level));
+  let into, next;
+  if (net >= 0) { into = net - xpTo(base, level); next = xpFor(Math.min(level + 1, 10)); }
+  else { const spent = level < base - 1 ? xpTo(level, base - 1) : 0; if (level <= 0) { into = 0; next = xpFor(1); } else { const ch = xpFor(level); into = Math.max(0, ch - (-net - spent)); next = ch; } }
+  return { level, into, next };
+}
+function baseOf(sp){
+  for (const b of sp[3]) for (const t of bandTraits(b)) if (OWNED.includes(t)) return Math.max(b[0], 1);
+  return sp[4];
+}
+const ROWS = SPEC.map(sp => {
+  const [id, name, cat, bands, src] = sp;
+  let level, frac, into = 0, next = 0, kind;
+  if (src === "weight") { const v = 5 + 3 * (WEIGHT_KG - 75) / 10; level = Math.floor(v); frac = v - level; kind = "weight"; }
+  else if (typeof src === "object") { const v = src.perks.reduce((a, p) => a + PERK[p], 0) / src.perks.length; level = Math.floor(v); frac = v - level; kind = "skill"; }
+  else { const li = levelInfo(baseOf(sp), NET[id] || 0); level = li.level; into = li.into; next = li.next; frac = level >= 10 ? 1 : into / next; kind = "xp"; }
+  // the traits that hold at this level (a pair like Agoraphobic / Claustrophobic only if the character has one)
+  const at = L => { const out = []; bands.forEach(b => { if (L >= b[0] && L <= b[1]) bandTraits(b).forEach(t => { if (!Array.isArray(b[2]) || OWNED.includes(t)) out.push(t); }); }); return out; };
+  return { id, name, cat, bands, src, level, frac, into, next, kind, now:at(level), at };
+});
+
+// ------------------------------------------------------------------ scenes
+const SCENES = [
+ { id:"mod", label:"With Traits As Skills", sel:"Reading", cap:"Reading selected. Fast Reader from the start (level 7); 2,400 of 8,000 XP to level 8. The ladder shows where Illiterate, Slow Reader and Fast Reader sit; Gain lists what raises it, in the mod's words." },
+ { id:"near", label:"A trait about to go", sel:"Healing", cap:"Healing: Slow Healer at level 2, 900 of 1,000 XP to level 3. Level 4 is the first with no trait, so the details say how close the change is. Bandaging, disinfecting and suturing raise it; getting hurt lowers it." },
+ { id:"skill", label:"A trait from a skill", sel:"Repair", cap:"Repair follows the Maintenance skill (3.1), so Tinkerer was gained at level 3: NEW until the tab is opened. Rows like this move only with the skill, which is why the decisions ask about putting Skills last." },
+ { id:"none", label:"No mod, if the tab stayed", sel:null, cap:"Without Traits As Skills: the character's own traits, good and bad, with the game's descriptions, as a Traits tab would hold them. The same traits are on the Identity tab today; the recommendation is no tab without the mod." },
+];
+const S = { scene:SCENES[0], sel:"Reading", find:"", only:false, closed:{}, pad:false, lg:false, zoom:1, focus:0, hover:null };
+
+// ------------------------------------------------------------------ pieces
+function tabStrip(){
+  const tabs = ["loot","equipment","health","thermal","identy","journal","skills"];
+  const none = S.scene.id === "none";
+  return `<div class="strip">${tabs.map(t => `<div class="tab"><img src="${ICONS[t]}" alt=""></div>`).join("")}<div class="tab act">${TRAITS_ICON}</div></div>`;
+}
+function stepsHTML(r){
+  let h = '<span class="steps">';
+  for (let L = 1; L <= 10; L++) {
+    const ts = r.bands.filter(b => L >= b[0] && L <= b[1]).flatMap(bandTraits);
+    const sign = ts.length ? T[ts[0]][1] : "";
+    const f = L <= r.level, cur = L === r.level, part = L === r.level + 1 && r.level < 10 ? r.frac : 0;
+    h += `<i class="${sign === "+" ? "bp" : sign === "-" ? "bn" : ""}${f ? " f" : ""}${cur ? " cur" : ""}" data-step="${L}" data-sp="${r.id}">${part ? `<span class="pf" style="width:${Math.round(part * 100)}%"></span>` : ""}</i>`;
+  }
+  return h + "</span>";
+}
+function fillColour(r){
+  if (r.level >= 10) return "var(--wrn)";
+  return r.frac >= .75 ? "var(--dng)" : r.frac >= .4 ? "var(--wrn)" : "var(--pos)";
+}
+function chipHTML(r){
+  if (!r.now.length) return `<span class="chip none"><span class="dot off"></span>No trait</span>`;
+  return `<span class="chip">${r.now.map(t => `<span class="dot ${T[t][1] === "+" ? "pos" : "neg"}"></span>${T[t][0]}`).join("&nbsp;&nbsp;")}${NEW[r.id] ? '<span class="newb">NEW</span>' : ""}</span>`;
+}
+let FID = 0;
+function visibleRows(){
+  const q = S.find.trim().toLowerCase();
+  return ROWS.filter(r => (!S.only || r.now.length) && (!q || r.name.toLowerCase().includes(q) || r.now.some(t => T[t][0].toLowerCase().includes(q)) || r.bands.some(b => bandTraits(b).some(t => T[t][0].toLowerCase().includes(q)))));
+}
+function modBody(){
+  const vis = visibleRows();
+  const withT = ROWS.filter(r => r.now.length), pos = withT.flatMap(r => r.now).filter(t => T[t][1] === "+").length, neg = withT.flatMap(r => r.now).filter(t => T[t][1] === "-").length;
+  let h = `<div class="credit">Traits As Skills by GersonRess<span class="r"><span data-only="0" data-fid="${FID++}" class="${S.only ? "" : "on"}">All (${ROWS.length})</span><span data-only="1" data-fid="${FID++}" class="${S.only ? "on" : ""}">With a trait (${withT.length})</span></span></div>`;
+  h += `<div class="sum"><span><span class="dot pos"></span>${pos} good</span><span><span class="dot neg"></span>${neg} bad</span><span><span class="dot off"></span>${ROWS.length - withT.length} with no trait</span></div>`;
+  if (!vis.length) return h + `<div class="empty">Nothing matches "${S.find}".</div>`;
+  const cats = CAT_ORDER.filter(c => vis.some(r => r.cat === c));
+  cats.forEach(c => {
+    const rs = vis.filter(r => r.cat === c).sort((a, b) => a.name.localeCompare(b.name));
+    const shut = S.closed[c] && !S.find;
+    h += `<div class="cat" data-cat="${c}" data-fid="${FID++}"><span class="tw">${shut ? "&#9656;" : "&#9662;"}</span>${CAT[c]}<span class="n">(${rs.length})</span></div>`;
+    if (!shut) h += `<div>${rs.map(r => `<div class="trow${S.sel === r.id ? " sel" : ""}" data-row="${r.id}" data-fid="${FID++}"><span class="bg0"></span>${r.level > 0 && r.level < 10 ? `<span class="fill" style="width:${Math.round(r.frac * 100)}%;background:${fillColour(r)}"></span>` : r.level >= 10 ? `<span class="fill" style="width:100%;background:var(--wrn)"></span>` : ""}
+      <span class="badge${r.level ? "" : " z"}">${r.level}</span><span class="nm">${r.name}</span>${stepsHTML(r)}${chipHTML(r)}</div>`).join("")}</div>`;
+  });
+  return h;
+}
+function changesAt(r, L){ // what moving to level L changes
+  if (L < 0 || L > 10) return null;
+  const a = r.now, b = r.at(L);
+  const gain = b.filter(t => !a.includes(t)), lose = a.filter(t => !b.includes(t));
+  return { gain, lose };
+}
+function chText(c){
+  if (!c) return "At the end of the ladder";
+  const p = [];
+  c.gain.forEach(t => p.push(`gain ${T[t][0]}`)); c.lose.forEach(t => p.push(`lose ${T[t][0]}`));
+  return p.length ? p.join(", ") : "no change";
+}
+function firstChange(r, dir){
+  for (let L = r.level + dir; L >= 0 && L <= 10; L += dir) { const c = changesAt(r, L); if (c.gain.length || c.lose.length) return { L, c }; }
+  return null;
+}
+function detail(){
+  const r = ROWS.find(x => x.id === (S.hover || S.sel));
+  if (!r) return `<div class="det"><div class="kv" style="margin-top:6px"><span class="v" style="color:var(--ts)">Pick a row to see its ladder, what raises or lowers it, and what the next level changes.</span></div></div>`;
+  const W = 440, px = L => Math.round(L / 11 * W);
+  let lad = `<div class="lad">`;
+  r.bands.forEach(b => {
+    const ts = bandTraits(b), sign = ts.length ? T[ts[0]][1] : "", inb = r.level >= b[0] && r.level <= b[1];
+    const x0 = px(b[0]), x1 = px(b[1] + 1);
+    lad += `<span class="seg2 ${sign === "+" ? "bp" : sign === "-" ? "bn" : ""}${inb ? " in" : ""}" style="left:${x0}px;width:${x1 - x0 - 2}px"></span>`;
+    lad += `<span class="lb${inb ? " in" : ""}" style="left:${x0 + 2}px;width:${x1 - x0 - 4}px" title="${ts.map(t => T[t][0]).join(" or ") || "No trait"}">${ts.map(t => T[t][0]).join(" / ") || "none"}</span>`;
+  });
+  const mx = px(r.level) + Math.round((px(r.level + 1) - px(r.level)) * Math.min(r.frac, .999));
+  lad += `<span class="mk" style="left:${mx - 5}px"></span>`;
+  for (let L = 0; L <= 10; L += 1) lad += `<span class="tk" style="left:${px(L) + (px(L + 1) - px(L)) / 2}px">${L}</span>`;
+  lad += `</div>`;
+  let prog;
+  if (r.kind === "xp") prog = r.level >= 10 ? "Top level" : `XP: ${r.into.toLocaleString("en-US")} / ${r.next.toLocaleString("en-US")} to level ${r.level + 1}<span class="bar"><i style="width:${Math.round(r.frac * 100)}%"></i></span>`;
+  else if (r.kind === "weight") prog = `Weight: ${WEIGHT_KG} kg (78-82 kg holds it in the middle)`;
+  else prog = `Follows your ${r.src.perks.join(", ").replace(/, ([^,]*)$/, " and $1")} skill${r.src.perks.length > 1 ? "s (the average)" : ""}: ${(r.level + r.frac).toFixed(1)}<span class="bar"><i style="width:${Math.round(r.frac * 100)}%"></i></span>`;
+  const up = firstChange(r, 1), dn = firstChange(r, -1), act = ACT[r.id];
+  const desc = r.now.length ? r.now.map(t => `<b style="font-weight:600">${T[t][0]}:</b> ${T[t][2] || "(the game gives this trait no description)"}`).join(" ") : "No trait at this level.";
+  return `<div class="det"><div class="t"><b>${r.name}</b><span>Level ${r.level} of 10</span><span class="r">Category: ${CAT[r.cat]}</span></div>${lad}
+   <div class="kv"><span class="k">Progress</span><span class="v">${prog}</span></div>
+   ${act ? `<div class="kv"><span class="k">Gain</span><span class="v">${act.g.join(", ") || "None"}</span></div><div class="kv"><span class="k">Lose</span><span class="v">${act.l.join(", ") || "None"}</span></div>` : ""}
+   <div class="kv"><span class="k">Level up</span><span class="v">${up ? `at ${up.L}: ${chText(up.c)}` : "no change above"}${dn ? ` | <span style="color:var(--ts)">Level down at ${dn.L}: ${chText(dn.c)}</span>` : ""}</span></div>
+   <div class="kv"><span class="k">Now</span><span class="v">${desc}</span></div></div>`;
+}
+function noModBody(){
+  const tr = OWNED.concat(["BURGLAR"]);
+  const pos = tr.filter(t => T[t][1] === "+").sort((a, b) => T[a][0].localeCompare(T[b][0])), neg = tr.filter(t => T[t][1] === "-").sort((a, b) => T[a][0].localeCompare(T[b][0]));
+  const row = t => `<div class="nrow" data-fid="${FID++}"><span class="ic ${T[t][1] === "+" ? "p" : "n"}">${T[t][0].split(/[ -]/).map(w => w[0]).join("").slice(0, 2).toUpperCase()}</span><div><div class="nm">${T[t][0]}${t === "BURGLAR" ? '<span class="tag">From Burglar</span>' : ""}</div><div class="d">${T[t][2]}</div></div></div>`;
+  return `<div class="credit">The character's own traits, as chosen at the start</div><div class="subh">Positive (${pos.length})</div>${pos.map(row).join("")}<div class="subh">Negative (${neg.length})</div>${neg.map(row).join("")}`;
+}
+function inventory(){
+  const rows = [["Angel Cross's Key Ring","Container","0.1"],["> Apple (Fresh) x2","Food","0.2"],["Baseball Bat","Sports ...","2.0"],["Cigarettes","Smoking","0.1"],["Digital Watch","Accessory","0.1"],["Fanny Pack","Bag","1.7"],["Lighter","Tool","0.1"],["Pencil","Tool","0.1"],["Prescription Glasses (worn)","Accessory","0.1"],["The Great Outdoors","Literature","0.5"],["Water Bottle","Water","1.2"]];
+  return `<div class="inv"><div class="ih"><span class="nm">Inventory</span><span class="wt">6.2/20kg<span>${rows.length + 14} items</span></span></div>
+   <div class="icol"><span style="flex:1">NAME</span><span style="width:86px">CAT</span><span style="width:34px;text-align:right">WT</span></div>
+   ${rows.map(r => `<div class="irow"><span class="n">${r[0]}</span><span class="c">${r[1]}</span><span class="w">${r[2]}</span></div>`).join("")}</div><div class="cstrip"></div>`;
+}
+function charWindow(){
+  FID = 0;
+  const none = S.scene.id === "none";
+  const findBox = none ? "" : `<span class="find" data-fid="${FID++}" data-find="1"><svg viewBox="0 0 12 12"><circle cx="5" cy="5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.3" style="color:var(--ts)"/><path d="M8 8l3 3" stroke="var(--ts)" stroke-width="1.4"/></svg><input id="findIn" placeholder="Find" value="${S.find.replace(/"/g, "&quot;")}">${S.find ? '<span class="x" data-clear="1">x</span>' : ""}</span>`;
+  const body = `<div class="dh"><span class="nm">Traits</span>${findBox}</div><div class="dscroll" id="dscroll">${none ? noModBody() : modBody()}</div>${none ? "" : detail()}`;
+  const pad = S.pad ? `<div class="padbar"><span><span class="g">+</span>Move</span><span><span class="g">A</span>Fold</span><span><span class="g">B</span>Tabs</span><span><span class="g">LB</span>Character</span><span><span class="g">RB</span>World</span></div>` : "";
+  return `<div class="win"><div class="tb"><span class="cb"></span><span class="tt">Angel Cross&nbsp;&nbsp;+&nbsp;&nbsp;Traits &#9650;</span><span class="st"><span><span class="dot pos"></span>99%</span><span><span class="dot dim"></span>6 / 20</span></span></div>
+   <div class="wbody">${tabStrip()}<div class="drawer">${body}</div>${inventory()}</div>${pad}</div><div class="tip" id="tip"></div>`;
+}
+
+// ------------------------------------------------------------------ controls + render
+function seg(id, items, isOn, set){
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = isOn(v) ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function render(keepFind){
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), v => v === S.scene.id, v => { S.scene = SCENES.find(s => s.id === v); S.sel = S.scene.sel; S.find = ""; S.only = false; S.focus = 0; S.closed = {}; S.jump = true; });
+  seg("#ctlPad", [[false,"Mouse"],[true,"Controller"]], v => v === S.pad, v => { S.pad = v; S.focus = 0; });
+  seg("#ctlLg", [[false,"Small"],[true,"Large"]], v => v === S.lg, v => { S.lg = v; });
+  seg("#ctlZoom", [[1,"100%"],[1.25,"125%"],[0.8,"80%"]], v => v === S.zoom, v => { S.zoom = v; });
+  document.body.classList.toggle("lg", S.lg);
+  const st = $("#stage"), keep = $("#dscroll"), top = keep ? keep.scrollTop : 0;
+  st.innerHTML = charWindow();
+  const ds = $("#dscroll");
+  if (ds) { ds.scrollTop = top; if (S.jump && S.sel) { const el = ds.querySelector(`[data-row="${S.sel}"]`); if (el) ds.scrollTop = el.offsetTop - ds.offsetTop - 60; } }
+  S.jump = false;
+  st.style.transform = S.zoom === 1 ? "" : `scale(${S.zoom})`;
+  $("#wrap").style.height = (720 * S.zoom + 4) + "px";
+  $("#wrap").style.width = (1000 * S.zoom + 4) + "px";
+  $("#caption").textContent = S.scene.cap;
+  const fi = $("#findIn");
+  if (fi) { fi.oninput = () => { S.find = fi.value; render(true); }; if (keepFind) { fi.focus(); fi.setSelectionRange(fi.value.length, fi.value.length); } }
+  if (S.pad) { const els = focusables(); S.focus = Math.max(0, Math.min(S.focus, els.length - 1)); const f = els[S.focus]; if (f) { f.classList.add("foc"); f.scrollIntoView({ block:"nearest" }); } }
+}
+function focusables(){ return [...$("#stage").querySelectorAll("[data-fid]")]; }
+document.addEventListener("click", e => {
+  const t = e.target.closest("#stage [data-row], #stage [data-cat], #stage [data-only], #stage [data-clear]");
+  if (!t) return;
+  const d = t.dataset;
+  if (d.row) S.sel = d.row;
+  else if (d.cat) S.closed[d.cat] = !S.closed[d.cat];
+  else if (d.only) S.only = d.only === "1";
+  else if (d.clear) S.find = "";
+  if (S.pad) { const i = focusables().findIndex(x => x === t); if (i >= 0) S.focus = i; }
+  render();
+});
+// hover: a step names its trait; a row previews its details
+document.addEventListener("mousemove", e => {
+  const tip = $("#tip"); if (!tip) return;
+  const step = e.target.closest("#stage [data-step]");
+  if (step && !S.pad) {
+    const r = ROWS.find(x => x.id === step.dataset.sp), L = +step.dataset.step;
+    const ts = r.bands.filter(b => L >= b[0] && L <= b[1]).flatMap(bandTraits).map(t => T[t][0]);
+    tip.innerHTML = `<b>${r.name} level ${L}</b><br>${ts.length ? ts.join(" or ") : "No trait"}${L === r.level ? "<br>You are here" : L < r.level ? "" : ""}`;
+    tip.style.display = "block";
+    const sr = $("#stage").getBoundingClientRect(), z = S.zoom;
+    tip.style.left = ((e.clientX - sr.left) / z + 12) + "px"; tip.style.top = ((e.clientY - sr.top) / z + 14) + "px";
+  } else tip.style.display = "none";
+});
+document.addEventListener("keydown", e => {
+  if (!S.pad || e.target.id === "findIn") return;
+  const els = focusables(); if (!els.length) return;
+  const cur = els[S.focus] || els[0];
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const cr = cur.getBoundingClientRect(); let best = -1, bd = 1e9;
+    els.forEach((x, i) => { const r = x.getBoundingClientRect(); const dy = (r.top + r.height / 2) - (cr.top + cr.height / 2);
+      if (e.key === "ArrowDown" ? dy > 4 : dy < -4) { const s = Math.abs(dy) + Math.abs((r.left + r.width / 2) - (cr.left + cr.width / 2)) * .3; if (s < bd) { bd = s; best = i; } } });
+    if (best >= 0) { S.focus = best; const n = els[best]; if (n.dataset.row) S.sel = n.dataset.row; render(); }
+  } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (cur.dataset.only !== undefined) { e.preventDefault(); S.only = e.key === "ArrowRight"; render(); const i = focusables().findIndex(x => x.dataset.only === (S.only ? "1" : "0")); if (i >= 0) { S.focus = i; render(); } }
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (cur.dataset.cat) { S.closed[cur.dataset.cat] = !S.closed[cur.dataset.cat]; render(); }
+    else if (cur.dataset.find) { const fi = $("#findIn"); if (fi) fi.focus(); }
+    else if (cur.dataset.only !== undefined) cur.click();
+  } else if (e.key === "Escape") { S.focus = 0; render(); }
+});
+S.jump = true;
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => render());
+</script>
+</body>
+</html>
