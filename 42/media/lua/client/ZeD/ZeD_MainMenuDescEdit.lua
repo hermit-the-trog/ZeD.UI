@@ -455,13 +455,14 @@ function ZeD_MMDescEdit:buildStrip(stripY, stripH, w)
             { "confirm:yes", getText("ContextMenu_Keep"), function() self:finish(true) end, "primary" } })
     else
         local n = #self:text()
-        local over = n > BB.LIMIT
+        local limit = (MM.wsEditor and MM.wsEditor.limit) or BB.LIMIT   -- (Steam's 8,000 less what the game adds; the Workshop window's descRoom)
+        local over = n > limit
         local askX = UI.stripSpecs(self, stripY, w, row,
             { { "undo", ZeD.tr("UI_ZeD_DescEdit_Undo"), function() self:restore(self.undo, self.redo) end, "default", #self.undo == 0 },
               { "redo", ZeD.tr("UI_ZeD_DescEdit_Redo"), function() self:restore(self.redo, self.undo) end, "default", #self.redo == 0 } },
             { { "cancel", getText("UI_btn_cancel"), function() self:back() end },
               { "use", ZeD.tr("UI_ZeD_DescEdit_UseThis"), function() self:finish(true) end, "primary", over } })
-        ask = ZeD.tr(over and "UI_ZeD_DescEdit_CountOver" or "UI_ZeD_DescEdit_Count", BB.count(n), BB.count(BB.LIMIT))
+        ask = ZeD.tr(over and "UI_ZeD_DescEdit_CountOver" or "UI_ZeD_DescEdit_Count", BB.count(n), BB.count(limit))
         self._askX = askX + T.px(8)
         self._askBad = over
     end
