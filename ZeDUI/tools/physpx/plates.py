@@ -120,7 +120,10 @@ import d_walkie as DW
 _TW_USES = {"walkie_toy": "Base.WalkieTalkie1", "walkie_valutech": "Base.WalkieTalkie2", "walkie_premium": "Base.WalkieTalkie3",
             "walkie_tactical": "Base.WalkieTalkie4", "walkie_army": "Base.WalkieTalkie5", "walkie_makeshift": "Base.WalkieTalkieMakeShift",
             "walkie_manpack": "Base.ManPackRadio", "ham_civilian": "Base.HamRadio1", "ham_army": "Base.HamRadio2",
-            "ham_makeshift": "Base.HamRadioMakeShift"}
+            "ham_makeshift": "Base.HamRadioMakeShift",
+            # the ham sets' narrow faces, for a radio tab too narrow for the wide ones (mockup zed_ham_narrow_v1)
+            "ham_civilian_n": "Base.HamRadio1 (narrow)", "ham_army_n": "Base.HamRadio2 (narrow)",
+            "ham_makeshift_n": "Base.HamRadioMakeShift (narrow)"}
 
 
 def _tw_states(pid):
@@ -132,10 +135,12 @@ _TW_TITLES = {"walkie_toy": "Toys-R-Mine Walkie Talkie", "walkie_valutech": "Val
               "walkie_premium": "Premium Tech. Walkie Talkie", "walkie_tactical": "Tactical Walkie Talkie",
               "walkie_army": "US Army Walkie Talkie", "walkie_makeshift": "Makeshift Walkie Talkie",
               "walkie_manpack": "US ARMY COMM. Manpack Radio", "ham_civilian": "Premium Technologies Ham Radio",
-              "ham_army": "US ARMY COMM. Ham Radio", "ham_makeshift": "Makeshift Ham Radio"}
+              "ham_army": "US ARMY COMM. Ham Radio", "ham_makeshift": "Makeshift Ham Radio",
+              "ham_civilian_n": "Premium Technologies Ham Radio (narrow)", "ham_army_n": "US ARMY COMM. Ham Radio (narrow)",
+              "ham_makeshift_n": "Makeshift Ham Radio (narrow)"}
 for _pid, _uses in _TW_USES.items():
     _fn = DW.MODELS[_pid][0]
-    if _pid == "ham_makeshift":
+    if _pid in ("ham_makeshift", "ham_makeshift_n"):
         reg(_pid, _fn, [("mic_live", "micLive", True, {"mic_live": True})], _tw_states(_pid), _TW_TITLES[_pid], _uses,
             base={"mic_live": False})
     else:

@@ -615,6 +615,62 @@ step(20, function()
     shot("5b_ham_civilian_full_view")
 end)
 step(5, function() F.close(pn) end)
+
+-- ===================================================================== 5b. a small screen: the narrow ham faces
+-- (mockup zed_ham_narrow_v1, approved Oct 25 2026) The World window held in as on a small screen: the drawer may
+-- be no wider than 600 px beside the inventory, too narrow for a 400 set at 2x, so each set shows its narrow face in
+-- a tab as narrow as a walkie's, every control still on it.
+local maxWas, maxSet, liveWasN = nil, false, nil
+step(5, function()
+    local T = ZeD.T
+    maxWas, maxSet = WW()._maxWinW, true
+    WW()._maxWinW = T.px(36) * 2 + T.px(200) + 600
+end)
+local function narrowHam(pid)
+    local npid = pid .. "_n"
+    step(5, function()
+        for i, r in ipairs(WW()._radios or {}) do if r.radioInstance == hams[pid] then WW()._radioIdx = i end end
+    end)
+    waitFor(5, 150, function() local t = tw(WW()); return t ~= nil and t.dev == hams[pid] and t.pid == npid and settled(WW()) end, function()
+        local t = tw(WW())
+        check(t and t.pid == npid, pid .. " on a small screen: its narrow face (" .. tostring(t and t.pid) .. ")")
+        if not t then return end
+        local dw = math.floor(WW()._drawerEffW or 0)
+        local pw = 220 * K + ZeD.T.sp.scrollbarW
+        check(math.abs(dw - pw) <= 1, pid .. ": the tab is a walkie's width (" .. dw .. " px, want " .. pw .. ")")
+        check(t.k == K, pid .. ": the narrow face at the plates' whole zoom " .. K .. " (got " .. tostring(t.k) .. ")")
+        local want = {}
+        for _, h in ipairs(ZeD.PhysPx.plates[pid].hits) do want[h.id] = true end
+        local n, same = 0, true
+        for _, h in ipairs(t.hits) do n = n + 1; if not want[h.id] then same = false end end
+        check(same and n == #ZeD.PhysPx.plates[pid].hits, pid .. ": every control of the wide set on the narrow face (" .. n .. ")")
+        if not dd(hams[pid]):getIsTurnedOn() then click(WW(), "vol") end        -- VOL pressed on the narrow face: on
+    end)
+    step(10, function()
+        check(dd(hams[pid]):getIsTurnedOn(), pid .. ": VOL on the narrow face turns it on")
+        chWas = dd(hams[pid]):getChannel()
+        click(WW(), "tune", "r")
+    end)
+    step(5, function()
+        check(dd(hams[pid]):getChannel() == chWas + O.STEP, pid .. ": TUNE on the narrow face tunes up a step")
+        local s = ps(hams[pid], npid)
+        check(s.display ~= nil, pid .. ": the narrow face's display reads")
+        shot("5n_" .. npid)
+    end)
+end
+narrowHam("ham_civilian")
+narrowHam("ham_army")
+narrowHam("ham_makeshift")
+step(2, function() liveWasN = ps(hams.ham_makeshift, "ham_makeshift_n").micLive; click(WW(), "mic") end)
+step(5, function()
+    check(ps(hams.ham_makeshift, "ham_makeshift_n").micLive ~= liveWasN, "narrow makeshift ham: TALK / LISTEN flips with the mic")
+    click(WW(), "mic")                           -- back as it was
+    WW()._maxWinW, maxSet = maxWas, false
+    for i, r in ipairs(WW()._radios or {}) do if r.radioInstance == hams.ham_civilian then WW()._radioIdx = i end end
+end)
+waitFor(5, 150, function() local t = tw(WW()); return t ~= nil and t.pid == "ham_civilian" and settled(WW()) end, function()
+    check(tw(WW()).pid == "ham_civilian", "with room again the wide set is back")
+end)
 showHam("ham_army")
 local fa
 step(5, function()
@@ -667,6 +723,7 @@ step(25, function() check(not F.showing(pn), "full view closes when the set is t
 -- ===================================================================== cleanup
 step(10, function()
     getMouseX, getMouseY = mouseX, mouseY
+    if maxSet then WW()._maxWinW = maxWas end
     F.close(pn)
     F.qaJoy = nil
     TW.nameChannel = nameWas

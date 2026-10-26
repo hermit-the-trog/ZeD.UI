@@ -1825,9 +1825,15 @@ local function getWorldTargetDrawerW(win)
                 local want = ZeD.StationAppliance.wantW(win._playerObj)
                 if want and want > base then base = want end
             end
-            -- a two-way radio: a walkie's tab is only as wide as its face's panel; a ham set's is wide enough for it
+            -- a two-way radio: a walkie's tab is only as wide as its face's panel; a ham set's is wide enough for it,
+            -- or a walkie's width with the set's narrow face where the window holds the drawer in (the cap below)
             if win._activeTab == "radio" and ZeD.RadioTab and ZeD.RadioTab.wantW then
-                local want = ZeD.RadioTab.wantW(win, base)
+                local limit = nil
+                if win._invDrawerOpen and #(win._mcSelected or {}) == 0 then
+                    local maxW = win._maxWinW or math.floor(getCore():getScreenWidth() * 0.5)
+                    limit = math.max(T.px(DRAWER_W), maxW - T.px(CONTAINER_STRIP_W) - T.px(ACTION_TAB_STRIP_W) - T.px(200))
+                end
+                local want = ZeD.RadioTab.wantW(win, base, limit)
                 if want then base = want end
             end
             -- The window is capped at half the screen, so on a small screen or a

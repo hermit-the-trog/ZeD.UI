@@ -133,7 +133,23 @@ function TW.plateFor(entry)
     return id, ZeD.PhysPx.plates[id]
 end
 
-function TW.isBase(pid) local i = TW.INFO[pid]; return i and i.base == true end
+-- a ham set's narrow face (mockup zed_ham_narrow_v1, approved Oct 25 2026): the same set rearranged into a walkie's
+-- width, drawn where the radio tab cannot hold the wide one at the plates' whole zoom. Its controls are the wide set's.
+function TW.narrowOf(pid)
+    local X = ZeD.PhysPx
+    local id = X and X.twoway and X.twoway.narrow and X.twoway.narrow[pid]
+    if id and X.plates[id] then return id, X.plates[id] end
+    return nil, nil
+end
+-- the wide set a face belongs to (a narrow face's own set; any other face is its own)
+function TW.basePid(pid)
+    local X = ZeD.PhysPx
+    for wide, narrow in pairs((X and X.twoway and X.twoway.narrow) or {}) do if narrow == pid then return wide end end
+    return pid
+end
+function TW.info(pid) return TW.INFO[TW.basePid(pid)] end
+
+function TW.isBase(pid) local i = TW.info(pid); return i and i.base == true end
 -- the space a face takes in the tab (plate px): a walkie's 220 panel, a ham set's own width
 function TW.slotW(des) return math.max(des.w, TW.PANEL_W) end
 
@@ -207,9 +223,9 @@ end
 -- what the face's live parts read (the plate template's state)
 function TW.plateState(st, pid)
     local ps = {}
-    local info = TW.INFO[pid] or TW.INFO.walkie_valutech
+    local info = TW.info(pid) or TW.INFO.walkie_valutech
     ps.radioOn, ps.power = st.on, st.on
-    if pid == "ham_makeshift" then
+    if TW.basePid(pid) == "ham_makeshift" then
         ps.micLive = not st.micMuted                       -- the TALK / LISTEN toggle stays where it was flipped
     else
         ps.micLive = st.on and not st.micMuted             -- the TX lamp
@@ -409,7 +425,7 @@ function TW.footer(panel, x, y, w, h, pid, highTier)
     local tm = ZeD.TM
     local font = T.fontF1
     local ty = y + math.floor((h - tm:getFontHeight(font)) / 2)
-    local info = TW.INFO[pid] or {}
+    local info = TW.info(pid) or {}
     local tag = ZeD.tr(info.base and "UI_ZeD_Radio_TwoWayBase" or "UI_ZeD_Radio_TwoWayPortable")
     local bg, ink, dim
     if highTier then
