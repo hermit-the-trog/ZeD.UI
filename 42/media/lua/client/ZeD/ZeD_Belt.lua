@@ -1332,6 +1332,31 @@ function B.segLayout(n, chamber, room)
     return nil   -- (a drum of a hundred: no room for one pixel each)
 end
 
+-- The pouch's inks, from the live theme tokens (Oct 26 2026, checked in Light and High contrast): the rounds' fill in
+-- the belt's wear colours (normal over half full, amber over a quarter, red under); the count in the same colours as
+-- text (the readable variants: 4.6:1 on the pouch); a spent round drawn hollow in the chrome grey (textDim, 4.6:1 on
+-- the surfaces). The grey cannot also stand 3:1 off every fill colour in every theme (Light's mid-grey pouch leaves
+-- no room between them), so the shape tells them apart: a solid round, an empty outline.
+function B.ammoInk(a)
+    local T = ZeD.T
+    local low = a.n == 0 or a.f <= 0.25
+    return {
+        fill = (low and T.danger) or (a.f > 0.5 and T.text) or T.warningText,
+        text = (low and (T.dangerText or T.danger)) or (a.f > 0.5 and T.text) or T.warningText,
+        spent = T.textDim, spentA = 1, hollow = true,
+    }
+end
+
+-- an empty round: its outline only (the top and bottom edges; the sides too where it is three art pixels wide)
+local function hollowRect(self, x, y, w, h, k, c)
+    self:drawRect(x, y, w, k, 1, c.r, c.g, c.b)
+    self:drawRect(x, y + h - k, w, k, 1, c.r, c.g, c.b)
+    if w >= 3 * k then
+        self:drawRect(x, y + k, k, h - 2 * k, 1, c.r, c.g, c.b)
+        self:drawRect(x + w - k, y + k, k, h - 2 * k, 1, c.r, c.g, c.b)
+    end
+end
+
 -- the ammo pouch (style B): framed as the slots are (surf2, the strong border, the foot's segments where the slots
 -- have their condition bar); the ammo's own picture (the magazine for a gun that takes one, else the round); the
 -- rounds in the gun in large figures in the belt's wear colours (normal over half full, amber over a quarter, red
@@ -1340,7 +1365,8 @@ function ZeD_BeltHUD:_drawAmmo(b, a)
     local T, tm = ZeD.T, ZeD.TM
     local s2, s3, bs = T.surf2, T.surf3, T.borderS
     self:drawRect(b.x, b.y, b.w, b.h, 0.95, s2.r, s2.g, s2.b)
-    local c = (a.n == 0 and T.danger) or (a.f > 0.5 and T.text) or (a.f > 0.25 and T.warningText) or T.danger
+    local ink = B.ammoInk(a)
+    local c, ct = ink.fill, ink.text
     local k = math.max(1, T.art or 1)
     -- the foot: the segments' row, the slots' bar height (3 art pixels), its top 5 design units over the bottom
     local segH = 4 * k
@@ -1355,7 +1381,7 @@ function ZeD_BeltHUD:_drawAmmo(b, a)
     local count, s1, s2w = B.ammoWords(a)
     local cf = (a.n == 0) and T.fontF1 or T.fontF4
     local ch = tm:getFontHeight(cf)
-    self:drawText(count, b.x + T.px(4 + AMMO_ICON + 6), b.y + math.floor((topH - ch) / 2), c.r, c.g, c.b, 1, cf)
+    self:drawText(count, b.x + T.px(4 + AMMO_ICON + 6), b.y + math.floor((topH - ch) / 2), ct.r, ct.g, ct.b, 1, cf)
     local f5, dc = T.fontF5, T.textDim
     local f5h = tm:getFontHeight(f5)
     local lines = s2w and 2 or 1
@@ -1369,8 +1395,7 @@ function ZeD_BeltHUD:_drawAmmo(b, a)
     -- the rounds
     local inner = b.w - 2 * T.px(4)
     local L = B.segLayout(a.max, a.chamber, math.floor(inner / k))
-    local sp = bs                                       -- a spent round: the frame's grey, dimmed
-    local spA = 0.55
+    local sp = ink.spent                                -- a spent round: hollow, in the chrome grey
     local x0 = b.x + T.px(4)
     if not L then
         -- too many for one pixel each: the slots' bar, ticked every ten
@@ -1383,16 +1408,18 @@ function ZeD_BeltHUD:_drawAmmo(b, a)
     local x = x0 + math.floor((inner - L.w * k) / 2)
     if a.chamber then
         -- the chamber's round: a cartridge standing a pixel above the rest, its tip a pixel narrower
-        local cc, ca = c, 1
-        if not a.chambered then cc, ca = sp, spA end
-        self:drawRect(x, footY - k, L.chW * k, segH + k, ca, cc.r, cc.g, cc.b)
-        self:drawRect(x + k, footY - 2 * k, (L.chW - 2) * k, k, ca, cc.r, cc.g, cc.b)
+        if a.chambered then
+            self:drawRect(x, footY - k, L.chW * k, segH + k, 1, c.r, c.g, c.b)
+            self:drawRect(x + k, footY - 2 * k, (L.chW - 2) * k, k, 1, c.r, c.g, c.b)
+        else
+            hollowRect(self, x, footY - k, L.chW * k, segH + k, k, sp)
+            self:drawRect(x + k, footY - 2 * k, (L.chW - 2) * k, k, 1, sp.r, sp.g, sp.b)
+        end
         x = x + L.lead * k
     end
     for i = 1, a.max do
-        local cc, ca = c, 1
-        if i > a.inGun then cc, ca = sp, spA end
-        self:drawRect(x, footY, L.sw * k, segH, ca, cc.r, cc.g, cc.b)
+        if i > a.inGun then hollowRect(self, x, footY, L.sw * k, segH, k, sp)
+        else self:drawRect(x, footY, L.sw * k, segH, 1, c.r, c.g, c.b) end
         x = x + L.sw * k
         if i < a.max then x = x + ((i % L.group == 0) and L.gg or L.gap) * k end
     end

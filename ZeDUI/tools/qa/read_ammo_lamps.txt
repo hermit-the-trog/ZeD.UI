@@ -18,3 +18,4 @@ zedqa_sort_groups.lua | sg | timeout=420                  # category headers, so
 zedqa_large.lua | lg                                      # Large text size: Loot and Equip lists, column widths
 zedqa_dashpx.lua | dpx | timeout=720 | expect=FBORenderCell   # the pixel-art v6 dashboards (24 cars)
 zedqa_dash19.lua | dash | timeout=480 | expect=FBORenderCell  # every dashboard design on a spawned car (19 cars)
+# ZeD setup's five switches (main menu, not this runner): zedqa_menu_mods_run.ps1 -ModList <empty file> -Script zedqa_menu_zed_switches.lua -Tag zsw
