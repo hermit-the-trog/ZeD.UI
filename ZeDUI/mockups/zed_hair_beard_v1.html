@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeD-UI | Identity: hair and beard v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=Fira+Sans:wght@400;500;600;700&family=Fira+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   ZeD-UI | Character window, Identity tab: Hair and Beard. Mockup v1 (Oct 26 2026).
+   Why: ZeD never shows the game's Character screen, so its Hair and Beard
+   buttons (ISCharacterScreen:hairMenu / beardMenu) are out of reach. Three hair
+   mods ride on those menus. Survey: ZeDUI/workshop/compat_round2_tab_survey.md, row 4.
+   The lists here are worked out with the game's own rules from
+   media/hairStyles/hairStyles.xml and beardStyles.xml (levels, trim choices,
+   tied styles) and the game's wording (ContextMenu_CutHairFor, Tooltip_RequireScissors...).
+   Chrome as built: title bar, 36px tab strip, 480px drawer, tab header,
+   section subheads, action strip; focus = 0.55 alpha accent fill.
+   ============================================================================ */
+:root {
+  --mono:'Fira Mono',monospace; --sans:'Fira Sans',sans-serif; --cond:'Fira Sans Condensed',sans-serif;
+  --b:#0c0c0c; --s1:#131313; --s2:#1a1a1a; --s3:#222; --s4:#2a2a2a; --bd:#2a2a2a; --bs:#3a3a3a;
+  --ac:#d4922a; --acb:#e8a830; --hov:rgba(212,146,42,.22); --acf:rgba(212,146,42,.55); --toa:#0c0c0c;
+  --tx:rgba(214,214,212,.9); --ts:rgba(150,150,150,.72); --th:rgba(222,210,190,.95);
+  --dng:#d0603a; --wrn:#c49a2a; --pos:#7a9a34; --inf:#5a8a9a;
+  --f1:11px; --f2:13px; --f4:15px; --f5:10px;
+}
+body.lg { --f1:13px; --f2:15px; --f4:17px; --f5:12px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0a08; color:#d8d8d8; font-family:var(--sans); padding:22px 24px 60px; }
+.banner { font-family:var(--mono); font-size:11px; letter-spacing:2px; color:#cfc6a8; text-transform:uppercase; }
+h1 { font-family:var(--cond); font-weight:600; font-size:24px; color:#f0ece0; margin:4px 0 6px; }
+.lede { font-size:13px; line-height:1.55; color:#b9b4a6; max-width:1100px; }
+.lede b { color:#efe6c4; font-weight:600; }
+.controls { display:flex; flex-wrap:wrap; gap:14px 22px; margin:16px 0 14px; align-items:flex-start; }
+.ctl { display:flex; flex-direction:column; gap:5px; }
+.ctl > span { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#8f8a7c; text-transform:uppercase; }
+.seg { display:flex; flex-wrap:wrap; gap:4px; max-width:1200px; }
+.seg button { font-family:var(--mono); font-size:11px; color:#d8d4c8; background:#1c1b18; border:1px solid #3a3832; padding:4px 9px; cursor:pointer; }
+.seg button.on { background:#d8c070; color:#111; border-color:#d8c070; }
+.stage-wrap { overflow:auto; max-width:100%; }
+.stage { position:relative; width:1000px; height:720px; border:1px solid #2a2924; overflow:hidden; transform-origin:0 0;
+  background:radial-gradient(ellipse at 45% 40%, #2c3320 0%, #1c2216 45%, #0f120c 100%); }
+.caption { font-family:var(--mono); font-size:11px; color:#8f8a7c; margin-top:8px; max-width:1100px; line-height:1.5; }
+
+/* ---- the Character window ---------------------------------------------------- */
+.win { position:absolute; left:40px; top:24px; width:920px; height:672px; background:rgba(19,19,19,.97); border:1px solid var(--bs); z-index:2; display:flex; flex-direction:column; }
+.tb { height:24px; flex:none; background:var(--s2); border-bottom:1px solid var(--bs); display:flex; align-items:center; position:relative; overflow:hidden; }
+.tb::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,.05) 2px, rgba(255,255,255,.05) 4px); }
+.tb .cb { width:12px; height:12px; border:1px solid var(--bs); margin-left:6px; position:relative; z-index:1; background:var(--s2); }
+.tb .tt { font-family:var(--mono); font-size:var(--f2); color:var(--th); position:relative; z-index:1; background:var(--s2); padding:0 8px; margin-left:8px; }
+.tb .st { margin-left:auto; margin-right:8px; position:relative; z-index:1; background:var(--s2); padding:0 8px; font-family:var(--mono); font-size:var(--f1); color:var(--tx); display:flex; gap:12px; }
+.dot { display:inline-block; width:8px; height:8px; border-radius:50%; vertical-align:middle; margin-right:5px; flex:none; }
+.dot.pos { background:var(--pos); } .dot.wrn { background:var(--wrn); } .dot.off { border:1px solid var(--ts); } .dot.ac { background:var(--ac); } .dot.dim { background:#666; } .dot.no { visibility:hidden; }
+.wbody { flex:1; min-height:0; display:flex; }
+.strip { width:36px; flex:none; border-right:1px solid var(--bs); background:var(--s1); display:flex; flex-direction:column; }
+.tab { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--bd); position:relative; }
+.tab img { width:22px; height:22px; opacity:.82; }
+.tab.act { background:var(--acf); } .tab.act::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--acb); }
+.tab.act img { opacity:1; }
+.drawer { width:480px; flex:none; border-right:1px solid var(--bs); display:flex; flex-direction:column; min-height:0; }
+.dh { height:37px; flex:none; display:flex; align-items:center; padding:0 10px; border-bottom:1px solid var(--bd); gap:8px; }
+.dh .nm { font-family:var(--cond); font-weight:600; font-size:calc(var(--f4) + 3px); color:var(--th); }
+.dh .nm::before { content:"> "; color:var(--ts); }
+.dscroll { flex:1; min-height:0; overflow:auto; padding:10px 10px 14px; }
+.dscroll::-webkit-scrollbar { width:8px; } .dscroll::-webkit-scrollbar-thumb { background:var(--s4); }
+.groove { height:0; border-top:1px solid var(--bd); border-bottom:1px solid #000; margin:12px 0; }
+.subh { font-family:var(--mono); font-size:var(--f1); color:var(--ts); letter-spacing:.08em; margin:2px 0 8px; display:flex; align-items:baseline; gap:6px; text-transform:uppercase; }
+.subh .r { margin-left:auto; text-transform:none; letter-spacing:0; }
+
+/* the license, as built (shortened) */
+.lic { background:#e8e4da; border-radius:9px; padding:8px; color:#1e3250; }
+.lic .hd { background:#1b1c92; color:#e8e4da; font-family:var(--cond); font-weight:700; font-size:13px; letter-spacing:3px; padding:3px 8px; border-radius:3px; display:flex; justify-content:space-between; }
+.lic .hd span:last-child { color:#8cc3e8; letter-spacing:1px; font-weight:600; }
+.lic .bd { display:flex; gap:12px; padding:8px 4px 2px; }
+.lic .ph { width:84px; height:96px; background:#8cc3e8; border:1px solid #9a968c; flex:none; overflow:hidden; }
+.lic .ph svg { width:100%; height:100%; display:block; }
+.lic .fl { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; align-content:start; }
+.lic .fl div { font-size:var(--f2); line-height:1.15; color:#1e3250; }
+.lic .fl i { display:block; font-style:normal; font-family:var(--mono); font-size:var(--f5); color:rgba(30,50,80,.65); text-transform:uppercase; }
+.lic .fl .ch { background:rgba(212,146,42,.28); outline:1px solid rgba(160,100,20,.5); }
+.lic .nmrow { grid-column:1 / 3; font-family:var(--cond); font-weight:700; font-size:16px !important; }
+
+/* hair and beard */
+.hbtop { display:flex; gap:12px; align-items:stretch; margin-bottom:10px; }
+.pv { display:flex; align-items:center; gap:6px; flex:none; }
+.pv .fr { width:58px; text-align:center; }
+.pv .box { width:58px; height:66px; border:1px solid var(--bs); background:linear-gradient(#2a2f33,#1c2024); }
+.pv .box svg { width:100%; height:100%; display:block; }
+.pv .cap { font-family:var(--mono); font-size:var(--f5); color:var(--ts); margin-top:3px; }
+.pv .ar { font-family:var(--mono); color:var(--ts); font-size:12px; margin-bottom:14px; }
+.cur { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
+.crow { display:flex; align-items:center; height:28px; border-bottom:1px solid var(--bd); gap:8px; font-size:var(--f2); }
+.crow:last-child { border-bottom:0; }
+.crow .k { width:52px; font-family:var(--mono); font-size:var(--f1); color:var(--ts); }
+.crow .v { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.crow .m { font-family:var(--mono); font-size:var(--f1); color:var(--ts); white-space:nowrap; }
+.len { display:inline-flex; gap:2px; vertical-align:middle; margin-right:6px; }
+.len i { width:7px; height:9px; border:1px solid var(--ts); display:block; }
+.len i.on { background:var(--tx); border-color:var(--tx); }
+.swatch { display:inline-block; width:10px; height:10px; border:1px solid var(--bs); vertical-align:middle; margin-right:5px; }
+.parts { display:flex; border:1px solid var(--bs); margin-bottom:8px; }
+.parts > span { flex:1; height:26px; display:flex; align-items:center; justify-content:center; gap:6px; font-family:var(--mono); font-size:var(--f1); cursor:pointer; color:var(--tx); border-right:1px solid var(--bs); }
+.parts > span:last-child { border-right:0; }
+.parts > span.on { background:var(--ac); color:var(--toa); }
+.parts > span:hover:not(.on) { background:var(--hov); }
+.parts > span.foc { outline:2px solid var(--acb); outline-offset:-2px; }
+.parts .n { opacity:.75; }
+.list { border:1px solid var(--bd); }
+.gh { height:22px; display:flex; align-items:center; padding:0 8px; gap:6px; font-family:var(--mono); font-size:var(--f5); letter-spacing:.08em; color:var(--ts); background:var(--s1); border-bottom:1px solid var(--bd); text-transform:uppercase; }
+.gh .r { margin-left:auto; text-transform:none; letter-spacing:0; }
+.gh.disc { cursor:pointer; } .gh.disc:hover { background:var(--hov); }
+.gh.foc { background:var(--acf); color:var(--toa); }
+.hrow { display:flex; align-items:center; gap:8px; height:26px; padding:0 8px; border-bottom:1px solid var(--bd); font-size:var(--f2); cursor:pointer; }
+.hrow:last-child { border-bottom:0; }
+.hrow:nth-child(even) { background:rgba(255,255,255,.02); }
+.hrow:hover { background:var(--hov); }
+.hrow .nm { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hrow .tool { font-family:var(--mono); font-size:var(--f1); color:var(--tx); white-space:nowrap; display:flex; align-items:center; }
+.hrow .from { font-family:var(--mono); font-size:9px; letter-spacing:.5px; border:1px solid var(--bs); color:var(--ts); padding:0 4px; height:14px; display:inline-flex; align-items:center; text-transform:uppercase; }
+.hrow.dis .nm { opacity:.45; }
+.hrow.out .nm { opacity:.45; }
+.hrow.out .tool { color:var(--ts); }
+.hrow.sel { background:var(--ac) !important; color:var(--toa); }
+.hrow.sel .nm { opacity:1; }
+.hrow.sel .tool, .hrow.sel .from { color:var(--toa); border-color:var(--toa); }
+.hrow.sel .dot.off { border-color:var(--toa); }
+.hrow.foc { box-shadow:inset 0 0 0 2px var(--acb); }
+.hrow.foc:not(.sel) { background:var(--acf); color:var(--toa); }
+.hrow.foc:not(.sel) .nm { opacity:1; }
+.empty { font-size:var(--f2); color:var(--ts); padding:10px 8px; line-height:1.45; }
+.modnote { display:flex; gap:8px; margin-top:8px; font-size:12px; line-height:1.45; color:var(--ts); }
+.modnote b { color:var(--tx); font-weight:500; }
+.sbtn { font-family:var(--mono); font-size:var(--f1); padding:2px 9px; border:1px solid var(--bs); background:var(--s2); cursor:pointer; border-radius:3px; color:var(--tx); white-space:nowrap; }
+.sbtn:hover { background:var(--hov); }
+/* traits (as built, shortened) */
+.tgrid { display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; margin-bottom:8px; }
+.tc { display:flex; align-items:center; gap:6px; height:24px; font-size:var(--f2); }
+.tc i { width:18px; height:18px; border:1px solid var(--bs); flex:none; display:flex; align-items:center; justify-content:center; font-style:normal; font-family:var(--mono); font-size:9px; color:var(--toa); }
+.tc i.p { background:var(--pos); } .tc i.n { background:var(--dng); }
+/* action strip */
+.astrip { height:50px; flex:none; border-top:1px solid var(--bs); background:var(--s2); display:flex; align-items:center; padding:0 10px; gap:10px; }
+.astrip .txt { flex:1; min-width:0; }
+.astrip .l1 { font-size:var(--f2); color:var(--tx); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.astrip .l2 { font-family:var(--mono); font-size:var(--f5); color:var(--ts); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prog { height:4px; background:var(--s4); margin-top:4px; width:200px; }
+.prog i { display:block; height:100%; background:var(--ac); }
+.pbtn { font-family:var(--mono); font-size:var(--f1); padding:5px 14px; border:1px solid var(--bs); background:var(--s3); color:var(--tx); cursor:pointer; border-radius:3px; white-space:nowrap; }
+.pbtn:hover { background:var(--hov); }
+.pbtn.pri { border:3px double var(--ac); color:var(--acb); padding:3px 14px; }
+.pbtn.dis { opacity:.35; cursor:default; }
+.pbtn.dis:hover { background:var(--s3); }
+/* inventory (context) */
+.inv { flex:1; display:flex; flex-direction:column; min-width:0; }
+.ih { height:37px; display:flex; align-items:center; padding:0 10px; border-bottom:1px solid var(--bd); gap:8px; }
+.ih .nm { font-family:var(--cond); font-weight:600; font-size:calc(var(--f4) + 3px); color:var(--th); }
+.ih .wt { margin-left:auto; font-family:var(--mono); font-size:var(--f1); color:var(--acb); text-align:right; line-height:1.3; }
+.ih .wt span { display:block; color:var(--ts); font-family:var(--sans); font-size:var(--f5); }
+.icol { display:flex; font-family:var(--mono); font-size:var(--f5); color:var(--ts); padding:5px 10px; border-bottom:1px solid var(--bd); }
+.irow { display:flex; align-items:center; height:28px; padding:0 10px; font-size:var(--f2); border-bottom:1px solid rgba(255,255,255,.03); }
+.irow:nth-child(odd) { background:rgba(255,255,255,.025); }
+.irow .n { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.irow .c { width:86px; color:var(--ac); font-family:var(--mono); font-size:var(--f1); }
+.irow .w { width:34px; text-align:right; font-family:var(--mono); font-size:var(--f1); color:var(--ts); }
+.irow.hl { background:var(--hov) !important; }
+.cstrip { width:36px; flex:none; border-left:1px solid var(--bs); background:var(--s1); }
+.padbar { height:20px; flex:none; border-top:1px solid var(--bs); background:var(--s1); display:flex; align-items:center; gap:14px; padding:0 10px; font-family:var(--mono); font-size:10px; color:var(--ts); }
+.padbar .g { display:inline-flex; align-items:center; justify-content:center; min-width:14px; height:13px; border:1px solid var(--ts); color:var(--tx); font-size:9px; margin-right:4px; padding:0 2px; }
+/* hover balloon */
+.tip { position:absolute; z-index:9; max-width:260px; background:#f2efe4; color:#151515; border:1px solid #000; padding:5px 8px; font-size:12px; line-height:1.4; pointer-events:none; display:none; }
+.tip b { font-weight:600; }
+.tip .g { font-family:var(--mono); font-size:10px; color:#555; display:block; margin-top:2px; }
+
+/* notes */
+.notes { max-width:1100px; margin-top:26px; display:grid; gap:22px; }
+.notes h2 { font-family:var(--cond); font-weight:600; font-size:18px; color:#f0ece0; margin-bottom:8px; }
+.notes li { font-size:13px; line-height:1.6; color:#c4bfb1; margin-bottom:8px; }
+.notes ol, .notes ul { padding-left:20px; } .notes b { color:#efe6c4; font-weight:600; }
+.rec { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#d8c070; padding:0 5px; margin-right:6px; }
+.alt { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#9ab0c4; padding:0 5px; margin-right:6px; }
+.lim { display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:#111; background:#c49a9a; padding:0 5px; margin-right:6px; }
+</style>
+</head>
+<body>
+<div class="banner">ZeD-UI | in game | Character window | Identity | hair and beard | mockup v1</div>
+<h1>Hair and beard: haircuts, ties and trims in the Identity tab</h1>
+<p class="lede">The game keeps haircuts and beard trims behind the Hair and Beard buttons on its Character screen, which ZeD never shows, so today a ZeD player <b>cannot cut, tie or trim at all</b>. This adds a <b>Hair and Beard</b> section to the Identity tab, under the license: what the character has now, then every choice the game allows from here, each with the tool it needs. The choices come from the game's own rules (the style's length and what it can be cut into), so hair mods that change those rules show in the same list. Click a row, then the button; hover a row for the game's own hint. Change what the character carries and the rows follow.</p>
+
+<div class="controls">
+  <div class="ctl"><span>Scene</span><div class="seg" id="ctlScene"></div></div>
+  <div class="ctl"><span>Carrying</span><div class="seg" id="ctlInv"></div></div>
+  <div class="ctl"><span>Hair mod on</span><div class="seg" id="ctlMod"></div></div>
+  <div class="ctl"><span>Input</span><div class="seg" id="ctlPad"></div></div>
+  <div class="ctl"><span>Text</span><div class="seg" id="ctlLg"></div></div>
+  <div class="ctl"><span>Zoom</span><div class="seg" id="ctlZoom"></div></div>
+</div>
+<div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
+<div class="caption" id="caption"></div>
+
+<section class="notes">
+  <div>
+    <h2>Decisions for you</h2>
+    <ol>
+      <li><span class="rec">RECOMMEND</span><b>A Hair and Beard section in Identity, under the license, as a list.</b> Not a pop-up menu like the game's: the current hair and beard sit at the top (style, length, colour), then Hair and Beard as two halves of one switch (a woman has Hair only, as in the game). The license's Hair style and Facial hair lines change as soon as a cut is done.</li>
+      <li><span class="rec">RECOMMEND</span><b>Group the choices by what they need:</b> Tie (no tool), Cut (Scissors; Shave Hair takes a Razor or Scissors), Style (Hair Gel or Hair Spray), and for the beard Shave and Trim (Razor or Scissors). The tool sits at the right of each row with a dot: filled when it is in your inventory or bags, empty when it is not. Wording is the game's: "Cut Hair into Buzz Cut", "Tie Hair into Pony Tail", "Trim Beard into Mustache".</li>
+      <li><span class="rec">RECOMMEND</span><b>Greyed rows stay in place and say why.</b> A row you cannot do now is dimmed but can still be picked: the footer and the hover give the game's reason ("Requires Scissors.", "Requires Hair Gel, or Hair Spray.") and the button is greyed. Styles the hair is too short for, or that this style cannot be cut into, sit folded under <i>Out of reach</i> with the reason (Hair too short: needs long hair), so a player learns what growing it out opens up.</li>
+      <li><span class="rec">RECOMMEND</span><b>One list for the hair mods too.</b> ZeD reads the choices the game's hair menu would offer, so when a hair mod changes that menu its choices land here. Spongie's Hairstyle Unlocker opens every style at or under the current length and words the gel ones "Style Hair into ..."; its extra rows carry a small tag with the mod's name. Improved Hair Menu and NeatUI Hairstyler show pictures in a window of their own: the list stays, and a Pictures button opens theirs. New hairstyles from any style pack show up with no extra work.</li>
+      <li><span class="rec">RECOMMEND</span><b>Controller:</b> D-pad Down from the license lands on the Hair or Beard switch; Left and Right flip it. Down again walks the rows; the footer shows the focused row at once, with no press needed. A does it (as the game's menu does: one press), and on a greyed row A does nothing while the footer says why. A on Out of reach folds it open. B goes back to the tab strip, as everywhere in the window.</li>
+      <li><span class="alt">YOUR CALL</span><b>No confirm before a cut.</b> The game cuts on one press and hair grows back, so this has no "Are you sure?". Say if you want one for Shave Hair only.</li>
+      <li><span class="alt">YOUR CALL</span><b>The Now and After heads</b> are simple drawn shapes, enough to tell long from short and tied from loose. The real 3D head (the license photo's) is possible but a bigger job.</li>
+      <li><span class="lim">LIMIT</span><b>Hats come off first and the tool goes in your hand,</b> as the game does it: a cut, tie or untie takes off what is on your head, then puts the Scissors (or Razor) in your main hand. The footer says so before you press.</li>
+    </ol>
+  </div>
+</section>
+
+<script>
+const ICONS={loot:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAACQUlEQVR42u2YP28TQRDFf3s+JwFTuHGXkAZavgJCUIUiPRT86aktwZeIRE9CQ0soSAVCfAVaqgCdU6TAIbbPfjTvxLLcJUjYjpE80ujOu3Oed2/ndmcmSOIMCcxGap3mFWOZdXzWg/8oAWgAE+uviYShhoGUcgVoTpEtASPge53PPHIWPHEdeADcAa4Cq1NmZwB8Ad4De8Bnr4gAISlIyiQh6ZmkvuYnffvEGEKQVFK2Czz0WxQVwVfGVizFX8ZmGishsdsDHgENjK5rxANJE0njObAztq+Bf3clESRdAz4BK9FaZsBX4C3QM4O3gJu+bwA/gOfASfTGAi4DT4BLke1H4IPvO8BdYMOsBV+HwA0k7RhhETGzL6lt9lIWh74eOf5INHgutu0mNm1JryOmCt/vZMBWFCsB+AbcA479ya95rVsVe0nHc01r7rF0i2h5bs12x8B9+4rZ3cqATQ/K130vQ9N7RmGdVARvUaNUBHU5N/J/nwBvEt+bmWMnlqPIiBkeHcHxGctKVrOtzxJMCuqPc2uhZAloCWgJaAloCeh/BKQZ1mPnnpmZM7VYOnMAVYLpJOPDDDiMAAjYdho6ipKuvIbNvEarXjyPkrmRfWwnvg8z4CDJ2taBV0DbD546sepXLG0vSrrKZK5XsRR9z53arm0f60m2erCQSf7ClUFlofjCxdpFFIq7wOOyUIxL6aeLUErHDEyiZsNtVySzaja8A16mzYbz2jEtB3uYYmI/TL7Y33yGig7aQjWsLryl9xMQUWDOPVZBnAAAAABJRU5ErkJggg==',equipment:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAD5klEQVR42s2YO4heRRTHf3O/a3ZZzQPxgZWPJUFIoykEUdReUAsL01gJQgpXF5NokkIwTZpUNoJ9GhUjCDaiEo2okMIiGmXNhiBKIFFWXZLd77t/m//ocTLfY00+cOAwd86cO/e8z5mLJAI0nhckLUu64nmh2J8axEXP817Vx96CbiqQJAEkQMBtwDlgxusG6Lx/BbgTuBDoy9EY8HsdGxxNMe8EZgMzeU/G7yzoy7M6oG/oKnQJaAPjEVogtSbM0v5arCnWl4bsJzMwDzxp3HFgqdCmzGxtdMDfJssSJuAk8ACwFqTeBHwJPORDoyl6wAB4zExsMX7FzH1i6ft2ideA7f5WZPYM8HotwnZIOl049Gnja5HWGE6Z9rJBxvUktab5UKPHyaihKO0c8DhwF7AMfACshv1oKgFbTbfFuGyeFeBu4DfT/GRtEeiiW8zUwn4c9Kaooc+zhrKv7AKeBx4Bbg8a+QU4AbwJnAr0UauPAu8XPvQE8GnFh3YUGv6XD2WJD0jqj5Ggb7pSU8nzPZIWDfPF3oYy9T5/cCBp3bAWIOMGpnu1wlStrJS4FMxXQispJUm7gK+KhJcqeSKrdmAz3Qd8U5iv8V6m23CmboF9RfQk2/O4y8UM8JTtrkDzAvBcUV4SsB58q1ZimhECd0i6IKmzf3SSvpW0rVD1NuM7m66T9H0wWfSTOQMTmPCq/Ra4JUiSgHecN2YdGa3X7wIHAt3NwGbvJWfzI8DTlvhtYL8zfiwP8y7SKr57DlhqK+pbN64f6k4qDs64WNmPAAthPz+/aGbXbOI37AbluAy8XKvaaUhxTSN88SZgt/0wwm7gRjMzBxw2M/3QnnSmnQWONvzPRjPE29MEWovjD+CYIyvCMeBPm2wVOOTILXuink222FYY2GRcG1JD3/irw/Qfwfb7uXTqFPzyLeDjIU69DPx4LWF/Zlph/xHwTJD8Xjdj741JjCfsjFmDOepWQ2LsClN34xJjknQ/8PUGSkc+dCqlg+LqM6gU2fUCL0mvTKu4xkMPFR8vR2by4DTbjyQpm+cG4GeXhDLy8voScEcooJpGg5YluFXSRWujK7ST1xdNF9+7rk1+G7QwmNDtBpX72FY3813IV51xm0OT/7Ajd1iT/+C1lo58w/0dOOvntXCnO+u91vNnTiMzZjzCDPBFex3KT7LWFisXxZdCruqAZ0dcFL8DDmenlp35hwmcervnVCRKTXCVnqiFrSW/USYaZbol4GjlB0TUZm9IwmyAQVthcNRHR5m4m+B3zNifDbFUrADnxzRo502XRhwaf8f8p35IoWXd48ig+IWC8XtCIRVTGH8B8LM7QjKP55cAAAAASUVORK5CYII=',health:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADlUlEQVR42r2YPYgVVxTHfzPznutXtNgIi7sSTJ21CKmSJpgiFkENqGhsYqGFRSohIZbRIhCzqdMEQmADKQJJChFRxFgoK+KKIVm/Ci0MmgiCie7OzN/mXD1cZt68ee/pgcubd9895/zv+Z6XSKKBkuh7I8Mw/J0eQlJ7LqLfMvssewgfmD+psFBWIWSNKXkYCclqFPq9FHjF+B426erUHFgJfAh8AEwD6wzQfWAe+AX4Gfg/EhqeVxn/VuMfN0D3gSvAb8b/yACXzx0qhZXa525JC2qmvyTtNJ7MVhv+65I+inSDpMQJO+YYcluFpNJW4fYDfeUuNeP2l2wtRivsB/raXSrBgfnSCSr6uGHhBH8h6UjEXzTwxvxIykJQvw8cB5YsrpIWaV1GGZW5vRw4ZXGXAJuAd4GunUnsTBfYDJxGUlfSvLkk12DkLRI+z0ja5NwZ1rSks+5sbrrnJGVI2hYJGobChc5JGnOx0bEVwmOFpIuOJ+jekgJ7LCXbVmAqKnBqqfwx8MRcUZhbcnvuWrk46NwW9O9B0i1DVw5pnRCg35kVOhXuikvMXMS7kALra3rOoHSyD1mpnbkQ7U+mwLIRAQmZ9nefIRAqt6flITVHSWWLKWBFtJenwL0Bx4phQQt4I9r/JwUu24/lSwITsmod8HbkwvnUOm8ywqBuosyU77WxJndB/iuSJiT96xqohqjWkrTZFcQ43RNL+dWSbrvuUEp6IGkiBe4CPxrC4iVYpwQOA1MulhJgFrgbUL8u6bEbNV6EhcL3t6wQ5q4HPpa0UVKSGuqbwDfmy+IFBvJq4Ac3UYSpYAa4BWTer6skXRui0dZZKHFt5KeKhrogaaVhSFLnw0fAPlcCRlWXOpZJR4EdLquCjn3Af8+s6HwcbvGZIV8cgYW69vxJ1ESD7E/jRhynZfhhNhIwCKAwD+2PZqUgc7ZqKqirE2OSfm8JKgB6z40XBxyY0skKA1xqOmsB+VllXNKVFqBiCx2qAXNV0qvx608vQP7gpKQ/+wQVatg7kj6vAXNN0lQdmF6AfNpOSfqjBagbkcWWXHq/1qOtNALyjBNu3Fxs4b5wdt5ZJuulswmQF7BW0gl367wHmNxZ5ozFYyOYfgF5f3ckfVsx3C9VvCJL0vcu/dN+dPULiCg9t1vq1tF5SbsqLtS4kj7+QYubZOKmy2ngTWCDfb8DXLIpNAz+rd752gKK5xo1nGk9OTwFVMAIgIptTvsAAAAASUVORK5CYII=',thermal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAEhUlEQVR42p2Yz29VVRDHP/f9SCUIUsRN0caUpOKPjdFgTdMQY2GhGxc1lrBojG5Y1T/ArXvduKkxQfwBJGULgguNTYWFGo0mmGgJjWjA0ErVKry+93Xh98TJ6ftxXyc5ufecMzN3zsyc+XGRRJtRDe/PSfpQ0pKkdY8lrz3fgQZJFT8njN+U1NJmaHnvR0nPdBNmv6Sz6g1njRtpC4+6pG+N1+zCIwl6lQ6nOihpNTDakNTIxkb4yKppEo/C7zskrRn/Thse+dgkTCFpVNItf6hh6TupupUYmWbUPCpBW2+pPMwVkjBUAAGfARPABlDjf7gIXPL7U8BY2Eu4nwMHgcK8EkwDo2Fe+BlxfgBO5X5z2JJuBGdbkzTVxtemvJecdcO0hzs4eamRXmp+nghmSP7xQsCJA+8lP0vmPZHx7GsUkpJ6K8D3wH6gAdSBBZuvbrMoqLxmvAVgPNBcBh4FWsF008BDdIfLwOnoIzuAPRnSQuYPCb/ptcJ+Mx5o9gB3A2vGeROYpRxMRoGq1lKEf8KHZS1FxxTwd0ZTsaYAdgIvW3utNvxzeLXWA6EIt+geYMbz49ZAxImgcKBrwMMlNfRLrSTiduA8cMDzo8CzwJ8dBEpwB3gFeBu4v4uGBCwDs70ESgyetDANzw947dMeZqgAXwCPA4NBo0UmTAHcJAt83Uw2YB+oet7yGj00lG5vC1gtYYl6rY02ejGOUb2XZsloUijYnV0WgBWgUQunXO/inPQQNof1THNJmDH70wOZ0AKuAq/VvNEEXvRNappZNFE3qIaTN81jCnjPeylm1YF3u9y4e4GTSfIRS14N5qgA10sIdD2jqZrXSDiUgLuAvb4Yt/3Mx1DKIR+FpJpy2FeSBl1OHAo5K+0f8t6gcWPtJEmnQ5ItW4rMFZIeAb62SpM//AY84aCWyo2LmYOOhXJkL/AlcF/mzI+5rKgG2rwU2VR+vBG0k0434xPVJW2XdCaUI6ncOOO9unFnAp9UtL3eb+ZH0qVQHUrSsqSBUM7Ohw8pe58P1eaAaeVyVZIuZKVxuzImjaqkAkkrmUDvB+LxbC9CWhsP+B947bafS0GDRRkNVXxNI1wJMWSiRyyScVIsu5JF753Og6Wh0iVdUKJcKBPh1a9Av2dr+wKTxTYFe54UF8N8Xxa9bwF/9SMQkhazduZnSdtCs/dxcNRG6LHkvYS3TdK1zKnPtXHqnj50PpQETceUoz5lDTgCnHOcqnnUvXbEc5lmKKQeXJ6UNf1//iJpFPjG5URS9U3XO8shH00CT4ce7ULYG3Zg3B14N523fsoqhZ4mQ9LxcJVTavhO0kgJNY8YN7ZDMXxU++3LCknDkv4IkTgJdUPSMUm72hDv8t6NLM+l5nI4tNV99WVJ7S8BJzMfSLb/1WZa8nzE+W0oK8JkM04Dp4JJ+7plMdfMZpG4maWMHDYyM8k8tty5kuUYJE2HdKIOv2LiL5kEK6bdsjC5QNEBH5Q0Z1/oBWuS3jHNln8yRB9qV5Imu4+6HJ10z59amVX34p8A865l2JLPZPAvHRKC2Te+AqsAAAAASUVORK5CYII=',identy:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADbUlEQVR42s2Yv49VVRDHP+fet4v8MNkCbPwBxRqIJLTaUGFsLLQhBApBqCiQEoINtdULfwCgCb+0EBMl0WhlQ00Fzy0ISAMmUuyu7r5335fme8Pk5L5fy1t2TzI5990z78zcmfnOmTlJEkNGYn3GQKGthneFqRr2x1ccCSiBvunlQmah0orUYwcwM0VrCegCi4NktoKw5IX3gePAx8B7wJYpW2cFeAT8AVwF/rJHBAhJSVIhCUlfS1rS6xtLlol1SElSbbIrwAl/RW9U8E0hhqKHrgJfAiXW7pw1XpHUl1S9ButUlrXi3+ckkSTNA/eA2eDLAngM/AI8naKlEvAW8CnwrhGWPK8CB5DUtoa9YJnbkuZsvfWgOUk/Bkv1/NxOkjrAvLUsgCfAXmDZkFeD7zVmjDTBPhn624AHwNtB9kIB7DZTzXw7KNN1gFchh3T9XHktp8iXU702Yxk/ZbJ3txw7cfwTmOKXVf4qvNmgUTmhzoY9kmNkMbPUs+y/s8UAc8eNCifHNtAxtf2uCO5JhvElJ7sOsGDq+N0l80SrZE59ObqeLzrwWpJKP7cbYNv2WmleJB0bA+7HQnBfzGSrGBGYFbAdOOrnSEftwip86XxwaR4/yxlP4yimlHHrfHILeG5FZzLa5rVbw+S2RpzMJbAE3ADOZus3vFYGKz0APgQ+B7Zm/P8ZwR0r2J9UIUJ+OG/Bh/3+B78rwsZ1kHaAb0ZYVWuxUBTyP3DGlLt83GOl1VSQTapQCht8Ahzw8z3gtxA7CvNe4DO7LFrt5jiFXmtEwPeAPcB3wMFs/U/gC+Ch96mszF1grmG/jxyH5VpR1nfG/dnK5DA+6GpgR3DvESsTYb/i+QTwZpYmJlKoB5wC9lu5HMZ94APz1AXdgucI+y2enzgW1+yyBNx3XbS1Qfm+oXw/FOvf2zWHQ3Mg4G/gtC1VTIoyhTblV2Af8EZ29kT0LYdDFeAr4EJ2uP6bgaQYBP+WT+F44u8MApMFLk+QV8qszYnh0c/+syvjWR2nQFtLF5qG8I0s0O5krngHuG60dMegpiJtGF/Xe1+zrKjonU1Z5G+6Nqg+rS+7WduIRvEKcLJuFGMrfUHS4ka30jks553mD7kjWa/Lht+Bb/PLhlHXMdsd7GmKF1WrLuwaZaaGG7RNdWG14Vd6LwA7mVU8uX64BgAAAABJRU5ErkJggg==',journal:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADoElEQVR42s2YTYhcRRDHf+/N23UzMbCJRhEJCgbEXAx4UA85eBME9SIJQnITD0GvGnP3oCAiQkBNzCkYFfwARRA8BARR8JBcdBPjx540ElaiY2bf7Pw9+G9Sdt7OvN3ZjCko+lV3VXW9qurqDyQRsJRUSXpLUl/SeUl7JBWSOpJuk3TKY6dMdzy+x/x9y1fWR4aF++ckvSnpL+PrkmYiY8ftPv0LtdvTQfER9112eyT8yJlMbl+mN5/nFfMNdQVerrgCpdtdwBCQ8U7gLuB3YLfHCre7ga3AzcAdQWZoPR3rXbHuwt9dYL/5Egg4WGUdK0FJmngz8LXpLR6btcx9wDn3bTZ/YbpjfQVXw6Ywj4LcphhTJL0gaUnSSubKtcDQ8n9IOhxCWhiRtE3SxYaQ/SemxxoU18ZlY92A+Vj+I0fDPGUbg5D0nOl++MNJIHm4b/qQ56nGGVRI2gmcdl6kmJbAIvAJ8Jv7xkEB3AI8AuzIkn8A3AP8aN5tzr2tIYecydKrNm4QPPOhpPmGGtIG5yV9EDyVysCLgWdkyBbcOXD7i6Sux2bXaEzi70paDHk4lPRNG4Mq148iuO5joOcQLgN3A495qZIt4xTKv4GPgO8t1zN9MOjd4bJxaZVSAEAVakqCCxYY2JivgPkWOXQIeAA4a/kL2fhsw1xXQblKcqZqu9fG9IB6BPbMtzdU+YJ1QDVm/Jzb7hi+mYx/3VCNmeSkw/CE6aa/lr30HvCu+eprYVDa254FDjv+CiEl0MvAny29PlHICvNcaqGrE3b1a2ZQCseWkCcFcDFU9OStiY1ZbZXl3nkNWDCeda35FngwbA9ig2CUh2rgSeCZhrGbgKPAva5XG2bUuJDtdNsLIUuJfDswN67ybmTISi/7JdehGeOs2+M2pjOtkHWcL/cDj9sbKbcWgHfC8YJpGKQw+UtMCdos+3KV0A7+D4NwSIbT8lDJdQbliNyZBNZdl0pvjBG2T2hUMmZ71r8M9NsY9HO2iz/qulO73lRrwHT06FpP1LsYTgQaZdCnwRvy2feET4C1V1NbrC13wnoUvPZ55sVm97a4l/26hnDdOuJetgs4b74bgR98j4vpUU/75hqv01+aL90HVySdiXf7t4PCgbFeBybZBMeyN4R0nT4Q3pMS/1P568fzfv3YCFiyvvj6QUa/H/hPSioKSYT3maHvYk8DD/uxaq5lCRBwGfgJ+Ax4A/gu5KUakvoG4AvTDwH9fwDWE83a1y7rAgAAAABJRU5ErkJggg==',skills:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAEN0lEQVR42r2YS4hcRRSGv3tvT2amjROdGSUbRfGRhSJBcRFxbVAQXBjcKK7cZCOoELMQxhAEBcOAoBERfCwGDRgigiAiBHwgkYCiETQQNfgYTI/GQIzdt/t34V/hcL39HJiCoorqevznP/85t6qRNCPpZUnnJHX1/9KR9KekVzw3l1RIQtIdkk5KuiDpN0mfSVqWdLfn4lqE/sCKpIPqX6oAD3hhQ9KUpC893qtZe0LSXkmLXpNLykYBVLp2XNPmpdtjkj53f1XSJV48Z1Y7ktphfVkB+LOkR8Kh+TBAdaXt9qUw+X2PbwljL/RZ3wlGpvKWpEuHgcLWtGzFEwHMq5407fZ5j8dNc0kPSnpW0oqkryvAEludwPaVg0AlhvaGwYclven+Jrc7JP1lcV/usTo95JJutdbOVlyfDD1uo2o1lQC94YHZ8GMCc5ukNc/7XdJ8AJRZ4I2aSLpO0uE+oA6H4KgVtSQ9WWPxLQah4Nr5AQxltjwetBR0FUE9WpcSkoZSeD9ny7ZKesBRFTdrSVoYAKjqvgTsqbBPzyScl3RDMOIioHYIfTnJna0IM9VVSc0RAaU5U+6vVPaTpA+qLOEMPGpZHjfzhmick/Rj8EgCtSvumcL6gKTTks6E2nI9I+kng5kOYmaMmgy4N7DUNbhTZj2XlMVFTetj3m3sN8cEUFeTno7UuG5PmpNJyoApoM3gsgnoAGKyknvt9cBX3g8gA/4AbgTW0qQ20AQWgHm3sd/0nEnBAPQM6nvgYADY9Tm7AWWSZoBngF3ArBHHIuA88A6wJzCpdbB0BfAdMBeA/grctBFR1k9LT4fclPLg7kxS2wizGnYi3QAt4Fozlq3ThduAY8DmwNIXuQVdVEBVa+45Dbt1kpL22gIcAo4C0x4r3G5vTLDxpKwUQAk8Dtxfs6eATs7GlWTI7Y6sTpBDaS8camwgoK7brcFFKfJy4CPgsY1iKB2+2YASM7KW7gN2psQ46eaTCDol3OTCDHgbOJLmNezLUcO+BP6eAPgU8A+w3f2uzwRYtQsBlAOvjxD2heuKc1AxJNryEDkymCawFNblJuO4Af5ntF+Y8frR8h16rc/1Y9iDL/624NvnzvC264Wv/IfVF0gmXTR0FpipoVzAhRFdldvSHcCLwFV20VxwfWZGGsCdwCdmvJsYykb8NhUjMJNeId/WPMnLyh1oqe672AhXgCww07NlM8C5kDeKISIWcJlDu1dhOq7dbz0VIT+RGKLm3X2PrfwlWDLO17wV9NIL/aOS7hr0co0aSpbMASeBxYD7NeCHED2DGLoGeCgwnXv9sm+K1DKTNgmAkiCvBk6FzQjtuKW0eG8GvnFf/cBUD0oATgPveXHSVjlmlXNMA3gXOGFNloPA1GkoRcqipE+1/vKxc1E+6tNpUGJrStrnv+zaQaDDattr9oU/L0Z+x/0LwwqoqZm04WEAAAAASUVORK5CYII=','mirror-user':'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFQElEQVR42t2bW2yURRTHf629gG3VLhpRLFIIiIk3jGmjUYzxmuDlwZSEeC0SKaCiTwoxRGMkajSKokZ5qRckanjDF28PJaCiiQGkFdTSNqg0IDHa2u5WOT7sfKE2M9355rLdepLvYc838z8z/z0zc2bmfGUi0glsBd4Duih9uQFoARYCM5TuENABfAh8kgpNTshxEflcRG4VkTIRocSeBSKySwrLVyJyiS0uBpCvReS6Eur8ShHJir0Mi0ibDwGJbBGR6RPc+XXiLmt9CRAROSIiiyao863iL8t9CUjmh6eKPDc0i0guAAFZEWky2SkTEUkxZ74L3AfkIs/0U4FvgfMC4XUBlwLDY1+UpwS6E3gfqIxMwJqAnQc4H3hM9yKtBySyRZFxPELnzwYOADWBcQeBucCvPh6QyBLgiYj/fk0E3BqFHcQDAERFZFsDNnIa0AecHIncQWAmcMzXAwDKgE1AQ8AG3h+w858avGBZiCGQSD3QrsgIIfcEwnlNeeeA5t29pr2AjywJtO6HkO9EpFphbjSUuSyxWx6I8WfU2u0jtwdohwArgKz6vamQrVAEzAQe8sS4OUA72oHto37vBn7QlFsUegiIiBwWkamO7t8YwP6QiMzQYK83lG8IOQQAzgSWOta9KoD914GfNfpuQ/mFIYdAIo86hslXBljfn9Xoq0whMHBFDAIaVJSYVpo97W4E+jX61cCc8QjwiQTH23ldkGKfUKnW6ypHewPAbODIGH1GTYAZQ70sUBvaA5Kd1y0pys/36DzAS5rOo1w/M069amBeDAIAHkxJmKsMAS9r9BmgzcZ2LAKuBS60LDvLw87bhn9/NVBnYzsWAaiIzEbO9Yj6Nmj0tcAqW9sxCbgLONWi3DmO+NvQX+SsUNtqq1UrJgG1QKtFuTMc8Z/X6CpSzj+nxyQAYKVFrFHvgPsN+auwsdKS8nwiE5uAucCNhRrhgPuiQf9wSpzoBNgsiWm30b+QvwTVhdNNKbGmFIOAmxj/iDvt3uFVYESjf8ShbVXFIKCsQFCSJgocAt40xBK3ObStuhgEQP426ZQAOO8ARw2Bz0kugMUioA64w/Aul9L9dditju3KVlA8uUYdWugImGJRvx/Yo9EvAD4eozsNuN4CM1dMAkwybDk8TNv2Dk1McJZaLQraLi8BAo5FwDwM/GVR7rf/KwEC9NjYLgUCjkbC7Z4sHnBoAgnoi0HAMhX8jH0WG8r3WuJOV66tey7WlD9ogdlbPkHMj5aeADbnOLajpxQI6Axgs9GxHZ2hCRhxGNP78U+6ajQMgfGO/LPAj6EJ6AX+cSDt+whDYBD9ZUkiXcDfoQn4ybHeFxE8oNBEuDPGZqjbsd4OT7uzDH3pLmQzNAEHHett97RbzYnUeVsCOkrJA3oCrAazNbq9hrJ7ksk6NAF7Pepu87R9UYo56aMYByKH0Kej2IpvvuHVGt3SgrYCpsisDZAp1uVhP5ekvainTkT+0JTbN9pmKA84gPmsPo285VG3Enhh1O9V6C9I2/+7cfaXfhGZH+gbgYyIDATwxGki8rvm3Z8iUu/ywYRJdqgMr5AfSrwS4E/Zb9Bv8P1gYkQdN+0ENquZO3SKTax0+QFgHmPS5U0e0DLBH0o9KeFlnc5WKZwI6WQ9sC8gXhfwnO5FqRKQVWt4iG+TcsDdaL4XKmUCAHYBywPgPEA+n4DJRkCyZj/uUX8N5ozxSUEAwNPkM02yKYdQG/k0fiY7AZC/U2wGvrQ8XGkC3rABrmDyyG7gcvI5iIvJZ3sn+UB96kzhA+CzNKD/AmFVbBEIwCtBAAAAAElFTkSuQmCC','comb-hair':'data:image/png;base64,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','mirror':'data:image/png;base64,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',};
+const $ = s => document.querySelector(s);
+
+// ------------------------------------------------------------------ the game's data
+// hairStyles.xml: [name, level, flags (a = tied/attached, n = never offered, g = grow reference), trim choices]
+const HAIR = {
+ m: [["Bald",0],["Picard",1],["CrewCut",1],["Baldspot",1,"",["CrewCut","Picard"]],["Recede",1,"",["CrewCut","Baldspot","Picard"]],
+  ["Hat",1,"n"],["Messy",1,"g"],["Short",1,"",["CrewCut","Baldspot","Picard","Recede","Hat","Messy","CentreParting","LeftParting","RightParting","Cornrows","Fresh"]],
+  ["Donny",2,"g",["CentrePartingLong"]],["Mullet",3],["Metal",3,"",["Mullet","Fabian","LongBraids","LongBraids02"]],
+  ["Fabian",3,"g",["Mullet","Metal","LongBraids","LongBraids02"]],["PonyTail",3,"a"],["FabianCurly",3,"g"],["MessyCurly",1,"g"],
+  ["MulletCurly",3],["ShortAfroCurly",1],["ShortHatCurly",1],["CentreParting",1],["LeftParting",1],["RightParting",1],
+  ["CentrePartingLong",2,"",["PonyTail","Braids","Grungey","GrungeyBehindEars"]],["Cornrows",1],["Fresh",1],["LibertySpikes",2],
+  ["MohawkFan",2],["MohawkShort",1],["MohawkSpike",2],["MohawkFlat",2],["FlatTop",1],["Buffont",2],["GreasedBack",1],["Spike",1],
+  ["LongBraids",3],["PonyTailBraids",3],["LongBraids02",3],["Braids",2],
+  ["Grungey",2,"",["CentrePartingLong","GrungeyBehindEars","MohawkSpike","Braids","MohawkFan"]],["GrungeyBehindEars",2],
+  ["HatLong",0,"n"],["HatLongBraided",0,"n"],["HatLongCurly",0,"n"]],
+ f: [["Bald",0],["Demi",1],["Spike",1],["Hat",1,"gn"],["OverEye",2],
+  ["Bob",2,"g",["OverEye","CentrePartingLong","Rachel","MohawkFan","MohawkSpike","LibertySpikes","Braids","Buffont","Grungey02","GrungeyBehindEars","Grungey"]],
+  ["Bun",2,"a"],["Back",2,"a"],["Long",3,"",["Long2","Kate","LongBraids","LongBraids02"]],["Kate",3],["Long2",3,"g",["Long","Kate","LongBraids","LongBraids02"]],
+  ["PonyTail",3,"a"],["Longcurly",3],["Long2curly",3,"g"],["BobCurly",2,"g"],["BunCurly",2,"a"],["HatCurly",1,"gn"],["KateCurly",3],
+  ["OverEyeCurly",2],["RachelCurly",2],["ShortCurly",1],["Rachel",2],
+  ["CentreParting",1,"",["Demi","Spike","LeftParting","RightParting","GreasedBack","Cornrows","FlatTop"]],["CentrePartingLong",2],
+  ["LeftParting",1],["RightParting",1],["TopCurls",1],["Grungey",2],["GrungeyParted",2],["Cornrows",1],["MohawkFan",2],["MohawkShort",1],
+  ["MohawkSpike",2],["LibertySpikes",2],["MohawkFlat",1],["FlatTop",1],["Buffont",2],["GreasedBack",1],["Fresh",1],["Grungey02",2],
+  ["GrungeyBehindEars",2],["OverLeftEye",2],["LongBraids",3],["LongBraids02",3],["Braids",2],["PonyTailBraids",3],
+  ["HatLong",0,"n"],["HatLongCurly",0,"n"],["HatLongBraided",0,"n"]]
+};
+// beardStyles.xml
+const BEARD = [["Chops",1],["Moustache",1],["Goatee",1,"",["Moustache"]],["BeardOnly",1,"",["Chops","Chin","PointyChin"]],["Full",2],["Long",3],["LongScruffy",3],["Chin",1],["PointyChin",1]];
+// IGUI_Hair_* / IGUI_Beard_* (English)
+const HN = {Braids:"Braids",Buffont:"Buffont",FlatTop:"Flat Top",GreasedBack:"Greased Back",Grungey02:"Grungey Long",GrungeyBehindEars:"Grungey Behind Ears",
+ LongBraids:"Long Braids",LongBraids02:"Longer Braids",MohawkFlat:"Mohawk Flat",OverLeftEye:"Over Left Eye",PonyTailBraids:"Pony Tail Braids",Grungey:"Grungey",
+ GrungeyParted:"Grungey Parted",Fresh:"Buzz Cut",ShortAfroCurly:"Short Afro",Bald:"Bald",Picard:"Picard",CrewCut:"Crew Cut",Baldspot:"Bald Spot",Recede:"Receding",
+ Hat:"Hat",HatCurly:"Hat (Curly)",Messy:"Messy",MessyCurly:"Messy (Curly)",Short:"Short",ShortCurly:"Short (Curly)",ShortHatCurly:"Short (Curly)",Donny:"Errol Costello",
+ Mullet:"Mullet",MulletCurly:"Mullet (Curly)",Metal:"Straight Long",Fabian:"Fabian",FabianCurly:"Fabian (Curly)",PonyTail:"Pony Tail",Demi:"Crew Cut",Spike:"Ducktail",
+ OverEye:"Over Right Eye",OverEyeCurly:"Over Right Eye (Curly)",Bob:"Bob",BobCurly:"Bob (Curly)",Bun:"Bun",BunCurly:"Bun (Curly)",Back:"Pulled Back",Long:"Lob",
+ Longcurly:"Lob (Curly)",Kate:"Mullet",KateCurly:"Mullet (Curly)",Long2:"Long",Long2curly:"Long (Curly)",Rachel:"Raquel",RachelCurly:"Raquel (Curly)",
+ CentreParting:"Center Parting",LeftParting:"Left Parting",RightParting:"Right Parting",CentrePartingLong:"Long Center Parting",Cornrows:"Cornrows",TopCurls:"Top Curls",
+ LibertySpikes:"Spikes",MohawkFan:"Mohawk Fan",MohawkShort:"Mohawk Short",MohawkSpike:"Mohawk Spike",HatLong:"Long",HatLongCurly:"Long Curly",HatLongBraided:"Long Braided"};
+const BN = {None:"None",Chops:"Chops",Moustache:"Mustache",Goatee:"Goatee",BeardOnly:"Honest Abe",Full:"Full",Long:"Long",LongScruffy:"Scruffy",Chin:"Chin",PointyChin:"Pointy Chin"};
+const LEN = ["None","Short","Medium","Long"];   // ZeD's words for the game's levels 0-3
+// the game's tooltips (Tooltip_*)
+const REQ = { rs:"Requires a Razor or Scissors.", s:"Requires Scissors.", gs:"Requires Hair Gel, or Hair Spray.", g:"Requires Hair Gel.", sp:"Requires Hair Spray." };
+const GT = { Tie:"No tool", Shave:"Razor or Scissors", Cut:"Scissors", Style:"Hair Gel or Hair Spray", Trim:"Razor or Scissors" };
+const TOOLN = { rs:"Razor or Scissors", s:"Scissors", gs:"Hair Gel or Hair Spray", g:"Hair Gel", sp:"Hair Spray", none:"No tool" };
+
+const SCENES = [
+ { id:"fab", label:"Long hair, full beard", sex:"m", hair:"Fabian", tied:null, beard:"Full",
+   cap:"A man with Fabian (long) and a Full beard, carrying Scissors, wearing a Baseball Cap. Every cut the game allows from Fabian, grouped by what it needs; the mohawks and spikes need gel or spray he does not have. Out of reach (folded) holds what Fabian cannot be cut into." },
+ { id:"short", label:"Short hair, goatee", sex:"m", hair:"Short", tied:null, beard:"Goatee",
+   cap:"Short hair: only the trims the game lists for Short. Most styles sit under Out of reach as Hair too short. The goatee can be shaved or trimmed into a mustache." },
+ { id:"bald", label:"Bald, no beard", sex:"m", hair:"Bald", tied:null, beard:"None",
+   cap:"Bald and clean shaven: nothing to cut. The game's menu is empty here; ZeD says so, and Out of reach shows what the hair grows back into." },
+ { id:"tied", label:"Hair tied back", sex:"m", hair:"PonyTail", tied:"Fabian", beard:"Full",
+   cap:"Hair tied in a pony tail: the game offers Untie Hair only, back to Fabian. No tool needed." },
+ { id:"fem", label:"Woman, long hair", sex:"f", hair:"Long2", tied:null, beard:null,
+   cap:"A woman with Long hair: four ways to tie it, then the cuts. No Beard half, as in the game." },
+];
+
+const S = { scene:SCENES[0], sex:"m", hair:"Fabian", tied:null, beard:"Full", part:"hair",
+  inv:{ scissors:true, razor:false, gel:false, spray:false, hat:true }, mod:"none",
+  sel:null, outOpen:false, pad:false, lg:false, zoom:1, focus:0, busy:null, done:null };
+
+function styles(){ return HAIR[S.sex].map(r => ({ name:r[0], level:r[1], att:(r[2]||"").includes("a"), nc:(r[2]||"").includes("n"), trims:r[3]||[] })); }
+function hairOf(n){ return styles().find(s => s.name === n); }
+function beardOf(n){ const r = BEARD.find(b => b[0] === n); return r ? { name:r[0], level:r[1], trims:r[3]||[] } : { name:"None", level:0, trims:[] }; }
+function hn(n){ return HN[n] || n; }
+function sortStyles(a, b){ if (a.name === "Bald") return -1; if (b.name === "Bald") return 1; return hn(a.name).localeCompare(hn(b.name)); }
+
+function has(req){
+  const v = S.inv;
+  return req === "none" ? true : req === "rs" ? (v.razor || v.scissors) : req === "s" ? v.scissors : req === "gs" ? (v.gel || v.spray) : req === "g" ? v.gel : req === "sp" ? v.spray : false;
+}
+// the game's rule for which tool a cut needs (ISCharacterScreen:hairMenu), or Spongie's Hairstyle Unlocker's
+function hairReq(n){
+  if (n === "Bald") return "rs";
+  if (S.mod === "spongie") {
+    if (/^Mohawk(Fan|Spike|Short)$/.test(n) || n === "Spike" || n === "LibertySpikes") return "gs";
+    if (n === "GreasedBack") return "g";
+    if (n === "Buffont") return "sp";
+    return "s";
+  }
+  if ((n.includes("Mohawk") && n !== "MohawkFlat") || n.includes("Spike")) return "gs";
+  if (n.includes("GreasedBack")) return "g";
+  if (n.includes("Buffont")) return "sp";
+  return "s";
+}
+function cutLabel(n, req){
+  if (n === "Bald") return "Shave Hair";
+  if (S.mod === "spongie" && req !== "s") return `Style Hair into ${hn(n)}`;
+  return `Cut Hair into ${hn(n)}`;
+}
+
+// the rows, worked out as the game's menu does
+function hairRows(){
+  const cur = hairOf(S.hair), all = styles().slice().sort(sortStyles), rows = [], out = [];
+  if (!cur || cur.level === 0) {
+    all.filter(s => !s.att && !s.nc && s.level > 0).forEach(s => out.push({ k:"h:"+s.name, label:hn(s.name), why:`Hair too short. Needs ${LEN[s.level].toLowerCase()} hair.`, tool:"Too short", style:s.name }));
+    return { rows, out };
+  }
+  if (S.tied) { rows.push({ k:"untie", grp:"Tie", label:"Untie Hair", req:"none", act:"untie", style:S.tied, verb:"Untie", time:100 }); return { rows, out }; }
+  all.filter(s => s.level <= cur.level && s.name !== cur.name && s.att).forEach(s =>
+    rows.push({ k:"tie:"+s.name, grp:"Tie", label:`Tie Hair into ${hn(s.name)}`, req:"none", act:"tie", style:s.name, verb:"Tie", time:100 }));
+  const vanilla = new Set(), list = [];
+  const add = (s, mod) => { if (!s || list.find(x => x.name === s.name)) return; list.push(Object.assign({ mod }, s)); };
+  all.forEach(s => { if (!s.att && !s.nc && s.level < cur.level) { add(s); vanilla.add(s.name); } });
+  cur.trims.forEach(t => { add(hairOf(t)); vanilla.add(t); });
+  if (S.mod === "spongie") all.forEach(s => { if (!s.att && !s.nc && s.level <= cur.level && s.name !== cur.name && !vanilla.has(s.name)) add(s, "Spongie"); });
+  list.sort(sortStyles).forEach(s => {
+    const req = hairReq(s.name);
+    rows.push({ k:"h:"+s.name, grp: s.name === "Bald" ? "Shave" : (req === "s" ? "Cut" : "Style"), label:cutLabel(s.name, req), req, act:"cut", style:s.name,
+      verb: s.name === "Bald" ? "Shave" : (req === "s" ? "Cut" : "Style"), time:300, mod:s.mod });
+  });
+  const inList = new Set(list.map(s => s.name));
+  all.filter(s => !s.att && !s.nc && s.level > 0 && s.name !== cur.name && !inList.has(s.name)).forEach(s =>
+    out.push({ k:"o:"+s.name, label:hn(s.name), style:s.name,
+      why: s.level > cur.level ? `Hair too short. Needs ${LEN[s.level].toLowerCase()} hair.` : `Can't be cut from ${hn(cur.name)}.`,
+      tool: s.level > cur.level ? "Too short" : "Not from this style" }));
+  return { rows, out };
+}
+function beardRows(){
+  const cur = beardOf(S.beard), rows = [], out = [];
+  if (cur.level > 0) {
+    rows.push({ k:"b:shave", grp:"Shave", label:"Shave Beard", req:"rs", act:"beard", style:"None", verb:"Shave", time:300 });
+    BEARD.forEach(b => { if (b[1] < cur.level) rows.push({ k:"b:"+b[0], grp:"Trim", label:`Trim Beard into ${BN[b[0]]}`, req:"rs", act:"beard", style:b[0], verb:"Trim", time:300 }); });
+    cur.trims.forEach(t => { if (!rows.find(r => r.style === t)) rows.push({ k:"b:"+t, grp:"Trim", label:`Trim Beard into ${BN[t]}`, req:"rs", act:"beard", style:t, verb:"Trim", time:300 }); });
+  }
+  BEARD.forEach(b => { if (b[0] !== cur.name && !rows.find(r => r.style === b[0]))
+    out.push({ k:"ob:"+b[0], label:BN[b[0]], style:b[0], why: b[1] > cur.level ? `Beard too short. Needs a ${LEN[b[1]].toLowerCase()} beard.` : `Can't be trimmed from ${BN[cur.name]}.`, tool: b[1] > cur.level ? "Too short" : "Not from this beard" }); });
+  return { rows, out };
+}
+function current(){ return S.part === "beard" ? beardRows() : hairRows(); }
+function findRow(k){ const c = current(); return c.rows.find(r => r.k === k) || c.out.find(r => r.k === k); }
+
+// ------------------------------------------------------------------ drawn heads
+function head(sex, hair, beard){
+  const sk = "#e3b897", hc = sex === "m" ? "#3b2418" : "#6b3a1e";
+  const h = hairOf(hair) || { level:0, name:"Bald" }, n = hair;
+  let back = "", top = "";
+  const L = h.level;
+  if (/PonyTail|Bun|Back/.test(n)) {
+    top = `<path d="M16 30 C16 12 42 12 42 30 L41 24 C37 17 21 17 17 24 Z" fill="${hc}"/>`;
+    back = /Bun/.test(n) ? `<circle cx="29" cy="10" r="6" fill="${hc}"/>` : `<path d="M40 24 q10 6 6 26 q-3 -10 -8 -14 Z" fill="${hc}"/>`;
+  } else if (/Mohawk/.test(n)) {
+    top = n === "MohawkFlat" ? `<path d="M25 13 h8 v10 h-8 Z" fill="${hc}"/>` : `<path d="M25 18 L27 4 L29 15 L31 3 L33 18 Z" fill="${hc}"/>`;
+  } else if (/Spike/.test(n)) {
+    top = `<path d="M16 26 L18 10 L22 20 L25 6 L29 18 L33 6 L36 20 L40 10 L42 26 C38 18 20 18 16 26 Z" fill="${hc}"/>`;
+  } else if (/Cornrows|Braids/.test(n) && L <= 1) {
+    top = `<path d="M17 28 C17 12 41 12 41 28 C37 19 21 19 17 28 Z" fill="${hc}"/><path d="M23 16 v10 M29 14 v11 M35 16 v10" stroke="#1d120c" stroke-width="1"/>`;
+  } else if (L === 1) {
+    top = `<path d="M17 28 C16 12 42 12 41 28 C38 19 20 19 17 28 Z" fill="${hc}"/>`;
+  } else if (L === 2) {
+    top = `<path d="M15 34 C13 10 45 10 43 34 L41 42 L40 26 C36 18 22 18 18 26 L17 42 Z" fill="${hc}"/>`;
+  } else if (L === 3) {
+    back = `<path d="M13 30 C11 8 47 8 45 30 L48 62 L10 62 Z" fill="${hc}"/>`;
+    top = `<path d="M15 32 C13 10 45 10 43 32 L40 24 C36 17 22 17 18 24 Z" fill="${hc}"/>`;
+  }
+  if (/Braids/.test(n) && L >= 2) back += `<path d="M14 34 q-2 14 0 26 M44 34 q2 14 0 26" stroke="${hc}" stroke-width="4" fill="none"/>`;
+  let bd = "";
+  const bc = "#3b2418";
+  if (beard === "Full") bd = `<path d="M17 36 C18 50 24 55 29 55 C34 55 40 50 41 36 C37 46 21 46 17 36 Z" fill="${bc}" opacity=".85"/>`;
+  else if (beard === "Long" || beard === "LongScruffy") bd = `<path d="M17 36 C17 52 22 62 29 64 C36 62 41 52 41 36 C37 46 21 46 17 36 Z" fill="${bc}" opacity=".85"/>`;
+  else if (beard === "Goatee") bd = `<path d="M24 44 h10 M25 49 q4 6 8 0 Z" stroke="${bc}" stroke-width="2.2" fill="${bc}"/>`;
+  else if (beard === "Moustache") bd = `<path d="M23 44 q6 -3 12 0" stroke="${bc}" stroke-width="2.4" fill="none"/>`;
+  else if (beard === "Chops") bd = `<path d="M17 32 v12 l4 3 v-12 Z M41 32 v12 l-4 3 v-12 Z" fill="${bc}"/>`;
+  else if (beard === "BeardOnly") bd = `<path d="M17 36 C18 50 24 55 29 55 C34 55 40 50 41 36 L39 38 C37 48 21 48 19 38 Z" fill="${bc}"/>`;
+  else if (beard === "Chin") bd = `<path d="M25 50 q4 4 8 0 v-3 h-8 Z" fill="${bc}"/>`;
+  else if (beard === "PointyChin") bd = `<path d="M25 48 L29 57 L33 48 Z" fill="${bc}"/>`;
+  return `<svg viewBox="0 0 58 66">${back}<rect x="24" y="48" width="10" height="10" fill="${sk}"/><path d="M14 66 C14 58 22 56 29 56 C36 56 44 58 44 66 Z" fill="#4a5560"/>
+   <ellipse cx="29" cy="31" rx="12.5" ry="16" fill="${sk}"/><ellipse cx="16.5" cy="32" rx="2" ry="3.5" fill="${sk}"/><ellipse cx="41.5" cy="32" rx="2" ry="3.5" fill="${sk}"/>
+   <circle cx="24" cy="31" r="1.2" fill="#2a2a2a"/><circle cx="34" cy="31" r="1.2" fill="#2a2a2a"/><path d="M29 33 l-2 5 h3" stroke="rgba(0,0,0,.3)" fill="none" stroke-width=".8"/>
+   <path d="M26 42 h6" stroke="#9a5a4a" stroke-width="1.2"/>${bd}${top}</svg>`;
+}
+
+// ------------------------------------------------------------------ pieces
+function lenBar(level){ let s = '<span class="len">'; for (let i = 1; i <= 3; i++) s += `<i class="${i <= level ? "on" : ""}"></i>`; return s + "</span>"; }
+function tabStrip(){
+  const tabs = ["loot","equipment","health","thermal","identy","journal","skills"];
+  return `<div class="strip">${tabs.map(t => `<div class="tab${t === "identy" ? " act" : ""}"><img src="${ICONS[t]}" alt=""></div>`).join("")}</div>`;
+}
+function license(){
+  const fem = S.sex === "f", h = hn(S.hair), b = fem ? "Not applicable" : BN[S.beard];
+  const changed = S.done ? S.done.part : null;
+  return `<div class="lic"><div class="hd"><span>KENTUCKY</span><span>OPERATOR'S LICENSE</span></div><div class="bd">
+   <div class="ph">${head(S.sex, S.hair, fem ? "None" : S.beard)}</div>
+   <div class="fl"><div class="nmrow">${fem ? "ANGELA" : "ANGEL"} CROSS</div>
+    <div><i>Sex</i>${fem ? "Female" : "Male"}</div><div><i>Profession</i>Burglar</div>
+    <div class="${changed === "hair" ? "ch" : ""}"><i>Hair style</i>${h}</div><div><i>Body hair</i>Normal</div>
+    <div><i>Hair color</i>${fem ? "Auburn" : "Dark brown"}</div><div class="${changed === "beard" ? "ch" : ""}"><i>Facial hair</i>${b}</div></div></div></div>`;
+}
+function hbSection(){
+  const fem = S.sex === "f", ch = hairOf(S.hair), cb = beardOf(S.beard);
+  const sel = S.sel ? findRow(S.sel) : null;
+  let afterHair = S.hair, afterBeard = fem ? "None" : S.beard;
+  if (sel && sel.style) { if (S.part === "beard") afterBeard = sel.style; else if (sel.act === "untie") afterHair = sel.style; else afterHair = sel.style; }
+  const showAfter = sel && !sel.why;
+  let h = `<div class="subh hbsec">Hair and beard</div>`;
+  h += `<div class="hbtop"><div class="pv"><div class="fr"><div class="box">${head(S.sex, S.hair, fem ? "None" : S.beard)}</div><div class="cap">Now</div></div>`;
+  h += `<span class="ar">&gt;</span><div class="fr"><div class="box" style="${showAfter ? "" : "opacity:.35"}">${showAfter ? head(S.sex, afterHair, afterBeard) : ""}</div><div class="cap">After</div></div></div>`;
+  h += `<div class="cur"><div class="crow"><span class="k">Hair</span><span class="v">${hn(S.hair)}${S.tied ? ` <span style="color:var(--ts)">(tied, ${hn(S.tied)} loose)</span>` : ""}</span><span class="m">${lenBar(ch ? ch.level : 0)}${LEN[ch ? ch.level : 0]}</span></div>`;
+  h += `<div class="crow"><span class="k">Color</span><span class="v"><span class="swatch" style="background:${fem ? "#6b3a1e" : "#3b2418"}"></span>${fem ? "Auburn" : "Dark brown"}</span><span class="m">Grows over time</span></div>`;
+  if (!fem) h += `<div class="crow"><span class="k">Beard</span><span class="v">${BN[S.beard]}</span><span class="m">${lenBar(cb.level)}${LEN[cb.level]}</span></div>`;
+  h += `</div></div>`;
+  // part switch
+  const hr = hairRows(), br = fem ? null : beardRows();
+  h += `<div class="parts"><span data-part="hair" data-fid="${FID++}" class="${S.part === "hair" ? "on" : ""}">Hair <span class="n">(${hr.rows.length})</span></span>`;
+  if (!fem) h += `<span data-part="beard" data-fid="${FID++}" class="${S.part === "beard" ? "on" : ""}">Beard <span class="n">(${br.rows.length})</span></span>`;
+  h += `</div>`;
+  const c = current();
+  h += `<div class="list">`;
+  if (!c.rows.length) h += `<div class="empty">${S.part === "beard" ? "No beard to trim. It grows back over time." : "Nothing to cut: the hair is too short. It grows back over time."}</div>`;
+  let lastGrp = null;
+  const order = ["Tie","Shave","Cut","Style","Trim"];
+  const rows = c.rows.slice().sort((a, b) => order.indexOf(a.grp) - order.indexOf(b.grp));
+  rows.forEach(r => {
+    if (r.grp !== lastGrp) { lastGrp = r.grp; const n = rows.filter(x => x.grp === r.grp).length;
+      h += `<div class="gh">${r.grp}<span class="r">${GT[r.grp]}${n > 1 ? " | " + n : ""}</span></div>`; }
+    const ok = has(r.req);
+    h += `<div class="hrow${ok ? "" : " dis"}${S.sel === r.k ? " sel" : ""}" data-row="${r.k}" data-fid="${FID++}"><span class="nm">${r.label}</span>${r.mod ? `<span class="from">${r.mod}</span>` : ""}
+      <span class="tool">${r.req === "none" ? '<span class="dot no"></span>' : `<span class="dot ${ok ? "pos" : "off"}"></span>${TOOLN[r.req]}`}</span></div>`;
+  });
+  if (c.out.length) {
+    h += `<div class="gh disc" data-out="1" data-fid="${FID++}">${S.outOpen ? "&#9662;" : "&#9656;"} Out of reach<span class="r">${c.out.length}</span></div>`;
+    if (S.outOpen) c.out.forEach(r => { h += `<div class="hrow out${S.sel === r.k ? " sel" : ""}" data-row="${r.k}" data-fid="${FID++}"><span class="nm">${r.label}</span><span class="tool">${r.tool}</span></div>`; });
+  }
+  h += `</div>`;
+  // the hair mods
+  if (S.part === "hair") {
+    let note = "";
+    if (S.mod === "none") note = `Styles added by <b>Spongie's Hairstyle Unlocker</b>, <b>Improved Hair Menu</b> or <b>NeatUI Hairstyler</b> show in this list too, marked with the mod's name. So do new styles from any hairstyle pack.`;
+    else if (S.mod === "spongie") note = `<b>Spongie's Hairstyle Unlocker</b> is on: every style at or under this length can be picked, and gel and spray styles read "Style Hair into". Rows it adds are tagged SPONGIE.`;
+    else { const m = S.mod === "ihm" ? "Improved Hair Menu" : "NeatUI Hairstyler";
+      note = `<b>${m}</b> is on. Its pictures open in its own window; the choices are the same as this list.</span><span class="sbtn" data-fid="${FID++}">Pictures...`; }
+    h += `<div class="modnote"><span>${note}</span></div>`;
+  }
+  return h;
+}
+function traitsShort(){
+  const pos = [["Burglar","BU"],["Fast Reader","FR"],["Keen Hearing","KH"],["Organized","OR"],["Fast Learner","FL"]];
+  const neg = [["Short Sighted","SS"],["Smoker","SM"],["Slow Healer","SH"],["Fear of Blood","FB"]];
+  return `<div style="font-family:var(--sans);font-size:var(--f4);color:var(--tx);margin-bottom:8px">Traits</div>
+   <div class="subh">Positive (5)</div><div class="tgrid">${pos.map(t => `<div class="tc"><i class="p">${t[1]}</i>${t[0]}</div>`).join("")}</div>
+   <div class="subh">Negative (4)</div><div class="tgrid">${neg.map(t => `<div class="tc"><i class="n">${t[1]}</i>${t[0]}</div>`).join("")}</div>`;
+}
+function footer(){
+  if (S.busy) {
+    return `<div class="astrip"><div class="txt"><div class="l1"><span class="dot ac"></span>${S.busy.verb === "Untie" ? "Untying hair" : S.busy.verb === "Tie" ? "Tying hair" : S.part === "beard" ? "Trimming the beard" : "Cutting hair"}</div><div class="prog"><i style="width:${S.busy.pct}%"></i></div></div><span class="pbtn" data-act="stop">Stop</span></div>`;
+  }
+  const r = S.sel ? findRow(S.sel) : null;
+  if (!r) {
+    const msg = S.done ? `<span class="dot pos"></span>Done: ${S.done.text}` : `<span class="dot off"></span>Pick a row to see what it needs`;
+    return `<div class="astrip"><div class="txt"><div class="l1">${msg}</div><div class="l2">${S.pad ? "Focus a row: it shows here. A does it." : "Hover a row for the game's hint."}</div></div><span class="pbtn pri dis">Cut</span></div>`;
+  }
+  if (r.why) return `<div class="astrip"><div class="txt"><div class="l1"><span class="dot off"></span>${r.label}: out of reach</div><div class="l2">${r.why}</div></div><span class="pbtn pri dis">${S.part === "beard" ? "Trim" : "Cut"}</span></div>`;
+  const ok = has(r.req);
+  const notes = [];
+  if (!ok) notes.push(REQ[r.req]);
+  else {
+    if (r.act !== "beard" && S.inv.hat) notes.push("Your cap comes off first");
+    if (r.req === "rs") notes.push(`Puts the ${S.inv.razor ? "Razor" : "Scissors"} in your hand`);
+    else if (r.req === "s") notes.push("Puts the Scissors in your hand");
+    else if (r.req !== "none") { notes.push(`Uses your ${r.req === "sp" ? "Hair Spray" : (S.inv.gel ? "Hair Gel" : "Hair Spray")}`); if (S.inv.scissors) notes.push("Puts the Scissors in your hand"); }
+    if (r.req === "none" && r.act !== "untie") notes.push("No tool needed");
+    if (r.act === "untie") notes.push("No tool needed");
+  }
+  return `<div class="astrip"><div class="txt"><div class="l1"><span class="dot ${ok ? "pos" : "off"}"></span>${r.label}${r.mod ? ` <span style="color:var(--ts);font-family:var(--mono);font-size:var(--f5)">(from Spongie's Hairstyle Unlocker)</span>` : ""}</div><div class="l2">${notes.join(" | ")}</div></div>
+   <span class="pbtn pri${ok ? "" : " dis"}" data-act="${ok ? "do" : ""}" data-fid="${ok ? FID++ : "x"}">${r.verb}</span></div>`;
+}
+function inventory(){
+  const v = S.inv, rows = [];
+  rows.push(["Angel Cross's Key Ring","Container","0.1"],["> Apple (Fresh) x2","Food","0.2"],["Baseball Bat","Sports ...","2.0"]);
+  if (v.hat) rows.push(["Baseball Cap (worn)","Clothing","0.1"]);
+  if (v.gel) rows.push(["Hair Gel","Appearance","0.2"]);
+  if (v.spray) rows.push(["Hair Spray","Appearance","0.3"]);
+  if (v.razor) rows.push(["Razor","Appearance","0.2"]);
+  if (v.scissors) rows.push(["Scissors","Tool","0.3"]);
+  rows.push(["Digital Watch","Accessory","0.1"],["Fanny Pack","Bag","1.7"],["Lighter","Tool","0.1"],["Pencil","Tool","0.1"],["Water Bottle","Water","1.2"]);
+  return `<div class="inv"><div class="ih"><span class="nm">Inventory</span><span class="wt">6.4/20kg<span>${rows.length + 14} items</span></span></div>
+   <div class="icol"><span style="flex:1">NAME</span><span style="width:86px">CAT</span><span style="width:34px;text-align:right">WT</span></div>
+   ${rows.map(r => `<div class="irow${/Scissors|Razor|Hair|Cap/.test(r[0]) ? " hl" : ""}"><span class="n">${r[0]}</span><span class="c">${r[1]}</span><span class="w">${r[2]}</span></div>`).join("")}</div><div class="cstrip"></div>`;
+}
+let FID = 0;
+function charWindow(){
+  FID = 0;
+  const body = `<div class="dh"><span class="nm">Identity</span></div><div class="dscroll" id="dscroll">${license()}<div class="groove"></div>${hbSection()}<div class="groove"></div>${traitsShort()}</div>${footer()}`;
+  const pad = S.pad ? `<div class="padbar"><span><span class="g">+</span>Move</span><span><span class="g">A</span>Do it</span><span><span class="g">B</span>Tabs</span><span><span class="g">LB</span>Character</span><span><span class="g">RB</span>World</span></div>` : "";
+  return `<div class="win"><div class="tb"><span class="cb"></span><span class="tt">Angel Cross&nbsp;&nbsp;+&nbsp;&nbsp;Identity &#9650;</span><span class="st"><span><span class="dot pos"></span>99%</span><span><span class="dot dim"></span>6 / 20</span></span></div>
+   <div class="wbody">${tabStrip()}<div class="drawer">${body}</div>${inventory()}</div>${pad}</div><div class="tip" id="tip"></div>`;
+}
+
+// ------------------------------------------------------------------ controls + render
+function seg(id, items, isOn, set){
+  const box = $(id); box.innerHTML = "";
+  items.forEach(([v, t]) => { const b = document.createElement("button"); b.className = isOn(v) ? "on" : ""; b.textContent = t; b.onclick = () => { set(v); render(); }; box.appendChild(b); });
+}
+function applyScene(sc){
+  S.scene = sc; S.sex = sc.sex; S.hair = sc.hair; S.tied = sc.tied; S.beard = sc.beard || "None"; S.part = "hair";
+  S.sel = null; S.done = null; S.outOpen = sc.id === "bald"; S.focus = 0;
+}
+function render(){
+  seg("#ctlScene", SCENES.map(s => [s.id, s.label]), v => v === S.scene.id, v => applyScene(SCENES.find(s => s.id === v)));
+  seg("#ctlInv", [["scissors","Scissors"],["razor","Razor"],["gel","Hair Gel"],["spray","Hair Spray"],["hat","Wearing a cap"]], v => S.inv[v], v => { S.inv[v] = !S.inv[v]; });
+  seg("#ctlMod", [["none","None"],["spongie","Spongie's Hairstyle Unlocker"],["ihm","Improved Hair Menu"],["neat","NeatUI Hairstyler"]], v => v === S.mod, v => { S.mod = v; S.sel = null; });
+  seg("#ctlPad", [[false,"Mouse"],[true,"Controller"]], v => v === S.pad, v => { S.pad = v; S.focus = 0; });
+  seg("#ctlLg", [[false,"Small"],[true,"Large"]], v => v === S.lg, v => { S.lg = v; });
+  seg("#ctlZoom", [[1,"100%"],[1.25,"125%"],[0.8,"80%"]], v => v === S.zoom, v => { S.zoom = v; });
+  document.body.classList.toggle("lg", S.lg);
+  const st = $("#stage"), keep = $("#dscroll"), top = keep ? keep.scrollTop : -1;
+  st.innerHTML = charWindow();
+  const ds = $("#dscroll"); if (ds) { if (top < 0) { const hb = ds.querySelector(".hbsec"); ds.scrollTop = hb ? hb.offsetTop - ds.offsetTop - 8 : 0; } else ds.scrollTop = top; }
+  st.style.transform = S.zoom === 1 ? "" : `scale(${S.zoom})`;
+  $("#wrap").style.height = (720 * S.zoom + 4) + "px";
+  $("#wrap").style.width = (1000 * S.zoom + 4) + "px";
+  $("#caption").textContent = S.scene.cap;
+  if (S.pad) {
+    const els = focusables(); S.focus = Math.max(0, Math.min(S.focus, els.length - 1));
+    const f = els[S.focus]; if (f) { f.classList.add("foc"); f.scrollIntoView({ block:"nearest" }); }
+  }
+}
+function focusables(){ return [...$("#stage").querySelectorAll("[data-fid]")].filter(e => e.dataset.fid !== "x"); }
+
+function doIt(){
+  const r = S.sel ? findRow(S.sel) : null;
+  if (!r || r.why || !has(r.req) || S.busy) return;
+  S.busy = { verb:r.verb, pct:0 };
+  render();
+  const t = setInterval(() => {
+    if (!S.busy) { clearInterval(t); return; }
+    S.busy.pct += r.time === 100 ? 25 : 10;
+    if (S.busy.pct >= 100) {
+      clearInterval(t); S.busy = null;
+      if (r.act === "beard") { S.beard = r.style; S.done = { part:"beard", text:`beard is now ${BN[r.style]}` }; }
+      else if (r.act === "untie") { S.hair = r.style; S.tied = null; S.done = { part:"hair", text:`hair is now ${hn(r.style)}` }; }
+      else if (r.act === "tie") { S.tied = S.hair; S.hair = r.style; S.done = { part:"hair", text:`hair is now ${hn(r.style)}` }; }
+      else { S.hair = r.style; S.done = { part:"hair", text:`hair is now ${hn(r.style)}` }; }
+      S.sel = null;
+    }
+    render();
+  }, 160);
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("#stage [data-row], #stage [data-part], #stage [data-out], #stage [data-act]");
+  if (!t || S.busy && t.dataset.act !== "stop") return;
+  const d = t.dataset;
+  if (d.row) { S.sel = S.sel === d.row ? null : d.row; S.done = null; }
+  else if (d.part) { S.part = d.part; S.sel = null; S.outOpen = false; }
+  else if (d.out) { S.outOpen = !S.outOpen; }
+  else if (d.act === "do") { doIt(); return; }
+  else if (d.act === "stop") { S.busy = null; }
+  if (S.pad) { const els = focusables(); const i = els.findIndex(x => x.dataset.fid === t.dataset.fid); if (i >= 0) S.focus = i; }
+  render();
+  if (S.pad) { const els = focusables(); const i = els.findIndex(x => (d.row && x.dataset.row === d.row) || (d.part && x.dataset.part === d.part) || (d.out && x.dataset.out)); if (i >= 0) { S.focus = i; render(); } }
+});
+// hover balloon: the game's hint for the row
+document.addEventListener("mousemove", e => {
+  const tip = $("#tip"); if (!tip) return;
+  const row = e.target.closest("#stage .hrow");
+  if (!row || S.pad) { tip.style.display = "none"; return; }
+  const r = findRow(row.dataset.row); if (!r) { tip.style.display = "none"; return; }
+  let txt;
+  if (r.why) txt = `<b>${r.label}</b><br>${r.why}`;
+  else if (!has(r.req)) txt = `<b>${r.label}</b><br>${REQ[r.req]}<span class="g">the game's wording</span>`;
+  else txt = `<b>${r.label}</b><br>${r.req === "none" ? "No tool needed." : "You have " + (r.req === "rs" ? (S.inv.razor ? "a Razor" : "Scissors") : r.req === "s" ? "Scissors" : r.req === "g" ? "Hair Gel" : r.req === "sp" ? "Hair Spray" : (S.inv.gel ? "Hair Gel" : "Hair Spray")) + "."}`;
+  tip.innerHTML = txt; tip.style.display = "block";
+  const sr = $("#stage").getBoundingClientRect(), z = S.zoom;
+  tip.style.left = ((e.clientX - sr.left) / z + 14) + "px"; tip.style.top = ((e.clientY - sr.top) / z + 16) + "px";
+});
+// controller: arrows move, Enter is A, Escape is B
+document.addEventListener("keydown", e => {
+  if (!S.pad) return;
+  const els = focusables(); if (!els.length) return;
+  const cur = els[S.focus] || els[0];
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const cr = cur.getBoundingClientRect(); let best = -1, bd = 1e9;
+    els.forEach((x, i) => { const r = x.getBoundingClientRect(); const dy = (r.top + r.height / 2) - (cr.top + cr.height / 2);
+      if (e.key === "ArrowDown" ? dy > 4 : dy < -4) { const s = Math.abs(dy) + Math.abs((r.left + r.width / 2) - (cr.left + cr.width / 2)) * .3; if (s < bd) { bd = s; best = i; } } });
+    if (best >= 0) { S.focus = best; const n = els[best]; if (n.dataset.row) S.sel = n.dataset.row; render(); }
+  } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (cur.dataset.part && S.sex === "m") { e.preventDefault(); S.part = e.key === "ArrowLeft" ? "hair" : "beard"; S.sel = null; render(); const i = focusables().findIndex(x => x.dataset.part === S.part); if (i >= 0) { S.focus = i; render(); } }
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (cur.dataset.row) { S.sel = cur.dataset.row; doIt(); } else cur.click();
+  } else if (e.key === "Escape") { S.sel = null; S.focus = 0; render(); }
+});
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(render);
+</script>
+</body>
+</html>
