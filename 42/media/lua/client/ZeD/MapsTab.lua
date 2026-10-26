@@ -14,10 +14,12 @@ require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
+require "ZeD/MapsTabExt"
 require "ISUI/Maps/ISMapDefinitions"
 
 ZeD = ZeD or {}
-ZeD.MapsTab = {}
+ZeD.MapsTab = ZeD.MapsTab or {}
+local Ext = ZeD.MapsTabExt   -- other pieces on the map: MapsTabExt.lua (ZeD.MapsTab.addExtension)
 
 -- ============================================================================
 -- CONSTANTS — duplicated from JournalTab (may diverge)
@@ -202,6 +204,24 @@ local function _armTool(win, toolId)
     if not ok then _inkSay(win._playerObj, why); return end
     win._mapActiveTool = toolId
     win._mapEdit = nil
+    Ext.putDownAll(win)   -- (an extension's own tool, the drawing pencil say, goes down)
+end
+
+-- For the extensions (MapsTabExt.lua): vanilla's ink rules as the toolbar keeps
+-- them. ink(win, fresh) -> { pen = {..}, write, erase, literate }; inkColor(win)
+-- -> the colour marks are made in now ({ r, g, b }) and its index, or nil with no
+-- pen at hand; say(playerObj, key): vanilla's line over the head; putDownTool(win):
+-- ZeD's own mark tool down (an extension picked up its own).
+function ZeD.MapsTab.ink(win, fresh) return _mapInk(win and win._playerObj, fresh) end
+function ZeD.MapsTab.inkColor(win)
+    local i = _inkColor(win, _mapInk(win._playerObj))
+    if not i then return nil end
+    return MAP_COLORS[i], i
+end
+ZeD.MapsTab.say = function(playerObj, key) _inkSay(playerObj, key) end
+function ZeD.MapsTab.putDownTool(win)
+    win._mapActiveTool = nil
+    win._mapEdit = nil
 end
 
 -- Toolbar or A press on a colour: only a colour whose pen is at hand
@@ -297,6 +317,12 @@ function ZeD_WorldMap:instantiate()
     self.mapAPI:setBoolean("Isometric", false)
     self.mapAPI:setBoolean("DebugInfo", false)
     self.mapAPI:setBoolean("HideUnvisited", true)
+    -- the game's own dots for players, as the server allows (Oct 26 2026, the
+    -- map mods pass; Players On Map draws its own squares and names over them)
+    pcall(function()
+        self.mapAPI:setBoolean("Players", true)
+        if isClient() then self.mapAPI:setBoolean("RemotePlayers", true) end
+    end)
 
     -- Pre-load annotation icon textures
     self._annotTextures = {}
@@ -700,6 +726,11 @@ end
 
 -- Mouse drag for panning (or annotation placement when tool is active)
 function ZeD_WorldMap:onMouseDown(x, y)
+    -- an extension's tool takes the press (drawing: MapsTabExt.lua)
+    if self._parentWin and Ext.mouseDown(self, self._parentWin, x, y) then
+        self.dragging, self.dragMoved = true, true
+        return true
+    end
     if _placeAnnotationAt(self, x, y) then return true end
 
     self.dragging = true
@@ -716,6 +747,7 @@ end
 
 function ZeD_WorldMap:onMouseMove(dx, dy)
     local T = ZeD.T
+    if self._parentWin and Ext.mouseMove(self, self._parentWin) then return true end
     if self.dragging then
         local mouseX = self:getMouseX()
         local mouseY = self:getMouseY()
@@ -737,6 +769,10 @@ function ZeD_WorldMap:onMouseMove(dx, dy)
 end
 
 function ZeD_WorldMap:onMouseUp(x, y)
+    if self._parentWin and Ext.mouseUp(self, self._parentWin, x, y) then
+        self.dragging = false
+        return true
+    end
     -- a click (no drag) on a pinned flyer opens it (FlyerMap)
     local click = self.dragging and not self.dragMoved
     self.dragging = false
@@ -761,6 +797,7 @@ function ZeD_WorldMap:onMouseMoveOutside(dx, dy)
 end
 
 function ZeD_WorldMap:onMouseUpOutside(x, y)
+    if self._parentWin then Ext.mouseUp(self, self._parentWin, x, y) end
     self.dragging = false
     self.dragMoved = false
     return true
@@ -776,6 +813,8 @@ end
 
 -- Mouse wheel for zoom
 function ZeD_WorldMap:onMouseWheel(del)
+    local win = self._parentWin
+    if win and Ext.wheel(win, self:getMouseX() + self:getX(), self:getMouseY() + self:getY(), del) then return true end
     self.mapAPI:zoomAt(self:getMouseX(), self:getMouseY(), del)
     return true
 end
@@ -968,7 +1007,13 @@ function ZeD_WorldMap:render()
     self:renderAnnotations()
     self:renderToolCursor()
     self:renderGamepadCursor()
+    local win = self._parentWin
+    if win then Ext.drawMapUnder(self, win) end   -- the extensions' drawing (MapsTabExt.lua)
     ZeD.FlyerMap.drawCard(self)          -- the hovered pin's card, on top
+    if win then
+        local el = _focusedEl(win)
+        Ext.drawMapOver(self, win, el and el.id)   -- the key, the side list, the area name, hints
+    end
 end
 
 -- ============================================================================
@@ -1042,6 +1087,7 @@ local function renderMapToolbar(panel, win, x, y, w)
     win._mapToolZones  = {}
     win._mapColorZones = {}
     win._mapToolRMBZones = {}
+    win._mapExtZones = {}   -- the extensions' controls this frame (MapsTabExt.lua)
 
     local ink         = _enforceInk(win)   -- (first: it may put a tool down or move the colour)
     local activeTool  = win._mapActiveTool
@@ -1160,6 +1206,9 @@ local function renderMapToolbar(panel, win, x, y, w)
         curX = curX + colSz + btnGap
     end
 
+    -- the extensions' buttons (the map key; mods' tools), then the list button
+    curX = Ext.drawButtons(panel, win, curX + btnGap, btnY, btnSz, focId)
+
     -- SURVEY / COLOR / PAPER, right-anchored before the unfold button (a pill pair: A or a click
     -- switches; only when the base map carries its illustration, and only where it fits)
     win._mapStyleZones = {}
@@ -1263,7 +1312,12 @@ local function renderMapToolbar(panel, win, x, y, w)
         end
 
         totalH = totalH + expandedH
+        -- an extension's row under the mark grid (Map Symbol Size Slider)
+        totalH = totalH + Ext.drawRows(panel, win, x, y + totalH, w, "gridRow", focId)
     end
+
+    -- the extensions' rows under the toolbar (Draw On The Map's tools)
+    totalH = totalH + Ext.drawRows(panel, win, x, y + totalH, w, "row", focId)
 
     -- Inline text input (visible when text tool is active)
     if textActive then
@@ -1328,6 +1382,7 @@ local function _mapBlocked(panel, win, x, y, w, h)
     if win._mapTextEntry then win._mapTextEntry:setVisible(false) end
     -- no toolbar this frame: nothing for a click or the controller to land on
     win._mapToolZones, win._mapColorZones, win._mapToolRMBZones, win._mapStyleZones = {}, {}, {}, {}
+    win._mapExtZones, win._mapSideZone = {}, nil
     win._mapDisclosureZone, win._mapPopoutZone = nil, nil
     win._mapBlockedZone = { x = x, y = y, w = w, h = h }
     return true
@@ -1384,16 +1439,25 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     -- Map area below toolbar
     local mapY = y + toolbarH
     local mapH = h - toolbarH
+    -- the side list docks at the right of the unfolded map (MapsTabExt.lua)
+    local sideW = Ext.dockedSideW(win, panel)
+    if sideW > 0 then
+        local el = _focusedEl(win)
+        Ext.drawSide(panel, win, x + w - sideW, mapY, sideW, mapH, 0, 0, el and el.id)
+        w = w - sideW
+    end
 
     -- Lazy-create the world map panel
     if not win._worldMapPanel and not win._worldMapFailed then
         local ok, err = pcall(function()
             local mp = ZeD_WorldMap:new(x, mapY, w, mapH, win._playerObj)
             mp._parentWin = win
+            mp._isPopoutMap = Ext.isPopout(win, panel)
             mp:initialise()
             mp:instantiate()
             panel:addChild(mp)
             win._worldMapPanel = mp
+            Ext.mapMade(mp, win)
         end)
         if not ok then
             win._worldMapFailed = true
@@ -1438,6 +1502,8 @@ function ZeD.MapsTab.onClick(win, x, y)
         return
     end
     if win._mapBlocked then return end   -- no map here, or too dark to read it
+    -- the extensions' controls: toolbar buttons and rows, the key, the side list
+    if Ext.onClick(win, x, y) then return end
     -- S123: unfold / fold button
     if win._mapPopoutZone then
         local z = win._mapPopoutZone
@@ -1651,6 +1717,10 @@ function ZeD.MapsTab.buildFocusables(win)
         }
     end
 
+    -- 3c. The extensions' controls (MapsTabExt.lua): their toolbar buttons and
+    -- rows, the key's controls, the side list's rows and its question.
+    Ext.addFocusables(win, elements)
+
     -- 4. Canvas cursor pseudo-focusable (always last). Bounds = the map
     -- panel's bbox inside the content panel, so cone-nav from toolbar
     -- elements naturally drops onto the canvas when the user D-pads down.
@@ -1801,6 +1871,7 @@ function ZeD.MapsTab.gpPlaceAtCursor(win)
     if not win then return end
     local mp = win._worldMapPanel
     if not mp or not mp._gpCursorX then return end
+    if Ext.anyArmed(win) then return end   -- (an extension's tool hears A itself: Ext.padTick)
     -- no tool armed and the cursor on a pinned flyer: A reads it (FlyerMap)
     if not win._mapActiveTool then
         local pin = ZeD.FlyerMap.hit(mp, mp._gpCursorX, mp._gpCursorY)
@@ -1904,6 +1975,7 @@ local function _mapPadTick()
     elseif dir == 0 then
         _pad.zoomAt = 0
     end
+    Ext.padTick(win, mp, cid)   -- an extension's tool: A down / held / up at the cursor
 end
 if Events and Events.OnTick then Events.OnTick.Add(_mapPadTick) end
 
@@ -2033,6 +2105,7 @@ function ZeD.MapsTab.openPopout(win)
     end
     content.onMouseUpOutside = content.onMouseUp
     content.onMouseWheel = function(self, del)
+        if Ext.wheel(win, self:getMouseX(), self:getMouseY(), del) then return true end   -- the docked side list
         if win._worldMapPanel then win._worldMapPanel:onMouseWheel(del) end
         return true
     end

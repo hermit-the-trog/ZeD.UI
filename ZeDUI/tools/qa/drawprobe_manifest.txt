@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_drawprobe.lua | dp | timeout=60

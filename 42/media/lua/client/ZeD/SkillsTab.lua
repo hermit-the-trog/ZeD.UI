@@ -207,6 +207,7 @@ function ZeD.SkillsTab.gatherData(playerObj)
             end
 
             groupMap[parentType].skills[#groupMap[parentType].skills + 1] = {
+                perk       = perk,      -- (the row extras read it: ZeD.SkillsTab.addExtras)
                 name       = perk:getName(),
                 level      = level,
                 xpProgress = xpProgress,
@@ -370,6 +371,182 @@ function ZeD.SkillsTab.gatherTrainingData(playerObj)
     end
 
     return groups
+end
+
+-- ============================================================================
+-- ROW EXTRAS (Oct 26 2026) -- the general way for another mod's support file
+-- (ModSupport/<mod id>.lua) to add to the skill grid without touching this
+-- file again. Nothing here draws anything until an extra is added, so the tab
+-- is exactly as built without one. An extra is a table:
+--   laneH   design px each skill row grows by, for a strip in its own lane
+--           under the row (the row's fill keeps its meaning above it)
+--   lane(playerObj, perk, level, xpProgress)
+--           -> nil, or { span = 0..1 of the row's width, segs = { { share = 0..1,
+--              color = {r,g,b} }, ... } }: drawn left to right in the lane
+--   headHeight(win, w) / drawHead(panel, win, x, y, w)
+--           a block at the top of the tab's scroll (above the grid; it goes
+--           with the grid when the header folds it away)
+--   card(playerObj, perk, skill)
+--           -> nil, or { label = "HEADING", lines = { { color = {r,g,b} | nil,
+--              text = "...", value = "...", total = true | nil } }, note = "..." }:
+--              the row's hover card (mouse over a row, or the controller's
+--              focus on it) shows the skill's level and these lines
+-- First used by ModSupport/SkillRecoveryJournal.lua.
+-- ============================================================================
+ZeD.SkillsTab.extras = ZeD.SkillsTab.extras or {}
+
+function ZeD.SkillsTab.addExtras(id, def)
+    for i, e in ipairs(ZeD.SkillsTab.extras) do
+        if e.id == id then ZeD.SkillsTab.extras[i] = def; def.id = id; return end
+    end
+    def.id = id
+    ZeD.SkillsTab.extras[#ZeD.SkillsTab.extras + 1] = def
+end
+
+-- design px the rows grow by (the largest lane any extra asks for)
+local function extrasLaneH()
+    local h = 0
+    for _, e in ipairs(ZeD.SkillsTab.extras) do
+        if e.laneH and e.laneH > h then h = e.laneH end
+    end
+    return h
+end
+
+local function extrasHeadH(win, w)
+    local h = 0
+    for _, e in ipairs(ZeD.SkillsTab.extras) do
+        if e.headHeight then
+            local ok, eh = pcall(e.headHeight, win, w)
+            if ok and eh then h = h + eh end
+        end
+    end
+    return h
+end
+
+-- the strip in a row's lane (track first, then the extra's segments)
+local function drawLane(panel, x, y, w, h, playerObj, skill)
+    for _, e in ipairs(ZeD.SkillsTab.extras) do
+        if e.lane and skill.perk then
+            local ok, L = pcall(e.lane, playerObj, skill.perk, skill.level, skill.xpProgress)
+            if ok and L and L.segs then
+                panel:drawRect(x, y, w, h, 0.04, 1, 1, 1)
+                local span = math.floor(w * math.max(0, math.min(1, L.span or 1)))
+                local sx = x
+                for i, s in ipairs(L.segs) do
+                    local sw = math.max(1, math.floor(span * (s.share or 0) + 0.5))
+                    if i == #L.segs then sw = math.max(1, x + span - sx) end
+                    if s.share and s.share > 0 then
+                        local c = s.color
+                        panel:drawRect(sx, y, sw, h, 1, c.r, c.g, c.b)
+                        sx = sx + sw
+                    end
+                end
+                return
+            end
+        end
+    end
+end
+
+-- The row's hover card: the skill's name and level, then the first extra's
+-- lines. Placed beside the row (right of it, or left when there is no room),
+-- kept inside the tab.
+local function drawSkillCard(panel, win, zone, bx, by, bw, bh)
+    local skill = zone.skill
+    if not (skill and skill.perk) then return end
+    local card = nil
+    for _, e in ipairs(ZeD.SkillsTab.extras) do
+        if e.card then
+            local ok, c = pcall(e.card, win._playerObj, skill.perk, skill)
+            if ok and c then card = c; break end
+        end
+    end
+    if not card then return end
+    ZeD.SkillsTab._cardShown = skill.name   -- (QA reads which card is up)
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    local f1, f2, f3, f5 = T.fontF1, T.fontF2, T.fontF3, T.fontF5
+    local pad, gap = T.px(10), T.px(5)
+    local w = T.px(250)
+    local innerW = w - pad * 2
+    local h1, h2, h3, h5 = tm:getFontHeight(f1), tm:getFontHeight(f2), tm:getFontHeight(f3), tm:getFontHeight(f5)
+    local sub
+    if skill.level >= 10 then
+        sub = ZeD.tr("UI_ZeD_Skills_CardMax", skill.level)
+    else
+        local pd = ZeD.SkillsTab.getPinData(win._playerObj, skill.name)
+        sub = ZeD.tr("UI_ZeD_Skills_CardLevel", skill.level, pd and pd.xpInLevel or 0, pd and pd.xpForLevel or 0, skill.level + 1)
+    end
+    local noteLines = card.note and A.wrapText(card.note, f1, innerW) or {}
+    local h = pad + h3 + gap + h1 + gap + T.grooveH + gap + h5 + gap
+        + #(card.lines or {}) * (h2 + T.px(3)) + T.px(4) + #noteLines * (h1 + T.px(2)) + pad
+    local x = zone.x + zone.w + T.px(6)
+    if x + w > bx + bw then x = zone.x - w - T.px(6) end
+    x = math.max(bx, math.min(x, bx + bw - w))
+    local y = math.max(by, math.min(zone.y, by + bh - h))
+    local s2, bs = T.surf2, T.borderS
+    panel:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
+    panel:drawRect(x, y, w, h, 0.98, s2.r, s2.g, s2.b)
+    panel:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    local cx, cy = x + pad, y + pad
+    local th, tx, ts = T.textHead, T.text, T.textSec
+    panel:drawText(skill.name, cx, cy, th.r, th.g, th.b, th.a or 1, f3)
+    cy = cy + h3 + gap
+    panel:drawText(sub, cx, cy, ts.r, ts.g, ts.b, ts.a or 1, f1)
+    cy = cy + h1 + gap
+    A.drawGroove(panel, cx, cy, innerW)
+    cy = cy + T.grooveH + gap
+    local ac = T.accent
+    panel:drawText(ZeD.upper(card.label or ""), cx, cy, ac.r, ac.g, ac.b, 1, f5)
+    cy = cy + h5 + gap
+    for _, ln in ipairs(card.lines or {}) do
+        if ln.total then
+            local bd = T.border
+            panel:drawRect(cx, cy - T.px(2), innerW, T.px(1), bd.a, bd.r, bd.g, bd.b)
+        end
+        if ln.color then
+            local c = ln.color
+            panel:drawRect(cx, cy + math.floor((h2 - T.px(4)) / 2), T.px(10), T.px(4), 1, c.r, c.g, c.b)
+        end
+        panel:drawText(ln.text or "", cx + T.px(17), cy, tx.r, tx.g, tx.b, tx.a or 1, f2)
+        if ln.value then A.drawTextRight(panel, ln.value, cx + innerW, cy, f1, tx) end
+        cy = cy + h2 + T.px(3)
+    end
+    cy = cy + T.px(4)
+    for _, l in ipairs(noteLines) do
+        panel:drawText(l, cx, cy, ts.r, ts.g, ts.b, ts.a or 1, f1)
+        cy = cy + h1 + T.px(2)
+    end
+end
+
+-- The card layer: a click-through panel kept as the window's last child (as
+-- ZeD.Atoms.newHintLayer), so the hover card is drawn above everything in the
+-- window. The Skills tab stamps win._skillCardStamp each frame a card is up.
+function ZeD.SkillsTab.cardLayer(win)
+    local layer = win._skillCardLayer
+    if not layer then
+        layer = ISPanel:new(0, 0, win:getWidth(), win:getHeight())
+        layer:initialise()
+        layer:instantiate()
+        layer.background = false
+        layer.javaObject:setConsumeMouseEvents(false)
+        layer.prerender = function(self) end
+        layer.onMouseDown = function() return false end
+        layer.onMouseUp = function() return false end
+        layer.onMouseWheel = function() return false end
+        layer.render = function(self)
+            local c = win._skillCardStamp
+            win._skillCardStamp = nil
+            if not c then return end
+            local ok, err = pcall(drawSkillCard, self, win, c.zone, c.bx, c.by, c.bw, c.bh)
+            if not ok then ZeD.logOnce("skills card", err) end
+        end
+        win:addChild(layer)
+        win._skillCardLayer = layer
+    end
+    if layer:getWidth() ~= win:getWidth() or layer:getHeight() ~= win:getHeight() then
+        layer:setWidth(win:getWidth())
+        layer:setHeight(win:getHeight())
+    end
+    return layer
 end
 
 -- ============================================================================
@@ -666,8 +843,11 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
 
-    -- Skill row dimensions (matching CIO: F.hgtSmall + 8)
-    local rowH = secH + T.px(8)
+    -- Skill row dimensions (matching CIO: F.hgtSmall + 8); a row extra's lane
+    -- (ZeD.SkillsTab.addExtras) adds its own band under it
+    local baseRowH = secH + T.px(8)
+    local laneH = extrasLaneH()
+    local rowH = baseRowH + (laneH > 0 and T.px(laneH) or 0)
     local rowGap = T.sp.rowGap
     local headerH = secH + T.px(14)      -- skill group header height (not tab header)
     local groupGap = T.sp.sm
@@ -720,7 +900,9 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- scroll): the range covers what the last frame really drew too
     trainingH = math.max(trainingH, (#(training or {}) > 0) and (win._skillsTrainDrawnH or 0) or 0)
     local gridExpanded = win._skillsGridExpanded
-    local totalContentH = padTop + (gridExpanded and xpGridH or 0) + trainingH
+    -- the extras' block at the top of the scroll (width: the scroll's, less its bar)
+    local extraHeadH = (gridExpanded and #ZeD.SkillsTab.extras > 0) and extrasHeadH(win, w - scrollW - pad * 2) or 0
+    local totalContentH = padTop + (gridExpanded and (xpGridH + extraHeadH) or 0) + trainingH
 
     -- Scroll area starts below pinned tab header
     local scrollY = y + tabHeaderH
@@ -796,6 +978,19 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- ----------------------------------------------------------------
     -- ZONE B: 2-Column Skill Grid (collapsible)
     -- ----------------------------------------------------------------
+    if gridExpanded and extraHeadH > 0 then
+        local hy = curY
+        for _, e in ipairs(ZeD.SkillsTab.extras) do
+            if e.headHeight and e.drawHead then
+                local ok, eh = pcall(e.headHeight, win, w - scrollW - pad * 2)
+                if ok and eh and eh > 0 then
+                    pcall(e.drawHead, panel, win, x + pad, hy, contentW - pad * 2)
+                    hy = hy + eh
+                end
+            end
+        end
+        curY = curY + extraHeadH
+    end
     local zoneABottom = curY
 
     local font = T.fontF2
@@ -856,23 +1051,29 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
                 end
 
                 -- Level badge
-                drawLevelBadge(panel, startX, cy, rowH, skill.level, font)
+                drawLevelBadge(panel, startX, cy, baseRowH, skill.level, font)
 
                 -- Skill name
                 local nameX = startX + T.px(BADGE_W) + T.px(6)
-                local nameY = cy + math.floor((rowH - ZeD.TM:getFontHeight(font)) / 2)
+                local nameY = cy + math.floor((baseRowH - ZeD.TM:getFontHeight(font)) / 2)
                 local nc = T.toneNorm
                 panel:drawText(skill.name, nameX, nameY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
                 -- Boost pill (right-aligned)
                 if skill.boost and skill.boost > 0 then
-                    drawBoostPill(panel, startX + colWidth, cy, rowH, skill.boost, font)
+                    drawBoostPill(panel, startX + colWidth, cy, baseRowH, skill.boost, font)
+                end
+
+                -- a row extra's strip in its own lane under the row
+                if laneH > 0 then
+                    drawLane(panel, startX, cy + rowH - T.px(laneH - 1), colWidth, T.px(laneH - 1), win._playerObj, skill)
                 end
 
                 -- Register hit zone for click-to-pin
                 win._skillRowZones[#win._skillRowZones + 1] = {
                     x = startX, y = cy, w = colWidth, h = rowH,
                     name = skill.name,
+                    skill = skill,
                 }
 
                 -- S103: paint-gate on LIVE focused element (not win._gpFocusedSkill).
@@ -962,6 +1163,36 @@ function ZeD.SkillsTab.render(panel, win, x, y, w, h)
     -- Draw scrollbar on top (outside stencil)
     if needsScroll then
         scroll:draw(panel)
+    end
+
+    -- A row extra's hover card (ZeD.SkillsTab.addExtras): the row under the
+    -- pointer, or the controller's focused row; drawn last, over everything
+    if gridExpanded and #ZeD.SkillsTab.extras > 0 then
+        local hz = nil
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        local over = mx >= x and mx < x + contentW and my >= scrollY and my < scrollY + scrollH
+            and (not panel.isMouseOver or panel:isMouseOver())
+        local Det = ZeD.Input and ZeD.Input.Detector
+        local padMode = focusedSkillName and Det and Det.getMode and Det.getMode() == "gamepad"
+        for _, z in ipairs(win._skillRowZones) do
+            if padMode then
+                if z.name == focusedSkillName then hz = z; break end
+            elseif over and mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then
+                hz = z; break
+            end
+        end
+        if hz and hz.y + hz.h > scrollY and hz.y < scrollY + scrollH then
+            -- stamped for the window's card layer (drawn above the drawer's
+            -- siblings: a card drawn on the drawer itself stayed under them)
+            local ox = panel:getAbsoluteX() - win:getAbsoluteX()
+            local oy = panel:getAbsoluteY() - win:getAbsoluteY()
+            win._skillCardStamp = {
+                zone = { x = hz.x + ox, y = hz.y + oy, w = hz.w, h = hz.h, skill = hz.skill, name = hz.name },
+                -- beside the row, anywhere in the window (over the next column or the list beside)
+                bx = x + ox, by = scrollY + oy, bw = win:getWidth() - (x + ox), bh = scrollH,
+            }
+            ZeD.SkillsTab.cardLayer(win)
+        end
     end
 end
 

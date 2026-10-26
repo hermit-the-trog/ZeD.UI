@@ -1545,7 +1545,13 @@ local WORLD_TAB_DRAWER_WIDTHS = {
 }
 
 local function getWorldTabDrawerW(tab)
-    return WORLD_TAB_DRAWER_WIDTHS[tab] or DRAWER_W
+    local w = WORLD_TAB_DRAWER_WIDTHS[tab] or DRAWER_W
+    -- the Maps tab grows by its extensions' toolbar buttons (the map key, map
+    -- mods' tools: MapsTabExt.lua), so the Survey / Color / Paper switch still fits
+    if tab == "maps" and ZeD.MapsTabExt and ZeD.MapsTabExt.drawerExtraW then
+        w = w + ZeD.MapsTabExt.drawerExtraW()
+    end
+    return w
 end
 
 -- Tab content renderers
