@@ -108,7 +108,9 @@ for _, cf in ipairs(CONFIGS) do
                 end
                 check(tw <= lw - T.px(26), cf[1] .. " " .. key .. ": the name fits its column (" .. tw .. " <= " .. (lw - T.px(26)) .. ")")
                 local nb = specOf(NEIGHBOUR[key])
-                if nb then check(nb.rh == b.rh, cf[1] .. " " .. key .. ": as tall as its neighbour switch (" .. b.rh .. " / " .. nb.rh .. ")") end
+                -- (less what a name on two lines adds: the windows' squares name takes two in Large text)
+                local function oneLine(s) return s.rh - ((s.rowRef and s.rowRef._labX) or 0) end
+                if nb then check(oneLine(nb) == oneLine(b), cf[1] .. " " .. key .. ": as tall as its neighbour switch, a name's second line aside (" .. oneLine(b) .. " / " .. oneLine(nb) .. ")") end
                 local first = name:sub(1, 1)
                 local rest = name:sub(2)
                 local sentence = first == first:upper() and (rest == rest:lower() or key == "UI_ZeD_Settings_ReadNext")
@@ -144,6 +146,83 @@ for _, cf in ipairs(CONFIGS) do
         shot(cf[1] .. "_bottom")
     end)
 end
+
+-- Every name on the ZeD setup page whole, in Small and Large text (Oct 26 2026: "Theme, accent and text buttons on
+-- windows" was cut to "...on windo..." in Large). The page walked a screen at a time; for each row in full sight the
+-- name's drawn lines (one, or two for a long name) put together must be the whole name, none cut short ("..."),
+-- each inside the name's column. Then a picture of the windows' squares row and its neighbours in Large text.
+local seenRows, labelFails = {}, {}
+local function labelPass(tagName)
+    local T, L = ZeD.T, W._list
+    local lx = L.x + T.px(26)
+    local room = math.floor((L.w - T.px(2) - T.sp.scrollbarW) * 0.44) - T.px(26)
+    local f2 = T.fontF2
+    for _, b in ipairs(W._specs or {}) do
+        local r = b.rowRef
+        local key = b.listRow and r and ((r.labelKey or tostring(r.label or "")) .. "#" .. tostring(b.row)) or nil
+        if key and r.kind ~= "chord" and not seenRows[key] then
+            local ry = L.y + b.ry - W.scroll
+            if ry >= L.y and ry + b.rh <= L.y + L.h then
+                seenRows[key] = true
+                local name = (r.labelKey and ZeD.tr(r.labelKey)) or tostring(r.label or "")
+                local parts, atY = {}, {}
+                for _, d in ipairs(drawn) do   -- (the log spans a few frames: each line once)
+                    if d.x == lx and d.y >= ry and d.y < ry + b.rh and not atY[d.y] then atY[d.y] = true; parts[#parts + 1] = d end
+                end
+                table.sort(parts, function(a, c) return a.y < c.y end)
+                local one = parts[1] and parts[1].s or ""
+                local two = parts[2] and (one .. " " .. parts[2].s) or ""
+                local whole = name == "" or one == name or two == name
+                local wide = 0
+                for i = 1, math.min(2, #parts) do wide = math.max(wide, MM.textW(f2, parts[i].s)) end
+                if name ~= "" and not (whole and wide <= room) then
+                    labelFails[#labelFails + 1] = tagName .. " [" .. name .. "] drawn [" .. one .. "]" .. (parts[2] and (" + [" .. parts[2].s .. "]") or "") .. " widest " .. wide .. " of " .. room
+                end
+                if name ~= "" and two == name then say(tagName .. " two lines: [" .. name .. "] row h " .. b.rh) end
+            end
+        end
+    end
+end
+for _, sz in ipairs({ "small", "large" }) do
+    step(10, function()
+        ZeD.applyTheme("dark", was.accent, sz)
+        W.pageIdx = setupIdx(); W.scroll = 0
+        seenRows, labelFails = {}, {}
+    end)
+    for _ = 1, 30 do
+        step(4, function() drawn = {} end)
+        step(2, function()
+            labelPass(sz)
+            W.scroll = W.scroll + math.max(ZeD.T.px(40), W._list.h - ZeD.T.px(120))
+        end)
+    end
+    step(5, function()
+        local n = 0
+        for _ in pairs(seenRows) do n = n + 1 end
+        local total = 0
+        for _, r in ipairs(W:rowsFor(W:pages()[W.pageIdx])) do
+            if r.kind ~= "header" and r.kind ~= "note" and r.kind ~= "desc" and r.kind ~= "chord" then total = total + 1 end
+        end
+        for _, f in ipairs(labelFails) do say("cut: " .. f) end
+        check(n == total, sz .. ": every row of the setup page seen in full (" .. n .. " of " .. total .. ")")
+        check(#labelFails == 0, sz .. ": every name on the setup page drawn whole (" .. #labelFails .. " cut)")
+    end)
+end
+step(5, function()
+    ZeD.applyTheme("dark", was.accent, "large")
+    local b = specOf("UI_ZeD_Settings_WindowSquares")
+    if b then W.scroll = math.max(0, b.ry - ZeD.T.px(120)) end
+end)
+step(30, function()
+    local T, L = ZeD.T, W._list
+    local b = specOf("UI_ZeD_Settings_WindowSquares")
+    if check(b ~= nil, "large: the windows' squares row on the page") then
+        local ry = L.y + b.ry - W.scroll
+        check(b.rh > T.px(32), "large: the windows' squares row grown for its name's second line (" .. b.rh .. " px)")
+        say(string.format("rect large_squares %d %d %d %d", W:getAbsoluteX() + L.x, W:getAbsoluteY() + ry - T.px(110), L.w, b.rh + T.px(220)))
+    end
+    shot("large_squares")
+end)
 
 -- the pad: Down from the first row, one press a frame
 local reached, painted = {}, {}

@@ -351,6 +351,28 @@ local function underLine(r)
     return r.only and MM.optionGroups.text(r.only[1])
 end
 
+-- A row's name as drawn (ZeD's own options read at draw time: test language)
+local function rowLabel(r)
+    local label = r.label ~= "" and r.label or ""
+    if r.labelKey then label = ZeD.tr(r.labelKey) end
+    return label or ""
+end
+
+-- The name's lines in its column (room px wide, measured in the active font): nil when it fits on one line, else
+-- two lines (Oct 26 2026: "Theme, accent and text buttons on windows" was cut short in Large text); past two the
+-- second is cut short. The row grows by the second line, as it does for the line under a name.
+local function labelLines(r, f2, room)
+    if r.kind == "header" or r.kind == "note" or r.kind == "desc" or r.kind == "chord" then return nil end
+    local label = rowLabel(r)
+    if label == "" or MM.textW(f2, label) <= room then return nil end
+    local lines = ZeD.Atoms.wrapText(label, f2, room)
+    if #lines < 2 then return nil end
+    if #lines > 2 then lines = { lines[1], table.concat(lines, " ", 2) } end
+    lines[1] = ZeD.Atoms.truncateText(lines[1], f2, room)   -- (a single word wider than the column)
+    lines[2] = ZeD.Atoms.truncateText(lines[2], f2, room)
+    return lines
+end
+
 -- ============================================================================
 -- THE KEY CATCHER: a top-level element that takes the next key or mouse button
 -- while a binding is being set (vanilla's ISSetKeybindDialog, without the dialog)
@@ -1343,7 +1365,13 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
     local cw = x + inner - T.px(10) - cx0 - tagsW
     -- layout pass
     local total = 0
-    for _, r in ipairs(rows) do r._h = self:rowHeight(r, (r.kind == "note" or r.kind == "desc") and (inner - T.px(24)) or cw); total = total + r._h end
+    local room, lineH = lw - T.px(26), MM.fontH(T.fontF2) + T.px(2)
+    for _, r in ipairs(rows) do
+        r._lab = labelLines(r, T.fontF2, room)
+        r._labX = r._lab and lineH or 0                     -- what the name's second line adds to the row
+        r._h = self:rowHeight(r, (r.kind == "note" or r.kind == "desc") and (inner - T.px(24)) or cw) + r._labX
+        total = total + r._h
+    end
     self.scroll = math.max(0, math.min(self.scroll, math.max(0, total - vh)))
     self._list = { x = x, y = vy, w = w, h = vh }
     local gp = MM.gamepad()
@@ -1392,8 +1420,7 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 local tc = T.text
                 if self.rowDisabled and self:rowDisabled(r) then tc = T.textDim end   -- (Sandbox: an option that does nothing now)
                 if r.moot then tc = T.textDim end
-                local label = r.label ~= "" and r.label or ""
-                if r.labelKey then label = ZeD.tr(r.labelKey) end   -- ZeD's own options: read at draw time (test language)
+                local label = rowLabel(r)   -- ZeD's own options: read at draw time (test language)
                 local PG = ZeD.PadGlyphs
                 if r.kind == "chord" and PG and PG.set() then
                     -- a quick action chord's name is its two buttons, as ZeD's pictures (ZeD_PadGlyphs)
@@ -1406,15 +1433,23 @@ function ZeD_MMOptions:drawRows(x, y, w, h, rows, page, finding)
                 elseif r.kind == "chord" then
                     label = r.chord:gsub("%+", " + ")
                 end
-                self:drawText(ZeD.Atoms.truncateText(label, f2, lw - T.px(26)), lx, ry + math.floor((T.px(ROW_H) - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+                local ly = ry + math.floor((T.px(ROW_H) - MM.fontH(f2)) / 2)
+                if r._lab then
+                    -- a name too long for its column: on two lines, the row grown by the second
+                    self:drawText(r._lab[1], lx, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
+                    self:drawText(r._lab[2], lx, ly + r._labX, tc.r, tc.g, tc.b, tc.a or 1, f2)
+                else
+                    self:drawText(ZeD.Atoms.truncateText(label, f2, lw - T.px(26)), lx, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
+                end
                 -- the line under the name (Does nothing with ZeD active / Only ... / Game: where it lives)
                 local ul = underLine(r)
                 if ul then
                     local f1 = T.fontF1
                     local uc = r.moot and T.warning or T.textDim
-                    self:drawText(ZeD.Atoms.truncateText(ul, f1, lw - T.px(26)), lx, ry + T.px(ROW_H) - T.px(6), uc.r, uc.g, uc.b, uc.a or 1, f1)
+                    self:drawText(ZeD.Atoms.truncateText(ul, f1, lw - T.px(26)), lx, ry + T.px(ROW_H) - T.px(6) + r._labX, uc.r, uc.g, uc.b, uc.a or 1, f1)
                 end
-                local crh = (r.kind == "tick" and #(r.control.options or {}) > 1) and T.px(ROW_H) or (ul and T.px(ROW_H) or rh)
+                -- (the control keeps to the name's first line when the name takes two)
+                local crh = (r.kind == "tick" and #(r.control.options or {}) > 1) and T.px(ROW_H) or (ul and T.px(ROW_H) or (rh - r._labX))
                 -- a setting that does nothing with ZeD active: its control drawn, dimmed, and inert
                 self._inert = r.moot and true or false
                 self:drawControl(r, cx0, ry, cw, crh, rowId, clip)

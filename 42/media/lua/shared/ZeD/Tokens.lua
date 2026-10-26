@@ -42,6 +42,7 @@ ZeD.BaseThemes = {
         surf4    = hex("#2C2C2C", 0.92),    -- hover elevation
         border   = hex("#202020", 1.0),     -- soft dividers between rows
         borderS  = hex("#383838", 1.0),     -- strong structural borders
+        -- (frameS / frameHi, the belt's slot frame: unset here, so the strong border and no outer line)
         text     = rgba(0.855, 0.855, 0.855, 0.90),  -- neutral off-white body text
         textSec  = rgba(0.63, 0.63, 0.63, 0.65),     -- neutral secondary (overwritten to accent at runtime)
         textDim  = rgba(0.63, 0.63, 0.63, 0.65),     -- structural chrome: scrollbar arrows, grip lines, ridges
@@ -111,6 +112,10 @@ ZeD.BaseThemes = {
         surf4    = hex("#A6A6A6", 0.97),
         border   = hex("#969696", 1.0),
         borderS  = hex("#767676", 1.0),
+        -- the belt's slot and pouch frame (Oct 26 2026): the strong border stood only 2.3:1 off the slots' fill;
+        -- frameS, the keyline, stands 3:1 off the fill, frameHi, a light line outside it, 3:1 off the leather strap
+        frameS   = hex("#424242", 1.0),
+        frameHi  = hex("#D2D2D2", 1.0),
         text     = rgba(0.047, 0.047, 0.047, 0.95),  -- neutral near-black
         textSec  = rgba(0.047, 0.047, 0.047, 0.72),  -- neutral recessed (overwritten to accent at runtime)
         textDim  = rgba(0.047, 0.047, 0.047, 0.72),  -- structural chrome
@@ -170,6 +175,7 @@ ZeD.BaseThemes = {
         surf4    = hex("#292929", 0.95),
         border   = hex("#353535", 1.0),
         borderS  = hex("#555555", 1.0),
+        -- (frameS / frameHi, the belt's slot frame: unset here, so the strong border and no outer line)
         text     = rgba(1.0, 1.0, 1.0, 0.95),
         textSec  = rgba(0.78, 0.78, 0.78, 0.75),
         textDim  = rgba(0.78, 0.78, 0.78, 0.75),
@@ -810,6 +816,8 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.surf4    = base.surf4
     T.border   = base.border
     T.borderS  = base.borderS
+    T.frameS   = base.frameS or base.borderS   -- the belt's slot frame: its keyline, and a light outer line where set
+    T.frameHi  = base.frameHi
     T.stripe   = base.stripe
 
     -- Text colors from base theme
@@ -882,6 +890,8 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
         T.surf4   = blend(T.surf4, ac, TINT)
         T.border  = blend(T.border, ac, TINT)
         T.borderS = blend(T.borderS, ac, TINT)
+        T.frameS  = blend(T.frameS, ac, TINT)
+        if T.frameHi then T.frameHi = blend(T.frameHi, ac, TINT) end
         T.text     = blend(T.text, ac, TINT * 0.5)
         T.textHead = blend(T.textHead, ac, TINT * 0.5)
     end
