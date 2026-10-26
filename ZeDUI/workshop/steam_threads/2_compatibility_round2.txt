@@ -1,0 +1,57 @@
+[h2]Round 2 (Oct 25 2026, ZeD-GUI 0.2.0-t5)[/h2]
+85 more Workshop items, the most-subscribed Build 42 ones not tested before, in two groups. Project Zomboid 42.21, single player, 3840x2160 at UI scale 1.75. Each mod's own features were [b]not[/b] tried one by one.
+[list]
+[*][b]48 mods[/b] on at once (three broken ones were then taken out), with ZeD-GUI's whole test run: 80 tests, passing as they do without other mods.
+[*][b]37 vehicle packs[/b] on at once, 76 of their cars spawned and driven one by one: ZeD's dashboard shows on each (a generic design, as for any car ZeD has no drawing of) and its Vehicle tab lists every part.
+[/list]
+
+[list]
+[*][b]X[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2845952197]Read While Walking[/url]: Errors every frame while you read on 42.21: it asks the game for fatigue in a way 42.21 removed (getFatigue). Not ZeD.
+[*][b]X[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2696986935]Barricaded World - Extended Erosion [b41/b42][/url]: Errors as new parts of the map load on 42.21 (the same removed PropertyContainer.Is). Not ZeD.
+[*][b]X[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2835852387]Disassemble Container With Items[/url]: Replaces the game's whole furniture-moving code with an older copy that calls functions 42.21 removed (PropertyContainer.Is), so picking up, placing and taking apart furniture error, with or without ZeD.
+[*][b]B[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3396446795]Moodle Framework[/url] by Tchernobill: Its extra moodles keep to the game's old place at the right edge instead of following ZeD's Moodles setting (right, left or above the belt). [i](by reading its code)[/i]
+[*][b]B[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2879960936]Players On Map[/url]: Its player dots are drawn on the game's own map; ZeD's Maps tab is its own map, so they do not show there. Multiplayer only. [i](by reading its code)[/i]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2313387159]Better Sorting[/url] by ChthonicKnight: One error of its own at load on 42.21 (a drink with no item, BSdynamicCats). Not ZeD.
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2447729538]Fluffy Hair [B41/B42][/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3171167894]that DAMN Library[/url] by KI5/bikinihorst
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2463184726]Spongie's Hair[/url] by Spongie
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=1299328280]More Traits [Legacy, read description][/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2625625421]Containers![/url] by KI5
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2142622992]Repair Any Clothes[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2956146279]Rain Cleans Blood [B42.20 + MP][/url] by Akamir
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2684285534]Spongie's Clothing[/url] by Spongie
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2837923608]PertsPartyTiles[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2256623447]Firearms[/url] by Hyzo
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2879745353]Melos Tiles for Miles Tilepack[/url] by melos_tiles
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2650547917]Manage Containers[/url] by Jeff: Its container rules run from the container buttons in ZeD's windows.
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2850135071]Braven's Utilities[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2812326159]Spongie's Open Jackets[/url] by Spongie
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2852704777]Simon MDs Tiles [B41/B42][/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3401134276]Vanilla Gear Expanded[/url] by Tango
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=1962761540]Armored Vests (41/B42)[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2725360009]Boredom Tweaks[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2972289937]Visible Generator Range[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2818577583]Random Zombies[/url] by belette
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3119788162]42.21 | Every Texture Optimized[/url] by maceleet
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3543229299][B42]Project RV Interior[/url] by Mickey Knox
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3429790870]Tomb's Player Body Overhaul[/url] by Tomb
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3619862853]ZombieBuddy[/url] by Zed: A loader for Java mods: its options expect its Java part, installed separately, and error once at the main menu without it. Not ZeD.
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2423266708]Hats and Glasses Don't Fall[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3431734923]Tomb's Player Body Overhaul - Compatibility[/url] by Tomb
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2207282444]Authentic Animations[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2732294885]Named skill VHS tapes[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2850935956]Boots Expanded 11 for B41 and B42[/url] by SergeantMarkIV
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2829657632][41&42]50% metal weight[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3610677934][41/42.20.4MP] Visible Casing Ejection Framework - Hot Brass[/url] by Marz
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3722064198][42.20.4MP] Gunworks Framework[/url] by Marz, Chuck, Shark, Alex, Nik
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2707905930]Cosplay商店(B42/B41)[/url] by 烟雨陌兮: One error of its own at load on 42.21 (a clothing slot named by text, which 42.21 no longer takes). Not ZeD.
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2674541310]Energy Drinks [B42][/url] by Anton Yagoda
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3342191739]Gyde's Trait Magazines [B42.20][/url] by Gyde
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2645975408]Improved Fire & Smoke Effects[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3006882690][B41&B42] Repair Wall[/url] by Kamer
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2648152698]Improved Blood Effects[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2857762294][B42.21+/B41]Smoking Sounds Overhaul[/url] by frits191
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3618557184]Here Goes the Sun [B42MP][/url] by Bass
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2874678809]Lingering Whispers...[/url]
+[*][b]A[/b] | [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3682045254]Unified Carry Weight Framework (UCWF)[/url]
+[/list]
