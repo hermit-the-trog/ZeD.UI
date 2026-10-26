@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/hairbeard_manifest.txt  (Oct 26 2026)
+# Hair and beard in the Identity tab (ZeD_HairBeard.lua). No hair mod: zedqa_run.ps1 -Mode fullscreen4k -Manifest .../hairbeard_manifest.txt
+# With a hair mod: zedqa_mods_run.ps1 -ModList hairbeard_mods_spongie.txt (or _neat, _ihm) -Mode fullscreen4k -Manifest .../hairbeard_manifest.txt
+zedqa_prelude.lua | pre | timeout=120
+zedqa_hairbeard.lua | hb | timeout=420            # rows from the game's menu, greyed reasons, cut / tie / untie / trim, pad path, Out of reach, Identity traits, Large, the hair mods

@@ -8,7 +8,7 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Phrases that are all capitals in English (READING, IN HAND) are meant to be capitals in your language too.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head is drawn in capitals by ZeD whatever case the game text has.
 
-Total keys: 2199.
+Total keys: 2292.
 
 ## Areas
 
@@ -37,6 +37,7 @@ Total keys: 2199.
 - [Flyer](#flyer) (4)
 - [Forage](#forage) (50)
 - [Furn](#furn) (25)
+- [Hair](#hair) (58)
 - [Health](#health) (8)
 - [Hook](#hook) (18)
 - [Host](#host) (10)
@@ -85,6 +86,7 @@ Total keys: 2199.
 - [Station](#station) (31)
 - [Status](#status) (3)
 - [Strip](#strip) (3)
+- [TAS](#tas) (35)
 - [Target](#target) (2)
 - [Thermal](#thermal) (8)
 - [Track](#track) (9)
@@ -1191,6 +1193,69 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Furn_ToCursor` | `To the cursor` | Controller prompt for B on the Furniture tab (hands the stick back to the world cursor) | 20 |
 | `UI_ZeD_Furn_UpTo` | `UP TO` | Furniture tab, Disassemble mode: first column legend of the yield list (most you can get) | 10 |
 | `UI_ZeD_Furn_YourFurniture` | `YOUR FURNITURE` | Furniture tab, Place mode: section heading above the furniture you carry | 20 |
+
+## Hair
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Hair_After` | `After` | Identity tab, Hair and beard: caption under the drawn head after the picked cut | 8 |
+| `UI_ZeD_Hair_BusyCut` | `Cutting hair` | Identity tab, Hair and beard: the strip while the cut runs (a progress bar under it) | 30 |
+| `UI_ZeD_Hair_BusyTie` | `Tying hair` | Identity tab, Hair and beard: the strip while the hair is tied | 30 |
+| `UI_ZeD_Hair_BusyTrim` | `Trimming the beard` | Identity tab, Hair and beard: the strip while the beard is trimmed or shaved | 30 |
+| `UI_ZeD_Hair_BusyUntie` | `Untying hair` | Identity tab, Hair and beard: the strip while the hair is untied | 30 |
+| `UI_ZeD_Hair_Color` | `Color` | Identity tab, Hair and beard: small label of the hair colour line (beside Hair and Beard) | 8 |
+| `UI_ZeD_Hair_DoneBeard` | `Done: beard is now %1` | Identity tab, Hair and beard: the strip after a trim; %1 is the new beard | - |
+| `UI_ZeD_Hair_DoneHair` | `Done: hair is now %1` | Identity tab, Hair and beard: the strip after a cut; %1 is the new style | - |
+| `UI_ZeD_Hair_EmptyBeard` | `No beard to trim. It grows back over time.` | Identity tab, Hair and beard: in place of the list when there is no beard | - |
+| `UI_ZeD_Hair_EmptyHair` | `Nothing to cut: the hair is too short. It grows back over time.` | Identity tab, Hair and beard: in place of the list when the hair cannot be cut or tied | - |
+| `UI_ZeD_Hair_FromMod` | `(from %1)` | Identity tab, Hair and beard: small note after a row a hair mod added; %1 is the mod's name | - |
+| `UI_ZeD_Hair_GrowsBack` | `Grows over time` | Identity tab, Hair and beard: small note at the right of the hair colour line | 18 |
+| `UI_ZeD_Hair_GrpCut` | `Cut` | Identity tab, Hair and beard: small capitals group heading over the cuts that need Scissors | 10 |
+| `UI_ZeD_Hair_GrpShave` | `Shave` | Identity tab, Hair and beard: small capitals group heading over Shave Hair / Shave Beard | 10 |
+| `UI_ZeD_Hair_GrpStyle` | `Style` | Identity tab, Hair and beard: small capitals group heading over the styles that need Hair Gel or Hair Spray | 10 |
+| `UI_ZeD_Hair_GrpTie` | `Tie` | Identity tab, Hair and beard: small capitals group heading over the tie choices (no tool) | 10 |
+| `UI_ZeD_Hair_GrpTrim` | `Trim` | Identity tab, Hair and beard: small capitals group heading over the beard trims | 10 |
+| `UI_ZeD_Hair_HatOff` | `Your %1 comes off first` | Identity tab, Hair and beard: the strip's small line, the game takes the hat off before a cut; %1 is the hat's name | - |
+| `UI_ZeD_Hair_HintMouse` | `Hover a row for the game's hint.` | Identity tab, Hair and beard: small line under the strip's first line (mouse) | 44 |
+| `UI_ZeD_Hair_HintPad` | `Focus a row: it shows here. A does it.` | Identity tab, Hair and beard: small line under the strip's first line (controller; A is the controller's A button) | 44 |
+| `UI_ZeD_Hair_Len0` | `None` | Identity tab, Hair and beard: hair or beard length beside its three small bars (level 0) | 8 |
+| `UI_ZeD_Hair_Len1` | `Short` | Identity tab, Hair and beard: hair or beard length beside its three small bars (level 1) | 8 |
+| `UI_ZeD_Hair_Len2` | `Medium` | Identity tab, Hair and beard: hair or beard length beside its three small bars (level 2) | 8 |
+| `UI_ZeD_Hair_Len3` | `Long` | Identity tab, Hair and beard: hair or beard length beside its three small bars (level 3) | 8 |
+| `UI_ZeD_Hair_NoTool` | `No tool` | Identity tab, Hair and beard: right of the Tie group heading (tying needs nothing) | 12 |
+| `UI_ZeD_Hair_NoToolNeeded` | `No tool needed` | Identity tab, Hair and beard: the strip's small line and the hover hint for tying or untying | - |
+| `UI_ZeD_Hair_NotFromBeard` | `Can't be trimmed from %1.` | Identity tab, Hair and beard: why a beard style is out of reach; %1 is the current beard | - |
+| `UI_ZeD_Hair_NotFromHair` | `Can't be cut from %1.` | Identity tab, Hair and beard: why a style is out of reach although the hair is long enough; %1 is the current style | - |
+| `UI_ZeD_Hair_NotePictures` | `%1 is on. Its pictures open in its own window; the choices are the same as this list.` | Identity tab, Hair and beard: note under the list when a hair mod with a picture window is on; %1 is the mod's name | - |
+| `UI_ZeD_Hair_NoteSpongie` | `%1 is on: every style at or under this length can be picked. Rows it adds carry its name.` | Identity tab, Hair and beard: note under the list when Spongie's Hairstyle Unlocker is on; %1 is the mod's name | - |
+| `UI_ZeD_Hair_Now` | `Now` | Identity tab, Hair and beard: caption under the drawn head as it is now | 8 |
+| `UI_ZeD_Hair_OutOfReach` | `Out of reach` | Identity tab, Hair and beard: folded group of the styles the hair (or beard) cannot be cut into from here | 16 |
+| `UI_ZeD_Hair_OutTitle` | `%1: out of reach` | Identity tab, Hair and beard: the strip when an out-of-reach row is picked; %1 is the style | - |
+| `UI_ZeD_Hair_PartCount` | `%1 (%2)` | Identity tab, Hair and beard: a half of the Hair / Beard switch; %1 is the game's word Hair or Beard, %2 how many choices | 16 |
+| `UI_ZeD_Hair_Pick` | `Pick a row to see what it needs` | Identity tab, Hair and beard: the strip at the foot of the drawer before a row is picked | 40 |
+| `UI_ZeD_Hair_Pictures` | `Pictures` | Identity tab, Hair and beard: button beside that note; opens the hair mod's picture window (sentence case) | 12 |
+| `UI_ZeD_Hair_Section` | `Hair and beard` | Identity tab (Character window), Hair and beard section: small capitals heading under the license | 24 |
+| `UI_ZeD_Hair_Stop` | `Stop` | Identity tab, Hair and beard: the strip's button while a cut runs (stops it) | 10 |
+| `UI_ZeD_Hair_TagNotFromBeard` | `Not from this beard` | Identity tab, Hair and beard: short tag at the right of an out-of-reach beard row | 22 |
+| `UI_ZeD_Hair_TagNotFromHair` | `Not from this style` | Identity tab, Hair and beard: short tag at the right of an out-of-reach row | 22 |
+| `UI_ZeD_Hair_TagTooShort` | `Too short` | Identity tab, Hair and beard: short tag at the right of an out-of-reach row | 18 |
+| `UI_ZeD_Hair_Tied` | `(tied, %1 loose)` | Identity tab, Hair and beard: after the hair style when it is tied; %1 is the style it goes back to when untied | - |
+| `UI_ZeD_Hair_ToHand` | `Puts the %1 in your hand` | Identity tab, Hair and beard: the strip's small line, the game puts the tool in the main hand; %1 is the tool's name | - |
+| `UI_ZeD_Hair_TooShortBeard1` | `Beard too short. Needs a short beard.` | Identity tab, Hair and beard: why a beard style is out of reach (length 1) | - |
+| `UI_ZeD_Hair_TooShortBeard2` | `Beard too short. Needs a medium beard.` | Identity tab, Hair and beard: why a beard style is out of reach (length 2) | - |
+| `UI_ZeD_Hair_TooShortBeard3` | `Beard too short. Needs a long beard.` | Identity tab, Hair and beard: why a beard style is out of reach (length 3) | - |
+| `UI_ZeD_Hair_TooShortHair1` | `Hair too short. Needs short hair.` | Identity tab, Hair and beard: why a style is out of reach (it needs hair of length 1) | - |
+| `UI_ZeD_Hair_TooShortHair2` | `Hair too short. Needs medium hair.` | Identity tab, Hair and beard: why a style is out of reach (it needs hair of length 2) | - |
+| `UI_ZeD_Hair_TooShortHair3` | `Hair too short. Needs long hair.` | Identity tab, Hair and beard: why a style is out of reach (it needs hair of length 3) | - |
+| `UI_ZeD_Hair_ToolOr` | `%1 or %2` | Identity tab, Hair and beard: two tools, either of which will do; %1 and %2 are the game's item names (Razor, Scissors) | - |
+| `UI_ZeD_Hair_Uses` | `Uses your %1` | Identity tab, Hair and beard: the strip's small line, a style uses some of the gel or spray; %1 is its name | - |
+| `UI_ZeD_Hair_VerbCut` | `Cut` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
+| `UI_ZeD_Hair_VerbShave` | `Shave` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
+| `UI_ZeD_Hair_VerbStyle` | `Style` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
+| `UI_ZeD_Hair_VerbTie` | `Tie` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
+| `UI_ZeD_Hair_VerbTrim` | `Trim` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
+| `UI_ZeD_Hair_VerbUntie` | `Untie` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
+| `UI_ZeD_Hair_YouHave` | `You have %1.` | Identity tab, Hair and beard: hover hint on a row that can be done; %1 is the tool's name | - |
 
 ## Health
 
@@ -2786,6 +2851,46 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Strip_OwnedCount` | `%1/%2 owned` | Crafting list, alternative-items strip, centre readout: items owned of items needed | 18 |
 | `UI_ZeD_Strip_OwnedOnly` | `Owned only` | Crafting list, alternative-items strip, toggle that hides items you do not own | 16 |
 | `UI_ZeD_Strip_Sort` | `SORT` | Crafting list, label at the left of the sort strip | 8 |
+
+## TAS
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_TAS_All` | `All (%1)` | Traits tab: left half of the All / With a trait switch; %1 is how many ladders | 16 |
+| `UI_ZeD_TAS_And` | `%1 and %2` | Traits tab, details: joins the last two skill names | - |
+| `UI_ZeD_TAS_At` | `at %1: %2` | Traits tab, details: Level up line; %1 the first level that changes something, %2 what it changes | - |
+| `UI_ZeD_TAS_Bad` | `%1 bad` | Traits tab: summary line, how many bad traits (a red dot before it) | 12 |
+| `UI_ZeD_TAS_Category` | `Category: %1` | Traits tab, details: at the right of the title; %1 is the mod's category name | - |
+| `UI_ZeD_TAS_Credit` | `%1 by %2` | Traits tab (Character window, with the Traits As Skills mod): small line at the top naming the mod; %1 is the mod's name, %2 its author | - |
+| `UI_ZeD_TAS_DownAt` | `Level down at %1: %2` | Traits tab, details: after the Level up line; %1 the first level down that changes something, %2 what it changes | - |
+| `UI_ZeD_TAS_Find` | `Find` | Traits tab: placeholder in the Find box at the right of the tab's heading | 12 |
+| `UI_ZeD_TAS_Follows` | `Follows your %1 skill: %2` | Traits tab, details: a ladder that follows one skill; %1 the skill's name, %2 its level with a decimal | - |
+| `UI_ZeD_TAS_FollowsAvg` | `Follows your %1 skills (the average): %2` | Traits tab, details: a ladder that follows several skills; %1 their names, %2 their average level | - |
+| `UI_ZeD_TAS_GainT` | `gain %1` | Traits tab, details: a trait a level gives; %1 is the trait's name | - |
+| `UI_ZeD_TAS_Good` | `%1 good` | Traits tab: summary line, how many good traits the ladders give now (a green dot before it) | 12 |
+| `UI_ZeD_TAS_Here` | `You are here` | Traits tab: hover hint over the step the character stands on | - |
+| `UI_ZeD_TAS_KLevelUp` | `Level up` | Traits tab, details: small capitals label of the line that says what the next level changes | 10 |
+| `UI_ZeD_TAS_KNow` | `Now` | Traits tab, details: small capitals label of the line with the trait's description | 10 |
+| `UI_ZeD_TAS_KProgress` | `Progress` | Traits tab, details: small capitals label of the progress line | 10 |
+| `UI_ZeD_TAS_LevelOf` | `Level %1 of 10` | Traits tab, details: beside the ladder's name | 14 |
+| `UI_ZeD_TAS_LoseT` | `lose %1` | Traits tab, details: a trait a level takes away; %1 is the trait's name | - |
+| `UI_ZeD_TAS_New` | `NEW` | Traits tab: small tag beside a trait gained since the tab was last opened (capitals) | 5 |
+| `UI_ZeD_TAS_NoChange` | `no change` | Traits tab, details: a level that changes nothing | - |
+| `UI_ZeD_TAS_NoChangeAbove` | `no change above` | Traits tab, details: Level up line when no higher level changes anything | - |
+| `UI_ZeD_TAS_NoDesc` | `(the game gives this trait no description)` | Traits tab, details: after a trait's name when the game has no description for it | - |
+| `UI_ZeD_TAS_NoTrait` | `No trait` | Traits tab: at the right of a ladder that gives no trait now; also a step's hover hint | 14 |
+| `UI_ZeD_TAS_NoTraitN` | `%1 with no trait` | Traits tab: summary line, how many ladders give no trait now | 20 |
+| `UI_ZeD_TAS_NoneList` | `None` | Traits tab, details: the Gain or Lose line when the mod lists nothing | - |
+| `UI_ZeD_TAS_NoneShort` | `none` | Traits tab, details: under a range of the ladder that holds no trait | 8 |
+| `UI_ZeD_TAS_Nothing` | `Nothing matches "%1".` | Traits tab: in place of the list when Find matches nothing; %1 is what was typed | - |
+| `UI_ZeD_TAS_NowNone` | `No trait at this level.` | Traits tab, details: the Now line when the ladder gives no trait | - |
+| `UI_ZeD_TAS_Or` | `%1 or %2` | Traits tab: hover hint over a step whose range holds a pair of traits (either one) | - |
+| `UI_ZeD_TAS_Pick` | `Pick a row to see its ladder, what raises or lowers it, and what the next level changes.` | Traits tab: the details panel at the foot before a row is picked | - |
+| `UI_ZeD_TAS_StepTitle` | `%1 level %2` | Traits tab: hover hint over one of a row's ten steps; %1 the ladder, %2 the level | - |
+| `UI_ZeD_TAS_TopLevel` | `Top level` | Traits tab, details: progress line of a ladder at level 10 | - |
+| `UI_ZeD_TAS_WeightKg` | `Weight: %1 kg` | Traits tab, details: progress line of the Weight ladder; %1 is the character's weight | - |
+| `UI_ZeD_TAS_WithTrait` | `With a trait (%1)` | Traits tab: right half of the switch, only the ladders that give the character a trait now; %1 is how many | 22 |
+| `UI_ZeD_TAS_XpTo` | `XP: %1 / %2 to level %3` | Traits tab, details: progress of a ladder that levels by XP; %1 XP so far, %2 the XP the level needs, %3 the next level | - |
 
 ## Target
 
