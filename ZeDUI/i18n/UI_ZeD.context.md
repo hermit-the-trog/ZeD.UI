@@ -1244,14 +1244,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Hair_NoToolNeeded` | `No tool needed` | Identity tab, Hair and beard: the strip's small line and the hover hint for tying or untying | - |
 | `UI_ZeD_Hair_NotFromBeard` | `Can't be trimmed from %1.` | Identity tab, Hair and beard: why a beard style is out of reach; %1 is the current beard | - |
 | `UI_ZeD_Hair_NotFromHair` | `Can't be cut from %1.` | Identity tab, Hair and beard: why a style is out of reach although the hair is long enough; %1 is the current style | - |
-| `UI_ZeD_Hair_NotePictures` | `%1 is on. Its pictures open in its own window; the choices are the same as this list.` | Identity tab, Hair and beard: note under the list when a hair mod with a picture window is on; %1 is the mod's name | - |
+| `UI_ZeD_Hair_NotePictures` | `%1 is on: its styles are in this list.` | Identity tab, Hair and beard: note under the list when a hair mod with a picture window (Improved Hair Menu, NeatUI Hairstyler) is on; its styles are rows here, each with the character's 3D figure; %1 is the mod's name | - |
 | `UI_ZeD_Hair_NoteSpongie` | `%1 is on: every style at or under this length can be picked. Rows it adds carry its name.` | Identity tab, Hair and beard: note under the list when Spongie's Hairstyle Unlocker is on; %1 is the mod's name | - |
 | `UI_ZeD_Hair_Now` | `Now` | Identity tab, Hair and beard: caption under the drawn head as it is now | 8 |
 | `UI_ZeD_Hair_OutOfReach` | `Out of reach` | Identity tab, Hair and beard: folded group of the styles the hair (or beard) cannot be cut into from here | 16 |
 | `UI_ZeD_Hair_OutTitle` | `%1: out of reach` | Identity tab, Hair and beard: the strip when an out-of-reach row is picked; %1 is the style | - |
 | `UI_ZeD_Hair_PartCount` | `%1 (%2)` | Identity tab, Hair and beard: a half of the Hair / Beard switch; %1 is the game's word Hair or Beard, %2 how many choices | 16 |
 | `UI_ZeD_Hair_Pick` | `Pick a row to see what it needs` | Identity tab, Hair and beard: the strip at the foot of the drawer before a row is picked | 40 |
-| `UI_ZeD_Hair_Pictures` | `Pictures` | Identity tab, Hair and beard: button beside that note; opens the hair mod's picture window (sentence case) | 12 |
 | `UI_ZeD_Hair_Section` | `Hair and beard` | Identity tab (Character window), Hair and beard section: small capitals heading under the license | 24 |
 | `UI_ZeD_Hair_Stop` | `Stop` | Identity tab, Hair and beard: the strip's button while a cut runs (stops it) | 10 |
 | `UI_ZeD_Hair_TagNotFromBeard` | `Not from this beard` | Identity tab, Hair and beard: short tag at the right of an out-of-reach beard row | 22 |

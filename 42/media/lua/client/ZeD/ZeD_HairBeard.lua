@@ -16,12 +16,16 @@
 --   * Improved Hair Menu (improvedhairmenubuild42) and NeatUI Hairstyler
 --     (NeatUI_Hairstyler) turn the menu into "Tie Hair" / "Cut Hair" / "Trim Beard"
 --     entries that open their picture windows; their lists of choices are read
---     into rows here, and a Pictures button opens their window.
+--     into rows here. Every row already shows the style on the character, so
+--     their picture window is not offered from here (director, Oct 26 2026:
+--     "use game avatars for each style").
 -- Rows the game would not offer (too short, not from this style) sit folded
 -- under Out of reach with the reason. One press does it (no confirm).
--- The Now and After heads are drawn pixel shapes, not the 3D head.
+-- Each row, and the Now and After heads, show the game's own 3D figure of the
+-- character wearing that style (AVATARS below).
 -- ============================================================================
 
+require "ISUI/ISUI3DModel"
 require "ZeD/Tokens"
 require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
@@ -33,7 +37,8 @@ ZeD.HairBeard = ZeD.HairBeard or {}
 local HB = ZeD.HairBeard
 
 -- design units
-local ROW_H, GH_H, PART_H, CUR_H, HEAD_W, HEAD_H, STRIP_H, CUR_K = 26, 22, 26, 28, 58, 66, 50, 56
+local ROW_H, GH_H, PART_H, CUR_H, HEAD_W, HEAD_H, STRIP_H, CUR_K = 54, 22, 26, 28, 68, 76, 50, 56
+local THUMB, THUMB_PAD = 42, 6     -- a row's figure frame and its inset
 local HINT_MS = 450
 local REFRESH_FRAMES = 30
 
@@ -324,7 +329,6 @@ local function buildRows(win, p, part)
                     local ok = reqsOk(e.requirements)
                     local r = hairRow(p, cur, id, label, ok, (not ok) and reasonFor(req) or nil,
                         function(pl) ISCharacterScreen.onCutHair(pl, id, t) end, tie and "tie" or "cut")
-                    r.pics = o
                     rows[#rows + 1] = r
                 end
             elseif type(o.onSelect) == "function" then
@@ -352,7 +356,6 @@ local function buildRows(win, p, part)
                     local ok = reqsOk(e.requirements)
                     local r = beardRow(id, label, ok, (not ok) and reasonFor("rs") or nil,
                         function(pl) ISCharacterScreen.onTrimBeard(pl, id) end)
-                    r.pics = o
                     rows[#rows + 1] = r
                 end
             elseif type(o.onSelect) == "function" then
@@ -518,165 +521,298 @@ local function watchBusy(win, st, p)
     refresh(win, st, p, true)
 end
 
--- the picture window of Improved Hair Menu / NeatUI Hairstyler; the pad comes back to ZeD when it closes
-function HB.openPictures(win)
-    local st = state(win)
-    local p = win._playerObj
-    if not p then return end
-    local sel = findRow(st, st.sel)
-    local o = (sel and sel.pics) or nil
-    if not o then
-        for _, x in ipairs(st.pics or {}) do
-            if not o or x.param2 == getText("ContextMenu_CutHair") then o = x end
-        end
-    end
-    if not o or type(o.onSelect) ~= "function" then return end
-    local pn = p:getPlayerNum()
-    local made
-    local W = HairMenuPanelWindow
-    local origNew = W and W.new
-    if W and origNew then
-        W.new = function(...)
-            local m = origNew(...)
-            made = m
-            return m
-        end
-    end
-    local ok, err = pcall(o.onSelect, standIn(p, pn), o.param1, o.param2, o.param3)
-    if W and origNew then W.new = origNew end
-    if not ok then ZeD.logOnce("hairbeard pictures", err); return end
-    if made then
-        made.returnFocus = nil
-        local close = made.close
-        made.close = function(self)
-            close(self)
-            if ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.reclaimEngineFocus and JoypadState.players[pn + 1] then
-                ZeD.Input.Focus.reclaimEngineFocus()
-            end
-            st.tick = 999
-        end
-    end
-    getSoundManager():playUISound("UIActivateButton")
+-- ---------------------------------------------------------------------------
+-- AVATARS: the game's own 3D figure (ISUI3DModel, as its character creation and
+-- hair menus use) for each style, the Now head and the After head. Each is the
+-- player's own look (skin, body, hair colour, the clothes they wear minus what
+-- covers the head) copied into a stand-in SurvivorDesc with the row's hair or
+-- beard on it; the real character is never touched (the model copies the desc
+-- when it is set). A 3D figure cannot sit in a stencilled panel, so the figures
+-- are window children laid over the frames this section draws, only for frames
+-- wholly inside the view, from a small pool that grows to what shows. A layer
+-- above them dims the greyed rows' figures and repeats the hover balloon. The
+-- figures go (removed from the window) the first frame the section is not drawn.
+-- ---------------------------------------------------------------------------
+local AV_ZOOM, AV_YOFF = 17, -0.86            -- head and shoulders, the same for every figure
+local AV_DIR = IsoDirections.SE                -- hair: a slight turn, so ties and tails read and the face shows
+local AV_DIR_BEARD = IsoDirections.S           -- beard: face on, so long hair does not hide it
+local AV_MAX, AV_DRESS_PER_FRAME = 40, 6       -- pool cap; new looks set per frame (each builds a model)
+local AV_DIM = 0.55                            -- the veil over a greyed row's figure
+
+local AV = { frame = 0, states = {} }          -- the UI frame count; every window state with figures
+HB.AV = AV
+
+local function colKey(c)
+    if not c then return "-" end
+    local ok, r, g, b = pcall(function() return c:getRedFloat(), c:getGreenFloat(), c:getBlueFloat() end)
+    if not ok then return "-" end
+    return string.format("%.3f,%.3f,%.3f", r, g, b)
 end
 
--- ---------------------------------------------------------------------------
--- the drawn heads (pixel shapes on a 29 x 33 grid: enough to tell long from
--- short, tied from loose, which beard)
--- ---------------------------------------------------------------------------
-local SKIN = { r = 0.89, g = 0.72, b = 0.59 }
-local SHIRT = { r = 0.29, g = 0.33, b = 0.38 }
-local INK = { r = 0.16, g = 0.16, b = 0.16 }
-local LIP = { r = 0.60, g = 0.35, b = 0.29 }
+-- what covers the hair or the beard (hats, hoods, masks, helmets, suit heads): left off the figure
+local function coversHead(loc)
+    local s = string.lower(tostring(loc or ""))
+    return s:find("hat", 1, true) ~= nil or s:find("mask", 1, true) ~= nil or s:find("head", 1, true) ~= nil
+        or s:find("helmet", 1, true) ~= nil
+end
+
+-- the look every figure shares (refreshed with the rows): a change re-dresses them all
+local function baseKeyOf(p)
+    local hv = p:getHumanVisual()
+    local parts = { tostring(p:isFemale()), tostring(hv:getSkinTextureIndex()), tostring(hv:getSkinTexture()),
+                    colKey(hv:getHairColor()), colKey(hv:getBeardColor()), tostring(hv:getBodyHairIndex()) }
+    local wi = p:getWornItems()
+    for i = 0, wi:size() - 1 do
+        local it = wi:getItemByIndex(i)
+        if it then parts[#parts + 1] = tostring(it:getID()) end
+    end
+    return table.concat(parts, "|")
+end
+
+local function avState(st)
+    local av = st.av
+    if not av then
+        av = { pool = {}, want = 0, drawFrame = -10, veils = {}, balloons = {} }
+        st.av = av
+    end
+    return av
+end
+
+-- the stand-in: a copy of the player's visual and worn clothes (not what covers the head)
+local function syncDesc(av, p, key)
+    if av.descKey == key and av.desc then return end
+    local d = av.desc
+    if not d then d = SurvivorFactory.CreateSurvivor(); av.desc = d end
+    d:setFemale(p:isFemale())
+    d:getHumanVisual():copyFrom(p:getHumanVisual())
+    local worn = d:getWornItems()
+    worn:clear()
+    local wi = p:getWornItems()
+    for i = 0, wi:size() - 1 do
+        local it = wi:getItemByIndex(i)
+        local loc = it and wi:getLocation(it)
+        if loc and not coversHead(loc) then worn:setItem(loc, it) end
+    end
+    av.descKey = key
+end
+
+local function setShown(m, on)
+    if m:isVisible() ~= on then m:setVisible(on) end
+    if m.javaObject:isVisible() ~= on then m.javaObject:setVisible(on) end
+end
+
+local function noMouse() return false end
+local function makeModel()
+    local m = ISUI3DModel:new(0, 0, 10, 10)
+    m:initialise()
+    m:instantiate()
+    m:setState("idle")
+    m:setDirection(AV_DIR)
+    m:setIsometric(false)
+    m:setDoRandomExtAnimations(false)
+    m:setAnimateWhilePaused(true)
+    m:setZoom(AV_ZOOM)
+    m:setYOffset(AV_YOFF)
+    m:setXOffset(0)
+    -- the press, the wheel and the hover go through to the drawer below (its rows and scroll)
+    m.javaObject:setConsumeMouseEvents(false)
+    m.onMouseDown, m.onMouseUp, m.onMouseMove, m.onMouseWheel = noMouse, noMouse, noMouse, noMouse
+    m.onMouseUpOutside, m.onMouseMoveOutside = noMouse, noMouse
+    m._hbModel = true
+    m:setVisible(false)
+    m.javaObject:setVisible(false)
+    return m
+end
+
+-- the layer over the figures (click-through): the veils and the hover balloon
+local function makeLayer(win)
+    local layer = ISPanel:new(0, 0, 10, 10)
+    layer:initialise()
+    layer:instantiate()
+    layer.background = false
+    layer.javaObject:setConsumeMouseEvents(false)
+    layer.prerender = function() end
+    layer.onMouseDown, layer.onMouseUp, layer.onMouseWheel, layer.onMouseMove = noMouse, noMouse, noMouse, noMouse
+    layer.render = function(self) HB.renderLayer(self, win) end
+    layer._hbLayer = true
+    layer:setVisible(false)
+    return layer
+end
+
+-- every figure off (the window's frame, before the tab draws; the tab shows what it uses)
+local function hideAll(av)
+    for _, m in ipairs(av.pool) do setShown(m, false) end
+    if av.layer and av.layer:isVisible() then av.layer:setVisible(false) end
+end
+
+-- the figures leave the window
+local function release(win, st)
+    local av = st.av
+    if not av then return end
+    for _, m in ipairs(av.pool) do
+        setShown(m, false)
+        pcall(function() win:removeChild(m) end)
+    end
+    if av.layer then pcall(function() win:removeChild(av.layer) end) end
+    st.av = nil
+    AV.states[st] = nil
+end
+HB.release = release
+
+-- from ZeD_CharacterWindow.extFrame, each frame before the tab draws
+function HB.onWindowFrame(win)
+    local st = win._hb
+    if st and st.av then hideAll(st.av) end
+end
+
+-- before the UI draws: grow the pool to what the section asked for (a child added while the
+-- window draws would upset its drawing), and release the figures of a section not drawn
+local function preUI()
+    AV.frame = AV.frame + 1
+    for st, win in pairs(AV.states) do
+        local av = st.av
+        if not av or av.drawFrame < AV.frame - 1 then
+            release(win, st)
+        else
+            local grew = false
+            while #av.pool < math.min(av.want, AV_MAX) do
+                local m = makeModel()
+                win:addChild(m)
+                av.pool[#av.pool + 1] = m
+                grew = true
+            end
+            if not av.layer then
+                av.layer = makeLayer(win)
+                win:addChild(av.layer)
+            elseif grew then
+                win:removeChild(av.layer)
+                win:addChild(av.layer)
+            end
+        end
+    end
+end
+Events.OnPreUIDraw.Add(preUI)
+
+
+-- this frame's figures: wants = { { id, x, y, w, h, hair, beard, dim } } in the panel's coordinates
+local function placeFigures(panel, win, st, wants)
+    local av = avState(st)
+    local p = win._playerObj
+    AV.states[st] = win
+    av.drawFrame = AV.frame
+    av.veils = {}
+    if not p then return end
+    -- (with the rows: refresh() has just run when its tick is 0)
+    if not st.baseKey or st.tick == 0 then st.baseKey = baseKeyOf(p) end
+    syncDesc(av, p, st.baseKey)
+    local ox, oy = panel:getX(), panel:getY()
+    for _, m in ipairs(av.pool) do m._use = nil end
+    -- a figure already wearing a wanted look keeps it
+    local need = {}
+    for _, w in ipairs(wants) do
+        w.look = (st.baseKey or "") .. "#" .. w.hair .. "/" .. w.beard .. (w.face and "@S" or "")
+        for _, m in ipairs(av.pool) do
+            if not m._use and m._look == w.look then m._use = w; w.m = m; break end
+        end
+        if not w.m then need[#need + 1] = w end
+    end
+    -- the rest take a free figure (a few new looks a frame: each builds a model)
+    local dressed = 0
+    local hv = av.desc:getHumanVisual()
+    for _, w in ipairs(need) do
+        if dressed >= AV_DRESS_PER_FRAME then break end
+        local free
+        for _, m in ipairs(av.pool) do if not m._use then free = m; break end end
+        if not free then break end
+        hv:setHairModel(w.hair)
+        if not st.female then hv:setBeardModel(w.beard) end
+        free:setSurvivorDesc(av.desc)
+        free:setDirection(w.face and AV_DIR_BEARD or AV_DIR)
+        free._look, free._use, w.m = w.look, w, free
+        dressed = dressed + 1
+    end
+    av.want = #wants
+    for _, w in ipairs(wants) do
+        local m = w.m
+        if m then
+            m._id = w.id
+            m:setX(ox + w.x); m:setY(oy + w.y)
+            if m:getWidth() ~= w.w then m:setWidth(w.w) end
+            if m:getHeight() ~= w.h then m:setHeight(w.h) end
+            setShown(m, true)
+            if w.dim then av.veils[#av.veils + 1] = w end
+        end
+    end
+    for _, m in ipairs(av.pool) do if not m._use then m._id = nil; setShown(m, false) end end
+    local layer = av.layer
+    if layer then
+        layer:setX(ox); layer:setY(oy)
+        if layer:getWidth() ~= panel:getWidth() then layer:setWidth(panel:getWidth()) end
+        if layer:getHeight() ~= panel:getHeight() then layer:setHeight(panel:getHeight()) end
+        if not layer:isVisible() then layer:setVisible(true) end
+    end
+end
+
+-- the figures showing now (for the QA script): { id, model, x, y, w, h } in window coordinates
+function HB.figures(win)
+    local st = win and win._hb
+    local out = {}
+    local av = st and st.av
+    if not av then return out end
+    for _, m in ipairs(av.pool) do
+        if m._id and m:isVisible() and m.javaObject:isVisible() then
+            out[#out + 1] = { id = m._id, model = m, x = m:getX(), y = m:getY(), w = m:getWidth(), h = m:getHeight(), look = m._look }
+        end
+    end
+    return out
+end
+function HB.poolSize(win)
+    local st = win and win._hb
+    return (st and st.av) and #st.av.pool or 0
+end
+
+-- the frame behind a figure (drawn on the drawer, under the figure): hard corners, live tokens
+local function drawFrame(panel, x, y, w, h)
+    local T = ZeD.T
+    local s3, bs = T.surf3, T.borderS
+    panel:drawRect(x, y, w, h, s3.a or 1, s3.r, s3.g, s3.b)
+    panel:drawRectBorder(x, y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
+end
+
+-- the layer: veils over the greyed rows' figures, then the balloons drawn this frame on top
+function HB.renderLayer(layer, win)
+    local st = win._hb
+    local av = st and st.av
+    if not av then return end
+    local T = ZeD.T
+    local clip = av.clip
+    if clip then layer:setStencilRect(clip.x, clip.y, clip.w, clip.h) end
+    local db = T.drawerBg
+    for _, w in ipairs(av.veils) do
+        layer:drawRect(w.x + 1, w.y + 1, w.w - 2, w.h - 2, AV_DIM, db.r, db.g, db.b)
+    end
+    if clip then layer:clearStencilRect() end
+    if AV.balloonFrame == AV.frame then
+        for _, b in ipairs(AV.balloons or {}) do HB.balloon(layer, b[1], b[2], b[3], b[4], b[5], b[6], b[7], true) end
+    end
+end
+
+-- what a head looks like now, or after a row
+local function headLook(st, p, sel)
+    local hv = p:getHumanVisual()
+    local h, b = hv:getHairModel() or "", st.female and "" or (hv:getBeardModel() or "")
+    if sel then
+        if sel.part == "beard" then b = sel.style or "" else h = sel.style or "" end
+    end
+    return h, b
+end
+
+-- the hair colour's swatch on the Now lines
 local function colOf(c, fb)
     if not c then return fb end
     local ok, r, g, b = pcall(function() return c:getRedFloat(), c:getGreenFloat(), c:getBlueFloat() end)
     if ok and r then return { r = r, g = g, b = b } end
     return fb
-end
-local function span(cx, cy, rx, ry, y)
-    local d = (y + 0.5 - cy) / ry
-    if d < -1 or d > 1 then return nil end
-    local dx = rx * math.sqrt(1 - d * d)
-    return math.floor(cx - dx + 0.5), math.floor(cx + dx - 0.5)
-end
-
-function HB.drawHead(panel, x, y, w, h, look, alpha)
-    local T = ZeD.T
-    alpha = alpha or 1
-    panel:drawRect(x, y, w, math.floor(h / 2), alpha, 0.165, 0.184, 0.2)
-    panel:drawRect(x, y + math.floor(h / 2), w, h - math.floor(h / 2), alpha, 0.11, 0.125, 0.141)
-    local bs = T.borderS
-    panel:drawRectBorder(x, y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
-    if not look then return end
-    local c = math.max(1, math.floor(w / 29))
-    local ox, oy = x + math.floor((w - c * 29) / 2), y + math.floor((h - c * 33) / 2)
-    local function run(row, x0, x1, col, a)
-        if not x0 or x1 < x0 or row < 0 or row > 32 then return end
-        x0, x1 = math.max(0, x0), math.min(28, x1)
-        panel:drawRect(ox + x0 * c, oy + row * c, (x1 - x0 + 1) * c, c, (a or 1) * alpha, col.r, col.g, col.b)
-    end
-    local hc, bc = look.hair, look.beard
-    local n, L = look.hairName or "", look.level or 0
-    local tied = look.attached
-    local mohawk = has_(n, "Mohawk")
-    local spike = has_(n, "Spike") and not mohawk
-    local braids = has_(n, "Braid") or has_(n, "Cornrow")
-    -- long hair falls behind the shoulders
-    if L >= 3 and not tied and not mohawk then
-        if braids then
-            for r = 12, 30 do run(r, 5, 6, hc); run(r, 22, 23, hc) end
-        else
-            for r = 8, 28 do
-                local a0, a1 = span(14.5, 17, 9.5, 12, r)
-                if r >= 17 then a0, a1 = 5, 23 end
-                run(r, a0, a1, hc)
-            end
-        end
-    end
-    if tied and not has_(n, "Bun") then for r = 12, 25 do run(r, 21, 23 - (r > 21 and 1 or 0), hc) end end
-    if tied and has_(n, "Bun") then for r = 1, 5 do local a0, a1 = span(14.5, 3.5, 3, 2.8, r); run(r, a0, a1, hc) end end
-    -- shoulders, neck, face, ears
-    local sk = look.skin or SKIN
-    run(27, 9, 19, SHIRT); run(28, 7, 21, SHIRT)
-    for r = 29, 32 do run(r, 5, 23, SHIRT) end
-    for r = 22, 26 do run(r, 12, 16, sk) end
-    for r = 7, 23 do local a0, a1 = span(14.5, 15.5, 6.5, 8, r); run(r, a0, a1, sk) end
-    for r = 14, 17 do run(r, 7, 7, sk); run(r, 21, 21, sk) end
-    run(15, 11, 11, INK); run(15, 17, 17, INK)
-    -- the beard
-    local bn = look.beardName or ""
-    local bl = look.beardLevel or 0
-    if bn ~= "" then
-        if bn == "Moustache" then run(20, 11, 17, bc)
-        elseif bn == "Goatee" then run(20, 12, 16, bc); for r = 22, 25 do run(r, 12, 16, bc) end
-        elseif bn == "Chops" then for r = 13, 21 do run(r, 8, 9, bc); run(r, 19, 20, bc) end
-        elseif bn == "Chin" then run(24, 12, 16, bc); run(25, 12, 16, bc)
-        elseif bn == "PointyChin" then
-            run(23, 12, 16, bc); run(24, 13, 15, bc); run(25, 13, 15, bc); run(26, 14, 14, bc); run(27, 14, 14, bc)
-        elseif bn == "BeardOnly" then
-            for r = 19, 25 do
-                local a0, a1 = span(14.5, 17, 7, 9, r)
-                if r <= 22 then run(r, a0, 10, bc); run(r, 18, a1, bc) else run(r, a0, a1, bc) end
-            end
-        else
-            -- Full, Long, Scruffy and any style a mod adds: by its length
-            local bottom = (bl >= 3) and 31 or 25
-            for r = 19, bottom do
-                local a0, a1 = span(14.5, 17, 7, 9, r)
-                if r > 25 then a0, a1 = 10 + math.floor((r - 26) / 2), 18 - math.floor((r - 26) / 2) end
-                run(r, a0, a1, bc, 0.9)
-            end
-        end
-    end
-    run(21, 13, 15, LIP)
-    -- the hair on top
-    if mohawk then
-        local top = (n == "MohawkFlat") and 5 or 1
-        for r = top, 11 do run(r, 13, 16, hc) end
-    elseif L >= 1 or tied then
-        for r = 6, 11 do local a0, a1 = span(14.5, 15.5, 7.5, 9.5, r); run(r, a0, a1, hc) end
-        if L >= 2 and not tied then
-            for r = 12, 21 do
-                local a0, a1 = span(14.5, 15.5, 7.8, 10, r)
-                local f0, f1 = span(14.5, 15.5, 6.5, 8, r)
-                if a0 and f0 then run(r, a0, f0 - 1, hc); run(r, f1 + 1, a1, hc) end
-            end
-        end
-        if spike then for _, cx in ipairs({ 8, 11, 14, 17, 20 }) do for r = 2, 5 do run(r, cx, cx + 1, hc) end end end
-        if braids and L <= 1 then for _, cx in ipairs({ 11, 14, 17 }) do run(7, cx, cx, INK, 0.5); run(9, cx, cx, INK, 0.5) end end
-    end
-end
-
--- what a head looks like now, or after a row
-local function lookOf(p, hairName, beardName)
-    local hv = p:getHumanVisual()
-    local female = p:isFemale()
-    local hs = hairStyle(female, hairName)
-    local bs = (not female) and beardName and beardName ~= "" and getBeardStylesInstance():FindStyle(beardName) or nil
-    return { hairName = hairName or "", level = hs and hs:getLevel() or 0, attached = hs and hs:isAttachedHair() or false,
-             beardName = (not female) and (beardName or "") or "", beardLevel = bs and bs:getLevel() or 0,
-             hair = colOf(hv:getHairColor(), { r = 0.23, g = 0.14, b = 0.09 }),
-             beard = colOf(hv:getBeardColor(), { r = 0.23, g = 0.14, b = 0.09 }) }
 end
 
 -- ---------------------------------------------------------------------------
@@ -740,20 +876,18 @@ function HB.layout(win, w)
     end
     add(L, { kind = "listbox", x = x, y = listTop, w = cw, h = y - listTop })
     -- the hair mods
-    local note, pics = nil, false
+    local note
     local pm = HB.picturesMod()
     if pm and #(st.pics or {}) > 0 then
-        note = tr("UI_ZeD_Hair_NotePictures", modName(pm)); pics = true
+        note = tr("UI_ZeD_Hair_NotePictures", modName(pm))
     elseif st.part == "hair" and HB.spongieOn() then
         note = tr("UI_ZeD_Hair_NoteSpongie", modName("SpnHairAPI"))
     end
     if note then
         y = y + T.px(8)
-        local bw = pics and (ZeD.TM:MeasureStringX(T.fontF3, ZeD.btnCase(tr("UI_ZeD_Hair_Pictures"))) + T.px(24)) or 0
-        local lines = ZeD.Atoms.wrapText(note, T.fontF1, cw - (pics and (bw + T.px(10)) or 0))
-        local nh = math.max(#lines * F(1), pics and T.px(24) or 0)
+        local lines = ZeD.Atoms.wrapText(note, T.fontF1, cw)
+        local nh = #lines * F(1)
         add(L, { kind = "note", lines = lines, x = x, y = y, w = cw, h = nh })
-        if pics then add(L, { kind = "pics", x = x + cw - bw, y = y, w = bw, h = T.px(24) }) end
         y = y + nh
     end
     L.h = y + T.sp.sm
@@ -786,13 +920,23 @@ local function lenBar(panel, x, y, level, col, dim)
     return 3 * bw + 2 * gap
 end
 
-local function drawHeads(panel, win, st, it, y)
+-- a figure for this frame when its frame shows whole in the view
+local function want(wants, view, id, x, y, w, h, hair, beard, dim, face)
+    if y < view.y0 or y + h > view.y1 then return end
+    wants[#wants + 1] = { id = id, x = x + 1, y = y + 1, w = w - 2, h = h - 2, hair = hair or "", beard = beard or "",
+                          dim = dim, face = face }
+end
+
+local function drawHeads(panel, win, st, it, y, wants, view)
     local T = ZeD.T
     local p = win._playerObj
     local hv = p:getHumanVisual()
     local bw, bh = T.px(HEAD_W), T.px(HEAD_H)
     local curHair, curBeard = hv:getHairModel(), (not st.female) and hv:getBeardModel() or ""
-    HB.drawHead(panel, it.x, y, bw, bh, lookOf(p, curHair, curBeard), 1)
+    drawFrame(panel, it.x, y, bw, bh)
+    local nh, nb = headLook(st, p, nil)
+    local face = st.part == "beard"
+    want(wants, view, "now", it.x, y, bw, bh, nh, nb, false, face)
     local dim, tc = T.toneLo or T.textDim, T.text
     local f5 = T.fontF5
     local function cap(text, cx)
@@ -804,12 +948,10 @@ local function drawHeads(panel, win, st, it, y)
     panel:drawText(">", ax, y + math.floor((bh - F(2)) / 2), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2)
     local bx = ax + ZeD.TM:MeasureStringX(T.fontF2, ">") + T.px(6)
     local sel = findRow(st, st.sel)
+    drawFrame(panel, bx, y, bw, bh)
     if sel and not sel.out then
-        local h2, b2 = curHair, curBeard
-        if sel.part == "beard" then b2 = sel.style else h2 = sel.style end
-        HB.drawHead(panel, bx, y, bw, bh, lookOf(p, h2, b2), 1)
-    else
-        HB.drawHead(panel, bx, y, bw, bh, nil, 0.35)
+        local h2, b2 = headLook(st, p, sel)
+        want(wants, view, "after", bx, y, bw, bh, h2, b2, false, face)
     end
     cap(tr("UI_ZeD_Hair_After"), bx)
     -- what the character has now
@@ -920,7 +1062,7 @@ local function drawGh(panel, win, st, it, y, mx, my)
     panel:drawText(right, it.x + it.w - T.px(8) - rw, ty, c.r, c.g, c.b, c.a or 1, T.fontF5)
 end
 
-local function drawRow(panel, win, st, it, y, mx, my)
+local function drawRow(panel, win, st, it, y, mx, my, wants, view)
     local T = ZeD.T
     local r = it.row
     local ac, bd = T.accent, T.border
@@ -966,7 +1108,13 @@ local function drawRow(panel, win, st, it, y, mx, my)
         panel:drawRectBorder(rx, tagY, tw, th, bc.a or 1, bc.r, bc.g, bc.b)
         panel:drawText(tag, rx + T.px(4), tagY + math.floor((th - F(5)) / 2), dimInk.r, dimInk.g, dimInk.b, dimInk.a or 1, T.fontF5)
     end
-    local nx = it.x + T.px(8)
+    -- the figure wearing this row's style, in its frame
+    local ts, tp = T.px(THUMB), T.px(THUMB_PAD)
+    local fx, fy = it.x + tp, y + math.floor((it.h - ts) / 2)
+    drawFrame(panel, fx, fy, ts, ts)
+    local h2, b2 = headLook(st, win._playerObj, r)
+    want(wants, view, r.key, fx, fy, ts, ts, h2, b2, (r.out or not r.ok) and true or false, r.part == "beard")
+    local nx = fx + ts + T.px(10)
     local nw = rx - T.px(8) - nx
     panel:drawText(ZeD.Atoms.truncateText(r.label, T.fontF2, nw), nx, y + math.floor((it.h - F(2)) / 2),
         ink.r, ink.g, ink.b, (ink.a or 1) * nameA, T.fontF2)
@@ -981,6 +1129,7 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
     local inView = mx >= x and mx < x + w and my >= viewY and my < viewY + viewH
     if not inView then mx, my = nil, nil end
     st.hover = nil
+    local wants, view = {}, { y0 = viewY, y1 = viewY + viewH }
     for _, it in ipairs(L.items) do
         local y = top + it.y
         local ix = it.x + x
@@ -997,10 +1146,10 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
             elseif k == "subh" then
                 local c = T.toneLo or T.textDim
                 panel:drawText(it.text, ix, y, c.r, c.g, c.b, c.a or 1, T.fontF1)
-            elseif k == "heads" then drawHeads(panel, win, st, item, y)
+            elseif k == "heads" then drawHeads(panel, win, st, item, y, wants, view)
             elseif k == "parts" then drawParts(panel, win, st, item, y)
             elseif k == "gh" or k == "outh" then drawGh(panel, win, st, item, y, mx, my)
-            elseif k == "row" then drawRow(panel, win, st, item, y, mx, my)
+            elseif k == "row" then drawRow(panel, win, st, item, y, mx, my, wants, view)
             elseif k == "empty" then
                 local c = T.toneLo or T.textDim
                 for i, line in ipairs(it.lines) do
@@ -1014,14 +1163,10 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
                 for i, line in ipairs(it.lines) do
                     panel:drawText(line, ix, y + (i - 1) * F(1), c.r, c.g, c.b, c.a or 1, T.fontF1)
                 end
-            elseif k == "pics" then
-                local ac = T.accent
-                ZeD.Molecules.drawButton(panel, ix, y, it.w, it.h, tr("UI_ZeD_Hair_Pictures"), "default", false,
-                    { fill = isFoc(win, "hb:pics") and { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } or nil })
             end
         end
         -- click zones (only what shows) and the row under the mouse
-        if (k == "row" or k == "outh" or k == "parts" or k == "pics") and vis then
+        if (k == "row" or k == "outh" or k == "parts") and vis then
             local zy0, zy1 = math.max(viewY, y), math.min(viewY + viewH, y + it.h)
             if zy1 > zy0 then
                 st.zones[#st.zones + 1] = { x = ix, y = zy0, w = it.w, h = zy1 - zy0, item = it }
@@ -1031,6 +1176,11 @@ function HB.draw(panel, win, L, x, top, w, viewY, viewH)
             end
         end
     end
+    -- the figures over the frames drawn this frame; the layer's veils stay inside the view
+    placeFigures(panel, win, st, wants)
+    if st.av then st.av.clip = { x = x, y = viewY, w = w, h = viewH } end
+    -- balloons drawn on the drawer this frame are drawn again above the figures
+    AV.balloonFrame, AV.balloons = AV.frame, {}
 end
 
 -- ---------------------------------------------------------------------------
@@ -1152,8 +1302,12 @@ end
 -- the hover balloon (also the Identity traits' and the Traits tab's): a title and
 -- wrapped lines in the ZeD hint style, below the anchor, kept inside the clip
 -- ---------------------------------------------------------------------------
-function HB.balloon(panel, title, body, ax, ay, aw, ah, clip)
+function HB.balloon(panel, title, body, ax, ay, aw, ah, clip, again)
     local T = ZeD.T
+    -- on the drawer while the section's figures show: drawn again on their layer, above them
+    if not again and AV.balloonFrame == AV.frame and AV.balloons then
+        AV.balloons[#AV.balloons + 1] = { title, body, ax, ay, aw, ah, clip }
+    end
     local maxW = T.px(280)
     local pad, padY = T.px(8), T.px(5)
     local lines = {}
@@ -1236,8 +1390,6 @@ function HB.onClick(win, x, y)
             elseif it.kind == "parts" then
                 local half = (not st.female) and (x >= it.x + st.x + it.w / 2) or false
                 HB.setPart(win, half and "beard" or "hair")
-            elseif it.kind == "pics" then
-                HB.openPictures(win)
             end
             getSoundManager():playUISound("UIActivateButton")
             return true
@@ -1246,7 +1398,7 @@ function HB.onClick(win, x, y)
     return false
 end
 
--- the controller's stops: the Hair | Beard switch, each row, Out of reach, Pictures
+-- the controller's stops: the Hair | Beard switch, each row, Out of reach
 -- (as laid out this frame; rows scrolled out of view keep their place for the cone)
 function HB.focusables(win)
     local st = win._hb
@@ -1273,8 +1425,6 @@ function HB.focusables(win)
                 onActivate = function(w) st.sel = key; HB.run(w, key) end }
         elseif it.kind == "outh" then
             e = { id = "hb:out", onActivate = function() st.outOpen = not st.outOpen end }
-        elseif it.kind == "pics" then
-            e = { id = "hb:pics", onActivate = function(w) HB.openPictures(w) end }
         end
         if e then
             e.x, e.y, e.w, e.h, e.cy, e.hbStop = x, y, it.w, it.h, it.y, true

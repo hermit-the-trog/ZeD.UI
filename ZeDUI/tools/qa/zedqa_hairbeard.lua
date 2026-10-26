@@ -10,8 +10,12 @@
 --   5. controller: down from the disclosure lands on the switch, right flips to Beard, down
 --      walks the rows (the strip follows focus), A on a greyed row does nothing, A trims
 --   6. Out of reach folds open; the Identity traits' descriptions on focus and hover
---   7. Large text; the hair mods (Spongie's tag, the Pictures window) when on
--- Captures: Zomboid/Screenshots/zqa_hb_<name>.png. grep "ZEDQA hb".
+--   7. Large text, Light; the hair mods (Spongie's tag; the picture mods' styles as rows) when on
+--   A. the figures (Oct 26 2026, "use game avatars for each style"): every row wholly in view,
+--      and Now / After, show the game's 3D figure (no drawn heads left); the figures are a
+--      stand-in, the real character never changes; frame time with the list open; the
+--      figures leave the window when the tab changes and when the window closes
+-- Captures: Zomboid/Screenshots/zqa_hb_<name>.png (each with "rect" lines for crops). grep "ZEDQA hb".
 local TAG = "hb"
 local function say(s) print("ZEDQA " .. TAG .. " " .. tostring(s)) end
 local p = getPlayer()
@@ -40,6 +44,7 @@ end
 local MODS = mods()
 local hv = p:getHumanVisual()
 local female = p:isFemale()
+local A_before
 local orig = { hair = hv:getHairModel(), beard = hv:getBeardModel(), na = hv:getNonAttachedHair() }
 local LONG = female and "Long2" or "Fabian"
 local size, base, accent = ZeD.currentSize, ZeD.currentBase, ZeD.currentAccent
@@ -75,6 +80,22 @@ local function scrollToHair()
     local want = off + (s.top - view.y)
     sc:setScrollPos(math.max(0, math.min(1, want / maxOff)))
 end
+-- the tab's scroll so the list fills the view (the first row at the view's top)
+local function scrollToRows()
+    local w, s = win(), st()
+    local sc = w and w._identityScroll
+    if not (sc and sc.visible and s and s.top and s.L) then return end
+    local view = w._identityGridScrollZone
+    if not view then return end
+    local first
+    for _, it in ipairs(s.L.items) do if not first and (it.kind == "gh" or it.kind == "row") then first = it end end
+    if not first then return end
+    local total = view.h / math.max(0.01, sc.barSizeRatio)
+    local maxOff = math.max(1, total - view.h)
+    local off = math.floor(sc.scrollPos * maxOff)
+    local want = off + (s.top + first.y - view.y)
+    sc:setScrollPos(math.max(0, math.min(1, want / maxOff)))
+end
 -- scroll the tab so a row (its stop) shows in the middle of the view
 local function showRow(key)
     local w = win()
@@ -96,6 +117,135 @@ local function pointAt(x, y)
 end
 local function absOf(z) local dp = win()._drawerPanel; return dp:getAbsoluteX() + z.x, dp:getAbsoluteY() + z.y end
 local function hairWord(n) local k = "IGUI_Hair_" .. tostring(n); local s = getText(k); return s == k and tostring(n) or s end
+
+-- the windows still (place, size, drawer width) for 30 checks in a row
+local function shape()
+    local t = {}
+    for _, w in ipairs({ CW.getWindow(), ZeD_WorldWindow.getWindow() }) do
+        if w and w:isVisible() then
+            local dp = w._drawerPanel
+            t[#t + 1] = string.format("%d,%d,%d,%d,%d,%d", w:getX(), w:getY(), w:getWidth(), w:getHeight(),
+                math.floor(w._drawerEffW or 0), dp and dp:getWidth() or 0)
+        end
+    end
+    return table.concat(t, ";")
+end
+local stillLast, stillN = nil, 0
+local function still()
+    local sh = shape()
+    if sh == stillLast then stillN = stillN + 1 else stillLast, stillN = sh, 0 end
+    if stillN >= 30 then stillLast, stillN = nil, 0; return true end
+    return false
+end
+
+-- the real character's look, to show the figures never change it
+local function lookNow()
+    local t = { tostring(hv:getHairModel()), tostring(hv:getBeardModel()), tostring(hv:getNonAttachedHair()) }
+    local wi = p:getWornItems()
+    for i = 0, wi:size() - 1 do local it = wi:getItemByIndex(i); t[#t + 1] = tostring(it and it:getID()) end
+    return table.concat(t, "|")
+end
+
+-- rows wholly inside the section's view, and the figures showing (by row key / "now" / "after")
+local function rowsInView()
+    local s, out = st(), {}
+    if not (s and s.L and s.top and s.av and s.av.clip) then return out end
+    local c = s.av.clip
+    for _, it in ipairs(s.L.items) do
+        if it.kind == "row" then
+            local y = s.top + it.y
+            if y >= c.y and y + it.h <= c.y + c.h then out[#out + 1] = it.row end
+        end
+    end
+    return out
+end
+local function figIds()
+    local ids, n = {}, 0
+    for _, f in ipairs(HB.figures(win())) do ids[f.id] = f; n = n + 1 end
+    return ids, n
+end
+local function T_HEAD(it) return math.floor(it.h * 0.75) end
+-- the Now / After heads wholly in view?
+local function headsInView()
+    local s = st()
+    if not (s and s.L and s.top and s.av and s.av.clip) then return false end
+    local c = s.av.clip
+    for _, it in ipairs(s.L.items) do
+        if it.kind == "heads" then
+            local y = s.top + it.y
+            return y >= c.y and y + T_HEAD(it) <= c.y + c.h
+        end
+    end
+    return false
+end
+-- every row in view has its figure (and Now, and After when a row that can be done is
+-- picked, when the heads show whole)
+local function figuresAll(what)
+    local rs = rowsInView()
+    local ids, n = figIds()
+    local missing = 0
+    for _, r in ipairs(rs) do if not ids[r.key] then missing = missing + 1 end end
+    local s = st()
+    local headsOk = true
+    if headsInView() then
+        headsOk = ids.now ~= nil
+        for _, r in ipairs(s.rows or {}) do if r.key == s.sel and not ids.after then headsOk = false end end
+    end
+    if #rs > 0 and missing == 0 and headsOk then
+        say("figures " .. what .. ": " .. #rs .. " rows in view, " .. n .. " figures showing, pool " .. HB.poolSize(win()))
+        return true
+    end
+    return false
+end
+local function hbChildren()
+    local n = 0
+    local w = win()
+    for _, c in pairs(w and w.children or {}) do if c._hbModel or c._hbLayer then n = n + 1 end end
+    return n
+end
+local function switchTab(id)
+    local w = win()
+    for _, z in ipairs(w._tabStripPanel._hitZones or {}) do
+        if z.id == "tab:" .. id and w._activeTab ~= id then w._tabStripPanel:onMouseDown(z.x + 2, z.y + 2) end
+    end
+end
+local function otherTab()
+    local w = win()
+    for _, z in ipairs(w._tabStripPanel._hitZones or {}) do
+        if type(z.id) == "string" and z.id:sub(1, 4) == "tab:" and z.id ~= "tab:identity" then return z.id:sub(5) end
+    end
+end
+-- the section's view and the heads in screen pixels (for crops)
+local function rects(name)
+    local w, s = win(), st()
+    local dp = w._drawerPanel
+    local ax, ay = dp:getAbsoluteX(), dp:getAbsoluteY()
+    local c = s.av and s.av.clip
+    if c then say(string.format("rect %s list %d %d %d %d", name, ax + c.x, ay + c.y, c.w, c.h)) end
+    for _, it in ipairs(s.L and s.L.items or {}) do
+        if it.kind == "heads" then say(string.format("rect %s heads %d %d %d %d", name, ax + (s.x or 0) + it.x, ay + s.top + it.y, it.w, it.h)) end
+    end
+end
+-- frame time: mean, 95th and worst ms over n frames (OnRenderTick)
+local perf = {}
+local function sample(tag, n)
+    local last, list = nil, {}
+    local function f()
+        local now = getTimestampMs()
+        if last then list[#list + 1] = now - last end
+        last = now
+        if #list >= n then
+            Events.OnRenderTick.Remove(f)
+            local sum, worst = 0, 0
+            for _, v in ipairs(list) do sum = sum + v; if v > worst then worst = v end end
+            table.sort(list)
+            local p95 = list[math.max(1, math.floor(#list * 0.95))]
+            perf[tag] = { mean = sum / #list, worst = worst, p95 = p95 }
+            say(string.format("perf %s: mean %.1f ms, 95th %d ms, worst %d ms over %d frames", tag, sum / #list, p95, worst, #list))
+        end
+    end
+    Events.OnRenderTick.Add(f)
+end
 
 local Q, qi, wait = {}, 1, nil
 local function step(n, fn) Q[#Q + 1] = { n = n, fn = fn } end
@@ -151,7 +301,69 @@ step(60, function()
     else check(#(st().out or {}) > 0, "Out of reach holds what the hair cannot become: " .. #(st().out or {})) end
     scrollToHair()
 end)
-step(30, function() shot("no_tools") end)
+until_(1, 900, still, "the windows are still")
+until_(10, 60, function() scrollToHair(); return figuresAll("no tools") end, "every hair row in view shows its figure, and Now")
+step(5, function() scrollToRows() end)
+until_(10, 60, function() scrollToRows(); return figuresAll("the list") end, "the list scrolled: every row in view shows its figure")
+step(30, function() shot("list_no_tools"); rects("list_no_tools") end)
+step(5, function()
+    check(HB.drawHead == nil and HB.openPictures == nil, "no drawn heads and no Pictures window left in the section")
+    local any, notPlayer = false, true
+    for _, f in ipairs(HB.figures(win())) do
+        any = true
+        if f.model.javaObject:getCharacter() ~= nil then notPlayer = false end
+    end
+    check(any and notPlayer, "the figures are a stand-in, not the player's own model")
+    local r = rowsInView()[1]
+    local ids = figIds()
+    local f = r and ids[r.key]
+    check(f ~= nil and f.look:find("#" .. tostring(r.style) .. "/", 1, true) ~= nil, "a row's figure wears that row's style: " .. tostring(r and r.style) .. " -> " .. tostring(f and f.look))
+    A_before = lookNow()
+end)
+step(30, function() scrollToHair() end)
+step(30, function() shot("no_tools"); rects("no_tools") end)
+-- the list at its longest (Out of reach open, scrolled to fill the view), the frame time with it, then another tab
+step(5, function() st().outOpen = true; scrollToRows() end)
+until_(10, 60, function() scrollToRows(); return figuresAll("Out of reach open") end, "figures with Out of reach open")
+step(10, function() sample("list", 240) end)
+until_(30, 120, function() return perf.list ~= nil end, "frame time sampled with the list open")
+-- the window as tall as the screen: the most rows (figures) at once
+local tallH
+step(5, function()
+    local w = win()
+    tallH = w:getHeight()
+    w:setHeight(core:getScreenHeight() - w:getY() - 60)
+end)
+until_(1, 900, still, "the tall window is still")
+until_(10, 90, function() scrollToRows(); return figuresAll("tall window") end, "the tall window: every row in view with its figure")
+step(10, function() shot("tall"); rects("tall"); sample("list_tall", 240) end)
+until_(30, 120, function() return perf.list_tall ~= nil end, "frame time sampled with the tall window")
+step(5, function()
+    local _, n = figIds()
+    say("perf tall window: " .. n .. " figures showing")
+    win():setHeight(tallH)
+end)
+until_(1, 900, still, "the window back to its height")
+step(5, function()
+    check(lookNow() == A_before, "the real character is unchanged while the figures show (" .. lookNow() .. ")")
+    st().outOpen = false
+    local o = otherTab()
+    say("tab for the release check: " .. tostring(o))
+    switchTab(o)
+end)
+step(20, function()
+    check(HB.poolSize(win()) == 0 and hbChildren() == 0, "another tab: the figures leave the window (pool " .. HB.poolSize(win()) .. ", children " .. hbChildren() .. ")")
+    sample("other_tab", 240)
+end)
+until_(30, 120, function() return perf.other_tab ~= nil end, "frame time sampled on another tab")
+step(5, function()
+    if perf.list and perf.other_tab then
+        say(string.format("perf the figures cost %.1f ms a frame on the mean (list %.1f, other tab %.1f)", perf.list.mean - perf.other_tab.mean, perf.list.mean, perf.other_tab.mean))
+        if perf.list_tall then say(string.format("perf tall window costs %.1f ms a frame on the mean (%.1f)", perf.list_tall.mean - perf.other_tab.mean, perf.list_tall.mean)) end
+    end
+    switchTab("identity")
+end)
+until_(10, 60, function() scrollToHair(); return figuresAll("back on Identity") end, "back on Identity, the figures come back")
 
 -- 2. the mouse: pick a greyed cut, hover it, the button stays greyed
 step(10, function()
@@ -200,8 +412,21 @@ step(40, function()
     s.sel = cut and cut.key
     say("head item: " .. tostring(p:getClothingItem_Head() and p:getClothingItem_Head():getDisplayName()))
 end)
+until_(10, 60, function() scrollToHair(); return figuresAll("scissors and a cap") and headsInView() end, "every row in view with its figure, and the Now / After heads")
+step(10, function()
+    local ids = figIds()
+    check(ids.after ~= nil and ids.after.look:find("#" .. tostring(target) .. "/", 1, true) ~= nil, "the After head wears the picked style: " .. tostring(ids.after and ids.after.look))
+    check(ids.now ~= nil and ids.now.look:find("#" .. tostring(hv:getHairModel()) .. "/", 1, true) ~= nil, "the Now head wears the hair now: " .. tostring(ids.now and ids.now.look))
+    check(p:getClothingItem_Head() ~= nil, "the cap is still on the real character (only the figures go without it)")
+end)
 step(30, function()
-    shot("ready")
+    shot("ready"); rects("ready")
+    scrollToRows()
+end)
+until_(10, 60, function() scrollToRows(); return figuresAll("with scissors") end, "with scissors, the list: every row in view with its figure")
+step(30, function() shot("hair_list"); rects("hair_list"); scrollToHair() end)
+step(30, function()
+    local s = st()
     local s = st()
     check(s.btn and s.btn.on, "the strip's button is live")
     HB.onClick(win(), s.btn.x + 4, s.btn.y + 4)
@@ -294,14 +519,24 @@ step(30, function()
     check(queueLen() == before and s.busy == nil, "A on a greyed row does nothing")
     shot("pad_beard_greyed")
 end)
+local beardKey
 step(10, function() if not female then give("Base.Scissors"); refresh() end end)
 step(40, function()
     if female then return end
     local r = rowWhere(function(x) return x.style == "Moustache" end) or rowWhere(function(x) return x.grp == "Trim" end)
     check(r and r.ok, "with scissors the trim can be done: " .. tostring(r and r.label))
     target = r and r.style
-    local e = r and focusId("hb:row:" .. r.key)
-    shot("pad_beard")
+    beardKey = r and r.key
+    if r then focusId("hb:row:" .. r.key) end
+end)
+until_(10, 60, function() return female or figuresAll("beard") end, "every beard row in view with its figure")
+step(10, function()
+    if female then return end
+    local ids = figIds()
+    local f = beardKey and ids[beardKey]
+    check(f ~= nil and f.look:find("/" .. tostring(target) .. "@S", 1, true) ~= nil, "the beard row's figure wears that beard: " .. tostring(f and f.look))
+    shot("pad_beard"); rects("pad_beard")
+    local e = beardKey and el("hb:row:" .. beardKey)
     if e then e.onActivate(win(), e) end
 end)
 until_(30, 60, function() return st().busy == nil and not ISTimedActionQueue.hasActionType(p, "ISTrimBeard") end, "the trim ends")
@@ -356,7 +591,12 @@ end)
 step(10, function() setLook(LONG, "Full"); HB.setPart(win(), "hair") end)
 step(30, function() scrollToHair(); ZeD.applyTheme(base, accent, "large") end)
 step(60, function() scrollToHair() end)
-step(30, function() shot("large") end)
+until_(10, 60, function() scrollToRows(); return figuresAll("Large text") end, "Large text: every row in view with its figure")
+step(30, function() shot("large"); rects("large") end)
+step(10, function() ZeD.applyTheme("light", accent, size) end)
+step(30, function() scrollToHair() end)
+until_(10, 60, function() scrollToRows(); return figuresAll("Light") end, "Light: every row in view with its figure")
+step(30, function() shot("light"); rects("light") end)
 step(10, function() ZeD.applyTheme(base, accent, size) end)
 step(40, function()
     local s = st()
@@ -369,29 +609,26 @@ step(40, function()
     end
     if MODS.improvedhairmenubuild42 or MODS.NeatUI_Hairstyler then
         check(#(s.pics or {}) > 0, "the picture mod's lists are read into rows (" .. #rows() .. " rows)")
-        check(el("hb:pics") ~= nil, "Pictures is a controller stop")
+        check(el("hb:pics") == nil, "no Pictures button: the mod's styles are rows with figures")
         scrollToHair()
     end
     if not mods().traitsAsSkills then check(CW._extTabs.traits == nil, "no Traits tab without Traits As Skills") end
 end)
-step(30, function() if MODS.SpnHairAPI or MODS.improvedhairmenubuild42 or MODS.NeatUI_Hairstyler then shot("mod_rows") end end)
-local picWin
-step(10, function()
-    if not (MODS.improvedhairmenubuild42 or MODS.NeatUI_Hairstyler) then return end
-    local e = el("hb:pics")
-    if e then e.onActivate(win(), e) end
+until_(10, 60, function() scrollToRows(); return figuresAll("after Large and Light") end, "every row in view with its figure")
+step(30, function() if MODS.SpnHairAPI or MODS.improvedhairmenubuild42 or MODS.NeatUI_Hairstyler then shot("mod_rows"); rects("mod_rows") end end)
+-- the window closes: the figures go with it; it opens again with them back
+step(10, function() CW.toggleBothPaired(0) end)
+step(30, function()
+    check(not CW.isOpen() and HB.poolSize(win()) == 0 and hbChildren() == 0, "the window closed: the figures left it (children " .. hbChildren() .. ")")
+    CW.toggleBothPaired(0)
 end)
-step(60, function()
-    if not (MODS.improvedhairmenubuild42 or MODS.NeatUI_Hairstyler) then return end
-    local ui = UIManager.getUI()
-    for i = 0, ui:size() - 1 do
-        local t = ui:get(i):getTable()
-        if t and t.Type == "HairMenuPanelWindow" and ui:get(i):isVisible() then picWin = t end
-    end
-    check(picWin ~= nil, "Pictures opens the mod's own window")
-    shot("pictures")
-end)
-step(30, function() if picWin then picWin:close(); check(not picWin:isVisible(), "its window closes") end end)
+until_(10, 90, function()
+    local w = win()
+    if not (w and CW.isOpen()) then return false end
+    if w._activeTab ~= "identity" then switchTab("identity") end
+    scrollToHair()
+    return figuresAll("reopened")
+end, "reopened: the figures come back")
 
 -- put everything back
 step(20, function()
