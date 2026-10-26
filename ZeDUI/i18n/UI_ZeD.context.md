@@ -1777,6 +1777,31 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_ValueOn` | `On` | Mod manager: a tick box option's value, in the help band's default | - |
 | `UI_ZeD_Mods_ValueOff` | `Off` | Mod manager: a tick box option's value, in the help band's default | - |
 | `UI_ZeD_Mods_SayDefaults` | `%1: options back to their defaults.` | Mod manager: note after Defaults. %1 the mod's name | - |
+| `UI_ZeD_Mods_VerbResetSettings` | `Reset settings` | Mod manager, Options tab: button that puts the mod's options back to their defaults and empties its settings files (asks first in the strip) | 20 |
+| `UI_ZeD_Mods_FilesHead` | `Settings files` | Mod manager, Options tab: section heading over the files the mod keeps (shown in capitals) | - |
+| `UI_ZeD_Mods_FilesHeadNote` | `in Zomboid/Lua` | Mod manager, Options tab: small note at the Settings files heading's right (the folder name stays as written) | - |
+| `UI_ZeD_Mods_FilesLooking` | `Reading its code for the files it keeps...` | Mod manager, Options tab: while the mod's code is read for file names | - |
+| `UI_ZeD_Mods_FilesNone` | `It keeps no settings files in Zomboid/Lua.` | Mod manager, Options tab: a mod with no options and no settings files | - |
+| `UI_ZeD_Mods_FileWhyNamed` | `named in its code` | Mod manager, Options tab: small note at a file's right: the mod's code names this file | 22 |
+| `UI_ZeD_Mods_FileWhyId` | `named after the mod` | Mod manager, Options tab: small note at a file's right: the file's name holds the mod's id | 22 |
+| `UI_ZeD_Mods_FileWhyPart` | `its part only` | Mod manager, Options tab: small note at the right of a file many mods share: only this mod's part is reset | 22 |
+| `UI_ZeD_Mods_FileOldOptions` | `%1, part [%2] (Mod Options, Build 41)` | Mod manager, Options tab: the old Mod Options library's shared file. %1 the file name, %2 the section names | - |
+| `UI_ZeD_Mods_FilesHow` | `Reset settings copies each file to Zomboid/Lua/%1/ first, then empties it: the game lets a mod empty a file, not delete it. The mod then starts from its own defaults.` | Mod manager, Options tab: under the settings files. %1 the backup folder (ZeD_reset/<mod id>, stays as written) | - |
+| `UI_ZeD_Mods_AskReset` | `Reset %1: %2. Copies go to Zomboid/Lua/%3/.` | Mod manager, the strip: the question before Reset settings. %1 the mod's name, %2 what is reset (the two parts below), %3 the backup folder | - |
+| `UI_ZeD_Mods_ResetPartOptions` | `its %1 options back to their defaults` | Mod manager, the strip's question: the options part. %1 how many | - |
+| `UI_ZeD_Mods_ResetPartOptionsOne` | `its option back to its default` | Mod manager, the strip's question: the options part, one option. %1 is 1 | - |
+| `UI_ZeD_Mods_ResetPartFiles` | `%1 files emptied (%2)` | Mod manager, the strip's question: the files part. %1 how many, %2 their names | - |
+| `UI_ZeD_Mods_ResetPartFilesOne` | `%2 emptied` | Mod manager, the strip's question: the files part, one file. %1 is 1, %2 its name | - |
+| `UI_ZeD_Mods_AskResetShort` | `Reset %1: %2. Copies kept in Zomboid/Lua/%3/.` | Mod manager, the strip: the question before Reset settings when the full one does not fit (the pane lists the files). %1 the mod's name, %2 what is reset, %3 the backup folder | - |
+| `UI_ZeD_Mods_ResetPartOptionsShort` | `%1 options to their defaults` | Mod manager, the strip's short question: the options part. %1 how many | - |
+| `UI_ZeD_Mods_ResetPartOptionsShortOne` | `%1 option to its default` | Mod manager, the strip's short question: the options part. %1 is 1 | - |
+| `UI_ZeD_Mods_ResetPartFilesShort` | `%1 files emptied` | Mod manager, the strip's short question: the files part. %1 how many | - |
+| `UI_ZeD_Mods_ResetPartFilesShortOne` | `%1 file emptied` | Mod manager, the strip's short question: the files part. %1 is 1 | - |
+| `UI_ZeD_Mods_SayReset` | `%1: settings reset. The old files are in Zomboid/Lua/%2/.` | Mod manager: note after Reset settings. %1 the mod's name, %2 the backup folder | - |
+| `UI_ZeD_Mods_SayResetFailed` | `%1 files could not be copied and were left as they were.` | Mod manager: added to the note after Reset settings. %1 how many | - |
+| `UI_ZeD_Mods_SayResetFailedOne` | `One file could not be copied and was left as it was.` | Mod manager: added to the note after Reset settings. %1 is 1 | - |
+| `UI_ZeD_Mods_SayResetReload` | `Reload so it reads them again.` | Mod manager: added to the note after Reset settings: the mod is running and reads its files when its code runs | - |
+| `UI_ZeD_Mods_PendingReset` | `Settings of %1 reset. A reload has it read them again, no restart.` | Mod manager, the strip: a mod's settings were reset and a reload has its code read them. %1 the mod's name | - |
 | `UI_ZeD_Mods_HelpTitled` | `%1. %2` | Mod manager, help band: a setting's name, then its help text. %1 name, %2 help | - |
 | `UI_ZeD_Mods_SbHead` | `Sandbox settings` | Mod manager, Sandbox tab: section heading (shown in capitals) | - |
 | `UI_ZeD_Mods_SbHeadNote` | `for each game | defaults shown` | Mod manager, Sandbox tab: small note at the heading's right | - |

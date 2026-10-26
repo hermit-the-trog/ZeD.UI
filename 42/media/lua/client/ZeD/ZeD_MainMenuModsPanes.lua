@@ -22,6 +22,7 @@ require "ZeD/ZeD_MainMenuMods"
 require "ZeD/ZeD_ModSettings"
 require "ZeD/ZeD_ModPicks"
 require "ZeD/ZeD_ModSafety"
+require "ZeD/ZeD_ModReset"
 local MM = ZeD.MainMenu
 local U  = MM.U
 local UI = MM.ui
@@ -29,6 +30,7 @@ local MS = ZeD.ModScan
 local S  = ZeD.ModSettings
 local P  = ZeD.ModPicks
 local SF = ZeD.ModSafety
+local RS = ZeD.ModReset
 
 -- design units
 local TAB_GAP_Y = 8
@@ -60,9 +62,11 @@ function ZeD_MMMods:detailTabs(d)
     local nSb = S.sandboxCount(d.modId)
     local nCf = 0
     if MS.isLoaded(d.modId) then nCf = #MS.forMod(d.modId) end
+    -- (its settings files count too: the tab is greyed only when it has neither)
+    local files = RS.find(d.modId)
     return {
         { id = "about", label = ZeD.tr("UI_ZeD_Mods_DTabAbout") },
-        { id = "options", label = ZeD.tr("UI_ZeD_Mods_DTabOptions"), count = nOpt, none = (nOpt == 0) },
+        { id = "options", label = ZeD.tr("UI_ZeD_Mods_DTabOptions"), count = nOpt, none = (nOpt == 0 and not (files and files.any)) },
         { id = "sandbox", label = ZeD.tr("UI_ZeD_Mods_DTabSandbox"), count = nSb, none = (nSb == 0) },
         { id = "conflicts", label = ZeD.tr("UI_ZeD_Mods_DTabConflicts"), count = nCf, none = (nCf == 0) },
     }
@@ -263,10 +267,14 @@ function ZeD_MMMods:drawOptionsTab(d, ix, iw, cy, vy, vh)
         end
         local n = S.sandboxCount(d.modId)
         if n > 0 then cy = self:paneText(ZeD.tr(n == 1 and "UI_ZeD_Mods_OptSandboxStillOne" or "UI_ZeD_Mods_OptSandboxStill", n), ix, cy, iw, f2, dim) + T.px(4) end
-        return cy
+        -- its files are there while it is off
+        return self:drawSettingsFiles(d, ix, iw, cy + T.px(8), vy, vh, true)
     end
     local data = S.optionRows(d.modId)
-    if data.count == 0 then return self:paneNote(ZeD.tr("UI_ZeD_Mods_OptNone"), ix, iw, cy) end
+    if data.count == 0 then
+        cy = self:paneNote(ZeD.tr("UI_ZeD_Mods_OptNone"), ix, iw, cy)
+        return self:drawSettingsFiles(d, ix, iw, cy + T.px(4), vy, vh, true)
+    end
     local idx = 0
     for _, sec in ipairs(data.sections) do
         local head = ZeD.upper(ZeD.tr("UI_ZeD_Mods_OptHead"))
@@ -292,11 +300,130 @@ function ZeD_MMMods:drawOptionsTab(d, ix, iw, cy, vy, vh)
         end
         cy = cy + T.px(8)
     end
+    cy = self:drawSettingsFiles(d, ix, iw, cy, vy, vh, false)
+    -- one action for all of it: its options back to their defaults, its files emptied (ZeD_ModReset)
+    local plan = RS.plan(d.modId)
     local verbs = {
-        { "opt:defaults", ZeD.tr("UI_ZeD_Options_Defaults"), function() if S.defaults(d.modId) then MM.clickSound(); self:say(ZeD.tr("UI_ZeD_Mods_SayDefaults", d.name)) end end, "default", not S.offDefault(d.modId) },
+        { "opt:reset", ZeD.tr("UI_ZeD_Mods_VerbResetSettings"), function() self:askReset(d) end, "default", not (plan and plan.any) },
         { "opt:open", ZeD.tr("UI_ZeD_Mods_VerbOpenOptions"), function() self:openInOptions() end, "default", self:changed() or self:reordered() },
     }
     return self:paneVerbs(verbs, ix, cy, iw, vy, vh, 990) + T.px(8)
+end
+
+-- ----------------------------------------------------------------------------
+-- SETTINGS FILES (ZeD_ModReset): what the mod keeps in Zomboid/Lua, and its reset
+-- ----------------------------------------------------------------------------
+-- the files, how Reset treats them; withVerb: the Reset settings button under them
+-- (the Options tab of a mod with no options, or off). Returns the y under it all.
+function ZeD_MMMods:drawSettingsFiles(d, ix, iw, cy, vy, vh, withVerb)
+    local T = ZeD.T
+    local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
+    local dim = T.textDim
+    local res = RS.find(d.modId)
+    if res and not res.any then
+        if withVerb and d.isActive and MS.isLoaded(d.modId) and S.count(d.modId) == 0 then cy = self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesNone"), ix, iw, cy) end
+        return cy
+    end
+    local la = T.accent
+    local head = ZeD.upper(ZeD.tr("UI_ZeD_Mods_FilesHead"))
+    self:drawText(head, ix, cy, la.r, la.g, la.b, la.a or 1, f1)
+    local sub = ZeD.tr("UI_ZeD_Mods_FilesHeadNote")
+    local sw = MM.textW(f3, sub)
+    if MM.textW(f1, head) + sw + T.px(20) < iw then self:drawText(sub, ix + iw - sw, cy, dim.r, dim.g, dim.b, dim.a or 1, f3) end
+    cy = cy + MM.fontH(f1) + T.px(3)
+    self:drawRect(ix, cy, iw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+    cy = cy + T.px(6)
+    if not res then return self:paneNote(ZeD.tr("UI_ZeD_Mods_FilesLooking"), ix, iw, cy) + T.px(4) end
+    for _, f in ipairs(res.files) do
+        cy = self:fileRow(f.path, ZeD.tr(f.why == "id" and "UI_ZeD_Mods_FileWhyId" or "UI_ZeD_Mods_FileWhyNamed"), ix, iw, cy)
+    end
+    if res.b41 then
+        cy = self:fileRow(ZeD.tr("UI_ZeD_Mods_FileOldOptions", res.b41.path, table.concat(res.b41.sections, ", ")), ZeD.tr("UI_ZeD_Mods_FileWhyPart"), ix, iw, cy)
+    end
+    cy = self:paneText(ZeD.tr("UI_ZeD_Mods_FilesHow", RS.BACKUP .. "/" .. tostring(d.modId)), ix, cy + T.px(4), iw, f2, dim) + T.px(8)
+    if not withVerb then return cy end
+    local plan = RS.plan(d.modId)
+    return self:paneVerbs({ { "opt:reset", ZeD.tr("UI_ZeD_Mods_VerbResetSettings"), function() self:askReset(d) end, "default", not (plan and plan.any) } }, ix, cy, iw, vy, vh, 990) + T.px(8)
+end
+
+-- a file's line: a dot, its path in Zomboid/Lua, why it is the mod's (dim, at the right)
+function ZeD_MMMods:fileRow(text, why, ix, iw, cy)
+    local T = ZeD.T
+    local f2, f3 = T.fontF2, T.fontF3
+    local dsz = T.px(6)
+    local rh = MM.fontH(f2) + T.px(6)
+    ZeD.Atoms.drawStatusDot(self, ix + T.px(4), cy + math.floor((rh - dsz) / 2), T.textDim, dsz)
+    local ww = MM.textW(f3, why)
+    local room = iw - T.px(16) - ww - T.px(12)
+    local c, d = T.text, T.textDim
+    if room < T.px(80) then ww, room = 0, iw - T.px(16) end
+    self:drawText(ZeD.Atoms.truncateText(text, f2, room), ix + T.px(16), cy + math.floor((rh - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+    if ww > 0 then self:drawText(why, ix + iw - ww, cy + math.floor((rh - MM.fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3) end
+    self:drawRect(ix, cy + rh - T.px(1), iw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
+    return cy + rh
+end
+
+-- Reset settings asks in the strip first (what it covers, where the copies go)
+function ZeD_MMMods:askReset(d)
+    local plan = RS.plan(d.modId)
+    if not (plan and plan.any) then return end
+    MM.clickSound()
+    self._resetFor = d
+    self._backFocus = "opt:reset"
+    self:setConfirm("reset")
+end
+
+-- the strip while it asks; returns the question
+function ZeD_MMMods:resetStrip(stripY, w, row)
+    local T = ZeD.T
+    local d = self._resetFor
+    local plan = d and RS.plan(d.modId)
+    UI.stripSpecs(self, stripY, w, row, {}, {
+        { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
+        { "confirm:yes", getText("IGUI_WorldMapEditor_Reset"), function() self:doReset() end, "danger", not (plan and plan.any) } })
+    if not plan then return nil end
+    local firstBtn = w
+    for _, b in ipairs(self._specs) do if b.row == row and b.x then firstBtn = math.min(firstBtn, b.x) end end
+    local room = math.max(T.px(60), firstBtn - T.px(12) - (T.px(U.STRIP_PAD_X) + T.px(4)))
+    -- the whole question with the files' names; when the strip is too narrow, without them
+    -- (the pane lists them just above), then cut
+    local ask = self:resetAsk(d, plan, false)
+    if MM.textW(T.fontF2, ask) > room then ask = self:resetAsk(d, plan, true) end
+    return ZeD.Atoms.truncateText(ask, T.fontF2, room)
+end
+
+function ZeD_MMMods:resetAsk(d, plan, short)
+    local parts = {}
+    local no, nf = plan.options, #plan.files
+    if no > 0 then
+        local key = short and "UI_ZeD_Mods_ResetPartOptionsShort" or "UI_ZeD_Mods_ResetPartOptions"
+        parts[#parts + 1] = ZeD.tr(no == 1 and (key .. "One") or key, no)
+    end
+    if nf > 0 then
+        local key = short and "UI_ZeD_Mods_ResetPartFilesShort" or "UI_ZeD_Mods_ResetPartFiles"
+        parts[#parts + 1] = ZeD.tr(nf == 1 and (key .. "One") or key, nf, table.concat(plan.files, ", "))
+    end
+    local what = (#parts == 2) and ZeD.tr("UI_ZeD_ModScan_ListAnd", parts[1], parts[2]) or (parts[1] or "")
+    return ZeD.tr(short and "UI_ZeD_Mods_AskResetShort" or "UI_ZeD_Mods_AskReset", d.name, what, RS.BACKUP .. "/" .. tostring(d.modId))
+end
+
+-- Reset: the options, the files (each copied first), the note, a reload when its code holds the old values
+function ZeD_MMMods:doReset()
+    local d = self._resetFor
+    self:setConfirm(false)
+    if not d then return end
+    local r = RS.reset(d.modId)
+    MM.clickSound()
+    local msg
+    if r.files == 0 and r.failed == 0 then msg = ZeD.tr("UI_ZeD_Mods_SayDefaults", d.name)
+    else msg = ZeD.tr("UI_ZeD_Mods_SayReset", d.name, tostring(r.folder)) end
+    if r.failed > 0 then msg = msg .. " " .. ZeD.tr(r.failed == 1 and "UI_ZeD_Mods_SayResetFailedOne" or "UI_ZeD_Mods_SayResetFailed", r.failed) end
+    if r.reload then
+        self._resetPending = d.name
+        msg = msg .. " " .. ZeD.tr("UI_ZeD_Mods_SayResetReload")
+    end
+    self:say(msg)
+    self._lastReset = r
 end
 
 -- the Options window on its Mods page (the Mods screen has nothing waiting: the button is off then)
@@ -738,7 +865,7 @@ function ZeD_MMMods:pickStrip(stripY, w, row)
     if n > 0 then ask = ZeD.tr(n == 1 and "UI_ZeD_Mods_PickStripOne" or "UI_ZeD_Mods_PickStripMany", n, MS.modName(e.loser), MS.modName(e.winner), #self.pickFiles - n)
     else ask = ZeD.tr("UI_ZeD_Mods_PickStripNone") end
     local firstBtn = w
-    for _, b in ipairs(self._specs) do if b.row == row and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
+    for _, b in ipairs(self._specs) do if b.row == row and b.x and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
     local room = firstBtn - T.px(12) - (askX + T.px(4))
     if room > T.px(60) then return ZeD.Atoms.truncateText(ask, T.fontF2, room), askX + T.px(4) end
     return nil, nil
@@ -814,7 +941,7 @@ function ZeD_MMMods:turnOffStrip(stripY, w, row)
     local T = ZeD.T
     local ask = ZeD.tr(key, d and d.name or "", self:saveName() or "")
     local firstBtn = w
-    for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
+    for _, b in ipairs(self._specs) do if b.row == row and b.x then firstBtn = math.min(firstBtn, b.x) end end
     local room = firstBtn - T.px(12) - (T.px(U.STRIP_PAD_X) + T.px(4))
     return ZeD.Atoms.truncateText(ask, T.fontF2, math.max(T.px(60), room))
 end

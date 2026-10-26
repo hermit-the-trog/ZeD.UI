@@ -75,7 +75,7 @@ function ZeD_MMMods:new()
     o.filter = "all"         -- "all" | "enabled" | "favs" | "maps"
     o.sel = nil
     o.scroll, o.dscroll = 0, 0
-    o.confirm = false        -- false | "back" | "template" | "save" | "paste" | "delete" | "update" | "rename" | "dup"
+    o.confirm = false        -- false | "back" | "template" | "save" | "paste" | "delete" | "update" | "rename" | "dup" | "turnoff" | "reset"
     o.preset = nil           -- the profile last loaded or saved
     o.psel = nil             -- the Profiles page's picked profile (nil: "No mods")
     o.note = nil             -- { text, untilMs }: what a toggle or a preset did
@@ -115,6 +115,8 @@ function ZeD_MMMods:onShow()
     ZeD.ModSettings.reset()
     ZeD.ModSafety.reset()
     ZeD.ModPicks.reset()
+    if ZeD.ModReset then ZeD.ModReset.forget() end
+    self._resetPending = nil
     self._optSeen, self._optKept, self._palette = {}, {}, nil
     local wrote = 0
     pcall(function() wrote = ZeD.ModPicks.sync(jlist(getActivatedMods())) end)
@@ -216,6 +218,8 @@ function ZeD_MMMods:pending()
     local updated = MS.updatedLoaded()
     if turnedOn == 0 and turnedOff == 0 and not reorder and #updated == 0 then
         if self._picksRefreshed then return ZeD.tr("UI_ZeD_Mods_PendingPicks"), false end
+        -- a mod's settings reset (ZeD_ModReset): its code still holds the old values until a reload
+        if self._resetPending then return ZeD.tr("UI_ZeD_Mods_PendingReset", self._resetPending), false end
         return nil
     end
     local parts = {}
@@ -339,8 +343,9 @@ function ZeD_MMMods:accept()
         pcall(function() needed = ActiveMods.requiresResetLua(m:getActiveMods()) end)
         force = not needed
     end
-    -- ZeD picks' copies changed (ZeD_ModPicks) with no other change: the reload vanilla would not run
-    if not (server or m.isNewGame or m.loadGameFolder) and self._picksRefreshed and not force then
+    -- ZeD picks' copies changed (ZeD_ModPicks), or a mod's settings were reset (ZeD_ModReset), with
+    -- no other change: the reload vanilla would not run
+    if not (server or m.isNewGame or m.loadGameFolder) and (self._picksRefreshed or self._resetPending) and not force then
         local needed = true
         pcall(function() needed = ActiveMods.requiresResetLua(m:getActiveMods()) end)
         force = not needed
@@ -926,7 +931,9 @@ function ZeD_MMMods:setConfirm(mode)
         self.field:setVisible(false)
         if self.field:isFocused() then self.field:unfocus() end
     end
-    self.focusId = mode and "confirm:yes" or nil
+    -- (leaving a question the pane asked: the controller goes back to the button that asked it)
+    self.focusId = mode and "confirm:yes" or self._backFocus
+    if not mode then self._backFocus = nil end
 end
 
 -- LAYOUT + DRAWING ---------------------------------------------------------------
@@ -984,7 +991,7 @@ end
 
 function ZeD_MMMods:buildStrip(stripY, stripH, w)
     local T = ZeD.T
-    local row = 1000
+    local row = 100000      -- (past every list row: a list of 1000 mods has a row 1000)
     local ask = nil
     local m = model()
     self._askX = nil
@@ -1000,6 +1007,8 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
             { "confirm:yes", ZeD.tr("ContextMenu_Turn_On"), function() local d = self._templateFor; self:setConfirm(false); self:toggle(d, true) end, "primary" } })
     elseif self.confirm == "turnoff" then
         ask = self:turnOffStrip(stripY, w, row)
+    elseif self.confirm == "reset" then
+        ask = self:resetStrip(stripY, w, row)
     elseif self.confirm == "delete" then
         ask = ZeD.tr("UI_ZeD_Mods_AskDelete", tostring(self.psel))
         UI.stripSpecs(self, stripY, w, row, {}, {
@@ -1025,7 +1034,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         local f2 = T.fontF2
         local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
         local firstBtn = w
-        for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
+        for _, b in ipairs(self._specs) do if b.row == row and b.x then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     elseif self.page == "profiles" then
@@ -1070,7 +1079,7 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
         local askX = UI.stripSpecs(self, stripY, w, row, lefts, rights)
         if pend then
             local firstBtn = w
-            for _, b in ipairs(self._specs) do if b.row == row and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
+            for _, b in ipairs(self._specs) do if b.row == row and b.x and b.x > askX then firstBtn = math.min(firstBtn, b.x) end end
             local room = firstBtn - T.px(12) - (askX + T.px(4))
             if room > T.px(60) then ask = ZeD.Atoms.truncateText(pend, T.fontF2, room); self._askX = askX + T.px(4) end
         end
@@ -1576,8 +1585,9 @@ function ZeD_MMMods:paneVerbs(list, x, cy, w, vy, vh, row)
     for i, v in ipairs(list) do
         local bw = MM.textW(T.fontF3, ZeD.btnCase(v[2])) + T.px(U.STRIP_BTN_PAD) * 2
         if bx + bw > x + w and bx > x then bx = x; cy = cy + bh + T.px(6) end
-        self._specs[#self._specs + 1] = { id = v[1], text = v[2], fn = v[3], variant = v[4] or "default", row = row, col = i,
-                                          x = bx, y = cy, w = bw, h = bh, clipTop = vy, clipBot = vy + vh }
+        -- (a stop the controller scrolls the pane to, as its tabs and rows)
+        self._specs[#self._specs + 1] = { id = v[1], text = v[2], fn = v[3], variant = v[4] or "default", disabled = v[5], row = row, col = i,
+                                          x = bx, y = cy, w = bw, h = bh, clipTop = vy, clipBot = vy + vh, paneStop = true }
         bx = bx + bw + T.px(6)
     end
     return cy + bh

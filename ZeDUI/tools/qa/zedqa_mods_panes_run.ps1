@@ -11,13 +11,22 @@
       * Cone Vision Outline: who made its options, its Options tab rows, a tick box
         changed in place reaches the option and ModOptions.ini, Defaults puts it back;
         its Sandbox tab (8 settings from its files)
+      * Reset settings (Oct 25 2026) on Cone Vision Outline with two throwaway files
+        named after it in Zomboid/Lua (ConeVisionOutline_zqa.ini,
+        ConeVisionOutline/colors.txt; an empty one that must not be listed): the
+        list, the strip's question, Cancel changes nothing, the controller reaches
+        the button (A asks, B goes back to it), Reset copies to Zomboid/Lua/
+        ZeD_reset/ConeVisionOutline/<stamp>/ (ModOptions.ini too) and empties the
+        files, the option back to its default, the strip offers the reload; the
+        code reader on a sample line; the game's own ModOptions.ini never listed
       * Smart Radial Menu (off): the Options tab's note, its 4 sandbox settings
       * GaelGunStore-Firearms: the 13 shared files with AAA_ModernFirearmsSystem,
         the picker, two battery files picked, Use these picks (ZeD picks on and
         last, its copies are Gael's text), Undo picks (the copies follow load order)
       * Constown B42 / New Hartburg: the shared file with the same text is a grey note
     Pictures of each (the game's own frame only). Puts back default.txt,
-    ModOptions.ini, the picks list and ZeD picks' folder, quits the game.
+    ModOptions.ini, the picks list and ZeD picks' folder, removes the reset test's
+    files and its ZeD_reset folder, quits the game.
     Holds Zomboid/Lua/zedqa.lock. Exit 0 every check passed, 1 a failure, 2 refused.
 #>
 $Lua = "C:\Users\danie\Zomboid\Lua"
@@ -43,6 +52,17 @@ $hadPicks = Test-Path $PicksList
 $SaveMods = Join-Path $Zomboid "Saves\Sandbox\ZeD-QA\mods.txt"
 Copy-Item $SaveMods (Join-Path $Keep "save_mods.txt") -Force
 if ($hadPicks) { Copy-Item $PicksList (Join-Path $Keep "ZeD_picks.txt") -Force }
+# Reset settings' test files (named after Cone Vision Outline) and the backup folder it writes
+$ResetRoot = Join-Path $Lua "ZeD_reset"
+$hadResetRoot = Test-Path $ResetRoot
+$ResetCvo = Join-Path $ResetRoot "ConeVisionOutline"
+$hadResetCvo = Test-Path $ResetCvo
+$TestIni = Join-Path $Lua "ConeVisionOutline_zqa.ini"
+$TestDir = Join-Path $Lua "ConeVisionOutline"
+$hadTestDir = Test-Path $TestDir
+$TestTxt = Join-Path $TestDir "colors.txt"
+$TestEmpty = Join-Path $Lua "ConeVisionOutline_empty.txt"
+if ((Test-Path $TestIni) -or (Test-Path $TestTxt) -or (Test-Path $TestEmpty)) { Set-Content -Path $lock -Value "free" -NoNewline; "a reset test file is already there; not starting"; exit 2 }
 
 $fails = 0
 function Check($ok, $what) { if ($ok) { "PASS $what" } else { $script:fails++; "FAIL $what" } }
@@ -87,6 +107,19 @@ local function later(ms, fn)
 end
 local function rect() local x = w(); return math.floor(x:getAbsoluteX()) .. "," .. math.floor(x:getAbsoluteY()) .. "," .. math.floor(x.width) .. "," .. math.floor(x.height) end
 local function sel(id, tab) local x = w(); x.filter = "all"; x.page = "list"; x.sel = id; x.dtab = tab; x.dscroll = 0; x.scroll = 0; x.focusId = nil end
+local RS = ZeD.ModReset
+local function whenFound(id, fn)
+    local t0 = getTimestampMs()
+    local function f()
+        local r = RS.find(id)
+        if not r and getTimestampMs() - t0 < 20000 then return end
+        Events.OnFETick.Remove(f)
+        local ok, e = pcall(fn, r)
+        if not ok then say("ERR " .. tostring(e)) end
+    end
+    Events.OnFETick.Add(f)
+end
+local function specFn(id) for _, b in ipairs(w()._specs or {}) do if b.id == id then return b.fn, b end end end
 local function fileConflict(id, other)
     for _, e in ipairs(MS.forMod(id)) do if e.kind == "file" and (e.loser == other or e.winner == other) then return e end end
 end
@@ -143,6 +176,104 @@ later(800, function()
     local r = getFileReader("ModOptions.ini", false)
     if r then local l = r:readLine(); while l do if l:find("ScaleOutlineByLight", 1, true) then ini = l end; l = r:readLine() end; r:close() end
     say("DEFAULTS ran=" .. tostring(ok) .. " value=" .. tostring(v) .. " ini=" .. ini .. " offDefault=" .. tostring(S.offDefault("ConeVisionOutline")))
+end)
+'@
+    resetFind = @'
+sel("ConeVisionOutline", "options")
+later(800, function()
+    -- off its default first (the tick box, as cvoToggle), so the options are part of the reset
+    local d = S.optionRows("ConeVisionOutline")
+    local target
+    for _, sec in ipairs(d.sections) do for _, e in ipairs(sec.entries) do if e.option and e.option.id == "ScaleOutlineByLight" then target = e end end end
+    local c = target.r.control
+    c.selected[1] = not (c.selected[1] == true)
+    if c.changeOptionMethod then c.changeOptionMethod(c.changeOptionTarget, 1, c.selected[1], c.changeOptionArg1, c.changeOptionArg2, c) end
+    RS.forget()
+    later(1200, function()
+        whenFound("ConeVisionOutline", function(r)
+            later(400, function()
+                local t = {}
+                for _, f in ipairs(r and r.files or {}) do t[#t + 1] = f.path .. ":" .. f.why .. ":" .. f.lines end
+                local p = RS.plan("ConeVisionOutline")
+                local _, verb = specFn("opt:reset")
+                local _, dflt = specFn("opt:defaults")
+                say("RFIND files=" .. table.concat(t, ";") .. " options=" .. tostring(p and p.options) .. " offDefault=" .. tostring(S.offDefault("ConeVisionOutline")) .. " verb=" .. tostring(verb ~= nil) .. " disabled=" .. tostring(verb and verb.disabled) .. " oldDefaults=" .. tostring(dflt ~= nil))
+            end)
+        end)
+    end)
+end)
+'@
+    resetAsk = @'
+local fn = specFn("opt:reset")
+fn()
+later(800, function() say("RASK confirm=" .. tostring(w().confirm) .. " focus=" .. tostring(w().focusId) .. " ask=" .. tostring(w()._ask)) end)
+'@
+    resetCancel = @'
+local fn = specFn("confirm:no")
+fn()
+later(600, function()
+    local a, b = RS.readLua("ConeVisionOutline_zqa.ini"), RS.readLua("ConeVisionOutline/colors.txt")
+    say("RCANCEL confirm=" .. tostring(w().confirm) .. " focus=" .. tostring(w().focusId) .. " lines=" .. tostring(a and #a) .. "/" .. tostring(b and #b) .. " offDefault=" .. tostring(S.offDefault("ConeVisionOutline")))
+end)
+'@
+    resetPad = @'
+-- from the first option row, D-pad down until the button (one step every few frames: the pane scrolls between)
+local x = w()
+x.focusId = "mopt:1"
+local path, n = {}, 0
+local function f()
+    n = n + 1
+    if n % 4 ~= 0 then return end
+    local fid = tostring(x.focusId)
+    local inPane = fid:sub(1, 5) == "mopt:" or fid:sub(1, 4) == "opt:"
+    if fid ~= "opt:reset" and inPane and #path < 20 then
+        -- down to the buttons; from Open in Options (the nearer one under a full-width row), left
+        x:joyDir(fid == "opt:open" and "left" or "down"); path[#path + 1] = tostring(x.focusId); return
+    end
+    Events.OnFETick.Remove(f)
+    local reached = x.focusId == "opt:reset"
+    if reached then x:joyA() end
+    later(600, function()
+        local c1, f1 = tostring(x.confirm), tostring(x.focusId)
+        x:joyB()
+        later(600, function()
+            say("RPAD reached=" .. tostring(reached) .. " path=" .. table.concat(path, ",") .. " afterA=" .. c1 .. "/" .. f1 .. " afterB=" .. tostring(x.confirm) .. "/" .. tostring(x.focusId) .. " dscroll=" .. tostring(x.dscroll))
+        end)
+    end)
+end
+Events.OnFETick.Add(f)
+'@
+    resetDo = @'
+specFn("opt:reset")()
+later(600, function()
+    specFn("confirm:yes")()
+    later(1200, function()
+        local r = w()._lastReset or {}
+        local v
+        for _, sec in ipairs(S.optionRows("ConeVisionOutline").sections) do for _, e in ipairs(sec.entries) do if e.option and e.option.id == "ScaleOutlineByLight" then v = e.option.value end end end
+        local a, b = RS.readLua("ConeVisionOutline_zqa.ini"), RS.readLua("ConeVisionOutline/colors.txt")
+        local pend = w():pending()
+        say("RDONE files=" .. tostring(r.files) .. " failed=" .. tostring(r.failed) .. " options=" .. tostring(r.options) .. " folder=" .. tostring(r.folder) .. " reload=" .. tostring(r.reload) .. " value=" .. tostring(v) .. " offDefault=" .. tostring(S.offDefault("ConeVisionOutline")) .. " now=" .. tostring(a and #a) .. "/" .. tostring(b and #b) .. " pending=" .. tostring(pend) .. " note=" .. tostring(w().note and w().note.text))
+    end)
+end)
+'@
+    resetAfter = @'
+whenFound("ConeVisionOutline", function(r)
+    later(400, function()
+        local _, verb = specFn("opt:reset")
+        local acc = { names = {}, prefixes = {}, b41 = {} }
+        RS.scanLine(acc, [[local F = "MyMod/settings.txt"; local w = getFileWriter("that_damn_" .. side, true, false); x.mod_id = 'MyModOld']])
+        local n, p, b = {}, {}, {}
+        for _, v in pairs(acc.names) do n[#n + 1] = v end
+        for _, v in pairs(acc.prefixes) do p[#p + 1] = v end
+        for k in pairs(acc.b41) do b[#b + 1] = k end
+        RS.forget()
+        whenFound("ModOptions", function(mo)
+            local f = {}
+            for _, x in ipairs(mo.files) do f[#f + 1] = x.path end
+            say("RAFTER files=" .. #r.files .. " disabled=" .. tostring(verb and verb.disabled) .. " ask=" .. tostring(w()._ask) .. " names=" .. table.concat(n, ",") .. " prefixes=" .. table.concat(p, ",") .. " b41=" .. table.concat(b, ",") .. " modOptionsListed=" .. #f .. ":" .. table.concat(f, ","))
+        end)
+    end)
 end)
 '@
     sandbox = @'
@@ -378,6 +509,47 @@ try {
     $l = Run-Job "cvoDefaults"
     Check ($l -match 'ran=true value=false') "Defaults puts it back"
     Check ($l -match 'offDefault=false') "nothing is off its default after Defaults"
+    # Reset settings: two throwaway files named after the mod (and an empty one, never listed)
+    New-Item -ItemType Directory -Force $TestDir | Out-Null
+    Set-Content -Path $TestIni -Value "zqa test, line one`nzqa test, line two`nzqa test, line three" -NoNewline
+    Set-Content -Path $TestTxt -Value "outline = 1,0,0`nfill = 0,1,0" -NoNewline
+    Set-Content -Path $TestEmpty -Value "" -NoNewline
+    $l = Run-Job "resetFind"
+    Check ($l -match 'ConeVisionOutline/colors\.txt:id:2' -and $l -match 'ConeVisionOutline_zqa\.ini:id:3') "Reset settings lists the two files named after the mod (with their line counts)"
+    Check ($l -notmatch 'ConeVisionOutline_empty') "an empty file is not listed (nothing to reset)"
+    Check ($l -match 'options=8 offDefault=true') "and its 8 options (one is off its default)"
+    Check ($l -match 'verb=true disabled=false' -and $l -match 'oldDefaults=false') "one Reset settings button, in place of Defaults"
+    Shot "r1_reset_files"
+    $l = Run-Job "resetAsk"
+    Check ($l -match 'confirm=reset focus=confirm:yes') "Reset settings asks in the strip first"
+    Check ($l -match 'ask=Reset Cone Vision Outline: (its 8 options back to their defaults and 2 files emptied \(ConeVisionOutline/colors\.txt, ConeVisionOutline_zqa\.ini\)\. Copies go to|8 options to their defaults and 2 files emptied\. Copies kept in) Zomboid/Lua/ZeD_reset/ConeVisionOutline/\.\s*$') "the question says what is reset and where the copies go, uncut (the names drop when the strip is too narrow)"
+    Shot "r2_reset_confirm"
+    $l = Run-Job "resetCancel"
+    Check ($l -match 'confirm=false focus=opt:reset') "Cancel: the question goes, the controller is back on the button"
+    Check ($l -match 'lines=3/2 offDefault=true') "Cancel changes nothing (the files and the option as they were)"
+    Check ($hadResetCvo -or -not (Test-Path $ResetCvo)) "Cancel writes no backup"
+    $l = Run-Job "resetPad"
+    Check ($l -match 'reached=true') "the controller reaches Reset settings from the option rows (D-pad down)"
+    Check ($l -match 'afterA=reset/confirm:yes') "A on it asks in the strip"
+    Check ($l -match 'afterB=false/opt:reset') "B leaves the question and lands back on the button"
+    $l = Run-Job "resetDo"
+    Check ($l -match 'files=2 failed=0 options=true') "Reset: 2 files and the options reset, nothing failed"
+    Check ($l -match 'value=false offDefault=false') "the option is back to its default"
+    Check ($l -match 'now=0/0') "the two files are empty now"
+    Check ($l -match 'reload=true' -and $l -match 'pending=Settings of Cone Vision Outline reset\. A reload') "the strip offers the reload (the running mod reads its files again)"
+    Check ($l -match 'note=Cone Vision Outline: settings reset\. The old files are in Zomboid/Lua/ZeD_reset/ConeVisionOutline/\d{4}-\d\d-\d\d_\d{4}') "the pane's note says where the old files are"
+    $bk = $null
+    if ($l -match 'folder=(ZeD_reset/ConeVisionOutline/\S+)') { $bk = Join-Path $Lua ($Matches[1] -replace '/', '\') }
+    Check ($bk -and (Test-Path (Join-Path $bk "ConeVisionOutline_zqa.ini")) -and ((Get-Content (Join-Path $bk "ConeVisionOutline_zqa.ini")).Count -eq 3)) "the backup holds ConeVisionOutline_zqa.ini, all 3 lines"
+    Check ($bk -and (Test-Path (Join-Path $bk "ConeVisionOutline\colors.txt")) -and (((Get-Content (Join-Path $bk "ConeVisionOutline\colors.txt")) -join "|") -eq "outline = 1,0,0|fill = 0,1,0")) "the backup holds ConeVisionOutline/colors.txt word for word"
+    Check ($bk -and (Test-Path (Join-Path $bk "ModOptions.ini"))) "the backup holds ModOptions.ini as it was before the options changed"
+    Check (((Get-Item $TestIni).Length -eq 0) -and ((Get-Item $TestTxt).Length -eq 0)) "on disk the originals are empty (the game gives Lua no delete)"
+    Shot "r3_reset_done"
+    $l = Run-Job "resetAfter"
+    Check ($l -match 'files=0 disabled=true') "after the reset nothing is listed and the button is greyed"
+    Check ($l -match 'ask=Settings of Cone Vision Outline reset') "the strip still offers the reload"
+    Check ($l -match 'names=MyMod/settings\.txt prefixes=that_damn_ b41=MyModOld') "the code reader: a quoted file name, a built name's start, the old Mod Options id"
+    Check ($l -match 'modOptionsListed=0:') "the game's own ModOptions.ini is never listed as a mod's file"
     $l = Run-Job "sandbox" @{ MOD = "ConeVisionOutline" }
     Check ($l -match 'n=8') "Cone Vision Outline: 8 sandbox settings read from its files"
     Check ($l -match 'Enforce these settings for all players=off' -and $l -match 'Outline animals=on') "they carry the mod's own names and defaults"
@@ -473,9 +645,13 @@ try {
     Copy-Item (Join-Path $Keep "save_mods.txt") $SaveMods -Force
     if (Test-Path (Join-Path $Keep "ModOptions.ini")) { Copy-Item (Join-Path $Keep "ModOptions.ini") $ModOptions -Force }
     if ($hadPicks) { Copy-Item (Join-Path $Keep "ZeD_picks.txt") $PicksList -Force } else { Remove-Item $PicksList -ErrorAction SilentlyContinue }
+    Remove-Item $TestIni, $TestTxt, $TestEmpty -ErrorAction SilentlyContinue
+    if (-not $hadTestDir -and (Test-Path $TestDir)) { Remove-Item $TestDir -Recurse -Force }
+    if (-not $hadResetCvo -and (Test-Path $ResetCvo)) { Remove-Item $ResetCvo -Recurse -Force }
+    if (-not $hadResetRoot -and (Test-Path $ResetRoot)) { Remove-Item $ResetRoot -Recurse -Force }
     $media = Join-Path $Helper "common\media"
     if (Test-Path $media) { Remove-Item $media -Recurse -Force }
-    "put back: default.txt, ModOptions.ini, the picks list, ZeD picks' folder"
+    "put back: default.txt, ModOptions.ini, the picks list, ZeD picks' folder; removed the reset test's files and backups"
     if (-not ($p -and -not $p.HasExited)) { Set-Content -Path $lock -Value "free" -NoNewline }
     if ($fails -eq 0) { "all checks passed" } else { "$fails failed" }
 }
