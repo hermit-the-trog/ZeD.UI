@@ -618,6 +618,11 @@ function ZeD_CharacterWindow.extScrollKey(win)
     return ext and ext.scrollKey and ext.scrollKey(win) or nil
 end
 function ZeD_CharacterWindow.extFrame(win, drawerW)
+    -- the Identity tab's hair and beard figures: off until the section draws them this frame
+    if ZeD.HairBeard and ZeD.HairBeard.onWindowFrame then
+        local ok, err = pcall(ZeD.HairBeard.onWindowFrame, win, drawerW)
+        if not ok then ZeD.logOnce("hairbeard frame", err) end
+    end
     for _, ext in pairs(ZeD_CharacterWindow._extTabs) do
         if ext.onWindowFrame then
             local ok, err = pcall(ext.onWindowFrame, win, drawerW)
