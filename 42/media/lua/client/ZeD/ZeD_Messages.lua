@@ -273,8 +273,7 @@ end
 -- ---------------------------------------------------------------------------
 -- errors: the game's own list, filed by the mod named in each
 -- ---------------------------------------------------------------------------
-local errSeen = 0          -- the game's error count when last read
-local listSeen = 0         -- the entries of its list already read
+local errSeen = 0          -- the game's entry count when last read (KahluaThread.errorCount: one per entry added)
 local lastErr = nil
 -- one error is several entries in the game's list (a separator, the dump's head, the
 -- exception "java.lang.RuntimeException: ...", its stack dumps): the exception counts and
@@ -302,15 +301,19 @@ local function fileError(s)
     bump()
 end
 
+-- The game keeps its last 40 entries (KahluaThread.m_errors_list: at 40 it drops the oldest as it
+-- adds one) and counts every entry it adds, so the new entries are the count's rise, read from the
+-- list's end (Oct 25 2026: the list's own size was used, and once it was full no new error was filed).
 function M.readErrors()
     if not (getLuaDebuggerErrorCount and getLuaDebuggerErrors) then return end
     local n = safe(getLuaDebuggerErrorCount) or 0
     if n == errSeen then return end
+    local new = n - errSeen
     errSeen = n
     local list = safe(getLuaDebuggerErrors)
     local size = list and list:size() or 0
-    if size < listSeen then listSeen = 0 end   -- (the game started a new list)
-    for i = listSeen, size - 1 do
+    local from = (new > 0) and math.max(0, size - new) or size
+    for i = from, size - 1 do
         local s = tostring(list:get(i) or "")
         if M.qaLog then print("[ZeD] Messages: error entry " .. tostring(i) .. ": " .. string.sub(string.gsub(s, "\n", " / "), 1, 160)) end
         if string.find(s, "Exception", 1, true) then fileError(s)
@@ -319,7 +322,6 @@ function M.readErrors()
             t[#t] = t[#t] .. "\n" .. s
         end
     end
-    listSeen = size
 end
 
 -- the bug report text for an error source: what ZeD knows, then the kept errors in full
@@ -366,8 +368,6 @@ Events.OnGameStart.Add(function()
     roots = nil
     -- (errors from before the game started are left to the game's own log)
     errSeen = safe(getLuaDebuggerErrorCount) or 0
-    local list = safe(getLuaDebuggerErrors)
-    listSeen = list and list:size() or 0
 end)
 Events.OnRenderTick.Add(frame)
 
