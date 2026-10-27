@@ -929,11 +929,13 @@ end
 -- draws the rows, runs of equal rows merged into one rectangle.
 local ROUND_DIR = "media/textures/ZeD/belt/round/"
 local _round, _roundN = {}, 0
--- is there a picture for this size (the ranges d_rounds.py makes)
+-- is there a picture for this size (the ranges d_rounds.py makes: RING_SIZES there, thickness -> first and last size)
+local RING_BAKED = { [1] = { 20, 72 }, [2] = { 22, 110 }, [3] = { 36, 80 }, [4] = { 28, 122 }, [6] = { 30, 122 },
+                     [8] = { 62, 106 }, [12] = { 66, 110 } }
 local function roundBaked(s, t)
     if not t then return s >= 36 and s <= 136 end
-    if (t == 2 or t == 3) and s >= 36 and s <= 80 then return true end
-    return (t == 4 or t == 6) and s >= 76 and s <= 122
+    local r = RING_BAKED[t]
+    return r ~= nil and s >= r[1] and s <= r[2]
 end
 local function roundShape(s, t)
     local key = t and (s * 64 + t) or -s
@@ -1163,9 +1165,30 @@ local function frameBox(p, x, y, w, h, T)
 end
 B.frameBox = frameBox
 
+-- the strip's graduated colours (ZeD.Atoms.drawFillBar)
 local function wearColor(T, f)
-    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warningText end
+    if f > 0.6 then return T.positive elseif f > 0.3 then return T.warning end
     return T.danger
+end
+
+-- The hands' condition: the slots' framed strip bent round inside the outline (director, Oct 27 2026: "Make the
+-- belt hands' condition ring and the action bar's progress line the same chunky framed strip as the other status
+-- bars"). One unit in from the two-unit outline and six units across: a frame line each side (T.borderS, two on
+-- High contrast, as the strip's), the solid T.base well between, a flat fill clockwise from twelve. Whole
+-- hairlines (T.line), so the frames and the outline keep one weight at every scale.
+local RING_IN, RING_T = 3, 6
+local function condRing(p, b, f, T)
+    local ins, t, fw = T.line(RING_IN), T.line(RING_T), T.line(T.borderW)
+    local x, y, s = b.x + ins, b.y + ins, b.w - ins * 2
+    ring(p, x, y, s, t, 1, T.base)
+    if f > 0 then
+        -- two units of fill at least, as on the strip
+        f = math.max(f, T.px(2) / (math.pi * (s - t)))
+        ringArc(p, x + fw, y + fw, s - fw * 2, t - fw * 2, f, 1, wearColor(T, f))
+    end
+    local bc, i = T.borderS, t - fw
+    ring(p, x, y, s, fw, bc.a or 1, bc)
+    ring(p, x + i, y + i, s - i * 2, fw, bc.a or 1, bc)
 end
 
 -- The pointer's wash (T.hover) on a pressable belt box; the hands' is a disc. Off while the controller's mark shows,
@@ -1255,16 +1278,11 @@ function ZeD_BeltHUD:_drawBox(b, o)
     else
         frameBox(self, b.x, b.y, b.w, b.h, T)
     end
-    -- the foot: In hand / Both as a tag, or the condition (a ring inside the hands' outline, the framed strip on the slots)
+    -- the foot: In hand / Both as a tag, or the condition (the framed ring inside the hands' outline, the framed
+    -- strip on the slots)
     if round and o.item and not (o.inHand or o.ghost) then
         local f = B.cond(o.item)
-        if f then
-            -- inset by the outline (two units) and a one-unit gap; three units thick
-            local ins, t = p1 * 3, p1 * 3
-            local s = b.w - ins * 2
-            ring(self, b.x + ins, b.y + ins, s, t, 1, T.surf3)
-            ringArc(self, b.x + ins, b.y + ins, s, t, f, 1, wearColor(T, f))
-        end
+        if f then condRing(self, b, f, T) end
     elseif o.inHand or o.ghost then
         local text = o.inHand and ZeD.tr("UI_ZeD_Belt_InHand") or ZeD.tr("UI_ZeD_Belt_Both")
         local f5, th = T.fontF5, T.px(14)

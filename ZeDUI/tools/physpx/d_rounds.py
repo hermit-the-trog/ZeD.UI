@@ -6,10 +6,10 @@ with the colour and alpha the rows had. The rows are computed here exactly as th
 floating-point steps), so the picture and the rows cover the same pixels.
 
   d<s>.png        the filled circle in an s x s box            (disc(), s = 36 .. 136)
-  r<s>_<t>.png    its outline, t screen pixels thick           (ring(), s = 36 .. 80 with t = 2, 3; s = 76 .. 122 with
-                                                                t = 4, 6)
+  r<s>_<t>.png    a ring, t screen pixels thick                (ring(); the sizes per thickness in RING_SIZES)
 
-That covers the hands, their outlines and the focus wash at every scale from 0.7 to 2.35 (Large text included).
+That covers the hands, their outlines, the focus wash and the framed condition ring (its well, fill and two frame
+lines, Oct 27 2026; High contrast's two-hairline frames too) at every scale from 0.7 to 2.35 (Large text included).
 Each picture is cropped to what the rows cover; its left edge sits ox pixels from the box (a row can stick out one
 pixel left of the box), which the Lua works out the same way. A size outside these ranges draws the old way, row
 runs merged.
@@ -22,7 +22,8 @@ import sys
 from PIL import Image
 
 DISC_RANGE = (36, 136)
-RING_SETS = (((36, 80), (2, 3)), ((76, 122), (4, 6)))
+# thickness -> (first size, last size); ZeD_Belt.lua RING_BAKED is the same table
+RING_SIZES = {1: (20, 72), 2: (22, 110), 3: (36, 80), 4: (28, 122), 6: (30, 122), 8: (62, 106), 12: (66, 110)}
 
 
 def disc_rows(s):
@@ -78,11 +79,10 @@ def main():
     for s in range(DISC_RANGE[0], DISC_RANGE[1] + 1):
         picture(disc_rows(s)).save(os.path.join(out, "d%d.png" % s))
         n += 1
-    for (lo, hi), ts in RING_SETS:
+    for t, (lo, hi) in sorted(RING_SIZES.items()):
         for s in range(lo, hi + 1):
-            for t in ts:
-                picture(ring_rows(s, t)).save(os.path.join(out, "r%d_%d.png" % (s, t)))
-                n += 1
+            picture(ring_rows(s, t)).save(os.path.join(out, "r%d_%d.png" % (s, t)))
+            n += 1
     print("%d pictures -> %s" % (n, os.path.normpath(out)))
 
 

@@ -484,7 +484,7 @@ function AB.sizeVerbose(st)
     local L1, R1, L2, R2 = AB.verboseText(st)
     local w1 = P.textWidth(L1, "57", 1) + (R1 ~= "" and 6 + P.textWidth(R1, "57", 1) or 0)
     local w2 = P.textWidth(L2, "35", 1) + (R2 ~= "" and 6 + P.textWidth(R2, "35", 1) or 0)
-    return math.max(60, 4 + math.max(w1, w2) + 4), 24
+    return math.max(60, 4 + math.max(w1, w2) + 4), 22 + AB.BAR_H
 end
 local function overall(st) return st.qn > 1 and (st.qi + st.frac) / st.qn or st.frac end
 
@@ -532,7 +532,11 @@ function AB.drawVerbose(cv, T, st, a, ms)
 end
 
 -- the verbose layout with its top-left at (px, py), bw wide: L1 / R1 in the 5 x 7 face, L2 / R2 in the
--- 3 x 5 face 9 below, the 2-unit bar 16 below
+-- 3 x 5 face 9 below, the bar 16 below. The bar is the windows' framed strip (director, Oct 27 2026: "Make the
+-- belt hands' condition ring and the action bar's progress line the same chunky framed strip as the other
+-- status bars"): a 1-unit T.borderS frame, the solid base well, a flat fill BAR_H - 2 tall inside the frame;
+-- the queue's steps divide it with frame-coloured lines
+AB.BAR_H = 6
 function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
     local L1, R1, L2, R2 = AB.verboseText(st)
     local c1 = st.phase == "done" and T.positive or ((st.phase == "stopped" or st.phase == "walk") and AB._dim or T.accent)
@@ -550,22 +554,29 @@ function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
     txt(R1, px + bw, py, rc, "57", "r")
     txt(L2, px, py + 9, lc, "35")
     txt(R2, px + bw, py + 9, lc, "35", "r")
+    local bh = AB.BAR_H
     local bx, by = px, py + 16
-    R(cv, bx, by, bw, 2, ZeD.Bubbles.solid.surf3, a)
+    local fx, fy, fwid, fh = bx + 1, by + 1, bw - 2, bh - 2      -- inside the frame
+    R(cv, bx, by, bw, bh, ZeD.Bubbles.solid.base, a)
     if st.noend and st.phase ~= "stopped" then
         local seg = 12
-        local span = bw + seg
+        local span = fwid + seg
         local p = ((ms / 1000 * 26) % span) - seg
-        local x0, x1 = math.max(bx, math.floor(bx + p)), math.min(bx + bw, math.floor(bx + p) + seg)
-        if x1 > x0 then R(cv, x0, by, x1 - x0, 2, st.phase == "walk" and AB._dim or T.accent, a) end
+        local x0, x1 = math.max(fx, math.floor(fx + p)), math.min(fx + fwid, math.floor(fx + p) + seg)
+        if x1 > x0 then R(cv, x0, fy, x1 - x0, fh, st.phase == "walk" and AB._dim or T.accent, a) end
     else
         local c = st.phase == "done" and T.positive or (st.phase == "stopped" and AB._dim or T.accent)
         local f = st.phase == "done" and 1 or overall(st)
-        R(cv, bx, by, math.floor(bw * f + 0.5), 2, c, a)
+        local w = math.floor(fwid * f + 0.5)
+        if f > 0 then w = math.max(2, w) end                      -- two units at least, as the strip
+        if w > 0 then R(cv, fx, fy, w, fh, c, a) end
     end
-    if st.qn > 1 and st.qn <= 24 and bw / st.qn >= 3 then
-        for i = 1, st.qn - 1 do R(cv, bx + math.floor(bw * i / st.qn + 0.5), by, 1, 2, ZeD.Bubbles.solid.surf1, a) end
+    if st.qn > 1 and st.qn <= 24 and fwid / st.qn >= 3 then
+        for i = 1, st.qn - 1 do R(cv, fx + math.floor(fwid * i / st.qn + 0.5), fy, 1, fh, T.borderS, a) end
     end
+    -- the frame, over the fill's ends
+    R(cv, bx, by, bw, 1, T.borderS, a); R(cv, bx, by + bh - 1, bw, 1, T.borderS, a)
+    R(cv, bx, by + 1, 1, bh - 2, T.borderS, a); R(cv, bx + bw - 1, by + 1, 1, bh - 2, T.borderS, a)
 end
 
 -- ---------------------------------------------------------------------------
