@@ -14,7 +14,7 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
    - `pwsh -File ZeDUI/tools/release/stage_workshop.ps1 -DryRun` lists what would go up and what is left out.
    - `pwsh -File ZeDUI/tools/release/stage_workshop.ps1 -Version 0.2.0-t1` builds `Zomboid/Workshop/ZeD-UI/`.
    
-   Check the summary: about 2,825 files and 36 MB (0.2.0-t2, Oct 23 2026; the fonts carry extended Latin, Greek and Cyrillic since Oct 20 2026), the version, the preview passing, and the Workshop item id once there is one.
+   Check the summary: about 3,000 files and 37.3 MB (0.2.0-t6: 2,998 files, Oct 26 2026; the fonts carry extended Latin, Greek and Cyrillic since Oct 20 2026), the version, the preview passing, and the Workshop item id once there is one.
    
    Never delete `Zomboid/Workshop/ZeD-UI/workshop.txt`. After the first upload it holds the item's id. Without it, the next Upload creates a second item.
 6. **The preview picture** is the ZNIX USER cover (Oct 21 2026), already in place as `ZeDUI/tools/release/preview.png`. To change it, edit and run `py -I ZeDUI/workshop/thumbnail/pixel_znix.py`, copy its `znix_256.png` over `ZeDUI/tools/release/preview.png`, then stage again. Don't run `make_preview.py`: it draws the old desk-crop picture and would overwrite the cover.
@@ -26,7 +26,7 @@ Run the commands below from `Zomboid/mods/ZeD-UI`.
 9. The window opens on the folder picked last (ZeD-UI). The checks on the right must all pass, including what goes up and the preview.
 10. **Who can see it:** **Unlisted** (anyone with the link; the director chose it for the tester builds). Never Public until the director says so.
 11. **Tags:** Build 42, Interface, QoL, WIP.
-12. **Description:** Claude fills it in before the upload (director, Oct 24 2026: "set it up so I can just press upload"): the `description=` lines of `Zomboid/Workshop/ZeD-UI/workshop.txt` become the build's `ZeDUI/workshop/tester_description_<version>.bbcode`, one line each, with `version=`, `id=`, `title=`, `tags=` and `visibility=` kept. It says it is a test build, which version, and where to report.
+12. **Description:** Claude fills it in before the upload (director, Oct 24 2026: "set it up so I can just press upload"): the `description=` lines of `Zomboid/Workshop/ZeD-UI/workshop.txt` become the build's `ZeDUI/workshop/tester_description_<version>.bbcode`, one line each, with `version=`, `id=`, `title=`, `tags=` and `visibility=` kept. It says it is a test build, which version, and where to report. Steam refuses a description over 8,000 characters, and the game adds a blank line, "Workshop ID: <id>" and a "Mod ID:" line per mod (58 characters for ZeD_UI + ZeD_Picks): keep the description (lines joined by one newline) under 7,942. Trim old lines to make room for new ones (t5 went up at 7,861, t6 is 7,842).
 13. **Change note:** Claude fills it in too, from `ZeDUI/workshop/tester_changenote_<version>.txt` (what changed since the last tester build): `Zomboid/Lua/ZeD_workshop.txt` holds `picked=ZeD-UI`, then `note ZeD-UI`, then each line of the note after a `|`. The window shows it in the change note box, and clears it once Steam says the upload went through.
 14. **Upload**, then **Upload** again to confirm in the strip. Wait for the result. The first time, Steam may ask you to accept the Workshop agreement on the item's page before anyone else can see it.
 15. Open the item in Steam and check that it is still hidden and the size is about 35 MB. Don't subscribe on this computer: the copy in `Zomboid/mods` is already there, and two copies of the same mod clash.

@@ -1,0 +1,36 @@
+0.2.0-t6: changes since 0.2.0-t5.
+
+Belt
+- With a gun in the main hand, an ammo pouch sits beside it: one segment per round the gun holds, filled when loaded and hollow when spent, the chambered round set apart. It shows the count (EMPTY at none), the loaded magazines and loose rounds you carry, and unopened boxes. Hover for the full count.
+- The belt's frame is readable in the Light theme.
+
+Dashboards
+- The battery, engine and heater lamps light only when something is wrong: amber under 60%, red under 30%, blinking under 10%. The bulb check at the key stays.
+- A chip above the battery, engine, headlight or heater lamp gives the part's condition (each headlight, and the battery's charge).
+
+Item lists
+- Books, magazines and other things you can read show whether you have read them: a ring, a half or a full dot, with a word in the COND column, and a corner dot in the grid. Skill books show NEXT LEVEL when they are the next book for your level. Hover text uses the game's words.
+- Options, ZeD setup: Dim read items (off).
+
+Hair and beard (new)
+- The Identity tab has a Hair and beard section with every cut, tie, style, trim and shave the game's Character screen offers, including styles from hair mods. Each row and the Now / After pictures show the style on your own character's 3D figure. Greyed rows give the game's reason.
+- One press in the strip at the drawer's foot does it, through the game's own action. Controller: the Hair / Beard switch, the rows, A does it.
+- The Pictures button for Improved Hair Menu and NeatUI Hairstyler is gone: their styles are rows in the list.
+
+Character window
+- The game's Health, Skills, Info and Protection keys, its HUD Health button, and mods that open those pages (Mini Health Panel) open ZeD's Character window on the matching tab. The same key again folds the tab.
+
+Maps
+- A Key button on the Maps toolbar shows the game's map key over the map.
+
+Options
+- ZeD setup has on/off switches for things the game does not do by itself: Ammo on the belt, Read marks in item lists, NEXT LEVEL on skill books, Dashboard warning lamps, Moodle notices. All are on. Off gives the game's own behaviour.
+- A setting name too long for its column wraps to two lines in Large text.
+
+Working with other mods
+- Map mods on ZeD's map: Draw On The Map, Map Symbol Size Slider, Players On Map, Share Annotations, Where Am I?.
+- Skill Recovery Journal: its progress shows under each row in Skills.
+- Traits As Skills: a Traits tab after Skills.
+
+Fixes
+- Mod Uploader: the description count includes the lines the game adds on upload, so a description that fits is no longer refused by Steam.
