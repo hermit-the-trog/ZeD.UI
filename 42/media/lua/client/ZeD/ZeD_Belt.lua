@@ -172,18 +172,11 @@ local function closureTexture(kind)
     return t or nil
 end
 
--- The closure always sits between the belt's left and right slots (director, Oct 16 2026): after Belt L; before
--- Belt R when there is no Belt L; with neither (no belt worn), in the middle of the row. Returns how many slots sit
--- left of it.
+-- The closure splits the slots evenly, half on each side in key order, an odd one out on the right, away from the
+-- hands (director, Oct 27 2026: "split the attachments evenly around the buckle, two on each side"; until then it
+-- sat between Belt L and Belt R, Oct 16 2026). Returns how many slots sit left of it.
 function B.closureAfter(slots)
-    local l, r
-    for i, s in ipairs(slots) do
-        local t = s and s.slot and s.slot.slotType
-        if t == "SmallBeltLeft" then l = i elseif t == "SmallBeltRight" then r = i end
-    end
-    if l then return l end
-    if r then return r - 1 end
-    return math.ceil(#slots / 2)
+    return math.floor(#slots / 2)
 end
 
 -- which worn item provides each slot type (the last to provide it, as vanilla gives the slot that item's icon),
@@ -763,7 +756,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local T = ZeD.T
     local px = T.px
     local n = #slots
-    local k = B.closureAfter(slots)       -- the buckle / knot / clip goes between Belt L and Belt R
+    local k = B.closureAfter(slots)       -- the buckle / knot / clip splits the slots evenly
     local boxes = {}
     local hand, off, box = px(HAND), px(OFF_HAND), px(BOX)
     local x = 0
