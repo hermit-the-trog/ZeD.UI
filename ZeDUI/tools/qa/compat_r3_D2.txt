@@ -1,0 +1,3 @@
+# compat_r3_D2.txt (Oct 26 2026): group D rerun of the trailers (character beside them) and the Humvee with Military Tool Kit
+zedqa_prelude.lua | pre
+zedqa_r3_D_cars2.lua | cv | timeout=600

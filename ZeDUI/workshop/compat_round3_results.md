@@ -22,12 +22,12 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 | List | Mods |
 |---|---|
 | Supported | 0 |
-| Works well | 2 |
-| Compatible | 83 |
-| Not needed | 12 |
+| Works well | 3 |
+| Compatible | 117 |
+| Not needed | 15 |
 | Does not work | 1 |
-| Tested in all | 98 |
-| Not tested | 1 |
+| Tested in all | 136 |
+| Not tested | 2 |
 
 
 ## Results by group
@@ -151,11 +151,57 @@ Reports: qa/regression/2026-10-26_2009_mods_fullscreen4k.md (8/8 pass; an earlie
 | Instinctive Hearing [B42] | [3789584579](https://steamcommunity.com/sharedfiles/filedetails/?id=3789584579) | 2 | Compatible | Base mod only (its outline add-on needs ZombieBuddy). Loads, no errors. |
 | [B41/B42] /bin/'s Profession and Skill Based Starting Items | [2974652138](https://steamcommunity.com/sharedfiles/filedetails/?id=2974652138) | 3 | Compatible | Loads, no errors. |
 
+### Group D
+
+Reports: qa/regression/2026-10-26_2020_mods_fullscreen4k.md (ZeD's tests 5/5 pass; vehicle script 68 of 76 checks, the 8 failures were the test's: trailers spawned out of reach, a burnt wreck, the Humvee without its Military Tool Kit); rerun 2026-10-26_2032 (trailers and Humvee 8/8)
+
+| Mod | Workshop id | Tier | List | Evidence |
+|---|---|---|---|---|
+| Better Auto Mechanics [B42.20.4+ MP+SP] | [3635856965](https://steamcommunity.com/sharedfiles/filedetails/?id=3635856965) | 1 | Works well | Its part actions patch the game's part menu (doPartContextMenu), which ZeD's Vehicle tab calls for its part menu, so they come up there; its own mechanics window is the game's, which ZeD routes to the Vehicle tab (by reading its code; as Auto Mechanics). |
+| Standardized Vehicle Upgrades 3 - Vanilla Addon | [3304582091](https://steamcommunity.com/sharedfiles/filedetails/?id=3304582091) | 1 | Compatible | Loads with SVU3 Core and Tsar's library, no errors. |
+| Standardized Vehicle Upgrades 3 - Core - B42 | [3403490889](https://steamcommunity.com/sharedfiles/filedetails/?id=3403490889) | 1 | Compatible | Loads, no errors; its upgrades go through the game's part menu (by reading its code). |
+| Another Vehicle Claim System | [2957935793](https://steamcommunity.com/sharedfiles/filedetails/?id=2957935793) | 1 | Compatible | Multiplayer mod; its Claimed Vehicles Manager row is in ZeD's world menu (seen). Base sub-mod only. |
+| Banger's Retro Car Dashboard [B42] | [3739256322](https://steamcommunity.com/sharedfiles/filedetails/?id=3739256322) | 1 | Not needed | ZeD replaces the dashboard; seated, only ZeD's dashboard shows (census, every car) (as Realistic Dashboard, round 2). |
+| Better Lockpicking (Continued) b42.20+ | [3768298886](https://steamcommunity.com/sharedfiles/filedetails/?id=3768298886) | 1 | Compatible | Loads, no errors (its lockpick windows not opened). |
+| More Traits Definitive Edition | [3799050151](https://steamcommunity.com/sharedfiles/filedetails/?id=3799050151) | 1 | Compatible | Loads, no errors; its traits go to ZeD's trait list (expected, as More Traits). |
+| [B42/B41] The Motorious Zone Vehicle Pack | [2791656602](https://steamcommunity.com/sharedfiles/filedetails/?id=2791656602) | 2 | Compatible | fhqH1 and fhqAZ1 spawned, driven seat, key, engine: ZeD's dashboard shows (generic design) and the Vehicle tab lists 41 / 37 parts. Base + US Motors sub-mods. |
+| '90 Mercedes-Benz Unimog U1550L | [2843855721](https://steamcommunity.com/sharedfiles/filedetails/?id=2843855721) | 2 | Compatible | U1550L and U1550L OffRoad: ZeD's dashboard and Vehicle tab (49 / 40 parts). |
+| You drive, I sleep | [2830570280](https://steamcommunity.com/sharedfiles/filedetails/?id=2830570280) | 2 | Compatible | Loads, no errors (sleeping in a car not tried). |
+| Nepenthe's Colored Engine Status (Now a vanilla feature in B42) | [2975204120](https://steamcommunity.com/sharedfiles/filedetails/?id=2975204120) | 2 | Not needed | Says itself it is now a game feature; its colours are for the game's mechanics window, which ZeD's Vehicle tab replaces (expected). |
+| Nepenthe's Colored Battery Status (Now a vanilla feature in B42) | [2973053380](https://steamcommunity.com/sharedfiles/filedetails/?id=2973053380) | 2 | Not needed | Says itself it is now a game feature; its colours are for the game's mechanics window (expected). |
+| [B41 / B42.12+] bikinitools - independent vehicle spawner, skin changer and automations! | [2634426926](https://steamcommunity.com/sharedfiles/filedetails/?id=2634426926) | 2 | Compatible | Its bikinitools rows are in ZeD's world menu (seen); three of its own menu texts miss an argument on 42.21 (game warnings, not errors). Base sub-mod. |
+| Autotsar Motor Club B42 | [3404737883](https://steamcommunity.com/sharedfiles/filedetails/?id=3404737883) | 2 | Compatible | AMC quad and Harley: ZeD's dashboard and Vehicle tab (27 parts each). |
+| Autotsar Trailers B42 | [3402493701](https://steamcommunity.com/sharedfiles/filedetails/?id=3402493701) | 2 | Compatible | TrailerHome and TrailerKbac: ZeD's Vehicle tab beside them (37 / 7 parts) (rerun with the character beside the trailer). |
+| [B41/B42] More Immersive Vehicles | [3162566044](https://steamcommunity.com/sharedfiles/filedetails/?id=3162566044) | 2 | Compatible | Loads, no errors. |
+| RV Interior Expansion [B42] | [3618427553](https://steamcommunity.com/sharedfiles/filedetails/?id=3618427553) | 2 | Compatible | Loads with Project RV Interior, no errors (interior not entered). |
+| Autotsar Bus B42 | [3402812859](https://steamcommunity.com/sharedfiles/filedetails/?id=3402812859) | 2 | Compatible | Army Bus and Prison Bus: ZeD's dashboard and Vehicle tab (60 / 51 parts) (seen, D_bus_dashboard.jpg, D_bus_vehicle_tab.jpg). Its roof rack containers log 'cannot get ID' lines (engine log, not errors). |
+| RV Interior Expansion Part 2 [B42] | [3622163276](https://steamcommunity.com/sharedfiles/filedetails/?id=3622163276) | 2 | Compatible | Loads, no errors. |
+| Dismantle Any Car | [3428369137](https://steamcommunity.com/sharedfiles/filedetails/?id=3428369137) | 2 | Compatible | Loads, no errors. |
+| [B42MP] FlipVehiclePlusTrailer | [3430172149](https://steamcommunity.com/sharedfiles/filedetails/?id=3430172149) | 2 | Compatible | Loads, no errors. |
+| [B42] UH-1B Helicopter (Beta) | [3409723807](https://steamcommunity.com/sharedfiles/filedetails/?id=3409723807) | 2 | Compatible | UH-1B Huey (with Aviation Core): ZeD's dashboard and Vehicle tab (33 parts). Its burnt wreck is not a car to sit in (entering it errors in the game's own dashboard code). |
+| [B42.21+ MP] - Push Vehicle | [3780639614](https://steamcommunity.com/sharedfiles/filedetails/?id=3780639614) | 2 | Compatible | Loads, no errors. |
+| [B42.19] Filibuster Rhymes' Certified Used Cars | [3683878228](https://steamcommunity.com/sharedfiles/filedetails/?id=3683878228) | 2 | Compatible | Two of its cars (llv_89, gto_65): ZeD's dashboard and Vehicle tab (45 / 53 parts). Its title-screen sub-mod loaded too. |
+| [B42.20+] Vehicle Aim Roof Fix | [3781616141](https://steamcommunity.com/sharedfiles/filedetails/?id=3781616141) | 2 | Compatible | Loads, no errors. |
+| Old moodles +new [B42+] | [3386486141](https://steamcommunity.com/sharedfiles/filedetails/?id=3386486141) | 2 | Compatible | Loads, no errors (moodle icons). |
+| True Cargo - Project Full HD | [3806955469](https://steamcommunity.com/sharedfiles/filedetails/?id=3806955469) | 2 | Compatible | Part of it does not show: its cargo view is drawn on the game's inventory window (by reading its code: ISInventoryPage.render). |
+| Effortless Towing | [3442862183](https://steamcommunity.com/sharedfiles/filedetails/?id=3442862183) | 2 | Compatible | Loads, no errors. |
+| Dash Roamer [B42] | [3775809123](https://steamcommunity.com/sharedfiles/filedetails/?id=3775809123) | 2 | Compatible | DashRoamer and Stellar Command (with its SVU patch): ZeD's dashboard and Vehicle tab (55 parts each). |
+| Vehicle Ground Guard [B42 SP + MP] | [3690308807](https://steamcommunity.com/sharedfiles/filedetails/?id=3690308807) | 2 | Compatible | Loads, no errors. |
+| NeatUI XP Drop [42.21] | [3760545452](https://steamcommunity.com/sharedfiles/filedetails/?id=3760545452) | 2 | Compatible | Its XP bar shows at the top right (census NeatXPBar 3480,180); ZeD's World window covers its left edge when the Vehicle drawer is open (seen). |
+| [B42.20+] Vehicle Enter/Exit Fix | [3785695033](https://steamcommunity.com/sharedfiles/filedetails/?id=3785695033) | 2 | Compatible | Loads, no errors (every car entered and left without error). |
+| Legendary Professions and Traits | [3669469283](https://steamcommunity.com/sharedfiles/filedetails/?id=3669469283) | 2 | Compatible | Loads, no errors. |
+| Vehicle Military Zones | [3436499337](https://steamcommunity.com/sharedfiles/filedetails/?id=3436499337) | 3 | Compatible | Loads with Yet Another PZ Library, no errors. |
+| W900 Semi-Truck [B42] | [3409472393](https://steamcommunity.com/sharedfiles/filedetails/?id=3409472393) | 3 | Compatible | Semi Truck and Semi Truck Box: ZeD's dashboard and Vehicle tab (59 / 55 parts). |
+| U.S. M998 Humvee by Papa_Chad | [3554424111](https://steamcommunity.com/sharedfiles/filedetails/?id=3554424111) | 3 | Compatible | Needs Military Tool Kit (2705406713), which its mod.info does not name: without it the Humvee spawns with errors (Vehicles.Create.PC_Default missing) and cannot be driven. With it: ZeD's dashboard and Vehicle tab (54 parts) (rerun). |
+| Specific Loot (KI5) | [3457132019](https://steamcommunity.com/sharedfiles/filedetails/?id=3457132019) | 3 | Compatible | Loads with Yet Another PZ Library, no errors. |
+| Dynamic Snow for Vanilla Vehicles [B42 MP] | [3781818628](https://steamcommunity.com/sharedfiles/filedetails/?id=3781818628) | 3 | Compatible | Loads, no errors. |
+
 ## Not tested, and why
 
 | Group | Mod | Workshop id | Why |
 |---|---|---|---|
 | A | Viperel's Vehicle Spare Parts | [2712632417](https://steamcommunity.com/sharedfiles/filedetails/?id=2712632417) | Its folder on disk has the Build 41 layout only (no 42 or common folder): the game does not list it (getModInfoByID nil at the main menu). |
+| D | Better Car Physics | [2909035179](https://steamcommunity.com/sharedfiles/filedetails/?id=2909035179) | Ships Java class files (CarController*.class): left out by rule. |
 
 ## ZeD bugs found
 
