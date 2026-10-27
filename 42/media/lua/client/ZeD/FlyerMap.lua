@@ -108,9 +108,12 @@ function F.layout(mp)
             for k, r in ipairs(locs) do
                 local cx, cy = (r.x1 + r.x2) / 2, (r.y1 + r.y2) / 2
                 -- the tack's point on the place: the pin hangs below it
-                local sx = math.floor(api:worldToUIX(cx, cy) - w / 2)
-                local sy = math.floor(api:worldToUIY(cx, cy) - ck)
-                if sx > -w and sy > -h and sx < pw and sy < ph then
+                local tx, ty = api:worldToUIX(cx, cy), api:worldToUIY(cx, cy)
+                local sx = math.floor(tx - w / 2)
+                local sy = math.floor(ty - ck)
+                -- only a place on the visible map gets its pin (a place past the edge
+                -- shows nothing); the map clips what hangs over its edge (MapsTab render)
+                if tx >= 0 and ty >= 0 and tx < pw and ty < ph then
                     pins[#pins + 1] = { id = id, j = j, k = k, x = sx, y = sy, w = w, h = h, cx = cx, cy = cy,
                                         done = F.visited(chr, id, j, k) }
                 end
@@ -124,6 +127,8 @@ end
 function F.hit(mp, x, y)
     local pins = mp._flyerPins
     if not pins then return nil end
+    -- (the part of a pin past the map's edge is clipped away: it is not there to hover)
+    if x < 0 or y < 0 or x >= mp:getWidth() or y >= mp:getHeight() then return nil end
     for i = #pins, 1, -1 do
         local p = pins[i]
         if x >= p.x and x < p.x + p.w and y >= p.y and y < p.y + p.h then return p end
