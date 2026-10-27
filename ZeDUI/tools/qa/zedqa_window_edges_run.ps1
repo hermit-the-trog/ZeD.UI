@@ -14,12 +14,13 @@
     With -Quit the game quits at the end and -ModOptionsKeep (the director's file the
     runner kept aside, <report>.modoptions.ini) goes back over Lua/ModOptions.ini.
     The real pointer moves only while the game is the front window and the computer
-    has been idle at least -IdleSec seconds. Holds Zomboid/Lua/zedqa.lock.
+    has been idle at least -IdleSec seconds (default 0: on this PC something always
+    registers input, so the idle time reads 0 even with nobody there). Holds Zomboid/Lua/zedqa.lock.
     (Mouse.setXY moves the game's idea of the pointer, not what update() reads for
     the edges, hence real input.)
     Exit codes: 0 every check passed, 1 a check failed or the run broke, 2 refused.
 #>
-param([switch]$Quit, [string]$ModOptionsKeep = "", [int]$IdleSec = 60)
+param([switch]$Quit, [string]$ModOptionsKeep = "", [int]$IdleSec = 0)
 $Lua = "C:\Users\danie\Zomboid\Lua"
 $QA = $PSScriptRoot
 $log = "C:\Users\danie\Zomboid\console.txt"
@@ -221,11 +222,20 @@ try {
     "put back: " + (Run-Job "restore" @{})
     if ($Quit) {
         Set-Content -Path (Join-Path $Lua "zedqa.autoload") -Value "0" -NoNewline
-        $g = Next-Go
-        Set-Content -Path (Join-Path $Lua "zedqa.lua") -Value "getCore():quit()" -NoNewline
-        Send-Go $g
+        # in game quit() goes to the main menu; there a second one closes the game
         $p = Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue | Select-Object -First 1
-        for ($i = 0; $i -lt 90; $i++) { Start-Sleep -Seconds 2; if (-not $p -or $p.HasExited) { break } }
+        for ($q = 0; $q -lt 2 -and $p -and -not $p.HasExited; $q++) {
+            $from = (LogText).Length
+            $g = Next-Go
+            Set-Content -Path (Join-Path $Lua "zedqa.lua") -Value "getCore():quit()" -NoNewline
+            Send-Go $g
+            for ($i = 0; $i -lt 60; $i++) {
+                Start-Sleep -Seconds 2
+                if ($p.HasExited) { break }
+                $t = LogText
+                if ($t.Length -gt $from -and $t.Substring($from) -match '\[ZeD\.QA\] bridge armed \(main menu') { Start-Sleep -Seconds 5; break }
+            }
+        }
         if ($p -and -not $p.HasExited) { "the game is still running (process $($p.Id)); left open" } else { "the game closed" }
         if ($ModOptionsKeep -and (Test-Path $ModOptionsKeep) -and -not (Get-Process ProjectZomboid64 -ErrorAction SilentlyContinue)) {
             Copy-Item $ModOptionsKeep (Join-Path $Lua "ModOptions.ini") -Force

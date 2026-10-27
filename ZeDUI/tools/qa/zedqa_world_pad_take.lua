@@ -585,6 +585,19 @@ local function lowest(w)
     end
     return best
 end
+-- the lowest control overlapping e across (its column)
+local function lowestInColumn(w, e)
+    local best
+    for _, z in ipairs(w._focusRing or {}) do
+        if z.zone == contentZone(w) and z.focusable then
+            for _, x in ipairs(z.elements or {}) do
+                if type(x.y) == "number" and (x.x or 0) < (e.x or 0) + (e.w or 0) and (x.x or 0) + (x.w or 0) > (e.x or 0)
+                   and (not best or bottomOf(x) > bottomOf(best)) then best = x end
+            end
+        end
+    end
+    return best
+end
 local function auditTab(done)
     local item = tabList[ti]
     if not item then return end
@@ -608,10 +621,13 @@ local function auditTab(done)
                 local ww2 = walk.w
                 local dp = ww2._drawerPanel
                 local e2 = elIn(ww2, walk.zn, function(x) return x.id == lastId end)
-                local lo = lowest(ww2)
+                -- the lowest control of the column the walk ended in: Down stays in its
+                -- column, a two-column tab's other column is reached with Right (Health at
+                -- Large text: the exercise buttons end a few px below the figure's feet)
+                local lo = e2 and lowestInColumn(ww2, e2) or lowest(ww2)
                 local inView = e2 and e2.y >= 0 and bottomOf(e2) <= dp:getHeight() + 1
                 local isLowest = e2 and lo and bottomOf(e2) >= bottomOf(lo) - 2
-                check(inView and isLowest, string.format("%s pad: Down reaches the lowest control %s and it is in view (bottom %s of %d)",
+                check(inView and isLowest, string.format("%s pad: Down reaches the lowest control of its column %s and it is in view (bottom %s of %d)",
                     walk.tag, tostring(lastId), tostring(e2 and math.floor(bottomOf(e2))), dp:getHeight()))
                 -- the wheel: all the way down
                 for _ = 1, 60 do pcall(dp.onMouseWheel, dp, 1) end
