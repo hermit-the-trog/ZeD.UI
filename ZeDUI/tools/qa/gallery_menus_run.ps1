@@ -36,6 +36,7 @@ $kept = @{
     "ZeD_workshop.txt" = Join-Path $Lua "ZeD_workshop.txt"
     "ModOptions.ini" = Join-Path $Lua "ModOptions.ini"
     "zedqa.autoload" = Join-Path $Lua "zedqa.autoload"
+    "options.ini" = Join-Path $Zomboid "options.ini"
 }
 $had = @{}
 foreach ($k in $kept.Keys) {
@@ -92,6 +93,9 @@ try {
     $txt = "VERSION = 1,`n`nmods`n{`n" + (($list | ForEach-Object { "    mod = $_," }) -join "`n") + "`n}`n`nmaps`n{`n}`n"
     Set-Content -Path $kept["default.txt"] -Value $txt -NoNewline
     Set-Content -Path $kept["zedqa.autoload"] -Value "0" -NoNewline
+    # the desk's second wallpaper is the title video, drawn only with the game's video effects on (put back after)
+    $opt = Get-Content $kept["options.ini"] -Raw
+    Set-Content -Path $kept["options.ini"] -Value ($opt -replace "doVideoEffects=false", "doVideoEffects=true") -NoNewline
     $dir = "E:\Project Zomboid\SteamApps\common\ProjectZomboid"
     $p = Start-Process -FilePath "$dir\ProjectZomboid64.exe" -ArgumentList "-debug" -WorkingDirectory $dir -PassThru
     "started the game (process $($p.Id))"
@@ -116,7 +120,7 @@ try {
         if ($had[$k]) { Copy-Item (Join-Path $Keep $k) $kept[$k] -Force } else { Remove-Item $kept[$k] -ErrorAction SilentlyContinue }
     }
     foreach ($a in $added) { Remove-Item $a -Recurse -Force -ErrorAction SilentlyContinue }
-    "put back: default.txt, pz_modlist_settings.cfg, ZeD_modprofiles.txt, ZeD_wallpaper.txt, ZeD_workshop.txt, ModOptions.ini, zedqa.autoload; removed $($added.Count) sample folders"
+    "put back: default.txt, pz_modlist_settings.cfg, ZeD_modprofiles.txt, ZeD_wallpaper.txt, ZeD_workshop.txt, ModOptions.ini, zedqa.autoload, options.ini; removed $($added.Count) sample folders"
     if (-not ($p -and -not $p.HasExited)) { Set-Content -Path $lock -Value "free" -NoNewline }
     if ($fails -eq 0) { "all three scripts reached DONE" } else { "$fails script(s) did not reach DONE" }
 }
