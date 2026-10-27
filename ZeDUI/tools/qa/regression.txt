@@ -78,7 +78,7 @@ zedqa_straps.lua | straps                        # per-slot strap materials, fou
 zedqa_buckle.lua | bk                            # the buckle stays on the screen centre with a watch on either wrist
 zedqa_buckles.lua | bks                          # every profession's buckle; the profession goes back
 zedqa_beltwatch.lua | bw                         # the mini watch on the belt: pop, drag, tuck, Corner mode
-zedqa_belt_hands.lua | bh                       # the hands at the ends as seen from behind (off hand left, main hand right), a watch outside its own hand, the note last, the pad walks left to right
+zedqa_hands_together.lua | ht | timeout=300           # the hands together at the left end (main 56, off 44), the off hand peeking with one item in both hands, the ammo tab under the main hand, clicks, the pad walk, watches
 zedqa_watches2.lua | watches                     # the nine watch plates by day and night; own watch and time back
 
 # ---- containers (these move the character to the pickup's truck bed)
