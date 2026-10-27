@@ -270,9 +270,14 @@ way the vanilla game does it?": the main hand 56 units, the off hand 44 (a slot'
 hand is three quarters of the main), 6 apart, the belt 4 units taller. "I think keeping the primary the circle, and having
 the secondary peeking from behind when an item is in both hands": the main hand keeps its circle, picture and condition
 ring; the off hand slides in under it and shows 14 units, empty (no picture, no ring, no words); clicks on the crescent
-reach the off hand. "Put the hands together at the left end": `[left-wrist watch][off][MAIN][ammo pouch][right-wrist
+reach the off hand. "Put the hands together at the left end": `[left-wrist watch][off][MAIN][ammo tab][right-wrist
 watch] ==strap with the slots and buckle== [Messages note]`. The belt is placed by its buckle, so the slots never move;
-the hands move left when the ammo pouch or a right-wrist watch appears between them and the strap. The controller starts
+the hands move left when the ammo tab or a right-wrist watch appears between them and the strap. "I think the ammo
+should peek out from the gun/primary icon, rather than be on a belt. So it looks part of the gun. Right now it looks
+like a clip attached to the belt, which would give the wrong impression.": the ammo is a tab a slot's height out from
+under the main hand (its end under the circle's middle, drawn first so the circle covers it, the hands' two-unit
+outline, no strap under it); its words and rounds start at the circle's edge. A gun in both hands: the off hand peeks
+left, the ammo right. The controller starts
 on slot 1; Left reaches the main hand, then the off hand. QA `ZeDUI/tools/qa/hands_together.txt`.
 
 ## 13. Under the hood
