@@ -4,9 +4,9 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 
 - `%1` to `%4` are filled in by the game (a number, a name). Keep them, in any order that suits your language.
 - Markup like `<LINE>` or `<RGB:1,1,1>` stays as written.
-- **Max** is the most characters that fit where the phrase is drawn. "-" means there is no fixed limit (the box grows or the text wraps). Pixel-face text (action bar, belt, watch, dash, radio) draws capitals, digits and a few signs; accented Latin and Cyrillic capitals work, other alphabets fall back to the plain face.
-- Phrases that are all capitals in English (READING, IN HAND) are meant to be capitals in your language too.
-- Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head is drawn in capitals by ZeD whatever case the game text has.
+- **Max** is the most characters that fit where the phrase is drawn. "-" means there is no fixed limit (the box grows or the text wraps). Pixel-face text (the action bar, and the watch, dash and radio readouts) draws capitals, digits and a few signs; accented Latin and Cyrillic capitals work, other alphabets fall back to the plain face.
+- Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
+- Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
 Total keys: 2379.
 
@@ -411,8 +411,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Animals_AlertDefault` | `Alert` | Animals tab alert row: badge text for an alert with no specific label (drawn in capitals) | 10 |
-| `UI_ZeD_Animals_AlertOrphan` | `Orphan` | Animals tab alert row: badge when a baby has lost its mother (drawn in capitals) | 10 |
+| `UI_ZeD_Animals_AlertDefault` | `Alert` | Animals tab alert row: badge text for an alert with no specific label | 10 |
+| `UI_ZeD_Animals_AlertOrphan` | `Orphan` | Animals tab alert row: badge when a baby has lost its mother | 10 |
 | `UI_ZeD_Animals_AnimalCountMany` | `%1 animals` | Animals tab zone view, info band: how many animals are in the zone (none or several) | 14 |
 | `UI_ZeD_Animals_AnimalCountOne` | `%1 animal` | Animals tab zone view, info band: how many animals are in the zone (exactly one) | 14 |
 | `UI_ZeD_Animals_BadgeDoorOpen` | `Door open` | Animals tab hutch row: badge when the hutch door is open | 12 |
@@ -422,7 +422,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_BtnCreateZone` | `+ Create zone` | Animals tab ranch overview, footer: button that starts drawing a new livestock zone | 18 |
 | `UI_ZeD_Animals_CountSpecies` | `%1 %2` | Animals tab zone card: one species in the breakdown line (%1 = how many, %2 = species name), e.g. "3 Cow" | 24 |
 | `UI_ZeD_Animals_CreateZoneHint` | `Create an Animal zone to get started` | Animals tab ranch overview, footer: hint next to the Create zone button | 50 |
-| `UI_ZeD_Animals_CreateZoneTitle` | `CREATE LIVESTOCK ZONE` | Animals tab, zone drawing mode: heading band at the top | 32 |
+| `UI_ZeD_Animals_CreateZoneTitle` | `Create livestock zone` | Animals tab, zone drawing mode: heading band at the top | 32 |
 | `UI_ZeD_Animals_Dis_Anxious_Desc` | `Stresses easily` | Animals tab animal view, Genetics: one-line explanation under the Anxious badge | 40 |
 | `UI_ZeD_Animals_Dis_Anxious_Label` | `Anxious` | Animals tab animal view, Genetics: name of a genetic trait or disorder badge (shown at Animal Care level 7 or 9) | 16 |
 | `UI_ZeD_Animals_Dis_Craven_Desc` | `Flees almost any threat` | Animals tab animal view, Genetics: one-line explanation under the Craven badge | 40 |
@@ -460,23 +460,23 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_Dis_Thirsty_Desc` | `Drinks more than average` | Animals tab animal view, Genetics: one-line explanation under the Thirsty badge | 40 |
 | `UI_ZeD_Animals_Dis_WeakBirth_Desc` | `Offspring may die at birth` | Animals tab animal view, Genetics: one-line explanation under the Weak Birth badge | 40 |
 | `UI_ZeD_Animals_Dis_WeakBirth_Label` | `Weak birth` | Animals tab animal view, Genetics: name of a genetic trait or disorder badge (shown at Animal Care level 7 or 9) | 16 |
-| `UI_ZeD_Animals_Eggs` | `Eggs` | Animals tab animal view, Production: label of the eggs row (drawn in capitals) | 10 |
+| `UI_ZeD_Animals_Eggs` | `Eggs` | Animals tab animal view, Production: label of the eggs row | 10 |
 | `UI_ZeD_Animals_EggsPerDay` | `eggs/day` | Animals tab ranch overview, Totals section: unit after the eggs figure | 12 |
 | `UI_ZeD_Animals_EligibleCount` | `%1 eligible` | Animals tab butcher view, summary band: how many animals can be butchered | 20 |
 | `UI_ZeD_Animals_EstMeat` | `\| ~%1 kg meat` | Animals tab butcher row, second line after the species: estimated meat yield (%1 = kg, one decimal) | 20 |
-| `UI_ZeD_Animals_HdrBreeding` | `BREEDING` | Animals tab animal view: section heading for pregnancy, mating and trust | 16 |
-| `UI_ZeD_Animals_HdrGenetics` | `GENETICS` | Animals tab animal view: section heading for genetic traits | 16 |
-| `UI_ZeD_Animals_HdrProduction` | `PRODUCTION` | Animals tab animal view: section heading for milk, wool and eggs | 16 |
-| `UI_ZeD_Animals_HdrVitals` | `VITALS` | Animals tab animal view: section heading | 14 |
-| `UI_ZeD_Animals_HookBlood` | `BLOOD %1 L` | Animals tab butcher hook row: blood still to collect in litres (one item of a list; %1 = litres) | 16 |
-| `UI_ZeD_Animals_HookLeft` | `%1 LEFT` | Animals tab butcher hook row, second line: what is still on the animal (%1 = the items above joined with " \| ") | 40 |
-| `UI_ZeD_Animals_HookNothingLeft` | `NOTHING LEFT` | Animals tab butcher hook row, second line: the animal on the hook has been fully butchered | 16 |
+| `UI_ZeD_Animals_HdrBreeding` | `Breeding` | Animals tab animal view: section heading for pregnancy, mating and trust | 16 |
+| `UI_ZeD_Animals_HdrGenetics` | `Genetics` | Animals tab animal view: section heading for genetic traits | 16 |
+| `UI_ZeD_Animals_HdrProduction` | `Production` | Animals tab animal view: section heading for milk, wool and eggs | 16 |
+| `UI_ZeD_Animals_HdrVitals` | `Vitals` | Animals tab animal view: section heading | 14 |
+| `UI_ZeD_Animals_HookBlood` | `Blood %1 L` | Animals tab butcher hook row: blood still to collect in litres (one item of a list; %1 = litres) | 16 |
+| `UI_ZeD_Animals_HookLeft` | `%1 left` | Animals tab butcher hook row, second line: what is still on the animal (%1 = the items above joined with " \| ") | 40 |
+| `UI_ZeD_Animals_HookNothingLeft` | `Nothing left` | Animals tab butcher hook row, second line: the animal on the hook has been fully butchered | 16 |
 | `UI_ZeD_Animals_HoursAgo` | `%1h ago` | Animals tab animal view, Last milked row: hours since (%1 = hours) | 12 |
-| `UI_ZeD_Animals_HutchLine` | `%1 / %2 BIRDS \| %3 EGGS \| DIRT %4` | Animals tab hutch row, second line (%1 birds inside, %2 capacity, %3 eggs, %4 dirtiness as a percentage with its % sign) | 50 |
+| `UI_ZeD_Animals_HutchLine` | `%1 / %2 birds \| %3 eggs \| dirt %4` | Animals tab hutch row, second line (%1 birds inside, %2 capacity, %3 eggs, %4 dirtiness as a percentage with its % sign) | 50 |
 | `UI_ZeD_Animals_InSeason` | `In season` | Animals tab animal view, Mating row: the animal is in its mating season | 14 |
-| `UI_ZeD_Animals_LastMilked` | `LAST MILKED` | Animals tab animal view, Production: label of the row that tells when the animal was last milked | 16 |
-| `UI_ZeD_Animals_MalesBadge` | `%1 MALES` | Animals tab zone card: warning badge when 2 or more adult males of a species may fight (%1 = species name) | 24 |
-| `UI_ZeD_Animals_Mating` | `Mating` | Animals tab animal view, Breeding: label of the mating season row (drawn in capitals) | 12 |
+| `UI_ZeD_Animals_LastMilked` | `Last milked` | Animals tab animal view, Production: label of the row that tells when the animal was last milked | 16 |
+| `UI_ZeD_Animals_MalesBadge` | `%1 males` | Animals tab zone card: warning badge when 2 or more adult males of a species may fight (%1 = species name) | 24 |
+| `UI_ZeD_Animals_Mating` | `Mating` | Animals tab animal view, Breeding: label of the mating season row | 12 |
 | `UI_ZeD_Animals_MilkAmount` | `%1/%2 ml` | Animals tab animal view, Milk row: milk held against the most it can hold (%1 held, %2 maximum, in millilitres) | 18 |
 | `UI_ZeD_Animals_MilkPerDay` | `milk/day` | Animals tab ranch overview, Totals section: unit after the milk figure | 12 |
 | `UI_ZeD_Animals_NoEligible` | `No eligible animals` | Animals tab butcher view: empty-state line when no animal can be butchered | 40 |
@@ -485,20 +485,20 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_OffSeason` | `Off season` | Animals tab animal view, Mating row: the animal is out of its mating season | 14 |
 | `UI_ZeD_Animals_Overview` | `Overview` | Animals tab: breadcrumb text on the zone view (click to go back to the ranch overview) | 20 |
 | `UI_ZeD_Animals_PerDay` | `%1/day` | Animals tab animal view, Eggs row: eggs per day (%1 = number with one decimal) | 12 |
-| `UI_ZeD_Animals_Pregnancy` | `Pregnancy` | Animals tab animal view, Breeding: label of the pregnancy row (drawn in capitals) | 14 |
+| `UI_ZeD_Animals_Pregnancy` | `Pregnancy` | Animals tab animal view, Breeding: label of the pregnancy row | 14 |
 | `UI_ZeD_Animals_PregnantPct` | `Pregnant - %1` | Animals tab animal view, Pregnancy bar: pregnancy progress (%1 = percentage with its % sign) | 24 |
-| `UI_ZeD_Animals_ProdBone` | `Bone` | Animals tab butcher row: product badge, the animal gives bone (drawn in capitals) | 10 |
-| `UI_ZeD_Animals_ProdFeathers` | `Feathers` | Animals tab butcher row: product badge, the animal gives feathers (drawn in capitals) | 10 |
-| `UI_ZeD_Animals_ProdLeather` | `Leather` | Animals tab butcher row: product badge, the animal gives leather (drawn in capitals) | 10 |
+| `UI_ZeD_Animals_ProdBone` | `Bone` | Animals tab butcher row: product badge, the animal gives bone | 10 |
+| `UI_ZeD_Animals_ProdFeathers` | `Feathers` | Animals tab butcher row: product badge, the animal gives feathers | 10 |
+| `UI_ZeD_Animals_ProdLeather` | `Leather` | Animals tab butcher row: product badge, the animal gives leather | 10 |
 | `UI_ZeD_Animals_RemoveZonePrompt` | `Remove zone?` | Animals tab zone view, footer: confirmation prompt next to Yes / No | 24 |
-| `UI_ZeD_Animals_Roof` | `Roof` | Animals tab zone card and zone info: label above the roofed-area bar (drawn in capitals) | 8 |
+| `UI_ZeD_Animals_Roof` | `Roof` | Animals tab zone card and zone info: label above the roofed-area bar | 8 |
 | `UI_ZeD_Animals_Roster` | `Roster` | Animals tab butcher view: heading above the list of animals | 20 |
-| `UI_ZeD_Animals_SecAlerts` | `Alerts` | Animals tab ranch overview: collapsible section heading (drawn in capitals, followed by the count) | 14 |
-| `UI_ZeD_Animals_SecHooks` | `Hooks` | Animals tab butcher view: section heading above the nearby butcher hooks (drawn in capitals, followed by the count) | 14 |
-| `UI_ZeD_Animals_SecHutches` | `Hutches` | Animals tab zone view: section heading above the zone's hutches (drawn in capitals, followed by the count) | 14 |
-| `UI_ZeD_Animals_SecTotals` | `Totals` | Animals tab ranch overview: collapsible section heading (drawn in capitals, followed by the count) | 14 |
-| `UI_ZeD_Animals_SecTroughs` | `Feeding Troughs` | Animals tab zone view: section heading above the zone's feeding troughs (drawn in capitals, followed by the count) | 24 |
-| `UI_ZeD_Animals_SecZones` | `Zones` | Animals tab ranch overview: section heading (drawn in capitals, followed by the count) | 14 |
+| `UI_ZeD_Animals_SecAlerts` | `Alerts` | Animals tab ranch overview: collapsible section heading (followed by the count) | 14 |
+| `UI_ZeD_Animals_SecHooks` | `Hooks` | Animals tab butcher view: section heading above the nearby butcher hooks (followed by the count) | 14 |
+| `UI_ZeD_Animals_SecHutches` | `Hutches` | Animals tab zone view: section heading above the zone's hutches (followed by the count) | 14 |
+| `UI_ZeD_Animals_SecTotals` | `Totals` | Animals tab ranch overview: collapsible section heading (followed by the count) | 14 |
+| `UI_ZeD_Animals_SecTroughs` | `Feeding Troughs` | Animals tab zone view: section heading above the zone's feeding troughs (followed by the count) | 24 |
+| `UI_ZeD_Animals_SecZones` | `Zones` | Animals tab ranch overview: section heading (followed by the count) | 14 |
 | `UI_ZeD_Animals_SexF` | `F` | Animals tab butcher row: female, in brackets after the species name, e.g. "Cow (F)" | 2 |
 | `UI_ZeD_Animals_SexM` | `M` | Animals tab butcher row: male, in brackets after the species name, e.g. "Cow (M)" | 2 |
 | `UI_ZeD_Animals_SortBy` | `Sort: %1` | Animals tab zone view, right end of the roster heading: click to change the sort order (%1 = Name, Species or Alerts) | 26 |
@@ -512,21 +512,21 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_StressVehicle` | `moving vehicle` | Animals tab animal view, Stress row: one reason in the "why stressed" list, the animal is in a moving vehicle (lower case) | 24 |
 | `UI_ZeD_Animals_StressZombie` | `zombie nearby` | Animals tab animal view, Stress row: one reason in the "why stressed" list, exactly one zombie within 15 tiles (lower case) | 24 |
 | `UI_ZeD_Animals_StressZombies` | `%1 zombies nearby` | Animals tab animal view, Stress row: one reason in the "why stressed" list, several zombies within 15 tiles (%1 = how many; lower case) | 26 |
-| `UI_ZeD_Animals_StructAnimalsMany` | `%1 ANIMALS` | Animals tab trough row, second line: animals linked to the trough (none or several) | 14 |
-| `UI_ZeD_Animals_StructAnimalsOne` | `%1 ANIMAL` | Animals tab trough row, second line: animals linked to the trough (exactly one) | 14 |
+| `UI_ZeD_Animals_StructAnimalsMany` | `%1 animals` | Animals tab trough row, second line: animals linked to the trough (none or several) | 14 |
+| `UI_ZeD_Animals_StructAnimalsOne` | `%1 animal` | Animals tab trough row, second line: animals linked to the trough (exactly one) | 14 |
 | `UI_ZeD_Animals_SubRanch` | `Ranch` | Animals tab: first sub-tab (Ranch / Butcher strip) | 16 |
-| `UI_ZeD_Animals_TagLaying` | `Laying` | Animals tab: badge on an animal that is laying eggs (animal row, header; the eggs row shows it in capitals) | 12 |
+| `UI_ZeD_Animals_TagLaying` | `Laying` | Animals tab: badge on an animal that is laying eggs (animal row, header) | 12 |
 | `UI_ZeD_Animals_TagMilkable` | `Milkable` | Animals tab: green badge on an animal that can be milked (animal row and header) | 14 |
-| `UI_ZeD_Animals_TagUdderUrgent` | `Udder URGENT` | Animals tab: red badge on an animal whose udder is over full (animal row and header) | 16 |
+| `UI_ZeD_Animals_TagUdderUrgent` | `Udder urgent` | Animals tab: red badge on an animal whose udder is over full (animal row and header) | 16 |
 | `UI_ZeD_Animals_TagWoolReady` | `Wool ready` | Animals tab: green badge on an animal that can be sheared (animal row and header) | 14 |
 | `UI_ZeD_Animals_ThirstDehydrated` | `Dehydrated` | Animals tab animal view, Thirst row: severe thirst | 14 |
 | `UI_ZeD_Animals_ThirstHydrated` | `Hydrated` | Animals tab animal view, Thirst row: value when the animal is not thirsty (skill level too low for numbers) | 14 |
 | `UI_ZeD_Animals_ThirstParched` | `Parched` | Animals tab animal view, Thirst row: mild thirst | 14 |
-| `UI_ZeD_Animals_TilesMany` | `%1 TILES` | Animals tab hook row, second line: distance to the hook (none or several tiles) | 12 |
-| `UI_ZeD_Animals_TilesOne` | `%1 TILE` | Animals tab hook row, second line: distance to the hook (exactly one tile) | 12 |
-| `UI_ZeD_Animals_TroughFeed` | `FEED %1` | Animals tab trough row, second line: amount of feed held (%1 = amount) | 20 |
-| `UI_ZeD_Animals_TroughWater` | `WATER %1 / %2 L` | Animals tab trough row, second line: water held against capacity in litres (%1 = held, %2 = capacity) | 24 |
-| `UI_ZeD_Animals_Trust` | `Trust` | Animals tab animal view, Breeding: label of the row showing how much the animal trusts the player (drawn in capitals) | 12 |
+| `UI_ZeD_Animals_TilesMany` | `%1 tiles` | Animals tab hook row, second line: distance to the hook (none or several tiles) | 12 |
+| `UI_ZeD_Animals_TilesOne` | `%1 tile` | Animals tab hook row, second line: distance to the hook (exactly one tile) | 12 |
+| `UI_ZeD_Animals_TroughFeed` | `Feed %1` | Animals tab trough row, second line: amount of feed held (%1 = amount) | 20 |
+| `UI_ZeD_Animals_TroughWater` | `Water %1 / %2 L` | Animals tab trough row, second line: water held against capacity in litres (%1 = held, %2 = capacity) | 24 |
+| `UI_ZeD_Animals_Trust` | `Trust` | Animals tab animal view, Breeding: label of the row showing how much the animal trusts the player | 12 |
 | `UI_ZeD_Animals_TrustCall` | `Can call` | Animals tab animal view, Trust row: small hint beside the number, trust is high enough to call the animal | 14 |
 | `UI_ZeD_Animals_TrustNone` | `Untrusting` | Animals tab animal view, Trust row: small hint beside the number, trust is too low | 14 |
 | `UI_ZeD_Animals_TrustPet` | `Can pet` | Animals tab animal view, Trust row: small hint beside the number, trust is high enough to pet | 14 |
@@ -545,59 +545,59 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Appliance_Empty` | `Empty` | Craft tab, oven or microwave: line when nothing is inside | 16 |
-| `UI_ZeD_Appliance_InMicrowave` | `IN THE MICROWAVE` | Craft tab, microwave: section heading above the food inside | 28 |
-| `UI_ZeD_Appliance_InOven` | `IN THE OVEN` | Craft tab, oven: section heading above the food inside | 28 |
-| `UI_ZeD_Appliance_Left` | `%1 LEFT` | Craft tab, microwave state line: time remaining (%1 is like 1:30) | 12 |
-| `UI_ZeD_Appliance_MinLeft` | `%1 MIN LEFT` | Craft tab, oven state line: minutes remaining | 14 |
+| `UI_ZeD_Appliance_InMicrowave` | `In the microwave` | Craft tab, microwave: section heading above the food inside | 28 |
+| `UI_ZeD_Appliance_InOven` | `In the oven` | Craft tab, oven: section heading above the food inside | 28 |
+| `UI_ZeD_Appliance_Left` | `%1 left` | Craft tab, microwave state line: time remaining (%1 is like 1:30) | 12 |
+| `UI_ZeD_Appliance_MinLeft` | `%1 min left` | Craft tab, oven state line: minutes remaining | 14 |
 | `UI_ZeD_Appliance_MinShort` | `%1m` | Craft tab, oven or microwave food row: minutes left, after the bar (short) | 6 |
-| `UI_ZeD_Appliance_NoPower` | `NO POWER` | Craft tab, oven or microwave: line under the plate when unpowered | 12 |
+| `UI_ZeD_Appliance_NoPower` | `No power` | Craft tab, oven or microwave: line under the plate when unpowered | 12 |
 | `UI_ZeD_Appliance_PopIn` | `Bring it back` | Craft tab, oven or microwave in its own window: button that puts it back in the tab | 18 |
 | `UI_ZeD_Appliance_PopOut` | `Open in its own window` | Craft tab, oven or microwave: hover hint of the icon button that opens it in a window of its own | 28 |
 | `UI_ZeD_Appliance_PoppedOut` | `In its own window.` | Craft tab, oven or microwave: line shown in the tab while it is in its own window | 28 |
-| `UI_ZeD_Appliance_PowerHi` | `HI` | Craft tab, microwave state line: power level 5 of 5 | 8 |
-| `UI_ZeD_Appliance_PowerLo` | `LO` | Craft tab, microwave state line: power level 1 of 5 | 8 |
-| `UI_ZeD_Appliance_PowerMed` | `MED` | Craft tab, microwave state line: power level 3 of 5 | 8 |
-| `UI_ZeD_Appliance_PowerMedHi` | `MED-HI` | Craft tab, microwave state line: power level 4 of 5 | 8 |
-| `UI_ZeD_Appliance_PowerMedLo` | `MED-LO` | Craft tab, microwave state line: power level 2 of 5 | 8 |
-| `UI_ZeD_Appliance_Raw` | `RAW` | Craft tab, oven or microwave: tag on a raw food row | 10 |
-| `UI_ZeD_Appliance_Set` | `%1 SET` | Craft tab, microwave state line: time set while off (%1 is like 1:30) | 12 |
-| `UI_ZeD_Appliance_SetHeat` | `SET %1` | Craft tab, oven state line: heat that is set while off (%1 is like 200Â°C) | 14 |
-| `UI_ZeD_Appliance_TimerMin` | `TIMER %1 MIN` | Craft tab, oven state line: timer set while off | 14 |
+| `UI_ZeD_Appliance_PowerHi` | `Hi` | Craft tab, microwave state line: power level 5 of 5 | 8 |
+| `UI_ZeD_Appliance_PowerLo` | `Lo` | Craft tab, microwave state line: power level 1 of 5 | 8 |
+| `UI_ZeD_Appliance_PowerMed` | `Med` | Craft tab, microwave state line: power level 3 of 5 | 8 |
+| `UI_ZeD_Appliance_PowerMedHi` | `Med-hi` | Craft tab, microwave state line: power level 4 of 5 | 8 |
+| `UI_ZeD_Appliance_PowerMedLo` | `Med-lo` | Craft tab, microwave state line: power level 2 of 5 | 8 |
+| `UI_ZeD_Appliance_Raw` | `Raw` | Craft tab, oven or microwave: tag on a raw food row | 10 |
+| `UI_ZeD_Appliance_Set` | `%1 set` | Craft tab, microwave state line: time set while off (%1 is like 1:30) | 12 |
+| `UI_ZeD_Appliance_SetHeat` | `Set %1` | Craft tab, oven state line: heat that is set while off (%1 is like 200Â°C) | 14 |
+| `UI_ZeD_Appliance_TimerMin` | `Timer %1 min` | Craft tab, oven state line: timer set while off | 14 |
 
 ## Belt
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Belt_BestLight` | `Best light: %1` | Belt HUD, controller list row for the best light; %1 = the light's name | 40 |
-| `UI_ZeD_Belt_Both` | `BOTH` | Belt HUD, foot of the off hand when the main hand holds a two-handed item | 8 |
-| `UI_ZeD_Belt_InBags` | `IN YOUR BAGS` | Belt HUD, header of the controller list of weapons and lights in the bags | 20 |
-| `UI_ZeD_Belt_InHand` | `IN HAND` | Belt HUD, foot of a slot whose item is in a hand | 8 |
-| `UI_ZeD_Belt_Replace` | `REPLACE %1` | Belt HUD, chip over a full slot while dragging an item onto it; %1 = the item now there, in capitals | 40 |
-| `UI_ZeD_Belt_SlotAnkle` | `ANKLE` | Belt HUD, name printed inside an empty ankle holster slot box | 9 |
-| `UI_ZeD_Belt_SlotBeltL` | `BELT L` | Belt HUD, name printed inside an empty hotbar slot box (waist belt, left) | 9 |
-| `UI_ZeD_Belt_SlotBeltR` | `BELT R` | Belt HUD, name printed inside an empty hotbar slot box (waist belt, right) | 9 |
-| `UI_ZeD_Belt_SlotHolster` | `HOLSTER` | Belt HUD, name printed inside an empty holster slot box | 9 |
-| `UI_ZeD_Belt_SlotHolsterL` | `HOLSTER L` | Belt HUD, name printed inside an empty left holster slot box | 9 |
-| `UI_ZeD_Belt_SlotKey` | `%1 \| KEY %2` | Belt HUD, chip above a hovered slot; %1 = the slot's name in capitals, %2 = the key bound to it | 40 |
-| `UI_ZeD_Belt_SlotPack` | `PACK` | Belt HUD, name printed inside an empty bedroll / pack slot box | 9 |
-| `UI_ZeD_Belt_SlotShoulder` | `SHOULDER` | Belt HUD, name printed inside an empty shoulder holster slot box | 9 |
-| `UI_ZeD_Belt_SlotWebL` | `WEB L` | Belt HUD, name printed inside an empty webbing slot box (left) | 9 |
-| `UI_ZeD_Belt_SlotWebR` | `WEB R` | Belt HUD, name printed inside an empty webbing slot box (right) | 9 |
-| `UI_ZeD_Belt_Tag` | `BELT %1` | Inventory lists, tag on an item attached to the belt; %1 = the slot's key (1 to 8) | 10 |
-| `UI_ZeD_Belt_Watch` | `WATCH` | Belt HUD, chip over the mini watch when the item has no name | 14 |
-| `UI_ZeD_Belt_WatchFull` | `%1 \| FULL WATCH` | Belt HUD, chip over the mini watch's face when the full watch is closed; %1 = watch name in capitals | 40 |
-| `UI_ZeD_Belt_WatchLight` | `LIGHT` | Belt HUD, chip over the mini watch's light button | 10 |
-| `UI_ZeD_Belt_WatchSpeed` | `SPEED \| %1X` | Belt HUD, chip over the mini watch's speed button; %1 = the game speed multiplier (1, 2, 3) | 14 |
-| `UI_ZeD_Belt_WatchStart` | `START` | Belt HUD, chip over the mini watch's start / pause button while the game is paused | 10 |
-| `UI_ZeD_Belt_WatchTuck` | `%1 \| TUCK AWAY` | Belt HUD, chip over the mini watch's face when the full watch is open; %1 = watch name in capitals | 40 |
-| `UI_ZeD_Belt_AmmoEmpty` | `EMPTY` | Belt HUD, ammo box beside the main hand: the gun holds no rounds (large figures) | 6 |
-| `UI_ZeD_Belt_AmmoMags` | `%1 MAG` | Belt HUD, ammo box: loaded magazines carried; %1 = how many | 8 |
-| `UI_ZeD_Belt_AmmoRounds` | `%1 RDS` | Belt HUD, ammo box: loose rounds carried; %1 = how many | 8 |
-| `UI_ZeD_Belt_AmmoBoxes` | `+%1 BOX` | Belt HUD, ammo box: unopened ammo boxes carried (not counted as rounds); %1 = how many | 8 |
-| `UI_ZeD_Belt_AmmoGunEmpty` | `%1 | empty` | Belt HUD, the ammo chip's first line when the gun is empty; %1 = the gun's name | - |
-| `UI_ZeD_Belt_AmmoInMag` | `%1 | %2 in the magazine` | Belt HUD, the ammo chip's first line, a gun with a magazine; %1 = the gun's name, %2 = rounds | - |
-| `UI_ZeD_Belt_AmmoInCyl` | `%1 | %2 in the cylinder` | Belt HUD, the ammo chip's first line, a revolver; %1 = the gun's name, %2 = rounds | - |
-| `UI_ZeD_Belt_AmmoLoaded` | `%1 | %2 loaded` | Belt HUD, the ammo chip's first line, a shotgun or rifle loaded by hand; %1 = the gun's name, %2 = rounds | - |
+| `UI_ZeD_Belt_Both` | `Both` | Belt HUD, foot of the off hand when the main hand holds a two-handed item | 8 |
+| `UI_ZeD_Belt_InBags` | `In your bags` | Belt HUD, header of the controller list of weapons and lights in the bags | 20 |
+| `UI_ZeD_Belt_InHand` | `In hand` | Belt HUD, foot of a slot whose item is in a hand | 8 |
+| `UI_ZeD_Belt_Replace` | `Replace %1` | Belt HUD, chip over a full slot while dragging an item onto it; %1 = the item now there | 40 |
+| `UI_ZeD_Belt_SlotAnkle` | `Ankle` | Belt HUD, name printed inside an empty ankle holster slot box | 9 |
+| `UI_ZeD_Belt_SlotBeltL` | `Belt L` | Belt HUD, name printed inside an empty hotbar slot box (waist belt, left) | 9 |
+| `UI_ZeD_Belt_SlotBeltR` | `Belt R` | Belt HUD, name printed inside an empty hotbar slot box (waist belt, right) | 9 |
+| `UI_ZeD_Belt_SlotHolster` | `Holster` | Belt HUD, name printed inside an empty holster slot box | 9 |
+| `UI_ZeD_Belt_SlotHolsterL` | `Holster L` | Belt HUD, name printed inside an empty left holster slot box | 9 |
+| `UI_ZeD_Belt_SlotKey` | `%1 \| key %2` | Belt HUD, chip above a hovered slot; %1 = the slot's name, %2 = the key bound to it | 40 |
+| `UI_ZeD_Belt_SlotPack` | `Pack` | Belt HUD, name printed inside an empty bedroll / pack slot box | 9 |
+| `UI_ZeD_Belt_SlotShoulder` | `Shoulder` | Belt HUD, name printed inside an empty shoulder holster slot box | 9 |
+| `UI_ZeD_Belt_SlotWebL` | `Web L` | Belt HUD, name printed inside an empty webbing slot box (left) | 9 |
+| `UI_ZeD_Belt_SlotWebR` | `Web R` | Belt HUD, name printed inside an empty webbing slot box (right) | 9 |
+| `UI_ZeD_Belt_Tag` | `Belt %1` | Inventory lists, tag on an item attached to the belt; %1 = the slot's key (1 to 8) | 10 |
+| `UI_ZeD_Belt_Watch` | `Watch` | Belt HUD, chip over the mini watch when the item has no name | 14 |
+| `UI_ZeD_Belt_WatchFull` | `%1 \| Full watch` | Belt HUD, chip over the mini watch's face when the full watch is closed; %1 = watch name | 40 |
+| `UI_ZeD_Belt_WatchLight` | `Light` | Belt HUD, chip over the mini watch's light button | 10 |
+| `UI_ZeD_Belt_WatchSpeed` | `Speed \| %1x` | Belt HUD, chip over the mini watch's speed button; %1 = the game speed multiplier (1, 2, 3) | 14 |
+| `UI_ZeD_Belt_WatchStart` | `Start` | Belt HUD, chip over the mini watch's start / pause button while the game is paused | 10 |
+| `UI_ZeD_Belt_WatchTuck` | `%1 \| tuck away` | Belt HUD, chip over the mini watch's face when the full watch is open; %1 = watch name | 40 |
+| `UI_ZeD_Belt_AmmoEmpty` | `Empty` | Belt HUD, ammo box beside the main hand: the gun holds no rounds (large figures) | 6 |
+| `UI_ZeD_Belt_AmmoMags` | `%1 mag` | Belt HUD, ammo box: loaded magazines carried; %1 = how many | 8 |
+| `UI_ZeD_Belt_AmmoRounds` | `%1 rds` | Belt HUD, ammo box: loose rounds carried; %1 = how many | 8 |
+| `UI_ZeD_Belt_AmmoBoxes` | `+%1 box` | Belt HUD, ammo box: unopened ammo boxes carried (not counted as rounds); %1 = how many | 8 |
+| `UI_ZeD_Belt_AmmoGunEmpty` | `%1 \| empty` | Belt HUD, the ammo chip's first line when the gun is empty; %1 = the gun's name | - |
+| `UI_ZeD_Belt_AmmoInMag` | `%1 \| %2 in the magazine` | Belt HUD, the ammo chip's first line, a gun with a magazine; %1 = the gun's name, %2 = rounds | - |
+| `UI_ZeD_Belt_AmmoInCyl` | `%1 \| %2 in the cylinder` | Belt HUD, the ammo chip's first line, a revolver; %1 = the gun's name, %2 = rounds | - |
+| `UI_ZeD_Belt_AmmoLoaded` | `%1 \| %2 loaded` | Belt HUD, the ammo chip's first line, a shotgun or rifle loaded by hand; %1 = the gun's name, %2 = rounds | - |
 | `UI_ZeD_Belt_AmmoChambered` | `%1, 1 chambered` | Belt HUD, the ammo chip's first line with a round in the chamber; %1 = the line before it | - |
 | `UI_ZeD_Belt_AmmoCarried` | `Carried: %1` | Belt HUD, the ammo chip's second line; %1 = what is carried, joined by | | - |
 | `UI_ZeD_Belt_AmmoCarriedNone` | `Carried: no %1` | Belt HUD, the ammo chip's second line when nothing is carried; %1 = the rounds' name | - |
@@ -611,39 +611,39 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Card_ChipDispose` | `Dispose` | Item card, chip that marks an item as unwanted | 10 |
 | `UI_ZeD_Card_ChipFav` | `Fav` | Item card, chip that marks an item favourite | 6 |
 | `UI_ZeD_Card_ChipNoCraft` | `No-craft` | Item card, chip that keeps an item out of recipes | 10 |
-| `UI_ZeD_Card_Combat` | `Combat` | Item card top stats (clothing): combat speed modifier row label (shown in capitals) | 10 |
+| `UI_ZeD_Card_Combat` | `Combat` | Item card top stats (clothing): combat speed modifier row label | 10 |
 | `UI_ZeD_Card_CondLossHit` | `Cond loss / hit` | Defense Facts: how much condition the garment loses per hit (wide card) | 20 |
 | `UI_ZeD_Card_Cotton` | `Cotton` | Item card, clothing: fabric shown when the garment names none | 10 |
 | `UI_ZeD_Card_CritPct` | `Critical %%` | Combat Facts: critical hit chance of a weapon | 22 |
-| `UI_ZeD_Card_Fabric` | `Fabric` | Item card top stats (clothing): fabric row label (shown in capitals) | 10 |
+| `UI_ZeD_Card_Fabric` | `Fabric` | Item card top stats (clothing): fabric row label | 10 |
 | `UI_ZeD_Card_Facts` | `Facts` | Item card: title of a facts panel that names no title | 14 |
 | `UI_ZeD_Card_FactsCombat` | `Combat Facts` | Item card (weapons): title of the combat panel | 22 |
 | `UI_ZeD_Card_FactsContainer` | `Container Facts` | Item card (containers): title of the container panel | 22 |
 | `UI_ZeD_Card_FactsDefense` | `Defense Facts` | Item card (clothing): title of the defense panel | 22 |
 | `UI_ZeD_Card_FactsNutrition` | `Nutrition Facts` | Item card (food): title of the nutrition panel, styled like a nutrition label | 24 |
 | `UI_ZeD_Card_FactsReading` | `Reading Facts` | Item card (books and magazines): title of the reading panel | 22 |
-| `UI_ZeD_Card_FlagDenim` | `DENIM` | Item card, clothing zones (wide card): flag column beside a zone's bar; capitals | 9 |
-| `UI_ZeD_Card_FlagFabric` | `FABRIC` | Item card, clothing zones (wide card): flag column beside a zone's bar; capitals | 9 |
-| `UI_ZeD_Card_FlagLeather` | `LEATHER` | Item card, clothing zones (wide card): flag column beside a zone's bar; capitals | 9 |
-| `UI_ZeD_Card_FlagTorn` | `TORN` | Item card, clothing zones (wide card): flag column beside a zone's bar; capitals | 9 |
-| `UI_ZeD_Card_FlagWorn` | `WORN` | Item card, clothing zones (wide card): flag column beside a zone's bar; capitals | 9 |
+| `UI_ZeD_Card_FlagDenim` | `Denim` | Item card, clothing zones (wide card): flag column beside a zone's bar | 9 |
+| `UI_ZeD_Card_FlagFabric` | `Fabric` | Item card, clothing zones (wide card): flag column beside a zone's bar | 9 |
+| `UI_ZeD_Card_FlagLeather` | `Leather` | Item card, clothing zones (wide card): flag column beside a zone's bar | 9 |
+| `UI_ZeD_Card_FlagTorn` | `Torn` | Item card, clothing zones (wide card): flag column beside a zone's bar | 9 |
+| `UI_ZeD_Card_FlagWorn` | `Worn` | Item card, clothing zones (wide card): flag column beside a zone's bar | 9 |
 | `UI_ZeD_Card_Happiness` | `Happiness` | Nutrition Facts: change to happiness from the food | 22 |
 | `UI_ZeD_Card_HungerReduction` | `Hunger reduction` | Nutrition Facts: how much eating the food lowers hunger | 22 |
 | `UI_ZeD_Card_Items` | `Items` | Item card: number of items inside a container (top stats row and the Container Facts panel) | 10 |
-| `UI_ZeD_Card_Kind` | `Kind` | Item card top stats: the item's category row label (shown in capitals) | 10 |
+| `UI_ZeD_Card_Kind` | `Kind` | Item card top stats: the item's category row label | 10 |
 | `UI_ZeD_Card_Knockback` | `Knockback` | Combat Facts: knockback power of a weapon | 22 |
-| `UI_ZeD_Card_Level` | `Level` | Item card top stats (books): skill level range row label (shown in capitals) | 10 |
+| `UI_ZeD_Card_Level` | `Level` | Item card top stats (books): skill level range row label | 10 |
 | `UI_ZeD_Card_LevelRange` | `Level range` | Reading Facts: the skill levels a book is useful for | 22 |
-| `UI_ZeD_Card_Marked` | `MARKED` | Item card, label before the three mark chips (Fav, No-craft, Dispose) | 10 |
+| `UI_ZeD_Card_Marked` | `Marked` | Item card, label before the three mark chips (Fav, No-craft, Dispose) | 10 |
 | `UI_ZeD_Card_NeckProt` | `Neck protection` | Defense Facts: neck protection row label (wide card) | 20 |
 | `UI_ZeD_Card_NeedWhetstone` | `Needs a whetstone or a file` | Note over the character's head when SHARPEN is pressed with no whetstone or file | 36 |
 | `UI_ZeD_Card_NoWaterInReach` | `No water in reach` | Note over the character's head when WASH is pressed with no water within two tiles | 28 |
 | `UI_ZeD_Card_OneInN` | `1-in-N degrade` | Defense Facts: sub-row, the chance one in N hits wears the garment (wide card) | 20 |
 | `UI_ZeD_Card_Progress` | `Progress` | Item card: reading progress row label (top stats and the Reading Facts panel) | 12 |
 | `UI_ZeD_Card_Raw` | `Raw` | Item card top stats (food): value of the Cooked row for a food that is dangerous uncooked | 10 |
-| `UI_ZeD_Card_Reach` | `Reach` | Item card top stats (weapons): reach row label (shown in capitals) | 10 |
+| `UI_ZeD_Card_Reach` | `Reach` | Item card top stats (weapons): reach row label | 10 |
 | `UI_ZeD_Card_Read` | `Read` | Reading Facts: row label, whether you have already read this book (value Yes or No) | 14 |
-| `UI_ZeD_Card_Run` | `Run` | Item card top stats (clothing): run speed modifier row label (shown in capitals) | 10 |
+| `UI_ZeD_Card_Run` | `Run` | Item card top stats (clothing): run speed modifier row label | 10 |
 | `UI_ZeD_Card_ShortCondHit` | `Cond / hit` | Defense Facts, narrow card: short label for Cond Loss / Hit | 11 |
 | `UI_ZeD_Card_ShortNeckProt` | `Neck prot.` | Defense Facts, narrow card: short label for Neck Protection | 11 |
 | `UI_ZeD_Card_ShortOneInN` | `1-in-N` | Defense Facts, narrow card: short label for the 1-in-N sub-row | 9 |
@@ -657,22 +657,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Card_VerbPad` | `Pad` | Item card button strip (clothing): add padding to every unpadded zone | 10 |
 | `UI_ZeD_Card_VerbSharpen` | `Sharpen` | Item card button strip (blades): sharpen the weapon | 10 |
 | `UI_ZeD_Card_VerbUse` | `Use` | Item card header button: use a drainable item (flashlight battery, lighter...) | 10 |
-| `UI_ZeD_Card_WeightReduce` | `Weight reduce` | Item card top stats (containers): weight reduction row label, narrow column (shown in capitals) | 10 |
+| `UI_ZeD_Card_WeightReduce` | `Weight reduce` | Item card top stats (containers): weight reduction row label, narrow column | 10 |
 | `UI_ZeD_Card_WeightReduction` | `Weight reduction` | Container Facts: how much a container lightens its contents | 22 |
-| `UI_ZeD_Card_WetPct` | `WET %1` | Item card, clothing: chip for a wet garment; %1 is the wetness with its percent sign, e.g. 40% | 12 |
-| `UI_ZeD_Card_ZoneFoot` | `FOOT` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
-| `UI_ZeD_Card_ZoneHand` | `HAND` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
+| `UI_ZeD_Card_WetPct` | `Wet %1` | Item card, clothing: chip for a wet garment; %1 is the wetness with its percent sign, e.g. 40% | 12 |
+| `UI_ZeD_Card_ZoneFoot` | `Foot` | Item card, clothing zones: group heading over the zone rows | 12 |
+| `UI_ZeD_Card_ZoneHand` | `Hand` | Item card, clothing zones: group heading over the zone rows | 12 |
 | `UI_ZeD_Card_ZoneLeft` | `Left` | Item card, clothing zones: the side word before a zone's bar (Left arm, Left thigh...) | 6 |
 | `UI_ZeD_Card_ZoneLower` | `Lower` | Item card, clothing zones: the torso row 'Lower' under the TORSO heading | 6 |
-| `UI_ZeD_Card_ZoneLowerArm` | `LOWER ARM` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
-| `UI_ZeD_Card_ZoneOther` | `OTHER` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
+| `UI_ZeD_Card_ZoneLowerArm` | `Lower arm` | Item card, clothing zones: group heading over the zone rows | 12 |
+| `UI_ZeD_Card_ZoneOther` | `Other` | Item card, clothing zones: group heading over the zone rows | 12 |
 | `UI_ZeD_Card_ZoneRight` | `Right` | Item card, clothing zones: the side word before a zone's bar (Right arm, Right thigh...) | 6 |
-| `UI_ZeD_Card_Zones` | `ZONES` | Item card, clothing: heading of the zones section (shown in capitals) | 8 |
-| `UI_ZeD_Card_ZoneShin` | `SHIN` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
-| `UI_ZeD_Card_ZoneThigh` | `THIGH` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
-| `UI_ZeD_Card_ZoneTorso` | `TORSO` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
+| `UI_ZeD_Card_Zones` | `Zones` | Item card, clothing: heading of the zones section | 8 |
+| `UI_ZeD_Card_ZoneShin` | `Shin` | Item card, clothing zones: group heading over the zone rows | 12 |
+| `UI_ZeD_Card_ZoneThigh` | `Thigh` | Item card, clothing zones: group heading over the zone rows | 12 |
+| `UI_ZeD_Card_ZoneTorso` | `Torso` | Item card, clothing zones: group heading over the zone rows | 12 |
 | `UI_ZeD_Card_ZoneUpper` | `Upper` | Item card, clothing zones: the torso row 'Upper' under the TORSO heading | 6 |
-| `UI_ZeD_Card_ZoneUpperArm` | `UPPER ARM` | Item card, clothing zones: group heading over the zone rows (shown in capitals) | 12 |
+| `UI_ZeD_Card_ZoneUpperArm` | `Upper arm` | Item card, clothing zones: group heading over the zone rows | 12 |
 
 ## Char
 
@@ -686,9 +686,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Char_JournalWrite` | `Write something...` | Character window, Journal tab: placeholder text in the entry box where the character writes a note | 30 |
 | `UI_ZeD_Char_PinLevel` | `%1 - Lv.%2 - %3` | Character window: title bar readout of a pinned skill; %1 is the skill name, %2 its level, %3 the XP progress such as 150/300 | 40 |
 | `UI_ZeD_Char_PinMax` | `%1 - Lv.10` | Character window: title bar readout of a pinned skill at the top level; %1 is the skill name | 28 |
-| `UI_ZeD_Char_SortDist` | `DIST` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by distance (capitals; the strip is about 36 px wide) | 5 |
-| `UI_ZeD_Char_SortType` | `TYPE` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by type (capitals) | 5 |
-| `UI_ZeD_Char_SortWt` | `WT` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by weight (capitals) | 5 |
+| `UI_ZeD_Char_SortDist` | `Dist` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by distance (the strip is about 36 px wide) | 5 |
+| `UI_ZeD_Char_SortType` | `Type` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by type | 5 |
+| `UI_ZeD_Char_SortWt` | `Wt` | Character window, container strip (narrow vertical bar of container buttons): label of the sort button under the active container; clicking cycles the three - sort by weight | 5 |
 | `UI_ZeD_Char_TabEquipment` | `Equipment` | Character window: tab name - appended to the window title while the tab's drawer is open ('Name  +  Tab') | 14 |
 | `UI_ZeD_Char_TabIdentity` | `Identity` | Character window: tab name - appended to the window title while the tab's drawer is open ('Name  +  Tab'); also the pinned heading of the Identity drawer | 14 |
 | `UI_ZeD_Char_TabJournal` | `Journal` | Character window: tab name - appended to the window title while the tab's drawer is open ('Name  +  Tab') | 14 |
@@ -700,14 +700,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Chord_BestPick` | `best pick` | ZeD setup, Quick actions: in the list of actions, after a slice that opens a list ("Eat: best pick"): the chord does the list's first pick at once | 20 |
 | `UI_ZeD_Chord_Gone` | `No %1 on you.` | Quick action chords (a bumper held with A, B, X, Y, L3 or R3): over the character's head when the chord's thing is not carried any more; %1 = its name ("Canned Corn") | - |
 | `UI_ZeD_Chord_Help` | `Hold %1 and press %2 in the world: %3.` | ZeD setup, Quick actions: the help band for a chord; %1 = the bumper's name on this pad ("L1"), %2 = the button's ("Square"), %3 = the action and where it lives ("Character > Eat") | - |
-| `UI_ZeD_Chord_HelpNone` | `Hold %1 and press %2 in the world: nothing. A chooses an action.` | ZeD setup, Quick actions: the help band for a chord with no action; %1 = the bumper, %2 = the button | - |
+| `UI_ZeD_Chord_HelpNone` | `Hold %1 and press %2 in the world: nothing. Choose an action for it.` | ZeD setup, Quick actions: the help band for a chord with no action; %1 = the bumper, %2 = the button | - |
 | `UI_ZeD_Chord_LoadGame` | `Load a game to choose from the wheels.` | ZeD setup at the main menu, Quick actions: in the list of actions (the wheels need a character) | 50 |
 | `UI_ZeD_Chord_None` | `None` | ZeD setup, Quick actions: a chord with no action, and the list's first item (clears it) | 16 |
 | `UI_ZeD_Chord_NotHere` | `This wheel is the game's: put the slice that opens it on a chord.` | D-pad wheels: the bubble, after holding a bumper and pressing a button on a slice of a wheel the game fills (Vehicle, Animal, a gesture group) | 70 |
-| `UI_ZeD_Chord_NotOnZeD` | `The ZeD wheel's settings stay on Select.` | The ZeD wheel (Select): the bubble, after holding a bumper and pressing a button on one of its slices (they can't go on a quick action chord) | 50 |
+| `UI_ZeD_Chord_NotOnZeD` | `The ZeD wheel's settings can't go on a chord.` | The ZeD wheel (Select): the bubble, after holding a bumper and pressing a button on one of its slices (they can't go on a quick action chord) | 50 |
 | `UI_ZeD_Chord_NowOn` | `Now on %1.` | D-pad wheels: the bubble, after a slice was put on a quick action chord; %1 = the chord in the pad's names ("L1 + Square") | 40 |
 | `UI_ZeD_Chord_OpensWheel` | `opens its wheel` | ZeD setup, Quick actions: in the list of actions, after a slice the game fills (Vehicle, Animal, a gesture group): the chord opens that wheel | 24 |
-| `UI_ZeD_Chord_PromptClear` | `Clear` | ZeD setup, Quick actions: the controller prompt for X on a chord row | 12 |
+| `UI_ZeD_Chord_PromptClear` | `Remove` | ZeD setup, Quick actions: the controller prompt for X on a chord row | 12 |
 | `UI_ZeD_Chord_Replaces` | `It replaces %1.` | D-pad wheels: after UI_ZeD_Chord_NowOn, when that chord held another action; %1 = that action's name | 40 |
 
 ## Controls
@@ -733,20 +733,20 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Craft_AllRecipes` | `All Recipes` | Craft, Build and Journal tabs: section heading above the full recipe list | 20 |
-| `UI_ZeD_Craft_AltOther` | `OTHER COMPATIBLE` | Craft and Build tabs, alternatives list: heading above items you do not carry | 24 |
-| `UI_ZeD_Craft_AltOwned` | `OWNED` | Craft and Build tabs, alternatives list: heading above items you carry | 20 |
-| `UI_ZeD_Craft_BadgeKnown` | `KNOWN` | Recipe card: badge when you know the recipe | 10 |
-| `UI_ZeD_Craft_BadgeNeeds` | `NEEDS %1` | Craft tab, recipe card: badge naming the station a recipe needs; %1 is a short station name like KILN | 16 |
-| `UI_ZeD_Craft_BadgeUnknown` | `UNKNOWN` | Recipe card: badge when you do not know the recipe | 10 |
+| `UI_ZeD_Craft_AltOther` | `Other compatible` | Craft and Build tabs, alternatives list: heading above items you do not carry | 24 |
+| `UI_ZeD_Craft_AltOwned` | `Owned` | Craft and Build tabs, alternatives list: heading above items you carry | 20 |
+| `UI_ZeD_Craft_BadgeKnown` | `Known` | Recipe card: badge when you know the recipe | 10 |
+| `UI_ZeD_Craft_BadgeNeeds` | `Needs %1` | Craft tab, recipe card: badge naming the station a recipe needs; %1 is a short station name like KILN | 16 |
+| `UI_ZeD_Craft_BadgeUnknown` | `Unknown` | Recipe card: badge when you do not know the recipe | 10 |
 | `UI_ZeD_Craft_Compatible` | `Compatible` | Craft and Build tabs: fixed label in the category box while choosing an alternative ingredient | 18 |
 | `UI_ZeD_Craft_FilterAlts` | `Filter alternatives...` | Craft and Build tabs: search box placeholder while choosing an alternative ingredient | - |
 | `UI_ZeD_Craft_FindRecipe` | `Find recipe magazine or schematic` | Journal recipe card: hint for a recipe that must be learned from a magazine | - |
-| `UI_ZeD_Craft_HowToLearn` | `HOW TO LEARN` | Journal recipe card: section heading above skill requirements | 20 |
+| `UI_ZeD_Craft_HowToLearn` | `How to learn` | Journal recipe card: section heading above skill requirements | 20 |
 | `UI_ZeD_Craft_Known` | `Known` | Craft, Build and Journal tabs: sort button, and the Show toggle value (recipes you know) | 10 |
 | `UI_ZeD_Craft_NoAlts` | `No alternatives found` | Craft and Build tabs, alternatives list: empty state | - |
 | `UI_ZeD_Craft_NoneWithin` | `None within %1 tiles.` | Craft tab, recipe card: second line when no needed station is near | - |
 | `UI_ZeD_Craft_Pinned` | `Pinned` | Craft and Build tabs: section heading above pinned recipes | 20 |
-| `UI_ZeD_Craft_Required` | `REQUIRED` | Recipe card: section heading above the ingredients | 20 |
+| `UI_ZeD_Craft_Required` | `Required` | Recipe card: section heading above the ingredients | 20 |
 | `UI_ZeD_Craft_Results` | `Results` | Craft, Build and Journal tabs: section heading above search results | 20 |
 | `UI_ZeD_Craft_ShowAll` | `All` | Craft, Build and Journal tabs: value in the Show toggle (every recipe) | 8 |
 | `UI_ZeD_Craft_ShowReady` | `Ready` | Craft and Build tabs: value in the Show toggle (recipes you can make now) | 8 |
@@ -756,7 +756,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Craft_SortFreq` | `Freq` | Craft and Build tabs: sort button (most used recipes) | 8 |
 | `UI_ZeD_Craft_SortName` | `Name` | Craft, Build and Journal tabs: sort button | 8 |
 | `UI_ZeD_Craft_SortRecent` | `Recent` | Craft and Build tabs: sort button (recently made recipes) | 10 |
-| `UI_ZeD_Craft_TagFuel` | `FUEL` | Craft tab, recipe card: small tag on a fuel ingredient | 6 |
+| `UI_ZeD_Craft_TagFuel` | `Fuel` | Craft tab, recipe card: small tag on a fuel ingredient | 6 |
 | `UI_ZeD_Craft_TimeMinSec` | `%1m%2s` | Recipe card: badge with the time a craft takes (minutes and seconds) | 10 |
 | `UI_ZeD_Craft_TimeSec` | `%1s` | Recipe card: badge with the time a craft takes (seconds) | 8 |
 | `UI_ZeD_Craft_UseStation` | `Use %1` | Craft tab, recipe card: button that binds the nearby station; %1 is the station name in lower case | 24 |
@@ -869,13 +869,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_DescEdit_AddBlock` | `ADD A BLOCK` | Description editor: heading over the palette of block types (small caps heading) | 14 |
-| `UI_ZeD_DescEdit_AddSection` | `ADD A SECTION` | Description editor: heading over the list of ready-made sections (small caps heading) | 16 |
+| `UI_ZeD_DescEdit_AddBlock` | `Add a block` | Description editor: heading over the palette of block types (small caps heading) | 14 |
+| `UI_ZeD_DescEdit_AddSection` | `Add a section` | Description editor: heading over the list of ready-made sections (small caps heading) | 16 |
 | `UI_ZeD_DescEdit_AskKeep` | `Keep the changes to the description?` | Description editor: question in the action strip when leaving with changes | - |
 | `UI_ZeD_DescEdit_Count` | `%1 of %2 characters` | Description editor: action strip: how much of Steam's limit is used. %1 characters now, %2 the limit (both with thousands commas) | - |
 | `UI_ZeD_DescEdit_CountOver` | `%1 of %2 characters: too long for Steam` | Description editor: action strip: same, when over the limit | - |
 | `UI_ZeD_DescEdit_DefaultTitle` | `Your mod` | Description editor: the heading a brand-new description starts with when the mod has no name yet | - |
-| `UI_ZeD_DescEdit_Discard` | `Discard` | Description editor: button that drops the changes to the description | 12 |
+| `UI_ZeD_DescEdit_Discard` | `Discard changes` | Description editor: button that drops the changes to the description | 12 |
 | `UI_ZeD_DescEdit_Empty` | `Empty. Add a block from the left.` | Description editor: middle column when the description has no blocks | - |
 | `UI_ZeD_DescEdit_HintBold` | `Bold` | Description editor: hover hint of the B button | - |
 | `UI_ZeD_DescEdit_HintItalic` | `Italic` | Description editor: hover hint of the I button | - |
@@ -888,20 +888,20 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_DescEdit_HowNumbered` | `One step per line` | Description editor: hint under a picked numbered list block | - |
 | `UI_ZeD_DescEdit_HowPicture` | `The picture's address (Steam shows pictures from the web)` | Description editor: hint under a picked picture block | - |
 | `UI_ZeD_DescEdit_HowTable` | `One row per line, cells split by " \| "; the first row is the header` | Description editor: hint under a picked table block (keep the " \| " separator) | - |
-| `UI_ZeD_DescEdit_KindCode` | `CODE` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindDivider` | `DIVIDER` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindHeading` | `HEADING` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindLink` | `LINK` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindList` | `LIST` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindNumbered` | `NUMBERED LIST` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindPicture` | `PICTURE` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindQuote` | `QUOTE` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindSpoiler` | `SPOILER` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindTable` | `TABLE` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
-| `UI_ZeD_DescEdit_KindText` | `TEXT` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindCode` | `Code` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindDivider` | `Divider` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindHeading` | `Heading` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindLink` | `Link` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindList` | `List` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindNumbered` | `Numbered list` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindPicture` | `Picture` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindQuote` | `Quote` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindSpoiler` | `Spoiler` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindTable` | `Table` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
+| `UI_ZeD_DescEdit_KindText` | `Text` | Description editor: small caps label at the left of a block's card, naming its type | 16 |
 | `UI_ZeD_DescEdit_MarkBold` | `B` | Description editor: small button that puts bold codes at the cursor (one letter) | 2 |
 | `UI_ZeD_DescEdit_MarkItalic` | `I` | Description editor: small button that puts italic codes at the cursor (one letter) | 2 |
-| `UI_ZeD_DescEdit_MarkLink` | `LINK` | Description editor: small button on a picked text block that puts a link code at the cursor | 6 |
+| `UI_ZeD_DescEdit_MarkLink` | `Link` | Description editor: small button on a picked text block that puts a link code at the cursor | 6 |
 | `UI_ZeD_DescEdit_MarkStrike` | `S` | Description editor: small button that puts strike-through codes at the cursor (one letter) | 2 |
 | `UI_ZeD_DescEdit_MarkUnderline` | `U` | Description editor: small button that puts underline codes at the cursor (one letter) | 2 |
 | `UI_ZeD_DescEdit_NoAddress` | `no address yet` | Description editor: preview of a picture block with no web address typed | - |
@@ -950,30 +950,30 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Desktop_FileName` | `Computer` | Trash window: the name of the one file in it, the computer itself (the old joke of throwing the computer in the trash) | 20 |
 | `UI_ZeD_Desktop_ModUploader` | `Mod Uploader` | Desktop: name under the Workshop icon (opens the Workshop window, where you upload your own mods); a program's name, so title case | 14 |
 | `UI_ZeD_Desktop_OneItem` | `1 item` | Trash window: count in the title bar | 10 |
-| `UI_ZeD_Desktop_PromptDpad` | `D-PAD Move` | Desktop: controller legend along the foot of the screen (the word D-PAD names the controller's cross) | - |
+| `UI_ZeD_Desktop_PromptDpad` | `D-pad Move` | Desktop: controller legend along the foot of the screen (the word D-PAD names the controller's cross) | - |
 | `UI_ZeD_Desktop_Trash` | `Trash` | Desktop: name under the trash icon; title of the trash window | 14 |
 
 ## Doll
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Doll_Arms` | `ARMS` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the right-column slot box (capitals, one box wide, about 76 px) | 7 |
-| `UI_ZeD_Doll_BeltSlot` | `BELT %1` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under a belt slot box; %1 is its hotbar key number | 8 |
+| `UI_ZeD_Doll_Arms` | `Arms` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the right-column slot box (one box wide, about 76 px) | 7 |
+| `UI_ZeD_Doll_BeltSlot` | `Belt %1` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under a belt slot box; %1 is its hotbar key number | 8 |
 | `UI_ZeD_Doll_EmptyHint` | `Empty: %1` | Equipment tab, Doll view (the character photo with slot boxes either side): hover hint over an empty belt slot; %1 is the slot's name | - |
-| `UI_ZeD_Doll_Eyes` | `EYES` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (capitals, one box wide, about 76 px) | 7 |
-| `UI_ZeD_Doll_Feet` | `FEET` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the right-column slot box (capitals, one box wide, about 76 px) | 7 |
-| `UI_ZeD_Doll_Hands` | `HANDS` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (capitals, one box wide, about 76 px) | 7 |
-| `UI_ZeD_Doll_Innermost` | `INNERMOST` | Equipment tab, item card of a worn item with layers: strip under the card: %3 of the layer line when the last layer is shown | 14 |
-| `UI_ZeD_Doll_LayerStrip` | `LAYER %1 OF %2 \| %3` | Equipment tab, item card of a worn item with layers: strip under the card (capitals); %1 the layer shown, %2 how many, %3 is Outermost / Innermost / Under N | 40 |
-| `UI_ZeD_Doll_Main` | `MAIN` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the main-hand box in the row below the photo (capitals) | 7 |
-| `UI_ZeD_Doll_Off` | `OFF` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the off-hand box in the row below the photo (capitals) | 7 |
-| `UI_ZeD_Doll_Outer` | `OUTER` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (capitals, one box wide, about 76 px) | 7 |
-| `UI_ZeD_Doll_Outermost` | `OUTERMOST` | Equipment tab, item card of a worn item with layers: strip under the card: %3 of the layer line when the first layer is shown | 14 |
+| `UI_ZeD_Doll_Eyes` | `Eyes` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (one box wide, about 76 px) | 7 |
+| `UI_ZeD_Doll_Feet` | `Feet` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the right-column slot box (one box wide, about 76 px) | 7 |
+| `UI_ZeD_Doll_Hands` | `Hands` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (one box wide, about 76 px) | 7 |
+| `UI_ZeD_Doll_Innermost` | `Innermost` | Equipment tab, item card of a worn item with layers: strip under the card: %3 of the layer line when the last layer is shown | 14 |
+| `UI_ZeD_Doll_LayerStrip` | `Layer %1 of %2 \| %3` | Equipment tab, item card of a worn item with layers: strip under the card; %1 the layer shown, %2 how many, %3 is Outermost / Innermost / Under N | 40 |
+| `UI_ZeD_Doll_Main` | `Main` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the main-hand box in the row below the photo | 7 |
+| `UI_ZeD_Doll_Off` | `Off` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the off-hand box in the row below the photo | 7 |
+| `UI_ZeD_Doll_Outer` | `Outer` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (one box wide, about 76 px) | 7 |
+| `UI_ZeD_Doll_Outermost` | `Outermost` | Equipment tab, item card of a worn item with layers: strip under the card: %3 of the layer line when the first layer is shown | 14 |
 | `UI_ZeD_Doll_StepInner` | `Inner` | Equipment tab, item card of a worn item with layers: strip under the card: button that steps to the next layer inwards (sentence case) | 10 |
 | `UI_ZeD_Doll_StepOuter` | `Outer` | Equipment tab, item card of a worn item with layers: strip under the card: button that steps to the next layer outwards (sentence case) | 10 |
-| `UI_ZeD_Doll_Torso` | `TORSO` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (capitals, one box wide, about 76 px) | 7 |
+| `UI_ZeD_Doll_Torso` | `Torso` | Equipment tab, Doll view (the character photo with slot boxes either side): caption under the left-column slot box (one box wide, about 76 px) | 7 |
 | `UI_ZeD_Doll_Under` | `%1 (+%2 under)` | Equipment tab, Doll view (the character photo with slot boxes either side): hover hint over a slot with several layers; %1 is the outermost item's name, %2 how many layers lie under it | - |
-| `UI_ZeD_Doll_UnderN` | `UNDER %1` | Equipment tab, item card of a worn item with layers: strip under the card: %3 of the layer line for a middle layer; %1 is how many layers lie above it | 14 |
+| `UI_ZeD_Doll_UnderN` | `Under %1` | Equipment tab, item card of a worn item with layers: strip under the card: %3 of the layer line for a middle layer; %1 is how many layers lie above it | 14 |
 | `UI_ZeD_Doll_ViewDoll` | `Doll` | Equipment tab heading, List \| Doll toggle buttons: hover hint of the doll button (icon-only button) | 10 |
 | `UI_ZeD_Doll_ViewList` | `List` | Equipment tab heading, List \| Doll toggle buttons: hover hint of the list button (icon-only button) | 10 |
 
@@ -984,39 +984,39 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Equip_Arms` | `Arms` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_AvgBite` | `%1 avg bite defense` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): line under OVERALL GRADE; %1 is a percentage such as 25% | 30 |
 | `UI_ZeD_Equip_BackBag` | `Back/bag` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
-| `UI_ZeD_Equip_BeltAlways` | `ALWAYS THERE` | Equipment tab (Character window), list view: under a belt slot's name when no worn item is needed for the slot | 20 |
-| `UI_ZeD_Equip_BeltFrom` | `FROM THE %1` | Equipment tab (Character window), list view: under a belt slot's name; %1 is the worn item that gives the slot (a belt, a holster...) in capitals | 40 |
-| `UI_ZeD_Equip_BeltHeadLeft` | `THE BELT \| KEYS` | Equipment tab (Character window), list view: belt sub-header, left side (capitals; ' \| ' is ZeD's separator). The keys are the hotbar keys 1-8 | 24 |
-| `UI_ZeD_Equip_BeltHeadRight` | `SLOT \| WHAT GIVES IT` | Equipment tab (Character window), list view: belt sub-header, right side (capitals): slot name, then the worn item that provides the slot | 28 |
-| `UI_ZeD_Equip_BestZone` | `Best zone` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label (shown in capitals) above the most protected body part | 14 |
-| `UI_ZeD_Equip_ColBullet` | `BUL` | Equipment tab (Character window), list view: column head above the slot rows (capitals, fixed narrow column) - bullet protection | 4 |
-| `UI_ZeD_Equip_ColCond` | `COND` | Equipment tab (Character window), list view: column head above the slot rows (capitals, fixed narrow column) - condition bar | 6 |
-| `UI_ZeD_Equip_ColScratch` | `SCR` | Equipment tab (Character window), list view: column head above the slot rows (capitals, fixed narrow column) - scratch protection | 4 |
-| `UI_ZeD_Equip_ColSlot` | `SLOT` | Equipment tab (Character window), list view: column head above the slot rows (capitals, fixed narrow column) - slot the item is worn in | 8 |
-| `UI_ZeD_Equip_ColWeight` | `WT` | Equipment tab (Character window), list view: column head above the slot rows (capitals, fixed narrow column) - weight | 4 |
+| `UI_ZeD_Equip_BeltAlways` | `Always there` | Equipment tab (Character window), list view: under a belt slot's name when no worn item is needed for the slot | 20 |
+| `UI_ZeD_Equip_BeltFrom` | `From the %1` | Equipment tab (Character window), list view: under a belt slot's name; %1 is the worn item that gives the slot (a belt, a holster...) | 40 |
+| `UI_ZeD_Equip_BeltHeadLeft` | `The belt \| keys` | Equipment tab (Character window), list view: belt sub-header, left side (' \| ' is ZeD's separator). The keys are the hotbar keys 1-8 | 24 |
+| `UI_ZeD_Equip_BeltHeadRight` | `Slot \| what gives it` | Equipment tab (Character window), list view: belt sub-header, right side: slot name, then the worn item that provides the slot | 28 |
+| `UI_ZeD_Equip_BestZone` | `Best zone` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label above the most protected body part | 14 |
+| `UI_ZeD_Equip_ColBullet` | `Bul` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - bullet protection | 4 |
+| `UI_ZeD_Equip_ColCond` | `Cond` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - condition bar | 6 |
+| `UI_ZeD_Equip_ColScratch` | `Scr` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - scratch protection | 4 |
+| `UI_ZeD_Equip_ColSlot` | `Slot` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - slot the item is worn in | 8 |
+| `UI_ZeD_Equip_ColWeight` | `Wt` | Equipment tab (Character window), list view: column head above the slot rows (fixed narrow column) - weight | 4 |
 | `UI_ZeD_Equip_Defense` | `Defense` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): section heading (only used by the legacy header path) | 14 |
-| `UI_ZeD_Equip_Detach` | `DETACH` | Equipment tab (Character window), list view: button on a belt slot row holding an item (shown in sentence case) | 12 |
+| `UI_ZeD_Equip_Detach` | `Detach` | Equipment tab (Character window), list view: button on a belt slot row holding an item (shown in sentence case) | 12 |
 | `UI_ZeD_Equip_Empty` | `Empty` | Equipment tab (Character window), list view: belt slot row with nothing attached, in place of the item name | 12 |
 | `UI_ZeD_Equip_Equipped` | `Equipped` | Equipment tab (Character window), list view: pinned heading of the tab (disclosure strip over the slot list) | 14 |
 | `UI_ZeD_Equip_Eyewear` | `Eyewear` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
-| `UI_ZeD_Equip_Garments` | `Garments` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label (shown in capitals) above the worn garment count | 14 |
+| `UI_ZeD_Equip_Garments` | `Garments` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label above the worn garment count | 14 |
 | `UI_ZeD_Equip_GarmentsEquipped` | `%1 equipped` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Garments; %1 is how many garments are worn | 14 |
-| `UI_ZeD_Equip_GroupArms` | `ARMS + HANDS` | Equipment tab (Character window), list view: collapsible group header strip (shown in capitals), followed by the count in brackets | 20 |
-| `UI_ZeD_Equip_GroupHead` | `HEAD + FACE` | Equipment tab (Character window), list view: collapsible group header strip (shown in capitals), followed by the count in brackets | 20 |
-| `UI_ZeD_Equip_GroupHeld` | `HELD + BELT` | Equipment tab (Character window), list view: collapsible group header strip (shown in capitals), followed by the count in brackets | 20 |
-| `UI_ZeD_Equip_GroupLegs` | `LEGS + FEET` | Equipment tab (Character window), list view: collapsible group header strip (shown in capitals), followed by the count in brackets | 20 |
-| `UI_ZeD_Equip_GroupTorso` | `TORSO` | Equipment tab (Character window), list view: collapsible group header strip (shown in capitals), followed by the count in brackets | 20 |
-| `UI_ZeD_Equip_InHand` | `IN HAND` | Equipment tab (Character window), list view: small outlined tag on a belt slot row whose item is in the hands | 10 |
+| `UI_ZeD_Equip_GroupArms` | `Arms + hands` | Equipment tab (Character window), list view: collapsible group header strip, followed by the count in brackets | 20 |
+| `UI_ZeD_Equip_GroupHead` | `Head + face` | Equipment tab (Character window), list view: collapsible group header strip, followed by the count in brackets | 20 |
+| `UI_ZeD_Equip_GroupHeld` | `Held + belt` | Equipment tab (Character window), list view: collapsible group header strip, followed by the count in brackets | 20 |
+| `UI_ZeD_Equip_GroupLegs` | `Legs + feet` | Equipment tab (Character window), list view: collapsible group header strip, followed by the count in brackets | 20 |
+| `UI_ZeD_Equip_GroupTorso` | `Torso` | Equipment tab (Character window), list view: collapsible group header strip, followed by the count in brackets | 20 |
+| `UI_ZeD_Equip_InHand` | `In hand` | Equipment tab (Character window), list view: small outlined tag on a belt slot row whose item is in the hands | 10 |
 | `UI_ZeD_Equip_Inner` | `Inner` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_KneeLeg` | `Knee/leg` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_LayerMany` | `%1 layers` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): hover detail for a body part; %1 layers of clothing cover it (plural; 0 and 2 or more) | 12 |
 | `UI_ZeD_Equip_LayerOne` | `%1 layer` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): hover detail for a body part, after the Bite/Scratch/Bullet bars; one layer of clothing covers it | 12 |
 | `UI_ZeD_Equip_Outer` | `Outer` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
-| `UI_ZeD_Equip_OverallGrade` | `OVERALL GRADE` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): small caps label beside the big letter grade box | 16 |
-| `UI_ZeD_Equip_PutBack` | `PUT BACK` | Equipment tab (Character window), list view: button on a belt slot row whose item is in hand (shown in sentence case) | 12 |
+| `UI_ZeD_Equip_OverallGrade` | `Overall grade` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): small caps label beside the big letter grade box | 16 |
+| `UI_ZeD_Equip_PutBack` | `Put back` | Equipment tab (Character window), list view: button on a belt slot row whose item is in hand (shown in sentence case) | 12 |
 | `UI_ZeD_Equip_Ring` | `Ring` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_Shoulder` | `Shoulder` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
-| `UI_ZeD_Equip_WorstZone` | `Worst zone` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label (shown in capitals) above the least protected body part | 14 |
+| `UI_ZeD_Equip_WorstZone` | `Worst zone` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): stat label above the least protected body part | 14 |
 | `UI_ZeD_Equip_Wrist` | `Wrist` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_ZonePct` | `%1 (%2)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst/Best Zone; %1 is a body part name, %2 its bite protection as a percentage | 36 |
 | `UI_ZeD_Equip_ZoneUncovered` | `%1 (uncovered)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst Zone when that part has no protection; %1 is a body part name | 36 |
@@ -1029,71 +1029,71 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Farm_ConfirmDig` | `Dig up the %1? The crop is lost.` | Farm plot card: confirmation in the footer; %1 is the crop's name in lower case | - |
 | `UI_ZeD_Farm_DigUp` | `Dig up` | Farm plot card: verb button (danger) | 10 |
 | `UI_ZeD_Farm_Fertilize` | `Fertilize` | Farm plot card: verb button | 12 |
-| `UI_ZeD_Farm_Garden` | `GARDEN IN REACH` | Farm plot card: section heading over the grid of nearby plots (capitals) | - |
-| `UI_ZeD_Farm_GardenPlowed` | `PLOWED` | Farm plot card: cell of the garden grid for plowed land (tiny capitals, cell about 6 letters wide) | 6 |
-| `UI_ZeD_Farm_LockTag` | `FARMING %1` | Farm plot card: tag on a reading that needs Farming skill level %1 (capitals, bordered tag) | 14 |
+| `UI_ZeD_Farm_Garden` | `Garden in reach` | Farm plot card: section heading over the grid of nearby plots | - |
+| `UI_ZeD_Farm_GardenPlowed` | `Plowed` | Farm plot card: cell of the garden grid for plowed land (cell about 6 letters wide) | 6 |
+| `UI_ZeD_Farm_LockTag` | `Farming %1` | Farm plot card: tag on a reading that needs Farming skill level %1 (bordered tag) | 14 |
 | `UI_ZeD_Farm_NeedSeeds` | `Sow: needs seeds` | Farm plot card: the NEEDS line under the verbs when the plot is plowed and you carry no seeds | - |
 | `UI_ZeD_Farm_NeedShovel` | `Dig up: needs a shovel or trowel` | Farm plot card: the NEEDS line under the verbs | - |
 | `UI_ZeD_Farm_NeedSpray` | `Treat: needs %1` | Farm plot card: the NEEDS line when a pest shows and you carry no spray; %1 is the spray's item name | - |
 | `UI_ZeD_Farm_NeedWater` | `Water: needs water in your hands or inventory` | Farm plot card: the NEEDS line under the verbs | - |
 | `UI_ZeD_Farm_NextIn` | `in %1` | Farm plot card: value of NEXT STAGE; %1 is the game's own time phrase in lower case, e.g. 'in 2 days, 3 hours' | 20 |
-| `UI_ZeD_Farm_NextStage` | `NEXT STAGE` | Farm plot card: label of the next-stage line (capitals) | 14 |
-| `UI_ZeD_Farm_Pests` | `PESTS AND DISEASE` | Farm plot card: section heading over the pest rows (capitals) | - |
-| `UI_ZeD_Farm_PhaseAlmostReady` | `ALMOST READY` | Farm plot card: growth phase on the six-cell strip (tiny capitals, cell about 9 letters wide); Ready and Rotten also name the header pill | 9 |
-| `UI_ZeD_Farm_PhaseReady` | `READY` | Farm plot card: growth phase on the six-cell strip (tiny capitals, cell about 9 letters wide); Ready and Rotten also name the header pill | 9 |
-| `UI_ZeD_Farm_PillEmpty` | `EMPTY` | Farm plot card: header pill for plowed land with nothing planted (capitals) | 9 |
-| `UI_ZeD_Farm_PillGrowing` | `GROWING` | Farm plot card: header pill for a healthy growing plant (capitals) | 9 |
+| `UI_ZeD_Farm_NextStage` | `Next stage` | Farm plot card: label of the next-stage line | 14 |
+| `UI_ZeD_Farm_Pests` | `Pests and disease` | Farm plot card: section heading over the pest rows | - |
+| `UI_ZeD_Farm_PhaseAlmostReady` | `Almost ready` | Farm plot card: growth phase on the six-cell strip (cell about 9 letters wide); Ready and Rotten also name the header pill | 9 |
+| `UI_ZeD_Farm_PhaseReady` | `Ready` | Farm plot card: growth phase on the six-cell strip (cell about 9 letters wide); Ready and Rotten also name the header pill | 9 |
+| `UI_ZeD_Farm_PillEmpty` | `Empty` | Farm plot card: header pill for plowed land with nothing planted | 9 |
+| `UI_ZeD_Farm_PillGrowing` | `Growing` | Farm plot card: header pill for a healthy growing plant | 9 |
 | `UI_ZeD_Farm_Plot` | `Farm Plot` | Farm plot card: card title, and the plot's name when the game gives none | 20 |
-| `UI_ZeD_Farm_Skill` | `YOUR FARMING %1` | Farm plot card: line under the plant's name; %1 is the player's Farming level (capitals) | 24 |
-| `UI_ZeD_Farm_SkillReadyToSow` | `YOUR FARMING %1 \| ready to sow` | Farm plot card: line under the name of plowed land; %1 is the player's Farming level (capitals; the bar is a separator) | 36 |
-| `UI_ZeD_Farm_SowFromBags` | `SOW FROM YOUR BAGS` | Farm plot card: section heading over the seed list (capitals) | - |
-| `UI_ZeD_Farm_SummaryDry` | `%1 DRY` | Farm plot card: GARDEN IN REACH summary: how many plots are dry or parched (capitals) | 14 |
-| `UI_ZeD_Farm_SummaryPlotMany` | `%1 PLOTS` | Farm plot card: GARDEN IN REACH summary for two or more plots (capitals) | 14 |
-| `UI_ZeD_Farm_SummaryPlotOne` | `%1 PLOT` | Farm plot card: GARDEN IN REACH summary for exactly one plot (capitals) | 14 |
-| `UI_ZeD_Farm_SummaryThirsty` | `%1 THIRSTY` | Farm plot card: GARDEN IN REACH summary: how many plots are thirsty (capitals) | 14 |
-| `UI_ZeD_Farm_TagInSeason` | `IN SEASON` | Farm plot card: tag on a seed row of the Sow list (capitals, bordered tag) | 14 |
-| `UI_ZeD_Farm_TagRiskyMonth` | `RISKY MONTH` | Farm plot card: tag on a seed row of the Sow list (capitals, bordered tag) | 14 |
+| `UI_ZeD_Farm_Skill` | `Your farming %1` | Farm plot card: line under the plant's name; %1 is the player's Farming level | 24 |
+| `UI_ZeD_Farm_SkillReadyToSow` | `Your farming %1 \| ready to sow` | Farm plot card: line under the name of plowed land; %1 is the player's Farming level (the bar is a separator) | 36 |
+| `UI_ZeD_Farm_SowFromBags` | `Sow from your bags` | Farm plot card: section heading over the seed list | - |
+| `UI_ZeD_Farm_SummaryDry` | `%1 dry` | Farm plot card: Garden in reach summary: how many plots are dry or parched | 14 |
+| `UI_ZeD_Farm_SummaryPlotMany` | `%1 plots` | Farm plot card: Garden in reach summary for two or more plots | 14 |
+| `UI_ZeD_Farm_SummaryPlotOne` | `%1 plot` | Farm plot card: Garden in reach summary for exactly one plot | 14 |
+| `UI_ZeD_Farm_SummaryThirsty` | `%1 thirsty` | Farm plot card: Garden in reach summary: how many plots are thirsty | 14 |
+| `UI_ZeD_Farm_TagInSeason` | `In season` | Farm plot card: tag on a seed row of the Sow list (bordered tag) | 14 |
+| `UI_ZeD_Farm_TagRiskyMonth` | `Risky month` | Farm plot card: tag on a seed row of the Sow list (bordered tag) | 14 |
 | `UI_ZeD_Farm_Treat` | `Treat` | Farm plot card: verb button, and the button on each pest row | 10 |
 
 ## Fire
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Fire_AddFromBags` | `ADD FUEL FROM YOUR BAGS` | Fire card: section heading over the fuel list (capitals) | - |
-| `UI_ZeD_Fire_Adds` | `ADDS` | Fire card: right side of that heading, over the column of time each piece adds (capitals) | 8 |
+| `UI_ZeD_Fire_AddFromBags` | `Add fuel from your bags` | Fire card: section heading over the fuel list | - |
+| `UI_ZeD_Fire_Adds` | `Adds` | Fire card: right side of that heading, over the column of time each piece adds | 8 |
 | `UI_ZeD_Fire_AllFuel` | `All fuel (%1)` | Fire card: fuel list row that adds everything carried; %1 is the number of pieces | - |
 | `UI_ZeD_Fire_ConfirmTakeApart` | `Take the campfire apart? You get 3 stones; what is on it drops.` | Fire card: confirmation in the footer | - |
 | `UI_ZeD_Fire_Fire` | `Fire` | Fire card: card title when the game gives the fire no name | 24 |
 | `UI_ZeD_Fire_FuelFull` | `The fire holds no more fuel` | Fire card: the NEEDS line under the verbs | - |
 | `UI_ZeD_Fire_GainEach` | `+%1 each` | Fire card: time one piece of fuel adds when more than one is carried; %1 is the time, e.g. '+1 h 30 m each' | 16 |
-| `UI_ZeD_Fire_GasLeft` | `GAS LEFT` | Fire card: propane barbecue, label of the hours of gas (capitals) | 14 |
-| `UI_ZeD_Fire_Hrs` | `%1 HRS` | Fire card: propane barbecue, hours of gas as H:MM, e.g. 12:30 HRS (capitals) | 12 |
+| `UI_ZeD_Fire_GasLeft` | `Gas left` | Fire card: propane barbecue, label of the hours of gas | 14 |
+| `UI_ZeD_Fire_Hrs` | `%1 hrs` | Fire card: propane barbecue, hours of gas as H:MM, e.g. 12:30 hrs | 12 |
 | `UI_ZeD_Fire_InsertTank` | `Insert tank` | Fire card: verb button on the propane barbecue | 14 |
-| `UI_ZeD_Fire_LightWith` | `LIGHT WITH` | Fire card: section heading over the lighting methods (capitals) | - |
+| `UI_ZeD_Fire_LightWith` | `Light with` | Fire card: section heading over the lighting methods | - |
 | `UI_ZeD_Fire_NameAll` | `%1: all (%2)` | Fire card: fuel row that adds every piece of one kind; %1 is the item name, %2 the number | - |
 | `UI_ZeD_Fire_NameAllThatFit` | `%1: all that fit (%2)` | Fire card: fuel row that adds as many pieces of one kind as fit; %1 is the item name, %2 the number | - |
 | `UI_ZeD_Fire_NeedFuelFirst` | `Light: needs fuel in the fire first` | Fire card: the NEEDS line under the verbs | - |
 | `UI_ZeD_Fire_NeedFuelItems` | `Add fuel: needs something that burns` | Fire card: the NEEDS line under the verbs | - |
 | `UI_ZeD_Fire_NeedGasTank` | `Turn on: needs a propane tank with gas` | Fire card: the NEEDS line under the verbs of a propane barbecue | - |
 | `UI_ZeD_Fire_NeedLighter` | `Light: needs a lighter or matches with tinder, or a notched plank and a stick` | Fire card: the NEEDS line under the verbs | - |
-| `UI_ZeD_Fire_NeedsFuel` | `NEEDS FUEL` | Fire card: tag on the kindling row of the LIGHT WITH list (capitals) | 14 |
-| `UI_ZeD_Fire_NeedsStick` | `NEEDS A STICK` | Fire card: tag on the kindling row of the LIGHT WITH list (capitals) | 14 |
+| `UI_ZeD_Fire_NeedsFuel` | `Needs fuel` | Fire card: tag on the kindling row of the Light with list | 14 |
+| `UI_ZeD_Fire_NeedsStick` | `Needs a stick` | Fire card: tag on the kindling row of the Light with list | 14 |
 | `UI_ZeD_Fire_NeedTank` | `Insert tank: needs a propane tank` | Fire card: the NEEDS line under the verbs of a propane barbecue | - |
-| `UI_ZeD_Fire_OfFuelHolds` | `OF FUEL \| HOLDS %1 H` | Fire card: small text beside the big time-left readout; %1 is the most hours the fire can hold (capitals; the bar is a separator) | 24 |
-| `UI_ZeD_Fire_OnTheFire` | `ON THE FIRE` | Fire card: section heading over the cooking rows (capitals) | - |
-| `UI_ZeD_Fire_OnTheGrill` | `ON THE GRILL` | Fire card: section heading over the cooking rows of a propane barbecue (capitals) | - |
-| `UI_ZeD_Fire_PillOut` | `OUT` | Fire card: header pill for a fire that is out (capitals) | 12 |
+| `UI_ZeD_Fire_OfFuelHolds` | `of fuel \| holds %1 h` | Fire card: small text beside the big time-left readout; %1 is the most hours the fire can hold (the bar is a separator) | 24 |
+| `UI_ZeD_Fire_OnTheFire` | `On the fire` | Fire card: section heading over the cooking rows | - |
+| `UI_ZeD_Fire_OnTheGrill` | `On the grill` | Fire card: section heading over the cooking rows of a propane barbecue | - |
+| `UI_ZeD_Fire_PillOut` | `Out` | Fire card: header pill for a fire that is out | 12 |
 | `UI_ZeD_Fire_PropaneBBQ` | `Propane Barbecue` | Fire card: card title when the game gives the barbecue no name | 24 |
 | `UI_ZeD_Fire_PutOut` | `Put out` | Fire card: verb button | 12 |
 | `UI_ZeD_Fire_RemoveTank` | `Remove tank` | Fire card: verb button on the propane barbecue | 14 |
-| `UI_ZeD_Fire_ScaleFull` | `FULL` | Fire card: right end of the fuel strip's scale (tiny capitals) | 6 |
-| `UI_ZeD_Fire_ScaleHours` | `+%1 H` | Fire card: hour marks along the fuel strip's scale, e.g. +2 H (tiny capitals) | 8 |
-| `UI_ZeD_Fire_ScaleNow` | `NOW` | Fire card: left end of the fuel strip's scale (tiny capitals) | 6 |
-| `UI_ZeD_Fire_TagFull` | `FULL` | Fire card: tag on a fuel row that no longer fits (capitals, bordered tag) | 8 |
+| `UI_ZeD_Fire_ScaleFull` | `Full` | Fire card: right end of the fuel strip's scale | 6 |
+| `UI_ZeD_Fire_ScaleHours` | `+%1 H` | Fire card: hour marks along the fuel strip's scale, e.g. +2 H | 8 |
+| `UI_ZeD_Fire_ScaleNow` | `Now` | Fire card: left end of the fuel strip's scale | 6 |
+| `UI_ZeD_Fire_TagFull` | `Full` | Fire card: tag on a fuel row that no longer fits (bordered tag) | 8 |
 | `UI_ZeD_Fire_TakeApart` | `Take apart` | Fire card: verb button (danger), campfire only | 12 |
-| `UI_ZeD_Fire_Tank` | `TANK` | Fire card: propane barbecue, label of the tank state (capitals) | 14 |
-| `UI_ZeD_Fire_TankIn` | `IN` | Fire card: propane barbecue, value of TANK when a tank is fitted (capitals) | 6 |
-| `UI_ZeD_Fire_TooTired` | `TOO TIRED` | Fire card: tag on the kindling row of the LIGHT WITH list (capitals) | 14 |
+| `UI_ZeD_Fire_Tank` | `Tank` | Fire card: propane barbecue, label of the tank state | 14 |
+| `UI_ZeD_Fire_TankIn` | `In` | Fire card: propane barbecue, value of Tank when a tank is fitted | 6 |
+| `UI_ZeD_Fire_TooTired` | `Too tired` | Fire card: tag on the kindling row of the Light with list | 14 |
 
 ## Fluid
 
@@ -1102,21 +1102,21 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Fluid_ConfirmEmpty` | `Pour %1 of %2 out on the ground?` | Fluid card: confirmation in the footer; %1 is the amount, e.g. 1.25 L, %2 the liquid's name in lower case | - |
 | `UI_ZeD_Fluid_Container` | `Container` | Fluid card: a container's name when neither the item nor the game names it | 22 |
 | `UI_ZeD_Fluid_From` | `From` | Fluid card: button on each container row that makes it the one to pour from | 8 |
-| `UI_ZeD_Fluid_HintFrom` | `Pick "From" on a container below` | Fluid card: hint inside the empty left tank | - |
-| `UI_ZeD_Fluid_HintInto` | `Pick "Into" on a container below` | Fluid card: hint inside the empty right tank | - |
+| `UI_ZeD_Fluid_HintFrom` | `Choose "From" on a container below` | Fluid card: hint inside the empty left tank | - |
+| `UI_ZeD_Fluid_HintInto` | `Choose "Into" on a container below` | Fluid card: hint inside the empty right tank | - |
 | `UI_ZeD_Fluid_Into` | `Into` | Fluid card: button on each container row that makes it the one to pour into | 8 |
 | `UI_ZeD_Fluid_LiquidWord` | `liquid` | Fluid card: the word for the liquid in the empty-out question when the liquid has no name (lower case) | 14 |
-| `UI_ZeD_Fluid_NearbyTile` | `NEARBY \| %1 TILE` | Fluid card: under the pinned world container's name; %1 is the distance, exactly 1 (capitals; the bar is a separator) | 24 |
-| `UI_ZeD_Fluid_NearbyTiles` | `NEARBY \| %1 TILES` | Fluid card: under the pinned world container's name; %1 is the distance, any other number (capitals; the bar is a separator) | 24 |
+| `UI_ZeD_Fluid_NearbyTile` | `Nearby \| %1 tile` | Fluid card: under the pinned world container's name; %1 is the distance, exactly 1 (the bar is a separator) | 24 |
+| `UI_ZeD_Fluid_NearbyTiles` | `Nearby \| %1 tiles` | Fluid card: under the pinned world container's name; %1 is the distance, any other number (the bar is a separator) | 24 |
 | `UI_ZeD_Fluid_PourProgress` | `%1 of %2` | Fluid card: while pouring, how much has poured of the whole amount, e.g. 0.50 of 1.25 L | - |
-| `UI_ZeD_Fluid_TagFull` | `FULL` | Fluid card: tag on a container row that is full (capitals, bordered tag) | 10 |
-| `UI_ZeD_Fluid_TagMixes` | `MIXES` | Fluid card: tag on a container row where the pour would mix liquids (capitals, bordered tag) | 10 |
-| `UI_ZeD_Fluid_TagSame` | `SAME` | Fluid card: tag on a container row holding the same liquid as the one being poured (capitals, bordered tag) | 10 |
-| `UI_ZeD_Fluid_TagTooHeavy` | `TOO HEAVY` | Fluid card: tag on a container row in a bag when the inventory is over its limit (capitals, bordered tag) | 10 |
-| `UI_ZeD_Fluid_TagWontMix` | `WON'T MIX` | Fluid card: tag on a container row whose liquid cannot mix with the one being poured (capitals, bordered tag) | 10 |
-| `UI_ZeD_Fluid_TagWontTake` | `WON'T TAKE` | Fluid card: tag on a container row that refuses the liquid being poured (capitals, bordered tag; the widest tag, it sets the column) | 10 |
+| `UI_ZeD_Fluid_TagFull` | `Full` | Fluid card: tag on a container row that is full (bordered tag) | 10 |
+| `UI_ZeD_Fluid_TagMixes` | `Mixes` | Fluid card: tag on a container row where the pour would mix liquids (bordered tag) | 10 |
+| `UI_ZeD_Fluid_TagSame` | `Same` | Fluid card: tag on a container row holding the same liquid as the one being poured (bordered tag) | 10 |
+| `UI_ZeD_Fluid_TagTooHeavy` | `Too heavy` | Fluid card: tag on a container row in a bag when the inventory is over its limit (bordered tag) | 10 |
+| `UI_ZeD_Fluid_TagWontMix` | `Won't mix` | Fluid card: tag on a container row whose liquid cannot mix with the one being poured (bordered tag) | 10 |
+| `UI_ZeD_Fluid_TagWontTake` | `Won't take` | Fluid card: tag on a container row that refuses the liquid being poured (bordered tag; the widest tag, it sets the column) | 10 |
 | `UI_ZeD_Fluid_TooFull` | `You carry too much to pour into a container in your bags.` | Fluid card: the NEEDS line when the inventory is over its limit and the target container is in a bag | - |
-| `UI_ZeD_Fluid_YourContainers` | `YOUR CONTAINERS` | Fluid card: section heading over the list of containers (capitals) | - |
+| `UI_ZeD_Fluid_YourContainers` | `Your containers` | Fluid card: section heading over the list of containers | - |
 
 ## Flyer
 
@@ -1125,7 +1125,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Flyer_BeenThere` | `Been there` | Maps, hover card over a flyer pin: status line (visited) | - |
 | `UI_ZeD_Flyer_ClickRead` | `Click to read` | Maps, hover card over a flyer pin with a mouse: hint line | - |
 | `UI_ZeD_Flyer_NotBeenThere` | `Not been there` | Maps, hover card over a flyer pin: status line (not visited) | - |
-| `UI_ZeD_Flyer_PadRead` | `A to read` | Maps, hover card over a flyer pin with a controller: hint line (A is the controller button) | - |
+| `UI_ZeD_Flyer_PadRead` | `Press to read` | Maps, hover card over a flyer pin with a controller: hint line (A is the controller button) | - |
 
 ## Forage
 
@@ -1136,8 +1136,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Forage_CatLocked` | `L%1` | World window, Foraging tab, More detail, Categories grid: value of a category not yet unlocked (%1 = Foraging level needed) | 5 |
 | `UI_ZeD_Forage_CatPeak` | `Peak` | World window, Foraging tab, More detail, Categories grid: the most common category here | 8 |
 | `UI_ZeD_Forage_CatRare` | `Rare` | World window, Foraging tab, More detail, Categories grid: a rare category here | 8 |
-| `UI_ZeD_Forage_CatsInRange` | `CATEGORIES IN RANGE` | World window, Foraging tab, More detail: sub-header over the categories grid | 28 |
-| `UI_ZeD_Forage_CatsLocked` | `%1 / %2 LOCKED` | World window, Foraging tab, More detail: right side of the categories sub-header (%1 = categories listed, %2 = how many are locked) | 20 |
+| `UI_ZeD_Forage_CatsInRange` | `Categories in range` | World window, Foraging tab, More detail: sub-header over the categories grid | 28 |
+| `UI_ZeD_Forage_CatsLocked` | `%1 / %2 locked` | World window, Foraging tab, More detail: right side of the categories sub-header (%1 = categories listed, %2 = how many are locked) | 20 |
 | `UI_ZeD_Forage_CompassE` | `E` | World window, Foraging tab, Recent finds: compass direction E of the find, 1 to 2 letters | 3 |
 | `UI_ZeD_Forage_CompassN` | `N` | World window, Foraging tab, Recent finds: compass direction N of the find, 1 to 2 letters | 3 |
 | `UI_ZeD_Forage_CompassNE` | `NE` | World window, Foraging tab, Recent finds: compass direction NE of the find, 1 to 2 letters | 3 |
@@ -1149,22 +1149,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Forage_CondFair` | `Fair` | World window, Foraging tab: hero chip, search conditions are fair | 10 |
 | `UI_ZeD_Forage_CondGood` | `Good` | World window, Foraging tab: hero chip, search conditions are good | 10 |
 | `UI_ZeD_Forage_CondPoor` | `Poor` | World window, Foraging tab: hero chip, search conditions are poor | 10 |
-| `UI_ZeD_Forage_Day` | `DAY` | World window, Foraging tab: under the sky arc, it is daytime | 8 |
+| `UI_ZeD_Forage_Day` | `Day` | World window, Foraging tab: under the sky arc, it is daytime | 8 |
 | `UI_ZeD_Forage_FindDist` | `%1T %2` | World window, Foraging tab, Recent finds: distance and bearing of a find (%1 = tiles away, T = tiles, %2 = compass direction) | 8 |
-| `UI_ZeD_Forage_FindsEmpty` | `RECENT FINDS WILL APPEAR HERE` | World window, Foraging tab: empty state of the recent finds list | 40 |
+| `UI_ZeD_Forage_FindsEmpty` | `Recent finds will appear here.` | World window, Foraging tab: empty state of the recent finds list | 40 |
 | `UI_ZeD_Forage_FocusAll` | `All categories` | World window, Foraging tab: first option of the Search Focus dropdown (no focus) | 24 |
-| `UI_ZeD_Forage_HeadDist` | `DIST` | World window, Foraging tab, Recent finds: column header, distance (the column is about 48 design pixels wide) | 6 |
-| `UI_ZeD_Forage_HeadWeight` | `WT` | World window, Foraging tab, Recent finds: column header, weight (right-aligned, about 36 design pixels) | 4 |
+| `UI_ZeD_Forage_HeadDist` | `Dist` | World window, Foraging tab, Recent finds: column header, distance (the column is about 48 design pixels wide) | 6 |
+| `UI_ZeD_Forage_HeadWeight` | `Wt` | World window, Foraging tab, Recent finds: column header, weight (right-aligned, about 36 design pixels) | 4 |
 | `UI_ZeD_Forage_ModClothing` | `Clothing` | World window, Foraging tab, More detail, Modifiers grid: penalty from clothing | 14 |
 | `UI_ZeD_Forage_ModFatigue` | `Fatigue` | World window, Foraging tab, More detail, Modifiers grid: penalty from tiredness | 14 |
 | `UI_ZeD_Forage_ModHealth` | `Health` | World window, Foraging tab, More detail, Modifiers grid: penalty from injury or illness | 14 |
-| `UI_ZeD_Forage_Modifiers` | `MODIFIERS` | World window, Foraging tab, More detail: sub-header over the modifiers grid | 20 |
+| `UI_ZeD_Forage_Modifiers` | `Modifiers` | World window, Foraging tab, More detail: sub-header over the modifiers grid | 20 |
 | `UI_ZeD_Forage_ModMoving` | `Moving` | World window, Foraging tab, More detail, Modifiers grid: penalty from moving | 14 |
 | `UI_ZeD_Forage_ModPanic` | `Panic` | World window, Foraging tab, More detail, Modifiers grid: penalty from panic | 14 |
-| `UI_ZeD_Forage_MoreDetail` | `MORE DETAIL` | World window, Foraging tab: disclosure row that opens the categories and modifiers | 24 |
-| `UI_ZeD_Forage_Net` | `NET` | World window, Foraging tab: label under the net modifier percent in the hero band | 6 |
-| `UI_ZeD_Forage_NetValue` | `%1 NET` | World window, Foraging tab, More detail: right side of the modifiers sub-header (%1 = signed percent, e.g. +5%) | 16 |
-| `UI_ZeD_Forage_Night` | `NIGHT` | World window, Foraging tab: under the sky arc, it is night | 8 |
+| `UI_ZeD_Forage_MoreDetail` | `More detail` | World window, Foraging tab: disclosure row that opens the categories and modifiers | 24 |
+| `UI_ZeD_Forage_Net` | `Net` | World window, Foraging tab: label under the net modifier percent in the hero band | 6 |
+| `UI_ZeD_Forage_NetValue` | `%1 net` | World window, Foraging tab, More detail: right side of the modifiers sub-header (%1 = signed percent, e.g. +5%) | 16 |
+| `UI_ZeD_Forage_Night` | `Night` | World window, Foraging tab: under the sky arc, it is night | 8 |
 | `UI_ZeD_Forage_SeasonSummer` | `Summer` | World window, Foraging tab: season chip (the other seasons are the game's own words) | 12 |
 | `UI_ZeD_Forage_StanceAim` | `Aim` | World window, Foraging tab: stance row tile (read-only status) | 12 |
 | `UI_ZeD_Forage_StanceAiming` | `Aiming` | World window, Foraging tab: hero chip and a modifier row name | 12 |
@@ -1172,7 +1172,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Forage_StanceSearching` | `Searching` | World window, Foraging tab: hero chip and the Searching tile of the stance row | 14 |
 | `UI_ZeD_Forage_StanceSneaking` | `Sneaking` | World window, Foraging tab: hero chip and a modifier row name | 12 |
 | `UI_ZeD_Forage_StanceWalking` | `Walking` | World window, Foraging tab: hero chip, what the character is doing | 12 |
-| `UI_ZeD_Forage_Tiles` | `TILES` | World window, Foraging tab: label under the search radius number (unit of the radius) | 8 |
+| `UI_ZeD_Forage_Tiles` | `Tiles` | World window, Foraging tab: label under the search radius number (unit of the radius) | 8 |
 | `UI_ZeD_Forage_Unknown` | `Unknown` | World window, Foraging tab: zone, season or item name the game cannot give | 14 |
 | `UI_ZeD_Forage_WxClear` | `Clear` | World window, Foraging tab: hero chip, weather | 10 |
 | `UI_ZeD_Forage_WxCloudy` | `Cloudy` | World window, Foraging tab: hero chip, weather | 10 |
@@ -1186,31 +1186,31 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Furn_Always` | `ALWAYS` | Furniture tab, Disassemble mode: chance column when an item is always returned | 8 |
+| `UI_ZeD_Furn_Always` | `Always` | Furniture tab, Disassemble mode: chance column when an item is always returned | 8 |
 | `UI_ZeD_Furn_CarryNone` | `You carry no furniture.` | Furniture tab, Place mode: empty state | - |
-| `UI_ZeD_Furn_Facing` | `FACING` | Furniture tab, Place and Rotate modes: small label before the N E S W buttons | 10 |
-| `UI_ZeD_Furn_MayYield` | `MAY YIELD` | Furniture tab, Disassemble mode: section heading above the items you may get back | 20 |
+| `UI_ZeD_Furn_Facing` | `Facing` | Furniture tab, Place and Rotate modes: small label before the N E S W buttons | 10 |
+| `UI_ZeD_Furn_MayYield` | `May yield` | Furniture tab, Disassemble mode: section heading above the items you may get back | 20 |
 | `UI_ZeD_Furn_More` | `+ %1 more` | Furniture tab, fact row: how many more acceptable tools there are (e.g. Claw Hammer + 3 more) | - |
-| `UI_ZeD_Furn_NothingToPlace` | `Nothing to place` | Furniture tab, Place mode: line when you carry nothing to place | - |
-| `UI_ZeD_Furn_OnCursor` | `ON CURSOR` | Furniture tab, Place mode: small tag on the furniture currently on the cursor | 12 |
-| `UI_ZeD_Furn_OnThisTile` | `ON THIS TILE` | Furniture tab: section heading above the objects on the pointed tile | 20 |
+| `UI_ZeD_Furn_NothingToPlace` | `Nothing to place.` | Furniture tab, Place mode: line when you carry nothing to place | - |
+| `UI_ZeD_Furn_OnCursor` | `On cursor` | Furniture tab, Place mode: small tag on the furniture currently on the cursor | 12 |
+| `UI_ZeD_Furn_OnThisTile` | `On this tile` | Furniture tab: section heading above the objects on the pointed tile | 20 |
 | `UI_ZeD_Furn_PickupNo` | `Cannot pick up` | Furniture tab, Pick up mode: status line and tile chip when it cannot be picked up | - |
 | `UI_ZeD_Furn_PickupReady` | `Ready to pick up` | Furniture tab, Pick up mode: status line when the pointed furniture can be picked up | - |
 | `UI_ZeD_Furn_PlaceNo` | `Does not fit here` | Furniture tab, Place mode: status line and tile chip when it does not fit | - |
 | `UI_ZeD_Furn_PlaceReady` | `Fits here` | Furniture tab, Place mode: status line when the furniture fits | - |
-| `UI_ZeD_Furn_PointBuilt` | `Point at something built or crafted` | Furniture tab, Repair mode: prompt when nothing repairable is pointed at | - |
-| `UI_ZeD_Furn_PointFurniture` | `Point at furniture` | Furniture tab: prompt when nothing is pointed at | - |
+| `UI_ZeD_Furn_PointBuilt` | `Point at something built or crafted.` | Furniture tab, Repair mode: prompt when nothing repairable is pointed at | - |
+| `UI_ZeD_Furn_PointFurniture` | `Point at furniture.` | Furniture tab: prompt when nothing is pointed at | - |
 | `UI_ZeD_Furn_RepairNo` | `Cannot repair` | Furniture tab, Repair mode: status line and tile chip when it cannot be repaired | - |
 | `UI_ZeD_Furn_RepairReady` | `Ready to repair` | Furniture tab, Repair mode: status line when it can be repaired | - |
-| `UI_ZeD_Furn_RollChance` | `ROLL CHANCE` | Furniture tab, Disassemble mode: second column legend of the yield list | 14 |
+| `UI_ZeD_Furn_RollChance` | `Roll chance` | Furniture tab, Disassemble mode: second column legend of the yield list | 14 |
 | `UI_ZeD_Furn_RotateNo` | `Cannot turn` | Furniture tab, Rotate mode: status line and tile chip when it cannot be turned | - |
 | `UI_ZeD_Furn_RotateReady` | `Turns in place` | Furniture tab, Rotate mode: status line when it can be turned | - |
 | `UI_ZeD_Furn_ScrapNo` | `Cannot take apart` | Furniture tab, Disassemble mode: status line and tile chip when it cannot be taken apart | - |
 | `UI_ZeD_Furn_ScrapReady` | `Ready to take apart` | Furniture tab, Disassemble mode: status line when it can be taken apart | - |
-| `UI_ZeD_Furn_Target` | `TARGET` | Furniture tab: small tag on the object currently targeted | 12 |
+| `UI_ZeD_Furn_Target` | `Target` | Furniture tab: small tag on the object currently targeted | 12 |
 | `UI_ZeD_Furn_ToCursor` | `To the cursor` | Controller prompt for B on the Furniture tab (hands the stick back to the world cursor) | 20 |
-| `UI_ZeD_Furn_UpTo` | `UP TO` | Furniture tab, Disassemble mode: first column legend of the yield list (most you can get) | 10 |
-| `UI_ZeD_Furn_YourFurniture` | `YOUR FURNITURE` | Furniture tab, Place mode: section heading above the furniture you carry | 20 |
+| `UI_ZeD_Furn_UpTo` | `Up to` | Furniture tab, Disassemble mode: first column legend of the yield list (most you can get) | 10 |
+| `UI_ZeD_Furn_YourFurniture` | `Your furniture` | Furniture tab, Place mode: section heading above the furniture you carry | 20 |
 
 ## Hair
 
@@ -1228,14 +1228,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Hair_EmptyHair` | `Nothing to cut: the hair is too short. It grows back over time.` | Identity tab, Hair and beard: in place of the list when the hair cannot be cut or tied | - |
 | `UI_ZeD_Hair_FromMod` | `(from %1)` | Identity tab, Hair and beard: small note after a row a hair mod added; %1 is the mod's name | - |
 | `UI_ZeD_Hair_GrowsBack` | `Grows over time` | Identity tab, Hair and beard: small note at the right of the hair colour line | 18 |
-| `UI_ZeD_Hair_GrpCut` | `Cut` | Identity tab, Hair and beard: small capitals group heading over the cuts that need Scissors | 10 |
-| `UI_ZeD_Hair_GrpShave` | `Shave` | Identity tab, Hair and beard: small capitals group heading over Shave Hair / Shave Beard | 10 |
-| `UI_ZeD_Hair_GrpStyle` | `Style` | Identity tab, Hair and beard: small capitals group heading over the styles that need Hair Gel or Hair Spray | 10 |
-| `UI_ZeD_Hair_GrpTie` | `Tie` | Identity tab, Hair and beard: small capitals group heading over the tie choices (no tool) | 10 |
-| `UI_ZeD_Hair_GrpTrim` | `Trim` | Identity tab, Hair and beard: small capitals group heading over the beard trims | 10 |
+| `UI_ZeD_Hair_GrpCut` | `Cut` | Identity tab, Hair and beard: group heading over the cuts that need Scissors | 10 |
+| `UI_ZeD_Hair_GrpShave` | `Shave` | Identity tab, Hair and beard: group heading over Shave Hair / Shave Beard | 10 |
+| `UI_ZeD_Hair_GrpStyle` | `Style` | Identity tab, Hair and beard: group heading over the styles that need Hair Gel or Hair Spray | 10 |
+| `UI_ZeD_Hair_GrpTie` | `Tie` | Identity tab, Hair and beard: group heading over the tie choices (no tool) | 10 |
+| `UI_ZeD_Hair_GrpTrim` | `Trim` | Identity tab, Hair and beard: group heading over the beard trims | 10 |
 | `UI_ZeD_Hair_HatOff` | `Your %1 comes off first` | Identity tab, Hair and beard: the strip's small line, the game takes the hat off before a cut; %1 is the hat's name | - |
 | `UI_ZeD_Hair_HintMouse` | `Hover a row for the game's hint.` | Identity tab, Hair and beard: small line under the strip's first line (mouse) | 44 |
-| `UI_ZeD_Hair_HintPad` | `Focus a row: it shows here. A does it.` | Identity tab, Hair and beard: small line under the strip's first line (controller; A is the controller's A button) | 44 |
+| `UI_ZeD_Hair_HintPad` | `Focus a row: it shows here. Press to do it.` | Identity tab, Hair and beard: small line under the strip's first line (controller; A is the controller's A button) | 44 |
 | `UI_ZeD_Hair_Len0` | `None` | Identity tab, Hair and beard: hair or beard length beside its three small bars (level 0) | 8 |
 | `UI_ZeD_Hair_Len1` | `Short` | Identity tab, Hair and beard: hair or beard length beside its three small bars (level 1) | 8 |
 | `UI_ZeD_Hair_Len2` | `Medium` | Identity tab, Hair and beard: hair or beard length beside its three small bars (level 2) | 8 |
@@ -1245,13 +1245,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Hair_NotFromBeard` | `Can't be trimmed from %1.` | Identity tab, Hair and beard: why a beard style is out of reach; %1 is the current beard | - |
 | `UI_ZeD_Hair_NotFromHair` | `Can't be cut from %1.` | Identity tab, Hair and beard: why a style is out of reach although the hair is long enough; %1 is the current style | - |
 | `UI_ZeD_Hair_NotePictures` | `%1 is on: its styles are in this list.` | Identity tab, Hair and beard: note under the list when a hair mod with a picture window (Improved Hair Menu, NeatUI Hairstyler) is on; its styles are rows here, each with the character's 3D figure; %1 is the mod's name | - |
-| `UI_ZeD_Hair_NoteSpongie` | `%1 is on: every style at or under this length can be picked. Rows it adds carry its name.` | Identity tab, Hair and beard: note under the list when Spongie's Hairstyle Unlocker is on; %1 is the mod's name | - |
+| `UI_ZeD_Hair_NoteSpongie` | `%1 is on: every style at or under this length can be chosen. Rows it adds carry its name.` | Identity tab, Hair and beard: note under the list when Spongie's Hairstyle Unlocker is on; %1 is the mod's name | - |
 | `UI_ZeD_Hair_Now` | `Now` | Identity tab, Hair and beard: caption under the drawn head as it is now | 8 |
-| `UI_ZeD_Hair_OutOfReach` | `Out of reach` | Identity tab, Hair and beard: folded group of the styles the hair (or beard) cannot be cut into from here | 16 |
-| `UI_ZeD_Hair_OutTitle` | `%1: out of reach` | Identity tab, Hair and beard: the strip when an out-of-reach row is picked; %1 is the style | - |
+| `UI_ZeD_Hair_OutOfReach` | `Not available here` | Identity tab, Hair and beard: folded group of the styles the hair (or beard) cannot be cut into from here | 16 |
+| `UI_ZeD_Hair_OutTitle` | `%1: not available here` | Identity tab, Hair and beard: the strip when an out-of-reach row is picked; %1 is the style | - |
 | `UI_ZeD_Hair_PartCount` | `%1 (%2)` | Identity tab, Hair and beard: a half of the Hair / Beard switch; %1 is the game's word Hair or Beard, %2 how many choices | 16 |
-| `UI_ZeD_Hair_Pick` | `Pick a row to see what it needs` | Identity tab, Hair and beard: the strip at the foot of the drawer before a row is picked | 40 |
-| `UI_ZeD_Hair_Section` | `Hair and beard` | Identity tab (Character window), Hair and beard section: small capitals heading under the license | 24 |
+| `UI_ZeD_Hair_Pick` | `Choose a row to see what it needs` | Identity tab, Hair and beard: the strip at the foot of the drawer before a row is picked | 40 |
+| `UI_ZeD_Hair_Section` | `Hair and beard` | Identity tab (Character window), Hair and beard section: heading under the license | 24 |
 | `UI_ZeD_Hair_Stop` | `Stop` | Identity tab, Hair and beard: the strip's button while a cut runs (stops it) | 10 |
 | `UI_ZeD_Hair_TagNotFromBeard` | `Not from this beard` | Identity tab, Hair and beard: short tag at the right of an out-of-reach beard row | 22 |
 | `UI_ZeD_Hair_TagNotFromHair` | `Not from this style` | Identity tab, Hair and beard: short tag at the right of an out-of-reach row | 22 |
@@ -1278,8 +1278,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Health_Burn` | `Burn` | Health tab (Character window): condition badge on a burned body part (pill, shown in capitals) | 14 |
-| `UI_ZeD_Health_GlassShards` | `Glass shards` | Health tab (Character window): condition badge on an injured body part (pill, shown in capitals) | 18 |
+| `UI_ZeD_Health_Burn` | `Burn` | Health tab (Character window): condition badge on a burned body part (pill) | 14 |
+| `UI_ZeD_Health_GlassShards` | `Glass shards` | Health tab (Character window): condition badge on an injured body part (pill) | 18 |
 | `UI_ZeD_Health_Healthy` | `Healthy` | Health tab (Character window): hover detail for a body part with no conditions (beside a green dot) | 14 |
 | `UI_ZeD_Health_InjuredOf` | `%1 of %2 injured` | Health tab (Character window): summary line; %1 is how many body parts have a wound or condition, %2 how many body parts there are | 24 |
 | `UI_ZeD_Health_NoInjuries` | `No injuries` | Health tab (Character window): summary line (with a green dot) when nothing is wounded and health is fine | 20 |
@@ -1291,24 +1291,24 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Hook_BleedingOnGround` | `BLEEDING ONTO THE GROUND` | Butcher hook card: label of the progress band while blood runs onto the ground (capitals) | 26 |
-| `UI_ZeD_Hook_BleedOnGround` | `BLEED ONTO THE GROUND` | Butcher hook card: row under the container list: let the blood run onto the ground (capitals) | - |
+| `UI_ZeD_Hook_BleedingOnGround` | `Bleeding onto the ground` | Butcher hook card: label of the progress band while blood runs onto the ground | 26 |
+| `UI_ZeD_Hook_BleedOnGround` | `Bleed onto the ground` | Butcher hook card: row under the container list: let the blood run onto the ground | - |
 | `UI_ZeD_Hook_BloodLostHead` | `Taking the head now splashes the %1 of blood still in it.` | Butcher hook card: the NEEDS line before taking the head while blood remains; %1 is the amount, e.g. 1.50 L | - |
 | `UI_ZeD_Hook_BloodLostMeat` | `Taking the meat now loses the %1 of blood still in it; the head splashes it.` | Butcher hook card: the NEEDS line before taking meat while blood remains; %1 is the amount, e.g. 1.50 L | - |
-| `UI_ZeD_Hook_CollectInto` | `COLLECT INTO` | Butcher hook card: section heading over the list of containers for the blood (capitals) | - |
-| `UI_ZeD_Hook_DeadNearby` | `DEAD ANIMALS NEARBY` | Butcher hook card: section heading over the list of carcasses to hang (capitals) | - |
-| `UI_ZeD_Hook_GroundTile` | `GROUND \| %1 TILE` | Butcher hook card: where a dead animal lies, exactly 1 tile away (capitals; the bar is a separator) | 24 |
-| `UI_ZeD_Hook_GroundTiles` | `GROUND \| %1 TILES` | Butcher hook card: where a dead animal lies, any other distance (capitals; the bar is a separator) | 24 |
-| `UI_ZeD_Hook_Hang` | `HANG` | Butcher hook card: button on a carcass row that hangs it on the hook (btn sentence case applies) | 10 |
+| `UI_ZeD_Hook_CollectInto` | `Collect into` | Butcher hook card: section heading over the list of containers for the blood | - |
+| `UI_ZeD_Hook_DeadNearby` | `Dead animals nearby` | Butcher hook card: section heading over the list of carcasses to hang | - |
+| `UI_ZeD_Hook_GroundTile` | `Ground \| %1 tile` | Butcher hook card: where a dead animal lies, exactly 1 tile away (the bar is a separator) | 24 |
+| `UI_ZeD_Hook_GroundTiles` | `Ground \| %1 tiles` | Butcher hook card: where a dead animal lies, any other distance (the bar is a separator) | 24 |
+| `UI_ZeD_Hook_Hang` | `Hang` | Butcher hook card: button on a carcass row that hangs it on the hook (btn sentence case applies) | 10 |
 | `UI_ZeD_Hook_InUseBy` | `Someone else is using the hook.` | Butcher hook card: the NEEDS line under the verbs | - |
-| `UI_ZeD_Hook_Knife` | `KNIFE` | Butcher hook card: label of the line naming the knife in use (capitals) | 10 |
-| `UI_ZeD_Hook_NotForHook` | `NOT FOR THE HOOK` | Butcher hook card: tag on a carcass the hook does not take (capitals, bordered tag) | 18 |
-| `UI_ZeD_Hook_PillBleeding` | `BLEEDING` | Butcher hook card: header pill while the carcass bleeds out (capitals) | 12 |
-| `UI_ZeD_Hook_PillEmpty` | `EMPTY` | Butcher hook card: header pill for a hook with no carcass (capitals) | 12 |
-| `UI_ZeD_Hook_PillInUse` | `IN USE` | Butcher hook card: header pill when another player uses the hook (capitals) | 12 |
-| `UI_ZeD_Hook_PillOnHook` | `ON THE HOOK` | Butcher hook card: header pill for a carcass on the hook (capitals) | 12 |
+| `UI_ZeD_Hook_Knife` | `Knife` | Butcher hook card: label of the line naming the knife in use | 10 |
+| `UI_ZeD_Hook_NotForHook` | `Not for the hook` | Butcher hook card: tag on a carcass the hook does not take (bordered tag) | 18 |
+| `UI_ZeD_Hook_PillBleeding` | `Bleeding` | Butcher hook card: header pill while the carcass bleeds out | 12 |
+| `UI_ZeD_Hook_PillEmpty` | `Empty` | Butcher hook card: header pill for a hook with no carcass | 12 |
+| `UI_ZeD_Hook_PillInUse` | `In use` | Butcher hook card: header pill when another player uses the hook | 12 |
+| `UI_ZeD_Hook_PillOnHook` | `On the hook` | Butcher hook card: header pill for a carcass on the hook | 12 |
 | `UI_ZeD_Hook_Taken` | `Taken` | Butcher hook card: value of Leather, Head or Meat once that part has been taken from the carcass | 10 |
-| `UI_ZeD_Hook_Within2` | `WITHIN 2 TILES OR CARRIED` | Butcher hook card: right side of that heading (capitals) | - |
+| `UI_ZeD_Hook_Within2` | `Within 2 tiles or carried` | Butcher hook card: right side of that heading | - |
 
 ## Host
 
@@ -1318,11 +1318,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Host_AskDeleteWorld` | `Delete the world? It cannot be undone.` | Host screen: question in the action strip | - |
 | `UI_ZeD_Host_AskReset` | `Soft-reset the server?` | Host screen: question in the action strip | - |
 | `UI_ZeD_Host_BadAccount` | `That account name will not do.` | Host screen: red note under the form when the account name is not valid | - |
-| `UI_ZeD_Host_LabelAccount` | `ACCOUNT` | Host screen: caps label at the left of the account name row (about 18 letters of room) | 18 |
-| `UI_ZeD_Host_LabelSettings` | `SERVER SETTINGS` | Host screen: caps label at the left of the server settings choice | 18 |
-| `UI_ZeD_Host_LabelWorld` | `THE WORLD` | Host screen: caps label at the left of the world upkeep buttons | 18 |
+| `UI_ZeD_Host_LabelAccount` | `Account` | Host screen: caps label at the left of the account name row (about 18 letters of room) | 18 |
+| `UI_ZeD_Host_LabelSettings` | `Server settings` | Host screen: caps label at the left of the server settings choice | 18 |
+| `UI_ZeD_Host_LabelWorld` | `The world` | Host screen: caps label at the left of the world upkeep buttons | 18 |
 | `UI_ZeD_Host_Reset` | `Reset` | Host screen: strip button that confirms the soft reset | 12 |
-| `UI_ZeD_Host_Resetting` | `RESETTING` | Host screen: caps heading over the soft reset progress bar | - |
+| `UI_ZeD_Host_Resetting` | `Resetting` | Host screen: caps heading over the soft reset progress bar | - |
 | `UI_ZeD_Host_Title` | `Project Zomboid  +  Host a game` | Host screen: title bar. The + is the ZeD title separator | - |
 
 ## Hud
@@ -1336,28 +1336,28 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Hutch_Bleach` | `Bleach \| twice as fast` | Hutch card: cleaning checklist: optional bleach (the bar is a separator) | - |
-| `UI_ZeD_Hutch_BothShut` | `BOTH DOORS SHUT` | Hutch card: plate where shut doors hide the boxes (capitals) | 18 |
-| `UI_ZeD_Hutch_Box` | `BOX %1` | Hutch card: heading of one egg laying box, e.g. BOX 2 (capitals) | 8 |
-| `UI_ZeD_Hutch_Boxes` | `%1 BOXES` | Hutch card: right side of the EGG LAYING BOXES heading when both doors are shut (capitals) | 14 |
+| `UI_ZeD_Hutch_BothShut` | `Both doors shut` | Hutch card: plate where shut doors hide the boxes | 18 |
+| `UI_ZeD_Hutch_Box` | `Box %1` | Hutch card: heading of one egg laying box, e.g. Box 2 | 8 |
+| `UI_ZeD_Hutch_Boxes` | `%1 boxes` | Hutch card: right side of the Egg laying boxes heading when both doors are shut | 14 |
 | `UI_ZeD_Hutch_BoxesFull` | `Every box is full: the hens will lay outside.` | Hutch card: the NEEDS line under the boxes | - |
 | `UI_ZeD_Hutch_CloseHatch` | `Close hatch` | Hutch card: verb button for the egg hatch door | 14 |
-| `UI_ZeD_Hutch_Dirtiness` | `DIRTINESS` | Hutch card: label over the floor's dirtiness bar (capitals) | 14 |
-| `UI_ZeD_Hutch_DoorOpen` | `DOOR OPEN` | Hutch card: text beside the main door's lamp (capitals) | 14 |
-| `UI_ZeD_Hutch_DoorShut` | `DOOR SHUT` | Hutch card: text beside the main door's lamp, and the plate where a shut door hides the perches (capitals) | 14 |
-| `UI_ZeD_Hutch_EggsBoxes` | `%1 EGGS \| %2 BOXES` | Hutch card: right side of the EGG LAYING BOXES heading: eggs and boxes (capitals; the bar is a separator) | 24 |
-| `UI_ZeD_Hutch_HatchOpen` | `EGG HATCH OPEN` | Hutch card: text beside the egg hatch's lamp (capitals) | 18 |
-| `UI_ZeD_Hutch_HatchShut` | `EGG HATCH SHUT` | Hutch card: text beside the egg hatch's lamp (capitals) | 18 |
-| `UI_ZeD_Hutch_HenSitting` | `HEN SITTING` | Hutch card: the disabled button of a box that has a hen sitting in it (capitals; the box is about 12 letters wide) | 12 |
+| `UI_ZeD_Hutch_Dirtiness` | `Dirtiness` | Hutch card: label over the floor's dirtiness bar | 14 |
+| `UI_ZeD_Hutch_DoorOpen` | `Door open` | Hutch card: text beside the main door's lamp | 14 |
+| `UI_ZeD_Hutch_DoorShut` | `Door shut` | Hutch card: text beside the main door's lamp, and the plate where a shut door hides the perches | 14 |
+| `UI_ZeD_Hutch_EggsBoxes` | `%1 eggs \| %2 boxes` | Hutch card: right side of the Egg laying boxes heading: eggs and boxes (the bar is a separator) | 24 |
+| `UI_ZeD_Hutch_HatchOpen` | `Egg hatch open` | Hutch card: text beside the egg hatch's lamp | 18 |
+| `UI_ZeD_Hutch_HatchShut` | `Egg hatch shut` | Hutch card: text beside the egg hatch's lamp | 18 |
+| `UI_ZeD_Hutch_HenSitting` | `Hen sitting` | Hutch card: the disabled button of a box that has a hen sitting in it (the box is about 12 letters wide) | 12 |
 | `UI_ZeD_Hutch_Mop` | `Mop, towel or broom` | Hutch card: cleaning checklist: a cleaning tool needed, when you carry none | - |
 | `UI_ZeD_Hutch_MopNamed` | `Mop, towel or broom \| %1` | Hutch card: cleaning checklist: the tool you have; %1 is its item name (the bar is a separator) | - |
 | `UI_ZeD_Hutch_NoBirds` | `No birds inside.` | Hutch card: line under COOP ROOSTING when no bird is inside | - |
 | `UI_ZeD_Hutch_OpenHatch` | `Open hatch` | Hutch card: verb button for the egg hatch door | 14 |
-| `UI_ZeD_Hutch_PillShut` | `SHUT` | Hutch card: header pill when both doors are shut (capitals) | 8 |
+| `UI_ZeD_Hutch_PillShut` | `Shut` | Hutch card: header pill when both doors are shut | 8 |
 | `UI_ZeD_Hutch_PutIn` | `Put in` | Hutch card: verb button, shown when you hold a bird the hutch takes | 10 |
 | `UI_ZeD_Hutch_PutInNeeds` | `Put in: %1` | Hutch card: the NEEDS line when the bird cannot go in; %1 is the game's own reason (doors shut, hutch full) | - |
-| `UI_ZeD_Hutch_Sitting` | `SITTING \| %1` | Hutch card: under a hen sitting in a box; %1 is the number of eggs under her (tiny capitals; the bar is a separator) | 14 |
-| `UI_ZeD_Hutch_SubAdult` | `%1 \| ADULT` | Hutch card: small line under a bird's name on the perch list; %1 is the species in capitals (capitals; the bar is a separator) | 24 |
-| `UI_ZeD_Hutch_SubYoung` | `%1 \| YOUNG` | Hutch card: small line under a young bird's name on the perch list; %1 is the species in capitals (capitals; the bar is a separator) | 24 |
+| `UI_ZeD_Hutch_Sitting` | `Sitting \| %1` | Hutch card: under a hen sitting in a box; %1 is the number of eggs under her (the bar is a separator) | 14 |
+| `UI_ZeD_Hutch_SubAdult` | `%1 \| adult` | Hutch card: small line under a bird's name on the perch list; %1 is the species (the bar is a separator) | 24 |
+| `UI_ZeD_Hutch_SubYoung` | `%1 \| young` | Hutch card: small line under a young bird's name on the perch list; %1 is the species (the bar is a separator) | 24 |
 | `UI_ZeD_Hutch_Water` | `Water` | Hutch card: cleaning checklist: water needed, when you carry none | - |
 | `UI_ZeD_Hutch_WaterNamed` | `Water \| %1` | Hutch card: cleaning checklist: the water you have; %1 is its item name (the bar is a separator) | - |
 
@@ -1381,8 +1381,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Identity_NotApplicable` | `N/A` | Identity tab (Character window), driver's-license card: Facial Hair value for a female character | 6 |
 | `UI_ZeD_Identity_NoTraits` | `No traits` | Identity tab (Character window), driver's-license card: Traits section, when the character has none | 20 |
 | `UI_ZeD_Identity_Profession` | `Profession` | Identity tab (Character window), driver's-license card: small field label (first row, right column) | 18 |
-| `UI_ZeD_Identity_TraitsNegative` | `NEGATIVE (%1)` | Identity tab (Character window), driver's-license card: Traits section, small subheading over the bad traits (capitals); %1 is how many | 20 |
-| `UI_ZeD_Identity_TraitsPositive` | `POSITIVE (%1)` | Identity tab (Character window), driver's-license card: Traits section, small subheading over the good traits (capitals); %1 is how many | 20 |
+| `UI_ZeD_Identity_TraitsNegative` | `Negative (%1)` | Identity tab (Character window), driver's-license card: Traits section, small subheading over the bad traits; %1 is how many | 20 |
+| `UI_ZeD_Identity_TraitsPositive` | `Positive (%1)` | Identity tab (Character window), driver's-license card: Traits section, small subheading over the good traits; %1 is how many | 20 |
 | `UI_ZeD_Identity_Unknown` | `Unknown` | Identity tab (Character window), driver's-license card: surname / hair colour shown when the game gives none | 16 |
 | `UI_ZeD_Identity_WeightKg` | `%1 kg` | Identity tab (Character window), driver's-license card: weight pill at the top right of the card; %1 is the number (kilograms) | 10 |
 
@@ -1390,24 +1390,24 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Inv_ColCat` | `CAT` | Inventory list: column heading for the item category | 6 |
-| `UI_ZeD_Inv_ColCond` | `COND` | Inventory list: column heading for item condition | 6 |
-| `UI_ZeD_Inv_ColName` | `NAME` | Inventory list: column heading, and the name of the sort order in the grid's order line | 8 |
-| `UI_ZeD_Inv_ColWt` | `WT` | Inventory list: column heading for item weight | 4 |
-| `UI_ZeD_Inv_Empty` | `INVENTORY EMPTY` | Inventory list: centered message when a container has no items | 24 |
+| `UI_ZeD_Inv_ColCat` | `Cat` | Inventory list: column heading for the item category | 6 |
+| `UI_ZeD_Inv_ColCond` | `Cond` | Inventory list: column heading for item condition | 6 |
+| `UI_ZeD_Inv_ColName` | `Name` | Inventory list: column heading, and the name of the sort order in the grid's order line | 8 |
+| `UI_ZeD_Inv_ColWt` | `Wt` | Inventory list: column heading for item weight | 4 |
+| `UI_ZeD_Inv_Empty` | `Nothing in here.` | Inventory list: centered message when a container has no items | 24 |
 | `UI_ZeD_Inv_GridView` | `Grid view` | Inventory lists: hover hint on the grid button of the List/Grid toggle | - |
 | `UI_ZeD_Inv_ItemsMany` | `%1 items` | Inventory lists (both windows), compact container header: how many items it holds (several or none) | 12 |
 | `UI_ZeD_Inv_ItemsOne` | `%1 item` | Inventory lists (both windows), compact container header: how many items it holds (one) | - |
-| `UI_ZeD_Inv_OrderLine` | `ORDER: %1, AS THE LIST` | Inventory grid, column bar: names the list's sort order the grid follows; %1 is NAME, CATEGORY, CONDITION or WEIGHT | - |
-| `UI_ZeD_Inv_OrderWt` | `WEIGHT` | Inventory grid, order line: name of the sort order (by weight) | 14 |
+| `UI_ZeD_Inv_OrderLine` | `Order: %1, as the list` | Inventory grid, column bar: names the list's sort order the grid follows; %1 is NAME, CATEGORY, CONDITION or WEIGHT | - |
+| `UI_ZeD_Inv_OrderWt` | `Weight` | Inventory grid, order line: name of the sort order (by weight) | 14 |
 
 ## ItemAct
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_ItemAct_MinutesShort` | `%1m` | Item card progress band, minutes left to cook or burn (%1 is the number) | 6 |
-| `UI_ZeD_ItemAct_Reading` | `READING` | Item card progress band label while a book is read | 14 |
-| `UI_ZeD_ItemAct_Repairing` | `REPAIRING` | Item card progress band label while clothing is repaired | 14 |
+| `UI_ZeD_ItemAct_Reading` | `Reading` | Item card progress band label while a book is read | 14 |
+| `UI_ZeD_ItemAct_Repairing` | `Repairing` | Item card progress band label while clothing is repaired | 14 |
 
 ## ItemMenu
 
@@ -1437,10 +1437,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Join_FilterFull` | `Full` | Join screen: tick box on the Public tab: show full servers | - |
 | `UI_ZeD_Join_FilterVersion` | `Same version` | Join screen: tick box on the Public tab: show only servers running your version | - |
 | `UI_ZeD_Join_Find` | `Find:` | Join screen: label of the search box on the Public tab | 10 |
-| `UI_ZeD_Join_Forget` | `Forget` | Join screen: strip button that removes a public server from the saved ones | 12 |
+| `UI_ZeD_Join_Forget` | `Remove` | Join screen: strip button that removes a public server from the saved ones | 12 |
 | `UI_ZeD_Join_KeepPassword` | `Leave it empty to keep the saved one.` | Join screen: note under the password field when editing an account | - |
-| `UI_ZeD_Join_KvAddress` | `ADDRESS` | Join screen: caps label in the server facts (about 12 letters of room) | 12 |
-| `UI_ZeD_Join_KvWhitelist` | `WHITELIST` | Join screen: caps label in the server facts | 12 |
+| `UI_ZeD_Join_KvAddress` | `Address` | Join screen: caps label in the server facts (about 12 letters of room) | 12 |
+| `UI_ZeD_Join_KvWhitelist` | `Whitelist` | Join screen: caps label in the server facts | 12 |
 | `UI_ZeD_Join_LastOn` | `last on %1` | Join screen: under a saved account, after a \| separator. %1 is the date of the last logon | - |
 | `UI_ZeD_Join_MinPlayed` | `%1 min played` | Join screen: under a saved account. %1 is the minutes played | - |
 | `UI_ZeD_Join_Modded` | `Modded` | Join screen: tick box on the Public tab (show modded servers) and a tag on a server row | - |
@@ -1497,22 +1497,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Keyboard_Show` | `SHOW` | On-screen keyboard, key that reveals a masked (password) field | 8 |
+| `UI_ZeD_Keyboard_Show` | `Show` | On-screen keyboard, key that reveals a masked (password) field | 8 |
 
 ## Lock
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Lock_BusyLocking` | `LOCKING` | Padlock card: label in the progress band while the padlock is being locked (small, left of the bar; capitals) | 24 |
-| `UI_ZeD_Lock_BusyPutting` | `PUTTING THE PADLOCK ON` | Padlock card: label in the progress band while a key padlock goes on (capitals) | 26 |
-| `UI_ZeD_Lock_BusyRemoving` | `REMOVING THE PADLOCK` | Padlock card: label in the progress band while a padlock comes off (capitals) | 26 |
-| `UI_ZeD_Lock_BusyTrying` | `TRYING %1` | Padlock card: label in the progress band while a code is tried; %1 is the code with spaces, e.g. 3 1 9 (capitals) | 24 |
-| `UI_ZeD_Lock_BusyWalking` | `WALKING OVER` | Padlock card: label in the progress band while the character walks to the object (capitals) | 24 |
+| `UI_ZeD_Lock_BusyLocking` | `Locking` | Padlock card: label in the progress band while the padlock is being locked (small, left of the bar) | 24 |
+| `UI_ZeD_Lock_BusyPutting` | `Putting the padlock on` | Padlock card: label in the progress band while a key padlock goes on | 26 |
+| `UI_ZeD_Lock_BusyRemoving` | `Removing the padlock` | Padlock card: label in the progress band while a padlock comes off | 26 |
+| `UI_ZeD_Lock_BusyTrying` | `Trying %1` | Padlock card: label in the progress band while a code is tried; %1 is the code with spaces, e.g. 3 1 9 | 24 |
+| `UI_ZeD_Lock_BusyWalking` | `Walking over` | Padlock card: label in the progress band while the character walks to the object | 24 |
 | `UI_ZeD_Lock_ComboIn` | `Combination Padlock \| in your inventory` | Padlock card: value of the padlock line while choosing a code (the bar is a separator) | - |
 | `UI_ZeD_Lock_ComboNone` | `No Combination Padlock in your inventory` | Padlock card: value of the padlock line while choosing a code with no padlock | - |
-| `UI_ZeD_Lock_FactContainer` | `CONTAINER` | Padlock card: label of the container line (capitals; the label column is about 12 letters wide) | 12 |
-| `UI_ZeD_Lock_FactKey` | `KEY` | Padlock card: label of the key line (capitals; the label column is about 12 letters wide) | 12 |
-| `UI_ZeD_Lock_FactPadlock` | `PADLOCK` | Padlock card: label of the padlock line (capitals; the label column is about 12 letters wide) | 12 |
+| `UI_ZeD_Lock_FactContainer` | `Container` | Padlock card: label of the container line (the label column is about 12 letters wide) | 12 |
+| `UI_ZeD_Lock_FactKey` | `Key` | Padlock card: label of the key line (the label column is about 12 letters wide) | 12 |
+| `UI_ZeD_Lock_FactPadlock` | `Padlock` | Padlock card: label of the padlock line (the label column is about 12 letters wide) | 12 |
 | `UI_ZeD_Lock_FlashOff` | `Padlock off. It shows in the Loot pane.` | Padlock card: footer line for a few seconds after the padlock comes off | - |
 | `UI_ZeD_Lock_Hidden` | `hidden while locked` | Padlock card: what the container holds, when it is locked to you | - |
 | `UI_ZeD_Lock_ItemsMany` | `%1 items \| %2 / %3` | Padlock card: container line, any other number of items; %2 is the weight, %3 the capacity (the bar is a separator) | - |
@@ -1523,18 +1523,18 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Lock_NeedCode` | `A code other than 000` | Padlock card: checklist row | - |
 | `UI_ZeD_Lock_NeedCombo` | `Combination Padlock in your inventory` | Padlock card: checklist row | - |
 | `UI_ZeD_Lock_NeedKey` | `Its key in your inventory` | Padlock card: checklist row | - |
-| `UI_ZeD_Lock_NeedsLock` | `NEEDS \| LOCK` | Padlock card: section heading over the list of what locking needs (capitals; the bar is a separator) | - |
-| `UI_ZeD_Lock_NeedsRemove` | `NEEDS \| REMOVE PADLOCK` | Padlock card: section heading over the list of what removing a key padlock needs (capitals; the bar is a separator) | - |
+| `UI_ZeD_Lock_NeedsLock` | `Needs \| lock` | Padlock card: section heading over the list of what locking needs (the bar is a separator) | - |
+| `UI_ZeD_Lock_NeedsRemove` | `Needs \| remove padlock` | Padlock card: section heading over the list of what removing a key padlock needs (the bar is a separator) | - |
 | `UI_ZeD_Lock_NeedUseCombo` | `Use combination padlock: a Combination Padlock in your inventory` | Padlock card: checklist row | - |
 | `UI_ZeD_Lock_NeedUsePad` | `Use padlock: a Padlock with its keys in your inventory` | Padlock card: checklist row | - |
-| `UI_ZeD_Lock_NoPadlock` | `NO PADLOCK ON IT` | Padlock card: plate where the padlock would be, on an object with none (capitals) | 22 |
+| `UI_ZeD_Lock_NoPadlock` | `No padlock on it` | Padlock card: plate where the padlock would be, on an object with none | 22 |
 | `UI_ZeD_Lock_NoteSet` | `Locked to everyone, you included, until the code takes the padlock off` | Padlock card: note under the padlock while choosing a code (wraps, centred) | - |
 | `UI_ZeD_Lock_PadComboLocked` | `Combination \| locked to everyone` | Padlock card: value of the padlock line for a code lock (the bar is a separator) | - |
 | `UI_ZeD_Lock_PadKeyOpens` | `Key padlock \| opens for whoever carries its key` | Padlock card: value of the padlock line for a key lock (the bar is a separator) | - |
-| `UI_ZeD_Lock_PillCode` | `CODE LOCK` | Padlock card: header pill for a code-locked object (capitals) | 16 |
-| `UI_ZeD_Lock_PillKey` | `KEY LOCK` | Padlock card: header pill for a key-locked object (capitals) | 16 |
-| `UI_ZeD_Lock_PillSetting` | `SETTING A CODE` | Padlock card: header pill while choosing a code (capitals) | 16 |
-| `UI_ZeD_Lock_PillUnlocked` | `UNLOCKED` | Padlock card: header pill for an object with no padlock (capitals) | 16 |
+| `UI_ZeD_Lock_PillCode` | `Code lock` | Padlock card: header pill for a code-locked object | 16 |
+| `UI_ZeD_Lock_PillKey` | `Key lock` | Padlock card: header pill for a key-locked object | 16 |
+| `UI_ZeD_Lock_PillSetting` | `Setting a code` | Padlock card: header pill while choosing a code | 16 |
+| `UI_ZeD_Lock_PillUnlocked` | `Unlocked` | Padlock card: header pill for an object with no padlock | 16 |
 | `UI_ZeD_Lock_StatusNoCombo` | `Can't lock: no Combination Padlock in your inventory` | Padlock card: footer line | - |
 | `UI_ZeD_Lock_StatusNoKey` | `Can't remove the padlock: its key is not in your inventory` | Padlock card: footer line | - |
 | `UI_ZeD_Lock_StatusReadyKey` | `Ready to remove the padlock with its key` | Padlock card: footer line | - |
@@ -1544,7 +1544,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Lock_StatusWorking` | `Working on the padlock` | Padlock card: footer line while a padlock action runs | - |
 | `UI_ZeD_Lock_StatusWrong` | `Wrong code: %1. The padlock stays on.` | Padlock card: footer line (red) after a wrong try; %1 is the code with spaces, e.g. 3 1 9 | - |
 | `UI_ZeD_Lock_StatusZeroCode` | `Can't lock: a code of 000 does nothing` | Padlock card: footer line | - |
-| `UI_ZeD_Lock_WhatItLocks` | `WHAT IT LOCKS` | Padlock card: section heading (capitals) | - |
+| `UI_ZeD_Lock_WhatItLocks` | `What it locks` | Padlock card: section heading | - |
 
 ## Looks
 
@@ -1564,22 +1564,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Machine_AboutDayOne` | `ABOUT 1 DAY` | Craft tab, drying rack: time left, one day | 20 |
-| `UI_ZeD_Machine_AboutDays` | `ABOUT %1 DAYS` | Craft tab, drying rack: time left, several days (follows "%1 LEFT") | 20 |
-| `UI_ZeD_Machine_AboutHourOne` | `ABOUT 1 HOUR` | Craft tab, drying rack: time left, one hour | 20 |
-| `UI_ZeD_Machine_AboutHours` | `ABOUT %1 HOURS` | Craft tab, drying rack: time left, several hours | 20 |
-| `UI_ZeD_Machine_AboutMinuteOne` | `ABOUT 1 MINUTE` | Craft tab, drying rack: time left, one minute | 20 |
-| `UI_ZeD_Machine_AboutMinutes` | `ABOUT %1 MINUTES` | Craft tab, drying rack: time left, several minutes | 20 |
-| `UI_ZeD_Machine_Add` | `ADD` | Craft tab, drying rack: button that adds an item to the rack | 8 |
-| `UI_ZeD_Machine_DayEachOne` | `1 DAY EACH` | Craft tab, drying rack recipe line: how long each item takes | 14 |
-| `UI_ZeD_Machine_DaysEach` | `%1 DAYS EACH` | Craft tab, drying rack recipe line: how long each item takes | 14 |
-| `UI_ZeD_Machine_FromBags` | `FROM YOUR BAGS` | Craft tab, drying rack: small heading above items you can add | 24 |
-| `UI_ZeD_Machine_HourEachOne` | `1 HOUR EACH` | Craft tab, drying rack recipe line: how long each item takes | 14 |
-| `UI_ZeD_Machine_HoursEach` | `%1 HOURS EACH` | Craft tab, drying rack recipe line: how long each item takes | 14 |
-| `UI_ZeD_Machine_Left` | `%1 LEFT` | Craft tab, drying rack progress text; %1 is the "ABOUT ..." time phrase | 30 |
-| `UI_ZeD_Machine_MinEach` | `%1 MIN EACH` | Craft tab, drying rack recipe line: how long each item takes | 14 |
+| `UI_ZeD_Machine_AboutDayOne` | `About 1 day` | Craft tab, drying rack: time left, one day | 20 |
+| `UI_ZeD_Machine_AboutDays` | `About %1 days` | Craft tab, drying rack: time left, several days (follows "%1 LEFT") | 20 |
+| `UI_ZeD_Machine_AboutHourOne` | `About 1 hour` | Craft tab, drying rack: time left, one hour | 20 |
+| `UI_ZeD_Machine_AboutHours` | `About %1 hours` | Craft tab, drying rack: time left, several hours | 20 |
+| `UI_ZeD_Machine_AboutMinuteOne` | `About 1 minute` | Craft tab, drying rack: time left, one minute | 20 |
+| `UI_ZeD_Machine_AboutMinutes` | `About %1 minutes` | Craft tab, drying rack: time left, several minutes | 20 |
+| `UI_ZeD_Machine_Add` | `Add` | Craft tab, drying rack: button that adds an item to the rack | 8 |
+| `UI_ZeD_Machine_DayEachOne` | `1 day each` | Craft tab, drying rack recipe line: how long each item takes | 14 |
+| `UI_ZeD_Machine_DaysEach` | `%1 days each` | Craft tab, drying rack recipe line: how long each item takes | 14 |
+| `UI_ZeD_Machine_FromBags` | `From your bags` | Craft tab, drying rack: small heading above items you can add | 24 |
+| `UI_ZeD_Machine_HourEachOne` | `1 hour each` | Craft tab, drying rack recipe line: how long each item takes | 14 |
+| `UI_ZeD_Machine_HoursEach` | `%1 hours each` | Craft tab, drying rack recipe line: how long each item takes | 14 |
+| `UI_ZeD_Machine_Left` | `%1 left` | Craft tab, drying rack progress text; %1 is the "ABOUT ..." time phrase | 30 |
+| `UI_ZeD_Machine_MinEach` | `%1 min each` | Craft tab, drying rack recipe line: how long each item takes | 14 |
 | `UI_ZeD_Machine_NothingFits` | `Nothing you carry fits this rack.` | Craft tab, drying rack: line when none of your items can go on it | - |
-| `UI_ZeD_Machine_Recipe` | `RECIPE` | Craft tab, drying rack: small heading before the recipe name | 10 |
+| `UI_ZeD_Machine_Recipe` | `Recipe` | Craft tab, drying rack: small heading before the recipe name | 10 |
 | `UI_ZeD_Machine_Start` | `Start` | Craft tab, drying rack: start button | 8 |
 | `UI_ZeD_Machine_Stop` | `Stop` | Craft tab, drying rack: stop button | 8 |
 
@@ -1587,15 +1587,15 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_MainMenu_AboutDisplay` | `DISPLAY` | About block: left label of the screen size row | 12 |
-| `UI_ZeD_MainMenu_AboutEncryption` | `ENCRYPTION` | About block: left label of a fact row (about 12 letters of room) | 12 |
+| `UI_ZeD_MainMenu_AboutDisplay` | `Display` | About block: left label of the screen size row | 12 |
+| `UI_ZeD_MainMenu_AboutEncryption` | `Encryption` | About block: left label of a fact row (about 12 letters of room) | 12 |
 | `UI_ZeD_MainMenu_AboutEncryptionValue` | `16-bit (was 8)` | About block: value of the Encryption row | - |
-| `UI_ZeD_MainMenu_AboutGame` | `GAME` | About block: left label of the game version row | 12 |
-| `UI_ZeD_MainMenu_AboutPara` | `Zero Day OS is a homemade SECURE kernal of Ynix made by some hard working freedom loving good guys (mostly me). FBI and you government slime, if you are reading this you must have got me--but I got you. This thing has state of the art anti phone tap programming in the BIOS AND we just upgraded from 8 to 16bit encryption that my cousins elementary school friends girlfriends uncle got out of MIT. dont ask. Suck on it commies!! You cant crack ZeD-OS. also it runs off the truck battery if it comes to that. LONG LIVE FREEDOM` | Main menu bar, ZeD menu, About block: the owner's own words (a fictional character's rough draft; keep the misspellings and the run-on, do not tidy) | - |
-| `UI_ZeD_MainMenu_AboutPhoneTaps` | `PHONE TAPS` | About block: left label of a fact row (about 12 letters of room) | 12 |
+| `UI_ZeD_MainMenu_AboutGame` | `Game` | About block: left label of the game version row | 12 |
+| `UI_ZeD_MainMenu_AboutPara` | `Zero Day OS is a homemade SECURE kernal of ZNIX made by some hard working freedom loving good guys (mostly me). FBI and you government slime, if you are reading this you must have got me--but I got you. This thing has state of the art anti phone tap programming in the BIOS AND we just upgraded from 8 to 16bit encryption that my cousins elementary school friends girlfriends uncle got out of MIT. dont ask. Suck on it commies!! You cant crack ZeD-OS. also it runs off the truck battery if it comes to that. LONG LIVE FREEDOM` | Main menu bar, ZeD menu, About block: the owner's own words (a fictional character's rough draft; keep the misspellings and the run-on, do not tidy) | - |
+| `UI_ZeD_MainMenu_AboutPhoneTaps` | `Phone taps` | About block: left label of a fact row (about 12 letters of room) | 12 |
 | `UI_ZeD_MainMenu_AboutPhoneTapsValue` | `None found` | About block: value of the Phone taps row | - |
-| `UI_ZeD_MainMenu_AboutSub` | `secure Ynix kernal -- DO NOT UNPLUG` | Main menu bar, ZeD menu, About block: the line under the title | - |
-| `UI_ZeD_MainMenu_AboutUptime` | `UPTIME` | About block: left label of the row showing how long the game has run | 12 |
+| `UI_ZeD_MainMenu_AboutSub` | `secure ZNIX kernal -- DO NOT UNPLUG` | Main menu bar, ZeD menu, About block: the line under the title | - |
+| `UI_ZeD_MainMenu_AboutUptime` | `Uptime` | About block: left label of the row showing how long the game has run | 12 |
 | `UI_ZeD_MainMenu_AM` | `AM` | Clock in the main menu dates (12-hour) | 3 |
 | `UI_ZeD_MainMenu_AndMore` | `and %1 more` | Pause window, Mods page: last line when the list is cut. %1 is how many more mods there are | - |
 | `UI_ZeD_MainMenu_AskQuitGame` | `Quit Project Zomboid?` | Main menu: question in the action strip before quitting the game | - |
@@ -1630,7 +1630,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_MainMenu_PlayedDate` | `%1 %2 %3, %4` | Main menu: when a save was last played. %1 month, %2 day, %3 year, %4 time. Example: Oct 14 2026, 7:52 PM | - |
 | `UI_ZeD_MainMenu_PM` | `PM` | Clock in the main menu dates (12-hour) | 3 |
 | `UI_ZeD_MainMenu_PromptLegal` | `Legal` | Controller prompt in the footer of the main window (Y button, opens the terms of service) | 10 |
-| `UI_ZeD_MainMenu_PromptSelect` | `Select` | Controller prompt in the footer of the main menu, pause window and their screens (A button) | 10 |
+| `UI_ZeD_MainMenu_PromptSelect` | `Choose` | Controller prompt in the footer of the main menu, pause window and their screens (A button) | 10 |
 | `UI_ZeD_MainMenu_ReportBug` | `Report a bug` | Main menu bar, ZeD menu: opens the bug report page | - |
 | `UI_ZeD_MainMenu_SaveAndQuit` | `Save and quit` | Pause window: button that saves and quits to the main menu | 16 |
 | `UI_ZeD_MainMenu_SaveDate` | `%1, %2 %3` | Main menu: a save named by date. %1 game mode, %2 month abbreviation, %3 day of the month. Example: Sandbox, Oct 12 | - |
@@ -1645,20 +1645,20 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Map_ChangeColor` | `Change color` | Maps tab: right-click menu on a map marking (changes its pen color) | - |
-| `UI_ZeD_Map_FoldBack` | `A or click here to fold it back` | Maps tab: placeholder line while the map is open in its own window (A is the controller button) | - |
+| `UI_ZeD_Map_FoldBack` | `Click or press here to fold it back` | Maps tab: placeholder line while the map is open in its own window (A is the controller button) | - |
 | `UI_ZeD_Map_NoteDefault` | `Note` | Maps tab: default text of a new map note (saved with the note if left unchanged), the text box's starting text and the cursor preview | - |
 | `UI_ZeD_Map_PadFold` | `Fold` | Map window, controller prompt for B (fold the map back into the tab) | 12 |
 | `UI_ZeD_Map_PadMove` | `Move` | Map window, controller prompt next to L-STICK | - |
 | `UI_ZeD_Map_StyleColor` | `Color` | Maps tab toolbar: map style pill | 10 |
 | `UI_ZeD_Map_StylePaper` | `Paper` | Maps tab toolbar: map style pill | 10 |
 | `UI_ZeD_Map_StyleSurvey` | `Survey` | Maps tab toolbar: map style pill | 10 |
-| `UI_ZeD_Map_Unavailable` | `MAP UNAVAILABLE` | Maps tab: centered message when the world map is turned off | 24 |
-| `UI_ZeD_Map_Unfolded` | `MAP UNFOLDED` | Maps tab: placeholder heading while the map is open in its own window | 24 |
+| `UI_ZeD_Map_Unavailable` | `Map unavailable` | Maps tab: centered message when the world map is turned off | 24 |
+| `UI_ZeD_Map_Unfolded` | `Map unfolded` | Maps tab: placeholder heading while the map is open in its own window | 24 |
 | `UI_ZeD_Map_SideList` | `Players and notes` | Maps tab toolbar (World window drawer): hover hint of the icon that shows or hides the side list | - |
 | `UI_ZeD_Map_KeyButton` | `Key` | Maps tab toolbar: button that opens the map key | 8 |
 | `UI_ZeD_Map_KeyColor` | `The Color map is the ground as it looks from above: roofs, roads and trees, not buildings by use. The key's colors are on Survey.` | Maps tab, map key panel on the Color map (Color and Survey are the map style buttons) | - |
 | `UI_ZeD_Map_KeyPaper` | `The Paper map is the road map as printed: roads, towns and water, not buildings by use. The key's colors are on Survey.` | Maps tab, map key panel on the Paper map (Paper and Survey are the map style buttons) | - |
-| `UI_ZeD_Map_ShowSurvey` | `Show Survey` | Maps tab, map key panel: button that switches the map to Survey | 18 |
+| `UI_ZeD_Map_ShowSurvey` | `Show survey` | Maps tab, map key panel: button that switches the map to Survey | 18 |
 | `UI_ZeD_Map_DrawDraw` | `Draw` | Maps tab with Draw On The Map: the toolbar button and the free-hand tool (stands in for the mod's own word while the game cannot read it) | 10 |
 | `UI_ZeD_Map_DrawLine` | `Line` | Maps tab with Draw On The Map: the straight-line tool (the mod's word) | 10 |
 | `UI_ZeD_Map_DrawErase` | `Erase` | Maps tab with Draw On The Map: the eraser tool (the mod's word) | 10 |
@@ -1675,7 +1675,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Map_DirNW` | `north-west` | Maps tab with Players On Map: which way another player is | - |
 | `UI_ZeD_Map_AwayM` | `%1 m %2` | Maps tab with Players On Map: how far and which way a player is. %1 meters, %2 a direction (north) | - |
 | `UI_ZeD_Map_AwayKm` | `%1 km %2` | Maps tab with Players On Map: how far and which way a player is. %1 kilometers (1.2), %2 a direction (north) | - |
-| `UI_ZeD_Map_LearnedNotes` | `Learned notes` | Maps tab with Share Annotations: side list heading over the sets of notes the character learned (drawn in capitals) | - |
+| `UI_ZeD_Map_LearnedNotes` | `Learned notes` | Maps tab with Share Annotations: side list heading over the sets of notes the character learned | - |
 | `UI_ZeD_Map_SetPlace` | `1 place` | Maps tab with Share Annotations: a learned set's row when the set has one mark | - |
 | `UI_ZeD_Map_SetDeleteAskOne` | `Delete the notes %1? Its 1 place goes from your map.` | Maps tab with Share Annotations: the side list's question before deleting a set of one mark. %1 the set's name | - |
 | `UI_ZeD_Map_SetPlaces` | `%1 places` | Maps tab with Share Annotations: a learned set's row. %1 how many marks it has | - |
@@ -1732,31 +1732,31 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_BtnReload` | `Reload` | Mod manager: strip button that applies pending changes with a Lua reload | 12 |
 | `UI_ZeD_Mods_BtnUpdate` | `Update...` | Mod manager: strip button on the Profiles page | 12 |
 | `UI_ZeD_Mods_By` | `by %1` | Mod manager: under a mod's name in its detail pane. %1 is the author | - |
-| `UI_ZeD_Mods_ChipConflictMany` | `%1 CONFLICTS` | Mod manager: small caps tag on a mod's row, several conflicts. %1 is the number | 14 |
-| `UI_ZeD_Mods_ChipConflictOne` | `%1 CONFLICT` | Mod manager: small caps tag on a mod's row, one conflict. %1 is 1 | 14 |
-| `UI_ZeD_Mods_ChipQueued` | `QUEUED` | Mod manager: small caps tag on a mod's row: its download is queued | 12 |
-| `UI_ZeD_Mods_ChipUpdate` | `UPDATE` | Mod manager: small caps tag on a mod's row: an update is waiting on Steam | 12 |
-| `UI_ZeD_Mods_ChipUpdated` | `UPDATED` | Mod manager: small caps tag on a mod's row: Steam updated it while the game ran | 12 |
+| `UI_ZeD_Mods_ChipConflictMany` | `%1 conflicts` | Mod manager: small caps tag on a mod's row, several conflicts. %1 is the number | 14 |
+| `UI_ZeD_Mods_ChipConflictOne` | `%1 conflict` | Mod manager: small caps tag on a mod's row, one conflict. %1 is 1 | 14 |
+| `UI_ZeD_Mods_ChipQueued` | `Queued` | Mod manager: small caps tag on a mod's row: its download is queued | 12 |
+| `UI_ZeD_Mods_ChipUpdate` | `Update` | Mod manager: small caps tag on a mod's row: an update is waiting on Steam | 12 |
+| `UI_ZeD_Mods_ChipUpdated` | `Updated` | Mod manager: small caps tag on a mod's row: Steam updated it while the game ran | 12 |
 | `UI_ZeD_Mods_ConflictsChecking` | `Checking...` | Mod manager: under the Conflicts heading while the scan runs | - |
-| `UI_ZeD_Mods_ConflictsHead` | `CONFLICTS` | Mod manager: caps heading in the detail pane over the conflicts | 20 |
+| `UI_ZeD_Mods_ConflictsHead` | `Conflicts` | Mod manager: caps heading in the detail pane over the conflicts | 20 |
 | `UI_ZeD_Mods_ConflictsLater` | `Checked once a reload brings it in.` | Mod manager: under the Conflicts heading of a mod that is not loaded yet | - |
 | `UI_ZeD_Mods_ConflictsNone` | `None found.` | Mod manager: under the Conflicts heading | - |
 | `UI_ZeD_Mods_CopyName` | `%1 copy` | Mod manager: the name suggested for a duplicated profile. %1 is the original's name | - |
 | `UI_ZeD_Mods_EmptyChecking` | `Checking the mods for conflicts` | Mod manager: the Conflicts tab while the scan runs | - |
 | `UI_ZeD_Mods_EmptyConflicts` | `No conflicts among the mods running now` | Mod manager: empty list on the Conflicts tab | - |
-| `UI_ZeD_Mods_EmptyFavs` | `No favourites yet` | Mod manager: empty list on the Starred tab | - |
+| `UI_ZeD_Mods_EmptyFavs` | `No favorites yet` | Mod manager: empty list on the Starred tab | - |
 | `UI_ZeD_Mods_EmptyNone` | `No mods match` | Mod manager: empty list when Find matches nothing | - |
 | `UI_ZeD_Mods_EmptyProblems` | `Every mod can run` | Mod manager: empty list on the Problems tab | - |
 | `UI_ZeD_Mods_HiddenMany` | `%1 conflicts hidden.` | Mod manager: under the list of conflicts | - |
 | `UI_ZeD_Mods_HiddenOne` | `%1 conflict hidden.` | Mod manager: under the list of conflicts | - |
-| `UI_ZeD_Mods_KvGame` | `GAME` | Mod manager: caps label in the detail pane: the game versions the mod supports | 12 |
-| `UI_ZeD_Mods_KvLoadOrder` | `LOAD ORDER` | Mod manager: caps label in the detail pane and heading on the Profiles page | 12 |
-| `UI_ZeD_Mods_KvReplaces` | `REPLACES` | Mod manager: caps label in the detail pane: the game's scripts the mod replaces | 12 |
-| `UI_ZeD_Mods_KvSize` | `SIZE` | Mod manager: caps label in the Workshop item's detail pane | 12 |
-| `UI_ZeD_Mods_KvType` | `TYPE` | Mod manager: caps label in the detail pane (map, vehicle...) | 12 |
-| `UI_ZeD_Mods_KvUpdated` | `UPDATED` | Mod manager: caps label in the Workshop item's detail pane | 12 |
-| `UI_ZeD_Mods_ListCannotWith` | `CANNOT RUN WITH` | Mod manager: caps heading in the detail pane over the mods it is incompatible with | 20 |
-| `UI_ZeD_Mods_ListNeeds` | `NEEDS` | Mod manager: caps heading in the detail pane over the mods it needs | 20 |
+| `UI_ZeD_Mods_KvGame` | `Game` | Mod manager: caps label in the detail pane: the game versions the mod supports | 12 |
+| `UI_ZeD_Mods_KvLoadOrder` | `Load order` | Mod manager: caps label in the detail pane and heading on the Profiles page | 12 |
+| `UI_ZeD_Mods_KvReplaces` | `Replaces` | Mod manager: caps label in the detail pane: the game's scripts the mod replaces | 12 |
+| `UI_ZeD_Mods_KvSize` | `Size` | Mod manager: caps label in the Workshop item's detail pane | 12 |
+| `UI_ZeD_Mods_KvType` | `Type` | Mod manager: caps label in the detail pane (map, vehicle...) | 12 |
+| `UI_ZeD_Mods_KvUpdated` | `Updated` | Mod manager: caps label in the Workshop item's detail pane | 12 |
+| `UI_ZeD_Mods_ListCannotWith` | `Cannot run with` | Mod manager: caps heading in the detail pane over the mods it is incompatible with | 20 |
+| `UI_ZeD_Mods_ListNeeds` | `Needs` | Mod manager: caps heading in the detail pane over the mods it needs | 20 |
 | `UI_ZeD_Mods_ListNotInstalled` | `%1, not installed` | Mod manager: a required mod that is not installed; also in a profile's order. %1 is the mod's name or id | - |
 | `UI_ZeD_Mods_ListOff` | `%1, off` | Mod manager: a required mod and its state. %1 is its name | - |
 | `UI_ZeD_Mods_ListOn` | `%1, on` | Mod manager: a required mod and its state. %1 is its name | - |
@@ -1790,7 +1790,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_ProfCountOneOn` | `%1 mod, on now` | Mod manager: under a profile that matches the mods on now. %1 is 1 | - |
 | `UI_ZeD_Mods_ProfEveryOff` | `Every mod off` | Mod manager: under the No mods row of the Profiles page | - |
 | `UI_ZeD_Mods_ProfLastLoaded` | `Last loaded %1` | Mod manager: the picked profile's facts. %1 is the date | - |
-| `UI_ZeD_Mods_ProfLoadingIt` | `LOADING IT` | Mod manager: caps heading on the Profiles page over what loading the profile does | 16 |
+| `UI_ZeD_Mods_ProfLoadingIt` | `Loading it` | Mod manager: caps heading on the Profiles page over what loading the profile does | 16 |
 | `UI_ZeD_Mods_ProfMissing` | `Not installed %1: stays off` | Mod manager: what loading the profile does. %1 how many | - |
 | `UI_ZeD_Mods_ProfNoChange` | `Changes nothing: these are the mods on now` | Mod manager: what loading the profile does | - |
 | `UI_ZeD_Mods_ProfNothingOnOff` | `Turns nothing on or off` | Mod manager: what loading the profile does | - |
@@ -1799,7 +1799,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_ProfSortedByRules` | `Sorted by the mods' own rules` | Mod manager: under a profile's load order when it keeps none | - |
 | `UI_ZeD_Mods_ProfTurnsOff` | `Turns off %1` | Mod manager: what loading the profile does. %1 how many | - |
 | `UI_ZeD_Mods_ProfTurnsOn` | `Turns on %1` | Mod manager: what loading the profile does. %1 how many | - |
-| `UI_ZeD_Mods_PromptFavourite` | `Favourite` | Mod manager: controller prompt (X button) on the mods list | 12 |
+| `UI_ZeD_Mods_PromptFavourite` | `Favorite` | Mod manager: controller prompt (X button) on the mods list | 12 |
 | `UI_ZeD_Mods_PromptFilter` | `Filter` | Mod manager: controller prompt for the bumpers, which switch the filter tabs | 10 |
 | `UI_ZeD_Mods_PromptNew` | `New` | Mod manager: controller prompt (Y button) on the Profiles page | 10 |
 | `UI_ZeD_Mods_PromptOnOff` | `On / off` | Mod manager: controller prompt (A button) on the mods list | 12 |
@@ -1842,10 +1842,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_TabProblems` | `Problems %1` | Mod manager: filter tab. %1 is the count | 14 |
 | `UI_ZeD_Mods_TabStarred` | `Starred %1` | Mod manager: filter tab. %1 is the count | 14 |
 | `UI_ZeD_Mods_TabWorkshop` | `Workshop %1` | Mod manager: filter tab. %1 is the count | 14 |
-| `UI_ZeD_Mods_TagMissing` | `NOT INSTALLED` | Mod manager: small caps tag on a Workshop tab row | 16 |
-| `UI_ZeD_Mods_TagOk` | `UP TO DATE` | Mod manager: small caps tag on a Workshop tab row | 16 |
-| `UI_ZeD_Mods_TagQueued` | `DOWNLOAD QUEUED` | Mod manager: small caps tag on a Workshop tab row | 16 |
-| `UI_ZeD_Mods_TagUpdate` | `UPDATE WAITING` | Mod manager: small caps tag on a Workshop tab row | 16 |
+| `UI_ZeD_Mods_TagMissing` | `Not installed` | Mod manager: small caps tag on a Workshop tab row | 16 |
+| `UI_ZeD_Mods_TagOk` | `Up to date` | Mod manager: small caps tag on a Workshop tab row | 16 |
+| `UI_ZeD_Mods_TagQueued` | `Download queued` | Mod manager: small caps tag on a Workshop tab row | 16 |
+| `UI_ZeD_Mods_TagUpdate` | `Update waiting` | Mod manager: small caps tag on a Workshop tab row | 16 |
 | `UI_ZeD_Mods_Title` | `Mods` | Mod manager: title bar section (after 'Project Zomboid  +  ') | - |
 | `UI_ZeD_Mods_TitleFmt` | `Project Zomboid  +  %1` | Mod manager: title bar. %1 is one of the section names above. The + is the ZeD title separator | - |
 | `UI_ZeD_Mods_TitleMaps` | `Map order` | Mod manager: title bar section | - |
@@ -1863,11 +1863,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_UpdatedAgoLower` | `updated %1` | Mod manager: part of the Workshop fact, after a \| separator. %1 is e.g. '3 days ago' | - |
 | `UI_ZeD_Mods_UpdatedNote` | `Steam updated this mod while the game ran. A reload brings in its new code and scripts; pictures it already showed stay old until the game restarts.` | Mod manager: note in the detail pane | - |
 | `UI_ZeD_Mods_UpdatedWhileRan` | `Updated while the game ran` | Mod manager: value of the Workshop fact | - |
-| `UI_ZeD_Mods_VerbFavourite` | `Favourite` | Mod manager: detail pane button | 16 |
+| `UI_ZeD_Mods_VerbFavourite` | `Favorite` | Mod manager: detail pane button | 16 |
 | `UI_ZeD_Mods_VerbHide` | `Fine, hide this` | Mod manager: button that hides a conflict | 20 |
 | `UI_ZeD_Mods_VerbLoadAfter` | `Load %1 after it` | Mod manager: button that moves a mod after the winner in the load order. %1 is its (shortened) name | - |
 | `UI_ZeD_Mods_VerbShowAgain` | `Show again` | Mod manager: button that shows hidden conflicts again | 14 |
-| `UI_ZeD_Mods_VerbUnfavourite` | `Unfavourite` | Mod manager: detail pane button | 16 |
+| `UI_ZeD_Mods_VerbUnfavourite` | `Unfavorite` | Mod manager: detail pane button | 16 |
 | `UI_ZeD_Mods_VersionRange` | `%1 to %2` | Mod manager: the game versions a mod supports. %1 lowest, %2 highest (either may be 'any') | - |
 | `UI_ZeD_Mods_WhyCollection` | `A collection: its items show in this list on their own as Steam fetches them.` | Mod manager: note in the Workshop item's pane | - |
 | `UI_ZeD_Mods_WhyFetching` | `Steam is fetching it on its own. This screen notices when it lands.` | Mod manager: note in the Workshop item's pane | - |
@@ -1877,8 +1877,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_DTabSandbox` | `Sandbox` | Mod manager, info pane: folder tab with the sandbox settings the mod adds to each game | - |
 | `UI_ZeD_Mods_DTabConflicts` | `Conflicts` | Mod manager, info pane: folder tab with the mod's conflicts | - |
 | `UI_ZeD_Mods_DTabCount` | `%1 %2` | Mod manager, info pane: a tab with its count. %1 the tab's name, %2 how many | - |
-| `UI_ZeD_Mods_OptHead` | `Options` | Mod manager, Options tab: section heading (shown in capitals) | - |
-| `UI_ZeD_Mods_OptHeadNote` | `yours, for every game | kept as you change them` | Mod manager, Options tab: small note at the heading's right; the options are the player's, kept for every game, saved as soon as they change | - |
+| `UI_ZeD_Mods_OptHead` | `Options` | Mod manager, Options tab: section heading | - |
+| `UI_ZeD_Mods_OptHeadNote` | `yours, for every game \| kept as you change them` | Mod manager, Options tab: small note at the heading's right; the options are the player's, kept for every game, saved as soon as they change | - |
 | `UI_ZeD_Mods_OptInOptions` | `set in Options` | Mod manager, Options tab: in place of a control (a key or a typed value) that is changed in the Options window | - |
 | `UI_ZeD_Mods_OptNone` | `This mod has no options of its own.` | Mod manager, Options tab: the mod has no options | - |
 | `UI_ZeD_Mods_OptTurnOn` | `Turn it on to see its options. A mod's options are made by its own code, and that code only runs while the mod is on. After Turn on and the reload, they show here.` | Mod manager, Options tab, a mod that is off | - |
@@ -1891,7 +1891,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_ValueOff` | `Off` | Mod manager: a tick box option's value, in the help band's default | - |
 | `UI_ZeD_Mods_SayDefaults` | `%1: options back to their defaults.` | Mod manager: note after Defaults. %1 the mod's name | - |
 | `UI_ZeD_Mods_VerbResetSettings` | `Reset settings` | Mod manager, Options tab: button that puts the mod's options back to their defaults and empties its settings files (asks first in the strip) | 20 |
-| `UI_ZeD_Mods_FilesHead` | `Settings files` | Mod manager, Options tab: section heading over the files the mod keeps (shown in capitals) | - |
+| `UI_ZeD_Mods_FilesHead` | `Settings files` | Mod manager, Options tab: section heading over the files the mod keeps | - |
 | `UI_ZeD_Mods_FilesHeadNote` | `in Zomboid/Lua` | Mod manager, Options tab: small note at the Settings files heading's right (the folder name stays as written) | - |
 | `UI_ZeD_Mods_FilesLooking` | `Reading its code for the files it keeps...` | Mod manager, Options tab: while the mod's code is read for file names | - |
 | `UI_ZeD_Mods_FilesNone` | `It keeps no settings files in Zomboid/Lua.` | Mod manager, Options tab: a mod with no options and no settings files | - |
@@ -1916,17 +1916,17 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_SayResetReload` | `Reload so it reads them again.` | Mod manager: added to the note after Reset settings: the mod is running and reads its files when its code runs | - |
 | `UI_ZeD_Mods_PendingReset` | `Settings of %1 reset. A reload has it read them again, no restart.` | Mod manager, the strip: a mod's settings were reset and a reload has its code read them. %1 the mod's name | - |
 | `UI_ZeD_Mods_HelpTitled` | `%1. %2` | Mod manager, help band: a setting's name, then its help text. %1 name, %2 help | - |
-| `UI_ZeD_Mods_SbHead` | `Sandbox settings` | Mod manager, Sandbox tab: section heading (shown in capitals) | - |
-| `UI_ZeD_Mods_SbHeadNote` | `for each game | defaults shown` | Mod manager, Sandbox tab: small note at the heading's right | - |
-| `UI_ZeD_Mods_SbHeadNoteOff` | `readable while it is off | defaults shown` | Mod manager, Sandbox tab of a mod that is off: small note at the heading's right | - |
+| `UI_ZeD_Mods_SbHead` | `Sandbox settings` | Mod manager, Sandbox tab: section heading | - |
+| `UI_ZeD_Mods_SbHeadNote` | `for each game \| defaults shown` | Mod manager, Sandbox tab: small note at the heading's right | - |
+| `UI_ZeD_Mods_SbHeadNoteOff` | `readable while it is off \| defaults shown` | Mod manager, Sandbox tab of a mod that is off: small note at the heading's right | - |
 | `UI_ZeD_Mods_SbNone` | `This mod adds no sandbox settings.` | Mod manager, Sandbox tab: the mod adds none | - |
 | `UI_ZeD_Mods_SbWhere` | `Chosen when you start a game: New game, Sandbox, page %1. Read from the mod's own files.` | Mod manager, Sandbox tab: where the settings are chosen. %1 the page names in the sandbox screen | - |
 | `UI_ZeD_Mods_SbWhereNoPage` | `Chosen when you start a game: New game, Sandbox. Read from the mod's own files.` | Mod manager, Sandbox tab: where the settings are chosen (no page named) | - |
 | `UI_ZeD_Mods_SbRange` | `Range: %1 to %2` | Mod manager, help band: a number setting's range. %1 lowest, %2 highest | - |
-| `UI_ZeD_Mods_ChipSameText` | `SAME TEXT` | Mod manager: tag on a mod's row: it shares a file with another mod, word for word the same (no conflict). Capitals | - |
-| `UI_ZeD_Mods_ChipPicked` | `PICKED` | Mod manager: tag on a mod's row: its conflict is settled by files picked one by one. Capitals | - |
-| `UI_ZeD_Mods_ChipFilesOne` | `%1 FILE` | Mod manager: tag on the ZeD picks row: how many files it holds. %1 is 1. Capitals | - |
-| `UI_ZeD_Mods_ChipFilesMany` | `%1 FILES` | Mod manager: tag on the ZeD picks row: how many files it holds. %1 how many. Capitals | - |
+| `UI_ZeD_Mods_ChipSameText` | `Same text` | Mod manager: tag on a mod's row: it shares a file with another mod, word for word the same (no conflict). | - |
+| `UI_ZeD_Mods_ChipPicked` | `Picked` | Mod manager: tag on a mod's row: its conflict is settled by files picked one by one. | - |
+| `UI_ZeD_Mods_ChipFilesOne` | `%1 file` | Mod manager: tag on the ZeD picks row: how many files it holds. %1 is 1. | - |
+| `UI_ZeD_Mods_ChipFilesMany` | `%1 files` | Mod manager: tag on the ZeD picks row: how many files it holds. %1 how many. | - |
 | `UI_ZeD_Mods_SameTextOne` | `Same file as %1, same text` | Mod manager, Conflicts tab: card title. %1 the other mod | - |
 | `UI_ZeD_Mods_SameTextMany` | `Same %1 files as %2, same text` | Mod manager, Conflicts tab: card title. %1 how many files, %2 the other mod | - |
 | `UI_ZeD_Mods_SameTextWhy` | `Both copies are the same, word for word: whichever one loads, nothing changes.` | Mod manager, Conflicts tab: why same-text copies are no conflict | - |
@@ -1935,21 +1935,21 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_PickedMore` | `and %1 more` | Mod manager, Conflicts tab: under the first picked files listed. %1 how many more | - |
 | `UI_ZeD_Mods_PickedKeepsOne` | `%1 keeps the other %2 shared file. The picked copies sit in ZeD picks, which loads last.` | Mod manager, Conflicts tab. %1 the other mod, %2 is 1. ZeD picks is the helper mod's name | - |
 | `UI_ZeD_Mods_PickedKeeps` | `%1 keeps the other %2 shared files. The picked copies sit in ZeD picks, which loads last.` | Mod manager, Conflicts tab. %1 the other mod, %2 how many files. ZeD picks is the helper mod's name | - |
-| `UI_ZeD_Mods_VerbPickFiles` | `Pick file by file...` | Mod manager, Conflicts tab: button that opens the picker (choose a copy per file) | - |
+| `UI_ZeD_Mods_VerbPickFiles` | `Choose file by file...` | Mod manager, Conflicts tab: button that opens the picker (choose a copy per file) | - |
 | `UI_ZeD_Mods_VerbChangePicks` | `Change picks...` | Mod manager, Conflicts tab: button that opens the picker again | - |
 | `UI_ZeD_Mods_VerbUndoPicks` | `Undo picks` | Mod manager, Conflicts tab: button that removes the picks (load order decides again) | - |
 | `UI_ZeD_Mods_SayPicksUndone` | `Picks undone. Reload to put load order back in charge.` | Mod manager: note after Undo picks | - |
 | `UI_ZeD_Mods_SayPicksKept` | `Picks kept (%1 files). Reload to put them to work.` | Mod manager: note after Use these picks. %1 how many files | - |
-| `UI_ZeD_Mods_TitlePicks` | `Pick files` | Mod manager: window title of the picker | - |
-| `UI_ZeD_Mods_PickShared` | `Shared %1 | picked %2` | Picker: list heading (capitals). %1 shared files, %2 picked | - |
+| `UI_ZeD_Mods_TitlePicks` | `Choose files` | Mod manager: window title of the picker | - |
+| `UI_ZeD_Mods_PickShared` | `Shared %1 \| picked %2` | Picker: list heading. %1 shared files, %2 picked | - |
 | `UI_ZeD_Mods_PickChipPicked` | `%1 (picked)` | Picker: tag on a file whose copy is picked. %1 the mod | - |
 | `UI_ZeD_Mods_PickDiffOne` | `%1 line differs` | Picker: how many lines differ between the two copies. %1 is 1 | - |
 | `UI_ZeD_Mods_PickDiffMany` | `%1 lines differ` | Picker: how many lines differ between the two copies. %1 how many | - |
 | `UI_ZeD_Mods_PickChoose` | `In both mods. Choose whose copy the game runs.` | Picker: under the file's path | - |
-| `UI_ZeD_Mods_PickRunsNow` | `%1 lines | loads later: runs now` | Picker: under a mod's name on its choice card. %1 the copy's line count | - |
-| `UI_ZeD_Mods_PickLoadsLater` | `%1 lines | loads later` | Picker: under the later mod's name while the other copy is picked. %1 lines | - |
-| `UI_ZeD_Mods_PickNeverRuns` | `%1 lines | loads earlier: never runs` | Picker: under the earlier mod's name. %1 lines | - |
-| `UI_ZeD_Mods_PickPickedSub` | `%1 lines | picked: runs after a reload` | Picker: under the picked mod's name. %1 lines | - |
+| `UI_ZeD_Mods_PickRunsNow` | `%1 lines \| loads later: runs now` | Picker: under a mod's name on its choice card. %1 the copy's line count | - |
+| `UI_ZeD_Mods_PickLoadsLater` | `%1 lines \| loads later` | Picker: under the later mod's name while the other copy is picked. %1 lines | - |
+| `UI_ZeD_Mods_PickNeverRuns` | `%1 lines \| loads earlier: never runs` | Picker: under the earlier mod's name. %1 lines | - |
+| `UI_ZeD_Mods_PickPickedSub` | `%1 lines \| picked: runs after a reload` | Picker: under the picked mod's name. %1 lines | - |
 | `UI_ZeD_Mods_PickWarn` | `Mixing copies can break a mod whose other files expect its own copy. Any error shows in Messages, and Undo picks puts everything back. Single player only.` | Picker: the warning at the foot | - |
 | `UI_ZeD_Mods_BtnUsePicks` | `Use these picks` | Picker: the strip's button that keeps the picks | - |
 | `UI_ZeD_Mods_PickStripOne` | `%1 file from %2. %3 keeps the other %4.` | Picker: the strip. %1 is 1, %2 the picked mod, %3 the other mod, %4 the files it keeps | - |
@@ -1957,7 +1957,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Mods_PickStripNone` | `Choose a copy for any file. The rest stay with load order.` | Picker: the strip before anything is picked | - |
 | `UI_ZeD_Mods_PromptOtherCopy` | `Other copy` | Picker, controller prompt for A on a file: switch to the other mod's copy | - |
 | `UI_ZeD_Mods_PendingPicks` | `Picked files changed. A reload puts them in place, no restart.` | Mod manager, the strip: the picked copies were rewritten and a reload puts them in place | - |
-| `UI_ZeD_Mods_OffHead` | `If you turn it off` | Mod manager: Mod manager, About tab: section heading (capitals): what turning the mod off does to a save | - |
+| `UI_ZeD_Mods_OffHead` | `If you turn it off` | Mod manager: Mod manager, About tab: section heading: what turning the mod off does to a save | - |
 | `UI_ZeD_Mods_OffForSave` | `For the save %1:` | Mod manager: About tab, the list is a save's own (Load game, More, Choose mods). %1 the save's folder name | - |
 | `UI_ZeD_Mods_OffForMain` | `Saves keep their own mod lists, so this list changes new games only. In a save's own list (Load game, More, Choose mods), turning it off would mean:` | Mod manager: About tab, the main mod list | - |
 | `UI_ZeD_Mods_OffSafe` | `Safe to turn off` | Mod manager: About tab: grade (green dot) | - |
@@ -2051,11 +2051,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Msg_Answered` | `answered %1` | Messages: a card's head once its button was pressed; %1 = the button ("OK") | 24 |
 | `UI_ZeD_Msg_AtStart` | `at game start` | Messages: a card's head, after the time, for a note that came in the first minute of play | 20 |
 | `UI_ZeD_Msg_Choose` | `Choose` | Messages: the strip, the A button's word | 12 |
-| `UI_ZeD_Msg_Clear` | `Clear` | Messages: footer button, removes the chosen mod's messages | 12 |
+| `UI_ZeD_Msg_Clear` | `Delete` | Messages: footer button, removes the chosen mod's messages | 12 |
 | `UI_ZeD_Msg_Copied` | `Copied` | Messages: the Copy for a bug report button after it was pressed | 18 |
 | `UI_ZeD_Msg_Copy` | `Copy for a bug report` | Messages: an error card's button, puts that mod's errors on the clipboard | 26 |
 | `UI_ZeD_Msg_CountStat` | `%1 kept` | Messages: the title bar's count, and the ZeD wheel's Messages slice; %1 = how many messages | 14 |
-| `UI_ZeD_Msg_DpadMove` | `D-PAD Move` | Messages: the strip on a controller | 14 |
+| `UI_ZeD_Msg_DpadMove` | `D-pad Move` | Messages: the strip on a controller | 14 |
 | `UI_ZeD_Msg_ErrorCount` | `%1 errors from %2` | Messages: an error card's first line; %1 = how many, %2 = the mod's name | - |
 | `UI_ZeD_Msg_Errors` | `Errors` | Messages: the list's second heading (mods whose code made Lua errors) | 14 |
 | `UI_ZeD_Msg_FromMods` | `From mods` | Messages: the list's first heading (mods that opened a note) | 14 |
@@ -2063,7 +2063,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Msg_KindAnswered` | `Answered` | Messages: a card's tag, a question you already answered (a copy) | 10 |
 | `UI_ZeD_Msg_KindError` | `Error` | Messages: a card's tag, a mod's Lua errors | 10 |
 | `UI_ZeD_Msg_KindNote` | `Note` | Messages: a card's tag, a mod's note (one OK button) | 10 |
-| `UI_ZeD_Msg_LampNew` | `Messages | %1 new` | The belt's envelope: its name chip on hover; %1 = how many are new | 22 |
+| `UI_ZeD_Msg_LampNew` | `Messages \| %1 new` | The belt's envelope: its name chip on hover; %1 = how many are new | 22 |
 | `UI_ZeD_Msg_MarkAllRead` | `Mark all read` | Messages: footer button (the main one) | 16 |
 | `UI_ZeD_Msg_New` | `%1 new` | The ZeD wheel's Messages slice, its second line; %1 = how many are new | 10 |
 | `UI_ZeD_Msg_None` | `No messages.` | Messages: an empty list; the ZeD wheel's Messages slice when nothing is kept | - |
@@ -2071,9 +2071,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Msg_ShowPopups` | `Show this mod's notes as pop-ups` | Messages: footer tick box for the chosen mod (its notes then open on top of the game, as before) | - |
 | `UI_ZeD_Msg_TheGame` | `Project Zomboid` | Messages: the source name for an error no mod is named in | - |
 | `UI_ZeD_Msg_Title` | `Messages` | The Messages window's title; the ZeD wheel slice; the belt envelope's chip when nothing is new | 14 |
-| `UI_ZeD_Msg_ToastError` | `Error` | A toast's tag (upper case on screen) when a mod's error comes | 8 |
+| `UI_ZeD_Msg_ToastError` | `Error` | A toast's tag when a mod's error comes | 8 |
 | `UI_ZeD_Msg_ToastErrors` | `%1 errors` | An error toast's text; %1 = how many so far | 12 |
-| `UI_ZeD_Msg_ToastMod` | `Mod` | A toast's tag (upper case on screen) when a mod's note comes | 8 |
+| `UI_ZeD_Msg_ToastMod` | `Mod` | A toast's tag when a mod's note comes | 8 |
 | `UI_ZeD_Msg_ToastNote` | `a note` | A note toast's text, after the mod's name | 12 |
 | `UI_ZeD_Msg_When` | `Day %1, %2` | Messages: a card's time; %1 = the day of play, %2 = the time ("7:42") | - |
 | `UI_ZeD_Msg_YouAnswered` | `You answered %1.` | Messages: under a copied question; %1 = the button you pressed | - |
@@ -2112,15 +2112,15 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_ObjCard_CloseCard` | `Close card` | Controller button prompt (B) while an object card is open and nothing is being confirmed | 16 |
-| `UI_ZeD_ObjCard_Done` | `DONE` | Object cards, cooking rows: right of the bar on cooked food (capitals) | 6 |
+| `UI_ZeD_ObjCard_Done` | `Done` | Object cards, cooking rows: right of the bar on cooked food | 6 |
 | `UI_ZeD_ObjCard_GaugeE` | `E` | Object cards, fuel gauge face: the empty end of the needle's arc (one letter) | 2 |
 | `UI_ZeD_ObjCard_GaugeF` | `F` | Object cards, fuel gauge face: the full end of the needle's arc (one letter) | 2 |
 | `UI_ZeD_ObjCard_Hours` | `%1 h` | Object cards: a duration of whole hours (e.g. 3 h) | 10 |
 | `UI_ZeD_ObjCard_HoursMinutes` | `%1 h %2 m` | Object cards: a duration of hours and minutes (e.g. 2 h 20 m) in times left and fuel left; h and m stand for hours and minutes | 14 |
 | `UI_ZeD_ObjCard_MinLeft` | `%1m` | Object cards, cooking rows: minutes left to cook or to burn, right of the bar (e.g. 12m) | 6 |
 | `UI_ZeD_ObjCard_Minutes` | `%1 m` | Object cards: a duration under an hour (e.g. 45 m) | 10 |
-| `UI_ZeD_ObjCard_TagRaw` | `RAW` | Object cards, cooking rows: tag on raw food while the heat is off (capitals, in a bordered tag) | 10 |
-| `UI_ZeD_ObjCard_WhereNearby` | `NEARBY` | Object cards, pick lists: where an item sits when it is not in the inventory and not in a named bag (capitals) | 12 |
+| `UI_ZeD_ObjCard_TagRaw` | `Raw` | Object cards, cooking rows: tag on raw food while the heat is off (in a bordered tag) | 10 |
+| `UI_ZeD_ObjCard_WhereNearby` | `Nearby` | Object cards, pick lists: where an item sits when it is not in the inventory and not in a named bag | 12 |
 
 ## Options
 
@@ -2141,8 +2141,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_ChangedNote` | `Changed: Apply to keep it.` | Options screen: help band for a changed setting that has no help of its own | - |
 | `UI_ZeD_Options_ControllerTest` | `Controller test` | Options screen: name of the row that opens the controller test (Controls group) | - |
 | `UI_ZeD_Options_DefaultIs` | `Default: %1` | (existing) | - |
-| `UI_ZeD_Options_Defaults` | `Defaults` | (existing) | - |
-| `UI_ZeD_Options_Discard` | `Discard` | Options screen: strip button, footer prompt: throw the changes away | 12 |
+| `UI_ZeD_Options_Defaults` | `Reset to defaults` | (existing) | - |
+| `UI_ZeD_Options_Discard` | `Discard changes` | Options screen: strip button, footer prompt: throw the changes away | 12 |
 | `UI_ZeD_Options_Find` | `Find:` | Options screen: label of the search box over the page list | 10 |
 | `UI_ZeD_Options_FirstRunNote` | `First time with ZeD: these set the game up for ZeD's look. Change what you like, then Apply. They stay here, and each game setting is in its own group too.` | Options screen: note on top of ZeD setup the first time the game starts with ZeD | - |
 | `UI_ZeD_Options_GoBack` | `Go back` | Options screen: strip button that returns to the previous screen settings | 12 |
@@ -2153,7 +2153,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_GroupZed` | `ZeD setup` | Options screen (groups): page list entry: ZeD's own settings and the game settings its look depends on | 22 |
 | `UI_ZeD_Options_HeadGameSettings` | `Game settings ZeD uses` | Options screen (groups): section heading in ZeD setup over the game's settings that ZeD depends on (shown in caps) | - |
 | `UI_ZeD_Options_HeadLook` | `ZeD's look` | Options screen (groups): section heading in ZeD setup over ZeD's own settings (shown in caps) | - |
-| `UI_ZeD_Options_HelpDeadzone` | `How far a stick must move before the game counts it, for the controller picked under Test Controller.` | Options screen: help band for the deadzone row | - |
+| `UI_ZeD_Options_HelpDeadzone` | `How far a stick must move before the game counts it, for the controller chosen under Test Controller.` | Options screen: help band for the deadzone row | - |
 | `UI_ZeD_Options_HelpKey` | `Click the key, then press the new one (or a mouse button).` | Options screen: help band under the list while a key binding row is under the pointer | - |
 | `UI_ZeD_Options_HelpSpecial` | `The button map editor and the controller test open on vanilla's controller page.` | Options screen: help band for the controller setup row | - |
 | `UI_ZeD_Options_KeepEditing` | `Keep editing` | Options screen: strip button that stays in Options | 16 |
@@ -2180,7 +2180,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_OnlyTooltip` | `Item and ZeD tooltips` | Options screen (groups): small line under the Tooltip font setting | 30 |
 | `UI_ZeD_Options_OnlyTooltipHelp` | `It sizes the item tooltip's facts and the text in ZeD's tooltips.` | Options screen (groups): help band for the Tooltip font setting, after the game's own help | - |
 | `UI_ZeD_Options_OpenController` | `Open controller setup` | Options screen: button on the controller setup row | - |
-| `UI_ZeD_Options_PickController` | `Pick a Test Controller below` | Options screen: value of the deadzone row when no controller is picked | - |
+| `UI_ZeD_Options_PickController` | `Choose a Test Controller below` | Options screen: value of the deadzone row when no controller is picked | - |
 | `UI_ZeD_Options_PressKey` | `Press a key` | Options screen: text of a key binding button while it waits for the key | 14 |
 | `UI_ZeD_Options_PromptChange` | `Change` | Controller prompt in the footer of the Options, Sandbox and Character screens: left/right changes the value | 10 |
 | `UI_ZeD_Options_PromptPage` | `Page` | Controller prompt for the bumpers, which switch pages | 10 |
@@ -2218,7 +2218,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_ZedPutBack` | `Put things back` | ZeD setup: section header over the Put things back switch | 30 |
 | `UI_ZeD_Options_ZedTrouble` | `Troubleshooting` | (existing) | - |
 | `UI_ZeD_Options_ZedWindows` | `Windows` | (existing) | - |
-| `UI_ZeD_Options_ZedSandbox` | `Sandbox` | Options, ZeD setup: group heading (capitals) | 24 |
+| `UI_ZeD_Options_ZedSandbox` | `Sandbox` | Options, ZeD setup: group heading | 24 |
 | `UI_ZeD_Options_UnderSandboxIG` | `A line in the pause window` | Options, ZeD setup: the line under the Sandbox switch's name | - |
 
 ## Papers
@@ -2231,8 +2231,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Papers_FilterNews` | `News` | Character window, Journal tab, Papers sub-tab: filter pill for newspapers | 10 |
 | `UI_ZeD_Papers_FilterOnMap` | `On map` | Character window, Journal tab, Papers sub-tab: filter pill for read pieces that name places | 10 |
 | `UI_ZeD_Papers_Find` | `Find a paper...` | Character window, Journal tab, Papers sub-tab: placeholder in the search box | 30 |
-| `UI_ZeD_Papers_HeadStories` | `ON THIS PAGE: %1 STORIES` | Papers quick look: heading over the piece's text when it has several stories (%1 = how many) | 36 |
-| `UI_ZeD_Papers_HeadWords` | `THE WORDS` | Papers quick look: heading over the piece's text | 24 |
+| `UI_ZeD_Papers_HeadStories` | `On this page: %1 stories` | Papers quick look: heading over the piece's text when it has several stories (%1 = how many) | 36 |
+| `UI_ZeD_Papers_HeadWords` | `The words` | Papers quick look: heading over the piece's text | 24 |
 | `UI_ZeD_Papers_NoneCarried` | `Nothing to read on you` | Character window, Journal tab, Papers sub-tab: empty list, the character carries no paper | 40 |
 | `UI_ZeD_Papers_NoneMatch` | `None of these on you` | Character window, Journal tab, Papers sub-tab: empty list, nothing matches the filter or search | 40 |
 | `UI_ZeD_Papers_OpenFull` | `Open full` | Papers quick look and Notebooks sub-tab: button that opens the full reader or full page (shown in sentence case) | 16 |
@@ -2247,28 +2247,28 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_PartAbbr_LeftFoot` | `L. FOOT` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_LeftForearm` | `L. FOREARM` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_LeftHand` | `L. HAND` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_LeftShin` | `L. SHIN` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_LeftThigh` | `L. THIGH` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_LeftUpperArm` | `L. UARM` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_LowerTorso` | `L. TORSO` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_RightFoot` | `R. FOOT` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_RightForearm` | `R. FOREARM` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_RightHand` | `R. HAND` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_RightShin` | `R. SHIN` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_RightThigh` | `R. THIGH` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_RightUpperArm` | `R. UARM` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
-| `UI_ZeD_PartAbbr_UpperTorso` | `U. TORSO` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_LeftFoot` | `L. foot` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_LeftForearm` | `L. forearm` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_LeftHand` | `L. hand` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_LeftShin` | `L. shin` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_LeftThigh` | `L. thigh` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_LeftUpperArm` | `L. uarm` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_LowerTorso` | `L. torso` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_RightFoot` | `R. foot` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_RightForearm` | `R. forearm` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_RightHand` | `R. hand` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_RightShin` | `R. shin` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_RightThigh` | `R. thigh` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_RightUpperArm` | `R. uarm` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
+| `UI_ZeD_PartAbbr_UpperTorso` | `U. torso` | Short body part name for the uncovered-zone pills (kept tight, flex-wrapped) | 11 |
 
 ## Place
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Place_Degrees` | `DEGREES` | 3D placement card: right side of the ROTATION heading (capitals) | 12 |
+| `UI_ZeD_Place_Degrees` | `Degrees` | 3D placement card: right side of the ROTATION heading | 12 |
 | `UI_ZeD_Place_Item` | `Item` | 3D placement card: card title when the item has no name | 20 |
-| `UI_ZeD_Place_WithinTile` | `WITHIN THE TILE` | 3D placement card: right side of the MOVEMENT heading (capitals) | 18 |
+| `UI_ZeD_Place_WithinTile` | `Within the tile` | 3D placement card: right side of the MOVEMENT heading | 18 |
 
 ## Power
 
@@ -2276,13 +2276,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Power_CanName` | `%1 (%2 of %3 L)` | Generator card: a petrol can in the add-fuel list; %1 is its name, %2 how much petrol it holds, %3 its capacity | - |
 | `UI_ZeD_Power_Connect` | `Connect` | Generator card: verb button (plug the generator into the building) | 14 |
-| `UI_ZeD_Power_Days` | `%1 DAYS` | Generator card: run time left under the plate when over 100 hours, e.g. 12 DAYS (capitals) | 12 |
+| `UI_ZeD_Power_Days` | `%1 days` | Generator card: run time left under the plate when over 100 hours, e.g. 12 DAYS | 12 |
 | `UI_ZeD_Power_Disconnect` | `Disconnect` | Generator card: verb button (unplug the generator from the building) | 14 |
 | `UI_ZeD_Power_Fix` | `Fix` | Generator card: verb button | 10 |
-| `UI_ZeD_Power_Fuel` | `FUEL` | Generator card: label of the fuel reading under the plate (capitals) | 10 |
-| `UI_ZeD_Power_FuelOf` | `%1 OF %2 L` | Generator card: fuel in the tank under the plate, e.g. 4.5 OF 10 L (capitals) | 14 |
+| `UI_ZeD_Power_Fuel` | `Fuel` | Generator card: label of the fuel reading under the plate | 10 |
+| `UI_ZeD_Power_FuelOf` | `%1 of %2 L` | Generator card: fuel in the tank under the plate, e.g. 4.5 OF 10 L | 14 |
 | `UI_ZeD_Power_Fumes` | `Indoors. Running it here fills the building with toxic fumes. Move it outside first.` | Generator card: warning band (red) while the generator stands inside a building | - |
-| `UI_ZeD_Power_Hrs` | `%1 HRS` | Generator card: run time left under the plate as hours and minutes, e.g. 33:20 HRS (capitals) | 12 |
+| `UI_ZeD_Power_Hrs` | `%1 hrs` | Generator card: run time left under the plate as hours and minutes, e.g. 33:20 HRS | 12 |
 | `UI_ZeD_Power_MayFail` | `%1 \| may fail to start` | Generator card: value of the condition line at 50% or less; %1 is the percentage with its sign, e.g. 40% (the bar is a separator) | - |
 | `UI_ZeD_Power_NeedCan` | `Add fuel: needs a can with petrol` | Generator card: the NEEDS line under the verbs | - |
 | `UI_ZeD_Power_NeedConnected` | `Turn on: needs it connected` | Generator card: the NEEDS line under the verbs | - |
@@ -2295,9 +2295,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Power_NeedOffConnect` | `Turn it off to add fuel, fix or connect it` | Generator card: the NEEDS line while the generator runs and is not connected | - |
 | `UI_ZeD_Power_NeedOffDisconnect` | `Turn it off to add fuel, fix or disconnect it` | Generator card: the NEEDS line while the generator runs and is connected | - |
 | `UI_ZeD_Power_NeedScrap` | `Fix: needs Scrap Electronics` | Generator card: the NEEDS line under the verbs | - |
-| `UI_ZeD_Power_PillRunning` | `RUNNING` | Generator card: header pill while the generator runs (capitals) | 10 |
-| `UI_ZeD_Power_Powering` | `POWERING` | Generator card: section heading over the list of what the generator powers (capitals) | - |
-| `UI_ZeD_Power_RunTimeLeft` | `RUN TIME LEFT` | Generator card: label of the run time under the plate (capitals; the half-width column holds about 14 letters) | 14 |
+| `UI_ZeD_Power_PillRunning` | `Running` | Generator card: header pill while the generator runs | 10 |
+| `UI_ZeD_Power_Powering` | `Powering` | Generator card: section heading over the list of what the generator powers | - |
+| `UI_ZeD_Power_RunTimeLeft` | `Run time left` | Generator card: label of the run time under the plate (the half-width column holds about 14 letters) | 14 |
 
 ## Print
 
@@ -2312,22 +2312,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Prompt_Back` | `Back` | Controller button legend, B prompt | 12 |
 | `UI_ZeD_Prompt_Card` | `Card` | Controller button legend at the window foot, A prompt on an inventory row or equipment slot (opens its card) | 12 |
-| `UI_ZeD_Prompt_DPadMove` | `D-PAD Move` | Pop-up prompt controller legend, dim note: the D-pad moves between buttons | 18 |
-| `UI_ZeD_Prompt_DPadMoveStep` | `D-PAD Move / Step` | Pop-up prompt controller legend for the alarm clock and timer dialogs: the D-pad moves and steps values | 22 |
-| `UI_ZeD_Prompt_DPadScroll` | `D-PAD Scroll` | Pop-up prompt controller legend, dim note: the D-pad scrolls long text | 18 |
+| `UI_ZeD_Prompt_DPadMove` | `D-pad Move` | Pop-up prompt controller legend, dim note: the D-pad moves between buttons | 18 |
+| `UI_ZeD_Prompt_DPadMoveStep` | `D-pad Move / Step` | Pop-up prompt controller legend for the alarm clock and timer dialogs: the D-pad moves and steps values | 22 |
+| `UI_ZeD_Prompt_DPadScroll` | `D-pad Scroll` | Pop-up prompt controller legend, dim note: the D-pad scrolls long text | 18 |
 | `UI_ZeD_Prompt_Edit` | `Edit` | Controller button legend, X prompt on the map canvas | 12 |
 | `UI_ZeD_Prompt_Fold` | `Fold` | Controller button legend, A prompt on the map's fold control | 12 |
 | `UI_ZeD_Prompt_Hold` | `%1 (hold)` | Controller button legend, hold-A prompt; %1 is the action word (Use) | 18 |
-| `UI_ZeD_Prompt_Hour` | `HOUR` | Alarm clock dialog, label of the hour stepper row | 10 |
+| `UI_ZeD_Prompt_Hour` | `Hour` | Alarm clock dialog, label of the hour stepper row | 10 |
 | `UI_ZeD_Prompt_Keyboard` | `Keyboard` | Pop-up prompt controller legend, A prompt on a text field (opens the on-screen keyboard) | 12 |
 | `UI_ZeD_Prompt_Menu` | `Menu` | Controller button legend, X prompt (opens the context menu) | 12 |
-| `UI_ZeD_Prompt_Minute` | `MINUTE` | Alarm clock dialog, label of the minute stepper row | 10 |
+| `UI_ZeD_Prompt_Minute` | `Minute` | Alarm clock dialog, label of the minute stepper row | 10 |
 | `UI_ZeD_Prompt_Pin` | `Pin` | Controller button legend, X prompt on a map grid tool or a skill row | 12 |
 | `UI_ZeD_Prompt_Press` | `Press` | Pop-up prompt controller legend, A prompt on a button | 12 |
 | `UI_ZeD_Prompt_Recipe` | `Recipe` | Controller button legend, A prompt on a crafting, journal-recipe or build row | 12 |
 | `UI_ZeD_Prompt_Reset` | `Reset` | Controller button legend, X prompt on a control that resets | 12 |
 | `UI_ZeD_Prompt_Search` | `Search` | Controller button legend, A prompt on the forage stance control | 12 |
-| `UI_ZeD_Prompt_Select` | `Select` | Controller button legend, A prompt on a control with no more specific word | 12 |
+| `UI_ZeD_Prompt_Select` | `Choose` | Controller button legend, A prompt on a control with no more specific word | 12 |
 | `UI_ZeD_Prompt_Sort` | `Sort` | Window footer prompt beside L3: step the sort of the list the controller is on | 10 |
 | `UI_ZeD_Prompt_Start` | `Start` | Controller button legend, A prompt on an exercise | 12 |
 | `UI_ZeD_Prompt_Switch` | `Switch` | Controller button legend, A prompt on a sub-tab switch | 12 |
@@ -2385,7 +2385,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_RadioPrompt_ChannelDown` | `Channel down` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_ChannelUp` | `Channel up` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
-| `UI_ZeD_RadioPrompt_Dpad` | `D-PAD Move / Turn` | Car radio up close, controller prompt strip: the D-pad's job | 30 |
+| `UI_ZeD_RadioPrompt_Dpad` | `D-pad Move / Turn` | Car radio up close, controller prompt strip: the D-pad's job | 30 |
 | `UI_ZeD_RadioPrompt_Eject` | `Eject` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_InsertCd` | `Insert a CD` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_Lamp` | `Light` | Two-way radio in full view, controller prompt strip: what A does on the LAMP key (lights the display for 5 s) | 20 |
@@ -2414,7 +2414,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Read_NotHeard` | `Not heard` | Item lists, COND column beside the read mark: a CD or cassette not heard to the end | 12 |
 | `UI_ZeD_Read_Pages` | `%1 of %2` | Item lists, COND column and hover text: pages read of a book's pages; %1 = read, %2 = all | 12 |
 | `UI_ZeD_Read_SomeKnown` | `%1 of %2 known` | Item lists, COND column: a recipe magazine with some recipes known; %1 = known, %2 = all | 14 |
-| `UI_ZeD_Read_NextLevel` | `NEXT LEVEL` | Item lists, a tag after a skill book's name: the book suits your next level | 12 |
+| `UI_ZeD_Read_NextLevel` | `Next level` | Item lists, a tag after a skill book's name: the book suits your next level | 12 |
 | `UI_ZeD_Read_NextFor` | `Good for your next level: %1` | Item lists, hover text of a skill book; %1 = a skill and level (Mechanics 4) | - |
 | `UI_ZeD_Read_PastLevels` | `Your %1 is %2, past this book's levels (%3 to %4)` | Item lists, hover text of a skill book below your level; %1 = skill, %2 = your level, %3 to %4 = the book's levels | - |
 | `UI_ZeD_Read_ForLevels` | `for %1 %2 to %3 (you have %4)` | Item lists, hover text after the pages of a skill book above your next level; %1 = skill, %2 to %3 = the book's levels, %4 = your level | - |
@@ -2431,15 +2431,15 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Reader_Blank` | `Blank` | Notebook page window, left rail: row text for a page with nothing written | 14 |
 | `UI_ZeD_Reader_Counts` | `%1 of %2 lines \| %3 of %4 letters` | Notebook page window: how much of the page is used (%1 lines used, %2 lines allowed, %3 letters used, %4 letters allowed; thousands have a comma) | 50 |
 | `UI_ZeD_Reader_Erase` | `Erase` | Notebook page window, bottom strip: the confirm button of the erase question (shown in sentence case) | 12 |
-| `UI_ZeD_Reader_EraseAsk` | `Erase page %1? Its words cannot be brought back.` | Notebook page window, bottom strip: question when Erase page is pressed (%1 = page) | 70 |
+| `UI_ZeD_Reader_EraseAsk` | `Erase page %1? Its words can't be brought back.` | Notebook page window, bottom strip: question when Erase page is pressed (%1 = page) | 70 |
 | `UI_ZeD_Reader_ErasePage` | `Erase page` | Notebook page window, bottom strip: button that clears the page (shown in sentence case) | 16 |
-| `UI_ZeD_Reader_HeadPiece` | `THIS PIECE` | Reader side column and Papers quick look: section heading over kind, date, read | 20 |
-| `UI_ZeD_Reader_HeadPlaces` | `PLACES` | Reader side column and Papers quick look: heading over the places the piece names (Show on map) | 20 |
-| `UI_ZeD_Reader_HeadStories` | `ON THIS PAGE` | Reader side column: heading over the list of stories (headlines) on the page | 22 |
+| `UI_ZeD_Reader_HeadPiece` | `This piece` | Reader side column and Papers quick look: section heading over kind, date, read | 20 |
+| `UI_ZeD_Reader_HeadPlaces` | `Places` | Reader side column and Papers quick look: heading over the places the piece names (Show on map) | 20 |
+| `UI_ZeD_Reader_HeadStories` | `On this page` | Reader side column: heading over the list of stories (headlines) on the page | 22 |
 | `UI_ZeD_Reader_KeepIt` | `Keep it` | Notebook page window, bottom strip: the cancel button of the erase question (shown in sentence case) | 12 |
-| `UI_ZeD_Reader_LabelDate` | `DATE` | Reader side column and Papers quick look: label for the date of the paper; narrow label column | 8 |
-| `UI_ZeD_Reader_LabelKind` | `KIND` | Reader side column and Papers quick look: label for the kind of paper (Newspaper, Flyer...); narrow label column | 8 |
-| `UI_ZeD_Reader_LabelRead` | `READ` | Reader side column and Papers quick look: label for whether the character has read it; narrow label column | 8 |
+| `UI_ZeD_Reader_LabelDate` | `Date` | Reader side column and Papers quick look: label for the date of the paper; narrow label column | 8 |
+| `UI_ZeD_Reader_LabelKind` | `Kind` | Reader side column and Papers quick look: label for the kind of paper (Newspaper, Flyer...); narrow label column | 8 |
+| `UI_ZeD_Reader_LabelRead` | `Read` | Reader side column and Papers quick look: label for whether the character has read it; narrow label column | 8 |
 | `UI_ZeD_Reader_Lock` | `Lock` | Notebook page window, bottom strip: button that locks the book to its writer (shown in sentence case) | 12 |
 | `UI_ZeD_Reader_NotYet` | `Not yet` | Reader side column and Papers quick look: value of the READ line when unread | 14 |
 | `UI_ZeD_Reader_PageOf` | `Page %1 of %2` | Notebook page window (page corner and bottom strip) and Notebooks sub-tab page bar (%1 = page, %2 = pages in the book) | 20 |
@@ -2459,7 +2459,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Recipe_Fuel` | `FUEL` | Crafting list, small tag on an ingredient that can be burnt as fuel | 8 |
+| `UI_ZeD_Recipe_Fuel` | `Fuel` | Crafting list, small tag on an ingredient that can be burnt as fuel | 8 |
 
 ## Safe
 
@@ -2496,9 +2496,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Saves_CountMany` | `%1 saves` | Load game screen: count in the title bar, none or several saves | - |
 | `UI_ZeD_Saves_CountOne` | `%1 save` | Load game screen: count in the title bar, one save | - |
 | `UI_ZeD_Saves_Find` | `Find:` | Load game screen: label of the search box over the list of saves | 10 |
-| `UI_ZeD_Saves_KvMode` | `MODE` | Load game screen: caps label in the save's facts (about 12 letters of room) | 12 |
-| `UI_ZeD_Saves_KvPlayed` | `PLAYED` | Load game screen: caps label in the save's facts (when it was last played) | 12 |
-| `UI_ZeD_Saves_KvPlayingAs` | `PLAYING AS` | Load game screen: caps label before the list of characters to play | 12 |
+| `UI_ZeD_Saves_KvMode` | `Mode` | Load game screen: caps label in the save's facts (about 12 letters of room) | 12 |
+| `UI_ZeD_Saves_KvPlayed` | `Played` | Load game screen: caps label in the save's facts (when it was last played) | 12 |
+| `UI_ZeD_Saves_KvPlayingAs` | `Playing as` | Load game screen: caps label before the list of characters to play | 12 |
 | `UI_ZeD_Saves_ModsMissing` | `%1 not found` | Load game screen: value of the Mods fact when every mod is missing. %1 is how many | - |
 | `UI_ZeD_Saves_More` | `More` | Load game screen: strip button that opens the More pop-up; also a controller prompt (Y) | 10 |
 | `UI_ZeD_Saves_NameDead` | `%1, dead` | Load game screen: a dead character's name in the list and the heading. %1 is the name | - |
@@ -2552,7 +2552,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_SbxSave_HoursForLootRespawn` | `Turning it on lets containers in towns and trailer parks refill with loot, including ones you have emptied. The game checks areas as they load and as time passes. A container holding fewer than Max Items For Loot Respawn items refills, and the new loot is added to what is there.` | Sandbox options in game: help band, On this save, for Hours for Loot Respawn (Loot page) | - |
 | `UI_ZeD_SbxSave_HoursForWorldItemRemoval` | `Lowering it deletes listed items sooner, including ones already lying there. The check runs when that part of the map loads. 0 stops the removal.` | Sandbox options in game: help band, On this save, for Hours for Removal List (World page) | - |
 | `UI_ZeD_SbxSave_InitialGas` | `Read when a car is first made. Cars already in the world keep their fuel.` | Sandbox options in game: help band, On this save, for Initial Gas (Vehicles page) | - |
-| `UI_ZeD_SbxSave_ItemRemovalListBlacklistToggle` | `Turns the list around: every loose item that is NOT on World Item Removal List is deleted after Hours for Removal List, when its part of the map loads. On a lived-in save that can clear the floors and surfaces of your base.` | Sandbox options in game: help band, On this save, for Removal List as Whitelist (World page) | - |
+| `UI_ZeD_SbxSave_ItemRemovalListBlacklistToggle` | `Turns the list around: every loose item that is not on World Item Removal List is deleted after Hours for Removal List, when its part of the map loads. On a lived-in save that can clear the floors and surfaces of your base.` | Sandbox options in game: help band, On this save, for Removal List as Whitelist (World page) | - |
 | `UI_ZeD_SbxSave_KillInsideCrops` | `Turning it on drains health from crops growing indoors, until they die. Greenhouse rooms and house plants are exempt.` | Sandbox options in game: help band, On this save, for Kill Crops Grown Inside (Nature page) | - |
 | `UI_ZeD_SbxSave_LockedCar` | `Read when a car is first made. Cars already in the world keep their locks.` | Sandbox options in game: help band, On this save, for Locked Vehicle Frequency (Vehicles page) | - |
 | `UI_ZeD_SbxSave_LockedHouses` | `Read when a door or window is first made. Doors and windows you have seen keep their state.` | Sandbox options in game: help band, On this save, for Locked Houses Frequency (World page) | - |
@@ -2563,7 +2563,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_SbxSave_MaximumLootedBuildingRooms` | `Read when a building is first set up. Buildings you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Maximum Looted Building Rooms (Loot page) | - |
 | `UI_ZeD_SbxSave_MaximumRatIndex` | `Read when the game fills an area for the first time. Areas you have already seen keep their state.` | Sandbox options in game: help band, On this save, for Maximum Vermin Index (Nature page) | - |
 | `UI_ZeD_SbxSave_MinutesPerPage` | `Read when you start reading a book. A book you are already reading keeps its pace.` | Sandbox options in game: help band, On this save, for Minutes Per Skill Book Page (Character page) | - |
-| `UI_ZeD_SbxSave_NoBlackClothes` | `Read when a random clothing colour is picked, for example for a zombie that spawns. Clothes already made keep their colour.` | Sandbox options in game: help band, On this save, for No Black Clothes (Character page) | - |
+| `UI_ZeD_SbxSave_NoBlackClothes` | `Read when a random clothing color is picked, for example for a zombie that spawns. Clothes already made keep their color.` | Sandbox options in game: help band, On this save, for No Black Clothes (Character page) | - |
 | `UI_ZeD_SbxSave_PlantGrowingSeasons` | `Turning it on makes crops outdoors suffer in bad months and in winter. Crops already planted out of season lose health quickly and can die.` | Sandbox options in game: help band, On this save, for Plant Growing Seasons (Nature page) | - |
 | `UI_ZeD_SbxSave_Rain` | `Applies to weather the game plans from now on. A front already under way may run its course.` | Sandbox options in game: help band, On this save, for Rain (Nature page) | - |
 | `UI_ZeD_SbxSave_RecentlySurvivorVehicles` | `Read when a car is first made. Cars already in the world keep their state.` | Sandbox options in game: help band, On this save, for Recent Survivor Vehicles (Vehicles page) | - |
@@ -2662,9 +2662,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Sbx_Count1` | `1 change` | Sandbox options in game: one change, inside the strip's questions and History's headings | - |
 | `UI_ZeD_Sbx_CountN` | `%1 changes` | Sandbox options in game: %1 = how many changes, inside the strip's questions and History's headings | - |
 | `UI_ZeD_Sbx_Empty` | `(empty)` | Sandbox options in game: a text setting with nothing in it (the removal lists) | - |
-| `UI_ZeD_Sbx_HeadSave` | `On this save \| %1` | Sandbox options in game: help band, second heading (capitals); %1 = the row's when tag (Now, New places ...) | - |
-| `UI_ZeD_Sbx_HeadTip` | `Tip` | Sandbox options in game: help band, third heading (capitals) | 12 |
-| `UI_ZeD_Sbx_HeadWhat` | `What it does` | Sandbox options in game: help band, first heading (capitals): the game's own description | 20 |
+| `UI_ZeD_Sbx_HeadSave` | `On this save \| %1` | Sandbox options in game: help band, second heading; %1 = the row's when tag (Now, New places ...) | - |
+| `UI_ZeD_Sbx_HeadTip` | `Tip` | Sandbox options in game: help band, third heading | 12 |
+| `UI_ZeD_Sbx_HeadWhat` | `What it does` | Sandbox options in game: help band, first heading: the game's own description | 20 |
 | `UI_ZeD_Sbx_HelpNone` | `Point at a setting to read what it does, what changing it does to this save, and a tip.` | Sandbox options in game: help band before the pointer has been on a setting | - |
 | `UI_ZeD_Sbx_HistNone` | `Nothing applied yet. Every change you apply is listed here with the in-game date, and stays in the save.` | Sandbox options in game: the History page before anything was applied | - |
 | `UI_ZeD_Sbx_HistWhen` | `%1, %2` | Sandbox options in game: History page, an apply's heading; %1 = the in-game date, %2 the in-game time | - |
@@ -2678,18 +2678,18 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Sbx_PowerOff` | `Power: off since day %1` | Sandbox options in game: World page first line; %1 = the day the power went off | - |
 | `UI_ZeD_Sbx_PowerOnGood` | `Power: on for good` | Sandbox options in game: World page first line, power never shuts off | - |
 | `UI_ZeD_Sbx_PowerOnUntil` | `Power: on until day %1` | Sandbox options in game: World page first line; %1 = the day the power goes off | - |
-| `UI_ZeD_Sbx_PutBack` | `Put back` | Sandbox options in game: History page, the button beside each applied change; also the help band's heading for it | 14 |
+| `UI_ZeD_Sbx_PutBack` | `Undo change` | Sandbox options in game: History page, the button beside each applied change; also the help band's heading for it | 14 |
 | `UI_ZeD_Sbx_PutBackHelp` | `Sets %1 back to %2. It waits on the Changed page until you apply it.` | Sandbox options in game: help band for a Put back button; %1 = the setting, %2 = the value it goes back to | - |
 | `UI_ZeD_Sbx_Range` | `Range: %1 to %2` | Sandbox options in game: help band, under What it does; %1 = the smallest number, %2 the largest | - |
 | `UI_ZeD_Sbx_StatChanged` | `This save, %1 changed` | Sandbox options in game: title bar, right side, while settings are changed; %1 = how many | - |
 | `UI_ZeD_Sbx_StatSave` | `This save` | Sandbox options in game: title bar, right side | - |
-| `UI_ZeD_Sbx_TagCare` | `Careful` | Sandbox options in game: tag (capitals): the change can make the save harder or stranger | 14 |
-| `UI_ZeD_Sbx_TagChr` | `New characters` | Sandbox options in game: tag (capitals): only a character made after the change | 16 |
-| `UI_ZeD_Sbx_TagFix` | `Fixed` | Sandbox options in game: tag (capitals): only used when the world was made; the row is locked | 14 |
-| `UI_ZeD_Sbx_TagLoad` | `Next load` | Sandbox options in game: tag (capitals): the game reads it only when the save loads | 14 |
-| `UI_ZeD_Sbx_TagNew` | `New places` | Sandbox options in game: tag (capitals): only places, containers and cars not seen yet | 14 |
-| `UI_ZeD_Sbx_TagNow` | `Now` | Sandbox options in game: tag at the right of a row (drawn in capitals): the change takes effect at once | 14 |
-| `UI_ZeD_Sbx_TagUndo` | `Can't undo` | Sandbox options in game: tag (capitals): the change deletes or changes something for good | 14 |
+| `UI_ZeD_Sbx_TagCare` | `Careful` | Sandbox options in game: tag: the change can make the save harder or stranger | 14 |
+| `UI_ZeD_Sbx_TagChr` | `New characters` | Sandbox options in game: tag: only a character made after the change | 16 |
+| `UI_ZeD_Sbx_TagFix` | `Fixed` | Sandbox options in game: tag: only used when the world was made; the row is locked | 14 |
+| `UI_ZeD_Sbx_TagLoad` | `Next load` | Sandbox options in game: tag: the game reads it only when the save loads | 14 |
+| `UI_ZeD_Sbx_TagNew` | `New places` | Sandbox options in game: tag: only places, containers and cars not seen yet | 14 |
+| `UI_ZeD_Sbx_TagNow` | `Now` | Sandbox options in game: tag at the right of a row: the change takes effect at once | 14 |
+| `UI_ZeD_Sbx_TagUndo` | `Can't undo` | Sandbox options in game: tag: the change deletes or changes something for good | 14 |
 | `UI_ZeD_Sbx_ThisSave` | `This save: %1` | Sandbox options in game: help band, under On this save; %1 = the value this save has | - |
 | `UI_ZeD_Sbx_UndoChanges` | `Undo changes` | Sandbox options in game: action strip button, puts every changed setting back as the save has it | 18 |
 | `UI_ZeD_Sbx_WarnCare` | `Careful: you can change it back.` | Sandbox options in game: help band, On this save, first line (yellow) for a setting tagged Careful | - |
@@ -2705,7 +2705,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Seat_ByDoor` | `By the %1 door.` | Seat chooser, line under the seat name when a door is pointed; %1 = the seat's name | 40 |
-| `UI_ZeD_Seat_DpadMove` | `D-PAD Move` | Seat chooser, controller prompt strip: the D-pad's job | 20 |
+| `UI_ZeD_Seat_DpadMove` | `D-pad Move` | Seat chooser, controller prompt strip: the D-pad's job | 20 |
 | `UI_ZeD_Seat_GetOutHere` | `Get out here` | Seat chooser, controller prompt strip: X leaves by the pointed seat's door | 20 |
 | `UI_ZeD_Seat_NumberGetOut` | `+ number: Get out` | Seat chooser, keyboard prompt strip: holding Shift and pressing a seat number leaves by that door | 24 |
 | `UI_ZeD_Seat_Sit` | `Sit` | Seat chooser, prompt strip: take the pointed seat (A button or number key) | 14 |
@@ -2731,24 +2731,24 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Server_ErrSameName` | `Choose a different name.` | Server settings screen (Host a game, Manage settings): red note under the name field | - |
 | `UI_ZeD_Server_ErrTaken` | `That name is taken, or has characters a file name cannot use.` | Server settings screen (Host a game, Manage settings): red note under the name field | - |
 | `UI_ZeD_Server_ErrTooLong` | `That name is too long for the settings folder.` | Server settings screen (Host a game, Manage settings): red note under the name field | - |
-| `UI_ZeD_Server_HeadServer` | `SERVER` | Server settings screen (Host a game, Manage settings): caps heading in the page list over the server's own setting pages | - |
-| `UI_ZeD_Server_LabelAddMap` | `ADD A MAP FOLDER` | Server settings screen (Host a game, Manage settings): caps label over the field that adds a map by folder name | - |
-| `UI_ZeD_Server_LabelAddPoint` | `ADD A POINT` | Server settings screen (Host a game, Manage settings): caps label over the field that adds a spawn point | - |
-| `UI_ZeD_Server_LabelAddWorkshop` | `ADD BY WORKSHOP ID` | Server settings screen (Host a game, Manage settings): caps label over the field that adds a Workshop item by its number | - |
-| `UI_ZeD_Server_LabelAnotherOccupation` | `ANOTHER OCCUPATION (ITS ID)` | Server settings screen (Host a game, Manage settings): caps label over the field that adds an occupation by id | - |
-| `UI_ZeD_Server_LabelBecome` | `THE FILES BECOME` | Server settings screen (Host a game, Manage settings): caps heading over the renamed files | - |
-| `UI_ZeD_Server_LabelCopies` | `THE COPIES` | Server settings screen (Host a game, Manage settings): caps heading over the copied files | - |
-| `UI_ZeD_Server_LabelFiles` | `ITS FILES` | Server settings screen (Host a game, Manage settings): caps heading over the files of the picked settings | - |
-| `UI_ZeD_Server_LabelFixedPoint` | `FIXED SPAWN POINT (X,Y,Z)` | Server settings screen (Host a game, Manage settings): caps label over the fixed spawn point field | - |
-| `UI_ZeD_Server_LabelGo` | `THESE FILES GO` | Server settings screen (Host a game, Manage settings): caps heading over the files that will be deleted | - |
-| `UI_ZeD_Server_LabelMakes` | `IT MAKES THESE FILES` | Server settings screen (Host a game, Manage settings): caps heading over the files that a new settings name would make | - |
-| `UI_ZeD_Server_LabelMaps` | `MAPS (WHERE THEY OVERLAP, THE ONE HIGHER UP WINS)` | Server settings screen (Host a game, Manage settings): caps heading over the server's list of maps | - |
-| `UI_ZeD_Server_LabelMods` | `THE SERVER'S MODS` | Server settings screen (Host a game, Manage settings): caps heading over the server's list of mods | - |
-| `UI_ZeD_Server_LabelOccupations` | `OCCUPATIONS` | Server settings screen (Host a game, Manage settings): caps heading over the list of occupations on the spawn points page | - |
-| `UI_ZeD_Server_LabelPoints` | `ITS SPAWN POINTS (X,Y,Z)` | Server settings screen (Host a game, Manage settings): caps heading over the picked occupation's points | - |
-| `UI_ZeD_Server_LabelPreset` | `START FROM A PRESET` | Server settings screen (Host a game, Manage settings): caps heading over the list of sandbox presets | - |
-| `UI_ZeD_Server_LabelRegFile` | `FILE` | Server settings screen (Host a game, Manage settings): caps label at the left of the spawn region's file field | 8 |
-| `UI_ZeD_Server_LabelWorkshop` | `STEAM WORKSHOP ITEMS` | Server settings screen (Host a game, Manage settings): caps heading over the server's Workshop items | - |
+| `UI_ZeD_Server_HeadServer` | `Server` | Server settings screen (Host a game, Manage settings): caps heading in the page list over the server's own setting pages | - |
+| `UI_ZeD_Server_LabelAddMap` | `Add a map folder` | Server settings screen (Host a game, Manage settings): caps label over the field that adds a map by folder name | - |
+| `UI_ZeD_Server_LabelAddPoint` | `Add a point` | Server settings screen (Host a game, Manage settings): caps label over the field that adds a spawn point | - |
+| `UI_ZeD_Server_LabelAddWorkshop` | `Add by Workshop ID` | Server settings screen (Host a game, Manage settings): caps label over the field that adds a Workshop item by its number | - |
+| `UI_ZeD_Server_LabelAnotherOccupation` | `Another occupation (its ID)` | Server settings screen (Host a game, Manage settings): caps label over the field that adds an occupation by id | - |
+| `UI_ZeD_Server_LabelBecome` | `The files become` | Server settings screen (Host a game, Manage settings): caps heading over the renamed files | - |
+| `UI_ZeD_Server_LabelCopies` | `The copies` | Server settings screen (Host a game, Manage settings): caps heading over the copied files | - |
+| `UI_ZeD_Server_LabelFiles` | `Its files` | Server settings screen (Host a game, Manage settings): caps heading over the files of the picked settings | - |
+| `UI_ZeD_Server_LabelFixedPoint` | `Fixed spawn point (X,Y,Z)` | Server settings screen (Host a game, Manage settings): caps label over the fixed spawn point field | - |
+| `UI_ZeD_Server_LabelGo` | `These files go` | Server settings screen (Host a game, Manage settings): caps heading over the files that will be deleted | - |
+| `UI_ZeD_Server_LabelMakes` | `It makes these files` | Server settings screen (Host a game, Manage settings): caps heading over the files that a new settings name would make | - |
+| `UI_ZeD_Server_LabelMaps` | `Maps (where they overlap, the one higher up wins)` | Server settings screen (Host a game, Manage settings): caps heading over the server's list of maps | - |
+| `UI_ZeD_Server_LabelMods` | `The server's mods` | Server settings screen (Host a game, Manage settings): caps heading over the server's list of mods | - |
+| `UI_ZeD_Server_LabelOccupations` | `Occupations` | Server settings screen (Host a game, Manage settings): caps heading over the list of occupations on the spawn points page | - |
+| `UI_ZeD_Server_LabelPoints` | `Its spawn points (X,Y,Z)` | Server settings screen (Host a game, Manage settings): caps heading over the picked occupation's points | - |
+| `UI_ZeD_Server_LabelPreset` | `Start from a preset` | Server settings screen (Host a game, Manage settings): caps heading over the list of sandbox presets | - |
+| `UI_ZeD_Server_LabelRegFile` | `File` | Server settings screen (Host a game, Manage settings): caps label at the left of the spawn region's file field | 8 |
+| `UI_ZeD_Server_LabelWorkshop` | `Steam Workshop items` | Server settings screen (Host a game, Manage settings): caps heading over the server's Workshop items | - |
 | `UI_ZeD_Server_ModsNote` | `Mods are chosen on the way in: "Cancel", "Edit", then "Choose mods..."` | Server settings screen (Host a game, Manage settings): note under the mods list (the quoted words are button names) | - |
 | `UI_ZeD_Server_NoMaps` | `No maps` | Server settings screen (Host a game, Manage settings): empty list of maps | - |
 | `UI_ZeD_Server_NoMods` | `No mods: the server runs the game as it is.` | Server settings screen (Host a game, Manage settings): empty list of mods | - |
@@ -2814,7 +2814,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_PutBackTip` | `When on, whatever an action takes out of a bag, a container in reach or off the floor goes back where it came from once the action finishes, leftovers too, and your hands as they were. The game's own move action, so it takes the same game time. Not after an interruption.` | ZeD setup: the help band for Put things back | - |
 | `UI_ZeD_Settings_SafeMode` | `Safe mode` | Options > Mods > ZeD-GUI: name of the safe mode setting | - |
 | `UI_ZeD_Settings_SafeModeOn` | `On: the game's own interface` | Options > Mods > ZeD-GUI: second choice of the Safe mode setting | - |
-| `UI_ZeD_Settings_SafeModeTip` | `On: ZeD UI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD UI ever fails to open. ZeD UI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.` | Options > Mods > ZeD-GUI: hover help | - |
+| `UI_ZeD_Settings_SafeModeTip` | `On: ZeD-GUI steps aside and the game's own interface is used (its inventory, hotbar, clock, moodles and dashboard) until you turn it Off. Use it if ZeD-GUI ever fails to open. ZeD-GUI also steps aside by itself, for the rest of a session, if it hits an error that keeps repeating.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_SameAsAccent` | `Same as Accent color` | Options > Mods > ZeD-GUI: last choice of the two window accent settings | - |
 | `UI_ZeD_Settings_ScaleAuto` | `Auto (fits the screen)` | Options > Mods > ZeD-GUI: first choice of the UI scale setting (the other choices are numbers like 1.5x). Do not use a % sign | - |
 | `UI_ZeD_Settings_TestLanguage` | `Test language (stretched text)` | Options > Mods > ZeD-GUI: name of the test language setting | - |
@@ -2822,7 +2822,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_TextSize` | `Text size` | Options > Mods > ZeD-GUI: name of the text size setting | - |
 | `UI_ZeD_Settings_TextSizeTip` | `Controls font sizes and component dimensions.` | Options > Mods > ZeD-GUI: hover help of the text size setting | - |
 | `UI_ZeD_Settings_UiScale` | `UI scale` | Options > Mods > ZeD-GUI: name of the UI scale setting | - |
-| `UI_ZeD_Settings_UiScaleTip` | `Auto sizes the whole ZeD UI to your screen: 1x at 1080p, 2x at 4K. Pick a fixed size to override it (1x is the 1080p size).` | Options > Mods > ZeD-GUI: hover help of the UI scale setting | - |
+| `UI_ZeD_Settings_UiScaleTip` | `Auto sizes all of ZeD-GUI to your screen: 1x at 1080p, 2x at 4K. Choose a fixed size to override it (1x is the 1080p size).` | Options > Mods > ZeD-GUI: hover help of the UI scale setting | - |
 | `UI_ZeD_Settings_ViewDoll` | `Doll` | Options > Mods > ZeD-GUI: choice of the Equipped items setting: the character figure | - |
 | `UI_ZeD_Settings_ViewGrid` | `Grid` | Options > Mods > ZeD-GUI: choice of the Inventory setting: a grid of icons | - |
 | `UI_ZeD_Settings_ViewList` | `List` | Options > Mods > ZeD-GUI: choice of the Equipped items, Inventory and Context menu settings | - |
@@ -2842,7 +2842,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_AmmoBoxTip` | `With a gun in your main hand, a pouch beside it on the belt shows the rounds in the gun, one segment each, and what you carry for a reload. Off: the belt as the game has it.` | Options, ZeD setup: help band for the switch | - |
 | `UI_ZeD_Settings_ReadMarks` | `Read marks in item lists` | Options, ZeD setup, ZeD windows: the switch's name | - |
 | `UI_ZeD_Settings_ReadMarksTip` | `Books, magazines, maps and tapes show whether you have read them: a mark and a word in the lists, a mark in the grid, and the details when you point at them.` | Options, ZeD setup: help band for the switch | - |
-| `UI_ZeD_Settings_ReadNext` | `NEXT LEVEL on skill books` | Options, ZeD setup, ZeD windows: the switch's name | - |
+| `UI_ZeD_Settings_ReadNext` | `Next level on skill books` | Options, ZeD setup, ZeD windows: the switch's name | - |
 | `UI_ZeD_Settings_ReadNextTip` | `Marks the skill books that suit your next level in that skill.` | Options, ZeD setup: help band for the switch | - |
 | `UI_ZeD_Settings_DashLamps` | `Dashboard warning lamps` | Options, ZeD setup, HUD: the switch's name | - |
 | `UI_ZeD_Settings_DashLampsTip` | `The battery, engine and heater lamps light amber or red when the part is worn, and pointing at a lamp shows the part's condition. Off: the lamps as the game has them.` | Options, ZeD setup: help band for the switch | - |
@@ -2853,7 +2853,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Siren_Dpad` | `D-PAD Left / Right: switch   Up / Down: turn` | Siren controller, controller prompt strip: the D-pad's job | 50 |
+| `UI_ZeD_Siren_Dpad` | `D-pad Left / Right: switch   Up / Down: turn` | Siren controller, controller prompt strip: the D-pad's job | 50 |
 | `UI_ZeD_Siren_Step` | `Step` | Siren controller, controller prompt strip: A steps the focused switch to its next position | 14 |
 
 ## Skills
@@ -2861,10 +2861,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Skills_Boost` | `+%1 XP` | Skills tab (Character window): small green pill at the right end of a skill row; %1 is 75%, 100% or 125% (the XP boost from a trait or job) | 12 |
-| `UI_ZeD_Skills_StatusCollected` | `COLLECTED` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book in the inventory, not yet read (capitals) | 12 |
-| `UI_ZeD_Skills_StatusMissing` | `NOT FOUND` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book not found yet (capitals) | 12 |
-| `UI_ZeD_Skills_StatusRead` | `READ` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book fully read (capitals) | 12 |
-| `UI_ZeD_Skills_StatusReading` | `READING` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book partly read (capitals) | 12 |
+| `UI_ZeD_Skills_StatusCollected` | `Collected` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book in the inventory, not yet read | 12 |
+| `UI_ZeD_Skills_StatusMissing` | `Not found` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book not found yet | 12 |
+| `UI_ZeD_Skills_StatusRead` | `Read` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book fully read | 12 |
+| `UI_ZeD_Skills_StatusReading` | `Reading` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book partly read | 12 |
 | `UI_ZeD_Skills_TrainingMaterials` | `Training Materials` | Skills tab (Character window): heading of the skill-book section under the skill grid | 24 |
 | `UI_ZeD_Skills_Volume` | `%1 Vol. %2` | Skills tab (Character window), Training Materials: a book row when a skill group is open; %1 is the book's title, %2 its volume number as a roman numeral (I, II, III...) | - |
 | `UI_ZeD_Skills_CardLevel` | `Level %1 \| %2 / %3 XP to level %4` | Skills tab: a skill row's hover card, under the skill's name. %1 level, %2 XP so far in it, %3 XP the level takes, %4 the next level | - |
@@ -2902,14 +2902,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Station_AnySurface` | `ANY SURFACE` | Craft tab, station dropdown: small note on the Hand row | 14 |
+| `UI_ZeD_Station_AnySurface` | `Any surface` | Craft tab, station dropdown: small note on the Hand row | 14 |
 | `UI_ZeD_Station_Fallback` | `Station` | Craft tab, station select and band: name when the station has none | - |
 | `UI_ZeD_Station_Hand` | `Hand` | Craft tab, station dropdown and select: crafting with no station, by hand | 18 |
-| `UI_ZeD_Station_InReach` | `WITHIN REACH` | Craft tab, station dropdown: heading above the stations you can use | 24 |
-| `UI_ZeD_Station_InUse` | `IN USE` | Craft tab, station dropdown: small note on a station someone else is using | 14 |
-| `UI_ZeD_Station_KindAppliance` | `APPLIANCE` | Craft tab, station band: kind word after the distance | 12 |
-| `UI_ZeD_Station_KindBench` | `BENCH` | Craft tab, station band: kind word after the distance | 12 |
-| `UI_ZeD_Station_KindMachine` | `MACHINE` | Craft tab, station band: kind word after the distance | 12 |
+| `UI_ZeD_Station_InReach` | `Within reach` | Craft tab, station dropdown: heading above the stations you can use | 24 |
+| `UI_ZeD_Station_InUse` | `In use` | Craft tab, station dropdown: small note on a station someone else is using | 14 |
+| `UI_ZeD_Station_KindAppliance` | `Appliance` | Craft tab, station band: kind word after the distance | 12 |
+| `UI_ZeD_Station_KindBench` | `Bench` | Craft tab, station band: kind word after the distance | 12 |
+| `UI_ZeD_Station_KindMachine` | `Machine` | Craft tab, station band: kind word after the distance | 12 |
 | `UI_ZeD_Station_Leave` | `Leave station` | Controller prompt for B in the Craft tab while a station is chosen | 16 |
 | `UI_ZeD_Station_ListComma` | `%1, %2` | Craft tab, recipe card: joins stations in a list of three or more | - |
 | `UI_ZeD_Station_ListOr` | `%1 or %2` | Craft tab, recipe card: joins the last two stations a recipe accepts (Simple Forge or Advanced Forge) | - |
@@ -2917,30 +2917,30 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Station_NearestOne` | `The nearest is 1 tile away.` | Craft tab, recipe card: second line when the needed station is 1 tile away | - |
 | `UI_ZeD_Station_NeedsA` | `Needs a %1.` | Craft tab, recipe card: the station a recipe needs (name starts with a consonant) | - |
 | `UI_ZeD_Station_NeedsAn` | `Needs an %1.` | Craft tab, recipe card: the station a recipe needs (name starts with a vowel) | - |
-| `UI_ZeD_Station_NoneInReach` | `NOTHING WITHIN REACH` | Craft tab, station dropdown: heading when no station is near | 24 |
-| `UI_ZeD_Station_SelectLabel` | `STATION` | Craft tab: small label inside the station select box | 10 |
-| `UI_ZeD_Station_ShortBarrel` | `BARREL` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
-| `UI_ZeD_Station_ShortBeam` | `BEAM` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
-| `UI_ZeD_Station_ShortCharcoal` | `CHARCOAL` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
-| `UI_ZeD_Station_ShortCoffee` | `COFFEE` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
-| `UI_ZeD_Station_ShortFallback` | `STATION` | Craft tab, recipe row and card badge: short name when a recipe's station has no short name | 9 |
-| `UI_ZeD_Station_ShortMill` | `MILL` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
-| `UI_ZeD_Station_ShortQuern` | `QUERN` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
-| `UI_ZeD_Station_ShortRack` | `RACK` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
+| `UI_ZeD_Station_NoneInReach` | `Nothing within reach` | Craft tab, station dropdown: heading when no station is near | 24 |
+| `UI_ZeD_Station_SelectLabel` | `Station` | Craft tab: small label inside the station select box | 10 |
+| `UI_ZeD_Station_ShortBarrel` | `Barrel` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
+| `UI_ZeD_Station_ShortBeam` | `Beam` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
+| `UI_ZeD_Station_ShortCharcoal` | `Charcoal` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
+| `UI_ZeD_Station_ShortCoffee` | `Coffee` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
+| `UI_ZeD_Station_ShortFallback` | `Station` | Craft tab, recipe row and card badge: short name when a recipe's station has no short name | 9 |
+| `UI_ZeD_Station_ShortMill` | `Mill` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
+| `UI_ZeD_Station_ShortQuern` | `Quern` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
+| `UI_ZeD_Station_ShortRack` | `Rack` | Craft tab, recipe row and card badge: short name of the station a recipe needs | 9 |
 | `UI_ZeD_Station_StateIdle` | `Idle` | Craft tab, station band: a machine that is not working | 16 |
 | `UI_ZeD_Station_StateInUseByYou` | `In use by you` | Craft tab, station band: state of the bench you stand at | 16 |
 | `UI_ZeD_Station_StateNoPower` | `No power` | Craft tab, station band: an appliance with no power | 16 |
 | `UI_ZeD_Station_StateRunning` | `Running` | Craft tab, station band: a machine that is working | 16 |
-| `UI_ZeD_Station_TileMany` | `%1 TILES` | Craft tab, station band and station list: distance to the station | 10 |
-| `UI_ZeD_Station_TileOne` | `1 TILE` | Craft tab, station band and station list: distance to the station | 10 |
+| `UI_ZeD_Station_TileMany` | `%1 tiles` | Craft tab, station band and station list: distance to the station | 10 |
+| `UI_ZeD_Station_TileOne` | `1 tile` | Craft tab, station band and station list: distance to the station | 10 |
 
 ## Status
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Status_Danger` | `DANGER` | Status chip text, red. | 10 |
-| `UI_ZeD_Status_Info` | `INFO` | Status chip text, blue. | 10 |
-| `UI_ZeD_Status_Warning` | `WARNING` | Status chip text, amber. | 10 |
+| `UI_ZeD_Status_Danger` | `Danger` | Status chip text, red. | 10 |
+| `UI_ZeD_Status_Info` | `Info` | Status chip text, blue. | 10 |
+| `UI_ZeD_Status_Warning` | `Warning` | Status chip text, amber. | 10 |
 
 ## Strip
 
@@ -2948,7 +2948,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Strip_OwnedCount` | `%1/%2 owned` | Crafting list, alternative-items strip, centre readout: items owned of items needed | 18 |
 | `UI_ZeD_Strip_OwnedOnly` | `Owned only` | Crafting list, alternative-items strip, toggle that hides items you do not own | 16 |
-| `UI_ZeD_Strip_Sort` | `SORT` | Crafting list, label at the left of the sort strip | 8 |
+| `UI_ZeD_Strip_Sort` | `Sort` | Crafting list, label at the left of the sort strip | 8 |
 
 ## TAS
 
@@ -2957,7 +2957,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_TAS_All` | `All (%1)` | Traits tab: left half of the All / With a trait switch; %1 is how many ladders | 16 |
 | `UI_ZeD_TAS_And` | `%1 and %2` | Traits tab, details: joins the last two skill names | - |
 | `UI_ZeD_TAS_At` | `at %1: %2` | Traits tab, details: Level up line; %1 the first level that changes something, %2 what it changes | - |
-| `UI_ZeD_TAS_Bad` | `%1 bad` | Traits tab: summary line, how many bad traits (a red dot before it) | 12 |
+| `UI_ZeD_TAS_Bad` | `%1 negative` | Traits tab: summary line, how many bad traits (a red dot before it) | 12 |
 | `UI_ZeD_TAS_Category` | `Category: %1` | Traits tab, details: at the right of the title; %1 is the mod's category name | - |
 | `UI_ZeD_TAS_Credit` | `%1 by %2` | Traits tab (Character window, with the Traits As Skills mod): small line at the top naming the mod; %1 is the mod's name, %2 its author | - |
 | `UI_ZeD_TAS_DownAt` | `Level down at %1: %2` | Traits tab, details: after the Level up line; %1 the first level down that changes something, %2 what it changes | - |
@@ -2965,14 +2965,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_TAS_Follows` | `Follows your %1 skill: %2` | Traits tab, details: a ladder that follows one skill; %1 the skill's name, %2 its level with a decimal | - |
 | `UI_ZeD_TAS_FollowsAvg` | `Follows your %1 skills (the average): %2` | Traits tab, details: a ladder that follows several skills; %1 their names, %2 their average level | - |
 | `UI_ZeD_TAS_GainT` | `gain %1` | Traits tab, details: a trait a level gives; %1 is the trait's name | - |
-| `UI_ZeD_TAS_Good` | `%1 good` | Traits tab: summary line, how many good traits the ladders give now (a green dot before it) | 12 |
+| `UI_ZeD_TAS_Good` | `%1 positive` | Traits tab: summary line, how many good traits the ladders give now (a green dot before it) | 12 |
 | `UI_ZeD_TAS_Here` | `You are here` | Traits tab: hover hint over the step the character stands on | - |
-| `UI_ZeD_TAS_KLevelUp` | `Level up` | Traits tab, details: small capitals label of the line that says what the next level changes | 10 |
-| `UI_ZeD_TAS_KNow` | `Now` | Traits tab, details: small capitals label of the line with the trait's description | 10 |
-| `UI_ZeD_TAS_KProgress` | `Progress` | Traits tab, details: small capitals label of the progress line | 10 |
+| `UI_ZeD_TAS_KLevelUp` | `Level up` | Traits tab, details: label of the line that says what the next level changes | 10 |
+| `UI_ZeD_TAS_KNow` | `Now` | Traits tab, details: label of the line with the trait's description | 10 |
+| `UI_ZeD_TAS_KProgress` | `Progress` | Traits tab, details: label of the progress line | 10 |
 | `UI_ZeD_TAS_LevelOf` | `Level %1 of 10` | Traits tab, details: beside the ladder's name | 14 |
 | `UI_ZeD_TAS_LoseT` | `lose %1` | Traits tab, details: a trait a level takes away; %1 is the trait's name | - |
-| `UI_ZeD_TAS_New` | `NEW` | Traits tab: small tag beside a trait gained since the tab was last opened (capitals) | 5 |
+| `UI_ZeD_TAS_New` | `New` | Traits tab: small tag beside a trait gained since the tab was last opened | 5 |
 | `UI_ZeD_TAS_NoChange` | `no change` | Traits tab, details: a level that changes nothing | - |
 | `UI_ZeD_TAS_NoChangeAbove` | `no change above` | Traits tab, details: Level up line when no higher level changes anything | - |
 | `UI_ZeD_TAS_NoDesc` | `(the game gives this trait no description)` | Traits tab, details: after a trait's name when the game has no description for it | - |
@@ -2983,7 +2983,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_TAS_Nothing` | `Nothing matches "%1".` | Traits tab: in place of the list when Find matches nothing; %1 is what was typed | - |
 | `UI_ZeD_TAS_NowNone` | `No trait at this level.` | Traits tab, details: the Now line when the ladder gives no trait | - |
 | `UI_ZeD_TAS_Or` | `%1 or %2` | Traits tab: hover hint over a step whose range holds a pair of traits (either one) | - |
-| `UI_ZeD_TAS_Pick` | `Pick a row to see its ladder, what raises or lowers it, and what the next level changes.` | Traits tab: the details panel at the foot before a row is picked | - |
+| `UI_ZeD_TAS_Pick` | `Choose a row to see its ladder, what raises or lowers it, and what the next level changes.` | Traits tab: the details panel at the foot before a row is picked | - |
 | `UI_ZeD_TAS_StepTitle` | `%1 level %2` | Traits tab: hover hint over one of a row's ten steps; %1 the ladder, %2 the level | - |
 | `UI_ZeD_TAS_TopLevel` | `Top level` | Traits tab, details: progress line of a ladder at level 10 | - |
 | `UI_ZeD_TAS_WeightKg` | `Weight: %1 kg` | Traits tab, details: progress line of the Weight ladder; %1 is the character's weight | - |
@@ -3001,9 +3001,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Thermal_Air` | `AIR` | Thermal tab, readout line above the gradient bar: label before the air temperature | 8 |
+| `UI_ZeD_Thermal_Air` | `Air` | Thermal tab, readout line above the gradient bar: label before the air temperature | 8 |
 | `UI_ZeD_Thermal_ByRegion` | `%1 by region` | Thermal tab, heading over the two-column body part grid; %1 is the active view's name (Skin temp, Insulation...) | - |
-| `UI_ZeD_Thermal_Core` | `CORE` | Thermal tab, readout line above the gradient bar: label before the core temperature | 8 |
+| `UI_ZeD_Thermal_Core` | `Core` | Thermal tab, readout line above the gradient bar: label before the core temperature | 8 |
 | `UI_ZeD_Thermal_RowShiver` | `Shiver / sweat` | Thermal tab hover detail (body part rolled over): stat row label, with the other seven metrics | 20 |
 | `UI_ZeD_Thermal_TempC` | `%1°C` | Thermal tab: a temperature when the player's game option shows Celsius (core/air/wind line, skin temperature rows). %1 is the number with one decimal | 10 |
 | `UI_ZeD_Thermal_TempF` | `%1°F` | Thermal tab: a temperature when the player's game option shows Fahrenheit. %1 is the converted number with one decimal | 10 |
@@ -3022,7 +3022,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Track_CompassSE` | `SE` | Animal track card: the compass letter for south-east, drawn round the compass ring (1 letter for the main points, 2 for the corners; the corners use a tiny face) | 2 |
 | `UI_ZeD_Track_CompassSW` | `SW` | Animal track card: the compass letter for south-west, drawn round the compass ring (1 letter for the main points, 2 for the corners; the corners use a tiny face) | 2 |
 | `UI_ZeD_Track_CompassW` | `W` | Animal track card: the compass letter for west, drawn round the compass ring (1 letter for the main points, 2 for the corners; the corners use a tiny face) | 2 |
-| `UI_ZeD_Track_TrackingLevel` | `\| TRACKING %1` | Animal track card: small dim text after the species; %1 is the player's Tracking level (capitals; the bar is a separator) | 16 |
+| `UI_ZeD_Track_TrackingLevel` | `\| Tracking %1` | Animal track card: small dim text after the species; %1 is the player's Tracking level (the bar is a separator) | 16 |
 
 ## Traits
 
@@ -3031,13 +3031,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Traits_AskDelete` | `Delete the build %1?` | Occupation and traits screen (new game): question in the action strip. %1 is the build's name | - |
 | `UI_ZeD_Traits_AskName` | `Build name:` | Occupation and traits screen (new game): label before the name field in the action strip | - |
 | `UI_ZeD_Traits_Builds` | `Builds...` | Occupation and traits screen (new game): strip button that opens the Builds pop-up | 14 |
-| `UI_ZeD_Traits_ClearTraits` | `Clear traits` | Occupation and traits screen (new game): strip button that gives back every chosen trait | 16 |
+| `UI_ZeD_Traits_ClearTraits` | `Reset traits` | Occupation and traits screen (new game): strip button that gives back every chosen trait | 16 |
 | `UI_ZeD_Traits_DeleteBuild` | `Delete %1...` | Occupation and traits screen (new game): row of the Builds pop-up. %1 is the saved build's name | - |
 | `UI_ZeD_Traits_FromOccupation` | `From the occupation.` | Occupation and traits screen (new game): added to the help of a trait the occupation gives for free | - |
-| `UI_ZeD_Traits_HeadChosen` | `CHOSEN` | Occupation and traits screen (new game): caps heading over the chosen traits | - |
-| `UI_ZeD_Traits_HeadNegative` | `NEGATIVE` | Occupation and traits screen (new game): caps heading over the negative traits column | - |
-| `UI_ZeD_Traits_HeadPositive` | `POSITIVE` | Occupation and traits screen (new game): caps heading over the positive traits column | - |
-| `UI_ZeD_Traits_HeadSkills` | `STARTING SKILLS` | Occupation and traits screen (new game): caps heading over the starting skills list | - |
+| `UI_ZeD_Traits_HeadChosen` | `Chosen` | Occupation and traits screen (new game): caps heading over the chosen traits | - |
+| `UI_ZeD_Traits_HeadNegative` | `Negative` | Occupation and traits screen (new game): caps heading over the negative traits column | - |
+| `UI_ZeD_Traits_HeadPositive` | `Positive` | Occupation and traits screen (new game): caps heading over the positive traits column | - |
+| `UI_ZeD_Traits_HeadSkills` | `Starting skills` | Occupation and traits screen (new game): caps heading over the starting skills list | - |
 | `UI_ZeD_Traits_NoneYet` | `None yet` | Occupation and traits screen (new game): empty list of chosen traits | - |
 | `UI_ZeD_Traits_Penalty` | `Negative trait penalty %1` | Occupation and traits screen (new game): title bar note. %1 is the points the sandbox takes off | - |
 | `UI_ZeD_Traits_PointsMany` | `%1 points` | Occupation and traits screen (new game): points left, shown in the title bar, for any other number | - |
@@ -3054,40 +3054,40 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Trough_AddFood` | `Add food` | Feeding trough card: verb button | 14 |
 | `UI_ZeD_Trough_AddWater` | `Add water` | Feeding trough card: verb button | 14 |
-| `UI_ZeD_Trough_Animals` | `ANIMALS` | Feeding trough card: label of the number of animals using the trough (capitals) | 12 |
+| `UI_ZeD_Trough_Animals` | `Animals` | Feeding trough card: label of the number of animals using the trough | 12 |
 | `UI_ZeD_Trough_ConfirmEmpty` | `Pour %1 of %2 out of the trough?` | Feeding trough card: confirmation in the footer; %1 is the amount, e.g. 4.5 L, %2 the liquid's name in lower case | - |
-| `UI_ZeD_Trough_Feed` | `FEED` | Feeding trough card: small word after the big feed amount (capitals) | 8 |
-| `UI_ZeD_Trough_InTrough` | `IN THE TROUGH` | Feeding trough card: section heading over the list of feed lying in the trough (capitals) | - |
-| `UI_ZeD_Trough_LinkedTo` | `LINKED TO` | Feeding trough card: label of the zone's name (capitals; the half-width column holds about 14 letters) | 14 |
+| `UI_ZeD_Trough_Feed` | `Feed` | Feeding trough card: small word after the big feed amount | 8 |
+| `UI_ZeD_Trough_InTrough` | `In the trough` | Feeding trough card: section heading over the list of feed lying in the trough | - |
+| `UI_ZeD_Trough_LinkedTo` | `Linked to` | Feeding trough card: label of the zone's name (the half-width column holds about 14 letters) | 14 |
 | `UI_ZeD_Trough_NeedAddFood` | `Add food: %1` | Feeding trough card: the NEEDS line when the trough holds water; %1 is the game's own reason | - |
 | `UI_ZeD_Trough_NeedAddWater` | `Add water: %1` | Feeding trough card: the NEEDS line when the trough holds feed; %1 is the game's own reason | - |
 | `UI_ZeD_Trough_NothingToAdd` | `You carry nothing the trough takes.` | Feeding trough card: line under YOUR FEED when you have no feed | - |
 | `UI_ZeD_Trough_NoZoneWarn` | `Not in an animal zone. Animals only eat and drink from troughs inside their zone.` | Feeding trough card: warning band (red) at the top | - |
-| `UI_ZeD_Trough_PillFood` | `FOOD` | Feeding trough card: header pill for a trough holding feed (capitals) | 10 |
+| `UI_ZeD_Trough_PillFood` | `Food` | Feeding trough card: header pill for a trough holding feed | 10 |
 | `UI_ZeD_Trough_UseIt` | `%1 use it` | Feeding trough card: value of ANIMALS; %1 is how many animals use the trough | 16 |
-| `UI_ZeD_Trough_WaterUnit` | `L OF %1 \| %2` | Feeding trough card: small text after the big water amount: litres of the trough's maximum, then the liquid; %1 is the maximum, e.g. 8.0 L, %2 the liquid in capitals (capitals; the bar is a separator) | 30 |
+| `UI_ZeD_Trough_WaterUnit` | `L of %1 \| %2` | Feeding trough card: small text after the big water amount: litres of the trough's maximum, then the liquid; %1 is the maximum, e.g. 8.0 L, %2 the liquid (the bar is a separator) | 30 |
 | `UI_ZeD_Trough_WaterWord` | `Water` | Feeding trough card: the word for the trough's water when the game names no liquid (also used lower-cased in the empty-out question) | 14 |
-| `UI_ZeD_Trough_YourFeed` | `YOUR FEED` | Feeding trough card: section heading over the list of feed you carry (capitals) | - |
-| `UI_ZeD_Trough_Zone` | `ZONE` | Feeding trough card: section heading over the zone lines (capitals) | - |
-| `UI_ZeD_Trough_ZoneLinked` | `LINKED` | Feeding trough card: right side of the ZONE heading when the trough is in an animal zone (capitals) | 10 |
+| `UI_ZeD_Trough_YourFeed` | `Your feed` | Feeding trough card: section heading over the list of feed you carry | - |
+| `UI_ZeD_Trough_Zone` | `Zone` | Feeding trough card: section heading over the zone lines | - |
+| `UI_ZeD_Trough_ZoneLinked` | `Linked` | Feeding trough card: right side of the ZONE heading when the trough is in an animal zone | 10 |
 
 ## Veh
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
-| `UI_ZeD_Veh_About` | `ABOUT` | Vehicle tab part card: heading above the part's description | 12 |
-| `UI_ZeD_Veh_ActClosingLid` | `CLOSING THE LID` | Vehicle tab animal trailer page: progress band text while the trunk lid closes | 24 |
-| `UI_ZeD_Veh_ActFeeding` | `FEEDING` | Vehicle tab animal trailer page: progress band text while an animal is fed | 24 |
-| `UI_ZeD_Veh_ActGivingWater` | `GIVING WATER` | Vehicle tab animal trailer page: progress band text while an animal is watered | 24 |
-| `UI_ZeD_Veh_ActGrabbing` | `GRABBING` | Vehicle tab animal trailer page: progress band text while an animal is picked up out of the trailer | 24 |
-| `UI_ZeD_Veh_ActOpeningLid` | `OPENING THE LID` | Vehicle tab animal trailer page: progress band text while the trunk lid opens | 24 |
-| `UI_ZeD_Veh_ActPuttingIn` | `PUTTING IN` | Vehicle tab animal trailer page: progress band text while an animal is loaded | 24 |
-| `UI_ZeD_Veh_ActTakingOut` | `TAKING OUT` | Vehicle tab animal trailer page: progress band text while an animal is taken out | 24 |
-| `UI_ZeD_Veh_ActUnlockingLid` | `UNLOCKING THE LID` | Vehicle tab animal trailer page: progress band text while the trunk lid is unlocked | 24 |
-| `UI_ZeD_Veh_ActWalkingBack` | `WALKING TO THE BACK` | Vehicle tab animal trailer page: progress band text while the character walks to the back door first | 28 |
+| `UI_ZeD_Veh_About` | `About` | Vehicle tab part card: heading above the part's description | 12 |
+| `UI_ZeD_Veh_ActClosingLid` | `Closing the lid` | Vehicle tab animal trailer page: progress band text while the trunk lid closes | 24 |
+| `UI_ZeD_Veh_ActFeeding` | `Feeding` | Vehicle tab animal trailer page: progress band text while an animal is fed | 24 |
+| `UI_ZeD_Veh_ActGivingWater` | `Giving water` | Vehicle tab animal trailer page: progress band text while an animal is watered | 24 |
+| `UI_ZeD_Veh_ActGrabbing` | `Grabbing` | Vehicle tab animal trailer page: progress band text while an animal is picked up out of the trailer | 24 |
+| `UI_ZeD_Veh_ActOpeningLid` | `Opening the lid` | Vehicle tab animal trailer page: progress band text while the trunk lid opens | 24 |
+| `UI_ZeD_Veh_ActPuttingIn` | `Putting in` | Vehicle tab animal trailer page: progress band text while an animal is loaded | 24 |
+| `UI_ZeD_Veh_ActTakingOut` | `Taking out` | Vehicle tab animal trailer page: progress band text while an animal is taken out | 24 |
+| `UI_ZeD_Veh_ActUnlockingLid` | `Unlocking the lid` | Vehicle tab animal trailer page: progress band text while the trunk lid is unlocked | 24 |
+| `UI_ZeD_Veh_ActWalkingBack` | `Walking to the back` | Vehicle tab animal trailer page: progress band text while the character walks to the back door first | 28 |
 | `UI_ZeD_Veh_AirInTire` | `Air in the tire` | Vehicle tab part card, NEEDS list for Deflate: requirement line | 24 |
 | `UI_ZeD_Veh_AmountLeft` | `%1 left` | Vehicle tab part card, NEEDS list: how much is still in the part (%1 = amount) | 12 |
-| `UI_ZeD_Veh_AtBack` | `AT THE BACK` | Vehicle tab animal trailer page, Load from here list: the animal is right at the back door | 20 |
+| `UI_ZeD_Veh_AtBack` | `At the back` | Vehicle tab animal trailer page, Load from here list: the animal is right at the back door | 20 |
 | `UI_ZeD_Veh_Below` | `Below %1` | Vehicle tab part card, NEEDS list for lightbar repair: condition must be under this (%1 = 100%) | 16 |
 | `UI_ZeD_Veh_BelowPsi` | `Below %1 psi` | Vehicle tab part card, NEEDS list for Inflate: the tire must be below this pressure (%1 = number) | 24 |
 | `UI_ZeD_Veh_Braking` | `Braking` | Vehicle tab brake card: label of the braking force row | 12 |
@@ -3101,44 +3101,44 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Veh_EggOne` | `%1 egg` | Vehicle tab animal trailer summary, Eggs container row: the container holds one egg | 12 |
 | `UI_ZeD_Veh_EngineAbove` | `Engine above %1` | Vehicle tab part card, NEEDS list for Take parts: the engine must be over this condition (%1 = 10%) | 24 |
 | `UI_ZeD_Veh_EngineBelow` | `Engine below %1` | Vehicle tab part card, NEEDS list for Repair engine: the engine must be under this condition (%1 = 100%) | 24 |
-| `UI_ZeD_Veh_Failed` | `FAILED` | Vehicle tab: progress band text after an install or uninstall went wrong | 10 |
-| `UI_ZeD_Veh_FailurePct` | `FAILURE %1` | Vehicle tab part card: chance bar label, right (%1 = percentage with its % sign) | 16 |
+| `UI_ZeD_Veh_Failed` | `Failed` | Vehicle tab: progress band text after an install or uninstall went wrong | 10 |
+| `UI_ZeD_Veh_FailurePct` | `Failure %1` | Vehicle tab part card: chance bar label, right (%1 = percentage with its % sign) | 16 |
 | `UI_ZeD_Veh_FixMissing` | `missing %1` | Vehicle tab part card, repair list second line: why a repair cannot be done (%1 = item name) | 30 |
 | `UI_ZeD_Veh_FixOutcome` | `+%1 \| %2 success` | Vehicle tab part card, repair list second line: condition gained and chance of success (both with % signs) | 24 |
 | `UI_ZeD_Veh_FixSkillLow` | `skill too low` | Vehicle tab part card, repair list second line: why a repair cannot be done | 20 |
 | `UI_ZeD_Veh_Friction` | `Friction` | Vehicle tab: tire friction label (summary and card) | 12 |
-| `UI_ZeD_Veh_FromBags` | `FROM YOUR BAGS AND NEARBY` | Vehicle tab part card for Install: heading above the list of parts you can fit | 34 |
-| `UI_ZeD_Veh_FromYourBags` | `FROM YOUR BAGS` | Vehicle tab animal trailer animal card: right-hand tag on the Give water heading | 20 |
-| `UI_ZeD_Veh_GrabWhy` | `GRAB: %1` | Vehicle tab animal trailer animal card, NEEDS list: why the animal cannot be grabbed (%1 = vanilla's reason, e.g. too heavy) | 50 |
-| `UI_ZeD_Veh_HdrCond` | `COND` | Vehicle tab part list: column heading for condition, click to sort by condition | 8 |
-| `UI_ZeD_Veh_HdrInfo` | `INFO` | Vehicle tab part list: column heading | 8 |
-| `UI_ZeD_Veh_HdrPart` | `PART` | Vehicle tab part list: column heading, click to sort by area | 8 |
+| `UI_ZeD_Veh_FromBags` | `From your bags and nearby` | Vehicle tab part card for Install: heading above the list of parts you can fit | 34 |
+| `UI_ZeD_Veh_FromYourBags` | `From your bags` | Vehicle tab animal trailer animal card: right-hand tag on the Give water heading | 20 |
+| `UI_ZeD_Veh_GrabWhy` | `Grab: %1` | Vehicle tab animal trailer animal card, NEEDS list: why the animal cannot be grabbed (%1 = vanilla's reason, e.g. too heavy) | 50 |
+| `UI_ZeD_Veh_HdrCond` | `Cond` | Vehicle tab part list: column heading for condition, click to sort by condition | 8 |
+| `UI_ZeD_Veh_HdrInfo` | `Info` | Vehicle tab part list: column heading | 8 |
+| `UI_ZeD_Veh_HdrPart` | `Part` | Vehicle tab part list: column heading, click to sort by area | 8 |
 | `UI_ZeD_Veh_Hp` | `%1 hp` | Vehicle tab: engine power value (%1 = horsepower number) | 10 |
 | `UI_ZeD_Veh_InspectThe` | `Inspect the %1 to read its parts` | Vehicle tab (not inspected yet): empty-state line under the car figure (%1 = vehicle name) | 60 |
-| `UI_ZeD_Veh_InspectToRead` | `INSPECT TO READ` | Vehicle tab (animal trailer, not yet inspected): right-hand tag on the collapsed part list | 20 |
-| `UI_ZeD_Veh_InYourHands` | `IN YOUR HANDS` | Vehicle tab animal trailer page, Load from here list: the animal or carcass you are carrying | 20 |
+| `UI_ZeD_Veh_InspectToRead` | `Inspect to read` | Vehicle tab (animal trailer, not yet inspected): right-hand tag on the collapsed part list | 20 |
+| `UI_ZeD_Veh_InYourHands` | `In your hands` | Vehicle tab animal trailer page, Load from here list: the animal or carcass you are carrying | 20 |
 | `UI_ZeD_Veh_KeyHotwired` | `Hotwired` | Vehicle tab, Key row: the vehicle has been hotwired | 14 |
 | `UI_ZeD_Veh_KeyNotNeeded` | `Not needed` | Vehicle tab, Key row: no key is needed for this vehicle | 14 |
 | `UI_ZeD_Veh_KeyOnYou` | `On you` | Vehicle tab, Key row: the car key is in your inventory | 14 |
-| `UI_ZeD_Veh_KgCaps` | `%1 KG` | Vehicle tab animal trailer animal card, NEEDS list: small right-hand tag with the animal's weight (%1 = number) | 10 |
-| `UI_ZeD_Veh_KMustBeOff` | `MUST BE OFF` | Vehicle tab part card, NEEDS list: small right-hand tag, another part must be taken off first | 14 |
-| `UI_ZeD_Veh_KMustBeOn` | `MUST BE ON` | Vehicle tab part card, NEEDS list: small right-hand tag, another part must be installed first | 14 |
+| `UI_ZeD_Veh_KgCaps` | `%1 kg` | Vehicle tab animal trailer animal card, NEEDS list: small right-hand tag with the animal's weight (%1 = number) | 10 |
+| `UI_ZeD_Veh_KMustBeOff` | `Must be off` | Vehicle tab part card, NEEDS list: small right-hand tag, another part must be taken off first | 14 |
+| `UI_ZeD_Veh_KMustBeOn` | `Must be on` | Vehicle tab part card, NEEDS list: small right-hand tag, another part must be installed first | 14 |
 | `UI_ZeD_Veh_Known` | `Known` | Vehicle tab part card, NEEDS list: value when you know the required recipe | 12 |
-| `UI_ZeD_Veh_KRecipe` | `RECIPE` | Vehicle tab part card, NEEDS list: small right-hand tag on a required recipe | 12 |
-| `UI_ZeD_Veh_KRequired` | `REQUIRED` | Vehicle tab part card, NEEDS list: small right-hand tag on a required skill level | 12 |
-| `UI_ZeD_Veh_KToReachIn` | `TO REACH IN` | Vehicle tab animal trailer animal card, NEEDS list: small right-hand tag on the trunk lid requirement | 14 |
-| `UI_ZeD_Veh_KWithinReach` | `WITHIN REACH` | Vehicle tab part card, NEEDS list for Install: small right-hand tag | 16 |
+| `UI_ZeD_Veh_KRecipe` | `Recipe` | Vehicle tab part card, NEEDS list: small right-hand tag on a required recipe | 12 |
+| `UI_ZeD_Veh_KRequired` | `Required` | Vehicle tab part card, NEEDS list: small right-hand tag on a required skill level | 12 |
+| `UI_ZeD_Veh_KToReachIn` | `To reach in` | Vehicle tab animal trailer animal card, NEEDS list: small right-hand tag on the trunk lid requirement | 14 |
+| `UI_ZeD_Veh_KWithinReach` | `Within reach` | Vehicle tab part card, NEEDS list for Install: small right-hand tag | 16 |
 | `UI_ZeD_Veh_LidOpen` | `Trunk lid open` | Vehicle tab animal trailer animal card, NEEDS list: requirement line, met | 24 |
-| `UI_ZeD_Veh_LoadFromHere` | `LOAD FROM HERE` | Vehicle tab animal trailer page: list heading for animals that can be loaded from where you stand | 20 |
-| `UI_ZeD_Veh_LocInHand` | `IN HAND` | Vehicle tab animal trailer card, water and feed lists: where an item is, small second line (item is in a hand) | 14 |
+| `UI_ZeD_Veh_LoadFromHere` | `Load from here` | Vehicle tab animal trailer page: list heading for animals that can be loaded from where you stand | 20 |
+| `UI_ZeD_Veh_LocInHand` | `In hand` | Vehicle tab animal trailer card, water and feed lists: where an item is, small second line (item is in a hand) | 14 |
 | `UI_ZeD_Veh_Lock` | `Lock` | Vehicle tab door card: label of the row that shows the lock is broken | 10 |
 | `UI_ZeD_Veh_Loudness` | `Loudness` | Vehicle tab: engine loudness label (summary and cards) | 12 |
 | `UI_ZeD_Veh_LowersEngine` | `Lowers the engine's condition` | Vehicle tab part card, NEEDS list for Take parts: warning line | 36 |
 | `UI_ZeD_Veh_MissingWorn` | `%1 missing  \|  %2 worn` | Vehicle tab summary: status line (%1 = missing or smashed parts, %2 = parts at 60% or less) | 30 |
 | `UI_ZeD_Veh_NeedPart` | `A part to install` | Vehicle tab part card, NEEDS list for Install: requirement line | 30 |
-| `UI_ZeD_Veh_NeedsFor` | `NEEDS \| %1` | Vehicle tab part card: heading above the NEEDS list (%1 = the action name in capitals) | 30 |
+| `UI_ZeD_Veh_NeedsFor` | `Needs \| %1` | Vehicle tab part card: heading above the NEEDS list (%1 = the action name) | 30 |
 | `UI_ZeD_Veh_NoAnimalsInside` | `No animals inside` | Vehicle tab animal trailer page: empty-state line in the Animals list | 30 |
-| `UI_ZeD_Veh_NoneNearby` | `NONE NEARBY` | Vehicle tab part card for Install: right-hand tag on a part type you do not have | 16 |
+| `UI_ZeD_Veh_NoneNearby` | `None nearby` | Vehicle tab part card for Install: right-hand tag on a part type you do not have | 16 |
 | `UI_ZeD_Veh_NoRecipeMaterials` | `no recipe has its materials` | Vehicle tab part card, Repair: line shown when no repair can be done with what you have | 36 |
 | `UI_ZeD_Veh_NotEmpty` | `Not empty` | Vehicle tab part card, NEEDS list: value when the part still holds something | 12 |
 | `UI_ZeD_Veh_NotFound` | `Not found` | Vehicle tab, Key row and requirement lists: no matching key in reach | 14 |
@@ -3151,14 +3151,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Veh_OfCap` | `%1 of %2` | Vehicle tab animal trailer animal card, Space row: space this animal takes of the trailer's capacity | 16 |
 | `UI_ZeD_Veh_OrMore` | `%1 or %2 more` | Vehicle tab part card, NEEDS list: a requirement that several items can meet (%1 = first item name, %2 = how many others) | 40 |
 | `UI_ZeD_Veh_OrOne` | `%1 or %2` | Vehicle tab part card, NEEDS list: a requirement that two items can meet (%1 and %2 = item names) | 40 |
-| `UI_ZeD_Veh_Overall` | `Overall` | Vehicle tab summary: label above the overall condition bar (drawn in capitals) | 12 |
+| `UI_ZeD_Veh_Overall` | `Overall` | Vehicle tab summary: label above the overall condition bar | 12 |
 | `UI_ZeD_Veh_PartEmpty` | `%1 empty` | Vehicle tab part card, NEEDS list: requirement that the part is empty (%1 = part name) | 30 |
-| `UI_ZeD_Veh_PartsClosed` | `> PARTS (%1)` | Vehicle tab (animal trailer, not yet inspected): collapsed heading of the part list (%1 = part count) | 16 |
+| `UI_ZeD_Veh_PartsClosed` | `> Parts (%1)` | Vehicle tab (animal trailer, not yet inspected): collapsed heading of the part list (%1 = part count) | 16 |
 | `UI_ZeD_Veh_Power` | `Power` | Vehicle tab: engine power label (summary and engine card) | 12 |
 | `UI_ZeD_Veh_Pressure` | `Pressure` | Vehicle tab tire card: label of the air pressure row | 12 |
 | `UI_ZeD_Veh_Psi` | `%1 psi` | Vehicle tab part card, NEEDS list: air pressure reading (%1 = number) | 12 |
 | `UI_ZeD_Veh_PsiOf` | `%1 / %2 psi` | Vehicle tab: tire air pressure, current over normal, in the part list and on a tire's card (%1 current, %2 normal) | 20 |
-| `UI_ZeD_Veh_PutIn` | `PUT IN` | Vehicle tab animal trailer page, Load from here list: small button that loads the animal | 12 |
+| `UI_ZeD_Veh_PutIn` | `Put in` | Vehicle tab animal trailer page, Load from here list: small button that loads the animal | 12 |
 | `UI_ZeD_Veh_ReadyCarcass` | `Ready to take the carcass out at the back` | Vehicle tab animal trailer animal card, footer status for a dead animal | 50 |
 | `UI_ZeD_Veh_ReadyInstall` | `Ready to install` | Vehicle tab part card, footer: status when an install can start | 30 |
 | `UI_ZeD_Veh_ReadyInstallItem` | `Ready to install %1` | Vehicle tab part card, footer: status when an install can start (%1 = item name) | 50 |
@@ -3168,35 +3168,35 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Veh_ReadyWalkHer` | `Ready to walk her out at the back` | Vehicle tab animal trailer animal card, footer status for a female animal | 46 |
 | `UI_ZeD_Veh_ReadyWalkHim` | `Ready to walk him out at the back` | Vehicle tab animal trailer animal card, footer status for a male animal | 46 |
 | `UI_ZeD_Veh_Removed` | `Removed` | Vehicle tab part card, NEEDS list: value when another part has been removed as required | 12 |
-| `UI_ZeD_Veh_RepairWith` | `REPAIR WITH` | Vehicle tab part card for Repair: heading above the list of repair options | 20 |
+| `UI_ZeD_Veh_RepairWith` | `Repair with` | Vehicle tab part card for Repair: heading above the list of repair options | 20 |
 | `UI_ZeD_Veh_Seat` | `Seat` | Vehicle tab seat card: label of the row that shows the seat is occupied | 12 |
-| `UI_ZeD_Veh_SizeHdr` | `SIZE` | Vehicle tab animal trailer page: right-hand tag on the Load from here heading (how much space each animal takes) | 8 |
-| `UI_ZeD_Veh_Smashed` | `Smashed` | Vehicle tab: window state, in the summary, the card's Condition row and (in capitals) the part list badge | 12 |
-| `UI_ZeD_Veh_Space` | `SPACE` | Vehicle tab animal trailer page: label for the trailer's animal capacity (summary row, list heading tag, row column, card) | 12 |
+| `UI_ZeD_Veh_SizeHdr` | `Size` | Vehicle tab animal trailer page: right-hand tag on the Load from here heading (how much space each animal takes) | 8 |
+| `UI_ZeD_Veh_Smashed` | `Smashed` | Vehicle tab: window state, in the summary, the card's Condition row and the part list badge | 12 |
+| `UI_ZeD_Veh_Space` | `Space` | Vehicle tab animal trailer page: label for the trailer's animal capacity (summary row, list heading tag, row column, card) | 12 |
 | `UI_ZeD_Veh_SpaceLeft` | `%1 of %2 \| %3 left` | Vehicle tab animal trailer summary, Space row: used, capacity and how much is left (%1 used, %2 capacity, %3 left) | 28 |
 | `UI_ZeD_Veh_SpaceOver` | `%1 of %2 \| %3 over` | Vehicle tab animal trailer summary, Space row: used, capacity and how far over it is (%1 used, %2 capacity, %3 over) | 28 |
 | `UI_ZeD_Veh_State` | `State` | Vehicle tab summary of a highlighted part: label of the row that shows its state (open, locked, charge...) | 12 |
 | `UI_ZeD_Veh_StClosed` | `Closed` | Vehicle tab part list, info column: the door is closed | 10 |
 | `UI_ZeD_Veh_StOccupied` | `Occupied` | Vehicle tab: a seat has someone in it (part list info column, and the Seat row on a seat card) | 12 |
 | `UI_ZeD_Veh_StOpen` | `Open` | Vehicle tab: state of a door or window (part list info column) and the label of the Open row on a door or window card | 10 |
-| `UI_ZeD_Veh_SuccessPct` | `SUCCESS %1` | Vehicle tab part card: chance bar label, left (%1 = percentage with its % sign) | 16 |
+| `UI_ZeD_Veh_SuccessPct` | `Success %1` | Vehicle tab part card: chance bar label, left (%1 = percentage with its % sign) | 16 |
 | `UI_ZeD_Veh_Temp` | `Temp` | Vehicle tab part card: label of the temperature row | 10 |
 | `UI_ZeD_Veh_ThirstyCount` | `%1 of %2 \| no water inside` | Vehicle tab animal trailer summary, Thirsty row: how many animals are thirsty (%1 thirsty, %2 alive) | 36 |
-| `UI_ZeD_Veh_TileFromBack` | `%1 TILE FROM THE BACK` | Vehicle tab animal trailer page, Load from here list: distance of an animal from the back door (exactly one tile) | 28 |
+| `UI_ZeD_Veh_TileFromBack` | `%1 tile from the back` | Vehicle tab animal trailer page, Load from here list: distance of an animal from the back door (exactly one tile) | 28 |
 | `UI_ZeD_Veh_Tiles` | `%1 tiles` | Vehicle tab summary before an inspection: distance to the vehicle (none or several tiles) | 12 |
-| `UI_ZeD_Veh_TilesFromBack` | `%1 TILES FROM THE BACK` | Vehicle tab animal trailer page, Load from here list: distance of an animal from the back door (several tiles) | 28 |
+| `UI_ZeD_Veh_TilesFromBack` | `%1 tiles from the back` | Vehicle tab animal trailer page, Load from here list: distance of an animal from the back door (several tiles) | 28 |
 | `UI_ZeD_Veh_TilesOne` | `%1 tile` | Vehicle tab summary before an inspection: distance to the vehicle (exactly one tile) | 12 |
-| `UI_ZeD_Veh_TowedBy` | `TOWED BY` | Vehicle tab summary: label of the row that names the vehicle towing this trailer | 12 |
-| `UI_ZeD_Veh_Towing` | `TOWING` | Vehicle tab summary: label of the row that names the trailer this vehicle tows | 12 |
-| `UI_ZeD_Veh_VDeflate` | `Deflate` | Vehicle tab part card: action button on a tire (drawn in capitals) | 14 |
-| `UI_ZeD_Veh_VInflate` | `Inflate` | Vehicle tab part card: action button on a tire (drawn in capitals) | 14 |
-| `UI_ZeD_Veh_VSmash` | `Smash` | Vehicle tab part card: action button on a window (drawn in capitals) | 14 |
-| `UI_ZeD_Veh_VTakeParts` | `Take parts` | Vehicle tab part card: action button on the engine, takes spare parts out of it (drawn in capitals) | 16 |
-| `UI_ZeD_Veh_WaterMeta` | `%1  \|  %2 ML` | Vehicle tab animal trailer card, Give water list, second line (%1 = where the container is, %2 = millilitres of water) | 40 |
-| `UI_ZeD_Veh_WhatItEats` | `WHAT IT EATS FROM YOUR BAGS` | Vehicle tab animal trailer animal card: right-hand tag on the Feed heading | 34 |
+| `UI_ZeD_Veh_TowedBy` | `Towed by` | Vehicle tab summary: label of the row that names the vehicle towing this trailer | 12 |
+| `UI_ZeD_Veh_Towing` | `Towing` | Vehicle tab summary: label of the row that names the trailer this vehicle tows | 12 |
+| `UI_ZeD_Veh_VDeflate` | `Deflate` | Vehicle tab part card: action button on a tire | 14 |
+| `UI_ZeD_Veh_VInflate` | `Inflate` | Vehicle tab part card: action button on a tire | 14 |
+| `UI_ZeD_Veh_VSmash` | `Smash` | Vehicle tab part card: action button on a window | 14 |
+| `UI_ZeD_Veh_VTakeParts` | `Take parts` | Vehicle tab part card: action button on the engine, takes spare parts out of it | 16 |
+| `UI_ZeD_Veh_WaterMeta` | `%1  \|  %2 ml` | Vehicle tab animal trailer card, Give water list, second line (%1 = where the container is, %2 = millilitres of water) | 40 |
+| `UI_ZeD_Veh_WhatItEats` | `What it eats from your bags` | Vehicle tab animal trailer animal card: right-hand tag on the Feed heading | 34 |
 | `UI_ZeD_Veh_WorkingBack` | `Working at the back of the trailer` | Vehicle tab animal trailer animal card, footer status while an action runs | 40 |
 | `UI_ZeD_Veh_WorkingOn` | `Working on the %1` | Vehicle tab part card, footer: status while an action runs (%1 = part name, lower case) | 36 |
-| `UI_ZeD_Veh_WorstFirst` | `WORST FIRST` | Vehicle tab part list: heading used when the list is sorted by condition | 16 |
+| `UI_ZeD_Veh_WorstFirst` | `Worst first` | Vehicle tab part list: heading used when the list is sorted by condition | 16 |
 
 ## Watch
 
@@ -3234,7 +3234,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Wheel_ControllerMap` | `Controller map` | D-pad wheels: Help slice: what every button does (not built yet) | 20 |
 | `UI_ZeD_Wheel_CraftBuild` | `Craft and build` | D-pad wheels: World wheel slice: crafting, building, furniture | 20 |
 | `UI_ZeD_Wheel_Crouch` | `Crouch` | D-pad wheels: Here and now slice: crouch on / off | 12 |
-| `UI_ZeD_Wheel_DashboardDetail` | `The D-pad on its controls. B lets go.` | D-pad wheels: second line of the Dashboard slice in World > Vehicle (driver's seat): the controller moves to the dashboard's controls until B | 40 |
+| `UI_ZeD_Wheel_DashboardDetail` | `The D-pad on its controls. Back lets go.` | D-pad wheels: second line of the Dashboard slice in World > Vehicle (driver's seat): the controller moves to the dashboard's controls until B | 40 |
 | `UI_ZeD_Wheel_EveryRadio` | `Every radio you carry` | D-pad wheels: Second line of the Radio tab slice | 24 |
 | `UI_ZeD_Wheel_EveryWound` | `Every wound` | D-pad wheels: Second line of the Health tab slice in Medicine and first aid | 20 |
 | `UI_ZeD_Wheel_EverythingYouWear` | `Everything you wear` | D-pad wheels: Second line of the Equipment tab slice in Clothing | 24 |
@@ -3293,7 +3293,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Wheel_PromptTake` | `Take` | D-pad wheels: Prompt under an inner wheel: A takes the pointed slice | 12 |
 | `UI_ZeD_Wheel_RadioIsOff` | `The radio is off.` | D-pad wheels: Reason on Next station | 24 |
 | `UI_ZeD_Wheel_ResetWindows` | `Reset windows` | D-pad wheels: Slice: both windows back to their default places (the footer's R) | 20 |
-| `UI_ZeD_Wheel_ResetWindowsDetail` | `Both windows, as the footer's R` | D-pad wheels: Second line of Reset windows | 32 |
+| `UI_ZeD_Wheel_ResetWindowsDetail` | `Both windows back to where they start` | D-pad wheels: Second line of Reset windows | 32 |
 | `UI_ZeD_Wheel_RoomLights` | `Room lights` | D-pad wheels: Lights and power slice: the room's light switch | 16 |
 | `UI_ZeD_Wheel_SafeModeAsk` | `Turn on safe mode? ZeD-GUI steps aside and the game's own interface comes back. To turn it off again: Options, ZeD setup, Safe mode.` | D-pad wheels: Prompt before the ZeD wheel turns safe mode on | 160 |
 | `UI_ZeD_Wheel_SafeModeDetail` | `The game's own interface` | D-pad wheels: Second line of the Safe mode slice | 28 |
@@ -3343,11 +3343,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Workshop_CreateFailed` | `Steam would not start a new item. Is Steam running and signed in?` | Workshop upload screen: red note | - |
 | `UI_ZeD_Workshop_DescriptionTooLong` | `The description is too long: %1 characters at most` | Workshop upload screen: in the strip, why Upload is off. %1 is the room left: Steam's 8,000 less the lines the game adds (Workshop ID, Mod IDs) | - |
 | `UI_ZeD_Workshop_ItemNew` | `New: Steam gives it a number on the first upload.` | Workshop upload screen: value of the Workshop item row for a new item | - |
-| `UI_ZeD_Workshop_LabelChangeNote` | `CHANGE NOTE` | Workshop upload screen: caps label at the left of the change note field | 15 |
-| `UI_ZeD_Workshop_LabelItem` | `WORKSHOP ITEM` | Workshop upload screen: caps label at the left of the item number | 15 |
-| `UI_ZeD_Workshop_LabelPreview` | `PREVIEW PICTURE` | Workshop upload screen: caps label at the left of the preview picture | 15 |
-| `UI_ZeD_Workshop_LabelWhatGoesUp` | `WHAT GOES UP` | Workshop upload screen: caps label at the left of the check of the folder's contents | 15 |
-| `UI_ZeD_Workshop_LabelWho` | `WHO CAN SEE IT` | Workshop upload screen: caps label at the left of the visibility buttons | 15 |
+| `UI_ZeD_Workshop_LabelChangeNote` | `Change note` | Workshop upload screen: caps label at the left of the change note field | 15 |
+| `UI_ZeD_Workshop_LabelItem` | `Workshop item` | Workshop upload screen: caps label at the left of the item number | 15 |
+| `UI_ZeD_Workshop_LabelPreview` | `Preview picture` | Workshop upload screen: caps label at the left of the preview picture | 15 |
+| `UI_ZeD_Workshop_LabelWhatGoesUp` | `What goes up` | Workshop upload screen: caps label at the left of the check of the folder's contents | 15 |
+| `UI_ZeD_Workshop_LabelWho` | `Who can see it` | Workshop upload screen: caps label at the left of the visibility buttons | 15 |
 | `UI_ZeD_Workshop_NeedDescription` | `It needs a description` | Workshop upload screen: in the strip, why Upload is off | - |
 | `UI_ZeD_Workshop_NeedTitle` | `It needs a title` | Workshop upload screen: in the strip, why Upload is off | - |
 | `UI_ZeD_Workshop_NoFolders` | `No folders in Zomboid/Workshop yet. Copy ModTemplate there, rename it and put your mod in its Contents/mods folder; it shows here.` | Workshop upload screen: empty folder list (keep the names ModTemplate, Zomboid/Workshop and Contents/mods) | - |
@@ -3379,7 +3379,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Workshop_Uploading` | `Uploading to the Workshop %1 \| %2 of %3` | Workshop upload screen: progress text in the strip. %1 percent (with its % sign), %2 bytes sent, %3 bytes in all (sizes like 2.4 MB) | - |
 | `UI_ZeD_Workshop_UploadingNoTotal` | `Uploading to the Workshop...` | Workshop upload screen: progress text in the strip before the size is known | - |
 | `UI_ZeD_Workshop_UploadUpdate` | `Upload update` | Workshop upload screen: strip button for an item already on the Workshop | 16 |
-| `UI_ZeD_Workshop_YourMods` | `YOUR MODS` | Workshop upload screen: caps heading over the list of folders in Zomboid/Workshop | - |
+| `UI_ZeD_Workshop_YourMods` | `Your mods` | Workshop upload screen: caps heading over the list of folders in Zomboid/Workshop | - |
 
 ## World
 
@@ -3389,9 +3389,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_World_ContainersMany` | `%1 containers` | World window: title when several container columns are shown | - |
 | `UI_ZeD_World_ContainersOne` | `%1 container` | World window: title when one container column is shown | - |
 | `UI_ZeD_World_SearchStructures` | `Search structures...` | Build tab: search box placeholder | - |
-| `UI_ZeD_World_SortDist` | `DIST` | World window container strip: sort button, natural (distance) order | 5 |
-| `UI_ZeD_World_SortType` | `TYPE` | World window container strip: sort button, by type | 5 |
-| `UI_ZeD_World_SortWt` | `WT` | World window container strip: sort button, heaviest first | 5 |
+| `UI_ZeD_World_SortDist` | `Dist` | World window container strip: sort button, natural (distance) order | 5 |
+| `UI_ZeD_World_SortType` | `Type` | World window container strip: sort button, by type | 5 |
+| `UI_ZeD_World_SortWt` | `Wt` | World window container strip: sort button, heaviest first | 5 |
 | `UI_ZeD_World_TabAnimals` | `Animals` | World window: tab name | 12 |
 | `UI_ZeD_World_TabBuilding` | `Building` | World window: tab name | 12 |
 | `UI_ZeD_World_TabLoot` | `Loot` | World window: tab name (hover title and drawer title) | 12 |

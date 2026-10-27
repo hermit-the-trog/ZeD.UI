@@ -786,6 +786,11 @@ local function markAt(s, panel, id, x, y, w, h, solid)
     return ZeD.Focus.mark(panel, x, y, w, h, _mfo) and true or false
 end
 
+-- opts for the library parts that take the controller's focus themselves (reused each frame)
+local _cancelOpts = {}                 -- the progress band's Cancel
+local _browseOpts = { focusParts = {} } -- the drawer header's previous / next keys
+local _backOpts = {}                   -- the card back bar's back key
+
 -- ----------------------------------------------------------------------------
 -- Car figure
 -- ----------------------------------------------------------------------------
@@ -935,13 +940,12 @@ local function progressBand(panel, win, s, x, y, w, v, chr)
             local pct = 0
             pcall(function() pct = a:getJobDelta() end)
             local rect = {}
-            local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", cased(a.jobType), pct, nil, rect, false)
+            _cancelOpts.focus = focusFor(s, "mech:cancel")   -- Cancel's mark, drawn under its icon
+            local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", cased(a.jobType), pct, nil, rect, false, _cancelOpts)
             if rect.w then
                 stamp(s, "mech:cancel", rect.x, rect.y, rect.w, rect.h, function()
                     pcall(function() ISTimedActionQueue.clear(chr) end)
                 end)
-                -- the band's cancel key is the atom's own and takes no focus option: the mark goes over it
-                markAt(s, panel, "mech:cancel", rect.x, rect.y, rect.w, rect.h)
             end
             s.working = a.part and a.part.getId and a.part:getId() or nil
             return h
@@ -1097,8 +1101,10 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
     local parts = cachedParts(s, v, chr)
 
     -- header: browse + vehicle name + type tag
+    _browseOpts.focusParts.prev = focusFor(s, "mech:prev")
+    _browseOpts.focusParts.next = focusFor(s, "mech:next")
     local prevZ, nextZ = M.drawDrawerInternalHeader(panel, x, y, w,
-        { idx = s.idx, total = #s.vehicles }, vehicleName(v), mechType(v))
+        { idx = s.idx, total = #s.vehicles }, vehicleName(v), mechType(v), nil, _browseOpts)
     local headerH = T.px((ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37)
     if #s.vehicles > 1 then
         stamp(s, "mech:prev", prevZ.x, prevZ.y, prevZ.w, prevZ.h, function()
@@ -1109,9 +1115,6 @@ local function renderOverview(panel, win, s, x, y, w, h, v, chr, inspected)
             s.idx = s.idx + 1; if s.idx > #s.vehicles then s.idx = 1 end
             s.scrollY, s.view, s.card = 0, "overview", nil
         end)
-        -- the browse keys are the library's and take no focus option: the mark goes over them
-        markAt(s, panel, "mech:prev", prevZ.x, prevZ.y, prevZ.w, prevZ.h)
-        markAt(s, panel, "mech:next", nextZ.x, nextZ.y, nextZ.w, nextZ.h)
     end
 
     -- the band at the foot holds the tab's own actions; with none to offer it is not drawn
@@ -1482,10 +1485,10 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
                     focus = focusFor(s, "mech:verb:" .. sv.id), help = sv.help }
     end
     local rects = {}
-    local headerH = M.drawCardBackBar(panel, x, y, w, p.name, defs, busy, false, rects)
+    _backOpts.focus = focusFor(s, "mech:back")
+    _backOpts.focusId = _backOpts.focus and "back" or nil
+    local headerH = M.drawCardBackBar(panel, x, y, w, p.name, defs, busy, false, rects, _backOpts)
     stamp(s, "mech:back", rects.back.x, rects.back.y, rects.back.w, rects.back.h, function() closeCard(win, s) end)
-    -- the back key is the library's and takes no focus option: the mark goes over it
-    markAt(s, panel, "mech:back", rects.back.x, rects.back.y, rects.back.w, rects.back.h)
     local mx, my = panel:getMouseX(), panel:getMouseY()
     for i, sv in ipairs(shown) do
         local r = rects.verbs and rects.verbs[i]
@@ -1511,7 +1514,6 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     local cw = w - scrollW
     local pad = T.px(12)
     local clip = { x = x, y = top, w = w, h = bodyH }
-    local inBody = (not isGamepad()) and mx >= x and mx < x + cw and my >= top and my < top + bodyH
 
     panel:setStencilRect(x, top, w, bodyH)
     local cy = top - s.cardScroll + pad
@@ -1551,7 +1553,7 @@ local function renderCard(panel, win, s, x, y, w, h, v, chr)
     -- one pickable row: the radio, a selected wash, the controller's mark; returns the ink and the x after the radio
     local function pickRow(id, rowY, rh, sel, radioY, enabled, focusable)
         local rowX, rowW = x + pad, cw - pad * 2
-        local hov = enabled and inBody and A.mouseIn(panel, rowX, rowY, rowW, rh) and my < top + bodyH
+        local hov = enabled and (not isGamepad()) and A.mouseIn(panel, rowX, rowY, rowW, rh, clip)
         if sel then
             local ac = T.accent
             panel:drawRect(rowX, rowY, rowW, rh, T.selectionA, ac.r, ac.g, ac.b)

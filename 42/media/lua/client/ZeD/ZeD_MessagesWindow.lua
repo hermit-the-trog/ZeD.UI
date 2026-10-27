@@ -8,7 +8,7 @@
 -- Errors: a square mark, the name, a count), the chosen source's messages on the
 -- right as cards (kind, source, when, the text as the mod wrote it, the mod's own
 -- buttons) with a scrollbar when they overflow, a band at the foot (Show this
--- mod's notes as pop-ups, Clear, Mark all read) and the window's help line under
+-- mod's notes as pop-ups, Delete, Mark all read) and the window's help line under
 -- it (the plain words for what the pointer is over, the controller's prompts).
 -- Mouse and controller (D-pad between the list, the cards' buttons and the band;
 -- A presses, B closes). Toasts (Visual Catalog O12) stand on the right of the
@@ -31,7 +31,7 @@ W.windows = W.windows or {}
 -- design units (1 px at 1080p; T.px scales them)
 local U = {
     W = 760, BODY_H = 400, LIST_W = 240, HEAD_H = 20, PAD = 10,
-    CARD_GAP = 10, CARD_PAD = 10, CARD_HEAD_H = 24, BAND_EDGE = 8, BAND_GAP = 8, CHK_GAP = 8,
+    CARD_GAP = 10, CARD_PAD = 10, CARD_HEAD_H = 24, BAND_EDGE = 8, BAND_GAP = 8,
     TOAST_W = 340, TOAST_H = 30, TOAST_GAP = 4, TOAST_TOP = 150, TOAST_RIGHT = 70,
 }
 
@@ -119,7 +119,7 @@ function ZeD_MessagesWindow:rows()
 end
 
 function ZeD_MessagesWindow:choose(name)
-    if self.sel ~= name then self.scroll = 0; self.cardFocus = 1 end
+    if self.sel ~= name then self.scroll = 0; self.cardFocus = 1; self.asking = nil end
     self.sel = name
     if name then MS.markRead(name) end
 end
@@ -236,17 +236,25 @@ function ZeD_MessagesWindow:layout()
     if not sb.dragging then sb.scrollPos = maxS > 0 and math.min(1, self.scroll / maxS) or 0 end
     g.sb = sb
 
-    -- the band: the switch (a mod's) at the left, the buttons right-aligned, 8u apart
+    -- the band: the checkbox (a mod's) at the left, the buttons right-aligned, 8u apart; a
+    -- Delete that waits for its answer swaps the band for the question and its two buttons
+    -- (the rects here are the ones the library draws them at: the band's own measures)
     local bh = T.buttonH
     local fy = bandY + px(5)
-    if cur and cur.kind ~= "err" then
-        local label = tr("UI_ZeD_Msg_ShowPopups")
-        local cb = T.checkboxSz
-        g.foot[#g.foot + 1] = { id = "popups", x = px(U.BAND_EDGE), y = bandY + math.floor((bandH - cb) / 2), w = cb + px(U.CHK_GAP) + tw(T.fontF2, label), h = cb, label = label, check = true }
-    end
+    if self.asking and not cur then self.asking = nil end
     local right = {}
-    if cur then right[#right + 1] = { id = "clear", label = btnLabel(tr("UI_ZeD_Msg_Clear")), help = tr("UI_ZeD_Msg_HelpClear") } end
-    right[#right + 1] = { id = "allread", label = btnLabel(tr("UI_ZeD_Msg_MarkAllRead")), primary = true, help = tr("UI_ZeD_Msg_HelpAllRead") }
+    if self.asking then
+        g.asking = true
+        right[#right + 1] = { id = "askno", label = tr("UI_Cancel") }
+        right[#right + 1] = { id = "askyes", label = btnLabel(tr("UI_ZeD_Msg_Clear")) }
+    else
+        if cur and cur.kind ~= "err" then
+            local label = tr("UI_ZeD_Msg_ShowPopups")
+            g.foot[#g.foot + 1] = { id = "popups", x = px(U.BAND_EDGE), y = fy, w = T.checkboxSz + px(6) + tw(T.fontF2, label), h = bh, label = label, check = true }
+        end
+        if cur then right[#right + 1] = { id = "clear", label = btnLabel(tr("UI_ZeD_Msg_Clear")), help = tr("UI_ZeD_Msg_HelpClear") } end
+        right[#right + 1] = { id = "allread", label = btnLabel(tr("UI_ZeD_Msg_MarkAllRead")), primary = true, help = tr("UI_ZeD_Msg_HelpAllRead") }
+    end
     local rx = w - px(U.BAND_EDGE)
     for i = #right, 1, -1 do
         local b = right[i]
@@ -271,9 +279,11 @@ end
 -- ---------------------------------------------------------------------------
 -- DRAW
 -- ---------------------------------------------------------------------------
--- the band's buttons, kept between frames
+-- the band's buttons and checkbox, kept between frames
 local _bandBtns, _cardBtn = {}, {}
+local _bandCheck = {}
 local _bandSpec = { buttons = _bandBtns }
+local _askOpts = { danger = true }
 
 function ZeD_MessagesWindow:prerender()
     local T = ZeD.T
@@ -375,11 +385,30 @@ function ZeD_MessagesWindow:prerender()
 
     -- the band
     local f = g.band
+    if g.asking then
+        -- Delete asked first: the question, Cancel and Delete (the pad starts on Cancel)
+        local o = _askOpts
+        o.cancelFocus = (joy and self.zone == "foot" and self.footFocus == 1) and focusOpts(self) or nil
+        o.verbFocus = (joy and self.zone == "foot" and self.footFocus == 2) and focusOpts(self) or nil
+        o.cancelHelp, o.verbHelp, o.win = tr("UI_ZeD_Msg_HelpAskNo"), tr("UI_ZeD_Msg_HelpClear"), self
+        local ask = (self._cur and self._cur.kind == "err") and tr("UI_ZeD_Msg_DeleteAskErrors") or tr("UI_ZeD_Msg_DeleteAsk")
+        Mo.drawQuestionBand(self, 0, f.y, w, ask, btnLabel(tr("UI_ZeD_Msg_Clear")), o)
+        return
+    end
     local nb = 0
+    local check = nil
     for fi, b in ipairs(g.foot) do
         local focused = joy and self.zone == "foot" and self.footFocus == fi
         local hov = (not joy) and self._hover and self._hover.foot == b
-        if not b.check then
+        if b.check then
+            -- "Show this mod's notes as pop-ups": the band's checkbox slot
+            local c = _bandCheck
+            c.label, c.id, c.help = b.label, b.id, tr("UI_ZeD_Msg_HelpPopups")
+            c.on = self._cur and MS.popupsFor(self._cur.name) or false
+            c.hover = hov and true or false
+            c.focus = focused and focusOpts(self) or nil
+            check = c
+        else
             nb = nb + 1
             local e = _bandBtns[nb]
             if not e then e = {}; _bandBtns[nb] = e end
@@ -389,22 +418,8 @@ function ZeD_MessagesWindow:prerender()
         end
     end
     for i = #_bandBtns, nb + 1, -1 do _bandBtns[i] = nil end
-    _bandSpec.win = self
+    _bandSpec.win, _bandSpec.check = self, check
     Mo.drawBand(self, 0, f.y, w, _bandSpec)
-    for fi, b in ipairs(g.foot) do
-        if b.check then
-            local focused = joy and self.zone == "foot" and self.footFocus == fi
-            local hov = (not joy) and self._hover and self._hover.foot == b
-            local on = self._cur and MS.popupsFor(self._cur.name) or false
-            local pad = px(4)
-            if hov then self:drawRect(b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, hv.a or 1, hv.r, hv.g, hv.b) end
-            if hov then ZeD.Help.set(self, tr("UI_ZeD_Msg_HelpPopups")) end
-            local onFocus = focused and ZeD.Focus.mark(self, b.x - pad, b.y - pad, b.w + 2 * pad, b.h + 2 * pad, focusOpts(self), nil)
-            A.drawCheckbox(self, b.x, b.y, on, hov, false)
-            local lc = onFocus and T.textOnFocus or tc
-            self:drawText(b.label, b.x + T.checkboxSz + px(U.CHK_GAP), b.y + math.floor((b.h - fh(T.fontF2)) / 2), lc.r, lc.g, lc.b, lc.a or 1, T.fontF2)
-        end
-    end
 end
 
 -- the help line's prompts while a controller holds the window (the help words, with the mouse)
@@ -412,7 +427,8 @@ function ZeD_MessagesWindow:getFooterPrompts()
     if not self.joyfocus then return nil end
     local P = ZeD.Prompt
     local move = P and P.padNote and P.padNote(tr("UI_ZeD_Msg_DpadMove")) or tr("UI_ZeD_Msg_DpadMove")
-    return { move, { glyph = "A", label = tr("UI_ZeD_Msg_Choose") }, { glyph = "B", label = getText("UI_Close") } }
+    -- (B answers a Delete question with No before it closes the window)
+    return { move, { glyph = "A", label = tr("UI_ZeD_Msg_Choose") }, { glyph = "B", label = self.asking and tr("UI_Cancel") or getText("UI_Close") } }
 end
 
 
@@ -437,8 +453,21 @@ function ZeD_MessagesWindow:pressFoot(b)
     sound("UIActivateButton")
     local cur = self._cur
     if b.id == "popups" and cur then MS.setPopups(cur.name, not MS.popupsFor(cur.name))
-    elseif b.id == "clear" and cur then MS.clear(cur.name); self.sel = nil; self.scroll = 0; self.zone = "list"
+    elseif b.id == "clear" and cur then
+        -- deleting cannot be undone: ask first (the pad starts on Cancel)
+        self.asking = true
+        self.zone, self.footFocus = "foot", 1
+    elseif b.id == "askyes" and cur then
+        MS.clear(cur.name); self.sel = nil; self.scroll = 0; self.zone = "list"; self.asking = nil
+    elseif b.id == "askno" then self:cancelAsk()
     elseif b.id == "allread" then MS.markAllRead() end
+end
+
+-- the question about Delete answered No (Cancel, B, Escape): back to the band, the pad on Delete
+function ZeD_MessagesWindow:cancelAsk()
+    self.asking = nil
+    local cur = self._cur
+    self.footFocus = (cur and cur.kind ~= "err") and 2 or 1
 end
 
 function ZeD_MessagesWindow:cardButtons()
@@ -460,11 +489,18 @@ function ZeD_MessagesWindow:hitAt(x, y)
     return nil
 end
 
+-- the close box (the window calls this on a press and release on the box)
+function ZeD_MessagesWindow:closeAction()
+    sound("UIActivateButton")
+    self:close()
+end
+
 function ZeD_MessagesWindow:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
+    -- the close box and the window box answer on release (ZeD_Window:update): a press on
+    -- either does not drag
     local cb = self:closeRect()
-    if cb and inRect(cb, x, y) then self._down = "close"; return true end
-    -- the window box answers on release (ZeD.Prompt.updateChrome)
+    if cb and inRect(cb, x, y) then return true end
     if inRect(self:windowBoxRect(), x, y) then return true end
     -- the cards' scrollbar
     local sb = self._sb
@@ -482,11 +518,6 @@ function ZeD_MessagesWindow:onMouseUp(x, y)
     local down = self._down
     self._down = nil
     if self._sb then self._sb:handleMouseUp() end
-    if down == "close" then
-        local cb = self:closeRect()
-        if cb and inRect(cb, x, y) then sound("UIActivateButton"); self:close() end
-        return true
-    end
     local h = self:hitAt(x, y)
     if down and h and h.btn == down then self:pressCard(down) end
     if down and h and h.foot == down then self:pressFoot(down) end
@@ -514,10 +545,7 @@ function ZeD_MessagesWindow:onMouseWheel(del)
 end
 
 function ZeD_MessagesWindow:update()
-    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
-    local cb = self:closeRect()
-    self._closeHover = cb and inRect(cb, self:getMouseX(), self:getMouseY()) or false
-    if self._closeHover then ZeD.Help.set(self, tr("UI_ZeD_WinMenu_CloseHelp")) end
+    ZeD_Window.update(self)   -- the window box, the resize edges and the close box (closeAction)
     -- the scrollbar's arrows and thumb light up under the pointer; a drag follows it
     local sb = self._sb
     if sb and sb.visible then
@@ -535,7 +563,10 @@ end
 -- ---------------------------------------------------------------------------
 function ZeD_MessagesWindow:isKeyConsumed(key) return key == Keyboard.KEY_ESCAPE end
 function ZeD_MessagesWindow:onKeyPress(key)
-    if key == Keyboard.KEY_ESCAPE then self:close(); GameKeyboard.eatKeyPress(key) end
+    if key == Keyboard.KEY_ESCAPE then
+        if self.asking then self:cancelAsk() else self:close() end
+        GameKeyboard.eatKeyPress(key)
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -560,7 +591,10 @@ local function showButton(self, b)
 end
 
 function ZeD_MessagesWindow:onJoypadDown(button, joypadData)
-    if button == Joypad.BButton then self:close(); return end
+    if button == Joypad.BButton then
+        if self.asking then self:cancelAsk() else self:close() end
+        return
+    end
     if button ~= Joypad.AButton then return end
     if self.zone == "cards" then self:pressCard(self:cardButtons()[self.cardFocus])
     elseif self.zone == "foot" then self:pressFoot(self._g and self._g.foot[self.footFocus])
@@ -640,7 +674,10 @@ function W.get(pn) return W.windows[pn or 0] end
 -- Escape from anywhere (the prompts' key hook asks): the window on screen closes
 function W.takeEscape()
     for _, win in pairs(W.windows) do
-        if win and win:isReallyVisible() then win:close(); return true end
+        if win and win:isReallyVisible() then
+            if win.asking then win:cancelAsk() else win:close() end
+            return true
+        end
     end
     return false
 end

@@ -1205,8 +1205,14 @@ function ZeD_ItemCard:renderBody(ctx)
         v.help = verbHelp(v.id, v.label)
         v.focus = self.focusFor and self:focusFor("hverb_" .. i) or nil
     end
+    -- the back key's focus mark (when the controller is on it) and its help line words
+    local bf = self.focusFor and self:focusFor("back") or nil
+    local bbo = self._backBarOpts
+    if not bbo then bbo = {}; self._backBarOpts = bbo end
+    bbo.focusId, bbo.focus = bf and "back" or nil, bf
+    bbo.backHelp = ZeD.tr("UI_ZeD_Card_HelpBack")
     local bbH = M.drawCardBackBar(self, 0, cy, w, "",
-        headerVerbs, progressActive, compact, backBarRects)
+        headerVerbs, progressActive, compact, backBarRects, bbo)
     self._backBarRects   = backBarRects
     self._lastHeaderVerbs = headerVerbs  -- update() reads label by hover index
     cy = cy + (bbH or 0)
@@ -1257,14 +1263,26 @@ function ZeD_ItemCard:renderBody(ctx)
         cy = cy + rowH
     end
 
-    -- 2) Flag strip (FAV / NO-CRAFT / DISPOSE)
-    local fsH = M.drawCardFlagStrip(self, 0, cy, w, marks, compact, flagRects)
+    -- 2) Flag strip (FAV / NO-CRAFT / DISPOSE); the chip the controller is on carries the mark
+    local fo = self._flagOpts
+    if not fo then fo = { focusParts = {} }; self._flagOpts = fo end
+    local fp = fo.focusParts
+    if self.focusFor then
+        fp.fav, fp.nocraft, fp.dispose =
+            self:focusFor("toggle_fav"), self:focusFor("toggle_protect"), self:focusFor("toggle_unwanted")
+    else
+        fp.fav, fp.nocraft, fp.dispose = nil, nil, nil
+    end
+    local fsH = M.drawCardFlagStrip(self, 0, cy, w, marks, compact, flagRects, fo)
     self._flagRects = flagRects
     cy = cy + (fsH or 0)
 
     -- 3) Progress band (renders only when getActiveAction(item) ~= nil)
     cancelRect = {}
-    local pbH = M.drawCardProgressBand(self, 0, cy, w, item, compact, cancelRect)
+    local pbo = self._progressOpts
+    if not pbo then pbo = {}; self._progressOpts = pbo end
+    pbo.focus = self.focusFor and self:focusFor("cancel_band") or nil   -- Cancel's mark, under its icon
+    local pbH = M.drawCardProgressBand(self, 0, cy, w, item, compact, cancelRect, pbo)
     cy = cy + (pbH or 0)
     if pbH == 0 then cancelRect = nil end
 
@@ -1320,10 +1338,7 @@ function ZeD_ItemCard:renderBody(ctx)
     -- 6) Stamp gamepad ring API fields
     stampGamepadFields(self, flagRects, verbStripRects, maintVerbs, cancelRect)
 
-    -- 7) The focus mark on the parts the library draws without a focus option
-    if self._drawGpFocusOutline then self:_drawGpFocusOutline() end
-
-    -- 8) The card has no border of its own (the window's lines bound it); only
+    -- 7) The card has no border of its own (the window's lines bound it); only
     --    the edge where it lies over a tab's content (its host sets overlayEdge)
     if self.drawOverlayEdge then self:drawOverlayEdge() end
 end

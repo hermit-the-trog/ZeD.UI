@@ -648,7 +648,7 @@ function ZeD_MMSandboxIG:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local bh = T.px(24)
         local bw = math.min(T.px(STRING_W), cw)
         local by = ry + math.floor(rh / 2) - math.floor(bh / 2)
-        UI.insetBox(self, cx, by, bw, bh)
+        UI.insetBox(self, cx, by, bw, bh, true)   -- (loose: the box sits in a scrolled row)
         local tc = T.text
         self:drawText(ZeD.Atoms.truncateText(tostring(r.control:getText() or ""), f2, bw - T.px(12)), cx + T.px(6), by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
         local top, bot = math.max(by, clip.y), math.min(by + bh, clip.y + clip.h)

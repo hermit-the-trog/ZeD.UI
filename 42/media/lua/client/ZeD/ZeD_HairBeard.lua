@@ -886,12 +886,13 @@ local function sortRows(st)
     return DS.split(verbs)
 end
 
--- The folded row's words: "With scissors you could cut your hair." for one hidden
--- action, "3 more with the right things" for several. The actions are the verbs the
--- character lacks a tool for (Cut, Style, Shave, Trim); styles the hair is too short
--- for count as one more ("choose from more styles").
+-- The hidden actions the folded row speaks for: the verbs the character lacks a tool
+-- for (Cut, Style, Shave, Trim), each with what it needs and what it would do; styles
+-- the hair is too short for count as one more ("choose from more styles"). The folded
+-- row (ZeD.Molecules.drawMoreRow) says "With scissors you could cut your hair." for
+-- one and "3 more with the right things" for several.
 local HINT_KEY = { Cut = "UI_ZeD_Hair_HintCut", Shave = "UI_ZeD_Hair_HintShave", Style = "UI_ZeD_Hair_HintStyle", Trim = "UI_ZeD_Hair_HintTrim" }
-local function moreText(st, hidden)
+local function moreGroups(st, hidden)
     local groups, seen = {}, {}
     local outCount = 0
     for _, r in ipairs(hidden) do
@@ -910,8 +911,7 @@ local function moreText(st, hidden)
         groups[#groups + 1] = { needs = tr(st.part == "beard" and "UI_ZeD_Hair_NeedsLongerBeard" or "UI_ZeD_Hair_NeedsLongerHair"),
                                 hint = tr("UI_ZeD_Hair_HintMoreStyles") }
     end
-    if #groups == 1 then return tr("UI_ZeD_Disclose_One", groups[1].needs, groups[1].hint) end
-    return tr("UI_ZeD_Disclose_Many", #groups)
+    return groups
 end
 
 function HB.layout(win, w)
@@ -963,8 +963,10 @@ function HB.layout(win, w)
     end
     if #hidden > 0 then
         local key = moreKey(st)
-        local mh = math.max(T.px(20), F(2) + T.px(6))
-        add(L, { kind = "more", key = key, text = moreText(st, hidden), x = x, y = y, w = cw, h = mh })
+        local groups = moreGroups(st, hidden)
+        -- the row alone (the styles it keeps back open as rows below it, not as its own block)
+        local mh = ZeD.Molecules.measureMoreRow(cw, groups, key, { closedOnly = true, inset = T.px(8) })
+        add(L, { kind = "more", key = key, groups = groups, x = x, y = y, w = cw, h = mh })
         y = y + mh
         if DS.isOpen(key) then
             odd = false
@@ -999,18 +1001,14 @@ end
 -- DRAWING
 -- ---------------------------------------------------------------------------
 
--- a tag's width: its words in sentence case and the tag's side padding (as ZeD.Molecules.drawTag draws it)
-local function tagW(text)
-    local T = ZeD.T
-    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(text)) + T.px(10)
-end
+-- opts for a mod's tag (its name keeps its own capitals) and for the length meter (the framed strip)
+local TAG_KEEP, SEG_FRAMED = { keepCase = true }, { framed = true }
 
--- the length meter: three cells (A.drawSegBar) in a 1u frame, 10u tall (8u inside)
+-- the length meter: three cells (A.drawSegBar, framed) 10u tall
 local function lenBar(panel, x, y, level)
     local T, A = ZeD.T, ZeD.Atoms
-    local w, h, u = T.px(27), T.px(10), T.hair
-    A.drawSegBar(panel, x + u, y + u, w - 2 * u, h - 2 * u, 3, level, T.text, T.base, T.px(2))
-    A.frame(panel, x, y, w, h, T.borderS)
+    local w, h = T.px(27), T.px(10)
+    A.drawSegBar(panel, x, y, w, h, 3, level, T.text, nil, T.px(2), SEG_FRAMED)
     return w
 end
 
@@ -1139,30 +1137,19 @@ local function drawGh(panel, win, st, it, y)
     ZeD.Molecules.drawCategoryRow(panel, it.x, y, it.w, tr(GROUP_KEY[it.grp]), it.n, true, { noArrow = true, inset = ZeD.T.px(8) })
 end
 
--- the folded row: a closed (or open) System 7 triangle and one quiet line, as
--- ZeD.Molecules.drawMoreRow draws it. The row is drawn here because opening it shows the
--- styles themselves, as rows below, not the library's block of greyed buttons: the
--- layout needs that height before the frame draws.
+-- the folded row: the library's, row only (opening it shows the styles themselves as
+-- rows below, not the library's block of greyed buttons, so the layout sizes the row and
+-- the rows under it before the frame draws)
+local _moreOpts = { closedOnly = true }
 local function drawMore(panel, win, st, it, y, mx, my)
-    local T, A = ZeD.T, ZeD.Atoms
-    local open = DS.isOpen(it.key)
+    local T = ZeD.T
     local hover = mx ~= nil and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
-    if hover then
-        local hv = T.hover
-        panel:drawRect(it.x, y, it.w, it.h, hv.a, hv.r, hv.g, hv.b)
-        if ZeD.Help then ZeD.Help.set(win, tr(open and "UI_ZeD_Hair_HelpMoreOpen" or "UI_ZeD_Hair_HelpMore")) end
+    if hover and ZeD.Help then
+        ZeD.Help.set(win, tr(DS.isOpen(it.key) and "UI_ZeD_Hair_HelpMoreOpen" or "UI_ZeD_Hair_HelpMore"))
     end
-    local onFocus = false
-    local fo = focusOf(win, "hb:more")
-    if fo then onFocus = ZeD.Focus.mark(panel, it.x, y, it.w, it.h, fo) end
-    local tc = onFocus and T.textOnFocus or T.textDim
-    local tri = T.px(8)
-    local cx = it.x + T.px(8)
-    local ty = y + math.floor((it.h - tri) / 2)
-    if open then A.drawTriangleDown(panel, cx, ty, tri, tc) else A.drawTriangleRight(panel, cx, ty, tri, tc) end
-    cx = cx + tri + T.px(6)
-    panel:drawText(A.truncateText(it.text, T.fontF2, it.x + it.w - cx), cx, y + math.floor((it.h - F(2)) / 2),
-        tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+    local o = _moreOpts
+    o.hover, o.focus, o.inset, o.win = hover, focusOf(win, "hb:more"), T.px(8), win
+    ZeD.Molecules.drawMoreRow(panel, it.x, y, it.w, it.groups, it.key, o)
 end
 
 local function drawRow(panel, win, st, it, y, mx, my, wants, view)
@@ -1192,7 +1179,7 @@ local function drawRow(panel, win, st, it, y, mx, my, wants, view)
     local f1 = T.fontF1
     local ty1 = y + math.floor((it.h - F(1)) / 2)
     if r.out then
-        local tw = tagW(r.tag)
+        local tw = A.tagW(r.tag)
         rx = rx - tw
         M.drawTag(panel, rx, y + math.floor((it.h - T.px(16)) / 2), r.tag, nil, { alpha = nameA })
     elseif r.req ~= "none" then
@@ -1209,9 +1196,9 @@ local function drawRow(panel, win, st, it, y, mx, my, wants, view)
     -- the hair mod's tag (its name's first word)
     if r.mod then
         local tag = modName(r.mod):match("^(%a+)") or r.mod
-        local tw = tagW(tag)
+        local tw = A.tagW(tag, false, TAG_KEEP)
         rx = rx - T.px(8) - tw
-        M.drawTag(panel, rx, y + math.floor((it.h - T.px(16)) / 2), tag, nil, { keepCase = true })
+        M.drawTag(panel, rx, y + math.floor((it.h - T.px(16)) / 2), tag, nil, TAG_KEEP)
     end
     -- the figure wearing this row's style, in its frame
     local ts, tp = T.px(THUMB), T.px(THUMB_PAD)

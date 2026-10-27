@@ -489,6 +489,8 @@ local function trailerAction(chr, v)
     return list[1], label
 end
 
+local _cancelOpts = {}   -- the progress band's Cancel: its focus opts, reused each frame
+local _backOpts = {}     -- the card back bar's back key
 function TR.drawBand(panel, s, x, y, w, v, chr)
     local head, label = trailerAction(chr, v)
     if not head then return 0 end
@@ -496,13 +498,12 @@ function TR.drawBand(panel, s, x, y, w, v, chr)
     pcall(function() pct = head:getJobDelta() end)
     if label == "UI_ZeD_Veh_ActWalkingBack" then pct = 0 end
     local rect = {}
-    local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", cased(ZeD.tr(label)), pct, nil, rect, false)
+    _cancelOpts.focus = H().focusFor(s, "mech:cancel")   -- Cancel's mark, drawn under its icon
+    local h = ZeD.Atoms.drawProgressBand(panel, x, y, w, "active", cased(ZeD.tr(label)), pct, nil, rect, false, _cancelOpts)
     if rect.w then
         H().stamp(s, "mech:cancel", rect.x, rect.y, rect.w, rect.h, function()
             pcall(function() ISTimedActionQueue.clear(chr) end)
         end)
-        -- the band's cancel key is the atom's own and takes no focus option: the mark goes over it
-        H().markAt(s, panel, "mech:cancel", rect.x, rect.y, rect.w, rect.h)
     end
     return h
 end
@@ -550,8 +551,7 @@ local function rowButton(panel, s, right, y, rh, label, variant, id, fn, enabled
     local bw = M.buttonW(label)
     local bx = right - bw
     local clip = opts and opts.clip
-    local my = panel:getMouseY()
-    local hov = ZeD.Atoms.mouseIn(panel, bx, y, bw, rh) and (not clip or (my >= clip.y and my < clip.y + clip.h))
+    local hov = ZeD.Atoms.mouseIn(panel, bx, y, bw, rh, clip)
     local _, by, _, bh = M.drawButton(panel, bx, y, bw, rh, label, variant, false, nil, {
         compact = true, disabled = not enabled, hover = hov, win = s.win, focus = hp.focusFor(s, id), help = opts and opts.help })
     local o = { disabled = not enabled }
@@ -666,8 +666,7 @@ function TR.drawTowRow(panel, s, sx, yy, sw, v)
     local bx = sx + sw - sz
     local by = yy + math.floor((srh - sz) / 2)
     local clip = s.bodyClip
-    local my = panel:getMouseY()
-    local hov = A.mouseIn(panel, bx, by, sz, sz) and (not clip or (my >= clip.y and my < clip.y + clip.h))
+    local hov = A.mouseIn(panel, bx, by, sz, sz, clip)
     M.drawIconButton(panel, bx, by, sz, nextGlyph, { hover = hov, win = s.win, id = "mech:tow",
         hint = ZeD.tr("UI_ZeD_Veh_HintGoTow"), help = ZeD.tr("UI_ZeD_Veh_HelpGoTow"), focus = H().focusFor(s, "mech:tow") })
     H().stamp(s, "mech:tow", bx, by, sz, sz, function() TR.goTo(s, other) end, { clip = clip })
@@ -1105,10 +1104,10 @@ function TR.renderAnimal(panel, win, s, x, y, w, h, v, chr)
                     focus = hp.focusFor(s, "mech:av:" .. vb.id), help = vb.help }
     end
     local rects = {}
-    local headerH = M.drawCardBackBar(panel, x, y, w, m.name, defs, busy, false, rects)
+    _backOpts.focus = hp.focusFor(s, "mech:back")
+    _backOpts.focusId = _backOpts.focus and "back" or nil
+    local headerH = M.drawCardBackBar(panel, x, y, w, m.name, defs, busy, false, rects, _backOpts)
     hp.stamp(s, "mech:back", rects.back.x, rects.back.y, rects.back.w, rects.back.h, function() TR.closeAnimal(win, s) end)
-    -- the back key is the library's and takes no focus option: the mark goes over it
-    hp.markAt(s, panel, "mech:back", rects.back.x, rects.back.y, rects.back.w, rects.back.h)
     for i, vb in ipairs(shown) do
         local r = rects.verbs and rects.verbs[i]
         if r then

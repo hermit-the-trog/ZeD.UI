@@ -527,11 +527,18 @@ function ZeD_SeatChooser:hitAt(x, y)
     return nil
 end
 
+-- the close box (the window calls this on a press and release on the box)
+function ZeD_SeatChooser:closeAction()
+    sound("UIActivateButton")
+    self:close()
+end
+
 function ZeD_SeatChooser:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
+    -- the close box and the window box answer on release (ZeD_Window:update): a press on
+    -- either does not drag
     local cb = self:closeRect()
-    if cb and inRect(cb, x, y) then self._down = "close"; return true end
-    -- the window box answers on release (ZeD.Prompt.updateChrome)
+    if cb and inRect(cb, x, y) then return true end
     if inRect(self:windowBoxRect(), x, y) then return true end
     local h = self:hitAt(x, y)
     if h and h.cancel then self._down = "cancel"; return true end
@@ -544,10 +551,7 @@ end
 function ZeD_SeatChooser:onMouseUp(x, y)
     local down = self._down
     self._down = nil
-    if down == "close" then
-        local cb = self:closeRect()
-        if cb and inRect(cb, x, y) then sound("UIActivateButton"); self:close() end
-    elseif down == "cancel" then
+    if down == "cancel" then
         local h = self:hitAt(x, y)
         if h and h.cancel then sound("UIActivateButton"); self:close() end
     end
@@ -565,7 +569,7 @@ function ZeD_SeatChooser:onMouseDownOutside(x, y)
 end
 
 function ZeD_SeatChooser:update()
-    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
+    ZeD_Window.update(self)   -- the window box, the resize edges and the close box (closeAction)
     -- the car gone from the world or the character dead: it closes, rather than reading a
     -- vanished vehicle every frame (code audit Oct 17 2026)
     if not (self.vehicle and self.vehicle:getSquare()) or self.character:isDead() then self:close(); return end
@@ -578,9 +582,6 @@ function ZeD_SeatChooser:update()
     local h = self:hitAt(self:getMouseX(), self:getMouseY())
     if S.qaPoint then h = S.qaPoint end
     self._hover = h
-    local cb = self:closeRect()
-    self._closeHover = cb and inRect(cb, self:getMouseX(), self:getMouseY()) or false
-    if self._closeHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
     -- vanilla: walking away closes it
     if self.vehicle and self.character:DistTo(self.vehicle:getX(), self.vehicle:getY()) > 6 then self:close() end
 end

@@ -29,14 +29,14 @@ The tight spots (the context file has the exact number for each phrase):
 |---|---|
 | Action bar over the character's head (the `UI_ZeD_Act_` keys) | 14 letters, capitals |
 | Weekday on the watch face | 2 letters |
-| Belt and watch readouts, dash and radio panel marks | 4 to 12 letters, capitals |
+| Watch readouts, dash and radio panel marks | 4 to 12 letters, capitals |
 | Buttons and small status chips | 10 to 16 letters |
 | Tab names, column headings | 8 to 14 letters |
 | Hover hints and notes | 24 to 60 letters |
 
-Pixel-face text (the action bar, belt, watch, dash and radio readouts) is drawn in capitals A to Z, digits and a few signs. Accented capitals work for the Latin alphabets, and Cyrillic capitals are drawn too. A word with a letter those faces lack (Chinese, Japanese, Korean, Thai) draws in the regular face instead, which is readable but not pixel-styled. Words painted into the art itself (watch faces, radio faces, dash plates) stay English, the same way the game's own signs and box art do.
+Pixel-face text (the action bar, and the watch, dash and radio readouts) is drawn in capitals A to Z, digits and a few signs. Accented capitals work for the Latin alphabets, and Cyrillic capitals are drawn too. A word with a letter those faces lack (Chinese, Japanese, Korean, Thai) draws in the regular face instead, which is readable but not pixel-styled. Words painted into the art itself (watch faces, radio faces, dash plates) stay English, the same way the game's own signs and box art do.
 
-Phrases that are all capitals in English are meant to be capitals in your language. Where a heading must be capitals but your language has letters the game cannot uppercase, write it in capitals yourself.
+Only the pixel-face words are capitals: the action bar labels and the marks on the dash, watch and radio. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey, Delete all notes?), for headings, column heads, tags, buttons and status words alike. Write yours the way your language writes a heading or a button, not in capitals. Where a pixel-face word must be capitals but your language has letters the game cannot uppercase, write it in capitals yourself.
 
 ## Check your work
 
