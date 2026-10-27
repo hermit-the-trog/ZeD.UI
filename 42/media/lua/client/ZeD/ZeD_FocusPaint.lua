@@ -93,11 +93,13 @@ local function artK()
     return math.max(1, math.floor(s + 0.5))
 end
 
--- the hand with its fingertip touching (x, ...) and centred on the rect's height
-local function drawHand(p, x, y, h)
+-- the hand with its fingertip touching (x, ...) and centred on the rect's height;
+-- minTop (optional) keeps its top at or below that line
+local function drawHand(p, x, y, h, minTop)
     local k = artK()
     local ax = x - HAND_W * k
     local ay = y + math.floor((h - HAND_H * k) / 2)
+    if minTop and ay < minTop then ay = minTop end
     for r = 1, HAND_H do
         local s = _handSil[r]
         if s then p:drawRect(ax + (s[1] + 1) * k, ay + r * k, s[2] * k, k, SHADOW_A, 0, 0, 0) end
@@ -197,8 +199,8 @@ local function paintUnder(p, x, y, w, h, style, solid, rounded)
 end
 
 -- on top (the overlay pass)
-local function paintOver(p, x, y, w, h, style)
-    if style == "hand" then drawHand(p, x, y, h)
+local function paintOver(p, x, y, w, h, style, minTop)
+    if style == "hand" then drawHand(p, x, y, h, minTop)
     elseif style == "corners" then drawCorners(p, x, y, w, h)
     elseif style == "ants" then drawAnts(p, x, y, w, h) end
 end
@@ -245,7 +247,8 @@ local _marks = {}   -- [win] = { x, y, w, h (screen), solid, zone, t, panel }
 -- @return true when the caller must draw the element's words in T.textOnFocus
 function FP.mark(panel, x, y, w, h, opts, rounded)
     if not panel or not ZeD.T then return false end
-    opts = opts or NO_OPTS
+    -- (opts = true, as the library's focus options allow: the defaults)
+    if type(opts) ~= "table" then opts = NO_OPTS end
     local win = opts.win or (ZeD.Atoms and ZeD.Atoms.windowOf and ZeD.Atoms.windowOf(panel)) or panel
     if not FP.isShowing(win, opts) then return false end
     local swap = paintUnder(panel, x, y, w, h, FP.style(), opts.solid, rounded)
@@ -275,12 +278,33 @@ end
 -- (ZeD.Atoms.requestHint / requestDetailCard). Call it from the window's overlay
 -- child, after all of the window's children, with that child as `ov`; a HUD
 -- panel without one calls ZeD.Focus.drawOverlay(self, self) at the end of its render.
+-- The hand may cross the window's frame, but not lie over its close box: an element just under
+-- the title bar at the window's left edge (a tab, a first row shorter than the hand) would put
+-- the hand's top over the box. Then the hand's top stays at the title bar's bottom edge (in
+-- the overlay's coordinates); nil when the hand is clear of it.
+local function handMinTop(ov, win, x, y, h)
+    if not (win and win.closeRect and win.titleBarHeight) or win._closeOnRod then return nil end
+    local cb = win:closeRect()
+    if not cb then return nil end
+    local k = artK()
+    local hx0, hx1 = x - HAND_W * k, x
+    local hy0 = y + math.floor((h - HAND_H * k) / 2)
+    local hy1 = hy0 + (HAND_H + 1) * k   -- (the shadow hangs one art pixel lower)
+    local dx, dy = win:getAbsoluteX() - ov:getAbsoluteX(), win:getAbsoluteY() - ov:getAbsoluteY()
+    local bx0, by0 = dx + cb.x, dy + cb.y
+    if hx1 <= bx0 or hx0 >= bx0 + cb.w or hy1 <= by0 or hy0 >= by0 + cb.h then return nil end
+    return dy + win:titleBarHeight()
+end
+
 function FP.drawOverlay(ov, win)
     if not ov or not ZeD.T then return end
     win = win or ov
     local rec = takeRecord(win)
     if rec and (getTimestampMs() - (rec.t or 0)) <= STALE_MS then
-        paintOver(ov, rec.x - ov:getAbsoluteX(), rec.y - ov:getAbsoluteY(), rec.w, rec.h, FP.style())
+        local style = FP.style()
+        local x, y = rec.x - ov:getAbsoluteX(), rec.y - ov:getAbsoluteY()
+        local minTop = (style == "hand") and handMinTop(ov, win, x, y, rec.h) or nil
+        paintOver(ov, x, y, rec.w, rec.h, style, minTop)
     end
     local A = ZeD.Atoms
     if A and A.drawPendingHover then A.drawPendingHover(ov, win) end

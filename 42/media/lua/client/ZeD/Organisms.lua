@@ -1270,7 +1270,9 @@ function ZeD_Window:update()
         elseif self._closeWasDown then
             self._closeWasDown = false
             if inside then
-                self:close()
+                -- a window whose close means something of its own (a prompt's close is its No)
+                -- says so in closeAction; any other window just closes
+                if self.closeAction then self:closeAction() else self:close() end
                 return
             end
         end

@@ -71,6 +71,29 @@ local function focusOptsOf(opts)
     return f
 end
 
+-- The focus mark opts for one part of a strip that draws several (a sort strip's choices, a
+-- stepper's keys, a card's chips), from the strip's opts:
+--   focusId    = the id of the part that has the controller's focus (the id of the zone or
+--                rect the strip hands back), with focus = its mark opts (default { win })
+--   focusParts = { [id] = mark opts or true, ... } (a caller that asks per part)
+-- nil when that part does not have the focus. (The table is reused: use it at once.)
+local _partFocus = {}
+local function partFocus(opts, id)
+    if not opts or id == nil then return nil end
+    local f
+    if opts.focusId ~= nil and opts.focusId == id then
+        f = opts.focus or true
+    elseif opts.focusParts then
+        f = opts.focusParts[id]
+    end
+    if not f then return nil end
+    if f == true then
+        _partFocus.win = opts.win
+        return _partFocus
+    end
+    return f
+end
+
 -- the window footer's help line for a hovered control (ZeD.Help, the window builder's)
 local function giveHelp(panel, opts)
     if not opts.help then return end
@@ -1652,7 +1675,7 @@ end
 -- A horizontal key:value pair for the item card. The workhorse of the
 -- About This Macintosh layout — every stat line uses this molecule.
 --
--- Label: monospace, uppercase, textSec (chrome voice) — left-aligned
+-- Label: monospace, sentence case, textSec (chrome voice) — left-aligned
 -- Value: sans-serif, T.text or semantic override (content voice) — right-aligned
 -- ============================================================================
 
@@ -1660,7 +1683,7 @@ end
 -- @param panel      The parent ISPanel
 -- @param x, y       Top-left position of the row
 -- @param w          Available width for the row
--- @param label      Label string (will be uppercased, drawn in chrome voice)
+-- @param label      Label string (drawn in sentence case, chrome voice: ZeD.textCase)
 -- @param value      Value string (drawn in content voice)
 -- @param valueColor Optional color override for the value (defaults to T.text)
 -- @return height    Row height consumed (for stacking the next row below)
@@ -1676,11 +1699,11 @@ function ZeD.Molecules.drawStatRow(panel, x, y, w, label, value, valueColor, lab
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
-    -- Label: uppercase, secondary color (chrome voice)
+    -- Label: sentence case (a caps string from upstream reads in sentence case), secondary color
     local lc = T.textSec
-    local upperLabel = ZeD.upper(label)
-    local labelW = ZeD.TM:MeasureStringX(lblFont, upperLabel)
-    panel:drawText(upperLabel, x, labelY,
+    local caseLabel = ZeD.textCase(label or "")
+    local labelW = ZeD.TM:MeasureStringX(lblFont, caseLabel)
+    panel:drawText(caseLabel, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
 
     -- Value: K22 Xanthus, right-aligned, truncated with "..." if too wide
@@ -1721,7 +1744,7 @@ end
 -- @param panel      The parent ISPanel
 -- @param x, y       Top-left position of the row
 -- @param w          Available width for the row
--- @param label      Label string (will be uppercased, drawn in chrome voice)
+-- @param label      Label string (sentence case, drawn in chrome voice)
 -- @param value      Value string (drawn in content voice, always T.text)
 -- @param dotColor   Color table {r, g, b, a} for the status dot
 -- @return height    Row height consumed (for stacking the next row below)
@@ -1755,12 +1778,12 @@ end
 -- @param w       Available width for the bar
 -- @param ratio   Fill ratio 0.0 to 1.0
 -- @return height Bar height consumed (for stacking alignment with stat rows)
-function ZeD.Molecules.drawFillBar(panel, x, y, w, ratio)
+function ZeD.Molecules.drawFillBar(panel, x, y, w, ratio, h)
     local T = ZeD.T
-    local barH = T.fillBarH
+    local barH = h or T.fillBarH
 
     -- Graduated color: green > 60%, amber 30-60%, red < 30%
-    ZeD.Atoms.drawFillBar(panel, x, y, w, ratio, true)
+    ZeD.Atoms.drawFillBar(panel, x, y, w, ratio, true, nil, barH)
 
     return barH
 end
@@ -2138,7 +2161,7 @@ end
 -- @param w      Available width
 -- @param zone   Config table:
 --   {
---     name    string          zone label (will be uppercased)
+--     name    string          zone label (drawn as given)
 --     pct     0..100          condition percentage
 --     bar     bool            draw fill bar on top line right col
 --     dock    table|nil       structural dock config (nil = no dock)
@@ -2256,7 +2279,7 @@ function ZeD.Molecules.drawZoneRow(panel, x, y, w, zone, hovered, outDockRect)
 
         -- Dirty (brown) — flag only, no button
         if soiled and soiled.dirt then
-            local lbl    = ZeD.upper(ZeD.tr("Tooltip_clothing_dirty"))
+            local lbl    = ZeD.textCase(ZeD.tr("Tooltip_clothing_dirty"))
             local sTextW = ZeD.TM:MeasureStringX(T.fontF1, lbl)
             local flagW  = math.max(T.px(4), sTextW + T.px(4) * 2)
             rx = rx - flagW
@@ -2302,9 +2325,14 @@ end
 --- @param outRects        Optional table; on return:
 ---                          outRects.back = {x,y,w,h}
 ---                          outRects.verbs[i] = {x,y,w,h}
+--- @param opts            Optional { focusId = "back" (with focus = its mark opts) or
+---                          focusParts = { back = mark opts }: the back key has the
+---                          controller's focus (the mark goes under its triangle);
+---                          backHelp = its help line words (default "Back: close this
+---                          card"); backHover (nil: the pointer is tested here); win }
 --- @return height
 local _bbOpts, _bbBack = {}, {}
-function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActive, compact, outRects)
+function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActive, compact, outRects, opts)
     local T    = ZeD.T
     local A    = ZeD.Atoms
     local M    = ZeD.Molecules
@@ -2321,9 +2349,14 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
     A.surfaceFill(panel, x, y, w, h, "surf2")
     A.drawDividerH(panel, x, y + h - T.hair, w, true)
 
-    -- Back key
+    -- Back key: its hover, its help line words and, when it has the controller, the mark under it
+    opts = opts or NO_OPTS
     local backX = x + padX
-    _bbBack.hover = A.mouseIn(panel, backX, btnY, btnH, btnH)
+    if opts.backHover ~= nil then _bbBack.hover = opts.backHover
+    else _bbBack.hover = A.mouseIn(panel, backX, btnY, btnH, btnH) end
+    _bbBack.focus = partFocus(opts, "back")
+    _bbBack.help = opts.backHelp or ZeD.tr("UI_ZeD_Card_HelpBack")
+    _bbBack.win = opts.win
     M.drawBackButton(panel, backX, btnY, btnH, _bbBack)
 
     if outRects then
@@ -2345,7 +2378,7 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
             local o = _bbOpts
             o.disabled = (progressActive or v.disabled) and true or false
             if v.hover ~= nil then o.hover = v.hover else o.hover = A.mouseIn(panel, btnX, btnY, btnW, btnH) end
-            o.focus, o.help = v.focus, v.help
+            o.focus, o.help, o.win = v.focus, v.help, opts.win
             local variant = v.primary and "primary" or (v.danger and "danger" or "default")
             M.drawButton(panel, btnX, btnY, btnW, btnH, labelStr, variant, false, nil, o)
             if outRects then
@@ -2373,18 +2406,30 @@ function ZeD.Molecules.drawCardBackBar(panel, x, y, w, name, verbs, progressActi
 end
 
 -- T2.2 CARD FLAG STRIP -------------------------------------------------------
---- Draw "MARKED" label + three flag chips (fav, nocraft, dispose).
---- Per-chip on/off read from marks.
+--- Draw the "Marked" label + three flag chips (fav, nocraft, dispose).
+--- Per-chip on/off read from marks. No fill of its own (the card's surface is
+--- under it, one layer); a content line closes it.
 --- @param panel    ISPanel
 --- @param x, y     Top-left
 --- @param w        Total width
 --- @param marks    Table {fav=bool, nocraft=bool, dispose=bool}
 --- @param compact  220w icon-only chips; else 480w padded label chips
 --- @param outRects Optional table; on return: outRects.fav/nocraft/dispose = hit rect
+--- @param opts     Optional { focusId = "fav" / "nocraft" / "dispose" (with focus = its mark
+---                 opts) or focusParts = { fav = mark opts, ... }: the chip with the
+---                 controller's focus (the mark goes under its words); hover = { fav = bool,
+---                 ... } (a chip left out: the pointer is tested here); win }
 --- @return height
-function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRects)
+local FLAG_CHIPS = {
+    { kind = "fav",     glyph = "*", key = "UI_ZeD_Card_ChipFav" },
+    { kind = "nocraft", glyph = "o", key = "UI_ZeD_Card_ChipNoCraft" },
+    { kind = "dispose", glyph = "x", key = "UI_ZeD_Card_ChipDispose" },
+}
+local _chipOpts, _chipW = {}, {}
+function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRects, opts)
     local T = ZeD.T
     local A = ZeD.Atoms
+    opts = opts or NO_OPTS
 
     local h, padX, gap, lblPadR
     if compact then
@@ -2393,16 +2438,15 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
         h, padX, gap, lblPadR = T.px(28), T.px(12), T.px(6), T.px(4)
     end
 
-    -- Surface bg (surf1 — body color) + 1px bottom separator
-    local bg, sep = T.surf1, T.border
-    panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
-    panel:drawRect(x, y + h - T.px(1), w, T.px(1), sep.a, sep.r, sep.g, sep.b)
+    -- The content line under it (no fill: the card's own surface is the one layer)
+    local lt = T.line(T.borderW)
+    A.drawDividerH(panel, x, y + h - lt, w, false)
 
     local font   = T.fontF1
     local labelH = T.fontF1H or ZeD.TM:MeasureStringY(font, "M")
     local rowY   = y + math.floor((h - T.px(18)) / 2)  -- chip atom is 18 tall
 
-    -- "MARKED" label (left, dim)
+    -- "Marked" label (left, dim)
     local lblText  = A.textCase(ZeD.tr("UI_ZeD_Card_Marked"))
     local labelTY  = y + math.floor((h - labelH) / 2)
     local labelC   = T.textDim
@@ -2410,25 +2454,23 @@ function ZeD.Molecules.drawCardFlagStrip(panel, x, y, w, marks, compact, outRect
         labelC.r, labelC.g, labelC.b, labelC.a, font)
     local lblW = ZeD.TM:MeasureStringX(font, lblText)
 
-    -- Three chips — composes Atoms.drawFlagChip ×3
+    -- Three chips — composes Atoms.drawFlagChip ×3, each with its hover and focus
     local cursorX = x + padX + lblW + lblPadR
-
-    if outRects then outRects.fav = outRects.fav or {} end
-    local cw = A.drawFlagChip(panel, cursorX, rowY, "fav",
-        marks and marks.fav or false, "*", ZeD.tr("UI_ZeD_Card_ChipFav"),
-        outRects and outRects.fav or nil, compact)
-    cursorX = cursorX + cw + gap
-
-    if outRects then outRects.nocraft = outRects.nocraft or {} end
-    cw = A.drawFlagChip(panel, cursorX, rowY, "nocraft",
-        marks and marks.nocraft or false, "o", ZeD.tr("UI_ZeD_Card_ChipNoCraft"),
-        outRects and outRects.nocraft or nil, compact)
-    cursorX = cursorX + cw + gap
-
-    if outRects then outRects.dispose = outRects.dispose or {} end
-    A.drawFlagChip(panel, cursorX, rowY, "dispose",
-        marks and marks.dispose or false, "x", ZeD.tr("UI_ZeD_Card_ChipDispose"),
-        outRects and outRects.dispose or nil, compact)
+    local hov = opts.hover
+    _chipW.minW = T.px(22)
+    for _, c in ipairs(FLAG_CHIPS) do
+        local k = c.kind
+        local label = ZeD.tr(c.key)
+        local cw = compact and T.px(22) or A.tagW(label, true, _chipW)
+        local o = _chipOpts
+        if hov and hov[k] ~= nil then o.hover = hov[k]
+        else o.hover = A.mouseIn(panel, cursorX, rowY, cw, T.px(18)) end
+        o.focus = partFocus(opts, k)
+        if outRects then outRects[k] = outRects[k] or {} end
+        cw = A.drawFlagChip(panel, cursorX, rowY, k, marks and marks[k] or false, c.glyph, label,
+            outRects and outRects[k] or nil, compact, o)
+        cursorX = cursorX + cw + gap
+    end
 
     return h
 end
@@ -2443,8 +2485,9 @@ end
 --- @param item  PZ inventory item — looked up via ItemActionManager
 --- @param compact bool
 --- @param outRect Optional cancel-button hit rect (forwarded from atom)
+--- @param opts    Optional, passed on to the band: { focus (Cancel's mark opts), hover, help, win }
 --- @return height (0 when idle / no manager / no item)
-function ZeD.Molecules.drawCardProgressBand(panel, x, y, w, item, compact, outRect)
+function ZeD.Molecules.drawCardProgressBand(panel, x, y, w, item, compact, outRect, opts)
     local mgr = ZeD.ItemActionManager
     if not mgr or not item then return 0 end
     local action = mgr.getActiveAction(item)
@@ -2454,7 +2497,7 @@ function ZeD.Molecules.drawCardProgressBand(panel, x, y, w, item, compact, outRe
         action.label   or "",
         action.percent or 0,
         action.timeStr,
-        outRect, compact)
+        outRect, compact, opts)
 end
 
 -- T2.4 CARD VERB STRIP -------------------------------------------------------
@@ -2521,16 +2564,19 @@ end
 -- breaking S118 callers that depend on the established voice.
 -- ============================================================================
 
--- Internal helper: resolve a value-class string ("warn"/"bad"/"dim"/"good"/nil)
--- to a color from the active theme. Inline so Phase 4 facts factories don't
--- need to import any extra utility.
+-- Internal helpers: a value class ("warn"/"bad"/"dim"/"good"/nil) is drawn as default
+-- words and a 6u status square in the class's colour (cohesion spec: status as a
+-- square, no coloured words). "dim" is not a status: dim words, no square.
 local function _resolveStatValColor(valueClass, T)
-    if     valueClass == "warn" then return T.warningText
-    elseif valueClass == "bad"  then return T.dangerText
-    elseif valueClass == "dim"  then return T.textDim
-    elseif valueClass == "good" then return T.positiveText
-    else                              return T.text
+    if valueClass == "dim" then return T.textDim end
+    return T.text
+end
+local function _statClassMark(valueClass, T)
+    if     valueClass == "warn" then return T.warning
+    elseif valueClass == "bad"  then return T.danger
+    elseif valueClass == "good" then return T.positive
     end
+    return nil
 end
 
 -- T3.x  CARD STAT ROW --------------------------------------------------------
@@ -2539,10 +2585,10 @@ end
 --- @param panel ISPanel
 --- @param x, y  Top-left
 --- @param w     Available width
---- @param label String — uppercased automatically
---- @param value String value
---- @param valueClass One of nil/"warn"/"bad"/"dim"/"good" → color
---- @param dotColor   Optional {r,g,b,a} for inline status dot after the value
+--- @param label String — drawn in sentence case (ZeD.textCase)
+--- @param value String value — default words ("dim": dim words)
+--- @param valueClass One of nil/"warn"/"bad"/"dim"/"good" → the status square after the value
+--- @param dotColor   Optional {r,g,b,a} for the status square after the value (wins over the class's)
 --- @param fixedLabelW Optional pixel width for left-aligned label column (220w spec uses 80)
 --- @return height
 function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass, dotColor, fixedLabelW)
@@ -2557,9 +2603,11 @@ function ZeD.Molecules.drawCardStatRow(panel, x, y, w, label, value, valueClass,
     local labelY = y + math.floor((rowH - labelH) / 2)
     local valueY = y + math.floor((rowH - valueH) / 2)
 
-    -- Label: F1 mono bold, the accent as legible text (not toneLo)
-    local lblText = ZeD.upper(label or "")
+    -- Label: F1 mono bold in sentence case, the accent as legible text (not toneLo)
+    local lblText = ZeD.textCase(label or "")
     local lc      = T.accentText
+    -- the status: the caller's square, else the value class's (default words either way)
+    dotColor = dotColor or _statClassMark(valueClass, T)
     panel:drawText(lblText, x, labelY,
         lc.r, lc.g, lc.b, lc.a or 1, lblFont)
 
@@ -2746,8 +2794,12 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     -- and ends in "..." when it does not fit
     local vStr = value or ""
     local vw   = ZeD.TM:MeasureStringX(valueFont, vStr)
+    -- a status class shows as a 6u square before the value (the words stay default)
+    local markC = _statClassMark(valueClass, T)
+    local markSq, markGap = T.px(6), T.px(5)
+    local markW = markC and (markSq + markGap) or 0
     local labelStr = label or ""
-    local labelRoom = w - indent - vw - T.px(8)
+    local labelRoom = w - indent - vw - markW - T.px(8)
     if needsProbe then labelRoom = labelRoom - T.px(10) end   -- the "*" badge after the label
     labelStr = ZeD.Atoms.truncateText(labelStr, labelFont, labelRoom)
     panel:drawText(labelStr, x + indent, labelY,
@@ -2769,6 +2821,9 @@ function ZeD.Molecules.drawFactsRow(panel, x, y, w, label, value, valueClass, is
     local vc   = _resolveStatValColor(valueClass, T)
     panel:drawText(vStr, x + w - vw, valueY,
         vc.r, vc.g, vc.b, vc.a or 1, valueFont)
+    if markC then
+        ZeD.Atoms.drawStatusDot(panel, x + w - vw - markW, y + math.floor((rowH - markSq) / 2), markC, markSq)
+    end
 
     return rowH
 end
@@ -2836,79 +2891,129 @@ end
 
 -- ============================================================================
 -- 18. SORT STRIP (draw helper)
--- A 20px contextual strip (doubles as column header row) with underline-tab
--- sort modes and a right-aligned status-dot toggle.
+-- A 20u strip over the recipe list (it doubles as its column header row): the
+-- sort choices as System 7 radio buttons and, at the right, a checkbox toggle.
+-- When the choices do not all fit and the caller opens menus (opts.menuOpen
+-- given), they fold into a System 7 pop-up menu: a framed box naming the current
+-- choice with a down triangle; on its "sortMenu" zone the caller opens the list
+-- (ZeD.Molecules.drawSortMenuList, drawn last so nothing covers it). A caller
+-- that passes no opts gets the radio buttons that fit (the rest drop, as before).
 --
 -- modes:        ordered list of {id, label} tables
 -- activeMode:   id string of the active sort mode
--- rightToggle:  {label, active} or nil (right-aligned dot toggle)
--- Returns:      stripH (20), zones table for click dispatch
+-- rightToggle:  {label, active} or nil (right-aligned checkbox toggle)
+-- hoverZone:    the zone id under the pointer (a mode id, "toggle", "menu") or nil
+-- opts:         optional { focusId = the zone id with the controller's focus (with
+--               focus = its mark opts) or focusParts = { [id] = mark opts }, win,
+--               menuOpen = true / false (the caller handles the pop-up; false = shut),
+--               menu = true (the pop-up even when the radio buttons would fit) }
+-- Returns:      stripH (20u), zones { {id, x, y, w, h, type = "sort" | "toggle" | "sortMenu"} }
 -- ============================================================================
 
 local STRIP_H = 20   -- S124 scale: design units; uses wrap with T.px
+local RADIO_GAP, CHOICE_GAP = 4, 10   -- design units: a radio to its words, between choices
 
-function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightToggle, hoverZone)
+-- the focus mark under a part's words; true when the words switch to the focus ink
+local function markPart(panel, x, y, w, h, f)
+    if not f or not (ZeD.Focus and ZeD.Focus.mark) then return false end
+    return ZeD.Focus.mark(panel, x, y, w, h, f) and true or false
+end
+
+-- the closed pop-up menu: the hover wash, a 1u frame, the choice's words and a down triangle
+local function drawPopupBox(panel, x, y, w, h, label, hover, focus)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    if hover then
+        local hv = T.hover
+        panel:drawRect(x, y, w, h, hv.a or 1, hv.r, hv.g, hv.b)
+    end
+    local onFocus = markPart(panel, x, y, w, h, focus)
+    local font = T.fontF1
+    local pad, tri = T.px(6), T.px(5)
+    local tc = onFocus and T.textOnFocus or T.text
+    local s = A.truncateText(label or "", font, math.max(0, w - pad * 2 - tri - T.px(4)))
+    panel:drawText(s, x + pad, y + math.floor((h - tm:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
+    A.drawTriangleDown(panel, x + w - pad - tri, y + math.floor((h - tri) / 2), tri, onFocus and T.textOnFocus or T.textDim)
+    A.frame(panel, x, y, w, h, T.borderS)
+end
+
+local _sortRadio = {}
+function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightToggle, hoverZone, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
+    opts = opts or NO_OPTS
     local h  = T.px(STRIP_H)
     local font = T.fontF1
+    local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
+    local zones = {}
 
-    -- Strip background (a window surface: no stacking over the body)
+    -- Strip background (a window surface: no stacking over the body) and the structure line under it
     A.surfaceFill(panel, x, y, w, h, "surf2")
+    A.drawDividerH(panel, x, y + h - T.line(T.borderW), w, true)
 
-    -- Bottom rule
-    A.drawDividerH(panel, x, y + h - T.px(1), w, true)
-
-    -- "SORT" label
+    -- "Sort" label
     local sortLabel = A.textCase(ZeD.tr("UI_ZeD_Strip_Sort"))
     local sc = T.textSec
-    local labelW = tm:MeasureStringX(font, sortLabel)
-    local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
-    panel:drawText(sortLabel, x + T.px(6), textY, sc.r, sc.g, sc.b, sc.a, font)
+    panel:drawText(sortLabel, x + T.px(6), textY, sc.r, sc.g, sc.b, sc.a or 1, font)
+    local left = x + T.px(6) + tm:MeasureStringX(font, sortLabel) + T.px(8)
 
-    -- The toggle's width is reserved first, so the tabs never run under it
+    -- The toggle's width is reserved first, so the choices never run under it
     local togLabel, togW = nil, 0
     if rightToggle then
         togLabel = rightToggle.label or ZeD.tr("UI_All")
         togW = tm:MeasureStringX(font, togLabel) + T.checkboxSz + T.px(4)  -- checkbox + gap + text
     end
-    local tabLimit = x + w - T.px(6)
-    if rightToggle then tabLimit = x + w - togW - T.px(6) - T.px(8) end
+    local limit = x + w - T.px(6)
+    if rightToggle then limit = limit - togW - T.px(8) end
 
-    -- Mode tabs with underline; a tab that does not fit ends in "...", the ones after it drop
-    local tabX = x + T.px(6) + labelW + T.px(8)
-    local zones = {}
-    for _, mode in ipairs(modes) do
-        local label = mode.label
-        local tw = tm:MeasureStringX(font, label)
-        local room = tabLimit - tabX
-        if tw > room then
-            if room < T.px(24) then break end
-            label = A.truncateText(label, font, room)
-            tw = tm:MeasureStringX(font, label)
+    -- Radio buttons when they all fit; the pop-up when they don't and the caller opens menus
+    local rs = A.radioSize()
+    local total = 0
+    for i, mode in ipairs(modes) do
+        total = total + rs + T.px(RADIO_GAP) + tm:MeasureStringX(font, mode.label) + ((i > 1) and T.px(CHOICE_GAP) or 0)
+    end
+    if opts.menuOpen ~= nil and (opts.menu or left + total > limit) then
+        local act = modes[1]
+        for _, m in ipairs(modes) do if m.id == activeMode then act = m; break end end
+        local label = act and act.label or ""
+        local bw = math.min(limit - left, tm:MeasureStringX(font, label) + T.px(6) * 2 + T.px(5) + T.px(4))
+        if bw >= T.px(24) then
+            drawPopupBox(panel, left, y + T.px(2), bw, h - T.px(4), label,
+                hoverZone == "menu" or opts.menuOpen == true, partFocus(opts, "menu"))
+            zones[#zones + 1] = { id = "menu", x = left, y = y, w = bw, h = h, type = "sortMenu" }
         end
-        local isActive = (mode.id == activeMode)
-        local isHover = (hoverZone == mode.id)
-        local tc = isActive and T.accentText or (isHover and T.accentText or T.textSec)
-
-        panel:drawText(label, tabX, textY, tc.r, tc.g, tc.b, tc.a or 1, font)
-
-        -- Underline for active mode
-        if isActive then
-            panel:drawRect(tabX, y + h - T.px(2), tw, T.px(1), T.accent.a, T.accent.r, T.accent.g, T.accent.b)
+    else
+        -- each choice: the radio, its words; one that does not fit ends in "...", the ones after it drop
+        local ry = y + math.floor((h - rs) / 2)
+        local cx = left
+        for _, mode in ipairs(modes) do
+            local label = mode.label
+            local room = limit - cx - rs - T.px(RADIO_GAP)
+            local tw = tm:MeasureStringX(font, label)
+            if tw > room then
+                if room < T.px(24) then break end
+                label = A.truncateText(label, font, room)
+                tw = tm:MeasureStringX(font, label)
+            end
+            local cw = rs + T.px(RADIO_GAP) + tw
+            local isHover = (hoverZone == mode.id)
+            local onFocus = markPart(panel, cx - T.px(2), y + T.px(2), cw + T.px(4), h - T.px(4), partFocus(opts, mode.id))
+            _sortRadio.hover = isHover
+            A.drawRadio(panel, cx, ry, mode.id == activeMode, _sortRadio)
+            local tc = onFocus and T.textOnFocus or T.text
+            panel:drawText(label, cx + rs + T.px(RADIO_GAP), textY, tc.r, tc.g, tc.b, tc.a or 1, font)
+            zones[#zones + 1] = { id = mode.id, x = cx, y = y, w = cw, h = h, type = "sort" }
+            cx = cx + cw + T.px(CHOICE_GAP)
         end
-
-        zones[#zones + 1] = { id = mode.id, x = tabX, y = y, w = math.min(tw + T.px(8), math.max(tw, tabLimit - tabX)), h = h, type = "sort" }
-        tabX = tabX + tw + T.px(12)
     end
 
     -- Right-aligned on/off: a System 7 checkbox and its words (cohesion spec 1.3)
     if rightToggle then
         local togX = x + w - togW - T.px(6)
         local cb = T.checkboxSz
+        local onFocus = markPart(panel, togX - T.px(2), y + T.px(2), togW + T.px(4), h - T.px(4), partFocus(opts, "toggle"))
         A.drawCheckbox(panel, togX, y + math.floor((h - cb) / 2), rightToggle.active, hoverZone == "toggle")
-        local togTC = T.text
+        local togTC = onFocus and T.textOnFocus or T.text
         panel:drawText(togLabel, togX + cb + T.px(4), textY,
             togTC.r, togTC.g, togTC.b, togTC.a or 1, font)
 
@@ -2918,56 +3023,104 @@ function ZeD.Molecules.drawSortStrip(panel, x, y, w, modes, activeMode, rightTog
     return h, zones
 end
 
+--- The sort strip's pop-up list, open: draw it last (over the rows) with its top-left at the
+-- "sortMenu" zone's bottom-left. Solid surface 1, a 1u frame and the hard shadow (it pops up);
+-- the current choice carries the selected wash, the pointed one the hover wash.
+-- opts: optional { focusId / focus / focusParts (a mode id), minW (px), win }
+-- @return w, h, zones { {id = mode id, x, y, w, h, type = "sort"} }
+function ZeD.Molecules.drawSortMenuList(panel, x, y, modes, activeMode, hoverZone, opts)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    opts = opts or NO_OPTS
+    local font = T.fontF1
+    local rowH = T.px(STRIP_H)
+    local padX = T.px(8)
+    local w = opts.minW or 0
+    for _, m in ipairs(modes) do w = math.max(w, tm:MeasureStringX(font, m.label) + padX * 2) end
+    local h = rowH * #modes
+    local s1 = T.surf1
+    panel:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
+    local fh = tm:getFontHeight(font)
+    local zones = {}
+    for i, m in ipairs(modes) do
+        local ry = y + (i - 1) * rowH
+        if m.id == activeMode then
+            local ac = T.accent
+            panel:drawRect(x, ry, w, rowH, T.selectionA or 0.30, ac.r, ac.g, ac.b)
+        end
+        if hoverZone == m.id then
+            local hv = T.hover
+            panel:drawRect(x, ry, w, rowH, hv.a or 1, hv.r, hv.g, hv.b)
+        end
+        local onFocus = markPart(panel, x, ry, w, rowH, partFocus(opts, m.id))
+        local tc = onFocus and T.textOnFocus or T.text
+        panel:drawText(m.label, x + padX, ry + math.floor((rowH - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
+        zones[#zones + 1] = { id = m.id, x = x, y = ry, w = w, h = rowH, type = "sort" }
+    end
+    A.frame(panel, x, y, w, h, T.borderS)
+    A.drawHardShadow(panel, x, y, w, h)
+    return w, h, zones
+end
+
 
 -- ============================================================================
 -- 19. ALT-BACK STRIP (draw helper)
--- A 24px contextual strip for alt mode: back button, owned stat, filter toggle.
--- Accent-tinted background signals "you are in alt mode".
+-- The 20u strip over the alternatives list: the back key and where it goes
+-- back to, the owned count, and an "Owned only" checkbox.
+-- opts: optional { focusId = "back" / "ownedOnly" (with focus = its mark opts) or
+--       focusParts, win }: the part with the controller's focus (the mark goes
+--       under its words; the back key and its words are one stop)
+-- Returns: stripH, zones { back, ownedOnly }
 -- ============================================================================
 
 local _altBack = {}
-function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, totalCount, ownedOnly, hoverZone)
+function ZeD.Molecules.drawAltBackStrip(panel, x, y, w, slotName, ownedCount, totalCount, ownedOnly, hoverZone, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
+    opts = opts or NO_OPTS
     local h  = T.px(STRIP_H)
     local font = T.fontF1
 
     -- Surface 2 (no stacking) and the structure line under it
     A.surfaceFill(panel, x, y, w, h, "surf2")
-    A.drawDividerH(panel, x, y + h - T.px(1), w, true)
+    A.drawDividerH(panel, x, y + h - T.line(T.borderW), w, true)
 
     local textY = y + math.floor((h - tm:getFontHeight(font)) / 2)
     local zones = {}
 
-    -- Left: the back key, then where it goes back to ("Recipes")
+    -- Left: the back key, then where it goes back to ("Recipes"): one stop, the mark under both
     local backLabel = ZeD.tr("EC_Recipes")
     local keySz = h - T.px(4)
     local keyY = y + math.floor((h - keySz) / 2)
+    local backX = x + T.px(4) + keySz + T.px(4)
+    local backW = tm:MeasureStringX(font, backLabel)
+    local zoneW = backX + backW + T.px(4) - x
+    local onBack = markPart(panel, x, y, zoneW, h, partFocus(opts, "back"))
     _altBack.hover = (hoverZone == "back")
     _altBack.hint = backLabel
+    _altBack.tint = onBack and T.textOnFocus or nil
+    _altBack.win = opts.win
     ZeD.Molecules.drawBackButton(panel, x + T.px(4), keyY, keySz, _altBack)
-    local backTC = T.text
-    local backX = x + T.px(4) + keySz + T.px(4)
+    local backTC = onBack and T.textOnFocus or T.text
     panel:drawText(backLabel, backX, textY, backTC.r, backTC.g, backTC.b, backTC.a or 1, font)
-    local backW = tm:MeasureStringX(font, backLabel)
-    zones[#zones + 1] = { id = "back", x = x, y = y, w = backX + backW + T.px(4) - x, h = h, type = "back" }
+    zones[#zones + 1] = { id = "back", x = x, y = y, w = zoneW, h = h, type = "back" }
 
     -- Center: "N/total owned" stat
     local statStr = ZeD.tr("UI_ZeD_Strip_OwnedCount", ownedCount, totalCount)
     local statW = tm:MeasureStringX(font, statStr)
     local statX = x + math.floor((w - statW) / 2)
     local nc = T.textSec
-    panel:drawText(statStr, statX, textY, nc.r, nc.g, nc.b, nc.a, font)
+    panel:drawText(statStr, statX, textY, nc.r, nc.g, nc.b, nc.a or 1, font)
 
     -- Right: "Owned only", a System 7 checkbox and its words (cohesion spec 1.3)
     local togLabel = ZeD.tr("UI_ZeD_Strip_OwnedOnly")
     local cb = T.checkboxSz
     local togW = tm:MeasureStringX(font, togLabel) + cb + T.px(4)
     local togX = x + w - togW - T.px(6)
+    local onTog = markPart(panel, togX - T.px(2), y + T.px(2), togW + T.px(4), h - T.px(4), partFocus(opts, "ownedOnly"))
     A.drawCheckbox(panel, togX, y + math.floor((h - cb) / 2), ownedOnly, hoverZone == "ownedOnly")
 
-    local togTC = T.text
+    local togTC = onTog and T.textOnFocus or T.text
     panel:drawText(togLabel, togX + cb + T.px(4), textY,
         togTC.r, togTC.g, togTC.b, togTC.a or 1, font)
 
@@ -2979,21 +3132,39 @@ end
 
 -- ============================================================================
 -- 20. RECIPE ROW (draw helper)
--- A 24px row in the recipe list: selection edge, status dot, icon, name, star.
--- Striped bg, red whisper for missing, accent bg+edge for selected.
+-- A 24u row in the recipe list: status square, icon, name, station tag, star.
+-- Striped background; selected = the one accent wash (T.selectionA), hover =
+-- T.hover over it; the words stay default text on both (dim for a recipe not
+-- known or made at a station). The status square carries the state.
 --
 -- data table: { name, displayName, iconTex, status, craftable, tag }
---   status: "can" (green), "miss" (red), "unknown" (grey),
---           "station" (hollow ring: made at a station, not by hand)
---   tag:    optional short label drawn right (the station: "KILN")
+--   status: "can" (green), "miss" (gold: missing things), "unknown" (red),
+--           "station" (hollow square: made at a station, not by hand)
+--   tag:    optional short label drawn right as a tag (the station: "Kiln")
+-- opts:     optional { focus = the ZeD.Focus.mark opts (or true) when the row has
+--           the controller's focus: the mark goes under the words, which switch to
+--           the focus ink when it asks; win }
 -- ============================================================================
 
 local RECIPE_ROW_H = 24   -- S124 scale: design units; uses wrap with T.px
 
-function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pinned, freqCount, rowIdx)
+-- a name cut to maxW with ".." (the recipe lists' own short ellipsis)
+local function cutName(tm, font, s, maxW)
+    if tm:MeasureStringX(font, s) <= maxW then return s end
+    local lo, hi = 1, #s
+    while lo < hi do
+        local mid = math.ceil((lo + hi) / 2)
+        if tm:MeasureStringX(font, string.sub(s, 1, mid) .. "..") <= maxW then lo = mid else hi = mid - 1 end
+    end
+    return string.sub(s, 1, lo) .. ".."
+end
+
+local _recTag = {}
+function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pinned, freqCount, rowIdx, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
+    opts = opts or NO_OPTS
     local h  = T.px(RECIPE_ROW_H)
 
     -- Stripe background (alternating even rows)
@@ -3002,14 +3173,8 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
         panel:drawRect(x, y, w, h, st.a, st.r, st.g, st.b)
     end
 
-    -- Status-based background tint
-    local status = data.status or "can"
-    if status == "unknown" then
-        local dg = T.danger
-        panel:drawRect(x, y, w, h, 0.06, dg.r, dg.g, dg.b)
-    end
-
     -- Selected: the one accent wash (T.selectionA, no side bar); hover: T.hover over it
+    local status = data.status or "can"
     if selected then
         local ac = T.accent
         panel:drawRect(x, y, w, h, T.selectionA or 0.30, ac.r, ac.g, ac.b)
@@ -3018,24 +3183,29 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
         local hv = T.hover
         panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
     end
+    -- the controller's mark, under the words
+    local onFocus = false
+    if opts.focus and ZeD.Focus and ZeD.Focus.mark then
+        onFocus = ZeD.Focus.mark(panel, x, y, w, h, focusOptsOf(opts)) and true or false
+    end
 
     local cx = x + T.px(4)  -- edge space
 
-    -- Status dot (6px): green=craftable, gold=missing ingredients, red=not known
+    -- Status square (6u): green = craftable, gold = missing things, red = not known; hollow = at a station
     local dotSz = T.px(6)
     local dotY = y + math.floor((h - dotSz) / 2)
     if status == "station" then
-        A.drawStatusRing(panel, cx, dotY, T.textDim, dotSz)
+        A.drawStatusHollow(panel, cx, dotY, T.textDim, dotSz)
     else
         local dotColor
         if status == "can" then dotColor = T.positive
-        elseif status == "miss" then dotColor = T.warningText
+        elseif status == "miss" then dotColor = T.warning
         else dotColor = T.danger end
         A.drawStatusDot(panel, cx, dotY, dotColor, dotSz)
     end
     cx = cx + dotSz + T.px(4)
 
-    -- Icon (14px)
+    -- Icon (14u)
     local iconSz = T.px(14)
     if data.iconTex then
         local iconY = y + math.floor((h - iconSz) / 2)
@@ -3051,75 +3221,49 @@ function ZeD.Molecules.drawRecipeRow(panel, x, y, w, data, selected, hovered, pi
     -- Station tag (right, before the star): eats into name space
     local tagW = 0
     if data.tag and data.tag ~= "" then
-        tagW = tm:MeasureStringX(T.fontF1, data.tag) + T.px(10)
+        tagW = A.tagW(data.tag, false)
         nameMaxW = nameMaxW - tagW - T.px(6)
     end
 
-    -- Freq badge eats into name space
-    local freqBadgeW = 0
+    -- Freq count eats into name space
+    local freqStr = nil
     if freqCount and freqCount > 0 then
-        local freqStr = "x" .. tostring(freqCount)
-        freqBadgeW = tm:MeasureStringX(T.fontF5, freqStr) + T.px(8)
-        nameMaxW = nameMaxW - freqBadgeW
+        freqStr = "x" .. tostring(freqCount)
+        nameMaxW = nameMaxW - tm:MeasureStringX(T.fontF5, freqStr) - T.px(8)
     end
 
-    local displayName = data.displayName or data.name or ""
-    -- Unknown recipes get italic styling via dim color
+    -- Words: default text (on the selected wash too), dim for a recipe not known or made at a station
     local nameColor
-    if status == "unknown" or status == "station" then
-        nameColor = T.textDim
-    elseif selected then
-        nameColor = T.accent
-    else
-        nameColor = T.text
-    end
+    if onFocus then nameColor = T.textOnFocus
+    elseif status == "unknown" or status == "station" then nameColor = T.textDim
+    else nameColor = T.text end
 
-    -- Truncate name if needed
-    local nameStr = displayName
-    local nameW = tm:MeasureStringX(nameFont, nameStr)
-    if nameW > nameMaxW then
-        -- Binary search truncation
-        local lo, hi = 1, #nameStr
-        while lo < hi do
-            local mid = math.ceil((lo + hi) / 2)
-            local test = string.sub(nameStr, 1, mid) .. ".."
-            if tm:MeasureStringX(nameFont, test) <= nameMaxW then lo = mid else hi = mid - 1 end
-        end
-        nameStr = string.sub(nameStr, 1, lo) .. ".."
-        nameW = tm:MeasureStringX(nameFont, nameStr)
-    end
-
+    local nameStr = cutName(tm, nameFont, data.displayName or data.name or "", nameMaxW)
     panel:drawText(nameStr, cx, textY, nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, nameFont)
-    cx = cx + nameW + T.px(4)
+    cx = cx + tm:MeasureStringX(nameFont, nameStr) + T.px(4)
 
-    -- Freq badge (inline, warning color)
-    if freqCount and freqCount > 0 then
-        local freqStr = "x" .. tostring(freqCount)
-        local wc = T.warning
-        panel:drawText(freqStr, cx, textY + T.px(1), wc.r, wc.g, wc.b, 0.7, T.fontF5)
+    -- Freq count (inline, dim: a count, not a status)
+    if freqStr then
+        local fc = onFocus and T.textOnFocus or T.textDim
+        panel:drawText(freqStr, cx, textY + T.px(1), fc.r, fc.g, fc.b, fc.a or 1, T.fontF5)
     end
 
-    -- Station tag box (dim outline, mono caps)
+    -- Station tag: the library tag (outline, F1, sentence case)
     if tagW > 0 then
-        local th = T.px(14)
-        local tx = x + w - T.px(22) - tagW
-        local ty = y + math.floor((h - th) / 2)
-        local bd = T.border
-        panel:drawRectBorder(tx, ty, tagW, th, bd.a or 1, bd.r, bd.g, bd.b)
-        local tc = T.textDim
-        panel:drawText(data.tag, tx + T.px(5), ty + math.floor((th - tm:getFontHeight(T.fontF1)) / 2),
-            tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
+        local tg = _recTag
+        tg.textColor = onFocus and T.textOnFocus or nil
+        A.drawTag(panel, x + w - T.px(22) - tagW, y + math.floor((h - T.px(16)) / 2), data.tag, nil, tg)
     end
 
     -- Star (right-aligned, hover-appear, accent when pinned)
     local starX = x + w - T.px(18)
-    local starStr = pinned and "*" or "*"
     local starAlpha = pinned and 1.0 or (hovered and 0.5 or 0)
     if starAlpha > 0 then
         local starColor = pinned and T.accent or T.textDim
+        if onFocus then starColor = T.textOnFocus end
         local starFont = T.fontF3
         local starY = y + math.floor((h - tm:getFontHeight(starFont)) / 2)
-        panel:drawText(starStr, starX, starY,
+        panel:drawText("*", starX, starY,
             starColor.r, starColor.g, starColor.b, starAlpha, starFont)
     end
 
@@ -3129,16 +3273,20 @@ end
 
 -- ============================================================================
 -- 21. ALT ROW (draw helper)
--- A 24px row in the alternative ingredients list: edge, dot, icon, name, count.
--- Owned items get a positive edge + tint. Non-interactive (read-only).
+-- A 24u row in the alternative ingredients list: status square, icon, name,
+-- count. Owned shows in the square (filled green; hollow when not owned) and
+-- the words (default text; dim when not owned). No tint. Read-only.
 --
 -- data table: { name, displayName, iconTex, have, need }
+-- opts:       optional { selected (the one accent wash), hover (T.hover), focus
+--             (the ZeD.Focus.mark opts or true), win }
 -- ============================================================================
 
-function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx)
+function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
+    opts = opts or NO_OPTS
     local h  = T.px(RECIPE_ROW_H)
 
     -- Stripe
@@ -3146,26 +3294,29 @@ function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx)
         local st = T.stripe
         panel:drawRect(x, y, w, h, st.a, st.r, st.g, st.b)
     end
-
-    -- Owned tint
-    if owned then
-        local pc = T.positive
-        panel:drawRect(x, y, w, h, 0.06, pc.r, pc.g, pc.b)
+    if opts.selected then
+        local ac = T.accent
+        panel:drawRect(x, y, w, h, T.selectionA or 0.30, ac.r, ac.g, ac.b)
+    end
+    if opts.hover then
+        local hv = T.hover
+        panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
+    end
+    local onFocus = false
+    if opts.focus and ZeD.Focus and ZeD.Focus.mark then
+        onFocus = ZeD.Focus.mark(panel, x, y, w, h, focusOptsOf(opts)) and true or false
     end
 
-    local cx = x
+    local cx = x + T.px(4)
 
-    -- (owned shows in the status square below; no side bar)
-    cx = cx + T.px(4)
-
-    -- Status dot (6px)
+    -- Status square (6u): owned = filled green, not owned = hollow
     local dotSz = T.px(6)
-    local dotColor = owned and T.positive or T.textDim
     local dotY = y + math.floor((h - dotSz) / 2)
-    A.drawStatusDot(panel, cx, dotY, dotColor, dotSz)
+    if owned then A.drawStatusDot(panel, cx, dotY, T.positive, dotSz)
+    else A.drawStatusHollow(panel, cx, dotY, T.textDim, dotSz) end
     cx = cx + dotSz + T.px(4)
 
-    -- Icon (16px)
+    -- Icon (16u)
     local iconSz = T.px(16)
     if data.iconTex then
         local iconY = y + math.floor((h - iconSz) / 2)
@@ -3173,32 +3324,19 @@ function ZeD.Molecules.drawAltRow(panel, x, y, w, data, owned, rowIdx)
     end
     cx = cx + iconSz + T.px(4)
 
-    -- Name (F2, dim if not owned)
+    -- Name (F2; dim when not owned)
     local nameFont = T.fontF2
     local textY = y + math.floor((h - tm:getFontHeight(nameFont)) / 2)
-    local nameColor = owned and T.text or T.textDim
-    local nameStr = data.displayName or data.name or ""
+    local tc = onFocus and T.textOnFocus or (owned and T.text or T.textDim)
 
     -- Truncate (reserve space for count)
     local countStr = tostring(data.have or 0) .. "/" .. tostring(data.need or 1)
     local countW = tm:MeasureStringX(T.fontF3, countStr) + T.px(8)
-    local nameMaxW = w - (cx - x) - countW
-    local nameW = tm:MeasureStringX(nameFont, nameStr)
-    if nameW > nameMaxW then
-        local lo, hi = 1, #nameStr
-        while lo < hi do
-            local mid = math.ceil((lo + hi) / 2)
-            local test = string.sub(nameStr, 1, mid) .. ".."
-            if tm:MeasureStringX(nameFont, test) <= nameMaxW then lo = mid else hi = mid - 1 end
-        end
-        nameStr = string.sub(nameStr, 1, lo) .. ".."
-    end
+    local nameStr = cutName(tm, nameFont, data.displayName or data.name or "", w - (cx - x) - countW)
+    panel:drawText(nameStr, cx, textY, tc.r, tc.g, tc.b, tc.a or 1, nameFont)
 
-    panel:drawText(nameStr, cx, textY, nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, nameFont)
-
-    -- Count (right-aligned)
-    local countColor = owned and T.positive or T.textDim
-    A.drawTextRight(panel, countStr, x + w - T.px(6), textY, T.fontF3, countColor)
+    -- Count (right-aligned, the same words colour)
+    A.drawTextRight(panel, countStr, x + w - T.px(6), textY, T.fontF3, tc)
 
     return h
 end
@@ -3206,39 +3344,49 @@ end
 
 -- ============================================================================
 -- 22. SLOT ROW (draw helper)
--- A 24px row in the craft card's required items list.
--- Grid: 2px edge | 18px icon | flex name+tag | count | 12px consumable flag
+-- A 24u row in the craft card's required items list.
+-- Grid: edge | 18u icon | name + tags | square + count | 14u consumable flag
+-- The words are default text; the count's status square says have (green) or
+-- missing (red). Alternatives show as a tag with a warning square and the count
+-- ("[■ 3] v": press the row to see them); a text tag ("Tool", "1 use", "Fuel")
+-- is the library tag.
 --
 -- data table: { name, displayName, iconTex, have, need, altCount, isKeep, isTool, tag }
 --   altCount: number of alternatives (nil or 0 = specific item, no alt click)
 --   tag: "TOOL", "1 USE", etc. for specific items; nil for alt-backed
 -- selected: this slot's alts are being shown in the left pane
+-- opts:     optional { focus = the ZeD.Focus.mark opts (or true) when the row has the
+--           controller's focus; win }
 -- ============================================================================
 
-function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
+local _slotTag = {}
+function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local tm = ZeD.TM
+    opts = opts or NO_OPTS
     local h  = T.px(RECIPE_ROW_H)
     local missing = (data.have or 0) < (data.need or 1)
+    local alts = (data.altCount or 0) > 0
 
-    -- Background: missing = red whisper, selected = accent bg
-    if missing then
-        local dg = T.danger
-        panel:drawRect(x, y, w, h, 0.06, dg.r, dg.g, dg.b)
-    end
+    -- Selected: the one accent wash; hover: T.hover (only a row that opens its alternatives)
     if selected then
         local ac = T.accent
         panel:drawRect(x, y, w, h, T.selectionA or 0.30, ac.r, ac.g, ac.b)
     end
-    if hovered and (data.altCount or 0) > 0 then
+    if hovered and alts then
         local hv = T.hover
         panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
     end
+    local onFocus = false
+    if opts.focus and ZeD.Focus and ZeD.Focus.mark then
+        onFocus = ZeD.Focus.mark(panel, x, y, w, h, focusOptsOf(opts)) and true or false
+    end
+    local tc = onFocus and T.textOnFocus or T.text
 
     local cx = x + T.px(4)  -- edge space (selection is the wash; no side bar)
 
-    -- Icon (18px)
+    -- Icon (18u)
     local iconSz = T.px(18)
     if data.iconTex then
         local iconY = y + math.floor((h - iconSz) / 2)
@@ -3246,103 +3394,70 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
     end
     cx = cx + iconSz + T.px(4)
 
-    -- Name + tag
-    local nameFont = T.fontF2
-    local textY = y + math.floor((h - tm:getFontHeight(nameFont)) / 2)
-    local nameColor = missing and T.danger or T.text
-    local nameStr = data.displayName or data.name or ""
-
-    -- Reserve space for count + consumable flag
-    local rightReserve = T.px(50)  -- count + flag space
-    local nameMaxW = w - (cx - x) - rightReserve
-
-    -- Tag inline (either "N▾" for alt-backed, or text tag for specific items)
-    local tagStr, tagW, tagColor
-    local extraTag, extraW = nil, 0
-    if (data.altCount or 0) > 0 then
-        tagStr = tostring(data.altCount) .. "v"  -- ▾ via drawTriangleDown later
-        tagW = tm:MeasureStringX(T.fontF5, tagStr) + T.px(2)
-        tagColor = T.warning
-        nameMaxW = nameMaxW - tagW - T.px(6)
-        if data.tag == "FUEL" then
-            extraTag = ZeD.tr("UI_ZeD_Recipe_Fuel")
-            extraW = tm:MeasureStringX(T.fontF1, extraTag) + T.px(10)
-            nameMaxW = nameMaxW - extraW - T.px(6)
-        end
-    elseif data.tag then
-        tagStr = data.tag
-        tagW = tm:MeasureStringX(T.fontF5, tagStr)
-        tagColor = T.textDim
-        nameMaxW = nameMaxW - tagW - T.px(6)
-    end
-
-    -- Truncate name
-    local nameW = tm:MeasureStringX(nameFont, nameStr)
-    if nameW > nameMaxW then
-        local lo, hi = 1, #nameStr
-        while lo < hi do
-            local mid = math.ceil((lo + hi) / 2)
-            local test = string.sub(nameStr, 1, mid) .. ".."
-            if tm:MeasureStringX(nameFont, test) <= nameMaxW then lo = mid else hi = mid - 1 end
-        end
-        nameStr = string.sub(nameStr, 1, lo) .. ".."
-        nameW = tm:MeasureStringX(nameFont, nameStr)
-    end
-
-    panel:drawText(nameStr, cx, textY, nameColor.r, nameColor.g, nameColor.b, nameColor.a or 1, nameFont)
-    cx = cx + nameW + T.px(4)
-
-    -- Tag render
-    if tagStr then
-        local tagFont = T.fontF5
-        local tagY = y + math.floor((h - tm:getFontHeight(tagFont)) / 2)
-        if (data.altCount or 0) > 0 then
-            -- Alt tag: bordered orange pill with N + tiny triangle
-            local pillW = tagW + T.px(6)
-            local pillH = tm:getFontHeight(tagFont) + T.px(2)
-            local pillY = tagY - T.px(1)
-            panel:drawRectBorder(cx, pillY, pillW, pillH,
-                tagColor.a * 0.6, tagColor.r, tagColor.g, tagColor.b)
-            -- Number
-            local numStr = tostring(data.altCount)
-            panel:drawText(numStr, cx + T.px(3), tagY, tagColor.r, tagColor.g, tagColor.b, 0.9, tagFont)
-            -- Tiny down-triangle after number
-            local numW = tm:MeasureStringX(tagFont, numStr)
-            local triSz = T.px(4)
-            local triX = cx + T.px(3) + numW + T.px(1)
-            local triY = tagY + math.floor((tm:getFontHeight(tagFont) - triSz) / 2)
-            A.drawTriangleDown(panel, triX, triY, triSz, tagColor)
-            -- Text tag after the pill (FUEL): dim outline box, mono caps
-            if extraTag then
-                local bx = cx + pillW + T.px(6)
-                local bh = T.px(14)
-                local by = y + math.floor((h - bh) / 2)
-                local bd = T.border
-                panel:drawRectBorder(bx, by, extraW, bh, bd.a or 1, bd.r, bd.g, bd.b)
-                local tc = T.textDim
-                panel:drawText(extraTag, bx + T.px(5), by + math.floor((bh - tm:getFontHeight(T.fontF1)) / 2),
-                    tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
-            end
-        else
-            panel:drawText(tagStr, cx, tagY, tagColor.r, tagColor.g, tagColor.b, 0.6, tagFont)
-        end
-    end
-
-    -- Have/need count (right-aligned, before consumable flag)
+    -- the right end first: the consumable flag, the count and its status square
     local countStr
     if data.isKeep or data.isTool then
         countStr = tostring(data.have or 0)
     else
         countStr = tostring(data.have or 0) .. "/" .. tostring(data.need or 1)
     end
-    local countColor = missing and T.danger or T.positive
     local countFont = T.fontF3
     local flagW = T.px(14)  -- space for consumable flag
-    A.drawTextRight(panel, countStr, x + w - flagW - T.px(4), textY, countFont, countColor)
+    local countR = x + w - flagW - T.px(4)
+    local countW = tm:MeasureStringX(countFont, countStr)
+    local sq, sqGap = T.px(6), T.px(5)
+    local rightReserve = flagW + T.px(4) + countW + sqGap + sq + T.px(6)
+
+    -- Name + tags
+    local nameFont = T.fontF2
+    local textY = y + math.floor((h - tm:getFontHeight(nameFont)) / 2)
+    local nameMaxW = w - (cx - x) - rightReserve
+    local tagStr, tagW, extraTag, extraW = nil, 0, nil, 0
+    local tri = T.px(5)
+    if alts then
+        tagStr = tostring(data.altCount)
+        tagW = A.tagW(tagStr, true) + T.px(3) + tri
+        nameMaxW = nameMaxW - tagW - T.px(6)
+        if data.tag == "FUEL" then
+            extraTag = ZeD.tr("UI_ZeD_Recipe_Fuel")
+            extraW = A.tagW(extraTag, false)
+            nameMaxW = nameMaxW - extraW - T.px(6)
+        end
+    elseif data.tag then
+        tagStr = data.tag
+        tagW = A.tagW(tagStr, false)
+        nameMaxW = nameMaxW - tagW - T.px(6)
+    end
+
+    local nameStr = cutName(tm, nameFont, data.displayName or data.name or "", nameMaxW)
+    panel:drawText(nameStr, cx, textY, tc.r, tc.g, tc.b, tc.a or 1, nameFont)
+    cx = cx + tm:MeasureStringX(nameFont, nameStr) + T.px(6)
+
+    -- Tags: the alternatives (a warning square and how many, then a small down triangle),
+    -- the fuel tag after them, or a specific item's text tag
+    if tagStr then
+        local tg = _slotTag
+        tg.textColor = onFocus and T.textOnFocus or nil
+        local ty = y + math.floor((h - T.px(16)) / 2)
+        if alts then
+            local tw = A.drawTag(panel, cx, ty, tagStr, T.warning, tg)
+            A.drawTriangleDown(panel, cx + tw + T.px(3), y + math.floor((h - tri) / 2), tri, onFocus and T.textOnFocus or T.textDim)
+            if extraTag then
+                A.drawTag(panel, cx + tagW + T.px(6), ty, extraTag, nil, tg)
+            end
+        else
+            A.drawTag(panel, cx, ty, tagStr, nil, tg)
+        end
+    end
+
+    -- Have/need count (right-aligned, before the consumable flag) after its status square
+    local cy = y + math.floor((h - sq) / 2)
+    A.drawStatusDot(panel, countR - countW - sqGap - sq, cy, missing and T.danger or T.positive, sq)
+    A.drawTextRight(panel, countStr, countR, textY, countFont, tc)
 
     -- Consumable flag (right corner): arrow = returned/kept, dash = consumed
     local flagX = x + w - flagW
-    local flagColor = T.textDim
+    local flagColor = onFocus and T.textOnFocus or T.textDim
     if data.isKeep or data.isTool then
         -- Return arrow (left-pointing)
         local arrSz = T.px(5)
@@ -3353,7 +3468,7 @@ function ZeD.Molecules.drawSlotRow(panel, x, y, w, data, selected, hovered)
         local dashStr = "-"
         local dashW = tm:MeasureStringX(T.fontF3, dashStr)
         panel:drawText(dashStr, flagX + math.floor((flagW - dashW) / 2), textY,
-            flagColor.r, flagColor.g, flagColor.b, 0.7, T.fontF3)
+            flagColor.r, flagColor.g, flagColor.b, flagColor.a or 1, T.fontF3)
     end
 
     return h
@@ -3371,22 +3486,27 @@ local STEPPER_GAP = 4   -- design units between the keys and the readout
 
 --- @param h         button height in px (default T.buttonH - T.px(4), the list-row height)
 --- @param hoverZone "dec" / "inc" / nil (nil: the pointer is tested here)
+--- @param opts      optional { focusId = "dec" / "inc" (with focus = its mark opts) or
+---                  focusParts, win }: the key with the controller's focus
 local _stepOpts = {}
-function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty, h, hoverZone)
+function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty, h, hoverZone, opts)
     local T  = ZeD.T
     local A  = ZeD.Atoms
     local M  = ZeD.Molecules
     local tm = ZeD.TM
+    opts = opts or NO_OPTS
     h = h or (T.buttonH - T.px(4))
     local bw = h
     local gap = T.px(STEPPER_GAP)
     local font = T.fontF3
     local zones = {}
     local o = _stepOpts
+    o.win = opts.win
 
     -- [-]
     o.disabled = not (qty > 1)
     if hoverZone ~= nil then o.hover = (hoverZone == "dec") else o.hover = A.mouseIn(panel, x, y, bw, h) end
+    o.focus = partFocus(opts, "dec")
     M.drawButton(panel, x, y, bw, h, "-", "default", false, nil, o)
     zones[#zones + 1] = { id = "dec", x = x, y = y, w = bw, h = h }
 
@@ -3403,6 +3523,7 @@ function ZeD.Molecules.drawQtyStepper(panel, x, y, qty, maxQty, h, hoverZone)
     local incX = qtyX + qtyW + gap
     o.disabled = not (qty < maxQty)
     if hoverZone ~= nil then o.hover = (hoverZone == "inc") else o.hover = A.mouseIn(panel, incX, y, bw, h) end
+    o.focus = partFocus(opts, "inc")
     M.drawButton(panel, incX, y, bw, h, "+", "default", false, nil, o)
     zones[#zones + 1] = { id = "inc", x = incX, y = y, w = bw, h = h }
 
@@ -3413,59 +3534,74 @@ end
 
 -- ============================================================================
 -- 24. CRAFT ACTION STRIP (draw helper)
--- Bottom-pinned 42px strip, laid out like the band: surface 2 with a structure
--- line on top; [qty stepper] | max readout | the Craft / Build push button
--- (primary, filling the rest; disabled when it cannot run).
+-- The band at the foot of the craft card (ZeD.Molecules.drawBand: its height,
+-- surface 2 with no stacking, the structure line on top), holding the stepper
+-- the band has no slot for: [qty stepper] | max readout | the Craft / Build push
+-- button (primary, filling the rest; disabled when it cannot run).
 -- buildLabel: "CRAFT" or "BUILD" (tab-specific; drawn in sentence case).
 -- canCraft: false disables the button (grey, no click).
--- Returns: stripH (42), zones table for click dispatch ("dec", "inc", "build")
+-- opts: optional {
+--   h        = the height the caller reserved for it at the pane's foot (default the
+--              older 42u); the band sits at the bottom of it. Reserve
+--              ZeD.Molecules.craftActionStripH() (the band's height) to lose the slack.
+--   focusId  = "dec" / "inc" / "build" (with focus = its mark opts) or focusParts:
+--              the part with the controller's focus (the mark goes under its words)
+--   buildHelp = the Craft button's help line words; win }
+-- Returns: the height used (the reserved height), zones ("dec", "inc", "build")
 -- ============================================================================
 
-local ACT_STRIP_H = 42   -- S124 scale: design units; uses wrap with T.px
+local ACT_STRIP_H = 42   -- design units: what callers reserved before the strip became a band
 
-local _ctaOpts = {}
-function ZeD.Molecules.drawCraftActionStrip(panel, x, y, w, qty, maxQty, canCraft, hoverZone, buildLabel)
+--- The craft action strip's height: the band's.
+function ZeD.Molecules.craftActionStripH()
+    return ZeD.Molecules.bandH()
+end
+
+local _ctaBtns = { {} }
+local _ctaSpec = { buttons = _ctaBtns }
+local _ctaStep = {}
+function ZeD.Molecules.drawCraftActionStrip(panel, x, y, w, qty, maxQty, canCraft, hoverZone, buildLabel, opts)
     local T  = ZeD.T
-    local A  = ZeD.Atoms
+    local M  = ZeD.Molecules
     local tm = ZeD.TM
-    local h  = T.px(ACT_STRIP_H)
+    opts = opts or NO_OPTS
+    local H = M.bandH()
+    local reserved = math.max(H, opts.h or T.px(ACT_STRIP_H))
+    local by = y + reserved - H
     local zones = {}
 
-    -- Surface 2 (no stacking) + structure line on top
-    A.surfaceFill(panel, x, y, w, h, "surf2")
-    A.drawDividerH(panel, x, y, w, true)
-
-    -- Centre the push buttons in the strip
+    -- the left part's width first (the stepper, the max readout), so the button takes the rest
     local innerH = T.buttonH
-    local innerY = y + math.floor((h - innerH) / 2)
+    local innerY = by + T.px(5)
     local cx = x + T.px(8)
-
-    -- Qty stepper
-    local stepW, stepZones = ZeD.Molecules.drawQtyStepper(panel, cx, innerY, qty, maxQty, innerH, hoverZone)
-    for _, z in ipairs(stepZones) do zones[#zones + 1] = z end
-    cx = cx + stepW + T.px(10)
-
-    -- Max readout (bare number)
+    local font = T.fontF3
+    local qtyW = math.max(innerH, tm:MeasureStringX(font, tostring(qty)) + T.px(8))
+    local stepW = innerH * 2 + qtyW + 2 * T.px(STEPPER_GAP)
     local maxStr = tostring(maxQty)
-    local maxFont = T.fontF3
-    local maxColor = T.textDim
-    local maxY = innerY + math.floor((innerH - tm:getFontHeight(maxFont)) / 2)
-    panel:drawText(maxStr, cx, maxY, maxColor.r, maxColor.g, maxColor.b, maxColor.a or 1, maxFont)
-    local maxW = tm:MeasureStringX(maxFont, maxStr)
-    cx = cx + maxW + T.px(10)
+    local btnX = cx + stepW + T.px(10) + tm:MeasureStringX(font, maxStr) + T.px(10)
 
-    -- The Craft / Build push button (primary; fills the remaining width)
-    local btnX = cx
-    local btnW = x + w - T.px(8) - btnX
-    local label = buildLabel or ZeD.tr("IGUI_CraftingWindow_Craft")
-    local o = _ctaOpts
-    o.disabled = not canCraft
-    if hoverZone ~= nil then o.hover = (hoverZone == "build") else o.hover = A.mouseIn(panel, btnX, innerY, btnW, innerH) end
-    ZeD.Molecules.drawButton(panel, btnX, innerY, btnW, innerH, label, "primary", false, nil, o)
+    -- the band: surface 2, the structure line, the Craft / Build push button (primary) at the right
+    local b = _ctaBtns[1]
+    b.label = buildLabel or ZeD.tr("IGUI_CraftingWindow_Craft")
+    b.variant, b.disabled, b.id = "primary", not canCraft, "build"
+    b.w = math.max(T.px(24), x + w - T.px(8) - btnX)
+    if hoverZone ~= nil then b.hover = (hoverZone == "build") else b.hover = nil end
+    b.focus, b.help = partFocus(opts, "build"), opts.buildHelp
+    _ctaSpec.win = opts.win
+    local _, out = M.drawBand(panel, x, by, w, _ctaSpec)
+    local r = out.buttons[1]
+    if r then zones[#zones + 1] = { id = "build", x = r.x, y = r.y, w = r.w, h = r.h } end
 
-    zones[#zones + 1] = { id = "build", x = btnX, y = innerY, w = btnW, h = innerH }
+    -- the stepper and the max readout (a bare number) over the band's left part
+    local so = _ctaStep
+    so.focusId, so.focus, so.focusParts, so.win = opts.focusId, opts.focus, opts.focusParts, opts.win
+    local sw, stepZones = M.drawQtyStepper(panel, cx, innerY, qty, maxQty, innerH, hoverZone, so)
+    for _, z in ipairs(stepZones) do zones[#zones + 1] = z end
+    cx = cx + sw + T.px(10)
+    local mc = T.textDim
+    panel:drawText(maxStr, cx, innerY + math.floor((innerH - tm:getFontHeight(font)) / 2), mc.r, mc.g, mc.b, mc.a or 1, font)
 
-    return h, zones
+    return reserved, zones
 end
 
 -- ============================================================================
@@ -3497,14 +3633,14 @@ function ZeD.Molecules.drawContextCell(panel, x, y, def, flags, T)
     local accentBright = T.accentBright or T.accent
 
     -- Cell background — theme accent for the active cell, paper otherwise.
-    -- Active cell gets a 1px accentBright inset border on top of the fill
-    -- for extra visual pop so the selected action is unmistakable against
-    -- the rest of the strip.
+    -- Active cell gets a hairline (1u) accentBright frame inside its edge on top
+    -- of the fill for extra visual pop so the selected action is unmistakable
+    -- against the rest of the strip (a frame of design units, not one screen
+    -- pixel, so it keeps its weight at every scale).
     local bg = flags.isActive and accent or paper
     panel:drawRect(x, y, ctx.cellW, ctx.cellH, bg.a or 1, bg.r, bg.g, bg.b)
     if flags.isActive then
-        local ab = accentBright
-        panel:drawRectBorder(x, y, ctx.cellW, ctx.cellH, ab.a or 1, ab.r, ab.g, ab.b)
+        A.frame(panel, x, y, ctx.cellW, ctx.cellH, accentBright, 1, T.hair)
     end
 
     -- Icon / back glyph / letter fallback
@@ -4125,6 +4261,10 @@ end
 -- @param subtitle    String — current instance display name
 -- @param locationTag String — "Floor" / "Primary" / "Back" / etc.
 -- @param rightReserve px kept clear at the strip's right end for the caller's own button (the subtitle stops short)
+-- @param opts        optional { focusId = "prev" / "next" (with focus = its mark opts) or
+--                    focusParts = { prev = ..., next = ... }: the browse key with the
+--                    controller's focus (the mark goes under its triangle); prevHover /
+--                    nextHover (nil: the pointer is tested here); win }
 -- ============================================================================
 local _drawerPrev, _drawerNext = { id = "drawerPrev" }, { id = "drawerNext" }
 local function drawPrevGlyph(p, x, y, s, c)
@@ -4135,10 +4275,11 @@ local function drawNextGlyph(p, x, y, s, c)
     local t = math.max(ZeD.T.px(6), math.floor(s * 0.6))
     ZeD.Atoms.drawTriangleRight(p, x + math.floor((s - t) / 2), y + math.floor((s - t) / 2), t, c)
 end
-function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, subtitle, locationTag, rightReserve)
+function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, subtitle, locationTag, rightReserve, opts)
     local T = ZeD.T
     if not T then return end
     local TM = ZeD.TM
+    opts = opts or NO_OPTS
 
     -- ZeD.Spacing.tabHeaderH is the canonical drawer-header strip height
     -- shared across the mod (Health / Equipment-Defense / Thermal / Identity
@@ -4172,8 +4313,10 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
 
     -- Left arrow — stash rect for caller's hit testing
     local prevZone = { x = cursor, y = btnY, w = btnSize, h = btnSize }
-    _drawerPrev.hover = A.mouseIn(panel, cursor, btnY, btnSize, btnSize)
+    if opts.prevHover ~= nil then _drawerPrev.hover = opts.prevHover
+    else _drawerPrev.hover = A.mouseIn(panel, cursor, btnY, btnSize, btnSize) end
     _drawerPrev.hint = ZeD.tr("UI_ZeD_Drawer_Prev")
+    _drawerPrev.focus, _drawerPrev.win = partFocus(opts, "prev"), opts.win
     ZeD.Molecules.drawIconButton(panel, cursor, btnY, btnSize, drawPrevGlyph, _drawerPrev)
     cursor = cursor + btnSize + btnGap
 
@@ -4183,8 +4326,10 @@ function ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w, browseState, sub
 
     -- Right arrow — stash rect for caller's hit testing
     local nextZone = { x = cursor, y = btnY, w = btnSize, h = btnSize }
-    _drawerNext.hover = A.mouseIn(panel, cursor, btnY, btnSize, btnSize)
+    if opts.nextHover ~= nil then _drawerNext.hover = opts.nextHover
+    else _drawerNext.hover = A.mouseIn(panel, cursor, btnY, btnSize, btnSize) end
     _drawerNext.hint = ZeD.tr("UI_ZeD_Drawer_Next")
+    _drawerNext.focus, _drawerNext.win = partFocus(opts, "next"), opts.win
     ZeD.Molecules.drawIconButton(panel, cursor, btnY, btnSize, drawNextGlyph, _drawerNext)
     cursor = cursor + btnSize + pad
 
@@ -4298,13 +4443,43 @@ end
 --   buttons  = { { label = "Cancel" }, { label = "Take apart", variant = "danger" } }
 --              each: label, variant ("primary" / "danger" / nil), disabled, pressed,
 --              hover (nil: the pointer is tested here), focus (ZeD.Focus.mark opts,
---              when it has the controller's focus), help, id, minW (px); main one LAST
+--              when it has the controller's focus), help, id, minW (px), w (px: exactly
+--              this wide, a button that fills the room left); main one LAST
 --   icons    = { { icon = <Texture or draw fn>, active, disabled, hover, focus, hint, help, id } }
+--   check    = { label, on, hover (nil: tested here), focus (mark opts), disabled, help, id }:
+--              a System 7 checkbox and its words at the left, after the icons ("Show popups")
 --   win      = the window (help and hints; default: the window the panel is in)
 --   noLine   = true leaves out the structure line (a band right under another line)
 -- }
--- @return height, rects = { buttons = { [i] = {x, y, w, h, id} }, icons = { ... } }
+-- @return height, rects = { buttons = { [i] = {x, y, w, h, id} }, icons = { ... }, check = {x, y, w, h, id} }
 local _bandBtn, _bandIcon = {}, {}
+
+-- the band's checkbox and its words from x; returns its rect
+local function drawBandCheck(panel, x, by, bh, c, win)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local f2 = T.fontF2
+    local cb = T.checkboxSz
+    local label = tostring(c.label or "")
+    local cw = cb + T.px(6) + tm:MeasureStringX(f2, label)
+    local hover = c.hover
+    if hover == nil then hover = A.mouseIn(panel, x, by, cw, bh) end
+    hover = hover and not c.disabled
+    local onFocus = false
+    if c.focus and ZeD.Focus and ZeD.Focus.mark then
+        local f = c.focus
+        if f == true then _partFocus.win = win; f = _partFocus end
+        onFocus = ZeD.Focus.mark(panel, x - T.px(2), by, cw + T.px(4), bh, f) and true or false
+    end
+    A.drawCheckbox(panel, x, by + math.floor((bh - cb) / 2), c.on and true or false, hover, c.disabled)
+    local tc = onFocus and T.textOnFocus or T.text
+    local a = (tc.a or 1) * (c.disabled and T.disabledAlpha or 1)
+    panel:drawText(label, x + cb + T.px(6), by + math.floor((bh - tm:getFontHeight(f2)) / 2), tc.r, tc.g, tc.b, a, f2)
+    if hover and c.help then
+        local H = ZeD.Help
+        if H and H.set then H.set(win or panel, c.help) end
+    end
+    return { x = x, y = by, w = cw, h = bh, id = c.id }
+end
 function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     local T = ZeD.T
     local A = ZeD.Atoms
@@ -4325,7 +4500,7 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
     if buttons then
         for i = #buttons, 1, -1 do
             local b = buttons[i]
-            local bw = math.max(M.buttonW(b.label), b.minW or 0)
+            local bw = b.w or math.max(M.buttonW(b.label), b.minW or 0)
             right = right - bw
             local o = _bandBtn
             o.disabled, o.focus, o.help, o.win = b.disabled, b.focus, b.help, spec.win
@@ -4350,6 +4525,13 @@ function ZeD.Molecules.drawBand(panel, x, y, w, spec)
             left = left + bh + T.px(4)
         end
         if #icons > 0 then left = left - T.px(4) + gap end
+    end
+
+    -- the checkbox and its words, after the icons
+    if spec.check then
+        local r = drawBandCheck(panel, left, by, bh, spec.check, spec.win)
+        out.check = r
+        left = left + r.w + gap
     end
 
     -- the status / question line, in the room between
@@ -4581,12 +4763,38 @@ function DS.needsLine(v)
     return ZeD.tr("UI_ZeD_Disclose_Needs", ZeD.btnCase(v.label or ""), v.needs or "")
 end
 
+--- The folded row's words: one hidden action names what it needs ("With scissors you
+-- could cut your hair."); several, or one whose needs are not given, say how many.
+function DS.rowText(hidden)
+    if #hidden == 1 then
+        local v = hidden[1]
+        local needs = v.needs and tostring(v.needs) or ""
+        if needs ~= "" then
+            return ZeD.tr("UI_ZeD_Disclose_One", needs, v.hint or ZeD.btnCase(v.label or ""))
+        end
+    end
+    return ZeD.tr("UI_ZeD_Disclose_Many", #hidden)
+end
+
+-- the height of a NEEDS line wrapped to w (as drawNeedsLine draws it)
+local function needsLineH(x, w, text)
+    local T = ZeD.T
+    local f2 = T.fontF2
+    local fh = ZeD.TM:getFontHeight(f2)
+    local tx = x + T.px(6) + T.px(6)
+    local n = #wrapped(text, f2, x + w - tx)
+    return math.max(0, n * (fh + T.px(2)) - T.px(2))
+end
+
 --- The folded row after the verbs, and when open the hidden actions under it.
 -- @param hidden  the hidden list from ZeD.Disclose.split (nothing drawn when empty)
 -- @param key     remembers open / closed for the session (e.g. "campfire")
 -- @param opts    optional { hover (nil: the pointer is tested here), focus (the
 --                ZeD.Focus.mark opts when the row has the controller's focus),
---                inset (text inset px, default 0), win }
+--                inset (text inset px, default 0), win,
+--                closedOnly = true: only the row itself (its triangle still shows
+--                open or shut; a caller that lays out the open block itself),
+--                measure = true: nothing drawn, only the sizes (as measureMoreRow) }
 --                Each hidden verb may carry hover / focus / help for its greyed
 --                push button, as the band's buttons do.
 -- @return height, rowRect {x, y, w, h} (the click / focus stop), verbRects
@@ -4598,38 +4806,34 @@ function ZeD.Molecules.drawMoreRow(panel, x, y, w, hidden, key, opts)
     local A = ZeD.Atoms
     local M = ZeD.Molecules
     opts = opts or NO_OPTS
+    local draw = not opts.measure
     local f2 = T.fontF2
     local fh = ZeD.TM:getFontHeight(f2)
     local rowH = math.max(T.px(20), fh + T.px(6))
     local open = DS.isOpen(key)
-    local hover = opts.hover
-    if hover == nil then hover = A.mouseIn(panel, x, y, w, rowH) end
-    if hover then
-        local hv = T.hover
-        panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
-    end
-    local onFocus = false
-    if opts.focus and ZeD.Focus and ZeD.Focus.mark then
-        onFocus = ZeD.Focus.mark(panel, x, y, w, rowH, opts.focus)
-    end
-    local tc = onFocus and T.textOnFocus or T.textDim
     local cx = x + (opts.inset or 0)
     local tri = T.px(8)
-    local ty = y + math.floor((rowH - tri) / 2)
-    if open then A.drawTriangleDown(panel, cx, ty, tri, tc) else A.drawTriangleRight(panel, cx, ty, tri, tc) end
-    cx = cx + tri + T.px(6)
-    local text
-    if #hidden == 1 then
-        local v = hidden[1]
-        text = ZeD.tr("UI_ZeD_Disclose_One", v.needs or "", v.hint or ZeD.btnCase(v.label or ""))
-    else
-        text = ZeD.tr("UI_ZeD_Disclose_Many", #hidden)
+    if draw then
+        local hover = opts.hover
+        if hover == nil then hover = A.mouseIn(panel, x, y, w, rowH) end
+        if hover then
+            local hv = T.hover
+            panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
+        end
+        local onFocus = false
+        if opts.focus and ZeD.Focus and ZeD.Focus.mark then
+            onFocus = ZeD.Focus.mark(panel, x, y, w, rowH, opts.focus)
+        end
+        local tc = onFocus and T.textOnFocus or T.textDim
+        local ty = y + math.floor((rowH - tri) / 2)
+        if open then A.drawTriangleDown(panel, cx, ty, tri, tc) else A.drawTriangleRight(panel, cx, ty, tri, tc) end
+        local text = A.truncateText(DS.rowText(hidden), f2, x + w - (cx + tri + T.px(6)))
+        panel:drawText(text, cx + tri + T.px(6), y + math.floor((rowH - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
     end
-    text = A.truncateText(text, f2, x + w - cx)
-    panel:drawText(text, cx, y + math.floor((rowH - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+    cx = cx + tri + T.px(6)
     local rowRect = { x = x, y = y, w = w, h = rowH }
     local verbRects = {}
-    if not open then return rowH, rowRect, verbRects end
+    if not open or opts.closedOnly then return rowH, rowRect, verbRects end
 
     -- open: the hidden verbs as greyed push buttons, then one NEEDS line each
     local h = rowH + T.px(4)
@@ -4638,16 +4842,34 @@ function ZeD.Molecules.drawMoreRow(panel, x, y, w, hidden, key, opts)
     for i, v in ipairs(hidden) do
         local bw = M.buttonW(v.label)
         if bx + bw > x + w and bx > cx then bx = cx; h = h + bh + T.px(4) end
-        local o = _moreBtn
-        o.disabled, o.focus, o.help, o.win = true, v.focus, v.help, opts.win
-        if v.hover ~= nil then o.hover = v.hover else o.hover = A.mouseIn(panel, bx, y + h, bw, bh) end
-        M.drawButton(panel, bx, y + h, bw, bh, v.label, v.danger and "danger" or "default", false, nil, o)
+        if draw then
+            local o = _moreBtn
+            o.disabled, o.focus, o.help, o.win = true, v.focus, v.help, opts.win
+            if v.hover ~= nil then o.hover = v.hover else o.hover = A.mouseIn(panel, bx, y + h, bw, bh) end
+            M.drawButton(panel, bx, y + h, bw, bh, v.label, v.danger and "danger" or "default", false, nil, o)
+        end
         verbRects[i] = { x = bx, y = y + h, w = bw, h = bh }
         bx = bx + bw + T.px(8)
     end
     h = h + bh + T.px(6)
     for _, v in ipairs(hidden) do
-        h = h + M.drawNeedsLine(panel, cx, y + h, x + w - cx, DS.needsLine(v)) + T.px(4)
+        local line = DS.needsLine(v)
+        if draw then
+            h = h + M.drawNeedsLine(panel, cx, y + h, x + w - cx, line) + T.px(4)
+        else
+            h = h + needsLineH(cx, x + w - cx, line) + T.px(4)
+        end
     end
     return h, rowRect, verbRects
+end
+
+--- The height drawMoreRow takes at width w (open or shut as its key is now; opts.closedOnly
+-- for the row alone), without drawing: a layout can size the block before it draws.
+-- @return height, rowRect, verbRects (rects at y = 0 unless y is given in opts.y)
+local _measureOpts = {}
+function ZeD.Molecules.measureMoreRow(w, hidden, key, opts)
+    opts = opts or NO_OPTS
+    local m = _measureOpts
+    m.measure, m.closedOnly, m.inset = true, opts.closedOnly, opts.inset
+    return ZeD.Molecules.drawMoreRow(nil, opts.x or 0, opts.y or 0, w, hidden, key, m)
 end

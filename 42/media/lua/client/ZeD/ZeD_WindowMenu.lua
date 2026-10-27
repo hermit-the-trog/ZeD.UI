@@ -104,7 +104,9 @@ function ZeD_WindowMenu:prerender()
             if def and def.checked and r.y then
                 local ok, on = pcall(def.checked)
                 if ok and on then
-                    local c = (lv.sel == ri) and T.textOnFocus or T.text
+                    -- the focus ink only on the row whose words are on it (the pad's mark; the
+                    -- pointer's light hover wash keeps the plain ink)
+                    local c = (lv.inkRow == ri) and T.textOnFocus or T.text
                     drawCheck(self, lv.x + padX + math.floor((isz - 7 * k) / 2), lv.y + r.y + math.floor((rowH - 6 * k) / 2), k, c)
                 end
             end
