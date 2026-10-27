@@ -22,11 +22,11 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 | List | Mods |
 |---|---|
 | Supported | 0 |
-| Works well | 1 |
-| Compatible | 29 |
-| Not needed | 6 |
+| Works well | 2 |
+| Compatible | 49 |
+| Not needed | 11 |
 | Does not work | 1 |
-| Tested in all | 37 |
+| Tested in all | 63 |
 | Not tested | 1 |
 
 
@@ -76,6 +76,39 @@ Reports: qa/regression/2026-10-26_1919_mods_fullscreen4k.md; 2026-10-26_1932 (su
 | Craft Engine Parts | [2744114761](https://steamcommunity.com/sharedfiles/filedetails/?id=2744114761) | 3 | Compatible | Loads, no errors (recipes). CraftEngineParts sub-mod (its price variants are alternatives). |
 | Hoarder's Delight - Box & Carton Bulk Packing [42.21 Stable] | [3626823538](https://steamcommunity.com/sharedfiles/filedetails/?id=3626823538) | 3 | Compatible | Loads, no errors (packing recipes). |
 
+### Group B
+
+Reports: qa/regression/2026-10-26_1939_mods_fullscreen4k.md (13/13 pass); main menu: zedqa_r3_menu.lua, 2026-10-26 19:52
+
+| Mod | Workshop id | Tier | List | Evidence |
+|---|---|---|---|---|
+| Combat Text (B40+B41+B42) | [2286124931](https://steamcommunity.com/sharedfiles/filedetails/?id=2286124931) | 1 | Compatible | Loads, no errors of its own; its floating text manager is up (census ISHealthBarManager). |
+| Dynamic Traits and Expanded Moodles [B41 & B42] | [2459400130](https://steamcommunity.com/sharedfiles/filedetails/?id=2459400130) | 1 | Compatible | Loads, no errors. Its own moodles go through Moodle Framework, which keeps them at the game's old place at the right edge (as Moodle Framework, round 2) (expected). |
+| Moodle Quarters [B42] | [2854030563](https://steamcommunity.com/sharedfiles/filedetails/?id=2854030563) | 1 | Compatible | Part of it does not show: its quarter marks are for the game's moodle column; its layer is up with no height (census MoodleQuartersUI 48x0). |
+| [B42] Mod Manager | [3567084868](https://steamcommunity.com/sharedfiles/filedetails/?id=3567084868) | 1 | Not needed | ZeD's mod manager does the job; with the mod on, ZeD's Mods window lists and switches mods as usual (29 of 1361 on, seen) and the mod's own screens do not show (they patch the game's mod screen). |
+| Moodles in lua [B42.20] | [3395171770](https://steamcommunity.com/sharedfiles/filedetails/?id=3395171770) | 1 | Not needed | ZeD draws and places the moodles itself (its Moodles setting: right, left or above the belt) and puts the game's column back where it set it. With this mod on, it also draws some moodles a second time at the game's old place, the right edge 120 down (two seen, whatever ZeD's setting), so use one (seen, B_moodles_bottom_plus_two_at_old_place.png). |
+| [B42] Bigger Character Avatar | [3387640099](https://steamcommunity.com/sharedfiles/filedetails/?id=3387640099) | 1 | Compatible | Part of it does not show: it enlarges the figure on the game's character screen; ZeD's Character window has its own figure (by reading its code: ISCharacterScreen). Large size sub-mod tested. |
+| Dynamic Moodles | [3674800555](https://steamcommunity.com/sharedfiles/filedetails/?id=3674800555) | 1 | Compatible | Part of it does not show: its moodle looks go to Moodles in lua's drawing, not to ZeD's moodles (expected). |
+| CH Status HUD | [3776182375](https://steamcommunity.com/sharedfiles/filedetails/?id=3776182375) | 1 | Compatible | Its status panel shows at the top left (seen, B_hud_mods_windows_open.jpg); ZeD's windows can lie over it when a drawer is open. |
+| Minimal Display Bars + Nutritions + Discomfort [B41/B42.20] | [3388844542](https://steamcommunity.com/sharedfiles/filedetails/?id=3388844542) | 1 | Compatible | Its bars show at the top left (seen). |
+| Mini Health Plus | [3710913197](https://steamcommunity.com/sharedfiles/filedetails/?id=3710913197) | 1 | Compatible | Its body figure panel shows mid-screen (seen); its click to the Health page was not tried with ZeD (Mini Health Panel's is supported). |
+| [B42] Survival HUD | [3495906499](https://steamcommunity.com/sharedfiles/filedetails/?id=3495906499) | 1 | Compatible | Its needs and endurance HUD show at the bottom corners, clear of ZeD's belt (seen); its hotbar dragging is for the game's hotbar, which ZeD's belt replaces (by reading its code). |
+| Lua Digital Watch Framework | [3676456221](https://steamcommunity.com/sharedfiles/filedetails/?id=3676456221) | 1 | Not needed | ZeD shows the watch (top right and on the belt); this framework draws the game's digital watch HUD (expected). Not seen: no digital watch worn in the test. |
+| [FIXED] Combat Text Patch b42.20 | [3775113600](https://steamcommunity.com/sharedfiles/filedetails/?id=3775113600) | 1 | Compatible | Loads, no errors (patch for Combat Text, loaded after it). |
+| Nested Health Info | [3779405481](https://steamcommunity.com/sharedfiles/filedetails/?id=3779405481) | 1 | Not needed | It lays out the game's health panel; ZeD's Health tab replaces that panel (expected). |
+| [B41&B42] Show Wall Health | [3002666175](https://steamcommunity.com/sharedfiles/filedetails/?id=3002666175) | 2 | Compatible | Loads, no errors (its wall health window not opened). |
+| Stairs Alert | [3044807092](https://steamcommunity.com/sharedfiles/filedetails/?id=3044807092) | 2 | Compatible | Loads, no errors. |
+| Large Progress Indicator | [2926455909](https://steamcommunity.com/sharedfiles/filedetails/?id=2926455909) | 2 | Not needed | Textures for the game's action progress bar; ZeD's action bar shows progress (suite_band passed) (expected). |
+| [B42] Moodle Descriptions Expanded | [3389003300](https://steamcommunity.com/sharedfiles/filedetails/?id=3389003300) | 2 | Works well | Its longer moodle texts (effects with numbers) are what ZeD's moodle notes show (seen: Nervous, -1.3% Crit, in ZeD's bubble above the belt). |
+| [B42.13+] SimpleStatus-Fixed | [3399432867](https://steamcommunity.com/sharedfiles/filedetails/?id=3399432867) | 2 | Compatible | Its status bars show at the left (seen). |
+| Simple Moodle Indicators | [3402171609](https://steamcommunity.com/sharedfiles/filedetails/?id=3402171609) | 2 | Compatible | Part of it does not show: its level marks are for Moodles in lua's drawing (expected). |
+| Injury Indicator [B42] | [3565698092](https://steamcommunity.com/sharedfiles/filedetails/?id=3565698092) | 2 | Compatible | Loads, no errors. |
+| [B42MP] Simple Show XP | [2891170430](https://steamcommunity.com/sharedfiles/filedetails/?id=2891170430) | 2 | Compatible | Loads, no errors. |
+| Cone Vision Outline [42.21.0] [SP&MP] | [3659137034](https://steamcommunity.com/sharedfiles/filedetails/?id=3659137034) | 2 | Compatible | Loads, no errors. |
+| Pixel Strike Indicator & Health Bar | [3793657917](https://steamcommunity.com/sharedfiles/filedetails/?id=3793657917) | 2 | Compatible | Loads, no errors. |
+| Mattnetic's Heart Health Meter [B42] | [3805849470](https://steamcommunity.com/sharedfiles/filedetails/?id=3805849470) | 2 | Compatible | Loads (its log: compatibility renderer installed), no errors. |
+| Wound Expansion | [3819438691](https://steamcommunity.com/sharedfiles/filedetails/?id=3819438691) | 2 | Compatible | Base mod only (its ZombieBuddy add-on left out). Part of it does not show: its wound details are on the game's health panel, which ZeD's Health tab replaces (by reading its code). |
+
 ## Not tested, and why
 
 | Group | Mod | Workshop id | Why |
@@ -91,3 +124,11 @@ Reports: qa/regression/2026-10-26_1919_mods_fullscreen4k.md; 2026-10-26_1932 (su
 - **Steps:** `zedqa_mods_run.ps1 -ModList tools/qa/compat_r3_A_mods.txt -Mode fullscreen4k -Manifest tools/qa/compat_r3_A.txt`; `zedqa_r3_A.lua` gives a Carrot seed packet and draws its `ISToolTipInv` at 900,300, once normally and once with ZeD's safe mode option on.
 - **Evidence:** `ZeDUI/qa/compat_round3/A_seed_tooltip_zed_vs_safe.png` (left ZeD 202x79, right safe mode 252x144: Sowing Season, Optimal / Risky Sowing Months, Minimum Water Level); report `qa/regression/2026-10-26_1932_mods_fullscreen4k.md` (`tip seed zed 202x79`, `tip seed safe 252x144`).
 - **Fix idea (not done):** call the kept function for the content (or call the previous `render` with ZeD's frame drawn first), the way the other ZeD overrides chain to what was there before.
+
+### 2. Main menu: the desktop's icons show through ZeD's Mods window (seen with ZeD alone too)
+
+- **Where:** ZeD's main menu (the monitor), Mods window opened through `MM.openMods()` (`ZeD_MainMenuMods.lua`). The desktop icons behind the window (Project Zomboid, New game, Load game, Join a server, Options, Mods, Mod Uploader) are drawn faintly over the window's right-hand detail pane, at 4K, scale 1.75.
+- **Not caused by a mod:** the same with ZeD as the only mod (baseline run of `zedqa_r3_menu.lua` with `mods/default.txt` = ZeD_UI only).
+- **Steps:** `zedqa_menu_mods_run.ps1 -ModList <ZeD only> -Script tools/qa/zedqa_r3_menu.lua -Tag r3m`; picture `zqa_r3m_2_mods.png`.
+- **Evidence:** `ZeDUI/qa/compat_round3/ZeD_mods_window_desktop_icons_show_through_noMods.png` (crop of the right pane), `B_zed_mods_window_with_mod_manager.jpg` (same with group B's mods).
+- May be meant (a see-through window); if not, the desktop icons are drawn over, or the pane is not opaque.

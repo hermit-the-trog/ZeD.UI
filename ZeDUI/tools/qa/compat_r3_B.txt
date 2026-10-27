@@ -1,0 +1,15 @@
+# ZeDUI/tools/qa/compat_r3_B.txt  (Oct 26 2026): compatibility round 3, group B
+# zedqa_mods_run.ps1 -ModList <group B ids> -Mode fullscreen4k -Manifest this
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_r3_B.lua | r3B | timeout=600       # survey with the group's mods: census, menus, tooltip, tabs, the mods' own windows
+suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
+zedqa_moodles.lua | mood | timeout=240          # the moodles in each place (and the thought bubble with its trail, the note by itself) (right edge, left edge, centred above the belt): on screen, where the place puts them, no second copy; four moodles turned on and put back
+zedqa_charinfo.lua | ci | timeout=180           # the game's Character window keys (Health, Skills, Info, Protection) land on ZeD's tabs; Mini Health Panel's click too when that mod is on
+zedqa_exinfo.lua | ex                            # Health tab exercise info: vanilla's description, stiffness, regularity, warnings
+suite_band.lua | band                            # progress band: reading, cancel; cooking if a stove is near
+zedqa_belt_hands.lua | bh                       # the hands at the ends as seen from behind (off hand left, main hand right), a watch outside its own hand, the note last, the pad walks left to right
+zedqa_beltwatch.lua | bw                         # the mini watch on the belt: pop, drag, tuck, Corner mode
+zedqa_belt_strap.lua | belt                      # the pixel-art belt strap
+zedqa_ring_squares.lua | rs | timeout=200       # the hands' condition ring at full / 70 / 50 / 20 per cent; ZeD setup's switch hides the windows' theme, accent and text squares, R stays and answers; hands and switch put back
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear
+suite_perf.lua | perf                            # ms per tick on every tab + recipe builder cost

@@ -41,8 +41,8 @@ end
 local steps = {}
 local function step(n, fn) steps[#steps + 1] = { n = n, fn = fn } end
 step(60, function() census("main"); shot("1_main") end)
-step(20, function() MM.showView("mods") end)
-step(120, function() census("mods"); shot("2_mods") end)
+step(20, function() if MM.openMods then MM.openMods() else MM.showView("mods") end end)
+step(240, function() census("mods"); local w = R.modsWin; say("mods window rows: " .. tostring(w and w.items and #w.items or (w and w.list and #w.list) or "?")); shot("2_mods") end)
 step(20, function() MM.showView("main") end)
 step(30, function() MM.showView("options") end)
 step(120, function() census("options"); shot("3_options") end)
@@ -62,7 +62,7 @@ step(120, function()
     local good = listNames(pr and pr.listboxTrait)
     local bad = listNames(pr and pr.listboxBadTrait)
     local modProfs = {}
-    for _, n in ipairs(profs) do if not VANILLA_PROFS[n] then modProfs[#modProfs + 1] = n end end
+    for _, n in ipairs(profs) do if not VANILLA_PROFS[n] and not tostring(n):find("^base:") then modProfs[#modProfs + 1] = n end end
     say("occupations " .. #profs .. " (not vanilla: " .. table.concat(modProfs, ", ") .. ")")
     say("traits positive " .. #good .. ", negative " .. #bad)
     shot("6_traits")
