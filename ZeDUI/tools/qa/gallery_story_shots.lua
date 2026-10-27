@@ -11,16 +11,22 @@
 --   05  barricading: the window's context menu (icon strip), the bar counting 2/3   12:00
 --   06  cleaning up: bleach and a dish cloth on the blood, the bar           13:00
 --   07  stocking: the World window's columns on the shelves, an item dragged to a shelf
---   08  open for business: the footer's theme and accent dots, Light + Blue  14:00
+--   08  open for business: the window box's menu, Theme > Light and Accent > Blue  14:00
 --   09  pumping gas: refuelling the car, the gas can's card while it fills, the dash full
 --   10  customers: a queue of passive zombies at the counter, the HUD          15:00
 --   11  smoke break: smoking, the Stressed moodle's hover, the watch           16:00
 --   12  night shift: the store lit, the dash at night, the CaZio watch's LIGHT, the windows
--- Beats 1-7 in high contrast + PZ Teal, 8-11 Light + Blue (pressed on the footers, in
--- memory only), 12 Dark (STORY_NIGHT_BASE = "hicon" for high contrast). STORY_ONLY =
+-- Beats 1-7 in high contrast + PZ Teal, 8-11 Light + Blue (picked from the window box's
+-- menu, which saves them with the other ZeD options; the teardown puts the options back),
+-- 12 Dark (STORY_NIGHT_BASE = "hicon" for high contrast). STORY_ONLY =
 -- { ["01"] = true, ... } above this header takes only those beats (the beats depend on
 -- each other a little: 9 needs the car from 4, 12 the theme from 8).
--- Window boxes are printed ("box ...") for the crops. "ZEDQA stz ..." ending "DONE".
+-- Beat 08's four shots: a) the pointer on the World window's box, the box lit; b) its menu
+-- pulled down, the Theme submenu open, the pointer on Light (picked right after); c) the
+-- Accent submenu, the pointer on Blue (the Character window already blue; picked right
+-- after); d) the pointer parked, Light + Blue.
+-- Each window's rect and its window box are printed ("box ... windowbox") for the crops.
+-- "ZEDQA stz ..." ending "DONE".
 local ST = STORY
 if not (ST and ST.ready and ST.newSeq) then print("ZEDQA stz ERR run gallery_story_stage.lua first"); print("ZEDQA stz DONE"); return end
 if not (ZeD and ZeD_CharacterWindow and ZeD_WorldWindow) then print("ZEDQA stz ERR ZeD is not loaded"); print("ZEDQA stz DONE"); return end
@@ -76,12 +82,19 @@ function Z.goTab(win, strip, tab)
 end
 function Z.charTab(id) local w = Z.CW(); return (w and Z.goTab(w, w._tabStripPanel, id)) and true or false end
 function Z.worldTab(id) local w = Z.WW(); return (w and Z.goTab(w, w._actionTabStrip, id)) and true or false end
+-- the window box's corners on the screen (left, top, right, bottom), nil when the window has none
+function Z.boxRect(win)
+    local b = win and win.windowBoxRect and win:windowBoxRect()
+    if not b then return nil end
+    local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
+    return math.floor(ax + b.x), math.floor(ay + b.y), math.floor(ax + b.x + b.w), math.floor(ay + b.y + b.h)
+end
 function Z.box(tag, win)
     if win and win:isVisible() then
         say(string.format("box %s %d,%d-%d,%d", tag, win:getX(), win:getY(), win:getX() + win:getWidth(), win:getY() + win:getHeight()))
-        for i, r in ipairs(win._themeControlRects or {}) do
-            say(string.format("box %s footer%d %d,%d-%d,%d", tag, i, r.x, r.y, r.x + r.w, r.y + r.h))
-        end
+        -- the window box at the right end of the title bar, in screen coordinates
+        local x0, y0, x1, y1 = Z.boxRect(win)
+        if x0 then say(string.format("box %s windowbox %d,%d-%d,%d", tag, x0, y0, x1, y1)) end
     end
 end
 function Z.shot(name)
@@ -89,24 +102,12 @@ function Z.shot(name)
     if CWm.isOpen() then Z.box(name .. " char", Z.CW()) end
     if WWm.isOpen() then Z.box(name .. " world", Z.WW()) end
 end
--- the theme in memory (beats 1-7) and the footers' presses (beat 8 on; the same code as
--- ZeD_Window:update's press branch, without the save to ModOptions.ini)
+-- the theme in memory (beats 1-7; the window menu's choices, beat 8 on, also save to the options)
 function Z.theme(base, accent)
     ZeD.applyTheme(base, accent, ZeD.currentSize)
     local c, w = Z.CW(), Z.WW()
     if c then c._accentKey = nil end
     if w then w._accentKey = nil end
-end
-function Z.press(win, i)
-    local Sx = ZeD.Settings
-    if i == 1 then
-        ZeD.applyTheme(Sx.cycleNext(Sx.baseKeys, ZeD.currentBase), nil, nil)
-    elseif i == 2 then
-        local keys, cur = Sx.accentKeys, win._accentKey
-        if cur == nil then win._accentKey = keys[1]
-        elseif cur == keys[#keys] then win._accentKey = nil
-        else win._accentKey = Sx.cycleNext(keys, cur) end
-    end
 end
 -- beats 9-11 on their own (a retake): Light + Blue as beat 8 left it
 function Z.lightBlue()
@@ -115,9 +116,105 @@ function Z.lightBlue()
     if c then c._accentKey = "blue" end
     if w then w._accentKey = "blue" end
 end
-function Z.hoverFooter(win, i)
-    local r = win and win._themeControlRects and win._themeControlRects[i]
-    if r and Mouse and Mouse.setXY then pcall(function() Mouse.setXY(math.floor(r.x + r.w / 2), math.floor(r.y + r.h / 2)) end) end
+
+-- ---------------------------------------------------------------------------
+-- the window box and its menu (ZeD.WindowMenu), driven the way the player drives them
+-- ---------------------------------------------------------------------------
+function Z.pointAt(x, y)
+    if Mouse and Mouse.setXY then pcall(function() Mouse.setXY(math.floor(x), math.floor(y)) end) end
+end
+-- the pointer on the window box (ZeD_Window:update lights the box from the real pointer)
+function Z.hoverBox(win)
+    local x0, y0, x1, y1 = Z.boxRect(win)
+    if x0 then Z.pointAt((x0 + x1) / 2, (y0 + y1) / 2) end
+end
+-- the words of a Theme or Accent choice, as the menu builds them
+function Z.leafName(kind, key)
+    local Sx = ZeD.Settings
+    local keys, labels = Sx.baseKeys, Sx.baseLabels
+    if kind == "accent" then keys, labels = Sx.accentKeys, Sx.accentLabels end
+    for i, k in ipairs(keys) do
+        if k == key then return ZeD.tr(labels[i]) end
+    end
+    return tostring(key)
+end
+-- the menu that is pulled down now (ZeD.WindowMenu.current), nil when none is
+function Z.menu()
+    local m = ZeD.WindowMenu and ZeD.WindowMenu.current
+    return (m and m._ctx and m._ctx.open) and m or nil
+end
+-- the hit zone of the row on level li whose words are `name` (the menu's panel covers the
+-- screen, so its zones are in screen coordinates; they exist once the menu has drawn a frame)
+function Z.menuRow(li, name)
+    local m = Z.menu()
+    local lv = m and m._levels and m._levels[li]
+    if not lv then return nil end
+    for ri, r in ipairs(lv.rows) do
+        if r.def and r.def.name == name then
+            for _, zn in ipairs(m._hitZones or {}) do
+                if zn.id == "row:" .. li .. ":" .. ri then return zn end
+            end
+        end
+    end
+    return nil
+end
+function Z.menuHover(li, name)
+    local zn = Z.menuRow(li, name)
+    if zn then Z.pointAt(zn.x + zn.w / 2, zn.y + zn.h / 2) end
+    return zn ~= nil
+end
+-- a click on a row: the context list's own mouse-up. A row with a submenu opens it; a choice
+-- runs its onFire (what the window menu hangs on every leaf) and the menu closes.
+function Z.menuClick(li, name)
+    local m, zn = Z.menu(), Z.menuRow(li, name)
+    if not (m and zn) then return false end
+    m:onMouseUp(math.floor(zn.x + zn.w / 2), math.floor(zn.y + zn.h / 2))
+    return true
+end
+-- Queue one choice from a window's menu in the steps a player takes. The box's own click action
+-- pulls the menu down (ZeD_Window:openWindowMenu, what update runs on a press and release over
+-- the box), a click on the parent row opens its submenu, the pointer rests on the choice (the
+-- shot, when one is named, is taken here, before the pick), a click on the choice runs it and
+-- closes the menu. getWin is a function: the window may not be up when the steps are queued.
+function Z.menuPick(getWin, parent, choice, shot)
+    local tag = shot or choice
+    S.step(2, function()
+        local w = getWin()
+        if not w then S.err(tag, "no window to pull the menu from"); return end
+        Z.hoverBox(w)
+        w:openWindowMenu()
+        say(string.format("%s: menu down %s | box lit %s", tag, tostring(Z.menu() ~= nil), tostring(w._wboxOpen)))
+    end)
+    S.poll(2, 180, function() return Z.menuRow(1, parent) ~= nil end,
+        function() S.err(tag, "the menu did not draw its " .. parent .. " row") end)
+    S.step(2, function() Z.menuClick(1, parent) end)
+    S.poll(2, 180, function() return Z.menuRow(2, choice) ~= nil end,
+        function() S.err(tag, "the " .. parent .. " submenu did not draw " .. choice) end)
+    S.step(2, function() Z.menuHover(2, choice) end)
+    S.step(30, function() if shot then Z.shot(shot) end end)
+    S.step(2, function()
+        local ok = Z.menuClick(2, choice)
+        say(string.format("%s: %s clicked %s | menu closed %s", tag, choice, tostring(ok), tostring(Z.menu() == nil)))
+    end)
+end
+-- A choice for when no window is up to pull a menu down from (the night step): the leaf the
+-- window menu builds, fired as a click on its row fires it (its onFire; the menu itself is not
+-- drawn). With no window built at all, ZeD.applyTheme directly.
+function Z.fireTheme(base)
+    local win = Z.WW() or Z.CW()
+    local WM = ZeD.WindowMenu
+    local items = (win and WM and WM.build) and WM.build(win) or {}
+    local leaf = nil
+    for _, it in ipairs(items) do
+        if it.name == ZeD.tr("UI_ZeD_WinMenu_Theme") then
+            for _, c in ipairs(it.children or {}) do
+                if c.name == Z.leafName("base", base) then leaf = c end
+            end
+        end
+    end
+    if leaf and leaf.onFire then leaf.onFire(); return "the menu's choice" end
+    ZeD.applyTheme(base, nil, nil)
+    return "ZeD.applyTheme"
 end
 function Z.selectItem(item)
     local w = Z.CW()
@@ -651,7 +748,7 @@ if want("07") then
     S.poll(10, 300, function() return Z.mc(false) end)
 end
 
--- ---- 08 open for business: the footers ---------------------------------------------------
+-- ---- 08 open for business: the window box's menu -----------------------------------------
 if want("08") then
     S.step(10, function()
         ST.gt:setTimeOfDay(14.0)
@@ -659,26 +756,27 @@ if want("08") then
         Z.openPair()
         Z.charTab("loot"); Z.worldTab("loot")
     end)
-    S.step(30, function() Z.place(); Z.hoverFooter(Z.WW(), 1) end)
-    S.step(20, function() Z.shot("story_08a_footer_before") end)
-    S.step(2, function()
-        local n = 0
-        while ZeD.currentBase ~= "light" and n < 3 do Z.press(Z.WW(), 1); n = n + 1 end
-        say("theme dot pressed " .. n .. " times: " .. tostring(ZeD.currentBase))
-        Z.hoverFooter(Z.WW(), 2)
+    -- a) the pointer on the World window's box: the box lit
+    S.step(30, function() Z.place(); Z.hoverBox(Z.WW()) end)
+    S.step(20, function()
+        local w = Z.WW()
+        say("window box under the pointer: lit " .. tostring(w and w._wboxHover))
+        Z.shot("story_08a_footer_before")
     end)
-    S.step(30, function() Z.place(); Z.shot("story_08b_footer_light") end)
+    -- b) the menu pulled down, Theme open, the pointer on Light; then the click on Light
+    Z.menuPick(Z.WW, ZeD.tr("UI_ZeD_WinMenu_Theme"), Z.leafName("base", "light"), "story_08b_footer_light")
+    S.step(2, function() say("theme " .. tostring(ZeD.currentBase)) end)
+    -- c) the Character window's Accent > Blue first (no shot), then the World window's menu
+    -- with Accent open and the pointer on Blue; then the click on Blue. On these two windows
+    -- the Accent choice sets the window's own accent.
+    Z.menuPick(Z.CW, ZeD.tr("UI_ZeD_WinMenu_Accent"), Z.leafName("accent", "blue"), nil)
+    Z.menuPick(Z.WW, ZeD.tr("UI_ZeD_WinMenu_Accent"), Z.leafName("accent", "blue"), "story_08c_footer_blue")
     S.step(2, function()
-        for _, w in ipairs({ Z.CW(), Z.WW() }) do
-            local n = 0
-            while w._accentKey ~= "blue" and n < 11 do Z.press(w, 2); n = n + 1 end
-        end
         -- the rest of the UI (belt, watch, menus, the action bar) to the same blue, in memory
         if STORY_GLOBAL_BLUE ~= false then ZeD.applyTheme(nil, "blue", nil) end
         say("accent: char " .. tostring(Z.CW()._accentKey) .. " world " .. tostring(Z.WW()._accentKey) .. " global " .. tostring(ZeD.currentAccent))
-        Z.hoverFooter(Z.WW(), 2)
     end)
-    S.step(30, function() Z.place(); Z.shot("story_08c_footer_blue") end)
+    -- d) the pointer parked, Light + Blue
     S.step(2, function() ST.parkMouse() end)
     S.step(30, function() Z.place(); Z.shot("story_08d_open_light_blue") end)
 end
@@ -817,11 +915,12 @@ if want("12") then
     S.step(10, function()
         ST.night()
         say("store lights switched on: " .. ST.lights(true))
-        -- the footers' theme dot to Dark (or High contrast)
+        -- the window menu's Theme choice, Dark (or High contrast). The windows are shut at this
+        -- point (and closed again just below), so there is no box to pull the menu from: the
+        -- choice the menu builds is fired directly.
         local target = STORY_NIGHT_BASE or "dark"
-        local n = 0
-        while ZeD.currentBase ~= target and n < 3 do Z.press(Z.WW(), 1); n = n + 1 end
-        say("night theme " .. tostring(ZeD.currentBase) .. " after " .. n .. " presses")
+        local how = (ZeD.currentBase ~= target) and Z.fireTheme(target) or "nothing to do"
+        say("night theme " .. tostring(ZeD.currentBase) .. " (" .. how .. ")")
         Z.closePair()
         local q = ST.outNear(P.smoke[1] + 2, P.smoke[2] + 2, 4) or P.smoke
         ST.tpSq(q)

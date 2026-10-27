@@ -2,14 +2,16 @@
 -- Workshop gallery v3, second batch (director's review): after gallery_v3_core.lua, _reveal
 -- and _stage, ZeD on, high contrast + PZ Teal. Full 4K screenshots zed_<nn>_<scene>.png:
 --   60    Skills tab with believable levels and part-way progress (the perks put back after)
---   61-63 the windows' footer quick toggles (theme dot, accent dot, text size A, reset R):
---         both footers, then the World window's accent dot before / after one press (the
---         window's own accent, set in memory only and put back)
+--   61-63 the window box's menu (the box at the right end of the title bar) on the World
+--         window: 61 the menu pulled down, 62 its Accent submenu with the pointer on a color,
+--         before the pick, 63 after the pick (menu closed, the window's own accent changed).
+--         The pick is saved to the options like any other; the old accent is put back after
 --   65    Identity tab
 --   66-72 Thermal tab, its seven views, the clothes wet and the air cold (put back)
 --   76-77 the dash: by day with the headlights off, by night (real darkness) with them on
 --   78-80 the mini watch on the belt for three models (CaZio digital, Timez, classic gold)
--- Window boxes are printed ("box ...") for the inventory. "ZEDQA g3b ..." ending "DONE".
+-- Each window's rect and its window box are printed ("box ... windowbox") for the inventory.
+-- "ZEDQA g3b ..." ending "DONE".
 local G = GAL
 if not (G and G.spot and G.car and G.newSeq) then print("ZEDQA g3b ERR run core and stage first"); print("ZEDQA g3b DONE"); return end
 if not (ZeD and ZeD_CharacterWindow and ZeD_WorldWindow) then print("ZEDQA g3b ERR ZeD is not loaded"); print("ZEDQA g3b DONE"); return end
@@ -56,16 +58,73 @@ function B.goTab(win, strip, tab)
 end
 function B.charTab(id) local w = B.CW(); return w and B.goTab(w, w._tabStripPanel, id) end
 function B.worldTab(id) local w = B.WW(); return w and B.goTab(w, w._actionTabStrip, id) end
+-- the window box's corners on the screen (left, top, right, bottom), nil when the window has none
+function B.boxRect(win)
+    local b = win and win.windowBoxRect and win:windowBoxRect()
+    if not b then return nil end
+    local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
+    return math.floor(ax + b.x), math.floor(ay + b.y), math.floor(ax + b.x + b.w), math.floor(ay + b.y + b.h)
+end
 function B.box(tag, win)
     if win and win:isVisible() then
         say(string.format("box %s %s %d,%d-%d,%d", tag, tostring(win.title or win._activeTab), win:getX(), win:getY(), win:getX() + win:getWidth(), win:getY() + win:getHeight()))
-        for i, r in ipairs(win._themeControlRects or {}) do
-            say(string.format("box %s footer%d %d,%d-%d,%d", tag, i, r.x, r.y, r.x + r.w, r.y + r.h))
-        end
+        -- the window box at the right end of the title bar, in screen coordinates
+        local x0, y0, x1, y1 = B.boxRect(win)
+        if x0 then say(string.format("box %s windowbox %d,%d-%d,%d", tag, x0, y0, x1, y1)) end
     end
 end
 function B.boxes(tag) B.box(tag .. " char", B.CW()); B.box(tag .. " world", B.WW()) end
 function B.shot(name) S.shot(name); B.boxes(name) end
+
+-- the window box's menu (ZeD.WindowMenu), driven the way the player drives it: the box's own click
+-- action pulls it down, a click on a row is the context list's own mouse-up
+function B.pointAt(x, y)
+    if Mouse and Mouse.setXY then pcall(function() Mouse.setXY(math.floor(x), math.floor(y)) end) end
+end
+function B.park() B.pointAt(core:getScreenWidth() / 2, core:getScreenHeight() - 6) end
+function B.hoverBox(win)
+    local x0, y0, x1, y1 = B.boxRect(win)
+    if x0 then B.pointAt((x0 + x1) / 2, (y0 + y1) / 2) end
+end
+-- the words of an Accent choice, as the menu builds them
+function B.accentName(key)
+    local Sx = ZeD.Settings
+    for i, k in ipairs(Sx.accentKeys) do
+        if k == key then return ZeD.tr(Sx.accentLabels[i]) end
+    end
+    return tostring(key)
+end
+function B.menu()
+    local m = ZeD.WindowMenu and ZeD.WindowMenu.current
+    return (m and m._ctx and m._ctx.open) and m or nil
+end
+-- the hit zone of the row on level li whose words are `name` (the menu's panel covers the screen:
+-- screen coordinates; the zones exist once the menu has drawn a frame)
+function B.menuRow(li, name)
+    local m = B.menu()
+    local lv = m and m._levels and m._levels[li]
+    if not lv then return nil end
+    for ri, r in ipairs(lv.rows) do
+        if r.def and r.def.name == name then
+            for _, zn in ipairs(m._hitZones or {}) do
+                if zn.id == "row:" .. li .. ":" .. ri then return zn end
+            end
+        end
+    end
+    return nil
+end
+function B.menuHover(li, name)
+    local zn = B.menuRow(li, name)
+    if zn then B.pointAt(zn.x + zn.w / 2, zn.y + zn.h / 2) end
+    return zn ~= nil
+end
+-- a click on a row: a row with a submenu opens it; a choice runs its onFire and the menu closes
+function B.menuClick(li, name)
+    local m, zn = B.menu(), B.menuRow(li, name)
+    if not (m and zn) then return false end
+    m:onMouseUp(math.floor(zn.x + zn.w / 2), math.floor(zn.y + zn.h / 2))
+    return true
+end
 
 -- skills: a few perks at believable levels, part-way into the next
 local SK = { { "Carpentry", 4, 0.55 }, { "Cooking", 3, 0.3 }, { "Mechanics", 2, 0.7 }, { "Aiming", 5, 0.4 }, { "Maintenance", 3, 0.6 },
@@ -149,25 +208,35 @@ S.step(40, function() B.place(); G.faceFront() end)
 S.step(20, function() B.shot("zed_60_skills_progress") end)
 S.step(2, function() B.restoreSkills(); B.charTab("loot"); B.worldTab("loot") end)
 
--- 61-63 the footers' quick toggles
+-- 61-63 the World window's menu: pulled down, its Accent submenu before the pick, after the pick
+local ACC_ROW, ACC_PICK = ZeD.tr("UI_ZeD_WinMenu_Accent"), B.accentName("red")
 S.step(40, function() B.place() end)
-S.step(20, function() B.shot("zed_61_footer_toggles") end)
 S.step(2, function()
     local w = B.WW()
     B.was.wAccent = w._accentKey
     say("world accent key before: " .. tostring(w._accentKey))
+    -- the pointer on the box, then the box's own click action (what update runs on a press and release)
+    B.hoverBox(w)
+    w:openWindowMenu()
+    say("menu down " .. tostring(B.menu() ~= nil) .. " | box lit " .. tostring(w._wboxOpen))
 end)
-S.step(10, function() B.shot("zed_62_footer_accent_before") end)
+S.poll(2, 180, function() return B.menuRow(1, ACC_ROW) ~= nil end,
+    function() S.err("zed_61_window_menu", "the menu did not draw its Accent row") end)
+S.step(20, function() B.shot("zed_61_window_menu") end)
+S.step(2, function() B.menuClick(1, ACC_ROW) end)
+S.poll(2, 180, function() return B.menuRow(2, ACC_PICK) ~= nil end,
+    function() S.err("zed_62_window_menu_accent", "the Accent submenu did not draw " .. ACC_PICK) end)
+S.step(2, function() B.menuHover(2, ACC_PICK) end)
+S.step(10, function() B.shot("zed_62_window_menu_accent") end)
 S.step(2, function()
-    -- one press of the World window's accent dot: its own accent steps on (in memory only)
+    -- the click on the color: the window's own accent is set (and saved to the options), the menu closes
+    local ok = B.menuClick(2, ACC_PICK)
+    B.park()
     local w = B.WW()
-    local S2 = ZeD.Settings
-    local keys = S2.accentKeys
-    if w._accentKey == nil then w._accentKey = keys[1] else w._accentKey = S2.cycleNext(keys, w._accentKey) end
-    say("world accent key after: " .. tostring(w._accentKey))
+    say("world accent key after: " .. tostring(w._accentKey) .. " | clicked " .. tostring(ok) .. " | menu closed " .. tostring(B.menu() == nil))
 end)
-S.step(20, function() B.shot("zed_63_footer_accent_after") end)
-S.step(2, function() local w = B.WW(); w._accentKey = B.was.wAccent end)
+S.step(20, function() B.shot("zed_63_window_menu_accent_after") end)
+S.step(2, function() local w = B.WW(); w._accentKey = B.was.wAccent; ZeD.Settings.syncWindowAccent(w) end)
 
 -- 65 identity
 S.step(10, function() B.charTab("identity") end)

@@ -1,16 +1,21 @@
 <#
 .SYNOPSIS
-    The main menu windows' frame squares (theme, accent, text size) and close box,
-    pressed with the real mouse (Oct 24 2026; director: "theme, accent, font button
-    on the main menu windows doesn't do anything").
+    The main menu windows' window box (the box at the right end of the title bar that
+    pulls down the window menu) and close box, pressed with the real mouse (first
+    written Oct 24 2026 for the frame's theme, accent and text-size squares, which the
+    window box replaced; director: "theme, accent, font button on the main menu
+    windows doesn't do anything").
 .DESCRIPTION
     Launches the game at the director's own (fullscreen) settings to the main menu,
     then for the Project Zomboid, Mods, Options and Load Game windows: the bridge
-    reports where the squares are, the real pointer goes onto each (SetCursorPos),
+    reports where the window box is, the real pointer goes onto it (SetCursorPos),
     the bridge says whether it lit, a real left click goes in (only while the game
-    is the front window), and the bridge says whether the setting changed. The close
-    box is checked for hover, and clicked on the Mods window. The theme, accent and
-    size are put back, the game quits. Holds Zomboid/Lua/zedqa.lock while it runs.
+    is the front window), and the bridge says whether the window menu came down and
+    the box shows it open. Then a click on the menu's Theme row, a click on the next
+    base theme in its list, and the bridge says whether the theme changed and the
+    menu closed. The close box is checked for hover, and clicked on the Mods window.
+    The theme, accent and size are put back, the game quits. Holds
+    Zomboid/Lua/zedqa.lock while it runs.
     (Mouse.setXY does not move the pointer at the main menu, hence real input.)
     Exit codes: 0 every check passed, 1 a check failed or the run broke, 2 refused.
 #>
@@ -71,21 +76,41 @@ local function win(v)
     elseif v == "options" then return R.optsWin elseif v == "load" then return R.loadWin end
 end
 local function values() return tostring(ZeD.currentBase) .. " " .. tostring(ZeD.currentAccent) .. " " .. tostring(ZeD.currentSize) end
+-- the middle of a rect of the window (window coordinates in, screen point out), "none" without one
+local function mid(w, r)
+    if not r then return "none" end
+    return math.floor(w:getAbsoluteX() + r.x + r.w / 2) .. "," .. math.floor(w:getAbsoluteY() + r.y + r.h / 2)
+end
 local function targets(v)
     local w = win(v)
-    local r = w._themeControlRects or {}
-    local cb = w:closeRect()
-    local t = {}
-    for i = 1, 3 do
-        local q = r[i]
-        t[#t + 1] = q and (math.floor(q.x + q.w / 2) .. "," .. math.floor(q.y + q.h / 2)) or "none"
+    return mid(w, w:windowBoxRect()) .. " " .. mid(w, w:closeRect())
+end
+-- the window menu pulled down now (ZeD.WindowMenu.current), nil when none is
+local function menu()
+    local m = ZeD.WindowMenu and ZeD.WindowMenu.current
+    return (m and m._ctx and m._ctx.open) and m or nil
+end
+local function shut() local m = menu(); if m then m:close() end end
+-- the middle of the row of the menu item at index idx on level li, from the menu's hit zones
+-- (its panel covers the screen, so they are screen points); "none" until the menu has drawn
+local function rowPoint(li, idx)
+    local m = menu()
+    local lv = m and m._levels and m._levels[li]
+    local def = lv and lv.items and lv.items[idx]
+    if not def then return "none" end
+    for ri, r in ipairs(lv.rows) do
+        if r.def == def then
+            for _, z in ipairs(m._hitZones or {}) do
+                if z.id == "row:" .. li .. ":" .. ri then return math.floor(z.x + z.w / 2) .. "," .. math.floor(z.y + z.h / 2) end
+            end
+        end
     end
-    t[#t + 1] = math.floor(w:getAbsoluteX() + cb.x + cb.w / 2) .. "," .. math.floor(w:getAbsoluteY() + cb.y + cb.h / 2)
-    return table.concat(t, " ")
+    return "none"
 end
 '@
 $Jobs = @{
     show = @'
+shut()
 local v = "__VIEW__"
 if v == "main" or v == "load" then MM.showView(v) elseif v == "mods" then MM.showView("main"); MM.openMods() else MM.showView("main"); MM.openOptions() end
 local t0 = getTimestampMs()
@@ -101,13 +126,26 @@ say("TARGETS " .. targets("__VIEW__") .. " VALUES " .. values() .. " VIEW " .. t
 '@
     probe = @'
 local w = win("__VIEW__")
-say("PROBE mouse " .. getMouseX() .. "," .. getMouseY() .. " hover " .. tostring(w._themeControlHover) .. " close " .. tostring(w._closeHover) .. " VALUES " .. values() .. " VIEW " .. tostring(MM.view))
+say("PROBE mouse " .. getMouseX() .. "," .. getMouseY() .. " WBOX " .. tostring(w._wboxHover) .. " WOPEN " .. tostring(w._wboxOpen) .. " MENU " .. tostring(menu() ~= nil) .. " CLOSE " .. tostring(w._closeHover) .. " VALUES " .. values() .. " VIEW " .. tostring(MM.view))
+'@
+    menurow = @'
+local keys = ZeD.Settings.baseKeys
+local cur = 1
+for i, k in ipairs(keys) do if k == ZeD.currentBase then cur = i end end
+local want = (cur % #keys) + 1
+local item = "__ITEM__"
+say("ROW " .. rowPoint(__LEVEL__, (item == "next") and want or tonumber(item)) .. " WANT " .. keys[want] .. " MENU " .. tostring(menu() ~= nil))
+'@
+    shut = @'
+shut()
+say("SHUT MENU " .. tostring(menu() ~= nil))
 '@
     shot = @'
 getCore():TakeFullScreenshot("__NAME__")
 say("SHOT __NAME__")
 '@
     restore = @'
+shut()
 ZeD.applyTheme("__BASE__", "__ACCENT__", "__SIZE__")
 pcall(ZeD.Settings.syncToModOptions)
 MM.showView("main")
@@ -127,10 +165,14 @@ function Run-Job($job, $subs) {
 }
 function Parse($line) {
     $o = @{}
-    if ($line -match 'TARGETS (\S+) (\S+) (\S+) (\S+)') { $o.t = @($Matches[1], $Matches[2], $Matches[3], $Matches[4]) }
+    if ($line -match 'TARGETS (\S+) (\S+)') { $o.t = @($Matches[1], $Matches[2]) }   # the window box, the close box
     if ($line -match 'VALUES (\S+) (\S+) (\S+)') { $o.v = @($Matches[1], $Matches[2], $Matches[3]) }
-    if ($line -match 'hover (\S+)') { $o.hover = $Matches[1] }
-    if ($line -match 'close (\S+)') { $o.close = $Matches[1] }
+    if ($line -match 'WBOX (\S+)') { $o.wbox = $Matches[1] }
+    if ($line -match 'WOPEN (\S+)') { $o.wopen = $Matches[1] }
+    if ($line -match 'MENU (\S+)') { $o.menu = $Matches[1] }
+    if ($line -match 'CLOSE (\S+)') { $o.close = $Matches[1] }
+    if ($line -match 'ROW (\S+)') { $o.row = $Matches[1] }
+    if ($line -match 'WANT (\S+)') { $o.want = $Matches[1] }
     if ($line -match 'VIEW (\S+)') { $o.view = $Matches[1] }
     if ($line -match 'mouse (\S+)') { $o.mouse = $Matches[1] }
     return $o
@@ -167,26 +209,48 @@ try {
     if (-not (Wait-Log 'bridge armed \(main menu' 600)) { "never reached the main menu"; $fails++; return }
     Start-Sleep -Seconds 15
     if (-not (Front)) { "the game is not the front window"; $fails++; return }
-    $names = @("theme", "accent", "text size")
     foreach ($view in @("main", "mods", "options", "load")) {
         $s = Parse (Run-Job "show" @{ VIEW = $view })
         if (-not $s.t) { "FAIL ${view}: no report"; $fails++; continue }
         if (-not $was) { $was = $s.v; "start values: $($was -join ' ')" }
         Check ($s.view -eq $view) "${view}: the window is up"
         $before = $s.v
-        for ($i = 0; $i -lt 3; $i++) {
-            if ($s.t[$i] -eq "none") { Check $false "${view}: the $($names[$i]) square is drawn"; continue }
-            Point $s.t[$i]
+        if ($s.t[0] -eq "none") {
+            Check $false "${view}: the window box is drawn"
+        } else {
+            # the box lights under the pointer
+            Point $s.t[0]
             $h = Parse (Run-Job "probe" @{ VIEW = $view })
-            Check ($h.hover -eq "$($i + 1)") "${view}: the $($names[$i]) square lights under the pointer (hover $($h.hover), pointer $($h.mouse))"
+            Check ($h.wbox -eq "true") "${view}: the window box lights under the pointer (hover $($h.wbox), pointer $($h.mouse))"
+            # a click on it pulls the window menu down, the box stays lit while it is open
             $clicked = Click
             $a = Parse (Run-Job "probe" @{ VIEW = $view })
-            Check ($clicked -and $a.v -and $a.v[$i] -ne $before[$i]) "${view}: a click on the $($names[$i]) square changes it ($($before[$i]) to $($a.v[$i]))"
-            if ($view -eq "main") { [void](Run-Job "shot" @{ NAME = "zqa_mf_main_$($i + 1).png" }) }
-            if ($a.v) { $before = $a.v }
-            if ($i -eq 2) { $s = Parse (Run-Job "report" @{ VIEW = $view }) }   # (a size change moves the frame)
+            Check ($clicked -and $a.menu -eq "true" -and $a.wopen -eq "true") "${view}: a click on the window box opens its menu (menu $($a.menu), box open $($a.wopen))"
+            # a click on the Theme row (item 1) shows its choices; a click on the next base theme in the list changes the theme
+            $r = Parse (Run-Job "menurow" @{ LEVEL = 1; ITEM = 1 })
+            if ($r.row -eq "none") {
+                Check $false "${view}: the menu's Theme row is drawn"
+            } else {
+                Point $r.row
+                [void](Click)
+                $r = Parse (Run-Job "menurow" @{ LEVEL = 2; ITEM = "next" })
+                if ($view -eq "main") { [void](Run-Job "shot" @{ NAME = "zqa_mf_main_menu.png" }) }
+                if ($r.row -eq "none") {
+                    Check $false "${view}: the Theme choices are showing"
+                } else {
+                    Point $r.row
+                    $clicked = Click
+                    $a = Parse (Run-Job "probe" @{ VIEW = $view })
+                    Check ($clicked -and $a.v -and $a.v[0] -eq $r.want -and $a.v[0] -ne $before[0]) "${view}: a click on a Theme choice changes the theme ($($before[0]) to $($a.v[0]), wanted $($r.want))"
+                    Check ($a.menu -eq "false" -and $a.wopen -ne "true") "${view}: the menu closes after the pick (menu $($a.menu), box open $($a.wopen))"
+                    if ($view -eq "main") { [void](Run-Job "shot" @{ NAME = "zqa_mf_main_picked.png" }) }
+                    if ($a.v) { $before = $a.v }
+                }
+            }
+            [void](Run-Job "shut" @{ })   # (a check that failed must not leave the menu over the close box)
         }
-        Point $s.t[3]
+        $s = Parse (Run-Job "report" @{ VIEW = $view })   # (a new theme can move the frame)
+        Point $s.t[1]
         $c = Parse (Run-Job "probe" @{ VIEW = $view })
         Check ($c.close -eq "true") "${view}: the close box answers the pointer"
         if ($view -eq "mods") {
