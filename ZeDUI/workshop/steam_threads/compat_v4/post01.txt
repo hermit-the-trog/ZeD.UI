@@ -1,0 +1,33 @@
+[h2]Supported[/h2]
+ZeD-GUI has its own support for these mods: their features show in ZeD's windows. Each support turns on only while that mod is on.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2804531012]Draw On The Map - Free Hand Drawing[/url]: Draw, Line and Erase on the Maps tab toolbar, with Thickness and Fill. Controller: hold A on the map cursor. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3589548354]Improved Hair Menu[/url] by duckduckquack and TwisTonFire: Its cuts, ties and trims are rows in the Identity tab's Hair and Beard section. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2734705913]Map Symbol Size Slider[/url]: Its Symbol Size slider is in the Maps tab, beside the mark grid, and saves to the mod's own setting. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3760534563]NeatUI Hairstyler[/url] by Gimmi: Its cuts, ties and trims are rows in the Identity tab's Hair and Beard section. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2879960936]Players On Map[/url]: Other players' squares and names on the Maps tab, and a Players list. Multiplayer only. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2815560151]Share Annotations[/url] by belette: Learned map notes in the Maps tab's side list, to show, hide or delete. A set hidden on the game's map can be shown again. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2503622437]Skill Recovery Journal[/url] by Chuckleberry Finn: Its strip under each row of the Skills tab, a key line, and the numbers in a hover card. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3414634809]Spongie's Character Customisation[/url] by Spongie: Its faces and details are the Character window's Appearance tab and rows on the Looks screen for a new character; its window at game start opens that tab, paused, as the mod does. The mod's rules and saving are its own. From ZeD-GUI 0.2.0-t5.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3041733782]Spongie's Hairstyle Unlocker[/url] by Spongie: The styles it unlocks are rows in the Identity tab's Hair and Beard section, marked with its tag. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3784847437]Traits As Skills[/url] by GersonRess: A Traits tab after Skills, its traits drawn like skills with ten steps. From ZeD-GUI 0.2.0-t6.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3097650043]Where Am I?[/url] by Braven: The name of the area you are in, over the Maps tab. From ZeD-GUI 0.2.0-t6.
+[/list]
+
+[h2]Works well with ZeD[/h2]
+These fill a gap or show well in ZeD's windows. ZeD-GUI has no code of its own for them.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392699932]Auto Loot[/url] by Tchernobill: Its Auto Loot switch and Store All are buttons in the footer of ZeD's Inventory window, and its rows are in ZeD's item and container menus.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387539308]Auto Mechanics[/url] by Tchernobill: Train mechanics, Uninstall all and Continue are in the part menu of ZeD's Vehicle tab (X or right-click on a part). [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3635856965]Better Auto Mechanics [B42.20.4+ MP+SP][/url]: Its part actions are in the part menu of ZeD's Vehicle tab, and its mechanics window is the game's, which opens ZeD's Vehicle tab. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387957272]Detailed Descriptions for Occupations and Traits[/url] by Jetmax937: Its longer trait and occupation texts show on ZeD's Traits screen and, from 0.2.0-t6, on hover in the Identity tab.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3617732907]Inspect Items Framework[/url]: Its Inspect item row is in ZeD's item menu, and its inspect window opens clear of ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2650547917]Manage Containers[/url] by Jeff: Its container rules run from the container buttons in ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3389003300][B42] Moodle Descriptions Expanded[/url]: Its longer moodle texts, with the numbers, are what ZeD's moodle notes show.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=515555911]More Builds[/url]: Its build window opens from its row in ZeD's world menu and works beside ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776531193]Palm Pilot[/url]: Its Palm Pilot screen opens beside ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3772979228][B42.20] Plain Moodles Redone[/url]: Its plain icons and level bars show in ZeD's moodle column at the right edge; above the belt, its icons without the bars.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470659758]The Shortcut[/url] by Rocco: Its shortcut bar sits just above ZeD's belt.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2757712197]Vehicle Repair Overhaul[/url] by hehehemann: Its repairs (heater, lightbar, engine rebuild) are in the part menu of ZeD's Vehicle tab. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3628835042]Workshop Update Checker[/url]: Its Mod Updates button shows at the bottom right of ZeD's main menu.
+[/list]

@@ -1,0 +1,48 @@
+[h2]Compatible, Pr to Si (part 6 of 8)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 10.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3796402502]Project Writing [42.21][/url]: Pauses the game while its notebook is open (its own option, on by default), and quitting to the main menu waits until the notebook is closed. Its map tools are for the game's map. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3821280085]Proper Ragdolls[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2847184718]Proximity Inventory[/url] by Mxswat FRV Enthusiast: Part of it does not show: its one container of everything nearby is added to the game's loot window. ZeD's World window shows each container in reach as its own column. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3740165370]Proximity Inventory[/url]: Part of it does not show: its one container goes on the game's loot window. [i](by reading its code)[/i] It shares its mod id with two other Proximity Inventory items, and the game loads only one of them.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3669550831][FIXED] Proximity Inventory B42.20 COMPATIBLE [SP/MP][/url] by Juliosy: Part of it does not show: its one container of everything nearby goes on the game's loot window. ZeD's World window shows each container in reach as its own column. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3770149036]PZ Map[/url] by qwerto
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3753700423]PZ Pulse[/url] by qwerto
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2695471997]PZ-ClothingUI - Clothing items grid view (B41 + B42 Updated)[/url] by Ramp and pagep: Its clothing window opens from its own button and sits beside ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3669016488][B42] [MP] Quick Remove Broken Glass[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3659543622]Radio Frequency Manager [B42][/url]: Its frequency window opens from its own button at the left, clear of ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2956146279]Rain Cleans Blood [B42.20 + MP][/url] by Akamir
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2818577583]Random Zombies[/url] by belette
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3656190498]Reactive Sound Events[/url] by JulianFVM
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3051276857][KYR] Real Weather Mod[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2699828474]Rebalanced Prop Moving[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2901962885]Reorder Containers - Backpack Orders[/url] by Notloc: Part of it does not show: it orders the game's container buttons; ZeD's container strip keeps its own order. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2142622992]Repair Any Clothes[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3006882690][B41&B42] Repair Wall[/url] by Kamer
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3378304610]Repairable Windows[/url] by albion
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2944344655]Replace Bandage[/url] by Sioyth
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3641027178][42] Rip All Button In context Menu[/url]: Its Rip Clothing row is in ZeD's item menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3797874733]Roaming Survivors[/url]: Its rows (Survivors, Reputation, Quest journal) are in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3261334016][B41 & B42] Rope Towing[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3621388762]RPGSkillTree[42.13][SP][/url]: Its skill tree opens full screen (pausing the game, as without ZeD-GUI) and closes back to ZeD's windows. Some of its labels show as text keys: its own.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3397207461]Run and Reload [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3618427553]RV Interior Expansion [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3622163276]RV Interior Expansion Part 2 [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3825312974]Sandbox Control - Cheat & Creative Menu [B42.21][/url]: Its window opens from its own button (pausing the game, as without ZeD-GUI), and its rows are in ZeD's item and world menus.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3386906181]Sandbox Options[/url] by Zky
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3409143790]Sapph's Cooking[/url] by sapph
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3651954650]SaucedCarts - Pushable Carts[/url]: Part of it does not show: its cart handling patches the game's inventory and loot windows. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3751668602]Second Back Slot [B42.20][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3596827035]ShelterHold: Beehive[/url] by Rocco
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3404461962]Show Sowing Season In Seed Tooltip[/url]: Its sowing lines go on the item tooltip through Starlit Library: from ZeD-GUI 0.2.0-t7 they show on ZeD's item tooltip; in 0.2.0-t6 ZeD's tooltip leaves them out.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3716522633][B41,B42] Show VHS skills in tooltip[/url]: Its lines show on ZeD's item tooltip. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3002666175][B41&B42] Show Wall Health[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2852704777]Simon MDs Tiles [B41/B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3625933422][B42] Simple Belt Flashlight! (Fix for angled flashlight)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3778709615][B42.20/B42.21] Simple Belt Flashlight+ (Better Flashlights Compatible)[/url]: It shares its mod id with Simple Belt Flashlight, and the game loads only one of them.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3394588830]Simple Flashlight on Belt![/url] by Kameron!
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2991923398]Simple Lockpicking[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3402171609]Simple Moodle Indicators[/url]: Part of it does not show: its level marks are for Moodles in lua's drawing. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2891170430][B42MP] Simple Show XP[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2868394326][B42]Simple sling mod[/url]
+[/list]

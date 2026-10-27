@@ -1,0 +1,32 @@
+VERSION = 1,
+
+mods
+{
+    mod = MutiesContextMenuIcons,
+    mod = NeatUI_Framework,
+    mod = Neat_Rocco,
+    mod = R3_INVENTORY_TETRIS,
+    mod = EquipmentUI_B42,
+    mod = DualBackWeaponSlots,
+    mod = N3WOMapOverhaul,
+    mod = Video_Game_Consoles,
+    mod = 1911132112/ManySpawns,
+    mod = survivingthroughseasons,
+    mod = Ladders4220,
+    mod = KYRRealWeatherMod,
+    mod = CryogenicWinter2NormalMode,
+    mod = B42Survival,
+    mod = Bandits2,
+    mod = BanditsCreator,
+    mod = PSR,
+    mod = ImmersiveBlackouts,
+    mod = SaucedCarts,
+    mod = LGExtendedElectricity,
+    mod = ISAMP,
+    mod = playable_pool,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

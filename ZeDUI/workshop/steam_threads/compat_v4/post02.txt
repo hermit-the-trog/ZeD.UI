@@ -1,0 +1,53 @@
+[h2]Compatible, 0-9 to Br (part 1 of 8)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 10.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=899287010]+300 Points Trait[/url]: Its points show in the title of ZeD's occupation screen.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3780639614][B42.21+ MP] - Push Vehicle[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2974652138][B41/B42] /bin/'s Profession and Skill Based Starting Items[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2829657632][41&42]50% metal weight[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3622328997]Adaptive Traits[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3020323164]Add More Map Symbols[/url] by Golem
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2604943386]Addicted To Weight[/url] by PePePePePeil: Its weight display and its first-start note show over the game, clear of ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3036878362]Advanced Trajectory's Realistic Overhaul[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3409527910]Alarm Syndrome[/url] by PePePePePeil
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3610005735]ALICE Gear[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2959854619]Alice's DuffelBag Tweak[/url] by Alice
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3775549570]Alice's Weapon Sling[/url] by Alice
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3389050623]Ammo Loot Drop / Zombies Drop Ammo B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2957935793]Another Vehicle Claim System[/url]: Multiplayer. Its Claimed Vehicles Manager row is in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3793163745]Area Tasks - Select an area for vanilla tasks [B42][/url]: Its Area Tasks row is in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=1962761540]Armored Vests (41/B42)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3816324722]Attachments UI [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2207282444]Authentic Animations[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2335368829]Authentic Z[/url] by Authentic Peach: With its Backpacks+ add-on on as well, the two register the same clothing slots (their own error at load).
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777237134][B42.20] Auto All - Cook, Medicine, Read, Clean, Rip, Tailoring, Mechanics, Exercise, Reload, Open & Dismantle[/url]: Its rows are in ZeD's item menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3790912405]Auto Center Map[/url]: Part of it does not show: it centres the game's map; the map key opens ZeD's map.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388721641]Auto Cook[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3389448389]Auto Reload[/url]: Its reload rows come through the game's item menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388183573]Auto Tailoring[/url]: Its Auto Rip rows are in ZeD's item menu. Part of it does not show: its buttons on the game's protection page. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3386860561]B42 Native ModOptions Example[/url]: Its example options page is in the game's Mod Options.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3238830225]B42 Real Firearms WIP[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3789234614]Balaclava Slot[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3469292499][B42] Bandits Creator[/url]: Its rows are in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3268487204]Bandits NPC[/url] by Slayer: Its note at game start goes into ZeD's Messages.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3738660077]Become Brave [B42.20 Stable Unofficial SP/MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3738669352]Become Desensitized [B42.20 Stable Unofficial SP/MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3604080281]Better Clothing Info[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3790089095]Better Corpse Burning[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3580557206]Better Daily Reports[/url]: Its daily report window opens by itself at game start, clear of ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3420478458][B42.21] Better Flashlights[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3768298886]Better Lockpicking (Continued) b42.20+[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3634569678]Better Safehouse [B42.20- MP][/url]: Multiplayer safehouse screens.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2756434288]Better Server Settings[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2313387159]Better Sorting[/url] by ChthonicKnight: One error of its own at load on 42.21 (a drink with no item, BSdynamicCats). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3461415167]Bicycle![/url] by RedChili
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3387640099][B42] Bigger Character Avatar[/url]: Part of it does not show: it enlarges the figure on the game's character screen; ZeD's Character window has its own figure. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2634426926][B41 / B42.12+] bikinitools - independent vehicle spawner, skin changer and automations![/url]: Its rows are in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3498294068]Blacklist & Proximity Inventory[/url]: Part of it does not show: its container and blacklist go on the game's loot window. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3784951301]Blood Pools & Footprints [B42.20+][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2850935956]Boots Expanded 11 for B41 and B42[/url] by SergeantMarkIV
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2725360009]Boredom Tweaks[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2850135071]Braven's Utilities[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3565244378][B42] Briefing[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777433827]Brita Weapon and Armor B42 Unified Compatibility Port[/url]: Its two belt slots show on ZeD's belt. From ZeD-GUI 0.2.0-t7 they read the slot's own name, cut to the box; in 0.2.0-t6 a long raw id runs out of the box.
+[/list]

@@ -1,0 +1,54 @@
+[h2]Compatible, To to Z (part 8 of 8)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 10.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3545533939][B41/B42] Toughness Skill[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2951270166]Trees Have Loot [B41 &  B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3650071729]True Action Dancing B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3806955469]True Cargo - Project Full HD[/url]: Part of it does not show: its cargo view is drawn on the game's inventory window. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3632610172]True Moozic B42+  The Music System for Project Zomboid (SP/MP)[/url]: Its music rows are in ZeD's world menu. Its Hi-Fi window hooks the game's radio window, so it may not show. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3398874593]True Music Jukebox 42[/url]: In ZeD-GUI 0.2.0-t6 its options page empties ZeD setup of ZeD's own options; fixed in 0.2.0-t7.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3631572046]True Music Radio 42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3423984426]True Smoking [B42MP][/url]: Its own light-up action shows on ZeD's action bar by its name. Its moodles go through Moodle Framework, at the game's old place at the right edge.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3768669395]True Weight[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3797492691]Try Before You Wear[/url]: Its window opens centred over the game, clear of ZeD's windows.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3402491515]Tsar's Common Library[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3420581050]TV & Radio ReInvented[/url] by tealera: Part of it does not show: ZeD's radio tabs and car radio replace its radio screens. Its TV channels, ads and VHS are its own. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3575778063]TwisTonFire - Improved Soundoptions[/url]: Part of it does not show: it restyles the game's sound options page; ZeD's Options are its own. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3627539752]TwisTonFire - Map Improvements[/url]: Part of it does not show: its map tools are on the game's map. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3572564421]TwisTonFire - minimap[/url]: Its minimap did not show in this test.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3579410548]TwisTonFire - Quick'n'Auto Mark[/url]: Its colour dock sits above ZeD's belt; its map parts are for the game's map.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3778319798]Two Weapons on Back [42.21][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3675741487]Umbrella Corp Uniform[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2713921292]Undead Survivor [B41/B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3682045254]Unified Carry Weight Framework (UCWF)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3436537035]Useful Barrels[/url] by GigaWatte
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3421271152]Vanilla Clothing Expansion[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3761077099][B42] Vanilla Firearms Expansion [CLASSIC][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3577903007]Vanilla Foods Expanded[/url] by JiizzJacuzzii, Aatheom and Tenhats
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3401134276]Vanilla Gear Expanded[/url] by Tango
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3783094058]Vanilla Outfits Expanded[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3281755175]Vanilla vehicles animated[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3773834525][42.20.4MP] Vanilla Weapons PLUS - Gunworks Edition[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3781616141][B42.20+] Vehicle Aim Roof Fix[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3785695033][B42.20+] Vehicle Enter/Exit Fix[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3690308807]Vehicle Ground Guard [B42 SP + MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3436499337]Vehicle Military Zones[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2831786301]Video Game Consoles[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3610677934][41/42.20.4MP] Visible Casing Ejection Framework - Hot Brass[/url] by Marz
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2972289937]Visible Generator Range[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2950750587]Voiced Radio and TVs[/url]: One error of its own at load on 42.21 (in ISWeatherChannel.lua). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3674907249]Wash Or Rot [B42 SP/MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3460812542]Washing Menus Improved [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3546314080]Water Pipes[/url] by Slayer
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3390169945][Deprecated] What can I craft?[/url]: Retired by its maker. Its row shows as a raw text key on 42.21 (its own).
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3784348098][B42]Whose Key Is This?[/url]: Its key overlay is for the game's map. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3717099183]Working Knowledge - Lootable Skill Documents[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3819438691]Wound Expansion[/url]: Part of it does not show: its wound details are on the game's health panel, which ZeD's Health tab replaces. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3656128167][B42.16+] XP Gain Bar v1.4 - DBD[/url]: Its XP bar shows at the top left.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2810471370]Yaki's BarberShop[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2761200458]Yaki's Hair Salon[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2830570280]You drive, I sleep[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3630525533][42.13] Zed's Watch Slots[/url]: A watch worn in its wrist slot shows on ZeD's belt.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3811483602]Zombie Dismemberment[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3814073243]Zombie Visibility Fix + Stair-O-Vision[/url] by wget
+[/list]

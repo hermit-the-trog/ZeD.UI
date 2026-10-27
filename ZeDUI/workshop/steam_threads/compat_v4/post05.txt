@@ -1,0 +1,56 @@
+[h2]Compatible, I to Mo (part 4 of 8)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 10.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2714198296]I Don't Need A Lighter[/url] by Fingbel
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3718412967]Icons Inventory[/url] by blint: Part of it does not show: its icon grid is on the game's inventory window. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3607686447]Immersive Blackouts [B42MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3653092321]Immersive Hotwire[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3810071828]Immersive Snow[/url] by kurmetov
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3426448380]Immersive Suicide[/url] by kStank
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3647117173]ImmersiveSolarArrays [42.16+][/url]: Part of it may not show: it draws on the game's inventory list. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2648152698]Improved Blood Effects[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2645975408]Improved Fire & Smoke Effects[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3565698092]Injury Indicator [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2948824747]Inspect Weapon[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3789584579]Instinctive Hearing [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3486217110][B42] Intuitive Crafting[/url]: Part of it does not show: it changes the game's crafting window; ZeD's World window has its own Craft tab. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3796373365]It is of interest to me![/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3767639280]Item Arrange[/url] by Slayer
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3477237184][B42] Item Details[/url]: Part of it does not show: its details are drawn on the game's inventory list. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3662387304]Item Rarity UI (Build 41 + 42)[/url]: Part of it does not show: its rarity colours and sort are for the game's inventory list. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3717902500]JB's Bugs In Lights[/url] by jimbeamdiablo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470422050]KATTAJ1 Clothes Core[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3470426196]KATTAJ1 Military Pack [B41/B42MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2881764317]Known And Collected[/url]: Part of it does not show: its read marks are drawn on the game's inventory list. ZeD's lists mark read and unread themselves. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388808256][B42+]L4D2 Zombie Siege Background Main Menu [16:9+21:9][/url]: Part of it does not show: ZeD's main menu is its own desk, so the menu background it replaces is not seen.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3629835761]Ladders?! B42.20 SP/MP (Unofficial)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3652012357]Lean & Lie[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3538353228]Legendary Backpacks[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3669469283]Legendary Professions and Traits[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779562002]LG Extended Electricity[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3779561845]LG Extended Plumbing[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403870858]Lifestyle: Hobbies[/url] by Angry
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2874678809]Lingering Whispers...[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2920899878]Load All Magazines[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3774789651]Long Term Preservation [42.20][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3406392630]Long Term Preservation [B42.13][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2732407704][ Reworked] Madax Weapon Pack - B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3747202678][B42] Madax Weapons Pack - Fixed 42.21[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3386409674][B42] MandoDB - Old Moodles Icons + Redrawn[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3785198639]Map All Known Fix [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3360392628]Map Mod Manager[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3399645148]Map Symbols Plus (Hand-drawn)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3395592779]Map Symbols Plus (Stensil)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3812456765]Martial Arts - Version 2[/url]: Its Martial Arts skill is in ZeD's Skills tab. Its style window button is on the game's side bar, which ZeD hides. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3423601261][B42] Mastered Traits[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3805849470]Mattnetic's Heart Health Meter [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2879745353]Melos Tiles for Miles Tilepack[/url] by melos_tiles
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2928660831]Military Grid Reference System For Map Callouts Cause You And Your Friends Get Lost Easily[/url]: Part of it does not show: its grid is drawn on the game's map, which ZeD's map replaces. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2629286881]Military Ponchos [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2705406713]Military Tool Kit[/url] by Papa_Chad
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2866258937]Mini Health Panel[/url] by Speedy Von Gofast: A click on it opens the game's own character window over ZeD's. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3710913197]Mini Health Plus[/url]: Its body figure panel shows on screen. Its click to the Health page was not tried.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388844542]Minimal Display Bars + Nutritions + Discomfort [B41/B42.20][/url]: Its bars show at the top left.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3019672735]Mod Comparer[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3077900375]Mod Update and Alert System[/url] by Chuckleberry Finn
+[/list]

@@ -1,0 +1,47 @@
+[h2]Compatible, 0-9 and A to H (part 1 of 3)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. I to Q is in reply 3, R to Z is in reply 4; vehicle packs are in reply 5.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2829657632][41&42]50% metal weight[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3020323164]Add More Map Symbols[/url] by Golem
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3409527910]Alarm Syndrome[/url] by PePePePePeil
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3610005735]ALICE Gear[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2959854619]Alice's DuffelBag Tweak[/url] by Alice
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3775549570]Alice's Weapon Sling[/url] by Alice
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=1962761540]Armored Vests (41/B42)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2207282444]Authentic Animations[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2335368829]Authentic Z[/url] by Authentic Peach: With its Backpacks+ add-on on as well, the two register the same clothing slots (their own error at load).
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3238830225]B42 Real Firearms WIP[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3268487204]Bandits NPC[/url] by Slayer: Its note at game start goes into ZeD's Messages.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2313387159]Better Sorting[/url] by ChthonicKnight: One error of its own at load on 42.21 (a drink with no item, BSdynamicCats). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3461415167]Bicycle![/url] by RedChili
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2850935956]Boots Expanded 11 for B41 and B42[/url] by SergeantMarkIV
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2725360009]Boredom Tweaks[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2850135071]Braven's Utilities[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3740052292]Companion Dogs[/url] by Björn: Its note at game start goes into ZeD's Messages.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3725497089]Computer Mod[/url] by Kumeji
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2625625421]Containers![/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2707905930]Cosplay商店(B42/B41)[/url] by 烟雨陌兮: One error of its own at load on 42.21 (a clothing slot named by text, which 42.21 no longer takes). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3780683663]Cye's Push Doors![/url] by Cye
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3452711271]darlak's H.E.C.U.[/url] by darlak97
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3197857648]Decoholic[/url] by PePePePePeil
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3671176591]dustinguished bolt cutters[/url] by dustinguished
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2996978365]Dynamic Backpack Upgrades[/url] by Dr. Lalaoz
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2674541310]Energy Drinks [B42][/url] by Anton Yagoda
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2896041179]errorMagnifier[/url] by Chuckleberry Finn: Keeps a copy of every error it shows. With a mod erroring every minute (Week One NPC), the game ran out of memory after about 35 minutes with 128 mods.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3119788162]42.21 | Every Texture Optimized[/url] by maceleet
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392001801]Excavation[/url] by albion
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3120702374]Extra Gun Slot[/url] by Braven
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2584112711]Faster Hood Opening[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3785740658]Fence Sheets[/url] by ragone
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2256623447]Firearms[/url] by Hyzo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2940354599]Fitness & Workout Overhaul[/url] by Codename280
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3795414660]Fitted Barricades[/url] by ragone
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2447729538]Fluffy Hair [B41/B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3042138819]Functional Appliances 2[/url] by Norby007
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3755993986]Gas Pump Indicator[/url] by movinow
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3722064198][42.20.4MP] Gunworks Framework[/url] by Marz, Chuck, Shark, Alex, Nik
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3342191739]Gyde's Trait Magazines [B42.20][/url] by Gyde
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2423266708]Hats and Glasses Don't Fall[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3618557184]Here Goes the Sun [B42MP][/url] by Bass
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3661336777]Horse Mod[/url] by albion: Wants to be on in the main menu's mod list too, or it warns at game start that it was not loaded properly and pauses the game (its own check). The warning goes into ZeD's Messages and the game runs on.
+[/list]

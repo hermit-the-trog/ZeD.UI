@@ -1,0 +1,51 @@
+[h2]Compatible, Br to D (part 2 of 8)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 10.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3780298456]Brita's Armor Pack B42.20+ / Standalone Armor Port & Multilingual Fixes[/url]: It adds armour lines to the item tooltip: from ZeD-GUI 0.2.0-t7 they show on ZeD's item tooltip; in 0.2.0-t6 ZeD's tooltip leaves them out. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2432621382]Bushcraft Gear - Rare Weapons [B41/B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2423906082]Bushcraft Gear - Tools [B41/B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3394044313]Buttstroke / Gun Stock Attack [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3390487814][B42] Carry visible generators[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3749026793][B42.20] Carry Visible Items In Hands [WIP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3762296152]CD: Rottweiler[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2749928925]CDDA Zombies[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776182375]CH Status HUD[/url]: Its status panel shows at the top left; ZeD's windows can cover it while a drawer is open.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3634630898]Challenge Traits - Headshots, CDDA, and More [42.21 Stable][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3453422228]Cheat Menu Phoenix [B42] [B41 Re-Up][/url]: Its rows are in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3683918273]Cheat Menu: Reloaded [B42 Fixed][/url]: Its rows are in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3287958074]Choose Your Spawn![/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3750612709]Civil Defense Sirens [B42 SP/MP][/url]: Its rows are in ZeD's world menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2786689104]Clothing Actions - Radial Menu[/url]: Its wheel is drawn as ZeD's wheel. Part of it does not show: its D-pad Up wheel gives way to ZeD's D-pad wheels. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2286124931]Combat Text (B40+B41+B42)[/url]: In ZeD-GUI 0.2.0-t6 its options page empties ZeD setup of ZeD's own options; fixed in 0.2.0-t7.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3775113600][FIXED] Combat Text Patch b42.20[/url]: A patch for Combat Text, loaded after it.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3427091746]Combat Traits[/url]: Its traits are in ZeD's trait list.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3750253491]Common Sense [B42.20+][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3740052292]Companion Dogs[/url] by Björn: Its note at game start goes into ZeD's Messages.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3725497089]Computer Mod[/url] by Kumeji
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3659137034]Cone Vision Outline [42.21.0] [SP&MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3789660055]Container Capacity Indicator [B42][/url]: Part of it does not show: its capacity marks are drawn on the game's container buttons. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3066276504]Container Tags [B42 + MP][/url] by Dismellion
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2625625421]Containers![/url] by KI5
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3780688809]Context Menu Cleanup[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2707905930]Cosplay商店(B42/B41)[/url] by 烟雨陌兮: One error of its own at load on 42.21 (a clothing slot named by text, which 42.21 no longer takes). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2744114761]Craft Engine Parts[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3428715523]Crafting XP Display[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2210760610][B41/B42] Cryogenic Winter +Easy/Hard Modes (SP/MP)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3559737194][B42] Custom Map Labels[/url]: Its labels are for the game's map. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2719850086][42.20] Customizable Containers[/url] by dane: Its Capacity Limit Bypass add-on was not tested.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3780683663]Cye's Push Doors![/url] by Cye
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2939187818]Darker Map[/url]: Part of it does not show: it darkens the game's map; the map key opens ZeD's map, which has its own styles.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3571222611]Darker Map & Satellite View[/url]: Part of it does not show: it restyles the game's map; the map key opens ZeD's map, which has its own styles. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3452711271]darlak's H.E.C.U.[/url] by darlak97
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3197857648]Decoholic[/url] by PePePePePeil
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=1436878551]Defecation v3.59 (Build 42.20mp+)[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392964216]Devcatt's Furry Moodles [Build 42+][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3761218629]Dismantle All at Once[/url]: Part of it may not show: it hooks the right-click of the game's inventory list. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3428369137]Dismantle Any Car[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3393821407][B42] Drag Bodies Faster[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3671176591]dustinguished bolt cutters[/url] by dustinguished
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2996978365]Dynamic Backpack Upgrades[/url] by Dr. Lalaoz
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3674800555]Dynamic Moodles[/url]: Part of it does not show: its moodle looks go to Moodles in lua's drawing, not to ZeD's moodles. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3781818628]Dynamic Snow for Vanilla Vehicles [B42 MP][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2459400130]Dynamic Traits and Expanded Moodles [B41 & B42][/url]: Its moodles go through Moodle Framework, which keeps them at the game's old place at the right edge. [i](expected)[/i]
+[/list]

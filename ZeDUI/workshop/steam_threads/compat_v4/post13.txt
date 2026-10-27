@@ -1,0 +1,15 @@
+[h2]Does not work[/h2]
+No mod tested so far clashes with ZeD-GUI (something happening twice, or one undoing the other). These are broken on Project Zomboid 42.21 by themselves, with or without ZeD-GUI. Found a mod that clashes? Reply with its name, its Workshop link and what happened.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2696986935]Barricaded World - Extended Erosion [b41/b42][/url]: Errors as new parts of the map load (it calls PropertyContainer.Is, which 42.21 removed). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3036830549][B42/41] Better Clothing Info Comparison[/url]: Its clothing tooltip errors every frame on 42.21 (a nil call in bcic_TooltipClothing.lua), with or without ZeD-GUI. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2875848298]Common Sense[/url] by Braven: Stops the world from loading: its recipes ask for a fluid, Alcohol, that 42.21 no longer has. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2835852387]Disassemble Container With Items[/url]: Replaces the game's furniture-moving code with an older copy that calls functions 42.21 removed, so picking up, placing and taking apart furniture error. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2714850307]Horde Night[/url]: Closes the game on 42.21 as a save loads (while saving its own data), with or without ZeD-GUI. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2737665235]Ladders!?[/url] by co`: Its ladder code errors as the world loads (setLadderClimbingFlags). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388107363][B42] Noir's Rifle Slings[/url]: Errors at load on 42.21 (a body location given as text), so its sling slot is not made. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2642486124]Quick Item Action[/url]: Every double-click on an item errors on 42.21 (it calls getTypeString, which 42.21 removed), with or without ZeD-GUI. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2845952197]Read While Walking[/url]: Errors every frame while you read: it asks for fatigue in a way 42.21 removed (getFatigue). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2640351732]Spear Traps[/url]: Every right-click on the world errors on 42.21, once per item you carry (it calls getCategories, which 42.21 removed), with or without ZeD-GUI. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403180543]Week One NPC[/url] by Slayer: Its scheduler errors once a game minute in an existing save (generateSchedule). Not ZeD.
+[/list]

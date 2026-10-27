@@ -1,0 +1,51 @@
+[h2]Compatible, E to H (part 3 of 8)[/h2]
+Loaded with ZeD-GUI, no errors of their own, and ZeD-GUI's tests passed with them on. Nothing special to say unless a note says so. A note that starts "Part of it does not show" means the mod adds to a game screen that ZeD-GUI replaces. The first post says which reply holds each part; vehicle packs are in reply 10.
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2871469707]Easy Drop'n'Loot[/url] by [usa]: Its Drop all (Category) rows are in ZeD's item menu. Its Loot and Transfer Category buttons are for the game's loot window and do not show in ZeD's.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3566088272]Easy Set Alarm[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3456212729]Eat Smart[/url]: Its food rows come through the game's item menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3374408921]Efficiency Skill Mod 2[/url]: Its Efficiency skill is in ZeD's starting skills on the occupation screen.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3442862183]Effortless Towing[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2735059209]Ellie's Tattoo Parlor V4 b41/b42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2674541310]Energy Drinks [B42][/url] by Anton Yagoda
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3446510982]Equip Clothing While Moving [B42.20/B42.19/B41][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2896041179]errorMagnifier[/url] by Chuckleberry Finn: Keeps a copy of every error it shows. With a mod erroring every minute (Week One NPC), the game ran out of memory after about 35 minutes with 128 mods.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3432928943]Escape From Tarkov Backpacks [B42.20][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3119788162]42.21 | Every Texture Optimized[/url] by maceleet
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2867163008]Everything Has a Name[/url]: Its Rename Stack row is in ZeD's item menu.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2914075159]Evolving Traits World (ETW) + More Traits continuation[/url]: Its traits are in ZeD's trait list. Part of it does not show: its trait progress page is added to the game's character window, which ZeD replaces. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3392001801]Excavation[/url] by albion
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2923554542]Exp Recovery for Skill Books[/url]: Part of it does not show: its marks are for the game's skill page. [i](by reading its code)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3440958051][B42 STABLE] Expanded Professions[/url]: Its 7 occupations are in ZeD's occupation list.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3650035249]Extended categories - Better Hoarding! (B42 SP/MP)[/url] by Kechna: Part of it does not show: its categories and colours are drawn on the game's inventory list, which ZeD replaces. [i](by reading its code)[/i] One error of its own at the main menu on 42.21 (an option text with a stray %). Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3120702374]Extra Gun Slot[/url] by Braven
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3444499190]Farming Expansion B42[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2584112711]Faster Hood Opening[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3785740658]Fence Sheets[/url] by ragone
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2256623447]Firearms[/url] by Hyzo
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3153010942]First Aid VHS Tapes[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2940354599]Fitness & Workout Overhaul[/url] by Codename280
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3795414660]Fitted Barricades[/url] by ragone
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3430172149][B42MP] FlipVehiclePlusTrailer[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2447729538]Fluffy Hair [B41/B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3750861914]Football & Shoving [SP & MP][/url]: Its NFL Player occupation is in ZeD's occupation list.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3042138819]Functional Appliances 2[/url] by Norby007
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3744455714]Functional Pager - Immersive Map-Wide Communication [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3685672179][B42] Functional TV Movies & Series - Framework[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3755993986]Gas Pump Indicator[/url] by movinow
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3722134990][42.21MP] GoM - Guns of Marz[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3793289804]GPS Cross-Device - ProjectZomboidMap.com[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3722064198][42.20.4MP] Gunworks Framework[/url] by Marz, Chuck, Shark, Alex, Nik
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3342191739]Gyde's Trait Magazines [B42.20][/url] by Gyde
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3776852122]Gyde's Trait Magazines Extended+[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3786918614]Hands: Stow, Equip, Place [B42][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2423266708]Hats and Glasses Don't Fall[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3672792485]HEF - Helicopter Event Framework[/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3256482412]Hephas Occupations and Traits[/url]: Its occupations take the place of the game's in ZeD's occupation list (its WithVanillaProfessions add-on keeps the game's).
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3618557184]Here Goes the Sun [B42MP][/url] by Bass
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3600186927]Hide Equipped Items[/url]: Its row is in ZeD's item menu; what it hides is in the game's inventory list. [i](expected)[/i]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3554048011]Hide Menu Debug + Remove Build Information[/url]: Part of it does not show: it hides the game's own Debug menu and build text; ZeD's main menu is its own.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3626823538]Hoarder's Delight - Box & Carton Bulk Packing [42.21 Stable][/url]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3661336777]Horse Mod[/url] by albion: Wants to be on in the main menu's mod list too, or it warns at game start that it was not loaded properly and pauses the game (its own check). The warning goes into ZeD's Messages and the game runs on.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3650168851][B42] Horticulture[/url]
+[/list]

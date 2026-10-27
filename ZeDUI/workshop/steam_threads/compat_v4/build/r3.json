@@ -1,0 +1,2761 @@
+{
+ "2695471997": {
+  "id": "2695471997",
+  "name": "PZ-ClothingUI - Clothing items grid view (B41 + B42 Updated)",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Its clothing window opens from its own button and sits beside ZeD's windows (seen, 8_clothingui).",
+  "authors": [
+   "Ramp,pagep"
+  ]
+ },
+ "2719850086": {
+  "id": "2719850086",
+  "name": "[42.20] Customizable Containers",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Lua mod only (its Capacity Limit Bypass sub-mod is a Java jar, left out). Loads, no errors of its own.",
+  "authors": [
+   "dane"
+  ]
+ },
+ "3669550831": {
+  "id": "3669550831",
+  "name": "[FIXED] Proximity Inventory B42.20 COMPATIBLE [SP/MP]",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its one container of everything nearby goes on the game's loot window; ZeD's World window shows each container in reach as its own column (by reading its code: ISInventoryPage.localContainer).",
+  "authors": []
+ },
+ "3066276504": {
+  "id": "3066276504",
+  "name": "Container Tags [B42 + MP]",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads; its tag panel is up (census CTagsPanel). Tag window itself not opened.",
+  "authors": []
+ },
+ "2871469707": {
+  "id": "2871469707",
+  "name": "Easy Drop'n'Loot",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Its Drop all (Category) and Drop all on the floor (Category) rows are in ZeD's item menu (seen); its Loot / Transfer Category buttons for the game's loot window were not seen in ZeD's footer.",
+  "authors": []
+ },
+ "3389115640": {
+  "id": "3389115640",
+  "name": "[B42MP] Take Any Amount",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its rows come through the game's item menu, which ZeD's menu shows (by reading its code).",
+  "authors": []
+ },
+ "3650035249": {
+  "id": "3650035249",
+  "name": "Extended categories - Better Hoarding! (B42 SP/MP)",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its categories and colours are drawn on the game's inventory list, which ZeD replaces (by reading its code: ISInventoryPane drawText). One error of its own at the main menu on 42.21 (option text IGUI_CAEC_Options_categoryColorsTintStrength has a stray %), also with ZeD off.",
+  "authors": [
+   "Kechna"
+  ]
+ },
+ "3790656296": {
+  "id": "3790656296",
+  "name": "NeatUI Equipment [42.21]",
+  "group": "A",
+  "list": "Not needed",
+  "ev": "ZeD's Equip tab has a paper doll. Its panel hangs on the game's inventory window, which ZeD replaces: its toggle is there with no size (census NEQ_ToggleButton 0x16).",
+  "authors": [
+   "Gimmi"
+  ]
+ },
+ "3782920935": {
+  "id": "3782920935",
+  "name": "Nick's Inventory Selection Fix",
+  "group": "A",
+  "list": "Not needed",
+  "ev": "It fixes selection in the game's inventory list, which ZeD replaces; ZeD's lists have their own selection (expected).",
+  "authors": [
+   "Nick"
+  ]
+ },
+ "3470852353": {
+  "id": "3470852353",
+  "name": "[B42/41] Improved Farming Info Window",
+  "group": "A",
+  "list": "Not needed",
+  "ev": "ZeD shows farm plot info in its object card (Overrides/InfoCards); the mod's window is the game's farming info window it replaces (expected).",
+  "authors": []
+ },
+ "3392699932": {
+  "id": "3392699932",
+  "name": "Auto Loot",
+  "group": "A",
+  "list": "Works well",
+  "ev": "Its Auto Loot OFF switch and Store All are buttons in the footer of ZeD's Inventory window, and its Auto Loot Item Type / Container Auto Loot rows are in ZeD's item and container menus (seen, zqa_r3A_1_loot, cl and op tests).",
+  "authors": [
+   "Tchernobill"
+  ]
+ },
+ "3410947298": {
+  "id": "3410947298",
+  "name": "[B42] Nested Containers",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: the bags inside bags it adds to the game's container buttons are not added to ZeD's columns (by reading its code).",
+  "authors": [
+   "Nikku Miru"
+  ]
+ },
+ "3773985930": {
+  "id": "3773985930",
+  "name": "O.C.D. Inventory",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors; it sorts the game's inventory list (ZeD's lists sort themselves) (by reading its code).",
+  "authors": []
+ },
+ "3422112160": {
+  "id": "3422112160",
+  "name": "[B42, READ DESC] Mutie's Context Menu Icons Expanded & Redrawn",
+  "group": "A",
+  "list": "Not needed",
+  "ev": "ZeD's item menu draws its own icon set; a mod's icon shows only on rows ZeD has no icon for (ZeD ContextMenuRegistry: its icon first, the option's iconTexture after). Storage + Redrawn sub-mods tested.",
+  "authors": [
+   "Artmine15"
+  ]
+ },
+ "3718412967": {
+  "id": "3718412967",
+  "name": "Icons Inventory",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its icon grid is on the game's inventory window (by reading its code). Its first-start window (Smart Inventory Gestures) opens over the game at the left, not over ZeD's windows (seen).",
+  "authors": [
+   "ngasull"
+  ]
+ },
+ "2629074154": {
+  "id": "2629074154",
+  "name": "Stack All",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its Stack All row comes through the game's item menu (by reading its code).",
+  "authors": []
+ },
+ "2604943386": {
+  "id": "2604943386",
+  "name": "Addicted To Weight",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads; its weight HUD and its first-start note window show over the game, clear of ZeD's windows (seen, zqa_r3A_1_loot).",
+  "authors": [
+   "PePePePePeil"
+  ]
+ },
+ "3576056135": {
+  "id": "3576056135",
+  "name": "Better Generator Info",
+  "group": "A",
+  "list": "Not needed",
+  "ev": "ZeD routes the generator info window to its object card (Overrides/InfoCards), so its better generator window does not show (expected).",
+  "authors": [
+   "Eurymachus (Original by Bananaut and Undefined)"
+  ]
+ },
+ "2881764317": {
+  "id": "2881764317",
+  "name": "Known And Collected",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its read marks are drawn on the game's inventory list (ZeD marks read / unread itself from 0.2.0-t6) (by reading its code).",
+  "authors": []
+ },
+ "3477237184": {
+  "id": "3477237184",
+  "name": "[B42] Item Details",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its details are drawn on the game's inventory list (by reading its code).",
+  "authors": [
+   "Bravo"
+  ]
+ },
+ "3768669395": {
+  "id": "3768669395",
+  "name": "True Weight",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors (item weight values only).",
+  "authors": [
+   "Jesus.Christ"
+  ]
+ },
+ "3716522633": {
+  "id": "3716522633",
+  "name": "[B41,B42] Show VHS skills in tooltip",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads; it hooks the tooltip at game start, after ZeD, so its lines show on ZeD's tooltip (by reading its code; VHS tooltip same in ZeD and safe mode).",
+  "authors": [
+   "Aire_Ayquaza"
+  ]
+ },
+ "3394609418": {
+  "id": "3394609418",
+  "name": "[B42] Item Condition Fix",
+  "group": "A",
+  "list": "Not needed",
+  "ev": "Fix for Item Condition, whose bars are on the game's hotbar; ZeD shows condition on the belt and in every list (as Item Condition, round 2).",
+  "authors": []
+ },
+ "3650168851": {
+  "id": "3650168851",
+  "name": "[B42] Horticulture",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors (farming content).",
+  "authors": [
+   "Balance"
+  ]
+ },
+ "3662387304": {
+  "id": "3662387304",
+  "name": "Item Rarity UI (Build 41 + 42)",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its rarity colours and sort are for the game's inventory list (by reading its code: ISInventoryPane).",
+  "authors": [
+   "Endi Monan"
+  ]
+ },
+ "3739168410": {
+  "id": "3739168410",
+  "name": "Obvious Skill Tapes - highlight useful VHS tapes",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its tape highlight is drawn on the game's inventory list (by reading its code).",
+  "authors": [
+   "qwerto"
+  ]
+ },
+ "3444499190": {
+  "id": "3444499190",
+  "name": "Farming Expansion B42",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors (farming content).",
+  "authors": []
+ },
+ "3604080281": {
+  "id": "3604080281",
+  "name": "Better Clothing Info",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its wear preview is in the game's item menu tooltip (not checked).",
+  "authors": []
+ },
+ "3404461962": {
+  "id": "3404461962",
+  "name": "Show Sowing Season In Seed Tooltip",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its sowing lines go on the game's item tooltip through Starlit Library, and ZeD's tooltip leaves them out (seen: seed tooltip in ZeD vs ZeD's safe mode, seed_tooltip_ab.png). ZeD bug 1.",
+  "authors": []
+ },
+ "3587884762": {
+  "id": "3587884762",
+  "name": "Smarter Storage - Extra Presets",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors; Smarter Storage's names and colours go on the game's container buttons (as Smarter Storage, round 2).",
+  "authors": [
+   "phoenix"
+  ]
+ },
+ "3653092321": {
+  "id": "3653092321",
+  "name": "Immersive Hotwire",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors (hotwire mini-game not tried).",
+  "authors": []
+ },
+ "3036830549": {
+  "id": "3036830549",
+  "name": "[B42/41] Better Clothing Info Comparison",
+  "group": "A",
+  "list": "Does not work",
+  "ev": "Its clothing tooltip errors every frame on 42.21 in the game's own tooltip (DoTooltipClothing, bcic_TooltipClothing.lua:65, a nil call), seen in ZeD's safe mode; under ZeD's tooltip its comparison is left out (ZeD bug 1).",
+  "authors": []
+ },
+ "3797492691": {
+  "id": "3797492691",
+  "name": "Try Before You Wear",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Its Try Before You Wear window opens (its own open) centred over the game, clear of ZeD's windows (seen, 9_tbyw).",
+  "authors": [
+   "Diakøe"
+  ]
+ },
+ "3789660055": {
+  "id": "3789660055",
+  "name": "Container Capacity Indicator [B42]",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its capacity marks are drawn on the game's container buttons (by reading its code).",
+  "authors": []
+ },
+ "3446510982": {
+  "id": "3446510982",
+  "name": "Equip Clothing While Moving [B42.20/B42.19/B41]",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors (timed actions only).",
+  "authors": []
+ },
+ "2744114761": {
+  "id": "2744114761",
+  "name": "Craft Engine Parts",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors (recipes). CraftEngineParts sub-mod (its price variants are alternatives).",
+  "authors": [
+   "Titoxic"
+  ]
+ },
+ "3626823538": {
+  "id": "3626823538",
+  "name": "Hoarder's Delight - Box & Carton Bulk Packing [42.21 Stable]",
+  "group": "A",
+  "list": "Compatible",
+  "ev": "Loads, no errors (packing recipes).",
+  "authors": []
+ },
+ "2286124931": {
+  "id": "2286124931",
+  "name": "Combat Text (B40+B41+B42)",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors of its own; its floating text manager is up (census ISHealthBarManager). Its options page, added the old way, empties ZeD setup of ZeD's own options (ZeD bug 4, seen in the full run).",
+  "authors": []
+ },
+ "2459400130": {
+  "id": "2459400130",
+  "name": "Dynamic Traits and Expanded Moodles [B41 & B42]",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Its own moodles go through Moodle Framework, which keeps them at the game's old place at the right edge (as Moodle Framework, round 2) (expected).",
+  "authors": [
+   "PepperCat, Afyrmo"
+  ]
+ },
+ "2854030563": {
+  "id": "2854030563",
+  "name": "Moodle Quarters [B42]",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its quarter marks are for the game's moodle column; its layer is up with no height (census MoodleQuartersUI 48x0).",
+  "authors": [
+   "DahakaMVl"
+  ]
+ },
+ "3567084868": {
+  "id": "3567084868",
+  "name": "[B42] Mod Manager",
+  "group": "B",
+  "list": "Not needed",
+  "ev": "ZeD's mod manager does the job; with the mod on, ZeD's Mods window lists and switches mods as usual (29 of 1361 on, seen) and the mod's own screens do not show (they patch the game's mod screen).",
+  "authors": [
+   "DeadEnvoy"
+  ]
+ },
+ "3395171770": {
+  "id": "3395171770",
+  "name": "Moodles in lua [B42.20]",
+  "group": "B",
+  "list": "Not needed",
+  "ev": "ZeD draws and places the moodles itself (its Moodles setting: right, left or above the belt) and puts the game's column back where it set it. With this mod on, it also draws some moodles a second time at the game's old place, the right edge 120 down (two seen, whatever ZeD's setting), so use one (seen, B_moodles_bottom_plus_two_at_old_place.png).",
+  "authors": [
+   "molecule31; Dreamweave"
+  ]
+ },
+ "3387640099": {
+  "id": "3387640099",
+  "name": "[B42] Bigger Character Avatar",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it enlarges the figure on the game's character screen; ZeD's Character window has its own figure (by reading its code: ISCharacterScreen). Large size sub-mod tested.",
+  "authors": []
+ },
+ "3674800555": {
+  "id": "3674800555",
+  "name": "Dynamic Moodles",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its moodle looks go to Moodles in lua's drawing, not to ZeD's moodles (expected).",
+  "authors": [
+   "Luigiceva"
+  ]
+ },
+ "3776182375": {
+  "id": "3776182375",
+  "name": "CH Status HUD",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Its status panel shows at the top left (seen, B_hud_mods_windows_open.jpg); ZeD's windows can lie over it when a drawer is open.",
+  "authors": []
+ },
+ "3388844542": {
+  "id": "3388844542",
+  "name": "Minimal Display Bars + Nutritions + Discomfort [B41/B42.20]",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Its bars show at the top left (seen).",
+  "authors": []
+ },
+ "3710913197": {
+  "id": "3710913197",
+  "name": "Mini Health Plus",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Its body figure panel shows mid-screen (seen); its click to the Health page was not tried with ZeD (Mini Health Panel's is supported).",
+  "authors": [
+   "Speedy Von Gofast, TwisTonFire"
+  ]
+ },
+ "3495906499": {
+  "id": "3495906499",
+  "name": "[B42] Survival HUD",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Its needs and endurance HUD show at the bottom corners, clear of ZeD's belt (seen); its hotbar dragging is for the game's hotbar, which ZeD's belt replaces (by reading its code).",
+  "authors": [
+   "DeadEnvoy"
+  ]
+ },
+ "3676456221": {
+  "id": "3676456221",
+  "name": "Lua Digital Watch Framework",
+  "group": "B",
+  "list": "Not needed",
+  "ev": "ZeD shows the watch (top right and on the belt); this framework draws the game's digital watch HUD (expected). Not seen: no digital watch worn in the test.",
+  "authors": [
+   "RedChili"
+  ]
+ },
+ "3775113600": {
+  "id": "3775113600",
+  "name": "[FIXED] Combat Text Patch b42.20",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors (patch for Combat Text, loaded after it).",
+  "authors": [
+   "ifchan"
+  ]
+ },
+ "3779405481": {
+  "id": "3779405481",
+  "name": "Nested Health Info",
+  "group": "B",
+  "list": "Not needed",
+  "ev": "It lays out the game's health panel; ZeD's Health tab replaces that panel (expected).",
+  "authors": [
+   "Kerhus, Kaoeutsu"
+  ]
+ },
+ "3002666175": {
+  "id": "3002666175",
+  "name": "[B41&B42] Show Wall Health",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors (its wall health window not opened).",
+  "authors": [
+   "Kamer"
+  ]
+ },
+ "3044807092": {
+  "id": "3044807092",
+  "name": "Stairs Alert",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "BitBraven"
+  ]
+ },
+ "2926455909": {
+  "id": "2926455909",
+  "name": "Large Progress Indicator",
+  "group": "B",
+  "list": "Not needed",
+  "ev": "Textures for the game's action progress bar; ZeD's action bar shows progress (suite_band passed) (expected).",
+  "authors": [
+   "Riko Prushka"
+  ]
+ },
+ "3389003300": {
+  "id": "3389003300",
+  "name": "[B42] Moodle Descriptions Expanded",
+  "group": "B",
+  "list": "Works well",
+  "ev": "Its longer moodle texts (effects with numbers) are what ZeD's moodle notes show (seen: Nervous, -1.3% Crit, in ZeD's bubble above the belt).",
+  "authors": []
+ },
+ "3399432867": {
+  "id": "3399432867",
+  "name": "[B42.13+] SimpleStatus-Fixed",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Its status bars show at the left (seen).",
+  "authors": []
+ },
+ "3402171609": {
+  "id": "3402171609",
+  "name": "Simple Moodle Indicators",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its level marks are for Moodles in lua's drawing (expected).",
+  "authors": [
+   "Dreamweave"
+  ]
+ },
+ "3565698092": {
+  "id": "3565698092",
+  "name": "Injury Indicator [B42]",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "BOBcat"
+  ]
+ },
+ "2891170430": {
+  "id": "2891170430",
+  "name": "[B42MP] Simple Show XP",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3659137034": {
+  "id": "3659137034",
+  "name": "Cone Vision Outline [42.21.0] [SP&MP]",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3793657917": {
+  "id": "3793657917",
+  "name": "Pixel Strike Indicator & Health Bar",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Riko Prushka"
+  ]
+ },
+ "3805849470": {
+  "id": "3805849470",
+  "name": "Mattnetic's Heart Health Meter [B42]",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Loads (its log: compatibility renderer installed), no errors.",
+  "authors": [
+   "Mattnetic"
+  ]
+ },
+ "3819438691": {
+  "id": "3819438691",
+  "name": "Wound Expansion",
+  "group": "B",
+  "list": "Compatible",
+  "ev": "Base mod only (its ZombieBuddy add-on left out). Part of it does not show: its wound details are on the game's health panel, which ZeD's Health tab replaces (by reading its code).",
+  "authors": [
+   "Kaoeutsu"
+  ]
+ },
+ "2914075159": {
+  "id": "2914075159",
+  "name": "Evolving Traits World (ETW) + More Traits continuation",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Part of it does not show: its trait progress page is added to the game's character window, which ZeD replaces (by reading its code: xpUpdate.characterInfo). Its traits are in ZeD's trait list.",
+  "authors": [
+   "MusicManiac"
+  ]
+ },
+ "3374408921": {
+  "id": "3374408921",
+  "name": "Efficiency Skill Mod 2",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its Efficiency skill is in ZeD's starting skills on the occupation screen (seen). Efficiency Skill Mod 2 sub-mod (Legacy left out).",
+  "authors": [
+   "GersonRess"
+  ]
+ },
+ "3545533939": {
+  "id": "3545533939",
+  "name": "[B41/B42] Toughness Skill",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors (skill).",
+  "authors": [
+   "FishLord"
+  ]
+ },
+ "3621388762": {
+  "id": "3621388762",
+  "name": "RPGSkillTree[42.13][SP]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its full-screen skill tree opens through its own open (pauses the game, as it does without ZeD) and closes back to ZeD's windows (seen, C_rpg_skill_tree.jpg). Some of its labels show as text keys (UI_RPG_Status): its own.",
+  "authors": []
+ },
+ "2761200458": {
+  "id": "2761200458",
+  "name": "Yaki's Hair Salon",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors (with Fluffy Hair).",
+  "authors": []
+ },
+ "3153010942": {
+  "id": "3153010942",
+  "name": "First Aid VHS Tapes",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "RDavisGames"
+  ]
+ },
+ "2735059209": {
+  "id": "2735059209",
+  "name": "Ellie's Tattoo Parlor V4 b41/b42",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "ElictraV"
+  ]
+ },
+ "899287010": {
+  "id": "899287010",
+  "name": "+300 Points Trait",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its points show in ZeD's occupation screen title (seen).",
+  "authors": []
+ },
+ "3220040578": {
+  "id": "3220040578",
+  "name": "RYG Progress Indicator",
+  "group": "C",
+  "list": "Not needed",
+  "ev": "Textures for the game's action progress bar; ZeD's action bar shows progress (expected).",
+  "authors": [
+   "Riko Prushka"
+  ]
+ },
+ "1436878551": {
+  "id": "1436878551",
+  "name": "Defecation v3.59 (Build 42.20mp+)",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors (its windows not opened).",
+  "authors": [
+   "nater"
+  ]
+ },
+ "3423984426": {
+  "id": "3423984426",
+  "name": "True Smoking [B42MP]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its own light-up action shows on ZeD's action bar by its name (LIGHTING SMOKE, full run); its moodles go through Moodle Framework (game's old place at the right edge, expected).",
+  "authors": []
+ },
+ "2863908612": {
+  "id": "2863908612",
+  "name": "SixthSense",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Tchernobill"
+  ]
+ },
+ "3498347699": {
+  "id": "3498347699",
+  "name": "Somewhat Traits",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its traits are in ZeD's trait list (seen). Core + Traits sub-mods.",
+  "authors": [
+   "somewhatfrog"
+  ]
+ },
+ "3391145494": {
+  "id": "3391145494",
+  "name": "[B42] OSRS Exp Drops",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its XP bar shows at the top right below ZeD's watch (census ISExpBar 3440,200).",
+  "authors": []
+ },
+ "3413529369": {
+  "id": "3413529369",
+  "name": "[B42] OSRS XP Drops Retextured",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads with OSRS Exp Drops, no errors.",
+  "authors": [
+   "FishLord"
+  ]
+ },
+ "3392116408": {
+  "id": "3392116408",
+  "name": "Neon moodle levels",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its level colours are for Moodles in lua's drawing (expected).",
+  "authors": []
+ },
+ "3256482412": {
+  "id": "3256482412",
+  "name": "Hephas Occupations and Traits",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads on 42.21 without the B41 Profession Framework (its mod.info does not ask for it), no errors. Its 20 occupations replace the game's in ZeD's occupation list (seen; its WithVanillaProfessions sub-mod keeps the game's).",
+  "authors": [
+   "Hephaistos"
+  ]
+ },
+ "3427091746": {
+  "id": "3427091746",
+  "name": "Combat Traits",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its traits are in ZeD's trait list. Core + Traits sub-mods.",
+  "authors": [
+   "somewhatfrog"
+  ]
+ },
+ "3738669352": {
+  "id": "3738669352",
+  "name": "Become Desensitized [B42.20 Stable Unofficial SP/MP]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Stultusaur"
+  ]
+ },
+ "3622328997": {
+  "id": "3622328997",
+  "name": "Adaptive Traits",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3557111695": {
+  "id": "3557111695",
+  "name": "Skill Book Expansion",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "2923554542": {
+  "id": "2923554542",
+  "name": "Exp Recovery for Skill Books",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its marks are for the game's skill page (by reading its code: ISSkillProgressBar).",
+  "authors": []
+ },
+ "3717099183": {
+  "id": "3717099183",
+  "name": "Working Knowledge - Lootable Skill Documents",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Ryan"
+  ]
+ },
+ "3765795716": {
+  "id": "3765795716",
+  "name": "Practice Crafting Skills",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Base sub-mod.",
+  "authors": [
+   "AnnLikki"
+  ]
+ },
+ "3456212729": {
+  "id": "3456212729",
+  "name": "Eat Smart",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its food rows come through the game's item menu.",
+  "authors": [
+   "Afyrmo"
+  ]
+ },
+ "3634630898": {
+  "id": "3634630898",
+  "name": "Challenge Traits - Headshots, CDDA, and More [42.21 Stable]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3806020504": {
+  "id": "3806020504",
+  "name": "This Is Me - More Character Traits",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its traits are in ZeD's Traits tab (zedqa_traits.lua passed with it). Part of it does not show: its read-tooltip lines wrap ISToolTipInv.render at load (ZeD bug 1).",
+  "authors": [
+   "GersonRess"
+  ]
+ },
+ "3736555309": {
+  "id": "3736555309",
+  "name": "The Psychopath Trait [B42.20+ SP/MP]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "One error of its own at load on 42.21: a recipe input LabItems.LabSmallRandomHumanBones not found (a script line, before any UI). Otherwise loads.",
+  "authors": [
+   "rEXX"
+  ]
+ },
+ "3423601261": {
+  "id": "3423601261",
+  "name": "[B42] Mastered Traits",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors. MasteredT-20 sub-mod.",
+  "authors": [
+   "Neighz"
+  ]
+ },
+ "3738660077": {
+  "id": "3738660077",
+  "name": "Become Brave [B42.20 Stable Unofficial SP/MP]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Stultusaur"
+  ]
+ },
+ "3776852122": {
+  "id": "3776852122",
+  "name": "Gyde's Trait Magazines Extended+",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads with Gyde's Trait Magazines, no errors.",
+  "authors": [
+   "awakutuhop"
+  ]
+ },
+ "3750861914": {
+  "id": "3750861914",
+  "name": "Football & Shoving [SP & MP]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its NFL Player occupation is in ZeD's occupation list (seen). Football sub-mod.",
+  "authors": [
+   "Salmancyan"
+  ]
+ },
+ "3812456765": {
+  "id": "3812456765",
+  "name": "Martial Arts - Version 2",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Its Martial Arts skill is in ZeD's Skills tab (seen, C_skills_martial_arts.jpg); its style window button is on the game's left side bar (by reading its code).",
+  "authors": [
+   "Senator"
+  ]
+ },
+ "3789584579": {
+  "id": "3789584579",
+  "name": "Instinctive Hearing [B42]",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Base mod only (its outline add-on needs ZombieBuddy). Loads, no errors.",
+  "authors": []
+ },
+ "2974652138": {
+  "id": "2974652138",
+  "name": "[B41/B42] /bin/'s Profession and Skill Based Starting Items",
+  "group": "C",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3635856965": {
+  "id": "3635856965",
+  "name": "Better Auto Mechanics [B42.20.4+ MP+SP]",
+  "group": "D",
+  "list": "Works well",
+  "ev": "Its part actions patch the game's part menu (doPartContextMenu), which ZeD's Vehicle tab calls for its part menu, so they come up there; its own mechanics window is the game's, which ZeD routes to the Vehicle tab (by reading its code; as Auto Mechanics).",
+  "authors": [
+   "Hotox"
+  ]
+ },
+ "3304582091": {
+  "id": "3304582091",
+  "name": "Standardized Vehicle Upgrades 3 - Vanilla Addon",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads with SVU3 Core and Tsar's library, no errors.",
+  "authors": []
+ },
+ "3403490889": {
+  "id": "3403490889",
+  "name": "Standardized Vehicle Upgrades 3 - Core - B42",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its upgrades go through the game's part menu (by reading its code).",
+  "authors": []
+ },
+ "2957935793": {
+  "id": "2957935793",
+  "name": "Another Vehicle Claim System",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Multiplayer mod; its Claimed Vehicles Manager row is in ZeD's world menu (seen). Base sub-mod only.",
+  "authors": [
+   "Lu5ck"
+  ]
+ },
+ "3739256322": {
+  "id": "3739256322",
+  "name": "Banger's Retro Car Dashboard [B42]",
+  "group": "D",
+  "list": "Not needed",
+  "ev": "ZeD replaces the dashboard; seated, only ZeD's dashboard shows (census, every car) (as Realistic Dashboard, round 2).",
+  "authors": [
+   "Banger"
+  ]
+ },
+ "3768298886": {
+  "id": "3768298886",
+  "name": "Better Lockpicking (Continued) b42.20+",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors (its lockpick windows not opened).",
+  "authors": []
+ },
+ "3799050151": {
+  "id": "3799050151",
+  "name": "More Traits Definitive Edition",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its traits go to ZeD's trait list (expected, as More Traits).",
+  "authors": [
+   "Fork by GersonRess"
+  ]
+ },
+ "2791656602": {
+  "id": "2791656602",
+  "name": "[B42/B41] The Motorious Zone Vehicle Pack",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "fhqH1 and fhqAZ1 spawned, driven seat, key, engine: ZeD's dashboard shows (generic design) and the Vehicle tab lists 41 / 37 parts. Base + US Motors sub-mods.",
+  "authors": []
+ },
+ "2843855721": {
+  "id": "2843855721",
+  "name": "'90 Mercedes-Benz Unimog U1550L",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "U1550L and U1550L OffRoad: ZeD's dashboard and Vehicle tab (49 / 40 parts).",
+  "authors": []
+ },
+ "2830570280": {
+  "id": "2830570280",
+  "name": "You drive, I sleep",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors (sleeping in a car not tried).",
+  "authors": [
+   "Chuckleberry Finn"
+  ]
+ },
+ "2975204120": {
+  "id": "2975204120",
+  "name": "Nepenthe's Colored Engine Status (Now a vanilla feature in B42)",
+  "group": "D",
+  "list": "Not needed",
+  "ev": "Says itself it is now a game feature; its colours are for the game's mechanics window, which ZeD's Vehicle tab replaces (expected).",
+  "authors": []
+ },
+ "2973053380": {
+  "id": "2973053380",
+  "name": "Nepenthe's Colored Battery Status (Now a vanilla feature in B42)",
+  "group": "D",
+  "list": "Not needed",
+  "ev": "Says itself it is now a game feature; its colours are for the game's mechanics window (expected).",
+  "authors": []
+ },
+ "2634426926": {
+  "id": "2634426926",
+  "name": "[B41 / B42.12+] bikinitools - independent vehicle spawner, skin changer and automations!",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Its bikinitools rows are in ZeD's world menu (seen); three of its own menu texts miss an argument on 42.21 (game warnings, not errors). Base sub-mod.",
+  "authors": [
+   "bikinihorst"
+  ]
+ },
+ "3404737883": {
+  "id": "3404737883",
+  "name": "Autotsar Motor Club B42",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "AMC quad and Harley: ZeD's dashboard and Vehicle tab (27 parts each).",
+  "authors": []
+ },
+ "3402493701": {
+  "id": "3402493701",
+  "name": "Autotsar Trailers B42",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "TrailerHome and TrailerKbac: ZeD's Vehicle tab beside them (37 / 7 parts) (rerun with the character beside the trailer).",
+  "authors": []
+ },
+ "3162566044": {
+  "id": "3162566044",
+  "name": "[B41/B42] More Immersive Vehicles",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3618427553": {
+  "id": "3618427553",
+  "name": "RV Interior Expansion [B42]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads with Project RV Interior, no errors (interior not entered).",
+  "authors": [
+   "Caçador"
+  ]
+ },
+ "3402812859": {
+  "id": "3402812859",
+  "name": "Autotsar Bus B42",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Army Bus and Prison Bus: ZeD's dashboard and Vehicle tab (60 / 51 parts) (seen, D_bus_dashboard.jpg, D_bus_vehicle_tab.jpg). Its roof rack containers log 'cannot get ID' lines (engine log, not errors).",
+  "authors": []
+ },
+ "3622163276": {
+  "id": "3622163276",
+  "name": "RV Interior Expansion Part 2 [B42]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Caçador"
+  ]
+ },
+ "3428369137": {
+  "id": "3428369137",
+  "name": "Dismantle Any Car",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3430172149": {
+  "id": "3430172149",
+  "name": "[B42MP] FlipVehiclePlusTrailer",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3409723807": {
+  "id": "3409723807",
+  "name": "[B42] UH-1B Helicopter (Beta)",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "UH-1B Huey (with Aviation Core): ZeD's dashboard and Vehicle tab (33 parts). Its burnt wreck is not a car to sit in (entering it errors in the game's own dashboard code).",
+  "authors": [
+   "User"
+  ]
+ },
+ "3780639614": {
+  "id": "3780639614",
+  "name": "[B42.21+ MP] - Push Vehicle",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3683878228": {
+  "id": "3683878228",
+  "name": "[B42.19] Filibuster Rhymes' Certified Used Cars",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Two of its cars (llv_89, gto_65): ZeD's dashboard and Vehicle tab (45 / 53 parts). Its title-screen sub-mod loaded too.",
+  "authors": []
+ },
+ "3781616141": {
+  "id": "3781616141",
+  "name": "[B42.20+] Vehicle Aim Roof Fix",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "bob"
+  ]
+ },
+ "3386486141": {
+  "id": "3386486141",
+  "name": "Old moodles +new [B42+]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors (moodle icons).",
+  "authors": [
+   "molecule31"
+  ]
+ },
+ "3806955469": {
+  "id": "3806955469",
+  "name": "True Cargo - Project Full HD",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its cargo view is drawn on the game's inventory window (by reading its code: ISInventoryPage.render).",
+  "authors": [
+   "Alden Gredic"
+  ]
+ },
+ "3442862183": {
+  "id": "3442862183",
+  "name": "Effortless Towing",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3775809123": {
+  "id": "3775809123",
+  "name": "Dash Roamer [B42]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "DashRoamer and Stellar Command (with its SVU patch): ZeD's dashboard and Vehicle tab (55 parts each).",
+  "authors": []
+ },
+ "3690308807": {
+  "id": "3690308807",
+  "name": "Vehicle Ground Guard [B42 SP + MP]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3760545452": {
+  "id": "3760545452",
+  "name": "NeatUI XP Drop [42.21]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Its XP bar shows at the top right (census NeatXPBar 3480,180); ZeD's World window covers its left edge when the Vehicle drawer is open (seen).",
+  "authors": [
+   "Gimmi"
+  ]
+ },
+ "3785695033": {
+  "id": "3785695033",
+  "name": "[B42.20+] Vehicle Enter/Exit Fix",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors (every car entered and left without error).",
+  "authors": []
+ },
+ "3669469283": {
+  "id": "3669469283",
+  "name": "Legendary Professions and Traits",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3436499337": {
+  "id": "3436499337",
+  "name": "Vehicle Military Zones",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads with Yet Another PZ Library, no errors.",
+  "authors": [
+   "Пупсич"
+  ]
+ },
+ "3409472393": {
+  "id": "3409472393",
+  "name": "W900 Semi-Truck [B42]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Semi Truck and Semi Truck Box: ZeD's dashboard and Vehicle tab (59 / 55 parts).",
+  "authors": [
+   "Lexx,Wipe,Beathoven",
+   "Beathoven"
+  ]
+ },
+ "3554424111": {
+  "id": "3554424111",
+  "name": "U.S. M998 Humvee by Papa_Chad",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Needs Military Tool Kit (2705406713), which its mod.info does not name: without it the Humvee spawns with errors (Vehicles.Create.PC_Default missing) and cannot be driven. With it: ZeD's dashboard and Vehicle tab (54 parts) (rerun).",
+  "authors": [
+   "Papa_Chad"
+  ]
+ },
+ "3457132019": {
+  "id": "3457132019",
+  "name": "Specific Loot (KI5)",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads with Yet Another PZ Library, no errors.",
+  "authors": [
+   "Пупсич"
+  ]
+ },
+ "3781818628": {
+  "id": "3781818628",
+  "name": "Dynamic Snow for Vanilla Vehicles [B42 MP]",
+  "group": "D",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "515555911": {
+  "id": "515555911",
+  "name": "More Builds",
+  "group": "E",
+  "list": "Works well",
+  "ev": "Its build window opens from its More Builds row in ZeD's world menu (seen) and works beside ZeD's windows (seen, E_more_builds.jpg).",
+  "authors": [
+   "ProjectSky"
+  ]
+ },
+ "2939187818": {
+  "id": "2939187818",
+  "name": "Darker Map",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it darkens the game's map; the game's map key opens ZeD's map pop-out, which has its own styles (Survey, Color, Paper) (seen).",
+  "authors": []
+ },
+ "2928660831": {
+  "id": "2928660831",
+  "name": "Military Grid Reference System For Map Callouts Cause You And Your Friends Get Lost Easily",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its grid is drawn on the game's map, which ZeD's map replaces (expected).",
+  "authors": [
+   "Chuckleberry Finn"
+  ]
+ },
+ "3554048011": {
+  "id": "3554048011",
+  "name": "Hide Menu Debug + Remove Build Information",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it hides the game's own Debug and build texts; ZeD's main menu keeps its Debug menu under -debug (seen). HideDebugMenu sub-mod.",
+  "authors": [
+   "SuperJetPlus"
+  ]
+ },
+ "2756434288": {
+  "id": "2756434288",
+  "name": "Better Server Settings",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors (server settings screens not opened).",
+  "authors": []
+ },
+ "3772052709": {
+  "id": "3772052709",
+  "name": "Spawn Selector [B42 Stable]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Its Spawn Selector is a spawn place in ZeD's New Game list, with its picture and text (seen); its own map after character creation was not tried.",
+  "authors": []
+ },
+ "3632610172": {
+  "id": "3632610172",
+  "name": "True Moozic B42+  The Music System for Project Zomboid (SP/MP)",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its music rows are in ZeD's world menu (Ban Music List, seen). Part of it may not show: its Hi-Fi window hooks the game's radio window (by reading its code).",
+  "authors": [
+   "talismon",
+   "a_cow_says, hasteL, talismon"
+  ]
+ },
+ "3575778063": {
+  "id": "3575778063",
+  "name": "TwisTonFire - Improved Soundoptions",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it restyles the game's sound options page; ZeD's Options are its own (expected).",
+  "authors": []
+ },
+ "3627539752": {
+  "id": "3627539752",
+  "name": "TwisTonFire - Map Improvements",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its map tools are on the game's map (expected).",
+  "authors": []
+ },
+ "3386860561": {
+  "id": "3386860561",
+  "name": "B42 Native ModOptions Example",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its example options page is in the game's Mod Options (as any mod's options).",
+  "authors": []
+ },
+ "3628835042": {
+  "id": "3628835042",
+  "name": "Workshop Update Checker",
+  "group": "E",
+  "list": "Works well",
+  "ev": "Its Mod Updates button shows at the bottom right of ZeD's main menu (seen, E_main_menu_mod_updates.png).",
+  "authors": [
+   "Anach"
+  ]
+ },
+ "3019672735": {
+  "id": "3019672735",
+  "name": "Mod Comparer",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors; it compares mod lists when a save is continued (not tried).",
+  "authors": []
+ },
+ "3389338537": {
+  "id": "3389338537",
+  "name": "No Welcome Window [B42.21+]",
+  "group": "E",
+  "list": "Not needed",
+  "ev": "ZeD already keeps the welcome and other notes out of the way (Messages); it patches the game's welcome panel (expected).",
+  "authors": [
+   "Ben.en09"
+  ]
+ },
+ "3388808256": {
+  "id": "3388808256",
+  "name": "[B42+]L4D2 Zombie Siege Background Main Menu [16:9+21:9]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: ZeD's main menu is its own desk, so the game's menu background it replaces is not seen (seen: same desk as with ZeD alone). 16:9 sub-mod.",
+  "authors": []
+ },
+ "3683918273": {
+  "id": "3683918273",
+  "name": "Cheat Menu: Reloaded [B42 Fixed]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Its Cheat Menu: Reloaded rows are in ZeD's world menu (seen).",
+  "authors": []
+ },
+ "3783535220": {
+  "id": "3783535220",
+  "name": "Neat Lockpicking",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads with NeatUI Framework, no errors (lock windows not opened).",
+  "authors": []
+ },
+ "3572564421": {
+  "id": "3572564421",
+  "name": "TwisTonFire - minimap",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its minimap window did not show in this test (census).",
+  "authors": []
+ },
+ "3779201168": {
+  "id": "3779201168",
+  "name": "[B42]Mod Folders",
+  "group": "E",
+  "list": "Not needed",
+  "ev": "ZeD's mod manager does the job (categories, search, profiles); it patches the game's mod screen (expected).",
+  "authors": [
+   "Paltia"
+  ]
+ },
+ "3740165370": {
+  "id": "3740165370",
+  "name": "Proximity Inventory",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Tested as a local copy with the id R3_ProximityInventory (its id is the same as two other Proximity Inventory items, and the game loads only one per id). Part of it does not show: its one container goes on the game's loot window (by reading its code).",
+  "authors": [
+   "DevL0rd"
+  ]
+ },
+ "3796402502": {
+  "id": "3796402502",
+  "name": "Project Writing [42.21]",
+  "group": "E",
+  "list": "Does not work",
+  "ev": "With ZeD on, once its notebook window has been opened the game stops drawing and cannot go back to the main menu (it had to be closed); with ZeD off the same steps work (ZeD bug 7, E_project_writing_zed_off_on_then_hang.jpg). Its map tools are for the game's map in any case (by reading its code).",
+  "authors": [
+   "Gimmi"
+  ]
+ },
+ "3659543622": {
+  "id": "3659543622",
+  "name": "Radio Frequency Manager [B42]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Its frequency window opens through its own toggle at the left, clear of ZeD's windows (seen).",
+  "authors": []
+ },
+ "3743082626": {
+  "id": "3743082626",
+  "name": "Retro Dashboard Digitals",
+  "group": "E",
+  "list": "Not needed",
+  "ev": "ZeD replaces the dashboard, including the radio (its digital readouts are for the game's dashboard) (expected; as Realistic Dashboard).",
+  "authors": [
+   "Frey (Original mod by Banger)"
+  ]
+ },
+ "2810471370": {
+  "id": "2810471370",
+  "name": "Yaki's BarberShop",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors (barber content).",
+  "authors": []
+ },
+ "3399645148": {
+  "id": "3399645148",
+  "name": "Map Symbols Plus (Hand-drawn)",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its symbols are for the game's map symbol list (not checked in ZeD's mark grid).",
+  "authors": []
+ },
+ "3559737194": {
+  "id": "3559737194",
+  "name": "[B42] Custom Map Labels",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its labels are for the game's map (expected).",
+  "authors": [
+   "老天，无聊的栀子"
+  ]
+ },
+ "3395592779": {
+  "id": "3395592779",
+  "name": "Map Symbols Plus (Stensil)",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors; as the Hand-drawn pack.",
+  "authors": []
+ },
+ "3494474677": {
+  "id": "3494474677",
+  "name": "[B42] More Item Information",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its tooltip lines (insulation, wind, material, growing season) show without ZeD and not on ZeD's tooltip (seen, E_more_item_information_tooltip_zed_vs_zed_off.png). ZeD bug 1.",
+  "authors": [
+   "FishLord"
+  ]
+ },
+ "3772979228": {
+  "id": "3772979228",
+  "name": "[B42.20] Plain Moodles Redone",
+  "group": "E",
+  "list": "Works well",
+  "ev": "Its plain icons and level bars show in ZeD's right-edge column, and its icons in ZeD's row above the belt (level bars not there); no double drawing (ZeD's moodle test 2/2 with it alone, seen).",
+  "authors": [
+   "Slobodskoy"
+  ]
+ },
+ "3634569678": {
+  "id": "3634569678",
+  "name": "Better Safehouse [B42.20- MP]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Multiplayer safehouse screens; loads, no errors in single player.",
+  "authors": [
+   "Refugio Z"
+  ]
+ },
+ "3390897023": {
+  "id": "3390897023",
+  "name": "More Maps [B42]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Champy"
+  ]
+ },
+ "2950750587": {
+  "id": "2950750587",
+  "name": "Voiced Radio and TVs",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "One error of its own at load on 42.21 (ISWeatherChannel.lua:62, Init calls nil), also with ZeD off. Otherwise loads (with Broadcast Voicer).",
+  "authors": [
+   "Fed-cap"
+  ]
+ },
+ "3785198639": {
+  "id": "3785198639",
+  "name": "Map All Known Fix [B42]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Dusk"
+  ]
+ },
+ "3565244378": {
+  "id": "3565244378",
+  "name": "[B42] Briefing",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads; its briefing layer is up at game start (census ISBriefingUI) and does not cover ZeD's windows (seen).",
+  "authors": [
+   "DeadEnvoy"
+  ]
+ },
+ "3580557206": {
+  "id": "3580557206",
+  "name": "Better Daily Reports",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Its daily report window opens by itself at game start, centred, clear of ZeD's windows (seen).",
+  "authors": [
+   "Eurymachus (original DANi aka NerdyBeerCastle)",
+   "Eurymachus (original idea by DANi aka NerdyBeerCastle)"
+  ]
+ },
+ "3579410548": {
+  "id": "3579410548",
+  "name": "TwisTonFire - Quick'n'Auto Mark",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads; its colour dock sits above the belt (census WIMC_ColorDock 1763,2128); the map parts are for the game's map. SP sub-mod.",
+  "authors": []
+ },
+ "3440958051": {
+  "id": "3440958051",
+  "name": "[B42 STABLE] Expanded Professions",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Its 7 occupations are in ZeD's occupation list (seen: ascetic, convict, hunter, mailman, soldier, paramedic, priest).",
+  "authors": [
+   "Obstructed"
+  ]
+ },
+ "3685672179": {
+  "id": "3685672179",
+  "name": "[B42] Functional TV Movies & Series - Framework",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors (TV window not opened).",
+  "authors": []
+ },
+ "3793289804": {
+  "id": "3793289804",
+  "name": "GPS Cross-Device - ProjectZomboidMap.com",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3744455714": {
+  "id": "3744455714",
+  "name": "Functional Pager - Immersive Map-Wide Communication [B42]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Loads, no errors (pager window not opened).",
+  "authors": [
+   "turnip"
+  ]
+ },
+ "3656128167": {
+  "id": "3656128167",
+  "name": "[B42.16+] XP Gain Bar v1.4 - DBD",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Its XP bar shows at the top left (seen).",
+  "authors": [
+   "DeathBeforeDinner"
+  ]
+ },
+ "3790912405": {
+  "id": "3790912405",
+  "name": "Auto Center Map",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it centres the game's map; the map key opens ZeD's map pop-out (seen).",
+  "authors": [
+   "TOYSGUNNER"
+  ]
+ },
+ "3750612709": {
+  "id": "3750612709",
+  "name": "Civil Defense Sirens [B42 SP/MP]",
+  "group": "E",
+  "list": "Compatible",
+  "ev": "Its Civil Defense Sirens row is in ZeD's world menu (seen); some of its option texts have a stray % (game warnings, also with ZeD off).",
+  "authors": [
+   "jimbeamdiablo"
+  ]
+ },
+ "3388107363": {
+  "id": "3388107363",
+  "name": "[B42] Noir's Rifle Slings",
+  "group": "F",
+  "list": "Does not work",
+  "ev": "Errors at load on 42.21: Sling_BodyLocations.lua passes a body location as text where 42.21 wants an ItemBodyLocation ('expected argument of type ItemBodyLocation, got String'), so its sling slot is not made. Not ZeD (a load-time script line).",
+  "authors": [
+   "Noir"
+  ]
+ },
+ "3390169945": {
+  "id": "3390169945",
+  "name": "[Deprecated] What can I craft?",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Deprecated by its maker. Its row shows in ZeD's item menu as the raw key ContextMenu_WhatCanICraft (its text is missing on 42.21, its own).",
+  "authors": []
+ },
+ "3625933422": {
+  "id": "3625933422",
+  "name": "[B42] Simple Belt Flashlight! (Fix for angled flashlight)",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors (its belt flashlight needs a flashlight on the belt slot; not tried).",
+  "authors": [
+   "RazpberryEnthusiast"
+  ]
+ },
+ "2642486124": {
+  "id": "2642486124",
+  "name": "Quick Item Action",
+  "group": "F",
+  "list": "Does not work",
+  "ev": "Every double-click on an item errors on 42.21 before its action and before the game's own (QuickItemAction.lua:140 calls scriptItem:getTypeString(), which 42.21 removed); seen through ZeD's double-click, the same call the game's list makes.",
+  "authors": []
+ },
+ "3634921455": {
+  "id": "3634921455",
+  "name": "Context Menu Icons",
+  "group": "F",
+  "list": "Not needed",
+  "ev": "ZeD's item menu draws its own icon set; a mod's icon shows only on rows ZeD has none for (as Mutie's).",
+  "authors": [
+   "Artmine15"
+  ]
+ },
+ "3287958074": {
+  "id": "3287958074",
+  "name": "Choose Your Spawn!",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors (its spawn picker is a spawn place; not checked on ZeD's New Game screen).",
+  "authors": []
+ },
+ "3566088272": {
+  "id": "3566088272",
+  "name": "Easy Set Alarm",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors (watch alarm not tried).",
+  "authors": [
+   "Mad"
+  ]
+ },
+ "3634921763": {
+  "id": "3634921763",
+  "name": "Simple Context Menu Icons",
+  "group": "F",
+  "list": "Not needed",
+  "ev": "Icons for Context Menu Icons; ZeD's menu uses its own icons first (as above).",
+  "authors": [
+   "Artmine15"
+  ]
+ },
+ "3663625294": {
+  "id": "3663625294",
+  "name": "Reorder The Hotbar (B42+ Fixed)",
+  "group": "F",
+  "list": "Not needed",
+  "ev": "ZeD's belt does this job; it reorders the game's hotbar, which ZeD keeps hidden (as Reorder The Hotbar, round 2).",
+  "authors": [
+   "Feldons"
+  ]
+ },
+ "3440867775": {
+  "id": "3440867775",
+  "name": "The Best Lockpicking [B42.21] [MP Ready]",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Part of it does not show: its hotwire panel hangs on the game's dashboard, which ZeD replaces (by reading its code: ISVehicleDashboard).",
+  "authors": []
+ },
+ "2786689104": {
+  "id": "2786689104",
+  "name": "Clothing Actions - Radial Menu",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its wheel is the game's radial, which ZeD draws as its wheel (ZeD's wheel tests passed with it). Part of it does not show: its D-pad Up wheel (ISDPadWheels.onDisplayUp) gives way to ZeD's D-pad wheels (by reading its code).",
+  "authors": [
+   "dhert"
+  ]
+ },
+ "3453422228": {
+  "id": "3453422228",
+  "name": "Cheat Menu Phoenix [B42] [B41 Re-Up]",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Its Cheat Menu: PX row is in ZeD's world menu (seen).",
+  "authors": [
+   "BlaBla,RelationLife,[AIM]iHeroLix,Vigilant"
+  ]
+ },
+ "3486217110": {
+  "id": "3486217110",
+  "name": "[B42] Intuitive Crafting",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it changes the game's crafting window, which ZeD routes to the World window's Craft tab (expected).",
+  "authors": [
+   "DeadEnvoy"
+  ]
+ },
+ "3571222611": {
+  "id": "3571222611",
+  "name": "Darker Map & Satellite View",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it restyles the game's map; the map key opens ZeD's map pop-out (expected).",
+  "authors": []
+ },
+ "3494108029": {
+  "id": "3494108029",
+  "name": "Smart Radial Menu [B42 Stable]",
+  "group": "F",
+  "list": "Does not work",
+  "ev": "With ZeD on, opening its wheel errors (SRMOverlay.lua:420: its menu's javaObject has no getSliceIndexFromMouse) and no wheel draws; with ZeD off it opens (seen, F_smart_radial_menu_zed_off_vs_on.png). ZeD bug 3.",
+  "authors": [
+   "phoenix"
+  ]
+ },
+ "3749848348": {
+  "id": "3749848348",
+  "name": "Plysken Attachments Reborn",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Its rows (Add Attachment Slot, Adjust attachment position) are in ZeD's item menu (seen).",
+  "authors": [
+   "Plysken (fork), Noir (original)"
+  ]
+ },
+ "3630525533": {
+  "id": "3630525533",
+  "name": "[42.13] Zed's Watch Slots",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "A watch worn on its wrist slot shows on ZeD's belt (seen).",
+  "authors": [
+   "zed_0xff"
+  ]
+ },
+ "3498294068": {
+  "id": "3498294068",
+  "name": "Blacklist & Proximity Inventory",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Part of it does not show: its container and blacklist go on the game's loot window (by reading its code). Inventory + Blacklist sub-mods.",
+  "authors": []
+ },
+ "3780688809": {
+  "id": "3780688809",
+  "name": "Context Menu Cleanup",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Kaoeutsu"
+  ]
+ },
+ "3786918614": {
+  "id": "3786918614",
+  "name": "Hands: Stow, Equip, Place [B42]",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Elsie"
+  ]
+ },
+ "3388183573": {
+  "id": "3388183573",
+  "name": "Auto Tailoring",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Its Auto Rip rows are in ZeD's item menu (seen). Part of it does not show: its buttons on the game's protection page (by reading its code: ISCharacterProtection).",
+  "authors": [
+   "Tchernobill"
+  ]
+ },
+ "3650071729": {
+  "id": "3650071729",
+  "name": "True Action Dancing B42",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Tchernobill"
+  ]
+ },
+ "3389448389": {
+  "id": "3389448389",
+  "name": "Auto Reload",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its reload rows come through the game's item menu.",
+  "authors": [
+   "Tchernobill"
+  ]
+ },
+ "3388721641": {
+  "id": "3388721641",
+  "name": "Auto Cook",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Tchernobill"
+  ]
+ },
+ "3613917826": {
+  "id": "3613917826",
+  "name": "Place Anywhere",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3460812542": {
+  "id": "3460812542",
+  "name": "Washing Menus Improved [B42]",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Afyrmo"
+  ]
+ },
+ "3636171151": {
+  "id": "3636171151",
+  "name": "[B42][MP]MoreMenuOptions",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3398874593": {
+  "id": "3398874593",
+  "name": "True Music Jukebox 42",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors; but its options page, added the old way, empties ZeD setup of ZeD's own options (ZeD bug 4, F_zed_setup_loses_zed_options_with_true_music_jukebox.jpg). Its jukebox not tried.",
+  "authors": []
+ },
+ "3669016488": {
+  "id": "3669016488",
+  "name": "[B42] [MP] Quick Remove Broken Glass",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "PikaaMel"
+  ]
+ },
+ "3261334016": {
+  "id": "3261334016",
+  "name": "[B41 & B42] Rope Towing",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3631572046": {
+  "id": "3631572046",
+  "name": "True Music Radio 42",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors. TrueMusicRadio42 sub-mod.",
+  "authors": []
+ },
+ "3641027178": {
+  "id": "3641027178",
+  "name": "[42] Rip All Button In context Menu",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Its Rip Clothing row is in ZeD's item menu (seen).",
+  "authors": [
+   "Unclear"
+  ]
+ },
+ "3392964216": {
+  "id": "3392964216",
+  "name": "Devcatt's Furry Moodles [Build 42+]",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors (moodle icons).",
+  "authors": []
+ },
+ "3761218629": {
+  "id": "3761218629",
+  "name": "Dismantle All at Once",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors; part of it hangs on the game's list right-click (by reading its code: ISInventoryPane.onRightMouseUp).",
+  "authors": []
+ },
+ "3428715523": {
+  "id": "3428715523",
+  "name": "Crafting XP Display",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3777237134": {
+  "id": "3777237134",
+  "name": "[B42.20] Auto All - Cook, Medicine, Read, Clean, Rip, Tailoring, Mechanics, Exercise, Reload, Open & Dismantle",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Its rows (Read Everything Automatically, Auto Rip, Train Tailoring) are in ZeD's item menu (seen).",
+  "authors": []
+ },
+ "3790089095": {
+  "id": "3790089095",
+  "name": "Better Corpse Burning",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "EROGZ"
+  ]
+ },
+ "3600186927": {
+  "id": "3600186927",
+  "name": "Hide Equipped Items",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Its Hide Equipped Items row is in ZeD's item menu (seen); what it hides is the game's list (expected).",
+  "authors": [
+   "somewhatfrog"
+  ]
+ },
+ "3778319798": {
+  "id": "3778319798",
+  "name": "Two Weapons on Back [42.21]",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3784348098": {
+  "id": "3784348098",
+  "name": "[B42]Whose Key Is This?",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its key map overlay is for the game's map (by reading its code).",
+  "authors": []
+ },
+ "3789234614": {
+  "id": "3789234614",
+  "name": "Balaclava Slot",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3793163745": {
+  "id": "3793163745",
+  "name": "Area Tasks - Select an area for vanilla tasks [B42]",
+  "group": "F",
+  "list": "Compatible",
+  "ev": "Its Area Tasks row is in ZeD's world menu (seen).",
+  "authors": [
+   "ferret"
+  ]
+ },
+ "2868394326": {
+  "id": "2868394326",
+  "name": "[B42]Simple sling mod",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3682936016": {
+  "id": "3682936016",
+  "name": "Equipment UI – STABLE +",
+  "group": "G",
+  "list": "Not needed",
+  "ev": "ZeD's Equip tab has a paper doll (as Equipment UI, round 2). Tested its standalone EQUIPMENT_UI_B42 sub-mod (its other sub-mod shares the id of the tested Inventory Tetris one).",
+  "authors": []
+ },
+ "3778709615": {
+  "id": "3778709615",
+  "name": "[B42.20/B42.21] Simple Belt Flashlight+ (Better Flashlights Compatible)",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Tested as a local copy with the id R3_FixedLightOnBeltAF (same id as Simple Belt Flashlight 3625933422, group F). Loads, no errors.",
+  "authors": []
+ },
+ "3816324722": {
+  "id": "3816324722",
+  "name": "Attachments UI [B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its workbench did not open from the test's call (not seen).",
+  "authors": [
+   "JOHNNY, Agente_FLOWERS"
+  ]
+ },
+ "3688576740": {
+  "id": "3688576740",
+  "name": "MinimalHotbar",
+  "group": "G",
+  "list": "Not needed",
+  "ev": "ZeD's belt replaces the game's hotbar it restyles (expected).",
+  "authors": [
+   "Esphex7kyo"
+  ]
+ },
+ "3776531193": {
+  "id": "3776531193",
+  "name": "Palm Pilot",
+  "group": "G",
+  "list": "Works well",
+  "ev": "Its Palm Pilot screen opens through its own open, beside ZeD's windows (seen, G_mod_windows.jpg).",
+  "authors": []
+ },
+ "3825312974": {
+  "id": "3825312974",
+  "name": "Sandbox Control - Cheat & Creative Menu [B42.21]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Its window opens through its own toggle (pauses the game, as it does without ZeD) and its rows are in ZeD's item and world menus (seen).",
+  "authors": [
+   "Hadge2506"
+  ]
+ },
+ "2842179206": {
+  "id": "2842179206",
+  "name": "Night Vision Chucked",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads (with errorMagnifier), no errors (goggles not worn).",
+  "authors": [
+   "Chuckleberry Finn"
+  ]
+ },
+ "3749026793": {
+  "id": "3749026793",
+  "name": "[B42.20] Carry Visible Items In Hands [WIP]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3036878362": {
+  "id": "3036878362",
+  "name": "Advanced Trajectory's Realistic Overhaul",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3750253491": {
+  "id": "3750253491",
+  "name": "Common Sense [B42.20+]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "BitBraven, 1Vita"
+  ]
+ },
+ "3698401476": {
+  "id": "3698401476",
+  "name": "Skullys Lowerback Dufflebags, Chest Rigs + Fannypack, Container Rebalance [42.20]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Duffles and Rigs + Container Rebalance sub-mods.",
+  "authors": []
+ },
+ "3672792485": {
+  "id": "3672792485",
+  "name": "HEF - Helicopter Event Framework",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "DarylMasterGG"
+  ]
+ },
+ "3776262249": {
+  "id": "3776262249",
+  "name": "Ping Items! Friends! 42.20 MP Official",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Default wheel sub-mod.",
+  "authors": []
+ },
+ "3617732907": {
+  "id": "3617732907",
+  "name": "Inspect Items Framework",
+  "group": "G",
+  "list": "Works well",
+  "ev": "Its inspect window opens on a rifle through its own open, centred, clear of ZeD's windows (seen); its Inspect item row is in ZeD's item menu.",
+  "authors": [
+   "DarylMasterGG"
+  ]
+ },
+ "3386409674": {
+  "id": "3386409674",
+  "name": "[B42] MandoDB - Old Moodles Icons + Redrawn",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors (moodle icons).",
+  "authors": []
+ },
+ "3694097672": {
+  "id": "3694097672",
+  "name": "Tooltiplib - Tooltip Framework for Modders",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Dark Sauce"
+  ]
+ },
+ "2423906082": {
+  "id": "2423906082",
+  "name": "Bushcraft Gear - Tools [B41/B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Scavenger"
+  ]
+ },
+ "2432621382": {
+  "id": "2432621382",
+  "name": "Bushcraft Gear - Rare Weapons [B41/B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Scavenger"
+  ]
+ },
+ "2713921292": {
+  "id": "2713921292",
+  "name": "Undead Survivor [B41/B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Scavenger"
+  ]
+ },
+ "2629286881": {
+  "id": "2629286881",
+  "name": "Military Ponchos [B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Akyet"
+  ]
+ },
+ "2324223029": {
+  "id": "2324223029",
+  "name": "[HOTFIX for B42.13] Tactical Weapons",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "2640351732": {
+  "id": "2640351732",
+  "name": "Spear Traps",
+  "group": "G",
+  "list": "Does not work",
+  "ev": "Every right-click on the world errors on 42.21, once per item in the inventory (SpearTraps_ContextMenu.lua:97 calls getScriptItem():getCategories(), which 42.21 removed). Seen through ZeD's world menu, which calls the game's own createMenu.",
+  "authors": []
+ },
+ "3470426196": {
+  "id": "3470426196",
+  "name": "KATTAJ1 Military Pack [B41/B42MP]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads with KATTAJ1 Clothes Core, no errors.",
+  "authors": []
+ },
+ "3722134990": {
+  "id": "3722134990",
+  "name": "[42.21MP] GoM - Guns of Marz",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads with Gunworks Framework, no errors (its Java tracer add-on left out).",
+  "authors": [
+   "Marz"
+  ]
+ },
+ "2732407704": {
+  "id": "2732407704",
+  "name": "[ Reworked] Madax Weapon Pack - B42",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3390487814": {
+  "id": "3390487814",
+  "name": "[B42] Carry visible generators",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3783094058": {
+  "id": "3783094058",
+  "name": "Vanilla Outfits Expanded",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Tango"
+  ]
+ },
+ "3394044313": {
+  "id": "3394044313",
+  "name": "Buttstroke / Gun Stock Attack [B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3538353228": {
+  "id": "3538353228",
+  "name": "Legendary Backpacks",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3432928943": {
+  "id": "3432928943",
+  "name": "Escape From Tarkov Backpacks [B42.20]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3387110070": {
+  "id": "3387110070",
+  "name": "They Knew [B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "One error of its own at load on 42.21: TheyKnew_BodyLocations.lua passes a body location as text ('expected argument of type ItemBodyLocation'). Not ZeD.",
+  "authors": [
+   "Afterworlds"
+  ]
+ },
+ "3421271152": {
+  "id": "3421271152",
+  "name": "Vanilla Clothing Expansion",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Reconspiracy"
+  ]
+ },
+ "3420478458": {
+  "id": "3420478458",
+  "name": "[B42.21] Better Flashlights",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3773834525": {
+  "id": "3773834525",
+  "name": "[42.20.4MP] Vanilla Weapons PLUS - Gunworks Edition",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Marz"
+  ]
+ },
+ "3397207461": {
+  "id": "3397207461",
+  "name": "Run and Reload [B42]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3389050623": {
+  "id": "3389050623",
+  "name": "Ammo Loot Drop / Zombies Drop Ammo B42",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Base sub-mod.",
+  "authors": [
+   "Riko Prushka"
+  ]
+ },
+ "3761077099": {
+  "id": "3761077099",
+  "name": "[B42] Vanilla Firearms Expansion [CLASSIC]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3652012357": {
+  "id": "3652012357",
+  "name": "Lean & Lie",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads with TchernoLib, no errors.",
+  "authors": [
+   "Tchernobill"
+  ]
+ },
+ "3774789651": {
+  "id": "3774789651",
+  "name": "Long Term Preservation [42.20]",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Skittles"
+  ]
+ },
+ "3777433827": {
+  "id": "3777433827",
+  "name": "Brita Weapon and Armor B42 Unified Compatibility Port",
+  "group": "G",
+  "list": "Compatible",
+  "ev": "Its two belt slots show on ZeD's belt (slots 5 and 6), named by their raw ids, which run out of the box (ZeD bug 5, G_belt_mod_slot_names_overflow.png).",
+  "authors": []
+ },
+ "3101668503": {
+  "id": "3101668503",
+  "name": "Mutie's Context Menu Icons",
+  "group": "H",
+  "list": "Not needed",
+  "ev": "ZeD's item menu draws its own icon set; a mod's icon shows only on rows ZeD has none for.",
+  "authors": []
+ },
+ "3723726293": {
+  "id": "3723726293",
+  "name": "Neat Rocco's UI [B42]",
+  "group": "H",
+  "list": "Not needed",
+  "ev": "Both restyle the whole interface: use one. With both on, the game's character window toggle still lands on ZeD's tabs (seen), but its dialogs take the place of ZeD's: other mods' notes are no longer kept in ZeD's Messages and stay on screen (seen, H_mod_notes_on_screen_with_neat_rocco.jpg; ZeD's Messages test fails 12 checks with this mod alone). It swaps ISModalDialog.new and ISModalRichText.new for its own after ZeD has set its hooks (NR_Patch.lua, NR_MakePatch).",
+  "authors": [
+   "ArtNod"
+  ]
+ },
+ "3775513231": {
+  "id": "3775513231",
+  "name": "Inventory Tetris - Grid Based Items and Equipment Overhaul",
+  "group": "H",
+  "list": "Not needed",
+  "ev": "A whole-inventory overhaul on the game's inventory and loot windows, which ZeD replaces: its grid never shows (expected; as Inventory Tetris, round 1). Tested as a local copy with the id R3_INVENTORY_TETRIS (same id as the tested Inventory Tetris). Its grid errors every frame when the game's inventory comes back for a moment (ZeD's safe mode switched on and off in the test), not in normal play.",
+  "authors": []
+ },
+ "3780682550": {
+  "id": "3780682550",
+  "name": "Equipment UI - Paper Doll Equipment Interface SP/MP [B42.20+]",
+  "group": "H",
+  "list": "Not needed",
+  "ev": "ZeD's Equip tab has a paper doll (as Equipment UI, round 2).",
+  "authors": [
+   "WildBrian"
+  ]
+ },
+ "3751668602": {
+  "id": "3751668602",
+  "name": "Second Back Slot [B42.20]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3785033563": {
+  "id": "3785033563",
+  "name": "N3WO Map Overhaul [B42]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Part of it does not show: it changes the game's map; the map key opens ZeD's map pop-out (seen).",
+  "authors": []
+ },
+ "2714850307": {
+  "id": "2714850307",
+  "name": "Horde Night",
+  "group": "H",
+  "list": "Does not work",
+  "ev": "Closes the game on 42.21 as the save loads (StackOverflowError in KahluaTableImpl.save, saving its own data), also with ZeD off and with it alone (seen, bisect runs).",
+  "authors": [
+   "WindFly"
+  ]
+ },
+ "2831786301": {
+  "id": "2831786301",
+  "name": "Video Game Consoles",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Unconid"
+  ]
+ },
+ "1911132112": {
+  "id": "1911132112",
+  "name": "Pillow's Random Spawns [B42]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors (spawn choices not checked on ZeD's New Game screen). ManySpawns sub-mod.",
+  "authors": [
+   "pillow"
+  ]
+ },
+ "2753086629": {
+  "id": "2753086629",
+  "name": "[B42MP/B41]Surviving Through Seasons",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3629835761": {
+  "id": "3629835761",
+  "name": "Ladders?! B42.20 SP/MP (Unofficial)",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Ladders4220 sub-mod.",
+  "authors": [
+   "co', Birget"
+  ]
+ },
+ "3051276857": {
+  "id": "3051276857",
+  "name": "[KYR] Real Weather Mod",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "2210760610": {
+  "id": "2210760610",
+  "name": "[B41/B42] Cryogenic Winter +Easy/Hard Modes (SP/MP)",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Normal mode sub-mod.",
+  "authors": []
+ },
+ "3402516345": {
+  "id": "3402516345",
+  "name": "[B42] Survival",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Balance"
+  ]
+ },
+ "3469292499": {
+  "id": "3469292499",
+  "name": "[B42] Bandits Creator",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Its Bandit Creator and Spawn Bandit Clan rows are in ZeD's world menu (seen).",
+  "authors": [
+   "Slayer"
+  ]
+ },
+ "3725311427": {
+  "id": "3725311427",
+  "name": "Plysken Solar Revolution",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors; part of it draws on the game's inventory list (by reading its code: ISInventoryPane.drawItemDetails).",
+  "authors": [
+   "Plysken (fork), RadX5, Poltergeist (originaux)"
+  ]
+ },
+ "3607686447": {
+  "id": "3607686447",
+  "name": "Immersive Blackouts [B42MP]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Yuki"
+  ]
+ },
+ "3651954650": {
+  "id": "3651954650",
+  "name": "SaucedCarts - Pushable Carts",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Part of it does not show: its cart handling patches the game's inventory and loot windows (by reading its code).",
+  "authors": [
+   "Dark Sauce"
+  ]
+ },
+ "3779562002": {
+  "id": "3779562002",
+  "name": "LG Extended Electricity",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3647117173": {
+  "id": "3647117173",
+  "name": "ImmersiveSolarArrays [42.16+]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors; part of it draws on the game's inventory list (by reading its code).",
+  "authors": [
+   "RadX5, Poltergeist, Some unknown person"
+  ]
+ },
+ "3716934959": {
+  "id": "3716934959",
+  "name": "Playable Minigames (Previously Playable Pool)",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Its Debug Minigames row is in ZeD's world menu (seen).",
+  "authors": []
+ },
+ "3808805481": {
+  "id": "3808805481",
+  "name": "Over the Shoulder",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Main mod only (its patch sub-mods are for mods not on).",
+  "authors": []
+ },
+ "3800989007": {
+  "id": "3800989007",
+  "name": "Stay With Me [B42 - NPC Companion]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors; its first-start note (zombie spawning off in this world) is one of the notes ZeD's Messages keeps.",
+  "authors": [
+   "Albrecht"
+  ]
+ },
+ "3797874733": {
+  "id": "3797874733",
+  "name": "Roaming Survivors",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Its rows (Survivors, Reputation, Quest journal, Roaming Survivors) are in ZeD's world menu (seen); it seeded 120 survivors with no errors.",
+  "authors": [
+   "Link"
+  ]
+ },
+ "2686624983": {
+  "id": "2686624983",
+  "name": "Sleep with Friends v2.1",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "SnugglesTheRat"
+  ]
+ },
+ "3393821407": {
+  "id": "3393821407",
+  "name": "[B42] Drag Bodies Faster",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. 50% sub-mod.",
+  "authors": [
+   "Neighz"
+  ]
+ },
+ "3406392630": {
+  "id": "3406392630",
+  "name": "Long Term Preservation [B42.13]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "Skittles"
+  ]
+ },
+ "2716710487": {
+  "id": "2716710487",
+  "name": "Slower Sprinters \\ B42",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. 35% sub-mod.",
+  "authors": []
+ },
+ "2867163008": {
+  "id": "2867163008",
+  "name": "Everything Has a Name",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Its Rename Stack row is in ZeD's item menu (seen).",
+  "authors": [
+   "Arendameth"
+  ]
+ },
+ "2951270166": {
+  "id": "2951270166",
+  "name": "Trees Have Loot [B41 &  B42]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "PepperCat, Afyrmo"
+  ]
+ },
+ "3778511497": {
+  "id": "3778511497",
+  "name": "Skully's Zombie Collision [B42.20+]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3633421539": {
+  "id": "3633421539",
+  "name": "ModernFirearmsSystem 42.21 (SP/MP)",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors (its UniqueSounds patched 54 guns). Base sub-mod.",
+  "authors": []
+ },
+ "2749928925": {
+  "id": "2749928925",
+  "name": "CDDA Zombies",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Base sub-mod.",
+  "authors": []
+ },
+ "3747202678": {
+  "id": "3747202678",
+  "name": "[B42] Madax Weapons Pack - Fixed 42.21",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3456675747": {
+  "id": "3456675747",
+  "name": "[B42.20+ MP] Skateboard!",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "RedChili"
+  ]
+ },
+ "3762296152": {
+  "id": "3762296152",
+  "name": "CD: Rottweiler",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads with Companion Dogs, no errors.",
+  "authors": []
+ },
+ "3780298456": {
+  "id": "3780298456",
+  "name": "Brita's Armor Pack B42.20+ / Standalone Armor Port & Multilingual Fixes",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors. Part of it does not show: its armour tooltip lines wrap ISToolTipInv.render at load (ZeD bug 1, by reading its code).",
+  "authors": [
+   "Community B42 Port & Localization | 社区移植与本地化"
+  ]
+ },
+ "3811483602": {
+  "id": "3811483602",
+  "name": "Zombie Dismemberment",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "ChokoGrimes"
+  ]
+ },
+ "3784951301": {
+  "id": "3784951301",
+  "name": "Blood Pools & Footprints [B42.20+]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": [
+   "J93"
+  ]
+ },
+ "3821280085": {
+  "id": "3821280085",
+  "name": "Proper Ragdolls",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads, no errors.",
+  "authors": []
+ },
+ "3674907249": {
+  "id": "3674907249",
+  "name": "Wash Or Rot [B42 SP/MP]",
+  "group": "H",
+  "list": "Compatible",
+  "ev": "Loads with Moodle Framework, no errors.",
+  "authors": [
+   "PepperCat"
+  ]
+ }
+}
