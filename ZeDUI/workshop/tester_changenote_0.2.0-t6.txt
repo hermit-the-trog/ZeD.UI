@@ -18,7 +18,7 @@ Hair and beard (new)
 - The Pictures button for Improved Hair Menu and NeatUI Hairstyler is gone: their styles are rows in the list.
 
 Character window
-- The game's Health, Skills, Info and Protection keys, its HUD Health button, and mods that open those pages (Mini Health Panel) open ZeD's Character window on the matching tab. The same key again folds the tab.
+- The game's Health, Skills, Info and Protection keys, and mods that open those pages (Mini Health Panel) open ZeD's Character window on the matching tab. The same key again folds the tab.
 
 Maps
 - A Key button on the Maps toolbar shows the game's map key over the map.
