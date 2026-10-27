@@ -1,0 +1,18 @@
+# ZeDUI/tools/qa/compat_r3_A.txt  (Oct 26 2026): compatibility round 3, group A
+# zedqa_mods_run.ps1 -ModList <group A ids> -Mode fullscreen4k -Manifest this
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_r3_A.lua | r3A | timeout=600       # survey with the group's mods: census, menus, tooltip, tabs, the mods' own windows
+suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
+suite_verbs.lua | verbs                          # item card header verbs through the real dispatch (leaves its book, bat, apple)
+zedqa_audit_fixes.lua | af | expect=QA: a tab that throws   # throwing tab logs once, equip card hides, card outlives item, weight
+zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
+zedqa_onepath.lua | op                           # single-path fixes: Move To, Rename, double-click, Take all, card verbs
+zedqa_grid.lua | grid                            # inventory grid, cell card, pad walk, List | Grid toggle
+zedqa_sort_groups.lua | sg | timeout=420         # category headers only under Sort by Category; name A-Z / Z-A, cond, wt flat; list + grid, single + multi, both windows
+zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
+zedqa_large.lua | lg                             # Large text size: Loot and Equip lists, column widths
+zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
+zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
+zedqa_put_back.lua | pb | timeout=900 | expect=ISDrinkFromBottle.lua:82   # putting things back: apple, lighter, bottle back into the bag; a tire's jack and wrench back into the trunk; not after a stop; not with the switch off
+zedqa_food_verbs.lua | fv | timeout=120         # a food with its own verb: the card says Smoke / Drink, the action bar SMOKING; an apple still Eat / EATING
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear
