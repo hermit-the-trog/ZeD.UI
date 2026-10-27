@@ -1,0 +1,1948 @@
+{
+ "icons": {
+  "knife": {
+   "group": "char",
+   "means": "a knife: the weapons, and killing an animal",
+   "mapped": true
+  },
+  "apple": {
+   "group": "char",
+   "means": "an apple: eat",
+   "mapped": true
+  },
+  "glass": {
+   "group": "char",
+   "means": "a glass of water with a straw: drink",
+   "mapped": true
+  },
+  "medkit": {
+   "group": "char",
+   "means": "a first-aid case: medicine",
+   "mapped": true
+  },
+  "bandage": {
+   "group": "char",
+   "means": "a sticking plaster: a wound",
+   "mapped": true
+  },
+  "bed": {
+   "group": "char",
+   "means": "a bed: sleep",
+   "mapped": true
+  },
+  "shirt": {
+   "group": "char",
+   "means": "a shirt: clothing",
+   "mapped": true
+  },
+  "backpack": {
+   "group": "char",
+   "means": "a backpack: use, and the hands-free bag",
+   "mapped": true
+  },
+  "hand": {
+   "group": "char",
+   "means": "an open hand: hands free, nothing held",
+   "mapped": true
+  },
+  "cigarette": {
+   "group": "char",
+   "means": "a cigarette with smoke: smoke",
+   "mapped": true
+  },
+  "book": {
+   "group": "char",
+   "means": "an open book: read",
+   "mapped": true
+  },
+  "watch": {
+   "group": "char",
+   "means": "a wristwatch: the watch",
+   "mapped": true
+  },
+  "walkie": {
+   "group": "char",
+   "means": "a two-way radio: the radio, and the radio tab",
+   "mapped": true
+  },
+  "map": {
+   "group": "world",
+   "means": "an opened road map, a route to an X: the map, the maps tab",
+   "mapped": true
+  },
+  "minimap": {
+   "group": "world",
+   "means": "the screen with a small map in its corner: the mini-map",
+   "mapped": true
+  },
+  "pin": {
+   "group": "world",
+   "means": "a map pin: focus the mini-map on you, a marker, a zone's place",
+   "mapped": true
+  },
+  "car": {
+   "group": "world",
+   "means": "a car from the front: vehicles, the vehicle tab",
+   "mapped": true
+  },
+  "cow": {
+   "group": "world",
+   "means": "a cow's head: animals, the animals tab",
+   "mapped": true
+  },
+  "toolbox": {
+   "group": "world",
+   "means": "a toolbox: craft and build",
+   "mapped": true
+  },
+  "magnifier": {
+   "group": "world",
+   "means": "a magnifying glass: search, investigate the area, the foraging tab",
+   "mapped": true
+  },
+  "magnifier_off": {
+   "group": "world",
+   "means": "the magnifying glass struck through: hide the area window",
+   "mapped": true
+  },
+  "bulb_on": {
+   "group": "world",
+   "means": "a lit bulb: lights and power, a light on",
+   "mapped": true
+  },
+  "bulb_off": {
+   "group": "world",
+   "means": "the bulb, unlit, struck through: a light off",
+   "mapped": true
+  },
+  "fence": {
+   "group": "world",
+   "means": "a stretch of picket fence: an animal zone",
+   "mapped": true
+  },
+  "eye": {
+   "group": "world",
+   "means": "an open eye: search mode on, the view, show the interface",
+   "mapped": true
+  },
+  "eye_off": {
+   "group": "world",
+   "means": "the eye struck through: search mode off, hide the interface",
+   "mapped": true
+  },
+  "box_up": {
+   "group": "world",
+   "means": "a storage box, its lid on, an arrow up: pick up",
+   "mapped": true
+  },
+  "box_down": {
+   "group": "world",
+   "means": "the storage box, an arrow down onto it: place",
+   "mapped": true
+  },
+  "rotate": {
+   "group": "world",
+   "means": "a turning arrow: rotate, reset",
+   "mapped": true
+  },
+  "screwdriver": {
+   "group": "world",
+   "means": "a screwdriver: take apart",
+   "mapped": true
+  },
+  "wrench": {
+   "group": "world",
+   "means": "a wrench, its jaw cut to a nut's flats, a hex in its ring end: repair",
+   "mapped": true
+  },
+  "generator": {
+   "group": "world",
+   "means": "a generator in its frame, a bolt on the side: the generator",
+   "mapped": true
+  },
+  "campfire": {
+   "group": "world",
+   "means": "a fire on crossed logs: light or put out a fire",
+   "mapped": true
+  },
+  "chair": {
+   "group": "world",
+   "means": "a wooden chair from the front: furniture, the furniture tab",
+   "mapped": true
+  },
+  "gauge": {
+   "group": "world",
+   "means": "a dial with its needle: the dashboard",
+   "mapped": true
+  },
+  "bullhorn": {
+   "group": "world",
+   "means": "a bullhorn with its sound: shout",
+   "mapped": true
+  },
+  "rooms": {
+   "group": "world",
+   "means": "a floor plan, walls with a door: the rooms editor",
+   "mapped": true
+  },
+  "seat": {
+   "group": "vehicle",
+   "means": "a car seat from the side, its headrest apart, on its base: change seats",
+   "mapped": true
+  },
+  "car_door": {
+   "group": "vehicle",
+   "means": "a car door from the side: open or close a door",
+   "mapped": true
+  },
+  "car_enter": {
+   "group": "vehicle",
+   "means": "the car door, an arrow in: get in",
+   "mapped": true
+  },
+  "car_exit": {
+   "group": "vehicle",
+   "means": "the car door, an arrow out: get out",
+   "mapped": true
+  },
+  "key": {
+   "group": "vehicle",
+   "means": "a car key: start the engine",
+   "mapped": true
+  },
+  "key_off": {
+   "group": "vehicle",
+   "means": "the car key struck through: shut the engine off",
+   "mapped": true
+  },
+  "hotwire": {
+   "group": "vehicle",
+   "means": "two cables, their stripped ends meeting in a spark: hotwire",
+   "mapped": true
+  },
+  "hotwire_off": {
+   "group": "vehicle",
+   "means": "the wires struck through: you can't hotwire this yet",
+   "mapped": true
+  },
+  "headlight_on": {
+   "group": "vehicle",
+   "means": "the headlamp sign, its beams out: headlights on",
+   "mapped": true
+  },
+  "headlight_off": {
+   "group": "vehicle",
+   "means": "the headlamp sign struck through: headlights off",
+   "mapped": true
+  },
+  "heat": {
+   "group": "vehicle",
+   "means": "heat rising off a heater: the heater, warm",
+   "mapped": true
+  },
+  "snowflake": {
+   "group": "vehicle",
+   "means": "a snowflake: the heater, cold",
+   "mapped": true
+  },
+  "horn": {
+   "group": "vehicle",
+   "means": "the steering wheel, sound coming off it: the horn",
+   "mapped": true
+  },
+  "lightbar": {
+   "group": "vehicle",
+   "means": "an emergency beacon flashing: the light bar",
+   "mapped": true
+  },
+  "speaker": {
+   "group": "vehicle",
+   "means": "a loudspeaker with its sound: the car radio, a device's options",
+   "mapped": true
+  },
+  "window_open": {
+   "group": "vehicle",
+   "means": "the car window's frame, the glass gone down, an arrow down: open the window",
+   "mapped": true
+  },
+  "window_close": {
+   "group": "vehicle",
+   "means": "the car window glassed in, an arrow up: close the window",
+   "mapped": true
+  },
+  "window_smash": {
+   "group": "vehicle",
+   "means": "the car window cracked from a blow: smash the window",
+   "mapped": true
+  },
+  "padlock": {
+   "group": "vehicle",
+   "means": "a shut padlock: lock the doors",
+   "mapped": true
+  },
+  "padlock_open": {
+   "group": "vehicle",
+   "means": "an open padlock: unlock the doors",
+   "mapped": true
+  },
+  "engine": {
+   "group": "vehicle",
+   "means": "the engine block (the check-engine sign): the mechanics",
+   "mapped": true
+  },
+  "wash": {
+   "group": "vehicle",
+   "means": "water falling on a car: wash it",
+   "mapped": true
+  },
+  "link": {
+   "group": "vehicle",
+   "means": "two chain links joined: hitch the trailer",
+   "mapped": true
+  },
+  "unlink": {
+   "group": "vehicle",
+   "means": "the two links parted: unhitch the trailer",
+   "mapped": true
+  },
+  "gas_pump": {
+   "group": "vehicle",
+   "means": "a fuel pump with its nozzle: fill up at the pump",
+   "mapped": true
+  },
+  "gas_can": {
+   "group": "vehicle",
+   "means": "a jerry can: add petrol from a can",
+   "mapped": true
+  },
+  "gas_siphon": {
+   "group": "vehicle",
+   "means": "the jerry can, a hose drawn from it: siphon the petrol out",
+   "mapped": true
+  },
+  "mag_in": {
+   "group": "gun",
+   "means": "the pistol, a magazine, an arrow into the grip: put the magazine in",
+   "mapped": true
+  },
+  "mag_out": {
+   "group": "gun",
+   "means": "the pistol, an arrow out to a magazine: take the magazine out",
+   "mapped": true
+  },
+  "rounds_in": {
+   "group": "gun",
+   "means": "the pistol, an arrow in from two rounds: load rounds into the gun",
+   "mapped": true
+  },
+  "rounds_out": {
+   "group": "gun",
+   "means": "the pistol, an arrow out to two rounds: unload the gun",
+   "mapped": true
+  },
+  "chamber": {
+   "group": "gun",
+   "means": "the pistol, an arrow in from one round: chamber a round",
+   "mapped": true
+  },
+  "rack": {
+   "group": "gun",
+   "means": "the pistol, the slide's travel under it: rack the slide",
+   "mapped": true
+  },
+  "unjam": {
+   "group": "gun",
+   "means": "the pistol with a warning mark: clear the jam",
+   "mapped": true
+  },
+  "rounds_mag": {
+   "group": "gun",
+   "means": "a magazine, an arrow into it from two rounds: load the magazine",
+   "mapped": true
+  },
+  "battery_in": {
+   "group": "gun",
+   "means": "a battery and a plus: put a battery in",
+   "mapped": true
+  },
+  "battery_out": {
+   "group": "gun",
+   "means": "a battery and a minus: take the battery out",
+   "mapped": true
+  },
+  "milk": {
+   "group": "animal",
+   "means": "a milk bottle: milk the animal",
+   "mapped": true
+  },
+  "pet": {
+   "group": "animal",
+   "means": "an open hand and a heart: pet the animal",
+   "mapped": true
+  },
+  "rope": {
+   "group": "animal",
+   "means": "a lasso, its loop and knot: lead the animal on a rope, or let it go",
+   "mapped": true
+  },
+  "scissors": {
+   "group": "animal",
+   "means": "shears: shear the animal",
+   "mapped": true
+  },
+  "stand": {
+   "group": "fig",
+   "means": "a person standing: you, the character",
+   "mapped": false
+  },
+  "wave": {
+   "group": "fig",
+   "means": "a person waving: wave",
+   "mapped": true
+  },
+  "point": {
+   "group": "fig",
+   "means": "a person pointing",
+   "mapped": false
+  },
+  "shrug": {
+   "group": "fig",
+   "means": "a person shrugging: shrug, don't know",
+   "mapped": true
+  },
+  "surrender": {
+   "group": "fig",
+   "means": "a person, hands up: surrender",
+   "mapped": true
+  },
+  "salute": {
+   "group": "fig",
+   "means": "a person saluting: salute",
+   "mapped": true
+  },
+  "walk": {
+   "group": "fig",
+   "means": "a person walking: walk",
+   "mapped": false
+  },
+  "run": {
+   "group": "fig",
+   "means": "a person running: run",
+   "mapped": false
+  },
+  "sit_seat": {
+   "group": "fig",
+   "means": "a person sitting on a chair: sit on a seat",
+   "mapped": true
+  },
+  "sneak": {
+   "group": "fig",
+   "means": "a person crouched low: sneak",
+   "mapped": true
+  },
+  "climb": {
+   "group": "fig",
+   "means": "a person climbing a ladder: climb",
+   "mapped": false
+  },
+  "carry": {
+   "group": "fig",
+   "means": "a person carrying a box: carry",
+   "mapped": false
+  },
+  "sit_ground": {
+   "group": "fig",
+   "means": "a person sitting on the ground: sit down",
+   "mapped": true
+  },
+  "sit_ground_off": {
+   "group": "fig",
+   "means": "the person on the ground, an x: stand up",
+   "mapped": true
+  },
+  "sneak_off": {
+   "group": "fig",
+   "means": "the crouched person, an x: stop sneaking",
+   "mapped": true
+  },
+  "autowalk": {
+   "group": "fig",
+   "means": "a person walking, an arrow on: walk on by itself",
+   "mapped": true
+  },
+  "autowalk_off": {
+   "group": "fig",
+   "means": "the walking person, an x: stop walking on",
+   "mapped": true
+  },
+  "wave_bye": {
+   "group": "fig",
+   "means": "a person walking off, waving back: wave goodbye",
+   "mapped": true
+  },
+  "bow": {
+   "group": "fig",
+   "means": "a person bowing: thank you",
+   "mapped": true
+  },
+  "freeze": {
+   "group": "fig",
+   "means": "a person, a fist raised: freeze",
+   "mapped": true
+  },
+  "move_out": {
+   "group": "fig",
+   "means": "a person walking, an arm pointing on ahead: move out",
+   "mapped": true
+  },
+  "follow_me": {
+   "group": "fig",
+   "means": "a person walking, an arm raised forward: follow me",
+   "mapped": true
+  },
+  "follow_behind": {
+   "group": "fig",
+   "means": "two people walking in file: follow behind",
+   "mapped": true
+  },
+  "group": {
+   "group": "fig",
+   "means": "two people: the group",
+   "mapped": true
+  },
+  "carry_animal": {
+   "group": "fig",
+   "means": "a person carrying a lamb: pick the animal up",
+   "mapped": true
+  },
+  "undecided": {
+   "group": "fig",
+   "means": "a person, a question mark: undecided",
+   "mapped": true
+  },
+  "come_here": {
+   "group": "fig",
+   "means": "a person, an arrow coming to them: come here, come from the front",
+   "mapped": true
+  },
+  "clap": {
+   "group": "hand",
+   "means": "two open hands together, the near one over the far, the claps above: clap",
+   "mapped": true
+  },
+  "thumbs_up": {
+   "group": "hand",
+   "means": "a thumb up: yes, good, the friendly emotes",
+   "mapped": true
+  },
+  "thumbs_down": {
+   "group": "hand",
+   "means": "a thumb down: no, bad, the hostile emotes",
+   "mapped": true
+  },
+  "yes": {
+   "group": "sym",
+   "means": "a tick: yes, OK",
+   "mapped": true
+  },
+  "no": {
+   "group": "sym",
+   "means": "a cross: no",
+   "mapped": true
+  },
+  "insult": {
+   "group": "sym",
+   "means": "a speech bubble full of grawlix: insult",
+   "mapped": true
+  },
+  "chat": {
+   "group": "sym",
+   "means": "a speech bubble, words in it: the chat",
+   "mapped": true
+  },
+  "target": {
+   "group": "sym",
+   "means": "a target's sights: fire, aim here",
+   "mapped": true
+  },
+  "target_off": {
+   "group": "sym",
+   "means": "the target's sights struck through: cease fire",
+   "mapped": true
+  },
+  "back": {
+   "group": "sym",
+   "means": "an arrow turning back: back",
+   "mapped": false
+  },
+  "plus": {
+   "group": "sym",
+   "means": "a plus: add, put on, attach",
+   "mapped": true
+  },
+  "minus": {
+   "group": "sym",
+   "means": "a minus: take off, remove",
+   "mapped": true
+  },
+  "info": {
+   "group": "sym",
+   "means": "an i in a disc: information, the animal's info",
+   "mapped": true
+  },
+  "help": {
+   "group": "sym",
+   "means": "a question mark in a disc: help, the controller's map",
+   "mapped": true
+  },
+  "play": {
+   "group": "sym",
+   "means": "play: the game at its own speed",
+   "mapped": true
+  },
+  "pause": {
+   "group": "sym",
+   "means": "pause",
+   "mapped": true
+  },
+  "ff1": {
+   "group": "sym",
+   "means": "two arrowheads: fast forward",
+   "mapped": true
+  },
+  "ff2": {
+   "group": "sym",
+   "means": "three arrowheads: faster",
+   "mapped": true
+  },
+  "wait": {
+   "group": "sym",
+   "means": "a clock: the fastest, wait the time out",
+   "mapped": true
+  },
+  "seek": {
+   "group": "sym",
+   "means": "two arrowheads to a stop: the next station",
+   "mapped": true
+  },
+  "gears": {
+   "group": "sym",
+   "means": "a cog: settings, ZeD's setup, the emotes' config",
+   "mapped": true
+  },
+  "zoom_in": {
+   "group": "sym",
+   "means": "a magnifier with a plus: zoom in",
+   "mapped": true
+  },
+  "zoom_out": {
+   "group": "sym",
+   "means": "a magnifier with a minus: zoom out",
+   "mapped": true
+  },
+  "theme": {
+   "group": "sym",
+   "means": "a disc half dark: the theme",
+   "mapped": true
+  },
+  "textsize": {
+   "group": "sym",
+   "means": "a big A and a small a: the text size",
+   "mapped": true
+  },
+  "focus": {
+   "group": "sym",
+   "means": "corner marks round a dot: the focus style",
+   "mapped": true
+  },
+  "scale": {
+   "group": "sym",
+   "means": "a small square grown to a big one: the interface's scale",
+   "mapped": true
+  },
+  "seethrough": {
+   "group": "sym",
+   "means": "a pane over a pane, the front one clear: see-through windows",
+   "mapped": true
+  },
+  "progress": {
+   "group": "sym",
+   "means": "a bar part filled: the action bar",
+   "mapped": true
+  },
+  "inbox": {
+   "group": "sym",
+   "means": "an in-tray: the messages",
+   "mapped": true
+  },
+  "smiley": {
+   "group": "sym",
+   "means": "a smiling face: the moodles",
+   "mapped": true
+  },
+  "guide": {
+   "group": "sym",
+   "means": "a book with a question on its cover: the survival guide",
+   "mapped": true
+  },
+  "gamepad": {
+   "group": "sym",
+   "means": "a game controller: the controller's map",
+   "mapped": true
+  },
+  "alarm": {
+   "group": "sym",
+   "means": "a bell: the watch's alarm",
+   "mapped": true
+  },
+  "heart": {
+   "group": "sym",
+   "means": "a heart: you, your health, the health tab",
+   "mapped": true
+  },
+  "safemode": {
+   "group": "sym",
+   "means": "a shield with a tick: safe mode",
+   "mapped": true
+  },
+  "crate": {
+   "group": "tab",
+   "means": "a slatted wooden crate, braced: the loot tab",
+   "mapped": true
+  },
+  "jacket": {
+   "group": "tab",
+   "means": "a zipped jacket: the equipment tab",
+   "mapped": true
+  },
+  "thermometer": {
+   "group": "tab",
+   "means": "a thermometer with its scale: the thermal tab",
+   "mapped": true
+  },
+  "idcard": {
+   "group": "tab",
+   "means": "an ID card, a portrait and its lines: the identity tab",
+   "mapped": true
+  },
+  "notebook": {
+   "group": "tab",
+   "means": "a spiral notebook and a pencil: the journal tab",
+   "mapped": true
+  },
+  "skills": {
+   "group": "tab",
+   "means": "bars rising: the skills tab",
+   "mapped": true
+  },
+  "craft": {
+   "group": "tab",
+   "means": "a hammer and a wrench, upright: crafting, the craft tab",
+   "mapped": true
+  },
+  "bricks": {
+   "group": "tab",
+   "means": "a brick wall: building, the build tab",
+   "mapped": true
+  },
+  "mirror": {
+   "group": "tab",
+   "means": "a hand mirror and a hairbrush: the appearance tab",
+   "mapped": true
+  },
+  "traits": {
+   "group": "tab",
+   "means": "a level slider, its marker: the traits tab",
+   "mapped": true
+  }
+ },
+ "order": "TEXT, then KEEP, then TEX; ZeD's own wheels name ids directly (ZED, TABS)",
+ "TEXT": [
+  {
+   "key": "UI_optionscreen_binding_Toggle Survival Guide",
+   "texture": null,
+   "id": "guide",
+   "why": "vanilla shows the shrug"
+  },
+  {
+   "key": "IGUI_MiniMap_Toggle",
+   "texture": null,
+   "id": "minimap",
+   "why": "all three map slices share Map_On"
+  },
+  {
+   "key": "IGUI_MiniMap_Focus",
+   "texture": null,
+   "id": "pin",
+   "why": "all three map slices share Map_On"
+  },
+  {
+   "key": "IGUI_Emote_Shout",
+   "texture": null,
+   "id": "bullhorn",
+   "why": "vanilla shows the Talkative trait"
+  },
+  {
+   "key": "IGUI_Emote_Group",
+   "texture": null,
+   "id": "group",
+   "why": "the emote category; vanilla reuses Follow me's picture"
+  },
+  {
+   "key": "IGUI_BackButton_Zoom",
+   "texture": "ZoomIn",
+   "id": "zoom_in",
+   "why": "ZoomIn and ZoomOut also mean add and remove elsewhere"
+  },
+  {
+   "key": "IGUI_BackButton_Zoom",
+   "texture": "ZoomOut",
+   "id": "zoom_out",
+   "why": ""
+  },
+  {
+   "key": "ContextMenu_Vehicle_AttachTrailer",
+   "texture": null,
+   "id": "link",
+   "why": "vanilla shows ZoomIn"
+  },
+  {
+   "key": "ContextMenu_Vehicle_AttachVehicle",
+   "texture": null,
+   "id": "link",
+   "why": "towing another vehicle"
+  },
+  {
+   "key": "ContextMenu_Vehicle_DetachTrailer",
+   "texture": null,
+   "id": "unlink",
+   "why": "vanilla shows ZoomOut"
+  },
+  {
+   "key": "ContextMenu_VehicleHeadlightsOn",
+   "texture": null,
+   "id": "headlight_on",
+   "why": "vehicle_lightsON is the light sources' too"
+  },
+  {
+   "key": "ContextMenu_VehicleHeadlightsOff",
+   "texture": null,
+   "id": "headlight_off",
+   "why": ""
+  },
+  {
+   "key": "ContextMenu_VehicleHotwire",
+   "texture": null,
+   "id": "hotwire",
+   "why": "vanilla shows the ignition"
+  },
+  {
+   "key": "ContextMenu_VehicleHotwireSkill",
+   "texture": null,
+   "id": "hotwire_off",
+   "why": "not skilled enough yet"
+  },
+  {
+   "key": "IGUI_EnterVehicle",
+   "texture": null,
+   "id": "car_enter",
+   "why": "vanilla shows Change seats"
+  },
+  {
+   "key": "IGUI_ExitVehicle",
+   "texture": null,
+   "id": "car_exit",
+   "why": ""
+  },
+  {
+   "key": "ContextMenu_Open_door",
+   "texture": null,
+   "id": "car_door",
+   "why": "vanilla shows Exit"
+  },
+  {
+   "key": "ContextMenu_Close_door",
+   "texture": null,
+   "id": "car_door",
+   "why": ""
+  },
+  {
+   "key": "IGUI_OpenHood",
+   "texture": null,
+   "id": "car_door",
+   "why": ""
+  },
+  {
+   "key": "IGUI_CloseHood",
+   "texture": null,
+   "id": "car_door",
+   "why": ""
+  },
+  {
+   "key": "IGUI_OpenTrunk",
+   "texture": null,
+   "id": "car_door",
+   "why": ""
+  },
+  {
+   "key": "IGUI_CloseTrunk",
+   "texture": null,
+   "id": "car_door",
+   "why": ""
+  },
+  {
+   "key": "ContextMenu_Unlock_Doors",
+   "texture": null,
+   "id": "padlock_open",
+   "why": "Lock and Unlock share vehicle_lockdoors"
+  },
+  {
+   "key": "ContextMenu_UnlockDoor",
+   "texture": null,
+   "id": "padlock_open",
+   "why": ""
+  },
+  {
+   "key": "IGUI_UnlockHood",
+   "texture": null,
+   "id": "padlock_open",
+   "why": ""
+  },
+  {
+   "key": "IGUI_UnlockTrunk",
+   "texture": null,
+   "id": "padlock_open",
+   "why": ""
+  },
+  {
+   "key": "ContextMenu_Vehicle_Wash",
+   "texture": null,
+   "id": "wash",
+   "why": "vanilla shows the water drop item"
+  },
+  {
+   "key": "ContextMenu_CheckAnimalInsideTrailer",
+   "texture": null,
+   "id": "cow",
+   "why": "vanilla shows the lamb item"
+  },
+  {
+   "key": "ContextMenu_FullInventory",
+   "texture": null,
+   "id": "gas_can",
+   "why": "fuel, greyed: vanilla shows the petrol item"
+  },
+  {
+   "key": "ContextMenu_VehicleNeedHose",
+   "texture": null,
+   "id": "gas_siphon",
+   "why": "siphoning, greyed: needs a hose"
+  }
+ ],
+ "KEEP": [
+  "item_",
+  "trait_",
+  "xbox",
+  "joypad",
+  "media/inventory"
+ ],
+ "TEX": [
+  {
+   "group": "vehicle",
+   "texture": "vehicle_changeseats",
+   "id": "seat"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_ignitionon",
+   "id": "key"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_ignitionoff",
+   "id": "key_off"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_lightson",
+   "id": "bulb_on"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_lightsoff",
+   "id": "bulb_off"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_temperaturehot",
+   "id": "heat"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_temperaturecold",
+   "id": "snowflake"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_horn",
+   "id": "horn"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_lightbar",
+   "id": "lightbar"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_speakers",
+   "id": "speaker"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_windowopen",
+   "id": "window_open"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_windowclosed",
+   "id": "window_close"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_smash_window",
+   "id": "window_smash"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_lockdoors",
+   "id": "padlock"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_repair",
+   "id": "engine"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_sleep",
+   "id": "bed"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_exit",
+   "id": "car_exit"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_refuel_from_pump",
+   "id": "gas_pump"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_add_gas",
+   "id": "gas_can"
+  },
+  {
+   "group": "vehicle",
+   "texture": "gas_refuel",
+   "id": "gas_can"
+  },
+  {
+   "group": "vehicle",
+   "texture": "vehicle_siphon_gas",
+   "id": "gas_siphon"
+  },
+  {
+   "group": "vehicle",
+   "texture": "gas_siphon",
+   "id": "gas_siphon"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_insertmagazine",
+   "id": "mag_in"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_ejectmagazine",
+   "id": "mag_out"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_bulletsintomagazine",
+   "id": "rounds_mag"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_bulletsintofirearm",
+   "id": "rounds_in"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_bulletsfromfirearm",
+   "id": "rounds_out"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_unjam",
+   "id": "unjam"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_rack",
+   "id": "rack"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "firearmradial_chamberround",
+   "id": "chamber"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "lightsourceradial_insertbattery",
+   "id": "battery_in"
+  },
+  {
+   "group": "firearm and light",
+   "texture": "lightsourceradial_removebattery",
+   "id": "battery_out"
+  },
+  {
+   "group": "animal",
+   "texture": "animalactions_kill",
+   "id": "knife"
+  },
+  {
+   "group": "animal",
+   "texture": "animalactions_grab",
+   "id": "carry_animal"
+  },
+  {
+   "group": "animal",
+   "texture": "animalactions_milk",
+   "id": "milk"
+  },
+  {
+   "group": "animal",
+   "texture": "animalactions_pet",
+   "id": "pet"
+  },
+  {
+   "group": "animal",
+   "texture": "animalactions_rope",
+   "id": "rope"
+  },
+  {
+   "group": "animal",
+   "texture": "animalactions_shear",
+   "id": "scissors"
+  },
+  {
+   "group": "animal",
+   "texture": "animalactions_stats",
+   "id": "info"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "heart2_on",
+   "id": "heart"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "carpentry_on",
+   "id": "craft"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "build_tool",
+   "id": "bricks"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "furniture_off2",
+   "id": "chair"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "furniture_pickup",
+   "id": "box_up"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "furniture_place",
+   "id": "box_down"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "furniture_rotate",
+   "id": "rotate"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "furniture_disassemble",
+   "id": "screwdriver"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "furniture_on2",
+   "id": "wrench"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "foraging/eyeconon",
+   "id": "eye"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "foraging/eyeconoff",
+   "id": "eye_off"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "search_on_64",
+   "id": "magnifier"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "search_off_64",
+   "id": "magnifier_off"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "animalzone_on_64",
+   "id": "fence"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "buildingroomseditor_64",
+   "id": "rooms"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "worldmap/map_on",
+   "id": "map"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "speedcontrols/play_off",
+   "id": "play"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "speedcontrols/pause_off",
+   "id": "pause"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "speedcontrols/ffwd1_off",
+   "id": "ff1"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "speedcontrols/ffwd2_off",
+   "id": "ff2"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "speedcontrols/wait_off",
+   "id": "wait"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "zoomin",
+   "id": "plus"
+  },
+  {
+   "group": "back button, furniture, map",
+   "texture": "zoomout",
+   "id": "minus"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/wavehello",
+   "id": "wave"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/wavebye",
+   "id": "wave_bye"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/wave",
+   "id": "wave"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/clap",
+   "id": "clap"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/thumbsup",
+   "id": "thumbs_up"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/thumbup",
+   "id": "thumbs_up"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/thumbsdown",
+   "id": "thumbs_down"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/thumbdown",
+   "id": "thumbs_down"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/thankyou",
+   "id": "bow"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/insult",
+   "id": "insult"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/stop",
+   "id": "hand"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/surrender",
+   "id": "surrender"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/followme",
+   "id": "follow_me"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/comehere",
+   "id": "come_here"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/comefromfront",
+   "id": "come_here"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/yes",
+   "id": "yes"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/no",
+   "id": "no"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/shrug",
+   "id": "shrug"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/undecided",
+   "id": "undecided"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/ceasefire",
+   "id": "target_off"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/fire",
+   "id": "target"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/moveout",
+   "id": "move_out"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/freeze",
+   "id": "freeze"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/followbehind",
+   "id": "follow_behind"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/salute",
+   "id": "salute"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/group",
+   "id": "group"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/gears",
+   "id": "gears"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/crouch_on",
+   "id": "sneak"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/crouch_off",
+   "id": "sneak_off"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/sit_on",
+   "id": "sit_ground"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/sit_off",
+   "id": "sit_ground_off"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/autowalk_on",
+   "id": "autowalk"
+  },
+  {
+   "group": "emotes and stances",
+   "texture": "emotes/autowalk_off",
+   "id": "autowalk_off"
+  }
+ ],
+ "ZED": [
+  {
+   "wheel": "character",
+   "slice": "UI_ZeD_Wheel_Tabs",
+   "now": "tab loot-tab-white",
+   "id": "crate"
+  },
+  {
+   "wheel": "character",
+   "slice": "UI_ZeD_Wheel_Weapons",
+   "now": "knife",
+   "id": "knife"
+  },
+  {
+   "wheel": "character",
+   "slice": "ContextMenu_Eat",
+   "now": "apple-whole",
+   "id": "apple"
+  },
+  {
+   "wheel": "character",
+   "slice": "ContextMenu_Drink",
+   "now": "water-045-drink",
+   "id": "glass"
+  },
+  {
+   "wheel": "character",
+   "slice": "UI_ZeD_Wheel_Medicine",
+   "now": "bandage-wound",
+   "id": "medkit"
+  },
+  {
+   "wheel": "character",
+   "slice": "ContextMenu_Sleep",
+   "now": "bed",
+   "id": "bed"
+  },
+  {
+   "wheel": "character",
+   "slice": "UI_ZeD_Wheel_Clothing",
+   "now": "fi-br-shirt-long-sleeve",
+   "id": "shirt"
+  },
+  {
+   "wheel": "character",
+   "slice": "UI_ZeD_Wheel_Use",
+   "now": "backpack",
+   "id": "backpack"
+  },
+  {
+   "wheel": "character > Weapons",
+   "slice": "UI_ZeD_Wheel_HandsFree",
+   "now": "backpack",
+   "id": "hand"
+  },
+  {
+   "wheel": "character > Medicine",
+   "slice": "the wounds (H.treatments' entries)",
+   "now": "bandage-wound",
+   "id": "bandage"
+  },
+  {
+   "wheel": "character > Medicine, Clothing, Radio",
+   "slice": "the tab slices (Health, Equipment, Radio)",
+   "now": "tab health- / equipment- / radio-tab-white",
+   "id": "heart / jacket / walkie"
+  },
+  {
+   "wheel": "character > Use",
+   "slice": "ContextMenu_Smoke",
+   "now": "smoking",
+   "id": "cigarette"
+  },
+  {
+   "wheel": "character > Use",
+   "slice": "ContextMenu_Read",
+   "now": "book-open-reader",
+   "id": "book"
+  },
+  {
+   "wheel": "character > Use",
+   "slice": "UI_ZeD_Wheel_Watch",
+   "now": "clock",
+   "id": "watch"
+  },
+  {
+   "wheel": "character > Use",
+   "slice": "IGUI_ItemType_Radio",
+   "now": "survival-077-radio",
+   "id": "walkie"
+  },
+  {
+   "wheel": "character > Watch",
+   "slice": "UI_ZeD_Wheel_OpenWatch",
+   "now": "clock",
+   "id": "watch"
+  },
+  {
+   "wheel": "character > Watch",
+   "slice": "UI_ZeD_Wheel_WatchLight",
+   "now": "lightbulb-on",
+   "id": "bulb_on"
+  },
+  {
+   "wheel": "character > Watch",
+   "slice": "UI_ZeD_Wheel_WatchAlarm",
+   "now": "essential-collection-213-alarm",
+   "id": "alarm"
+  },
+  {
+   "wheel": "character > Radio",
+   "slice": "UI_ZeD_Wheel_NextStation",
+   "now": "fm-radio",
+   "id": "seek"
+  },
+  {
+   "wheel": "world",
+   "slice": "UI_ZeD_Wheel_Tabs",
+   "now": "tab craft-tab-white",
+   "id": "craft"
+  },
+  {
+   "wheel": "world",
+   "slice": "UI_ZeD_Wheel_Map",
+   "now": "crafting-game-037-map",
+   "id": "map"
+  },
+  {
+   "wheel": "world",
+   "slice": "UI_ZeD_Wheel_Vehicle",
+   "now": "car-mechanic",
+   "id": "car"
+  },
+  {
+   "wheel": "world",
+   "slice": "UI_ZeD_Wheel_Animal",
+   "now": "cow",
+   "id": "cow"
+  },
+  {
+   "wheel": "world",
+   "slice": "UI_ZeD_Wheel_CraftBuild",
+   "now": "carpentry-015-toolbox",
+   "id": "toolbox"
+  },
+  {
+   "wheel": "world",
+   "slice": "UI_ZeD_Wheel_Search",
+   "now": "fi-br-magnifying-glass-wave",
+   "id": "magnifier"
+  },
+  {
+   "wheel": "world",
+   "slice": "UI_ZeD_Wheel_LightsPower",
+   "now": "lightbulb-on",
+   "id": "bulb_on"
+  },
+  {
+   "wheel": "world",
+   "slice": "IGUI_Zone_Name",
+   "now": "map-marker",
+   "id": "fence"
+  },
+  {
+   "wheel": "world",
+   "slice": "IGUI_Emote_Shout",
+   "now": "bullhorn",
+   "id": "bullhorn"
+  },
+  {
+   "wheel": "world (server)",
+   "slice": "UI_ZeD_Wheel_Chat",
+   "now": "text-box-dots",
+   "id": "chat"
+  },
+  {
+   "wheel": "world (server)",
+   "slice": "UI_ZeD_Wheel_Safety",
+   "now": "fi-br-lock",
+   "id": "padlock"
+  },
+  {
+   "wheel": "world (server)",
+   "slice": "UI_ZeD_Wheel_Players",
+   "now": "handshake",
+   "id": "group"
+  },
+  {
+   "wheel": "world > Map",
+   "slice": "IGUI_WorldMap_Toggle",
+   "now": "crafting-game-037-map",
+   "id": "map"
+  },
+  {
+   "wheel": "world > Map",
+   "slice": "IGUI_MiniMap_Toggle",
+   "now": "fi-br-map-point",
+   "id": "minimap"
+  },
+  {
+   "wheel": "world > Map",
+   "slice": "IGUI_MiniMap_Focus",
+   "now": "map-marker",
+   "id": "pin"
+  },
+  {
+   "wheel": "world > Craft and build",
+   "slice": "IGUI_CraftingWindow_Title",
+   "now": "tab craft-tab-white",
+   "id": "craft"
+  },
+  {
+   "wheel": "world > Craft and build",
+   "slice": "UI_ZeD_World_TabBuilding",
+   "now": "tab build-tab-white",
+   "id": "bricks"
+  },
+  {
+   "wheel": "world > Craft and build",
+   "slice": "IGUI_BackButton_Movable",
+   "now": "tab move-tab-white",
+   "id": "chair"
+  },
+  {
+   "wheel": "world > Search",
+   "slice": "UI_enable_search_mode",
+   "now": "eye",
+   "id": "eye"
+  },
+  {
+   "wheel": "world > Search",
+   "slice": "UI_disable_search_mode",
+   "now": "eye",
+   "id": "eye_off"
+  },
+  {
+   "wheel": "world > Search",
+   "slice": "UI_investigate_area_window_show",
+   "now": "tab forage-tab-white",
+   "id": "magnifier"
+  },
+  {
+   "wheel": "world > Search",
+   "slice": "IGUI_Pickup",
+   "now": "fi-br-picking-box",
+   "id": "box_up"
+  },
+  {
+   "wheel": "world > Lights and power",
+   "slice": "UI_ZeD_Wheel_RoomLights",
+   "now": "lightbulb-on",
+   "id": "bulb_on"
+  },
+  {
+   "wheel": "world > Lights and power",
+   "slice": "ContextMenu_Generator",
+   "now": "doomsday-007-generator",
+   "id": "generator"
+  },
+  {
+   "wheel": "world > Lights and power",
+   "slice": "ContextMenu_Light_fire / ContextMenu_Put_out_fire",
+   "now": "campfire",
+   "id": "campfire"
+  },
+  {
+   "wheel": "world > Vehicle",
+   "slice": "IGUI_VehiclePartCatdashboard",
+   "now": "fuel-gauge",
+   "id": "gauge"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_Sit",
+   "now": "sitting-ground",
+   "id": "sit_ground"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_Crouch",
+   "now": "emotes/crouch_on / crouch_off",
+   "id": "sneak / sneak_off"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_AutoWalk",
+   "now": "emotes/autowalk_on / autowalk_off (else fi-br-person-walking-arrow-right)",
+   "id": "autowalk / autowalk_off"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_GameSpeed",
+   "now": "vanilla speedControls/Pause_Off",
+   "id": "ff1"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_Zoom",
+   "now": "vanilla ZoomIn",
+   "id": "zoom_in"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_View",
+   "now": "eye",
+   "id": "eye"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_Help",
+   "now": "info-guide",
+   "id": "help"
+  },
+  {
+   "wheel": "stance",
+   "slice": "UI_ZeD_Wheel_Light (or the light's name)",
+   "now": "lightbulb-on",
+   "id": "bulb_on"
+  },
+  {
+   "wheel": "stance > Sit",
+   "slice": "ContextMenu_SitGround / UI_ZeD_Wheel_GetUp",
+   "now": "emotes/sit_on / sit_off",
+   "id": "sit_ground / sit_ground_off"
+  },
+  {
+   "wheel": "stance > Sit",
+   "slice": "UI_ZeD_Wheel_SitOn / UI_ZeD_Wheel_SitOnSeat",
+   "now": "chair",
+   "id": "sit_seat"
+  },
+  {
+   "wheel": "stance > Speed",
+   "slice": "IGUI_BackButton_Play / UI_optionscreen_binding_Pause",
+   "now": "speedControls/Play_Off / Pause_Off",
+   "id": "play / pause"
+  },
+  {
+   "wheel": "stance > Speed",
+   "slice": "IGUI_BackButton_FF1 / FF2 / FF3",
+   "now": "speedControls/FFwd1_Off / FFwd2_Off / Wait_Off",
+   "id": "ff1 / ff2 / wait"
+  },
+  {
+   "wheel": "stance > Zoom",
+   "slice": "IGUI_BackButton_Zoom (nearer / farther)",
+   "now": "ZoomIn / ZoomOut",
+   "id": "zoom_in / zoom_out"
+  },
+  {
+   "wheel": "stance > View",
+   "slice": "UI_ZeD_Wheel_HideInterface / UI_ZeD_Wheel_ShowInterface",
+   "now": "eye",
+   "id": "eye_off / eye"
+  },
+  {
+   "wheel": "stance > View",
+   "slice": "UI_ZeD_Wheel_ResetWindows",
+   "now": "rotate-left",
+   "id": "rotate"
+  },
+  {
+   "wheel": "stance > View",
+   "slice": "UI_ZeD_Settings_TextSize",
+   "now": "text-box-dots",
+   "id": "textsize"
+  },
+  {
+   "wheel": "stance > View",
+   "slice": "UI_mainscreen_option",
+   "now": "gears",
+   "id": "gears"
+  },
+  {
+   "wheel": "stance > Help",
+   "slice": "UI_optionscreen_binding_Toggle Survival Guide",
+   "now": "info-guide",
+   "id": "guide"
+  },
+  {
+   "wheel": "stance > Help",
+   "slice": "UI_ZeD_Wheel_ControllerMap",
+   "now": "question",
+   "id": "gamepad"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_BaseTheme",
+   "now": "settings",
+   "id": "theme"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_TextSize",
+   "now": "text-box-dots",
+   "id": "textsize"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_SeeThrough",
+   "now": "architectural-windows-017-window-16",
+   "id": "seethrough"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_FocusStyle",
+   "now": "fi-br-hand-back-point-right",
+   "id": "focus"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_UiScale",
+   "now": "magnifying-glass-eye",
+   "id": "scale"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_Moodles",
+   "now": "smile",
+   "id": "smiley"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_ActionBar",
+   "now": "clock",
+   "id": "progress"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Msg_Title",
+   "now": "inbox-in",
+   "id": "inbox"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Wheel_ResetWindows",
+   "now": "rotate-left",
+   "id": "rotate"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Options_GroupZed",
+   "now": "gears",
+   "id": "gears"
+  },
+  {
+   "wheel": "ZeD setup",
+   "slice": "UI_ZeD_Settings_SafeMode",
+   "now": "bolt-slash",
+   "id": "safemode"
+  }
+ ],
+ "TABS": [
+  {
+   "tab": "loot-tab-white",
+   "id": "crate"
+  },
+  {
+   "tab": "equipment-tab-white",
+   "id": "jacket"
+  },
+  {
+   "tab": "health-tab-white",
+   "id": "heart"
+  },
+  {
+   "tab": "thermal-tab-white",
+   "id": "thermometer"
+  },
+  {
+   "tab": "identy-tab-white",
+   "id": "idcard"
+  },
+  {
+   "tab": "journal-tab-white",
+   "id": "notebook"
+  },
+  {
+   "tab": "skills-tab-white",
+   "id": "skills"
+  },
+  {
+   "tab": "radio-tab-white",
+   "id": "walkie"
+  },
+  {
+   "tab": "craft-tab-white",
+   "id": "craft"
+  },
+  {
+   "tab": "build-tab-white",
+   "id": "bricks"
+  },
+  {
+   "tab": "move-tab-white",
+   "id": "chair"
+  },
+  {
+   "tab": "map-tab-white",
+   "id": "map"
+  },
+  {
+   "tab": "forage-tab-white",
+   "id": "magnifier"
+  },
+  {
+   "tab": "farm-tab-white",
+   "id": "cow"
+  },
+  {
+   "tab": "vehicle-tab-white",
+   "id": "car"
+  },
+  {
+   "tab": "appearance-tab-white",
+   "id": "mirror"
+  },
+  {
+   "tab": "traits-tab-white",
+   "id": "traits"
+  }
+ ]
+}
