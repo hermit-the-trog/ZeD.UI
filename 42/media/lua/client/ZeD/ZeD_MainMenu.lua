@@ -1019,6 +1019,7 @@ function MM.band(win, y, w, row, buttons, ask, plain, statusColor)
                                         row = row, col = i, x = r.x, y = r.y, w = r.w, h = r.h, band = true }
     end
     win._bandY, win._bandH = y, H
+    win._bandAsk = (ask ~= "" and ask) or nil      -- the band's left line as drawn (QA reads it)
     return H
 end
 
