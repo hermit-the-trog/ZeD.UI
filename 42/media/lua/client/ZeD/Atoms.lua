@@ -1048,7 +1048,7 @@ function ZeD.Atoms.drawScrollThumb(panel, x, y, w, h, state)
     local T = ZeD.T
     local bg
     if state == "dragging" then
-        bg = ZeD.colorAlpha(T.accent, 0.30)
+        bg = ZeD.colorAlpha(T.accent, T.selectionA)
     elseif state == "hover" then
         bg = T.surf4
     else

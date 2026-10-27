@@ -12,18 +12,23 @@
 --
 --   ZeD.MapsTab.addExtension(id, def)    -- def fields, all optional:
 --     order          lower first (the built-in key is 10)
---     button(win)    -> nil or { id, text, hint, icon = texture | glyph = fn(panel, x, y, s, c),
+--     button(win)    -> nil or { id, text, hint, help, icon = texture | glyph = fn(panel, x, y, s, c),
 --                       on = bool, dim = bool, activate = fn(win) }
---                       one toolbar button after the inks; in the World window's drawer it is
---                       an icon only, its words in a hover hint
+--                       one toolbar button after the inks: an icon button (a button with no
+--                       picture is a push button with its words); hint = its name after the
+--                       pointer rests (default text), help = the help line's words while it is
+--                       pointed at (default hint); on = the active look, dim = the disabled look
 --     row(win)       -> nil or { h = design px, draw = fn(ctx) }: a row under the toolbar
 --     gridRow(win)   -> the same, under the disclosure's mark grid (while it is open)
 --                       ctx: ctx:label(text), ctx:text(text, dim), ctx:gap(px),
---                       ctx:button(id, text, { on, dim, hint, activate }),
---                       ctx:slider(id, { w, min, max, step, get, set, tick, fmt })
+--                       ctx:button(id, text, { on, dim, hint, help, activate }) (a push button;
+--                       a greyed one's hint is its reason, said in the help line),
+--                       ctx:slider(id, { w, min, max, step, get, set, tick, fmt, help })
 --     side(win)      -> nil or { key, title, count, rows = { row, ... }, empty }: a section of
 --                       the side list. row = { key, dot = color, check = bool, onCheck = fn(win),
---                       title, sub, warn, activate = fn(win), del = { ask, onYes = fn(win) } }.
+--                       title, sub, warn, help, activate = fn(win), del = { ask, onYes = fn(win) } }.
+--                       del.ask is the question before the delete, worded "<Verb> the <thing>?
+--                       <What is lost>." (asked at the list's foot, with Cancel and Delete).
 --                       The list shows only while it has something in it: docked at the right
 --                       of the unfolded map, a panel over the map's right edge in the drawer
 --                       (a list button on the toolbar shows / hides it there)
@@ -99,54 +104,56 @@ end
 -- ---------------------------------------------------------------------------
 -- TOOLBAR BUTTONS (row one, after the inks)
 -- ---------------------------------------------------------------------------
-local function focusFill(panel, x, y, w, h)
-    local ac = ZeD.T.accent
-    panel:drawRect(x, y, w, h, 0.55, ac.r, ac.g, ac.b)
+-- The controls are the library's: a toolbar button is an icon button (its name
+-- in the hint, what it does in the help line), a row's button a push button with
+-- its words. on = the active look (solid accent), dim = the disabled look; the
+-- controller's mark is ZeD.Focus.mark's, in the window the control is drawn in.
+local FOCUS, FOCUS_SOLID = {}, { solid = true }   -- the mark's opts (its window: the panel's)
+local _ib, _pb, _pbCol = {}, {}, {}
+
+-- the help line's words for a button: a greyed one says why ("Line: Requires a
+-- pen or pencil."); else its help, its hint or its words
+local function helpOf(b)
+    if b.dim and b.hint then return ZeD.tr("UI_ZeD_Map_HelpCant", b.text or "", b.hint) end
+    return b.help or b.hint or b.text
 end
 
--- a hover hint for this frame (drawn by the map, under the pointer's control)
-local function hintCand(win, panel, z)
-    if not z.hint then return end
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    if inRect(z, mx, my) then win._mapExtHint = { key = z.id, text = z.hint, x = z.x, y = z.y, w = z.w, h = z.h } end
-end
-
-local function drawBtn(panel, win, b, x, y, h, narrow, focId)
-    local T, tm = ZeD.T, ZeD.TM
-    local f1 = T.fontF1
-    local icon = (b.icon or b.glyph) and true or false
-    local isz = h - T.px(6)
-    local text = b.text and ZeD.btnCase(b.text) or nil
-    local w
-    if narrow and icon then w = h
-    else w = (icon and (isz + T.px(5)) or 0) + (text and tm:MeasureStringX(f1, text) or 0) + T.px(12) end
+-- One button at (x, y), h tall; returns its width. iconOnly: a toolbar button
+-- (an icon button when it has a picture).
+local function drawBtn(panel, win, b, x, y, h, iconOnly, focId)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
     local id = "map:ext:" .. b.id
-    if focId == id then focusFill(panel, x, y, w, h) end
-    local ac, bd = T.accent, T.border
-    if b.on then
-        panel:drawRect(x, y, w, h, 0.2, ac.r, ac.g, ac.b)
-        panel:drawRectBorder(x, y, w, h, 0.6, ac.r, ac.g, ac.b)
+    local pic = b.glyph or b.icon
+    local focused = focId == id
+    local w
+    if pic and (iconOnly or not b.text) then
+        w = h
+        local o = _ib
+        o.hover = A.mouseIn(panel, x, y, w, h)
+        o.active, o.disabled, o.pressed = b.on and true or false, b.dim and true or false, false
+        o.focus = focused and FOCUS or nil
+        o.id = id
+        o.hint = o.hover and (b.hint or b.text) or nil
+        o.help = o.hover and helpOf(b) or nil
+        M.drawIconButton(panel, x, y, h, pic, o)
     else
-        panel:drawRectBorder(x, y, w, h, bd.a * 0.45, bd.r, bd.g, bd.b)
+        local text = b.text or ""
+        w = M.buttonW(text)
+        local o = _pb
+        o.hover = A.mouseIn(panel, x, y, w, h)
+        o.disabled = b.dim and true or false
+        o.focus = focused and (b.on and FOCUS_SOLID or FOCUS) or nil
+        o.help = o.hover and helpOf(b) or nil
+        -- on: the active look, solid accent with its words in textOnAccent
+        local col = nil
+        if b.on then
+            col = _pbCol
+            col.fill, col.text = T.accent, T.textOnAccent
+        end
+        M.drawButton(panel, x, y, w, h, text, b.on and "primary" or "default", false, col, o)
     end
-    local c = b.on and T.accent or T.text
-    local cx = x + (narrow and icon and math.floor((w - isz) / 2) or T.px(6))
-    if b.glyph then
-        b.glyph(panel, cx, y + T.px(3), isz, c)
-    elseif b.icon then
-        panel:drawTextureScaledAspect(b.icon, cx, y + T.px(3), isz, isz, 0.85, c.r, c.g, c.b)
-    end
-    if text and not (narrow and icon) then
-        local tx = icon and (cx + isz + T.px(5)) or (x + T.px(6))
-        panel:drawText(text, tx, y + math.floor((h - tm:getFontHeight(f1)) / 2), c.r, c.g, c.b, b.on and 0.95 or 0.8, f1)
-    end
-    if b.dim then
-        local s = T.surf1
-        panel:drawRect(x, y, w, h, 0.6, s.r, s.g, s.b)
-    end
-    local z = { id = id, x = x, y = y, w = w, h = h, activate = b.activate, hint = b.hint or (narrow and text) or nil }
+    local z = { id = id, x = x, y = y, w = w, h = h, activate = b.activate }
     win._mapExtZones[#win._mapExtZones + 1] = z
-    hintCand(win, panel, z)
     return w
 end
 
@@ -164,22 +171,24 @@ function E.drawButtons(panel, win, x, y, h, focId)
         if win._mapSideOpen == nil then win._mapSideOpen = true end
         if not E._listTex then E._listTex = getTexture("media/textures/ZeD/icons/list.png") end
         btns[#btns + 1] = { id = "list", icon = E._listTex, text = ZeD.tr("UI_ZeD_Map_SideList"),
+            help = ZeD.tr("UI_ZeD_Map_HelpSideList"),
             on = win._mapSideOpen, activate = function(w2) w2._mapSideOpen = not w2._mapSideOpen end }
     end
     if #btns == 0 then return x end
-    local sep = T.border
-    panel:drawRect(x, y + T.px(4), T.px(1), h - T.px(8), sep.a * 0.4, sep.r, sep.g, sep.b)
-    x = x + T.px(1) + T.px(8)
+    -- a content line between the inks and these (1u T.border)
+    ZeD.Atoms.drawDividerV(panel, x, y + T.px(4), h - T.px(8), false)
+    x = x + T.hair + T.px(8)
     for _, b in ipairs(btns) do
-        x = x + drawBtn(panel, win, b, x, y, h, narrow, focId) + T.px(4)
+        x = x + drawBtn(panel, win, b, x, y, h, true, focId) + T.px(4)
     end
     return x
 end
 
--- design px the World window's Maps drawer grows by for these buttons (icons
--- only there: 20 + 4 each, the separator before them, and the list button when
--- any extension fills the side list), so the toolbar's row still holds the
--- Survey / Color / Paper switch (ZeD_WorldWindow's getWorldTabDrawerW)
+-- design units the World window's Maps drawer grows by for these buttons (icon
+-- buttons, the standard button height and 4 apart, the line before them, and the
+-- list button when any extension fills the side list), so the toolbar's row
+-- still holds the Survey / Color / Paper choice (ZeD_WorldWindow's
+-- getWorldTabDrawerW). The button height is in screen px: back to units here.
 function E.drawerExtraW()
     local n, side = 0, false
     for _, d in ipairs(E.list) do
@@ -188,7 +197,10 @@ function E.drawerExtraW()
     end
     if side then n = n + 1 end
     if n == 0 then return 0 end
-    return 13 + 24 * n
+    local T = ZeD.T
+    local bu = 26
+    if T and T.buttonH and T.scale and T.scale > 0 then bu = math.ceil(T.buttonH / T.scale) end
+    return 13 + (bu + 4) * n
 end
 
 -- ---------------------------------------------------------------------------
@@ -199,13 +211,14 @@ Ctx.__index = Ctx
 
 function Ctx:gap(px) self.cx = self.cx + ZeD.T.px(px or 6) end
 
+-- the row's name, as the sort strip names itself: F1 in the secondary ink, sentence case
 function Ctx:label(text)
     local T = ZeD.T
-    local f5 = T.fontF5
-    local ac = T.accent
-    text = ZeD.upper(text or "")
-    self.panel:drawText(text, self.cx, self.y + math.floor((self.h - ZeD.TM:getFontHeight(f5)) / 2), ac.r, ac.g, ac.b, 1, f5)
-    self.cx = self.cx + ZeD.TM:MeasureStringX(f5, text) + T.px(8)
+    local f1 = T.fontF1
+    local c = T.textSec
+    text = ZeD.Atoms.textCase(text or "")
+    self.panel:drawText(text, self.cx, self.y + math.floor((self.h - ZeD.TM:getFontHeight(f1)) / 2), c.r, c.g, c.b, c.a or 1, f1)
+    self.cx = self.cx + ZeD.TM:MeasureStringX(f1, text) + T.px(8)
 end
 
 function Ctx:text(text, dim)
@@ -216,40 +229,56 @@ function Ctx:text(text, dim)
     self.cx = self.cx + ZeD.TM:MeasureStringX(f1, text or "") + ZeD.T.px(6)
 end
 
+-- a push button (the standard height, centred in the row)
 function Ctx:button(id, text, o)
     o = o or {}
     local T = ZeD.T
-    local bh = T.px(20)
-    local w = drawBtn(self.panel, self.win, { id = id, text = text, on = o.on, dim = o.dim, hint = o.hint,
+    local bh = T.buttonH
+    local w = drawBtn(self.panel, self.win, { id = id, text = text, on = o.on, dim = o.dim, hint = o.hint, help = o.help,
         activate = o.activate, icon = o.icon }, self.cx, self.y + math.floor((self.h - bh) / 2), bh, false, self.focId)
     self.cx = self.cx + w + T.px(4)
 end
 
--- a slider: a 4 px track, an 8 x 12 thumb in the accent, a tick (the default),
--- the value in words after it. Click or drag to set; the controller's D-pad
--- left / right steps it while it has the focus.
+-- A slider in the look of ZeD setup's sliders (the library has no slider of its
+-- own): the System 7 bar for the track (A.drawFillBar at the list rows' height),
+-- a flat 12 x 18 thumb with a 1u frame, lit while pointed at or held, a tick at the
+-- default, the value in words after it. Hover and the controller's mark are the
+-- library's. Click or drag to set; the controller's D-pad left / right steps it
+-- while it has the focus.
 function Ctx:slider(id, o)
-    local T, tm = ZeD.T, ZeD.TM
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local panel = self.panel
     local w = T.px(o.w or 120)
     local x = self.cx
     local cy = self.y + math.floor(self.h / 2)
     local zid = "map:ext:" .. id
-    if self.focId == zid then focusFill(panel, x - T.px(3), self.y + T.px(4), w + T.px(6), self.h - T.px(8)) end
-    local s4, bs, ac = T.surf4, T.borderS, T.accentBright or T.accent
-    panel:drawRect(x, cy - T.px(2), w, T.px(4), 1, s4.r, s4.g, s4.b)
-    panel:drawRectBorder(x, cy - T.px(2), w, T.px(4), bs.a, bs.r, bs.g, bs.b)
+    local zx, zw = x - T.px(4), w + T.px(8)
+    local hover = A.mouseIn(panel, zx, self.y, zw, self.h)
+    local drag = self.win._mapExtDrag
+    local held = drag ~= nil and drag.id == zid
+    if hover then
+        local hv = T.hover
+        panel:drawRect(zx, self.y + T.px(4), zw, self.h - T.px(8), hv.a or 1, hv.r, hv.g, hv.b)
+        local hl = o.help or o.hint
+        if hl then ZeD.Help.set(panel, hl) end
+    end
+    if self.focId == zid then ZeD.Focus.mark(panel, zx, self.y + T.px(4), zw, self.h - T.px(8), FOCUS) end
     local span = math.max(1e-6, o.max - o.min)
+    local v = o.get()
+    local frac = (math.max(o.min, math.min(o.max, v)) - o.min) / span
+    local bh = A.fillBarCompactH()
+    A.drawFillBar(panel, x, cy - math.floor(bh / 2), w, frac, false, nil, bh)
     if o.tick then
         local tx = x + math.floor((o.tick - o.min) / span * w)
         local ts = T.textSec
-        panel:drawRect(tx, cy + T.px(4), T.px(1), T.px(4), 1, ts.r, ts.g, ts.b)
+        panel:drawRect(tx, cy + math.ceil(bh / 2) + T.px(1), T.hair, T.px(4), ts.a or 1, ts.r, ts.g, ts.b)
     end
-    local v = o.get()
-    local px = x + math.floor((math.max(o.min, math.min(o.max, v)) - o.min) / span * w)
-    panel:drawRect(px - T.px(4), cy - T.px(6), T.px(8), T.px(12), 1, ac.r, ac.g, ac.b)
-    panel:drawRectBorder(px - T.px(4), cy - T.px(6), T.px(8), T.px(12), 1, 0, 0, 0)
-    local z = { id = zid, x = x - T.px(4), y = self.y, w = w + T.px(8), h = self.h, slider = o, sx = x, sw = w, hint = o.hint }
+    local thW, thH = T.px(12), T.px(18)
+    local thX, thY = x + math.floor(frac * w) - math.floor(thW / 2), cy - math.floor(thH / 2)
+    local tb = (hover or held) and (T.accentBright or T.accent) or T.surf4
+    panel:drawRect(thX, thY, thW, thH, 1, tb.r, tb.g, tb.b)
+    A.frame(panel, thX, thY, thW, thH, T.borderS)
+    local z = { id = zid, x = zx, y = self.y, w = zw, h = self.h, slider = o, sx = x, sw = w }
     self.win._mapExtZones[#self.win._mapExtZones + 1] = z
     self.cx = x + w + T.px(8)
     if o.fmt then
@@ -288,9 +317,9 @@ function E.drawRows(panel, win, x, y, w, kind, focId)
         local r = call(d, kind, win)
         if r and r.draw then
             local h = T.px(r.h or 32)
-            local s2, bd = T.surf2, T.border
-            panel:drawRect(x, y + total, w, h, s2.a, s2.r, s2.g, s2.b)
-            panel:drawRect(x, y + total, w, T.px(1), bd.a * 0.3, bd.r, bd.g, bd.b)
+            -- surface 2, one layer over the window (ZeD.Surface), a content line on top
+            ZeD.Atoms.surfaceFill(panel, x, y + total, w, h, "surf2")
+            ZeD.Atoms.drawDividerH(panel, x, y + total, w, false)
             local ctx = setmetatable({ panel = panel, win = win, x = x, y = y + total, w = w, h = h,
                 cx = x + T.px(22), narrow = not E.isPopout(win, panel), focId = focId }, Ctx)
             local ok, err = pcall(r.draw, ctx)
@@ -331,147 +360,281 @@ function E.dockedSideW(win, panel)
     return ZeD.T.px(SIDE_W)
 end
 
-local function rowHeight(r, w)
+-- The list is built from the library: section heads (M.drawSectionHeader), rows
+-- with the hover wash, the selected wash and the controller's mark, a System 7
+-- checkbox or a square status mark, prose in F2, an icon button to delete, a
+-- scrollbar when it runs long, and the question before a delete as the band at
+-- its foot (Cancel and Delete).
+local ROW_PAD   = 8    -- design units: the text inset, and the gap after a row's mark
+local ROW_TOP   = 6    -- design units: above the first line of a row (and below its last)
+local SECTION_H = 20   -- design units: M.drawSectionHeader's height
+local NO_LINES  = {}
+local _delOpts, _askOpts, _askSpec = {}, {}, {}
+local _askBtns = { {}, {} }
+local _delTex = nil
+
+-- the delete button's picture: the small cross (drawn when the picture is missing)
+local function crossGlyph(p, x, y, s, c)
+    local u = ZeD.T.hair
+    local m = math.floor(s * 0.2)
+    for i = 0, s - m * 2 - u, u do
+        p:drawRect(x + m + i, y + m + i, u, u, c.a or 1, c.r, c.g, c.b)
+        p:drawRect(x + m + i, y + s - m - u - i, u, u, c.a or 1, c.r, c.g, c.b)
+    end
+end
+local function deletePic()
+    if _delTex == nil then _delTex = getTexture("media/textures/ZeD/icons/cross-small.png") or false end
+    return _delTex or crossGlyph
+end
+
+-- the room a row's words have, in a list w wide (sbW: the scrollbar's width, or 0)
+local function rowTextW(r, w, sbW)
+    local T = ZeD.T
+    local mark = 0
+    if r.check ~= nil then mark = T.checkboxSz + T.px(ROW_PAD)
+    elseif r.dot then mark = T.px(8) + T.px(ROW_PAD) end
+    local del = r.del and (T.buttonH - T.px(4) + T.px(ROW_PAD)) or 0
+    return w - T.px(ROW_PAD) * 2 - mark - del - sbW
+end
+
+local function rowHeight(r, tw)
     local T, tm = ZeD.T, ZeD.TM
-    local h1, h2 = tm:getFontHeight(T.fontF1), tm:getFontHeight(T.fontF2)
-    local tw = w - T.px(16) - T.px(20) - (r.del and T.px(22) or 0)
+    local h2 = tm:getFontHeight(T.fontF2)
     local lines = ZeD.Atoms.wrapText(r.title or "", T.fontF2, tw)
     r._lines = lines
-    local h = T.px(12) + #lines * (h2 + T.px(1)) + (r.sub and (h1 + T.px(2)) or 0) + (r.warn and (h1 + T.px(2)) or 0)
+    local n = #lines + (r.sub and 1 or 0) + (r.warn and 1 or 0)
+    local h = T.px(ROW_TOP) * 2 + n * (h2 + T.px(1))
     return math.max(h, T.px(r.check ~= nil and 44 or 34))
+end
+
+-- every section's height, its rows measured, for a list w wide
+local function measureSide(secs, w, sbW)
+    local T, tm = ZeD.T, ZeD.TM
+    local h2 = tm:getFontHeight(T.fontF2)
+    local total = 0
+    for _, s in ipairs(secs) do
+        total = total + T.px(SECTION_H)
+        if s.rows and #s.rows > 0 then
+            for _, r in ipairs(s.rows) do
+                r._h = rowHeight(r, rowTextW(r, w, sbW))
+                total = total + r._h
+            end
+        elseif s.empty then
+            s._lines = ZeD.Atoms.wrapText(s.empty, T.fontF2, w - T.px(ROW_PAD) * 2 - sbW)
+            s._emptyH = T.px(8) * 2 + #s._lines * (h2 + T.px(2)) - T.px(2)
+            total = total + s._emptyH
+        else
+            s._lines = nil
+        end
+    end
+    return total
+end
+
+-- The question's footer: the band alone when the question fits its line, else
+-- the question wrapped over the band's two answers (the list is narrow).
+-- Returns its height and the wrapped lines (nil: one line in the band).
+local function askLayout(ask, w)
+    local T, tm, M = ZeD.T, ZeD.TM, ZeD.Molecules
+    local room = w - T.px(8) * 3 - T.px(20) - M.buttonW(ZeD.tr("ContextMenu_Delete")) - M.buttonW(ZeD.tr("UI_Cancel"))
+    local text = ask.text or ""
+    if tm:MeasureStringX(T.fontF2, text) <= room then return M.bandH(), nil end
+    local lines = ZeD.Atoms.wrapText(text, T.fontF2, w - T.px(8) * 2 - T.px(12))
+    local h2 = tm:getFontHeight(T.fontF2)
+    return T.px(8) * 2 + #lines * (h2 + T.px(2)) - T.px(2) + M.bandH(), lines
+end
+
+-- One row at (x, cy), w wide (the scrollbar's room left out); its zones go in
+-- the tab's coordinates (ox, oy).
+local function drawRow(target, win, s, r, x, cy, w, ox, oy, focId, ask)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local rh = r._h
+    local pad = T.px(ROW_PAD)
+    local rid = "map:side:" .. tostring(s.key) .. ":" .. tostring(r.key)
+    local act = r.activate
+    if r.check ~= nil then act = r.onCheck end
+    local rowZ = { id = rid, x = x + ox, y = cy + oy, w = w, h = rh, activate = act, row = r, sec = s }
+    -- the delete button sits at the right; the row's hover leaves it out
+    local ds = T.buttonH - T.px(4)
+    local dx, dy = x + w - pad - ds, cy + math.floor((rh - ds) / 2)
+    local overDel = r.del ~= nil and A.mouseIn(target, dx, dy, ds, ds)
+    local hover = act ~= nil and not overDel and A.mouseIn(target, x, cy, w, rh)
+    if ask and ask.row == r.key then
+        -- the row the question is about: the selected wash
+        local ac = T.accent
+        target:drawRect(x, cy, w, rh, T.selectionA, ac.r, ac.g, ac.b)
+    elseif hover then
+        local hv = T.hover
+        target:drawRect(x, cy, w, rh, hv.a or 1, hv.r, hv.g, hv.b)
+    end
+    if hover and r.help then ZeD.Help.set(target, r.help) end
+    local onFocus = (focId == rid) and ZeD.Focus.mark(target, x, cy, w, rh, FOCUS)
+    local f2 = T.fontF2
+    local h2 = tm:getFontHeight(f2)
+    local lx = x + pad
+    local ty = cy + T.px(ROW_TOP)
+    if r.check ~= nil then
+        local cb = T.checkboxSz
+        A.drawCheckbox(target, lx, ty + math.floor((h2 - cb) / 2), r.check and true or false, hover)
+        lx = lx + cb + pad
+    elseif r.dot then
+        local box = T.px(8)
+        A.drawStatusDot(target, lx, cy + math.floor((rh - box) / 2), r.dot, box)
+        lx = lx + box + pad
+    end
+    local room = x + w - pad - (r.del and (ds + pad) or 0) - lx
+    local tc = onFocus and T.textOnFocus or T.text
+    for _, l in ipairs(r._lines or NO_LINES) do
+        target:drawText(l, lx, ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        ty = ty + h2 + T.px(1)
+    end
+    if r.sub then
+        local sc = onFocus and T.textOnFocus or T.textSec
+        target:drawText(A.truncateText(r.sub, f2, room), lx, ty, sc.r, sc.g, sc.b, sc.a or 1, f2)
+        ty = ty + h2 + T.px(1)
+    end
+    if r.warn then
+        -- a warning: its square mark, the words in the text's own colour
+        local sq = T.px(6)
+        A.drawStatusDot(target, lx, ty + math.floor((h2 - sq) / 2), T.warning, sq)
+        target:drawText(A.truncateText(r.warn, f2, room - sq - T.px(6)), lx + sq + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
+    end
+    win._mapExtZones[#win._mapExtZones + 1] = rowZ
+    if r.del then
+        local xz = { id = rid .. ":x", x = dx + ox, y = dy + oy, w = ds, h = ds,
+            activate = function(w2) w2._mapSideAsk = { row = r.key, text = r.del.ask, onYes = r.del.onYes } end }
+        local o = _delOpts
+        o.hover = overDel
+        o.focus = (focId == xz.id) and FOCUS or nil
+        o.id = xz.id
+        o.hint = overDel and ZeD.tr("ContextMenu_Delete") or nil
+        o.help = overDel and ZeD.tr("UI_ZeD_Map_HelpRowDelete") or nil
+        ZeD.Molecules.drawIconButton(target, dx, dy, ds, deletePic(), o)
+        rowZ.del = xz
+        table.insert(win._mapExtZones, #win._mapExtZones, xz)   -- (tested before its row)
+    end
+    -- a content line between rows
+    A.drawDividerH(target, x, cy + rh - T.hair, w, false)
+end
+
+-- One section from cy down; returns the y after it.
+local function drawSection(target, win, s, x, cy, w, ox, oy, focId, ask)
+    local T, M = ZeD.T, ZeD.Molecules
+    local pad = T.px(ROW_PAD)
+    local headH = T.px(SECTION_H)
+    M.drawSectionHeader(target, x + pad, cy, w - pad, s.title or "", s.count, true, false, nil, nil, pad, headH, true)
+    cy = cy + headH
+    if s.rows and #s.rows > 0 then
+        for _, r in ipairs(s.rows) do
+            drawRow(target, win, s, r, x, cy, w, ox, oy, focId, ask)
+            cy = cy + r._h
+        end
+    elseif s._lines then
+        M.drawEmptyLine(target, x + pad, cy + T.px(8), w - pad * 2, s.empty)
+        cy = cy + (s._emptyH or 0)
+    end
+    return cy
+end
+
+-- The scrollbar at the list's right edge (the track's outer edge is the list's):
+-- the thumb shows where the list is; a press or a drag on the track moves it.
+local function drawSideScroll(target, win, sx, y, sw, h, contentH, maxOff, ox, oy)
+    local T, A = ZeD.T, ZeD.Atoms
+    A.drawScrollTrack(target, sx, y, sw, h)
+    local th = math.max(T.px(20), math.floor(h * h / math.max(1, contentH)))
+    local ty = y + math.floor((h - th) * ((win._mapSideScroll or 0) / math.max(1, maxOff)))
+    local z = { id = "map:side:scroll", x = sx + ox, y = y + oy, w = sw, h = h, inert = true,
+        scrollbar = { y = y + oy, h = h, th = th, max = maxOff } }
+    local drag = win._mapExtDrag
+    local state = "default"
+    if drag ~= nil and drag.id == z.id then state = "dragging"
+    elseif A.mouseIn(target, sx, ty, sw, th) then state = "hover" end
+    A.drawScrollThumb(target, sx, ty, sw, th, state)
+    table.insert(win._mapExtZones, 1, z)
+end
+
+-- The question before a delete, at the list's foot (fy): "<Verb> the <thing>?
+-- <What is lost>." with its red square, then Cancel and Delete (danger).
+local function drawSideAsk(target, win, x, fy, w, footH, ask, lines, ox, oy, focId)
+    local T, A, M = ZeD.T, ZeD.Atoms, ZeD.Molecules
+    local verb = ZeD.tr("ContextMenu_Delete")
+    local noF = (focId == "map:side:no") and FOCUS or nil
+    local yesF = (focId == "map:side:yes") and FOCUS or nil
+    local cRect, vRect
+    if not lines then
+        local o = _askOpts
+        o.danger, o.cancelFocus, o.verbFocus = true, noF, yesF
+        local _
+        _, cRect, vRect = M.drawQuestionBand(target, x, fy, w, ask.text or "", verb, o)
+    else
+        -- the question over the band, on the band's surface under its structure line
+        local qH = footH - M.bandH()
+        A.surfaceFill(target, x, fy, w, qH, "surf2")
+        A.drawDividerH(target, x, fy, w, true)
+        local f2 = T.fontF2
+        local h2 = ZeD.TM:getFontHeight(f2)
+        local sq = T.px(6)
+        local ty = fy + T.px(8)
+        A.drawStatusDot(target, x + T.px(8), ty + math.floor((h2 - sq) / 2), T.danger, sq)
+        local tc = T.text
+        for _, l in ipairs(lines) do
+            target:drawText(l, x + T.px(8) + sq + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
+            ty = ty + h2 + T.px(2)
+        end
+        local c, v = _askBtns[1], _askBtns[2]
+        c.label, c.variant, c.focus, c.id = ZeD.tr("UI_Cancel"), "default", noF, "cancel"
+        v.label, v.variant, v.focus, v.id = verb, "danger", yesF, "verb"
+        _askSpec.buttons, _askSpec.noLine = _askBtns, true
+        local _, out = M.drawBand(target, x, fy + qH, w, _askSpec)
+        cRect, vRect = out.buttons[1], out.buttons[2]
+    end
+    local yz = { id = "map:side:yes", x = vRect.x + ox, y = vRect.y + oy, w = vRect.w, h = vRect.h,
+        activate = function(w2) local a = w2._mapSideAsk; w2._mapSideAsk = nil; if a and a.onYes then a.onYes(w2) end end }
+    local nz = { id = "map:side:no", x = cRect.x + ox, y = cRect.y + oy, w = cRect.w, h = cRect.h,
+        activate = function(w2) w2._mapSideAsk = nil end }
+    table.insert(win._mapExtZones, 1, yz)
+    table.insert(win._mapExtZones, 1, nz)
 end
 
 -- Draws the side list on `target` at (x, y, w, h); (ox, oy) turn target
 -- coordinates into the tab's (clicks are tested in the tab's coordinates).
-function E.drawSide(target, win, x, y, w, h, ox, oy, focId)
+-- overMap: a panel over the map (the drawer), which carries its own surface;
+-- docked (the unfolded map) the window's own surface shows through.
+function E.drawSide(target, win, x, y, w, h, ox, oy, focId, overMap)
     local secs = E.sections(win)
     if not secs then return end
-    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
-    local f1, f2, f5 = T.fontF1, T.fontF2, T.fontF5
-    local h1, h2, h5 = tm:getFontHeight(f1), tm:getFontHeight(f2), tm:getFontHeight(f5)
-    local s1, bs = T.surf1, T.borderS
-    target:drawRect(x, y, w, h, 0.97, s1.r, s1.g, s1.b)
-    target:drawRect(x, y, T.px(1), h, bs.a, bs.r, bs.g, bs.b)
+    local T, A = ZeD.T, ZeD.Atoms
+    if overMap then A.surfaceFill(target, x, y, w, h, "surf1") end
     win._mapSideZone = { x = x + ox, y = y + oy, w = w, h = h }
     -- the footer question (Delete ... ?), when one is asked
     local ask = win._mapSideAsk
-    local footH = 0
-    local askLines
-    if ask then
-        askLines = A.wrapText(ask.text, f1, w - T.px(16))
-        footH = T.px(14) + #askLines * (h1 + T.px(2)) + T.px(28)
-    end
+    local footH, askLines = 0, nil
+    if ask then footH, askLines = askLayout(ask, w) end
     local listH = h - footH
-    -- content height (rows measured once a frame)
-    local contentH = 0
-    for _, s in ipairs(secs) do
-        contentH = contentH + T.px(26)
-        if s.rows and #s.rows > 0 then
-            for _, r in ipairs(s.rows) do r._h = rowHeight(r, w); contentH = contentH + r._h end
-        elseif s.empty then
-            s._lines = A.wrapText(s.empty, f1, w - T.px(16))
-            contentH = contentH + T.px(16) + #s._lines * (h1 + T.px(2))
-        end
+    -- content height (rows measured once a frame; again with the scrollbar's room when it runs long)
+    local sbW = 0
+    local contentH = measureSide(secs, w, 0)
+    if contentH > listH then
+        sbW = T.sp.scrollbarW
+        contentH = measureSide(secs, w, sbW)
     end
     local maxOff = math.max(0, contentH - listH)
     win._mapSideScroll = math.max(0, math.min(win._mapSideScroll or 0, maxOff))
     local cy = y - win._mapSideScroll
     target:setStencilRect(x, y, w, listH)
-    local ac, ts, tx, bd = T.accent, T.textSec, T.text, T.border
     for _, s in ipairs(secs) do
-        -- section head: PLAYERS        3
-        target:drawRect(x + T.px(1), cy + T.px(26) - T.px(1), w - T.px(1), T.px(1), bd.a, bd.r, bd.g, bd.b)
-        target:drawText(ZeD.upper(s.title or ""), x + T.px(8), cy + math.floor((T.px(26) - h5) / 2), ac.r, ac.g, ac.b, 1, f5)
-        if s.count then A.drawTextRight(target, tostring(s.count), x + w - T.px(8), cy + math.floor((T.px(26) - h1) / 2), f1, ts) end
-        cy = cy + T.px(26)
-        if s.rows and #s.rows > 0 then
-            for _, r in ipairs(s.rows) do
-                local rh = r._h
-                local rid = "map:side:" .. tostring(s.key) .. ":" .. tostring(r.key)
-                if focId == rid or focId == rid .. ":x" then focusFill(target, x + T.px(1), cy, w - T.px(1), rh) end
-                if ask and ask.row == r.key then target:drawRect(x + T.px(1), cy, w - T.px(1), rh, 0.12, ac.r, ac.g, ac.b) end
-                local lx = x + T.px(8)
-                local rowZ = { id = rid, x = x + ox, y = cy + oy, w = w, h = rh, activate = r.activate, row = r, sec = s }
-                if r.check ~= nil then
-                    local cb = T.px(12)
-                    local cz = { x = lx, y = cy + T.px(7), w = cb, h = cb }
-                    target:drawRectBorder(cz.x, cz.y, cb, cb, bs.a, bs.r, bs.g, bs.b)
-                    if r.check then
-                        local ab = T.accentBright or T.accent
-                        target:drawRect(cz.x + T.px(3), cz.y + T.px(3), cb - T.px(6), cb - T.px(6), 1, ab.r, ab.g, ab.b)
-                    end
-                    rowZ.activate = r.onCheck
-                    lx = lx + cb + T.px(8)
-                elseif r.dot then
-                    local ds = T.px(8)
-                    local dc = r.dot
-                    target:drawRect(lx, cy + math.floor((rh - ds) / 2), ds, ds, 1, dc.r, dc.g, dc.b)
-                    target:drawRectBorder(lx, cy + math.floor((rh - ds) / 2), ds, ds, 1, 0, 0.2, 0)
-                    lx = lx + ds + T.px(8)
-                end
-                local ty = cy + T.px(6)
-                for _, l in ipairs(r._lines or {}) do
-                    target:drawText(l, lx, ty, tx.r, tx.g, tx.b, tx.a or 1, f2)
-                    ty = ty + h2 + T.px(1)
-                end
-                if r.sub then target:drawText(r.sub, lx, ty, ts.r, ts.g, ts.b, ts.a or 1, f1); ty = ty + h1 + T.px(2) end
-                if r.warn then local wc = T.warning; target:drawText(r.warn, lx, ty, wc.r, wc.g, wc.b, 1, f1) end
-                win._mapExtZones[#win._mapExtZones + 1] = rowZ
-                if r.del then
-                    local xs = T.px(16)
-                    local xx, xy = x + w - T.px(8) - xs, cy + T.px(6)
-                    local xz = { id = rid .. ":x", x = xx + ox, y = xy + oy, w = xs, h = xs, hint = ZeD.tr("ContextMenu_Delete"),
-                        activate = function(w2) w2._mapSideAsk = { row = r.key, text = r.del.ask, onYes = r.del.onYes } end }
-                    target:drawRectBorder(xx, xy, xs, xs, bs.a, bs.r, bs.g, bs.b)
-                    local mx, my = target:getMouseX(), target:getMouseY()
-                    local xc = (inRect({ x = xx, y = xy, w = xs, h = xs }, mx, my) or focId == xz.id) and T.danger or ts
-                    target:drawText("x", xx + math.floor((xs - tm:MeasureStringX(f1, "x")) / 2), xy + math.floor((xs - h1) / 2), xc.r, xc.g, xc.b, 1, f1)
-                    rowZ.del = xz
-                    table.insert(win._mapExtZones, #win._mapExtZones, xz)   -- (tested before its row)
-                end
-                target:drawRect(x + T.px(1), cy + rh - T.px(1), w - T.px(1), T.px(1), 0.5, 0.09, 0.09, 0.09)
-                cy = cy + rh
-            end
-        elseif s._lines then
-            local ey = cy + T.px(8)
-            for _, l in ipairs(s._lines) do
-                target:drawText(l, x + T.px(8), ey, ts.r, ts.g, ts.b, ts.a or 1, f1)
-                ey = ey + h1 + T.px(2)
-            end
-            cy = ey + T.px(8)
-        end
+        cy = drawSection(target, win, s, x, cy, w - sbW, ox, oy, focId, ask)
     end
     target:clearStencilRect()
-    if ask then
-        local fy = y + listH
-        local s2 = T.surf2
-        target:drawRect(x + T.px(1), fy, w - T.px(1), footH, 1, s2.r, s2.g, s2.b)
-        target:drawRect(x + T.px(1), fy, w - T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
-        local ty = fy + T.px(7)
-        for _, l in ipairs(askLines) do
-            target:drawText(l, x + T.px(8), ty, tx.r, tx.g, tx.b, tx.a or 1, f1)
-            ty = ty + h1 + T.px(2)
-        end
-        local bh = T.px(22)
-        local by = fy + footH - bh - T.px(7)
-        local noT, yesT = ZeD.tr("UI_Cancel"), ZeD.tr("ContextMenu_Delete")
-        local yw = tm:MeasureStringX(T.fontF3, ZeD.btnCase(yesT)) + T.px(20)
-        local nw = tm:MeasureStringX(T.fontF3, ZeD.btnCase(noT)) + T.px(20)
-        local yx = x + w - T.px(8) - yw
-        local nx = yx - T.px(6) - nw
-        local yz = { id = "map:side:yes", x = yx + ox, y = by + oy, w = yw, h = bh,
-            activate = function(w2) local a = w2._mapSideAsk; w2._mapSideAsk = nil; if a and a.onYes then a.onYes(w2) end end }
-        local nz = { id = "map:side:no", x = nx + ox, y = by + oy, w = nw, h = bh, activate = function(w2) w2._mapSideAsk = nil end }
-        ZeD.Molecules.drawButton(target, nx, by, nw, bh, noT, "default", false, focId == nz.id and { fill = ZeD.colorAlpha(T.accent, 0.55) } or nil)
-        ZeD.Molecules.drawButton(target, yx, by, yw, bh, yesT, "danger", false, focId == yz.id and { fill = ZeD.colorAlpha(T.accent, 0.55) } or nil)
-        table.insert(win._mapExtZones, 1, yz)
-        table.insert(win._mapExtZones, 1, nz)
-    end
+    if sbW > 0 then drawSideScroll(target, win, x + w - sbW, y, sbW, listH, contentH, maxOff, ox, oy) end
+    if ask then drawSideAsk(target, win, x, y + listH, w, footH, ask, askLines, ox, oy, focId) end
+    -- the list's edge by the map (the line between the two panes), over all of it
+    A.drawDividerV(target, x, y, h, true)
 end
 
 -- ---------------------------------------------------------------------------
 -- OVER THE MAP: the extensions' drawing, their panels (the key), the side list
--- in the drawer, the area name, the hover hint. From ZeD_WorldMap:render.
+-- in the drawer, the area name. From ZeD_WorldMap:render. (The buttons' hints
+-- are the library's, drawn by the window's overlay after the shared delay.)
 -- ---------------------------------------------------------------------------
 function E.drawMapUnder(mp, win)
     if #E.list == 0 then return end
@@ -487,20 +650,22 @@ function E.drawMapUnder(mp, win)
 end
 
 function E.drawMapOver(mp, win, focId)
-    local T, tm = ZeD.T, ZeD.TM
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local ox, oy = mp:getX(), mp:getY()
-    -- the area name over the top of the map
+    -- the area name over the top of the map: a heading (F4) in a box of the
+    -- window's surface with a 1u frame
     for _, d in ipairs(E.list) do
         local text = call(d, "banner", win)
         if text and text ~= "" then
-            local f = T.fontF3
+            local f = T.fontF4
+            text = A.truncateText(text, f, math.max(T.px(40), mp:getWidth() - T.px(56)))
             local tw = tm:MeasureStringX(f, text)
-            local bw, bh = tw + T.px(24), tm:getFontHeight(f) + T.px(6)
+            local bw, bh = tw + T.px(24), tm:getFontHeight(f) + T.px(8)
             local bx, by = math.floor((mp:getWidth() - bw) / 2), T.px(8)
-            local s1, bs, th = T.surf1, T.borderS, T.textHead
-            mp:drawRect(bx, by, bw, bh, 0.85, s1.r, s1.g, s1.b)
-            mp:drawRectBorder(bx, by, bw, bh, bs.a, bs.r, bs.g, bs.b)
-            mp:drawText(text, bx + T.px(12), by + T.px(3), th.r, th.g, th.b, th.a or 1, f)
+            A.surfaceFill(mp, bx, by, bw, bh, "surf1")
+            A.frame(mp, bx, by, bw, bh, T.borderS)
+            local th = T.textHead
+            mp:drawText(text, bx + T.px(12), by + T.px(4), th.r, th.g, th.b, th.a or 1, f)
             break
         end
     end
@@ -514,39 +679,28 @@ function E.drawMapOver(mp, win, focId)
     -- the side list over the map's right edge (the drawer)
     if win._mapSideOpen and not mp._isPopoutMap and E.hasSide(win) then
         local w = math.min(T.px(SIDE_W), math.floor(mp:getWidth() * 0.6))
-        E.drawSide(mp, win, mp:getWidth() - w, 0, w, mp:getHeight(), ox, oy, focId)
+        E.drawSide(mp, win, mp:getWidth() - w, 0, w, mp:getHeight(), ox, oy, focId, true)
     end
-    -- the hover hint (a toolbar button's words, under it)
-    local c = win._mapExtHint
-    win._mapExtHint = nil
-    if not c then win._mapExtHintKey = nil; return end
-    local now = getTimestampMs()
-    if win._mapExtHintKey ~= c.key then win._mapExtHintKey, win._mapExtHintSince = c.key, now; return end
-    if now - (win._mapExtHintSince or now) < ZeD.Atoms.HINT_MS then return end
-    local f2 = T.fontF2
-    local padX, padY = T.px(10), T.px(4)
-    local w = tm:MeasureStringX(f2, c.text) + padX * 2
-    local h = tm:getFontHeight(f2) + padY * 2
-    local x = math.max(T.px(2), math.min(c.x - ox, mp:getWidth() - w - T.px(2)))
-    local y = c.y + c.h - oy + T.px(4)
-    if y < T.px(2) then y = T.px(2) end
-    local s2, bs, tc = T.surf2, T.borderS, T.text
-    mp:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
-    mp:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    mp:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    mp:drawText(c.text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
 end
 
 -- ---------------------------------------------------------------------------
 -- INPUT
 -- ---------------------------------------------------------------------------
 
+-- the side list's scrollbar set from the pointer's y (tab coordinates): the
+-- thumb's middle goes under the pointer
+local function setScroll(win, z, my)
+    local s = z.scrollbar
+    local f = (my - s.y - s.th / 2) / math.max(1, s.h - s.th)
+    win._mapSideScroll = math.max(0, math.min(1, f)) * s.max
+end
+
 -- A click in the tab (tab coordinates). True when an extension's control took it.
 function E.onClick(win, x, y)
     for _, z in ipairs(win._mapExtZones or {}) do
         if inRect(z, x, y) then
-            if z.slider then
-                setSlider(z, x)
+            if z.slider or z.scrollbar then
+                if z.slider then setSlider(z, x) else setScroll(win, z, y) end
                 win._mapExtDrag = z
                 win._mapDragging = true
                 return true
@@ -575,12 +729,13 @@ function E.wheel(win, x, y, del)
     return false
 end
 
--- a slider being dragged, or a press an extension took on the map
+-- a slider or the side list's scrollbar being dragged, or a press an extension took on the map
 function E.mouseMove(mp, win)
     local z = win._mapExtDrag
     if z then
         if not isMouseButtonDown(0) then win._mapExtDrag = nil; return true end
-        setSlider(z, mp:getMouseX() + mp:getX())
+        if z.scrollbar then setScroll(win, z, mp:getMouseY() + mp:getY())
+        else setSlider(z, mp:getMouseX() + mp:getX()) end
         return true
     end
     local d = mp._extCapture

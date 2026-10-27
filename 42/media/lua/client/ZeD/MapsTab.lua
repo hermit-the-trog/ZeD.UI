@@ -25,22 +25,23 @@ local Ext = ZeD.MapsTabExt   -- other pieces on the map: MapsTabExt.lua (ZeD.Map
 -- CONSTANTS — duplicated from JournalTab (may diverge)
 -- ============================================================================
 
+-- (key: the mark's name, its toolbar button's hint)
 local MAP_ICONS = {
-    { id = "house",       tex = "media/ui/LootableMaps/map_house.png",       label = "House" },
-    { id = "target",      tex = "media/ui/LootableMaps/map_target.png",      label = "Target" },
-    { id = "skull",       tex = "media/ui/LootableMaps/map_skull.png",       label = "Skull" },
-    { id = "star",        tex = "media/ui/LootableMaps/map_star.png",        label = "Star" },
-    { id = "cross",       tex = "media/ui/LootableMaps/map_cross.png",       label = "Cross" },
-    { id = "heart",       tex = "media/ui/LootableMaps/map_heart.png",       label = "Heart" },
-    { id = "exclamation", tex = "media/ui/LootableMaps/map_exclamation.png", label = "Alert" },
-    { id = "question",    tex = "media/ui/LootableMaps/map_question.png",    label = "Question" },
-    { id = "fire",        tex = "media/ui/LootableMaps/map_firet.png",       label = "Fire" },
-    { id = "gun",         tex = "media/ui/LootableMaps/map_gun.png",         label = "Gun" },
-    { id = "burger",      tex = "media/ui/LootableMaps/map_burger.png",      label = "Food" },
-    { id = "axe",         tex = "media/ui/LootableMaps/map_axe.png",         label = "Axe" },
-    { id = "gears",       tex = "media/ui/LootableMaps/map_gears.png",       label = "Gears" },
-    { id = "x",           tex = "media/ui/LootableMaps/map_x.png",          label = "X" },
-    { id = "checkmark",   tex = "media/ui/LootableMaps/map_checkmark.png",   label = "Check" },
+    { id = "house",       tex = "media/ui/LootableMaps/map_house.png",       label = "House",    key = "UI_ZeD_Map_MarkHouse" },
+    { id = "target",      tex = "media/ui/LootableMaps/map_target.png",      label = "Target",   key = "UI_ZeD_Map_MarkTarget" },
+    { id = "skull",       tex = "media/ui/LootableMaps/map_skull.png",       label = "Skull",    key = "UI_ZeD_Map_MarkSkull" },
+    { id = "star",        tex = "media/ui/LootableMaps/map_star.png",        label = "Star",     key = "UI_ZeD_Map_MarkStar" },
+    { id = "cross",       tex = "media/ui/LootableMaps/map_cross.png",       label = "Cross",    key = "UI_ZeD_Map_MarkCross" },
+    { id = "heart",       tex = "media/ui/LootableMaps/map_heart.png",       label = "Heart",    key = "UI_ZeD_Map_MarkHeart" },
+    { id = "exclamation", tex = "media/ui/LootableMaps/map_exclamation.png", label = "Alert",    key = "UI_ZeD_Map_MarkAlert" },
+    { id = "question",    tex = "media/ui/LootableMaps/map_question.png",    label = "Question", key = "UI_ZeD_Map_MarkQuestion" },
+    { id = "fire",        tex = "media/ui/LootableMaps/map_firet.png",       label = "Fire",     key = "UI_ZeD_Map_MarkFire" },
+    { id = "gun",         tex = "media/ui/LootableMaps/map_gun.png",         label = "Gun",      key = "UI_ZeD_Map_MarkGun" },
+    { id = "burger",      tex = "media/ui/LootableMaps/map_burger.png",      label = "Food",     key = "UI_ZeD_Map_MarkFood" },
+    { id = "axe",         tex = "media/ui/LootableMaps/map_axe.png",         label = "Axe",      key = "UI_ZeD_Map_MarkAxe" },
+    { id = "gears",       tex = "media/ui/LootableMaps/map_gears.png",       label = "Gears",    key = "UI_ZeD_Map_MarkGears" },
+    { id = "x",           tex = "media/ui/LootableMaps/map_x.png",          label = "X",        key = "UI_ZeD_Map_MarkX" },
+    { id = "checkmark",   tex = "media/ui/LootableMaps/map_checkmark.png",   label = "Check",    key = "UI_ZeD_Map_MarkCheck" },
 }
 
 -- vanilla's inks (MapNotes.INKS: the colour vanilla's map gives each pen), so
@@ -50,7 +51,7 @@ for i, k in ipairs(ZeD.MapNotes.INKS) do
     MAP_COLORS[i] = { r = k.r, g = k.g, b = k.b, a = 1.0, label = k.item }
 end
 
-local MAP_ICON_BTN_SZ   = 20
+-- design units (the tool buttons are the library's icon buttons, T.buttonH square)
 local MAP_ICON_BTN_GAP  = 4
 local MAP_COLOR_SZ      = 14
 -- Sourced from ZeD.Spacing.tabHeaderH so all drawer / toolbar headers stay
@@ -60,9 +61,12 @@ local MAP_TEXT_INPUT_H   = 24
 
 local MAP_DEFAULT_PINS = { "house", "target", "skull", "star", "cross", "checkmark" }
 
+-- each mark by id, and its controller ids on the toolbar's row and in the full set
 local MAP_ICON_BY_ID = {}
 for i, icon in ipairs(MAP_ICONS) do
     MAP_ICON_BY_ID[icon.id] = icon
+    icon.toolFid = "map:tool:" .. icon.id
+    icon.gridFid = "map:gridtool:" .. icon.id
 end
 
 -- ============================================================================
@@ -276,6 +280,64 @@ local function _togglePin(pins, id)
         end
     end
     pins[#pins + 1] = id
+end
+
+-- ============================================================================
+-- SURVEY / COLOR / PAPER — System 7 radio buttons on the toolbar where they
+-- fit; else a pop-up menu (the World window's drawer), whose list opens under
+-- its box over the map. These open and shut that list, and take a click while
+-- it is open.
+-- ============================================================================
+
+local STYLE_ORDER = { "survey", "color", "paper" }
+local STYLE_WORD  = { survey = "UI_ZeD_Map_StyleSurvey", color = "UI_ZeD_Map_StyleColor", paper = "UI_ZeD_Map_StylePaper" }
+local STYLE_HELP  = { survey = "UI_ZeD_Map_HelpStyleSurvey", color = "UI_ZeD_Map_HelpStyleColor", paper = "UI_ZeD_Map_HelpStylePaper" }
+
+-- where the map's controls are for the controller: the unfolded window's zone,
+-- or the World window's drawer's
+local function _padHome(win)
+    if win._mapPopout then return win._mapPopout, "popMapContent" end
+    return win, "worldTabContent"
+end
+
+-- the controller lands on the element with this id once it is there
+local function _padLand(win, id)
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    if not (Focus and Focus.focusByIdSoon) then return end
+    local w, zone = _padHome(win)
+    Focus.focusByIdSoon(w, zone, id)
+end
+
+-- Open the list (a press on the box). From the controller, focus goes to the
+-- current choice in it.
+local function _openStyleMenu(win, fromPad)
+    win._mapStyleMenuOpen = true
+    win._mapStyleMenuZones = nil
+    if fromPad then
+        local mp = win._worldMapPanel
+        _padLand(win, "map:styleRow:" .. tostring(mp and mp.style or "survey"))
+    end
+end
+
+-- Shut the list. From the controller, focus goes back to the box.
+local function _closeStyleMenu(win, fromPad)
+    win._mapStyleMenuOpen = nil
+    win._mapStyleMenuZones = nil
+    if fromPad then _padLand(win, "map:style:menu") end
+end
+
+-- A press (tab coordinates) while the list is open: a choice is taken, and any
+-- press shuts the list. True when the list was open (the press was its).
+local function _styleMenuClick(win, x, y)
+    if not win._mapStyleMenuOpen then return false end
+    for _, z in ipairs(win._mapStyleMenuZones or {}) do
+        if x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h then
+            ZeD.MapsTab.setStyle(win, z.id)
+            break
+        end
+    end
+    _closeStyleMenu(win, false)
+    return true
 end
 
 -- ============================================================================
@@ -726,6 +788,11 @@ end
 
 -- Mouse drag for panning (or annotation placement when tool is active)
 function ZeD_WorldMap:onMouseDown(x, y)
+    -- the Survey / Color / Paper list, open over the map, takes the press
+    -- (in the tab's coordinates; a press that came by way of MapsTab.onClick shut it there)
+    if self._parentWin and _styleMenuClick(self._parentWin, x + self:getX(), y + self:getY()) then
+        return true
+    end
     -- an extension's tool takes the press (drawing: MapsTabExt.lua)
     if self._parentWin and Ext.mouseDown(self, self._parentWin, x, y) then
         self.dragging, self.dragMoved = true, true
@@ -928,6 +995,54 @@ local function _focusedEl(win)
     return Focus.getFocusedElement(owner)
 end
 
+-- The id of the element the controller's mark shows on now, for paint only: the
+-- window that holds the map has the focus and the controller is in use
+-- (Focus.liveElement); nil otherwise, so no mark lingers in mouse use or in an
+-- unfocused window. (The map's own cursor keeps reading _focusedEl.)
+local function _liveFocusId(win)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    local owner = _focusOwner(win)
+    if not (Focus and Focus.liveElement and owner) then return nil end
+    local el = Focus.liveElement(owner)
+    return el and el.id or nil
+end
+
+-- the controller's mark opts: the window the control is drawn in (ZeD.Focus.mark)
+local FOCUS = {}
+
+-- Survey / Color / Paper's open list: the library's pop-up list (the sort menu's,
+-- Molecules.drawSortMenuList: solid, framed, the hard shadow, the current choice
+-- selected), hung from the box the toolbar drew (win._mapStyleMenuGeo, tab
+-- coordinates). Drawn on `target`, whose top-left is at (ox, oy) in the tab: the
+-- map, after everything on it, so the list lies over the map and its pieces.
+-- Its rows are kept, in the tab's coordinates, for the press and the controller.
+local _styleModes = { { id = "survey" }, { id = "color" }, { id = "paper" } }
+local _menuOpts = {}
+local function _drawStyleMenu(target, win, ox, oy)
+    local geo = win._mapStyleMenuGeo
+    if not (win._mapStyleMenuOpen and geo) then return end
+    for _, m in ipairs(_styleModes) do m.label = ZeD.tr(STYLE_WORD[m.id]) end
+    local hoverId = nil
+    local F = ZeD.Input and ZeD.Input.Focus
+    if not (F and F.cuesVisible and F.cuesVisible()) then
+        local mx, my = target:getMouseX() + ox, target:getMouseY() + oy
+        for _, z in ipairs(win._mapStyleMenuZones or {}) do
+            if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hoverId = z.id; break end
+        end
+    end
+    local o = _menuOpts
+    local fid = _liveFocusId(win)
+    o.focusId = (fid and string.sub(fid, 1, 13) == "map:styleRow:") and string.sub(fid, 14) or nil
+    o.focus = o.focusId and FOCUS or nil
+    o.minW = geo.w
+    local mp = win._worldMapPanel
+    local _, _, zs = ZeD.Molecules.drawSortMenuList(target, geo.x - ox, geo.y - oy, _styleModes,
+        mp and mp.style or "survey", hoverId, o)
+    for _, z in ipairs(zs or {}) do z.x, z.y = z.x + ox, z.y + oy end
+    win._mapStyleMenuZones = zs
+    if hoverId then ZeD.Help.set(target, ZeD.tr(STYLE_HELP[hoverId])) end
+end
+
 -- Render cursor preview when a tool is active (MOUSE path only — skipped
 -- when gamepad focus is on the canvas cursor, which draws its own preview
 -- at the gp cursor position instead).
@@ -1017,307 +1132,290 @@ function ZeD_WorldMap:render()
     self:clearStencilRect()
     ZeD.FlyerMap.drawCard(self)          -- the hovered pin's card, on top
     if win then
-        local el = _focusedEl(win)
-        Ext.drawMapOver(self, win, el and el.id)   -- the key, the side list, the area name, hints
+        Ext.drawMapOver(self, win, _liveFocusId(win))   -- the key, the side list, the area name
+        _drawStyleMenu(self, win, self:getX(), self:getY())   -- Survey / Color / Paper's open list, over all
     end
 end
 
 -- ============================================================================
 -- TOOLBAR
 -- ============================================================================
+-- Built from the library: icon buttons for the marks, the note and the unfold
+-- (the hover wash, a hint with the name, help words, the solid active look for
+-- the tool in hand), the inks as swatches with the same hover and controller
+-- mark, and Survey / Color / Paper as System 7 radio buttons, or a pop-up menu
+-- where they do not fit (the World window's drawer). A mark or ink the character
+-- lacks the pen for takes the library's disabled look: the help line gives
+-- vanilla's reason, and a press still says it over the character's head.
 
--- a tool or colour the character lacks the pen for, greyed over
-local function _dimBtn(panel, bx, by, bw, bh)
-    local s = ZeD.T.surf1
-    panel:drawRect(bx, by, bw, bh, 0.65, s.r, s.g, s.b)
+local UNFOLD_ICON, FOLD_ICON = "media/textures/ZeD/icons/expand.png", "media/textures/ZeD/icons/contract.png"
+local RADIO_GAP, CHOICE_GAP = 4, 10   -- design units: a radio to its words, between choices (the sort strip's)
+local _btnOpts, _radioOpts = {}, {}
+local _textGlyphs, _markTex = {}, {}
+local COLOR_FIDS = {}
+for i = 1, #MAP_COLORS do COLOR_FIDS[i] = "map:color:" .. i end
+
+-- a picture made of a few letters (the note's "Aa"; a mark whose texture is missing)
+local function _textGlyph(s)
+    local g = _textGlyphs[s]
+    if g then return g end
+    g = function(p, x, y, sz, c)
+        local f, tm = ZeD.T.fontF1, ZeD.TM
+        p:drawText(s, x + math.floor((sz - tm:MeasureStringX(f, s)) / 2), y + math.floor((sz - tm:getFontHeight(f)) / 2),
+            c.r, c.g, c.b, c.a or 1, f)
+    end
+    _textGlyphs[s] = g
+    return g
 end
 
---- Draw a single icon tool button at (bx, by). `isGpFocused` paints the
--- 0.55α accent focus cue when this button is the currently-focused ring
--- element (gamepad path); the caller computes the match by id.
-local function _drawIconBtn(panel, win, icon, bx, by, btnSz, isActive, isPinned, isGpFocused)
+-- a mark's picture on its button (the game's own map symbol)
+local function _markPic(icon)
+    local t = _markTex[icon.id]
+    if t == nil then t = getTexture(icon.tex) or false; _markTex[icon.id] = t end
+    return t or _textGlyph(string.sub(icon.label, 1, 1))
+end
+
+-- One tool button (a mark, or the note) at (bx, by), bs square; its zone goes
+-- in win._mapToolZones. focusId: its controller id; why: vanilla's reason it
+-- cannot be used (nil: it can); grid: a copy in the full set (a right-click or X
+-- pins it), pinned: a small square in its corner says it is on the row; hov:
+-- the pointer may light it.
+local function _toolButton(panel, win, toolId, pic, nameKey, bx, by, bs, focusId, focId, why, grid, pinned, hov)
     local T = ZeD.T
-
-    -- Focus cue first so active-state paint composes on top and remains
-    -- visible (feedback_focus_paint_convention: 0.55α accent fill, not a border).
-    if isGpFocused then
-        local ac = T.accent
-        panel:drawRect(bx, by, btnSz, btnSz, 0.55, ac.r, ac.g, ac.b)
+    local o = _btnOpts
+    local active = win._mapActiveTool == toolId
+    o.hover = hov and ZeD.Atoms.mouseIn(panel, bx, by, bs, bs) or false
+    o.active, o.disabled, o.pressed = active, why ~= nil, false
+    o.focus = (focId == focusId) and FOCUS or nil
+    o.id, o.iconSize, o.tint, o.win = focusId, nil, nil, nil
+    o.hint, o.help = nil, nil
+    if o.hover then
+        local name = ZeD.tr(nameKey)
+        o.hint = name
+        if why then o.help = ZeD.tr("UI_ZeD_Map_HelpCant", name, getText(why))
+        elseif toolId == "text" then o.help = ZeD.tr("UI_ZeD_Map_HelpNote")
+        else o.help = ZeD.tr(grid and "UI_ZeD_Map_HelpMarkGrid" or "UI_ZeD_Map_HelpMark", name) end
     end
-
-    if isActive then
-        local ac = T.accent
-        panel:drawRect(bx, by, btnSz, btnSz, 0.2, ac.r, ac.g, ac.b)
-        panel:drawRectBorder(bx, by, btnSz, btnSz, 0.6, ac.r, ac.g, ac.b)
-    else
-        local bd = T.border
-        panel:drawRectBorder(bx, by, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
+    ZeD.Molecules.drawIconButton(panel, bx, by, bs, pic, o)
+    if pinned then
+        local c = active and T.textOnAccent or T.accent
+        panel:drawRect(bx + T.px(3), by + T.px(3), T.px(4), T.px(4), (c.a or 1) * (why and T.disabledAlpha or 1), c.r, c.g, c.b)
     end
+    local zs = win._mapToolZones
+    zs[#zs + 1] = { id = toolId, x = bx, y = by, w = bs, h = bs, isGrid = grid or nil }
+end
 
-    local mapPanel = win._worldMapPanel
-    local tex = mapPanel and mapPanel._annotTextures and mapPanel._annotTextures[icon.id]
-    if tex then
-        local tc = isActive and T.accent or T.text
-        local alpha = isActive and 0.9 or 0.6
-        panel:drawTextureScaledAspect(tex, bx + T.px(2), by + T.px(2), btnSz - 2 * T.px(2), btnSz - 2 * T.px(2),
-            alpha, tc.r, tc.g, tc.b)
-    else
-        local lbl = string.sub(icon.label, 1, 1)
-        local dc = isActive and T.accent or T.textDim
-        panel:drawText(lbl, bx + T.px(5), by + T.px(2), dc.r, dc.g, dc.b, 0.6, T.fontF1)
+-- One ink's swatch at (sx, sy), sz square: the hover wash and the controller's
+-- mark in a 2u ring round it, the ink (greyed without its pen), a 1u edge, and a
+-- 1u ring in the text colour round the ink in use. Its zone goes in win._mapColorZones.
+local function _swatch(panel, win, ci, sx, sy, sz, ink, focId, hov)
+    local T, A = ZeD.T, ZeD.Atoms
+    local c, pen = MAP_COLORS[ci], MAP_COLOR_PENS[ci]
+    local has = ink.pen[ci] and true or false
+    local ring = T.px(2)
+    local rx, ry, rs = sx - ring, sy - ring, sz + 2 * ring
+    if hov and A.mouseIn(panel, rx, ry, rs, rs) then
+        local hv = T.hover
+        panel:drawRect(rx, ry, rs, rs, hv.a or 1, hv.r, hv.g, hv.b)
+        local name = pen and (getItemNameFromFullType("Base." .. pen.item) or pen.item) or ""
+        ZeD.Help.set(panel, has and ZeD.tr("UI_ZeD_Map_HelpInk", name)
+            or ZeD.tr("UI_ZeD_Map_HelpCant", name, getText(pen and pen.need or "Tooltip_Map_CantWrite")))
+        A.requestHint(A.windowOf(panel), COLOR_FIDS[ci], name, panel)
     end
-
-    if isPinned then
-        local ac = T.accent
-        panel:drawRect(bx + T.px(1), by + T.px(1), T.px(3), T.px(3), 0.7, ac.r, ac.g, ac.b)
+    if focId == COLOR_FIDS[ci] then ZeD.Focus.mark(panel, rx, ry, rs, rs, FOCUS) end
+    local a = has and 1 or T.disabledAlpha
+    panel:drawRect(sx, sy, sz, sz, a, c.r, c.g, c.b)
+    -- (vanilla's inks are dark: the edge keeps each swatch apart from the toolbar)
+    A.frame(panel, sx, sy, sz, sz, T.borderS, a)
+    if has and ci == (win._mapActiveColor or 1) then
+        local u = T.hair
+        A.frame(panel, sx - u, sy - u, sz + 2 * u, sz + 2 * u, T.text)
     end
+    local zs = win._mapColorZones
+    zs[#zs + 1] = { idx = ci, x = sx, y = sy, w = sz, h = sz }
+end
 
-    -- nothing to write with: the marks are greyed (a press says why)
-    if not _mapInk(win._playerObj).write then _dimBtn(panel, bx, by, btnSz, btnSz) end
+-- The disclosure triangle at x (it opens the full set of marks); returns its width.
+local function _disclosure(panel, win, x, y, rowH, focId, hov)
+    local T, A = ZeD.T, ZeD.Atoms
+    local expanded = win._mapToolsExpanded or false
+    local chevSz = math.max(T.px(8), math.floor(ZeD.TM:getFontHeight(T.fontF1) * 0.7))
+    local zx, zw = x - T.px(2), chevSz + T.px(6)
+    if hov and A.mouseIn(panel, zx, y, zw, rowH) then
+        local hv = T.hover
+        panel:drawRect(zx, y, zw, rowH, hv.a or 1, hv.r, hv.g, hv.b)
+        ZeD.Help.set(panel, ZeD.tr(expanded and "UI_ZeD_Map_HelpMarksClose" or "UI_ZeD_Map_HelpMarksOpen"))
+    end
+    local onFocus = (focId == "map:disclosure") and ZeD.Focus.mark(panel, zx, y, zw, rowH, FOCUS)
+    local c = onFocus and T.textOnFocus or T.arrow
+    local cy = y + math.floor((rowH - chevSz) / 2)
+    if expanded then A.drawTriangleDown(panel, x, cy, chevSz, c) else A.drawTriangleRight(panel, x, cy, chevSz, c) end
+    win._mapDisclosureZone = { x = x, y = y, w = chevSz + T.px(4), h = rowH }
+    return chevSz
+end
 
-    win._mapToolZones[#win._mapToolZones + 1] = {
-        id = icon.id,
-        x = bx, y = by, w = btnSz, h = btnSz,
-    }
+-- The unfold button at (bx, by): it opens the map in a window of its own, or folds it back.
+local function _unfoldButton(panel, win, bx, by, bs, focId, hov)
+    local open = win._mapPopout ~= nil
+    local o = _btnOpts
+    o.hover = hov and ZeD.Atoms.mouseIn(panel, bx, by, bs, bs) or false
+    o.active, o.disabled, o.pressed = false, false, false
+    o.focus = (focId == "map:popout") and FOCUS or nil
+    o.id, o.iconSize, o.tint, o.win = "map:popout", nil, nil, nil
+    o.hint = o.hover and ZeD.tr(open and "UI_ZeD_Map_PadFold" or "UI_ZeD_Map_Unfold") or nil
+    o.help = o.hover and ZeD.tr(open and "UI_ZeD_Map_HelpFold" or "UI_ZeD_Map_HelpUnfold") or nil
+    if not win._mapPopoutTex then
+        win._mapPopoutTex = getTexture(UNFOLD_ICON)
+        win._mapFoldTex   = getTexture(FOLD_ICON)
+    end
+    local tex = open and win._mapFoldTex or win._mapPopoutTex
+    ZeD.Molecules.drawIconButton(panel, bx, by, bs, tex or _textGlyph(open and "x" or "+"), o)
+    win._mapPopoutZone = { x = bx, y = by, w = bs, h = bs }
+end
+
+-- The pop-up menu's box at (bx, by): the hover wash (lit while its list is open),
+-- the controller's mark, the choice's words, a down triangle, a 1u frame. Its list
+-- is drawn over the map (_drawStyleMenu) from win._mapStyleMenuGeo.
+local function _styleBox(panel, win, bx, by, bw, bh, label, focId, hov)
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local over = hov and A.mouseIn(panel, bx, by, bw, bh)
+    if over or win._mapStyleMenuOpen then
+        local hv = T.hover
+        panel:drawRect(bx, by, bw, bh, hv.a or 1, hv.r, hv.g, hv.b)
+    end
+    if over then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Map_HelpStyleMenu")) end
+    local onFocus = (focId == "map:style:menu") and ZeD.Focus.mark(panel, bx, by, bw, bh, FOCUS)
+    local f1 = T.fontF1
+    local pad, tri = T.px(6), T.px(5)
+    local tc = onFocus and T.textOnFocus or T.text
+    panel:drawText(label, bx + pad, by + math.floor((bh - tm:getFontHeight(f1)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f1)
+    A.drawTriangleDown(panel, bx + bw - pad - tri, by + math.floor((bh - tri) / 2), tri, onFocus and T.textOnFocus or T.textDim)
+    A.frame(panel, bx, by, bw, bh, T.borderS)
+    win._mapStyleMenuZone = { x = bx, y = by, w = bw, h = bh }
+    win._mapStyleMenuGeo = { x = bx, y = by + bh, w = bw }
+end
+
+-- Survey / Color / Paper, right-aligned so it ends at rightX and starts no
+-- earlier than minX: the radio buttons when they fit, else the pop-up menu's
+-- box, else nothing. Only when the base map carries its illustration.
+local function _styleChoice(panel, win, minX, rightX, by, bs, focId, hov)
+    win._mapStyleZones = {}
+    win._mapStyleMenuZone, win._mapStyleMenuGeo = nil, nil
+    if not ZeD.MapsTab.hasPaper() then win._mapStyleMenuOpen = nil; return end
+    local T, A, tm = ZeD.T, ZeD.Atoms, ZeD.TM
+    local f1 = T.fontF1
+    local mp = win._worldMapPanel
+    local cur = mp and mp.style or "survey"
+    local rs = A.radioSize()
+    local total, widest = 0, 0
+    for i, id in ipairs(STYLE_ORDER) do
+        local tw = tm:MeasureStringX(f1, ZeD.tr(STYLE_WORD[id]))
+        widest = math.max(widest, tw)
+        total = total + rs + T.px(RADIO_GAP) + tw + ((i > 1) and T.px(CHOICE_GAP) or 0)
+    end
+    if rightX - total >= minX then
+        win._mapStyleMenuOpen = nil
+        local cx = rightX - total
+        local ty = by + math.floor((bs - tm:getFontHeight(f1)) / 2)
+        for _, id in ipairs(STYLE_ORDER) do
+            local word = ZeD.tr(STYLE_WORD[id])
+            local cw = rs + T.px(RADIO_GAP) + tm:MeasureStringX(f1, word)
+            local hover = hov and A.mouseIn(panel, cx, by, cw, bs)
+            local onFocus = (focId == "map:style:" .. id) and ZeD.Focus.mark(panel, cx - T.px(2), by, cw + T.px(4), bs, FOCUS)
+            _radioOpts.hover = hover
+            A.drawRadio(panel, cx, by + math.floor((bs - rs) / 2), id == cur, _radioOpts)
+            local tc = onFocus and T.textOnFocus or T.text
+            panel:drawText(word, cx + rs + T.px(RADIO_GAP), ty, tc.r, tc.g, tc.b, tc.a or 1, f1)
+            if hover then ZeD.Help.set(panel, ZeD.tr(STYLE_HELP[id])) end
+            local zs = win._mapStyleZones
+            zs[#zs + 1] = { id = id, x = cx, y = by, w = cw, h = bs }
+            cx = cx + cw + T.px(CHOICE_GAP)
+        end
+        return
+    end
+    local bw = widest + T.px(6) * 2 + T.px(5) + T.px(4)
+    if rightX - bw < minX then win._mapStyleMenuOpen = nil; return end
+    _styleBox(panel, win, rightX - bw, by, bw, bs, ZeD.tr(STYLE_WORD[cur] or STYLE_WORD.survey), focId, hov)
+end
+
+-- The full set of marks under row one (the disclosure open), on surface 1 with
+-- a content line on top; returns its height.
+local function _markGrid(panel, win, x, gy, w, pins, why, focId, hov)
+    local T = ZeD.T
+    local bs, gap = T.buttonH, T.px(MAP_ICON_BTN_GAP)
+    local maxCols = math.max(1, math.floor((w - T.px(8)) / (bs + gap)))
+    local h = math.ceil(#MAP_ICONS / maxCols) * (bs + gap) + gap
+    ZeD.Atoms.surfaceFill(panel, x, gy, w, h, "surf1")
+    ZeD.Atoms.drawDividerH(panel, x, gy, w, false)
+    local col, row = 0, 0
+    for _, icon in ipairs(MAP_ICONS) do
+        local bx = x + T.px(4) + col * (bs + gap)
+        local by = gy + gap + row * (bs + gap)
+        _toolButton(panel, win, icon.id, _markPic(icon), icon.key, bx, by, bs, icon.gridFid, focId, why, true,
+            _isIconPinned(pins, icon.id), hov)
+        local rz = win._mapToolRMBZones
+        rz[#rz + 1] = { id = icon.id, x = bx, y = by, w = bs, h = bs }
+        col = col + 1
+        if col >= maxCols then col, row = 0, row + 1 end
+    end
+    return h
 end
 
 local function renderMapToolbar(panel, win, x, y, w)
     local T  = ZeD.T
-    local A  = ZeD.Atoms
-    local tm = ZeD.TM
-    local secH = tm:getFontHeight(T.fontF1)
-    local btnSz  = T.px(MAP_ICON_BTN_SZ)
+    local bs     = T.buttonH
     local btnGap = T.px(MAP_ICON_BTN_GAP)
     local colSz  = T.px(MAP_COLOR_SZ)
+    local rowH   = T.px(MAP_TOOLBAR_ROW_H)
 
     win._mapToolZones  = {}
     win._mapColorZones = {}
     win._mapToolRMBZones = {}
     win._mapExtZones = {}   -- the extensions' controls this frame (MapsTabExt.lua)
 
-    local ink         = _enforceInk(win)   -- (first: it may put a tool down or move the colour)
-    local activeTool  = win._mapActiveTool
-    local activeColor = win._mapActiveColor or 1
-    local expanded    = win._mapToolsExpanded or false
-    local pins        = _getMapPins(win._playerObj)
+    local ink   = _enforceInk(win)   -- (first: it may put a tool down or move the colour)
+    local pins  = _getMapPins(win._playerObj)
+    -- the element the controller's mark is on (only in the window that has the
+    -- focus, with the controller in use: feedback_only_focused_zone_shows_active)
+    local focId = _liveFocusId(win)
+    local hov   = not win._mapStyleMenuOpen   -- (the open style list takes the pointer)
+    local markWhy = (not ink.write) and "Tooltip_Map_CantWrite" or nil
+    local by = y + math.floor((rowH - bs) / 2)
 
-    -- Read the focused ring element id once per frame so we can paint the
-    -- 0.55α focus cue on whichever toolbar element currently owns focus.
-    -- feedback_only_focused_zone_shows_active: only paint when THIS window
-    -- owns focus (prevents stale paint when focus is on the Character window).
-    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-    local focId = nil
-    do
-        local owner = _focusOwner(win)  -- S123: drawer or pop-out
-        if Focus and owner then
-            local fe = Focus.getFocusedElement and Focus.getFocusedElement(owner)
-            focId = fe and fe.id or nil
-        end
-    end
-
-    local rowH = T.px(MAP_TOOLBAR_ROW_H)
-    local btnY = y + math.floor((rowH - btnSz) / 2)
-
-    -- Row 1: disclosure chevron + pinned icons + Aa + separator + color swatches
+    -- Row one: the disclosure, the pinned marks, the note, a line, the inks
     local curX = x + T.px(4)
-
-    -- Disclosure chevron
-    local chevSz = math.max(T.px(8), math.floor(secH * 0.7))
-    local chevY  = y + math.floor((rowH - chevSz) / 2)
-    if focId == "map:disclosure" then
-        local ac = T.accent
-        panel:drawRect(curX - T.px(2), y, chevSz + T.px(6), rowH, 0.55, ac.r, ac.g, ac.b)
-    end
-    if expanded then
-        A.drawTriangleDown(panel, curX, chevY, chevSz, T.arrow)
-    else
-        A.drawTriangleRight(panel, curX, chevY, chevSz, T.arrow)
-    end
-    win._mapDisclosureZone = { x = curX, y = y, w = chevSz + T.px(4), h = rowH }
-    curX = curX + chevSz + T.px(6)
-
-    -- Pinned icon buttons. Ring-focus id for a pinned-row tool is
-    -- "map:tool:<iconId>" (grid copies use "map:gridtool:<iconId>").
+    curX = curX + _disclosure(panel, win, curX, y, rowH, focId, hov) + T.px(6)
     for _, pid in ipairs(pins) do
         local icon = MAP_ICON_BY_ID[pid]
         if icon then
-            local isActive = (activeTool == icon.id)
-            local isFoc = (focId == "map:tool:" .. icon.id)
-            _drawIconBtn(panel, win, icon, curX, btnY, btnSz, isActive, false, isFoc)
-            curX = curX + btnSz + btnGap
+            _toolButton(panel, win, icon.id, _markPic(icon), icon.key, curX, by, bs, icon.toolFid, focId, markWhy, false, false, hov)
+            curX = curX + bs + btnGap
         end
     end
-
-    -- "Aa" text note button
     curX = curX + btnGap
-    local textActive = (activeTool == "text")
-    if focId == "map:tool:text" then
-        local ac = T.accent
-        panel:drawRect(curX, btnY, btnSz, btnSz, 0.55, ac.r, ac.g, ac.b)
-    end
-    if textActive then
-        local ac = T.accent
-        panel:drawRect(curX, btnY, btnSz, btnSz, 0.2, ac.r, ac.g, ac.b)
-        panel:drawRectBorder(curX, btnY, btnSz, btnSz, 0.6, ac.r, ac.g, ac.b)
-    else
-        local bd = T.border
-        panel:drawRectBorder(curX, btnY, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
-    end
-    local tC = textActive and T.accent or T.textDim
-    panel:drawText("Aa", curX + T.px(2), btnY + T.px(2), tC.r, tC.g, tC.b, 0.7, T.fontF1)
-    if not _toolAllowed("text", ink) then _dimBtn(panel, curX, btnY, btnSz, btnSz) end
-    win._mapToolZones[#win._mapToolZones + 1] = {
-        id = "text",
-        x = curX, y = btnY, w = btnSz, h = btnSz,
-    }
-    curX = curX + btnSz + btnGap * 2
-
-    -- Separator
-    local sepC = T.border
-    panel:drawRect(curX, btnY, T.px(1), btnSz, sepC.a * 0.4, sepC.r, sepC.g, sepC.b)
-    curX = curX + T.px(1) + btnGap * 2
-
-    -- Color swatches. Paint the focus cue in a slightly oversized rect so
-    -- it reads clearly around the small 14px swatch without obscuring the
-    -- color sample itself.
+    local _, textWhy = _toolAllowed("text", ink)
+    _toolButton(panel, win, "text", _textGlyph("Aa"), "UI_ZeD_Map_NoteDefault", curX, by, bs, "map:tool:text", focId, textWhy, false, false, hov)
+    curX = curX + bs + btnGap * 2
+    -- a content line between the tools and the inks
+    ZeD.Atoms.drawDividerV(panel, curX, by, bs, false)
+    curX = curX + T.hair + btnGap * 2
     local colY = y + math.floor((rowH - colSz) / 2)
-    for ci, colorDef in ipairs(MAP_COLORS) do
-        local c = colorDef
-        local isActiveCol = (ci == activeColor)
-        local isFocCol = (focId == "map:color:" .. tostring(ci))
-
-        if isFocCol then
-            local ac = T.accent
-            panel:drawRect(curX - T.px(2), colY - T.px(2), colSz + 2 * T.px(2), colSz + 2 * T.px(2),
-                0.55, ac.r, ac.g, ac.b)
-        end
-
-        panel:drawRect(curX, colY, colSz, colSz, 0.85, c.r, c.g, c.b)
-        -- (vanilla's inks are dark: a faint edge keeps each swatch apart from the toolbar)
-        local sb = T.border
-        panel:drawRectBorder(curX, colY, colSz, colSz, sb.a * 0.3, sb.r, sb.g, sb.b)
-        if not ink.pen[ci] then
-            _dimBtn(panel, curX, colY, colSz, colSz)   -- no pen of this colour at hand
-        elseif isActiveCol then
-            local bd = T.text
-            panel:drawRectBorder(curX - T.px(1), colY - T.px(1), colSz + 2 * T.px(1), colSz + 2 * T.px(1),
-                bd.a, bd.r, bd.g, bd.b)
-        end
-
-        win._mapColorZones[#win._mapColorZones + 1] = {
-            idx = ci,
-            x = curX, y = colY, w = colSz, h = colSz,
-        }
-
+    for ci = 1, #MAP_COLORS do
+        _swatch(panel, win, ci, curX, colY, colSz, ink, focId, hov)
         curX = curX + colSz + btnGap
     end
 
     -- the extensions' buttons (the map key; mods' tools), then the list button
-    curX = Ext.drawButtons(panel, win, curX + btnGap, btnY, btnSz, focId)
+    curX = Ext.drawButtons(panel, win, curX + btnGap, by, bs, focId)
 
-    -- SURVEY / COLOR / PAPER, right-anchored before the unfold button (a pill pair: A or a click
-    -- switches; only when the base map carries its illustration, and only where it fits)
-    win._mapStyleZones = {}
-    if ZeD.MapsTab.hasPaper() then
-        local f1 = T.fontF1
-        local mp = win._worldMapPanel
-        local cur = mp and mp.style or "survey"
-        local pills = { { id = "survey", text = ZeD.tr("UI_ZeD_Map_StyleSurvey") }, { id = "color", text = ZeD.tr("UI_ZeD_Map_StyleColor") }, { id = "paper", text = ZeD.tr("UI_ZeD_Map_StylePaper") } }
-        local pad = T.px(6)
-        local total = 0
-        for _, p in ipairs(pills) do p.w = tm:MeasureStringX(f1, p.text) + pad * 2; total = total + p.w end
-        local sx = x + w - T.px(4) - btnSz - btnGap * 3 - total
-        if sx > curX then
-            local ac, bd = T.accent, T.border
-            local th = tm:getFontHeight(f1)
-            for _, p in ipairs(pills) do
-                local on = p.id == cur
-                if focId == "map:style:" .. p.id then
-                    panel:drawRect(sx, btnY, p.w, btnSz, 0.55, ac.r, ac.g, ac.b)
-                end
-                if on then
-                    panel:drawRect(sx, btnY, p.w, btnSz, 0.2, ac.r, ac.g, ac.b)
-                    panel:drawRectBorder(sx, btnY, p.w, btnSz, 0.6, ac.r, ac.g, ac.b)
-                else
-                    panel:drawRectBorder(sx, btnY, p.w, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
-                end
-                local tc = on and T.accent or T.textDim
-                panel:drawText(p.text, sx + pad, btnY + math.floor((btnSz - th) / 2), tc.r, tc.g, tc.b, on and 0.9 or 0.7, f1)
-                win._mapStyleZones[#win._mapStyleZones + 1] = { id = p.id, x = sx, y = btnY, w = p.w, h = btnSz }
-                sx = sx + p.w
-            end
-        end
-    end
-
-    -- S123: UNFOLD / FOLD button, right-anchored. Pops the map out into a
-    -- large centred window (ZeD.MapsTab.openPopout) or folds it back.
-    do
-        local bx = x + w - T.px(4) - btnSz
-        local isOpen = win._mapPopout ~= nil
-        if focId == "map:popout" then
-            local ac = T.accent
-            panel:drawRect(bx, btnY, btnSz, btnSz, 0.55, ac.r, ac.g, ac.b)
-        end
-        local bd = T.border
-        panel:drawRectBorder(bx, btnY, btnSz, btnSz, bd.a * 0.3, bd.r, bd.g, bd.b)
-        if not win._mapPopoutTex then
-            win._mapPopoutTex = getTexture("media/textures/ZeD/icons/crafting-game-037-map.png")
-            win._mapFoldTex   = getTexture("media/textures/ZeD/icons/compress.png")
-        end
-        local tex = isOpen and win._mapFoldTex or win._mapPopoutTex
-        local tc = T.text
-        if tex then
-            panel:drawTextureScaledAspect(tex, bx + T.px(3), btnY + T.px(3), btnSz - 2 * T.px(3), btnSz - 2 * T.px(3), 0.75, tc.r, tc.g, tc.b)
-        else
-            panel:drawText(isOpen and "x" or "+", bx + T.px(6), btnY + T.px(2), tc.r, tc.g, tc.b, 0.7, T.fontF1)
-        end
-        win._mapPopoutZone = { x = bx, y = btnY, w = btnSz, h = btnSz }
-    end
+    -- right end: the unfold button, and Survey / Color / Paper before it
+    local ux = x + w - T.px(4) - bs
+    _unfoldButton(panel, win, ux, by, bs, focId, hov)
+    _styleChoice(panel, win, curX + btnGap, ux - btnGap * 3, by, bs, focId, hov)
 
     local totalH = rowH
-
-    -- Expanded rows: ALL icons in a wrapping grid
-    if expanded then
-        local gridX = x + T.px(4)
-        local gridY = y + rowH
-        local gridW = w - T.px(8)
-        local maxCols = math.max(1, math.floor(gridW / (btnSz + btnGap)))
-        local col = 0
-        local rowIdx = 0
-
-        local bd = T.border
-        panel:drawRect(x, gridY - T.px(1), w, T.px(1), bd.a * 0.2, bd.r, bd.g, bd.b)
-
-        local s1 = T.surf1
-        local expandedRowCount = math.ceil(#MAP_ICONS / maxCols)
-        local expandedH = expandedRowCount * (btnSz + btnGap) + btnGap
-        panel:drawRect(x, gridY, w, expandedH, s1.a, s1.r, s1.g, s1.b)
-
-        for _, icon in ipairs(MAP_ICONS) do
-            local gx = gridX + col * (btnSz + btnGap)
-            local gy = gridY + btnGap + rowIdx * (btnSz + btnGap)
-            local isActive = (activeTool == icon.id)
-            local isPinned = _isIconPinned(pins, icon.id)
-            local isFoc    = (focId == "map:gridtool:" .. icon.id)
-            _drawIconBtn(panel, win, icon, gx, gy, btnSz, isActive, isPinned, isFoc)
-            -- Tag the zone _drawIconBtn just appended as a grid entry so
-            -- the gamepad builder can wire pin-toggle via X on grid icons
-            -- without confusing them with pinned-row copies at row-1 Y.
-            win._mapToolZones[#win._mapToolZones].isGrid = true
-
-            win._mapToolRMBZones[#win._mapToolRMBZones + 1] = {
-                id = icon.id,
-                x = gx, y = gy, w = btnSz, h = btnSz,
-            }
-
-            col = col + 1
-            if col >= maxCols then
-                col = 0
-                rowIdx = rowIdx + 1
-            end
-        end
-
-        totalH = totalH + expandedH
+    if win._mapToolsExpanded then
+        totalH = totalH + _markGrid(panel, win, x, y + rowH, w, pins, markWhy, focId, hov)
         -- an extension's row under the mark grid (Map Symbol Size Slider)
         totalH = totalH + Ext.drawRows(panel, win, x, y + totalH, w, "gridRow", focId)
     end
@@ -1325,29 +1423,24 @@ local function renderMapToolbar(panel, win, x, y, w)
     -- the extensions' rows under the toolbar (Draw On The Map's tools)
     totalH = totalH + Ext.drawRows(panel, win, x, y + totalH, w, "row", focId)
 
-    -- Inline text input (visible when text tool is active)
-    if textActive then
+    -- Inline text input (visible while the note is the tool in hand): surface 2,
+    -- a content line on top
+    if win._mapActiveTool == "text" then
+        local ih = T.px(MAP_TEXT_INPUT_H)
         local inputY = y + totalH
-        local inputX = x + T.px(4)
-        local inputW = w - T.px(8)
-        local inputBg = T.surf2
-        panel:drawRect(x, inputY, w, T.px(MAP_TEXT_INPUT_H), inputBg.a, inputBg.r, inputBg.g, inputBg.b)
-        local bds = T.borderS
-        panel:drawRect(x, inputY + T.px(MAP_TEXT_INPUT_H) - T.px(1), w, T.px(1), bds.a * 0.3, bds.r, bds.g, bds.b)
-
-        if win._mapTextEntry then
-            win._mapTextEntry:setX(inputX)
-            win._mapTextEntry:setY(inputY + T.px(2))
-            win._mapTextEntry:setWidth(inputW)
-            win._mapTextEntry:setHeight(T.px(MAP_TEXT_INPUT_H) - T.px(4))
-            win._mapTextEntry:setVisible(true)
+        ZeD.Atoms.surfaceFill(panel, x, inputY, w, ih, "surf2")
+        ZeD.Atoms.drawDividerH(panel, x, inputY, w, false)
+        local te = win._mapTextEntry
+        if te then
+            te:setX(x + T.px(4))
+            te:setY(inputY + T.px(2))
+            te:setWidth(w - T.px(8))
+            te:setHeight(ih - T.px(4))
+            te:setVisible(true)
         end
-
-        totalH = totalH + T.px(MAP_TEXT_INPUT_H)
-    else
-        if win._mapTextEntry then
-            win._mapTextEntry:setVisible(false)
-        end
+        totalH = totalH + ih
+    elseif win._mapTextEntry then
+        win._mapTextEntry:setVisible(false)
     end
 
     return totalH
@@ -1356,6 +1449,13 @@ end
 -- ============================================================================
 -- MAIN RENDERER
 -- ============================================================================
+
+-- a line of prose (F2) centred in the width at y
+local function _centredLine(panel, text, x, y, w, c)
+    local f2 = ZeD.T.fontF2
+    local tw = ZeD.TM:MeasureStringX(f2, text)
+    panel:drawText(text, x + math.floor((w - tw) / 2), y, c.r, c.g, c.b, c.a or 1, f2)
+end
 
 -- Vanilla's world-map rules hold on the tab and the pop-out too: no map where
 -- the server or sandbox turns the world map off (or in the Tutorial), and none
@@ -1373,23 +1473,21 @@ local function _mapBlocked(panel, win, x, y, w, h)
             _light.who, _light.t = win._playerObj, now
             _light.dark = ZeD.MapsTab.tooDark(win._playerObj)
         end
-        if _light.dark then msg = ZeD.upper(ZeD.trBare("ContextMenu_TooDark")) end
+        if _light.dark then msg = ZeD.trBare("ContextMenu_TooDark") end   -- (vanilla's words, as vanilla writes them)
     end
     win._mapBlocked = msg ~= nil
     if not msg then return false end
 
     local T, tm = ZeD.T, ZeD.TM
-    local s1 = T.surf1
-    panel:drawRect(x, y, w, h, s1.a, s1.r, s1.g, s1.b)
-    local mw = tm:MeasureStringX(T.fontF1, msg)
-    local fh = tm:getFontHeight(T.fontF1)
-    ZeD.Atoms.drawSecondary(panel, msg, x + math.floor((w - mw) / 2), y + math.floor((h - fh) / 2), T.textDim)
+    ZeD.Atoms.surfaceFill(panel, x, y, w, h, "surf1")
+    _centredLine(panel, msg, x, y + math.floor((h - tm:getFontHeight(T.fontF2)) / 2), w, T.textDim)
     if win._worldMapPanel then win._worldMapPanel:setVisible(false) end
     if win._mapTextEntry then win._mapTextEntry:setVisible(false) end
     -- no toolbar this frame: nothing for a click or the controller to land on
     win._mapToolZones, win._mapColorZones, win._mapToolRMBZones, win._mapStyleZones = {}, {}, {}, {}
     win._mapExtZones, win._mapSideZone = {}, nil
     win._mapDisclosureZone, win._mapPopoutZone = nil, nil
+    win._mapStyleMenuZone, win._mapStyleMenuGeo, win._mapStyleMenuOpen = nil, nil, nil
     win._mapBlockedZone = { x = x, y = y, w = w, h = h }
     return true
 end
@@ -1399,19 +1497,15 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
 
     -- S123: while the map is unfolded into the pop-out, the drawer shows a
     -- fold-back placeholder instead of a second live map (the Java UIWorldMap
-    -- is owned by exactly one panel at a time).
+    -- is owned by exactly one panel at a time). The whole of it is one stop for
+    -- the controller (it folds the map back), so it carries the mark.
     if win._mapPopout and panel ~= win._mapPopout._contentPanel then
-        local s1 = T.surf1
-        panel:drawRect(x, y, w, h, s1.a, s1.r, s1.g, s1.b)
-        local tm = ZeD.TM
-        local msg1 = ZeD.tr("UI_ZeD_Map_Unfolded")
-        local msg2 = ZeD.tr("UI_ZeD_Map_FoldBack")
-        local w1 = tm:MeasureStringX(T.fontF1, msg1)
-        local w2 = tm:MeasureStringX(T.fontF1, msg2)
-        local fh = tm:getFontHeight(T.fontF1)
+        ZeD.Atoms.surfaceFill(panel, x, y, w, h, "surf1")
+        local onFocus = (_liveFocusId(win) == "map:fold") and ZeD.Focus.mark(panel, x, y, w, h, FOCUS)
+        local fh = ZeD.TM:getFontHeight(T.fontF2)
         local cy = y + math.floor(h / 2) - fh
-        ZeD.Atoms.drawSecondary(panel, msg1, x + math.floor((w - w1) / 2), cy, T.text)
-        ZeD.Atoms.drawSecondary(panel, msg2, x + math.floor((w - w2) / 2), cy + fh + T.px(4), T.textDim)
+        _centredLine(panel, ZeD.tr("UI_ZeD_Map_Unfolded"), x, cy, w, onFocus and T.textOnFocus or T.text)
+        _centredLine(panel, ZeD.tr("UI_ZeD_Map_FoldBack"), x, cy + fh + T.px(4), w, onFocus and T.textOnFocus or T.textDim)
         win._mapFoldZone = { x = x, y = y, w = w, h = h }
         if win._mapTextEntry then win._mapTextEntry:setVisible(false) end
         return
@@ -1422,9 +1516,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
 
     if _mapBlocked(panel, win, x, y, w, h) then return end
 
-    -- Toolbar background
-    local toolbarBg = T.surf1
-    panel:drawRect(x, y, w, T.px(MAP_TOOLBAR_ROW_H), toolbarBg.a, toolbarBg.r, toolbarBg.g, toolbarBg.b)
+    -- the toolbar's surface: one layer over the window (ZeD.Surface)
+    ZeD.Atoms.surfaceFill(panel, x, y, w, T.px(MAP_TOOLBAR_ROW_H), "surf1")
 
     -- Lazy-create inline text entry for map annotations
     if not win._mapTextEntry then
@@ -1439,8 +1532,8 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     end
 
     local toolbarH = renderMapToolbar(panel, win, x, y, w)
-    local bd = T.border
-    panel:drawRect(x, y + toolbarH - T.px(1), w, T.px(1), bd.a * 0.3, bd.r, bd.g, bd.b)
+    -- the structure line under the toolbar, edge to edge (it meets the frame)
+    ZeD.Atoms.drawDividerH(panel, x, y + toolbarH - T.line(T.borderW), w, true)
 
     -- Map area below toolbar
     local mapY = y + toolbarH
@@ -1448,8 +1541,7 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
     -- the side list docks at the right of the unfolded map (MapsTabExt.lua)
     local sideW = Ext.dockedSideW(win, panel)
     if sideW > 0 then
-        local el = _focusedEl(win)
-        Ext.drawSide(panel, win, x + w - sideW, mapY, sideW, mapH, 0, 0, el and el.id)
+        Ext.drawSide(panel, win, x + w - sideW, mapY, sideW, mapH, 0, 0, _liveFocusId(win))
         w = w - sideW
     end
 
@@ -1480,17 +1572,14 @@ function ZeD.MapsTab.render(panel, win, x, y, w, h)
         local holding = mp:_restyleStep()
         mp:setVisible(not holding)
         if holding then
-            local s1 = T.surf1
-            panel:drawRect(x, mapY, w, mapH, s1.a, s1.r, s1.g, s1.b)
+            ZeD.Atoms.surfaceFill(panel, x, mapY, w, mapH, "surf1")
+            _drawStyleMenu(panel, win, 0, 0)   -- (the map draws the open list; it is off the screen)
         end
     else
         -- Fallback: show error state
-        local secH = ZeD.TM:getFontHeight(T.fontF1)
-        local centerX = x + math.floor(w / 2)
-        local centerY = mapY + math.floor(mapH / 2) - secH
-        local label = ZeD.tr("UI_ZeD_Map_Unavailable")
-        local labelW = ZeD.TM:MeasureStringX(T.fontF1, label)
-        ZeD.Atoms.drawSecondary(panel, label, centerX - math.floor(labelW / 2), centerY, T.textDim)
+        local fh = ZeD.TM:getFontHeight(T.fontF2)
+        _centredLine(panel, ZeD.tr("UI_ZeD_Map_Unavailable"), x, mapY + math.floor(mapH / 2) - fh, w, T.textDim)
+        _drawStyleMenu(panel, win, 0, 0)   -- (no map to draw the open list)
     end
 end
 
@@ -1508,6 +1597,8 @@ function ZeD.MapsTab.onClick(win, x, y)
         return
     end
     if win._mapBlocked then return end   -- no map here, or too dark to read it
+    -- Survey / Color / Paper's list open: the press is its (a choice, or it shuts)
+    if _styleMenuClick(win, x, y) then return end
     -- the extensions' controls: toolbar buttons and rows, the key, the side list
     if Ext.onClick(win, x, y) then return end
     -- S123: unfold / fold button
@@ -1519,10 +1610,17 @@ function ZeD.MapsTab.onClick(win, x, y)
         end
     end
 
-    -- SURVEY / PAPER
+    -- SURVEY / COLOR / PAPER: a radio button, or the pop-up menu's box (opens its list)
     for _, z in ipairs(win._mapStyleZones or {}) do
         if x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
             ZeD.MapsTab.setStyle(win, z.id)
+            return
+        end
+    end
+    do
+        local z = win._mapStyleMenuZone
+        if z and x >= z.x and x <= z.x + z.w and y >= z.y and y <= z.y + z.h then
+            _openStyleMenu(win, false)
             return
         end
     end
@@ -1572,6 +1670,8 @@ end
 
 function ZeD.MapsTab.onRightClick(win, x, y)
     if win._mapBlocked then return end   -- no map here, or too dark to read it
+    -- Survey / Color / Paper's list open: a right-click shuts it
+    if win._mapStyleMenuOpen then _closeStyleMenu(win, false); return end
     -- Expanded toolbar: RMB toggles pin state
     if win._mapToolsExpanded and win._mapToolRMBZones then
         for _, zone in ipairs(win._mapToolRMBZones) do
@@ -1639,6 +1739,26 @@ function ZeD.MapsTab.buildFocusables(win)
         return elements
     end
 
+    -- Survey / Color / Paper's list open: the controller stays in it (A takes a
+    -- choice, B shuts it; either way back to the box). Until the list has drawn
+    -- once its rows are not there yet, and the toolbar's stops stand in.
+    if win._mapStyleMenuOpen and win._mapStyleMenuZones and #win._mapStyleMenuZones > 0 then
+        for _, z in ipairs(win._mapStyleMenuZones) do
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = "map:styleRow:" .. tostring(z.id),
+                styleId = z.id,
+                ownCancel = true,   -- (the unfolded window keeps this B: it shuts the list, not the window)
+                onActivate = function(w, el2)
+                    ZeD.MapsTab.setStyle(w, el2.styleId)
+                    _closeStyleMenu(w, true)
+                end,
+                onCancel = function(w, _el) _closeStyleMenu(w, true); return true end,
+            }
+        end
+        return elements
+    end
+
     -- 1. Disclosure chevron (row 1, always present).
     local dz = win._mapDisclosureZone
     if dz then
@@ -1700,13 +1820,22 @@ function ZeD.MapsTab.buildFocusables(win)
         end
     end
 
-    -- 3a. SURVEY / COLOR / PAPER pills (A switches, as the sub-tab pills do).
+    -- 3a. SURVEY / COLOR / PAPER radio buttons (A takes one), or the pop-up
+    -- menu's box where they do not fit (A opens its list)
     for _, sz in ipairs(win._mapStyleZones or {}) do
         elements[#elements + 1] = {
             x = sz.x, y = sz.y, w = sz.w, h = sz.h,
             id = "map:style:" .. sz.id,
             styleId = sz.id,
             onActivate = function(w, el2) ZeD.MapsTab.setStyle(w, el2.styleId) end,
+        }
+    end
+    if win._mapStyleMenuZone then
+        local mz = win._mapStyleMenuZone
+        elements[#elements + 1] = {
+            x = mz.x, y = mz.y, w = mz.w, h = mz.h,
+            id = "map:style:menu",
+            onActivate = function(w, _el) _openStyleMenu(w, true) end,
         }
     end
 
@@ -2033,8 +2162,13 @@ function ZeD.MapsTab._renderPopout(content, win, pop)
         if el.onHoldActivate then e.onHoldActivate = function(_, ee)      return el.onHoldActivate(win, ee) end end
         if el.onFocus        then e.onFocus        = function(_, ee)      return el.onFocus(win, ee) end end
         if el.onDpadDir      then e.onDpadDir      = function(_, ee, dir) return el.onDpadDir(win, ee, dir) end end
-        e.onCancel = function(_, _ee) ZeD.MapsTab.closePopout(win) end
-        e.promptB  = ZeD.tr("UI_ZeD_Map_PadFold")
+        if el.ownCancel and el.onCancel then
+            -- (B on the style list shuts the list, as in the drawer)
+            e.onCancel = function(_, ee) return el.onCancel(win, ee) end
+        else
+            e.onCancel = function(_, _ee) ZeD.MapsTab.closePopout(win) end
+            e.promptB  = ZeD.tr("UI_ZeD_Map_PadFold")
+        end
         wrapped[#wrapped + 1] = e
     end
 
@@ -2125,6 +2259,7 @@ function ZeD.MapsTab.openPopout(win)
     if win._mapTextEntryInline then win._mapTextEntryInline:setVisible(false) end
     win._mapTextEntry = nil
     win._mapDragging = false
+    win._mapStyleMenuOpen = nil   -- (the style list belongs to the toolbar it hung from)
     win._mapPopout = pop
 
     -- Gamepad registration: one content zone, elements rebuilt per frame.
@@ -2148,6 +2283,7 @@ function ZeD.MapsTab.closePopout(win)
     if not pop then return end
     win._mapPopout = nil
     win._mapDragging = false
+    win._mapStyleMenuOpen = nil
 
     -- Drop the pop-out's map and text entry (children of the pop-out), then
     -- restore the drawer's parked ones.
