@@ -21,6 +21,100 @@ function ZeD.Atoms.safeGet(item, m, ...)
 end
 
 -- ============================================================================
+-- 00. SHARED PIECES (cohesion pass)
+-- Small helpers every look below leans on: the one hover delay, a window surface
+-- that does not stack on the body, a 1u frame, the hard System 7 shadow, and the
+-- window a panel sits in.
+-- ============================================================================
+
+local NO_OPTS = {}
+
+-- The pause before any hover box (hint or detail card) shows. One value for the
+-- whole UI; ZeD.Atoms.HINT_MS is the older name for it.
+ZeD.HINT_DELAY_MS = 450
+ZeD.Atoms.HINT_MS = ZeD.HINT_DELAY_MS
+
+-- Words that arrive in capitals at draw time read in sentence case
+-- (ZeD.textCase; until it lands, ZeD.btnCase follows the same rules).
+local function textCase(s)
+    if s == nil then return "" end
+    local f = ZeD.textCase or ZeD.btnCase
+    if f then return f(s) end
+    return tostring(s)
+end
+ZeD.Atoms.textCase = textCase
+
+--- A window surface (surf1..surf4) drawn so it does not add opacity over the
+-- window body (the see-through setting). ZeD.Surface.fill does that; until it is
+-- there, a plain fill in the token's colour.
+function ZeD.Atoms.surfaceFill(panel, x, y, w, h, key)
+    if w <= 0 or h <= 0 then return end
+    local S = ZeD.Surface
+    if S and S.fill then S.fill(panel, x, y, w, h, key); return end
+    local c = ZeD.T[key] or ZeD.T.surf2
+    panel:drawRect(x, y, w, h, c.a or 1, c.r, c.g, c.b)
+end
+
+--- A rectangle outline `t` px thick (default one hairline, 1u) drawn inside
+-- (x, y, w, h), its corners painted once (no doubled alpha).
+function ZeD.Atoms.frame(panel, x, y, w, h, color, alpha, t)
+    if not color or w <= 0 or h <= 0 then return end
+    t = t or ZeD.T.hair
+    local a = (color.a or 1) * (alpha or 1)
+    local r, g, b = color.r, color.g, color.b
+    panel:drawRect(x, y, w, t, a, r, g, b)
+    panel:drawRect(x, y + h - t, w, t, a, r, g, b)
+    if h > 2 * t then
+        panel:drawRect(x, y + t, t, h - 2 * t, a, r, g, b)
+        panel:drawRect(x + w - t, y + t, t, h - 2 * t, a, r, g, b)
+    end
+end
+
+--- System 7's hard shadow: 1u right and 1u down, black at 0.5. Only things that
+-- pop up over the game cast it (menus, context lists, hover boxes, balloons,
+-- wheel cells, dropdown lists). Draw it before or after the box; it sits outside.
+function ZeD.Atoms.drawHardShadow(panel, x, y, w, h)
+    local u = ZeD.T.hair
+    panel:drawRect(x + w, y + u, u, h, 0.5, 0, 0, 0)      -- right, down to the corner
+    panel:drawRect(x + u, y + h, w - u, u, 0.5, 0, 0, 0)  -- bottom, short of the corner
+end
+
+--- The top-level element a panel sits in (its window, or a HUD panel itself).
+function ZeD.Atoms.rootOf(panel)
+    local p, n = panel, 0
+    while p and p.parent and n < 64 do p = p.parent; n = n + 1 end
+    return p
+end
+
+--- The window a panel sits in: its ZeD_Window (ZeD.Surface.windowOf), else its
+-- top-level element (a HUD panel, a main menu screen).
+function ZeD.Atoms.windowOf(panel)
+    local S = ZeD.Surface
+    local w = S and S.windowOf and S.windowOf(panel)
+    return w or ZeD.Atoms.rootOf(panel)
+end
+
+--- True when `anc` is `panel` or one of its parents.
+function ZeD.Atoms.isAncestor(anc, panel)
+    local p, n = panel, 0
+    while p and n < 64 do
+        if p == anc then return true end
+        p = p.parent; n = n + 1
+    end
+    return false
+end
+
+--- Mouse hover over a rect in panel space, for library pieces whose callers pass
+-- no hover state. Off while the controller's mark is showing, so a pointer left
+-- resting on a button never paints a second highlight beside the pad's.
+function ZeD.Atoms.mouseIn(panel, x, y, w, h)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.cuesVisible and F.cuesVisible() then return false end
+    local mx, my = panel:getMouseX(), panel:getMouseY()
+    return mx >= x and mx < x + w and my >= y and my < y + h
+end
+
+-- ============================================================================
 -- 01. LABEL (draw helper)
 -- Not a component — a draw function called inside a parent's render().
 -- Three variants: heading, body, secondary.
@@ -386,109 +480,177 @@ function ZeD.Atoms.drawCheckbox(panel, x, y, checked, hovered, disabled)
 end
 
 -- ============================================================================
--- 06. BADGE (draw helper)
--- A small colored chip for status/category display. Uppercase monospace.
+-- 05b. RADIO BUTTON (draw helper)
+-- The System 7 round radio button, for one of a few choices: a pixel circle on
+-- the hairline grid (12 x 12 cells, each T.hair square), the centre filled when
+-- on. Round is right here (and on hardware knobs): it is a real 1993 part.
+-- Status marks stay square.
 -- ============================================================================
 
---- Draw a badge
--- @param panel   The parent ISPanel
--- @param text    Badge text (will be uppercased)
--- @param x, y    Top-left position
--- @param variant One of: "danger", "warning", "positive", "info", "accent", "neutral"
--- @param disabled Boolean
--- @return width  The total width of the badge (for layout math)
+-- per row (0-based from the top): runs { firstCol, count } of the outline, the
+-- inside and the centre dot
+local RADIO_N = 12
+local RADIO_OUT = {
+    { {4, 4} }, { {2, 2}, {8, 2} }, { {1, 1}, {10, 1} }, { {1, 1}, {10, 1} },
+    { {0, 1}, {11, 1} }, { {0, 1}, {11, 1} }, { {0, 1}, {11, 1} }, { {0, 1}, {11, 1} },
+    { {1, 1}, {10, 1} }, { {1, 1}, {10, 1} }, { {2, 2}, {8, 2} }, { {4, 4} },
+}
+local RADIO_IN = { false, {4, 4}, {2, 8}, {2, 8}, {1, 10}, {1, 10}, {1, 10}, {1, 10}, {2, 8}, {2, 8}, {4, 4}, false }
+local RADIO_DOT = { false, false, false, {4, 4}, {3, 6}, {3, 6}, {3, 6}, {3, 6}, {4, 4}, false, false, false }
+
+--- The radio button's size in screen px (it is square).
+function ZeD.Atoms.radioSize()
+    return RADIO_N * ZeD.T.hair
+end
+
+--- Draw a radio button with its top-left at (x, y).
+-- @param on    the choice is the current one
+-- @param opts  optional { hover = bool, disabled = bool }
+-- @return size (px, square)
+function ZeD.Atoms.drawRadio(panel, x, y, on, opts)
+    local T = ZeD.T
+    opts = opts or NO_OPTS
+    local u = T.hair
+    local a = opts.disabled and T.disabledAlpha or 1
+    local inner = (opts.hover and not opts.disabled) and T.hover or T.surf2
+    local ia = (inner.a or 1) * a
+    for r = 1, RADIO_N do
+        local s = RADIO_IN[r]
+        if s then panel:drawRect(x + s[1] * u, y + (r - 1) * u, s[2] * u, u, ia, inner.r, inner.g, inner.b) end
+    end
+    local bc = on and T.accent or T.borderS
+    local ba = (bc.a or 1) * a
+    for r = 1, RADIO_N do
+        for _, s in ipairs(RADIO_OUT[r]) do
+            panel:drawRect(x + s[1] * u, y + (r - 1) * u, s[2] * u, u, ba, bc.r, bc.g, bc.b)
+        end
+    end
+    if on then
+        local dc = T.accent
+        local da = (dc.a or 1) * a
+        for r = 1, RADIO_N do
+            local s = RADIO_DOT[r]
+            if s then panel:drawRect(x + s[1] * u, y + (r - 1) * u, s[2] * u, u, da, dc.r, dc.g, dc.b) end
+        end
+    end
+    return RADIO_N * u
+end
+
+-- ============================================================================
+-- 06. TAG (draw helper)
+-- The one look for a small word that names a state (cohesion spec 9): 16u tall,
+-- a 1u borderS outline, F1, sentence case, 5u side padding, and when the state
+-- has a status a 6u square mark in its colour before the word. No tinted fill,
+-- no coloured words: the mark carries the colour. ZeD.Molecules.drawTag is the
+-- public name; A.drawBadge and the card's flag chips draw through this.
+-- ============================================================================
+
+--- Draw a tag.
+-- @param statusColor  nil (no mark) or the colour of the 6u square mark
+-- @param opts  optional { font, h, minW, keepCase, alpha, hollow, textColor }
+--   h / minW give a box at least that size (drawBadge keeps the box it always had,
+--   so callers that measure it themselves still line up); the content is centred.
+--   hollow = the mark as a 1u outline (an "off" state).
+-- @return width, height
+function ZeD.Atoms.drawTag(panel, x, y, text, statusColor, opts)
+    local T = ZeD.T
+    opts = opts or NO_OPTS
+    local tm = ZeD.TM
+    local font = opts.font or T.fontF1
+    local s = text and tostring(text) or ""
+    if not opts.keepCase then s = textCase(s) end
+    local pad = T.px(5)
+    local sq = statusColor and T.px(6) or 0
+    local gap = statusColor and T.px(4) or 0
+    local tw = tm:MeasureStringX(font, s)
+    local contentW = sq + gap + tw
+    local w = math.max(opts.minW or 0, contentW + pad * 2)
+    local h = opts.h or T.px(16)
+    local a = opts.alpha or 1
+    ZeD.Atoms.frame(panel, x, y, w, h, T.borderS, a)
+    local cx = x + math.floor((w - contentW) / 2)
+    if statusColor then
+        local sy = y + math.floor((h - sq) / 2)
+        if opts.hollow then
+            ZeD.Atoms.frame(panel, cx, sy, sq, sq, statusColor, a)
+        else
+            panel:drawRect(cx, sy, sq, sq, (statusColor.a or 1) * a, statusColor.r, statusColor.g, statusColor.b)
+        end
+        cx = cx + sq + gap
+    end
+    local tc = opts.textColor or T.text
+    panel:drawText(s, cx, y + math.floor((h - tm:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * a, font)
+    return w, h
+end
+
+-- a badge variant's status colour (accent and neutral carry no status: no mark)
+local function badgeStatus(T, variant)
+    if variant == "danger" then return T.danger
+    elseif variant == "warning" then return T.warning
+    elseif variant == "positive" then return T.positive
+    elseif variant == "info" then return T.info end
+    return nil
+end
+
+--- Draw a badge: now the tag look (drawTag), in the box the old badge took, so
+-- the callers that measure that box themselves (text + badgePadX / badgePadY in
+-- their font) still line up. The words read in sentence case whatever case they
+-- arrive in; the variant becomes the status mark (danger, warning, positive,
+-- info), accent and neutral draw none.
+-- @return width, height
 function ZeD.Atoms.drawBadge(panel, text, x, y, variant, disabled, font, noUpper)
     local T = ZeD.T
-    local alpha = disabled and T.disabledAlpha or 1.0
-    local padX = T.sp.badgePadX
-    local padY = T.sp.badgePadY
-    local bdFont = font or T.fontF3
-
-    -- Uppercase the text (unless caller opts out)
-    if not noUpper then text = ZeD.upper(text) end
-
-    -- Measure text width
-    local tw = ZeD.TM:MeasureStringX(bdFont, text)
-    local totalW = tw + padX * 2
-    local totalH = ZeD.TM:MeasureStringY(bdFont, text) + padY * 2
-
-    -- Pick colors based on variant
-    -- (the fill and border keep the plain colour; the words use its text variant)
-    local fgColor, txColor
-    if variant == "danger" then
-        fgColor, txColor = T.danger, T.dangerText
-    elseif variant == "warning" then
-        fgColor, txColor = T.warning, T.warningText
-    elseif variant == "positive" then
-        fgColor, txColor = T.positive, T.positiveText
-    elseif variant == "info" then
-        fgColor, txColor = T.info, T.infoText
-    elseif variant == "accent" then
-        fgColor, txColor = T.accent, T.accentText
-    else  -- neutral
-        fgColor, txColor = T.borderS, T.textDim
-    end
-
-    -- Background (tinted fill using badgeBgA token)
-    panel:drawRect(x, y, totalW, totalH,
-        T.badgeBgA * alpha, fgColor.r, fgColor.g, fgColor.b)
-
-    -- Border
-    panel:drawRectBorder(x, y, totalW, totalH,
-        fgColor.a * alpha, fgColor.r, fgColor.g, fgColor.b)
-
-    -- Text
-    panel:drawText(text, x + padX, y + padY,
-        txColor.r, txColor.g, txColor.b, txColor.a * alpha, bdFont)
-
-    return totalW
+    local f = font or T.fontF3
+    local s = text and tostring(text) or ""
+    local old = noUpper and s or ZeD.upper(s)   -- the words the old box was measured on
+    local tm = ZeD.TM
+    local minW = tm:MeasureStringX(f, old) + T.sp.badgePadX * 2
+    local h = tm:MeasureStringY(f, old) + T.sp.badgePadY * 2
+    return ZeD.Atoms.drawTag(panel, x, y, s, badgeStatus(T, variant),
+        { font = f, h = h, minW = minW, alpha = disabled and T.disabledAlpha or nil })
 end
 
 -- ============================================================================
--- 06b. STATUS DOT (draw helper)
--- A small filled square used as a color-coded status indicator.
--- Pass a color table {r, g, b, a} directly, or use with tierColor().
+-- 06b. STATUS MARKS (draw helpers)
+-- A status is a 6u square in the status colour (cohesion spec 1.2: no round
+-- dots anywhere in the UI), one size everywhere. The `size` the callers pass is
+-- the box they laid out for the mark: the square is centred in it, so rows that
+-- were measured for a 7u or 8u dot stay lined up.
 -- ============================================================================
 
+local function markOrigin(x, y, size, sq)
+    if not size then return x, y end
+    local off = math.floor((size - sq) / 2)
+    return x + off, y + off
+end
+
+--- A filled 6u status square.
 function ZeD.Atoms.drawStatusDot(panel, x, y, color, size)
-    local sz = size or ZeD.T.px(7)  -- S124 scale: size is screen px; the 1px rows below rasterize the circle at screen resolution
-    local a = color.a or 1
-    local r, g, b = color.r, color.g, color.b
-    local rad = sz / 2
-    for row = 0, sz - 1 do
-        local dist = math.abs(row - rad + 0.5)
-        local halfW = math.floor(math.sqrt(rad * rad - dist * dist) + 0.5)
-        if halfW > 0 then
-            panel:drawRect(x + math.floor(rad) - halfW, y + row, halfW * 2, 1, a, r, g, b)
-        end
-    end
+    if not color then return end
+    local sq = ZeD.T.px(6)
+    x, y = markOrigin(x, y, size or ZeD.T.px(7), sq)
+    panel:drawRect(x, y, sq, sq, color.a or 1, color.r, color.g, color.b)
 end
 
--- Hollow variant of the status dot: a ring one design pixel thick. Marks a
--- state that is neither go nor stop (a recipe that needs a station).
-function ZeD.Atoms.drawStatusRing(panel, x, y, color, size)
-    local sz = size or ZeD.T.px(7)
-    local a = color.a or 1
-    local r, g, b = color.r, color.g, color.b
-    local rad = sz / 2
-    local inner = math.max(0, rad - math.max(1, ZeD.T.px(1)))
-    for row = 0, sz - 1 do
-        local dist = math.abs(row - rad + 0.5)
-        local halfW = math.floor(math.sqrt(math.max(0, rad * rad - dist * dist)) + 0.5)
-        if halfW > 0 then
-            local innerW = 0
-            if dist < inner then
-                innerW = math.floor(math.sqrt(inner * inner - dist * dist) + 0.5)
-            end
-            local cx = x + math.floor(rad)
-            if innerW <= 0 then
-                panel:drawRect(cx - halfW, y + row, halfW * 2, 1, a, r, g, b)
-            else
-                panel:drawRect(cx - halfW, y + row, halfW - innerW, 1, a, r, g, b)
-                panel:drawRect(cx + innerW, y + row, halfW - innerW, 1, a, r, g, b)
-            end
-        end
-    end
+--- A hollow 6u status square (1u border): a state that is neither go nor stop
+-- (a recipe that needs a station), NEEDS lines, unread.
+function ZeD.Atoms.drawStatusHollow(panel, x, y, color, size)
+    if not color then return end
+    local sq = ZeD.T.px(6)
+    x, y = markOrigin(x, y, size or ZeD.T.px(7), sq)
+    ZeD.Atoms.frame(panel, x, y, sq, sq, color)
+end
+
+-- the older name of the hollow mark (it was a ring)
+ZeD.Atoms.drawStatusRing = ZeD.Atoms.drawStatusHollow
+
+--- A half status square: the outline with its left half filled (a half-read mark).
+function ZeD.Atoms.drawStatusHalf(panel, x, y, color, size)
+    if not color then return end
+    local sq = ZeD.T.px(6)
+    x, y = markOrigin(x, y, size or ZeD.T.px(7), sq)
+    ZeD.Atoms.frame(panel, x, y, sq, sq, color)
+    panel:drawRect(x, y, math.floor(sq / 2), sq, color.a or 1, color.r, color.g, color.b)
 end
 
 -- ============================================================================
@@ -528,7 +690,7 @@ function ZeD_Tooltip:recalcSize()
     for _, line in ipairs(self.lines) do
         local font
         if line.variant == "heading" then font = T.fontF4
-        elseif line.variant == "secondary" then font = T.fontF1
+        elseif line.variant == "secondary" then font = T.fontF3
         else font = T.fontF2 end
 
         local w = ZeD.TM:MeasureStringX(font, line.text)
@@ -541,13 +703,14 @@ function ZeD_Tooltip:recalcSize()
     self:setHeight(totalH + T.px(self.padY) * 2)
 end
 
+-- The detail card's look (ZeD.Molecules.drawDetailCard): surface 1, solid (hover
+-- boxes never go see-through), a 1u frame and System 7's hard shadow.
 function ZeD_Tooltip:prerender()
     local T = ZeD.T
-    -- Background — uses token surface opacity (no hardcoded override)
-    ZeD.Molecules.drawBodyBg(self, 0, 0, self.width, self.height, "surf2")
-    -- Border
-    local bc = T.borderS
-    self:drawRectBorder(0, 0, self.width, self.height, bc.a, bc.r, bc.g, bc.b)
+    local s1 = T.surf1
+    ZeD.Atoms.drawHardShadow(self, 0, 0, self.width, self.height)
+    self:drawRect(0, 0, self.width, self.height, 1, s1.r, s1.g, s1.b)
+    ZeD.Atoms.frame(self, 0, 0, self.width, self.height, T.borderS)
 end
 
 function ZeD_Tooltip:render()
@@ -560,8 +723,8 @@ function ZeD_Tooltip:render()
             font = T.fontF4
             color = T.textHead
         elseif line.variant == "secondary" then
-            font = T.fontF1
-            color = T.textSec
+            font = T.fontF3
+            color = T.textDim
         else
             font = T.fontF2
             color = T.text
@@ -575,16 +738,146 @@ end
 -- Register the tooltip class so it's available globally
 ZeD.Atoms.Tooltip = ZeD_Tooltip
 
+-- ============================================================================
+-- 07b. HOVER BOXES (cohesion spec 9)
+-- Two boxes, one look: the hint (one line of F2, for icon-only buttons) and the
+-- detail card (a title in F4, lines in F2 / F3; ZeD.Molecules.drawDetailCard).
+-- Both are surface 1, solid, framed in 1u borderS with System 7's hard shadow,
+-- shown after ZeD.HINT_DELAY_MS of rest, placed below-right of the pointer and
+-- flipped to stay on screen.
+--
+-- A box must sit above everything in its window, so a control does not draw it
+-- itself: it asks for it each frame it is hovered (requestHint /
+-- requestDetailCard, keyed by its window) and the window's overlay pass draws it
+-- (ZeD.Focus.drawOverlay -> drawPendingHover). A request lives for one frame; the
+-- delay restarts whenever the key changes. Surfaces that keep their own hover
+-- state can use hoverReady(state, key) for the same delay.
+-- ============================================================================
+
+local HOVER_STALE_MS = 150   -- a request older than this is from an earlier frame
+
+--- Where a hover box of w x h goes for an anchor point (the pointer) at (ax, ay)
+-- in panel space: below-right, clear of the arrow pointer, flipped left / up when
+-- it would leave the screen.
+function ZeD.Atoms.hoverBoxPlace(panel, ax, ay, w, h)
+    local T = ZeD.T
+    local x, y = ax + T.px(12), ay + T.px(18)
+    local px0, py0 = panel:getAbsoluteX(), panel:getAbsoluteY()
+    local core = getCore and getCore()
+    if core then
+        local sw, sh = core:getScreenWidth(), core:getScreenHeight()
+        if px0 + x + w + T.hair > sw then x = ax - T.px(4) - w end
+        if py0 + y + h + T.hair > sh then y = ay - T.px(4) - h end
+        if px0 + x < 0 then x = -px0 end
+        if py0 + y < 0 then y = -py0 end
+    end
+    return x, y
+end
+
+--- The hover box's shell: shadow, solid surface 1, 1u frame.
+function ZeD.Atoms.drawHoverShell(panel, x, y, w, h)
+    local T = ZeD.T
+    local s1 = T.surf1
+    ZeD.Atoms.drawHardShadow(panel, x, y, w, h)
+    panel:drawRect(x, y, w, h, 1, s1.r, s1.g, s1.b)
+    ZeD.Atoms.frame(panel, x, y, w, h, T.borderS)
+end
+
+--- Draw the one-line hint for an anchor point (ax, ay) in panel space.
+-- @return x, y, w, h of the box
+function ZeD.Atoms.drawHintBox(panel, text, ax, ay)
+    if not text or text == "" then return end
+    local T = ZeD.T
+    local f2 = T.fontF2
+    local padX, padY = T.px(8), T.px(4)
+    local w = ZeD.TM:MeasureStringX(f2, text) + padX * 2
+    local h = ZeD.TM:getFontHeight(f2) + padY * 2
+    local x, y = ZeD.Atoms.hoverBoxPlace(panel, ax, ay, w, h)
+    ZeD.Atoms.drawHoverShell(panel, x, y, w, h)
+    local tc = T.text
+    panel:drawText(text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
+    return x, y, w, h
+end
+
+--- The shared hover delay for a surface that keeps its own state: call it every
+-- frame with the hovered thing's key (nil when nothing is hovered); true once the
+-- same key has been hovered for ZeD.HINT_DELAY_MS.
+function ZeD.Atoms.hoverReady(st, key)
+    if not st then return false end
+    if key == nil then st.hoverKey = nil; return false end
+    local now = getTimestampMs()
+    if st.hoverKey ~= key then st.hoverKey, st.hoverSince = key, now; return false end
+    return now - (st.hoverSince or now) >= ZeD.HINT_DELAY_MS
+end
+
+local _hoverReq = {}   -- [owner] = { kind, key, text, card, t, panel }: this frame's request
+local _hoverSt  = {}   -- [owner] = { key, since, lastT }: the delay
+
+local function hoverRequest(owner, key, panel)
+    local r = _hoverReq[owner]
+    if not r then r = {}; _hoverReq[owner] = r end
+    r.key, r.t, r.panel = key, getTimestampMs(), panel
+    return r
+end
+
+--- Ask for the hint over `owner` (the window, or a HUD panel) this frame.
+-- key names the hovered control (its id); panel = the control's panel (lets an
+-- overlay of a window the owner sits in find the request).
+function ZeD.Atoms.requestHint(owner, key, text, panel)
+    if not owner or not text or text == "" then return end
+    local r = hoverRequest(owner, key or text, panel)
+    r.kind, r.text, r.card = "hint", text, nil
+end
+
+--- Ask for a detail card (the ZeD.Molecules.drawDetailCard spec) this frame.
+function ZeD.Atoms.requestDetailCard(owner, key, card, panel)
+    if not owner or not card then return end
+    local r = hoverRequest(owner, key or card.title or "card", panel)
+    r.kind, r.text, r.card = "card", nil, card
+end
+
+--- Draw the hover box asked for in `win` this frame, at the pointer, once the
+-- delay has passed. Called by the window's overlay pass (ZeD.Focus.drawOverlay)
+-- and by the windows' hint layers; whichever runs first in a frame draws it.
+function ZeD.Atoms.drawPendingHover(ov, win)
+    win = win or ov
+    local owner, r = win, _hoverReq[win]
+    if not r then
+        for o, rr in pairs(_hoverReq) do
+            if rr.panel and ZeD.Atoms.isAncestor(win, rr.panel) then owner, r = o, rr; break end
+        end
+    end
+    local st = _hoverSt[win]
+    if not st then st = {}; _hoverSt[win] = st end
+    local now = getTimestampMs()
+    if not r then
+        if st.lastT and now - st.lastT > HOVER_STALE_MS then st.key = nil end
+        return
+    end
+    _hoverReq[owner] = nil
+    if now - (r.t or 0) > HOVER_STALE_MS then st.key = nil; return end
+    st.lastT = r.t
+    if st.key ~= r.key then st.key, st.since = r.key, now; return end
+    if now - (st.since or now) < ZeD.HINT_DELAY_MS then return end
+    local mx, my = ov:getMouseX(), ov:getMouseY()
+    if r.kind == "card" then
+        local M = ZeD.Molecules
+        if M and M.drawDetailCard then M.drawDetailCard(ov, mx, my, r.card) end
+    else
+        ZeD.Atoms.drawHintBox(ov, r.text, mx, my)
+    end
+end
+
 -- ----------------------------------------------------------------------------
--- Hover hint layer: the icon-only hint (surf2, the strong border, F2, shown
--- after HINT_MS of rest) for controls that sit at a window's edge, where their
--- own panel is too narrow or sits under later siblings. The window keeps a
+-- Hover hint layer: the hint for controls that sit at a window's edge, where
+-- their own panel is too narrow or sits under later siblings. The window keeps a
 -- click-through layer as its LAST child; each frame the control's draw code
 -- stamps win[field] = { key, text, x, y, w, h, side = "r"|"l" } (window space,
 -- the control's rect) while the pointer rests on it, and the layer draws the
--- box beside the control. Nothing stamped = no hint (the stamp is consumed).
+-- hint box at the pointer after ZeD.HINT_DELAY_MS. Nothing stamped = no hint
+-- (the stamp is consumed). The layer also draws any hover box the library's
+-- controls asked for in this window (drawPendingHover).
 -- ----------------------------------------------------------------------------
-ZeD.Atoms.HINT_MS = 450
 
 function ZeD.Atoms.newHintLayer(win, field)
     local layer = ISPanel:new(0, 0, 10, 10)
@@ -597,28 +890,15 @@ function ZeD.Atoms.newHintLayer(win, field)
     layer.onMouseUp = function() return false end
     layer.onMouseWheel = function() return false end
     layer.render = function(self)
+        ZeD.Atoms.drawPendingHover(self, win)
         local c = win[field]
         win[field] = nil
         local kf, sf = field .. "Key", field .. "Since"
         if not c then win[kf] = nil; return end
         local now = getTimestampMs()
         if win[kf] ~= c.key then win[kf], win[sf] = c.key, now; return end
-        if now - (win[sf] or now) < ZeD.Atoms.HINT_MS then return end
-        local T = ZeD.T
-        local f2 = T.fontF2
-        local padX, padY = T.px(10), T.px(4)
-        local w = ZeD.TM:MeasureStringX(f2, c.text) + padX * 2
-        local h = ZeD.TM:getFontHeight(f2) + padY * 2
-        local ww, wh = win:getWidth(), win:getHeight()
-        local x = (c.side == "l") and (c.x - w - T.px(4)) or (c.x + c.w + T.px(4))
-        x = math.max(T.px(2), math.min(x, ww - w - T.px(2)))
-        local y = c.y + math.floor((c.h - h) / 2)
-        y = math.max(T.px(2), math.min(y, wh - h - T.px(2)))
-        local s2, bs, tc = T.surf2, T.borderS, T.text
-        self:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
-        self:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-        self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-        self:drawText(c.text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        if now - (win[sf] or now) < ZeD.HINT_DELAY_MS then return end
+        ZeD.Atoms.drawHintBox(self, c.text, self:getMouseX(), self:getMouseY())
     end
     return layer
 end
@@ -716,65 +996,6 @@ function ZeD.Atoms.drawScrollArrow(panel, x, y, size, direction, state)
             local px = cx - arrSz / 2 + col
             local py = cy - (arrSz - 1 - col)
             panel:drawRect(px, py, 1, (arrSz - 1 - col) * 2 + 1, gc.a, gc.r, gc.g, gc.b)
-        end
-    end
-end
-
--- ============================================================================
--- 11. FOCUS INDICATOR (draw helper)
--- A dashed border around the focused element for keyboard/gamepad navigation.
--- ============================================================================
-
---- Draw a focus ring around an element
--- @param panel  The parent ISPanel
--- @param x, y   Top-left of the element to focus
--- @param w, h   Dimensions of the element
-function ZeD.Atoms.drawFocusRing(panel, x, y, w, h)
-    local T = ZeD.T
-    local offset = T.px(2)  -- pixels outside the element
-    local fx = x - offset
-    local fy = y - offset
-    local fw = w + offset * 2
-    local fh = h + offset * 2
-
-    if T.borderW >= 2 then
-        -- High Contrast: solid 2px border
-        local rc = T.accentText   -- the ring is a mark: the accent moved only as far as it needs to read
-        panel:drawRectBorder(fx, fy, fw, fh, rc.a, rc.r, rc.g, rc.b)
-        do local i = (panel.zedScaled and T.px(1)) or 1; panel:drawRectBorder(fx + i, fy + i, fw - 2 * i, fh - 2 * i, rc.a, rc.r, rc.g, rc.b) end  -- HC: inset by the border's own thickness
-    else
-        -- Standard: dashed border using small rect segments
-        local dashLen = T.px(4)
-        local gapLen = T.px(3)
-        local ac = T.accentText
-
-        -- Top edge
-        local cx = fx
-        while cx < fx + fw do
-            local segW = math.min(dashLen, fx + fw - cx)
-            panel:drawRect(cx, fy, segW, T.px(1), ac.a, ac.r, ac.g, ac.b)
-            cx = cx + dashLen + gapLen
-        end
-        -- Bottom edge
-        cx = fx
-        while cx < fx + fw do
-            local segW = math.min(dashLen, fx + fw - cx)
-            panel:drawRect(cx, fy + fh - T.px(1), segW, T.px(1), ac.a, ac.r, ac.g, ac.b)
-            cx = cx + dashLen + gapLen
-        end
-        -- Left edge
-        local cy = fy
-        while cy < fy + fh do
-            local segH = math.min(dashLen, fy + fh - cy)
-            panel:drawRect(fx, cy, T.px(1), segH, ac.a, ac.r, ac.g, ac.b)
-            cy = cy + dashLen + gapLen
-        end
-        -- Right edge
-        cy = fy
-        while cy < fy + fh do
-            local segH = math.min(dashLen, fy + fh - cy)
-            panel:drawRect(fx + fw - T.px(1), cy, T.px(1), segH, ac.a, ac.r, ac.g, ac.b)
-            cy = cy + dashLen + gapLen
         end
     end
 end
@@ -905,104 +1126,57 @@ function ZeD.Atoms.drawProgressBand(panel, x, y, w, mode, label, percent, timeSt
 end
 
 -- ============================================================================
--- 13. FLAG CHIP (S120)
--- A small chip used in the FlagStrip molecule above the item card body.
--- Three semantic kinds drive distinct on-state color families:
---   "fav"     — accent (positive intent)
---   "nocraft" — warning (cautionary intent)
---   "dispose" — danger (negative intent)
--- Off state is uniform across kinds: dim text on neutral surface.
--- Border darkens to a hue-matched darker variant on activation
--- (computed via ZeD.colorBlend so no new theme tokens are required).
+-- 13. FLAG CHIP (S120; the tag look since the cohesion pass)
+-- A small toggle in the FlagStrip molecule above the item card body, drawn as a
+-- tag (A.drawTag): the 1u outline, the words, and a 6u square mark that carries
+-- the state, filled in the kind's colour when on, hollow and dim when off:
+--   "fav"     accent
+--   "nocraft" warning
+--   "dispose" danger
+-- No tinted fill, no coloured words.
 -- ============================================================================
 
 --- Draw a flag chip.
 --- @param panel    Parent ISPanel
 --- @param x, y     Top-left position
 --- @param kind     "fav" | "nocraft" | "dispose"
---- @param on       True = on-state colors, false = off-state
---- @param glyph    Short icon string drawn left of label (or alone in compact); nil to omit
---- @param label    Uppercase label text (e.g. "FAV") — ignored when compact=true
+--- @param on       True = on, false = off
+--- @param glyph    Short mark string: drawn only in the compact chip, after the square
+--- @param label    The chip's word (any case: it reads in sentence case) - ignored when compact
 --- @param outRect  Optional table; on return holds {x,y,w,h} of the chip's hit rect
---- @param compact  If true, fixed 22x18 icon-only chip (220w preset); else padded label chip
+--- @param compact  If true, a fixed 22x18 chip (square + glyph); else square + label
 --- @return width   Total horizontal pixels consumed (so the caller can advance its cursor)
 function ZeD.Atoms.drawFlagChip(panel, x, y, kind, on, glyph, label, outRect, compact)
     local T = ZeD.T
-
-    -- Kind selects the on-state base color
-    local onBg
-    if     kind == "fav"     then onBg = T.accent
-    elseif kind == "nocraft" then onBg = T.warning
-    elseif kind == "dispose" then onBg = T.danger
-    else                          onBg = T.accent
-    end
-
-    -- Resolve fg/bg/border for current state
-    local bgC, fgC, brC
-    if on then
-        bgC = onBg
-        -- ink or paper, whichever reads on this fill (the status fills are not the accent)
-        if     onBg == T.warning then fgC = T.textOnWarning
-        elseif onBg == T.danger  then fgC = T.textOnDanger
-        else                          fgC = T.textOnAccent end
-        brC = ZeD.colorBlend(onBg, T.base, 0.55)  -- hue-matched darker border
-    else
-        bgC = T.surf2
-        fgC = T.textDim
-        brC = T.border
-    end
-
-    -- Sizing
-    local h        = T.px(18)
-    local padX     = compact and 0 or T.px(8)
-    local gapInner = (compact or not (glyph and label)) and 0 or T.px(4)
-    local font     = T.fontF1
-
-    -- Width computation
+    local onC
+    if     kind == "nocraft" then onC = T.warning
+    elseif kind == "dispose" then onC = T.danger
+    else                          onC = T.accent end
+    local h = T.px(18)
+    local mark = on and onC or T.textDim
+    local tc = on and T.text or T.textDim
     local w
     if compact then
         w = T.px(22)
-    else
-        local labelW = label and ZeD.TM:MeasureStringX(font, label) or 0
-        local glyphW = glyph and ZeD.TM:MeasureStringX(font, glyph) or 0
-        w = padX * 2 + glyphW + gapInner + labelW
-        if w < T.px(22) then w = T.px(22) end
-    end
-
-    -- Background + border
-    panel:drawRect(x, y, w, h, bgC.a, bgC.r, bgC.g, bgC.b)
-    panel:drawRectBorder(x, y, w, h, brC.a, brC.r, brC.g, brC.b)
-
-    -- Content (vertically centered)
-    local labelH = T.fontF1H or ZeD.TM:MeasureStringY(font, "X")
-    local textY  = y + math.floor((h - labelH) / 2)
-
-    if compact then
-        -- Icon-only: glyph centered within the 22-wide chip
-        if glyph then
-            local gw = ZeD.TM:MeasureStringX(font, glyph)
-            panel:drawText(glyph, x + math.floor((w - gw) / 2), textY,
-                fgC.r, fgC.g, fgC.b, fgC.a, font)
+        ZeD.Atoms.frame(panel, x, y, w, h, T.borderS)
+        local font = T.fontF1
+        local sq, gap = T.px(6), T.px(3)
+        local gw = (glyph and glyph ~= "") and ZeD.TM:MeasureStringX(font, glyph) or 0
+        local cw = sq + ((gw > 0) and (gap + gw) or 0)
+        local cx = x + math.floor((w - cw) / 2)
+        local sy = y + math.floor((h - sq) / 2)
+        if on then panel:drawRect(cx, sy, sq, sq, mark.a or 1, mark.r, mark.g, mark.b)
+        else ZeD.Atoms.frame(panel, cx, sy, sq, sq, mark) end
+        if gw > 0 then
+            local fh = T.fontF1H or ZeD.TM:getFontHeight(font)
+            panel:drawText(glyph, cx + sq + gap, y + math.floor((h - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
         end
     else
-        -- Padded label chip: glyph + gap + label, both left-aligned
-        local cursor = x + padX
-        if glyph then
-            panel:drawText(glyph, cursor, textY,
-                fgC.r, fgC.g, fgC.b, fgC.a, font)
-            cursor = cursor + ZeD.TM:MeasureStringX(font, glyph) + gapInner
-        end
-        if label then
-            panel:drawText(label, cursor, textY,
-                fgC.r, fgC.g, fgC.b, fgC.a, font)
-        end
+        w = ZeD.Atoms.drawTag(panel, x, y, label or "", mark, { h = h, minW = T.px(22), hollow = not on, textColor = tc })
     end
-
-    -- Out-param hit rect
     if outRect then
         outRect.x, outRect.y, outRect.w, outRect.h = x, y, w, h
     end
-
     return w
 end
 

@@ -74,12 +74,30 @@ https://claude.ai/artifact/CUT7j5FYBYxyNu3pfAEJRt). Audits with file:line for ev
    prompt. Resizable windows end it with a 22u grow box. **Every** ZeD window gets the line, the small ones too
    (prompts, keyboard, Messages, Reader, seat chooser, station pop-out, main menu windows, map pop-out).
 3. The bottom-edge zone underline goes (the focus mark replaces it).
+3a. **Rolled-up side and window shade.** The help line belongs to the window's body: when a side rolls up under its
+   rod (`WindowCurtain.lua`), the window narrows to the open side and the help line narrows with it (help text ends in
+   an ellipsis; prompts drop the least important first). The rod has no footer of its own: pointing at its tab puts the
+   tab's help in the line ("Inventory, 9 items: press to roll it down, or drop things on it") and a controller on the tab
+   shows "Roll down". Shaded to the title bar (double-click), the window shows no footer at all.
+3b. **Resizing (director, Oct 26 2026).** Every resizable window resizes from the bottom edge (height only), the bottom-left
+   corner (width from the left, the right edge stays, and height) and the bottom-right corner (the grow box). Hit zones
+   inside the window: the bottom 6u across the width, 22u squares at both bottom corners. A press drags at once. The
+   handle shows only after the pointer has rested about 350 ms in a zone with no button down, so a sweep across the
+   edges never flickers: the bottom edge shows a centred ridged grip (~40u) and the frame's bottom line in the accent;
+   a corner shows the grow box's ridges in the accent (a ridged box appears at the bottom-left while shown). It stays lit
+   while dragging. Minimum sizes as today.
+   **Left and right edges too** (director: "Add the left and right edges too, width only."): width only, the left edge
+   keeping the right edge in place; the outer 4u on each side below the title bar. The tab waterfalls, container strips
+   and the right scrollbar sit there, so a side edge arms only after the rest shows its handle (a centred vertical ridged
+   grip, ~40u, and the side's frame line in the accent); before that a press goes to the content as today.
 4. Title bar: the tab name lives in the title on both windows ("Angel Cross  +  Loot", "Crate  +  Craft"); stats are
    status only; drop the dead `stat.icon` field and the alpha-0 "no dot" trick (a `noMark` flag instead).
 
 ## 4. Settings (ZeD setup, Select wheel, window box)
 
-- **Controller highlight** (`focusStyle`): Pointing hand (default) | Corner marks | One wash | Marching ants.
+- **Controller highlight** (`focusStyle`): Pointing hand (default) | Corner marks | One wash | Marching ants. The player
+  chooses it on the ZeD setup page (with a live sample row beside the choice, `ZeD.Focus.drawSample`), in the window
+  box's menu (after See-through) and on the Select ZeD wheel.
 - **See-through** (`seeThrough`): slider 100 to 60 in steps of 10, default 90. **Solid while in use** (`solidInUse`):
   checkbox, default off. Both also in the window box's See-through submenu (under Text size).
 - Saved with the other ZeD settings; translated labels in UI.json.
@@ -176,6 +194,25 @@ window's edge. "Solid" = the element is already solid accent (primary key, activ
   Messages hover move to these (the moodle thought bubble stays: it is the moodle's own voice).
 - **Empty lists:** one F2 line in `T.textDim`, left-aligned at the list's text inset, 8u below its header, a full
   sentence ("No animal zones yet."). A fix, when there is one, is a button in the band.
+
+## 9a. Conditional disclosure (director, Oct 26 2026)
+
+Fewer things on screen: an action shows only when it can be done.
+- **Shown:** it can be done now, or after a step ZeD takes for you (walking over, a hat coming off).
+- **Hidden:** it needs something the character lacks (a tool, an ingredient, parts, a skill level).
+- **Gone:** it makes no sense in the current state ("Put out" on a dead fire). Never hinted.
+- A band, footer or verb row with nothing left in it is not drawn.
+- **Setting "Hidden actions"** (`hiddenActions`, ZeD setup only, no first-run question: "Interruptions in this game can
+  quickly get you killed"): **Folded** (default) | **Show all** (greyed, each with its NEEDS line) | **Hide** (no hint).
+- **Folded row** (`M.drawMoreRow`): one quiet row after the verbs with a closed System 7 disclosure triangle, F2
+  `T.textDim`. One hidden action: the row is the hint ("With scissors you could cut your hair."). Several: "3 more with
+  the right things". Opening it shows the hidden actions greyed with their NEEDS lines. A focus stop (A opens). Open /
+  closed is remembered per card or tab for the session.
+- **No spoilers:** a hint names only what the game itself would show (known recipes, the game's own menu entries);
+  never an unlearned recipe or an unread magazine's teaching, even in Show all.
+- First surfaces: item cards, object cards, Vehicle part cards, Hair and beard (its "Out of reach" fold moves onto the
+  folded row), Animals, the tab bands. Context strip and Craft's recipe list keep their own filters for now.
+- Helper: `ZeD.Disclose.split(verbs, setting)` with per-verb `canDo`, `needs`, `sensible`, `hint`.
 
 ## 10. See-through
 

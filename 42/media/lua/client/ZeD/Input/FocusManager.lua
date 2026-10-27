@@ -73,6 +73,9 @@
 --   ZeD.Input.Focus.dispatchJoypadDown(w, button, joypadData)
 --   ZeD.Input.Focus.dispatchJoypadDir(w, dir, joypadData)
 --   ZeD.Input.Focus.reclaimEngineFocus()                  -- context-menu close path
+--   ZeD.Input.Focus.cuesVisible()                         -- the controller's focus mark shows (pad in use)
+--   ZeD.Input.Focus.isFocused(w, zoneName?, elementId?)   -- draw a focus mark here? (focused window only)
+--   ZeD.Input.Focus.liveZone(w) / liveElement(w)          -- the same as zone / element, nil when not shown
 --
 -- Event emitted:
 --   Events.ZeD_FocusChanged(newWindow, oldWindow)
@@ -249,6 +252,52 @@ local function _fireCbR(fnName, fn, w, ...)
 end
 
 -- ---------------------------------------------------------------------------
+-- CUES: does the controller's focus mark show?
+-- The focus marks (ZeD.Focus, ZeD_FocusPaint.lua) show only while the pad is in
+-- use. The detector's mode is not used for that on its own: with a drifting
+-- stick and the mouse both live it swaps kbm <-> gamepad every cooldown (the
+-- scroll-pin note in InventoryRenderer.lua), and moving the mouse never changes
+-- it. So the cues go on with a pad press that reaches a ZeD window (or a window
+-- claimed in gamepad mode) and off as soon as the mouse is used: moved more than
+-- a few units, clicked, or the mode turning to kbm. Nothing is forgotten: the
+-- focused zone and element stay, so the next pad press carries on from them.
+-- ---------------------------------------------------------------------------
+local CUE_MOUSE_U = 8          -- mouse travel (design units) that counts as using it
+local _cuesOn = false
+local _cueMouseX, _cueMouseY = nil, nil
+local _cueSinceMs = 0
+
+local function _showCues()
+    _cuesOn = true
+    _cueSinceMs = getTimestampMs() or 0
+    if getMouseX then _cueMouseX, _cueMouseY = getMouseX(), getMouseY() end
+end
+
+local function _hideCues()
+    _cuesOn = false
+end
+
+-- once per rendered frame (it also runs while the game is paused)
+local function _watchCueMouse()
+    if not _cuesOn or not getMouseX then return end
+    local mx, my = getMouseX(), getMouseY()
+    if _cueMouseX == nil then _cueMouseX, _cueMouseY = mx, my; return end
+    local T = ZeD.T
+    local th = (T and T.px) and T.px(CUE_MOUSE_U) or CUE_MOUSE_U
+    if math.abs(mx - _cueMouseX) > th or math.abs(my - _cueMouseY) > th then _hideCues(); return end
+    local D = ZeD.Input.Detector
+    if D and D.msSinceMouseClick and D.msSinceMouseClick() < (getTimestampMs() or 0) - _cueSinceMs then
+        _hideCues()
+    end
+end
+
+--- True while the controller's focus mark shows: the last pad press that reached
+-- a ZeD window is newer than the last use of the mouse.
+function Focus.cuesVisible()
+    return _cuesOn
+end
+
+-- ---------------------------------------------------------------------------
 -- REGISTRY API
 -- ---------------------------------------------------------------------------
 
@@ -306,6 +355,11 @@ function Focus.claimFocus(w)
     local old = _focusedWindow
     _focusedWindow = w
     print("[ZeD.Input] Focus: claim: " .. _label(old) .. " -> " .. _label(w))
+    -- a window the pad opened shows where its focus is at once
+    do
+        local D = ZeD.Input.Detector
+        if D and D.getMode and D.getMode() == "gamepad" then _showCues() end
+    end
     -- Oct 23 2026: land on something lit (the last focused element, else the
     -- list's first row); see Focus.ensureEntry
     if Focus.ensureEntry then
@@ -397,6 +451,40 @@ function Focus.getFocusedElement(w)
     if not zone or not zone.elements then return nil end
     local ei = zone.focusedElementIdx or 1
     return zone.elements[ei]
+end
+
+-- getFocusedZone / getFocusedElement read a window's stored focus whether or not
+-- the window has it (navigation and the windows' own logic need that). A focus
+-- MARK needs more: the window is the focused one and the controller is in use.
+-- Without that test the unfocused window kept lighting its remembered row
+-- (Craft, Build, Journal, Animals, Foraging, Stations, JournalReaders), and
+-- the mark stayed lit while the mouse was used. Surfaces draw marks through these:
+
+--- The zone a focus mark may show in, or nil: w is the focused window and the
+-- controller is in use.
+function Focus.liveZone(w)
+    if not w or w ~= _focusedWindow or not _cuesOn then return nil end
+    return Focus.getFocusedZone(w)
+end
+
+--- The element a focus mark may show on, or nil (see liveZone).
+function Focus.liveElement(w)
+    if not Focus.liveZone(w) then return nil end
+    return Focus.getFocusedElement(w)
+end
+
+--- True when a surface should draw the focus mark: w is the focused window, the
+-- controller is in use, its focused zone is zoneName (when given) and its
+-- focused element has the id elementId (when given).
+function Focus.isFocused(w, zoneName, elementId)
+    local z = Focus.liveZone(w)
+    if not z then return false end
+    if zoneName ~= nil and z.zone ~= zoneName then return false end
+    if elementId ~= nil then
+        local el = Focus.getFocusedElement(w)
+        return el ~= nil and el.id == elementId
+    end
+    return true
 end
 
 -- Swap a zone's elements array (e.g. inventory row rebuild). Optionally
@@ -1421,6 +1509,7 @@ end
 
 function Focus.dispatchJoypadDown(w, button, joypadData)
     if not w then return end
+    _showCues()
     local actions = ZeD.Input.Action and ZeD.Input.Action.fromGamepadButton
                     and ZeD.Input.Action.fromGamepadButton(button)
     if not actions then return end
@@ -1555,6 +1644,7 @@ end
 
 function Focus.dispatchJoypadDir(w, dir, joypadData)
     if not w then return end
+    _showCues()
 
     -- Track hold-start for auto-repeat. Engine fires onJoypadDir* on initial
     -- press only; OnTick does the repeat work.
@@ -1798,12 +1888,15 @@ if LuaEventManager and LuaEventManager.AddEvent then
 end
 
 Events.OnTick.Add(_onTick)
+if Events.OnRenderTick then Events.OnRenderTick.Add(_watchCueMouse) end
 
 -- S113: Window-pair invariant. On kbm→gamepad transition, ensure both windows
 -- are open as a pair (gamepad-only invariant; mouse mode keeps asymmetric
 -- open/closed state). Late-binds ZeD_CharacterWindow because that module
 -- loads after this one (Input/* is a separate dir from the windows).
 local function _onModeChanged(newMode, oldMode)
+    -- the mouse or keyboard took over: the focus marks go (the focus itself stays)
+    if newMode == "kbm" then _hideCues() end
     if newMode == "gamepad" and oldMode ~= "gamepad" then
         if ZeD_CharacterWindow and ZeD_CharacterWindow.ensureBothOpenForGamepad then
             pcall(ZeD_CharacterWindow.ensureBothOpenForGamepad, 0)
