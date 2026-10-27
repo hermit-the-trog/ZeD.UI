@@ -2593,7 +2593,7 @@
     {
      "text": "Theme, accent, text size and scale.",
      "anchor": [
-      1446,
+      1404,
       454
      ],
      "crop": 0,
@@ -2607,7 +2607,7 @@
     {
      "text": "On / off switches for what the game does not do by itself.",
      "anchor": [
-      1446,
+      1404,
       1050
      ],
      "crop": 0,
@@ -2621,8 +2621,8 @@
     {
      "text": "Every setting is explained down here.",
      "anchor": [
-      1430,
-      1880
+      1418,
+      1950
      ],
      "crop": 0,
      "side": "left",
