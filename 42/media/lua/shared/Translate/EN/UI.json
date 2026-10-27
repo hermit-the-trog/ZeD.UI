@@ -3386,5 +3386,7 @@
     "UI_ZeD_Appliance_EmptyMicrowave": "Nothing is in the microwave.",
     "UI_ZeD_Forage_SearchHelp": "Search mode: press to start or stop looking for things to forage",
     "UI_ZeD_Forage_MoreHelp": "More detail: press to show or hide the categories and modifiers",
-    "UI_ZeD_Craft_CategoryHelp": "Category: press to choose which recipes the list shows"
+    "UI_ZeD_Craft_CategoryHelp": "Category: press to choose which recipes the list shows",
+    "UI_ZeD_Card_HelpBack": "Back: close this card",
+    "UI_ZeD_Progress_CancelHelp": "Cancel: stop doing this"
 }

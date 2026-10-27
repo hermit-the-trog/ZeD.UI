@@ -15,6 +15,15 @@
 --       draws ZeD.T[tokenName] (default "surf2") at the window's alpha in
 --       panel coordinates and claims the rect for the panel's ZeD_Window.
 --       A panel outside any ZeD_Window just draws.
+--   ZeD.Surface.claim(panel, x, y, w, h)
+--       claims the rect without drawing: a strip drawn on a card that draws
+--       its own body (the card's fill is the one layer there).
+--
+-- A claim is kept to the clip in force while it is made: a section head or
+-- tab half scrolled out of a list is cut off by the list's stencil, and so is
+-- its claim, so the body still shows above the list. The stencils are tracked
+-- here for every panel (ZeD.Surface.clip: the visible rect on screen, or nil);
+-- ZeD.Atoms.mouseIn uses the same clip for hover.
 --
 -- ZeD.Help: the words in a window's help line for what the pointer is over.
 --
@@ -25,6 +34,8 @@
 --       getStatusLine(), when it has one.
 -- ============================================================================
 
+require "ISUI/ISUIElement"
+
 ZeD = ZeD or {}
 ZeD.Surface = ZeD.Surface or {}
 ZeD.Help = ZeD.Help or {}
@@ -32,6 +43,75 @@ local S = ZeD.Surface
 local H = ZeD.Help
 
 local MAX_CLAIMS = 64   -- a frame's claims past this many draw over the body as before
+local MAX_CLIPS  = 16   -- deeper than this, a stencil is not tracked (its clear still pops)
+
+-- ----------------------------------------------------------------------------
+-- The clip in force: the engine's stencils, as screen rects
+-- ----------------------------------------------------------------------------
+-- The engine nests stencils (each one draws only where the one before it did), so the
+-- clip in force is the meeting of every rect set and not yet cleared; each entry holds that
+-- meeting, ready to use. A stencil left set by a failed draw would linger, so the stack
+-- starts empty before and after every UI draw.
+local _clips, _clipN = {}, 0
+
+local function pushClip(panel, x, y, w, h)
+    _clipN = _clipN + 1
+    if _clipN > MAX_CLIPS then return end
+    local jo = panel and panel.javaObject
+    local ax = jo and jo:getAbsoluteX() or 0
+    local ay = jo and jo:getAbsoluteY() or 0
+    local x0, y0 = ax + (x or 0), ay + (y or 0)
+    local x1, y1 = x0 + (w or 0), y0 + (h or 0)
+    local prev = _clips[_clipN - 1]
+    if _clipN > 1 and prev then
+        if prev.x0 > x0 then x0 = prev.x0 end
+        if prev.y0 > y0 then y0 = prev.y0 end
+        if prev.x1 < x1 then x1 = prev.x1 end
+        if prev.y1 < y1 then y1 = prev.y1 end
+    end
+    if x1 < x0 then x1 = x0 end
+    if y1 < y0 then y1 = y0 end
+    local c = _clips[_clipN]
+    if not c then c = {}; _clips[_clipN] = c end
+    c.x0, c.y0, c.x1, c.y1 = x0, y0, x1, y1
+end
+
+local function popClip()
+    if _clipN > 0 then _clipN = _clipN - 1 end
+end
+
+--- The clip the draw in progress is under, in screen coordinates: { x0, y0, x1, y1 }
+-- (read it, do not keep it), or nil when no stencil is set.
+function S.clip()
+    if _clipN <= 0 then return nil end
+    return _clips[math.min(_clipN, MAX_CLIPS)]
+end
+
+function S.resetClips() _clipN = 0 end
+S._pushClip, S._popClip = pushClip, popClip
+
+-- Every panel's stencil calls go through ISUIElement (ZeD_Window and ZeD_Panel count theirs and
+-- then call it too); the engine's own drawing is unchanged, this only watches. Wrapped once; the
+-- wrapper looks the tracker up on each call, so a reloaded file's tracker is the one in use.
+if not ISUIElement._zedClipWrapped then
+    ISUIElement._zedClipWrapped = true
+    local origSet, origClear = ISUIElement.setStencilRect, ISUIElement.clearStencilRect
+    function ISUIElement:setStencilRect(x, y, w, h)
+        local r = origSet(self, x, y, w, h)   -- (it makes the Java side when it is missing)
+        local Sf = ZeD.Surface
+        if Sf and Sf._pushClip then Sf._pushClip(self, x, y, w, h) end
+        return r
+    end
+    function ISUIElement:clearStencilRect()
+        local Sf = ZeD.Surface
+        if Sf and Sf._popClip then Sf._popClip() end
+        return origClear(self)
+    end
+end
+if Events then
+    if Events.OnPreUIDraw then Events.OnPreUIDraw.Add(S.resetClips) end
+    if Events.OnPostUIDraw then Events.OnPostUIDraw.Add(S.resetClips) end
+end
 
 -- The ZeD_Window a panel lives in (the panel itself when it is one), or nil
 function S.windowOf(panel)
@@ -70,11 +150,9 @@ local function claim(win, x0, y0, x1, y1)
     c.n = c.n + 1
 end
 
-function S.fill(panel, x, y, w, h, tokenName)
-    if not panel or w <= 0 or h <= 0 then return end
-    local T = ZeD.T
-    local col = T[tokenName or "surf2"] or T.surf2
-    panel:drawRect(x, y, w, h, col.a or 1, col.r, col.g, col.b)
+-- a rect in panel coordinates claimed for the panel's window: kept to the part inside the panel
+-- itself and inside the clip in force (a stencil cuts what is drawn, so it cuts the claim too)
+local function claimRect(panel, x, y, w, h)
     local win = S.windowOf(panel)
     if not win then return end
     -- panel coordinates to window coordinates (the engine draws at the absolute place plus the scroll),
@@ -92,7 +170,31 @@ function S.fill(panel, x, y, w, h, tokenName)
         local dy = panel:getAbsoluteY() - win:getAbsoluteY()
         px0, px1, py0, py1 = px0 + dx, px1 + dx, py0 + dy, py1 + dy
     end
+    local c = S.clip()
+    if c then
+        local wx, wy = win:getAbsoluteX(), win:getAbsoluteY()
+        if px0 < c.x0 - wx then px0 = c.x0 - wx end
+        if py0 < c.y0 - wy then py0 = c.y0 - wy end
+        if px1 > c.x1 - wx then px1 = c.x1 - wx end
+        if py1 > c.y1 - wy then py1 = c.y1 - wy end
+    end
     claim(win, math.floor(px0 + 0.5), math.floor(py0 + 0.5), math.floor(px1 + 0.5), math.floor(py1 + 0.5))
+end
+
+function S.fill(panel, x, y, w, h, tokenName)
+    if not panel or w <= 0 or h <= 0 then return end
+    local T = ZeD.T
+    local col = T[tokenName or "surf2"] or T.surf2
+    panel:drawRect(x, y, w, h, col.a or 1, col.r, col.g, col.b)
+    claimRect(panel, x, y, w, h)
+end
+
+--- Claim (x, y, w, h) in panel coordinates for the panel's window without drawing it: the
+-- window's body leaves it out next frame. For a library strip on a card that draws its own
+-- body (one layer there already); the claim is kept to the clip in force, as fill's is.
+function S.claim(panel, x, y, w, h)
+    if not panel or not w or not h or w <= 0 or h <= 0 then return end
+    claimRect(panel, x, y, w, h)
 end
 
 -- the rect (x, y, w, h) minus last frame's claims, drawn in tokenName: the window body
