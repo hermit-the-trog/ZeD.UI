@@ -206,7 +206,7 @@ end)
     resetAsk = @'
 local fn = specFn("opt:reset")
 fn()
-later(800, function() say("RASK confirm=" .. tostring(w().confirm) .. " focus=" .. tostring(w().focusId) .. " ask=" .. tostring(w()._ask)) end)
+later(800, function() say("RASK confirm=" .. tostring(w().confirm) .. " focus=" .. tostring(w().focusId) .. " ask=" .. tostring(w()._bandAsk)) end)
 '@
     resetCancel = @'
 local fn = specFn("confirm:no")
@@ -271,7 +271,7 @@ whenFound("ConeVisionOutline", function(r)
         whenFound("ModOptions", function(mo)
             local f = {}
             for _, x in ipairs(mo.files) do f[#f + 1] = x.path end
-            say("RAFTER files=" .. #r.files .. " disabled=" .. tostring(verb and verb.disabled) .. " ask=" .. tostring(w()._ask) .. " names=" .. table.concat(n, ",") .. " prefixes=" .. table.concat(p, ",") .. " b41=" .. table.concat(b, ",") .. " modOptionsListed=" .. #f .. ":" .. table.concat(f, ","))
+            say("RAFTER files=" .. #r.files .. " disabled=" .. tostring(verb and verb.disabled) .. " ask=" .. tostring(w()._bandAsk) .. " names=" .. table.concat(n, ",") .. " prefixes=" .. table.concat(p, ",") .. " b41=" .. table.concat(b, ",") .. " modOptionsListed=" .. #f .. ":" .. table.concat(f, ","))
         end)
     end)
 end)
@@ -323,7 +323,7 @@ for _, p in ipairs(w().pickFiles) do if p:find("BatteryAction", 1, true) then w(
 later(1000, function()
     local n = 0
     for _, p in ipairs(w().pickFiles) do if w().pickDraft[p] then n = n + 1 end end
-    say("DRAFT picked=" .. n .. " changed=" .. tostring(w():picksChanged()) .. " ask=" .. tostring(w()._ask))
+    say("DRAFT picked=" .. n .. " changed=" .. tostring(w():picksChanged()) .. " ask=" .. tostring(w()._bandAsk))
 end)
 '@
     pickerUse = @'
@@ -342,7 +342,7 @@ later(1500, function()
     local h = m().mods["ZeD_Picks"]
     local chips = {}
     for _, c in ipairs(w():rowChips(m().mods["GaelGunStore_B42"])) do chips[#chips + 1] = c[1] end
-    say("USED page=" .. tostring(w().page) .. " picks=" .. #paths .. " helperCopiesAreGael=" .. same .. " helperOn=" .. tostring(h and h.isActive) .. " last=" .. tostring(order[#order]) .. " chips=" .. table.concat(chips, ";") .. " ask=" .. tostring(w()._ask))
+    say("USED page=" .. tostring(w().page) .. " picks=" .. #paths .. " helperCopiesAreGael=" .. same .. " helperOn=" .. tostring(h and h.isActive) .. " last=" .. tostring(order[#order]) .. " chips=" .. table.concat(chips, ";") .. " ask=" .. tostring(w()._bandAsk))
 end)
 '@
     undo = @'
@@ -424,7 +424,7 @@ end)
 local d = m().mods["Constown42"]
 w():toggle(d)
 later(800, function()
-    say("ASK confirm=" .. tostring(w().confirm) .. " focus=" .. tostring(w().focusId) .. " stillOn=" .. tostring(d.isActive) .. " ask=" .. tostring(w()._ask))
+    say("ASK confirm=" .. tostring(w().confirm) .. " focus=" .. tostring(w().focusId) .. " stillOn=" .. tostring(d.isActive) .. " ask=" .. tostring(w()._bandAsk))
 end)
 '@
     keepOn = @'
