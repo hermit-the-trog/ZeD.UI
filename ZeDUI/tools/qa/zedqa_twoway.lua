@@ -316,7 +316,7 @@ step(20, function()
     if not v then return end
     local des = ZeD.PhysPx.plates.walkie_valutech
     check(v.background == false and v.Type == "ZeD_TwoWayFull", "full view is the face alone, no window frame")
-    check(v:getWidth() == des.w * K + 4 * K and v:getHeight() == des.h * K + 4 * K, "full view is the plate at the plate scale (" .. v:getWidth() .. "x" .. v:getHeight() .. ")")
+    check(v:getWidth() == des.w * K + ZeD.T.hair and v:getHeight() == des.h * K + ZeD.T.hair, "full view is the plate at the plate scale, room for its 1u hard shadow (" .. v:getWidth() .. "x" .. v:getHeight() .. ")")
     local sw = getPlayerScreenWidth(pn)
     local cx = v:getX() + v:getWidth() / 2
     check(math.abs(cx - (getPlayerScreenLeft(pn) + sw * 0.75)) <= 2, "the first time it sits centre right of the play area (centre x " .. cx .. ")")
@@ -435,9 +435,9 @@ step(10, function()
     check(F.showing(pn) == valu, "pad: A on the full view button opens it")
     F.qaJoy = true                               -- as with a pad's focus: the prompt strip under the face
 end)
-waitFor(2, 90, function() return v:getHeight() > ZeD.PhysPx.plates.walkie_valutech.h * K + 4 * K and v.focusId ~= nil end, function()
+waitFor(2, 90, function() return v:getHeight() > ZeD.PhysPx.plates.walkie_valutech.h * K + ZeD.T.hair and v.focusId ~= nil end, function()
     local des = ZeD.PhysPx.plates.walkie_valutech
-    check(v:getHeight() > des.h * K + 4 * K, "pad: full view shows its controller strip")
+    check(v:getHeight() > des.h * K + ZeD.T.hair, "pad: full view shows its controller strip")
     check(v.focusId ~= nil, "pad: full view lands on a control (" .. tostring(v.focusId) .. ")")
     v.focusId = "vol"
     volWas = dd(valu):getDeviceVolume()
