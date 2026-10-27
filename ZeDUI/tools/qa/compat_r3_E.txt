@@ -1,0 +1,13 @@
+# ZeDUI/tools/qa/compat_r3_E.txt  (Oct 26 2026): compatibility round 3, group E
+# zedqa_mods_run.ps1 -ModList <group E ids> -Mode fullscreen4k -Manifest this
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_r3_E.lua | r3E | timeout=600       # survey with the group's mods: census, menus, tooltip, tabs, the mods' own windows
+suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
+zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
+zedqa_mapstyles.lua | mst                        # Survey / Color / Paper at two zooms on Muldraugh
+zedqa_flyers.lua | fl                            # the Maps tab marks only flyers read
+zedqa_flyermap.lua | fm                          # flyer pins, hover card, reader from a pin, Show on map
+zedqa_mapnotes.lua | mnote                       # notes and marks in vanilla's store, one-time migration, Delete; all taken back
+zedqa_journal_refs.lua | jr                      # Journal tab diary and Flyers gallery
+zedqa_twoway.lua | tw | timeout=600             # the ten two-way radio faces in the radio tab, their controls, full view, the controller
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear

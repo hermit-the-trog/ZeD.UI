@@ -22,11 +22,11 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 | List | Mods |
 |---|---|
 | Supported | 0 |
-| Works well | 3 |
-| Compatible | 117 |
-| Not needed | 15 |
+| Works well | 6 |
+| Compatible | 153 |
+| Not needed | 18 |
 | Does not work | 1 |
-| Tested in all | 136 |
+| Tested in all | 178 |
 | Not tested | 2 |
 
 
@@ -196,6 +196,55 @@ Reports: qa/regression/2026-10-26_2020_mods_fullscreen4k.md (ZeD's tests 5/5 pas
 | Specific Loot (KI5) | [3457132019](https://steamcommunity.com/sharedfiles/filedetails/?id=3457132019) | 3 | Compatible | Loads with Yet Another PZ Library, no errors. |
 | Dynamic Snow for Vanilla Vehicles [B42 MP] | [3781818628](https://steamcommunity.com/sharedfiles/filedetails/?id=3781818628) | 3 | Compatible | Loads, no errors. |
 
+### Group E
+
+Reports: qa/regression/2026-10-26_2037_mods_fullscreen4k.md (11/11 pass); ZeD off: qa/modload/2026-10-26_2048_r3off_console.txt; main menu 20:54; Plain Moodles Redone alone with ZeD's moodle test: 2026-10-26_2044 (2/2)
+
+| Mod | Workshop id | Tier | List | Evidence |
+|---|---|---|---|---|
+| More Builds | [515555911](https://steamcommunity.com/sharedfiles/filedetails/?id=515555911) | 1 | Works well | Its build window opens from its More Builds row in ZeD's world menu (seen) and works beside ZeD's windows (seen, E_more_builds.jpg). |
+| Darker Map | [2939187818](https://steamcommunity.com/sharedfiles/filedetails/?id=2939187818) | 1 | Compatible | Part of it does not show: it darkens the game's map; the game's map key opens ZeD's map pop-out, which has its own styles (Survey, Color, Paper) (seen). |
+| Military Grid Reference System For Map Callouts Cause You And Your Friends Get Lost Easily | [2928660831](https://steamcommunity.com/sharedfiles/filedetails/?id=2928660831) | 1 | Compatible | Part of it does not show: its grid is drawn on the game's map, which ZeD's map replaces (expected). |
+| Hide Menu Debug + Remove Build Information | [3554048011](https://steamcommunity.com/sharedfiles/filedetails/?id=3554048011) | 1 | Compatible | Part of it does not show: it hides the game's own Debug and build texts; ZeD's main menu keeps its Debug menu under -debug (seen). HideDebugMenu sub-mod. |
+| Better Server Settings | [2756434288](https://steamcommunity.com/sharedfiles/filedetails/?id=2756434288) | 1 | Compatible | Loads, no errors (server settings screens not opened). |
+| Spawn Selector [B42 Stable] | [3772052709](https://steamcommunity.com/sharedfiles/filedetails/?id=3772052709) | 1 | Compatible | Its Spawn Selector is a spawn place in ZeD's New Game list, with its picture and text (seen); its own map after character creation was not tried. |
+| True Moozic B42+  The Music System for Project Zomboid (SP/MP) | [3632610172](https://steamcommunity.com/sharedfiles/filedetails/?id=3632610172) | 1 | Compatible | Loads, no errors; its music rows are in ZeD's world menu (Ban Music List, seen). Part of it may not show: its Hi-Fi window hooks the game's radio window (by reading its code). |
+| TwisTonFire - Improved Soundoptions | [3575778063](https://steamcommunity.com/sharedfiles/filedetails/?id=3575778063) | 1 | Compatible | Part of it does not show: it restyles the game's sound options page; ZeD's Options are its own (expected). |
+| TwisTonFire - Map Improvements | [3627539752](https://steamcommunity.com/sharedfiles/filedetails/?id=3627539752) | 1 | Compatible | Part of it does not show: its map tools are on the game's map (expected). |
+| B42 Native ModOptions Example | [3386860561](https://steamcommunity.com/sharedfiles/filedetails/?id=3386860561) | 1 | Compatible | Loads, no errors; its example options page is in the game's Mod Options (as any mod's options). |
+| Workshop Update Checker | [3628835042](https://steamcommunity.com/sharedfiles/filedetails/?id=3628835042) | 1 | Works well | Its Mod Updates button shows at the bottom right of ZeD's main menu (seen, E_main_menu_mod_updates.png). |
+| Mod Comparer | [3019672735](https://steamcommunity.com/sharedfiles/filedetails/?id=3019672735) | 1 | Compatible | Loads, no errors; it compares mod lists when a save is continued (not tried). |
+| No Welcome Window [B42.21+] | [3389338537](https://steamcommunity.com/sharedfiles/filedetails/?id=3389338537) | 1 | Not needed | ZeD already keeps the welcome and other notes out of the way (Messages); it patches the game's welcome panel (expected). |
+| [B42+]L4D2 Zombie Siege Background Main Menu [16:9+21:9] | [3388808256](https://steamcommunity.com/sharedfiles/filedetails/?id=3388808256) | 1 | Compatible | Part of it does not show: ZeD's main menu is its own desk, so the game's menu background it replaces is not seen (seen: same desk as with ZeD alone). 16:9 sub-mod. |
+| Cheat Menu: Reloaded [B42 Fixed] | [3683918273](https://steamcommunity.com/sharedfiles/filedetails/?id=3683918273) | 1 | Compatible | Its Cheat Menu: Reloaded rows are in ZeD's world menu (seen). |
+| Neat Lockpicking | [3783535220](https://steamcommunity.com/sharedfiles/filedetails/?id=3783535220) | 1 | Compatible | Loads with NeatUI Framework, no errors (lock windows not opened). |
+| TwisTonFire - minimap | [3572564421](https://steamcommunity.com/sharedfiles/filedetails/?id=3572564421) | 1 | Compatible | Loads, no errors; its minimap window did not show in this test (census). |
+| [B42]Mod Folders | [3779201168](https://steamcommunity.com/sharedfiles/filedetails/?id=3779201168) | 1 | Not needed | ZeD's mod manager does the job (categories, search, profiles); it patches the game's mod screen (expected). |
+| Proximity Inventory | [3740165370](https://steamcommunity.com/sharedfiles/filedetails/?id=3740165370) | 1 | Compatible | Tested as a local copy with the id R3_ProximityInventory (its id is the same as two other Proximity Inventory items, and the game loads only one per id). Part of it does not show: its one container goes on the game's loot window (by reading its code). |
+| Project Writing [42.21] | [3796402502](https://steamcommunity.com/sharedfiles/filedetails/?id=3796402502) | 1 | Compatible | Part of it does not show: its writing tools are on the game's map (by reading its code: ISWorldMap); its write-note rows come through the item menu. |
+| Radio Frequency Manager [B42] | [3659543622](https://steamcommunity.com/sharedfiles/filedetails/?id=3659543622) | 1 | Compatible | Its frequency window opens through its own toggle at the left, clear of ZeD's windows (seen). |
+| Retro Dashboard Digitals | [3743082626](https://steamcommunity.com/sharedfiles/filedetails/?id=3743082626) | 1 | Not needed | ZeD replaces the dashboard, including the radio (its digital readouts are for the game's dashboard) (expected; as Realistic Dashboard). |
+| Yaki's BarberShop | [2810471370](https://steamcommunity.com/sharedfiles/filedetails/?id=2810471370) | 2 | Compatible | Loads, no errors (barber content). |
+| Map Symbols Plus (Hand-drawn) | [3399645148](https://steamcommunity.com/sharedfiles/filedetails/?id=3399645148) | 2 | Compatible | Loads, no errors; its symbols are for the game's map symbol list (not checked in ZeD's mark grid). |
+| [B42] Custom Map Labels | [3559737194](https://steamcommunity.com/sharedfiles/filedetails/?id=3559737194) | 2 | Compatible | Loads, no errors; its labels are for the game's map (expected). |
+| Map Symbols Plus (Stensil) | [3395592779](https://steamcommunity.com/sharedfiles/filedetails/?id=3395592779) | 2 | Compatible | Loads, no errors; as the Hand-drawn pack. |
+| [B42] More Item Information | [3494474677](https://steamcommunity.com/sharedfiles/filedetails/?id=3494474677) | 2 | Compatible | Part of it does not show: its tooltip lines (insulation, wind, material, growing season) show without ZeD and not on ZeD's tooltip (seen, E_more_item_information_tooltip_zed_vs_zed_off.png). ZeD bug 1. |
+| [B42.20] Plain Moodles Redone | [3772979228](https://steamcommunity.com/sharedfiles/filedetails/?id=3772979228) | 2 | Works well | Its plain icons and level bars show in ZeD's right-edge column, and its icons in ZeD's row above the belt (level bars not there); no double drawing (ZeD's moodle test 2/2 with it alone, seen). |
+| Better Safehouse [B42.20- MP] | [3634569678](https://steamcommunity.com/sharedfiles/filedetails/?id=3634569678) | 2 | Compatible | Multiplayer safehouse screens; loads, no errors in single player. |
+| More Maps [B42] | [3390897023](https://steamcommunity.com/sharedfiles/filedetails/?id=3390897023) | 2 | Compatible | Loads, no errors. |
+| Voiced Radio and TVs | [2950750587](https://steamcommunity.com/sharedfiles/filedetails/?id=2950750587) | 2 | Compatible | One error of its own at load on 42.21 (ISWeatherChannel.lua:62, Init calls nil), also with ZeD off. Otherwise loads (with Broadcast Voicer). |
+| Map All Known Fix [B42] | [3785198639](https://steamcommunity.com/sharedfiles/filedetails/?id=3785198639) | 2 | Compatible | Loads, no errors. |
+| [B42] Briefing | [3565244378](https://steamcommunity.com/sharedfiles/filedetails/?id=3565244378) | 2 | Compatible | Loads; its briefing layer is up at game start (census ISBriefingUI) and does not cover ZeD's windows (seen). |
+| Better Daily Reports | [3580557206](https://steamcommunity.com/sharedfiles/filedetails/?id=3580557206) | 2 | Compatible | Its daily report window opens by itself at game start, centred, clear of ZeD's windows (seen). |
+| TwisTonFire - Quick'n'Auto Mark | [3579410548](https://steamcommunity.com/sharedfiles/filedetails/?id=3579410548) | 2 | Compatible | Loads; its colour dock sits above the belt (census WIMC_ColorDock 1763,2128); the map parts are for the game's map. SP sub-mod. |
+| [B42 STABLE] Expanded Professions | [3440958051](https://steamcommunity.com/sharedfiles/filedetails/?id=3440958051) | 2 | Compatible | Its 7 occupations are in ZeD's occupation list (seen: ascetic, convict, hunter, mailman, soldier, paramedic, priest). |
+| [B42] Functional TV Movies & Series - Framework | [3685672179](https://steamcommunity.com/sharedfiles/filedetails/?id=3685672179) | 2 | Compatible | Loads, no errors (TV window not opened). |
+| GPS Cross-Device - ProjectZomboidMap.com | [3793289804](https://steamcommunity.com/sharedfiles/filedetails/?id=3793289804) | 2 | Compatible | Loads, no errors. |
+| Functional Pager - Immersive Map-Wide Communication [B42] | [3744455714](https://steamcommunity.com/sharedfiles/filedetails/?id=3744455714) | 2 | Compatible | Loads, no errors (pager window not opened). |
+| [B42.16+] XP Gain Bar v1.4 - DBD | [3656128167](https://steamcommunity.com/sharedfiles/filedetails/?id=3656128167) | 2 | Compatible | Its XP bar shows at the top left (seen). |
+| Auto Center Map | [3790912405](https://steamcommunity.com/sharedfiles/filedetails/?id=3790912405) | 2 | Compatible | Part of it does not show: it centres the game's map; the map key opens ZeD's map pop-out (seen). |
+| Civil Defense Sirens [B42 SP/MP] | [3750612709](https://steamcommunity.com/sharedfiles/filedetails/?id=3750612709) | 3 | Compatible | Its Civil Defense Sirens row is in ZeD's world menu (seen); some of its option texts have a stray % (game warnings, also with ZeD off). |
+
 ## Not tested, and why
 
 | Group | Mod | Workshop id | Why |
@@ -208,7 +257,7 @@ Reports: qa/regression/2026-10-26_2020_mods_fullscreen4k.md (ZeD's tests 5/5 pas
 ### 1. ZeD's item tooltip drops the lines other mods add to the game's tooltip
 
 - **File:** `42/media/lua/client/ZeD/Overrides/Tooltip.lua`, `applyTooltipOverrides` (run on `OnGameBoot`). It keeps whatever `ISToolTipInv.render` is at that moment as "vanilla" (`V.invRender`), then replaces `ISToolTipInv:render` with ZeD's own drawing, which calls only `self.item:DoTooltip(self.tooltip)`. The kept function is called only in safe mode.
-- **Effect:** a mod that wraps `ISToolTipInv.render` when its file loads (before `OnGameBoot`) to draw extra lines has its wrapper skipped. Seen with Starlit Library's tooltip lines (Show Sowing Season In Seed Tooltip, 3404461962): the seed packet tooltip has 4 lines under ZeD and 8 in ZeD's safe mode. Same pattern, by reading their code: Better Clothing Info Comparison (3036830549, `bcic_Tooltip.lua:228`), This Is Me (3806020504, `TIMReadUIPatch.lua:45`), Brita's Armor Pack B42 (3780298456). Mods that wrap it at `OnGameStart` (after ZeD), such as Show VHS skills in tooltip, keep working.
+- **Effect:** a mod that wraps `ISToolTipInv.render` when its file loads (before `OnGameBoot`) to draw extra lines has its wrapper skipped. Seen with Starlit Library's tooltip lines (Show Sowing Season In Seed Tooltip, 3404461962): the seed packet tooltip has 4 lines under ZeD and 8 in ZeD's safe mode. Same pattern, by reading their code: Better Clothing Info Comparison (3036830549, `bcic_Tooltip.lua:228`), This Is Me (3806020504, `TIMReadUIPatch.lua:45`), Brita's Armor Pack B42 (3780298456). Confirmed with ZeD fully off for [B42] More Item Information (3494474677, `ItemInfo.lua:754`, group E): a formal shirt's tooltip has Insulation 25 (+25), Wind resistance 15 (+15) and Material: Cotton, and a seed packet Growing Seasons, without ZeD; none of them under ZeD (`E_more_item_information_tooltip_zed_vs_zed_off.png`, `zedqa_off_run.ps1` with `zedqa_r3_off.lua`). Mods that wrap it at `OnGameStart` (after ZeD), such as Show VHS skills in tooltip, keep working.
 - **Steps:** `zedqa_mods_run.ps1 -ModList tools/qa/compat_r3_A_mods.txt -Mode fullscreen4k -Manifest tools/qa/compat_r3_A.txt`; `zedqa_r3_A.lua` gives a Carrot seed packet and draws its `ISToolTipInv` at 900,300, once normally and once with ZeD's safe mode option on.
 - **Evidence:** `ZeDUI/qa/compat_round3/A_seed_tooltip_zed_vs_safe.png` (left ZeD 202x79, right safe mode 252x144: Sowing Season, Optimal / Risky Sowing Months, Minimum Water Level); report `qa/regression/2026-10-26_1932_mods_fullscreen4k.md` (`tip seed zed 202x79`, `tip seed safe 252x144`).
 - **Fix idea (not done):** call the kept function for the content (or call the previous `render` with ZeD's frame drawn first), the way the other ZeD overrides chain to what was there before.
