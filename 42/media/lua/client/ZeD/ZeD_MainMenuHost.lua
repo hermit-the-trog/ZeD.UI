@@ -6,11 +6,11 @@
 -- Vanilla's CoopOptionsScreen launches a co-op server and follows it only
 -- while it is visible, so it stays shown but off the screen (MM.mirror) and
 -- this window drives it: its account name (outside Steam), the server
--- settings to host with (EDIT SETTINGS... opens vanilla's settings editor;
--- its BACK returns here), the memory to give the server, the world's upkeep
--- (reset, delete the world, delete the player: each asks in the strip), and
--- START / ABORT. While the server starts: vanilla's status line and its
--- progress as a segmented bar.
+-- settings to host with (Edit settings opens vanilla's settings editor;
+-- its Back returns here), the memory to give the server, the world's upkeep
+-- (reset, delete the world, delete the player: each asks in the band), and
+-- Start / Abort. While the server starts: vanilla's status line and its
+-- progress as a framed bar.
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -160,7 +160,7 @@ function ZeD_MMHost:prerender()
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bx, by, bw, bh = pad, tb + pad, w - pad * 2, stripY - tb - pad * 2
     UI.insetBox(self, bx, by, bw, bh)
@@ -172,7 +172,6 @@ function ZeD_MMHost:prerender()
     local boxW = math.min(T.px(BOX_W), bx + bw - T.px(24) - vx)
     local idle = self:idle()
     local gp = MM.gamepad()
-    local ac = T.accent
     local function label(text, ry)
         local la = T.accent
         self:drawText(text, ix, ry + math.floor((rowH - MM.fontH(f1)) / 2), la.r, la.g, la.b, la.a or 1, f1)
@@ -181,21 +180,15 @@ function ZeD_MMHost:prerender()
         local bh2 = T.px(24)
         local yy = ry + math.floor((rowH - bh2) / 2)
         local hid = "host:" .. id
-        local sf = (MM.ctx.hot == hid) and T.surf3 or T.surf2
-        local bs, tc = T.borderS, T.text
-        if gp and self.focusId == id then self:drawRect(vx - T.px(4), yy - T.px(4), boxW + 2 * T.px(4), bh2 + 2 * T.px(4), 0.55, ac.r, ac.g, ac.b) end
-        self:drawRect(vx, yy, boxW, bh2, 1, sf.r, sf.g, sf.b)
-        self:drawRectBorder(vx, yy, boxW, bh2, bs.a, bs.r, bs.g, bs.b)
-        self:drawText(ZeD.Atoms.truncateText(comboText(combo, combo.selected), f2, boxW - T.px(28)), vx + T.px(8), yy + math.floor((bh2 - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
-        ZeD.Atoms.drawTriangleDown(self, vx + boxW - T.px(16), yy + math.floor((bh2 - T.px(5)) / 2), T.px(8), T.textDim)
+        MM.drawDropBox(self, vx, yy, boxW, bh2, comboText(combo, combo.selected), (not gp) and idle and MM.ctx.hot == hid, not idle, gp and self.focusId == id)
         local anchor = { x = ax + vx, y = ay + yy, w = boxW, h = bh2 }
         local fn = function() self:openCombo(combo, anchor) end
         if idle then self._hits[#self._hits + 1] = { id = hid, x = anchor.x, y = anchor.y, w = boxW, h = bh2, fn = fn, sound = true } end
         self._specs[#self._specs + 1] = { id = id, listRow = true, row = 10 + #self._specs, col = 1, fn = fn, x = vx, y = yy, w = boxW, h = bh2 }
     end
     local function button(id, text, ry, fn, disabled)
-        local bh2 = T.px(U.STRIP_BTN_H)
-        local b = { id = id, text = text, x = vx, y = ry + math.floor((rowH - bh2) / 2), w = MM.textW(T.fontF3, text) + T.px(U.STRIP_BTN_PAD) * 2, h = bh2,
+        local bh2 = T.buttonH
+        local b = { id = id, text = text, x = vx, y = ry + math.floor((rowH - bh2) / 2), w = ZeD.Molecules.buttonW(text), h = bh2,
                     fn = fn, variant = "default", disabled = disabled or not idle, row = 10 + #self._specs, col = 1 }
         self._specs[#self._specs + 1] = b
     end
@@ -216,9 +209,9 @@ function ZeD_MMHost:prerender()
         label(ZeD.tr("UI_ZeD_Host_LabelSettings"), cy)
         box("settings", cy, c.settingsComboBox)
         cy = cy + rowH
-        button("edit", ZeD.upper(UI.plain(getText("UI_coopscreen_edit_settings"))), cy, function() self:editSettings() end)
+        button("edit", UI.plain(getText("UI_coopscreen_edit_settings")), cy, function() self:editSettings() end)
         cy = cy + rowH
-        label(ZeD.upper(ZeD.tr("IGUI_GameStats_Memory")), cy)
+        label(ZeD.textCase(ZeD.tr("IGUI_GameStats_Memory")), cy)
         box("memory", cy, c.memoryComboBox)
         cy = cy + rowH + T.px(10)
         -- the world's upkeep
@@ -227,11 +220,11 @@ function ZeD_MMHost:prerender()
         label(ZeD.tr("UI_ZeD_Host_LabelWorld"), cy)
         local wx = vx
         for _, a in ipairs({
-            { "reset", ZeD.upper(UI.plain(getText("UI_coopscreen_softreset"))), function() self:setConfirm("reset") end, not c.softResetButton.enable },
-            { "delWorld", ZeD.upper(UI.plain(getText("UI_coopscreen_delete_world"))), function() self:setConfirm("deleteWorld") end, not c.deleteWorldButton.enable },
-            { "delPlayer", ZeD.upper(UI.plain(getText("UI_coopscreen_delete_player"))), function() self:setConfirm("deletePlayer") end, not c.deletePlayerButton.enable } }) do
-            local bh2 = T.px(U.STRIP_BTN_H)
-            local bw2 = MM.textW(T.fontF3, a[2]) + T.px(U.STRIP_BTN_PAD) * 2
+            { "reset", UI.plain(getText("UI_coopscreen_softreset")), function() self:setConfirm("reset") end, not c.softResetButton.enable },
+            { "delWorld", UI.plain(getText("UI_coopscreen_delete_world")), function() self:setConfirm("deleteWorld") end, not c.deleteWorldButton.enable },
+            { "delPlayer", UI.plain(getText("UI_coopscreen_delete_player")), function() self:setConfirm("deletePlayer") end, not c.deletePlayerButton.enable } }) do
+            local bh2 = T.buttonH
+            local bw2 = ZeD.Molecules.buttonW(a[2])
             if wx + bw2 > bx + bw - T.px(24) then wx = vx; cy = cy + bh2 + T.px(8) end
             self._specs[#self._specs + 1] = { id = a[1], text = a[2], x = wx, y = cy + math.floor((rowH - bh2) / 2), w = bw2, h = bh2, fn = a[3],
                                               variant = "default", disabled = a[4], row = 40, col = #self._specs }
@@ -239,7 +232,7 @@ function ZeD_MMHost:prerender()
         end
         cy = cy + rowH
         -- a world question: vanilla's whole explanation (what a soft reset keeps and clears, the
-        -- folders a delete removes, the character), the short question in the strip
+        -- folders a delete removes, the character), the short question in the band
         if self.confirm then
             local text
             if self.confirm == "reset" then text = getText("UI_coopscreen_softreset_prompt", getAbsoluteSaveFolderName(c:getServerSaveFolder()))
@@ -274,7 +267,7 @@ function ZeD_MMHost:prerender()
         end
     else
         if self.account:isVisible() then if self.account:isFocused() then self.account:unfocus() end; self.account:setVisible(false) end
-        -- starting: vanilla's status line and its progress as a segmented bar
+        -- starting: vanilla's status line and its progress as a framed bar
         local hf = ZeD.Font.sdf.head
         local z = 20 * (T.scale or 1) / (hf.face or 64)
         local tc = T.textHead
@@ -289,47 +282,47 @@ function ZeD_MMHost:prerender()
             cy = cy + MM.fontH(f2) + T.px(3)
         end
         cy = cy + T.px(12)
+        -- the progress: the System 7 bar (a framed strip, a flat solid fill)
         local barW = bw - T.px(48)
         local prog = math.max(0, math.min(1, tonumber(c.progress) or 0))
-        local n = 30
-        ZeD.Atoms.drawSegBar(self, ix, cy, barW, T.px(14), n, math.floor(prog * n + 0.5), T.accent, T.surf3, T.px(2))
-        cy = cy + T.px(28)
+        ZeD.Atoms.drawFillBar(self, ix, cy, barW, prog)
+        cy = cy + T.fillBarH + T.px(14)
         if c.softresetProgress then
             local la = T.accent
             self:drawText(ZeD.tr("UI_ZeD_Host_Resetting"), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
             cy = cy + T.px(18)
-            ZeD.Atoms.drawSegBar(self, ix, cy, barW, T.px(14), n, math.floor(c.softresetProgress * n + 0.5), T.accent, T.surf3, T.px(2))
+            ZeD.Atoms.drawFillBar(self, ix, cy, barW, math.max(0, math.min(1, tonumber(c.softresetProgress) or 0)))
         end
     end
     self:buildStrip(stripY, stripH, w)
 end
 
 function ZeD_MMHost:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask)
+    UI.drawStripAndButtons(self)
     ZeD_Window.render(self)
 end
 
+-- the band at the foot: Back, Start (Abort while the server starts), or the question in their place
 function ZeD_MMHost:buildStrip(stripY, stripH, w)
     local c = coop()
     local row = 1000
-    local ask = nil
+    local cancel = { "confirm:no", getText("UI_btn_cancel"), function() self:answer(false) end }
     if self.confirm == "reset" then
-        ask = ZeD.tr("UI_ZeD_Host_AskReset")
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", getText("UI_btn_cancel"), function() self:answer(false) end }, { "confirm:yes", ZeD.tr("UI_ZeD_Host_Reset"), function() self:answer(true) end, "danger" } })
+        UI.stripSpecs(self, stripY, w, row, {}, { cancel, { "confirm:yes", ZeD.tr("UI_ZeD_Host_Reset"), function() self:answer(true) end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_HostReset") } },
+            ZeD.tr("UI_ZeD_Host_AskReset"))
     elseif self.confirm == "deleteWorld" then
-        ask = ZeD.tr("UI_ZeD_Host_AskDeleteWorld")
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", getText("UI_btn_cancel"), function() self:answer(false) end }, { "confirm:yes", getText("UI_btn_delete"), function() self:answer(true) end, "danger" } })
+        UI.stripSpecs(self, stripY, w, row, {}, { cancel, { "confirm:yes", getText("UI_btn_delete"), function() self:answer(true) end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_HostDeleteWorld") } },
+            ZeD.tr("UI_ZeD_Host_AskDeleteWorld"))
     elseif self.confirm == "deletePlayer" then
-        ask = ZeD.tr("UI_ZeD_Host_AskDeletePlayer")
-        UI.stripSpecs(self, stripY, w, row, {}, { { "confirm:no", getText("UI_btn_cancel"), function() self:answer(false) end }, { "confirm:yes", getText("UI_btn_delete"), function() self:answer(true) end, "danger" } })
+        UI.stripSpecs(self, stripY, w, row, {}, { cancel, { "confirm:yes", getText("UI_btn_delete"), function() self:answer(true) end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_HostDeletePlayer") } },
+            ZeD.tr("UI_ZeD_Host_AskDeletePlayer"))
     else
         local idle = self:idle()
         local rights = {}
         if not idle then rights[#rights + 1] = { "abort", getText("UI_coopscreen_btn_abort"), function() self:abort() end, "danger", not (c and c.abortButton.enable) } end
-        rights[#rights + 1] = { "start", ZeD.upper(UI.plain(getText("UI_coopscreen_btn_start"))), function() self:start() end, "primary", (not idle) or self:problem() ~= nil }
+        rights[#rights + 1] = { "start", UI.plain(getText("UI_coopscreen_btn_start")), function() self:start() end, "primary", (not idle) or self:problem() ~= nil, ZeD.tr("UI_ZeD_MMHelp_HostStart") }
         UI.stripSpecs(self, stripY, w, row, { { "back", getText("UI_btn_back"), function() self:back() end, "default", not idle } }, rights)
     end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
 
 -- CONTROLLER + KEYS -----------------------------------------------------------------------

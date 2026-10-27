@@ -16,7 +16,7 @@
 --   right  NAME (forename, surname, sex), BODY (skin as swatches, chest hair),
 --          HAIR (style, colour as swatches, stubble), BEARD, VOICE (type, pitch,
 --          a preview), CLOTHING (each slot: its item, its tint, its fabric type)
---   strip  BACK | OUTFITS..., RANDOM | PLAY
+--   band   Back | Outfits..., Random | Play
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -91,7 +91,7 @@ function ZeD_MMLooks:new()
 end
 
 function ZeD_MMLooks:createChildren()
-    ZeD_MMOptions.createChildren(self)          -- Find (unused here) and the strip's field
+    ZeD_MMOptions.createChildren(self)          -- Find (unused here) and the band's field
     self.find:setVisible(false)
     self.field.onCommandEntered = function() self._enterAt = MM.now(); self:saveOutfit() end
     -- the two names, kept in step with vanilla's own fields
@@ -211,12 +211,7 @@ function ZeD_MMLooks:drawBox(c, x, y, w, h, id, clip, pickRow)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local hot = MM.ctx.hot == self.kind .. ":" .. id
-    local s = hot and T.surf3 or T.surf2
-    local bs, tc, f2 = T.borderS, T.text, T.fontF2
-    self:drawRect(x, y, w, h, 1, s.r, s.g, s.b)
-    self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    self:drawText(ZeD.Atoms.truncateText(comboText(c, c.selected), f2, w - T.px(28)), x + T.px(8), y + math.floor((h - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
-    ZeD.Atoms.drawTriangleDown(self, x + w - T.px(16), y + math.floor((h - T.px(5)) / 2), T.px(8), T.textDim)
+    MM.drawDropBox(self, x, y, w, h, comboText(c, c.selected), hot and not MM.gamepad())
     local top, bot = math.max(y, clip.y), math.min(y + h, clip.y + clip.h)
     if bot > top then
         self._hits[#self._hits + 1] = { id = self.kind .. ":" .. id, x = ax + x, y = ay + top, w = w, h = bot - top, sound = true,
@@ -249,13 +244,13 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
             local x = cx + col * (s + g)
             local y = y0 + line * (s + g)
             local id = rowId .. ":sw" .. i
+            -- colour wells, as System 7 has them in the Color control panel: the chosen one in a 2u frame,
+            -- the one under the pointer in a 1u frame
             self:drawRect(x, y, s, s, 1, c.r, c.g, c.b)
-            self:drawRectBorder(x, y, s, s, bs.a, bs.r, bs.g, bs.b)
-            if i == r.cur or MM.ctx.hot == self.kind .. ":" .. id then
-                local tc = T.text
-                self:drawRectBorder(x - T.px(2), y - T.px(2), s + 2 * T.px(2), s + 2 * T.px(2), 1, tc.r, tc.g, tc.b)
-                if i == r.cur then self:drawRectBorder(x - T.px(3), y - T.px(3), s + 2 * T.px(3), s + 2 * T.px(3), 1, tc.r, tc.g, tc.b) end
-            end
+            ZeD.Atoms.frame(self, x, y, s, s, bs)
+            local th = T.textHead
+            if i == r.cur then ZeD.Atoms.frame(self, x - T.px(3), y - T.px(3), s + 2 * T.px(3), s + 2 * T.px(3), th, 1, T.px(2))
+            elseif MM.ctx.hot == self.kind .. ":" .. id then ZeD.Atoms.frame(self, x - T.px(2), y - T.px(2), s + 2 * T.px(2), s + 2 * T.px(2), th) end
             local top, bot = math.max(y, clip.y), math.min(y + s, clip.y + clip.h)
             if bot > top then
                 self._hits[#self._hits + 1] = { id = self.kind .. ":" .. id, x = ax + x, y = ay + top, w = s, h = bot - top, sound = true,
@@ -279,11 +274,10 @@ function ZeD_MMLooks:drawControl(r, cx, ry, cw, rh, rowId, clip)
             local bs = T.borderS
             local sw = T.px(TINT_W)
             self:drawRect(x, by, sw, bh, 1, b.r or 1, b.g or 1, b.b or 1)
-            self:drawRectBorder(x, by, sw, bh, bs.a, bs.r, bs.g, bs.b)
+            ZeD.Atoms.frame(self, x, by, sw, bh, bs)
             local id = rowId .. ":tint"
             if MM.ctx.hot == self.kind .. ":" .. id then
-                local ac = T.accent
-                self:drawRectBorder(x - T.px(2), by - T.px(2), sw + 2 * T.px(2), bh + 2 * T.px(2), 1, ac.r, ac.g, ac.b)
+                ZeD.Atoms.frame(self, x - T.px(2), by - T.px(2), sw + 2 * T.px(2), bh + 2 * T.px(2), T.textHead)
             end
             local top, bot = math.max(by, clip.y), math.min(by + bh, clip.y + clip.h)
             local loc, btn = r.loc, r.tint
@@ -330,7 +324,7 @@ end
 function ZeD_MMLooks:drawFigure(x, y, w, h)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    local bh = T.px(U.STRIP_BTN_H)
+    local bh = T.buttonH
     local boxH = h - bh - T.px(10)
     UI.insetBox(self, x, y, w, boxH)
     local m = self._model
@@ -352,16 +346,18 @@ function ZeD_MMLooks:drawFigure(x, y, w, h)
     end
     -- under it: turn left, the pose, turn right
     local by = y + boxH + T.px(10)
-    local bw = T.px(36)
-    local function btn(id, text, bx, bwid, fn)
+    local bw = bh
+    local function btn(id, text, bx, bwid, fn, extra)
         local b = { id = id, text = text, x = bx, y = by, w = bwid, h = bh, fn = fn, variant = "default", row = 900, col = (id == "turnL") and 1 or ((id == "pose") and 2 or 3) }
+        if extra then for k, v in pairs(extra) do b[k] = v end end
         self._specs[#self._specs + 1] = b
     end
-    btn("turnL", "<", x, bw, function() self:turn(-1) end)
-    btn("turnR", ">", x + w - bw, bw, function() self:turn(1) end)
+    -- turn left, turn right: icon buttons with a triangle each; the pose is a pop-up menu
+    btn("turnL", "", x, bw, function() self:turn(-1) end, { iconFn = MM.glyphLeft, hint = ZeD.tr("UI_ZeD_Looks_TurnLeft") })
+    btn("turnR", "", x + w - bw, bw, function() self:turn(1) end, { iconFn = MM.glyphRight, hint = ZeD.tr("UI_ZeD_Looks_TurnRight") })
     local pw = w - bw * 2 - T.px(16)
     local cur = ANIMS[self.anim or 1]
-    btn("pose", ZeD.upper(getText(cur[1])), x + bw + T.px(8), pw, function()
+    btn("pose", ZeD.textCase(getText(cur[1])), x + bw + T.px(8), pw, function()
         local items = {}
         for i, a in ipairs(ANIMS) do
             local t = getText(a[1])
@@ -369,7 +365,7 @@ function ZeD_MMLooks:drawFigure(x, y, w, h)
             items[#items + 1] = { text = t, fn = function() self:pose(i) end }
         end
         MM.openPopup("pose", items, { x = ax + x + bw + T.px(8), y = ay + by, w = pw, h = bh }, true)
-    end)
+    end, { dropBox = true })
 end
 
 -- DRAWING ----------------------------------------------------------------------------
@@ -382,11 +378,11 @@ function ZeD_MMLooks:prerender()
     local v = looks()
     self.title = ZeD.tr("UI_ZeD_Looks_Title")
     local name = (self.fore:getText() or "") .. " " .. (self.sur:getText() or "")
-    self.titleStats = { { text = name, color = { r = 0, g = 0, b = 0, a = 0 } } }
+    self.titleStats = { { text = name, noMark = true } }
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     local fw = math.floor((w - pad * 3) * FIGURE_SHARE)
@@ -513,34 +509,30 @@ end
 function ZeD_MMLooks:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 1000
-    local ask = nil
     if self.confirm == "save" then
-        ask = ZeD.tr("UI_ZeD_Looks_AskOutfitName")
+        local ask = ZeD.tr("UI_ZeD_Looks_AskOutfitName")
         local v = looks()
         local valid = v and v:saveBuildValidate(self.field:getText() or "") or false
-        UI.stripSpecs(self, stripY, w, row, {}, {
+        local fx = UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_save"), function() self:saveOutfit() end, "primary", not valid } })
-        local f2 = T.fontF2
-        local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
+            { "confirm:yes", getText("UI_btn_save"), function() self:saveOutfit() end, "primary", not valid } }, ask, true)
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
         UI.styleEntry(self.field, fx, stripY + math.floor((stripH - fh) / 2), math.max(T.px(80), firstBtn - T.px(12) - fx), fh)
     elseif self.confirm == "delete" then
         local v = looks()
-        ask = ZeD.tr("UI_ZeD_Looks_AskDeleteOutfit", tostring(v and v.savedBuilds.options[v.savedBuilds.selected] or ""))
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_delete"), function() self:deleteOutfit() end, "danger" } })
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deleteOutfit() end, "danger" } },
+            ZeD.tr("UI_ZeD_Looks_AskDeleteOutfit", tostring(v and v.savedBuilds.options[v.savedBuilds.selected] or "")))
     else
         UI.stripSpecs(self, stripY, w, row,
             { { "back", getText("UI_btn_back"), function() self:back() end } },
             { { "outfits", ZeD.tr("UI_ZeD_Looks_Outfits"), function() self:openOutfits() end },
               { "random", getText("UI_characreation_random"), function() self:random() end },
-              { "play", ZeD.upper(getText("UI_btn_play")), function() self:play() end, "primary" } })
+              { "play", getText("UI_btn_play"), function() self:play() end, "primary" } })
     end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
 
 -- ROWS ON A CONTROLLER ---------------------------------------------------------------------

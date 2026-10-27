@@ -65,13 +65,14 @@ end
 
 function J.scroll(win) return st(win).scroll end
 
--- the live controller focus inside the Character window's tab content
+-- the live controller focus inside the Character window's tab content (the focused
+-- window, the controller in use: the library's liveZone / liveElement)
 local function focusedId(win)
     local F = ZeD.Input and ZeD.Input.Focus
-    if not (F and F.getFocusedZone and F.getFocusedElement) then return nil end
-    local fz = F.getFocusedZone(win)
+    if not (F and F.liveZone and F.liveElement) then return nil end
+    local fz = F.liveZone(win)
     if not (fz and fz.zone == "charTabContent") then return nil end
-    local fe = F.getFocusedElement(win)
+    local fe = F.liveElement(win)
     return fe and fe.id or nil
 end
 
@@ -81,26 +82,70 @@ local function zone(win, z)
     return z
 end
 
--- a library button with the focus (0.55) and hover (0.22) fills; a disabled one is dim and inert
+-- The controller's mark options for the element with this id: set only when the
+-- window is the focused one, the controller is in use and that element has the focus.
+local _focusOpts = {}
+local function focusOf(win, id)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused and F.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
+
+-- The controller's mark under an element's words; true when the words must switch to
+-- T.textOnFocus (the wash style).
+local function markFocus(panel, win, id, x, y, w, h)
+    local fo = focusOf(win, id)
+    if fo then return ZeD.Focus.mark(panel, x, y, w, h, fo) end
+    return false
+end
+
+-- the footer help line's words for what the pointer is over
+local function help(win, text)
+    if ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, text) end
+end
+
+-- the pointer over (x, y, w, h) with the mouse in use, inside the tab's view
+local function hoverRect(panel, win, x, y, w, h)
+    local clip = st(win).clip
+    if clip and not inRect(clip, panel:getMouseX(), panel:getMouseY()) then return false end
+    return ZeD.Atoms.mouseIn(panel, x, y, w, h)
+end
+
+-- a push button (the library's: the hover wash, the controller's mark and the footer's
+-- help come with it); a disabled one is the whole button at the disabled look, and inert
+local _btnOpts = {}
 local function button(panel, win, id, x, y, text, fn, variant, opts)
     local T = ZeD.T
     opts = opts or {}
     local bw = opts.w or (tw(T.fontF3, ZeD.btnCase(text)) + T.sp.md * 2)
     local bh = T.buttonH
-    local ac = T.accent
-    local r = { x = x, y = y, w = bw, h = bh }
-    local colors
-    if opts.disabled then
-        colors = { text = T.textDim }
-        variant = "default"
-    elseif J._fid == "jr:" .. id then
-        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.textOnFocus }
-    elseif inRect(r, panel:getMouseX(), panel:getMouseY()) then
-        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } }
-    end
-    ZeD.Molecules.drawButton(panel, x, y, bw, bh, text, variant or "default", false, colors)
+    local o = _btnOpts
+    o.hover = hoverRect(panel, win, x, y, bw, bh)
+    o.disabled = opts.disabled and true or false
+    o.focus = focusOf(win, "jr:" .. id)
+    o.win = win
+    o.help = opts.help
+    ZeD.Molecules.drawButton(panel, x, y, bw, bh, text, variant or "default", false, nil, o)
     zone(win, { id = id, x = x, y = y, w = bw, h = bh, fn = (not opts.disabled) and fn or nil, cancel = opts.cancel })
     return bw
+end
+
+-- the back key: an icon button with a left triangle, the same on every card and drawer
+local function backButton(panel, win, id, x, y, fn)
+    local T = ZeD.T
+    local sz = T.buttonH
+    local o = _btnOpts
+    o.hover = hoverRect(panel, win, x, y, sz, sz)
+    o.disabled = false
+    o.focus = focusOf(win, "jr:" .. id)
+    o.win = win
+    o.help = ZeD.tr("UI_ZeD_Papers_HelpBack")
+    ZeD.Molecules.drawBackButton(panel, x, y, sz, o)
+    zone(win, { id = id, x = x, y = y, w = sz, h = sz, fn = fn, cancel = fn })
+    return sz
 end
 
 -- ---------------------------------------------------------------------------
@@ -259,6 +304,7 @@ end
 
 local function renderPaperList(panel, win, x, y, w, h, carried)
     local T = ZeD.T
+    local A = ZeD.Atoms
     local pad = ZeD.Molecules.getTabPad()
     local f1, f2, f3 = T.fontF1, T.fontF2, T.fontF3
     local s = st(win)
@@ -277,57 +323,68 @@ local function renderPaperList(panel, win, x, y, w, h, carried)
         local dc = T.textDim
         panel:drawText(count, lx, cy, dc.r, dc.g, dc.b, dc.a or 1, f3)
         cy = cy + fh(f3) + T.sp.sm
-        -- the filters
-        local ph = fh(f1) + T.px(8)
+        -- the filters: one of four, System 7 radio buttons (the chosen one's dot in accent)
+        local rs = A.radioSize()
+        local ph = math.max(rs, fh(f2)) + T.px(8)
         local fx = lx
+        local hv = T.hover
         for _, f in ipairs(FILTERS) do
-            local flabel = ZeD.tr(f.key)
-            local pw = tw(f1, ZeD.btnCase(flabel)) + T.sp.sm * 2
-            -- (the chosen one in accent; the others plain, so the choice reads at a glance)
-            ZeD.Atoms.drawPillButton(panel, fx, cy, pw, ph, flabel, s.filter == f.id, false, f1)
+            local flabel = ZeD.textCase(ZeD.tr(f.key))
+            local pw = T.px(8) + rs + T.px(8) + tw(f2, flabel) + T.px(8)
             local zid = "filter:" .. f.id
-            if J._fid == "jr:" .. zid then
-                local ac = T.accent
-                panel:drawRect(fx, cy, pw, ph, 0.55, ac.r, ac.g, ac.b)
+            local hover = hoverRect(panel, win, fx, cy, pw, ph)
+            if hover then
+                panel:drawRect(fx, cy, pw, ph, hv.a, hv.r, hv.g, hv.b)
+                help(win, ZeD.tr("UI_ZeD_Papers_HelpFilter", flabel))
             end
+            local swapped = markFocus(panel, win, "jr:" .. zid, fx, cy, pw, ph)
+            A.drawRadio(panel, fx + T.px(8), cy + math.floor((ph - rs) / 2), s.filter == f.id, { hover = hover })
+            local tc = swapped and T.textOnFocus or T.text
+            panel:drawText(flabel, fx + T.px(8) + rs + T.px(8), cy + math.floor((ph - fh(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
             zone(win, { id = zid, x = fx, y = cy, w = pw, h = ph, fn = function() s.filter = f.id; s.scroll:setScrollPos(0) end })
             fx = fx + pw + T.sp.xs
         end
         cy = cy + ph + T.sp.sm
-        ZeD.Atoms.drawDividerH(panel, x, cy, dw)
+        A.drawDividerH(panel, x, cy, dw)
         cy = cy + T.px(1)
         local list = filtered(win, carried.papers)
         if #list == 0 then
             local msg = (#carried.papers == 0) and ZeD.tr("UI_ZeD_Papers_NoneCarried") or ZeD.tr("UI_ZeD_Papers_NoneMatch")
-            ZeD.Atoms.drawSecondary(panel, msg, lx, cy + T.sp.md, T.textDim)
-            return cy + T.sp.md + fh(f1)
+            cy = cy + T.px(8)
+            return cy + ZeD.Molecules.drawEmptyLine(panel, lx, cy, lw, msg)
         end
         local thW, thH = T.px(36), T.px(48)
         local rowH = thH + T.px(12)
-        local mx, my = panel:getMouseX(), panel:getMouseY()
-        local ac = T.accent
         for _, e in ipairs(list) do
             local zid = "paper:" .. e.id
             local r = { x = x, y = cy, w = dw, h = rowH }
-            if J._fid == "jr:" .. zid then panel:drawRect(r.x, r.y, r.w, r.h, 0.55, ac.r, ac.g, ac.b)
-            elseif inRect(r, mx, my) and inRect(s.clip, mx, my) then panel:drawRect(r.x, r.y, r.w, r.h, 0.22, ac.r, ac.g, ac.b) end
+            -- the hover wash, then the controller's mark: both under the words
+            local hover = hoverRect(panel, win, r.x, r.y, r.w, r.h)
+            if hover then
+                panel:drawRect(r.x, r.y, r.w, r.h, hv.a, hv.r, hv.g, hv.b)
+                help(win, ZeD.tr("UI_ZeD_Papers_HelpOpen", e.title))
+            end
+            local swapped = markFocus(panel, win, "jr:" .. zid, r.x, r.y, r.w, r.h)
             -- unread: listed, dim
-            local a = e.read and 1 or 0.45
+            local a = e.read and 1 or T.disabledAlpha
             thumb(panel, e, lx, cy + T.px(6), thW, thH, a)
-            -- the read state, right: a dot and plain words
+            -- the read state, right: a square and plain words (full when read, hollow when not)
             local state = e.read and ZeD.tr("UI_ZeD_Papers_StateRead") or ZeD.tr("UI_ZeD_Papers_StateUnread")
             local sw = tw(f3, state)
             local dsz = T.px(6)
             local sx = lx + lw - sw
-            local tc = T.text
+            local tc = swapped and T.textOnFocus or T.text
             panel:drawText(state, sx, cy + T.px(8), tc.r, tc.g, tc.b, a, f3)
-            ZeD.Atoms.drawStatusDot(panel, sx - dsz - T.px(5), cy + T.px(8) + math.floor((fh(f3) - dsz) / 2), e.read and T.positive or T.textDim, dsz)
+            local my = cy + T.px(8) + math.floor((fh(f3) - dsz) / 2)
+            if e.read then A.drawStatusDot(panel, sx - dsz - T.px(5), my, T.positive, dsz)
+            else A.drawStatusHollow(panel, sx - dsz - T.px(5), my, T.textDim, dsz) end
             local nx = lx + thW + T.sp.md
             local nw = sx - dsz - T.px(12) - nx
-            local hi = T.toneHi
+            local hi = swapped and T.textOnFocus or T.toneHi
             panel:drawText(trunc(e.title, f2, nw), nx, cy + T.px(6), hi.r, hi.g, hi.b, (hi.a or 1) * a, f2)
-            panel:drawText(trunc(subLine(e), f3, lw - thW - T.sp.md), nx, cy + T.px(8) + fh(f2), dc.r, dc.g, dc.b, (dc.a or 1) * a, f3)
-            ZeD.Atoms.drawDividerH(panel, x, cy + rowH - T.px(1), dw)
+            local sc = swapped and T.textOnFocus or dc
+            panel:drawText(trunc(subLine(e), f3, lw - thW - T.sp.md), nx, cy + T.px(8) + fh(f2), sc.r, sc.g, sc.b, (sc.a or 1) * a, f3)
+            A.drawDividerH(panel, x, cy + rowH - T.px(1), dw)
             zone(win, { id = zid, x = r.x, y = r.y, w = r.w, h = r.h, fn = function() openPaper(win, e.id) end })
             cy = cy + rowH
         end
@@ -345,13 +402,10 @@ local function readPiece(win, e)
     ISInventoryPaneContextMenu.onLiteratureItems({ e.item }, pn)
 end
 
+-- a section head (20u, sentence case, its content line under it), not folding; returns the y under it
 local function section(panel, label, x, y, w)
     local T = ZeD.T
-    local la = T.accent
-    panel:drawText(label, x, y, la.r, la.g, la.b, la.a or 1, T.fontF1)
-    local hh = fh(T.fontF1) + T.px(3)
-    local bs = T.borderS
-    panel:drawRect(x, y + hh, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
+    local hh = ZeD.Molecules.drawSectionHeader(panel, x, y, w, label, nil, true, false, nil, nil, nil, nil, true)
     return y + hh + T.px(6)
 end
 
@@ -410,7 +464,7 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
         local cy = top + T.sp.sm
         local lx, lw = x + pad, dw - pad * 2
         -- the bar: Back, the name, Open full (a piece read already)
-        local bw = button(panel, win, "back", lx, cy, getText("UI_btn_back"), back, "default", { cancel = back })
+        local bw = backButton(panel, win, "back", lx, cy, back)
         local ofw = 0
         if e.read then
             local label = ZeD.tr("UI_ZeD_Papers_OpenFull")
@@ -433,12 +487,12 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
         local rx = lx + thW + T.sp.md
         local rw = lx + lw - rx
         local ry = section(panel, ZeD.tr("UI_ZeD_Reader_HeadPiece"), rx, cy, rw)
-        local ac, tc = T.accent, T.text
+        local ac, tc = T.textDim, T.text
         local function kv(k, v, dot)
-            panel:drawText(k, rx, ry + T.px(2), ac.r, ac.g, ac.b, ac.a or 1, f1)
+            panel:drawText(ZeD.textCase(k), rx, ry + T.px(2), ac.r, ac.g, ac.b, ac.a or 1, f1)
             local vx = rx + T.px(52)
             if dot then
-                local dsz = T.px(7)
+                local dsz = T.px(6)
                 ZeD.Atoms.drawStatusDot(panel, vx, ry + math.floor((fh(f2) - dsz) / 2), dot, dsz)
                 vx = vx + dsz + T.px(6)
             end
@@ -452,12 +506,12 @@ local function renderPaperLook(panel, win, x, y, w, h, e)
         if not e.read then
             -- reading is vanilla's action: light, time, then the words and the places
             local dark = p:tooDarkToRead()
-            button(panel, win, "read", rx, ry, getText("ContextMenu_Read"), function() readPiece(win, e) end, "primary", { disabled = dark, cancel = back })
+            button(panel, win, "read", rx, ry, getText("ContextMenu_Read"), function() readPiece(win, e) end, "primary",
+                { disabled = dark, cancel = back, help = ZeD.tr("UI_ZeD_Papers_HelpRead") })
             ry = ry + T.buttonH + T.px(4)
             if dark then
-                local dc = T.textDim
-                panel:drawText(ZeD.tr("UI_ZeD_Papers_TooDark"), rx, ry, dc.r, dc.g, dc.b, dc.a or 1, f3)
-                ry = ry + fh(f3)
+                -- why it is greyed: one NEEDS line
+                ry = ry + ZeD.Molecules.drawNeedsLine(panel, rx, ry, rw, ZeD.tr("UI_ZeD_Papers_TooDark")) + T.px(2)
             end
         elseif e.places > 0 then
             ry = section(panel, ZeD.tr("UI_ZeD_Reader_HeadPlaces"), rx, ry + T.sp.sm, rw)
@@ -627,8 +681,8 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         local lx, lw = x + pad, dw - pad * 2
         if #list == 0 then
             local msg = (#carried.books == 0) and ZeD.tr("UI_ZeD_Notebook_NoneCarried") or ZeD.tr("UI_ZeD_Notebook_NoneMatch")
-            ZeD.Atoms.drawSecondary(panel, msg, lx, cy + T.sp.md, T.textDim)
-            return cy + T.sp.md + fh(f1)
+            cy = cy + T.px(8)
+            return cy + ZeD.Molecules.drawEmptyLine(panel, lx, cy, lw, msg)
         end
         -- the books: side by side with the page when the drawer is wide, above it when not
         local split = dw >= T.px(560)
@@ -636,15 +690,22 @@ function J.renderNotebooks(panel, win, x, y, w, h)
         local rowH = fh(f2) + fh(f3) + T.px(14)
         local ly = cy
         local ac, hi, dc = T.accent, T.toneHi, T.textDim
-        local mx, my = panel:getMouseX(), panel:getMouseY()
         for _, nb in ipairs(list) do
             local zid = "book:" .. nb:getID()
             local r = { x = x, y = ly, w = listW, h = rowH }
-            if J._fid == "jr:" .. zid then panel:drawRect(r.x, r.y, r.w, r.h, 0.55, ac.r, ac.g, ac.b)
-            elseif nb == b then panel:drawRect(r.x, r.y, r.w, r.h, 0.22, ac.r, ac.g, ac.b)
-            elseif inRect(r, mx, my) and inRect(s.clip, mx, my) then panel:drawRect(r.x, r.y, r.w, r.h, 0.12, ac.r, ac.g, ac.b) end
-            panel:drawText(trunc(nb:getName(), f2, listW - pad * 2), x + pad, ly + T.px(6), hi.r, hi.g, hi.b, hi.a or 1, f2)
-            panel:drawText(trunc(bookSub(p, nb), f3, listW - pad * 2), x + pad, ly + T.px(8) + fh(f2), dc.r, dc.g, dc.b, dc.a or 1, f3)
+            -- the picked book: the one accent wash; the hover wash over it; the controller's mark
+            if nb == b then panel:drawRect(r.x, r.y, r.w, r.h, T.selectionA or 0.30, ac.r, ac.g, ac.b) end
+            local hover = hoverRect(panel, win, r.x, r.y, r.w, r.h)
+            if hover then
+                local hv = T.hover
+                panel:drawRect(r.x, r.y, r.w, r.h, hv.a, hv.r, hv.g, hv.b)
+                help(win, ZeD.tr("UI_ZeD_Notebook_HelpPick", nb:getName()))
+            end
+            local swapped = markFocus(panel, win, "jr:" .. zid, r.x, r.y, r.w, r.h)
+            local nc = swapped and T.textOnFocus or hi
+            local sc = swapped and T.textOnFocus or dc
+            panel:drawText(trunc(nb:getName(), f2, listW - pad * 2), x + pad, ly + T.px(6), nc.r, nc.g, nc.b, nc.a or 1, f2)
+            panel:drawText(trunc(bookSub(p, nb), f3, listW - pad * 2), x + pad, ly + T.px(8) + fh(f2), sc.r, sc.g, sc.b, sc.a or 1, f3)
             ZeD.Atoms.drawDividerH(panel, x, ly + rowH - T.px(1), listW)
             local id = nb:getID()
             zone(win, { id = zid, x = r.x, y = r.y, w = r.w, h = r.h, fn = function()
@@ -744,7 +805,8 @@ local function logBook(win)
     return nil
 end
 
--- the picker, a cycle pill left of Save; returns its width
+-- the picker, a push button left of Save (it cycles the log only, then each carried
+-- notebook); returns its width
 function J.drawLogInto(panel, win, x, y, maxW, h)
     local T = ZeD.T
     J._fid = J._fid or focusedId(win)
@@ -753,9 +815,15 @@ function J.drawLogInto(panel, win, x, y, maxW, h)
     if #books == 0 then s.logInto = nil; return 0 end
     local b = logBook(win)
     local label = ZeD.tr("UI_ZeD_Notebook_Into", b and b:getName() or ZeD.tr("UI_ZeD_Notebook_LogOnly"))
-    local f1 = T.fontF1
-    local pw = math.min(maxW, tw(f1, label) + T.sp.sm * 2)
-    ZeD.Atoms.drawPillButton(panel, x, y, pw, h, trunc(label, f1, pw - T.sp.sm * 2), b ~= nil, true, f1)
+    local f3 = T.fontF3
+    local pw = math.min(maxW, ZeD.Molecules.buttonW(label))
+    local o = _btnOpts
+    o.hover = ZeD.Atoms.mouseIn(panel, x, y, pw, h)
+    o.disabled = false
+    o.focus = focusOf(win, "jr:into")
+    o.win = win
+    o.help = ZeD.tr("UI_ZeD_Notebook_HelpInto")
+    ZeD.Molecules.drawButton(panel, x, y, pw, h, trunc(label, f3, pw - T.sp.md * 2), b ~= nil and "primary" or "default", false, nil, o)
     zone(win, { id = "into", x = x, y = y, w = pw, h = h, fn = function()
         -- the log only, then each carried notebook in turn
         local nextId = nil
@@ -826,6 +894,9 @@ end
 -- INPUT (routed by the Character window's drawer)
 -- ---------------------------------------------------------------------------
 function J.onClick(win, x, y)
+    -- the Journal's delete question (a band at the foot of the log) takes its own buttons
+    local JT = ZeD.JournalTab
+    if JT and JT.onAskClick and JT.onAskClick(win, x, y) then return true end
     local zs = win._jrZones
     if not zs then return false end
     local s = st(win)

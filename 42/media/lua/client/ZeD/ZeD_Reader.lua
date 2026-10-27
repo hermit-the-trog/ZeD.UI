@@ -18,7 +18,12 @@
 --
 -- Controller: LB / RB Paper and Words; the D-pad moves the paper (or scrolls
 -- the words); Y / X zoom in and out; A shows the first place on the map; B
--- closes. Escape closes.
+-- closes. Escape closes. The window's help line names them.
+--
+-- At the foot: a band (Back, Paper | Words as radio buttons, the zoom as two
+-- push buttons around a readout; the notebook's Back, Erase page, Lock, the
+-- pager and Done) and the window's help line under it. Erasing a page asks as
+-- a band of its own (Cancel and Erase).
 -- ============================================================================
 
 require "ZeD/Tokens"
@@ -34,13 +39,15 @@ local P = ZeD.Print
 R.windows = R.windows or {}
 
 -- design units (1 px at 1080p; T.px scales them)
-local U = { W = 1180, H = 980, PAD = 10, SIDE = 270, STRIP_H = 40, BTN_H = 24, BTN_PAD = 10, GAP = 8,
-            PAGE_W = 700, PAGE_PAD = 40, ROW_PAD = 8, SEG_PAD = 12 }
+local U = { W = 1180, H = 980, PAD = 10, SIDE = 270, GAP = 8, EDGE = 8, HEAD_H = 20,
+            PAGE_W = 700, PAGE_PAD = 40, ROW_PAD = 8 }
 local ZOOMS = { 1, 1.25, 1.5, 2, 2.5, 3 }
 -- the page's paper and ink (a printed page reads the same on every theme)
 local PAPER = { r = 0.91, g = 0.886, b = 0.824 }
 local INK   = { r = 0.141, g = 0.133, b = 0.118 }
 local INK_DIM = { r = 0.424, g = 0.404, b = 0.361 }
+-- the dark table the paper lies on (the same on every theme, like the paper itself)
+local TABLE = { r = 0.035, g = 0.043, b = 0.039 }
 
 local function fh(font) return ZeD.TM:getFontHeight(font) end
 local function tw(font, s) return ZeD.TM:MeasureStringX(font, s) end
@@ -53,7 +60,6 @@ ZeD_Reader = ZeD_Window:derive("ZeD_Reader")
 function ZeD_Reader:new(character)
     local o = ZeD_Window.new(self, 0, 0, 100, 100, "")
     o.resizable = false
-    o.themeFooter = false
     o.pin = true
     o.character = character
     o.playerNum = character:getPlayerNum()
@@ -130,7 +136,7 @@ function ZeD_Reader:place()
     local sx, sy = getPlayerScreenLeft(self.playerNum), getPlayerScreenTop(self.playerNum)
     local sw, sh = getPlayerScreenWidth(self.playerNum), getPlayerScreenHeight(self.playerNum)
     local w = math.min(T.px(U.W), sw - T.px(60))
-    local h = math.min(T.px(U.H), sh - T.px(40))
+    local h = math.min(T.px(U.H) + self:footerHeight(), sh - T.px(40))
     if self.width ~= w or self.height ~= h then
         self:setWidth(w); self:setHeight(h)
         self:setX(sx + math.floor((sw - w) / 2)); self:setY(sy + math.floor((sh - h) / 2))
@@ -141,8 +147,8 @@ function ZeD_Reader:layout()
     local T = ZeD.T
     local pad = T.px(U.PAD)
     local top = self:titleBarHeight() + pad
-    local stripH = T.px(U.STRIP_H)
-    local stripY = self.height - stripH
+    local stripH = ZeD.Molecules.bandH()   -- the band, above the window's help line
+    local stripY = self.height - self:footerHeight() - stripH
     local side = T.px(U.SIDE)
     local g = {}
     g.strip = { x = 0, y = stripY, w = self.width, h = stripH }
@@ -169,12 +175,12 @@ function ZeD_Reader:prerender()
     local g = self:layout()
     ZeD_Window.prerender(self)
     self.minimumWidth, self.minimumHeight = 0, 0
-    local bs = T.borderS
+    local u = T.hair
     -- the canvas
     local c = g.canvas
-    self:drawRect(c.x, c.y, c.w, c.h, 1, 0.035, 0.043, 0.039)
-    self:drawRectBorder(c.x, c.y, c.w, c.h, bs.a, bs.r, bs.g, bs.b)
-    self:setStencilRect(c.x + 1, c.y + 1, c.w - 2, c.h - 2)
+    self:drawRect(c.x, c.y, c.w, c.h, 1, TABLE.r, TABLE.g, TABLE.b)
+    ZeD.Atoms.frame(self, c.x, c.y, c.w, c.h, T.borderS)
+    self:setStencilRect(c.x + u, c.y + u, c.w - 2 * u, c.h - 2 * u)
     if self.view == "paper" and self.page then self:drawPaper(c) else self:drawWords(c) end
     self:clearStencilRect()
     self:drawSide(g.side)
@@ -183,7 +189,8 @@ end
 
 function ZeD_Reader:paperScale(c)
     local pg = self.page
-    local fit = math.min((c.w - 2) / pg.w, (c.h - 2) / pg.h)
+    local u2 = 2 * ZeD.T.hair
+    local fit = math.min((c.w - u2) / pg.w, (c.h - u2) / pg.h)
     return fit * ZOOMS[self.zoomIx]
 end
 
@@ -255,7 +262,7 @@ function ZeD_Reader:drawWords(c)
                     if drawIt then
                         self:drawText(l, px + pad, y, INK.r, INK.g, INK.b, 1, f2)
                         -- the dateline in bold: drawn again a pixel over
-                        if first and b.dateline then self:drawText(b.dateline, px + pad + 1, y, INK.r, INK.g, INK.b, 1, f2) end
+                        if first and b.dateline then self:drawText(b.dateline, px + pad + T.hair, y, INK.r, INK.g, INK.b, 1, f2) end
                     end
                     first = false
                     y = y + fh(f2) + T.px(3)
@@ -275,22 +282,26 @@ function ZeD_Reader:drawWords(c)
     -- the scroll bar (the page scrolls as one)
     if total > view then
         local sb = T.sp.scrollbarW
-        local sx = c.x + c.w - sb - 1
-        ZeD.Atoms.drawScrollTrack(self, sx, c.y + 1, sb, c.h - 2)
-        local th = math.max(T.px(24), math.floor((c.h - 2) * view / total))
-        local ty = c.y + 1 + math.floor((c.h - 2 - th) * self.wscroll / (total - view))
+        local u, u2 = T.hair, 2 * T.hair
+        local sx = c.x + c.w - sb - u
+        ZeD.Atoms.drawScrollTrack(self, sx, c.y + u, sb, c.h - u2)
+        local th = math.max(T.px(24), math.floor((c.h - u2) * view / total))
+        local ty = c.y + u + math.floor((c.h - u2 - th) * self.wscroll / (total - view))
         ZeD.Atoms.drawScrollThumb(self, sx, ty, sb, th, "default")
     end
     self._hits[#self._hits + 1] = { id = "canvas", x = c.x, y = c.y, w = c.w, h = c.h }
 end
 
--- a section label with its rule
-local function section(self, label, x, y, w)
+local _btnOpts = {}   -- (the push buttons' options, reused)
+
+-- a section head of a column (the side column, the notebook's rail): the library's strip
+-- (surface 2, F1, a content line under it) across the column, its words 12u in. Returns the
+-- y below it.
+local function section(self, label, area, y)
     local T = ZeD.T
-    local la = T.accent
-    self:drawText(label, x, y, la.r, la.g, la.b, la.a or 1, T.fontF1)
-    local h = fh(T.fontF1) + T.px(3)
-    self:drawRect(x, y + h, w, T.px(1), T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+    local pad = T.px(12)
+    local h = T.px(U.HEAD_H)
+    ZeD.Molecules.drawSectionHeader(self, area.x + pad, y, area.w - pad, label, nil, true, false, nil, nil, pad, h, true)
     return y + h + T.px(6)
 end
 
@@ -302,120 +313,209 @@ function ZeD_Reader:isRead()
     return ok and r or false
 end
 
+-- a press target for the frame's hits, with the words the help line shows while the pointer is on it
+local function hit(self, id, x, y, w, h, fn, help)
+    self._hits[#self._hits + 1] = { id = id, x = x, y = y, w = w, h = h, fn = fn, help = help }
+end
+
 function ZeD_Reader:drawSide(s)
     local T = ZeD.T
-    local bs, s1 = T.borderS, T.surf1
-    self:drawRect(s.x, s.y, s.w, s.h, 1, s1.r, s1.g, s1.b)
-    self:drawRectBorder(s.x, s.y, s.w, s.h, bs.a, bs.r, bs.g, bs.b)
+    local A, Mo = ZeD.Atoms, ZeD.Molecules
     local pad = T.px(12)
     local x, w = s.x + pad, s.w - pad * 2
-    local y = s.y + pad
-    local f1, f2 = T.fontF1, T.fontF2
-    local tc, ac = T.text, T.accent
-    -- THIS PIECE
-    y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPiece"), x, y, w)
-    local function kv(k, v, dot)
-        self:drawText(k, x, y + 2, ac.r, ac.g, ac.b, ac.a or 1, f1)
+    local y = s.y
+    local f2 = T.fontF2
+    local tc, td = T.text, T.textDim
+    local hv, ac = T.hover, T.accent
+    local u = T.hair
+    -- This piece
+    y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPiece"), s, y)
+    local function kv(k, v, mark)
+        self:drawText(ZeD.textCase(k), x, y + T.px(2), td.r, td.g, td.b, td.a or 1, T.fontF1)
         local vx = x + T.px(64)
-        if dot then
-            local dsz = T.px(7)
-            ZeD.Atoms.drawStatusDot(self, vx, y + math.floor((fh(f2) - dsz) / 2), dot, dsz)
+        if mark then
+            local dsz = T.px(6)
+            local dy = y + math.floor((fh(f2) - dsz) / 2)
+            if mark.hollow then A.drawStatusHollow(self, vx, dy, mark.color, dsz) else A.drawStatusDot(self, vx, dy, mark.color, dsz) end
             vx = vx + dsz + T.px(6)
         end
-        self:drawText(ZeD.Atoms.truncateText(v, f2, x + w - vx), vx, y, tc.r, tc.g, tc.b, tc.a or 1, f2)
+        self:drawText(A.truncateText(v, f2, x + w - vx), vx, y, tc.r, tc.g, tc.b, tc.a or 1, f2)
         y = y + fh(f2) + T.px(5)
     end
     kv(ZeD.tr("UI_ZeD_Reader_LabelKind"), P.kindName(P.kind(self.item)))
     local date = P.title(self.media):match(" %- (.+)$")
     if date then kv(ZeD.tr("UI_ZeD_Reader_LabelDate"), date) end
     local read = self:isRead()
-    kv(ZeD.tr("UI_ZeD_Reader_LabelRead"), read and getText("UI_Yes") or ZeD.tr("UI_ZeD_Reader_NotYet"), read and T.positive or T.textDim)
+    kv(ZeD.tr("UI_ZeD_Reader_LabelRead"), read and getText("UI_Yes") or ZeD.tr("UI_ZeD_Reader_NotYet"),
+        read and { color = T.positive } or { color = td, hollow = true })
     y = y + T.px(10)
-    -- ON THIS PAGE: its stories (a press jumps to it in Words)
+    -- On this page: its stories (a press jumps to it in Words)
     local heads = P.headlines(self.page)
     if #heads > 0 then
-        y = section(self, ZeD.tr("UI_ZeD_Reader_HeadStories"), x, y, w)
+        y = section(self, ZeD.tr("UI_ZeD_Reader_HeadStories"), s, y)
         for i, h in ipairs(heads) do
-            local lines = ZeD.Atoms.wrapText(h, f2, w - T.px(12))
+            local lines = A.wrapText(h, f2, w - T.px(12))
             local rh = #lines * (fh(f2) + T.px(2)) + T.px(U.ROW_PAD) * 2
             if y + rh > s.y + s.h - pad then break end
             local id = "story:" .. i
             local on = (self.view == "words" and self.storyIx == i)
             local hot = self._hot == id
-            if on then self:drawRect(x - T.px(4), y, w + 2 * T.px(4), rh, 0.22, ac.r, ac.g, ac.b)
-            elseif hot then self:drawRect(x - T.px(4), y, w + 2 * T.px(4), rh, 0.12, ac.r, ac.g, ac.b) end
+            -- the row runs across the column between its frame lines
+            if on then self:drawRect(s.x, y, s.w, rh, T.selectionA, ac.r, ac.g, ac.b)
+            elseif hot then self:drawRect(s.x, y, s.w, rh, hv.a or 1, hv.r, hv.g, hv.b) end
             local ly = y + T.px(U.ROW_PAD)
             for _, l in ipairs(lines) do self:drawText(l, x + T.px(2), ly, tc.r, tc.g, tc.b, tc.a or 1, f2); ly = ly + fh(f2) + T.px(2) end
-            self:drawRect(x - T.px(4), y + rh - 1, w + 2 * T.px(4), 1, T.border.a, T.border.r, T.border.g, T.border.b)
-            self._hits[#self._hits + 1] = { id = id, x = x - T.px(4), y = y, w = w + T.px(8), h = rh, fn = function() self:jumpTo(i) end }
+            self:drawRect(s.x, y + rh - u, s.w, u, T.border.a, T.border.r, T.border.g, T.border.b)
+            hit(self, id, s.x, y, s.w, rh, function() self:jumpTo(i) end, ZeD.tr("UI_ZeD_Reader_HelpStory"))
             y = y + rh
         end
         y = y + T.px(12)
     end
-    -- PLACES: vanilla's Show on map
+    -- Places: vanilla's Show on map
     if #self.places > 0 then
-        y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPlaces"), x, y, w)
+        y = section(self, ZeD.tr("UI_ZeD_Reader_HeadPlaces"), s, y)
         for i, loc in ipairs(self.places) do
             local label = (#self.places == 1) and P.title(self.media) or ZeD.tr("UI_ZeD_Reader_PlaceN", i)
-            local bh = T.px(U.BTN_H)
+            local bh = T.buttonH
             local boxH = fh(f2) + T.px(8) + bh + T.px(16)
             if y + boxH > s.y + s.h - pad then break end
-            self:drawRect(x, y, w, boxH, 1, T.base.r, T.base.g, T.base.b)
-            self:drawRectBorder(x, y, w, boxH, bs.a, bs.r, bs.g, bs.b)
-            self:drawText(ZeD.Atoms.truncateText(label, f2, w - T.px(16)), x + T.px(8), y + T.px(8), tc.r, tc.g, tc.b, tc.a or 1, f2)
+            A.frame(self, x, y, w, boxH, T.border)
+            self:drawText(A.truncateText(label, f2, w - T.px(16)), x + T.px(8), y + T.px(8), tc.r, tc.g, tc.b, tc.a or 1, f2)
             local text = ZeD.tr("UI_ZeD_Reader_ShowOnMap")
-            local bw = tw(T.fontF3, text) + T.px(U.BTN_PAD) * 2
+            local bw = Mo.buttonW(text)
             local b = { x = x + T.px(8), y = y + T.px(8) + fh(f2) + T.px(6), w = bw, h = bh }
             local id = "place:" .. i
-            ZeD.Molecules.drawButton(self, b.x, b.y, b.w, b.h, text, "primary", self._down == id,
-                (self._hot == id) and { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 }, keepCase = true } or { keepCase = true })
-            self._hits[#self._hits + 1] = { id = id, x = b.x, y = b.y, w = b.w, h = b.h, fn = function() self:showPlace(i) end }
+            local o = _btnOpts
+            o.hover, o.disabled, o.focus, o.win = self._hot == id, false, nil, self
+            o.help = ZeD.tr("UI_ZeD_Reader_HelpPlace")
+            Mo.drawButton(self, b.x, b.y, b.w, b.h, text, "primary", self._down == id, nil, o)
+            hit(self, id, b.x, b.y, b.w, b.h, function() self:showPlace(i) end, o.help)
             y = y + boxH + T.px(8)
         end
     end
+    -- the column's frame, last
+    A.frame(self, s.x, s.y, s.w, s.h, T.borderS)
 end
 
--- the strip: Back, Paper | Words, and the zoom on Paper
+-- a radio button with its words, one of a few (Paper | Words): the pair lies in the band
+local function radio(self, id, label, on, fn, x, st, help)
+    local T = ZeD.T
+    local A = ZeD.Atoms
+    local bh = T.buttonH
+    local by = st.y + T.px(5)
+    local rs = A.radioSize()
+    local lw = tw(T.fontF3, label)
+    local w = T.px(4) + rs + T.px(6) + lw + T.px(8)
+    local hot = self._hot == id
+    if hot then local hv = T.hover; self:drawRect(x, by, w, bh, hv.a or 1, hv.r, hv.g, hv.b) end
+    A.drawRadio(self, x + T.px(4), by + math.floor((bh - rs) / 2), on, { hover = hot })
+    local tc = T.text
+    self:drawText(label, x + T.px(4) + rs + T.px(6), by + math.floor((bh - fh(T.fontF3)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF3)
+    hit(self, id, x, by, w, bh, fn, help)
+    return w
+end
+
+-- the band's controls, for either mode: a push button, an icon button
+local function push(self, id, text, fn, variant, x, st, help, w)
+    local T = ZeD.T
+    local Mo = ZeD.Molecules
+    local bh = T.buttonH
+    local by = st.y + T.px(5)
+    local bw = w or Mo.buttonW(text)
+    local o = _btnOpts
+    o.hover, o.disabled, o.focus, o.win, o.help = self._hot == id, false, nil, self, help
+    Mo.drawButton(self, x, by, bw, bh, text, variant or "default", self._down == id, nil, o)
+    hit(self, id, x, by, bw, bh, fn, help)
+    return bw
+end
+
+local _icoOpts = {}
+local function iconBtn(self, id, glyph, fn, x, st, hint, help, disabled)
+    local T = ZeD.T
+    local bh = T.buttonH
+    local by = st.y + T.px(5)
+    local o = _icoOpts
+    o.hover, o.disabled, o.win, o.hint, o.help, o.id = self._hot == id, disabled, self, hint, help, id
+    o.pressed = self._down == id
+    if glyph == "back" then ZeD.Molecules.drawBackButton(self, x, by, bh, o)
+    else ZeD.Molecules.drawIconButton(self, x, by, bh, glyph, o) end
+    hit(self, id, x, by, bh, bh, fn, help)
+    return bh
+end
+
+-- the strip's triangles: the pager's previous and next
+local function triGlyph(left)
+    return function(p, x, y, sz, c)
+        local t = math.max(ZeD.T.px(6), math.floor(sz * 0.6))
+        local f = left and ZeD.Atoms.drawTriangleLeft or ZeD.Atoms.drawTriangleRight
+        f(p, x + math.floor((sz - t) / 2), y + math.floor((sz - t) / 2), t, c)
+    end
+end
+local GLYPH_PREV, GLYPH_NEXT = triGlyph(true), triGlyph(false)
+
+-- the band: Back, Paper | Words, and the zoom on Paper
+local _bandSpec = { buttons = {} }
 function ZeD_Reader:drawStrip(st)
     local T = ZeD.T
-    local s2 = T.surf2
-    self:drawRect(1, st.y, st.w - 2, st.h, s2.a or 1, s2.r, s2.g, s2.b)
-    ZeD.Atoms.drawDividerH(self, 1, st.y, st.w - 2, false)
-    local bh = T.px(U.BTN_H)
-    local by = st.y + math.floor((st.h - bh) / 2)
-    local x = T.px(U.PAD)
-    local ac = T.accent
-    local function btn(id, text, fn, variant, on)
-        local bw = tw(T.fontF3, ZeD.btnCase(text)) + T.px(U.BTN_PAD) * 2
-        local colors = nil
-        if on then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } }
-        elseif self._hot == id then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } } end
-        ZeD.Molecules.drawButton(self, x, by, bw, bh, text, variant or "default", self._down == id, colors)
-        self._hits[#self._hits + 1] = { id = id, x = x, y = by, w = bw, h = bh, fn = fn }
-        x = x + bw + T.px(U.GAP)
-        return bw
-    end
-    btn("back", getText("UI_btn_back"), function() self:close() end)
-    x = x + T.px(6)
+    local Mo = ZeD.Molecules
+    _bandSpec.win = self
+    Mo.drawBand(self, 0, st.y, st.w, _bandSpec)   -- (the fill and its line; the controls are the Reader's own)
+    local bh = T.buttonH
+    local by = st.y + T.px(5)
+    local gap = T.px(U.GAP)
+    local x = T.px(U.EDGE)
+    x = x + iconBtn(self, "back", "back", function() self:close() end, x, st, nil, ZeD.tr("UI_ZeD_Reader_HelpBack")) + gap
     if self.page then
-        btn("view:paper", ZeD.tr("UI_ZeD_Reader_ViewPaper"), function() self:setView("paper") end, "default", self.view == "paper")
-        x = x - T.px(U.GAP) + 1
-        btn("view:words", ZeD.tr("UI_ZeD_Reader_ViewWords"), function() self:setView("words") end, "default", self.view == "words")
+        x = x + radio(self, "view:paper", ZeD.tr("UI_ZeD_Reader_ViewPaper"), self.view == "paper", function() self:setView("paper") end, x, st, ZeD.tr("UI_ZeD_Reader_HelpPaper"))
+        x = x + radio(self, "view:words", ZeD.tr("UI_ZeD_Reader_ViewWords"), self.view == "words", function() self:setView("words") end, x, st, ZeD.tr("UI_ZeD_Reader_HelpWords"))
     end
     if self.view == "paper" and self.page then
-        -- the zoom, at the right
+        -- the zoom, at the right: two push buttons around a readout
         local f3 = T.fontF3
         local pct = math.floor(ZOOMS[self.zoomIx] * 100) .. "%"
         local nw = tw(f3, "300%") + T.px(12)
-        local sq = bh
-        x = st.w - T.px(U.PAD) - sq * 2 - nw - T.px(U.GAP) * 2
-        btn("zoom:out", "-", function() self:zoom(-1) end)
-        local tc = T.textDim
+        x = st.w - T.px(U.EDGE) - bh * 2 - nw - gap * 2
+        x = x + push(self, "zoom:out", "-", function() self:zoom(-1) end, "default", x, st, ZeD.tr("UI_ZeD_Reader_HelpZoomOut"), bh) + gap
+        local tc = T.text
         self:drawText(pct, x + math.floor((nw - tw(f3, pct)) / 2), by + math.floor((bh - fh(f3)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
-        x = x + nw + T.px(U.GAP)
-        btn("zoom:in", "+", function() self:zoom(1) end)
+        x = x + nw + gap
+        push(self, "zoom:in", "+", function() self:zoom(1) end, "default", x, st, ZeD.tr("UI_ZeD_Reader_HelpZoomIn"), bh)
     end
 end
+
+-- the window's help line: what the controller's buttons do here (the help words with the mouse)
+function ZeD_Reader:getFooterPrompts()
+    if not self.joyfocus then return nil end
+    local P0 = ZeD.Prompt
+    local note = P0 and P0.padNote
+    local back = { glyph = "B", label = getText("UI_btn_back") }
+    if self.mode == "notebook" then
+        if self.confirm == "erase" then
+            return { { glyph = "A", label = ZeD.tr("UI_ZeD_Reader_Erase") }, { glyph = "B", label = ZeD.tr("UI_Cancel") } }
+        end
+        local out = { { glyph = "LB RB", label = ZeD.tr("UI_ZeD_Reader_PromptTurn") } }
+        if not self.readOnly then
+            local locked = self:isLockedByMe()
+            if not locked then
+                out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Reader_PromptWrite") }
+                out[#out + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Reader_ErasePage") }
+            end
+            out[#out + 1] = { glyph = "Y", label = getText("UI_mods_Done") }
+            out[#out + 1] = { glyph = "SELECT", label = locked and ZeD.tr("UI_ZeD_Reader_Unlock") or ZeD.tr("UI_ZeD_Reader_Lock") }
+        end
+        out[#out + 1] = back
+        return out
+    end
+    local out = {}
+    local mv = ZeD.tr(self.view == "paper" and "UI_ZeD_Prompt_DPadMove" or "UI_ZeD_Prompt_DPadScroll")
+    out[#out + 1] = note and note(mv) or mv
+    if self.page then out[#out + 1] = { glyph = "LB RB", label = ZeD.tr("UI_ZeD_Reader_PromptView") } end
+    if self.view == "paper" and self.page then out[#out + 1] = { glyph = "X Y", label = ZeD.tr("UI_ZeD_Reader_PromptZoom") } end
+    if #self.places > 0 then out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Reader_ShowOnMap") } end
+    out[#out + 1] = { glyph = "B", label = getText("UI_Close") }
+    return out
+end
+
 
 function ZeD_Reader:render()
     ZeD_Window.render(self)
@@ -525,11 +625,16 @@ function ZeD_Reader:onMouseWheel(del)
 end
 
 function ZeD_Reader:update()
-    ISPanel.update(self)
+    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
     local h = self:hitAt(self:getMouseX(), self:getMouseY())
-    self._hot = h and h.fn and h.id or nil
+    -- the pointer's hover waits while the controller's mark shows (one cue at a time)
+    local F = ZeD.Input and ZeD.Input.Focus
+    local quiet = F and F.cuesVisible and F.cuesVisible()
+    self._hot = (not quiet) and h and h.fn and h.id or nil
+    if h and h.help and not quiet then ZeD.Help.set(self, h.help) end
     local cb = self:closeRect()
     self._closeHover = cb and inRect(cb, self:getMouseX(), self:getMouseY()) or false
+    if self._closeHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
     if self._jump and self._storyY then
         self.wscroll = math.max(0, (self._storyY[self._jump] or 0) - ZeD.T.px(10))
         self._jump = nil
@@ -736,32 +841,42 @@ end
 
 function ZeD_Reader:drawRail(r)
     local T = ZeD.T
-    local bs, s1 = T.borderS, T.surf1
-    self:drawRect(r.x, r.y, r.w, r.h, 1, s1.r, s1.g, s1.b)
-    self:drawRectBorder(r.x, r.y, r.w, r.h, bs.a, bs.r, bs.g, bs.b)
-    local y = section(self, ZeD.upper(ZeD.trBare("IGUI_Pages")), r.x + T.px(10), r.y + T.px(10), r.w - T.px(20))
+    local A = ZeD.Atoms
+    local y = section(self, ZeD.textCase(ZeD.trBare("IGUI_Pages")), r, r.y)
     local f2, f3 = T.fontF2, T.fontF3
     local rh = fh(f2) + T.px(14)
-    local ac, tc, td = T.accent, T.text, T.textDim
+    local ac, tc, td, hv = T.accent, T.text, T.textDim, T.hover
+    local u = T.hair
     for i = 1, self.nPages do
         if y + rh > r.y + r.h then break end
         local id = "page:" .. i
-        if i == self.pageIx then self:drawRect(r.x + 1, y, r.w - 2, rh, 0.22, ac.r, ac.g, ac.b)
-        elseif self._hot == id then self:drawRect(r.x + 1, y, r.w - 2, rh, 0.12, ac.r, ac.g, ac.b) end
+        -- the page in the box is the selected row; the pointed one takes the hover wash
+        if i == self.pageIx then self:drawRect(r.x + u, y, r.w - 2 * u, rh, T.selectionA, ac.r, ac.g, ac.b)
+        elseif self._hot == id then self:drawRect(r.x + u, y, r.w - 2 * u, rh, hv.a or 1, hv.r, hv.g, hv.b) end
         local num = tostring(i)
         self:drawText(num, r.x + T.px(32) - tw(f3, num), y + math.floor((rh - fh(f3)) / 2), td.r, td.g, td.b, td.a or 1, f3)
         local words = firstWords(self.pages[i])
         local c = words and tc or td
-        self:drawText(ZeD.Atoms.truncateText(words or ZeD.tr("UI_ZeD_Reader_Blank"), f2, r.w - T.px(52)), r.x + T.px(42), y + math.floor((rh - fh(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-        self:drawRect(r.x + T.px(1), y + rh - T.px(1), r.w - T.px(2), T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
-        self._hits[#self._hits + 1] = { id = id, x = r.x, y = y, w = r.w, h = rh, fn = function() self:goPage(i) end }
+        self:drawText(A.truncateText(words or ZeD.tr("UI_ZeD_Reader_Blank"), f2, r.w - T.px(52)), r.x + T.px(42), y + math.floor((rh - fh(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
+        self:drawRect(r.x + u, y + rh - u, r.w - 2 * u, u, T.border.a, T.border.r, T.border.g, T.border.b)
+        hit(self, id, r.x, y, r.w, rh, function() self:goPage(i) end, ZeD.tr("UI_ZeD_Reader_HelpPage"))
         y = y + rh
+    end
+    A.frame(self, r.x, r.y, r.w, r.h, T.borderS)
+end
+
+-- a binder hole: a disc of the table's colour punched through the paper
+local function punch(p, cx, cy, radius, c)
+    local u = ZeD.T.hair
+    for dy = -radius, radius, u do
+        local half = math.floor(math.sqrt(math.max(0, radius * radius - dy * dy)) / u) * u
+        if half > 0 then p:drawRect(cx - half, cy + dy, 2 * half, u, 1, c.r, c.g, c.b) end
     end
 end
 
 function ZeD_Reader:drawNotePage(a)
     local T = ZeD.T
-    self:drawRect(a.x, a.y, a.w, a.h, 1, 0.035, 0.043, 0.039)
+    self:drawRect(a.x, a.y, a.w, a.h, 1, TABLE.r, TABLE.g, TABLE.b)
     -- the hand: the entry face nearest 18 px, and the rules spaced by its own line
     -- pitch, so every line of writing sits on a rule
     local ef, lh = UIFont.Medium, fh(UIFont.Medium)
@@ -774,9 +889,10 @@ function ZeD_Reader:drawNotePage(a)
     local py = a.y + T.px(18) + band
     -- why it reads only
     if self.readOnly then
-        local s2, bs = T.surf2, T.borderS
+        -- (on the solid table, so the note itself is solid too: nothing stacks)
+        local s2 = T.surf2
         self:drawRect(px, a.y + T.px(10), pw, band - T.px(6), 1, s2.r, s2.g, s2.b)
-        self:drawRectBorder(px, a.y + T.px(10), pw, band - T.px(6), bs.a, bs.r, bs.g, bs.b)
+        ZeD.Atoms.frame(self, px, a.y + T.px(10), pw, band - T.px(6), T.borderS)
         local why = self.otherLock and ZeD.tr("UI_ZeD_Reader_ReadOnlyLocked") or ZeD.tr("UI_ZeD_Reader_ReadOnlyNoTool")
         local tc = T.text
         self:drawText(why, px + T.px(12), a.y + T.px(10) + math.floor((band - T.px(6) - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
@@ -786,7 +902,7 @@ function ZeD_Reader:drawNotePage(a)
     local hole = T.px(NB.HOLE)
     for k = 0, 2 do
         local hy = py + T.px(40) + math.floor((ph - T.px(80)) * k / 2) - math.floor(hole / 2)
-        ZeD.Atoms.drawStatusDot(self, px + T.px(14), hy, { r = 0.035, g = 0.043, b = 0.039, a = 1 }, hole)
+        punch(self, px + T.px(14) + math.floor(hole / 2), hy + math.floor(hole / 2), math.floor(hole / 2), TABLE)
     end
     local mx = px + T.px(NB.MARGIN)
     self:drawRect(mx, py + headH, T.px(2), ph - headH, 1, MARGIN_C.r, MARGIN_C.g, MARGIN_C.b)
@@ -809,7 +925,7 @@ function ZeD_Reader:drawNotePage(a)
     self.nbTitle:setVisible(true)
     self.nbTitle:setEditable(not self.readOnly and not self:isLockedByMe())
     self.nbTitle.javaObject:setTextRGBA(INK.r, INK.g, INK.b, 1)
-    if not self.readOnly then self:drawRect(tx, tyy + fh(ef) + T.px(6), tWidth, 1, 0.6, INK_DIM.r, INK_DIM.g, INK_DIM.b) end
+    if not self.readOnly then self:drawRect(tx, tyy + fh(ef) + T.px(6), tWidth, T.hair, 0.6, INK_DIM.r, INK_DIM.g, INK_DIM.b) end
     -- the page's text box over the rules: one line per ruled line
     local ex, ey = mx + T.px(10), py + headH + T.px(2)
     local ew, eh = pw - (mx - px) - T.px(20), lh * NB.LINES + LINE_TOP * 2
@@ -842,55 +958,61 @@ function ZeD.BB_count(n)
     return out
 end
 
+-- the notebook's band: Back, Erase page and Lock at the left, the pager in the middle, Done at the
+-- right (the main one, last); erasing asks in a band of its own (Cancel and Erase)
+local _askOpts = {}
+local _doneBtn = { variant = "primary", id = "done" }
+local _doneSpec = { buttons = { _doneBtn } }
+local _noButtons = { buttons = {} }
 function ZeD_Reader:drawNoteStrip(st)
     local T = ZeD.T
-    local s2 = T.surf2
-    self:drawRect(1, st.y, st.w - 2, st.h, s2.a or 1, s2.r, s2.g, s2.b)
-    ZeD.Atoms.drawDividerH(self, 1, st.y, st.w - 2, false)
-    local bh = T.px(U.BTN_H)
-    local by = st.y + math.floor((st.h - bh) / 2)
-    local x = T.px(U.PAD)
-    local ac = T.accent
-    local function btn(id, text, fn, variant, on, rightAlign)
-        local bw = tw(T.fontF3, ZeD.btnCase(text)) + T.px(U.BTN_PAD) * 2
-        if rightAlign then x = rightAlign - bw end
-        local colors = nil
-        if on then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } }
-        elseif self._hot == id then colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } } end
-        ZeD.Molecules.drawButton(self, x, by, bw, bh, text, variant or "default", self._down == id, colors)
-        self._hits[#self._hits + 1] = { id = id, x = x, y = by, w = bw, h = bh, fn = fn }
-        x = x + bw + T.px(U.GAP)
-        return bw
-    end
+    local Mo = ZeD.Molecules
+    local bh = T.buttonH
+    local by = st.y + T.px(5)
+    local gap = T.px(U.GAP)
     if self.confirm == "erase" then
         local q = ZeD.tr("UI_ZeD_Reader_EraseAsk", self.pageIx)
-        local tc = T.text
-        self:drawText(q, x, st.y + math.floor((st.h - fh(T.fontF2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-        local right = st.w - T.px(U.PAD)
-        local eraseText = ZeD.tr("UI_ZeD_Reader_Erase")
-        local ew = tw(T.fontF3, ZeD.btnCase(eraseText)) + T.px(U.BTN_PAD) * 2
-        btn("confirm:no", ZeD.tr("UI_ZeD_Reader_KeepIt"), function() self.confirm = nil end, "default", false, right - ew - T.px(U.GAP))
-        btn("confirm:yes", eraseText, function() self:erasePage() end, "danger", false, right)
+        local pad = self.joyfocus ~= nil
+        local o = _askOpts
+        o.danger, o.win = true, self
+        o.cancelFocus, o.verbFocus = nil, pad and { win = self, focused = true, pad = true } or nil
+        o.cancelHelp, o.verbHelp = ZeD.tr("UI_ZeD_Reader_HelpKeep"), ZeD.tr("UI_ZeD_Reader_HelpEraseNow")
+        local _, cr, vr = Mo.drawQuestionBand(self, 0, st.y, st.w, q, ZeD.tr("UI_ZeD_Reader_Erase"), o)
+        hit(self, "confirm:no", cr.x, cr.y, cr.w, cr.h, function() self.confirm = nil end)
+        hit(self, "confirm:yes", vr.x, vr.y, vr.w, vr.h, function() self:erasePage() end)
         return
     end
-    btn("back", getText("UI_btn_back"), function() self:endWriting() end)
+    local canDone = not self.readOnly and not self:isLockedByMe()
+    local spec = _noButtons
+    if canDone then
+        _doneBtn.label, _doneBtn.help = getText("UI_mods_Done"), ZeD.tr("UI_ZeD_Reader_HelpDone")
+        _doneBtn.hover, _doneBtn.pressed = self._hot == "done", self._down == "done"
+        spec = _doneSpec
+    end
+    spec.win = self
+    local _, rects = Mo.drawBand(self, 0, st.y, st.w, spec)
+    if canDone then
+        local r = rects.buttons[1]
+        hit(self, "done", r.x, r.y, r.w, r.h, function() self:done() end, _doneBtn.help)
+    end
+    local x = T.px(U.EDGE)
+    x = x + iconBtn(self, "back", "back", function() self:endWriting() end, x, st, nil, ZeD.tr("UI_ZeD_Reader_HelpNoteBack")) + gap
     if not self.readOnly then
         local locked = self:isLockedByMe()
-        if not locked then btn("erase", ZeD.tr("UI_ZeD_Reader_ErasePage"), function() self.confirm = "erase" end, "danger") end
-        btn("lock", locked and ZeD.tr("UI_ZeD_Reader_Unlock") or ZeD.tr("UI_ZeD_Reader_Lock"), function() self:toggleLock() end, "default", locked)
+        if not locked then x = x + push(self, "erase", ZeD.tr("UI_ZeD_Reader_ErasePage"), function() self.confirm = "erase" end, "danger", x, st, ZeD.tr("UI_ZeD_Reader_HelpErasePage")) + gap end
+        x = x + push(self, "lock", locked and ZeD.tr("UI_ZeD_Reader_Unlock") or ZeD.tr("UI_ZeD_Reader_Lock"), function() self:toggleLock() end, "default", x, st,
+            ZeD.tr(locked and "UI_ZeD_Reader_HelpUnlock" or "UI_ZeD_Reader_HelpLock")) + gap
     end
     -- the pages, in the middle
     local f3 = T.fontF3
     local label = ZeD.tr("UI_ZeD_Reader_PageOf", self.pageIx, self.nPages)
     local mid = math.floor(st.w / 2)
     local lw = tw(f3, label) + T.px(16)
-    x = mid - math.floor(lw / 2) - bh - T.px(U.GAP)
-    btn("prev", "<", function() self:turnPage(-1) end, "default", false)
-    local tc = T.textDim
-    self:drawText(label, x + T.px(8), by + math.floor((bh - fh(f3)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
-    x = x + lw
-    btn("next", ">", function() self:turnPage(1) end, "default", false)
-    if not self.readOnly and not self:isLockedByMe() then btn("done", getText("UI_mods_Done"), function() self:done() end, "primary", false, st.w - T.px(U.PAD)) end
+    local px0 = mid - math.floor(lw / 2) - bh - gap
+    iconBtn(self, "prev", GLYPH_PREV, function() self:turnPage(-1) end, px0, st, ZeD.tr("UI_ZeD_Reader_PagePrev"), ZeD.tr("UI_ZeD_Reader_HelpPrev"), self.pageIx <= 1)
+    local tc = T.text
+    self:drawText(label, px0 + bh + T.px(8), by + math.floor((bh - fh(f3)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f3)
+    iconBtn(self, "next", GLYPH_NEXT, function() self:turnPage(1) end, px0 + bh + lw, st, ZeD.tr("UI_ZeD_Reader_PageNext"), ZeD.tr("UI_ZeD_Reader_HelpNext"), self.pageIx >= self.nPages)
 end
 
 -- ---------------------------------------------------------------------------

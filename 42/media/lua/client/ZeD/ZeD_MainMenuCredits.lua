@@ -6,8 +6,8 @@
 -- Vanilla's credits (CreditsRoleGroup / CreditsRole, the translators, the
 -- studio logos) as end titles rolling up a framed box in a ZeD window: each
 -- group's title in the heading face, its logo tinted to the theme, each role
--- in the mono label face, the names in the body face, all centred. The strip
--- is a 1993 transport: BACK | <<  PAUSE / PLAY  >>. The wheel moves the roll
+-- in the mono label face, the names in the body face, all centred. The band
+-- is a 1993 transport: Back, <<, Pause / Play, >>. The wheel moves the roll
 -- by hand. Vanilla's CreditsScreen:setVisible(true) is redirected here.
 -- ============================================================================
 
@@ -147,7 +147,7 @@ function ZeD_MMCredits:prerender()
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bx, by, bw, bh = pad, tb + pad, w - pad * 2, stripY - tb - pad * 2
     UI.insetBox(self, bx, by, bw, bh)
@@ -186,7 +186,7 @@ function ZeD_MMCredits:prerender()
                     self:drawTextureScaledAspect(tex, cx - math.floor(lw / 2), ly, lw, l.h, 1, tc.r, tc.g, tc.b)
                 end
             elseif l.kind == "role" then
-                local text = ZeD.upper(l.text)
+                local text = ZeD.textCase(l.text)
                 self:drawText(text, cx - math.floor(MM.textW(f1, text) / 2), ly, ac.r, ac.g, ac.b, ac.a or 1, f1)
             else
                 local c = T.text
@@ -206,17 +206,16 @@ function ZeD_MMCredits:prerender()
     end
     self:clearStencilRect()
 
-    -- the transport
+    -- the transport, in the band
     UI.stripSpecs(self, stripY, w, 1000,
         { { "back", getText("UI_btn_back"), function() self:back() end } },
-        { { "rewind", "<<", function() self:setMode("rewind") end, (self.mode == "rewind") and "primary" or "default" },
-          { "play", getText((self.mode == "pause") and "IGUI_media_play" or "UI_Pause"), function() self:togglePause() end },
-          { "fast", ">>", function() self:setMode("fast") end, (self.mode == "fast") and "primary" or "default" } })
-    self._stripY, self._stripH = stripY, stripH
+        { { "rewind", "<<", function() self:setMode("rewind") end, (self.mode == "rewind") and "primary" or "default", false, ZeD.tr("UI_ZeD_MMHelp_Rewind") },
+          { "play", getText((self.mode == "pause") and "IGUI_media_play" or "UI_Pause"), function() self:togglePause() end, nil, false, ZeD.tr("UI_ZeD_MMHelp_PlayPause") },
+          { "fast", ">>", function() self:setMode("fast") end, (self.mode == "fast") and "primary" or "default", false, ZeD.tr("UI_ZeD_MMHelp_Fast") } })
 end
 
 function ZeD_MMCredits:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, nil)
+    UI.drawStripAndButtons(self)
     ZeD_Window.render(self)
 end
 

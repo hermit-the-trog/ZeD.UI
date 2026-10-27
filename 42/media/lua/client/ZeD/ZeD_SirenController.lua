@@ -39,7 +39,7 @@ local PL = ZeD.Plate
 local GAP = 6                    -- plate pixels between the prop and the dash
 local GROUPS = { "lights", "siren" }
 ZeD.trDefaults({
-    UI_ZeD_Siren_Dpad = "D-PAD Left / Right: switch   Up / Down: turn", UI_ZeD_Siren_Step = "Step", UI_ZeD_Hud_PutAway = "Put away",
+    UI_ZeD_Siren_PromptSwitch = "Switch", UI_ZeD_Siren_PromptTurn = "Turn", UI_ZeD_Siren_Step = "Step", UI_ZeD_Hud_PutAway = "Put away",
 })
 
 local function plate() local X = ZeD.PhysPx; return X and X.plates.siren or nil end
@@ -126,7 +126,7 @@ function ZeD_SirenController:layout(des)
     local s = self:scale()
     local T = ZeD.T
     local pw, ph = des.w * s, des.h * s
-    local stripH = self.joyfocus and T.sp.scrollbarW or 0
+    local stripH = self.joyfocus and ZeD.PadGlyphs.stripH() or 0
     local w, h = pw, ph + (stripH > 0 and (T.px(4) + stripH) or 0)
     local pn = self.playerNum
     local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
@@ -162,7 +162,9 @@ function ZeD_SirenController:prerender()
     local lights, siren = self:modes()
     local cv = P.canvas(self, 0, 0, s)
     PL.draw(cv, des, { lightsMode = lights, sirenMode = siren, lightsOn = lights > 0, sirenOn = siren > 0 }, { tex = plateTex, now = getTimestampMs() })
-    -- the click areas: a word turns its switch there ("lights:2"), a knob steps it ("siren:knob")
+    -- the click areas: a word turns its switch there ("lights:2"), a knob steps it ("siren:knob"). The
+    -- controller is only ever on a knob: its ring is the knob's own light and stays; the pointer on a
+    -- word wears the library's hover wash
     local ac = T.accent
     local hits = {}
     local focusKnob = self.joyfocus and (GROUPS[self.focus] .. ":knob") or nil
@@ -173,17 +175,17 @@ function ZeD_SirenController:prerender()
         hits[#hits + 1] = { id = c.id, x = c.x * s, y = c.y * s, w = c.w * s, h = c.h * s, group = group, knob = knob,
                             mode = (not knob) and tonumber(what) or nil }
         if c.id == focusKnob then PL.cue(cv, cue, ac, 0.55)
-        elseif self._hover == c.id and not self.joyfocus then PL.cue(cv, cue, ac, knob and 0.30 or 0.22) end
+        elseif self._hover == c.id and not self.joyfocus then
+            if knob then PL.cue(cv, cue, ac, 0.30) else PL.hoverKey(cv, c) end
+        end
     end
     self._hits = hits
-    -- the controller's strip under the faceplate
+    -- the controller's strip under the faceplate: the help line's look (pictures at 14u, F2 words)
     if self._stripH > 0 then
-        local y = self.height - self._stripH
-        local s2, bs = T.surf2, T.borderS
-        self:drawRect(0, y, self.width, self._stripH, 1, s2.r, s2.g, s2.b)
-        self:drawRectBorder(0, y, self.width, self._stripH, bs.a or 1, bs.r, bs.g, bs.b)
-        ZeD.Molecules.drawGlyphPrompts(self, T.sp.sm, y, self._stripH, {
-            ZeD.tr("UI_ZeD_Siren_Dpad"), { glyph = "A", label = ZeD.tr("UI_ZeD_Siren_Step") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } })
+        ZeD.PadGlyphs.drawStrip(self, 0, self.height - self._stripH, self.width, {
+            { glyph = "<>", label = ZeD.tr("UI_ZeD_Siren_PromptSwitch") },
+            { glyph = "^v", pad = { "DUD" }, label = ZeD.tr("UI_ZeD_Siren_PromptTurn") },
+            { glyph = "A", label = ZeD.tr("UI_ZeD_Siren_Step") }, { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") } })
     end
 end
 

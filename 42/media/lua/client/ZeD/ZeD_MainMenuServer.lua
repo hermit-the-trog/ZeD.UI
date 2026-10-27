@@ -10,7 +10,7 @@
 --             DELETE... and EDIT, the chosen settings' files beside the list
 --   new / duplicate / rename   a name field with vanilla's rules, the reason a
 --             name will not do, the files it makes (Page2 / 4 / 5)
---   delete    the files that go, asked in the strip (Page6)
+--   delete    the files that go, asked in the band (Page6)
 --   mods      the server's mods before editing (ChooseModsWindow); CHOOSE
 --             MODS... opens the mod manager in its server mode
 --   edit      Page3 on the Sandbox Options window's rows: the server's INI
@@ -180,7 +180,7 @@ function ZeD_MMServer:new()
 end
 
 function ZeD_MMServer:createChildren()
-    ZeD_MMSandbox.createChildren(self)    -- Find, the strip's field, the in-place number cell
+    ZeD_MMSandbox.createChildren(self)    -- Find, the band's field, the in-place number cell
     local function entry()
         local e = UI.newEntry(self)
         e:setVisible(false)
@@ -264,7 +264,7 @@ function ZeD_MMServer:pages()
         local d = it.item
         if d.category then
             cat = d.category.name
-            t[#t + 1] = { head = true, title = ZeD.upper(ZeD.tr((cat == "INI") and "UI_ZeD_Server_HeadServer" or "UI_mainscreen_sandbox")), item = d }
+            t[#t + 1] = { head = true, title = ZeD.textCase(ZeD.tr((cat == "INI") and "UI_ZeD_Server_HeadServer" or "UI_mainscreen_sandbox")), item = d }
         else
             t[#t + 1] = { title = s(it.text), raw = s(cat) .. ":" .. s(it.text), page = d.page, panel = d.panel, category = cat, item = d }
         end
@@ -391,7 +391,7 @@ function ZeD_MMServer:drawControl(r, cx, ry, cw, rh, rowId, clip)
         local f2 = T.fontF2
         local bw, bh = math.min(T.px(ENTRY_W), cw), T.px(24)
         local by = ry + math.floor(rh / 2) - math.floor(bh / 2)
-        UI.insetBox(self, cx, by, bw, bh)
+        UI.insetBox(self, cx, by, bw, bh, true)
         local n = string.len(s(r.control:getText()))
         local tc = T.text
         self:drawText(string.rep("*", math.min(n, 24)), cx + T.px(6), by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
@@ -408,12 +408,11 @@ end
 -- the pages list, with the two categories as headers (it scrolls: the sandbox has many)
 function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
     local T = ZeD.T
-    local bs, s2 = T.borderS, T.surf2
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     UI.insetBox(self, x, y, w, h)
     local fH = T.px(34)
-    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), fH - T.px(1), 1, s2.r, s2.g, s2.b)
-    self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
+    ZeD.Surface.fill(self, x + T.px(1), y + T.px(1), w - 2 * T.px(1), fH - T.px(1), "surf2")
+    ZeD.Atoms.drawDividerH(self, x, y + fH, w, true)
     local f2, c = T.fontF2, T.text
     local findLabel = ZeD.tr("UI_ZeD_Options_Find")
     self:drawText(findLabel, x + T.px(8), y + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
@@ -427,7 +426,6 @@ function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
     for _, p in ipairs(pages) do total = total + (p.head and T.px(HEAD_H) or T.px(PAGE_ROW_H)) end
     self.pagesScroll = math.max(0, math.min(self.pagesScroll or 0, math.max(0, total - vh)))
     self._pagesBox = { x = x, y = ry, w = w, h = vh }
-    local ac = T.accent
     local sbW = T.sp.scrollbarW
     local rw = w - T.px(2) - ((total > vh) and sbW or 0)
     self:setStencilRect(x + T.px(1), ry, w - T.px(2), vh)
@@ -436,12 +434,13 @@ function ZeD_MMServer:drawPages(x, y, w, h, pages, finding)
         local rh = p.head and T.px(HEAD_H) or T.px(PAGE_ROW_H)
         if yy + rh > ry and yy < ry + vh then
             if p.head then
-                ZeD.Molecules.drawSectionHeader(self, x + T.px(9), yy, rw - T.px(10), p.title, nil, true, false, T.fontF1, false, T.px(8), rh, true)
+                if yy >= ry and yy + rh <= ry + vh then   -- (wholly inside the list: the head claims its place in the body)
+                    ZeD.Molecules.drawSectionHeader(self, x + T.px(9), yy, rw - T.px(10), p.title, nil, true, false, T.fontF1, false, T.px(8), rh, true)
+                end
             else
                 local isSel = (i == self.pageIdx) and not finding
                 local hid = "srvset:page:" .. i
-                if isSel then self:drawRect(x + T.px(1), yy, rw, rh, 0.22, ac.r, ac.g, ac.b)
-                elseif MM.ctx.hot == hid then self:drawRect(x + T.px(1), yy, rw, rh, 0.10, ac.r, ac.g, ac.b) end
+                MM.rowWash(self, x + T.px(1), yy, rw, rh, isSel, (not MM.gamepad()) and MM.ctx.hot == hid)
                 local tc = isSel and T.textHead or T.text
                 self:drawText(ZeD.Atoms.truncateText(p.title, f2, rw - T.px(28)), x + T.px(18), yy + math.floor((rh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
                 local top, bot = math.max(yy, ry), math.min(yy + rh, ry + vh)
@@ -492,20 +491,19 @@ function ZeD_MMServer:prerender()
     local w, h = UI.placeOnTube(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     self.title = ZeD.tr("UI_ZeD_Server_Title")
     self.titleStats = {}
-    local clear = { r = 0, g = 0, b = 0, a = 0 }
     if m == "edit" then
         pcall(function() S.pageEdit:syncStartDay() end)   -- vanilla's render keeps Start Day's days; it does not run while hidden
         self:refreshDiff(false)
         local stat = s(S.pageEdit.settings and S.pageEdit.settings:getName())
         if self.nDiff > 0 then stat = ZeD.tr("UI_ZeD_Sandbox_StatChanged", stat, self.nDiff) end
-        self.titleStats = { { text = stat, color = clear } }
+        self.titleStats = { { text = stat, noMark = true } }
     elseif m == "points" and S.pageSpawnPoints.region then
-        self.titleStats = { { text = s(S.pageSpawnPoints.region.file), color = clear } }
+        self.titleStats = { { text = s(S.pageSpawnPoints.region.file), noMark = true } }
     end
     ZeD_Window.prerender(self)
     if not S then return end
@@ -596,7 +594,6 @@ function ZeD_MMServer:drawList(id, x, y, w, h, rows, sel, onPick, empty, row0, c
     sc = math.max(0, math.min(sc, math.max(0, total - vh)))
     self._lists[id] = sc
     self._listBoxes[id] = { x = x, y = vy, w = w, h = vh }
-    local ac = T.accent
     local f2, f3 = T.fontF2, T.fontF3
     local sbW = T.sp.scrollbarW
     local rw = w - T.px(2) - ((total > vh) and sbW or 0)
@@ -608,15 +605,13 @@ function ZeD_MMServer:drawList(id, x, y, w, h, rows, sel, onPick, empty, row0, c
                                           x = x + T.px(1), y = ry, w = rw, h = rh, listId = "pick:" .. id, clip = { x = x, y = vy, w = w, h = vh }, chosen = (i == sel) }
         if ry + rh > vy and ry < vy + vh then
             local hid = "srvset:" .. id .. ":" .. i
-            if gp and self.focusId == fid then self:drawRect(x + T.px(1), ry, rw, rh, 0.55, ac.r, ac.g, ac.b)
-            elseif i == sel then self:drawRect(x + T.px(1), ry, rw, rh, 0.22, ac.r, ac.g, ac.b)
-            elseif MM.ctx.hot == hid then self:drawRect(x + T.px(1), ry, rw, rh, 0.10, ac.r, ac.g, ac.b) end
+            local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, i == sel, (not gp) and MM.ctx.hot == hid, gp and self.focusId == fid)
             self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
-            local tc = (i == sel) and T.textHead or T.text
+            local tc = onFocus and T.textOnFocus or ((i == sel) and T.textHead or T.text)
             local textW = rw - T.px(20)
             if r.sub and r.sub ~= "" then
                 local sw = math.min(MM.textW(f3, r.sub), math.floor(textW * 0.45))
-                local d = T.textDim
+                local d = onFocus and T.textOnFocus or T.textDim
                 self:drawText(ZeD.Atoms.truncateText(r.sub, f3, sw), x + rw - T.px(10) - sw, ry + math.floor((rh - MM.fontH(f3)) / 2), d.r, d.g, d.b, d.a or 1, f3)
                 textW = textW - sw - T.px(12)
             end
@@ -627,8 +622,7 @@ function ZeD_MMServer:drawList(id, x, y, w, h, rows, sel, onPick, empty, row0, c
     end
     self:clearStencilRect()
     if #rows == 0 and empty then
-        local d = T.textDim
-        self:drawText(empty, x + T.px(10), vy + T.px(8), d.r, d.g, d.b, d.a or 1, f2)
+        ZeD.Molecules.drawEmptyLine(self, x + T.px(10), vy + T.px(8), w - T.px(20), empty)
     end
     if total > vh then
         local sx = x + w - T.px(1) - sbW
@@ -638,11 +632,11 @@ function ZeD_MMServer:drawList(id, x, y, w, h, rows, sel, onPick, empty, row0, c
     end
 end
 
--- a button under a list (drawn with the strip's); returns its width
+-- a button under a list (drawn with the window's other buttons); returns its width
 function ZeD_MMServer:button(id, text, x, y, fn, disabled, row, col)
     local T = ZeD.T
-    local bw = MM.textW(T.fontF3, text) + T.px(U.STRIP_BTN_PAD) * 2
-    self._specs[#self._specs + 1] = { id = id, text = text, x = x, y = y, w = bw, h = T.px(U.STRIP_BTN_H), fn = fn, disabled = disabled,
+    local bw = ZeD.Molecules.buttonW(text)
+    self._specs[#self._specs + 1] = { id = id, text = text, x = x, y = y, w = bw, h = T.buttonH, fn = fn, disabled = disabled,
                                       variant = "default", row = row or 600, col = col or 1 }
     return bw
 end
@@ -663,7 +657,7 @@ function ZeD_MMServer:heading(text, x, y)
     return math.floor(ZeD.Text.height(hf, z))
 end
 
--- a reason (red dot) under a field
+-- a reason (a red square) under a field
 function ZeD_MMServer:why(text, x, y, w)
     local T = ZeD.T
     local f2, c = T.fontF2, T.text
@@ -692,10 +686,10 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local bs = T.borderS
-    self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, x, y, w, h, bs)
     local ix, iw = x + T.px(14), w - T.px(28)
     local cy = y + T.px(12)
-    local bh = T.px(U.STRIP_BTN_H)
+    local bh = T.buttonH
     local fh = T.px(FIELD_H)
     local d = T.textDim
     local function note(text)
@@ -728,7 +722,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
         bx = bx + self:button("mapDown", ZeD.tr("UI_ServerSettings_ButtonMoveDown"), bx, cy, function() panel:onButtonMoveDown(); touched() end, not has or lb.selected >= #lb.items, 600, 2) + T.px(8)
         bx = bx + self:button("mapRemove", getText("UI_btn_remove"), bx, cy, function() panel:onButtonRemove(); touched() end, not has, 600, 3) + T.px(8)
         local addText = ZeD.tr("UI_ZeD_Server_AddInstalled")
-        local anchor = { x = ax + bx, y = ay + cy, w = MM.textW(T.fontF3, addText) + T.px(U.STRIP_BTN_PAD) * 2, h = bh }
+        local anchor = { x = ax + bx, y = ay + cy, w = ZeD.Molecules.buttonW(addText), h = bh }
         self:button("mapAdd", addText, bx, cy, function()
             self:openPick("maps", panel.comboBox, anchor, function() panel:onAddInstalledMap(); touched() end) end, #(panel.comboBox.options or {}) == 0, 600, 4)
         cy = cy + bh + T.px(14)
@@ -736,7 +730,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
         self._otherFor = { kind = "map", panel = panel }
         self:place(self.other, ix, cy, math.min(iw, T.px(360)))
     elseif panel.Type == "SpawnRegionsPanel" then
-        cy = cy + self:label(ZeD.upper(ZeD.tr("UI_ServerSettingGroup_SpawnRegions")), ix, cy)
+        cy = cy + self:label(ZeD.textCase(ZeD.tr("UI_ServerSettingGroup_SpawnRegions")), ix, cy)
         local rows = {}
         for _, it in ipairs(lb.items) do rows[#rows + 1] = { text = (s(it.item.name) ~= "") and it.item.name or ZeD.tr("UI_ZeD_Server_NoName"), sub = it.item.file } end
         local listH = math.max(T.px(90), y + h - cy - T.px(250))
@@ -751,7 +745,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
             if self.regName:isFocused() and (self.regName:getText() or "") ~= it.item.name then it.item.name = self.regName:getText() or ""; touched() end
             if self.regFile:isFocused() and (self.regFile:getText() or "") ~= it.item.file then it.item.file = self.regFile:getText() or ""; touched() end
             local la = T.accent
-            self:drawText(ZeD.upper(ZeD.tr("IGUI_Name")), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
+            self:drawText(ZeD.textCase(ZeD.tr("IGUI_Name")), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
             self:place(self.regName, ix + lw, cy, fw)
             cy = cy + fh + T.px(8)
             self:drawText(ZeD.tr("UI_ZeD_Server_LabelRegFile"), ix, cy + math.floor((fh - MM.fontH(T.fontF1)) / 2), la.r, la.g, la.b, la.a or 1, T.fontF1)
@@ -793,7 +787,7 @@ function ZeD_MMServer:drawCustom(panel, x, y, w, h)
         local bx = ix
         bx = bx + self:button("wsRemove", getText("UI_btn_remove"), bx, cy, function() panel:onButtonRemove(); touched() end, lb.items[lb.selected] == nil, 600, 1) + T.px(8)
         local addText = ZeD.tr("UI_ZeD_Server_AddInstalled")
-        local anchor = { x = ax + bx, y = ay + cy, w = MM.textW(T.fontF3, addText) + T.px(U.STRIP_BTN_PAD) * 2, h = bh }
+        local anchor = { x = ax + bx, y = ay + cy, w = ZeD.Molecules.buttonW(addText), h = bh }
         self:button("wsAdd", addText, bx, cy, function()
             self:openPick("workshop", panel.comboBox, anchor, function() panel:onAddInstalledItem(); touched() end) end, #(panel.comboBox.options or {}) == 0, 600, 2)
         cy = cy + bh + T.px(14)
@@ -860,7 +854,7 @@ function ZeD_MMServer:drawFileList(x, y, w, h)
     -- the chosen settings' files
     local dx, dw = x + lw + T.px(10), w - lw - T.px(10)
     local bs = T.borderS
-    self:drawRectBorder(dx, y, dw, h, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, dx, y, dw, h, bs)
     local it = lb.items[lb.selected]
     if not it then return end
     local name = s(it.text)
@@ -917,7 +911,7 @@ function ZeD_MMServer:drawNameForm(m, x, y, w, h)
     local from = p.settings and p.settings:getName() or ""
     local title = (m == "new") and ZeD.tr("UI_ZeD_Server_TitleNew") or ((m == "duplicate") and ZeD.tr("UI_ZeD_Server_TitleCopy", from) or ZeD.tr("UI_ZeD_Server_TitleRename", from))
     cy = cy + self:heading(title, ix, cy) + T.px(16)
-    cy = cy + self:label(ZeD.upper(ZeD.tr("IGUI_Name")), ix, cy)
+    cy = cy + self:label(ZeD.textCase(ZeD.tr("IGUI_Name")), ix, cy)
     self:place(self.nameEntry, ix, cy, math.min(iw, T.px(400)))
     -- vanilla's page reads its own field on NEXT / ACCEPT
     if s(p.entry:getText()) ~= (self.nameEntry:getText() or "") then p.entry:setText(self.nameEntry:getText() or "") end
@@ -981,7 +975,7 @@ function ZeD_MMServer:drawPoints(x, y, w, h)
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
     local half = math.floor((w - T.px(10)) / 2)
     local px = x + half + T.px(10)
-    local bh = T.px(U.STRIP_BTN_H)
+    local bh = T.buttonH
     local fh = T.px(FIELD_H)
     local cy = y
     self:label(ZeD.tr("UI_ZeD_Server_LabelOccupations"), x, cy)
@@ -1002,7 +996,7 @@ function ZeD_MMServer:drawPoints(x, y, w, h)
         ZeD.tr(pl.items[pl.selected] and "UI_ZeD_Server_NoPoints" or "UI_ZeD_Server_ChooseOccupation"), 100, 2)
     cy = cy + listH + T.px(8)
     local addText = ZeD.tr("UI_ZeD_Server_AddOccupation")
-    local anchor = { x = ax + x, y = ay + cy, w = MM.textW(T.fontF3, addText) + T.px(U.STRIP_BTN_PAD) * 2, h = bh }
+    local anchor = { x = ax + x, y = ay + cy, w = ZeD.Molecules.buttonW(addText), h = bh }
     local bx = x + self:button("profAdd", addText, x, cy, function()
         self:openPick("profs", pg.profComboBox, anchor, function(i)
             local o = pg.profComboBox.options[i]
@@ -1106,10 +1100,11 @@ function ZeD_MMServer:buildStrip(stripY, stripH, w)
     local cancel = getText("UI_btn_cancel")
     local lefts, rights = { { "back", getText("UI_btn_back"), function() self:act("back") end } }, {}
     if self.confirm == "discard" then
+        -- (spec 11: Cancel stays and edits on; Discard changes is the danger answer)
         ask = ZeD.tr("UI_ZeD_Server_AskLeave")
         lefts = {}
-        rights = { { "confirm:no", ZeD.tr("UI_ZeD_Options_KeepEditing"), function() self:setConfirm(false) end },
-                   { "confirm:yes", ZeD.tr("UI_ZeD_Options_Discard"), function() self:act("back") end, "danger" } }
+        rights = { { "confirm:no", cancel, function() self:setConfirm(false) end },
+                   { "confirm:yes", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:act("back") end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DiscardChanges") } }
     elseif m == "list" then
         local none = not (S and S.pageStart.listbox.items[S.pageStart.listbox.selected])
         rights = {
@@ -1139,8 +1134,7 @@ function ZeD_MMServer:buildStrip(stripY, stripH, w)
         lefts = { { "back", cancel, function() self:act("back") end } }
         rights = { { "save", getText("UI_btn_save"), function() self:act("save") end, "primary", self:pointsProblem() ~= nil } }
     end
-    UI.stripSpecs(self, stripY, w, row, lefts, rights)
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
+    UI.stripSpecs(self, stripY, w, row, lefts, rights, ask)
 end
 
 -- CONTROLLER + KEYS + WHEEL ----------------------------------------------------------------
@@ -1202,7 +1196,7 @@ function ZeD_MMServer:keyOther(key)
         local m = self:mode()
         if m == "list" then self:act("edit")
         elseif m == "edit" or m == "points" then self:act("save")
-        elseif m ~= "delete" then self:act("accept") end   -- (deleting is only ever the strip's DELETE)
+        elseif m ~= "delete" then self:act("accept") end   -- (deleting is only ever the band's Delete)
         return true
     end
     return false

@@ -43,10 +43,9 @@ ZeD = ZeD or {}
 ZeD.ContainerControls = ZeD.ContainerControls or {}
 local CT = ZeD.ContainerControls
 
-CT.ROW_H   = 28    -- design units: one line of buttons
-CT.BTN_H   = 20
-CT.PAD_X   = 7
-CT.GAP     = 5
+-- (the band is the library's: ZeD.Molecules.bandH() tall, T.buttonH buttons)
+CT.PAD_X   = 8     -- design units: the band's edges
+CT.GAP     = 8     -- between buttons (4 between two icons)
 CT.DIV_PAD = 5     -- each side of the divider before the container's own buttons
 CT.REFRESH = 15    -- frames between rebuilding the button set (sooner when items change)
 
@@ -614,11 +613,11 @@ local function refresh(content)
     cc.moves, cc.objs = moves or {}, objs or {}
 end
 
-local function btnW(label) return ZeD.ObjectCards.ui.buttonW(label) end
+-- a word button's width: the push button's (its label as it draws, sentence case)
+local function btnW(label) return ZeD.Molecules.buttonW(label) end
 
-CT.ICON_W    = 24    -- design units: an icon button
-CT.ICON_SZ   = 13    -- the icon inside it
-CT.HINT_MS   = 450   -- the pause before an icon's hover hint shows
+CT.ICON_SZ   = 16    -- design units: the icon inside an icon button (the button is T.buttonH square)
+CT.HINT_MS   = ZeD.HINT_DELAY_MS or 450   -- (the one hover delay; kept for older readers of this field)
 
 local ICON_TEX = {}
 local function iconTex(name)
@@ -626,32 +625,41 @@ local function iconTex(name)
     return ICON_TEX[name] or nil
 end
 
--- a button's width: an icon button is a fixed square, a word button fits its word
+local function isIcon(s) return s ~= nil and s.icon ~= nil and iconTex(s.icon) ~= nil end
+
+-- a button's width: an icon button is a T.buttonH square, a word button fits its word
 local function rectW(s)
-    if s.icon and iconTex(s.icon) then return ZeD.T.px(CT.ICON_W) end
+    if isIcon(s) then return ZeD.T.buttonH end
     return btnW(s.label)
 end
 
--- Lays the bottom row out between x0 and x1 (column-local): the moves, a
--- divider, the container's own buttons (words first, then icons). It fits:
--- the moves from the left, the container's own at the right. It does not:
--- one ribbon between two arrows, each rect keeping tx, its place along the
--- ribbon (draw scrolls it); divX is the divider's place the same way.
+-- the room between two buttons in the band: 4u between two icons, 8u otherwise
+local function gapBetween(a, b)
+    local T = ZeD.T
+    if isIcon(a) and isIcon(b) then return T.px(4) end
+    return T.px(CT.GAP)
+end
+
+-- Lays the band's buttons out between x0 and x1 (column-local): the moves
+-- (icons, from the left), a divider, the container's own buttons (words first,
+-- then icons, at the right). They do not fit: one ribbon between two arrows,
+-- each rect keeping tx, its place along the ribbon (draw scrolls it); divX is
+-- the divider's place the same way.
 local function layRow(moves, objs, x0, x1)
     local T = ZeD.T
-    local gap, bh = T.px(CT.GAP), T.px(CT.BTN_H)
+    local gap, bh = T.px(CT.GAP), T.buttonH
     local divGap = T.px(CT.DIV_PAD) * 2 + T.px(1)
     local rects, tx = {}, 0
     local function rect(s, at)
-        local r = { key = s.id, label = s.label, icon = s.icon and iconTex(s.icon) and s.icon or nil, spec = s, tx = at, w = rectW(s) }
+        local r = { key = s.id, label = s.label, icon = isIcon(s) and s.icon or nil, spec = s, tx = at, w = rectW(s) }
         rects[#rects + 1] = r
         return r.w
     end
-    for _, s in ipairs(moves) do tx = tx + rect(s, tx) + gap end
-    local movesEnd = math.max(0, tx - gap)
+    for i, s in ipairs(moves) do tx = tx + rect(s, tx) + gapBetween(s, moves[i + 1]) end
+    local movesEnd = (#moves > 0) and (tx - gapBetween(moves[#moves], nil)) or 0
     local both = #moves > 0 and #objs > 0
     local objW = 0
-    for i, s in ipairs(objs) do objW = objW + rectW(s) + (i > 1 and gap or 0) end
+    for i, s in ipairs(objs) do objW = objW + rectW(s) + (i > 1 and gapBetween(objs[i - 1], s) or 0) end
     local total = movesEnd + (both and divGap or 0) + objW
     local row = { rects = rects, x0 = x0, x1 = x1 }
     local ox
@@ -665,13 +673,14 @@ local function layRow(moves, objs, x0, x1)
         local viewL = x0 + bh + gap
         row.scroll = { viewL = viewL, viewW = math.max(T.px(20), (x1 - bh - gap) - viewL), total = total }
     end
-    for _, s in ipairs(objs) do ox = ox + rect(s, ox) + gap end
+    for i, s in ipairs(objs) do ox = ox + rect(s, ox) + gapBetween(s, objs[i + 1]) end
     return row
 end
 
--- Lays the bottom row out for a list column colW wide; returns its height
--- (0 = no row). The row closes the list (the director tried the container's
--- own actions in the heading and kept them here: "bottom row works best").
+-- Lays the band out for a list column colW wide; returns its height (0 = no
+-- band: nothing to put in it). The band closes the list (the director tried
+-- the container's own actions in the heading and kept them here: "bottom row
+-- works best"). A question (Delete all) takes the whole band over.
 function CT.layout(content, colW)
     content._ccMarks = nil
     local cc = state(content)
@@ -680,46 +689,46 @@ function CT.layout(content, colW)
     cc.sx = cc.sx or {}
     cc.hits, cc.arrows, cc.hintCand, cc.strips = {}, {}, nil, {}
     local T = ZeD.T
-    local padX, gap = T.px(CT.PAD_X), T.px(CT.GAP)
+    local padX = T.px(CT.PAD_X)
     local maxX = colW - padX
     if cc.ask then
-        local delTxt, cancelTxt = sentence(getText("IGUI_invpage_RemoveAll")), getText("UI_Cancel")
-        local wy, wn = btnW(delTxt), btnW(cancelTxt)
-        cc.bottom = { question = cc.ask.ask, x0 = padX, x1 = maxX, rects = {
-            { key = "no",  label = cancelTxt, tx = maxX - wy - gap - wn, w = wn, ask = "no" },
-            { key = "yes", label = delTxt, tx = maxX - wy, w = wy, ask = "yes", danger = true } } }
-        return T.px(CT.ROW_H)
+        -- (the question band lays its two answers out itself, CT.draw)
+        cc.bottom = { question = cc.ask.ask, verb = sentence(getText("IGUI_invpage_RemoveAll")), x0 = padX, x1 = maxX, rects = {} }
+        return ZeD.Molecules.bandH()
     end
     if #cc.moves + #cc.objs == 0 then cc.bottom = nil; return 0 end
     cc.bottom = layRow(cc.moves, cc.objs, padX, maxX)
-    return T.px(CT.ROW_H)
+    return ZeD.Molecules.bandH()
 end
 
 local function zoneName(content) return content._ccSide == "char" and "charCtl" or "worldCtl" end
 
--- the row's button the controller is on, if the focus is in this row's zone
+-- the band's button the controller is on: the focus is in this band's zone, in
+-- the focused window, with the controller in use (Focus.liveZone)
 local function focusedKey(content)
     local F = ZeD.Input and ZeD.Input.Focus
     local win = content._ccWin
-    if not (F and win and F.getFocusedWindow and F.getFocusedWindow() == win) then return nil end
-    local z = F.getFocusedZone(win)
+    if not (F and win and F.liveZone) then return nil end
+    local z = F.liveZone(win)
     if not (z and z.zone == zoneName(content)) then return nil end
-    local el = F.getFocusedElement(win)
+    local el = F.liveElement(win)
     return el and el.ccKey or nil
 end
 
--- Draws the row's buttons in a band (top, h) of the column at xOff; name keys
--- its scroll ("bot"; its arrows are cc:-1 / cc:-2).
+-- Draws the band's buttons (top, h) in the column at xOff; name keys its
+-- scroll ("bot"; its arrows are cc:-1 / cc:-2). Words are push buttons, the
+-- common moves icon buttons that name themselves in a hint after the pause.
+local _ccBtn, _ccIcon, _ccFocus = {}, {}, {}
 local function drawStrip(content, strip, name, top, h, xOff)
     local cc = content._cc
     local T = ZeD.T
-    local UI = ZeD.ObjectCards.ui
-    local ac = T.accent
-    local bh = T.px(CT.BTN_H)
+    local A = ZeD.Atoms
+    local M = ZeD.Molecules
+    local win = content._ccWin
+    local bh = T.buttonH
     local by = top + math.floor((h - bh) / 2)
-    local mx, my = content:getMouseX(), content:getMouseY()
-    local over = content:isMouseOver() and my >= top and my < top + h
     local fkey = focusedKey(content)
+    _ccFocus.win, _ccFocus.zone = win, zoneName(content)
     local S = strip.scroll
     local clipL, clipR, shift = xOff + strip.x0, xOff + strip.x1, xOff
     local sx = cc.sx[name] or 0
@@ -743,8 +752,9 @@ local function drawStrip(content, strip, name, top, h, xOff)
     cc.sx[name] = sx
     cc.strips[name] = strip
     if strip.divX then
-        local bs = T.borderS
-        content:drawRect(shift + strip.divX, top + T.px(5), T.px(1), h - 2 * T.px(5), bs.a, bs.r, bs.g, bs.b)
+        -- (a content line between the moves and the container's own buttons)
+        local bd = T.border
+        content:drawRect(shift + strip.divX, by, T.px(1), bh, bd.a, bd.r, bd.g, bd.b)
     end
     local isz = T.px(CT.ICON_SZ)
     for _, r in ipairs(strip.rects) do
@@ -754,95 +764,83 @@ local function drawStrip(content, strip, name, top, h, xOff)
         local x, y = shift + r.tx, by
         local focused = (fkey == r.key)
         local vx0, vx1 = math.max(x, clipL), math.min(x + r.w, clipR)
+        local hover = vx1 > vx0 and content:isMouseOver() and A.mouseIn(content, vx0, y, vx1 - vx0, bh)
         if vx1 > vx0 then
-            UI.button(content, x, y, r.icon and "" or r.label, { h = bh, w = r.w, disabled = not enabled, danger = danger, focused = focused })
+            local help = s and (s.help or s.hint) or r.label
             if r.icon then
-                -- the icon: the text colour; the accent while its thing runs; the warning colour for Delete all
-                local c = (danger and T.danger) or ((s and s.lit) and ac) or T.text
-                ZeD.Atoms.drawIcon(content, iconTex(r.icon), x + math.floor((r.w - isz) / 2), y + math.floor((bh - isz) / 2), isz,
-                    enabled and 1 or 0.35, c)
+                local o = _ccIcon
+                o.hover, o.disabled, o.active = hover, not enabled, (s and s.lit) and true or false
+                o.focus = focused and _ccFocus or nil
+                o.hint, o.id, o.help, o.win = (s and (s.hint or s.label)) or r.label, "cc:" .. tostring(r.key), help, win
+                -- (Delete all's bin keeps the warning colour; the rest the text colour)
+                o.tint = danger and T.danger or nil
+                o.iconSize = isz
+                M.drawIconButton(content, x, y, bh, iconTex(r.icon), o)
+            else
+                local o = _ccBtn
+                o.hover, o.disabled, o.help, o.win = hover, not enabled, help, win
+                o.focus = focused and _ccFocus or nil
+                M.drawButton(content, x, y, r.w, bh, r.label, danger and "danger" or "default", false, nil, o)
             end
         end
-        local hover = over and vx1 > vx0 and mx >= vx0 and mx < vx1 and my >= y and my < y + bh
-        if hover and enabled and not focused then content:drawRect(x, y, r.w, bh, 0.22, ac.r, ac.g, ac.b) end
         if (hover or focused) and s and s.enabled and s.marks then content._ccMarks = s.marks end
-        -- an icon names itself in a hover hint, after a pause (CT.drawHint)
-        if hover and r.icon and s then cc.hintCand = { key = r.key, text = s.hint or s.label, x = x, y = y, w = r.w, h = bh } end
         cc.hits[#cc.hits + 1] = { key = r.key, label = (s and s.hint) or r.label, spec = s, ask = r.ask, x = x, y = y, w = r.w, h = bh,
             enabled = enabled, vx = vx0, vw = math.max(0, vx1 - vx0) }
     end
     if S then
         content:clearStencilRect()
-        -- the arrows: a scrollbar's own, live while there is more that way
+        -- the arrows: a scrollbar's own, live while there is more that way; the
+        -- other one is the disabled control (its outline at T.disabledAlpha)
         local canL, canR = sx > 0, sx < S.total - S.viewW
         local ax = { xOff + strip.x0, xOff + strip.x1 - bh }
-        local s2 = T.surf2
         for k, dir in ipairs({ "left", "right" }) do
             local can = (k == 1 and canL) or (k == 2 and canR)
             local x = ax[k]
-            local hov = can and over and mx >= x and mx < x + bh and my >= by and my < by + bh
-            ZeD.Atoms.drawScrollArrow(content, x, by, bh, dir, hov and "hover" or "default")
-            if not can then content:drawRect(x, by, bh, bh, 0.6, s2.r, s2.g, s2.b) end
-            if can then cc.arrows[#cc.arrows + 1] = { idx = -k, x = x, y = by, w = bh, h = bh } end
+            if can then
+                local hov = A.mouseIn(content, x, by, bh, bh)
+                ZeD.Atoms.drawScrollArrow(content, x, by, bh, dir, hov and "hover" or "default")
+                cc.arrows[#cc.arrows + 1] = { idx = -k, x = x, y = by, w = bh, h = bh }
+            else
+                local bs = T.borderS
+                content:drawRectBorder(x, by, bh, bh, (bs.a or 1) * T.disabledAlpha, bs.r, bs.g, bs.b)
+            end
         end
     end
 end
 
--- Draws the bottom row at top (content-local; xOff = the list column's x);
--- atBottom: the row closes the list (its rule on top).
+-- Draws the band at top (content-local; xOff = the list column's x). The band
+-- is the library's (surface 2 without stacking, its structure line on top);
+-- the Delete all question takes it over as the question band (Cancel and the
+-- verb, the verb in danger: it cannot be undone).
+local _qOpts, _bandSpec = {}, {}
 function CT.draw(content, top, colW, xOff, atBottom)
     local cc = content._cc
     local B = cc and cc.bottom
     if not B then return end
-    local T = ZeD.T
-    local rowH = T.px(CT.ROW_H)
-    local s2 = T.surf2
-    content:drawRect(xOff, top, colW, rowH, s2.a, s2.r, s2.g, s2.b)
-    ZeD.Atoms.drawDividerH(content, xOff, atBottom and top or (top + rowH - T.px(1)), colW, true)
+    local M = ZeD.Molecules
+    local rowH = M.bandH()
+    local win = content._ccWin
     cc.row = { x = xOff, y = top, w = colW, h = rowH }
     if B.question then
-        local f2 = T.fontF2
-        local fh = ZeD.TM:getFontHeight(f2)
-        local dc, tc = T.danger, T.text
-        local qx = xOff + B.x0
-        local dot = T.px(6)
-        content:drawRect(qx, top + math.floor((rowH - dot) / 2), dot, dot, 1, dc.r, dc.g, dc.b)
-        local room = (xOff + B.rects[1].tx) - (qx + dot + T.px(6)) - T.px(6)
-        content:drawText(ZeD.Atoms.truncateText(B.question, f2, room), qx + dot + T.px(6), top + math.floor((rowH - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
+        local fkey = focusedKey(content)
+        _ccFocus.win, _ccFocus.zone = win, zoneName(content)
+        _qOpts.danger, _qOpts.win = true, win
+        _qOpts.cancelFocus = (fkey == "no") and _ccFocus or nil
+        _qOpts.verbFocus = (fkey == "yes") and _ccFocus or nil
+        local _, cr, vr = M.drawQuestionBand(content, xOff, top, colW, B.question, B.verb, _qOpts)
+        -- the two answers' rects, as the hits the presses and the controller's stops read
+        if cr then cc.hits[#cc.hits + 1] = { key = "no", label = ZeD.tr("UI_Cancel"), ask = "no", x = cr.x, y = cr.y, w = cr.w, h = cr.h, enabled = true, vx = cr.x, vw = cr.w } end
+        if vr then cc.hits[#cc.hits + 1] = { key = "yes", label = B.verb, ask = "yes", x = vr.x, y = vr.y, w = vr.w, h = vr.h, enabled = true, vx = vr.x, vw = vr.w } end
+        return
     end
+    _bandSpec.win, _bandSpec.noLine = win, not atBottom
+    M.drawBand(content, xOff, top, colW, _bandSpec)
     drawStrip(content, B, "bot", top, rowH, xOff)
 end
 
--- The hover hint: an icon names what it does in ZeD's hint box (ZeD_Tooltip's
--- look: surf2, the strong border, F2) once the pointer has rested on it for
--- CT.HINT_MS, above the icon, kept inside the column. Drawn last, after the
--- list's rows.
-function CT.drawHint(content)
-    local cc = content._cc
-    local c = cc and cc.hintCand
-    if not c then
-        if cc then cc.hintKey = nil end
-        return
-    end
-    local now = getTimestampMs()
-    if cc.hintKey ~= c.key then cc.hintKey, cc.hintSince = c.key, now; return end
-    if now - (cc.hintSince or now) < CT.HINT_MS then return end
-    local T = ZeD.T
-    local f2 = T.fontF2
-    local padX, padY = T.px(10), T.px(4)
-    local tw = ZeD.TM:MeasureStringX(f2, c.text)
-    local w, h = tw + padX * 2, ZeD.TM:getFontHeight(f2) + padY * 2
-    local R = cc.row
-    local colL = R and R.x or 0
-    local colR = R and (R.x + R.w) or content:getWidth()
-    local x = math.max(colL + T.px(2), math.min(c.x, colR - w - T.px(2)))
-    local y = c.y - h - T.px(4)
-    local s2, bs, tc = T.surf2, T.borderS, T.text
-    content:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
-    content:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    content:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    content:drawText(c.text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
-end
+-- The icons' hover hints are the library's (ZeD.Molecules.drawIconButton asks
+-- the window's overlay for the hint box). Kept so older callers draw nothing.
+function CT.drawHint(content) end
 
 -- Hit zones go in after the renderer clears its zones for the frame: each
 -- button's showing part, and the arrows.

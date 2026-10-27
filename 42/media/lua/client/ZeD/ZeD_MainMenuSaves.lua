@@ -10,7 +10,7 @@
 -- first, a plain "Find:" field; the chosen save on the right, leading with
 -- its character (director: "lead with the character name large, then the
 -- save name in a medium heading"), then mode, map, played, mods, version and
--- PLAYING AS. BACK, DELETE (asks in the action strip), MORE (Rename File,
+-- PLAYING AS. BACK, Delete (asks in the band), More (Rename File,
 -- New Player, Choose Mods, Open File Location), PLAY. Every rule is vanilla's
 -- LoadGameScreen: what may be played, the player switch, rename, delete.
 --
@@ -30,7 +30,7 @@ local U  = MM.U
 -- design units
 local MARGIN, TOP_GAP = 20, 12
 local LIST_SHARE = 0.43             -- the list's share of the Load Game body
-local FIND_H, HEAD_H, ROW_H, ROW_THUMB = 34, 22, 48, 40
+local FIND_H, HEAD_H, ROW_H, ROW_THUMB = 34, 20, 48, 40
 local PREV_THUMB_H = 220
 local KV_LABEL_W, KV_ROW_H = 96, 20
 local ICON_W, ICON_H, ICON_COLS = 114, 128, 6
@@ -41,59 +41,34 @@ local function ms() return MainScreen and MainScreen.instance end
 local function plain(s) return (tostring(s or ""):gsub("<[^>]*>", " "):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")) end
 
 -- ---------------------------------------------------------------------------
--- shared: the action strip's buttons (left group, right group) as specs
+-- shared: the band at the window's foot (spec 8), as the screens' specs
+-- A screen names the buttons it has: the old left group and right group are one run of push
+-- buttons now, right-aligned, the main one last (the band is MM.band, in ZeD_MainMenu.lua). Each
+-- is { id, text, fn, variant, disabled, help }; ask is the band's left line (a question with a
+-- red square, or with plain a label; statusColor gives a plain line its square). The band is
+-- drawn here, in the window's prerender, so a field standing in it is a child that draws over it.
 -- ---------------------------------------------------------------------------
-local function stripSpecs(win, y, w, row, lefts, rights)
-    local T = ZeD.T
-    local f3 = T.fontF3
-    -- the strip's background goes down here, before the window's children draw: a field in
-    -- the strip (a rename, a preset name, a password) is a child and must show over it
-    local s2, bs = T.surf2, T.borderS
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
-    win:drawRect(T.px(1), y, w - T.px(2), stripH, 1, s2.r, s2.g, s2.b)
-    win:drawRect(T.px(1), y, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
-    win._stripBgAt = y
-    local by, bh = y + T.px(U.STRIP_PAD_Y), T.px(U.STRIP_BTN_H)
-    local function bw(text) return MM.textW(f3, text) + T.px(U.STRIP_BTN_PAD) * 2 end
-    local col = 0
-    local x = T.px(U.STRIP_PAD_X)
-    for _, r in ipairs(lefts) do
-        col = col + 1
-        local b = { id = r[1], text = r[2], fn = r[3], variant = r[4] or "default", disabled = r[5], row = row, col = col, x = x, y = by, w = bw(r[2]), h = bh }
-        win._specs[#win._specs + 1] = b
-        x = x + b.w + T.px(U.STRIP_GAP)
+local function stripSpecs(win, y, w, row, lefts, rights, ask, plain, statusColor)
+    local btns = {}
+    for _, group in ipairs({ lefts, rights }) do
+        for _, r in ipairs(group) do
+            btns[#btns + 1] = { id = r[1], text = r[2], fn = r[3], variant = r[4], disabled = r[5], help = r[6] or MM.helpFor(r[1]) }
+        end
     end
-    local total = 0
-    for i, r in ipairs(rights) do total = total + bw(r[2]) + (i > 1 and T.px(U.STRIP_GAP) or 0) end
-    local rx = w - T.px(U.STRIP_PAD_X) - total
-    for _, r in ipairs(rights) do
-        col = col + 1
-        local b = { id = r[1], text = r[2], fn = r[3], variant = r[4] or "default", disabled = r[5], row = row, col = col, x = rx, y = by, w = bw(r[2]), h = bh }
-        win._specs[#win._specs + 1] = b
-        rx = rx + b.w + T.px(U.STRIP_GAP)
-    end
-    return x   -- where the left group ended (a question or a field can start there)
+    MM.band(win, y, w, row, btns, ask, plain, statusColor)
+    return MM.bandFieldX(ask)   -- where a field beside the band's line can start
 end
 
--- draw the strip background, the question, and every button spec (with hit boxes)
-local function drawStripAndButtons(win, stripY, stripH, ask, askX)
-    local T = ZeD.T
-    local w = win.width
-    local s2, bs = T.surf2, T.borderS
-    if win._stripBgAt ~= stripY then   -- (stripSpecs already laid it under the children)
-        win:drawRect(T.px(1), stripY, w - T.px(2), stripH, 1, s2.r, s2.g, s2.b)
-        win:drawRect(T.px(1), stripY, w - T.px(2), T.px(1), bs.a, bs.r, bs.g, bs.b)
-    end
-    if ask then
-        local f2, c = T.fontF2, T.text
-        win:drawText(ask, askX or (T.px(U.STRIP_PAD_X) + T.px(4)), stripY + math.floor((stripH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-    end
-    local ctx, gp = MM.ctx, MM.gamepad()
+-- the band's hit boxes, then every other button the window's specs hold (a pane's own buttons,
+-- clipped to the pane), drawn and answered
+local function drawStripAndButtons(win)
+    local ctx, gp = (win.pctx and win:pctx()) or MM.ctx, MM.gamepad()
     local ax, ay = win:getAbsoluteX(), win:getAbsoluteY()
+    MM.bandHits(win)
     for _, b in ipairs(win._specs) do
         -- a button inside a scrolled pane draws (and clicks) only while it is fully in view
         local clipped = b.clipTop and (b.y < b.clipTop or b.y + b.h > b.clipBot)
-        if not b.listRow and not clipped then
+        if not b.band and not b.listRow and not clipped then
             local hid = win.kind .. ":" .. b.id
             local hot = not gp and ctx.hot == hid
             MM.drawBtn(win, b, hot, gp and win.focusId == b.id, hot and ctx.press == hid)
@@ -102,14 +77,17 @@ local function drawStripAndButtons(win, stripY, stripH, ask, askX)
     end
 end
 
--- an inset box (System 7 list box / field): base fill, border, a dark inner top-left line
-local function insetBox(p, x, y, w, h)
+-- an inset box (System 7 list box / field well): the base surface without stacking on the body,
+-- a 1u frame. loose = true for a box inside a scrolled list (it must not claim a place in the body)
+local function insetBox(p, x, y, w, h, loose)
     local T = ZeD.T
-    local b, bs = T.base, T.borderS
-    p:drawRect(x, y, w, h, 1, b.r, b.g, b.b)
-    p:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    p:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), T.px(1), 0.45, 0, 0, 0)
-    p:drawRect(x + T.px(1), y + T.px(1), T.px(1), h - 2 * T.px(1), 0.45, 0, 0, 0)
+    if loose then
+        local b = T.base
+        p:drawRect(x, y, w, h, b.a or 1, b.r, b.g, b.b)
+    else
+        ZeD.Surface.fill(p, x, y, w, h, "base")
+    end
+    ZeD.Atoms.frame(p, x, y, w, h, T.borderS)
 end
 
 -- a ZeD-styled text entry: role face, theme colours (ZeD.Text.fitEntry), inset look
@@ -453,7 +431,7 @@ function ZeD_MMLoad:openPlayers(anchor)
     MM.openPopup("players", items, anchor, false)
 end
 
--- the question or the rename field in the action strip; false closes it
+-- the question or the rename field in the band; false closes it
 function ZeD_MMLoad:setConfirm(mode)
     if self.confirm == mode then return end
     self.confirm = mode
@@ -475,12 +453,12 @@ function ZeD_MMLoad:prerender()
     local w, h = placeOnTube(self)
     self.title = ZeD.tr("UI_ZeD_Saves_Title")
     local n = #self.saves
-    self.titleStats = { { text = ZeD.tr(n == 1 and "UI_ZeD_Saves_CountOne" or "UI_ZeD_Saves_CountMany", n), color = { r = 0, g = 0, b = 0, a = 0 } } }
+    self.titleStats = { { text = ZeD.tr(n == 1 and "UI_ZeD_Saves_CountOne" or "UI_ZeD_Saves_CountMany", n), noMark = true } }
     ZeD_Window.prerender(self)
 
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     local listW = math.floor((w - pad * 3) * LIST_SHARE)
@@ -489,25 +467,23 @@ function ZeD_MMLoad:prerender()
     self:drawList(lx, bodyY, listW, bodyH)
     self:drawPreview(px, bodyY, pw, bodyH)
 
-    -- the action strip
+    -- the band at the foot (spec 8): Delete asks in it, Rename puts its field in it
     local s = self:selected()
     local why = self:whyNot(s)
     local row = 1000
-    local ask = nil
     if self.confirm == "delete" then
-        ask = ZeD.tr("UI_ZeD_Saves_AskDelete", s and s.title or "")
         stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_delete"), function() self:delete() end, "danger" } })
+            { "confirm:yes", getText("UI_btn_delete"), function() self:delete() end, "danger", false, ZeD.tr("UI_ZeD_MMHelp_DeleteSave") } },
+            ZeD.tr("UI_ZeD_Saves_AskDelete", s and s.title or ""))
     elseif self.confirm == "rename" then
-        ask = ZeD.tr("UI_ZeD_Saves_AskRename")
+        local ask = ZeD.tr("UI_ZeD_Saves_AskRename")
         local valid = self:renameValid(self.renameEntry:getText())
-        stripSpecs(self, stripY, w, row, {}, {
+        local fx = stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_rename"), function() self:rename() end, "primary", not valid } })
-        -- the field fills the strip between the label and the buttons
-        local f2 = T.fontF2
-        local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
+            { "confirm:yes", getText("UI_btn_rename"), function() self:rename() end, "primary", not valid, ZeD.tr("UI_ZeD_MMHelp_RenameSave") } },
+            ask, true)
+        -- the field fills the band between the label and the buttons
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
@@ -515,16 +491,21 @@ function ZeD_MMLoad:prerender()
     else
         stripSpecs(self, stripY, w, row,
             { { "back", getText("UI_btn_back"), function() self:back() end } },
-            { { "delete", getText("UI_btn_delete"), function() self:askDelete() end, "default", s == nil },
+            { { "delete", getText("UI_btn_delete"), function() self:askDelete() end, "default", s == nil, ZeD.tr("UI_ZeD_MMHelp_DeleteSaveAsk") },
               { "more", ZeD.tr("UI_ZeD_Saves_More"), function() self:openMore() end, "default", s == nil },
-              { "play", getText("UI_btn_play"), function() self:play() end, "primary", why ~= nil } })
+              { "play", getText("UI_btn_play"), function() self:play() end, "primary", why ~= nil, ZeD.tr("UI_ZeD_MMHelp_PlaySave") } })
     end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
 
 function ZeD_MMLoad:render()
-    drawStripAndButtons(self, self._stripY, self._stripH, self._ask)
+    drawStripAndButtons(self)
     ZeD_Window.render(self)
+end
+
+-- the footer line when nothing is under the pointer
+function ZeD_MMLoad:getStatusLine()
+    local n = #self.saves
+    return ZeD.tr(n == 1 and "UI_ZeD_Saves_CountOne" or "UI_ZeD_Saves_CountMany", n)
 end
 
 function ZeD_MMLoad:drawList(x, y, w, h)
@@ -534,8 +515,8 @@ function ZeD_MMLoad:drawList(x, y, w, h)
     -- the box and the Find row
     insetBox(self, x, y, w, h)
     local fH = T.px(FIND_H)
-    self:drawRect(x + T.px(1), y + T.px(1), w - 2 * T.px(1), fH - T.px(1), 1, s2.r, s2.g, s2.b)
-    self:drawRect(x, y + fH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
+    ZeD.Surface.fill(self, x + T.px(1), y + T.px(1), w - 2 * T.px(1), fH - T.px(1), "surf2")
+    ZeD.Atoms.drawDividerH(self, x, y + fH, w, true)
     local f2, c = T.fontF2, T.text
     local label = ZeD.tr("UI_ZeD_Saves_Find")
     self:drawText(label, x + T.px(8), y + math.floor((fH - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
@@ -565,8 +546,9 @@ function ZeD_MMLoad:drawList(x, y, w, h)
         if r.head then
             if visible then
                 local hid = "load:head:" .. r.mode
-                ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), ZeD.upper(MM.modeName(r.mode)), r.count,
-                    not self.collapsed[r.mode], MM.ctx.hot == hid, T.fontF1, true, T.px(8), rh)
+                -- (a head half-scrolled out would claim a place outside the pane: it waits until it is wholly in)
+                if ry >= vy and ry + rh <= vy + vh then ZeD.Molecules.drawSectionHeader(self, x + T.px(1) + T.px(8), ry, rw - T.px(8), MM.modeName(r.mode), r.count,
+                    not self.collapsed[r.mode], MM.ctx.hot == hid, T.fontF1, true, T.px(8), rh) end
                 local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
                 self._hits[#self._hits + 1] = { id = hid, x = ax + x, y = ay + cy, w = rw, h = ch,
                     fn = function() self.collapsed[r.mode] = not self.collapsed[r.mode]; self:filter() end }
@@ -579,9 +561,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
             self._specs[#self._specs + 1] = { id = sid, listRow = true, row = idx, col = 1, fn = function() self:play() end, key = s.key, ry = ry + self.scroll - vy, rh = rh }
             if visible then
                 local isSel = (s.key == self.sel)
-                local ac = T.accent
-                if gp and self.focusId == sid then self:drawRect(x + T.px(1), ry, rw, rh, 0.55, ac.r, ac.g, ac.b)
-                elseif isSel then self:drawRect(x + T.px(1), ry, rw, rh, 0.22, ac.r, ac.g, ac.b) end
+                local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, isSel, (not gp) and MM.ctx.hot == "load:" .. sid, gp and self.focusId == sid)
                 self:drawRect(x + T.px(1), ry + rh - T.px(1), rw, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
                 -- thumbnail
                 local tsz = T.px(ROW_THUMB)
@@ -592,14 +572,15 @@ function ZeD_MMLoad:drawList(x, y, w, h)
                 end
                 if s.thumb then self:drawTextureScaledAspect(s.thumb, tx, ty, tsz, tsz, 1, 1, 1, 1)
                 else local s3 = T.surf3; self:drawRect(tx, ty, tsz, tsz, 1, s3.r, s3.g, s3.b) end
-                self:drawRectBorder(tx, ty, tsz, tsz, T.border.a, T.border.r, T.border.g, T.border.b)
+                ZeD.Atoms.frame(self, tx, ty, tsz, tsz, T.border)
                 -- the character, then the save and its map
                 local ix = tx + tsz + T.px(10)
                 local maxW = x + rw - T.px(8) - ix
                 local f2b, f3, d = T.fontF2, T.fontF3, T.textDim
                 local lx = ix
                 local name = s.who or s.title
-                local nameC = s.dead and d or T.textHead
+                local nameC = onFocus and T.textOnFocus or (s.dead and d or T.textHead)
+                if onFocus then d = T.textOnFocus end
                 local l1y = ry + T.px(7)
                 if s.dead then
                     local dsz = T.px(7)
@@ -611,6 +592,7 @@ function ZeD_MMLoad:drawList(x, y, w, h)
                 self:drawText(ZeD.Atoms.truncateText(sub, f3, maxW), ix, ry + rh - T.px(7) - MM.fontH(f3), d.r, d.g, d.b, d.a or 1, f3)
                 local cy, ch = math.max(ry, vy), math.min(ry + rh, vy + vh) - math.max(ry, vy)
                 self._hits[#self._hits + 1] = { id = "load:" .. sid, x = ax + x, y = ay + cy, w = rw, h = ch, fn = function() self:clickSave(s) end }
+                if MM.ctx.hot == "load:" .. sid and not gp then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_SaveRow")) end
             end
         end
         ry = ry + rh
@@ -647,7 +629,7 @@ end
 function ZeD_MMLoad:drawPreview(x, y, w, h)
     local T = ZeD.T
     local bs = T.borderS
-    self:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, x, y, w, h, bs)
     local s = self:selected()
     if not s then return end
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
@@ -668,7 +650,7 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         local s3 = T.surf3
         self:drawRect(ix, cy, iw, th, 1, s3.r, s3.g, s3.b)
     end
-    self:drawRectBorder(ix, cy, iw, th, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, ix, cy, iw, th, bs)
     cy = cy + th + T.px(10)
     -- the character, large; the save, a medium heading
     local tc = T.textHead
@@ -710,7 +692,7 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         cy = cy + kvH
     end
     kv(ZeD.tr("UI_ZeD_Saves_KvMode"), MM.modeName(s.mode))
-    kv(ZeD.upper(ZeD.trBare("UI_servers_Map")), MM.mapText(s.mapName))
+    kv(ZeD.textCase(ZeD.trBare("UI_servers_Map")), MM.mapText(s.mapName))
     kv(ZeD.tr("UI_ZeD_Saves_KvPlayed"), s.played)
     -- mods: names, and any the game cannot find
     local names, missing = {}, {}
@@ -726,8 +708,8 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         end
     end)
     local modsText = (#names > 0) and table.concat(names, ", ") or ((#missing > 0) and ZeD.tr("UI_ZeD_Saves_ModsMissing", #missing) or ZeD.tr("IGUI_None"))
-    kv(ZeD.upper(ZeD.trBare("UI_LoadGameScreen_Mods")), modsText)
-    kv(ZeD.upper(ZeD.tr("Version")), tostring(s.info.worldVersion or "?"))
+    kv(ZeD.textCase(ZeD.trBare("UI_LoadGameScreen_Mods")), modsText)
+    kv(ZeD.textCase(ZeD.tr("Version")), tostring(s.info.worldVersion or "?"))
     -- PLAYING AS: a list box when the save has more than one character to play
     local opts = self:playerOptions(s)
     if #opts > 1 then
@@ -736,13 +718,8 @@ function ZeD_MMLoad:drawPreview(x, y, w, h)
         local cw = math.min(vw, math.max(T.px(160), MM.textW(f2, s.who or "") + T.px(40)))
         local cx0, cyy, ch = vx, cy + math.floor((T.px(26) - T.px(24)) / 2), T.px(24)
         local hid = "load:players"
-        local s2c = (MM.ctx.hot == hid) and T.surf3 or T.surf2
-        self:drawRect(cx0, cyy, cw, ch, 1, s2c.r, s2c.g, s2c.b)
-        self:drawRectBorder(cx0, cyy, cw, ch, bs.a, bs.r, bs.g, bs.b)
-        local c = T.text
         local cur = s.info.playerAlive and (s.who or "") or getText("UI_LoadGameScreen_NoPlayer1")
-        self:drawText(ZeD.Atoms.truncateText(cur, f2, cw - T.px(30)), cx0 + T.px(8), cyy + math.floor((ch - MM.fontH(f2)) / 2), c.r, c.g, c.b, c.a or 1, f2)
-        ZeD.Atoms.drawTriangleDown(self, cx0 + cw - T.px(16), cyy + math.floor((ch - T.px(5)) / 2), T.px(8), T.textDim)
+        MM.drawDropBox(self, cx0, cyy, cw, ch, cur, MM.ctx.hot == hid)
         local anchor = { x = ax + cx0, y = ay + cyy, w = cw, h = ch }
         self._hits[#self._hits + 1] = { id = hid, x = anchor.x, y = anchor.y, w = cw, h = ch, fn = function() self:openPlayers(anchor) end, sound = true }
         cy = cy + T.px(26)
@@ -956,7 +933,7 @@ function ZeD_MMNewGame:prerender()
     local L = MM.layout()
     local pad, gap = T.px(U.STACK_PAD), T.px(U.STACK_GAP)
     local tb = T.titleBarH
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     -- measure: the icon grid, then the description box
     local m = math.min(T.px(MARGIN), math.floor(L.tw / 40))
     local w = L.tw - m * 2
@@ -999,7 +976,6 @@ function ZeD_MMNewGame:prerender()
     local gx, gy = pad, tb + pad
     insetBox(self, gx, gy, gridW, gridH)
     local gp = MM.gamepad()
-    local ac = T.accent
     for i, it in ipairs(items) do
         local r, c = math.floor((i - 1) / cols), (i - 1) % cols
         local cx = gx + T.px(6) + c * cellW
@@ -1007,30 +983,27 @@ function ZeD_MMNewGame:prerender()
         if cy + cellH <= gy + gridH then
             local isSel = (i == self.sel)
             local fid = "icon:" .. i
-            if gp and self.focusId == fid then self:drawRect(cx, cy, cellW, cellH, 0.55, ac.r, ac.g, ac.b) end
+            -- the chosen cell: the accent wash; the pointer's: T.hover; the controller's: its mark
+            local onFocus = MM.rowLook(self, cx, cy, cellW, cellH, isSel, (not gp) and MM.ctx.hot == "newgame:" .. fid, gp and self.focusId == fid)
             local tex = it.thumb and getTexture(it.thumb) or nil
             local ix, iy = cx + math.floor((cellW - iconW) / 2), cy + T.px(8)
             if tex then
-                local k = isSel and 0.62 or 1   -- the chosen icon darkens, as a selected icon did
                 -- a wide picture (a challenge's screenshot) sits on its label, not mid-box
                 local tw0, th0 = tex:getWidth(), tex:getHeight()
                 local dh = iconH
                 if tw0 > 0 and th0 > 0 and tw0 / th0 > iconW / iconH then dh = math.floor(iconW * th0 / tw0) end
-                self:drawTextureScaledAspect(tex, ix, iy + iconH - dh, iconW, dh, 1, k, k, k)
+                self:drawTextureScaledAspect(tex, ix, iy + iconH - dh, iconW, dh, 1, 1, 1, 1)
             end
             local title = it.challenge and (getTextOrNull(it.title) or it.title) or getText(it.title)
             title = ZeD.Atoms.truncateText(title, f2, cellW - T.px(6))
             local tw = MM.textW(f2, title)
             local lx, ly = cx + math.floor((cellW - tw) / 2), iy + iconH + T.px(8)
-            local tc = T.text
-            if isSel then
-                self:drawRect(lx - T.px(7), ly - T.px(1), tw + 2 * T.px(7), labelH, 1, ac.r, ac.g, ac.b)
-                tc = T.textOnAccent
-            end
+            local tc = onFocus and T.textOnFocus or T.text
             self:drawText(title, lx, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
             self._specs[#self._specs + 1] = { id = fid, listRow = true, row = r + 1, col = c + 1, fn = function() self:next() end, index = i,
                                               x = cx, y = cy, w = cellW, h = cellH }
             self._hits[#self._hits + 1] = { id = "newgame:" .. fid, x = ax + cx, y = ay + cy, w = cellW, h = cellH, fn = function() self:clickIcon(i) end }
+            if MM.ctx.hot == "newgame:" .. fid and not gp then ZeD.Help.set(self, ZeD.tr("UI_ZeD_MMHelp_GameIcon")) end
         end
     end
 
@@ -1051,17 +1024,16 @@ function ZeD_MMNewGame:prerender()
         end
     end
 
-    -- the action strip
+    -- the band at the foot
     local stripY = self.height - self:footerHeight() - stripH
     stripSpecs(self, stripY, self.width, 1000,
         { { "back", getText("UI_btn_back"), function() self:back() end } },
         { { "mods", getText("UI_NewGame_ChooseMods"), function() self:chooseMods() end },
           { "next", getText("UI_btn_next"), function() self:next() end, "primary", d == nil } })
-    self._stripY, self._stripH = stripY, stripH
 end
 
 function ZeD_MMNewGame:render()
-    drawStripAndButtons(self, self._stripY, self._stripH, nil)
+    drawStripAndButtons(self)
     ZeD_Window.render(self)
 end
 

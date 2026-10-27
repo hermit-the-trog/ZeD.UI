@@ -7,8 +7,9 @@
 --
 -- Every vanilla question, note, text box, long rich-text note, Set Alarm and
 -- Set Timer opens this instead: the striped bar with the close box and no
--- title, vanilla's words in the body, the answers in the footer on the right
--- (the main answer last). The game gets vanilla's own answer back: the same
+-- title, vanilla's words in the body, the answers in a band at the foot on
+-- the right (the main answer last), and the window's help line under it. The
+-- game gets vanilla's own answer back: the same
 -- callback with the same arguments, a real ISButton as the button (internal
 -- "YES" / "NO" / "OK" / "CANCEL", parent = this prompt), and the same fields
 -- callers read and write (entry, param1..4, prevFocus, anything they add).
@@ -23,8 +24,8 @@
 --
 -- Mouse: clicks are hit-tested here (the prompt is a top-level panel; only the
 -- text fields are children). Controller: a small focus grid (rows of ids),
--- A presses, B is No / Cancel, the D-pad moves or steps; the strip under the
--- footer names the buttons.
+-- A presses, B is No / Cancel, the D-pad moves or steps; the help line names
+-- the buttons.
 -- ============================================================================
 
 require "ISUI/ISButton"
@@ -44,10 +45,10 @@ local U = {
     PAD_L = 16, PAD_R = 18, PAD_T = 16, PAD_B = 18,
     MSG_MIN = 220, MSG_MAX = 400,
     MIN_W = 300, TEXT_W = 340, ALARM_W = 300, RICH_W = 440, RICH_MAX_H = 420,
-    FOOT_H = 40, FOOT_PAD = 12, BTN_H = 24, BTN_MIN = 78, BTN_PAD = 12, BTN_GAP = 12,
+    BAND_EDGE = 8, BAND_GAP = 8,   -- (the band's own: M.drawBand)
     LABEL_GAP = 6, WHY_GAP = 7, HEAD_GAP = 8,
-    ROW_H = 34, STEP = 22, STEP_GAP = 6, VAL_W = 44, TICK_ROW = 30,
-    SM_H = 22, SM_PAD = 7, SM_GAP = 4, TVAL_W = 64,
+    ROW_H = 34, STEP_GAP = 6, VAL_W = 44, TICK_ROW = 30,
+    SM_PAD = 7, SM_GAP = 4, TVAL_W = 64,
     SWATCH = 18, SWATCH_GAP = 6,
     PARA_GAP = 10, MARGIN = 8,
 }
@@ -252,7 +253,6 @@ function ZeD_Prompt:new(kind, cx, cy, player)
     local o = ZeD_Window.new(self, 0, 0, 100, 100, "")
     o.kind = kind
     o.resizable = false
-    o.themeFooter = false
     o.pin = true
     -- vanilla's fields callers read or write (colours are kept, never drawn)
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0.8 }
@@ -592,6 +592,19 @@ function ZeD_Prompt:answerCancel()
 end
 
 -- ---------------------------------------------------------------------------
+-- ZeD_Window's per-frame work, without its close box: the small windows (this one, the
+-- keyboard, Messages, the Reader, the seat chooser) answer their close box themselves, but
+-- the window box's press and release and the resize edges are the window's.
+-- ---------------------------------------------------------------------------
+function P.updateChrome(win)
+    local cb = win._closeBtnRect
+    win._closeBtnRect = nil
+    local ok, err = pcall(ZeD_Window.update, win)
+    win._closeBtnRect = cb
+    if not ok then error(err, 0) end
+end
+
+-- ---------------------------------------------------------------------------
 -- the list of prompts on screen (Escape and Enter go to the one on top)
 -- ---------------------------------------------------------------------------
 function ZeD_Prompt:addToUIManager()
@@ -635,10 +648,22 @@ end
 -- ---------------------------------------------------------------------------
 -- LAYOUT — every frame from the live tokens; geometry in self._g (local px)
 -- ---------------------------------------------------------------------------
-local function buttonWidth(b)
-    local T = ZeD.T
-    return math.max(T.px(U.BTN_MIN), tw(T.fontF3, ZeD.btnCase(ZeD.upper(b.title))) + T.px(U.BTN_PAD) * 2)
+-- an answer's words as the button shows them: vanilla's title in sentence case (a mod's
+-- "Don't Save" reads "Don't save" like every other button)
+local function answerLabel(b)
+    return ZeD.btnCase(ZeD.upper(b.title))
 end
+
+local function buttonWidth(b)
+    return ZeD.Molecules.buttonW(answerLabel(b))
+end
+
+-- what the help line says while the pointer is over an answer, by the answer vanilla's
+-- button carries
+local ANSWER_HELP = {
+    YES = "UI_ZeD_Prompt_HelpYes", NO = "UI_ZeD_Prompt_HelpNo",
+    OK = "UI_ZeD_Prompt_HelpOk", CANCEL = "UI_ZeD_Prompt_HelpCancel",
+}
 
 -- answers in footer order: the secondary first, the main one last (on the right)
 function ZeD_Prompt:answers()
@@ -647,22 +672,31 @@ function ZeD_Prompt:answers()
     return { self.no, self.yes }
 end
 
-function ZeD_Prompt:stripPrompts()
+-- "D-pad Move" (a line of UI.json) as the button's picture and its words: the first word
+-- names the button
+local function padNote(s)
+    local first, rest = tostring(s):match("^(%S+)%s+(.+)$")
+    local PG = ZeD.PadGlyphs
+    if first and PG and PG.roles(ZeD.upper(first)) then return { glyph = ZeD.upper(first), label = rest } end
+    return tostring(s)   -- (a plain note: the line draws it dim)
+end
+P.padNote = padNote   -- (the keyboard's help line reads its D-pad prompt the same way)
+
+-- what the buttons do here, for the window's help line
+function ZeD_Prompt:padPrompts()
     local K, f = self.kind, self:focusId()
-    local noWord = function(b)
-        local t = tostring(b and b.title or "")
-        return ZeD.upper(t:sub(1, 1)) .. t:sub(2):lower()
-    end
-    local ok, press, cancel = ZeD.upper(ZeD.tr("UI_Ok")), ZeD.tr("UI_ZeD_Prompt_Press"), ZeD.tr("UI_Cancel")
-    local move, moveStep = ZeD.tr("UI_ZeD_Prompt_DPadMove"), ZeD.tr("UI_ZeD_Prompt_DPadMoveStep")
+    local noWord = self.no and answerLabel(self.no) or ZeD.tr("UI_No")
+    local ok = ZeD.btnCase(ZeD.upper(ZeD.tr("UI_Ok")))
+    local press, cancel = ZeD.tr("UI_ZeD_Prompt_Press"), ZeD.tr("UI_Cancel")
+    local move, moveStep = padNote(ZeD.tr("UI_ZeD_Prompt_DPadMove")), padNote(ZeD.tr("UI_ZeD_Prompt_DPadMoveStep"))
     if K == "note" then return { { glyph = "A", label = ok }, { glyph = "B", label = ok } } end
     if K == "rich" then
         local list = {}
-        if self._maxScroll and self._maxScroll > 0 then list[#list + 1] = ZeD.tr("UI_ZeD_Prompt_DPadScroll") end
+        if self._maxScroll and self._maxScroll > 0 then list[#list + 1] = padNote(ZeD.tr("UI_ZeD_Prompt_DPadScroll")) end
         if self.yesno then
             list[#list + 1] = move
             list[#list + 1] = { glyph = "A", label = press }
-            list[#list + 1] = { glyph = "B", label = noWord(self.no) }
+            list[#list + 1] = { glyph = "B", label = noWord }
         else
             list[#list + 1] = { glyph = "A", label = ok }
         end
@@ -674,7 +708,13 @@ function ZeD_Prompt:stripPrompts()
     end
     if K == "alarm" then return { moveStep, { glyph = "A", label = press }, { glyph = "B", label = ZeD.tr("UI_ZeD_Close") } } end
     if K == "timer" then return { moveStep, { glyph = "A", label = press }, { glyph = "B", label = cancel } } end
-    return { move, { glyph = "A", label = press }, { glyph = "B", label = noWord(self.no) } }
+    return { move, { glyph = "A", label = press }, { glyph = "B", label = noWord } }
+end
+
+-- the help line shows them while a controller holds the prompt (the help words, with the mouse)
+function ZeD_Prompt:getFooterPrompts()
+    if not self.joyfocus then return nil end
+    return self:padPrompts()
 end
 
 -- A field: the prompt draws the inset box (System 7 field: base fill, border, dark
@@ -709,8 +749,8 @@ function ZeD_Prompt:layout()
     local K = self.kind
     local g = { hits = {}, rows = {} }
     local tbH = T.titleBarH
-    local footH = T.px(U.FOOT_H)
-    local stripH = self.joyfocus and T.sp.scrollbarW or 0
+    local footH = ZeD.Molecules.bandH()   -- the band the answers sit in
+    local helpH = self:footerHeight()     -- and the help line under it
     local padL, padR, padT, padB = T.px(U.PAD_L), T.px(U.PAD_R), T.px(U.PAD_T), T.px(U.PAD_B)
     local l, t, sw, sh = screenBox(self:pnum())
     local maxW = sw - T.px(U.MARGIN) * 2
@@ -718,8 +758,8 @@ function ZeD_Prompt:layout()
     -- footer answers
     local answers = self:answers()
     local ansW = 0
-    for i, b in ipairs(answers) do ansW = ansW + buttonWidth(b) + (i > 1 and T.px(U.BTN_GAP) or 0) end
-    local minW = math.max(T.px(U.MIN_W), ansW + T.px(U.FOOT_PAD) * 2)
+    for i, b in ipairs(answers) do ansW = ansW + buttonWidth(b) + (i > 1 and T.px(U.BAND_GAP) or 0) end
+    local minW = math.max(T.px(U.MIN_W), ansW + T.px(U.BAND_EDGE) * 2)
 
     local w, bodyH
     if K == "question" or K == "note" or (K == "rich" and self.yesno) then
@@ -760,7 +800,7 @@ function ZeD_Prompt:layout()
             self._blocks = P.parseRich(text)
             self._contentH = layoutRich(self._blocks, cw)
         end
-        local maxBody = math.min(T.px(U.RICH_MAX_H), sh - tbH - footH - stripH - T.px(U.MARGIN) * 2 - padT)
+        local maxBody = math.min(T.px(U.RICH_MAX_H), sh - tbH - footH - helpH - T.px(U.MARGIN) * 2 - padT)
         local viewH = math.max(T.px(40), math.min(self._contentH, maxBody))
         self._maxScroll = math.max(0, self._contentH - viewH)
         self._scroll = clamp(self._scroll or 0, 0, self._maxScroll)
@@ -772,7 +812,7 @@ function ZeD_Prompt:layout()
         bodyH = padT + viewH + T.px(U.PARA_GAP)
     elseif K == "text" then
         local lblFont = T.fontF1
-        local label = ZeD.upper(self.text)
+        local label = ZeD.textCase(self.text)
         local callerW = T.px(self._vanillaW or 0)
         w = clamp(math.max(minW, T.px(U.TEXT_W), callerW, tw(lblFont, label) + padL + padR), minW, maxW)
         local y = tbH + padT
@@ -816,7 +856,7 @@ function ZeD_Prompt:layout()
         for _, row in ipairs({ { id = "hour", label = ZeD.tr("UI_ZeD_Prompt_Hour"), entry = self.hours }, { id = "minute", label = ZeD.tr("UI_ZeD_Prompt_Minute"), entry = self.mins } }) do
             local vh = boxH(row.entry)
             local rh = math.max(T.px(U.ROW_H), vh + T.px(8))
-            local st, gap, vw = T.px(U.STEP), T.px(U.STEP_GAP), T.px(U.VAL_W)
+            local st, gap, vw = T.buttonH, T.px(U.STEP_GAP), T.px(U.VAL_W)
             local right = w - padR
             local plus = { x = right - st, y = y + math.floor((rh - st) / 2), w = st, h = st }
             local val = { x = plus.x - gap - vw, y = y + math.floor((rh - vh) / 2), w = vw, h = vh }
@@ -838,7 +878,7 @@ function ZeD_Prompt:layout()
         bodyH = y - tbH + padB
     elseif K == "timer" then
         local lblFont = T.fontF1
-        local label = ZeD.upper(self.prompt or "")
+        local label = ZeD.textCase(self.prompt or "")
         local steps = { "-10", "-5", "-1", "+1", "+5", "+10" }
         local smW = {}
         local rowW = T.px(U.TVAL_W)
@@ -848,11 +888,11 @@ function ZeD_Prompt:layout()
         g.label = { x = padL, y = y, text = label, font = lblFont }
         y = y + fh(lblFont) + T.px(U.HEAD_GAP)
         local tvh = boxH(self.textBox)
-        local rh = math.max(tvh, T.px(U.SM_H)) + T.px(12)
+        local rh = math.max(tvh, T.buttonH) + T.px(12)
         local x = math.floor((w - rowW) / 2)
         g.small = {}
         for i, s in ipairs(steps) do
-            local r = { x = x, y = y + math.floor((rh - T.px(U.SM_H)) / 2), w = smW[i], h = T.px(U.SM_H), text = s, id = "t" .. s }
+            local r = { x = x, y = y + math.floor((rh - T.buttonH) / 2), w = smW[i], h = T.buttonH, text = s, id = "t" .. s }
             g.small[#g.small + 1] = r
             g.hits[#g.hits + 1] = { id = r.id, x = r.x, y = r.y, w = r.w, h = r.h }
             x = x + smW[i] + T.px(U.SM_GAP)
@@ -868,20 +908,21 @@ function ZeD_Prompt:layout()
         bodyH = y - tbH + padB
     end
 
-    -- footer, answers right-aligned (the main one last)
-    local h = tbH + bodyH + footH + stripH
+    -- the band at the foot, answers right-aligned (the main one last), then the help line.
+    -- The rects are where M.drawBand puts the buttons: 8u from the right edge, 8u apart,
+    -- 5u below the band's top.
+    local h = tbH + bodyH + footH + helpH
     g.foot = { y = tbH + bodyH, h = footH }
-    local bh = T.px(U.BTN_H)
-    local bx = w - T.px(U.FOOT_PAD) - ansW
+    local bh = T.buttonH
+    local bx = w - T.px(U.BAND_EDGE) - ansW
     g.buttons = {}
     for i, b in ipairs(answers) do
         local bw = buttonWidth(b)
-        local r = { x = bx, y = g.foot.y + math.floor((footH - bh) / 2), w = bw, h = bh, b = b, id = b.internal }
+        local r = { x = bx, y = g.foot.y + T.px(5), w = bw, h = bh, b = b, id = b.internal }
         g.buttons[#g.buttons + 1] = r
         g.hits[#g.hits + 1] = { id = "btn" .. i, x = r.x, y = r.y, w = r.w, h = r.h, b = b }
-        bx = bx + bw + T.px(U.BTN_GAP)
+        bx = bx + bw + T.px(U.BAND_GAP)
     end
-    if stripH > 0 then g.strip = { y = h - stripH, h = stripH } end
 
     -- size and place: the first time from the anchor, then keeping the centre
     local oldW, oldH = self.width, self.height
@@ -946,26 +987,29 @@ P.SWATCHES = {
 -- ---------------------------------------------------------------------------
 -- DRAWING
 -- ---------------------------------------------------------------------------
--- a button as the menus draw theirs: hover 0.22 / focus 0.55 accent under it,
--- the label in the text colour over a focus fill; off = faded default
-local function drawAnswer(p, r, label, variant, state, off)
-    local T = ZeD.T
-    if off then
-        local sb, st = T.borderS, T.text
-        T.borderS = ZeD.colorAlpha(sb, (sb.a or 1) * 0.38)
-        T.text = ZeD.colorAlpha(st, (st.a or 1) * 0.38)
-        ZeD.Molecules.drawButton(p, r.x, r.y, r.w, r.h, label, "default", false)
-        T.borderS, T.text = sb, st
-        return
-    end
-    local ac = T.accent
-    local colors = nil
-    if state == "focus" then
-        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.55 }, text = T.textOnFocus }
-    elseif state == "hover" then
-        colors = { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } }
-    end
-    ZeD.Molecules.drawButton(p, r.x, r.y, r.w, r.h, label, variant or "default", state == "down", colors)
+-- The prompt keeps a focus grid of its own (it is not under FocusManager), so its marks say
+-- what has the focus themselves (focused) and that a controller holds it (pad).
+local _fo = {}
+local function focusOpts(self)
+    _fo.win, _fo.focused, _fo.pad = self, true, true
+    return _fo
+end
+
+-- the mark on the focused row, under its words; true when the words go to the focus ink
+local function markRow(self, r)
+    if not r then return false end
+    return ZeD.Focus.mark(self, r.x, r.y, r.w, r.h, focusOpts(self)) and true or false
+end
+
+-- a push button of the stepper rows (-, +, -10 ... +10): hover wash, help line, the
+-- controller's mark; the label in sentence case through the button itself
+local _ab = {}
+local function drawAnswer(self, r, label, variant, state, help)
+    local o = _ab
+    o.hover = state == "hover" or state == "down"
+    o.focus = state == "focus" and focusOpts(self) or nil
+    o.help, o.win, o.disabled = help, self, false
+    ZeD.Molecules.drawButton(self, r.x, r.y, r.w, r.h, label, variant or "default", state == "down", nil, o)
 end
 
 -- the menus' inset box (System 7 field look) around a field child
@@ -985,6 +1029,10 @@ function ZeD_Prompt:stateOf(id)
     return nil
 end
 
+-- the band's answers, one table per answer kept between frames
+local _bandBtns = {}
+local _bandSpec = { buttons = _bandBtns }
+
 function ZeD_Prompt:prerender()
     local T = ZeD.T
     -- the player's questions wear the Character window's accent when it has its own
@@ -999,13 +1047,15 @@ function ZeD_Prompt:prerender()
     self.minimumWidth, self.minimumHeight = 0, 0
     local g = self._g
     local A, M = ZeD.Atoms, ZeD.Molecules
-    local tc, ac = T.text, T.accent
+    local tc = T.text
     local w = self.width
     local focusOn = self.joyfocus ~= nil
-    local function rowFill(r) if r then self:drawRect(r.x, r.y, r.w, r.h, 0.55, ac.r, ac.g, ac.b) end end
+    local fid = focusOn and self:focusId() or nil
+    local hv = T.hover
 
-    -- the controller's focus: the row under it, first (the boxes and words go over it)
-    if focusOn and g.rowFocus then rowFill(g.rowFocus[self:focusId() or ""]) end
+    -- the controller's mark on the focused row first (the boxes and words go over it)
+    local onField = fid == "field" and markRow(self, g.rowFocus and g.rowFocus.field)
+    local onValue = fid == "value" and markRow(self, g.rowFocus and g.rowFocus.value)
     -- the fields' boxes (the field children draw their text over them)
     for _, r in ipairs(g.boxes or {}) do insetBox(self, r) end
     -- mark + words
@@ -1021,23 +1071,33 @@ function ZeD_Prompt:prerender()
     end
     -- the text prompt
     if g.field then
-        local lc = (focusOn and self:focusId() == "field") and tc or ac
+        local lc = onField and T.textOnFocus or T.textHead
         self:drawText(g.label.text, g.label.x, g.label.y, lc.r, lc.g, lc.b, lc.a or 1, g.label.font)
     end
     if g.swatches then
+        local sel = T.selectionA or 0.3
+        local ac = T.accent
+        local halo = T.px(3)
         for i, r in ipairs(g.swatches) do
             local c = r.c
             local st = self:stateOf("sw" .. i)
-            if st == "focus" then self:drawRect(r.x - T.px(3), r.y - T.px(3), r.w + 2 * T.px(3), r.h + 2 * T.px(3), 0.55, ac.r, ac.g, ac.b) end
-            self:drawRect(r.x, r.y, r.w, r.h, 1, c.r, c.g, c.b)
             local cur = self.currentColor
-            local sel = cur and math.abs(cur:getR() - c.r) < 0.01 and math.abs(cur:getG() - c.g) < 0.01 and math.abs(cur:getB() - c.b) < 0.01
-            local bc = sel and ac or T.borderS
+            local picked = cur and math.abs(cur:getR() - c.r) < 0.01 and math.abs(cur:getG() - c.g) < 0.01 and math.abs(cur:getB() - c.b) < 0.01
+            -- the current colour sits on the selection wash, the pointed one on the hover wash
+            if picked then
+                self:drawRect(r.x - halo, r.y - halo, r.w + 2 * halo, r.h + 2 * halo, sel, ac.r, ac.g, ac.b)
+            elseif st == "hover" or st == "down" then
+                self:drawRect(r.x - halo, r.y - halo, r.w + 2 * halo, r.h + 2 * halo, hv.a or 1, hv.r, hv.g, hv.b)
+            end
+            if st == "focus" then markRow(self, r) end
+            self:drawRect(r.x, r.y, r.w, r.h, 1, c.r, c.g, c.b)
+            local bc = T.borderS
             self:drawRectBorder(r.x, r.y, r.w, r.h, bc.a or 1, bc.r, bc.g, bc.b)
+            if st == "hover" or st == "down" then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Prompt_HelpSwatch")) end
         end
     end
     if g.why then
-        local dsz = T.px(7)
+        local dsz = T.px(6)
         local f2 = T.fontF2
         A.drawStatusDot(self, g.why.x, g.why.y + math.floor((fh(f2) - dsz) / 2), T.danger, dsz)
         self:drawText(A.truncateText(g.why.text, f2, w - g.why.x * 2 - dsz - T.px(7)), g.why.x + dsz + T.px(7), g.why.y, tc.r, tc.g, tc.b, tc.a or 1, f2)
@@ -1046,24 +1106,36 @@ function ZeD_Prompt:prerender()
     if g.head then self:drawText(g.head.text, g.head.x, g.head.y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2) end
     if g.steppers then
         for _, s in ipairs(g.steppers) do
-            local f = focusOn and self:focusId() == s.id
-            local lc = f and tc or ac
+            local on = markRow(self, focusOn and fid == s.id and g.rowFocus[s.id] or nil)
+            local lc = on and T.textOnFocus or T.textHead
             self:drawText(s.label, T.px(U.PAD_L), s.ly, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
-            drawAnswer(self, s.minus, "-", "default", (not focusOn) and self:stateOf(s.id .. "-") or nil)
-            drawAnswer(self, s.plus, "+", "default", (not focusOn) and self:stateOf(s.id .. "+") or nil)
+            local hourly = s.id == "hour"
+            drawAnswer(self, s.minus, "-", "default", (not focusOn) and self:stateOf(s.id .. "-") or nil,
+                ZeD.tr(hourly and "UI_ZeD_Prompt_HelpHourDown" or "UI_ZeD_Prompt_HelpMinuteDown"))
+            drawAnswer(self, s.plus, "+", "default", (not focusOn) and self:stateOf(s.id .. "+") or nil,
+                ZeD.tr(hourly and "UI_ZeD_Prompt_HelpHourUp" or "UI_ZeD_Prompt_HelpMinuteUp"))
         end
     end
     if g.tick then
-        local f = focusOn and self:focusId() == "tick"
-        A.drawCheckbox(self, g.tick.x, g.tick.y, self._alarmOn, (not focusOn) and self._hover == "tick", false)
-        self:drawText(g.tick.label, g.tick.x + g.tick.sz + T.px(8), g.tick.ly, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+        local row = g.rowFocus.tick
+        local on = markRow(self, focusOn and fid == "tick" and row or nil)
+        local hover = (not focusOn) and self._hover == "tick"
+        if hover and row then
+            self:drawRect(row.x, row.y, row.w, row.h, hv.a or 1, hv.r, hv.g, hv.b)
+            ZeD.Help.set(self, ZeD.tr("UI_ZeD_Prompt_HelpTick"))
+        end
+        A.drawCheckbox(self, g.tick.x, g.tick.y, self._alarmOn, hover, false)
+        local lc = on and T.textOnFocus or tc
+        self:drawText(g.tick.label, g.tick.x + g.tick.sz + T.px(8), g.tick.ly, lc.r, lc.g, lc.b, lc.a or 1, T.fontF2)
     end
     -- the timer
     if g.small then
-        local lc = (focusOn and self:focusId() == "value") and tc or ac
+        local lc = onValue and T.textOnFocus or T.textHead
         self:drawText(g.label.text, g.label.x, g.label.y, lc.r, lc.g, lc.b, lc.a or 1, g.label.font)
         for _, r in ipairs(g.small) do
-            drawAnswer(self, r, r.text, "default", (not focusOn) and self:stateOf(r.id) or nil)
+            local more = r.text:sub(1, 1) == "+"
+            drawAnswer(self, r, r.text, "default", (not focusOn) and self:stateOf(r.id) or nil,
+                ZeD.tr(more and "UI_ZeD_Prompt_HelpTimerMore" or "UI_ZeD_Prompt_HelpTimerLess", r.text:sub(2)))
         end
     end
     -- the long note (clipped to its view, scrolled as one)
@@ -1098,25 +1170,28 @@ function ZeD_Prompt:prerender()
         end
     end
 
-    -- footer: the action zone
+    -- the band: the answers, the main one last (the help line below it is the window's)
     local f = g.foot
-    local s2 = T.surf2
-    self:drawRect(T.px(1), f.y, w - T.px(2), f.h, s2.a or 1, s2.r, s2.g, s2.b)
-    A.drawDividerH(self, T.px(1), f.y, w - T.px(2), false)
+    local n = #g.buttons
     for i, r in ipairs(g.buttons) do
         local b = r.b
         local variant = "default"
-        if i == #g.buttons then variant = g.costly and "danger" or "primary" end
+        if i == n then variant = g.costly and "danger" or "primary" end
         local id = (b == self.yes and "yes") or (b == self.no and "no") or "ok"
         local st = focusOn and (self:focusId() == id and "focus" or nil) or self:stateOf("btn" .. i)
-        drawAnswer(self, r, ZeD.upper(b.title), variant, st, b.enable == false)
+        local e = _bandBtns[i]
+        if not e then e = {}; _bandBtns[i] = e end
+        e.label, e.variant, e.id = answerLabel(b), variant, id
+        e.disabled = b.enable == false
+        e.hover = st == "hover" or st == "down"
+        e.pressed = st == "down"
+        e.focus = st == "focus" and focusOpts(self) or nil
+        local hk = ANSWER_HELP[b.internal]
+        e.help = (e.disabled and self._why and self._why ~= "") and self._why or (hk and ZeD.tr(hk) or nil)
     end
-    -- the controller's strip: what the buttons do here
-    if g.strip then
-        self:drawRect(T.px(1), g.strip.y, w - T.px(2), g.strip.h, s2.a or 1, s2.r, s2.g, s2.b)
-        A.drawDividerH(self, T.px(1), g.strip.y, w - T.px(2), false)
-        M.drawGlyphPrompts(self, T.sp.sm, g.strip.y, g.strip.h, self:stripPrompts())
-    end
+    for i = #_bandBtns, n + 1, -1 do _bandBtns[i] = nil end
+    _bandSpec.win = self
+    M.drawBand(self, 0, f.y, w, _bandSpec)
 end
 
 function ZeD_Prompt:render()
@@ -1152,6 +1227,8 @@ function ZeD_Prompt:onMouseDown(x, y)
     local tbH = self:titleBarHeight()
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then self._down = "close"; return true end
+    -- the window box answers on release (P.updateChrome): a press on it does not drag
+    if inRect(self:windowBoxRect(), x, y) then return true end
     if y < tbH then
         -- drag by the title bar (no window shade on a prompt)
         self.moving = true
@@ -1227,7 +1304,7 @@ function ZeD_Prompt:onMouseWheel(del)
 end
 
 function ZeD_Prompt:update()
-    ISPanel.update(self)
+    P.updateChrome(self)
     -- the controller that holds this prompt (a caller may set .focus without telling it)
     local jf = nil
     if JoypadState and JoypadState.players then
@@ -1247,6 +1324,7 @@ function ZeD_Prompt:update()
     self._hover = h and h.id or nil
     local cb = self:closeRect()
     self._closeHover = cb and inRect(cb, x, y) or false
+    if self._closeHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
     -- vanilla's alarm closes when the character takes a step
     if self.kind == "alarm" and self.character and self.playerX then
         if math.abs(self.character:getX() - self.playerX) > 0.1 or math.abs(self.character:getY() - self.playerY) > 0.1 then

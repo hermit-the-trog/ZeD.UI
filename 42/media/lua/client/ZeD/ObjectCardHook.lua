@@ -3,13 +3,14 @@
 -- OBJECT CARD: BUTCHER HOOK (HOOK_MAP row 22; mockup zed_animal_cards_v1.html)
 -- Vanilla's Butcher Hook window becomes a work card in the World window's
 -- card drawer:
---   * empty hook: DEAD ANIMALS NEARBY (within 2 tiles of you or carried) with
---     HANG; the ones the hook does not take say so in vanilla's words;
+--   * empty hook: Dead animals nearby (within 2 tiles of you or carried) with
+--     Hang; the ones the hook does not take say so in vanilla's words;
 --   * a carcass: vanilla's 3D figure (an ISCharacterScreenAvatar child of the
---     card, as the vanilla window builds it) beside LEATHER / BLOOD / HEAD /
---     MEAT, each with GATHER; BLOOD gathers into a container picked under
---     COLLECT INTO or BLEEDs onto the ground; a progress band while you work
---     (STOP for your own actions); REMOVE CORPSE; the knife as the NEEDS line.
+--     card, as the vanilla window builds it) beside Leather / Blood / Head /
+--     Meat, each with Gather; Blood gathers into a container picked under
+--     Collect into or Bleeds onto the ground; a progress strip while you work
+--     (Stop for your own actions); Remove corpse (it acts at once: the
+--     carcass can be hung again); the knife is what a hidden Gather needs.
 -- Vanilla's butchering actions talk to their window ("luaHook": doingAction,
 -- actionText, updateProgressBar, updateCorpseDatas, onAddedCorpse,
 -- onClickRemoveCorpse, resetCorpse, getBuckets; Java calls back through
@@ -35,6 +36,8 @@ local function txt(k, fb, arg)
     return s or fb or k
 end
 local function col(c) return c.r, c.g, c.b end
+-- vanilla's part labels end in a colon ("Leather:"): the bare word
+local function bare(s) return (string.gsub(s, ":%s*$", "")) end
 local function notBroken(item) return not item:isBroken() end
 local function L(v) return string.format("%.2f L", v or 0) end
 
@@ -267,17 +270,24 @@ function def.refresh(t, player)
     if not d.animal then d.corpses = corpsesNear(player) end
     t.d = d
 
-    local verbs, needs = {}, {}
+    local verbs = {}
     if d.animal then
-        verbs[#verbs + 1] = { id = "remove", label = ZeD.upper(txt("IGUI_ButcherHook_RemoveCorpse", "Remove Corpse")),
-            enabled = not d.busy, run = function(p, tt) removeCorpse(p, tt) end }
-        if not d.knife then needs[#needs + 1] = txt("Tooltip_Animal_NoKnifeButcher", "Need a Knife.") end
+        -- the parts below carry their own Gather buttons; without a knife there are none, and this
+        -- one (never pressed) is where the knife shows as what the gathering needs
+        if not d.knife then
+            verbs[#verbs + 1] = { id = "gather", label = txt("IGUI_ButcherHook_Gather", "Gather"), enabled = false,
+                needs = ZeD.tr("UI_ZeD_Hook_NeedsKnife"), hint = ZeD.tr("UI_ZeD_Hook_HintGather"), help = ZeD.tr("UI_ZeD_Hook_HelpGather") }
+        end
+        -- taking the carcass off the hook can be undone (hang it again): no question
+        verbs[#verbs + 1] = { id = "remove", label = txt("IGUI_ButcherHook_RemoveCorpse", "Remove Corpse"),
+            enabled = not d.busy, help = ZeD.tr("UI_ZeD_Hook_HelpRemove"),
+            run = function(p, tt) removeCorpse(p, tt) end }
     else
-        verbs[#verbs + 1] = { id = "add", label = ZeD.upper(txt("ContextMenu_AddCorpse", "Add Corpse")), primary = true,
-            enabled = not d.busy and d.corpses and #d.corpses > 0, jump = "hook:hang:1" }
+        verbs[#verbs + 1] = { id = "add", label = txt("ContextMenu_AddCorpse", "Add Corpse"), primary = true,
+            enabled = not d.busy and d.corpses and #d.corpses > 0, jump = "hook:hang:1",
+            needs = ZeD.tr("UI_ZeD_Hook_NeedsCorpse"), hint = ZeD.tr("UI_ZeD_Hook_HintHang"), help = ZeD.tr("UI_ZeD_Hook_HelpAdd") }
     end
-    if d.inUse then needs[#needs + 1] = ZeD.tr("UI_ZeD_Hook_InUseBy") end
-    t.verbs, t.needs = verbs, needs
+    t.verbs = verbs
 end
 
 function def.title(t) return t.d and t.d.name or txt("ContextMenu_ButcherHook", "Butcher Hook") end
@@ -287,6 +297,7 @@ function def.icon(t)
     if a and ZeD.AnimalsData then return getTexture(ZeD.AnimalsData.resolvePortrait(a)) end
     return OC.spriteIcon(t.obj)
 end
+-- the state tag: its words, and the colour of its square mark (none for a plain tag)
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
@@ -352,27 +363,30 @@ local function placeAvatar(card, t, x, y, w, h)
     end
 end
 
+-- The work under way: its name, a framed strip, the percent and (for your own action) Stop
 local function drawBand(card, x, y, w, t)
     local T, tm = ZeD.T, ZeD.TM
+    local A = ZeD.Atoms
     local br = t.bridge
     local ac = T.accent
-    local h = T.px(32)
-    card:drawRect(x, y, w, h, 0.10, col(ac))
-    card:drawRectBorder(x, y, w, h, 1, col(ac))
+    local h = math.max(T.px(32), T.buttonH + T.px(8))
+    UI.fill(card, x, y, w, h, "surf2")
+    A.frame(card, x, y, w, h, T.borderS)
     local f1, f3 = T.fontF1, T.fontF3
-    local lbl = ZeD.upper(br.actionText or txt("IGUI_ButcherHook_Bleed", "Bleed"))
-    if t.d.bleeding and not currentAction(card:player()) then lbl = ZeD.tr("UI_ZeD_Hook_BleedingOnGround") end
+    local lbl = A.textCase(br.actionText or txt("IGUI_ButcherHook_Bleed", "Bleed"))
+    if t.d.bleeding and not currentAction(card:player()) then lbl = A.textCase(ZeD.tr("UI_ZeD_Hook_BleedingOnGround")) end
     card:drawText(lbl, x + T.px(8), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     local p = math.max(0, math.min(1, br.progressBar.progress or 0))
     local rx = x + w - T.px(6)
     local act = currentAction(card:player())
     if act then
-        local bw = UI.buttonW(getText("IGUI_media_stop"))
+        local stop = getText("IGUI_media_stop")
+        local bw = UI.buttonW(stop)
+        local bh = T.buttonH - T.px(4)
         rx = rx - bw
         local fid = "hook:stop"
-        UI.button(card, rx, y + math.floor((h - T.px(20)) / 2), getText("IGUI_media_stop"), { h = T.px(20), focused = card._fid == fid })
-        card:zone({ fid = fid, x = rx, y = y + math.floor((h - T.px(20)) / 2), w = bw, h = T.px(20), body = true,
-            run = function() pcall(function() act:forceStop() end) end })
+        UI.button(card, rx, y + math.floor((h - bh) / 2), stop, { w = bw, h = bh, fid = fid, body = true, focus = card:focusOf(fid),
+            help = ZeD.tr("UI_ZeD_Hook_HelpStop"), run = function() pcall(function() act:forceStop() end) end })
         rx = rx - T.px(10)
     end
     local pct = tostring(math.floor(p * 100 + 0.5)) .. "%"
@@ -381,31 +395,32 @@ local function drawBand(card, x, y, w, t)
     local bx0 = x + T.px(8) + tm:MeasureStringX(f1, lbl) + T.px(10)
     local bw0 = rx - pw - T.px(10) - bx0
     if bw0 > T.px(20) then
-        local by = y + math.floor((h - T.px(8)) / 2)
-        card:drawRect(bx0, by, bw0, T.px(8), 1, col(T.surf1))
-        card:drawRect(bx0, by, math.floor(bw0 * p), T.px(8), 1, col(ac))
-        card:drawRectBorder(bx0, by, bw0, T.px(8), T.borderS.a or 1, col(T.borderS))
+        local bh = A.fillBarCompactH()
+        A.drawFillBar(card, bx0, y + math.floor((h - bh) / 2), bw0, p, false, ac, bh)
     end
     return h
 end
 
-local function partRow(card, x, y, w, label, value, have, button, fid, enabled, run)
+-- A part of the carcass: a mark (full when it is still there), its name, what is left, and a
+-- push button when the part can be gathered now (under Show all also when only the knife is missing).
+local function partRow(card, x, y, w, label, value, have, button, fid, enabled, run, help)
     local T, tm = ZeD.T, ZeD.TM
-    local h = T.px(PART_H)
-    local dy = y + math.floor((h - T.px(7)) / 2)
-    if have then ZeD.Atoms.drawStatusDot(card, x + T.px(2), dy, T.positive, T.px(7))
-    else ZeD.Atoms.drawStatusRing(card, x + T.px(2), dy, T.textDim, T.px(7)) end
+    local h = math.max(T.px(PART_H), T.buttonH + T.px(4))
+    local dy = y + math.floor((h - T.px(6)) / 2)
+    if have then ZeD.Atoms.drawStatusDot(card, x + T.px(2), dy, T.positive, T.px(6))
+    else ZeD.Atoms.drawStatusHollow(card, x + T.px(2), dy, T.textDim, T.px(6)) end
     local f1, f3 = T.fontF1, T.fontF3
     local ac = T.accent
     card:drawText(label, x + T.px(16), y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
     local vc = have and T.text or T.textDim
     card:drawText(value, x + T.px(84), y + math.floor((h - tm:getFontHeight(f3)) / 2), vc.r, vc.g, vc.b, vc.a or 1, f3)
-    if button then
+    if button and (enabled or (have and ZeD.Disclose.setting() == "all")) then
         local bw = math.max(T.px(58), UI.buttonW(button))
+        local bh = T.buttonH - T.px(4)
         local bx = x + w - bw
-        local by = y + math.floor((h - T.px(20)) / 2)
-        UI.button(card, bx, by, button, { h = T.px(20), w = bw, disabled = not enabled, focused = card._fid == fid })
-        card:zone({ fid = fid, x = bx, y = by, w = bw, h = T.px(20), body = true, run = enabled and run or nil })
+        local by = y + math.floor((h - bh) / 2)
+        UI.button(card, bx, by, button, { w = bw, h = bh, disabled = not enabled, fid = fid, body = true, focus = card:focusOf(fid),
+            help = help, run = enabled and run or nil })
     end
     card:drawRect(x, y + h - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
     return h
@@ -418,9 +433,10 @@ function def.body(card, x, y, w, t, player)
     local y0 = y
     local gap = T.px(8)
 
+    if d.inUse then y = y + UI.note(card, x, y, w, ZeD.tr("UI_ZeD_Hook_InUseBy"), T.warning) + gap end
+
     if not d.animal then
         if card._hookAvatar then def.onClose({ obj = nil }, card) end
-        if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Hook_DeadNearby"), ZeD.tr("UI_ZeD_Hook_Within2"))
         local anyBad = false
         for i, r in ipairs(d.corpses or {}) do
@@ -428,28 +444,27 @@ function def.body(card, x, y, w, t, player)
             if not r.valid then anyBad = true end
             y = y + UI.pick(card, x, y, w, { tex = r.tex, name = r.name, where = r.where, button = ZeD.tr("UI_ZeD_Hook_Hang"),
                 tag = (not r.valid) and ZeD.tr("UI_ZeD_Hook_NotForHook") or nil, tagC = T.danger,
-                fid = "hook:hang:" .. i, enabled = r.valid and not d.busy,
+                fid = "hook:hang:" .. i, enabled = r.valid and not d.busy, help = ZeD.tr("UI_ZeD_Hook_HelpHang", r.name),
                 run = function(c, p) hang(p, t, rr.c) end })
         end
         if #(d.corpses or {}) == 0 then
-            y = y + T.px(4)
-            y = y + UI.para(card, x + T.px(2), y, w, txt("IGUI_ButcherHook_NoAnimalFound", "No animal corpse found."), T.text)
-            y = y + UI.para(card, x + T.px(2), y, w, txt("Tooltip_ButcherUI_AddAnimalCorpse", "The dead animal can be near the Hook or in your inventory."), T.textDim)
+            y = y + T.px(8)
+            y = y + ZeD.Molecules.drawEmptyLine(card, x + T.px(2), y, w - T.px(4), txt("IGUI_ButcherHook_NoAnimalFound", "No animal corpse found.")) + T.px(4)
+            y = y + ZeD.Molecules.drawEmptyLine(card, x + T.px(2), y, w - T.px(4), txt("Tooltip_ButcherUI_AddAnimalCorpse", "The dead animal can be near the Hook or in your inventory."))
         elseif anyBad then
             y = y + T.px(4)
-            y = y + UI.needs(card, x, y, w, { txt("Tooltip_ButcherUI_CantAddThis", "Not a valid dead animal for the Butcher Hook.") })
+            y = y + UI.note(card, x, y, w, txt("Tooltip_ButcherUI_CantAddThis", "Not a valid dead animal for the Butcher Hook."))
         end
         return y - y0
     end
 
-    -- working: the band
+    -- working: the strip
     if br.doingAction or d.bleeding then y = y + drawBand(card, x, y, w, t) + gap end
-    if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
 
     -- the carcass and its parts
     local aw, ah = T.px(AV_W), T.px(AV_H)
-    card:drawRect(x, y, aw, ah, 1, col(T.surf2))
-    card:drawRectBorder(x, y, aw, ah, T.borderS.a or 1, col(T.borderS))
+    UI.fill(card, x, y, aw, ah, "surf2")
+    ZeD.Atoms.frame(card, x, y, aw, ah, T.borderS)
     placeAvatar(card, t, x + T.px(1), y + T.px(1), aw - T.px(2), ah - T.px(2))
     local px = x + aw + T.px(12)
     local pw = w - aw - T.px(12)
@@ -457,13 +472,14 @@ function def.body(card, x, y, w, t, player)
     local can = d.knife ~= nil and not d.busy
     local blood = br.blood or 0
     local hasBuckets = #d.buckets > 0
-    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Leather", "Leather:"), ":%s*$", "")),
-        br.leather and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.leather, ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:leather",
-        can and br.leather ~= nil, function(c, p) gather(p, t, "leather") end)
+    local gatherW = txt("IGUI_ButcherHook_Gather", "Gather")
+    py = py + partRow(card, px, py, pw, bare(txt("IGUI_ButcherHook_Leather", "Leather:")),
+        br.leather and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.leather, gatherW, "hook:leather",
+        can and br.leather ~= nil, function(c, p) gather(p, t, "leather") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Leather", "Leather:"))))
     -- blood: while vanilla bleeds it out you may still switch to a container
     local bloodOK = d.knife ~= nil and blood > 0 and (not d.busy or (d.bleeding and hasBuckets and not d.inUse and not currentAction(player)))
-    local bloodBtn = hasBuckets and ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")) or ZeD.upper(txt("IGUI_ButcherHook_Bleed", "Bleed"))
-    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Blood", "Blood:"), ":%s*$", "")),
+    local bloodBtn = hasBuckets and gatherW or txt("IGUI_ButcherHook_Bleed", "Bleed")
+    py = py + partRow(card, px, py, pw, bare(txt("IGUI_ButcherHook_Blood", "Blood:")),
         blood > 0 and L(blood) or txt("IGUI_No", "No"), blood > 0, bloodBtn, "hook:blood", bloodOK,
         function(c, p)
             if hasBuckets then
@@ -471,37 +487,38 @@ function def.body(card, x, y, w, t, player)
             else
                 bleed(p, t, nil)
             end
-        end)
-    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Head", "Head:"), ":%s*$", "")),
-        br.head and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.head, ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:head",
-        can and br.head == true, function(c, p) gather(p, t, "head") end)
-    py = py + partRow(card, px, py, pw, ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Meat", "Meat:"), ":%s*$", "")),
-        br.meat and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.meat ~= nil, ZeD.upper(txt("IGUI_ButcherHook_Gather", "Gather")), "hook:meat",
-        can and br.meat ~= nil, function(c, p) gather(p, t, "meat") end)
+        end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Blood", "Blood:"))))
+    py = py + partRow(card, px, py, pw, bare(txt("IGUI_ButcherHook_Head", "Head:")),
+        br.head and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.head, gatherW, "hook:head",
+        can and br.head == true, function(c, p) gather(p, t, "head") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Head", "Head:"))))
+    py = py + partRow(card, px, py, pw, bare(txt("IGUI_ButcherHook_Meat", "Meat:")),
+        br.meat and txt("IGUI_Yes", "Yes") or ZeD.tr("UI_ZeD_Hook_Taken"), br.meat ~= nil, gatherW, "hook:meat",
+        can and br.meat ~= nil, function(c, p) gather(p, t, "meat") end, ZeD.tr("UI_ZeD_Hook_HelpPart", bare(txt("IGUI_ButcherHook_Meat", "Meat:"))))
     py = py + T.px(6)
     local perk = PerkFactory and PerkFactory.getPerk(Perks.Butchering)
     py = py + UI.pair(card, px, py, pw, ZeD.tr("UI_ZeD_Hook_Knife"), d.knife and d.knife:getDisplayName() or txt("IGUI_None", "None"))
-    py = py + UI.pair(card, px, py, pw, perk and ZeD.upper(perk:getName()) or ZeD.upper(ZeD.tr("IGUI_perks_Butchering")), tostring(d.skill))
+    py = py + UI.pair(card, px, py, pw, perk and perk:getName() or ZeD.tr("IGUI_perks_Butchering"), tostring(d.skill))
     y = math.max(y + ah, py) + gap
 
     -- the consequence vanilla does silently
     if blood > 0 and (br.meat or br.head) then
         local msg = br.meat and ZeD.tr("UI_ZeD_Hook_BloodLostMeat", L(blood))
             or ZeD.tr("UI_ZeD_Hook_BloodLostHead", L(blood))
-        y = y + UI.needs(card, x, y, w, { msg }) + gap
+        y = y + UI.note(card, x, y, w, msg, T.warning) + gap
     end
 
     -- where the blood goes
     if blood > 0 then
-        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Hook_CollectInto"), ZeD.upper(string.gsub(txt("IGUI_ButcherHook_Blood", "Blood:"), ":%s*$", "")))
+        y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Hook_CollectInto"), bare(txt("IGUI_ButcherHook_Blood", "Blood:")))
         local intoOK = d.knife ~= nil and (not d.busy or (d.bleeding and not d.inUse and not currentAction(player)))
         for i, b in ipairs(d.buckets) do
             local bb = b
             y = y + UI.pick(card, x, y, w, { tex = b.tex, name = b.name, where = b.where, button = ZeD.tr("UI_ZeD_Fluid_Into"),
-                fid = "hook:into:" .. i, enabled = intoOK, run = function(c, p) bleed(p, t, bb.item) end })
+                fid = "hook:into:" .. i, enabled = intoOK, help = ZeD.tr("UI_ZeD_Hook_HelpInto", b.name),
+                run = function(c, p) bleed(p, t, bb.item) end })
         end
         y = y + UI.pick(card, x, y, w, { name = txt("IGUI_None", "None"), where = ZeD.tr("UI_ZeD_Hook_BleedOnGround"),
-            button = ZeD.upper(txt("IGUI_ButcherHook_Bleed", "Bleed")), fid = "hook:bleed",
+            button = txt("IGUI_ButcherHook_Bleed", "Bleed"), fid = "hook:bleed", help = ZeD.tr("UI_ZeD_Hook_HelpBleed"),
             enabled = d.knife ~= nil and not d.busy, run = function(c, p) bleed(p, t, nil) end })
     end
     return y - y0

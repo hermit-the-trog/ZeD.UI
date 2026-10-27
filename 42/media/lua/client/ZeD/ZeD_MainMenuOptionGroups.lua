@@ -144,25 +144,30 @@ G.SETUP_GAME = {
     { "doVideoEffects", "UI_ZeD_Options_GroupGraphics", "UI_ZeD_Options_SecEffects", "UI_ZeD_Options_WhyVideoEffects" },
 }
 
--- ZeD setup: ZeD's own options in five groups, each with the control it is drawn with
+-- ZeD setup: ZeD's own options in groups, each with the control it is drawn with
 -- (Oct 21 2026, mockup ZeDUI/mockups/zed_settings_v2.html; director: "Apply and commit").
 -- The value is still the combo's item (ModOptions saves that number), so a saved choice keeps
--- its meaning; only the drawing changes (ZeD_MainMenuOptions' drawControl):
---   "seg"    a switch of joined buttons, the pick filled with the accent (two or three choices)
---   "swatch" the nine accents as squares; the window accents add "Same as Accent"
---   "scale"  a stepped slider: Auto at the left, then the fixed sizes
---   "onoff"  an on/off switch (item 1 Off, item 2 On); danger: red when on
---   nil      the drop-down, as before (a long list of names)
+-- its meaning; only the drawing changes (ZeD_MainMenuOptions' drawControl). The controls are
+-- System 7's (spec 1.3): a radio button for one of a few, a pop-up menu for one of many, a checkbox
+-- for on or off.
+--   "radio"  radio buttons in a row, the pick filled (two or three choices)
+--   "swatch" the nine accents as colour wells; the window accents add "Same as Accent"
+--   "scale"  a stepped slider: Auto at the left, then the fixed sizes (See-through: 100 to 60)
+--   "onoff"  a checkbox (item 1 Off, item 2 On)
+--   nil      the pop-up menu (a long list of names)
 -- A control too wide for the space (a long translation, the test language) is drawn as the drop-down.
 -- { group title, { { option id, style, danger = , under = the line under its name,
 --   short = shorter words for a switch's choices or the slider's steps, by item (the drop-down
 --   on the Mods page keeps the full ones) } } }
 -- An option of ZeD's this table doesn't name (a new one) lands under Other, as a drop-down.
 G.ZED_GROUPS = {
-    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "seg" }, { "accentColor", "swatch" }, { "textSize", "seg" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
-    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "seg" }, { "equipView", "seg" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "windowSquares", "onoff" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" } } },
-    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "seg", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "seg" }, { "actionBar", "seg" }, { "moodleNotices", "onoff" }, { "ammoBox", "onoff" }, { "dashLamps", "onoff" } } },
-    { "UI_ZeD_Options_ZedControls", { { "contextStyle", "seg" }, { "glyphDisplay" }, { "inputModeLock" } } },
+    -- (Oct 26 2026, COHESION_SPEC.md section 4: the windows' See-through is the stepped slider under Text size, Solid while
+    -- in use a checkbox under it; Controller highlight leads Controls as a pop-up menu with a live sample beside it; Hidden
+    -- actions closes Windows as a pop-up menu. The windows' theme squares are gone with their setting.)
+    { "UI_ZeD_Options_ZedLook", { { "baseTheme", "radio" }, { "accentColor", "swatch" }, { "textSize", "radio" }, { "seeThrough", "scale" }, { "solidInUse", "onoff" }, { "uiScale", "scale", short = { "UI_ZeD_Settings_Auto" } } } },
+    { "UI_ZeD_Options_ZedWindows", { { "inventoryView", "radio" }, { "equipView", "radio" }, { "charAccent", "swatch" }, { "worldAccent", "swatch" }, { "readMarks", "onoff" }, { "readNext", "onoff" }, { "dimRead", "onoff" }, { "hiddenActions" } } },
+    { "UI_ZeD_Options_ZedHud", { { "moodlePlace", "radio", short = { "UI_ZeD_Options_MoodlesRight", "UI_ZeD_Options_MoodlesLeft", "UI_ZeD_Options_MoodlesBottom" } }, { "watchPlace", "radio" }, { "actionBar", "radio" }, { "moodleNotices", "onoff" }, { "ammoBox", "onoff" }, { "dashLamps", "onoff" } } },
+    { "UI_ZeD_Options_ZedControls", { { "focusStyle" }, { "contextStyle", "radio" }, { "glyphDisplay" }, { "inputModeLock" } } },
     -- (Oct 24 2026, mockup zed_quick_chords_v1: the twelve chords, ZeD_QuickChords; not ModOptions: rows of their own)
     { "UI_ZeD_Options_ZedChords", {}, chords = true },
     { "UI_ZeD_Options_ZedPutBack", { { "putBack", "onoff" } } },
@@ -170,7 +175,7 @@ G.ZED_GROUPS = {
     { "UI_ZeD_Options_ZedMessages", { { "messagesCatch", "onoff" }, { "messagesToast", "onoff" } } },
     -- (Oct 24 2026, mockup zed_sandbox_ingame_v1: this save's sandbox settings from the pause window, ZeD_SandboxInGame)
     { "UI_ZeD_Options_ZedSandbox", { { "sandboxInGame", "onoff", under = "UI_ZeD_Options_UnderSandboxIG" } } },
-    { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", danger = true, under = "UI_ZeD_Options_UnderSafeMode" },
+    { "UI_ZeD_Options_ZedTrouble", { { "safeMode", "onoff", under = "UI_ZeD_Options_UnderSafeMode" },
                                      { "testLanguage", "onoff" } } },
 }
 
@@ -290,7 +295,7 @@ function G.build(pages, rowsOf)
         for _, e in ipairs(grp[2]) do
             local c = zrow[e[1]]
             if c and not placed[e[1]] then
-                c.zedStyle, c.zedDanger, c.under, c.zedShort = e[2], e.danger, e.under, e.short
+                c.zedStyle, c.under, c.zedShort = e[2], e.under, e.short
                 list[#list + 1] = c
                 placed[e[1]] = true
             end

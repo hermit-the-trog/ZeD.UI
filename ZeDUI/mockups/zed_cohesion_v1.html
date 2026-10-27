@@ -234,13 +234,13 @@ const WORLD = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAcFBQYFBA
 const $ = s => document.querySelector(s);
 // ------------------------------------------------------------------ themes (Tokens.lua)
 const BASE = {
-  dark:  { name: "Dark", a: .92, surf1: "#141414", surf2: "#1C1C1C", surf3: "#242424", surf4: "#2C2C2C", border: "#202020", borderS: "#383838",
+  dark:  { name: "Dark", a: .92, base: "#0C0C0C", warning: "#C49A2A", surf1: "#141414", surf2: "#1C1C1C", surf3: "#242424", surf4: "#2C2C2C", border: "#202020", borderS: "#383838",
            text: "rgba(218,218,218,.90)", textHead: "rgba(230,230,230,.92)", textDim: "rgba(161,161,161,.70)", toneLo: "rgba(170,170,170,.85)",
            stripe: "rgba(255,255,255,.04)", stripe2: "rgba(255,255,255,.07)", danger: "#C45A2A", dangerText: "#E07A4A", positive: "#7A9A34", positiveText: "#8FC04A", cond: "#3DCC3D", bw: 1, light: false },
-  light: { name: "Light", a: .97, surf1: "#BEBEBE", surf2: "#B6B6B6", surf3: "#AEAEAE", surf4: "#A6A6A6", border: "#969696", borderS: "#767676",
+  light: { name: "Light", a: .97, base: "#C6C6C6", warning: "#6B5510", surf1: "#BEBEBE", surf2: "#B6B6B6", surf3: "#AEAEAE", surf4: "#A6A6A6", border: "#969696", borderS: "#767676",
            text: "rgba(12,12,12,.95)", textHead: "rgba(5,5,5,1)", textDim: "rgba(12,12,12,.72)", toneLo: "rgba(12,12,12,.80)",
            stripe: "rgba(0,0,0,.05)", stripe2: "rgba(0,0,0,.07)", danger: "#7A2A11", dangerText: "#7A2A11", positive: "#2A5511", positiveText: "#2A5511", cond: "#2A7A11", bw: 1, light: true },
-  hc:    { name: "High contrast", a: .95, surf1: "#111111", surf2: "#191919", surf3: "#202020", surf4: "#282828", border: "#353535", borderS: "#555555",
+  hc:    { name: "High contrast", a: .95, base: "#080808", warning: "#FFCC33", surf1: "#111111", surf2: "#191919", surf3: "#202020", surf4: "#282828", border: "#353535", borderS: "#555555",
            text: "rgba(255,255,255,.95)", textHead: "#FFFFFF", textDim: "rgba(200,200,200,.80)", toneLo: "rgba(220,220,220,.9)",
            stripe: "rgba(255,255,255,.06)", stripe2: "rgba(255,255,255,.09)", danger: "#FF5544", dangerText: "#FF7766", positive: "#44DD44", positiveText: "#44DD44", cond: "#44DD44", bw: 2, light: false },
 };
@@ -321,6 +321,14 @@ function btn(x, y, w, h, label, fam, variant, id, help, zone) {
   return el(x, y, w, h, cls + v + solid, label, id ? F(id, kind, help, `data-zone="${zone || ""}"`) : "");
 }
 function iconImg(name, x, y, s = 18, src) { const u = src || ICON[name]; return u ? `<img class="px" src="${u}" style="position:absolute;left:${px(x)};top:${px(y)};width:${px(s)};height:${px(s)}">` : ""; }
+
+// a status bar: today a bare line; matched, the System 7 strip (frame, solid well, flat solid fill)
+function statusBar(x, y, w, h, f, T, lineH) {
+  const col = f > .6 ? (M() ? T.positive : T.cond) : f > .3 ? T.warning : T.danger;
+  if (!M()) return `<div style="left:${px(x)};top:${px(y + Math.round((h - lineH) / 2))};width:${px(w)};height:${px(lineH)};background:${col};clip-path:inset(0 ${100 - f * 100}% 0 0)"></div>`;
+  return `<div style="left:${px(x)};top:${px(y)};width:${px(w)};height:${px(h)};background:${T.base};box-shadow:inset 0 0 0 ${T.bw}px var(--borderS)">`
+       + `<div style="left:${T.bw}px;top:${T.bw}px;bottom:${T.bw}px;width:${Math.max(2, Math.round((w - 2 * T.bw) * f))}px;background:${col}"></div></div>`;
+}
 
 // ------------------------------------------------------------------ the window pieces
 function titleBar(w, title, stats, T, opts = {}) {
@@ -456,7 +464,7 @@ function listPane(x, y, w, h, title, wt, ct, groups, T, selName, zone) {
       const selBg = sel ? `background:color-mix(in srgb, var(--accent) ${M() ? 30 : 18}%, transparent);` : "";
       let inner = iconImg(it.icon, 8, 4) + `<span class="cell" style="left:32px;top:5px;width:${px(cC - cN - 10)};font:500 13px var(--sans);color:var(--textHead)">${it.name}</span>`;
       inner += `<span class="cell" style="left:${px(cC - x)};top:6px;width:${px(cB - cC - 8)};font:11px var(--mono);color:var(--accentText)">${it.cat}</span>`;
-      if (it.cond != null) inner += `<div style="left:${px(cB - x)};top:12px;width:60px;height:2px;background:${it.cond > .6 ? T.cond : it.cond > .3 ? "#C49A2A" : T.danger};clip-path:inset(0 ${100 - it.cond * 100}% 0 0)"></div>`;
+      if (it.cond != null) inner += statusBar(cB - x, 9, 60, 8, it.cond, T, 2);
       inner += `<span style="left:${px(cW - x - 8)};top:6px;width:36px;text-align:right;font:11px var(--mono);color:var(--textDim)">${it.wt.toFixed(1)}</span>`;
       s += `<div class="row${n % 2 ? "" : " st"}${sel ? " sel" : ""}" style="left:${px(x)};top:${px(ry)};width:${px(w)};height:26px;${selBg}" ${F(id, "row", it.help || it.name + " | " + it.cat + " | " + it.wt.toFixed(1) + " kg", `data-zone="${zone}"`)}>${inner}</div>`;
       ry += 26;
@@ -544,7 +552,7 @@ function sceneCard(T) {
   s += el(cx + 14, top + 46, 300, 24, "hd4", "Baseball Bat", `style="font-size:20px"`).replace('class="hd4" ', 'class="hd4" ');
   const rows = (m ? [["Kind"], ["Weight"], ["Damage"], ["Crit chance"], ["Swing time"]] : [["KIND"], ["WEIGHT"], ["DAMAGE"], ["CRIT CHANCE"], ["SWING TIME"]]).map((r, i) => [r[0], ["Weapon", "2.0 kg", "0.8 to 1.0", "25%", "1.4 s"][i]]);
   rows.forEach((r, i) => { s += el(cx + 14, top + 86 + i * 24, 150, 16, "lbl", r[0]) + el(cx + 170, top + 84 + i * 24, cw - 184, 18, "val", r[1]); });
-  s += el(cx + 14, top + 210, 150, 16, "lbl", m ? "Condition" : "CONDITION") + `<div style="left:${px(cx + 170)};top:${px(top + 216)};width:120px;height:4px;background:var(--surf3)"></div><div style="left:${px(cx + 170)};top:${px(top + 216)};width:108px;height:4px;background:${T.cond}"></div>` + el(cx + 296, top + 208, cw - 310, 18, "val", "9 / 10");
+  s += el(cx + 14, top + 210, 150, 16, "lbl", m ? "Condition" : "CONDITION") + (m ? statusBar(cx + 170, top + 211, 120, 13, .9, T, 4) : `<div style="left:${px(cx + 170)};top:${px(top + 216)};width:120px;height:4px;background:var(--surf3)"></div><div style="left:${px(cx + 170)};top:${px(top + 216)};width:108px;height:4px;background:${T.cond}"></div>`) + el(cx + 296, top + 208, cw - 310, 18, "val", "9 / 10");
   s += el(cx + 14, top + 246, 300, 20, "hd4", "Weapon facts") + el(cx + 14, top + 268, cw - 28, 1, "dv");
   const facts = [["Two-handed", "Yes"], ["Pushes zombies back", "Strong"], ["Skill", "Long Blunt"]];
   facts.forEach((r, i) => { s += el(cx + 14, top + 276 + i * 24, 200, 18, "f2", r[0], `style="font-size:13px"`).replace('class="f2" ', 'class="f2" ') + el(cx + 170, top + 276 + i * 24, cw - 184, 18, "val", r[1]); });
@@ -818,6 +826,9 @@ const DECS = [
     prop: "Sentence case everywhere in the windows: \"Weapons (4)\", \"Name\", \"Kind\", \"Lighter\". Caps stay only where they are real: initials (OK, HP, FM), vanilla's own text, and the lettering printed on the hardware (dash, radio, watch, siren). <b>Status marks are 6-unit squares</b>, hollow squares for \"needs\" and \"unread\". Checkboxes for on / off, System 7 round radio buttons for one-of-a-few, pop-up menus for one-of-many, separate icon buttons for List and Grid." },
   { t: "Window frame and line work (from your notes)", today: "The frame is drawn first, so drawers, cards, scrollbars and strips paint over it in places (it looks lighter or goes behind); the footer and body are inset a unit for it, which leaves gaps; some windows draw their own frame. Lines inside use five different weights and colours.",
     prop: "<b>One frame</b>, a single continuous 1-unit line (2 on High contrast) around every window, drawn last so nothing covers it, with no insets and no openings. <b>Two line weights</b> inside: structure lines (under the title bar, between panes, the top of every band and the footer) in the strong border colour, meeting the frame exactly; content lines (under heads, between groups) in the soft one. Pop-ups take the same frame plus System 7's one-unit hard shadow. Checked on every window kind, both text sizes, all three themes, 1.75x at 4K and while drawers slide." },
+  { t: "Status bars (from your notes)", today: "Condition, progress and amount bars drifted into thin bright lines (2 to 5 units: the COND column, the item card, Equipment rows, grid cells) and half-transparent fills that glow over the window.",
+    prop: "The System 7 strip from About This Macintosh: a one-unit frame, a solid dark well, a flat solid fill in the status colour, no glow. 13 units tall (15 on Large text), 8 in list rows. Segmented meters framed and at least 8 units tall. The props' printed gauges keep their art; the belt's slot lines and the ammo pouch wait for your call.",
+    samp: T => `<span class="cap">TODAY</span><span style="display:inline-block;width:70px;height:2px;background:#3DCC3D"></span><span style="display:inline-block;width:70px;height:4px;background:#3DCC3D;opacity:.85"></span><span class="cap">PROPOSED</span><span style="display:inline-block;width:90px;height:13px;background:${T.base};box-shadow:inset 0 0 0 1px var(--borderS)"><i style="display:block;margin:1px;width:60px;height:11px;background:${T.positive}"></i></span><span style="display:inline-block;width:90px;height:13px;background:${T.base};box-shadow:inset 0 0 0 1px var(--borderS)"><i style="display:block;margin:1px;width:40px;height:11px;background:${T.warning}"></i></span><span style="display:inline-block;width:60px;height:8px;background:${T.base};box-shadow:inset 0 0 0 1px var(--borderS)"><i style="display:block;margin:1px;width:14px;height:6px;background:${T.danger}"></i></span>` },
   { t: "Hidden actions (your idea)", today: "Cards and tabs show every action the game knows about, greyed when the character can't do it, each with a reason; some show buttons that make no sense in the moment (Put out on a fire that is out). Hair and beard folds its impossible rows under \"Out of reach\".",
     prop: "An action shows only when it can be done now. One it can't do yet is hidden, and one quiet row after the verbs says what the right thing would allow: \"With scissors you could cut your hair.\" (or \"3 more with the right things\"); open it to see them greyed with what each needs. Actions that make no sense now are simply gone. Bands and verb rows with nothing in them aren't drawn. <b>Setting \"Hidden actions\"</b> in ZeD setup: <b>Folded</b> (default), Show all, Hide; no question pops up during play. Hints only name what the game itself would show: never a recipe you haven't learned." },
   { t: "Buttons: one family", ask: "buttons", today: "Four families: the System 7 push button (double rounded outline), a flat bevelled key (item and object cards, container buttons, Furniture), a single coloured outline (Animals, Craft's big button, the amount stepper) and square ghost buttons (the map toolbar). \"Main action\" means four things: an accent outline, a solid accent key, a tinted outline, a solid accent pill. Hover shows on the push buttons only. Eleven different greyed-out looks.",

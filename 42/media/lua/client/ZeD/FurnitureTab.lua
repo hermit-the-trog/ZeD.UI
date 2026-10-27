@@ -29,7 +29,6 @@ require "ZeD/ObjectCards"
 ZeD = ZeD or {}
 ZeD.FurnitureTab = ZeD.FurnitureTab or {}
 local FT = ZeD.FurnitureTab
-local UI = ZeD.ObjectCards.ui
 
 FT.cap = FT.cap or {}          -- per player: what the cursor read last
 FT.state = FT.state or { mode = "pickup" }
@@ -46,7 +45,7 @@ local MODES = {
 local MODE_BY_ID = {}
 for _, m in ipairs(MODES) do MODE_BY_ID[m.id] = m end
 
-local PAD, HEAD_H, STRIP_H, BTN_H = 10, 37, 38, 26
+local PAD, STRIP_H = 10, 38
 local PREV_W, PREV_H = 84, 104
 local ROW_H, FACT_H, SEC_H = 28, 18, 20
 local SCROLL_STEP = 40
@@ -66,9 +65,10 @@ local function cursorOf(pn)
 end
 FT.cursorOf = cursorOf
 
+-- the mode's name as the game writes it (sentence case in the windows)
 local function modeLabel(id)
     local m = MODE_BY_ID[id]
-    return m and ZeD.upper(txt(m.key, m.fb)) or ZeD.upper(tostring(id))
+    return ZeD.textCase(m and txt(m.key, m.fb) or tostring(id))
 end
 
 -- ---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ local function readLines(c)
                     if st == "ok" then prev.state = "ok" end
                     if st == "ok" and prev.firstState ~= "ok" then prev.value, prev.firstState = ln.b.txt, "ok" end
                 else
-                    out.facts[#out.facts + 1] = { label = ZeD.upper(label), value = ln.b.txt, state = st, firstState = st }
+                    out.facts[#out.facts + 1] = { label = label, value = ln.b.txt, state = st, firstState = st }
                 end
             end
         elseif ln.a and ln.a.txt ~= "" then
@@ -306,12 +306,12 @@ local function stamp(s, id, x, y, w, h, fn, opts)
     return z
 end
 
+-- the focused element's id while the mark may show (the window has the controller
+-- and the pad is in use)
 local function gpFocusedId(win)
     local Focus = ZeD.Input and ZeD.Input.Focus
-    if not Focus or not Focus.getFocusedWindow or Focus.getFocusedWindow() ~= win then return nil end
-    local zone = Focus.getFocusedZone and Focus.getFocusedZone(win)
-    if not zone or zone.zone ~= "worldTabContent" then return nil end
-    local el = Focus.getFocusedElement and Focus.getFocusedElement(win)
+    if not (Focus and Focus.isFocused and Focus.isFocused(win, "worldTabContent")) then return nil end
+    local el = Focus.liveElement(win)
     local id = el and el.id
     if id and id:sub(1, 4) == "fur:" then return id end
     return nil
@@ -356,8 +356,8 @@ local function drawTarget(panel, s, x, y, w, c, mode, info)
         panel:drawRect(x, y, pw, ph, 1, col(s1))
         local tex = c.tex and getTexture(c.tex)
         if tex then panel:drawTextureScaledAspect(tex, x + T.px(4), y + T.px(4), pw - 2 * T.px(4), ph - 2 * T.px(4), 1, 1, 1, 1) end
-        local bc = ok and T.borderS or T.danger
-        panel:drawRectBorder(x, y, pw, ph, bc.a or 1, col(bc))
+        -- (whether it can be done is the status square under the name, not the frame)
+        panel:drawRectBorder(x, y, pw, ph, T.borderS.a or 1, col(T.borderS))
     else
         dashed(panel, x, y, pw, ph, T.border)
     end
@@ -372,24 +372,24 @@ local function drawTarget(panel, s, x, y, w, c, mode, info)
         local msg = (mode == "place") and ZeD.tr("UI_ZeD_Furn_NothingToPlace")
             or (mode == "repair") and ZeD.tr("UI_ZeD_Furn_PointBuilt")
             or ZeD.tr("UI_ZeD_Furn_PointFurniture")
-        panel:drawText(msg, tx, cy, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, f4)
+        ZeD.Molecules.drawEmptyLine(panel, tx, cy, tw, msg)
         return ph
     end
     local name = ZeD.CraftingCore.truncText(info.name or "?", f4, tw)
     panel:drawText(name, tx, cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f4)
     cy = cy + tm:getFontHeight(f4) + T.px(2)
     local sc = ok and T.positive or T.danger
-    ZeD.Atoms.drawStatusDot(panel, tx, cy + math.floor((tm:getFontHeight(f1) - T.px(6)) / 2), sc, T.px(6))
-    panel:drawText(ZeD.tr(ok and m.ready or m.no), tx + T.px(11), cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f1)
-    cy = cy + tm:getFontHeight(f1) + T.px(6)
-    -- facts: LABEL  value (with a dot for ok / bad)
+    ZeD.Atoms.drawStatusDot(panel, tx, cy + math.floor((tm:getFontHeight(f2) - T.px(6)) / 2), sc, T.px(6))
+    panel:drawText(ZeD.tr(ok and m.ready or m.no), tx + T.px(12), cy, T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
+    cy = cy + tm:getFontHeight(f2) + T.px(6)
+    -- facts: label  value (with a square for ok / bad); labels as the game writes them
     local lw = 0
     for _, f in ipairs(info.facts) do lw = math.max(lw, tm:MeasureStringX(f1, f.label)) end
     lw = math.min(lw, math.floor(tw * 0.5))
-    local ac = T.accent
+    local lc = T.textDim
     for _, f in ipairs(info.facts) do
         local fh = T.px(FACT_H)
-        panel:drawText(ZeD.CraftingCore.truncText(f.label, f1, lw), tx, cy + math.floor((fh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+        panel:drawText(ZeD.CraftingCore.truncText(f.label, f1, lw), tx, cy + math.floor((fh - tm:getFontHeight(f1)) / 2), lc.r, lc.g, lc.b, lc.a or 1, f1)
         local vx = tx + lw + T.px(10)
         local dc = dotFor(f.state)
         if dc then
@@ -429,18 +429,23 @@ local function drawNotes(panel, x, y, w, notes)
     return y - y0
 end
 
--- one list row: icon, name + sub, button
+-- one list row: icon, name + sub, button (a push button at the list-row height);
+-- the row the cursor carries wears the selected wash
 local function drawRow(panel, s, x, y, w, id, tex, name, sub, label, primary, fn, enabled)
     local T, tm = ZeD.T, ZeD.TM
+    local M = ZeD.Molecules
     local rh = T.px(ROW_H)
-    if primary then panel:drawRect(x, y, w, rh, 0.07, col(T.accent)) end
+    if primary then panel:drawRect(x, y, w, rh, T.selectionA, col(T.accent)) end
     local isz = T.px(16)
     if tex then panel:drawTextureScaledAspect(tex, x + T.px(2), y + math.floor((rh - isz) / 2), isz, isz, 1, 1, 1, 1) end
-    local bw = math.max(T.px(56), UI.buttonW(label))
+    local bh = T.buttonH - T.px(4)
+    local bw = math.max(T.px(56), M.buttonW(label))
     local bx = x + w - T.px(2) - bw
-    local by = y + math.floor((rh - T.px(20)) / 2)
-    UI.button(panel, bx, by, label, { h = T.px(20), w = bw, primary = primary, disabled = enabled == false, focused = s.gpId == id })
-    stamp(s, id, bx, by, bw, T.px(20), fn)
+    local by = y + math.floor((rh - bh) / 2)
+    local dis = enabled == false
+    M.drawButton(panel, bx, by, bw, bh, label, primary and "primary" or "default", false, nil,
+        { disabled = dis, hover = not dis and ZeD.Atoms.mouseIn(panel, bx, by, bw, bh), focus = (s.gpId == id) or nil })
+    stamp(s, id, bx, by, bw, bh, fn)
     local f2, f5 = T.fontF2, T.fontF5
     local nx = x + T.px(2) + isz + T.px(8)
     local nmax = bx - T.px(8) - nx
@@ -488,15 +493,19 @@ local function setFacing(cur, mode, fi, idx)
     pcall(function() getSoundManager():playUISound("UIObjectMenuObjectRotateOutline") end)
 end
 
+-- facing: one of four, so System 7 radio buttons (the compass letter beside each)
 local function drawFacing(panel, s, x, y, w, cur, mode, fi)
     local T, tm = ZeD.T, ZeD.TM
+    local A = ZeD.Atoms
     local h = T.px(24)
-    local f1 = T.fontF1
-    local ac = T.accent
-    local facingTxt = ZeD.tr("UI_ZeD_Furn_Facing")
-    panel:drawText(facingTxt, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+    local f1, f2 = T.fontF1, T.fontF2
+    local lc = T.textDim
+    local facingTxt = ZeD.textCase(ZeD.tr("UI_ZeD_Furn_Facing"))
+    panel:drawText(facingTxt, x, y + math.floor((h - tm:getFontHeight(f1)) / 2), lc.r, lc.g, lc.b, lc.a or 1, f1)
     local bx = x + tm:MeasureStringX(f1, facingTxt) + T.px(12)
     local bw = T.px(42)
+    local rs = A.radioSize()
+    local ih = h - T.px(2)
     for _, fc in ipairs(FACES) do
         local id = "fur:face:" .. fc[1]
         local idx = fc[2]
@@ -507,8 +516,14 @@ local function drawFacing(panel, s, x, y, w, cur, mode, fi)
         else
             has, on = true, fi.idx == idx
         end
-        UI.button(panel, bx, y + T.px(1), fc[1], { h = T.px(22), w = bw, primary = on, disabled = not has, focused = s.gpId == id })
-        if has then stamp(s, id, bx, y + T.px(1), bw, T.px(22), function() setFacing(cur, mode, fi, idx) end) end
+        local iy = y + T.px(1)
+        local hov = has and A.mouseIn(panel, bx, iy, bw, ih)
+        local onFocus = (s.gpId == id) and ZeD.Focus.mark(panel, bx, iy, bw, ih) or false
+        A.drawRadio(panel, bx + T.px(4), iy + math.floor((ih - rs) / 2), on, { hover = hov, disabled = not has })
+        local tc = onFocus and T.textOnFocus or T.text
+        local ta = (tc.a or 1) * (has and 1 or T.disabledAlpha)
+        panel:drawText(fc[1], bx + T.px(4) + rs + T.px(6), iy + math.floor((ih - tm:getFontHeight(f2)) / 2), tc.r, tc.g, tc.b, ta, f2)
+        if has then stamp(s, id, bx, iy, bw, ih, function() setFacing(cur, mode, fi, idx) end) end
         bx = bx + bw + T.px(4)
     end
     return h
@@ -541,7 +556,7 @@ local function drawYield(panel, x, y, w, r)
     panel:drawText(ZeD.CraftingCore.truncText(name, f2, w - T.px(170)), x + T.px(2) + isz + T.px(8), y + math.floor((rh - tm:getFontHeight(f2)) / 2),
         T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
     local ty = y + math.floor((rh - tm:getFontHeight(f3)) / 2)
-    ZeD.Atoms.drawTextRight(panel, r.static and ZeD.tr("UI_ZeD_Furn_Always") or (tostring(r.chance or 0) .. "%"), x + w - T.px(2), ty, f3, T.textDim)
+    ZeD.Atoms.drawTextRight(panel, r.static and ZeD.textCase(ZeD.tr("UI_ZeD_Furn_Always")) or (tostring(r.chance or 0) .. "%"), x + w - T.px(2), ty, f3, T.textDim)
     ZeD.Atoms.drawTextRight(panel, tostring(r.max or 0), x + w - T.px(80), ty, f3, T.text)
     panel:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a or 1, col(T.border))
     return rh
@@ -579,30 +594,34 @@ function FT.render(panel, win, x, y, w, h)
     local c = FT.cap[pn]
     if c and c.mode ~= mode then c = nil end
 
-    -- header: title + pill
-    local hh = T.px(HEAD_H)
-    local s2 = T.surf2
-    panel:drawRect(x, y, w, hh, s2.a or 1, col(s2))
-    panel:drawRect(x, y + hh - T.px(1), w, T.px(1), T.borderS.a or 1, col(T.borderS))
+    -- header: the library tab head (no fold), the mode as a tag beside the title
+    local M = ZeD.Molecules
+    local hh = M.drawTabHeader(panel, x, y, w, getText("IGUI_CraftingCategories_Furniture"), true, false, true)
     local f4 = T.fontF4
-    local title = getText("IGUI_CraftingCategories_Furniture")
-    panel:drawText(title, x + T.px(PAD), y + math.floor((hh - tm:getFontHeight(f4)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f4)
-    local pillC = (c and c.mp) and (c.canCreate and T.positive or T.danger) or T.textDim
-    UI.tag(panel, x + T.px(PAD) + tm:MeasureStringX(f4, title) + T.px(8), y + math.floor((hh - T.px(16)) / 2), modeLabel(mode), pillC, true)
+    local title = ZeD.textCase(getText("IGUI_CraftingCategories_Furniture"))
+    local pillC = (c and c.mp) and (c.canCreate and T.positive or T.danger) or nil
+    M.drawTag(panel, x + T.px(PAD) + tm:MeasureStringX(f4, title) + T.px(8), y + math.floor((hh - T.px(16)) / 2), modeLabel(mode), pillC)
 
-    -- mode strip
+    -- mode strip: the current mode is the active one (solid accent), the others push buttons
     local sy = y + hh
     local sh = T.px(STRIP_H)
     panel:drawRect(x, sy + sh - T.px(1), w, T.px(1), T.borderS.a or 1, col(T.borderS))
     local gap = T.px(4)
     local bw = math.floor((w - T.px(16) - gap * (#MODES - 1)) / #MODES)
     local bx = x + T.px(8)
+    local bh = T.buttonH
+    local by = sy + math.floor((sh - bh) / 2)
+    local activeColors = s._activeColors or {}
+    s._activeColors = activeColors
+    activeColors.fill, activeColors.text = T.accent, T.textOnAccent
     for _, m in ipairs(MODES) do
         local id = "fur:mode:" .. m.id
         local mid = m.id
-        UI.button(panel, bx, sy + math.floor((sh - T.px(BTN_H)) / 2), ZeD.upper(txt(m.key, m.fb)),
-            { h = T.px(BTN_H), w = bw, primary = mode == mid, focused = s.gpId == id })
-        stamp(s, id, bx, sy + math.floor((sh - T.px(BTN_H)) / 2), bw, T.px(BTN_H), function() FT.setMode(pn, mid) end)
+        local on = (mode == mid)
+        local foc = (s.gpId == id) and (on and { solid = true } or true) or nil
+        M.drawButton(panel, bx, by, bw, bh, txt(m.key, m.fb), on and "primary" or "default", false, on and activeColors or nil,
+            { hover = not on and ZeD.Atoms.mouseIn(panel, bx, by, bw, bh), focus = foc })
+        stamp(s, id, bx, by, bw, bh, function() FT.setMode(pn, mid) end)
         bx = bx + bw + gap
     end
 
@@ -610,7 +629,9 @@ function FT.render(panel, win, x, y, w, h)
     local top = sy + sh + T.px(8)
     local bottom = y + h - T.px(6)
     s.bodyTop, s.bodyBottom = top, bottom
-    local bx0, bw0 = x + T.px(PAD), w - T.px(PAD) * 2
+    -- the library scrollbar at the drawer's right edge when the body overflowed last frame
+    local sbW = ((s.maxScroll or 0) > 0) and T.sp.scrollbarW or 0
+    local bx0, bw0 = x + T.px(PAD), w - T.px(PAD) * 2 - sbW
     local off = s.scrollY or 0
     local cy = top - off
     local function vis(yy, hh2) return yy >= top - T.px(2) and yy + hh2 <= bottom + T.px(2) end
@@ -620,7 +641,7 @@ function FT.render(panel, win, x, y, w, h)
     local tH = T.px(PREV_H)
     if c and c.mp then
         local th0 = T.px(PREV_H)
-        local facts = #info.facts * T.px(FACT_H) + tm:getFontHeight(T.fontF4) + tm:getFontHeight(T.fontF1) + T.px(8)
+        local facts = #info.facts * T.px(FACT_H) + tm:getFontHeight(T.fontF4) + tm:getFontHeight(T.fontF2) + T.px(8)
         tH = math.max(th0, facts)
     end
     if vis(cy, tH) then drawTarget(panel, s, bx0, cy, bw0, c, mode, info) end
@@ -643,7 +664,12 @@ function FT.render(panel, win, x, y, w, h)
     if mode == "scrap" and c and c.mp then
         local ys = yieldsOf(c.mp)
         if #ys > 0 then
-            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_MayYield"), ZeD.tr("UI_ZeD_Furn_UpTo") .. " " .. DOT .. " " .. ZeD.tr("UI_ZeD_Furn_RollChance")) end
+            if vis(cy, T.px(SEC_H)) then
+                M.drawSectionHeader(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_MayYield"), nil, true, false, nil, false, 0, T.px(SEC_H), true)
+                -- the columns' names, right-aligned on the head
+                local cols = ZeD.textCase(ZeD.tr("UI_ZeD_Furn_UpTo")) .. " " .. DOT .. " " .. ZeD.textCase(ZeD.tr("UI_ZeD_Furn_RollChance"))
+                ZeD.Atoms.drawTextRight(panel, cols, bx0 + bw0 - T.px(2), cy + math.floor((T.px(SEC_H) - tm:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
+            end
             cy = cy + T.px(SEC_H)
             for _, r in ipairs(ys) do
                 if vis(cy, T.px(24)) then drawYield(panel, bx0, cy, bw0, r) end
@@ -657,7 +683,7 @@ function FT.render(panel, win, x, y, w, h)
         if mode == "place" then
             local list = cur.objectListCache
             if not list then local ok, l = pcall(function() return cur:getInventoryObjectList() end); list = ok and l or {} end
-            if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_YourFurniture"), tostring(#list)) end
+            if vis(cy, T.px(SEC_H)) then M.drawSectionHeader(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_YourFurniture"), #list, true, false, nil, false, 0, T.px(SEC_H), true) end
             cy = cy + T.px(SEC_H)
             for i, e in ipairs(list) do
                 local it = e.object
@@ -667,19 +693,19 @@ function FT.render(panel, win, x, y, w, h)
                 if vis(cy, T.px(ROW_H)) then
                     drawRow(panel, s, bx0, cy, bw0, "fur:inv:" .. i, it and call(it, "getTex"), it and it:getDisplayName() or "?",
                         (ZeD.ObjectCards.whereOf(it, getSpecificPlayer(pn)) or "") .. " " .. DOT .. " " .. string.format("%.1f", it and it:getActualWeight() or 0),
-                        selected and ZeD.tr("UI_ZeD_Furn_OnCursor") or ZeD.upper(txt("IGUI_Place", "Place")), selected,
+                        selected and ZeD.tr("UI_ZeD_Furn_OnCursor") or txt("IGUI_Place", "Place"), selected,
                         function() cur.objectIndex = idx; cur.cacheInvObjectSprite = nil; cur.cursorFacing = nil; cur.joypadFacing = nil end)
                 end
                 cy = cy + T.px(ROW_H)
             end
             if #list == 0 then
-                if vis(cy, T.px(22)) then panel:drawText(ZeD.tr("UI_ZeD_Furn_CarryNone"), bx0 + T.px(2), cy + T.px(4), T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2) end
-                cy = cy + T.px(22)
+                if vis(cy, T.px(26)) then M.drawEmptyLine(panel, bx0 + T.px(2), cy + T.px(8), bw0 - T.px(4), ZeD.tr("UI_ZeD_Furn_CarryNone")) end
+                cy = cy + T.px(26)
             end
         elseif mode ~= "rotate" then
             local list = cur.objectListCache
             if type(list) == "table" and #list > 0 then
-                if vis(cy, T.px(SEC_H)) then UI.section(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_OnThisTile"), tostring(#list)) end
+                if vis(cy, T.px(SEC_H)) then M.drawSectionHeader(panel, bx0, cy, bw0, ZeD.tr("UI_ZeD_Furn_OnThisTile"), #list, true, false, nil, false, 0, T.px(SEC_H), true) end
                 cy = cy + T.px(SEC_H)
                 for i, e in ipairs(list) do
                     local selected = (cur.objectIndex == i)
@@ -697,14 +723,17 @@ function FT.render(panel, win, x, y, w, h)
     local total = (cy + off) - top
     s.maxScroll = math.max(0, total - (bottom - top))
     if (s.scrollY or 0) > s.maxScroll then s.scrollY = s.maxScroll end
-    if s.maxScroll > 0 then
-        local trackH = bottom - top
-        local thumbH = math.max(T.px(20), math.floor(trackH * (bottom - top) / math.max(1, total)))
-        local ty = top + math.floor((trackH - thumbH) * ((s.scrollY or 0) / s.maxScroll))
-        panel:drawRect(x + w - T.px(4), top, T.px(2), trackH, 0.5, col(T.border))
-        panel:drawRect(x + w - T.px(5), ty, T.px(4), thumbH, 1, col(T.borderS))
+    -- the library scrollbar, its outer edge on the drawer's edge (the wheel and its arrows move it)
+    local sb = s.sb
+    if not sb then sb = ZeD_ScrollbarState:new(); s.sb = sb end
+    sb.visible = s.maxScroll > 0
+    if sb.visible then
+        sb.width, sb.arrowH = T.sp.scrollbarW, T.sp.scrollbarW
+        sb.x, sb.y, sb.height = x + w - sb.width, top, bottom - top
+        sb:setBarSize((bottom - top) / math.max(1, total))
+        sb.scrollPos = (s.scrollY or 0) / s.maxScroll
+        sb:draw(panel)
     end
-    -- gamepad cue on the stamped zones (0.55 accent; buttons paint their own)
     s.cur = cur
 end
 
@@ -727,6 +756,14 @@ function FT.isVisible(win) return true end
 -- ---------------------------------------------------------------------------
 function FT.onClick(win, x, y)
     local s = st(win)
+    -- the scrollbar: its arrows and track step the body (no drag; the wheel scrolls too)
+    local sb = s.sb
+    if sb and sb.visible and x >= sb.x and x < sb.x + sb.width and y >= sb.y and y < sb.y + sb.height then
+        sb:handleMouseDown(y - sb.y)
+        sb:handleMouseUp()
+        s.scrollY = math.floor(sb.scrollPos * (s.maxScroll or 0) + 0.5)
+        return true
+    end
     for i = #s.zones, 1, -1 do
         local z = s.zones[i]
         if hit(z, x, y) and z.fn then
@@ -821,22 +858,25 @@ function ZeD_FurnitureChip:prerender()
     -- the mouse sits on the tile: flip above when the chip would cover it
     local mx, my = getMouseX(), getMouseY()
     if mx >= x and mx < x + w and my >= y and my < y + h then y = y - h - T.px(16) end
-    self:setX(x); self:setY(y); self:setWidth(w); self:setHeight(h)
+    self:setX(x); self:setY(y); self:setWidth(w + T.hair); self:setHeight(h + T.hair)
 end
 
 function ZeD_FurnitureChip:render()
     local T, tm = ZeD.T, ZeD.TM
     if not (self._name and self:getWidth() > 2) then return end
-    local w, h = self:getWidth(), self:getHeight()
-    local s2 = T.surf2
-    self:drawRect(0, 0, w, h, 0.92, col(s2))
+    -- a box that pops up over the game: solid, the 1u frame and System 7's hard shadow
+    -- (the shadow sits outside the box: the element is a unit wider and taller than it)
+    local w, h = self:getWidth() - T.hair, self:getHeight() - T.hair
+    local s1 = T.surf1
+    self:drawRect(0, 0, w, h, 1, col(s1))
     self:drawRectBorder(0, 0, w, h, T.borderS.a or 1, col(T.borderS))
+    ZeD.Atoms.drawHardShadow(self, 0, 0, w, h)
     local dc = self._ok and T.positive or T.danger
     ZeD.Atoms.drawStatusDot(self, T.px(7), math.floor((h - T.px(6)) / 2), dc, T.px(6))
     local f2, f1 = T.fontF2, T.fontF1
     local nx = T.px(7) + T.px(12)
     self:drawText(self._name, nx, math.floor((h - tm:getFontHeight(f2)) / 2), T.text.r, T.text.g, T.text.b, T.text.a or 1, f2)
-    local lc = self._ok and T.textDim or T.danger
+    local lc = T.textDim
     self:drawText(self._line, nx + tm:MeasureStringX(f2, self._name) + T.px(8), math.floor((h - tm:getFontHeight(f1)) / 2), lc.r, lc.g, lc.b, lc.a or 1, f1)
 end
 

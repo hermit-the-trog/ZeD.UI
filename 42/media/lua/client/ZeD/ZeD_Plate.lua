@@ -713,8 +713,10 @@ function PL.find(list, id)
     return nil
 end
 
--- the cue over a control (focus, hover, a key held): a ring round a knob, a
--- fill over a key; c = colour, a = alpha
+-- the cue over a control: a ring round a knob (the knob's own light, which
+-- stays), a fill over a key; c = colour, a = alpha. A key's held shade
+-- (P.BLACK) is drawn through here too. A key's pointer wash and the
+-- controller's focus mark are PL.hoverKey and PL.markKey, not this.
 function PL.cue(cv, h, c, a)
     if h.kind == "turn" then
         local r = math.min(h.w, h.h) / 2
@@ -722,6 +724,21 @@ function PL.cue(cv, h, c, a)
     else
         P.rect(cv, h.x, h.y, h.w, h.h, c, a)
     end
+end
+
+-- the pointer over a key: the library's hover wash (T.hover). A knob keeps its ring.
+function PL.hoverKey(cv, h)
+    local hv = ZeD.T.hover
+    P.rect(cv, h.x, h.y, h.w, h.h, hv, hv.a or 0.2)
+end
+
+-- the controller on a key: the chosen focus look (ZeD.Focus.mark) over the key's rect, in
+-- panel pixels (the plate's top-left at (ox, oy), k screen pixels to a plate pixel). Call it
+-- after the plate is drawn; the mark's top part comes with the window's overlay pass, or with
+-- ZeD.Focus.drawOverlay(panel, panel) at the end of a prop's own render. opts as ZeD.Focus.mark
+-- ({ win, focused = true for a prop with a focus model of its own }).
+function PL.markKey(panel, h, ox, oy, k, opts)
+    return ZeD.Focus.mark(panel, ox + h.x * k, oy + h.y * k, h.w * k, h.h * k, opts)
 end
 
 -- the whole multiple a plate is drawn at for a UI scale, and the screen offset

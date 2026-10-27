@@ -299,7 +299,6 @@ end
 -- work exactly as on a row.
 -- ============================================================================
 local GRID_CELL, GRID_GAP = 52, 4
-local GRID_HINT_MS = 450
 
 -- a stable name for a container: the player's bag, a bag by its item id, a
 -- vehicle part, a world object by its square, else its kind
@@ -473,23 +472,44 @@ local function gridIcon(name)
 end
 
 -- is this item the controller's focused element in an inventory zone? (the
--- rows' own test, shared with the grid's cells)
+-- rows' own test, shared with the grid's cells). Only in the focused window
+-- while the controller is in use (Focus.liveZone): no mark in mouse mode.
+-- Returns the focus mark's opts ({ win, zone }) when it is, else false.
+local _itemFocus, _toggleFocus = {}, {}
 local function gpFocusedItem(item)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-    local zone   = (focWin and Focus.getFocusedZone) and Focus.getFocusedZone(focWin) or nil
+    local zone   = (focWin and Focus.liveZone) and Focus.liveZone(focWin) or nil
     local zname  = zone and zone.zone or ""
     local isInvZone = zname == "charMainInv" or zname == "worldMainInv"
                    or (zname:match("^worldMC%d+$") ~= nil) or (zname:match("^charMC%d+$") ~= nil)
-    local focEl = focWin and Focus.getFocusedElement and Focus.getFocusedElement(focWin) or nil
-    return isInvZone and focEl ~= nil and focEl.item == item
+    if not isInvZone then return false end
+    local focEl = Focus.liveElement(focWin)
+    if not (focEl ~= nil and focEl.item == item) then return false end
+    _itemFocus.win, _itemFocus.zone = focWin, zname
+    return _itemFocus
 end
 
 local function gpFocusedToggle(id)
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     local focWin = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() or nil
-    local focEl = focWin and Focus.getFocusedElement and Focus.getFocusedElement(focWin) or nil
-    return focEl ~= nil and focEl.isViewToggle and focEl.id == id
+    local focEl = (focWin and Focus.liveElement) and Focus.liveElement(focWin) or nil
+    if not (focEl ~= nil and focEl.isViewToggle and focEl.id == id) then return nil end
+    _toggleFocus.win = focWin
+    return _toggleFocus
+end
+
+-- the pointer's hover is off while the controller's mark shows (the mouse
+-- clears the mark; a pointer left resting never paints a second highlight)
+local function cuesOn()
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    return Focus and Focus.cuesVisible and Focus.cuesVisible() or false
+end
+
+-- A tag's width as ZeD.Molecules.drawTag draws it (F1, sentence case, 5u each side)
+local function tagW(text)
+    local T = ZeD.T
+    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.Atoms.textCase(text)) + T.px(10)
 end
 
 -- a container's key, kept per container object (asked by every column every frame; a container's
@@ -534,42 +554,54 @@ local function gridH(GV, n)
     return GV.gap + math.ceil(n / GV.cols) * (GV.cell + GV.gap)
 end
 
--- List | Grid: two joined icon buttons ending at column-local x `right`, in
--- the column heading (top barH, height areaH). Stamps GV.toggles (panel
--- coords) and the hint candidate. Returns the width taken (with its gap).
+-- List | Grid: two separate icon buttons 4u apart, the active one solid accent,
+-- ending at column-local x `right`, in the column heading (top barH, height
+-- areaH). Each names itself in a hint after the pause (the library's). Stamps
+-- GV.toggles (panel coords). Returns the width taken (with its gap).
+local _viewOpts = {}
 local function drawViewToggle(self, GV, xOff, right, barH, areaH, padX)
     if not GV.key then return 0 end
     local T = ZeD.T
-    local bw, bh = T.px(22), T.px(18)
-    local tW = bw * 2 - T.px(1)
+    local M = ZeD.Molecules
+    local bw = math.max(T.px(16), math.min(T.buttonH, areaH - T.px(4)))
+    local sep = T.px(4)
+    local tW = bw * 2 + sep
     local tx = xOff + right - tW
-    local ty = barH + math.floor((areaH - bh) / 2)
-    local mx, my = self:getMouseX(), self:getMouseY()
-    local ac = T.accent
+    local ty = barH + math.floor((areaH - bw) / 2)
     for i, v in ipairs({ "list", "grid" }) do
-        local zx = tx + (i - 1) * (bw - T.px(1))
+        local zx = tx + (i - 1) * (bw + sep)
         local on = (v == "grid") == (GV.on and true or false)
-        local bg = on and ac or T.surf2
-        self:drawRect(zx, ty, bw, bh, 1, bg.r, bg.g, bg.b)
-        local br = on and T.accentBright or T.borderS
-        self:drawRectBorder(zx, ty, bw, bh, br.a or 1, br.r, br.g, br.b)
-        local isz = T.px(11)
-        ZeD.Atoms.drawIcon(self, gridIcon(v == "list" and "list" or "apps"), zx + math.floor((bw - isz) / 2),
-            ty + math.floor((bh - isz) / 2), isz, 1, on and T.textOnAccent or T.textDim)
         local id = "view:" .. v .. ":" .. GV.key
-        local over = mx >= zx and mx < zx + bw and my >= ty and my < ty + bh
-        if gpFocusedToggle(id) then self:drawRect(zx, ty, bw, bh, 0.55, ac.r, ac.g, ac.b)
-        elseif over and not on then self:drawRect(zx, ty, bw, bh, 0.22, ac.r, ac.g, ac.b) end
-        if over then self._gridHintCand = { key = id, text = (v == "list") and getText("IGUI_CraftingWindow_ListView") or ZeD.tr("UI_ZeD_Inv_GridView"), x = zx, y = ty + bh + T.px(4), below = true } end
-        GV.toggles[#GV.toggles + 1] = { x = zx, y = ty, w = bw, h = bh, view = v, key = GV.key, id = id }
+        local name = (v == "list") and getText("IGUI_CraftingWindow_ListView") or ZeD.tr("UI_ZeD_Inv_GridView")
+        local o = _viewOpts
+        o.active, o.hover = on, ZeD.Atoms.mouseIn(self, zx, ty, bw, bw)
+        o.focus, o.hint, o.id = gpFocusedToggle(id), name, id
+        o.help = ZeD.tr(v == "list" and "UI_ZeD_Inv_ListHelp" or "UI_ZeD_Inv_GridHelp")
+        o.iconSize = math.min(T.px(16), bw - T.px(6))
+        M.drawIconButton(self, zx, ty, bw, gridIcon(v == "list" and "list" or "apps"), o)
+        GV.toggles[#GV.toggles + 1] = { x = zx, y = ty, w = bw, h = bw, view = v, key = GV.key, id = id }
     end
     return tW + padX
 end
 
--- One cell: the icon, the stack's weight top right, its count bottom right, a
--- condition line along the bottom, a BELT n badge; hover 0.22, selected
--- deeper with the icon darkened (System 7's selected icon), the controller's
--- focus 0.55. Its hit zone is the item itself, as a row's is.
+-- A grid cell's condition: the framed strip (ZeD.Atoms.drawFillBar) along the
+-- cell's bottom, compact to fit under the icon. Returns its top (or the cell's
+-- bottom when there is none).
+local function drawCellCondition(self, item, ax, cy, cell)
+    local T = ZeD.T
+    local condMax = item:getConditionMax()
+    if not (condMax and condMax > 0) then return cy + cell end
+    local f = math.max(0, math.min(1, item:getCondition() / condMax))
+    local bh = T.px(5)
+    local by = cy + cell - T.px(3) - bh
+    ZeD.Atoms.drawFillBar(self, ax + T.px(3), by, cell - T.px(6), f, true, nil, bh)
+    return by
+end
+
+-- One cell: the icon, the stack's weight top right, its count bottom right, the
+-- condition strip along the bottom, a BELT n key square; hover T.hover, selected
+-- the T.selectionA wash, the controller's focus mark under the icon. Its hit zone
+-- is the item itself, as a row's is.
 local function drawGridCell(self, GV, item, cx, cy)
     local T = ZeD.T
     local cell, xOff = GV.cell, GV.xOff
@@ -582,8 +614,18 @@ local function drawGridCell(self, GV, item, cx, cy)
     self:drawRect(ax, cy, cell, cell, st.a, st.r, st.g, st.b)
     self:drawRectBorder(ax, cy, cell, cell, bs.a or 1, bs.r, bs.g, bs.b)
     local isSelected = GV.sel and GV.sel[item]
-    if isSelected then self:drawRect(ax, cy, cell, cell, 0.36, ac.r, ac.g, ac.b) end
-    if self._ccMarks and ccMarked(self, item) then self:drawRect(ax, cy, cell, cell, 0.22, ac.r, ac.g, ac.b) end
+    -- the pointer (its name in a hint, and the help line) / the controller
+    local over = GV.mouseIn and not cuesOn() and GV.lmx >= cx and GV.lmx < cx + cell and GV.my >= cy and GV.my < cy + cell
+                 and GV.my >= GV.top and GV.my < GV.top + GV.visH
+    if isSelected then
+        self:drawRect(ax, cy, cell, cell, T.selectionA, ac.r, ac.g, ac.b)
+    elseif over or (self._ccMarks and ccMarked(self, item)) then
+        -- (rows a pointed-at Same type button would move read as pointed at too)
+        local hv = T.hover
+        self:drawRect(ax, cy, cell, cell, hv.a, hv.r, hv.g, hv.b)
+    end
+    local fo = gpFocusedItem(item)
+    if fo then ZeD.Focus.mark(self, ax, cy, cell, cell, fo) end
     local stackInfo = self._stacks and self._stacks[item]
     local count = (stackInfo and stackInfo.count) or 1
     local tex = item:getTex()
@@ -591,10 +633,12 @@ local function drawGridCell(self, GV, item, cx, cy)
     -- the read mark (ReadMarks.lua): read items faded when "Dim read items" is on
     local rs = ZeD.ReadMarks.state(GV.player, item)
     if tex then
-        local tint = isSelected and 0.7 or 1
         local ia = (rs and rs.st == "r" and ZeD.ReadMarks.dimOn()) and 0.5 or 1
-        self:drawTextureScaledAspect(tex, ax + math.floor((cell - isz) / 2), cy + math.floor((cell - isz) / 2), isz, isz, ia, tint, tint, tint)
+        self:drawTextureScaledAspect(tex, ax + math.floor((cell - isz) / 2), cy + math.floor((cell - isz) / 2), isz, isz, ia, 1, 1, 1)
     end
+    -- condition, the framed strip along the bottom (the list's colours); a readable
+    -- item shows its read mark instead, as the list's COND column does
+    local condTop = rs and (cy + cell) or drawCellCondition(self, item, ax, cy, cell)
     -- the weight of the cell (the whole stack), top right
     local wt = 0
     if stackInfo and stackInfo.items then
@@ -603,18 +647,19 @@ local function drawGridCell(self, GV, item, cx, cy)
     local wtStr = string.format("%.1f", wt)
     local f5 = T.fontF5
     local wtw = ZeD.TM:MeasureStringX(f5, wtStr)
-    -- (the chips fill from tokens like the belt's chips, so fill and text share one theme)
+    -- (the chips fill from the window's surface token, at the see-through value like the rest of
+    -- the window: no literal alpha; they are small and sit over the cell, so they are not claimed)
     local s1 = T.surf1
-    self:drawRect(ax + cell - wtw - T.px(5), cy + T.px(1), wtw + T.px(4), GV.f5FH, 0.92, s1.r, s1.g, s1.b)
+    self:drawRect(ax + cell - wtw - T.px(5), cy + T.px(1), wtw + T.px(4), GV.f5FH, s1.a or 1, s1.r, s1.g, s1.b)
     local th = T.accentText or T.text
     self:drawText(wtStr, ax + cell - wtw - T.px(3), cy + T.px(1), th.r, th.g, th.b, th.a or 1, f5)
-    -- the count, bottom right
+    -- the count, bottom right (above the condition strip)
     if count > 1 then
         local cs = "x" .. count
         local f1 = T.fontF1
         local cw2 = ZeD.TM:MeasureStringX(f1, cs)
-        local cy2 = cy + cell - GV.secFH - T.px(4)
-        self:drawRect(ax + cell - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, 0.92, s1.r, s1.g, s1.b)
+        local cy2 = math.min(cy + cell - GV.secFH - T.px(4), condTop - GV.secFH - T.px(1))
+        self:drawRect(ax + cell - cw2 - T.px(5), cy2, cw2 + T.px(4), GV.secFH, s1.a or 1, s1.r, s1.g, s1.b)
         local tc = T.text
         self:drawText(cs, ax + cell - cw2 - T.px(3), cy2, tc.r, tc.g, tc.b, tc.a or 1, f1)
     end
@@ -630,37 +675,18 @@ local function drawGridCell(self, GV, item, cx, cy)
     else
         GV._beltW = 0
     end
-    -- read: the dot in the free corner, bottom left; a book for the next level: the small arrow top left (after a BELT key)
+    -- read: the square mark in the free corner, bottom left; a book for the next level: the small arrow top left (after a BELT key)
     if rs then
         local RM = ZeD.ReadMarks
-        local kk = RM.k()
-        RM.drawDot(self, ax + T.px(2), cy + cell - RM.DOT_W * kk - T.px(2), rs.st)
+        local ms = RM.markSize()
+        RM.drawMark(self, ax + T.px(3), cy + cell - ms - T.px(3), rs.st)
         if rs.next and RM.nextOn() then RM.drawUp(self, ax + T.px(2) + (GV._beltW > 0 and GV._beltW + T.px(2) or 0), cy + T.px(2)) end
-    end
-    -- condition, a line along the bottom (the list's colours)
-    -- (a readable item shows its read mark instead, as the list's COND column does)
-    local condMax = (not rs) and item:getConditionMax() or nil
-    if condMax and condMax > 0 then
-        local f = math.max(0, math.min(1, item:getCondition() / condMax))
-        local bx, by, bw2 = ax + T.px(3), cy + cell - T.px(3), cell - T.px(6)
-        local tr = T.surf3
-        self:drawRect(bx, by, bw2, T.px(2), tr.a or 1, tr.r, tr.g, tr.b)
-        local fc = (f > 0.6 and T.positive) or (f > 0.3 and T.warning) or T.danger
-        local fw = math.floor(bw2 * f)
-        if fw > 0 then self:drawRect(bx, by, fw, T.px(2), fc.a or 1, fc.r, fc.g, fc.b) end
-    end
-    -- pointer (0.22, and its name in a hint) / the controller (0.55)
-    local over = GV.mouseIn and GV.lmx >= cx and GV.lmx < cx + cell and GV.my >= cy and GV.my < cy + cell
-                 and GV.my >= GV.top and GV.my < GV.top + GV.visH
-    if gpFocusedItem(item) then
-        self:drawRect(ax, cy, cell, cell, 0.55, ac.r, ac.g, ac.b)
-    elseif over then
-        self:drawRect(ax, cy, cell, cell, 0.22, ac.r, ac.g, ac.b)
     end
     if over then
         local nm = item:getName() or "?"
         if count > 1 then nm = nm .. " x" .. count end
-        self._gridHintCand = { key = item, text = nm, x = ax, y = cy, read = rs }
+        self._gridHintCand = { key = item, text = nm, read = rs }
+        ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", nm))
     end
     self:addHitZone(item, ax, cy, cell, cell)
 end
@@ -751,21 +777,24 @@ end
 
 -- The grid by category: each category's heading (as the list's: fold on a
 -- click) and its cells. Returns the y after them.
+-- A category's row ("v Weapons (4)", the library's category row: the triangle,
+-- F1 sentence case, the count): a press folds it. hover = the pointer is on it.
+local _catOpts = {}
+local function drawCatRow(self, x, y, w, h, cat, n, isClosed, hover, inset)
+    local o = _catOpts
+    o.hover, o.h, o.inset = hover, h, inset
+    ZeD.Molecules.drawCategoryRow(self, x, y, w, ZeD.InventoryRenderer.catLabel(cat), n, not isClosed, o)
+    if hover then ZeD.Help.set(self, ZeD.tr(isClosed and "UI_ZeD_Inv_CatOpenHelp" or "UI_ZeD_Inv_CatFoldHelp")) end
+end
+
 local function drawGridGroups(self, GV, catOrder, groups, collapsed, stackedGroups, y, scrollX, catHdrH)
-    local T = ZeD.T
     local xOff = GV.xOff
-    local s2 = T.surf2
+    local T = ZeD.T
     for _, cat in ipairs(catOrder) do
         local isClosed = collapsed[cat]
         if y + catHdrH > GV.top and y < GV.h then
-            if GV.mouseIn and GV.my >= y and GV.my < y + catHdrH and GV.lmx < scrollX then
-                self:drawRect(xOff, y, scrollX, catHdrH, 0.06, T.text.r, T.text.g, T.text.b)
-            else
-                self:drawRect(xOff, y, scrollX, catHdrH, s2.a, s2.r, s2.g, s2.b)
-            end
-            ZeD.Atoms.drawSecondary(self, (isClosed and "> " or "v ") .. ZeD.upper(ZeD.InventoryRenderer.catLabel(cat)) .. " (" .. #groups[cat] .. ")",
-                xOff + GV.padX + T.px(2), y + math.floor((catHdrH - GV.secFH) / 2), T.toneLo)
-            ZeD.Atoms.drawDividerH(self, xOff, y + catHdrH - T.px(1), scrollX, false)
+            local hover = GV.mouseIn and not cuesOn() and GV.my >= y and GV.my < y + catHdrH and GV.lmx < scrollX
+            drawCatRow(self, xOff, y, scrollX, catHdrH, cat, #groups[cat], isClosed, hover, GV.padX + T.px(2))
             self:addHitZone("cat:" .. cat, xOff, y, scrollX, catHdrH)
         end
         y = y + catHdrH
@@ -802,46 +831,26 @@ local function gridSortDefs(padX, colW)
     return defs
 end
 
--- A readable item's hover text (mockup zed_read_marks_v1): its name, its read status in the game's own words, and
--- the next level a skill book suits; below the row (a list) or above the cell (the grid), turned to stay in the column
-local function drawReadHint(self, GV, hc, xOff, colW, contentTop)
-    local T, tm = ZeD.T, ZeD.TM
-    local f1, f3 = T.fontF1, T.fontF3
+-- A readable item's hover card (mockup zed_read_marks_v1), the library's detail
+-- card: its name, its read status in the game's own words, and the next level a
+-- skill book suits. Asked of the window's overlay, which shows it after the
+-- shared pause, below-right of the pointer.
+local function requestReadCard(self, hc)
     local rs = hc.read
-    local rows = { { hc.text, f1, T.toneHi or T.text } }
-    for _, l in ipairs(rs.lines or {}) do rows[#rows + 1] = { l, f3, T.text } end
-    if rs.next and ZeD.ReadMarks.nextOn() then rows[#rows + 1] = { ZeD.tr("UI_ZeD_Read_NextFor", rs.next), f3, T.accentText or T.accent } end
-    local hpx, hpy, gap = T.px(8), T.px(4), T.px(1)
-    local bw, bh = 0, hpy * 2
-    for i, r in ipairs(rows) do
-        bw = math.max(bw, tm:MeasureStringX(r[2], r[1]))
-        bh = bh + tm:getFontHeight(r[2]) + (i > 1 and gap or 0)
-    end
-    bw = bw + hpx * 2
-    local hx = math.max(xOff + T.px(2), math.min(hc.x, xOff + colW - bw - T.px(2)))
-    local hy = hc.below and hc.y or (hc.y - bh - T.px(4))
-    if hc.below and hy + bh > self:getHeight() - T.px(2) then hy = (hc.above or hc.y) - bh - T.px(4) end
-    if not hc.below and hy < contentTop then hy = hc.y + GV.cell + T.px(4) end
-    local s1, bs = T.surf1, T.borderS
-    self._readHintAt = getTimestampMs()   -- (QA: when it last drew)
-    self:drawRect(hx + T.px(2), hy + T.px(2), bw, bh, 0.5, 0, 0, 0)
-    self:drawRect(hx, hy, bw, bh, 1, s1.r, s1.g, s1.b)
-    self:drawRectBorder(hx, hy, bw, bh, bs.a, bs.r, bs.g, bs.b)
-    local y = hy + hpy
-    for _, r in ipairs(rows) do
-        local c = r[3]
-        self:drawText(r[1], hx + hpx, y, c.r, c.g, c.b, c.a or 1, r[2])
-        y = y + tm:getFontHeight(r[2]) + gap
-    end
+    local lines = {}
+    for _, l in ipairs(rs.lines or {}) do lines[#lines + 1] = l end
+    if rs.next and ZeD.ReadMarks.nextOn() then lines[#lines + 1] = ZeD.tr("UI_ZeD_Read_NextFor", rs.next) end
+    ZeD.Atoms.requestDetailCard(ZeD.Atoms.windowOf(self), hc.key, { title = hc.text, lines = lines }, self)
+    self._readHintAt = getTimestampMs()   -- (QA: when it was last asked for)
 end
 
--- A list row's read mark (ReadMarks.lua): in the COND column a dot and a word, or (the column hidden) the dot alone
--- at x; the dot's colour and shape carry the status. Returns nothing.
+-- A list row's read mark (ReadMarks.lua): in the COND column a square mark and a word, or (the column hidden) the
+-- mark alone at x; the mark's shape (hollow, half, full) and colour carry the status. Returns nothing.
 local function drawReadCond(self, rs, x, y, rowH, colW, padX, focusTxt)
     local T, tm = ZeD.T, ZeD.TM
     local RM = ZeD.ReadMarks
-    local d = RM.DOT_W * RM.k()
-    RM.drawDot(self, x, y + math.floor((rowH - d) / 2), rs.st)
+    local d = RM.markSize()
+    RM.drawMark(self, x, y + math.floor((rowH - d) / 2), rs.st)
     if not colW then return end
     local f3 = T.fontF3
     local tx = x + d + T.px(5)
@@ -854,34 +863,14 @@ local function drawReadCond(self, rs, x, y, rowH, colW, padX, focusTxt)
 end
 ZeD.InventoryRenderer._drawReadCond = drawReadCond
 
--- A grid cell (its item's name) or the List | Grid toggle names itself after
--- a pause, in the container buttons' hint look (drawn last, over the column)
+-- A grid cell names its item in a hint, a readable row or cell shows its read
+-- card: the library's hover boxes, asked of the window's overlay (which keeps
+-- the one pause and places them by the pointer, over everything)
 local function drawGridHint(self, GV, xOff, colW, contentTop)
-    local T = ZeD.T
     local hc = self._gridHintCand
-    if not hc then
-        if self._gridHintCol == xOff then self._gridHintKey = nil end
-        return
-    end
-    local now = getTimestampMs()
-    if self._gridHintKey ~= hc.key then
-        self._gridHintKey, self._gridHintSince, self._gridHintCol = hc.key, now, xOff
-        return
-    end
-    if now - (self._gridHintSince or now) < GRID_HINT_MS then return end
-    if hc.read then return drawReadHint(self, GV, hc, xOff, colW, contentTop) end
-    local f2 = T.fontF2
-    local hpx, hpy = T.px(10), T.px(4)
-    local tw = ZeD.TM:MeasureStringX(f2, hc.text)
-    local bw, bh = tw + hpx * 2, ZeD.TM:getFontHeight(f2) + hpy * 2
-    local hx = math.max(xOff + T.px(2), math.min(hc.x, xOff + colW - bw - T.px(2)))
-    local hy = hc.below and hc.y or (hc.y - bh - T.px(4))
-    if not hc.below and hy < contentTop then hy = hc.y + GV.cell + T.px(4) end
-    local s2, bs, tc = T.surf2, T.borderS, T.text
-    self:drawRect(hx + T.px(2), hy + T.px(2), bw, bh, 0.5, 0, 0, 0)
-    self:drawRect(hx, hy, bw, bh, 1, s2.r, s2.g, s2.b)
-    self:drawRectBorder(hx, hy, bw, bh, bs.a, bs.r, bs.g, bs.b)
-    self:drawText(hc.text, hx + hpx, hy + hpy, tc.r, tc.g, tc.b, tc.a or 1, f2)
+    if not hc then return end
+    if hc.read then return requestReadCard(self, hc) end
+    ZeD.Atoms.requestHint(ZeD.Atoms.windowOf(self), hc.key, hc.text, self)
 end
 
 -- ============================================================================
@@ -1054,6 +1043,56 @@ local function itemModel(self, inv, playerObj, isPlayerInv, sortCol, sortAsc, co
     c.cf, c.ef, c.ph, c.sh, c.isP = cf, ef, ph, sh, isPlayerInv
     c.m = buildItemModel(inv, playerObj, isPlayerInv, sortCol, sortAsc, collapsed, expandedStacks)
     return c.m
+end
+
+-- ============================================================================
+-- ROW PARTS (kept out of renderItemList, which sits near Kahlua's local limit)
+-- ============================================================================
+
+-- A list row's states, under its words, in panel coords: selected (the
+-- T.selectionA wash; faded while a drag carries it), else the pointer's hover
+-- (also the rows a pointed-at Same type button would move), then the
+-- controller's focus mark on the one row that is both this panel's seed and the
+-- live focused element. pointed = the pointer is on the row.
+-- @return true when the row's words switch to T.textOnFocus
+local function rowStates(self, item, isSelected, x, y, w, rowH, pointed)
+    local T = ZeD.T
+    local hover = pointed and not cuesOn()
+    if isSelected then
+        local ac = T.accent
+        self:drawRect(x, y, w, rowH, T.selectionA, ac.r, ac.g, ac.b)
+        if self._drag and self._drag:isActive() then
+            local s1 = T.surf1
+            self:drawRect(x, y, w, rowH, 0.4, s1.r, s1.g, s1.b)
+        end
+    elseif hover or (self._ccMarks and ccMarked(self, item)) then
+        local hv = T.hover
+        self:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
+    end
+    if hover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_RowHelp", item:getName() or "")) end
+    if item ~= self._gpFocusedRowItem then return false end
+    local fo = gpFocusedItem(item)
+    if not fo then return false end
+    return ZeD.Focus.mark(self, x, y, w, rowH, fo) and true or false
+end
+
+-- A tag after a row's name (Next level, Belt 2): the library's tag, centred in the row
+local _rowTagOpts = {}
+local function rowTag(self, x, y, rowH, text, focusTxt)
+    local T = ZeD.T
+    _rowTagOpts.textColor = focusTxt
+    ZeD.Molecules.drawTag(self, x, y + math.floor((rowH - T.px(16)) / 2), text, nil, _rowTagOpts)
+end
+
+-- A row's condition in the COND column: the framed strip (ZeD.Atoms.drawFillBar)
+-- at the list rows' compact height, centred in the row, in the condition's colours
+local function rowCondition(self, item, x, y, w, rowH)
+    local condMax = item:getConditionMax()
+    if not (condMax and condMax > 0) or w <= 0 then return end
+    local A = ZeD.Atoms
+    local pct = math.max(0, math.min(1, item:getCondition() / condMax))
+    local ch = (A.fillBarCompactH and A.fillBarCompactH()) or ZeD.T.px(8)
+    A.drawFillBar(self, x, y + math.floor((rowH - ch) / 2), w, pct, true, nil, ch)
 end
 
 local function renderItemList(self)
@@ -1273,10 +1312,9 @@ local function renderItemList(self)
     if self._ccH > 0 then ccDraw(self, colW, xOff) end
 
     -- --------------------------------------------------------
-    -- COLUMN HEADER BAR
+    -- COLUMN HEADER BAR (its surface claimed over the body: one layer)
     -- --------------------------------------------------------
-    local surf2 = T.surf2
-    dR(0, hdrY, colW, colHdrH, surf2.a, surf2.r, surf2.g, surf2.b)
+    ZeD.Surface.fill(self, xOff, hdrY, colW, colHdrH, "surf2")
 
     local hdrTextY = hdrY + math.floor((colHdrH - f5FH) / 2)
 
@@ -1343,11 +1381,13 @@ local function renderItemList(self)
                 dR(zone.x - xOff + DIV_W / 2 - T.px(1), hdrY, T.px(2), colHdrH, ac.a, ac.r, ac.g, ac.b)
             end
         end
-        if not divHover then
+        if not divHover and not cuesOn() then
             for _, def in ipairs(colDefs) do
                 local hitX, hitW = def[4], def[5]
                 if localMx >= hitX and localMx < hitX + hitW then
-                    dR(hitX, hdrY, hitW, colHdrH, 0.04, T.text.r, T.text.g, T.text.b)
+                    local hv = T.hover
+                    dR(hitX, hdrY, hitW, colHdrH, hv.a, hv.r, hv.g, hv.b)
+                    ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_ColHelp", def[1]))
                     break
                 end
             end
@@ -1472,35 +1512,15 @@ local function renderItemList(self)
             dR(0, y, scrollX, rowH, st.a, st.r, st.g, st.b)
         end
 
-        -- S96/S100/S113c: the controller's focus (0.55 accent fill, matching the
-        -- active tab/container grammar), only on the one row that is both this
-        -- panel's seed AND the live focused element of an inventory zone
-        -- (gpFocusedItem: mainInv + per-column MC zones). Decided first: a
-        -- focused row skips the 0.18 selection wash and draws its text in
-        -- T.textOnFocus, so its labels never sit as accent on accent.
-        local onFocus = (item == self._gpFocusedRowItem) and gpFocusedItem(item) or false
-        local focusTxt = onFocus and (T.textOnFocus or T.toneNorm) or nil
-
-        -- Selected row bg
+        -- The row's states, under its words: selected (the T.selectionA wash),
+        -- else the pointer's hover (and rows a pointed-at Same type button would
+        -- move), then the controller's focus mark on the one row that is both
+        -- this panel's seed and the live focused element of an inventory zone
+        -- (gpFocusedItem). The mark says when the words switch to T.textOnFocus.
         local isSelected = selectedItems[item]
-        if isSelected and not onFocus then
-            local ac = T.accent
-            dR(0, y, scrollX, rowH, T.selectionA, ac.r, ac.g, ac.b)
-            if self._drag and self._drag:isActive() then
-                local s1 = T.surf1
-                dR(0, y, scrollX, rowH, 0.4, s1.r, s1.g, s1.b)
-            end
-        end
-
-        -- Container buttons: rows a pointed-at Same type button would move
-        if self._ccMarks and ccMarked(self, item) then
-            dR(0, y, scrollX, rowH, 0.22, T.accent.r, T.accent.g, T.accent.b)
-        end
-
-        if onFocus then
-            local ac = T.accent
-            dR(0, y, scrollX, rowH, 0.55, ac.r, ac.g, ac.b)
-        end
+        local onFocus = rowStates(self, item, isSelected, xOff, y, scrollX, rowH,
+            mouseInCol and my >= y and my < y + rowH and my >= contentTop and my < contentTop + visibleH and localMx < scrollX)
+        local focusTxt = onFocus and (T.textOnFocus or T.toneNorm) or nil
 
         -- S100 stacking: detect this row's stack role. Stack header shows
         -- a chevron + count badge; child is drawn indented; single items
@@ -1537,11 +1557,11 @@ local function renderItemList(self)
         end
         -- a cut name keeps its end: a stack's count survives ("> Apple (Fr... x6"; Large text audit)
         local avail = nameW - childIndent
-        -- room kept for NEXT LEVEL (it never drops off a long name) and, with COND hidden, the read dot
+        -- room kept for the Next level tag (it never drops off a long name) and, with COND hidden, the read mark
         local nextTag = rs and rs.next and ZeD.ReadMarks.nextOn() and ZeD.tr("UI_ZeD_Read_NextLevel") or nil
-        local nextW = nextTag and (ZeD.TM:MeasureStringX(T.fontF1, nextTag) + T.px(8)) or 0
+        local nextW = nextTag and tagW(nextTag) or 0
         if nextTag then avail = avail - nextW - T.px(6) end
-        local dotW = (rs and not showCond) and (ZeD.ReadMarks.DOT_W * ZeD.ReadMarks.k()) or 0
+        local dotW = (rs and not showCond) and ZeD.ReadMarks.markSize() or 0
         if dotW > 0 then avail = avail - dotW - T.px(6) end
         local displayName = prefix .. baseName .. suffix
         if suffix ~= "" and ZeD.TM:MeasureStringX(T.fontF2, displayName) > avail then
@@ -1553,12 +1573,7 @@ local function renderItemList(self)
             nameColor.r, nameColor.g, nameColor.b, (nameColor.a or 1) * dimA, T.fontF2)
         local afterName = nameX + childIndent + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
         if nextTag then
-            local tf = T.fontF1
-            local th = ZeD.TM:getFontHeight(tf) + T.px(2)
-            local ac = focusTxt or T.accentText or T.accent
-            local ty = y + math.floor((rowH - th) / 2)
-            dRB(afterName, ty, nextW, th, ac.a or 1, ac.r, ac.g, ac.b)
-            dT(nextTag, afterName + T.px(4), ty + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
+            rowTag(self, xOff + afterName, y, rowH, nextTag, focusTxt)
             afterName = afterName + nextW + T.px(6)
         end
         if dotW > 0 then
@@ -1566,21 +1581,12 @@ local function renderItemList(self)
             afterName = afterName + dotW + T.px(6)
         end
 
-        -- On the belt: a BELT n tag after the name (n = the key that draws it),
+        -- On the belt: a Belt n tag after the name (n = the key that draws it),
         -- where vanilla puts its small hotbar icon
         local okAS, aslot = pcall(item.getAttachedSlot, item)
         if okAS and aslot and aslot > 0 and ZeD.Belt and ZeD.Belt.tagFor then
             local tag = ZeD.Belt.tagFor(aslot)
-            local tf = T.fontF1
-            local tw = ZeD.TM:MeasureStringX(tf, tag) + T.px(8)
-            local th = ZeD.TM:getFontHeight(tf) + T.px(2)
-            local tx = afterName
-            if tx + tw <= nameX + nameW then
-                local ac = focusTxt or T.accentText or T.accent
-                local ty = y + math.floor((rowH - th) / 2)
-                dRB(tx, ty, tw, th, ac.a or 1, ac.r, ac.g, ac.b)
-                dT(tag, tx + T.px(4), ty + T.px(1), ac.r, ac.g, ac.b, ac.a or 1, tf)
-            end
+            if afterName + tagW(tag) <= nameX + nameW then rowTag(self, xOff + afterName, y, rowH, tag, focusTxt) end
         end
 
         local secTextY = y + math.floor((rowH - secFH) / 2)
@@ -1594,30 +1600,8 @@ local function renderItemList(self)
         if showCond and rs then
             drawReadCond(self, rs, xOff + condX + T.px(6), y, rowH, condColW - T.px(6), padX, focusTxt)
         elseif showCond then
-            local condMax = item:getConditionMax()
-            if condMax and condMax > 0 then
-                local condPct = math.max(0, math.min(1, item:getCondition() / condMax))
-                local barX = condX + T.px(2)
-                local barY = y + math.floor(rowH / 2) - T.px(1)
-                local barW = condColW - T.px(4)
-                local barH = T.px(3)
-
-                local bg = T.surf3
-                dR(barX, barY, barW, barH, bg.a, bg.r, bg.g, bg.b)
-
-                local fillW = math.max(0, math.floor(barW * condPct))
-                if fillW > 0 then
-                    local fc
-                    if condPct > 0.6 then
-                        fc = T.positive
-                    elseif condPct > 0.3 then
-                        fc = T.warning
-                    else
-                        fc = T.danger
-                    end
-                    dR(barX, barY, fillW, barH, fc.a, fc.r, fc.g, fc.b)
-                end
-            end
+            -- the framed condition strip (ZeD.Atoms.drawFillBar), compact, centred in the row
+            rowCondition(self, item, xOff + condX + T.px(2), y, condColW - T.px(4), rowH)
         end
 
         -- Weight (K22 Xanthus — stat voice)
@@ -1633,9 +1617,9 @@ local function renderItemList(self)
             hZ("stack:" .. stackInfo.key, 0, y, nameX + T.px(16), rowH)
         end
         hZ(item, 0, y, scrollX, rowH)
-        -- a readable row names its status after a pause (drawReadHint), below the row (above it near the bottom)
+        -- a readable row shows its read card after the pause (the library's detail card, by the pointer)
         if rs and mouseInCol and my >= y and my < y + rowH and my >= contentTop and my < contentTop + visibleH and localMx < scrollX then
-            self._gridHintCand = { key = item, text = baseName, x = xOff + nameX, y = y + rowH + T.px(4), above = y, below = true, read = rs }
+            self._gridHintCand = { key = item, text = baseName, read = rs }
         end
 
         y      = y + rowH
@@ -1660,21 +1644,10 @@ local function renderItemList(self)
             local catGroup = groups[cat]
             local isClosed = collapsed[cat]
 
-            -- Category header row
+            -- Category row ("v Weapons (4)": the library's category row; a press folds it)
             if y + catHdrH > contentTop and y < h then
-                -- Hover highlight
-                if mouseInCol and my >= y and my < y + catHdrH and localMx < scrollX then
-                    dR(0, y, scrollX, catHdrH, 0.06, T.text.r, T.text.g, T.text.b)
-                else
-                    dR(0, y, scrollX, catHdrH, surf2.a, surf2.r, surf2.g, surf2.b)
-                end
-
-                local catLabelY = y + math.floor((catHdrH - secFH) / 2)
-                local tri = isClosed and "> " or "v "
-                aSec(tri .. ZeD.upper(ZeD.InventoryRenderer.catLabel(cat)) .. " (" .. #catGroup .. ")",
-                    padX + T.px(2), catLabelY, T.toneLo)
-                aDiv(0, y + catHdrH - T.px(1), scrollX, false)
-
+                drawCatRow(self, xOff, y, scrollX, catHdrH, cat, #catGroup, isClosed,
+                    mouseInCol and not cuesOn() and my >= y and my < y + catHdrH and localMx < scrollX, padX + T.px(2))
                 hZ("cat:" .. cat, 0, y, scrollX, catHdrH)
             end
             y = y + catHdrH
@@ -1701,12 +1674,9 @@ local function renderItemList(self)
     -- --------------------------------------------------------
     -- EMPTY STATE
     -- --------------------------------------------------------
+    -- (the library's empty line: F2 dim, at the list's text inset, 8u under its header)
     if #catOrder == 0 then
-        local msg  = ZeD.tr("UI_ZeD_Inv_Empty")
-        local msgW = ZeD.TM:MeasureStringX(T.fontF1, msg)
-        local msgX = math.floor((scrollX - msgW) / 2)
-        local msgY = contentTop + math.floor((visibleH - secFH) / 2)
-        aSec(msg, msgX, msgY)
+        ZeD.Molecules.drawEmptyLine(self, xOff + padX, contentTop + T.px(8), scrollX - padX * 2, ZeD.tr("UI_ZeD_Inv_Empty"))
     end
 
     -- --------------------------------------------------------
@@ -1750,12 +1720,9 @@ local function renderXferStrip(self, stripX, stripH, selectedContainers, contain
     local btnW = sw - T.px(6)  -- 3px margin each side
     local compact = (sw <= T.px(XFER_W_COMPACT))
 
-    -- Background
-    local bg = T.surf1
-    self:drawRect(stripX, y0, sw, stripH - y0, bg.a, bg.r, bg.g, bg.b)
-
-    -- Left/right border lines
-    local brd = T.border
+    -- (no fill of its own: the window body is under it, one layer)
+    -- Left/right edges: structure lines between the panes
+    local brd = T.borderS
     self:drawRect(stripX, y0, T.px(1), stripH - y0, brd.a, brd.r, brd.g, brd.b)
     self:drawRect(stripX + sw - T.px(1), y0, T.px(1), stripH - y0, brd.a, brd.r, brd.g, brd.b)
 
@@ -1769,21 +1736,17 @@ local function renderXferStrip(self, stripX, stripH, selectedContainers, contain
     for i, cIdx in ipairs(selectedContainers) do
         local container = containers[cIdx]
         local isSource  = (i == activeCol)
-        local isHover   = mx >= btnX and mx < btnX + btnW
-                          and my >= btnY and my < btnY + T.px(XFER_BTN_H)
+        local isHover   = (not isSource) and A.mouseIn(self, btnX, btnY, btnW, T.px(XFER_BTN_H))
 
-        if isSource then
-            local s2 = T.surf2
-            self:drawRect(btnX, btnY, btnW, T.px(XFER_BTN_H), 0.3, s2.r, s2.g, s2.b)
-        elseif isHover then
-            local pos = T.positive
-            self:drawRect(btnX, btnY, btnW, T.px(XFER_BTN_H), 0.15, pos.r, pos.g, pos.b)
-            self:drawRectBorder(btnX, btnY, btnW, T.px(XFER_BTN_H), 0.6, pos.r, pos.g, pos.b)
-        else
-            local s3 = T.surf3
-            self:drawRect(btnX, btnY, btnW, T.px(XFER_BTN_H), s3.a, s3.r, s3.g, s3.b)
-            self:drawRectBorder(btnX, btnY, btnW, T.px(XFER_BTN_H), brd.a, brd.r, brd.g, brd.b)
+        -- An icon button's look (the rounded single outline, the hover wash);
+        -- the source column's own is the disabled control
+        if isHover then
+            local hv = T.hover
+            A.fillRounded(self, btnX, btnY, btnW, T.px(XFER_BTN_H), hv.r, hv.g, hv.b, hv.a or 1)
+            ZeD.Help.set(self, ZeD.tr("UI_ZeD_Inv_XferHelp", i))
         end
+        local ob = T.borderS
+        A.borderRounded(self, btnX, btnY, btnW, T.px(XFER_BTN_H), ob.r, ob.g, ob.b, (ob.a or 1) * (isSource and T.disabledAlpha or 1))
 
         -- Arrow direction (geometric)
         local arrowSz = T.px(5)
@@ -1846,9 +1809,8 @@ local function renderContainerBar(self)
     local selected   = self._selectedContainers
     if not containers or #containers == 0 then return end
 
-    -- Background
-    local surf2 = T.surf2
-    self:drawRect(0, 0, w, T.px(CONTAINER_BAR_H), surf2.a, surf2.r, surf2.g, surf2.b)
+    -- Background (claimed over the body: one layer)
+    ZeD.Surface.fill(self, 0, 0, w, T.px(CONTAINER_BAR_H), "surf2")
 
     -- Build selection lookup: containerIdx → column number (1-based)
     local selMap = {}
@@ -1882,25 +1844,18 @@ local function renderContainerBar(self)
         -- Clamp to available space
         if btnX + btnW > w - T.px(CBAR_PAD) then break end
 
-        local isHover = mx >= btnX and mx < btnX + btnW
-                        and my >= btnY and my < btnY + T.px(CBAR_BTN_H)
+        local isHover = A.mouseIn(self, btnX, btnY, btnW, T.px(CBAR_BTN_H))
 
-        -- Draw button
+        -- Draw button: selected = the T.selectionA wash, hover = T.hover, one outline
         if isSel then
             local ac = T.accent
-            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.15, ac.r, ac.g, ac.b)
-            self:drawRectBorder(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.6, ac.r, ac.g, ac.b)
+            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), T.selectionA, ac.r, ac.g, ac.b)
         elseif isHover then
-            local s3 = T.surf3
-            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), s3.a, s3.r, s3.g, s3.b)
-            local ac = T.accent
-            self:drawRectBorder(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.3, ac.r, ac.g, ac.b)
-        else
-            local s3 = T.surf3
-            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), 0.5, s3.r, s3.g, s3.b)
-            local brd = T.borderS
-            self:drawRectBorder(btnX, btnY, btnW, T.px(CBAR_BTN_H), brd.a, brd.r, brd.g, brd.b)
+            local hv = T.hover
+            self:drawRect(btnX, btnY, btnW, T.px(CBAR_BTN_H), hv.a, hv.r, hv.g, hv.b)
         end
+        local brd = T.borderS
+        self:drawRectBorder(btnX, btnY, btnW, T.px(CBAR_BTN_H), brd.a, brd.r, brd.g, brd.b)
 
         -- Icon
         local cx = btnX + T.px(CBAR_PAD)
@@ -1920,9 +1875,7 @@ local function renderContainerBar(self)
         -- Badge number for selected containers
         if isSel then
             cx = cx + T.px(4)
-            local badge = tostring(colNum)
-            local ac = T.accent
-            A.drawSecondary(self, badge, cx, textY, ac)
+            A.drawSecondary(self, tostring(colNum), cx, textY, T.text)
         end
 
         -- Hit zone
@@ -1931,8 +1884,8 @@ local function renderContainerBar(self)
         btnX = btnX + btnW + T.px(CBAR_BTN_GAP)
     end
 
-    -- Groove divider below bar
-    A.drawGroove(self, 0, T.px(CONTAINER_BAR_H) - T.grooveH, w)
+    -- The structure line under the bar
+    A.drawDividerH(self, 0, T.px(CONTAINER_BAR_H) - T.px(1), w, true)
 end
 
 -- ============================================================================

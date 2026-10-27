@@ -37,7 +37,7 @@ local W = ZeD.Wheel
 
 local MAX_INNER = 11                      -- an inner wheel's items (Back is the 12th; paging is out of scope for v1)
 local BACK_TEX = "media/ui/emotes/back.png"
-local CHEVRON = "  \226\128\186  "        -- (U+203A, as the mockup's breadcrumb)
+local CHEVRON = "  +  "                     -- (the window titles' own separator, "Character  +  Eat": no breadcrumb arrows)
 
 -- the four directions: the wheel's name, its button, the arrow the prompts show
 D.DIRS = {
@@ -86,7 +86,7 @@ end
 
 local function crumb(st)
     local parts = {}
-    for _, lv in ipairs(st.path) do parts[#parts + 1] = lv.title or "" end   -- (the wheel draws it in upper case)
+    for _, lv in ipairs(st.path) do parts[#parts + 1] = lv.title or "" end   -- (the wheel draws it as a tag, in sentence case)
     return table.concat(parts, CHEVRON)
 end
 

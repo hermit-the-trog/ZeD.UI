@@ -15,15 +15,18 @@
 -- admin editor ISServerSandboxOptionsUI uses; other mods' settings come on their
 -- own pages). Each row carries two tags (ZeD_SandboxNotes): WHEN a change takes
 -- effect (now / new places / new characters / fixed, locked) and its RISK
--- (careful / can't undo). The help band has three parts: what it does (vanilla's
--- tooltip), what changing it does to this save, a tip.
+-- (careful / can't undo): the library tag, an outline with a square mark for the
+-- state. The help band has three parts: what it does (vanilla's tooltip), what
+-- changing it does to this save, a tip.
 --
 -- Nothing changes until Apply, which asks first (the Changed page shows what).
 -- Apply sets each changed option on the game's own SandboxOptions (the game
 -- writes them into the save, map_sand.bin, when it next saves), pushes them to
 -- SandboxVars (toLua), sets the day's length on the clock when Day Length
 -- changed, and re-reads the loot tables as vanilla's admin editor does. Every
--- apply goes into History (global ModData, kept in the save), with Put back.
+-- apply goes into History (global ModData, kept in the save), where each change
+-- has its Undo changes. The questions are bands (Cancel and the answer; leaving
+-- with changes asks Cancel, Discard changes and Apply).
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenuSandbox"
@@ -392,7 +395,7 @@ function ZeD_MMSandboxIG:undoAll()
     MM.clickSound()
 end
 
--- Put back: the row goes back to what it was before that apply (waiting for Apply)
+-- Undo changes (on a History row): the row goes back to what it was before that apply (waiting for Apply)
 function ZeD_MMSandboxIG:putBack(name, value)
     local r = self.ctls[name]
     if not r then return end
@@ -421,7 +424,7 @@ function ZeD_MMSandboxIG:historyRows()
                 local from, to = c.from, c.to
                 local hr = { kind = "button", label = r.label, histOf = r, histFrom = from,
                              under = self:valueText(r, from) .. "  >  " .. self:valueText(r, to),
-                             control = { title = ZeD.tr("UI_ZeD_Sbx_PutBack"), target = self,
+                             control = { title = ZeD.tr("UI_ZeD_Sbx_UndoChanges"), target = self,
                                          onclick = function() self:putBack(c.n, from) end } }
                 out[#out + 1] = hr
             end
@@ -481,47 +484,44 @@ function ZeD_MMSandboxIG:setConfirm(mode)
 end
 
 -- THE STRIP --------------------------------------------------------------------------
+-- The band at the foot (UI.stripSpecs: Molecules.drawBand): the screen's actions, and each
+-- question as a band of its own, the negative answer first and the main one last.
 function ZeD_MMSandboxIG:buildStrip(stripY, stripH, w)
     local row = 1000
-    local ask = nil
     local n = self.nDiff or 0
+    local cancel = getText("UI_btn_cancel")
     if self.confirm == "apply" then
         local undo, care = 0, 0
         for name in pairs(self.diff) do
             local k = N.risk(name)
             if k == "undo" then undo = undo + 1 elseif k == "care" then care = care + 1 end
         end
-        ask = ZeD.tr("UI_ZeD_Sbx_AskApply", count(n))
+        local ask = ZeD.tr("UI_ZeD_Sbx_AskApply", count(n))
         if undo > 0 then ask = ask .. " " .. ZeD.tr("UI_ZeD_Sbx_AskUndoN", tostring(undo))
         elseif care > 0 then ask = ask .. " " .. ZeD.tr("UI_ZeD_Sbx_AskCareN", tostring(care)) end
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", ZeD.btnCase(getText("UI_btn_back")), function() self:setConfirm(false) end },
-            { "confirm:yes", ZeD.btnCase(getText("UI_btn_apply")), function() self:applyNow() end, undo > 0 and "danger" or "primary" } })
+            { "confirm:no", cancel, function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.btnCase(getText("UI_btn_apply")), function() self:applyNow() end, undo > 0 and "danger" or "primary" } }, ask)
     elseif self.confirm == "close" then
-        ask = ZeD.tr("UI_ZeD_Sbx_AskClose", count(n))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", ZeD.tr("UI_ZeD_Options_Discard"), function() self:undoAll(); self:finish() end },
-            { "confirm:yes", ZeD.btnCase(getText("UI_btn_apply")), function() self:askApply() end, "primary" } })
+            { "confirm:no", cancel, function() self:setConfirm(false) end },
+            { "confirm:discard", ZeD.tr("UI_ZeD_Options_Discard"), function() self:undoAll(); self:finish() end, "danger" },
+            { "confirm:yes", ZeD.btnCase(getText("UI_btn_apply")), function() self:askApply() end, "primary" } },
+            ZeD.tr("UI_ZeD_Sbx_AskClose", count(n)))
     elseif self.confirm == "undo" then
-        ask = ZeD.tr("UI_ZeD_Sbx_AskUndo", count(n))
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", ZeD.btnCase(getText("UI_btn_back")), function() self:setConfirm(false) end },
-            { "confirm:yes", ZeD.tr("UI_ZeD_Sbx_UndoChanges"), function() self:undoAll() end, "primary" } })
+            { "confirm:no", cancel, function() self:setConfirm(false) end },
+            { "confirm:yes", ZeD.tr("UI_ZeD_Sbx_UndoChanges"), function() self:undoAll() end, "primary" } },
+            ZeD.tr("UI_ZeD_Sbx_AskUndo", count(n)))
     else
-        if self._note and MM.now() - (self._noteAt or 0) < NOTE_MS then ask = self._note else self._note = nil end
+        local note = nil
+        if self._note and MM.now() - (self._noteAt or 0) < NOTE_MS then note = self._note else self._note = nil end
         UI.stripSpecs(self, stripY, w, row,
             { { "back", ZeD.btnCase(getText("UI_btn_close")), function() self:back() end } },
             { { "undo", ZeD.tr("UI_ZeD_Sbx_UndoChanges"), function() self:undoAll() end, "default", n == 0 },
-              { "apply", ZeD.btnCase(getText("UI_btn_apply")), function() self:askApply() end, "primary", n == 0 } })
+              { "apply", ZeD.btnCase(getText("UI_btn_apply")), function() self:askApply() end, "primary", n == 0 } },
+            note, true, ZeD.T.positive)
     end
-    -- the question fits beside the buttons
-    if ask then
-        local T = ZeD.T
-        local first = w
-        for _, b in ipairs(self._specs) do if b.row == row then first = math.min(first, b.x) end end
-        ask = ZeD.Atoms.truncateText(ask, T.fontF2, first - T.px(U.STRIP_PAD_X) - T.px(16))
-    end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
 
 -- DRAWING ----------------------------------------------------------------------------
@@ -538,11 +538,11 @@ function ZeD_MMSandboxIG:prerender()
     self.title = ZeD.tr("UI_ZeD_Sandbox_Title")
     local stat = ZeD.tr("UI_ZeD_Sbx_StatSave")
     if self.nDiff > 0 then stat = ZeD.tr("UI_ZeD_Sbx_StatChanged", tostring(self.nDiff)) end
-    self.titleStats = { { text = stat, color = { r = 0, g = 0, b = 0, a = 0 } } }
+    self.titleStats = { { text = stat, noMark = true } }
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     local pw = T.px(PAGES_W)
@@ -576,13 +576,13 @@ function ZeD_MMSandboxIG:prerender()
     self:buildStrip(stripY, stripH, w)
 end
 
--- a dot beside each page with changes
+-- a square mark beside each page with changes
 function ZeD_MMSandboxIG:drawPages(x, y, w, h, pages, finding)
     ZeD_MMOptions.drawPages(self, x, y, w, h, pages, finding)
     local T = ZeD.T
     local ry = y + T.px(FIND_H) + T.px(1)
     local rh = T.px(PAGE_ROW_H)
-    local dsz = T.px(7)
+    local dsz = T.px(6)
     for _, p in ipairs(pages) do
         if not p.virtual then
             local any = false
@@ -593,22 +593,31 @@ function ZeD_MMSandboxIG:drawPages(x, y, w, h, pages, finding)
     end
 end
 
--- TAGS: WHEN and RISK at the right of a row
+-- TAGS: WHEN and RISK at the right of a row. The library tag (an outline, the word in the
+-- default ink) with a square mark for the state; nothing else is coloured.
 local WHEN_KEY = { now = "UI_ZeD_Sbx_TagNow", new = "UI_ZeD_Sbx_TagNew", chr = "UI_ZeD_Sbx_TagChr", fix = "UI_ZeD_Sbx_TagFix", load = "UI_ZeD_Sbx_TagLoad" }
-local WHEN_VAR = { now = "positive", new = "info", chr = "info", fix = "neutral", load = "accent" }
 local RISK_KEY = { care = "UI_ZeD_Sbx_TagCare", undo = "UI_ZeD_Sbx_TagUndo" }
-local RISK_VAR = { care = "warning", undo = "danger" }
 
-local function badgeW(text)
+-- the mark of a WHEN (now: done at once; new, chr, load: it waits for something; fix: nothing to do,
+-- a hollow mark) and of a RISK (care: warning; undo: danger)
+local function whenMark(T, w)
+    if w == "now" then return T.positive, false end
+    if w == "fix" then return T.textDim, true end
+    return T.info, false
+end
+local function riskMark(T, k) return k == "undo" and T.danger or T.warning end
+
+-- a tag's width with its mark: the word, 5u each side, the 6u square and 4u after it
+local function tagW(text)
     local T = ZeD.T
-    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.upper(text)) + T.sp.badgePadX * 2
+    return ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(text)) + T.px(5) * 2 + T.px(6) + T.px(4)
 end
 
 function ZeD_MMSandboxIG:measureTags()
     local T = ZeD.T
     local ww, rw = 0, 0
-    for _, k in pairs(WHEN_KEY) do ww = math.max(ww, badgeW(ZeD.tr(k))) end
-    for _, k in pairs(RISK_KEY) do rw = math.max(rw, badgeW(ZeD.tr(k))) end
+    for _, k in pairs(WHEN_KEY) do ww = math.max(ww, tagW(ZeD.tr(k))) end
+    for _, k in pairs(RISK_KEY) do rw = math.max(rw, tagW(ZeD.tr(k))) end
     self._tagsW = ww + rw + T.px(14)
 end
 function ZeD_MMSandboxIG:tagsW() return self._tagsW or 0 end
@@ -616,17 +625,18 @@ function ZeD_MMSandboxIG:tagsW() return self._tagsW or 0 end
 function ZeD_MMSandboxIG:drawRowTags(r, right, ry, rh)
     if not r.name then return end
     local T = ZeD.T
+    local Mo = ZeD.Molecules
     local f1 = T.fontF1
-    local bh = MM.fontH(f1) + T.sp.badgePadY * 2
-    local by = ry + math.floor((rh - bh) / 2)
+    local by = ry + math.floor((rh - T.px(16)) / 2)
     local w = N.when(r.name)
     local wt = ZeD.tr(WHEN_KEY[w])
-    local x = right - badgeW(wt)
-    ZeD.Atoms.drawBadge(self, wt, x, by, WHEN_VAR[w], false, f1)
+    local x = right - tagW(wt)
+    local mc, hollow = whenMark(T, w)
+    Mo.drawTag(self, x, by, wt, mc, { font = f1, hollow = hollow })
     local k = N.risk(r.name)
     if k ~= "" then
         local rt = ZeD.tr(RISK_KEY[k])
-        ZeD.Atoms.drawBadge(self, rt, x - T.px(6) - badgeW(rt), by, RISK_VAR[k], false, f1)
+        Mo.drawTag(self, x - T.px(6) - tagW(rt), by, rt, riskMark(T, k), { font = f1 })
     end
 end
 
@@ -672,19 +682,22 @@ end
 function ZeD_MMSandboxIG:drawHelpCol(x, y, w, h, head, body, foot, warn)
     local T = ZeD.T
     local f1, f2 = T.fontF1, T.fontF2
-    local ac, tc, d = T.accent, T.text, T.textDim
-    self:drawText(ZeD.upper(head), x, y, ac.r, ac.g, ac.b, ac.a or 1, f1)
+    local th, tc, d = T.textHead, T.text, T.textDim
+    self:drawText(ZeD.textCase(head), x, y, th.r, th.g, th.b, th.a or 1, f1)
     local ly = y + MM.fontH(f1) + T.px(4)
     local lh = MM.fontH(f2) + T.px(3)
     local footH = foot and (MM.fontH(f1) + T.px(4)) or 0
     local maxL = math.max(1, math.floor((y + h - footH - ly) / lh))
     local n = 0
     if warn then
+        -- a warning: its square mark, then the words in the default ink
+        local sq, ind = T.px(6), T.px(12)
         local wc = warn.color
-        for _, l in ipairs(ZeD.Atoms.wrapText(warn.text, f2, w)) do
+        for i, l in ipairs(ZeD.Atoms.wrapText(warn.text, f2, w - ind)) do
             n = n + 1
             if n > maxL then break end
-            self:drawText(l, x, ly, wc.r, wc.g, wc.b, wc.a or 1, f2)
+            if i == 1 then ZeD.Atoms.drawStatusDot(self, x, ly + math.floor((MM.fontH(f2) - sq) / 2), wc, sq) end
+            self:drawText(l, x + ind, ly, tc.r, tc.g, tc.b, tc.a or 1, f2)
             ly = ly + lh
         end
     end
@@ -699,9 +712,7 @@ end
 
 function ZeD_MMSandboxIG:drawHelp(x, hy, w, helpH, hr)
     local T = ZeD.T
-    local bs, s2, bd = T.borderS, T.surf2, T.border
-    self:drawRect(x + T.px(1), hy, w - 2 * T.px(1), helpH - T.px(1), 1, s2.r, s2.g, s2.b)
-    self:drawRect(x + T.px(1), hy, w - 2 * T.px(1), T.px(1), bs.a, bs.r, bs.g, bs.b)
+    local bd = T.border   -- (the band's surface and its top line are drawn by ZeD_MMOptions:drawRows)
     if self.qaHelp then hr = self.qaHelp end   -- (QA: the setting a test points at, wherever the pointer is)
     -- the setting under the pointer, kept while the pointer moves down to read; a new page starts empty
     local view = tostring(self.pageIdx) .. "|" .. tostring(self.find:getInternalText() or "")
@@ -714,7 +725,7 @@ function ZeD_MMSandboxIG:drawHelp(x, hy, w, helpH, hr)
         return
     end
     if r.histOf then
-        self:drawHelpCol(x + T.px(12), top, w - T.px(24), ih, ZeD.tr("UI_ZeD_Sbx_PutBack"),
+        self:drawHelpCol(x + T.px(12), top, w - T.px(24), ih, ZeD.tr("UI_ZeD_Sbx_UndoChanges"),
             ZeD.tr("UI_ZeD_Sbx_PutBackHelp", r.histOf.label, self:valueText(r.histOf, r.histFrom)))
         return
     end
@@ -784,7 +795,7 @@ function ZeD_MMSandboxIG:getFooterPrompts()
         if r.kind == "combo" then t[#t + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Options_PromptChange") } end
         t[#t + 1] = { glyph = "A", label = ZeD.tr((r.kind == "tick") and "UI_ZeD_Options_PromptToggle" or ((r.kind == "entry") and "UI_ZeD_Sandbox_PromptEdit" or "UI_ZeD_MainMenu_PromptSelect")) }
     elseif r and r.kind == "button" then
-        t[#t + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Sbx_PutBack") }
+        t[#t + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Sbx_UndoChanges") }
     end
     t[#t + 1] = { glyph = "LB", label = "" }
     t[#t + 1] = { glyph = "RB", label = ZeD.tr("UI_ZeD_Options_PromptPage") }

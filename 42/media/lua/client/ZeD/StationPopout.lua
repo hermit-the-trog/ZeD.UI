@@ -31,7 +31,6 @@ ZeD_StationPopout = ZeD_Window:derive("ZeD_StationPopout")
 function ZeD_StationPopout:new(playerNum)
     local o = ZeD_Window.new(self, 0, 0, 100, 100, "")
     o.resizable = false
-    o.themeFooter = false
     o.pin = true
     o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
     o.moveWithMouse = false
@@ -39,6 +38,9 @@ function ZeD_StationPopout:new(playerNum)
     o.state = { zones = {}, scroll = stubScroll() }
     o.fi = 1             -- controller: the focused control, in reading order
     o._down = nil
+    -- the focus mark: this window keeps its own focus (joypad focus on it), so the mark
+    -- is told the element has it and the pad is in use (fid is only set with joypad focus)
+    o._markOpts = { win = o, focused = true, pad = true }
     o:setWantKeyEvents(true)
     return o
 end
@@ -96,7 +98,7 @@ function ZeD_StationPopout:prerender()
     local tbH = self:titleBarHeight()
     local w = (des and des.w * k or T.px(400)) + 2 * margin
     local bodyH = self._bodyH or (des and des.h * k + T.px(160)) or T.px(300)
-    local h = tbH + bodyH
+    local h = tbH + bodyH + self:footerHeight()   -- the help line under the body
     if self.width ~= w or self.height ~= h then
         self:setWidth(w); self:setHeight(h)
         self:setX(math.floor((getCore():getScreenWidth() - w) / 2))
@@ -106,15 +108,33 @@ function ZeD_StationPopout:prerender()
     ZeD_Window.prerender(self)
     self.minimumWidth, self.minimumHeight = 0, 0
     local ok, total = pcall(SA.render, self, { _playerObj = p }, margin, tbH, w - 2 * margin, bodyH, self.state, cur,
-        { noHeader = true, k = k, fid = self:focusId() })
+        { noHeader = true, k = k, fid = self:focusId(), markOpts = self._markOpts })
     if not ok then ZeD.logOnce("station pop-out", total); self:close(); return end
     if total and total ~= self._bodyH then self._bodyH = total end
 end
 
 function ZeD_StationPopout:render() ZeD_Window.render(self) end
 
+-- The help line's prompts while the controller is on this window (nil with the mouse:
+-- the line then shows the help words). A knob turns with left / right and A; a key presses.
+function ZeD_StationPopout:getFooterPrompts()
+    if not self.joyfocus then return nil end
+    local c = self:controls()
+    local z = c[math.max(1, math.min(#c, self.fi))]
+    local out = {}
+    if z and z.kind == "turn" then
+        out[#out + 1] = { glyph = "<>", label = ZeD.tr("UI_ZeD_Looks_PromptTurn") }
+    elseif z then
+        out[#out + 1] = { glyph = "A", label = ZeD.tr("UI_ZeD_Prompt_Press") }
+    end
+    out[#out + 1] = { glyph = "B", label = ZeD.tr("UI_ZeD_Close") }
+    return out
+end
+
+-- (ZeD_Window's own update runs the close box and the window box; it calls ISPanel's)
 function ZeD_StationPopout:update()
-    ISPanel.update(self)
+    ZeD_Window.update(self)
+    if not self:getIsVisible() then return end
     local jd = JoypadState and JoypadState.players and JoypadState.players[self.playerNum + 1]
     self.joyfocus = (jd and jd.focus == self) and jd or (SP.qaJoy and self or nil)
 end
@@ -139,12 +159,13 @@ function ZeD_StationPopout:onMouseDown(x, y)
     return true
 end
 
+-- (the close box itself closes the window in ZeD_Window.update, on the same release)
 function ZeD_StationPopout:onMouseUp(x, y)
     local down = self._down
     self._down = nil
     if down == "close" then
         local cb = self:closeRect()
-        if cb and inRect(cb, x, y) then getSoundManager():playUISound("UIActivateButton"); self:close() end
+        if cb and inRect(cb, x, y) then getSoundManager():playUISound("UIActivateButton") end
     end
     return true
 end

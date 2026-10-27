@@ -195,6 +195,19 @@ window's edge. "Solid" = the element is already solid accent (primary key, activ
 - **Empty lists:** one F2 line in `T.textDim`, left-aligned at the list's text inset, 8u below its header, a full
   sentence ("No animal zones yet."). A fix, when there is one, is a button in the band.
 
+## 9b. Status bars (director, Oct 26 2026)
+
+"One other drift happened to status bars. They are supposed to be a more chunky strip than a glowing line... We lost
+the look a while ago" (reference: System 7.5's About This Macintosh memory bar). Every condition, progress and amount
+bar is `ZeD.Atoms.drawFillBar(panel, x, y, w, percent, graduated, fillColor, h)`: a framed strip (1u `T.borderS`, 2u
+High Contrast), a solid dark well (`T.base`), a flat solid fill (status colour when graduated, else accent or the
+caller's), no glow, no gradient, no half-alpha. Height `T.fillBarH` (13 / 15 Large); in list rows
+`ZeD.Atoms.fillBarCompactH()` (8u), centred. No 1-5u lines anywhere. Segmented meters (`A.drawSegBar`) are framed and at
+least 8u tall. Props' printed gauges (dash, generator needle, tanks) keep their art. The belt's slot condition lines and
+the ammo pouch's gauge become the same strip too (director: "Yes, make the belt's slot condition lines and the ammo
+pouch's gauge the same chunky framed strip."): slots get the compact strip inside their bottom edge; the pouch keeps one
+segment per round inside the framed strip.
+
 ## 9a. Conditional disclosure (director, Oct 26 2026)
 
 Fewer things on screen: an action shows only when it can be done.
@@ -229,8 +242,8 @@ Fewer things on screen: an action shows only when it can be done.
 
 ## 11. Words
 
-One word per act, the game's own where it has one: Delete (permanent, for things ZeD made: notes, presets, zones,
-entries), Remove (take off or out), Undo changes, Discard changes (danger), Choose. Sentence case on every button
+One word per act, the game's own where it has one: Delete (permanent, for things ZeD made: notes, presets, journal
+entries, messages), Remove (take off or out; also zones, the game's own word in its zone panel), Undo changes, Discard changes (danger), Choose. Sentence case on every button
 ("Show survey"). US spelling (Favorite, color). Never the button's letter in running text: name the act or use the pad
 picture. "Out of reach" only for distance; "Not available here" for anything else.
 

@@ -7,11 +7,12 @@
 -- Traits tab in the game's Character window, which ZeD never shows. This is that
 -- tab in ZeD's Character window, right after Skills, there only while the mod is
 -- on: one row per ladder drawn like a Skills row (the level in the square, the
--- progress as the row's fill), ten small steps with a green or red line under the
--- steps that hold a good or bad trait, the trait you have now at the right (NEW
--- until the tab has been opened once since it came). Categories fold; Mind and
--- Physical first, Skills last (the mockup's order). Find and All | With a trait
--- narrow the list. The details at the foot follow the focused (or hovered) row:
+-- progress as the row's fill), ten small steps framed green or red where they hold
+-- a good or bad trait, the trait you have now at the right (a New tag until the tab
+-- has been opened once since it came). Categories fold (section heads); Mind and
+-- Physical first, Skills last (the mockup's order). Find and the All | With a trait
+-- radio buttons narrow the list. The details at the foot follow the focused (or
+-- hovered) row:
 -- the whole ladder, the XP to the next level (or the skill it follows, or the
 -- weight), the mod's Gain and Lose lists in its own words, what the next level
 -- up or down changes, and the trait's description from the game.
@@ -53,7 +54,7 @@ ZeD.ModSupport.traitsAsSkills = S
 local TAB_ID = "traits"
 
 -- design units
-local PAD, ROW_H, CAT_H, BADGE_W, NAME_W, STEP_W, STEP_H, STEP_GAP, DET_H, FIND_W, KEY_W = 10, 26, 26, 20, 112, 12, 13, 2, 218, 150, 76
+local PAD, CAT_H, BADGE_W, NAME_W, STEP_W, STEP_H, STEP_GAP, DET_H, FIND_W, KEY_W = 10, 20, 20, 112, 12, 13, 2, 218, 150, 76
 -- the mockup's order: Mind and Physical first, Skills (ladders that follow skills) last
 local CAT_ORDER = { "inteligencia", "physical", "behavior", "social", "trade", "survival", "combat", "other", "skills" }
 
@@ -108,7 +109,7 @@ end
 local function state(win)
     local st = win._tas
     if not st then
-        st = { scroll = ZeD_ScrollbarState:new(), tick = 999, rows = {}, byId = {}, zones = {}, els = {} }
+        st = { scroll = ZeD_ScrollbarState:new(), detScroll = ZeD_ScrollbarState:new(), tick = 999, rows = {}, byId = {}, zones = {}, els = {} }
         win._tas = st
     end
     return st
@@ -232,8 +233,10 @@ local function layout(st, w)
         if (not S.only or #r.now > 0) and matches(r, q) then vis[#vis + 1] = r end
     end
     if #vis == 0 then
-        add(L, { kind = "empty", x = x, y = y + T.px(4) })
-        y = y + T.px(4) + F(2) + T.px(12)
+        local lines = ZeD.Atoms.wrapText(tr("UI_ZeD_TAS_Nothing", S.find), ZeD.T.fontF2, cw)
+        local eh = #lines * (F(2) + T.px(2)) - T.px(2)
+        add(L, { kind = "empty", x = x, y = y + T.px(8), w = cw, h = eh })
+        y = y + T.px(8) + eh + T.px(12)
     end
     local cats = {}
     for _, c in ipairs(CAT_ORDER) do cats[#cats + 1] = c end
@@ -246,12 +249,12 @@ local function layout(st, w)
             local shut = S.closed[c] and q == ""
             y = y + T.px(6)
             add(L, { kind = "cat", cat = c, n = #rs, shut = shut, x = x, y = y, w = cw, h = T.px(CAT_H) })
-            y = y + T.px(CAT_H)
+            y = y + T.px(CAT_H) + T.sp.afterGroove
             if not shut then
+                local rh = F(1) + T.px(8)   -- Skills' row height (grows with Large text)
                 for i, r in ipairs(rs) do
-                    y = y + T.px(2)
-                    add(L, { kind = "row", row = r, odd = i % 2 == 0, x = x, y = y, w = cw, h = T.px(ROW_H) })
-                    y = y + T.px(ROW_H)
+                    add(L, { kind = "row", row = r, odd = i % 2 == 0, x = x, y = y, w = cw, h = rh })
+                    y = y + rh + T.sp.rowGap
                 end
             end
         end
@@ -270,17 +273,39 @@ local function focusedEl(win)
     if el and el.tas then return el end
     return nil
 end
-local function isFoc(win, id) local el = focusedEl(win); return el ~= nil and el.id == id end
+-- The controller's mark options for the element with this id: set only when the window is
+-- the focused one, the controller is in use and that element has the focus.
+local _focusOpts = {}
+local function focusOf(win, id)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if Fo and Fo.isFocused and Fo.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
 
+-- the footer help line's words for what the pointer is over
+local function help(win, text)
+    if ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, text) end
+end
+
+-- a row is as tall as Skills' rows (the small font's height and 8u), so it grows with Large text
+local function rowH()
+    return F(1) + ZeD.T.px(8)
+end
+
+-- the progress as the row's fill, in Skills' colours and strengths (SkillsTab getProgressColors)
 local function fillColour(T, r)
-    if r.level >= 10 then return T.warning end
-    if r.frac >= 0.75 then return T.danger end
-    if r.frac >= 0.4 then return T.warning end
-    return T.positive
+    if r.level >= 10 then return T.warning, 0.55 end
+    if r.frac >= 0.75 then return T.danger, 0.45 end
+    if r.frac >= 0.4 then return T.warning, 0.45 end
+    return T.positive, 0.45
 end
 
 local function drawCredit(panel, win, st, it, y)
     local T = ZeD.T
+    local A = ZeD.Atoms
     local c = T.toneLo or T.textDim
     local mi = getModInfoByID and getModInfoByID(MOD_ID)
     local name = mi and mi:getName() or "Traits As Skills"
@@ -288,31 +313,39 @@ local function drawCredit(panel, win, st, it, y)
     if mi then local ok, a = pcall(function() return mi:getAuthor() end); if ok and a and a ~= "" then author = a end end
     local text = author and tr("UI_ZeD_TAS_Credit", name, author) or name
     panel:drawText(text, it.x, y + math.floor((it.h - F(5)) / 2), c.r, c.g, c.b, c.a or 1, T.fontF5)
-    -- All | With a trait
+    -- All | With a trait: one of two, System 7 radio buttons (each half pressable)
     local withT = 0
     for _, r in ipairs(st.rows) do if #r.now > 0 then withT = withT + 1 end end
     local labels = { tr("UI_ZeD_TAS_All", #st.rows), tr("UI_ZeD_TAS_WithTrait", withT) }
-    local f = T.fontF5
+    local f = T.fontF2
+    local rs = A.radioSize()
     local ws = {}
-    local tw = 0
-    for i, l in ipairs(labels) do ws[i] = ZeD.TM:MeasureStringX(f, l) + T.px(16); tw = tw + ws[i] end
-    local bx = it.x + it.w - tw
-    local bs, ac = T.borderS, T.accent
+    local total = 0
+    for i, l in ipairs(labels) do
+        ws[i] = T.px(8) + rs + T.px(8) + ZeD.TM:MeasureStringX(f, l) + T.px(8)
+        total = total + ws[i]
+    end
+    local bx = it.x + it.w - total
+    local hv = T.hover
     st.only = {}
-    local foc = isFoc(win, "tas:only")
+    local fo = focusOf(win, "tas:only")
     for i, l in ipairs(labels) do
         local on = (i == 2) == (S.only == true)
-        if on then panel:drawRect(bx, y, ws[i], it.h, 1, ac.r, ac.g, ac.b) end
-        local tc = on and T.textOnAccent or T.text
-        panel:drawText(l, bx + T.px(8), y + math.floor((it.h - F(5)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f)
-        if i > 1 then panel:drawRect(bx, y, T.px(1), it.h, bs.a or 1, bs.r, bs.g, bs.b) end
-        if foc and on then ZeD.Atoms.drawAccentRing(panel, bx, y, ws[i], it.h, T.px(2), T.accentBright) end
+        local hover = A.mouseIn(panel, bx, y, ws[i], it.h)
+        if hover then
+            panel:drawRect(bx, y, ws[i], it.h, hv.a, hv.r, hv.g, hv.b)
+            help(win, tr("UI_ZeD_TAS_HelpOnly", l))
+        end
+        local tc = T.text
+        if fo and on and ZeD.Focus.mark(panel, bx, y, ws[i], it.h, fo) then tc = T.textOnFocus end
+        A.drawRadio(panel, bx + T.px(8), y + math.floor((it.h - rs) / 2), on, { hover = hover })
+        panel:drawText(l, bx + T.px(8) + rs + T.px(8), y + math.floor((it.h - F(2)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f)
         st.only[#st.only + 1] = { x = bx, y = y, w = ws[i], h = it.h, val = (i == 2) }
         bx = bx + ws[i]
     end
-    panel:drawRectBorder(it.x + it.w - tw, y, tw, it.h, bs.a or 1, bs.r, bs.g, bs.b)
 end
 
+-- the summary line: positive, negative and no-trait counts, each with its square mark
 local function drawSum(panel, st, it, y)
     local T = ZeD.T
     local good, bad, none = 0, 0, 0
@@ -320,109 +353,101 @@ local function drawSum(panel, st, it, y)
         if #r.now == 0 then none = none + 1 end
         for _, t in ipairs(r.now) do if tinfo(t).bad then bad = bad + 1 else good = good + 1 end end
     end
-    local dsz = T.px(8)
+    local dsz = T.px(6)
     local x = it.x
     local tc = T.text
     local dy = y + math.floor((F(1) - dsz) / 2)
     local function part(dot, text)
         if dot == "pos" then ZeD.Atoms.drawStatusDot(panel, x, dy, T.positive, dsz)
         elseif dot == "neg" then ZeD.Atoms.drawStatusDot(panel, x, dy, T.danger, dsz)
-        else ZeD.Atoms.drawStatusRing(panel, x, dy, T.toneLo or T.textDim, dsz) end
-        x = x + dsz + T.px(5)
+        else ZeD.Atoms.drawStatusHollow(panel, x, dy, T.toneLo or T.textDim, dsz) end
+        x = x + dsz + T.px(6)
         panel:drawText(text, x, y, tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
         x = x + ZeD.TM:MeasureStringX(T.fontF1, text) + T.px(14)
     end
-    part("pos", tr("UI_ZeD_TAS_Good", good))
-    part("neg", tr("UI_ZeD_TAS_Bad", bad))
-    part("off", tr("UI_ZeD_TAS_NoTraitN", none))
+    -- (Identity's wording: Positive / Negative)
+    part("pos", ZeD.textCase(tr("UI_ZeD_Identity_TraitsPositive", good)))
+    part("neg", ZeD.textCase(tr("UI_ZeD_Identity_TraitsNegative", bad)))
+    part("off", ZeD.textCase(tr("UI_ZeD_TAS_NoTraitN", none)))
 end
 
+-- a category: the section head (folds; the count of ladders after it)
 local function drawCat(panel, win, it, y, mx, my)
-    local T = ZeD.T
-    local foc = isFoc(win, "tas:cat:" .. it.cat)
-    local hov = mx and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
-    local ac, bd = T.accent, T.border
-    if foc then panel:drawRect(it.x, y, it.w, it.h, 0.55, ac.r, ac.g, ac.b)
-    elseif hov then panel:drawRect(it.x, y, it.w, it.h, 0.22, ac.r, ac.g, ac.b) end
-    panel:drawRect(it.x, y + it.h - T.px(1), it.w, T.px(1), bd.a or 1, bd.r, bd.g, bd.b)
-    local c = foc and T.textOnFocus or (T.toneLo or T.textDim)
-    local tri = T.px(5)
-    local ty = y + math.floor((it.h - tri) / 2)
-    if it.shut then ZeD.Atoms.drawTriangleRight(panel, it.x + T.px(2), ty, tri, c)
-    else ZeD.Atoms.drawTriangleDown(panel, it.x + T.px(2), ty, tri, c) end
-    local nx = it.x + T.px(2) + tri + T.px(8)
-    local name = catName(it.cat)
-    panel:drawText(name, nx, y + math.floor((it.h - F(2)) / 2), c.r, c.g, c.b, c.a or 1, T.fontF2)
-    local n = "(" .. it.n .. ")"
-    panel:drawText(n, nx + ZeD.TM:MeasureStringX(T.fontF2, name) + T.px(6), y + math.floor((it.h - F(1)) / 2), c.r, c.g, c.b, c.a or 1, T.fontF1)
+    local hov = mx ~= nil and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
+    if hov then help(win, tr(it.shut and "UI_ZeD_TAS_HelpCatShow" or "UI_ZeD_TAS_HelpCatHide", catName(it.cat))) end
+    ZeD.Molecules.drawSectionHeader(panel, it.x, y, it.w, catName(it.cat), it.n, not it.shut, hov, nil, nil, nil, nil, nil,
+        { focus = focusOf(win, "tas:cat:" .. it.cat) })
 end
 
 local function drawRow(panel, win, st, it, y, mx, my)
     local T = ZeD.T
+    local A = ZeD.Atoms
     local r = it.row
     local sel = st.sel == r.id
-    local foc = isFoc(win, "tas:row:" .. r.id)
-    local hov = mx and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
+    local hov = mx ~= nil and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h
     local ac = T.accent
     if it.odd then local s = T.stripe; panel:drawRect(it.x, y, it.w, it.h, s.a or 1, s.r, s.g, s.b) end
-    if sel then panel:drawRect(it.x, y, it.w, it.h, 1, ac.r, ac.g, ac.b)
-    else
-        if foc then panel:drawRect(it.x, y, it.w, it.h, 0.55, ac.r, ac.g, ac.b)
-        elseif hov then panel:drawRect(it.x, y, it.w, it.h, 0.22, ac.r, ac.g, ac.b) end
-        -- the progress as the row's fill (Skills' colours)
-        if r.level > 0 then
-            local fc = fillColour(T, r)
-            local fw = (r.level >= 10) and it.w or math.floor(it.w * r.frac)
-            if fw > 0 then panel:drawRect(it.x, y, fw, it.h, 0.32, fc.r, fc.g, fc.b) end
-        end
+    -- the progress as the row's fill (Skills' colours), then the wash for the picked row, the
+    -- hover wash and the controller's mark: all under the words
+    if r.level > 0 then
+        local fc, fa = fillColour(T, r)
+        local fw = (r.level >= 10) and it.w or math.floor(it.w * r.frac)
+        if fw > 0 then panel:drawRect(it.x, y, fw, it.h, fa, fc.r, fc.g, fc.b) end
     end
-    if foc then ZeD.Atoms.drawAccentRing(panel, it.x, y, it.w, it.h, T.px(2), T.accentBright) end
-    local ink = sel and T.textOnAccent or (foc and T.textOnFocus or T.text)
-    -- the level square
+    if sel then panel:drawRect(it.x, y, it.w, it.h, T.selectionA or 0.30, ac.r, ac.g, ac.b) end
+    if hov then
+        local hv = T.hover
+        panel:drawRect(it.x, y, it.w, it.h, hv.a, hv.r, hv.g, hv.b)
+        help(win, tr("UI_ZeD_TAS_HelpRow", r.name))
+    end
+    local ink = T.text
+    local fo = focusOf(win, "tas:row:" .. r.id)
+    if fo and ZeD.Focus.mark(panel, it.x, y, it.w, it.h, fo) then ink = T.textOnFocus end
+    -- the level square (Skills' strengths)
     local bw = T.px(BADGE_W)
     local s3 = T.surf3
-    panel:drawRect(it.x, y, bw, it.h, sel and 0.15 or 0.6, sel and 0 or s3.r, sel and 0 or s3.g, sel and 0 or s3.b)
+    panel:drawRect(it.x, y, bw, it.h, r.level > 0 and 0.25 or 0.12, s3.r, s3.g, s3.b)
     local lv = tostring(r.level)
-    local lc = (r.level == 0 and not sel) and (T.toneLo or T.textDim) or ink
-    panel:drawText(lv, it.x + math.floor((bw - ZeD.TM:MeasureStringX(T.fontF2, lv)) / 2), y + math.floor((it.h - F(2)) / 2), lc.r, lc.g, lc.b, lc.a or 1, T.fontF2)
+    local lc = (r.level == 0) and T.textDim or ink
+    panel:drawText(lv, it.x + math.floor((bw - ZeD.TM:MeasureStringX(T.fontF2, lv)) / 2), y + math.floor((it.h - F(2)) / 2),
+        lc.r, lc.g, lc.b, (r.level == 0) and ((lc.a or 1) * 0.7) or (lc.a or 1), T.fontF2)
     -- the name
     local nx = it.x + bw + T.px(6)
-    panel:drawText(ZeD.Atoms.truncateText(r.name, T.fontF2, T.px(NAME_W)), nx, y + math.floor((it.h - F(2)) / 2), ink.r, ink.g, ink.b, ink.a or 1, T.fontF2)
-    -- the ten steps
+    panel:drawText(A.truncateText(r.name, T.fontF2, T.px(NAME_W)), nx, y + math.floor((it.h - F(2)) / 2), ink.r, ink.g, ink.b, ink.a or 1, T.fontF2)
+    -- the ten steps: framed cells (the standard meter), lit up to the level; a step that
+    -- holds a good or bad trait has a green or red frame
     local sx = nx + T.px(NAME_W) + T.px(6)
     local sw, sh, sg = T.px(STEP_W), T.px(STEP_H), T.px(STEP_GAP)
     local sy = y + math.floor((it.h - sh) / 2)
-    local bs, s1, bdc = T.borderS, T.surf1, T.surf4 or T.surf3
+    local bs, bdc = T.borderS, T.base
     it.steps = {}
     for L = 1, 10 do
         local x0 = sx + (L - 1) * (sw + sg)
-        panel:drawRect(x0, sy, sw, sh, 1, s1.r, s1.g, s1.b)
+        panel:drawRect(x0, sy, sw, sh, 1, bdc.r, bdc.g, bdc.b)
+        local tx = T.text
         if L <= r.level then
-            local tx = T.text
-            panel:drawRect(x0, sy, sw, sh, 0.8, tx.r, tx.g, tx.b)
+            panel:drawRect(x0, sy, sw, sh, 1, tx.r, tx.g, tx.b)
         elseif L == r.level + 1 and r.level < 10 and r.frac > 0 then
-            local tx = T.text
-            panel:drawRect(x0, sy, math.floor(sw * r.frac), sh, 0.45, tx.r, tx.g, tx.b)
+            panel:drawRect(x0, sy, math.floor(sw * r.frac), sh, 1, tx.r, tx.g, tx.b)
         end
-        panel:drawRectBorder(x0, sy, sw, sh, bs.a or 1, bs.r, bs.g, bs.b)
-        local lineC = (r.steps[L] == "+" and T.positive) or (r.steps[L] == "-" and T.danger) or bdc
-        panel:drawRect(x0, sy + sh - T.px(3), sw, T.px(3), 1, lineC.r, lineC.g, lineC.b)
+        local frameC = (r.steps[L] == "+" and T.positive) or (r.steps[L] == "-" and T.danger) or bs
+        A.frame(panel, x0, sy, sw, sh, frameC)
         if L == r.level then
             local th = T.textHead or T.text
-            panel:drawRectBorder(x0 - T.px(2), sy - T.px(2), sw + T.px(4), sh + T.px(4), th.a or 1, th.r, th.g, th.b)
+            A.frame(panel, x0 - T.px(2), sy - T.px(2), sw + T.px(4), sh + T.px(4), th)
         end
         it.steps[L] = { x = x0, y = sy, w = sw, h = sh }
     end
-    -- the trait now, or No trait; NEW since the tab was last opened
+    -- the trait now, or No trait; New since the tab was last opened
     local cx = sx + 10 * (sw + sg) + T.px(6)
-    local cw = it.x + it.w - T.px(6) - cx
+    local dsz = T.px(6)
     if #r.now == 0 then
-        local c = sel and T.textOnAccent or (T.toneLo or T.textDim)
+        local c = T.toneLo or T.textDim
         local text = tr("UI_ZeD_TAS_NoTrait")
-        local tw = ZeD.TM:MeasureStringX(T.fontF2, text) + T.px(13)
+        local tw = ZeD.TM:MeasureStringX(T.fontF2, text) + dsz + T.px(7)
         local x0 = it.x + it.w - T.px(6) - tw
-        ZeD.Atoms.drawStatusRing(panel, x0, y + math.floor((it.h - T.px(8)) / 2), c, T.px(8))
-        panel:drawText(text, x0 + T.px(13), y + math.floor((it.h - F(2)) / 2), c.r, c.g, c.b, c.a or 1, T.fontF2)
+        A.drawStatusHollow(panel, x0, y + math.floor((it.h - dsz) / 2), c, dsz)
+        panel:drawText(text, x0 + dsz + T.px(7), y + math.floor((it.h - F(2)) / 2), c.r, c.g, c.b, c.a or 1, T.fontF2)
     else
         local isNew = false
         local parts = {}
@@ -430,34 +455,30 @@ local function drawRow(panel, win, st, it, y, mx, my)
             parts[#parts + 1] = t
             if st.newSet and st.newSet[t] then isNew = true end
         end
-        local newW = isNew and (ZeD.TM:MeasureStringX(T.fontF5, tr("UI_ZeD_TAS_New")) + T.px(11)) or 0
+        local newText = tr("UI_ZeD_TAS_New")
+        -- the New tag: the one tag look with the accent square (16u, its words in sentence case)
+        local newW = isNew and (ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(newText)) + T.px(20) + T.px(6)) or 0
         -- right-aligned: measure the whole chip
-        local dsz = T.px(8)
         local total = newW
         local texts = {}
         for i, t in ipairs(parts) do
             texts[i] = tinfo(t).label
-            total = total + dsz + T.px(5) + ZeD.TM:MeasureStringX(T.fontF2, texts[i]) + (i > 1 and T.px(8) or 0)
+            total = total + dsz + T.px(6) + ZeD.TM:MeasureStringX(T.fontF2, texts[i]) + (i > 1 and T.px(8) or 0)
         end
         local x0 = math.max(cx, it.x + it.w - T.px(6) - total)
         local maxX = it.x + it.w - T.px(6) - newW
         for i, t in ipairs(parts) do
             if i > 1 then x0 = x0 + T.px(8) end
             if x0 + dsz >= maxX then break end
-            ZeD.Atoms.drawStatusDot(panel, x0, y + math.floor((it.h - dsz) / 2), tinfo(t).bad and T.danger or T.positive, dsz)
-            x0 = x0 + dsz + T.px(5)
-            local txt = ZeD.Atoms.truncateText(texts[i], T.fontF2, maxX - x0)
+            A.drawStatusDot(panel, x0, y + math.floor((it.h - dsz) / 2), tinfo(t).bad and T.danger or T.positive, dsz)
+            x0 = x0 + dsz + T.px(6)
+            local txt = A.truncateText(texts[i], T.fontF2, maxX - x0)
             panel:drawText(txt, x0, y + math.floor((it.h - F(2)) / 2), ink.r, ink.g, ink.b, ink.a or 1, T.fontF2)
             x0 = x0 + ZeD.TM:MeasureStringX(T.fontF2, txt)
         end
         if isNew then
-            local nx2 = it.x + it.w - T.px(6) - newW + T.px(5)
-            local nw, nh = newW - T.px(5), T.px(13)
-            local ny = y + math.floor((it.h - nh) / 2)
-            local bc = sel and T.textOnAccent or T.accent
-            panel:drawRectBorder(nx2, ny, nw, nh, 1, bc.r, bc.g, bc.b)
-            local tc = sel and T.textOnAccent or (T.accentText or T.accentBright)
-            panel:drawText(tr("UI_ZeD_TAS_New"), nx2 + T.px(3), ny + math.floor((nh - F(5)) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF5)
+            local th = T.px(16)
+            ZeD.Molecules.drawTag(panel, it.x + it.w - T.px(6) - newW + T.px(6), y + math.floor((it.h - th) / 2), newText, T.accent)
         end
     end
 end
@@ -544,24 +565,98 @@ local function progressText(p, r)
     return tr("UI_ZeD_TAS_XpTo", math.floor(r.into), math.floor(r.next), r.level + 1), r.frac
 end
 
+-- the key / value lines of the details: what the progress is, the mod's Gain and Lose lists,
+-- what the next level up or down changes, and what the traits are now
+local function detailItems(p, r)
+    local items = {}
+    local ptext, pbar = progressText(p, r)
+    items[#items + 1] = { k = tr("UI_ZeD_TAS_KProgress"), v = ptext, bar = pbar }
+    local gains, losses = actionLists(r.def)
+    if gains then
+        items[#items + 1] = { k = getText("UI_TAS_Gain"), v = (#gains > 0) and table.concat(gains, ", ") or tr("UI_ZeD_TAS_NoneList") }
+        items[#items + 1] = { k = getText("UI_TAS_Lose"), v = (#losses > 0) and table.concat(losses, ", ") or tr("UI_ZeD_TAS_NoneList") }
+    end
+    local uL, ug, ul = firstChange(r, 1)
+    local dL, dg, dl = firstChange(r, -1)
+    local up = uL and tr("UI_ZeD_TAS_At", uL, chText(ug, ul)) or tr("UI_ZeD_TAS_NoChangeAbove")
+    if dL then up = up .. " | " .. tr("UI_ZeD_TAS_DownAt", dL, chText(dg, dl)) end
+    items[#items + 1] = { k = tr("UI_ZeD_TAS_KLevelUp"), v = up }
+    local now
+    if #r.now == 0 then now = tr("UI_ZeD_TAS_NowNone")
+    else
+        local parts = {}
+        for _, t in ipairs(r.now) do
+            local i = tinfo(t)
+            parts[#parts + 1] = i.label .. ": " .. ((i.desc ~= "") and i.desc or tr("UI_ZeD_TAS_NoDesc"))
+        end
+        now = table.concat(parts, " ")
+    end
+    items[#items + 1] = { k = tr("UI_ZeD_TAS_KNow"), v = now }
+    return items
+end
+
+-- the height of the title row, the ladder and its ticks (before the key / value lines)
+local function ladderTopH()
+    local T = ZeD.T
+    return T.px(8) + F(4) + T.px(8) + T.px(14) + T.px(3) + F(5) + T.px(2) + F(5) + T.px(6)
+end
+
+-- the wrapped lines of every item at a width, and the height of the lines (nothing is dropped)
+local function layoutItems(items, iw)
+    local T = ZeD.T
+    local vw = iw - T.px(KEY_W) - T.px(8)
+    local h = 0
+    for _, it in ipairs(items) do
+        it.lines = ZeD.Atoms.wrapText(it.v or "", T.fontF2, math.max(T.px(40), vw - (it.bar and T.px(170) or 0)))
+        h = h + #it.lines * F(2) + T.px(3)
+    end
+    return h
+end
+
 local function drawDetail(panel, win, st, x, y, w, h)
     local T = ZeD.T
-    local s2, bs = T.surf2, T.borderS
-    panel:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    panel:drawRect(x, y, w, T.px(1), bs.a or 1, bs.r, bs.g, bs.b)
+    local A = ZeD.Atoms
+    local bs = T.borderS
+    A.surfaceFill(panel, x, y, w, h, "surf2")
+    A.drawDividerH(panel, x, y, w, true)
+    st.detRect = { x = x, y = y, w = w, h = h }
+    local sc = st.detScroll
+    sc.visible = false
     local p = win._playerObj
     local r = st.byId[st.hover or st.sel or ""]
     local pad = T.px(PAD)
     local ix, iw = x + pad, w - pad * 2
     local dim, tc = T.toneLo or T.textDim, T.text
-    panel:setStencilRect(x, y + T.px(1), w, h - T.px(1))
+    local innerH = h - T.px(1)
+    panel:setStencilRect(x, y + T.px(1), w, innerH)
     if not r or not p then
-        local lines = ZeD.Atoms.wrapText(tr("UI_ZeD_TAS_Pick"), T.fontF2, iw)
+        local lines = A.wrapText(tr("UI_ZeD_TAS_Pick"), T.fontF2, iw)
         for i, l in ipairs(lines) do panel:drawText(l, ix, y + T.px(12) + (i - 1) * F(2), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2) end
         panel:clearStencilRect()
         return
     end
-    local cy = y + T.px(8)
+    -- the content, measured first: a panel too short for it scrolls (a scrollbar, the wheel over it)
+    -- instead of dropping lines
+    local items = detailItems(p, r)
+    local sbW = T.sp.scrollbarW
+    local contentH = ladderTopH() + layoutItems(items, iw) + T.px(6)
+    local needs = contentH > innerH
+    if needs then
+        iw = iw - sbW
+        contentH = ladderTopH() + layoutItems(items, iw) + T.px(6)
+    end
+    if st.detKey ~= r.id then st.detKey = r.id; sc:setScrollPos(0) end
+    local off = 0
+    if needs then
+        sc.visible = true
+        sc.x, sc.y, sc.height = x + w - sbW, y + T.px(1), innerH
+        sc:setBarSize(innerH / contentH)
+        off = math.floor(sc.scrollPos * (contentH - innerH))
+        panel:setStencilRect(x, y + T.px(1), w - sbW, innerH)
+    else
+        sc:setScrollPos(0)
+    end
+    local cy = y + T.px(8) - off
     -- the title row
     local th = T.textHead or tc
     panel:drawText(r.name, ix, cy, th.r, th.g, th.b, th.a or 1, T.fontF4)
@@ -595,11 +690,11 @@ local function drawDetail(panel, win, st, x, y, w, h)
             if b2.min > b.min then lw = math.min(lw, px(b2.min) - x0 - T.px(4)) end
         end
         if lw > T.px(6) then
-            panel:drawText(ZeD.Atoms.truncateText(lab, T.fontF5, lw), x0 + T.px(2), cy + segH + T.px(3), lc.r, lc.g, lc.b, lc.a or 1, T.fontF5)
+            panel:drawText(A.truncateText(lab, T.fontF5, lw), x0 + T.px(2), cy + segH + T.px(3), lc.r, lc.g, lc.b, lc.a or 1, T.fontF5)
         end
     end
     local mxp = px(r.level) + math.floor((px(r.level + 1) - px(r.level)) * math.min(r.frac, 0.999))
-    ZeD.Atoms.drawTriangleDown(panel, mxp - T.px(5), cy - T.px(6), T.px(10), T.accentBright)
+    A.drawTriangleDown(panel, mxp - T.px(5), cy - T.px(6), T.px(10), T.accentBright)
     local tickY = cy + segH + T.px(3) + F(5) + T.px(2)
     for L = 0, 10 do
         local s = tostring(L)
@@ -607,54 +702,26 @@ local function drawDetail(panel, win, st, x, y, w, h)
         panel:drawText(s, cx, tickY, dim.r, dim.g, dim.b, dim.a or 1, T.fontF5)
     end
     cy = tickY + F(5) + T.px(6)
-    -- key / value lines
-    local vx, vw = ix + T.px(KEY_W) + T.px(8), iw - T.px(KEY_W) - T.px(8)
-    local bottom = y + h - T.px(6)
-    local function kv(k, v, bar)
-        if cy >= bottom then return end
-        panel:drawText(ZeD.upper(k), ix, cy + T.px(2), dim.r, dim.g, dim.b, dim.a or 1, T.fontF5)
-        local lines = ZeD.Atoms.wrapText(v or "", T.fontF2, vw - (bar and T.px(170) or 0))
-        for i, l in ipairs(lines) do
-            if cy + F(2) > bottom + T.px(4) then break end
+    -- key / value lines: the key in the small font, sentence case; the value wrapped, all of it
+    local vx = ix + T.px(KEY_W) + T.px(8)
+    for _, it in ipairs(items) do
+        panel:drawText(ZeD.textCase(it.k), ix, cy + T.px(2), dim.r, dim.g, dim.b, dim.a or 1, T.fontF1)
+        for i, l in ipairs(it.lines) do
             panel:drawText(l, vx, cy, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-            if i == 1 and bar then
+            if i == 1 and it.bar then
+                -- the framed strip beside the first line (the standard amount bar)
                 local bx = vx + ZeD.TM:MeasureStringX(T.fontF2, l) + T.px(8)
-                local s4 = T.surf4 or T.surf3
-                local ac = T.accent
                 local bw2 = math.min(T.px(160), ix + iw - bx)
                 if bw2 > T.px(20) then
-                    panel:drawRect(bx, cy + math.floor((F(2) - T.px(5)) / 2), bw2, T.px(5), 1, s4.r, s4.g, s4.b)
-                    panel:drawRect(bx, cy + math.floor((F(2) - T.px(5)) / 2), math.floor(bw2 * bar), T.px(5), 1, ac.r, ac.g, ac.b)
+                    A.drawFillBar(panel, bx, cy + math.floor((F(2) - T.fillBarH) / 2), bw2, it.bar, false, T.accent)
                 end
             end
             cy = cy + F(2)
         end
         cy = cy + T.px(3)
     end
-    local ptext, pbar = progressText(p, r)
-    kv(tr("UI_ZeD_TAS_KProgress"), ptext, pbar)
-    local gains, losses = actionLists(r.def)
-    if gains then
-        kv(getText("UI_TAS_Gain"), (#gains > 0) and table.concat(gains, ", ") or tr("UI_ZeD_TAS_NoneList"))
-        kv(getText("UI_TAS_Lose"), (#losses > 0) and table.concat(losses, ", ") or tr("UI_ZeD_TAS_NoneList"))
-    end
-    local uL, ug, ul = firstChange(r, 1)
-    local dL, dg, dl = firstChange(r, -1)
-    local up = uL and tr("UI_ZeD_TAS_At", uL, chText(ug, ul)) or tr("UI_ZeD_TAS_NoChangeAbove")
-    if dL then up = up .. " | " .. tr("UI_ZeD_TAS_DownAt", dL, chText(dg, dl)) end
-    kv(tr("UI_ZeD_TAS_KLevelUp"), up)
-    local now
-    if #r.now == 0 then now = tr("UI_ZeD_TAS_NowNone")
-    else
-        local parts = {}
-        for _, t in ipairs(r.now) do
-            local i = tinfo(t)
-            parts[#parts + 1] = i.label .. ": " .. ((i.desc ~= "") and i.desc or tr("UI_ZeD_TAS_NoDesc"))
-        end
-        now = table.concat(parts, " ")
-    end
-    kv(tr("UI_ZeD_TAS_KNow"), now)
     panel:clearStencilRect()
+    if needs then sc:draw(panel) end
 end
 
 -- keep the controller's focus in view (once per newly focused stop)
@@ -698,7 +765,9 @@ function S.render(panel, win, x, y, w, h)
     local off = needs and math.floor(scroll.scrollPos * maxOff) or 0
     st.off, st.sy = off, sy
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    if not (mx >= x and mx < x + w and my >= sy and my < sy + sh) then mx, my = nil, nil end
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    -- (the mouse's hover goes quiet while the controller's mark shows)
+    if not (mx >= x and mx < x + w and my >= sy and my < sy + sh) or (Fo and Fo.cuesVisible and Fo.cuesVisible()) then mx, my = nil, nil end
     -- the focused row picks itself (the details follow focus with no press)
     local fe = focusedEl(win)
     if fe and fe.rowId then st.sel = fe.rowId end
@@ -712,8 +781,7 @@ function S.render(panel, win, x, y, w, h)
             if k == "credit" then drawCredit(panel, win, st, it, dy)
             elseif k == "sum" then drawSum(panel, st, it, dy)
             elseif k == "empty" then
-                local c = T.toneLo or T.textDim
-                panel:drawText(tr("UI_ZeD_TAS_Nothing", S.find), it.x, dy, c.r, c.g, c.b, c.a or 1, T.fontF2)
+                ZeD.Molecules.drawEmptyLine(panel, it.x, dy, it.w, tr("UI_ZeD_TAS_Nothing", S.find))
             elseif k == "cat" then drawCat(panel, win, it, dy, mx, my)
             elseif k == "row" then
                 drawRow(panel, win, st, it, dy, mx, my)
@@ -739,9 +807,10 @@ function S.render(panel, win, x, y, w, h)
     M.drawTabHeader(panel, x, y, w, getText("UI_TAS_Tab"), false, false, true)
     local fh = T.inputH or T.px(22)
     st.findRect = { x = x + w - T.px(PAD) - T.px(FIND_W), y = y + math.floor((headH - fh) / 2), w = T.px(FIND_W), h = fh }
-    if isFoc(win, "tas:find") then
+    local findFocus = focusOf(win, "tas:find")
+    if findFocus then
         local f = st.findRect
-        ZeD.Atoms.drawAccentRing(panel, f.x - T.px(2), f.y - T.px(2), f.w + T.px(4), f.h + T.px(4), T.px(2), T.accentBright)
+        ZeD.Focus.mark(panel, f.x, f.y, f.w, f.h, findFocus)
     end
     if needs then scroll:draw(panel) end
     -- a step names its trait and level
@@ -755,9 +824,11 @@ function S.render(panel, win, x, y, w, h)
         end
         local body = (#names > 0) and names[1] or tr("UI_ZeD_TAS_NoTrait")
         for i = 2, #names do body = tr("UI_ZeD_TAS_Or", body, names[i]) end
-        if sh2.L == sh2.row.level then body = body .. "\n" .. tr("UI_ZeD_TAS_Here") end
-        ZeD.HairBeard.balloon(panel, tr("UI_ZeD_TAS_StepTitle", sh2.row.name, sh2.L), body, sh2.x, sh2.y, sh2.w, sh2.h,
-            { x = x, y = y, w = w, h = h })
+        local lines = { body }
+        if sh2.L == sh2.row.level then lines[#lines + 1] = tr("UI_ZeD_TAS_Here") end
+        -- the shared detail card, asked of the window's overlay (it appears after the shared pause)
+        ZeD.HairBeard.hoverCard(panel, win, "tas:step:" .. tostring(sh2.row.id) .. ":" .. tostring(sh2.L),
+            tr("UI_ZeD_TAS_StepTitle", sh2.row.name, sh2.L), lines, sh2, false)
     end
     st.rendered = true
 end
@@ -777,6 +848,11 @@ function S.onClick(win, x, y)
     local sc = st.scroll
     if sc.visible and x >= sc.x and x < sc.x + sc.width and y >= sc.y and y < sc.y + sc.height then
         sc:handleMouseDown(y - sc.y)
+        return
+    end
+    local ds = st.detScroll
+    if ds and ds.visible and x >= ds.x and x < ds.x + ds.width and y >= ds.y and y < ds.y + ds.height then
+        ds:handleMouseDown(y - ds.y)
         return
     end
     for _, o in ipairs(st.only or {}) do
@@ -901,7 +977,17 @@ ZeD_CharacterWindow.addTab({
     iconName = "traits-tab-white", icon = getTexture("media/textures/ZeD/TabIcons/traits-tab-white.png"),
     label = function() return getText("UI_TAS_Tab") end,
     render = S.render,
-    scroll = function(win) return win._tas and win._tas.scroll or nil end,
+    -- (the wheel scrolls the details when the pointer is over them, the list otherwise)
+    scroll = function(win)
+        local st = win._tas
+        if not st then return nil end
+        local ds, r, dp = st.detScroll, st.detRect, win._drawerPanel
+        if ds and ds.visible and r and dp then
+            local mx, my = dp:getMouseX(), dp:getMouseY()
+            if ds.dragging or (mx >= r.x and mx < r.x + r.w and my >= r.y and my < r.y + r.h) then return ds end
+        end
+        return st.scroll
+    end,
     onClick = S.onClick,
     buildFocusables = S.buildFocusables,
     scrollKey = S.scrollKey,

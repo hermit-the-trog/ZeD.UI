@@ -324,7 +324,7 @@ function BB.drawBlock(p, b, x, y, w)
         if p then
             local s2 = (k == "spoiler") and { r = 0, g = 0, b = 0 } or T.surf2
             p:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-            p:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+            ZeD.Atoms.frame(p, x, y, w, h, bs)
             if k == "code" then
                 local yy = y + pad
                 for _, l in ipairs(lines(t)) do
@@ -356,7 +356,7 @@ function BB.drawBlock(p, b, x, y, w)
                 if i == 1 then local s2 = T.surf2; p:drawRect(x, yy, w, rh, 1, s2.r, s2.g, s2.b) end
                 for c = 1, ncol do
                     local cx = x + (c - 1) * cw
-                    p:drawRectBorder(cx, yy, (c == ncol) and (w - (c - 1) * cw) or cw, rh, bs.a, bs.r, bs.g, bs.b)
+                    ZeD.Atoms.frame(p, cx, yy, (c == ncol) and (w - (c - 1) * cw) or cw, rh, bs)
                     BB.rich(p, (i == 1) and ("[b]" .. (r[c] or "") .. "[/b]") or (r[c] or ""), cx + pad, yy + pad, cw - pad * 2, f2, txt)
                 end
             end
@@ -372,7 +372,7 @@ function BB.drawBlock(p, b, x, y, w)
         -- (Steam fetches the picture from its address; the screen shows where it comes from)
         local h = T.px(56)
         if p then
-            p:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
+            ZeD.Atoms.frame(p, x, y, w, h, bs)
             local name = trim(t):match("([^/]+)$") or trim(t)
             local s = ZeD.tr("UI_ZeD_DescEdit_PicturePreview", (name ~= "" and name ~= "https:") and name or ZeD.tr("UI_ZeD_DescEdit_NoAddress"))
             p:drawText(ZeD.Atoms.truncateText(s, f3, w - T.px(16)), x + T.px(8), y + math.floor((h - tm:getFontHeight(f3)) / 2), dim.r, dim.g, dim.b, dim.a or 1, f3)

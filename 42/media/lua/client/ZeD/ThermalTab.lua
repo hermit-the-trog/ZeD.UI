@@ -14,6 +14,34 @@ require "ZeD/ZeD_BodyFigure"
 ZeD = ZeD or {}
 ZeD.ThermalTab = {}
 
+-- The controller's mark options for the element with this id: set only when the
+-- window is the focused one, the controller is in use and that element has the focus.
+local _focusOpts = {}
+local function focusOf(win, id)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused and F.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
+
+-- the pointer over (x, y, w, h) and inside the tab's scroll view, with the mouse in use
+local function hoverIn(panel, win, x, y, w, h)
+    local v = win._thermalScrollRect
+    if v then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        if mx < v.x or mx >= v.x + v.w or my < v.y or my >= v.y + v.h then return false end
+    end
+    return ZeD.Atoms.mouseIn(panel, x, y, w, h)
+end
+
+-- one view's row in the radio list: the radio button and its name
+local function viewRowH()
+    local T = ZeD.T
+    return math.max(ZeD.Atoms.radioSize(), ZeD.TM:getFontHeight(T.fontF2)) + T.px(8)
+end
+
 -- ============================================================================
 -- VIEW DEFINITIONS
 -- Each view maps to a thermal node getter (+ "UI" suffix for display value).
@@ -179,6 +207,7 @@ end
 
 function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
+    local A    = ZeD.Atoms
     local M    = ZeD.Molecules
     local pad  = M.getTabPad()      -- 8px outer pad
     local padTop = M.getTabPadTop() -- 8px top pad below pinned header
@@ -198,14 +227,12 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     -- element overrides mouse hover so D-pad through parts live-swaps the
     -- right-column detail view. Stashed on win so _drawBodyFigure reads the
     -- same authoritative value for fig.selectedPart (white highlight).
+    -- (the live element: the controller leads only while it is in use)
     local activePart = win._thermalHoveredPart
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
-           and Focus.getFocusedWindow() == win then
-            local el = Focus.getFocusedElement(win)
-            if el and el.partName then activePart = el.partName end
-        end
+        local el = Focus and Focus.liveElement and Focus.liveElement(win)
+        if el and el.partName then activePart = el.partName end
     end
     win._thermalActivePart = activePart
 
@@ -213,11 +240,9 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     local figW = T.sp.figureW
     local figH = T.sp.figureH
 
-    -- Right column button height (for zone A height measurement)
-    local secH   = ZeD.TM:getFontHeight(T.fontF1)
-    local btnH   = secH + T.sp.pillBtnPadV
+    -- Right column height (for zone A height measurement): one radio row per view
     local btnGap = T.sp.xs
-    local rightColH = #VIEWS * (btnH + btnGap)
+    local rightColH = #VIEWS * (viewRowH() + btnGap)
 
     -- Pinned header height (not in scroll content)
     local headerH = M.getTabHeaderH()
@@ -250,6 +275,7 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
     end
 
     panel:setStencilRect(x, scrollY, contentW, scrollH)
+    win._thermalScrollRect = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (what the pointer may hover)
 
     local scrollOff = 0
     if needsScroll then
@@ -321,24 +347,12 @@ function ZeD.ThermalTab.render(panel, win, x, y, w, h)
 
     panel:clearStencilRect()
 
-    -- S102 — gamepad focus cue on the tab-header disclosure. 0.55α T.accent
-    -- over the header rect, drawn BEFORE drawTabHeader so the chevron + text
-    -- render on top. Gated on live focused element shape (isDisclosure) so
-    -- the cue clears the moment LB/RB bumpers away.
-    do
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
-           and Focus.getFocusedElement then
-            local el = Focus.getFocusedElement(win)
-            if el and el.isDisclosure then
-                local ac = T.accent
-                panel:drawRect(x, y, w, headerH, 0.55, ac.r, ac.g, ac.b)
-            end
-        end
-    end
-
-    -- Pinned header — drawn on top of scroll content
-    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Char_TabThermal"), figureExpanded)
+    -- Pinned header, drawn on top of the scroll content: the hover wash and the
+    -- controller's mark on the disclosure come with the molecule
+    local hdrHover = A.mouseIn(panel, x, y, w, headerH)
+    if hdrHover and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Thermal_HelpHeader")) end
+    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Char_TabThermal"), figureExpanded, hdrHover, nil,
+        { focus = focusOf(win, "thermal:__disclosure") })
     win._thermalFigureZone = { x = x, y = y, w = w, h = headerH }
 
     -- Scrollbar (outside stencil)
@@ -364,37 +378,35 @@ end
 function ZeD.ThermalTab._renderViewGrid(panel, win, rx, ry, rw)
     local T    = ZeD.T
     local A    = ZeD.Atoms
-    local font = T.fontF1
-    local secH = ZeD.TM:getFontHeight(font)
-    local btnH = secH + T.sp.pillBtnPadV
+    local font = T.fontF2
+    local rowH = viewRowH()
     local gap  = T.sp.xs
     local activeIdx = win._thermalView or 1
+    local rs = A.radioSize()
+    local hv = T.hover
 
     win._thermalPillZones = {}
 
-    -- Gamepad focus cue: 0.55α T.accent under the focused pill.
-    -- Gated on live Focus.getFocusedElement so only the currently-focused
-    -- element paints — two element types share charTabContent (pills + body
-    -- parts), persistent state fields would paint both at once.
-    local function _paintPillFocusCue(viewIdx, bx, by, bw, bh)
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if not Focus or not Focus.getFocusedWindow then return end
-        if Focus.getFocusedWindow() ~= win then return end
-        if not Focus.getFocusedElement then return end
-        local el = Focus.getFocusedElement(win)
-        if not el or el.viewIndex ~= viewIdx then return end
-        local ac = T.accent
-        panel:drawRect(bx, by, bw, bh, 0.55, ac.r, ac.g, ac.b)
-    end
-
+    -- One of seven views: System 7 radio buttons, each row pressable whole
     for i, view in ipairs(VIEWS) do
-        local by = ry + (i - 1) * (btnH + gap)
-        local isActive = (i == activeIdx)
+        local by = ry + (i - 1) * (rowH + gap)
+        local hover = hoverIn(panel, win, rx, by, rw, rowH)
 
-        _paintPillFocusCue(i, rx, by, rw, btnH)
-        A.drawPillButton(panel, rx, by, rw, btnH, ZeD.ThermalTab.labelOf(view), isActive, true, font)
+        if hover then
+            panel:drawRect(rx, by, rw, rowH, hv.a, hv.r, hv.g, hv.b)
+            if ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Thermal_HelpView", ZeD.ThermalTab.labelOf(view))) end
+        end
+        local onFocus = false
+        local fo = focusOf(win, "thermal:" .. i)
+        if fo then onFocus = ZeD.Focus.mark(panel, rx, by, rw, rowH, fo) end
 
-        win._thermalPillZones[i] = { x = rx, y = by, w = rw, h = btnH }
+        local rxx = rx + T.px(6)
+        A.drawRadio(panel, rxx, by + math.floor((rowH - rs) / 2), i == activeIdx, { hover = hover })
+        local tc = onFocus and T.textOnFocus or T.text
+        panel:drawText(A.truncateText(ZeD.ThermalTab.labelOf(view), font, rw - T.px(6) - rs - T.px(8) - T.px(6)),
+            rxx + rs + T.px(8), by + math.floor((rowH - ZeD.TM:getFontHeight(font)) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
+
+        win._thermalPillZones[i] = { x = rx, y = by, w = rw, h = rowH }
     end
 end
 
@@ -435,6 +447,19 @@ function ZeD.ThermalTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
     -- active part (gamepad focus overrides mouse hover — see render()).
     fig.selectedPart = win._thermalActivePart or nil
 
+    -- the controller's mark on a focused part: its washes go under the figure (the
+    -- rects are the last frame's, which the figure keeps), the hand beside it
+    local el = ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.liveElement and ZeD.Input.Focus.liveElement(win)
+    if el and el.partName and fig.getPartRects then
+        for _, r in ipairs(fig:getPartRects()) do
+            if r.name == el.partName then
+                _focusOpts.win = win
+                ZeD.Focus.mark(panel, r.x, r.y, r.w, r.h, _focusOpts)
+                break
+            end
+        end
+    end
+
     -- Draw onto the parent panel (inside stencil — clips properly)
     fig:drawAt(panel, px, py, pw, ph)
 end
@@ -452,7 +477,6 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local listX   = rx
     local listW   = rw
 
-    local headH = ZeD.TM:getFontHeight(T.fontF4)
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
 
     -- Active view
@@ -471,7 +495,7 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
     local windStr = ZeD.ThermalTab.tempText(data.windTemp)
     local coreLbl = ZeD.tr("UI_ZeD_Thermal_Core")
     local airLbl  = ZeD.tr("UI_ZeD_Thermal_Air")
-    local windLbl = ZeD.upper(ZeD.tr("IGUI_Fishing_Wind"))
+    local windLbl = ZeD.textCase(ZeD.tr("IGUI_Fishing_Wind"))
 
     A.drawSecondary(panel, coreLbl, curX, drawY)
     curX = curX + ZeD.TM:MeasureStringX(T.fontF1, coreLbl) + T.sp.sm
@@ -489,16 +513,14 @@ function ZeD.ThermalTab._renderCardGrid(panel, win, data, rx, ry, rw, rh)
 
     drawY = drawY + secH + T.sp.sm
 
-    -- Gradient bar
-    A.drawGradientBar(panel, listX, drawY, listW, T.px(6), (data.coreTemp - 30) / 12)
-    drawY = drawY + T.px(6) + T.sp.md
+    -- Core temperature gauge: the chunky framed strip (the standard bar height), not a thin line
+    A.drawGradientBar(panel, listX, drawY, listW, T.fillBarH, (data.coreTemp - 30) / 12)
+    drawY = drawY + T.fillBarH + T.sp.md
 
-    -- Section heading
-    panel:drawText(ZeD.tr("UI_ZeD_Thermal_ByRegion", ZeD.ThermalTab.labelOf(view)), listX, drawY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
-    drawY = drawY + headH + T.sp.xs
-
-    A.drawDividerH(panel, listX, drawY, listW, false)
-    drawY = drawY + T.px(1) + T.sp.afterLine
+    -- Section head (the content line under it comes with the molecule)
+    drawY = drawY + M.drawSectionHeader(panel, listX, drawY, listW,
+        ZeD.tr("UI_ZeD_Thermal_ByRegion", ZeD.ThermalTab.labelOf(view)), nil, true, false, nil, nil, nil, nil, true)
+    drawY = drawY + T.sp.xs
 
     -- Two-column body part grid
     local colGap = T.sp.sm
@@ -583,15 +605,13 @@ end
 function ZeD.ThermalTab._measureGridContent(data, listW, scrollW)
     local T    = ZeD.T
     local secH = ZeD.TM:getFontHeight(T.fontF1)
-    local headH = ZeD.TM:getFontHeight(T.fontF1)
 
     local total = 0
 
-    -- Grid header: CORE/AIR/WIND line + gradient bar + section heading + divider
-    total = total + secH + T.sp.sm          -- CORE/AIR/WIND line
-    total = total + T.px(6) + T.sp.md             -- gradient bar
-    total = total + headH + T.sp.xs         -- section heading
-    total = total + T.px(1) + T.sp.afterLine      -- divider
+    -- Grid header: core / air / wind line + gauge + section head
+    total = total + secH + T.sp.sm          -- core / air / wind line
+    total = total + T.fillBarH + T.sp.md    -- gauge
+    total = total + T.px(20) + T.sp.xs      -- section head (20u)
 
     -- Body part rows (2 columns). rowH must match Molecules.drawStatBarRow:
     --   rowH = max(valFont=F3, lblFont=F2) + 8

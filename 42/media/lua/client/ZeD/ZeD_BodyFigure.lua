@@ -433,10 +433,10 @@ function ZeD.partLabel(name)
     return name
 end
 
--- the same for the short pill names ("L. UARM")
+-- the same for the short names ("L. UARM"): read in sentence case, as every word in the windows
 function ZeD.partAbbrev(name)
     local k = name and ZeD.PartAbbrevKeys[name]
-    if k then return ZeD.upper(ZeD.tr(k)) end
+    if k then return ZeD.textCase(ZeD.tr(k)) end
     return name
 end
 

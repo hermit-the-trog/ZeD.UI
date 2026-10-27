@@ -19,6 +19,13 @@ ZeD.CraftingCore = ZeD.CraftingCore or {}
 
 local CC = ZeD.CraftingCore
 local M  = ZeD.Molecules
+local NO_FOCUS_OPTS = {}   -- ZeD.Focus.mark's opts for a focused element (the window is the panel's)
+
+-- the pointer's hover washes stay off while the controller's mark shows
+local function cuesOn()
+    local F = ZeD.Input and ZeD.Input.Focus
+    return F and F.cuesVisible and F.cuesVisible() or false
+end
 
 -- ============================================================================
 -- CONSTANTS (from CRAFTING_SPEC.md §8 — frozen)
@@ -619,8 +626,8 @@ end
 function CC.tagText(tag, altCount)
     if tag == nil then return nil end
     if tag == "FUEL" and (altCount or 0) > 0 then return tag end
-    if tag == "TOOL" then return ZeD.upper(ZeD.tr("IGUI_ItemCat_Tool")) end
-    if tag == "KEEP" then return ZeD.upper(ZeD.trBare("IGUI_CraftUI_SourceKeep")) end
+    if tag == "TOOL" then return ZeD.tr("IGUI_ItemCat_Tool") end
+    if tag == "KEEP" then return ZeD.trBare("IGUI_CraftUI_SourceKeep") end
     if tag == "FUEL" then return ZeD.tr("UI_ZeD_Craft_TagFuel") end
     return tag
 end
@@ -1183,44 +1190,25 @@ function CC.renderStaticHeader(panel, x, y, w, state, config, win)
         end
     end
 
-    -- Category dropdown (drawn manually — ZeD_Dropdown as child panel is future work)
+    -- Category select: the pop-up menu's look (ZeD_Dropdown), drawn in place
+    -- (Stations.drawSelect); its list is the overlay drawn last
+    local select = ZeD.Stations and ZeD.Stations.drawSelect
     if state.altSlotName then
-        -- Alt mode: frozen dropdown showing "Compatible"
-        local ac = T.accent
-        panel:drawRect(ddX, ddY, ddW, ddH, 0.08, ac.r, ac.g, ac.b)
-        panel:drawRectBorder(ddX, ddY, ddW, ddH, ac.a * 0.3, ac.r, ac.g, ac.b)
+        -- Alt mode: the select frozen on "Compatible" (greyed: it cannot be opened here)
         local frozenLabel = ZeD.tr("UI_ZeD_Craft_Compatible")
-        panel:drawText(frozenLabel, ddX + T.px(6), ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2),
-            ac.r, ac.g, ac.b, 0.8, T.fontF2)
+        if select then
+            select(panel, ddX, ddY, ddW, ddH, ST and ZeD.tr("IGUI_invpanel_Category") or nil, frozenLabel, false, false, false, true)
+        end
     else
         local activeCatLabel = CC.activeCategoryLabel(state)
-        if ST then
-            local mx, my = panel:getMouseX(), panel:getMouseY()
-            local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
-                and mx >= ddX and mx < ddX + ddW and my >= ddY and my < ddY + ddH
-            ST.drawSelect(panel, ddX, ddY, ddW, ddH, ZeD.upper(ZeD.tr("IGUI_invpanel_Category")), activeCatLabel, false,
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        local hov = (not state.catDropdownOpen) and (not state.stDropdownOpen)
+            and mx >= ddX and mx < ddX + ddW and my >= ddY and my < ddY + ddH
+        if select then
+            select(panel, ddX, ddY, ddW, ddH, ST and ZeD.tr("IGUI_invpanel_Category") or nil, activeCatLabel, false,
                 state._gpFocusedId == (pfx .. ":catDrop"), hov)
-        else
-            -- Normal dropdown: show active category with arrow
-            local bg = T.surf2
-            panel:drawRect(ddX, ddY, ddW, ddH, bg.a, bg.r, bg.g, bg.b)
-            panel:drawRectBorder(ddX, ddY, ddW, ddH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-
-            local catTextY = ddY + math.floor((ddH - tm:getFontHeight(T.fontF2)) / 2)
-            panel:drawText(activeCatLabel, ddX + T.px(6), catTextY, T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
-
-            -- Down arrow
-            local arrowSz = T.px(5)
-            local arrowX = ddX + ddW - arrowSz - T.px(8)
-            local arrowY = ddY + math.floor((ddH - arrowSz) / 2)
-            A.drawTriangleDown(panel, arrowX, arrowY, arrowSz, T.textSec)
-
-            -- S105 gamepad: inline cue paint for focused category dropdown button.
-            if state._gpFocusedId == (pfx .. ":catDrop") then
-                local ac = T.accent
-                panel:drawRect(ddX, ddY, ddW, ddH, 0.55, ac.r, ac.g, ac.b)
-            end
         end
+        if hov then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Craft_CategoryHelp")) end
 
         zones[#zones + 1] = { type = "catDropdown", x = ddX, y = ddY, w = ddW, h = ddH }
 
@@ -1242,7 +1230,7 @@ function CC.renderStrip(panel, x, y, w, state, config)
     local T = ZeD.T
     local zones = state.zones
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    if state.catDropdownOpen or state.stDropdownOpen then mx, my = -1, -1 end  -- suppress hover when a dropdown is open
+    if state.catDropdownOpen or state.stDropdownOpen or cuesOn() then mx, my = -1, -1 end  -- suppress hover when a dropdown is open or the pad is in use
 
     -- Detect hover zone from previous frame's zones (strip zones persist between frames)
     local stripH = T.px(CC.STRIP_H)
@@ -1269,7 +1257,14 @@ function CC.renderStrip(panel, x, y, w, state, config)
         local h, stripZones = M.drawAltBackStrip(panel, x, y, w,
             state.altSlotName, altData.totalOwned, altData.totalAll,
             state.ownedOnly, hoverZone)
+        -- the controller's mark on the focused back key / owned-only box (the
+        -- library strip takes no focus yet, so it goes on after the strip)
+        local pfx = (config and config.prefix) or "jrecipe"
+        local fid = state._gpFocusedId
         for _, z in ipairs(stripZones) do
+            if fid and ((z.id == "back" and fid == pfx .. ":altBack") or (z.id == "ownedOnly" and fid == pfx .. ":altOwned")) then
+                ZeD.Focus.mark(panel, z.x, z.y, z.w, z.h)
+            end
             z.type = "altStrip_" .. z.id
             zones[#zones + 1] = z
         end
@@ -1296,7 +1291,8 @@ function CC.renderStrip(panel, x, y, w, state, config)
         local toggle = { label = ZeD.tr("UI_ZeD_Craft_ShowToggle", ZeD.tr(SHOW_LABEL[show])), active = show ~= "known" }
         local h, stripZones = M.drawSortStrip(panel, x, y, w,
             modes, state.sort, toggle, hoverZone)
-        -- S105 gamepad: inline cue paint for focused sort/showAll button.
+        -- The controller's mark on the focused sort word / show-all box. (The
+        -- library strip takes no focus yet, so the mark goes on after its words.)
         local pfx = (config and config.prefix) or "jrecipe"
         local fid = state._gpFocusedId
         for _, z in ipairs(stripZones) do
@@ -1311,8 +1307,7 @@ function CC.renderStrip(panel, x, y, w, state, config)
                 elseif z.type == "showAllToggle" then zid = pfx .. ":showAll"
                 end
                 if zid and zid == fid then
-                    local ac = ZeD.T.accent
-                    panel:drawRect(z.x, z.y, z.w, z.h, 0.55, ac.r, ac.g, ac.b)
+                    ZeD.Focus.mark(panel, z.x, z.y, z.w, z.h)
                 end
             end
             zones[#zones + 1] = z
@@ -1453,7 +1448,7 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local curY = y - scrollOff
     local mx, my = panel:getMouseX(), panel:getMouseY()
     -- Suppress hover when a dropdown overlay is open
-    if state.catDropdownOpen or state.stDropdownOpen then mx, my = -1, -1 end
+    if state.catDropdownOpen or state.stDropdownOpen or cuesOn() then mx, my = -1, -1 end
     local rowIdx = 0
 
     -- Reusable row data table (zero alloc per row per frame)
@@ -1480,15 +1475,15 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
         -- when within visible rect.
         local hdrVisible = curY + catHdrH > visTop and curY < visBot
         if hdrVisible then
+            -- the list's group row ("v Pinned (3)": the library category row, 15u,
+            -- sentence case), the controller's mark under its words when focused
             local headerHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-            M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.tr(sec.label),
-                #sec.items, not sec.collapsed, headerHover, T.fontF1, true, T.px(6), catHdrH)
-            -- S105 gamepad: inline cue paint — accent overlay when focused.
             local pfx = (config and config.prefix) or "jrecipe"
-            if state._gpFocusedId == (pfx .. ":section:" .. tostring(sec.id)) then
-                local ac = T.accent
-                panel:drawRect(x, curY, contentW, catHdrH, 0.55, ac.r, ac.g, ac.b)
-            end
+            local catOpts = state._catRowOpts or {}
+            state._catRowOpts = catOpts
+            catOpts.hover, catOpts.h, catOpts.inset = headerHover, catHdrH, T.px(6)
+            catOpts.focus = (state._gpFocusedId == (pfx .. ":section:" .. tostring(sec.id))) and NO_FOCUS_OPTS or nil
+            M.drawCategoryRow(panel, x, curY, contentW, ZeD.tr(sec.label), #sec.items, not sec.collapsed, catOpts)
         end
         zi = zi + 1
         local hz = zlist[zi]
@@ -1534,19 +1529,17 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                     local isPinned = pinSet[name] or false
                     local fc = freqCounts[name]
 
-                    M.drawRecipeRow(panel, x, curY, contentW, rowData,
-                        isSelected, rowHover, isPinned, fc, rowIdx)
-
-                    -- S105 gamepad: inline cue paint — accent overlay when
-                    -- this row is the focused ring element. Off-screen rows
-                    -- skip cue paint (zone is stamped but no draw); next
-                    -- frame's scroll-follow brings the row into view and the
-                    -- cue paints normally.
+                    -- The controller's mark goes on first, so it sits under the row's
+                    -- words (the row draws no opaque fill). Off-screen rows skip it
+                    -- (zone stamped, no draw); next frame's scroll-follow brings the
+                    -- row into view.
                     local pfx = (config and config.prefix) or "jrecipe"
                     if state._gpFocusedId == (pfx .. ":row:" .. tostring(name)) then
-                        local ac = T.accent
-                        panel:drawRect(x, curY, contentW, ROW_H, 0.55, ac.r, ac.g, ac.b)
+                        ZeD.Focus.mark(panel, x, curY, contentW, ROW_H)
                     end
+
+                    M.drawRecipeRow(panel, x, curY, contentW, rowData,
+                        isSelected, rowHover, isPinned, fc, rowIdx)
                 end
 
                 -- Click zones (readOnly: full row, no star) — stamped UNCONDITIONALLY.
@@ -1633,17 +1626,24 @@ function CC.togglePick(state, recipeName, slotIdx, fullType)
 end
 
 -- A row of the open alternatives list that can be chosen: marks the chosen
--- one, stamps its click zone (and the gamepad cue when focused).
+-- one (the selected wash, no side bar), the pointer's hover, the controller's
+-- mark when focused, and stamps its click zone. Called before the row draws, so
+-- every wash sits under its words.
 function CC.stampAltPick(panel, state, alt, x, y, w, rowH, viewY, viewH)
     local T = ZeD.T
     local ac = T.accent
     local picked = CC.pickFor(state, state.selected, state.altSlotIdx) == alt.fullType
     if picked then
-        panel:drawRect(x, y, w, rowH, 0.16, ac.r, ac.g, ac.b)
-        panel:drawRect(x, y, T.px(3), rowH, 1, ac.r, ac.g, ac.b)
+        panel:drawRect(x, y, w, rowH, T.selectionA, ac.r, ac.g, ac.b)
+    end
+    local pmy = panel:getMouseY()
+    if not (state.catDropdownOpen or state.stDropdownOpen) and pmy >= viewY and pmy < viewY + viewH
+        and ZeD.Atoms.mouseIn(panel, x, y, w, rowH) then
+        local hv = T.hover
+        panel:drawRect(x, y, w, rowH, hv.a, hv.r, hv.g, hv.b)
     end
     if state._gpFocusedId and state._gpFocusedId == ((state._pickPrefix or "craft") .. ":altPick:" .. tostring(alt.fullType)) then
-        panel:drawRect(x, y, w, rowH, 0.55, ac.r, ac.g, ac.b)
+        ZeD.Focus.mark(panel, x, y, w, rowH)
     end
     if y + rowH > viewY and y < viewY + viewH then
         local zones = state.zones
@@ -1872,24 +1872,28 @@ function CC.renderAltList(panel, x, y, w, h, state)
 
     local catHdrH = T.sp.catHdrH
 
+    -- the two groups are the list's category rows (they do not fold: no triangle)
+    local grpOpts = state._altGrpOpts or {}
+    state._altGrpOpts = grpOpts
+    grpOpts.noArrow, grpOpts.h, grpOpts.inset = true, catHdrH, T.px(6)
+
     -- Owned section
     if #owned > 0 then
-        local headerStr = ZeD.tr("UI_ZeD_Craft_AltOwned")
-        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), headerStr, #owned, true, false, T.fontF1, true, T.px(6), catHdrH)
+        M.drawCategoryRow(panel, x, curY, contentW, ZeD.tr("UI_ZeD_Craft_AltOwned"), #owned, true, grpOpts)
         curY = curY + catHdrH
 
         for _, alt in ipairs(owned) do
             rowIdx = rowIdx + 1
-            M.drawAltRow(panel, x, curY, contentW, alt, true, rowIdx)
+            -- the chosen mark and the controller's mark first, under the row's words
             if state._pickOn then CC.stampAltPick(panel, state, alt, x, curY, contentW, ROW_H, y, h) end
+            M.drawAltRow(panel, x, curY, contentW, alt, true, rowIdx)
             curY = curY + ROW_H
         end
     end
 
     -- Other section
     if #other > 0 then
-        local headerStr = ZeD.tr("UI_ZeD_Craft_AltOther")
-        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), headerStr, #other, true, false, T.fontF1, true, T.px(6), catHdrH)
+        M.drawCategoryRow(panel, x, curY, contentW, ZeD.tr("UI_ZeD_Craft_AltOther"), #other, true, grpOpts)
         curY = curY + catHdrH
 
         for _, alt in ipairs(other) do
@@ -1899,13 +1903,9 @@ function CC.renderAltList(panel, x, y, w, h, state)
         end
     end
 
-    -- Empty state
+    -- Empty state: the library's empty line at the list's text inset
     if #owned == 0 and #other == 0 then
-        local msg = ZeD.tr("UI_ZeD_Craft_NoAlts")
-        local msgW = tm:MeasureStringX(T.fontF1, msg)
-        local dc = T.textDim
-        panel:drawText(msg, x + math.floor((contentW - msgW) / 2), curY + T.px(6),
-            dc.r, dc.g, dc.b, 0.5, T.fontF1)
+        M.drawEmptyLine(panel, x + T.px(6), curY + T.px(8), contentW - T.px(12), ZeD.tr("UI_ZeD_Craft_NoAlts"))
     end
 
     panel:clearStencilRect()
@@ -1951,10 +1951,15 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     if stNeed and ZeD.Stations and playerObj then
         stNear = ZeD.Stations.nearestFor(playerObj, entry.name)
     end
+    -- the NEEDS line (it may wrap), the nearest one in reach, and Use <station>
     local needH = 0
+    local needText = stNeed and ZeD.Stations and ZeD.Stations.needsText(stNeed.label) or nil
     if stNeed then
-        needH = T.px(8) + T.fontF2H + T.px(2) + T.fontF2H + T.px(8)
-        if stNear then needH = needH + T.px(6) + T.px(22) end
+        local lineW = w - T.sp.scrollbarW - T.px(20) - T.px(12)
+        local n = needText and #A.wrapText(needText, T.fontF2, math.max(1, lineW)) or 1
+        local step = T.fontF2H + T.px(2)
+        needH = T.px(4) + math.max(1, n) * step + T.fontF2H
+        if stNear then needH = needH + T.px(6) + T.buttonH end
         needH = needH + T.px(8)
     end
     local totalH = headerH + chipH + T.px(4) + needH + inputsH + T.px(4) + outputsH + learnH + actionH
@@ -2022,7 +2027,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     -- Surface requirement (pre-baked during catalog build)
     local needsSurface = entry.needSurface or false
     if needsSurface then
-        bw = A.drawBadge(panel, ZeD.upper(ZeD.tr("IGUI_CraftingWindow_Surface")), chipX, curY, "warning")
+        bw = A.drawBadge(panel, ZeD.tr("IGUI_CraftingWindow_Surface"), chipX, curY, "warning")
         chipX = chipX + bw + T.px(4)
     end
 
@@ -2039,59 +2044,53 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         chipX = chipX + bw + T.px(4)
     end
 
-    -- Station chip: what this recipe needs (Hand mode) or where it is made
-    if stNeed then
-        A.drawBadge(panel, ZeD.tr("UI_ZeD_Craft_BadgeNeeds", stNeed.short or ZeD.tr("UI_ZeD_Station_ShortFallback")), chipX, curY, "danger")
-    elseif rd.boundShort then
+    -- Station chip: where it is made (a station recipe in Hand mode says so in its NEEDS line below)
+    if (not stNeed) and rd.boundShort then
         A.drawBadge(panel, rd.boundShort, chipX, curY, nil)
     end
 
     curY = curY + chipH + T.px(4)
 
+    -- NEEDS (cohesion spec 9): a hollow square and "Needs a Primitive Kiln." in F2,
+    -- the nearest one in reach under it, then the push button that goes to it
     if stNeed then
         local bx, bw2 = x + T.px(10), contentW - T.px(20)
-        local bh = needH - T.px(8)
-        local ac = T.accent
-        panel:drawRect(bx, curY, bw2, bh, 0.12, ac.r, ac.g, ac.b)
-        panel:drawRectBorder(bx, curY, bw2, bh, ac.a or 1, ac.r, ac.g, ac.b)
-        local ty = curY + T.px(8)
-        local line1 = ZeD.Stations.needsText(stNeed.label)
-        panel:drawText(CC.truncText(line1, T.fontF2, bw2 - T.px(16)), bx + T.px(8), ty,
-            T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
-        ty = ty + T.fontF2H + T.px(2)
+        local ty = curY + T.px(4)
+        ty = ty + M.drawNeedsLine(panel, bx, ty, bw2, needText or "") + T.px(2)
+        local tx = bx + T.px(12)   -- the needs line's text inset (the 6u square and its gap)
         local line2 = stNear and ZeD.Stations.nearestText(stNear.dist)
             or ZeD.tr("UI_ZeD_Craft_NoneWithin", ZeD.Stations.REACH)
-        panel:drawText(CC.truncText(line2, T.fontF2, bw2 - T.px(16)), bx + T.px(8), ty,
-            T.textSec.r, T.textSec.g, T.textSec.b, T.textSec.a, T.fontF2)
+        local dc = T.textDim
+        panel:drawText(CC.truncText(line2, T.fontF2, bw2 - T.px(12)), tx, ty, dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
         ty = ty + T.fontF2H
         if stNear then
             ty = ty + T.px(6)
             local label = ZeD.tr("UI_ZeD_Craft_UseStation", string.lower(stNear.name or ZeD.tr("UI_ZeD_Station_Fallback")))   -- a button: sentence case
-            local btnH = T.px(22)
-            local btnW = math.min(bw2 - T.px(16), ZeD.TM:MeasureStringX(T.fontF3, label) + T.px(24))
-            M.drawButton(panel, bx + T.px(8), ty, btnW, btnH, label, "primary")
+            local btnH = T.buttonH
+            local btnW = math.min(bw2 - T.px(12), M.buttonW(label))
             local pfx = (config and config.prefix) or "jrecipe"
-            if state._gpFocusedId == (pfx .. ":stUse") then
-                panel:drawRect(bx + T.px(8), ty, btnW, btnH, 0.55, ac.r, ac.g, ac.b)
-            end
+            M.drawButton(panel, tx, ty, btnW, btnH, label, "primary", false, nil,
+                { hover = A.mouseIn(panel, tx, ty, btnW, btnH), focus = (state._gpFocusedId == (pfx .. ":stUse")) or nil })
             zones[#zones + 1] = { type = "stationUse", station = stNear,
-                x = bx + T.px(8), y = ty, w = btnW, h = btnH, _scrolled = true }
+                x = tx, y = ty, w = btnW, h = btnH, _scrolled = true }
         end
         curY = curY + needH
     end
 
-    local catHdrH = T.sp.catHdrH  -- 15px, same as inventory category separators
+    -- the card's section heads: the library's (20u, sentence case, the count dim)
+    local catHdrH = T.px(20)
     local mx, my = panel:getMouseX(), panel:getMouseY()   -- hoisted: the HOW TO LEARN hover test below used these before they were declared (nil globals)
+    if cuesOn() then mx, my = -1, -1 end
+    local pfx = (config and config.prefix) or "jrecipe"
 
-    -- Learn info section (readOnly + not accessible — renders ABOVE required)
+    -- Learn info section (readOnly + not accessible — renders ABOVE required; it does not fold)
     if showLearnSection then
         local learnLabel = ZeD.tr("UI_ZeD_Craft_HowToLearn")
-        local learnHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
         M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), learnLabel,
-            nil, true, learnHdrHover, T.fontF1, false, T.px(6), catHdrH)
+            nil, true, false, nil, false, T.px(6), catHdrH, true)
         curY = curY + catHdrH
 
-        -- Skill requirements
+        -- Skill requirements: the status square carries met / not met, the words stay default
         if rd.skills and #rd.skills > 0 then
             for _, sk in ipairs(rd.skills) do
                 local skColor = sk.met and T.positive or T.danger
@@ -2103,41 +2102,36 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
                     T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
                 -- Player level right-aligned
                 local lvlStr = tostring(sk.playerLevel) .. "/" .. tostring(sk.required)
-                local lvlColor = sk.met and T.positive or T.danger
                 A.drawTextRight(panel, lvlStr, x + contentW - T.px(6),
                     curY + math.floor((ROW_H - tm:getFontHeight(T.fontF3)) / 2),
-                    T.fontF3, lvlColor)
+                    T.fontF3, T.text)
                 curY = curY + ROW_H
             end
         end
 
-        -- needToBeLearn hint
+        -- needToBeLearn hint (prose: F2 in the dim ink)
         if entry.needLearn then
             local hintStr = ZeD.tr("UI_ZeD_Craft_FindRecipe")
-            panel:drawText(hintStr, x + T.px(6),
-                curY + math.floor((ROW_H - tm:getFontHeight(T.fontF5)) / 2),
-                T.textSec.r, T.textSec.g, T.textSec.b, 0.7, T.fontF5)
+            local dc = T.textDim
+            panel:drawText(CC.truncText(hintStr, T.fontF2, contentW - T.px(12)), x + T.px(6),
+                curY + math.floor((ROW_H - tm:getFontHeight(T.fontF2)) / 2),
+                dc.r, dc.g, dc.b, dc.a or 1, T.fontF2)
             curY = curY + ROW_H
         end
 
         curY = curY + T.px(4)
     end
 
-    -- Required Items section (collapsible disclosure, matches inventory catHdrH)
+    -- Required Items section (folds; the controller's mark under its words when focused)
     local reqCount = #(rd.ingredients or {})
     local haveCount = reqCount - (rd.missingCount or 0)
     local secLabel = ZeD.tr("UI_ZeD_Craft_Required")
     local reqHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
+    local secOpts = state._cardSecOpts or {}
+    state._cardSecOpts = secOpts
+    secOpts.focus = (state._gpFocusedId == (pfx .. ":card:req")) and NO_FOCUS_OPTS or nil
     M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), secLabel,
-        haveCount .. "/" .. reqCount, not state.reqCollapsed, reqHdrHover, T.fontF1, true, T.px(6), catHdrH)
-    -- S105 gamepad: inline cue paint for focused card section header (REQUIRED).
-    do
-        local pfx = (config and config.prefix) or "jrecipe"
-        if state._gpFocusedId == (pfx .. ":card:req") then
-            local ac = T.accent
-            panel:drawRect(x, curY, contentW, catHdrH, 0.55, ac.r, ac.g, ac.b)
-        end
-    end
+        haveCount .. "/" .. reqCount, not state.reqCollapsed, reqHdrHover, nil, true, T.px(6), catHdrH, nil, secOpts)
     zones[#zones + 1] = {
         type = "cardSection", id = "req",
         x = x, y = curY, w = contentW, h = catHdrH, _scrolled = true,
@@ -2161,6 +2155,10 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
             }
             local isSlotSelected = (state.altSlotName == ing.name and state.altSlotIdx == idx)
             local slotHover = mx >= x and mx < x + contentW and my >= curY and my < curY + ROW_H
+            -- the controller's mark on a slot that opens its alternatives, under the row's words
+            if (ing.altCount or 0) > 0 and state._gpFocusedId == (pfx .. ":slotAlt:" .. tostring(ing.name)) then
+                ZeD.Focus.mark(panel, x, curY, contentW, ROW_H)
+            end
 
             M.drawSlotRow(panel, x, curY, contentW, slotData, isSlotSelected, slotHover)
 
@@ -2183,16 +2181,9 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local outCount = #(entry.outputDefs or {})
     if outCount > 0 then
         local outHdrHover = mx >= x and mx < x + contentW and my >= curY and my < curY + catHdrH
-        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.upper(ZeD.tr("IGUI_CraftingWindow_Creates")),
-            outCount, not state.outCollapsed, outHdrHover, T.fontF1, true, T.px(6), catHdrH)
-        -- S105 gamepad: inline cue paint for focused card section header (OUTPUTS).
-        do
-            local pfx = (config and config.prefix) or "jrecipe"
-            if state._gpFocusedId == (pfx .. ":card:out") then
-                local ac = T.accent
-                panel:drawRect(x, curY, contentW, catHdrH, 0.55, ac.r, ac.g, ac.b)
-            end
-        end
+        secOpts.focus = (state._gpFocusedId == (pfx .. ":card:out")) and NO_FOCUS_OPTS or nil
+        M.drawSectionHeader(panel, x + T.px(6), curY, contentW - T.px(6), ZeD.tr("IGUI_CraftingWindow_Creates"),
+            outCount, not state.outCollapsed, outHdrHover, nil, true, T.px(6), catHdrH, nil, secOpts)
         zones[#zones + 1] = {
             type = "cardSection", id = "out",
             x = x, y = curY, w = contentW, h = catHdrH, _scrolled = true,
@@ -2233,10 +2224,17 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         if state.qty > maxQty and maxQty > 0 then state.qty = maxQty end
         if state.qty < 1 then state.qty = 1 end
         local canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0
-        local label = ZeD.upper(ZeD.tr(config.buildLabel or "IGUI_CraftingWindow_Craft"))
+        local label = ZeD.tr(config.buildLabel or "IGUI_CraftingWindow_Craft")
         local _, actionZones = M.drawCraftActionStrip(panel, x, actionY, w,
             state.qty, maxQty, canCraft, nil, label)
+        -- the controller's mark on the focused stepper key or Craft / Build button (the
+        -- library strip takes no focus yet, so it goes on after the strip)
+        local fid = state._gpFocusedId
         for _, z in ipairs(actionZones) do
+            if fid and ((z.id == "dec" and fid == pfx .. ":actDec") or (z.id == "inc" and fid == pfx .. ":actInc")
+                    or (z.id == "build" and fid == pfx .. ":actBuild")) then
+                ZeD.Focus.mark(panel, z.x, z.y, z.w, z.h)
+            end
             z.type = "action_" .. z.id
             zones[#zones + 1] = z
         end
@@ -2291,16 +2289,19 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- at zone-stamp time. Post-render cue pass was unreliable (stencil state
     -- at end-of-render can obscure the accent overlay). Inline paint
     -- guarantees cue sits in the correct paint-order position.
+    -- Only while the mark may show (Focus.liveZone: this window has the focus and
+    -- the controller is in use), so the other window or the mouse never keeps a
+    -- row lit.
     state._gpFocusedId = nil
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedZone and Focus.getFocusedElement then
-            local fz = Focus.getFocusedZone(win)
+        if Focus and Focus.liveZone and Focus.liveElement then
+            local fz = Focus.liveZone(win)
             -- S107: accept either window's tab-content zone. Craft + Build
             -- render in BOTH the Character and World windows; cue paint must
             -- pick up the focused element id regardless of which one owns it.
             if fz and (fz.zone == "charTabContent" or fz.zone == "worldTabContent") then
-                local fe = Focus.getFocusedElement(win)
+                local fe = Focus.liveElement(win)
                 state._gpFocusedId = fe and fe.id or nil
             end
         end
@@ -2477,6 +2478,9 @@ function CC.renderCatDropdownOverlay(panel, state, data)
     if scrollOff < 0 then scrollOff = 0 end
     state.catDropdownScroll = scrollOff
 
+    -- a pop-up list: System 7's hard shadow outside it (drawn before the clip)
+    A.drawHardShadow(panel, ddX, ddY, ddW, listH)
+
     -- Override any active stencil with the dropdown's own region
     panel:setStencilRect(ddX, ddY, ddW, listH)
 
@@ -2484,40 +2488,40 @@ function CC.renderCatDropdownOverlay(panel, state, data)
     local bg = T.surf1
     panel:drawRect(ddX, ddY, ddW, listH, 1, bg.r, bg.g, bg.b)
 
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-
-    -- S105 gamepad: use stashed focused id for dropdown row cue.
+    -- S105 gamepad: use stashed focused id for dropdown row cue (the element ids
+    -- carry the tab's own prefix: craft, build or jrecipe)
     local gpFocusedId = state._gpFocusedId
+    local catPfx = (state._pickPrefix or "jrecipe") .. ":cat:"
 
-    -- Draw visible rows (offset by scroll)
+    -- Draw visible rows (offset by scroll): the current one in the selected wash,
+    -- the pointer's hover, the controller's mark, then the words
     for vi = 0, visibleCount - 1 do
         local catIdx = scrollOff + vi + 1
         if catIdx > totalRows then break end
         local cat = cats[catIdx]
         local ry = ddY + vi * rowH
         local isActive = (cat.id == state.activeCat)
-        local isHover = mx >= ddX and mx < ddX + ddW and my >= ry and my < ry + rowH
-        local isGpFocused = gpFocusedId and gpFocusedId == ("jrecipe:cat:" .. tostring(cat.id))
+        local isHover = A.mouseIn(panel, ddX, ry, ddW, rowH)
+        local isGpFocused = gpFocusedId and gpFocusedId == (catPfx .. tostring(cat.id))
 
         if isActive then
-            panel:drawRect(ddX, ry, ddW, rowH, 0.15, T.accent.r, T.accent.g, T.accent.b)
-        elseif isHover then
+            panel:drawRect(ddX, ry, ddW, rowH, T.selectionA, T.accent.r, T.accent.g, T.accent.b)
+        end
+        if isHover then
             local hv = T.hover
             panel:drawRect(ddX, ry, ddW, rowH, hv.a, hv.r, hv.g, hv.b)
         end
-        if isGpFocused then
-            local ac = T.accent
-            panel:drawRect(ddX, ry, ddW, rowH, 0.55, ac.r, ac.g, ac.b)
-        end
+        local onFocus = false
+        if isGpFocused then onFocus = ZeD.Focus.mark(panel, ddX, ry, ddW, rowH) end
 
         local label = CC.categoryLabel(cat.full or cat.label or cat.id)
-        local tc = isActive and T.accent or T.text
+        local tc = onFocus and T.textOnFocus or T.text
         local textY = ry + math.floor((rowH - tm:getFontHeight(font)) / 2)
         panel:drawText(label, ddX + T.px(6), textY, tc.r, tc.g, tc.b, tc.a or 1, font)
 
         if cat.count then
             local countStr = tostring(cat.count)
-            A.drawTextRight(panel, countStr, ddX + ddW - T.px(6), textY, T.fontF1, T.textDim)
+            A.drawTextRight(panel, countStr, ddX + ddW - T.px(6), textY, T.fontF1, onFocus and T.textOnFocus or T.textDim)
         end
     end
 

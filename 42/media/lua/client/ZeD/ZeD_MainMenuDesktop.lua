@@ -19,9 +19,9 @@
 --
 -- The Trash opens a small window holding one file: the Computer itself (Oct 21
 -- 2026, was system32.dll; the old desktop joke of dragging the computer to the
--- trash). EMPTY TRASH throws the computer away: the window asks the game's own
+-- trash). Empty trash throws the computer away: the window asks the game's own
 -- "Quit Project Zomboid?" (director, Oct 16 2026: "What if deleting system32.dll
--- queues the are quit game dialog?"). CANCEL keeps everything.
+-- queues the are quit game dialog?"). Cancel keeps everything.
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -171,7 +171,7 @@ function ZeD_MMIcons:prerender()
         local ready = iconReady(tex)
         local k = sel and 0.55 or 1                       -- a selected icon darkens, as they did
         if ready then                                     -- (picture and name come together)
-        if tex then self:drawTextureScaledAspect(tex, c.ix, c.iy, c.isz, c.isz, off and 0.4 or 1, k, k, k) end
+        if tex then self:drawTextureScaledAspect(tex, c.ix, c.iy, c.isz, c.isz, off and T.disabledAlpha or 1, k, k, k) end
         -- its name, on a theme backing (surf1) so it reads over the painting on every theme; selected: the accent
         local name = ZeD.Atoms.truncateText((it.id == "trash") and ZeD.tr(it.label) or it.label, f2, c.w - T.px(4))
         local nw = MM.textW(f2, name)
@@ -179,11 +179,11 @@ function ZeD_MMIcons:prerender()
         local bx, bw = nx - T.px(4), nw + T.px(8)
         if sel then
             self:drawRect(bx, c.ly, bw, c.lh, 1, ac.r, ac.g, ac.b)
-            self:drawText(name, nx, c.ly + T.px(2), onAc.r, onAc.g, onAc.b, off and 0.6 or 1, f2)
+            self:drawText(name, nx, c.ly + T.px(2), onAc.r, onAc.g, onAc.b, off and T.disabledAlpha or 1, f2)
         else
             local s1 = T.surf1
             self:drawRect(bx, c.ly, bw, c.lh, 0.92, s1.r, s1.g, s1.b)
-            self:drawText(name, nx, c.ly + T.px(2), tc.r, tc.g, tc.b, off and 0.45 or 1, f2)
+            self:drawText(name, nx, c.ly + T.px(2), tc.r, tc.g, tc.b, off and T.disabledAlpha or 1, f2)
         end
         if not off then
             self._hits[#self._hits + 1] = { id = "desk:" .. it.id, x = c.x, y = c.y, w = c.w, h = c.h, fn = function() self:click(it.id) end }
@@ -243,8 +243,8 @@ function ZeD_MMTrash:onShow()
     self.focusId = "close"
 end
 
--- the question in the footer (the main window's own, a footer swap); off, the
--- controller goes back to EMPTY TRASH
+-- the question in the band (the main window's own, a band swap); off, the
+-- controller goes back to Empty trash
 function ZeD_MMTrash:setConfirm(on)
     ZeD_MMWindow.setConfirm(self, on)
     if not on then self.focusId = "empty" end
@@ -268,7 +268,7 @@ function ZeD_MMTrash:prerender()
     local k = math.max(1, math.floor((T.scale or 1) + 0.5))
     local isz = ICON_PX * k
     local rowH = isz + T.px(12)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local tb = T.titleBarH
     local w = math.min(T.px(TRASH_W), L.tw - T.px(40))
     local h = tb + pad + rowH + T.px(2) + pad + stripH + self:footerHeight()
@@ -277,7 +277,7 @@ function ZeD_MMTrash:prerender()
     if self.x ~= x or self.y ~= y then self:setX(x); self:setY(y) end
     if self.width ~= w or self.height ~= h then self:setWidth(w); self:setHeight(h) end
     self.title = ZeD.tr("UI_ZeD_Desktop_Trash")
-    self.titleStats = { { text = ZeD.tr("UI_ZeD_Desktop_OneItem"), color = { r = 0, g = 0, b = 0, a = 0 } } }   -- (no status dot: a plain count)
+    self.titleStats = { { text = ZeD.tr("UI_ZeD_Desktop_OneItem"), noMark = true } }   -- (no status mark: a plain count)
     ZeD_Window.prerender(self)
 
     -- the one file in it
@@ -294,21 +294,19 @@ function ZeD_MMTrash:prerender()
 
     local stripY = h - self:footerHeight() - stripH
     if self.confirm then
-        self._ask = ZeD.tr("UI_ZeD_MainMenu_AskQuitGame")
         UI.stripSpecs(self, stripY, w, 1000, {},
             { { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end, "default" },
-              { "confirm:yes", getText("UI_mainscreen_exit"), MM.act.quit, "danger" } })
+              { "confirm:yes", getText("UI_mainscreen_exit"), MM.act.quit, "danger", false, ZeD.tr("UI_ZeD_MMHelp_QuitGame") } },
+            ZeD.tr("UI_ZeD_MainMenu_AskQuitGame"))
     else
-        self._ask = nil
         UI.stripSpecs(self, stripY, w, 1000,
             { { "close", getText("UI_btn_close"), function() self:close() end } },
             { { "empty", ZeD.tr("UI_ZeD_Desktop_EmptyTrash"), function() self:empty() end } })
     end
-    self._stripY, self._stripH = stripY, stripH
 end
 
 function ZeD_MMTrash:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask)
+    UI.drawStripAndButtons(self)
     ZeD_Window.render(self)
 end
 

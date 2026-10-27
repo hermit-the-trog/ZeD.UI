@@ -491,13 +491,14 @@ local function overall(st) return st.qn > 1 and (st.qi + st.frac) / st.qn or st.
 function AB.drawSimple(cv, T, st, a, ms)
     local n, sw, sh, gap = 10, 4, 5, 1
     local W, H = AB.sizeSimple()
-    R(cv, 0, 0, W, H, T.base, a); R(cv, 1, 1, W - 2, H - 2, T.surf1, a)
+    local S = ZeD.Bubbles.solid   -- (HUD: opaque whatever the See-through setting is)
+    R(cv, 0, 0, W, H, S.base, a); R(cv, 1, 1, W - 2, H - 2, S.surf1, a)
     local function sx(i) return 2 + i * (sw + gap) end
     local function lit(i, c, f)
         R(cv, sx(i), 2, sw, sh, c, a * (f or 1))
         if c == T.accent then R(cv, sx(i), 2, sw, 1, T.accentBright, a * (f or 1)) end
     end
-    for i = 0, n - 1 do R(cv, sx(i), 2, sw, sh, T.surf3, a) end
+    for i = 0, n - 1 do R(cv, sx(i), 2, sw, sh, S.surf3, a) end
     if st.noend and st.phase ~= "stopped" then
         local c = st.phase == "walk" and AB._dim or T.accent
         local ph = (ms / 1200) % 2
@@ -526,7 +527,7 @@ end
 -- the plain box (before the thought bubble; kept for the outside-the-game test)
 function AB.drawVerbose(cv, T, st, a, ms)
     local W, H = AB.sizeVerbose(st)
-    R(cv, 0, 0, W, H, T.borderS, a); R(cv, 1, 1, W - 2, H - 2, T.surf1, a)
+    R(cv, 0, 0, W, H, T.borderS, a); R(cv, 1, 1, W - 2, H - 2, ZeD.Bubbles.solid.surf1, a)
     AB.drawVerboseBody(cv, T, st, a, ms, 4, 3, W - 8)
 end
 
@@ -550,7 +551,7 @@ function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
     txt(L2, px, py + 9, lc, "35")
     txt(R2, px + bw, py + 9, lc, "35", "r")
     local bx, by = px, py + 16
-    R(cv, bx, by, bw, 2, T.surf3, a)
+    R(cv, bx, by, bw, 2, ZeD.Bubbles.solid.surf3, a)
     if st.noend and st.phase ~= "stopped" then
         local seg = 12
         local span = bw + seg
@@ -563,7 +564,7 @@ function AB.drawVerboseBody(cv, T, st, a, ms, px, py, bw)
         R(cv, bx, by, math.floor(bw * f + 0.5), 2, c, a)
     end
     if st.qn > 1 and st.qn <= 24 and bw / st.qn >= 3 then
-        for i = 1, st.qn - 1 do R(cv, bx + math.floor(bw * i / st.qn + 0.5), by, 1, 2, T.surf1, a) end
+        for i = 1, st.qn - 1 do R(cv, bx + math.floor(bw * i / st.qn + 0.5), by, 1, 2, ZeD.Bubbles.solid.surf1, a) end
     end
 end
 

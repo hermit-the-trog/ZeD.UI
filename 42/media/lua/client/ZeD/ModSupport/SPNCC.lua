@@ -54,7 +54,7 @@ local TAB_ID = "appearance"
 -- design units
 local PAD, FIG_W, FIG_H, COL_GAP = 10, 150, 300, 12
 local TILE_W, TILE_PIC, TILE_GAP = 68, 72, 8
-local LROW_H, BROW_H, STRIP_H, FBTN_W, FBTN_H = 28, 30, 38, 28, 22
+local LROW_H, BROW_H = 28, 30
 
 -- the mod's zoom steps (CharacterCustomisationPanel ZoomSettings)
 local ZOOM_STEPS, ZOOM_MAX, Y_MIN, Y_MAX = 4, 18, -0.5, -0.875
@@ -494,14 +494,15 @@ local function layoutReadOnly(st, L, kind, list, x, y, w, note)
     return y + T.px(6) + F5H()
 end
 
-local function layoutSubhead(L, text, x, y)
-    addItem(L, { kind = "subh", text = text, x = x, y = y })
-    return y + F1H() + ZeD.T.sp.xs + ZeD.T.px(2)
+-- a section head (20u, sentence case, its content line under it); count = "(n)" after it
+local function layoutSubhead(L, text, x, y, w, count)
+    addItem(L, { kind = "subh", text = text, count = count, x = x, y = y, w = w, h = ZeD.T.px(20) })
+    return y + ZeD.T.px(20) + ZeD.T.sp.afterGroove
 end
 
 local function layoutBody(win, st, L, x, y, w)
     local T = ZeD.T
-    y = layoutSubhead(L, ZeD.upper(ZeD.tr("UI_ZeD_SPNCC_Body")), x, y)
+    y = layoutSubhead(L, ZeD.tr("UI_ZeD_SPNCC_Body"), x, y, w)
     local rh = T.px(BROW_H)
     local rows = {}
     if not st.female then rows[#rows + 1] = { "beard", ZeD.tr("UI_ZeD_SPNCC_BeardStubble"), st.data.stubbleBeard } end
@@ -511,7 +512,7 @@ local function layoutBody(win, st, L, x, y, w)
         local it = addItem(L, { kind = "groom", key = r[1], text = r[2], grown = r[3] and true or false, x = x, y = y, w = w, h = rh })
         -- its Shave button, placed here so it is a controller stop while scrolled out of view too
         local bw = math.max(T.px(64), ZeD.TM:MeasureStringX(T.fontF3, getText("UI_characreation_shave")) + T.px(20))
-        local bh = T.px(22)
+        local bh = T.buttonH - T.px(4)   -- a push button inside a row
         it.btn = { x = x + w - bw, y = math.floor((rh - bh) / 2), w = bw, h = bh }
         y = y + rh
     end
@@ -556,19 +557,19 @@ local function layout(win, st, w, viewH)
     -- zone A: the figure left, the face and the details right
     local figTop = y
     -- the figure is as tall as the tab's view allows (down to 160), so it shows whole
-    local figH = (viewH or T.px(FIG_H)) - y - T.px(4) - F5H() - T.px(6) - T.px(FBTN_H) - T.px(PAD)
+    local figH = (viewH or T.px(FIG_H)) - y - T.px(4) - F5H() - T.px(6) - T.buttonH - T.px(PAD)
     figH = math.max(T.px(160), math.min(T.px(FIG_H), figH))
     st.figItem = addItem(L, { kind = "figure", x = x, y = y, w = T.px(FIG_W), h = figH })
     local by = y + figH + T.px(4) + F5H() + T.px(6)
-    local bw, bgap = T.px(FBTN_W), T.px(4)
+    local bw, bgap = T.buttonH, T.px(4)
     local bx = x + math.floor((T.px(FIG_W) - (bw * 4 + bgap * 3)) / 2)
     for i, b in ipairs({ "turnL", "turnR", "zoomOut", "zoomIn" }) do
-        addItem(L, { kind = "fbtn", act = b, x = bx + (i - 1) * (bw + bgap), y = by, w = bw, h = T.px(FBTN_H) })
+        addItem(L, { kind = "fbtn", act = b, x = bx + (i - 1) * (bw + bgap), y = by, w = bw, h = bw })
     end
-    local leftBottom = by + T.px(FBTN_H)
+    local leftBottom = by + T.buttonH
     local rx = x + T.px(FIG_W) + T.px(COL_GAP)
     local rw = cw - T.px(FIG_W) - T.px(COL_GAP)
-    local ry = layoutSubhead(L, ZeD.upper(getText("UI_characreation_face")), rx, figTop)
+    local ry = layoutSubhead(L, getText("UI_characreation_face"), rx, figTop, rw)
     if st.canFace then ry = layoutOptions(st, L, "face", st.faces, rx, ry, rw)
     else ry = layoutReadOnly(st, L, "face", st.faces, rx, ry, rw, getText("UI_characreation_facedisabled")) end
     ry = ry + T.px(10)
@@ -576,7 +577,7 @@ local function layout(win, st, w, viewH)
     ry = ry + T.grooveH + T.px(10)
     local n = 0
     for _ in pairs(st.det) do n = n + 1 end
-    ry = layoutSubhead(L, ZeD.upper(getText("UI_characreation_bodydetail")) .. " (" .. n .. ")", rx, ry)
+    ry = layoutSubhead(L, getText("UI_characreation_bodydetail"), rx, ry, rw, n)
     if #st.dets == 0 then
         addItem(L, { kind = "text", text = ZeD.tr("UI_ZeD_SPNCC_NoDetails"), x = rx, y = ry, dim = true })
         ry = ry + F2H()
@@ -601,9 +602,31 @@ local function focusedEl(win)
     return nil
 end
 
-local function isFocused(win, id)
-    local el = focusedEl(win)
-    return el ~= nil and el.id == id
+-- The controller's mark options for the element with this id: set only when the window is
+-- the focused one, the controller is in use and that element has the focus.
+local _focusOpts = {}
+local function focusOf(win, id)
+    local Fo = ZeD.Input and ZeD.Input.Focus
+    if id and Fo and Fo.isFocused and Fo.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
+
+-- the footer help line's words for what the pointer is over
+local function help(win, text)
+    if ZeD.Help and ZeD.Help.set then ZeD.Help.set(win, text) end
+end
+
+-- the pointer over (x, y, w, h) with the mouse in use, and inside the tab's scroll view
+local function hoverIn(panel, st, x, y, w, h)
+    local v = st.view
+    if v then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        if mx < v.x or mx >= v.x + v.w or my < v.y or my >= v.y + v.h then return false end
+    end
+    return ZeD.Atoms.mouseIn(panel, x, y, w, h)
 end
 
 local function itemId(it)
@@ -619,24 +642,32 @@ local function isSel(st, it)
     return st.det[it.opt.name] == true
 end
 
+-- a picture tile: the picture (the mod's 3D figure over it) and a label strip under it. Picked:
+-- the one accent wash on the strip; hover: the hover wash; the controller's mark under the words
 local function drawTile(panel, win, st, it, y)
     local T = ZeD.T
-    local sel, foc = isSel(st, it), (not it.ro) and isFocused(win, itemId(it))
+    local sel = isSel(st, it)
     local s1, bs, ac = T.surf1, T.borderS, T.accent
     panel:drawRect(it.x, y, it.w, it.h, 1, s1.r, s1.g, s1.b)
     local pg = T.surf3
     panel:drawRect(it.x + 1, y + 1, it.w - 2, it.picH - 1, 1, pg.r, pg.g, pg.b)
     local labY = y + it.picH
-    local hot = sel and not it.ro
-    if hot then panel:drawRect(it.x, labY, it.w, it.h - it.picH, 1, ac.r, ac.g, ac.b) end
-    if foc then panel:drawRect(it.x, labY, it.w, it.h - it.picH, 0.55, ac.r, ac.g, ac.b) end
-    local tc = (hot or foc) and T.textOnAccent or T.text
+    local labH = it.h - it.picH
+    if sel and not it.ro then panel:drawRect(it.x, labY, it.w, labH, T.selectionA or 0.30, ac.r, ac.g, ac.b) end
+    local tc = T.text
+    if not it.ro then
+        if hoverIn(panel, st, it.x, y, it.w, it.h) then
+            local hv = T.hover
+            panel:drawRect(it.x, labY, it.w, labH, hv.a, hv.r, hv.g, hv.b)
+            help(win, ZeD.tr(sel and "UI_ZeD_SPNCC_HelpTileOn" or "UI_ZeD_SPNCC_HelpTile", tostring(it.opt.display or it.opt.name)))
+        end
+        local fo = focusOf(win, itemId(it))
+        if fo and ZeD.Focus.mark(panel, it.x, labY, it.w, labH, fo) then tc = T.textOnFocus end
+    end
     local label = ZeD.Atoms.truncateText(tostring(it.opt.display or it.opt.name), T.fontF5, it.w - T.px(4))
     local lw = ZeD.TM:MeasureStringX(T.fontF5, label)
     panel:drawText(label, it.x + math.floor((it.w - lw) / 2), labY + T.px(2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF5)
-    local b = (hot or foc) and T.accentBright or bs
-    panel:drawRectBorder(it.x, y, it.w, it.h, b.a or 1, b.r, b.g, b.b)
-    if hot or foc then panel:drawRectBorder(it.x + 1, y + 1, it.w - 2, it.h - 2, b.a or 1, b.r, b.g, b.b) end
+    ZeD.Atoms.frame(panel, it.x, y, it.w, it.h, bs)
     panel:drawRect(it.x, labY, it.w, T.px(1), bs.a or 1, bs.r, bs.g, bs.b)
 end
 
@@ -648,85 +679,113 @@ local function drawMarks(panel, it, y)
     local x = it.x + T.px(3)
     local my = y + it.picH + math.floor((it.h - it.picH - sz) / 2)
     if it.opt.visionModifier then
-        ZeD.Atoms.drawStatusRing(panel, x, my, T.textDim, sz)
+        ZeD.Atoms.drawStatusHollow(panel, x, my, T.textDim, sz)
         x = x + sz + T.px(2)
     end
     if it.opt.locked then ZeD.Atoms.drawStatusDot(panel, x, my, T.warning, sz) end
 end
 
+-- a list row: a radio button (the face: one of many) or a check box (a detail), the name
 local function drawListRow(panel, win, st, it, y)
-    local T = ZeD.T
-    local sel, foc = isSel(st, it), isFocused(win, itemId(it))
+    local T, A = ZeD.T, ZeD.Atoms
+    local sel = isSel(st, it)
     local ac = T.accent
-    if it.odd then panel:drawRect(it.x, y, it.w, it.h, 0.02, 1, 1, 1) end
-    if foc then panel:drawRect(it.x, y, it.w, it.h, 0.55, ac.r, ac.g, ac.b) end
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    if not foc and mx >= it.x and mx < it.x + it.w and my >= y and my < y + it.h then
-        panel:drawRect(it.x, y, it.w, it.h, 0.22, ac.r, ac.g, ac.b)
+    if it.odd then local s = T.stripe; panel:drawRect(it.x, y, it.w, it.h, s.a or 1, s.r, s.g, s.b) end
+    if sel then panel:drawRect(it.x, y, it.w, it.h, T.selectionA or 0.30, ac.r, ac.g, ac.b) end
+    local hover = hoverIn(panel, st, it.x, y, it.w, it.h)
+    if hover then
+        local hv = T.hover
+        panel:drawRect(it.x, y, it.w, it.h, hv.a, hv.r, hv.g, hv.b)
+        help(win, ZeD.tr(sel and "UI_ZeD_SPNCC_HelpTileOn" or "UI_ZeD_SPNCC_HelpTile", tostring(it.opt.display or it.opt.name)))
     end
+    local tc = T.text
+    local fo = focusOf(win, itemId(it))
+    if fo and ZeD.Focus.mark(panel, it.x, y, it.w, it.h, fo) then tc = T.textOnFocus end
     local cs = T.checkboxSz
     local cy = y + math.floor((it.h - cs) / 2)
     if it.tk == "face" then
-        ZeD.Atoms.drawStatusRing(panel, it.x + T.px(6), cy, T.textDim, cs)
-        if sel then ZeD.Atoms.drawStatusDot(panel, it.x + T.px(6) + math.floor(cs / 4), cy + math.floor(cs / 4), T.accentBright, math.ceil(cs / 2)) end
+        local rs = A.radioSize()
+        A.drawRadio(panel, it.x + T.px(6), y + math.floor((it.h - rs) / 2), sel, { hover = hover })
     else
-        ZeD.Atoms.drawCheckbox(panel, it.x + T.px(6), cy, sel, false, false)
+        A.drawCheckbox(panel, it.x + T.px(6), cy, sel, hover, false)
     end
-    local tc = foc and T.textOnFocus or T.text
     panel:drawText(tostring(it.opt.display or it.opt.name), it.x + T.px(12) + cs, y + math.floor((it.h - F2H()) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
     local bd = T.border
     panel:drawRect(it.x, y + it.h - 1, it.w, 1, bd.a or 1, bd.r, bd.g, bd.b)
-    if it.opt.visionModifier then ZeD.Atoms.drawStatusRing(panel, it.x + it.w - T.px(16), cy, T.textDim, cs) end
-    if it.opt.locked then ZeD.Atoms.drawStatusDot(panel, it.x + it.w - T.px(30), cy, T.warning, cs) end
+    local dsz = T.px(6)
+    local dy = y + math.floor((it.h - dsz) / 2)
+    if it.opt.visionModifier then A.drawStatusHollow(panel, it.x + it.w - T.px(16), dy, T.textDim, dsz) end
+    if it.opt.locked then A.drawStatusDot(panel, it.x + it.w - T.px(30), dy, T.warning, dsz) end
 end
 
+-- the figure's turn and zoom keys: icon buttons (each names itself after a pause)
+local FIG_ICON = {
+    turnL = function(p, x, y, s, c) local t = math.max(ZeD.T.px(6), math.floor(s * 0.6)); ZeD.Atoms.drawTriangleLeft(p, x + math.floor((s - t) / 2), y + math.floor((s - t) / 2), t, c) end,
+    turnR = function(p, x, y, s, c) local t = math.max(ZeD.T.px(6), math.floor(s * 0.6)); ZeD.Atoms.drawTriangleRight(p, x + math.floor((s - t) / 2), y + math.floor((s - t) / 2), t, c) end,
+    zoomOut = function(p, x, y, s, c)
+        local u, a = ZeD.T.hair, math.floor(s * 0.6)
+        p:drawRect(x + math.floor((s - a) / 2), y + math.floor((s - u * 2) / 2), a, u * 2, c.a or 1, c.r, c.g, c.b)
+    end,
+    zoomIn = function(p, x, y, s, c)
+        local u, a = ZeD.T.hair, math.floor(s * 0.6)
+        p:drawRect(x + math.floor((s - a) / 2), y + math.floor((s - u * 2) / 2), a, u * 2, c.a or 1, c.r, c.g, c.b)
+        p:drawRect(x + math.floor((s - u * 2) / 2), y + math.floor((s - a) / 2), u * 2, a, c.a or 1, c.r, c.g, c.b)
+    end,
+}
+local FIG_HINT = { turnL = "UI_ZeD_SPNCC_TurnLeft", turnR = "UI_ZeD_SPNCC_TurnRight", zoomOut = "UI_ZeD_SPNCC_ZoomOut", zoomIn = "UI_ZeD_SPNCC_ZoomIn" }
+local _figOpts = {}
 local function drawFigBtn(panel, win, it, y, st)
-    local T = ZeD.T
-    local foc = isFocused(win, itemId(it))
     local dis = (it.act == "zoomOut" and st.zoom <= 0) or (it.act == "zoomIn" and st.zoom >= ZOOM_STEPS)
-    local glyph = ({ turnL = "", turnR = "", zoomOut = "-", zoomIn = "+" })[it.act]
-    local ac = T.accent
-    ZeD.Molecules.drawButton(panel, it.x, y, it.w, it.h, glyph, "default", false,
-        { keepCase = true, fill = foc and { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } or nil })
-    local tsz = T.px(7)
-    local tx, ty = it.x + math.floor((it.w - tsz) / 2), y + math.floor((it.h - tsz) / 2)
-    if it.act == "turnL" then ZeD.Atoms.drawTriangleLeft(panel, tx, ty, tsz, T.text) end
-    if it.act == "turnR" then ZeD.Atoms.drawTriangleRight(panel, tx, ty, tsz, T.text) end
-    if dis then panel:drawRect(it.x, y, it.w, it.h, 0.55, T.drawerBg.r, T.drawerBg.g, T.drawerBg.b) end
+    local o = _figOpts
+    o.hover = (not dis) and hoverIn(panel, st, it.x, y, it.w, it.h) or false
+    o.disabled = dis
+    o.focus = focusOf(win, itemId(it))
+    o.win = win
+    o.hint = ZeD.tr(FIG_HINT[it.act])
+    o.id = "spnfig:" .. it.act
+    o.help = nil
+    ZeD.Molecules.drawIconButton(panel, it.x, y, it.w, FIG_ICON[it.act], o)
 end
 
 local function drawGroom(panel, win, st, it, y)
-    local T = ZeD.T
+    local T, A = ZeD.T, ZeD.Atoms
     local tl, tc = T.toneLo or T.textDim, T.text
     local ty = y + math.floor((it.h - F2H()) / 2)
     panel:drawText(it.text, it.x, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
     local vx = it.x + T.px(130)
-    local dsz = T.px(7)
+    local dsz = T.px(6)
     local dy = y + math.floor((it.h - dsz) / 2)
     local busy = st.shaving == it.key and it.grown
     local word
     if busy then
-        ZeD.Atoms.drawStatusDot(panel, vx, dy, T.accent, dsz); word = ZeD.tr("UI_ZeD_SPNCC_Shaving")
+        A.drawStatusDot(panel, vx, dy, T.accent, dsz); word = ZeD.tr("UI_ZeD_SPNCC_Shaving")
     elseif it.grown then
-        ZeD.Atoms.drawStatusDot(panel, vx, dy, T.positive, dsz); word = ZeD.tr("UI_ZeD_SPNCC_Grown")
+        A.drawStatusDot(panel, vx, dy, T.positive, dsz); word = ZeD.tr("UI_ZeD_SPNCC_Grown")
     else
-        ZeD.Atoms.drawStatusRing(panel, vx, dy, T.textDim, dsz); word = ZeD.tr("UI_ZeD_SPNCC_None")
+        A.drawStatusHollow(panel, vx, dy, T.textDim, dsz); word = ZeD.tr("UI_ZeD_SPNCC_None")
     end
     panel:drawText(word, vx + dsz + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
     if it.grown and not busy then
         local label = getText("UI_characreation_shave")
         local bw, bh = it.btn.w, it.btn.h
         local bx = it.btn.x
-        local foc = isFocused(win, itemId(it))
-        local ac = T.accent
-        ZeD.Molecules.drawButton(panel, bx, y + math.floor((it.h - bh) / 2), bw, bh, label, "default", false,
-            { fill = foc and { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } or nil })
+        local by = y + math.floor((it.h - bh) / 2)
+        -- the push button (a row's size); without a razor it is greyed, and the line says why
+        local o = _figOpts
+        o.hover = hoverIn(panel, st, bx, by, bw, bh)
+        o.disabled = not st.razor
+        o.focus = focusOf(win, itemId(it))
+        o.win = win
+        o.help = st.razor and ZeD.tr("UI_ZeD_SPNCC_HelpShave", it.text) or getText("Tooltip_RequireRazor")
+        o.hint, o.id = nil, nil
+        ZeD.Molecules.drawButton(panel, bx, by, bw, bh, label, "default", false, nil, o)
         if not st.razor then
-            local db = T.drawerBg
-            panel:drawRect(bx, y + math.floor((it.h - bh) / 2), bw, bh, 0.55, db.r, db.g, db.b)
             local why = getText("Tooltip_RequireRazor")
-            local ww = ZeD.TM:MeasureStringX(T.fontF5, why)
-            panel:drawText(why, bx - ww - T.px(10), y + math.floor((it.h - F5H()) / 2), tl.r, tl.g, tl.b, tl.a or 1, T.fontF5)
+            local sq = T.px(6)
+            local ww = ZeD.TM:MeasureStringX(T.fontF2, why)
+            local wx = bx - ww - T.px(10)
+            panel:drawText(why, wx, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
+            A.drawStatusHollow(panel, wx - sq - T.px(6), y + math.floor((it.h - sq) / 2), T.textDim, sq)
         end
     end
     local bd = T.border
@@ -740,20 +799,22 @@ local function drawItem(panel, win, st, it, y, contentW)
         local c = T.textDim
         panel:drawText(it.text, it.x, y, c.r, c.g, c.b, c.a or 1, T.fontF5)
     elseif k == "subh" then
-        local c = T.toneLo or T.textDim
-        panel:drawText(it.text, it.x, y, c.r, c.g, c.b, c.a or 1, T.fontF1)
+        -- the section head: 20u, sentence case, its content line under it, not folding
+        ZeD.Molecules.drawSectionHeader(panel, it.x, y, it.w, it.text, it.count, true, false, nil, nil, nil, nil, true)
     elseif k == "text" then
         local c = it.dim and (T.toneLo or T.textDim) or T.text
         local f = it.small and T.fontF5 or T.fontF2
         panel:drawText(it.text, it.x, y, c.r, c.g, c.b, c.a or 1, f)
     elseif k == "groove" then
-        ZeD.Atoms.drawGroove(panel, it.x, y, it.w)
+        ZeD.Atoms.drawDividerH(panel, it.x, y, it.w)
     elseif k == "banner" then
+        -- a notice: a 1u frame, a status square before the title (no side bar, no tinted fill)
         local c = it.warn and T.warning or T.accent
-        panel:drawRect(it.x, y, it.w, it.h, 0.08, c.r, c.g, c.b)
-        panel:drawRectBorder(it.x, y, it.w, it.h, 1, c.r, c.g, c.b)
-        panel:drawRect(it.x, y, T.px(4), it.h, 1, c.r, c.g, c.b)
-        panel:drawText(it.title, it.x + T.px(12), y + T.px(7), c.r, c.g, c.b, 1, T.fontF1)
+        ZeD.Atoms.frame(panel, it.x, y, it.w, it.h, T.borderS)
+        local sq = T.px(6)
+        local th = T.textHead or T.text
+        ZeD.Atoms.drawStatusDot(panel, it.x + T.px(12), y + T.px(7) + math.floor((F1H() - sq) / 2), c, sq)
+        panel:drawText(it.title, it.x + T.px(12) + sq + T.px(6), y + T.px(7), th.r, th.g, th.b, th.a or 1, T.fontF1)
         local tc = T.text
         for i, line in ipairs(it.lines) do
             panel:drawText(line, it.x + T.px(12), y + T.px(10) + F1H() + (i - 1) * F2H(), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
@@ -778,85 +839,81 @@ local function drawItem(panel, win, st, it, y, contentW)
     elseif k == "groom" then
         drawGroom(panel, win, st, it, y)
     elseif k == "check" then
-        local foc = isFocused(win, itemId(it))
         local on = st[it.key]
         local cs = T.checkboxSz
         local tw = ZeD.TM:MeasureStringX(T.fontF2, it.text)
-        if foc then local ac = T.accent; panel:drawRect(it.x - T.px(3), y, cs + T.px(12) + tw, it.h, 0.55, ac.r, ac.g, ac.b) end
-        ZeD.Atoms.drawCheckbox(panel, it.x, y + math.floor((it.h - cs) / 2), on, false, false)
-        local tc = foc and T.textOnFocus or T.text
+        local cw = cs + T.px(6) + tw
+        local hover = hoverIn(panel, st, it.x - T.px(3), y, cw + T.px(6), it.h)
+        local tc = T.text
+        if hover then
+            local hv = T.hover
+            panel:drawRect(it.x - T.px(3), y, cw + T.px(6), it.h, hv.a, hv.r, hv.g, hv.b)
+            help(win, ZeD.tr("UI_ZeD_SPNCC_HelpCheck", it.text))
+        end
+        local fo = focusOf(win, itemId(it))
+        if fo and ZeD.Focus.mark(panel, it.x - T.px(3), y, cw + T.px(6), it.h, fo) then tc = T.textOnFocus end
+        ZeD.Atoms.drawCheckbox(panel, it.x, y + math.floor((it.h - cs) / 2), on, hover, false)
         panel:drawText(it.text, it.x + cs + T.px(6), y + math.floor((it.h - F2H()) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
         it.w = cs + T.px(6) + tw
     elseif k == "status" then
         local tc = T.text
         local ty = y + math.floor((it.h - F2H()) / 2)
         panel:drawText(it.text, it.x, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
-        local vx, dsz = it.x + T.px(130), T.px(7)
+        local vx, dsz = it.x + T.px(130), T.px(6)
         if it.on then ZeD.Atoms.drawStatusDot(panel, vx, y + math.floor((it.h - dsz) / 2), T.positive, dsz)
-        else ZeD.Atoms.drawStatusRing(panel, vx, y + math.floor((it.h - dsz) / 2), T.textDim, dsz) end
+        else ZeD.Atoms.drawStatusHollow(panel, vx, y + math.floor((it.h - dsz) / 2), T.textDim, dsz) end
         panel:drawText(it.value, vx + dsz + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF2)
     end
 end
 
--- the header's List | Pictures pair (the inventory's List | Grid)
+-- the header's List and Pictures: two separate icon buttons 4u apart, the shown one solid accent
 local GRID_ICONS = {}
 local function icon(name)
     if GRID_ICONS[name] == nil then GRID_ICONS[name] = getTexture("media/textures/ZeD/icons/" .. name .. ".png") or false end
     return GRID_ICONS[name] or nil
 end
+local _tgOpts = {}
 local function drawViewToggle(panel, win, st, x, y, w, headH)
     local T = ZeD.T
-    local bw, bh = T.px(22), T.px(18)
-    local tx = x + w - T.px(PAD) - (bw * 2 - T.px(1))
-    local ty = y + math.floor((headH - bh) / 2)
-    local ac = T.accent
+    local bs = T.buttonH
+    local gap = T.px(4)
+    local tx = x + w - T.px(PAD) - (bs * 2 + gap)
+    local ty = y + math.floor((headH - bs) / 2)
     st.toggles = {}
     for i, v in ipairs({ "list", "grid" }) do
-        local zx = tx + (i - 1) * (bw - T.px(1))
-        local on = S.view == v
-        local bg = on and ac or T.surf2
-        panel:drawRect(zx, ty, bw, bh, 1, bg.r, bg.g, bg.b)
-        local br = on and T.accentBright or T.borderS
-        panel:drawRectBorder(zx, ty, bw, bh, br.a or 1, br.r, br.g, br.b)
-        local isz = T.px(11)
-        ZeD.Atoms.drawIcon(panel, icon(v == "list" and "list" or "apps"), zx + math.floor((bw - isz) / 2),
-            ty + math.floor((bh - isz) / 2), isz, 1, on and T.textOnAccent or T.textDim)
-        if isFocused(win, "spn:view:" .. v) then panel:drawRect(zx, ty, bw, bh, 0.55, ac.r, ac.g, ac.b) end
-        st.toggles[#st.toggles + 1] = { x = zx, y = ty, w = bw, h = bh, view = v }
+        local zx = tx + (i - 1) * (bs + gap)
+        local o = _tgOpts
+        o.hover = ZeD.Atoms.mouseIn(panel, zx, ty, bs, bs)
+        o.active = S.view == v
+        o.focus = focusOf(win, "spn:view:" .. v)
+        o.win = win
+        o.hint = ZeD.tr(v == "list" and "UI_ZeD_SPNCC_ViewList" or "UI_ZeD_SPNCC_ViewPictures")
+        o.id = "spnview:" .. v
+        ZeD.Molecules.drawIconButton(panel, zx, ty, bs, icon(v == "list" and "list" or "apps"), o)
+        st.toggles[#st.toggles + 1] = { x = zx, y = ty, w = bs, h = bs, view = v }
     end
 end
 
+-- the foot: the library's band (the status words at the left, Cancel and Save at the right)
 local function drawStrip(panel, win, st, x, y, w, h)
-    local T = ZeD.T
-    local s2, bs = T.surf2, T.borderS
-    panel:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    panel:drawRect(x, y, w, T.px(1), bs.a or 1, bs.r, bs.g, bs.b)
+    local T, M = ZeD.T, ZeD.Molecules
     local d = dirty(st)
-    local dsz = T.px(7)
     local word = S.first and ZeD.tr("UI_ZeD_SPNCC_NotSavedYet") or (d and ZeD.tr("UI_ZeD_SPNCC_NotSaved") or ZeD.tr("UI_ZeD_SPNCC_Saved"))
-    if S.first or d then ZeD.Atoms.drawStatusDot(panel, x + T.px(PAD), y + math.floor((h - dsz) / 2), T.warning, dsz)
-    else ZeD.Atoms.drawStatusRing(panel, x + T.px(PAD), y + math.floor((h - dsz) / 2), T.textDim, dsz) end
-    local tc = T.text
-    panel:drawText(word, x + T.px(PAD) + dsz + T.px(6), y + math.floor((h - F1H()) / 2), tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
-    local bh, gap = T.px(24), T.px(8)
-    local saveL, cancelL = getText("UI_characreation_BuildSave"), getText("UI_Cancel")
-    local sw = math.max(T.px(72), ZeD.TM:MeasureStringX(T.fontF3, saveL) + T.px(24))
-    local cw = math.max(T.px(72), ZeD.TM:MeasureStringX(T.fontF3, cancelL) + T.px(24))
-    local by = y + math.floor((h - bh) / 2)
-    local sx = x + w - T.px(PAD) - sw
-    local ac = T.accent
-    st.btns = {}
     local canSave = S.first or d
-    ZeD.Molecules.drawButton(panel, sx, by, sw, bh, saveL, canSave and "primary" or "default", false,
-        { fill = isFocused(win, "spn:save") and { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } or nil })
-    if not canSave then panel:drawRect(sx, by, sw, bh, 0.55, s2.r, s2.g, s2.b) end
-    st.btns[#st.btns + 1] = { x = sx, y = by, w = sw, h = bh, act = "save", on = canSave }
+    local buttons = {}
     if not S.first then
-        local cx = sx - gap - cw
-        ZeD.Molecules.drawButton(panel, cx, by, cw, bh, cancelL, "default", false,
-            { fill = isFocused(win, "spn:cancel") and { r = ac.r, g = ac.g, b = ac.b, a = 0.55 } or nil })
-        if not d then panel:drawRect(cx, by, cw, bh, 0.55, s2.r, s2.g, s2.b) end
-        st.btns[#st.btns + 1] = { x = cx, y = by, w = cw, h = bh, act = "cancel", on = d }
+        buttons[#buttons + 1] = { label = getText("UI_Cancel"), disabled = not d, focus = focusOf(win, "spn:cancel"), id = "cancel" }
+    end
+    buttons[#buttons + 1] = { label = getText("UI_characreation_BuildSave"), variant = "primary", disabled = not canSave,
+        focus = focusOf(win, "spn:save"), id = "save" }
+    local _, out = M.drawBand(panel, x, y, w, {
+        status = { text = word, color = canSave and T.warning or nil },
+        buttons = buttons, win = win,
+    })
+    st.btns = {}
+    for i, b in ipairs(out.buttons) do
+        local act = buttons[i].id
+        st.btns[#st.btns + 1] = { x = b.x, y = b.y, w = b.w, h = b.h, act = act, on = (act == "save") and canSave or d }
     end
 end
 
@@ -911,7 +968,7 @@ function S.render(panel, win, x, y, w, h)
     local M = ZeD.Molecules
     local headH = M.getTabHeaderH()
     local showStrip = canChange(st)
-    local stripH = showStrip and T.px(STRIP_H) or 0
+    local stripH = showStrip and M.bandH() or 0
     local sy, sh = y + headH, h - headH - stripH
     local scroll = st.scroll
     local L = layout(win, st, w - T.sp.scrollbarW, h - headH - stripH)
@@ -931,6 +988,7 @@ function S.render(panel, win, x, y, w, h)
     if st.shaving and st.data[({ beard = "stubbleBeard", head = "stubbleHead", body = "bodyHair" })[st.shaving]] ~= true then
         st.shaving = nil
     end
+    st.view = { x = x, y = sy, w = w, h = sh }   -- (what the pointer may hover)
     panel:setStencilRect(x, sy, w, sh)
     for _, it in ipairs(L.items) do
         local dy = sy + it.y - off

@@ -45,10 +45,10 @@ local function nameOf(item)
 end
 
 local function containerLabel(c, player)
-    if c == player:getInventory() then return ZeD.upper(getText("IGUI_InventoryTooltip")) end
+    if c == player:getInventory() then return getText("IGUI_InventoryTooltip") end
     local it = call(c, "getContainingItem")
     local n = it and call(it, "getDisplayName")
-    return n and ZeD.upper(n) or ZeD.upper(getText("IGUI_ItemCat_Bag"))
+    return n or getText("IGUI_ItemCat_Bag")
 end
 
 -- Game seconds as "ABOUT 1 DAY" / "ABOUT 5 HOURS" / "ABOUT 20 MINUTES" (a whole phrase per count).
@@ -281,20 +281,22 @@ end
 -- ----------------------------------------------------------------------------
 local function gridRows(n) return math.max(1, math.ceil(n / COLS)) end
 
--- One slot. kind: "dry" (with progress), "wait", "out", "empty".
+-- One slot. kind: "dry" (with progress), "wait", "out", "empty". The controller's
+-- mark goes under the picture; a drying slot's progress is the framed strip.
 local function drawCell(panel, x, y, w, h, kind, item, p, focused, hovered)
     local T = ZeD.T
+    local A = ZeD.Atoms
     if kind == "empty" then
         local b = T.border
         panel:drawRectBorder(x, y, w, h, (b.a or 1) * 0.6, b.r, b.g, b.b)
         return
     end
-    local s2 = T.surf2
-    panel:drawRect(x, y, w, h, s2.a, s2.r, s2.g, s2.b)
+    A.surfaceFill(panel, x, y, w, h, "surf2")
     if hovered then
         local hv = T.hover
         panel:drawRect(x, y, w, h, hv.a, hv.r, hv.g, hv.b)
     end
+    if focused then ZeD.Focus.mark(panel, x, y, w, h) end
     panel:drawRectBorder(x, y, w, h, T.border.a, T.border.r, T.border.g, T.border.b)
     local isz = T.px(20)
     local tex = item and texOf(item)
@@ -302,25 +304,20 @@ local function drawCell(panel, x, y, w, h, kind, item, p, focused, hovered)
         panel:drawTextureScaledAspect(tex, x + math.floor((w - isz) / 2), y + T.px(4), isz, isz, 1, 1, 1, 1)
     end
     if kind == "dry" then
-        local bx, bw, bh = x + T.px(3), w - T.px(6), T.px(4)
-        local by = y + h - T.px(3) - bh
-        local s3 = T.surf3
-        panel:drawRect(bx, by, bw, bh, s3.a, s3.r, s3.g, s3.b)
-        local ac = T.accent
-        panel:drawRect(bx, by, math.floor(bw * math.max(0, math.min(1, p or 0))), bh, 1, ac.r, ac.g, ac.b)
-    end
-    if focused then
-        local ac = T.accent
-        panel:drawRect(x, y, w, h, 0.55, ac.r, ac.g, ac.b)
+        local bh = A.fillBarCompactH()
+        A.drawFillBar(panel, x + T.px(3), y + h - T.px(3) - bh, w - T.px(6), math.max(0, math.min(1, p or 0)), false, T.accent, bh)
     end
 end
 
+-- a part's label (Recipe, Inputs, Outputs, From your bags): F1 in the heading ink,
+-- sentence case; a count beside one passes its own colour
 local function label(panel, text, x, y, h, color)
     local T = ZeD.T
     local f = T.fontF1
-    local c = color or T.accent
-    panel:drawText(text, x, y + math.floor((h - ZeD.TM:getFontHeight(f)) / 2), c.r, c.g, c.b, c.a or 1, f)
-    return ZeD.TM:MeasureStringX(f, text)
+    local c = color or T.textHead
+    local s = ZeD.textCase(text)
+    panel:drawText(s, x, y + math.floor((h - ZeD.TM:getFontHeight(f)) / 2), c.r, c.g, c.b, c.a or 1, f)
+    return ZeD.TM:MeasureStringX(f, s)
 end
 
 function SM.render(panel, win, x, y, w, h, state, st)
@@ -378,7 +375,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     local rname = d.recipe and (call(d.recipe, "getTranslationName") or call(d.recipe, "getName")) or getText("UI_None")
     local nf = T.fontF2
     local tc = d.recipe and T.text or T.textDim
-    local dur = d.time and durationText(d.time) or ""
+    local dur = d.time and ZeD.textCase(durationText(d.time)) or ""
     local durW = tm:MeasureStringX(T.fontF1, dur)
     panel:drawText(ZeD.CraftingCore.truncText(rname, nf, iw - lw - durW - T.px(20)), lx + lw + T.px(8),
         cy + math.floor((rowH - tm:getFontHeight(nf)) / 2), tc.r, tc.g, tc.b, tc.a or 1, nf)
@@ -386,7 +383,7 @@ function SM.render(panel, win, x, y, w, h, state, st)
     cy = cy + rowH + gap
 
     -- INPUT grid: drying first (with progress), then waiting, then empty
-    lw = label(panel, ZeD.upper(ZeD.tr("EC_CraftLogic_Inputs")), lx, cy, rowH)
+    lw = label(panel, ZeD.tr("EC_CraftLogic_Inputs"), lx, cy, rowH)
     label(panel, tostring(#d.drying + #d.waiting) .. " / " .. tostring(d.cap), lx + lw + T.px(8), cy, rowH, T.textDim)
     cy = cy + rowH
     local cellW = math.floor((iw - (COLS - 1) * cg) / COLS)
@@ -410,58 +407,39 @@ function SM.render(panel, win, x, y, w, h, state, st)
     end
     cy = cy + inRows * cellH + (inRows - 1) * cg + gap
 
-    -- START / STOP + progress
-    local bw, bh = T.px(70), T.px(22)
-    local by = cy + math.floor((rowH - bh) / 2)
+    -- START / STOP + progress (push buttons at the list-row height; the progress is the framed strip)
+    local bh = math.min(T.buttonH - T.px(4), rowH)
     local btnLabel = ZeD.tr(d.running and "UI_ZeD_Machine_Stop" or "UI_ZeD_Machine_Start")
+    local bw = math.max(T.px(70), M.buttonW(btnLabel))
+    local by = cy + math.floor((rowH - bh) / 2)
     local enabled = d.running or d.canStart
-    if enabled then
-        M.drawButton(panel, lx, by, bw, bh, btnLabel, d.running and "default" or "primary")
-    else
-        local bd = T.textDim
-        A.borderRounded(panel, lx, by, bw, bh, bd.r, bd.g, bd.b, (bd.a or 1) * 0.5)
-        local f = T.fontF3
-        panel:drawText(btnLabel, lx + math.floor((bw - tm:MeasureStringX(f, btnLabel)) / 2), by + math.floor((bh - tm:getFontHeight(f)) / 2),
-            bd.r, bd.g, bd.b, (bd.a or 1) * 0.5, f)
-    end
-    if fid == "craft:m:start" then
-        local ac = T.accent
-        panel:drawRect(lx, by, bw, bh, 0.55, ac.r, ac.g, ac.b)
-    end
+    M.drawButton(panel, lx, by, bw, bh, btnLabel, d.running and "default" or "primary", false, nil,
+        { disabled = not enabled, hover = enabled and hov(lx, by, bw, bh), focus = (fid == "craft:m:start") or nil })
     zones[#zones + 1] = { type = "mStart", fid = "craft:m:start", enabled = enabled, running = d.running, x = lx, y = by, w = bw, h = bh }
     local ptxt = ""
     if d.running then
         ptxt = tostring(math.floor(d.progress * 100 + 0.5)) .. "%"
-        if d.left then ptxt = ptxt .. "  " .. ST.DOT .. "  " .. ZeD.tr("UI_ZeD_Machine_Left", aboutTime(d.left)) end
+        if d.left then ptxt = ptxt .. "  " .. ST.DOT .. "  " .. ZeD.textCase(ZeD.tr("UI_ZeD_Machine_Left", aboutTime(d.left))) end
     end
     local ptw = tm:MeasureStringX(T.fontF3, ptxt)
     local px0 = lx + bw + T.px(8)
     local pbw = math.max(T.px(30), rx - px0 - (ptw > 0 and (ptw + T.px(8)) or 0))
-    local pbh = T.px(8)
-    local pby = cy + math.floor((rowH - pbh) / 2)
-    local s2 = T.surf2
-    panel:drawRect(px0, pby, pbw, pbh, s2.a, s2.r, s2.g, s2.b)
-    panel:drawRectBorder(px0, pby, pbw, pbh, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-    if d.running then
-        local ac = T.accent
-        panel:drawRect(px0 + T.px(1), pby + T.px(1), math.floor((pbw - 2 * T.px(1)) * d.progress), pbh - 2 * T.px(1), 1, ac.r, ac.g, ac.b)
-    end
+    local pbh = T.fillBarH
+    A.drawFillBar(panel, px0, cy + math.floor((rowH - pbh) / 2), pbw, d.running and d.progress or 0, false, T.accent, pbh)
     if ptw > 0 then
         A.drawTextRight(panel, ptxt, rx, cy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2), T.fontF3, T.text)
     end
     cy = cy + rowH + gap
 
     -- OUTPUT grid + TAKE ALL
-    lw = label(panel, ZeD.upper(ZeD.tr("EC_CraftLogic_Outputs")), lx, cy, rowH)
+    lw = label(panel, ZeD.tr("EC_CraftLogic_Outputs"), lx, cy, rowH)
     label(panel, tostring(#d.outputs), lx + lw + T.px(8), cy, rowH, T.textDim)
     if #d.outputs > 0 then
-        local tw = T.px(80)
+        local tl = ZeD.tr("IGUI_invpage_Loot_all")
+        local tw = math.max(T.px(80), M.buttonW(tl))
         local ty = cy + math.floor((rowH - bh) / 2)
-        M.drawButton(panel, rx - tw, ty, tw, bh, ZeD.upper(ZeD.tr("IGUI_invpage_Loot_all")), "primary")
-        if fid == "craft:m:takeAll" then
-            local ac = T.accent
-            panel:drawRect(rx - tw, ty, tw, bh, 0.55, ac.r, ac.g, ac.b)
-        end
+        M.drawButton(panel, rx - tw, ty, tw, bh, tl, "primary", false, nil,
+            { hover = hov(rx - tw, ty, tw, bh), focus = (fid == "craft:m:takeAll") or nil })
         zones[#zones + 1] = { type = "mTakeAll", fid = "craft:m:takeAll", x = rx - tw, y = ty, w = tw, h = bh }
     end
     cy = cy + rowH
@@ -479,14 +457,14 @@ function SM.render(panel, win, x, y, w, h, state, st)
     lw = label(panel, ZeD.tr("UI_ZeD_Machine_FromBags"), lx, cy, rowH)
     cy = cy + rowH
     if #d.bag == 0 then
-        panel:drawText(ZeD.tr("UI_ZeD_Machine_NothingFits"), lx, cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
-            T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a or 1, T.fontF2)
+        M.drawEmptyLine(panel, lx, cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2), iw, ZeD.tr("UI_ZeD_Machine_NothingFits"))
     end
+    local addL = ZeD.tr("UI_ZeD_Machine_Add")
+    local addW = math.max(T.px(48), M.buttonW(addL))
     for _, g in ipairs(d.bag) do
         local id = "craft:m:add:" .. g.type
         local isz = T.px(16)
         if g.tex then panel:drawTextureScaledAspect(g.tex, lx, cy + math.floor((rowH - isz) / 2), isz, isz, 1, 1, 1, 1) end
-        local addW = T.px(48)
         local where = g.where or ""
         local whereW = tm:MeasureStringX(T.fontF1, where)
         local nameMax = rx - addW - T.px(8) - whereW - T.px(8) - (lx + isz + T.px(6))
@@ -494,13 +472,10 @@ function SM.render(panel, win, x, y, w, h, state, st)
         panel:drawText(nstr, lx + isz + T.px(6), cy + math.floor((rowH - tm:getFontHeight(T.fontF2)) / 2),
             T.text.r, T.text.g, T.text.b, T.text.a, T.fontF2)
         A.drawTextRight(panel, where, rx - addW - T.px(8), cy + math.floor((rowH - tm:getFontHeight(T.fontF1)) / 2), T.fontF1, T.textDim)
-        local ay = cy + math.floor((rowH - T.px(20)) / 2)
-        M.drawButton(panel, rx - addW, ay, addW, T.px(20), ZeD.tr("UI_ZeD_Machine_Add"), "default")
-        if fid == id then
-            local ac = T.accent
-            panel:drawRect(rx - addW, ay, addW, T.px(20), 0.55, ac.r, ac.g, ac.b)
-        end
-        zones[#zones + 1] = { type = "mAdd", fid = id, group = g, x = rx - addW, y = ay, w = addW, h = T.px(20) }
+        local ay = cy + math.floor((rowH - bh) / 2)
+        M.drawButton(panel, rx - addW, ay, addW, bh, addL, "default", false, nil,
+            { hover = hov(rx - addW, ay, addW, bh), focus = (fid == id) or nil })
+        zones[#zones + 1] = { type = "mAdd", fid = id, group = g, x = rx - addW, y = ay, w = addW, h = bh }
         A.drawDividerH(panel, lx, cy + rowH - T.px(1), iw, false)
         cy = cy + rowH
     end

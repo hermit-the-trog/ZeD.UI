@@ -21,7 +21,7 @@
 --     (the mini map without the world map, skill multipliers under the
 --     global one), as vanilla greyed them
 --   * presets in one pop-up (every preset, Save as Preset..., Delete);
---     loading one over changes asks first; save and delete ask in the strip
+--     loading one over changes asks first; save and delete ask in the band
 -- ============================================================================
 
 require "ZeD/ZeD_MainMenu"
@@ -70,7 +70,7 @@ function ZeD_MMSandbox:new()
 end
 
 function ZeD_MMSandbox:createChildren()
-    ZeD_MMOptions.createChildren(self)   -- Find and the strip's field
+    ZeD_MMOptions.createChildren(self)   -- Find and the band's field
     -- the in-place number field (one, moved to the row being edited)
     self.cell = UI.newEntry(self)
     self.cell:setVisible(false)
@@ -349,7 +349,7 @@ function ZeD_MMSandbox:drawControl(r, cx, ry, cw, rh, rowId, clip)
             self._hits[#self._hits + 1] = { id = self.kind .. ":" .. id, x = ax + x, y = ay + top, w = w, h = bot - top, fn = fn, sound = true }
         end
         local tc = T.text
-        local a = (tc.a or 1) * (dis and 0.4 or 1)
+        local a = (tc.a or 1) * (dis and T.disabledAlpha or 1)
         if r.kind == "entry" then
             local bw = math.min(T.px(ENTRY_W), cw)
             if self._cellRow == r then
@@ -359,13 +359,12 @@ function ZeD_MMSandbox:drawControl(r, cx, ry, cw, rh, rowId, clip)
                     if not self.cell:isVisible() then self.cell:setVisible(true) end
                     self._cellDrawn = true
                     if not self:cellValid() then
-                        local d = T.danger
-                        self:drawRectBorder(cx - T.px(2), by - T.px(2), bw + 2 * T.px(2), bh + 2 * T.px(2), 1, d.r, d.g, d.b)
+                        ZeD.Atoms.frame(self, cx - T.px(2), by - T.px(2), bw + 2 * T.px(2), bh + 2 * T.px(2), T.danger)
                     end
                 end
                 return
             end
-            UI.insetBox(self, cx, by, bw, bh)
+            UI.insetBox(self, cx, by, bw, bh, true)
             self:drawText(ZeD.Atoms.truncateText(tostring(c:getText() or ""), f2, bw - T.px(12)), cx + T.px(6), by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, a, f2)
             hit(rowId .. ":num", cx, bw, function() self:startCell(r) end)
         else
@@ -377,23 +376,21 @@ function ZeD_MMSandbox:drawControl(r, cx, ry, cw, rh, rowId, clip)
                     if not self.cell:isVisible() then self.cell:setVisible(true) end
                     self._cellDrawn = true
                     if not self:cellValid() then
-                        local d = T.danger
-                        self:drawRectBorder(cx - T.px(2), by - T.px(2), bw + 2 * T.px(2), bh + 2 * T.px(2), 1, d.r, d.g, d.b)
+                        ZeD.Atoms.frame(self, cx - T.px(2), by - T.px(2), bw + 2 * T.px(2), bh + 2 * T.px(2), T.danger)
                     end
                 end
                 return
             end
             local bw = math.min(T.px(COMBO_W), cw)
             local id = rowId .. ":adv"
-            local s = (hot == self.kind .. ":" .. id) and T.surf3 or T.surf2
-            self:drawRect(cx, by, bw, bh, 1, s.r, s.g, s.b)
-            self:drawRectBorder(cx, by, bw, bh, bs.a, bs.r, bs.g, bs.b)
+            -- the pop-up menu's closed box (the library look) with the step's name and its number in it
+            MM.drawDropBox(self, cx, by, bw, bh, "", hot == self.kind .. ":" .. id and not dis and not MM.gamepad(), dis)
             local num = tostring(c:getText() or "")
             local d = T.textDim
             local nw = MM.textW(f2, num)
-            self:drawText(num, cx + bw - T.px(24) - nw, by + math.floor((bh - MM.fontH(f2)) / 2), d.r, d.g, d.b, (d.a or 1) * (dis and 0.4 or 1), f2)
-            self:drawText(ZeD.Atoms.truncateText(self:advLabel(c), f2, bw - T.px(44) - nw), cx + T.px(8), by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, a, f2)
-            ZeD.Atoms.drawTriangleDown(self, cx + bw - T.px(16), by + math.floor((bh - T.px(5)) / 2), T.px(8), T.textDim)
+            local padX, tri = T.sp.inputPadX, T.px(5)
+            self:drawText(num, cx + bw - padX - tri - T.px(8) - nw, by + math.floor((bh - MM.fontH(f2)) / 2), d.r, d.g, d.b, (d.a or 1) * (dis and T.disabledAlpha or 1), f2)
+            self:drawText(ZeD.Atoms.truncateText(self:advLabel(c), f2, bw - padX * 2 - tri - T.px(16) - nw), cx + padX, by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, a, f2)
             hit(id, cx, bw, function() self:openAdv(r, { x = ax + cx, y = ay + by, w = bw, h = bh }) end)
         end
         return
@@ -431,11 +428,11 @@ function ZeD_MMSandbox:prerender()
     self.title = ZeD.tr("UI_ZeD_Sandbox_Title")
     local stat = pname
     if self.nDiff > 0 then stat = ZeD.tr("UI_ZeD_Sandbox_StatChanged", pname, self.nDiff) end
-    self.titleStats = { { text = stat, color = { r = 0, g = 0, b = 0, a = 0 } } }
+    self.titleStats = { { text = stat, noMark = true } }
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     local pw = T.px(PAGES_W)
@@ -582,28 +579,25 @@ end
 function ZeD_MMSandbox:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 1000
-    local ask = nil
     if self.confirm == "load" then
         local s = sand()
         local name = s and comboText(s.presetList, self._pending or 1) or ""
-        ask = ZeD.tr("UI_ZeD_Sandbox_AskLoad", name)
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_mainscreen_load"), function() self:loadPreset(self._pending or 1) end, "primary" } })
+            { "confirm:yes", getText("UI_mainscreen_load"), function() self:loadPreset(self._pending or 1) end, "primary" } },
+            ZeD.tr("UI_ZeD_Sandbox_AskLoad", name))
     elseif self.confirm == "delete" then
         local p = self:preset()
-        ask = ZeD.tr("UI_ZeD_Sandbox_AskDelete", tostring(p and p.name or ""))
         UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_delete"), function() self:deletePreset() end, "danger" } })
+            { "confirm:yes", getText("UI_btn_delete"), function() self:deletePreset() end, "danger" } },
+            ZeD.tr("UI_ZeD_Sandbox_AskDelete", tostring(p and p.name or "")))
     elseif self.confirm == "save" then
-        ask = ZeD.tr("UI_ZeD_Sandbox_AskName")
+        local ask = ZeD.tr("UI_ZeD_Sandbox_AskName")
         local valid = SandboxOptions.isValidPresetName(self.field:getText() or "")
-        UI.stripSpecs(self, stripY, w, row, {}, {
+        local fx = UI.stripSpecs(self, stripY, w, row, {}, {
             { "confirm:no", getText("UI_btn_cancel"), function() self:setConfirm(false) end },
-            { "confirm:yes", getText("UI_btn_save"), function() self:savePreset() end, "primary", not valid } })
-        local f2 = T.fontF2
-        local fx = T.px(U.STRIP_PAD_X) + T.px(4) + MM.textW(f2, ask) + T.px(10)
+            { "confirm:yes", getText("UI_btn_save"), function() self:savePreset() end, "primary", not valid } }, ask, true)
         local firstBtn = w
         for _, b in ipairs(self._specs) do if b.row == row then firstBtn = math.min(firstBtn, b.x) end end
         local fh = T.px(24)
@@ -614,7 +608,6 @@ function ZeD_MMSandbox:buildStrip(stripY, stripH, w)
             { { "presets", ZeD.tr("UI_ZeD_Sandbox_Presets"), function() self:openPresets() end },
               { "next", getText("UI_btn_next"), function() self:next() end, "primary" } })
     end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
 end
 
 -- ROWS: A on a controller, Space / Return on a focused row ---------------------------------

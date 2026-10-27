@@ -219,6 +219,15 @@ local function fh(f) return ZeD.TM:getFontHeight(f) end
 local function tw(f, s) return ZeD.TM:MeasureStringX(f, s) end
 local function inRect(r, x, y) return r and x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h end
 
+-- A rectangle's outline, t thick, drawn as four rects. (drawRectBorder is one screen pixel
+-- whatever the scale, so rings spaced by T.px(1) left gaps between them at 1.5x and up.)
+local function ring(p, x, y, w, h, t, c)
+    p:drawRect(x, y, w, t, 1, c.r, c.g, c.b)
+    p:drawRect(x, y + h - t, w, t, 1, c.r, c.g, c.b)
+    p:drawRect(x, y + t, t, h - 2 * t, 1, c.r, c.g, c.b)
+    p:drawRect(x + w - t, y + t, t, h - 2 * t, 1, c.r, c.g, c.b)
+end
+
 -- a System 7 push button: a rounded 1 px outline (corners cut), the default one ringed
 function ISPostDeathUI:zedButton(id, x, y, w, h, label, isDefault, enabled, fn)
     local T = ZeD.T
@@ -335,9 +344,10 @@ function ISPostDeathUI:prerender()
     -- the alert: a 1 px outline and its drop shadow, a white gap, the heavy frame
     self:drawRect(one * 2, one * 2, w, h, 1, 0, 0, 0)
     self:drawRect(0, 0, w, h, 1, 1, 1, 1)
-    self:drawRectBorder(0, 0, w, h, 1, 0, 0, 0)
+    ring(self, 0, 0, w, h, one, BLACK)
+    -- (the heavy frame: three rings, each as thick as the outline, so they meet whole at every scale)
     local fx = one * 4
-    for i = 0, 2 do self:drawRectBorder(fx + one * i, fx + one * i, w - (fx + one * i) * 2, h - (fx + one * i) * 2, 1, 0, 0, 0) end
+    for i = 0, 2 do ring(self, fx + one * i, fx + one * i, w - (fx + one * i) * 2, h - (fx + one * i) * 2, one, BLACK) end
     local x0, y = frameIn + pad, frameIn + pad
     -- the icon and the words
     drawGrave(self, x0, y + math.floor((headH - icon) / 2), k)
@@ -353,7 +363,7 @@ function ISPostDeathUI:prerender()
     if not asking then
         y = y + T.px(12)
         local lx, lw = x0, innerW
-        self:drawRectBorder(lx, y, lw, listH, 1, 0, 0, 0)
+        ring(self, lx, y, lw, listH, one, BLACK)
         local sbW = T.px(16)
         local total = #rows * rowH + T.px(8)
         local scrolls = total > listH
@@ -381,7 +391,7 @@ function ISPostDeathUI:prerender()
             local th = math.max(sbW, math.floor(track * listH / total))
             local tyy = y + sbW + math.floor((track - th) * (self._listScroll / math.max(1, self._listRect.max)))
             self:drawRect(sx + one, tyy, sbW - one * 2, th, 1, 1, 1, 1)
-            self:drawRectBorder(sx, tyy, sbW, th, 1, 0, 0, 0)
+            ring(self, sx, tyy, sbW, th, one, BLACK)
         end
         y = y + listH
     end

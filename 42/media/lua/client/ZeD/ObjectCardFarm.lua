@@ -4,9 +4,9 @@
 -- The plant card keeps vanilla's Farming-skill gates: the phase reads at
 -- Farming 2, pests at 3 (+2 with a magnifier in hand), the water bar at 4 and
 -- the next-stage timing at 6; health and fertilizer are never shown. A locked
--- reading carries a FARMING n tag. Levels use vanilla's words. The garden
+-- reading carries a "Farming n" tag. Levels use vanilla's words. The garden
 -- strip and the header arrows step through every plot in reach (vanilla's
--- info cursor); plowed land gets a SOW list with season tags (Farming 6 or
+-- info cursor); plowed land gets a Sow list with season tags (Farming 6 or
 -- the crop's season recipe, as vanilla's tooltip).
 -- Verbs queue vanilla's own timed actions directly: vanilla's menu handlers
 -- also arm a click-another-square cursor and skip controller players.
@@ -197,10 +197,10 @@ local function seedRows(player, skill)
                 local knows = skill >= 6 or (props.seasonRecipe and player:isRecipeActuallyKnown(props.seasonRecipe))
                 if seasons and knows and props.sowMonth then
                     local T = ZeD.T
-                    if inList(props.bestMonth) then row.tag, row.tagC = ZeD.upper(ZeD.tr("Farming_Tooltip_BestMonth2")), T.positive
+                    if inList(props.bestMonth) then row.tag, row.tagC = ZeD.tr("Farming_Tooltip_BestMonth2"), T.positive
                     elseif inList(props.riskMonth) then row.tag, row.tagC = ZeD.tr("UI_ZeD_Farm_TagRiskyMonth"), T.warning
                     elseif inList(props.sowMonth) then row.tag, row.tagC = ZeD.tr("UI_ZeD_Farm_TagInSeason"), T.positive
-                    else row.tag, row.tagC = ZeD.upper(ZeD.tr("Farming_Tooltip_BadMonth")), T.danger end
+                    else row.tag, row.tagC = ZeD.tr("Farming_Tooltip_BadMonth"), T.danger end
                 end
                 rows[#rows + 1] = row
             end
@@ -247,16 +247,21 @@ function def.refresh(t, player)
     local pestsVisible = d.pestSkill >= 3
     t.d = d
 
-    local verbs, needs = {}, {}
+    local verbs = {}
     if d.plowed then
-        verbs[#verbs + 1] = { id = "sow", label = getText("ContextMenu_Sow_Seed"), enabled = #d.seeds > 0, primary = #d.seeds > 0, jump = "farm:sow:1" }
-        if #d.seeds == 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Farm_NeedSeeds") end
+        verbs[#verbs + 1] = { id = "sow", label = getText("ContextMenu_Sow_Seed"), enabled = #d.seeds > 0, primary = #d.seeds > 0, jump = "farm:sow:1",
+            needs = ZeD.tr("UI_ZeD_Farm_NeedsSeeds"), hint = ZeD.tr("UI_ZeD_Farm_HintSow"), help = ZeD.tr("UI_ZeD_Farm_HelpSow") }
     else
         local seeded = plant.state == "seeded"
-        local canWater = d.alive and seeded and d.water < 100 and #d.water_src > 0
-        local thirsty = d.water <= 60
         local canHarvest = plant:canHarvest()
+        local thirstyOK = d.alive and seeded and d.water < 100
+        local canWater = thirstyOK and #d.water_src > 0
+        local thirsty = d.water <= 60
+        -- a plant that is dead, or full of water, is not watered; one not ripe is not harvested:
+        -- those verbs are gone (sensible = false); the rest wait for what they need
         verbs[#verbs + 1] = { id = "water", label = getText("ContextMenu_Water"), enabled = canWater, primary = canWater and thirsty and not canHarvest,
+            sensible = thirstyOK, needs = ZeD.tr("UI_ZeD_Farm_NeedsWater"), hint = ZeD.tr("UI_ZeD_Farm_HintWater"),
+            help = ZeD.tr("UI_ZeD_Farm_HelpWater"),
             run = function(p, tt)
                 local src = waterSources(p)[1]
                 local pl = tt.obj
@@ -268,6 +273,7 @@ function def.refresh(t, player)
                 ISTimedActionQueue.add(ISWaterPlantAction:new(p, src, use, tt.sq, 20 + (6 * use)))
             end }
         verbs[#verbs + 1] = { id = "fert", label = ZeD.tr("UI_ZeD_Farm_Fertilize"), enabled = d.fert ~= nil,
+            needs = ZeD.tr("UI_ZeD_Farm_NeedsFertilizer"), hint = ZeD.tr("UI_ZeD_Farm_HintFertilize"), help = ZeD.tr("UI_ZeD_Farm_HelpFertilize"),
             run = function(p, tt)
                 local inv2 = p:getInventory()
                 local it = inv2:getFirstTypeRecurse("Fertilizer") or inv2:getFirstTagRecurse(ItemTag.FERTILIZER)
@@ -277,6 +283,7 @@ function def.refresh(t, player)
             end }
         if d.compostItem then
             verbs[#verbs + 1] = { id = "compost", label = getText("Farming_Compost"), enabled = true,
+                help = ZeD.tr("UI_ZeD_Farm_HelpCompost"),
                 run = function(p, tt)
                     local inv2 = p:getInventory()
                     local it = inv2:getFirstTypeRecurse("CompostBag") or inv2:getFirstTagRecurse(ItemTag.COMPOST)
@@ -292,27 +299,30 @@ function def.refresh(t, player)
                 if not firstTreat or (pestsVisible and pe.lvl > 0 and d.pests[firstTreat].lvl <= 0) then firstTreat = i end
             end
         end
-        verbs[#verbs + 1] = { id = "treat", label = ZeD.tr("UI_ZeD_Farm_Treat"), enabled = seeded and anySpray, jump = firstTreat and ("farm:treat:" .. firstTreat) or nil }
-        verbs[#verbs + 1] = { id = "harvest", label = getText("ContextMenu_Harvest"), enabled = canHarvest, primary = canHarvest,
+        -- the spray it would ask for: the first pest you can see that has none
+        local sprayNeed = ZeD.tr("UI_ZeD_Farm_NeedsSpray")
+        if pestsVisible then
+            for _, pe in ipairs(d.pests) do
+                if pe.lvl > 0 and not pe.spray then sprayNeed = ZeD.tr("UI_ZeD_Farm_NeedsSprayNamed", OC.itemName(pe.def.spray, pe.def.sprayName)); break end
+            end
+        end
+        verbs[#verbs + 1] = { id = "treat", label = ZeD.tr("UI_ZeD_Farm_Treat"), enabled = seeded and anySpray, jump = firstTreat and ("farm:treat:" .. firstTreat) or nil,
+            sensible = d.alive and seeded, needs = sprayNeed, hint = ZeD.tr("UI_ZeD_Farm_HintTreat"), help = ZeD.tr("UI_ZeD_Farm_HelpTreat") }
+        verbs[#verbs + 1] = { id = "harvest", label = getText("ContextMenu_Harvest"), enabled = canHarvest, primary = canHarvest, sensible = canHarvest,
+            help = ZeD.tr("UI_ZeD_Farm_HelpHarvest"),
             run = function(p, tt)
                 if ISFarmingMenu.walkToPlant(p, tt.sq) then ISTimedActionQueue.add(ISHarvestPlantAction:new(p, tt.obj, 100)) end
             end }
         verbs[#verbs + 1] = { id = "dig", label = ZeD.tr("UI_ZeD_Farm_DigUp"), enabled = d.shovel ~= nil, danger = true,
+            needs = ZeD.tr("UI_ZeD_Farm_NeedsShovel"), hint = ZeD.tr("UI_ZeD_Farm_HintDig"), help = ZeD.tr("UI_ZeD_Farm_HelpDig"),
             confirm = d.alive and ZeD.tr("UI_ZeD_Farm_ConfirmDig", string.lower(cropName(plant))) or ZeD.tr("UI_ZeD_Farm_ConfirmClear", string.lower(d.name)),
             run = function(p, tt)
                 if not ISFarmingMenu.walkToPlant(p, tt.sq) then return end
                 local hand = ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), ISFarmingMenu.getShovel(p), true)
                 ISTimedActionQueue.add(ISShovelAction:new(p, hand, tt.obj, 40))
             end }
-        if d.alive and seeded and d.water < 100 and #d.water_src == 0 then needs[#needs + 1] = ZeD.tr("UI_ZeD_Farm_NeedWater") end
-        if pestsVisible then
-            for _, pe in ipairs(d.pests) do
-                if pe.lvl > 0 and not pe.spray then needs[#needs + 1] = ZeD.tr("UI_ZeD_Farm_NeedSpray", OC.itemName(pe.def.spray, pe.def.sprayName)) end
-            end
-        end
-        if not d.shovel then needs[#needs + 1] = ZeD.tr("UI_ZeD_Farm_NeedShovel") end
     end
-    t.verbs, t.needs = verbs, needs
+    t.verbs = verbs
     t.pestsVisible = pestsVisible
 end
 
@@ -326,18 +336,19 @@ function def.icon(t)
     local tex = tile and getTexture(tile)
     return tex and (call(tex, "splitIcon") or tex) or nil
 end
+-- the state tag: its words, and the colour of its square mark (none for a plain tag)
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
     if d.plowed then return ZeD.tr("UI_ZeD_Farm_PillEmpty"), T.textDim end
-    if d.state == "rotten" then return ZeD.upper(ZeD.tr("Farming_Rotten")), T.danger end
-    if not d.alive then return ZeD.upper(d.state == "harvested" and getText("Farming_Harvested") or getText("Farming_Dead")), T.danger end
+    if d.state == "rotten" then return ZeD.tr("Farming_Rotten"), T.danger end
+    if not d.alive then return OC.cap(d.state == "harvested" and getText("Farming_Harvested") or getText("Farming_Dead")), T.danger end
     if t.obj:canHarvest() then return ZeD.tr("UI_ZeD_Farm_PhaseReady"), T.positive end
     local w = d.water
-    if w <= 25 then return ZeD.upper(ZeD.tr("Farming_Parched")), T.danger end
-    if w <= 50 then return ZeD.upper(ZeD.tr("Farming_Dry")), T.danger end
-    if w <= 60 then return ZeD.upper(ZeD.tr("Farming_Thirsty")), T.warning end
+    if w <= 25 then return ZeD.tr("Farming_Parched"), T.danger end
+    if w <= 50 then return ZeD.tr("Farming_Dry"), T.danger end
+    if w <= 60 then return ZeD.tr("Farming_Thirsty"), T.warning end
     return ZeD.tr("UI_ZeD_Farm_PillGrowing"), T.positive
 end
 
@@ -349,11 +360,8 @@ local function lockTag(n) return ZeD.tr("UI_ZeD_Farm_LockTag", n) end
 local function drawPlantTag(card, x, y, w, d, title, sub)
     local T, tm = ZeD.T, ZeD.TM
     local ps = T.px(40)
-    local s2 = T.surf2
-    local tint = d.plowed and UI.hex("#7A5A3A") or T.positive
-    card:drawRect(x, y, ps, ps, 1, s2.r, s2.g, s2.b)
-    card:drawRect(x, y, ps, ps, 0.16, tint.r, tint.g, tint.b)
-    card:drawRectBorder(x, y, ps, ps, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
+    UI.fill(card, x, y, ps, ps, "surf2")
+    ZeD.Atoms.frame(card, x, y, ps, ps, T.borderS)
     if d.tex then card:drawTextureScaledAspect(d.tex, x + T.px(4), y + T.px(4), ps - 2 * T.px(4), ps - 2 * T.px(4), 1, 1, 1, 1) end
     local tx = x + ps + T.px(10)
     local nameY = y + T.px(2)
@@ -363,54 +371,36 @@ local function drawPlantTag(card, x, y, w, d, title, sub)
     return ps
 end
 
+-- The stages as one framed strip (Seedling to Rotten, six equal steps) filled up to the current
+-- stage, with the stage names under it, the current one in the full text colour. Rotten fills
+-- the whole strip red.
 local function drawPhaseStrip(card, x, y, w, d)
     local T, tm = ZeD.T, ZeD.TM
+    local A = ZeD.Atoms
     local n = #PHASES
-    local gap = T.px(3)
-    local cw = math.floor((w - gap * (n - 1)) / n)
-    local ch = T.px(22)
+    local bh = T.fillBarH
     local f5 = T.fontF5
     local locked = d.skill < 2
+    local pct, fillC = 0, T.accent
+    if not locked and d.phase ~= nil then
+        pct = (d.phase + 1) / n
+        if d.phase == 5 then fillC = T.danger end
+    end
+    A.drawFillBar(card, x, y, w, pct, false, fillC, bh)
+    local cw = w / n
+    local ly = y + bh + T.px(3)
     for i = 1, n do
-        local cx = x + (i - 1) * (cw + gap)
-        local idx = i - 1
-        local bg, tc = T.surf1, T.textDim
-        local ba = bg.a
-        if not locked and d.phase ~= nil then
-            if idx < d.phase and d.phase ~= 5 then bg, tc, ba = ZeD.colorBlend(T.surf2, T.positive, 0.22), T.text, 1
-            elseif idx == d.phase then bg, tc, ba = T.accent, T.textOnAccent, 1 end
-        end
-        card:drawRect(cx, y, cw, ch, ba, bg.r, bg.g, bg.b)
-        local bc = (not locked and idx == d.phase) and T.accentBright or T.borderS
-        if i == n then
-            -- dashed edge for ROTTEN
-            local seg = T.px(3)
-            local sx = cx
-            while sx < cx + cw do
-                card:drawRect(sx, y, math.min(seg, cx + cw - sx), T.px(1), bc.a or 1, bc.r, bc.g, bc.b)
-                card:drawRect(sx, y + ch - T.px(1), math.min(seg, cx + cw - sx), T.px(1), bc.a or 1, bc.r, bc.g, bc.b)
-                sx = sx + seg * 2
-            end
-            local sy = y
-            while sy < y + ch do
-                card:drawRect(cx, sy, T.px(1), math.min(seg, y + ch - sy), bc.a or 1, bc.r, bc.g, bc.b)
-                card:drawRect(cx + cw - T.px(1), sy, T.px(1), math.min(seg, y + ch - sy), bc.a or 1, bc.r, bc.g, bc.b)
-                sy = sy + seg * 2
-            end
-        else
-            card:drawRectBorder(cx, y, cw, ch, bc.a or 1, bc.r, bc.g, bc.b)
-        end
-        local label = ZeD.CraftingCore.truncText(ZeD.upper(ZeD.tr(PHASES[i])), f5, cw - T.px(4))
+        local cur = (not locked) and d.phase ~= nil and (i - 1) == d.phase
+        local tc = cur and T.text or T.textDim
+        local label = ZeD.CraftingCore.truncText(A.textCase(ZeD.tr(PHASES[i])), f5, math.floor(cw) - T.px(2))
         local lw = tm:MeasureStringX(f5, label)
-        card:drawText(label, cx + math.floor((cw - lw) / 2), y + math.floor((ch - tm:getFontHeight(f5)) / 2), tc.r, tc.g, tc.b, tc.a or 1, f5)
+        card:drawText(label, x + math.floor((i - 0.5) * cw - lw / 2), ly, tc.r, tc.g, tc.b, tc.a or 1, f5)
     end
     if locked then
         local tw = UI.tagW(lockTag(2))
-        local s1 = T.surf1
-        card:drawRect(x + w - tw - T.px(6), y + T.px(1), tw + T.px(6), ch - 2 * T.px(1), 1, s1.r, s1.g, s1.b)
-        UI.tag(card, x + w - tw - T.px(2), y + math.floor((ch - T.px(16)) / 2), lockTag(2), T.textDim)
+        UI.tag(card, x + w - tw - T.px(6), y + math.floor((bh - T.px(16)) / 2), lockTag(2))
     end
-    return ch
+    return bh + T.px(3) + tm:getFontHeight(f5)
 end
 
 -- The garden grid and its summary read each plot's plant. Asking the farming
@@ -441,6 +431,7 @@ end
 
 local function drawGarden(card, x, y, w, t, e)
     local T, tm = ZeD.T, ZeD.TM
+    local A = ZeD.Atoms
     syncGarden(e, t)
     local list = (e and e.list) or { t }
     local cols = 8
@@ -456,49 +447,43 @@ local function drawGarden(card, x, y, w, t, e)
         local plant = gardenPlant(o)
         local cur = o.key == t.key
         local plowed = plant and plant.state == "plow"
-        local s2 = T.surf2
-        if not plowed then card:drawRect(cx, cy, cw, ch, s2.a, s2.r, s2.g, s2.b) end
-        local bc = cur and T.accent or T.border
-        if plowed and not cur then
-            local seg = T.px(3)
-            local sx = cx
-            while sx < cx + cw do
-                card:drawRect(sx, cy, math.min(seg, cx + cw - sx), T.px(1), bc.a or 1, bc.r, bc.g, bc.b)
-                card:drawRect(sx, cy + ch - T.px(1), math.min(seg, cx + cw - sx), T.px(1), bc.a or 1, bc.r, bc.g, bc.b)
-                sx = sx + seg * 2
-            end
-            local sy = cy
-            while sy < cy + ch do
-                card:drawRect(cx, sy, T.px(1), math.min(seg, cy + ch - sy), bc.a or 1, bc.r, bc.g, bc.b)
-                card:drawRect(cx + cw - T.px(1), sy, T.px(1), math.min(seg, cy + ch - sy), bc.a or 1, bc.r, bc.g, bc.b)
-                sy = sy + seg * 2
-            end
-        else
-            card:drawRectBorder(cx, cy, cw, ch, bc.a or 1, bc.r, bc.g, bc.b)
-            if cur then card:drawRectBorder(cx + T.px(1), cy + T.px(1), cw - 2 * T.px(1), ch - 2 * T.px(1), 1, bc.r, bc.g, bc.b) end
+        local fid = "farm:g:" .. i
+        -- the plot you are on: the selected wash; the pointer: the hover wash; a plain 1u frame
+        if cur then
+            local ac = T.accent
+            card:drawRect(cx, cy, cw, ch, T.selectionA, ac.r, ac.g, ac.b)
         end
+        if UI.hovered(card, fid) then
+            local hv = T.hover
+            card:drawRect(cx, cy, cw, ch, hv.a, hv.r, hv.g, hv.b)
+        end
+        local onFocus = false
+        local fm = card.focusOf and card:focusOf(fid)
+        if fm then onFocus = ZeD.Focus.mark(card, cx, cy, cw, ch, fm) end
+        A.frame(card, cx, cy, cw, ch, T.border)
         local label, dotC = "?", nil
         if plant then
-            if plowed then label = ZeD.tr("UI_ZeD_Farm_GardenPlowed")
+            if plowed then label = A.textCase(ZeD.tr("UI_ZeD_Farm_GardenPlowed"))
             else
-                label = ZeD.upper(string.sub(cropName(plant), 1, 3))
+                label = string.sub(cropName(plant), 1, 3)
                 dotC = urgency(plant, t.pestsVisible)
             end
         end
-        local tc = cur and T.text or T.textDim
+        local tc = onFocus and T.textOnFocus or (cur and T.text or T.textDim)
         local lw = tm:MeasureStringX(f5, label)
         local fh = tm:getFontHeight(f5)
         if dotC then
             local ds = T.px(6)
             local total = ds + T.px(3) + fh
             local ty = cy + math.floor((ch - total) / 2)
-            ZeD.Atoms.drawStatusDot(card, cx + math.floor((cw - ds) / 2), ty, dotC, ds)
+            A.drawStatusDot(card, cx + math.floor((cw - ds) / 2), ty, dotC, ds)
             card:drawText(label, cx + math.floor((cw - lw) / 2), ty + ds + T.px(3), tc.r, tc.g, tc.b, tc.a or 1, f5)
         else
             card:drawText(label, cx + math.floor((cw - lw) / 2), cy + math.floor((ch - fh) / 2), tc.r, tc.g, tc.b, tc.a or 1, f5)
         end
         local idx = i
-        card:zone({ fid = "farm:g:" .. i, x = cx, y = cy, w = cw, h = ch, body = true,
+        card:zone({ fid = fid, x = cx, y = cy, w = cw, h = ch, body = true,
+            help = ZeD.tr("UI_ZeD_Farm_HelpPlot"),
             run = function(c)
                 if e and e.list and e.list[idx] then
                     e.idx = idx
@@ -508,7 +493,6 @@ local function drawGarden(card, x, y, w, t, e)
                     c._pendingFocus = "farm:g:" .. idx
                 end
             end })
-        if card._fid == ("farm:g:" .. i) then card:drawRect(cx, cy, cw, ch, 0.55, T.accent.r, T.accent.g, T.accent.b) end
     end
     local rows = math.ceil(#list / cols)
     return rows * ch + math.max(0, rows - 1) * gap
@@ -540,14 +524,14 @@ function def.body(card, x, y, w, t, player)
     local y0 = y
     local gap = T.px(8)
     if d.plowed then
-        y = y + drawPlantTag(card, x, y, w, d, d.name, ZeD.tr("UI_ZeD_Farm_SkillReadyToSow", d.skill)) + gap
-        if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
+        y = y + drawPlantTag(card, x, y, w, d, d.name, ZeD.textCase(ZeD.tr("UI_ZeD_Farm_SkillReadyToSow", d.skill))) + gap
         if #d.seeds > 0 then
-            y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Farm_SowFromBags"), ZeD.upper(d.month or ""))
+            y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Farm_SowFromBags"), d.month or "")
             for i, r in ipairs(d.seeds) do
                 local rr = r
                 y = y + UI.pick(card, x, y, w, {
                     tex = r.tex, name = r.name, tag = r.tag, tagC = r.tagC,
+                    help = ZeD.tr("UI_ZeD_Farm_HelpSowSeed", r.name),
                     button = getText("ContextMenu_Sow_Seed"), fid = "farm:sow:" .. i,
                     run = function(c, p)
                         local seed = p:getInventory():getFirstTypeEvalRecurse(rr.seedName, goodSeed)
@@ -560,19 +544,19 @@ function def.body(card, x, y, w, t, player)
             y = y + gap
         end
     else
-        y = y + drawPlantTag(card, x, y, w, d, d.name, ZeD.tr("UI_ZeD_Farm_Skill", d.skill)) + gap
+        y = y + drawPlantTag(card, x, y, w, d, d.name, ZeD.textCase(ZeD.tr("UI_ZeD_Farm_Skill", d.skill))) + gap
         y = y + drawPhaseStrip(card, x, y, w, d) + gap
-        -- NEXT STAGE / COMPOST
+        -- Next stage / Compost
         local nextV
         if not d.alive then nextV = txt("UI_No", "No")
         elseif d.skill >= 6 then nextV = d.next or "?"
         else
             nextV = function(rx, ry, rh)
                 local tw = UI.tagW(lockTag(6))
-                UI.tag(card, rx - tw, ry + math.floor((rh - T.px(16)) / 2), lockTag(6), T.textDim)
+                UI.tag(card, rx - tw, ry + math.floor((rh - T.px(16)) / 2), lockTag(6))
             end
         end
-        y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Farm_NextStage"), nextV, ZeD.upper(ZeD.tr("Farming_Compost")), d.compost and txt("Farming_Compost_True", "Yes") or txt("Farming_Compost_False", "No")) + gap
+        y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Farm_NextStage"), nextV, ZeD.tr("Farming_Compost"), d.compost and txt("Farming_Compost_True", "Yes") or txt("Farming_Compost_False", "No")) + gap
         -- WATER
         if d.alive then
             local word, dotC = waterWord(d.water)
@@ -585,51 +569,64 @@ function def.body(card, x, y, w, t, player)
                     local b = farming_vegetableconf.calcWater(d.water, d.waterMax or 100)
                     if a == -1 or b == -1 then fillC = UI.hex("#FA8C00") elseif a < -1 or b < -1 then fillC = T.danger end
                 elseif d.water < d.waterNeeded then fillC = T.danger end
-                y = y + UI.meter(card, x, y, w, ZeD.upper(ZeD.tr("Fluid_Name_Water")), word, dotC, d.water, fillC, { lo, hi }) + gap
+                y = y + UI.meter(card, x, y, w, ZeD.tr("Fluid_Name_Water"), word, dotC, d.water, fillC, { lo, hi }) + gap
             else
-                y = y + UI.meter(card, x, y, w, ZeD.upper(ZeD.tr("Fluid_Name_Water")), word, dotC, 0, nil, nil, lockTag(4)) + gap
+                y = y + UI.meter(card, x, y, w, ZeD.tr("Fluid_Name_Water"), word, dotC, 0, nil, nil, lockTag(4)) + gap
             end
         end
-        if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
-        -- PESTS AND DISEASE: rows with TREAT (vanilla lets you spray blind)
+        -- Pests and disease: rows with Treat (vanilla lets you spray blind). A Treat with no spray to
+        -- use is drawn only under Show all (greyed, with what it needs), as the verb row's is.
         if d.alive then
             local known, count = t.pestsVisible, 0
             for _, pe in ipairs(d.pests) do if pe.lvl > 0 then count = count + 1 end end
-            local right = known and (count > 0 and tostring(count) or ZeD.upper(txt("Farming_None", "None"))) or lockTag(3)
+            local right = known and (count > 0 and tostring(count) or txt("Farming_None", "None")) or lockTag(3)
             y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Farm_Pests"), right)
+            local showAll = ZeD.Disclose.setting() == "all"
             for i, pe in ipairs(d.pests) do
-                local rh = T.px(24)
+                local rh = math.max(T.px(24), T.buttonH)
                 local f1 = T.fontF1
                 local ac = T.accent
-                card:drawText(ZeD.upper(ZeD.tr(pe.def.label)), x + T.px(2), y + math.floor((rh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
-                local bw = UI.buttonW(ZeD.tr("UI_ZeD_Farm_Treat"))
+                card:drawText(ZeD.textCase(ZeD.tr(pe.def.label)), x + T.px(2), y + math.floor((rh - tm:getFontHeight(f1)) / 2), ac.r, ac.g, ac.b, 1, f1)
+                local treat = ZeD.tr("UI_ZeD_Farm_Treat")
+                local bw = UI.buttonW(treat)
                 local bx = x + w - bw - T.px(2)
-                local by = y + math.floor((rh - T.px(20)) / 2)
+                local bh = T.buttonH - T.px(4)
+                local by = y + math.floor((rh - bh) / 2)
                 local fid = "farm:treat:" .. i
-                UI.button(card, bx, by, ZeD.tr("UI_ZeD_Farm_Treat"), { h = T.px(20), disabled = pe.spray == nil, focused = card._fid == fid })
                 local pp = pe
-                card:zone({ fid = fid, x = bx, y = by, w = bw, h = T.px(20), body = true,
-                    run = pe.spray and function(c, p)
-                        local spray = findSpray(p, pp.def.spray)
-                        if not spray or not ISFarmingMenu.walkToPlant(p, t.sq) then return end
-                        ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), spray, true)
-                        ISTimedActionQueue.add(ISCurePlantAction:new(p, spray, 1, t.obj, 100, pp.def.cure))
-                    end or nil })
                 local vx = bx - T.px(12)
+                if pe.spray or showAll then
+                    UI.button(card, bx, by, treat, { w = bw, h = bh, disabled = pe.spray == nil, fid = fid, body = true,
+                        help = ZeD.tr("UI_ZeD_Farm_HelpTreatPest", ZeD.textCase(ZeD.tr(pe.def.label))),
+                        focus = card:focusOf(fid),
+                        run = pe.spray and function(c, p)
+                            local spray = findSpray(p, pp.def.spray)
+                            if not spray or not ISFarmingMenu.walkToPlant(p, t.sq) then return end
+                            ISWorldObjectContextMenu.equip(p, p:getPrimaryHandItem(), spray, true)
+                            ISTimedActionQueue.add(ISCurePlantAction:new(p, spray, 1, t.obj, 100, pp.def.cure))
+                        end or nil })
+                else
+                    vx = x + w - T.px(2)
+                end
                 if known then
                     local word, dc = pestWord(pe.lvl)
                     local f3 = T.fontF3
                     local ww = tm:MeasureStringX(f3, word)
                     card:drawText(word, vx - ww, y + math.floor((rh - tm:getFontHeight(f3)) / 2), T.text.r, T.text.g, T.text.b, T.text.a, f3)
-                    if dc then ZeD.Atoms.drawStatusDot(card, vx - ww - T.px(11), y + math.floor((rh - T.px(6)) / 2), dc, T.px(6)) end
+                    if dc then ZeD.Atoms.drawStatusDot(card, vx - ww - T.px(10), y + math.floor((rh - T.px(6)) / 2), dc, T.px(6)) end
                 end
                 card:drawRect(x, y + rh - T.px(1), w, T.px(1), T.border.a, T.border.r, T.border.g, T.border.b)
                 y = y + rh
+                -- Show all: why a greyed Treat cannot run (only for a pest you can see)
+                if showAll and known and pe.lvl > 0 and not pe.spray then
+                    y = y + T.px(2) + ZeD.Molecules.drawNeedsLine(card, x, y + T.px(2), w,
+                        ZeD.tr("UI_ZeD_Disclose_Needs", ZeD.btnCase(treat), OC.itemName(pe.def.spray, pe.def.sprayName))) + T.px(2)
+                end
             end
             y = y + gap
         end
     end
-    -- GARDEN IN REACH
+    -- Garden in reach
     y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Farm_Garden"), gardenSummary(t, e)) + T.px(6)
     y = y + drawGarden(card, x, y, w, t, e)
     return y - y0

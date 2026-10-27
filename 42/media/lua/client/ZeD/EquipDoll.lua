@@ -49,7 +49,6 @@ local BELT_X0  = 260
 local LANES_L  = { 100, 116, 132, 148, 164, 180 }
 local LANES_R  = { 420, 404, 388, 372 }
 local MIN_FIT  = 0.7
-local HINT_MS  = 450
 
 local function set(t) local s = {} for _, v in ipairs(t) do s[v] = true end return s end
 
@@ -239,19 +238,34 @@ local function condOf(item)
     return math.max(0, math.min(1, (call(item, "getCondition") or 0) / m))
 end
 
+-- The controller is on this element of the Equip tab: the window has the focus,
+-- the controller is in use (Focus.liveZone) and the focus is in the tab's zone.
+-- Returns the focus mark's opts when it is, else false.
+local _focusOpts = {}
 local function gpFocused(win, key)
     if win._gpFocusedEquipSlot ~= key then return false end
     local Focus = ZeD.Input and ZeD.Input.Focus
-    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win) then return false end
-    local z = Focus.getFocusedZone and Focus.getFocusedZone(win)
-    return z ~= nil and z.zone == "charTabContent"
+    local z = Focus and Focus.liveZone and Focus.liveZone(win)
+    if not (z and z.zone == "charTabContent") then return false end
+    _focusOpts.win, _focusOpts.zone = win, "charTabContent"
+    return _focusOpts
 end
 
--- one slot box: the item's picture, its condition, the layer count or the
--- belt key; empty boxes dashed. bx, by, b = the box in panel coords.
+-- the pointer's hover is off while the controller's mark shows
+local function cuesOn()
+    local Focus = ZeD.Input and ZeD.Input.Focus
+    return Focus and Focus.cuesVisible and Focus.cuesVisible() or false
+end
+
+-- one slot box: the item's picture, its condition (the framed strip), the
+-- layer count or the belt key; empty boxes dashed. The pointer's hover wash and
+-- the controller's focus mark go under the picture. bx, by, b = the box in
+-- panel coords.
 local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label, mx, my)
     local T, tm = ZeD.T, ZeD.TM
     local ac = T.accent
+    local over = mx >= bx and mx < bx + b and my >= by and my < by + b
+    local hover = over and not cuesOn()
     if item then
         local st = T.stripe
         panel:drawRect(bx, by, b, b, st.a, st.r, st.g, st.b)
@@ -260,6 +274,14 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
             local s1 = T.surf1
             panel:drawRect(bx, by, b, b, 0.4, s1.r, s1.g, s1.b)
         end
+    end
+    if hover then
+        local hv = T.hover
+        panel:drawRect(bx, by, b, b, hv.a, hv.r, hv.g, hv.b)
+    end
+    local fo = gpFocused(win, key)
+    if fo then ZeD.Focus.mark(panel, bx, by, b, b, fo) end
+    if item then
         local bs = T.borderS
         panel:drawRectBorder(bx, by, b, b, bs.a or 1, bs.r, bs.g, bs.b)
         local tex = itemTex(item)
@@ -269,11 +291,8 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         end
         local f = condOf(item)
         if f then
-            local cx, cy, cw, ch = bx + T.px(4), by + b - T.px(6), b - T.px(8), T.px(3)
-            local tr = T.surf3
-            panel:drawRect(cx, cy, cw, ch, tr.a, tr.r, tr.g, tr.b)
-            local fw = math.floor(cw * f)
-            if fw > 0 then local cc = condColor(T, f); panel:drawRect(cx, cy, fw, ch, cc.a or 1, cc.r, cc.g, cc.b) end
+            local ch = T.px(5)
+            ZeD.Atoms.drawFillBar(panel, bx + T.px(4), by + b - T.px(3) - ch, b - T.px(8), f, false, condColor(T, f), ch)
         end
     else
         local dc = T.textDim
@@ -298,16 +317,13 @@ local function drawBox(panel, win, bx, by, b, item, nLayers, key, beltKey, label
         panel:drawRect(bx, by, tw, f1h, bgc.a or 1, bgc.r, bgc.g, bgc.b)
         panel:drawText(beltKey, bx + math.floor((tw - tm:MeasureStringX(f1, beltKey)) / 2), by, tc.r, tc.g, tc.b, tc.a or 1, f1)
     end
-    -- hover (0.22) and the controller's focus (0.55), over the box
-    local over = mx >= bx and mx < bx + b and my >= by and my < by + b
-    if gpFocused(win, key) then
-        panel:drawRect(bx, by, b, b, 0.55, ac.r, ac.g, ac.b)
-    elseif over then
-        panel:drawRect(bx, by, b, b, 0.22, ac.r, ac.g, ac.b)
+    if hover then
+        ZeD.Help.set(panel, item and ZeD.tr("UI_ZeD_Doll_SlotHelp", call(item, "getDisplayName") or label)
+            or ZeD.tr("UI_ZeD_Doll_EmptyHelp", label))
     end
-    -- the label, centred under the box
+    -- the label, centred under the box (an empty slot's at the disabled alpha)
     local lc = T.textDim
-    local la = item and (lc.a or 0.7) or 0.42
+    local la = (lc.a or 1) * (item and 1 or T.disabledAlpha)
     local lw = tm:MeasureStringX(f1, label)
     panel:drawText(label, bx + math.floor((b - lw) / 2), by + b + T.px(3), lc.r, lc.g, lc.b, la, f1)
     return over
@@ -341,7 +357,6 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
     local p = win._playerObj
     local desc = p and call(p, "getDescriptor")
     local nm = desc and ((call(desc, "getForename") or "") .. " " .. (call(desc, "getSurname") or "")) or ""
-    nm = ZeD.upper(nm)
     if nm ~= " " then
         local f1 = T.fontF1
         local dc = T.textDim
@@ -360,7 +375,7 @@ function D.draw(panel, win, x, y, w, viewH, mx, my)
         local items = data.slots[def.id].items
         local item = items[1]
         local key = "doll:" .. def.id
-        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.upper(ZeD.tr(def.key)), mx, my)
+        local over = drawBox(panel, win, bx, by, b, item, #items, key, nil, ZeD.textCase(ZeD.tr(def.key)), mx, my)
         if item then
             zones[#zones + 1] = { x = bx, y = by, w = b, h = b, type = key, item = item }
             if over then
@@ -528,28 +543,12 @@ function D.renderLines(layer, win)
     D.drawHint(layer, win, win._equipDollHintCand, "_equipDollHint", win._equipDollClip)
 end
 
--- An icon-only box names its item after a pause (the container controls'
--- hint: surf2, the strong border, F2, above the box, kept in the drawer).
--- c = { key, text, x, y, w }; st = the win field prefix keeping its timer.
+-- An icon-only box names its item after the pause: the library's hint, asked of
+-- the window's overlay (one delay, placed by the pointer, over everything).
+-- c = { key, text, ... }; st and clip are no longer needed (kept for callers).
 function D.drawHint(layer, win, c, st, clip)
-    if not c then win[st .. "Key"] = nil; return end
-    local now = getTimestampMs()
-    if win[st .. "Key"] ~= c.key then win[st .. "Key"], win[st .. "Since"] = c.key, now; return end
-    if now - (win[st .. "Since"] or now) < HINT_MS then return end
-    local T = ZeD.T
-    local f2 = T.fontF2
-    local padX, padY = T.px(10), T.px(4)
-    local tw = ZeD.TM:MeasureStringX(f2, c.text)
-    local w, h = tw + padX * 2, ZeD.TM:getFontHeight(f2) + padY * 2
-    local maxR = clip and (clip.x + clip.w) or layer:getWidth()
-    local x = math.max(T.px(2), math.min(c.x, maxR - w - T.px(2)))
-    local y = c.y - h - T.px(4)
-    if clip and y < clip.y then y = c.y + c.w + T.px(4) end
-    local s2, bs, tc = T.surf2, T.borderS, T.text
-    layer:drawRect(x + T.px(2), y + T.px(2), w, h, 0.5, 0, 0, 0)
-    layer:drawRect(x, y, w, h, 1, s2.r, s2.g, s2.b)
-    layer:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    layer:drawText(c.text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, f2)
+    if not c then return end
+    ZeD.Atoms.requestHint(win, c.key, c.text, layer)
 end
 
 -- ----------------------------------------------------------------------------
@@ -561,77 +560,69 @@ local function icon(name)
     return ICONS[name] or nil
 end
 
--- Two joined icon buttons at the heading's right edge. Stamps win._equipViewZones.
+-- List | Doll: two separate icon buttons 4u apart at the heading's right edge,
+-- the active one solid accent; each names itself in the library's hint after the
+-- pause. Stamps win._equipViewZones.
+local _toggleOpts = {}
 function D.drawToggle(panel, win, x, y, w, headerH, mx, my)
     local T = ZeD.T
-    local bw, bh = T.px(26), T.px(20)
-    local by = y + math.floor((headerH - bh) / 2)
-    local bx = x + w - T.px(10) - bw * 2 + T.px(1)
+    local bw = math.min(T.buttonH, headerH - T.px(6))
+    local sep = T.px(4)
+    local by = y + math.floor((headerH - bw) / 2)
+    local bx = x + w - T.px(10) - bw * 2 - sep
     local cur = D.view()
     local zones = {}
-    local hint = nil
     for i, v in ipairs({ "list", "doll" }) do
-        local zx = bx + (i - 1) * (bw - T.px(1))
-        local on = (v == cur)
-        local bg = on and T.accent or T.surf2
-        panel:drawRect(zx, by, bw, bh, 1, bg.r, bg.g, bg.b)
-        local br = on and T.accentBright or T.borderS
-        panel:drawRectBorder(zx, by, bw, bh, br.a or 1, br.r, br.g, br.b)
-        local isz = T.px(13)
-        local tint = on and T.textOnAccent or T.textDim
-        ZeD.Atoms.drawIcon(panel, icon(v == "list" and "list" or "equip-doll"), zx + math.floor((bw - isz) / 2),
-            by + math.floor((bh - isz) / 2), isz, 1, tint)
+        local zx = bx + (i - 1) * (bw + sep)
         local key = "__view_" .. v
-        local ac = T.accent
-        if gpFocused(win, key) then
-            panel:drawRect(zx, by, bw, bh, 0.55, ac.r, ac.g, ac.b)
-        elseif not on and mx >= zx and mx < zx + bw and my >= by and my < by + bh then
-            panel:drawRect(zx, by, bw, bh, 0.22, ac.r, ac.g, ac.b)
-        end
         local text = (v == "list") and ZeD.tr("UI_ZeD_Doll_ViewList") or ZeD.tr("UI_ZeD_Doll_ViewDoll")
-        zones[#zones + 1] = { x = zx, y = by, w = bw, h = bh, view = v, key = key, hint = text }
-        if mx >= zx and mx < zx + bw and my >= by and my < by + bh then
-            hint = { key = key, text = text, x = zx, y = by, w = bw }
-        end
+        local o = _toggleOpts
+        o.active = (v == cur)
+        o.hover = (not cuesOn()) and mx >= zx and mx < zx + bw and my >= by and my < by + bw
+        o.focus, o.hint, o.id, o.win = gpFocused(win, key) or nil, text, key, win
+        o.help = ZeD.tr(v == "list" and "UI_ZeD_Doll_ListHelp" or "UI_ZeD_Doll_DollHelp")
+        o.iconSize = math.min(T.px(16), bw - T.px(6))
+        ZeD.Molecules.drawIconButton(panel, zx, by, bw, icon(v == "list" and "list" or "equip-doll"), o)
+        zones[#zones + 1] = { x = zx, y = by, w = bw, h = bw, view = v, key = key, hint = text }
     end
     win._equipViewZones = zones
-    -- below the button (the heading is the drawer's top), kept in the drawer
-    if hint then hint.y = by + bh + T.px(4) + ZeD.TM:getFontHeight(T.fontF2) + T.px(8) + T.px(4) end
-    D.drawHint(panel, win, hint, "_equipViewHint", { x = x, y = y, w = w, h = panel:getHeight() })
 end
 
 -- The card's layer strip: "LAYER 1 OF 2 | OUTERMOST" with Outer / Inner.
 -- Stamps win._equipLayerZones. Returns its height.
 function D.layerStripH() return ZeD.T.px(34) end
 
+-- A band of the card's (the library's band: surface 2, its structure line on
+-- top): the layer's words on the left in sentence case, Inner / Outer as push
+-- buttons on the right.
+local _layerBtn = {}
 function D.drawLayerStrip(panel, win, x, y, w, idx, n, mx, my)
     local T, tm = ZeD.T, ZeD.TM
+    local M = ZeD.Molecules
     local h = D.layerStripH()
-    local s2, bs = T.surf2, T.borderS
-    panel:drawRect(x, y, w, h, s2.a or 1, s2.r, s2.g, s2.b)
-    panel:drawRect(x, y, w, T.px(1), bs.a or 1, bs.r, bs.g, bs.b)
+    ZeD.Atoms.surfaceFill(panel, x, y, w, h, "surf2")
+    ZeD.Atoms.drawDividerH(panel, x, y, w, true)
     local f1 = T.fontF1
     local where = (idx == 1) and ZeD.tr("UI_ZeD_Doll_Outermost") or ((idx == n) and ZeD.tr("UI_ZeD_Doll_Innermost") or ZeD.tr("UI_ZeD_Doll_UnderN", idx - 1))
-    local lbl = ZeD.tr("UI_ZeD_Doll_LayerStrip", idx, n, where)
+    local lbl = ZeD.textCase(ZeD.tr("UI_ZeD_Doll_LayerStrip", idx, n, where))
     local lc = T.toneLo or T.textDim
     panel:drawText(lbl, x + T.px(10), y + math.floor((h - (T.fontF1H or tm:getFontHeight(f1))) / 2), lc.r, lc.g, lc.b, lc.a or 1, f1)
-    local UI = ZeD.ObjectCards and ZeD.ObjectCards.ui
     local zones = {}
-    local bh = T.px(22)
+    local bh = math.min(T.buttonH, h - T.px(6))
     local by = y + math.floor((h - bh) / 2)
-    local rx = x + w - T.px(10)
+    local rx = x + w - T.px(8)
     for _, b in ipairs({ { dir = 1, label = ZeD.tr("UI_ZeD_Doll_StepInner") }, { dir = -1, label = ZeD.tr("UI_ZeD_Doll_StepOuter") } }) do
-        local bw = UI and UI.buttonW(b.label) or T.px(60)
+        local bw = M.buttonW(b.label)
         rx = rx - bw
         local enabled = (b.dir > 0 and idx < n) or (b.dir < 0 and idx > 1)
         local key = "__layer_" .. b.dir
-        if UI then UI.button(panel, rx, by, b.label, { h = bh, w = bw, disabled = not enabled, focused = gpFocused(win, key) }) end
-        if enabled and not gpFocused(win, key) and mx >= rx and mx < rx + bw and my >= by and my < by + bh then
-            local ac = T.accent
-            panel:drawRect(rx, by, bw, bh, 0.22, ac.r, ac.g, ac.b)
-        end
+        local o = _layerBtn
+        o.disabled, o.win = not enabled, win
+        o.focus = gpFocused(win, key) or nil
+        o.hover = enabled and (not cuesOn()) and mx >= rx and mx < rx + bw and my >= by and my < by + bh
+        M.drawButton(panel, rx, by, bw, bh, b.label, "default", false, nil, o)
         zones[#zones + 1] = { x = rx, y = by, w = bw, h = bh, dir = b.dir, enabled = enabled, key = key }
-        rx = rx - T.px(6)
+        rx = rx - T.px(8)
     end
     win._equipLayerZones = zones
     return h

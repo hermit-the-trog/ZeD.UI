@@ -29,14 +29,14 @@ local FOCUS_ROW_H      = 38
 local FOCUS_PAD_X      = 8
 local FOCUS_GAP        = 8
 
-local DISCLOSURE_H     = 22
-local SUB_HEADER_H     = 16
+local DISCLOSURE_H     = 20      -- the library section head
+local SUB_HEADER_H     = 15      -- the library category row
 local GRID_ROW_H       = 17
 local GRID_PAD_X       = 12
 local GRID_DOT_SZ      = 6
 local GRID_DOT_GAP     = 7
 
-local FINDS_HEADER_H   = 16
+local FINDS_HEADER_H   = 20      -- a column head
 local FINDS_ROW_H      = 20
 local FINDS_ICON_SZ    = 14
 local FINDS_ICON_GAP   = 6
@@ -110,20 +110,20 @@ local COMPASS = {
 -- discriminates between element types (isStance / isDropdown / isDisclosure).
 -- ============================================================================
 
+-- (only while the mark may show: this window has the controller and the pad is in use)
 local function _gpFocusMatches(win, matcherFn)
-    if not (ZeD and ZeD.Input and ZeD.Input.Focus) then return false end
-    local Focus = ZeD.Input.Focus
-    local zone = Focus.getFocusedZone and Focus.getFocusedZone(win)
-    if not zone or zone.zone ~= "worldTabContent" then return false end
-    local el = Focus.getFocusedElement and Focus.getFocusedElement(win)
+    local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
+    if not (Focus and Focus.isFocused and Focus.isFocused(win, "worldTabContent")) then return false end
+    local el = Focus.liveElement(win)
     if not el then return false end
     return matcherFn(el)
 end
 
+-- the controller's mark on an element, drawn before its words; true = the words
+-- switch to T.textOnFocus
 local function _paintGpCue(panel, x, y, w, h)
-    local T = ZeD.T
-    if not T or not T.accent then return end
-    panel:drawRect(x, y, w, h, 0.55, T.accent.r, T.accent.g, T.accent.b)
+    if not (ZeD.Focus and ZeD.Focus.mark) then return false end
+    return ZeD.Focus.mark(panel, x, y, w, h)
 end
 
 local function angleToBearing(rad)
@@ -445,49 +445,31 @@ end
 -- CHIP DRAW HELPER
 -- ============================================================================
 
--- The width a chip takes for its text (the chip sizes to its words).
-local function chipWidth(text, T)
-    return ZeD.TM:MeasureStringX(T.fontF1, text) + T.px(6) * 2
+-- The hero's facts as tags (the one tag look: a 1u outline, F1 in sentence case, a
+-- status square when the fact is a status). style: "pos" (a good state), "warn"
+-- (a poor one), anything else: no mark.
+local function chipMark(style, T)
+    if style == "pos" then return T.positive end
+    if style == "warn" then return T.warning end
+    return nil
 end
 
--- maxW (optional): the widest the chip may be; longer text ends in "..."
+-- The width a tag takes for its text (the tag sizes to its words).
+local function chipWidth(text, T, style)
+    local w = ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(text)) + T.px(5) * 2
+    if chipMark(style, T) then w = w + T.px(6) + T.px(4) end
+    return w
+end
+
+-- maxW (optional): the widest the tag may be; longer text ends in "..."
 local function drawChip(panel, x, y, text, style, T, maxW)
-    local tm = ZeD.TM
-    local font = T.fontF1
-    local th = tm:getFontHeight(font)
-    local padX = T.px(6)
-    local padY = T.px(2)
-    if maxW then text = ZeD.Atoms.truncateText(text, font, maxW - padX * 2) end
-    local tw = tm:MeasureStringX(font, text)
-    local cw = tw + padX * 2
-    local ch = th + padY * 2
-
-    -- Background + border per style
-    local bg, tc, bc
-    if style == "on" then
-        -- accent style — condition chip
-        bg = ZeD.colorAlpha(T.accent, 0.15)
-        tc = T.accentText
-        bc = T.accent
-    elseif style == "pos" then
-        bg = ZeD.colorAlpha(T.positive, 0.12)
-        tc = T.positiveText
-        bc = ZeD.colorAlpha(T.positive, 0.4)
-    elseif style == "warn" then
-        bg = ZeD.colorAlpha(T.warning, 0.12)
-        tc = T.warningText
-        bc = ZeD.colorAlpha(T.warning, 0.4)
-    else
-        -- neutral
-        bg = T.surf3
-        tc = T.textDim
-        bc = T.borderS
+    local mark = chipMark(style, T)
+    local s = ZeD.textCase(text)
+    if maxW then
+        local room = maxW - T.px(5) * 2 - (mark and T.px(10) or 0)
+        s = ZeD.Atoms.truncateText(s, T.fontF1, room)
     end
-
-    panel:drawRect(x, y, cw, ch, bg.a, bg.r, bg.g, bg.b)
-    panel:drawRectBorder(x, y, cw, ch, bc.a or 0.4, bc.r, bc.g, bc.b)
-    panel:drawText(text, x + padX, y + padY, tc.r, tc.g, tc.b, tc.a or 1, font)
-
+    local cw = ZeD.Molecules.drawTag(panel, x, y, s, mark, { keepCase = true })
     return cw
 end
 
@@ -588,15 +570,10 @@ local function drawSkyArc(panel, x, y, w, h)
     local dotDrawX = x + math.floor(dotX) - math.floor(T.px(SKY_DOT_SZ) / 2)
     local dotDrawY = y + math.floor(dotY) - math.floor(T.px(SKY_DOT_SZ) / 2)
     A.drawStatusDot(panel, dotDrawX, dotDrawY, dotColor, T.px(SKY_DOT_SZ))
-
-    -- Subtle glow behind the dot (larger, faint)
-    local glowSz = T.px(SKY_DOT_SZ) + T.px(6)
-    local glowX = x + math.floor(dotX) - math.floor(glowSz / 2)
-    local glowY = y + math.floor(dotY) - math.floor(glowSz / 2)
-    A.drawStatusDot(panel, glowX, glowY, ZeD.colorAlpha(dotColor, 0.12), glowSz)
+    -- (no glow behind it: a soft glow is not of the period)
 
     -- Phase label below horizon (centered) — no clock time (watch exploit)
-    local phaseStr = isDay and ZeD.tr("UI_ZeD_Forage_Day") or ZeD.tr("UI_ZeD_Forage_Night")
+    local phaseStr = ZeD.textCase(isDay and ZeD.tr("UI_ZeD_Forage_Day") or ZeD.tr("UI_ZeD_Forage_Night"))
     local phaseFont = T.fontF1
     local phaseW = tm:MeasureStringX(phaseFont, phaseStr)
 
@@ -653,8 +630,8 @@ local function drawHero(panel, win, x, y, w)
     local radC = T.toneNorm
     panel:drawText(radStr, radTextX, radTextY, radC.r, radC.g, radC.b, radC.a or 1, bigFont)
 
-    -- "TILES" label
-    local tilesLabel = ZeD.tr("UI_ZeD_Forage_Tiles")
+    -- "Tiles" label
+    local tilesLabel = ZeD.textCase(ZeD.tr("UI_ZeD_Forage_Tiles"))
     local tilesW = tm:MeasureStringX(T.fontF1, tilesLabel)
     local tilesX = radCenterX - math.floor(tilesW / 2)
     local tilesY = radTextY + radH + T.px(2)
@@ -665,14 +642,18 @@ local function drawHero(panel, win, x, y, w)
     local netMod = win._frameNetMod or 0
     local netPrefix = netMod >= 0 and "+" or ""
     local netStr = netPrefix .. tostring(netMod) .. "%"
+    -- the words in the default ink; the status square before them carries good or bad
     local netColor = netMod >= 0 and T.positive or T.danger
+    local sq = T.px(6)
     local netW = tm:MeasureStringX(T.fontF3, netStr)
-    local netX = radCenterX - math.floor(netW / 2)
+    local netX = radCenterX - math.floor((netW + sq + T.px(4)) / 2) + sq + T.px(4)
     local netY = tilesY + tm:getFontHeight(T.fontF1) + T.px(6)
-    panel:drawText(netStr, netX, netY, netColor.r, netColor.g, netColor.b, netColor.a or 1, T.fontF3)
+    A.drawStatusDot(panel, netX - sq - T.px(4), netY + math.floor((tm:getFontHeight(T.fontF3) - sq) / 2), netColor, sq)
+    local tx = T.text
+    panel:drawText(netStr, netX, netY, tx.r, tx.g, tx.b, tx.a or 1, T.fontF3)
 
-    -- "NET" label
-    local netLabel = ZeD.tr("UI_ZeD_Forage_Net")
+    -- "Net" label
+    local netLabel = ZeD.textCase(ZeD.tr("UI_ZeD_Forage_Net"))
     local netLW = tm:MeasureStringX(T.fontF1, netLabel)
     local netLX = radCenterX - math.floor(netLW / 2)
     local netLY = netY + tm:getFontHeight(T.fontF3) + T.px(2)
@@ -694,18 +675,18 @@ local function drawHero(panel, win, x, y, w)
     -- Chip rows — bottom of info cell. Chips that do not fit beside the others wrap to a
     -- row above (as many rows as fit under the zone name); chips past the last row drop
     -- and a "+N" chip says how many.
-    local chipH = tm:getFontHeight(T.fontF1) + T.px(4)
+    local chipH = T.px(16)   -- the tag's height
     local chipY = y + h - T.px(HERO_PAD) - chipH
     local chipGap = T.px(4)
-    -- Dynamic chip styles based on live data
+    -- Dynamic chip styles based on live data (good and fair conditions read as good)
     local cond = win._frameCondition or "Fair"
-    local condStyle = cond == "Good" and "on" or (cond == "Fair" and "pos" or "warn")
+    local condStyle = (cond == "Good" or cond == "Fair") and "pos" or "warn"
     local wx = win._frameWeather or "Clear"
     local wxStyle = (wx == "Clear" or wx == "Cloudy") and "neutral" or "warn"
     local chips = {
         { text = ZeD.ForagingTab.word(cond), style = condStyle },
         { text = ZeD.ForagingTab.word(win._frameStance or "Walking"), style = "neutral" },
-        { text = win._frameSeason or ZeD.tr("UI_ZeD_Forage_Unknown"), style = "pos" },
+        { text = win._frameSeason or ZeD.tr("UI_ZeD_Forage_Unknown"), style = "neutral" },
         { text = ZeD.ForagingTab.word(wx), style = wxStyle },
     }
     local zoneBottom = zoneY + tm:getFontHeight(T.fontF4)
@@ -716,7 +697,7 @@ local function drawHero(panel, win, x, y, w)
     local rowOf, xOf, wOf = {}, {}, {}
     local row, cx, shown = 1, 0, 0
     for i = 1, #chips do
-        local cw = chipWidth(chips[i].text, T)
+        local cw = chipWidth(chips[i].text, T, chips[i].style)
         if cw > infoRoom then cw = infoRoom end
         if cx > 0 and cx + cw > infoRoom then
             row = row + 1
@@ -731,7 +712,7 @@ local function drawHero(panel, win, x, y, w)
     if shown < #chips then
         -- the "+N" chip follows the last shown chip; chips are given up until it fits
         while shown > 1 do
-            local mw = chipWidth("+" .. tostring(#chips - shown), T)
+            local mw = chipWidth("+" .. tostring(#chips - shown), T, "neutral")
             if xOf[shown] + wOf[shown] + chipGap + mw <= infoRoom then break end
             shown = shown - 1
         end
@@ -778,46 +759,47 @@ local function drawStanceRow(panel, win, x, y, w)
     active.crouch    = player and player:isSneaking() or false
     active.aim       = player and player:isAiming() or false
 
-    -- Only SEARCHING is clickable; crouch + aim are read-only status
+    -- Only Searching can be pressed (a System 7 checkbox: search mode on or off);
+    -- crouch and aim are read-only status, each a square mark (filled when on)
     win._forageStanceZones = {}
+    local f2 = T.fontF2
+    local th = tm:getFontHeight(f2)
+    local ty = y + math.floor((h - th) / 2)
 
     for i, stance in ipairs(STANCES) do
         local bx = x + (i - 1) * btnW
         local bw = (i == #STANCES) and (w - (i - 1) * btnW) or btnW
         local isActive = active[stance.id]
-
-        -- Background
-        if isActive then
-            local aBg = T.hover
-            panel:drawRect(bx, y, bw, h, aBg.a or 0.15, aBg.r, aBg.g, aBg.b)
-        end
-
-        -- Border right (between buttons)
-        if i < #STANCES then
-            local bd = T.borderS
-            panel:drawRect(bx + bw, y, T.px(1), h, bd.a, bd.r, bd.g, bd.b)
-        end
-
-        -- Label
-        local tc = isActive and T.toneNorm or T.toneLo
         local stanceLabel = ZeD.tr(stance.key)
-        local tw = tm:MeasureStringX(T.fontF1, stanceLabel)
-        local th = tm:getFontHeight(T.fontF1)
-        local tx = bx + math.floor((bw - tw) / 2)
-        local ty = y + math.floor((h - th) / 2)
-        panel:drawText(stanceLabel, tx, ty, tc.r, tc.g, tc.b, tc.a or 1, T.fontF1)
+        local tw = tm:MeasureStringX(f2, stanceLabel)
 
-        -- Only SEARCHING gets a click zone (toggles search mode)
         if stance.id == "searching" then
+            local hovered = not win._ddBlocksHover and A.mouseIn(panel, bx, y, bw, h - T.px(1))
+            if hovered then
+                local hv = T.hover
+                panel:drawRect(bx, y, bw, h - T.px(1), hv.a, hv.r, hv.g, hv.b)
+                ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Forage_SearchHelp"))
+            end
+            local onFocus = false
+            if _gpFocusMatches(win, function(el) return el.isStance and el.stanceId == "searching" end) then
+                onFocus = _paintGpCue(panel, bx, y, bw, h - T.px(1))
+            end
+            local sz = T.checkboxSz
+            local gx = bx + math.floor((bw - (sz + T.px(6) + tw)) / 2)
+            A.drawCheckbox(panel, gx, y + math.floor((h - sz) / 2), isActive, hovered, false)
+            local tc = onFocus and T.textOnFocus or T.text
+            panel:drawText(stanceLabel, gx + sz + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
             win._forageStanceZones[#win._forageStanceZones + 1] = {
                 x = bx, y = y, w = bw, h = h, id = stance.id
             }
-            -- S109b: gamepad focus cue painted over the SEARCHING tile.
-            if _gpFocusMatches(win, function(el)
-                    return el.isStance and el.stanceId == "searching"
-                end) then
-                _paintGpCue(panel, bx, y, bw, h)
-            end
+        else
+            local sq = T.px(6)
+            local gx = bx + math.floor((bw - (sq + T.px(6) + tw)) / 2)
+            local sy = y + math.floor((h - sq) / 2)
+            if isActive then A.drawStatusDot(panel, gx, sy, T.positive, sq)
+            else A.drawStatusHollow(panel, gx, sy, T.textDim, sq) end
+            local tc = isActive and T.text or T.textDim
+            panel:drawText(stanceLabel, gx + sq + T.px(6), ty, tc.r, tc.g, tc.b, tc.a or 1, f2)
         end
     end
 
@@ -857,10 +839,9 @@ local function drawFocusRow(panel, win, x, y, w)
     dd:setVisible(true)
     if #liveOpts ~= #dd.options then dd.options = liveOpts end
 
-    -- S109b: gamepad focus cue around the dropdown box. Painted on the
-    -- parent panel BEFORE the dropdown child renders — since the dropdown
-    -- paints an opaque surf2 bg covering the inner area, we extend the cue
-    -- 3px on each side so an accent halo remains visible around the widget.
+    -- The controller's mark around the dropdown box, on the parent panel BEFORE
+    -- the dropdown child renders: the dropdown paints its own box over the inner
+    -- area, so the mark's rect reaches 3u past it on each side.
     if _gpFocusMatches(win, function(el) return el.isDropdown end) then
         local cx = x + T.px(FOCUS_PAD_X)
         local cy = y + math.floor((h - T.inputH) / 2)
@@ -895,41 +876,15 @@ local function drawDisclosure(panel, win, x, y, w)
     local isOpen = win._moreDetailOpen or false
 
     -- Check hover (suppressed when dropdown overlaps)
-    local mx = panel:getMouseX()
-    local my = panel:getMouseY()
-    local hovered = not (win._ddBlocksHover) and mx >= x and mx < x + w and my >= y and my < y + h
+    local hovered = not (win._ddBlocksHover) and A.mouseIn(panel, x, y, w, h)
+    if hovered then ZeD.Help.set(panel, ZeD.tr("UI_ZeD_Forage_MoreHelp")) end
 
-    -- Background
-    local bg = hovered and T.hover or T.surf2
-    panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
-
-    -- S109b: gamepad focus cue painted AFTER surf2 bg (which is near-opaque
-    -- at 0.92 alpha). Triangle + label render on top at 45% visibility —
-    -- same pattern as Animals Alerts/Totals disclosures.
-    if _gpFocusMatches(win, function(el) return el.isDisclosure end) then
-        _paintGpCue(panel, x, y, w, h)
-    end
-
-    -- Disclosure triangle
-    local discSz = T.px(6)
-    local discX = x + T.px(GRID_PAD_X)
-    local discY = y + math.floor((h - discSz) / 2)
-    local discColor = T.arrow
-    if isOpen then
-        A.drawTriangleDown(panel, discX, discY, discSz, discColor)
-    else
-        A.drawTriangleRight(panel, discX, discY, discSz, discColor)
-    end
-
-    -- Label
-    local label = ZeD.tr("UI_ZeD_Forage_MoreDetail")
-    local labelColor = T.toneNorm
-    local labelX = discX + discSz + T.px(6)
-    local labelY = y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2)
-    panel:drawText(label, labelX, labelY, labelColor.r, labelColor.g, labelColor.b, labelColor.a or 1, T.fontF1)
-
-    -- Bottom border
-    A.drawDividerH(panel, x, y + h - T.px(1), w, false)
+    -- The library section head (triangle, F1 sentence case, the content line under
+    -- it), its triangle at the grid's text inset and its strip reaching the edge
+    local inset = T.px(GRID_PAD_X)
+    local focus = _gpFocusMatches(win, function(el) return el.isDisclosure end) and true or nil
+    ZeD.Molecules.drawSectionHeader(panel, x + inset, y, w - inset, ZeD.tr("UI_ZeD_Forage_MoreDetail"), nil, isOpen, hovered,
+        nil, false, inset, h, false, focus and { focus = {} } or nil)
 
     -- Store click zone
     win._forageDisclosureZone = { x = x, y = y, w = w, h = h }
@@ -955,7 +910,7 @@ local function drawStatGrid(panel, x, y, w, items)
         local cy = y + row * rowH
 
         -- Row alpha (locked items are dimmed)
-        local alpha = item.locked and 0.45 or 1.0
+        local alpha = item.locked and T.disabledAlpha or 1.0
 
         -- Status dot
         local dotColor = getDotColor(item.dot)
@@ -971,15 +926,9 @@ local function drawStatGrid(panel, x, y, w, items)
         local labelRoom = (cx + colW - T.px(GRID_PAD_X)) - valW - T.px(6) - labelX
         panel:drawText(ZeD.Atoms.truncateText(item.label, T.fontF1, labelRoom), labelX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
 
-        -- Value: semantic color for modifier deltas, neutral for category rarity labels
+        -- Value in the default ink: the status square before the label carries good or bad
         local valStr = item.value
-        local dotType = item.dot
-        local vc
-        if dotType == "positive" or dotType == "danger" or dotType == "warning" then
-            vc = ZeD.colorAlpha(getDotColor(dotType), alpha)
-        else
-            vc = ZeD.colorAlpha(T.toneNorm, alpha)
-        end
+        local vc = ZeD.colorAlpha(T.text, alpha)
         local valX = cx + colW - T.px(GRID_PAD_X) - valW
         local valY = cy + math.floor((rowH - tm:getFontHeight(T.fontF3)) / 2)
         panel:drawText(valStr, valX, valY, vc.r, vc.g, vc.b, vc.a or 1, T.fontF3)
@@ -1001,30 +950,22 @@ local function drawStatGrid(panel, x, y, w, items)
     return totalH
 end
 
--- Draw sub-section header bar
+-- A group inside the detail: the library's category row (15u, F1 toneLo, sentence
+-- case, a content line under it; no triangle: the groups do not fold), with its
+-- summary right-aligned in F3 ("3 / 1 locked", "+5% net")
 local function drawSubHeader(panel, x, y, w, text, countText)
     local T = ZeD.T
     local tm = ZeD.TM
-    local h = T.px(SUB_HEADER_H)
+    local h = ZeD.Molecules.drawCategoryRow(panel, x, y, w, text, nil, true,
+        { noArrow = true, inset = T.px(GRID_PAD_X), h = T.px(SUB_HEADER_H) })
 
-    -- Background
-    local bg = T.surf2
-    panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
-
-    -- Top + bottom borders
-    ZeD.Atoms.drawDividerH(panel, x, y, w, false)
-    ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), w, false)
-
-    local labelY = y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2)
-    local slc = T.toneLo
-    panel:drawText(text, x + T.px(GRID_PAD_X), labelY, slc.r, slc.g, slc.b, slc.a or 1, T.fontF1)
-
-    -- Count (right-aligned)
+    -- Summary (right-aligned)
     if countText then
-        local cw = tm:MeasureStringX(T.fontF3, countText)
+        local s = ZeD.textCase(countText)
+        local cw = tm:MeasureStringX(T.fontF3, s)
         local cx = x + w - T.px(GRID_PAD_X) - cw
-        local snc = T.toneNorm
-        panel:drawText(countText, cx, labelY, snc.r, snc.g, snc.b, snc.a or 1, T.fontF3)
+        local snc = T.textDim
+        panel:drawText(s, cx, y + math.floor((h - tm:getFontHeight(T.fontF3)) / 2), snc.r, snc.g, snc.b, snc.a or 1, T.fontF3)
     end
 
     return h
@@ -1067,33 +1008,31 @@ local function drawFindsHeader(panel, x, y, w)
     local T = ZeD.T
     local tm = ZeD.TM
     local h = T.px(FINDS_HEADER_H)
+    local f5 = T.fontF5
 
-    -- Background
-    local bg = T.surf2
-    panel:drawRect(x, y, w, h, bg.a, bg.r, bg.g, bg.b)
-
-    -- Top + bottom borders
+    -- Column heads (20u, F5, sentence case): surface 2 drawn once over the body,
+    -- a content line above and under
+    ZeD.Surface.fill(panel, x, y, w, h, "surf2")
     ZeD.Atoms.drawDividerH(panel, x, y, w, false)
     ZeD.Atoms.drawDividerH(panel, x, y + h - T.px(1), w, false)
 
-    local labelY = y + math.floor((h - tm:getFontHeight(T.fontF1)) / 2)
-    local lc = T.toneLo
+    local labelY = y + math.floor((h - tm:getFontHeight(f5)) / 2)
+    local lc = T.textDim
 
-    -- Column headers (Lekton, uppercase)
     local colX = x + T.px(FINDS_PAD_X) + T.px(FINDS_ICON_SZ) + T.px(FINDS_ICON_GAP)
-    local distLabel = ZeD.tr("UI_ZeD_Forage_HeadDist")
-    panel:drawText(distLabel, colX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    local distLabel = ZeD.textCase(ZeD.tr("UI_ZeD_Forage_HeadDist"))
+    panel:drawText(distLabel, colX, labelY, lc.r, lc.g, lc.b, lc.a or 1, f5)
 
-    -- NAME starts at its column, or after DIST's measured width plus a gap if that is further
+    -- Name starts at its column, or after Dist's measured width plus a gap if that is further
     local nameX = math.max(colX + T.px(FINDS_DIST_W) + T.px(6),
-        colX + tm:MeasureStringX(T.fontF1, distLabel) + T.px(8))
+        colX + tm:MeasureStringX(f5, distLabel) + T.px(8))
 
-    local wtLabel = ZeD.tr("UI_ZeD_Forage_HeadWeight")
-    local wtW = tm:MeasureStringX(T.fontF1, wtLabel)
+    local wtLabel = ZeD.textCase(ZeD.tr("UI_ZeD_Forage_HeadWeight"))
+    local wtW = tm:MeasureStringX(f5, wtLabel)
     local wtX = x + w - T.px(FINDS_PAD_X) - wtW
-    local nameLabel = ZeD.Atoms.truncateText(ZeD.upper(ZeD.tr("IGUI_Name")), T.fontF1, wtX - nameX - T.px(8))
-    panel:drawText(nameLabel, nameX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
-    panel:drawText(wtLabel, wtX, labelY, lc.r, lc.g, lc.b, lc.a or 1, T.fontF1)
+    local nameLabel = ZeD.Atoms.truncateText(ZeD.tr("IGUI_Name"), f5, wtX - nameX - T.px(8))
+    panel:drawText(nameLabel, nameX, labelY, lc.r, lc.g, lc.b, lc.a or 1, f5)
+    panel:drawText(wtLabel, wtX, labelY, lc.r, lc.g, lc.b, lc.a or 1, f5)
 
     return h
 end
@@ -1106,21 +1045,11 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
     local h = T.px(FINDS_ROW_H)
 
     if #finds == 0 then
-        -- Empty state
-        local emptyText = ZeD.tr("UI_ZeD_Forage_FindsEmpty")
-        local emptyFont = T.fontF1
-        local ew = tm:MeasureStringX(emptyFont, emptyText)
-        local eh = tm:getFontHeight(emptyFont)
-        local emptyPad = T.px(24)
-        local emptyX = x + math.floor((w - ew) / 2)
-        local emptyY = y + emptyPad
-        local ec = T.toneLo
-        panel:drawText(emptyText, emptyX, emptyY, ec.r, ec.g, ec.b, ec.a or 1, emptyFont)
-
-        -- Bottom border
-        local totalH = emptyPad * 2 + eh
-        ZeD.Atoms.drawDividerH(panel, x, y + totalH - T.px(1), w, false)
-        return totalH
+        -- Empty state: the library's empty line, at the list's text inset, 8u under its head
+        local tx = x + T.px(FINDS_PAD_X)
+        local eh = ZeD.Molecules.drawEmptyLine(panel, tx, y + T.px(8), w - T.px(FINDS_PAD_X) * 2,
+            ZeD.textCase(ZeD.tr("UI_ZeD_Forage_FindsEmpty")))
+        return T.px(8) + eh + T.px(8)
     end
 
     local totalH = 0
@@ -1132,8 +1061,8 @@ local function drawFindsRows(panel, win, x, y, w, maxH)
         local my = panel:getMouseY()
         local hovered = not (win._ddBlocksHover) and mx >= x and mx < x + w and my >= ry and my < ry + h
         if hovered then
-            local hbg = T.surf3
-            panel:drawRect(x, ry, w, h, hbg.a, hbg.r, hbg.g, hbg.b)
+            local hv = T.hover
+            panel:drawRect(x, ry, w, h, hv.a, hv.r, hv.g, hv.b)
         end
 
         local colX = x + T.px(FINDS_PAD_X)
@@ -1246,7 +1175,7 @@ function ZeD.ForagingTab.render(panel, win, x, y, w, h)
     totalContentH = totalContentH + T.px(FINDS_HEADER_H)
     local finds = win._recentFinds or {}
     if #finds == 0 then
-        totalContentH = totalContentH + T.px(24) * 2 + T.px(16)  -- empty state approx
+        totalContentH = totalContentH + T.px(8) * 2 + ZeD.TM:getFontHeight(T.fontF2)  -- the empty line (one line)
     else
         totalContentH = totalContentH + #finds * T.px(FINDS_ROW_H)
     end

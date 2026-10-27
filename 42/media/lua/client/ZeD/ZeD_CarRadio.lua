@@ -47,6 +47,7 @@ local PL = ZeD.Plate
 
 local GAP = 6                     -- plate pixels between the radio and the dash
 local PRESS_SHADE = 0.35          -- a held button's shade
+local OWN_FOCUS = { focused = true }   -- the radio decides which control the controller is on (ZeD.Focus.mark)
 
 -- the face's plate for a radio kind (nil when there is none)
 local function plateFor(kind)
@@ -76,7 +77,7 @@ ZeD.trDefaults({
     UI_ZeD_RadioPrompt_ChannelDown = "Channel down", UI_ZeD_RadioPrompt_StoreChannel = "Store channel",
     UI_ZeD_RadioPrompt_Listen = "Listen", UI_ZeD_RadioPrompt_Press = "Press", UI_ZeD_RadioPrompt_Store = "Store",
     UI_ZeD_RadioPrompt_NameChannel = "Name channel", UI_ZeD_RadioPrompt_SeekBack = "Seek back",
-    UI_ZeD_RadioPrompt_Dpad = "D-PAD Move / Turn", UI_ZeD_Hud_PutAway = "Put away",
+    UI_ZeD_RadioPrompt_Move = "Move / turn", UI_ZeD_Hud_PutAway = "Put away",
     UI_ZeD_Radio_NameChannel = "Name channel %1 (empty forgets it)", UI_ZeD_Radio_NoCds = "No CDs on you",
 })
 
@@ -169,7 +170,7 @@ function ZeD_CarRadio:layout(A)
     local s = self:scale()
     local T = ZeD.T
     local pw, ph = A.w * s, A.h * s
-    local stripH = self.joyfocus and T.sp.scrollbarW or 0
+    local stripH = self.joyfocus and ZeD.PadGlyphs.stripH() or 0
     local w, h = pw, ph + (stripH > 0 and (T.px(4) + stripH) or 0)
     local pn = self.playerNum
     local dash = ZeD.Dashboard and ZeD.Dashboard.getInstance and ZeD.Dashboard.getInstance()
@@ -241,7 +242,8 @@ function ZeD_CarRadio:prerender()
     local cv = P.canvas(self, 0, 0, s)
     PL.draw(cv, des, self:plateState(st, t), { tex = plateTex, now = t })
 
-    -- controls: a held key's shade, hover and focus (a ring round a knob, a fill over a key)
+    -- controls: a held key's shade, hover and focus. A key wears the library's looks (the pointer's wash,
+    -- the controller's focus mark); a knob keeps its ring, which is the knob's own light
     local ac = T.accent
     local hits = {}
     local joy = self.joyfocus ~= nil
@@ -250,25 +252,26 @@ function ZeD_CarRadio:prerender()
         local focused = joy and self.focusId == c.id
         local hovered = (not joy) and self._hover == c.id
         if not c.knob and self._press and self._press.id == c.id then PL.cue(cv, c, P.BLACK, PRESS_SHADE) end
-        if focused then PL.cue(cv, c, ac, 0.55)
-        elseif hovered then PL.cue(cv, c, ac, c.knob and 0.30 or 0.22) end
+        if focused then
+            if c.knob then PL.cue(cv, c, ac, 0.55) else PL.markKey(self, c, 0, 0, s, OWN_FOCUS) end
+        elseif hovered then
+            if c.knob then PL.cue(cv, c, ac, 0.30) else PL.hoverKey(cv, c) end
+        end
     end
     self._hits = hits
 
-    -- the controller's strip under the radio
+    -- the controller's strip under the radio: the help line's look (pictures at 14u, F2 words)
     if self._stripH > 0 then
-        local y = self.height - self._stripH
-        local s2, bs = T.surf2, T.borderS
-        self:drawRect(0, y, self.width, self._stripH, 1, s2.r, s2.g, s2.b)
-        self:drawRectBorder(0, y, self.width, self._stripH, bs.a or 1, bs.r, bs.g, bs.b)
-        local items = { ZeD.tr("UI_ZeD_RadioPrompt_Dpad") }
+        local items = { { glyph = "D-PAD", label = ZeD.tr("UI_ZeD_RadioPrompt_Move") } }
         local la = self:labelA()
         if la then items[#items + 1] = { glyph = "A", label = la } end
         local lx = self:labelX()
         if lx then items[#items + 1] = { glyph = "X", label = lx } end
         items[#items + 1] = { glyph = "B", label = ZeD.tr("UI_ZeD_Hud_PutAway") }
-        ZeD.Molecules.drawGlyphPrompts(self, T.sp.sm, y, self._stripH, items)
+        ZeD.PadGlyphs.drawStrip(self, 0, self.height - self._stripH, self.width, items)
     end
+    -- the controller's mark on a key, drawn last so no neighbour covers it
+    ZeD.Focus.drawOverlay(self, self)
 end
 
 function ZeD_CarRadio:labelA()

@@ -6,16 +6,15 @@
 -- brochures, the titled books, the tapes and discs, the recipes known. This reads those records (the same
 -- calls as the game's own tick in ISInventoryPane:isLiteratureRead, and the ones Has Been Read makes) and
 -- gives each readable item a status the lists draw:
---   * list view: a dot and a word in the COND column (books have no condition, so it is empty for them);
---     where the column is hidden, the dot alone at the end of the name;
---   * grid view: the dot in the cell's free corner (bottom left);
---   * a NEXT LEVEL tag on a skill book that suits the character's next level (in the grid, a small arrow);
---   * hover text in the game's own words.
--- Shape carries the meaning, colour backs it up: a ring for unread, a half-filled dot for part read (or some
--- recipes known), a full dot for read; the accent for unread and part read, the green "good" colour for read.
--- A skill book below the character's level counts as read (the game teaches nothing more from it).
--- "Dim read items" in ZeD setup (off by default) fades the read ones.
--- Pixel art at a whole multiple (T.art), like the belt.
+--   * list view: a square mark and a word in the COND column (books have no condition, so it is empty for
+--     them); where the column is hidden, the mark alone at the end of the name;
+--   * grid view: the mark in the cell's free corner (bottom left);
+--   * a "Next level" tag on a skill book that suits the character's next level (in the grid, a small arrow);
+--   * a hover card (the library's detail card) in the game's own words.
+-- Shape carries the meaning, colour backs it up: the 6u status square, hollow for unread, its left half filled
+-- for part read (or some recipes known), full for read; the accent for unread and part read, the green "good"
+-- colour for read. A skill book below the character's level counts as read (the game teaches nothing more
+-- from it). "Dim read items" in ZeD setup (off by default) fades the read ones.
 -- ============================================================================
 
 require "ZeD/Tr"
@@ -30,7 +29,7 @@ ZeD.trDefaults({
     UI_ZeD_Read_Watched = "Watched", UI_ZeD_Read_NotWatched = "Not watched",
     UI_ZeD_Read_Heard = "Heard", UI_ZeD_Read_NotHeard = "Not heard",
     UI_ZeD_Read_Pages = "%1 of %2", UI_ZeD_Read_SomeKnown = "%1 of %2 known",
-    UI_ZeD_Read_NextLevel = "NEXT LEVEL", UI_ZeD_Read_NextFor = "Good for your next level: %1",
+    UI_ZeD_Read_NextLevel = "Next level", UI_ZeD_Read_NextFor = "Good for your next level: %1",
     UI_ZeD_Read_PastLevels = "Your %1 is %2, past this book's levels (%3 to %4)",
     UI_ZeD_Read_ForLevels = "for %1 %2 to %3 (you have %4)",
     UI_ZeD_Read_KnownList = "Known: %1", UI_ZeD_Read_NotKnownList = "Not known: %1",
@@ -206,7 +205,7 @@ function R.state(p, item)
 end
 function R.clear() _cache, _cacheAt = {}, 0 end
 
--- ZeD setup's switches: "Read marks in item lists" (on), "NEXT LEVEL on skill books" (on); off, the lists are as before
+-- ZeD setup's switches: "Read marks in item lists" (on), "Next level on skill books" (on); off, the lists are as before
 function R.on()
     local S = ZeD.Settings
     return not (S and S.readMarksOn) or S.readMarksOn()
@@ -223,13 +222,9 @@ function R.dimOn()
 end
 
 -- ----------------------------------------------------------------------------
--- The pixel marks (one unit = one art pixel at the whole zoom T.art)
+-- The marks: the library's 6u status squares; the grid's next-level arrow in
+-- pixel art (one unit = one art pixel at the whole zoom T.art)
 -- ----------------------------------------------------------------------------
-local DOT = {
-    u = { "..aaa..", ".a...a.", "a.....a", "a.....a", "a.....a", ".a...a.", "..aaa.." },
-    p = { "..aaa..", ".aaa.a.", "aaaa..a", "aaaa..a", "aaaa..a", ".aaa.a.", "..aaa.." },
-    r = { "..aaa..", ".aaaaa.", "aaaaaaa", "aaaaaaa", "aaaaaaa", ".aaaaa.", "..aaa.." },
-}
 local UP = { "..o..", ".oao.", "oaaao", "ooooo" }
 -- each picture as runs { x, y, w, ch } (ch: the character that colours it)
 local function runs(rows)
@@ -250,43 +245,48 @@ local function runs(rows)
     end
     return out
 end
-local DOT_RUNS = { u = runs(DOT.u), p = runs(DOT.p), r = runs(DOT.r) }
 local UP_RUNS = runs(UP)
-R.DOT_W, R.UP_W, R.UP_H = 7, 5, 4
+R.UP_W, R.UP_H = 5, 4
 
 local function k() local T = ZeD.T; return math.max(1, (T and T.art) or 1) end
 R.k = k
--- the COND column's room for the dot and the short statuses (Unread, Read, Known) in F3, with the
--- dot's own lead (InventoryRenderer sizes the column from it)
+-- the mark's side: the one status square (6u)
+function R.markSize() return ZeD.T.px(6) end
+R.DOT_W = 6   -- (design units; older readers measured the mark from it with k())
+-- the COND column's room for the mark and the short statuses (Unread, Read, Known) in F3, with the
+-- mark's own lead (InventoryRenderer sizes the column from it)
 function R.wordRoom()
     local T, tm = ZeD.T, ZeD.TM
     local w = 0
     for _, key in ipairs({ "UI_ZeD_Read_Unread", "UI_ZeD_Read_Read", "UI_ZeD_Read_Known" }) do
         w = math.max(w, tm:MeasureStringX(T.fontF3, ZeD.tr(key)))
     end
-    return T.px(6) + R.DOT_W * k() + T.px(5) + w
+    return T.px(6) + R.markSize() + T.px(5) + w
 end
 -- the mark's colour: the green "good" colour for read, the accent text colour for the rest
 function R.color(st)
     local T = ZeD.T
     return (st == "r") and T.positive or (T.accentText or T.accent)
 end
--- the dot (7 x 7 art pixels) with its top left at x, y
-function R.drawDot(el, x, y, st, a)
+-- the status square with its top left at x, y: full (read), its left half filled (part read), hollow (unread)
+function R.drawMark(el, x, y, st)
+    local A = ZeD.Atoms
     local c = R.color(st)
-    local kk = k()
-    for _, r in ipairs(DOT_RUNS[st] or DOT_RUNS.u) do
-        el:drawRect(x + r[1] * kk, y + r[2] * kk, r[3] * kk, kk, a or 1, c.r, c.g, c.b)
-    end
+    local sq = R.markSize()
+    if st == "r" then A.drawStatusDot(el, x, y, c, sq)
+    elseif st == "p" then A.drawStatusHalf(el, x, y, c, sq)
+    else A.drawStatusHollow(el, x, y, c, sq) end
 end
--- the next level's arrow (5 x 4) in the grid: the accent, outlined dark
+R.drawDot = R.drawMark   -- (the older name: it was a round dot)
+-- the next level's arrow (5 x 4) in the grid: the accent, outlined in the window's strong line colour
 function R.drawUp(el, x, y)
     local T = ZeD.T
     local ac = T.accentText or T.accent
+    local ol = T.borderS
     local kk = k()
     for _, r in ipairs(UP_RUNS) do
-        local c = (r[4] == "a") and ac or { r = 0, g = 0, b = 0 }
-        el:drawRect(x + r[1] * kk, y + r[2] * kk, r[3] * kk, kk, (r[4] == "a") and 1 or 0.7, c.r, c.g, c.b)
+        local c = (r[4] == "a") and ac or ol
+        el:drawRect(x + r[1] * kk, y + r[2] * kk, r[3] * kk, kk, (r[4] == "a") and 1 or (ol.a or 1), c.r, c.g, c.b)
     end
 end
 

@@ -13,7 +13,7 @@
 -- bold / italic / underline / strike / link, which put Steam's codes at the
 -- cursor (the game's text boxes have no selection to wrap). Blocks move up
 -- and down and go away with their icon buttons. On the right the description
--- the way Steam's page shows it, or as Steam's codes. The strip counts the
+-- the way Steam's page shows it, or as Steam's codes. The band counts the
 -- characters against Steam's 8,000, undoes and redoes, and hands the text back
 -- to the upload window (Use this description) or drops it (Cancel).
 -- ============================================================================
@@ -29,8 +29,7 @@ local BB = ZeD.BB
 
 -- design units
 local PAL_SHARE, PREVIEW_SHARE = 0.2, 0.36
-local CARD_PAD, CARD_GAP, HEAD_H, ICON_BTN = 8, 8, 24, 22
-local HINT_MS = 450
+local CARD_PAD, CARD_GAP, HEAD_H = 8, 8, 24
 local ICON = "media/textures/ZeD/icons/"
 
 local function copyBlocks(bs)
@@ -216,7 +215,7 @@ function ZeD_MMDescEdit:prerender()
     ZeD_Window.prerender(self)
     local tb = T.titleBarH
     local pad = T.px(U.STACK_PAD)
-    local stripH = T.px(U.STRIP_BTN_H) + T.px(U.STRIP_PAD_Y) * 2
+    local stripH = MM.bandH()
     local stripY = h - self:footerHeight() - stripH
     local bodyY, bodyH = tb + pad, stripY - tb - pad * 2
     local inner = w - pad * 4
@@ -230,15 +229,14 @@ function ZeD_MMDescEdit:prerender()
 end
 
 function ZeD_MMDescEdit:render()
-    UI.drawStripAndButtons(self, self._stripY, self._stripH, self._ask, self._askX)
-    self:drawHint()
+    UI.drawStripAndButtons(self)
     ZeD_Window.render(self)
 end
 
 -- a column-wide button in the palette
 function ZeD_MMDescEdit:palBtn(id, text, fn, x, y, w, row)
     local T = ZeD.T
-    local bh = T.px(U.STRIP_BTN_H)
+    local bh = T.buttonH
     self._specs[#self._specs + 1] = { id = id, text = text, fn = fn, variant = "default", row = row, col = 1, x = x, y = y, w = w, h = bh, keepCase = true }
     return y + bh + T.px(4)
 end
@@ -264,20 +262,25 @@ function ZeD_MMDescEdit:drawPalette(x, y, w, h)
     self:drawText(ZeD.tr("UI_ZeD_DescEdit_AddSection"), ix, cy, la.r, la.g, la.b, la.a or 1, f1)
     cy = cy + MM.fontH(f1) + T.px(6)
     for i, s in ipairs(BB.SECTIONS) do
-        if cy + T.px(U.STRIP_BTN_H) > y + h - T.px(4) then break end
+        if cy + T.buttonH > y + h - T.px(4) then break end
         cy = self:palBtn("sec:" .. i, BB.text(s[1]), function() self:addSection(s) end, ix, cy, iw, 200 + i)
     end
 end
 
--- a small button in a card's head; icon ones carry a hint
+-- a small button in a card's head: an icon button (its name is its hint), a push button with a mark's
+-- letter, or a radio button (the heading level); all in the height of a row button
 function ZeD_MMDescEdit:headBtn(id, x, y, opts)
     local T = ZeD.T
-    local sz = T.px(ICON_BTN)
-    local w = opts.text and (MM.textW(T.fontF3, opts.text) + T.px(12)) or sz
+    local sz = T.buttonH - T.px(4)
+    local w = sz
+    if opts.text then
+        w = MM.textW(T.fontF3, opts.text) + T.sp.buttonPadX * 2
+        if opts.radio then w = ZeD.Atoms.radioSize() + T.px(5) + MM.textW(T.fontF3, opts.text) + T.px(6) end
+        w = math.max(w, sz)
+    end
     local b = { id = id, x = x - w, y = y, w = w, h = sz, fn = opts.fn, variant = opts.variant or "default", row = opts.row, col = opts.col,
-                icon = opts.icon, text = opts.text or "", hint = opts.hint, on = opts.on, keepCase = true, disabled = opts.disabled,
-                clipTop = self._cv.y, clipBot = self._cv.y + self._cv.h }
-    if opts.on and opts.text then b.variant = "primary" end
+                icon = opts.icon, text = opts.text or "", hint = opts.icon and opts.hint or nil, help = opts.hint, on = opts.on, radio = opts.radio,
+                keepCase = true, disabled = opts.disabled, clipTop = self._cv.y, clipBot = self._cv.y + self._cv.h }
     self._specs[#self._specs + 1] = b
     return x - w - T.px(4)
 end
@@ -313,6 +316,7 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
     local cx, cw = x + T.px(8), w - T.px(16)
     local bodyW = cw - pad * 2
     local f1, f3, dim, ac = T.fontF1, T.fontF3, T.textDim, T.accent
+    local gp = MM.gamepad()
     -- the cards' heights first: the picked one is kept in view
     local hs, total = {}, T.px(8)
     for i, b in ipairs(self.blocks) do
@@ -332,18 +336,20 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
     self:setStencilRect(x + T.px(1), y + T.px(1), w - T.px(2), h - T.px(2))
     local cy = y + T.px(8) - self.cscroll
     local editShown = false
-    local gp = MM.gamepad()
     for i, b in ipairs(self.blocks) do
         local hh = hs[i]
         local isSel = i == self.sel
-        local s1, bs = T.surf1, isSel and ac or T.borderS
+        -- a card: surface 1 and a 1u frame; the picked one under the accent wash, the pointer's under T.hover,
+        -- the controller's with its mark (under the words)
+        local s1 = T.surf1
         self:drawRect(cx, cy, cw, hh, 1, s1.r, s1.g, s1.b)
-        self:drawRectBorder(cx, cy, cw, hh, isSel and 1 or bs.a, bs.r, bs.g, bs.b)
-        if gp and self.focusId == "card:" .. i then self:drawRect(cx, cy, cw, hh, 0.22, ac.r, ac.g, ac.b) end
+        local cardFocus = gp and self.focusId == "card:" .. i
+        MM.rowLook(self, cx, cy, cw, hh, isSel, (not gp) and MM.ctx.hot == "wsd:card:" .. i, cardFocus)
+        ZeD.Atoms.frame(self, cx, cy, cw, hh, T.borderS)
         -- the head: what it is, then its buttons from the right
         local hy = cy + pad
-        local lab = KIND_LABEL[b.kind] and ZeD.tr(KIND_LABEL[b.kind]) or string.upper(b.kind)
-        self:drawText(lab, cx + pad, hy + math.floor((T.px(ICON_BTN) - MM.fontH(f1)) / 2), ac.r, ac.g, ac.b, ac.a or 1, f1)
+        local lab = KIND_LABEL[b.kind] and ZeD.tr(KIND_LABEL[b.kind]) or ZeD.textCase(b.kind)
+        self:drawText(lab, cx + pad, hy + math.floor((T.buttonH - T.px(4) - MM.fontH(f1)) / 2), ac.r, ac.g, ac.b, ac.a or 1, f1)
         local bx = cx + cw - pad
         local row = 1000 + i * 2
         bx = self:headBtn("del:" .. i, bx, hy, { icon = ICON .. "cross-small.png", hint = ZeD.tr("UI_ZeD_DescEdit_HintRemove"), fn = function() self:remove(i) end, row = row, col = 9, variant = "danger" })
@@ -353,7 +359,7 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
             bx = bx - T.px(6)
             for lv = 3, 1, -1 do
                 local k = "h" .. lv
-                bx = self:headBtn("lv:" .. i .. ":" .. lv, bx, hy, { text = "H" .. lv, on = b.kind == k, fn = function() self:setLevel(i, k) end, row = row, col = lv + 2 })
+                bx = self:headBtn("lv:" .. i .. ":" .. lv, bx, hy, { text = "H" .. lv, on = b.kind == k, radio = true, hint = ZeD.tr("UI_ZeD_DescEdit_HintLevel", lv), fn = function() self:setLevel(i, k) end, row = row, col = lv + 2 })
             end
         elseif isSel and INLINE[b.kind] then
             bx = bx - T.px(6)
@@ -391,7 +397,7 @@ function ZeD_MMDescEdit:drawCanvas(x, y, w, h)
         cy = cy + hh + T.px(CARD_GAP)
     end
     if #self.blocks == 0 then
-        self:drawText(ZeD.tr("UI_ZeD_DescEdit_Empty"), cx, y + T.px(12), dim.r, dim.g, dim.b, dim.a or 1, T.fontF2)
+        ZeD.Molecules.drawEmptyLine(self, cx, y + T.px(8), cw, ZeD.tr("UI_ZeD_DescEdit_Empty"))
     end
     self:clearStencilRect()
     if self.edit:isVisible() ~= editShown then self.edit:setVisible(editShown) end
@@ -400,10 +406,10 @@ end
 function ZeD_MMDescEdit:drawPreview(x, y, w, h)
     local T = ZeD.T
     local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    local bs, s2 = T.borderS, T.surf2
+    local bs = T.borderS
     -- the two views as folder tabs
     local tH = T.tabH + T.px(6)
-    self:drawRect(x, y, w, tH, 1, s2.r, s2.g, s2.b)
+    ZeD.Surface.fill(self, x, y, w, tH, "surf2")
     local tx = x + T.px(8)
     for _, t in ipairs({ { "steam", ZeD.tr("UI_ZeD_DescEdit_TabSteam") }, { "codes", ZeD.tr("UI_ZeD_DescEdit_TabCodes") } }) do
         local hid = "wsd:tab:" .. t[1]
@@ -418,7 +424,7 @@ function ZeD_MMDescEdit:drawPreview(x, y, w, h)
     -- Steam's page is dark whatever the theme: the preview keeps the base fill
     local b = T.base
     self:drawRect(x, py, w, ph, 1, b.r, b.g, b.b)
-    self:drawRectBorder(x, py, w, ph, bs.a, bs.r, bs.g, bs.b)
+    ZeD.Atoms.frame(self, x, py, w, ph, bs)
     self._pv = { x = x, y = py, w = w, h = ph }
     local pad = T.px(12)
     self:setStencilRect(x + T.px(1), py + T.px(1), w - T.px(2), ph - T.px(2))
@@ -446,48 +452,25 @@ end
 function ZeD_MMDescEdit:buildStrip(stripY, stripH, w)
     local T = ZeD.T
     local row = 1000000
-    local ask
-    self._askX = nil
     if self.confirm == "leave" then
-        ask = ZeD.tr("UI_ZeD_DescEdit_AskKeep")
+        -- Cancel stays and edits on; Discard changes drops the text; Keep hands it back
         UI.stripSpecs(self, stripY, w, row, {}, {
-            { "confirm:no", ZeD.tr("UI_ZeD_DescEdit_Discard"), function() self:finish(false) end },
-            { "confirm:yes", getText("ContextMenu_Keep"), function() self:finish(true) end, "primary" } })
+            { "confirm:cancel", getText("UI_btn_cancel"), function() self.confirm = false; self.focusId = nil; MM.clickSound() end },
+            { "confirm:no", ZeD.tr("UI_ZeD_MMWord_DiscardChanges"), function() self:finish(false) end, "danger" },
+            { "confirm:yes", getText("ContextMenu_Keep"), function() self:finish(true) end, "primary" } },
+            ZeD.tr("UI_ZeD_DescEdit_AskKeep"))
     else
         local n = #self:text()
         local limit = (MM.wsEditor and MM.wsEditor.limit) or BB.LIMIT   -- (Steam's 8,000 less what the game adds; the Workshop window's descRoom)
         local over = n > limit
-        local askX = UI.stripSpecs(self, stripY, w, row,
+        -- the count is the band's status line: a green square while it fits, red when it is over
+        local ask = ZeD.tr(over and "UI_ZeD_DescEdit_CountOver" or "UI_ZeD_DescEdit_Count", BB.count(n), BB.count(limit))
+        UI.stripSpecs(self, stripY, w, row,
             { { "undo", ZeD.tr("UI_ZeD_DescEdit_Undo"), function() self:restore(self.undo, self.redo) end, "default", #self.undo == 0 },
               { "redo", ZeD.tr("UI_ZeD_DescEdit_Redo"), function() self:restore(self.redo, self.undo) end, "default", #self.redo == 0 } },
             { { "cancel", getText("UI_btn_cancel"), function() self:back() end },
-              { "use", ZeD.tr("UI_ZeD_DescEdit_UseThis"), function() self:finish(true) end, "primary", over } })
-        ask = ZeD.tr(over and "UI_ZeD_DescEdit_CountOver" or "UI_ZeD_DescEdit_Count", BB.count(n), BB.count(limit))
-        self._askX = askX + T.px(8)
-        self._askBad = over
-    end
-    self._stripY, self._stripH, self._ask = stripY, stripH, ask
-end
-
--- the words of an icon button, once the pointer rests on it
-function ZeD_MMDescEdit:drawHint()
-    local hot = MM.ctx.hot
-    if hot ~= self._hintId then self._hintId = hot; self._hintAt = MM.now() end
-    if not hot or MM.gamepad() or MM.now() - (self._hintAt or 0) < HINT_MS then return end
-    for _, b in ipairs(self._specs) do
-        if b.hint and hot == self.kind .. ":" .. b.id then
-            local T = ZeD.T
-            local f = T.fontF3
-            local tw = MM.textW(f, b.hint) + T.px(12)
-            local th = MM.fontH(f) + T.px(8)
-            local hx = math.max(T.px(4), math.min(b.x + b.w - tw, self.width - tw - T.px(4)))
-            local hy = b.y - th - T.px(4)
-            local s2, bs, c = T.surf2, T.borderS, T.text
-            self:drawRect(hx, hy, tw, th, 1, s2.r, s2.g, s2.b)
-            self:drawRectBorder(hx, hy, tw, th, bs.a, bs.r, bs.g, bs.b)
-            self:drawText(b.hint, hx + T.px(6), hy + T.px(4), c.r, c.g, c.b, c.a or 1, f)
-            return
-        end
+              { "use", ZeD.tr("UI_ZeD_DescEdit_UseThis"), function() self:finish(true) end, "primary", over } },
+            ask, true, over and T.danger or T.positive)
     end
 end
 
@@ -495,6 +478,12 @@ end
 -- KEYS, CONTROLLER, WHEEL
 -- ----------------------------------------------------------------------------
 function ZeD_MMDescEdit:joyB() self:back() end
+
+function ZeD_MMDescEdit:getFooterPrompts()
+    if not MM.gamepad() then return nil end
+    if self.confirm then return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_Cancel") } } end
+    return { { glyph = "A", label = ZeD.tr("UI_ZeD_MainMenu_PromptSelect") }, { glyph = "B", label = getText("UI_btn_cancel") } }
+end
 function ZeD_MMDescEdit:keyEscape()
     if self.edit:isFocused() then self.edit:unfocus(); return true end
     self:back()

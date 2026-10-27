@@ -311,14 +311,12 @@ end
 
 local function measureZoneBH(data)
     local T = ZeD.T
-    local headH = ZeD.TM:getFontHeight(T.fontF4)
     local pad   = T.sp.sm
-    local h = pad + T.sp.beforeHead + headH + T.sp.headGap + T.grooveH + T.sp.afterGroove  -- heading + groove
+    local h = pad + T.px(20) + T.sp.afterGroove  -- section head (20u, its line under it)
 
     -- Positive traits
     if #data.posTraits > 0 then
-        local secH = ZeD.TM:getFontHeight(T.fontF1)
-        h = h + secH + T.sp.xs  -- "POSITIVE" subheading
+        h = h + T.px(15) + T.sp.xs  -- "Positive" category row (15u)
         local rows = math.ceil(#data.posTraits / 2)
         h = h + rows * (T.px(TRAIT_ROW_H) + T.px(2))
         h = h + T.sp.sm
@@ -326,8 +324,7 @@ local function measureZoneBH(data)
 
     -- Negative traits
     if #data.negTraits > 0 then
-        local secH = ZeD.TM:getFontHeight(T.fontF1)  -- F1 Lo for NEGATIVE label
-        h = h + secH + T.sp.xs  -- "NEGATIVE" subheading
+        h = h + T.px(15) + T.sp.xs  -- "Negative" category row (15u)
         local rows = math.ceil(#data.negTraits / 2)
         h = h + rows * (T.px(TRAIT_ROW_H) + T.px(2))
         h = h + T.sp.sm
@@ -486,44 +483,55 @@ end
 
 local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
     local T = ZeD.T
+    local A = ZeD.Atoms
+    local rh = T.px(TRAIT_ROW_H)
     local bodyH = ZeD.TM:getFontHeight(T.fontF2)
-
-    -- Row background
-    panel:drawRect(tx, ty, tw, T.px(TRAIT_ROW_H),
-        0.30, color.r, color.g, color.b)
 
     -- its description on hover and on controller focus (mockup zed_traits_tab_v1: the
     -- no-mod scene's descriptions belong here); the zone is kept for both
     local key = "identity:trait:" .. tostring(trait.name)
     local zones = win._idTraitZones
-    zones[#zones + 1] = { x = tx, y = ty, w = tw, h = T.px(TRAIT_ROW_H), id = key, name = trait.name, desc = trait.desc }
-    local focused = focusedId(win) == key
-    if focused then
-        local ac = T.accent
-        panel:drawRect(tx, ty, tw, T.px(TRAIT_ROW_H), 0.55, ac.r, ac.g, ac.b)
+    zones[#zones + 1] = { x = tx, y = ty, w = tw, h = rh, id = key, name = trait.name, desc = trait.desc }
+
+    -- the cell: a content line round it, the hover wash, the controller's mark
+    -- under the words (no tinted fill: the square at the right carries good or bad)
+    local v = win._idView
+    local mx, my = panel:getMouseX(), panel:getMouseY()
+    local inView = (not v) or (mx >= v.x and mx < v.x + v.w and my >= v.y and my < v.y + v.h)
+    local hover = inView and A.mouseIn(panel, tx, ty, tw, rh)
+    if hover then
+        local hv = T.hover
+        panel:drawRect(tx, ty, tw, rh, hv.a, hv.r, hv.g, hv.b)
     end
+    local focused = false
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused and F.isFocused(win, nil, key) then
+        focused = ZeD.Focus.mark(panel, tx, ty, tw, rh, { win = win })
+    end
+    A.frame(panel, tx, ty, tw, rh, T.border)
 
     -- Icon
     if trait.texture then
-        local iconPad = math.floor((T.px(TRAIT_ROW_H) - T.px(TRAIT_ICON_SZ)) / 2)
+        local iconPad = math.floor((rh - T.px(TRAIT_ICON_SZ)) / 2)
         panel:drawTextureScaledAspect(trait.texture, tx + iconPad, ty + iconPad, T.px(trait.texture:getWidth()), T.px(trait.texture:getHeight()), 1.0, 1.0, 1.0, 1.0)
     end
 
-    -- Name
+    -- the status square (good or bad), then the name
+    local sq = T.px(6)
+    local markX = tx + tw - sq - T.px(8)
+    A.drawStatusDot(panel, markX, ty + math.floor((rh - sq) / 2), color, sq)
     local nameX = tx + T.px(TRAIT_ICON_SZ) + T.px(12)
-    local nameY = ty + math.floor((T.px(TRAIT_ROW_H) - bodyH) / 2)
-    local nc = focused and T.textOnFocus or T.toneNorm
-    panel:drawText(trait.name, nameX, nameY,
+    local nameY = ty + math.floor((rh - bodyH) / 2)
+    local nc = focused and T.textOnFocus or T.text
+    panel:drawText(A.truncateText(trait.name, T.fontF2, markX - nameX - T.px(6)), nameX, nameY,
         nc.r, nc.g, nc.b, nc.a or 1, T.fontF2)
 end
 
 local function renderTraitGroup(panel, win, traits, label, x, curY, contentW, color)
     local T    = ZeD.T
-    local secH = ZeD.TM:getFontHeight(T.fontF1)
 
-    -- Subheading (F1 Lo)
-    panel:drawText(label, x, curY, T.toneLo.r, T.toneLo.g, T.toneLo.b, T.toneLo.a, T.fontF1)
-    curY = curY + secH + T.sp.xs
+    -- Category row ("Positive (3)": the count is in the label), not folding
+    curY = curY + ZeD.Molecules.drawCategoryRow(panel, x, curY, contentW, label, nil, true, { noArrow = true, inset = 0 }) + T.sp.xs
 
     -- Two-column grid
     local gap = T.sp.sm
@@ -545,23 +553,18 @@ local function renderZoneB(panel, win, data, x, drawY, w)
     local T    = ZeD.T
     local A    = ZeD.Atoms
     local pad  = T.sp.sm
-    local headH = ZeD.TM:getFontHeight(T.fontF4)
     local contentW = w - pad * 2
 
     local curY = drawY + pad
 
-    -- Heading (F4 Norm)
-    panel:drawText(getText("IGUI_char_Traits"), x + pad, curY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF4)
-    curY = curY + T.sp.beforeHead + headH + T.sp.headGap
-
-    -- Groove divider
-    A.drawGroove(panel, x + pad, curY, contentW)
-    curY = curY + T.grooveH + T.sp.afterGroove
+    -- Section head (20u, sentence case, the content line under it); not folding
+    curY = curY + ZeD.Molecules.drawSectionHeader(panel, x + pad, curY, contentW, getText("IGUI_char_Traits"),
+        nil, true, false, nil, nil, nil, nil, true) + T.sp.afterGroove
 
     local totalCount = #data.posTraits + #data.negTraits
 
     if totalCount == 0 then
-        A.drawSecondary(panel, ZeD.tr("UI_ZeD_Identity_NoTraits"), x + pad, curY, T.textDim)
+        ZeD.Molecules.drawEmptyLine(panel, x + pad, curY, contentW, ZeD.tr("UI_ZeD_Identity_NoTraits"))
         return
     end
 
@@ -586,6 +589,7 @@ end
 
 function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     local T    = ZeD.T
+    local A    = ZeD.Atoms
     local M    = ZeD.Molecules
 
     -- Throttled data refresh
@@ -616,8 +620,8 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     -- Hair and beard (ZeD_HairBeard.lua): a section under the license and its
     -- action strip at the drawer's foot (mockup zed_hair_beard_v1)
     local HB = ZeD.HairBeard
-    local stripH = HB and HB.stripH() or 0
     local hbL = HB and HB.layout(win, w - T.sp.scrollbarW) or nil
+    local stripH = HB and HB.stripH(win) or 0   -- (after the layout: it refreshes what the foot reads)
     local zoneHH = hbL and hbL.h or 0
 
     local zoneAH = measureZoneAH()
@@ -656,6 +660,7 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
     if needsScroll then ZeD.IdentityTab.followFocus(win, scroll, scrollY, scrollH, totalContentH) end
 
     panel:setStencilRect(x, scrollY, contentW, scrollH)
+    win._idView = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (what the pointer may hover)
 
     local scrollOff = 0
     if needsScroll then
@@ -702,60 +707,51 @@ function ZeD.IdentityTab.render(panel, win, x, y, w, h)
 
     if HB then HB.drawStrip(panel, win, x, y + h - stripH, w, stripH) end
 
-    -- S104 — gamepad focus cue on the tab-header disclosure. 0.55α T.accent
-    -- over the header rect, drawn BEFORE drawTabHeader so the chevron + text
-    -- render on top. Gated on the live focused element shape (isDisclosure)
-    -- so the cue clears the moment LB/RB bumpers away. Mirrors Thermal/
-    -- Health/Skills exactly.
-    do
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
-           and Focus.getFocusedElement then
-            local el = Focus.getFocusedElement(win)
-            if el and el.isDisclosure then
-                local ac = T.accent
-                panel:drawRect(x, y, w, tabHeaderH, 0.55, ac.r, ac.g, ac.b)
-            end
-        end
-    end
-
-    -- Pinned tab header — disclosure arrow rotates with _identityPhotoExpanded.
-    -- Collapsed (bust) → right-pointing chevron; expanded (full body) → down.
-    -- L/R tree-nav (gamepad) + header click (mouse) + photo click (mouse on
-    -- ISUI3DModel) all converge on the same _identityPhotoExpanded toggle.
-    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Char_TabIdentity"), win._identityPhotoExpanded)
+    -- Pinned tab header: the disclosure arrow turns with _identityPhotoExpanded
+    -- (collapsed = bust, right-pointing; expanded = full body, down). L/R tree-nav
+    -- (gamepad), the header click (mouse) and a click on the photo all toggle it.
+    -- The hover wash and the controller's mark come with the molecule.
+    local hdrHover = A.mouseIn(panel, x, y, w, tabHeaderH)
+    if hdrHover and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Identity_HelpHeader")) end
+    local F = ZeD.Input and ZeD.Input.Focus
+    local hdrFocus = (F and F.isFocused and F.isFocused(win, nil, "identity:__disclosure")) and { win = win } or nil
+    M.drawTabHeader(panel, x, y, w, ZeD.tr("UI_ZeD_Char_TabIdentity"), win._identityPhotoExpanded, hdrHover, nil,
+        { focus = hdrFocus })
 
     if needsScroll then
         scroll:draw(panel)
     end
 
-    -- hover balloons last, over everything in the drawer: a hair row's hint, a trait's description
-    local clip = { x = x, y = scrollY, w = w, h = scrollH }
-    if HB then HB.drawHints(panel, win, clip) end
-    ZeD.IdentityTab.drawTraitHint(panel, win, x, scrollY, contentW, scrollH, clip)
+    -- hover cards last: a hair row's hint (asked of the window's overlay), a trait's
+    -- description (hover) and the controller's focused one (drawn here, beside it)
+    if HB then HB.drawHints(panel, win) end
+    ZeD.IdentityTab.drawTraitHint(panel, win, x, scrollY, contentW, scrollH)
 end
 
--- a trait's description: on hover (after a pause) and on controller focus (at once)
-function ZeD.IdentityTab.drawTraitHint(panel, win, vx, vy, vw, vh, clip)
+-- a trait's description: on hover (the shared detail card, after its pause) and on
+-- controller focus (at once, under the trait)
+function ZeD.IdentityTab.drawTraitHint(panel, win, vx, vy, vw, vh)
     local zones = win._idTraitZones
     if not zones then return end
-    local fid = focusedId(win)
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    local over = mx >= vx and mx < vx + vw and my >= vy and my < vy + vh
+    local F = ZeD.Input and ZeD.Input.Focus
+    local live = F and F.liveElement and F.liveElement(win)
+    local fid = live and live.id or nil
     local hit, focused = nil, false
     for _, z in ipairs(zones) do
         if fid == z.id then hit, focused = z, true; break end
-        if over and mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hit = z end
     end
-    win._idTraitHint = win._idTraitHint or {}
-    local hs = win._idTraitHint
-    if not hit then hs.hintKey = nil; return end
-    if not focused then
-        local HB = ZeD.HairBeard
-        if not (HB and HB.hintDue(hs, hit.id, getTimestampMs())) then return end
+    if not hit and not (F and F.cuesVisible and F.cuesVisible()) then
+        local mx, my = panel:getMouseX(), panel:getMouseY()
+        if mx >= vx and mx < vx + vw and my >= vy and my < vy + vh then
+            for _, z in ipairs(zones) do
+                if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hit = z end
+            end
+        end
     end
-    if ZeD.HairBeard then
-        ZeD.HairBeard.balloon(panel, hit.name, (hit.desc and hit.desc ~= "") and hit.desc or nil, hit.x, hit.y, hit.w, hit.h, clip)
+    if not hit then return end
+    local HB = ZeD.HairBeard
+    if HB then
+        HB.hoverCard(panel, win, hit.id, hit.name, (hit.desc and hit.desc ~= "") and hit.desc or nil, hit, focused)
     end
 end
 

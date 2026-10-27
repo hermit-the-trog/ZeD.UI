@@ -23,6 +23,20 @@ local function pctToStatusColor(pct)
     else return T.danger end
 end
 
+-- The controller's mark options for the element with this id: set only when the
+-- window is the focused one, the controller is in use and that element has the
+-- focus (ZeD.Input.Focus.isFocused). Passed to the library's buttons and headers
+-- (opts.focus) or to ZeD.Focus.mark.
+local _focusOpts = {}
+local function focusOf(win, id)
+    local F = ZeD.Input and ZeD.Input.Focus
+    if F and F.isFocused and F.isFocused(win, nil, id) then
+        _focusOpts.win = win
+        return _focusOpts
+    end
+    return nil
+end
+
 -- ============================================================================
 -- ANATOMICAL DISPLAY NAMES (medic-style per feedback rule)
 -- Lazy-initialized on first use to ensure BodyPartType Java enum is available.
@@ -116,13 +130,44 @@ end
 
 local SEV_ORDER = { critical = 1, danger = 2, warning = 3, positive = 4, ok = 5 }
 
-local SEV_VARIANT = {
+-- a severity's status colour (the square mark carries it; the words stay default); "ok" has none
+local SEV_TOKEN = {
     critical = "danger",
     danger   = "danger",
     warning  = "warning",
     positive = "positive",
-    ok       = "neutral",
 }
+local function sevColor(sev)
+    local k = SEV_TOKEN[sev]
+    return k and ZeD.T[k] or nil
+end
+
+-- A condition tag's width: its words in sentence case plus the tag's side padding
+-- and, with a status, its square mark (the same box ZeD.Molecules.drawTag draws).
+local function tagW(label, hasMark)
+    local T = ZeD.T
+    local w = ZeD.TM:MeasureStringX(T.fontF1, ZeD.textCase(label)) + T.px(10)
+    if hasMark then w = w + T.px(10) end
+    return w
+end
+
+-- The condition tags of one part, wrapped in maxW from (x, y); draws them when a
+-- panel is given and returns the height they take (0 with none). Measuring and
+-- drawing share this one wrap.
+local function condTags(panel, conds, x, y, maxW)
+    local T = ZeD.T
+    local th, gap = T.px(16), T.sp.badgeGap
+    local bx, by = 0, 0
+    for _, c in ipairs(conds) do
+        local col = sevColor(c.severity)
+        local bw = tagW(c.label, col ~= nil)
+        if bx > 0 and bx + bw > maxW then bx = 0; by = by + th + T.px(2) end
+        if panel then ZeD.Molecules.drawTag(panel, x + bx, y + by, c.label, col) end
+        bx = bx + bw + gap
+    end
+    if #conds == 0 then return 0 end
+    return by + th
+end
 
 -- ============================================================================
 -- CONDITION CLASSIFIER
@@ -389,6 +434,19 @@ function ZeD.HealthTab._drawBodyFigure(panel, win, data, px, py, pw, ph)
     -- detail-view branch and the figure both consume the same value.
     fig.selectedPart = win._healthActivePart or nil
 
+    -- the controller's mark on a focused part: its washes go under the figure (this
+    -- frame's rects are the last frame's, which the figure keeps), the hand beside it
+    local el = ZeD.Input and ZeD.Input.Focus and ZeD.Input.Focus.liveElement and ZeD.Input.Focus.liveElement(win)
+    if el and el.partName and fig.getPartRects then
+        for _, r in ipairs(fig:getPartRects()) do
+            if r.name == el.partName then
+                _focusOpts.win = win
+                ZeD.Focus.mark(panel, r.x, r.y, r.w, r.h, _focusOpts)
+                break
+            end
+        end
+    end
+
     fig:drawAt(panel, px, py, pw, ph)
 end
 
@@ -445,10 +503,10 @@ function ZeD.HealthTab._renderHeader(panel, win, data, rx, ry, rw)
 
     local curY = ry
 
-    -- Overall stat row
+    -- Overall stat row: the status is the square mark, the figure stays default text
     local pct = math.floor(data.overall + 0.5)
     local pctColor = pctToStatusColor(pct)
-    local rowH = M.drawStatRow(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Health_Overall"), pct .. "%", pctColor)
+    local rowH = M.drawStatRowDot(panel, rx, curY, rw, ZeD.tr("UI_ZeD_Health_Overall"), pct .. "%", pctColor)
     curY = curY + rowH + T.sp.rowGap
 
     -- Fill bar
@@ -489,7 +547,6 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
     local M    = ZeD.Molecules
 
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
-    local badgeH = secH + T.sp.badgePadY * 2
 
     local health = data.partHealth[figureName] or 100
     local conds = data.condsByFigureName[figureName]
@@ -506,19 +563,9 @@ function ZeD.HealthTab._renderDetailView(panel, win, data, figureName, rx, ry, r
     local barH = M.drawFillBar(panel, rx, curY, rw, health / 100)
     curY = curY + barH + T.sp.sm
 
-    -- Condition badges (or "Healthy")
+    -- Condition tags (or "Healthy")
     if conds and #conds > 0 then
-        local bx = rx
-        for _, cond in ipairs(conds) do
-            local variant = SEV_VARIANT[cond.severity] or "neutral"
-            local bw = A.drawBadge(panel, cond.label, bx, curY, variant)
-            bx = bx + bw + T.sp.badgeGap
-            if bx + T.px(40) > rx + rw then
-                bx = rx
-                curY = curY + badgeH + T.px(2)
-            end
-        end
-        curY = curY + badgeH + T.sp.xs
+        curY = curY + condTags(panel, conds, rx, curY, rw) + T.sp.xs
     else
         local dotSz = T.px(6)
         local dotGap = T.px(4)
@@ -685,10 +732,11 @@ local function layoutExerciseInfo(info, w)
     items[#items + 1] = { kind = "name", y = y, text = A.truncateText(info.name, f2, w) }
     y = y + h2 + sg
 
+    -- (the game's description is prose: F2, in the secondary ink)
     if info.desc and info.desc ~= "" then
-        local lines = A.wrapText(info.desc, f1, w)
-        items[#items + 1] = { kind = "lines", y = y, lines = lines, sec = true, fh = h1, lg = lg }
-        y = y + #lines * (h1 + lg) + sg
+        local lines = A.wrapText(info.desc, f2, w)
+        items[#items + 1] = { kind = "lines", y = y, lines = lines, sec = true, fh = h2, lg = lg }
+        y = y + #lines * (h2 + lg) + sg
     end
 
     for _, s in ipairs(info.stiff) do
@@ -720,7 +768,7 @@ local function drawExerciseInfo(panel, x, y, w, lay, info)
         elseif it.kind == "lines" then
             for i, line in ipairs(it.lines) do
                 local ly = iy + (i - 1) * (it.fh + it.lg)
-                if it.sec then A.drawSecondary(panel, line, x, ly)
+                if it.sec then A.drawBody(panel, line, x, ly, T.textSec)
                 else A.drawBody(panel, line, x, ly) end
             end
         elseif it.kind == "bar" then
@@ -817,13 +865,15 @@ function ZeD.HealthTab.activateExerciseZone(win, zone)
 end
 
 -- Render exercise buttons:
--- Bodyweight = two-column grid, Equipment = full-width rows below.
+-- Bodyweight = two-column grid, Equipment = full-width rows below. Each is a push
+-- button (the hover wash, the controller's mark and the footer's help come with it).
 function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
     local T    = ZeD.T
     local A    = ZeD.Atoms
-    local font = T.fontF1
+    local M    = ZeD.Molecules
+    local font = T.fontF3
     local secH = ZeD.TM:getFontHeight(font)
-    local btnH = secH + T.sp.pillBtnPadV
+    local btnH = T.buttonH
     local gap  = T.sp.xs
     local colGap = T.sp.sm
     local colW = math.floor((rw - colGap) / 2)
@@ -847,36 +897,30 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
     local leftY  = curY
     local rightY = curY
 
-    -- Gamepad focus cue painter — 0.55 alpha T.accent over the pill bounds.
-    -- Gated on the CURRENTLY focused ring element matching THIS exercise id
-    -- (not the persistent _gpFocusedExercise state field) — otherwise all
-    -- three Health focus cues (exercise/injury/body part) would paint at
-    -- once since they share the charTabContent zone. Focus.getFocusedElement
-    -- returns the single live element across the whole zone.
-    local function _paintExerciseFocusCue(exeId, bx, by, bw, bh)
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if not Focus or not Focus.getFocusedWindow then return end
-        if Focus.getFocusedWindow() ~= win then return end
-        if not Focus.getFocusedElement then return end
-        local el = Focus.getFocusedElement(win)
-        if not el or el.exerciseId ~= exeId then return end
-        local ac = T.accent
-        panel:drawRect(bx, by, bw, bh, 0.55, ac.r, ac.g, ac.b)
-    end
-
-    -- Mouse hover: 0.22 alpha accent over an enabled pill, and the pill under
-    -- the mouse (enabled or not) picks which exercise the info below describes.
+    -- The pointer over a button picks which exercise the info below describes (a
+    -- disabled one too); the hover wash itself comes from the push button.
     local hoverId = nil
     local mouseX, mouseY = panel:getMouseX(), panel:getMouseY()
+    local view = win._healthView
     local mouseIn = mouseX >= 0 and mouseY >= 0
         and mouseX < panel:getWidth() and mouseY < panel:getHeight()
-    local function _paintExerciseHoverCue(exeId, bx, by, bw, bh, enabled)
-        if not mouseIn then return end
-        if mouseX < bx or mouseX >= bx + bw or mouseY < by or mouseY >= by + bh then return end
+        and (not view or (mouseX >= view.x and mouseX < view.x + view.w and mouseY >= view.y and mouseY < view.y + view.h))
+    local function overBtn(exeId, bx, by, bw, bh)
+        if not mouseIn then return false end
+        if mouseX < bx or mouseX >= bx + bw or mouseY < by or mouseY >= by + bh then return false end
         if not string.find(tostring(exeId), "^time:") then hoverId = exeId end
-        if not enabled then return end
-        local ac = T.accent
-        panel:drawRect(bx, by, bw, bh, 0.22, ac.r, ac.g, ac.b)
+        return true
+    end
+
+    local mins = ZeD.HealthTab.getExerciseMinutes(win)
+    local btnOpts = {}
+    local function exerciseBtn(exeId, label, bx, by, bw, enabled)
+        local hover = overBtn(exeId, bx, by, bw, btnH) and A.mouseIn(panel, bx, by, bw, btnH)
+        btnOpts.hover, btnOpts.disabled = hover, not enabled
+        btnOpts.focus = focusOf(win, "exercise:" .. exeId)
+        btnOpts.win = win
+        btnOpts.help = ZeD.tr("UI_ZeD_Health_HelpExercise", label, mins)
+        M.drawButton(panel, bx, by, bw, btnH, A.truncateText(label, font, bw - T.px(12)), "default", false, nil, btnOpts)
     end
 
     for idx, exeId in ipairs(EXERCISE_BODYWEIGHT) do
@@ -887,9 +931,7 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
         local bx = isLeft and rx or (rx + colW + colGap)
         local by = isLeft and leftY or rightY
 
-        _paintExerciseFocusCue(exeId, bx, by, colW, btnH)
-        A.drawPillButton(panel, bx, by, colW, btnH, label, false, enabled, font)
-        _paintExerciseHoverCue(exeId, bx, by, colW, btnH, enabled)
+        exerciseBtn(exeId, label, bx, by, colW, enabled)
 
         zoneIdx = zoneIdx + 1
         win._healthExerciseZones[zoneIdx] = {
@@ -909,9 +951,7 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
         local label = ZeD.HealthTab.exerciseLabel(exeId)
         local enabled = globalEnabled and not isExercising and isExerciseAvailable(playerObj, exeId)
 
-        _paintExerciseFocusCue(exeId, rx, curY, rw, btnH)
-        A.drawPillButton(panel, rx, curY, rw, btnH, label, false, enabled, font)
-        _paintExerciseHoverCue(exeId, rx, curY, rw, btnH, enabled)
+        exerciseBtn(exeId, label, rx, curY, rw, enabled)
 
         zoneIdx = zoneIdx + 1
         win._healthExerciseZones[zoneIdx] = {
@@ -923,27 +963,31 @@ function ZeD.HealthTab._renderExerciseButtons(panel, win, rx, ry, rw)
         curY = curY + btnH + gap
     end
 
-    -- Session time: label on the left, [-] minutes [+] on the right. The time
-    -- can be changed while exercising; it applies to the next start.
-    local mins   = ZeD.HealthTab.getExerciseMinutes(win)
+    -- Session time: label on the left, [-] minutes [+] on the right: two push
+    -- buttons around a readout. The time can be changed while exercising; it
+    -- applies to the next start.
+    local f3H    = ZeD.TM:getFontHeight(font)
     local readW  = ZeD.TM:MeasureStringX(font, "60") + T.px(16)
     local incX   = rx + rw - btnH
     local readX  = incX - readW
     local decX   = readX - btnH
     local canDec = mins > MIN_EXERCISE_TIME
     local canInc = mins < MAX_EXERCISE_TIME
-    A.drawSecondary(panel, A.truncateText(getText("IGUI_FitnessTime"), font, math.max(0, decX - rx - T.sp.sm)),
-        rx, curY + math.floor((btnH - secH) / 2))
-    _paintExerciseFocusCue("time:dec", decX, curY, btnH, btnH)
-    A.drawPillButton(panel, decX, curY, btnH, btnH, "-", false, canDec, font)
-    _paintExerciseHoverCue("time:dec", decX, curY, btnH, btnH, canDec)
+    A.drawSecondary(panel, A.truncateText(getText("IGUI_FitnessTime"), T.fontF1, math.max(0, decX - rx - T.sp.sm)),
+        rx, curY + math.floor((btnH - ZeD.TM:getFontHeight(T.fontF1)) / 2))
+    btnOpts.win = win
+    btnOpts.hover, btnOpts.disabled = overBtn("time:dec", decX, curY, btnH, btnH) and A.mouseIn(panel, decX, curY, btnH, btnH), not canDec
+    btnOpts.focus = focusOf(win, "exercise:time:dec")
+    btnOpts.help = ZeD.tr("UI_ZeD_Health_HelpTimeLess")
+    M.drawButton(panel, decX, curY, btnH, btnH, "-", "default", false, nil, btnOpts)
     local minStr = tostring(mins)
     local tc = T.text
     panel:drawText(minStr, readX + math.floor((readW - ZeD.TM:MeasureStringX(font, minStr)) / 2),
-        curY + math.floor((btnH - secH) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
-    _paintExerciseFocusCue("time:inc", incX, curY, btnH, btnH)
-    A.drawPillButton(panel, incX, curY, btnH, btnH, "+", false, canInc, font)
-    _paintExerciseHoverCue("time:inc", incX, curY, btnH, btnH, canInc)
+        curY + math.floor((btnH - f3H) / 2), tc.r, tc.g, tc.b, tc.a or 1, font)
+    btnOpts.hover, btnOpts.disabled = overBtn("time:inc", incX, curY, btnH, btnH) and A.mouseIn(panel, incX, curY, btnH, btnH), not canInc
+    btnOpts.focus = focusOf(win, "exercise:time:inc")
+    btnOpts.help = ZeD.tr("UI_ZeD_Health_HelpTimeMore")
+    M.drawButton(panel, incX, curY, btnH, btnH, "+", "default", false, nil, btnOpts)
     win._healthExerciseZones[zoneIdx + 1] = {
         id = "time:dec", timeStep = -EXERCISE_TIME_STEP,
         x = decX, y = curY, w = btnH, h = btnH, enabled = canDec,
@@ -1032,7 +1076,7 @@ end
 function ZeD.HealthTab._measureZoneA(data, rw, win)
     local T     = ZeD.T
     local secH  = ZeD.TM:getFontHeight(T.fontF1)
-    local btnH  = secH + T.sp.pillBtnPadV
+    local btnH  = T.buttonH
     local gap   = T.sp.xs
 
     -- Right column: summary section (heading moved to disclosure header)
@@ -1071,8 +1115,6 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
 
     -- Font metrics
     local bodyH  = ZeD.TM:getFontHeight(T.fontF2)
-    local secH   = ZeD.TM:getFontHeight(T.fontF1)
-    local badgeH = secH + T.sp.badgePadY * 2
 
     -- S101 gamepad integration. Stash the content panel so _onPartClicked
     -- (called from injury-row / body-part onActivate) can anchor the vanilla
@@ -1100,14 +1142,13 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     -- detail view (Thermal parity; S101 deferred this, S103 ships it). Stashed
     -- on win so both the detail-view branch and _drawBodyFigure read the same
     -- authoritative value.
+    -- (the live element: the controller's focus leads only while the controller is
+    -- in use, so the mouse's hover leads again once the mouse moves)
     local activePart = win._healthHoveredPart
     do
         local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
-           and Focus.getFocusedWindow() == win then
-            local el = Focus.getFocusedElement(win)
-            if el and el.partName then activePart = el.partName end
-        end
+        local el = Focus and Focus.liveElement and Focus.liveElement(win)
+        if el and el.partName then activePart = el.partName end
     end
     win._healthActivePart = activePart
 
@@ -1130,8 +1171,8 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         zoneBH = zoneBH + T.px(1) + T.sp.afterLine
         for _, entry in ipairs(data.entries) do
             zoneBH = zoneBH + bodyH + T.px(2)
-            local badgeRowH2 = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - T.px(4))
-            zoneBH = zoneBH + badgeRowH2 + T.sp.xs
+            local tagsH = ZeD.HealthTab._measureBadgeRows(entry.conditions, w - scrollW - T.px(4))
+            if tagsH > 0 then zoneBH = zoneBH + tagsH + T.sp.xs end
             zoneBH = zoneBH + T.px(1) + T.sp.afterGroove
         end
     end
@@ -1207,6 +1248,7 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
     end
 
     panel:setStencilRect(x, scrollY, contentW, scrollH)
+    win._healthView = { x = x, y = scrollY, w = contentW, h = scrollH }   -- (what the pointer may hover)
 
     local scrollOff = 0
     if needsScroll then
@@ -1254,56 +1296,45 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
         local listX = x + pad
         local listW = contentW
         local st = T.stripe
+        local sq = T.px(6)
+        local tagsOpts = nil
         for ei, entry in ipairs(data.entries) do
             local entryStartY = curY
+            local tagsH = condTags(nil, entry.conditions, 0, 0, listW)
+            local entryH = bodyH + T.px(2) + (tagsH > 0 and (tagsH + T.sp.xs) or 0) + T.px(1) + T.sp.afterGroove
 
-            -- Alternating row stripe (drawn before content, full entry height estimated)
+            -- Alternating row stripe (drawn before content)
             if ei % 2 == 0 then
-                local entryH = bodyH + T.px(2) + badgeH + T.sp.xs + T.px(1) + T.sp.afterGroove
                 panel:drawRect(listX, curY, listW, entryH, st.a, st.r, st.g, st.b)
             end
 
-            -- S101 gamepad focus cue: 0.55 alpha T.accent over the row. Gated
-            -- on the live focused element having this injuryKey so the cue
-            -- clears on bumper-away or when focus moves to another element
-            -- type inside charTabContent (exercise/body part).
-            do
-                local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-                if Focus and Focus.getFocusedWindow and Focus.getFocusedElement
-                   and Focus.getFocusedWindow() == win then
-                    local el = Focus.getFocusedElement(win)
-                    if el and el.injuryKey == entry.name then
-                        local entryH = bodyH + T.px(2) + badgeH + T.sp.xs + T.px(1) + T.sp.afterGroove
-                        local ac = T.accent
-                        panel:drawRect(listX, curY, listW, entryH, 0.55, ac.r, ac.g, ac.b)
-                    end
-                end
+            -- The controller's mark on the focused injury (under the words)
+            local onFocus = false
+            local fo = focusOf(win, "injury:" .. tostring(entry.name))
+            if fo then
+                onFocus = ZeD.Focus.mark(panel, listX, curY, listW, entryH, fo)
             end
 
-            local nameColor = T[SEV_VARIANT[entry.worstSev]] or T.text
-            A.drawBody(panel, ZeD.partLabel(entry.name), listX, curY, nameColor)
+            -- Default text with the status square: the colour is the mark's
+            local ink = onFocus and T.textOnFocus or T.text
+            local mark = sevColor(entry.worstSev)
+            if mark then A.drawStatusDot(panel, listX + T.px(2), curY + math.floor((bodyH - sq) / 2), mark, sq) end
+            A.drawBody(panel, ZeD.partLabel(entry.name), listX + T.px(2) + sq + T.px(6), curY, ink)
             local hpStr = math.floor(entry.health + 0.5) .. "%"
-            A.drawTextRight(panel, hpStr, listX + listW, curY, T.fontF2, nameColor)
+            A.drawTextRight(panel, hpStr, listX + listW, curY, T.fontF2, ink)
             curY = curY + bodyH + T.px(2)
 
-            local bx = listX
-            for _, cond in ipairs(entry.conditions) do
-                local variant = SEV_VARIANT[cond.severity] or "neutral"
-                local bw = A.drawBadge(panel, cond.label, bx, curY, variant)
-                bx = bx + bw + T.sp.badgeGap
-                if bx + T.px(40) > listX + listW then
-                    bx = listX
-                    curY = curY + badgeH + T.px(2)
-                end
+            if tagsH > 0 then
+                condTags(panel, entry.conditions, listX, curY, listW)
+                curY = curY + tagsH + T.sp.xs
             end
-            curY = curY + badgeH + T.sp.xs
 
             A.drawDividerH(panel, listX, curY, listW)
             curY = curY + T.px(1) + T.sp.afterGroove
 
             -- S101 stamp zone + Y map (read next frame by _buildHealthInjuryFocusables
             -- and scroll-follow above). Height = actual drawn extent including wrapped
-            -- badge rows + divider gap.
+            -- tag rows + divider gap.
             win._healthInjuryYMap[entry.name] = entryStartY
             win._healthInjuryZones[#win._healthInjuryZones + 1] = {
                 x = listX, y = entryStartY, w = listW, h = curY - entryStartY,
@@ -1317,24 +1348,12 @@ function ZeD.HealthTab.render(panel, win, x, y, w, h)
 
     panel:clearStencilRect()
 
-    -- S103 gamepad focus cue on the tab-header disclosure. 0.55α T.accent
-    -- over the header rect, drawn BEFORE drawTabHeader so the chevron + text
-    -- render on top. Gated on live focused element shape (isDisclosure) so
-    -- the cue clears the moment LB/RB bumpers away. Mirrors Thermal exactly.
-    do
-        local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
-        if Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == win
-           and Focus.getFocusedElement then
-            local el = Focus.getFocusedElement(win)
-            if el and el.isDisclosure then
-                local ac = T.accent
-                panel:drawRect(x, y, w, headerH, 0.55, ac.r, ac.g, ac.b)
-            end
-        end
-    end
-
-    -- Pinned header — drawn on top of scroll content
-    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Health"), figureExpanded)
+    -- Pinned header, drawn on top of the scroll content: the hover wash and the
+    -- controller's mark on the disclosure come with the molecule
+    local hdrHover = A.mouseIn(panel, x, y, w, headerH)
+    if hdrHover and ZeD.Help then ZeD.Help.set(win, ZeD.tr("UI_ZeD_Health_HelpHeader")) end
+    M.drawTabHeader(panel, x, y, w, getText("IGUI_XP_Health"), figureExpanded, hdrHover, nil,
+        { focus = focusOf(win, "health:__disclosure") })
 
     if needsScroll then
         scroll:draw(panel)
@@ -1346,26 +1365,7 @@ end
 -- ============================================================================
 
 function ZeD.HealthTab._measureBadgeRows(conditions, maxW)
-    local T = ZeD.T
-    local secH   = ZeD.TM:getFontHeight(T.fontF1)
-    local badgeH  = secH + T.sp.badgePadY * 2
-    local padX = T.sp.badgePadX
-
-    if #conditions == 0 then return 0 end
-
-    local rows = 1
-    local bx = 0
-    for _, cond in ipairs(conditions) do
-        local tw = ZeD.TM:MeasureStringX(T.fontF1, ZeD.upper(cond.label))
-        local bw = tw + padX * 2
-        bx = bx + bw + T.sp.badgeGap
-        if bx + T.px(40) > maxW and bx > bw + T.sp.badgeGap then
-            rows = rows + 1
-            bx = bw + T.sp.badgeGap
-        end
-    end
-
-    return rows * (badgeH + T.px(2))
+    return condTags(nil, conditions, 0, 0, maxW)
 end
 
 -- ============================================================================

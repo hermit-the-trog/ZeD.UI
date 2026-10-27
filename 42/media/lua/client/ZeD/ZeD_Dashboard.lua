@@ -541,9 +541,9 @@ ZeD.trDefaults({
 })
 
 -- ---------------------------------------------------------------------------
--- The lamps' hover text (mockup zed_belt_ammo_dash_v1, "Chip above the lamp"; approved Oct 26 2026): pointing at the
--- battery, engine or headlight lamp, or the heater's light (its button where the plate has no light of its own), shows
--- a ZeD chip above it, the belt's chip: the part, its condition, and the battery's charge, the heater's on / off, each
+-- The lamps' hover text (mockup zed_belt_ammo_dash_v1; approved Oct 26 2026): pointing at the battery, engine or
+-- headlight lamp, or the heater's light (its button where the plate has no light of its own), shows the library's detail
+-- card after the shared delay: the part's name, then its condition, the battery's charge, the heater's on / off, each
 -- headlight. The lamps stay off the controller's path (the Vehicle tab lists every part's condition for the pad).
 -- ---------------------------------------------------------------------------
 local LAMP_ZONE = { genLamp = "batt", engLamp = "eng", hiBeam = "head", heatOn = "heat" }
@@ -585,27 +585,27 @@ end
 D._lampZones = _lampZones   -- (QA probes)
 
 local function _pct(v) return tostring(math.floor((v or 0) + 0.5)) .. "%" end
-local function _condWord(v) return v and ZeD.tr("UI_ZeD_Dash_LampCond", _pct(v)) or getText("IGUI_Missing") end
--- the chip's two parts: the part's name (the game's word) and what is known of it, joined by " | "
+local function _condLine(v) return v and ZeD.tr("UI_ZeD_Dash_LampCondLine", _pct(v)) or getText("IGUI_Missing") end
+-- the hover card's two parts: the part's name (the game's word) and a line for what is known of it
 function D.lampText(id, st)
     if id == "batt" then
-        local rest = _condWord(st.battCond)
-        if st.battCond then rest = rest .. " | " .. ZeD.tr("UI_ZeD_Dash_LampCharge", _pct((st.battRaw or 0) * 100)) end
-        return getText("Tooltip_Dashboard_Battery"), rest
+        local lines = { _condLine(st.battCond) }
+        if st.battCond then lines[2] = ZeD.tr("UI_ZeD_Dash_LampChargeLine", _pct((st.battRaw or 0) * 100)) end
+        return getText("Tooltip_Dashboard_Battery"), lines
     elseif id == "eng" then
-        return getText("IGUI_VehiclePartEngine"), _condWord(st.engineCond)
+        return getText("IGUI_VehiclePartEngine"), { _condLine(st.engineCond) }
     elseif id == "heat" then
-        return getText("Tooltip_Dashboard_Heater"), _condWord(st.heaterCond) .. " | " .. getText(st.heaterOn and "UI_On" or "UI_Off")
+        return getText("Tooltip_Dashboard_Heater"), { _condLine(st.heaterCond), getText(st.heaterOn and "UI_On" or "UI_Off") }
     elseif id == "head" then
-        local l = st.hlL and ZeD.tr("UI_ZeD_Dash_LampLeft", _pct(st.hlL)) or ZeD.tr("UI_ZeD_Dash_LampLeft", getText("IGUI_Missing"))
-        local r = st.hlR and ZeD.tr("UI_ZeD_Dash_LampRight", _pct(st.hlR)) or ZeD.tr("UI_ZeD_Dash_LampRight", getText("IGUI_Missing"))
-        return getText("Tooltip_Dashboard_Headlights"), l .. " | " .. r
+        local l = st.hlL and _pct(st.hlL) or getText("IGUI_Missing")
+        local r = st.hlR and _pct(st.hlR) or getText("IGUI_Missing")
+        return getText("Tooltip_Dashboard_Headlights"), { ZeD.tr("UI_ZeD_Dash_LampLeftLine", l), ZeD.tr("UI_ZeD_Dash_LampRightLine", r) }
     end
     return nil
 end
 ZeD.trDefaults({
-    UI_ZeD_Dash_LampCond = "condition %1", UI_ZeD_Dash_LampCharge = "charge %1",
-    UI_ZeD_Dash_LampLeft = "left %1", UI_ZeD_Dash_LampRight = "right %1",
+    UI_ZeD_Dash_LampCondLine = "Condition %1", UI_ZeD_Dash_LampChargeLine = "Charge %1",
+    UI_ZeD_Dash_LampLeftLine = "Left %1", UI_ZeD_Dash_LampRightLine = "Right %1",
 })
 
 -- ---------------------------------------------------------------------------
@@ -623,6 +623,7 @@ function ZeD_Dashboard:new(playerNum)
     o._hit      = {}
     o._elements = {}
     o._focusRing = { { zone = "dashControls", focusable = false, elements = {}, focusedElementIdx = 1 } }
+    o._markOpts = { win = o }   -- the dash is a focus window of its own (ZeD.Focus.mark)
     o._focusIdx  = 1
     o._s = 1
     o._mem = {}          -- the settling readings (needles have weight)
@@ -648,9 +649,25 @@ function ZeD_Dashboard:_layout()
     return w, h, k
 end
 
--- the gamepad's focus cue: the template's fill over the control (plate pixels)
-function ZeD_Dashboard:_focusCue(x, y, w, h)
-    PL.cue(self._cv, { x = x, y = y, w = w, h = h }, ZeD.T.accent, 0.55)
+-- the controller's mark on a control (plate pixels): the chosen focus look (ZeD.Focus.mark) over the key; the hand,
+-- corners or ants come with the overlay pass at the end of the dash's render. A knob (the head unit's volume and
+-- tuning) keeps its ring, which is the knob's own light.
+local KNOB = { vol = true, tune = true }
+function ZeD_Dashboard:_focusCue(id, x, y, w, h)
+    if KNOB[id] then
+        PL.cue(self._cv, { x = x, y = y, w = w, h = h, kind = "turn" }, ZeD.T.accent, 0.55)
+    else
+        PL.markKey(self, { x = x, y = y, w = w, h = h }, 0, 0, self._s, self._markOpts)
+    end
+end
+
+-- the pointer on a control: the hover wash on a key, the ring (lighter) round a knob
+function ZeD_Dashboard:_hoverCue(id, x, y, w, h)
+    if KNOB[id] then
+        PL.cue(self._cv, { x = x, y = y, w = w, h = h, kind = "turn" }, ZeD.T.accent, 0.30)
+    else
+        PL.hoverKey(self._cv, { x = x, y = y, w = w, h = h })
+    end
 end
 
 -- register a control: hit rect for the mouse, focus element for the pad (driver only)
@@ -661,7 +678,8 @@ function ZeD_Dashboard:_control(id, x, y, w, h, st, enabled)
     self._hit[#self._hit + 1] = hr
     if hr.enabled then
         local focused = self._focEl and self._focEl.id == "dash:" .. id
-        if focused then self:_focusCue(x, y, w, h) end
+        if focused then self:_focusCue(id, x, y, w, h)
+        elseif self._over and ZeD.Atoms.mouseIn(self, hr.x, hr.y, hr.w, hr.h) then self:_hoverCue(id, x, y, w, h) end
         -- X offers the secondary verb only when it can happen: "Remove key" needs a key in the lock
         local secondary = SECONDARY[id]
         if id == "ignition" and not st.keysIn then secondary = nil end
@@ -1009,6 +1027,7 @@ function ZeD_Dashboard:prerender()
     local okD, eD = pcall(PL.draw, cv, des, st, self:_ctx(des, pending), BASE_W, BASE_H)
     if not okD then ZeD.logOnce("dash plate", eD); return end  -- (code audit Oct 17 2026)
     -- controls last, so a focus cue sits over the art
+    self._over = self:isMouseOver()
     for _, hz in ipairs(des.hits) do
         local en = true
         if hz.needs then en = st[hz.needs] and true or false end
@@ -1067,10 +1086,14 @@ function ZeD_Dashboard:prerender()
     end
 end
 
-function ZeD_Dashboard:render() end
+-- The overlay pass: the controller's mark on a control (the hand, corners or ants) and the lamp's detail card, drawn
+-- last so nothing covers them
+function ZeD_Dashboard:render()
+    ZeD.Focus.drawOverlay(self, self)
+end
 
--- the lamp under the pointer: its chip above it (ZeD tokens: surf1, the strong border, F1; the part's name in the
--- text colour, the rest in the accent text colour), kept on the screen
+-- the lamp under the pointer: the library's detail card (title in F4, a line for what is known in F2), asked for each
+-- frame and drawn by the overlay pass after the shared delay
 function ZeD_Dashboard:_lampHover(des, st, k)
     self._lampHov = nil
     if not st.lampsOn then return end
@@ -1081,28 +1104,10 @@ function ZeD_Dashboard:_lampHover(des, st, k)
         if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h and (z.id ~= "heat" or st.hasHeater) then hz = z end
     end
     if not hz then return end
-    local name, rest = D.lampText(hz.id, st)
+    local name, lines = D.lampText(hz.id, st)
     if not name then return end
     self._lampHov = hz.id
-    local T, tm = ZeD.T, ZeD.TM
-    local f1 = T.fontF1
-    local lead = name .. " | "
-    -- (a measure drops a trailing space: the lead is measured with a letter after it, less the letter)
-    local leadW = tm:MeasureStringX(f1, lead .. "x") - tm:MeasureStringX(f1, "x")
-    local w = leadW + tm:MeasureStringX(f1, rest) + T.px(12)
-    local h = tm:getFontHeight(f1) + T.px(6)
-    local x = math.floor((hz.x + hz.w / 2) * k - w / 2)
-    local y = hz.y * k - h - T.px(6)
-    local ax, sw = self:getAbsoluteX(), getCore():getScreenWidth()
-    if ax + x + w > sw - T.px(4) then x = sw - T.px(4) - w - ax end
-    if ax + x < T.px(4) then x = T.px(4) - ax end
-    if self:getAbsoluteY() + y < T.px(4) then y = (hz.y + hz.h) * k + T.px(6) end
-    local s1, bs, tc, ac = T.surf1, T.borderS, T.text, T.accentText
-    self:drawRect(x, y, w, h, 0.95, s1.r, s1.g, s1.b)
-    self:drawRectBorder(x, y, w, h, 1, bs.r, bs.g, bs.b)
-    if (T.borderW or 1) > 1 then self:drawRectBorder(x + T.px(1), y + T.px(1), w - 2 * T.px(1), h - 2 * T.px(1), 1, bs.r, bs.g, bs.b) end
-    self:drawText(lead, x + T.px(6), y + T.px(3), tc.r, tc.g, tc.b, tc.a or 1, f1)
-    self:drawText(rest, x + T.px(6) + leadW, y + T.px(3), ac.r, ac.g, ac.b, 1, f1)
+    ZeD.Atoms.requestDetailCard(self, "lamp:" .. hz.id, { title = name, lines = lines, maxW = 220 }, self)
 end
 
 function ZeD_Dashboard:_fire(id, secondary)

@@ -18,8 +18,10 @@
 -- else); items are a pile of junk; a seat not fitted is its dashed place; a
 -- seat that can't be taken from here is stippled. The pointed seat grows and
 -- turns the accent. The band under the title names it and gives vanilla's
--- reason with a status dot. Doors are the context strip's cells beside the car,
--- one per door you could leave by (Shift numbers them).
+-- reason with a status square. Doors are the context strip's cells beside the car,
+-- one per door you could leave by (Shift numbers them). At the foot: the one
+-- answer (Cancel) in a band, and the window's help line (the plain words for what
+-- the pointer is over, the controller's prompts).
 --
 -- Every rule and every action is vanilla's: canSwitchSeat, moveItemsFromSeat,
 -- isExitBlocked, onSwitchSeat / onEnter / onExit, the keys (1..n sit, Shift +
@@ -32,8 +34,8 @@ require "ZeD/Atoms"
 require "ZeD/Molecules"
 require "ZeD/Organisms"
 ZeD.trDefaults({
-    UI_ZeD_Seat_ByDoor = "By the %1 door.", UI_ZeD_Seat_DpadMove = "D-PAD Move", UI_ZeD_Seat_Sit = "Sit",
-    UI_ZeD_Seat_GetOutHere = "Get out here", UI_ZeD_Seat_NumberGetOut = "+ number: Get out",
+    UI_ZeD_Seat_ByDoor = "By the %1 door.", UI_ZeD_Seat_DpadMove = "D-pad Move", UI_ZeD_Seat_Sit = "Sit",
+    UI_ZeD_Seat_GetOutHere = "Get out here",
 })
 
 ZeD = ZeD or {}
@@ -43,8 +45,7 @@ S.windows = S.windows or {}
 
 -- design units (1 px at 1080p; T.px scales them)
 local U = {
-    W = 330, BAND_H = 46, BAND_PAD = 12, FIG_H = 392, FOOT_H = 40, FOOT_PAD = 12,
-    BTN_H = 24, BTN_MIN = 78, BTN_PAD = 12,
+    W = 330, BAND_H = 46, BAND_PAD = 12, FIG_H = 392, BAND_EDGE = 8,
     SEAT_W = 34, SEAT_H = 48, SEAT_ON_W = 42, SEAT_ON_H = 58,
     DOOR = 24, DOOR_ON = 33, DOOR_ICON = 15, DOOR_ICON_ON = 22, DOOR_GAP = 22,
 }
@@ -102,7 +103,6 @@ ZeD_SeatChooser = ZeD_Window:derive("ZeD_SeatChooser")
 function ZeD_SeatChooser:new(character)
     local o = ZeD_Window.new(self, 0, 0, 100, 100, "")
     o.resizable = false
-    o.themeFooter = false
     o.pin = true
     o.anchorLeft, o.anchorRight, o.anchorTop, o.anchorBottom = true, false, true, false
     o.moveWithMouse = false
@@ -272,13 +272,11 @@ function ZeD_SeatChooser:layout()
     local w = T.px(U.W)
     local bandY, bandH = tbH, T.px(U.BAND_H)
     local figY, figH = bandY + bandH, T.px(U.FIG_H)
-    local footY, footH = figY + figH, T.px(U.FOOT_H)
-    local stripH = T.sp.scrollbarW
-    local h = footY + footH + stripH
+    local footY, footH = figY + figH, ZeD.Molecules.bandH()   -- the band with Cancel
+    local h = footY + footH + self:footerHeight()              -- and the window's help line
     g.band = { y = bandY, h = bandH }
     g.fig = { y = figY, h = figH, cx = math.floor(w / 2), cy = figY + math.floor(figH / 2) }
     g.foot = { y = footY, h = footH }
-    g.strip = { y = footY + footH, h = stripH }
     -- the car: vanilla's outline at its own size (times its per-shape scale)
     local u = T.px(1000) / 1000
     local script = self._script
@@ -322,11 +320,10 @@ function ZeD_SeatChooser:layout()
                            hit = { x = math.floor(cx - T.px(U.DOOR) / 2), y = math.floor(cy - T.px(U.DOOR) / 2), w = T.px(U.DOOR), h = T.px(U.DOOR) } }
         end
     end
-    -- the footer's one answer
-    local label = ZeD.upper(getText("UI_Cancel"))
-    local bw = math.max(T.px(U.BTN_MIN), tw(T.fontF3, label) + T.px(U.BTN_PAD) * 2)
-    local bh = T.px(U.BTN_H)
-    g.cancel = { x = w - T.px(U.FOOT_PAD) - bw, y = footY + math.floor((footH - bh) / 2), w = bw, h = bh, label = label }
+    -- the band's one answer, where M.drawBand puts it: 8u from the right edge, 5u below the top
+    local label = getText("UI_Cancel")
+    local bw = ZeD.Molecules.buttonW(label)
+    g.cancel = { x = w - T.px(U.BAND_EDGE) - bw, y = footY + T.px(5), w = bw, h = T.buttonH, label = label }
     -- size and place: vanilla re-centres on the player's screen every frame
     if self.width ~= w then self:setWidth(w) end
     if self.height ~= h then self:setHeight(h) end
@@ -395,7 +392,7 @@ function ZeD_SeatChooser:drawDoor(r, shift, glyph)
     ctx.cellW, ctx.cellH, ctx.iconPx = r.w, r.w, T.px(on and U.DOOR_ICON_ON or U.DOOR_ICON)
     pcall(M.drawContextCell, self, r.x, r.y, def, { isActive = on }, T)
     ctx.cellW, ctx.cellH, ctx.iconPx = cw, ch, ip
-    if not on then self:drawRectBorder(r.x, r.y, r.w, r.w, 1, INK.r, INK.g, INK.b) end
+    if not on then A.frame(self, r.x, r.y, r.w, r.w, INK) end
     -- a door you have not pointed sits back a little (vanilla's are faint until pointed)
     if not on and not shift and not glyph then
         local b = T.surf1
@@ -409,12 +406,17 @@ function ZeD_SeatChooser:drawDoor(r, shift, glyph)
         if PG and PG.set() then   -- (ZeD's pixel picture of the button, ZeD_PadGlyphs)
             PG.draw(self, { "X" }, gx, gy, gs, PG.k(gs))
         else
-            self:drawRect(gx, gy, gs, gs, 1, 0.24, 0.48, 0.85)
+            -- (the button's name in a box, as the help line writes it)
+            self:drawRect(gx, gy, gs, gs, 1, PAPER.r, PAPER.g, PAPER.b)
+            A.frame(self, gx, gy, gs, gs, INK)
             local f = T.fontF5
-            self:drawText("X", gx + math.floor((gs - tw(f, "X")) / 2), gy + math.floor((gs - fh(f)) / 2), 0.05, 0.05, 0.05, 1, f)
+            self:drawText("X", gx + math.floor((gs - tw(f, "X")) / 2), gy + math.floor((gs - fh(f)) / 2), INK.r, INK.g, INK.b, 1, f)
         end
     end
 end
+
+local _cancelBtn = {}
+local _bandSpec = { buttons = { _cancelBtn } }
 
 function ZeD_SeatChooser:prerender()
     local T = ZeD.T
@@ -433,10 +435,9 @@ function ZeD_SeatChooser:prerender()
     local tc = T.text
     local shift = (not self.joyfocus) and (isKeyDown(Keyboard.KEY_LSHIFT) or isKeyDown(Keyboard.KEY_RSHIFT))
 
-    -- the band: the pointed seat (or door) and why not; with nothing pointed, your own seat
-    local s2 = T.surf2
-    self:drawRect(T.px(1), g.band.y, w - T.px(2), g.band.h, 1, T.surf1.r, T.surf1.g, T.surf1.b)
-    A.drawDividerH(self, T.px(1), g.band.y + g.band.h - T.px(1), w - T.px(2), false)
+    -- the band: the pointed seat (or door) and why not; with nothing pointed, your own seat.
+    -- The window's surface shows through; the structure line under it meets the frame.
+    A.drawDividerH(self, 0, g.band.y + g.band.h - T.px(1), w, true)
     local name, why, dot
     local pd = (not self.joyfocus) and self._hover and self._hover.door
     local ps = self:pointedSeat()
@@ -457,7 +458,7 @@ function ZeD_SeatChooser:prerender()
         self:drawText(A.truncateText(name, f4, w - bx * 2), bx, ny, T.textHead.r, T.textHead.g, T.textHead.b, T.textHead.a or 1, f4)
     end
     if why then
-        local dsz = T.px(7)
+        local dsz = T.px(6)
         local ry = g.band.y + g.band.h - T.px(7) - fh(f2)
         local dc = (dot == "danger" and T.danger) or (dot == "warning" and (T.warning or T.danger)) or T.accent
         A.drawStatusDot(self, bx, ry + math.floor((fh(f2) - dsz) / 2), dc, dsz)
@@ -479,33 +480,34 @@ function ZeD_SeatChooser:prerender()
     end
     if last then self:drawSeat(last, last.st, shift) end
 
-    -- footer: the action zone
+    -- what the help line says for the seat or door under the pointer (vanilla's reason when it has one)
+    local h = self._hover
+    if h and not self.joyfocus then
+        if h.door then ZeD.Help.set(self, ZeD.tr("UI_ZeD_Seat_HelpDoor"))
+        elseif h.seat and self._seats[h.seat] then
+            ZeD.Help.set(self, self:reason(self._seats[h.seat]) or ZeD.tr("UI_ZeD_Seat_HelpSeat", seatName(self._script, h.seat - 1)))
+        end
+    end
+
+    -- the band at the foot: the one answer, at the right
     local f = g.foot
-    self:drawRect(T.px(1), f.y, w - T.px(2), f.h, s2.a or 1, s2.r, s2.g, s2.b)
-    A.drawDividerH(self, T.px(1), f.y, w - T.px(2), false)
     local c = g.cancel
-    local ac = T.accent
-    local colors = (self._hover and self._hover.cancel) and { fill = { r = ac.r, g = ac.g, b = ac.b, a = 0.22 } } or nil
-    M.drawButton(self, c.x, c.y, c.w, c.h, c.label, "default", self._down == "cancel", colors)
-    -- the strip: the keys or the buttons that work here
-    local st = g.strip
-    self:drawRect(T.px(1), st.y, w - T.px(2), st.h, s2.a or 1, s2.r, s2.g, s2.b)
-    A.drawDividerH(self, T.px(1), st.y, w - T.px(2), false)
-    M.drawGlyphPrompts(self, T.sp.sm, st.y, st.h, self:stripPrompts())
+    local b = _cancelBtn
+    b.label, b.id, b.pressed = c.label, "cancel", self._down == "cancel"
+    b.hover = (not self.joyfocus) and (self._hover ~= nil and self._hover.cancel == true)
+    b.help = ZeD.tr("UI_ZeD_Seat_HelpCancel")
+    _bandSpec.win = self
+    M.drawBand(self, 0, f.y, w, _bandSpec)
 end
 
-function ZeD_SeatChooser:stripPrompts()
-    local inside = self._playerSeat ~= -1
-    if self.joyfocus then
-        local t = { ZeD.tr("UI_ZeD_Seat_DpadMove"), { glyph = "A", label = ZeD.tr("UI_ZeD_Seat_Sit") } }
-        if inside then t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Seat_GetOutHere") } end
-        t[#t + 1] = { glyph = "B", label = getText("UI_Cancel") }
-        return t
-    end
-    local n = #(self._seats or {})
-    local t = { { glyph = (n > 1) and ("1-" .. n) or "1", label = ZeD.tr("UI_ZeD_Seat_Sit") } }
-    if inside then t[#t + 1] = { glyph = "SHIFT", label = ZeD.tr("UI_ZeD_Seat_NumberGetOut") } end
-    t[#t + 1] = { glyph = "ESC", label = getText("UI_Cancel") }
+-- the help line's prompts while a controller holds the chooser (the help words, with the mouse)
+function ZeD_SeatChooser:getFooterPrompts()
+    if not self.joyfocus then return nil end
+    local P = ZeD.Prompt
+    local move = ZeD.tr("UI_ZeD_Seat_DpadMove")
+    local t = { P and P.padNote and P.padNote(move) or move, { glyph = "A", label = ZeD.tr("UI_ZeD_Seat_Sit") } }
+    if self._playerSeat ~= -1 then t[#t + 1] = { glyph = "X", label = ZeD.tr("UI_ZeD_Seat_GetOutHere") } end
+    t[#t + 1] = { glyph = "B", label = getText("UI_Cancel") }
     return t
 end
 
@@ -529,6 +531,8 @@ function ZeD_SeatChooser:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
     local cb = self:closeRect()
     if cb and inRect(cb, x, y) then self._down = "close"; return true end
+    -- the window box answers on release (ZeD.Prompt.updateChrome)
+    if inRect(self:windowBoxRect(), x, y) then return true end
     local h = self:hitAt(x, y)
     if h and h.cancel then self._down = "cancel"; return true end
     -- vanilla acts on the press
@@ -554,11 +558,14 @@ function ZeD_SeatChooser:onMouseUpOutside(x, y) self._down = nil end
 
 -- vanilla: a click elsewhere closes it (the first player's)
 function ZeD_SeatChooser:onMouseDownOutside(x, y)
+    -- (its own window menu, pulled down from the window box, is open: the click is the menu's)
+    local WM = ZeD.WindowMenu
+    if WM and WM.current and WM.current._ctx and WM.current._ctx.open then return end
     if self.playerNum == 0 then self:close() end
 end
 
 function ZeD_SeatChooser:update()
-    ISPanel.update(self)
+    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
     -- the car gone from the world or the character dead: it closes, rather than reading a
     -- vanished vehicle every frame (code audit Oct 17 2026)
     if not (self.vehicle and self.vehicle:getSquare()) or self.character:isDead() then self:close(); return end
@@ -573,6 +580,7 @@ function ZeD_SeatChooser:update()
     self._hover = h
     local cb = self:closeRect()
     self._closeHover = cb and inRect(cb, self:getMouseX(), self:getMouseY()) or false
+    if self._closeHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
     -- vanilla: walking away closes it
     if self.vehicle and self.character:DistTo(self.vehicle:getX(), self.vehicle:getY()) > 6 then self:close() end
 end

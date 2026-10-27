@@ -4,14 +4,15 @@
 -- Vanilla's read-only Feeding Trough panel (a few numbers and three lines of
 -- advice, no controller, no distance close) becomes a card in the World
 -- window's card drawer. A trough holds food or water, never both:
---   * the pill says FOOD, WATER (TAINTED) or EMPTY;
---   * food: the feed amount and what lies in the trough, each with TAKE;
---   * water: the litres in a gauge in the water's colour;
---   * ZONE: the zone it feeds and how many animals use it, and a warning when
+--   * the tag says Food, Water (Tainted) or Empty;
+--   * food: the feed amount and what lies in the trough, each with Take;
+--   * water: the litres on a strip in the water's colour;
+--   * Zone: the zone it feeds and how many animals use it, and a warning when
 --     it stands outside any animal zone (animals cannot use it there);
---   * ADD FOOD from your bags (moved into the trough as the loot window does),
---     ADD WATER (the fluid card aimed at the trough), POUR from a container
---     you carry, EMPTY (footer confirm, vanilla's empty).
+--   * Add food from your bags (moved into the trough as the loot window does),
+--     Add water (the fluid card aimed at the trough), Pour from a container
+--     you carry, Empty (the band at the foot asks first, vanilla's empty).
+-- Add food and Add water show only on a trough that can take them.
 -- The rule that a trough takes one or the other uses vanilla's own words.
 -- ============================================================================
 
@@ -193,35 +194,41 @@ function def.refresh(t, player)
     t.d = d
 
     -- verbs: one or the other, in vanilla's words
-    local verbs, needs = {}, {}
+    -- a trough holds food or water, never both: with water in it there is no adding food, with food
+    -- no adding water (vanilla's rule; those verbs are gone), and Empty is for water
+    local verbs = {}
     local foodOK = not d.hasWater and #d.feedRows > 0 and cont ~= nil
     local waterOK = not d.hasFood and fc ~= nil
-    verbs[#verbs + 1] = { id = "food", label = ZeD.tr("UI_ZeD_Trough_AddFood"), primary = not d.hasWater, enabled = foodOK, jump = "trough:feed:1" }
+    verbs[#verbs + 1] = { id = "food", label = ZeD.tr("UI_ZeD_Trough_AddFood"), primary = not d.hasWater, enabled = foodOK, jump = "trough:feed:1",
+        sensible = not d.hasWater, needs = ZeD.tr("UI_ZeD_Trough_NeedsFeed"), hint = ZeD.tr("UI_ZeD_Trough_HintFood"),
+        help = ZeD.tr("UI_ZeD_Trough_HelpFood") }
     verbs[#verbs + 1] = { id = "water", label = ZeD.tr("UI_ZeD_Trough_AddWater"), primary = d.hasWater, enabled = waterOK,
+        sensible = not d.hasFood, help = ZeD.tr("UI_ZeD_Trough_HelpWater"),
         run = function(p, tt) openFluid(p, tt) end }
     if d.hasWater then
-        local q = ZeD.tr("UI_ZeD_Trough_ConfirmEmpty", L(d.water), string.lower(d.fluidName or ZeD.tr("UI_ZeD_Trough_WaterWord")))
-        verbs[#verbs + 1] = { id = "empty", label = ZeD.upper(txt("Fluid_Empty", "Empty")), danger = true, confirm = q,
+        local q = ZeD.tr("UI_ZeD_Trough_QEmpty", L(d.water), string.lower(d.fluidName or ZeD.tr("UI_ZeD_Trough_WaterWord")))
+        verbs[#verbs + 1] = { id = "empty", label = txt("Fluid_Empty", "Empty"), danger = true, confirm = q,
+            help = ZeD.tr("UI_ZeD_Trough_HelpEmpty"),
             enabled = fc ~= nil and call(fc, "canPlayerEmpty") ~= false,
             run = function(p, tt) ISWorldObjectContextMenu.onFluidEmpty(p:getPlayerNum(), tt.obj:getFluidContainer()) end }
     end
-    if d.hasWater then needs[#needs + 1] = ZeD.tr("UI_ZeD_Trough_NeedAddFood", txt("Tooltip_FeedingTrough_WaterPresent", "Can't add feed if trough contains water.")) end
-    if d.hasFood then needs[#needs + 1] = ZeD.tr("UI_ZeD_Trough_NeedAddWater", txt("Tooltip_FeedingTrough_FeedPresent", "Can't add water if trough contains feed.")) end
-    t.verbs, t.needs = verbs, needs
+    t.verbs = verbs
 end
 
 function def.title(t) return t.d and t.d.name or txt("ContextMenu_FeedingTrough", "Feeding Trough") end
 function def.icon(t) return t.d and t.d.icon or nil end
+-- the state tag: its words, the colour of its square mark (none for a plain tag), and a
+-- mark colour of its own (the water's colour)
 function def.pill(t)
     local T = ZeD.T
     local d = t.d
     if not d then return nil end
     if d.hasFood then return ZeD.tr("UI_ZeD_Trough_PillFood"), T.positive end
     if d.hasWater then
-        if d.tainted then return ZeD.upper(txt("Tooltip_tainted", "Tainted")), T.danger end
-        return ZeD.upper(ZeD.tr("Fluid_Name_Water")), T.textDim, d.waterColor
+        if d.tainted then return txt("Tooltip_tainted", "Tainted"), T.danger end
+        return ZeD.tr("Fluid_Name_Water"), T.textDim, d.waterColor
     end
-    return ZeD.upper(ZeD.tr("Fluid_Empty")), T.textDim
+    return ZeD.tr("Fluid_Empty"), T.textDim
 end
 
 -- ---------------------------------------------------------------------------
@@ -236,21 +243,15 @@ local function bigReadout(card, x, y, value, unit)
     return h
 end
 
+-- the water's level: the library's framed strip in the water's colour, its name under it
 local function gauge(card, x, y, w, frac, c, label)
     local T, tm = ZeD.T, ZeD.TM
-    local h = T.px(22)
-    card:drawRect(x, y, w, h, 1, col(T.surf1))
-    local fw = math.floor(w * math.max(0, math.min(1, frac)))
-    if fw > 0 then card:drawRect(x, y, fw, h, 1, col(c)) end
-    for _, f in ipairs({ 0.25, 0.5, 0.75 }) do
-        card:drawRect(x + math.floor(w * f), y, T.px(1), h, T.borderS.a or 1, col(T.borderS))
-    end
-    card:drawRectBorder(x, y, w, h, T.borderS.a or 1, col(T.borderS))
-    if label then
-        local f3 = T.fontF3
-        ZeD.Atoms.drawTextRight(card, label, x + w - T.px(6), y + math.floor((h - tm:getFontHeight(f3)) / 2), f3, T.text)
-    end
-    return h
+    local h = T.fillBarH
+    ZeD.Atoms.drawFillBar(card, x, y, w, math.max(0, math.min(1, frac)), false, c, h)
+    local f3 = T.fontF3
+    local ly = y + h + T.px(3)
+    if label then ZeD.Atoms.drawTextRight(card, label, x + w, ly, f3, T.text) end
+    return h + T.px(3) + tm:getFontHeight(f3)
 end
 
 function def.body(card, x, y, w, t, player)
@@ -266,11 +267,10 @@ function def.body(card, x, y, w, t, player)
     if d.hasFood then
         y = y + bigReadout(card, x, y, string.format("%.1f", d.feed), ZeD.tr("UI_ZeD_Trough_Feed")) + gap
     elseif d.hasWater then
-        y = y + bigReadout(card, x, y, string.format("%.1f", d.water), ZeD.tr("UI_ZeD_Trough_WaterUnit", L(d.maxWater), ZeD.upper(d.fluidName or ZeD.tr("UI_ZeD_Trough_WaterWord")))) + T.px(4)
+        y = y + bigReadout(card, x, y, string.format("%.1f", d.water), ZeD.tr("UI_ZeD_Trough_WaterUnit", L(d.maxWater), d.fluidName or ZeD.tr("UI_ZeD_Trough_WaterWord"))) + T.px(4)
         local lbl = (d.fluidName or ZeD.tr("UI_ZeD_Trough_WaterWord")) .. (d.tainted and (" (" .. txt("Tooltip_tainted", "Tainted") .. ")") or "")
         y = y + gauge(card, x, y, w, d.maxWater > 0 and (d.water / d.maxWater) or 0, d.waterColor or T.info, lbl) + gap
     end
-    if t.needs and #t.needs > 0 then y = y + UI.needs(card, x, y, w, t.needs) + gap end
 
     -- what lies in it
     if #d.inside > 0 then
@@ -278,13 +278,14 @@ function def.body(card, x, y, w, t, player)
         for i, g in ipairs(d.inside) do
             local gg = g
             y = y + UI.pick(card, x, y, w, { tex = g.tex, name = g.name .. (#g.items > 1 and (" " .. DOT .. " " .. #g.items) or ""),
-                button = getText("ContextMenu_Take"), fid = "trough:take:" .. i, run = function(c, p) moveItems(p, t, gg.items, false) end })
+                button = getText("ContextMenu_Take"), fid = "trough:take:" .. i, help = ZeD.tr("UI_ZeD_Trough_HelpTake", g.name),
+                run = function(c, p) moveItems(p, t, gg.items, false) end })
         end
         y = y + gap
     end
 
     -- zone
-    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Trough_Zone"), d.zone and ZeD.tr("UI_ZeD_Trough_ZoneLinked") or ZeD.upper(ZeD.tr("IGUI_None")))
+    y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Trough_Zone"), d.zone and ZeD.tr("UI_ZeD_Trough_ZoneLinked") or ZeD.tr("IGUI_None"))
     y = y + UI.pair(card, x, y, w, ZeD.tr("UI_ZeD_Trough_LinkedTo"), d.zoneName or txt("IGUI_Animal_TroughNotLinked", "None"),
         ZeD.tr("UI_ZeD_Trough_Animals"), d.zone and ZeD.tr("UI_ZeD_Trough_UseIt", d.linked) or nil)
     y = y + gap
@@ -293,12 +294,12 @@ function def.body(card, x, y, w, t, player)
     if not d.hasWater then
         y = y + UI.section(card, x, y, w, ZeD.tr("UI_ZeD_Trough_YourFeed"), tostring(#d.feedRows))
         if #d.feedRows == 0 then
-            y = y + UI.para(card, x + T.px(2), y + T.px(4), w, ZeD.tr("UI_ZeD_Trough_NothingToAdd"), T.textDim) + T.px(4)
+            y = y + ZeD.Molecules.drawEmptyLine(card, x + T.px(2), y + T.px(8), w - T.px(4), ZeD.tr("UI_ZeD_Trough_NothingToAdd")) + T.px(12)
         end
         for i, g in ipairs(d.feedRows) do
             local gg = g
             y = y + UI.pick(card, x, y, w, { tex = g.tex, name = g.name .. (#g.items > 1 and (" " .. DOT .. " " .. #g.items) or ""),
-                where = g.where, button = getText("UI_btn_add"), fid = "trough:feed:" .. i,
+                where = g.where, button = getText("UI_btn_add"), fid = "trough:feed:" .. i, help = ZeD.tr("UI_ZeD_Trough_HelpFeed", g.name),
                 run = function(c, p) moveItems(p, t, gg.items, true) end })
         end
         y = y + gap
@@ -310,7 +311,7 @@ function def.body(card, x, y, w, t, player)
         for i, r in ipairs(d.pourRows) do
             local rr = r
             y = y + UI.pick(card, x, y, w, { tex = r.tex, name = r.name, where = r.where, button = getText("Fluid_Transfer"), fid = "trough:pour:" .. i,
-                run = function(c, p) openFluid(p, t, rr.fc) end })
+                help = ZeD.tr("UI_ZeD_Trough_HelpPour", r.name), run = function(c, p) openFluid(p, t, rr.fc) end })
         end
     end
     return y - y0
