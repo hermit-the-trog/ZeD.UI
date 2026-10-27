@@ -1,0 +1,10 @@
+# ZeDUI/tools/qa/compat_r3_C.txt  (Oct 26 2026): compatibility round 3, group C
+# zedqa_mods_run.ps1 -ModList <group C ids> -Mode fullscreen4k -Manifest this
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_r3_C.lua | r3C | timeout=600       # survey with the group's mods: census, menus, tooltip, tabs, the mods' own windows
+zedqa_traits.lua | tas | timeout=300               # Traits As Skills' tab (ZeD support) with the group's trait mods on
+suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
+zedqa_exinfo.lua | ex                            # Health tab exercise info: vanilla's description, stiffness, regularity, warnings
+zedqa_charinfo.lua | ci | timeout=180           # the game's Character window keys (Health, Skills, Info, Protection) land on ZeD's tabs; Mini Health Panel's click too when that mod is on
+zedqa_moodles.lua | mood | timeout=240          # the moodles in each place (and the thought bubble with its trail, the note by itself) (right edge, left edge, centred above the belt): on screen, where the place puts them, no second copy; four moodles turned on and put back
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear
