@@ -1,0 +1,19 @@
+# ZeDUI/tools/qa/compat_r3_F.txt  (Oct 26 2026): compatibility round 3, group F
+# zedqa_mods_run.ps1 -ModList <group F ids> -Mode fullscreen4k -Manifest this
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_r3_F.lua | r3F | timeout=600       # survey with the group's mods: census, menus, tooltip, tabs, the mods' own windows
+suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
+suite_verbs.lua | verbs                          # item card header verbs through the real dispatch (leaves its book, bat, apple)
+zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
+zedqa_onepath.lua | op                           # single-path fixes: Move To, Rename, double-click, Take all, card verbs
+zedqa_belt_hands.lua | bh                       # the hands at the ends as seen from behind (off hand left, main hand right), a watch outside its own hand, the note last, the pad walks left to right
+zedqa_buckle.lua | bk                            # the buckle stays on the screen centre with a watch on either wrist
+zedqa_beltwatch.lua | bw                         # the mini watch on the belt: pop, drag, tuck, Corner mode
+zedqa_belt_strap.lua | belt                      # the pixel-art belt strap
+zedqa_straps.lua | straps                        # per-slot strap materials, four loadouts, all taken off
+zedqa_wheel_sizes.lua | ws                       # the ZeD wheel at 3 to 11 slices
+zedqa_wheels.lua | wh                            # vanilla's wheels through vanilla's functions, routed slices
+zedqa_dpad_wheels.lua | dw | timeout=600       # the D-pad wheels and the Select ZeD wheel: slices on foot / in a car / by an animal, inner wheels, Back, takes, paused, L3 / R3; every theme at both sizes
+zedqa_quick_chords.lua | qc | timeout=300       # quick action chords: the defaults resolve, LB + X torch from a bag on and off, eat / drink / smoke queued, a gone thing's reason, the press swallowed, assigning from a wheel, ZeD setup's rows and list
+zedqa_put_back.lua | pb | timeout=900 | expect=ISDrinkFromBottle.lua:82   # putting things back: apple, lighter, bottle back into the bag; a tire's jack and wrench back into the trunk; not after a stop; not with the switch off
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear

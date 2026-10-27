@@ -1,0 +1,11 @@
+VERSION = 1,
+
+mods
+{
+    mod = PlainMoodles_by_Slobodskoy,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

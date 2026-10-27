@@ -1,0 +1,13 @@
+# ZeDUI/tools/qa/compat_r3_H.txt  (Oct 26 2026): compatibility round 3, group H
+# zedqa_mods_run.ps1 -ModList <group H ids> -Mode fullscreen4k -Manifest this
+zedqa_prelude.lua | pre                          # opens both windows, unpauses, god mode, ~60 ticks
+zedqa_r3_H.lua | r3H | timeout=600       # survey with the group's mods: census, menus, tooltip, tabs, the mods' own windows
+suite_tabs.lua | tabs                            # every tab of both windows via the strip clicks; focusable census
+suite_verbs.lua | verbs                          # item card header verbs through the real dispatch (leaves its book, bat, apple)
+zedqa_ctxlist.lua | cl                           # context menu as a list, submenu, back to the strip
+zedqa_grid.lua | grid                            # inventory grid, cell card, pad walk, List | Grid toggle
+zedqa_doll.lua | doll                            # Equip tab doll, layers through the pad
+zedqa_mapshot.lua | ms                           # both windows, then the Maps tab
+zedqa_moodles.lua | mood | timeout=240          # the moodles in each place (and the thought bubble with its trail, the note by itself) (right edge, left edge, centred above the belt): on screen, where the place puts them, no second copy; four moodles turned on and put back
+zedqa_charinfo.lua | ci | timeout=180           # the game's Character window keys (Health, Skills, Info, Protection) land on ZeD's tabs; Mini Health Panel's click too when that mod is on
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear

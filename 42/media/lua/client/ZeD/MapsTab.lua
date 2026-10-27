@@ -1002,6 +1002,11 @@ function ZeD_WorldMap:render()
     self._drawnMs = getTimestampMs()   -- (requestStyle: drawn lately, so restyle after a hold)
     if self._pendingZoom then self:_zoomTo(self._pendingZoom) end
     self._gpCursorLive = false
+    -- what sits ON the map (stash icons, flyer pins and their pulse, previews, the
+    -- extensions' marks) is clipped to the map: a pin by the edge never hangs over
+    -- the toolbar or the tab strip (Oct 27 2026). One clip, set and cleared here:
+    -- nothing inside sets its own (stencils do not nest).
+    self:setStencilRect(0, 0, self:getWidth(), self:getHeight())
     self:renderStashMaps()
     self:renderFlyerMarkers()
     self:renderAnnotations()
@@ -1009,6 +1014,7 @@ function ZeD_WorldMap:render()
     self:renderGamepadCursor()
     local win = self._parentWin
     if win then Ext.drawMapUnder(self, win) end   -- the extensions' drawing (MapsTabExt.lua)
+    self:clearStencilRect()
     ZeD.FlyerMap.drawCard(self)          -- the hovered pin's card, on top
     if win then
         local el = _focusedEl(win)

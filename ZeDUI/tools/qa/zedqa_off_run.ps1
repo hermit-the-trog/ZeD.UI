@@ -126,7 +126,7 @@ finally {
     Write-T $Lock "free"
     # errors grouped by the mod named in their stack
     $by = @{}
-    foreach ($l in ($log -split "`r?`n")) { if ($l -match '\(\(MOD:([^)]+)\)\)' -and $l -match 'Exception thrown|Lua fail|ERROR') { $by[$Matches[1]] = 1 + [int]$by[$Matches[1]] } }
+    foreach ($l in ($log -split "`r?`n")) { if ($l -match 'Exception thrown|Lua fail|ERROR' -and $l -match '\(\(MOD:([^)]+)\)\)') { $by[$Matches[1]] = 1 + [int]$by[$Matches[1]] } }
     foreach ($k in $by.Keys) { Write-Output "errors naming $k : $($by[$k])" }
     Write-Output "console kept: $(Join-Path $OutDir "${Stamp}_${Tag}_console.txt")"
 }
