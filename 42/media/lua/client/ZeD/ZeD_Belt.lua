@@ -8,12 +8,13 @@
 -- director's sketch:
 --     [Secondary hand] ==[1]=[2]={buckle}=[3]=[4]== [Main Hand]
 -- (the sketch had the main hand on the left; since Oct 25 2026 the belt reads as seen from behind,
--- the left hand on the left, as the director asked)
+-- the left hand on the left, as the director asked; since Oct 27 2026 the two hands sit together
+-- at the left end, the main hand the bigger: (off)(MAIN) ==[1]=[2]={buckle}=[3]=[4]==)
 -- a decorative leather strap with a buckle in the middle (decoration,
 -- theme-neutral: since Oct 15 2026 the character's profession buckle, 25
 -- designs, the plain KENTUCKY plate for any other), the hotbar slots as ZeD boxes on the strap (a little taller
--- than it) on either side of the buckle in key order, the hands as squares at
--- the two ends. The boxes follow the ZeD base and accent.
+-- than it) on either side of the buckle in key order, the hands as circles
+-- beside it. The boxes follow the ZeD base and accent.
 --
 -- Vanilla's ISHotbar instance stays the data model (its slots, attachments,
 -- refresh on clothing changes, key handlers); Overrides/Belt.lua parks its
@@ -37,7 +38,14 @@ local B = ZeD.Belt
 -- ----------------------------------------------------------------------------
 -- Constants (design units)
 -- ----------------------------------------------------------------------------
-local BOX, HAND = 44, 52
+-- the hands side by side at the left end (director, Oct 27 2026: "I think the hands should move together on the belt",
+-- "Put the hands together at the left end"), the main hand bigger, as vanilla draws them ("Can primary be a little
+-- bigger than secondary, the way the vanilla game does it?": vanilla's off hand is three quarters of the main; here
+-- 56 and a slot's 44). One item in both hands keeps the main hand's circle; the off hand slides in under it and
+-- shows PEEK units ("keeping the primary the circle, and having the secondary peeking from behind")
+local BOX, HAND, OFF_HAND = 44, 56, 44
+local HAND_GAP, PEEK = 6, 14
+local HAND_PIC = 34        -- the main hand's picture; the off hand's is a slot's (SLOT_PIC)
 local GAP, SIDE_GAP, PAD, END_GAP = 11, 14, 12, 10   -- GAP 7 -> 11 (Oct 16 2026): each slot's strap material shows between the boxes
 local BUCKLE_W, BUCKLE_H = 58, 40   -- the profession buckle's own size (58 x 40 texels, one a unit)
 local STRAP_H = 30
@@ -330,7 +338,7 @@ ZeD.trDefaults({
     UI_ZeD_Belt_SlotBeltL = "Belt L", UI_ZeD_Belt_SlotBeltR = "Belt R", UI_ZeD_Belt_SlotHolster = "Holster",
     UI_ZeD_Belt_SlotHolsterL = "Holster L", UI_ZeD_Belt_SlotShoulder = "Shoulder", UI_ZeD_Belt_SlotAnkle = "Ankle",
     UI_ZeD_Belt_SlotWebL = "Web L", UI_ZeD_Belt_SlotWebR = "Web R", UI_ZeD_Belt_SlotPack = "Pack",
-    UI_ZeD_Belt_Tag = "Belt %1", UI_ZeD_Belt_InHand = "In hand", UI_ZeD_Belt_Both = "Both",
+    UI_ZeD_Belt_Tag = "Belt %1", UI_ZeD_Belt_InHand = "In hand",
     UI_ZeD_Belt_SlotKey = "%1 | key %2", UI_ZeD_Belt_Watch = "Watch", UI_ZeD_Belt_WatchSpeed = "Speed | %1x",
     UI_ZeD_Belt_WatchStart = "Start", UI_ZeD_Belt_WatchLight = "Light", UI_ZeD_Belt_WatchTuck = "%1 | Tuck away",
     UI_ZeD_Belt_WatchFull = "%1 | Full watch", UI_ZeD_Belt_Replace = "Replace %1",
@@ -717,9 +725,12 @@ function ZeD_BeltHUD:_layoutCached(slots)
     -- (the gun's capacity too: the pouch is as wide as its rounds need)
     local am = self:_ammoState(p)
     local ammo = am and (tostring(am.max) .. (am.chamber and "c" or "")) or false
+    -- (one item in both hands: the off hand slides in under the main hand)
+    local pri = p and p:getPrimaryHandItem()
+    local two = pri ~= nil and pri == p:getSecondaryHandItem()
     local now = getTimestampMs and getTimestampMs() or 0
     local dirty = L == nil or L.T ~= T or L.p ~= p or L.n ~= n or L.wItem ~= wItem or L.wPlate ~= wPlate
-        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or not self._provAt or now - self._provAt > 1000
+        or L.wWrist ~= wWrist or L.lamp ~= lamp or L.ammo ~= ammo or L.two ~= two or not self._provAt or now - self._provAt > 1000
     if not dirty then
         local types = L.types
         for i = 1, n do
@@ -728,13 +739,14 @@ function ZeD_BeltHUD:_layoutCached(slots)
         end
     end
     if dirty then
-        local w, h = self:_layout(slots, wItem, wPlate, wWrist, lamp, ammo)
+        local w, h = self:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
         local types = {}
         for i = 1, n do
             local s = slots[i]
             types[i] = s and s.slot and s.slot.slotType
         end
-        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, ammo = ammo, types = types, w = w, h = h }
+        self._lk = { T = T, p = p, n = n, wItem = wItem, wPlate = wPlate, wWrist = wWrist, lamp = lamp, ammo = ammo, two = two,
+                     types = types, w = w, h = h }
         return w, h
     end
     for _, b in ipairs(self._boxes) do
@@ -744,38 +756,72 @@ function ZeD_BeltHUD:_layoutCached(slots)
 end
 
 -- Layout: boxes keyed for hit testing; returns the panel size
-function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo)
+function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local T = ZeD.T
     local px = T.px
     local n = #slots
     local k = B.closureAfter(slots)       -- the buckle / knot / clip goes between Belt L and Belt R
     local boxes = {}
-    local hand, box = px(HAND), px(BOX)
+    local hand, off, box = px(HAND), px(OFF_HAND), px(BOX)
     local x = 0
     -- seen from behind, as the camera sees the character (director, Oct 25 2026: "Belt Left is on the
-    -- side of the Primary hand slot"): the off hand (the game's left) at the left end, the main hand
-    -- (the right) at the right end, the slots between in key order. Boxes go in left to right (the
-    -- controller walks them in this order).
-    -- the worn watch (the "Watch" option) outside its own hand: left wrist left of the off hand,
-    -- right wrist right of the main hand
+    -- side of the Primary hand slot"): the off hand (the game's left) on the left of the main hand (the
+    -- right), the pair at the left end of the belt (Oct 27 2026), then the strap with the slots in key
+    -- order. Boxes go in left to right (the controller walks them in this order; the off hand stays
+    -- before the main hand so the main hand draws over it while it peeks).
+    -- the worn watch (the "Watch" option) beside its own hand: left wrist left of the off hand, right
+    -- wrist right of the main hand (outside the ammo pouch)
     -- (wItem, wPlate, wWrist: ZeD.Watch.beltWatch, asked by _layoutCached)
     -- the box is the mini watch as drawn: its art at the whole zoom T.art (Oct 21 2026); where that is
-    -- taller than the hands (1.5: 92 px art, 78 px hands) the belt grows to it and the rest centre on it
+    -- taller than the hands (1.5: 92 px art, 84 px hands) the belt grows to it and the rest centre on it
     local mw, mh = 44 * T.art, 46 * T.art
     if ZeD.WatchMini and ZeD.WatchMini.size then mw, mh = ZeD.WatchMini.size() end
     local h = (wItem and mh > hand) and mh or hand
     local handY = math.floor((h - hand) / 2)
+    local by = math.floor((h - box) / 2)
     local watchBox = wItem and { kind = "watch", item = wItem, plate = wPlate, wrist = wWrist, y = math.floor((h - mh) / 2), w = mw, h = mh } or nil
     if watchBox and wWrist ~= "right" then
         watchBox.x = x
         boxes[#boxes + 1] = watchBox
         x = x + mw + px(WRIST)
     end
-    boxes[#boxes + 1] = { kind = "hand", which = "s", x = x, y = handY, w = hand, h = hand }
-    x = x + hand + px(END_GAP)
+    -- the off hand, HAND_GAP from the main hand; with one item in both hands it slides in under the main
+    -- hand, PEEK showing (a left-wrist watch moves with it; the buckle keeps the rest of the belt in place).
+    -- peekW: how far its visible crescent reaches, where the two circles cross (the controller's mark's width)
+    local offBox = { kind = "hand", which = "s", x = x, y = math.floor((h - off) / 2), w = off, h = off }
+    boxes[#boxes + 1] = offBox
+    if two then
+        local r1, r2, d = off / 2, hand / 2, px(PEEK) + (hand - off) / 2
+        offBox.peek = true
+        offBox.peekW = math.min(off, math.ceil(r1 + (d * d + r1 * r1 - r2 * r2) / (2 * d)))
+        x = x + px(PEEK)
+    else
+        x = x + off + px(HAND_GAP)
+    end
+    local mainBox = { kind = "hand", which = "p", x = x, y = handY, w = hand, h = hand }
+    boxes[#boxes + 1] = mainBox
+    self._mainBox = mainBox
+    x = x + hand
+    -- the ammo pouch beside the main hand while it holds a gun: a short strap of its own, the hand's END_GAP off,
+    -- with the pouch on it as the slots sit on the belt (PAD in from the strap's end, the slots' height and frame);
+    -- wide enough for its words in this language
+    local pouch = nil
+    if ammo then
+        x = x + px(END_GAP)
+        local am = self._ammo and self._ammo.a
+        local aw = self:_ammoWidth(am and am.max or 0, am and am.chamber)
+        pouch = { x = x, w = aw + 2 * px(PAD) }
+        boxes[#boxes + 1] = { kind = "ammo", x = x + px(PAD), y = by, w = aw, h = box }
+        x = x + pouch.w
+    end
+    if watchBox and wWrist == "right" then
+        x = x + px(WRIST)
+        watchBox.x = x
+        boxes[#boxes + 1] = watchBox
+        x = x + mw
+    end
+    x = x + px(END_GAP)
     local strapX = x
-    x = x + px(PAD)
-    local by = math.floor((h - box) / 2)
     -- the buckle's place is its art at the whole zoom (58 x 40 texels at T.art; Oct 21 2026)
     local buckW, buckH = BUCKLE_W * T.art, BUCKLE_H * T.art
     for i = 1, n do
@@ -799,32 +845,9 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo)
     end
     x = x + px(PAD)
     local strapW = x - strapX
-    x = x + px(END_GAP)
-    boxes[#boxes + 1] = { kind = "hand", which = "p", x = x, y = handY, w = hand, h = hand }
-    x = x + hand
-    -- the ammo box beside the main hand while it holds a gun (one more pouch on the belt; the watch on that wrist
-    -- goes outside it): wide enough for its words in this language
-    -- the ammo pouch beside the main hand while it holds a gun: a short strap of its own, the hand's END_GAP off,
-    -- with the pouch on it as the slots sit on the belt (PAD in from the strap's end, the slots' height and frame);
-    -- wide enough for its words in this language
-    local pouch = nil
-    if ammo then
-        x = x + px(END_GAP)
-        local am = self._ammo and self._ammo.a
-        local aw = self:_ammoWidth(am and am.max or 0, am and am.chamber)
-        pouch = { x = x, w = aw + 2 * px(PAD) }
-        boxes[#boxes + 1] = { kind = "ammo", x = x + px(PAD), y = by, w = aw, h = box }
-        x = x + pouch.w
-    end
-    if watchBox and wWrist == "right" then
-        x = x + px(WRIST)
-        watchBox.x = x
-        boxes[#boxes + 1] = watchBox
-        x = x + mw
-    end
-    -- the Messages note, last on the right (only while Messages keeps anything)
+    -- the Messages note, last on the right, past the strap's end (only while Messages keeps anything)
     if lamp then
-        x = x + px(WRIST)
+        x = x + px(END_GAP)
         local lw = px(LAMP)
         boxes[#boxes + 1] = { kind = "lamp", x = x, y = math.floor((h - lw) / 2), w = lw, h = lw }
         x = x + lw
@@ -875,7 +898,12 @@ end
 
 function ZeD_BeltHUD:boxAt(x, y)
     for _, b in ipairs(self._boxes) do
-        if x >= b.x and x < b.x + b.w and y >= b.y and y < b.y + b.h then return b end
+        if x >= b.x and x < b.x + b.w and y >= b.y and y < b.y + b.h then
+            -- the peeking off hand is only the part the main hand does not cover
+            local m = b.peek and self._mainBox
+            local r = m and m.w / 2
+            if not (m and (x + 0.5 - m.x - r) ^ 2 + (y + 0.5 - m.y - r) ^ 2 < r * r) then return b end
+        end
     end
     return nil
 end
@@ -932,10 +960,11 @@ end
 local ROUND_DIR = "media/textures/ZeD/belt/round/"
 local _round, _roundN = {}, 0
 -- is there a picture for this size (the ranges d_rounds.py makes: RING_SIZES there, thickness -> first and last size)
-local RING_BAKED = { [1] = { 20, 72 }, [2] = { 22, 110 }, [3] = { 36, 80 }, [4] = { 28, 122 }, [6] = { 30, 122 },
-                     [8] = { 62, 106 }, [12] = { 66, 110 } }
+-- (Oct 27 2026: widened for the 56-unit main hand and the 44-unit off hand)
+local RING_BAKED = { [1] = { 15, 78 }, [2] = { 17, 120 }, [3] = { 31, 84 }, [4] = { 23, 132 }, [6] = { 25, 132 },
+                     [8] = { 50, 116 }, [12] = { 54, 120 } }
 local function roundBaked(s, t)
-    if not t then return s >= 36 and s <= 136 end
+    if not t then return s >= 31 and s <= 136 end
     local r = RING_BAKED[t]
     return r ~= nil and s >= r[1] and s <= r[2]
 end
@@ -1220,7 +1249,8 @@ local function padMark(self, b, round)
     end
     local hv = T.hover
     disc(self, b.x, b.y, b.w, hv.a or 0.2, hv)
-    F.mark(self, b.x, b.y, b.w, b.h, self._mkSolid)       -- solid: no square wash under the circle
+    -- solid: no square wash under the circle; the peeking off hand's mark is round its crescent only
+    F.mark(self, b.x, b.y, b.peekW or b.w, b.h, self._mkSolid)
     return false
 end
 
@@ -1233,8 +1263,8 @@ local SLOT_PIC = 28
 function ZeD_BeltHUD:_drawBox(b, o)
     local T, tm = ZeD.T, ZeD.TM
     local p1 = T.px(1)
-    local empty = not o.item
-    local bg = empty and T.surf1 or T.surf2
+    -- (the peeking off hand holds the main hand's item: a busy hand's fill)
+    local bg = (o.item or o.peek) and T.surf2 or T.surf1
     local round = b.kind == "hand"
     -- a fill over the whole box: the hands' a circle, the slots' a square
     local function fill(a, c)
@@ -1253,10 +1283,10 @@ function ZeD_BeltHUD:_drawBox(b, o)
     if o.item then
         local tex = call(o.item, "getTex")
         -- (the hands' picture fits inside their condition ring, centred; the slots' sits above their strip)
-        local isz = round and T.px(34) or T.px(SLOT_PIC)
+        local isz = (round and b.which == "p") and T.px(HAND_PIC) or T.px(SLOT_PIC)
         if tex then
             local iy = round and (b.y + math.floor((b.h - isz) / 2)) or (b.y + math.floor((stripTop - isz) / 2))
-            self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - isz) / 2), iy, isz, isz, (o.ghost or o.inHand) and 0.25 or 1, 1, 1, 1)
+            self:drawTextureScaledAspect(tex, b.x + math.floor((b.w - isz) / 2), iy, isz, isz, o.inHand and 0.25 or 1, 1, 1, 1)
         end
     elseif o.label then
         local f5 = T.fontF5
@@ -1288,13 +1318,13 @@ function ZeD_BeltHUD:_drawBox(b, o)
     else
         frameBox(self, b.x, b.y, b.w, b.h, T)
     end
-    -- the foot: In hand / Both as a tag, or the condition (the framed ring inside the hands' outline, the framed
-    -- strip on the slots)
-    if round and o.item and not (o.inHand or o.ghost) then
+    -- the foot: In hand as a tag, or the condition (the framed ring inside the hands' outline, the framed strip on
+    -- the slots)
+    if round and o.item then
         local f = B.cond(o.item)
         if f then condRing(self, b, f, T) end
-    elseif o.inHand or o.ghost then
-        local text = o.inHand and ZeD.tr("UI_ZeD_Belt_InHand") or ZeD.tr("UI_ZeD_Belt_Both")
+    elseif o.inHand then
+        local text = ZeD.tr("UI_ZeD_Belt_InHand")
         local f5, th = T.fontF5, T.px(14)
         local tw = tm:MeasureStringX(f5, ZeD.textCase(text)) + T.px(10)
         local up = round and T.px(6) or 0                -- inside the circle's curve
@@ -1567,7 +1597,8 @@ function ZeD_BeltHUD:_prerender()
             local item = b.which == "p" and pri or (not two and sec or nil)
             o.item = item
             o.label = B.handName(b.which)
-            if b.which == "s" and two then o.item = pri; o.ghost = true end
+            -- one item in both hands: the off hand peeks from under the main hand, empty of picture and words
+            if b.peek then o.label, o.peek = nil, true end
             o.lit = item and call(item, "canBeActivated") and call(item, "isActivated")
         else
             local s = b.s
@@ -1801,14 +1832,14 @@ function B.takeDrop(playerNum, items)
     return true
 end
 
--- Where the small watch sits on screen: x, y, w and the end of the belt it is on
--- ("right" for a right-wrist watch, beside the main hand, else "left"), or nil
+-- Where the small watch sits on screen: x, y, w and the side its full watch opens to ("left": its left edges
+-- line up, the full watch reaching right; both wrists are at the belt's left end since Oct 27 2026), or nil
 function B.watchScreen()
     local hud = B._hud
     if not (hud and hud._drawn) then return nil end
     for _, b in ipairs(hud._boxes) do
         if b.kind == "watch" then
-            return hud:getAbsoluteX() + b.x, hud:getAbsoluteY() + b.y, b.w, (b.wrist == "right") and "right" or "left"
+            return hud:getAbsoluteX() + b.x, hud:getAbsoluteY() + b.y, b.w, "left"
         end
     end
     return nil
@@ -1839,7 +1870,7 @@ function B.focus(playerNum)
     local hud = B._hud
     if not (hud and hud:wanted() and hud._drawn) then return false end
     local p = hud:player()
-    -- start on the first slot (after the off hand, and a left-wrist watch)
+    -- start on the first slot (after the hands, their watch and the ammo pouch)
     hud._gp = { idx = hud:_firstSlotIdx(), inList = false, row = 1, list = B.otherWeapons(p) }
     setJoypadFocus(playerNum, hud)
     p:setJoypadIgnoreAimUntilCentered(true)

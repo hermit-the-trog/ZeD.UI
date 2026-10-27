@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/hands_together.txt  (Oct 27 2026)
+# The belt's hands together at the left end, the main hand 56 and the off hand 44, the off hand peeking:
+# zedqa_run.ps1 -Mode fullscreen4k -Manifest .../hands_together.txt
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+zedqa_hands_together.lua | ht | timeout=300              # sizes, gap, peek, order, clicks, pad walk, watches, ammo pouch
