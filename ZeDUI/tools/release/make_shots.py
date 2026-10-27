@@ -28,7 +28,8 @@ Shot list (see ZeDUI/workshop/shots/shots.json):
   "shots": [
     { "id": "hero", "kind": "ingame", "src": "ws_01_street.png",
       "box": [x0,y0,x1,y1],              optional, ingame: the part of the scene to show
-      "avoid": [[x0,y0,x1,y1], ...],     optional, source px: keep balloons off these
+      "avoid": [[x0,y0,x1,y1], ...],     optional, source px: keep balloons off these (ingame: a cost;
+                                         feature: never covered, both corners in one crop)
       "title": "...", "caption": "...",  feature: title band text; optional caption strip
       "crops": [ {"box": [x0,y0,x1,y1],   source px
                   "src": "other.png",       optional: a crop from another screenshot
@@ -689,6 +690,14 @@ def render(shot, screens, n, stub, debug, patches=()):
             kk = pw / (c["box"][2] - c["box"][0])
             return (px + (p[0] - c["box"][0]) * kk, py + (p[1] - c["box"][1]) * kk)
         safe = (24, BAND_H + 22, W - 24, H - (CAP_H if has_cap else 0) - 20)
+        # feature: "avoid" boxes (source px, both corners in one crop) are never covered (Oct 27 2026,
+        # director: "Be careful with feature bubbles covering/hiding things")
+        for r in shot.get("avoid", []):
+            hit = [i for i, pl in enumerate(places) if pl[0]["box"][0] <= r[0] <= pl[0]["box"][2]
+                   and pl[0]["box"][1] <= r[1] <= pl[0]["box"][3]]
+            if not hit:
+                raise SystemExit("%s: avoid box %s is in no crop" % (shot["id"], r))
+            protect.append((*to_out(r[:2], hit[0]), *to_out(r[2:], hit[0])))
 
     for b in balloons:
         hint = b.get("crop")
@@ -699,6 +708,19 @@ def render(shot, screens, n, stub, debug, patches=()):
             t = b["target"]
             protect.append((*to_out(t[:2], hint), *to_out(t[2:], hint)))
     solve(balloons, safe, protect, soft, 1.0 if kind != "ingame" else 3.0)
+    # report every balloon that lands on a picture (feature) or on an avoid box (ingame), and on a
+    # protected box, so a card can be checked without looking (the look is still the last word)
+    for b in balloons:
+        what = (b.get("head") or b.get("text", ""))[:32]
+        for j, sr in enumerate(soft):
+            ov = rect_overlap(b["rect"], sr)
+            if ov > 0:
+                print("  NOTE %s: balloon '%s' lies on %s %d (%d px)" % (shot["id"], what,
+                      "picture" if kind != "ingame" else "avoid box", j + 1, ov))
+        for pr in protect:
+            if rect_overlap(b["rect"], pr) > 0:
+                print("  WARN %s: balloon '%s' covers a target, an anchor or an avoid box" % (shot["id"], what))
+                break
 
     if kind != "ingame":
         # centre the whole group (pictures, labels, balloons) in the window body,

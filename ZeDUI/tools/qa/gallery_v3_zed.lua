@@ -12,6 +12,7 @@
 --   car       the station wagon: dash by day, by night                             (40-41)
 --   settings  pause menu Options: ZeD setup page, Interface page                   (45-46)
 --   themes    the pair, same place and tab, bases dark / light / hicon x 6 accents
+--   more      Building, Foraging, Furniture, the inventory as a grid (zed_50-53; Oct 27 2026)
 -- The theme is high contrast + PZ Teal (ZeD.applyTheme, in memory only; the options
 -- are re-applied at the end). Puts back what it changes; the scene stays for the next
 -- script (gallery_v3_teardown.lua). "ZEDQA g3z ..." ending "ZEDQA g3z DONE".
@@ -322,6 +323,24 @@ if want("tabs") then
     S.step(2, function() local m = Z.zm(); if m then m:close() end end)
     Z.Sc("zed_21_ctx_list", 30, menu(2))
     S.step(2, function() local m = Z.zm(); if m then m:close() end; Opt.contextStyleOption:setValue(Z.was.ctx) end)
+    S.step(15, function() end)
+end
+
+-- ---- more (Oct 27 2026, 0.2.0-t7: cards for what the gallery did not show) -----------------
+--   zed_50 Building with a recipe open, zed_51 Foraging, zed_52 Furniture, zed_53 the inventory as a grid
+if want("more") then
+    Z.T("zed_50_building", "w", "build", 60, function() return Z.recipe("build", true) end)
+    S.step(2, function() Z.recipe("build", false) end)
+    Z.T("zed_51_forage", "w", "forage", 60)
+    Z.T("zed_52_furniture", "w", "furniture", 60)
+    S.step(2, function() Z.worldTab("loot"); Z.charTab("loot") end)
+    Z.Sc("zed_53_grid", 50, function()
+        local IR = ZeD.InventoryRenderer
+        if not (IR and IR.setGridKey) then return false, "no grid switch" end
+        Z.was.grid = IR.isGridKey("player")
+        IR.setGridKey("player", true)
+    end)
+    S.step(2, function() local IR = ZeD.InventoryRenderer; if IR and IR.setGridKey then IR.setGridKey("player", Z.was.grid == true) end end)
     S.step(15, function() end)
 end
 
