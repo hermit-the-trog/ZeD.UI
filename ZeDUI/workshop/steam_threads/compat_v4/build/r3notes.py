@@ -127,7 +127,7 @@ N3 = {
  # Group F
  "3388107363": ("X", "Errors at load on 42.21 (a body location given as text), so its sling slot is not made. Not ZeD."),
  "3390169945": ("C", "Retired by its maker. Its row shows as a raw text key on 42.21 (its own)."),
- "2642486124": ("X", "Every double-click on an item errors on 42.21 (it calls getTypeString, which 42.21 removed), with or without ZeD-GUI. Not ZeD."),
+ "2642486124": ("X", "Every double-click on an item errors on 42.21 (it calls getTypeString, which 42.21 removed, before any ZeD code runs). Not ZeD."),
  "3634921455": ("N", ICONS),
  "3634921763": ("N", "Icons for Context Menu Icons. ZeD's item menu draws its own icons. Use one."),
  "3663625294": ("N", "ZeD's belt does this job; it reorders the game's hotbar, which ZeD keeps hidden. Use one."),
@@ -156,7 +156,7 @@ N3 = {
  "3776531193": ("W", "Its Palm Pilot screen opens beside ZeD's windows."),
  "3825312974": ("C", "Its window opens from its own button (pausing the game, as without ZeD-GUI), and its rows are in ZeD's item and world menus."),
  "3617732907": ("W", "Its Inspect item row is in ZeD's item menu, and its inspect window opens clear of ZeD's windows."),
- "2640351732": ("X", "Every right-click on the world errors on 42.21, once per item you carry (it calls getCategories, which 42.21 removed), with or without ZeD-GUI. Not ZeD."),
+ "2640351732": ("X", "Every right-click on the world errors on 42.21, once per item you carry (it calls getCategories, which 42.21 removed, in its own menu code). Not ZeD."),
  "3387110070": ("C", "One error of its own at load on 42.21 (a body location given as text). Not ZeD."),
  "3777433827": ("C", f"Its two belt slots show on ZeD's belt. From ZeD-GUI {T7} they read the slot's own name, cut to the box; in 0.2.0-t6 a long raw id runs out of the box."),
  # Group H
