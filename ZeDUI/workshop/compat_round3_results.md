@@ -23,10 +23,10 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 |---|---|
 | Supported | 0 |
 | Works well | 6 |
-| Compatible | 153 |
-| Not needed | 18 |
-| Does not work | 1 |
-| Tested in all | 178 |
+| Compatible | 189 |
+| Not needed | 21 |
+| Does not work | 4 |
+| Tested in all | 220 |
 | Not tested | 2 |
 
 
@@ -245,6 +245,55 @@ Reports: qa/regression/2026-10-26_2037_mods_fullscreen4k.md (11/11 pass); ZeD of
 | Auto Center Map | [3790912405](https://steamcommunity.com/sharedfiles/filedetails/?id=3790912405) | 2 | Compatible | Part of it does not show: it centres the game's map; the map key opens ZeD's map pop-out (seen). |
 | Civil Defense Sirens [B42 SP/MP] | [3750612709](https://steamcommunity.com/sharedfiles/filedetails/?id=3750612709) | 3 | Compatible | Its Civil Defense Sirens row is in ZeD's world menu (seen); some of its option texts have a stray % (game warnings, also with ZeD off). |
 
+### Group F
+
+Reports: qa/regression/2026-10-26_2056_mods_fullscreen4k.md (13/17 pass: the survey's Smart Radial Menu error, Quick Item Action's double-click error, quick chords' ZeD setup check (ZeD bug 4), and Messages' first check, which fails in every run with mods that leave notes); Smart Radial Menu on/off: 2026-10-26_2109 and qa/modload/*_srm_console.txt; quick chords with ZeD alone 2026-10-26_2113, with True Music Jukebox alone 2026-10-26_2116
+
+| Mod | Workshop id | Tier | List | Evidence |
+|---|---|---|---|---|
+| [B42] Noir's Rifle Slings | [3388107363](https://steamcommunity.com/sharedfiles/filedetails/?id=3388107363) | 1 | Does not work | Errors at load on 42.21: Sling_BodyLocations.lua passes a body location as text where 42.21 wants an ItemBodyLocation ('expected argument of type ItemBodyLocation, got String'), so its sling slot is not made. Not ZeD (a load-time script line). |
+| [Deprecated] What can I craft? | [3390169945](https://steamcommunity.com/sharedfiles/filedetails/?id=3390169945) | 1 | Compatible | Deprecated by its maker. Its row shows in ZeD's item menu as the raw key ContextMenu_WhatCanICraft (its text is missing on 42.21, its own). |
+| [B42] Simple Belt Flashlight! (Fix for angled flashlight) | [3625933422](https://steamcommunity.com/sharedfiles/filedetails/?id=3625933422) | 1 | Compatible | Loads, no errors (its belt flashlight needs a flashlight on the belt slot; not tried). |
+| Quick Item Action | [2642486124](https://steamcommunity.com/sharedfiles/filedetails/?id=2642486124) | 1 | Does not work | Every double-click on an item errors on 42.21 before its action and before the game's own (QuickItemAction.lua:140 calls scriptItem:getTypeString(), which 42.21 removed); seen through ZeD's double-click, the same call the game's list makes. |
+| Context Menu Icons | [3634921455](https://steamcommunity.com/sharedfiles/filedetails/?id=3634921455) | 1 | Not needed | ZeD's item menu draws its own icon set; a mod's icon shows only on rows ZeD has none for (as Mutie's). |
+| Choose Your Spawn! | [3287958074](https://steamcommunity.com/sharedfiles/filedetails/?id=3287958074) | 1 | Compatible | Loads, no errors (its spawn picker is a spawn place; not checked on ZeD's New Game screen). |
+| Easy Set Alarm | [3566088272](https://steamcommunity.com/sharedfiles/filedetails/?id=3566088272) | 1 | Compatible | Loads, no errors (watch alarm not tried). |
+| Simple Context Menu Icons | [3634921763](https://steamcommunity.com/sharedfiles/filedetails/?id=3634921763) | 1 | Not needed | Icons for Context Menu Icons; ZeD's menu uses its own icons first (as above). |
+| Reorder The Hotbar (B42+ Fixed) | [3663625294](https://steamcommunity.com/sharedfiles/filedetails/?id=3663625294) | 1 | Not needed | ZeD's belt does this job; it reorders the game's hotbar, which ZeD keeps hidden (as Reorder The Hotbar, round 2). |
+| The Best Lockpicking [B42.21] [MP Ready] | [3440867775](https://steamcommunity.com/sharedfiles/filedetails/?id=3440867775) | 1 | Compatible | Loads, no errors. Part of it does not show: its hotwire panel hangs on the game's dashboard, which ZeD replaces (by reading its code: ISVehicleDashboard). |
+| Clothing Actions - Radial Menu | [2786689104](https://steamcommunity.com/sharedfiles/filedetails/?id=2786689104) | 1 | Compatible | Loads, no errors; its wheel is the game's radial, which ZeD draws as its wheel (ZeD's wheel tests passed with it). Part of it does not show: its D-pad Up wheel (ISDPadWheels.onDisplayUp) gives way to ZeD's D-pad wheels (by reading its code). |
+| Cheat Menu Phoenix [B42] [B41 Re-Up] | [3453422228](https://steamcommunity.com/sharedfiles/filedetails/?id=3453422228) | 1 | Compatible | Its Cheat Menu: PX row is in ZeD's world menu (seen). |
+| [B42] Intuitive Crafting | [3486217110](https://steamcommunity.com/sharedfiles/filedetails/?id=3486217110) | 1 | Compatible | Part of it does not show: it changes the game's crafting window, which ZeD routes to the World window's Craft tab (expected). |
+| Darker Map & Satellite View | [3571222611](https://steamcommunity.com/sharedfiles/filedetails/?id=3571222611) | 1 | Compatible | Part of it does not show: it restyles the game's map; the map key opens ZeD's map pop-out (expected). |
+| Smart Radial Menu [B42 Stable] | [3494108029](https://steamcommunity.com/sharedfiles/filedetails/?id=3494108029) | 1 | Does not work | With ZeD on, opening its wheel errors (SRMOverlay.lua:420: its menu's javaObject has no getSliceIndexFromMouse) and no wheel draws; with ZeD off it opens (seen, F_smart_radial_menu_zed_off_vs_on.png). ZeD bug 3. |
+| Plysken Attachments Reborn | [3749848348](https://steamcommunity.com/sharedfiles/filedetails/?id=3749848348) | 1 | Compatible | Its rows (Add Attachment Slot, Adjust attachment position) are in ZeD's item menu (seen). |
+| [42.13] Zed's Watch Slots | [3630525533](https://steamcommunity.com/sharedfiles/filedetails/?id=3630525533) | 1 | Compatible | A watch worn on its wrist slot shows on ZeD's belt (seen). |
+| Blacklist & Proximity Inventory | [3498294068](https://steamcommunity.com/sharedfiles/filedetails/?id=3498294068) | 1 | Compatible | Part of it does not show: its container and blacklist go on the game's loot window (by reading its code). Inventory + Blacklist sub-mods. |
+| Context Menu Cleanup | [3780688809](https://steamcommunity.com/sharedfiles/filedetails/?id=3780688809) | 1 | Compatible | Loads, no errors. |
+| Hands: Stow, Equip, Place [B42] | [3786918614](https://steamcommunity.com/sharedfiles/filedetails/?id=3786918614) | 1 | Compatible | Loads, no errors. |
+| Auto Tailoring | [3388183573](https://steamcommunity.com/sharedfiles/filedetails/?id=3388183573) | 2 | Compatible | Its Auto Rip rows are in ZeD's item menu (seen). Part of it does not show: its buttons on the game's protection page (by reading its code: ISCharacterProtection). |
+| True Action Dancing B42 | [3650071729](https://steamcommunity.com/sharedfiles/filedetails/?id=3650071729) | 2 | Compatible | Loads, no errors. |
+| Auto Reload | [3389448389](https://steamcommunity.com/sharedfiles/filedetails/?id=3389448389) | 2 | Compatible | Loads, no errors; its reload rows come through the game's item menu. |
+| Auto Cook | [3388721641](https://steamcommunity.com/sharedfiles/filedetails/?id=3388721641) | 2 | Compatible | Loads, no errors. |
+| Place Anywhere | [3613917826](https://steamcommunity.com/sharedfiles/filedetails/?id=3613917826) | 2 | Compatible | Loads, no errors. |
+| Washing Menus Improved [B42] | [3460812542](https://steamcommunity.com/sharedfiles/filedetails/?id=3460812542) | 2 | Compatible | Loads, no errors. |
+| [B42][MP]MoreMenuOptions | [3636171151](https://steamcommunity.com/sharedfiles/filedetails/?id=3636171151) | 2 | Compatible | Loads, no errors. |
+| True Music Jukebox 42 | [3398874593](https://steamcommunity.com/sharedfiles/filedetails/?id=3398874593) | 2 | Compatible | Loads, no errors; but its options page, added the old way, empties ZeD setup of ZeD's own options (ZeD bug 4, F_zed_setup_loses_zed_options_with_true_music_jukebox.jpg). Its jukebox not tried. |
+| [B42] [MP] Quick Remove Broken Glass | [3669016488](https://steamcommunity.com/sharedfiles/filedetails/?id=3669016488) | 2 | Compatible | Loads, no errors. |
+| [B41 & B42] Rope Towing | [3261334016](https://steamcommunity.com/sharedfiles/filedetails/?id=3261334016) | 2 | Compatible | Loads, no errors. |
+| True Music Radio 42 | [3631572046](https://steamcommunity.com/sharedfiles/filedetails/?id=3631572046) | 2 | Compatible | Loads, no errors. TrueMusicRadio42 sub-mod. |
+| [42] Rip All Button In context Menu | [3641027178](https://steamcommunity.com/sharedfiles/filedetails/?id=3641027178) | 2 | Compatible | Its Rip Clothing row is in ZeD's item menu (seen). |
+| Devcatt's Furry Moodles [Build 42+] | [3392964216](https://steamcommunity.com/sharedfiles/filedetails/?id=3392964216) | 2 | Compatible | Loads, no errors (moodle icons). |
+| Dismantle All at Once | [3761218629](https://steamcommunity.com/sharedfiles/filedetails/?id=3761218629) | 2 | Compatible | Loads, no errors; part of it hangs on the game's list right-click (by reading its code: ISInventoryPane.onRightMouseUp). |
+| Crafting XP Display | [3428715523](https://steamcommunity.com/sharedfiles/filedetails/?id=3428715523) | 2 | Compatible | Loads, no errors. |
+| [B42.20] Auto All - Cook, Medicine, Read, Clean, Rip, Tailoring, Mechanics, Exercise, Reload, Open & Dismantle | [3777237134](https://steamcommunity.com/sharedfiles/filedetails/?id=3777237134) | 2 | Compatible | Its rows (Read Everything Automatically, Auto Rip, Train Tailoring) are in ZeD's item menu (seen). |
+| Better Corpse Burning | [3790089095](https://steamcommunity.com/sharedfiles/filedetails/?id=3790089095) | 2 | Compatible | Loads, no errors. |
+| Hide Equipped Items | [3600186927](https://steamcommunity.com/sharedfiles/filedetails/?id=3600186927) | 2 | Compatible | Its Hide Equipped Items row is in ZeD's item menu (seen); what it hides is the game's list (expected). |
+| Two Weapons on Back [42.21] | [3778319798](https://steamcommunity.com/sharedfiles/filedetails/?id=3778319798) | 2 | Compatible | Loads, no errors. |
+| [B42]Whose Key Is This? | [3784348098](https://steamcommunity.com/sharedfiles/filedetails/?id=3784348098) | 2 | Compatible | Loads, no errors; its key map overlay is for the game's map (by reading its code). |
+| Balaclava Slot | [3789234614](https://steamcommunity.com/sharedfiles/filedetails/?id=3789234614) | 2 | Compatible | Loads, no errors. |
+| Area Tasks - Select an area for vanilla tasks [B42] | [3793163745](https://steamcommunity.com/sharedfiles/filedetails/?id=3793163745) | 2 | Compatible | Its Area Tasks row is in ZeD's world menu (seen). |
+
 ## Not tested, and why
 
 | Group | Mod | Workshop id | Why |
@@ -269,3 +318,19 @@ Reports: qa/regression/2026-10-26_2037_mods_fullscreen4k.md (11/11 pass); ZeD of
 - **Steps:** `zedqa_menu_mods_run.ps1 -ModList <ZeD only> -Script tools/qa/zedqa_r3_menu.lua -Tag r3m`; picture `zqa_r3m_2_mods.png`.
 - **Evidence:** `ZeDUI/qa/compat_round3/ZeD_mods_window_desktop_icons_show_through_noMods.png` (crop of the right pane), `B_zed_mods_window_with_mod_manager.jpg` (same with group B's mods).
 - May be meant (a see-through window); if not, the desktop icons are drawn over, or the pane is not opaque.
+
+### 3. Smart Radial Menu errors and draws no wheel with ZeD (ZeD's wheel element has none of the engine RadialMenu's methods)
+
+- **File:** `42/media/lua/client/ZeD/Overrides/Wheels.lua` (HOOK_MAP row 29): `ISRadialMenu.instantiate` makes a plain element instead of the engine's `RadialMenu`, so `getPlayerRadialMenu(n).javaObject` has none of the Java methods. Smart Radial Menu (3494108029) calls `self.menu.javaObject:getSliceIndexFromMouse(x, y)` (`SRMOverlay.lua:420`, from `display` -> `updateSelectedSlice`), which errors ("Object tried to call nil in getSliceTooltipUnderMouseFocus") when its menu is shown; its overlay never draws, and only loose slice icons show round the character.
+- **Not the mod alone:** with ZeD off and the same mod (`zedqa_off_run.ps1 -ModList tools/qa/compat_r3_srm_mods.txt -Script tools/qa/zedqa_r3_srm.lua -Tag srm`) its wheel opens, no error. With ZeD on (`zedqa_mods_run.ps1 ... -Manifest tools/qa/compat_r3_srm.txt`, report `qa/regression/2026-10-26_2109_mods_fullscreen4k.md`) it errors.
+- **Evidence:** `ZeDUI/qa/compat_round3/F_smart_radial_menu_zed_off_vs_on.png` (left ZeD off: its wheel; right ZeD on: scattered icons).
+- **Fix idea (not done):** give ZeD's wheel element the engine RadialMenu methods mods call (`getSliceIndexFromMouse`, `getSliceIndexFromJoypad`, and the like, through `ZeD.Wheel.sliceFromMouse / sliceFromJoypad`), or let a wheel a mod draws itself stay the engine's.
+
+### 4. ZeD setup loses all of ZeD's own options when a mod adds its own page to the game's Options
+
+- **File:** `42/media/lua/client/ZeD/ZeD_MainMenuOptionGroups.lua`, `G.build`: each of the game's option pages is filed under `pageId(p.raw) or "mods"`, so a page a mod adds with `MainOptions:addPage` (an unknown title) is also filed as `"mods"`; when it comes after the real Mods page it replaces `byPage.mods`. ZeD setup then looks for ZeD's own ModOptions controls in `byPage.mods` (`local mods = byPage.mods or {}`, about line 264) and finds none.
+- **Effect:** ZeD setup (Options > ZeD setup, in game and at the main menu) shows only the quick-action chord rows and "Game settings ZeD uses": Look (theme, accent, text size, UI scale), Windows, HUD (moodle place, watch), Controls, Put things back, Messages, Sandbox and Troubleshooting (safe mode) are all gone.
+- **Found with:** True Music Jukebox 42 (3398874593), which adds its own page in `MainOptions:create` (`Jukebox/Options.lua:53`). Any mod that adds an options page the old way can do it.
+- **Steps:** `zedqa_mods_run.ps1 -ModList <TrueMusicJukebox> -Mode fullscreen4k -Manifest <zedqa_prelude.lua, zedqa_quick_chords.lua>`: `ZEDQA qc FAIL ZeD setup has Put things back` (report `qa/regression/2026-10-26_2116_mods_fullscreen4k.md`); the same test with ZeD alone passes (`qa/regression/2026-10-26_2113_fullscreen4k.md`). First seen in group F's run (`2026-10-26_2056_mods_fullscreen4k.md`).
+- **Evidence:** `ZeDUI/qa/compat_round3/F_zed_setup_loses_zed_options_with_true_music_jukebox.jpg` (ZeD setup opens on Quick actions; nothing above it).
+- **Fix idea (not done):** file only the page whose title is the Mods page as `"mods"` (give unknown pages their own id), or find ZeD's controls across every page.
