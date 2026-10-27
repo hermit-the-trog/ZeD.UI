@@ -153,7 +153,7 @@ function Front {
     return ($fg -eq [uint32]$p.Id)
 }
 function XY($s) { $a = $s -split ','; return @([int]$a[0], [int]$a[1]) }
-function Move($xy) { $p = XY $xy; [void][ZedWeInput]::SetCursorPos($p[0], $p[1]) }
+function Put-Pointer($xy) { $p = XY $xy; [void][ZedWeInput]::SetCursorPos($p[0], $p[1]) }
 function Field($line, $name) { if ($line -match "$name (\S+)") { return $Matches[1] } return $null }
 # a drag from $from by ($dx, $dy) with the left button, in small steps
 function Drag($from, $dx, $dy) {
@@ -178,11 +178,11 @@ try {
     "targets: bottom $bottom, right $right, body $body | $(Field $s 'SIZE') open $(Field $s 'OPEN')"
     $park = "1920,1500"   # (open ground under the windows at 4K)
     foreach ($edge in @(@{ name = "bottom"; at = $bottom; zone = "s" }, @{ name = "right"; at = $right; zone = "e" })) {
-        Move $park; Start-Sleep -Milliseconds 500
+        Put-Pointer $park; Start-Sleep -Milliseconds 500
         # the watch starts, then the pointer arrives on the edge and rests
         $g = Start-Job "watch"
         Start-Sleep -Milliseconds 150
-        Move $edge.at
+        Put-Pointer $edge.at
         $m = Wait-Log "ZEDQA we $g ([^\r\n]+)" 10
         $line = if ($m) { $m.Groups[1].Value } else { "" }
         $zoneAt = Field $line ' at'; $zone = Field $line 'zone'; $lit = Field $line 'lit'
@@ -207,12 +207,12 @@ try {
         if ($s -match 'TARGETS (\S+) (\S+) (\S+)') { $bottom, $right, $body = $Matches[1], $Matches[2], $Matches[3] }
     }
     # Solid while in use: see-through 60, the pointer over the Character window
-    Move $park; Start-Sleep -Milliseconds 400
+    Put-Pointer $park; Start-Sleep -Milliseconds 400
     "solid: " + (Run-Job "solid" @{})
     Start-Sleep -Milliseconds 600
     $o = Run-Job "probe" @{}
     Check ((Field $o 'SEE') -ne "1") "pointer off the windows: the Character window stays see-through ($o)"
-    Move $body; Start-Sleep -Milliseconds 900
+    Put-Pointer $body; Start-Sleep -Milliseconds 900
     $o = Run-Job "probe" @{}
     $see = Field $o 'SEE'; $wsee = Field $o 'WSEE'
     Check ($see -eq "1" -and $wsee -ne "1") "pointer on the Character window: it goes solid, the World window stays see-through ($o)"
