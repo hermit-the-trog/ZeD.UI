@@ -22,11 +22,11 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 | List | Mods |
 |---|---|
 | Supported | 0 |
-| Works well | 6 |
-| Compatible | 189 |
-| Not needed | 21 |
-| Does not work | 4 |
-| Tested in all | 220 |
+| Works well | 8 |
+| Compatible | 225 |
+| Not needed | 23 |
+| Does not work | 5 |
+| Tested in all | 261 |
 | Not tested | 2 |
 
 
@@ -294,6 +294,54 @@ Reports: qa/regression/2026-10-26_2056_mods_fullscreen4k.md (13/17 pass: the sur
 | Balaclava Slot | [3789234614](https://steamcommunity.com/sharedfiles/filedetails/?id=3789234614) | 2 | Compatible | Loads, no errors. |
 | Area Tasks - Select an area for vanilla tasks [B42] | [3793163745](https://steamcommunity.com/sharedfiles/filedetails/?id=3793163745) | 2 | Compatible | Its Area Tasks row is in ZeD's world menu (seen). |
 
+### Group G
+
+Reports: qa/regression/2026-10-26_2121_mods_fullscreen4k.md (9/11 pass: the survey's Spear Traps errors, and Messages' first check, which fails in every run with mods that leave notes)
+
+| Mod | Workshop id | Tier | List | Evidence |
+|---|---|---|---|---|
+| [B42]Simple sling mod | [2868394326](https://steamcommunity.com/sharedfiles/filedetails/?id=2868394326) | 1 | Compatible | Loads, no errors. |
+| Equipment UI – STABLE + | [3682936016](https://steamcommunity.com/sharedfiles/filedetails/?id=3682936016) | 1 | Not needed | ZeD's Equip tab has a paper doll (as Equipment UI, round 2). Tested its standalone EQUIPMENT_UI_B42 sub-mod (its other sub-mod shares the id of the tested Inventory Tetris one). |
+| [B42.20/B42.21] Simple Belt Flashlight+ (Better Flashlights Compatible) | [3778709615](https://steamcommunity.com/sharedfiles/filedetails/?id=3778709615) | 1 | Compatible | Tested as a local copy with the id R3_FixedLightOnBeltAF (same id as Simple Belt Flashlight 3625933422, group F). Loads, no errors. |
+| Attachments UI [B42] | [3816324722](https://steamcommunity.com/sharedfiles/filedetails/?id=3816324722) | 1 | Compatible | Loads, no errors; its workbench did not open from the test's call (not seen). |
+| MinimalHotbar | [3688576740](https://steamcommunity.com/sharedfiles/filedetails/?id=3688576740) | 1 | Not needed | ZeD's belt replaces the game's hotbar it restyles (expected). |
+| Palm Pilot | [3776531193](https://steamcommunity.com/sharedfiles/filedetails/?id=3776531193) | 1 | Works well | Its Palm Pilot screen opens through its own open, beside ZeD's windows (seen, G_mod_windows.jpg). |
+| Sandbox Control - Cheat & Creative Menu [B42.21] | [3825312974](https://steamcommunity.com/sharedfiles/filedetails/?id=3825312974) | 1 | Compatible | Its window opens through its own toggle (pauses the game, as it does without ZeD) and its rows are in ZeD's item and world menus (seen). |
+| Night Vision Chucked | [2842179206](https://steamcommunity.com/sharedfiles/filedetails/?id=2842179206) | 2 | Compatible | Loads (with errorMagnifier), no errors (goggles not worn). |
+| [B42.20] Carry Visible Items In Hands [WIP] | [3749026793](https://steamcommunity.com/sharedfiles/filedetails/?id=3749026793) | 2 | Compatible | Loads, no errors. |
+| Advanced Trajectory's Realistic Overhaul | [3036878362](https://steamcommunity.com/sharedfiles/filedetails/?id=3036878362) | 2 | Compatible | Loads, no errors. |
+| Common Sense [B42.20+] | [3750253491](https://steamcommunity.com/sharedfiles/filedetails/?id=3750253491) | 2 | Compatible | Loads, no errors. |
+| Skullys Lowerback Dufflebags, Chest Rigs + Fannypack, Container Rebalance [42.20] | [3698401476](https://steamcommunity.com/sharedfiles/filedetails/?id=3698401476) | 2 | Compatible | Loads, no errors. Duffles and Rigs + Container Rebalance sub-mods. |
+| HEF - Helicopter Event Framework | [3672792485](https://steamcommunity.com/sharedfiles/filedetails/?id=3672792485) | 2 | Compatible | Loads, no errors. |
+| Ping Items! Friends! 42.20 MP Official | [3776262249](https://steamcommunity.com/sharedfiles/filedetails/?id=3776262249) | 2 | Compatible | Loads, no errors. Default wheel sub-mod. |
+| Inspect Items Framework | [3617732907](https://steamcommunity.com/sharedfiles/filedetails/?id=3617732907) | 2 | Works well | Its inspect window opens on a rifle through its own open, centred, clear of ZeD's windows (seen); its Inspect item row is in ZeD's item menu. |
+| [B42] MandoDB - Old Moodles Icons + Redrawn | [3386409674](https://steamcommunity.com/sharedfiles/filedetails/?id=3386409674) | 2 | Compatible | Loads, no errors (moodle icons). |
+| Tooltiplib - Tooltip Framework for Modders | [3694097672](https://steamcommunity.com/sharedfiles/filedetails/?id=3694097672) | 2 | Compatible | Loads, no errors. |
+| Bushcraft Gear - Tools [B41/B42] | [2423906082](https://steamcommunity.com/sharedfiles/filedetails/?id=2423906082) | 3 | Compatible | Loads, no errors. |
+| Bushcraft Gear - Rare Weapons [B41/B42] | [2432621382](https://steamcommunity.com/sharedfiles/filedetails/?id=2432621382) | 3 | Compatible | Loads, no errors. |
+| Undead Survivor [B41/B42] | [2713921292](https://steamcommunity.com/sharedfiles/filedetails/?id=2713921292) | 3 | Compatible | Loads, no errors. |
+| Military Ponchos [B42] | [2629286881](https://steamcommunity.com/sharedfiles/filedetails/?id=2629286881) | 3 | Compatible | Loads, no errors. |
+| [HOTFIX for B42.13] Tactical Weapons | [2324223029](https://steamcommunity.com/sharedfiles/filedetails/?id=2324223029) | 3 | Compatible | Loads, no errors. |
+| Spear Traps | [2640351732](https://steamcommunity.com/sharedfiles/filedetails/?id=2640351732) | 3 | Does not work | Every right-click on the world errors on 42.21, once per item in the inventory (SpearTraps_ContextMenu.lua:97 calls getScriptItem():getCategories(), which 42.21 removed). Seen through ZeD's world menu, which calls the game's own createMenu. |
+| KATTAJ1 Military Pack [B41/B42MP] | [3470426196](https://steamcommunity.com/sharedfiles/filedetails/?id=3470426196) | 3 | Compatible | Loads with KATTAJ1 Clothes Core, no errors. |
+| [42.21MP] GoM - Guns of Marz | [3722134990](https://steamcommunity.com/sharedfiles/filedetails/?id=3722134990) | 3 | Compatible | Loads with Gunworks Framework, no errors (its Java tracer add-on left out). |
+| [ Reworked] Madax Weapon Pack - B42 | [2732407704](https://steamcommunity.com/sharedfiles/filedetails/?id=2732407704) | 3 | Compatible | Loads, no errors. |
+| [B42] Carry visible generators | [3390487814](https://steamcommunity.com/sharedfiles/filedetails/?id=3390487814) | 3 | Compatible | Loads, no errors. |
+| Vanilla Outfits Expanded | [3783094058](https://steamcommunity.com/sharedfiles/filedetails/?id=3783094058) | 3 | Compatible | Loads, no errors. |
+| Buttstroke / Gun Stock Attack [B42] | [3394044313](https://steamcommunity.com/sharedfiles/filedetails/?id=3394044313) | 3 | Compatible | Loads, no errors. |
+| Legendary Backpacks | [3538353228](https://steamcommunity.com/sharedfiles/filedetails/?id=3538353228) | 3 | Compatible | Loads, no errors. |
+| Escape From Tarkov Backpacks [B42.20] | [3432928943](https://steamcommunity.com/sharedfiles/filedetails/?id=3432928943) | 3 | Compatible | Loads, no errors. |
+| They Knew [B42] | [3387110070](https://steamcommunity.com/sharedfiles/filedetails/?id=3387110070) | 3 | Compatible | One error of its own at load on 42.21: TheyKnew_BodyLocations.lua passes a body location as text ('expected argument of type ItemBodyLocation'). Not ZeD. |
+| Vanilla Clothing Expansion | [3421271152](https://steamcommunity.com/sharedfiles/filedetails/?id=3421271152) | 3 | Compatible | Loads, no errors. |
+| [B42.21] Better Flashlights | [3420478458](https://steamcommunity.com/sharedfiles/filedetails/?id=3420478458) | 3 | Compatible | Loads, no errors. |
+| [42.20.4MP] Vanilla Weapons PLUS - Gunworks Edition | [3773834525](https://steamcommunity.com/sharedfiles/filedetails/?id=3773834525) | 3 | Compatible | Loads, no errors. |
+| Run and Reload [B42] | [3397207461](https://steamcommunity.com/sharedfiles/filedetails/?id=3397207461) | 3 | Compatible | Loads, no errors. |
+| Ammo Loot Drop / Zombies Drop Ammo B42 | [3389050623](https://steamcommunity.com/sharedfiles/filedetails/?id=3389050623) | 3 | Compatible | Loads, no errors. Base sub-mod. |
+| [B42] Vanilla Firearms Expansion [CLASSIC] | [3761077099](https://steamcommunity.com/sharedfiles/filedetails/?id=3761077099) | 3 | Compatible | Loads, no errors. |
+| Lean & Lie | [3652012357](https://steamcommunity.com/sharedfiles/filedetails/?id=3652012357) | 3 | Compatible | Loads with TchernoLib, no errors. |
+| Long Term Preservation [42.20] | [3774789651](https://steamcommunity.com/sharedfiles/filedetails/?id=3774789651) | 3 | Compatible | Loads, no errors. |
+| Brita Weapon and Armor B42 Unified Compatibility Port | [3777433827](https://steamcommunity.com/sharedfiles/filedetails/?id=3777433827) | 3 | Compatible | Its two belt slots show on ZeD's belt (slots 5 and 6), named by their raw ids, which run out of the box (ZeD bug 5, G_belt_mod_slot_names_overflow.png). |
+
 ## Not tested, and why
 
 | Group | Mod | Workshop id | Why |
@@ -334,3 +382,11 @@ Reports: qa/regression/2026-10-26_2056_mods_fullscreen4k.md (13/17 pass: the sur
 - **Steps:** `zedqa_mods_run.ps1 -ModList <TrueMusicJukebox> -Mode fullscreen4k -Manifest <zedqa_prelude.lua, zedqa_quick_chords.lua>`: `ZEDQA qc FAIL ZeD setup has Put things back` (report `qa/regression/2026-10-26_2116_mods_fullscreen4k.md`); the same test with ZeD alone passes (`qa/regression/2026-10-26_2113_fullscreen4k.md`). First seen in group F's run (`2026-10-26_2056_mods_fullscreen4k.md`).
 - **Evidence:** `ZeDUI/qa/compat_round3/F_zed_setup_loses_zed_options_with_true_music_jukebox.jpg` (ZeD setup opens on Quick actions; nothing above it).
 - **Fix idea (not done):** file only the page whose title is the Mods page as `"mods"` (give unknown pages their own id), or find ZeD's controls across every page.
+
+### 5. The belt names a mod's hotbar slot by its raw id, and the name runs out of its box
+
+- **File:** `42/media/lua/client/ZeD/ZeD_Belt.lua`, `B.shortName` (about line 355): a slot type ZeD has no short word for falls back to `string.upper(slotType)`, not to the slot's own name (the game shows `slot.name`, translated by the mod).
+- **Seen with:** Brita Weapon and Armor B42 Unified Compatibility Port (3777433827): its two belt slots read BRITABELTFRONT and BRITABELTBACK, wider than the slot box, the letters running over the next box (slots 5 and 6 on the belt).
+- **Steps:** group G's run (`zedqa_mods_run.ps1 -ModList tools/qa/compat_r3_G_mods.txt -Mode fullscreen4k -Manifest tools/qa/compat_r3_G.txt`), picture `zqa_r3G_12_belt.png`; report `qa/regression/2026-10-26_2121_mods_fullscreen4k.md`.
+- **Evidence:** `ZeDUI/qa/compat_round3/G_belt_mod_slot_names_overflow.png`.
+- **Fix idea (not done):** fall back to the slot's own name (`slot.name`, through getText), and fit or clip the label to the box.
