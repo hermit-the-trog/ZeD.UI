@@ -24,6 +24,8 @@ Shot list (see ZeDUI/workshop/shots/shots.json):
   "screens": "C:/Users/danie/Zomboid/Screenshots",     source folder (relative paths resolve here)
   "out": "out",                                         relative to the JSON's folder
   "patches": [[x0,y0,x1,y1,dx,dy]],                     copy pixels over a corner of every source
+                                                        (a shot's own "patches" replace these; a 7th
+                                                        field, a source's name, limits one to it)
                                                         (the debug text), from dx, dy away
   "shots": [
     { "id": "hero", "kind": "ingame", "src": "ws_01_street.png",
@@ -590,7 +592,10 @@ def render(shot, screens, n, stub, debug, patches=()):
             if cache[path] is None:
                 print("  skip %s: no %s" % (shot["id"], path))
             elif patches:
-                patch(cache[path], patches)
+                # (a patch with a 7th field, a source's file name, applies to that source only)
+                mine = [q[:6] for q in patches if len(q) < 7 or q[6] == name]
+                if mine:
+                    patch(cache[path], mine)
         return cache[path]
 
     src = get(shot["src"])
