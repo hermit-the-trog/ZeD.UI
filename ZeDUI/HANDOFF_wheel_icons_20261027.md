@@ -3,7 +3,7 @@
 Approved by the director on Oct 27. He asked for them with "we need new icons for the radial wheels." and set the scope: ZeD's wheels and vanilla's too ("ZeD + vanilla's too": vanilla's emotes, firearm steps, zoom, speed and light pictures redrawn as well), "Ink + pictogram figures", both sizes drawn (16 at rest, 24 when pointed), and the same icons for the context strip later. On the figures he wrote "Figures need some looping refinement. The figures might need more pixels to look right or need to follow a template or doll", then, on the template, "Love them. They are just rough enough to still be clear." On the whole set he sent eight notes (the run read as yoga, the car seat's base, the wrench's hex, the small bandage, the key's teeth, arms on the follow figures, the big thumbs, the clap). On the second round: "Nailed it".
 
 ## Where things are
-- **Textures:** `42/media/textures/ZeD/wheel/<size>/<id>.png`, 151 icons in four sizes (604 files):
+- **Textures:** `42/media/textures/ZeD/wheel/<size>/zw_<id>.png`, 151 icons in four sizes (604 files). (Wired Oct 27: the `zw_` prefix came in then, because the game loads its own packed picture for a plain `map.png`, `engine.png`, `sneak.png` or `heart.png`.)
   - `16/` and `24/` hold the two drawings, pixel for pixel;
   - `32/` and `48/` hold the same drawings doubled, each pixel 2 x 2, for 2x.
   - They're white on clear, and alpha is only ever 0 or 255.

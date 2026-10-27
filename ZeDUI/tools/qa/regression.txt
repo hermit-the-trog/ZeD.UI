@@ -89,6 +89,7 @@ zedqa_button_case_game.lua | bg                  # sentence-case buttons across 
 
 # ---- wheels (the pickup within 20 tiles: after the container scripts)
 zedqa_wheel_sizes.lua | ws                       # the ZeD wheel at 3 to 11 slices
+zedqa_wheel_icons.lua | wi | timeout=600       # the wheels' icons: every icon, the box rule, vanilla's words and pictures, ZeD's wheels, the live radials; captures at the scale in use and at 1x
 zedqa_wheels.lua | wh                            # vanilla's wheels through vanilla's functions, routed slices
 zedqa_dpad_wheels.lua | dw | timeout=600       # the D-pad wheels and the Select ZeD wheel: slices on foot / in a car / by an animal, inner wheels, Back, takes, paused, L3 / R3; every theme at both sizes
 zedqa_pad_glyphs.lua | pg | timeout=400         # the button pictures: footer and wheel prompts in every set (PlayStation, Xbox, Steam Deck, Nintendo), boxed names on Keyboard/mouse, light and high contrast, the dash hint
