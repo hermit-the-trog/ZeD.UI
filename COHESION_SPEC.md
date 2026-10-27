@@ -206,7 +206,12 @@ caller's), no glow, no gradient, no half-alpha. Height `T.fillBarH` (13 / 15 Lar
 least 8u tall. Props' printed gauges (dash, generator needle, tanks) keep their art. The belt's slot condition lines and
 the ammo pouch's gauge become the same strip too (director: "Yes, make the belt's slot condition lines and the ammo
 pouch's gauge the same chunky framed strip."): slots get the compact strip inside their bottom edge; the pouch keeps one
-segment per round inside the framed strip.
+segment per round inside the framed strip. Oct 27 (director: "Make the belt hands' condition ring and the action bar's
+progress line the same chunky framed strip as the other status bars."): the hands keep a ring (their Oct 24 note: a bar
+looks odd in the circle) drawn as the strip bent round, 1u in from the outline and 6u across (1u frame each side, the
+`T.base` well, a flat fill clockwise from twelve in the strip's graduated colours); the action bar's verbose line is a
+6-unit framed strip in its pixel grid with the queue's steps as frame-coloured dividers (its thought bubble 4 units
+taller). The Simple mode's ten segments stay as they are.
 
 ## 9a. Conditional disclosure (director, Oct 26 2026)
 
