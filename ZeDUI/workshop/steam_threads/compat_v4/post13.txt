@@ -8,8 +8,8 @@ No mod tested so far clashes with ZeD-GUI (something happening twice, or one und
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2714850307]Horde Night[/url]: Closes the game on 42.21 as a save loads (while saving its own data), with or without ZeD-GUI. Not ZeD.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2737665235]Ladders!?[/url] by co`: Its ladder code errors as the world loads (setLadderClimbingFlags). Not ZeD.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3388107363][B42] Noir's Rifle Slings[/url]: Errors at load on 42.21 (a body location given as text), so its sling slot is not made. Not ZeD.
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2642486124]Quick Item Action[/url]: Every double-click on an item errors on 42.21 (it calls getTypeString, which 42.21 removed), with or without ZeD-GUI. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2642486124]Quick Item Action[/url]: Every double-click on an item errors on 42.21 (it calls getTypeString, which 42.21 removed, before any ZeD code runs). Not ZeD.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2845952197]Read While Walking[/url]: Errors every frame while you read: it asks for fatigue in a way 42.21 removed (getFatigue). Not ZeD.
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2640351732]Spear Traps[/url]: Every right-click on the world errors on 42.21, once per item you carry (it calls getCategories, which 42.21 removed), with or without ZeD-GUI. Not ZeD.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=2640351732]Spear Traps[/url]: Every right-click on the world errors on 42.21, once per item you carry (it calls getCategories, which 42.21 removed, in its own menu code). Not ZeD.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3403180543]Week One NPC[/url] by Slayer: Its scheduler errors once a game minute in an existing save (generateSchedule). Not ZeD.
 [/list]

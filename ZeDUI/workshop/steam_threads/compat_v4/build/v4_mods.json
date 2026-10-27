@@ -818,7 +818,7 @@
   "name": "Mini Health Panel",
   "author": "Speedy Von Gofast",
   "list": "C",
-  "note": "A click on it opens the game's own character window over ZeD's. [i](by reading its code)[/i]",
+  "note": "A click on it opens ZeD's Character window on the Health tab. From ZeD-GUI 0.2.0-t6.",
   "cr": [
    null,
    null
@@ -4486,7 +4486,7 @@
   "name": "Quick Item Action",
   "author": null,
   "list": "X",
-  "note": "Every double-click on an item errors on 42.21 (it calls getTypeString, which 42.21 removed), with or without ZeD-GUI. Not ZeD.",
+  "note": "Every double-click on an item errors on 42.21 (it calls getTypeString, which 42.21 removed, before any ZeD code runs). Not ZeD.",
   "cr": [
    "[url=https://steamcommunity.com/profiles/76561198056536755]the maker[/url]",
    null
@@ -4496,11 +4496,11 @@
  "3634921455": {
   "id": "3634921455",
   "name": "Context Menu Icons",
-  "author": null,
+  "author": "Artmine15",
   "list": "N",
   "note": "ZeD's item menu draws its own icons; a mod's icon shows only on rows ZeD has none for. Use one.",
   "cr": [
-   "[url=https://steamcommunity.com/profiles/76561199208331575]the maker[/url]",
+   "[url=https://steamcommunity.com/profiles/76561199208331575]Artmine15[/url]",
    null
   ],
   "r3": true
@@ -4532,11 +4532,11 @@
  "3634921763": {
   "id": "3634921763",
   "name": "Simple Context Menu Icons",
-  "author": null,
+  "author": "Artmine15",
   "list": "N",
   "note": "Icons for Context Menu Icons. ZeD's item menu draws its own icons. Use one.",
   "cr": [
-   "[url=https://steamcommunity.com/profiles/76561199208331575]the maker[/url]",
+   "[url=https://steamcommunity.com/profiles/76561199208331575]Artmine15[/url]",
    null
   ],
   "r3": true
@@ -5218,7 +5218,7 @@
   "name": "Spear Traps",
   "author": null,
   "list": "X",
-  "note": "Every right-click on the world errors on 42.21, once per item you carry (it calls getCategories, which 42.21 removed), with or without ZeD-GUI. Not ZeD.",
+  "note": "Every right-click on the world errors on 42.21, once per item you carry (it calls getCategories, which 42.21 removed, in its own menu code). Not ZeD.",
   "cr": [
    "[url=https://steamcommunity.com/profiles/76561198056536755]the maker[/url]",
    null
@@ -5456,11 +5456,11 @@
  "3723726293": {
   "id": "3723726293",
   "name": "Neat Rocco's UI [B42]",
-  "author": "Rocco",
+  "author": null,
   "list": "N",
   "note": "Both restyle the whole interface: use one. In ZeD-GUI 0.2.0-t6, with both on, other mods' notes stay on screen instead of going to ZeD's Messages; from 0.2.0-t7 they go to Messages again.",
   "cr": [
-   "[url=https://steamcommunity.com/profiles/76561198022057780]Rocco[/url]",
+   "[url=https://steamcommunity.com/profiles/76561198022057780]the maker[/url]",
    null
   ],
   "r3": true
