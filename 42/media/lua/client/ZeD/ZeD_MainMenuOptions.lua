@@ -43,6 +43,34 @@ local MM = ZeD.MainMenu
 local U  = MM.U
 local UI = MM.ui
 
+-- The windows' settings on ZeD setup (director, Oct 26 2026; COHESION_SPEC.md section 4): under
+-- Text size, See-through as the stepped slider and Solid while in use as a checkbox; first under
+-- Controls, Controller highlight as a pop-up menu with a live sample beside it (drawControl); last
+-- under Windows, Hidden actions as a pop-up menu. The windows' theme squares and their setting are
+-- gone. (The groups table itself lives in ZeD_MainMenuOptionGroups.lua; these rows are added to it
+-- here, once.)
+do
+    local G = MM.optionGroups
+    local groups = G and G.ZED_GROUPS
+    if groups and not G._windowRows then
+        G._windowRows = true
+        for _, grp in ipairs(groups) do
+            local list = grp[2]
+            for i = #list, 1, -1 do if list[i][1] == "windowSquares" then table.remove(list, i) end end
+            if grp[1] == "UI_ZeD_Options_ZedLook" then
+                local at = #list + 1
+                for i, e in ipairs(list) do if e[1] == "textSize" then at = i + 1 end end
+                table.insert(list, at, { "seeThrough", "scale" })
+                table.insert(list, at + 1, { "solidInUse", "onoff" })
+            elseif grp[1] == "UI_ZeD_Options_ZedControls" then
+                table.insert(list, 1, { "focusStyle" })
+            elseif grp[1] == "UI_ZeD_Options_ZedWindows" then
+                list[#list + 1] = { "hiddenActions" }   -- (a pop-up menu: ZeD setup only, never asked in a pop-up question)
+            end
+        end
+    end
+end
+
 -- design units
 local PAGES_W, FIND_H, PAGE_ROW_H = 210, 34, 30
 local ROW_H, HEAD_H, HELP_H = 32, 26, 54
@@ -883,7 +911,6 @@ end
 -- ============================================================================
 local SEG_PAD, SEG_H = 12, 24
 local SW_SZ, SW_GAP = 22, 4
-local SW_TRACK, SW_KNOB = 44, 18
 local SCALE_W, SCALE_MIN = 270, 140
 
 -- the accents in Settings.lua's order (the swatches' items 1..9)
@@ -903,8 +930,18 @@ local function scaleText(v)
     return s .. "x"
 end
 
+-- the see-through row (its steps are percentages, not sizes)
+local function isSeeRow(r) return r.labelKey == "UI_ZeD_Settings_SeeThrough" end
+local function seeText(i)
+    local keys = ZeD.Settings and ZeD.Settings.seeThroughKeys
+    return ZeD.tr("UI_ZeD_Settings_SeeThroughPct", keys and keys[i] or 90)
+end
+
 -- what the stepped slider says beside it: the size picked, or what Auto picks on this screen
-local function scaleReadout(c)
+-- (See-through: the percentage picked)
+local function scaleReadout(r)
+    local c = r.control
+    if isSeeRow(r) then return seeText(c.selected or 2) end
     if (c.selected or 1) == 1 then
         local root = ZeD.Scale and ZeD.Scale.root and ZeD.Scale.root() or 1
         return ZeD.tr("UI_ZeD_Options_ScaleAutoNow", scaleText(root))
@@ -914,6 +951,7 @@ end
 
 -- a choice's words on a ZeD control: the short ones where G.ZED_GROUPS gives them, else the item's
 local function itemText(r, i)
+    if isSeeRow(r) then return seeText(i) end
     local k = r.zedShort and r.zedShort[i]
     if k then return ZeD.tr(k) end
     return comboText(r.control, i)
@@ -943,9 +981,9 @@ local function zedWidth(r, cw)
         end
         return w
     elseif r.zedStyle == "scale" then
-        return T.px(SCALE_MIN) + T.px(14) + MM.textW(f2, scaleReadout(c))
+        return T.px(SCALE_MIN) + T.px(14) + MM.textW(f2, scaleReadout(r))
     elseif r.zedStyle == "onoff" then
-        return T.px(SW_TRACK) + T.px(10) + MM.textW(f2, ZeD.upper(getText("UI_Off")))
+        return T.checkboxSz + T.px(4)
     end
     return math.huge   -- (no style: the drop-down)
 end
@@ -1057,7 +1095,7 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
 
     elseif r.zedStyle == "scale" then
         -- a stepped track: a tick and its name under every step, Auto at the left
-        local ro = scaleReadout(c)
+        local ro = scaleReadout(r)
         local tw = math.min(T.px(SCALE_W), cw - T.px(14) - MM.textW(f2, ro))
         local barY = midY - T.px(3)
         local s1, ac = T.surf1, T.accent
@@ -1103,24 +1141,30 @@ function ZeD_MMOptions:drawZedControl(r, cx, ry, cw, rowId, hit)
         end, { disabled = c.disabled })
 
     elseif r.zedStyle == "onoff" then
-        -- square-ended switch: the knob slides right and the track fills when on (red for Safe mode)
+        -- a System 7 checkbox (the library's: a square with an X when on); item 1 Off, item 2 On.
+        -- The option's name at the row's left is its label.
         local on = (sel == 2)
-        local tw, th = T.px(SW_TRACK), T.px(SEG_H)
-        local ty = midY - math.floor(th / 2)
+        local cb = T.checkboxSz
+        local by = midY - math.floor(cb / 2)
         local id = rowId .. ":onoff"
-        local fill = on and (r.zedDanger and T.danger or T.accent) or (isHot(id) and T.surf4 or T.surf3)
-        self:drawRect(cx, ty, tw, th, dim, fill.r, fill.g, fill.b)
-        if on then self:drawRectBorder(cx, ty, tw, th, 1, fill.r, fill.g, fill.b)
-        else self:drawRectBorder(cx, ty, tw, th, bs.a, bs.r, bs.g, bs.b) end
-        local kw = T.px(SW_KNOB)
-        local kx = on and (cx + tw - T.px(2) - kw) or (cx + T.px(2))
-        local kc = on and T.textOnAccent or T.text
-        self:drawRect(kx, ty + T.px(2), kw, th - 2 * T.px(2), 1, kc.r, kc.g, kc.b)
-        local st = ZeD.upper(getText(on and "UI_On" or "UI_Off"))
-        local tc = (on and r.zedDanger) and T.danger or T.text
-        self:drawText(st, cx + tw + T.px(10), midY - math.floor(MM.fontH(f2) / 2), tc.r, tc.g, tc.b, (tc.a or 1) * dim, f2)
-        hit(id, cx, ty, tw + T.px(10) + MM.textW(f2, st), th, pick(on and 1 or 2), { disabled = c.disabled })
+        ZeD.Atoms.drawCheckbox(self, cx, by, on, isHot(id), c.disabled)
+        hit(id, cx - T.px(2), by - T.px(4), cb + T.px(4), cb + T.px(8), pick(on and 1 or 2), { disabled = c.disabled })
     end
+end
+
+-- The Controller highlight's live sample between x0 and x1: ZeD.Focus draws a short row with the
+-- picked mark on it (the hand points in from the left, so the row starts a little way in)
+function ZeD_MMOptions:drawFocusSample(x0, y, x1, h)
+    local F = ZeD.Focus
+    if not (F and F.drawSample) then return end
+    local T = ZeD.T
+    local sx = x0 + T.px(36)
+    local sw = math.min(T.px(140), x1 - sx - T.px(8))
+    if sw < T.px(60) then return end
+    local S = ZeD.Settings
+    local style = (S and S.focusStyle and S.focusStyle()) or "hand"
+    local ok, err = pcall(F.drawSample, self, sx, y, sw, h, style)
+    if not ok then ZeD.logOnce("ZeD.Focus.drawSample", err) end
 end
 
 -- one row's control, drawn at (cx, ry) in width cw; registers its hit boxes
@@ -1191,6 +1235,8 @@ function ZeD_MMOptions:drawControl(r, cx, ry, cw, rh, rowId, clip)
         self:drawText(ZeD.Atoms.truncateText(comboText(c, c.selected), f2, bw - T.px(30)), cx + T.px(8), by + math.floor((bh - MM.fontH(f2)) / 2), tc.r, tc.g, tc.b, a, f2)
         ZeD.Atoms.drawTriangleDown(self, cx + bw - T.px(16), by + math.floor((bh - T.px(5)) / 2), T.px(8), T.textDim)
         hit(id, cx, by, bw, bh, function() self:openCombo(r, { x = ax + cx, y = ay + by, w = bw, h = bh }) end, { disabled = c.disabled })
+        -- Controller highlight: a short sample row beside it, with the mark picked on it
+        if r.labelKey == "UI_ZeD_Settings_FocusStyle" then self:drawFocusSample(cx + bw, by, cx + cw, bh) end
     elseif r.kind == "tick" then
         local cb = T.checkboxSz
         local x0 = cx

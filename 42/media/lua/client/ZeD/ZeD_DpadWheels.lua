@@ -527,6 +527,29 @@ function Z.actionBarWheel()
     return comboWheel(ZeD.Settings.actionBarOption, { "UI_ZeD_Settings_ActionBarVerbose", "UI_ZeD_Settings_ActionBarSimple" }, "clock")
 end
 
+-- see-through: 100% to 60%, then solid while in use (ZeD.Settings saves the pick and re-applies
+-- the theme, as the window box's menu does)
+local SEE_ICON, FOCUS_ICON = "architectural-windows-017-window-16", "fi-br-hand-back-point-right"
+function Z.seeThroughWheel()
+    local S, out = ZeD.Settings, {}
+    local cur = S.seeThroughIndex and S.seeThroughIndex()
+    for i, v in ipairs(S.seeThroughKeys or {}) do
+        out[#out + 1] = { name = tr("UI_ZeD_Settings_SeeThroughPct", v), icon = SEE_ICON, detail = inUse(cur == i),
+            run = function() S.setSeeThrough(i) end }
+    end
+    if S.solidInUse then
+        out[#out + 1] = { name = tr("UI_ZeD_Settings_SolidInUse"), icon = SEE_ICON, detail = getText(S.solidInUse() and "UI_On" or "UI_Off"),
+            run = function() S.setSolidInUse(not S.solidInUse()) end }
+    end
+    return out
+end
+
+-- the controller highlight: the hand, corner marks, one wash, marching ants
+function Z.focusWheel()
+    local S = ZeD.Settings
+    return comboWheel(S.focusStyleOption, S.focusStyleLabels or {}, FOCUS_ICON)
+end
+
 -- the label of a combo's choice, for the top level's second line
 local function current(opt, labels)
     local i = opt and opt:getValue()
@@ -562,6 +585,10 @@ D.B.zed = function(p, pn)
         { name = tr("UI_ZeD_Settings_AccentColor"), swatch = ac and ac[tone] and ac[tone].accent or nil,
           detail = at(S.accentKeys, S.accentLabels, ZeD.currentAccent), sub = Z.accentWheel },
         { name = tr("UI_ZeD_Settings_TextSize"), icon = "text-box-dots", detail = at(S.sizeKeys, S.sizeLabels, ZeD.currentSize), sub = Z.sizeWheel },
+        { name = tr("UI_ZeD_Settings_SeeThrough"), icon = SEE_ICON,
+          detail = tr("UI_ZeD_Settings_SeeThroughPct", S.seeThrough and S.seeThrough() or 90), sub = Z.seeThroughWheel },
+        { name = tr("UI_ZeD_Settings_FocusStyle"), icon = FOCUS_ICON,
+          detail = current(S.focusStyleOption, S.focusStyleLabels or {}), sub = Z.focusWheel },
         { name = tr("UI_ZeD_Settings_UiScale"), icon = "magnifying-glass-eye", sub = Z.scaleWheel },
         { name = tr("UI_ZeD_Settings_Moodles"), icon = "smile", detail = current(S.moodlePlaceOption, S.moodleLabels or {}), sub = Z.moodleWheel },
         { name = tr("UI_ZeD_Settings_ActionBar"), icon = "clock",

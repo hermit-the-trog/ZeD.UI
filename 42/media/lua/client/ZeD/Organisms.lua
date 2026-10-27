@@ -20,6 +20,7 @@ require "ZeD/Atoms"
 require "ZeD/AtomExtensions"
 require "ZeD/Molecules"
 require "ZeD/SafeMode"
+require "ZeD/ZeD_Surface"
 
 ZeD = ZeD or {}
 
@@ -28,13 +29,42 @@ ZeD = ZeD or {}
 -- O1: WINDOW FRAME
 -- ============================================================================
 -- The universal shell. Every panel in the mod lives inside one of these.
--- System 6 striped title bar, left-aligned title, right stat cluster,
--- close box, integrated resize grip at scrollbar base.
--- WindowShade collapse on title bar double-click (System 7.1).
+-- System 6 striped title bar: the close box at the left, the title, the
+-- stats, and the window box at the right end (its pull-down: theme, accent,
+-- text size, see-through, controller highlight, reset, ZeD setup;
+-- ZeD_WindowMenu.lua). At the foot, the help line: the plain words for what
+-- the pointer is over, or the controller's prompts, ending in the grow box on
+-- a resizable window. WindowShade collapse on title bar double-click (System 7.1).
+--
+-- The frame is one rectangle around the whole window, drawn after everything
+-- inside it: a click-through child (ZeD_WindowOverlay) kept as the window's
+-- last child draws the help line, the resize handles, the frame and then the
+-- controller's focus mark (ZeD.Focus.drawOverlay), so no drawer, card, strip
+-- or scrollbar can cover the frame or leave a gap in it. Two line weights:
+-- the frame (1u, 2u on High contrast: T.borderW) and the structure lines under
+-- the title bar and over the help line (1u), which run to the frame's inner edge.
+--
+-- A resizable window resizes from its bottom edge (height), either bottom
+-- corner (both; the bottom-left one moves the left edge) and either side edge
+-- (width). A handle shows once the pointer rests on an edge.
 --
 -- Derives from ISPanel. All chrome, drag, WindowShade, and resize are
 -- implemented from scratch using ZeD atomics — no vanilla window baggage.
 -- ============================================================================
+
+-- design units
+local HELP_H   = 22    -- the help line, and the grow box at its right end
+local EDGE_B   = 6     -- the bottom edge's grab zone
+local EDGE_S   = 4     -- the side edges' grab zones
+local GRIP_LEN = 40    -- a resize handle's ridged grip
+-- milliseconds
+local REST_MS  = 350   -- the pointer rests this long on an edge before its handle shows
+local SOLID_MS = 200   -- solid while in use: the fade to solid and back
+
+local SURF_KEYS = { "base", "surf1", "surf2", "surf3", "surf4" }
+
+-- the frame's thickness: 1u, 2u on High contrast, in whole pixels
+local function frameW(T) return T.line(T.borderW or 1) end
 
 ZeD_Window = ISPanel:derive("ZeD_Window")
 
@@ -53,13 +83,7 @@ function ZeD_Window:new(x, y, width, height, title)
     o.clearStentil  = true
     o.windowShaded     = false
     o._lastTitleClick  = nil   -- timestamp for WindowShade double-click detection
-
-    -- Footer bar (toggle buttons, same row as grow box)
-    o.footerToggles       = false   -- enable toggle buttons in footer
-    o.footerItem          = nil     -- InventoryItem for toggle state
-    o.footerToggleHover   = nil     -- index of hovered toggle (1-3) or nil
-    o.footerToggleWasDown = false   -- track mouse-down for click detection
-    o.footerToggleRects   = {}     -- cached hit rects {x,y,w,h} in absolute coords
+    o.isZeDWindow   = true     -- (ZeD.Surface and ZeD.Help find a panel's window by it)
 
     return o
 end
@@ -85,10 +109,8 @@ function ZeD_Window:createChildren()
     self.pinButton = {}
     self.collapseButton = {}
 
-    -- Resize state (managed by onMouseDown/onMouseMove on the grow box area)
+    -- Resize state (managed by update / onMouseDown / onMouseMove on the edges)
     self._resizing = false
-    self._resizeDownX = 0
-    self._resizeDownY = 0
     self.minimumWidth = T.minWinW
     self.minimumHeight = T.minWinH
 end
@@ -108,24 +130,39 @@ function ZeD_Window:closeRect()
     return cb
 end
 
+-- The window box at the right end of the title bar: the close box's size and look, three
+-- lines inside. Every ZeD window has one (noWindowBox = true leaves it out).
+function ZeD_Window:windowBoxRect()
+    if self.noWindowBox then return nil end
+    local T = ZeD.T
+    local sz = T.closeBoxSz
+    local r = self._wboxRect
+    if not r then r = {}; self._wboxRect = r end
+    r.x, r.y, r.w, r.h = self:getWidth() - T.sp.sm - sz, math.floor((self:titleBarHeight() - sz) / 2), sz, sz
+    return r
+end
+
 -- Public WindowShade toggle. Collapses to title bar on true; expands to prior
 -- height on false. Idempotent (no-op if already in target state). Shared by
 -- the title-bar double-click path AND FocusManager's windowshade-on-stick
 -- trigger (S95). Children are hidden/restored so content doesn't render
--- underneath the collapsed title bar.
+-- underneath the collapsed title bar; the overlay that draws the frame stays.
 function ZeD_Window:setWindowShaded(shaded)
     local T = ZeD.T
     if self.windowShaded == shaded then return end
     self.windowShaded = shaded
     local tbH = self:titleBarHeight()
+    local ov = self._zedOverlay
     if shaded then
         self.preShadeHeight = self.height
         self:setHeight(tbH)
         local children = self:getChildren()
         if children then
             for _, child in pairs(children) do
-                child._wasVisible = child:isVisible()
-                child:setVisible(false)
+                if child ~= ov then
+                    child._wasVisible = child:isVisible()
+                    child:setVisible(false)
+                end
             end
         end
     else
@@ -142,26 +179,17 @@ function ZeD_Window:setWindowShaded(shaded)
     end
 end
 
+-- The grow box: as tall as the help line it ends (the same square marks the bottom-left
+-- corner while that corner's handle shows)
 function ZeD_Window:resizeWidgetHeight()
-    -- Match scrollbar width so the grow box and scrollbar arrows are the
-    -- same size. System 7.1: grow box sits at the intersection of both
-    -- scrollbar tracks, same dimension as the arrow buttons.
-    return ZeD.T.sp.scrollbarW
+    return ZeD.T.px(HELP_H)
 end
 
+-- The help line's height. Every ZeD window has it; a small window that still draws its
+-- own footer strip says themeFooter = false and goes without until it moves onto the line.
 function ZeD_Window:footerHeight()
-    if self.footerToggles then
-        -- Footer sized to fit action strip buttons with comfortable vertical padding.
-        local T = ZeD.T
-        local btnSz = T.iconSm + T.px(4)
-        return btnSz + T.sp.sm * 2 + T.px(2)
-    end
-    -- Theme controls footer: same height as grow box. A fixed-size window
-    -- (the main menu's windows) can keep the footer with themeFooter = true.
-    if self.resizable or self.themeFooter then
-        return self:resizeWidgetHeight()
-    end
-    return 0
+    if self.themeFooter == false then return 0 end
+    return ZeD.T.px(HELP_H)
 end
 
 -- The frame draws under pcall (SafeMode.lua): a failure counts towards safe
@@ -170,8 +198,11 @@ function ZeD_Window:prerender()
     ZeD.Safe.guard(self, ZeD_Window._drawFrame)
 end
 
+-- The window's own render runs after its children, the overlay among them, which has
+-- drawn the help line and the frame by now: only the palette goes back here
 function ZeD_Window:render()
-    if not ZeD.Safe.guard(self, ZeD_Window._drawFooter) then self:_restoreAccent() end
+    self:_restoreSurfaces()
+    self:_restoreAccent()
 end
 
 -- Stencils counted per window, as on ZeD_Panel (ZeD.Safe.guard clears the ones a failed draw left)
@@ -186,11 +217,12 @@ function ZeD_Window:clearStencilRect()
     return ISPanel.clearStencilRect(self)
 end
 
--- The palette a window with its own accent draws in, built once per base theme and
--- accent (both tables are fixed) rather than blended again every frame
+-- The palette a window with its own accent draws in, built once per base theme, accent
+-- and see-through value (the tables are fixed) rather than blended again every frame
 local accentPalettes = {}
 local function windowAccentPalette(baseKey, accentKey)
-    local ck = baseKey .. "|" .. accentKey
+    local sa = ZeD.surfaceAlpha
+    local ck = baseKey .. "|" .. accentKey .. "|" .. tostring(sa)
     local p = accentPalettes[ck]
     if p then return p end
     local accentSet = ZeD.AccentColors[accentKey]
@@ -221,11 +253,276 @@ local function windowAccentPalette(baseKey, accentKey)
         p.border = base.border; p.borderS = base.borderS
         p.text = base.text; p.textHead = base.textHead
     end
+    -- the see-through setting: the same surface alpha as the global palette (Tokens.lua applyTheme),
+    -- before the readable colours are solved against these surfaces
+    if type(sa) == "number" then
+        local ca = ZeD.colorAlpha
+        p.base, p.surf1, p.surf2 = ca(p.base, sa), ca(p.surf1, sa), ca(p.surf2, sa)
+        p.surf3, p.surf4 = ca(p.surf3, sa), ca(p.surf4, sa)
+    end
     -- the readable text colours (accentText, toneHi/Lo, textSec, textDim, textOnAccent, textOnFocus,
     -- the status *Text variants) are solved against THIS palette's surfaces and accent
     ZeD.deriveReadable(p, baseKey)
     accentPalettes[ck] = p
     return p
+end
+
+-- A new see-through value (Settings.lua): the windows' own palettes are built again
+function ZeD_Window.clearPaletteCache()
+    accentPalettes = {}   -- (a new table, not keys cleared while pairs walks them)
+end
+
+-- ----------------------------------------------------------------------------
+-- See-through: solid while in use
+-- ----------------------------------------------------------------------------
+-- In use: the pointer over the window (no other window above it), or the controller in it
+function ZeD_Window:_inUse()
+    if self:pointerOn() then return true end
+    local I = ZeD.Input
+    local F, Det = I and I.Focus, I and I.Detector
+    if F and F.getFocusedWindow and F.getFocusedWindow() == self
+       and Det and Det.getMode and Det.getMode() == "gamepad" then
+        return true
+    end
+    -- (the main menu's windows keep their own controller focus)
+    local MM = ZeD.MainMenu
+    if MM and MM.gamepad and MM.activeWindow and MM.gamepad() and MM.activeWindow() == self then return true end
+    return false
+end
+
+-- This window's surface alpha this frame when it differs from the palette's (nil: the
+-- palette's own). With "Solid while in use" on, it eases to 1 while the window is in use
+-- and back over SOLID_MS when it is not, per window.
+function ZeD_Window:_surfaceAlpha(T)
+    local S = ZeD.Settings
+    local base = (T.surf1 and T.surf1.a) or 1
+    if base >= 0.999 or not (S and S.solidInUse and S.solidInUse()) then
+        self._seeA, self._seeAt = nil, nil
+        return nil
+    end
+    local now = getTimestampMs()
+    local cur = self._seeA or base
+    if cur < base then cur = base elseif cur > 1 then cur = 1 end
+    local dt = now - (self._seeAt or now)
+    self._seeAt = now
+    local target = self:_inUse() and 1 or base
+    if cur ~= target then
+        local step = (1 - base) * dt / SOLID_MS
+        if cur < target then cur = math.min(target, cur + step) else cur = math.max(target, cur - step) end
+    end
+    self._seeA = cur
+    if cur - base < 0.004 then return nil end
+    return cur
+end
+
+-- The surfaces at this window's alpha for its render cycle (put back in render): every fill
+-- inside the window that reads T.surfN follows it. The window's own colour tables are reused.
+function ZeD_Window:_swapSurfaces()
+    local T = ZeD.T
+    local a = self:_surfaceAlpha(T)
+    if not a then return end
+    local saved = self._surfSaved
+    if not saved then saved = {}; self._surfSaved = saved end
+    local mine = self._surfMine
+    if not mine then mine = {}; self._surfMine = mine end
+    for i = 1, #SURF_KEYS do
+        local k = SURF_KEYS[i]
+        local c = T[k]
+        saved[k] = c
+        local m = mine[k]
+        if not m then m = {}; mine[k] = m end
+        m.r, m.g, m.b, m.a = c.r, c.g, c.b, a
+        T[k] = m
+    end
+    self._surfT = T
+end
+
+function ZeD_Window:_restoreSurfaces()
+    local T = self._surfT
+    if not T then return end
+    local saved = self._surfSaved
+    for i = 1, #SURF_KEYS do
+        local k = SURF_KEYS[i]
+        T[k] = saved[k]
+    end
+    self._surfT = nil
+end
+
+-- ----------------------------------------------------------------------------
+-- The overlay: the window's last child, which draws over everything inside it
+-- ----------------------------------------------------------------------------
+ZeD_WindowOverlay = ISPanel:derive("ZeD_WindowOverlay")
+ZeD_WindowOverlay.zedScaled = true   -- (its borders T.px(1) thick, as the window's own: Overrides/TextScale.lua)
+
+function ZeD_WindowOverlay:new(win)
+    local o = ISPanel:new(0, 0, win:getWidth(), win:getHeight())
+    setmetatable(o, self)
+    self.__index = self
+    o.win = win
+    o.background = false
+    return o
+end
+
+function ZeD_WindowOverlay:prerender() end
+
+function ZeD_WindowOverlay:render()
+    local win = self.win
+    if win then ZeD.Safe.guard(win, ZeD_Window._drawTop, "ZeD_Window frame") end
+end
+
+-- Click-through, except a press that starts a resize: that one is the window's alone, so
+-- a tab strip or a scrollbar under a side edge does not take it as well
+function ZeD_WindowOverlay:onMouseDown(x, y)
+    local win = self.win
+    if win and win:_resizeStartZone(x, y) then return true end
+    return false
+end
+function ZeD_WindowOverlay:onMouseUp() return false end
+function ZeD_WindowOverlay:onMouseUpOutside() return false end
+function ZeD_WindowOverlay:onRightMouseDown() return false end
+function ZeD_WindowOverlay:onRightMouseUp() return false end
+function ZeD_WindowOverlay:onMouseWheel() return false end
+function ZeD_WindowOverlay:onMouseMove() return false end
+function ZeD_WindowOverlay:onMouseMoveOutside() return false end
+
+-- The overlay made on the first frame, sized to the window, and kept last: a child added
+-- later (a drawer, a hover layer, a figure) is moved under it here, before the children draw
+-- (one added while they draw sits over it for that one frame)
+function ZeD_Window:_keepOverlayLast()
+    if not self.javaObject then return end
+    local ov = self._zedOverlay
+    if not ov then
+        ov = ZeD_WindowOverlay:new(self)
+        ov:initialise()
+        ov:instantiate()
+        ov.javaObject:setConsumeMouseEvents(false)
+        self._zedOverlay = ov
+        ISUIElement.addChild(self, ov)
+    end
+    local w, h = self:getWidth(), self:getHeight()
+    if ov:getWidth() ~= w then ov:setWidth(w) end
+    if ov:getHeight() ~= h then ov:setHeight(h) end
+    if not ov:isVisible() then ov:setVisible(true) end
+    -- (also back after a clearChildren took it out)
+    local ctrls = self.javaObject:getControls()
+    local n = ctrls and ctrls:size() or 0
+    if n == 0 or ctrls:get(n - 1) ~= ov.javaObject then
+        if self.children then ISUIElement.removeChild(self, ov) end
+        ISUIElement.addChild(self, ov)
+    end
+end
+
+-- ----------------------------------------------------------------------------
+-- Drawing: the title bar and the body (prerender, under the children)
+-- ----------------------------------------------------------------------------
+-- the window box: the close box's look with three lines across it
+local function drawWindowBox(p, x, y, sz, lit)
+    local T = ZeD.T
+    local bg = lit and T.hover or T.surf2
+    p:drawRect(x, y, sz, sz, 1, bg.r, bg.g, bg.b)
+    local bs = T.borderS
+    p:drawRectBorder(x, y, sz, sz, bs.a, bs.r, bs.g, bs.b)
+    local ins = T.px(3)
+    local lh = T.hair
+    local inner = sz - 2 * ins
+    local step = math.floor((inner - lh) / 2)
+    local y0 = y + ins + math.floor((inner - (2 * step + lh)) / 2)
+    local c = T.textDim
+    for i = 0, 2 do
+        p:drawRect(x + ins, y0 + i * step, sz - 2 * ins, lh, c.a or 1, c.r, c.g, c.b)
+    end
+end
+
+-- The title bar: surface 2 (one layer: ZeD.Surface), stripes broken behind the title and the
+-- stats (System 7's knockout, without a second fill), the close box, the title, the stats
+-- right-aligned left of the window box, the window box, and the structure line under it all.
+-- A stat: { text, color = its mark's colour (default textDim), noMark = true for none }.
+function ZeD_Window:_drawTitleBar(w, tbH)
+    local T = ZeD.T
+    local sp = T.sp
+    local tm = ZeD.TM
+    local f3 = T.fontF3
+    local tbp = sp.titleBoxPad
+
+    ZeD.Surface.fill(self, 0, 0, w, tbH, "surf2")
+
+    local box = self:windowBoxRect()
+    local right = box and (box.x - sp.md) or (w - sp.sm)
+    local titleX = sp.sm + T.closeBoxSz + sp.md
+    local textY = math.floor((tbH - (T.fontF3H or tm:getFontHeight(f3))) / 2)
+    local shown, tW = nil, 0
+    local title = self.title
+    if title and title ~= "" then
+        shown = ZeD.Atoms.truncateText(tostring(title), f3, math.max(0, right - titleX - tbp))
+        tW = tm:MeasureStringX(f3, shown)
+    end
+
+    -- stats right to left from the window box; one that would reach the title is dropped
+    local statL = nil
+    local stats = self.titleStats
+    if stats and #stats > 0 then
+        local mk, mkGap = T.px(6), T.px(4)
+        local minX = titleX + tW + tbp * 2 + sp.md
+        local sx = right
+        local tc = T.text
+        local my = math.floor((tbH - mk) / 2)
+        for i = #stats, 1, -1 do
+            local st = stats[i]
+            local txt = tostring(st.text or "")
+            local sw = tm:MeasureStringX(f3, txt)
+            local dc = st.color or T.textDim
+            -- (a colour at alpha 0 was the old way to say "no mark")
+            local mark = not st.noMark and (dc.a == nil or dc.a > 0)
+            local need = sw + (mark and (mk + mkGap) or 0)
+            if sx - need < minX then break end
+            sx = sx - sw
+            self:drawText(txt, sx, textY, tc.r, tc.g, tc.b, tc.a or 1, f3)
+            if mark then
+                sx = sx - mkGap - mk
+                self:drawRect(sx, my, mk, mk, dc.a or 1, dc.r, dc.g, dc.b)
+            end
+            statL = sx
+            sx = sx - sp.md
+        end
+    end
+
+    -- the stripes, with a gap behind the title and behind the stats
+    local st = T.stripe
+    if st and st.a > 0 then
+        local k1L, k1R = shown and (titleX - tbp) or nil, shown and (titleX + tW + tbp) or nil
+        local k2L, k2R = statL and (statL - tbp) or nil, statL and (right + tbp) or nil
+        local sh = T.px(1)
+        for sy = T.px(2), tbH - T.px(2), T.px(4) do
+            local x0 = 0
+            if k1L then
+                if k1L > x0 then self:drawRect(x0, sy, k1L - x0, sh, st.a, st.r, st.g, st.b) end
+                x0 = k1R
+            end
+            if k2L then
+                if k2L > x0 then self:drawRect(x0, sy, k2L - x0, sh, st.a, st.r, st.g, st.b) end
+                if k2R > x0 then x0 = k2R end
+            end
+            if w > x0 then self:drawRect(x0, sy, w - x0, sh, st.a, st.r, st.g, st.b) end
+        end
+    end
+
+    if shown then
+        local th = T.textHead
+        self:drawText(shown, titleX, textY, th.r, th.g, th.b, th.a or 1, f3)
+    end
+    -- Close box (a rolled-up side: the close box is on its rod, WindowCurtain)
+    if self._closeBtnRect and not self._closeOnRod then
+        local cb = self:closeRect()
+        ZeD.Atoms.drawCloseBox(self, cb.x, cb.y, cb.w, self._closeHover)
+    end
+    if box then drawWindowBox(self, box.x, box.y, box.w, self._wboxHover or self._wboxOpen) end
+
+    -- the structure line under the bar, to the frame's inner edges (a shaded window's frame closes it)
+    if not (self.isCollapsed or self.windowShaded) then
+        local fw = frameW(T)
+        local bs = T.borderS
+        self:drawRect(fw, tbH - T.hair, w - 2 * fw, T.hair, bs.a, bs.r, bs.g, bs.b)
+    end
 end
 
 function ZeD_Window:_drawFrame()
@@ -256,45 +553,36 @@ function ZeD_Window:_drawFrame()
         T.border = pal.border; T.borderS = pal.borderS
         T.text = pal.text; T.textHead = pal.textHead
     end
+    -- this window's own see-through (solid while in use), after the accent's surfaces
+    self:_swapSurfaces()
+
+    self:_keepOverlayLast()
+    ZeD.Surface.beginFrame(self)
 
     local w = self:getWidth()
     local h = self:getHeight()
     local tbH = self:titleBarHeight()
+    -- where and how big it first opened ("Reset this window" on a window outside the pair)
+    if not self._zedHome then self._zedHome = { x = self:getX(), y = self:getY(), w = w, h = h } end
 
     -- Reactive minimums — follow text size changes
     self.minimumWidth = T.minWinW
     self.minimumHeight = T.minWinH
 
-    -- Title bar (molecule draws bg, stripes, title, stats, bottom border)
-    ZeD.Molecules.drawWindowTitleBar(self, 0, 0, w, self.title, self.titleStats)
+    self:_drawTitleBar(w, tbH)
 
-    -- Close box (drawn on top of title bar)
-    if self._closeBtnRect and not self._closeOnRod then   -- (a rolled-up side: the close box is on its rod, WindowCurtain)
-        local cb = self:closeRect()
-        ZeD.Atoms.drawCloseBox(self, cb.x, cb.y, cb.w, self._closeHover)
-    end
-
-    -- Body background (skip if shaded)
+    -- Body: between the title bar and the help line, minus what bands, headers and cards drawn
+    -- over it claimed last frame (ZeD.Surface), so every spot of the window carries one surface.
+    -- No inset: the frame is drawn over it, last (the overlay).
     if not self.isCollapsed and not self.windowShaded then
-        ZeD.Molecules.drawBodyBg(self, 0, tbH, w, h - tbH, "surf1")
+        ZeD.Surface.drawBody(self, 0, tbH, w, h - tbH - self:footerHeight(), "surf1")
     end
-
-    -- Outer border: when shaded, draw only around the title bar height
-    local borderH = (self.isCollapsed or self.windowShaded) and tbH or h
-    self:drawRectBorder(0, 0, w, borderH, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
-
-    -- S99 focus chrome v4 / S107 QA v6 / S108 QA v7: Scoped accent underline
-    -- at the BOTTOM edge of the window. v6 placed it in prerender (below the
-    -- title bar logically), but on resizable windows the surf2 footer fill in
-    -- render() at line ~310 paints over y=h-rh..h every frame, hiding the
-    -- focus line entirely. v7 moves the draw to the END of render() (after
-    -- footer + grow box) so nothing can overdraw it. See ZeD_Window:render.
 end
 
 -- ============================================================================
 -- S123: CAPABILITY-DRIVEN BUTTON PROMPTS
--- The footer legend is derived from the focused element's callbacks, never
--- hand-authored: A if onActivate, hold-A if onHoldActivate, X if
+-- The help line's prompts are derived from the focused element's callbacks,
+-- never hand-authored: A if onActivate, hold-A if onHoldActivate, X if
 -- onContextMenu (or onReset), B if onCancel, Y always (window pair). Labels
 -- come from the element (promptA / promptHold / promptX / promptB) or from
 -- the id-prefix table below, else generic verbs. Elements that gain a new
@@ -326,7 +614,7 @@ local PROMPT_LABELS = {
 }
 
 -- L3 / R3 (Oct 23 2026) lead the prompts while the pad is on an item list: the
--- leftmost go first when the footer is narrow, so A, X and Y outlast them
+-- leftmost go first when the help line is narrow, so A, X and Y outlast them
 local function _addListPrompts(win, prompts)
     local z = win._focusRing and win._focusIdx and win._focusRing[win._focusIdx]
     local zn = z and tostring(z.zone) or ""
@@ -359,215 +647,237 @@ local function _promptsFor(el)
     return out
 end
 
-function ZeD_Window:_drawFooter()
-    if self.isCollapsed or self.windowShaded then return end
-
-    local T = ZeD.T
-    local A = ZeD.Atoms
-    local M = ZeD.Molecules
-    local sp = T.sp
-    local w = self:getWidth()
-    local h = self:getHeight()
-
-    -- FOOTER ACTION STRIP — toggle buttons + optional grow box
-    -- Suppressed when the hosted card renders its own action strip (v10 layout).
-    local fH = self:footerHeight()
-    if fH > 0 and self.footerToggles and self.footerItem and not self.cardOwnsActionStrip then
-        local fY = h - fH
-
-        -- Footer background — inset 1px so the window border wraps over it
-        M.drawBodyBg(self, T.px(1), fY, w - T.px(1) * 2, fH - T.px(1), "surf2")
-
-        -- Groove separator at footer top edge
-        A.drawGroove(self, T.px(1), fY, w - T.px(1) * 2)
-
-        -- Action strip — left-aligned, vertically centered below groove
-        local grooveH = T.grooveH  -- groove = a dark and a light hairline
-        local stripX = sp.sm
-        local stripY = fY + grooveH + sp.sm
-        self.footerToggleRects = M.drawActionStrip(
-            self, stripX, stripY,
-            ZeD.ActionStrip.TOGGLE_DEFS, self.footerItem, self.footerToggleHover
-        )
+-- The prompts the help line shows, or nil for the help words: a window outside FocusManager
+-- (the main menu's) hands its own in (getFooterPrompts: the list, or nil in mouse mode);
+-- otherwise the focused element's, in gamepad mode, while this window has the controller.
+function ZeD_Window:_footerPrompts()
+    if self.getFooterPrompts then
+        local own = self:getFooterPrompts()
+        if own then return own end
     end
+    local I = ZeD.Input
+    local Focus, Det = I and I.Focus, I and I.Detector
+    if not (Det and Det.getMode and Det.getMode() == "gamepad") then return nil end
+    if not (Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self) then return nil end
+    local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
+    local prompts = _promptsFor(el)
+    pcall(_addListPrompts, self, prompts)
+    -- the Y hold's lock, while it is on: a "Locked" prompt in place of Y's
+    if Focus.isLocked and Focus.isLocked() then
+        for i = #prompts, 1, -1 do
+            if prompts[i].glyph == "Y" then table.remove(prompts, i) end
+        end
+        prompts[#prompts + 1] = { glyph = "Y", label = ZeD.tr("UI_ZeD_Prompt_Locked") }
+    end
+    return prompts
+end
 
-    -- Footer: theme controls + grow box (resizable windows; themeFooter keeps
-    -- the controls on a fixed-size window, without the grow box; noResetControl
-    -- drops R where there are no Character / World windows to reset)
-    if self.resizable or self.themeFooter then
-        local rh = self:resizeWidgetHeight()
-        local fY = h - rh
-        local bs = T.borderS
-        local hoverIdx = self._themeControlHover
-        self._themeControlRects = {}
-
-        -- Footer bar background + top divider
-        local s2 = T.surf2
-        self:drawRect(T.px(1), fY, w - T.px(1) * 2, rh, s2.a, s2.r, s2.g, s2.b)
-        A.drawDividerH(self, T.px(1), fY, w - T.px(1) * 2, false)
-
-        -- Button style matches grow box: surf2 bg, borderS border, same size
-        local btnX = 0
-        local btnGap = T.px(4)
-
-        -- 1-3 shown unless ZeD setup hides them (director, Oct 24 2026: "add option in ZeD
-        -- settings to hide theme/accent/text buttons on windows"); R stays, in their place
-        local squares = not (ZeD.Settings and ZeD.Settings.windowSquaresOn) or ZeD.Settings.windowSquaresOn()
-        if squares then
-        -- 1. Theme dot: next theme's preview color
-        local nextC
-        if ZeD.currentBase == "dark" then
-            nextC = {r=0.75, g=0.75, b=0.72}
-        elseif ZeD.currentBase == "light" then
-            nextC = {r=1, g=1, b=1}
+-- ----------------------------------------------------------------------------
+-- Drawing: the help line, the resize handles and the frame (the overlay, last)
+-- ----------------------------------------------------------------------------
+-- The prompts left-aligned from x: each button's picture (ZeD_PadGlyphs) 14u tall, or its
+-- name in a box with the glyph setting on Keyboard/mouse or Off, then its label in F2.
+-- Too long for the line: the leftmost go first (an item list's L3 / R3 lead the list).
+local _pw, _pr, _pg = {}, {}, {}
+local function drawPrompts(p, prompts, x, y, h, maxX)
+    local T = ZeD.T
+    local tm = ZeD.TM
+    local f2, f5 = T.fontF2, T.fontF5
+    local pic = T.px(14)
+    local gap, between = T.px(4), T.px(8)
+    local PG = ZeD.PadGlyphs
+    local set = PG and PG.set()
+    local k = PG and PG.k(pic) or 1
+    local n = #prompts
+    local total = 0
+    for i = 1, n do
+        local pr = prompts[i]
+        local label, gw, roles = nil, 0, false
+        if type(pr) == "string" then
+            label = pr
         else
-            nextC = {r=0.05, g=0.08, b=0.12}
+            label = tostring(pr.label or "")
+            roles = (set and (pr.pad or PG.roles(pr.glyph))) or false
+            if roles then gw = PG.width(roles, k, set)
+            else gw = math.max(pic, tm:MeasureStringX(f5, tostring(pr.glyph or "")) + T.px(4)) end
         end
-        local bg1 = hoverIdx == 1 and T.surf4 or s2
-        self:drawRect(btnX, fY, rh, rh, bg1.a, bg1.r, bg1.g, bg1.b)
-        self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        -- 5px filled circle centered: pixel art on the hairline grid, each of its 5 x 5 cells T.hair square
-        -- (Oct 21 2026: rows on T.px(r) edges came out 2, 5, 2 px tall at 1.75)
-        local p1 = T.hair
-        local p4, p5 = 4 * p1, 5 * p1
-        local cx, cy = btnX + math.floor((rh - p5) / 2), fY + math.floor((rh - p5) / 2)
-        self:drawRect(cx + p1, cy,      p4 - p1, p1,      1, nextC.r, nextC.g, nextC.b)
-        self:drawRect(cx,      cy + p1, p5,      p4 - p1, 1, nextC.r, nextC.g, nextC.b)
-        self:drawRect(cx + p1, cy + p4, p4 - p1, p5 - p4, 1, nextC.r, nextC.g, nextC.b)
-        self._themeControlRects[1] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
-        btnX = btnX + rh + btnGap
-
-        -- 2. Accent dot: current accent color
-        local ac = T.accent
-        local bg2 = hoverIdx == 2 and T.surf4 or s2
-        self:drawRect(btnX, fY, rh, rh, bg2.a, bg2.r, bg2.g, bg2.b)
-        self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        cx, cy = btnX + math.floor((rh - p5) / 2), fY + math.floor((rh - p5) / 2)
-        self:drawRect(cx + p1, cy,      p4 - p1, p1,      1, ac.r, ac.g, ac.b)
-        self:drawRect(cx,      cy + p1, p5,      p4 - p1, 1, ac.r, ac.g, ac.b)
-        self:drawRect(cx + p1, cy + p4, p4 - p1, p5 - p4, 1, ac.r, ac.g, ac.b)
-        self._themeControlRects[2] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
-        btnX = btnX + rh + btnGap
-
-        -- 3. Scale: "A" label
-        local bg3 = hoverIdx == 3 and T.surf4 or s2
-        self:drawRect(btnX, fY, rh, rh, bg3.a, bg3.r, bg3.g, bg3.b)
-        self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        local aW = ZeD.TM:MeasureStringX(T.fontF5, "A")
-        local aH = ZeD.TM:getFontHeight(T.fontF5)
-        local aX = btnX + math.floor((rh - aW) / 2)
-        local aY = fY + math.floor((rh - aH) / 2)
-        self:drawText("A", aX, aY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF5)
-        self._themeControlRects[3] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
-        btnX = btnX + rh + btnGap
-        end
-
-        -- 4. Reset window position: "R" label
-        if not self.noResetControl then
-        local bg4 = hoverIdx == 4 and T.surf4 or s2
-        self:drawRect(btnX, fY, rh, rh, bg4.a, bg4.r, bg4.g, bg4.b)
-        self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        local rLbl = "R"
-        local rLblW = ZeD.TM:MeasureStringX(T.fontF5, rLbl)
-        local rLblH = ZeD.TM:getFontHeight(T.fontF5)
-        local rLblX = btnX + math.floor((rh - rLblW) / 2)
-        local rLblY = fY + math.floor((rh - rLblH) / 2)
-        self:drawText(rLbl, rLblX, rLblY, T.toneNorm.r, T.toneNorm.g, T.toneNorm.b, T.toneNorm.a, T.fontF5)
-        self._themeControlRects[4] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
-        end
-
-        -- 5. Dyslexic toggle (commented out — requires Lua reset, deferred)
-        -- local isDyslexic = getCore():getOptionEnableDyslexicFont()
-        -- local bg4 = isDyslexic and T.accent or (hoverIdx == 4 and T.surf4 or s2)
-        -- local dyTextC = isDyslexic and T.textOnAccent or T.text
-        -- self:drawRect(btnX, fY, rh, rh, bg4.a, bg4.r, bg4.g, bg4.b)
-        -- self:drawRectBorder(btnX, fY, rh, rh, bs.a, bs.r, bs.g, bs.b)
-        -- local dyW = ZeD.TM:MeasureStringX(T.fontF1, "DY")
-        -- local dyH = ZeD.TM:getFontHeight(T.fontF1)
-        -- local dyX = btnX + math.floor((rh - dyW) / 2)
-        -- local dyY = fY + math.floor((rh - dyH) / 2)
-        -- self:drawText("DY", dyX, dyY, dyTextC.r, dyTextC.g, dyTextC.b, dyTextC.a, T.fontF1)
-        -- self._themeControlRects[4] = {x=self:getAbsoluteX()+btnX, y=self:getAbsoluteY()+fY, w=rh, h=rh}
-
-        -- S123: button prompts (gamepad mode, this window focused). Right-
-        -- aligned, left of the grow box; drops prompts from the left when the
-        -- footer is too narrow rather than overlapping the theme controls.
-        do
-            local Focus = ZeD.Input and ZeD.Input.Focus
-            local Det   = ZeD.Input and ZeD.Input.Detector
-            local gpMode = Det and Det.getMode and Det.getMode() == "gamepad"
-            -- a window outside FocusManager (the main menu's) hands its own
-            -- prompts in: getFooterPrompts returns the list, or nil for none
-            local prompts = self.getFooterPrompts and self:getFooterPrompts() or nil
-            if not prompts and gpMode and Focus and Focus.getFocusedWindow and Focus.getFocusedWindow() == self then
-                local el = Focus.getFocusedElement and Focus.getFocusedElement(self)
-                prompts = _promptsFor(el)
-                pcall(_addListPrompts, self, prompts)
+        local wi = ((gw > 0) and (gw + gap) or 0) + ((label ~= "") and tm:MeasureStringX(f2, label) or 0)
+        _pw[i], _pr[i], _pg[i] = wi, roles, gw
+        total = total + wi + ((i > 1) and between or 0)
+    end
+    local first = 1
+    while first < n and x + total > maxX do
+        total = total - _pw[first] - between
+        first = first + 1
+    end
+    if x + total > maxX then return end
+    local fh2 = T.fontF2H or tm:getFontHeight(f2)
+    local textY = y + math.floor((h - fh2) / 2)
+    local bs, tc, td = T.borderS, T.text, T.textDim
+    for i = first, n do
+        local pr = prompts[i]
+        local gw = _pg[i]
+        if type(pr) == "string" then
+            p:drawText(pr, x, textY, td.r, td.g, td.b, td.a or 1, f2)
+        else
+            if _pr[i] then
+                PG.draw(p, _pr[i], x, y, h, k, set)
+            else
+                local g = tostring(pr.glyph or "")
+                local gy = y + math.floor((h - pic) / 2)
+                local fh5 = T.fontF5H or tm:getFontHeight(f5)
+                p:drawRectBorder(x, gy, gw, pic, bs.a, bs.r, bs.g, bs.b)
+                p:drawText(g, x + math.floor((gw - tm:MeasureStringX(f5, g)) / 2), gy + math.floor((pic - fh5) / 2), tc.r, tc.g, tc.b, tc.a or 1, f5)
             end
-            if prompts then
-                local tm   = ZeD.TM
-                local font = T.fontF5
-                local fh   = tm:getFontHeight(font)
-                local box  = rh - T.px(4)
-                local px   = w - rh - btnGap - sp.sm
-                local minX = btnX + rh + btnGap * 3
-                local textY = fY + math.floor((rh - fh) / 2)
-                -- (the buttons as ZeD's pixel pictures, ZeD_PadGlyphs; boxed names with the glyph setting on Keyboard/mouse or Off)
-                local PG = ZeD.PadGlyphs
-                local set = PG and PG.set()
-                local gk = PG and PG.k(box) or 1
-                for i = #prompts, 1, -1 do
-                    local p  = prompts[i]
-                    local lw = tm:MeasureStringX(font, p.label)
-                    local roles = set and (p.pad or PG.roles(p.glyph)) or nil
-                    local bw = roles and PG.width(roles, gk, set) or box
-                    local total = bw + T.px(3) + lw
-                    if px - total < minX then break end
-                    local x0 = px - total
-                    if roles then
-                        PG.draw(self, roles, x0, fY, rh, gk, set)
-                    else
-                        local gw = tm:MeasureStringX(font, p.glyph)
-                        self:drawRectBorder(x0, fY + T.px(2), box, box, bs.a, bs.r, bs.g, bs.b)
-                        self:drawText(p.glyph, x0 + math.floor((box - gw) / 2), textY, T.text.r, T.text.g, T.text.b, T.text.a, font)
-                    end
-                    self:drawText(p.label, x0 + bw + T.px(3), textY, T.textDim.r, T.textDim.g, T.textDim.b, T.textDim.a, font)
-                    px = x0 - sp.sm * 2
+            local label = tostring(pr.label or "")
+            if label ~= "" then p:drawText(label, x + gw + gap, textY, tc.r, tc.g, tc.b, tc.a or 1, f2) end
+        end
+        x = x + _pw[i] + between
+    end
+end
+
+-- a grow box's three ridges (as ZeD.Atoms.drawResizeRidges) in a colour of their own;
+-- mirror = the bottom-left corner's, the ridges running towards that corner
+local function drawRidges(p, x, y, size, lt, la, mirror)
+    local T = ZeD.T
+    local dk = T.base
+    local da = T.ridgeDarkA or 0.5
+    local u = T.px(1)
+    for i = 0, 2 do
+        local off = T.px(i * 4)
+        local x1 = x + size - T.px(4) - off
+        local y1 = y + size - T.px(2)
+        local x2 = x + size - T.px(2)
+        local y2 = y + size - T.px(4) - off
+        local steps = math.floor(math.max(math.abs(x2 - x1), math.abs(y2 - y1)) / u)
+        if steps > 0 then
+            for s = 0, steps do
+                local px = x1 + math.floor((x2 - x1) * s / steps)
+                local py = y1 + math.floor((y2 - y1) * s / steps)
+                if mirror then px = 2 * x + size - px - u end
+                p:drawRect(px, py, u, u, la, lt.r, lt.g, lt.b)
+                local sx, sy = px + u, py + u
+                if sx > x and sx < x + size - u and sy < y + size - u then
+                    p:drawRect(sx, sy, u, u, da, dk.r, dk.g, dk.b)
                 end
             end
         end
-
-        -- Grow box (right corner, same style)
-        if self.resizable then A.drawGrowBox(self, w - rh, h - rh, rh) end
     end
+end
 
-    -- S108 QA v7: Scoped accent underline at the BOTTOM edge of the window,
-    -- positioned above the currently-focused zone's horizontal range. Drawn
-    -- LAST so the resizable footer fill (line ~310) and grow box don't
-    -- overdraw it. Windows declare `uiRange = function(win) return x, w end`
-    -- on each ring zone entry; zones without uiRange get no underline (quiet
-    -- degrade). Locked state (Y-hold) uses brighter accent + thicker bar.
-    local mode = ZeD.Input and ZeD.Input.Detector and ZeD.Input.Detector.getMode
-                 and ZeD.Input.Detector.getMode()
-    if mode == "gamepad"
-       and ZeD.Input and ZeD.Input.Focus
-       and ZeD.Input.Focus.getFocusedWindow() == self then
-        local Focus = ZeD.Input.Focus
-        local zone = Focus.getFocusedZone(self)
-        if zone and zone.uiRange then
-            local zx, zw = zone.uiRange(self)
-            if zx and zw and zw > 0 then
-                local locked = (Focus.isLocked and Focus.isLocked()) or false
-                local a = locked and (T.accentBright or T.accent) or T.accent
-                local barH = locked and T.px(4) or T.px(3)
-                local underY = h - barH
-                self:drawRect(zx, underY, zw, barH, 1.0, a.r, a.g, a.b)
+-- the grow box (lit: its ridges in the accent, while its handle shows or it is dragged)
+local function drawGrow(p, x, y, sz, lit, mirror)
+    if not lit and not mirror then ZeD.Atoms.drawGrowBox(p, x, y, sz); return end
+    local T = ZeD.T
+    local bg, bs = T.surf2, T.borderS
+    p:drawRect(x, y, sz, sz, bg.a or 1, bg.r, bg.g, bg.b)
+    p:drawRectBorder(x, y, sz, sz, bs.a, bs.r, bs.g, bs.b)
+    if lit then drawRidges(p, x, y, sz, T.accent, 1, mirror)
+    else drawRidges(p, x, y, sz, T.textDim, T.ridgeLightA or 0.6, mirror) end
+end
+
+-- The help line: surface 2 with the structure line on top, then the controller's prompts
+-- (gamepad) or the help words in F2 textDim (mouse), and the grow box at the right end
+function ZeD_Window:_drawHelpLine(p, w, h, lit)
+    local text = ZeD.Help.take(self)   -- (taken every frame, so a stamp never outlives its frame)
+    local T = ZeD.T
+    local fH = self:footerHeight()
+    local grow = self.resizable and self:resizeWidgetHeight() or 0
+    if fH > 0 then
+        local fY = h - fH
+        local fw = frameW(T)
+        ZeD.Surface.fill(p, 0, fY, w - grow, fH, "surf2")
+        local bs = T.borderS
+        p:drawRect(fw, fY, w - 2 * fw, T.hair, bs.a, bs.r, bs.g, bs.b)
+        local x0 = (lit == "sw") and (grow + T.px(6)) or T.px(10)
+        local maxX = w - grow - T.px(10)
+        local prompts = self:_footerPrompts()
+        if prompts and #prompts > 0 then
+            drawPrompts(p, prompts, x0, fY, fH, maxX)
+        else
+            if lit then text = ZeD.tr("UI_ZeD_Window_ResizeHelp") end
+            if text and maxX > x0 then
+                local f2 = T.fontF2
+                local d = T.textDim
+                local fh2 = T.fontF2H or ZeD.TM:getFontHeight(f2)
+                p:drawText(ZeD.Atoms.truncateText(text, f2, maxX - x0), x0, fY + math.floor((fH - fh2) / 2), d.r, d.g, d.b, d.a or 1, f2)
             end
         end
     end
+    if grow > 0 then drawGrow(p, w - grow, h - grow, grow, lit == "se", false) end
+end
 
-    -- Restore global accent after this window's render cycle
-    self:_restoreAccent()
+-- the handle of the edge the pointer rests on (or drags): a ridged grip in the accent at the
+-- middle of the bottom edge or of a side, or the bottom-left corner's box (the bottom-right's
+-- is the grow box, lit in _drawHelpLine); the frame's line on that edge is lit in drawFrameRect
+local function drawHandle(win, p, w, h, lit)
+    local T = ZeD.T
+    local fw = frameW(T)
+    local ac, dk, s2 = T.accent, T.base, T.surf2
+    local da = T.ridgeDarkA or 0.5
+    local hair = T.hair
+    local len = T.px(GRIP_LEN)
+    local sg, pad = T.px(3), T.px(2)
+    if lit == "s" then
+        local gx = math.floor((w - len) / 2)
+        local yA = h - fw - T.px(2) - 2 * hair
+        local yB = yA - sg
+        p:drawRect(gx - pad, yB - pad, len + 2 * pad, h - fw - (yB - pad), 1, s2.r, s2.g, s2.b)
+        p:drawRect(gx, yB, len, hair, 1, ac.r, ac.g, ac.b)
+        p:drawRect(gx, yB + hair, len, hair, da, dk.r, dk.g, dk.b)
+        p:drawRect(gx, yA, len, hair, 1, ac.r, ac.g, ac.b)
+        p:drawRect(gx, yA + hair, len, hair, da, dk.r, dk.g, dk.b)
+    elseif lit == "w" or lit == "e" then
+        local top = win:titleBarHeight()
+        local gy = top + math.floor((h - top - win:footerHeight() - len) / 2)
+        local xA, xB
+        if lit == "w" then xA = fw + T.px(1); xB = xA + sg
+        else xB = w - fw - T.px(1) - 2 * hair; xA = xB - sg end
+        p:drawRect(xA - pad + T.px(1), gy - pad, xB + 2 * hair - xA + 2 * pad - T.px(1), len + 2 * pad, 1, s2.r, s2.g, s2.b)
+        p:drawRect(xA, gy, hair, len, 1, ac.r, ac.g, ac.b)
+        p:drawRect(xA + hair, gy, hair, len, da, dk.r, dk.g, dk.b)
+        p:drawRect(xB, gy, hair, len, 1, ac.r, ac.g, ac.b)
+        p:drawRect(xB + hair, gy, hair, len, da, dk.r, dk.g, dk.b)
+    elseif lit == "sw" then
+        local sz = win:resizeWidgetHeight()
+        drawGrow(p, 0, h - sz, sz, true, true)
+    end
+end
+
+-- the frame: one rectangle around the whole window, its edge lit in the accent while that
+-- edge's resize handle shows
+local function drawFrameRect(p, w, h, lit)
+    local T = ZeD.T
+    local t = frameW(T)
+    local bs, ac = T.borderS, T.accent
+    p:drawRect(0, 0, w, t, bs.a, bs.r, bs.g, bs.b)
+    local c = (lit == "s") and ac or bs
+    p:drawRect(0, h - t, w, t, c.a or 1, c.r, c.g, c.b)
+    c = (lit == "w") and ac or bs
+    p:drawRect(0, t, t, h - 2 * t, c.a or 1, c.r, c.g, c.b)
+    c = (lit == "e") and ac or bs
+    p:drawRect(w - t, t, t, h - 2 * t, c.a or 1, c.r, c.g, c.b)
+end
+
+-- The overlay's draw (ZeD_WindowOverlay:render), after every other child of the window: the
+-- help line, a resize handle, the frame, then the controller's focus mark from ZeD.Focus
+-- (which may reach past the window's edge: nothing here clips it)
+function ZeD_Window._drawTop(win)
+    local p = win._zedOverlay
+    if not p then return end
+    local w, h = win:getWidth(), win:getHeight()
+    local shaded = win.isCollapsed or win.windowShaded
+    local lit = (not shaded) and win._rzLit or nil
+    if not shaded then
+        win:_drawHelpLine(p, w, h, lit)
+        if lit then drawHandle(win, p, w, h, lit) end
+    end
+    drawFrameRect(p, w, h, lit)
+    local F = ZeD.Focus
+    if F and F.drawOverlay then
+        local ok, err = pcall(F.drawOverlay, p, win)
+        if not ok then ZeD.logOnce("ZeD.Focus.drawOverlay", err) end
+    end
 end
 
 -- The global accent back after this window's render cycle (also when the draw failed)
@@ -588,47 +898,144 @@ function ZeD_Window:_restoreAccent()
     end
 end
 
+-- ----------------------------------------------------------------------------
+-- Resizing: the bottom edge (height), the bottom corners (both; the bottom-left
+-- moves the left edge and keeps the right one), the side edges (width). The
+-- engine only reports a press inside the panel, so the zones lie inside the
+-- window: the bottom 6u, the 22u corner squares (the bottom-right one is the
+-- grow box), the outer 4u of each side below the title bar. The bottom edge
+-- and the corners start a drag at once (nothing else there takes a press); a
+-- side edge, where the tab strips, the container strips and the scrollbars
+-- live, only once its handle shows, after the pointer has rested on it.
+-- ----------------------------------------------------------------------------
+-- the zone at (mx, my) in window coordinates: "s", "se", "sw", "w", "e" or nil
+function ZeD_Window:_resizeZoneAt(mx, my)
+    if not self.resizable or self.windowShaded or self.isCollapsed then return nil end
+    local T = ZeD.T
+    local w, h = self:getWidth(), self:getHeight()
+    if mx < 0 or my < 0 or mx >= w or my >= h then return nil end
+    local cz = self:resizeWidgetHeight()
+    if my >= h - cz then
+        if mx >= w - cz then return "se" end
+        if mx < cz then return "sw" end
+    end
+    if my >= h - T.px(EDGE_B) then return "s" end
+    if my >= self:titleBarHeight() then
+        local e = T.px(EDGE_S)
+        if mx < e then return "w" end
+        if mx >= w - e then return "e" end
+    end
+    return nil
+end
+
+-- the zone a press at (mx, my) starts a resize from (a side edge only while its handle shows)
+function ZeD_Window:_resizeStartZone(mx, my)
+    local z = self:_resizeZoneAt(mx, my)
+    if (z == "w" or z == "e") and self._rzLit ~= z then return nil end
+    return z
+end
+
+function ZeD_Window:_startResize(mode)
+    self._resizing = true
+    self._resizeMode = mode
+    self._resizeYOnly = (mode == "s")
+    self._resizeRight = self:getX() + self:getWidth()   -- (the left edge moves; this one stays)
+    self._growBoxWasDown = true
+    self.moving = false   -- kill any drag that started in onMouseDown
+    self:setCapture(true)
+    self:bringToTop()
+end
+
 --- Release resize state and capture. Called from multiple exit points.
 function ZeD_Window:_stopResize()
+    local mode = self._resizeMode
     self._resizing = false
     self._resizeYOnly = false
+    self._resizeMode = nil
     self._growBoxWasDown = false
     self:setCapture(false)
+    -- the handle stays lit while the pointer is still on that edge, and goes when it leaves
+    if mode then self._rzZone = mode; self._rzSince = getTimestampMs() - REST_MS end
+end
+
+-- one step of the drag, from where the pointer is now; the minimums hold (Java's setWidth
+-- clamps to minimumWidth too, and onResize runs after update and clamps again)
+function ZeD_Window:_resizeStep()
+    local T = ZeD.T
+    local mode = self._resizeMode or "se"
+    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
+    local mx, my = getMouseX(), getMouseY()
+    local minW = self.minimumWidth or T.px(200)
+    local minH = self.minimumHeight or T.px(120)
+    if mode == "s" or mode == "se" or mode == "sw" then
+        local newH = math.max(my - ay, minH)
+        newH = math.min(newH, getCore():getScreenHeight() - self:getY())
+        if newH ~= self:getHeight() then self:setHeight(newH) end
+    end
+    if mode == "se" or mode == "e" then
+        local newW = math.max(mx - ax, minW)
+        if newW ~= self:getWidth() then self:setWidth(newW) end
+    elseif mode == "sw" or mode == "w" then
+        local right = self._resizeRight or (self:getX() + self:getWidth())
+        local mxp = mx - (ax - self:getX())   -- (the pointer in the coordinates the window's x is in)
+        local newW = math.min(math.max(right - mxp, minW), right)
+        if newW ~= self:getWidth() then self:setWidth(newW) end
+        local nx = right - self:getWidth()
+        if nx ~= self:getX() then self:setX(nx) end
+    end
+    -- Java anchor system propagates to children automatically.
+end
+
+-- the zone under the pointer, the rest before its handle shows, and a press that starts a drag
+function ZeD_Window:_updateResize(down, fresh, mx, my)
+    if not self.resizable or self.windowShaded or self.isCollapsed then
+        if self._resizing then self:_stopResize() end
+        self._rzLit, self._rzZone = nil, nil
+        return
+    end
+    if self._resizing then
+        -- Safety release: PZ's capture system can miss onMouseUp
+        if down then
+            self:_resizeStep()
+            self._rzLit = self._resizeMode
+            return
+        end
+        self:_stopResize()
+    end
+    local zone = self:pointerOn() and self:_resizeZoneAt(mx, my) or nil
+    -- a fresh press (a button already held when the pointer arrived never starts one)
+    if fresh and zone then
+        local start = self:_resizeStartZone(mx, my)   -- (a side edge: lit last frame, before the press)
+        if start then
+            self:_startResize(start)
+            self._rzLit = start
+            return
+        end
+    end
+    local now = getTimestampMs()
+    if zone ~= self._rzZone then self._rzZone = zone; self._rzSince = now end
+    if down then self._rzSince = now end   -- (only a rest with no button down shows a handle)
+    self._rzLit = (zone and now - (self._rzSince or now) >= REST_MS) and zone or nil
 end
 
 function ZeD_Window:onMouseDown(x, y)
-    local T = ZeD.T
     if not self:getIsVisible() then return end
 
     -- If update() already claimed this click for resize, don't also start a drag
     if self._resizing then return true end
 
-    local w = self:getWidth()
-    local h = self:getHeight()
-    local rh = self:resizeWidgetHeight()
-
-    -- Grow box click: start resize directly from onMouseDown too
-    -- (belt-and-suspenders with update() — some child panels eat events)
-    if self.resizable and not self.windowShaded
-       and x >= w - rh and y >= h - rh then
-        self._resizing = true
-        self._resizeYOnly = false
-        self.moving = false
-        self:setCapture(true)
-        self:bringToTop()
+    -- An edge or a corner: start the resize here too (belt-and-suspenders with update(),
+    -- since some child panels eat events)
+    local start = self:_resizeStartZone(x, y)
+    if start then
+        self:_startResize(start)
         return true
     end
 
-    -- Bottom edge resize
-    if self.resizable and not self.windowShaded
-       and y >= h - T.px(4) and x < w - rh then
-        self._resizing = true
-        self._resizeYOnly = true
-        self.moving = false
-        self:setCapture(true)
-        self:bringToTop()
-        return true
-    end
+    -- the window box answers on release (update): a press on it neither drags the window
+    -- nor counts towards a double-click
+    local box = self:windowBoxRect()
+    if box and x >= box.x and x < box.x + box.w and y >= box.y and y < box.y + box.h then return true end
 
     local tbH = self:titleBarHeight()
     if y < tbH and y > 0 then
@@ -654,26 +1061,13 @@ function ZeD_Window:onMouseDown(x, y)
 end
 
 function ZeD_Window:onMouseMove(dx, dy)
-    local T = ZeD.T
     if self._resizing then
         -- Safety: if mouse button released but we missed onMouseUp
         if not isMouseButtonDown(0) then
             self:_stopResize()
             return
         end
-        local mx = self:getMouseX()
-        local my = self:getMouseY()
-        local newW = self._resizeYOnly and self.width or mx
-        local newH = my
-
-        newW = math.max(newW, self.minimumWidth or T.px(200))
-        newH = math.max(newH, self.minimumHeight or T.px(120))
-        newH = math.min(newH, getCore():getScreenHeight() - self:getY())
-
-        self:setWidth(newW)
-        self:setHeight(newH)
-        -- Java anchor system propagates to children automatically.
-        -- ZeD_TabPanel:prerender calls resizeChildren() as safety net.
+        self:_resizeStep()
         return
     end
     -- Inline drag (replaces ISCollapsableWindow super-call)
@@ -713,13 +1107,82 @@ function ZeD_Window:onMouseUpOutside(x, y)
 end
 
 -- ---------------------------------------------------------------------------
--- Reset both windows to the default page-spread layout: the "R" square in a
--- window's footer (also called by the QA scripts). A rolled side
--- (WindowCurtain) comes back down first, so the reset starts from the whole
--- window.
+-- Reset the windows to the default page-spread layout: "Reset this window"
+-- and "Reset both windows" in the window menu, the Select wheel's Reset
+-- windows (and the QA scripts). which: "char", "world", or nil for both. A
+-- rolled side (WindowCurtain) comes back down first, so the reset starts
+-- from the whole window.
 -- ---------------------------------------------------------------------------
-function ZeD_Window.resetLayout()
+local function resetChar(charWin, defW, defH, gap, screenW)
     local S = ZeD.Settings
+    local T = ZeD.T
+    charWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
+    charWin:setWidth(defW)
+    charWin:setHeight(defH)
+    charWin:setX(math.floor(screenW / 2) - defW - gap)
+    charWin:setY(0)
+    charWin._anchorRightEdge = charWin:getX() + defW
+    charWin._lastSetX = charWin:getX()
+    charWin._preDrawerW = nil
+    -- Reset saved settings: tab, drawer, accent
+    charWin._activeTab = "loot"
+    charWin._drawerOpen = false
+    charWin._drawerEffW = 0
+    charWin._prevEffW   = 0
+    charWin._drawerMode = nil
+    charWin._accentKey = nil
+    if S then S.syncWindowAccent(charWin) end   -- the option, the next open and the saved copy follow
+    -- Reset inventory drawer state (S78 two-drawer)
+    charWin._invDrawerOpen    = true
+    charWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
+    charWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
+    charWin._prevDesiredW     = nil
+    charWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
+    -- Clear MC
+    charWin._mcSelected = {}
+    charWin._mcColStates = {}
+    charWin._mainVisible = true
+    -- Clear persisted state so defaults apply on next load
+    if charWin._playerObj then
+        local md = charWin._playerObj:getModData()
+        if md.ZeD_WinState then md.ZeD_WinState.char = nil end
+    end
+end
+
+local function resetWorld(worldWin, defW, defH, gap, screenW)
+    local S = ZeD.Settings
+    local T = ZeD.T
+    worldWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
+    worldWin:setWidth(defW)
+    worldWin:setHeight(defH)
+    worldWin:setX(math.floor(screenW / 2) + gap)
+    worldWin:setY(0)
+    worldWin._anchorRightEdge = worldWin:getX() + defW
+    worldWin._lastSetX = worldWin:getX()
+    worldWin._preDrawerW = nil
+    worldWin._drawerOpen = false
+    worldWin._drawerEffW = 0
+    worldWin._prevEffW   = 0
+    worldWin._drawerMode = nil
+    worldWin._accentKey = nil
+    if S then S.syncWindowAccent(worldWin) end
+    -- Reset inventory drawer state (S78 two-drawer)
+    worldWin._invDrawerOpen    = true
+    worldWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
+    worldWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
+    worldWin._prevDesiredW     = nil
+    worldWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: design units, as above
+    -- Clear MC
+    worldWin._mcSelected = {}
+    worldWin._mainVisible = true
+    -- Clear persisted state
+    if worldWin._playerObj then
+        local md = worldWin._playerObj:getModData()
+        if md.ZeD_WinState then md.ZeD_WinState.world = nil end
+    end
+end
+
+function ZeD_Window.resetLayout(which)
     local T = ZeD.T
     local screenW = getCore():getScreenWidth()
     local screenH = getCore():getScreenHeight()
@@ -728,79 +1191,51 @@ function ZeD_Window.resetLayout()
     local gap = T.px(5)  -- 5px each side = 10px total gap
 
     -- Position as page spread: character left, world right
-    local charWin = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
-    local worldWin = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    local charWin = (which ~= "world") and ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow() or nil
+    local worldWin = (which ~= "char") and ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow() or nil
     for _, w in ipairs({ charWin or false, worldWin or false }) do
         if w and w._rolled and ZeD.Curtain and ZeD.Curtain.finishUnroll then ZeD.Curtain.finishUnroll(w) end
     end
-    if charWin then
-        charWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
-        charWin:setWidth(defW)
-        charWin:setHeight(defH)
-        charWin:setX(math.floor(screenW / 2) - defW - gap)
-        charWin:setY(0)
-        charWin._anchorRightEdge = charWin:getX() + defW
-        charWin._lastSetX = charWin:getX()
-        charWin._preDrawerW = nil
-        -- Reset saved settings: tab, drawer, accent
-        charWin._activeTab = "loot"
-        charWin._drawerOpen = false
-        charWin._drawerEffW = 0
-        charWin._prevEffW   = 0
-        charWin._drawerMode = nil
-        charWin._accentKey = nil
-        if S then S.syncWindowAccent(charWin) end   -- the option, the next open and the saved copy follow
-        -- Reset inventory drawer state (S78 two-drawer)
-        charWin._invDrawerOpen    = true
-        charWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
-        charWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
-        charWin._prevDesiredW     = nil
-        charWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: _baseInvW is stored in design units (the window files T.px it at use)
-        -- Clear MC
-        charWin._mcSelected = {}
-        charWin._mcColStates = {}
-        charWin._mainVisible = true
-        -- Clear persisted state so defaults apply on next load
-        if charWin._playerObj then
-            local md = charWin._playerObj:getModData()
-            if md.ZeD_WinState then md.ZeD_WinState.char = nil end
-        end
+    if charWin then resetChar(charWin, defW, defH, gap, screenW) end
+    if worldWin then resetWorld(worldWin, defW, defH, gap, screenW) end
+end
+
+-- "char" or "world" for the Character / World pair, nil for any other window
+function ZeD_Window:pairKey()
+    local cw = ZeD_CharacterWindow and ZeD_CharacterWindow.getWindow and ZeD_CharacterWindow.getWindow()
+    if cw == self then return "char" end
+    local ww = ZeD_WorldWindow and ZeD_WorldWindow.getWindow and ZeD_WorldWindow.getWindow()
+    if ww == self then return "world" end
+    return nil
+end
+
+-- "Reset this window": the Character or World window to its place in the default spread;
+-- any other window back to where it first opened, at the size it opened at
+function ZeD_Window:resetWindow()
+    local k = self:pairKey()
+    if k then ZeD_Window.resetLayout(k); return end
+    if self.windowShaded then self:setWindowShaded(false) end
+    local home = self._zedHome
+    if not home then return end
+    if self.resizable then
+        self:setWidth(home.w)
+        self:setHeight(home.h)
     end
-    if worldWin then
-        worldWin.minimumWidth = defW  -- reset before setWidth (stale min from open drawer)
-        worldWin:setWidth(defW)
-        worldWin:setHeight(defH)
-        worldWin:setX(math.floor(screenW / 2) + gap)
-        worldWin:setY(0)
-        worldWin._anchorRightEdge = worldWin:getX() + defW
-        worldWin._lastSetX = worldWin:getX()
-        worldWin._preDrawerW = nil
-        worldWin._drawerOpen = false
-        worldWin._drawerEffW = 0
-        worldWin._prevEffW   = 0
-        worldWin._drawerMode = nil
-        worldWin._accentKey = nil
-        if S then S.syncWindowAccent(worldWin) end
-        -- Reset inventory drawer state (S78 two-drawer)
-        worldWin._invDrawerOpen    = true
-        worldWin._invDrawerEffW    = defW - T.px(36) - T.px(36)  -- invW = defW minus strips
-        worldWin._invDrawerTargetW = defW - T.px(36) - T.px(36)
-        worldWin._prevDesiredW     = nil
-        worldWin._baseInvW         = (defW - T.px(36) - T.px(36)) / (T.scale or 1)  -- S124 scale: design units, as above
-        -- Clear MC
-        worldWin._mcSelected = {}
-        worldWin._mainVisible = true
-        -- Clear persisted state
-        if worldWin._playerObj then
-            local md = worldWin._playerObj:getModData()
-            if md.ZeD_WinState then md.ZeD_WinState.world = nil end
-        end
-    end
+    self:setX(home.x)
+    self:setY(home.y)
+end
+
+-- the window menu under the window box (ZeD_WindowMenu.lua)
+function ZeD_Window:openWindowMenu()
+    local WM = ZeD.WindowMenu
+    if not (WM and WM.open) then return end
+    local ok, err = pcall(WM.open, self)
+    if not ok then ZeD.logOnce("ZeD window menu", err) end
 end
 
 -- ---------------------------------------------------------------------------
--- Grow box resize via update() with absolute coordinates.
--- Child panels can't eat these clicks because we check raw screen position.
+-- The close box, the window box and the resize edges answer the raw mouse in
+-- update(), with absolute coordinates: child panels can't eat these clicks.
 -- (WHAT_CODE_DID.md quirk #1)
 -- ---------------------------------------------------------------------------
 -- No window above this one holds the pointer: the engine's own picking, as for a click.
@@ -814,20 +1249,21 @@ function ZeD_Window:update()
     -- it from a button that was already down when the pointer arrived (a drag released
     -- over the close box, a held button crossing the grow box) and from a press that
     -- landed on another window drawn above this one. `fresh` is the frame the button
-    -- went down; the squares and boxes arm on that frame only, while pointerOn says
+    -- went down; the boxes and edges arm on that frame only, while pointerOn says
     -- no window above holds the pointer.
     local down = isMouseButtonDown(0)
     local fresh = down and not self._uiPrevDown
     self._uiPrevDown = down
+    local mx = getMouseX() - self:getAbsoluteX()
+    local my = getMouseY() - self:getAbsoluteY()
 
     -- Close box hit-testing (absolute coords, same pattern as grow box)
     if self._closeBtnRect and not self._closeOnRod then
         local cb = self:closeRect()
-        local mx = getMouseX() - self:getAbsoluteX()
-        local my = getMouseY() - self:getAbsoluteY()
         local inside = mx >= cb.x and mx <= cb.x + cb.w and my >= cb.y and my <= cb.y + cb.h
         if inside and not self:pointerOn() then inside = false end
         self._closeHover = inside
+        if inside then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
 
         if down then
             if fresh and inside then self._closeWasDown = true end
@@ -840,121 +1276,23 @@ function ZeD_Window:update()
         end
     end
 
-    -- Footer action strip interaction (suppressed when card owns strip)
-    if self.footerToggles and self.footerItem and not self.windowShaded and not self.cardOwnsActionStrip then
-        self.footerToggleHover, self.footerToggleWasDown = ZeD.Molecules.updateActionStrip(
-            self.footerToggleRects, ZeD.ActionStrip.TOGGLE_DEFS,
-            self.footerItem, self.footerToggleHover, self.footerToggleWasDown, self.playerNum
-        )
-    end
-
-    -- Theme control buttons interaction
-    if self._themeControlRects and not self.windowShaded then
-        local amx, amy = getMouseX(), getMouseY()
-        local newHover = nil
-        for i = 1, 4 do   -- (not ipairs: with 1-3 hidden only R, at 4, is there)
-            local rect = self._themeControlRects[i]
-            if rect and amx >= rect.x and amx <= rect.x + rect.w
-            and amy >= rect.y and amy <= rect.y + rect.h then
-                newHover = i
-                break
-            end
-        end
-        if newHover and not self:pointerOn() then newHover = nil end   -- another window is over it
-        self._themeControlHover = newHover
-
+    -- The window box: a press and release on it pulls its menu down
+    local box = self:windowBoxRect()
+    if box then
+        local inside = mx >= box.x and mx < box.x + box.w and my >= box.y and my < box.y + box.h
+        if inside and not self:pointerOn() then inside = false end
+        self._wboxHover = inside
+        if inside then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_Help")) end
         if down then
-            if fresh and newHover then self._themeControlWasDown = newHover end   -- which square the press began on
-        elseif self._themeControlWasDown then
-            local armed = self._themeControlWasDown
-            self._themeControlWasDown = false
-            if newHover and newHover == armed and ZeD.Settings then
-                local S = ZeD.Settings
-                if newHover == 1 then
-                    ZeD.applyTheme(S.cycleNext(S.baseKeys, ZeD.currentBase), nil, nil)
-                    S.syncToModOptions()
-                elseif newHover == 2 and self.globalAccentControl then
-                    -- A lone window (the main menu's) cycles the whole UI's accent
-                    ZeD.applyTheme(nil, S.cycleNext(S.accentKeys, ZeD.currentAccent), nil)
-                    S.syncToModOptions()
-                elseif newHover == 2 then
-                    -- Per-window accent: cycle this window's _accentKey independently
-                    -- (the cycle runs through the colours, then a step that follows
-                    -- the Accent color option, which is where a window starts)
-                    local keys, curKey = S.accentKeys, self._accentKey
-                    if curKey == nil then
-                        self._accentKey = keys[1]
-                    elseif curKey == keys[#keys] then
-                        self._accentKey = nil
-                    else
-                        self._accentKey = S.cycleNext(keys, curKey)
-                    end
-                    -- Persist per-window accent to modData + ModOptions
-                    S.syncWindowAccent(self)
-                elseif newHover == 3 then
-                    ZeD.applyTheme(nil, nil, S.cycleNext(S.sizeKeys, ZeD.currentSize))
-                    S.syncToModOptions()
-                elseif newHover == 4 then
-                    ZeD_Window.resetLayout()   -- both windows back to the default page spread
-                -- elseif newHover == 5 then
-                --     local cur = getCore():getOptionEnableDyslexicFont()
-                --     getCore():setOptionEnableDyslexicFont(not cur)
-                --     getCore():saveOptions()
-                end
-            end
+            if fresh and inside then self._wboxWasDown = true end
+        elseif self._wboxWasDown then
+            self._wboxWasDown = false
+            if inside then self:openWindowMenu() end
         end
     end
 
-    -- Resize logic (resizable windows only)
-    if not self.resizable or self.windowShaded then return end
-
-    -- Safety release: if we're resizing but the mouse button is up,
-    -- force-release. PZ's capture system can miss onMouseUp.
-    if self._resizing and not isMouseButtonDown(0) then
-        self:_stopResize()
-        return
-    end
-
-    if self._resizing then return end  -- already resizing, handled by onMouseMove
-
-    -- Only start resize on fresh mouse-down: a button already held when the pointer
-    -- reaches the corner (a drag from another window) never starts one, nor does a
-    -- press that landed on a window above this one
-    if not down then
-        self._growBoxWasDown = false
-        return
-    end
-    if not fresh or not self:pointerOn() then return end
-
-    local mx = getMouseX() - self:getAbsoluteX()
-    local my = getMouseY() - self:getAbsoluteY()
-    local w = self:getWidth()
-    local h = self:getHeight()
-    local rh = self:resizeWidgetHeight()
-
-    -- Grow box: bottom-right corner
-    if mx >= w - rh and mx <= w and my >= h - rh and my <= h then
-        self._resizing = true
-        self._resizeYOnly = false
-        self._growBoxWasDown = true
-        self.moving = false  -- kill any drag that started in onMouseDown
-        self:setCapture(true)
-        self:bringToTop()
-        return
-    end
-
-    -- Bottom edge: hot zone along bottom, excluding grow box
-    local T = ZeD.T
-    local hotZ = T.sp.resizeHotZone
-    if my >= h - hotZ and my <= h and mx >= 0 and mx < w - rh then
-        self._resizing = true
-        self._resizeYOnly = true
-        self._growBoxWasDown = true
-        self.moving = false
-        self:setCapture(true)
-        self:bringToTop()
-        return
-    end
+    -- The resize edges and corners (resizable windows only)
+    self:_updateResize(down, fresh, mx, my)
 end
 
 function ZeD_Window:setTitleStats(stats)

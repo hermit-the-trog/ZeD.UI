@@ -252,17 +252,6 @@ for i, label in ipairs(accentLabels) do
 end
 worldAccent:addItem(ZeD.tr("UI_ZeD_Settings_SameAsAccent"), true)
 
--- ----- THE WINDOWS' THEME SQUARES -----
--- The theme, accent and text-size squares in every ZeD window's footer, shown or hidden
--- (director, Oct 24 2026: "add option in ZeD settings to hide theme/accent/text buttons on
--- windows"). On by default; the same three settings stay here either way.
-local windowSquares = opts:addComboBox("windowSquares", ZeD.tr("UI_ZeD_Settings_WindowSquares"),
-    ZeD.tr("UI_ZeD_Settings_WindowSquaresTip"))
-windowSquares:addItem(getText("UI_Off"), false)
-windowSquares:addItem(getText("UI_On"), true)   -- default (item 2: ZeD setup's on/off switch)
-ZeD.Settings.windowSquaresOption = windowSquares
-ZeD.Settings.windowSquaresOn = function() return (windowSquares:getValue() or 2) == 2 end
-
 -- ----- GLYPH DISPLAY (S91 Gamepad Phase 1) -----
 -- Sets which button-prompt artwork is used in footer prompt strips.
 -- Auto follows the connected controller; explicit choices override.
@@ -379,6 +368,61 @@ local moodleNotices = onSwitch("moodleNotices", "UI_ZeD_Settings_MoodleNotices",
 ZeD.Settings.moodleNoticesOption = moodleNotices
 ZeD.Settings.moodleNoticesOn = function() return (moodleNotices:getValue() or 2) == 2 end
 
+-- ----- THE WINDOWS: SEE-THROUGH, SOLID WHILE IN USE, CONTROLLER HIGHLIGHT (director, Oct 26 2026,
+-- the cohesion picks; COHESION_SPEC.md sections 4 and 10). Also in every window's window box menu
+-- (ZeD_WindowMenu.lua) and on the Select wheel. -----
+-- The pick the player has made, live while the options screen is open (vanilla keeps it on
+-- the control until Apply), else the stored one
+local function liveIdx(opt)
+    local el = opt.element
+    return (el and el.selected) or opt:getValue()
+end
+-- See-through: one alpha for every window surface, 100 to 60 in steps of 10 (the items are
+-- numbers: ModOptions runs every label through getText, which chokes on a percent sign).
+-- Applied with the theme (applyFromOptions, below).
+local seeKeys = { 100, 90, 80, 70, 60 }
+local seeThrough = opts:addComboBox("seeThrough", ZeD.tr("UI_ZeD_Settings_SeeThrough"), ZeD.tr("UI_ZeD_Settings_SeeThroughTip"))
+for _, v in ipairs(seeKeys) do seeThrough:addItem(tostring(v), v == 90) end   -- default: 90
+ZeD.Settings.seeThroughOption = seeThrough
+ZeD.Settings.seeThroughKeys = seeKeys
+ZeD.Settings.seeThroughIndex = function() return liveIdx(seeThrough) or 2 end
+ZeD.Settings.seeThrough = function() return seeKeys[liveIdx(seeThrough) or 2] or 90 end
+-- Solid while in use: a window goes solid while the pointer is over it or the controller is in
+-- it (ZeD_Window reads this every frame). Off for a new player.
+local solidInUse = opts:addComboBox("solidInUse", ZeD.tr("UI_ZeD_Settings_SolidInUse"), ZeD.tr("UI_ZeD_Settings_SolidInUseTip"))
+solidInUse:addItem(getText("UI_Off"), true)   -- default
+solidInUse:addItem(getText("UI_On"), false)
+ZeD.Settings.solidInUseOption = solidInUse
+ZeD.Settings.solidInUse = function() return (liveIdx(solidInUse) or 1) == 2 end
+-- Controller highlight: how the element the controller is on is marked (ZeD.Focus draws it and
+-- reads ZeD.Settings.focusStyle() every frame). The pointing hand for a new player.
+local focusKeys   = { "hand", "corners", "wash", "ants" }
+local focusLabels = { "UI_ZeD_Settings_FocusHand", "UI_ZeD_Settings_FocusCorners", "UI_ZeD_Settings_FocusWash", "UI_ZeD_Settings_FocusAnts" }
+local focusStyle = opts:addComboBox("focusStyle", ZeD.tr("UI_ZeD_Settings_FocusStyle"), ZeD.tr("UI_ZeD_Settings_FocusStyleTip"))
+for i, label in ipairs(focusLabels) do focusStyle:addItem(ZeD.tr(label), i == 1) end   -- default: the hand
+ZeD.Settings.focusStyleOption = focusStyle
+ZeD.Settings.focusStyleKeys   = focusKeys
+ZeD.Settings.focusStyleLabels = focusLabels
+-- "hand", "corners", "wash" or "ants" (the hand when the option cannot be read)
+ZeD.Settings.focusStyle = function()
+    local ok, i = pcall(liveIdx, focusStyle)
+    return (ok and focusKeys[tonumber(i) or 1]) or "hand"
+end
+-- Hidden actions (director, Oct 26 2026): the actions that cannot be taken right now, folded
+-- under a hint row that opens, all shown greyed, or hidden. On ZeD setup only: never asked in
+-- a pop-up ("Interruptions in this game can quickly get you killed").
+local hiddenKeys   = { "folded", "all", "hide" }
+local hiddenLabels = { "UI_ZeD_Settings_HiddenFolded", "UI_ZeD_Settings_HiddenAll", "UI_ZeD_Settings_HiddenHide" }
+local hiddenActions = opts:addComboBox("hiddenActions", ZeD.tr("UI_ZeD_Settings_HiddenActions"), ZeD.tr("UI_ZeD_Settings_HiddenActionsTip"))
+for i, label in ipairs(hiddenLabels) do hiddenActions:addItem(ZeD.tr(label), i == 1) end   -- default: folded
+ZeD.Settings.hiddenActionsOption = hiddenActions
+ZeD.Settings.hiddenActionsKeys   = hiddenKeys
+-- "folded", "all" or "hide" ("folded" when the option cannot be read)
+ZeD.Settings.hiddenActions = function()
+    local ok, i = pcall(liveIdx, hiddenActions)
+    return (ok and hiddenKeys[tonumber(i) or 1]) or "folded"
+end
+
 -- ----- THE KEYS OF THE OPTION NAMES -----
 -- ModOptions keeps each name as the text the option was made with, which is read once, here at
 -- file load, so the test language could never stretch it. Each option also keeps the key of its
@@ -395,7 +439,9 @@ do
         charAccent = "UI_ZeD_Settings_CharAccent", worldAccent = "UI_ZeD_Settings_WorldAccent",
         glyphDisplay = "UI_ZeD_Settings_Glyphs", inputModeLock = "UI_ZeD_Settings_InputLock",
         safeMode = "UI_ZeD_Settings_SafeMode", testLanguage = "UI_ZeD_Settings_TestLanguage",
-        putBack = "UI_ZeD_Settings_PutBack", windowSquares = "UI_ZeD_Settings_WindowSquares",
+        putBack = "UI_ZeD_Settings_PutBack", seeThrough = "UI_ZeD_Settings_SeeThrough",
+        solidInUse = "UI_ZeD_Settings_SolidInUse", focusStyle = "UI_ZeD_Settings_FocusStyle",
+        hiddenActions = "UI_ZeD_Settings_HiddenActions",
         messagesCatch = "UI_ZeD_Settings_MsgCatch", messagesToast = "UI_ZeD_Settings_MsgToast",
         sandboxInGame = "UI_ZeD_Settings_SandboxIG", dimRead = "UI_ZeD_Settings_DimRead",
         ammoBox = "UI_ZeD_Settings_AmmoBox", readMarks = "UI_ZeD_Settings_ReadMarks", readNext = "UI_ZeD_Settings_ReadNext",
@@ -441,6 +487,13 @@ local function applyFromOptions(changed, sel)
     local accent = accentKeys[accentIdx or 2] or "orange"
     local size   = sizeKeys[sizeIdx or 1]     or "small"
 
+    -- the see-through value goes in with the theme: applyTheme sets the surfaces' alpha from it,
+    -- before the text colours are solved against them (the windows' own palettes follow)
+    local seeIdx = (changed == seeThrough and tonumber(sel)) or (changed and pickedIdx(seeThrough)) or seeThrough:getValue()
+    local see = (seeKeys[seeIdx or 2] or 90) / 100
+    if see ~= ZeD.surfaceAlpha and ZeD_Window and ZeD_Window.clearPaletteCache then ZeD_Window.clearPaletteCache() end
+    ZeD.surfaceAlpha = see
+
     ZeD.applyTheme(base, accent, size)
 end
 -- ----- ON CHANGE -----
@@ -458,6 +511,27 @@ textSize.onChange    = onThemeChange
 baseTheme.onChangeApply   = onThemeApply
 accentColor.onChangeApply = onThemeApply
 textSize.onChangeApply    = onThemeApply
+seeThrough.onChange       = onThemeChange
+seeThrough.onChangeApply  = onThemeApply
+
+-- The window box's menu and the Select wheel set these as ZeD setup does, and save at once
+-- (no Apply there): see-through re-applies the theme with the new alpha
+function ZeD.Settings.setSeeThrough(i)
+    i = tonumber(i)
+    if not (i and seeKeys[i]) then return end
+    seeThrough:setValue(i)
+    applyFromOptions()
+    saveModOptions()
+end
+function ZeD.Settings.setSolidInUse(on)
+    solidInUse:setValue(on and 2 or 1)
+    saveModOptions()
+end
+function ZeD.Settings.setFocusStyle(key)
+    for i, k in ipairs(focusKeys) do
+        if k == key then focusStyle:setValue(i); saveModOptions(); return end
+    end
+end
 
 -- Per-window accent: apply to the live window if it exists, and to the one the
 -- next open restores. The saved window state carries its own accent which the

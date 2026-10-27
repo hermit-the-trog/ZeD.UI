@@ -66,7 +66,7 @@ ZeD.BaseThemes = {
         -- Overlay / modal scrim
         modalOverlayA = 0.50,
         -- Interactive state opacities
-        selectionA    = 0.18,   -- selected row bg alpha
+        selectionA    = 0.30,   -- selected row bg alpha: one accent wash, the same in all three themes
         dangerPulseMin = 0.08,  -- danger button sine pulse floor
         dangerPulseMax = 0.12,  -- danger button sine pulse ceiling (capped: red text must stay legible over the pulse)
         dangerHoverMul = 1.20,  -- danger text brightness on hover
@@ -132,7 +132,7 @@ ZeD.BaseThemes = {
         grooveDark  = rgba(0.0, 0.0, 0.0, 0.30),
         grooveLight = rgba(1.0, 1.0, 1.0, 0.50),
         modalOverlayA = 0.35,
-        selectionA    = 0.18,
+        selectionA    = 0.30,
         dangerPulseMin = 0.08,
         dangerPulseMax = 0.12,
         dangerHoverMul = 1.15,
@@ -192,7 +192,7 @@ ZeD.BaseThemes = {
         grooveDark  = rgba(0.0, 0.0, 0.0, 0.65),
         grooveLight = rgba(1.0, 1.0, 1.0, 0.10),
         modalOverlayA = 0.60,
-        selectionA    = 0.25,
+        selectionA    = 0.30,
         dangerPulseMin = 0.10,
         dangerPulseMax = 0.12,
         dangerHoverMul = 1.15,
@@ -814,6 +814,20 @@ function ZeD.applyTheme(baseKey, accentKey, sizeKey)
     T.surf2    = base.surf2
     T.surf3    = base.surf3
     T.surf4    = base.surf4
+    -- See-through (ZeD setup, a window's window box): one alpha for every window surface,
+    -- 0.6 to 1, set by Settings.lua as ZeD.surfaceAlpha. It replaces the theme's own (0.92
+    -- dark, 0.97 light, 0.95 high contrast) here, before the accent tint (which keeps alpha)
+    -- and before deriveReadable, which solves the text colours against these surfaces as
+    -- translucent over the world. New tables: BaseThemes stays as written.
+    local sa = ZeD.surfaceAlpha
+    if type(sa) == "number" then
+        if sa < 0.6 then sa = 0.6 elseif sa > 1 then sa = 1 end
+        T.base  = ZeD.colorAlpha(T.base, sa)
+        T.surf1 = ZeD.colorAlpha(T.surf1, sa)
+        T.surf2 = ZeD.colorAlpha(T.surf2, sa)
+        T.surf3 = ZeD.colorAlpha(T.surf3, sa)
+        T.surf4 = ZeD.colorAlpha(T.surf4, sa)
+    end
     T.border   = base.border
     T.borderS  = base.borderS
     T.frameS   = base.frameS or base.borderS   -- the belt's slot frame: its keyline, and a light outer line where set
@@ -1161,6 +1175,15 @@ function ZeD.btnCase(s)
     end
     labelCache[s] = out
     return out
+end
+
+-- Words that arrive in capitals at draw time (a heading, a column head, a status word
+-- written in caps somewhere upstream) read in sentence case in the windows, by the same
+-- rules as the buttons: initials, words with a digit and anything already in mixed case
+-- pass through as written. Text printed on the hardware props keeps its caps and does
+-- not come here.
+function ZeD.textCase(s)
+    return ZeD.btnCase(s)
 end
 
 -- ---------------------------------------------------------------------------

@@ -281,75 +281,30 @@ function ZeD.Atoms.drawCloseBox(panel, x, y, size, hovered)
     end
 end
 
--- ---------------------------------------------------------------------------
--- STATUS LABEL — colored text for status indicators (LIT, IDLE, RUNNING)
--- Simple atom wrapping drawText with a semantic color.
--- ---------------------------------------------------------------------------
-function ZeD.Atoms.drawStatusLabel(panel, text, x, y, color)
-    local T = ZeD.T
-    local c = color or T.text
-    panel:drawText(text, x, y, c.r, c.g, c.b, c.a or 1, T.fontF1)
-end
-
--- NOTE: drawStatusDot lives in Atoms.lua:397 — signature: (panel, x, y, color, size)
+-- NOTE: drawStatusDot lives in Atoms.lua (06b) — signature: (panel, x, y, color, size)
 -- A string-based version was here previously but shadowed the Atoms version,
 -- causing all callers (which pass color tables) to silently render dim/hollow.
 -- Removed S65 cleanup. Use Atoms.drawStatusDot with a color table directly.
 
 -- ---------------------------------------------------------------------------
--- 1PX ROUNDED CORNER HELPERS — corner-pixel clip for pill buttons
+-- PILL BUTTON — the old exercise / view selector, now drawn as the one push
+-- button (cohesion spec 7: no pills) in the same rect, so its callers turn
+-- cohesive before they move to push buttons or radio buttons by meaning.
+-- Active: the push button solid accent with its words in textOnAccent (the
+-- "active" state). Enabled: the default push button. Not enabled: disabled
+-- (the whole control at T.disabledAlpha). The label keeps the caller's font
+-- (its width was measured for it) and is centred.
 -- ---------------------------------------------------------------------------
-local function fill1px(panel, x, y, w, h, a, r, g, b)
-    local T = ZeD.T
-    panel:drawRect(x + T.px(1), y, w - T.px(1) * 2, T.px(1), a, r, g, b)
-    if h > T.px(1) * 2 then
-        panel:drawRect(x, y + T.px(1), w, h - T.px(1) * 2, a, r, g, b)
-    end
-    panel:drawRect(x + T.px(1), y + h - T.px(1), w - T.px(1) * 2, T.px(1), a, r, g, b)
-end
-
-local function border1px(panel, x, y, w, h, a, r, g, b)
-    local T = ZeD.T
-    panel:drawRect(x + T.px(1), y, w - T.px(1) * 2, T.px(1), a, r, g, b)
-    panel:drawRect(x + T.px(1), y + h - T.px(1), w - T.px(1) * 2, T.px(1), a, r, g, b)
-    panel:drawRect(x, y + T.px(1), T.px(1), h - T.px(1) * 2, a, r, g, b)
-    panel:drawRect(x + w - T.px(1), y + T.px(1), T.px(1), h - T.px(1) * 2, a, r, g, b)
-end
-
--- ---------------------------------------------------------------------------
--- PILL BUTTON — toggle used for exercise/view selectors.
--- 1px rounded corners. Active: accent fill + border. Enabled: subtle accent.
--- Disabled: borderS border + dimmed text.
--- ---------------------------------------------------------------------------
+local _pillOn = {}
 function ZeD.Atoms.drawPillButton(panel, x, y, w, h, text, active, enabled, font)
-    local T  = ZeD.T
-    local sp = T.sp
-    text = ZeD.btnCase(text)   -- sentence case, never all caps
-
-    -- Base surface (1px rounded)
-    local s1 = T.surf1
-    fill1px(panel, x, y, w, h, s1.a, s1.r, s1.g, s1.b)
-
+    local T = ZeD.T
+    local M = ZeD.Molecules
+    if not (M and M.drawButton) then return end
     if active then
-        local ac = T.accent
-        fill1px(panel, x, y, w, h, 0.15, ac.r, ac.g, ac.b)
-        border1px(panel, x, y, w, h, 0.6, ac.r, ac.g, ac.b)
-        local nc = T.toneNorm
-        panel:drawText(text, x + sp.sm, y + math.floor((h - ZeD.TM:getFontHeight(font)) / 2),
-            nc.r, nc.g, nc.b, nc.a or 1, font)
-    elseif enabled then
-        local ac = T.accent
-        fill1px(panel, x, y, w, h, 0.10, ac.r, ac.g, ac.b)
-        border1px(panel, x, y, w, h, 0.4, ac.r, ac.g, ac.b)
-        local nc = T.toneNorm
-        panel:drawText(text, x + sp.sm, y + math.floor((h - ZeD.TM:getFontHeight(font)) / 2),
-            nc.r, nc.g, nc.b, nc.a or 1, font)
+        _pillOn.fill, _pillOn.text = T.accent, T.textOnAccent
+        M.drawButton(panel, x, y, w, h, text, "primary", false, _pillOn, { font = font })
     else
-        local bc = T.borderS
-        border1px(panel, x, y, w, h, bc.a, bc.r, bc.g, bc.b)
-        local lo = T.toneLo
-        panel:drawText(text, x + sp.sm, y + math.floor((h - ZeD.TM:getFontHeight(font)) / 2),
-            lo.r, lo.g, lo.b, lo.a, font)
+        M.drawButton(panel, x, y, w, h, text, "default", false, nil, { font = font, disabled = not enabled })
     end
 end
 
@@ -384,19 +339,14 @@ ZeD.Atoms.SWATCH_H = SWATCH_H
 -- ===========================================================================
 
 -- ---------------------------------------------------------------------------
--- drawSteppedShadow — System 7 hard 2px drop shadow offset down-right.
--- Draws an L-shaped ink block along the right and bottom edges of (x, y, w, h).
--- Paint this BEFORE the element itself. Step size from T.ctx.shadowStep.
+-- drawSteppedShadow — the pop-ups' shadow, now the one System 7 hard shadow
+-- (cohesion spec 1.4): 1u right and 1u down, black at 0.5 (ZeD.Atoms.
+-- drawHardShadow). Every caller is a pop-up (context strip and its balloons,
+-- context lists, wheel cells, menus, the seat chooser), so they all take the one
+-- look; `color` is no longer read.
 -- ---------------------------------------------------------------------------
 function ZeD.Atoms.drawSteppedShadow(panel, x, y, w, h, color)
-    local T = ZeD.T
-    local s = (T.ctx and T.ctx.shadowStep) or T.px(2)
-    local a = color.a or 1
-    -- Right edge column (starts below element's top by shadowStep px so the
-    -- shadow reads as a true drop, not a halo)
-    panel:drawRect(x + w,     y + s, s, h,     a, color.r, color.g, color.b)
-    -- Bottom edge row (starts at element's right shifted by shadowStep)
-    panel:drawRect(x + s,     y + h, w,     s, a, color.r, color.g, color.b)
+    ZeD.Atoms.drawHardShadow(panel, x, y, w, h)
 end
 
 -- ---------------------------------------------------------------------------

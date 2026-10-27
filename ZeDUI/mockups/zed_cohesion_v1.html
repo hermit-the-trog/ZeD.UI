@@ -209,13 +209,14 @@ img.px { image-rendering:pixelated; display:block; }
     <span>See-through</span><div class="seg" id="cOp"></div>
     <span>Solid while in use</span><div class="seg" id="cSolid"></div>
     <span>Everything else</span><div class="seg" id="cRest"></div>
+    <span>Hidden actions</span><div class="seg" id="cHid"></div>
     <span>Input</span><div class="seg" id="cInput"></div>
     <span>Theme</span><div class="seg" id="cTheme"></div>
     <span>Accent</span><div class="seg" id="cAcc"></div>
     <span>Zoom</span><div class="seg" id="cZoom"></div>
   </div>
   <div class="stage-wrap" id="wrap"><div class="stage" id="stage"></div></div>
-  <div class="dpad" id="dpad"><button data-d="L" aria-label="D-pad left">&#9664;</button><button data-d="U" aria-label="D-pad up">&#9650;</button><button data-d="D" aria-label="D-pad down">&#9660;</button><button data-d="R" aria-label="D-pad right">&#9654;</button><span>D-pad (or the arrow keys; tap a thing to put focus on it)</span></div>
+  <div class="dpad" id="dpad"><button data-d="L" aria-label="D-pad left">&#9664;</button><button data-d="U" aria-label="D-pad up">&#9650;</button><button data-d="D" aria-label="D-pad down">&#9660;</button><button data-d="R" aria-label="D-pad right">&#9654;</button><button data-a="1" aria-label="A button" style="width:auto;padding:0 10px">A</button><span>D-pad (or the arrow keys; tap a thing to put focus on it)</span></div>
   <div class="caption" id="cap"></div>
 </section>
 
@@ -266,7 +267,7 @@ function tokens() {
 }
 
 // ------------------------------------------------------------------ state
-const S = { page: "p1", scene: "card", footer: "A", focus: "hand", op: .9, solid: "off", rest: "matched", input: "pad",
+const S = { page: "p1", scene: "card", footer: "A", focus: "hand", op: .9, solid: "off", hid: "folded", open: {}, rest: "matched", input: "pad",
             theme: "dark", acc: "teal", zoom: 1, focusId: null, hoverId: null, menu: false,
             picks: { buttons: "one", actions: "name", shadows: "keep", tags: "outline" } };
 const FOOTERS = [["today", "Today"], ["A", "A | Help line + window box", 1], ["B", "B | Today, tidied"], ["C", "C | Prompts on the buttons"]];
@@ -496,6 +497,21 @@ function band(x, y, w, kind, T, items, question) {
 }
 function glyphOn(label, g) { return S.footer === "C" && S.input === "pad" && g ? `<span class="glyph ${g} btnGlyph">${g}</span>${label}` : label; }
 
+// an action the character can't do yet: Show all = its NEEDS line; Folded = one hint row with a System 7 triangle that
+// opens to the greyed action and its NEEDS line; Hide = nothing (COHESION_SPEC 9a)
+function hiddenRow(x, y, w, key, verb, needs, hint, count) {
+  if (S.hid === "hide") return "";
+  const needsLine = yy => el(x + 14, yy + 6, 6, 6, "ring", "") + el(x + 28, yy, w - 42, 18, "f2", needs, `style="color:var(--text)"`);
+  if (S.hid === "all") return needsLine(y + 2);
+  const open = !!S.open[key];
+  const tri = open ? `<i style="left:2px;top:8px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--textDim)"></i>`
+                   : `<i style="left:3px;top:6px;width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:5px solid var(--textDim)"></i>`;
+  let s = el(x + 10, y, w - 20, 22, "", tri + `<span class="cell" style="left:14px;top:3px;width:${px(w - 44)};font:13px var(--sans);color:var(--textDim)">${count > 1 ? count + " more with the right things" : hint}</span>`,
+             F(key + "_more", "row", open ? "Fold the actions you can't do yet" : "Open: what you could do with the right things", `data-zone="${key === "c" ? "verb" : "card"}" data-toggle="${key}"`));
+  if (open) s += btn(x + 28, y + 26, 84, 22, verb, "bev", "dis", key + "_hv", verb + ": " + needs, key === "c" ? "verb" : "card") + needsLine(y + 54);
+  return s;
+}
+
 // ------------------------------------------------------------------ scenes
 const BAG = [
   { name: "WEAPONS", items: [ { icon: "BaseballBat", name: "Baseball Bat", cat: "Weapon", cond: .9, wt: 2 }, { icon: "Hammer", name: "Hammer", cat: "Tool / Weapon", cond: .7, wt: 1 },
@@ -522,6 +538,7 @@ function sceneCard(T) {
   const m = M();
   s += el(cx, top, cw, 37, "", "") + el(cx, top + 37, cw, 1, "dv");
   s += btn(cx + 8, top + 7, S.footer === "C" && S.input === "pad" && m ? 40 : 24, 22, m ? glyphOn("&lt;", "B") : "&lt;", m ? "lib" : "bev", "", "c_back", "Back to the list", "verb");
+  if (m && S.hid === "all") s += btn(cx + cw - 232, top + 7, 76, 22, "Sharpen", "bev", "dis", "c_sharp", "Sharpen: needs a whetstone", "verb");
   s += btn(cx + cw - 150, top + 7, 64, 22, glyphOn("Equip", S.focusId === "c_equip" ? "A" : ""), "bev", "pri", "c_equip", "Equip: put it in your hands", "verb");
   s += btn(cx + cw - 80, top + 7, 72, 22, glyphOn("More", "X"), "bev", "", "c_more", "More: everything else you can do with it", "verb");
   s += el(cx + 14, top + 46, 300, 24, "hd4", "Baseball Bat", `style="font-size:20px"`).replace('class="hd4" ', 'class="hd4" ');
@@ -532,7 +549,7 @@ function sceneCard(T) {
   const facts = [["Two-handed", "Yes"], ["Pushes zombies back", "Strong"], ["Skill", "Long Blunt"]];
   facts.forEach((r, i) => { s += el(cx + 14, top + 276 + i * 24, 200, 18, "f2", r[0], `style="font-size:13px"`).replace('class="f2" ', 'class="f2" ') + el(cx + 170, top + 276 + i * 24, cw - 184, 18, "val", r[1]); });
   // a NEEDS line under the card's actions, in today's form or the standard one
-  if (m) s += el(cx + 14, top + 360, 7, 7, "ring", "") + el(cx + 28, top + 354, cw - 42, 18, "f2", "Sharpen needs a whetstone in your bags.", `style="color:var(--text)"`).replace('class="f1" ', 'class="f1" ').replace('style="', 'style="color:var(--textDim);');
+  if (m) s += hiddenRow(cx, top + 352, cw, "c", "Sharpen", "Sharpen needs a whetstone in your bags.", "With a whetstone you could sharpen it.", 1);
   else s += el(cx + 14, top + 360, 7, 7, "ring", "") + el(cx + 28, top + 355, cw - 42, 18, "f1", "Sharpen: needs a whetstone", "").replace('style="', 'style="color:var(--textDim);font-weight:400;');
   // the bag
   const lx = cx + cw + 1, lw = W - 34 - lx;
@@ -563,9 +580,10 @@ function sceneObj(T) {
   // header verbs
   const vy = top + 44;
   s += btn(cx + 8, vy, 76, 22, glyphOn("Add fuel", ""), "bev", "", "o_fuel", "Add fuel: from your bags or the floor", "card");
-  s += btn(cx + 90, vy, 64, 22, "Put out", "bev", "dis", "o_out", "Put out: the fire is already out", "card");
-  s += btn(cx + 160, vy, 52, 22, glyphOn("Light", S.focusId === "o_light" ? "A" : ""), "bev", "pri", "o_light", "Light: needs a lighter or matches", "card");
-  s += btn(cx + 218, vy, 86, 22, "Take apart", "bev", "dan", "o_apart", "Take apart: the fire is lost", "card");
+  if (!m) s += btn(cx + 90, vy, 64, 22, "Put out", "bev", "dis", "o_out", "Put out: the fire is already out", "card");
+  if (!m) s += btn(cx + 160, vy, 52, 22, glyphOn("Light", S.focusId === "o_light" ? "A" : ""), "bev", "pri", "o_light", "Light: needs a lighter or matches", "card");
+  else if (S.hid === "all") s += btn(cx + 90, vy, 52, 22, "Light", "bev", "dis", "o_light", "Light: needs a lighter or matches", "card");
+  s += btn(m ? (S.hid === "all" ? cx + 148 : cx + 90) : cx + 218, vy, 86, 22, "Take apart", "bev", "dan", "o_apart", "Take apart: the fire is lost", "card");
   s += el(cx, vy + 30, cw, 1, "dv");
   // fuel
   s += el(cx + 12, vy + 40, 60, 34, "big", "0 m") + el(cx + 70, vy + 54, 300, 14, "f1", m ? "of fuel | holds 8 h" : "OF FUEL | HOLDS 8 H", "").replace('style="', 'style="color:var(--textDim);');
@@ -582,11 +600,11 @@ function sceneObj(T) {
     inner += m ? `<i style="left:${px(cw - 142)};top:12px;width:6px;height:6px;background:var(--positive)"></i><span style="left:${px(cw - 132)};top:7px;font:11px var(--mono);color:var(--text)">${r[2]}</span>`
                : `<span style="left:${px(cw - 140)};top:7px;font:11px var(--mono);color:var(--positiveText)">${r[2]}</span>`;
     s += `<div class="row${i % 2 ? " st" : ""}" style="left:${px(cx)};top:${px(ry)};width:${px(cw)};height:30px" ${F(id, "row", "Light it with " + r[1], `data-zone="card"`)}>${inner}</div>`;
-    s += btn(cx + cw - 70, ry + 4, 58, 22, "Light", "bev", "", id + "b", "Light it with " + r[1], "card");
+    if (!m || S.hid === "all") s += btn(cx + cw - 70, ry + 4, 58, 22, "Light", "bev", m ? "dis" : "", id + "b", "Light it with " + r[1], "card");
   });
   // the NEEDS line
   const ny = vy + 250;
-  if (m) s += el(cx + 14, ny + 5, 7, 7, "ring", "") + el(cx + 28, ny - 1, cw - 42, 18, "f2", "Light needs a lighter or matches in your bags.", `style="color:var(--text)"`).replace('style="', 'style="color:var(--textDim);');
+  if (m) s += hiddenRow(cx, ny - 4, cw, "o", "Light", "Light needs a lighter or matches in your bags.", "With a lighter or matches you could light it.", 1);
   else s += el(cx + 14, ny + 5, 7, 7, "ring", "") + el(cx + 28, ny, cw - 42, 18, "f1", "Light: needs a lighter or matches | Put out: the fire is out", "").replace('style="', 'style="color:var(--textDim);font-weight:400;');
   // the question, in the card's foot
   const q = band(cx, bot, cw, "ask", T, [{ label: glyphOn("Cancel", "B"), id: "o_cancel", help: "Cancel: keep the campfire", w: 86 }, { label: glyphOn("Take apart", S.focusId === "o_yes" ? "A" : ""), v: "dan", id: "o_yes", help: "Take apart: the fire is lost", w: 110 }], "Take the campfire apart? The fire is lost.");
@@ -722,6 +740,7 @@ function render() {
   seg("#cOp", OPS, () => S.op, v => S.op = v);
   seg("#cSolid", [["off", "Off"], ["on", "On: solid while the pointer or the controller is in the window"]], () => S.solid, v => S.solid = v);
   seg("#cRest", [["today", "As today"], ["matched", "Matched (page 2's standards)"]], () => S.rest, v => S.rest = v);
+  seg("#cHid", [["folded", "Folded: a hint row you can open", 1], ["all", "Show all, greyed"], ["hide", "Hide"]], () => S.hid, v => S.hid = v);
   seg("#cInput", [["mouse", "Mouse"], ["pad", "Controller (arrow keys move)"]], () => S.input, v => { S.input = v; S.hoverId = null; });
   seg("#cTheme", Object.entries(BASE).map(([k, t]) => [k, t.name]), () => S.theme, v => S.theme = v);
   seg("#cAcc", Object.entries(ACC).map(([k, t]) => [k, t.name]), () => S.acc, v => S.acc = v);
@@ -750,7 +769,7 @@ function render() {
     danger: T.danger, dangerText: T.dangerText, positive: T.positive, positiveText: T.positiveText, bw: T.bw + "px", a: alphaFor(),
     hoverC: `color-mix(in srgb, ${T.accent} ${Math.round(T.hoverA * 100)}%, transparent)` };
   for (const [k, v] of Object.entries(vars)) w.style.setProperty("--" + k, v);
-  if (S.input === "pad" && !S.focusId) S.focusId = S.scene === "card" ? "inv_r0" : S.scene === "obj" ? "o_light" : "p_yes";
+  if (S.input === "pad" && !S.focusId) S.focusId = S.scene === "card" ? "inv_r0" : S.scene === "obj" ? (S.rest === "today" ? "o_light" : "o_fuel") : "p_yes";
   // two layers: every surface fill once, at the see-through value (so nothing doubles up), and the
   // words, lines, pictures and controls above it at full strength
   const layers = html => `<div class="bgl" style="opacity:${alphaFor()};--a:1">${html.replace(/data-f=/g, "data-x=").replace(/id="wbox"/g, "")}</div><div class="fgl">${html}<div class="frame"></div></div>`;
@@ -773,11 +792,14 @@ function render() {
     if (S.input === "mouse" && (id !== S.hoverId || S.hoverInWin !== inWin)) { S.hoverId = id; S.hoverInWin = inWin; render(); }
   };
   w.onmouseleave = () => { if (S.hoverId || S.hoverInWin) { S.hoverId = null; S.hoverInWin = false; render(); } };
-  w.onclick = e => { const n = e.target.closest("[data-f]"); if (S.input === "pad" && n && n.dataset.f !== "wbox") { S.focusId = n.dataset.f; render(); } };
+  w.onclick = e => { const n = e.target.closest("[data-f]");
+    if (n && n.dataset.toggle) { S.open[n.dataset.toggle] = !S.open[n.dataset.toggle]; if (S.input === "pad") S.focusId = n.dataset.f; render(); return; }
+    if (S.input === "pad" && n && n.dataset.f !== "wbox") { S.focusId = n.dataset.f; render(); } };
   $("#cap").innerHTML = CAP.footer[S.footer] + "<br>" + CAP.focus[S.focus] + "<br>" +
     (S.op === "today" ? "<b>See-through today.</b> Fixed at 92% (97% on Light); about 25 pieces are fully solid and about 40 bands lay a second layer over the window, which would look striped if the value came down. " :
       `<b>See-through ${Math.round(S.op * 100)}%.</b> Every surface takes the same value once (nothing doubles up), words stay solid, and the text colours re-solve themselves against the world behind (the game already does this). The HUD pieces, tooltips, menus and wheels stay solid. Below about 60% the words can no longer be kept readable over a bright scene, so the setting would stop there. `) +
     (S.solid === "on" ? "<b>Solid while in use:</b> the window turns solid while the pointer is over it or the controller is in it, and fades back when you play (the game's chat window works this way). " : "") +
+    (S.rest === "matched" ? "<br><b>Hidden actions: " + { folded: "Folded.</b> An action the character can't do yet is hidden; one quiet row after the verbs says what the right thing would allow (\"With a whetstone you could sharpen it.\"), and opening it shows the greyed action with what it needs. Actions that make no sense now (Put out on a dead fire) are simply gone. It is a stop for the controller (A opens it).", all: "Show all.</b> Every possible action stays, greyed, with one line of what it needs.", hide: "Hide.</b> Only what can be done now; no hint row." }[S.hid] + " Hints only name what the game itself would show you. The choice lives in ZeD setup; no question pops up during play." : "") +
     `<br><span class="k">${S.rest === "matched" ? "Everything else is drawn to page 2's standards: one push button, one band at the foot of a pane, hover on every row and button, one selected look, one tag, one NEEDS line." : "Everything else is drawn as the game draws it today."}</span>`;
   renderPicks();
 }
@@ -785,6 +807,8 @@ document.addEventListener("keydown", e => {
   if (S.page !== "p1" || S.input !== "pad") return;
   const d = { ArrowLeft: "L", ArrowRight: "R", ArrowUp: "U", ArrowDown: "D" }[e.key];
   if (d) { e.preventDefault(); move(d); }
+  // A (Enter or Space) opens a folded hint row with a controller
+  if ((e.key === "Enter" || e.key === " ") && S.focusId) { const n = document.querySelector(`#win [data-f="${S.focusId}"]`); if (n && n.dataset.toggle) { e.preventDefault(); S.open[n.dataset.toggle] = !S.open[n.dataset.toggle]; render(); } }
 });
 document.addEventListener("click", () => { if (S.menu) { S.menu = false; render(); } });
 
@@ -794,6 +818,8 @@ const DECS = [
     prop: "Sentence case everywhere in the windows: \"Weapons (4)\", \"Name\", \"Kind\", \"Lighter\". Caps stay only where they are real: initials (OK, HP, FM), vanilla's own text, and the lettering printed on the hardware (dash, radio, watch, siren). <b>Status marks are 6-unit squares</b>, hollow squares for \"needs\" and \"unread\". Checkboxes for on / off, System 7 round radio buttons for one-of-a-few, pop-up menus for one-of-many, separate icon buttons for List and Grid." },
   { t: "Window frame and line work (from your notes)", today: "The frame is drawn first, so drawers, cards, scrollbars and strips paint over it in places (it looks lighter or goes behind); the footer and body are inset a unit for it, which leaves gaps; some windows draw their own frame. Lines inside use five different weights and colours.",
     prop: "<b>One frame</b>, a single continuous 1-unit line (2 on High contrast) around every window, drawn last so nothing covers it, with no insets and no openings. <b>Two line weights</b> inside: structure lines (under the title bar, between panes, the top of every band and the footer) in the strong border colour, meeting the frame exactly; content lines (under heads, between groups) in the soft one. Pop-ups take the same frame plus System 7's one-unit hard shadow. Checked on every window kind, both text sizes, all three themes, 1.75x at 4K and while drawers slide." },
+  { t: "Hidden actions (your idea)", today: "Cards and tabs show every action the game knows about, greyed when the character can't do it, each with a reason; some show buttons that make no sense in the moment (Put out on a fire that is out). Hair and beard folds its impossible rows under \"Out of reach\".",
+    prop: "An action shows only when it can be done now. One it can't do yet is hidden, and one quiet row after the verbs says what the right thing would allow: \"With scissors you could cut your hair.\" (or \"3 more with the right things\"); open it to see them greyed with what each needs. Actions that make no sense now are simply gone. Bands and verb rows with nothing in them aren't drawn. <b>Setting \"Hidden actions\"</b> in ZeD setup: <b>Folded</b> (default), Show all, Hide; no question pops up during play. Hints only name what the game itself would show: never a recipe you haven't learned." },
   { t: "Buttons: one family", ask: "buttons", today: "Four families: the System 7 push button (double rounded outline), a flat bevelled key (item and object cards, container buttons, Furniture), a single coloured outline (Animals, Craft's big button, the amount stepper) and square ghost buttons (the map toolbar). \"Main action\" means four things: an accent outline, a solid accent key, a tinted outline, a solid accent pill. Hover shows on the push buttons only. Eleven different greyed-out looks.",
     prop: "The push button everywhere a word is pressed: default, <b>main</b> (accent outline and accent words), <b>danger</b> (red, with the slow pulse) and greyed (one fade, 0.42). One square icon button with the same hover. Bevelled keys stay only on the hardware (dash, radio, watch, siren).",
     samp: T => `<span class="cap">TODAY</span><div class="b b-lib">Push</div><div class="b b-bev">Bevel key</div><div class="b b-bev pri">Bevel main</div><div class="b b-col">Colour outline</div><div class="b b-ghost">Ghost</div><span class="cap">PROPOSED</span><div class="b b-lib">Default</div><div class="b b-lib pri">Main</div><div class="b b-lib dan">Danger</div><div class="b b-lib dis">Greyed</div><div class="b b-ic lib" style="width:28px;padding:0">&#8679;</div>`,
@@ -855,6 +881,9 @@ function renderPicks() {
     "Shadows: A | Keep the System 7 one on pop-ups",
     "Everything marked FOLLOWS YOUR RULES: as proposed",
     "Notes: status marks square; no all caps; no contemporary web patterns; one window frame and line standard",
+    "Resizing: bottom edge (height), both bottom corners, left and right edges (width); a handle shows after a short rest",
+    "Controller highlight: chosen by the player in ZeD setup (with a sample), the window box menu and the Select wheel",
+    "Hidden actions: Folded by default (Show all, Hide), in ZeD setup; no pop-up questions",
   ].join("\n");
   $("#picks").textContent = txt;
   // copy inside the click; where the clipboard is refused, select the text so it can be copied by hand
@@ -864,7 +893,7 @@ function renderPicks() {
     try { navigator.clipboard.writeText(txt).then(done, select); } catch (e) { select(); }
   };
 }
-document.querySelectorAll("#dpad button").forEach(b => b.onclick = e => { e.stopPropagation(); move(b.dataset.d); });
+document.querySelectorAll("#dpad button").forEach(b => b.onclick = e => { e.stopPropagation(); if (b.dataset.a) { const n = document.querySelector(`#win [data-f="${S.focusId}"]`); if (n && n.dataset.toggle) { S.open[n.dataset.toggle] = !S.open[n.dataset.toggle]; render(); } return; } move(b.dataset.d); });
 window.addEventListener("resize", () => { if (S.zoom === "fit") render(); });
 if (window.innerWidth < 1200) S.zoom = "fit";
 preload(render);
