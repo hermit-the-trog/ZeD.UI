@@ -353,7 +353,7 @@ local function names()
     end
     return _nm
 end
-function B.shortName(slotType)
+function B.shortName(slotType, slot)
     local c = names().short
     local k = slotType or ""
     local s = c[k]
@@ -361,7 +361,9 @@ function B.shortName(slotType)
     if slotType == "Back" then s = getText("IGUI_HotbarAttachment_Back")
     else
         local key = SHORT[slotType]
-        if key then s = ZeD.tr(key) else s = tostring(slotType or "") end
+        -- a slot ZeD has no short word for (a mod's): the game's name for it, as its hotbar shows
+        if key then s = ZeD.tr(key)
+        else s = getTextOrNull("IGUI_HotbarAttachment_" .. tostring(slotType)) or (slot and slot.name and tostring(slot.name)) or tostring(slotType or "") end
     end
     c[k] = s
     return s
@@ -523,7 +525,7 @@ function B.slots(playerNum)
     for i, slot in ipairs(hb.availableSlot) do
         local item = hb.attachedItems and hb.attachedItems[i] or nil
         out[#out + 1] = {
-            i = i, slot = slot, item = item, key = B.keyLabel(i), short = B.shortName(slot.slotType),
+            i = i, slot = slot, item = item, key = B.keyLabel(i), short = B.shortName(slot.slotType, slot),
             name = B.slotName(slot), inHand = item ~= nil and chr ~= nil and chr:isEquipped(item),
         }
     end
@@ -1258,9 +1260,17 @@ function ZeD_BeltHUD:_drawBox(b, o)
         end
     elseif o.label then
         local f5 = T.fontF5
-        local lw = tm:MeasureStringX(f5, o.label)
+        local label = o.label
+        local lw = tm:MeasureStringX(f5, label)
+        -- a long name (a mod's slot) is cut to the box, ending in a full stop
+        local room = b.w - T.px(4)
+        if lw > room then
+            while #label > 1 and tm:MeasureStringX(f5, label .. ".") > room do label = label:sub(1, -2) end
+            label = label:gsub("%s+$", "") .. "."
+            lw = tm:MeasureStringX(f5, label)
+        end
         local dc = onFocus and T.textOnFocus or T.textDim
-        self:drawText(o.label, b.x + math.floor((b.w - lw) / 2), b.y + math.floor((b.h - tm:getFontHeight(f5)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f5)
+        self:drawText(label, b.x + math.floor((b.w - lw) / 2), b.y + math.floor((b.h - tm:getFontHeight(f5)) / 2), dc.r, dc.g, dc.b, dc.a or 1, f5)
     end
     -- border: dashed accent while drawn, accent while a drop fits, else the line (round on the hands)
     if round then

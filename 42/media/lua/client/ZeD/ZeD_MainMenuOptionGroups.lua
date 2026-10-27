@@ -196,10 +196,11 @@ end
 -- Returns { [groupId] = rows }.
 function G.build(pages, rowsOf)
     local byName, byPage, used = {}, {}, {}
+    local extra = {}   -- pages a mod added with MainOptions:addPage (titles the game doesn't have)
     for _, p in ipairs(pages) do
-        local pid = pageId(p.raw) or "mods"
+        local pid = pageId(p.raw)
         local rows = rowsOf(p) or {}
-        byPage[pid] = rows
+        if pid then byPage[pid] = rows else extra[#extra + 1] = { title = p.raw, rows = rows } end
         for _, r in ipairs(rows) do
             if pid == "audio" and r.kind == "button" and not r.opt then byName.__audioButton = r end
             if r.opt and r.opt.name then
@@ -208,6 +209,17 @@ function G.build(pages, rowsOf)
                 if G.ONLY[r.opt.name] then r.only = G.ONLY[r.opt.name] end
             end
         end
+    end
+    -- the Mods group: the game's Mods page (where ZeD's own controls are), then each added page under its title
+    local realMods = byPage.mods or {}
+    if #extra > 0 then
+        local all = {}
+        for _, r in ipairs(realMods) do all[#all + 1] = r end
+        for _, e in ipairs(extra) do
+            all[#all + 1] = { kind = "header", text = tostring(e.title or "") }
+            for _, r in ipairs(e.rows) do all[#all + 1] = r end
+        end
+        byPage.mods = all
     end
     local out = {}
     local other = {}   -- groupId -> rows nobody named
@@ -266,7 +278,7 @@ function G.build(pages, rowsOf)
     -- then the game settings ZeD's look depends on
     local setup = {}
     local zo = PZAPI and PZAPI.ModOptions and PZAPI.ModOptions:getOptions("ZeD_UI")
-    local mods = byPage.mods or {}
+    local mods = realMods
     local zrow, zorder = {}, {}   -- option id -> its row's copy; the ids in Settings.lua's order
     for _, opt in ipairs(zo and zo.data or {}) do
         if opt.element then
