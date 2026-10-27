@@ -1,0 +1,12 @@
+VERSION = 1,
+
+mods
+{
+    mod = NeatUI_Framework,
+    mod = NeatUI_Hairstyler,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}

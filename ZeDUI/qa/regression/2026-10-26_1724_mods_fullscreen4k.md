@@ -1,0 +1,270 @@
+# ZeD-UI regression - 2026-10-26 17:25 - fullscreen4k (3840x2160 fullscreen)
+
+| | |
+|---|---|
+| Started | 2026-10-26 17:25:05 |
+| Finished | 2026-10-26 17:28:27 (3 min 22 s) |
+| Mode | fullscreen4k (3840x2160 fullscreen) |
+| Display | fullScreen=true height=2160 width=3840 |
+| Game build | 42.21.0 4a0e9546ec |
+| Mod version | 0.1.1242300k |
+| Save | Saves/Sandbox/ZeD-QA |
+| Manifest | C:/Users/danie/Zomboid/mods/ZeD-UI/ZeDUI/tools/qa/hairbeard_manifest.txt (2 scripts) |
+| Result | **2/2 pass**, 0 warn, 0 fail, 0 timeout |
+| Go numbers | 13567 to 13570 |
+
+Screenshots are in `C:/Users/danie/Zomboid/Screenshots` (the next run overwrites them). PASS: reached DONE with no ERR line and no Lua error. WARN: DONE with ERR lines of its own, or the script ran twice. FAIL: ok=false, a Java exception in the script's window (with -debug the game logs one even for an error a script catches) or the game lost. TIMEOUT: no DONE in time (the run stops there). Not run: after a timeout, a paused game or a lost game. "(expect ...)" prints are shown, not checked.
+
+## Run notes
+
+- ZeD settings: UI scale 1.75x (4K) (the director's ModOptions.ini kept aside)
+- pzrestorewin.ps1 (before a fullscreen run): no backup
+- started ProjectZomboid64.exe -debug (fullscreen, the director's options.ini)
+- loaded; clicked the screen centre (1920,1080) to pass 'click to start'
+- the bridge armed in game on Saves/Sandbox/ZeD-QA
+- quit: quit to the main menu, then to the desktop (go 13569, 13570)
+- ZeD settings: the director's ModOptions.ini put back
+
+## Results
+
+| # | Script | Tag | Status | Seconds | Screenshots | Notes |
+|---:|---|---|---|---:|---|---|
+| 1 | zedqa_prelude.lua | pre | PASS | 1 |  |  |
+| 2 | zedqa_hairbeard.lua | hb | PASS | 76 | zqa_hb_list_no_tools.png, zqa_hb_no_tools.png, zqa_hb_tall.png, zqa_hb_greyed_hover.png, zqa_hb_heads_cut.png, zqa_hb_ready.png, zqa_hb_hair_list.png, zqa_hb_cutting.png, zqa_hb_done.png, zqa_hb_tied.png, zqa_hb_pad_beard_greyed.png, zqa_hb_pad_beard.png, zqa_hb_beard_cut.png, zqa_hb_beard_list.png, zqa_hb_out_of_reach.png, zqa_hb_trait_focus.png, zqa_hb_trait_hover.png, zqa_hb_large.png, zqa_hb_light.png, zqa_hb_mod_rows.png, zqa_hb_female_heads.png, zqa_hb_female_list.png |  |
+
+## Scripts
+
+### 1. zedqa_prelude.lua (`ZEDQA pre`) - PASS, 1 s
+
+- go 13567 at 17:26:35
+
+```text
+[ZeD.QA] windows reset (R)
+ZEDQA pre start
+[ZeD.QA] run #1 ok=true
+ZEDQA pre char true world true speed 1 ticks 60 frames 61
+ZEDQA pre search overlay: enabled false, override false, manager false
+ZEDQA pre DONE
+```
+
+### 2. zedqa_hairbeard.lua (`ZEDQA hb`) - PASS, 76 s
+
+- go 13568 at 17:26:39
+- screenshots: zqa_hb_list_no_tools.png, zqa_hb_no_tools.png, zqa_hb_tall.png, zqa_hb_greyed_hover.png, zqa_hb_heads_cut.png, zqa_hb_ready.png, zqa_hb_hair_list.png, zqa_hb_cutting.png, zqa_hb_done.png, zqa_hb_tied.png, zqa_hb_pad_beard_greyed.png, zqa_hb_pad_beard.png, zqa_hb_beard_cut.png, zqa_hb_beard_list.png, zqa_hb_out_of_reach.png, zqa_hb_trait_focus.png, zqa_hb_trait_hover.png, zqa_hb_large.png, zqa_hb_light.png, zqa_hb_mod_rows.png, zqa_hb_female_heads.png, zqa_hb_female_list.png
+
+```text
+[ZeD.QA] windows reset (R)
+ZEDQA hb start
+[ZeD.QA] run #2 ok=true
+ZEDQA hb tools taken away for the test: 0 | female false | was Grungey /
+ZEDQA hb PASS the Character window is on Identity
+ZEDQA hb PASS hair rows from the game's menu: 34
+ZEDQA hb groups: tie 1 shave 1 cut 25 style 7
+ZEDQA hb PASS Tie and Cut groups
+ZEDQA hb PASS a cut with no scissors is greyed with the game's reason: Requires Scissors.
+ZEDQA hb PASS tying needs no tool
+ZEDQA hb PASS a style with no gel or spray is greyed: Requires Hair Spray.
+ZEDQA hb PASS no debug rows
+ZEDQA hb PASS Out of reach holds what the hair cannot become: 3
+ZEDQA hb PASS the windows are still
+ZEDQA hb figures no tools: 1 rows in view, 2 figures showing, pool 2
+ZEDQA hb PASS every hair row in view shows its figure, and Now
+ZEDQA hb figures the list: 4 rows in view, 4 figures showing, pool 4
+ZEDQA hb PASS the list scrolled: every row in view shows its figure
+ZEDQA hb shot zqa_hb_list_no_tools.png
+ZEDQA hb rect list_no_tools list 357 111 815 511
+ZEDQA hb rect list_no_tools heads 375 -124 779 157
+ZEDQA hb PASS no drawn heads and no Pictures window left in the section
+ZEDQA hb PASS the figures are a stand-in, not the player's own model
+ZEDQA hb PASS a row's figure wears that row's style: PonyTail -> false|2|MaleBody03|0.584,0.251,0.251|0.584,0.251,0.251|-1|1118171040|61537000|1942122107|771574445|785297549|805640016|1302740686|894069686#PonyTail/Full
+ZEDQA hb shot zqa_hb_no_tools.png
+ZEDQA hb rect no_tools list 357 111 815 511
+ZEDQA hb rect no_tools heads 375 196 779 157
+ZEDQA hb figures Out of reach open: 3 rows in view, 5 figures showing, pool 5
+ZEDQA hb PASS figures with Out of reach open
+ZEDQA hb perf list: mean 9.2 ms, 95th 17 ms, worst 24 ms over 240 frames
+ZEDQA hb PASS frame time sampled with the list open
+ZEDQA hb PASS the tall window is still
+ZEDQA hb figures tall window: 15 rows in view, 17 figures showing, pool 17
+ZEDQA hb PASS the tall window: every row in view with its figure
+ZEDQA hb shot zqa_hb_tall.png
+ZEDQA hb rect tall list 357 111 815 1876
+ZEDQA hb rect tall heads 375 -124 779 157
+ZEDQA hb perf list_tall: mean 14.1 ms, 95th 21 ms, worst 38 ms over 240 frames
+ZEDQA hb PASS frame time sampled with the tall window
+ZEDQA hb perf tall window: 19 figures showing
+ZEDQA hb PASS the window back to its height
+ZEDQA hb PASS the real character is unchanged while the figures show (Fabian|Full|nil|1118171040|61537000|1942122107|771574445|785297549|805640016|1302740686|894069686)
+ZEDQA hb tab for the release check: loot
+ZEDQA hb PASS another tab: the figures leave the window (pool 0, children 0)
+ZEDQA hb perf other_tab: mean 8.5 ms, 95th 15 ms, worst 37 ms over 240 frames
+ZEDQA hb PASS frame time sampled on another tab
+ZEDQA hb perf the figures cost 0.7 ms a frame on the mean (list 9.2, other tab 8.5)
+ZEDQA hb perf tall window costs 5.6 ms a frame on the mean (14.1)
+ZEDQA hb figures back on Identity: 1 rows in view, 2 figures showing, pool 2
+ZEDQA hb PASS back on Identity, the figures come back
+ZEDQA hb PASS the cut row has a click zone
+ZEDQA hb PASS a click picks the row
+ZEDQA hb PASS the strip's button is greyed for a greyed row
+ZEDQA hb PASS pressing the greyed button does nothing
+ZEDQA hb PASS the mouse is over a row (its hint shows)
+ZEDQA hb shot zqa_hb_greyed_hover.png
+ZEDQA hb PASS with scissors the cut can be done: Cut Hair into Short
+ZEDQA hb head item: Baseball Cap
+ZEDQA hb figures scissors and a cap: 4 rows in view, 5 figures showing, pool 5
+ZEDQA hb figures scissors and a cap: 1 rows in view, 3 figures showing, pool 5
+ZEDQA hb PASS every row in view with its figure, and the Now / After heads
+ZEDQA hb PASS the After head wears the picked style: false|2|MaleBody03|0.584,0.251,0.251|0.584,0.251,0.251|-1|1118171040|61537000|393263656|1942122107|771574445|785297549|805640016|1302740686|894069686#Short/Full
+ZEDQA hb PASS the Now head wears the hair now: false|2|MaleBody03|0.584,0.251,0.251|0.584,0.251,0.251|-1|1118171040|61537000|393263656|1942122107|771574445|785297549|805640016|1302740686|894069686#Fabian/Full
+ZEDQA hb PASS the cap is still on the real character (only the figures go without it)
+ZEDQA hb PASS the heads half out of the view: Now and After show the part inside it
+ZEDQA hb PASS hair: Now and After cut by the view's edge, not left empty (cut 64.47265625 px)
+ZEDQA hb shot zqa_hb_heads_cut.png
+ZEDQA hb rect heads_cut list 357 111 815 511
+ZEDQA hb rect heads_cut heads 375 45 779 157
+ZEDQA hb shot zqa_hb_ready.png
+ZEDQA hb rect ready list 357 111 815 511
+ZEDQA hb rect ready heads 375 196 779 157
+ZEDQA hb figures with scissors: 4 rows in view, 4 figures showing, pool 5
+ZEDQA hb PASS with scissors, the list: every row in view with its figure
+ZEDQA hb shot zqa_hb_hair_list.png
+ZEDQA hb rect hair_list list 357 111 815 511
+ZEDQA hb rect hair_list heads 375 -124 779 157
+ZEDQA hb PASS the strip's button is live
+ZEDQA hb PASS the cut is running
+ZEDQA hb PASS the game's ISCutHair is queued
+ZEDQA hb shot zqa_hb_cutting.png
+ZEDQA hb PASS the cut ends
+ZEDQA hb PASS the hair is now Short: Short
+ZEDQA hb PASS the strip says done: Done: hair is now Short
+ZEDQA hb PASS the cap came off first
+ZEDQA hb PASS the license's Hair style line follows: Short
+ZEDQA hb shot zqa_hb_done.png
+ZEDQA hb PASS a tie row after growing it back
+ZEDQA hb PASS the tie row is a controller stop
+ZEDQA hb PASS the tie ends
+ZEDQA hb PASS tied: the loose style is kept (Fabian)
+ZEDQA hb PASS tied: Untie Hair is the only row (1)
+ZEDQA hb shot zqa_hb_tied.png
+ZEDQA hb PASS the untie ends
+ZEDQA hb PASS untied: back to Fabian (Fabian)
+ZEDQA hb PASS focus on the tab's disclosure
+ZEDQA hb PASS down from the disclosure lands on the Hair | Beard switch (hb:part)
+ZEDQA hb PASS right flips to Beard and stays on the switch
+ZEDQA hb PASS down walks into the beard rows (hb:row:b:)
+ZEDQA hb PASS the strip follows focus with no press
+ZEDQA hb PASS greyed with the game's reason: Requires a Razor or Scissors.
+ZEDQA hb PASS A on a greyed row does nothing
+ZEDQA hb shot zqa_hb_pad_beard_greyed.png
+ZEDQA hb PASS with scissors the trim can be done: Trim Beard into Mustache
+ZEDQA hb figures beard: 3 rows in view, 5 figures showing, pool 6
+ZEDQA hb PASS every beard row in view with its figure, and the Now / After heads
+ZEDQA hb PASS the beard list runs on the character's own hair: Grungey
+ZEDQA hb PASS beard, under the heads: every beard row's figure keeps the character's hair (Grungey, 1 rows)
+ZEDQA hb PASS beard, under the heads: every beard row's figure wears that row's beard (1 rows)
+ZEDQA hb PASS beard: Now shows the character as they are: #Grungey/Full@S
+ZEDQA hb PASS the focused row is the picked one (b:Moustache)
+ZEDQA hb PASS beard: After shows the picked row's result: #Grungey/Moustache@S
+ZEDQA hb shot zqa_hb_pad_beard.png
+ZEDQA hb rect pad_beard list 357 111 815 511
+ZEDQA hb rect pad_beard heads 375 196 779 157
+ZEDQA hb PASS beard: the heads half out of the view, Now and After show the part inside it
+ZEDQA hb PASS beard: Now and After cut by the view's edge, not left empty
+ZEDQA hb shot zqa_hb_beard_cut.png
+ZEDQA hb rect beard_cut list 357 111 815 511
+ZEDQA hb rect beard_cut heads 375 45 779 157
+ZEDQA hb fig now y 111 h 66 cut 64 zoom 20.937 yoff -0.7730
+ZEDQA hb fig b: y 331 h 72 cut 0 zoom 18.500 yoff -0.8300
+ZEDQA hb fig after y 111 h 66 cut 64 zoom 20.937 yoff -0.7730
+ZEDQA hb fig b:Chops y 465 h 72 cut 0 zoom 18.500 yoff -0.8300
+ZEDQA hb fig b:Moustache y 560 h 61 cut 10 zoom 19.444 yoff -0.8509
+ZEDQA hb figures beard rows: 4 rows in view, 5 figures showing, pool 6
+ZEDQA hb PASS beard: the list scrolled, every row in view with its figure
+ZEDQA hb PASS beard, the list: every beard row's figure keeps the character's hair (Grungey, 4 rows)
+ZEDQA hb PASS beard, the list: every beard row's figure wears that row's beard (4 rows)
+ZEDQA hb PASS the picked beard row's figure wears that beard: #Grungey/Moustache@S
+ZEDQA hb shot zqa_hb_beard_list.png
+ZEDQA hb rect beard_list list 357 111 815 511
+ZEDQA hb rect beard_list heads 375 -124 779 157
+ZEDQA hb fig b:Goatee y 485 h 72 cut 0 zoom 18.500 yoff -0.8300
+ZEDQA hb fig b: y 161 h 72 cut 0 zoom 18.500 yoff -0.8300
+ZEDQA hb fig b:Moustache y 390 h 72 cut 0 zoom 18.500 yoff -0.8300
+ZEDQA hb fig b:Chops y 295 h 72 cut 0 zoom 18.500 yoff -0.8300
+ZEDQA hb fig b:BeardOnly y 580 h 41 cut 30 zoom 21.250 yoff -0.8908
+ZEDQA hb PASS the trim ends
+ZEDQA hb PASS the beard is now Moustache: Moustache
+ZEDQA hb PASS Out of reach is a stop
+ZEDQA hb PASS A folds Out of reach open
+ZEDQA hb PASS an out-of-reach row can be focused and says why
+ZEDQA hb shot zqa_hb_out_of_reach.png
+ZEDQA hb PASS a trait is a controller stop: identity:trait:Brave
+ZEDQA hb PASS focus shows the description at once (no hover timer)
+ZEDQA hb shot zqa_hb_trait_focus.png
+ZEDQA hb PASS trait zones are kept for hover
+ZEDQA hb PASS hover on a trait shows its description
+ZEDQA hb shot zqa_hb_trait_hover.png
+ZEDQA hb figures Large text: 3 rows in view, 4 figures showing, pool 6
+ZEDQA hb PASS Large text: every row in view with its figure
+ZEDQA hb shot zqa_hb_large.png
+ZEDQA hb rect large list 240 127 938 479
+ZEDQA hb rect large heads 260 -143 898 183
+ZEDQA hb figures Light: 1 rows in view, 2 figures showing, pool 6
+ZEDQA hb PASS Light: every row in view with its figure
+ZEDQA hb shot zqa_hb_light.png
+ZEDQA hb rect light list 357 111 815 511
+ZEDQA hb rect light heads 375 -124 779 157
+ZEDQA hb Spongie's Hairstyle Unlocker on: false
+ZEDQA hb PASS the picture mod's lists are read into rows (34 rows)
+ZEDQA hb PASS no Pictures button: the mod's styles are rows with figures
+ZEDQA hb PASS no Traits tab without Traits As Skills
+ZEDQA hb figures after Large and Light: 1 rows in view, 2 figures showing, pool 6
+ZEDQA hb PASS every row in view with its figure
+ZEDQA hb shot zqa_hb_mod_rows.png
+ZEDQA hb rect mod_rows list 357 111 815 511
+ZEDQA hb rect mod_rows heads 375 -124 779 157
+ZEDQA hb PASS Spongie's tagged row in view with its figure
+ZEDQA hb PASS the window closed: the figures left it (children 0)
+ZEDQA hb figures reopened: 1 rows in view, 2 figures showing, pool 2
+ZEDQA hb PASS reopened: the figures come back
+ZEDQA hb made a woman for the check: true, skin FemaleBody03
+ZEDQA hb figures a woman: 2 rows in view, 4 figures showing, pool 4
+ZEDQA hb PASS a woman: her hair rows and Now show
+ZEDQA hb PASS a woman: no beard half (0 beard rows)
+ZEDQA hb PASS a woman: the figures' stand-in is a woman
+ZEDQA hb PASS a woman: every row is one of the game's women's styles (39 rows)
+ZEDQA hb PASS a woman: Now wears her hair: #Long2/
+ZEDQA hb PASS a woman: After shows the picked cut
+ZEDQA hb PASS a woman: After wears the picked cut: #Bob/
+ZEDQA hb shot zqa_hb_female_heads.png
+ZEDQA hb rect female_heads list 357 111 815 511
+ZEDQA hb rect female_heads heads 375 196 779 157
+ZEDQA hb figures a woman's list: 4 rows in view, 5 figures showing, pool 5
+ZEDQA hb PASS a woman's list: every row in view with its figure
+ZEDQA hb shot zqa_hb_female_list.png
+ZEDQA hb rect female_list list 357 111 815 511
+ZEDQA hb rect female_list heads 375 -124 779 157
+ZEDQA hb PASS the QA character is put back: female false, skin MaleBody03
+ZEDQA hb put back: Grungey / , 0 tools returned
+ZEDQA hb all checks passed
+ZEDQA hb DONE
+```
+
+## Console errors outside scripts
+
+ERROR lines from launch to quit that fall in no script's window, once each (count first).
+
+```text
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+    1x ERROR: General f:N at AngelCodeFont.parseFnt > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+    3x ERROR: Mod f:N at ChooseGameInfo.readModInfoAux > tiledef=SupportCorps 8900 file number must be from 100 to 8189
+    3x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+    3x ERROR: General f:N at FluidContainerScript.load > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+    1x ERROR: General f:N at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+    1x ERROR: Lua f:N at Lua(Vanilla).handleMannequinZone > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+    1x ERROR: General f:N at Basements.mergeRoomsOntoMetaCell > duplicate RoomDef.metaID for room at 10707,9484,0
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+    1x ERROR: General f:N at IsoMetaGrid.load > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+```
