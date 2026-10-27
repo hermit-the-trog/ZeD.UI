@@ -77,7 +77,7 @@ img.px { image-rendering:pixelated; display:block; }
 .tb .cb::after { content:""; position:absolute; inset:2px; }
 .tb .tt { top:5px; height:16px; padding:0 4px; font-family:var(--mono); font-size:12px; line-height:16px; color:var(--textHead); white-space:nowrap; }
 .tb .st { top:5px; height:16px; font-family:var(--mono); font-size:12px; line-height:16px; color:var(--text); white-space:nowrap; display:flex; gap:14px; }
-.tb .st i { position:static; display:inline-block; width:5px; height:5px; margin-right:5px; vertical-align:2px; }
+.tb .st i { position:static; display:inline-block; width:6px; height:6px; margin-right:5px; vertical-align:2px; }
 .tb .wb { width:15px; height:15px; top:5px; border:1px solid var(--borderS); cursor:pointer; z-index:2; }
 .tb .wb::before { content:""; position:absolute; left:3px; right:3px; top:3px; height:1px; background:var(--textDim); box-shadow:0 3px 0 var(--textDim), 0 6px 0 var(--textDim); }
 .tb .pp { top:5px; height:16px; display:flex; gap:12px; align-items:center; }
@@ -112,6 +112,8 @@ img.px { image-rendering:pixelated; display:block; }
 .f5 { font-family:var(--cond); font-size:11px; }
 .dot { width:6px; height:6px; border-radius:50%; }
 .ring { width:7px; height:7px; border-radius:50%; border:1px solid var(--textDim); }
+.m-matched .dot, .m-matched .ring, .samp .dot { border-radius:0 !important; }
+.m-matched .ring { width:6px; height:6px; }
 
 /* buttons: library push button (double rounded outline), today's bevel, colour outline, ghost */
 .b { display:flex; align-items:center; justify-content:center; white-space:nowrap; cursor:default; }
@@ -194,7 +196,8 @@ img.px { image-rendering:pixelated; display:block; }
 </head>
 <body>
 <div class="banner">ZeD-UI | mockup | cohesion | Oct 26 2026</div>
-<h1>Cohesion v1: one look for the same thing</h1>
+<h1>Cohesion v2: one look for the same thing</h1>
+<p class="lede" style="margin-bottom:8px"><b>v2, with your picks:</b> footer A; all four controller highlights as a setting (Pointing hand first); see-through as a setting, 90% by default, a 100-60 slider, "Solid while in use" as an option, and both in the window box's menu under Text size; push buttons everywhere; verbs under the name; outlined tags; System 7 shadows on pop-ups only. Also from your notes: <b>status marks are squares</b>, <b>no all caps in the windows</b>, the modern web habits swept out (switches, pills and segmented pairs become System 7 checkboxes, radio buttons and separate buttons), and <b>one window frame</b> drawn on top of everything with two line weights and no gaps. Set "Everything else" to Matched to see them.</p>
 <p class="lede">A read of the whole mod found the same kinds of thing drawn differently from one surface to the next: <b>four button families</b>, <b>about a dozen action footers</b> in five heights, <b>controller focus drawn six ways</b> (it vanishes on a few things), <b>ten looks for "selected"</b>, <b>eleven hover boxes</b>, <b>twelve kinds of small tag</b> and <b>six ways to say what an action needs</b>. Page 1 tries your three reworks on one window. Page 2 lists the rest, each with the one look it would move to. The few that are your call are marked <b>Your call</b>; the rest follow rules you have already set. Your picks collect at the foot of each page.</p>
 <div class="pages" id="pages"></div>
 
@@ -263,12 +266,12 @@ function tokens() {
 }
 
 // ------------------------------------------------------------------ state
-const S = { page: "p1", scene: "card", footer: "A", focus: "hand", op: "today", solid: "off", rest: "matched", input: "pad",
+const S = { page: "p1", scene: "card", footer: "A", focus: "hand", op: .9, solid: "off", rest: "matched", input: "pad",
             theme: "dark", acc: "teal", zoom: 1, focusId: null, hoverId: null, menu: false,
             picks: { buttons: "one", actions: "name", shadows: "keep", tags: "outline" } };
 const FOOTERS = [["today", "Today"], ["A", "A | Help line + window box", 1], ["B", "B | Today, tidied"], ["C", "C | Prompts on the buttons"]];
 const FOCI = [["today", "Today"], ["wash", "1 | One wash"], ["hand", "2 | Pointing hand", 1], ["corners", "3 | Corner marks"], ["ants", "4 | Marching ants"]];
-const OPS = [["today", "Today (fixed 92%)"], [1, "100%"], [.9, "90%"], [.8, "80%"], [.7, "70%"], [.6, "60%"]];
+const OPS = [["today", "Today (fixed 92%)"], [1, "100%"], [.9, "90% (your default)"], [.8, "80%"], [.7, "70%"], [.6, "60%"]];
 
 // ------------------------------------------------------------------ tab icons, tinted like ZeD_TabPx.lua
 const IMG = {}; let loaded = 0, toLoad = 0;
@@ -363,7 +366,7 @@ function footer(w, h, T, status, kindOverride, noGrow) {
   }
   if (S.footer === "A") {
     const fh = 22, y = h - fh;
-    s += el(0, y, w, fh, "sf2", "") + el(0, y, w, 1, "dv");
+    s += el(0, y, w, fh, "sf2", "") + el(0, y, w, 1, "dvS");
     if (pad) {
       const pr = promptsFor(fk);
       s += `<div style="left:10px;top:${px(y + 4)};height:14px;display:flex;gap:6px;align-items:center">` + pr.map((p, i) =>
@@ -432,19 +435,20 @@ function listPane(x, y, w, h, title, wt, ct, groups, T, selName, zone) {
   // List / Grid pair
   const tx = x + w - 150;
   s += el(tx, y + 10, 22, 18, "b b-ic on", "", F(zone + "_list", "toggle", "List view", `data-zone="${zone}" style="background:var(--accent)"`));
-  s += el(tx + 21, y + 10, 22, 18, "b b-ic", "", F(zone + "_grid", "toggle", "Grid view", `data-zone="${zone}"`));
+  const gx = M() ? tx + 26 : tx + 21;
+  s += el(gx, y + 10, 22, 18, "b b-ic", "", F(zone + "_grid", "toggle", "Grid view", `data-zone="${zone}"`));
   s += `<div style="left:${px(tx + 5)};top:${px(y + 14)};width:12px;height:10px;background:repeating-linear-gradient(180deg, var(--onAccent) 0 2px, transparent 2px 4px);pointer-events:none"></div>`;
-  s += `<div style="left:${px(tx + 26)};top:${px(y + 14)};width:12px;height:10px;background:conic-gradient(from 90deg at 50% 50%, transparent 0 0);pointer-events:none;box-shadow:inset 0 0 0 0 transparent"><i style="position:absolute;left:0;top:0;width:5px;height:4px;background:var(--textDim)"></i><i style="position:absolute;left:7px;top:0;width:5px;height:4px;background:var(--textDim)"></i><i style="position:absolute;left:0;top:6px;width:5px;height:4px;background:var(--textDim)"></i><i style="position:absolute;left:7px;top:6px;width:5px;height:4px;background:var(--textDim)"></i></div>`;
+  s += `<div style="left:${px(gx + 5)};top:${px(y + 14)};width:12px;height:10px;background:conic-gradient(from 90deg at 50% 50%, transparent 0 0);pointer-events:none;box-shadow:inset 0 0 0 0 transparent"><i style="position:absolute;left:0;top:0;width:5px;height:4px;background:var(--textDim)"></i><i style="position:absolute;left:7px;top:0;width:5px;height:4px;background:var(--textDim)"></i><i style="position:absolute;left:0;top:6px;width:5px;height:4px;background:var(--textDim)"></i><i style="position:absolute;left:7px;top:6px;width:5px;height:4px;background:var(--textDim)"></i></div>`;
   s += el(x + w - 100, y + 5, 90, 14, "", wt, `style="font-family:var(--mono);font-size:12px;color:var(--accentText);text-align:right"`);
   s += el(x + w - 100, y + 20, 90, 12, "", ct, `style="font-family:var(--cond);font-size:11px;color:var(--textDim);text-align:right"`);
   s += el(x, y + 37, w, 1, "dvS");
   // column heads
   const cN = x + 32, cC = x + w * .52, cB = x + w * .74, cW = x + w - 50;
-  s += el(x, y + 38, w, 20, "ch sf2", "") + `<span style="left:${px(cN)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim);letter-spacing:.5px">NAME</span><span style="left:${px(cC)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim)">CAT</span><span style="left:${px(cB)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim)">COND</span><span style="left:${px(cW)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim)">WT</span>`;
+  s += el(x, y + 38, w, 20, "ch sf2", "") + `<span style="left:${px(cN)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim);letter-spacing:.5px">${M() ? "Name" : "NAME"}</span><span style="left:${px(cC)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim)">${M() ? "Cat" : "CAT"}</span><span style="left:${px(cB)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim)">${M() ? "Cond" : "COND"}</span><span style="left:${px(cW)};top:${px(y + 42)};font:11px var(--cond);color:var(--textDim)">${M() ? "Wt" : "WT"}</span>`;
   s += el(x, y + 58, w, 1, "dv");
   let ry = y + 59, n = 0;
   for (const g of groups) {
-    s += el(x, ry, w, 20, "", `<span style="left:10px;top:3px;font:700 11px var(--mono);color:var(--toneLo)">v ${g.name} (${g.items.length})</span>`) + el(x, ry + 20, w, 1, "dv");
+    s += el(x, ry, w, 20, "", (M() ? `<i style="left:10px;top:7px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--toneLo)"></i><span style="left:22px;top:3px;font:700 11px var(--mono);color:var(--toneLo)">${g.name[0] + g.name.slice(1).toLowerCase()} (${g.items.length})</span>` : `<span style="left:10px;top:3px;font:700 11px var(--mono);color:var(--toneLo)">v ${g.name} (${g.items.length})</span>`)) + el(x, ry + 20, w, 1, "dv");
     ry += 21;
     for (const it of g.items) {
       const id = zone + "_r" + (n++), sel = it.name === selName;
@@ -465,7 +469,7 @@ function band(x, y, w, kind, T, items, question) {
   let h = m ? 36 : kind === "cc" ? 28 : kind === "ask" ? 32 : 40;
   let s = "";
   if (m) {
-    s += el(x, y - h, w, h, "sf2", "") + el(x, y - h, w, 1, "dv");
+    s += el(x, y - h, w, h, "sf2", "") + el(x, y - h, w, 1, "dvS");
     if (question) s += el(x + 10, y - h + 15, 6, 6, "dot", "", `style="background:var(--danger)"`) + el(x + 22, y - h + 9, w - 220, 18, "cell f2", question, `style="color:var(--text)"`);
     let bx = x + w - 8;
     for (const b of items.slice().reverse()) {
@@ -521,14 +525,14 @@ function sceneCard(T) {
   s += btn(cx + cw - 150, top + 7, 64, 22, glyphOn("Equip", S.focusId === "c_equip" ? "A" : ""), "bev", "pri", "c_equip", "Equip: put it in your hands", "verb");
   s += btn(cx + cw - 80, top + 7, 72, 22, glyphOn("More", "X"), "bev", "", "c_more", "More: everything else you can do with it", "verb");
   s += el(cx + 14, top + 46, 300, 24, "hd4", "Baseball Bat", `style="font-size:20px"`).replace('class="hd4" ', 'class="hd4" ');
-  const rows = [["KIND", "Weapon"], ["WEIGHT", "2.0 kg"], ["DAMAGE", "0.8 to 1.0"], ["CRIT CHANCE", "25%"], ["SWING TIME", "1.4 s"]];
+  const rows = (m ? [["Kind"], ["Weight"], ["Damage"], ["Crit chance"], ["Swing time"]] : [["KIND"], ["WEIGHT"], ["DAMAGE"], ["CRIT CHANCE"], ["SWING TIME"]]).map((r, i) => [r[0], ["Weapon", "2.0 kg", "0.8 to 1.0", "25%", "1.4 s"][i]]);
   rows.forEach((r, i) => { s += el(cx + 14, top + 86 + i * 24, 150, 16, "lbl", r[0]) + el(cx + 170, top + 84 + i * 24, cw - 184, 18, "val", r[1]); });
-  s += el(cx + 14, top + 210, 150, 16, "lbl", "CONDITION") + `<div style="left:${px(cx + 170)};top:${px(top + 216)};width:120px;height:4px;background:var(--surf3)"></div><div style="left:${px(cx + 170)};top:${px(top + 216)};width:108px;height:4px;background:${T.cond}"></div>` + el(cx + 296, top + 208, cw - 310, 18, "val", "9 / 10");
+  s += el(cx + 14, top + 210, 150, 16, "lbl", m ? "Condition" : "CONDITION") + `<div style="left:${px(cx + 170)};top:${px(top + 216)};width:120px;height:4px;background:var(--surf3)"></div><div style="left:${px(cx + 170)};top:${px(top + 216)};width:108px;height:4px;background:${T.cond}"></div>` + el(cx + 296, top + 208, cw - 310, 18, "val", "9 / 10");
   s += el(cx + 14, top + 246, 300, 20, "hd4", "Weapon facts") + el(cx + 14, top + 268, cw - 28, 1, "dv");
   const facts = [["Two-handed", "Yes"], ["Pushes zombies back", "Strong"], ["Skill", "Long Blunt"]];
   facts.forEach((r, i) => { s += el(cx + 14, top + 276 + i * 24, 200, 18, "f2", r[0], `style="font-size:13px"`).replace('class="f2" ', 'class="f2" ') + el(cx + 170, top + 276 + i * 24, cw - 184, 18, "val", r[1]); });
   // a NEEDS line under the card's actions, in today's form or the standard one
-  if (m) s += el(cx + 14, top + 360, 7, 7, "ring", "") + el(cx + 28, top + 355, cw - 42, 18, "f1", `NEEDS | <span class="fl" style="font:13px var(--sans);letter-spacing:0;color:var(--text)">Sharpen: a whetstone in your bags</span>`, "").replace('class="f1" ', 'class="f1" ').replace('style="', 'style="color:var(--textDim);');
+  if (m) s += el(cx + 14, top + 360, 7, 7, "ring", "") + el(cx + 28, top + 354, cw - 42, 18, "f2", "Sharpen needs a whetstone in your bags.", `style="color:var(--text)"`).replace('class="f1" ', 'class="f1" ').replace('style="', 'style="color:var(--textDim);');
   else s += el(cx + 14, top + 360, 7, 7, "ring", "") + el(cx + 28, top + 355, cw - 42, 18, "f1", "Sharpen: needs a whetstone", "").replace('style="', 'style="color:var(--textDim);font-weight:400;');
   // the bag
   const lx = cx + cw + 1, lw = W - 34 - lx;
@@ -553,7 +557,7 @@ function sceneObj(T) {
   // card head: back, name, state tag
   s += btn(cx + 8, top + 7, S.footer === "C" && S.input === "pad" && m ? 40 : 24, 22, m ? glyphOn("&lt;", "B") : "&lt;", m ? "lib" : "bev", "", "o_back", "Back to the list", "card");
   s += el(cx + 42, top + 8, 200, 22, "hd4", "Campfire", `style="font-size:18px"`).replace('class="hd4" ', 'class="hd4" ');
-  const tagHtml = m ? `<span class="f1" style="position:absolute;left:0;top:0;height:16px;padding:0 5px;border:1px solid var(--borderS);line-height:14px;color:var(--text);font-size:10px">OUT</span>`
+  const tagHtml = m ? `<span class="f1" style="position:absolute;left:0;top:0;height:16px;padding:0 5px;border:1px solid var(--borderS);line-height:14px;color:var(--text);font-size:10px">Out</span>`
                     : `<span class="f1" style="position:absolute;left:0;top:0;height:16px;padding:0 5px;border:1px solid var(--text);line-height:14px;color:var(--text);font-size:10px"><i style="display:inline-block;position:static;width:5px;height:5px;border-radius:50%;background:var(--textDim);margin-right:4px;vertical-align:1px"></i>OUT</span>`;
   s += el(cx + 120, top + 11, 60, 16, "", tagHtml) + el(cx, top + 37, cw, 1, "dv");
   // header verbs
@@ -564,25 +568,25 @@ function sceneObj(T) {
   s += btn(cx + 218, vy, 86, 22, "Take apart", "bev", "dan", "o_apart", "Take apart: the fire is lost", "card");
   s += el(cx, vy + 30, cw, 1, "dv");
   // fuel
-  s += el(cx + 12, vy + 40, 60, 34, "big", "0 m") + el(cx + 70, vy + 54, 300, 14, "f1", "OF FUEL | HOLDS 8 H", "").replace('style="', 'style="color:var(--textDim);');
+  s += el(cx + 12, vy + 40, 60, 34, "big", "0 m") + el(cx + 70, vy + 54, 300, 14, "f1", m ? "of fuel | holds 8 h" : "OF FUEL | HOLDS 8 H", "").replace('style="', 'style="color:var(--textDim);');
   for (let i = 0; i < 8; i++) s += el(cx + 12 + i * 63, vy + 84, 58, 14, "", "", `style="border:1px solid var(--borderS)"`).replace('class="" ', 'class="" ');
-  s += el(cx + 12, vy + 104, 200, 12, "f5", "LOW", "").replace('style="', 'style="color:var(--textDim);') + el(cx + cw - 60, vy + 104, 48, 12, "f5", "FULL", "").replace('style="', 'style="color:var(--textDim);text-align:right;');
+  s += el(cx + 12, vy + 104, 200, 12, "f5", m ? "Low" : "LOW", "").replace('style="', 'style="color:var(--textDim);') + el(cx + cw - 60, vy + 104, 48, 12, "f5", m ? "Full" : "FULL", "").replace('style="', 'style="color:var(--textDim);text-align:right;');
   // light with
-  s += el(cx + 12, vy + 130, 300, 14, "f1", "LIGHT WITH", "").replace('style="', 'style="color:var(--textDim);') + el(cx + 12, vy + 146, cw - 24, 1, "dv");
+  s += el(cx + 12, vy + 130, 300, 14, "f1", m ? "Light with" : "LIGHT WITH", "").replace('style="', 'style="color:var(--textDim);') + el(cx + 12, vy + 146, cw - 24, 1, "dv");
   const lw2 = [["Map", "Map: Riverside", "+2 m"], ["Novel1", "Novel x3", "+15 m"], ["Book2", 'Book: "Capital"', "+15 m"]];
   lw2.forEach((r, i) => {
     const ry = vy + 148 + i * 30, id = "o_l" + i;
     let inner = iconImg(r[0], 8, 6) + `<span class="cell" style="left:32px;top:7px;width:220px;font:500 13px var(--sans);color:var(--textHead)">${r[1]}</span>`;
-    inner += m ? `<span class="f1" style="left:${px(cw - 230)};top:7px;height:16px;padding:0 5px;border:1px solid var(--borderS);line-height:14px;font-size:10px;color:var(--text)">LIGHTER</span>`
+    inner += m ? `<span class="f1" style="left:${px(cw - 230)};top:7px;height:16px;padding:0 5px;border:1px solid var(--borderS);line-height:14px;font-size:10px;color:var(--text)">Lighter</span>`
                : `<span class="f1" style="left:${px(cw - 230)};top:7px;height:16px;padding:0 5px;border:1px solid var(--text);line-height:14px;font-size:10px;color:var(--text)">LIGHTER</span>`;
-    inner += m ? `<i style="left:${px(cw - 142)};top:12px;width:6px;height:6px;border-radius:50%;background:var(--positive)"></i><span style="left:${px(cw - 132)};top:7px;font:11px var(--mono);color:var(--text)">${r[2]}</span>`
+    inner += m ? `<i style="left:${px(cw - 142)};top:12px;width:6px;height:6px;background:var(--positive)"></i><span style="left:${px(cw - 132)};top:7px;font:11px var(--mono);color:var(--text)">${r[2]}</span>`
                : `<span style="left:${px(cw - 140)};top:7px;font:11px var(--mono);color:var(--positiveText)">${r[2]}</span>`;
     s += `<div class="row${i % 2 ? " st" : ""}" style="left:${px(cx)};top:${px(ry)};width:${px(cw)};height:30px" ${F(id, "row", "Light it with " + r[1], `data-zone="card"`)}>${inner}</div>`;
     s += btn(cx + cw - 70, ry + 4, 58, 22, "Light", "bev", "", id + "b", "Light it with " + r[1], "card");
   });
   // the NEEDS line
   const ny = vy + 250;
-  if (m) s += el(cx + 14, ny + 5, 7, 7, "ring", "") + el(cx + 28, ny, cw - 42, 18, "f1", `NEEDS | <span class="fl" style="font:13px var(--sans);letter-spacing:0;color:var(--text)">Light: a lighter or matches in your bags</span>`, "").replace('style="', 'style="color:var(--textDim);');
+  if (m) s += el(cx + 14, ny + 5, 7, 7, "ring", "") + el(cx + 28, ny - 1, cw - 42, 18, "f2", "Light needs a lighter or matches in your bags.", `style="color:var(--text)"`).replace('style="', 'style="color:var(--textDim);');
   else s += el(cx + 14, ny + 5, 7, 7, "ring", "") + el(cx + 28, ny, cw - 42, 18, "f1", "Light: needs a lighter or matches | Put out: the fire is out", "").replace('style="', 'style="color:var(--textDim);font-weight:400;');
   // the question, in the card's foot
   const q = band(cx, bot, cw, "ask", T, [{ label: glyphOn("Cancel", "B"), id: "o_cancel", help: "Cancel: keep the campfire", w: 86 }, { label: glyphOn("Take apart", S.focusId === "o_yes" ? "A" : ""), v: "dan", id: "o_yes", help: "Take apart: the fire is lost", w: 110 }], "Take the campfire apart? The fire is lost.");
@@ -602,7 +606,7 @@ function scenePrompt(T) {
   s += el(66, 42, W - 86, 60, "f2", "Are you sure you want to take the campfire apart? The fire is lost and the fuel in it burns away.", `style="white-space:normal;line-height:1.45;font-size:13.5px"`).replace('class="f2" ', 'class="f2" ').replace('style="', 'style="white-space:normal;line-height:1.45;font-size:13.5px;color:var(--text);');
   // its own foot: 40u band today, the standard band when matched
   const fy = H - ft.h, m = M(), bh = m ? 36 : 40;
-  s += el(0, fy - bh, W, bh, "sf2", "") + el(0, fy - bh, W, 1, "dv");
+  s += el(0, fy - bh, W, bh, "sf2", "") + el(0, fy - bh, W, 1, m ? "dvS" : "dv");
   s += btn(W - 12 - 78 - 12 - 78, fy - bh + (bh - 24) / 2, 78, 24, glyphOn("No", "B"), "lib", "", "p_no", "No: keep the campfire", "band");
   s += btn(W - 12 - 78, fy - bh + (bh - 24) / 2, 78, 24, glyphOn("Yes", S.focusId === "p_yes" ? "A" : ""), "lib", "dan", "p_yes", "Yes: take it apart", "band");
   s += ft.html;
@@ -758,8 +762,8 @@ function render() {
   if (S.menu && (S.footer === "A" || S.footer === "C")) {
     const m = document.createElement("div"); m.className = "menu";
     Object.assign(m.style, { right: "10px", top: "22px" });
-    m.innerHTML = `<div data-m="theme">Theme<b>${BASE[S.theme].name}</b></div><div data-m="acc">Accent<b>${ACC[S.acc].name}</b></div><div data-m="text">Text size<b>Small</b></div><hr><div data-m="reset">Reset this window</div><div data-m="reset">Reset both windows</div><hr><div data-m="setup">ZeD setup...</div>`;
-    m.onclick = e => { const k = e.target.closest("[data-m]")?.dataset.m; if (k === "theme") { const ks = Object.keys(BASE); S.theme = ks[(ks.indexOf(S.theme) + 1) % ks.length]; } if (k === "acc") { const ks = Object.keys(ACC); S.acc = ks[(ks.indexOf(S.acc) + 1) % ks.length]; } S.menu = k === "theme" || k === "acc"; render(); e.stopPropagation(); };
+    m.innerHTML = `<div data-m="theme">Theme<b>${BASE[S.theme].name}</b></div><div data-m="acc">Accent<b>${ACC[S.acc].name}</b></div><div data-m="text">Text size<b>Small</b></div><div data-m="see">See-through<b>${S.op === "today" ? "92%" : Math.round(S.op * 100) + "%"}</b></div><div data-m="solid">Solid while in use<b>${S.solid === "on" ? "On" : "Off"}</b></div><hr><div data-m="reset">Reset this window</div><div data-m="reset">Reset both windows</div><hr><div data-m="setup">ZeD setup...</div>`;
+    m.onclick = e => { const k = e.target.closest("[data-m]")?.dataset.m; if (k === "theme") { const ks = Object.keys(BASE); S.theme = ks[(ks.indexOf(S.theme) + 1) % ks.length]; } if (k === "acc") { const ks = Object.keys(ACC); S.acc = ks[(ks.indexOf(S.acc) + 1) % ks.length]; } if (k === "see") { const v = [1, .9, .8, .7, .6], i = v.indexOf(S.op); S.op = v[(i + 1) % v.length]; } if (k === "solid") S.solid = S.solid === "on" ? "off" : "on"; S.menu = k === "theme" || k === "acc" || k === "see" || k === "solid"; render(); e.stopPropagation(); };
     w.appendChild(m);
   }
   const wb = w.querySelector("#wbox"); if (wb) wb.onclick = e => { S.menu = !S.menu; render(); e.stopPropagation(); };
@@ -786,6 +790,10 @@ document.addEventListener("click", () => { if (S.menu) { S.menu = false; render(
 
 // ------------------------------------------------------------------ page 2
 const DECS = [
+  { t: "The 1993 sweep (from your notes)", today: "All caps on headings, section heads, category rows (v WEAPONS (4)), column heads (NAME, CAT), stat labels (KIND, WEIGHT), tags (LIGHTER, OUT) and status words (EMPTY, THIRSTY, NEXT LEVEL). Round status dots. An iOS-style sliding switch in ZeD setup; pills and segmented pairs (Hair and beard's switch, Traits' All / With a trait, the map's Survey / Color / Paper, List / Grid joined into one piece).",
+    prop: "Sentence case everywhere in the windows: \"Weapons (4)\", \"Name\", \"Kind\", \"Lighter\". Caps stay only where they are real: initials (OK, HP, FM), vanilla's own text, and the lettering printed on the hardware (dash, radio, watch, siren). <b>Status marks are 6-unit squares</b>, hollow squares for \"needs\" and \"unread\". Checkboxes for on / off, System 7 round radio buttons for one-of-a-few, pop-up menus for one-of-many, separate icon buttons for List and Grid." },
+  { t: "Window frame and line work (from your notes)", today: "The frame is drawn first, so drawers, cards, scrollbars and strips paint over it in places (it looks lighter or goes behind); the footer and body are inset a unit for it, which leaves gaps; some windows draw their own frame. Lines inside use five different weights and colours.",
+    prop: "<b>One frame</b>, a single continuous 1-unit line (2 on High contrast) around every window, drawn last so nothing covers it, with no insets and no openings. <b>Two line weights</b> inside: structure lines (under the title bar, between panes, the top of every band and the footer) in the strong border colour, meeting the frame exactly; content lines (under heads, between groups) in the soft one. Pop-ups take the same frame plus System 7's one-unit hard shadow. Checked on every window kind, both text sizes, all three themes, 1.75x at 4K and while drawers slide." },
   { t: "Buttons: one family", ask: "buttons", today: "Four families: the System 7 push button (double rounded outline), a flat bevelled key (item and object cards, container buttons, Furniture), a single coloured outline (Animals, Craft's big button, the amount stepper) and square ghost buttons (the map toolbar). \"Main action\" means four things: an accent outline, a solid accent key, a tinted outline, a solid accent pill. Hover shows on the push buttons only. Eleven different greyed-out looks.",
     prop: "The push button everywhere a word is pressed: default, <b>main</b> (accent outline and accent words), <b>danger</b> (red, with the slow pulse) and greyed (one fade, 0.42). One square icon button with the same hover. Bevelled keys stay only on the hardware (dash, radio, watch, siren).",
     samp: T => `<span class="cap">TODAY</span><div class="b b-lib">Push</div><div class="b b-bev">Bevel key</div><div class="b b-bev pri">Bevel main</div><div class="b b-col">Colour outline</div><div class="b b-ghost">Ghost</div><span class="cap">PROPOSED</span><div class="b b-lib">Default</div><div class="b b-lib pri">Main</div><div class="b b-lib dan">Danger</div><div class="b b-lib dis">Greyed</div><div class="b b-ic lib" style="width:28px;padding:0">&#8679;</div>`,
@@ -800,8 +808,8 @@ const DECS = [
   { t: "Controller focus, hover and selected", today: "Focus is drawn six ways (wash, outline, frame, wash plus frame, soft tab wash, nothing). Mouse hover is 0.22 in most places, missing on list rows, card buttons and the map toolbar, and theme-tuned (0.15 on Light) in others. Ten looks for \"selected\", from 0.15 to solid. In Craft, Build, Journal and Animals the other window's row stays lit; after switching to the mouse, the last focus stays lit.",
     prop: "Hover: the theme's soft wash on every row and button. Selected: one 0.30 wash. Focus: page 1's pick, the same on every surface, shown only in the window the controller is in, and cleared when you take the mouse. Words on a wash always switch to black or white so they stay readable." },
   { t: "Status tags", ask: "tags", today: "Twelve kinds: outlined caps (LIGHTER), tinted fill (SCRATCH, SPLINTED), solid squares (BELT 2 in the grid), unframed small words (IN HAND on the belt), outlined with a dot (OUT), red badge (NEEDS on recipes), seven badge colours on one Sandbox screen. Dots 4, 6, 7, 8 or 9 units, round or square.",
-    prop: "One tag: 16 units, a one-unit outline, caps in the label face; a status adds its round 6-unit dot inside, never a coloured fill or coloured words. The grid's corner badges keep their solid squares (too small for words).",
-    samp: T => `<span class="cap">TODAY</span><span style="border:1px solid var(--text);font:700 10px var(--mono);padding:1px 5px">LIGHTER</span><span style="background:color-mix(in srgb, var(--danger) 25%, transparent);border:1px solid var(--danger);color:var(--dangerText);font:10px var(--mono);padding:1px 5px">SCRATCH</span><span style="font:10px var(--cond);color:var(--textDim)">IN HAND</span><span style="background:var(--danger);color:#fff;font:700 10px var(--mono);padding:1px 5px">NEEDS FORGE</span><span class="cap">PROPOSED</span><span style="border:1px solid var(--borderS);font:700 10px var(--mono);padding:1px 5px">LIGHTER</span><span style="border:1px solid var(--borderS);font:700 10px var(--mono);padding:1px 5px"><i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--danger);margin-right:4px"></i>SCRATCH</span><span style="border:1px solid var(--borderS);font:700 10px var(--mono);padding:1px 5px">IN HAND</span>`,
+    prop: "One tag: 16 units, a one-unit outline, sentence case in the label face; a status adds its 6-unit square mark inside, never a coloured fill or coloured words. The grid's corner badges keep their solid squares (too small for words).",
+    samp: T => `<span class="cap">TODAY</span><span style="border:1px solid var(--text);font:700 10px var(--mono);padding:1px 5px">LIGHTER</span><span style="background:color-mix(in srgb, var(--danger) 25%, transparent);border:1px solid var(--danger);color:var(--dangerText);font:10px var(--mono);padding:1px 5px">SCRATCH</span><span style="font:10px var(--cond);color:var(--textDim)">IN HAND</span><span style="background:var(--danger);color:#fff;font:700 10px var(--mono);padding:1px 5px">NEEDS FORGE</span><span class="cap">PICKED</span><span style="border:1px solid var(--borderS);font:700 10px var(--mono);padding:1px 5px">Lighter</span><span style="border:1px solid var(--borderS);font:700 10px var(--mono);padding:1px 5px"><i style="display:inline-block;width:6px;height:6px;background:var(--danger);margin-right:4px"></i>Scratch</span><span style="border:1px solid var(--borderS);font:700 10px var(--mono);padding:1px 5px">In hand</span>`,
     opts: [["outline", "A | Outlined, status as a dot", 1], ["fill", "B | Tinted fill in the status colour"]] },
   { t: "What an action needs", today: "Six ways: a ring and a paragraph under the verbs (object cards), a NEEDS section (lock card, Vehicle), a red badge plus a box (recipes), a line in the foot (Vehicle), only the character saying it when you press (item card, map), a faded button with a note (Hair and beard). Worded \"needs X\", \"NEEDS X\", \"Needs a X.\" and \"Can't X\".",
     prop: "One line under the verbs: a hollow ring, <b>NEEDS |</b> and what is missing in plain words, one line per greyed verb; the verb itself is greyed. The character still says it if you press anyway." },
@@ -834,18 +842,19 @@ function renderP2() {
   box.querySelectorAll(".samp").forEach(sm => { for (const [k, v] of Object.entries(vars)) sm.style.setProperty("--" + k, v); });
   DECS.forEach((d, i) => { if (d.opts) seg("#o" + i, d.opts, () => S.picks[d.ask], v => S.picks[d.ask] = v); });
 }
+// the director's picks (Oct 26 2026), as sent; the controls above still preview every option
 function renderPicks() {
-  const name = (list, v) => (list.find(x => x[0] === v) || [, String(v)])[1];
-  const p = S.picks;
+  document.querySelector(".picks h3").textContent = "YOUR PICKS (SENT OCT 26)";
   const txt = [
-    "Window footer: " + name(FOOTERS, S.footer),
-    "Controller highlight: " + name(FOCI, S.focus),
-    "See-through: " + (S.op === "today" ? "no setting (fixed as today)" : "setting, default " + Math.round(S.op * 100) + "%") + (S.solid === "on" ? ", solid while in use" : ""),
-    "Buttons: " + name(DECS[0].opts, p.buttons),
-    "Where actions live: " + name(DECS[1].opts, p.actions),
-    "Status tags: " + name(DECS[5].opts, p.tags),
-    "Shadows: " + name(DECS[9].opts, p.shadows),
+    "Window footer: A | Help line + window box",
+    "Controller highlight: each one an option (Pointing hand first)",
+    "See-through: a setting, default 90%, a 100-60 slider, Solid while in use as an option, in the window box menu under Text size",
+    "Buttons: A | Push buttons everywhere, keys only on the hardware",
+    "Where actions live: A | Verbs under the name, answers at the foot",
+    "Status tags: A | Outlined, status as a square",
+    "Shadows: A | Keep the System 7 one on pop-ups",
     "Everything marked FOLLOWS YOUR RULES: as proposed",
+    "Notes: status marks square; no all caps; no contemporary web patterns; one window frame and line standard",
   ].join("\n");
   $("#picks").textContent = txt;
   // copy inside the click; where the clipboard is refused, select the text so it can be copied by hand
