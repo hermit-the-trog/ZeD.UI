@@ -86,9 +86,10 @@ function X.gridRow(win)
     return { h = 32, draw = function(ctx)
         ctx:label(ZeD.tr("IGUI_Map_MapSymbolSize"))
         ctx:slider("size", { w = ctx.narrow and 120 or 150, min = SCALE_MIN, max = SCALE_MAX, step = SCALE_STEP, tick = S.DEFAULT,
-            get = S.get, set = S.set,
+            get = S.get, set = S.set, help = ZeD.tr("UI_ZeD_Map_HelpSymbolSize"),
             fmt = function(v) return tostring(math.floor(v / S.DEFAULT * 100 + 0.5)) .. "%" end })
-        ctx:button("size:reset", ZeD.tr("IGUI_WorldMapEditor_Reset"), { activate = function() S.set(S.DEFAULT) end })
+        ctx:button("size:reset", ZeD.tr("IGUI_WorldMapEditor_Reset"), { help = ZeD.tr("UI_ZeD_Map_HelpSymbolReset"),
+            activate = function() S.set(S.DEFAULT) end })
     end }
 end
 

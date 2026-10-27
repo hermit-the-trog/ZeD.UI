@@ -42,6 +42,7 @@ function K.button(win)
         id = "key",
         text = ZeD.tr("UI_ZeD_Map_KeyButton"),
         hint = ZeD.tr("IGUI_Map_Key"),
+        help = ZeD.tr("UI_ZeD_Map_HelpKey"),
         on = win._mapKeyOpen == true,
         glyph = function(panel, x, y, s, c)
             local T = ZeD.T
@@ -55,12 +56,48 @@ function K.button(win)
     }
 end
 
+local FOCUS = {}           -- the controller's mark opts (its window: the panel's)
+local _surveyOpts = {}
+
+-- The panel's bar, as a ZeD window's title bar: surface 2, the stripes broken
+-- behind the close box and the title, the close box at the left, the title in
+-- the title bar's face, a structure line under it. Adds the close box's zone.
+local function drawBar(mp, x, y, w, headH, focId, zones, ox, oy)
+    local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
+    A.surfaceFill(mp, x, y, w, headH, "surf2")
+    local f3 = T.fontF3
+    local title = ZeD.tr("IGUI_Map_Key")
+    local tw = tm:MeasureStringX(f3, title)
+    local tx = x + math.floor((w - tw) / 2)
+    local cb = T.closeBoxSz
+    local cbx, cby = x + T.px(6), y + math.floor((headH - cb) / 2)
+    local st = T.stripe
+    if st and (st.a or 0) > 0 then
+        local g1, g2 = cbx + cb + T.px(4), tx - T.px(6)
+        local g3, g4 = tx + tw + T.px(6), x + w - T.px(2)
+        for sy = y + T.px(3), y + headH - T.px(3), T.px(4) do
+            if g2 > g1 then mp:drawRect(g1, sy, g2 - g1, T.hair, st.a, st.r, st.g, st.b) end
+            if g4 > g3 then mp:drawRect(g3, sy, g4 - g3, T.hair, st.a, st.r, st.g, st.b) end
+        end
+    end
+    local th = T.textHead
+    mp:drawText(title, tx, y + math.floor((headH - tm:getFontHeight(f3)) / 2), th.r, th.g, th.b, th.a or 1, f3)
+    local zx, zy, zs = cbx - T.px(2), cby - T.px(2), cb + T.px(4)
+    local hover = A.mouseIn(mp, zx, zy, zs, zs)
+    if hover then ZeD.Help.set(mp, ZeD.tr("UI_ZeD_Map_HelpKeyClose")) end
+    if focId == "map:key:close" then ZeD.Focus.mark(mp, zx, zy, zs, zs, FOCUS) end
+    A.drawCloseBox(mp, cbx, cby, cb, hover)
+    A.drawDividerH(mp, x, y + headH - T.line(T.borderW), w, true)
+    zones[#zones + 1] = { id = "map:key:close", x = zx + ox, y = zy + oy, w = zs, h = zs,
+        activate = function(w2) w2._mapKeyOpen = false end }
+end
+
 -- the panel over the map's bottom-left corner; its controls as zones
 function K.overlay(mp, win, ox, oy, focId)
     if not win._mapKeyOpen then return nil end
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
-    local f1, f2 = T.fontF1, T.fontF2
-    local h1, h2 = tm:getFontHeight(f1), tm:getFontHeight(f2)
+    local f2 = T.fontF2
+    local h2 = tm:getFontHeight(f2)
     local style = mp.style or "survey"
     local w = T.px(226)
     local headH = T.px(20)
@@ -69,68 +106,50 @@ function K.overlay(mp, win, ox, oy, focId)
     if style == "survey" then
         bodyH = T.px(13) + #KEYS * (rowH + T.px(3))
     else
-        lines = A.wrapText(ZeD.tr(style == "color" and "UI_ZeD_Map_KeyColor" or "UI_ZeD_Map_KeyPaper"), f1, w - T.px(16))
-        bodyH = T.px(14) + #lines * (h1 + T.px(2)) + T.px(30)
+        lines = A.wrapText(ZeD.tr(style == "color" and "UI_ZeD_Map_KeyColor" or "UI_ZeD_Map_KeyPaper"), f2, w - T.px(16))
+        bodyH = T.px(14) + #lines * (h2 + T.px(2)) + T.px(10) + T.buttonH + T.px(8)
     end
     local h = headH + bodyH
     local x = T.px(8)
     local y = mp:getHeight() - h - T.px(8)
     local zones = {}
-    local s1, s2, bs, th = T.surf1, T.surf2, T.borderS, T.textHead
-    mp:drawRect(x, y, w, h, 0.94, s1.r, s1.g, s1.b)
-    mp:drawRectBorder(x, y, w, h, bs.a, bs.r, bs.g, bs.b)
-    -- the bar: stripes, a close box, the title
-    mp:drawRect(x + T.px(1), y + T.px(1), w - T.px(2), headH - T.px(1), 1, s2.r, s2.g, s2.b)
-    for sy = y + T.px(3), y + headH - T.px(3), T.px(4) do
-        mp:drawRect(x + T.px(2), sy, w - T.px(4), T.px(1), 0.05, 1, 1, 1)
-    end
-    mp:drawRect(x, y + headH, w, T.px(1), bs.a, bs.r, bs.g, bs.b)
-    local title = ZeD.tr("IGUI_Map_Key")
-    local tw = tm:MeasureStringX(f1, title)
-    local tx = x + math.floor((w - tw) / 2)
-    mp:drawRect(tx - T.px(6), y + T.px(2), tw + T.px(12), headH - T.px(3), 1, s2.r, s2.g, s2.b)
-    mp:drawText(title, tx, y + math.floor((headH - h1) / 2), th.r, th.g, th.b, th.a or 1, f1)
-    local cb = T.px(10)
-    local cbx, cby = x + T.px(6), y + math.floor((headH - cb) / 2)
-    mp:drawRect(cbx - T.px(2), cby - T.px(1), cb + T.px(4), cb + T.px(2), 1, s2.r, s2.g, s2.b)
-    if focId == "map:key:close" then
-        local ac = T.accent
-        mp:drawRect(cbx - T.px(2), cby - T.px(2), cb + T.px(4), cb + T.px(4), 0.55, ac.r, ac.g, ac.b)
-    end
-    A.drawCloseBox(mp, cbx, cby, cb, false)
-    zones[#zones + 1] = { id = "map:key:close", x = cbx - T.px(2) + ox, y = cby - T.px(2) + oy, w = cb + T.px(4), h = cb + T.px(4),
-        activate = function(w2) w2._mapKeyOpen = false end }
+    -- the panel's surfaces, each one layer of the window's (ZeD.Surface): the bar's, then the body's under it
+    drawBar(mp, x, y, w, headH, focId, zones, ox, oy)
+    A.surfaceFill(mp, x, y + headH, w, h - headH, "surf1")
     -- the body
     local by = y + headH + T.px(7)
-    local tc = T.text
     if style == "survey" then
         local sw, sh = T.px(22), T.px(11)
+        local tc = T.text
         for _, k in ipairs(KEYS) do
             local tex = keyTex(k)
             local sy = by + math.floor((rowH - sh) / 2)
             if tex then mp:drawTextureScaledAspect(tex, x + T.px(8), sy, sw, sh, 1, 1, 1, 1) end
-            mp:drawRectBorder(x + T.px(8), sy, sw, sh, 0.6, 0, 0, 0)
+            A.frame(mp, x + T.px(8), sy, sw, sh, T.borderS)
             mp:drawText(ZeD.tr("IGUI_Map_" .. k), x + T.px(8) + sw + T.px(8), by + math.floor((rowH - h2) / 2), tc.r, tc.g, tc.b, tc.a or 1, f2)
             by = by + rowH + T.px(3)
         end
     else
         local ts = T.textSec
         for _, l in ipairs(lines) do
-            mp:drawText(l, x + T.px(8), by, ts.r, ts.g, ts.b, ts.a or 1, f1)
-            by = by + h1 + T.px(2)
+            mp:drawText(l, x + T.px(8), by, ts.r, ts.g, ts.b, ts.a or 1, f2)
+            by = by + h2 + T.px(2)
         end
-        local label = ZeD.btnCase(ZeD.tr("UI_ZeD_Map_ShowSurvey"))
-        local bw, bh = tm:MeasureStringX(f1, label) + T.px(14), T.px(20)
-        local bx, byy = x + T.px(8), by + T.px(5)
-        if focId == "map:key:survey" then
-            local ac = T.accent
-            mp:drawRect(bx, byy, bw, bh, 0.55, ac.r, ac.g, ac.b)
-        end
-        mp:drawRectBorder(bx, byy, bw, bh, bs.a, bs.r, bs.g, bs.b)
-        mp:drawText(label, bx + T.px(7), byy + math.floor((bh - h1) / 2), tc.r, tc.g, tc.b, tc.a or 1, f1)
+        -- Show survey: a push button
+        local label = ZeD.tr("UI_ZeD_Map_ShowSurvey")
+        local M = ZeD.Molecules
+        local bw, bh = M.buttonW(label), T.buttonH
+        local bx, byy = x + T.px(8), by + T.px(8)
+        local o = _surveyOpts
+        o.hover = A.mouseIn(mp, bx, byy, bw, bh)
+        o.focus = (focId == "map:key:survey") and FOCUS or nil
+        o.help = o.hover and ZeD.tr("UI_ZeD_Map_HelpStyleSurvey") or nil
+        M.drawButton(mp, bx, byy, bw, bh, label, "default", false, nil, o)
         zones[#zones + 1] = { id = "map:key:survey", x = bx + ox, y = byy + oy, w = bw, h = bh,
             activate = function(w2) ZeD.MapsTab.setStyle(w2, "survey") end }
     end
+    -- the panel's frame, last: nothing inside covers it
+    A.frame(mp, x, y, w, h, T.borderS)
     -- the rest of the panel is the key's (a click on it does not reach the map)
     zones[#zones + 1] = { id = "map:key:panel", x = x + ox, y = y + oy, w = w, h = h, inert = true }
     return zones

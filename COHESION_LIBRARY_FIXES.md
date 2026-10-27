@@ -71,3 +71,13 @@
 - Follow-up: `ZeD_SandboxInGame.lua:651` calls `UI.insetBox` in a scrolled row: pass `loose = true`.
 - Kept on purpose: desktop icon labels (the director's desk), 34u big buttons on the main window, 450 ms double-click
   timers, the diff wash in ModsPanes, pop-up item marks with the tick.
+
+## From maps (Oct 27)
+24. `Molecules.lua` ~2923 `drawPopupBox` is local; the map copied its look. Export it as `M.drawPopupBox`.
+25. No slider molecule: the map slider copies ZeD setup's (`ZeD_MainMenuOptions.lua` ~1191-1206). Make `M.drawSlider`.
+26. `M.drawQuestionBand` (~4570) cuts the question to one line; narrow panes (the map side list) wrap it themselves
+    above `M.drawBand{noLine}`. Give it a wrapped mode.
+27. `ZeD_WorldWindow.lua` ~4611 ignores `elements._focusIdx` (only the Character window honours it); the map uses
+    `focusByIdSoon` instead.
+- Fixed in place: `A.drawCloseBox` hover wash at its own alpha over the box fill; `drawScrollThumb` dragging wash
+  = `T.selectionA`.

@@ -204,6 +204,7 @@ function X.button(win)
     if not _pencil then _pencil = getTexture("media/textures/ZeD/icons/edit.png") end
     local s = st(win)
     return { id = "draw", text = word("UI_DrawOnMap_Draw"), icon = _pencil, on = s.open,
+        help = ZeD.tr("UI_ZeD_Map_HelpDraw"),
         activate = function(w)
             local s2 = st(w)
             s2.open = not s2.open
@@ -218,25 +219,26 @@ function X.row(win)
     return { h = 32, draw = function(ctx)
         local ink = ZeD.MapsTab.ink(win)
         if not ctx.narrow then ctx:label(word("UI_DrawOnMap_Draw")) end
-        local function tool(id, key)
+        -- (a greyed tool's hint is the game's reason: the help line says it)
+        local function tool(id, key, helpKey)
             local ok, why = allowed(win, id)
             ctx:button("draw:" .. id, word(key), { on = s.tool == id, dim = not ok,
-                hint = (not ok) and ZeD.tr(why) or nil,
+                hint = (not ok) and ZeD.tr(why) or nil, help = ZeD.tr(helpKey),
                 activate = function(w) S.arm(w, id) end })
         end
-        tool("draw", "UI_DrawOnMap_Draw")
-        tool("line", "UI_DrawOnMap_Line")
-        tool("erase", "UI_DrawOnMap_Erase")
+        tool("draw", "UI_DrawOnMap_Draw", "UI_ZeD_Map_HelpDrawFree")
+        tool("line", "UI_DrawOnMap_Line", "UI_ZeD_Map_HelpDrawLine")
+        tool("erase", "UI_DrawOnMap_Erase", "UI_ZeD_Map_HelpDrawErase")
         ctx:gap(4)
         local sw = ctx.narrow and 56 or 90
         ctx:text(word("UI_DrawOnMap_Thickness"), true)
         ctx:slider("draw:thick", { w = sw, min = SIZE_MIN, max = SIZE_MAX, step = SIZE_STEP, tick = SIZE_DEFAULT,
             get = function() return s.thick end, set = function(v) s.thick = v end,
-            fmt = function(v) return string.format("%.1f", v) end })
+            fmt = function(v) return string.format("%.1f", v) end, help = ZeD.tr("UI_ZeD_Map_HelpThickness") })
         ctx:text(word("UI_DrawOnMap_Fill"), true)
         ctx:slider("draw:fill", { w = sw, min = FILL_MIN, max = FILL_MAX, step = FILL_STEP, tick = FILL_DEFAULT,
             get = function() return s.fill end, set = function(v) s.fill = v end,
-            fmt = function(v) return tostring(math.floor(v * 100 + 0.5)) .. "%" end })
+            fmt = function(v) return tostring(math.floor(v * 100 + 0.5)) .. "%" end, help = ZeD.tr("UI_ZeD_Map_HelpFill") })
         if not ctx.narrow and ink.write then
             local _, idx = ZeD.MapsTab.inkColor(win)
             local k = idx and ZeD.MapNotes.INKS[idx]
@@ -315,9 +317,9 @@ function X.cursor(mp, win, x, y)
     local s = st(win)
     local T = ZeD.T
     if s.tool == "erase" then
+        -- the eraser's ring, a 1u line in the text colour
         local r = T.px(10)
-        local tx = T.text
-        mp:drawRectBorder(x - r, y - r, r * 2, r * 2, 0.8, tx.r, tx.g, tx.b)
+        ZeD.Atoms.frame(mp, x - r, y - r, r * 2, r * 2, T.text)
         return
     end
     if not _dot then _dot = getTexture(DOT_PATH) end

@@ -264,9 +264,10 @@ end
 -- ---------------------------------------------------------------------------
 function ZeD.Atoms.drawCloseBox(panel, x, y, size, hovered)
     local T = ZeD.T
-    -- Background
-    local bg = hovered and T.hover or T.surf2
+    -- Background: the box's own fill, the hover wash over it at the wash's alpha
+    local bg = T.surf2
     panel:drawRect(x, y, size, size, 1, bg.r, bg.g, bg.b)
+    if hovered then panel:drawRect(x, y, size, size, T.hover.a, T.hover.r, T.hover.g, T.hover.b) end
     -- Border
     panel:drawRectBorder(x, y, size, size, T.borderS.a, T.borderS.r, T.borderS.g, T.borderS.b)
     -- X mark (two 1px diagonals)

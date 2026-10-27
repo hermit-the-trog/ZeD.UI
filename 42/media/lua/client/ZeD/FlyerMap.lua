@@ -167,9 +167,14 @@ function F.draw(mp)
     end
 end
 
--- the hover card (the mouse, or the controller's map cursor)
+-- The hover card (the mouse, or the controller's map cursor): the library's
+-- detail card look (ZeD.Atoms.drawHoverShell: surface 1, solid, a 1u frame and
+-- System 7's hard shadow; the title in F4, the lines in F2), after the shared
+-- hover delay. It sits beside the pin and stays on the map, so it is drawn here
+-- rather than at the pointer: a status line carries its square mark (been there:
+-- solid, not yet: hollow).
 function F.drawCard(mp)
-    local T = ZeD.T
+    local T, A = ZeD.T, ZeD.Atoms
     local p = nil
     local pad = false
     local D = ZeD.Input and ZeD.Input.Detector
@@ -179,40 +184,42 @@ function F.drawCard(mp)
     end
     if not p and mp:isMouseOver() then p = F.hit(mp, mp:getMouseX(), mp:getMouseY()) end
     mp._flyerHover = p
-    if not p then return end
+    local st = mp._flyerHoverSt
+    if not st then st = {}; mp._flyerHoverSt = st end
+    if not A.hoverReady(st, p and key(p.id, p.j, p.k)) then return end
     local meta = F.meta(p.id)
     local title, teaser = meta.title, meta.teaser
     local status = ZeD.tr(p.done and "UI_ZeD_Flyer_BeenThere" or "UI_ZeD_Flyer_NotBeenThere")
     local hint = ZeD.tr(pad and "UI_ZeD_Flyer_PadRead" or "UI_ZeD_Flyer_ClickRead")
-    local f2, f1 = T.fontF2, T.fontF1
+    local f4, f2 = T.fontF4, T.fontF2
     local tm = ZeD.TM
-    local padX, padY = T.px(8), T.px(6)
-    local dot = T.px(5)
-    local w = math.max(tm:MeasureStringX(f2, title), dot + T.px(6) + tm:MeasureStringX(f1, status), tm:MeasureStringX(f1, hint),
-        teaser and math.min(tm:MeasureStringX(f1, teaser), T.px(260)) or 0) + padX * 2
-    w = math.min(w, mp:getWidth() - T.px(8))
-    local lh2, lh1 = tm:getFontHeight(f2), tm:getFontHeight(f1)
-    local h = padY * 2 + lh2 + T.px(4) + (teaser and (lh1 + T.px(4)) or 0) + lh1 + T.px(2) + lh1
+    local padX, padY, lgap = T.px(10), T.px(8), T.px(2)
+    local sq = T.px(6)
+    local w = math.max(tm:MeasureStringX(f4, title), sq + T.px(6) + tm:MeasureStringX(f2, status), tm:MeasureStringX(f2, hint),
+        teaser and math.min(tm:MeasureStringX(f2, teaser), T.px(260)) or 0) + padX * 2
+    w = math.min(w, T.px(280), mp:getWidth() - T.px(8))
+    local lh4, lh2 = tm:getFontHeight(f4), tm:getFontHeight(f2)
+    local h = padY * 2 + lh4 + T.px(4) + (teaser and (lh2 + lgap) or 0) + lh2 + lgap + lh2
     local x = p.x + p.w + T.px(6)
     if x + w > mp:getWidth() - T.px(4) then x = p.x - w - T.px(6) end
     x = math.max(T.px(4), x)
     local y = math.max(T.px(4), math.min(p.y, mp:getHeight() - h - T.px(4)))
-    local s1, bs = T.surf1, T.borderS
-    mp:drawRect(x, y, w, h, 0.96, s1.r, s1.g, s1.b)
-    mp:drawRectBorder(x, y, w, h, bs.a or 1, bs.r, bs.g, bs.b)
+    A.drawHoverShell(mp, x, y, w, h)
     local th, tx, td = T.textHead, T.text, T.textDim
+    local inner = w - padX * 2
     local cy = y + padY
-    mp:drawText(ZeD.Atoms.truncateText(title, f2, w - padX * 2), x + padX, cy, th.r, th.g, th.b, th.a or 1, f2)
-    cy = cy + lh2 + T.px(4)
+    mp:drawText(A.truncateText(title, f4, inner), x + padX, cy, th.r, th.g, th.b, th.a or 1, f4)
+    cy = cy + lh4 + T.px(4)
     if teaser then
-        mp:drawText(ZeD.Atoms.truncateText(teaser, f1, w - padX * 2), x + padX, cy, tx.r, tx.g, tx.b, (tx.a or 1) * 0.85, f1)
-        cy = cy + lh1 + T.px(4)
+        mp:drawText(A.truncateText(teaser, f2, inner), x + padX, cy, tx.r, tx.g, tx.b, tx.a or 1, f2)
+        cy = cy + lh2 + lgap
     end
-    local dc = p.done and T.positive or td
-    ZeD.Atoms.drawStatusDot(mp, x + padX, cy + math.floor((lh1 - dot) / 2), dc, dot)
-    mp:drawText(status, x + padX + dot + T.px(6), cy, tx.r, tx.g, tx.b, tx.a or 1, f1)
-    cy = cy + lh1 + T.px(2)
-    mp:drawText(hint, x + padX, cy, td.r, td.g, td.b, td.a or 1, f1)
+    local my = cy + math.floor((lh2 - sq) / 2)
+    if p.done then A.drawStatusDot(mp, x + padX, my, T.positive, sq)
+    else A.drawStatusHollow(mp, x + padX, my, td, sq) end
+    mp:drawText(A.truncateText(status, f2, inner - sq - T.px(6)), x + padX + sq + T.px(6), cy, tx.r, tx.g, tx.b, tx.a or 1, f2)
+    cy = cy + lh2 + lgap
+    mp:drawText(A.truncateText(hint, f2, inner), x + padX, cy, td.r, td.g, td.b, td.a or 1, f2)
 end
 
 -- a piece's name and the first line of its words (looked up once)
