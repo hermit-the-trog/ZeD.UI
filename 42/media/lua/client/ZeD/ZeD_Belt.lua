@@ -53,9 +53,12 @@ local BOTTOM = 16          -- above the bottom of the screen
 local DRAG_PX = 5          -- design units before a press becomes a drag
 local WRIST = 8            -- the mini watch's gap from its hand circle (WatchMini.lua; Oct 19 2026)
 local LAMP = 38            -- the Messages note (MESSAGES_SPEC.md), last on the right, while Messages keeps anything
-local AMMO_W = 100         -- the ammo pouch beside the main hand (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026;
-                           -- redrawn Oct 26 2026 to the director's "needs segments for each round ... a bit more polish")
-local AMMO_ICON = 24       -- the ammo's picture in the pouch
+local AMMO_W = 100         -- the ammo tab's words and rounds (mockup zed_belt_ammo_dash_v1, style B; approved Oct 26 2026;
+                           -- redrawn Oct 26 2026 to the director's "needs segments for each round ... a bit more polish").
+                           -- Since Oct 27 2026 a tab out from under the main hand, not a pouch on a strap (director: "I
+                           -- think the ammo should peek out from the gun/primary icon, rather than be on a belt. So it
+                           -- looks part of the gun. Right now it looks like a clip attached to the belt")
+local AMMO_ICON = 24       -- the ammo's picture in the tab
 local AMMO_MS = 250        -- how often the rounds and magazines carried are counted again
 local AMMO_CARD_W = 280      -- the widest the gun's detail card gets
 local LIST_ROW_H, LIST_W = 26, 290
@@ -722,7 +725,7 @@ function ZeD_BeltHUD:_layoutCached(slots)
     local L = self._lk
     local n = #slots
     local lamp = ZeD.Messages and ZeD.Messages.count() > 0 or false
-    -- (the gun's capacity too: the pouch is as wide as its rounds need)
+    -- (the gun's capacity too: the ammo tab is as wide as its rounds need)
     local am = self:_ammoState(p)
     local ammo = am and (tostring(am.max) .. (am.chamber and "c" or "")) or false
     -- (one item in both hands: the off hand slides in under the main hand)
@@ -770,7 +773,7 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     -- order. Boxes go in left to right (the controller walks them in this order; the off hand stays
     -- before the main hand so the main hand draws over it while it peeks).
     -- the worn watch (the "Watch" option) beside its own hand: left wrist left of the off hand, right
-    -- wrist right of the main hand (outside the ammo pouch)
+    -- wrist right of the main hand (outside the ammo tab)
     -- (wItem, wPlate, wWrist: ZeD.Watch.beltWatch, asked by _layoutCached)
     -- the box is the mini watch as drawn: its art at the whole zoom T.art (Oct 21 2026); where that is
     -- taller than the hands (1.5: 92 px art, 84 px hands) the belt grows to it and the rest centre on it
@@ -802,17 +805,15 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     boxes[#boxes + 1] = mainBox
     self._mainBox = mainBox
     x = x + hand
-    -- the ammo pouch beside the main hand while it holds a gun: a short strap of its own, the hand's END_GAP off,
-    -- with the pouch on it as the slots sit on the belt (PAD in from the strap's end, the slots' height and frame);
-    -- wide enough for its words in this language
-    local pouch = nil
+    -- the ammo while the main hand holds a gun: a tab out from under the main hand, part of the gun (no strap under
+    -- it), a slot's height, its left end under the circle's middle; its words and rounds start at the circle's right
+    -- edge (cx) and are as wide as they need in this language. Drawn before the hands, so the circle covers its end.
     if ammo then
-        x = x + px(END_GAP)
         local am = self._ammo and self._ammo.a
         local aw = self:_ammoWidth(am and am.max or 0, am and am.chamber)
-        pouch = { x = x, w = aw + 2 * px(PAD) }
-        boxes[#boxes + 1] = { kind = "ammo", x = x + px(PAD), y = by, w = aw, h = box }
-        x = x + pouch.w
+        local tx = mainBox.x + math.floor(hand / 2)
+        boxes[#boxes + 1] = { kind = "ammo", x = tx, y = by, w = x + aw - tx, h = box, cx = x }
+        x = x + aw
     end
     if watchBox and wWrist == "right" then
         x = x + px(WRIST)
@@ -884,7 +885,6 @@ function ZeD_BeltHUD:_layout(slots, wItem, wPlate, wWrist, lamp, ammo, two)
     local hole = nil
     if kind == "knot" and closureTexture("knot") then hole = { cx + B.KNOT_CUT[1] * ck, cx + B.KNOT_CUT[2] * ck } end
     self._runs = B.strapRuns(strapX, strapW, slotBoxes, mats, waist, k, px(GAP), hole)
-    if pouch then self._runs[#self._runs + 1] = { pouch.x, pouch.x + pouch.w, waist } end   -- the pouch's own strap
     self._waist = waist
     local chh = (kind and B.CLOSURE_H[kind]) or BUCKLE_H
     self._closure = { kind = kind, x = cx, y = self._buckle.y + math.floor((buckH - chh * ck) / 2), k = ck, h = chh }
@@ -1177,7 +1177,7 @@ function ZeD_BeltHUD:_drawBuckle()
     -- strap shows through the open frame
 end
 
--- The frame of a belt slot and of the ammo pouch, one look for both (Oct 26 2026), from the live theme: the keyline in
+-- The frame of a belt slot (and of the ammo pouch until Oct 27 2026; Oct 26 2026), from the live theme: the keyline in
 -- the frame grey (T.frameS; Light's stands 3:1 off the slots' fill, where the strong border stood 2.3:1), inside a light
 -- line where the theme has one (T.frameHi; Light's stands 3:1 off the leather strap), and the keyline doubled where the
 -- theme's borders are thick (High contrast). Dark and High contrast: the strong border, as before.
@@ -1410,7 +1410,7 @@ function ZeD_BeltHUD:_ammoState(p)
     return a
 end
 
--- the pouch's width: AMMO_W, or more where this language's words need it: the picture, the count (F3, with the
+-- the tab's words and rounds' width: AMMO_W, or more where this language's words need it: the picture, the count (F3, with the
 -- 6u status square after it) and what is carried (two F5 lines) side by side
 function ZeD_BeltHUD:_ammoWidth(n, chamber)
     local T, tm = ZeD.T, ZeD.TM
@@ -1427,7 +1427,7 @@ function ZeD_BeltHUD:_ammoWidth(n, chamber)
         segW = ((chamber and 6 or 0) + n * 2 + (n - groups) + (groups - 1) * ((group < n) and 3 or 1) + 2) * k
             + 2 * T.px(4) + 2 * T.line(T.borderW)
     end
-    -- (whole pixels: the text widths come back fractional, and the strap and the slots follow the pouch)
+    -- (whole pixels: the text widths come back fractional, and the strap and the slots follow the tab)
     return math.ceil(math.max(T.px(AMMO_W), T.px(4 + AMMO_ICON + 6) + cw + T.px(8) + sw + T.px(5), segW))
 end
 
@@ -1465,20 +1465,23 @@ function B.ammoInk(a)
     }
 end
 
--- the ammo pouch (style B): framed as the slots are (surf2, frameBox); the ammo's own picture (the magazine for a gun
+-- the ammo tab (style B; t: the tab, its words and rounds from t.cx, the main hand's right edge): surf2 in the hands'
+-- two-unit outline (Oct 27 2026; it was framed as the slots are); the ammo's own picture (the magazine for a gun
 -- that takes one, else the round); the rounds in the gun as a count in F3 in the default text with its status square
 -- ("Empty" at nothing; "+1" for a chambered round); what is carried, right-aligned; and at the foot the same framed
 -- strip the slots' condition lines are (1u borderS frame, solid T.base well, flat solid fills, 8u tall) with one
 -- segment per round the gun holds: a round in it filled in the wear colour, a spent one the empty well, the chamber's
 -- round set apart at the front
-function ZeD_BeltHUD:_drawAmmo(b, a)
+function ZeD_BeltHUD:_drawAmmo(t, a)
     local T, tm, A = ZeD.T, ZeD.TM, ZeD.Atoms
     local s2 = T.surf2
-    self:drawRect(b.x, b.y, b.w, b.h, 0.95, s2.r, s2.g, s2.b)
+    self:drawRect(t.x, t.y, t.w, t.h, 0.95, s2.r, s2.g, s2.b)
+    -- (the words and rounds: the part of the tab out from under the circle)
+    local b = { x = t.cx or t.x, y = t.y, w = t.x + t.w - (t.cx or t.x), h = t.h }
     local ink = B.ammoInk(a)
     local c = ink.fill
     local k = math.max(1, T.art or 1)
-    -- the foot: the strip, 4u in from the pouch's edges and bottom
+    -- the foot: the strip, 4u in from the tab's edges and bottom
     local stripH = A.fillBarCompactH()
     local sx, sw = b.x + T.px(4), b.w - 2 * T.px(4)
     local sy = b.y + b.h - T.px(4) - stripH
@@ -1506,8 +1509,10 @@ function ZeD_BeltHUD:_drawAmmo(b, a)
     local rx = b.x + b.w - T.px(5)
     A.drawTextRight(self, s1, rx, ly, f5, dc)
     if s2w then A.drawTextRight(self, s2w, rx, ly + f5h, f5, dc) end
-    -- the frame, the slots' own
-    frameBox(self, b.x, b.y, b.w, b.h, T)
+    -- the outline, the hands' own (two units, T.frameS): the tab reads as part of the gun's circle
+    local fs, p1 = T.frameS or T.borderS, T.px(1)
+    self:drawRectBorder(t.x, t.y, t.w, t.h, fs.a or 1, fs.r, fs.g, fs.b)
+    self:drawRectBorder(t.x + p1, t.y + p1, t.w - 2 * p1, t.h - 2 * p1, fs.a or 1, fs.r, fs.g, fs.b)
     -- the rounds, inside the strip's frame and a pixel clear of it
     local bw = T.line(T.borderW)
     local ix, iy, iw, ih = sx + bw, sy + bw, sw - 2 * bw, stripH - 2 * bw
@@ -1580,6 +1585,13 @@ function ZeD_BeltHUD:_prerender()
     local two = pri ~= nil and pri == sec
     local gpTarget = self._gp and not self._gp.inList and self:_gpBox() or nil
     self._hover = nil
+    -- the ammo tab first: it comes out from under the main hand
+    for _, b in ipairs(self._boxes) do
+        if b.kind == "ammo" then
+            local a = self:_ammoState(p)
+            if a then self:_drawAmmo(b, a) end
+        end
+    end
 
     for _, b in ipairs(self._boxes) do
         local o = {}
@@ -1587,8 +1599,7 @@ function ZeD_BeltHUD:_prerender()
             self:_drawLamp(b, gpTarget == b, b == over and not dragging)
             if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "ammo" then
-            local a = self:_ammoState(p)
-            if a then self:_drawAmmo(b, a) end
+            -- (drawn before the loop, under the main hand)
             if b == over and not dragging then self._hover = { b = b } end
         elseif b.kind == "watch" then
             ZeD.WatchMini.draw(self, b.x, b.y, b.plate, ZeD.Watch.miniState(p, b.item))
@@ -1871,7 +1882,7 @@ function B.focus(playerNum)
     local hud = B._hud
     if not (hud and hud:wanted() and hud._drawn) then return false end
     local p = hud:player()
-    -- start on the first slot (after the hands, their watch and the ammo pouch)
+    -- start on the first slot (after the hands, their watch and the ammo tab)
     hud._gp = { idx = hud:_firstSlotIdx(), inList = false, row = 1, list = B.otherWeapons(p) }
     setJoypadFocus(playerNum, hud)
     p:setJoypadIgnoreAimUntilCentered(true)
