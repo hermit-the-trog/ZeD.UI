@@ -1,0 +1,47 @@
+# compat_r3_full_2b.txt (Oct 27 2026): the rest of regression.txt after zedqa_notebook.lua, for the full run's second half
+zedqa_prelude.lua | pre
+zedqa_print_fit.lua | pf                         # newspaper stories fitted to their columns (prototype)
+zedqa_print_typeset.lua | ts                     # newspaper page typeset by ZeD (prototype)
+zedqa_prompts.lua | pr                           # every prompt kind through vanilla's constructors, answered harmlessly
+zedqa_fishing.lua | fi                           # vanilla's tension meter fed each tension
+zedqa_props_plates.lua | props                   # rod and clock radio plates on a test panel
+zedqa_belt_strap.lua | belt                      # the pixel-art belt strap
+zedqa_straps.lua | straps                        # per-slot strap materials, four loadouts, all taken off
+zedqa_buckle.lua | bk                            # the buckle stays on the screen centre with a watch on either wrist
+zedqa_buckles.lua | bks                          # every profession's buckle; the profession goes back
+zedqa_beltwatch.lua | bw                         # the mini watch on the belt: pop, drag, tuck, Corner mode
+zedqa_belt_hands.lua | bh                       # the hands at the ends as seen from behind (off hand left, main hand right), a watch outside its own hand, the note last, the pad walks left to right
+zedqa_watches2.lua | watches                     # the nine watch plates by day and night; own watch and time back
+zedqa_container_bottom.lua | cb                  # container buttons row at the bottom, campfire ribbon
+zedqa_container_controls.lua | ct                # Same type / Take all / Transfer all / To floor, campfire buttons
+zedqa_container_controls_captures.lua | cc       # ZeD and vanilla windows on the truck bed (mockup backdrops)
+zedqa_button_case_game.lua | bg                  # sentence-case buttons across the windows; shirt taken back
+zedqa_wheel_sizes.lua | ws                       # the ZeD wheel at 3 to 11 slices
+zedqa_wheels.lua | wh                            # vanilla's wheels through vanilla's functions, routed slices
+zedqa_dpad_wheels.lua | dw | timeout=600       # the D-pad wheels and the Select ZeD wheel: slices on foot / in a car / by an animal, inner wheels, Back, takes, paused, L3 / R3; every theme at both sizes
+zedqa_pad_glyphs.lua | pg | timeout=400         # the button pictures: footer and wheel prompts in every set (PlayStation, Xbox, Steam Deck, Nintendo), boxed names on Keyboard/mouse, light and high contrast, the dash hint
+zedqa_quick_chords.lua | qc | timeout=300       # quick action chords: the defaults resolve, LB + X torch from a bag on and off, eat / drink / smoke queued, a gone thing's reason, the press swallowed, assigning from a wheel, ZeD setup's rows and list
+zedqa_put_back.lua | pb | timeout=900 | expect=ISDrinkFromBottle.lua:82   # putting things back: apple, lighter, bottle back into the bag; a tire's jack and wrench back into the trunk; not after a stop; not with the switch off
+zedqa_food_verbs.lua | fv | timeout=120         # a food with its own verb: the card says Smoke / Drink, the action bar SMOKING; an apple still Eat / EATING
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError   # Messages: another mod's notes kept (not shown), its question asked and copied, an error filed once, the toast, the belt's note, the window's OK (mouse and pad), the per-mod pop-up switch, Clear
+zedqa_moodles.lua | mood | timeout=240          # the moodles in each place (and the thought bubble with its trail, the note by itself) (right edge, left edge, centred above the belt): on screen, where the place puts them, no second copy; four moodles turned on and put back
+zedqa_ring_squares.lua | rs | timeout=200       # the hands' condition ring at full / 70 / 50 / 20 per cent; ZeD setup's switch hides the windows' theme, accent and text squares, R stays and answers; hands and switch put back
+zedqa_sandbox_ig.lua | sbx | timeout=240         # Sandbox options in game: the pause line only with the switch on, pages and tags, a fixed setting locked, Zombie Count's link, Undo, Apply asks then sets the options / SandboxVars / day length / History, Put back; puts everything back
+zedqa_twoway.lua | tw | timeout=600             # the ten two-way radio faces in the radio tab, their controls, full view, the controller
+zedqa_appliances.lua | ap | timeout=240         # oven and microwave faces at whole zoom in the Craft tab, and in their own window (at the West Point Fossoil: power indoors)
+zedqa_seat_lightbar_vanilla.lua | sl             # seat chooser and lightbar from vanilla's entry points
+zedqa_car_radio_build.lua | rb                   # the car radio up close with each radio fitted; radios put back
+zedqa_car_radio_cd.lua | cd                      # CD deck: list, insert, play, eject; the ValuTech's tape
+zedqa_dash_props_smoke.lua | sm                  # v6 dash, radio up close, siren controller still draw
+zedqa_tm.lua | tm                                # tooltip frame, map labels, dash text after the measure fix
+zedqa_tour3.lua | t3                             # seven dash designs on spawned cars
+zedqa_dash19.lua | dash | timeout=480            # every dashboard design on a spawned car (19 cars)
+zedqa_dashpx.lua | dpx | timeout=720             # the pixel-art v6 dashboards (24 cars)
+zedqa_exinfo.lua | ex                            # Health tab exercise info: vanilla's description, stiffness, regularity, warnings
+zedqa_charinfo.lua | ci | timeout=180           # the game's Character window keys (Health, Skills, Info, Protection) land on ZeD's tabs; Mini Health Panel's click too when that mod is on
+zedqa_equipdrag.lua | eqd | timeout=240          # Equip rows and doll slots as drag sources: click, drag, cancel, bag, floor, same place (fake mouse; all put back)
+zedqa_cazio_light.lua | czl | timeout=240      # the CaZio LIGHT: bulb by day and at night, mini watch
+zedqa_dashnight.lua | dnt | timeout=480        # dash night lighting: hidden gauge bulbs, lamps, light level
+zedqa_testlang.lua | tlang | timeout=600      # every screen with the stretched test language (screenshots zqa_tl_*)
+zedqa_safemode.lua | safe | timeout=240         # safe mode trips, turns ZeD off, and recovers
+zedqa_soak.lua | soak | timeout=2700             # every tab for 12 rounds at the fastest speed (7 to 15 minutes)

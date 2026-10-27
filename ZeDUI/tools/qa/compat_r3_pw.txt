@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_r3_pw.lua | pw | timeout=150

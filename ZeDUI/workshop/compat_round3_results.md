@@ -12,7 +12,7 @@ Tested Oct 26 2026 with ZeD-GUI 0.2.0-t6 (main, commit 1d7ba92e and later; no Ze
   - the group's own mod windows opened through each mod's own open function, each captured.
 - Main-menu mods: `tools/qa/zedqa_r3_menu.lua` through `zedqa_menu_mods_run.ps1` (ZeD's main menu, Mods, Options, then New Game through the occupation and traits screen and Looks).
 - Vehicle packs (group D): `tools/qa/zedqa_r3_D_cars.lua`, each car spawned at the Irvington Speedway drag strip, driven seat, key, engine, ZeD's dashboard and Vehicle tab captured.
-- Any error a mod made was checked with ZeD off (`zedqa_modload_run.ps1 -ZeD off`, same mod list) before it was put on ZeD.
+- Any error a mod made was checked with ZeD off (`zedqa_modload_run.ps1 -ZeD off`, or `zedqa_off_run.ps1` for one script at 4K, same mod list) before it was put on ZeD.
 - Screenshots were read for every group (crops of anything notable in `ZeDUI/qa/compat_round3/`).
 
 Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **Supported** (ZeD has code for the mod), **Works well** (fills a gap or shows well in ZeD's windows), **Compatible** (loads and works; "Part of it does not show" means it adds to a game screen ZeD replaces), **Not needed** (ZeD does the job), **Does not work** (broken, by itself or with ZeD). A note marked (by reading its code) or (expected) was not seen in a test.
@@ -23,12 +23,18 @@ Lists, as in the Compatibility thread (`steam_threads/compat_v3/README.md`): **S
 |---|---|
 | Supported | 0 |
 | Works well | 8 |
-| Compatible | 261 |
+| Compatible | 260 |
 | Not needed | 27 |
-| Does not work | 6 |
+| Does not work | 7 |
 | Tested in all | 302 |
 | Not tested | 3 |
 
+
+## In short
+
+- **ZeD bugs (details at the end):** 1 the item tooltip leaves out lines other mods add (Starlit Library users, More Item Information, Better Clothing Info Comparison, This Is Me, Brita's Armor); 2 the desktop's icons show through the main menu's Mods window (ZeD alone too); 3 Smart Radial Menu errors and draws no wheel (ZeD's wheel element lacks the engine radial's methods); 4 ZeD setup loses all of ZeD's own options when a mod adds an options page (True Music Jukebox, Combat Text and others); 5 the belt names a mod's slot by its raw id, running out of the box (Brita); 6 a clash: Neat Rocco's UI takes over the dialogs, so mods' notes are no longer kept in Messages; 7 with Project Writing, the game hangs once its notebook has been opened.
+- **Does not work:** broken on 42.21 by themselves: Quick Item Action, Noir's Rifle Slings, Spear Traps, Better Clothing Info Comparison, Horde Night (closes the game as the save loads); with ZeD: Smart Radial Menu (bug 3), Project Writing (bug 7).
+- **Works well:** Auto Loot, Moodle Descriptions Expanded, Better Auto Mechanics, More Builds, Workshop Update Checker, Plain Moodles Redone, Palm Pilot, Inspect Items Framework.
 
 ## Results by group
 
@@ -82,7 +88,7 @@ Reports: qa/regression/2026-10-26_1939_mods_fullscreen4k.md (13/13 pass); main m
 
 | Mod | Workshop id | Tier | List | Evidence |
 |---|---|---|---|---|
-| Combat Text (B40+B41+B42) | [2286124931](https://steamcommunity.com/sharedfiles/filedetails/?id=2286124931) | 1 | Compatible | Loads, no errors of its own; its floating text manager is up (census ISHealthBarManager). |
+| Combat Text (B40+B41+B42) | [2286124931](https://steamcommunity.com/sharedfiles/filedetails/?id=2286124931) | 1 | Compatible | Loads, no errors of its own; its floating text manager is up (census ISHealthBarManager). Its options page, added the old way, empties ZeD setup of ZeD's own options (ZeD bug 4, seen in the full run). |
 | Dynamic Traits and Expanded Moodles [B41 & B42] | [2459400130](https://steamcommunity.com/sharedfiles/filedetails/?id=2459400130) | 1 | Compatible | Loads, no errors. Its own moodles go through Moodle Framework, which keeps them at the game's old place at the right edge (as Moodle Framework, round 2) (expected). |
 | Moodle Quarters [B42] | [2854030563](https://steamcommunity.com/sharedfiles/filedetails/?id=2854030563) | 1 | Compatible | Part of it does not show: its quarter marks are for the game's moodle column; its layer is up with no height (census MoodleQuartersUI 48x0). |
 | [B42] Mod Manager | [3567084868](https://steamcommunity.com/sharedfiles/filedetails/?id=3567084868) | 1 | Not needed | ZeD's mod manager does the job; with the mod on, ZeD's Mods window lists and switches mods as usual (29 of 1361 on, seen) and the mod's own screens do not show (they patch the game's mod screen). |
@@ -125,7 +131,7 @@ Reports: qa/regression/2026-10-26_2009_mods_fullscreen4k.md (8/8 pass; an earlie
 | +300 Points Trait | [899287010](https://steamcommunity.com/sharedfiles/filedetails/?id=899287010) | 2 | Compatible | Its points show in ZeD's occupation screen title (seen). |
 | RYG Progress Indicator | [3220040578](https://steamcommunity.com/sharedfiles/filedetails/?id=3220040578) | 2 | Not needed | Textures for the game's action progress bar; ZeD's action bar shows progress (expected). |
 | Defecation v3.59 (Build 42.20mp+) | [1436878551](https://steamcommunity.com/sharedfiles/filedetails/?id=1436878551) | 2 | Compatible | Loads, no errors (its windows not opened). |
-| True Smoking [B42MP] | [3423984426](https://steamcommunity.com/sharedfiles/filedetails/?id=3423984426) | 2 | Compatible | Loads, no errors; its moodles go through Moodle Framework (game's old place at the right edge, expected). |
+| True Smoking [B42MP] | [3423984426](https://steamcommunity.com/sharedfiles/filedetails/?id=3423984426) | 2 | Compatible | Loads, no errors; its own light-up action shows on ZeD's action bar by its name (LIGHTING SMOKE, full run); its moodles go through Moodle Framework (game's old place at the right edge, expected). |
 | SixthSense | [2863908612](https://steamcommunity.com/sharedfiles/filedetails/?id=2863908612) | 2 | Compatible | Loads, no errors. |
 | Somewhat Traits | [3498347699](https://steamcommunity.com/sharedfiles/filedetails/?id=3498347699) | 2 | Compatible | Its traits are in ZeD's trait list (seen). Core + Traits sub-mods. |
 | [B42] OSRS Exp Drops | [3391145494](https://steamcommunity.com/sharedfiles/filedetails/?id=3391145494) | 2 | Compatible | Its XP bar shows at the top right below ZeD's watch (census ISExpBar 3440,200). |
@@ -221,7 +227,7 @@ Reports: qa/regression/2026-10-26_2037_mods_fullscreen4k.md (11/11 pass); ZeD of
 | TwisTonFire - minimap | [3572564421](https://steamcommunity.com/sharedfiles/filedetails/?id=3572564421) | 1 | Compatible | Loads, no errors; its minimap window did not show in this test (census). |
 | [B42]Mod Folders | [3779201168](https://steamcommunity.com/sharedfiles/filedetails/?id=3779201168) | 1 | Not needed | ZeD's mod manager does the job (categories, search, profiles); it patches the game's mod screen (expected). |
 | Proximity Inventory | [3740165370](https://steamcommunity.com/sharedfiles/filedetails/?id=3740165370) | 1 | Compatible | Tested as a local copy with the id R3_ProximityInventory (its id is the same as two other Proximity Inventory items, and the game loads only one per id). Part of it does not show: its one container goes on the game's loot window (by reading its code). |
-| Project Writing [42.21] | [3796402502](https://steamcommunity.com/sharedfiles/filedetails/?id=3796402502) | 1 | Compatible | Part of it does not show: its writing tools are on the game's map (by reading its code: ISWorldMap); its write-note rows come through the item menu. |
+| Project Writing [42.21] | [3796402502](https://steamcommunity.com/sharedfiles/filedetails/?id=3796402502) | 1 | Does not work | With ZeD on, once its notebook window has been opened the game stops drawing and cannot go back to the main menu (it had to be closed); with ZeD off the same steps work (ZeD bug 7, E_project_writing_zed_off_on_then_hang.jpg). Its map tools are for the game's map in any case (by reading its code). |
 | Radio Frequency Manager [B42] | [3659543622](https://steamcommunity.com/sharedfiles/filedetails/?id=3659543622) | 1 | Compatible | Its frequency window opens through its own toggle at the left, clear of ZeD's windows (seen). |
 | Retro Dashboard Digitals | [3743082626](https://steamcommunity.com/sharedfiles/filedetails/?id=3743082626) | 1 | Not needed | ZeD replaces the dashboard, including the radio (its digital readouts are for the game's dashboard) (expected; as Realistic Dashboard). |
 | Yaki's BarberShop | [2810471370](https://steamcommunity.com/sharedfiles/filedetails/?id=2810471370) | 2 | Compatible | Loads, no errors (barber content). |
@@ -449,7 +455,7 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 
 - **File:** `42/media/lua/client/ZeD/ZeD_MainMenuOptionGroups.lua`, `G.build`: each of the game's option pages is filed under `pageId(p.raw) or "mods"`, so a page a mod adds with `MainOptions:addPage` (an unknown title) is also filed as `"mods"`; when it comes after the real Mods page it replaces `byPage.mods`. ZeD setup then looks for ZeD's own ModOptions controls in `byPage.mods` (`local mods = byPage.mods or {}`, about line 264) and finds none.
 - **Effect:** ZeD setup (Options > ZeD setup, in game and at the main menu) shows only the quick-action chord rows and "Game settings ZeD uses": Look (theme, accent, text size, UI scale), Windows, HUD (moodle place, watch), Controls, Put things back, Messages, Sandbox and Troubleshooting (safe mode) are all gone.
-- **Found with:** True Music Jukebox 42 (3398874593), which adds its own page in `MainOptions:create` (`Jukebox/Options.lua:53`). Any mod that adds an options page the old way can do it.
+- **Found with:** True Music Jukebox 42 (3398874593), which adds its own page in `MainOptions:create` (`Jukebox/Options.lua:53`); seen again in the full run's first half (2026-10-26_2256), where Combat Text (2286124931) is the mod that adds a page. Others in this round that call `MainOptions:addPage` and so can do it (by reading their code): Bandits NPC (3268487204), Stay With Me (3800989007), Companion Dogs (3740052292), Project Writing (3796402502), Roaming Survivors (3797874733), TwisTonFire - Improved Soundoptions (3575778063).
 - **Steps:** `zedqa_mods_run.ps1 -ModList <TrueMusicJukebox> -Mode fullscreen4k -Manifest <zedqa_prelude.lua, zedqa_quick_chords.lua>`: `ZEDQA qc FAIL ZeD setup has Put things back` (report `qa/regression/2026-10-26_2116_mods_fullscreen4k.md`); the same test with ZeD alone passes (`qa/regression/2026-10-26_2113_fullscreen4k.md`). First seen in group F's run (`2026-10-26_2056_mods_fullscreen4k.md`).
 - **Evidence:** `ZeDUI/qa/compat_round3/F_zed_setup_loses_zed_options_with_true_music_jukebox.jpg` (ZeD setup opens on Quick actions; nothing above it).
 - **Fix idea (not done):** file only the page whose title is the Mods page as `"mods"` (give unknown pages their own id), or find ZeD's controls across every page.
@@ -469,6 +475,13 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Evidence:** `ZeDUI/qa/compat_round3/H_mod_notes_on_screen_with_neat_rocco.jpg`.
 - **Note:** two whole-UI mods meeting; listed as Not needed (use one). A fix on ZeD's side would be to wrap whatever `new` is current when a dialog is shown, or re-check its hook after the game starts.
 
+## Full run with the round's Compatible and Works well mods
+
+ZeD's whole regression (`tools/qa/regression.txt`, 82 tests) in two halves of the Compatible and Works well set (one of each pair of alternatives: one proximity inventory, flashlight, cheat menu, lockpicking, XP-drop, spawn picker, map look, moodle icon pack, trait overhaul, preservation and Madax variant). Lists: `tools/qa/compat_r3_full_1_mods.txt` (groups A to D, 146 mod ids) and `compat_r3_full_2_mods.txt` (E to H, 152). Neither half ran out of memory.
+
+- **First half** (`qa/regression/2026-10-26_2256_mods_fullscreen4k.md`): 75 of 82 pass. Not passes, none a new fault: onepath (bikinitools' text warnings counted as exceptions), world_pad_take (4 checks: 45 Down presses do not reach the end of the long Traits and Identity lists the trait mods make), quick_chords (ZeD bug 4, Combat Text), food_verbs (True Smoking's own LIGHTING SMOKE action instead of SMOKING), messages (its first check, as in every run with mods), dash_props_smoke and dash19 (FBORenderLevels.getNLevels render errors while cars spawn, also in runs without mods).
+- **Second half** (`2026-10-27_0011`): stopped at the 37th test, zedqa_notebook: with Project Writing on, the game hung (ZeD bug 7). The other 45 tests were run again without Project Writing (`2026-10-27_0104`, manifest `compat_r3_full_2b.txt`): 33 pass; quick_chords (bug 4) and messages (first check) as above; seat_lightbar (the game's own vehicle spawn code, ProfessionVehicles.CheckSwap, makes an item that does not exist: a mod's vehicle loot); dash19 (the render errors above); dashpx dropped the game to the main menu while spawning its 24 cars, after about 40 minutes with 151 mods, so the last 8 tests did not run. The drop was not traced; it is the known car-spawn hazard or the long session, not a fault tied to one mod in this round.
+
 ## Test notes
 
 - **Mod ids shared by two Workshop items:** the game loads one folder per mod id. Proximity Inventory (2847184718, 3669550831, 3740165370), Simple Belt Flashlight (3625933422, 3778709615), Inventory Tetris (3397561666, 3775513231) and Equipment UI (2950902979, 3397561666, 3682936016) share ids. Where the round's item lost (3740165370, 3778709615, 3775513231), it was tested as a copy in `Zomboid/mods/R3_*` with the id renamed (R3_ProximityInventory, R3_FixedLightOnBeltAF, R3_INVENTORY_TETRIS; its files unchanged, none of them checks its own id). The copies were removed after the round.
@@ -477,3 +490,10 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Messages' first check** ("nothing kept: no envelope on the belt") fails in every run where a mod has already left a note at game start; it is the test's starting point, not a fault.
 - **Stalls:** group C's first run stalled at 8:05 pm when another program took the focus and the fullscreen game minimized (the coordinator's heads-up); it was rerun and only the rerun is graded. No browser or other program blocked the game after that.
 - **Subscriptions:** none added; every candidate and dependency was already on disk. Viperel's Vehicle Spare Parts is on disk in the Build 41 layout only.
+
+### 7. With Project Writing on, the game hangs once its notebook has been opened (render stops; going back to the main menu sticks on the loading warning)
+
+- **Seen:** in the full run's second half ZeD's notebook test (`zedqa_notebook.lua`, which writes through the game's `ISInventoryPaneContextMenu.onWriteSomething`) stopped the frames 3 ticks in and the run timed out; the game never got back to the main menu (stuck on the photosensitivity warning, using the CPU) and had to be closed. The same with Project Writing [42.21] (3796402502) and NeatUI Framework only (`2026-10-27_0044`).
+- **Not the mod alone:** a short script that gives a notebook and a pencil and calls `onWriteSomething` (`tools/qa/zedqa_r3_pw.lua`): with ZeD off the mod's notebook opens and the game quits normally (`zedqa_off_run.ps1`, `qa/modload/2026-10-27_0053_pwoff_console.txt`); with ZeD on the notebook opens the same way, the script finishes, and then the frames stop and quitting to the main menu hangs (`qa/regression/2026-10-27_0059_mods_fullscreen4k.md`, the runner's "the game was still running after the quit").
+- **Where to look (not traced):** ZeD's `Overrides/WriteNote.lua` swaps `ISWriteSomething.start` / `ISUIWriteJournal.new` for its own reader for the length of a write; Project Writing also replaces `onWriteSomething` and sets `start` on the action instance (`NeatWriting/Patches/NW_Context.lua`). The two together leave something running that the game cannot leave.
+- **Evidence:** `ZeDUI/qa/compat_round3/E_project_writing_zed_off_on_then_hang.jpg` (left ZeD off, middle ZeD on, right the stuck screen after the quit).

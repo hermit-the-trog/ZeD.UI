@@ -1,0 +1,12 @@
+VERSION = 1,
+
+mods
+{
+    mod = NeatUI_Framework,
+    mod = ProjectWriting,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}
