@@ -46,9 +46,10 @@ at(90, function()
     local all, on, favs, maps, probs, confs, wsn = w:counts()
     say(string.format("mods all %d on %d maps %d problems %d conflicts %d ws %d", all, on, maps, probs, confs, wsn))
     w.filter = "all"; w.scroll = 0; w.sel = "SampleLootRebalance"; w.dscroll = 0
+    w.dtab = "conflicts"     -- (Oct 27 2026) the info pane on its Conflicts tab: which copy the game uses, and why
 end)
 at(20, function() shot("03_mods_conflict") end)
-at(10, function() local w = M(); w.filter = "conflicts"; w.scroll = 0; w.sel = "SampleLootTables"; w.dscroll = 0 end)
+at(10, function() local w = M(); w.dtab = "about"; w.filter = "conflicts"; w.scroll = 0; w.sel = "SampleLootTables"; w.dscroll = 0 end)
 at(20, function() shot("04_mods_conflicts_tab") end)
 at(10, function() local w = M(); w.filter = "all"; w.scroll = 0; w.sel = "SampleCraftingPack"; w.dscroll = 0 end)
 at(20, function() shot("05_mods_needs") end)
