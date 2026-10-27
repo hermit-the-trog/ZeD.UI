@@ -6,7 +6,10 @@
 --   01 dark / small, two items          02 the hammer in both hands (the off hand peeking)
 --   03 both hands, High contrast         04 both hands, Large text
 --   05 a left-wrist watch, both hands (the watch moves in with the off hand)
---   06 a right-wrist watch and a pistol in the main hand (the ammo pouch, then the watch, then the strap)
+--   06 a right-wrist watch and a loaded pistol in the main hand (the ammo tab out from under the main hand, then the
+--      watch, then the strap; director, Oct 27 2026: "I think the ammo should peek out from the gun/primary icon,
+--      rather than be on a belt")
+--   08 the pistol empty                  09 a shotgun in both hands (the off hand peeking left, the ammo right)
 --   07 the controller's mark on the peeking off hand (the pointing hand round its crescent only)
 -- Checks (PASS / FAIL lines): the sizes, the gap, the peek, the order (hands before the slots, the Messages note
 -- last), what a click at the crescent and under the main hand finds, the slots' place on screen not moving when
@@ -156,28 +159,68 @@ step(40, function()
     check(wb and s and wb.x + wb.w + ZeD.T.px(8) == s.x, "05: the left-wrist watch sits beside the peeking off hand")
     shot("05_leftwatch_both")
 end)
+-- a loaded pistol: 12 in the magazine and one chambered, two spare magazines and a box carried
+local added = {}
+local function add(full) local ok, it = pcall(function() return inv:AddItem(full) end); if ok and it then added[#added + 1] = it end; return ok and it or nil end
+local function load(gun, n, mag)
+    pcall(function() gun:setCurrentAmmoCount(n) end)
+    if mag then pcall(function() gun:setContainsClip(true) end) end
+    pcall(function() gun:setRoundChambered(n > 0) end)
+end
+-- the ammo tab: out from under the main hand (its end under the circle's middle, its words from the circle's right
+-- edge), no strap under it
+local function tab(tag)
+    local m, mi = find("hand", "p")
+    local am, ai = find("ammo")
+    if not check(am and ai == mi + 1, tag .. ": the ammo tab comes after the main hand") then return end
+    check(am.x == m.x + math.floor(m.w / 2) and am.cx == m.x + m.w, tag .. ": the tab starts under the main hand's middle, its words at the circle's edge (x" .. am.x .. " cx" .. tostring(am.cx) .. ")")
+    local under = false
+    for _, r in ipairs(hud._runs or {}) do if r[1] < am.x + am.w and r[2] > am.x then under = true end end
+    check(not under, tag .. ": no strap under the ammo tab")
+    check(hud:boxAt(m.x + math.floor(m.w / 2) + 2, m.y + math.floor(m.h / 2)) == m, tag .. ": a click on the circle over the tab finds the main hand")
+    check(hud:boxAt(am.x + am.w - 3, am.y + math.floor(am.h / 2)) == am, tag .. ": a click on the tab's words finds the tab")
+    return am
+end
 step(20, function()
     takeOff(was.w1)
     was.w2 = wearNew("Base.WristWatch_Right_ClassicBrown")
-    was.gun = inv:AddItem("Base.Pistol")
+    was.gun = add("Base.Pistol")
+    load(was.gun, 12, true)
+    add("Base.9mmClip"); add("Base.9mmClip"); add("Base.Bullets9mmBox")
     p:setPrimaryHandItem(was.gun); p:setSecondaryHandItem(off)
 end)
 step(60, function()
     slotX = nil
-    local _, m = layout("06 right wrist, pistol", false)
-    local am, ai = find("ammo")
+    layout("06 right wrist, pistol", false)
+    local am, ai = tab("06")
     local wb, wi = find("watch")
-    local _, mi = find("hand", "p")
     local s1 = find("slot")
-    check(am and ai == mi + 1, "06: the ammo pouch is beside the main hand")
-    check(wb and am and wi == ai + 1 and (not s1 or wb.x + wb.w < s1.x), "06: the right-wrist watch is outside the pouch, before the strap")
+    am, ai = find("ammo")
+    check(wb and am and wi == ai + 1 and wb.x >= am.x + am.w and (not s1 or wb.x + wb.w < s1.x), "06: the right-wrist watch is outside the tab, before the strap")
     local _, _, _, side = B.watchScreen()
     check(side == "left", "06: the full watch opens to the right of the small one (" .. tostring(side) .. ")")
+    local a = hud:_ammoState(p)
+    say("06 ammo " .. tostring(a and a.inGun) .. "/" .. tostring(a and a.max) .. " chambered " .. tostring(a and a.chambered) .. " | " .. tostring(a and B.ammoWords(a)))
     shot("06_rightwatch_pistol")
 end)
 step(20, function()
     takeOff(was.w2)
     if wopt then wopt:setValue(2) end
+    load(was.gun, 0, false)
+end)
+step(30, function()
+    slotX = nil
+    layout("08 empty pistol", false)
+    tab("08")
+    shot("08_pistol_empty")
+    -- a shotgun in both hands: the off hand peeks on the left, the ammo on the right
+    was.sg = add("Base.Shotgun")
+    if was.sg then load(was.sg, 3, false); p:setPrimaryHandItem(was.sg); p:setSecondaryHandItem(was.sg) end
+end)
+step(40, function()
+    layout("09 shotgun, both hands", true)
+    tab("09")
+    shot("09_shotgun_both")
     p:setPrimaryHandItem(main); p:setSecondaryHandItem(main)
 end)
 -- the controller's mark on the peeking off hand (the mark is shown as if the pad were in use)
@@ -196,7 +239,7 @@ step(20, function()
     hud._mkOpts.pad, hud._mkSolid.pad = nil, nil
     main:setCondition(was.mc); off:setCondition(was.oc)
     p:setPrimaryHandItem(was.p1); p:setSecondaryHandItem(was.p2)
-    if was.gun then inv:Remove(was.gun) end
+    for _, it in ipairs(added) do pcall(function() inv:Remove(it) end) end
     if was.addedMain then inv:Remove(was.addedMain) end
     if was.addedOff then inv:Remove(was.addedOff) end
     if wopt and was.watch then wopt:setValue(was.watch) end
