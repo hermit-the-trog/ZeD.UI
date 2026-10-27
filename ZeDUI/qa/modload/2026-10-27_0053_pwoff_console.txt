@@ -1,0 +1,1159 @@
+LOG  : General      f:0> 27-10-2026 00:53:51
+LOG  : General      f:0> SLF4J(I): Attempting to load provider "zombie.core.logger.Slf4jBridge" specified via "slf4j.provider" system property
+LOG  : General      f:0> ===== System specs =====
+LOG  : General      f:0> CPU: 11th Gen Intel(R) Core(TM) i9-11900K @ 3.50GHz, vendor: GenuineIntel, cores: 8, threads: 16
+LOG  : General      f:0> RAM: 65424 Mb
+LOG  : General      f:0> Base board: MPG Z490 GAMING EDGE WIFI (MS-7C79), vendor: Micro-Star International Co., Ltd.
+LOG  : General      f:0> GPU: NVIDIA GeForce RTX 4090, vendor: NVIDIA, video memory: 24564 Mb, driver: 32.0.16.1742
+LOG  : General      f:0> Disk info: 930.41 Gb, free space: 438.13 Gb, usable space: 438.13 Gb
+LOG  : General      f:0> OS: Windows 11, version: 10.0, arch: amd64, build: 26300
+LOG  : General      f:0> JVM (free: 906 Mb, max: 3072 Mb, total available: 1024 Mb)
+LOG  : General      f:0> ========================
+LOG  : General      f:0> java.specification.version=25
+LOG  : General      f:0> sun.cpu.isalist=amd64
+LOG  : General      f:0> sun.jnu.encoding=Cp1252
+LOG  : General      f:0> java.vm.vendor=Azul Systems, Inc.
+LOG  : General      f:0> sun.arch.data.model=64
+LOG  : General      f:0> java.vendor.url=http://www.azul.com/
+LOG  : General      f:0> zomboid.steam=1
+LOG  : General      f:0> java.vm.specification.version=25
+LOG  : General      f:0> os.name=Windows 11
+LOG  : General      f:0> zomboid.znetlog=1
+LOG  : General      f:0> slf4j.provider=zombie.core.logger.Slf4jBridge
+LOG  : General      f:0> jdk.debug=release
+LOG  : General      f:0> sun.cpu.endian=little
+LOG  : General      f:0> java.specification.vendor=Oracle Corporation
+LOG  : General      f:0> java.version.date=2025-10-21
+LOG  : General      f:0> java.home=E:\Project Zomboid\SteamApps\common\P...
+LOG  : General      f:0> file.separator=\
+LOG  : General      f:0> line.separator=
+
+LOG  : General      f:0> java.vm.specification.vendor=Oracle Corporation
+LOG  : General      f:0> java.specification.name=Java Platform API Specification
+LOG  : General      f:0> java.awt.headless=true
+LOG  : General      f:0> sun.management.compiler=HotSpot 64-Bit Tiered Compilers
+LOG  : General      f:0> java.runtime.version=25.0.1+8-LTS
+LOG  : General      f:0> stdout.encoding=Cp1252
+LOG  : General      f:0> os.version=10.0
+LOG  : General      f:0> jna.nosys=false
+LOG  : General      f:0> java.runtime.name=OpenJDK Runtime Environment
+LOG  : General      f:0> file.encoding=UTF-8
+LOG  : General      f:0> java.vm.name=OpenJDK 64-Bit Server VM
+LOG  : General      f:0> java.vendor.version=Zulu25.30+17-CA
+LOG  : General      f:0> jna.loaded=true
+LOG  : General      f:0> java.vendor.url.bug=http://www.azul.com/support/
+LOG  : General      f:0> java.version=25.0.1
+LOG  : General      f:0> os.arch=amd64
+LOG  : General      f:0> java.vm.specification.name=Java Virtual Machine Specification
+LOG  : General      f:0> sun.os.patch.level=
+LOG  : General      f:0> native.encoding=Cp1252
+LOG  : General      f:0> java.vm.info=mixed mode, sharing
+LOG  : General      f:0> stderr.encoding=Cp1252
+LOG  : General      f:0> java.vendor=Azul Systems, Inc.
+LOG  : General      f:0> java.vm.version=25.0.1+8-LTS
+LOG  : General      f:0> stdin.encoding=Cp1252
+LOG  : General      f:0> sun.io.unicode.encoding=UnicodeLittle
+LOG  : General      f:0> java.class.version=69.0
+LOG  : General      f:0> -----
+LOG  : General      f:0> version=42.21.0 4a0e9546ec demo=false
+LOG  : General      f:0> revision=4a0e9546ec pzbullet=1.0.0.28
+LOG  : General      f:0> You can setup the log levels in the debuglog.cfg file
+LOG  : General      f:0> Logs configuration:
+LOG  : General      f:0>      General: General
+LOG  : General      f:0>      Network: General
+LOG  : General      f:0>          Lua: General
+LOG  : General      f:0>          Mod: General
+LOG  : General      f:0>  Multiplayer: General
+LOG  : General      f:0> ClientCommand: General
+LOG  : General      f:0>      Default: General
+LOG  : General      f:0> LightingFPS set to 60
+LOG  : General      f:0> closest width=640 freq=23
+LOG  : General      f:0> closest width=640 freq=24
+LOG  : General      f:0> closest width=640 freq=25
+LOG  : General      f:0> closest width=640 freq=29
+LOG  : General      f:0> closest width=640 freq=30
+LOG  : General      f:0> closest width=640 freq=50
+LOG  : General      f:0> closest width=640 freq=59
+LOG  : General      f:0> closest width=640 freq=60
+LOG  : General      f:0> closest width=640 freq=100
+LOG  : General      f:0> closest width=640 freq=119
+LOG  : General      f:0> closest width=640 freq=120
+LOG  : General      f:0> closest width=640 freq=144
+LOG  : General      f:0> closest width=720 freq=23
+LOG  : General      f:0> closest width=720 freq=24
+LOG  : General      f:0> closest width=720 freq=25
+LOG  : General      f:0> closest width=720 freq=29
+LOG  : General      f:0> closest width=720 freq=30
+LOG  : General      f:0> closest width=720 freq=50
+LOG  : General      f:0> closest width=720 freq=59
+LOG  : General      f:0> closest width=720 freq=60
+LOG  : General      f:0> closest width=720 freq=100
+LOG  : General      f:0> closest width=720 freq=119
+LOG  : General      f:0> closest width=720 freq=120
+LOG  : General      f:0> closest width=720 freq=144
+LOG  : General      f:0> closest width=800 freq=23
+LOG  : General      f:0> closest width=800 freq=24
+LOG  : General      f:0> closest width=800 freq=25
+LOG  : General      f:0> closest width=800 freq=29
+LOG  : General      f:0> closest width=800 freq=30
+LOG  : General      f:0> closest width=800 freq=50
+LOG  : General      f:0> closest width=800 freq=59
+LOG  : General      f:0> closest width=800 freq=60
+LOG  : General      f:0> closest width=800 freq=100
+LOG  : General      f:0> closest width=800 freq=119
+LOG  : General      f:0> closest width=800 freq=120
+LOG  : General      f:0> closest width=800 freq=144
+LOG  : General      f:0> closest width=1176 freq=23
+LOG  : General      f:0> closest width=1176 freq=24
+LOG  : General      f:0> closest width=1176 freq=25
+LOG  : General      f:0> closest width=1176 freq=29
+LOG  : General      f:0> closest width=1176 freq=30
+LOG  : General      f:0> closest width=1176 freq=50
+LOG  : General      f:0> closest width=1176 freq=59
+LOG  : General      f:0> closest width=1176 freq=60
+LOG  : General      f:0> closest width=1176 freq=100
+LOG  : General      f:0> closest width=1176 freq=119
+LOG  : General      f:0> closest width=1176 freq=120
+LOG  : General      f:0> closest width=1176 freq=144
+LOG  : General      f:0> closest width=1280 freq=23
+LOG  : General      f:0> closest width=1280 freq=24
+LOG  : General      f:0> closest width=1280 freq=25
+LOG  : General      f:0> closest width=1280 freq=29
+LOG  : General      f:0> closest width=1280 freq=30
+LOG  : General      f:0> closest width=1280 freq=50
+LOG  : General      f:0> closest width=1280 freq=59
+LOG  : General      f:0> closest width=1280 freq=60
+LOG  : General      f:0> closest width=1280 freq=100
+LOG  : General      f:0> closest width=1280 freq=119
+LOG  : General      f:0> closest width=1280 freq=120
+LOG  : General      f:0> closest width=1280 freq=144
+LOG  : General      f:0> closest width=1360 freq=23
+LOG  : General      f:0> closest width=1360 freq=24
+LOG  : General      f:0> closest width=1360 freq=25
+LOG  : General      f:0> closest width=1360 freq=29
+LOG  : General      f:0> closest width=1360 freq=30
+LOG  : General      f:0> closest width=1360 freq=50
+LOG  : General      f:0> closest width=1360 freq=59
+LOG  : General      f:0> closest width=1360 freq=60
+LOG  : General      f:0> closest width=1360 freq=100
+LOG  : General      f:0> closest width=1360 freq=119
+LOG  : General      f:0> closest width=1360 freq=120
+LOG  : General      f:0> closest width=1360 freq=144
+LOG  : General      f:0> closest width=1366 freq=23
+LOG  : General      f:0> closest width=1366 freq=24
+LOG  : General      f:0> closest width=1366 freq=25
+LOG  : General      f:0> closest width=1366 freq=29
+LOG  : General      f:0> closest width=1366 freq=30
+LOG  : General      f:0> closest width=1366 freq=50
+LOG  : General      f:0> closest width=1366 freq=59
+LOG  : General      f:0> closest width=1366 freq=60
+LOG  : General      f:0> closest width=1366 freq=100
+LOG  : General      f:0> closest width=1366 freq=119
+LOG  : General      f:0> closest width=1366 freq=120
+LOG  : General      f:0> closest width=1366 freq=144
+LOG  : General      f:0> closest width=1600 freq=23
+LOG  : General      f:0> closest width=1600 freq=24
+LOG  : General      f:0> closest width=1600 freq=25
+LOG  : General      f:0> closest width=1600 freq=29
+LOG  : General      f:0> closest width=1600 freq=30
+LOG  : General      f:0> closest width=1600 freq=50
+LOG  : General      f:0> closest width=1600 freq=59
+LOG  : General      f:0> closest width=1600 freq=60
+LOG  : General      f:0> closest width=1600 freq=100
+LOG  : General      f:0> closest width=1600 freq=119
+LOG  : General      f:0> closest width=1600 freq=120
+LOG  : General      f:0> closest width=1600 freq=144
+LOG  : General      f:0> closest width=1680 freq=23
+LOG  : General      f:0> closest width=1680 freq=24
+LOG  : General      f:0> closest width=1680 freq=25
+LOG  : General      f:0> closest width=1680 freq=29
+LOG  : General      f:0> closest width=1680 freq=30
+LOG  : General      f:0> closest width=1680 freq=50
+LOG  : General      f:0> closest width=1680 freq=59
+LOG  : General      f:0> closest width=1680 freq=60
+LOG  : General      f:0> closest width=1680 freq=100
+LOG  : General      f:0> closest width=1680 freq=119
+LOG  : General      f:0> closest width=1680 freq=120
+LOG  : General      f:0> closest width=1680 freq=144
+LOG  : General      f:0> closest width=1920 freq=23
+LOG  : General      f:0> closest width=1920 freq=24
+LOG  : General      f:0> closest width=1920 freq=25
+LOG  : General      f:0> closest width=1920 freq=29
+LOG  : General      f:0> closest width=1920 freq=30
+LOG  : General      f:0> closest width=1920 freq=50
+LOG  : General      f:0> closest width=1920 freq=59
+LOG  : General      f:0> closest width=1920 freq=60
+LOG  : General      f:0> closest width=1920 freq=100
+LOG  : General      f:0> closest width=1920 freq=119
+LOG  : General      f:0> closest width=1920 freq=120
+LOG  : General      f:0> closest width=1920 freq=144
+LOG  : General      f:0> closest width=2048 freq=23
+LOG  : General      f:0> closest width=2048 freq=24
+LOG  : General      f:0> closest width=2048 freq=25
+LOG  : General      f:0> closest width=2048 freq=29
+LOG  : General      f:0> closest width=2048 freq=30
+LOG  : General      f:0> closest width=2048 freq=50
+LOG  : General      f:0> closest width=2048 freq=59
+LOG  : General      f:0> closest width=2048 freq=60
+LOG  : General      f:0> closest width=2048 freq=100
+LOG  : General      f:0> closest width=2048 freq=119
+LOG  : General      f:0> closest width=2048 freq=120
+LOG  : General      f:0> closest width=2048 freq=144
+LOG  : General      f:0> closest width=2560 freq=23
+LOG  : General      f:0> closest width=2560 freq=24
+LOG  : General      f:0> closest width=2560 freq=25
+LOG  : General      f:0> closest width=2560 freq=29
+LOG  : General      f:0> closest width=2560 freq=30
+LOG  : General      f:0> closest width=2560 freq=50
+LOG  : General      f:0> closest width=2560 freq=59
+LOG  : General      f:0> closest width=2560 freq=60
+LOG  : General      f:0> closest width=2560 freq=100
+LOG  : General      f:0> closest width=2560 freq=119
+LOG  : General      f:0> closest width=2560 freq=120
+LOG  : General      f:0> closest width=2560 freq=144
+LOG  : General      f:0> closest width=3840 freq=23
+LOG  : General      f:0> closest width=3840 freq=24
+LOG  : General      f:0> closest width=3840 freq=25
+LOG  : General      f:0> closest width=3840 freq=29
+LOG  : General      f:0> closest width=3840 freq=30
+LOG  : General      f:0> closest width=3840 freq=50
+LOG  : General      f:0> closest width=3840 freq=59
+LOG  : General      f:0> closest width=3840 freq=60
+LOG  : General      f:0> closest width=3840 freq=100
+LOG  : General      f:0> closest width=3840 freq=119
+LOG  : General      f:0> Display mode changed to 3840x2160 freq=120 fullScreen=true
+LOG  : General      f:0> GraphicsCard: NVIDIA Corporation NVIDIA GeForce RTX 4090/PCIe/SSE2
+LOG  : General      f:0> OpenGL version: 4.6.0 NVIDIA 617.42
+LOG  : General      f:0> Desktop resolution 3840x2160
+LOG  : General      f:0> Initial resolution 3840x2160 fullScreen=true
+LOG  : General      f:0> OpenGL 1.5 buffer objects supported
+LOG  : General      f:0> VSync: ON
+LOG  : General      f:0> 1793087633503 fmod: Java loging: OK
+LOG  : General      f:0> 1793087633506 fmod: FMOD::Studio::System::create() result: No errors.
+LOG  : General      f:0> 1793087633506 fmod: FMOD::Studio::System::getCoreSystem() result: No errors.
+LOG  : General      f:0> 1793087633506 fmod: FMOD_System_GetVersion() result: No errors.
+LOG  : General      f:0> 1793087633506 fmod: fmodintegration built with version 20309, fmod shared library version 20309
+LOG  : General      f:0> 1793087633507 fmod: System Create: OK
+LOG  : General      f:0> 1793087633507 fmod: FMOD_System_SetSoftwareFormat() result: No errors.
+LOG  : General      f:0> 1793087633539 fmod: FMOD::Studio::System::Initialize() result: No errors.
+LOG  : General      f:0> 1793087633539 fmod: Creating DSP for capture sound
+LOG  : General      f:0> 1793087633539 fmod: FMOD_System_CreateDSP() result: No errors.
+LOG  : General      f:0> 1793087633541 fmod: FMOD_DSP_SetBypass() result: No errors.
+LOG  : General      f:0> 1793087633541 fmod: FMOD_System_GetMasterChannelGroup() result: No errors.
+LOG  : General      f:0> 1793087633541 fmod: FMOD_ChannelGroup_AddDSP() result: No errors.
+LOG  : General      f:0> 1793087633541 fmod: FMOD_System_Set3DSettings() result: No errors.
+LOG  : Mod          f:0> refusing to list examplemod
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+LOG  : General      f:0> Loading networking libraries...
+LOG  : General      f:0> Loading steam_api64...
+LOG  : General      f:0> Loading RakNet64...
+LOG  : General      f:0> Loading ZNetJNI64...
+LOG  : General      f:0> SteamUtils initialised successfully
+LOG  : General      f:0> Loading Mods
+LOG  : Mod          f:0> refusing to list examplemod
+ERROR: Mod          f:0 at ChooseGameInfo.readModInfoAux       > tiledef=SupportCorps 8900 file number must be from 100 to 8189
+LOG  : Mod          f:0> loading ZeDQA_Probe
+LOG  : General      f:0> Loading Translations
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/mainfont2_0.png
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+LOG  : General      f:0> texturepack: loading UI
+LOG  : General      f:0> Loading UI texture pack
+LOG  : General      f:0> texturepack: loading UI2
+LOG  : General      f:0> Loading UI2 texture pack
+LOG  : General      f:0> texturepack: loading IconsMoveables
+LOG  : General      f:0> Loading IconsMoveables texture pack
+LOG  : General      f:0> texturepack: loading RadioIcons
+LOG  : General      f:0> Loading RadioIcons texture pack
+LOG  : General      f:0> texturepack: loading ApComUI
+LOG  : General      f:0> Loading ApComUI texture pack
+LOG  : General      f:0> texturepack: loading Mechanics
+LOG  : General      f:0> Loading Mechanics texture pack
+LOG  : General      f:0> texturepack: loading WeatherFx
+LOG  : General      f:0> Loading WeatherFx texture pack
+LOG  : General      f:0> Loading Scripts
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: keyduplicator
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: choppingblock
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseFemale
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseMale
+LOG  : General      f:0> Loading Clothing
+LOG  : General      f:0> 
+LOG  : General      f:0> Loading Lua
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISInventoryPaneContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISVehicleMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISCampingMenu          > require("Camping/CCampfireSystem") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("TimedActions/ISInventoryTransferAction") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("ISUI/PlayerData/ISPlayerData") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISAnimalContextMenu    > require("BuildingObjects/ISAnimalPickMateCursor") failed
+WARN : Lua          f:0 at Lua(Vanilla).TakeSameType           > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).FloorTakeSameType      > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).testUI                 > require("pzapi/ui/ui") failed
+LOG  : Lua          f:0> OnLoadSoundbanks
+LOG  : General      f:0> texturepack: loading Tiles2x
+LOG  : General      f:0> Loading Tiles2x texture pack
+LOG  : General      f:0> texturepack: loading Overlays2x
+LOG  : General      f:0> Loading Overlays2x texture pack
+LOG  : General      f:0> texturepack: loading JumboTrees2x
+LOG  : General      f:0> Loading JumboTrees2x texture pack
+LOG  : General      f:0> texturepack: loading JumboTreesBigs2x
+LOG  : General      f:0> Loading JumboTreesBigs2x texture pack
+LOG  : General      f:0> texturepack: loading Tiles2x.floor
+LOG  : General      f:0> Loading Tiles2x.floor texture pack
+LOG  : General      f:0> texturepack: loading B42ChunkCaching2x
+LOG  : General      f:0> Loading B42ChunkCaching2x texture pack
+LOG  : General      f:0> texturepack: loading B42ChunkCaching2x.floor
+LOG  : General      f:0> Loading B42ChunkCaching2x.floor texture pack
+LOG  : General      f:0> texturepack: loading Clock2x
+LOG  : General      f:0> Loading Clock2x texture pack
+LOG  : General      f:0> Loading models and animations
+LOG  : General      f:0> 1793087665592 fmod: globalSystem = 0x2DF73EA8
+LOG  : General      f:0> 1793087665594 fmod: FMOD_System_GetRecordDriverInfo: nativeRate = 48000, nativeChannels = 8
+LOG  : General      f:0> 1793087665594 fmod: System create record sound: OK
+LOG  : General      f:0> 1793087665594 fmod: Create resampler: OK
+LOG  : General      f:0> 1793087665594 fmod: Create acoustic echo canceller: OK
+LOG  : General      f:0> 1793087665601 fmod: GetRecordNumDrivers id = 0, sound = 0x2cc531a8 loop=1
+LOG  : General      f:0> Game booting
+LOG  : General      f:0> STATE: exit zombie.gameStates.TermsOfServiceState
+WARN : Lua          f:0 at Lua(Vanilla).namedColorToTable      > env.lua-> namedColorToTable color not found: ProgressYellow
+LOG  : Lua          f:0> [ZeDQA.Probe] bridge armed (main menu)
+LOG  : Lua          f:0> [ZeDQA.Probe] autoload: continuing the latest save
+LOG  : General      f:0> MapGroup 1/8
+LOG  : General      f:0>   Brandenburg, KY
+LOG  : General      f:0>   Echo Creek, KY
+LOG  : General      f:0>   Ekron, KY
+LOG  : General      f:0>   Fallas Lake, KY
+LOG  : General      f:0>   Irvington, KY
+LOG  : General      f:0>   March Ridge, KY
+LOG  : General      f:0>   Riverside, KY
+LOG  : General      f:0>   Rosewood, KY
+LOG  : General      f:0>   Valley Station, KY
+LOG  : General      f:0>   West Point, KY
+LOG  : General      f:0>   Muldraugh, KY
+LOG  : General      f:0> MapGroup 2/8
+LOG  : General      f:0>   challengemaps/Challenge1
+LOG  : General      f:0> MapGroup 3/8
+LOG  : General      f:0>   challengemaps/Challenge2
+LOG  : General      f:0> MapGroup 4/8
+LOG  : General      f:0>   challengemaps/Kingsmouth
+LOG  : General      f:0> MapGroup 5/8
+LOG  : General      f:0>   challengemaps/KnoxCounty
+LOG  : General      f:0> MapGroup 6/8
+LOG  : General      f:0>   challengemaps/Studio
+LOG  : General      f:0> MapGroup 7/8
+LOG  : General      f:0>   challengemaps/The Forest
+LOG  : General      f:0> MapGroup 8/8
+LOG  : General      f:0>   challengemaps/Tutorial
+LOG  : General      f:0> -----
+LOG  : Mod          f:0> refusing to list examplemod
+ERROR: Mod          f:0 at ChooseGameInfo.readModInfoAux       > tiledef=SupportCorps 8900 file number must be from 100 to 8189
+LOG  : Mod          f:0> loading NeatUI_Framework
+LOG  : Mod          f:0> mod "NeatUI_Framework" overrides media/actiongroups/neatui_framework_no_actiongroups.txt
+LOG  : Mod          f:0> mod "NeatUI_Framework" overrides media/animsets/neatui_framework_no_animsets.txt
+LOG  : Mod          f:0> loading ProjectWriting
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ca/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ca/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ca/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ch/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ch/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ch/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/cn/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/cn/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/cn/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/cs/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/cs/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/cs/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/da/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/da/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/da/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/de/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/de/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/de/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/en/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/en/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/en/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/es/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/es/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/es/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/fi/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/fi/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/fi/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/fr/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/fr/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/fr/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/hu/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/hu/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/hu/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/id/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/id/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/id/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/it/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/it/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/it/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/jp/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/jp/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/jp/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ko/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ko/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ko/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/nl/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/nl/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/nl/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/no/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/no/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/no/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/pl/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/pl/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/pl/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/pt/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/pt/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/pt/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ptbr/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ptbr/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ptbr/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ro/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ro/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ro/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ru/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ru/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ru/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/th/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/th/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/th/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/tr/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/tr/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/tr/ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ua/ig_ui.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ua/sandbox.json
+LOG  : Mod          f:0> mod "ProjectWriting" overrides media/lua/shared/translate/ua/ui.json
+LOG  : Mod          f:0> loading ZeDQA_Probe
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Large Bucket', name may not contain whitespaces.
+ERROR: General      f:0 at FluidContainerScript.load           > Sanitizing container name 'Fuel Pump', name may not contain whitespaces.
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at XuiSkin$EntityUiStyle.Load          > Could not find icon: Build_AnvilStone, script = Stone Anvil
+WARN : General      f:0 at XuiSkin$EntityUiStyle.LoadComponentInfo> Could not find icon: Build_AnvilStone
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: keyduplicator
+WARN : General      f:0 at TaggedObjectManager.createTagBits   > manager-> new tag discovered that was not preprocessed, tag: choppingblock
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseFemale
+WARN : General      f:0 at SoundManager.debugScriptSound       > no such sound "CorpseDrop" in item Base.CorpseMale
+ERROR: General      f:0 at AngelCodeFont.parseFnt              > AngelCodeFont failed to load page 0 texture E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/fonts/zomboidDialogue.bmfc_0.png
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISInventoryPaneContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISVehicleMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).corpseStorageCheck     > require("ISUI/ISContextMenu") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISCampingMenu          > require("Camping/CCampfireSystem") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("TimedActions/ISInventoryTransferAction") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISInventoryTransferUtil> require("ISUI/PlayerData/ISPlayerData") failed
+WARN : Lua          f:0 at Lua(Vanilla).ISAnimalContextMenu    > require("BuildingObjects/ISAnimalPickMateCursor") failed
+WARN : Lua          f:0 at Lua(Vanilla).TakeSameType           > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).FloorTakeSameType      > require("ISUI/InventoryWindow/ISLootWindowControlHandler") failed
+WARN : Lua          f:0 at Lua(Vanilla).testUI                 > require("pzapi/ui/ui") failed
+LOG  : Lua          f:0> NW_NetClient: caricato
+WARN : Lua          f:0 at Lua(Vanilla).namedColorToTable      > env.lua-> namedColorToTable color not found: ProgressYellow
+LOG  : Lua          f:0> [ZeDQA.Probe] bridge armed (main menu)
+LOG  : General      f:0> MapGroup 1/8
+LOG  : General      f:0>   Brandenburg, KY
+LOG  : General      f:0>   Echo Creek, KY
+LOG  : General      f:0>   Ekron, KY
+LOG  : General      f:0>   Fallas Lake, KY
+LOG  : General      f:0>   Irvington, KY
+LOG  : General      f:0>   March Ridge, KY
+LOG  : General      f:0>   Riverside, KY
+LOG  : General      f:0>   Rosewood, KY
+LOG  : General      f:0>   Valley Station, KY
+LOG  : General      f:0>   West Point, KY
+LOG  : General      f:0>   Muldraugh, KY
+LOG  : General      f:0> MapGroup 2/8
+LOG  : General      f:0>   challengemaps/Challenge1
+LOG  : General      f:0> MapGroup 3/8
+LOG  : General      f:0>   challengemaps/Challenge2
+LOG  : General      f:0> MapGroup 4/8
+LOG  : General      f:0>   challengemaps/Kingsmouth
+LOG  : General      f:0> MapGroup 5/8
+LOG  : General      f:0>   challengemaps/KnoxCounty
+LOG  : General      f:0> MapGroup 6/8
+LOG  : General      f:0>   challengemaps/Studio
+LOG  : General      f:0> MapGroup 7/8
+LOG  : General      f:0>   challengemaps/The Forest
+LOG  : General      f:0> MapGroup 8/8
+LOG  : General      f:0>   challengemaps/Tutorial
+LOG  : General      f:0> -----
+LOG  : General      f:0> STATE: exit zombie.gameStates.MainScreenState
+LOG  : General      f:0> LOADED UP A TOTAL OF 473 TEXTURES
+LOG  : General      f:0> STATE: exit zombie.gameStates.LoadingQueueState
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: appliances_01_30
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_32
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_33
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_34
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_35
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_36
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_37
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_38
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_39
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_0
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_1
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_2
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_3
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_4
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_5
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_6
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_7
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_8
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_9
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_10
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_11
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_12
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_13
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_14
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_15
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_16
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_17
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_18
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_19
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_20
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_21
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_22
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_23
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_8
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_9
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_10
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_11
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_12
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_13
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_14
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_15
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_48
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_49
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_50
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_51
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_52
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_53
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_54
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_55
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_8
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_9
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_10
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_11
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_12
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_13
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_14
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_15
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_40
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_41
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_42
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_43
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_44
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_45
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_46
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_47
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_24
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_25
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_26
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_27
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_28
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_29
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_30
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_31
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_32
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_33
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_34
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_35
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_36
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_37
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_38
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_39
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_24
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_25
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_26
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_27
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_28
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_29
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_30
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_31
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_32
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_33
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_34
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_35
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_36
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_37
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_38
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_39
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_0
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_1
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_2
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_3
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_4
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_5
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_6
+LOG  : General      f:0> BLANK OVERLAY TEXTURE. Set it to "none".: floors_overlay_wood_01_7
+LOG  : Lua          f:0> Initializing Randomized World Tabletop Clutter Tables
+WARN : Lua          f:0 at Lua(Vanilla).Features               > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Biomes                 > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Selection              > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Veins                  > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).Roads                  > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/WorldGen.lua
+WARN : Lua          f:0 at Lua(Vanilla).WorldGen               > recursive require(): E:/Project Zomboid/SteamApps/common/ProjectZomboid/media/lua/server/WorldGen/attachments/Priorities.lua
+LOG  : Lua          f:0> NW_NetServer: caricato, deposito dei tratti pronto
+ERROR: General      f:0 at CraftRecipeComponentScript.getIconTexture> CraftRecipeComponentScript: Recipe Piano missing UiConfigScript - falling back to SpriteConfigScript first world object face for recipe icon.
+LOG  : General      f:0> SafeMode is off
+LOG  : General      f:0> Loading worldgen params
+LOG  : General      f:0> IsoMetaGrid.Create: begin scanning directories
+LOG  : General      f:0> Looking in these map folders:
+LOG  : General      f:0> <End of map-folders list>
+LOG  : General      f:0> IsoMetaGrid.Create: X: [ -250 250 ], Y: [ -250 250 ]
+LOG  : General      f:0> World seed:  0
+LOG  : General      f:0> IsoMetaGrid.Create: finished scanning directories in 0.245 seconds
+LOG  : General      f:0> IsoMetaGrid.Create: begin loading
+LOG  : General      f:0> VehiclesDB2.init() start
+LOG  : General      f:0> VehiclesDB2.init() end
+LOG  : General      f:0> triggerEvent OnInitWorld
+LOG  : General      f:0> SandboxOptions.load() start
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiFlagDrop"
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiPerFifthMile"
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiPerMinuteWaiting"
+LOG  : General      f:0> ERROR unknown SandboxOption "ZeD.TaxiPerExtraPassenger"
+LOG  : General      f:0> SandboxOptions.load() end
+LOG  : General      f:0> ItemPickerJava.Parse() start
+LOG  : General      f:0> ItemPickerJava.Parse() end
+LOG  : General      f:0> LoadTileDefinitions start
+LOG  : General      f:0> LoadTileDefinitions end
+LOG  : General      f:0> triggerEvent OnLoadedTileDefinitions
+LOG  : General      f:0> loadAnimalDefinitions start
+LOG  : General      f:0> loadAnimalDefinitions end
+LOG  : General      f:0> GameTime.init() and load() start
+LOG  : General      f:0> GameTime.init() and load() end
+LOG  : General      f:0> ZomboidRadio.Init() start
+LOG  : Lua          f:0> scriptmanager = zombie.radio.scripting.RadioScriptManager@c18be91, isNewGame = false
+LOG  : Lua          f:0> name = Automated Emergency Broadcast System, freq = 98400, cat = Emergency, uuid = EMRG-711984
+LOG  : Lua          f:0> Found radio channel: Automated Emergency Broadcast System, freq = EMRG-711984, freqcheck = 98400, multi = 1
+LOG  : General      f:0> ZomboidRadio.Init() end
+LOG  : General      f:0> GlobalModData.init() start
+LOG  : General      f:0> GlobalModData.init() end
+LOG  : General      f:0> InstanceTracker.load() start
+LOG  : General      f:0> InstanceTracker.load() end
+LOG  : General      f:0> ErosionGlobals.Boot() start
+LOG  : General      f:0> ErosionGlobals.Boot() end
+LOG  : General      f:0> WorldDictionary.init() start
+LOG  : General      f:0> WorldDictionary: Checking dictionary...
+LOG  : General      f:0> Loading WorldDictionary:C:\Users\danie\Zomboid\Saves\Sandbox\ZeD-QA\WorldDictionary.bin
+LOG  : General      f:0> WorldDictionary.init() end
+LOG  : General      f:0> GameEntityManager.Init() start
+LOG  : General      f:0> GameEntityManager.Init() end
+LOG  : General      f:0> PersistentOutfits.init() start
+LOG  : General      f:0> PersistentOutfits.init() end
+LOG  : General      f:0> IsoMetaGrid.Create: finished loading in 3.205 seconds
+ERROR: Lua          f:0 at Lua(Vanilla).handleMannequinZone    > ERROR: Mannequin zone missing properties in media/maps/Muldraugh, KY/objects.lua coords: 13583, 1299, 0
+LOG  : General      f:0> 111ERROR: not adding suspicious zone "" "Nav" 8343,12316,0 2244x18
+ERROR: General      f:0 at Basements.mergeRoomsOntoMetaCell    > duplicate RoomDef.metaID for room at 10707,9484,0
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #231 in cell 25,33 while reading map_meta.bin
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #327914 in cell 25,33 while reading map_meta.bin
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #327911 in cell 25,33 while reading map_meta.bin
+ERROR: General      f:0 at IsoMetaGrid.load                    > invalid room metaID #655594 in cell 25,33 while reading map_meta.bin
+LOG  : General      f:0> loading 6540 zones from map_zone.bin
+LOG  : General      f:0> loading 163 zones from map_animals.bin
+LOG  : General      f:0> Max #ZONES on one chunk is 27
+LOG  : General      f:0> triggerEvent OnLoadedMapZones
+LOG  : General      f:0> ItemConfigurator.Preprocess() start
+LOG  : General      f:0> ItemConfigurator.Preprocess() end
+LOG  : General      f:0> MapCollisionData.init() start
+LOG  : General      f:0> MapCollisionData.init() end
+LOG  : General      f:0> AnimalPopulationManager.init() start
+LOG  : General      f:0> AnimalPopulationManager.init() end
+LOG  : General      f:0> ZombiePopulationManager.init() start
+LOG  : General      f:0> ZombiePopulationManager.init() end
+LOG  : General      f:0> Pathfind init() start
+LOG  : General      f:0> Pathfind init() end
+LOG  : General      f:0> WorldStreamer.create() start
+LOG  : General      f:0> WorldStreamer.create() end
+LOG  : General      f:0> CellLoader.LoadCellBinaryChunk start
+LOG  : General      f:0> CellLoader.LoadCellBinaryChunk start
+LOG  : General      f:0> MapItem.LoadWorldMap() start
+LOG  : General      f:0> MapItem.LoadWorldMap() start
+LOG  : General      f:0> WorldStreamer.isBusy() loop start
+LOG  : General      f:0> WorldStreamer.isBusy() loop end
+LOG  : General      f:0> Verifying that all Craft Recipes are Learnable
+LOG  : General      f:0> CraftRecipe MakeTarpTankTop only learnable by: Research. Profession(base:tailor;)
+LOG  : General      f:0> CraftRecipe MakeTarpChestRig only learnable by: Research. Profession(base:veteran;base:tailor;)
+LOG  : General      f:0> CraftRecipe SewShellsBandolier only learnable by: Research. Profession(base:tailor;)
+LOG  : General      f:0> CraftRecipe SewHidePants2 only learnable by: Research.
+LOG  : General      f:0> CraftRecipe MakeBodyMagazineArmor only learnable by: Research. Profession(base:burglar;)
+LOG  : General      f:0> CraftRecipe AssembleLargeTarpFramepack only learnable by: Research.
+LOG  : General      f:0> CraftRecipe SewTarpFannyBag only learnable by: Research.
+LOG  : General      f:0> Craft Recipe Learning possible issues detected; this may be a false positive on account of intentional design however.
+LOG  : General      f:0> MetaTracker.load() start
+LOG  : General      f:0> MetaTracker.load() end
+LOG  : General      f:0> triggerEvent OnGameTimeLoaded
+LOG  : General      f:0> GlobalObjects.initSystems() start
+LOG  : General      f:0> SGlobalObjects: newSystem campfire
+LOG  : Lua          f:0> campfire: added luaObject 10606,11148,0
+LOG  : General      f:0> SGlobalObjects: newSystem farming
+LOG  : Lua          f:0> farming: added luaObject 10607,11148,0
+LOG  : Lua          f:0> farming: added luaObject 10608,11148,0
+LOG  : Lua          f:0> farming: added luaObject 10609,11148,0
+LOG  : Lua          f:0> farming: added luaObject 10610,11148,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7096,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7098,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7099,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7101,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7102,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7089,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7090,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7092,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7093,0
+LOG  : Lua          f:0> farming: added luaObject 12003,7095,0
+LOG  : Lua          f:0> farming: added luaObject 12032,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12032,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12032,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12033,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12033,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12033,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12034,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12034,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12034,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12035,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12035,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12035,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12036,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12036,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12036,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12037,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12037,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12037,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12029,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12029,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12029,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12030,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12030,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12030,7058,0
+LOG  : Lua          f:0> farming: added luaObject 12031,7056,0
+LOG  : Lua          f:0> farming: added luaObject 12031,7057,0
+LOG  : Lua          f:0> farming: added luaObject 12031,7058,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7072,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7073,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7074,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7075,0
+LOG  : Lua          f:0> farming: added luaObject 11984,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11985,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7069,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7070,0
+LOG  : Lua          f:0> farming: added luaObject 11986,7071,0
+LOG  : Lua          f:0> farming: added luaObject 11977,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11978,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11979,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11980,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11981,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11982,7068,0
+LOG  : Lua          f:0> farming: added luaObject 11983,7068,0
+LOG  : General      f:0> SGlobalObjects: newSystem feedingTrough
+LOG  : Lua          f:0> feedingTrough: added luaObject 10605,11149,0
+LOG  : Lua          f:0> feedingTrough: added luaObject 10605,11150,0
+LOG  : General      f:0> SGlobalObjects: newSystem trap
+LOG  : General      f:0> SGlobalObjects: newSystem rainbarrel
+LOG  : General      f:0> CGlobalObjects: newSystem campfire
+LOG  : Lua          f:0> C campfire: added luaObject 10606,11148,0
+LOG  : General      f:0> CGlobalObjects: newSystem farming
+LOG  : Lua          f:0> C farming: added luaObject 10607,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 10608,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 10609,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 10610,11148,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7096,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7098,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7099,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7101,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7102,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7089,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7090,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7092,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7093,0
+LOG  : Lua          f:0> C farming: added luaObject 12003,7095,0
+LOG  : Lua          f:0> C farming: added luaObject 12032,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12032,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12032,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12033,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12033,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12033,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12034,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12034,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12034,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12035,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12035,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12035,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12036,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12036,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12036,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12037,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12037,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12037,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12029,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12029,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12029,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12030,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12030,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12030,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 12031,7056,0
+LOG  : Lua          f:0> C farming: added luaObject 12031,7057,0
+LOG  : Lua          f:0> C farming: added luaObject 12031,7058,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7072,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7073,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7074,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7075,0
+LOG  : Lua          f:0> C farming: added luaObject 11984,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11985,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7069,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7070,0
+LOG  : Lua          f:0> C farming: added luaObject 11986,7071,0
+LOG  : Lua          f:0> C farming: added luaObject 11977,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11978,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11979,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11980,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11981,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11982,7068,0
+LOG  : Lua          f:0> C farming: added luaObject 11983,7068,0
+LOG  : General      f:0> CGlobalObjects: newSystem feedingTrough
+LOG  : Lua          f:0> C feedingTrough: added luaObject 10605,11149,0
+LOG  : Lua          f:0> C feedingTrough: added luaObject 10605,11150,0
+LOG  : General      f:0> CGlobalObjects: newSystem rainbarrel
+LOG  : General      f:0> CGlobalObjects: newSystem trap
+LOG  : General      f:0> GlobalObjects.initSystems() end
+LOG  : General      f:0> [27-10-26 00:54:58.716][info] Init chat system....
+LOG  : General      f:0> [27-10-26 00:54:58.717][info] Mode: single player.
+LOG  : General      f:0> bWaitForAssetLoadingToFinish2 start
+LOG  : General      f:0> bWaitForAssetLoadingToFinish2 end
+LOG  : General      f:0> FBORenderChunkManager.gameLoaded() start
+LOG  : General      f:0> FBORenderChunkManager.gameLoaded() end
+LOG  : General      f:0> Bullet.initPhysicsMeshes() start
+LOG  : General      f:0> Bullet.initPhysicsMeshes() end
+LOG  : General      f:0> game loading took 23 seconds
+LOG  : General      f:0> STATE: exit zombie.gameStates.GameLoadingState
+LOG  : Lua          f:0> 1 players found
+LOG  : Lua          f:0> player 0 is mouse
+LOG  : General      f:0> Game Mode: Sandbox
+LOG  : General      f:0> Sandbox Options:
+LOG  : General      f:0> Zombies 6
+LOG  : General      f:0> Distribution 1
+LOG  : General      f:0> ZombieVoronoiNoise true
+LOG  : General      f:0> ZombieRespawn 4
+LOG  : General      f:0> ZombieMigrate true
+LOG  : General      f:0> DayLength 4
+LOG  : General      f:0> StartYear 1
+LOG  : General      f:0> StartMonth 7
+LOG  : General      f:0> StartDay 9
+LOG  : General      f:0> StartTime 2
+LOG  : General      f:0> DayNightCycle 1
+LOG  : General      f:0> ClimateCycle 1
+LOG  : General      f:0> FogCycle 1
+LOG  : General      f:0> WaterShut 2
+LOG  : General      f:0> ElecShut 2
+LOG  : General      f:0> AlarmDecay 2
+LOG  : General      f:0> WaterShutModifier 14
+LOG  : General      f:0> ElecShutModifier 14
+LOG  : General      f:0> AlarmDecayModifier 14
+LOG  : General      f:0> FoodLootNew 0.8
+LOG  : General      f:0> LiteratureLootNew 0.6
+LOG  : General      f:0> SkillBookLoot 0.6
+LOG  : General      f:0> RecipeResourceLoot 0.6
+LOG  : General      f:0> MedicalLootNew 0.6
+LOG  : General      f:0> SurvivalGearsLootNew 0.6
+LOG  : General      f:0> CannedFoodLootNew 0.6
+LOG  : General      f:0> WeaponLootNew 0.6
+LOG  : General      f:0> RangedWeaponLootNew 1.2
+LOG  : General      f:0> AmmoLootNew 0.6
+LOG  : General      f:0> MechanicsLootNew 0.6
+LOG  : General      f:0> OtherLootNew 0.8
+LOG  : General      f:0> ClothingLootNew 0.6
+LOG  : General      f:0> ContainerLootNew 0.6
+LOG  : General      f:0> KeyLootNew 0.4
+LOG  : General      f:0> MediaLootNew 0.6
+LOG  : General      f:0> MementoLootNew 0.6
+LOG  : General      f:0> CookwareLootNew 0.6
+LOG  : General      f:0> MaterialLootNew 0.6
+LOG  : General      f:0> FarmingLootNew 0.6
+LOG  : General      f:0> ToolLootNew 0.6
+LOG  : General      f:0> RollsMultiplier 1.0
+LOG  : General      f:0> LootItemRemovalList 
+LOG  : General      f:0> RemoveStoryLoot false
+LOG  : General      f:0> RemoveZombieLoot false
+LOG  : General      f:0> ZombiePopLootEffect 0
+LOG  : General      f:0> InsaneLootFactor 0.05
+LOG  : General      f:0> ExtremeLootFactor 0.2
+LOG  : General      f:0> RareLootFactor 0.6
+LOG  : General      f:0> NormalLootFactor 1.0
+LOG  : General      f:0> CommonLootFactor 2.0
+LOG  : General      f:0> AbundantLootFactor 3.0
+LOG  : General      f:0> Temperature 3
+LOG  : General      f:0> Rain 3
+LOG  : General      f:0> ErosionSpeed 4
+LOG  : General      f:0> ErosionDays 0
+LOG  : General      f:0> Farming 3
+LOG  : General      f:0> CompostTime 2
+LOG  : General      f:0> StatsDecrease 3
+LOG  : General      f:0> NatureAbundance 3
+LOG  : General      f:0> Alarm 4
+LOG  : General      f:0> LockedHouses 6
+LOG  : General      f:0> StarterKit false
+LOG  : General      f:0> Nutrition true
+LOG  : General      f:0> FoodRotSpeed 3
+LOG  : General      f:0> FridgeFactor 3
+LOG  : General      f:0> SeenHoursPreventLootRespawn 0
+LOG  : General      f:0> HoursForLootRespawn 0
+LOG  : General      f:0> MaxItemsForLootRespawn 5
+LOG  : General      f:0> ConstructionPreventsLootRespawn true
+LOG  : General      f:0> WorldItemRemovalList Base.Hat, Base.Glasses, Base.Maggots, Base.Slug, Base.Slug2, Base.Snail, Base.Worm, Base.Dung_Mouse, Base.Dung_Rat
+LOG  : General      f:0> HoursForWorldItemRemoval 24.0
+LOG  : General      f:0> ItemRemovalListBlacklistToggle false
+LOG  : General      f:0> TimeSinceApo 1
+LOG  : General      f:0> PlantResilience 3
+LOG  : General      f:0> PlantAbundance 3
+LOG  : General      f:0> EndRegen 3
+LOG  : General      f:0> Helicopter 2
+LOG  : General      f:0> MetaEvent 2
+LOG  : General      f:0> SleepingEvent 1
+LOG  : General      f:0> GeneratorFuelConsumption 0.1
+LOG  : General      f:0> GeneratorSpawning 4
+LOG  : General      f:0> AnnotatedMapChance 4
+LOG  : General      f:0> CharacterFreePoints 0
+LOG  : General      f:0> ConstructionBonusPoints 3
+LOG  : General      f:0> NightDarkness 3
+LOG  : General      f:0> NightLength 3
+LOG  : General      f:0> BoneFracture true
+LOG  : General      f:0> InjurySeverity 2
+LOG  : General      f:0> HoursForCorpseRemoval 216.0
+LOG  : General      f:0> DecayingCorpseHealthImpact 3
+LOG  : General      f:0> ZombieHealthImpact false
+LOG  : General      f:0> BloodLevel 3
+LOG  : General      f:0> ClothingDegradation 3
+LOG  : General      f:0> FireSpread true
+LOG  : General      f:0> DaysForRottenFoodRemoval -1
+LOG  : General      f:0> AllowExteriorGenerator true
+LOG  : General      f:0> MaxFogIntensity 1
+LOG  : General      f:0> MaxRainFxIntensity 1
+LOG  : General      f:0> EnableSnowOnGround true
+LOG  : General      f:0> AttackBlockMovements true
+LOG  : General      f:0> SurvivorHouseChance 3
+LOG  : General      f:0> VehicleStoryChance 3
+LOG  : General      f:0> ZoneStoryChance 3
+LOG  : General      f:0> AllClothesUnlocked false
+LOG  : General      f:0> EnableTaintedWaterText true
+LOG  : General      f:0> EnableVehicles true
+LOG  : General      f:0> CarSpawnRate 3
+LOG  : General      f:0> ZombieAttractionMultiplier 1.0
+LOG  : General      f:0> VehicleEasyUse false
+LOG  : General      f:0> InitialGas 2
+LOG  : General      f:0> FuelStationGasInfinite false
+LOG  : General      f:0> FuelStationGasMin 0.0
+LOG  : General      f:0> FuelStationGasMax 0.8
+LOG  : General      f:0> FuelStationGasEmptyChance 20
+LOG  : General      f:0> LockedCar 4
+LOG  : General      f:0> CarGasConsumption 1.0
+LOG  : General      f:0> CarGeneralCondition 3
+LOG  : General      f:0> CarDamageOnImpact 3
+LOG  : General      f:0> DamageToPlayerFromHitByACar 1
+LOG  : General      f:0> TrafficJam true
+LOG  : General      f:0> CarAlarm 3
+LOG  : General      f:0> PlayerDamageFromCrash true
+LOG  : General      f:0> SirenShutoffHours 0.0
+LOG  : General      f:0> ChanceHasGas 2
+LOG  : General      f:0> RecentlySurvivorVehicles 2
+LOG  : General      f:0> MultiHitZombies false
+LOG  : General      f:0> RearVulnerability 3
+LOG  : General      f:0> SirenEffectsZombies true
+LOG  : General      f:0> AnimalStatsModifier 4
+LOG  : General      f:0> AnimalMetaStatsModifier 4
+LOG  : General      f:0> AnimalPregnancyTime 4
+LOG  : General      f:0> AnimalAgeModifier 4
+LOG  : General      f:0> AnimalMilkIncModifier 4
+LOG  : General      f:0> AnimalWoolIncModifier 4
+LOG  : General      f:0> AnimalRanchChance 5
+LOG  : General      f:0> AnimalGrassRegrowTime 240
+LOG  : General      f:0> AnimalMetaPredator false
+LOG  : General      f:0> AnimalMatingSeason true
+LOG  : General      f:0> AnimalEggHatch 4
+LOG  : General      f:0> AnimalSoundAttractZombies true
+LOG  : General      f:0> AnimalTrackChance 4
+LOG  : General      f:0> AnimalPathChance 4
+LOG  : General      f:0> MaximumRatIndex 25
+LOG  : General      f:0> DaysUntilMaximumRatIndex 90
+LOG  : General      f:0> MetaKnowledge 3
+LOG  : General      f:0> SeeNotLearntRecipe true
+LOG  : General      f:0> MaximumLootedBuildingRooms 50
+LOG  : General      f:0> EnablePoisoning 1
+LOG  : General      f:0> MaggotSpawn 1
+LOG  : General      f:0> LightBulbLifespan 2.0
+LOG  : General      f:0> FishAbundance 2
+LOG  : General      f:0> LevelForMediaXPCutoff 3
+LOG  : General      f:0> LevelForDismantleXPCutoff 0
+LOG  : General      f:0> BloodSplatLifespanDays 0
+LOG  : General      f:0> LiteratureCooldown 45
+LOG  : General      f:0> NegativeTraitsPenalty 1
+LOG  : General      f:0> MinutesPerPage 2.0
+LOG  : General      f:0> KillInsideCrops true
+LOG  : General      f:0> PlantGrowingSeasons true
+LOG  : General      f:0> PlaceDirtAboveground false
+LOG  : General      f:0> FarmingSpeedNew 1.0
+LOG  : General      f:0> FarmingAmountNew 1.0
+LOG  : General      f:0> MaximumLooted 25
+LOG  : General      f:0> DaysUntilMaximumLooted 90
+LOG  : General      f:0> RuralLooted 0.5
+LOG  : General      f:0> MaximumDiminishedLoot 20
+LOG  : General      f:0> DaysUntilMaximumDiminishedLoot 3650
+LOG  : General      f:0> MuscleStrainFactor 0.7
+LOG  : General      f:0> DiscomfortFactor 0.8
+LOG  : General      f:0> WoundInfectionFactor 1.0
+LOG  : General      f:0> NoBlackClothes true
+LOG  : General      f:0> EasyClimbing false
+LOG  : General      f:0> MaximumFireFuelHours 8
+LOG  : General      f:0> FirearmUseDamageChance 2
+LOG  : General      f:0> FirearmNoiseMultiplier 1.0
+LOG  : General      f:0> FirearmJamMultiplier 1.0
+LOG  : General      f:0> FirearmMoodleMultiplier 1.0
+LOG  : General      f:0> FirearmWeatherMultiplier 1.0
+LOG  : General      f:0> FirearmHeadGearEffect true
+LOG  : General      f:0> ClayLakeChance 0.05
+LOG  : General      f:0> ClayRiverChance 0.05
+LOG  : General      f:0> GeneratorTileRange 20
+LOG  : General      f:0> GeneratorVerticalPowerRange 3
+LOG  : General      f:0> SpawnFrequency 4
+LOG  : General      f:0> AllowMiniMap false
+LOG  : General      f:0> AllowWorldMap true
+LOG  : General      f:0> MapAllKnown false
+LOG  : General      f:0> MapNeedsLight true
+LOG  : General      f:0> Speed 4
+LOG  : General      f:0> SprinterPercentage 0
+LOG  : General      f:0> Strength 2
+LOG  : General      f:0> Toughness 4
+LOG  : General      f:0> Transmission 1
+LOG  : General      f:0> Mortality 5
+LOG  : General      f:0> Reanimate 3
+LOG  : General      f:0> Cognition 3
+LOG  : General      f:0> DoorOpeningPercentage 0
+LOG  : General      f:0> CrawlUnderVehicle 5
+LOG  : General      f:0> Memory 2
+LOG  : General      f:0> Sight 5
+LOG  : General      f:0> Hearing 5
+LOG  : General      f:0> SpottedLogic true
+LOG  : General      f:0> ThumpNoChasing false
+LOG  : General      f:0> ThumpOnConstruction true
+LOG  : General      f:0> ActiveOnly 1
+LOG  : General      f:0> TriggerHouseAlarm true
+LOG  : General      f:0> ZombiesDragDown true
+LOG  : General      f:0> ZombiesCrawlersDragDown false
+LOG  : General      f:0> ZombiesFenceLunge true
+LOG  : General      f:0> ZombiesArmorFactor 2.0
+LOG  : General      f:0> ZombiesMaxDefense 85
+LOG  : General      f:0> ChanceOfAttachedWeapon 6
+LOG  : General      f:0> ZombiesFallDamage 1.0
+LOG  : General      f:0> DisableFakeDead 1
+LOG  : General      f:0> PlayerSpawnZombieRemoval 1
+LOG  : General      f:0> FenceThumpersRequired 25
+LOG  : General      f:0> FenceDamageMultiplier 1.0
+LOG  : General      f:0> PopulationMultiplier 0.0
+LOG  : General      f:0> PopulationStartMultiplier 0.0
+LOG  : General      f:0> PopulationPeakMultiplier 0.0
+LOG  : General      f:0> PopulationPeakDay 28
+LOG  : General      f:0> RespawnHours 0.0
+LOG  : General      f:0> RespawnUnseenHours 0.0
+LOG  : General      f:0> RespawnMultiplier 0.0
+LOG  : General      f:0> RedistributeHours 12.0
+LOG  : General      f:0> FollowSoundDistance 100
+LOG  : General      f:0> RallyGroupSize 20
+LOG  : General      f:0> RallyGroupSizeVariance 50
+LOG  : General      f:0> RallyTravelDistance 20
+LOG  : General      f:0> RallyGroupSeparation 15
+LOG  : General      f:0> RallyGroupRadius 3
+LOG  : General      f:0> ZombiesCountBeforeDelete 300
+LOG  : General      f:0> Global 1.0
+LOG  : General      f:0> GlobalToggle true
+LOG  : General      f:0> Fitness 1.0
+LOG  : General      f:0> Strength 1.0
+LOG  : General      f:0> Sprinting 1.0
+LOG  : General      f:0> Lightfoot 1.0
+LOG  : General      f:0> Nimble 1.0
+LOG  : General      f:0> Sneak 1.0
+LOG  : General      f:0> Axe 1.0
+LOG  : General      f:0> Blunt 1.0
+LOG  : General      f:0> SmallBlunt 1.0
+LOG  : General      f:0> LongBlade 1.0
+LOG  : General      f:0> SmallBlade 1.0
+LOG  : General      f:0> Spear 1.0
+LOG  : General      f:0> Maintenance 1.0
+LOG  : General      f:0> Woodwork 1.0
+LOG  : General      f:0> Cooking 1.0
+LOG  : General      f:0> Farming 1.0
+LOG  : General      f:0> Doctor 1.0
+LOG  : General      f:0> Electricity 1.0
+LOG  : General      f:0> MetalWelding 1.0
+LOG  : General      f:0> Mechanics 1.0
+LOG  : General      f:0> Tailoring 1.0
+LOG  : General      f:0> Aiming 1.0
+LOG  : General      f:0> Reloading 1.0
+LOG  : General      f:0> Fishing 1.0
+LOG  : General      f:0> Trapping 1.0
+LOG  : General      f:0> PlantScavenging 1.0
+LOG  : General      f:0> FlintKnapping 1.0
+LOG  : General      f:0> Masonry 1.0
+LOG  : General      f:0> Pottery 1.0
+LOG  : General      f:0> Carving 1.0
+LOG  : General      f:0> Husbandry 1.0
+LOG  : General      f:0> Tracking 1.0
+LOG  : General      f:0> Blacksmith 1.0
+LOG  : General      f:0> Butchering 1.0
+LOG  : General      f:0> Glassmaking 1.0
+LOG  : General      f:0> Freehand true
+LOG  : General      f:0> PageCharLimit 0
+LOG  : General      f:0> VanillaMap false
+LOG  : Lua          f:0> [ZeDQA.Probe] bridge armed (in game)
+LOG  : Lua          f:1079> ZEDQA pwoff start
+LOG  : Lua          f:1079> [ZeDQA.Probe] run #1 ok=true
+LOG  : Lua          f:1108> ZEDQA pwoff write true nil
+LOG  : Lua          f:1108> ZEDQA pwoff frame 200
+LOG  : Lua          f:1108> ZEDQA pwoff DONE
