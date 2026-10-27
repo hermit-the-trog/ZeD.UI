@@ -435,6 +435,7 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Steps:** `zedqa_mods_run.ps1 -ModList tools/qa/compat_r3_A_mods.txt -Mode fullscreen4k -Manifest tools/qa/compat_r3_A.txt`; `zedqa_r3_A.lua` gives a Carrot seed packet and draws its `ISToolTipInv` at 900,300, once normally and once with ZeD's safe mode option on.
 - **Evidence:** `ZeDUI/qa/compat_round3/A_seed_tooltip_zed_vs_safe.png` (left ZeD 202x79, right safe mode 252x144: Sowing Season, Optimal / Risky Sowing Months, Minimum Water Level); report `qa/regression/2026-10-26_1932_mods_fullscreen4k.md` (`tip seed zed 202x79`, `tip seed safe 252x144`).
 - **Fix idea (not done):** call the kept function for the content (or call the previous `render` with ZeD's frame drawn first), the way the other ZeD overrides chain to what was there before.
+- **Fixed Oct 27 2026:** ZeD's `ISToolTipInv:render` now runs the kept render (the game's and every mod's wrapper) and only swaps the plain background and border drawn at 0,0 for ZeD's box. Seed packet 252x161 under ZeD and in safe mode alike, with Show Sowing Season's and More Item Information's lines (`zedqa_r3_fixes.lua`, `qa/regression/2026-10-27_0800_mods_fullscreen4k.md`, `compat_round3/fix1_seed_tooltip_zed.png`).
 
 ### 2. Main menu: the desktop's icons show through ZeD's Mods window (seen with ZeD alone too)
 
@@ -443,6 +444,7 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Steps:** `zedqa_menu_mods_run.ps1 -ModList <ZeD only> -Script tools/qa/zedqa_r3_menu.lua -Tag r3m`; picture `zqa_r3m_2_mods.png`.
 - **Evidence:** `ZeDUI/qa/compat_round3/ZeD_mods_window_desktop_icons_show_through_noMods.png` (crop of the right pane), `B_zed_mods_window_with_mod_manager.jpg` (same with group B's mods).
 - May be meant (a see-through window); if not, the desktop icons are drawn over, or the pane is not opaque.
+- **As designed (Oct 27 2026):** the Mods window is a ZeD window and follows the See-through setting (default 90, from the cohesion pass); at 100, or with Solid while in use, it is opaque.
 
 ### 3. Smart Radial Menu errors and draws no wheel with ZeD (ZeD's wheel element has none of the engine RadialMenu's methods)
 
@@ -450,6 +452,7 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Not the mod alone:** with ZeD off and the same mod (`zedqa_off_run.ps1 -ModList tools/qa/compat_r3_srm_mods.txt -Script tools/qa/zedqa_r3_srm.lua -Tag srm`) its wheel opens, no error. With ZeD on (`zedqa_mods_run.ps1 ... -Manifest tools/qa/compat_r3_srm.txt`, report `qa/regression/2026-10-26_2109_mods_fullscreen4k.md`) it errors.
 - **Evidence:** `ZeDUI/qa/compat_round3/F_smart_radial_menu_zed_off_vs_on.png` (left ZeD off: its wheel; right ZeD on: scattered icons).
 - **Fix idea (not done):** give ZeD's wheel element the engine RadialMenu methods mods call (`getSliceIndexFromMouse`, `getSliceIndexFromJoypad`, and the like, through `ZeD.Wheel.sliceFromMouse / sliceFromJoypad`), or let a wheel a mod draws itself stay the engine's.
+- **Fixed Oct 27 2026:** a mod's own wheel class (derived from `ISRadialMenu`, as Smart Radial Menu's `SRMMenuObject`) stays the engine's RadialMenu; the game's own wheels stay ZeD's. Its wheel opens with no error (`fix3_smart_radial_menu.png`).
 
 ### 4. ZeD setup loses all of ZeD's own options when a mod adds its own page to the game's Options
 
@@ -459,6 +462,7 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Steps:** `zedqa_mods_run.ps1 -ModList <TrueMusicJukebox> -Mode fullscreen4k -Manifest <zedqa_prelude.lua, zedqa_quick_chords.lua>`: `ZEDQA qc FAIL ZeD setup has Put things back` (report `qa/regression/2026-10-26_2116_mods_fullscreen4k.md`); the same test with ZeD alone passes (`qa/regression/2026-10-26_2113_fullscreen4k.md`). First seen in group F's run (`2026-10-26_2056_mods_fullscreen4k.md`).
 - **Evidence:** `ZeDUI/qa/compat_round3/F_zed_setup_loses_zed_options_with_true_music_jukebox.jpg` (ZeD setup opens on Quick actions; nothing above it).
 - **Fix idea (not done):** file only the page whose title is the Mods page as `"mods"` (give unknown pages their own id), or find ZeD's controls across every page.
+- **Fixed Oct 27 2026:** pages a mod adds get filed after the game's Mods page under their own title; ZeD's own controls are looked for on the game's Mods page only. `zedqa_quick_chords.lua` passes with True Music Jukebox on (2026-10-27_0800).
 
 ### 5. The belt names a mod's hotbar slot by its raw id, and the name runs out of its box
 
@@ -467,6 +471,7 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Steps:** group G's run (`zedqa_mods_run.ps1 -ModList tools/qa/compat_r3_G_mods.txt -Mode fullscreen4k -Manifest tools/qa/compat_r3_G.txt`), picture `zqa_r3G_12_belt.png`; report `qa/regression/2026-10-26_2121_mods_fullscreen4k.md`.
 - **Evidence:** `ZeDUI/qa/compat_round3/G_belt_mod_slot_names_overflow.png`.
 - **Fix idea (not done):** fall back to the slot's own name (`slot.name`, through getText), and fit or clip the label to the box.
+- **Fixed Oct 27 2026:** the game's name for the slot (`IGUI_HotbarAttachment_<type>`, else the slot's `name`), cut to the box with a full stop: Brita's read Belt carry. (`fix5_belt_mod_slots.png`).
 
 ### 6. (Clash, for a decision) A mod that swaps a dialog's constructor after ZeD bypasses ZeD's prompts and Messages
 
@@ -474,6 +479,7 @@ All 15 map mods (with their tile packs: Simon MDs, Unofficial Mappers Community,
 - **Steps:** `zedqa_mods_run.ps1 -ModList <NeatUI_Framework, Neat_Rocco> -Manifest <zedqa_prelude.lua, zedqa_messages.lua>`: 12 Messages checks fail (`qa/regression/2026-10-26_2245_mods_fullscreen4k.md`); they pass with ZeD alone and in groups B, C, E.
 - **Evidence:** `ZeDUI/qa/compat_round3/H_mod_notes_on_screen_with_neat_rocco.jpg`.
 - **Note:** two whole-UI mods meeting; listed as Not needed (use one). A fix on ZeD's side would be to wrap whatever `new` is current when a dialog is shown, or re-check its hook after the game starts.
+- **Fixed Oct 27 2026:** ZeD notices when another mod sets a dialog class's `new` after it (checked each frame) and wraps that one, so ZeD's prompt and Messages come first again; `zedqa_messages.lua` passes with Neat Rocco's UI on (2026-10-27_0800).
 
 ## Full run with the round's Compatible and Works well mods
 
@@ -496,4 +502,5 @@ ZeD's whole regression (`tools/qa/regression.txt`, 82 tests) in two halves of th
 - **Seen:** in the full run's second half ZeD's notebook test (`zedqa_notebook.lua`, which writes through the game's `ISInventoryPaneContextMenu.onWriteSomething`) stopped the frames 3 ticks in and the run timed out; the game never got back to the main menu (stuck on the photosensitivity warning, using the CPU) and had to be closed. The same with Project Writing [42.21] (3796402502) and NeatUI Framework only (`2026-10-27_0044`).
 - **Not the mod alone:** a short script that gives a notebook and a pencil and calls `onWriteSomething` (`tools/qa/zedqa_r3_pw.lua`): with ZeD off the mod's notebook opens and the game quits normally (`zedqa_off_run.ps1`, `qa/modload/2026-10-27_0053_pwoff_console.txt`); with ZeD on the notebook opens the same way, the script finishes, and then the frames stop and quitting to the main menu hangs (`qa/regression/2026-10-27_0059_mods_fullscreen4k.md`, the runner's "the game was still running after the quit").
 - **Where to look (not traced):** ZeD's `Overrides/WriteNote.lua` swaps `ISWriteSomething.start` / `ISUIWriteJournal.new` for its own reader for the length of a write; Project Writing also replaces `onWriteSomething` and sets `start` on the action instance (`NeatWriting/Patches/NW_Context.lua`). The two together leave something running that the game cannot leave.
+- **Not a ZeD fault (Oct 27 2026):** Project Writing pauses the game while its notebook is open (its option Pause the game while writing, on by default), and a quit waits until the notebook closes. A thread dump showed the game drawing normally, not stuck; closing the notebook let the waiting quit go to the main menu, and the game then quit to the desktop (`qa/regression/2026-10-27_0752_mods_fullscreen4k.md`). The ZeD-off run looked clean only because its runner closes the game itself. ZeD's notebook test stalls with the mod on because the mod replaces the notebook.
 - **Evidence:** `ZeDUI/qa/compat_round3/E_project_writing_zed_off_on_then_hang.jpg` (left ZeD off, middle ZeD on, right the stuck screen after the quit).

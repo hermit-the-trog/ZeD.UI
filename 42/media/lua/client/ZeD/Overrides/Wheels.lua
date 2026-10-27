@@ -117,6 +117,10 @@ local function hookRadial()
     function R:instantiate()
         remember(self)
         if not ready() or ZeD.Safe.on() then return O.instantiate(self) end
+        -- a mod's own wheel class (Smart Radial Menu's SRMMenuObject) draws itself over the
+        -- engine's and calls its Java methods (getSliceIndexFromMouse ...): it stays the engine's
+        local cls = getmetatable(self)
+        if cls ~= ISRadialMenu and cls ~= ISBackButtonWheel then return O.instantiate(self) end
         self._zed = true
         self.zedScaled = true          -- ZeD borders scale with the root (Overrides/TextScale.lua)
         self.wantMouseEvents = true    -- the wheel takes its clicks, as the engine's did
