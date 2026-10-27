@@ -8,97 +8,108 @@ Generated from the sweep. One row per key in `Translate/EN/UI.json`: the English
 - Only the pixel-face words are capitals: the action bar labels (READING, CHEWING) and the marks on the dash, watch and radio. They stay capitals in your language. Everything else in English is sentence case, one capital at the start and the rest in lower case (Next level, Show survey), for headings, column heads, tags, buttons and status words alike; write yours the way your language writes a heading or a button, not in capitals.
 - Where the game already has a phrase (body parts, exercise names, thermal views, Steam item states, farming states, short tags and column heads), ZeD uses the key of the game itself, so it arrives translated from the game files and is not listed here. A tag or column head arrives in whatever case the game text has, and ZeD sets it in sentence case.
 
-Total keys: 2379.
+Total keys: 3434.
 
 ## Areas
 
 - [Accent](#accent) (1)
-- [Act](#act) (279)
+- [Act](#act) (284)
 - [ActionBar](#actionbar) (4)
-- [Animals](#animals) (128)
-- [Appliance](#appliance) (16)
+- [Animals](#animals) (163)
+- [Appliance](#appliance) (21)
 - [Belt](#belt) (34)
-- [Card](#card) (66)
-- [Char](#char) (19)
+- [Card](#card) (95)
+- [Char](#char) (31)
 - [Controls](#controls) (13)
-- [Craft](#craft) (28)
+- [Craft](#craft) (29)
 - [Credits](#credits) (3)
 - [CtxMenu](#ctxmenu) (2)
-- [Curtain](#curtain) (1)
-- [Dash](#dash) (57)
+- [Curtain](#curtain) (4)
+- [CW](#cw) (4)
+- [Dash](#dash) (65)
 - [Death](#death) (12)
-- [DescEdit](#descedit) (71)
+- [DescEdit](#descedit) (72)
 - [Desktop](#desktop) (7)
-- [Doll](#doll) (19)
-- [Equip](#equip) (39)
-- [Farm](#farm) (29)
-- [Fire](#fire) (35)
-- [Fluid](#fluid) (18)
+- [Disclose](#disclose) (3)
+- [Doll](#doll) (23)
+- [Drawer](#drawer) (2)
+- [Equip](#equip) (40)
+- [Farm](#farm) (50)
+- [Fire](#fire) (60)
+- [Fluid](#fluid) (31)
 - [Flyer](#flyer) (4)
-- [Forage](#forage) (50)
+- [Focus](#focus) (1)
+- [Forage](#forage) (52)
 - [Furn](#furn) (25)
-- [Hair](#hair) (58)
-- [Health](#health) (8)
-- [Hook](#hook) (18)
+- [Hair](#hair) (71)
+- [Health](#health) (12)
+- [Hook](#hook) (30)
 - [Host](#host) (10)
 - [Hud](#hud) (1)
-- [Hutch](#hutch) (25)
-- [Identity](#identity) (20)
-- [Inv](#inv) (10)
+- [Hutch](#hutch) (41)
+- [Identity](#identity) (21)
+- [Inv](#inv) (17)
 - [ItemAct](#itemact) (3)
 - [ItemMenu](#itemmenu) (1)
 - [Join](#join) (44)
-- [Journal](#journal) (24)
-- [Keyboard](#keyboard) (1)
-- [Lock](#lock) (42)
-- [Looks](#looks) (9)
+- [Journal](#journal) (32)
+- [Keyboard](#keyboard) (12)
+- [Lock](#lock) (58)
+- [Looks](#looks) (11)
 - [Machine](#machine) (18)
 - [MainMenu](#mainmenu) (52)
-- [Map](#map) (40)
+- [Map](#map) (81)
 - [Meta](#meta) (8)
+- [MMHelp](#mmhelp) (58)
+- [MMWord](#mmword) (2)
 - [Modal](#modal) (2)
-- [Mods](#mods) (176)
+- [Mods](#mods) (293)
 - [ModScan](#modscan) (36)
+- [Msg](#msg) (38)
 - [NewGame](#newgame) (3)
-- [Notebook](#notebook) (21)
-- [ObjCard](#objcard) (10)
-- [Options](#options) (89)
-- [Papers](#papers) (17)
+- [Notebook](#notebook) (23)
+- [ObjCard](#objcard) (17)
+- [Options](#options) (93)
+- [Papers](#papers) (21)
 - [PartAbbr](#partabbr) (14)
-- [Place](#place) (3)
-- [Power](#power) (24)
+- [Place](#place) (8)
+- [Power](#power) (47)
 - [Print](#print) (2)
-- [Prompt](#prompt) (24)
+- [Progress](#progress) (1)
+- [Prompt](#prompt) (38)
 - [Radio](#radio) (38)
-- [RadioPrompt](#radioprompt) (17)
+- [RadioPrompt](#radioprompt) (18)
 - [Read](#read) (18)
-- [Reader](#reader) (26)
+- [Reader](#reader) (49)
 - [Recipe](#recipe) (1)
 - [Safe](#safe) (3)
 - [Sandbox](#sandbox) (13)
 - [Saves](#saves) (14)
 - [Sbx](#sbx) (189)
-- [Seat](#seat) (5)
+- [Seat](#seat) (8)
 - [Server](#server) (55)
-- [Settings](#settings) (64)
-- [Siren](#siren) (2)
-- [Skills](#skills) (9)
+- [Settings](#settings) (88)
+- [Siren](#siren) (4)
+- [Skills](#skills) (15)
 - [Spawn](#spawn) (9)
+- [SPNCC](#spncc) (28)
 - [SRJ](#srj) (9)
 - [Station](#station) (31)
 - [Status](#status) (3)
 - [Strip](#strip) (3)
-- [TAS](#tas) (35)
+- [TAS](#tas) (39)
 - [Target](#target) (2)
-- [Thermal](#thermal) (8)
+- [Thermal](#thermal) (10)
 - [Track](#track) (9)
 - [Traits](#traits) (19)
-- [Trough](#trough) (18)
-- [Veh](#veh) (122)
+- [Trough](#trough) (27)
+- [Veh](#veh) (176)
 - [Watch](#watch) (14)
-- [Wheel](#wheel) (1)
-- [Workshop](#workshop) (49)
-- [World](#world) (13)
+- [Wheel](#wheel) (105)
+- [Window](#window) (1)
+- [WinMenu](#winmenu) (7)
+- [Workshop](#workshop) (51)
+- [World](#world) (19)
 - [General](#general) (5)
 
 ## Accent
@@ -539,6 +550,41 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Animals_ZoneReleaseHint` | `Release to set zone` | Animals tab, zone drawing footer while dragging: hint next to Cancel | 30 |
 | `UI_ZeD_Animals_ZoneSizeLimits` | `Min %1x%1, max %2x%2 tiles` | Animals tab, zone drawing (waiting to start): size limits line (%1 = smallest side, %2 = largest side, in tiles) | 40 |
 | `UI_ZeD_Animals_ZoneSquares` | `%1 sq.` | Animals tab zone view, info band: zone area in tiles, beside the zone name | 12 |
+| `UI_ZeD_Animals_AnimalCheats` | `Animal cheats` | Animals tab, animal view, Genome section: tag at the right end of the heading, saying this panel is the cheat panel | 16 |
+| `UI_ZeD_Animals_AnimalGone` | `That animal is no longer here.` | Animals tab, animal view: line shown when the animal that was open has left or died | - |
+| `UI_ZeD_Animals_BtnCreate` | `Create` | Animals tab, zone creation: button in the band that asks "Create this zone?" | 12 |
+| `UI_ZeD_Animals_BtnRemoveZone` | `Remove zone` | Animals tab, zone view: footer button that removes the zone | 14 |
+| `UI_ZeD_Animals_CreateZoneAsk` | `Create this zone? %1 x %2 tiles.` | Animals tab, zone creation: the question in the band after the zone is drawn; %1 and %2 = the zone's width and height in tiles | - |
+| `UI_ZeD_Animals_CreateZoneBtn` | `Create zone` | Animals tab, Ranch overview: the button that starts drawing a new zone | 14 |
+| `UI_ZeD_Animals_GeneDisorder` | `Disorder` | Animals tab, animal view, Genome section (cheat panel): button that marks the picked allele as a disorder | 12 |
+| `UI_ZeD_Animals_GeneDominant` | `Dominant` | Animals tab, animal view, Genome section (cheat panel): button that makes the picked allele dominant | 12 |
+| `UI_ZeD_Animals_GeneSwitch` | `Switch` | Animals tab, animal view, Genome section (cheat panel): button that switches the picked allele | 12 |
+| `UI_ZeD_Animals_Genome` | `Genome` | Animals tab, animal view: heading of the genome section (the cheat panel) | 14 |
+| `UI_ZeD_Animals_HelpAnimalRow` | `Open this animal: how it is doing and what it needs` | Animals tab: help line over an animal's row | - |
+| `UI_ZeD_Animals_HelpBackButcher` | `Back to the butcher list` | Animals tab, butcher view: help line over the Back button that returns to the butcher list | - |
+| `UI_ZeD_Animals_HelpBackOverview` | `Back to the overview of your zones` | Animals tab, zone view: help line over the Back button that returns to the overview of zones | - |
+| `UI_ZeD_Animals_HelpBackZone` | `Back to %1` | Animals tab, animal view: help line over the Back button; %1 = the zone's name | - |
+| `UI_ZeD_Animals_HelpButcher` | `Butcher: which animals can be butchered and what they would give` | Animals tab: help line over the Butcher sub-tab | - |
+| `UI_ZeD_Animals_HelpCreateZone` | `Create zone: draw a new livestock zone on the ground` | Animals tab, Ranch overview: help line over the Create zone button | - |
+| `UI_ZeD_Animals_HelpFold` | `Fold or unfold this section` | Animals tab, overview: help line over the heading of a section that folds (alerts, totals) | - |
+| `UI_ZeD_Animals_HelpRanch` | `Ranch: your livestock zones and the animals in them` | Animals tab: help line over the Ranch sub-tab | - |
+| `UI_ZeD_Animals_HelpRemoveBtn` | `Remove zone: asks first, then takes this zone away` | Animals tab, zone view: help line over the Remove zone button | - |
+| `UI_ZeD_Animals_HelpRemoveCancel` | `Do not remove the zone` | Animals tab, zone view: help line over the No button of the remove question | - |
+| `UI_ZeD_Animals_HelpRemoveDo` | `Remove the zone; its animals stay where they are` | Animals tab, zone view: help line over the Yes button of the remove question | - |
+| `UI_ZeD_Animals_HelpRename` | `Rename the zone: click to type a new name` | Animals tab, zone view: help line over the zone's name | - |
+| `UI_ZeD_Animals_HelpRenameBtn` | `Rename: give this zone a new name` | Animals tab, zone view: help line over the Rename button | - |
+| `UI_ZeD_Animals_HelpRenameCancel` | `Keep the old name` | Animals tab, zone view: help line over the Cancel button while the zone is being renamed | - |
+| `UI_ZeD_Animals_HelpRenameReset` | `Put back the automatic name` | Animals tab, zone view: help line over the Reset button while the zone is being renamed | - |
+| `UI_ZeD_Animals_HelpRenameSave` | `Save the new name` | Animals tab, zone view: help line over the Save button while the zone is being renamed | - |
+| `UI_ZeD_Animals_HelpSort` | `Sort order: click to change how the animals are sorted` | Animals tab: help line over the sort button above the animal list | - |
+| `UI_ZeD_Animals_HelpStruct` | `Open its card (you walk there first if it is out of reach)` | Animals tab: help line over a hutch, trough or other structure row | - |
+| `UI_ZeD_Animals_HelpZoneCard` | `Open this zone: its animals, food and water` | Animals tab, Ranch overview: help line over a zone's card | - |
+| `UI_ZeD_Animals_HelpZoneCreate` | `Create the zone you drew` | Animals tab, zone creation: help line over the Create button of the confirm band | - |
+| `UI_ZeD_Animals_HelpZoneLeave` | `Stop drawing and leave zone creation` | Animals tab, zone creation: help line over the Cancel button while a zone is being drawn | - |
+| `UI_ZeD_Animals_HelpZoneRedraw` | `Do not create this zone; draw it again` | Animals tab, zone creation: help line over the Cancel button of the confirm band | - |
+| `UI_ZeD_Animals_NoEligibleYet` | `No animals can be butchered yet. Only adults that are not pregnant count.` | Animals tab, butcher view: line shown when no animal can be butchered | - |
+| `UI_ZeD_Animals_NoZonesYet` | `No animal zones yet.` | Animals tab, Ranch overview: line shown when there is no zone | - |
+| `UI_ZeD_Animals_RemoveZoneAsk` | `Remove the zone? Its animals stay where they are.` | Animals tab, zone view: the question in the band after Remove zone is pressed; the band then offers a yes and a no | - |
 
 ## Appliance
 
@@ -563,6 +609,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Appliance_Set` | `%1 set` | Craft tab, microwave state line: time set while off (%1 is like 1:30) | 12 |
 | `UI_ZeD_Appliance_SetHeat` | `Set %1` | Craft tab, oven state line: heat that is set while off (%1 is like 200Â°C) | 14 |
 | `UI_ZeD_Appliance_TimerMin` | `Timer %1 min` | Craft tab, oven state line: timer set while off | 14 |
+| `UI_ZeD_Appliance_EmptyOven` | `Nothing is in the oven.` | Craft tab, oven: line when nothing is inside | 32 |
+| `UI_ZeD_Appliance_EmptyMicrowave` | `Nothing is in the microwave.` | Craft tab, microwave: line when nothing is inside | 32 |
 
 ## Belt
 
@@ -599,7 +647,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Belt_AmmoInCyl` | `%1 \| %2 in the cylinder` | Belt HUD, the ammo chip's first line, a revolver; %1 = the gun's name, %2 = rounds | - |
 | `UI_ZeD_Belt_AmmoLoaded` | `%1 \| %2 loaded` | Belt HUD, the ammo chip's first line, a shotgun or rifle loaded by hand; %1 = the gun's name, %2 = rounds | - |
 | `UI_ZeD_Belt_AmmoChambered` | `%1, 1 chambered` | Belt HUD, the ammo chip's first line with a round in the chamber; %1 = the line before it | - |
-| `UI_ZeD_Belt_AmmoCarried` | `Carried: %1` | Belt HUD, the ammo chip's second line; %1 = what is carried, joined by | | - |
+| `UI_ZeD_Belt_AmmoCarried` | `Carried: %1` | Belt HUD, the ammo chip's second line; %1 = what is carried, joined by \| | - |
 | `UI_ZeD_Belt_AmmoCarriedNone` | `Carried: no %1` | Belt HUD, the ammo chip's second line when nothing is carried; %1 = the rounds' name | - |
 | `UI_ZeD_Belt_AmmoCountOf` | `%1 %2` | Belt HUD, the ammo chip: a count and an item's name (2 M9 Magazine, 34 9mm Rounds); %1 = count, %2 = name | - |
 
@@ -673,6 +721,35 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Card_ZoneTorso` | `Torso` | Item card, clothing zones: group heading over the zone rows | 12 |
 | `UI_ZeD_Card_ZoneUpper` | `Upper` | Item card, clothing zones: the torso row 'Upper' under the TORSO heading | 6 |
 | `UI_ZeD_Card_ZoneUpperArm` | `Upper arm` | Item card, clothing zones: group heading over the zone rows | 12 |
+| `UI_ZeD_Card_NeedsSewing` | `a needle, thread and fabric strips` | Item card (clothing): what Repair holes and Pad need, in lower case, filling %1 of "With %1 you could %2" in the folded hidden-actions row, and %2 of "%1 needs %2" | - |
+| `UI_ZeD_Card_HintRepairHoles` | `repair its holes` | Item card (clothing): what the Repair holes action does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Card_HintPad` | `pad it` | Item card (clothing): what the Pad action does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Card_NeedsWater` | `water within reach` | Item card: what Wash needs, in lower case, filling %1 of "With %1 you could %2" in the folded hidden-actions row, and %2 of "%1 needs %2" | - |
+| `UI_ZeD_Card_HintWash` | `wash it` | Item card: what the Wash action does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Card_NeedsFixer` | `a repair item in your bags` | Item card: what Repair needs, in lower case, filling %1 of "With %1 you could %2" in the folded hidden-actions row, and %2 of "%1 needs %2" | - |
+| `UI_ZeD_Card_HintRepair` | `repair it` | Item card: what the Repair action does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Card_NeedsWhetstone` | `a whetstone or a file in your bags` | Item card (blade): what Sharpen needs, in lower case, filling %1 of "With %1 you could %2" in the folded hidden-actions row, and %2 of "%1 needs %2" | - |
+| `UI_ZeD_Card_HintSharpen` | `sharpen it` | Item card (blade): what the Sharpen action does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Card_HelpEquip` | `%1: put it on, or in your hands` | Item card: help line over the Equip button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpUnequip` | `%1: take it off, or out of your hands` | Item card: help line over the Unequip button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpDrop` | `%1: put it on the floor` | Item card: help line over the Drop button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpTake` | `%1: put it in your inventory` | Item card: help line over the Take button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpEat` | `%1: all of it` | Item card (food): help line over the Eat button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpRead` | `%1: read it now` | Item card: help line over the Read button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpUse` | `%1: use it, as a double-click does` | Item card: help line over the Use button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpDrink` | `%1: drink from it` | Item card: help line over the Drink button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpWear` | `%1: put it on` | Item card: help line over the Wear button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpOffHand` | `%1: put it in your other hand` | Item card: help line over the Off hand button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpMore` | `%1: everything else you can do with it` | Item card: help line over the More button, which opens the rest of the item's actions; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpWash` | `%1: wash it at the water nearby` | Item card: help line over the Wash button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpRepairHoles` | `%1: sew up its holes` | Item card (clothing): help line over the Repair holes button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpPad` | `%1: sew padding onto it` | Item card (clothing): help line over the Pad button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpRepair` | `%1: repair it with what you carry` | Item card: help line over the Repair button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpSharpen` | `%1: sharpen its edge` | Item card (blade): help line over the Sharpen button; %1 = the button's label | - |
+| `UI_ZeD_Card_HelpRename` | `Rename: press to give it a name of your own` | Item card: help line over the item's name row, which a press turns into a name field | - |
+| `UI_ZeD_Card_HelpDockRepair` | `Repair this part's hole` | Item card (clothing): help line over a part's cell in the patch dock when its button repairs the hole | - |
+| `UI_ZeD_Card_HelpDockPatch` | `Take this part's patch off` | Item card (clothing): help line over a part's cell in the patch dock when its button takes the patch off | - |
+| `UI_ZeD_Card_HelpBack` | `Back: close this card` | Item card: help line over the Back button that closes the card | - |
 
 ## Char
 
@@ -760,6 +837,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Craft_TimeMinSec` | `%1m%2s` | Recipe card: badge with the time a craft takes (minutes and seconds) | 10 |
 | `UI_ZeD_Craft_TimeSec` | `%1s` | Recipe card: badge with the time a craft takes (seconds) | 8 |
 | `UI_ZeD_Craft_UseStation` | `Use %1` | Craft tab, recipe card: button that binds the nearby station; %1 is the station name in lower case | 24 |
+| `UI_ZeD_Craft_CategoryHelp` | `Category: press to choose which recipes the list shows` | Craft tab: help line over the category choice above the recipe list | - |
 
 ## Credits
 
@@ -781,6 +859,18 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Curtain_Unroll` | `Unroll` | Controller prompt for A over a rolled-up window's tab | 14 |
+| `UI_ZeD_Curtain_TabHelp` | `%1, %2 items: press to roll it down, or drop things on it` | Character and World windows: help line over the tab of a rolled-up inventory side; %1 = its name, %2 = how many items (2 or more) | - |
+| `UI_ZeD_Curtain_TabHelpOne` | `%1, 1 item: press to roll it down, or drop things on it` | Character and World windows: help line over the tab of a rolled-up inventory side that holds exactly one item; %1 = its name | - |
+| `UI_ZeD_Curtain_RollHelp` | `Roll this side up under its rod: the drawer stays open` | Character and World windows: help line over the small roll button in the title bar that rolls the inventory side up | - |
+
+## CW
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_CW_TabHelp` | `%1: press to show it in the drawer` | Character window: help line over a tab name; %1 = the tab's name | - |
+| `UI_ZeD_CW_MainHelp` | `%1: press to show it` | Character window: help line over the main container (what you carry) in the container strip; %1 = its name | - |
+| `UI_ZeD_CW_BagHelp` | `%1: press to show it, or drag it up or down the strip` | Character window: help line over a bag or other container in the container strip; %1 = its name | - |
+| `UI_ZeD_CW_SortHelp` | `The order of the bags below: press for the next order` | Character window: help line over the button that changes the order of the bags in the container strip | - |
 
 ## Dash
 
@@ -847,6 +937,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Dash_LampCharge` | `charge %1` | Dashboard, the chip above the battery lamp: the battery's charge; %1 = a percentage | - |
 | `UI_ZeD_Dash_LampLeft` | `left %1` | Dashboard, the chip above the headlight lamp: the left headlight's condition; %1 = a percentage or Missing | - |
 | `UI_ZeD_Dash_LampRight` | `right %1` | Dashboard, the chip above the headlight lamp: the right headlight's condition; %1 = a percentage or Missing | - |
+| `UI_ZeD_Dash_LampCondLine` | `Condition %1` | Dashboard, the hover card of a warning lamp: a line under the part's name giving its condition; %1 = a percentage | - |
+| `UI_ZeD_Dash_LampChargeLine` | `Charge %1` | Dashboard, the hover card of the battery lamp: a line under the battery's condition giving its charge; %1 = a percentage | - |
+| `UI_ZeD_Dash_LampLeftLine` | `Left %1` | Dashboard, the hover card of the headlight lamp: the left headlight's condition; %1 = a percentage or Missing | - |
+| `UI_ZeD_Dash_LampRightLine` | `Right %1` | Dashboard, the hover card of the headlight lamp: the right headlight's condition; %1 = a percentage or Missing | - |
 
 ## Death
 
@@ -940,6 +1034,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_DescEdit_TitleNamed` | `Project Zomboid  +  Description: %1` | Description editor: title bar with the mod's name. %1 is the mod's name | - |
 | `UI_ZeD_DescEdit_Undo` | `Undo` | Description editor: action strip button | 10 |
 | `UI_ZeD_DescEdit_UseThis` | `Use this description` | Description editor: action strip button that hands the text back to the upload window | 24 |
+| `UI_ZeD_DescEdit_HintLevel` | `Heading level %1` | Description editor: hover hint of a heading-level button (H1, H2, H3); %1 = the level, 1 to 3 | - |
 
 ## Desktop
 
@@ -952,6 +1047,14 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Desktop_OneItem` | `1 item` | Trash window: count in the title bar | 10 |
 | `UI_ZeD_Desktop_PromptDpad` | `D-pad Move` | Desktop: controller legend along the foot of the screen (the word D-PAD names the controller's cross) | - |
 | `UI_ZeD_Desktop_Trash` | `Trash` | Desktop: name under the trash icon; title of the trash window | 14 |
+
+## Disclose
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Disclose_Needs` | `%1 needs %2.` | Any action list (item card, object card): the line under a grayed action that says what it needs; %1 = the action's name, %2 = what is missing | - |
+| `UI_ZeD_Disclose_One` | `With %1 you could %2.` | Any action list with Hidden actions on Folded: the folded row when one action is out of reach; %1 = what is needed ("scissors"), %2 = the action ("cut your hair") | - |
+| `UI_ZeD_Disclose_Many` | `%1 more with the right things` | Any action list with Hidden actions on Folded: the folded row when several actions are out of reach; %1 = how many | - |
 
 ## Doll
 
@@ -976,6 +1079,17 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Doll_UnderN` | `Under %1` | Equipment tab, item card of a worn item with layers: strip under the card: %3 of the layer line for a middle layer; %1 is how many layers lie above it | 14 |
 | `UI_ZeD_Doll_ViewDoll` | `Doll` | Equipment tab heading, List \| Doll toggle buttons: hover hint of the doll button (icon-only button) | 10 |
 | `UI_ZeD_Doll_ViewList` | `List` | Equipment tab heading, List \| Doll toggle buttons: hover hint of the list button (icon-only button) | 10 |
+| `UI_ZeD_Doll_SlotHelp` | `%1: press for its card` | Equipment tab: help line over a worn or carried item on the doll or in the list; %1 = the item's name | - |
+| `UI_ZeD_Doll_EmptyHelp` | `%1: empty` | Equipment tab: help line over an empty slot; %1 = the slot's name | - |
+| `UI_ZeD_Doll_ListHelp` | `List: what you wear and carry, as rows` | Equipment tab: help line over the List button of the List \| Doll toggle | - |
+| `UI_ZeD_Doll_DollHelp` | `Doll: what you wear, on your figure` | Equipment tab: help line over the Doll button of the List \| Doll toggle | - |
+
+## Drawer
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Drawer_Prev` | `Previous one` | Radio tab: hover hint of the left arrow on the strip that steps to the previous radio (icon-only button) | - |
+| `UI_ZeD_Drawer_Next` | `Next one` | Radio tab: hover hint of the right arrow on the strip that steps to the next radio (icon-only button) | - |
 
 ## Equip
 
@@ -1020,6 +1134,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Equip_Wrist` | `Wrist` | Equipment tab (Character window), list view: SLOT column text on a slot row (narrow column, one short word) | 10 |
 | `UI_ZeD_Equip_ZonePct` | `%1 (%2)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst/Best Zone; %1 is a body part name, %2 its bite protection as a percentage | 36 |
 | `UI_ZeD_Equip_ZoneUncovered` | `%1 (uncovered)` | Equipment tab (Character window), list view, Defense body (figure + stats, bottom of the tab): value under Worst Zone when that part has no protection; %1 is a body part name | 36 |
+| `UI_ZeD_Equip_BeltRowHelp` | `%1 on the belt: %2 is the button at the right` | Equipment tab, list view: help line over a belt slot row; %1 = the item's name (or Empty), %2 = the label of the row's button | - |
 
 ## Farm
 
@@ -1054,6 +1169,27 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Farm_TagInSeason` | `In season` | Farm plot card: tag on a seed row of the Sow list (bordered tag) | 14 |
 | `UI_ZeD_Farm_TagRiskyMonth` | `Risky month` | Farm plot card: tag on a seed row of the Sow list (bordered tag) | 14 |
 | `UI_ZeD_Farm_Treat` | `Treat` | Farm plot card: verb button, and the button on each pest row | 10 |
+| `UI_ZeD_Farm_HelpCompost` | `Compost: spread compost on the plot` | Farm plot card: help line over the Compost button | - |
+| `UI_ZeD_Farm_HelpDig` | `Dig up: take the plot out with a shovel` | Farm plot card: help line over the Dig up button | - |
+| `UI_ZeD_Farm_HelpFertilize` | `Fertilize: feed the plot with fertilizer` | Farm plot card: help line over the Fertilize button | - |
+| `UI_ZeD_Farm_HelpHarvest` | `Harvest: pick what is ripe` | Farm plot card: help line over the Harvest button | - |
+| `UI_ZeD_Farm_HelpPlot` | `Plot: look at this plot` | Farm plot card: help line over a plot in the row of nearby plots; a press shows that plot | - |
+| `UI_ZeD_Farm_HelpSow` | `Sow: pick a seed from your bags` | Farm plot card: help line over the Sow button that opens the list of seeds | - |
+| `UI_ZeD_Farm_HelpSowSeed` | `Sow: plant %1 in this plot` | Farm plot card: help line over a seed in the Sow list; %1 = the seed's name | - |
+| `UI_ZeD_Farm_HelpTreat` | `Treat: spray the plant against pests` | Farm plot card: help line over the Treat button | - |
+| `UI_ZeD_Farm_HelpTreatPest` | `Treat: spray against %1` | Farm plot card: help line over the Treat button of one pest; %1 = the pest's name in lower case | - |
+| `UI_ZeD_Farm_HelpWater` | `Water: water the plant from what you carry` | Farm plot card: help line over the Water button | - |
+| `UI_ZeD_Farm_HintDig` | `dig it up` | Farm plot card: what Dig up does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Farm_HintFertilize` | `fertilize it` | Farm plot card: what Fertilize does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Farm_HintSow` | `sow it` | Farm plot card: what Sow does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Farm_HintTreat` | `treat it` | Farm plot card: what Treat does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Farm_HintWater` | `water it` | Farm plot card: what Water does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Farm_NeedsFertilizer` | `fertilizer in your bags` | Farm plot card: what Fertilize needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Farm_NeedsSeeds` | `seeds in your bags` | Farm plot card: what Sow needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Farm_NeedsShovel` | `a shovel or trowel` | Farm plot card: what Dig up needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Farm_NeedsSpray` | `a spray in your bags` | Farm plot card: what Treat needs when no particular spray is named, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Farm_NeedsSprayNamed` | `%1 in your bags` | Farm plot card: what Treat needs when a particular spray is named, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2"; %1 = the spray's item name | - |
+| `UI_ZeD_Farm_NeedsWater` | `water in your hands or bags` | Farm plot card: what Water needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 
 ## Fire
 
@@ -1094,6 +1230,31 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Fire_Tank` | `Tank` | Fire card: propane barbecue, label of the tank state | 14 |
 | `UI_ZeD_Fire_TankIn` | `In` | Fire card: propane barbecue, value of Tank when a tank is fitted | 6 |
 | `UI_ZeD_Fire_TooTired` | `Too tired` | Fire card: tag on the kindling row of the Light with list | 14 |
+| `UI_ZeD_Fire_HelpAdd` | `Add: put %1 on the fire` | Fire card: help line over an Add button in the fuel list; %1 = the fuel's name | - |
+| `UI_ZeD_Fire_HelpAddEvery` | `Add all: put everything on the list on the fire` | Fire card: help line over the Add all button on the All fuel row | - |
+| `UI_ZeD_Fire_HelpAddMany` | `Add all: put every %1 that fits on the fire` | Fire card: help line over the Add all button on a fuel row; %1 = the fuel's name | - |
+| `UI_ZeD_Fire_HelpBurner` | `Burner knob: turn the grill on or off` | Fire card (propane barbecue): help line over the burner knob | - |
+| `UI_ZeD_Fire_HelpFuel` | `Add fuel: put something that burns on the fire` | Fire card: help line over the Add fuel button | - |
+| `UI_ZeD_Fire_HelpIgnite` | `Igniter: light the burner` | Fire card (propane barbecue): help line over the igniter | - |
+| `UI_ZeD_Fire_HelpInsert` | `Insert tank: put a propane tank in the cart` | Fire card (propane barbecue): help line over the Insert tank button | - |
+| `UI_ZeD_Fire_HelpLight` | `Light: choose how to light the fire` | Fire card: help line over the Light button that opens the list of ways to light the fire | - |
+| `UI_ZeD_Fire_HelpLightWith` | `Light: light the fire with %1` | Fire card: help line over a row of the Light with list; %1 = what lights the fire | - |
+| `UI_ZeD_Fire_HelpOff` | `Turn off: shut the gas` | Fire card (propane barbecue): help line over the Turn off button | - |
+| `UI_ZeD_Fire_HelpOn` | `Turn on: light the burner` | Fire card (propane barbecue): help line over the Turn on button | - |
+| `UI_ZeD_Fire_HelpOut` | `Put out: put the fire out` | Fire card: help line over the Put out button | - |
+| `UI_ZeD_Fire_HelpRemove` | `Remove tank: take the tank out of the cart` | Fire card (propane barbecue): help line over the Remove tank button | - |
+| `UI_ZeD_Fire_HelpTake` | `Take apart: take the campfire down` | Fire card: help line over the Take apart button | - |
+| `UI_ZeD_Fire_HelpTankPart` | `Tank: put a tank in the cart or take it out` | Fire card (propane barbecue): help line over the tank in the picture | - |
+| `UI_ZeD_Fire_HintFuel` | `add fuel` | Fire card: what Add fuel does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Fire_HintLight` | `light it` | Fire card: what Light does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Fire_HintOn` | `turn it on` | Fire card (propane barbecue): what Turn on does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Fire_HintTank` | `put a tank in` | Fire card (propane barbecue): what Insert tank does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Fire_NeedsFuelFirst` | `fuel on the fire` | Fire card: what Light needs when the fire has no fuel, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fire_NeedsFuelItems` | `something that burns in your bags` | Fire card: what Add fuel needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fire_NeedsGas` | `a propane tank with gas` | Fire card (propane barbecue): what Turn on needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fire_NeedsLighter` | `a lighter or matches in your bags` | Fire card: what Light needs when the fire has fuel, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fire_NeedsSpareTank` | `a propane tank in your bags` | Fire card (propane barbecue): what Insert tank needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fire_QTakeApart` | `Take the campfire apart? The fire is lost.` | Fire card: the question in the footer after Take apart is pressed; the footer then offers a yes and a no | - |
 
 ## Fluid
 
@@ -1117,6 +1278,19 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Fluid_TagWontTake` | `Won't take` | Fluid card: tag on a container row that refuses the liquid being poured (bordered tag; the widest tag, it sets the column) | 10 |
 | `UI_ZeD_Fluid_TooFull` | `You carry too much to pour into a container in your bags.` | Fluid card: the NEEDS line when the inventory is over its limit and the target container is in a bag | - |
 | `UI_ZeD_Fluid_YourContainers` | `Your containers` | Fluid card: section heading over the list of containers | - |
+| `UI_ZeD_Fluid_HelpEmpty` | `Empty: pour the liquid out on the ground` | Fluid card: help line over the Empty button | - |
+| `UI_ZeD_Fluid_HelpFromRow` | `From: pour out of %1` | Fluid card: help line over a container in the From list; %1 = its name | - |
+| `UI_ZeD_Fluid_HelpIntoRow` | `Into: pour into %1` | Fluid card: help line over a container in the Into list; %1 = its name | - |
+| `UI_ZeD_Fluid_HelpPour` | `Pour: move the amount from the left container to the right` | Fluid card: help line over the Pour button | - |
+| `UI_ZeD_Fluid_HelpSlider` | `Amount: drag to choose how much to pour` | Fluid card: help line over the amount slider | - |
+| `UI_ZeD_Fluid_HelpStep` | `Amount: %1 of the most that can move` | Fluid card: help line over a step button beside the amount slider; %1 = the button's label | - |
+| `UI_ZeD_Fluid_HelpStop` | `Stop: stop pouring` | Fluid card: help line over the Stop button while pouring | - |
+| `UI_ZeD_Fluid_HelpSwitch` | `Switch: swap the two containers` | Fluid card: help line over the Switch button that swaps the From and Into containers | - |
+| `UI_ZeD_Fluid_HintPour` | `pour` | Fluid card: what Pour does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Fluid_NeedsAmount` | `an amount above zero` | Fluid card: what Pour needs when the amount is zero, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fluid_NeedsFit` | `a container that can take it` | Fluid card: what Pour needs when the other container cannot take the liquid, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fluid_NeedsLiquid` | `something to pour and room to pour it into` | Fluid card: what Pour needs when there is nothing to pour or no room, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Fluid_QEmpty` | `Empty the container? %1 of %2 is lost.` | Fluid card: the question in the footer after Empty is pressed; %1 = the amount, e.g. 1.25 L, %2 = the liquid's name in lower case; the footer then offers a yes and a no | - |
 
 ## Flyer
 
@@ -1126,6 +1300,12 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Flyer_ClickRead` | `Click to read` | Maps, hover card over a flyer pin with a mouse: hint line | - |
 | `UI_ZeD_Flyer_NotBeenThere` | `Not been there` | Maps, hover card over a flyer pin: status line (not visited) | - |
 | `UI_ZeD_Flyer_PadRead` | `Press to read` | Maps, hover card over a flyer pin with a controller: hint line (A is the controller button) | - |
+
+## Focus
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Focus_Sample` | `Sample` | ZeD setup and the window menu, Controller highlight choices: the word in the small sample row that shows how each highlight looks | 12 |
 
 ## Forage
 
@@ -1181,6 +1361,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Forage_WxRain` | `Rain` | World window, Foraging tab: hero chip, weather | 10 |
 | `UI_ZeD_Forage_WxSnow` | `Snow` | World window, Foraging tab: hero chip, weather | 10 |
 | `UI_ZeD_Forage_WxStorm` | `Storm` | World window, Foraging tab: hero chip, weather | 10 |
+| `UI_ZeD_Forage_SearchHelp` | `Search mode: press to start or stop looking for things to forage` | Foraging tab: help line over the search mode button | - |
+| `UI_ZeD_Forage_MoreHelp` | `More detail: press to show or hide the categories and modifiers` | Foraging tab: help line over the More detail button that shows or hides the categories and modifiers | - |
 
 ## Furn
 
@@ -1273,6 +1455,20 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Hair_VerbTrim` | `Trim` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
 | `UI_ZeD_Hair_VerbUntie` | `Untie` | Identity tab, Hair and beard: the strip's button (sentence case) | 10 |
 | `UI_ZeD_Hair_YouHave` | `You have %1.` | Identity tab, Hair and beard: hover hint on a row that can be done; %1 is the tool's name | - |
+| `UI_ZeD_Hair_HelpMore` | `Show the styles you can't pick yet.` | Identity tab, Hair and beard: help line over the folded row of styles you cannot pick yet | - |
+| `UI_ZeD_Hair_HelpMoreOpen` | `Fold the styles you can't pick yet.` | Identity tab, Hair and beard: help line over the same row while it is open | - |
+| `UI_ZeD_Hair_HelpPart` | `Show the choices for %1.` | Identity tab, Hair and beard: help line over the Hair and Beard switch; %1 = the game's name for the part (hair style or beard style) | - |
+| `UI_ZeD_Hair_HelpRow` | `Pick %1 to see what it needs.` | Identity tab, Hair and beard: help line over a style row; %1 = the style's name | - |
+| `UI_ZeD_Hair_HelpStop` | `Stop and leave it as it is.` | Identity tab, Hair and beard: help line over the Stop button while a cut or trim runs | - |
+| `UI_ZeD_Hair_HintCut` | `cut your hair` | Identity tab, Hair and beard: what Cut does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hair_HintMoreStyles` | `choose from more styles` | Identity tab, Hair and beard: what the folded row of more styles lets you do, in lower case, filling %2 of "With %1 you could %2" | - |
+| `UI_ZeD_Hair_HintShave` | `shave your head` | Identity tab, Hair and beard: what shaving the head does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hair_HintShaveBeard` | `shave your beard` | Identity tab, Hair and beard: what shaving the beard does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hair_HintStyle` | `style your hair` | Identity tab, Hair and beard: what styling the hair does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hair_HintTrim` | `trim your beard` | Identity tab, Hair and beard: what trimming the beard does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hair_NeedsLongerBeard` | `a longer beard` | Identity tab, Hair and beard: what a style needs when the beard is too short, in lower case, filling %2 of "%1 needs %2" | - |
+| `UI_ZeD_Hair_NeedsLongerHair` | `longer hair` | Identity tab, Hair and beard: what a style needs when the hair is too short, in lower case, filling %2 of "%1 needs %2" | - |
+| `UI_ZeD_Hair_OutTitleNA` | `%1: not available here` | Identity tab, Hair and beard: the strip when an unavailable row is picked; %1 = the style | - |
 
 ## Health
 
@@ -1286,6 +1482,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Health_NoInjuriesLow` | `No injuries, low body health` | Health tab (Character window): summary line (with a yellow dot) when nothing is wounded but some body part has reduced health (hunger, illness, cold) | 32 |
 | `UI_ZeD_Health_Overall` | `Overall` | Health tab (Character window): stat row label at the top of the summary, before the overall body health percentage | 12 |
 | `UI_ZeD_Health_Qualified` | `%1 (%2)` | Health tab (Character window): a condition with its severity or state in a badge, e.g. Deep Wound (Severe), Stitched (Good); %1 the condition, %2 the severity word | 28 |
+| `UI_ZeD_Health_HelpExercise` | `Do %1 for %2 minutes.` | Health tab (Character window): help line while the pointer is on an exercise button; %1 = the exercise's name, %2 = the session length in minutes | - |
+| `UI_ZeD_Health_HelpHeader` | `Show or hide the body figure.` | Health tab (Character window): help line while the pointer is on the Health header above the body figure | - |
+| `UI_ZeD_Health_HelpTimeLess` | `Make the session 10 minutes shorter.` | Health tab (Character window): help line while the pointer is on the minus button beside the exercise session length | - |
+| `UI_ZeD_Health_HelpTimeMore` | `Make the session 10 minutes longer.` | Health tab (Character window): help line while the pointer is on the plus button beside the exercise session length | - |
 
 ## Hook
 
@@ -1309,6 +1509,18 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Hook_PillOnHook` | `On the hook` | Butcher hook card: header pill for a carcass on the hook | 12 |
 | `UI_ZeD_Hook_Taken` | `Taken` | Butcher hook card: value of Leather, Head or Meat once that part has been taken from the carcass | 10 |
 | `UI_ZeD_Hook_Within2` | `Within 2 tiles or carried` | Butcher hook card: right side of that heading | - |
+| `UI_ZeD_Hook_HelpAdd` | `Add corpse: hang a dead animal on the hook` | Butcher hook card: help line over the Add corpse button | - |
+| `UI_ZeD_Hook_HelpBleed` | `Bleed: let the blood run onto the ground` | Butcher hook card: help line over the Bleed button | - |
+| `UI_ZeD_Hook_HelpGather` | `Gather: take the parts off the carcass` | Butcher hook card: help line over the Gather button | - |
+| `UI_ZeD_Hook_HelpHang` | `Hang: put %1 on the hook` | Butcher hook card: help line over a corpse in the Hang list; %1 = the animal's name | - |
+| `UI_ZeD_Hook_HelpInto` | `Into: let the blood run into %1` | Butcher hook card: help line over a container in the Into list; %1 = its name | - |
+| `UI_ZeD_Hook_HelpPart` | `Gather: take the %1 from the carcass` | Butcher hook card: help line over the button that gathers one part; %1 = the part's name (the game's word: leather, blood, head) | - |
+| `UI_ZeD_Hook_HelpRemove` | `Remove corpse: take the carcass off the hook` | Butcher hook card: help line over the Remove corpse button | - |
+| `UI_ZeD_Hook_HelpStop` | `Stop: stop the work` | Butcher hook card: help line over the Stop button while the work runs | - |
+| `UI_ZeD_Hook_HintGather` | `gather the parts` | Butcher hook card: what Gather does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hook_HintHang` | `hang one up` | Butcher hook card: what Add corpse does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hook_NeedsCorpse` | `a dead animal nearby or in your bags` | Butcher hook card: what Add corpse needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Hook_NeedsKnife` | `a knife in your bags` | Butcher hook card: what Gather needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 
 ## Host
 
@@ -1360,6 +1572,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Hutch_SubYoung` | `%1 \| young` | Hutch card: small line under a young bird's name on the perch list; %1 is the species (the bar is a separator) | 24 |
 | `UI_ZeD_Hutch_Water` | `Water` | Hutch card: cleaning checklist: water needed, when you carry none | - |
 | `UI_ZeD_Hutch_WaterNamed` | `Water \| %1` | Hutch card: cleaning checklist: the water you have; %1 is its item name (the bar is a separator) | - |
+| `UI_ZeD_Hutch_HelpClean` | `Clean: wash the floor` | Hutch card: help line over the Clean button | - |
+| `UI_ZeD_Hutch_HelpCloseDoor` | `Close door: shut the main door` | Hutch card: help line over the Close door button | - |
+| `UI_ZeD_Hutch_HelpCloseHatch` | `Close hatch: shut the egg hatch` | Hutch card: help line over the Close hatch button | - |
+| `UI_ZeD_Hutch_HelpEggs` | `Grab eggs: take the eggs from every free box` | Hutch card: help line over the Grab eggs button | - |
+| `UI_ZeD_Hutch_HelpGrabBird` | `Grab: take %1 out of the coop` | Hutch card: help line over the Grab button on a bird; %1 = the bird's name | - |
+| `UI_ZeD_Hutch_HelpGrabBox` | `Grab: take the eggs from box %1` | Hutch card: help line over the Grab button on an egg box; %1 = the box's number | - |
+| `UI_ZeD_Hutch_HelpInfo` | `Info: see %1 in the Animals tab` | Hutch card: help line over the Info button on a bird; %1 = the bird's name | - |
+| `UI_ZeD_Hutch_HelpOpenDoor` | `Open door: open the main door` | Hutch card: help line over the Open door button | - |
+| `UI_ZeD_Hutch_HelpOpenHatch` | `Open hatch: open the egg hatch` | Hutch card: help line over the Open hatch button | - |
+| `UI_ZeD_Hutch_HelpPutIn` | `Put in: put the bird you carry in the hutch` | Hutch card: help line over the Put in button | - |
+| `UI_ZeD_Hutch_HintClean` | `clean the floor` | Hutch card: what Clean does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hutch_HintPutIn` | `put the bird in` | Hutch card: what Put in does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Hutch_NeedsBoth` | `%1 and %2` | Hutch card: joins two needs of Clean into one, filling %2 of "%1 needs %2"; %1 = the water need, %2 = the cleaning tool need | - |
+| `UI_ZeD_Hutch_NeedsMop` | `a mop, towel or broom` | Hutch card: what Clean needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Hutch_NeedsOpen` | `a door or the egg hatch open` | Hutch card: what Put in needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Hutch_NeedsWater` | `water in your bags` | Hutch card: what Clean needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 
 ## Identity
 
@@ -1385,6 +1613,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Identity_TraitsPositive` | `Positive (%1)` | Identity tab (Character window), driver's-license card: Traits section, small subheading over the good traits; %1 is how many | 20 |
 | `UI_ZeD_Identity_Unknown` | `Unknown` | Identity tab (Character window), driver's-license card: surname / hair colour shown when the game gives none | 16 |
 | `UI_ZeD_Identity_WeightKg` | `%1 kg` | Identity tab (Character window), driver's-license card: weight pill at the top right of the card; %1 is the number (kilograms) | 10 |
+| `UI_ZeD_Identity_HelpHeader` | `Switch the license photo between the bust and the whole body.` | Identity tab (Character window): help line over the header above the license photo | - |
 
 ## Inv
 
@@ -1400,6 +1629,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Inv_ItemsOne` | `%1 item` | Inventory lists (both windows), compact container header: how many items it holds (one) | - |
 | `UI_ZeD_Inv_OrderLine` | `Order: %1, as the list` | Inventory grid, column bar: names the list's sort order the grid follows; %1 is NAME, CATEGORY, CONDITION or WEIGHT | - |
 | `UI_ZeD_Inv_OrderWt` | `Weight` | Inventory grid, order line: name of the sort order (by weight) | 14 |
+| `UI_ZeD_Inv_RowHelp` | `%1: press for its card, drag it to move it, right-click for its menu` | Inventory list: help line over an item's row; %1 = the item's name | - |
+| `UI_ZeD_Inv_ColHelp` | `Sort by %1: press again to turn the order around` | Inventory list: help line over a column heading; %1 = the heading's text | - |
+| `UI_ZeD_Inv_CatFoldHelp` | `Press to fold this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is open | - |
+| `UI_ZeD_Inv_CatOpenHelp` | `Press to open this group` | Inventory list, Equipment tab and item card lists: help line over the heading of a group that is folded | - |
+| `UI_ZeD_Inv_ListHelp` | `List: this container's things as rows` | Inventory lists: help line over the List button of the List \| Grid toggle | - |
+| `UI_ZeD_Inv_GridHelp` | `Grid: this container's things as icons` | Inventory lists: help line over the Grid button of the List \| Grid toggle | - |
+| `UI_ZeD_Inv_XferHelp` | `Move the selected things to column %1` | Inventory lists with several columns: help line over the button that moves the selected items to another column; %1 = the column's number | - |
 
 ## ItemAct
 
@@ -1492,12 +1728,31 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Journal_TabPapers` | `Papers` | Character window, Journal tab: sub-tab | 14 |
 | `UI_ZeD_Journal_WeaponOther` | `Other` | Character window, Journal tab, Journal sub-tab: kills list, row for kills with other weapons | 20 |
 | `UI_ZeD_Journal_WeaponUnarmed` | `Unarmed` | Character window, Journal tab, Journal sub-tab: kills list, row for kills without a weapon | 20 |
+| `UI_ZeD_Journal_AskDelete` | `Delete the entry? It can't be brought back.` | Character window, Journal tab, Journal sub-tab: the question in the band after an entry's delete button is pressed; the band then offers a yes and a no | - |
+| `UI_ZeD_Journal_Delete` | `Delete` | Character window, Journal tab, Journal sub-tab: hover hint of an entry's delete button, and the yes button of the delete question | 12 |
+| `UI_ZeD_Journal_HelpDelete` | `Delete this entry. It asks first.` | Character window, Journal tab, Journal sub-tab: help line over an entry's delete button | - |
+| `UI_ZeD_Journal_HelpGroupHide` | `Fold the entries of %1.` | Character window, Journal tab, Journal sub-tab: help line over the heading of a group of entries that is open; %1 = the group's name | - |
+| `UI_ZeD_Journal_HelpGroupShow` | `Show the entries of %1.` | Character window, Journal tab, Journal sub-tab: help line over the heading of a group of entries that is folded; %1 = the group's name | - |
+| `UI_ZeD_Journal_HelpKillsHide` | `Fold the kills by kind.` | Character window, Journal tab: help line over the kills heading while the list of kinds is open | - |
+| `UI_ZeD_Journal_HelpKillsShow` | `Show the kills by kind.` | Character window, Journal tab: help line over the kills heading while the list of kinds is folded | - |
+| `UI_ZeD_Journal_HelpSubTab` | `Open %1.` | Character window, Journal tab: help line over a sub-tab that is not the open one; %1 = its name | - |
 
 ## Keyboard
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
 | `UI_ZeD_Keyboard_Show` | `Show` | On-screen keyboard, key that reveals a masked (password) field | 8 |
+| `UI_ZeD_Keyboard_HelpChar` | `Type %1.` | On-screen keyboard: help line over a letter, digit or sign key; %1 = the character it types | - |
+| `UI_ZeD_Keyboard_HelpDelete` | `Delete the character before the caret.` | On-screen keyboard: help line over the delete key | - |
+| `UI_ZeD_Keyboard_HelpCaps` | `Keep typing capital letters until you press it again.` | On-screen keyboard: help line over the caps lock key | - |
+| `UI_ZeD_Keyboard_HelpShift` | `A capital for the next letter.` | On-screen keyboard: help line over the shift key | - |
+| `UI_ZeD_Keyboard_HelpAccept` | `Accept what you typed.` | On-screen keyboard: help line over the accept key of a one-line field | - |
+| `UI_ZeD_Keyboard_HelpEnter` | `Start a new line.` | On-screen keyboard: help line over the key that ends a line in a many-line field | - |
+| `UI_ZeD_Keyboard_HelpSpace` | `Type a space.` | On-screen keyboard: help line over the space bar | - |
+| `UI_ZeD_Keyboard_HelpLeft` | `Move the caret one letter left.` | On-screen keyboard: help line over the left arrow key | - |
+| `UI_ZeD_Keyboard_HelpRight` | `Move the caret one letter right.` | On-screen keyboard: help line over the right arrow key | - |
+| `UI_ZeD_Keyboard_HelpCancel` | `Close the keyboard and put the field back as it was.` | On-screen keyboard: help line over the cancel key | - |
+| `UI_ZeD_Keyboard_HelpShow` | `Show or hide what you have typed.` | On-screen keyboard: help line over the Show key that reveals a masked (password) field | - |
 
 ## Lock
 
@@ -1545,6 +1800,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Lock_StatusWrong` | `Wrong code: %1. The padlock stays on.` | Padlock card: footer line (red) after a wrong try; %1 is the code with spaces, e.g. 3 1 9 | - |
 | `UI_ZeD_Lock_StatusZeroCode` | `Can't lock: a code of 000 does nothing` | Padlock card: footer line | - |
 | `UI_ZeD_Lock_WhatItLocks` | `What it locks` | Padlock card: section heading | - |
+| `UI_ZeD_Lock_HelpLock` | `Lock: put the combination padlock on` | Padlock card: help line over the Lock button | - |
+| `UI_ZeD_Lock_HelpRemove` | `Remove padlock: take the padlock off with its key` | Padlock card: help line over the Remove padlock button of a key padlock | - |
+| `UI_ZeD_Lock_HelpStop` | `Stop: stop what the character is doing` | Padlock card: help line over the Stop button while the character is working on the padlock | - |
+| `UI_ZeD_Lock_HelpTry` | `Remove padlock: try the code on the dial` | Padlock card: help line over the Remove padlock button of a combination padlock | - |
+| `UI_ZeD_Lock_HelpUseCombo` | `Use combination padlock: set a code and lock it` | Padlock card: help line over the Use combination padlock button | - |
+| `UI_ZeD_Lock_HelpUsePad` | `Use padlock: put a key padlock on` | Padlock card: help line over the Use padlock button | - |
+| `UI_ZeD_Lock_HintLock` | `lock it` | Padlock card: what Lock does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Lock_HintRemove` | `take the padlock off` | Padlock card: what Remove padlock does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Lock_HintUseCombo` | `put it on` | Padlock card: what Use combination padlock does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Lock_HintUsePad` | `put it on` | Padlock card: what Use padlock does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Lock_NeedsBoth` | `%1 and %2` | Padlock card: joins two needs of Lock into one, filling %2 of "%1 needs %2"; %1 = the padlock need, %2 = the code need | - |
+| `UI_ZeD_Lock_NeedsCode` | `a code other than 000` | Padlock card: what Lock needs when the code on the dial is 000, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Lock_NeedsCombo` | `a Combination Padlock in your bags` | Padlock card: what Lock and Use combination padlock need, the game's item name for the padlock, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Lock_NeedsKey` | `its key in your bags` | Padlock card: what Remove padlock needs for a key padlock, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Lock_NeedsKeyPad` | `a padlock with its keys in your bags` | Padlock card: what Use padlock needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Lock_QLock` | `Lock the container? It shuts to everyone.` | Padlock card: the question in the footer after Lock is pressed; the footer then offers a yes and a no | - |
 
 ## Looks
 
@@ -1559,6 +1830,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Looks_PromptTurn` | `Turn` | Character looks screen (new game): controller prompt for the bumpers, which turn the figure | 10 |
 | `UI_ZeD_Looks_SaveOutfit` | `Save preset...` | Character looks screen (new game): row of the Outfits pop-up that saves the current look | - |
 | `UI_ZeD_Looks_Title` | `Project Zomboid  +  Character` | Character looks screen (new game): title bar. The + is the ZeD title separator | - |
+| `UI_ZeD_Looks_TurnLeft` | `Turn left` | Character looks screen (new game): hover hint of the arrow button that turns the figure left (icon-only button) | - |
+| `UI_ZeD_Looks_TurnRight` | `Turn right` | Character looks screen (new game): hover hint of the arrow button that turns the figure right (icon-only button) | - |
 
 ## Machine
 
@@ -1684,6 +1957,47 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Map_SetDeleteAsk` | `Delete the notes %1? Its %2 places go from your map.` | Maps tab with Share Annotations: the side list's question before deleting a set. %1 the set's name, %2 how many marks | - |
 | `UI_ZeD_Map_NotesEmpty` | `No learned notes. Use %1 on a paper with someone's notes to learn them.` | Maps tab with Share Annotations: side list when no notes are learned. %1 the mod's menu entry (Remember annotations) | - |
 | `UI_ZeD_Map_WhereOff` | `Kentucky, USA` | Maps tab with Where Am I?: over the map when the character is in none of the mod's areas (the mod's own words) | - |
+| `UI_ZeD_Map_HelpCant` | `%1: %2` | Maps tab: help line over a mark, pen or tool that cannot be used now; %1 = its name, %2 = the reason (the game's own words, e.g. you need a pen) | - |
+| `UI_ZeD_Map_HelpDraw` | `Show or hide the drawing tools.` | Maps tab, toolbar: help line over the button that shows or hides the drawing tools | - |
+| `UI_ZeD_Map_HelpDrawErase` | `Erase: press on the map and move over the marks to take them off.` | Maps tab, drawing tools: help line over the Erase tool | - |
+| `UI_ZeD_Map_HelpDrawFree` | `Draw freehand: press on the map and move.` | Maps tab, drawing tools: help line over the freehand Draw tool | - |
+| `UI_ZeD_Map_HelpDrawLine` | `Draw a straight line: press where it starts and let go where it ends.` | Maps tab, drawing tools: help line over the Line tool | - |
+| `UI_ZeD_Map_HelpFill` | `How close together the dots of a line are.` | Maps tab, drawing tools: help line over the slider for how close together the dots of a drawn line are | - |
+| `UI_ZeD_Map_HelpFold` | `Fold the map back into the Maps tab.` | Maps tab: help line over the fold button while the map is open in its own window | - |
+| `UI_ZeD_Map_HelpInk` | `%1: marks and notes in this color.` | Maps tab: help line over a color swatch; %1 = the color's name | - |
+| `UI_ZeD_Map_HelpKey` | `Show or hide the map key: what the colors on the Survey map mean.` | Maps tab: help line over the button that shows or hides the map key | - |
+| `UI_ZeD_Map_HelpKeyClose` | `Close the map key.` | Maps tab: help line over the close button of the map key | - |
+| `UI_ZeD_Map_HelpMark` | `%1: pick this mark up, then click the map to put it down.` | Maps tab: help line over a mark on the toolbar; %1 = the mark's name | - |
+| `UI_ZeD_Map_HelpMarkGrid` | `%1: pick this mark up. A right-click pins it to the toolbar or takes it off.` | Maps tab: help line over a mark in the full set of marks; %1 = the mark's name | - |
+| `UI_ZeD_Map_HelpMarksClose` | `Fold the full set of marks away.` | Maps tab: help line over the button that folds the full set of marks away | - |
+| `UI_ZeD_Map_HelpMarksOpen` | `Show every mark, to pick one or pin it to the toolbar.` | Maps tab: help line over the button that shows the full set of marks | - |
+| `UI_ZeD_Map_HelpNote` | `Note: type the words in the box under the toolbar, then click the map to write them.` | Maps tab: help line over the Note tool on the toolbar | - |
+| `UI_ZeD_Map_HelpRowDelete` | `Delete this from your map. You are asked first.` | Maps tab, side list of players and notes: help line over a row's delete button | - |
+| `UI_ZeD_Map_HelpSideList` | `Show or hide the list of players and notes beside the map.` | Maps tab: help line over the button that shows or hides the side list | - |
+| `UI_ZeD_Map_HelpStyleColor` | `Color: the ground as it looks from above.` | Maps tab: help line over the Color choice of the map style menu | - |
+| `UI_ZeD_Map_HelpStyleMenu` | `How the map is drawn: Survey, Color or Paper.` | Maps tab: help line over the map style menu | - |
+| `UI_ZeD_Map_HelpStylePaper` | `Paper: the county road map as printed.` | Maps tab: help line over the Paper choice of the map style menu | - |
+| `UI_ZeD_Map_HelpStyleSurvey` | `Survey: the game's own map, buildings colored by use.` | Maps tab: help line over the Survey choice of the map style menu, and over the Survey entry in the map key | - |
+| `UI_ZeD_Map_HelpSymbolReset` | `Back to the game's own size.` | Maps tab: help line over the Reset button beside the mark size slider | - |
+| `UI_ZeD_Map_HelpSymbolSize` | `The size new marks and notes are made at.` | Maps tab: help line over the mark size slider | - |
+| `UI_ZeD_Map_HelpThickness` | `How thick the lines are.` | Maps tab, drawing tools: help line over the line thickness slider | - |
+| `UI_ZeD_Map_HelpUnfold` | `Open the map in a large window of its own.` | Maps tab: help line over the unfold button while the map sits in the tab | - |
+| `UI_ZeD_Map_MarkAlert` | `Alert` | Maps tab: name of the alert (exclamation) mark; hover hint on the toolbar and in the full set of marks, and %1 of the mark help lines | - |
+| `UI_ZeD_Map_MarkAxe` | `Axe` | Maps tab: name of the axe mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkCheck` | `Check mark` | Maps tab: name of the check mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkCross` | `Cross` | Maps tab: name of the cross mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkFire` | `Fire` | Maps tab: name of the fire mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkFood` | `Food` | Maps tab: name of the food mark (a burger; hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkGears` | `Gears` | Maps tab: name of the gears mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkGun` | `Gun` | Maps tab: name of the gun mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkHeart` | `Heart` | Maps tab: name of the heart mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkHouse` | `House` | Maps tab: name of the house mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkQuestion` | `Question mark` | Maps tab: name of the question mark mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkSkull` | `Skull` | Maps tab: name of the skull mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkStar` | `Star` | Maps tab: name of the star mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkTarget` | `Target` | Maps tab: name of the target mark (hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_MarkX` | `X` | Maps tab: name of the X mark (the letter X; hover hint, and %1 of the mark help lines) | - |
+| `UI_ZeD_Map_Unfold` | `Unfold` | Maps tab: hover hint of the unfold button (opens the map in a window of its own); the same button reads Fold while it is open | - |
 
 ## Meta
 
@@ -1697,6 +2011,76 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Meta_PagesRead` | `%1 / %2 pages` | Right-click menu, target card meta line for a book: pages read of total | - |
 | `UI_ZeD_Meta_Ripe` | `Ripe` | Right-click menu, target card meta line for food that is neither fresh nor stale (the other two words are the game's own Fresh and Stale) | - |
 | `UI_ZeD_Meta_Wet` | `wet %1%%` | Right-click menu, target card meta line for clothing: wetness percent | - |
+
+## MMHelp
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_MMHelp_Back` | `Back: go to the screen before this one.` | Main menu screens: help line over the Back button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_BackPause` | `Back: return to the pause menu.` | Pause window, Mods page: help line over the Back button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Close` | `Close: close this window.` | Main menu screens: help line over the Close button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Cancel` | `Cancel: leave things as they are.` | Main menu screens and the quit question: help line over the Cancel button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Delete` | `Delete: remove the chosen item. It asks first.` | Main menu screens: help line over a Delete button that asks first (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_DeleteProfile` | `Delete: remove the profile. This cannot be undone.` | Mod manager: help line over the Delete button of the question about deleting a profile (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_DeleteSave` | `Delete: remove the chosen save from the disk. This cannot be undone.` | Load game screen: help line over the Delete button of the question about deleting a save (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_DeleteSaveAsk` | `Delete: remove the chosen save. It asks first.` | Load game screen: help line over the Delete button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_More` | `More: other things to do with the chosen item.` | Main menu screens: help line over the More button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Play` | `Play: start the chosen game.` | Main menu screens: help line over the Play button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_PlaySave` | `Play: load the chosen save and start playing.` | Load game screen: help line over the Play button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Next` | `Next: go on to the next step.` | New game screens: help line over the Next button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_ChooseMods` | `Choose mods: pick the mods this game uses.` | New game screens: help line over the Choose mods button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Apply` | `Apply: put the changes into the game.` | Main menu screens: help line over the Apply button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_DiscardChanges` | `Discard changes: throw away what you changed since this window opened.` | Options, Mod manager and Server settings: help line over the Discard changes button of the question about leaving with unsaved changes (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Defaults` | `Defaults: put ZeD's settings back to how they start.` | Options, ZeD setup page: help line over the Defaults button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Start` | `Start: start the server and join it.` | Main menu screens: help line over the Start button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_HostStart` | `Start: start the server and join it.` | Host screen: help line over the Start button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_HostReset` | `Reset: start the server's world over. The question says what it keeps.` | Host screen: help line over the Reset button of the reset question (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_HostDeleteWorld` | `Delete: remove the server's world from the disk. This cannot be undone.` | Host screen: help line over the Delete button of the question about deleting the world (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_HostDeletePlayer` | `Delete: remove the character from the server. This cannot be undone.` | Host screen: help line over the Delete button of the question about deleting a character (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Abort` | `Abort: stop the server that is starting.` | Host screen: help line over the Abort button while the server is starting (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Connect` | `Connect: join the chosen server.` | Join screen: help line over the Connect button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Refresh` | `Refresh: ask the servers again.` | Join screen: help line over the Refresh button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Save` | `Save: keep your changes.` | Main menu screens: help line over the Save button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Rename` | `Rename: give it the new name.` | Main menu screens: help line over the Rename button in the bottom strip (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_RenameSave` | `Rename: give the save its new name.` | Load game screen: help line over the Rename button of the rename question (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Rewind` | `Rewind: roll the credits backwards.` | Credits screen: help line over the rewind button, marked << (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Fast` | `Fast forward: roll the credits faster.` | Credits screen: help line over the fast forward button, marked >> (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_PlayPause` | `Pause or play the credits.` | Credits screen: help line over the pause and play button | - |
+| `UI_ZeD_MMHelp_EmptyTrash` | `Empty trash: throw away the file in it.` | Trash window: help line over the Empty trash button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Options` | `Options: change the game's settings and ZeD's.` | Main menu window and pause window, bottom strip: help line over the Options button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Mods` | `Mods: turn mods on and off, and set the order they load in.` | Main menu window, bottom strip: help line over the Mods button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Workshop` | `Mod uploader: send a mod of yours to the Steam Workshop.` | Main menu window, bottom strip: help line over the Mod uploader button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Credits` | `Credits: see who made the game.` | Main menu window, bottom strip: help line over the Credits button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Quit` | `Quit: leave the game. It asks first.` | Main menu window, bottom strip: help line over the Quit button, which asks first (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_QuitGame` | `Quit: leave the game. Anything unsaved is lost.` | Main menu window: help line over the Quit button of the quit question (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_QuitDesktop` | `Quit: leave to the desktop. It asks first.` | Pause window, bottom strip: help line over the button that leaves to the desktop, which asks first (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_SaveQuit` | `Save and quit: save the game, then leave to the main menu.` | Pause window, bottom strip: help line over the Save and quit button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_MonitorBack` | `Cancel: go back to the screen settings you had.` | Options: help line over the Cancel button of the question that appears after the screen settings change (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_MonitorKeep` | `Keep: keep the new screen settings.` | Options: help line over the Keep button of the question that appears after the screen settings change (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_SaveRow` | `Click a save to choose it, and click it again to play it.` | Load game screen: help line over a save's row, shown for the mouse only | - |
+| `UI_ZeD_MMHelp_GameIcon` | `Click a game to choose it, and click it again to go on.` | New game screen: help line over a game's icon, shown for the mouse only | - |
+| `UI_ZeD_MMHelp_Continue` | `Continue: load your latest save and keep playing.` | Main menu: help line over the big Continue button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_NewGame` | `New game: start a new game.` | Main menu: help line over the big New game button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_LoadGame` | `Load game: pick a saved game to play.` | Main menu: help line over the big Load game button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_JoinServer` | `Join a server: play with others on a server.` | Main menu: help line over the big Join a server button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_HostGame` | `Host a game: start a server on this computer for friends to join.` | Main menu: help line over the big Host a game button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Tutorial` | `Tutorial: learn the basics in a small practice game.` | Main menu: help line over the big Tutorial button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Resume` | `Resume: go back to the game.` | Pause menu (in game): help line over the big Resume button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_PauseMods` | `Mods: see the mods this game runs.` | Pause menu (in game): help line over the big Mods button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_SandboxIG` | `Sandbox options: this game's world settings.` | Pause menu (in game): help line over the big Sandbox options button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Players` | `Players: see who is on the server.` | Pause menu (in game, on a server): help line over the big Players button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_Invite` | `Invite: ask a friend to join through Steam.` | Pause menu (in game, on a server): help line over the big Invite button (begins with the button's name) | - |
+| `UI_ZeD_MMHelp_ModRow` | `Click a mod to see it. Click it again, or use its box, to turn it on or off.` | Mod manager: help line over a mod's row, shown for the mouse only | - |
+| `UI_ZeD_MMHelp_JoinRow` | `Click a server or an account to choose it. Click it again to connect.` | Join screen: help line over a server or account row, shown for the mouse only | - |
+| `UI_ZeD_MMHelp_TownRow` | `Click a town to see it on the map. Click it again to go on.` | Spawn location screen (new game): help line over a town's row, shown for the mouse only | - |
+| `UI_ZeD_MMHelp_WsFolder` | `Click a folder to edit its page on the Workshop.` | Workshop window: help line over a mod folder's row, shown for the mouse only | - |
+
+## MMWord
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_MMWord_DiscardChanges` | `Discard changes` | Main menu screens (Options, Mod manager, Server settings, Workshop, description editor): the danger answer to the question about leaving with unsaved changes (shown in sentence case) | 18 |
+| `UI_ZeD_MMWord_UndoChanges` | `Undo changes` | Mod manager, bottom strip: button that puts the mod list back as it was when the window opened (shown in sentence case) | 16 |
 
 ## Modal
 
@@ -2044,7 +2428,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_ModScan_WsQueued` | `Download queued` | Mod manager: conflicts and Workshop state: Workshop state of a subscribed item | 24 |
 | `UI_ZeD_ModScan_WsUpdate` | `Update waiting` | Mod manager: conflicts and Workshop state: Workshop state of a subscribed item | 24 |
 
-## NewGame
+## Msg
 
 | Key | English | Where it shows | Max |
 |---|---|---|---|
@@ -2077,6 +2461,20 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Msg_ToastNote` | `a note` | A note toast's text, after the mod's name | 12 |
 | `UI_ZeD_Msg_When` | `Day %1, %2` | Messages: a card's time; %1 = the day of play, %2 = the time ("7:42") | - |
 | `UI_ZeD_Msg_YouAnswered` | `You answered %1.` | Messages: under a copied question; %1 = the button you pressed | - |
+| `UI_ZeD_Msg_HelpRow` | `Show the messages from %1.` | Messages: help line over a source in the list on the left; %1 = the mod's name | - |
+| `UI_ZeD_Msg_HelpCardButton` | `Press %1, the mod's own button.` | Messages: help line over a button a mod put on its own message card; %1 = the button's label | - |
+| `UI_ZeD_Msg_HelpCopy` | `Copy this report to the clipboard, ready to paste into a bug report.` | Messages: help line over the Copy button on an error report | - |
+| `UI_ZeD_Msg_HelpPopups` | `Choose whether this mod's notes pop up in the game or wait here.` | Messages: help line over the footer check box that sets whether a mod's notes pop up in the game or wait in this window | - |
+| `UI_ZeD_Msg_HelpClear` | `Delete every message from this source.` | Messages: help line over the footer Delete button, and over the Yes button of the delete question | - |
+| `UI_ZeD_Msg_HelpAllRead` | `Mark every message as read.` | Messages: help line over the Mark all read button | - |
+| `UI_ZeD_Msg_DeleteAsk` | `Delete all notes? They can't be brought back.` | Messages: the footer question after pressing Delete on a source's notes; the footer then offers a yes and a no | - |
+| `UI_ZeD_Msg_DeleteAskErrors` | `Delete all errors? They can't be brought back.` | Messages: the footer question after pressing Delete on a source's errors; the footer then offers a yes and a no | - |
+| `UI_ZeD_Msg_HelpAskNo` | `Keep the messages.` | Messages: help line over the No button of the delete question | - |
+
+## NewGame
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
 | `UI_ZeD_NewGame_PromptChooseMods` | `Choose mods` | New game screen: controller prompt (Y button) | 14 |
 | `UI_ZeD_NewGame_Title` | `Project Zomboid  +  New game` | New game screen: title bar. The + is the ZeD title separator | - |
 | `UI_ZeD_NewGame_TitleChallenges` | `Project Zomboid  +  Challenges` | New game screen: title bar while the challenges are shown | - |
@@ -2106,6 +2504,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Notebook_WhyTooDark` | `Too dark to write` | Notebooks sub-tab status line and Journal sub-tab note: not enough light | 40 |
 | `UI_ZeD_Notebook_Write` | `Write` | Character window, Journal tab, Notebooks sub-tab: button that writes the quick note onto the page (shown in sentence case) | 12 |
 | `UI_ZeD_Notebook_Writing` | `Writing...` | Character window, Journal tab, Notebooks sub-tab and the Journal sub-tab's Into line: status while the character writes | 14 |
+| `UI_ZeD_Notebook_HelpInto` | `Pick where Save writes the entry: the log only, or a notebook too.` | Character window, Journal tab, Journal sub-tab: help line over the Into pill left of Save | - |
+| `UI_ZeD_Notebook_HelpPick` | `Show %1.` | Character window, Journal tab, Notebooks sub-tab: help line over a notebook's tab; %1 = the notebook's name | - |
 
 ## ObjCard
 
@@ -2121,6 +2521,13 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_ObjCard_Minutes` | `%1 m` | Object cards: a duration under an hour (e.g. 45 m) | 10 |
 | `UI_ZeD_ObjCard_TagRaw` | `Raw` | Object cards, cooking rows: tag on raw food while the heat is off (in a bordered tag) | 10 |
 | `UI_ZeD_ObjCard_WhereNearby` | `Nearby` | Object cards, pick lists: where an item sits when it is not in the inventory and not in a named bag | 12 |
+| `UI_ZeD_ObjCard_HelpBack` | `Back: close this card` | Object cards: help line over the Back button that closes the card | - |
+| `UI_ZeD_ObjCard_HelpCancel` | `Cancel: leave things as they are` | Object cards: help line over the Cancel button of a footer question | - |
+| `UI_ZeD_ObjCard_HelpMore` | `Actions you can't do yet: press to see what they need` | Object cards: help line over the folded row of actions you cannot take yet | - |
+| `UI_ZeD_ObjCard_HelpNext` | `Next: the next one in reach` | Object cards: help line over the arrow button that goes to the next object in reach | - |
+| `UI_ZeD_ObjCard_HelpPrev` | `Previous: the previous one in reach` | Object cards: help line over the arrow button that goes to the previous object in reach | - |
+| `UI_ZeD_ObjCard_Next` | `Next` | Object cards: hover hint of the arrow button that goes to the next object in reach (icon-only button) | - |
+| `UI_ZeD_ObjCard_Prev` | `Previous` | Object cards: hover hint of the arrow button that goes to the previous object in reach (icon-only button) | - |
 
 ## Options
 
@@ -2152,7 +2559,6 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Options_GroupInterface` | `Interface` | Options screen (groups): page list entry | 22 |
 | `UI_ZeD_Options_GroupZed` | `ZeD setup` | Options screen (groups): page list entry: ZeD's own settings and the game settings its look depends on | 22 |
 | `UI_ZeD_Options_HeadGameSettings` | `Game settings ZeD uses` | Options screen (groups): section heading in ZeD setup over the game's settings that ZeD depends on (shown in caps) | - |
-| `UI_ZeD_Options_HeadLook` | `ZeD's look` | Options screen (groups): section heading in ZeD setup over ZeD's own settings (shown in caps) | - |
 | `UI_ZeD_Options_HelpDeadzone` | `How far a stick must move before the game counts it, for the controller chosen under Test Controller.` | Options screen: help band for the deadzone row | - |
 | `UI_ZeD_Options_HelpKey` | `Click the key, then press the new one (or a mouse button).` | Options screen: help band under the list while a key binding row is under the pointer | - |
 | `UI_ZeD_Options_HelpSpecial` | `The button map editor and the controller test open on vanilla's controller page.` | Options screen: help band for the controller setup row | - |
@@ -2242,6 +2648,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Papers_StateRead` | `Read` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece read (next to a green dot) | 14 |
 | `UI_ZeD_Papers_StateUnread` | `Not read yet` | Character window, Journal tab, Papers sub-tab: right side of a list row, piece not read (next to a grey dot) | 16 |
 | `UI_ZeD_Papers_TooDark` | `Too dark to read` | Papers quick look: dim line under the disabled Read button | 30 |
+| `UI_ZeD_Papers_HelpBack` | `Back to the list.` | Character window, Journal tab, Papers sub-tab: help line over the Back button of a piece being read | - |
+| `UI_ZeD_Papers_HelpFilter` | `Show %1.` | Character window, Journal tab, Papers sub-tab: help line over a filter pill; %1 = the filter's name | - |
+| `UI_ZeD_Papers_HelpOpen` | `Open %1.` | Character window, Journal tab, Papers sub-tab: help line over a row in the list; %1 = the piece's title | - |
+| `UI_ZeD_Papers_HelpRead` | `Read it. The words, the read mark and the places come from reading.` | Character window, Journal tab, Papers sub-tab: help line over the Read button in a piece's quick look, shown while the piece is unread | - |
 
 ## PartAbbr
 
@@ -2269,6 +2679,11 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Place_Degrees` | `Degrees` | 3D placement card: right side of the ROTATION heading | 12 |
 | `UI_ZeD_Place_Item` | `Item` | 3D placement card: card title when the item has no name | 20 |
 | `UI_ZeD_Place_WithinTile` | `Within the tile` | 3D placement card: right side of the MOVEMENT heading | 18 |
+| `UI_ZeD_Place_HelpDone` | `Done: keep the placement and close the card` | 3D placement card: help line over the Done button | - |
+| `UI_ZeD_Place_HelpNudgeDown` | `Nudge down: a small step less on %1` | 3D placement card: help line over the minus button beside a slider; %1 = the slider's axis name | - |
+| `UI_ZeD_Place_HelpNudgeUp` | `Nudge up: a small step more on %1` | 3D placement card: help line over the plus button beside a slider; %1 = the slider's axis name | - |
+| `UI_ZeD_Place_HelpRevert` | `Revert: put the item back as it was` | 3D placement card: help line over the Revert button | - |
+| `UI_ZeD_Place_HelpSlider` | `Slider: drag to place the item` | 3D placement card: help line over a placement slider | - |
 
 ## Power
 
@@ -2298,6 +2713,29 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Power_PillRunning` | `Running` | Generator card: header pill while the generator runs | 10 |
 | `UI_ZeD_Power_Powering` | `Powering` | Generator card: section heading over the list of what the generator powers | - |
 | `UI_ZeD_Power_RunTimeLeft` | `Run time left` | Generator card: label of the run time under the plate (the half-width column holds about 14 letters) | 14 |
+| `UI_ZeD_Power_HelpAddCan` | `Add: pour %1 into the generator` | Generator card: help line over a petrol can in the add-fuel list; %1 = the can's name | - |
+| `UI_ZeD_Power_HelpConnect` | `Connect: plug the generator into the building` | Generator card: help line over the Connect button | - |
+| `UI_ZeD_Power_HelpDisconnect` | `Disconnect: unplug it from the building` | Generator card: help line over the Disconnect button | - |
+| `UI_ZeD_Power_HelpEngine` | `Engine switch: turn the generator on or off` | Generator card: help line over the engine switch in the picture | - |
+| `UI_ZeD_Power_HelpFix` | `Fix: repair it with scrap electronics` | Generator card: help line over the Fix button | - |
+| `UI_ZeD_Power_HelpFuel` | `Add fuel: pour petrol in from a can` | Generator card: help line over the Add fuel button | - |
+| `UI_ZeD_Power_HelpOff` | `Turn off: stop the generator` | Generator card: help line over the Turn off button | - |
+| `UI_ZeD_Power_HelpOn` | `Turn on: start the generator` | Generator card: help line over the Turn on button | - |
+| `UI_ZeD_Power_HelpOutlet` | `Outlet: connect or disconnect the building's cord` | Generator card: help line over the outlet in the picture | - |
+| `UI_ZeD_Power_HelpTake` | `Take: pick the generator up` | Generator card: help line over the Take button | - |
+| `UI_ZeD_Power_HintConnect` | `connect it` | Generator card: what Connect does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Power_HintDisconnect` | `disconnect it` | Generator card: what Disconnect does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Power_HintFix` | `fix it` | Generator card: what Fix does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Power_HintFuel` | `add fuel` | Generator card: what Add fuel does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Power_HintOn` | `turn it on` | Generator card: what Turn on does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Power_HintTake` | `pick it up` | Generator card: what Take does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Power_NeedsCan` | `a can with petrol in your bags` | Generator card: what Add fuel needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Power_NeedsConnected` | `the generator connected` | Generator card: what Turn on needs while the generator is not connected, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Power_NeedsDisconnected` | `the generator disconnected` | Generator card: what Take needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Power_NeedsElec` | `Electricity 3` | Generator card: what Fix and Connect need, the Electrical skill level required (the game's own skill name and a level), filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Power_NeedsFuel` | `fuel in the tank` | Generator card: what Turn on needs when the tank is empty, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Power_NeedsOff` | `the generator turned off` | Generator card: what Add fuel, Fix, Connect and Take need while the generator runs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Power_NeedsScrap` | `Scrap Electronics in your bags` | Generator card: what Fix needs, the game's item name for scrap electronics, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 
 ## Print
 
@@ -2305,6 +2743,12 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Print_Flyer` | `Flyer` | Kind of paper in the reader side column, Papers quick look and Papers list second line (the game has no word for it) | 14 |
 | `UI_ZeD_Print_Paper` | `Paper` | Kind of paper when the item is none of newspaper, brochure, flyer, magazine | 14 |
+
+## Progress
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Progress_CancelHelp` | `Cancel: stop doing this` | Any progress bar with a Cancel button (a timed action): help line over the Cancel button | - |
 
 ## Prompt
 
@@ -2335,6 +2779,19 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Prompt_Unfold` | `Unfold` | Controller button legend, A prompt on the map's pop-out control | 12 |
 | `UI_ZeD_Prompt_Use` | `Use` | Controller button legend, hold-A prompt on an inventory row (used inside 'Use (hold)') | 12 |
 | `UI_ZeD_Prompt_Windows` | `Windows` | Controller button legend, Y prompt (swaps between the two windows) | 12 |
+| `UI_ZeD_Prompt_Locked` | `Locked` | Controller button legend at the window foot, Y prompt while the Y hold is locked on (replaces the usual Y prompt) | 12 |
+| `UI_ZeD_Prompt_HelpYes` | `Answer yes.` | Pop-up prompt: help line over the Yes button | - |
+| `UI_ZeD_Prompt_HelpNo` | `Answer no.` | Pop-up prompt: help line over the No button | - |
+| `UI_ZeD_Prompt_HelpOk` | `Accept and close.` | Pop-up prompt: help line over the OK button | - |
+| `UI_ZeD_Prompt_HelpCancel` | `Close without changing anything.` | Pop-up prompt: help line over the Cancel button | - |
+| `UI_ZeD_Prompt_HelpSwatch` | `Use this color for the text.` | Pop-up prompt for text color: help line over a color swatch | - |
+| `UI_ZeD_Prompt_HelpHourDown` | `Set the alarm one hour earlier.` | Pop-up prompt for the alarm clock: help line over the button that sets the alarm one hour earlier | - |
+| `UI_ZeD_Prompt_HelpHourUp` | `Set the alarm one hour later.` | Pop-up prompt for the alarm clock: help line over the button that sets the alarm one hour later | - |
+| `UI_ZeD_Prompt_HelpMinuteDown` | `Set the alarm ten minutes earlier.` | Pop-up prompt for the alarm clock: help line over the button that sets the alarm ten minutes earlier | - |
+| `UI_ZeD_Prompt_HelpMinuteUp` | `Set the alarm ten minutes later.` | Pop-up prompt for the alarm clock: help line over the button that sets the alarm ten minutes later | - |
+| `UI_ZeD_Prompt_HelpTick` | `Turn the alarm on or off.` | Pop-up prompt for the alarm clock: help line over the check box that turns the alarm on or off | - |
+| `UI_ZeD_Prompt_HelpTimerLess` | `Take %1 seconds off the timer.` | Pop-up prompt for the timer: help line over a minus button; %1 = the number of seconds | - |
+| `UI_ZeD_Prompt_HelpTimerMore` | `Add %1 seconds to the timer.` | Pop-up prompt for the timer: help line over a plus button; %1 = the number of seconds | - |
 
 ## Radio
 
@@ -2400,6 +2857,7 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_RadioPrompt_Store` | `Store` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_StoreChannel` | `Store channel` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
 | `UI_ZeD_RadioPrompt_Tune` | `Tune` | Car radio up close, controller prompt strip: what the A or X button does on the focused control | 20 |
+| `UI_ZeD_RadioPrompt_Move` | `Move / turn` | Two-way radio in full view and car radio up close, controller prompt strip: the D-pad's job (the D-pad picture stands before it) | 20 |
 
 ## Read
 
@@ -2454,6 +2912,29 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Reader_Unlock` | `Unlock` | Notebook page window, bottom strip: button that unlocks the book (shown in sentence case) | 12 |
 | `UI_ZeD_Reader_ViewPaper` | `Paper` | Reader bottom strip: button for the view of the paper as printed (shown in sentence case) | 14 |
 | `UI_ZeD_Reader_ViewWords` | `Words` | Reader bottom strip: button for the clean text view (shown in sentence case) | 14 |
+| `UI_ZeD_Reader_HelpBack` | `Close the reader.` | Reader window (a newspaper, flyer or brochure): help line over the Back button | - |
+| `UI_ZeD_Reader_HelpNoteBack` | `Leave the notebook as it was.` | Notebook page window: help line over the Back button while writing | - |
+| `UI_ZeD_Reader_HelpDone` | `Save every page and the name, and close.` | Notebook page window: help line over the Done button | - |
+| `UI_ZeD_Reader_HelpErasePage` | `Erase everything written on this page. It asks first.` | Notebook page window: help line over the Erase page button | - |
+| `UI_ZeD_Reader_HelpEraseNow` | `Erase this page for good.` | Notebook page window: help line over the Erase button of the erase question | - |
+| `UI_ZeD_Reader_HelpKeep` | `Keep the page as it is.` | Notebook page window: help line over the Keep it button of the erase question | - |
+| `UI_ZeD_Reader_HelpLock` | `Lock the notebook so only you can write in it.` | Notebook page window: help line over the Lock button | - |
+| `UI_ZeD_Reader_HelpUnlock` | `Unlock the notebook for everyone.` | Notebook page window: help line over the Unlock button | - |
+| `UI_ZeD_Reader_HelpPrev` | `Turn to the previous page.` | Notebook page window: help line over the previous page button | - |
+| `UI_ZeD_Reader_HelpNext` | `Turn to the next page.` | Notebook page window: help line over the next page button | - |
+| `UI_ZeD_Reader_PagePrev` | `Previous page` | Notebook page window: hover hint of the previous page button (icon-only button) | - |
+| `UI_ZeD_Reader_PageNext` | `Next page` | Notebook page window: hover hint of the next page button (icon-only button) | - |
+| `UI_ZeD_Reader_HelpPage` | `Turn to this page.` | Notebook page window, left rail: help line over a page row | - |
+| `UI_ZeD_Reader_HelpPaper` | `Show the piece as it was printed.` | Reader window: help line over the Paper button | - |
+| `UI_ZeD_Reader_HelpWords` | `Show the piece as plain text.` | Reader window: help line over the Words button | - |
+| `UI_ZeD_Reader_HelpZoomIn` | `Zoom in on the page.` | Reader window: help line over the plus zoom button | - |
+| `UI_ZeD_Reader_HelpZoomOut` | `Zoom out.` | Reader window: help line over the minus zoom button | - |
+| `UI_ZeD_Reader_HelpStory` | `Read this story in Words.` | Reader window, Paper view, side column: help line over a story (headline) in the list | - |
+| `UI_ZeD_Reader_HelpPlace` | `Show this place on the map.` | Reader window, side column: help line over a place the piece names | - |
+| `UI_ZeD_Reader_PromptTurn` | `Turn the page` | Reader window, controller prompt strip: what the bumpers do (turn the page) | 20 |
+| `UI_ZeD_Reader_PromptView` | `Paper or words` | Reader window, controller prompt strip: what the bumpers do on a piece that has both views (switch between Paper and Words) | 20 |
+| `UI_ZeD_Reader_PromptWrite` | `Write` | Notebook page window, controller prompt strip: what A does (starts writing) | 14 |
+| `UI_ZeD_Reader_PromptZoom` | `Zoom` | Reader window, controller prompt strip: what X and Y do in the Paper view | 14 |
 
 ## Recipe
 
@@ -2709,6 +3190,9 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Seat_GetOutHere` | `Get out here` | Seat chooser, controller prompt strip: X leaves by the pointed seat's door | 20 |
 | `UI_ZeD_Seat_NumberGetOut` | `+ number: Get out` | Seat chooser, keyboard prompt strip: holding Shift and pressing a seat number leaves by that door | 24 |
 | `UI_ZeD_Seat_Sit` | `Sit` | Seat chooser, prompt strip: take the pointed seat (A button or number key) | 14 |
+| `UI_ZeD_Seat_HelpDoor` | `Get out by this door.` | Seat chooser: help line while the pointer is on a door | - |
+| `UI_ZeD_Seat_HelpSeat` | `Take this seat: %1.` | Seat chooser: help line while the pointer is on a seat; %1 = the seat's name | - |
+| `UI_ZeD_Seat_HelpCancel` | `Close this and stay where you are.` | Seat chooser: help line over the Cancel button | - |
 
 ## Server
 
@@ -2834,8 +3318,6 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_WorldAccentTip` | `An accent of its own for the World window, or the same as Accent color. Cycled via footer button.` | Options > Mods > ZeD-GUI: hover help | - |
 | `UI_ZeD_Settings_SandboxIG` | `Sandbox options in game` | Options, ZeD setup, Sandbox: the switch's name | - |
 | `UI_ZeD_Settings_SandboxIGTip` | `Adds a Sandbox options line to the pause window, for changing this save's sandbox settings without starting a new game. Single player only.` | Options, ZeD setup: help band for the switch | - |
-| `UI_ZeD_Settings_WindowSquares` | `Theme, accent and text buttons on windows` | ZeD setup, Windows: the on/off switch's name (the three small squares in a window's footer) | 44 |
-| `UI_ZeD_Settings_WindowSquaresTip` | `The three squares at the bottom left of every ZeD window that switch the theme, the accent and the text size. Off hides them; the same settings stay here in ZeD setup.` | ZeD setup, Windows: the help for the switch | - |
 | `UI_ZeD_Settings_DimRead` | `Dim read items` | Options, ZeD setup, ZeD windows: the switch's name | - |
 | `UI_ZeD_Settings_DimReadTip` | `In the item lists, fades the books, magazines, maps and tapes you have already read, so the unread ones stand out.` | Options, ZeD setup: help band for the switch | - |
 | `UI_ZeD_Settings_AmmoBox` | `Ammo on the belt` | Options, ZeD setup, HUD: the switch's name | - |
@@ -2848,6 +3330,22 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Settings_DashLampsTip` | `The battery, engine and heater lamps light amber or red when the part is worn, and pointing at a lamp shows the part's condition. Off: the lamps as the game has them.` | Options, ZeD setup: help band for the switch | - |
 | `UI_ZeD_Settings_MoodleNotices` | `Moodle notices` | Options, ZeD setup, HUD: the switch's name | - |
 | `UI_ZeD_Settings_MoodleNoticesTip` | `A moodle that comes on or changes shows its thought bubble by itself for a few seconds. Off: the bubble shows only when you point at the moodle.` | Options, ZeD setup: help band for the switch | - |
+| `UI_ZeD_Settings_SeeThrough` | `See-through` | Options > Mods > ZeD-GUI, and the window menu and the Select wheel: name of the See-through setting | - |
+| `UI_ZeD_Settings_SeeThroughTip` | `How much of the game shows through ZeD's windows: 100 is solid, 60 shows the most. Words, lines and controls stay solid.` | Options > Mods > ZeD-GUI: hover help of the See-through setting; 100 is solid, 60 is the most see-through | - |
+| `UI_ZeD_Settings_SeeThroughPct` | `%1%%` | Options > Mods > ZeD-GUI, the window menu and the Select wheel: a choice of See-through; %1 = the number, 100 down to 60 (keep the %% for the percent sign) | - |
+| `UI_ZeD_Settings_SolidInUse` | `Solid while in use` | Options > Mods > ZeD-GUI, and the window menu and the Select wheel: name of the Solid while in use setting (an on / off choice) | - |
+| `UI_ZeD_Settings_SolidInUseTip` | `A window turns solid while the pointer is over it or the controller is in it, and goes back to the See-through setting when you leave it.` | Options > Mods > ZeD-GUI: hover help of the Solid while in use setting | - |
+| `UI_ZeD_Settings_FocusStyle` | `Controller highlight` | Options > Mods > ZeD-GUI, and the window menu and the Select wheel: name of the Controller highlight setting | - |
+| `UI_ZeD_Settings_FocusStyleTip` | `How the controller marks the thing it is on: a pointing hand, corner marks, one wash of the accent color, or marching ants.` | Options > Mods > ZeD-GUI: hover help of the Controller highlight setting; the four choices are named in the sentence | - |
+| `UI_ZeD_Settings_FocusHand` | `Pointing hand` | Options > Mods > ZeD-GUI and the window menu: choice of the Controller highlight setting (a hand points at the control the controller is on) | - |
+| `UI_ZeD_Settings_FocusCorners` | `Corner marks` | Options > Mods > ZeD-GUI and the window menu: choice of the Controller highlight setting (marks in the four corners of the control) | - |
+| `UI_ZeD_Settings_FocusWash` | `One wash` | Options > Mods > ZeD-GUI and the window menu: choice of the Controller highlight setting (the whole control filled once with the accent color) | - |
+| `UI_ZeD_Settings_FocusAnts` | `Marching ants` | Options > Mods > ZeD-GUI and the window menu: choice of the Controller highlight setting (a dashed outline that moves round the control) | - |
+| `UI_ZeD_Settings_HiddenActions` | `Hidden actions` | Options > Mods > ZeD-GUI: name of the Hidden actions setting | - |
+| `UI_ZeD_Settings_HiddenActionsTip` | `The actions you cannot take right now. Folded: under a hint row you can open. Show all, grayed: every one, grayed out. Hide: none of them.` | Options > Mods > ZeD-GUI: hover help of the Hidden actions setting; the three choices are named in the sentence | - |
+| `UI_ZeD_Settings_HiddenFolded` | `Folded: a hint row you can open` | Options > Mods > ZeD-GUI: choice of the Hidden actions setting (actions you cannot take now sit under one row that opens) | - |
+| `UI_ZeD_Settings_HiddenAll` | `Show all, grayed` | Options > Mods > ZeD-GUI: choice of the Hidden actions setting (every action stays in the list, grayed out) | - |
+| `UI_ZeD_Settings_HiddenHide` | `Hide` | Options > Mods > ZeD-GUI: choice of the Hidden actions setting (actions you cannot take now are left out) | - |
 
 ## Siren
 
@@ -2855,6 +3353,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 |---|---|---|---|
 | `UI_ZeD_Siren_Dpad` | `D-pad Left / Right: switch   Up / Down: turn` | Siren controller, controller prompt strip: the D-pad's job | 50 |
 | `UI_ZeD_Siren_Step` | `Step` | Siren controller, controller prompt strip: A steps the focused switch to its next position | 14 |
+| `UI_ZeD_Siren_PromptSwitch` | `Switch` | Siren controller, controller prompt strip: what the left and right D-pad buttons do | 14 |
+| `UI_ZeD_Siren_PromptTurn` | `Turn` | Siren controller, controller prompt strip: what the up and down D-pad buttons do (turns the focused switch) | 14 |
 
 ## Skills
 
@@ -2867,6 +3367,12 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Skills_StatusReading` | `Reading` | Skills tab (Character window), Training Materials: legend of the coloured squares (shown under the heading, one line, and as the status of each book) - book partly read | 12 |
 | `UI_ZeD_Skills_TrainingMaterials` | `Training Materials` | Skills tab (Character window): heading of the skill-book section under the skill grid | 24 |
 | `UI_ZeD_Skills_Volume` | `%1 Vol. %2` | Skills tab (Character window), Training Materials: a book row when a skill group is open; %1 is the book's title, %2 its volume number as a roman numeral (I, II, III...) | - |
+| `UI_ZeD_Skills_CardLine` | `%1: %2` | Skills tab: a line of a skill row's hover card, a label and its value; %1 = the label, %2 = the value | - |
+| `UI_ZeD_Skills_HelpBooksHide` | `Fold the books that train %1.` | Skills tab: help line over the button that folds the skill books of a skill away; %1 = the skill's name | - |
+| `UI_ZeD_Skills_HelpBooksShow` | `Show the books that train %1.` | Skills tab: help line over the button that shows the skill books of a skill; %1 = the skill's name | - |
+| `UI_ZeD_Skills_HelpHeader` | `Show or hide the skills.` | Skills tab: help line over the Skills header above the list | - |
+| `UI_ZeD_Skills_HelpPin` | `Pin %1 to the title bar.` | Skills tab: help line over the pin button of a skill that is not pinned; %1 = the skill's name | - |
+| `UI_ZeD_Skills_HelpUnpin` | `Unpin %1 from the title bar.` | Skills tab: help line over the pin button of a skill that is pinned; %1 = the skill's name | - |
 | `UI_ZeD_Skills_CardLevel` | `Level %1 \| %2 / %3 XP to level %4` | Skills tab: a skill row's hover card, under the skill's name. %1 level, %2 XP so far in it, %3 XP the level takes, %4 the next level | - |
 | `UI_ZeD_Skills_CardMax` | `Level %1` | Skills tab: a skill row's hover card, under the name of a skill at the top level. %1 the level | - |
 
@@ -2883,6 +3389,39 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Spawn_PromptNewSeed` | `New seed` | Spawn location screen (new game): controller prompt (Y button) | 12 |
 | `UI_ZeD_Spawn_RandomDesc` | `A town picked at random when you press "Next".` | Spawn location screen (new game): description of the Random entry (Next is the name of the Next button) | - |
 | `UI_ZeD_Spawn_Title` | `Project Zomboid  +  Spawn location` | Spawn location screen (new game): title bar. The + is the ZeD title separator | - |
+
+## SPNCC
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_SPNCC_BeardStubble` | `Beard stubble` | Appearance tab with Spongie's Character Customisation (Character window): row label for the beard stubble, over its status | 18 |
+| `UI_ZeD_SPNCC_Body` | `Body` | Appearance tab with Spongie's Character Customisation: heading over the stubble and body hair rows | 14 |
+| `UI_ZeD_SPNCC_BodyHair` | `Body hair` | Appearance tab with Spongie's Character Customisation: row label for body hair, over its status | 18 |
+| `UI_ZeD_SPNCC_Grown` | `Grown` | Appearance tab with Spongie's Character Customisation: status word after a green dot on a stubble or body hair row that has grown (a Shave button follows) | 10 |
+| `UI_ZeD_SPNCC_HeadStubble` | `Head stubble` | Appearance tab with Spongie's Character Customisation: row label for the head stubble, over its status | 18 |
+| `UI_ZeD_SPNCC_MuscleFrom` | `Shows from Strength 6` | Appearance tab with Spongie's Character Customisation: value of the Muscle row when the server shows muscle from Strength 6 | 28 |
+| `UI_ZeD_SPNCC_MuscleOff` | `Not shown` | Appearance tab with Spongie's Character Customisation: value of the Muscle row when the server does not show muscle | 14 |
+| `UI_ZeD_SPNCC_NewText` | `Spongie's Character Customisation is new to this save. Choose a face and details, then Save. The game waits, paused, until you save or close this window.` | Appearance tab with Spongie's Character Customisation: body of the banner shown when the mod is new to the save; the game is paused until Save or close | - |
+| `UI_ZeD_SPNCC_NewTitle` | `New to this save` | Appearance tab with Spongie's Character Customisation: title of the banner shown when the mod is new to the save | 30 |
+| `UI_ZeD_SPNCC_NoDetails` | `None of the mods on adds details.` | Appearance tab with Spongie's Character Customisation: dim line under the Details heading when no mod provides any | - |
+| `UI_ZeD_SPNCC_None` | `None` | Appearance tab with Spongie's Character Customisation: status word after a hollow dot on a stubble or body hair row with nothing grown | 10 |
+| `UI_ZeD_SPNCC_NoneWorn` | `None` | Appearance tab with Spongie's Character Customisation: dim line in a read-only list (the server does not let the player change it) when no face or detail is chosen | 14 |
+| `UI_ZeD_SPNCC_NotSaved` | `Not saved` | Appearance tab with Spongie's Character Customisation: word in the bottom strip when something was changed since the last save | 14 |
+| `UI_ZeD_SPNCC_NotSavedYet` | `Not saved yet` | Appearance tab with Spongie's Character Customisation: word in the bottom strip when the character has never been saved with the mod | 18 |
+| `UI_ZeD_SPNCC_Saved` | `Saved` | Appearance tab with Spongie's Character Customisation: word in the bottom strip when nothing was changed since the last save | 14 |
+| `UI_ZeD_SPNCC_Shaving` | `Shaving` | Appearance tab with Spongie's Character Customisation: status word after an accent dot on a stubble or body hair row while the shave runs | 10 |
+| `UI_ZeD_SPNCC_SpiffoText` | `While you carry it, the face and details can change.` | Appearance tab with Spongie's Character Customisation: body of the banner shown when the server limits changes to carrying a Spiffo item | - |
+| `UI_ZeD_SPNCC_SpiffoTitle` | `Appearance changing Spiffo` | Appearance tab with Spongie's Character Customisation: title of the banner shown when the server limits changes to carrying a Spiffo item | 30 |
+| `UI_ZeD_SPNCC_HelpCheck` | `Turn %1 on or off.` | Appearance tab with Spongie's Character Customisation: help line over a check box; %1 = its label | - |
+| `UI_ZeD_SPNCC_HelpShave` | `Shave: %1.` | Appearance tab with Spongie's Character Customisation: help line over a Shave button when a razor is at hand; %1 = the row's label | - |
+| `UI_ZeD_SPNCC_HelpTile` | `Choose %1.` | Appearance tab with Spongie's Character Customisation: help line over a picture tile or list row that is not chosen; %1 = the option's name | - |
+| `UI_ZeD_SPNCC_HelpTileOn` | `%1 is chosen.` | Appearance tab with Spongie's Character Customisation: help line over a picture tile or list row that is chosen; %1 = the option's name | - |
+| `UI_ZeD_SPNCC_TurnLeft` | `Turn left` | Appearance tab with Spongie's Character Customisation: hover hint of the button that turns the preview figure left (icon-only button) | - |
+| `UI_ZeD_SPNCC_TurnRight` | `Turn right` | Appearance tab with Spongie's Character Customisation: hover hint of the button that turns the preview figure right (icon-only button) | - |
+| `UI_ZeD_SPNCC_ViewList` | `List` | Appearance tab with Spongie's Character Customisation: hover hint of the button that shows the options as a list | - |
+| `UI_ZeD_SPNCC_ViewPictures` | `Pictures` | Appearance tab with Spongie's Character Customisation: hover hint of the button that shows the options as picture tiles | - |
+| `UI_ZeD_SPNCC_ZoomIn` | `Zoom in` | Appearance tab with Spongie's Character Customisation: hover hint of the button that zooms the preview figure in (icon-only button) | - |
+| `UI_ZeD_SPNCC_ZoomOut` | `Zoom out` | Appearance tab with Spongie's Character Customisation: hover hint of the button that zooms the preview figure out (icon-only button) | - |
 
 ## SRJ
 
@@ -2989,6 +3528,10 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_TAS_WeightKg` | `Weight: %1 kg` | Traits tab, details: progress line of the Weight ladder; %1 is the character's weight | - |
 | `UI_ZeD_TAS_WithTrait` | `With a trait (%1)` | Traits tab: right half of the switch, only the ladders that give the character a trait now; %1 is how many | 22 |
 | `UI_ZeD_TAS_XpTo` | `XP: %1 / %2 to level %3` | Traits tab, details: progress of a ladder that levels by XP; %1 XP so far, %2 the XP the level needs, %3 the next level | - |
+| `UI_ZeD_TAS_HelpCatHide` | `Fold the %1 ladders.` | Traits tab: help line over a category heading whose ladders are showing; %1 = the category's name | - |
+| `UI_ZeD_TAS_HelpCatShow` | `Show the %1 ladders.` | Traits tab: help line over a category heading whose ladders are folded away; %1 = the category's name | - |
+| `UI_ZeD_TAS_HelpOnly` | `Show: %1.` | Traits tab: help line over a half of the All / With a trait switch; %1 = that half's label | - |
+| `UI_ZeD_TAS_HelpRow` | `Show the details of %1.` | Traits tab: help line over a ladder row; %1 = the ladder's name | - |
 
 ## Target
 
@@ -3009,6 +3552,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Thermal_TempF` | `%1°F` | Thermal tab: a temperature when the player's game option shows Fahrenheit. %1 is the converted number with one decimal | 10 |
 | `UI_ZeD_Thermal_ViewShiver` | `Shiver / sweat` | Thermal tab (Character window): view button in the column beside the body figure, one of seven stacked pills (full column width) | 18 |
 | `UI_ZeD_Thermal_ViewWetness` | `Wetness` | Thermal tab (Character window): view button in the column beside the body figure, one of seven stacked pills (full column width) | 18 |
+| `UI_ZeD_Thermal_HelpHeader` | `Show or hide the body figure.` | Thermal tab (Character window): help line over the header above the body figure | - |
+| `UI_ZeD_Thermal_HelpView` | `Color the figure by %1.` | Thermal tab (Character window): help line over a view button; %1 = the view's name (the game's own word) | - |
 
 ## Track
 
@@ -3070,6 +3615,15 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Trough_YourFeed` | `Your feed` | Feeding trough card: section heading over the list of feed you carry | - |
 | `UI_ZeD_Trough_Zone` | `Zone` | Feeding trough card: section heading over the zone lines | - |
 | `UI_ZeD_Trough_ZoneLinked` | `Linked` | Feeding trough card: right side of the ZONE heading when the trough is in an animal zone | 10 |
+| `UI_ZeD_Trough_HelpEmpty` | `Empty: pour the water out of the trough` | Feeding trough card: help line over the Empty button | - |
+| `UI_ZeD_Trough_HelpFeed` | `Add: put %1 in the trough` | Feeding trough card: help line over the Add button on a feed row; %1 = the feed's name | - |
+| `UI_ZeD_Trough_HelpFood` | `Add food: pick feed from your bags` | Feeding trough card: help line over the Add food button | - |
+| `UI_ZeD_Trough_HelpPour` | `Pour: pour %1 into the trough` | Feeding trough card: help line over the Pour button on a water container row; %1 = the container's name | - |
+| `UI_ZeD_Trough_HelpTake` | `Take: move %1 out to your bags` | Feeding trough card: help line over the Take button on a feed row; %1 = the feed's name | - |
+| `UI_ZeD_Trough_HelpWater` | `Add water: pour water in from a container` | Feeding trough card: help line over the Add water button | - |
+| `UI_ZeD_Trough_HintFood` | `add food` | Feeding trough card: what Add food does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Trough_NeedsFeed` | `feed in your bags` | Feeding trough card: what Add food needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Trough_QEmpty` | `Empty the trough? %1 of %2 is lost.` | Feeding trough card: the question in the footer after Empty is pressed; %1 = the amount, e.g. 1.25 L, %2 = the liquid's name in lower case; the footer then offers a yes and a no | - |
 
 ## Veh
 
@@ -3197,6 +3751,60 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Veh_WorkingBack` | `Working at the back of the trailer` | Vehicle tab animal trailer animal card, footer status while an action runs | 40 |
 | `UI_ZeD_Veh_WorkingOn` | `Working on the %1` | Vehicle tab part card, footer: status while an action runs (%1 = part name, lower case) | 36 |
 | `UI_ZeD_Veh_WorstFirst` | `Worst first` | Vehicle tab part list: heading used when the list is sorted by condition | 16 |
+| `UI_ZeD_Veh_HelpAnimalRow` | `Open this animal: its needs, with Remove, Grab and Info` | Vehicle tab, animal trailer page: help line over an animal's row | - |
+| `UI_ZeD_Veh_HelpCloseHood` | `Close the hood` | Vehicle tab: help line over the footer button that closes the hood | - |
+| `UI_ZeD_Veh_HelpCloseLid` | `Close the trunk lid` | Vehicle tab, animal trailer page: help line over the lid button while the trunk lid is open | - |
+| `UI_ZeD_Veh_HelpCloseWindow` | `Close this window` | Vehicle tab part card: help line over the button that closes a window | - |
+| `UI_ZeD_Veh_HelpConfirmNo` | `Do not do it` | Vehicle tab part card: help line over the No button of a footer question (smash, take parts) | - |
+| `UI_ZeD_Veh_HelpDefault` | `Do this to the part` | Vehicle tab part card: help line over an action button that has no help line of its own | - |
+| `UI_ZeD_Veh_HelpDeflate` | `Let the air out of the tire` | Vehicle tab part card: help line over the button that lets air out of a tire | - |
+| `UI_ZeD_Veh_HelpFeed` | `Feed the animal this` | Vehicle tab, animal trailer page: help line over a food item you can give the animal | - |
+| `UI_ZeD_Veh_HelpFix` | `Repair this part with the recipe picked below` | Vehicle tab part card: help line over the Repair button | - |
+| `UI_ZeD_Veh_HelpFold` | `Fold or unfold this group` | Vehicle tab: help line over a group heading in the list of parts | - |
+| `UI_ZeD_Veh_HelpGiveWater` | `Give the animal water from this` | Vehicle tab, animal trailer page: help line over a water source you can give the animal | - |
+| `UI_ZeD_Veh_HelpGoTow` | `Show the other vehicle in this link` | Vehicle tab: help line over the button that shows the other vehicle of a towing link | - |
+| `UI_ZeD_Veh_HelpGrabAnimal` | `Grab: pick the animal up and carry it` | Vehicle tab, animal trailer page: help line over the Grab button on an animal | - |
+| `UI_ZeD_Veh_HelpInflate` | `Pump air into the tire` | Vehicle tab part card: help line over the button that pumps air into a tire | - |
+| `UI_ZeD_Veh_HelpInfoAnimal` | `Info: open this animal's details in the Animals tab` | Vehicle tab, animal trailer page: help line over the Info button on an animal | - |
+| `UI_ZeD_Veh_HelpInspect` | `Inspect: walk over and look the vehicle over to read its parts` | Vehicle tab: help line over the footer Inspect button | - |
+| `UI_ZeD_Veh_HelpInstall` | `Install the part picked below` | Vehicle tab part card: help line over the Install button | - |
+| `UI_ZeD_Veh_HelpOpenBox` | `Show what is inside in the Loot pane` | Vehicle tab, animal trailer page: help line over the button that shows a container's contents in the loot pane | - |
+| `UI_ZeD_Veh_HelpOpenLid` | `Open the trunk lid; the other actions wait for it` | Vehicle tab, animal trailer page: help line over the lid button while the trunk lid is closed | - |
+| `UI_ZeD_Veh_HelpOpenWindow` | `Open this window` | Vehicle tab part card: help line over the button that opens a window | - |
+| `UI_ZeD_Veh_HelpPartRow` | `Open this part: its condition, repairs and what it needs` | Vehicle tab: help line over a part's row | - |
+| `UI_ZeD_Veh_HelpPutIn` | `Put this animal in the trailer` | Vehicle tab, animal trailer page: help line over the button that puts an animal in the trailer | - |
+| `UI_ZeD_Veh_HelpRemoveAnimal` | `Remove: walk the animal out at the back` | Vehicle tab, animal trailer page: help line over the Remove button on an animal | - |
+| `UI_ZeD_Veh_HelpRepairEngine` | `Repair the engine with spare engine parts` | Vehicle tab part card (engine): help line over the Repair engine button | - |
+| `UI_ZeD_Veh_HelpRepairLightbar` | `Repair the light bar` | Vehicle tab part card (light bar): help line over the Repair button | - |
+| `UI_ZeD_Veh_HelpSmash` | `Smash the window; the glass is lost` | Vehicle tab part card (window): help line over the Smash button | - |
+| `UI_ZeD_Veh_HelpSortArea` | `Sort the parts by area of the vehicle` | Vehicle tab: help line over the sort button of the part list while it sorts by area | - |
+| `UI_ZeD_Veh_HelpSortCond` | `Sort the parts by condition, worst first` | Vehicle tab: help line over the sort button of the part list while it sorts by condition | - |
+| `UI_ZeD_Veh_HelpTakeParts` | `Take parts out of the engine; it loses condition` | Vehicle tab part card (engine): help line over the Take parts button | - |
+| `UI_ZeD_Veh_HelpUninstall` | `Take this part off the vehicle` | Vehicle tab part card: help line over the Uninstall button | - |
+| `UI_ZeD_Veh_HintCloseWindow` | `close the window` | Vehicle tab part card: what Close window does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintDefault` | `work on this part` | Vehicle tab part card: what an action with no wording of its own does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintDeflate` | `let the air out of the tire` | Vehicle tab part card: what Deflate does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintFix` | `repair it` | Vehicle tab part card: what Repair does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintGoTow` | `Show the other vehicle` | Vehicle tab: hover hint of the button that shows the other vehicle of a towing link | - |
+| `UI_ZeD_Veh_HintGrabAnimal` | `pick the animal up` | Vehicle tab, animal trailer page: what Grab does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintInflate` | `pump up the tire` | Vehicle tab part card: what Inflate does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintInstall` | `install a part here` | Vehicle tab part card: what Install does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintOpenWindow` | `open the window` | Vehicle tab part card: what Open window does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintRemoveAnimal` | `take the animal out at the back` | Vehicle tab, animal trailer page: what Remove does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintRepairEngine` | `repair the engine` | Vehicle tab part card (engine): what Repair engine does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintRepairLightbar` | `repair the light bar` | Vehicle tab part card (light bar): what Repair does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintSmash` | `smash the window` | Vehicle tab part card (window): what Smash does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintTakeParts` | `take parts out of the engine` | Vehicle tab part card (engine): what Take parts does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_HintUninstall` | `take the part off` | Vehicle tab part card: what Uninstall does, in lower case, filling %2 of "With %1 you could %2" in the folded hidden-actions row | - |
+| `UI_ZeD_Veh_InspectParts` | `Inspect the %1 to read its parts.` | Vehicle tab (not inspected yet): empty-state line over the list of parts; %1 = the vehicle's name | - |
+| `UI_ZeD_Veh_NeedFixWhat` | `materials for one of the repair recipes` | Vehicle tab part card, NEEDS list for Repair: the requirement line while no recipe has its materials | - |
+| `UI_ZeD_Veh_NeedLid` | `the trunk lid open` | Vehicle tab, animal trailer page: what Open needs, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
+| `UI_ZeD_Veh_NeedPartWhat` | `a part to install within reach` | Vehicle tab part card, NEEDS list for Install: the requirement line while no part is within reach | - |
+| `UI_ZeD_Veh_NoAnimalsHere` | `No animals inside.` | Vehicle tab, animal trailer page: line shown when the trailer holds no animals | - |
+| `UI_ZeD_Veh_NoVehicleReach` | `No vehicle within reach.` | Vehicle tab: line shown when no vehicle is within reach | - |
+| `UI_ZeD_Veh_NotNow` | `%1 is not possible right now.` | Vehicle tab part card: the NEEDS line under an action that cannot be done at the moment although nothing is missing; %1 = the action's name | - |
+| `UI_ZeD_Veh_PartsLabel` | `Parts` | Vehicle tab: heading of the list of parts | 14 |
+| `UI_ZeD_Veh_RightConditions` | `the right conditions` | Vehicle tab part card: what an action needs when nothing specific is missing, in lower case, filling %2 of "%1 needs %2" and %1 of "With %1 you could %2" | - |
 
 ## Watch
 
@@ -3327,6 +3935,24 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Wheel_Zoom` | `Zoom` | D-pad wheels: Here and now slice: zoom in and out | 12 |
 | `UI_ZeD_Wheel_TreatWounds` | `Treat wounds` | Controller D-pad Right wheel, the slice that opens the Health tab when a wound needs care | 24 |
 
+## Window
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_Window_ResizeHelp` | `Drag to change the window's size.` | Any resizable ZeD window: help line while the pointer is on the resize box in the window's bottom corner | - |
+
+## WinMenu
+
+| Key | English | Where it shows | Max |
+|---|---|---|---|
+| `UI_ZeD_WinMenu_Theme` | `Theme` | Window menu (the box at the right end of a window's title bar): name of the submenu that picks the theme | - |
+| `UI_ZeD_WinMenu_Accent` | `Accent` | Window menu (the box at the right end of a window's title bar): name of the submenu that picks the accent color | - |
+| `UI_ZeD_WinMenu_ResetThis` | `Reset this window` | Window menu: puts this window back to its starting size and place | - |
+| `UI_ZeD_WinMenu_ResetBoth` | `Reset both windows` | Window menu, on the Character and World windows only: puts both windows back to their starting size and place | - |
+| `UI_ZeD_WinMenu_Setup` | `ZeD setup...` | Window menu, last row: opens ZeD setup (Options > Mods > ZeD-GUI) | - |
+| `UI_ZeD_WinMenu_Help` | `Window menu: theme, accent, text size, see-through, controller highlight and reset.` | Any ZeD window: help line while the pointer is on the window menu box (the box at the right end of the title bar) | - |
+| `UI_ZeD_WinMenu_CloseHelp` | `Close the window.` | Any ZeD window: help line while the pointer is on the close box at the left end of the title bar | - |
+
 ## Workshop
 
 | Key | English | Where it shows | Max |
@@ -3380,6 +4006,8 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_Workshop_UploadingNoTotal` | `Uploading to the Workshop...` | Workshop upload screen: progress text in the strip before the size is known | - |
 | `UI_ZeD_Workshop_UploadUpdate` | `Upload update` | Workshop upload screen: strip button for an item already on the Workshop | 16 |
 | `UI_ZeD_Workshop_YourMods` | `Your mods` | Workshop upload screen: caps heading over the list of folders in Zomboid/Workshop | - |
+| `UI_ZeD_Workshop_StatusOne` | `1 mod folder` | Workshop window (main menu): footer line when nothing is under the pointer and the list holds one mod folder | - |
+| `UI_ZeD_Workshop_StatusMany` | `%1 mod folders` | Workshop window (main menu): footer line when nothing is under the pointer and the list holds several mod folders; %1 = how many | - |
 
 ## World
 
@@ -3398,6 +4026,12 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_World_TabMaps` | `Maps` | World window: tab name | 12 |
 | `UI_ZeD_World_TabVehicle` | `Vehicle` | World window: tab name (shown only near a vehicle) | 12 |
 | `UI_ZeD_World_Title` | `World` | World window: title bar text, and the window-rolled tab's fallback name | 16 |
+| `UI_ZeD_World_TabHelp` | `%1: press to open this tab` | World window: help line over a tab name; %1 = the tab's name | - |
+| `UI_ZeD_World_FloorHelp` | `The floor around you: press to show it or put it away` | World window: help line over the floor in the container strip | - |
+| `UI_ZeD_World_ContainerHelp` | `%1: press to show it or put it away` | World window: help line over a container in the container strip; %1 = its name | - |
+| `UI_ZeD_World_LockedHelp` | `%1 is locked: press for its lock` | World window: help line over a locked container in the container strip; %1 = its name | - |
+| `UI_ZeD_World_SortHelp` | `Order of the containers: press for the next (distance, weight, type)` | World window: help line over the button that changes the order of the containers in the strip | - |
+| `UI_ZeD_World_WeightOf` | `%1 of %2 kg` | World window: the weight part of the footer line for the open container, after the item count; %1 = weight inside (kg, one decimal), %2 = most it holds (kg) | - |
 
 ## General
 
@@ -3408,3 +4042,4 @@ Action bar over the character's head: one label per game action (pixel face, cap
 | `UI_ZeD_ModName` | `ZeD-GUI` | The mod list: the mod's name. | 12 |
 | `UI_ZeD_NoResults` | `No results` | Empty list line when a search finds nothing. | 24 |
 | `UI_ZeD_Weight` | `Weight` | Weight label. | 12 |
+
