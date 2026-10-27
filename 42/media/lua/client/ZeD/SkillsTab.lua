@@ -694,9 +694,7 @@ local function drawTrainingSection(panel, startY, x, w, col1X, col2X, colW, colG
             local dispName = skillGroup.disp or skillGroup.label
 
             -- the row's hover wash, then the controller's mark (under the words)
-            local hover = view and win and A.mouseIn(panel, startX, dy, colWidth, collapsedRowH)
-                and panel:getMouseX() >= view.x and panel:getMouseX() < view.x + view.w
-                and panel:getMouseY() >= view.y and panel:getMouseY() < view.y + view.h
+            local hover = view and win and A.mouseIn(panel, startX, dy, colWidth, collapsedRowH, view)
             if hover then
                 local hv = T.hover
                 panel:drawRect(startX, dy, colWidth, collapsedRowH, hv.a, hv.r, hv.g, hv.b)

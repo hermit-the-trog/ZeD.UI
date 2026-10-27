@@ -495,10 +495,7 @@ local function renderTraitRow(panel, win, trait, tx, ty, tw, color)
 
     -- the cell: a content line round it, the hover wash, the controller's mark
     -- under the words (no tinted fill: the square at the right carries good or bad)
-    local v = win._idView
-    local mx, my = panel:getMouseX(), panel:getMouseY()
-    local inView = (not v) or (mx >= v.x and mx < v.x + v.w and my >= v.y and my < v.y + v.h)
-    local hover = inView and A.mouseIn(panel, tx, ty, tw, rh)
+    local hover = A.mouseIn(panel, tx, ty, tw, rh, win._idView)   -- (the tab's view bounds the hover)
     if hover then
         local hv = T.hover
         panel:drawRect(tx, ty, tw, rh, hv.a, hv.r, hv.g, hv.b)

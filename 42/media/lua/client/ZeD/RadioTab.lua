@@ -1078,6 +1078,9 @@ local function _twFocusId(win)
     return el and el.id or nil
 end
 
+-- the drawer header's browse keys take the controller's mark themselves: its opts and the mark's (reused each frame)
+local _browseOpts, _browseMark = {}, {}
+
 -- the drawer's width (screen px) for a two-way face, nil when the tab is not on one (base: the standard width; limit:
 -- the widest the window lets the drawer be, nil when it is not held in).
 -- A walkie's tab is only as wide as its panel, the face and its margins (director, Oct 25 2026: "a panel the size
@@ -1296,9 +1299,14 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
     -- 1. Drawer-internal header strip (browse + subtitle + location pill).
     -- Header molecule returns the prev/next browse-button rects so onClick
     -- can hit-test them; stash on win like the other radio click zones.
+    -- The browse key the controller is on carries its mark under the triangle (the header's own option).
+    local hfid = _twFocusId(win)
+    _browseOpts.focusId = (hfid == "radio:browsePrev" and "prev") or (hfid == "radio:browseNext" and "next") or nil
+    _browseOpts.focus = _browseOpts.focusId and _browseMark or nil
+    _browseMark.win = win
     local prevZone, nextZone = ZeD.Molecules.drawDrawerInternalHeader(panel, x, y, w,
         { idx = idx, total = #radios }, subtitle, current and ZeD.RadioTab.locationName(current.locationTag) or "",
-        twDes and (T.buttonH + T.px(8)) or nil)
+        twDes and (T.buttonH + T.px(8)) or nil, _browseOpts)
     win._radioBrowsePrevZone = prevZone
     win._radioBrowseNextZone = nextZone
 
@@ -1322,9 +1330,7 @@ function ZeD.RadioTab.render(panel, win, x, y, w, h)
         -- Resolve the focused id to its stamped rect zone. Mirrors the click router's
         -- zone lookup: same rect, same paint surface.
         local zr = nil
-        if     fid == "radio:browsePrev"  then zr = win._radioBrowsePrevZone
-        elseif fid == "radio:browseNext"  then zr = win._radioBrowseNextZone
-        elseif fid == "radio:power"       then zr = win._radioPwrZone
+        if     fid == "radio:power"       then zr = win._radioPwrZone
         elseif fid == "radio:seek-"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[1]
         elseif fid == "radio:seek+"       then zr = win._radioSeekBtnZones and win._radioSeekBtnZones[2]
         elseif fid == "radio:vol-"        then zr = win._radioVolBtnZones  and win._radioVolBtnZones[1]

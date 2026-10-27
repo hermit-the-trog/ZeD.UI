@@ -35,8 +35,7 @@ CC.DRAWER_W        = 480
 CC.PANE_W_SOLO     = 480
 CC.PANE_W_SPLIT    = 240
 CC.ROW_H           = 24
-CC.ACT_STRIP_H     = 42
-CC.HEADER_H         = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- standard ZeD drawer-header strip
+CC.HEADER_H        = (ZeD.Spacing and ZeD.Spacing.tabHeaderH) or 37  -- standard ZeD drawer-header strip
 CC.STRIP_H          = 20    -- sort strip doubles as column header row
 CC.MAX_PINS        = 8
 CC.ANIM_DURATION   = 0.28  -- pane split animation in seconds
@@ -1014,6 +1013,7 @@ function CC.createState()
         outCollapsed     = false,      -- OUTPUTS section collapsed
         catDropdownOpen  = false,      -- category dropdown expanded
         catDropdownScroll = 0,        -- dropdown scroll offset (rows)
+        sortMenuOpen     = false,      -- sort pop-up list open (the strip's choices fold into it when narrow)
         splitFrac        = 0,          -- 0→1 animation progress for pane split
         splitTarget      = 0,          -- 0 = closed, 1 = open
         zones            = {},         -- click zones for current frame
@@ -1230,7 +1230,7 @@ function CC.renderStrip(panel, x, y, w, state, config)
     local T = ZeD.T
     local zones = state.zones
     local mx, my = panel:getMouseX(), panel:getMouseY()
-    if state.catDropdownOpen or state.stDropdownOpen or cuesOn() then mx, my = -1, -1 end  -- suppress hover when a dropdown is open or the pad is in use
+    if state.catDropdownOpen or state.stDropdownOpen or state.sortMenuOpen or cuesOn() then mx, my = -1, -1 end  -- suppress hover when a dropdown is open or the pad is in use
 
     -- Detect hover zone from previous frame's zones (strip zones persist between frames)
     local stripH = T.px(CC.STRIP_H)
@@ -1243,6 +1243,8 @@ function CC.renderStrip(panel, x, y, w, state, config)
                     hoverZone = z.type:sub(10)  -- strip "altStrip_" prefix
                 elseif z.type == "sortMode" then
                     hoverZone = z.id
+                elseif z.type == "sortMenu" then
+                    hoverZone = "menu"
                 elseif z.type == "showAllToggle" then
                     hoverZone = "toggle"
                 end
@@ -1251,20 +1253,27 @@ function CC.renderStrip(panel, x, y, w, state, config)
         end
     end
 
+    -- The strip's focus: the zone id (one the strip hands back) of the part that has the
+    -- controller's focus, from the focused element's id. The strip draws the mark itself.
+    local pfx = (config and config.prefix) or "jrecipe"
+    local fid = state._gpFocusedId
+    local so = state._stripOpts or {}
+    state._stripOpts = so
+    so.focusId, so.menuOpen = nil, nil
+
     if state.altSlotName then
         -- Alt mode strip
+        state.sortMenuOpen = false
+        state._sortMenuGeo = nil
+        if fid then
+            if fid == pfx .. ":altBack" then so.focusId = "back"
+            elseif fid == pfx .. ":altOwned" then so.focusId = "ownedOnly" end
+        end
         local altData = state.altItems or { totalOwned = 0, totalAll = 0 }
         local h, stripZones = M.drawAltBackStrip(panel, x, y, w,
             state.altSlotName, altData.totalOwned, altData.totalAll,
-            state.ownedOnly, hoverZone)
-        -- the controller's mark on the focused back key / owned-only box (the
-        -- library strip takes no focus yet, so it goes on after the strip)
-        local pfx = (config and config.prefix) or "jrecipe"
-        local fid = state._gpFocusedId
+            state.ownedOnly, hoverZone, so)
         for _, z in ipairs(stripZones) do
-            if fid and ((z.id == "back" and fid == pfx .. ":altBack") or (z.id == "ownedOnly" and fid == pfx .. ":altOwned")) then
-                ZeD.Focus.mark(panel, z.x, z.y, z.w, z.h)
-            end
             z.type = "altStrip_" .. z.id
             zones[#zones + 1] = z
         end
@@ -1289,31 +1298,73 @@ function CC.renderStrip(panel, x, y, w, state, config)
         end
         local show = CC.showMode(state, config)
         local toggle = { label = ZeD.tr("UI_ZeD_Craft_ShowToggle", ZeD.tr(SHOW_LABEL[show])), active = show ~= "known" }
+        if fid then
+            local sp = pfx .. ":sort:"
+            if fid == pfx .. ":showAll" then so.focusId = "toggle"
+            elseif fid == pfx .. ":sortMenu" then so.focusId = "menu"
+            elseif string.sub(fid, 1, #sp) == sp then so.focusId = string.sub(fid, #sp + 1) end
+        end
+        -- the choices fold into a pop-up menu when they do not all fit; the caller opens it
+        so.menuOpen = state.sortMenuOpen == true
         local h, stripZones = M.drawSortStrip(panel, x, y, w,
-            modes, state.sort, toggle, hoverZone)
-        -- The controller's mark on the focused sort word / show-all box. (The
-        -- library strip takes no focus yet, so the mark goes on after its words.)
-        local pfx = (config and config.prefix) or "jrecipe"
-        local fid = state._gpFocusedId
+            modes, state.sort, toggle, hoverZone, so)
+        local menuZone = nil
         for _, z in ipairs(stripZones) do
             if z.type == "sort" then
                 z.type = "sortMode"
             elseif z.type == "toggle" then
                 z.type = "showAllToggle"
-            end
-            if fid then
-                local zid = nil
-                if     z.type == "sortMode"      then zid = pfx .. ":sort:" .. tostring(z.id)
-                elseif z.type == "showAllToggle" then zid = pfx .. ":showAll"
-                end
-                if zid and zid == fid then
-                    ZeD.Focus.mark(panel, z.x, z.y, z.w, z.h)
-                end
+            elseif z.type == "sortMenu" then
+                menuZone = z
             end
             zones[#zones + 1] = z
         end
+        -- The open list hangs from the menu box (CC.renderSortMenu draws it last); it shuts
+        -- by itself when the choices fit again and the box is gone.
+        if menuZone and state.sortMenuOpen then
+            state._sortMenuGeo = { x = menuZone.x, y = menuZone.y + menuZone.h, w = menuZone.w, modes = modes }
+        else
+            state._sortMenuGeo = nil
+            state.sortMenuOpen = false
+        end
         return h
     end
+end
+
+-- The sort pop-up list, open: drawn last (over the rows) at the menu box's bottom-left. Its row
+-- zones are kept for the click and the controller; the choice that has the controller's focus
+-- carries the mark.
+function CC.renderSortMenu(panel, state, config)
+    local geo = state._sortMenuGeo
+    if not (state.sortMenuOpen and geo) then return end
+    local pfx = (config and config.prefix) or "jrecipe"
+    local mx, my = panel:getMouseX(), panel:getMouseY()
+    local hoverId = nil
+    if not cuesOn() then
+        local zs = state._sortMenuZones
+        if zs then
+            for _, z in ipairs(zs) do
+                if mx >= z.x and mx < z.x + z.w and my >= z.y and my < z.y + z.h then hoverId = z.id; break end
+            end
+        end
+    end
+    local mo = state._sortMenuOpts or {}
+    state._sortMenuOpts = mo
+    mo.focusId, mo.minW = nil, geo.w
+    local fid = state._gpFocusedId
+    if fid then
+        local rp = pfx .. ":sortRow:"
+        if string.sub(fid, 1, #rp) == rp then mo.focusId = string.sub(fid, #rp + 1) end
+    end
+    local _, _, zs = M.drawSortMenuList(panel, geo.x, geo.y, geo.modes, state.sort, hoverId, mo)
+    state._sortMenuZones = zs
+end
+
+-- Shut the sort pop-up list. The controller returns to the menu box it came from.
+function CC.closeSortMenu(state)
+    state.sortMenuOpen = false
+    state._sortMenuZones = nil
+    state._gpReturnToSortMenu = true
 end
 
 -- ============================================================================
@@ -1448,11 +1499,19 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
     local curY = y - scrollOff
     local mx, my = panel:getMouseX(), panel:getMouseY()
     -- Suppress hover when a dropdown overlay is open
-    if state.catDropdownOpen or state.stDropdownOpen or cuesOn() then mx, my = -1, -1 end
+    if state.catDropdownOpen or state.stDropdownOpen or state.sortMenuOpen or cuesOn() then mx, my = -1, -1 end
     local rowIdx = 0
 
     -- Reusable row data table (zero alloc per row per frame)
     local rowData = { name = "", displayName = "", iconTex = nil, status = "can" }
+    -- the recipe the controller has (the id after "<prefix>:row:"), else nil
+    local rowOpts = { focus = nil }
+    local focusedRow = nil
+    do
+        local fid = state._gpFocusedId
+        local rp = ((config and config.prefix) or "jrecipe") .. ":row:"
+        if fid and string.sub(fid, 1, #rp) == rp then focusedRow = string.sub(fid, #rp + 1) end
+    end
 
     -- Visible area bounds for culling (stencil clips pixels but draw calls are expensive)
     local visTop = y
@@ -1529,17 +1588,13 @@ function CC.renderRecipeList(panel, x, y, w, h, state, config, data, playerObj)
                     local isPinned = pinSet[name] or false
                     local fc = freqCounts[name]
 
-                    -- The controller's mark goes on first, so it sits under the row's
-                    -- words (the row draws no opaque fill). Off-screen rows skip it
-                    -- (zone stamped, no draw); next frame's scroll-follow brings the
-                    -- row into view.
-                    local pfx = (config and config.prefix) or "jrecipe"
-                    if state._gpFocusedId == (pfx .. ":row:" .. tostring(name)) then
-                        ZeD.Focus.mark(panel, x, curY, contentW, ROW_H)
-                    end
+                    -- The row draws the controller's mark itself (under its words) when it is
+                    -- the focused one. Off-screen rows skip it (zone stamped, no draw); next
+                    -- frame's scroll-follow brings the row into view.
+                    rowOpts.focus = (focusedRow ~= nil and focusedRow == tostring(name)) or nil
 
                     M.drawRecipeRow(panel, x, curY, contentW, rowData,
-                        isSelected, rowHover, isPinned, fc, rowIdx)
+                        isSelected, rowHover, isPinned, fc, rowIdx, rowOpts)
                 end
 
                 -- Click zones (readOnly: full row, no star) — stamped UNCONDITIONALLY.
@@ -1938,7 +1993,7 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
     local chipH = T.px(22)
     local inputsH = ROW_H + #(rd.ingredients or {}) * ROW_H  -- header + rows
     local outputsH = ROW_H + #(entry.outputDefs or {}) * ROW_H
-    local actionH = config.readOnly and 0 or T.px(CC.ACT_STRIP_H)
+    local actionH = config.readOnly and 0 or M.craftActionStripH()
     -- Learn info section height (readOnly + not accessible)
     local showLearnSection = config.readOnly and (not rd.learned or rd.hasSkill == false)
     local learnH = 0
@@ -2000,11 +2055,12 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         panel:drawTextureScaledAspect(entry.iconTex, iconX + T.px(2), iconY + T.px(2), iconSz - 2 * T.px(2), iconSz - 2 * T.px(2), 1, 1, 1, 1)
     end
 
-    -- Name (F2 13px, accent)
+    -- Name (F2 13px, heading ink)
     local nameX = iconX + iconSz + T.px(6)
     local nameFont = T.fontF2
     local nameStr = CC.truncText(entry.displayName, nameFont, contentW - (nameX - x) - T.px(6))
-    panel:drawText(nameStr, nameX, curY + T.px(6), T.accent.r, T.accent.g, T.accent.b, 1, nameFont)
+    local hc = T.textHead
+    panel:drawText(nameStr, nameX, curY + T.px(6), hc.r, hc.g, hc.b, hc.a or 1, nameFont)
 
     -- Description (pre-baked during catalog build)
     if entry.description then
@@ -2225,16 +2281,20 @@ function CC.renderCraftCard(panel, x, y, w, h, state, config, rd, playerObj)
         if state.qty < 1 then state.qty = 1 end
         local canCraft = rd.status == "craftable" and rd.learned ~= false and maxQty > 0
         local label = ZeD.tr(config.buildLabel or "IGUI_CraftingWindow_Craft")
-        local _, actionZones = M.drawCraftActionStrip(panel, x, actionY, w,
-            state.qty, maxQty, canCraft, nil, label)
-        -- the controller's mark on the focused stepper key or Craft / Build button (the
-        -- library strip takes no focus yet, so it goes on after the strip)
+        -- the band takes the controller's focus itself: the id of the stepper key or the
+        -- Craft / Build button that has it (the mark goes under its words)
+        local ao = state._actionOpts or {}
+        state._actionOpts = ao
+        ao.h, ao.focusId = actionH, nil
         local fid = state._gpFocusedId
+        if fid then
+            if fid == pfx .. ":actDec" then ao.focusId = "dec"
+            elseif fid == pfx .. ":actInc" then ao.focusId = "inc"
+            elseif fid == pfx .. ":actBuild" then ao.focusId = "build" end
+        end
+        local _, actionZones = M.drawCraftActionStrip(panel, x, actionY, w,
+            state.qty, maxQty, canCraft, nil, label, ao)
         for _, z in ipairs(actionZones) do
-            if fid and ((z.id == "dec" and fid == pfx .. ":actDec") or (z.id == "inc" and fid == pfx .. ":actInc")
-                    or (z.id == "build" and fid == pfx .. ":actBuild")) then
-                ZeD.Focus.mark(panel, z.x, z.y, z.w, z.h)
-            end
             z.type = "action_" .. z.id
             zones[#zones + 1] = z
         end
@@ -2385,6 +2445,11 @@ function CC.render(panel, win, x, y, w, h, state, config, data)
     -- Category dropdown overlay (drawn LAST — on top of everything)
     if state.catDropdownOpen and state._ddGeo then
         CC.renderCatDropdownOverlay(panel, state, data)
+    end
+
+    -- Sort pop-up list (the strip folds its choices into it when they do not fit)
+    if state.sortMenuOpen then
+        CC.renderSortMenu(panel, state, config)
     end
 
     -- Station dropdown overlay (crafting)
@@ -2584,6 +2649,19 @@ function CC.onClick(state, config, win, x, y, playerObj)
         return true
     end
 
+    -- Sort pop-up list open: it takes every click (pick a choice or shut it)
+    if state.sortMenuOpen then
+        for _, z in ipairs(state._sortMenuZones or {}) do
+            if x >= z.x and x < z.x + z.w and y >= z.y and y < z.y + z.h then
+                state.sort = z.id
+                state.filterDirty = true
+                break
+            end
+        end
+        CC.closeSortMenu(state)
+        return true
+    end
+
     local zones = state.zones or {}
 
     -- Zones already store screen-space positions (scroll offset baked in at
@@ -2619,6 +2697,12 @@ function CC.onClick(state, config, win, x, y, playerObj)
 
             elseif zone.type == "showAllToggle" then
                 CC.cycleShow(state, config)
+                return true
+
+            elseif zone.type == "sortMenu" then
+                state.sortMenuOpen = true
+                state.catDropdownOpen = false
+                state.stDropdownOpen = false
                 return true
 
             elseif zone.type == "catDropdown" then
@@ -2716,6 +2800,7 @@ function CC.onMouseWheel(state, del, x, y, panelX, panelW)
         ZeD.Stations.dropdownWheel(state, del)
         return true
     end
+    if state.sortMenuOpen then return true end
     -- Dropdown scroll takes priority when open
     if state.catDropdownOpen then
         local totalRows = #(state.categoryList or {})
@@ -2811,6 +2896,29 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     end,
                 }
             end
+        end
+        return elements
+    end
+
+    -- Sort pop-up list open: focus is locked to its rows (the current choice has it first;
+    -- B shuts the list)
+    if state.sortMenuOpen and state._sortMenuZones then
+        local elements = {}
+        for i, z in ipairs(state._sortMenuZones) do
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":sortRow:" .. tostring(z.id),
+                craftKind = "sortRow",
+                sortId = z.id,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    state.sort = el.sortId
+                    state.filterDirty = true
+                    CC.closeSortMenu(state)
+                end,
+                onCancel = function(w, el) CC.closeSortMenu(state) end,
+            }
+            if z.id == state.sort then elements._focusIdx = i end
         end
         return elements
     end
@@ -2926,6 +3034,24 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     state.filterDirty = true
                 end,
             }
+        elseif z.type == "sortMenu" then
+            elements[#elements + 1] = {
+                x = z.x, y = z.y, w = z.w, h = z.h,
+                id = prefix .. ":sortMenu",
+                craftKind = "sortMenu",
+                journalKind = (prefix == "jrecipe") and "jrecipeSort" or nil,
+                onFocus = function(w, el) end,
+                onActivate = function(w, el)
+                    state.sortMenuOpen = true
+                    state.catDropdownOpen = false
+                    state.stDropdownOpen = false
+                end,
+            }
+            -- the list has just shut: the controller comes back to the box that opened it
+            if state._gpReturnToSortMenu then
+                elements._focusIdx = #elements
+                state._gpReturnToSortMenu = nil
+            end
         elseif z.type == "showAllToggle" then
             elements[#elements + 1] = {
                 x = z.x, y = z.y, w = z.w, h = z.h,
@@ -2947,6 +3073,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                     state.stDropdownOpen = not state.stDropdownOpen
                     state.stDropdownScroll = 0
                     state.catDropdownOpen = false
+                    state.sortMenuOpen = false
                 end,
             }
         elseif z.type == "stationUse" then
@@ -2971,6 +3098,7 @@ function CC.buildFocusables(win, state, prefix, pinKey, startAction)
                 onFocus = function(w, el) end,
                 onActivate = function(w, el)
                     state.catDropdownOpen = not state.catDropdownOpen
+                    state.sortMenuOpen = false
                 end,
             }
         elseif z.type == "cardSection" then

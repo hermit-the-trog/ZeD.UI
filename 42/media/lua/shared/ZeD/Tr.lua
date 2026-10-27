@@ -501,9 +501,9 @@ ZeD.trDefaults({
 
     UI_ZeD_Accent_Teal = "PZ Teal",
 
-    UI_ZeD_Status_Danger = "DANGER",
-    UI_ZeD_Status_Warning = "WARNING",
-    UI_ZeD_Status_Info = "INFO",
+    UI_ZeD_Status_Danger = "Danger",
+    UI_ZeD_Status_Warning = "Warning",
+    UI_ZeD_Status_Info = "Info",
 
     UI_ZeD_Close = "Close",
     UI_ZeD_NoResults = "No results",

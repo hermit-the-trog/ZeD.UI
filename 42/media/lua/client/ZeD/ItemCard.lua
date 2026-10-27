@@ -1730,7 +1730,11 @@ end
 -- lives in charTabContent (self._gpZone). Else nil.
 local _cardFocus = {}
 function ZeD_ItemCard:focusFor(id)
-    if id == nil or self._gpFocusedBtnId ~= id then return nil end
+    if id == nil then return nil end
+    -- The Equip tab's back key is a stop of the window's own, not a card button: it has
+    -- no button id here, the window names it by its slot ("__card_back").
+    local backStop = (id == "back" and self._gpZone ~= nil)
+    if not backStop and self._gpFocusedBtnId ~= id then return nil end
     local Focus = ZeD and ZeD.Input and ZeD.Input.Focus
     local w     = Focus and Focus.getFocusedWindow and Focus.getFocusedWindow()
     local zone  = (w and Focus.liveZone) and Focus.liveZone(w) or nil
@@ -1744,29 +1748,6 @@ function ZeD_ItemCard:focusFor(id)
     if not ZeD.Atoms.isAncestor(w, self) then return nil end
     _cardFocus.win, _cardFocus.zone = w, zone.zone
     return _cardFocus
-end
-
--- Called by renderBody after its parts draw: the focus mark on the two parts
--- the library draws without a focus option (the flag strip's chips, the
--- progress band's Cancel). Every other part takes its mark under its own
--- words as it draws (header verbs, care verbs, the name row, the docks, the
--- folded row).
-function ZeD_ItemCard:_drawGpFocusOutline()
-    local id = self._gpFocusedBtnId
-    if not id then return end
-    local fo = self:focusFor(id)
-    if not fo then return end
-    local r = nil
-    local DEFS = ZeD.ActionStrip.TOGGLE_DEFS
-    for i, def in ipairs(DEFS) do
-        if id == "toggle_" .. def.key then
-            r = self.toggleRects and self.toggleRects[i]; break
-        end
-    end
-    if not r and id == "cancel_band" and self._cancelRect then r = self._cancelRect end
-    if not r then return end
-    -- (the rects are absolute)
-    ZeD.Focus.mark(self, r.x - self:getAbsoluteX(), r.y - self:getAbsoluteY(), r.w, r.h, fo)
 end
 
 --- Open or fold the card's folded row (remembered per item type for the session)

@@ -255,20 +255,17 @@ local function col(c) return c.r, c.g, c.b end
 -- ---------------------------------------------------------------------------
 -- Surfaces. A strip drawn over the card's body (a section head, the band) must
 -- not add its opacity to the body's (see-through): the body is drawn as its rect
--- minus last frame's strips, the way the window draws its own. UI.claim records
--- a strip for the next frame's body; UI.fill draws one and records it. On any
--- panel but the card these are plain fills.
+-- minus last frame's strips, the way the window draws its own. The card keeps
+-- that body as a surface of its own (card._srf, made in drawBackground), so a
+-- strip is claimed for it with the library's ZeD.Surface.claim (which also cuts
+-- the claim to the clip in force: a head half scrolled out leaves no hole);
+-- UI.fill draws a strip and claims it. On any panel but the card these are
+-- plain fills.
 -- ---------------------------------------------------------------------------
-local MAX_CLAIMS = 48
 function UI.claim(card, x, y, w, h)
     local sp = card and card._srf
-    if not sp or w <= 0 or h <= 0 then return end
-    local c = sp._srfCur
-    if not c then c = { n = 0 }; sp._srfCur = c end
-    if c.n >= MAX_CLAIMS then return end
-    local b = c.n * 4
-    c[b + 1], c[b + 2], c[b + 3], c[b + 4] = x, y, x + w, y + h
-    c.n = c.n + 1
+    if not sp then return end
+    ZeD.Surface.claim(sp, x, y, w, h)
 end
 
 function UI.fill(card, x, y, w, h, token)
@@ -895,7 +892,15 @@ function ZeD_ObjectCard:drawBackground(w, h)
     local sp = self._srf
     if not sp then
         local card = self
-        sp = {}
+        -- The card's body surface: it stands in for a window to ZeD.Surface (the body and
+        -- the claims on it are in the card's own coordinates)
+        sp = {
+            isZeDWindow = true,
+            getWidth = function() return card:getWidth() end,
+            getHeight = function() return card:getHeight() end,
+            getAbsoluteX = function() return card:getAbsoluteX() end,
+            getAbsoluteY = function() return card:getAbsoluteY() end,
+        }
         -- (the pieces go through the library's fill, so the window leaves those rects alone too)
         sp.drawRect = function(_, px, py, pw, ph) A.surfaceFill(card, px, py, pw, ph, "surf1") end
         self._srf = sp

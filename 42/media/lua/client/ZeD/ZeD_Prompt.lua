@@ -591,17 +591,10 @@ function ZeD_Prompt:answerCancel()
     if self.no then self:press(self.no) end
 end
 
--- ---------------------------------------------------------------------------
--- ZeD_Window's per-frame work, without its close box: the small windows (this one, the
--- keyboard, Messages, the Reader, the seat chooser) answer their close box themselves, but
--- the window box's press and release and the resize edges are the window's.
--- ---------------------------------------------------------------------------
-function P.updateChrome(win)
-    local cb = win._closeBtnRect
-    win._closeBtnRect = nil
-    local ok, err = pcall(ZeD_Window.update, win)
-    win._closeBtnRect = cb
-    if not ok then error(err, 0) end
+-- the close box: the prompt's No (the window calls this on a press and release on the box)
+function ZeD_Prompt:closeAction()
+    sound("UIActivateButton")
+    self:answerCancel()
 end
 
 -- ---------------------------------------------------------------------------
@@ -1225,9 +1218,10 @@ function ZeD_Prompt:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
     local T = ZeD.T
     local tbH = self:titleBarHeight()
+    -- the close box and the window box answer on release (ZeD_Window:update): a press on
+    -- either does not drag
     local cb = self:closeRect()
-    if cb and inRect(cb, x, y) then self._down = "close"; return true end
-    -- the window box answers on release (P.updateChrome): a press on it does not drag
+    if cb and inRect(cb, x, y) then return true end
     if inRect(self:windowBoxRect(), x, y) then return true end
     if y < tbH then
         -- drag by the title bar (no window shade on a prompt)
@@ -1252,11 +1246,6 @@ function ZeD_Prompt:onMouseUp(x, y)
     self.moving = false
     local down = self._down
     self._down = nil
-    if down == "close" then
-        local cb = self:closeRect()
-        if cb and inRect(cb, x, y) then sound("UIActivateButton"); self:answerCancel() end
-        return true
-    end
     if down then
         local h = self:hitAt(x, y)
         if h and h.id == down then self:activate(down, h) end
@@ -1304,7 +1293,8 @@ function ZeD_Prompt:onMouseWheel(del)
 end
 
 function ZeD_Prompt:update()
-    P.updateChrome(self)
+    ZeD_Window.update(self)   -- the window box, the resize edges and the close box (closeAction)
+    if self._dead then return end   -- the close box answered it
     -- the controller that holds this prompt (a caller may set .focus without telling it)
     local jf = nil
     if JoypadState and JoypadState.players then
@@ -1318,13 +1308,10 @@ function ZeD_Prompt:update()
         self.joyfocus = jf
         if jf then self:buildFocusRows() end
     end
-    -- hover (the mouse's 0.22 cue), and the close box's
+    -- hover (the mouse's 0.22 cue)
     local x, y = self:getMouseX(), self:getMouseY()
     local h = self:hitAt(x, y)
     self._hover = h and h.id or nil
-    local cb = self:closeRect()
-    self._closeHover = cb and inRect(cb, x, y) or false
-    if self._closeHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
     -- vanilla's alarm closes when the character takes a step
     if self.kind == "alarm" and self.character and self.playerX then
         if math.abs(self.character:getX() - self.playerX) > 0.1 or math.abs(self.character:getY() - self.playerY) > 0.1 then

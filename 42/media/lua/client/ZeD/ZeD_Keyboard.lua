@@ -472,7 +472,7 @@ function ZeD_Keyboard:onMouseMove() end
 function ZeD_Keyboard:onMouseMoveOutside() end
 
 function ZeD_Keyboard:update()
-    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
+    ZeD_Window.update(self)   -- the window box and the resize edges (it has no close box)
     self._hover = self:keyAt(self:getMouseX(), self:getMouseY())
     local jd = self.joyfocus or self.joypadData
     if not jd or (jd.id or -1) < 0 then return end

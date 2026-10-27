@@ -567,10 +567,17 @@ function ZeD_Reader:hitAt(x, y)
     return nil
 end
 
+-- the close box (the window calls this on a press and release on the box)
+function ZeD_Reader:closeAction()
+    sound("UIActivateButton")
+    self:close()
+end
+
 function ZeD_Reader:onMouseDown(x, y)
     if not self:getIsVisible() then return true end
+    -- the close box answers on release (ZeD_Window:update): a press on it does not drag
     local cb = self:closeRect()
-    if cb and inRect(cb, x, y) then self._down = "close"; return true end
+    if cb and inRect(cb, x, y) then return true end
     if y < self:titleBarHeight() then return ZeD_Window.onMouseDown(self, x, y) end
     local h = self:hitAt(x, y)
     if h and h.drag then
@@ -599,11 +606,6 @@ function ZeD_Reader:onMouseUp(x, y)
     if self._drag then self._drag = nil; self:setCapture(false); return true end
     local down = self._down
     self._down = nil
-    if down == "close" then
-        local cb = self:closeRect()
-        if cb and inRect(cb, x, y) then sound("UIActivateButton"); self:close() end
-        return true
-    end
     local h = self:hitAt(x, y)
     if h and h.id == down and h.fn then sound("UIActivateButton"); h.fn() end
     return ZeD_Window.onMouseUp(self, x, y)
@@ -625,16 +627,13 @@ function ZeD_Reader:onMouseWheel(del)
 end
 
 function ZeD_Reader:update()
-    if ZeD.Prompt and ZeD.Prompt.updateChrome then ZeD.Prompt.updateChrome(self) else ISPanel.update(self) end   -- (the window box)
+    ZeD_Window.update(self)   -- the window box, the resize edges and the close box (closeAction)
     local h = self:hitAt(self:getMouseX(), self:getMouseY())
     -- the pointer's hover waits while the controller's mark shows (one cue at a time)
     local F = ZeD.Input and ZeD.Input.Focus
     local quiet = F and F.cuesVisible and F.cuesVisible()
     self._hot = (not quiet) and h and h.fn and h.id or nil
     if h and h.help and not quiet then ZeD.Help.set(self, h.help) end
-    local cb = self:closeRect()
-    self._closeHover = cb and inRect(cb, self:getMouseX(), self:getMouseY()) or false
-    if self._closeHover then ZeD.Help.set(self, ZeD.tr("UI_ZeD_WinMenu_CloseHelp")) end
     if self._jump and self._storyY then
         self.wscroll = math.max(0, (self._storyY[self._jump] or 0) - ZeD.T.px(10))
         self._jump = nil

@@ -1544,34 +1544,40 @@ local function renderItemList(self)
             end
         end
 
-        -- Name (truncated to column width), with stack prefix / suffix
+        -- Name (truncated to column width), with the stack's triangle / count
         local textY  = y + math.floor((rowH - bodyFH) / 2)
         local nameColor = focusTxt or (isSelected and T.toneHi or T.toneNorm)
         local baseName = item:getName() or "???"
-        local prefix = ""
         local suffix = ""
+        local chevW = 0
         if isStackHead then
+            -- a stack's triangle (right when folded, down when open, the category rows' atom) stands
+            -- left of its name; the press on it is the stack's zone below
             local expanded = self._expandedStacks and self._expandedStacks[stackInfo.key]
-            prefix = expanded and "v " or "> "
+            local tri = math.min(T.px(8), rowH - T.px(4))
+            local tcol = focusTxt or T.toneLo or T.textDim
+            local tx, ty = xOff + nameX + childIndent, y + math.floor((rowH - tri) / 2)
+            if expanded then A.drawTriangleDown(self, tx, ty, tri, tcol) else A.drawTriangleRight(self, tx, ty, tri, tcol) end
+            chevW = tri + T.px(6)
             suffix = " x" .. tostring(stackInfo.count)
         end
-        -- a cut name keeps its end: a stack's count survives ("> Apple (Fr... x6"; Large text audit)
-        local avail = nameW - childIndent
+        -- a cut name keeps its end: a stack's count survives ("Apple (Fr... x6"; Large text audit)
+        local avail = nameW - childIndent - chevW
         -- room kept for the Next level tag (it never drops off a long name) and, with COND hidden, the read mark
         local nextTag = rs and rs.next and ZeD.ReadMarks.nextOn() and ZeD.tr("UI_ZeD_Read_NextLevel") or nil
         local nextW = nextTag and tagW(nextTag) or 0
         if nextTag then avail = avail - nextW - T.px(6) end
         local dotW = (rs and not showCond) and ZeD.ReadMarks.markSize() or 0
         if dotW > 0 then avail = avail - dotW - T.px(6) end
-        local displayName = prefix .. baseName .. suffix
+        local displayName = baseName .. suffix
         if suffix ~= "" and ZeD.TM:MeasureStringX(T.fontF2, displayName) > avail then
-            displayName = truncateText(prefix .. baseName, T.fontF2, avail - ZeD.TM:MeasureStringX(T.fontF2, suffix)) .. suffix
+            displayName = truncateText(baseName, T.fontF2, avail - ZeD.TM:MeasureStringX(T.fontF2, suffix)) .. suffix
         else
             displayName = truncateText(displayName, T.fontF2, avail)
         end
-        dT(displayName, nameX + childIndent, textY,
+        dT(displayName, nameX + childIndent + chevW, textY,
             nameColor.r, nameColor.g, nameColor.b, (nameColor.a or 1) * dimA, T.fontF2)
-        local afterName = nameX + childIndent + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
+        local afterName = nameX + childIndent + chevW + ZeD.TM:MeasureStringX(T.fontF2, displayName) + T.px(6)
         if nextTag then
             rowTag(self, xOff + afterName, y, rowH, nextTag, focusTxt)
             afterName = afterName + nextW + T.px(6)

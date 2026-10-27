@@ -1299,8 +1299,7 @@ function ZeD_BeltHUD:_drawBox(b, o)
             lx = b.x + math.floor(rad + rad * 0.62 - d / 2) - T.px(2); ly = b.y + math.floor(rad - rad * 0.62 - d / 2) + T.px(2)
         end
         -- a lamp on a lit light: hardware, so it stays round (status marks are squares; a lamp is a lamp)
-        local wc = T.warningText
-        disc(self, lx, ly, d, wc.a or 1, wc)
+        ZeD.Atoms.drawLamp(self, lx, ly, d, T.warningText)
     end
     if o.state == "no" then fill(0.6, T.base) end
 end
