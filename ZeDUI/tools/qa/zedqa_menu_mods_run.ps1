@@ -17,7 +17,8 @@ param(
     [Parameter(Mandatory)][string]$ModList,
     [Parameter(Mandatory)][string]$Script,
     [Parameter(Mandatory)][string]$Tag,
-    [int]$TimeoutSec = 300
+    [int]$TimeoutSec = 300,
+    [string]$Maps = ""   # (Oct 26 2026, compat round 3) a file of map folder names for default.txt's maps section (Muldraugh, KY added last)
 )
 $ErrorActionPreference = "Stop"
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
@@ -45,8 +46,10 @@ $keepDefault = Read-T $Default
 $keepOptions = Read-T $ModOptions
 $keepAuto = Read-T (Join-Path $Lua "zedqa.autoload")
 try {
+    $mapLines = ""
+    if ($Maps) { $mapLines = ((@(Get-Content $Maps | ForEach-Object { $_.Trim() } | Where-Object { $_ }) + @("Muldraugh, KY") | ForEach-Object { "    map = $_," }) -join "`r`n") + "`r`n" }
     $ids = @(Get-Content $ModList | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne "ZeD_UI" }) + @("ZeD_UI")
-    Write-T $Default ("VERSION = 1,`r`n`r`nmods`r`n{`r`n" + (($ids | ForEach-Object { "    mod = $_," }) -join "`r`n") + "`r`n}`r`n`r`nmaps`r`n{`r`n}`r`n")
+    Write-T $Default ("VERSION = 1,`r`n`r`nmods`r`n{`r`n" + (($ids | ForEach-Object { "    mod = $_," }) -join "`r`n") + "`r`n}`r`n`r`nmaps`r`n{`r`n" + $mapLines + "}`r`n")
     $lines = @(($keepOptions -split "\r?\n") | Where-Object { $_ -ne "" -and $_ -notmatch '\|ZeD_UI\|uiScale\|' }) + @("combobox|ZeD_UI|uiScale|7")
     Write-T $ModOptions (($lines -join "`r`n") + "`r`n")
     Write-T (Join-Path $Lua "zedqa.autoload") "0"

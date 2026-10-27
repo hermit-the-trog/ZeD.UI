@@ -1,0 +1,2 @@
+zedqa_prelude.lua | pre
+zedqa_r3_srm.lua | srm | timeout=120
