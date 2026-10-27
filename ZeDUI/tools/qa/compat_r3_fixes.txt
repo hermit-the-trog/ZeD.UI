@@ -1,0 +1,4 @@
+zedqa_prelude.lua | pre
+zedqa_r3_fixes.lua | fix | timeout=240
+zedqa_quick_chords.lua | qc | timeout=300
+zedqa_messages.lua | msg | timeout=300 | expect=qaMessagesError
