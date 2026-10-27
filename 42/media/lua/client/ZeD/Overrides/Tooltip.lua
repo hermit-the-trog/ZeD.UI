@@ -284,76 +284,31 @@ local function applyTooltipOverrides()
         if not T or not T.base or Safe.on() then
             return _vanilla_inv_render(self)
         end
-
-        -- Vanilla behavior: skip inventory tooltip rendering while a context menu
-        -- is actively drawing (visibleCheck is set true during ISContextMenu:render).
-        -- The entire positioning + drawing block is inside this guard; the matching
-        -- `end` is at the bottom of the function, tagged "context menu guard".
-        if not ISContextMenu.instance or not ISContextMenu.instance.visibleCheck then
-
-        -- S124 scale: vanilla positioning of the Java-drawn item tooltip (DoTooltip is unscaled); offsets stay vanilla px
-        local mx = getMouseX() + 24
-        local my = getMouseY() + 24
-        if not self.followMouse then
-            mx = self:getX()
-            my = self:getY()
-            if self.anchorBottomLeft then
-                mx = self.anchorBottomLeft.x
-                my = self.anchorBottomLeft.y
+        -- The game's render, and every mod's wrapper around it (More Item Information,
+        -- Starlit Library's lines, This Is Me ...), runs as it is: they add their lines by
+        -- wrapping render and the calls it makes (setHeight, drawRectBorder). ZeD only
+        -- swaps the plain background and border the game draws at 0,0 for its box.
+        local baseRect, baseBorder = self.drawRect, self.drawRectBorder
+        local hadRect, hadBorder = rawget(self, "drawRect"), rawget(self, "drawRectBorder")
+        local boxed, inBox = false, false
+        self.drawRect = function(s, x, y, ...)
+            if not inBox and not boxed and x == 0 and y == 0 then
+                boxed, inBox = true, true
+                local bg, bgA = tipSkin(T)
+                local ok, err = pcall(drawBox, s, T, bg, bgA)
+                inBox = false
+                if not ok then ZeD.logOnce("Tooltip: box failed", err) end
+                return
             end
+            return baseRect(s, x, y, ...)
         end
-
-        local PADX = 0
-        self.tooltip:setX(mx + PADX)
-        self.tooltip:setY(my)
-
-        self.tooltip:setWidth(50)
-        self.tooltip:setMeasureOnly(true)
-        if self.item then self.item:DoTooltip(self.tooltip) end
-        self.tooltip:setMeasureOnly(false)
-
-        local myCore = getCore()
-        local maxX = myCore:getScreenWidth()
-        local maxY = myCore:getScreenHeight()
-        local tw = self.tooltip:getWidth()
-        local th = self.tooltip:getHeight()
-
-        -- (one hairline short of the screen's edge, so the frame's last line and the shadow show)
-        local edge = T.hair
-        self.tooltip:setX(math.max(0, math.min(mx + PADX, maxX - tw - edge)))
-        if not self.followMouse and self.anchorBottomLeft then
-            self.tooltip:setY(math.max(0, math.min(my - th, maxY - th - edge)))
-        else
-            self.tooltip:setY(math.max(0, math.min(my, maxY - th - edge)))
+        self.drawRectBorder = function(s, x, y, ...)
+            if not inBox and boxed and x == 0 and y == 0 then return end   -- (the box has its frame)
+            return baseBorder(s, x, y, ...)
         end
-
-        if self.contextMenu and self.contextMenu.joyfocus then
-            local playerNum = self.contextMenu.player
-            self.tooltip:setX(getPlayerScreenLeft(playerNum) + T.px(60))
-            self.tooltip:setY(getPlayerScreenTop(playerNum) + T.px(60))
-        elseif self.contextMenu and self.contextMenu.currentOptionRect then
-            if self.contextMenu.currentOptionRect.height > 32 then
-                self:setY(my + self.contextMenu.currentOptionRect.height)
-            end
-            self:adjustPositionToAvoidOverlap(self.contextMenu.currentOptionRect)
-        end
-
-        self:setX(self.tooltip:getX() - PADX)
-        self:setY(self.tooltip:getY())
-        self:setWidth(tw + PADX)
-        self:setHeight(th)
-
-        if self.followMouse and (self.contextMenu == nil) then
-            self:adjustPositionToAvoidOverlap({ x = mx - 48, y = my - 48, width = 48, height = 48 })
-        end
-
-        -- Background + frame + shadow with ZeD tokens (the light theme's dark plate: tipSkin)
-        local bg, bgA = tipSkin(T)
-        drawBox(self, T, bg, bgA)
-
-        if self.item then self.item:DoTooltip(self.tooltip) end
-
-        end -- context menu guard
+        local ok, err = pcall(_vanilla_inv_render, self)
+        self.drawRect, self.drawRectBorder = hadRect, hadBorder
+        if not ok then error(err) end
     end
 
     -- ========================================================================

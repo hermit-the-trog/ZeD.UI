@@ -42,12 +42,17 @@ end
 -- of the other mod that opened it (ZeD.Messages.caller: nil for the game and ZeD), so its
 -- note can be kept in Messages and its answer copied there (ZeD_Messages.lua). onlyKept:
 -- a class built as a ZeD prompt only when its note is about to be kept (else vanilla's).
+local hooked = {}   -- the classes ZeD wraps (rewrap checks them)
 local function hookNew(cls, name, build, onlyKept)
     if type(cls) ~= "table" or cls._zedPromptHooked then return end
     cls._zedPromptHooked = true
     local orig = cls.new
     cls._zedOrigNew = orig
-    cls.new = function(self, ...)
+    hooked[#hooked + 1] = cls
+    -- another mod may set cls.new after this (Neat Rocco's UI does, from its options): rewrap
+    -- then wraps that one, so ZeD's prompt and Messages still come first
+    cls._zedSetOrig = function(f) orig = f; cls._zedOrigNew = f end
+    cls._zedPromptNew = function(self, ...)
         if self == cls and ready() then
             local src = nil
             if ZeD.Messages and ZeD.Messages.caller then
@@ -60,6 +65,18 @@ local function hookNew(cls, name, build, onlyKept)
             if not ok then print("[ZeD] Prompts: " .. name .. " kept vanilla's: " .. tostring(o)) end
         end
         return orig(self, ...)
+    end
+    cls.new = cls._zedPromptNew
+end
+
+local function rewrap()
+    for i = 1, #hooked do
+        local cls = hooked[i]
+        local cur = cls.new
+        if cur ~= cls._zedPromptNew and type(cur) == "function" then
+            cls._zedSetOrig(cur)
+            cls.new = cls._zedPromptNew
+        end
     end
 end
 
@@ -172,3 +189,6 @@ end
 
 if Events and Events.OnGameBoot then Events.OnGameBoot.Add(apply) end
 apply()
+-- (a cheap look each frame, in game and at the main menu)
+if Events and Events.OnTick then Events.OnTick.Add(rewrap) end
+if Events and Events.OnFETick then Events.OnFETick.Add(rewrap) end
