@@ -1,0 +1,38 @@
+VERSION = 1,
+
+mods
+{
+    mod = CombatText,
+    mod = MoodleFramework,
+    mod = DynamicTraits,
+    mod = moodle_quarters,
+    mod = ModLoadOrderSorter_b42,
+    mod = ModManager,
+    mod = moodlesinlua,
+    mod = BiggerCharacterAvatarLarge,
+    mod = DynamicMoodles,
+    mod = CHStatusHUD,
+    mod = MinimalDisplayBarsNutritionsB42,
+    mod = MiniHealthPlus,
+    mod = SurvivalHUD,
+    mod = LuaDigitalWatchUI,
+    mod = CombatTextPatch,
+    mod = NestedHealthInfo,
+    mod = KAMER_WallHealth,
+    mod = BB_StairsAlert,
+    mod = LargeProgressIndicator,
+    mod = B42MoodleDescriptionsExpanded,
+    mod = simpleStatusFixed,
+    mod = SimpleMoodleIndicators,
+    mod = InjuryIndicator,
+    mod = SimpleShowXP,
+    mod = ConeVisionOutline,
+    mod = PixelStrikeIndicator,
+    mod = HeartHealthMeter,
+    mod = WoundExpansion,
+    mod = ZeD_UI,
+}
+
+maps
+{
+}
