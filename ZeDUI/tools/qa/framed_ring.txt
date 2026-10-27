@@ -1,0 +1,5 @@
+# ZeDUI/tools/qa/framed_ring.txt  (Oct 27 2026)
+# The belt hands' framed condition ring and the action bar's framed strip:
+# zedqa_run.ps1 -Mode fullscreen4k -Manifest .../framed_ring.txt
+zedqa_prelude.lua | pre                                  # opens both windows, unpauses, god mode
+zedqa_framed_ring.lua | fr | timeout=240                 # hands at 80/45/15/1 per cent, high contrast, Large, both hands; the action bar queue and done

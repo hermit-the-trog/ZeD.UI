@@ -7,6 +7,7 @@
 --   02 dark / small: main 15 (red), off at one point of condition (the two-unit least fill)
 --   03 high contrast / small: 80 / 45 (two-hairline frames)
 --   04 dark / large: 80 / 45
+--   07 dark / small: the hammer in both hands (the off hand faded, with Both)
 --   05 the action bar: three "checking" steps queued, caught in the second (fill + step lines)
 --   06 the action bar just after the queue ends (Done, the strip full in the positive colour)
 -- Each shot's line gives the boxes' screen rects for cropping. Puts back the theme, the size, the
@@ -76,6 +77,10 @@ step(60, function() setCond(main, 0.80); setCond(off, 0.45); ZeD.applyTheme("hic
 step(20, function() say("03 " .. rects()); shot("03_hicon") end)
 step(60, function() ZeD.applyTheme("dark", nil, "large") end)
 step(20, function() say("04 " .. rects()); shot("04_dark_large") end)
+-- 07: one item in both hands (the off hand shows it faded with Both), dark / small
+step(60, function() ZeD.applyTheme("dark", nil, "small"); p:setSecondaryHandItem(main) end)
+step(20, function() say("07 " .. rects()); shot("07_both_hands") end)
+step(20, function() p:setSecondaryHandItem(off) end)
 
 -- the action bar: three steps queued
 local Check = ISBaseTimedAction:derive("ISCheckGearAction")
