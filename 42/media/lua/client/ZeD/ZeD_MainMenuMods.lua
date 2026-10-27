@@ -123,11 +123,19 @@ function ZeD_MMMods:onShow()
     self._picksRefreshed = wrote > 0
 end
 
--- the mods the list shows: vanilla's sorted records, through the tab and Find (plain text)
+-- the mods the list shows: vanilla's sorted records, through the tab and Find (plain text).
+-- Kept while the tab, Find and the records stay the same (a list of 1300+ mods filtered every
+-- frame cost the screen its frame rate; Oct 27 2026), and for a moment at most
+local ROWS_MS = 500
 function ZeD_MMMods:rows()
     local m = model()
     if not m then return {} end
     local q = string.lower(tostring(self.find:getInternalText() or ""))
+    local src = m.sortedMods
+    local c = self._rowsC
+    if c and c.src == src and c.n == #(src or {}) and c.q == q and c.filter == self.filter and MM.now() - c.at < ROWS_MS then
+        return c.out
+    end
     local out = {}
     for _, d in ipairs(m.sortedMods or {}) do
         local keep = true
@@ -144,12 +152,14 @@ function ZeD_MMMods:rows()
         end
         if keep then out[#out + 1] = d end
     end
+    self._rowsC = { src = src, n = #(src or {}), q = q, filter = self.filter, out = out, at = MM.now() }
     return out
 end
 
 -- counts and profile comparisons run several times a frame: kept for a moment, dropped on any change
+-- (the rows, each mod's problem, the band's pending line and the map check too)
 local CACHE_MS = 150
-function ZeD_MMMods:dirty() self._cnt, self._diffs = nil, nil end
+function ZeD_MMMods:dirty() self._cnt, self._diffs, self._rowsC, self._probC, self._pendC, self._mapC = nil, nil, nil, nil, nil, nil end
 
 function ZeD_MMMods:counts()
     local c = self._cnt
@@ -203,8 +213,17 @@ function ZeD_MMMods:rowChips(d)
 end
 
 -- what the changes on the screen need, in a sentence for the band; nil = nothing pending.
--- restart = true when a running mod was updated by Steam (its pictures stay old until a restart)
+-- restart = true when a running mod was updated by Steam (its pictures stay old until a restart).
+-- Kept for a moment like the counts (it walks every installed mod)
 function ZeD_MMMods:pending()
+    local c = self._pendC
+    if c and MM.now() - c.at < CACHE_MS then return c[1], c[2] end
+    local text, restart = self:pendingNow()
+    self._pendC = { text, restart, at = MM.now() }
+    return text, restart
+end
+
+function ZeD_MMMods:pendingNow()
     local m = model()
     if not m then return nil end
     local turnedOn, turnedOff = 0, 0
@@ -246,10 +265,24 @@ function ZeD_MMMods:selected()
     return m and self.sel and m.mods[self.sel] or nil
 end
 
--- why a mod cannot be turned on (nil = it can): vanilla's isAvailable / isIncompatible, in words
+-- why a mod cannot be turned on (nil = it can): vanilla's isAvailable / isIncompatible, in words.
+-- Kept per mod for a moment (the counts and the Problems tab ask for every installed mod); any
+-- change on the screen drops it (dirty)
+local PROB_MS = 1000
 function ZeD_MMMods:problem(d)
-    local m = model()
     if not d then return nil end
+    local c = self._probC
+    if not c or MM.now() - c.at > PROB_MS then c = { at = MM.now(), v = {} }; self._probC = c end
+    local v = c.v[d]
+    if v == nil then
+        v = self:problemNow(d) or false
+        c.v[d] = v
+    end
+    return v or nil
+end
+
+function ZeD_MMMods:problemNow(d)
+    local m = model()
     local ok, self_ = pcall(function() return d.modInfo:isAvailableSelf() end)
     if ok and self_ == false then
         local vmin, vmax = "", ""
@@ -314,6 +347,7 @@ function ZeD_MMMods:toggleFav(d)
     local m = model()
     if not (m and d) then return end
     m:setFavorite(d.modId, (not d.favorite) and true or nil)
+    self:dirty()
     MM.clickSound()
 end
 
@@ -1064,8 +1098,13 @@ function ZeD_MMMods:buildStrip(stripY, stripH, w)
             { { "auto", ZeD.tr("UI_ZeD_Mods_BtnAuto"), function() self:autoSort() end, "default", self.page ~= "order" },
               { "done", getText("UI_mods_Done"), function() self:leaveOrder(true) end, "primary", self.page == "order" and firstBad ~= nil } })
     else
-        local mapConflicts = false
-        pcall(function() mapConflicts = m and m:checkMapConflicts() or false end)
+        local mc = self._mapC
+        if not mc or MM.now() - mc.at > CACHE_MS then
+            mc = { v = false, at = MM.now() }
+            pcall(function() mc.v = m and m:checkMapConflicts() or false end)
+            self._mapC = mc
+        end
+        local mapConflicts = mc.v
         local lefts = { { "back", getText("UI_btn_back"), function() self:back() end } }
         local rights = {
             { "profiles", ZeD.tr("UI_ZeD_Mods_BtnProfiles"), function() self:enterProfiles() end },
@@ -1175,10 +1214,21 @@ function ZeD_MMMods:drawList(x, y, w, h)
         ZeD.Molecules.drawEmptyLine(self, x + T.px(12), vy + T.px(8), w - T.px(24), msg)
     end
     self:setStencilRect(x + T.px(1), vy, w - T.px(2), vh)
+    -- every row has its controller spec (the focus walks the whole list); made once per record and
+    -- kept while the records are, not 1300 new tables and closures a frame
+    local m = model()
+    if self._rowSpecsFor ~= (m and m.sortedMods) then self._rowSpecs, self._rowSpecsFor = {}, m and m.sortedMods end
+    local specs = self._rowSpecs
     for i, d in ipairs(rows) do
         local ry = vy + (i - 1) * rh - self.scroll
-        local rid = "mrow:" .. d.modId
-        self._specs[#self._specs + 1] = { id = rid, listRow = true, row = i, col = 1, fn = function() self:toggle(d) end, key = d.modId, ry = (i - 1) * rh, rh = rh }
+        local sp = specs[d]
+        if not sp then
+            sp = { id = "mrow:" .. d.modId, listRow = true, col = 1, fn = function() self:toggle(d) end, key = d.modId }
+            specs[d] = sp
+        end
+        sp.row, sp.ry, sp.rh = i, (i - 1) * rh, rh
+        local rid = sp.id
+        self._specs[#self._specs + 1] = sp
         if ry + rh > vy and ry < vy + vh then
             local isSel = d.modId == self.sel
             local onFocus = MM.rowLook(self, x + T.px(1), ry, rw, rh, isSel, (not gp) and MM.ctx.hot == "mods:row:" .. d.modId, gp and self.focusId == rid)
